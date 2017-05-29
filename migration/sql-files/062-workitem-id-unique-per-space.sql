@@ -38,14 +38,14 @@ UPDATE work_item_link_revisions SET work_item_link_target_id = w.id FROM work_it
 UPDATE work_item_revisions SET work_item_id = w.id FROM work_items w WHERE w.number = work_item_revisions.work_item_id_old;
 UPDATE comments SET parent_id = w.id FROM work_items w WHERE w.number::text = comments.parent_id;
 
--- DROP old COLUMNs
+-- Drop old columns
 ALTER TABLE work_item_links DROP COLUMN "source_id_old";
 ALTER TABLE work_item_links DROP COLUMN "target_id_old";
 ALTER TABLE work_item_revisions DROP COLUMN "work_item_id_old";
 ALTER TABLE work_item_link_revisions DROP COLUMN "work_item_link_source_id_old";
 ALTER TABLE work_item_link_revisions DROP COLUMN "work_item_link_target_id_old";
 
--- recreate CONSTRAINTs and TRIGGERs
+-- recreate constraints, FK and triggers
 ALTER TABLE work_items ADD CONSTRAINT work_items_pkey PRIMARY KEY (id);
 ALTER TABLE work_item_links ADD CONSTRAINT work_item_links_source_id_fkey FOREIGN KEY (source_id) REFERENCES work_items(id) ON DELETE CASCADE;
 ALTER TABLE work_item_links ADD CONSTRAINT work_item_links_target_id_fkey FOREIGN KEY (target_id) REFERENCES work_items(id) ON DELETE CASCADE;
@@ -57,6 +57,7 @@ CREATE TABLE work_item_number_sequences (
     space_id uuid primary key,
     current_val integer not null
 );
+ALTER TABLE work_item_number_sequences ADD CONSTRAINT "work_item_number_sequences_space_id_fkey" FOREIGN KEY (space_id) REFERENCES spaces(id) ON DELETE CASCADE
 
 -- fill the work item ID sequence table with the current 'max' value of issue 'number'
 INSERT INTO work_item_number_sequences (space_id, current_val) (select space_id, max(number) FROM work_items group by space_id);

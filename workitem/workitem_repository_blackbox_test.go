@@ -9,7 +9,6 @@ import (
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/iteration"
-	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
@@ -285,48 +284,4 @@ func (s *workItemRepoBlackBoxTest) TestCodebaseAttributes() {
 	assert.Equal(s.T(), branch, cb.Branch)
 	assert.Equal(s.T(), file, cb.FileName)
 	assert.Equal(s.T(), line, cb.LineNumber)
-}
-
-// TestCreateMultipleWIs create multiple work items in parallel in different spaces to be sure that the implementation supports
-// concurrent writes (micro stress test)
-func (s *workItemRepoBlackBoxTest) TestCreateMultipleWIs() {
-	// given
-	spaceCount := 2
-	workitemsPerSpace := 2
-	results := make(chan bool)
-	// when
-
-	for i := 0; i < spaceCount; i++ {
-		spaceID := uuid.NewV4()
-		for j := 0; j < workitemsPerSpace; j++ {
-			go func() {
-				// when
-				_, err := s.repo.Create(
-					s.ctx, spaceID, workitem.SystemPlannerItem,
-					map[string]interface{}{
-						workitem.SystemTitle: "title",
-						workitem.SystemState: workitem.SystemStateNew,
-					}, s.creatorID)
-
-				// then
-				if err != nil {
-					// problem occurred
-					s.T().Log("Work item creation failed:", err.Error())
-					results <- false
-				} else {
-					// work item was created
-					log.Info(nil, nil, "Work item creation succeeded")
-					results <- true
-				}
-			}()
-		}
-	}
-	// then expect (spaceCount * workitemsPerSpace) responses
-	allGood := true
-	for r := 0; r < (spaceCount * workitemsPerSpace); r++ {
-		result := <-results
-		log.Info(nil, nil, fmt.Sprintf("Work item creation result #%d/%d: %t", r, (spaceCount*workitemsPerSpace), result))
-		allGood = allGood && result
-	}
-	assert.True(s.T(), allGood)
 }

@@ -55,7 +55,8 @@ func TestSuiteWorkItem1(t *testing.T) {
 type WorkItemSuite struct {
 	gormtestsupport.DBTestSuite
 	clean          func()
-	controller     app.WorkitemController
+	workitemCtrl   app.WorkitemController
+	spaceCtrl      app.SpaceController
 	pubKey         *rsa.PublicKey
 	priKey         *rsa.PrivateKey
 	svc            *goa.Service
@@ -90,18 +91,21 @@ func (s *WorkItemSuite) SetupTest() {
 	s.testIdentity = testIdentity
 
 	s.svc = testsupport.ServiceAsUser("TestUpdateWI-Service", almtoken.NewManagerWithPrivateKey(s.priKey), s.testIdentity)
-	s.controller = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	s.workitemCtrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	s.spaceCtrl = NewSpaceController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration, &DummyResourceManager{})
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
+	log.Info(nil, nil, "Creating work item during test setup...")
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	log.Info(nil, nil, "Creating work item during test setup: done")
 	s.wi = wi.Data
 	s.minimumPayload = getMinimumRequiredUpdatePayload(s.wi)
 }
 
 func (s *WorkItemSuite) TestGetWorkItemWithLegacyDescription() {
 	// given
-	_, wi := test.ShowWorkitemOK(s.T(), nil, nil, s.controller, *s.wi.Relationships.Space.Data.ID, *s.wi.ID, nil, nil)
+	_, wi := test.ShowWorkitemOK(s.T(), nil, nil, s.workitemCtrl, *s.wi.Relationships.Space.Data.ID, *s.wi.ID, nil, nil)
 	require.NotNil(s.T(), wi)
 	assert.Equal(s.T(), s.wi.ID, wi.Data.ID)
 	assert.NotNil(s.T(), wi.Data.Attributes[workitem.SystemCreatedAt])
@@ -113,7 +117,7 @@ func (s *WorkItemSuite) TestGetWorkItemWithLegacyDescription() {
 	payload2 := minimumRequiredUpdatePayload()
 	payload2.Data.ID = wi.Data.ID
 	payload2.Data.Attributes = wi.Data.Attributes
-	_, updated := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.controller, *payload2.Data.Relationships.Space.Data.ID, *wi.Data.ID, &payload2)
+	_, updated := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload2.Data.Relationships.Space.Data.ID, *wi.Data.ID, &payload2)
 	// then
 	assert.NotNil(s.T(), updated.Data.Attributes[workitem.SystemCreatedAt])
 	assert.Equal(s.T(), (s.wi.Attributes["version"].(int) + 1), updated.Data.Attributes["version"])
@@ -128,7 +132,7 @@ func (s *WorkItemSuite) TestCreateWI() {
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	// when
-	_, created := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, created := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	// then
 	require.NotNil(s.T(), created.Data.ID)
 	assert.NotEmpty(s.T(), *created.Data.ID)
@@ -145,10 +149,10 @@ func (s *WorkItemSuite) TestReorderWorkitemAboveOK() {
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
 
 	// This workitem is created but not used to clearly test that the reorder workitem is moved between **two** workitems i.e. result1 and result2 and not to the **top** of the list
-	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
+	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 
-	_, result2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
-	_, result3 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result3 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	payload2 := minimumRequiredReorderPayload()
 
 	var dataArray []*app.WorkItem // dataArray contains the workitem(s) that have to be reordered
@@ -156,7 +160,7 @@ func (s *WorkItemSuite) TestReorderWorkitemAboveOK() {
 	payload2.Data = dataArray
 	payload2.Position.ID = result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
 	payload2.Position.Direction = string(workitem.DirectionAbove)
-	_, reordered1 := test.ReorderWorkitemOK(s.T(), s.svc.Context, s.svc, s.controller, space.SystemSpace, &payload2) // Returns the workitems which are reordered
+	_, reordered1 := test.ReorderWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, space.SystemSpace, &payload2) // Returns the workitems which are reordered
 
 	require.Len(s.T(), reordered1.Data, 1) // checks the correct number of workitems reordered
 	assert.Equal(s.T(), result3.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
@@ -170,11 +174,11 @@ func (s *WorkItemSuite) TestReorderWorkitemBelowOK() {
 	payload.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
 
-	_, result1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
-	_, result2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 
 	// This workitem is created but not used to clearly demonstrate that the reorder workitem is moved between **two** workitems i.e. result2 and result3 and not to the **bottom** of the list
-	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
+	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 
 	payload2 := minimumRequiredReorderPayload()
 
@@ -184,7 +188,7 @@ func (s *WorkItemSuite) TestReorderWorkitemBelowOK() {
 	payload2.Position.ID = result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
 	payload2.Position.Direction = string(workitem.DirectionBelow)
 
-	_, reordered1 := test.ReorderWorkitemOK(s.T(), s.svc.Context, s.svc, s.controller, space.SystemSpace, &payload2) // Returns the workitems which are reordered
+	_, reordered1 := test.ReorderWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, space.SystemSpace, &payload2) // Returns the workitems which are reordered
 
 	require.Len(s.T(), reordered1.Data, 1) // checks the correct number of workitems reordered
 	assert.Equal(s.T(), result1.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
@@ -199,15 +203,15 @@ func (s *WorkItemSuite) TestReorderWorkitemTopOK() {
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
 	// There are two workitems in the list -> result1 and result2
 	// In this case, we reorder result2 to the top of the list i.e. above result1
-	_, result1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
-	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	payload2 := minimumRequiredReorderPayload()
 
 	var dataArray []*app.WorkItem // dataArray contains the workitem(s) that have to be reordered
 	dataArray = append(dataArray, result1.Data)
 	payload2.Data = dataArray
 	payload2.Position.Direction = string(workitem.DirectionTop)
-	_, reordered1 := test.ReorderWorkitemOK(s.T(), s.svc.Context, s.svc, s.controller, space.SystemSpace, &payload2) // Returns the workitems which are reordered
+	_, reordered1 := test.ReorderWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, space.SystemSpace, &payload2) // Returns the workitems which are reordered
 
 	require.Len(s.T(), reordered1.Data, 1) // checks the correct number of workitems reordered
 	assert.Equal(s.T(), result1.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
@@ -223,8 +227,8 @@ func (s *WorkItemSuite) TestReorderWorkitemBottomOK() {
 
 	// There are two workitems in the list -> result1 and result2
 	// In this case, we reorder result1 to the bottom of the list i.e. below result2
-	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
-	_, result2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
+	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	payload2 := minimumRequiredReorderPayload()
 
 	var dataArray []*app.WorkItem // dataArray contains the workitem(s) that have to be reordered
@@ -232,7 +236,7 @@ func (s *WorkItemSuite) TestReorderWorkitemBottomOK() {
 	payload2.Data = dataArray
 	payload2.Position.Direction = string(workitem.DirectionBottom)
 
-	_, reordered1 := test.ReorderWorkitemOK(s.T(), s.svc.Context, s.svc, s.controller, space.SystemSpace, &payload2) // Returns the workitems which are reordered
+	_, reordered1 := test.ReorderWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, space.SystemSpace, &payload2) // Returns the workitems which are reordered
 
 	require.Len(s.T(), reordered1.Data, 1) // checks the correct number of workitems reordered
 	assert.Equal(s.T(), result2.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
@@ -246,10 +250,10 @@ func (s *WorkItemSuite) TestReorderMultipleWorkitems() {
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
 	payload.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
-	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
-	_, result2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
-	_, result3 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
-	_, result4 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
+	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result3 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result4 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	payload2 := minimumRequiredReorderPayload()
 	var dataArray []*app.WorkItem // dataArray contains the workitems that have to be reordered
 	dataArray = append(dataArray, result3.Data, result4.Data)
@@ -257,7 +261,7 @@ func (s *WorkItemSuite) TestReorderMultipleWorkitems() {
 	payload2.Position.ID = result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
 	payload2.Position.Direction = string(workitem.DirectionAbove)
 	// when
-	_, reordered1 := test.ReorderWorkitemOK(s.T(), s.svc.Context, s.svc, s.controller, space.SystemSpace, &payload2) // Returns the workitems which are reordered
+	_, reordered1 := test.ReorderWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, space.SystemSpace, &payload2) // Returns the workitems which are reordered
 	// then
 	require.NotNil(s.T(), reordered1)
 	require.NotNil(s.T(), reordered1.Data)
@@ -273,7 +277,7 @@ func (s *WorkItemSuite) TestReorderWorkitemBadRequestOK() {
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
 	payload.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
-	_, result1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	payload2 := minimumRequiredReorderPayload()
 
 	// This case gives empty dataArray as input
@@ -284,7 +288,7 @@ func (s *WorkItemSuite) TestReorderWorkitemBadRequestOK() {
 	payload2.Data = dataArray
 	payload2.Position.ID = result1.Data.ID
 	payload2.Position.Direction = string(workitem.DirectionAbove)
-	test.ReorderWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.controller, space.SystemSpace, &payload2)
+	test.ReorderWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.workitemCtrl, space.SystemSpace, &payload2)
 }
 
 // TestReorderWorkitemNotFound is negative test which tests unsuccessful reorder by providing invalid input
@@ -292,7 +296,7 @@ func (s *WorkItemSuite) TestReorderWorkitemNotFoundOK() {
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
 	payload.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
-	_, result1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	payload2 := minimumRequiredReorderPayload()
 
 	// This case gives id of workitem in position.ID which is not present in db as input
@@ -305,7 +309,7 @@ func (s *WorkItemSuite) TestReorderWorkitemNotFoundOK() {
 	randomID := uuid.NewV4()
 	payload2.Position.ID = &randomID
 	payload2.Position.Direction = string(workitem.DirectionAbove)
-	test.ReorderWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.controller, space.SystemSpace, &payload2)
+	test.ReorderWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.workitemCtrl, space.SystemSpace, &payload2)
 }
 
 // TestUpdateWorkitemWithoutReorder tests that when workitem is updated, execution order of workitem doesnot change.
@@ -315,14 +319,14 @@ func (s *WorkItemSuite) TestUpdateWorkitemWithoutReorder() {
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 
 	// Update the workitem
 	wi.Data.Attributes[workitem.SystemTitle] = "Updated Test WI"
 	payload2 := minimumRequiredUpdatePayload()
 	payload2.Data.ID = wi.Data.ID
 	payload2.Data.Attributes = wi.Data.Attributes
-	_, updated := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, *wi.Data.ID, &payload2)
+	_, updated := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, *wi.Data.ID, &payload2)
 
 	assert.Equal(s.T(), *wi.Data.ID, *updated.Data.ID)
 	assert.Equal(s.T(), (s.wi.Attributes["version"].(int) + 1), updated.Data.Attributes["version"])
@@ -339,7 +343,7 @@ func (s *WorkItemSuite) TestCreateWorkItemWithoutContext() {
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	// when/then
-	test.CreateWorkitemUnauthorized(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
+	test.CreateWorkitemUnauthorized(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 }
 
 func (s *WorkItemSuite) TestListByFields() {
@@ -347,19 +351,19 @@ func (s *WorkItemSuite) TestListByFields() {
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
 	payload.Data.Attributes[workitem.SystemTitle] = "run integration test"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
-	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
+	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	// when
 	filter := "{\"system.title\":\"run integration test\"}"
 	offset := "0"
 	limit := 1
-	_, result := test.ListWorkitemOK(s.T(), nil, nil, s.controller, *payload.Data.Relationships.Space.Data.ID, &filter, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	_, result := test.ListWorkitemOK(s.T(), nil, nil, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &filter, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
 	// then
 	require.NotNil(s.T(), result)
 	require.Equal(s.T(), 1, len(result.Data))
 	// when
 	filter = fmt.Sprintf("{\"system.creator\":\"%s\"}", s.testIdentity.ID.String())
 	// then
-	_, result = test.ListWorkitemOK(s.T(), nil, nil, s.controller, *payload.Data.Relationships.Space.Data.ID, &filter, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	_, result = test.ListWorkitemOK(s.T(), nil, nil, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &filter, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
 	require.NotNil(s.T(), result)
 	require.Equal(s.T(), 1, len(result.Data))
 }
@@ -2516,4 +2520,51 @@ func (s *workItemChildSuite) TestWorkItemListFilterByNoParents() {
 		assert.Len(t, result2.Data, 3)
 	})
 
+}
+
+// TestCreateMultipleWIs create multiple work items in parallel in different spaces to be sure that the implementation supports
+// concurrent writes (micro stress test)
+func (s *WorkItemSuite) TestCreateMultipleWIs() {
+	// given
+	spaceCount := 4
+	workitemsPerSpace := 4
+	results := make(chan bool)
+	// when
+	for i := 0; i < spaceCount; i++ {
+		// Create space
+		spacePayload := CreateSpacePayload("test-space"+uuid.NewV4().String(), "description")
+		_, testSpace := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, spacePayload)
+		log.Info(nil, nil, "Created space with ID %v", *testSpace.Data.ID)
+		for j := 0; j < workitemsPerSpace; j++ {
+			go func() {
+				payload := minimumRequiredCreateWithTypeAndSpace(workitem.SystemBug, *testSpace.Data.ID)
+				payload.Data.Attributes[workitem.SystemTitle] = "Test WI" + uuid.NewV4().String()
+				payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+
+				log.Info(nil, nil, "Creating a work item in space %v", *payload.Data.Relationships.Space.Data.ID)
+				// each go routine needs its own goa service.
+				svc := testsupport.ServiceAsUser("TestUpdateWI-Service", almtoken.NewManagerWithPrivateKey(s.priKey), s.testIdentity)
+				// when using a work item controller (ie, with its own Tx)
+				res, createdWorkitem := test.CreateWorkitemCreated(s.T(), svc.Context, svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+				// then
+				if createdWorkitem == nil {
+					// problem occurred
+					log.Info(nil, nil, "Work item creation failed", res)
+					results <- false
+				} else {
+					// work item was created
+					log.Info(nil, nil, "Work item creation succeeded")
+					results <- true
+				}
+			}()
+		}
+	}
+	// then expect (spaceCount * workitemsPerSpace) responses
+	allGood := true
+	for r := 0; r < (spaceCount * workitemsPerSpace); r++ {
+		result := <-results
+		log.Info(nil, nil, fmt.Sprintf("Work item creation result #%d/%d: %t", (r+1), (spaceCount*workitemsPerSpace), result))
+		allGood = allGood && result
+	}
+	assert.True(s.T(), allGood)
 }
