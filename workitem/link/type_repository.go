@@ -18,6 +18,7 @@ import (
 // WorkItemLinkTypeRepository encapsulates storage & retrieval of work item link types
 type WorkItemLinkTypeRepository interface {
 	Create(ctx context.Context, linkType *WorkItemLinkType) (*WorkItemLinkType, error)
+	Exists(ctx context.Context, id uuid.UUID) (bool, error)
 	Load(ctx context.Context, ID uuid.UUID) (*WorkItemLinkType, error)
 	List(ctx context.Context, spaceID uuid.UUID) ([]WorkItemLinkType, error)
 	Delete(ctx context.Context, spaceID uuid.UUID, ID uuid.UUID) error
@@ -90,6 +91,24 @@ func (r *GormWorkItemLinkTypeRepository) Load(ctx context.Context, ID uuid.UUID)
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
 	return &modelLinkType, nil
+}
+
+// Exists returns true if the work item link type with the given ID exists
+func (r *GormWorkItemLinkTypeRepository) Exists(ctx context.Context, id uuid.UUID) (bool, error) {
+	log.Info(ctx, map[string]interface{}{
+		"wit_id": id,
+	}, "Checking if work item link type exists")
+	query := fmt.Sprintf("SELECT EXISTS(SELECT id FROM %s WHERE id=$1 AND deleted_at IS NULL)", WorkItemLinkType{}.TableName())
+	var exists bool
+	err := r.db.CommonDB().QueryRow(query, id.String()).Scan(&exists)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"wilt_id": id,
+			"err":     err,
+		}, "failed to check if work item link type exists")
+		return false, errs.Wrap(err, "failed to check if work item link type exists")
+	}
+	return exists, nil
 }
 
 // List returns all work item link types
