@@ -129,7 +129,7 @@ func ConvertWorkItemLinkTypeCombinationFromModel(appl application.Application, r
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(m.SpaceID.String()))
 	witTargetSelfURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(m.SpaceID.String(), m.TargetTypeID.String()))
 	witSourceSelfURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(m.SpaceID.String(), m.SourceTypeID.String()))
-	parentSelfURL := rest.AbsoluteURL(request, app.WorkItemLinkTypeCombinationHref(m.SpaceID.String(), m.SourceTypeID.String()))
+	parentSelfURL := rest.AbsoluteURL(request, app.WorkItemLinkTypeCombinationHref(m.SpaceID.String(), m.ID.String()))
 	a := &app.WorkItemLinkTypeCombinationData{
 		Type: link.EndpointWorkItemLinkTypeCombinations,
 		ID:   &m.ID,
