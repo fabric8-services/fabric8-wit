@@ -72,15 +72,10 @@ func (s *workItemTypeSuite) SetupTest() {
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
 	s.spaceCtrl = NewSpaceController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration, &DummyResourceManager{})
-	require.NotNil(s.T(), s.spaceCtrl)
 	s.typeCtrl = NewWorkitemtypeController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-	assert.NotNil(s.T(), s.typeCtrl)
 	s.linkTypeCtrl = NewWorkItemLinkTypeController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-	require.NotNil(s.T(), s.linkTypeCtrl)
 	s.linkTypeCombinationCtrl = NewWorkItemLinkTypeCombinationController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-	require.NotNil(s.T(), s.linkTypeCombinationCtrl)
 	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(s.DB))
-	require.NotNil(s.T(), s.linkCatCtrl)
 }
 
 func (s *workItemTypeSuite) TearDownTest() {
@@ -205,6 +200,32 @@ func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 	require.NotNil(s.T(), wi.Data)
 	require.NotNil(s.T(), wi.Data.ID)
 	require.True(s.T(), uuid.Equal(personID, *wi.Data.ID))
+	return responseWriter, wi
+}
+
+func createRandomWorkItemType(t *testing.T, witCtrl *WorkitemtypeController, spaceID uuid.UUID) (http.ResponseWriter, *app.WorkItemTypeSingle) {
+	reqLong := &goa.RequestData{
+		Request: &http.Request{Host: "api.service.domain.org"},
+	}
+	witModel := workitem.WorkItemType{
+		Name:    testsupport.CreateRandomValidTestName("random wit"),
+		SpaceID: spaceID,
+		Icon:    "fa fa-question",
+		Fields: map[string]workitem.FieldDefinition{
+			"foo": workitem.FieldDefinition{
+				Required: false,
+				Type: &workitem.SimpleType{
+					Kind: workitem.KindString,
+				},
+			},
+		},
+	}
+	wit := ConvertWorkItemTypeFromModel(reqLong, &witModel)
+	payload := app.CreateWorkitemtypePayload{
+		Data: &wit,
+	}
+	responseWriter, wi := test.CreateWorkitemtypeCreated(t, nil, nil, witCtrl, spaceID, &payload)
+	require.NotNil(t, wi)
 	return responseWriter, wi
 }
 
