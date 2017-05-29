@@ -75,11 +75,12 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 		}
 
 		var category []*uuid.UUID
-		for _, cat := range ctx.Payload.Data.Relationships.Categories.Data {
-			catID := uuid.FromStringOrNil(*cat.ID)
-			category = append(category, &catID)
+		if ctx.Payload.Data.Relationships.Categories.Data != nil {
+			for _, cat := range ctx.Payload.Data.Relationships.Categories.Data {
+				catID := uuid.FromStringOrNil(*cat.ID)
+				category = append(category, &catID)
+			}
 		}
-
 		witTypeModel, err := appl.WorkItemTypes().Create(
 			ctx.Context,
 			*ctx.Payload.Data.Relationships.Space.Data.ID,
