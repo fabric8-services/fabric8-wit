@@ -176,6 +176,7 @@ var _ = a.Resource("work_item_link_type", func() {
 		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
 	})
 
 	a.Action("create", func() {

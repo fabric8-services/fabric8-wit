@@ -434,6 +434,26 @@ func (s *workItemLinkTypeSuite) TestListWorkItemLinkTypeOK() {
 	assertResponseHeaders(s.T(), res)
 }
 
+func (s *workItemLinkTypeSuite) TestWorkItemLinkType_ListTypeCombinations() {
+	s.T().Run("ok", func(t *testing.T) {
+		// given
+		_, createdWorkItemLinkType := s.createWorkItemLinkTypes()
+		// when fetching all work item link type in a give space
+		_, combinationList := test.ListTypeCombinationsWorkItemLinkTypeOK(t, nil, nil, s.linkTypeCtrl, *createdWorkItemLinkType.Data.Relationships.Space.Data.ID, *createdWorkItemLinkType.Data.ID, nil, nil)
+		// then
+		require.NotNil(t, combinationList)
+		require.Len(t, combinationList, 1)
+	})
+	s.T().Run("not existing link type", func(t *testing.T) {
+		// given
+		notExistingLinkTypeID := uuid.NewV4()
+		// when fetching all work item link type in a give space
+		_, err := test.ListTypeCombinationsWorkItemLinkTypeNotFound(t, nil, nil, s.linkTypeCtrl, space.SystemSpace, notExistingLinkTypeID, nil, nil)
+		// then
+		require.NotNil(t, err)
+	})
+}
+
 func (s *workItemLinkTypeSuite) TestListWorkItemLinkTypeOKUsingExpiredIfModifiedSinceHeader() {
 	// given
 	_, createdWorkItemLinkType := s.createWorkItemLinkTypes()

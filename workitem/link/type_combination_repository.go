@@ -101,6 +101,22 @@ func (r *GormWorkItemLinkTypeCombinationRepository) List(ctx context.Context, li
 		"link_type_id": linkTypeID,
 	}, "listing work item link type combinations by link type ID %s", linkTypeID.String())
 
+	// Check if link type even exists
+	wiltExists, err := NewWorkItemLinkTypeRepository(r.db).Exists(ctx, linkTypeID)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"wilt_id": linkTypeID,
+			"err":     err,
+		}, "failed to check if work item link type exists")
+		return nil, errs.WithStack(err)
+	}
+	if !wiltExists {
+		log.Error(ctx, map[string]interface{}{
+			"wilt_id": linkTypeID,
+		}, "work item link type not found")
+		return nil, errors.NewNotFoundError("wilt_id", linkTypeID.String())
+	}
+
 	// We don't have any where clause or paging at the moment.
 	var modelWorkItemLinkTypeCombinations []WorkItemLinkTypeCombination
 	db := r.db.Where("link_type_id=?", linkTypeID)
