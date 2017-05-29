@@ -19,9 +19,6 @@ type WorkItemLinkTypeCombinationController struct {
 
 // NewWorkItemLinkTypeCombinationController creates a work_item_link_type_combination controller.
 func NewWorkItemLinkTypeCombinationController(service *goa.Service, db application.DB, config WorkItemLinkTypeControllerConfiguration) *WorkItemLinkTypeCombinationController {
-	if db == nil {
-		panic("db must not be nil")
-	}
 	return &WorkItemLinkTypeCombinationController{
 		Controller: service.NewController("WorkItemLinkTypeCombinationController"),
 		db:         db,

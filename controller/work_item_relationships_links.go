@@ -27,9 +27,6 @@ type WorkItemRelationshipsLinksControllerConfig interface {
 
 // NewWorkItemRelationshipsLinksController creates a work-item-relationships-links controller.
 func NewWorkItemRelationshipsLinksController(service *goa.Service, db application.DB, config WorkItemRelationshipsLinksControllerConfig) *WorkItemRelationshipsLinksController {
-	if db == nil {
-		panic("db must not be nil")
-	}
 	return &WorkItemRelationshipsLinksController{
 		Controller: service.NewController("WorkItemRelationshipsLinksController"),
 		db:         db,
