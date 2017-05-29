@@ -57,7 +57,7 @@ CREATE TABLE work_item_number_sequences (
     space_id uuid primary key,
     current_val integer not null
 );
-ALTER TABLE work_item_number_sequences ADD CONSTRAINT "work_item_number_sequences_space_id_fkey" FOREIGN KEY (space_id) REFERENCES spaces(id) ON DELETE CASCADE
+ALTER TABLE work_item_number_sequences ADD CONSTRAINT "work_item_number_sequences_space_id_fkey" FOREIGN KEY (space_id) REFERENCES spaces(id) ON DELETE CASCADE;
 
 -- fill the work item ID sequence table with the current 'max' value of issue 'number'
 INSERT INTO work_item_number_sequences (space_id, current_val) (select space_id, max(number) FROM work_items group by space_id);

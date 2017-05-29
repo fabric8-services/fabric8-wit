@@ -97,7 +97,7 @@ func (r *GormWorkItemLinkRepository) ValidateCorrectSourceAndTargetType(ctx cont
 }
 
 // CheckParentExists returns error if there is an attempt to create more than 1 parent of a workitem.
-func (r *GormWorkItemLinkRepository) CheckParentExists(ctx context.Context, targetID uint64, linkType *WorkItemLinkType) (bool, error) {
+func (r *GormWorkItemLinkRepository) CheckParentExists(ctx context.Context, targetID uuid.UUID, linkType *WorkItemLinkType) (bool, error) {
 	query := fmt.Sprintf(`
 		SELECT EXISTS (
 			SELECT 1 FROM %[1]s
@@ -114,7 +114,7 @@ func (r *GormWorkItemLinkRepository) CheckParentExists(ctx context.Context, targ
 	return exists, nil
 }
 
-func (r *GormWorkItemLinkRepository) ValidateTopology(ctx context.Context, targetID uint64, linkType *WorkItemLinkType) error {
+func (r *GormWorkItemLinkRepository) ValidateTopology(ctx context.Context, targetID uuid.UUID, linkType *WorkItemLinkType) error {
 	// check to disallow multiple parents in tree topology
 	if linkType.Topology == TopologyTree {
 		parentExists, err := r.CheckParentExists(ctx, targetID, linkType)

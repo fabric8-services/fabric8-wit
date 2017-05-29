@@ -2,7 +2,6 @@ package link_test
 
 import (
 	"context"
-	"strconv"
 	"testing"
 
 	"github.com/almighty/almighty-core/account"
@@ -75,7 +74,6 @@ func (s *linkRepoBlackBoxTest) TestDisallowMultipleParents() {
 			workitem.SystemState: workitem.SystemStateNew,
 		}, s.testIdentity.ID)
 	require.Nil(s.T(), err)
-	Parent1ID, err := strconv.ParseUint(Parent1.ID, 10, 64)
 
 	Parent2, err := workitemRepository.Create(
 		s.ctx, s.testSpace, workitem.SystemBug,
@@ -84,7 +82,6 @@ func (s *linkRepoBlackBoxTest) TestDisallowMultipleParents() {
 			workitem.SystemState: workitem.SystemStateNew,
 		}, s.testIdentity.ID)
 	require.Nil(s.T(), err)
-	Parent2ID, err := strconv.ParseUint(Parent2.ID, 10, 64)
 
 	Child, err := workitemRepository.Create(
 		s.ctx, s.testSpace, workitem.SystemBug,
@@ -92,8 +89,6 @@ func (s *linkRepoBlackBoxTest) TestDisallowMultipleParents() {
 			workitem.SystemTitle: "Child",
 			workitem.SystemState: workitem.SystemStateNew,
 		}, s.testIdentity.ID)
-	require.Nil(s.T(), err)
-	ChildID, err := strconv.ParseUint(Child.ID, 10, 64)
 	require.Nil(s.T(), err)
 
 	// Create a work item link category
@@ -125,9 +120,9 @@ func (s *linkRepoBlackBoxTest) TestDisallowMultipleParents() {
 
 	// create a work item link
 	linkRepository := link.NewWorkItemLinkRepository(s.DB)
-	_, err = linkRepository.Create(s.ctx, Parent1ID, ChildID, s.testTreeLinkTypeID, s.testIdentity.ID)
+	_, err = linkRepository.Create(s.ctx, Parent1.ID, Child.ID, s.testTreeLinkTypeID, s.testIdentity.ID)
 	require.Nil(s.T(), err)
 
-	_, err = linkRepository.Create(s.ctx, Parent2ID, ChildID, s.testTreeLinkTypeID, s.testIdentity.ID)
+	_, err = linkRepository.Create(s.ctx, Parent2.ID, Child.ID, s.testTreeLinkTypeID, s.testIdentity.ID)
 	require.NotNil(s.T(), err)
 }
