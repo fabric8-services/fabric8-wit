@@ -94,7 +94,7 @@ var (
 	personID = uuid.FromStringOrNil("22a1e4f1-7e9d-4ce8-ac87-fe7c79356b16")
 )
 
-func (s *workItemTypeSuite) getCategory() []*app.GenericData {
+func getCategory() []*app.GenericData {
 	categoriesData := []*app.GenericData{}
 	catId := category.PlannerRequirementsID.String()
 	catList := app.GenericData{
@@ -145,7 +145,7 @@ func (s *workItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *ap
 	}
 	spaceSelfURL := rest.AbsoluteURL(reqLong, app.SpaceHref(space.SystemSpace.String()))
 
-	categoriesData := s.getCategory()
+	categoriesData := getCategory()
 	payload := app.CreateWorkitemtypePayload{
 		Data: &app.WorkItemTypeData{
 			Type: "workitemtypes",
@@ -197,7 +197,7 @@ func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 	}
 	spaceSelfURL := rest.AbsoluteURL(reqLong, app.SpaceHref(space.SystemSpace.String()))
 
-	categoriesData := s.getCategory()
+	categoriesData := getCategory()
 	payload := app.CreateWorkitemtypePayload{
 		Data: &app.WorkItemTypeData{
 			ID:   &id,
@@ -243,7 +243,7 @@ func CreateWorkItemType(id uuid.UUID, spaceID uuid.UUID) app.CreateWorkitemtypeP
 	}
 	spaceSelfURL := rest.AbsoluteURL(reqLong, app.SpaceHref(spaceID.String()))
 
-	categoriesData := s.getCategory()
+	categoriesData := getCategory()
 	payload := app.CreateWorkitemtypePayload{
 		Data: &app.WorkItemTypeData{
 			ID:   &id,
