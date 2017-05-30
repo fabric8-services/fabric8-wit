@@ -24,7 +24,7 @@ const (
 	PlannerIssues       = "planner.issues"
 )
 
-// Do not change these UUIDs!!!
+// WARNING: Do not change these UUIDs!
 // System defined categories
 var (
 	PlannerRequirementsID = uuid.FromStringOrNil("04aef834-1505-44cf-80e4-ab0d857d9f56") // "planner.requirements"
