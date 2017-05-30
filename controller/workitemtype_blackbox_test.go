@@ -94,6 +94,17 @@ var (
 	personID = uuid.FromStringOrNil("22a1e4f1-7e9d-4ce8-ac87-fe7c79356b16")
 )
 
+func (s *workItemTypeSuite) getCategory() []*app.GenericData {
+	categoriesData := []*app.GenericData{}
+	catId := category.PlannerRequirementsID.String()
+	catList := app.GenericData{
+		ID: &catId,
+	}
+	categoriesData = append(categoriesData, &catList)
+
+	return categoriesData
+}
+
 // createWorkItemTypeAnimal defines a work item type "animal" that consists of
 // two fields ("animal-type" and "color"). The type is mandatory but the color is not.
 func (s *workItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *app.WorkItemTypeSingle) {
@@ -134,13 +145,7 @@ func (s *workItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *ap
 	}
 	spaceSelfURL := rest.AbsoluteURL(reqLong, app.SpaceHref(space.SystemSpace.String()))
 
-	categoriesData := []*app.GenericData{}
-	catId := category.PlannerRequirementsID.String()
-	catList := app.GenericData{
-		ID: &catId,
-	}
-	categoriesData = append(categoriesData, &catList)
-
+	categoriesData := s.getCategory()
 	payload := app.CreateWorkitemtypePayload{
 		Data: &app.WorkItemTypeData{
 			Type: "workitemtypes",
@@ -192,13 +197,7 @@ func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 	}
 	spaceSelfURL := rest.AbsoluteURL(reqLong, app.SpaceHref(space.SystemSpace.String()))
 
-	categoriesData := []*app.GenericData{}
-	catId := category.PlannerRequirementsID.String()
-	catList := app.GenericData{
-		ID: &catId,
-	}
-	categoriesData = append(categoriesData, &catList)
-
+	categoriesData := s.getCategory()
 	payload := app.CreateWorkitemtypePayload{
 		Data: &app.WorkItemTypeData{
 			ID:   &id,
@@ -244,13 +243,7 @@ func CreateWorkItemType(id uuid.UUID, spaceID uuid.UUID) app.CreateWorkitemtypeP
 	}
 	spaceSelfURL := rest.AbsoluteURL(reqLong, app.SpaceHref(spaceID.String()))
 
-	categoriesData := []*app.GenericData{}
-	catId := category.PlannerRequirementsID.String()
-	catList := app.GenericData{
-		ID: &catId,
-	}
-	categoriesData = append(categoriesData, &catList)
-
+	categoriesData := s.getCategory()
 	payload := app.CreateWorkitemtypePayload{
 		Data: &app.WorkItemTypeData{
 			ID:   &id,
