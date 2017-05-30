@@ -703,10 +703,10 @@ func createOrUpdateCategories(ctx context.Context, db *gorm.DB, categoryRepo cat
 
 // populateCategories populates the categories table with system defined categories
 func populateCategories(ctx context.Context, db *gorm.DB, categoryRepo category.Repository) {
-	fmt.Println("Creating or updating categories...")
+	log.Info(ctx, nil, "Creating or updating categories...")
 	createOrUpdateCategories(ctx, db, categoryRepo, &category.PlannerRequirementsID, category.PlannerRequirements)
 	createOrUpdateCategories(ctx, db, categoryRepo, &category.PlannerIssuesID, category.PlannerIssues)
-	fmt.Println("Creating/updating of categories done.")
+	log.Info(ctx, nil, "Creating/updating of categories done.")
 }
 
 // PopulateCommonTypes makes sure the database is populated with the correct types (e.g. bug etc.)
