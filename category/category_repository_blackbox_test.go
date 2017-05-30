@@ -179,9 +179,10 @@ func (test *categoryRepoBlackBoxTest) TestListCategories() {
 
 		resultCategories, err := test.repo.List(test.ctx)
 
-		require.Nil(test.T(), err)
-		require.Equal(test.T(), 4, len(resultCategories)) // 2 category names are hard-coded + 2 category names are created in this test = total 4 categories
-		assert.Equal(test.T(), category1.Name, resultCategories[2].Name)
-		assert.Equal(test.T(), category2.Name, resultCategories[3].Name)
+		require.Nil(t, err)
+		require.Condition(t, func() bool { return len(resultCategories) >= 4 }, "expected at least 4 categories") // 2 category names are hard-coded + 2 category names are created in this test = total 4 categories
+
+		assert.Equal(t, category1.Name, resultCategories[0].Name)
+		assert.Equal(t, category2.Name, resultCategories[1].Name)
 	})
 }
