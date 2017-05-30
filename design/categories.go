@@ -19,10 +19,7 @@ var category = a.Type("categories", func() {
 
 var categoryAttributes = a.Type("categoryAttributes", func() {
 	a.Description(`JSONAPI store for all the "attributes" of a filter. +See also see http://jsonapi.org/format/#document-resource-object-attributes`)
-	a.Attribute("name", d.String, "A unique Category name", func() {
-		a.Example("Requirements")
-		a.MinLength(1)
-	})
+	a.Attribute("name", d.String, "A unique Category name", nameValidationFunction)
 	a.Required("name")
 })
 
