@@ -417,7 +417,7 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *goa.
 
 	// fetch all categories links
 	categoriesData := []*app.GenericData{}
-	application.Transactional(db, func(appl application.Application) error {
+	err := application.Transactional(db, func(appl application.Application) error {
 		categories, err := appl.Categories().List(ctx)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
@@ -436,6 +436,10 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *goa.
 		}
 		return nil
 	})
+	if err != nil {
+		return nil, errs.Wrap(err, "unable to fetch categories")
+
+	}
 	count, err := countBacklogItems(ctx, db, sp.ID)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
