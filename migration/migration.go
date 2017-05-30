@@ -658,6 +658,10 @@ func createOrUpdateSingleCategory(ctx context.Context, categoryRepo category.Rep
 	}
 	_, err := categoryRepo.Create(ctx, &category)
 	if err != nil {
+		log.Info(ctx, map[string]interface{}{
+			"category_id": categoryID,
+			"err":         err,
+		}, "unable to create/update category")
 		return errs.WithStack(err)
 	}
 	return nil
@@ -670,6 +674,10 @@ func createOrUpdateCategories(ctx context.Context, db *gorm.DB, categoryRepo cat
 	case errors.NotFoundError:
 		err = createOrUpdateSingleCategory(ctx, categoryRepo, categoryID, categoryName)
 		if err != nil {
+			log.Info(ctx, map[string]interface{}{
+				"category_id": categoryID,
+				"err":         err,
+			}, "unable to create/update category")
 			return errs.WithStack(err)
 		}
 	case nil:
@@ -683,6 +691,10 @@ func createOrUpdateCategories(ctx context.Context, db *gorm.DB, categoryRepo cat
 		}
 		_, err := categoryRepo.Save(ctx, &updateCategory)
 		if err != nil {
+			log.Info(ctx, map[string]interface{}{
+				"category_id": categoryID,
+				"err":         err,
+			}, "unable to create/update category")
 			return errors.NewInternalError(err.Error())
 		}
 	}

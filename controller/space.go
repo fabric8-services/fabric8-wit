@@ -420,6 +420,9 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *goa.
 	application.Transactional(db, func(appl application.Application) error {
 		categories, err := appl.Categories().List(ctx)
 		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"err": err,
+			}, "unable to fetch categories")
 			return errs.Wrap(err, "unable to fetch categories")
 		}
 		for _, cat := range categories {
@@ -435,6 +438,9 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *goa.
 	})
 	count, err := countBacklogItems(ctx, db, sp.ID)
 	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "unable to fetch categories")
 		return nil, errs.Wrap(err, "unable to fetch backlog items")
 	}
 	s := &app.Space{
