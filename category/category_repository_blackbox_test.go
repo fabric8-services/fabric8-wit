@@ -9,6 +9,7 @@ import (
 	errs "github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
+	"github.com/almighty/almighty-core/migration"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -25,6 +26,12 @@ type categoryRepoBlackBoxTest struct {
 
 func TestRunCategoryRepoBlackBoxTest(t *testing.T) {
 	suite.Run(t, &categoryRepoBlackBoxTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+}
+
+func (test *categoryRepoBlackBoxTest) SetupSuite() {
+	test.DBTestSuite.SetupSuite()
+	ctx := migration.NewMigrationContext(context.Background())
+	test.DBTestSuite.PopulateDBTestSuite(ctx)
 }
 
 func (test *categoryRepoBlackBoxTest) SetupTest() {
@@ -168,21 +175,32 @@ func (test *categoryRepoBlackBoxTest) TestDoNotCreateCategoryWithMissingName() {
 // TestListCategories lists the categories and checks the total count of categories list
 func (test *categoryRepoBlackBoxTest) TestListCategories() {
 	test.T().Run("list categories", func(t *testing.T) {
-		category1 := category.Category{
+		// given
+		category1Payload := category.Category{
 			Name: "Category1",
 		}
-		test.repo.Create(test.ctx, &category1)
-		category2 := category.Category{
+		cat1, err := test.repo.Create(test.ctx, &category1Payload)
+		require.Nil(t, err)
+		category2Payload := category.Category{
 			Name: "Category2",
 		}
-		test.repo.Create(test.ctx, &category2)
+		cat2, err := test.repo.Create(test.ctx, &category2Payload)
+		require.Nil(t, err)
 
+		// when
 		resultCategories, err := test.repo.List(test.ctx)
 
+		// then
 		require.Nil(t, err)
-		require.Condition(t, func() bool { return len(resultCategories) >= 4 }, "expected at least 4 categories") // 2 category names are hard-coded + 2 category names are created in this test = total 4 categories
-
-		assert.Equal(t, category1.Name, resultCategories[0].Name)
-		assert.Equal(t, category2.Name, resultCategories[1].Name)
+		require.Condition(t, func() bool { return len(resultCategories) >= 4 }, "expected at least 4 categories (2 from populate common types + 2 from this test)")
+		for _, id := range []uuid.UUID{cat1.ID, cat2.ID} {
+			found := false
+			for _, cat := range resultCategories {
+				if cat.ID == id {
+					found = true
+				}
+			}
+			assert.True(t, found, "failed to find ID %s in list of categories", id)
+		}
 	})
 }
