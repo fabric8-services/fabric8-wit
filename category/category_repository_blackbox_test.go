@@ -164,3 +164,24 @@ func (test *categoryRepoBlackBoxTest) TestDoNotCreateCategoryWithMissingName() {
 		require.Nil(test.T(), cat1)
 	})
 }
+
+// TestListCategories lists the categories and checks the total count of categories list
+func (test *categoryRepoBlackBoxTest) TestListCategories() {
+	test.T().Run("list categories", func(t *testing.T) {
+		category1 := category.Category{
+			Name: "Category1",
+		}
+		test.repo.Create(test.ctx, &category1)
+		category2 := category.Category{
+			Name: "Category2",
+		}
+		test.repo.Create(test.ctx, &category2)
+
+		resultCategories, err := test.repo.List(test.ctx)
+
+		require.Nil(test.T(), err)
+		require.Equal(test.T(), 4, len(resultCategories)) // 2 category names are hard-coded + 2 category names are created in this test = total 4 categories
+		assert.Equal(test.T(), category1.Name, resultCategories[2].Name)
+		assert.Equal(test.T(), category2.Name, resultCategories[3].Name)
+	})
+}
