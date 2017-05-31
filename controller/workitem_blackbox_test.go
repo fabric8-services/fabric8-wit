@@ -2528,7 +2528,7 @@ func (s *WorkItemSuite) TestCreateMultipleWIs() {
 	// given
 	spaceCount := 4
 	workitemsPerSpace := 4
-	results := make(chan bool)
+	results := make(chan struct{})
 	// when
 	for i := 0; i < spaceCount; i++ {
 		// Create space
@@ -2547,24 +2547,14 @@ func (s *WorkItemSuite) TestCreateMultipleWIs() {
 				// when using a work item controller (ie, with its own Tx)
 				res, createdWorkitem := test.CreateWorkitemCreated(s.T(), svc.Context, svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 				// then
-				if createdWorkitem == nil {
-					// problem occurred
-					log.Info(nil, nil, "Work item creation failed", res)
-					results <- false
-				} else {
-					// work item was created
-					log.Info(nil, nil, "Work item creation succeeded")
-					results <- true
-				}
+				assert.NotNil(s.T(), createdWorkitem, "Work item creation failed", res)
+				results <- struct{}{}
 			}()
 		}
 	}
 	// then expect (spaceCount * workitemsPerSpace) responses
-	allGood := true
 	for r := 0; r < (spaceCount * workitemsPerSpace); r++ {
-		result := <-results
-		log.Info(nil, nil, fmt.Sprintf("Work item creation result #%d/%d: %t", (r+1), (spaceCount*workitemsPerSpace), result))
-		allGood = allGood && result
+		<-results
 	}
-	assert.True(s.T(), allGood)
+	log.Info(nil, nil, "Test completed")
 }

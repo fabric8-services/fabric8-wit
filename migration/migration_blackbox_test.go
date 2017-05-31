@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"fmt"
 	"html/template"
+	logger "log"
 	"testing"
 
 	config "github.com/almighty/almighty-core/configuration"
@@ -435,13 +436,13 @@ func migrateToVersion(db *sql.DB, m migration.Migrations, version int64) {
 
 		if err = migration.MigrateToNextVersion(tx, &nextVersion, m, databaseName); err != nil {
 			if err = tx.Rollback(); err != nil {
-				panic(fmt.Errorf("error while rolling back transaction: %v", err))
+				logger.Fatalf("error while rolling back transaction: %v", err)
 			}
-			panic(fmt.Errorf("Failed to migrate to version after rolling back"))
+			logger.Fatalf("Failed to migrate to version after rolling back")
 		}
 
 		if err = tx.Commit(); err != nil {
-			panic(fmt.Errorf("Error during transaction commit: %s\n", err))
+			logger.Fatalf("Error during transaction commit: %s", err)
 		}
 	}
 }

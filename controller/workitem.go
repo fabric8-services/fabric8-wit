@@ -241,9 +241,8 @@ func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
 			hasChildren := workItemIncludeHasChildren(appl, ctx)
 			wi2 := ConvertWorkItem(ctx.RequestData, *wi, hasChildren)
 			dataArray = append(dataArray, wi2)
-			log.Info(ctx, nil, "Reordered item: %v", wi2)
 		}
-		log.Info(ctx, nil, "Reordered items: %d", len(dataArray))
+		log.Debug(ctx, nil, "Reordered items: %d", len(dataArray))
 		resp := &app.WorkItemReorder{
 			Data: dataArray,
 		}

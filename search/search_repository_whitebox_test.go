@@ -176,8 +176,6 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 				s.T().Fatal("Couldnt create test data")
 			}
 
-			//defer wir.Delete(ctx, createdWorkItem.ID, s.modifierID)
-
 			// create the URL and use it in the search string
 			workItemURLInSearchString = workItemURLInSearchString + strconv.Itoa(createdWorkItem.Number)
 

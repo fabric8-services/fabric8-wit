@@ -133,7 +133,7 @@ func upsert(ctx context.Context, db *gorm.DB, workItem workitem.WorkItem) (*work
 	var creator uuid.UUID
 	if c != nil {
 		if creator, err = uuid.FromString(c.(string)); err != nil {
-			return nil, errors.Wrapf(err, "Failed to convert creator id into a UUID: %s", err.Error())
+			return nil, errors.Wrapf(err, "failed to convert creator id into a UUID: %s", err.Error())
 		}
 	}
 	if existingWorkItem != nil {
