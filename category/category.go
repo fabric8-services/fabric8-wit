@@ -122,9 +122,9 @@ func (m *GormRepository) CreateRelationship(ctx context.Context, relationship *W
 			return errors.NewBadParameterError("category+workitemtype", relationship.CategoryID).Expected("unique")
 		}
 		log.Error(ctx, map[string]interface{}{
-			"category_id":     relationship.CategoryID,
-			"workitemtype_id": relationship.WorkitemtypeID,
-			"err":             db.Error.Error(),
+			"category_id": relationship.CategoryID,
+			"wit_id":      relationship.WorkitemtypeID,
+			"err":         db.Error.Error(),
 		}, "unable to create workitemtype category relationship")
 		return errors.NewInternalError(db.Error.Error())
 	}
@@ -169,7 +169,7 @@ func (m *GormRepository) LoadAllRelationshipsOfCategory(ctx context.Context, cat
 		log.Error(ctx, map[string]interface{}{
 			"category_id": categoryID,
 			"err":         err,
-		}, "unable to list relationships")
+		}, "unable to load category")
 		return nil, errors.NewInternalError(err.Error())
 	}
 	relationship := []*WorkItemTypeCategoryRelationship{}
@@ -184,7 +184,7 @@ func (m *GormRepository) LoadAllRelationshipsOfCategory(ctx context.Context, cat
 		log.Error(ctx, map[string]interface{}{
 			"category_id": categoryID,
 			"err":         err,
-		}, "workitemtypes of category not found")
+		}, "unable to list workitemtype category relationships")
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
 	return relationship, nil
@@ -193,7 +193,6 @@ func (m *GormRepository) LoadAllRelationshipsOfCategory(ctx context.Context, cat
 // LoadCategoryFromDB returns category for the given id
 // This is needed to check if a category is present in db or not.
 func (m *GormRepository) LoadCategoryFromDB(ctx context.Context, id uuid.UUID) (*Category, error) {
-	log.Logger().Infoln("Loading category", id)
 	res := Category{}
 	db := m.db.Model(&res).Where("id=?", id).First(&res)
 	if db.RecordNotFound() {
@@ -206,7 +205,7 @@ func (m *GormRepository) LoadCategoryFromDB(ctx context.Context, id uuid.UUID) (
 		log.Error(ctx, map[string]interface{}{
 			"category_id": id,
 			"err":         err,
-		}, "category retrieval error", err.Error())
+		}, "unable to load category", err.Error())
 		return nil, errors.NewInternalError(err.Error())
 	}
 	return &res, nil
@@ -227,24 +226,24 @@ func (m *GormRepository) LoadWorkItemTypeCategoryRelationship(ctx context.Contex
 		log.Error(ctx, map[string]interface{}{
 			"category_id": categoryID,
 			"err":         err,
-		}, "workitemtype category relationship retrieval error")
+		}, "unable to load category")
 		return nil, errors.NewInternalError(err.Error())
 	}
 	relationship := WorkItemTypeCategoryRelationship{}
 	db = m.db.Model(&relationship).Where("category_id=? AND workitemtype_id=?", categoryID, workitemtypeID).Find(&relationship)
 	if db.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
-			"category_id":     categoryID,
-			"workitemtype_id": workitemtypeID,
+			"category_id": categoryID,
+			"wit_id":      workitemtypeID,
 		}, "workitemtype of category not found")
 		return nil, errors.NewNotFoundError("work item type category", categoryID.String())
 	}
 	if err := db.Error; err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"category_id":     categoryID,
-			"workitemtype_id": workitemtypeID,
-			"err":             err,
-		}, "workitemtype of category not found")
+			"category_id": categoryID,
+			"wit_id":      workitemtypeID,
+			"err":         err,
+		}, "unable to load workitemtype category relationship")
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
 	return &relationship, nil
@@ -267,7 +266,7 @@ func (m *GormRepository) Save(ctx context.Context, category *Category) (*Categor
 		log.Error(ctx, map[string]interface{}{
 			"category_id": category.ID,
 			"err":         tx.Error,
-		}, "category not found")
+		}, "unable to save category")
 		return nil, errors.NewInternalError(tx.Error.Error())
 	}
 
