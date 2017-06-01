@@ -147,7 +147,8 @@ func main() {
 
 	// Mount middleware
 	service.Use(middleware.RequestID())
-	service.Use(middleware.LogRequest(configuration.IsPostgresDeveloperModeEnabled()))
+	// Use our own log request to inject identity id and modify other properties
+	service.Use(log.LogRequest(configuration.IsPostgresDeveloperModeEnabled()))
 	service.Use(gzip.Middleware(9))
 	service.Use(jsonapi.ErrorHandler(service, true))
 	service.Use(middleware.Recover())
