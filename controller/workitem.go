@@ -121,7 +121,7 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 					"category_id": *ctx.FilterCategory,
 					"err":         err,
 				}, "failed to list work items in category")
-				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("failed to list work items in category %v", *ctx.FilterCategory)))
+				return err
 			}
 			return nil
 		})

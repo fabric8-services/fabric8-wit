@@ -423,7 +423,7 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *goa.
 			log.Error(ctx, map[string]interface{}{
 				"err": err,
 			}, "unable to fetch categories")
-			return errs.Wrap(err, "unable to fetch categories")
+			return err
 		}
 		for _, cat := range categories {
 			relatedCategoryList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitems?filter[category]=%s", spaceIDStr, cat.ID))
@@ -444,7 +444,7 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *goa.
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
-		}, "unable to fetch categories")
+		}, "unable to fetch backlog items")
 		return nil, errs.Wrap(err, "unable to fetch backlog items")
 	}
 	s := &app.Space{
