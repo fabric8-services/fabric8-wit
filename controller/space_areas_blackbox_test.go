@@ -1,10 +1,12 @@
 package controller_test
 
 import (
+	"context"
 	"os"
 	"testing"
 	"time"
 
+	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/area"
@@ -62,6 +64,12 @@ func (rest *TestSpaceAreaREST) SecuredAreasController() (*goa.Service, *AreaCont
 	return svc, NewAreaController(svc, rest.db, rest.Configuration)
 }
 
+func (rest *TestSpaceAreaREST) SecuredAreasControllerWithIdentity(idn *account.Identity) (*goa.Service, *AreaController) {
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	svc := testsupport.ServiceAsUser("Area-Service-With-Identity", almtoken.NewManagerWithPrivateKey(priv), *idn)
+	return svc, NewAreaController(svc, rest.db, rest.Configuration)
+}
+
 func (rest *TestSpaceAreaREST) UnSecuredController() (*goa.Service, *SpaceAreasController) {
 	svc := goa.New("Area-Service")
 	return svc, NewSpaceAreasController(svc, rest.db, rest.Configuration)
@@ -82,13 +90,15 @@ func (rest *TestSpaceAreaREST) setupAreas() (area.Area, []uuid.UUID, []area.Area
 	*/
 	var createdAreas []area.Area
 	var createdAreaUuids []uuid.UUID
-	_, parentArea := createSpaceAndArea(rest.T(), rest.db)
+	sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
 	createdAreas = append(createdAreas, parentArea)
 	createdAreaUuids = append(createdAreaUuids, parentArea.ID)
 	parentID := parentArea.ID
 	name := "TestListAreas  A"
 	ci := getCreateChildAreaPayload(&name)
-	svc, ctrl := rest.SecuredAreasController()
+	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerId)
+	require.Nil(rest.T(), err)
+	svc, ctrl := rest.SecuredAreasControllerWithIdentity(owner)
 	_, created := test.CreateChildAreaCreated(rest.T(), svc.Context, svc, ctrl, parentID.String(), ci)
 	assert.Equal(rest.T(), *ci.Data.Attributes.Name, *created.Data.Attributes.Name)
 	assert.Equal(rest.T(), parentID.String(), *created.Data.Relationships.Parent.Data.ID)
