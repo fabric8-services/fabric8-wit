@@ -180,7 +180,7 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UU
 			}
 		}
 	}
-	log.Debug(ctx, map[string]interface{}{"witID": created.ID}, "Work item type created successfully!")
+	log.Debug(ctx, map[string]interface{}{"wit_id": created.ID}, "Work item type created successfully!")
 	return &created, nil
 }
 
