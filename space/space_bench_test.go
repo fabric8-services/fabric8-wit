@@ -11,8 +11,6 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-var testSpace string = uuid.NewV4().String()
-
 func BenchmarkRunRepoBBBench(b *testing.B) {
 	test.Run(b, &repoSpaceBench{DBBenchSuite: gormbench.NewDBBenchSuite("../config.yaml")})
 }

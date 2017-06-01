@@ -159,6 +159,11 @@ test-integration-no-coverage: prebuild-check migrate-database $(SOURCES)
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
 	ALMIGHTY_DEVELOPER_MODE_ENABLED=1 ALMIGHTY_RESOURCE_DATABASE=1 ALMIGHTY_RESOURCE_UNIT_TEST=0 go test $(GO_TEST_VERBOSITY_FLAG) $(TEST_PACKAGES)
 
+test-integration-benchmark: prebuild-check migrate-database $(SOURCES)
+	$(call log-info,"Running benchmarks: $@")
+	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
+	ALMIGHTY_DEVELOPER_MODE_ENABLED=1 ALMIGHTY_LOG_LEVEL=error ALMIGHTY_RESOURCE_DATABASE=0 ALMIGHTY_RESOURCE_UNIT_TEST=1 go test -run=^$$ -bench=. -cpu 1,2,4 -test.benchmem $(GO_TEST_VERBOSITY_FLAG) $(TEST_PACKAGES)
+
 .PHONY: test-remote
 ## Runs the remote tests and produces coverage files for each package.
 test-remote: prebuild-check clean-coverage-remote $(COV_PATH_REMOTE)

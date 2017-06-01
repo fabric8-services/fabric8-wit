@@ -10,7 +10,7 @@ import (
 )
 
 var allBenchmarksFilter = func(_, _ string) (bool, error) { return true, nil }
-var matchMethod = flag.String("testify.m", "", "regular expression to select benchmarks of the testify suite to run")
+var matchBenchMethod = flag.String("testify.b", "", "regular expression to select benchmarks of the testify suite to run")
 
 // Suite is a basic testing suite with methods for storing and
 // retrieving the current *testing.B context.
@@ -99,7 +99,7 @@ func methodFilter(name string) (bool, error) {
 	if ok, _ := regexp.MatchString("^Benchmark", name); !ok {
 		return false, nil
 	}
-	return regexp.MatchString(*matchMethod, name)
+	return regexp.MatchString(*matchBenchMethod, name)
 }
 
 type runner interface {

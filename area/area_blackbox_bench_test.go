@@ -8,47 +8,64 @@ import (
 	"github.com/almighty/almighty-core/area"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	gormbench "github.com/almighty/almighty-core/gormtestsupport/benchmark"
-
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/test"
+
+	uuid "github.com/satori/go.uuid"
 )
 
-type BenchmarkAreaRepository struct {
+type BenchAreaRepository struct {
 	gormbench.DBBenchSuite
-	repo  area.Repository
-	clean func()
+	repo      area.Repository
+	repoSpace space.Repository
+	clean     func()
 }
 
 func BenchmarkRunAreaRepository(b *testing.B) {
 	resource.Require(b, resource.Database)
-	test.Run(b, &BenchmarkAreaRepository{DBBenchSuite: gormbench.NewDBBenchSuite("../config.yaml")})
+	test.Run(b, &BenchAreaRepository{DBBenchSuite: gormbench.NewDBBenchSuite("../config.yaml")})
 }
 
-func (bench *BenchmarkAreaRepository) SetupTest() {
+func (bench *BenchAreaRepository) SetupBenchmark() {
 	bench.clean = cleaner.DeleteCreatedEntities(bench.DB)
 	bench.repo = area.NewAreaRepository(bench.DB)
+	bench.repoSpace = space.NewRepository(bench.DB)
 }
 
-func (bench *BenchmarkAreaRepository) TearDownTest() {
+func (bench *BenchAreaRepository) TearDownBenchmark() {
 	bench.clean()
 }
 
-func (bench *BenchmarkAreaRepository) BenchmarkRootArea() {
+func (bench *BenchAreaRepository) BenchmarkRootArea() {
+	if err := bench.repo.Create(context.Background(), &area.Area{
+		Name:    "Other Test area #20",
+		SpaceID: space.SystemSpace,
+	}); err != nil {
+		bench.B().Fail()
+	}
+	// when
 	bench.B().ResetTimer()
 	for n := 0; n < bench.B().N; n++ {
-		if a, err := bench.repo.Root(context.Background(), space.SystemSpace); err != nil || (err == nil || a == nil) {
+		if _, err := bench.repo.Root(context.Background(), space.SystemSpace); err != nil {
 			bench.B().Fail()
 		}
 	}
 }
 
-func (bench *BenchmarkAreaRepository) BenchmarkCreateArea() {
+func (bench *BenchAreaRepository) BenchmarkCreateArea() {
 	bench.B().ResetTimer()
 	for n := 0; n < bench.B().N; n++ {
+		newSpace := space.Space{
+			Name: "BenchmarkCreateArea " + uuid.NewV4().String(),
+		}
+		s, err := bench.repoSpace.Create(context.Background(), &newSpace)
+		if err != nil {
+			bench.B().Fail()
+		}
 		a := area.Area{
 			Name:    "TestCreateArea",
-			SpaceID: space.SystemSpace,
+			SpaceID: s.ID,
 		}
 		if err := bench.repo.Create(context.Background(), &a); err != nil {
 			bench.B().Fail()
@@ -56,7 +73,7 @@ func (bench *BenchmarkAreaRepository) BenchmarkCreateArea() {
 	}
 }
 
-func (bench *BenchmarkAreaRepository) BenchmarkListAreaBySpace() {
+func (bench *BenchAreaRepository) BenchmarkListAreaBySpace() {
 	if err := bench.repo.Create(context.Background(), &area.Area{
 		Name:    "Other Test area #20",
 		SpaceID: space.SystemSpace,
