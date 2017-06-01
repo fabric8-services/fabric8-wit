@@ -266,7 +266,7 @@ func (m *GormRepository) Save(ctx context.Context, category *Category) (*Categor
 		log.Error(ctx, map[string]interface{}{
 			"category_id": category.ID,
 			"err":         tx.Error,
-		}, "unable to save category")
+		}, "unable to load category")
 		return nil, errors.NewInternalError(tx.Error.Error())
 	}
 
