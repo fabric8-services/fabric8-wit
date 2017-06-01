@@ -564,7 +564,7 @@ func createOrUpdateWorkItemLinkCategory(ctx context.Context, linkCatRepo *link.G
 		}
 	case nil:
 		log.Info(ctx, map[string]interface{}{
-			"category": linkCat,
+			"category_name": linkCat,
 		}, "Work item link category %s exists, will update/overwrite the description", linkCat.Name)
 
 		cat.Description = linkCat.Description
@@ -682,7 +682,7 @@ func createOrUpdateCategories(ctx context.Context, db *gorm.DB, categoryRepo cat
 		}
 	case nil:
 		log.Info(ctx, map[string]interface{}{
-			"category": categoryName,
+			"category_name": categoryName,
 		}, "Category %s exists, will update/overwrite all fields", categoryName)
 
 		updateCategory := category.Category{
