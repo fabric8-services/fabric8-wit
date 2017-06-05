@@ -701,23 +701,33 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 		// let's update the existing user with the fullname, email and avatar from Keycloak,
 		// in case the user changed them since the last time he/she logged in
 		fillUser(claims, user, identity)
-		err = keycloak.Users.Save(ctx, user)
+		err = application.Transactional(keycloak.db, func(appl application.Application) error {
+			err = appl.Users().Save(ctx, user)
+			if err != nil {
+				log.Error(ctx, map[string]interface{}{
+					"user_id": user.ID,
+					"err":     err,
+				}, "unable to update user")
+				return errors.New("Cant' update user " + err.Error())
+			}
+			err = appl.Identities().Save(ctx, identity)
+			if err != nil {
+				log.Error(ctx, map[string]interface{}{
+					"user_id": identity.ID,
+					"err":     err,
+				}, "unable to update identity")
+				return errors.New("Cant' update identity " + err.Error())
+			}
+			return err
+		})
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
-				"user_id": user.ID,
-				"err":     err,
-			}, "unable to update user")
-			return nil, nil, errors.New("Cant' update user " + err.Error())
+				"keycloak_identity_id": keycloakIdentityID,
+				"username":             claims.Username,
+				"err":                  err,
+			}, "unable to create user/identity")
+			return nil, nil, errors.New("Cant' create user/identity " + err.Error())
 		}
-		err = keycloak.Identities.Save(ctx, identity)
-		if err != nil {
-			log.Error(ctx, map[string]interface{}{
-				"user_id": identity.ID,
-				"err":     err,
-			}, "unable to update identity")
-			return nil, nil, errors.New("Cant' update identity " + err.Error())
-		}
-
 	}
 	return identity, user, nil
 }
