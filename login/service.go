@@ -672,12 +672,12 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 			if err != nil {
 				return err
 			}
-			identity = &account.Identity{
-				ID:           keycloakIdentityID,
-				Username:     claims.Username,
-				ProviderType: account.KeycloakIDP,
-				UserID:       account.NullUUID{UUID: user.ID, Valid: true},
-				User:         *user}
+
+			identity.ID = keycloakIdentityID
+			identity.ProviderType = account.KeycloakIDP
+			identity.UserID = account.NullUUID{UUID: user.ID, Valid: true}
+			identity.User = *user
+
 			err = appl.Identities().Create(ctx, identity)
 			return err
 		})
