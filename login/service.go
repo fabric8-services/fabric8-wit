@@ -709,6 +709,15 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 			}, "unable to update user")
 			return nil, nil, errors.New("Cant' update user " + err.Error())
 		}
+		err = keycloak.Identities.Save(ctx, identity)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"user_id": identity.ID,
+				"err":     err,
+			}, "unable to update identity")
+			return nil, nil, errors.New("Cant' update identity " + err.Error())
+		}
+
 	}
 	return identity, user, nil
 }
