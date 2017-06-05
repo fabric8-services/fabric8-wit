@@ -725,8 +725,8 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 				"keycloak_identity_id": keycloakIdentityID,
 				"username":             claims.Username,
 				"err":                  err,
-			}, "unable to create user/identity")
-			return nil, nil, errors.New("Cant' create user/identity " + err.Error())
+			}, "unable to update user/identity")
+			return nil, nil, errors.New("Cant' update user/identity " + err.Error())
 		}
 	}
 	return identity, user, nil
