@@ -665,7 +665,8 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 			return nil, nil, coreerrors.NewUnauthorizedError(fmt.Sprintf("user '%s' is not approved", claims.Username))
 		}
 		user = new(account.User)
-		fillUser(claims, user)
+		identity = &account.Identity{}
+		fillUser(claims, user, identity)
 		err = application.Transactional(keycloak.db, func(appl application.Application) error {
 			err := appl.Users().Create(ctx, user)
 			if err != nil {
@@ -699,7 +700,7 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 		}
 		// let's update the existing user with the fullname, email and avatar from Keycloak,
 		// in case the user changed them since the last time he/she logged in
-		fillUser(claims, user)
+		fillUser(claims, user, identity)
 		err = keycloak.Users.Save(ctx, user)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
@@ -806,10 +807,11 @@ func checkClaims(claims *keycloakTokenClaims) error {
 	return nil
 }
 
-func fillUser(claims *keycloakTokenClaims, user *account.User) error {
+func fillUser(claims *keycloakTokenClaims, user *account.User, identity *account.Identity) error {
 	user.FullName = claims.Name
 	user.Email = claims.Email
 	user.Company = claims.Company
+	identity.Username = claims.Username
 	if user.ImageURL == "" {
 		image, err := generateGravatarURL(claims.Email)
 		if err != nil {
