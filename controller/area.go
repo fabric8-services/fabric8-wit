@@ -10,6 +10,7 @@ import (
 	"github.com/almighty/almighty-core/area"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/path"
 	"github.com/almighty/almighty-core/rest"
@@ -65,7 +66,7 @@ func (c *AreaController) ShowChildren(ctx *app.ShowChildrenAreaContext) error {
 
 // CreateChild runs the create-child action.
 func (c *AreaController) CreateChild(ctx *app.CreateChildAreaContext) error {
-	_, err := login.ContextIdentity(ctx)
+	currentUser, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
@@ -77,6 +78,18 @@ func (c *AreaController) CreateChild(ctx *app.CreateChildAreaContext) error {
 		parent, err := appl.Areas().Load(ctx, parentID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+		}
+		s, err := appl.Spaces().Load(ctx, parent.SpaceID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+		}
+		if !uuid.Equal(*currentUser, s.OwnerId) {
+			log.Warn(ctx, map[string]interface{}{
+				"space_id":     s.ID,
+				"space_owner":  s.OwnerId,
+				"current_user": *currentUser,
+			}, "user is not the space owner")
+			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the space owner"))
 		}
 
 		reqArea := ctx.Payload.Data

@@ -183,6 +183,7 @@ func (wit WorkItemType) ConvertWorkItemStorageToModel(workItem WorkItemStorage) 
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
+		result.Fields[SystemOrder] = workItem.ExecutionOrder
 	}
 
 	return &result, nil

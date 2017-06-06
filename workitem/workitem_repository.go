@@ -223,10 +223,12 @@ func (r *GormWorkItemRepository) FindSecondItem(order *float64, secondItemDirect
 	switch secondItemDirection {
 	case DirectionAbove:
 		// Finds the item above which reorder item has to be placed
-		tx = r.db.Where(fmt.Sprintf("execution_order = (SELECT max(execution_order) FROM %s WHERE (execution_order < ?))", WorkItemStorage{}.TableName()), order).First(&Item)
+		query := fmt.Sprintf(`execution_order = (SELECT max(execution_order) FROM %[1]s WHERE (execution_order < ?))`, WorkItemStorage{}.TableName())
+		tx = r.db.Where(query, order).First(&Item)
 	case DirectionBelow:
 		// Finds the item below which reorder item has to be placed
-		tx = r.db.Where(fmt.Sprintf("execution_order = (SELECT min(execution_order) FROM %s WHERE (execution_order > ?))", WorkItemStorage{}.TableName()), order).First(&Item)
+		query := fmt.Sprintf("execution_order = (SELECT min(execution_order) FROM %[1]s WHERE (execution_order > ?))", WorkItemStorage{}.TableName())
+		tx = r.db.Where(query, order).First(&Item)
 	default:
 		return nil, nil, nil
 	}
