@@ -666,36 +666,35 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 		}
 		user = new(account.User)
 		identity = &account.Identity{}
-		isChanged, err := fillUser(claims, user, identity)
+		_, err = fillUser(claims, user, identity)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"keycloak_identity_id": keycloakIdentityID,
 				"err": err,
 			}, "unable to create user/identity")
 			return nil, nil, errors.New("Cant' update user/identity from claims" + err.Error())
-		} else if isChanged {
-			err = application.Transactional(keycloak.db, func(appl application.Application) error {
-				err := appl.Users().Create(ctx, user)
-				if err != nil {
-					return err
-				}
-
-				identity.ID = keycloakIdentityID
-				identity.ProviderType = account.KeycloakIDP
-				identity.UserID = account.NullUUID{UUID: user.ID, Valid: true}
-				identity.User = *user
-
-				err = appl.Identities().Create(ctx, identity)
-				return err
-			})
+		}
+		err = application.Transactional(keycloak.db, func(appl application.Application) error {
+			err := appl.Users().Create(ctx, user)
 			if err != nil {
-				log.Error(ctx, map[string]interface{}{
-					"keycloak_identity_id": keycloakIdentityID,
-					"username":             claims.Username,
-					"err":                  err,
-				}, "unable to create user/identity")
-				return nil, nil, errors.New("Cant' create user/identity " + err.Error())
+				return err
 			}
+
+			identity.ID = keycloakIdentityID
+			identity.ProviderType = account.KeycloakIDP
+			identity.UserID = account.NullUUID{UUID: user.ID, Valid: true}
+			identity.User = *user
+
+			err = appl.Identities().Create(ctx, identity)
+			return err
+		})
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"keycloak_identity_id": keycloakIdentityID,
+				"username":             claims.Username,
+				"err":                  err,
+			}, "unable to create user/identity")
+			return nil, nil, errors.New("Cant' create user/identity " + err.Error())
 		}
 
 	} else {
