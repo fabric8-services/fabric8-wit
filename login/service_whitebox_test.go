@@ -275,8 +275,9 @@ func TestFillUserDoesntOverwriteExistingImageURL(t *testing.T) {
 	user := &account.User{FullName: "Vasya Pupkin", Company: "Red Hat", Email: "vpupkin@mail.io", ImageURL: "http://vpupkin.io/image.jpg"}
 	identity := &account.Identity{Username: "vaysa"}
 	claims := &keycloakTokenClaims{Username: "new username", Name: "new name", Company: "new company", Email: "new email"}
-	err := fillUser(claims, user, identity)
+	isChanged, err := fillUser(claims, user, identity)
 	require.Nil(t, err)
+	require.True(t, isChanged)
 	assert.Equal(t, "new name", user.FullName)
 	assert.Equal(t, "new company", user.Company)
 	assert.Equal(t, "new email", user.Email)
