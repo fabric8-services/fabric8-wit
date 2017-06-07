@@ -218,7 +218,7 @@ func createRandomWorkItemTypeWithID(t *testing.T, id uuid.UUID, witCtrl *Workite
 		SpaceID: spaceID,
 		Icon:    "fa fa-question",
 		Fields: map[string]workitem.FieldDefinition{
-			"foo": workitem.FieldDefinition{
+			"foo": {
 				Required: false,
 				Type: &workitem.SimpleType{
 					Kind: workitem.KindString,
