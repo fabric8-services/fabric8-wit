@@ -38,23 +38,35 @@ func (r *GormWorkItemLinkTypeCombinationRepository) Create(ctx context.Context, 
 		return nil, errs.WithStack(err)
 	}
 	// Check link type exists
-	// TODO(kwk): Implement WILT repo method "Exists(ctx, id)" and use that here
-	linkType := WorkItemLinkType{}
-	db := r.db.Where("id=?", tc.LinkTypeID).Find(&linkType)
-	if db.RecordNotFound() {
-		return nil, errors.NewBadParameterError("work item link type", tc.LinkTypeID)
+	linkTypeExists, err := NewWorkItemLinkTypeRepository(r.db).Exists(ctx, tc.LinkTypeID)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"wilt_id": tc.LinkTypeID,
+			"err":     err,
+		}, "error checking for work item link type")
+		return nil, errors.NewInternalError(fmt.Sprintf("failed to find link type: %s", err.Error()))
 	}
-	if db.Error != nil {
-		return nil, errors.NewInternalError(fmt.Sprintf("failed to find work item link type: %s", db.Error.Error()))
+	if !linkTypeExists {
+		log.Error(ctx, map[string]interface{}{
+			"wilt_id": tc.LinkTypeID,
+		}, "work item link type not found")
+		return nil, errors.NewNotFoundError("wilt_id", tc.LinkTypeID.String())
 	}
 	// Check source WIT exists
 	// TODO(kwk): Implement WIT repo method "Exists(ctx, id)" and use that here
 	sourceType := workitem.WorkItemType{}
-	db = r.db.Where("id=?", tc.SourceTypeID).Find(&sourceType)
+	db := r.db.Where("id=?", tc.SourceTypeID).Find(&sourceType)
 	if db.RecordNotFound() {
-		return nil, errors.NewBadParameterError("source work item type", tc.SourceTypeID)
+		log.Error(ctx, map[string]interface{}{
+			"wit_id": tc.SourceTypeID,
+		}, "source work item type not found")
+		return nil, errors.NewNotFoundError("source_wit_id", tc.SourceTypeID.String())
 	}
 	if db.Error != nil {
+		log.Error(ctx, map[string]interface{}{
+			"wit_id": tc.SourceTypeID,
+			"err":    db.Error,
+		}, "failed to find source work item type")
 		return nil, errors.NewInternalError(fmt.Sprintf("failed to find source work item type: %s", db.Error.Error()))
 	}
 	// Check target WIT exists
@@ -62,14 +74,24 @@ func (r *GormWorkItemLinkTypeCombinationRepository) Create(ctx context.Context, 
 	targetType := workitem.WorkItemType{}
 	db = r.db.Where("id=?", tc.TargetTypeID).Find(&targetType)
 	if db.RecordNotFound() {
-		return nil, errors.NewBadParameterError("target work item type", tc.TargetTypeID)
+		log.Error(ctx, map[string]interface{}{
+			"wit_id": tc.TargetTypeID,
+		}, "target work item type not found")
+		return nil, errors.NewNotFoundError("target_wit_id", tc.TargetTypeID.String())
 	}
 	if db.Error != nil {
+		log.Error(ctx, map[string]interface{}{
+			"wit_id": tc.TargetTypeID,
+			"err":    db.Error,
+		}, "failed to find target work item type")
 		return nil, errors.NewInternalError(fmt.Sprintf("failed to find target work item type: %s", db.Error.Error()))
 	}
 	// Finally create the type combination record in the DB
 	db = r.db.Create(tc)
 	if db.Error != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": db.Error,
+		}, "failed to create work item link type combination")
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
 	return tc, nil

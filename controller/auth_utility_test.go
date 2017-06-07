@@ -22,11 +22,12 @@ import (
 
 const (
 	// the various HTTP endpoints
-	endpointWorkItems              = "/api/spaces/%s/workitems"
-	endpointWorkItemTypes          = "/api/spaces/%s/workitemtypes"
-	endpointWorkItemLinkCategories = "/api/workitemlinkcategories"
-	endpointWorkItemLinkTypes      = "/api/spaces/%s/workitemlinktypes"
-	endpointWorkItemLinks          = "/api/workitemlinks"
+	endpointWorkItems                    = "/api/spaces/%s/workitems"
+	endpointWorkItemTypes                = "/api/spaces/%s/workitemtypes"
+	endpointWorkItemLinkCategories       = "/api/workitemlinkcategories"
+	endpointWorkItemLinkTypes            = "/api/spaces/%s/workitemlinktypes"
+	endpointWorkItemLinkTypeCombinations = "/api/spaces/%s/workitemlinktypecombinations"
+	endpointWorkItemLinks                = "/api/workitemlinks"
 
 	endpointWorkItemRelationshipsLinks   = endpointWorkItems + "/%s/relationships/links"
 	endpointWorkItemTypesSourceLinkTypes = endpointWorkItemTypes + "/%s/source-link-types"

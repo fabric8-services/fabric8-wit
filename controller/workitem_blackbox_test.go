@@ -36,6 +36,7 @@ import (
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
 
+	"github.com/almighty/almighty-core/workitem/link"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -1754,7 +1755,12 @@ func (s *WorkItem2Suite) xTestWI2DeleteLinksOnWIDeletionOK() {
 	require.NotNil(s.T(), linkType)
 
 	// Create work item link type combination
-	linkTypeCombinationPayload, err := CreateWorkItemLinkTypeCombination(*space.Data.ID, *linkType.Data.ID, workitem.SystemBug, workitem.SystemBug)
+	linkTypeCombinationPayload, err := CreateWorkItemLinkTypeCombinationPayload(link.WorkItemLinkTypeCombination{
+		SpaceID:      *space.Data.ID,
+		LinkTypeID:   *linkType.Data.ID,
+		SourceTypeID: workitem.SystemBug,
+		TargetTypeID: workitem.SystemBug,
+	})
 	require.Nil(s.T(), err)
 	_, linkTypeCombination := test.CreateWorkItemLinkTypeCombinationCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCombinationCtrl, *space.Data.ID, linkTypeCombinationPayload)
 	require.NotNil(s.T(), linkTypeCombination)

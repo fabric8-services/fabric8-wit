@@ -44,8 +44,6 @@ type workItemLinkTypeSuite struct {
 	svc                     *goa.Service
 
 	spaceID   uuid.UUID
-	wit1ID    uuid.UUID
-	wit2ID    uuid.UUID
 	linkCatID uuid.UUID
 }
 
@@ -72,14 +70,6 @@ func (s *workItemLinkTypeSuite) SetupTest() {
 	spacePayload := CreateSpacePayload(testsupport.CreateRandomValidTestName("space"), "description")
 	_, space := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, spaceCtrl, spacePayload)
 	s.spaceID = *space.Data.ID
-
-	// work item types (2x)
-	wit1Payload := CreateWorkItemType(uuid.NewV4(), *space.Data.ID)
-	wit2Payload := CreateWorkItemType(uuid.NewV4(), s.spaceID)
-	_, wit1 := test.CreateWorkitemtypeCreated(s.T(), s.svc.Context, s.svc, s.typeCtrl, s.spaceID, &wit1Payload)
-	_, wit2 := test.CreateWorkitemtypeCreated(s.T(), s.svc.Context, s.svc, s.typeCtrl, s.spaceID, &wit2Payload)
-	s.wit2ID = *wit2.Data.ID
-	s.wit1ID = *wit1.Data.ID
 
 	// link category
 	linkCatCtrl := NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(s.DB))
@@ -367,13 +357,16 @@ func (s *workItemLinkTypeSuite) TestListTypeCombinations() {
 		type1 := s.createRandomWorkItemLinkType(t)
 		_, wit1 := createRandomWorkItemType(t, s.typeCtrl, s.spaceID)
 		_, wit2 := createRandomWorkItemType(t, s.typeCtrl, s.spaceID)
-		combi := link.WorkItemLinkTypeCombination{
+		//_, _ = createWorkItemTypeCombination(t, gormapplication.NewGormDB(s.DB), s.linkTypeCombinationCtrl, combi)
+		createPayload, err := CreateWorkItemLinkTypeCombinationPayload(link.WorkItemLinkTypeCombination{
 			SpaceID:      s.spaceID,
 			LinkTypeID:   *type1.Data.ID,
 			SourceTypeID: *wit1.Data.ID,
 			TargetTypeID: *wit2.Data.ID,
-		}
-		_, _ = createWorkItemTypeCombination(t, gormapplication.NewGormDB(s.DB), s.linkTypeCombinationCtrl, combi)
+		})
+		require.Nil(t, err)
+		_, combiCreated := test.CreateWorkItemLinkTypeCombinationCreated(t, context.Background(), nil, s.linkTypeCombinationCtrl, s.spaceID, createPayload)
+		require.NotNil(t, combiCreated)
 		// when
 		_, combinationList := test.ListTypeCombinationsWorkItemLinkTypeOK(t, nil, nil, s.linkTypeCtrl, s.spaceID, *type1.Data.ID, nil, nil)
 		// then
@@ -625,7 +618,12 @@ func (s *workItemLinkTypeSuite) createWorkItemLinkTypes(t *testing.T) (*app.Work
 	_, relatedType := test.CreateWorkItemLinkTypeCreated(t, s.svc.Context, s.svc, s.linkTypeCtrl, s.spaceID, relatedPayload)
 	require.NotNil(t, relatedType)
 
-	wiltcPayload, err := CreateWorkItemLinkTypeCombination(s.spaceID, *relatedType.Data.ID, *workItemType.Data.ID, *workItemType.Data.ID)
+	wiltcPayload, err := CreateWorkItemLinkTypeCombinationPayload(link.WorkItemLinkTypeCombination{
+		SpaceID:      s.spaceID,
+		LinkTypeID:   *relatedType.Data.ID,
+		SourceTypeID: *workItemType.Data.ID,
+		TargetTypeID: *workItemType.Data.ID,
+	})
 	require.Nil(t, err)
 	_, wiltcCreated := test.CreateWorkItemLinkTypeCombinationCreated(t, s.svc.Context, s.svc, s.linkTypeCombinationCtrl, s.spaceID, wiltcPayload)
 	require.NotNil(t, wiltcCreated)

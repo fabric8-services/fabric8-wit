@@ -1,0 +1,10 @@
+{
+  "errors": [
+    {
+      "code": "not_found",
+      "detail": "source_wit_id with id 'c7cc661e-a883-4514-8f2a-6fb6ee68a4d4' not found",
+      "status": "404",
+      "title": "Not found error"
+    }
+  ]
+}

@@ -186,7 +186,12 @@ func (s *workItemChildSuite) SetupTest() {
 	s.T().Logf("Created link type with ID: %s\n", *workItemLinkType.Data.ID)
 
 	// Create type combination for link type
-	createLinkTypeCombiPayload, err := CreateWorkItemLinkTypeCombination(s.userSpaceID, *workItemLinkType.Data.ID, workitem.SystemBug, workitem.SystemBug)
+	createLinkTypeCombiPayload, err := CreateWorkItemLinkTypeCombinationPayload(link.WorkItemLinkTypeCombination{
+		SpaceID:      s.userSpaceID,
+		LinkTypeID:   *workItemLinkType.Data.ID,
+		SourceTypeID: workitem.SystemBug,
+		TargetTypeID: workitem.SystemBug,
+	})
 	require.Nil(s.T(), err)
 	_, workItemLinkTypeCombination := test.CreateWorkItemLinkTypeCombinationCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkTypeCombinationCtrl, s.userSpaceID, createLinkTypeCombiPayload)
 	require.NotNil(s.T(), workItemLinkTypeCombination)

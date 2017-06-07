@@ -24,6 +24,7 @@ import (
 
 	"time"
 
+	"github.com/almighty/almighty-core/workitem/link"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
@@ -204,10 +205,15 @@ func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 }
 
 func createRandomWorkItemType(t *testing.T, witCtrl *WorkitemtypeController, spaceID uuid.UUID) (http.ResponseWriter, *app.WorkItemTypeSingle) {
+	return createRandomWorkItemTypeWithID(t, uuid.NewV4(), witCtrl, spaceID)
+}
+
+func createRandomWorkItemTypeWithID(t *testing.T, id uuid.UUID, witCtrl *WorkitemtypeController, spaceID uuid.UUID) (http.ResponseWriter, *app.WorkItemTypeSingle) {
 	reqLong := &goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}
 	witModel := workitem.WorkItemType{
+		ID:      id,
 		Name:    testsupport.CreateRandomValidTestName("random wit"),
 		SpaceID: spaceID,
 		Icon:    "fa fa-question",
@@ -607,7 +613,12 @@ func (s *workItemTypeSuite) createWorkitemtypeLinks() (app.WorkItemLinkTypeSingl
 	require.NotNil(s.T(), sourceLinkType)
 	s.T().Log("Created a work item link type")
 	// Create link type combination
-	linkTypeCombinationPayload, err := CreateWorkItemLinkTypeCombination(*sp.Data.ID, *sourceLinkType.Data.ID, animalID, workitem.SystemBug)
+	linkTypeCombinationPayload, err := CreateWorkItemLinkTypeCombinationPayload(link.WorkItemLinkTypeCombination{
+		SpaceID:      *sp.Data.ID,
+		LinkTypeID:   *sourceLinkType.Data.ID,
+		SourceTypeID: animalID,
+		TargetTypeID: workitem.SystemBug,
+	})
 	require.Nil(s.T(), err)
 	_, linkTypeCombinationCreated := test.CreateWorkItemLinkTypeCombinationCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCombinationCtrl, *sp.Data.ID, linkTypeCombinationPayload)
 	require.NotNil(s.T(), linkTypeCombinationCreated)
@@ -618,7 +629,12 @@ func (s *workItemTypeSuite) createWorkitemtypeLinks() (app.WorkItemLinkTypeSingl
 	require.NotNil(s.T(), targetLinkType)
 	s.T().Log("Created another work item link type")
 	// Create another link type combination
-	linkTypeCombinationPayload, err = CreateWorkItemLinkTypeCombination(*sp.Data.ID, *targetLinkType.Data.ID, workitem.SystemBug, animalID)
+	linkTypeCombinationPayload, err = CreateWorkItemLinkTypeCombinationPayload(link.WorkItemLinkTypeCombination{
+		SpaceID:      *sp.Data.ID,
+		LinkTypeID:   *targetLinkType.Data.ID,
+		SourceTypeID: workitem.SystemBug,
+		TargetTypeID: animalID,
+	})
 	require.Nil(s.T(), err)
 	_, linkTypeCombinationCreated = test.CreateWorkItemLinkTypeCombinationCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCombinationCtrl, *sp.Data.ID, linkTypeCombinationPayload)
 	require.NotNil(s.T(), linkTypeCombinationCreated)

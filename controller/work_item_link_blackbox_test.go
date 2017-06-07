@@ -12,7 +12,6 @@ import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
-	"github.com/almighty/almighty-core/application"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormtestsupport"
@@ -193,7 +192,12 @@ func (s *workItemLinkSuite) SetupTest() {
 	s.T().Logf("Created link type with ID: %s\n", *workItemLinkType.Data.ID)
 
 	// Create work item link type combination payload
-	createLinkTypeCombinationPayload, err := CreateWorkItemLinkTypeCombination(s.userSpaceID, *workItemLinkType.Data.ID, *wit.Data.ID, *wit.Data.ID)
+	createLinkTypeCombinationPayload, err := CreateWorkItemLinkTypeCombinationPayload(link.WorkItemLinkTypeCombination{
+		SpaceID:      s.userSpaceID,
+		LinkTypeID:   *workItemLinkType.Data.ID,
+		SourceTypeID: *wit.Data.ID,
+		TargetTypeID: *wit.Data.ID,
+	})
 	require.Nil(s.T(), err)
 	_, workItemLinkTypeCombination := test.CreateWorkItemLinkTypeCombinationCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkTypeCombinationCtrl, s.userSpaceID, createLinkTypeCombinationPayload)
 	require.NotNil(s.T(), workItemLinkTypeCombination)
@@ -277,29 +281,6 @@ func CreateWorkItemLinkType(name string, categoryID, spaceID uuid.UUID) *app.Cre
 	return &app.CreateWorkItemLinkTypePayload{
 		Data: payload.Data,
 	}
-}
-
-// CreateWorkItemLinkTypeCombination defines a work item link type combination
-func CreateWorkItemLinkTypeCombination(spaceID, linkTypeID, sourceTypeID, targetTypeID uuid.UUID) (*app.CreateWorkItemLinkTypeCombinationPayload, error) {
-	appl := new(application.Application)
-	tc := link.WorkItemLinkTypeCombination{
-		SpaceID:      spaceID,
-		LinkTypeID:   linkTypeID,
-		SourceTypeID: sourceTypeID,
-		TargetTypeID: targetTypeID,
-	}
-	reqLong := &goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}
-	payload, err := ConvertWorkItemLinkTypeCombinationFromModel(*appl, reqLong, tc)
-	if err != nil {
-		return nil, err
-	}
-	// The create payload is required during creation. Simply copy data over.
-	res := &app.CreateWorkItemLinkTypeCombinationPayload{
-		Data: payload,
-	}
-	return res, nil
 }
 
 // CreateWorkItemLink defines a work item link

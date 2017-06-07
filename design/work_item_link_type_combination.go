@@ -130,6 +130,7 @@ var _ = a.Resource("work_item_link_type_combination", func() {
 			a.Media(workItemLinkTypeCombinationSingle)
 		})
 		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
