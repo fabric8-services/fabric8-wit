@@ -33,21 +33,6 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-/*
-func createWorkItemTypeCombination(t *testing.T, appl application.Application, wiltcCtrl *WorkItemLinkTypeCombinationController, witModel link.WorkItemLinkTypeCombination) (http.ResponseWriter, *app.WorkItemLinkTypeCombinationSingle) {
-	reqLong := &goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}
-	wit, err := ConvertWorkItemLinkTypeCombinationFromModel(appl, reqLong, witModel)
-	require.Nil(t, err)
-	payload := app.CreateWorkItemLinkTypeCombinationPayload{
-		Data: wit,
-	}
-	responseWriter, wi := test.CreateWorkItemLinkTypeCombinationCreated(t, nil, nil, wiltcCtrl, witModel.SpaceID, &payload)
-	return responseWriter, wi
-}
-*/
-
 // CreateWorkItemLinkTypeCombination defines a work item link type combination
 func CreateWorkItemLinkTypeCombinationPayload(tc link.WorkItemLinkTypeCombination) (*app.CreateWorkItemLinkTypeCombinationPayload, error) {
 	appl := new(application.Application)
