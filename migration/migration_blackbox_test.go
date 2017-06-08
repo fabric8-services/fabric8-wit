@@ -348,11 +348,11 @@ func testMigration62(t *testing.T) {
 	assert.True(t, dialect.HasIndex("work_item_type_categories", "work_item_type_categories_idx"))
 
 	assert.True(t, dialect.HasColumn("work_item_type_categories", "category_id"))
-	assert.True(t, dialect.HasColumn("work_item_type_categories", "workitemtype_id"))
+	assert.True(t, dialect.HasColumn("work_item_type_categories", "work_item_type_id"))
 
 	// These script execution has to fail
-	assert.NotNil(t, runSQLscript(sqlDB, "055-insert-category-no-name-fail.sql"))
-	assert.NotNil(t, runSQLscript(sqlDB, "056-unique-idx-failed-insert-category.sql"))
+	assert.NotNil(t, runSQLscript(sqlDB, "062-insert-category-no-name-fail.sql"))
+	assert.NotNil(t, runSQLscript(sqlDB, "063-unique-idx-failed-insert-category.sql"))
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and
