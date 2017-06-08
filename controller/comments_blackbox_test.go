@@ -24,6 +24,7 @@ import (
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
+	uuid "github.com/satori/go.uuid"
 
 	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"
@@ -146,6 +147,7 @@ func (s *CommentsSuite) createWorkItemComment(identity account.Identity, wID str
 	createWorkItemCommentPayload := s.newCreateWorkItemCommentsPayload(body, markup)
 	userSvc, _, workitemCommentsCtrl, _ := s.securedControllers(identity)
 	_, c := test.CreateWorkItemCommentsOK(s.T(), userSvc.Context, userSvc, workitemCommentsCtrl, space.SystemSpace, wID, createWorkItemCommentPayload)
+	require.NotNil(s.T(), c)
 	s.T().Log(fmt.Sprintf("Created comment with id %v", *c.Data.ID))
 	return *c
 }
@@ -342,10 +344,61 @@ func (s *CommentsSuite) TestDeleteCommentWithoutAuth() {
 	test.DeleteCommentsUnauthorized(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID)
 }
 
-func (s *CommentsSuite) TestDeleteCommentWithOtherAuthenticatedUser() {
-	// given
-	wID := s.createWorkItem(s.testIdentity)
-	c := s.createWorkItemComment(s.testIdentity, wID, "body", &plaintextMarkup)
-	userSvc, _, _, commentsCtrl := s.securedControllers(s.testIdentity2)
-	test.DeleteCommentsForbidden(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID)
+// Following test creates a space and space_owner creates a WI in that space
+// Space owner adds a comment on the created WI
+// Create another user, which is not space collaborator.
+// Test if another user can delete the comment
+func (s *CommentsSuite) TestNonCollaboraterCanNotDelete() {
+	// create space
+	// create user
+	// add user to the space collaborator list
+	// create workitem in created space
+	// create another user - do not add this user into collaborator list
+	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "TestCommentByNonCollaborater-"+uuid.NewV4().String(), "TestWIComments")
+	require.Nil(s.T(), err)
+	space := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, testIdentity)
+
+	payload := minimumRequiredCreateWithTypeAndSpace(workitem.SystemFeature, *space.ID)
+	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
+	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity, &TestSpaceAuthzService{testIdentity})
+	ctrl := NewWorkitemController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+
+	_, wi := test.CreateWorkitemCreated(s.T(), svc.Context, svc, ctrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	c := s.createWorkItemComment(testIdentity, *wi.Data.ID, "body", &plaintextMarkup)
+
+	testIdentity2, err := testsupport.CreateTestIdentity(s.DB, "TestUpdateWorkitemForSpaceCollaborator-"+uuid.NewV4().String(), "TestWI")
+	svcNotAuthrized := testsupport.ServiceAsSpaceUser("Collaborators-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity2, &TestSpaceAuthzService{testIdentity})
+	ctrlNotAuthrize := NewCommentsController(svcNotAuthrized, gormapplication.NewGormDB(s.DB), s.Configuration)
+
+	test.DeleteCommentsForbidden(s.T(), svcNotAuthrized.Context, svcNotAuthrized, ctrlNotAuthrize, *c.Data.ID)
 }
+
+func (s *CommentsSuite) TestCollaboratorCanDelete() {
+	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "TestCommentByNonCollaborater-"+uuid.NewV4().String(), "TestWIComments")
+	require.Nil(s.T(), err)
+	space := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, testIdentity)
+
+	payload := minimumRequiredCreateWithTypeAndSpace(workitem.SystemFeature, *space.ID)
+	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
+	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity, &TestSpaceAuthzService{testIdentity})
+	ctrl := NewWorkitemController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+
+	_, wi := test.CreateWorkitemCreated(s.T(), svc.Context, svc, ctrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	c := s.createWorkItemComment(testIdentity, *wi.Data.ID, "body", &plaintextMarkup)
+	commentCtrl := NewCommentsController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	test.DeleteCommentsOK(s.T(), svc.Context, svc, commentCtrl, *c.Data.ID)
+}
+
+// func (s *CommentsSuite) TestDeleteCommentWithOtherAuthenticatedUser() {
+// 	// given
+// 	wID := s.createWorkItem(s.testIdentity)
+// 	c := s.createWorkItemComment(s.testIdentity, wID, "body", &plaintextMarkup)
+// 	userSvc, _, _, commentsCtrl := s.securedControllers(s.testIdentity2)
+// 	test.DeleteCommentsForbidden(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID)
+// }
