@@ -560,26 +560,26 @@ func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkIte
 	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, spaceRepo, &deliveryWILT); err != nil {
 		return errs.WithStack(err)
 	}
-	// Create the link type combination for the system space
+	// Create the link type combinations for the system space
 	combis := []link.WorkItemLinkTypeCombination{
-		{SourceTypeID: workitem.SystemScenario, LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, TargetTypeID: workitem.SystemValueProposition},
-		{SourceTypeID: workitem.SystemScenario, LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, TargetTypeID: workitem.SystemExperience},
-		{SourceTypeID: workitem.SystemExperience, LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, TargetTypeID: workitem.SystemFeature},
-		{SourceTypeID: workitem.SystemFeature, LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, TargetTypeID: workitem.SystemFeature},
-		{SourceTypeID: workitem.SystemFeature, LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, TargetTypeID: workitem.SystemTask},
-		{SourceTypeID: workitem.SystemTask, LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, TargetTypeID: workitem.SystemTask},
-		{SourceTypeID: workitem.SystemExperience, LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, TargetTypeID: workitem.SystemBug},
-		{SourceTypeID: workitem.SystemScenario, LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, TargetTypeID: workitem.SystemImpediment},
-		{SourceTypeID: workitem.SystemExperience, LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, TargetTypeID: workitem.SystemImpediment},
-		{SourceTypeID: workitem.SystemFeature, LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, TargetTypeID: workitem.SystemImpediment},
-		{SourceTypeID: workitem.SystemTask, LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, TargetTypeID: workitem.SystemImpediment},
-		{SourceTypeID: workitem.SystemBug, LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, TargetTypeID: workitem.SystemImpediment},
-		{SourceTypeID: workitem.SystemExperience, LinkTypeID: link.SystemWorkItemLinkTypeDeliveryID, TargetTypeID: workitem.SystemValueProposition},
-		{SourceTypeID: workitem.SystemValueProposition, LinkTypeID: link.SystemWorkItemLinkTypeDeliveryID, TargetTypeID: workitem.SystemExperience},
-		{SourceTypeID: workitem.SystemFundamental, LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, TargetTypeID: workitem.SystemValueProposition},
-		{SourceTypeID: workitem.SystemFundamental, LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, TargetTypeID: workitem.SystemExperience},
-		{SourceTypeID: workitem.SystemPapercuts, LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, TargetTypeID: workitem.SystemValueProposition},
-		{SourceTypeID: workitem.SystemPapercuts, LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, TargetTypeID: workitem.SystemExperience},
+		{ID: uuid.FromStringOrNil("abb5bd60-324d-49dd-b50f-589f4d06b335"), LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, SourceTypeID: workitem.SystemScenario, TargetTypeID: workitem.SystemValueProposition},
+		{ID: uuid.FromStringOrNil("a7070914-aab3-42aa-a2b0-c3a83e8a7b82"), LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, SourceTypeID: workitem.SystemScenario, TargetTypeID: workitem.SystemExperience},
+		{ID: uuid.FromStringOrNil("a3a48c45-8a59-487e-bee8-52c610980b4f"), LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, SourceTypeID: workitem.SystemExperience, TargetTypeID: workitem.SystemFeature},
+		{ID: uuid.FromStringOrNil("7c2365bc-86c5-440b-90f6-bc1335f94437"), LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, SourceTypeID: workitem.SystemFeature, TargetTypeID: workitem.SystemFeature},
+		{ID: uuid.FromStringOrNil("a80f5c39-6ec0-4965-a266-5edbdbc4d750"), LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, SourceTypeID: workitem.SystemFeature, TargetTypeID: workitem.SystemTask},
+		{ID: uuid.FromStringOrNil("47185279-6f11-4a54-aa82-67d929f2cbe4"), LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, SourceTypeID: workitem.SystemTask, TargetTypeID: workitem.SystemTask},
+		{ID: uuid.FromStringOrNil("7d8b9708-8798-4ead-87d8-7f7c1881ad1d"), LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, SourceTypeID: workitem.SystemExperience, TargetTypeID: workitem.SystemBug},
+		{ID: uuid.FromStringOrNil("5f57cee3-d602-4aec-a670-f7070a98345a"), LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, SourceTypeID: workitem.SystemScenario, TargetTypeID: workitem.SystemImpediment},
+		{ID: uuid.FromStringOrNil("e4cec212-e42e-45ec-9e13-2d8d0caabc19"), LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, SourceTypeID: workitem.SystemExperience, TargetTypeID: workitem.SystemImpediment},
+		{ID: uuid.FromStringOrNil("f59bb088-c58d-4d4f-9fe5-51b40415cd93"), LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, SourceTypeID: workitem.SystemFeature, TargetTypeID: workitem.SystemImpediment},
+		{ID: uuid.FromStringOrNil("9bba4b47-3530-4bca-bd5c-5635b9383b80"), LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, SourceTypeID: workitem.SystemTask, TargetTypeID: workitem.SystemImpediment},
+		{ID: uuid.FromStringOrNil("91841cf0-e0e9-425c-8322-5c565c7fb230"), LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, SourceTypeID: workitem.SystemBug, TargetTypeID: workitem.SystemImpediment},
+		{ID: uuid.FromStringOrNil("4add92e4-a767-43eb-91e7-c109bb35cb4b"), LinkTypeID: link.SystemWorkItemLinkTypeDeliveryID, SourceTypeID: workitem.SystemExperience, TargetTypeID: workitem.SystemValueProposition},
+		{ID: uuid.FromStringOrNil("72ca64ee-e4c5-4a06-b0f4-6008659052b3"), LinkTypeID: link.SystemWorkItemLinkTypeDeliveryID, SourceTypeID: workitem.SystemValueProposition, TargetTypeID: workitem.SystemExperience},
+		{ID: uuid.FromStringOrNil("5b3f13f8-f141-47a4-bf4d-d5ac81cc1200"), LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, SourceTypeID: workitem.SystemFundamental, TargetTypeID: workitem.SystemValueProposition},
+		{ID: uuid.FromStringOrNil("4c4f6ee7-3a28-4eb4-bd87-91c2f74bc87d"), LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, SourceTypeID: workitem.SystemFundamental, TargetTypeID: workitem.SystemExperience},
+		{ID: uuid.FromStringOrNil("4af86a08-8380-492b-be53-27977413b58f"), LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, SourceTypeID: workitem.SystemPapercuts, TargetTypeID: workitem.SystemValueProposition},
+		{ID: uuid.FromStringOrNil("a478abe5-70ca-40d0-b850-d2943115fe7e"), LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, SourceTypeID: workitem.SystemPapercuts, TargetTypeID: workitem.SystemExperience},
 	}
 	for _, combi := range combis {
 		combi.SpaceID = space.SystemSpace
