@@ -157,23 +157,16 @@ func (m *GormRepository) Create(ctx context.Context, category *Category) (*Categ
 // LoadAllRelationshipsOfCategory loads all the relationships of a category. This is required for workitemtype filtering.
 func (m *GormRepository) LoadAllRelationshipsOfCategory(ctx context.Context, categoryID uuid.UUID) ([]*WorkItemTypeCategoryRelationship, error) {
 	// Check if category is present
-	getCategory := Category{}
-	db := m.db.Model(&getCategory).Where("id=?", categoryID).Find(&getCategory)
-	if db.RecordNotFound() {
+	_, err := m.LoadCategoryFromDB(ctx, categoryID)
+	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"category_id": categoryID,
 		}, "category not found")
-		return nil, errors.NewNotFoundError("category", categoryID.String())
+		return nil, errors.NewBadParameterError("categoryID", categoryID)
 	}
-	if err := db.Error; err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"category_id": categoryID,
-			"err":         err,
-		}, "unable to load category")
-		return nil, errors.NewInternalError(err.Error())
-	}
+
 	relationship := []*WorkItemTypeCategoryRelationship{}
-	db = m.db.Model(&relationship).Where("category_id=?", categoryID).Find(&relationship)
+	db := m.db.Model(&relationship).Where("category_id=?", categoryID).Find(&relationship)
 	if db.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
 			"category_id": categoryID,
@@ -214,23 +207,15 @@ func (m *GormRepository) LoadCategoryFromDB(ctx context.Context, id uuid.UUID) (
 // LoadWorkItemTypeCategoryRelationship loads all the relationships of a category. This is required for testing.
 func (m *GormRepository) LoadWorkItemTypeCategoryRelationship(ctx context.Context, workitemtypeID uuid.UUID, categoryID uuid.UUID) (*WorkItemTypeCategoryRelationship, error) {
 	// Check if category is present
-	getCategory := Category{}
-	db := m.db.Model(&getCategory).Where("id=?", categoryID).Find(&getCategory)
-	if db.RecordNotFound() {
+	_, err := m.LoadCategoryFromDB(ctx, categoryID)
+	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"category_id": categoryID,
 		}, "category not found")
-		return nil, errors.NewNotFoundError("category", categoryID.String())
-	}
-	if err := db.Error; err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"category_id": categoryID,
-			"err":         err,
-		}, "unable to load category")
-		return nil, errors.NewInternalError(err.Error())
+		return nil, errors.NewBadParameterError("categoryID", categoryID)
 	}
 	relationship := WorkItemTypeCategoryRelationship{}
-	db = m.db.Model(&relationship).Where("category_id=? AND workitemtype_id=?", categoryID, workitemtypeID).Find(&relationship)
+	db := m.db.Model(&relationship).Where("category_id=? AND workitemtype_id=?", categoryID, workitemtypeID).Find(&relationship)
 	if db.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
 			"category_id": categoryID,
