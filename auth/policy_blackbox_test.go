@@ -52,7 +52,8 @@ func (s *TestPolicySuite) TestGetPolicyOK() {
 
 func (s *TestPolicySuite) TestUpdatePolicyOK() {
 	policy, policyID := createPermissionWithPolicy(s)
-	policy.AddUserToPolicy(uuid.NewV4().String())
+	secondTestUserID := getUserID(s.T(), configuration.GetKeycloakTestUser2Name(), configuration.GetKeycloakTestUser2Secret())
+	policy.RemoveUserFromPolicy(secondTestUserID)
 	policy.ID = &policyID
 	r := &goa.RequestData{
 		Request: &http.Request{Host: "domain.io"},

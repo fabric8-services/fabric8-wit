@@ -16,8 +16,6 @@ import (
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/almighty/almighty-core/workitem/link"
 
-	"fmt"
-
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/client"
 	"github.com/jinzhu/gorm"
@@ -434,7 +432,11 @@ func MigrateToNextVersion(tx *sql.Tx, nextVersion *int64, m Migrations, catalog 
 // the next version is always the current version + 1 which results
 // in -1 + 1 = 0 which is exactly what we want as the first version.
 func getCurrentVersion(db *sql.Tx, catalog string) (int64, error) {
-	row := db.QueryRow(fmt.Sprintf("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_catalog='%s' AND table_name='version')", catalog))
+	query := `SELECT EXISTS(
+				SELECT 1 FROM information_schema.tables 
+				WHERE table_catalog=$1
+				AND table_name='version')`
+	row := db.QueryRow(query, catalog)
 
 	var exists bool
 	if err := row.Scan(&exists); err != nil {
