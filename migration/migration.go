@@ -691,7 +691,6 @@ func createOrUpdateWorkItemLinkTypeCombination(ctx context.Context, typeCombiRep
 	cause := errs.Cause(err)
 	switch cause.(type) {
 	case errors.NotFoundError:
-		// TODO(kwk): Handle unique violation and ignore it because that is fine ;)
 		_, err = typeCombiRepo.Create(ctx, combi)
 		return errs.WithStack(err)
 	case nil:

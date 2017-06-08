@@ -6,6 +6,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/errors"
+	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/workitem"
 
@@ -92,6 +93,11 @@ func (r *GormWorkItemLinkTypeCombinationRepository) Create(ctx context.Context, 
 		log.Error(ctx, map[string]interface{}{
 			"err": db.Error,
 		}, "failed to create work item link type combination")
+	}
+	if gormsupport.IsUniqueViolation(db.Error, "work_item_link_type_combinations_uniq") {
+		return nil, errors.NewBadParameterError("space+link+source+target", tc).Expected("unique")
+	}
+	if db.Error != nil {
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
 	return tc, nil
