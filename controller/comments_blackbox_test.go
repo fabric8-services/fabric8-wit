@@ -24,7 +24,6 @@ import (
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
-	uuid "github.com/satori/go.uuid"
 
 	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"
@@ -354,7 +353,7 @@ func (s *CommentsSuite) TestNonCollaboraterCanNotDelete() {
 	// add user to the space collaborator list
 	// create workitem in created space
 	// create another user - do not add this user into collaborator list
-	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "TestNonCollaboraterCanNotDelete-"+uuid.NewV4().String(), "TestWIComments")
+	testIdentity, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestNonCollaboraterCanNotDelete-"), "TestWIComments")
 	require.Nil(s.T(), err)
 	space := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, testIdentity)
 
@@ -369,7 +368,7 @@ func (s *CommentsSuite) TestNonCollaboraterCanNotDelete() {
 	_, wi := test.CreateWorkitemCreated(s.T(), svc.Context, svc, ctrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	c := s.createWorkItemComment(testIdentity, *wi.Data.ID, "body", &plaintextMarkup)
 
-	testIdentity2, err := testsupport.CreateTestIdentity(s.DB, "TestUpdateWorkitemForSpaceCollaborator-"+uuid.NewV4().String(), "TestWI")
+	testIdentity2, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestNonCollaboraterCanNotDelete-"), "TestWI")
 	svcNotAuthrized := testsupport.ServiceAsSpaceUser("Collaborators-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity2, &TestSpaceAuthzService{testIdentity})
 	ctrlNotAuthrize := NewCommentsController(svcNotAuthrized, gormapplication.NewGormDB(s.DB), s.Configuration)
 
@@ -377,7 +376,7 @@ func (s *CommentsSuite) TestNonCollaboraterCanNotDelete() {
 }
 
 func (s *CommentsSuite) TestCollaboratorCanDelete() {
-	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "TestCollaboratorCanDelete-"+uuid.NewV4().String(), "TestWIComments")
+	testIdentity, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestCollaboratorCanDelete-"), "TestWIComments")
 	require.Nil(s.T(), err)
 	space := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, testIdentity)
 
