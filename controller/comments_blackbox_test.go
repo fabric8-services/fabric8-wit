@@ -354,7 +354,7 @@ func (s *CommentsSuite) TestNonCollaboraterCanNotDelete() {
 	// add user to the space collaborator list
 	// create workitem in created space
 	// create another user - do not add this user into collaborator list
-	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "TestCommentByNonCollaborater-"+uuid.NewV4().String(), "TestWIComments")
+	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "TestNonCollaboraterCanNotDelete-"+uuid.NewV4().String(), "TestWIComments")
 	require.Nil(s.T(), err)
 	space := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, testIdentity)
 
@@ -377,7 +377,7 @@ func (s *CommentsSuite) TestNonCollaboraterCanNotDelete() {
 }
 
 func (s *CommentsSuite) TestCollaboratorCanDelete() {
-	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "TestCommentByNonCollaborater-"+uuid.NewV4().String(), "TestWIComments")
+	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "TestCollaboratorCanDelete-"+uuid.NewV4().String(), "TestWIComments")
 	require.Nil(s.T(), err)
 	space := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, testIdentity)
 
