@@ -394,11 +394,3 @@ func (s *CommentsSuite) TestCollaboratorCanDelete() {
 	commentCtrl := NewCommentsController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	test.DeleteCommentsOK(s.T(), svc.Context, svc, commentCtrl, *c.Data.ID)
 }
-
-// func (s *CommentsSuite) TestDeleteCommentWithOtherAuthenticatedUser() {
-// 	// given
-// 	wID := s.createWorkItem(s.testIdentity)
-// 	c := s.createWorkItemComment(s.testIdentity, wID, "body", &plaintextMarkup)
-// 	userSvc, _, _, commentsCtrl := s.securedControllers(s.testIdentity2)
-// 	test.DeleteCommentsForbidden(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID)
-// }
