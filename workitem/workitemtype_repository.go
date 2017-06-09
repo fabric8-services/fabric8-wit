@@ -167,14 +167,14 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UU
 			c := category.NewRepository(r.db)
 			WorkItemTypeCategoryRelationship := category.WorkItemTypeCategoryRelationship{
 				CategoryID:     *categoryID,
-				WorkitemtypeID: *id,
+				WorkItemTypeID: *id,
 			}
 			err := c.CreateRelationship(ctx, &WorkItemTypeCategoryRelationship)
 			if err != nil {
 				log.Info(ctx, map[string]interface{}{
-					"category_id":     *categoryID,
-					"workitemtype_id": *id,
-					"err":             err,
+					"category_id":       *categoryID,
+					"work_item_type_id": *id,
+					"err":               err,
 				}, "unable to create workitemtype category relationship")
 				return nil, errors.NewInternalError(err.Error())
 			}

@@ -171,7 +171,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestSingleWorkItemTypeToSingleCategoryRel
 	relationship, err := s.categoryRepo.LoadWorkItemTypeCategoryRelationship(s.ctx, wit.ID, *categoryID[0])
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), relationship)
-	require.Equal(s.T(), wit.ID, relationship.WorkitemtypeID)
+	require.Equal(s.T(), wit.ID, relationship.WorkItemTypeID)
 	require.Equal(s.T(), *categoryID[0], relationship.CategoryID)
 }
 
@@ -193,13 +193,13 @@ func (s *workItemTypeRepoBlackBoxTest) TestSingleWorkItemTypeToMultipleCategoryR
 	relationship, err := s.categoryRepo.LoadWorkItemTypeCategoryRelationship(s.ctx, wit.ID, *categoryID[0])
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), relationship)
-	require.Equal(s.T(), wit.ID, relationship.WorkitemtypeID)
+	require.Equal(s.T(), wit.ID, relationship.WorkItemTypeID)
 	require.Equal(s.T(), *categoryID[0], relationship.CategoryID)
 
 	relationship, err = s.categoryRepo.LoadWorkItemTypeCategoryRelationship(s.ctx, wit.ID, *categoryID[1])
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), relationship)
-	require.Equal(s.T(), wit.ID, relationship.WorkitemtypeID)
+	require.Equal(s.T(), wit.ID, relationship.WorkItemTypeID)
 	require.Equal(s.T(), *categoryID[1], relationship.CategoryID)
 }
 
@@ -221,7 +221,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestMultipleWorkItemTypeToSingleCategoryR
 	relationship, err := s.categoryRepo.LoadWorkItemTypeCategoryRelationship(s.ctx, wit1.ID, *categoryID[0])
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), relationship)
-	require.Equal(s.T(), wit1.ID, relationship.WorkitemtypeID)
+	require.Equal(s.T(), wit1.ID, relationship.WorkItemTypeID)
 	require.Equal(s.T(), *categoryID[0], relationship.CategoryID)
 
 	wit2, err := s.repo.Create(s.ctx, space.SystemSpace, nil, nil, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{
@@ -237,7 +237,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestMultipleWorkItemTypeToSingleCategoryR
 	relationship, err = s.categoryRepo.LoadWorkItemTypeCategoryRelationship(s.ctx, wit2.ID, *categoryID[0])
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), relationship)
-	require.Equal(s.T(), wit2.ID, relationship.WorkitemtypeID)
+	require.Equal(s.T(), wit2.ID, relationship.WorkItemTypeID)
 	require.Equal(s.T(), *categoryID[0], relationship.CategoryID)
 }
 
@@ -259,13 +259,13 @@ func (s *workItemTypeRepoBlackBoxTest) TestMultipleWorkItemTypeToMultipleCategor
 	relationship, err := s.categoryRepo.LoadWorkItemTypeCategoryRelationship(s.ctx, wit1.ID, *categoryID[0])
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), relationship)
-	require.Equal(s.T(), wit1.ID, relationship.WorkitemtypeID)
+	require.Equal(s.T(), wit1.ID, relationship.WorkItemTypeID)
 	require.Equal(s.T(), *categoryID[0], relationship.CategoryID)
 
 	relationship, err = s.categoryRepo.LoadWorkItemTypeCategoryRelationship(s.ctx, wit1.ID, *categoryID[1])
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), relationship)
-	require.Equal(s.T(), wit1.ID, relationship.WorkitemtypeID)
+	require.Equal(s.T(), wit1.ID, relationship.WorkItemTypeID)
 	require.Equal(s.T(), *categoryID[1], relationship.CategoryID)
 
 	wit2, err := s.repo.Create(s.ctx, space.SystemSpace, nil, nil, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{
@@ -281,12 +281,12 @@ func (s *workItemTypeRepoBlackBoxTest) TestMultipleWorkItemTypeToMultipleCategor
 	relationship, err = s.categoryRepo.LoadWorkItemTypeCategoryRelationship(s.ctx, wit2.ID, *categoryID[0])
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), relationship)
-	require.Equal(s.T(), wit2.ID, relationship.WorkitemtypeID)
+	require.Equal(s.T(), wit2.ID, relationship.WorkItemTypeID)
 	require.Equal(s.T(), *categoryID[0], relationship.CategoryID)
 
 	relationship, err = s.categoryRepo.LoadWorkItemTypeCategoryRelationship(s.ctx, wit2.ID, *categoryID[1])
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), relationship)
-	require.Equal(s.T(), wit2.ID, relationship.WorkitemtypeID)
+	require.Equal(s.T(), wit2.ID, relationship.WorkItemTypeID)
 	require.Equal(s.T(), *categoryID[1], relationship.CategoryID)
 }

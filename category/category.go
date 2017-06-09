@@ -49,7 +49,7 @@ type WorkItemTypeCategoryRelationship struct {
 	gormsupport.Lifecycle
 	ID             uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
 	CategoryID     uuid.UUID `sql:"type:uuid"`
-	WorkitemtypeID uuid.UUID `sql:"type:uuid"`
+	WorkItemTypeID uuid.UUID `sql:"type:uuid"`
 }
 
 // TableName overrides the table name settings in Gorm to force a specific table name
@@ -123,7 +123,7 @@ func (m *GormRepository) CreateRelationship(ctx context.Context, relationship *W
 		}
 		log.Error(ctx, map[string]interface{}{
 			"category_id": relationship.CategoryID,
-			"wit_id":      relationship.WorkitemtypeID,
+			"wit_id":      relationship.WorkItemTypeID,
 			"err":         db.Error.Error(),
 		}, "unable to create workitemtype category relationship")
 		return errors.NewInternalError(db.Error.Error())
@@ -215,7 +215,7 @@ func (m *GormRepository) LoadWorkItemTypeCategoryRelationship(ctx context.Contex
 		return nil, errors.NewBadParameterError("categoryID", categoryID)
 	}
 	relationship := WorkItemTypeCategoryRelationship{}
-	db := m.db.Model(&relationship).Where("category_id=? AND workitemtype_id=?", categoryID, workitemtypeID).Find(&relationship)
+	db := m.db.Model(&relationship).Where("category_id=? AND work_item_type_id=?", categoryID, workitemtypeID).Find(&relationship)
 	if db.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
 			"category_id": categoryID,
