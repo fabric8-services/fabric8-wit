@@ -175,7 +175,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	if !authorized {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError("user is not authorized to access the space"))
+		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to access the space"))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		// Type changes of WI are not allowed which is why we overwrite it the
@@ -215,7 +215,7 @@ func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
 	if !authorized {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError("user is not authorized to access the space"))
+		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to access the space"))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		var dataArray []*app.WorkItem
@@ -342,7 +342,7 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
 	if !authorized {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError("user is not authorized to access the space"))
+		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to access the space"))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		err := appl.WorkItems().Delete(ctx, ctx.WiID, *currentUserIdentityID)
