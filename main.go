@@ -329,12 +329,22 @@ func main() {
 	http.Handle("/favicon.ico", http.NotFoundHandler())
 
 	// Start http
-	if err := http.ListenAndServe(configuration.GetHTTPAddress(), nil); err != nil {
-		log.Error(nil, map[string]interface{}{
-			"addr": configuration.GetHTTPAddress(),
-			"err":  err,
-		}, "unable to connect to server")
-		service.LogError("startup", "err", err)
+	if configuration.IsPostgresDeveloperModeEnabled() {
+		if err := http.ListenAndServe(configuration.GetHTTPAddress(), nil); err != nil {
+			log.Error(nil, map[string]interface{}{
+				"addr": configuration.GetHTTPAddress(),
+				"err":  err,
+			}, "unable to connect to server")
+			service.LogError("startup", "err", err)
+		}
+	} else {
+		if err := http.ListenAndServeTLS(configuration.GetHTTPAddress(), "cert.pem", "key.pem", nil); err != nil {
+			log.Error(nil, map[string]interface{}{
+				"addr": configuration.GetHTTPAddress(),
+				"err":  err,
+			}, "unable to connect to server")
+			service.LogError("startup", "err", err)
+		}
 	}
 
 }
