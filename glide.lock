@@ -1,5 +1,5 @@
-hash: 3e9f1b6af7274e8d50e57500f92f1374c63cce5e765993d8649e03350936560c
-updated: 2017-04-17T23:07:16.622277679+02:00
+hash: e195cbf71b6a40599f995b809119a2f983b8191f957350ce3a7cb33c1021d361
+updated: 2017-05-11T14:12:36.971864618+02:00
 imports:
 - name: bitbucket.org/pkg/inflect
   version: 8961c3750a47b8c0b3e118d52513b97adf85a7e8
@@ -216,6 +216,8 @@ imports:
   - urlfetch
 - name: gopkg.in/asaskevich/govalidator.v4
   version: 7664702784775e51966f0885f5cd27435916517b
+- name: gopkg.in/jackc/pgx.v2
+  version: 97c01fb52451c10e686fb847ad390338bf1799ae
 - name: gopkg.in/yaml.v2
   version: a5b47d31c556af34a302ce5d659e6fea44d90de0
 testImports: []

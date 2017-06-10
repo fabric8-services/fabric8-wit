@@ -22,8 +22,6 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"strings"
-
-	_ "github.com/lib/pq"
 )
 
 var (

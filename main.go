@@ -11,7 +11,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/jinzhu/gorm"
-	_ "github.com/lib/pq"
+	_ "gopkg.in/jackc/pgx.v2"
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"

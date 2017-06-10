@@ -20,7 +20,6 @@ import (
 
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
-	_ "github.com/lib/pq"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"

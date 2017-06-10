@@ -9,8 +9,8 @@ import (
 	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/resource"
 
-	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
+	_ "gopkg.in/jackc/pgx.v2"
 )
 
 func TestConcurrentMigrations(t *testing.T) {
