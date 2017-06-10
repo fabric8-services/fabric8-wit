@@ -22,7 +22,6 @@ import (
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem/link"
@@ -92,11 +91,10 @@ func (s *workItemLinkTypeCombinationSuite) SetupTest() {
 
 	// space
 	s.spaceID = uuid.FromStringOrNil("38f6a5e5-c241-4477-894b-530461636056")
-	_, err := space.NewRepository(s.DB).Create(s.svc.Context, &space.Space{
-		ID:   s.spaceID,
-		Name: testsupport.CreateRandomValidTestName("space"),
-	})
-	require.Nil(s.T(), err)
+	spaceCtrl := NewSpaceController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration, &DummyResourceManager{})
+	spacePayload := CreateSpacePayloadWithID(s.spaceID, "space "+s.spaceID.String(), "description")
+	_, space := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, spaceCtrl, spacePayload)
+	require.NotNil(s.T(), space)
 
 	// WIT 1
 	s.wit1ID = uuid.FromStringOrNil("f3b1d121-04ad-496d-a9c1-4cbea99185a3")
@@ -154,6 +152,7 @@ func (s *workItemLinkTypeCombinationSuite) TestCreate() {
 		goldenFile := filepath.Join(s.testDir, "create", "ok.golden")
 		compareWithGolden(t, goldenFile, combination)
 	})
+
 	s.T().Run("work item link type not found", func(t *testing.T) {
 		// given
 		notExistingLinkTypeID := uuid.FromStringOrNil("7b161a5a-9455-4ac4-923d-c98cd3d3546e")
@@ -172,6 +171,7 @@ func (s *workItemLinkTypeCombinationSuite) TestCreate() {
 		goldenFile := filepath.Join(s.testDir, "create", "link_type_not_found.golden")
 		compareWithGolden(t, goldenFile, jerr)
 	})
+
 	s.T().Run("source work item type not found", func(t *testing.T) {
 		// given
 		notExistingSourceWorkItemTypeID := uuid.FromStringOrNil("c7cc661e-a883-4514-8f2a-6fb6ee68a4d4")
@@ -190,6 +190,7 @@ func (s *workItemLinkTypeCombinationSuite) TestCreate() {
 		goldenFile := filepath.Join(s.testDir, "create", "source_work_item_type_not_found.golden")
 		compareWithGolden(t, goldenFile, jerr)
 	})
+
 	s.T().Run("target work item type not found", func(t *testing.T) {
 		// given
 		notExistingTargetWorkItemTypeID := uuid.FromStringOrNil("959f3ee6-4171-44ff-9200-ed592d5a8722")
@@ -244,6 +245,7 @@ func (s *workItemLinkTypeCombinationSuite) TestShow() {
 		goldenFile := filepath.Join(s.testDir, "show", "ok.golden")
 		compareWithGolden(t, goldenFile, shownCombi)
 	})
+
 	s.T().Run("not found", func(t *testing.T) {
 		// given
 		notExistingID := uuid.FromStringOrNil("1c195b42-4d2d-428c-9a11-0cead28c35b9")
@@ -254,6 +256,7 @@ func (s *workItemLinkTypeCombinationSuite) TestShow() {
 		goldenFile := filepath.Join(s.testDir, "show", "not_found.golden")
 		compareWithGolden(t, goldenFile, jerr)
 	})
+
 	s.T().Run("ok using expired IfModifiedSince header", func(t *testing.T) {
 		// when
 		ifModifiedSinceHeader := app.ToHTTPTime(updatedAt.Add(-1 * time.Hour))
@@ -264,16 +267,18 @@ func (s *workItemLinkTypeCombinationSuite) TestShow() {
 		compareWithGolden(t, goldenFile, result)
 		assertResponseHeaders(t, respWriter)
 	})
-	s.T().Run("ok using expired IfNoneMatch header", func(t *testing.T) {
+
+	s.T().Run("ok using IfNoneMatch header", func(t *testing.T) {
 		// when
 		ifNoneMatch := "foo"
 		respWriter, result := test.ShowWorkItemLinkTypeCombinationOK(t, s.svc.Context, s.svc, s.linkTypeCombinationCtrl, s.spaceID, id, nil, &ifNoneMatch)
 		// then
 		require.NotNil(t, result)
-		goldenFile := filepath.Join(s.testDir, "show", "ok_using_expired_ifnonematch_header.golden")
+		goldenFile := filepath.Join(s.testDir, "show", "ok_using_ifnonematch_header.golden")
 		compareWithGolden(t, goldenFile, result)
 		assertResponseHeaders(t, respWriter)
 	})
+
 	s.T().Run("not modified using expired IfModifiedSince header", func(t *testing.T) {
 		// when
 		ifModifiedSinceHeader := app.ToHTTPTime(updatedAt)
@@ -281,6 +286,7 @@ func (s *workItemLinkTypeCombinationSuite) TestShow() {
 		// then
 		assertResponseHeaders(t, respWriter)
 	})
+
 	s.T().Run("not modified using IfNoneMatch header", func(t *testing.T) {
 		// when
 		model, err := ConvertWorkItemLinkTypeCominationToModel(*combination.Data)
