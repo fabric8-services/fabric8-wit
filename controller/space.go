@@ -67,6 +67,9 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 	reqSpace := ctx.Payload.Data
 	spaceName := *reqSpace.Attributes.Name
 	spaceID := uuid.NewV4()
+	if reqSpace.ID != nil {
+		spaceID = *reqSpace.ID
+	}
 
 	var rSpace *space.Space
 	err = application.Transactional(c.db, func(appl application.Application) error {
