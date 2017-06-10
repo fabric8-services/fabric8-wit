@@ -214,12 +214,14 @@ func (s *workItemLinkSuite) TearDownTest() {
 // helper method
 //-----------------------------------------------------------------------------
 
-// CreateWorkItemLinkCategory creates a work item link category
-func CreateWorkItemLinkCategory(name string) *app.CreateWorkItemLinkCategoryPayload {
+// CreateWorkItemLinkCategoryWithID creates a work item link category with a
+// given ID.
+func CreateWorkItemLinkCategoryWithID(ID uuid.UUID, name string) *app.CreateWorkItemLinkCategoryPayload {
 	description := "This work item link category is managed by an admin user."
 	// Use the goa generated code to create a work item link category
 	return &app.CreateWorkItemLinkCategoryPayload{
 		Data: &app.WorkItemLinkCategoryData{
+			ID:   &ID,
 			Type: link.EndpointWorkItemLinkCategories,
 			Attributes: &app.WorkItemLinkCategoryAttributes{
 				Name:        &name,
@@ -227,6 +229,11 @@ func CreateWorkItemLinkCategory(name string) *app.CreateWorkItemLinkCategoryPayl
 			},
 		},
 	}
+}
+
+// CreateWorkItemLinkCategory creates a work item link category
+func CreateWorkItemLinkCategory(name string) *app.CreateWorkItemLinkCategoryPayload {
+	return CreateWorkItemLinkCategoryWithID(uuid.Nil, name)
 }
 
 // CreateWorkItem defines a work item link
@@ -263,8 +270,14 @@ func CreateWorkItem(spaceID uuid.UUID, workItemType uuid.UUID, title string) *ap
 
 // CreateWorkItemLinkType defines a work item link type
 func CreateWorkItemLinkType(name string, categoryID, spaceID uuid.UUID) *app.CreateWorkItemLinkTypePayload {
+	return CreateWorkItemLinkTypeWithID(uuid.Nil, name, categoryID, spaceID)
+}
+
+// CreateWorkItemLinkTypeWithID defines a work item link type
+func CreateWorkItemLinkTypeWithID(ID uuid.UUID, name string, categoryID, spaceID uuid.UUID) *app.CreateWorkItemLinkTypePayload {
 	description := "Specify that one bug blocks another one."
 	lt := link.WorkItemLinkType{
+		ID:             ID,
 		Name:           name,
 		Description:    &description,
 		Topology:       link.TopologyNetwork,

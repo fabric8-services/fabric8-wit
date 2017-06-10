@@ -7,6 +7,9 @@ import (
 	"os"
 	"testing"
 
+	"path/filepath"
+
+	//"github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/stretchr/testify/require"
 )
 
@@ -19,14 +22,16 @@ var updateGoldenFiles = flag.Bool("update", false, "when set, rewrite the golden
 // actual object. When adding new tests you first must run them with the -update
 // flag in order to create an initial golden version.
 func compareWithGolden(t *testing.T, goldenFile string, actualObj interface{}) {
+	absPath, err := filepath.Abs(goldenFile)
+	require.Nil(t, err)
 	actual, err := json.MarshalIndent(actualObj, "", "  ")
 	require.Nil(t, err)
 	if *updateGoldenFiles {
-		err = ioutil.WriteFile(goldenFile, actual, os.ModePerm)
-		require.Nil(t, err, "failed to update golden file: %s", goldenFile)
+		err = ioutil.WriteFile(absPath, actual, os.ModePerm)
+		require.Nil(t, err, "failed to update golden file: %s", absPath)
 	}
-	expected, err := ioutil.ReadFile(goldenFile)
-	require.Nil(t, err, "failed to read golden file: %s", goldenFile)
+	expected, err := ioutil.ReadFile(absPath)
+	require.Nil(t, err, "failed to read golden file: %s", absPath)
 	expectedStr := string(expected)
 	actualStr := string(actual)
 	/*if expectedStr != actualStr {
@@ -35,6 +40,6 @@ func compareWithGolden(t *testing.T, goldenFile string, actualObj interface{}) {
 		fmt.Println(dmp.DiffPrettyText(diffs))
 		t.Log(dmp.DiffPrettyText(diffs))
 	}*/
-	require.Equal(t, expectedStr, actualStr)
+	require.Equal(t, expectedStr, actualStr, "mismatch of actual output and golden-file %s", absPath)
 
 }

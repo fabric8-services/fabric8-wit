@@ -55,21 +55,6 @@ func enrichLinkTypeSingle(ctx *workItemLinkContext, single *app.WorkItemLinkType
 	appCategory := convertLinkCategoryFromModel(*modelCategory)
 	single.Included = append(single.Included, appCategory.Data)
 
-	// Now include the optional link space data in the work item link type "included" array
-	space, err := ctx.Application.Spaces().Load(ctx.Context, *single.Data.Relationships.Space.Data.ID)
-	if err != nil {
-		return err
-	}
-
-	spaceData, err := ConvertSpaceFromModel(ctx.Context, ctx.DB, ctx.RequestData, *space)
-	if err != nil {
-		return err
-	}
-	spaceSingle := &app.SpaceSingle{
-		Data: spaceData,
-	}
-	single.Included = append(single.Included, spaceSingle.Data)
-
 	return nil
 }
 
@@ -97,26 +82,6 @@ func enrichLinkTypeList(ctx *workItemLinkContext, list *app.WorkItemLinkTypeList
 		list.Included = append(list.Included, appCategory.Data)
 	}
 
-	// Build our "set" of distinct space IDs already converted as strings
-	spaceIDMap := map[uuid.UUID]bool{}
-	for _, typeData := range list.Data {
-		spaceIDMap[*typeData.Relationships.Space.Data.ID] = true
-	}
-	// Now include the optional link space data in the work item link type "included" array
-	for spaceID := range spaceIDMap {
-		space, err := ctx.Application.Spaces().Load(ctx.Context, spaceID)
-		if err != nil {
-			return err
-		}
-		spaceData, err := ConvertSpaceFromModel(ctx.Context, ctx.DB, ctx.RequestData, *space)
-		if err != nil {
-			return err
-		}
-		spaceSingle := &app.SpaceSingle{
-			Data: spaceData,
-		}
-		list.Included = append(list.Included, spaceSingle.Data)
-	}
 	return nil
 }
 

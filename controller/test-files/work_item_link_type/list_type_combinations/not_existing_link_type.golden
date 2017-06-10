@@ -1,0 +1,10 @@
+{
+  "errors": [
+    {
+      "code": "not_found",
+      "detail": "wilt_id with id 'acca2c11-95c3-40bb-a18e-be88b80d91c6' not found",
+      "status": "404",
+      "title": "Not found error"
+    }
+  ]
+}
