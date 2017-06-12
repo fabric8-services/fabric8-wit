@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	netcontext "context"
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/area"
@@ -23,7 +24,6 @@ import (
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	netcontext "golang.org/x/net/context"
 )
 
 var (

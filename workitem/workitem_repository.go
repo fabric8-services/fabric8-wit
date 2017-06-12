@@ -3,7 +3,7 @@ package workitem
 import (
 	"strconv"
 
-	"golang.org/x/net/context"
+	"context"
 
 	"fmt"
 

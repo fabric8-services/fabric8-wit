@@ -16,11 +16,11 @@ import (
 	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/token"
 
+	contx "context"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	uuid "github.com/satori/go.uuid"
-	contx "golang.org/x/net/context"
 )
 
 // TokenPayload represents an rpt token

@@ -6,9 +6,9 @@ import (
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/log"
 
+	"context"
 	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
-	"golang.org/x/net/context"
 )
 
 const (
