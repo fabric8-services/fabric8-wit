@@ -2,6 +2,7 @@ package category
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/almighty/almighty-core/convert"
@@ -162,7 +163,7 @@ func (m *GormRepository) LoadAllRelationshipsOfCategory(ctx context.Context, cat
 		log.Error(ctx, map[string]interface{}{
 			"category_id": categoryID,
 		}, "category not found")
-		return nil, errors.NewBadParameterError("categoryID", categoryID)
+		return nil, errs.Wrap(err, fmt.Sprintf("Fail to load category with id %s", categoryID))
 	}
 
 	relationship := []*WorkItemTypeCategoryRelationship{}
@@ -212,7 +213,7 @@ func (m *GormRepository) LoadWorkItemTypeCategoryRelationship(ctx context.Contex
 		log.Error(ctx, map[string]interface{}{
 			"category_id": categoryID,
 		}, "category not found")
-		return nil, errors.NewBadParameterError("categoryID", categoryID)
+		return nil, errs.Wrap(err, fmt.Sprintf("Fail to load category with id %s", categoryID))
 	}
 	relationship := WorkItemTypeCategoryRelationship{}
 	db := m.db.Model(&relationship).Where("category_id=? AND work_item_type_id=?", categoryID, workitemtypeID).Find(&relationship)
