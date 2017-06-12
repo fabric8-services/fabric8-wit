@@ -375,7 +375,10 @@ func (s *workItemLinkTypeSuite) TestList() {
 
 	s.T().Run("not modified using IfModifiedSince header", func(t *testing.T) {
 		// given
-		type1 := s.createRandomWorkItemLinkType(t)
+		type1ID := uuid.FromStringOrNil("7739816b-2a77-40a5-b8e8-79fdd8e680ca")
+		type1Payload := CreateWorkItemLinkTypeWithID(type1ID, "type1 "+type1ID.String(), s.linkCatID, s.spaceID)
+		_, type1 := test.CreateWorkItemLinkTypeCreated(t, s.svc.Context, s.svc, s.linkTypeCtrl, s.spaceID, type1Payload)
+		require.NotNil(t, type1)
 		// when
 		ifModifiedSinceHeader := app.ToHTTPTime(*type1.Data.Attributes.UpdatedAt)
 		res := test.ListWorkItemLinkTypeNotModified(t, nil, nil, s.linkTypeCtrl, s.spaceID, &ifModifiedSinceHeader, nil)

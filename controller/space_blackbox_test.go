@@ -656,7 +656,15 @@ func minimumRequiredCreateSpace() *app.CreateSpacePayload {
 }
 
 func CreateSpacePayload(name, description string) *app.CreateSpacePayload {
-	return CreateSpacePayloadWithID(uuid.Nil, name, description)
+	return &app.CreateSpacePayload{
+		Data: &app.Space{
+			Type: "spaces",
+			Attributes: &app.SpaceAttributes{
+				Name:        &name,
+				Description: &description,
+			},
+		},
+	}
 }
 
 func CreateSpacePayloadWithID(id uuid.UUID, name, description string) *app.CreateSpacePayload {

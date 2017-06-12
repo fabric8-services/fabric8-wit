@@ -4,16 +4,16 @@
       "attributes": {
         "created-at": "0001-01-01T00:00:00Z",
         "description": "Specify that one bug blocks another one.",
-        "forward_name": "forward name string for type1 4a507999-6381-4e14-980a-2cd604697da3",
-        "name": "type1 4a507999-6381-4e14-980a-2cd604697da3",
-        "reverse_name": "reverse name string for type1 4a507999-6381-4e14-980a-2cd604697da3",
+        "forward_name": "forward name string for type1 01dd8598-3771-4ecc-bb4d-85ac1d21be7e",
+        "name": "type1 01dd8598-3771-4ecc-bb4d-85ac1d21be7e",
+        "reverse_name": "reverse name string for type1 01dd8598-3771-4ecc-bb4d-85ac1d21be7e",
         "topology": "network",
         "updated-at": "0001-01-01T00:00:00Z",
         "version": 0
       },
-      "id": "4a507999-6381-4e14-980a-2cd604697da3",
+      "id": "01dd8598-3771-4ecc-bb4d-85ac1d21be7e",
       "links": {
-        "self": "http:///api/spaces/26efe317-fbc2-4b4b-8369-bf5cf2325424/workitemlinktypes/4a507999-6381-4e14-980a-2cd604697da3"
+        "self": "http:///api/spaces/26efe317-fbc2-4b4b-8369-bf5cf2325424/workitemlinktypes/01dd8598-3771-4ecc-bb4d-85ac1d21be7e"
       },
       "relationships": {
         "link_category": {
@@ -41,16 +41,16 @@
       "attributes": {
         "created-at": "0001-01-01T00:00:00Z",
         "description": "Specify that one bug blocks another one.",
-        "forward_name": "forward name string for type2 cc3168c2-adfc-45af-8abf-c1c17bbd523c",
-        "name": "type2 cc3168c2-adfc-45af-8abf-c1c17bbd523c",
-        "reverse_name": "reverse name string for type2 cc3168c2-adfc-45af-8abf-c1c17bbd523c",
+        "forward_name": "forward name string for type1 4a507999-6381-4e14-980a-2cd604697da3",
+        "name": "type1 4a507999-6381-4e14-980a-2cd604697da3",
+        "reverse_name": "reverse name string for type1 4a507999-6381-4e14-980a-2cd604697da3",
         "topology": "network",
         "updated-at": "0001-01-01T00:00:00Z",
         "version": 0
       },
-      "id": "cc3168c2-adfc-45af-8abf-c1c17bbd523c",
+      "id": "4a507999-6381-4e14-980a-2cd604697da3",
       "links": {
-        "self": "http:///api/spaces/26efe317-fbc2-4b4b-8369-bf5cf2325424/workitemlinktypes/cc3168c2-adfc-45af-8abf-c1c17bbd523c"
+        "self": "http:///api/spaces/26efe317-fbc2-4b4b-8369-bf5cf2325424/workitemlinktypes/4a507999-6381-4e14-980a-2cd604697da3"
       },
       "relationships": {
         "link_category": {
@@ -115,16 +115,16 @@
       "attributes": {
         "created-at": "0001-01-01T00:00:00Z",
         "description": "Specify that one bug blocks another one.",
-        "forward_name": "forward name string for type1 01dd8598-3771-4ecc-bb4d-85ac1d21be7e",
-        "name": "type1 01dd8598-3771-4ecc-bb4d-85ac1d21be7e",
-        "reverse_name": "reverse name string for type1 01dd8598-3771-4ecc-bb4d-85ac1d21be7e",
+        "forward_name": "forward name string for type2 cc3168c2-adfc-45af-8abf-c1c17bbd523c",
+        "name": "type2 cc3168c2-adfc-45af-8abf-c1c17bbd523c",
+        "reverse_name": "reverse name string for type2 cc3168c2-adfc-45af-8abf-c1c17bbd523c",
         "topology": "network",
         "updated-at": "0001-01-01T00:00:00Z",
         "version": 0
       },
-      "id": "01dd8598-3771-4ecc-bb4d-85ac1d21be7e",
+      "id": "cc3168c2-adfc-45af-8abf-c1c17bbd523c",
       "links": {
-        "self": "http:///api/spaces/26efe317-fbc2-4b4b-8369-bf5cf2325424/workitemlinktypes/01dd8598-3771-4ecc-bb4d-85ac1d21be7e"
+        "self": "http:///api/spaces/26efe317-fbc2-4b4b-8369-bf5cf2325424/workitemlinktypes/cc3168c2-adfc-45af-8abf-c1c17bbd523c"
       },
       "relationships": {
         "link_category": {
