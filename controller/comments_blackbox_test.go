@@ -11,6 +11,7 @@ import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
+	"github.com/almighty/almighty-core/auth"
 	"github.com/almighty/almighty-core/comment"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
@@ -24,6 +25,7 @@ import (
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
+	uuid "github.com/satori/go.uuid"
 
 	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"
@@ -392,4 +394,55 @@ func (s *CommentsSuite) TestCollaboratorCanDelete() {
 	c := s.createWorkItemComment(testIdentity, *wi.Data.ID, "body", &plaintextMarkup)
 	commentCtrl := NewCommentsController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	test.DeleteCommentsOK(s.T(), svc.Context, svc, commentCtrl, *c.Data.ID)
+}
+
+func (s *CommentsSuite) TestCreatorCanDelete() {
+	wID := s.createWorkItem(s.testIdentity)
+	c := s.createWorkItemComment(s.testIdentity, wID, "body", &plaintextMarkup)
+	userSvc, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
+	test.DeleteCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID)
+}
+
+func (s *CommentsSuite) TestOtherCollaboratorCanDelete() {
+	// create space owner identity
+	spaceOwner, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestOtherCollaboratorCanDelete-"), "TestWIComments")
+	require.Nil(s.T(), err)
+
+	// create 2 space collaborators' identity
+	collaborator1, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestOtherCollaboratorCanDelete-"), "TestWIComments")
+	require.Nil(s.T(), err)
+
+	collaborator2, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestOtherCollaboratorCanDelete-"), "TestWIComments")
+	require.Nil(s.T(), err)
+
+	// Add 2 identities as Collaborators
+	space := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, spaceOwner)
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	svcWithSpaceOwner := testsupport.ServiceAsSpaceUser("Comments-Service", almtoken.NewManagerWithPrivateKey(priv), spaceOwner, &TestSpaceAuthzService{spaceOwner})
+	collaboratorRESTInstance := &TestCollaboratorsREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")}
+	collaboratorRESTInstance.policy = &auth.KeycloakPolicy{
+		Name:             "TestCollaborators-" + uuid.NewV4().String(),
+		Type:             auth.PolicyTypeUser,
+		Logic:            auth.PolicyLogicPossitive,
+		DecisionStrategy: auth.PolicyDecisionStrategyUnanimous,
+	}
+	collaboratorCtrl := NewCollaboratorsController(svcWithSpaceOwner, s.db, s.Configuration, &DummyPolicyManager{rest: collaboratorRESTInstance})
+	test.AddCollaboratorsOK(s.T(), svcWithSpaceOwner.Context, svcWithSpaceOwner, collaboratorCtrl, *space.ID, collaborator1.ID.String())
+	test.AddCollaboratorsOK(s.T(), svcWithSpaceOwner.Context, svcWithSpaceOwner, collaboratorCtrl, *space.ID, collaborator2.ID.String())
+
+	// Build WI payload and create 1 WI (created_by = space owner)
+	payload := minimumRequiredCreateWithTypeAndSpace(workitem.SystemFeature, *space.ID)
+	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
+	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	workitemCtrl := NewWorkitemController(svcWithSpaceOwner, gormapplication.NewGormDB(s.DB), s.Configuration)
+
+	_, wi := test.CreateWorkitemCreated(s.T(), svcWithSpaceOwner.Context, svcWithSpaceOwner, workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+
+	// collaborator1 adds a comment on newly created work item
+	c := s.createWorkItemComment(collaborator1, *wi.Data.ID, "Hello woody", &plaintextMarkup)
+
+	// Collaborator2 deletes the comment
+	svcWithCollaborator2 := testsupport.ServiceAsSpaceUser("Comments-Service", almtoken.NewManagerWithPrivateKey(priv), collaborator2, &TestSpaceAuthzService{collaborator2})
+	commentCtrl := NewCommentsController(svcWithCollaborator2, gormapplication.NewGormDB(s.DB), s.Configuration)
+	test.DeleteCommentsOK(s.T(), svcWithCollaborator2.Context, svcWithCollaborator2, commentCtrl, *c.Data.ID)
 }

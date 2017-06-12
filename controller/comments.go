@@ -107,11 +107,16 @@ func (c *CommentsController) Delete(ctx *app.DeleteCommentsContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
-
-	return application.Transactional(c.db, func(appl application.Application) error {
-		cm, err := appl.Comments().Load(ctx.Context, ctx.CommentID)
+	var cm *comment.Comment
+	// Following transaction verifies if a user is allowed to delete or not
+	authErr := application.Transactional(c.db, func(appl application.Application) error {
+		cm, err = appl.Comments().Load(ctx.Context, ctx.CommentID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		// User is allowed to delete if user is creator of the comment OR user is a space collaborator
+		if *identityID == cm.CreatedBy {
+			return nil
 		}
 		wi, err := appl.WorkItems().LoadByID(ctx.Context, cm.ParentID)
 		if err != nil {
@@ -124,7 +129,12 @@ func (c *CommentsController) Delete(ctx *app.DeleteCommentsContext) error {
 		if authorized == false {
 			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not a space collaborator"))
 		}
-
+		return nil
+	})
+	if authErr != nil {
+		return authErr
+	}
+	return application.Transactional(c.db, func(appl application.Application) error {
 		err = appl.Comments().Delete(ctx.Context, cm.ID, *identityID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
