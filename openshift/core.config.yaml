@@ -29,3 +29,4 @@ objects:
     chestarter.url: http://che-starter:10000
     redirect.valid: ".*"
     openshift.tenant.masterurl: https://openshift.local/
+    auth_notapproved_redirect: ""
