@@ -3,16 +3,16 @@
     "attributes": {
       "created-at": "0001-01-01T00:00:00Z",
       "description": "Specify that one bug blocks another one.",
-      "forward_name": "forward name string for foode098a81-87b4-4481-a57f-427f5bc67fb2",
-      "name": "foode098a81-87b4-4481-a57f-427f5bc67fb2",
-      "reverse_name": "reverse name string for foode098a81-87b4-4481-a57f-427f5bc67fb2",
+      "forward_name": "forward name string for type1 53c67084-1d04-475a-872a-d413167a8101",
+      "name": "type1 53c67084-1d04-475a-872a-d413167a8101",
+      "reverse_name": "reverse name string for type1 53c67084-1d04-475a-872a-d413167a8101",
       "topology": "network",
       "updated-at": "0001-01-01T00:00:00Z",
       "version": 0
     },
-    "id": "a72c5c6b-a37b-4321-ab1f-d244e276d99e",
+    "id": "53c67084-1d04-475a-872a-d413167a8101",
     "links": {
-      "self": "http:///api/spaces/26efe317-fbc2-4b4b-8369-bf5cf2325424/workitemlinktypes/a72c5c6b-a37b-4321-ab1f-d244e276d99e"
+      "self": "http:///api/spaces/26efe317-fbc2-4b4b-8369-bf5cf2325424/workitemlinktypes/53c67084-1d04-475a-872a-d413167a8101"
     },
     "relationships": {
       "link_category": {

@@ -254,9 +254,12 @@ func (s *workItemLinkTypeSuite) TestShow() {
 
 	s.T().Run("ok", func(t *testing.T) {
 		// given
-		createdWorkItemLinkType := s.createRandomWorkItemLinkType(t)
+		type1ID := uuid.FromStringOrNil("53c67084-1d04-475a-872a-d413167a8101")
+		type1Payload := CreateWorkItemLinkTypeWithID(type1ID, "type1 "+type1ID.String(), s.linkCatID, s.spaceID)
+		_, type1 := test.CreateWorkItemLinkTypeCreated(t, s.svc.Context, s.svc, s.linkTypeCtrl, s.spaceID, type1Payload)
+		require.NotNil(t, type1)
 		// when
-		res, readWorkItemLinkType := test.ShowWorkItemLinkTypeOK(t, nil, nil, s.linkTypeCtrl, s.spaceID, *createdWorkItemLinkType.Data.ID, nil, nil)
+		res, readWorkItemLinkType := test.ShowWorkItemLinkTypeOK(t, nil, nil, s.linkTypeCtrl, s.spaceID, type1ID, nil, nil)
 		// then
 		require.NotNil(t, readWorkItemLinkType)
 		compareWithGolden(t, filepath.Join(s.testDir, "show", "ok.golden"), readWorkItemLinkType)
@@ -265,10 +268,13 @@ func (s *workItemLinkTypeSuite) TestShow() {
 
 	s.T().Run("ok using expired IfModifiedSince header", func(t *testing.T) {
 		// given
-		createdWorkItemLinkType := s.createRandomWorkItemLinkType(t)
+		type1ID := uuid.FromStringOrNil("cd2ac1b0-8eb6-4cb1-bb2a-46bba96005ba")
+		type1Payload := CreateWorkItemLinkTypeWithID(type1ID, "type1 "+type1ID.String(), s.linkCatID, s.spaceID)
+		_, type1 := test.CreateWorkItemLinkTypeCreated(t, s.svc.Context, s.svc, s.linkTypeCtrl, s.spaceID, type1Payload)
+		require.NotNil(t, type1)
 		// when
-		ifModifiedSinceHeader := app.ToHTTPTime(createdWorkItemLinkType.Data.Attributes.UpdatedAt.Add(-1 * time.Hour))
-		res, readWorkItemLinkType := test.ShowWorkItemLinkTypeOK(t, nil, nil, s.linkTypeCtrl, s.spaceID, *createdWorkItemLinkType.Data.ID, &ifModifiedSinceHeader, nil)
+		ifModifiedSinceHeader := app.ToHTTPTime(type1.Data.Attributes.UpdatedAt.Add(-1 * time.Hour))
+		res, readWorkItemLinkType := test.ShowWorkItemLinkTypeOK(t, nil, nil, s.linkTypeCtrl, s.spaceID, type1ID, &ifModifiedSinceHeader, nil)
 		// then
 		require.NotNil(t, readWorkItemLinkType)
 		compareWithGolden(t, filepath.Join(s.testDir, "show", "using_expired_ifmodifiedsince_header.golden"), readWorkItemLinkType)
@@ -277,10 +283,13 @@ func (s *workItemLinkTypeSuite) TestShow() {
 
 	s.T().Run("ok using IfNoneMatch header", func(t *testing.T) {
 		// given
-		createdWorkItemLinkType := s.createRandomWorkItemLinkType(t)
+		type1ID := uuid.FromStringOrNil("ee821482-f1dc-43b2-9de5-0bc07b3832b4")
+		type1Payload := CreateWorkItemLinkTypeWithID(type1ID, "type1 "+type1ID.String(), s.linkCatID, s.spaceID)
+		_, type1 := test.CreateWorkItemLinkTypeCreated(t, s.svc.Context, s.svc, s.linkTypeCtrl, s.spaceID, type1Payload)
+		require.NotNil(t, type1)
 		// when
 		ifNoneMatch := "foo"
-		res, readWorkItemLinkType := test.ShowWorkItemLinkTypeOK(t, nil, nil, s.linkTypeCtrl, s.spaceID, *createdWorkItemLinkType.Data.ID, nil, &ifNoneMatch)
+		res, readWorkItemLinkType := test.ShowWorkItemLinkTypeOK(t, nil, nil, s.linkTypeCtrl, s.spaceID, type1ID, nil, &ifNoneMatch)
 		// then
 		require.NotNil(t, readWorkItemLinkType)
 		compareWithGolden(t, filepath.Join(s.testDir, "show", "using_ifnonematch_header.golden"), readWorkItemLinkType)
