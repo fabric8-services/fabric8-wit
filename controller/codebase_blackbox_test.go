@@ -78,7 +78,7 @@ func (s *TestCodebaseREST) TestSuccessShowCodebaseWithoutAuth() {
 		svc, ctrl := s.UnsecuredController()
 		_, cbresp := test.ShowCodebaseOK(t, svc.Context, svc, ctrl, cb.ID)
 		require.NotNil(t, cbresp)
-		compareWithGolden(t, filepath.Join(s.testDir, "show", "ok_without_auth.golden"), cbresp)
+		compareWithGolden(t, filepath.Join(s.testDir, "show", "ok_without_auth.golden.json"), cbresp)
 	})
 }
 
