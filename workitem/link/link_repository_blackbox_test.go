@@ -138,43 +138,43 @@ func (s *linkRepoBlackBoxTest) TestCountChildWorkitems() {
 	workitemRepository := workitem.NewWorkItemRepository(s.DB)
 
 	// create a parent workitem
-	Parent, err := workitemRepository.Create(
+	parent, err := workitemRepository.Create(
 		s.ctx, s.testSpace, workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle: "Parent",
 			workitem.SystemState: workitem.SystemStateNew,
 		}, s.testIdentity.ID)
 	require.Nil(s.T(), err)
-	ParentID, err := strconv.ParseUint(Parent.ID, 10, 64)
+	parentID, err := strconv.ParseUint(parent.ID, 10, 64)
 
 	// create 3 workitems for linking as children to parent workitem
-	Child1, err := workitemRepository.Create(
+	child1, err := workitemRepository.Create(
 		s.ctx, s.testSpace, workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle: "Child 1",
 			workitem.SystemState: workitem.SystemStateNew,
 		}, s.testIdentity.ID)
 	require.Nil(s.T(), err)
-	Child1ID, err := strconv.ParseUint(Child1.ID, 10, 64)
+	child1ID, err := strconv.ParseUint(child1.ID, 10, 64)
 
-	Child2, err := workitemRepository.Create(
+	child2, err := workitemRepository.Create(
 		s.ctx, s.testSpace, workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle: "Child 2",
 			workitem.SystemState: workitem.SystemStateNew,
 		}, s.testIdentity.ID)
 	require.Nil(s.T(), err)
-	Child2ID, err := strconv.ParseUint(Child2.ID, 10, 64)
+	child2ID, err := strconv.ParseUint(child2.ID, 10, 64)
 	require.Nil(s.T(), err)
 
-	Child3, err := workitemRepository.Create(
+	child3, err := workitemRepository.Create(
 		s.ctx, s.testSpace, workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle: "Child 3",
 			workitem.SystemState: workitem.SystemStateNew,
 		}, s.testIdentity.ID)
 	require.Nil(s.T(), err)
-	Child3ID, err := strconv.ParseUint(Child3.ID, 10, 64)
+	child3ID, err := strconv.ParseUint(child3.ID, 10, 64)
 	require.Nil(s.T(), err)
 
 	// Create a work item link category
@@ -206,18 +206,18 @@ func (s *linkRepoBlackBoxTest) TestCountChildWorkitems() {
 
 	// link the children workitems to parent
 	linkRepository := link.NewWorkItemLinkRepository(s.DB)
-	_, err = linkRepository.Create(s.ctx, ParentID, Child1ID, s.testTreeLinkTypeID, s.testIdentity.ID)
+	_, err = linkRepository.Create(s.ctx, parentID, child1ID, s.testTreeLinkTypeID, s.testIdentity.ID)
 	require.Nil(s.T(), err)
 
-	_, err = linkRepository.Create(s.ctx, ParentID, Child2ID, s.testTreeLinkTypeID, s.testIdentity.ID)
+	_, err = linkRepository.Create(s.ctx, parentID, child2ID, s.testTreeLinkTypeID, s.testIdentity.ID)
 	require.Nil(s.T(), err)
 
-	_, err = linkRepository.Create(s.ctx, ParentID, Child3ID, s.testTreeLinkTypeID, s.testIdentity.ID)
+	_, err = linkRepository.Create(s.ctx, parentID, child3ID, s.testTreeLinkTypeID, s.testIdentity.ID)
 	require.Nil(s.T(), err)
 
 	offset := 0
 	limit := 1
-	res, count, err := linkRepository.ListWorkItemChildren(s.ctx, Parent.ID, &offset, &limit)
+	res, count, err := linkRepository.ListWorkItemChildren(s.ctx, parent.ID, &offset, &limit)
 	require.Nil(s.T(), err)
 	require.Len(s.T(), res, 1)
 	require.Equal(s.T(), 3, int(count))
