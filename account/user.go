@@ -10,11 +10,11 @@ import (
 
 	"github.com/almighty/almighty-core/workitem"
 
+	"context"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
-	"golang.org/x/net/context"
 )
 
 // In future, we could add support for FieldDefinitions the way we have for workitems.

@@ -9,11 +9,11 @@ import (
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/path"
 
+	"context"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
-	"golang.org/x/net/context"
 )
 
 // Defines "type" string to be used while validating jsonapi spec based payload

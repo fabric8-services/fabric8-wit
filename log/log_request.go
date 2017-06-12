@@ -12,7 +12,7 @@ import (
 
 	"github.com/goadesign/goa"
 
-	"golang.org/x/net/context"
+	"context"
 )
 
 type middlewareKey int
