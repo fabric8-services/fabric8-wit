@@ -16,6 +16,7 @@ import (
 
 	errs "github.com/pkg/errors"
 
+	"context"
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
@@ -31,7 +32,6 @@ import (
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	uuid "github.com/satori/go.uuid"
-	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 )
 

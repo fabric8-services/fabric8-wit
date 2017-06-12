@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"context"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/log"
@@ -13,7 +14,6 @@ import (
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
-	"golang.org/x/net/context"
 )
 
 const (
