@@ -3,13 +3,14 @@ package controller_test
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
 
 	"path/filepath"
 
-	//"github.com/sergi/go-diff/diffmatchpatch"
+	"github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/stretchr/testify/require"
 )
 
@@ -34,12 +35,12 @@ func compareWithGolden(t *testing.T, goldenFile string, actualObj interface{}) {
 	require.Nil(t, err, "failed to read golden file: %s", absPath)
 	expectedStr := string(expected)
 	actualStr := string(actual)
-	/*if expectedStr != actualStr {
+	if expectedStr != actualStr {
 		dmp := diffmatchpatch.New()
 		diffs := dmp.DiffMain(expectedStr, actualStr, false)
 		fmt.Println(dmp.DiffPrettyText(diffs))
 		t.Log(dmp.DiffPrettyText(diffs))
-	}*/
+	}
 	require.Equal(t, expectedStr, actualStr, "mismatch of actual output and golden-file %s", absPath)
 
 }
