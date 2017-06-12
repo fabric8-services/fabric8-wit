@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	netcontext "context"
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/area"
@@ -180,23 +179,23 @@ func (a *app) Codebases() codebase.Repository {
 	return nil
 }
 
-func (r *resourceRepo) Create(ctx netcontext.Context, s *space.Resource) (*space.Resource, error) {
+func (r *resourceRepo) Create(ctx context.Context, s *space.Resource) (*space.Resource, error) {
 	return nil, nil
 }
 
-func (r *resourceRepo) Save(ctx netcontext.Context, s *space.Resource) (*space.Resource, error) {
+func (r *resourceRepo) Save(ctx context.Context, s *space.Resource) (*space.Resource, error) {
 	return nil, nil
 }
 
-func (r *resourceRepo) Load(ctx netcontext.Context, ID uuid.UUID) (*space.Resource, error) {
+func (r *resourceRepo) Load(ctx context.Context, ID uuid.UUID) (*space.Resource, error) {
 	return nil, nil
 }
 
-func (r *resourceRepo) Delete(ctx netcontext.Context, ID uuid.UUID) error {
+func (r *resourceRepo) Delete(ctx context.Context, ID uuid.UUID) error {
 	return nil
 }
 
-func (r *resourceRepo) LoadBySpace(ctx netcontext.Context, spaceID *uuid.UUID) (*space.Resource, error) {
+func (r *resourceRepo) LoadBySpace(ctx context.Context, spaceID *uuid.UUID) (*space.Resource, error) {
 	resource := &space.Resource{}
 	past := time.Now().Unix() - 1000
 	resource.UpdatedAt = time.Unix(past, 0)
