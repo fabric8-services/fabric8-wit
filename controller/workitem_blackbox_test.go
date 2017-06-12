@@ -163,6 +163,31 @@ func (s *WorkItemSuite) TestReorderWorkitemAboveOK() {
 	assert.Equal(s.T(), *result3.Data.ID, *reordered1.Data[0].ID)
 }
 
+// TestReorder is in error because of version conflict
+func (s *WorkItemSuite) TestReorderWorkitemConflict() {
+	payload := minimumRequiredCreateWithType(workitem.SystemBug)
+	payload.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
+	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
+
+	// This workitem is created but not used to clearly test that the reorder workitem is moved between **two** workitems i.e. result1 and result2 and not to the **top** of the list
+	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
+
+	_, result2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result3 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
+	payload2 := minimumRequiredReorderPayload()
+
+	var dataArray []*app.WorkItem // dataArray contains the workitem(s) that have to be reordered
+	result3.Data.Attributes["version"] = 101
+	dataArray = append(dataArray, result3.Data)
+	payload2.Data = dataArray
+	payload2.Position.ID = result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
+	payload2.Position.Direction = string(workitem.DirectionAbove)
+
+	_, err := test.ReorderWorkitemConflict(s.T(), s.svc.Context, s.svc, s.controller, space.SystemSpace, &payload2) // Returns the workitems which are reordered
+
+	require.NotNil(s.T(), err)
+}
+
 // TestReorderBelow is positive test which tests successful reorder by providing valid input
 // This case reorders one workitem -> result1 and places it **below** result1
 func (s *WorkItemSuite) TestReorderWorkitemBelowOK() {
@@ -2487,17 +2512,17 @@ func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	assert.Equal(s.T(), wi2.Data.Attributes[workitem.SystemOrder], updated.Data.Attributes[workitem.SystemOrder])
 
 	// Not a space collaborator is not authorized to update
-	test.UpdateWorkitemUnauthorized(s.T(), svcNotAuthrized.Context, svcNotAuthrized, ctrlNotAuthrize, *payload.Data.Relationships.Space.Data.ID, *wi.Data.ID, &payload2)
+	test.UpdateWorkitemForbidden(s.T(), svcNotAuthrized.Context, svcNotAuthrized, ctrlNotAuthrize, *payload.Data.Relationships.Space.Data.ID, *wi.Data.ID, &payload2)
 	// Not a space collaborator is not authorized to delete
 	// Temporarly disabled, See https://github.com/almighty/almighty-core/issues/1036
-	// test.DeleteWorkitemUnauthorized(s.T(), svcNotAuthrized.Context, svcNotAuthrized, ctrlNotAuthrize, *payload.Data.Relationships.Space.Data.ID, *wi.Data.ID)
+	// test.DeleteWorkitemForbidden(s.T(), svcNotAuthrized.Context, svcNotAuthrized, ctrlNotAuthrize, *payload.Data.Relationships.Space.Data.ID, *wi.Data.ID)
 	// Not a space collaborator is not authorized to reoder
 	payload4 := minimumRequiredReorderPayload()
 	var dataArray []*app.WorkItem // dataArray contains the workitem(s) that have to be reordered
 	dataArray = append(dataArray, wi.Data)
 	payload4.Data = dataArray
 	payload4.Position.Direction = string(workitem.DirectionTop)
-	test.ReorderWorkitemUnauthorized(s.T(), svcNotAuthrized.Context, svcNotAuthrized, ctrlNotAuthrize, *space.ID, &payload4)
+	test.ReorderWorkitemForbidden(s.T(), svcNotAuthrized.Context, svcNotAuthrized, ctrlNotAuthrize, *space.ID, &payload4)
 }
 
 func convertWorkItemToConditionalResponseEntity(appWI app.WorkItemSingle) app.ConditionalResponseEntity {

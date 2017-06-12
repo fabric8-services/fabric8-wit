@@ -441,6 +441,7 @@ func getUserID(t *testing.T, username string, usersecret string) string {
 	testToken, err := controller.GenerateUserToken(ctx, tokenEndpoint, configuration, username, usersecret)
 	require.Nil(t, err)
 	accessToken := testToken.Token.AccessToken
+	require.NotNil(t, accessToken)
 	userinfo, err := auth.GetUserInfo(ctx, userinfoEndpoint, *accessToken)
 	require.Nil(t, err)
 	userID := userinfo.Sub
