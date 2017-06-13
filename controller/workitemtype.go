@@ -5,6 +5,7 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/rest"
@@ -135,13 +136,16 @@ func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
 func (c *WorkitemtypeController) ListSourceLinkTypes(ctx *app.ListSourceLinkTypesWorkitemtypeContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		// Test that work item type exists
-		_, err := appl.WorkItemTypes().Load(ctx.Context, ctx.SpaceID, ctx.WitID)
+		exists, err := appl.WorkItemTypes().Exists(ctx.Context, ctx.WitID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
+		if !exists {
+			return jsonapi.JSONErrorResponse(ctx, errors.NewNotFoundError("wit_id", ctx.WitID.String()))
+		}
 		// Fetch all link types where this work item type can be used in the
 		// source of the link
-		modelLinkTypes, err := appl.WorkItemLinkTypes().ListSourceLinkTypes(ctx.Context, ctx.WitID)
+		modelLinkTypes, err := appl.WorkItemLinkTypes().ListSourceLinkTypes(ctx.Context, ctx.SpaceID, ctx.WitID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -169,13 +173,16 @@ func (c *WorkitemtypeController) ListSourceLinkTypes(ctx *app.ListSourceLinkType
 func (c *WorkitemtypeController) ListTargetLinkTypes(ctx *app.ListTargetLinkTypesWorkitemtypeContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		// Test that work item type exists
-		_, err := appl.WorkItemTypes().Load(ctx.Context, ctx.SpaceID, ctx.WitID)
+		exists, err := appl.WorkItemTypes().Exists(ctx.Context, ctx.WitID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
+		if !exists {
+			return jsonapi.JSONErrorResponse(ctx, errors.NewNotFoundError("wit_id", ctx.WitID.String()))
+		}
 		// Fetch all link types where this work item type can be used in the
 		// target of the linkg
-		modelLinkTypes, err := appl.WorkItemLinkTypes().ListTargetLinkTypes(ctx.Context, ctx.WitID)
+		modelLinkTypes, err := appl.WorkItemLinkTypes().ListTargetLinkTypes(ctx.Context, ctx.SpaceID, ctx.WitID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}

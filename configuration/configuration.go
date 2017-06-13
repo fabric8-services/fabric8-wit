@@ -90,6 +90,8 @@ const (
 	varLogLevel                         = "log.level"
 	varLogJSON                          = "log.json"
 	varTenantServiceURL                 = "tenant.serviceurl"
+
+	varCacheControlWorkItemLinkTypeCombinations = "cachecontrol.workitemlinktypecombinations"
 )
 
 // ConfigurationData encapsulates the Viper configuration object which stores the configuration data in-memory.
@@ -190,6 +192,7 @@ func (c *ConfigurationData) setConfigDefaults() {
 	c.v.SetDefault(varCacheControlWorkItemTypes, "max-age=2")
 	c.v.SetDefault(varCacheControlWorkItemLinks, "max-age=2")
 	c.v.SetDefault(varCacheControlWorkItemLinkTypes, "max-age=2")
+	c.v.SetDefault(varCacheControlWorkItemLinkTypeCombinations, "max-age=2")
 	c.v.SetDefault(varCacheControlSpaces, "max-age=2")
 	c.v.SetDefault(varCacheControlIterations, "max-age=2")
 	c.v.SetDefault(varCacheControlAreas, "max-age=2")
@@ -315,6 +318,12 @@ func (c *ConfigurationData) GetCacheControlWorkItemTypes() string {
 // when returning a work item type (or a list of).
 func (c *ConfigurationData) GetCacheControlWorkItemLinkTypes() string {
 	return c.v.GetString(varCacheControlWorkItemLinkTypes)
+}
+
+// GetCacheControlWorkItemLinkTypeCombinations returns the value to set in the "Cache-Control" HTTP response header
+// when returning a work item type combination (or a list of).
+func (c *ConfigurationData) GetCacheControlWorkItemLinkTypeCombinations() string {
+	return c.v.GetString(varCacheControlWorkItemLinkTypeCombinations)
 }
 
 // GetCacheControlWorkItems returns the value to set in the "Cache-Control" HTTP response header

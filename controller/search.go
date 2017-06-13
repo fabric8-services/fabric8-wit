@@ -29,9 +29,6 @@ type SearchController struct {
 
 // NewSearchController creates a search controller.
 func NewSearchController(service *goa.Service, db application.DB, configuration searchConfiguration) *SearchController {
-	if db == nil {
-		panic("db must not be nil")
-	}
 	return &SearchController{Controller: service.NewController("SearchController"), db: db, configuration: configuration}
 }
 

@@ -35,8 +35,16 @@ See also http://jsonapi.org/format/#document-resource-object`)
 	a.Attribute("id", d.UUID, "ID of work item link type (optional during creation)")
 	a.Attribute("attributes", workItemLinkTypeAttributes)
 	a.Attribute("relationships", workItemLinkTypeRelationships)
-	a.Attribute("links", genericLinks)
+	a.Attribute("links", genericLinksForWorkItemLinkType)
 	a.Required("type", "attributes")
+})
+
+// genericLinksForWorkItemLinkType defines generic relations links that are specific to a work item link type
+var genericLinksForWorkItemLinkType = a.Type("GenericLinksForWorkItemLinkType", func() {
+	a.Attribute("self", d.String)
+	a.Attribute("related", d.String)
+	a.Attribute("typeCombinations", d.String, `URL to the list of possible combinations for this work item link type`)
+	a.Attribute("meta", a.HashOf(d.String, d.Any))
 })
 
 // workItemLinkTypeAttributes is the JSONAPI store for all the "attributes" of a work item link type.
@@ -76,24 +84,7 @@ var workItemLinkTypeRelationships = a.Type("WorkItemLinkTypeRelationships", func
 	a.Description(`JSONAPI store for the data of a work item link type.
 See also http://jsonapi.org/format/#document-resource-object-relationships`)
 	a.Attribute("link_category", relationWorkItemLinkCategory, "The work item link category of this work item link type.")
-	a.Attribute("source_type", relationWorkItemType, "The source type specifies the type of work item that can be used as a source.")
-	a.Attribute("target_type", relationWorkItemType, "The target type specifies the type of work item that can be used as a target.")
 	a.Attribute("space", relationSpaces, "This defines the owning space of this work item link type.")
-})
-
-// relationWorkItemType is the JSONAPI store for the work item type relationship objects
-var relationWorkItemType = a.Type("RelationWorkItemType", func() {
-	a.Attribute("data", relationWorkItemTypeData)
-	a.Attribute("links", genericLinks)
-})
-
-// relationWorkItemTypeData is the JSONAPI data object of the the work item type relationship objects
-var relationWorkItemTypeData = a.Type("RelationWorkItemTypeData", func() {
-	a.Attribute("type", d.String, "The type of the related resource", func() {
-		a.Enum("workitemtypes")
-	})
-	a.Attribute("id", d.UUID, "ID of a work item type")
-	a.Required("type", "id")
 })
 
 // relationWorkItemLinkType is the JSONAPI store for the links
@@ -155,7 +146,7 @@ var _ = a.Resource("work_item_link_type", func() {
 		a.Routing(
 			a.GET("/:wiltID"),
 		)
-		a.Description("Retrieve work item link type (as JSONAPI) for the given link ID.")
+		a.Description("Retrieve work item link type (as JSONAPI) for the given link type ID.")
 		a.Params(func() {
 			a.Param("wiltID", d.UUID, "ID of the work item link type")
 		})
@@ -177,6 +168,23 @@ var _ = a.Resource("work_item_link_type", func() {
 		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
+	})
+
+	a.Action("list-type-combinations", func() {
+		a.Routing(
+			a.GET("/:wiltID/type-combinations"),
+		)
+		a.Description("Retrieve work item link type combinations (as JSONAPI) for the given link type ID.")
+		a.Params(func() {
+			a.Param("wiltID", d.UUID, "ID of the work item link type")
+		})
+		a.Description("List work item link types.")
+		a.UseTrait("conditional")
+		a.Response(d.OK, workItemLinkTypeCombinationList)
+		a.Response(d.NotModified)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
 	})
 
 	a.Action("create", func() {
@@ -246,6 +254,16 @@ var _ = a.Resource("redirect_work_item_link_type", func() {
 		a.Routing(
 			a.GET(""),
 		)
+		a.Response(d.MovedPermanently)
+	})
+
+	a.Action("list-type-combinations", func() {
+		a.Routing(
+			a.GET("/:wiltID/type-combinations"),
+		)
+		a.Params(func() {
+			a.Param("wiltID", d.UUID, "ID of the work item link type")
+		})
 		a.Response(d.MovedPermanently)
 	})
 

@@ -113,6 +113,11 @@ func (g *GormBase) WorkItemLinkTypes() link.WorkItemLinkTypeRepository {
 	return link.NewWorkItemLinkTypeRepository(g.db)
 }
 
+// WorkItemLinkTypeCombinations returns a work item item link type combination repository
+func (g *GormBase) WorkItemLinkTypeCombinations() link.WorkItemLinkTypeCombinationRepository {
+	return link.NewWorkItemLinkTypeCombinationRepository(g.db)
+}
+
 // WorkItemLinks returns a work item link repository
 func (g *GormBase) WorkItemLinks() link.WorkItemLinkRepository {
 	return link.NewWorkItemLinkRepository(g.db)

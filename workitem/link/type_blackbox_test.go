@@ -8,7 +8,6 @@ import (
 	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/workitem"
 	"github.com/almighty/almighty-core/workitem/link"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
@@ -26,8 +25,6 @@ func TestWorkItemLinkType_Equal(t *testing.T) {
 		Description:    &description,
 		Topology:       "network",
 		Version:        0,
-		SourceTypeID:   workitem.SystemBug,
-		TargetTypeID:   workitem.SystemTask,
 		ForwardName:    "blocks",
 		ReverseName:    "blocked by",
 		LinkCategoryID: uuid.FromStringOrNil("0e671e36-871b-43a6-9166-0c4bd573eAAA"),
@@ -73,16 +70,6 @@ func TestWorkItemLinkType_Equal(t *testing.T) {
 	b.Topology = "tree"
 	require.False(t, a.Equal(b))
 
-	// Test SourceTypeID
-	b = a
-	b.SourceTypeID = uuid.Nil
-	require.False(t, a.Equal(b))
-
-	// Test TargetTypeID
-	b = a
-	b.TargetTypeID = uuid.Nil
-	require.False(t, a.Equal(b))
-
 	// Test ForwardName
 	b = a
 	b.ForwardName = "go, go, go!"
@@ -115,8 +102,6 @@ func TestWorkItemLinkTypeCheckValidForCreation(t *testing.T) {
 		Description:    &description,
 		Topology:       link.TopologyNetwork,
 		Version:        0,
-		SourceTypeID:   workitem.SystemBug,
-		TargetTypeID:   workitem.SystemTask,
 		ForwardName:    "blocks",
 		ReverseName:    "blocked by",
 		LinkCategoryID: uuid.FromStringOrNil("0e671e36-871b-43a6-9166-0c4bd573eAAA"),
@@ -130,16 +115,6 @@ func TestWorkItemLinkTypeCheckValidForCreation(t *testing.T) {
 	// Check empty Name
 	b = a
 	b.Name = ""
-	require.NotNil(t, b.CheckValidForCreation())
-
-	// Check empty SourceTypeID
-	b = a
-	b.SourceTypeID = uuid.Nil
-	require.NotNil(t, b.CheckValidForCreation())
-
-	// Check empty TargetTypeID
-	b = a
-	b.TargetTypeID = uuid.Nil
 	require.NotNil(t, b.CheckValidForCreation())
 
 	// Check empty ForwardName

@@ -53,7 +53,7 @@ func (s *workItemTypeRepoBlackBoxTest) TearDownTest() {
 	s.clean()
 }
 
-func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWIT() {
+func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadExistsWIT() {
 
 	wit, err := s.repo.Create(s.ctx, space.SystemSpace, nil, nil, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{
 		"foo": {
@@ -79,6 +79,18 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWIT() {
 	require.NotNil(s.T(), field)
 	assert.Equal(s.T(), workitem.KindFloat, field.Type.GetKind())
 	assert.Equal(s.T(), true, field.Required)
+
+	s.T().Run("exists (with existing WIT)", func(t *testing.T) {
+		exists, err := s.repo.Exists(s.ctx, wit.ID)
+		require.Nil(t, err)
+		require.True(t, exists)
+	})
+
+	s.T().Run("exists (with not existing WIT)", func(t *testing.T) {
+		exists, err := s.repo.Exists(s.ctx, uuid.NewV4())
+		require.Nil(t, err)
+		require.False(t, exists)
+	})
 }
 
 func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWITWithList() {

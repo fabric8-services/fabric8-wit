@@ -18,6 +18,7 @@ var cache = NewWorkItemTypeCache()
 
 // WorkItemTypeRepository encapsulates storage & retrieval of work item types
 type WorkItemTypeRepository interface {
+	Exists(ctx context.Context, id uuid.UUID) (bool, error)
 	Load(ctx context.Context, spaceID uuid.UUID, id uuid.UUID) (*WorkItemType, error)
 	Create(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]FieldDefinition) (*WorkItemType, error)
 	List(ctx context.Context, spaceID uuid.UUID, start *int, length *int) ([]WorkItemType, error)
@@ -42,6 +43,30 @@ func (r *GormWorkItemTypeRepository) LoadByID(ctx context.Context, id uuid.UUID)
 		return nil, errs.WithStack(err)
 	}
 	return res, nil
+}
+
+// Exists returns true if the work item with the given ID exists
+func (r *GormWorkItemTypeRepository) Exists(ctx context.Context, id uuid.UUID) (bool, error) {
+	log.Info(ctx, map[string]interface{}{
+		"wit_id": id,
+	}, "Checking if work item type exists")
+	_, exists := cache.Get(id)
+	if exists {
+		return true, nil
+	}
+	log.Info(ctx, map[string]interface{}{
+		"wit_id": id,
+	}, "Work item type doesn't exist in the cache. Checking in DB...")
+	query := fmt.Sprintf("SELECT EXISTS(SELECT id FROM %s WHERE id=$1 AND deleted_at IS NULL)", WorkItemType{}.TableName())
+	err := r.db.CommonDB().QueryRow(query, id.String()).Scan(&exists)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"wit_id": id,
+			"err":    err,
+		}, "failed to check if work item type exists")
+		return false, errs.Wrap(err, "failed to check if work item type exists")
+	}
+	return exists, nil
 }
 
 // Load returns the work item for the given spaceID and id

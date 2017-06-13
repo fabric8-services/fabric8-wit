@@ -306,6 +306,9 @@ func GetMigrations() Migrations {
 	// Version 61
 	m = append(m, steps{ExecuteSQLFile("061-replace-index-space-name.sql")})
 
+	// Version 62
+	m = append(m, steps{ExecuteSQLFile("062-link-system-update.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -472,7 +475,7 @@ func NewMigrationContext(ctx context.Context) context.Context {
 }
 
 // BootstrapWorkItemLinking makes sure the database is populated with the correct work item link stuff (e.g. category and some basic types)
-func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, spaceRepo *space.GormRepository, linkTypeRepo *link.GormWorkItemLinkTypeRepository) error {
+func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, spaceRepo *space.GormRepository, linkTypeRepo *link.GormWorkItemLinkTypeRepository, typeCombiRepo *link.GormWorkItemLinkTypeCombinationRepository) error {
 	populateLocker.Lock()
 	defer populateLocker.Unlock()
 	if err := createOrUpdateSpace(ctx, spaceRepo, space.SystemSpace, "The system space is reserved for spaces that can to be manipulated by the user."); err != nil {
@@ -501,54 +504,90 @@ func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkIte
 	}
 
 	// create work item link types
-	blockerDesc := "One bug blocks a planner item."
+	blockerDesc := "One work item blocks another one."
 	blockerWILT := link.WorkItemLinkType{
 		ID:             link.SystemWorkItemLinkTypeBugBlockerID,
-		Name:           "Bug blocker",
+		Name:           "Blocker",
 		Description:    &blockerDesc,
 		Topology:       link.TopologyNetwork,
 		ForwardName:    "blocks",
 		ReverseName:    "blocked by",
-		SourceTypeID:   workitem.SystemBug,
-		TargetTypeID:   workitem.SystemPlannerItem,
 		LinkCategoryID: systemCat.ID,
 		SpaceID:        space.SystemSpace,
 	}
 	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, spaceRepo, &blockerWILT); err != nil {
 		return errs.WithStack(err)
 	}
-	relatedDesc := "One planner item or a subtype of it relates to another one."
+	relatedDesc := "One work item relates to another one."
 	relatedWILT := link.WorkItemLinkType{
 		ID:             link.SystemWorkItemLinkPlannerItemRelatedID,
-		Name:           "Related planner item",
+		Name:           "Relation",
 		Description:    &relatedDesc,
 		Topology:       link.TopologyNetwork,
 		ForwardName:    "relates to",
 		ReverseName:    "is related to",
-		SourceTypeID:   workitem.SystemPlannerItem,
-		TargetTypeID:   workitem.SystemPlannerItem,
 		LinkCategoryID: systemCat.ID,
 		SpaceID:        space.SystemSpace,
 	}
 	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, spaceRepo, &relatedWILT); err != nil {
 		return errs.WithStack(err)
 	}
-	parentingDesc := "One planner item or a subtype of it which is a parent of another one."
+	parentingDesc := "One work item is a parent of another one."
 	parentingWILT := link.WorkItemLinkType{
 		ID:             link.SystemWorkItemLinkTypeParentChildID,
-		Name:           "Parent child item",
+		Name:           "Parenting",
 		Description:    &parentingDesc,
 		Topology:       link.TopologyNetwork,
 		ForwardName:    "parent of",
 		ReverseName:    "child of",
-		SourceTypeID:   workitem.SystemPlannerItem,
-		TargetTypeID:   workitem.SystemPlannerItem,
 		LinkCategoryID: systemCat.ID,
 		SpaceID:        space.SystemSpace,
 	}
 	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, spaceRepo, &parentingWILT); err != nil {
 		return errs.WithStack(err)
 	}
+	deliveryDesc := "One work item delivers another one."
+	deliveryWILT := link.WorkItemLinkType{
+		ID:             link.SystemWorkItemLinkTypeDeliveryID,
+		Name:           "Delivery",
+		Description:    &deliveryDesc,
+		Topology:       link.TopologyNetwork,
+		ForwardName:    "delivers",
+		ReverseName:    "delivered by",
+		LinkCategoryID: systemCat.ID,
+		SpaceID:        space.SystemSpace,
+	}
+	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, spaceRepo, &deliveryWILT); err != nil {
+		return errs.WithStack(err)
+	}
+	// Create the link type combinations for the system space
+	combis := []link.WorkItemLinkTypeCombination{
+		{ID: uuid.FromStringOrNil("abb5bd60-324d-49dd-b50f-589f4d06b335"), LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, SourceTypeID: workitem.SystemScenario, TargetTypeID: workitem.SystemValueProposition},
+		{ID: uuid.FromStringOrNil("a7070914-aab3-42aa-a2b0-c3a83e8a7b82"), LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, SourceTypeID: workitem.SystemScenario, TargetTypeID: workitem.SystemExperience},
+		{ID: uuid.FromStringOrNil("a3a48c45-8a59-487e-bee8-52c610980b4f"), LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, SourceTypeID: workitem.SystemExperience, TargetTypeID: workitem.SystemFeature},
+		{ID: uuid.FromStringOrNil("7c2365bc-86c5-440b-90f6-bc1335f94437"), LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, SourceTypeID: workitem.SystemFeature, TargetTypeID: workitem.SystemFeature},
+		{ID: uuid.FromStringOrNil("a80f5c39-6ec0-4965-a266-5edbdbc4d750"), LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, SourceTypeID: workitem.SystemFeature, TargetTypeID: workitem.SystemTask},
+		{ID: uuid.FromStringOrNil("47185279-6f11-4a54-aa82-67d929f2cbe4"), LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, SourceTypeID: workitem.SystemTask, TargetTypeID: workitem.SystemTask},
+		{ID: uuid.FromStringOrNil("7d8b9708-8798-4ead-87d8-7f7c1881ad1d"), LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, SourceTypeID: workitem.SystemExperience, TargetTypeID: workitem.SystemBug},
+		{ID: uuid.FromStringOrNil("5f57cee3-d602-4aec-a670-f7070a98345a"), LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, SourceTypeID: workitem.SystemScenario, TargetTypeID: workitem.SystemImpediment},
+		{ID: uuid.FromStringOrNil("e4cec212-e42e-45ec-9e13-2d8d0caabc19"), LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, SourceTypeID: workitem.SystemExperience, TargetTypeID: workitem.SystemImpediment},
+		{ID: uuid.FromStringOrNil("f59bb088-c58d-4d4f-9fe5-51b40415cd93"), LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, SourceTypeID: workitem.SystemFeature, TargetTypeID: workitem.SystemImpediment},
+		{ID: uuid.FromStringOrNil("9bba4b47-3530-4bca-bd5c-5635b9383b80"), LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, SourceTypeID: workitem.SystemTask, TargetTypeID: workitem.SystemImpediment},
+		{ID: uuid.FromStringOrNil("91841cf0-e0e9-425c-8322-5c565c7fb230"), LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, SourceTypeID: workitem.SystemBug, TargetTypeID: workitem.SystemImpediment},
+		{ID: uuid.FromStringOrNil("4add92e4-a767-43eb-91e7-c109bb35cb4b"), LinkTypeID: link.SystemWorkItemLinkTypeDeliveryID, SourceTypeID: workitem.SystemExperience, TargetTypeID: workitem.SystemValueProposition},
+		{ID: uuid.FromStringOrNil("72ca64ee-e4c5-4a06-b0f4-6008659052b3"), LinkTypeID: link.SystemWorkItemLinkTypeDeliveryID, SourceTypeID: workitem.SystemValueProposition, TargetTypeID: workitem.SystemExperience},
+		{ID: uuid.FromStringOrNil("5b3f13f8-f141-47a4-bf4d-d5ac81cc1200"), LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, SourceTypeID: workitem.SystemFundamental, TargetTypeID: workitem.SystemValueProposition},
+		{ID: uuid.FromStringOrNil("4c4f6ee7-3a28-4eb4-bd87-91c2f74bc87d"), LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, SourceTypeID: workitem.SystemFundamental, TargetTypeID: workitem.SystemExperience},
+		{ID: uuid.FromStringOrNil("4af86a08-8380-492b-be53-27977413b58f"), LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, SourceTypeID: workitem.SystemPapercuts, TargetTypeID: workitem.SystemValueProposition},
+		{ID: uuid.FromStringOrNil("a478abe5-70ca-40d0-b850-d2943115fe7e"), LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, SourceTypeID: workitem.SystemPapercuts, TargetTypeID: workitem.SystemExperience},
+	}
+	for _, combi := range combis {
+		combi.SpaceID = space.SystemSpace
+		if err := createOrUpdateWorkItemLinkTypeCombination(ctx, typeCombiRepo, &combi); err != nil {
+			return errs.WithStack(err)
+		}
+	}
+
 	return nil
 }
 
@@ -634,9 +673,7 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 	switch cause.(type) {
 	case errors.NotFoundError:
 		_, err := linkTypeRepo.Create(ctx, linkType)
-		if err != nil {
-			return errs.WithStack(err)
-		}
+		return errs.WithStack(err)
 	case nil:
 		log.Info(ctx, map[string]interface{}{
 			"wilt": linkType.Name,
@@ -645,6 +682,19 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 		linkType.Version = existingLinkType.Version
 		_, err = linkTypeRepo.Save(ctx, *linkType)
 		return errs.WithStack(err)
+	}
+	return nil
+}
+
+func createOrUpdateWorkItemLinkTypeCombination(ctx context.Context, typeCombiRepo *link.GormWorkItemLinkTypeCombinationRepository, combi *link.WorkItemLinkTypeCombination) error {
+	_, err := typeCombiRepo.Load(ctx, combi.ID)
+	cause := errs.Cause(err)
+	switch cause.(type) {
+	case errors.NotFoundError:
+		_, err = typeCombiRepo.Create(ctx, combi)
+		return errs.WithStack(err)
+	case nil:
+		// We don't allow updating possible combinations for now
 	}
 	return nil
 }
@@ -677,6 +727,7 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *workitem.GormWo
 		{workitem.SystemExperience, "Experience", "", "fa fa-map"},
 		{workitem.SystemFundamental, "Fundamental", "", "fa fa-university"},
 		{workitem.SystemPapercuts, "Papercuts", "", "fa fa-scissors"},
+		{workitem.SystemImpediment, "Impediment", "", "fa fa-question"},
 	}
 	for _, i := range info {
 		if err := createOrUpdatePlannerItemExtension(ctx, i.id, i.name, i.description, i.icon, witr, db, space.SystemSpace); err != nil {

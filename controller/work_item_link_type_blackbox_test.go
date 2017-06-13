@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -12,480 +13,457 @@ import (
 	"github.com/almighty/almighty-core/app/test"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/jsonapi"
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem/link"
-
 	jwt "github.com/dgrijalva/jwt-go"
+
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
-//-----------------------------------------------------------------------------
-// Test Suite setup
-//-----------------------------------------------------------------------------
-
-// The workItemLinkTypeSuite has state the is relevant to all tests.
-// It implements these interfaces from the suite package: SetupAllSuite, SetupTestSuite, TearDownAllSuite, TearDownTestSuite
-type workItemLinkTypeSuite struct {
-	gormtestsupport.DBTestSuite
-	linkTypeCtrl *WorkItemLinkTypeController
-	spaceCtrl    *SpaceController
-	linkCatCtrl  *WorkItemLinkCategoryController
-	typeCtrl     *WorkitemtypeController
-	svc          *goa.Service
-	spaceName    string
-	spaceID      *uuid.UUID
-	categoryName string
-	linkTypeName string
-	linkName     string
-}
-
-// The SetupSuite method will run before the tests in the suite are run.
-// It sets up a database connection for all the tests in this suite without polluting global space.
-func (s *workItemLinkTypeSuite) SetupSuite() {
-	s.DBTestSuite.SetupSuite()
-	ctx := migration.NewMigrationContext(context.Background())
-	s.DBTestSuite.PopulateDBTestSuite(ctx)
-
-	svc := goa.New("workItemLinkTypeSuite-Service")
-	require.NotNil(s.T(), svc)
-	s.linkTypeCtrl = NewWorkItemLinkTypeController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-	require.NotNil(s.T(), s.linkTypeCtrl)
-	s.linkCatCtrl = NewWorkItemLinkCategoryController(svc, gormapplication.NewGormDB(s.DB))
-	require.NotNil(s.T(), s.linkCatCtrl)
-	s.typeCtrl = NewWorkitemtypeController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-	require.NotNil(s.T(), s.typeCtrl)
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
-	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(s.DB), s.Configuration, &DummyResourceManager{})
-	require.NotNil(s.T(), s.spaceCtrl)
-	s.spaceName = "test-space" + uuid.NewV4().String()
-	s.categoryName = "test-workitem-category" + uuid.NewV4().String()
-	s.linkTypeName = "test-workitem-link-type" + uuid.NewV4().String()
-	s.linkName = "test-workitem-link" + uuid.NewV4().String()
-}
-
-// The TearDownSuite method will run after all the tests in the suite have been run
-// It tears down the database connection for all the tests in this suite.
-func (s *workItemLinkTypeSuite) TearDownSuite() {
-	if s.DB != nil {
-		s.DB.Close()
-	}
-}
-
-// cleanup removes all DB entries that will be created or have been created
-// with this test suite. We need to remove them completely and not only set the
-// "deleted_at" field, which is why we need the Unscoped() function.
-func (s *workItemLinkTypeSuite) cleanup() {
-	db := s.DB.Unscoped().Delete(&link.WorkItemLinkType{Name: s.linkTypeName})
-	require.Nil(s.T(), db.Error)
-	db = s.DB.Unscoped().Delete(&link.WorkItemLinkType{Name: s.linkName})
-	require.Nil(s.T(), db.Error)
-	db = db.Unscoped().Delete(&link.WorkItemLinkCategory{Name: s.categoryName})
-	require.Nil(s.T(), db.Error)
-
-	if s.spaceID != nil {
-		db = db.Unscoped().Delete(&space.Space{ID: *s.spaceID})
-	}
-	require.Nil(s.T(), db.Error)
-	//db = db.Unscoped().Delete(&link.WorkItemType{Name: "foo.bug"})
-
-}
-
-// The SetupTest method will be run before every test in the suite.
-// SetupTest ensures that none of the work item link types that we will create already exist.
-func (s *workItemLinkTypeSuite) SetupTest() {
-	s.cleanup()
-	svc := goa.New("workItemLinkTypeSuite-Service")
-	require.NotNil(s.T(), svc)
-	s.linkTypeCtrl = NewWorkItemLinkTypeController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-	require.NotNil(s.T(), s.linkTypeCtrl)
-	s.linkCatCtrl = NewWorkItemLinkCategoryController(svc, gormapplication.NewGormDB(s.DB))
-	require.NotNil(s.T(), s.linkCatCtrl)
-	s.typeCtrl = NewWorkitemtypeController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-	require.NotNil(s.T(), s.typeCtrl)
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
-	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(s.DB), s.Configuration, &DummyResourceManager{})
-	require.NotNil(s.T(), s.spaceCtrl)
-	s.spaceName = testsupport.CreateRandomValidTestName("test-space")
-	s.categoryName = "test-workitem-category" + uuid.NewV4().String()
-	s.linkTypeName = "test-workitem-link-type" + uuid.NewV4().String()
-	s.linkName = "test-workitem-link" + uuid.NewV4().String()
-}
-
-// The TearDownTest method will be run after every test in the suite.
-func (s *workItemLinkTypeSuite) TearDownTest() {
-	s.cleanup()
-}
-
-//-----------------------------------------------------------------------------
-// helper method
-//-----------------------------------------------------------------------------
-
-// createDemoType creates a demo work item link type of type "name"
-func (s *workItemLinkTypeSuite) createDemoLinkType(name string) *app.CreateWorkItemLinkTypePayload {
-	//   1. Create a space
-	createSpacePayload := CreateSpacePayload(s.spaceName, "description")
-	_, space := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, createSpacePayload)
-	s.spaceID = space.Data.ID
-
-	//	 2. Create at least one work item type
-	workItemTypePayload := CreateWorkItemType(uuid.NewV4(), *space.Data.ID)
-	_, workItemType := test.CreateWorkitemtypeCreated(s.T(), s.svc.Context, s.svc, s.typeCtrl, *s.spaceID, &workItemTypePayload)
-	require.NotNil(s.T(), workItemType)
-
-	//   3. Create a work item link category
-	createLinkCategoryPayload := CreateWorkItemLinkCategory(s.categoryName)
-	_, workItemLinkCategory := test.CreateWorkItemLinkCategoryCreated(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, createLinkCategoryPayload)
-	require.NotNil(s.T(), workItemLinkCategory)
-
-	// 4. Create work item link type payload
-	createLinkTypePayload := CreateWorkItemLinkType(name, *workItemType.Data.ID, *workItemType.Data.ID, *workItemLinkCategory.Data.ID, *space.Data.ID)
-	return createLinkTypePayload
-}
-
-//-----------------------------------------------------------------------------
-// Actual tests
-//-----------------------------------------------------------------------------
-
-// In order for 'go test' to run this suite, we need to create
-// a normal test function and pass our suite to suite.Run
 func TestSuiteWorkItemLinkType(t *testing.T) {
 	resource.Require(t, resource.Database)
 	suite.Run(t, new(workItemLinkTypeSuite))
 }
 
-func TestNewWorkItemLinkTypeControllerDBNull(t *testing.T) {
-	require.Panics(t, func() {
-		NewWorkItemLinkTypeController(nil, nil, nil)
+type workItemLinkTypeSuite struct {
+	gormtestsupport.DBTestSuite
+
+	clean                   func()
+	linkTypeCtrl            *WorkItemLinkTypeController
+	linkTypeCombinationCtrl *WorkItemLinkTypeCombinationController
+	typeCtrl                *WorkitemtypeController
+	svc                     *goa.Service
+
+	spaceID   uuid.UUID
+	linkCatID uuid.UUID
+	testDir   string
+}
+
+func (s *workItemLinkTypeSuite) SetupSuite() {
+	log.Info(nil, nil, "----- BEGIN Setup Suite -----")
+	s.DBTestSuite.SetupSuite()
+	ctx := migration.NewMigrationContext(context.Background())
+	s.DBTestSuite.PopulateDBTestSuite(ctx)
+	s.testDir = filepath.Join("test-files", "work_item_link_type")
+	log.Info(nil, nil, "----- END Setup Suite -----")
+}
+
+func (s *workItemLinkTypeSuite) SetupTest() {
+	log.Info(nil, nil, "----- BEGIN Setup Test -----")
+	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
+
+	s.linkTypeCtrl = NewWorkItemLinkTypeController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	s.linkTypeCombinationCtrl = NewWorkItemLinkTypeCombinationController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	s.typeCtrl = NewWorkitemtypeController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+
+	// Create a few resources needed along the way in most tests
+
+	// Disable gorm's automatic setting of "created_at" and "updated_at"
+	s.DB.Callback().Create().Remove("gorm:update_time_stamp")
+	s.DB.Callback().Update().Remove("gorm:update_time_stamp")
+
+	// space
+	s.spaceID = uuid.FromStringOrNil("26efe317-fbc2-4b4b-8369-bf5cf2325424")
+	spaceCtrl := NewSpaceController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration, &DummyResourceManager{})
+	spacePayload := CreateSpacePayloadWithID(s.spaceID, "space "+s.spaceID.String(), "description")
+	_, space := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, spaceCtrl, spacePayload)
+	require.NotNil(s.T(), space)
+
+	// link category
+	s.linkCatID = uuid.FromStringOrNil("cca21f05-48e8-45be-b506-a7ddfd3bf520")
+	linkCatCtrl := NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(s.DB))
+	linkCatPayload := CreateWorkItemLinkCategoryWithID(s.linkCatID, "link category "+s.linkCatID.String())
+	_, linkCat := test.CreateWorkItemLinkCategoryCreated(s.T(), s.svc.Context, s.svc, linkCatCtrl, linkCatPayload)
+	require.NotNil(s.T(), linkCat)
+	log.Info(nil, nil, "----- END Setup Test -----")
+}
+
+func (s *workItemLinkTypeSuite) TearDownTest() {
+	log.Info(nil, nil, "----- START Tear down test -----")
+	s.clean()
+	log.Info(nil, nil, "----- END Tear down test -----")
+}
+
+func (s *workItemLinkTypeSuite) TestCreateAndDelete() {
+	// Disable gorm's automatic setting of "created_at" and "updated_at"
+	s.DB.Callback().Create().Remove("gorm:update_time_stamp")
+	s.DB.Callback().Update().Remove("gorm:update_time_stamp")
+
+	// given
+	id := uuid.FromStringOrNil("a764bfe2-f824-4b60-992a-275825bd9400")
+
+	s.T().Run("ok", func(t *testing.T) {
+		// given
+		createPayload := CreateWorkItemLinkTypeWithID(id, "link type "+id.String(), s.linkCatID, s.spaceID)
+		// when
+		_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, s.spaceID, createPayload)
+		// then
+		require.NotNil(s.T(), workItemLinkType)
+		compareWithGolden(t, filepath.Join(s.testDir, "create", "ok.golden"), workItemLinkType)
+	})
+
+	s.T().Run("delete created link type", func(t *testing.T) {
+		_ = test.DeleteWorkItemLinkTypeOK(t, s.svc.Context, s.svc, s.linkTypeCtrl, s.spaceID, id)
 	})
 }
 
-// TestCreateWorkItemLinkType tests if we can create the s.linkTypeName work item link type
-func (s *workItemLinkTypeSuite) TestCreateAndDeleteWorkItemLinkType() {
-	createPayload := s.createDemoLinkType(s.linkTypeName)
-	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *createPayload.Data.Relationships.Space.Data.ID, createPayload)
-	require.NotNil(s.T(), workItemLinkType)
+func (s *workItemLinkTypeSuite) TestValidateCreatePayload() {
+	// Disable gorm's automatic setting of "created_at" and "updated_at"
+	s.DB.Callback().Create().Remove("gorm:update_time_stamp")
+	s.DB.Callback().Update().Remove("gorm:update_time_stamp")
 
-	// Check that the link category is included in the response in the "included" array
-	require.Len(s.T(), workItemLinkType.Included, 2, "The work item link type should include it's work item link category and space.")
-	categoryData, ok := workItemLinkType.Included[0].(*app.WorkItemLinkCategoryData)
-	require.True(s.T(), ok)
-	require.Equal(s.T(), s.categoryName, *categoryData.Attributes.Name, "The work item link type's category should have the name 'test-user'.")
+	s.T().Run("all valid", func(t *testing.T) {
+		// given
+		createPayload := CreateWorkItemLinkType("empty name", s.linkCatID, s.spaceID)
+		// when
+		err := createPayload.Validate()
+		// then
+		require.Nil(t, err)
+	})
 
-	// Check that the link category is included in the response in the "included" array
-	spaceData, ok := workItemLinkType.Included[1].(*app.Space)
-	require.True(s.T(), ok)
-	require.Equal(s.T(), s.spaceName, *spaceData.Attributes.Name, "The work item link type's space should have the name 'test-space'.")
+	s.T().Run("empty name", func(t *testing.T) {
+		// given
+		createPayload := CreateWorkItemLinkType("to be replaced later", s.linkCatID, s.spaceID)
+		emptyName := ""
+		createPayload.Data.Attributes.Name = &emptyName
+		// when
+		err := createPayload.Validate()
+		// then
+		require.NotNil(t, err)
+		goaError, ok := err.(*goa.ErrorResponse)
+		require.True(t, ok)
+		goaError.ID = "IGNOREME"
+		compareWithGolden(t, filepath.Join(s.testDir, "validate", "empty_name.golden"), goaError)
+	})
 
-	_ = test.DeleteWorkItemLinkTypeOK(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *workItemLinkType.Data.Relationships.Space.Data.ID, *workItemLinkType.Data.ID)
+	s.T().Run("empty topology", func(t *testing.T) {
+		// given
+		createPayload := CreateWorkItemLinkType("empty topology", s.linkCatID, s.spaceID)
+		emptyTopology := ""
+		createPayload.Data.Attributes.Topology = &emptyTopology
+		// when
+		err := createPayload.Validate()
+		// then
+		goaError, ok := err.(*goa.ErrorResponse)
+		require.True(t, ok)
+		goaError.ID = "IGNOREME"
+		compareWithGolden(t, filepath.Join(s.testDir, "validate", "empty_topology.golden"), goaError)
+	})
+
+	s.T().Run("wrong topology", func(t *testing.T) {
+		createPayload := CreateWorkItemLinkType(testsupport.CreateRandomValidTestName("wrong topology"), s.linkCatID, s.spaceID)
+		wrongTopology := "wrongtopology"
+		createPayload.Data.Attributes.Topology = &wrongTopology
+		// when
+		err := createPayload.Validate()
+		// then
+		require.NotNil(t, err)
+		goaError, ok := err.(*goa.ErrorResponse)
+		require.True(t, ok)
+		goaError.ID = "IGNOREME"
+		compareWithGolden(t, filepath.Join(s.testDir, "validate", "wrong_topology.golden"), goaError)
+	})
 }
 
-//func (s *workItemLinkTypeSuite) TestCreateWorkItemLinkTypeBadRequest() {
-//	createPayload := s.createDemoLinkType("") // empty name causes bad request
-//	_, _ = test.CreateWorkItemLinkTypeBadRequest(s.T(), nil, nil, s.linkTypeCtrl, createPayload)
-//}
-
-//func (s *workItemLinkTypeSuite) TestCreateWorkItemLinkTypeBadRequestDueToEmptyTopology() {
-//	createPayload := s.createDemoLinkType(s.linkTypeName)
-//	emptyTopology := ""
-//	createPayload.Data.Attributes.Topology = &emptyTopology
-//	_, _ = test.CreateWorkItemLinkTypeBadRequest(s.T(), nil, nil, s.linkTypeCtrl, createPayload)
-//}
-
-//func (s *workItemLinkTypeSuite) TestCreateWorkItemLinkTypeBadRequestDueToWrongTopology() {
-//	createPayload := s.createDemoLinkType(s.linkTypeName)
-//	wrongTopology := "wrongtopology"
-//	createPayload.Data.Attributes.Topology = &wrongTopology
-//	_, _ = test.CreateWorkItemLinkTypeBadRequest(s.T(), nil, nil, s.linkTypeCtrl, createPayload)
-//}
-
-func (s *workItemLinkTypeSuite) TestDeleteWorkItemLinkTypeNotFound() {
-	test.DeleteWorkItemLinkTypeNotFound(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, space.SystemSpace, uuid.FromStringOrNil("1e9a8b53-73a6-40de-b028-5177add79ffa"))
+func (s *workItemLinkTypeSuite) TestDelete() {
+	s.T().Run("not found link type", func(t *testing.T) {
+		// given
+		notExistingLinkTypeID := uuid.FromStringOrNil("724d3f54-bb7b-4993-957e-e503c0ba6376")
+		// whem
+		_, jerrs := test.DeleteWorkItemLinkTypeNotFound(t, s.svc.Context, s.svc, s.linkTypeCtrl, space.SystemSpace, notExistingLinkTypeID)
+		// then
+		require.NotNil(t, jerrs)
+		compareWithGolden(t, filepath.Join(s.testDir, "delete", "not_found_link_type.golden"), jerrs)
+	})
 }
 
-func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeNotFound() {
-	createPayload := s.createDemoLinkType(s.linkTypeName)
-	notExistingId := uuid.FromStringOrNil("46bbce9c-8219-4364-a450-dfd1b501654e") // This ID does not exist
-	createPayload.Data.ID = &notExistingId
-	// Wrap data portion in an update payload instead of a create payload
-	updateLinkTypePayload := &app.UpdateWorkItemLinkTypePayload{
-		Data: createPayload.Data,
-	}
-	test.UpdateWorkItemLinkTypeNotFound(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *updateLinkTypePayload.Data.Relationships.Space.Data.ID, *updateLinkTypePayload.Data.ID, updateLinkTypePayload)
-}
+func (s *workItemLinkTypeSuite) TestUpdate() {
+	// Disable gorm's automatic setting of "created_at" and "updated_at"
+	s.DB.Callback().Create().Remove("gorm:update_time_stamp")
+	s.DB.Callback().Update().Remove("gorm:update_time_stamp")
 
-// func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeBadRequestDueToBadID() {
-// 	createPayload := s.createDemoLinkType(s.linkTypeName)
-// 	notExistingId := "something that is not a UUID" // This ID does not exist
-// 	createPayload.Data.ID = &notExistingId
-// 	// Wrap data portion in an update payload instead of a create payload
-// 	updateLinkTypePayload := &app.UpdateWorkItemLinkTypePayload{
-// 		Data: createPayload.Data,
-// 	}
-// 	test.UpdateWorkItemLinkTypeBadRequest(s.T(), nil, nil, s.linkTypeCtrl, *updateLinkTypePayload.Data.ID, updateLinkTypePayload)
-// }
-
-func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeOK() {
-	// given
-	createPayload := s.createDemoLinkType(s.linkTypeName)
-	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *createPayload.Data.Relationships.Space.Data.ID, createPayload)
-	require.NotNil(s.T(), workItemLinkType)
-	// Specify new description for link type that we just created
-	// Wrap data portion in an update payload instead of a create payload
-	updateLinkTypePayload := &app.UpdateWorkItemLinkTypePayload{
-		Data: workItemLinkType.Data,
-	}
-	newDescription := "Lalala this is a new description for the work item type"
-	updateLinkTypePayload.Data.Attributes.Description = &newDescription
-	// when
-	_, lt := test.UpdateWorkItemLinkTypeOK(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *updateLinkTypePayload.Data.Relationships.Space.Data.ID, *updateLinkTypePayload.Data.ID, updateLinkTypePayload)
-	// then
-	require.NotNil(s.T(), lt.Data)
-	require.NotNil(s.T(), lt.Data.Attributes)
-	require.NotNil(s.T(), lt.Data.Attributes.Description)
-	require.Equal(s.T(), newDescription, *lt.Data.Attributes.Description)
-	// Check that the link categories are included in the response in the "included" array
-	require.Len(s.T(), lt.Included, 2, "The work item link type should include it's work item link category and space.")
-	categoryData, ok := lt.Included[0].(*app.WorkItemLinkCategoryData)
-	require.True(s.T(), ok)
-	require.Equal(s.T(), s.categoryName, *categoryData.Attributes.Name, "The work item link type's category should have the name 'test-user'.")
-	// Check that the link spaces are included in the response in the "included" array
-	spaceData, ok := lt.Included[1].(*app.Space)
-	require.True(s.T(), ok)
-	require.Equal(s.T(), s.spaceName, *spaceData.Attributes.Name, "The work item link type's space should have the name 'test-space'.")
-}
-
-func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeConflict() {
-	// given
-	createPayload := s.createDemoLinkType(s.linkTypeName)
-	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *createPayload.Data.Relationships.Space.Data.ID, createPayload)
-	require.NotNil(s.T(), workItemLinkType)
-	// Specify new description for link type that we just created
-	// Wrap data portion in an update payload instead of a create payload
-	updateLinkTypePayload := &app.UpdateWorkItemLinkTypePayload{
-		Data: workItemLinkType.Data,
-	}
-	newDescription := "Lalala this is a new description for the work item type"
-	updateLinkTypePayload.Data.Attributes.Description = &newDescription
-	version := 123456
-	updateLinkTypePayload.Data.Attributes.Version = &version
-	// when/then
-	test.UpdateWorkItemLinkTypeConflict(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *updateLinkTypePayload.Data.Relationships.Space.Data.ID, *updateLinkTypePayload.Data.ID, updateLinkTypePayload)
-}
-
-// func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeBadRequest() {
-// 	createPayload := s.createDemoLinkType(s.linkTypeName)
-// 	updateLinkTypePayload := &app.UpdateWorkItemLinkTypePayload{
-// 		Data: createPayload.Data,
-// 	}
-// 	updateLinkTypePayload.Data.Type = "This should be workitemlinktypes" // Causes bad request
-// 	test.UpdateWorkItemLinkTypeBadRequest(s.T(), nil, nil, s.linkTypeCtrl, *updateLinkTypePayload.Data.ID, updateLinkTypePayload)
-// }
-
-func (s *workItemLinkTypeSuite) createWorkItemLinkType() *app.WorkItemLinkTypeSingle {
-	createPayload := s.createDemoLinkType(s.linkTypeName)
-	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *createPayload.Data.Relationships.Space.Data.ID, createPayload)
-	require.NotNil(s.T(), workItemLinkType)
-	return workItemLinkType
-}
-
-func assertWorkItemLinkType(t *testing.T, expected *app.WorkItemLinkTypeSingle, spaceName, categoryName string, actual *app.WorkItemLinkTypeSingle) {
-	require.NotNil(t, actual)
-	expectedModel, err := ConvertWorkItemLinkTypeToModel(*expected)
-	require.Nil(t, err)
-	actualModel, err := ConvertWorkItemLinkTypeToModel(*actual)
-	require.Nil(t, err)
-	require.Equal(t, expectedModel.ID, actualModel.ID)
-	// Check that the link category is included in the response in the "included" array
-	require.Len(t, actual.Included, 2, "The work item link type should include it's work item link category and space.")
-	categoryData, ok := actual.Included[0].(*app.WorkItemLinkCategoryData)
-	require.True(t, ok)
-	require.Equal(t, categoryName, *categoryData.Attributes.Name, "The work item link type's category should have the name 'test-user'.")
-
-	// Check that the link space is included in the response in the "included" array
-	spaceData, ok := actual.Included[1].(*app.Space)
-	require.True(t, ok)
-	require.Equal(t, spaceName, *spaceData.Attributes.Name, "The work item link type's space should have the name 'test-space'.")
-
-	require.NotNil(t, actual.Data.Links, "The link type MUST include a self link")
-	require.NotEmpty(t, actual.Data.Links.Self, "The link type MUST include a self link that's not empty")
-}
-
-// TestShowWorkItemLinkTypeOK tests if we can fetch the "system" work item link type
-func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeOK() {
-	// given
-	createdWorkItemLinkType := s.createWorkItemLinkType()
-	// when
-	res, readWorkItemLinkType := test.ShowWorkItemLinkTypeOK(s.T(), nil, nil, s.linkTypeCtrl, *createdWorkItemLinkType.Data.Relationships.Space.Data.ID, *createdWorkItemLinkType.Data.ID, nil, nil)
-	// then
-	assertWorkItemLinkType(s.T(), createdWorkItemLinkType, s.spaceName, s.categoryName, readWorkItemLinkType)
-	assertResponseHeaders(s.T(), res)
-}
-
-func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeOKUsingExpiredIfModifiedSinceHeader() {
-	// given
-	createdWorkItemLinkType := s.createWorkItemLinkType()
-	// when
-	ifModifiedSinceHeader := app.ToHTTPTime(createdWorkItemLinkType.Data.Attributes.UpdatedAt.Add(-1 * time.Hour))
-	res, readWorkItemLinkType := test.ShowWorkItemLinkTypeOK(s.T(), nil, nil, s.linkTypeCtrl, *createdWorkItemLinkType.Data.Relationships.Space.Data.ID, *createdWorkItemLinkType.Data.ID, &ifModifiedSinceHeader, nil)
-	// then
-	assertWorkItemLinkType(s.T(), createdWorkItemLinkType, s.spaceName, s.categoryName, readWorkItemLinkType)
-	assertResponseHeaders(s.T(), res)
-}
-
-func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeOKUsingExpiredIfNoneMatchHeader() {
-	// given
-	createdWorkItemLinkType := s.createWorkItemLinkType()
-	// when
-	ifNoneMatch := "foo"
-	res, readWorkItemLinkType := test.ShowWorkItemLinkTypeOK(s.T(), nil, nil, s.linkTypeCtrl, *createdWorkItemLinkType.Data.Relationships.Space.Data.ID, *createdWorkItemLinkType.Data.ID, nil, &ifNoneMatch)
-	// then
-	assertWorkItemLinkType(s.T(), createdWorkItemLinkType, s.spaceName, s.categoryName, readWorkItemLinkType)
-	assertResponseHeaders(s.T(), res)
-}
-func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeNotModifiedUsingIfModifiedSinceHeader() {
-	// given
-	createdWorkItemLinkType := s.createWorkItemLinkType()
-	// when
-	ifModifiedSinceHeader := app.ToHTTPTime(*createdWorkItemLinkType.Data.Attributes.UpdatedAt)
-	res := test.ShowWorkItemLinkTypeNotModified(s.T(), nil, nil, s.linkTypeCtrl, *createdWorkItemLinkType.Data.Relationships.Space.Data.ID, *createdWorkItemLinkType.Data.ID, &ifModifiedSinceHeader, nil)
-	// then
-	assertResponseHeaders(s.T(), res)
-}
-
-func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeNotModifiedUsingIfNoneMatchHeader() {
-	// given
-	createdWorkItemLinkType := s.createWorkItemLinkType()
-	// when
-	createdWorkItemLinkTypeModel, err := ConvertWorkItemLinkTypeToModel(*createdWorkItemLinkType)
-	require.Nil(s.T(), err)
-	ifNoneMatch := app.GenerateEntityTag(createdWorkItemLinkTypeModel)
-	res := test.ShowWorkItemLinkTypeNotModified(s.T(), nil, nil, s.linkTypeCtrl, *createdWorkItemLinkType.Data.Relationships.Space.Data.ID, *createdWorkItemLinkType.Data.ID, nil, &ifNoneMatch)
-	// then
-	assertResponseHeaders(s.T(), res)
-}
-
-// TestShowWorkItemLinkTypeNotFound tests if we can fetch a non existing work item link type
-func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeNotFound() {
-	test.ShowWorkItemLinkTypeNotFound(s.T(), nil, nil, s.linkTypeCtrl, space.SystemSpace, uuid.NewV4(), nil, nil)
-}
-func (s *workItemLinkTypeSuite) createWorkItemLinkTypes() (*app.WorkItemTypeSingle, *app.WorkItemLinkTypeSingle) {
-	bugBlockerPayload := s.createDemoLinkType(s.linkTypeName)
-	_, bugBlockerType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *bugBlockerPayload.Data.Relationships.Space.Data.ID, bugBlockerPayload)
-	require.NotNil(s.T(), bugBlockerType)
-
-	workItemTypePayload := CreateWorkItemType(uuid.NewV4(), *s.spaceID)
-	_, workItemType := test.CreateWorkitemtypeCreated(s.T(), s.svc.Context, s.svc, s.typeCtrl, *bugBlockerPayload.Data.Relationships.Space.Data.ID, &workItemTypePayload)
-	require.NotNil(s.T(), workItemType)
-
-	relatedPayload := CreateWorkItemLinkType(s.linkName, *workItemType.Data.ID, *workItemType.Data.ID, bugBlockerType.Data.Relationships.LinkCategory.Data.ID, *bugBlockerType.Data.Relationships.Space.Data.ID)
-	_, relatedType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *relatedPayload.Data.Relationships.Space.Data.ID, relatedPayload)
-	require.NotNil(s.T(), relatedType)
-	return workItemType, relatedType
-
-}
-
-func assertWorkItemLinkTypes(t *testing.T, spaceName, categoryName, expectedLinkTypeName, expectedLinkName string, linkTypes *app.WorkItemLinkTypeList) {
-	require.NotNil(t, linkTypes)
-	require.Nil(t, linkTypes.Validate())
-	// Check the number of found work item link types
-	require.NotNil(t, linkTypes.Data)
-	require.Condition(t, func() bool {
-		return (len(linkTypes.Data) >= 2)
-	}, "At least two work item link types must exist (bug-blocker and related), but only %d exist.", len(linkTypes.Data))
-	// Search for the work item types that must exist at minimum
-	toBeFound := 2
-	for i := 0; i < len(linkTypes.Data) && toBeFound > 0; i++ {
-		if *linkTypes.Data[i].Attributes.Name == expectedLinkTypeName || *linkTypes.Data[i].Attributes.Name == expectedLinkName {
-			t.Log("Found work item link type in collection: ", *linkTypes.Data[i].Attributes.Name)
-			toBeFound--
+	s.T().Run("ok", func(t *testing.T) {
+		// given
+		id := uuid.FromStringOrNil("7c3b29a8-8d70-42f1-9a19-4358e4e22705")
+		createPayload := CreateWorkItemLinkTypeWithID(id, "link type "+id.String(), s.linkCatID, s.spaceID)
+		_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(t, s.svc.Context, s.svc, s.linkTypeCtrl, s.spaceID, createPayload)
+		require.NotNil(t, workItemLinkType)
+		// Specify new description for link type that we just created
+		// Wrap data portion in an update payload instead of a create payload
+		updateLinkTypePayload := &app.UpdateWorkItemLinkTypePayload{
+			Data: workItemLinkType.Data,
 		}
-	}
-	require.Exactly(t, 0, toBeFound, "Not all required work item link types (bug-blocker and related) where found.")
-	// Check that the link categories are included in the response in the "included" array
-	require.Len(t, linkTypes.Included, 2, "The work item link type should include it's work item link category and space.")
-	categoryData, ok := linkTypes.Included[0].(*app.WorkItemLinkCategoryData)
-	require.True(t, ok)
-	require.Equal(t, categoryName, *categoryData.Attributes.Name, "The work item link type's category should have the name 'test-user'.")
-	// Check that the link spaces are included in the response in the "included" array
-	spaceData, ok := linkTypes.Included[1].(*app.Space)
-	require.True(t, ok)
-	require.Equal(t, spaceName, *spaceData.Attributes.Name, "The work item link type's category should have the name 'test-space'.")
+		newDescription := "Lalala this is a new description for the work item type"
+		updateLinkTypePayload.Data.Attributes.Description = &newDescription
+		// when
+		_, lt := test.UpdateWorkItemLinkTypeOK(t, s.svc.Context, s.svc, s.linkTypeCtrl, s.spaceID, *updateLinkTypePayload.Data.ID, updateLinkTypePayload)
+		// then
+		require.NotNil(t, lt)
+		compareWithGolden(t, filepath.Join(s.testDir, "update", "ok.golden"), lt)
+	})
+
+	s.T().Run("not found link type", func(t *testing.T) {
+		// given
+		id := uuid.FromStringOrNil("184f7773-ba54-4afa-8e1e-5d703e2ec517")
+		createPayload := CreateWorkItemLinkTypeWithID(id, "link type "+id.String(), s.linkCatID, s.spaceID)
+		notExistingId := uuid.FromStringOrNil("3e95d92a-295a-4cf5-8856-659704a709df")
+		createPayload.Data.ID = &notExistingId
+		// Wrap Data portion in an update payload instead of a create payload
+		updateLinkTypePayload := &app.UpdateWorkItemLinkTypePayload{
+			Data: createPayload.Data,
+		}
+		// then
+		_, jerrs := test.UpdateWorkItemLinkTypeNotFound(t, s.svc.Context, s.svc, s.linkTypeCtrl, s.spaceID, notExistingId, updateLinkTypePayload)
+		require.NotNil(t, jerrs)
+		compareWithGolden(t, filepath.Join(s.testDir, "update", "not_found_link_type.golden"), jerrs)
+	})
+
+	s.T().Run("conflict", func(t *testing.T) {
+		// given
+		id := uuid.FromStringOrNil("7b0fa8bd-ee60-4ccb-9df7-ebb1ba67b163")
+		createPayload := CreateWorkItemLinkTypeWithID(id, "link type "+id.String(), s.linkCatID, s.spaceID)
+		_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(t, s.svc.Context, s.svc, s.linkTypeCtrl, s.spaceID, createPayload)
+		require.NotNil(t, workItemLinkType)
+		// Specify new description for link type that we just created
+		// Wrap data portion in an update payload instead of a create payload
+		updateLinkTypePayload := &app.UpdateWorkItemLinkTypePayload{
+			Data: workItemLinkType.Data,
+		}
+		newDescription := "Lalala this is a new description for the work item type"
+		updateLinkTypePayload.Data.Attributes.Description = &newDescription
+		version := 123456
+		updateLinkTypePayload.Data.Attributes.Version = &version
+		// when
+		_, jerrs := test.UpdateWorkItemLinkTypeConflict(t, s.svc.Context, s.svc, s.linkTypeCtrl, s.spaceID, *updateLinkTypePayload.Data.ID, updateLinkTypePayload)
+		// then
+		require.NotNil(t, jerrs)
+		compareWithGolden(t, filepath.Join(s.testDir, "update", "conflict.golden"), jerrs)
+	})
 }
 
-// TestListWorkItemLinkTypeOK tests if we can find the work item link types
-// s.linkTypeName and s.linkName in the list of work item link types
-func (s *workItemLinkTypeSuite) TestListWorkItemLinkTypeOK() {
-	// given
-	_, createdWorkItemLinkType := s.createWorkItemLinkTypes()
-	// when fetching all work item link type in a give space
-	res, linkTypes := test.ListWorkItemLinkTypeOK(s.T(), nil, nil, s.linkTypeCtrl, *createdWorkItemLinkType.Data.Relationships.Space.Data.ID, nil, nil)
-	// then
-	assertWorkItemLinkTypes(s.T(), s.spaceName, s.categoryName, s.linkTypeName, s.linkName, linkTypes)
-	assertResponseHeaders(s.T(), res)
+func (s *workItemLinkTypeSuite) TestShow() {
+	// Disable gorm's automatic setting of "created_at" and "updated_at"
+	s.DB.Callback().Create().Remove("gorm:update_time_stamp")
+	s.DB.Callback().Update().Remove("gorm:update_time_stamp")
+
+	s.T().Run("ok", func(t *testing.T) {
+		// given
+		type1ID := uuid.FromStringOrNil("53c67084-1d04-475a-872a-d413167a8101")
+		type1Payload := CreateWorkItemLinkTypeWithID(type1ID, "type1 "+type1ID.String(), s.linkCatID, s.spaceID)
+		_, type1 := test.CreateWorkItemLinkTypeCreated(t, s.svc.Context, s.svc, s.linkTypeCtrl, s.spaceID, type1Payload)
+		require.NotNil(t, type1)
+		// when
+		res, readWorkItemLinkType := test.ShowWorkItemLinkTypeOK(t, nil, nil, s.linkTypeCtrl, s.spaceID, type1ID, nil, nil)
+		// then
+		require.NotNil(t, readWorkItemLinkType)
+		compareWithGolden(t, filepath.Join(s.testDir, "show", "ok.golden"), readWorkItemLinkType)
+		assertResponseHeaders(t, res)
+	})
+
+	s.T().Run("ok using expired IfModifiedSince header", func(t *testing.T) {
+		// given
+		type1ID := uuid.FromStringOrNil("cd2ac1b0-8eb6-4cb1-bb2a-46bba96005ba")
+		type1Payload := CreateWorkItemLinkTypeWithID(type1ID, "type1 "+type1ID.String(), s.linkCatID, s.spaceID)
+		_, type1 := test.CreateWorkItemLinkTypeCreated(t, s.svc.Context, s.svc, s.linkTypeCtrl, s.spaceID, type1Payload)
+		require.NotNil(t, type1)
+		// when
+		ifModifiedSinceHeader := app.ToHTTPTime(type1.Data.Attributes.UpdatedAt.Add(-1 * time.Hour))
+		res, readWorkItemLinkType := test.ShowWorkItemLinkTypeOK(t, nil, nil, s.linkTypeCtrl, s.spaceID, type1ID, &ifModifiedSinceHeader, nil)
+		// then
+		require.NotNil(t, readWorkItemLinkType)
+		compareWithGolden(t, filepath.Join(s.testDir, "show", "using_expired_ifmodifiedsince_header.golden"), readWorkItemLinkType)
+		assertResponseHeaders(t, res)
+	})
+
+	s.T().Run("ok using IfNoneMatch header", func(t *testing.T) {
+		// given
+		type1ID := uuid.FromStringOrNil("ee821482-f1dc-43b2-9de5-0bc07b3832b4")
+		type1Payload := CreateWorkItemLinkTypeWithID(type1ID, "type1 "+type1ID.String(), s.linkCatID, s.spaceID)
+		_, type1 := test.CreateWorkItemLinkTypeCreated(t, s.svc.Context, s.svc, s.linkTypeCtrl, s.spaceID, type1Payload)
+		require.NotNil(t, type1)
+		// when
+		ifNoneMatch := "foo"
+		res, readWorkItemLinkType := test.ShowWorkItemLinkTypeOK(t, nil, nil, s.linkTypeCtrl, s.spaceID, type1ID, nil, &ifNoneMatch)
+		// then
+		require.NotNil(t, readWorkItemLinkType)
+		compareWithGolden(t, filepath.Join(s.testDir, "show", "using_ifnonematch_header.golden"), readWorkItemLinkType)
+		assertResponseHeaders(t, res)
+	})
+
+	s.T().Run("not modified using expired IfModifiedSince header", func(t *testing.T) {
+		// given
+		createdWorkItemLinkType := s.createRandomWorkItemLinkType(t)
+		// when
+		ifModifiedSinceHeader := app.ToHTTPTime(*createdWorkItemLinkType.Data.Attributes.UpdatedAt)
+		res := test.ShowWorkItemLinkTypeNotModified(t, nil, nil, s.linkTypeCtrl, s.spaceID, *createdWorkItemLinkType.Data.ID, &ifModifiedSinceHeader, nil)
+		// then
+		assertResponseHeaders(t, res)
+	})
+
+	s.T().Run("not modified using IfNoneMatch header", func(t *testing.T) {
+		// given
+		createdWorkItemLinkType := s.createRandomWorkItemLinkType(t)
+		// when
+		createdWorkItemLinkTypeModel, err := ConvertWorkItemLinkTypeToModel(*createdWorkItemLinkType)
+		require.Nil(t, err)
+		ifNoneMatch := app.GenerateEntityTag(createdWorkItemLinkTypeModel)
+		res := test.ShowWorkItemLinkTypeNotModified(t, nil, nil, s.linkTypeCtrl, s.spaceID, *createdWorkItemLinkType.Data.ID, nil, &ifNoneMatch)
+		// then
+		assertResponseHeaders(t, res)
+	})
+
+	s.T().Run("not found", func(t *testing.T) {
+		// given
+		notExistingLinkTypeID := uuid.FromStringOrNil("5560a60d-f506-4fc1-958d-3f9fc0f90684")
+		// when
+		_, jerrs := test.ShowWorkItemLinkTypeNotFound(s.T(), nil, nil, s.linkTypeCtrl, space.SystemSpace, notExistingLinkTypeID, nil, nil)
+		// then
+		require.NotNil(t, jerrs)
+		compareWithGolden(t, filepath.Join(s.testDir, "show", "not_found.golden"), jerrs)
+	})
 }
 
-func (s *workItemLinkTypeSuite) TestListWorkItemLinkTypeOKUsingExpiredIfModifiedSinceHeader() {
-	// given
-	_, createdWorkItemLinkType := s.createWorkItemLinkTypes()
-	// when fetching all work item link type in a give space
-	ifModifiedSinceHeader := app.ToHTTPTime(createdWorkItemLinkType.Data.Attributes.UpdatedAt.Add(-1 * time.Hour))
-	res, linkTypes := test.ListWorkItemLinkTypeOK(s.T(), nil, nil, s.linkTypeCtrl, *createdWorkItemLinkType.Data.Relationships.Space.Data.ID, &ifModifiedSinceHeader, nil)
-	// then
-	assertWorkItemLinkTypes(s.T(), s.spaceName, s.categoryName, s.linkTypeName, s.linkName, linkTypes)
-	assertResponseHeaders(s.T(), res)
+func (s *workItemLinkTypeSuite) TestList() {
+	// Disable gorm's automatic setting of "created_at" and "updated_at"
+	s.DB.Callback().Create().Remove("gorm:update_time_stamp")
+	s.DB.Callback().Update().Remove("gorm:update_time_stamp")
+
+	s.T().Run("ok", func(t *testing.T) {
+		// given
+		type1ID := uuid.FromStringOrNil("4a507999-6381-4e14-980a-2cd604697da3")
+		type1Payload := CreateWorkItemLinkTypeWithID(type1ID, "type1 "+type1ID.String(), s.linkCatID, s.spaceID)
+		_, type1 := test.CreateWorkItemLinkTypeCreated(t, s.svc.Context, s.svc, s.linkTypeCtrl, s.spaceID, type1Payload)
+		require.NotNil(t, type1)
+
+		type2ID := uuid.FromStringOrNil("cc3168c2-adfc-45af-8abf-c1c17bbd523c")
+		type2Payload := CreateWorkItemLinkTypeWithID(type2ID, "type2 "+type2ID.String(), s.linkCatID, s.spaceID)
+		_, type2 := test.CreateWorkItemLinkTypeCreated(t, s.svc.Context, s.svc, s.linkTypeCtrl, s.spaceID, type2Payload)
+		require.NotNil(t, type2)
+
+		// when
+		res, linkTypes := test.ListWorkItemLinkTypeOK(t, nil, nil, s.linkTypeCtrl, s.spaceID, nil, nil)
+		// then
+		require.NotNil(t, linkTypes)
+		compareWithGolden(t, filepath.Join(s.testDir, "list", "ok.golden"), linkTypes)
+		assertResponseHeaders(t, res)
+	})
+
+	s.T().Run("ok using expired IfModifiedSince header", func(t *testing.T) {
+		// given
+		type1ID := uuid.FromStringOrNil("f4f24ea4-be81-4290-a01d-71952b312fad")
+		type1Payload := CreateWorkItemLinkTypeWithID(type1ID, "type1 "+type1ID.String(), s.linkCatID, s.spaceID)
+		_, type1 := test.CreateWorkItemLinkTypeCreated(t, s.svc.Context, s.svc, s.linkTypeCtrl, s.spaceID, type1Payload)
+		require.NotNil(t, type1)
+		// when
+		ifModifiedSinceHeader := app.ToHTTPTime(type1.Data.Attributes.UpdatedAt.Add(-1 * time.Hour))
+		res, linkTypes := test.ListWorkItemLinkTypeOK(t, nil, nil, s.linkTypeCtrl, s.spaceID, &ifModifiedSinceHeader, nil)
+		// then
+		compareWithGolden(t, filepath.Join(s.testDir, "list", "ok_using_expired_ifmodifiedsince_header.golden"), linkTypes)
+		assertResponseHeaders(t, res)
+	})
+
+	s.T().Run("ok using IfNoneMatch header", func(t *testing.T) {
+		// given
+		type1ID := uuid.FromStringOrNil("01dd8598-3771-4ecc-bb4d-85ac1d21be7e")
+		type1Payload := CreateWorkItemLinkTypeWithID(type1ID, "type1 "+type1ID.String(), s.linkCatID, s.spaceID)
+		_, type1 := test.CreateWorkItemLinkTypeCreated(t, s.svc.Context, s.svc, s.linkTypeCtrl, s.spaceID, type1Payload)
+		require.NotNil(t, type1)
+		// when
+		ifNoneMatch := "foo"
+		res, linkTypes := test.ListWorkItemLinkTypeOK(t, nil, nil, s.linkTypeCtrl, s.spaceID, nil, &ifNoneMatch)
+		// then
+		compareWithGolden(t, filepath.Join(s.testDir, "list", "ok_using_ifnonematch_header.golden"), linkTypes)
+		assertResponseHeaders(t, res)
+	})
+
+	s.T().Run("not modified using IfModifiedSince header", func(t *testing.T) {
+		// given
+		type1ID := uuid.FromStringOrNil("7739816b-2a77-40a5-b8e8-79fdd8e680ca")
+		type1Payload := CreateWorkItemLinkTypeWithID(type1ID, "type1 "+type1ID.String(), s.linkCatID, s.spaceID)
+		_, type1 := test.CreateWorkItemLinkTypeCreated(t, s.svc.Context, s.svc, s.linkTypeCtrl, s.spaceID, type1Payload)
+		require.NotNil(t, type1)
+		// when
+		ifModifiedSinceHeader := app.ToHTTPTime(*type1.Data.Attributes.UpdatedAt)
+		res := test.ListWorkItemLinkTypeNotModified(t, nil, nil, s.linkTypeCtrl, s.spaceID, &ifModifiedSinceHeader, nil)
+		// then
+		assertResponseHeaders(t, res)
+	})
+
+	s.T().Run("not modified using IfNoneMatch header", func(t *testing.T) {
+		// given
+		type1ID := uuid.FromStringOrNil("2b5254b1-3ae0-4a97-8dc1-4e6a9f1a3aa0")
+		type1Payload := CreateWorkItemLinkTypeWithID(type1ID, "type1 "+type1ID.String(), s.linkCatID, s.spaceID)
+		_, type1 := test.CreateWorkItemLinkTypeCreated(t, s.svc.Context, s.svc, s.linkTypeCtrl, s.spaceID, type1Payload)
+		require.NotNil(t, type1)
+		_, existingLinkTypes := test.ListWorkItemLinkTypeOK(s.T(), nil, nil, s.linkTypeCtrl, s.spaceID, nil, nil)
+		// when
+		createdWorkItemLinkTypeModels := make([]app.ConditionalResponseEntity, len(existingLinkTypes.Data))
+		for i, linkTypeData := range existingLinkTypes.Data {
+			createdWorkItemLinkTypeModel, err := ConvertWorkItemLinkTypeToModel(
+				app.WorkItemLinkTypeSingle{
+					Data: linkTypeData,
+				},
+			)
+			require.Nil(s.T(), err)
+			createdWorkItemLinkTypeModels[i] = *createdWorkItemLinkTypeModel
+		}
+		ifNoneMatch := app.GenerateEntitiesTag(createdWorkItemLinkTypeModels)
+		res := test.ListWorkItemLinkTypeNotModified(s.T(), nil, nil, s.linkTypeCtrl, s.spaceID, nil, &ifNoneMatch)
+		// then
+		assertResponseHeaders(s.T(), res)
+	})
 }
 
-func (s *workItemLinkTypeSuite) TestListWorkItemLinkTypeOKUsingExpiredIfNoneMatchHeader() {
-	// given
-	_, createdWorkItemLinkType := s.createWorkItemLinkTypes()
-	// when fetching all work item link type in a give space
-	ifNoneMatch := "foo"
-	res, linkTypes := test.ListWorkItemLinkTypeOK(s.T(), nil, nil, s.linkTypeCtrl, *createdWorkItemLinkType.Data.Relationships.Space.Data.ID, nil, &ifNoneMatch)
-	// then
-	assertWorkItemLinkTypes(s.T(), s.spaceName, s.categoryName, s.linkTypeName, s.linkName, linkTypes)
-	assertResponseHeaders(s.T(), res)
-}
+func (s *workItemLinkTypeSuite) TestListTypeCombinations() {
+	s.T().Run("ok", func(t *testing.T) {
+		// given
+		type1ID := uuid.FromStringOrNil("2625819b-be5b-4841-9f2b-665fbd535261")
+		type1Payload := CreateWorkItemLinkTypeWithID(type1ID, "type1 "+type1ID.String(), s.linkCatID, s.spaceID)
+		_, type1 := test.CreateWorkItemLinkTypeCreated(t, s.svc.Context, s.svc, s.linkTypeCtrl, s.spaceID, type1Payload)
+		require.NotNil(t, type1)
+		_, wit1 := createRandomWorkItemTypeWithID(t, uuid.FromStringOrNil("cfb588a1-23a7-4a13-b4df-a09c9c6b32f7"), s.typeCtrl, s.spaceID)
+		_, wit2 := createRandomWorkItemTypeWithID(t, uuid.FromStringOrNil("587a1208-2daa-420f-b4b9-ebb9a7fa42fe"), s.typeCtrl, s.spaceID)
+		createPayload, err := CreateWorkItemLinkTypeCombinationPayload(link.WorkItemLinkTypeCombination{
+			ID:           uuid.FromStringOrNil("ec4e1f0e-e33a-4328-835f-e2a56804eaa8"),
+			SpaceID:      s.spaceID,
+			LinkTypeID:   *type1.Data.ID,
+			SourceTypeID: *wit1.Data.ID,
+			TargetTypeID: *wit2.Data.ID,
+		})
+		require.Nil(t, err)
+		_, combiCreated := test.CreateWorkItemLinkTypeCombinationCreated(t, context.Background(), nil, s.linkTypeCombinationCtrl, s.spaceID, createPayload)
+		require.NotNil(t, combiCreated)
+		// when
+		_, combinationList := test.ListTypeCombinationsWorkItemLinkTypeOK(t, nil, nil, s.linkTypeCtrl, s.spaceID, *type1.Data.ID, nil, nil)
+		// then
+		require.NotNil(t, combinationList)
+		require.Len(t, combinationList.Data, 1)
+		compareWithGolden(t, filepath.Join(s.testDir, "list_type_combinations", "ok.golden"), combinationList)
+	})
+	s.T().Run("not existing link type", func(t *testing.T) {
+		// given
+		notExistingLinkTypeID := uuid.FromStringOrNil("acca2c11-95c3-40bb-a18e-be88b80d91c6")
+		// when
+		_, jerr := test.ListTypeCombinationsWorkItemLinkTypeNotFound(t, nil, nil, s.linkTypeCtrl, space.SystemSpace, notExistingLinkTypeID, nil, nil)
+		// then
+		require.NotNil(t, jerr)
+		compareWithGolden(t, filepath.Join(s.testDir, "list_type_combinations", "not_existing_link_type.golden"), jerr)
+	})
 
-func (s *workItemLinkTypeSuite) TestListWorkItemLinkTypeNotModifiedUsingIfModifiedSinceHeader() {
-	// given
-	_, workItemLinkType := s.createWorkItemLinkTypes()
-	// when fetching all work item link type in a give space
-	ifModifiedSinceHeader := app.ToHTTPTime(*workItemLinkType.Data.Attributes.UpdatedAt)
-	res := test.ListWorkItemLinkTypeNotModified(s.T(), nil, nil, s.linkTypeCtrl, *workItemLinkType.Data.Relationships.Space.Data.ID, &ifModifiedSinceHeader, nil)
-	// then
-	assertResponseHeaders(s.T(), res)
-}
-
-func (s *workItemLinkTypeSuite) TestListWorkItemLinkTypeNotModifiedUsingIfNoneMatchHeader() {
-	// given
-	_, createdWorkItemLinkType := s.createWorkItemLinkTypes()
-	_, existingLinkTypes := test.ListWorkItemLinkTypeOK(s.T(), nil, nil, s.linkTypeCtrl, *createdWorkItemLinkType.Data.Relationships.Space.Data.ID, nil, nil)
-	// when fetching all work item link type in a give space
-	createdWorkItemLinkTypeModels := make([]app.ConditionalResponseEntity, len(existingLinkTypes.Data))
-	for i, linkTypeData := range existingLinkTypes.Data {
-		createdWorkItemLinkTypeModel, err := ConvertWorkItemLinkTypeToModel(
-			app.WorkItemLinkTypeSingle{
-				Data: linkTypeData,
-			},
-		)
-		require.Nil(s.T(), err)
-		createdWorkItemLinkTypeModels[i] = *createdWorkItemLinkTypeModel
-	}
-	ifNoneMatch := app.GenerateEntitiesTag(createdWorkItemLinkTypeModels)
-	res := test.ListWorkItemLinkTypeNotModified(s.T(), nil, nil, s.linkTypeCtrl, *createdWorkItemLinkType.Data.Relationships.Space.Data.ID, nil, &ifNoneMatch)
-	// then
-	assertResponseHeaders(s.T(), res)
 }
 
 func (s *workItemLinkTypeSuite) getWorkItemLinkTypeTestDataFunc() func(t *testing.T) []testSecureAPI {
@@ -514,9 +492,7 @@ func (s *workItemLinkTypeSuite) getWorkItemLinkTypeTestDataFunc() func(t *testin
 				},
 				"relationships": {
 					"link_category": {"data": {"type":"workitemlinkcategories", "id": "a75ea296-6378-4578-8573-90f11b8efb00"}},
-					"space": {"data": {"type":"spaces", "id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8"}, "links":{"self": "http://localhost:8080/api/spaces/6ba7b810-9dad-11d1-80b4-00c04fd430c8"}},
-					"source_type": {"data": {"type":"workitemtypes", "id": "e7492516-4d7d-4962-a820-75bea73a322e"}},
-					"target_type": {"data": {"type":"workitemtypes", "id": "e7492516-4d7d-4962-a820-75bea73a322e"}}
+					"space": {"data": {"type":"spaces", "id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8"}, "links":{"self": "http://localhost:8080/api/spaces/6ba7b810-9dad-11d1-80b4-00c04fd430c8"}}
 				}
 			}
 		}
@@ -635,4 +611,104 @@ func (s *workItemLinkTypeSuite) TestUnauthorizeWorkItemLinkTypeCUD() {
 		app.MountWorkItemLinkTypeController(service, controller)
 		return nil
 	})
+}
+
+// createRandomWorkItemLinkType creates a random work item link type
+func (s *workItemLinkTypeSuite) createRandomWorkItemLinkType(t *testing.T) *app.WorkItemLinkTypeSingle {
+	createPayload := CreateWorkItemLinkType(testsupport.CreateRandomValidTestName("foo"), s.linkCatID, s.spaceID)
+	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(t, s.svc.Context, s.svc, s.linkTypeCtrl, s.spaceID, createPayload)
+	require.NotNil(t, workItemLinkType)
+	return workItemLinkType
+}
+
+// requireIncludedCheck checks that all given IDs are included in the given
+// included list.
+func (s *workItemLinkTypeSuite) requireIncluded(t *testing.T, list *app.WorkItemLinkTypeList, IDs ...uuid.UUID) {
+	for _, id := range IDs {
+		found := false
+		for _, included := range list.Included {
+			switch data := included.(type) {
+			case *app.WorkItemLinkCategoryData:
+				if *data.ID == id {
+					found = true
+				}
+			case *app.Space:
+				if *data.ID == id {
+					found = true
+				}
+			}
+		}
+		require.True(t, found, "failed to find element")
+	}
+}
+
+// requireMinNumberOfListElements checks that the given list has at least minNum
+// elements.
+func (s *workItemLinkTypeSuite) requireMinNumberOfListElements(t *testing.T, minNum int, list *app.WorkItemLinkTypeList) {
+	require.NotNil(t, list.Data)
+	require.Condition(t, func() bool {
+		return (len(list.Data) >= minNum)
+	}, "list must at least have %d element(s) but it only has %d element(s)", minNum, len(list.Data))
+}
+
+// findIDsInList checks that all given IDs can be found in the list
+func (s *workItemLinkTypeSuite) requireIDsInList(t *testing.T, list *app.WorkItemLinkTypeList, IDs ...uuid.UUID) {
+	for _, id := range IDs {
+		found := false
+		for _, element := range list.Data {
+			if *element.ID == id {
+				found = true
+			}
+		}
+		require.True(t, found, "failed to find ID %s in list", id)
+	}
+}
+
+func assertWorkItemLinkType(t *testing.T, expected *app.WorkItemLinkTypeSingle, actual *app.WorkItemLinkTypeSingle) {
+	require.NotNil(t, actual)
+	expectedModel, err := ConvertWorkItemLinkTypeToModel(*expected)
+	require.Nil(t, err)
+	actualModel, err := ConvertWorkItemLinkTypeToModel(*actual)
+	require.Nil(t, err)
+	require.Equal(t, expectedModel.ID, actualModel.ID)
+
+	// Check that the link category is included in the response in the "included" array
+	require.Len(t, actual.Included, 2, "The work item link type should include it's work item link category and space.")
+	categoryData, ok := actual.Included[0].(*app.WorkItemLinkCategoryData)
+	require.True(t, ok, "work item link category is missing from the \"included\" array in the response")
+	require.Equal(t, expectedModel.LinkCategoryID, *categoryData.ID)
+
+	// Check that the link space is included in the response in the "included" array
+	spaceData, ok := actual.Included[1].(*app.Space)
+	require.True(t, ok, "space is missing from the \"included\" array in the response")
+	require.Equal(t, expectedModel.SpaceID, *spaceData.ID)
+
+	require.NotNil(t, actual.Data.Links, "The link type MUST include a self link")
+	require.NotEmpty(t, actual.Data.Links.Self, "The link type MUST include a self link that's not empty")
+}
+
+func (s *workItemLinkTypeSuite) createWorkItemLinkTypes(t *testing.T) (*app.WorkItemTypeSingle, *app.WorkItemLinkTypeSingle) {
+	bugBlockerPayload := CreateWorkItemLinkType(testsupport.CreateRandomValidTestName("bug blocker"), s.linkCatID, s.spaceID)
+	_, bugBlockerType := test.CreateWorkItemLinkTypeCreated(t, s.svc.Context, s.svc, s.linkTypeCtrl, s.spaceID, bugBlockerPayload)
+	require.NotNil(t, bugBlockerType)
+
+	workItemTypePayload := CreateWorkItemType(uuid.NewV4(), s.spaceID)
+	_, workItemType := test.CreateWorkitemtypeCreated(t, s.svc.Context, s.svc, s.typeCtrl, s.spaceID, &workItemTypePayload)
+	require.NotNil(t, workItemType)
+
+	relatedPayload := CreateWorkItemLinkType(testsupport.CreateRandomValidTestName("related"), s.linkCatID, s.spaceID)
+	_, relatedType := test.CreateWorkItemLinkTypeCreated(t, s.svc.Context, s.svc, s.linkTypeCtrl, s.spaceID, relatedPayload)
+	require.NotNil(t, relatedType)
+
+	wiltcPayload, err := CreateWorkItemLinkTypeCombinationPayload(link.WorkItemLinkTypeCombination{
+		SpaceID:      s.spaceID,
+		LinkTypeID:   *relatedType.Data.ID,
+		SourceTypeID: *workItemType.Data.ID,
+		TargetTypeID: *workItemType.Data.ID,
+	})
+	require.Nil(t, err)
+	_, wiltcCreated := test.CreateWorkItemLinkTypeCombinationCreated(t, s.svc.Context, s.svc, s.linkTypeCombinationCtrl, s.spaceID, wiltcPayload)
+	require.NotNil(t, wiltcCreated)
+
+	return workItemType, relatedType
 }

@@ -143,6 +143,10 @@ func (a *app) WorkItemLinkTypes() link.WorkItemLinkTypeRepository {
 	return nil
 }
 
+func (a *app) WorkItemLinkTypeCombinations() link.WorkItemLinkTypeCombinationRepository {
+	return nil
+}
+
 func (a *app) WorkItemLinks() link.WorkItemLinkRepository {
 	return nil
 }

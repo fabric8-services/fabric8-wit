@@ -24,6 +24,7 @@ import (
 
 	"time"
 
+	"github.com/almighty/almighty-core/workitem/link"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
@@ -40,12 +41,13 @@ import (
 // It implements these interfaces from the suite package: SetupAllSuite, SetupTestSuite, TearDownAllSuite, TearDownTestSuite
 type workItemTypeSuite struct {
 	gormtestsupport.DBTestSuite
-	clean        func()
-	typeCtrl     *WorkitemtypeController
-	linkTypeCtrl *WorkItemLinkTypeController
-	linkCatCtrl  *WorkItemLinkCategoryController
-	spaceCtrl    *SpaceController
-	svc          *goa.Service
+	clean                   func()
+	typeCtrl                *WorkitemtypeController
+	linkTypeCtrl            *WorkItemLinkTypeController
+	linkTypeCombinationCtrl *WorkItemLinkTypeCombinationController
+	linkCatCtrl             *WorkItemLinkCategoryController
+	spaceCtrl               *SpaceController
+	svc                     *goa.Service
 }
 
 // In order for 'go test' to run this suite, we need to create
@@ -71,13 +73,10 @@ func (s *workItemTypeSuite) SetupTest() {
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
 	s.spaceCtrl = NewSpaceController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration, &DummyResourceManager{})
-	require.NotNil(s.T(), s.spaceCtrl)
 	s.typeCtrl = NewWorkitemtypeController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-	assert.NotNil(s.T(), s.typeCtrl)
 	s.linkTypeCtrl = NewWorkItemLinkTypeController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-	require.NotNil(s.T(), s.linkTypeCtrl)
+	s.linkTypeCombinationCtrl = NewWorkItemLinkTypeCombinationController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(s.DB))
-	require.NotNil(s.T(), s.linkCatCtrl)
 }
 
 func (s *workItemTypeSuite) TearDownTest() {
@@ -89,8 +88,8 @@ func (s *workItemTypeSuite) TearDownTest() {
 //-----------------------------------------------------------------------------
 
 var (
-	animalID = uuid.FromStringOrNil("729431f2-bca4-4062-9087-c751807b569f")
-	personID = uuid.FromStringOrNil("22a1e4f1-7e9d-4ce8-ac87-fe7c79356b16")
+	animalID = uuid.NewV4()
+	personID = uuid.NewV4()
 )
 
 // createWorkItemTypeAnimal defines a work item type "animal" that consists of
@@ -202,6 +201,37 @@ func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 	require.NotNil(s.T(), wi.Data)
 	require.NotNil(s.T(), wi.Data.ID)
 	require.True(s.T(), uuid.Equal(personID, *wi.Data.ID))
+	return responseWriter, wi
+}
+
+func createRandomWorkItemType(t *testing.T, witCtrl *WorkitemtypeController, spaceID uuid.UUID) (http.ResponseWriter, *app.WorkItemTypeSingle) {
+	return createRandomWorkItemTypeWithID(t, uuid.NewV4(), witCtrl, spaceID)
+}
+
+func createRandomWorkItemTypeWithID(t *testing.T, id uuid.UUID, witCtrl *WorkitemtypeController, spaceID uuid.UUID) (http.ResponseWriter, *app.WorkItemTypeSingle) {
+	reqLong := &goa.RequestData{
+		Request: &http.Request{Host: "api.service.domain.org"},
+	}
+	witModel := workitem.WorkItemType{
+		ID:      id,
+		Name:    testsupport.CreateRandomValidTestName("random wit"),
+		SpaceID: spaceID,
+		Icon:    "fa fa-question",
+		Fields: map[string]workitem.FieldDefinition{
+			"foo": {
+				Required: false,
+				Type: &workitem.SimpleType{
+					Kind: workitem.KindString,
+				},
+			},
+		},
+	}
+	wit := ConvertWorkItemTypeFromModel(reqLong, &witModel)
+	payload := app.CreateWorkitemtypePayload{
+		Data: &wit,
+	}
+	responseWriter, wi := test.CreateWorkitemtypeCreated(t, nil, nil, witCtrl, spaceID, &payload)
+	require.NotNil(t, wi)
 	return responseWriter, wi
 }
 
@@ -569,24 +599,46 @@ func (s *workItemTypeSuite) createWorkitemtypeLinks() (app.WorkItemLinkTypeSingl
 	require.NotNil(s.T(), witPerson)
 	s.T().Log("Created work items")
 	// Create work item link category
-	linkCatPayload := CreateWorkItemLinkCategory("some-link-category-" + uuid.NewV4().String())
+	linkCatPayload := CreateWorkItemLinkCategory(testsupport.CreateRandomValidTestName("some-link-category-"))
 	_, linkCat := test.CreateWorkItemLinkCategoryCreated(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, linkCatPayload)
 	require.NotNil(s.T(), linkCat)
 	s.T().Log("Created work item link category")
 	// Create work item link space
-	spacePayload := CreateSpacePayload("some-link-space-"+uuid.NewV4().String(), "description")
+	spacePayload := CreateSpacePayload(testsupport.CreateRandomValidTestName("some-link-space-"), "description")
 	_, sp := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, spacePayload)
 	s.T().Log("Created space")
 	// Create work item link type
-	linkTypePayload := CreateWorkItemLinkType(animalLinksToBugStr, animalID, workitem.SystemBug, *linkCat.Data.ID, *sp.Data.ID)
+	linkTypePayload := CreateWorkItemLinkType(animalLinksToBugStr, *linkCat.Data.ID, *sp.Data.ID)
 	_, sourceLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *sp.Data.ID, linkTypePayload)
 	require.NotNil(s.T(), sourceLinkType)
-	s.T().Log("Created work item source link")
+	s.T().Log("Created a work item link type")
+	// Create link type combination
+	linkTypeCombinationPayload, err := CreateWorkItemLinkTypeCombinationPayload(link.WorkItemLinkTypeCombination{
+		SpaceID:      *sp.Data.ID,
+		LinkTypeID:   *sourceLinkType.Data.ID,
+		SourceTypeID: animalID,
+		TargetTypeID: workitem.SystemBug,
+	})
+	require.Nil(s.T(), err)
+	_, linkTypeCombinationCreated := test.CreateWorkItemLinkTypeCombinationCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCombinationCtrl, *sp.Data.ID, linkTypeCombinationPayload)
+	require.NotNil(s.T(), linkTypeCombinationCreated)
 	// Create another work item link type
-	linkTypePayload = CreateWorkItemLinkType(bugLinksToAnimalStr, workitem.SystemBug, animalID, *linkCat.Data.ID, *sp.Data.ID)
+	linkTypePayload = CreateWorkItemLinkType(bugLinksToAnimalStr, *linkCat.Data.ID, *sp.Data.ID)
 	_, targetLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *sp.Data.ID, linkTypePayload)
+
 	require.NotNil(s.T(), targetLinkType)
-	s.T().Log("Created work item target link")
+	s.T().Log("Created another work item link type")
+	// Create another link type combination
+	linkTypeCombinationPayload, err = CreateWorkItemLinkTypeCombinationPayload(link.WorkItemLinkTypeCombination{
+		SpaceID:      *sp.Data.ID,
+		LinkTypeID:   *targetLinkType.Data.ID,
+		SourceTypeID: workitem.SystemBug,
+		TargetTypeID: animalID,
+	})
+	require.Nil(s.T(), err)
+	_, linkTypeCombinationCreated = test.CreateWorkItemLinkTypeCombinationCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCombinationCtrl, *sp.Data.ID, linkTypeCombinationPayload)
+	require.NotNil(s.T(), linkTypeCombinationCreated)
+	s.T().Log("Created a work item link type combination")
 	return *sourceLinkType, *targetLinkType
 }
 
@@ -595,8 +647,9 @@ func (s *workItemTypeSuite) createWorkitemtypeLinks() (app.WorkItemLinkTypeSingl
 func (s *workItemTypeSuite) TestListWorkItemLinkTypeSources200OK() {
 	// given
 	sourceLinkType, _ := s.createWorkitemtypeLinks()
+	spaceID := *sourceLinkType.Data.Relationships.Space.Data.ID
 	// when fetch source link types
-	res, wiltCollection := test.ListSourceLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, animalID, nil, nil)
+	res, wiltCollection := test.ListSourceLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, spaceID, animalID, nil, nil)
 	require.NotNil(s.T(), wiltCollection)
 	assert.Nil(s.T(), wiltCollection.Validate())
 	// then check the number of found work item link types
@@ -615,8 +668,9 @@ func (s *workItemTypeSuite) TestListWorkItemLinkTypeSources200OK() {
 func (s *workItemTypeSuite) TestListWorkItemLinkTypeTargets200OK() {
 	// given
 	_, targetLinkType := s.createWorkitemtypeLinks()
+	spaceID := *targetLinkType.Data.Relationships.Space.Data.ID
 	// When fetch target link types
-	res, wiltCollection := test.ListTargetLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, animalID, nil, nil)
+	res, wiltCollection := test.ListTargetLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, spaceID, animalID, nil, nil)
 	require.NotNil(s.T(), wiltCollection)
 	assert.Nil(s.T(), wiltCollection.Validate())
 	// Then check the number of found work item link types
@@ -635,9 +689,10 @@ func (s *workItemTypeSuite) TestListWorkItemLinkTypeTargets200OK() {
 func (s *workItemTypeSuite) TestListSourceLinkTypes200UsingExpiredIfModifiedSinceHeader() {
 	// given
 	sourceLinkType, _ := s.createWorkitemtypeLinks()
+	spaceID := *sourceLinkType.Data.Relationships.Space.Data.ID
 	// when fetch source link types
 	ifModifiedSince := app.ToHTTPTime(sourceLinkType.Data.Attributes.UpdatedAt.Add(-1 * time.Hour))
-	res, wiltCollection := test.ListSourceLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, animalID, &ifModifiedSince, nil)
+	res, wiltCollection := test.ListSourceLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, spaceID, animalID, &ifModifiedSince, nil)
 	require.NotNil(s.T(), wiltCollection)
 	assert.Nil(s.T(), wiltCollection.Validate())
 	// then check the number of found work item link types
@@ -656,9 +711,10 @@ func (s *workItemTypeSuite) TestListSourceLinkTypes200UsingExpiredIfModifiedSinc
 func (s *workItemTypeSuite) TestListTargetLinkTypes200UsingExpiredIfModifiedSinceHeader() {
 	// given
 	_, targetLinkType := s.createWorkitemtypeLinks()
+	spaceID := *targetLinkType.Data.Relationships.Space.Data.ID
 	// When fetch target link types
 	ifModifiedSince := app.ToHTTPTime(targetLinkType.Data.Attributes.UpdatedAt.Add(-1 * time.Hour))
-	res, wiltCollection := test.ListTargetLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, animalID, &ifModifiedSince, nil)
+	res, wiltCollection := test.ListTargetLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, spaceID, animalID, &ifModifiedSince, nil)
 	require.NotNil(s.T(), wiltCollection)
 	assert.Nil(s.T(), wiltCollection.Validate())
 	// Then check the number of found work item link types
@@ -677,9 +733,10 @@ func (s *workItemTypeSuite) TestListTargetLinkTypes200UsingExpiredIfModifiedSinc
 func (s *workItemTypeSuite) TestListSourceLinkTypes200UsingExpiredIfNoneMatchHeader() {
 	// given
 	sourceLinkType, _ := s.createWorkitemtypeLinks()
+	spaceID := *sourceLinkType.Data.Relationships.Space.Data.ID
 	// when fetch source link types
 	ifNoneMatch := "foo"
-	res, wiltCollection := test.ListSourceLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, animalID, nil, &ifNoneMatch)
+	res, wiltCollection := test.ListSourceLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, spaceID, animalID, nil, &ifNoneMatch)
 	require.NotNil(s.T(), wiltCollection)
 	assert.Nil(s.T(), wiltCollection.Validate())
 	// then check the number of found work item link types
@@ -698,9 +755,10 @@ func (s *workItemTypeSuite) TestListSourceLinkTypes200UsingExpiredIfNoneMatchHea
 func (s *workItemTypeSuite) TestListTargetLinkTypes200UsingExpiredIfNoneMatchHeader() {
 	// given
 	_, targetLinkType := s.createWorkitemtypeLinks()
+	spaceID := *targetLinkType.Data.Relationships.Space.Data.ID
 	// When fetch target link types
 	ifNoneMatch := "foo"
-	res, wiltCollection := test.ListTargetLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, animalID, nil, &ifNoneMatch)
+	res, wiltCollection := test.ListTargetLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, spaceID, animalID, nil, &ifNoneMatch)
 	require.NotNil(s.T(), wiltCollection)
 	assert.Nil(s.T(), wiltCollection.Validate())
 	// Then check the number of found work item link types
@@ -719,9 +777,10 @@ func (s *workItemTypeSuite) TestListTargetLinkTypes200UsingExpiredIfNoneMatchHea
 func (s *workItemTypeSuite) TestListSourceLinkTypes304UsingIfModifiedSinceHeader() {
 	// given
 	sourceLinkType, _ := s.createWorkitemtypeLinks()
+	spaceID := *sourceLinkType.Data.Relationships.Space.Data.ID
 	// when/then
 	ifModifiedSince := app.ToHTTPTime(getWorkItemLinkTypeUpdatedAt(sourceLinkType))
-	test.ListSourceLinkTypesWorkitemtypeNotModified(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, animalID, &ifModifiedSince, nil)
+	test.ListSourceLinkTypesWorkitemtypeNotModified(s.T(), nil, nil, s.typeCtrl, spaceID, animalID, &ifModifiedSince, nil)
 }
 
 // TestListTargetLinkTypes200UsingExpiredIfModifiedSinceHeader tests if we can find the work item link
@@ -729,9 +788,10 @@ func (s *workItemTypeSuite) TestListSourceLinkTypes304UsingIfModifiedSinceHeader
 func (s *workItemTypeSuite) TestListTargetLinkTypes304UsingIfModifiedSinceHeader() {
 	// given
 	_, targetLinkType := s.createWorkitemtypeLinks()
+	spaceID := *targetLinkType.Data.Relationships.Space.Data.ID
 	// When fetch target link types
 	ifModifiedSince := app.ToHTTPTime(getWorkItemLinkTypeUpdatedAt(targetLinkType))
-	test.ListTargetLinkTypesWorkitemtypeNotModified(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, animalID, &ifModifiedSince, nil)
+	test.ListTargetLinkTypesWorkitemtypeNotModified(s.T(), nil, nil, s.typeCtrl, spaceID, animalID, &ifModifiedSince, nil)
 }
 
 // TestListSourceLinkTypes200UsingExpiredIfNoneMatchHeader tests if we can find the work item link
@@ -739,9 +799,10 @@ func (s *workItemTypeSuite) TestListTargetLinkTypes304UsingIfModifiedSinceHeader
 func (s *workItemTypeSuite) TestListSourceLinkTypes304UsingIfNoneMatchHeader() {
 	// given
 	sourceLinkType, _ := s.createWorkitemtypeLinks()
+	spaceID := *sourceLinkType.Data.Relationships.Space.Data.ID
 	// when fetch source link types
 	ifNoneMatch := generateWorkItemLinkTypeTag(sourceLinkType)
-	test.ListSourceLinkTypesWorkitemtypeNotModified(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, animalID, nil, &ifNoneMatch)
+	test.ListSourceLinkTypesWorkitemtypeNotModified(s.T(), nil, nil, s.typeCtrl, spaceID, animalID, nil, &ifNoneMatch)
 }
 
 // TestListTargetLinkTypes304UsingIfNoneMatchHeader tests if we can find the work item link
@@ -749,9 +810,10 @@ func (s *workItemTypeSuite) TestListSourceLinkTypes304UsingIfNoneMatchHeader() {
 func (s *workItemTypeSuite) TestListTargetLinkTypes304UsingIfNoneMatchHeader() {
 	// given
 	_, targetLinkType := s.createWorkitemtypeLinks()
+	spaceID := *targetLinkType.Data.Relationships.Space.Data.ID
 	// When fetch target link types
 	ifNoneMatch := generateWorkItemLinkTypeTag(targetLinkType)
-	test.ListTargetLinkTypesWorkitemtypeNotModified(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, animalID, nil, &ifNoneMatch)
+	test.ListTargetLinkTypesWorkitemtypeNotModified(s.T(), nil, nil, s.typeCtrl, spaceID, animalID, nil, &ifNoneMatch)
 }
 
 // TestListSourceAndTargetLinkTypesEmpty tests that no link type is returned for
@@ -759,13 +821,14 @@ func (s *workItemTypeSuite) TestListTargetLinkTypes304UsingIfNoneMatchHeader() {
 func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypesEmpty() {
 	_, witPerson := s.createWorkItemTypePerson()
 	require.NotNil(s.T(), witPerson)
+	spaceID := *witPerson.Data.Relationships.Space.Data.ID
 
-	_, wiltCollection := test.ListSourceLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, personID, nil, nil)
+	_, wiltCollection := test.ListSourceLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, spaceID, personID, nil, nil)
 	require.NotNil(s.T(), wiltCollection)
 	require.Nil(s.T(), wiltCollection.Validate())
 	require.Len(s.T(), wiltCollection.Data, 0)
 
-	_, wiltCollection = test.ListTargetLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, personID, nil, nil)
+	_, wiltCollection = test.ListTargetLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, spaceID, personID, nil, nil)
 	require.NotNil(s.T(), wiltCollection)
 	require.Nil(s.T(), wiltCollection.Validate())
 	require.Len(s.T(), wiltCollection.Data, 0)

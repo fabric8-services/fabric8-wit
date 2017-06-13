@@ -134,7 +134,12 @@ func main() {
 			}, "failed to populate common types")
 		}
 		if err := models.Transactional(db, func(tx *gorm.DB) error {
-			return migration.BootstrapWorkItemLinking(ctx, link.NewWorkItemLinkCategoryRepository(tx), space.NewRepository(tx), link.NewWorkItemLinkTypeRepository(tx))
+			return migration.BootstrapWorkItemLinking(
+				ctx,
+				link.NewWorkItemLinkCategoryRepository(tx),
+				space.NewRepository(tx),
+				link.NewWorkItemLinkTypeRepository(tx),
+				link.NewWorkItemLinkTypeCombinationRepository(tx))
 		}); err != nil {
 			log.Panic(ctx, map[string]interface{}{
 				"err": err,
@@ -200,6 +205,10 @@ func main() {
 	// Mount "work item link type" controller
 	workItemLinkTypeCtrl := controller.NewWorkItemLinkTypeController(service, appDB, configuration)
 	app.MountWorkItemLinkTypeController(service, workItemLinkTypeCtrl)
+
+	// Mount "work item link type combination" controller
+	workItemLinkTypeCombinationCtrl := controller.NewWorkItemLinkTypeCombinationController(service, appDB, configuration)
+	app.MountWorkItemLinkTypeCombinationController(service, workItemLinkTypeCombinationCtrl)
 
 	// Mount "work item link" controller
 	workItemLinkCtrl := controller.NewWorkItemLinkController(service, appDB, configuration)

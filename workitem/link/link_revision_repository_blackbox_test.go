@@ -106,10 +106,9 @@ func (s *revisionRepositoryBlackBoxTest) SetupTest() {
 	require.Nil(s.T(), err)
 	// create link types
 	linkTypeRepository := link.NewWorkItemLinkTypeRepository(s.DB)
+	linkTypeCombiRepository := link.NewWorkItemLinkTypeCombinationRepository(s.DB)
 	linkTypeModel1 := link.WorkItemLinkType{
 		Name:           "test link type 1",
-		SourceTypeID:   workitem.SystemBug,
-		TargetTypeID:   workitem.SystemBug,
 		ForwardName:    "foo",
 		ReverseName:    "foo",
 		Topology:       "dependency",
@@ -118,11 +117,17 @@ func (s *revisionRepositoryBlackBoxTest) SetupTest() {
 	}
 	linkType1, err := linkTypeRepository.Create(s.ctx, &linkTypeModel1)
 	require.Nil(s.T(), err)
+	linkTypeCombi1 := link.WorkItemLinkTypeCombination{
+		SpaceID:      testSpace.ID,
+		LinkTypeID:   linkType1.ID,
+		SourceTypeID: workitem.SystemBug,
+		TargetTypeID: workitem.SystemBug,
+	}
+	_, err = linkTypeCombiRepository.Create(s.ctx, &linkTypeCombi1)
+	require.Nil(s.T(), err)
 	s.testLinkType1ID = linkType1.ID
 	linkTypeModel2 := link.WorkItemLinkType{
 		Name:           "test link type 2",
-		SourceTypeID:   workitem.SystemBug,
-		TargetTypeID:   workitem.SystemBug,
 		ForwardName:    "bar",
 		ReverseName:    "bar",
 		Topology:       "dependency",
@@ -130,6 +135,14 @@ func (s *revisionRepositoryBlackBoxTest) SetupTest() {
 		SpaceID:        testSpace.ID,
 	}
 	linkType2, err := linkTypeRepository.Create(s.ctx, &linkTypeModel2)
+	require.Nil(s.T(), err)
+	linkTypeCombi2 := link.WorkItemLinkTypeCombination{
+		SpaceID:      testSpace.ID,
+		LinkTypeID:   linkType2.ID,
+		SourceTypeID: workitem.SystemBug,
+		TargetTypeID: workitem.SystemBug,
+	}
+	_, err = linkTypeCombiRepository.Create(s.ctx, &linkTypeCombi2)
 	require.Nil(s.T(), err)
 	s.testLinkType2ID = linkType2.ID
 }

@@ -23,6 +23,7 @@ var (
 	SystemWorkItemLinkTypeBugBlockerID     = uuid.FromStringOrNil("2CEA3C79-3B79-423B-90F4-1E59174C8F43")
 	SystemWorkItemLinkPlannerItemRelatedID = uuid.FromStringOrNil("9B631885-83B1-4ABB-A340-3A9EDE8493FA")
 	SystemWorkItemLinkTypeParentChildID    = uuid.FromStringOrNil("25C326A7-6D03-4F5A-B23B-86A9EE4171E9")
+	SystemWorkItemLinkTypeDeliveryID       = uuid.FromStringOrNil("B6508B12-EE34-419D-B4E4-10B594022F3F")
 )
 
 // returns true if the left hand and right hand side string
@@ -53,9 +54,6 @@ type WorkItemLinkType struct {
 	// Version for optimistic concurrency control
 	Version  int
 	Topology string // Valid values: network, directed_network, dependency, tree
-
-	SourceTypeID uuid.UUID `sql:"type:uuid"`
-	TargetTypeID uuid.UUID `sql:"type:uuid"`
 
 	ForwardName string
 	ReverseName string
@@ -94,12 +92,6 @@ func (t WorkItemLinkType) Equal(u convert.Equaler) bool {
 	if t.Topology != other.Topology {
 		return false
 	}
-	if !uuid.Equal(t.SourceTypeID, other.SourceTypeID) {
-		return false
-	}
-	if !uuid.Equal(t.TargetTypeID, other.TargetTypeID) {
-		return false
-	}
 	if t.ForwardName != other.ForwardName {
 		return false
 	}
@@ -120,12 +112,6 @@ func (t WorkItemLinkType) Equal(u convert.Equaler) bool {
 func (t *WorkItemLinkType) CheckValidForCreation() error {
 	if t.Name == "" {
 		return errors.NewBadParameterError("name", t.Name)
-	}
-	if uuid.Equal(t.SourceTypeID, uuid.Nil) {
-		return errors.NewBadParameterError("source_type_name", t.SourceTypeID)
-	}
-	if uuid.Equal(t.TargetTypeID, uuid.Nil) {
-		return errors.NewBadParameterError("target_type_name", t.TargetTypeID)
 	}
 	if t.ForwardName == "" {
 		return errors.NewBadParameterError("forward_name", t.ForwardName)

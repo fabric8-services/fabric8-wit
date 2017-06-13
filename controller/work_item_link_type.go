@@ -15,6 +15,10 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+const (
+	typeCombinationsRouteEnd = "/typeCombinations"
+)
+
 // WorkItemLinkTypeController implements the work-item-link-type resource.
 type WorkItemLinkTypeController struct {
 	*goa.Controller
@@ -22,16 +26,16 @@ type WorkItemLinkTypeController struct {
 	config WorkItemLinkTypeControllerConfiguration
 }
 
-// WorkItemLinkTypeControllerConfiguration the configuration for the WorkItemLinkTypeController
+// WorkItemLinkTypeControllerConfiguration the configuration for the
+// WorkItemLinkTypeController and for the
+// NewWorkItemLinkTypeCombinationController
 type WorkItemLinkTypeControllerConfiguration interface {
 	GetCacheControlWorkItemLinkTypes() string
+	GetCacheControlWorkItemLinkTypeCombinations() string
 }
 
 // NewWorkItemLinkTypeController creates a work-item-link-type controller.
 func NewWorkItemLinkTypeController(service *goa.Service, db application.DB, config WorkItemLinkTypeControllerConfiguration) *WorkItemLinkTypeController {
-	if db == nil {
-		panic("db must not be nil")
-	}
 	return &WorkItemLinkTypeController{
 		Controller: service.NewController("WorkItemLinkTypeController"),
 		db:         db,
@@ -41,12 +45,6 @@ func NewWorkItemLinkTypeController(service *goa.Service, db application.DB, conf
 
 // enrichLinkTypeSingle includes related resources in the single's "included" array
 func enrichLinkTypeSingle(ctx *workItemLinkContext, single *app.WorkItemLinkTypeSingle) error {
-	// Add "links" element
-	selfURL := rest.AbsoluteURL(ctx.RequestData, ctx.LinkFunc(*single.Data.ID))
-	single.Data.Links = &app.GenericLinks{
-		Self: &selfURL,
-	}
-
 	// Now include the optional link category data in the work item link type "included" array
 	modelCategory, err := ctx.Application.WorkItemLinkCategories().Load(ctx.Context, single.Data.Relationships.LinkCategory.Data.ID)
 	if err != nil {
@@ -55,33 +53,11 @@ func enrichLinkTypeSingle(ctx *workItemLinkContext, single *app.WorkItemLinkType
 	appCategory := convertLinkCategoryFromModel(*modelCategory)
 	single.Included = append(single.Included, appCategory.Data)
 
-	// Now include the optional link space data in the work item link type "included" array
-	space, err := ctx.Application.Spaces().Load(ctx.Context, *single.Data.Relationships.Space.Data.ID)
-	if err != nil {
-		return err
-	}
-
-	spaceData, err := ConvertSpaceFromModel(ctx.Context, ctx.DB, ctx.RequestData, *space)
-	if err != nil {
-		return err
-	}
-	spaceSingle := &app.SpaceSingle{
-		Data: spaceData,
-	}
-	single.Included = append(single.Included, spaceSingle.Data)
-
 	return nil
 }
 
 // enrichLinkTypeList includes related resources in the list's "included" array
 func enrichLinkTypeList(ctx *workItemLinkContext, list *app.WorkItemLinkTypeList) error {
-	// Add "links" element
-	for _, data := range list.Data {
-		selfURL := rest.AbsoluteURL(ctx.RequestData, ctx.LinkFunc(*data.ID))
-		data.Links = &app.GenericLinks{
-			Self: &selfURL,
-		}
-	}
 	// Build our "set" of distinct category IDs already converted as strings
 	categoryIDMap := map[uuid.UUID]bool{}
 	for _, typeData := range list.Data {
@@ -97,26 +73,6 @@ func enrichLinkTypeList(ctx *workItemLinkContext, list *app.WorkItemLinkTypeList
 		list.Included = append(list.Included, appCategory.Data)
 	}
 
-	// Build our "set" of distinct space IDs already converted as strings
-	spaceIDMap := map[uuid.UUID]bool{}
-	for _, typeData := range list.Data {
-		spaceIDMap[*typeData.Relationships.Space.Data.ID] = true
-	}
-	// Now include the optional link space data in the work item link type "included" array
-	for spaceID := range spaceIDMap {
-		space, err := ctx.Application.Spaces().Load(ctx.Context, spaceID)
-		if err != nil {
-			return err
-		}
-		spaceData, err := ConvertSpaceFromModel(ctx.Context, ctx.DB, ctx.RequestData, *space)
-		if err != nil {
-			return err
-		}
-		spaceSingle := &app.SpaceSingle{
-			Data: spaceData,
-		}
-		list.Included = append(list.Included, spaceSingle.Data)
-	}
 	return nil
 }
 
@@ -210,6 +166,26 @@ func (c *WorkItemLinkTypeController) List(ctx *app.ListWorkItemLinkTypeContext) 
 	})
 }
 
+// ListTypeCombinations runs the list-type-combinations action.
+func (c *WorkItemLinkTypeController) ListTypeCombinations(ctx *app.ListTypeCombinationsWorkItemLinkTypeContext) error {
+	return application.Transactional(c.db, func(appl application.Application) error {
+		m, err := appl.WorkItemLinkTypeCombinations().List(ctx, ctx.WiltID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		return ctx.ConditionalEntities(m, c.config.GetCacheControlWorkItemLinkTypeCombinations, func() error {
+			convertedToApp, err := ConvertWorkItemLinkTypeCombinationsFromModel(appl, ctx.RequestData, m)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, err)
+			}
+			res := &app.WorkItemLinkTypeCombinationList{
+				Data: convertedToApp,
+			}
+			return ctx.OK(res)
+		})
+	})
+}
+
 // Show runs the show action.
 func (c *WorkItemLinkTypeController) Show(ctx *app.ShowWorkItemLinkTypeContext) error {
 	// WorkItemLinkTypeController_Show: start_implement
@@ -278,9 +254,9 @@ func (c *WorkItemLinkTypeController) Update(ctx *app.UpdateWorkItemLinkTypeConte
 // ConvertWorkItemLinkTypeFromModel converts a work item link type from model to REST representation
 func ConvertWorkItemLinkTypeFromModel(request *goa.RequestData, modelLinkType link.WorkItemLinkType) app.WorkItemLinkTypeSingle {
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(modelLinkType.SpaceID.String()))
-	witTargetSelfURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(modelLinkType.SpaceID.String(), modelLinkType.SourceTypeID.String()))
-	witSourceSelfURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(modelLinkType.SpaceID.String(), modelLinkType.SourceTypeID.String()))
 	linkCategorySelfURL := rest.AbsoluteURL(request, app.WorkItemLinkCategoryHref(modelLinkType.LinkCategoryID.String()))
+	typeCombinationsURL := rest.AbsoluteURL(request, app.WorkItemLinkTypeHref(modelLinkType.SpaceID.String(), modelLinkType.ID.String())+typeCombinationsRouteEnd)
+	selfURL := rest.AbsoluteURL(request, app.WorkItemLinkTypeHref(modelLinkType.SpaceID.String(), modelLinkType.ID.String()))
 
 	var converted = app.WorkItemLinkTypeSingle{
 		Data: &app.WorkItemLinkTypeData{
@@ -306,25 +282,11 @@ func ConvertWorkItemLinkTypeFromModel(request *goa.RequestData, modelLinkType li
 						Self: &linkCategorySelfURL,
 					},
 				},
-				SourceType: &app.RelationWorkItemType{
-					Data: &app.RelationWorkItemTypeData{
-						Type: link.EndpointWorkItemTypes,
-						ID:   modelLinkType.SourceTypeID,
-					},
-					Links: &app.GenericLinks{
-						Self: &witSourceSelfURL,
-					},
-				},
-				TargetType: &app.RelationWorkItemType{
-					Data: &app.RelationWorkItemTypeData{
-						Type: link.EndpointWorkItemTypes,
-						ID:   modelLinkType.TargetTypeID,
-					},
-					Links: &app.GenericLinks{
-						Self: &witTargetSelfURL,
-					},
-				},
 				Space: app.NewSpaceRelation(modelLinkType.SpaceID, spaceSelfURL),
+			},
+			Links: &app.GenericLinksForWorkItemLinkType{
+				TypeCombinations: &typeCombinationsURL,
+				Self:             &selfURL,
 			},
 		},
 	}
@@ -395,12 +357,6 @@ func ConvertWorkItemLinkTypeToModel(appLinkType app.WorkItemLinkTypeSingle) (*li
 
 	if rel != nil && rel.LinkCategory != nil && rel.LinkCategory.Data != nil {
 		modelLinkType.LinkCategoryID = rel.LinkCategory.Data.ID
-	}
-	if rel != nil && rel.SourceType != nil && rel.SourceType.Data != nil {
-		modelLinkType.SourceTypeID = rel.SourceType.Data.ID
-	}
-	if rel != nil && rel.TargetType != nil && rel.TargetType.Data != nil {
-		modelLinkType.TargetTypeID = rel.TargetType.Data.ID
 	}
 	if rel != nil && rel.Space != nil && rel.Space.Data != nil {
 		modelLinkType.SpaceID = *rel.Space.Data.ID

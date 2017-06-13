@@ -36,6 +36,7 @@ import (
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
 
+	"github.com/almighty/almighty-core/workitem/link"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -760,19 +761,20 @@ func ident(id uuid.UUID) *app.GenericData {
 
 type WorkItem2Suite struct {
 	gormtestsupport.DBTestSuite
-	clean          func()
-	wiCtrl         app.WorkitemController
-	wi2Ctrl        app.WorkitemController
-	linkCtrl       app.WorkItemLinkController
-	linkCatCtrl    app.WorkItemLinkCategoryController
-	linkTypeCtrl   app.WorkItemLinkTypeController
-	spaceCtrl      app.SpaceController
-	pubKey         *rsa.PublicKey
-	priKey         *rsa.PrivateKey
-	svc            *goa.Service
-	wi             *app.WorkItem
-	minimumPayload *app.UpdateWorkitemPayload
-	ctx            context.Context
+	clean                   func()
+	wiCtrl                  app.WorkitemController
+	wi2Ctrl                 app.WorkitemController
+	linkCtrl                app.WorkItemLinkController
+	linkCatCtrl             app.WorkItemLinkCategoryController
+	linkTypeCtrl            app.WorkItemLinkTypeController
+	linkTypeCombinationCtrl app.WorkItemLinkTypeCombinationController
+	spaceCtrl               app.SpaceController
+	pubKey                  *rsa.PublicKey
+	priKey                  *rsa.PrivateKey
+	svc                     *goa.Service
+	wi                      *app.WorkItem
+	minimumPayload          *app.UpdateWorkitemPayload
+	ctx                     context.Context
 }
 
 func (s *WorkItem2Suite) SetupSuite() {
@@ -791,6 +793,7 @@ func (s *WorkItem2Suite) SetupTest() {
 	s.wi2Ctrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(s.DB))
 	s.linkTypeCtrl = NewWorkItemLinkTypeController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	s.linkTypeCombinationCtrl = NewWorkItemLinkTypeCombinationController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.linkCtrl = NewWorkItemLinkController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.spaceCtrl = NewSpaceController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration, &DummyResourceManager{})
 
@@ -1772,9 +1775,20 @@ func (s *WorkItem2Suite) xTestWI2DeleteLinksOnWIDeletionOK() {
 	_, space := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, spacePayload)
 
 	// Create work item link type payload
-	linkTypePayload := CreateWorkItemLinkType("MyLinkType", workitem.SystemBug, workitem.SystemBug, *linkCat.Data.ID, *space.Data.ID)
+	linkTypePayload := CreateWorkItemLinkType("MyLinkType", *linkCat.Data.ID, *space.Data.ID)
 	_, linkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *space.Data.ID, linkTypePayload)
 	require.NotNil(s.T(), linkType)
+
+	// Create work item link type combination
+	linkTypeCombinationPayload, err := CreateWorkItemLinkTypeCombinationPayload(link.WorkItemLinkTypeCombination{
+		SpaceID:      *space.Data.ID,
+		LinkTypeID:   *linkType.Data.ID,
+		SourceTypeID: workitem.SystemBug,
+		TargetTypeID: workitem.SystemBug,
+	})
+	require.Nil(s.T(), err)
+	_, linkTypeCombination := test.CreateWorkItemLinkTypeCombinationCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCombinationCtrl, *space.Data.ID, linkTypeCombinationPayload)
+	require.NotNil(s.T(), linkTypeCombination)
 
 	// Create link between wi1 and wi2
 	id1, err := strconv.ParseUint(*wi1.Data.ID, 10, 64)
