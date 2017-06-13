@@ -241,20 +241,17 @@ func (m *GormCommentRepository) Load(ctx context.Context, id uuid.UUID) (*Commen
 // Exists returns true|false where an object exists with an identifier
 func (m *GormCommentRepository) Exists(ctx context.Context, id uuid.UUID) (bool, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "comment", "exists"}, time.Now())
-	queryStmt, err := m.db.CommonDB().Prepare(fmt.Sprintf(`
+	var exists bool
+	query := fmt.Sprintf(`
 		SELECT EXISTS (
 			SELECT 1 FROM %[1]s
 			WHERE
 				id=$1
 				AND deleted_at IS NULL
-		)`, m.TableName()))
-	if err != nil {
-		return false, errs.Wrapf(err, "failed to create a prepared statement for the comment exists operation")
-	}
+		)`, m.TableName())
 
-	var exists bool
-	if err := queryStmt.QueryRow(id).Scan(&exists); err != nil {
-		return false, errs.Wrapf(err, "failed to check if a comment exists for this id %v", id)
+	if err := m.db.CommonDB().QueryRow(query, id).Scan(&exists); err != nil {
+		return false, errs.Wrapf(err, "failed to check if a comment exists with this id %v", id)
 	}
 	return exists, nil
 }

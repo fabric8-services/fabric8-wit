@@ -7,6 +7,7 @@ import (
 
 	"context"
 
+	"github.com/almighty/almighty-core/application/repository"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/log"
@@ -29,6 +30,7 @@ const (
 
 // WorkItemLinkRepository encapsulates storage & retrieval of work item links
 type WorkItemLinkRepository interface {
+	repository.Exister
 	Create(ctx context.Context, sourceID, targetID uint64, linkTypeID uuid.UUID, creatorID uuid.UUID) (*WorkItemLink, error)
 	Load(ctx context.Context, ID uuid.UUID) (*WorkItemLink, error)
 	List(ctx context.Context) ([]WorkItemLink, error)
@@ -198,6 +200,21 @@ func (r *GormWorkItemLinkRepository) Load(ctx context.Context, ID uuid.UUID) (*W
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
 	return &result, nil
+}
+
+func (m *GormWorkItemLinkRepository) Exists(ctx context.Context, id uuid.UUID) (bool, error) {
+	query := fmt.Sprintf(`
+		SELECT EXISTS (
+			SELECT 1 FROM %[1]s
+			WHERE
+				id=$1
+				AND deleted_at IS NULL
+		)`, WorkItemLink{}.TableName())
+	var exists bool
+	if err := m.db.CommonDB().QueryRow(query, id).Scan(&exists); err != nil {
+		return false, errs.Wrapf(err, "failed to check if a work item link with this id %v", id)
+	}
+	return exists, nil
 }
 
 // ListByWorkItemID returns the work item links that have wiID as source or target.

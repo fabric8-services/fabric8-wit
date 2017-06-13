@@ -6,12 +6,14 @@ import (
 	"github.com/almighty/almighty-core/workitem"
 
 	"context"
+
 	uuid "github.com/satori/go.uuid"
 )
 
 // TrackerRepository encapsulate storage & retrieval of tracker configuration
 type TrackerRepository interface {
 	Load(ctx context.Context, ID string) (*app.Tracker, error)
+	Exists(ctx context.Context, ID string) (bool, error)
 	Save(ctx context.Context, t app.Tracker) (*app.Tracker, error)
 	Delete(ctx context.Context, ID string) error
 	Create(ctx context.Context, url string, typeID string) (*app.Tracker, error)
@@ -23,6 +25,7 @@ type TrackerQueryRepository interface {
 	Create(ctx context.Context, query string, schedule string, tracker string, spaceID uuid.UUID) (*app.TrackerQuery, error)
 	Save(ctx context.Context, tq app.TrackerQuery) (*app.TrackerQuery, error)
 	Load(ctx context.Context, ID string) (*app.TrackerQuery, error)
+	Exists(ctx context.Context, ID string) (bool, error)
 	Delete(ctx context.Context, ID string) error
 	List(ctx context.Context) ([]*app.TrackerQuery, error)
 }

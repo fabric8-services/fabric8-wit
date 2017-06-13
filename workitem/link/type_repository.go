@@ -5,6 +5,7 @@ import (
 
 	"context"
 
+	"github.com/almighty/almighty-core/application/repository"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/space"
@@ -17,6 +18,7 @@ import (
 
 // WorkItemLinkTypeRepository encapsulates storage & retrieval of work item link types
 type WorkItemLinkTypeRepository interface {
+	repository.Exister
 	Create(ctx context.Context, linkType *WorkItemLinkType) (*WorkItemLinkType, error)
 	Load(ctx context.Context, ID uuid.UUID) (*WorkItemLinkType, error)
 	List(ctx context.Context, spaceID uuid.UUID) ([]WorkItemLinkType, error)
@@ -90,6 +92,22 @@ func (r *GormWorkItemLinkTypeRepository) Load(ctx context.Context, ID uuid.UUID)
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
 	return &modelLinkType, nil
+}
+
+// Exists returns true|false where an object exists with an identifier
+func (m *GormWorkItemLinkTypeRepository) Exists(ctx context.Context, id uuid.UUID) (bool, error) {
+	query := fmt.Sprintf(`
+		SELECT EXISTS (
+			SELECT 1 FROM %[1]s
+			WHERE
+				id=$1
+				AND deleted_at IS NULL
+		)`, WorkItemLinkType{}.TableName())
+	var exists bool
+	if err := m.db.CommonDB().QueryRow(query, id).Scan(&exists); err != nil {
+		return false, errs.Wrapf(err, "failed to check if a work item link type for this id %v", id)
+	}
+	return exists, nil
 }
 
 // List returns all work item link types

@@ -31,6 +31,7 @@ const (
 
 // WorkItemRepository encapsulates storage & retrieval of work items
 type WorkItemRepository interface {
+	Exists(ctx context.Context, spaceID uuid.UUID, workitemID string) (bool, error)
 	LoadByID(ctx context.Context, ID string) (*WorkItem, error)
 	Load(ctx context.Context, spaceID uuid.UUID, ID string) (*WorkItem, error)
 	Save(ctx context.Context, spaceID uuid.UUID, wi WorkItem, modifierID uuid.UUID) (*WorkItem, error)
@@ -108,6 +109,24 @@ func (r *GormWorkItemRepository) Load(ctx context.Context, spaceID uuid.UUID, wo
 		return nil, err
 	}
 	return ConvertWorkItemStorageToModel(wiType, wiStorage)
+}
+
+// Exists returns true|false where an object exists with an identifier
+func (m *GormWorkItemRepository) Exists(ctx context.Context, spaceID uuid.UUID, workitemID string) (bool, error) {
+	query := fmt.Sprintf(`
+		SELECT EXISTS (
+			SELECT 1 FROM %[1]s
+			WHERE
+				id=$1
+				AND
+				space_id=$2
+				AND deleted_at IS NULL
+		)`, WorkItemStorage{}.TableName())
+	var exists bool
+	if err := m.db.CommonDB().QueryRow(query, workitemID, spaceID).Scan(&exists); err != nil {
+		return false, errs.Wrapf(err, "failed to check if a work item exists with this id %v", workitemID)
+	}
+	return exists, nil
 }
 
 func (r *GormWorkItemRepository) loadWorkItemStorage(ctx context.Context, spaceID uuid.UUID, workitemID string, selectForUpdate bool) (*WorkItemStorage, *WorkItemType, error) {

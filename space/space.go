@@ -121,20 +121,17 @@ func (r *GormRepository) Load(ctx context.Context, ID uuid.UUID) (*Space, error)
 // Exists returns true|false where an object exists with an identifier
 func (r *GormRepository) Exists(ctx context.Context, id uuid.UUID) (bool, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "space", "exists"}, time.Now())
-	queryStmt, err := r.db.CommonDB().Prepare(fmt.Sprintf(`
+	var exists bool
+	query := fmt.Sprintf(`
 		SELECT EXISTS (
 			SELECT 1 FROM %[1]s
 			WHERE
 				id=$1
 				AND deleted_at IS NULL
-		)`, r.TableName()))
-	if err != nil {
-		return false, errs.Wrapf(err, "failed to create a prepared statement for the space exists operation")
-	}
+		)`, r.TableName())
 
-	var exists bool
-	if err := queryStmt.QueryRow(id).Scan(&exists); err != nil {
-		return false, errs.Wrapf(err, "failed to check if a space exists for this id %v", id)
+	if err := r.db.CommonDB().QueryRow(query, id).Scan(&exists); err != nil {
+		return false, errs.Wrapf(err, "failed to check if a space exists with this id %v", id)
 	}
 	return exists, nil
 }

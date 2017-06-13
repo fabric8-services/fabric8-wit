@@ -2,15 +2,20 @@ package link
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/almighty/almighty-core/application/repository"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/log"
+
 	"github.com/jinzhu/gorm"
+	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
 
 // WorkItemLinkCategoryRepository encapsulates storage & retrieval of work item link categories
 type WorkItemLinkCategoryRepository interface {
+	repository.Exister
 	Create(ctx context.Context, linkCat *WorkItemLinkCategory) (*WorkItemLinkCategory, error)
 	Load(ctx context.Context, ID uuid.UUID) (*WorkItemLinkCategory, error)
 	List(ctx context.Context) ([]WorkItemLinkCategory, error)
@@ -62,6 +67,21 @@ func (r *GormWorkItemLinkCategoryRepository) Load(ctx context.Context, ID uuid.U
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
 	return &result, nil
+}
+
+func (m *GormWorkItemLinkCategoryRepository) Exists(ctx context.Context, id uuid.UUID) (bool, error) {
+	query := fmt.Sprintf(`
+		SELECT EXISTS (
+			SELECT 1 FROM %[1]s
+			WHERE
+				id=$1
+				AND deleted_at IS NULL
+		)`, WorkItemLinkCategory{}.TableName())
+	var exists bool
+	if err := m.db.CommonDB().QueryRow(query, id).Scan(&exists); err != nil {
+		return false, errs.Wrapf(err, "failed to check if a work item link category with this id %v", id)
+	}
+	return exists, nil
 }
 
 // List returns all work item link categories
