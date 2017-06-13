@@ -120,7 +120,7 @@ func (r *GormWorkItemLinkTypeRepository) List(ctx context.Context, spaceID uuid.
 
 	// We don't have any where clause or paging at the moment.
 	var modelLinkTypes []WorkItemLinkType
-	db := r.db.Where("space_id = ?", spaceID)
+	db := r.db.Where("space_id = ?", spaceID).Order("id")
 	if err := db.Find(&modelLinkTypes).Error; err != nil {
 		return nil, errs.WithStack(err)
 	}

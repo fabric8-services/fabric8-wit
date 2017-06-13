@@ -147,7 +147,7 @@ func (r *GormWorkItemLinkTypeCombinationRepository) List(ctx context.Context, li
 
 	// We don't have any where clause or paging at the moment.
 	var modelWorkItemLinkTypeCombinations []WorkItemLinkTypeCombination
-	db := r.db.Where("link_type_id=?", linkTypeID)
+	db := r.db.Where("link_type_id=?", linkTypeID).Order("id")
 	if err := db.Find(&modelWorkItemLinkTypeCombinations).Error; err != nil {
 		return nil, errs.WithStack(err)
 	}

@@ -13,7 +13,8 @@
       },
       "id": "4a507999-6381-4e14-980a-2cd604697da3",
       "links": {
-        "self": "http:///api/spaces/26efe317-fbc2-4b4b-8369-bf5cf2325424/workitemlinktypes/4a507999-6381-4e14-980a-2cd604697da3"
+        "self": "http:///api/spaces/26efe317-fbc2-4b4b-8369-bf5cf2325424/workitemlinktypes/4a507999-6381-4e14-980a-2cd604697da3",
+        "typeCombinations": "http:///api/spaces/26efe317-fbc2-4b4b-8369-bf5cf2325424/workitemlinktypes/4a507999-6381-4e14-980a-2cd604697da3/typeCombinations"
       },
       "relationships": {
         "link_category": {
@@ -50,7 +51,8 @@
       },
       "id": "cc3168c2-adfc-45af-8abf-c1c17bbd523c",
       "links": {
-        "self": "http:///api/spaces/26efe317-fbc2-4b4b-8369-bf5cf2325424/workitemlinktypes/cc3168c2-adfc-45af-8abf-c1c17bbd523c"
+        "self": "http:///api/spaces/26efe317-fbc2-4b4b-8369-bf5cf2325424/workitemlinktypes/cc3168c2-adfc-45af-8abf-c1c17bbd523c",
+        "typeCombinations": "http:///api/spaces/26efe317-fbc2-4b4b-8369-bf5cf2325424/workitemlinktypes/cc3168c2-adfc-45af-8abf-c1c17bbd523c/typeCombinations"
       },
       "relationships": {
         "link_category": {

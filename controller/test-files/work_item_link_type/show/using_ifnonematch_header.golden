@@ -12,7 +12,8 @@
     },
     "id": "ee821482-f1dc-43b2-9de5-0bc07b3832b4",
     "links": {
-      "self": "http:///api/spaces/26efe317-fbc2-4b4b-8369-bf5cf2325424/workitemlinktypes/ee821482-f1dc-43b2-9de5-0bc07b3832b4"
+      "self": "http:///api/spaces/26efe317-fbc2-4b4b-8369-bf5cf2325424/workitemlinktypes/ee821482-f1dc-43b2-9de5-0bc07b3832b4",
+      "typeCombinations": "http:///api/spaces/26efe317-fbc2-4b4b-8369-bf5cf2325424/workitemlinktypes/ee821482-f1dc-43b2-9de5-0bc07b3832b4/typeCombinations"
     },
     "relationships": {
       "link_category": {

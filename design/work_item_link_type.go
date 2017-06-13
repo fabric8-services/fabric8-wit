@@ -35,8 +35,16 @@ See also http://jsonapi.org/format/#document-resource-object`)
 	a.Attribute("id", d.UUID, "ID of work item link type (optional during creation)")
 	a.Attribute("attributes", workItemLinkTypeAttributes)
 	a.Attribute("relationships", workItemLinkTypeRelationships)
-	a.Attribute("links", genericLinks)
+	a.Attribute("links", genericLinksForWorkItemLinkType)
 	a.Required("type", "attributes")
+})
+
+// genericLinksForWorkItemLinkType defines generic relations links that are specific to a work item link type
+var genericLinksForWorkItemLinkType = a.Type("GenericLinksForWorkItemLinkType", func() {
+	a.Attribute("self", d.String)
+	a.Attribute("related", d.String)
+	a.Attribute("typeCombinations", d.String, `URL to the list of possible combinations for this work item link type`)
+	a.Attribute("meta", a.HashOf(d.String, d.Any))
 })
 
 // workItemLinkTypeAttributes is the JSONAPI store for all the "attributes" of a work item link type.
