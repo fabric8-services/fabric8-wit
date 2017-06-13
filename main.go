@@ -8,7 +8,7 @@ import (
 	"runtime"
 	"time"
 
-	"golang.org/x/net/context"
+	"context"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"

@@ -3,7 +3,7 @@ package controller
 import (
 	"strconv"
 
-	"golang.org/x/net/context"
+	"context"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"

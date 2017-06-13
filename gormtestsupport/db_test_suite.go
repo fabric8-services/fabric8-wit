@@ -10,10 +10,10 @@ import (
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/workitem"
 
+	"context"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq" // need to import postgres driver
 	"github.com/stretchr/testify/suite"
-	"golang.org/x/net/context"
 )
 
 var _ suite.SetupAllSuite = &DBTestSuite{}
