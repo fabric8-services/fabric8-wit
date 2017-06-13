@@ -166,7 +166,7 @@ type AuthorizationPayload struct {
 	Permissions []Permissions `json:"permissions"`
 }
 
-// Permissions represents an permissions and the AuthorizationPayload
+// Permissions represents a "permissions" in the AuthorizationPayload
 type Permissions struct {
 	ResourceSetName *string `json:"resource_set_name"`
 	ResourceSetID   *string `json:"resource_set_id"`
