@@ -99,6 +99,8 @@ func TestCompareWithGolden(t *testing.T) {
 		err := testableCompareWithGolden(false, f, dummy)
 		// then
 		require.NotNil(t, err)
+		_, isPathError := errs.Cause(err).(*os.PathError)
+		require.False(t, isPathError)
 	})
 	t.Run("ok - expected output equals actual", func(t *testing.T) {
 		t.Parallel()
