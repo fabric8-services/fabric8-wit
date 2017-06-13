@@ -14,6 +14,7 @@ import (
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/rest"
+	"github.com/dgrijalva/jwt-go"
 )
 
 const (
@@ -152,6 +153,23 @@ type ResourceSet struct {
 
 type entitlementResult struct {
 	Rpt string `json:"rpt"`
+}
+
+// TokenPayload represents an rpt token
+type TokenPayload struct {
+	jwt.StandardClaims
+	Authorization *AuthorizationPayload `json:"authorization"`
+}
+
+// AuthorizationPayload represents an authz payload in the rpt token
+type AuthorizationPayload struct {
+	Permissions []Permissions `json:"permissions"`
+}
+
+// Permissions represents an permissions and the AuthorizationPayload
+type Permissions struct {
+	ResourceSetName *string `json:"resource_set_name"`
+	ResourceSetID   *string `json:"resource_set_id"`
 }
 
 // VerifyResourceUser returns true if the user among the resource collaborators

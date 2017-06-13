@@ -57,7 +57,7 @@ func (s *TestAuthzSuite) TestFailsIfNoTokenInContext() {
 
 func (s *TestAuthzSuite) TestUserAmongSpaceCollaboratorsOK() {
 	spaceID := uuid.NewV4().String()
-	authzPayload := authz.AuthorizationPayload{Permissions: []authz.Permissions{{ResourceSetName: &spaceID}}}
+	authzPayload := auth.AuthorizationPayload{Permissions: []auth.Permissions{{ResourceSetName: &spaceID}}}
 	ok := s.checkPermissions(authzPayload, spaceID)
 	require.True(s.T(), ok)
 }
@@ -65,12 +65,12 @@ func (s *TestAuthzSuite) TestUserAmongSpaceCollaboratorsOK() {
 func (s *TestAuthzSuite) TestUserIsNotAmongSpaceCollaboratorsFails() {
 	spaceID1 := uuid.NewV4().String()
 	spaceID2 := uuid.NewV4().String()
-	authzPayload := authz.AuthorizationPayload{Permissions: []authz.Permissions{{ResourceSetName: &spaceID1}}}
+	authzPayload := auth.AuthorizationPayload{Permissions: []auth.Permissions{{ResourceSetName: &spaceID1}}}
 	ok := s.checkPermissions(authzPayload, spaceID2)
 	require.False(s.T(), ok)
 }
 
-func (s *TestAuthzSuite) checkPermissions(authzPayload authz.AuthorizationPayload, spaceID string) bool {
+func (s *TestAuthzSuite) checkPermissions(authzPayload auth.AuthorizationPayload, spaceID string) bool {
 	resource := &space.Resource{}
 	authzService := authz.NewAuthzService(nil, &db{app{resource: resource}})
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
