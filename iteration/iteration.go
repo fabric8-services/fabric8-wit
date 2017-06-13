@@ -1,15 +1,17 @@
 package iteration
 
 import (
+	"context"
+	"fmt"
 	"strconv"
 	"time"
 
+	"github.com/almighty/almighty-core/application/repository"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/path"
 
-	"context"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
@@ -52,12 +54,13 @@ func (m Iteration) GetLastModified() time.Time {
 
 // TableName overrides the table name settings in Gorm to force a specific table name
 // in the database.
-func (m *Iteration) TableName() string {
+func (m Iteration) TableName() string {
 	return "iterations"
 }
 
 // Repository describes interactions with Iterations
 type Repository interface {
+	repository.Exister
 	Create(ctx context.Context, u *Iteration) error
 	List(ctx context.Context, spaceID uuid.UUID) ([]Iteration, error)
 	Root(ctx context.Context, spaceID uuid.UUID) (*Iteration, error)
@@ -168,6 +171,28 @@ func (m *GormIterationRepository) Load(ctx context.Context, id uuid.UUID) (*Iter
 		return nil, errors.NewInternalError(tx.Error.Error())
 	}
 	return &obj, nil
+}
+
+// Exists returns true|false where an object exists with an identifier
+func (m *GormIterationRepository) Exists(ctx context.Context, id uuid.UUID) (bool, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "iteration", "exists"}, time.Now())
+
+	queryStmt, err := m.db.CommonDB().Prepare(fmt.Sprintf(`
+		SELECT EXISTS (
+			SELECT 1 FROM %[1]s
+			WHERE
+				id=$1
+				AND deleted_at IS NULL
+		)`, Iteration{}.TableName()))
+	if err != nil {
+		return false, errs.Wrapf(err, "failed to create a prepared statement for the iteration exists operation")
+	}
+
+	var exists bool
+	if err := queryStmt.QueryRow(id).Scan(&exists); err != nil {
+		return false, errs.Wrapf(err, "failed to check if an iteration exists for this id %v", id)
+	}
+	return exists, nil
 }
 
 // Save updates the given iteration in the db. Version must be the same as the one in the stored version

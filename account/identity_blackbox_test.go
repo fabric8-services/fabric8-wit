@@ -1,6 +1,7 @@
 package account_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/almighty/almighty-core/account"
@@ -8,8 +9,6 @@ import (
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/migration"
 
-	"context"
-	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -74,6 +73,23 @@ func (s *identityBlackBoxTest) TestOKToDelete() {
 
 func (s *identityBlackBoxTest) TestOKToLoad() {
 	createAndLoad(s)
+}
+
+func (s *identityBlackBoxTest) TestOKExists() {
+	// given
+	identity := createAndLoad(s)
+	// when
+	exists, err := s.repo.Exists(s.ctx, identity.ID)
+	// then
+	require.Nil(s.T(), err, "Could not check if identity exists")
+	require.True(s.T(), exists)
+}
+
+func (s *identityBlackBoxTest) TestNoExists() {
+	exists, err := s.repo.Exists(s.ctx, uuid.NewV4())
+	// then
+	require.Nil(s.T(), err, "Could not check if identity exists")
+	require.False(s.T(), exists)
 }
 
 func (s *identityBlackBoxTest) TestOKToSave() {

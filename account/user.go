@@ -1,16 +1,17 @@
 package account
 
 import (
+	"context"
+	"fmt"
 	"strconv"
 	"time"
 
+	"github.com/almighty/almighty-core/application/repository"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/log"
-
 	"github.com/almighty/almighty-core/workitem"
 
-	"context"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
@@ -64,6 +65,7 @@ func NewUserRepository(db *gorm.DB) UserRepository {
 
 // UserRepository represents the storage interface.
 type UserRepository interface {
+	repository.Exister
 	Load(ctx context.Context, ID uuid.UUID) (*User, error)
 	Create(ctx context.Context, u *User) error
 	Save(ctx context.Context, u *User) error
@@ -90,6 +92,28 @@ func (m *GormUserRepository) Load(ctx context.Context, id uuid.UUID) (*User, err
 		return nil, errors.NewNotFoundError("user", id.String())
 	}
 	return &native, errs.WithStack(err)
+}
+
+// Exists returns true|false where an object exists with an identifier
+func (m *GormUserRepository) Exists(ctx context.Context, id uuid.UUID) (bool, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "user", "exists"}, time.Now())
+
+	queryStmt, err := m.db.CommonDB().Prepare(fmt.Sprintf(`
+		SELECT EXISTS (
+			SELECT 1 FROM %[1]s
+			WHERE
+				id=$1
+				AND deleted_at IS NULL
+		)`, m.TableName()))
+	if err != nil {
+		return false, errs.Wrapf(err, "failed to create a prepared statement for the user exists operation")
+	}
+
+	var exists bool
+	if err := queryStmt.QueryRow(id).Scan(&exists); err != nil {
+		return false, errs.Wrapf(err, "failed to check if an user exists for this id %v", id)
+	}
+	return exists, nil
 }
 
 // Create creates a new record.

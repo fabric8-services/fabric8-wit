@@ -2,8 +2,10 @@ package comment
 
 import (
 	"context"
+	"fmt"
 	"time"
 
+	"github.com/almighty/almighty-core/application/repository"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/rendering"
@@ -16,6 +18,7 @@ import (
 
 // Repository describes interactions with comments
 type Repository interface {
+	repository.Exister
 	Create(ctx context.Context, comment *Comment, creator uuid.UUID) error
 	Save(ctx context.Context, comment *Comment, modifier uuid.UUID) error
 	Delete(ctx context.Context, commentID uuid.UUID, suppressor uuid.UUID) error
@@ -233,4 +236,25 @@ func (m *GormCommentRepository) Load(ctx context.Context, id uuid.UUID) (*Commen
 		return nil, errors.NewInternalError(tx.Error.Error())
 	}
 	return &obj, nil
+}
+
+// Exists returns true|false where an object exists with an identifier
+func (m *GormCommentRepository) Exists(ctx context.Context, id uuid.UUID) (bool, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "comment", "exists"}, time.Now())
+	queryStmt, err := m.db.CommonDB().Prepare(fmt.Sprintf(`
+		SELECT EXISTS (
+			SELECT 1 FROM %[1]s
+			WHERE
+				id=$1
+				AND deleted_at IS NULL
+		)`, m.TableName()))
+	if err != nil {
+		return false, errs.Wrapf(err, "failed to create a prepared statement for the comment exists operation")
+	}
+
+	var exists bool
+	if err := queryStmt.QueryRow(id).Scan(&exists); err != nil {
+		return false, errs.Wrapf(err, "failed to check if a comment exists for this id %v", id)
+	}
+	return exists, nil
 }

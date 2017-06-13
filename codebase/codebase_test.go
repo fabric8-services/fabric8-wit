@@ -130,6 +130,29 @@ func (test *TestCodebaseRepository) TestListCodebases() {
 	assert.Equal(test.T(), codebase1.URL, codebases[0].URL)
 }
 
+func (test *TestCodebaseRepository) TestExistsCodebase() {
+	// given
+	spaceID := space.SystemSpace
+	repo := codebase.NewCodebaseRepository(test.DB)
+	codebase := newCodebase(spaceID, "lisp-default", "my-used-lisp-workspace", "git", "git@github.com:hectorj2f/almighty-core.git")
+	test.createCodebase(codebase)
+	// when
+	exists, err := repo.Exists(context.Background(), codebase.ID)
+	// then
+	require.Nil(test.T(), err)
+	assert.True(test.T(), exists)
+}
+
+func (test *TestCodebaseRepository) TestNoExistsCodebase() {
+	// given
+	repo := codebase.NewCodebaseRepository(test.DB)
+	// when
+	exists, err := repo.Exists(context.Background(), uuid.NewV4())
+	// then
+	require.Nil(test.T(), err)
+	assert.False(test.T(), exists)
+}
+
 func (test *TestCodebaseRepository) TestLoadCodebase() {
 	// given
 	spaceID := space.SystemSpace

@@ -1,6 +1,7 @@
 package codebase
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -113,6 +114,7 @@ type Codebase struct {
 
 // Repository describes interactions with codebases
 type Repository interface {
+	Exists(ctx context.Context, id uuid.UUID) (bool, error)
 	Create(ctx context.Context, u *Codebase) error
 	Save(ctx context.Context, codebase *Codebase) (*Codebase, error)
 	List(ctx context.Context, spaceID uuid.UUID, start *int, limit *int) ([]*Codebase, uint64, error)
@@ -240,9 +242,30 @@ func (m *GormCodebaseRepository) List(ctx context.Context, spaceID uuid.UUID, st
 	return result, count, nil
 }
 
+// Exists returns true|false where an object exists with an identifier
+func (m *GormCodebaseRepository) Exists(ctx context.Context, id uuid.UUID) (bool, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "codebase", "exists"}, time.Now())
+	queryStmt, err := m.db.CommonDB().Prepare(fmt.Sprintf(`
+		SELECT EXISTS (
+			SELECT 1 FROM %[1]s
+			WHERE
+				id=$1
+				AND deleted_at IS NULL
+		)`, m.TableName()))
+	if err != nil {
+		return false, errs.Wrapf(err, "failed to create a prepared statement for the codebase exists operation")
+	}
+
+	var exists bool
+	if err := queryStmt.QueryRow(id).Scan(&exists); err != nil {
+		return false, errs.Wrapf(err, "failed to check if a codebase exists for this id %v", id)
+	}
+	return exists, nil
+}
+
 // Load a single codebase regardless of parent
 func (m *GormCodebaseRepository) Load(ctx context.Context, id uuid.UUID) (*Codebase, error) {
-	defer goa.MeasureSince([]string{"goa", "db", "codebase", "get"}, time.Now())
+	defer goa.MeasureSince([]string{"goa", "db", "codebase", "load"}, time.Now())
 	var obj Codebase
 
 	tx := m.db.Where("id=?", id).First(&obj)

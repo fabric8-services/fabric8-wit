@@ -1,18 +1,19 @@
 package area
 
 import (
+	"context"
 	"fmt"
 	"time"
 
+	"github.com/almighty/almighty-core/application/repository"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/path"
+
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
-
-	"context"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -46,6 +47,7 @@ func (m *GormAreaRepository) TableName() string {
 
 // Repository describes interactions with Areas
 type Repository interface {
+	repository.Exister
 	Create(ctx context.Context, u *Area) error
 	List(ctx context.Context, spaceID uuid.UUID) ([]Area, error)
 	Load(ctx context.Context, id uuid.UUID) (*Area, error)
@@ -105,6 +107,27 @@ func (m *GormAreaRepository) Load(ctx context.Context, id uuid.UUID) (*Area, err
 		return nil, errors.NewInternalError(tx.Error.Error())
 	}
 	return &obj, nil
+}
+
+// Exists returns true|false where an object exists with an identifier
+func (m *GormAreaRepository) Exists(ctx context.Context, id uuid.UUID) (bool, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "area", "exists"}, time.Now())
+	queryStmt, err := m.db.CommonDB().Prepare(fmt.Sprintf(`
+		SELECT EXISTS (
+			SELECT 1 FROM %[1]s
+			WHERE
+				id=$1
+				AND deleted_at IS NULL
+		)`, m.TableName()))
+	if err != nil {
+		return false, errs.Wrapf(err, "failed to create a prepared statement for the area exists operation")
+	}
+
+	var exists bool
+	if err := queryStmt.QueryRow(id).Scan(&exists); err != nil {
+		return false, errs.Wrapf(err, "failed to check if an area exists for this id %v", id)
+	}
+	return exists, nil
 }
 
 // Load multiple areas

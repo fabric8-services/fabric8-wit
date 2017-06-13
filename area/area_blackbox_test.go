@@ -96,6 +96,43 @@ func (test *TestAreaRepository) TestCreateArea() {
 	assert.Equal(test.T(), name, a.Name)
 }
 
+func (test *TestAreaRepository) TestExistsArea() {
+	// given
+	repo := area.NewAreaRepository(test.DB)
+	name := "TestCreateArea"
+	newSpace := space.Space{
+		Name: uuid.NewV4().String(),
+	}
+	repoSpace := space.NewRepository(test.DB)
+	space, err := repoSpace.Create(context.Background(), &newSpace)
+	require.Nil(test.T(), err)
+	a := area.Area{
+		Name:    name,
+		SpaceID: space.ID,
+	}
+	// when
+	err = repo.Create(context.Background(), &a)
+	// then
+	require.Nil(test.T(), err)
+	require.NotEqual(test.T(), uuid.Nil, a.ID)
+
+	// when
+	exists, err1 := repo.Exists(context.Background(), a.ID)
+	// then
+	require.Nil(test.T(), err1)
+	assert.True(test.T(), exists)
+}
+
+func (test *TestAreaRepository) TestNoExistsArea() {
+	// given
+	repo := area.NewAreaRepository(test.DB)
+	// when
+	exists, err := repo.Exists(context.Background(), uuid.NewV4())
+	// then
+	require.Nil(test.T(), err)
+	assert.False(test.T(), exists)
+}
+
 func (test *TestAreaRepository) TestCreateChildArea() {
 	// given
 	repo := area.NewAreaRepository(test.DB)

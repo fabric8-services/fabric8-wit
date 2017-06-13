@@ -1,15 +1,18 @@
 package space
 
 import (
+	"context"
+	"fmt"
 	"strings"
 	"time"
 
+	"github.com/almighty/almighty-core/application/repository"
 	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/log"
 
-	"context"
+	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -71,6 +74,7 @@ func (p Space) GetLastModified() time.Time {
 
 // Repository encapsulate storage & retrieval of spaces
 type Repository interface {
+	repository.Exister
 	Create(ctx context.Context, space *Space) (*Space, error)
 	Save(ctx context.Context, space *Space) (*Space, error)
 	Load(ctx context.Context, ID uuid.UUID) (*Space, error)
@@ -84,6 +88,12 @@ type Repository interface {
 // NewRepository creates a new space repo
 func NewRepository(db *gorm.DB) *GormRepository {
 	return &GormRepository{db}
+}
+
+// TableName overrides the table name settings in Gorm to force a specific table name
+// in the database.
+func (m *GormRepository) TableName() string {
+	return "spaces"
 }
 
 // GormRepository implements SpaceRepository using gorm
@@ -106,6 +116,27 @@ func (r *GormRepository) Load(ctx context.Context, ID uuid.UUID) (*Space, error)
 		return nil, errors.NewInternalError(tx.Error.Error())
 	}
 	return &res, nil
+}
+
+// Exists returns true|false where an object exists with an identifier
+func (r *GormRepository) Exists(ctx context.Context, id uuid.UUID) (bool, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "space", "exists"}, time.Now())
+	queryStmt, err := r.db.CommonDB().Prepare(fmt.Sprintf(`
+		SELECT EXISTS (
+			SELECT 1 FROM %[1]s
+			WHERE
+				id=$1
+				AND deleted_at IS NULL
+		)`, r.TableName()))
+	if err != nil {
+		return false, errs.Wrapf(err, "failed to create a prepared statement for the space exists operation")
+	}
+
+	var exists bool
+	if err := queryStmt.QueryRow(id).Scan(&exists); err != nil {
+		return false, errs.Wrapf(err, "failed to check if a space exists for this id %v", id)
+	}
+	return exists, nil
 }
 
 // Delete deletes the space with the given id

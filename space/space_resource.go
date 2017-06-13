@@ -1,13 +1,19 @@
 package space
 
 import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/almighty/almighty-core/application/repository"
 	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/log"
 
-	"context"
+	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
+	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -50,6 +56,7 @@ func (r Resource) Equal(u convert.Equaler) bool {
 
 // ResourceRepository encapsulate storage & retrieval of space resources
 type ResourceRepository interface {
+	repository.Exister
 	Create(ctx context.Context, space *Resource) (*Resource, error)
 	Save(ctx context.Context, space *Resource) (*Resource, error)
 	Load(ctx context.Context, ID uuid.UUID) (*Resource, error)
@@ -82,6 +89,27 @@ func (r *GormResourceRepository) Load(ctx context.Context, ID uuid.UUID) (*Resou
 		return nil, errors.NewInternalError(tx.Error.Error())
 	}
 	return &res, nil
+}
+
+// Exists returns true|false where an object exists with an identifier
+func (r *GormResourceRepository) Exists(ctx context.Context, id uuid.UUID) (bool, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "space_resource", "exists"}, time.Now())
+	queryStmt, err := r.db.CommonDB().Prepare(fmt.Sprintf(`
+		SELECT EXISTS (
+			SELECT 1 FROM %[1]s
+			WHERE
+				id=$1
+				AND deleted_at IS NULL
+		)`, Resource{}.TableName()))
+	if err != nil {
+		return false, errs.Wrapf(err, "failed to create a prepared statement for the space resource exists operation")
+	}
+
+	var exists bool
+	if err := queryStmt.QueryRow(id).Scan(&exists); err != nil {
+		return false, errs.Wrapf(err, "failed to check if a space resource exists for this id %v", id)
+	}
+	return exists, nil
 }
 
 // Delete deletes the space resource with the given id
