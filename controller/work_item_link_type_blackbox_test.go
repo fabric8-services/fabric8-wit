@@ -130,9 +130,9 @@ func (s *workItemLinkTypeSuite) TestValidateCreatePayload() {
 		// given
 		createPayload := CreateWorkItemLinkType("empty name", s.linkCatID, s.spaceID)
 		// when
-		valid := createPayload.Validate()
+		err := createPayload.Validate()
 		// then
-		require.Nil(t, valid)
+		require.Nil(t, err)
 	})
 
 	s.T().Run("empty name", func(t *testing.T) {
@@ -141,10 +141,13 @@ func (s *workItemLinkTypeSuite) TestValidateCreatePayload() {
 		emptyName := ""
 		createPayload.Data.Attributes.Name = &emptyName
 		// when
-		valid := createPayload.Validate()
+		err := createPayload.Validate()
 		// then
-		require.NotNil(t, valid)
-		compareWithGolden(t, filepath.Join(s.testDir, "validate", "empty_name.golden"), valid)
+		require.NotNil(t, err)
+		goaError, ok := err.(*goa.ErrorResponse)
+		require.True(t, ok)
+		goaError.ID = "IGNOREME"
+		compareWithGolden(t, filepath.Join(s.testDir, "validate", "empty_name.golden"), goaError)
 	})
 
 	s.T().Run("empty topology", func(t *testing.T) {
@@ -153,10 +156,12 @@ func (s *workItemLinkTypeSuite) TestValidateCreatePayload() {
 		emptyTopology := ""
 		createPayload.Data.Attributes.Topology = &emptyTopology
 		// when
-		valid := createPayload.Validate()
+		err := createPayload.Validate()
 		// then
-		require.NotNil(t, valid)
-		compareWithGolden(t, filepath.Join(s.testDir, "validate", "empty_topology.golden"), valid)
+		goaError, ok := err.(*goa.ErrorResponse)
+		require.True(t, ok)
+		goaError.ID = "IGNOREME"
+		compareWithGolden(t, filepath.Join(s.testDir, "validate", "empty_topology.golden"), goaError)
 	})
 
 	s.T().Run("wrong topology", func(t *testing.T) {
@@ -164,10 +169,13 @@ func (s *workItemLinkTypeSuite) TestValidateCreatePayload() {
 		wrongTopology := "wrongtopology"
 		createPayload.Data.Attributes.Topology = &wrongTopology
 		// when
-		valid := createPayload.Validate()
+		err := createPayload.Validate()
 		// then
-		require.NotNil(t, valid)
-		compareWithGolden(t, filepath.Join(s.testDir, "validate", "wrong_topology.golden"), valid)
+		require.NotNil(t, err)
+		goaError, ok := err.(*goa.ErrorResponse)
+		require.True(t, ok)
+		goaError.ID = "IGNOREME"
+		compareWithGolden(t, filepath.Join(s.testDir, "validate", "wrong_topology.golden"), goaError)
 	})
 }
 
