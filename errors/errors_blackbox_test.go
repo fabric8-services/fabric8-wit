@@ -6,13 +6,14 @@ import (
 
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/resource"
+	errs "github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewInternalError(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
-	err := errors.NewInternalError("System disk could not be read")
+	err := errors.NewInternalError(errs.New("system disk could not be read"))
 
 	// not sure what assertion to do here.
 	t.Log(err)

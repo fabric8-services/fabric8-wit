@@ -3,18 +3,17 @@ package authz
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/auth"
-	errs "github.com/almighty/almighty-core/errors"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/log"
 	tokencontext "github.com/almighty/almighty-core/login/tokencontext"
 	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/token"
+	errs "github.com/pkg/errors"
 
 	contx "context"
 
@@ -77,14 +76,14 @@ func (s *KeycloakAuthzService) Configuration() AuthzConfiguration {
 func (s *KeycloakAuthzService) Authorize(ctx context.Context, entitlementEndpoint string, spaceID string) (bool, error) {
 	jwttoken := goajwt.ContextJWT(ctx)
 	if jwttoken == nil {
-		return false, errs.NewUnauthorizedError("missing token")
+		return false, errors.NewUnauthorizedError("missing token")
 	}
 	tm := tokencontext.ReadTokenManagerFromContext(ctx)
 	if tm == nil {
 		log.Error(ctx, map[string]interface{}{
 			"token": tm,
 		}, "missing token manager")
-		return false, errs.NewInternalError("Missing token manager")
+		return false, errors.NewInternalError(errs.New("missing token manager"))
 	}
 	tokenWithClaims, err := jwt.ParseWithClaims(jwttoken.Raw, &auth.TokenPayload{}, func(t *jwt.Token) (interface{}, error) {
 		return tm.(token.Manager).PublicKey(), nil
@@ -94,7 +93,7 @@ func (s *KeycloakAuthzService) Authorize(ctx context.Context, entitlementEndpoin
 			"space-id": spaceID,
 			"err":      err,
 		}, "unable to parse the rpt token")
-		return false, errs.NewInternalError(fmt.Sprintf("unable to parse the rpt token: %s", err.Error()))
+		return false, errors.NewInternalError(errs.Wrap(err, "unable to parse the rpt token"))
 	}
 	claims := tokenWithClaims.Claims.(*auth.TokenPayload)
 
@@ -144,7 +143,7 @@ func (s *KeycloakAuthzService) checkEntitlementForSpace(ctx context.Context, tok
 func (s *KeycloakAuthzService) isTokenOutdated(ctx context.Context, token auth.TokenPayload, entitlementEndpoint string, spaceID string) (bool, error) {
 	spaceUUID, err := uuid.FromString(spaceID)
 	if err != nil {
-		return false, errs.NewInternalError(err.Error())
+		return false, errors.NewInternalError(err)
 	}
 	var spaceResource *space.Resource
 	err = application.Transactional(s.db, func(appl application.Application) error {
@@ -155,7 +154,7 @@ func (s *KeycloakAuthzService) isTokenOutdated(ctx context.Context, token auth.T
 		return false, err
 	}
 	if token.IssuedAt == 0 {
-		return false, errs.NewInternalError("iat claim is not found in the token")
+		return false, errors.NewInternalError(errs.New("iat claim is not found in the token"))
 	}
 	tokenIssued := time.Unix(token.IssuedAt, 0)
 	return tokenIssued.Before(spaceResource.UpdatedAt), nil
@@ -191,7 +190,7 @@ func Authorize(ctx context.Context, spaceID string) (bool, error) {
 			"space-id": spaceID,
 		}, "Missing space authz service")
 
-		return false, errors.New("missing space authz service")
+		return false, errs.New("missing space authz service")
 	}
 	manager := srv.(AuthzServiceManager)
 	return manager.AuthzService().Authorize(ctx, manager.EntitlementEndpoint(), spaceID)

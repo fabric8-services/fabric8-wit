@@ -75,7 +75,7 @@ func (r *GormOauthStateReferenceRepository) Delete(ctx context.Context, ID uuid.
 		log.Error(ctx, map[string]interface{}{
 			"oauth_state_reference_id": ID.String(),
 		}, "unable to delete the oauth state reference")
-		return errors.NewInternalError(err.Error())
+		return errors.NewInternalError(err)
 	}
 	if tx.RowsAffected == 0 {
 		log.Error(ctx, map[string]interface{}{
@@ -96,7 +96,7 @@ func (r *GormOauthStateReferenceRepository) Create(ctx context.Context, referenc
 
 	tx := r.db.Create(reference)
 	if err := tx.Error; err != nil {
-		return nil, errors.NewInternalError(err.Error())
+		return nil, errors.NewInternalError(err)
 	}
 
 	log.Info(ctx, map[string]interface{}{
@@ -116,7 +116,7 @@ func (r *GormOauthStateReferenceRepository) Load(ctx context.Context, id uuid.UU
 		return nil, errors.NewNotFoundError("oauth state reference", id.String())
 	}
 	if tx.Error != nil {
-		return nil, errors.NewInternalError(tx.Error.Error())
+		return nil, errors.NewInternalError(tx.Error)
 	}
 	return &ref, nil
 }
