@@ -14,7 +14,9 @@ import (
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/space/authz"
+	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
+	"github.com/satori/go.uuid"
 )
 
 // CommentsController implements the comments resource.
@@ -108,34 +110,41 @@ func (c *CommentsController) Delete(ctx *app.DeleteCommentsContext) error {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
 	var cm *comment.Comment
+	var wi *workitem.WorkItem
 	// Following transaction verifies if a user is allowed to delete or not
-	authErr := application.Transactional(c.db, func(appl application.Application) error {
+	dbErr := application.Transactional(c.db, func(appl application.Application) error {
 		cm, err = appl.Comments().Load(ctx.Context, ctx.CommentID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		// User is allowed to delete if user is creator of the comment OR user is a space collaborator
-		if *identityID == cm.CreatedBy {
-			return nil
-		}
-		wi, err := appl.WorkItems().LoadByID(ctx.Context, cm.ParentID)
+
+		wi, err = appl.WorkItems().LoadByID(ctx.Context, cm.ParentID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		authorized, err := authz.Authorize(ctx, wi.SpaceID.String())
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
-		}
-		if authorized == false {
-			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not a space collaborator"))
-		}
 		return nil
 	})
-	if authErr != nil {
-		return authErr
+	if dbErr != nil {
+		return dbErr
 	}
+	// User is allowed to delete if user is creator of the comment OR user is a space collaborator
+	if *identityID == cm.CreatedBy {
+		return c.performDelete(ctx, cm, identityID)
+	}
+
+	authorized, err := authz.Authorize(ctx, wi.SpaceID.String())
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
+	}
+	if authorized == false {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not a space collaborator"))
+	}
+	return c.performDelete(ctx, cm, identityID)
+}
+
+func (c *CommentsController) performDelete(ctx *app.DeleteCommentsContext, cm *comment.Comment, identityID *uuid.UUID) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		err = appl.Comments().Delete(ctx.Context, cm.ID, *identityID)
+		err := appl.Comments().Delete(ctx.Context, cm.ID, *identityID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
