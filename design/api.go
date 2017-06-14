@@ -38,7 +38,9 @@ var _ = a.API("alm", func() {
 
 	a.Trait("conditional", func() {
 		a.Headers(func() {
-			a.Header("If-Modified-Since", d.String)
+			a.Header("If-Modified-Since", d.String, "if-modified-since header", func() {
+				a.Format("rfc1123")
+			})
 			a.Header("If-None-Match", d.String)
 		})
 	})
