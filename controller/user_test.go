@@ -196,6 +196,14 @@ func (m TestIdentityRepository) Load(ctx context.Context, id uuid.UUID) (*accoun
 	return m.Identity, nil
 }
 
+// Exists returns true|false if an identity exists
+func (m TestIdentityRepository) Exists(ctx context.Context, id uuid.UUID) (bool, error) {
+	if m.Identity == nil {
+		return false, errors.New("not found")
+	}
+	return true, nil
+}
+
 // Create creates a new record.
 func (m TestIdentityRepository) Create(ctx context.Context, model *account.Identity) error {
 	m.Identity = model
@@ -246,6 +254,13 @@ func (m TestUserRepository) Load(ctx context.Context, id uuid.UUID) (*account.Us
 		return nil, errors.New("not found")
 	}
 	return m.User, nil
+}
+
+func (m TestUserRepository) Exists(ctx context.Context, id uuid.UUID) (bool, error) {
+	if m.User == nil {
+		return false, errors.New("not found")
+	}
+	return true, nil
 }
 
 // Create creates a new record.

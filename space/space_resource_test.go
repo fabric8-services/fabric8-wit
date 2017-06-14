@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"context"
+
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
@@ -57,6 +58,21 @@ func (test *resourceRepoBBTest) TestLoad() {
 
 	res2, _, _ := expectResource(test.load(res.ID), test.requireOk)
 	assert.True(test.T(), (*res).Equal(*res2))
+}
+
+func (test *resourceRepoBBTest) TestExists() {
+	expectResource(test.load(uuid.NewV4()), test.assertNotFound())
+	res, _, _ := expectResource(test.create(testResourceID, testPolicyID, testPermissionID), test.requireOk)
+
+	exists, err := test.repo.Exists(context.Background(), res.ID)
+	require.Nil(test.T(), err)
+	assert.True(test.T(), exists)
+}
+
+func (test *resourceRepoBBTest) TestNoExists() {
+	exists, err := test.repo.Exists(context.Background(), uuid.NewV4())
+	require.Nil(test.T(), err)
+	assert.False(test.T(), exists)
 }
 
 func (test *resourceRepoBBTest) TestSaveOk() {

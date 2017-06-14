@@ -20,7 +20,8 @@ import (
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/almighty/almighty-core/workitem/link"
-	"github.com/satori/go.uuid"
+
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -193,6 +194,10 @@ func (r *resourceRepo) Load(ctx context.Context, ID uuid.UUID) (*space.Resource,
 
 func (r *resourceRepo) Delete(ctx context.Context, ID uuid.UUID) error {
 	return nil
+}
+
+func (r *resourceRepo) Exists(ctx context.Context, ID uuid.UUID) (bool, error) {
+	return false, nil
 }
 
 func (r *resourceRepo) LoadBySpace(ctx context.Context, spaceID *uuid.UUID) (*space.Resource, error) {

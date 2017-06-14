@@ -12,6 +12,7 @@ import (
 	"github.com/almighty/almighty-core/workitem"
 
 	"context"
+
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -79,6 +80,28 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWIT() {
 	require.NotNil(s.T(), field)
 	assert.Equal(s.T(), workitem.KindFloat, field.Type.GetKind())
 	assert.Equal(s.T(), true, field.Required)
+}
+
+func (s *workItemTypeRepoBlackBoxTest) TestExistsWIT() {
+	wit, err := s.repo.Create(s.ctx, space.SystemSpace, nil, nil, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{
+		"foo": {
+			Required: true,
+			Type:     &workitem.SimpleType{Kind: workitem.KindFloat},
+		},
+	})
+	require.Nil(s.T(), err)
+	require.NotNil(s.T(), wit)
+	require.NotNil(s.T(), wit.ID)
+
+	exists, err := s.repo.Exists(s.ctx, space.SystemSpace, wit.ID)
+	require.Nil(s.T(), err)
+	require.True(s.T(), exists)
+}
+
+func (s *workItemTypeRepoBlackBoxTest) TestNoExistsWIT() {
+	exists, err := s.repo.Exists(s.ctx, space.SystemSpace, uuid.NewV4())
+	require.Nil(s.T(), err)
+	require.False(s.T(), exists)
 }
 
 func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWITWithList() {

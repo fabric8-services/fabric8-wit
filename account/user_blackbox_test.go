@@ -1,6 +1,7 @@
 package account_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/almighty/almighty-core/account"
@@ -10,8 +11,7 @@ import (
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/workitem"
 
-	"context"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -74,6 +74,29 @@ func (s *userBlackBoxTest) TestOKToLoad() {
 	resource.Require(t, resource.Database)
 
 	createAndLoadUser(s) // this function does the needful already
+}
+
+func (s *userBlackBoxTest) TestExistsUser() {
+	// given
+	t := s.T()
+	resource.Require(t, resource.Database)
+	user := createAndLoadUser(s)
+	// when
+	exists, err := s.repo.Exists(s.ctx, user.ID)
+	// then
+	require.Nil(s.T(), err)
+	require.True(s.T(), exists)
+}
+
+func (s *userBlackBoxTest) TestNoExistsUser() {
+	// given
+	t := s.T()
+	resource.Require(t, resource.Database)
+	// when
+	exists, err := s.repo.Exists(s.ctx, uuid.NewV4())
+	// then
+	require.Nil(s.T(), err)
+	require.False(s.T(), exists)
 }
 
 func (s *userBlackBoxTest) TestOKToSave() {

@@ -11,6 +11,7 @@ import (
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/resource"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -53,6 +54,30 @@ func (test *TestTrackerRepository) TestTrackerCreate() {
 	tracker2, err := test.repo.Load(context.Background(), tracker.ID)
 	assert.Nil(t, err)
 	assert.NotNil(t, tracker2)
+}
+
+func (test *TestTrackerRepository) TestExistsTracker() {
+	t := test.T()
+	resource.Require(t, resource.Database)
+
+	tracker, err := test.repo.Create(context.Background(), "http://api.github.com", ProviderGithub)
+	assert.Nil(t, err)
+	assert.NotNil(t, tracker)
+	assert.Equal(t, "http://api.github.com", tracker.URL)
+	assert.Equal(t, ProviderGithub, tracker.Type)
+
+	exists, err := test.repo.Exists(context.Background(), tracker.ID)
+	assert.Nil(t, err)
+	assert.True(t, exists)
+}
+
+func (test *TestTrackerRepository) TestNoExistsTracker() {
+	t := test.T()
+	resource.Require(t, resource.Database)
+
+	exists, err := test.repo.Exists(context.Background(), "11111111")
+	assert.Nil(t, err)
+	assert.False(t, exists)
 }
 
 func (test *TestTrackerRepository) TestTrackerSave() {

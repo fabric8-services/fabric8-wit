@@ -384,3 +384,38 @@ func (test *TestIterationRepository) TestLoadChildren() {
 	require.NotNil(t, err)
 	assert.Equal(t, reflect.TypeOf(errors.NotFoundError{}), reflect.TypeOf(err))
 }
+
+func (test *TestIterationRepository) TestExistsIteration() {
+	t := test.T()
+	resource.Require(t, resource.Database)
+	newSpace := space.Space{
+		Name: "Space To Test Listing of Iteration Children" + uuid.NewV4().String(),
+	}
+	repoSpace := space.NewRepository(test.DB)
+	space, err := repoSpace.Create(context.Background(), &newSpace)
+	assert.Nil(t, err)
+
+	repo := iteration.NewIterationRepository(test.DB)
+	level0IterationName := "Top level iteration"
+	i1 := iteration.Iteration{
+		Name:    level0IterationName,
+		SpaceID: space.ID,
+	}
+	e := repo.Create(context.Background(), &i1)
+	require.Nil(t, e)
+
+	var exists bool
+	exists, err = repo.Exists(context.Background(), i1.ID)
+	require.Nil(t, err)
+	require.True(t, exists)
+}
+
+func (test *TestIterationRepository) TestNoExistsIteration() {
+	t := test.T()
+	resource.Require(t, resource.Database)
+	repo := iteration.NewIterationRepository(test.DB)
+
+	exists, err := repo.Exists(context.Background(), uuid.NewV4())
+	require.Nil(t, err)
+	require.False(t, exists)
+}

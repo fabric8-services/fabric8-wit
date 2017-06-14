@@ -222,3 +222,22 @@ func (s *TestCommentRepository) TestLoadComment() {
 	assert.Equal(s.T(), comment.ID, loadedComment.ID)
 	assert.Equal(s.T(), comment.Body, loadedComment.Body)
 }
+
+func (s *TestCommentRepository) TestExistsComment() {
+	// given
+	comment := newComment("B", "Test B", rendering.SystemMarkupMarkdown)
+	s.createComment(comment, s.testIdentity.ID)
+	// when
+	exists, err := s.repo.Exists(s.ctx, comment.ID)
+	// then
+	require.Nil(s.T(), err)
+	assert.True(s.T(), exists)
+}
+
+func (s *TestCommentRepository) TestNoExistsComment() {
+	// when
+	exists, err := s.repo.Exists(s.ctx, uuid.NewV4())
+	// then
+	require.Nil(s.T(), err)
+	assert.False(s.T(), exists)
+}

@@ -125,9 +125,21 @@ func (s *linkRepoBlackBoxTest) TestDisallowMultipleParents() {
 
 	// create a work item link
 	linkRepository := link.NewWorkItemLinkRepository(s.DB)
-	_, err = linkRepository.Create(s.ctx, Parent1ID, ChildID, s.testTreeLinkTypeID, s.testIdentity.ID)
+	linkTest, err := linkRepository.Create(s.ctx, Parent1ID, ChildID, s.testTreeLinkTypeID, s.testIdentity.ID)
 	require.Nil(s.T(), err)
+
+	var exists bool
+	exists, err = linkRepository.Exists(s.ctx, linkTest.ID)
+	require.Nil(s.T(), err)
+	require.True(s.T(), exists)
 
 	_, err = linkRepository.Create(s.ctx, Parent2ID, ChildID, s.testTreeLinkTypeID, s.testIdentity.ID)
 	require.NotNil(s.T(), err)
+}
+
+func (s *linkRepoBlackBoxTest) TestNoExistsLink() {
+	linkRepository := link.NewWorkItemLinkRepository(s.DB)
+	exists, err := linkRepository.Exists(s.ctx, uuid.NewV4())
+	require.Nil(s.T(), err)
+	require.False(s.T(), exists)
 }
