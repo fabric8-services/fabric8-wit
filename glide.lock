@@ -1,5 +1,5 @@
-hash: 4e60579c951611d09edf3c73fb99c2eb63458902e1a4cec96ab612af12e5bea2
-updated: 2017-06-12T12:25:28.34192506+02:00
+hash: d83d1ca7ce718ed2cdc5e8f986c1c3fd2d308f65b5e4c087d6bd8422347a3129
+updated: 2017-06-14T09:52:21.826545763+02:00
 imports:
 - name: bitbucket.org/pkg/inflect
   version: 8961c3750a47b8c0b3e118d52513b97adf85a7e8
@@ -43,7 +43,7 @@ imports:
 - name: github.com/fzipp/gocyclo
   version: 6acd4345c835499920e8426c7e4e8d7a34f1bb83
 - name: github.com/goadesign/goa
-  version: 58f3177f36f2c50ee6119da92795e48bac6d6243
+  version: 09d07d1cf23df03407f17f206c6596aabc4c4c3d
   vcs: git
   subpackages:
   - client
