@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/comment"
@@ -11,7 +12,6 @@ import (
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
 	"github.com/pkg/errors"
-	"golang.org/x/net/context"
 )
 
 // WorkItemCommentsController implements the work-item-comments resource.

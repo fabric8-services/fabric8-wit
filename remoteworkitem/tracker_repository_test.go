@@ -3,7 +3,7 @@ package remoteworkitem
 import (
 	"testing"
 
-	"golang.org/x/net/context"
+	"context"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"

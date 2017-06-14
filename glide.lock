@@ -1,5 +1,5 @@
-hash: 3e9f1b6af7274e8d50e57500f92f1374c63cce5e765993d8649e03350936560c
-updated: 2017-04-17T23:07:16.622277679+02:00
+hash: 4e60579c951611d09edf3c73fb99c2eb63458902e1a4cec96ab612af12e5bea2
+updated: 2017-06-12T12:25:28.34192506+02:00
 imports:
 - name: bitbucket.org/pkg/inflect
   version: 8961c3750a47b8c0b3e118d52513b97adf85a7e8
@@ -22,7 +22,7 @@ imports:
 - name: github.com/dimfeld/httppath
   version: c8e499c3ef3c3e272ed8bdcc1ccf39f73c88debc
 - name: github.com/dimfeld/httptreemux
-  version: 86f7c217d9043ebc6adfd8e2ed04a0bb1e1db651
+  version: 13dde8a00d96b369e7398490fd8a3af9ca114b84
 - name: github.com/dnaeon/go-vcr
   version: 9d71b8a6df86e00127f96bc8dabc09856ab8afdb
   subpackages:
@@ -43,7 +43,7 @@ imports:
 - name: github.com/fzipp/gocyclo
   version: 6acd4345c835499920e8426c7e4e8d7a34f1bb83
 - name: github.com/goadesign/goa
-  version: be1e8b9a2614909d8805079ebd1c947778170c0e
+  version: 58f3177f36f2c50ee6119da92795e48bac6d6243
   vcs: git
   subpackages:
   - client
