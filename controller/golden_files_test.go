@@ -11,7 +11,6 @@ import (
 
 	"github.com/almighty/almighty-core/resource"
 	errs "github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
@@ -110,11 +109,13 @@ func TestCompareWithGolden(t *testing.T) {
 		require.Nil(t, err)
 		err = ioutil.WriteFile(f, bs, os.ModePerm)
 		require.Nil(t, err)
+		defer func() {
+			err := os.Remove(f)
+			require.Nil(t, err)
+		}()
 		// when
 		err = testableCompareWithGolden(false, f, dummy)
 		// then
-		assert.Nil(t, err)
-		err = os.Remove(f)
 		require.Nil(t, err)
 	})
 
