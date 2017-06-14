@@ -4,11 +4,11 @@ import (
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/models"
 
+	"context"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 	"github.com/robfig/cron"
 	uuid "github.com/satori/go.uuid"
-	"golang.org/x/net/context"
 )
 
 // TrackerSchedule capture all configuration

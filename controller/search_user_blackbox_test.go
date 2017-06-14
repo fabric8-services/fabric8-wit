@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"testing"
 
+	"context"
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
@@ -19,7 +20,6 @@ import (
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"golang.org/x/net/context"
 )
 
 func TestRunSearchUser(t *testing.T) {

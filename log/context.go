@@ -1,7 +1,7 @@
 package log
 
 import (
-	"golang.org/x/net/context"
+	"context"
 
 	tokencontext "github.com/almighty/almighty-core/login/tokencontext"
 
