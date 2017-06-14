@@ -28,12 +28,12 @@ import (
 	"github.com/almighty/almighty-core/workitem"
 	uuid "github.com/satori/go.uuid"
 
+	"context"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/goatest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"golang.org/x/net/context"
 )
 
 func TestRunSearchTests(t *testing.T) {

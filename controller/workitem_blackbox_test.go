@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"golang.org/x/net/context"
+	"context"
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
@@ -174,10 +174,10 @@ func (s *WorkItemSuite) TestReorderWorkitemConflict() {
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
 
 	// This workitem is created but not used to clearly test that the reorder workitem is moved between **two** workitems i.e. result1 and result2 and not to the **top** of the list
-	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
+	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 
-	_, result2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
-	_, result3 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result3 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	payload2 := minimumRequiredReorderPayload()
 
 	var dataArray []*app.WorkItem // dataArray contains the workitem(s) that have to be reordered
@@ -187,7 +187,7 @@ func (s *WorkItemSuite) TestReorderWorkitemConflict() {
 	payload2.Position.ID = result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
 	payload2.Position.Direction = string(workitem.DirectionAbove)
 
-	_, err := test.ReorderWorkitemConflict(s.T(), s.svc.Context, s.svc, s.controller, space.SystemSpace, &payload2) // Returns the workitems which are reordered
+	_, err := test.ReorderWorkitemConflict(s.T(), s.svc.Context, s.svc, s.workitemCtrl, space.SystemSpace, &payload2) // Returns the workitems which are reordered
 
 	require.NotNil(s.T(), err)
 }

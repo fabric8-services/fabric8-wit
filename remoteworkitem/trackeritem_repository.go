@@ -3,7 +3,7 @@ package remoteworkitem
 import (
 	"fmt"
 
-	"golang.org/x/net/context"
+	"context"
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/criteria"

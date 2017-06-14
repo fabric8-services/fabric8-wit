@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"golang.org/x/net/context"
+	"context"
 
 	"strings"
 

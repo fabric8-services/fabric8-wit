@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"golang.org/x/net/context"
+	"context"
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"

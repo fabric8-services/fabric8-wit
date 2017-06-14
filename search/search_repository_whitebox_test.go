@@ -19,6 +19,7 @@ import (
 	testsupport "github.com/almighty/almighty-core/test"
 	"github.com/almighty/almighty-core/workitem"
 
+	"context"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
@@ -27,7 +28,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"golang.org/x/net/context"
 )
 
 func TestRunSearchRepositoryWhiteboxTest(t *testing.T) {
