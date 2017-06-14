@@ -34,7 +34,10 @@ func NewInternalError(msg string) InternalError {
 // converted to an InternalError, which is returned as the second result.
 func IsInternalError(err error) (bool, error) {
 	e, ok := errs.Cause(err).(InternalError)
-	return ok, e
+	if !ok {
+		return false, nil
+	}
+	return true, e
 }
 
 // NewUnauthorizedError returns the custom defined error of type UnauthorizedError.
@@ -46,7 +49,10 @@ func NewUnauthorizedError(msg string) UnauthorizedError {
 // converted to an UnauthorizedError, which is returned as the second result.
 func IsUnauthorizedError(err error) (bool, error) {
 	e, ok := errs.Cause(err).(UnauthorizedError)
-	return ok, e
+	if !ok {
+		return false, nil
+	}
+	return true, e
 }
 
 // NewForbiddenError returns the custom defined error of type ForbiddenError.
@@ -58,7 +64,10 @@ func NewForbiddenError(msg string) ForbiddenError {
 // converted to an ForbiddenError, which is returned as the second result.
 func IsForbiddenError(err error) (bool, error) {
 	e, ok := errs.Cause(err).(ForbiddenError)
-	return ok, e
+	if !ok {
+		return false, nil
+	}
+	return true, e
 }
 
 // InternalError means that the operation failed for some internal, unexpected reason
@@ -90,7 +99,10 @@ func NewVersionConflictError(msg string) VersionConflictError {
 // converted to an VersionConflictError, which is returned as the second result.
 func IsVersionConflictError(err error) (bool, error) {
 	e, ok := errs.Cause(err).(VersionConflictError)
-	return ok, e
+	if !ok {
+		return false, nil
+	}
+	return true, e
 }
 
 // BadParameterError means that a parameter was not as required
@@ -126,7 +138,10 @@ func NewBadParameterError(param string, actual interface{}) BadParameterError {
 // converted to an BadParameterError, which is returned as the second result.
 func IsBadParameterError(err error) (bool, error) {
 	e, ok := errs.Cause(err).(BadParameterError)
-	return ok, e
+	if !ok {
+		return false, nil
+	}
+	return true, e
 }
 
 // NewConversionError returns the custom defined error of type NewConversionError.
@@ -138,7 +153,10 @@ func NewConversionError(msg string) ConversionError {
 // converted to an ConversionError, which is returned as the second result.
 func IsConversionError(err error) (bool, error) {
 	e, ok := errs.Cause(err).(ConversionError)
-	return ok, e
+	if !ok {
+		return false, nil
+	}
+	return true, e
 }
 
 // ConversionError error means something went wrong converting between different representations
@@ -165,5 +183,8 @@ func NewNotFoundError(entity string, id string) NotFoundError {
 // converted to an NotFoundError, which is returned as the second result.
 func IsNotFoundError(err error) (bool, error) {
 	e, ok := errs.Cause(err).(NotFoundError)
-	return ok, e
+	if !ok {
+		return false, nil
+	}
+	return true, e
 }

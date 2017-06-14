@@ -105,8 +105,9 @@ func TestIsXYError(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			actualResult, _ := tc.fn(tc.arg)
+			actualResult, err := tc.fn(tc.arg)
 			require.Equal(t, tc.expectedResult, actualResult)
+			require.Equal(t, tc.expectedResult, (err != nil))
 		})
 	}
 }
