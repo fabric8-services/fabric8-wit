@@ -164,30 +164,37 @@ func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionNoMarkup() {
 }
 
 func (s *workItemRepoBlackBoxTest) TestExistsWorkItem() {
-	// given
-	wi, err := s.repo.Create(
-		s.ctx, s.spaceID, workitem.SystemBug,
-		map[string]interface{}{
-			workitem.SystemTitle:       "Title",
-			workitem.SystemDescription: rendering.NewMarkupContentFromLegacy("Description"),
-			workitem.SystemState:       workitem.SystemStateNew,
-		}, s.creatorID)
-	require.Nil(s.T(), err, "Could not create workitem")
-	// when
-	var exists bool
-	exists, err = s.repo.Exists(s.ctx, s.spaceID, wi.ID)
-	// then
-	require.Nil(s.T(), err)
-	require.True(s.T(), exists)
-}
+	t := s.T()
+	resource.Require(t, resource.Database)
 
-func (s *workItemRepoBlackBoxTest) TestNoExistsWorkItem() {
-	// when
-	var exists bool
-	exists, err := s.repo.Exists(s.ctx, s.spaceID, "123112")
-	// then
-	require.Nil(s.T(), err)
-	require.False(s.T(), exists)
+	t.Run("work item exists", func(t *testing.T) {
+		// given
+		wi, err := s.repo.Create(
+			s.ctx, s.spaceID, workitem.SystemBug,
+			map[string]interface{}{
+				workitem.SystemTitle:       "Title",
+				workitem.SystemDescription: rendering.NewMarkupContentFromLegacy("Description"),
+				workitem.SystemState:       workitem.SystemStateNew,
+			}, s.creatorID)
+		require.Nil(s.T(), err, "Could not create workitem")
+		// when
+		var exists bool
+		exists, err = s.repo.Exists(s.ctx, s.spaceID, wi.ID)
+		// then
+		require.Nil(t, err)
+		require.True(t, exists)
+	})
+
+	t.Run("work item doesn't exists", func(t *testing.T) {
+		t.Parallel()
+		// when
+		var exists bool
+		exists, err := s.repo.Exists(s.ctx, s.spaceID, "123112")
+		// then
+		require.False(t, exists)
+		require.IsType(t, errors.NotFoundError{}, err)
+	})
+
 }
 
 func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionMarkup() {

@@ -8,11 +8,13 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/criteria"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/resource"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -60,24 +62,27 @@ func (test *TestTrackerRepository) TestExistsTracker() {
 	t := test.T()
 	resource.Require(t, resource.Database)
 
-	tracker, err := test.repo.Create(context.Background(), "http://api.github.com", ProviderGithub)
-	assert.Nil(t, err)
-	assert.NotNil(t, tracker)
-	assert.Equal(t, "http://api.github.com", tracker.URL)
-	assert.Equal(t, ProviderGithub, tracker.Type)
+	t.Run("tracker exists", func(t *testing.T) {
+		t.Parallel()
+		// given
+		tracker, err := test.repo.Create(context.Background(), "http://api.github.com", ProviderGithub)
+		assert.Nil(t, err)
+		assert.NotNil(t, tracker)
+		assert.Equal(t, "http://api.github.com", tracker.URL)
+		assert.Equal(t, ProviderGithub, tracker.Type)
 
-	exists, err := test.repo.Exists(context.Background(), tracker.ID)
-	assert.Nil(t, err)
-	assert.True(t, exists)
-}
+		exists, err := test.repo.Exists(context.Background(), tracker.ID)
+		assert.Nil(t, err)
+		assert.True(t, exists)
+	})
 
-func (test *TestTrackerRepository) TestNoExistsTracker() {
-	t := test.T()
-	resource.Require(t, resource.Database)
+	t.Run("tracker doesn't exists", func(t *testing.T) {
+		t.Parallel()
+		exists, err := test.repo.Exists(context.Background(), "11111111")
+		require.IsType(t, errors.NotFoundError{}, err)
+		assert.False(t, exists)
+	})
 
-	exists, err := test.repo.Exists(context.Background(), "11111111")
-	assert.Nil(t, err)
-	assert.False(t, exists)
 }
 
 func (test *TestTrackerRepository) TestTrackerSave() {

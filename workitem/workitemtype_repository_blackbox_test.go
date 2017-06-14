@@ -1,17 +1,18 @@
 package workitem_test
 
 import (
+	"context"
 	"net/http"
 	"net/url"
 	"testing"
 
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/migration"
+	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/workitem"
-
-	"context"
 
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
@@ -83,25 +84,34 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWIT() {
 }
 
 func (s *workItemTypeRepoBlackBoxTest) TestExistsWIT() {
-	wit, err := s.repo.Create(s.ctx, space.SystemSpace, nil, nil, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{
-		"foo": {
-			Required: true,
-			Type:     &workitem.SimpleType{Kind: workitem.KindFloat},
-		},
+	t := s.T()
+	resource.Require(t, resource.Database)
+
+	t.Run("wit exists", func(t *testing.T) {
+		t.Parallel()
+		// given
+		wit, err := s.repo.Create(s.ctx, space.SystemSpace, nil, nil, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{
+			"foo": {
+				Required: true,
+				Type:     &workitem.SimpleType{Kind: workitem.KindFloat},
+			},
+		})
+		require.Nil(s.T(), err)
+		require.NotNil(s.T(), wit)
+		require.NotNil(s.T(), wit.ID)
+
+		exists, err := s.repo.Exists(s.ctx, space.SystemSpace, wit.ID)
+		require.Nil(s.T(), err)
+		require.True(s.T(), exists)
 	})
-	require.Nil(s.T(), err)
-	require.NotNil(s.T(), wit)
-	require.NotNil(s.T(), wit.ID)
 
-	exists, err := s.repo.Exists(s.ctx, space.SystemSpace, wit.ID)
-	require.Nil(s.T(), err)
-	require.True(s.T(), exists)
-}
+	t.Run("wit doesn't exists", func(t *testing.T) {
+		t.Parallel()
+		exists, err := s.repo.Exists(s.ctx, space.SystemSpace, uuid.NewV4())
+		require.False(t, exists)
+		require.IsType(t, errors.NotFoundError{}, err)
+	})
 
-func (s *workItemTypeRepoBlackBoxTest) TestNoExistsWIT() {
-	exists, err := s.repo.Exists(s.ctx, space.SystemSpace, uuid.NewV4())
-	require.Nil(s.T(), err)
-	require.False(s.T(), exists)
 }
 
 func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWITWithList() {

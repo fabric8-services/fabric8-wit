@@ -88,8 +88,12 @@ func (m *GormWorkItemTypeRepository) Exists(ctx context.Context, spaceID uuid.UU
 				AND deleted_at IS NULL
 		)`, WorkItemType{}.TableName())
 	var exists bool
-	if err := m.db.CommonDB().QueryRow(query, id, spaceID).Scan(&exists); err != nil {
-		return false, errs.Wrapf(err, "failed to check if a work item type exists with this id %v", id)
+	err := m.db.CommonDB().QueryRow(query, id, spaceID).Scan(&exists)
+	if err == nil && !exists {
+		return exists, errors.NewNotFoundError("work item type", id.String())
+	}
+	if err != nil {
+		return false, errors.NewInternalError(err.Error())
 	}
 	return exists, nil
 }

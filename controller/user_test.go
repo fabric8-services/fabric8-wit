@@ -197,7 +197,7 @@ func (m TestIdentityRepository) Load(ctx context.Context, id uuid.UUID) (*accoun
 }
 
 // Exists returns true|false if an identity exists
-func (m TestIdentityRepository) Exists(ctx context.Context, id uuid.UUID) (bool, error) {
+func (m TestIdentityRepository) Exists(ctx context.Context, id string) (bool, error) {
 	if m.Identity == nil {
 		return false, errors.New("not found")
 	}
@@ -256,7 +256,7 @@ func (m TestUserRepository) Load(ctx context.Context, id uuid.UUID) (*account.Us
 	return m.User, nil
 }
 
-func (m TestUserRepository) Exists(ctx context.Context, id uuid.UUID) (bool, error) {
+func (m TestUserRepository) Exists(ctx context.Context, id string) (bool, error) {
 	if m.User == nil {
 		return false, errors.New("not found")
 	}

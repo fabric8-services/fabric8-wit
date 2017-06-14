@@ -229,7 +229,6 @@ func (s *TestCommentRepository) TestExistsComment() {
 	resource.Require(t, resource.Database)
 
 	t.Run("comment exists", func(t *testing.T) {
-		t.Parallel()
 		// given
 		comment := newComment("C", "Test C", rendering.SystemMarkupMarkdown)
 		s.createComment(comment, s.testIdentity.ID)

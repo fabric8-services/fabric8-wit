@@ -142,7 +142,7 @@ func (test *TestCodebaseRepository) TestExistsCodebase() {
 		codebase := newCodebase(spaceID, "lisp-default", "my-used-lisp-workspace", "git", "git@github.com:hectorj2f/almighty-core.git")
 		test.createCodebase(codebase)
 		// when
-		exists, err := repo.Exists(context.Background(), codebase.ID)
+		exists, err := repo.Exists(context.Background(), codebase.ID.String())
 		// then
 		require.Nil(t, err)
 		assert.True(t, exists)
@@ -153,9 +153,9 @@ func (test *TestCodebaseRepository) TestExistsCodebase() {
 		// given
 		repo := codebase.NewCodebaseRepository(test.DB)
 		// when
-		exists, err := repo.Exists(context.Background(), uuid.NewV4())
+		exists, err := repo.Exists(context.Background(), uuid.NewV4().String())
 		// then
-		require.Nil(t, err)
+		require.IsType(t, errors.NotFoundError{}, err)
 		assert.False(t, exists)
 	})
 

@@ -196,7 +196,7 @@ func (r *resourceRepo) Delete(ctx context.Context, ID uuid.UUID) error {
 	return nil
 }
 
-func (r *resourceRepo) Exists(ctx context.Context, ID uuid.UUID) (bool, error) {
+func (r *resourceRepo) Exists(ctx context.Context, ID string) (bool, error) {
 	return false, nil
 }
 
