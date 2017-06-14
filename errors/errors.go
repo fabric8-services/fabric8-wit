@@ -1,6 +1,10 @@
 package errors
 
-import "fmt"
+import (
+	"fmt"
+
+	errs "github.com/pkg/errors"
+)
 
 const (
 	stBadParameterErrorMsg         = "Bad value for parameter '%s': '%v'"
@@ -26,14 +30,35 @@ func NewInternalError(msg string) InternalError {
 	return InternalError{simpleError{msg}}
 }
 
+// IsInternalError returns true if the cause of the given error can be
+// converted to an InternalError, which is returned as the second result.
+func IsInternalError(err error) (bool, error) {
+	e, ok := errs.Cause(err).(InternalError)
+	return ok, e
+}
+
 // NewUnauthorizedError returns the custom defined error of type UnauthorizedError.
 func NewUnauthorizedError(msg string) UnauthorizedError {
 	return UnauthorizedError{simpleError{msg}}
 }
 
+// IsUnauthorizedError returns true if the cause of the given error can be
+// converted to an UnauthorizedError, which is returned as the second result.
+func IsUnauthorizedError(err error) (bool, error) {
+	e, ok := errs.Cause(err).(UnauthorizedError)
+	return ok, e
+}
+
 // NewForbiddenError returns the custom defined error of type ForbiddenError.
 func NewForbiddenError(msg string) ForbiddenError {
 	return ForbiddenError{simpleError{msg}}
+}
+
+// IsForbiddenError returns true if the cause of the given error can be
+// converted to an ForbiddenError, which is returned as the second result.
+func IsForbiddenError(err error) (bool, error) {
+	e, ok := errs.Cause(err).(ForbiddenError)
+	return ok, e
 }
 
 // InternalError means that the operation failed for some internal, unexpected reason
@@ -59,6 +84,13 @@ type VersionConflictError struct {
 // NewVersionConflictError returns the custom defined error of type VersionConflictError.
 func NewVersionConflictError(msg string) VersionConflictError {
 	return VersionConflictError{simpleError{msg}}
+}
+
+// IsVersionConflictError returns true if the cause of the given error can be
+// converted to an VersionConflictError, which is returned as the second result.
+func IsVersionConflictError(err error) (bool, error) {
+	e, ok := errs.Cause(err).(VersionConflictError)
+	return ok, e
 }
 
 // BadParameterError means that a parameter was not as required
@@ -90,9 +122,23 @@ func NewBadParameterError(param string, actual interface{}) BadParameterError {
 	return BadParameterError{parameter: param, value: actual}
 }
 
+// IsBadParameterError returns true if the cause of the given error can be
+// converted to an BadParameterError, which is returned as the second result.
+func IsBadParameterError(err error) (bool, error) {
+	e, ok := errs.Cause(err).(BadParameterError)
+	return ok, e
+}
+
 // NewConversionError returns the custom defined error of type NewConversionError.
 func NewConversionError(msg string) ConversionError {
 	return ConversionError{simpleError{msg}}
+}
+
+// IsConversionError returns true if the cause of the given error can be
+// converted to an ConversionError, which is returned as the second result.
+func IsConversionError(err error) (bool, error) {
+	e, ok := errs.Cause(err).(ConversionError)
+	return ok, e
 }
 
 // ConversionError error means something went wrong converting between different representations
@@ -113,4 +159,11 @@ func (err NotFoundError) Error() string {
 // NewNotFoundError returns the custom defined error of type NewNotFoundError.
 func NewNotFoundError(entity string, id string) NotFoundError {
 	return NotFoundError{entity: entity, ID: id}
+}
+
+// IsNotFoundError returns true if the cause of the given error can be
+// converted to an NotFoundError, which is returned as the second result.
+func IsNotFoundError(err error) (bool, error) {
+	e, ok := errs.Cause(err).(NotFoundError)
+	return ok, e
 }

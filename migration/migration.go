@@ -16,6 +16,7 @@ import (
 	"github.com/almighty/almighty-core/workitem/link"
 
 	"context"
+
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/client"
 	"github.com/jinzhu/gorm"
@@ -554,14 +555,12 @@ func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkIte
 
 func createOrUpdateWorkItemLinkCategory(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, linkCat *link.WorkItemLinkCategory) (*link.WorkItemLinkCategory, error) {
 	cat, err := linkCatRepo.Load(ctx, linkCat.ID)
-	cause := errs.Cause(err)
-	switch cause.(type) {
-	case errors.NotFoundError:
+	if ok, _ := errors.IsNotFoundError(err); ok {
 		cat, err = linkCatRepo.Create(ctx, linkCat)
 		if err != nil {
 			return nil, errs.WithStack(err)
 		}
-	case nil:
+	} else {
 		log.Info(ctx, map[string]interface{}{
 			"category": linkCat,
 		}, "Work item link category %s exists, will update/overwrite the description", linkCat.Name)
@@ -577,14 +576,12 @@ func createOrUpdateWorkItemLinkCategory(ctx context.Context, linkCatRepo *link.G
 
 func createOrUpdateSpace(ctx context.Context, spaceRepo *space.GormRepository, id uuid.UUID, description string) error {
 	s, err := spaceRepo.Load(ctx, id)
-	cause := errs.Cause(err)
 	newSpace := &space.Space{
 		Description: description,
 		Name:        "system.space",
 		ID:          id,
 	}
-	switch cause.(type) {
-	case errors.NotFoundError:
+	if ok, _ := errors.IsNotFoundError(err); ok {
 		log.Info(ctx, map[string]interface{}{
 			"pkg":      "migration",
 			"space_id": id,
@@ -593,7 +590,7 @@ func createOrUpdateSpace(ctx context.Context, spaceRepo *space.GormRepository, i
 		if err != nil {
 			return errs.Wrapf(err, "failed to create space %s", id)
 		}
-	case nil:
+	} else {
 		log.Info(ctx, map[string]interface{}{
 			"pkg":      "migration",
 			"space_id": id,
@@ -608,14 +605,12 @@ func createOrUpdateSpace(ctx context.Context, spaceRepo *space.GormRepository, i
 
 func createSpace(ctx context.Context, spaceRepo *space.GormRepository, id uuid.UUID, description string) error {
 	_, err := spaceRepo.Load(ctx, id)
-	cause := errs.Cause(err)
 	newSpace := &space.Space{
 		Description: description,
 		Name:        "system.space",
 		ID:          id,
 	}
-	switch cause.(type) {
-	case errors.NotFoundError:
+	if ok, _ := errors.IsNotFoundError(err); ok {
 		log.Info(ctx, map[string]interface{}{
 			"pkg":      "migration",
 			"space_id": id,
@@ -630,14 +625,12 @@ func createSpace(ctx context.Context, spaceRepo *space.GormRepository, id uuid.U
 
 func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, linkTypeRepo *link.GormWorkItemLinkTypeRepository, spaceRepo *space.GormRepository, linkType *link.WorkItemLinkType) error {
 	existingLinkType, err := linkTypeRepo.Load(ctx, linkType.ID)
-	cause := errs.Cause(err)
-	switch cause.(type) {
-	case errors.NotFoundError:
+	if ok, _ := errors.IsNotFoundError(err); ok {
 		_, err := linkTypeRepo.Create(ctx, linkType)
 		if err != nil {
 			return errs.WithStack(err)
 		}
-	case nil:
+	} else {
 		log.Info(ctx, map[string]interface{}{
 			"wilt": linkType.Name,
 		}, "Work item link type %s exists, will update/overwrite all fields", linkType.Name)
@@ -743,14 +736,12 @@ func createOrUpdatePlannerItemExtension(ctx context.Context, typeID uuid.UUID, n
 func createOrUpdateType(ctx context.Context, typeID uuid.UUID, spaceID uuid.UUID, name string, description string, extendedTypeID *uuid.UUID, fields map[string]workitem.FieldDefinition, icon string, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB) error {
 	log.Info(ctx, nil, "Creating or updating planner item types...")
 	wit, err := witr.LoadTypeFromDB(ctx, typeID)
-	cause := errs.Cause(err)
-	switch cause.(type) {
-	case errors.NotFoundError:
+	if ok, _ := errors.IsNotFoundError(err); ok {
 		_, err := witr.Create(ctx, spaceID, &typeID, extendedTypeID, name, &description, icon, fields)
 		if err != nil {
 			return errs.WithStack(err)
 		}
-	case nil:
+	} else {
 		log.Info(ctx, map[string]interface{}{
 			"type_id": typeID,
 		}, "Work item type %s exists, will update/overwrite the fields, name, icon, description and parentPath", typeID.String())
