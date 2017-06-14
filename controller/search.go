@@ -13,6 +13,7 @@ import (
 	"github.com/almighty/almighty-core/space"
 
 	"github.com/goadesign/goa"
+	errs "github.com/pkg/errors"
 )
 
 type searchConfiguration interface {
@@ -56,10 +57,12 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 		result, c, err := appl.SearchItems().SearchFullText(ctx.Context, ctx.Q, &offset, &limit, ctx.SpaceID)
 		count := int(c)
 		if err != nil {
-			if ok, _ := errors.IsBadParameterError(err); ok {
+			cause := errs.Cause(err)
+			switch cause.(type) {
+			case errors.BadParameterError:
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("error listing work items: %s", err.Error())))
 				return ctx.BadRequest(jerrors)
-			} else {
+			default:
 				log.Error(ctx, map[string]interface{}{
 					"err": err,
 				}, "unable to list the work items")
@@ -99,9 +102,11 @@ func (c *SearchController) Spaces(ctx *app.SpacesSearchContext) error {
 		result, resultCount, err = appl.Spaces().Search(ctx, &q, &offset, &limit)
 		count = int(resultCount)
 		if err != nil {
-			if ok, _ := errors.IsBadParameterError(err); ok {
+			cause := errs.Cause(err)
+			switch cause.(type) {
+			case errors.BadParameterError:
 				return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(fmt.Sprintf("error listing spaces: %s", err.Error())))
-			} else {
+			default:
 				log.Error(ctx, map[string]interface{}{
 					"query":  q,
 					"offset": offset,
