@@ -1,5 +1,5 @@
-hash: 4e60579c951611d09edf3c73fb99c2eb63458902e1a4cec96ab612af12e5bea2
-updated: 2017-06-12T12:25:28.34192506+02:00
+hash: 378d674999f7e01a1ab519f10383af8e4dbc798c52e3227c6b9780bf6239c2c1
+updated: 2017-06-12T16:35:16.128991846+02:00
 imports:
 - name: bitbucket.org/pkg/inflect
   version: 8961c3750a47b8c0b3e118d52513b97adf85a7e8
@@ -144,6 +144,10 @@ imports:
   version: 5f33e7b7878355cd2b7e6b8eefc48a5472c69f70
 - name: github.com/satori/go.uuid
   version: b061729afc07e77a8aa4fad0a2fd840958f1942a
+- name: github.com/sergi/go-diff
+  version: feef008d51ad2b3778f85d387ccf91735543008d
+  subpackages:
+  - diffmatchpatch
 - name: github.com/shurcooL/sanitized_anchor_name
   version: 1dba4b3954bc059efc3991ec364f9f9a35f597d2
 - name: github.com/Sirupsen/logrus
