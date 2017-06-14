@@ -109,22 +109,10 @@ func (m *GormAreaRepository) Load(ctx context.Context, id uuid.UUID) (*Area, err
 	return &obj, nil
 }
 
-// Exists returns true|false where an object exists with an identifier
-func (m *GormAreaRepository) Exists(ctx context.Context, id uuid.UUID) (bool, error) {
+// Exists returns true|false whether an area exists with a specific identifier
+func (m *GormAreaRepository) Exists(ctx context.Context, id string) (bool, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "area", "exists"}, time.Now())
-	var exists bool
-	query := fmt.Sprintf(`
-		SELECT EXISTS (
-			SELECT 1 FROM %[1]s
-			WHERE
-				id=$1
-				AND deleted_at IS NULL
-		)`, m.TableName())
-
-	if err := m.db.CommonDB().QueryRow(query, id).Scan(&exists); err != nil {
-		return false, errs.Wrapf(err, "failed to check if an area exists with this id %v", id)
-	}
-	return exists, nil
+	return repository.Exists(ctx, m.db, m.TableName(), id)
 }
 
 // Load multiple areas

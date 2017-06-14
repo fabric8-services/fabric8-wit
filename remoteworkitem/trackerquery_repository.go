@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/application/repository"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/rest"
 
@@ -110,20 +111,9 @@ func (r *GormTrackerQueryRepository) Load(ctx context.Context, ID string) (*app.
 	return &tq, nil
 }
 
-func (r *GormTrackerQueryRepository) Exists(ctx context.Context, id string) (bool, error) {
-	var exists bool
-	query := fmt.Sprintf(`
-		SELECT EXISTS (
-			SELECT 1 FROM %[1]s
-			WHERE
-				id=$1
-				AND deleted_at IS NULL
-		)`, trackerQueriesTableName)
-
-	if err := r.db.CommonDB().QueryRow(query, id).Scan(&exists); err != nil {
-		return false, errors.Wrapf(err, "failed to check if a tracker queries exists with this id %v", id)
-	}
-	return exists, nil
+// Exists returns true|false whether a tracker query exists with a specific identifier
+func (m *GormTrackerQueryRepository) Exists(ctx context.Context, id string) (bool, error) {
+	return repository.Exists(ctx, m.db, trackerQueriesTableName, id)
 }
 
 // Save updates the given tracker query in storage.

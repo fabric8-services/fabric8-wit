@@ -5,9 +5,11 @@ import (
 	"testing"
 
 	"github.com/almighty/almighty-core/account"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/migration"
+	"github.com/almighty/almighty-core/resource"
 
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -76,21 +78,29 @@ func (s *identityBlackBoxTest) TestOKToLoad() {
 	createAndLoad(s)
 }
 
-func (s *identityBlackBoxTest) TestOKExists() {
-	// given
-	identity := createAndLoad(s)
-	// when
-	exists, err := s.repo.Exists(s.ctx, identity.ID)
-	// then
-	require.Nil(s.T(), err, "Could not check if identity exists")
-	require.True(s.T(), exists)
-}
+func (s *identityBlackBoxTest) TestExistsIdentity() {
+	t := s.T()
+	resource.Require(t, resource.Database)
 
-func (s *identityBlackBoxTest) TestNoExists() {
-	exists, err := s.repo.Exists(s.ctx, uuid.NewV4())
-	// then
-	require.Nil(s.T(), err, "Could not check if identity exists")
-	require.False(s.T(), exists)
+	t.Run("identity exists", func(t *testing.T) {
+		t.Parallel()
+		// given
+		identity := createAndLoad(s)
+		// when
+		exists, err := s.repo.Exists(s.ctx, identity.ID.String())
+		// then
+		require.Nil(t, err, "Could not check if identity exists")
+		require.True(t, exists)
+	})
+
+	t.Run("identity doesn't exists", func(t *testing.T) {
+		t.Parallel()
+		exists, err := s.repo.Exists(s.ctx, uuid.NewV4().String())
+		// then
+		require.IsType(t, errors.NotFoundError{}, err)
+		require.False(t, exists)
+	})
+
 }
 
 func (s *identityBlackBoxTest) TestOKToSave() {

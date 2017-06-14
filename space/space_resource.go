@@ -2,8 +2,6 @@ package space
 
 import (
 	"context"
-	"fmt"
-	"time"
 
 	"github.com/almighty/almighty-core/application/repository"
 	"github.com/almighty/almighty-core/convert"
@@ -11,9 +9,7 @@ import (
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/log"
 
-	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
-	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -91,22 +87,9 @@ func (r *GormResourceRepository) Load(ctx context.Context, ID uuid.UUID) (*Resou
 	return &res, nil
 }
 
-// Exists returns true|false where an object exists with an identifier
-func (r *GormResourceRepository) Exists(ctx context.Context, id uuid.UUID) (bool, error) {
-	defer goa.MeasureSince([]string{"goa", "db", "space_resource", "exists"}, time.Now())
-	var exists bool
-	query := fmt.Sprintf(`
-		SELECT EXISTS (
-			SELECT 1 FROM %[1]s
-			WHERE
-				id=$1
-				AND deleted_at IS NULL
-		)`, Resource{}.TableName())
-
-	if err := r.db.CommonDB().QueryRow(query, id).Scan(&exists); err != nil {
-		return false, errs.Wrapf(err, "failed to check if a space resource exists with this id %v", id)
-	}
-	return exists, nil
+// Exists returns true|false whether a space resource exists with a specific identifier
+func (m *GormResourceRepository) Exists(ctx context.Context, id string) (bool, error) {
+	return repository.Exists(ctx, m.db, Resource{}.TableName(), id)
 }
 
 // Delete deletes the space resource with the given id

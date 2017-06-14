@@ -202,19 +202,9 @@ func (r *GormWorkItemLinkRepository) Load(ctx context.Context, ID uuid.UUID) (*W
 	return &result, nil
 }
 
-func (m *GormWorkItemLinkRepository) Exists(ctx context.Context, id uuid.UUID) (bool, error) {
-	query := fmt.Sprintf(`
-		SELECT EXISTS (
-			SELECT 1 FROM %[1]s
-			WHERE
-				id=$1
-				AND deleted_at IS NULL
-		)`, WorkItemLink{}.TableName())
-	var exists bool
-	if err := m.db.CommonDB().QueryRow(query, id).Scan(&exists); err != nil {
-		return false, errs.Wrapf(err, "failed to check if a work item link with this id %v", id)
-	}
-	return exists, nil
+// Exists returns true|false whether a work item link exists with a specific identifier
+func (m *GormWorkItemLinkRepository) Exists(ctx context.Context, id string) (bool, error) {
+	return repository.Exists(ctx, m.db, WorkItemLink{}.TableName(), id)
 }
 
 // ListByWorkItemID returns the work item links that have wiID as source or target.

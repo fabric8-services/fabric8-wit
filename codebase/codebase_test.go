@@ -131,26 +131,34 @@ func (test *TestCodebaseRepository) TestListCodebases() {
 }
 
 func (test *TestCodebaseRepository) TestExistsCodebase() {
-	// given
-	spaceID := space.SystemSpace
-	repo := codebase.NewCodebaseRepository(test.DB)
-	codebase := newCodebase(spaceID, "lisp-default", "my-used-lisp-workspace", "git", "git@github.com:hectorj2f/almighty-core.git")
-	test.createCodebase(codebase)
-	// when
-	exists, err := repo.Exists(context.Background(), codebase.ID)
-	// then
-	require.Nil(test.T(), err)
-	assert.True(test.T(), exists)
-}
+	t := test.T()
+	resource.Require(t, resource.Database)
 
-func (test *TestCodebaseRepository) TestNoExistsCodebase() {
-	// given
-	repo := codebase.NewCodebaseRepository(test.DB)
-	// when
-	exists, err := repo.Exists(context.Background(), uuid.NewV4())
-	// then
-	require.Nil(test.T(), err)
-	assert.False(test.T(), exists)
+	t.Run("codebase exists", func(t *testing.T) {
+		t.Parallel()
+		// given
+		spaceID := space.SystemSpace
+		repo := codebase.NewCodebaseRepository(test.DB)
+		codebase := newCodebase(spaceID, "lisp-default", "my-used-lisp-workspace", "git", "git@github.com:hectorj2f/almighty-core.git")
+		test.createCodebase(codebase)
+		// when
+		exists, err := repo.Exists(context.Background(), codebase.ID)
+		// then
+		require.Nil(t, err)
+		assert.True(t, exists)
+	})
+
+	t.Run("codebase doesn't exists", func(t *testing.T) {
+		t.Parallel()
+		// given
+		repo := codebase.NewCodebaseRepository(test.DB)
+		// when
+		exists, err := repo.Exists(context.Background(), uuid.NewV4())
+		// then
+		require.Nil(t, err)
+		assert.False(t, exists)
+	})
+
 }
 
 func (test *TestCodebaseRepository) TestLoadCodebase() {

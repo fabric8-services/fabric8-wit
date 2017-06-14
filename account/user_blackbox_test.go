@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/almighty/almighty-core/account"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/migration"
@@ -77,26 +78,27 @@ func (s *userBlackBoxTest) TestOKToLoad() {
 }
 
 func (s *userBlackBoxTest) TestExistsUser() {
-	// given
 	t := s.T()
 	resource.Require(t, resource.Database)
-	user := createAndLoadUser(s)
-	// when
-	exists, err := s.repo.Exists(s.ctx, user.ID)
-	// then
-	require.Nil(s.T(), err)
-	require.True(s.T(), exists)
-}
 
-func (s *userBlackBoxTest) TestNoExistsUser() {
-	// given
-	t := s.T()
-	resource.Require(t, resource.Database)
-	// when
-	exists, err := s.repo.Exists(s.ctx, uuid.NewV4())
-	// then
-	require.Nil(s.T(), err)
-	require.False(s.T(), exists)
+	t.Run("user exists", func(t *testing.T) {
+		t.Parallel()
+		user := createAndLoadUser(s)
+		// when
+		exists, err := s.repo.Exists(s.ctx, user.ID.String())
+		// then
+		require.Nil(t, err)
+		require.True(t, exists)
+	})
+
+	t.Run("user doesn't exists", func(t *testing.T) {
+		t.Parallel()
+		// Check not existing
+		exists, err := s.repo.Exists(s.ctx, uuid.NewV4().String())
+		// then
+		require.IsType(s.T(), errors.NotFoundError{}, err)
+		require.False(t, exists)
+	})
 }
 
 func (s *userBlackBoxTest) TestOKToSave() {

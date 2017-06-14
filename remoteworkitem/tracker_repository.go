@@ -8,6 +8,7 @@ import (
 	"context"
 
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/application/repository"
 	"github.com/almighty/almighty-core/criteria"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/workitem"
@@ -94,20 +95,9 @@ func (r *GormTrackerRepository) Load(ctx context.Context, ID string) (*app.Track
 	return &t, nil
 }
 
-func (r *GormTrackerRepository) Exists(ctx context.Context, id string) (bool, error) {
-	var exists bool
-	query := fmt.Sprintf(`
-		SELECT EXISTS (
-			SELECT 1 FROM %[1]s
-			WHERE
-				id=$1
-				AND deleted_at IS NULL
-		)`, trackersTableName)
-
-	if err := r.db.CommonDB().QueryRow(query, id).Scan(&exists); err != nil {
-		return false, errors.Wrapf(err, "failed to check if a tracker exists with this id %v", id)
-	}
-	return exists, nil
+// Exists returns true|false whether a tracker exists with a specific identifier
+func (m *GormTrackerRepository) Exists(ctx context.Context, id string) (bool, error) {
+	return repository.Exists(ctx, m.db, trackersTableName, id)
 }
 
 // List returns tracker selected by the given criteria.Expression, starting with start (zero-based) and returning at most limit items

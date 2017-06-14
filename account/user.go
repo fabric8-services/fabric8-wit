@@ -2,7 +2,6 @@ package account
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"time"
 
@@ -94,22 +93,10 @@ func (m *GormUserRepository) Load(ctx context.Context, id uuid.UUID) (*User, err
 	return &native, errs.WithStack(err)
 }
 
-// Exists returns true|false where an object exists with an identifier
-func (m *GormUserRepository) Exists(ctx context.Context, id uuid.UUID) (bool, error) {
+// Exists returns true|false whether an user exists with a specific identifier
+func (m *GormUserRepository) Exists(ctx context.Context, id string) (bool, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "user", "exists"}, time.Now())
-	var exists bool
-	query := fmt.Sprintf(`
-		SELECT EXISTS (
-			SELECT 1 FROM %[1]s
-			WHERE
-				id=$1
-				AND deleted_at IS NULL
-		)`, m.TableName())
-
-	if err := m.db.CommonDB().QueryRow(query, id).Scan(&exists); err != nil {
-		return false, errs.Wrapf(err, "failed to check if an user exists with this id %v", id)
-	}
-	return exists, nil
+	return repository.Exists(ctx, m.db, m.TableName(), id)
 }
 
 // Create creates a new record.

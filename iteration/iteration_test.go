@@ -388,34 +388,39 @@ func (test *TestIterationRepository) TestLoadChildren() {
 func (test *TestIterationRepository) TestExistsIteration() {
 	t := test.T()
 	resource.Require(t, resource.Database)
-	newSpace := space.Space{
-		Name: "Space To Test Listing of Iteration Children" + uuid.NewV4().String(),
-	}
-	repoSpace := space.NewRepository(test.DB)
-	space, err := repoSpace.Create(context.Background(), &newSpace)
-	assert.Nil(t, err)
 
-	repo := iteration.NewIterationRepository(test.DB)
-	level0IterationName := "Top level iteration"
-	i1 := iteration.Iteration{
-		Name:    level0IterationName,
-		SpaceID: space.ID,
-	}
-	e := repo.Create(context.Background(), &i1)
-	require.Nil(t, e)
+	t.Run("iteration exists", func(t *testing.T) {
+		t.Parallel()
+		// given
+		newSpace := space.Space{
+			Name: "Space To Test Listing of Iteration Children" + uuid.NewV4().String(),
+		}
+		repoSpace := space.NewRepository(test.DB)
+		space, err := repoSpace.Create(context.Background(), &newSpace)
+		assert.Nil(t, err)
 
-	var exists bool
-	exists, err = repo.Exists(context.Background(), i1.ID)
-	require.Nil(t, err)
-	require.True(t, exists)
-}
+		repo := iteration.NewIterationRepository(test.DB)
+		level0IterationName := "Top level iteration"
+		i1 := iteration.Iteration{
+			Name:    level0IterationName,
+			SpaceID: space.ID,
+		}
+		e := repo.Create(context.Background(), &i1)
+		require.Nil(t, e)
 
-func (test *TestIterationRepository) TestNoExistsIteration() {
-	t := test.T()
-	resource.Require(t, resource.Database)
-	repo := iteration.NewIterationRepository(test.DB)
+		var exists bool
+		exists, err = repo.Exists(context.Background(), i1.ID.String())
+		require.Nil(t, err)
+		require.True(t, exists)
+	})
 
-	exists, err := repo.Exists(context.Background(), uuid.NewV4())
-	require.Nil(t, err)
-	require.False(t, exists)
+	t.Run("iteration doesn't exists", func(t *testing.T) {
+		t.Parallel()
+		repo := iteration.NewIterationRepository(test.DB)
+
+		exists, err := repo.Exists(context.Background(), uuid.NewV4().String())
+		require.IsType(t, errors.NotFoundError{}, err)
+		require.False(t, exists)
+	})
+
 }

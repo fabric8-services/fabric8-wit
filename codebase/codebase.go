@@ -1,14 +1,14 @@
 package codebase
 
 import (
-	"fmt"
+	"context"
 	"log"
 	"time"
 
-	"context"
-
+	"github.com/almighty/almighty-core/application/repository"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
+
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
@@ -114,7 +114,7 @@ type Codebase struct {
 
 // Repository describes interactions with codebases
 type Repository interface {
-	Exists(ctx context.Context, id uuid.UUID) (bool, error)
+	repository.Exister
 	Create(ctx context.Context, u *Codebase) error
 	Save(ctx context.Context, codebase *Codebase) (*Codebase, error)
 	List(ctx context.Context, spaceID uuid.UUID, start *int, limit *int) ([]*Codebase, uint64, error)
@@ -242,22 +242,10 @@ func (m *GormCodebaseRepository) List(ctx context.Context, spaceID uuid.UUID, st
 	return result, count, nil
 }
 
-// Exists returns true|false where an object exists with an identifier
-func (m *GormCodebaseRepository) Exists(ctx context.Context, id uuid.UUID) (bool, error) {
+// Exists returns true|false whether a codebase exists with a specific identifier
+func (m *GormCodebaseRepository) Exists(ctx context.Context, id string) (bool, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "codebase", "exists"}, time.Now())
-	var exists bool
-	query := fmt.Sprintf(`
-		SELECT EXISTS (
-			SELECT 1 FROM %[1]s
-			WHERE
-				id=$1
-				AND deleted_at IS NULL
-		)`, m.TableName())
-
-	if err := m.db.CommonDB().QueryRow(query, id).Scan(&exists); err != nil {
-		return false, errs.Wrapf(err, "failed to check if a codebase exists with this id %v", id)
-	}
-	return exists, nil
+	return repository.Exists(ctx, m.db, m.TableName(), id)
 }
 
 // Load a single codebase regardless of parent

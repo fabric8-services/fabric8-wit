@@ -2,7 +2,6 @@ package space
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -118,22 +117,10 @@ func (r *GormRepository) Load(ctx context.Context, ID uuid.UUID) (*Space, error)
 	return &res, nil
 }
 
-// Exists returns true|false where an object exists with an identifier
-func (r *GormRepository) Exists(ctx context.Context, id uuid.UUID) (bool, error) {
+// Exists returns true|false whether a space exists with a specific identifier
+func (r *GormRepository) Exists(ctx context.Context, id string) (bool, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "space", "exists"}, time.Now())
-	var exists bool
-	query := fmt.Sprintf(`
-		SELECT EXISTS (
-			SELECT 1 FROM %[1]s
-			WHERE
-				id=$1
-				AND deleted_at IS NULL
-		)`, r.TableName())
-
-	if err := r.db.CommonDB().QueryRow(query, id).Scan(&exists); err != nil {
-		return false, errs.Wrapf(err, "failed to check if a space exists with this id %v", id)
-	}
-	return exists, nil
+	return repository.Exists(ctx, r.db, r.TableName(), id)
 }
 
 // Delete deletes the space with the given id

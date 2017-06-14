@@ -2,14 +2,12 @@ package link
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/almighty/almighty-core/application/repository"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/log"
 
 	"github.com/jinzhu/gorm"
-	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -69,19 +67,9 @@ func (r *GormWorkItemLinkCategoryRepository) Load(ctx context.Context, ID uuid.U
 	return &result, nil
 }
 
-func (m *GormWorkItemLinkCategoryRepository) Exists(ctx context.Context, id uuid.UUID) (bool, error) {
-	query := fmt.Sprintf(`
-		SELECT EXISTS (
-			SELECT 1 FROM %[1]s
-			WHERE
-				id=$1
-				AND deleted_at IS NULL
-		)`, WorkItemLinkCategory{}.TableName())
-	var exists bool
-	if err := m.db.CommonDB().QueryRow(query, id).Scan(&exists); err != nil {
-		return false, errs.Wrapf(err, "failed to check if a work item link category with this id %v", id)
-	}
-	return exists, nil
+// Exists returns true|false whether a work item link category exists with a specific identifier
+func (m *GormWorkItemLinkCategoryRepository) Exists(ctx context.Context, id string) (bool, error) {
+	return repository.Exists(ctx, m.db, WorkItemLinkCategory{}.TableName(), id)
 }
 
 // List returns all work item link categories

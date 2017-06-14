@@ -8,6 +8,7 @@ import (
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/comment"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/migration"
@@ -224,20 +225,28 @@ func (s *TestCommentRepository) TestLoadComment() {
 }
 
 func (s *TestCommentRepository) TestExistsComment() {
-	// given
-	comment := newComment("B", "Test B", rendering.SystemMarkupMarkdown)
-	s.createComment(comment, s.testIdentity.ID)
-	// when
-	exists, err := s.repo.Exists(s.ctx, comment.ID)
-	// then
-	require.Nil(s.T(), err)
-	assert.True(s.T(), exists)
-}
+	t := s.T()
+	resource.Require(t, resource.Database)
 
-func (s *TestCommentRepository) TestNoExistsComment() {
-	// when
-	exists, err := s.repo.Exists(s.ctx, uuid.NewV4())
-	// then
-	require.Nil(s.T(), err)
-	assert.False(s.T(), exists)
+	t.Run("comment exists", func(t *testing.T) {
+		t.Parallel()
+		// given
+		comment := newComment("C", "Test C", rendering.SystemMarkupMarkdown)
+		s.createComment(comment, s.testIdentity.ID)
+		// when
+		exists, err := s.repo.Exists(s.ctx, comment.ID.String())
+		// then
+		require.Nil(t, err)
+		assert.True(t, exists)
+	})
+
+	t.Run("comment doesn't exists", func(t *testing.T) {
+		t.Parallel()
+		// when
+		exists, err := s.repo.Exists(s.ctx, uuid.NewV4().String())
+		// then
+		require.IsType(t, errors.NotFoundError{}, err)
+		assert.False(t, exists)
+	})
+
 }

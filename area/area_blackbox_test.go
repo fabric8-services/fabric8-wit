@@ -1,22 +1,20 @@
 package area_test
 
 import (
+	"context"
 	"strconv"
 	"testing"
 	"time"
 
-	"context"
-
 	"github.com/almighty/almighty-core/area"
+	localerror "github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/path"
-	"github.com/pkg/errors"
-
-	localerror "github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
 
+	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -97,40 +95,47 @@ func (test *TestAreaRepository) TestCreateArea() {
 }
 
 func (test *TestAreaRepository) TestExistsArea() {
-	// given
-	repo := area.NewAreaRepository(test.DB)
-	name := "TestCreateArea"
-	newSpace := space.Space{
-		Name: uuid.NewV4().String(),
-	}
-	repoSpace := space.NewRepository(test.DB)
-	space, err := repoSpace.Create(context.Background(), &newSpace)
-	require.Nil(test.T(), err)
-	a := area.Area{
-		Name:    name,
-		SpaceID: space.ID,
-	}
-	// when
-	err = repo.Create(context.Background(), &a)
-	// then
-	require.Nil(test.T(), err)
-	require.NotEqual(test.T(), uuid.Nil, a.ID)
+	t := test.T()
+	resource.Require(t, resource.Database)
 
-	// when
-	exists, err1 := repo.Exists(context.Background(), a.ID)
-	// then
-	require.Nil(test.T(), err1)
-	assert.True(test.T(), exists)
-}
+	t.Run("area exists", func(t *testing.T) {
+		t.Parallel()
+		// given
+		repo := area.NewAreaRepository(test.DB)
+		name := "TestCreateArea"
+		newSpace := space.Space{
+			Name: uuid.NewV4().String(),
+		}
+		repoSpace := space.NewRepository(test.DB)
+		space, err := repoSpace.Create(context.Background(), &newSpace)
+		require.Nil(t, err)
+		a := area.Area{
+			Name:    name,
+			SpaceID: space.ID,
+		}
+		// when
+		err = repo.Create(context.Background(), &a)
+		// then
+		require.Nil(t, err)
+		require.NotEqual(t, uuid.Nil, a.ID)
 
-func (test *TestAreaRepository) TestNoExistsArea() {
-	// given
-	repo := area.NewAreaRepository(test.DB)
-	// when
-	exists, err := repo.Exists(context.Background(), uuid.NewV4())
-	// then
-	require.Nil(test.T(), err)
-	assert.False(test.T(), exists)
+		// when
+		exists, err1 := repo.Exists(context.Background(), a.ID.String())
+		// then
+		require.Nil(t, err1)
+		assert.True(t, exists)
+	})
+
+	t.Run("area doesn't exists", func(t *testing.T) {
+		t.Parallel()
+		// given
+		repo := area.NewAreaRepository(test.DB)
+		// when
+		exists, err := repo.Exists(context.Background(), uuid.NewV4().String())
+		// then
+		require.IsType(t, localerror.NotFoundError{}, err)
+		assert.False(t, exists)
+	})
 }
 
 func (test *TestAreaRepository) TestCreateChildArea() {

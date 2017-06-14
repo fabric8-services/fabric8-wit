@@ -94,20 +94,9 @@ func (r *GormWorkItemLinkTypeRepository) Load(ctx context.Context, ID uuid.UUID)
 	return &modelLinkType, nil
 }
 
-// Exists returns true|false where an object exists with an identifier
-func (m *GormWorkItemLinkTypeRepository) Exists(ctx context.Context, id uuid.UUID) (bool, error) {
-	query := fmt.Sprintf(`
-		SELECT EXISTS (
-			SELECT 1 FROM %[1]s
-			WHERE
-				id=$1
-				AND deleted_at IS NULL
-		)`, WorkItemLinkType{}.TableName())
-	var exists bool
-	if err := m.db.CommonDB().QueryRow(query, id).Scan(&exists); err != nil {
-		return false, errs.Wrapf(err, "failed to check if a work item link type for this id %v", id)
-	}
-	return exists, nil
+// Exists returns true|false whether a work item link type exists with a specific identifier
+func (m *GormWorkItemLinkTypeRepository) Exists(ctx context.Context, id string) (bool, error) {
+	return repository.Exists(ctx, m.db, WorkItemLinkType{}.TableName(), id)
 }
 
 // List returns all work item link types

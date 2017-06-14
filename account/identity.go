@@ -3,7 +3,6 @@ package account
 import (
 	"context"
 	"database/sql/driver"
-	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -142,22 +141,10 @@ func (m *GormIdentityRepository) Load(ctx context.Context, id uuid.UUID) (*Ident
 	return &native, errs.WithStack(err)
 }
 
-// Exists returns true|false where an object exists with an identifier
-func (m *GormIdentityRepository) Exists(ctx context.Context, id uuid.UUID) (bool, error) {
+// Exists returns true|false whether an identity exists with a specific identifier
+func (m *GormIdentityRepository) Exists(ctx context.Context, id string) (bool, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "identity", "exists"}, time.Now())
-	var exists bool
-	query := fmt.Sprintf(`
-		SELECT EXISTS (
-			SELECT 1 FROM %[1]s
-			WHERE
-				id=$1
-				AND deleted_at IS NULL
-		)`, m.TableName())
-
-	if err := m.db.CommonDB().QueryRow(query, id).Scan(&exists); err != nil {
-		return false, errs.Wrapf(err, "failed to check if an identity exists with this id %v", id)
-	}
-	return exists, nil
+	return repository.Exists(ctx, m.db, m.TableName(), id)
 }
 
 // Create creates a new record.
