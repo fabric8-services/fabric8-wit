@@ -147,7 +147,7 @@ func (test *TestCodebaseRepository) TestExistsCodebase() {
 		assert.True(t, exists)
 	})
 
-	t.Run("codebase doesn't exists", func(t *testing.T) {
+	t.Run("codebase doesn't exist", func(t *testing.T) {
 		// given
 		repo := codebase.NewCodebaseRepository(test.DB)
 		// when

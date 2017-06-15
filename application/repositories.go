@@ -2,6 +2,7 @@ package application
 
 import (
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/application/repository"
 	"github.com/almighty/almighty-core/criteria"
 	"github.com/almighty/almighty-core/workitem"
 
@@ -12,8 +13,8 @@ import (
 
 // TrackerRepository encapsulate storage & retrieval of tracker configuration
 type TrackerRepository interface {
+	repository.Exister
 	Load(ctx context.Context, ID string) (*app.Tracker, error)
-	Exists(ctx context.Context, ID string) (bool, error)
 	Save(ctx context.Context, t app.Tracker) (*app.Tracker, error)
 	Delete(ctx context.Context, ID string) error
 	Create(ctx context.Context, url string, typeID string) (*app.Tracker, error)
@@ -22,10 +23,10 @@ type TrackerRepository interface {
 
 // TrackerQueryRepository encapsulate storage & retrieval of tracker queries
 type TrackerQueryRepository interface {
+	repository.Exister
 	Create(ctx context.Context, query string, schedule string, tracker string, spaceID uuid.UUID) (*app.TrackerQuery, error)
 	Save(ctx context.Context, tq app.TrackerQuery) (*app.TrackerQuery, error)
 	Load(ctx context.Context, ID string) (*app.TrackerQuery, error)
-	Exists(ctx context.Context, ID string) (bool, error)
 	Delete(ctx context.Context, ID string) error
 	List(ctx context.Context) ([]*app.TrackerQuery, error)
 }

@@ -91,7 +91,7 @@ func (s *userBlackBoxTest) TestExistsUser() {
 		require.True(t, exists)
 	})
 
-	t.Run("user doesn't exists", func(t *testing.T) {
+	t.Run("user doesn't exist", func(t *testing.T) {
 		t.Parallel()
 		// Check not existing
 		exists, err := s.repo.Exists(s.ctx, uuid.NewV4().String())

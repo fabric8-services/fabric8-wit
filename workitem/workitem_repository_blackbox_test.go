@@ -185,7 +185,7 @@ func (s *workItemRepoBlackBoxTest) TestExistsWorkItem() {
 		require.True(t, exists)
 	})
 
-	t.Run("work item doesn't exists", func(t *testing.T) {
+	t.Run("work item doesn't exist", func(t *testing.T) {
 		t.Parallel()
 		// when
 		var exists bool

@@ -90,7 +90,7 @@ func (test *TestTrackerQueryRepository) TestExistsTrackerQuery() {
 		assert.True(t, exists)
 	})
 
-	t.Run("tracker query doesn't exists", func(t *testing.T) {
+	t.Run("tracker query doesn't exist", func(t *testing.T) {
 		t.Parallel()
 		req := &http.Request{Host: "localhost"}
 		params := url.Values{}

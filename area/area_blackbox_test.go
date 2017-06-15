@@ -125,7 +125,7 @@ func (test *TestAreaRepository) TestExistsArea() {
 		assert.True(t, exists)
 	})
 
-	t.Run("area doesn't exists", func(t *testing.T) {
+	t.Run("area doesn't exist", func(t *testing.T) {
 		// given
 		repo := area.NewAreaRepository(test.DB)
 		// when

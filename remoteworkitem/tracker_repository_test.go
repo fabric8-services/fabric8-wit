@@ -76,7 +76,7 @@ func (test *TestTrackerRepository) TestExistsTracker() {
 		assert.True(t, exists)
 	})
 
-	t.Run("tracker doesn't exists", func(t *testing.T) {
+	t.Run("tracker doesn't exist", func(t *testing.T) {
 		t.Parallel()
 		exists, err := test.repo.Exists(context.Background(), "11111111")
 		require.IsType(t, errors.NotFoundError{}, err)

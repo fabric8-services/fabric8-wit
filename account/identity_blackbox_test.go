@@ -93,7 +93,7 @@ func (s *identityBlackBoxTest) TestExistsIdentity() {
 		require.True(t, exists)
 	})
 
-	t.Run("identity doesn't exists", func(t *testing.T) {
+	t.Run("identity doesn't exist", func(t *testing.T) {
 		t.Parallel()
 		exists, err := s.repo.Exists(s.ctx, uuid.NewV4().String())
 		// then

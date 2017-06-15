@@ -105,7 +105,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestExistsWIT() {
 		require.True(s.T(), exists)
 	})
 
-	t.Run("wit doesn't exists", func(t *testing.T) {
+	t.Run("wit doesn't exist", func(t *testing.T) {
 		t.Parallel()
 		exists, err := s.repo.Exists(s.ctx, space.SystemSpace, uuid.NewV4())
 		require.False(t, exists)

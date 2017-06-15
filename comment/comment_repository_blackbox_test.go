@@ -239,7 +239,7 @@ func (s *TestCommentRepository) TestExistsComment() {
 		assert.True(t, exists)
 	})
 
-	t.Run("comment doesn't exists", func(t *testing.T) {
+	t.Run("comment doesn't exist", func(t *testing.T) {
 		// when
 		exists, err := s.repo.Exists(s.ctx, uuid.NewV4().String())
 		// then

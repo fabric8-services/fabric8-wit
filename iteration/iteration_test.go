@@ -411,7 +411,7 @@ func (test *TestIterationRepository) TestExistsIteration() {
 		require.True(t, exists)
 	})
 
-	t.Run("iteration doesn't exists", func(t *testing.T) {
+	t.Run("iteration doesn't exist", func(t *testing.T) {
 		repo := iteration.NewIterationRepository(test.DB)
 
 		exists, err := repo.Exists(context.Background(), uuid.NewV4().String())
