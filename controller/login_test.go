@@ -3,7 +3,7 @@ package controller
 import (
 	"testing"
 
-	"golang.org/x/net/context"
+	"context"
 	"golang.org/x/oauth2"
 
 	"github.com/almighty/almighty-core/account"

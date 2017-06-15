@@ -12,8 +12,8 @@ import (
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 
+	"context"
 	uuid "github.com/satori/go.uuid"
-	"golang.org/x/net/context"
 )
 
 const APIStringTypeAreas = "areas"

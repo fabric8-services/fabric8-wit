@@ -7,11 +7,11 @@ import (
 	"io"
 	"net/http"
 
+	"context"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/log"
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
-	"golang.org/x/net/context"
 )
 
 const (

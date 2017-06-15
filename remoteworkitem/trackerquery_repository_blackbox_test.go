@@ -10,9 +10,9 @@ import (
 	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/almighty/almighty-core/space"
 
+	"context"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"golang.org/x/net/context"
 )
 
 type trackerQueryRepoBlackBoxTest struct {

@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"golang.org/x/net/context"
+	"context"
 
 	"github.com/almighty/almighty-core/codebase"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"

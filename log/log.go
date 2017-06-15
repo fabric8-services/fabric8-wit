@@ -8,8 +8,8 @@ import (
 
 	"github.com/almighty/almighty-core/configuration"
 
+	"context"
 	log "github.com/Sirupsen/logrus"
-	"golang.org/x/net/context"
 )
 
 const defaultPackageName = "github.com/almighty/almighty-core/"
