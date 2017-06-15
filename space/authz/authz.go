@@ -16,29 +16,13 @@ import (
 	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/token"
 
+	contx "context"
+
 	"github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	uuid "github.com/satori/go.uuid"
-	contx "golang.org/x/net/context"
 )
-
-// TokenPayload represents an rpt token
-type TokenPayload struct {
-	jwt.StandardClaims
-	Authorization *AuthorizationPayload `json:"authorization"`
-}
-
-// AuthorizationPayload represents an authz payload in the rpt token
-type AuthorizationPayload struct {
-	Permissions []Permissions `json:"permissions"`
-}
-
-// Permissions represents an permissions and the AuthorizationPayload
-type Permissions struct {
-	ResourceSetName *string `json:"resource_set_name"`
-	ResourceSetID   *string `json:"resource_set_id"`
-}
 
 // AuthzService represents a space authorization service
 type AuthzService interface {
@@ -102,7 +86,7 @@ func (s *KeycloakAuthzService) Authorize(ctx context.Context, entitlementEndpoin
 		}, "missing token manager")
 		return false, errs.NewInternalError("Missing token manager")
 	}
-	tokenWithClaims, err := jwt.ParseWithClaims(jwttoken.Raw, &TokenPayload{}, func(t *jwt.Token) (interface{}, error) {
+	tokenWithClaims, err := jwt.ParseWithClaims(jwttoken.Raw, &auth.TokenPayload{}, func(t *jwt.Token) (interface{}, error) {
 		return tm.(token.Manager).PublicKey(), nil
 	})
 	if err != nil {
@@ -112,7 +96,7 @@ func (s *KeycloakAuthzService) Authorize(ctx context.Context, entitlementEndpoin
 		}, "unable to parse the rpt token")
 		return false, errs.NewInternalError(fmt.Sprintf("unable to parse the rpt token: %s", err.Error()))
 	}
-	claims := tokenWithClaims.Claims.(*TokenPayload)
+	claims := tokenWithClaims.Claims.(*auth.TokenPayload)
 
 	if claims.Authorization == nil {
 		// No authorization in the token. This is not a RPT token. This is an access token.
@@ -157,7 +141,7 @@ func (s *KeycloakAuthzService) checkEntitlementForSpace(ctx context.Context, tok
 	return ent != nil, nil
 }
 
-func (s *KeycloakAuthzService) isTokenOutdated(ctx context.Context, token TokenPayload, entitlementEndpoint string, spaceID string) (bool, error) {
+func (s *KeycloakAuthzService) isTokenOutdated(ctx context.Context, token auth.TokenPayload, entitlementEndpoint string, spaceID string) (bool, error) {
 	spaceUUID, err := uuid.FromString(spaceID)
 	if err != nil {
 		return false, errs.NewInternalError(err.Error())

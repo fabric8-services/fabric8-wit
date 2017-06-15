@@ -8,11 +8,11 @@ import (
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/rest"
 
+	"context"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
-	"golang.org/x/net/context"
 )
 
 // GormTrackerQueryRepository implements TrackerRepository using gorm

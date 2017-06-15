@@ -4,10 +4,10 @@ package test
 import (
 	"sync"
 
+	"context"
 	"github.com/almighty/almighty-core/criteria"
 	"github.com/almighty/almighty-core/workitem"
 	uuid "github.com/satori/go.uuid"
-	"golang.org/x/net/context"
 )
 
 type WorkItemRepository struct {

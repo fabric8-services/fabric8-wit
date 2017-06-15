@@ -3,6 +3,7 @@ package remoteworkitem_test
 import (
 	"testing"
 
+	"context"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
@@ -10,7 +11,6 @@ import (
 	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"golang.org/x/net/context"
 )
 
 type trackerRepoBlackBoxTest struct {
