@@ -141,6 +141,11 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 			}
 		}
 		additionalQuery = append(additionalQuery, "filter[category]="+ctx.FilterCategory.String())
+	if ctx.FilterParentexists != nil {
+		// no need to build expression: it is taken care in wi.List call
+		// we need additionalQuery to make sticky filters in URL links
+		additionalQuery = append(additionalQuery, "filter[parentexists]="+strconv.FormatBool(*ctx.FilterParentexists))
+
 	}
 
 	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
