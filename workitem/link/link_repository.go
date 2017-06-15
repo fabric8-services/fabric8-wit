@@ -356,7 +356,6 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 		)
 	)`, WorkItemLink{}.TableName(), WorkItemLinkType{}.TableName())
 	db := r.db.Model(&workitem.WorkItemStorage{}).Where(where, parent)
-	orgDB := db
 	if start != nil {
 		if *start < 0 {
 			return nil, 0, errors.NewBadParameterError("start", *start)
@@ -409,8 +408,8 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 	if first {
 		// means 0 rows were returned from the first query (maybe becaus of offset outside of total count),
 		// need to do a count(*) to find out total
-		orgDB := orgDB.Select("count(*)")
-		rows2, err := orgDB.Rows()
+		db := db.Select("count(*)")
+		rows2, err := db.Rows()
 		defer rows2.Close()
 		if err != nil {
 			return nil, 0, errs.WithStack(err)
