@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"golang.org/x/net/context"
+	"context"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"

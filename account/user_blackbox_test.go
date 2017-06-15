@@ -10,11 +10,11 @@ import (
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/workitem"
 
+	"context"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"golang.org/x/net/context"
 )
 
 type userBlackBoxTest struct {

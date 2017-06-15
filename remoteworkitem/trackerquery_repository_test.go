@@ -5,8 +5,8 @@ import (
 	"net/url"
 	"testing"
 
+	"context"
 	"github.com/almighty/almighty-core/application"
-	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"

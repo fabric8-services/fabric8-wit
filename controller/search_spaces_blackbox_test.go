@@ -21,8 +21,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
+	"context"
 	"github.com/goadesign/goa"
-	"golang.org/x/net/context"
 )
 
 type args struct {
