@@ -681,7 +681,7 @@ func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) 
 	return application.Transactional(c.db, func(appl application.Application) error {
 		result, tc, err := appl.WorkItemLinks().ListWorkItemChildren(ctx, ctx.WiID, &offset, &limit)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing workitem children"))
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "unable to list work item children"))
 		}
 		count := int(tc)
 		return ctx.ConditionalEntities(result, c.config.GetCacheControlWorkItems, func() error {
