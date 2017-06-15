@@ -99,7 +99,6 @@ func (test *TestAreaRepository) TestExistsArea() {
 	resource.Require(t, resource.Database)
 
 	t.Run("area exists", func(t *testing.T) {
-		t.Parallel()
 		// given
 		repo := area.NewAreaRepository(test.DB)
 		name := "TestCreateArea"
@@ -127,7 +126,6 @@ func (test *TestAreaRepository) TestExistsArea() {
 	})
 
 	t.Run("area doesn't exists", func(t *testing.T) {
-		t.Parallel()
 		// given
 		repo := area.NewAreaRepository(test.DB)
 		// when

@@ -144,7 +144,6 @@ func (s *linkRepoBlackBoxTest) TestExistsLink() {
 	resource.Require(t, resource.Database)
 
 	t.Run("link exists", func(t *testing.T) {
-		t.Parallel()
 		// given
 		// create 3 workitems for linking
 		workitemRepository := workitem.NewWorkItemRepository(s.DB)
@@ -206,7 +205,6 @@ func (s *linkRepoBlackBoxTest) TestExistsLink() {
 	})
 
 	t.Run("link doesn't exists", func(t *testing.T) {
-		t.Parallel()
 		linkRepository := link.NewWorkItemLinkRepository(s.DB)
 		exists, err := linkRepository.Exists(s.ctx, uuid.NewV4().String())
 		require.IsType(t, errors.NotFoundError{}, err)

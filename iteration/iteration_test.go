@@ -388,7 +388,6 @@ func (test *TestIterationRepository) TestExistsIteration() {
 	resource.Require(t, resource.Database)
 
 	t.Run("iteration exists", func(t *testing.T) {
-		t.Parallel()
 		// given
 		newSpace := space.Space{
 			Name: testcommon.CreateRandomValidTestName("Space Exists"),
@@ -413,7 +412,6 @@ func (test *TestIterationRepository) TestExistsIteration() {
 	})
 
 	t.Run("iteration doesn't exists", func(t *testing.T) {
-		t.Parallel()
 		repo := iteration.NewIterationRepository(test.DB)
 
 		exists, err := repo.Exists(context.Background(), uuid.NewV4().String())

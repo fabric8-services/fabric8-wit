@@ -240,7 +240,6 @@ func (s *TestCommentRepository) TestExistsComment() {
 	})
 
 	t.Run("comment doesn't exists", func(t *testing.T) {
-		t.Parallel()
 		// when
 		exists, err := s.repo.Exists(s.ctx, uuid.NewV4().String())
 		// then

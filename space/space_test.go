@@ -79,7 +79,6 @@ func (test *repoBBTest) TestExistsSpace() {
 	})
 
 	t.Run("space doesn't exists", func(t *testing.T) {
-		t.Parallel()
 		exists, err := test.repo.Exists(context.Background(), uuid.NewV4().String())
 		require.IsType(t, errors.NotFoundError{}, err)
 		assert.False(t, exists)
