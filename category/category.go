@@ -163,7 +163,7 @@ func (m *GormRepository) LoadAllRelationshipsOfCategory(ctx context.Context, cat
 		log.Error(ctx, map[string]interface{}{
 			"category_id": categoryID,
 		}, "category not found")
-		return nil, errs.Wrap(err, fmt.Sprintf("Fail to load category with id %s", categoryID))
+		return nil, errs.Wrap(err, fmt.Sprintf("fail to load category with id %s", categoryID))
 	}
 
 	relationship := []*WorkItemTypeCategoryRelationship{}

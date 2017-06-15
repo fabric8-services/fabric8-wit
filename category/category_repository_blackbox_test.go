@@ -149,7 +149,7 @@ func (test *categoryRepoBlackBoxTest) TestCreateCategoryWithSameNameFail() {
 		require.NotNil(test.T(), cat1)
 		require.NotNil(test.T(), cat1.ID)
 		require.NotNil(test.T(), cat1.Name)
-		require.False(test.T(), cat1.CreatedAt.After(time.Now()), "Category was not created, CreatedAt after Now()")
+		require.False(test.T(), cat1.CreatedAt.After(time.Now()), "category was not created, CreatedAt after Now()")
 
 		_, err = test.repo.Create(test.ctx, &category2) // Create
 		require.NotNil(test.T(), err)
