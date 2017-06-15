@@ -67,7 +67,6 @@ func (test *resourceRepoBBTest) TestExistsSpaceResource() {
 	resource.Require(t, resource.Database)
 
 	t.Run("space resource exists", func(t *testing.T) {
-		t.Parallel()
 		// given
 		expectResource(test.load(uuid.NewV4()), test.assertNotFound())
 		res, _, _ := expectResource(test.create(testResourceID, testPolicyID, testPermissionID), test.requireOk)

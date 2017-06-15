@@ -1,22 +1,20 @@
 package iteration_test
 
 import (
+	"context"
+	"reflect"
+	"strconv"
 	"testing"
 	"time"
 
-	"context"
-
-	"strconv"
-
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
+	testcommon "github.com/almighty/almighty-core/test"
 
-	"reflect"
-
-	"github.com/almighty/almighty-core/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -312,7 +310,7 @@ func (test *TestIterationRepository) TestLoadChildren() {
 	t := test.T()
 	resource.Require(t, resource.Database)
 	newSpace := space.Space{
-		Name: "Space To Test Listing of Iteration Children" + uuid.NewV4().String(),
+		Name: testcommon.CreateRandomValidTestName("Space Test Load Children"),
 	}
 	repoSpace := space.NewRepository(test.DB)
 	space, err := repoSpace.Create(context.Background(), &newSpace)
@@ -393,7 +391,7 @@ func (test *TestIterationRepository) TestExistsIteration() {
 		t.Parallel()
 		// given
 		newSpace := space.Space{
-			Name: "Space To Test Listing of Iteration Children" + uuid.NewV4().String(),
+			Name: testcommon.CreateRandomValidTestName("Space Exists"),
 		}
 		repoSpace := space.NewRepository(test.DB)
 		space, err := repoSpace.Create(context.Background(), &newSpace)

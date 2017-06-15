@@ -72,7 +72,6 @@ func (test *repoBBTest) TestExistsSpace() {
 	resource.Require(t, resource.Database)
 
 	t.Run("space exists", func(t *testing.T) {
-		t.Parallel()
 		// given
 		exists, err := test.repo.Exists(context.Background(), space.SystemSpace.String())
 		require.Nil(t, err)

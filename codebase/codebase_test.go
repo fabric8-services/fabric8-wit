@@ -1,19 +1,19 @@
 package codebase_test
 
 import (
+	"context"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
-	"context"
-
 	"github.com/almighty/almighty-core/codebase"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
+
 	uuid "github.com/satori/go.uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -135,7 +135,6 @@ func (test *TestCodebaseRepository) TestExistsCodebase() {
 	resource.Require(t, resource.Database)
 
 	t.Run("codebase exists", func(t *testing.T) {
-		t.Parallel()
 		// given
 		spaceID := space.SystemSpace
 		repo := codebase.NewCodebaseRepository(test.DB)
@@ -149,7 +148,6 @@ func (test *TestCodebaseRepository) TestExistsCodebase() {
 	})
 
 	t.Run("codebase doesn't exists", func(t *testing.T) {
-		t.Parallel()
 		// given
 		repo := codebase.NewCodebaseRepository(test.DB)
 		// when
