@@ -416,6 +416,7 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 			return nil, 0, errs.WithStack(err)
 		}
 		rows2.Next() // count(*) will always return a row
+		rows2.Scan(&count)
 	}
 
 	res := make([]workitem.WorkItem, len(result))
