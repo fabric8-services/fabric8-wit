@@ -1763,7 +1763,7 @@ func (s *WorkItem2Suite) xTestWI2DeleteLinksOnWIDeletionOK() {
 	require.NotNil(s.T(), wi2)
 
 	// Create link category
-	linkCatPayload := CreateWorkItemLinkCategory("test-user")
+	linkCatPayload := getCreateWorkItemLinkCategoryPayload("test-user")
 	_, linkCat := test.CreateWorkItemLinkCategoryCreated(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, linkCatPayload)
 	require.NotNil(s.T(), linkCat)
 
@@ -1772,7 +1772,7 @@ func (s *WorkItem2Suite) xTestWI2DeleteLinksOnWIDeletionOK() {
 	_, space := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, spacePayload)
 
 	// Create work item link type payload
-	linkTypePayload := CreateWorkItemLinkType("MyLinkType", workitem.SystemBug, workitem.SystemBug, *linkCat.Data.ID, *space.Data.ID)
+	linkTypePayload := getCreateWorkItemLinkTypePayload("MyLinkType", workitem.SystemBug, workitem.SystemBug, *linkCat.Data.ID, *space.Data.ID)
 	_, linkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *space.Data.ID, linkTypePayload)
 	require.NotNil(s.T(), linkType)
 
@@ -1781,7 +1781,7 @@ func (s *WorkItem2Suite) xTestWI2DeleteLinksOnWIDeletionOK() {
 	require.Nil(s.T(), err)
 	id2, err := strconv.ParseUint(*wi2.Data.ID, 10, 64)
 	require.Nil(s.T(), err)
-	linkPayload := CreateWorkItemLink(id1, id2, *linkType.Data.ID)
+	linkPayload := getCreateWorkItemLinkPayload(id1, id2, *linkType.Data.ID)
 	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.linkCtrl, linkPayload)
 	require.NotNil(s.T(), workItemLink)
 

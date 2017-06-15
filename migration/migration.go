@@ -16,6 +16,7 @@ import (
 	"github.com/almighty/almighty-core/workitem/link"
 
 	"context"
+
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/client"
 	"github.com/jinzhu/gorm"
@@ -305,6 +306,9 @@ func GetMigrations() Migrations {
 
 	// Version 61
 	m = append(m, steps{ExecuteSQLFile("061-replace-index-space-name.sql")})
+
+	// Version 62
+	m = append(m, steps{ExecuteSQLFile("062-workitem-related-changes.sql")})
 
 	// Version N
 	//
@@ -701,6 +705,8 @@ func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.Gor
 		workitem.SystemRemoteItemID: {Type: workitem.SimpleType{Kind: "string"}, Required: false, Label: "Remote item", Description: "The ID of the remote work item"},
 		workitem.SystemCreatedAt:    {Type: workitem.SimpleType{Kind: "instant"}, Required: false, Label: "Created at", Description: "The date and time when the work item was created"},
 		workitem.SystemUpdatedAt:    {Type: workitem.SimpleType{Kind: "instant"}, Required: false, Label: "Updated at", Description: "The date and time when the work item was last updated"},
+		workitem.SystemCommentedAt:  {Type: workitem.SimpleType{Kind: "instant"}, Required: false, Label: "Commented at", Description: "The date and time when a comment was last added or removed on the work item"},
+		workitem.SystemLinkedAt:     {Type: workitem.SimpleType{Kind: "instant"}, Required: false, Label: "Linked at", Description: "The date and time when a link was last added or removed on the work item"},
 		workitem.SystemOrder:        {Type: workitem.SimpleType{Kind: "float"}, Required: false, Label: "Execution Order", Description: "Execution Order of the workitem."},
 		workitem.SystemIteration:    {Type: workitem.SimpleType{Kind: "iteration"}, Required: false, Label: "Iteration", Description: "The iteration to which the work item belongs"},
 		workitem.SystemArea:         {Type: workitem.SimpleType{Kind: "area"}, Required: false, Label: "Area", Description: "The area to which the work item belongs"},

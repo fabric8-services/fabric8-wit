@@ -136,7 +136,7 @@ func (s *workItemChildSuite) SetupTest() {
 	s.T().Logf("Created link space with ID: %s\n", *space.Data.ID)
 
 	// Create 3 work items (bug1, bug2, and bug3)
-	bug1Payload := CreateWorkItem(s.userSpaceID, workitem.SystemBug, "bug1")
+	bug1Payload := getCreateWorkItemPayload(s.userSpaceID, workitem.SystemBug, "bug1")
 	_, bug1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID, bug1Payload)
 	require.NotNil(s.T(), bug1)
 	checkChildrenRelationship(s.T(), bug1.Data, &hasNoChildren)
@@ -146,7 +146,7 @@ func (s *workItemChildSuite) SetupTest() {
 	require.Nil(s.T(), err)
 	s.T().Logf("Created bug1 with ID: %s\n", *bug1.Data.ID)
 
-	bug2Payload := CreateWorkItem(s.userSpaceID, workitem.SystemBug, "bug2")
+	bug2Payload := getCreateWorkItemPayload(s.userSpaceID, workitem.SystemBug, "bug2")
 	_, bug2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID, bug2Payload)
 	require.NotNil(s.T(), bug2)
 	checkChildrenRelationship(s.T(), bug2.Data, &hasNoChildren)
@@ -155,7 +155,7 @@ func (s *workItemChildSuite) SetupTest() {
 	require.Nil(s.T(), err)
 	s.T().Logf("Created bug2 with ID: %s\n", *bug2.Data.ID)
 
-	bug3Payload := CreateWorkItem(s.userSpaceID, workitem.SystemBug, "bug3")
+	bug3Payload := getCreateWorkItemPayload(s.userSpaceID, workitem.SystemBug, "bug3")
 	_, bug3 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID, bug3Payload)
 	require.NotNil(s.T(), bug3)
 	checkChildrenRelationship(s.T(), bug3.Data, &hasNoChildren)
@@ -166,7 +166,7 @@ func (s *workItemChildSuite) SetupTest() {
 	s.T().Logf("Created bug3 with ID: %s\n", *bug3.Data.ID)
 
 	// Create a work item link category
-	createLinkCategoryPayload := CreateWorkItemLinkCategory("test-user" + uuid.NewV4().String())
+	createLinkCategoryPayload := getCreateWorkItemLinkCategoryPayload("test-user" + uuid.NewV4().String())
 	_, workItemLinkCategory := test.CreateWorkItemLinkCategoryCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkCategoryCtrl, createLinkCategoryPayload)
 	require.NotNil(s.T(), workItemLinkCategory)
 	userLinkCategoryID := *workItemLinkCategory.Data.ID
@@ -179,14 +179,14 @@ func (s *workItemChildSuite) SetupTest() {
 	bugBlockerLinkTypeID := *workItemLinkType.Data.ID
 	s.T().Logf("Created link type with ID: %s\n", *workItemLinkType.Data.ID)
 
-	createPayload := CreateWorkItemLink(s.bug1ID, bug2ID, bugBlockerLinkTypeID)
+	createPayload := getCreateWorkItemLinkPayload(s.bug1ID, bug2ID, bugBlockerLinkTypeID)
 	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload)
 	require.NotNil(s.T(), workItemLink)
 	// Check that the bug1 now hasChildren
 	_, workItemAfterLinked := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID, *bug1.Data.ID, nil, nil)
 	checkChildrenRelationship(s.T(), workItemAfterLinked.Data, &hasChildren)
 
-	createPayload2 := CreateWorkItemLink(s.bug1ID, bug3ID, bugBlockerLinkTypeID)
+	createPayload2 := getCreateWorkItemLinkPayload(s.bug1ID, bug3ID, bugBlockerLinkTypeID)
 	_, workItemLink2 := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload2)
 	require.NotNil(s.T(), workItemLink2)
 }

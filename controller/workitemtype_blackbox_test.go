@@ -205,7 +205,7 @@ func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 	return responseWriter, wi
 }
 
-func CreateWorkItemType(id uuid.UUID, spaceID uuid.UUID) app.CreateWorkitemtypePayload {
+func getCreateWorkItemTypePayload(id uuid.UUID, spaceID uuid.UUID) app.CreateWorkitemtypePayload {
 	// Create the type for the "color" field
 	nameFieldDef := app.FieldDefinition{
 		Required: false,
@@ -569,7 +569,7 @@ func (s *workItemTypeSuite) createWorkitemtypeLinks() (app.WorkItemLinkTypeSingl
 	require.NotNil(s.T(), witPerson)
 	s.T().Log("Created work items")
 	// Create work item link category
-	linkCatPayload := CreateWorkItemLinkCategory("some-link-category-" + uuid.NewV4().String())
+	linkCatPayload := getCreateWorkItemLinkCategoryPayload("some-link-category-" + uuid.NewV4().String())
 	_, linkCat := test.CreateWorkItemLinkCategoryCreated(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, linkCatPayload)
 	require.NotNil(s.T(), linkCat)
 	s.T().Log("Created work item link category")
@@ -578,12 +578,12 @@ func (s *workItemTypeSuite) createWorkitemtypeLinks() (app.WorkItemLinkTypeSingl
 	_, sp := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, spacePayload)
 	s.T().Log("Created space")
 	// Create work item link type
-	linkTypePayload := CreateWorkItemLinkType(animalLinksToBugStr, animalID, workitem.SystemBug, *linkCat.Data.ID, *sp.Data.ID)
+	linkTypePayload := getCreateWorkItemLinkTypePayload(animalLinksToBugStr, animalID, workitem.SystemBug, *linkCat.Data.ID, *sp.Data.ID)
 	_, sourceLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *sp.Data.ID, linkTypePayload)
 	require.NotNil(s.T(), sourceLinkType)
 	s.T().Log("Created work item source link")
 	// Create another work item link type
-	linkTypePayload = CreateWorkItemLinkType(bugLinksToAnimalStr, workitem.SystemBug, animalID, *linkCat.Data.ID, *sp.Data.ID)
+	linkTypePayload = getCreateWorkItemLinkTypePayload(bugLinksToAnimalStr, workitem.SystemBug, animalID, *linkCat.Data.ID, *sp.Data.ID)
 	_, targetLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *sp.Data.ID, linkTypePayload)
 	require.NotNil(s.T(), targetLinkType)
 	s.T().Log("Created work item target link")

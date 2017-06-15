@@ -27,6 +27,8 @@ const (
 	SystemCreator             = "system.creator"
 	SystemCreatedAt           = "system.created_at"
 	SystemUpdatedAt           = "system.updated_at"
+	SystemCommentedAt         = "system.commented_at"
+	SystemLinkedAt            = "system.linked_at"
 	SystemOrder               = "system.order"
 	SystemIteration           = "system.iteration"
 	SystemArea                = "system.area"
