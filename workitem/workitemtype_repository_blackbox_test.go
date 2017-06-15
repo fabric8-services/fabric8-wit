@@ -179,7 +179,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestSingleWorkItemTypeToSingleCategoryRel
 func (s *workItemTypeRepoBlackBoxTest) TestSingleWorkItemTypeToMultipleCategoryRelationship() {
 
 	categoryID := []*uuid.UUID{}
-	categoryID = append(categoryID, &category.PlannerRequirementsID, &category.PlannerIssuesID) // multiple categories
+	categoryID = append(categoryID, &category.PlannerRequirementsID, &category.PlannerPortfolioID) // multiple categories
 	wit, err := s.repo.Create(s.ctx, space.SystemSpace, nil, nil, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{
 		"foo": {
 			Required: true,
@@ -245,7 +245,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestMultipleWorkItemTypeToSingleCategoryR
 func (s *workItemTypeRepoBlackBoxTest) TestMultipleWorkItemTypeToMultipleCategoryRelationship() {
 
 	categoryID := []*uuid.UUID{}
-	categoryID = append(categoryID, &category.PlannerRequirementsID, &category.PlannerIssuesID) // multiple categories
+	categoryID = append(categoryID, &category.PlannerRequirementsID, &category.PlannerPortfolioID) // multiple categories
 	wit1, err := s.repo.Create(s.ctx, space.SystemSpace, nil, nil, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{
 		"foo": {
 			Required: true,

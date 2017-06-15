@@ -707,7 +707,7 @@ func createOrUpdateCategories(ctx context.Context, db *gorm.DB, categoryRepo cat
 func populateCategories(ctx context.Context, db *gorm.DB, categoryRepo category.Repository) {
 	log.Info(ctx, nil, "Creating or updating categories...")
 	createOrUpdateCategories(ctx, db, categoryRepo, &category.PlannerRequirementsID, category.PlannerRequirements)
-	createOrUpdateCategories(ctx, db, categoryRepo, &category.PlannerIssuesID, category.PlannerIssues)
+	createOrUpdateCategories(ctx, db, categoryRepo, &category.PlannerPortfolioID, category.PlannerPortfolio)
 	log.Info(ctx, nil, "Creating/updating of categories done.")
 }
 

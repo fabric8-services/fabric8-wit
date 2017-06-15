@@ -22,14 +22,14 @@ const (
 // String constants for system categories
 const (
 	PlannerRequirements = "planner.requirements"
-	PlannerIssues       = "planner.issues"
+	PlannerPortfolio       = "planner.portfolio"
 )
 
 // WARNING: Do not change these UUIDs!
 // System defined categories
 var (
-	PlannerRequirementsID = uuid.FromStringOrNil("04aef834-1505-44cf-80e4-ab0d857d9f56") // "planner.requirements"
-	PlannerIssuesID       = uuid.FromStringOrNil("27d92fe4-b2ee-45c2-b9bb-01f355ad616f") // "planner.issues"
+	PlannerRequirementsID = uuid.FromStringOrNil("b51ccf69-d574-41c5-b738-4a69265129d1") // "planner.requirements"
+	PlannerPortfolioID       = uuid.FromStringOrNil("0625e4bf-122a-4c1c-8ccd-e0995ef31974") // "planner.portfolio"
 )
 
 // Category describes a single category
