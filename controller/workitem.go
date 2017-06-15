@@ -110,6 +110,11 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemState), criteria.Literal(string(*ctx.FilterWorkitemstate))))
 		additionalQuery = append(additionalQuery, "filter[workitemstate]="+*ctx.FilterWorkitemstate)
 	}
+	if ctx.FilterParentexists != nil {
+		// no need to build expression: it is taken care in wi.List call
+		// we need additionalQuery to make sticky filters in URL links
+		additionalQuery = append(additionalQuery, "filter[parentexists]="+strconv.FormatBool(*ctx.FilterParentexists))
+	}
 
 	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
 	return application.Transactional(c.db, func(tx application.Application) error {
