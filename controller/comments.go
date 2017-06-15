@@ -112,7 +112,7 @@ func (c *CommentsController) Delete(ctx *app.DeleteCommentsContext) error {
 	var cm *comment.Comment
 	var wi *workitem.WorkItem
 	// Following transaction verifies if a user is allowed to delete or not
-	dbErr := application.Transactional(c.db, func(appl application.Application) error {
+	err = application.Transactional(c.db, func(appl application.Application) error {
 		cm, err = appl.Comments().Load(ctx.Context, ctx.CommentID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
@@ -124,8 +124,8 @@ func (c *CommentsController) Delete(ctx *app.DeleteCommentsContext) error {
 		}
 		return nil
 	})
-	if dbErr != nil {
-		return dbErr
+	if err != nil {
+		return err
 	}
 	// User is allowed to delete if user is creator of the comment OR user is a space collaborator
 	if *identityID == cm.CreatedBy {
