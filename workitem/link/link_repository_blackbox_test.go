@@ -131,3 +131,94 @@ func (s *linkRepoBlackBoxTest) TestDisallowMultipleParents() {
 	_, err = linkRepository.Create(s.ctx, Parent2ID, ChildID, s.testTreeLinkTypeID, s.testIdentity.ID)
 	require.NotNil(s.T(), err)
 }
+
+// TestCountChildWorkitems tests total number of workitem children returned by list is equal to the total number of workitem children created
+// and total number of workitem children in a page are equal to the "limit" specified
+func (s *linkRepoBlackBoxTest) TestCountChildWorkitems() {
+	workitemRepository := workitem.NewWorkItemRepository(s.DB)
+
+	// create a parent workitem
+	parent, err := workitemRepository.Create(
+		s.ctx, s.testSpace, workitem.SystemBug,
+		map[string]interface{}{
+			workitem.SystemTitle: "Parent",
+			workitem.SystemState: workitem.SystemStateNew,
+		}, s.testIdentity.ID)
+	require.Nil(s.T(), err)
+	parentID, err := strconv.ParseUint(parent.ID, 10, 64)
+
+	// create 3 workitems for linking as children to parent workitem
+	child1, err := workitemRepository.Create(
+		s.ctx, s.testSpace, workitem.SystemBug,
+		map[string]interface{}{
+			workitem.SystemTitle: "Child 1",
+			workitem.SystemState: workitem.SystemStateNew,
+		}, s.testIdentity.ID)
+	require.Nil(s.T(), err)
+	child1ID, err := strconv.ParseUint(child1.ID, 10, 64)
+
+	child2, err := workitemRepository.Create(
+		s.ctx, s.testSpace, workitem.SystemBug,
+		map[string]interface{}{
+			workitem.SystemTitle: "Child 2",
+			workitem.SystemState: workitem.SystemStateNew,
+		}, s.testIdentity.ID)
+	require.Nil(s.T(), err)
+	child2ID, err := strconv.ParseUint(child2.ID, 10, 64)
+	require.Nil(s.T(), err)
+
+	child3, err := workitemRepository.Create(
+		s.ctx, s.testSpace, workitem.SystemBug,
+		map[string]interface{}{
+			workitem.SystemTitle: "Child 3",
+			workitem.SystemState: workitem.SystemStateNew,
+		}, s.testIdentity.ID)
+	require.Nil(s.T(), err)
+	child3ID, err := strconv.ParseUint(child3.ID, 10, 64)
+	require.Nil(s.T(), err)
+
+	// Create a work item link category
+	linkCategoryRepository := link.NewWorkItemLinkCategoryRepository(s.DB)
+	categoryName := "test" + uuid.NewV4().String()
+	categoryDescription := "Test Link Category"
+	linkCategoryModel1 := link.WorkItemLinkCategory{
+		Name:        categoryName,
+		Description: &categoryDescription,
+	}
+	linkCategory, err := linkCategoryRepository.Create(s.ctx, &linkCategoryModel1)
+	require.Nil(s.T(), err)
+
+	// create tree topology link type
+	linkTypeRepository := link.NewWorkItemLinkTypeRepository(s.DB)
+	linkTypeModel1 := link.WorkItemLinkType{
+		Name:           "Parent child item",
+		SourceTypeID:   workitem.SystemBug,
+		TargetTypeID:   workitem.SystemBug,
+		ForwardName:    "parent of",
+		ReverseName:    "child of",
+		Topology:       "tree",
+		LinkCategoryID: linkCategory.ID,
+		SpaceID:        s.testSpace,
+	}
+	TestTreeLinkType, err := linkTypeRepository.Create(s.ctx, &linkTypeModel1)
+	require.Nil(s.T(), err)
+	s.testTreeLinkTypeID = TestTreeLinkType.ID
+
+	// link the children workitems to parent
+	linkRepository := link.NewWorkItemLinkRepository(s.DB)
+	_, err = linkRepository.Create(s.ctx, parentID, child1ID, s.testTreeLinkTypeID, s.testIdentity.ID)
+	require.Nil(s.T(), err)
+
+	_, err = linkRepository.Create(s.ctx, parentID, child2ID, s.testTreeLinkTypeID, s.testIdentity.ID)
+	require.Nil(s.T(), err)
+
+	_, err = linkRepository.Create(s.ctx, parentID, child3ID, s.testTreeLinkTypeID, s.testIdentity.ID)
+	require.Nil(s.T(), err)
+
+	offset := 0
+	limit := 1
+	res, count, err := linkRepository.ListWorkItemChildren(s.ctx, parent.ID, &offset, &limit)
+	require.Nil(s.T(), err)
+	require.Len(s.T(), res, 1)
+	require.Equal(s.T(), 3, int(count))
+}
