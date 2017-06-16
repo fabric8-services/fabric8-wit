@@ -385,8 +385,8 @@ func (s *serviceBlackBoxTest) TestInvalidState() {
 	// The OAuth 'state' is sent as a query parameter by calling /api/login/authorize?code=_SOME_CODE_&state=_SOME_STATE_
 	// The request originates from Keycloak after a valid authorization by the end user.
 	// This is not where the redirection should happen on failure.
-	refererKeyclaokUrl := "https://keycloak-url.example.org/path-of-login"
-	req.Header.Add("referer", refererKeyclaokUrl)
+	refererKeycloakUrl := "https://keycloak-url.example.org/path-of-login"
+	req.Header.Add("referer", refererKeycloakUrl)
 
 	prms := url.Values{
 		"state": {},

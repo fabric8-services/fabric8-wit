@@ -45,7 +45,7 @@ func NewKeycloakResourceManager(config KeycloakConfiguration) *KeycloakResourceM
 	return &KeycloakResourceManager{config}
 }
 
-// CreateResource creates a keyclaok resource and associated permission and policy
+// CreateResource creates a keycloak resource and associated permission and policy
 func (m *KeycloakResourceManager) CreateResource(ctx context.Context, request *goa.RequestData, name string, rType string, uri *string, scopes *[]string, userID string) (*Resource, error) {
 	pat, err := getPat(request, m.configuration)
 	if err != nil {

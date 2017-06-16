@@ -67,7 +67,7 @@ func ErrorHandler(service *goa.Service, verbose bool) goa.Middleware {
 
 				if !verbose {
 					rw.Header().Set("Content-Type", goa.ErrorMediaIdentifier)
-					msg := errors.NewInternalError(fmt.Sprintf("%s [%s]", http.StatusText(http.StatusInternalServerError), reqID))
+					msg := errors.NewInternalError(errs.Errorf("%s [%s]", http.StatusText(http.StatusInternalServerError), reqID))
 					//respBody = goa.ErrInternal(msg)
 					respBody, status = ErrorToJSONAPIErrors(msg)
 					// Preserve the ID of the original error as that's what gets logged, the client

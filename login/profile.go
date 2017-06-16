@@ -9,6 +9,7 @@ import (
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/rest"
+	errs "github.com/pkg/errors"
 )
 
 const ImageURLAttributeName = "imageURL"
@@ -79,12 +80,12 @@ func NewKeycloakUserProfileClient() *KeycloakUserProfileClient {
 func (userProfileClient *KeycloakUserProfileClient) Update(keycloakUserProfile *KeycloakUserProfile, accessToken string, keycloakProfileURL string) error {
 	body, err := json.Marshal(keycloakUserProfile)
 	if err != nil {
-		return errors.NewInternalError(err.Error())
+		return errors.NewInternalError(err)
 	}
 
 	req, err := http.NewRequest("POST", keycloakProfileURL, bytes.NewReader(body))
 	if err != nil {
-		return errors.NewInternalError(err.Error())
+		return errors.NewInternalError(err)
 	}
 	req.Header.Add("Authorization", "Bearer "+accessToken)
 	req.Header.Add("Content-Type", "application/json")
@@ -96,7 +97,7 @@ func (userProfileClient *KeycloakUserProfileClient) Update(keycloakUserProfile *
 			"keycloak_user_profile_url": keycloakProfileURL,
 			"err": err,
 		}, "Unable to update Keycloak user profile")
-		return errors.NewInternalError(err.Error())
+		return errors.NewInternalError(err)
 	} else if resp != nil {
 		defer resp.Body.Close()
 	}
@@ -117,7 +118,7 @@ func (userProfileClient *KeycloakUserProfileClient) Update(keycloakUserProfile *
 			return errors.NewUnauthorizedError(rest.ReadBody(resp.Body))
 		}
 
-		return errors.NewInternalError(fmt.Sprintf("Received a non-200 response %s while updating keycloak user profile %s", resp.Status, keycloakProfileURL))
+		return errors.NewInternalError(errs.Errorf("received a non-200 response %s while updating keycloak user profile %s", resp.Status, keycloakProfileURL))
 	}
 	log.Info(nil, map[string]interface{}{
 		"response_status":           resp.Status,
@@ -135,7 +136,7 @@ func (userProfileClient *KeycloakUserProfileClient) Get(accessToken string, keyc
 
 	req, err := http.NewRequest("GET", keycloakProfileURL, nil)
 	if err != nil {
-		return nil, errors.NewInternalError(err.Error())
+		return nil, errors.NewInternalError(err)
 	}
 	req.Header.Add("Authorization", "Bearer "+accessToken)
 	req.Header.Add("Content-Type", "application/json")
@@ -148,7 +149,7 @@ func (userProfileClient *KeycloakUserProfileClient) Get(accessToken string, keyc
 			"keycloak_user_profile_url": keycloakProfileURL,
 			"err": err,
 		}, "Unable to fetch Keycloak user profile")
-		return nil, errors.NewInternalError(err.Error())
+		return nil, errors.NewInternalError(err)
 	} else if resp != nil {
 		defer resp.Body.Close()
 	}
@@ -162,7 +163,7 @@ func (userProfileClient *KeycloakUserProfileClient) Get(accessToken string, keyc
 		if resp.StatusCode == 400 {
 			return nil, errors.NewUnauthorizedError(rest.ReadBody(resp.Body))
 		}
-		return nil, errors.NewInternalError(fmt.Sprintf("Received a non-200 response %s while fetching keycloak user profile %s", resp.Status, keycloakProfileURL))
+		return nil, errors.NewInternalError(errs.Errorf("received a non-200 response %s while fetching keycloak user profile %s", resp.Status, keycloakProfileURL))
 	}
 
 	err = json.NewDecoder(resp.Body).Decode(&keycloakUserProfileResponse)
