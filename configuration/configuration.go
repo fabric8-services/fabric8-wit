@@ -559,7 +559,7 @@ func (c *ConfigurationData) getKeycloakEndpoint(req *goa.RequestData, endpointVa
 		endpoint = fmt.Sprintf("%s/%s", c.v.GetString(varKeycloakURL), pathSufix)
 	} else {
 		if c.IsPostgresDeveloperModeEnabled() {
-			// Devmode is enabled. Calculate the URL endopoint using the devmode Keyclaok URL
+			// Devmode is enabled. Calculate the URL endopoint using the devmode Keycloak URL
 			endpoint = fmt.Sprintf("%s/%s", devModeKeycloakURL, pathSufix)
 		} else {
 			// Calculate relative URL based on request

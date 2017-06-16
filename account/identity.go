@@ -60,7 +60,7 @@ func (u NullUUID) Value() (driver.Value, error) {
 // One User account can have many Identities
 type Identity struct {
 	gormsupport.Lifecycle
-	// This is the ID PK field. For identities provided by Keyclaok this ID equals to the Keycloak. For other types of IDP (github, oso, etc) this ID is generated automaticaly
+	// This is the ID PK field. For identities provided by Keycloak this ID equals to the Keycloak. For other types of IDP (github, oso, etc) this ID is generated automaticaly
 	ID uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
 	// The username of the Identity
 	Username string
