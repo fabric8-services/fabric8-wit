@@ -310,25 +310,6 @@ func (s *CommentsSuite) TestUpdateCommentWithSameUserWithNilMarkup() {
 	assertComment(s.T(), result.Data, s.testIdentity, "updated body", rendering.SystemMarkupDefault)
 }
 
-// func (s *CommentsSuite) TestUpdateCommentWithOtherUser() {
-// 	// given
-// 	wID := s.createWorkItem(s.testIdentity)
-// 	c := s.createWorkItemComment(s.testIdentity, wID, "body", &plaintextMarkup)
-// 	// when
-// 	updatedCommentBody := "An updated comment"
-// 	updateCommentPayload := &app.UpdateCommentsPayload{
-// 		Data: &app.Comment{
-// 			Type: "comments",
-// 			Attributes: &app.CommentAttributes{
-// 				Body: &updatedCommentBody,
-// 			},
-// 		},
-// 	}
-// 	// when/then
-// 	userSvc, _, _, commentsCtrl := s.securedControllers(s.testIdentity2)
-// 	test.UpdateCommentsForbidden(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID, updateCommentPayload)
-// }
-
 func (s *CommentsSuite) TestDeleteCommentWithSameAuthenticatedUser() {
 	// given
 	wID := s.createWorkItem(s.testIdentity)
