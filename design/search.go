@@ -34,8 +34,8 @@ var _ = a.Resource("search", func() {
 				3) "simple keywords separated by space" :- Search in Work Items based on these keywords.`)
 			a.Param("page[offset]", d.String, "Paging start position") // #428
 			a.Param("page[limit]", d.Integer, "Paging size")
+			a.Param("filter[expression]", d.String, "Filter expression in JSON format")
 			a.Param("spaceID", d.String, "The optional space ID of the space to be searched in")
-			a.Required("q")
 		})
 		a.Response(d.OK, func() {
 			a.Media(searchWorkItemList)

@@ -1,6 +1,7 @@
 package search
 
 import (
+	"encoding/json"
 	"fmt"
 	"sync"
 
@@ -12,6 +13,7 @@ import (
 
 	"net/url"
 
+	"github.com/fabric8-services/fabric8-wit/criteria"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/workitem"
@@ -239,6 +241,34 @@ func parseSearchString(rawSearchString string) (searchKeyword, error) {
 	return res, nil
 }
 
+// parseFilterString accepts a raw string and generates a criteria expression
+func parseFilterString(rawSearchString string) (criteria.Expression, error) {
+	m := map[string]string{}
+	// Parsing/Unmarshalling JSON encoding/json
+	err := json.Unmarshal([]byte(rawSearchString), &m)
+
+	if err != nil {
+		return nil, errors.NewBadParameterError("expression", rawSearchString)
+	}
+
+	var result *criteria.Expression
+
+	if len(m) > 0 {
+		for key, value := range m {
+			current := criteria.Equals(criteria.Field(key), criteria.Literal(value))
+			if result == nil {
+				result = &current
+			} else {
+				current = criteria.And(*result, current)
+				result = &current
+			}
+
+		}
+		return *result, nil
+	}
+	return criteria.Literal(true), nil
+}
+
 // generateSQLSearchInfo accepts searchKeyword and join them in a way that can be used in sql
 func generateSQLSearchInfo(keywords searchKeyword) (sqlParameter string) {
 	numberStr := strings.Join(keywords.number, " & ")
@@ -363,6 +393,108 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 	}
 
 	return result, count, nil
+}
+
+func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria criteria.Expression, start *int, limit *int) ([]workitem.WorkItemStorage, uint64, error) {
+	where, parameters, compileError := workitem.Compile(criteria)
+	if compileError != nil {
+		return nil, 0, errors.NewBadParameterError("expression", criteria)
+	}
+
+	db := r.db.Model(&workitem.WorkItemStorage{}).Where(where, parameters...)
+	orgDB := db
+	if start != nil {
+		if *start < 0 {
+			return nil, 0, errors.NewBadParameterError("start", *start)
+		}
+		db = db.Offset(*start)
+	}
+	if limit != nil {
+		if *limit <= 0 {
+			return nil, 0, errors.NewBadParameterError("limit", *limit)
+		}
+		db = db.Limit(*limit)
+	}
+
+	db = db.Select("count(*) over () as cnt2 , *").Order("execution_order desc")
+
+	rows, err := db.Rows()
+	if err != nil {
+		return nil, 0, errs.WithStack(err)
+	}
+	defer rows.Close()
+
+	result := []workitem.WorkItemStorage{}
+	columns, err := rows.Columns()
+	if err != nil {
+		return nil, 0, errors.NewInternalError(ctx, err)
+	}
+
+	// need to set up a result for Scan() in order to extract total count.
+	var count uint64
+	var ignore interface{}
+	columnValues := make([]interface{}, len(columns))
+
+	for index := range columnValues {
+		columnValues[index] = &ignore
+	}
+	columnValues[0] = &count
+	first := true
+
+	for rows.Next() {
+		value := workitem.WorkItemStorage{}
+		db.ScanRows(rows, &value)
+		if first {
+			first = false
+			if err = rows.Scan(columnValues...); err != nil {
+				return nil, 0, errors.NewInternalError(ctx, err)
+			}
+		}
+		result = append(result, value)
+
+	}
+	if first {
+		// means 0 rows were returned from the first query (maybe becaus of offset outside of total count),
+		// need to do a count(*) to find out total
+		orgDB := orgDB.Select("count(*)")
+		rows2, err := orgDB.Rows()
+		defer rows2.Close()
+		if err != nil {
+			return nil, 0, errs.WithStack(err)
+		}
+		rows2.Next() // count(*) will always return a row
+		rows2.Scan(&count)
+	}
+	return result, count, nil
+}
+
+// Filter Search returns work items for the given query
+func (r *GormSearchRepository) Filter(ctx context.Context, rawFilterString string, start *int, limit *int) ([]workitem.WorkItem, uint64, error) {
+	// parse
+	// generateSearchQuery
+	// ....
+	exp, err := parseFilterString(rawFilterString)
+	if err != nil {
+		return nil, 0, errs.WithStack(err)
+	}
+
+	result, count, err := r.listItemsFromDB(ctx, exp, start, limit)
+	if err != nil {
+		return nil, 0, errs.WithStack(err)
+	}
+	res := make([]workitem.WorkItem, len(result))
+	for index, value := range result {
+		wiType, err := r.wir.LoadTypeFromDB(ctx, value.Type)
+		if err != nil {
+			return nil, 0, errors.NewInternalError(ctx, err)
+		}
+		modelWI, err := workitem.ConvertWorkItemStorageToModel(wiType, &value)
+		if err != nil {
+			return nil, 0, errors.NewInternalError(ctx, err)
+		}
+		res[index] = *modelWI
+	}
+	return res, count, nil
 }
 
 func init() {
