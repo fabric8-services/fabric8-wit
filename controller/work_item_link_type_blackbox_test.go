@@ -139,17 +139,17 @@ func (s *workItemLinkTypeSuite) createDemoLinkType(name string) *app.CreateWorkI
 	s.spaceID = space.Data.ID
 
 	//	 2. Create at least one work item type
-	workItemTypePayload := getCreateWorkItemTypePayload(uuid.NewV4(), *space.Data.ID)
+	workItemTypePayload := newCreateWorkItemTypePayload(uuid.NewV4(), *space.Data.ID)
 	_, workItemType := test.CreateWorkitemtypeCreated(s.T(), s.svc.Context, s.svc, s.typeCtrl, *s.spaceID, &workItemTypePayload)
 	require.NotNil(s.T(), workItemType)
 
 	//   3. Create a work item link category
-	createLinkCategoryPayload := getCreateWorkItemLinkCategoryPayload(s.categoryName)
+	createLinkCategoryPayload := newCreateWorkItemLinkCategoryPayload(s.categoryName)
 	_, workItemLinkCategory := test.CreateWorkItemLinkCategoryCreated(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, createLinkCategoryPayload)
 	require.NotNil(s.T(), workItemLinkCategory)
 
 	// 4. Create work item link type payload
-	createLinkTypePayload := getCreateWorkItemLinkTypePayload(name, *workItemType.Data.ID, *workItemType.Data.ID, *workItemLinkCategory.Data.ID, *space.Data.ID)
+	createLinkTypePayload := newCreateWorkItemLinkTypePayload(name, *workItemType.Data.ID, *workItemType.Data.ID, *workItemLinkCategory.Data.ID, *space.Data.ID)
 	return createLinkTypePayload
 }
 
@@ -384,11 +384,11 @@ func (s *workItemLinkTypeSuite) createWorkItemLinkTypes() (*app.WorkItemTypeSing
 	_, bugBlockerType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *bugBlockerPayload.Data.Relationships.Space.Data.ID, bugBlockerPayload)
 	require.NotNil(s.T(), bugBlockerType)
 
-	workItemTypePayload := getCreateWorkItemTypePayload(uuid.NewV4(), *s.spaceID)
+	workItemTypePayload := newCreateWorkItemTypePayload(uuid.NewV4(), *s.spaceID)
 	_, workItemType := test.CreateWorkitemtypeCreated(s.T(), s.svc.Context, s.svc, s.typeCtrl, *bugBlockerPayload.Data.Relationships.Space.Data.ID, &workItemTypePayload)
 	require.NotNil(s.T(), workItemType)
 
-	relatedPayload := getCreateWorkItemLinkTypePayload(s.linkName, *workItemType.Data.ID, *workItemType.Data.ID, bugBlockerType.Data.Relationships.LinkCategory.Data.ID, *bugBlockerType.Data.Relationships.Space.Data.ID)
+	relatedPayload := newCreateWorkItemLinkTypePayload(s.linkName, *workItemType.Data.ID, *workItemType.Data.ID, bugBlockerType.Data.Relationships.LinkCategory.Data.ID, *bugBlockerType.Data.Relationships.Space.Data.ID)
 	_, relatedType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *relatedPayload.Data.Relationships.Space.Data.ID, relatedPayload)
 	require.NotNil(s.T(), relatedType)
 	return workItemType, relatedType

@@ -9,6 +9,13 @@ CREATE FUNCTION workitem_comment_insert_timestamp() RETURNS trigger AS $$
     END;
 $$ LANGUAGE plpgsql;
 
+CREATE FUNCTION workitem_comment_update_timestamp() RETURNS trigger AS $$
+    BEGIN
+        UPDATE work_items wi SET commented_at = NEW.updated_at WHERE wi.id::text = NEW.parent_id;
+        RETURN NEW;
+    END;
+$$ LANGUAGE plpgsql;
+
 CREATE FUNCTION workitem_comment_softdelete_timestamp() RETURNS trigger AS $$
     BEGIN
         UPDATE work_items wi SET commented_at = NEW.deleted_at WHERE wi.id::text = NEW.parent_id;
@@ -19,6 +26,11 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER workitem_comment_insert_trigger AFTER INSERT ON comments 
     FOR EACH ROW
     EXECUTE PROCEDURE workitem_comment_insert_timestamp();
+
+CREATE TRIGGER workitem_comment_update_trigger AFTER UPDATE OF updated_at ON comments 
+    FOR EACH ROW
+    EXECUTE PROCEDURE workitem_comment_update_timestamp();
+
 CREATE TRIGGER workitem_comment_softdelete_trigger AFTER UPDATE OF deleted_at ON comments 
     FOR EACH ROW
     EXECUTE PROCEDURE workitem_comment_softdelete_timestamp();

@@ -19,6 +19,7 @@ import (
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
+	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/rest"
@@ -47,6 +48,12 @@ type CommentsSuite struct {
 	clean         func()
 	testIdentity  account.Identity
 	testIdentity2 account.Identity
+}
+
+func (s *CommentsSuite) SetupSuite() {
+	s.DBTestSuite.SetupSuite()
+	ctx := migration.NewMigrationContext(context.Background())
+	s.DBTestSuite.PopulateDBTestSuite(ctx)
 }
 
 func (s *CommentsSuite) SetupTest() {
@@ -120,7 +127,7 @@ func (s *CommentsSuite) createWorkItem(identity account.Identity) string {
 	return wiID
 }
 
-func (s *CommentsSuite) newCreateWorkItemCommentsPayload(body string, markup *string) *app.CreateWorkItemCommentsPayload {
+func newCreateWorkItemCommentsPayload(body string, markup *string) *app.CreateWorkItemCommentsPayload {
 	return &app.CreateWorkItemCommentsPayload{
 		Data: &app.CreateComment{
 			Type: "comments",
@@ -132,7 +139,17 @@ func (s *CommentsSuite) newCreateWorkItemCommentsPayload(body string, markup *st
 	}
 }
 
-func (s *CommentsSuite) newUpdateCommentsPayload(body string, markup *string) *app.UpdateCommentsPayload {
+// createWorkItemComment creates a workitem comment that will be used to perform the comment operations during the tests.
+func (s *CommentsSuite) createWorkItemComment(identity account.Identity, wiID string, body string, markup *string) app.CommentSingle {
+	createWorkItemCommentPayload := newCreateWorkItemCommentsPayload(body, markup)
+	userSvc, _, workitemCommentsCtrl, _ := s.securedControllers(identity)
+	_, c := test.CreateWorkItemCommentsOK(s.T(), userSvc.Context, userSvc, workitemCommentsCtrl, space.SystemSpace, wiID, createWorkItemCommentPayload)
+	require.NotNil(s.T(), c)
+	s.T().Log(fmt.Sprintf("Created comment with id %v", *c.Data.ID))
+	return *c
+}
+
+func newUpdateCommentsPayload(body string, markup *string) *app.UpdateCommentsPayload {
 	return &app.UpdateCommentsPayload{
 		Data: &app.Comment{
 			Type: "comments",
@@ -144,14 +161,21 @@ func (s *CommentsSuite) newUpdateCommentsPayload(body string, markup *string) *a
 	}
 }
 
-// createWorkItemComment creates a workitem comment that will be used to perform the comment operations during the tests.
-func (s *CommentsSuite) createWorkItemComment(identity account.Identity, wiID string, body string, markup *string) app.CommentSingle {
-	createWorkItemCommentPayload := s.newCreateWorkItemCommentsPayload(body, markup)
-	userSvc, _, workitemCommentsCtrl, _ := s.securedControllers(identity)
-	_, c := test.CreateWorkItemCommentsOK(s.T(), userSvc.Context, userSvc, workitemCommentsCtrl, space.SystemSpace, wiID, createWorkItemCommentPayload)
+// updateComment updates the comment with the given commentId
+func (s *CommentsSuite) updateComment(identity account.Identity, commentID uuid.UUID, body string, markup *string) app.CommentSingle {
+	updateCommentsPayload := newUpdateCommentsPayload(body, markup)
+	userSvc, _, _, commentsCtrl := s.securedControllers(identity)
+	_, c := test.UpdateCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, commentID, updateCommentsPayload)
 	require.NotNil(s.T(), c)
-	s.T().Log(fmt.Sprintf("Created comment with id %v", *c.Data.ID))
+	s.T().Log(fmt.Sprintf("Updated comment with id %v", *c.Data.ID))
 	return *c
+}
+
+// deleteComment deletes the comment with the given commentId
+func (s *CommentsSuite) deleteComment(identity account.Identity, commentID uuid.UUID) {
+	userSvc, _, _, commentsCtrl := s.securedControllers(identity)
+	test.DeleteCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, commentID)
+	s.T().Log(fmt.Sprintf("Deleted comment with id %v", commentID))
 }
 
 func assertComment(t *testing.T, resultData *app.Comment, expectedIdentity account.Identity, expectedBody string, expectedMarkup string) {
@@ -284,7 +308,7 @@ func (s *CommentsSuite) TestUpdateCommentWithoutAuth() {
 	wiID := s.createWorkItem(s.testIdentity)
 	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &plaintextMarkup)
 	// when
-	updateCommentPayload := s.newUpdateCommentsPayload("updated body", &markdownMarkup)
+	updateCommentPayload := newUpdateCommentsPayload("updated body", &markdownMarkup)
 	userSvc, commentsCtrl := s.unsecuredController()
 	test.UpdateCommentsUnauthorized(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID, updateCommentPayload)
 }
@@ -294,7 +318,7 @@ func (s *CommentsSuite) TestUpdateCommentWithSameUserWithOtherMarkup() {
 	wiID := s.createWorkItem(s.testIdentity)
 	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &plaintextMarkup)
 	// when
-	updateCommentPayload := s.newUpdateCommentsPayload("updated body", &markdownMarkup)
+	updateCommentPayload := newUpdateCommentsPayload("updated body", &markdownMarkup)
 	userSvc, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
 	_, result := test.UpdateCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID, updateCommentPayload)
 	assertComment(s.T(), result.Data, s.testIdentity, "updated body", rendering.SystemMarkupMarkdown)
@@ -305,7 +329,7 @@ func (s *CommentsSuite) TestUpdateCommentWithSameUserWithNilMarkup() {
 	wiID := s.createWorkItem(s.testIdentity)
 	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &plaintextMarkup)
 	// when
-	updateCommentPayload := s.newUpdateCommentsPayload("updated body", nil)
+	updateCommentPayload := newUpdateCommentsPayload("updated body", nil)
 	userSvc, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
 	_, result := test.UpdateCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID, updateCommentPayload)
 	assertComment(s.T(), result.Data, s.testIdentity, "updated body", rendering.SystemMarkupDefault)
@@ -462,6 +486,20 @@ func (s *CommentsSuite) TestAddCommentOnWorkItem() {
 	assert.Equal(s.T(), c.Data.Attributes.CreatedAt.UTC(), commentedAt.UTC())
 }
 
+func (s *CommentsSuite) TestAddAndUpdateCommentOnWorkItem() {
+	// given a work item with a (soft) delete comment
+	wiID := s.createWorkItem(s.testIdentity)
+	commentedAt := s.getCommentedAt(wiID)
+	assert.Nil(s.T(), commentedAt)
+	// when
+	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &plaintextMarkup)
+	s.updateComment(s.testIdentity, *c.Data.ID, "Updated body", &plaintextMarkup)
+	// then load the work item again and verify the timestamps
+	commentedAt = s.getCommentedAt(wiID)
+	// the comparison with the 'deleted_at' column was verified in the migration tests
+	assert.True(s.T(), commentedAt.After(*c.Data.Attributes.CreatedAt))
+}
+
 func (s *CommentsSuite) TestAddAndRemoveCommentOnWorkItem() {
 	// given a work item with a (soft) delete comment
 	wiID := s.createWorkItem(s.testIdentity)
@@ -469,9 +507,8 @@ func (s *CommentsSuite) TestAddAndRemoveCommentOnWorkItem() {
 	assert.Nil(s.T(), commentedAt)
 	// when
 	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &plaintextMarkup)
-	userSvc, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
 	time.Sleep(1 * time.Second)
-	test.DeleteCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID)
+	s.deleteComment(s.testIdentity, *c.Data.ID)
 	// then load the work item again and verify the timestamps
 	commentedAt = s.getCommentedAt(wiID)
 	// the comparison with the 'deleted_at' column was verified in the migration tests
