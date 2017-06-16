@@ -160,9 +160,6 @@ func (m *GormRepository) LoadAllRelationshipsOfCategory(ctx context.Context, cat
 	// Check if category is present
 	_, err := m.LoadCategoryFromDB(ctx, categoryID)
 	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"category_id": categoryID,
-		}, "category not found")
 		return nil, errs.Wrap(err, fmt.Sprintf("fail to load category with id %s", categoryID))
 	}
 
