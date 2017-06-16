@@ -35,7 +35,7 @@ type WorkItemLinkRepository interface {
 	DeleteRelatedLinks(ctx context.Context, wiID uuid.UUID, suppressorID uuid.UUID) error
 	Delete(ctx context.Context, ID uuid.UUID, suppressorID uuid.UUID) error
 	Save(ctx context.Context, linkCat WorkItemLink, modifierID uuid.UUID) (*WorkItemLink, error)
-	ListWorkItemChildren(ctx context.Context, parentID uuid.UUID) ([]workitem.WorkItem, error)
+	ListWorkItemChildren(ctx context.Context, parentID uuid.UUID, start *int, limit *int) ([]workitem.WorkItem, uint64, error)
 	WorkItemHasChildren(ctx context.Context, parentID uuid.UUID) (bool, error)
 }
 
@@ -339,7 +339,7 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, linkToSave WorkIt
 }
 
 // ListWorkItemChildren get all child work items
-func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, parentID uuid.UUID) ([]workitem.WorkItem, error) {
+func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, parentID uuid.UUID, start *int, limit *int) ([]workitem.WorkItem, uint64, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitem", "children", "query"}, time.Now())
 	where := fmt.Sprintf(`
 	id in (
@@ -349,33 +349,82 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 		)
 	)`, WorkItemLink{}.TableName(), WorkItemLinkType{}.TableName())
 	db := r.db.Model(&workitem.WorkItemStorage{}).Where(where, parentID.String())
+	if start != nil {
+		if *start < 0 {
+			return nil, 0, errors.NewBadParameterError("start", *start)
+		}
+		db = db.Offset(*start)
+	}
+	if limit != nil {
+		if *limit <= 0 {
+			return nil, 0, errors.NewBadParameterError("limit", *limit)
+		}
+		db = db.Limit(*limit)
+	}
+	db = db.Select("count(*) over () as cnt2 , *")
+
 	rows, err := db.Rows()
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 	result := []workitem.WorkItemStorage{}
+
+	columns, err := rows.Columns()
+	if err != nil {
+		return nil, 0, errors.NewInternalError(err.Error())
+	}
+
+	var count uint64
+	var ignore interface{}
+	columnValues := make([]interface{}, len(columns))
+
+	for index := range columnValues {
+		columnValues[index] = &ignore
+	}
+	columnValues[0] = &count
+	first := true
 
 	for rows.Next() {
 		value := workitem.WorkItemStorage{}
 		db.ScanRows(rows, &value)
 
+		if first {
+			first = false
+			if err = rows.Scan(columnValues...); err != nil {
+				return nil, 0, errors.NewInternalError(err.Error())
+			}
+		}
 		result = append(result, value)
 	}
+
+	if first {
+		// means 0 rows were returned from the first query (maybe becaus of offset outside of total count),
+		// need to do a count(*) to find out total
+		db := db.Select("count(*)")
+		rows2, err := db.Rows()
+		defer rows2.Close()
+		if err != nil {
+			return nil, 0, errs.WithStack(err)
+		}
+		rows2.Next() // count(*) will always return a row
+		rows2.Scan(&count)
+	}
+
 	res := make([]workitem.WorkItem, len(result))
 	for index, value := range result {
 		wiType, err := r.workItemTypeRepo.LoadTypeFromDB(ctx, value.Type)
 		if err != nil {
-			return nil, errors.NewInternalError(err.Error())
+			return nil, 0, errors.NewInternalError(err.Error())
 		}
 		modelWI, err := workitem.ConvertWorkItemStorageToModel(wiType, &value)
 		if err != nil {
-			return nil, errors.NewInternalError(err.Error())
+			return nil, 0, errors.NewInternalError(err.Error())
 		}
 		res[index] = *modelWI
 	}
 
-	return res, nil
+	return res, count, nil
 }
 
 // WorkItemHasChildren returns true if the given parent work item has children;

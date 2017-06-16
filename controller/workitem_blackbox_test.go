@@ -2525,6 +2525,11 @@ func (s *workItemChildSuite) TestWorkItemListFilterByNoParents() {
 		_, result := test.ListWorkitemOK(t, nil, nil, s.workItemCtrl, s.userSpaceID, nil, nil, nil, nil, pe, nil, nil, nil, nil, nil, nil)
 		// then
 		assert.Len(t, result.Data, 3)
+		assert.Nil(t, result.Links.Prev)
+		assert.Nil(t, result.Links.Next)
+		shouldNotContain := "filter[parentexists]"
+		assert.NotContains(t, *result.Links.First, shouldNotContain)
+		assert.NotContains(t, *result.Links.Last, shouldNotContain)
 	})
 
 	s.T().Run("with parentexists value set to false", func(t *testing.T) {
@@ -2534,6 +2539,11 @@ func (s *workItemChildSuite) TestWorkItemListFilterByNoParents() {
 		_, result2 := test.ListWorkitemOK(t, nil, nil, s.workItemCtrl, s.userSpaceID, nil, nil, nil, nil, &pe, nil, nil, nil, nil, nil, nil)
 		// then
 		assert.Len(t, result2.Data, 1)
+		assert.Nil(t, result2.Links.Prev)
+		assert.Nil(t, result2.Links.Next)
+		shouldContain := "filter[parentexists]=" + strconv.FormatBool(pe)
+		assert.Contains(t, *result2.Links.First, shouldContain)
+		assert.Contains(t, *result2.Links.Last, shouldContain)
 	})
 
 	s.T().Run("with parentexists value set to true", func(t *testing.T) {
@@ -2543,6 +2553,11 @@ func (s *workItemChildSuite) TestWorkItemListFilterByNoParents() {
 		_, result2 := test.ListWorkitemOK(t, nil, nil, s.workItemCtrl, s.userSpaceID, nil, nil, nil, nil, &pe, nil, nil, nil, nil, nil, nil)
 		// then
 		assert.Len(t, result2.Data, 3)
+		assert.Nil(t, result2.Links.Prev)
+		assert.Nil(t, result2.Links.Next)
+		shouldContain := "filter[parentexists]=" + strconv.FormatBool(pe)
+		assert.Contains(t, *result2.Links.First, shouldContain)
+		assert.Contains(t, *result2.Links.Last, shouldContain)
 	})
 
 }

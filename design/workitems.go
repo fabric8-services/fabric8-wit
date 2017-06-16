@@ -153,6 +153,8 @@ var _ = a.Resource("workitem", func() {
 		a.Description("List children associated with the given work item")
 		a.Params(func() {
 			a.Param("wiID", d.UUID, "ID of the work item to look-up")
+			a.Param("page[offset]", d.String, `Paging start position is a string pointing to the beginning of pagination.  The value starts from 0 onwards.`)
+			a.Param("page[limit]", d.Integer, `Paging size is the number of items in a page`)
 		})
 		a.UseTrait("conditional")
 		a.Response(d.OK, workItemList)
