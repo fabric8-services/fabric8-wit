@@ -160,7 +160,7 @@ func (m *GormRepository) LoadAllRelationshipsOfCategory(ctx context.Context, cat
 	// Check if category is present
 	_, err := m.LoadCategoryFromDB(ctx, categoryID)
 	if err != nil {
-		return nil, errs.Wrap(err, fmt.Sprintf("fail to load category with id %s", categoryID))
+		return nil, errs.Wrap(err, fmt.Sprintf("failed to load category with id %s", categoryID))
 	}
 
 	relationship := []*WorkItemTypeCategoryRelationship{}
@@ -210,7 +210,7 @@ func (m *GormRepository) LoadWorkItemTypeCategoryRelationship(ctx context.Contex
 		log.Error(ctx, map[string]interface{}{
 			"category_id": categoryID,
 		}, "category not found")
-		return nil, errs.Wrap(err, fmt.Sprintf("Fail to load category with id %s", categoryID))
+		return nil, errs.Wrap(err, fmt.Sprintf("failed to load category with id %s", categoryID))
 	}
 	relationship := WorkItemTypeCategoryRelationship{}
 	db := m.db.Model(&relationship).Where("category_id=? AND work_item_type_id=?", categoryID, workitemtypeID).Find(&relationship)
