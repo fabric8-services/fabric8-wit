@@ -1,7 +1,6 @@
 package area
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/almighty/almighty-core/errors"
@@ -13,6 +12,7 @@ import (
 	errs "github.com/pkg/errors"
 
 	"context"
+
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -102,7 +102,7 @@ func (m *GormAreaRepository) Load(ctx context.Context, id uuid.UUID) (*Area, err
 		return nil, errors.NewNotFoundError("Area", id.String())
 	}
 	if tx.Error != nil {
-		return nil, errors.NewInternalError(tx.Error.Error())
+		return nil, errors.NewInternalError(tx.Error)
 	}
 	return &obj, nil
 }
@@ -117,7 +117,7 @@ func (m *GormAreaRepository) LoadMultiple(ctx context.Context, ids []uuid.UUID) 
 	}
 	tx := m.db.Find(&objs)
 	if tx.Error != nil {
-		return nil, errors.NewInternalError(tx.Error.Error())
+		return nil, errors.NewInternalError(tx.Error)
 	}
 	return objs, nil
 }
@@ -132,7 +132,7 @@ func (m *GormAreaRepository) ListChildren(ctx context.Context, parentArea *Area)
 		return nil, errors.NewNotFoundError("Area", parentArea.ID.String())
 	}
 	if tx.Error != nil {
-		return nil, errors.NewInternalError(tx.Error.Error())
+		return nil, errors.NewInternalError(tx.Error)
 	}
 	return objs, nil
 }
@@ -145,7 +145,7 @@ func (m *GormAreaRepository) Root(ctx context.Context, spaceID uuid.UUID) (*Area
 	parentPathOfRootArea := path.Path{}
 	rootArea, err := m.Query(FilterBySpaceID(spaceID), FilterByPath(parentPathOfRootArea))
 	if len(rootArea) != 1 {
-		return nil, errors.NewInternalError(fmt.Sprintf("Single Root area not found for space %s", spaceID.String()))
+		return nil, errors.NewInternalError(errs.Errorf("Single Root area not found for space %s", spaceID))
 	}
 	if err != nil {
 		return nil, err
