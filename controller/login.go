@@ -148,7 +148,7 @@ func (c *LoginController) Refresh(ctx *app.RefreshLoginContext) error {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.New(res.Status+" "+rest.ReadBody(res.Body))))
 	}
 
-	token, err := auth.ReadToken(res)
+	token, err := auth.ReadToken(ctx, res)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
@@ -313,7 +313,7 @@ func GenerateUserToken(ctx context.Context, tokenEndpoint string, configuration 
 		return nil, errors.NewInternalError(ctx, errs.Wrap(err, "error when obtaining token"))
 	}
 	defer res.Body.Close()
-	token, err := auth.ReadToken(res)
+	token, err := auth.ReadToken(ctx, res)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"token_endpoint": res,

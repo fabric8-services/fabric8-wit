@@ -746,7 +746,7 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 }
 
 func checkApproved(ctx context.Context, profileService UserProfileService, accessToken string, profileEndpoint string) (bool, error) {
-	profile, err := profileService.Get(accessToken, profileEndpoint)
+	profile, err := profileService.Get(ctx, accessToken, profileEndpoint)
 	if err != nil {
 		return false, err
 	}

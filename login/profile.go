@@ -2,6 +2,7 @@ package login
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -60,8 +61,8 @@ func NewKeycloakUserProfile(firstName *string, lastName *string, email *string, 
 
 // UserProfileService describes what the services need to be capable of doing.
 type UserProfileService interface {
-	Update(keycloakUserProfile *KeycloakUserProfile, accessToken string, keycloakProfileURL string) error
-	Get(accessToken string, keycloakProfileURL string) (*KeycloakUserProfileResponse, error)
+	Update(ctx context.Context, conkeycloakUserProfile *KeycloakUserProfile, accessToken string, keycloakProfileURL string) error
+	Get(ctx context.Context, accessToken string, keycloakProfileURL string) (*KeycloakUserProfileResponse, error)
 }
 
 // KeycloakUserProfileClient describes the interface between platform and Keycloak User profile service.
@@ -77,7 +78,7 @@ func NewKeycloakUserProfileClient() *KeycloakUserProfileClient {
 }
 
 // Update updates the user profile information in Keycloak
-func (userProfileClient *KeycloakUserProfileClient) Update(keycloakUserProfile *KeycloakUserProfile, accessToken string, keycloakProfileURL string) error {
+func (userProfileClient *KeycloakUserProfileClient) Update(ctx context.Context, keycloakUserProfile *KeycloakUserProfile, accessToken string, keycloakProfileURL string) error {
 	body, err := json.Marshal(keycloakUserProfile)
 	if err != nil {
 		return errors.NewInternalError(ctx, err)
@@ -130,7 +131,7 @@ func (userProfileClient *KeycloakUserProfileClient) Update(keycloakUserProfile *
 }
 
 //Get gets the user profile information from Keycloak
-func (userProfileClient *KeycloakUserProfileClient) Get(accessToken string, keycloakProfileURL string) (*KeycloakUserProfileResponse, error) {
+func (userProfileClient *KeycloakUserProfileClient) Get(ctx context.Context, accessToken string, keycloakProfileURL string) (*KeycloakUserProfileResponse, error) {
 
 	keycloakUserProfileResponse := KeycloakUserProfileResponse{}
 

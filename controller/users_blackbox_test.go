@@ -21,6 +21,7 @@ import (
 	almtoken "github.com/almighty/almighty-core/token"
 
 	"context"
+
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -977,11 +978,11 @@ func newDummyUserProfileService(dummyGetResponse *login.KeycloakUserProfileRespo
 	}
 }
 
-func (d *dummyUserProfileService) Update(keycloakUserProfile *login.KeycloakUserProfile, accessToken string, keycloakProfileURL string) error {
+func (d *dummyUserProfileService) Update(ctx context.Context, keycloakUserProfile *login.KeycloakUserProfile, accessToken string, keycloakProfileURL string) error {
 	return nil
 }
 
-func (d *dummyUserProfileService) Get(accessToken string, keycloakProfileURL string) (*login.KeycloakUserProfileResponse, error) {
+func (d *dummyUserProfileService) Get(ctx context.Context, accessToken string, keycloakProfileURL string) (*login.KeycloakUserProfileResponse, error) {
 	return d.dummyGetResponse, nil
 }
 

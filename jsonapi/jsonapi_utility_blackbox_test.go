@@ -1,6 +1,7 @@
 package jsonapi_test
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -46,7 +47,7 @@ func TestErrorToJSONAPIError(t *testing.T) {
 	require.Equal(t, strconv.Itoa(httpStatus), *jerr.Status)
 
 	// test internal server error
-	jerr, httpStatus = jsonapi.ErrorToJSONAPIError(errors.NewInternalError(ctx, errs.New("foo")))
+	jerr, httpStatus = jsonapi.ErrorToJSONAPIError(errors.NewInternalError(context.Background(), errs.New("foo")))
 	require.Equal(t, http.StatusInternalServerError, httpStatus)
 	require.NotNil(t, jerr.Code)
 	require.NotNil(t, jerr.Status)

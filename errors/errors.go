@@ -1,6 +1,7 @@
 package errors
 
 import (
+	"context"
 	"fmt"
 
 	errs "github.com/pkg/errors"
@@ -26,7 +27,7 @@ func (err simpleError) Error() string {
 }
 
 // NewInternalError returns the custom defined error of type InternalError.
-func NewInternalError(ctx, err error) InternalError {
+func NewInternalError(ctx context.Context, err error) InternalError {
 	return InternalError{err}
 }
 

@@ -765,7 +765,7 @@ func ValidateKeycloakUser(ctx context.Context, adminEndpoint string, userID, pro
 }
 
 // GetProtectedAPIToken obtains a Protected API Token (PAT) from Keycloak
-func GetProtectedAPIToken(openidConnectTokenURL string, clientID string, clientSecret string) (string, error) {
+func GetProtectedAPIToken(ctx context.Context, openidConnectTokenURL string, clientID string, clientSecret string) (string, error) {
 	client := &http.Client{Timeout: 10 * time.Second}
 	res, err := client.PostForm(openidConnectTokenURL, url.Values{
 		"client_id":     {clientID},
@@ -787,7 +787,7 @@ func GetProtectedAPIToken(openidConnectTokenURL string, clientID string, clientS
 		return "", errors.NewInternalError(ctx, errs.New(res.Status+" "+rest.ReadBody(res.Body)))
 	}
 
-	token, err := ReadToken(res)
+	token, err := ReadToken(ctx, res)
 	if err != nil {
 		return "", err
 	}
@@ -795,7 +795,7 @@ func GetProtectedAPIToken(openidConnectTokenURL string, clientID string, clientS
 }
 
 // ReadToken extracts json with token data from the response
-func ReadToken(res *http.Response) (*Token, error) {
+func ReadToken(ctx context.Context, res *http.Response) (*Token, error) {
 	// Read the json out of the response body
 	buf := new(bytes.Buffer)
 	io.Copy(buf, res.Body)
