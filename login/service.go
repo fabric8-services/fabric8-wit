@@ -46,7 +46,7 @@ func NewKeycloakOAuthProvider(identities account.IdentityRepository, users accou
 	}
 }
 
-// KeycloakOAuthProvider represents a keyclaok IDP
+// KeycloakOAuthProvider represents a keycloak IDP
 type KeycloakOAuthProvider struct {
 	Identities   account.IdentityRepository
 	Users        account.UserRepository
@@ -339,7 +339,7 @@ func (keycloak *KeycloakOAuthProvider) checkFederatedIdentity(ctx context.Contex
 		log.Error(ctx, map[string]interface{}{
 			"err": err.Error(),
 		}, "Unable to crete http request")
-		return false, er.NewInternalError("unable to crete http request " + err.Error())
+		return false, er.NewInternalError(errs.Wrap(err, "unable to crete http request"))
 	}
 	req.Header.Add("Authorization", "Bearer "+token)
 	res, err := http.DefaultClient.Do(req)
@@ -348,7 +348,7 @@ func (keycloak *KeycloakOAuthProvider) checkFederatedIdentity(ctx context.Contex
 			"provider": provider,
 			"err":      err.Error(),
 		}, "Unable to obtain a federated identity token")
-		return false, er.NewInternalError("Unable to obtain a federated identity token " + err.Error())
+		return false, er.NewInternalError(errs.Wrap(err, "unable to obtain a federated identity token"))
 	}
 	defer res.Body.Close()
 	return res.StatusCode == http.StatusOK, nil
@@ -620,7 +620,7 @@ func encodeToken(ctx context.Context, referrer *url.URL, outhToken *oauth2.Token
 	return nil
 }
 
-// CreateOrUpdateKeycloakUser creates a user and a keyclaok identity. If the user and identity already exist then update them.
+// CreateOrUpdateKeycloakUser creates a user and a keycloak identity. If the user and identity already exist then update them.
 func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken string, ctx context.Context, profileEndpoint string) (*account.Identity, *account.User, error) {
 	var identity *account.Identity
 	var user *account.User

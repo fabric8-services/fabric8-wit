@@ -206,7 +206,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	}
 	creator := wi.Fields[workitem.SystemCreator]
 	if creator == nil {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError("work item doesn't have creator"))
+		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(errs.New("work item doesn't have creator")))
 	}
 	authorized, err := authorizeWorkitemEditor(ctx, c.db, ctx.SpaceID, creator.(string), currentUserIdentityID.String())
 	if err != nil {
