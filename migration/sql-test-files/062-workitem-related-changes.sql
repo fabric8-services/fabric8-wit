@@ -24,9 +24,13 @@ insert into work_items (id, space_id, type, fields) values (62004, '11111111-626
 insert into work_items (id, space_id, type, fields) values (62005, '11111111-6262-0000-0000-000000000000', '11111111-6262-0000-0000-000000000000', '{"system.title":"Work item 3"}'::json);
 insert into work_items (id, space_id, type, fields) values (62006, '11111111-6262-0000-0000-000000000000', '11111111-6262-0000-0000-000000000000', '{"system.title":"Work item 3"}'::json);
 insert into work_items (id, space_id, type, fields) values (62007, '11111111-6262-0000-0000-000000000000', '11111111-6262-0000-0000-000000000000', '{"system.title":"Work item 3"}'::json);
+insert into work_items (id, space_id, type, fields) values (62008, '11111111-6262-0000-0000-000000000000', '11111111-6262-0000-0000-000000000000', '{"system.title":"Work item 3"}'::json);
+insert into work_items (id, space_id, type, fields) values (62009, '11111111-6262-0000-0000-000000000000', '11111111-6262-0000-0000-000000000000', '{"system.title":"Work item 3"}'::json);
 delete from work_item_links;
 insert into work_item_links (id, version, source_id, target_id, created_at) values ('11111111-6262-0001-0000-000000000000', 1, 62004, 62005, '2017-06-13 09:00:00.0000+00');
 insert into work_item_links (id, version, source_id, target_id, deleted_at) values ('11111111-6262-0002-0000-000000000000', 1, 62006, 62007, '2017-06-13 10:00:00.0000+00');
-update work_item_links set deleted_at = '2017-06-13 11:00:00.0000+00' where id = '11111111-6262-0002-0000-000000000000';
+update work_item_links set updated_at = '2017-06-13 10:15:00.0000+00' where id = '11111111-6262-0002-0000-000000000000';
+insert into work_item_links (id, version, source_id, target_id, deleted_at) values ('11111111-6262-0003-0000-000000000000', 1, 62008, 62009, '2017-06-13 11:00:00.0000+00');
+update work_item_links set deleted_at = '2017-06-13 11:15:00.0000+00' where id = '11111111-6262-0003-0000-000000000000';
 
 

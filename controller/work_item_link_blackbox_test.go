@@ -259,7 +259,7 @@ func newCreateWorkItemLinkTypePayload(name string, sourceTypeID, targetTypeID, c
 	}
 }
 
-// CreateWorkItemLink defines a work item link
+// newCreateWorkItemLinkPayload returns the payload to create a work item link
 func newCreateWorkItemLinkPayload(sourceID uint64, targetID uint64, linkTypeID uuid.UUID) *app.CreateWorkItemLinkPayload {
 	lt := link.WorkItemLink{
 		SourceID:   sourceID,
@@ -269,6 +269,21 @@ func newCreateWorkItemLinkPayload(sourceID uint64, targetID uint64, linkTypeID u
 	payload := ConvertLinkFromModel(lt)
 	// The create payload is required during creation. Simply copy data over.
 	return &app.CreateWorkItemLinkPayload{
+		Data: payload.Data,
+	}
+}
+
+// newUpdateWorkItemLinkPayload returns the payload to update a work item link
+func newUpdateWorkItemLinkPayload(linkID uuid.UUID, sourceID uint64, targetID uint64, linkTypeID uuid.UUID) *app.UpdateWorkItemLinkPayload {
+	lt := link.WorkItemLink{
+		ID:         linkID,
+		SourceID:   sourceID,
+		TargetID:   targetID,
+		LinkTypeID: linkTypeID,
+	}
+	payload := ConvertLinkFromModel(lt)
+	// The create payload is required during creation. Simply copy data over.
+	return &app.UpdateWorkItemLinkPayload{
 		Data: payload.Data,
 	}
 }
@@ -434,14 +449,13 @@ func (s *workItemLinkSuite) TestUpdateWorkItemLinkOK() {
 	require.NotNil(s.T(), workItemLink)
 	// Specify new description for link type that we just created
 	// Wrap data portion in an update payload instead of a create payload
-	updateLinkPayload := &app.UpdateWorkItemLinkPayload{
-		Data: workItemLink.Data,
-	}
-	updateLinkPayload.Data.Relationships.Target.Data.ID = strconv.FormatUint(s.bug3ID, 10)
+	updateLinkPayload := newUpdateWorkItemLinkPayload(*workItemLink.Data.ID, s.bug1ID, s.bug3ID, s.bugBlockerLinkTypeID)
 	// when
 	_, l := test.UpdateWorkItemLinkOK(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, *updateLinkPayload.Data.ID, updateLinkPayload)
 	// then
 	require.NotNil(s.T(), l.Data)
+	require.Equal(s.T(), workItemLink.Data.Attributes.CreatedAt.UTC(), l.Data.Attributes.CreatedAt.UTC())
+	require.NotNil(s.T(), l.Data.Attributes.CreatedAt)
 	require.NotNil(s.T(), l.Data.Relationships)
 	require.NotNil(s.T(), l.Data.Relationships.Target.Data)
 	require.Equal(s.T(), strconv.FormatUint(s.bug3ID, 10), l.Data.Relationships.Target.Data.ID)
@@ -983,6 +997,31 @@ func (s *workItemLinkSuite) TestAddLinkToWorkItem() {
 	assert.Equal(s.T(), workItemLink.Data.Attributes.CreatedAt.UTC(), sourceItemLinkedAt.UTC())
 	targetItemLinkedAt = s.getLinkedAt(targetItemID)
 	assert.Equal(s.T(), workItemLink.Data.Attributes.CreatedAt.UTC(), targetItemLinkedAt.UTC())
+}
+
+func (s *workItemLinkSuite) TestAddAndUpdateLinkToWorkItem() {
+	// given (need to create work items of type 'bug' to have the 'linked_at' field defined)
+	sourceItemID := s.createWorkItem(workitem.SystemBug, "source item")
+	targetItemID := s.createWorkItem(workitem.SystemBug, "target item")
+	sourceItemLinkedAt := s.getLinkedAt(sourceItemID)
+	require.Nil(s.T(), sourceItemLinkedAt)
+	targetItemLinkedAt := s.getLinkedAt(targetItemID)
+	require.Nil(s.T(), targetItemLinkedAt)
+	createLinkTypePayload := newCreateWorkItemLinkTypePayload("TestAddLinkToWorkItem", workitem.SystemBug, workitem.SystemBug, s.userLinkCategoryID, s.userSpaceID)
+	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkTypeCtrl, s.userSpaceID, createLinkTypePayload)
+	// when
+	createLinkPayload := newCreateWorkItemLinkPayload(sourceItemID, targetItemID, *workItemLinkType.Data.ID)
+	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createLinkPayload)
+	time.Sleep(1 * time.Second)
+	updateLinkPayload := newUpdateWorkItemLinkPayload(*workItemLink.Data.ID, sourceItemID, targetItemID, *workItemLinkType.Data.ID)
+	s.DB.LogMode(true)
+	_, updatedWorkItemLink := test.UpdateWorkItemLinkOK(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, *workItemLink.Data.ID, updateLinkPayload)
+	s.DB.LogMode(false)
+	// then load the work items again and verify the timestamps
+	sourceItemLinkedAt = s.getLinkedAt(sourceItemID)
+	assert.Equal(s.T(), updatedWorkItemLink.Data.Attributes.UpdatedAt.UTC(), sourceItemLinkedAt.UTC())
+	targetItemLinkedAt = s.getLinkedAt(targetItemID)
+	assert.Equal(s.T(), updatedWorkItemLink.Data.Attributes.UpdatedAt.UTC(), targetItemLinkedAt.UTC())
 }
 
 func (s *workItemLinkSuite) TestAddAndRemoveLinkToWorkItem() {

@@ -310,6 +310,8 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, linkToSave WorkIt
 	if existingLink.Version != linkToSave.Version {
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
+	// retain the creation timestamp of the existing record
+	linkToSave.CreatedAt = existingLink.CreatedAt
 	linkToSave.Version = linkToSave.Version + 1
 
 	linkTypeToSave, err := r.workItemLinkTypeRepo.Load(ctx, linkToSave.LinkTypeID)
