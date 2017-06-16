@@ -10,7 +10,7 @@ import (
 	"github.com/goadesign/goa"
 )
 
-// KeycloakLogoutService represents a keyclaok logout service
+// KeycloakLogoutService represents a keycloak logout service
 type KeycloakLogoutService struct {
 }
 

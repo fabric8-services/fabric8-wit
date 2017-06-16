@@ -46,7 +46,7 @@ func NewKeycloakOAuthProvider(identities account.IdentityRepository, users accou
 	}
 }
 
-// KeycloakOAuthProvider represents a keyclaok IDP
+// KeycloakOAuthProvider represents a keycloak IDP
 type KeycloakOAuthProvider struct {
 	Identities   account.IdentityRepository
 	Users        account.UserRepository
@@ -620,7 +620,7 @@ func encodeToken(ctx context.Context, referrer *url.URL, outhToken *oauth2.Token
 	return nil
 }
 
-// CreateOrUpdateKeycloakUser creates a user and a keyclaok identity. If the user and identity already exist then update them.
+// CreateOrUpdateKeycloakUser creates a user and a keycloak identity. If the user and identity already exist then update them.
 func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken string, ctx context.Context, profileEndpoint string) (*account.Identity, *account.User, error) {
 	var identity *account.Identity
 	var user *account.User

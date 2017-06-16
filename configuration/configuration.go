@@ -417,7 +417,7 @@ func (c *ConfigurationData) GetKeycloakDomainPrefix() string {
 	return c.v.GetString(varKeycloakDomainPrefix)
 }
 
-// GetKeycloakRealm returns the keyclaok realm name
+// GetKeycloakRealm returns the keycloak realm name
 func (c *ConfigurationData) GetKeycloakRealm() string {
 	if c.v.IsSet(varKeycloakRealm) {
 		return c.v.GetString(varKeycloakRealm)
@@ -475,7 +475,7 @@ func (c *ConfigurationData) GetKeycloakEndpointUserInfo(req *goa.RequestData) (s
 	return c.getKeycloakOpenIDConnectEndpoint(req, varKeycloakEndpointUserinfo, "userinfo")
 }
 
-// GetKeycloakEndpointAdmin returns the <keyclaok>/realms/admin/<realm> endpoint
+// GetKeycloakEndpointAdmin returns the <keycloak>/realms/admin/<realm> endpoint
 // set via config file or environment variable.
 // If nothing set then in Dev environment the defualt endopoint will be returned.
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
@@ -485,7 +485,7 @@ func (c *ConfigurationData) GetKeycloakEndpointAdmin(req *goa.RequestData) (stri
 	return c.getKeycloakEndpoint(req, varKeycloakEndpointAdmin, "auth/admin/realms/"+c.GetKeycloakRealm())
 }
 
-// GetKeycloakEndpointAuthzResourceset returns the <keyclaok>/realms/<realm>/authz/protection/resource_set endpoint
+// GetKeycloakEndpointAuthzResourceset returns the <keycloak>/realms/<realm>/authz/protection/resource_set endpoint
 // set via config file or environment variable.
 // If nothing set then in Dev environment the defualt endopoint will be returned.
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
@@ -495,7 +495,7 @@ func (c *ConfigurationData) GetKeycloakEndpointAuthzResourceset(req *goa.Request
 	return c.getKeycloakEndpoint(req, varKeycloakEndpointAuthzResourceset, "auth/realms/"+c.GetKeycloakRealm()+"/authz/protection/resource_set")
 }
 
-// GetKeycloakEndpointClients returns the <keyclaok>/admin/realms/<realm>/clients endpoint
+// GetKeycloakEndpointClients returns the <keycloak>/admin/realms/<realm>/clients endpoint
 // set via config file or environment variable.
 // If nothing set then in Dev environment the defualt endopoint will be returned.
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
@@ -505,7 +505,7 @@ func (c *ConfigurationData) GetKeycloakEndpointClients(req *goa.RequestData) (st
 	return c.getKeycloakEndpoint(req, varKeycloakEndpointClients, "auth/admin/realms/"+c.GetKeycloakRealm()+"/clients")
 }
 
-// GetKeycloakEndpointEntitlement returns the <keyclaok>/realms/<realm>/authz/entitlement/<clientID> endpoint
+// GetKeycloakEndpointEntitlement returns the <keycloak>/realms/<realm>/authz/entitlement/<clientID> endpoint
 // set via config file or environment variable.
 // If nothing set then in Dev environment the defualt endopoint will be returned.
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
@@ -515,7 +515,7 @@ func (c *ConfigurationData) GetKeycloakEndpointEntitlement(req *goa.RequestData)
 	return c.getKeycloakEndpoint(req, varKeycloakEndpointEntitlement, "auth/realms/"+c.GetKeycloakRealm()+"/authz/entitlement/"+c.GetKeycloakClientID())
 }
 
-// GetKeycloakEndpointBroker returns the <keyclaok>/realms/<realm>/authz/entitlement/<clientID> endpoint
+// GetKeycloakEndpointBroker returns the <keycloak>/realms/<realm>/authz/entitlement/<clientID> endpoint
 // set via config file or environment variable.
 // If nothing set then in Dev environment the defualt endopoint will be returned.
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.

@@ -51,7 +51,7 @@ func (m *KeycloakAuthzServiceManager) AuthzService() AuthzService {
 	return m.Service
 }
 
-// EntitlementEndpoint returns a keyclaok entitlement endpoint URL
+// EntitlementEndpoint returns a keycloak entitlement endpoint URL
 func (m *KeycloakAuthzServiceManager) EntitlementEndpoint() string {
 	return m.entitlementEndpoint
 }
