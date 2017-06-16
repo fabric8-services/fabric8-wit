@@ -176,7 +176,7 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UU
 					"work_item_type_id": *id,
 					"err":               err,
 				}, "unable to create workitemtype category relationship")
-				return nil, errors.NewInternalError(err.Error())
+				return nil, errors.NewInternalError(err)
 			}
 		}
 	}

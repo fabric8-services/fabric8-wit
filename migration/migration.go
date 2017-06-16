@@ -17,6 +17,7 @@ import (
 	"github.com/almighty/almighty-core/workitem/link"
 
 	"context"
+
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/client"
 	"github.com/jinzhu/gorm"
@@ -697,7 +698,7 @@ func createOrUpdateCategories(ctx context.Context, db *gorm.DB, categoryRepo cat
 				"category_id": categoryID,
 				"err":         err,
 			}, "unable to create/update category")
-			return errors.NewInternalError(err.Error())
+			return errors.NewInternalError(err)
 		}
 	}
 	return nil

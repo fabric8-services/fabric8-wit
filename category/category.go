@@ -127,7 +127,7 @@ func (m *GormRepository) CreateRelationship(ctx context.Context, relationship *W
 			"wit_id":      relationship.WorkItemTypeID,
 			"err":         db.Error.Error(),
 		}, "unable to create workitemtype category relationship")
-		return errors.NewInternalError(db.Error.Error())
+		return errors.NewInternalError(db.Error)
 	}
 	return nil
 }
@@ -147,7 +147,7 @@ func (m *GormRepository) Create(ctx context.Context, category *Category) (*Categ
 			"category_id": category.ID,
 			"err":         db.Error.Error(),
 		}, "unable to create category")
-		return nil, errors.NewInternalError(db.Error.Error())
+		return nil, errors.NewInternalError(db.Error)
 	}
 	log.Info(ctx, map[string]interface{}{
 		"category_id": category.ID,
@@ -176,7 +176,7 @@ func (m *GormRepository) LoadAllRelationshipsOfCategory(ctx context.Context, cat
 			"category_id": categoryID,
 			"err":         err,
 		}, "unable to list workitemtype category relationships")
-		return nil, errors.NewInternalError(db.Error.Error())
+		return nil, errors.NewInternalError(db.Error)
 	}
 	return relationship, nil
 }
@@ -197,7 +197,7 @@ func (m *GormRepository) LoadCategoryFromDB(ctx context.Context, id uuid.UUID) (
 			"category_id": id,
 			"err":         err,
 		}, "unable to load category", err.Error())
-		return nil, errors.NewInternalError(err.Error())
+		return nil, errors.NewInternalError(err)
 	}
 	return &res, nil
 }
@@ -227,7 +227,7 @@ func (m *GormRepository) LoadWorkItemTypeCategoryRelationship(ctx context.Contex
 			"wit_id":      workitemtypeID,
 			"err":         err,
 		}, "unable to load workitemtype category relationship")
-		return nil, errors.NewInternalError(db.Error.Error())
+		return nil, errors.NewInternalError(db.Error)
 	}
 	return &relationship, nil
 }
@@ -250,7 +250,7 @@ func (m *GormRepository) Save(ctx context.Context, category *Category) (*Categor
 			"category_id": category.ID,
 			"err":         tx.Error,
 		}, "unable to load category")
-		return nil, errors.NewInternalError(tx.Error.Error())
+		return nil, errors.NewInternalError(tx.Error)
 	}
 
 	res.Name = category.Name
@@ -260,7 +260,7 @@ func (m *GormRepository) Save(ctx context.Context, category *Category) (*Categor
 			"category_id": category.ID,
 			"err":         err,
 		}, "unable to save category")
-		return nil, errors.NewInternalError(err.Error())
+		return nil, errors.NewInternalError(err)
 	}
 	log.Info(ctx, map[string]interface{}{
 		"category_id": category.ID,
