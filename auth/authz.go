@@ -29,7 +29,7 @@ const (
 	PolicyDecisionStrategyUnanimous = "UNANIMOUS"
 )
 
-// KeycloakResource represents a keyclaok resource payload
+// KeycloakResource represents a keycloak resource payload
 type KeycloakResource struct {
 	Name   string    `json:"name"`
 	Owner  *string   `json:"owner,omitempty"`
@@ -51,7 +51,7 @@ type clientData struct {
 	ClientID string `json:"clientID"`
 }
 
-// KeycloakPolicy represents a keyclaok policy payload
+// KeycloakPolicy represents a keycloak policy payload
 type KeycloakPolicy struct {
 	ID               *string          `json:"id,omitempty"`
 	Name             string           `json:"name"`
@@ -61,7 +61,7 @@ type KeycloakPolicy struct {
 	Config           PolicyConfigData `json:"config"`
 }
 
-// PolicyConfigData represents a config in the keyclaok policy payload
+// PolicyConfigData represents a config in the keycloak policy payload
 type PolicyConfigData struct {
 	//"users":"[\"<ID>\",\"<ID>\"]"
 	UserIDs string `json:"users"`
@@ -115,7 +115,7 @@ func (p *KeycloakPolicy) RemoveUserFromPolicy(userID string) bool {
 	return true
 }
 
-// KeycloakPermission represents a keyclaok permission payload
+// KeycloakPermission represents a keycloak permission payload
 type KeycloakPermission struct {
 	ID               *string              `json:"id,omitempty"`
 	Name             string               `json:"name"`
@@ -125,7 +125,7 @@ type KeycloakPermission struct {
 	Config           PermissionConfigData `json:"config"`
 }
 
-// PermissionConfigData represents a config in the keyclaok permission payload
+// PermissionConfigData represents a config in the keycloak permission payload
 type PermissionConfigData struct {
 	Resources     string `json:"resources"`
 	ApplyPolicies string `json:"applyPolicies"`
@@ -196,8 +196,8 @@ func CreateResource(ctx context.Context, resource KeycloakResource, authzEndpoin
 		log.Error(ctx, map[string]interface{}{
 			"resource": resource,
 			"err":      err.Error(),
-		}, "unable to marshal keyclaok resource struct")
-		return "", errors.NewInternalError(errs.Wrap(err, "unable to marshal keyclaok resource struct"))
+		}, "unable to marshal keycloak resource struct")
+		return "", errors.NewInternalError(errs.Wrap(err, "unable to marshal keycloak resource struct"))
 	}
 
 	req, err := http.NewRequest("POST", authzEndpoint, strings.NewReader(string(b)))
@@ -304,8 +304,8 @@ func CreatePolicy(ctx context.Context, clientsEndpoint string, clientID string, 
 		log.Error(ctx, map[string]interface{}{
 			"policy": policy,
 			"err":    err.Error(),
-		}, "unable to marshal keyclaok policy struct")
-		return "", errors.NewInternalError(errs.Wrap(err, "unable to marshal keyclaok policy struct"))
+		}, "unable to marshal keycloak policy struct")
+		return "", errors.NewInternalError(errs.Wrap(err, "unable to marshal keycloak policy struct"))
 	}
 
 	req, err := http.NewRequest("POST", clientsEndpoint+"/"+clientID+"/authz/resource-server/policy", strings.NewReader(string(b)))
@@ -359,8 +359,8 @@ func CreatePermission(ctx context.Context, clientsEndpoint string, clientID stri
 		log.Error(ctx, map[string]interface{}{
 			"permission": permission,
 			"err":        err.Error(),
-		}, "unable to marshal keyclaok permission struct")
-		return "", errors.NewInternalError(errs.Wrap(err, "unable to marshal keyclaok permission struct"))
+		}, "unable to marshal keycloak permission struct")
+		return "", errors.NewInternalError(errs.Wrap(err, "unable to marshal keycloak permission struct"))
 	}
 
 	req, err := http.NewRequest("POST", clientsEndpoint+"/"+clientID+"/authz/resource-server/policy", strings.NewReader(string(b)))
@@ -597,8 +597,8 @@ func UpdatePolicy(ctx context.Context, clientsEndpoint string, clientID string, 
 		log.Error(ctx, map[string]interface{}{
 			"policy": policy,
 			"err":    err.Error(),
-		}, "unable to marshal keyclaok policy struct")
-		return errors.NewInternalError(errs.Wrap(err, "unable to marshal keyclaok policy struct"))
+		}, "unable to marshal keycloak policy struct")
+		return errors.NewInternalError(errs.Wrap(err, "unable to marshal keycloak policy struct"))
 	}
 
 	req, err := http.NewRequest("PUT", clientsEndpoint+"/"+clientID+"/authz/resource-server/policy/"+*policy.ID, strings.NewReader(string(b)))
@@ -645,8 +645,8 @@ func GetEntitlement(ctx context.Context, entitlementEndpoint string, entitlement
 			log.Error(ctx, map[string]interface{}{
 				"entitlement_resource": entitlementResource,
 				"err": err.Error(),
-			}, "unable to marshal keyclaok entitlement resource struct")
-			return nil, errors.NewInternalError(errs.Wrap(err, "unable to marshal keyclaok entitlement resource struct"))
+			}, "unable to marshal keycloak entitlement resource struct")
+			return nil, errors.NewInternalError(errs.Wrap(err, "unable to marshal keycloak entitlement resource struct"))
 		}
 
 		req, reqErr = http.NewRequest("POST", entitlementEndpoint, strings.NewReader(string(b)))
@@ -732,7 +732,7 @@ func GetUserInfo(ctx context.Context, userInfoEndpoint string, userAccessToken s
 	return &r, nil
 }
 
-// ValidateKeycloakUser returns true if the user exists in Keyclaok. Returns false if the user is not found
+// ValidateKeycloakUser returns true if the user exists in Keycloak. Returns false if the user is not found
 func ValidateKeycloakUser(ctx context.Context, adminEndpoint string, userID, protectionAPIToken string) (bool, error) {
 	req, err := http.NewRequest("GET", adminEndpoint+"/users/"+userID, nil)
 	if err != nil {
