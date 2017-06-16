@@ -374,7 +374,7 @@ func (m *GormIdentityRepository) Search(ctx context.Context, q string, start int
 	value := Identity{}
 	columns, err := rows.Columns()
 	if err != nil {
-		return nil, 0, errors.NewInternalError(err)
+		return nil, 0, errors.NewInternalError(ctx, err)
 	}
 
 	// need to set up a result for Scan() in order to extract total count.
@@ -397,12 +397,12 @@ func (m *GormIdentityRepository) Search(ctx context.Context, q string, start int
 		db.ScanRows(rows, &value.User)
 
 		if err = rows.Scan(columnValues...); err != nil {
-			return nil, 0, errors.NewInternalError(err)
+			return nil, 0, errors.NewInternalError(ctx, err)
 		}
 
 		value.ID, err = uuid.FromString(identityID)
 		if err != nil {
-			return nil, 0, errors.NewInternalError(err)
+			return nil, 0, errors.NewInternalError(ctx, err)
 		}
 
 		value.Username = identityUsername

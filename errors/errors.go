@@ -26,7 +26,7 @@ func (err simpleError) Error() string {
 }
 
 // NewInternalError returns the custom defined error of type InternalError.
-func NewInternalError(err error) InternalError {
+func NewInternalError(ctx, err error) InternalError {
 	return InternalError{err}
 }
 

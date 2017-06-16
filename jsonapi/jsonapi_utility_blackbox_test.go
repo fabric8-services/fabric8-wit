@@ -46,7 +46,7 @@ func TestErrorToJSONAPIError(t *testing.T) {
 	require.Equal(t, strconv.Itoa(httpStatus), *jerr.Status)
 
 	// test internal server error
-	jerr, httpStatus = jsonapi.ErrorToJSONAPIError(errors.NewInternalError(errs.New("foo")))
+	jerr, httpStatus = jsonapi.ErrorToJSONAPIError(errors.NewInternalError(ctx, errs.New("foo")))
 	require.Equal(t, http.StatusInternalServerError, httpStatus)
 	require.NotNil(t, jerr.Code)
 	require.NotNil(t, jerr.Status)

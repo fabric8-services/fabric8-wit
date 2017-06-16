@@ -89,7 +89,7 @@ func (m *GormIterationRepository) LoadMultiple(ctx context.Context, ids []uuid.U
 	}
 	tx := m.db.Find(&objs)
 	if tx.Error != nil {
-		return nil, errors.NewInternalError(tx.Error)
+		return nil, errors.NewInternalError(ctx, tx.Error)
 	}
 	return objs, nil
 }
@@ -143,7 +143,7 @@ func (m *GormIterationRepository) Root(ctx context.Context, spaceID uuid.UUID) (
 			"space_id": spaceID,
 			"err":      tx.Error,
 		}, "unable to get the root iteration")
-		return nil, errors.NewInternalError(tx.Error)
+		return nil, errors.NewInternalError(ctx, tx.Error)
 	}
 
 	return &itr, nil
@@ -166,7 +166,7 @@ func (m *GormIterationRepository) Load(ctx context.Context, id uuid.UUID) (*Iter
 			"iteration_id": id.String(),
 			"err":          tx.Error,
 		}, "unable to load the iteration")
-		return nil, errors.NewInternalError(tx.Error)
+		return nil, errors.NewInternalError(ctx, tx.Error)
 	}
 	return &obj, nil
 }
@@ -188,7 +188,7 @@ func (m *GormIterationRepository) Save(ctx context.Context, i Iteration) (*Itera
 			"iteration_id": i.ID,
 			"err":          err,
 		}, "unknown error happened when searching the iteration")
-		return nil, errors.NewInternalError(err)
+		return nil, errors.NewInternalError(ctx, err)
 	}
 	tx = tx.Save(&i)
 	if err := tx.Error; err != nil {
@@ -196,7 +196,7 @@ func (m *GormIterationRepository) Save(ctx context.Context, i Iteration) (*Itera
 			"iteration_id": i.ID,
 			"err":          err,
 		}, "unable to save the iterations")
-		return nil, errors.NewInternalError(err)
+		return nil, errors.NewInternalError(ctx, err)
 	}
 	return &i, nil
 }

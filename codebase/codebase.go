@@ -159,12 +159,12 @@ func (m *GormCodebaseRepository) Save(ctx context.Context, codebase *Codebase) (
 		return nil, errors.NewNotFoundError("codebase", codebase.ID.String())
 	}
 	if err := tx.Error; err != nil {
-		return nil, errors.NewInternalError(err)
+		return nil, errors.NewInternalError(ctx, err)
 	}
 
 	tx = tx.Save(codebase)
 	if err := tx.Error; err != nil {
-		return nil, errors.NewInternalError(err)
+		return nil, errors.NewInternalError(ctx, err)
 	}
 	log.Printf("updated codebase to %v\n", codebase)
 	return codebase, nil
@@ -199,7 +199,7 @@ func (m *GormCodebaseRepository) List(ctx context.Context, spaceID uuid.UUID, st
 	result := []*Codebase{}
 	columns, err := rows.Columns()
 	if err != nil {
-		return nil, 0, errors.NewInternalError(err)
+		return nil, 0, errors.NewInternalError(ctx, err)
 	}
 
 	// need to set up a result for Scan() in order to extract total count.
@@ -219,7 +219,7 @@ func (m *GormCodebaseRepository) List(ctx context.Context, spaceID uuid.UUID, st
 		if first {
 			first = false
 			if err = rows.Scan(columnValues...); err != nil {
-				return nil, 0, errors.NewInternalError(err)
+				return nil, 0, errors.NewInternalError(ctx, err)
 			}
 		}
 		result = append(result, value)
@@ -250,7 +250,7 @@ func (m *GormCodebaseRepository) Load(ctx context.Context, id uuid.UUID) (*Codeb
 		return nil, errors.NewNotFoundError("codebase", id.String())
 	}
 	if tx.Error != nil {
-		return nil, errors.NewInternalError(tx.Error)
+		return nil, errors.NewInternalError(ctx, tx.Error)
 	}
 	return &obj, nil
 }

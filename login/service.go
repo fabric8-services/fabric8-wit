@@ -339,7 +339,7 @@ func (keycloak *KeycloakOAuthProvider) checkFederatedIdentity(ctx context.Contex
 		log.Error(ctx, map[string]interface{}{
 			"err": err.Error(),
 		}, "Unable to crete http request")
-		return false, er.NewInternalError(errs.Wrap(err, "unable to crete http request"))
+		return false, er.NewInternalError(ctx, errs.Wrap(err, "unable to crete http request"))
 	}
 	req.Header.Add("Authorization", "Bearer "+token)
 	res, err := http.DefaultClient.Do(req)
@@ -348,7 +348,7 @@ func (keycloak *KeycloakOAuthProvider) checkFederatedIdentity(ctx context.Contex
 			"provider": provider,
 			"err":      err.Error(),
 		}, "Unable to obtain a federated identity token")
-		return false, er.NewInternalError(errs.Wrap(err, "unable to obtain a federated identity token"))
+		return false, er.NewInternalError(ctx, errs.Wrap(err, "unable to obtain a federated identity token"))
 	}
 	defer res.Body.Close()
 	return res.StatusCode == http.StatusOK, nil
