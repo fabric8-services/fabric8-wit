@@ -24,7 +24,7 @@ func NewSpaceCodebasesController(service *goa.Service, db application.DB) *Space
 
 // Create runs the create action.
 func (c *SpaceCodebasesController) Create(ctx *app.CreateSpaceCodebasesContext) error {
-	_, err := login.ContextIdentity(ctx)
+	identityID, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
@@ -41,9 +41,13 @@ func (c *SpaceCodebasesController) Create(ctx *app.CreateSpaceCodebasesContext) 
 	}
 
 	return application.Transactional(c.db, func(appl application.Application) error {
-		_, err = appl.Spaces().Load(ctx, ctx.SpaceID)
+		space, err := appl.Spaces().Load(ctx, ctx.SpaceID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+
+		if *identityID != space.OwnerId {
+			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the space owner"))
 		}
 
 		newCodeBase := codebase.Codebase{
