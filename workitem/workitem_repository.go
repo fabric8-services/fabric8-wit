@@ -340,7 +340,7 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction Directio
 		}
 	case DirectionAbove:
 		// if direction == "above", place the reorder item **above** the workitem having id equal to targetID
-		belowItemOrder, _ := r.FindFirstItem(*targetID)
+		belowItemOrder, err := r.FindFirstItem(*targetID)
 		if belowItemOrder == nil || err != nil {
 			return nil, errors.NewNotFoundError("work item", *targetID)
 		}
