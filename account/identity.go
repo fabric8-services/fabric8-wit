@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"context"
+
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/log"
@@ -13,7 +15,6 @@ import (
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
-	"golang.org/x/net/context"
 )
 
 const (
@@ -59,7 +60,7 @@ func (u NullUUID) Value() (driver.Value, error) {
 // One User account can have many Identities
 type Identity struct {
 	gormsupport.Lifecycle
-	// This is the ID PK field. For identities provided by Keyclaok this ID equals to the Keycloak. For other types of IDP (github, oso, etc) this ID is generated automaticaly
+	// This is the ID PK field. For identities provided by Keycloak this ID equals to the Keycloak. For other types of IDP (github, oso, etc) this ID is generated automaticaly
 	ID uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
 	// The username of the Identity
 	Username string
@@ -373,7 +374,7 @@ func (m *GormIdentityRepository) Search(ctx context.Context, q string, start int
 	value := Identity{}
 	columns, err := rows.Columns()
 	if err != nil {
-		return nil, 0, errors.NewInternalError(err.Error())
+		return nil, 0, errors.NewInternalError(err)
 	}
 
 	// need to set up a result for Scan() in order to extract total count.
@@ -396,12 +397,12 @@ func (m *GormIdentityRepository) Search(ctx context.Context, q string, start int
 		db.ScanRows(rows, &value.User)
 
 		if err = rows.Scan(columnValues...); err != nil {
-			return nil, 0, errors.NewInternalError(err.Error())
+			return nil, 0, errors.NewInternalError(err)
 		}
 
 		value.ID, err = uuid.FromString(identityID)
 		if err != nil {
-			return nil, 0, errors.NewInternalError(err.Error())
+			return nil, 0, errors.NewInternalError(err)
 		}
 
 		value.Username = identityUsername

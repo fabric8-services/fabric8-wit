@@ -3,7 +3,7 @@ package workitem
 import (
 	"fmt"
 
-	"golang.org/x/net/context"
+	"context"
 
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/log"
@@ -68,7 +68,7 @@ func (r *GormWorkItemTypeRepository) Load(ctx context.Context, spaceID uuid.UUID
 			return nil, errors.NewNotFoundError("work item type", id.String())
 		}
 		if err := db.Error; err != nil {
-			return nil, errors.NewInternalError(err.Error())
+			return nil, errors.NewInternalError(err)
 		}
 		cache.Put(res)
 	}
@@ -97,7 +97,7 @@ func (r *GormWorkItemTypeRepository) LoadTypeFromDB(ctx context.Context, id uuid
 			log.Error(ctx, map[string]interface{}{
 				"witID": id,
 			}, "work item type retrieval error", err.Error())
-			return nil, errors.NewInternalError(err.Error())
+			return nil, errors.NewInternalError(err)
 		}
 		cache.Put(res)
 	}
@@ -127,7 +127,7 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UU
 			return nil, errors.NewBadParameterError("extendedTypeID", *extendedTypeID)
 		}
 		if err := db.Error; err != nil {
-			return nil, errors.NewInternalError(err.Error())
+			return nil, errors.NewInternalError(err)
 		}
 		// copy fields from extended type
 		for key, value := range extendedType.Fields {
@@ -156,7 +156,7 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UU
 	}
 
 	if err := r.db.Create(&created).Error; err != nil {
-		return nil, errors.NewInternalError(err.Error())
+		return nil, errors.NewInternalError(err)
 	}
 
 	log.Debug(ctx, map[string]interface{}{"witID": created.ID}, "Work item type created successfully!")

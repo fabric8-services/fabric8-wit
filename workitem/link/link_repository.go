@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"golang.org/x/net/context"
+	"context"
 
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
@@ -36,7 +36,7 @@ type WorkItemLinkRepository interface {
 	DeleteRelatedLinks(ctx context.Context, wiIDStr string, suppressorID uuid.UUID) error
 	Delete(ctx context.Context, ID uuid.UUID, suppressorID uuid.UUID) error
 	Save(ctx context.Context, linkCat WorkItemLink, modifierID uuid.UUID) (*WorkItemLink, error)
-	ListWorkItemChildren(ctx context.Context, parent string) ([]workitem.WorkItem, error)
+	ListWorkItemChildren(ctx context.Context, parent string, start *int, limit *int) ([]workitem.WorkItem, uint64, error)
 	WorkItemHasChildren(ctx context.Context, parent string) (bool, error)
 }
 
@@ -171,7 +171,7 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 			// TODO(kwk): Make NewBadParameterError a variadic function to avoid this ugliness ;)
 			return nil, errors.NewBadParameterError("data.relationships.source_id + data.relationships.target_id + data.relationships.link_type_id", sourceID).Expected("unique")
 		}
-		return nil, errors.NewInternalError(db.Error.Error())
+		return nil, errors.NewInternalError(db.Error)
 	}
 	// save a revision of the created work item link
 	if err := r.revisionRepo.Create(ctx, creatorID, RevisionTypeCreate, *link); err != nil {
@@ -195,7 +195,7 @@ func (r *GormWorkItemLinkRepository) Load(ctx context.Context, ID uuid.UUID) (*W
 		return nil, errors.NewNotFoundError("work item link", ID.String())
 	}
 	if db.Error != nil {
-		return nil, errors.NewInternalError(db.Error.Error())
+		return nil, errors.NewInternalError(db.Error)
 	}
 	return &result, nil
 }
@@ -277,7 +277,7 @@ func (r *GormWorkItemLinkRepository) deleteLink(ctx context.Context, lnk WorkIte
 			"wil_id": lnk.ID,
 			"err":    tx.Error,
 		}, "unable to delete work item link")
-		return errors.NewInternalError(tx.Error.Error())
+		return errors.NewInternalError(tx.Error)
 	}
 	// save a revision of the deleted work item link
 	if err := r.revisionRepo.Create(ctx, suppressorID, RevisionTypeDelete, lnk); err != nil {
@@ -305,7 +305,7 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, linkToSave WorkIt
 			"wil_id": linkToSave.ID,
 			"err":    db.Error,
 		}, "unable to find work item link")
-		return nil, errors.NewInternalError(db.Error.Error())
+		return nil, errors.NewInternalError(db.Error)
 	}
 	if existingLink.Version != linkToSave.Version {
 		return nil, errors.NewVersionConflictError("version conflict")
@@ -332,7 +332,7 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, linkToSave WorkIt
 			"wil_id": linkToSave.ID,
 			"err":    db.Error,
 		}, "unable to save work item link")
-		return nil, errors.NewInternalError(db.Error.Error())
+		return nil, errors.NewInternalError(db.Error)
 	}
 	// save a revision of the modified work item link
 	if err := r.revisionRepo.Create(ctx, modifierID, RevisionTypeUpdate, linkToSave); err != nil {
@@ -345,7 +345,7 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, linkToSave WorkIt
 }
 
 // ListWorkItemChildren get all child work items
-func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, parent string) ([]workitem.WorkItem, error) {
+func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, parent string, start *int, limit *int) ([]workitem.WorkItem, uint64, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitem", "children", "query"}, time.Now())
 
 	where := fmt.Sprintf(`
@@ -356,33 +356,82 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 		)
 	)`, WorkItemLink{}.TableName(), WorkItemLinkType{}.TableName())
 	db := r.db.Model(&workitem.WorkItemStorage{}).Where(where, parent)
+	if start != nil {
+		if *start < 0 {
+			return nil, 0, errors.NewBadParameterError("start", *start)
+		}
+		db = db.Offset(*start)
+	}
+	if limit != nil {
+		if *limit <= 0 {
+			return nil, 0, errors.NewBadParameterError("limit", *limit)
+		}
+		db = db.Limit(*limit)
+	}
+	db = db.Select("count(*) over () as cnt2 , *")
+
 	rows, err := db.Rows()
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 	result := []workitem.WorkItemStorage{}
+
+	columns, err := rows.Columns()
+	if err != nil {
+		return nil, 0, errors.NewInternalError(err)
+	}
+
+	var count uint64
+	var ignore interface{}
+	columnValues := make([]interface{}, len(columns))
+
+	for index := range columnValues {
+		columnValues[index] = &ignore
+	}
+	columnValues[0] = &count
+	first := true
 
 	for rows.Next() {
 		value := workitem.WorkItemStorage{}
 		db.ScanRows(rows, &value)
 
+		if first {
+			first = false
+			if err = rows.Scan(columnValues...); err != nil {
+				return nil, 0, errors.NewInternalError(err)
+			}
+		}
 		result = append(result, value)
 	}
+
+	if first {
+		// means 0 rows were returned from the first query (maybe becaus of offset outside of total count),
+		// need to do a count(*) to find out total
+		db := db.Select("count(*)")
+		rows2, err := db.Rows()
+		defer rows2.Close()
+		if err != nil {
+			return nil, 0, errs.WithStack(err)
+		}
+		rows2.Next() // count(*) will always return a row
+		rows2.Scan(&count)
+	}
+
 	res := make([]workitem.WorkItem, len(result))
 	for index, value := range result {
 		wiType, err := r.workItemTypeRepo.LoadTypeFromDB(ctx, value.Type)
 		if err != nil {
-			return nil, errors.NewInternalError(err.Error())
+			return nil, 0, errors.NewInternalError(err)
 		}
 		modelWI, err := workitem.ConvertWorkItemStorageToModel(wiType, &value)
 		if err != nil {
-			return nil, errors.NewInternalError(err.Error())
+			return nil, 0, errors.NewInternalError(err)
 		}
 		res[index] = *modelWI
 	}
 
-	return res, nil
+	return res, count, nil
 }
 
 // WorkItemHasChildren returns true if the given parent work item has children;

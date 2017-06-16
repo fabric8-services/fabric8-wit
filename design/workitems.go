@@ -153,6 +153,8 @@ var _ = a.Resource("workitem", func() {
 		a.Description("List children associated with the given work item")
 		a.Params(func() {
 			a.Param("wiId", d.String, "wiId")
+			a.Param("page[offset]", d.String, `Paging start position is a string pointing to the beginning of pagination.  The value starts from 0 onwards.`)
+			a.Param("page[limit]", d.Integer, `Paging size is the number of items in a page`)
 		})
 		a.UseTrait("conditional")
 		a.Response(d.OK, workItemList)
@@ -191,6 +193,7 @@ var _ = a.Resource("workitem", func() {
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.Forbidden, JSONAPIErrors)
 	})
 	a.Action("update", func() {
 		a.Security("jwt")
@@ -210,6 +213,7 @@ var _ = a.Resource("workitem", func() {
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.Forbidden, JSONAPIErrors)
 	})
 	a.Action("reorder", func() {
 		a.Security("jwt")
@@ -222,9 +226,11 @@ var _ = a.Resource("workitem", func() {
 			a.Media(workItemReorder)
 		})
 		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.Conflict, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.Forbidden, JSONAPIErrors)
 	})
 })
 
