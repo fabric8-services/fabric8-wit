@@ -215,5 +215,6 @@ var _ = a.Resource("space_codebases", func() {
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.Forbidden, JSONAPIErrors)
 	})
 })
