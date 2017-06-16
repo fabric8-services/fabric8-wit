@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/almighty/almighty-core/account"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/migration"
@@ -14,6 +15,7 @@ import (
 	testsupport "github.com/almighty/almighty-core/test"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/almighty/almighty-core/workitem/link"
+
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -125,11 +127,93 @@ func (s *linkRepoBlackBoxTest) TestDisallowMultipleParents() {
 
 	// create a work item link
 	linkRepository := link.NewWorkItemLinkRepository(s.DB)
-	_, err = linkRepository.Create(s.ctx, Parent1ID, ChildID, s.testTreeLinkTypeID, s.testIdentity.ID)
+	linkTest, err := linkRepository.Create(s.ctx, Parent1ID, ChildID, s.testTreeLinkTypeID, s.testIdentity.ID)
 	require.Nil(s.T(), err)
+
+	var exists bool
+	exists, err = linkRepository.Exists(s.ctx, linkTest.ID.String())
+	require.Nil(s.T(), err)
+	require.True(s.T(), exists)
 
 	_, err = linkRepository.Create(s.ctx, Parent2ID, ChildID, s.testTreeLinkTypeID, s.testIdentity.ID)
 	require.NotNil(s.T(), err)
+}
+
+func (s *linkRepoBlackBoxTest) TestExistsLink() {
+	t := s.T()
+	resource.Require(t, resource.Database)
+
+	t.Run("link exists", func(t *testing.T) {
+		// given
+		// create 3 workitems for linking
+		workitemRepository := workitem.NewWorkItemRepository(s.DB)
+		Parent1, err := workitemRepository.Create(
+			s.ctx, s.testSpace, workitem.SystemBug,
+			map[string]interface{}{
+				workitem.SystemTitle: "Parent 1",
+				workitem.SystemState: workitem.SystemStateNew,
+			}, s.testIdentity.ID)
+		require.Nil(s.T(), err)
+		Parent1ID, err := strconv.ParseUint(Parent1.ID, 10, 64)
+
+		Child, err := workitemRepository.Create(
+			s.ctx, s.testSpace, workitem.SystemBug,
+			map[string]interface{}{
+				workitem.SystemTitle: "Child",
+				workitem.SystemState: workitem.SystemStateNew,
+			}, s.testIdentity.ID)
+		require.Nil(s.T(), err)
+		ChildID, err := strconv.ParseUint(Child.ID, 10, 64)
+		require.Nil(s.T(), err)
+
+		// Create a work item link category
+		linkCategoryRepository := link.NewWorkItemLinkCategoryRepository(s.DB)
+		categoryName := "test exists" + uuid.NewV4().String()
+		categoryDescription := "Test Exists Link Category"
+		linkCategoryModel1 := link.WorkItemLinkCategory{
+			Name:        categoryName,
+			Description: &categoryDescription,
+		}
+		linkCategory, err := linkCategoryRepository.Create(s.ctx, &linkCategoryModel1)
+		require.Nil(s.T(), err)
+
+		// create tree topology link type
+		linkTypeRepository := link.NewWorkItemLinkTypeRepository(s.DB)
+		linkTypeModel1 := link.WorkItemLinkType{
+			Name:           "TestExistsLinkType",
+			SourceTypeID:   workitem.SystemBug,
+			TargetTypeID:   workitem.SystemBug,
+			ForwardName:    "foo",
+			ReverseName:    "foo",
+			Topology:       "tree",
+			LinkCategoryID: linkCategory.ID,
+			SpaceID:        s.testSpace,
+		}
+		TestTreeLinkType, err := linkTypeRepository.Create(s.ctx, &linkTypeModel1)
+		require.Nil(s.T(), err)
+		s.testTreeLinkTypeID = TestTreeLinkType.ID
+
+		// create a work item link
+		linkRepository := link.NewWorkItemLinkRepository(s.DB)
+		linkTest, err := linkRepository.Create(s.ctx, Parent1ID, ChildID, s.testTreeLinkTypeID, s.testIdentity.ID)
+		require.Nil(s.T(), err)
+
+		var exists bool
+		exists, err = linkRepository.Exists(s.ctx, linkTest.ID.String())
+		require.Nil(s.T(), err)
+		require.True(s.T(), exists)
+	})
+
+	t.Run("link doesn't exist", func(t *testing.T) {
+		// then
+		linkRepository := link.NewWorkItemLinkRepository(s.DB)
+		// when
+		exists, err := linkRepository.Exists(s.ctx, uuid.NewV4().String())
+		// then
+		require.IsType(t, errors.NotFoundError{}, err)
+		require.False(t, exists)
+	})
+
 }
 
 // TestCountChildWorkitems tests total number of workitem children returned by list is equal to the total number of workitem children created

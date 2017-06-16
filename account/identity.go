@@ -1,16 +1,17 @@
 package account
 
 import (
+	"context"
 	"database/sql/driver"
 	"strconv"
 	"strings"
 	"time"
 
-	"context"
-
+	"github.com/almighty/almighty-core/application/repository"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/log"
+
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
@@ -105,6 +106,7 @@ func NewIdentityRepository(db *gorm.DB) *GormIdentityRepository {
 
 // IdentityRepository represents the storage interface.
 type IdentityRepository interface {
+	repository.Exister
 	Load(ctx context.Context, id uuid.UUID) (*Identity, error)
 	Create(ctx context.Context, identity *Identity) error
 	Lookup(ctx context.Context, username, profileURL, providerType string) (*Identity, error)
@@ -137,6 +139,12 @@ func (m *GormIdentityRepository) Load(ctx context.Context, id uuid.UUID) (*Ident
 	}
 
 	return &native, errs.WithStack(err)
+}
+
+// Exists returns true|false whether an identity exists with a specific identifier
+func (m *GormIdentityRepository) Exists(ctx context.Context, id string) (bool, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "identity", "exists"}, time.Now())
+	return repository.Exists(ctx, m.db, m.TableName(), id)
 }
 
 // Create creates a new record.

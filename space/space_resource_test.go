@@ -4,10 +4,13 @@ import (
 	"testing"
 
 	"context"
+
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
+	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
+
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -57,6 +60,28 @@ func (test *resourceRepoBBTest) TestLoad() {
 
 	res2, _, _ := expectResource(test.load(res.ID), test.requireOk)
 	assert.True(test.T(), (*res).Equal(*res2))
+}
+
+func (test *resourceRepoBBTest) TestExistsSpaceResource() {
+	t := test.T()
+	resource.Require(t, resource.Database)
+
+	t.Run("space resource exists", func(t *testing.T) {
+		// given
+		expectResource(test.load(uuid.NewV4()), test.assertNotFound())
+		res, _, _ := expectResource(test.create(testResourceID, testPolicyID, testPermissionID), test.requireOk)
+
+		exists, err := test.repo.Exists(context.Background(), res.ID.String())
+		require.Nil(t, err)
+		assert.True(t, exists)
+	})
+
+	t.Run("space resource doesn't exist", func(t *testing.T) {
+		exists, err := test.repo.Exists(context.Background(), uuid.NewV4().String())
+		require.IsType(t, errors.NotFoundError{}, err)
+		assert.False(t, exists)
+	})
+
 }
 
 func (test *resourceRepoBBTest) TestSaveOk() {

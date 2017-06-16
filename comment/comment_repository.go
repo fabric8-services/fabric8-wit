@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/almighty/almighty-core/application/repository"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/rendering"
@@ -16,6 +17,7 @@ import (
 
 // Repository describes interactions with comments
 type Repository interface {
+	repository.Exister
 	Create(ctx context.Context, comment *Comment, creator uuid.UUID) error
 	Save(ctx context.Context, comment *Comment, modifier uuid.UUID) error
 	Delete(ctx context.Context, commentID uuid.UUID, suppressor uuid.UUID) error
@@ -233,4 +235,10 @@ func (m *GormCommentRepository) Load(ctx context.Context, id uuid.UUID) (*Commen
 		return nil, errors.NewInternalError(tx.Error)
 	}
 	return &obj, nil
+}
+
+// Exists returns true|false whether a comment exists with a specific identifier
+func (m *GormCommentRepository) Exists(ctx context.Context, id string) (bool, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "comment", "exists"}, time.Now())
+	return repository.Exists(ctx, m.db, m.TableName(), id)
 }

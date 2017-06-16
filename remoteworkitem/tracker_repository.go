@@ -6,7 +6,9 @@ import (
 	"fmt"
 
 	"context"
+
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/application/repository"
 	"github.com/almighty/almighty-core/criteria"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/workitem"
@@ -14,6 +16,8 @@ import (
 	"github.com/pkg/errors"
 	govalidator "gopkg.in/asaskevich/govalidator.v4"
 )
+
+const trackersTableName = "trackers"
 
 // GormTrackerRepository implements TrackerRepository using gorm
 type GormTrackerRepository struct {
@@ -89,6 +93,11 @@ func (r *GormTrackerRepository) Load(ctx context.Context, ID string) (*app.Track
 		Type: res.Type}
 
 	return &t, nil
+}
+
+// Exists returns true|false whether a tracker exists with a specific identifier
+func (m *GormTrackerRepository) Exists(ctx context.Context, id string) (bool, error) {
+	return repository.Exists(ctx, m.db, trackersTableName, id)
 }
 
 // List returns tracker selected by the given criteria.Expression, starting with start (zero-based) and returning at most limit items
