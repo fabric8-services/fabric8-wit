@@ -16,6 +16,7 @@ import (
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/test"
 	"github.com/goadesign/goa"
+	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 
 	"github.com/almighty/almighty-core/login"
@@ -109,7 +110,7 @@ func (s *ProfileBlackBoxTest) generateAccessToken() (*string, error) {
 		"grant_type":    {"password"},
 	})
 	if err != nil {
-		return nil, errors.NewInternalError("error when obtaining token " + err.Error())
+		return nil, errors.NewInternalError(errs.Wrap(err, "error when obtaining token"))
 	}
 
 	token, err := auth.ReadToken(res)

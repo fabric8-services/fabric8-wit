@@ -292,7 +292,7 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 	value := workitem.WorkItemStorage{}
 	columns, err := rows.Columns()
 	if err != nil {
-		return nil, 0, errors.NewInternalError(err.Error())
+		return nil, 0, errors.NewInternalError(err)
 	}
 
 	// need to set up a result for Scan() in order to extract total count.
@@ -311,7 +311,7 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 		if first {
 			first = false
 			if err = rows.Scan(columnValues...); err != nil {
-				return nil, 0, errors.NewInternalError(err.Error())
+				return nil, 0, errors.NewInternalError(err)
 			}
 		}
 		result = append(result, value)
@@ -348,7 +348,7 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 		// FIXME: Against best practice http://go-database-sql.org/retrieving.html
 		wiType, err := r.wir.LoadTypeFromDB(ctx, value.Type)
 		if err != nil {
-			return nil, 0, errors.NewInternalError(err.Error())
+			return nil, 0, errors.NewInternalError(err)
 		}
 		wiModel, err := wiType.ConvertWorkItemStorageToModel(value)
 		if err != nil {

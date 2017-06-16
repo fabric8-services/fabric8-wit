@@ -26,8 +26,8 @@ func (err simpleError) Error() string {
 }
 
 // NewInternalError returns the custom defined error of type InternalError.
-func NewInternalError(msg string) InternalError {
-	return InternalError{simpleError{msg}}
+func NewInternalError(err error) InternalError {
+	return InternalError{err}
 }
 
 // IsInternalError returns true if the cause of the given error can be
@@ -72,7 +72,11 @@ func IsForbiddenError(err error) (bool, error) {
 
 // InternalError means that the operation failed for some internal, unexpected reason
 type InternalError struct {
-	simpleError
+	Err error
+}
+
+func (ie InternalError) Error() string {
+	return ie.Err.Error()
 }
 
 // UnauthorizedError means that the operation is unauthorized
