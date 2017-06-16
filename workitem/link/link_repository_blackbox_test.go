@@ -205,8 +205,11 @@ func (s *linkRepoBlackBoxTest) TestExistsLink() {
 	})
 
 	t.Run("link doesn't exist", func(t *testing.T) {
+		// then
 		linkRepository := link.NewWorkItemLinkRepository(s.DB)
+		// when
 		exists, err := linkRepository.Exists(s.ctx, uuid.NewV4().String())
+		// then
 		require.IsType(t, errors.NotFoundError{}, err)
 		require.False(t, exists)
 	})
