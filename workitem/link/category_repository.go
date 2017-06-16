@@ -39,7 +39,7 @@ func (r *GormWorkItemLinkCategoryRepository) Create(ctx context.Context, linkCat
 	}
 	db := r.db.Create(linkCat)
 	if db.Error != nil {
-		return nil, errors.NewInternalError(db.Error.Error())
+		return nil, errors.NewInternalError(db.Error)
 	}
 	log.Info(ctx, map[string]interface{}{
 		"wilc_id": linkCat.ID,
@@ -62,7 +62,7 @@ func (r *GormWorkItemLinkCategoryRepository) Load(ctx context.Context, ID uuid.U
 		return nil, errors.NewNotFoundError("work item link category", ID.String())
 	}
 	if db.Error != nil {
-		return nil, errors.NewInternalError(db.Error.Error())
+		return nil, errors.NewInternalError(db.Error)
 	}
 	return &result, nil
 }
@@ -94,7 +94,7 @@ func (r *GormWorkItemLinkCategoryRepository) Delete(ctx context.Context, ID uuid
 	}, "Work item link category to delete")
 	db := r.db.Delete(&cat)
 	if db.Error != nil {
-		return errors.NewInternalError(db.Error.Error())
+		return errors.NewInternalError(db.Error)
 	}
 	if db.RowsAffected == 0 {
 		return errors.NewNotFoundError("work item link category", ID.String())
@@ -119,7 +119,7 @@ func (r *GormWorkItemLinkCategoryRepository) Save(ctx context.Context, linkCat W
 			"wilc_id": linkCat.ID,
 			"err":     db.Error,
 		}, "unable to find work item link category")
-		return nil, errors.NewInternalError(db.Error.Error())
+		return nil, errors.NewInternalError(db.Error)
 	}
 	if res.Version != linkCat.Version {
 		return nil, errors.NewVersionConflictError("version conflict")
@@ -136,7 +136,7 @@ func (r *GormWorkItemLinkCategoryRepository) Save(ctx context.Context, linkCat W
 			"wilc_id": newLinkCat.ID,
 			"err":     db.Error,
 		}, "unable to save work item link category repository")
-		return nil, errors.NewInternalError(db.Error.Error())
+		return nil, errors.NewInternalError(db.Error)
 	}
 	log.Info(ctx, map[string]interface{}{
 		"wilc_id":         newLinkCat.ID,

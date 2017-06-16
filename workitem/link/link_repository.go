@@ -173,7 +173,7 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 			// TODO(kwk): Make NewBadParameterError a variadic function to avoid this ugliness ;)
 			return nil, errors.NewBadParameterError("data.relationships.source_id + data.relationships.target_id + data.relationships.link_type_id", sourceID).Expected("unique")
 		}
-		return nil, errors.NewInternalError(db.Error.Error())
+		return nil, errors.NewInternalError(db.Error)
 	}
 	// save a revision of the created work item link
 	if err := r.revisionRepo.Create(ctx, creatorID, RevisionTypeCreate, *link); err != nil {
@@ -197,7 +197,7 @@ func (r *GormWorkItemLinkRepository) Load(ctx context.Context, ID uuid.UUID) (*W
 		return nil, errors.NewNotFoundError("work item link", ID.String())
 	}
 	if db.Error != nil {
-		return nil, errors.NewInternalError(db.Error.Error())
+		return nil, errors.NewInternalError(db.Error)
 	}
 	return &result, nil
 }
@@ -284,7 +284,7 @@ func (r *GormWorkItemLinkRepository) deleteLink(ctx context.Context, lnk WorkIte
 			"wil_id": lnk.ID,
 			"err":    tx.Error,
 		}, "unable to delete work item link")
-		return errors.NewInternalError(tx.Error.Error())
+		return errors.NewInternalError(tx.Error)
 	}
 	// save a revision of the deleted work item link
 	if err := r.revisionRepo.Create(ctx, suppressorID, RevisionTypeDelete, lnk); err != nil {
@@ -312,7 +312,7 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, linkToSave WorkIt
 			"wil_id": linkToSave.ID,
 			"err":    db.Error,
 		}, "unable to find work item link")
-		return nil, errors.NewInternalError(db.Error.Error())
+		return nil, errors.NewInternalError(db.Error)
 	}
 	if existingLink.Version != linkToSave.Version {
 		return nil, errors.NewVersionConflictError("version conflict")
@@ -339,7 +339,7 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, linkToSave WorkIt
 			"wil_id": linkToSave.ID,
 			"err":    db.Error,
 		}, "unable to save work item link")
-		return nil, errors.NewInternalError(db.Error.Error())
+		return nil, errors.NewInternalError(db.Error)
 	}
 	// save a revision of the modified work item link
 	if err := r.revisionRepo.Create(ctx, modifierID, RevisionTypeUpdate, linkToSave); err != nil {
@@ -386,7 +386,7 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 
 	columns, err := rows.Columns()
 	if err != nil {
-		return nil, 0, errors.NewInternalError(err.Error())
+		return nil, 0, errors.NewInternalError(err)
 	}
 
 	var count uint64
@@ -406,7 +406,7 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 		if first {
 			first = false
 			if err = rows.Scan(columnValues...); err != nil {
-				return nil, 0, errors.NewInternalError(err.Error())
+				return nil, 0, errors.NewInternalError(err)
 			}
 		}
 		result = append(result, value)
@@ -429,11 +429,11 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 	for index, value := range result {
 		wiType, err := r.workItemTypeRepo.LoadTypeFromDB(ctx, value.Type)
 		if err != nil {
-			return nil, 0, errors.NewInternalError(err.Error())
+			return nil, 0, errors.NewInternalError(err)
 		}
 		modelWI, err := workitem.ConvertWorkItemStorageToModel(wiType, &value)
 		if err != nil {
-			return nil, 0, errors.NewInternalError(err.Error())
+			return nil, 0, errors.NewInternalError(err)
 		}
 		res[index] = *modelWI
 	}
