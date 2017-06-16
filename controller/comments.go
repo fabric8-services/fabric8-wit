@@ -70,22 +70,43 @@ func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
-
-	return application.Transactional(c.db, func(appl application.Application) error {
-		cm, err := appl.Comments().Load(ctx.Context, ctx.CommentID)
+	var cm *comment.Comment
+	var wi *workitem.WorkItem
+	// Following transaction verifies if a user is allowed to update or not
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		cm, err = appl.Comments().Load(ctx.Context, ctx.CommentID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-
-		if *identityID != cm.CreatedBy {
-			// need to use the goa.NewErrorClass() func as there is no native support for 403 in goa
-			// and it is not planned to be supported yet: https://github.com/goadesign/goa/pull/1030
-			return jsonapi.JSONErrorResponse(ctx, goa.NewErrorClass("forbidden", 403)("User is not the comment author"))
+		wi, err = appl.WorkItems().LoadByID(ctx.Context, cm.ParentID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
 		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	// User is allowed to update if user is creator of the comment OR user is a space collaborator
+	if *identityID == cm.CreatedBy {
+		return c.performUpdate(ctx, cm, identityID)
+	}
 
+	authorized, err := authz.Authorize(ctx, wi.SpaceID.String())
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
+	}
+	if authorized == false {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not a space collaborator"))
+	}
+	return c.performUpdate(ctx, cm, identityID)
+}
+
+func (c *CommentsController) performUpdate(ctx *app.UpdateCommentsContext, cm *comment.Comment, identityID *uuid.UUID) error {
+	return application.Transactional(c.db, func(appl application.Application) error {
 		cm.Body = *ctx.Payload.Data.Attributes.Body
 		cm.Markup = rendering.NilSafeGetMarkup(ctx.Payload.Data.Attributes.Markup)
-		err = appl.Comments().Save(ctx.Context, cm, *identityID)
+		err := appl.Comments().Save(ctx.Context, cm, *identityID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
