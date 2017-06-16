@@ -52,7 +52,7 @@ func (r *GormRevisionRepository) Create(ctx context.Context, modifierID uuid.UUI
 		workitemRevision.WorkItemFields = Fields{}
 	}
 	if err := tx.Create(&workitemRevision).Error; err != nil {
-		return errors.NewInternalError(errs.Wrap(err, "failed to create new work item revisio"))
+		return errors.NewInternalError(errs.Wrap(err, "failed to create new work item revision"))
 	}
 	log.Debug(ctx, map[string]interface{}{"wi_id": workitem.ID}, "Work item revision occurrence created")
 	return nil
