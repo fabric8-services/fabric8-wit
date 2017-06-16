@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/almighty/almighty-core/area"
-	localerror "github.com/almighty/almighty-core/errors"
+	errs "github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/path"
@@ -67,7 +67,7 @@ func (test *TestAreaRepository) TestCreateAreaWithSameNameFail() {
 	// then
 	require.NotNil(test.T(), err)
 	// In case of unique constrain error, a BadParameterError is returned.
-	_, ok := errors.Cause(err).(localerror.BadParameterError)
+	_, ok := errors.Cause(err).(errs.BadParameterError)
 	assert.True(test.T(), ok)
 }
 
@@ -131,7 +131,7 @@ func (test *TestAreaRepository) TestExistsArea() {
 		// when
 		exists, err := repo.Exists(context.Background(), uuid.NewV4().String())
 		// then
-		require.IsType(t, localerror.NotFoundError{}, err)
+		require.IsType(t, errs.NotFoundError{}, err)
 		assert.False(t, exists)
 	})
 }

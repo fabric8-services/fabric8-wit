@@ -179,7 +179,7 @@ func (s *workItemRepoBlackBoxTest) TestExistsWorkItem() {
 		require.Nil(s.T(), err, "Could not create workitem")
 		// when
 		var exists bool
-		exists, err = s.repo.Exists(s.ctx, s.spaceID, wi.ID)
+		exists, err = s.repo.Exists(s.ctx, wi.ID)
 		// then
 		require.Nil(t, err)
 		require.True(t, exists)
@@ -189,7 +189,7 @@ func (s *workItemRepoBlackBoxTest) TestExistsWorkItem() {
 		t.Parallel()
 		// when
 		var exists bool
-		exists, err := s.repo.Exists(s.ctx, s.spaceID, "123112")
+		exists, err := s.repo.Exists(s.ctx, "123112")
 		// then
 		require.False(t, exists)
 		require.IsType(t, errors.NotFoundError{}, err)

@@ -7,6 +7,7 @@ import (
 	"github.com/almighty/almighty-core/errors"
 
 	"github.com/jinzhu/gorm"
+	errs "github.com/pkg/errors"
 )
 
 type Exister interface {
@@ -16,6 +17,7 @@ type Exister interface {
 	Exists(ctx context.Context, id string) (bool, error)
 }
 
+// Exists returns true if an item exists in the database table with a given ID
 func Exists(ctx context.Context, db *gorm.DB, tableName string, id string) (bool, error) {
 	var exists bool
 	query := fmt.Sprintf(`
@@ -31,7 +33,7 @@ func Exists(ctx context.Context, db *gorm.DB, tableName string, id string) (bool
 		return exists, errors.NewNotFoundError(tableName, id)
 	}
 	if err != nil {
-		return false, errors.NewInternalError(err.Error())
+		return false, errors.NewInternalError(errs.Wrapf(err, "unable to verify if %s exists", tableName))
 	}
 	return exists, nil
 }

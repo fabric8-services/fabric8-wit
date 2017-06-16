@@ -103,6 +103,7 @@ type GormRepository struct {
 // Load returns the space for the given id
 // returns NotFoundError or InternalError
 func (r *GormRepository) Load(ctx context.Context, ID uuid.UUID) (*Space, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "space", "load"}, time.Now())
 	res := Space{}
 	tx := r.db.Where("id=?", ID).First(&res)
 	if tx.RecordNotFound() {
@@ -126,6 +127,7 @@ func (r *GormRepository) Exists(ctx context.Context, id string) (bool, error) {
 // Delete deletes the space with the given id
 // returns NotFoundError or InternalError
 func (r *GormRepository) Delete(ctx context.Context, ID uuid.UUID) error {
+	defer goa.MeasureSince([]string{"goa", "db", "space", "delete"}, time.Now())
 	if ID == uuid.Nil {
 		log.Error(ctx, map[string]interface{}{
 			"space_id": ID.String(),
@@ -154,6 +156,7 @@ func (r *GormRepository) Delete(ctx context.Context, ID uuid.UUID) error {
 // Save updates the given space in the db. Version must be the same as the one in the stored version
 // returns NotFoundError, BadParameterError, VersionConflictError or InternalError
 func (r *GormRepository) Save(ctx context.Context, p *Space) (*Space, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "space", "save"}, time.Now())
 	pr := Space{}
 	tx := r.db.Where("id=?", p.ID).First(&pr)
 	oldVersion := p.Version
@@ -188,6 +191,7 @@ func (r *GormRepository) Save(ctx context.Context, p *Space) (*Space, error) {
 // Create creates a new Space in the db
 // returns BadParameterError or InternalError
 func (r *GormRepository) Create(ctx context.Context, space *Space) (*Space, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "space", "create"}, time.Now())
 	// We might want to create a space with a specific ID, e.g. space.SystemSpace
 	if space.ID == uuid.Nil {
 		space.ID = uuid.NewV4()
@@ -292,6 +296,7 @@ func (r *GormRepository) listSpaceFromDB(ctx context.Context, q *string, userID 
 
 // List returns work item selected by the given criteria.Expression, starting with start (zero-based) and returning at most limit items
 func (r *GormRepository) List(ctx context.Context, start *int, limit *int) ([]Space, uint64, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "space", "list"}, time.Now())
 	result, count, err := r.listSpaceFromDB(ctx, nil, nil, start, limit)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
@@ -300,6 +305,7 @@ func (r *GormRepository) List(ctx context.Context, start *int, limit *int) ([]Sp
 }
 
 func (r *GormRepository) Search(ctx context.Context, q *string, start *int, limit *int) ([]Space, uint64, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "space", "search"}, time.Now())
 	result, count, err := r.listSpaceFromDB(ctx, q, nil, start, limit)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
@@ -316,6 +322,7 @@ func (r *GormRepository) LoadByOwner(ctx context.Context, userID *uuid.UUID, sta
 }
 
 func (r *GormRepository) LoadByOwnerAndName(ctx context.Context, userID *uuid.UUID, spaceName *string) (*Space, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "space", "loadByOwnerAndName"}, time.Now())
 	res := Space{}
 	tx := r.db.Where("spaces.owner_id=? AND LOWER(spaces.name)=?", *userID, strings.ToLower(*spaceName)).First(&res)
 	if tx.RecordNotFound() {

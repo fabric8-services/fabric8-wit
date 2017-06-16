@@ -2,13 +2,16 @@ package workitem
 
 import (
 	"fmt"
+	"time"
 
 	"context"
 
+	"github.com/almighty/almighty-core/application/repository"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/path"
 
+	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -18,7 +21,7 @@ var cache = NewWorkItemTypeCache()
 
 // WorkItemTypeRepository encapsulates storage & retrieval of work item types
 type WorkItemTypeRepository interface {
-	Exists(ctx context.Context, spaceID uuid.UUID, id uuid.UUID) (bool, error)
+	repository.Exister
 	Load(ctx context.Context, spaceID uuid.UUID, id uuid.UUID) (*WorkItemType, error)
 	Create(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]FieldDefinition) (*WorkItemType, error)
 	List(ctx context.Context, spaceID uuid.UUID, start *int, length *int) ([]WorkItemType, error)
@@ -48,6 +51,7 @@ func (r *GormWorkItemTypeRepository) LoadByID(ctx context.Context, id uuid.UUID)
 // Load returns the work item for the given spaceID and id
 // returns NotFoundError, InternalError
 func (r *GormWorkItemTypeRepository) Load(ctx context.Context, spaceID uuid.UUID, id uuid.UUID) (*WorkItemType, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemtype", "load"}, time.Now())
 	log.Info(ctx, map[string]interface{}{
 		"wit_id":   id,
 		"space_id": spaceID,
@@ -77,25 +81,9 @@ func (r *GormWorkItemTypeRepository) Load(ctx context.Context, spaceID uuid.UUID
 }
 
 // Exists returns true if a work item type exists with a given ID
-func (m *GormWorkItemTypeRepository) Exists(ctx context.Context, spaceID uuid.UUID, id uuid.UUID) (bool, error) {
-	query := fmt.Sprintf(`
-		SELECT EXISTS (
-			SELECT 1 FROM %[1]s
-			WHERE
-				id=$1
-				AND
-				space_id=$2
-				AND deleted_at IS NULL
-		)`, WorkItemType{}.TableName())
-	var exists bool
-	err := m.db.CommonDB().QueryRow(query, id, spaceID).Scan(&exists)
-	if err == nil && !exists {
-		return exists, errors.NewNotFoundError("work item type", id.String())
-	}
-	if err != nil {
-		return false, errors.NewInternalError(err.Error())
-	}
-	return exists, nil
+func (m *GormWorkItemTypeRepository) Exists(ctx context.Context, id string) (bool, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemtype", "exists"}, time.Now())
+	return repository.Exists(ctx, m.db, WorkItemType{}.TableName(), id)
 }
 
 // LoadTypeFromDB return work item type for the given id
@@ -135,6 +123,7 @@ func ClearGlobalWorkItemTypeCache() {
 // Create creates a new work item in the repository
 // returns BadParameterError, ConversionError or InternalError
 func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]FieldDefinition) (*WorkItemType, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemtype", "create"}, time.Now())
 	// Make sure this WIT has an ID
 	if id == nil {
 		tmpID := uuid.NewV4()
@@ -188,6 +177,7 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UU
 
 // List returns work item types that derives from PlannerItem type
 func (r *GormWorkItemTypeRepository) ListPlannerItems(ctx context.Context, spaceID uuid.UUID) ([]WorkItemType, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemtype", "listPlannerItems"}, time.Now())
 	var rows []WorkItemType
 	path := path.Path{}
 	db := r.db.Select("id").Where("space_id = ? AND path::text LIKE '"+path.ConvertToLtree(SystemPlannerItem)+".%'", spaceID.String())
@@ -205,6 +195,7 @@ func (r *GormWorkItemTypeRepository) ListPlannerItems(ctx context.Context, space
 // List returns work item types selected by the given criteria.Expression,
 // starting with start (zero-based) and returning at most "limit" item types.
 func (r *GormWorkItemTypeRepository) List(ctx context.Context, spaceID uuid.UUID, start *int, limit *int) ([]WorkItemType, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemtype", "list"}, time.Now())
 	// Currently we don't implement filtering here, so leave this empty
 	// TODO: (kwk) implement criteria parsing just like for work items
 	var rows []WorkItemType

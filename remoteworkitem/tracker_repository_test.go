@@ -67,7 +67,7 @@ func (test *TestTrackerRepository) TestExistsTracker() {
 		// given
 		tracker, err := test.repo.Create(context.Background(), "http://api.github.com", ProviderGithub)
 		assert.Nil(t, err)
-		assert.NotNil(t, tracker)
+		require.NotNil(t, tracker)
 		assert.Equal(t, "http://api.github.com", tracker.URL)
 		assert.Equal(t, ProviderGithub, tracker.Type)
 

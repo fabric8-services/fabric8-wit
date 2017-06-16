@@ -23,12 +23,11 @@ type WorkItemRepository struct {
 		result1 *workitem.WorkItem
 		result2 error
 	}
-	ExistsStub        func(ctx context.Context, spaceID uuid.UUID, ID string) (bool, error)
+	ExistsStub        func(ctx context.Context, ID string) (bool, error)
 	existsMutex       sync.RWMutex
 	existsArgsForCall []struct {
-		ctx     context.Context
-		spaceID uuid.UUID
-		ID      string
+		ctx context.Context
+		ID  string
 	}
 	existsReturns struct {
 		result1 bool
@@ -168,17 +167,16 @@ func (fake *WorkItemRepository) Load(ctx context.Context, spaceID uuid.UUID, ID 
 	return fake.loadReturns.result1, fake.loadReturns.result2
 }
 
-func (fake *WorkItemRepository) Exists(ctx context.Context, spaceID uuid.UUID, ID string) (bool, error) {
+func (fake *WorkItemRepository) Exists(ctx context.Context, ID string) (bool, error) {
 	fake.existsMutex.Lock()
 	fake.existsArgsForCall = append(fake.existsArgsForCall, struct {
-		ctx     context.Context
-		spaceID uuid.UUID
-		ID      string
-	}{ctx, spaceID, ID})
-	fake.recordInvocation("Exists", []interface{}{ctx, spaceID, ID})
+		ctx context.Context
+		ID  string
+	}{ctx, ID})
+	fake.recordInvocation("Exists", []interface{}{ctx, ID})
 	fake.existsMutex.Unlock()
 	if fake.ExistsReturns != nil {
-		return fake.ExistsStub(ctx, spaceID, ID)
+		return fake.ExistsStub(ctx, ID)
 	}
 	return fake.existsReturns.result1, fake.existsReturns.result2
 }

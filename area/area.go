@@ -2,7 +2,6 @@ package area
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/almighty/almighty-core/application/repository"
