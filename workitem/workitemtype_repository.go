@@ -76,7 +76,7 @@ func (r *GormWorkItemTypeRepository) Load(ctx context.Context, spaceID uuid.UUID
 	return &res, nil
 }
 
-// Exists returns true|false where an object exists with an identifier
+// Exists returns true if a work item type exists with a given ID
 func (m *GormWorkItemTypeRepository) Exists(ctx context.Context, spaceID uuid.UUID, id uuid.UUID) (bool, error) {
 	query := fmt.Sprintf(`
 		SELECT EXISTS (
