@@ -61,15 +61,6 @@ type workItemLinkSuite struct {
 	userSpaceID          uuid.UUID
 }
 
-// The TearDownSuite method will run after all the tests in the suite have been run
-// It tears down the database connection for all the tests in this suite.
-func (s *workItemLinkSuite) TearDownSuite() {
-	// if s.DB != nil {
-	// 	s.DB.Unscoped().Delete(&account.Identity{Username: "test user"})
-	// 	s.DB.Close()
-	// }
-}
-
 // cleanup removes all DB entries that will be created or have been created
 // with this test suite. We need to remove them completely and not only set the
 // "deleted_at" field, which is why we need the Unscoped() function.
