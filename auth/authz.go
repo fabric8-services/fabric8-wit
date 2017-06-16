@@ -42,7 +42,7 @@ type createResourceRequestResultPayload struct {
 	ID string `json:"_id"`
 }
 
-type cretePolicyRequestResultPayload struct {
+type createPolicyRequestResultPayload struct {
 	ID string `json:"id"`
 }
 
@@ -204,8 +204,8 @@ func CreateResource(ctx context.Context, resource KeycloakResource, authzEndpoin
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err.Error(),
-		}, "Unable to crete http request")
-		return "", errors.NewInternalError(errs.Wrap(err, "unable to crete http request"))
+		}, "Unable to create http request")
+		return "", errors.NewInternalError(errs.Wrap(err, "unable to create http request"))
 	}
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Authorization", "Bearer "+protectionAPIToken)
@@ -253,8 +253,8 @@ func GetClientID(ctx context.Context, clientsEndpoint string, publicClientID str
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err.Error(),
-		}, "Unable to crete http request")
-		return "", errors.NewInternalError(errs.Wrap(err, "unable to crete http request"))
+		}, "Unable to create http request")
+		return "", errors.NewInternalError(errs.Wrap(err, "unable to create http request"))
 	}
 	req.Header.Add("Authorization", "Bearer "+protectionAPIToken)
 	res, err := http.DefaultClient.Do(req)
@@ -312,8 +312,8 @@ func CreatePolicy(ctx context.Context, clientsEndpoint string, clientID string, 
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err.Error(),
-		}, "Unable to crete http request")
-		return "", errors.NewInternalError(errs.Wrap(err, "unable to crete http request"))
+		}, "Unable to create http request")
+		return "", errors.NewInternalError(errs.Wrap(err, "unable to create http request"))
 	}
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Authorization", "Bearer "+protectionAPIToken)
@@ -323,7 +323,7 @@ func CreatePolicy(ctx context.Context, clientsEndpoint string, clientID string, 
 			"client_id": clientID,
 			"policy":    policy,
 			"err":       err.Error(),
-		}, "Unable to crete the Keycloak policy")
+		}, "Unable to create the Keycloak policy")
 		return "", errors.NewInternalError(errs.Wrap(err, "unable to create the Keycloak policy"))
 	}
 	defer res.Body.Close()
@@ -338,7 +338,7 @@ func CreatePolicy(ctx context.Context, clientsEndpoint string, clientID string, 
 	}
 	jsonString := rest.ReadBody(res.Body)
 
-	var r cretePolicyRequestResultPayload
+	var r createPolicyRequestResultPayload
 	err = json.Unmarshal([]byte(jsonString), &r)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -367,7 +367,7 @@ func CreatePermission(ctx context.Context, clientsEndpoint string, clientID stri
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err.Error(),
-		}, "Unable to crete http request")
+		}, "Unable to create http request")
 		return "", errors.NewInternalError(errs.Wrap(err, "unable to create http request"))
 	}
 	req.Header.Add("Content-Type", "application/json")
@@ -378,7 +378,7 @@ func CreatePermission(ctx context.Context, clientsEndpoint string, clientID stri
 			"client_id":  clientID,
 			"permission": permission,
 			"err":        err.Error(),
-		}, "Unable to crete the Keycloak permission")
+		}, "Unable to create the Keycloak permission")
 		return "", errors.NewInternalError(errs.Wrap(err, "unable to create the Keycloak permission"))
 	}
 	defer res.Body.Close()
@@ -393,7 +393,7 @@ func CreatePermission(ctx context.Context, clientsEndpoint string, clientID stri
 	}
 	jsonString := rest.ReadBody(res.Body)
 
-	var r cretePolicyRequestResultPayload
+	var r createPolicyRequestResultPayload
 	err = json.Unmarshal([]byte(jsonString), &r)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -421,8 +421,8 @@ func DeleteResource(ctx context.Context, kcResourceID string, authzEndpoint stri
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err.Error(),
-		}, "Unable to crete http request")
-		return errors.NewInternalError(errs.Wrap(err, "unable to crete http request"))
+		}, "Unable to create http request")
+		return errors.NewInternalError(errs.Wrap(err, "unable to create http request"))
 	}
 	req.Header.Add("Authorization", "Bearer "+protectionAPIToken)
 	res, err := http.DefaultClient.Do(req)
@@ -460,8 +460,8 @@ func DeletePolicy(ctx context.Context, clientsEndpoint string, clientID string, 
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err.Error(),
-		}, "Unable to crete http request")
-		return errors.NewInternalError(errs.Wrap(err, "unable to crete http request"))
+		}, "Unable to create http request")
+		return errors.NewInternalError(errs.Wrap(err, "unable to create http request"))
 	}
 	req.Header.Add("Authorization", "Bearer "+protectionAPIToken)
 	res, err := http.DefaultClient.Do(req)
@@ -499,8 +499,8 @@ func DeletePermission(ctx context.Context, clientsEndpoint string, clientID stri
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err.Error(),
-		}, "Unable to crete http request")
-		return errors.NewInternalError(errs.Wrap(err, "unable to crete http request"))
+		}, "Unable to create http request")
+		return errors.NewInternalError(errs.Wrap(err, "unable to create http request"))
 	}
 	req.Header.Add("Authorization", "Bearer "+protectionAPIToken)
 	res, err := http.DefaultClient.Do(req)
@@ -538,8 +538,8 @@ func GetPolicy(ctx context.Context, clientsEndpoint string, clientID string, pol
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err.Error(),
-		}, "Unable to crete http request")
-		return nil, errors.NewInternalError(errs.Wrap(err, "unable to crete http request"))
+		}, "Unable to create http request")
+		return nil, errors.NewInternalError(errs.Wrap(err, "unable to create http request"))
 	}
 	req.Header.Add("Authorization", "Bearer "+protectionAPIToken)
 	res, err := http.DefaultClient.Do(req)
@@ -605,8 +605,8 @@ func UpdatePolicy(ctx context.Context, clientsEndpoint string, clientID string, 
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err.Error(),
-		}, "Unable to crete http request")
-		return errors.NewInternalError(errs.Wrap(err, "unable to crete http request"))
+		}, "Unable to create http request")
+		return errors.NewInternalError(errs.Wrap(err, "unable to create http request"))
 	}
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Authorization", "Bearer "+protectionAPIToken)
@@ -657,8 +657,8 @@ func GetEntitlement(ctx context.Context, entitlementEndpoint string, entitlement
 	if reqErr != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": reqErr.Error(),
-		}, "Unable to crete http request")
-		return nil, errors.NewInternalError(errs.Wrap(reqErr, "unable to crete http request"))
+		}, "Unable to create http request")
+		return nil, errors.NewInternalError(errs.Wrap(reqErr, "unable to create http request"))
 	}
 
 	req.Header.Add("Authorization", "Bearer "+userAccesToken)
@@ -705,8 +705,8 @@ func GetUserInfo(ctx context.Context, userInfoEndpoint string, userAccessToken s
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err.Error(),
-		}, "Unable to crete http request")
-		return nil, errors.NewInternalError(errs.Wrap(err, "unable to crete http request"))
+		}, "Unable to create http request")
+		return nil, errors.NewInternalError(errs.Wrap(err, "unable to create http request"))
 	}
 	req.Header.Add("Authorization", "Bearer "+userAccessToken)
 	res, err := http.DefaultClient.Do(req)
@@ -738,8 +738,8 @@ func ValidateKeycloakUser(ctx context.Context, adminEndpoint string, userID, pro
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err.Error(),
-		}, "Unable to crete http request")
-		return false, errors.NewInternalError(errs.Wrap(err, "unable to crete http request"))
+		}, "Unable to create http request")
+		return false, errors.NewInternalError(errs.Wrap(err, "unable to create http request"))
 	}
 	req.Header.Add("Authorization", "Bearer "+protectionAPIToken)
 	res, err := http.DefaultClient.Do(req)
