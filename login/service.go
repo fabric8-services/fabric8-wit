@@ -338,8 +338,8 @@ func (keycloak *KeycloakOAuthProvider) checkFederatedIdentity(ctx context.Contex
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err.Error(),
-		}, "Unable to crete http request")
-		return false, er.NewInternalError(ctx, errs.Wrap(err, "unable to crete http request"))
+		}, "Unable to create http request")
+		return false, er.NewInternalError(ctx, errs.Wrap(err, "unable to create http request"))
 	}
 	req.Header.Add("Authorization", "Bearer "+token)
 	res, err := http.DefaultClient.Do(req)
