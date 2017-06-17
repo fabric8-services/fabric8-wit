@@ -152,7 +152,7 @@ func (m *GormAreaRepository) Root(ctx context.Context, spaceID uuid.UUID) (*Area
 	parentPathOfRootArea := path.Path{}
 	rootArea, err := m.Query(FilterBySpaceID(spaceID), FilterByPath(parentPathOfRootArea))
 	if len(rootArea) != 1 {
-		return nil, errors.NewInternalError(ctx, errs.Errorf("Single Root area not found for space %s", spaceID))
+		return nil, errors.NewInternalError(ctx, errs.Errorf("single Root area not found for space %s", spaceID))
 	}
 	if err != nil {
 		return nil, err
