@@ -1,6 +1,7 @@
 package controller_test
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"testing"
@@ -19,8 +20,6 @@ import (
 	"github.com/almighty/almighty-core/resource"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
-
-	"context"
 
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
