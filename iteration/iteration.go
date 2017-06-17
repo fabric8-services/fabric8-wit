@@ -1,15 +1,15 @@
 package iteration
 
 import (
+	"context"
 	"strconv"
 	"time"
 
+	"github.com/almighty/almighty-core/application/repository"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/path"
-
-	"context"
 
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -53,12 +53,13 @@ func (m Iteration) GetLastModified() time.Time {
 
 // TableName overrides the table name settings in Gorm to force a specific table name
 // in the database.
-func (m *Iteration) TableName() string {
+func (m Iteration) TableName() string {
 	return "iterations"
 }
 
 // Repository describes interactions with Iterations
 type Repository interface {
+	repository.Exister
 	Create(ctx context.Context, u *Iteration) error
 	List(ctx context.Context, spaceID uuid.UUID) ([]Iteration, error)
 	Root(ctx context.Context, spaceID uuid.UUID) (*Iteration, error)
@@ -169,6 +170,12 @@ func (m *GormIterationRepository) Load(ctx context.Context, id uuid.UUID) (*Iter
 		return nil, errors.NewInternalError(ctx, tx.Error)
 	}
 	return &obj, nil
+}
+
+// Exists returns true|false whether an iteration exists with a specific identifier
+func (m *GormIterationRepository) Exists(ctx context.Context, id string) (bool, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "iteration", "exists"}, time.Now())
+	return repository.Exists(ctx, m.db, Iteration{}.TableName(), id)
 }
 
 // Save updates the given iteration in the db. Version must be the same as the one in the stored version
