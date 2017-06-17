@@ -7,6 +7,7 @@ import (
 
 	"context"
 
+	"github.com/almighty/almighty-core/application/repository"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/log"
@@ -29,6 +30,7 @@ const (
 
 // WorkItemLinkRepository encapsulates storage & retrieval of work item links
 type WorkItemLinkRepository interface {
+	repository.Exister
 	Create(ctx context.Context, sourceID, targetID uint64, linkTypeID uuid.UUID, creatorID uuid.UUID) (*WorkItemLink, error)
 	Load(ctx context.Context, ID uuid.UUID) (*WorkItemLink, error)
 	List(ctx context.Context) ([]WorkItemLink, error)
@@ -142,6 +144,7 @@ func (r *GormWorkItemLinkRepository) ValidateTopology(ctx context.Context, targe
 // Create creates a new work item link in the repository.
 // Returns BadParameterError, ConversionError or InternalError
 func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targetID uint64, linkTypeID uuid.UUID, creatorID uuid.UUID) (*WorkItemLink, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "create"}, time.Now())
 	link := &WorkItemLink{
 		SourceID:   sourceID,
 		TargetID:   targetID,
@@ -183,6 +186,7 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 // Load returns the work item link for the given ID.
 // Returns NotFoundError, ConversionError or InternalError
 func (r *GormWorkItemLinkRepository) Load(ctx context.Context, ID uuid.UUID) (*WorkItemLink, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "load"}, time.Now())
 	log.Info(ctx, map[string]interface{}{
 		"wil_id": ID,
 	}, "Loading work item link")
@@ -200,9 +204,16 @@ func (r *GormWorkItemLinkRepository) Load(ctx context.Context, ID uuid.UUID) (*W
 	return &result, nil
 }
 
+// Exists returns true|false whether a work item link exists with a specific identifier
+func (m *GormWorkItemLinkRepository) Exists(ctx context.Context, id string) (bool, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "exists"}, time.Now())
+	return repository.Exists(ctx, m.db, WorkItemLink{}.TableName(), id)
+}
+
 // ListByWorkItemID returns the work item links that have wiID as source or target.
 // TODO: Handle pagination
 func (r *GormWorkItemLinkRepository) ListByWorkItemID(ctx context.Context, wiIDStr string) ([]WorkItemLink, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "listByWorkItemID"}, time.Now())
 	var modelLinks []WorkItemLink
 	wi, err := r.workItemRepo.LoadFromDB(ctx, wiIDStr)
 	if err != nil {
@@ -220,6 +231,7 @@ func (r *GormWorkItemLinkRepository) ListByWorkItemID(ctx context.Context, wiIDS
 // that have wiID as source or target.
 // TODO: Handle pagination
 func (r *GormWorkItemLinkRepository) List(ctx context.Context) ([]WorkItemLink, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "list"}, time.Now())
 	var modelLinks []WorkItemLink
 	db := r.db.Find(&modelLinks)
 	if db.Error != nil {
@@ -231,6 +243,7 @@ func (r *GormWorkItemLinkRepository) List(ctx context.Context) ([]WorkItemLink, 
 // Delete deletes the work item link with the given id
 // returns NotFoundError or InternalError
 func (r *GormWorkItemLinkRepository) Delete(ctx context.Context, linkID uuid.UUID, suppressorID uuid.UUID) error {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "delete"}, time.Now())
 	var lnk = WorkItemLink{}
 	tx := r.db.Where("id = ?", linkID).Find(&lnk)
 	if tx.RecordNotFound() {
@@ -243,6 +256,7 @@ func (r *GormWorkItemLinkRepository) Delete(ctx context.Context, linkID uuid.UUI
 // DeleteRelatedLinks deletes all links in which the source or target equals the
 // given work item ID.
 func (r *GormWorkItemLinkRepository) DeleteRelatedLinks(ctx context.Context, wiIDStr string, suppressorID uuid.UUID) error {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "deleteRelatedLinks"}, time.Now())
 	log.Info(ctx, map[string]interface{}{
 		"workitem_id": wiIDStr,
 	}, "Deleting the links related to work item")
@@ -289,6 +303,7 @@ func (r *GormWorkItemLinkRepository) deleteLink(ctx context.Context, lnk WorkIte
 // Save updates the given work item link in storage. Version must be the same as the one int the stored version.
 // returns NotFoundError, VersionConflictError, ConversionError or InternalError
 func (r *GormWorkItemLinkRepository) Save(ctx context.Context, linkToSave WorkItemLink, modifierID uuid.UUID) (*WorkItemLink, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "save"}, time.Now())
 	log.Info(ctx, map[string]interface{}{
 		"wil_id": linkToSave.LinkTypeID,
 	}, "Saving workitem link with type =  %s", linkToSave.LinkTypeID)
@@ -346,8 +361,7 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, linkToSave WorkIt
 
 // ListWorkItemChildren get all child work items
 func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, parent string, start *int, limit *int) ([]workitem.WorkItem, uint64, error) {
-	defer goa.MeasureSince([]string{"goa", "db", "workitem", "children", "query"}, time.Now())
-
+	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "children", "query"}, time.Now())
 	where := fmt.Sprintf(`
 	id in (
 		SELECT target_id FROM %s
@@ -437,7 +451,7 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 // WorkItemHasChildren returns true if the given parent work item has children;
 // otherwise false is returned
 func (r *GormWorkItemLinkRepository) WorkItemHasChildren(ctx context.Context, parent string) (bool, error) {
-	defer goa.MeasureSince([]string{"goa", "db", "workitem", "has", "children"}, time.Now())
+	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "has", "children"}, time.Now())
 	query := fmt.Sprintf(`
 		SELECT EXISTS (
 			SELECT 1 FROM %[1]s WHERE id in (

@@ -1,13 +1,14 @@
 package codebase
 
 import (
+	"context"
 	"log"
 	"time"
 
-	"context"
-
+	"github.com/almighty/almighty-core/application/repository"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
+
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
@@ -113,6 +114,7 @@ type Codebase struct {
 
 // Repository describes interactions with codebases
 type Repository interface {
+	repository.Exister
 	Create(ctx context.Context, u *Codebase) error
 	Save(ctx context.Context, codebase *Codebase) (*Codebase, error)
 	List(ctx context.Context, spaceID uuid.UUID, start *int, limit *int) ([]*Codebase, uint64, error)
@@ -240,9 +242,15 @@ func (m *GormCodebaseRepository) List(ctx context.Context, spaceID uuid.UUID, st
 	return result, count, nil
 }
 
+// Exists returns true|false whether a codebase exists with a specific identifier
+func (m *GormCodebaseRepository) Exists(ctx context.Context, id string) (bool, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "codebase", "exists"}, time.Now())
+	return repository.Exists(ctx, m.db, m.TableName(), id)
+}
+
 // Load a single codebase regardless of parent
 func (m *GormCodebaseRepository) Load(ctx context.Context, id uuid.UUID) (*Codebase, error) {
-	defer goa.MeasureSince([]string{"goa", "db", "codebase", "get"}, time.Now())
+	defer goa.MeasureSince([]string{"goa", "db", "codebase", "load"}, time.Now())
 	var obj Codebase
 
 	tx := m.db.Where("id=?", id).First(&obj)
