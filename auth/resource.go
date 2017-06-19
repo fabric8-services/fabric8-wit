@@ -47,7 +47,7 @@ func NewKeycloakResourceManager(config KeycloakConfiguration) *KeycloakResourceM
 
 // CreateResource creates a keycloak resource and associated permission and policy
 func (m *KeycloakResourceManager) CreateResource(ctx context.Context, request *goa.RequestData, name string, rType string, uri *string, scopes *[]string, userID string) (*Resource, error) {
-	pat, err := getPat(request, m.configuration)
+	pat, err := getPat(ctx, request, m.configuration)
 	if err != nil {
 		return nil, err
 	}
@@ -128,12 +128,12 @@ func (m *KeycloakResourceManager) CreateResource(ctx context.Context, request *g
 	return newResource, nil
 }
 
-func getPat(requestData *goa.RequestData, config KeycloakConfiguration) (string, error) {
+func getPat(ctx context.Context, requestData *goa.RequestData, config KeycloakConfiguration) (string, error) {
 	endpoint, err := config.GetKeycloakEndpointToken(requestData)
 	if err != nil {
 		return "", err
 	}
-	token, err := GetProtectedAPIToken(endpoint, config.GetKeycloakClientID(), config.GetKeycloakSecret())
+	token, err := GetProtectedAPIToken(ctx, endpoint, config.GetKeycloakClientID(), config.GetKeycloakSecret())
 	if err != nil {
 		return "", err
 	}
@@ -150,7 +150,7 @@ func (m *KeycloakResourceManager) DeleteResource(ctx context.Context, request *g
 	if err != nil {
 		return err
 	}
-	pat, err := getPat(request, m.configuration)
+	pat, err := getPat(ctx, request, m.configuration)
 	if err != nil {
 		return err
 	}

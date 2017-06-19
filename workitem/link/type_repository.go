@@ -58,7 +58,7 @@ func (r *GormWorkItemLinkTypeRepository) Create(ctx context.Context, linkType *W
 		return nil, errors.NewBadParameterError("work item link category", linkType.LinkCategoryID)
 	}
 	if db.Error != nil {
-		return nil, errors.NewInternalError(errs.Wrap(db.Error, "failed to find work item link category"))
+		return nil, errors.NewInternalError(ctx, errs.Wrap(db.Error, "failed to find work item link category"))
 	}
 	// Check space exists
 	space := space.Space{}
@@ -67,12 +67,12 @@ func (r *GormWorkItemLinkTypeRepository) Create(ctx context.Context, linkType *W
 		return nil, errors.NewBadParameterError("work item link space", linkType.SpaceID)
 	}
 	if db.Error != nil {
-		return nil, errors.NewInternalError(errs.Wrap(db.Error, "failed to find work item link space"))
+		return nil, errors.NewInternalError(ctx, errs.Wrap(db.Error, "failed to find work item link space"))
 	}
 
 	db = r.db.Create(linkType)
 	if db.Error != nil {
-		return nil, errors.NewInternalError(db.Error)
+		return nil, errors.NewInternalError(ctx, db.Error)
 	}
 	return linkType, nil
 }
@@ -93,7 +93,7 @@ func (r *GormWorkItemLinkTypeRepository) Load(ctx context.Context, ID uuid.UUID)
 		return nil, errors.NewNotFoundError("work item link type", ID.String())
 	}
 	if db.Error != nil {
-		return nil, errors.NewInternalError(db.Error)
+		return nil, errors.NewInternalError(ctx, db.Error)
 	}
 	return &modelLinkType, nil
 }
@@ -136,7 +136,7 @@ func (r *GormWorkItemLinkTypeRepository) Delete(ctx context.Context, spaceID uui
 
 	db := r.db.Delete(&cat)
 	if db.Error != nil {
-		return errors.NewInternalError(db.Error)
+		return errors.NewInternalError(ctx, db.Error)
 	}
 	if db.RowsAffected == 0 {
 		return errors.NewNotFoundError("work item link type", ID.String())
@@ -161,7 +161,7 @@ func (r *GormWorkItemLinkTypeRepository) Save(ctx context.Context, modelToSave W
 			"wilt_id": modelToSave.ID,
 			"err":     db.Error,
 		}, "unable to find work item link type repository")
-		return nil, errors.NewInternalError(db.Error)
+		return nil, errors.NewInternalError(ctx, db.Error)
 	}
 	if existingModel.Version != modelToSave.Version {
 		return nil, errors.NewVersionConflictError("version conflict")
@@ -174,7 +174,7 @@ func (r *GormWorkItemLinkTypeRepository) Save(ctx context.Context, modelToSave W
 			"wilt":    existingModel,
 			"err":     db.Error,
 		}, "unable to save work item link type repository")
-		return nil, errors.NewInternalError(db.Error)
+		return nil, errors.NewInternalError(ctx, db.Error)
 	}
 	log.Info(ctx, map[string]interface{}{
 		"wilt_id": existingModel.ID,
