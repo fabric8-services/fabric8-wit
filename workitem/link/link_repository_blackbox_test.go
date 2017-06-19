@@ -106,28 +106,6 @@ func (s *linkRepoBlackBoxTest) createWorkitem(wiType uuid.UUID, title, state str
 		}, s.testIdentity.ID)
 }
 
-func (s *linkRepoBlackBoxTest) TestExistsLink() {
-	// create a parent and a child workitem, then link them together
-	// create 2 workitems for linking
-	parent, err := s.createWorkitem(workitem.SystemBug, "Parent", workitem.SystemStateNew)
-	require.Nil(s.T(), err)
-	parentID, err := strconv.ParseUint(parent.ID, 10, 64)
-	require.Nil(s.T(), err)
-	// create 3 workitems for linking as children to parent workitem
-	child, err := s.createWorkitem(workitem.SystemBug, "Child", workitem.SystemStateNew)
-	require.Nil(s.T(), err)
-	childID, err := strconv.ParseUint(child.ID, 10, 64)
-	require.Nil(s.T(), err)
-	s.T().Log(fmt.Sprintf("creating link with treelinktype.ID=%v", s.testTreeLinkTypeID))
-	wil, err := s.workitemLinkRepo.Create(s.ctx, parentID, childID, s.testTreeLinkTypeID, s.testIdentity.ID)
-	require.Nil(s.T(), err)
-	// when
-	exists, err := s.workitemLinkRepo.Exists(s.ctx, wil.ID.String())
-	// then
-	require.Nil(s.T(), err)
-	require.True(s.T(), exists)
-}
-
 // This creates a parent-child link between two workitems -> parent1 and Child. It tests that when there is an attempt to create another parent (parent2) of child, it should throw an error.
 func (s *linkRepoBlackBoxTest) TestDisallowMultipleParents() {
 	// create 3 workitems for linking
@@ -149,6 +127,28 @@ func (s *linkRepoBlackBoxTest) TestDisallowMultipleParents() {
 	_, err = s.workitemLinkRepo.Create(s.ctx, parent2ID, childID, s.testTreeLinkTypeID, s.testIdentity.ID)
 	// then
 	require.NotNil(s.T(), err)
+}
+
+func (s *linkRepoBlackBoxTest) TestExistsLink() {
+	// create a parent and a child workitem, then link them together
+	// create 2 workitems for linking
+	parent, err := s.createWorkitem(workitem.SystemBug, "Parent", workitem.SystemStateNew)
+	require.Nil(s.T(), err)
+	parentID, err := strconv.ParseUint(parent.ID, 10, 64)
+	require.Nil(s.T(), err)
+	// create 3 workitems for linking as children to parent workitem
+	child, err := s.createWorkitem(workitem.SystemBug, "Child", workitem.SystemStateNew)
+	require.Nil(s.T(), err)
+	childID, err := strconv.ParseUint(child.ID, 10, 64)
+	require.Nil(s.T(), err)
+	s.T().Log(fmt.Sprintf("creating link with treelinktype.ID=%v", s.testTreeLinkTypeID))
+	wil, err := s.workitemLinkRepo.Create(s.ctx, parentID, childID, s.testTreeLinkTypeID, s.testIdentity.ID)
+	require.Nil(s.T(), err)
+	// when
+	exists, err := s.workitemLinkRepo.Exists(s.ctx, wil.ID.String())
+	// then
+	require.Nil(s.T(), err)
+	require.True(s.T(), exists)
 }
 
 // TestCountChildWorkitems tests total number of workitem children returned by list is equal to the total number of workitem children created
