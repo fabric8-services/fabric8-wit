@@ -456,7 +456,7 @@ func (r *GormWorkItemLinkRepository) WorkItemHasChildren(ctx context.Context, pa
 		SELECT EXISTS (
 			SELECT 1 FROM %[1]s WHERE id in (
 				SELECT target_id FROM %[2]s
-				WHERE source_id = $1 AND link_type_id IN (
+				WHERE source_id = $1 AND deleted_at IS NULL AND link_type_id IN (
 					SELECT id FROM %[3]s WHERE forward_name = 'parent of'
 				)
 			)
