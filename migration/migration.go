@@ -16,6 +16,7 @@ import (
 	"github.com/almighty/almighty-core/workitem/link"
 
 	"context"
+
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/client"
 	"github.com/jinzhu/gorm"
@@ -430,7 +431,7 @@ func MigrateToNextVersion(tx *sql.Tx, nextVersion *int64, m Migrations, catalog 
 // in -1 + 1 = 0 which is exactly what we want as the first version.
 func getCurrentVersion(db *sql.Tx, catalog string) (int64, error) {
 	query := `SELECT EXISTS(
-				SELECT 1 FROM information_schema.tables 
+				SELECT 1 FROM information_schema.tables
 				WHERE table_catalog=$1
 				AND table_name='version')`
 	row := db.QueryRow(query, catalog)
@@ -607,22 +608,26 @@ func createOrUpdateSpace(ctx context.Context, spaceRepo *space.GormRepository, i
 }
 
 func createSpace(ctx context.Context, spaceRepo *space.GormRepository, id uuid.UUID, description string) error {
-	_, err := spaceRepo.Load(ctx, id)
-	cause := errs.Cause(err)
-	newSpace := &space.Space{
-		Description: description,
-		Name:        "system.space",
-		ID:          id,
-	}
-	switch cause.(type) {
-	case errors.NotFoundError:
-		log.Info(ctx, map[string]interface{}{
-			"pkg":      "migration",
-			"space_id": id,
-		}, "space %s will be created", id)
-		_, err := spaceRepo.Create(ctx, newSpace)
-		if err != nil {
-			return errs.Wrapf(err, "failed to create space %s", id)
+	exists, err := spaceRepo.Exists(ctx, id.String())
+	if !exists {
+		cause := errs.Cause(err)
+		newSpace := &space.Space{
+			Description: description,
+			Name:        "system.space",
+			ID:          id,
+		}
+		switch cause.(type) {
+		case errors.NotFoundError:
+			log.Info(ctx, map[string]interface{}{
+				"pkg":      "migration",
+				"space_id": id,
+			}, "space %s will be created", id)
+			_, err := spaceRepo.Create(ctx, newSpace)
+			if err != nil {
+				return errs.Wrapf(err, "failed to create space %s", id)
+			}
+		default:
+			log.Error(ctx, map[string]interface{}{"err": err, "space_id": id}, "unable to verify if a space exists")
 		}
 	}
 	return nil

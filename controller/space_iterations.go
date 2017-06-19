@@ -115,8 +115,8 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 // List runs the list action.
 func (c *SpaceIterationsController) List(ctx *app.ListSpaceIterationsContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		_, err := appl.Spaces().Load(ctx, ctx.SpaceID)
-		if err != nil {
+		exists, err := appl.Spaces().Exists(ctx, ctx.SpaceID.String())
+		if !exists || err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
 		iterations, err := appl.Iterations().List(ctx, ctx.SpaceID)

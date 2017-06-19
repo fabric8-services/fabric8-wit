@@ -350,11 +350,11 @@ func (m *GormIdentityRepository) List(ctx context.Context) ([]Identity, error) {
 
 // IsValid returns true if the identity exists
 func (m *GormIdentityRepository) IsValid(ctx context.Context, id uuid.UUID) bool {
-	_, err := m.Load(ctx, id)
+	exists, err := m.Exists(ctx, id.String())
 	if err != nil {
-		return false
+		return exists
 	}
-	return true
+	return exists
 }
 
 // Search searches for Identites where FullName like %q% or users.email like %q% or users.username like %q%
