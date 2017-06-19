@@ -83,7 +83,7 @@ func (s *KeycloakAuthzService) Authorize(ctx context.Context, entitlementEndpoin
 		log.Error(ctx, map[string]interface{}{
 			"token": tm,
 		}, "missing token manager")
-		return false, errors.NewInternalError(errs.New("missing token manager"))
+		return false, errors.NewInternalError(ctx, errs.New("missing token manager"))
 	}
 	tokenWithClaims, err := jwt.ParseWithClaims(jwttoken.Raw, &auth.TokenPayload{}, func(t *jwt.Token) (interface{}, error) {
 		return tm.(token.Manager).PublicKey(), nil
@@ -93,7 +93,7 @@ func (s *KeycloakAuthzService) Authorize(ctx context.Context, entitlementEndpoin
 			"space-id": spaceID,
 			"err":      err,
 		}, "unable to parse the rpt token")
-		return false, errors.NewInternalError(errs.Wrap(err, "unable to parse the rpt token"))
+		return false, errors.NewInternalError(ctx, errs.Wrap(err, "unable to parse the rpt token"))
 	}
 	claims := tokenWithClaims.Claims.(*auth.TokenPayload)
 
@@ -143,7 +143,7 @@ func (s *KeycloakAuthzService) checkEntitlementForSpace(ctx context.Context, tok
 func (s *KeycloakAuthzService) isTokenOutdated(ctx context.Context, token auth.TokenPayload, entitlementEndpoint string, spaceID string) (bool, error) {
 	spaceUUID, err := uuid.FromString(spaceID)
 	if err != nil {
-		return false, errors.NewInternalError(err)
+		return false, errors.NewInternalError(ctx, err)
 	}
 	var spaceResource *space.Resource
 	err = application.Transactional(s.db, func(appl application.Application) error {
@@ -154,7 +154,7 @@ func (s *KeycloakAuthzService) isTokenOutdated(ctx context.Context, token auth.T
 		return false, err
 	}
 	if token.IssuedAt == 0 {
-		return false, errors.NewInternalError(errs.New("iat claim is not found in the token"))
+		return false, errors.NewInternalError(ctx, errs.New("iat claim is not found in the token"))
 	}
 	tokenIssued := time.Unix(token.IssuedAt, 0)
 	return tokenIssued.Before(spaceResource.UpdatedAt), nil

@@ -113,7 +113,7 @@ func (r *GormRepository) Load(ctx context.Context, ID uuid.UUID) (*Space, error)
 		return nil, errors.NewNotFoundError("space", ID.String())
 	}
 	if tx.Error != nil {
-		return nil, errors.NewInternalError(tx.Error)
+		return nil, errors.NewInternalError(ctx, tx.Error)
 	}
 	return &res, nil
 }
@@ -141,7 +141,7 @@ func (r *GormRepository) Delete(ctx context.Context, ID uuid.UUID) error {
 		log.Error(ctx, map[string]interface{}{
 			"space_id": ID.String(),
 		}, "unable to delete the space")
-		return errors.NewInternalError(err)
+		return errors.NewInternalError(ctx, err)
 	}
 	if tx.RowsAffected == 0 {
 		log.Error(ctx, map[string]interface{}{
@@ -166,7 +166,7 @@ func (r *GormRepository) Save(ctx context.Context, p *Space) (*Space, error) {
 		return nil, errors.NewNotFoundError("space", p.ID.String())
 	}
 	if err := tx.Error; err != nil {
-		return nil, errors.NewInternalError(err)
+		return nil, errors.NewInternalError(ctx, err)
 	}
 	tx = tx.Where("Version = ?", oldVersion).Save(p)
 	if err := tx.Error; err != nil {
@@ -176,7 +176,7 @@ func (r *GormRepository) Save(ctx context.Context, p *Space) (*Space, error) {
 		if gormsupport.IsUniqueViolation(tx.Error, "spaces_name_idx") {
 			return nil, errors.NewBadParameterError("Name", p.Name).Expected("unique")
 		}
-		return nil, errors.NewInternalError(err)
+		return nil, errors.NewInternalError(ctx, err)
 	}
 	if tx.RowsAffected == 0 {
 		return nil, errors.NewVersionConflictError("version conflict")
@@ -205,7 +205,7 @@ func (r *GormRepository) Create(ctx context.Context, space *Space) (*Space, erro
 		if gormsupport.IsUniqueViolation(tx.Error, "spaces_name_idx") {
 			return nil, errors.NewBadParameterError("Name", space.Name).Expected("unique")
 		}
-		return nil, errors.NewInternalError(err)
+		return nil, errors.NewInternalError(ctx, err)
 	}
 
 	log.Info(ctx, map[string]interface{}{
@@ -249,7 +249,7 @@ func (r *GormRepository) listSpaceFromDB(ctx context.Context, q *string, userID 
 	result := []Space{}
 	columns, err := rows.Columns()
 	if err != nil {
-		return nil, 0, errors.NewInternalError(err)
+		return nil, 0, errors.NewInternalError(ctx, err)
 	}
 
 	// need to set up a result for Scan() in order to extract total count.
@@ -269,7 +269,7 @@ func (r *GormRepository) listSpaceFromDB(ctx context.Context, q *string, userID 
 		if first {
 			first = false
 			if err = rows.Scan(columnValues...); err != nil {
-				return nil, 0, errors.NewInternalError(err)
+				return nil, 0, errors.NewInternalError(ctx, err)
 			}
 		}
 		result = append(result, value)
@@ -333,7 +333,7 @@ func (r *GormRepository) LoadByOwnerAndName(ctx context.Context, userID *uuid.UU
 		return nil, errors.NewNotFoundError("space", *spaceName)
 	}
 	if tx.Error != nil {
-		return nil, errors.NewInternalError(tx.Error)
+		return nil, errors.NewInternalError(ctx, tx.Error)
 	}
 	return &res, nil
 }

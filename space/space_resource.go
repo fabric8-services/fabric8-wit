@@ -85,7 +85,7 @@ func (r *GormResourceRepository) Load(ctx context.Context, ID uuid.UUID) (*Resou
 		return nil, errors.NewNotFoundError("space resource", ID.String())
 	}
 	if tx.Error != nil {
-		return nil, errors.NewInternalError(tx.Error)
+		return nil, errors.NewInternalError(ctx, tx.Error)
 	}
 	return &res, nil
 }
@@ -113,7 +113,7 @@ func (r *GormResourceRepository) Delete(ctx context.Context, ID uuid.UUID) error
 		log.Error(ctx, map[string]interface{}{
 			"space_resource_id": ID.String(),
 		}, "unable to delete the space resource")
-		return errors.NewInternalError(err)
+		return errors.NewInternalError(ctx, err)
 	}
 	if tx.RowsAffected == 0 {
 		log.Error(ctx, map[string]interface{}{
@@ -142,7 +142,7 @@ func (r *GormResourceRepository) Save(ctx context.Context, p *Resource) (*Resour
 			"space_resource_id": p.ID,
 			"err":               err,
 		}, "unknown error happened when searching the space resource")
-		return nil, errors.NewInternalError(err)
+		return nil, errors.NewInternalError(ctx, err)
 	}
 	tx = tx.Save(&p)
 	if err := tx.Error; err != nil {
@@ -150,7 +150,7 @@ func (r *GormResourceRepository) Save(ctx context.Context, p *Resource) (*Resour
 			"space_resource_id": p.ID,
 			"err":               err,
 		}, "unable to save the space resource")
-		return nil, errors.NewInternalError(err)
+		return nil, errors.NewInternalError(ctx, err)
 	}
 
 	log.Info(ctx, map[string]interface{}{
@@ -169,7 +169,7 @@ func (r *GormResourceRepository) Create(ctx context.Context, resource *Resource)
 
 	tx := r.db.Create(resource)
 	if err := tx.Error; err != nil {
-		return nil, errors.NewInternalError(err)
+		return nil, errors.NewInternalError(ctx, err)
 	}
 
 	log.Info(ctx, map[string]interface{}{
@@ -190,7 +190,7 @@ func (r *GormResourceRepository) LoadBySpace(ctx context.Context, spaceID *uuid.
 		return nil, errors.NewNotFoundError("space resource", spaceID.String())
 	}
 	if tx.Error != nil {
-		return nil, errors.NewInternalError(tx.Error)
+		return nil, errors.NewInternalError(ctx, tx.Error)
 	}
 	return &res, nil
 }
