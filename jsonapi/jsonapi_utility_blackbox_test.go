@@ -1,6 +1,7 @@
 package jsonapi_test
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -10,6 +11,7 @@ import (
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/resource"
+	errs "github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 )
 
@@ -45,7 +47,7 @@ func TestErrorToJSONAPIError(t *testing.T) {
 	require.Equal(t, strconv.Itoa(httpStatus), *jerr.Status)
 
 	// test internal server error
-	jerr, httpStatus = jsonapi.ErrorToJSONAPIError(errors.NewInternalError("foo"))
+	jerr, httpStatus = jsonapi.ErrorToJSONAPIError(errors.NewInternalError(context.Background(), errs.New("foo")))
 	require.Equal(t, http.StatusInternalServerError, httpStatus)
 	require.NotNil(t, jerr.Code)
 	require.NotNil(t, jerr.Status)

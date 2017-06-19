@@ -1,18 +1,20 @@
 package account_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/almighty/almighty-core/account"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/migration"
+	"github.com/almighty/almighty-core/resource"
 
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"golang.org/x/net/context"
 )
 
 type identityBlackBoxTest struct {
@@ -74,6 +76,31 @@ func (s *identityBlackBoxTest) TestOKToDelete() {
 
 func (s *identityBlackBoxTest) TestOKToLoad() {
 	createAndLoad(s)
+}
+
+func (s *identityBlackBoxTest) TestExistsIdentity() {
+	t := s.T()
+	resource.Require(t, resource.Database)
+
+	t.Run("identity exists", func(t *testing.T) {
+		t.Parallel()
+		// given
+		identity := createAndLoad(s)
+		// when
+		exists, err := s.repo.Exists(s.ctx, identity.ID.String())
+		// then
+		require.Nil(t, err, "Could not check if identity exists")
+		require.True(t, exists)
+	})
+
+	t.Run("identity doesn't exist", func(t *testing.T) {
+		t.Parallel()
+		exists, err := s.repo.Exists(s.ctx, uuid.NewV4().String())
+		// then
+		require.IsType(t, errors.NotFoundError{}, err)
+		require.False(t, exists)
+	})
+
 }
 
 func (s *identityBlackBoxTest) TestOKToSave() {
