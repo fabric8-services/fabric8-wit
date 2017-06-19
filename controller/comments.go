@@ -72,11 +72,16 @@ func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
 	}
 	var cm *comment.Comment
 	var wi *workitem.WorkItem
+	var editorIsCreator bool
 	// Following transaction verifies if a user is allowed to update or not
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		cm, err = appl.Comments().Load(ctx.Context, ctx.CommentID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		if *identityID == cm.CreatedBy {
+			editorIsCreator = true
+			return nil
 		}
 		wi, err = appl.WorkItems().LoadByID(ctx.Context, cm.ParentID)
 		if err != nil {
@@ -88,7 +93,7 @@ func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
 		return err
 	}
 	// User is allowed to update if user is creator of the comment OR user is a space collaborator
-	if *identityID == cm.CreatedBy {
+	if editorIsCreator == true {
 		return c.performUpdate(ctx, cm, identityID)
 	}
 
