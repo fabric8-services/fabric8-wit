@@ -366,7 +366,7 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 	id in (
 		SELECT target_id FROM %s
 		WHERE source_id = ? AND link_type_id IN (
-			SELECT id FROM %s WHERE forward_name = 'parent of'
+			SELECT id FROM %s WHERE forward_name LIKE '%parent of%'
 		)
 	)`, WorkItemLink{}.TableName(), WorkItemLinkType{}.TableName())
 	db := r.db.Model(&workitem.WorkItemStorage{}).Where(where, parent)
@@ -457,7 +457,7 @@ func (r *GormWorkItemLinkRepository) WorkItemHasChildren(ctx context.Context, pa
 			SELECT 1 FROM %[1]s WHERE id in (
 				SELECT target_id FROM %[2]s
 				WHERE source_id = $1 AND link_type_id IN (
-					SELECT id FROM %[3]s WHERE forward_name = 'parent of'
+					SELECT id FROM %[3]s WHERE forward_name LIKE '%parent of%'
 				)
 			)
 		)`,
