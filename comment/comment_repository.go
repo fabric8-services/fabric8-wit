@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/almighty/almighty-core/application/repository"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/rendering"
@@ -16,6 +17,7 @@ import (
 
 // Repository describes interactions with comments
 type Repository interface {
+	repository.Exister
 	Create(ctx context.Context, comment *Comment, creator uuid.UUID) error
 	Save(ctx context.Context, comment *Comment, modifier uuid.UUID) error
 	Delete(ctx context.Context, commentID uuid.UUID, suppressor uuid.UUID) error
@@ -84,7 +86,7 @@ func (m *GormCommentRepository) Save(ctx context.Context, comment *Comment, modi
 			"err":        err,
 		}, "comment search operation failed!")
 
-		return errors.NewInternalError(err.Error())
+		return errors.NewInternalError(err)
 	}
 	// make sure no comment is created with an empty 'markup' value
 	if comment.Markup == "" {
@@ -97,7 +99,7 @@ func (m *GormCommentRepository) Save(ctx context.Context, comment *Comment, modi
 			"err":        err,
 		}, "unable to save the comment!")
 
-		return errors.NewInternalError(err.Error())
+		return errors.NewInternalError(err)
 	}
 	// save a revision of the updated comment
 	if err := m.revisionRepository.Create(ctx, modifierID, RevisionTypeUpdate, *comment); err != nil {
@@ -123,7 +125,7 @@ func (m *GormCommentRepository) Delete(ctx context.Context, commentID uuid.UUID,
 		return errors.NewNotFoundError("comment", commentID.String())
 	}
 	if err := tx.Error; err != nil {
-		return errors.NewInternalError(err.Error())
+		return errors.NewInternalError(err)
 	}
 	// save a revision of the deleted comment
 	if err := m.revisionRepository.Create(ctx, suppressorID, RevisionTypeDelete, c); err != nil {
@@ -161,7 +163,7 @@ func (m *GormCommentRepository) List(ctx context.Context, parent string, start *
 	result := []Comment{}
 	columns, err := rows.Columns()
 	if err != nil {
-		return nil, 0, errors.NewInternalError(err.Error())
+		return nil, 0, errors.NewInternalError(err)
 	}
 
 	// need to set up a result for Scan() in order to extract total count.
@@ -181,7 +183,7 @@ func (m *GormCommentRepository) List(ctx context.Context, parent string, start *
 		if first {
 			first = false
 			if err = rows.Scan(columnValues...); err != nil {
-				return nil, 0, errors.NewInternalError(err.Error())
+				return nil, 0, errors.NewInternalError(err)
 			}
 		}
 		result = append(result, *value)
@@ -230,7 +232,13 @@ func (m *GormCommentRepository) Load(ctx context.Context, id uuid.UUID) (*Commen
 			"err":        tx.Error,
 		}, "unable to load the comment")
 
-		return nil, errors.NewInternalError(tx.Error.Error())
+		return nil, errors.NewInternalError(tx.Error)
 	}
 	return &obj, nil
+}
+
+// Exists returns true|false whether a comment exists with a specific identifier
+func (m *GormCommentRepository) Exists(ctx context.Context, id string) (bool, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "comment", "exists"}, time.Now())
+	return repository.Exists(ctx, m.db, m.TableName(), id)
 }

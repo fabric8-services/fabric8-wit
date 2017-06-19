@@ -1,18 +1,18 @@
 package area
 
 import (
-	"fmt"
+	"context"
 	"time"
 
+	"github.com/almighty/almighty-core/application/repository"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/path"
+
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
-
-	"context"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -46,6 +46,7 @@ func (m *GormAreaRepository) TableName() string {
 
 // Repository describes interactions with Areas
 type Repository interface {
+	repository.Exister
 	Create(ctx context.Context, u *Area) error
 	List(ctx context.Context, spaceID uuid.UUID) ([]Area, error)
 	Load(ctx context.Context, id uuid.UUID) (*Area, error)
@@ -102,9 +103,15 @@ func (m *GormAreaRepository) Load(ctx context.Context, id uuid.UUID) (*Area, err
 		return nil, errors.NewNotFoundError("Area", id.String())
 	}
 	if tx.Error != nil {
-		return nil, errors.NewInternalError(tx.Error.Error())
+		return nil, errors.NewInternalError(tx.Error)
 	}
 	return &obj, nil
+}
+
+// Exists returns true|false whether an area exists with a specific identifier
+func (m *GormAreaRepository) Exists(ctx context.Context, id string) (bool, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "area", "exists"}, time.Now())
+	return repository.Exists(ctx, m.db, m.TableName(), id)
 }
 
 // Load multiple areas
@@ -117,7 +124,7 @@ func (m *GormAreaRepository) LoadMultiple(ctx context.Context, ids []uuid.UUID) 
 	}
 	tx := m.db.Find(&objs)
 	if tx.Error != nil {
-		return nil, errors.NewInternalError(tx.Error.Error())
+		return nil, errors.NewInternalError(tx.Error)
 	}
 	return objs, nil
 }
@@ -132,7 +139,7 @@ func (m *GormAreaRepository) ListChildren(ctx context.Context, parentArea *Area)
 		return nil, errors.NewNotFoundError("Area", parentArea.ID.String())
 	}
 	if tx.Error != nil {
-		return nil, errors.NewInternalError(tx.Error.Error())
+		return nil, errors.NewInternalError(tx.Error)
 	}
 	return objs, nil
 }
@@ -145,7 +152,7 @@ func (m *GormAreaRepository) Root(ctx context.Context, spaceID uuid.UUID) (*Area
 	parentPathOfRootArea := path.Path{}
 	rootArea, err := m.Query(FilterBySpaceID(spaceID), FilterByPath(parentPathOfRootArea))
 	if len(rootArea) != 1 {
-		return nil, errors.NewInternalError(fmt.Sprintf("Single Root area not found for space %s", spaceID.String()))
+		return nil, errors.NewInternalError(errs.Errorf("Single Root area not found for space %s", spaceID))
 	}
 	if err != nil {
 		return nil, err
