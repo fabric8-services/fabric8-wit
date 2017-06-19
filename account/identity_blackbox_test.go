@@ -5,12 +5,12 @@ import (
 	"testing"
 
 	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/resource"
 
+	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -97,7 +97,7 @@ func (s *identityBlackBoxTest) TestExistsIdentity() {
 		t.Parallel()
 		exists, err := s.repo.Exists(s.ctx, uuid.NewV4().String())
 		// then
-		require.IsType(t, errors.NotFoundError{}, err)
+		require.IsType(t, &goa.ErrorResponse{}, err)
 		require.False(t, exists)
 	})
 

@@ -11,6 +11,7 @@ import (
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
 
+	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -78,7 +79,7 @@ func (test *resourceRepoBBTest) TestExistsSpaceResource() {
 
 	t.Run("space resource doesn't exist", func(t *testing.T) {
 		exists, err := test.repo.Exists(context.Background(), uuid.NewV4().String())
-		require.IsType(t, errors.NotFoundError{}, err)
+		require.IsType(t, &goa.ErrorResponse{}, err)
 		assert.False(t, exists)
 	})
 

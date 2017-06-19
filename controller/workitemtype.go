@@ -135,9 +135,9 @@ func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
 func (c *WorkitemtypeController) ListSourceLinkTypes(ctx *app.ListSourceLinkTypesWorkitemtypeContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		// Test that work item type exists
-		exists, err := appl.WorkItemTypes().Exists(ctx.Context, ctx.WitID.String())
-		if !exists || err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+		_, err := appl.WorkItemTypes().Exists(ctx.Context, ctx.WitID.String())
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		// Fetch all link types where this work item type can be used in the
 		// source of the link
@@ -169,9 +169,9 @@ func (c *WorkitemtypeController) ListSourceLinkTypes(ctx *app.ListSourceLinkType
 func (c *WorkitemtypeController) ListTargetLinkTypes(ctx *app.ListTargetLinkTypesWorkitemtypeContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		// Test that work item type exists
-		exists, err := appl.WorkItemTypes().Exists(ctx.Context, ctx.WitID.String())
-		if !exists || err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+		_, err := appl.WorkItemTypes().Exists(ctx.Context, ctx.WitID.String())
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		// Fetch all link types where this work item type can be used in the
 		// target of the linkg

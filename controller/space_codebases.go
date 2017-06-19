@@ -73,9 +73,9 @@ func (c *SpaceCodebasesController) Create(ctx *app.CreateSpaceCodebasesContext) 
 func (c *SpaceCodebasesController) List(ctx *app.ListSpaceCodebasesContext) error {
 	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
 	return application.Transactional(c.db, func(appl application.Application) error {
-		exists, err := appl.Spaces().Exists(ctx, ctx.SpaceID.String())
-		if !exists || err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+		_, err := appl.Spaces().Exists(ctx, ctx.SpaceID.String())
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
 		res := &app.CodebaseList{}

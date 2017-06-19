@@ -33,9 +33,9 @@ func NewSpaceAreasController(service *goa.Service, db application.DB, config Spa
 // List runs the list action.
 func (c *SpaceAreasController) List(ctx *app.ListSpaceAreasContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		exists, err := appl.Spaces().Exists(ctx, ctx.SpaceID.String())
-		if !exists || err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+		_, err := appl.Spaces().Exists(ctx, ctx.SpaceID.String())
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		areas, err := appl.Areas().List(ctx, ctx.SpaceID)
 		if err != nil {

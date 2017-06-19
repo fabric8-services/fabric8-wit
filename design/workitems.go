@@ -177,6 +177,7 @@ var _ = a.Resource("workitem", func() {
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
 	})
 	a.Action("delete", func() {
 		a.Security("jwt")

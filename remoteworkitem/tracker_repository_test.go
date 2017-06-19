@@ -8,11 +8,11 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/criteria"
-	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/resource"
 
+	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -79,7 +79,7 @@ func (test *TestTrackerRepository) TestExistsTracker() {
 	t.Run("tracker doesn't exist", func(t *testing.T) {
 		t.Parallel()
 		exists, err := test.repo.Exists(context.Background(), "11111111")
-		require.IsType(t, errors.NotFoundError{}, err)
+		require.IsType(t, &goa.ErrorResponse{}, err)
 		assert.False(t, exists)
 	})
 

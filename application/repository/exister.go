@@ -6,6 +6,7 @@ import (
 
 	"github.com/almighty/almighty-core/errors"
 
+	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 )
@@ -30,7 +31,7 @@ func Exists(ctx context.Context, db *gorm.DB, tableName string, id string) (bool
 
 	err := db.CommonDB().QueryRow(query, id).Scan(&exists)
 	if err == nil && !exists {
-		return exists, errors.NewNotFoundError(tableName, id)
+		return exists, goa.ErrNotFound(errors.NewNotFoundError(tableName, id).Error())
 	}
 	if err != nil {
 		return false, errors.NewInternalError(ctx, errs.Wrapf(err, "unable to verify if %s exists", tableName))

@@ -15,6 +15,7 @@ import (
 	"github.com/almighty/almighty-core/space"
 	testcommon "github.com/almighty/almighty-core/test"
 
+	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -415,7 +416,7 @@ func (test *TestIterationRepository) TestExistsIteration() {
 		repo := iteration.NewIterationRepository(test.DB)
 
 		exists, err := repo.Exists(context.Background(), uuid.NewV4().String())
-		require.IsType(t, errors.NotFoundError{}, err)
+		require.IsType(t, &goa.ErrorResponse{}, err)
 		require.False(t, exists)
 	})
 

@@ -14,6 +14,7 @@ import (
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
 
+	"github.com/goadesign/goa"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -131,7 +132,7 @@ func (test *TestAreaRepository) TestExistsArea() {
 		// when
 		exists, err := repo.Exists(context.Background(), uuid.NewV4().String())
 		// then
-		require.IsType(t, errs.NotFoundError{}, err)
+		require.IsType(t, &goa.ErrorResponse{}, err)
 		assert.False(t, exists)
 	})
 }

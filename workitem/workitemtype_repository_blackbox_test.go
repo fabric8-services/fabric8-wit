@@ -6,7 +6,6 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/migration"
@@ -109,7 +108,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestExistsWIT() {
 		t.Parallel()
 		exists, err := s.repo.Exists(s.ctx, uuid.NewV4().String())
 		require.False(t, exists)
-		require.IsType(t, errors.NotFoundError{}, err)
+		require.IsType(t, &goa.ErrorResponse{}, err)
 	})
 
 }

@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 	"html"
+	"reflect"
 	"strconv"
 	"time"
 
@@ -282,9 +283,9 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		//verify spaceID:
 		// To be removed once we have endpoint like - /api/space/{spaceID}/workitems
-		exists, err := appl.Spaces().Exists(ctx, ctx.SpaceID.String())
-		if !exists || err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("space", "string").Expected("valid space ID"))
+		_, err := appl.Spaces().Exists(ctx, ctx.SpaceID.String())
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
 		err = ConvertJSONAPIToWorkItem(ctx, appl, *ctx.Payload.Data, &wi, ctx.SpaceID)
@@ -457,8 +458,13 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, appl application.Application,
 			if err != nil {
 				return errors.NewBadParameterError("data.relationships.area.data.id", *d.ID)
 			}
-			if exists, err := appl.Areas().Exists(ctx, areaUUID.String()); !exists || err != nil {
-				return errors.NewBadParameterError("data.relationships.area.data.id", *d.ID)
+			if _, err := appl.Areas().Exists(ctx, areaUUID.String()); err != nil {
+				switch reflect.TypeOf(err) {
+				case reflect.TypeOf(&goa.ErrorResponse{}):
+					return errors.NewBadParameterError("data.relationships.area.data.id", *d.ID)
+				default:
+					return errs.Wrapf(err, "unknown error when verifying the area id %s", *d.ID)
+				}
 			}
 			target.Fields[workitem.SystemArea] = areaUUID.String()
 		}

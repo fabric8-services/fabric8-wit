@@ -5,12 +5,12 @@ import (
 	"testing"
 
 	"github.com/almighty/almighty-core/codebase"
-	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
 
+	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -153,7 +153,7 @@ func (test *TestCodebaseRepository) TestExistsCodebase() {
 		// when
 		exists, err := repo.Exists(context.Background(), uuid.NewV4().String())
 		// then
-		require.IsType(t, errors.NotFoundError{}, err)
+		require.IsType(t, &goa.ErrorResponse{}, err)
 		assert.False(t, exists)
 	})
 

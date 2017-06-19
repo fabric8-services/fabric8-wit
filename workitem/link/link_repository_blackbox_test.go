@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/migration"
@@ -16,6 +15,7 @@ import (
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/almighty/almighty-core/workitem/link"
 
+	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -210,7 +210,7 @@ func (s *linkRepoBlackBoxTest) TestExistsLink() {
 		// when
 		exists, err := linkRepository.Exists(s.ctx, uuid.NewV4().String())
 		// then
-		require.IsType(t, errors.NotFoundError{}, err)
+		require.IsType(t, &goa.ErrorResponse{}, err)
 		require.False(t, exists)
 	})
 

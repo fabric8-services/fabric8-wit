@@ -6,12 +6,12 @@ import (
 	"context"
 
 	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/remoteworkitem"
 
+	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -93,5 +93,5 @@ func (s *trackerRepoBlackBoxTest) TestFaiLoadZeroID() {
 
 	exists, err := s.repo.Exists(context.Background(), "0")
 	require.False(s.T(), exists)
-	require.IsType(s.T(), errors.NotFoundError{}, err)
+	require.IsType(s.T(), &goa.ErrorResponse{}, err)
 }

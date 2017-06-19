@@ -8,7 +8,6 @@ import (
 	"context"
 
 	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/resource"
@@ -97,7 +96,7 @@ func (test *TestTrackerQueryRepository) TestExistsTrackerQuery() {
 		ctx := goa.NewContext(context.Background(), nil, req, params)
 
 		exists, err := test.queryRepo.Exists(ctx, "11111111111")
-		require.IsType(t, errors.NotFoundError{}, err)
+		require.IsType(t, &goa.ErrorResponse{}, err)
 		assert.False(t, exists)
 	})
 
