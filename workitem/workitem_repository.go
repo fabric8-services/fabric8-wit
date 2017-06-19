@@ -1,21 +1,19 @@
 package workitem
 
 import (
-	"strconv"
-
 	"context"
-
 	"fmt"
+	"strconv"
+	"strings"
+	"time"
 
+	"github.com/almighty/almighty-core/application/repository"
 	"github.com/almighty/almighty-core/criteria"
 	"github.com/almighty/almighty-core/errors"
-
+	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/rendering"
-
-	"strings"
-
-	"github.com/almighty/almighty-core/iteration"
+	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -34,6 +32,7 @@ const (
 
 // WorkItemRepository encapsulates storage & retrieval of work items
 type WorkItemRepository interface {
+	repository.Exister
 	LoadByID(ctx context.Context, ID string) (*WorkItem, error)
 	Load(ctx context.Context, spaceID uuid.UUID, ID string) (*WorkItem, error)
 	Save(ctx context.Context, spaceID uuid.UUID, wi WorkItem, modifierID uuid.UUID) (*WorkItem, error)
@@ -92,6 +91,7 @@ func (r *GormWorkItemRepository) LoadFromDB(ctx context.Context, workitemID stri
 // LoadByID returns the work item for the given id
 // returns NotFoundError, ConversionError or InternalError
 func (r *GormWorkItemRepository) LoadByID(ctx context.Context, ID string) (*WorkItem, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitem", "loadById"}, time.Now())
 	res, err := r.LoadFromDB(ctx, ID)
 	if err != nil {
 		return nil, errs.WithStack(err)
@@ -106,11 +106,18 @@ func (r *GormWorkItemRepository) LoadByID(ctx context.Context, ID string) (*Work
 // Load returns the work item for the given spaceID and item id
 // returns NotFoundError, ConversionError or InternalError
 func (r *GormWorkItemRepository) Load(ctx context.Context, spaceID uuid.UUID, workitemID string) (*WorkItem, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitem", "load"}, time.Now())
 	wiStorage, wiType, err := r.loadWorkItemStorage(ctx, spaceID, workitemID, false)
 	if err != nil {
 		return nil, err
 	}
 	return ConvertWorkItemStorageToModel(wiType, wiStorage)
+}
+
+// Exists returns true if a work item exists with a given ID
+func (m *GormWorkItemRepository) Exists(ctx context.Context, workitemID string) (bool, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitem", "exists"}, time.Now())
+	return repository.Exists(ctx, m.db, workitemTableName, workitemID)
 }
 
 func (r *GormWorkItemRepository) loadWorkItemStorage(ctx context.Context, spaceID uuid.UUID, workitemID string, selectForUpdate bool) (*WorkItemStorage, *WorkItemType, error) {
@@ -204,6 +211,7 @@ func (r *GormWorkItemRepository) LoadHighestOrder() (float64, error) {
 // Delete deletes the work item with the given id
 // returns NotFoundError or InternalError
 func (r *GormWorkItemRepository) Delete(ctx context.Context, spaceID uuid.UUID, workitemID string, suppressorID uuid.UUID) error {
+	defer goa.MeasureSince([]string{"goa", "db", "workitem", "delete"}, time.Now())
 	var workItem = WorkItemStorage{}
 	id, err := strconv.ParseUint(workitemID, 10, 64)
 	if err != nil || id == 0 {
@@ -296,6 +304,7 @@ func (r *GormWorkItemRepository) FindFirstItem(id string) (*float64, error) {
 // The new order of workitem := (order of previousitem + order of nextitem)/2
 // Version must be the same as the one int the stored version
 func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction DirectionType, targetID *string, wi WorkItem, modifierID uuid.UUID) (*WorkItem, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitem", "reorder"}, time.Now())
 	var order float64
 	res := WorkItemStorage{}
 
@@ -424,6 +433,7 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction Directio
 // Save updates the given work item in storage. Version must be the same as the one int the stored version
 // returns NotFoundError, VersionConflictError, ConversionError or InternalError
 func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, updatedWorkItem WorkItem, modifierID uuid.UUID) (*WorkItem, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitem", "save"}, time.Now())
 	wiStorage, wiType, err := r.loadWorkItemStorage(ctx, spaceID, updatedWorkItem.ID, true)
 	if err != nil {
 		return nil, err
@@ -474,6 +484,8 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 // Create creates a new work item in the repository
 // returns BadParameterError, ConversionError or InternalError
 func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*WorkItem, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitem", "create"}, time.Now())
+
 	wiType, err := r.witr.LoadTypeFromDB(ctx, typeID)
 	if err != nil {
 		return nil, errors.NewBadParameterError("typeID", typeID)
@@ -635,6 +647,8 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, spaceID uu
 
 // List returns work item selected by the given criteria.Expression, starting with start (zero-based) and returning at most limit items
 func (r *GormWorkItemRepository) List(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, parentExists *bool, start *int, limit *int) ([]WorkItem, uint64, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitem", "list"}, time.Now())
+
 	result, count, err := r.listItemsFromDB(ctx, spaceID, criteria, parentExists, start, limit)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
@@ -656,6 +670,8 @@ func (r *GormWorkItemRepository) List(ctx context.Context, spaceID uuid.UUID, cr
 
 // Count returns the amount of work item that satisfy the given criteria.Expression
 func (r *GormWorkItemRepository) Count(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression) (int, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitem", "count"}, time.Now())
+
 	where, parameters, compileError := Compile(criteria)
 	if compileError != nil {
 		return 0, errors.NewBadParameterError("expression", criteria)
@@ -670,6 +686,8 @@ func (r *GormWorkItemRepository) Count(ctx context.Context, spaceID uuid.UUID, c
 
 // Fetch fetches the (first) work item matching by the given criteria.Expression.
 func (r *GormWorkItemRepository) Fetch(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression) (*WorkItem, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitem", "fetch"}, time.Now())
+
 	limit := 1
 	results, count, err := r.List(ctx, spaceID, criteria, nil, nil, &limit)
 	if err != nil {
@@ -686,6 +704,7 @@ func (r *GormWorkItemRepository) Fetch(ctx context.Context, spaceID uuid.UUID, c
 
 // GetCountsPerIteration counts WIs including iteration-children and returns a map of iterationID->WICountsPerIteration
 func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spaceID uuid.UUID) (map[string]WICountsPerIteration, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitem", "getCountsPerIteration"}, time.Now())
 	db := r.db.Model(&iteration.Iteration{}).Where("space_id = ?", spaceID)
 	if db.Error != nil {
 		return nil, errors.NewInternalError(db.Error)
@@ -813,6 +832,7 @@ func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spac
 // WHERE fields->>'system.iteration' IN ('input iteration ID + children IDs')
 //   AND wi.deleted_at IS NULL
 func (r *GormWorkItemRepository) GetCountsForIteration(ctx context.Context, itr *iteration.Iteration) (map[string]WICountsPerIteration, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitem", "getCountsForIteration"}, time.Now())
 	var res WICountsPerIteration
 	pathOfIteration := append(itr.Path, itr.ID)
 	// get child IDs of the iteration

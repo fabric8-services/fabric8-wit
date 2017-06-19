@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"context"
+
 	"github.com/almighty/almighty-core/criteria"
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/workitem"
@@ -21,6 +22,16 @@ type WorkItemRepository struct {
 	}
 	loadReturns struct {
 		result1 *workitem.WorkItem
+		result2 error
+	}
+	ExistsStub        func(ctx context.Context, ID string) (bool, error)
+	existsMutex       sync.RWMutex
+	existsArgsForCall []struct {
+		ctx context.Context
+		ID  string
+	}
+	existsReturns struct {
+		result1 bool
 		result2 error
 	}
 	LoadByIDStub        func(ctx context.Context, ID string) (*workitem.WorkItem, error)
@@ -157,6 +168,20 @@ func (fake *WorkItemRepository) Load(ctx context.Context, spaceID uuid.UUID, ID 
 	return fake.loadReturns.result1, fake.loadReturns.result2
 }
 
+func (fake *WorkItemRepository) Exists(ctx context.Context, ID string) (bool, error) {
+	fake.existsMutex.Lock()
+	fake.existsArgsForCall = append(fake.existsArgsForCall, struct {
+		ctx context.Context
+		ID  string
+	}{ctx, ID})
+	fake.recordInvocation("Exists", []interface{}{ctx, ID})
+	fake.existsMutex.Unlock()
+	if fake.ExistsReturns != nil {
+		return fake.ExistsStub(ctx, ID)
+	}
+	return fake.existsReturns.result1, fake.existsReturns.result2
+}
+
 func (fake *WorkItemRepository) LoadByID(ctx context.Context, ID string) (*workitem.WorkItem, error) {
 	fake.loadByIDMutex.Lock()
 	fake.loadByIDArgsForCall = append(fake.loadByIDArgsForCall, struct {
@@ -187,6 +212,14 @@ func (fake *WorkItemRepository) LoadReturns(result1 *workitem.WorkItem, result2 
 	fake.LoadStub = nil
 	fake.loadReturns = struct {
 		result1 *workitem.WorkItem
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *WorkItemRepository) ExistsReturns(result1 bool, result2 error) {
+	fake.ExistsStub = nil
+	fake.existsReturns = struct {
+		result1 bool
 		result2 error
 	}{result1, result2}
 }

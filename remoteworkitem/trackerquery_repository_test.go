@@ -6,8 +6,9 @@ import (
 	"testing"
 
 	"context"
-	"github.com/almighty/almighty-core/application"
 
+	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/resource"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -63,6 +65,42 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryCreate() {
 	query2, err := test.queryRepo.Load(ctx, query.ID)
 	assert.Nil(t, err)
 	assert.Equal(t, query, query2)
+}
+
+func (test *TestTrackerQueryRepository) TestExistsTrackerQuery() {
+	t := test.T()
+	resource.Require(t, resource.Database)
+
+	t.Run("tracker query exists", func(t *testing.T) {
+		t.Parallel()
+		// given
+		req := &http.Request{Host: "localhost"}
+		params := url.Values{}
+		ctx := goa.NewContext(context.Background(), nil, req, params)
+
+		tracker, err := test.trackerRepo.Create(ctx, "http://issues.jboss.com", ProviderJira)
+		assert.Nil(t, err)
+
+		query, err := test.queryRepo.Create(ctx, "abc", "xyz", tracker.ID, space.SystemSpace)
+		assert.Nil(t, err)
+
+		var exists bool
+		exists, err = test.queryRepo.Exists(ctx, query.ID)
+		assert.Nil(t, err)
+		assert.True(t, exists)
+	})
+
+	t.Run("tracker query doesn't exist", func(t *testing.T) {
+		t.Parallel()
+		req := &http.Request{Host: "localhost"}
+		params := url.Values{}
+		ctx := goa.NewContext(context.Background(), nil, req, params)
+
+		exists, err := test.queryRepo.Exists(ctx, "11111111111")
+		require.IsType(t, errors.NotFoundError{}, err)
+		assert.False(t, exists)
+	})
+
 }
 
 func (test *TestTrackerQueryRepository) TestTrackerQuerySave() {
