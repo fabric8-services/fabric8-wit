@@ -293,10 +293,10 @@ func newDummyUserProfileService(profile *KeycloakUserProfileResponse) *dummyUser
 	return &dummyUserProfileService{profile: profile}
 }
 
-func (d *dummyUserProfileService) Update(keycloakUserProfile *KeycloakUserProfile, accessToken string, keycloakProfileURL string) error {
+func (d *dummyUserProfileService) Update(ctx context.Context, keycloakUserProfile *KeycloakUserProfile, accessToken string, keycloakProfileURL string) error {
 	return nil
 }
 
-func (d *dummyUserProfileService) Get(accessToken string, keycloakProfileURL string) (*KeycloakUserProfileResponse, error) {
+func (d *dummyUserProfileService) Get(ctx context.Context, accessToken string, keycloakProfileURL string) (*KeycloakUserProfileResponse, error) {
 	return d.profile, nil
 }

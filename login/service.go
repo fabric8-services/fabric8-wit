@@ -46,7 +46,7 @@ func NewKeycloakOAuthProvider(identities account.IdentityRepository, users accou
 	}
 }
 
-// KeycloakOAuthProvider represents a keyclaok IDP
+// KeycloakOAuthProvider represents a keycloak IDP
 type KeycloakOAuthProvider struct {
 	Identities   account.IdentityRepository
 	Users        account.UserRepository
@@ -338,8 +338,8 @@ func (keycloak *KeycloakOAuthProvider) checkFederatedIdentity(ctx context.Contex
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err.Error(),
-		}, "Unable to crete http request")
-		return false, er.NewInternalError("unable to crete http request " + err.Error())
+		}, "Unable to create http request")
+		return false, er.NewInternalError(ctx, errs.Wrap(err, "unable to create http request"))
 	}
 	req.Header.Add("Authorization", "Bearer "+token)
 	res, err := http.DefaultClient.Do(req)
@@ -348,7 +348,7 @@ func (keycloak *KeycloakOAuthProvider) checkFederatedIdentity(ctx context.Contex
 			"provider": provider,
 			"err":      err.Error(),
 		}, "Unable to obtain a federated identity token")
-		return false, er.NewInternalError("Unable to obtain a federated identity token " + err.Error())
+		return false, er.NewInternalError(ctx, errs.Wrap(err, "unable to obtain a federated identity token"))
 	}
 	defer res.Body.Close()
 	return res.StatusCode == http.StatusOK, nil
@@ -620,7 +620,7 @@ func encodeToken(ctx context.Context, referrer *url.URL, outhToken *oauth2.Token
 	return nil
 }
 
-// CreateOrUpdateKeycloakUser creates a user and a keyclaok identity. If the user and identity already exist then update them.
+// CreateOrUpdateKeycloakUser creates a user and a keycloak identity. If the user and identity already exist then update them.
 func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken string, ctx context.Context, profileEndpoint string) (*account.Identity, *account.User, error) {
 	var identity *account.Identity
 	var user *account.User
@@ -746,7 +746,7 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 }
 
 func checkApproved(ctx context.Context, profileService UserProfileService, accessToken string, profileEndpoint string) (bool, error) {
-	profile, err := profileService.Get(accessToken, profileEndpoint)
+	profile, err := profileService.Get(ctx, accessToken, profileEndpoint)
 	if err != nil {
 		return false, err
 	}
