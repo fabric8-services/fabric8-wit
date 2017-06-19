@@ -93,7 +93,7 @@ func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
 		return err
 	}
 	// User is allowed to update if user is creator of the comment OR user is a space collaborator
-	if editorIsCreator == true {
+	if editorIsCreator {
 		return c.performUpdate(ctx, cm, identityID)
 	}
 
@@ -101,7 +101,7 @@ func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
-	if authorized == false {
+	if !authorized {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not a space collaborator"))
 	}
 	return c.performUpdate(ctx, cm, identityID)
