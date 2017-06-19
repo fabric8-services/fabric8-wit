@@ -103,7 +103,7 @@ func (m *GormAreaRepository) Load(ctx context.Context, id uuid.UUID) (*Area, err
 		return nil, errors.NewNotFoundError("Area", id.String())
 	}
 	if tx.Error != nil {
-		return nil, errors.NewInternalError(tx.Error)
+		return nil, errors.NewInternalError(ctx, tx.Error)
 	}
 	return &obj, nil
 }
@@ -124,7 +124,7 @@ func (m *GormAreaRepository) LoadMultiple(ctx context.Context, ids []uuid.UUID) 
 	}
 	tx := m.db.Find(&objs)
 	if tx.Error != nil {
-		return nil, errors.NewInternalError(tx.Error)
+		return nil, errors.NewInternalError(ctx, tx.Error)
 	}
 	return objs, nil
 }
@@ -139,7 +139,7 @@ func (m *GormAreaRepository) ListChildren(ctx context.Context, parentArea *Area)
 		return nil, errors.NewNotFoundError("Area", parentArea.ID.String())
 	}
 	if tx.Error != nil {
-		return nil, errors.NewInternalError(tx.Error)
+		return nil, errors.NewInternalError(ctx, tx.Error)
 	}
 	return objs, nil
 }
@@ -152,7 +152,7 @@ func (m *GormAreaRepository) Root(ctx context.Context, spaceID uuid.UUID) (*Area
 	parentPathOfRootArea := path.Path{}
 	rootArea, err := m.Query(FilterBySpaceID(spaceID), FilterByPath(parentPathOfRootArea))
 	if len(rootArea) != 1 {
-		return nil, errors.NewInternalError(errs.Errorf("Single Root area not found for space %s", spaceID))
+		return nil, errors.NewInternalError(ctx, errs.Errorf("single Root area not found for space %s", spaceID))
 	}
 	if err != nil {
 		return nil, err
