@@ -240,6 +240,9 @@ func main() {
 
 	// Mount "user" controller
 	userCtrl := controller.NewUserController(service, appDB, tokenManager, configuration)
+
+	// TODO(sbose) : After the UI adapts, this should be removed
+
 	if configuration.GetTenantServiceURL() != "" {
 		log.Logger().Infof("Enabling Init Tenant service %v", configuration.GetTenantServiceURL())
 		userCtrl.InitTenant = account.NewInitTenant(configuration)
@@ -247,7 +250,12 @@ func main() {
 	app.MountUserController(service, userCtrl)
 
 	userServiceCtrl := controller.NewUserServiceController(service)
+	// if registrationCompleted=True, only then invoke initTenant inside this
+	userServiceCtrl.CreateTenant = account.NewInitTenant(configuration) // TODO(sbose): Fix method name
 	userServiceCtrl.UpdateTenant = account.NewUpdateTenant(configuration)
+	userServiceCtrl.CurrentTenantVersion = account.NewCurrentTenantVersion(configuration)
+	userServiceCtrl.LatestTenantVersion = account.NewLatestTenantVersion(configuration)
+
 	app.MountUserServiceController(service, userServiceCtrl)
 
 	// Mount "search" controller
