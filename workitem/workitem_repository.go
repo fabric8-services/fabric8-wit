@@ -702,13 +702,7 @@ func (r *GormWorkItemRepository) Fetch(ctx context.Context, spaceID uuid.UUID, c
 	return &result, nil
 }
 
-// GetCountsPerIteration counts WIs including iteration-children and returns a map of iterationID->WICountsPerIteration
-func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spaceID uuid.UUID) (map[string]WICountsPerIteration, error) {
-	defer goa.MeasureSince([]string{"goa", "db", "workitem", "getCountsPerIteration"}, time.Now())
-	db := r.db.Model(&iteration.Iteration{}).Where("space_id = ?", spaceID)
-	if db.Error != nil {
-		return nil, errors.NewInternalError(ctx, db.Error)
-	}
+func (r *GormWorkItemRepository) getAllIterationWithCounts(ctx context.Context, db *gorm.DB, spaceID uuid.UUID) (map[string]WICountsPerIteration, error) {
 	var allIterations []uuid.UUID
 	db.Pluck("id", &allIterations)
 	iterationTable := iteration.Iteration{}
@@ -734,7 +728,7 @@ func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spac
 	db.Scan(&res)
 	if db.Error != nil {
 		log.Error(ctx, map[string]interface{}{
-			"space_id": spaceID.String(),
+			"space_id": spaceID,
 			"err":      db.Error,
 		}, "unable to count WI for every iteration in a space")
 		return nil, errors.NewInternalError(ctx, db.Error)
@@ -759,7 +753,12 @@ func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spac
 			}
 		}
 	}
+	return wiMap, nil
+}
 
+func (r *GormWorkItemRepository) getFinalCountAddingChild(ctx context.Context, db *gorm.DB, spaceID uuid.UUID, wiMap map[string]WICountsPerIteration) (map[string]WICountsPerIteration, error) {
+	iterationTable := iteration.Iteration{}
+	iterationTableName := iterationTable.TableName()
 	type IterationHavingChildrenID struct {
 		Children    string `gorm:"column:children"`
 		IterationID string `gorm:"column:iterationid"`
@@ -817,6 +816,26 @@ func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spac
 			Total:       t,
 			Closed:      c,
 		}
+	}
+	return countsMap, nil
+}
+
+// GetCountsPerIteration counts WIs including iteration-children and returns a map of iterationID->WICountsPerIteration
+func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spaceID uuid.UUID) (map[string]WICountsPerIteration, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitem", "getCountsPerIteration"}, time.Now())
+	db := r.db.Model(&iteration.Iteration{}).Where("space_id = ?", spaceID)
+	if db.Error != nil {
+		return nil, errors.NewInternalError(ctx, db.Error)
+	}
+
+	wiMap, err := r.getAllIterationWithCounts(ctx, db, spaceID)
+	if err != nil {
+		return nil, err
+	}
+
+	countsMap, err := r.getFinalCountAddingChild(ctx, db, spaceID, wiMap)
+	if err != nil {
+		return nil, err
 	}
 	return countsMap, nil
 }
