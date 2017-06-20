@@ -53,7 +53,7 @@ func (r *GormCommentRevisionRepository) Create(ctx context.Context, modifierID u
 	}
 
 	if err := tx.Create(&revision).Error; err != nil {
-		return errors.NewInternalError(errs.Wrap(err, "failed to create new comment revision"))
+		return errors.NewInternalError(ctx, errs.Wrap(err, "failed to create new comment revision"))
 	}
 	log.Debug(ctx, map[string]interface{}{"comment_id": c.ID}, "comment revision occurrence created")
 	return nil
@@ -64,7 +64,7 @@ func (r *GormCommentRevisionRepository) List(ctx context.Context, commentID uuid
 	log.Debug(nil, map[string]interface{}{}, "List all revisions for comment with ID=%v", commentID.String())
 	revisions := make([]Revision, 0)
 	if err := r.db.Where("comment_id = ?", commentID.String()).Order("revision_time asc").Find(&revisions).Error; err != nil {
-		return nil, errors.NewInternalError(errs.Wrap(err, "failed to retrieve comment revisions"))
+		return nil, errors.NewInternalError(ctx, errs.Wrap(err, "failed to retrieve comment revisions"))
 	}
 	return revisions, nil
 }
