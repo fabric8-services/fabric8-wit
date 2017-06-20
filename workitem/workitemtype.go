@@ -17,21 +17,20 @@ const (
 	// pathSep specifies the symbol used to concatenate WIT names to form a so called "path"
 	pathSep = "."
 
-	SystemRemoteItemID           = "system.remote_item_id"
-	SystemTitle                  = "system.title"
-	SystemDescription            = "system.description"
-	SystemDescriptionMarkup      = "system.description.markup"
-	SystemDescriptionRendered    = "system.description.rendered"
-	SystemState                  = "system.state"
-	SystemAssignees              = "system.assignees"
-	SystemCreator                = "system.creator"
-	SystemCreatedAt              = "system.created_at"
-	SystemUpdatedAt              = "system.updated_at"
-	SystemRelationShipsChangedAt = "system.relationships_changed_at"
-	SystemOrder                  = "system.order"
-	SystemIteration              = "system.iteration"
-	SystemArea                   = "system.area"
-	SystemCodebase               = "system.codebase"
+	SystemRemoteItemID        = "system.remote_item_id"
+	SystemTitle               = "system.title"
+	SystemDescription         = "system.description"
+	SystemDescriptionMarkup   = "system.description.markup"
+	SystemDescriptionRendered = "system.description.rendered"
+	SystemState               = "system.state"
+	SystemAssignees           = "system.assignees"
+	SystemCreator             = "system.creator"
+	SystemCreatedAt           = "system.created_at"
+	SystemUpdatedAt           = "system.updated_at"
+	SystemOrder               = "system.order"
+	SystemIteration           = "system.iteration"
+	SystemArea                = "system.area"
+	SystemCodebase            = "system.codebase"
 
 	SystemStateOpen       = "open"
 	SystemStateNew        = "new"
@@ -165,11 +164,12 @@ func (wit WorkItemType) Equal(u convert.Equaler) bool {
 // ConvertWorkItemStorageToModel converts a workItem from the storage/persistence layer into a workItem of the model domain layer
 func (wit WorkItemType) ConvertWorkItemStorageToModel(workItem WorkItemStorage) (*WorkItem, error) {
 	result := WorkItem{
-		ID:      strconv.FormatUint(workItem.ID, 10),
-		Type:    workItem.Type,
-		Version: workItem.Version,
-		Fields:  map[string]interface{}{},
-		SpaceID: workItem.SpaceID,
+		ID:                     strconv.FormatUint(workItem.ID, 10),
+		Type:                   workItem.Type,
+		Version:                workItem.Version,
+		Fields:                 map[string]interface{}{},
+		SpaceID:                workItem.SpaceID,
+		relationShipsChangedAt: workItem.RelationShipsChangedAt,
 	}
 
 	for name, field := range wit.Fields {

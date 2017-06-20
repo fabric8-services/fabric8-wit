@@ -404,7 +404,7 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction Directio
 	res.ExecutionOrder = order
 
 	for fieldName, fieldDef := range wiType.Fields {
-		if fieldName == SystemCreatedAt || fieldName == SystemUpdatedAt || fieldName == SystemRelationShipsChangedAt || fieldName == SystemOrder {
+		if fieldName == SystemCreatedAt || fieldName == SystemUpdatedAt || fieldName == SystemOrder {
 			continue
 		}
 		fieldValue := wi.Fields[fieldName]
@@ -445,7 +445,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 	wiStorage.Fields = Fields{}
 	wiStorage.ExecutionOrder = updatedWorkItem.Fields[SystemOrder].(float64)
 	for fieldName, fieldDef := range wiType.Fields {
-		if fieldName == SystemCreatedAt || fieldName == SystemUpdatedAt || fieldName == SystemRelationShipsChangedAt || fieldName == SystemOrder {
+		if fieldName == SystemCreatedAt || fieldName == SystemUpdatedAt || fieldName == SystemOrder {
 			continue
 		}
 		fieldValue := updatedWorkItem.Fields[fieldName]
@@ -504,7 +504,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 	}
 	fields[SystemCreator] = creatorID.String()
 	for fieldName, fieldDef := range wiType.Fields {
-		if fieldName == SystemCreatedAt || fieldName == SystemUpdatedAt || fieldName == SystemRelationShipsChangedAt || fieldName == SystemOrder {
+		if fieldName == SystemCreatedAt || fieldName == SystemUpdatedAt || fieldName == SystemOrder {
 			continue
 		}
 		fieldValue := fields[fieldName]
@@ -549,9 +549,6 @@ func ConvertWorkItemStorageToModel(wiType *WorkItemType, wi *WorkItemStorage) (*
 	}
 	if _, ok := wiType.Fields[SystemUpdatedAt]; ok {
 		result.Fields[SystemUpdatedAt] = wi.UpdatedAt
-	}
-	if _, ok := wiType.Fields[SystemRelationShipsChangedAt]; ok {
-		result.Fields[SystemRelationShipsChangedAt] = wi.RelationShipsChangedAt
 	}
 	if _, ok := wiType.Fields[SystemOrder]; ok {
 		result.Fields[SystemOrder] = wi.ExecutionOrder

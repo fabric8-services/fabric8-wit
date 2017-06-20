@@ -20,6 +20,9 @@ type WorkItem struct {
 	SpaceID uuid.UUID
 	// The field values, according to the field type
 	Fields map[string]interface{}
+	// optional, private timestamp of the latest addition/removal of a relationship with this workitem
+	// this field is used to generate the `ETag` and `Last-Modified` values in the HTTP responses and conditional requests processing
+	relationShipsChangedAt *time.Time
 }
 
 // WICountsPerIteration counting work item states by iteration
