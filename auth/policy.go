@@ -40,7 +40,7 @@ func (m *KeycloakPolicyManager) GetPolicy(ctx context.Context, request *goa.Requ
 	if err != nil {
 		return nil, nil, err
 	}
-	pat, err := getPat(request, m.configuration)
+	pat, err := getPat(ctx, request, m.configuration)
 	if err != nil {
 		return nil, nil, err
 	}

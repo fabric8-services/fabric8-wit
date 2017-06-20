@@ -83,7 +83,7 @@ func (r *GormWorkItemRepository) LoadFromDB(ctx context.Context, workitemID stri
 		return nil, errors.NewNotFoundError("work item", workitemID)
 	}
 	if tx.Error != nil {
-		return nil, errors.NewInternalError(tx.Error)
+		return nil, errors.NewInternalError(ctx, tx.Error)
 	}
 	return &res, nil
 }
@@ -98,7 +98,7 @@ func (r *GormWorkItemRepository) LoadByID(ctx context.Context, ID string) (*Work
 	}
 	wiType, err := r.witr.LoadTypeFromDB(ctx, res.Type)
 	if err != nil {
-		return nil, errors.NewInternalError(err)
+		return nil, errors.NewInternalError(ctx, err)
 	}
 	return ConvertWorkItemStorageToModel(wiType, res)
 }
@@ -152,11 +152,11 @@ func (r *GormWorkItemRepository) loadWorkItemStorage(ctx context.Context, spaceI
 		return nil, nil, errors.NewNotFoundError("work item", workitemID)
 	}
 	if tx.Error != nil {
-		return nil, nil, errors.NewInternalError(tx.Error)
+		return nil, nil, errors.NewInternalError(ctx, tx.Error)
 	}
 	wiType, err := r.witr.LoadTypeFromDB(ctx, wiStorage.Type)
 	if err != nil {
-		return nil, nil, errors.NewInternalError(err)
+		return nil, nil, errors.NewInternalError(ctx, err)
 	}
 	return wiStorage, wiType, nil
 }
@@ -172,7 +172,7 @@ func (r *GormWorkItemRepository) LoadTopWorkitem(ctx context.Context) (*WorkItem
 	db = db.Where(query).First(&res)
 	wiType, err := r.witr.LoadTypeFromDB(ctx, res.Type)
 	if err != nil {
-		return nil, errors.NewInternalError(err)
+		return nil, errors.NewInternalError(ctx, err)
 	}
 	return ConvertWorkItemStorageToModel(wiType, &res)
 }
@@ -188,13 +188,13 @@ func (r *GormWorkItemRepository) LoadBottomWorkitem(ctx context.Context) (*WorkI
 	db = db.Where(query).First(&res)
 	wiType, err := r.witr.LoadTypeFromDB(ctx, res.Type)
 	if err != nil {
-		return nil, errors.NewInternalError(err)
+		return nil, errors.NewInternalError(ctx, err)
 	}
 	return ConvertWorkItemStorageToModel(wiType, &res)
 }
 
 // LoadHighestOrder returns the highest order
-func (r *GormWorkItemRepository) LoadHighestOrder() (float64, error) {
+func (r *GormWorkItemRepository) LoadHighestOrder(ctx context.Context) (float64, error) {
 	res := WorkItemStorage{}
 	db := r.db.Model(WorkItemStorage{})
 	query := fmt.Sprintf("execution_order = (SELECT max(execution_order) FROM %[1]s)",
@@ -203,7 +203,7 @@ func (r *GormWorkItemRepository) LoadHighestOrder() (float64, error) {
 	db = db.Where(query).First(&res)
 	order, err := strconv.ParseFloat(fmt.Sprintf("%v", res.ExecutionOrder), 64)
 	if err != nil {
-		return 0, errors.NewInternalError(err)
+		return 0, errors.NewInternalError(ctx, err)
 	}
 	return order, nil
 }
@@ -225,7 +225,7 @@ func (r *GormWorkItemRepository) Delete(ctx context.Context, spaceID uuid.UUID, 
 	// delete the work item
 	tx := r.db.Delete(workItem)
 	if err = tx.Error; err != nil {
-		return errors.NewInternalError(err)
+		return errors.NewInternalError(ctx, err)
 	}
 	if tx.RowsAffected == 0 {
 		return errors.NewNotFoundError("work item", workitemID)
@@ -252,7 +252,7 @@ func (r *GormWorkItemRepository) CalculateOrder(above, below *float64) float64 {
 // If direction == "below", then
 //	FindFirstItem returns the value below which reorder item has to be placed
 //      FindSecondItem returns the value above which reorder item has to be placed
-func (r *GormWorkItemRepository) FindSecondItem(order *float64, secondItemDirection DirectionType) (*string, *float64, error) {
+func (r *GormWorkItemRepository) FindSecondItem(ctx context.Context, order *float64, secondItemDirection DirectionType) (*string, *float64, error) {
 	Item := WorkItemStorage{}
 	var tx *gorm.DB
 	switch secondItemDirection {
@@ -274,7 +274,7 @@ func (r *GormWorkItemRepository) FindSecondItem(order *float64, secondItemDirect
 		return &ItemID, nil, nil
 	}
 	if tx.Error != nil {
-		return nil, nil, errors.NewInternalError(tx.Error)
+		return nil, nil, errors.NewInternalError(ctx, tx.Error)
 	}
 
 	ItemID := strconv.FormatUint(Item.ID, 10)
@@ -283,7 +283,7 @@ func (r *GormWorkItemRepository) FindSecondItem(order *float64, secondItemDirect
 }
 
 // FindFirstItem returns the order of the target workitem
-func (r *GormWorkItemRepository) FindFirstItem(id string) (*float64, error) {
+func (r *GormWorkItemRepository) FindFirstItem(ctx context.Context, id string) (*float64, error) {
 	Item := WorkItemStorage{}
 	ID, err := strconv.ParseUint(id, 10, 64)
 	if err != nil || ID == 0 {
@@ -294,7 +294,7 @@ func (r *GormWorkItemRepository) FindFirstItem(id string) (*float64, error) {
 		return nil, errors.NewNotFoundError("work item", id)
 	}
 	if tx.Error != nil {
-		return nil, errors.NewInternalError(tx.Error)
+		return nil, errors.NewInternalError(ctx, tx.Error)
 	}
 	return &Item.ExecutionOrder, nil
 }
@@ -318,7 +318,7 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction Directio
 		return nil, errors.NewNotFoundError("work item", wi.ID)
 	}
 	if err := tx.Error; err != nil {
-		return nil, errors.NewInternalError(err)
+		return nil, errors.NewInternalError(ctx, err)
 	}
 	if res.Version != wi.Version {
 		return nil, errors.NewVersionConflictError("version conflict")
@@ -332,11 +332,11 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction Directio
 	switch direction {
 	case DirectionBelow:
 		// if direction == "below", place the reorder item **below** the workitem having id equal to targetID
-		aboveItemOrder, err := r.FindFirstItem(*targetID)
+		aboveItemOrder, err := r.FindFirstItem(ctx, *targetID)
 		if aboveItemOrder == nil || err != nil {
 			return nil, errors.NewNotFoundError("work item", *targetID)
 		}
-		belowItemID, belowItemOrder, err := r.FindSecondItem(aboveItemOrder, DirectionAbove)
+		belowItemID, belowItemOrder, err := r.FindSecondItem(ctx, aboveItemOrder, DirectionAbove)
 		if err != nil {
 			return nil, errors.NewNotFoundError("work item", *targetID)
 		}
@@ -352,11 +352,11 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction Directio
 		}
 	case DirectionAbove:
 		// if direction == "above", place the reorder item **above** the workitem having id equal to targetID
-		belowItemOrder, err := r.FindFirstItem(*targetID)
+		belowItemOrder, err := r.FindFirstItem(ctx, *targetID)
 		if belowItemOrder == nil || err != nil {
 			return nil, errors.NewNotFoundError("work item", *targetID)
 		}
-		aboveItemID, aboveItemOrder, err := r.FindSecondItem(belowItemOrder, DirectionBelow)
+		aboveItemID, aboveItemOrder, err := r.FindSecondItem(ctx, belowItemOrder, DirectionBelow)
 		if err != nil {
 			return nil, errors.NewNotFoundError("work item", *targetID)
 		}
@@ -417,7 +417,7 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction Directio
 	}
 	tx = tx.Where("Version = ?", wi.Version).Save(&res)
 	if err := tx.Error; err != nil {
-		return nil, errors.NewInternalError(err)
+		return nil, errors.NewInternalError(ctx, err)
 	}
 	if tx.RowsAffected == 0 {
 		return nil, errors.NewVersionConflictError("version conflict")
@@ -464,7 +464,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 			"version":  updatedWorkItem.Version,
 			"err":      err,
 		}, "unable to save new version of the work item")
-		return nil, errors.NewInternalError(err)
+		return nil, errors.NewInternalError(ctx, err)
 	}
 	if tx.RowsAffected == 0 {
 		return nil, errors.NewVersionConflictError("version conflict")
@@ -492,9 +492,9 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 	}
 
 	// The order of workitems are spaced by a factor of 1000.
-	pos, err := r.LoadHighestOrder()
+	pos, err := r.LoadHighestOrder(ctx)
 	if err != nil {
-		return nil, errors.NewInternalError(err)
+		return nil, errors.NewInternalError(ctx, err)
 	}
 	pos = pos + orderValue
 	wi := WorkItemStorage{
@@ -604,7 +604,7 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, spaceID uu
 	result := []WorkItemStorage{}
 	columns, err := rows.Columns()
 	if err != nil {
-		return nil, 0, errors.NewInternalError(err)
+		return nil, 0, errors.NewInternalError(ctx, err)
 	}
 
 	// need to set up a result for Scan() in order to extract total count.
@@ -624,7 +624,7 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, spaceID uu
 		if first {
 			first = false
 			if err = rows.Scan(columnValues...); err != nil {
-				return nil, 0, errors.NewInternalError(err)
+				return nil, 0, errors.NewInternalError(ctx, err)
 			}
 		}
 		result = append(result, value)
@@ -657,11 +657,11 @@ func (r *GormWorkItemRepository) List(ctx context.Context, spaceID uuid.UUID, cr
 	for index, value := range result {
 		wiType, err := r.witr.LoadTypeFromDB(ctx, value.Type)
 		if err != nil {
-			return nil, 0, errors.NewInternalError(err)
+			return nil, 0, errors.NewInternalError(ctx, err)
 		}
 		modelWI, err := ConvertWorkItemStorageToModel(wiType, &value)
 		if err != nil {
-			return nil, 0, errors.NewInternalError(err)
+			return nil, 0, errors.NewInternalError(ctx, err)
 		}
 		res[index] = *modelWI
 	}
@@ -707,7 +707,7 @@ func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spac
 	defer goa.MeasureSince([]string{"goa", "db", "workitem", "getCountsPerIteration"}, time.Now())
 	db := r.db.Model(&iteration.Iteration{}).Where("space_id = ?", spaceID)
 	if db.Error != nil {
-		return nil, errors.NewInternalError(db.Error)
+		return nil, errors.NewInternalError(ctx, db.Error)
 	}
 	var allIterations []uuid.UUID
 	db.Pluck("id", &allIterations)
@@ -737,7 +737,7 @@ func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spac
 			"space_id": spaceID.String(),
 			"err":      db.Error,
 		}, "unable to count WI for every iteration in a space")
-		return nil, errors.NewInternalError(db.Error)
+		return nil, errors.NewInternalError(ctx, db.Error)
 	}
 	wiMap := map[string]WICountsPerIteration{}
 	for _, r := range res {
@@ -790,7 +790,7 @@ func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spac
 			"space_id": spaceID.String(),
 			"err":      db.Error,
 		}, "unable to fetch children for every iteration in a space")
-		return nil, errors.NewInternalError(db.Error)
+		return nil, errors.NewInternalError(ctx, db.Error)
 	}
 	childMap := map[string][]string{}
 	for _, r := range itrChildren {
@@ -847,7 +847,7 @@ func (r *GormWorkItemRepository) GetCountsForIteration(ctx context.Context, itr 
 			"path": pathOfIteration.Convert(),
 			"err":  db.Error,
 		}, "unable to fetch children for path")
-		return nil, errors.NewInternalError(db.Error)
+		return nil, errors.NewInternalError(ctx, db.Error)
 	}
 	childIDs = append(childIDs, itr.ID)
 
@@ -873,7 +873,7 @@ func (r *GormWorkItemRepository) GetCountsForIteration(ctx context.Context, itr 
 			"iteration_id`": whereClause,
 			"err":           db.Error,
 		}, "unable to count WI for an iteration")
-		return nil, errors.NewInternalError(db.Error)
+		return nil, errors.NewInternalError(ctx, db.Error)
 	}
 	countsMap := map[string]WICountsPerIteration{}
 	countsMap[itr.ID.String()] = WICountsPerIteration{
