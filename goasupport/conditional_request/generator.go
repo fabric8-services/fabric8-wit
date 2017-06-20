@@ -420,19 +420,27 @@ func generateETagValue(data []interface{}) string {
 		case string:
 			buffer.WriteString(d)
 		case *string:
-			buffer.WriteString(*d)
+			if d != nil {
+				buffer.WriteString(*d)
+			}
 		case time.Time:
 			buffer.WriteString(d.UTC().String())
 		case *time.Time:
-			buffer.WriteString(d.UTC().String())
+			if d != nil {
+				buffer.WriteString(d.UTC().String())
+			}
 		case int:
 			buffer.WriteString(strconv.Itoa(d))
 		case *int:
-			buffer.WriteString(strconv.Itoa(*d))
+			if d != nil {
+				buffer.WriteString(strconv.Itoa(*d))
+			}
 		case uuid.UUID:
 			buffer.WriteString(d.String())
 		case *uuid.UUID:
-			buffer.WriteString(d.String())
+			if d != nil {
+				buffer.WriteString(d.String())
+			}
 		default:
 			log.Logger().Errorln("Unexpected etag fragment format ", reflect.TypeOf(d).String())
 		}

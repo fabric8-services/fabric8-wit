@@ -1527,7 +1527,7 @@ func (s *WorkItem2Suite) TestWI2ListByAreaFilterNotModifiedUsingIfNoneMatchHeade
 	// given
 	spaceID, areaID, wi := s.setupAreaWorkItem(true)
 	// when
-	ifNoneMatch := app.GenerateEntityTag(convertWorkItemToConditionalResponseEntity(*wi))
+	ifNoneMatch := app.GenerateEntityTag(convertWorkItemToConditionalRequestEntity(*wi))
 	res := test.ListWorkitemNotModified(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil, &ifNoneMatch)
 	// then
 	assertResponseHeaders(s.T(), res)
@@ -1689,7 +1689,7 @@ func (s *WorkItem2Suite) TestWI2ShowNotModifiedUsingIfNoneMatchHeader() {
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 	_, createdWI := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 	// when
-	ifNoneMatch := app.GenerateEntityTag(convertWorkItemToConditionalResponseEntity(*createdWI))
+	ifNoneMatch := app.GenerateEntityTag(convertWorkItemToConditionalRequestEntity(*createdWI))
 	res := test.ShowWorkitemNotModified(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWI.Data.Relationships.Space.Data.ID, *createdWI.Data.ID, nil, &ifNoneMatch)
 	// then
 	assertResponseHeaders(s.T(), res)
@@ -2525,7 +2525,7 @@ func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	test.ReorderWorkitemForbidden(s.T(), svcNotAuthrized.Context, svcNotAuthrized, ctrlNotAuthrize, *space.ID, &payload4)
 }
 
-func convertWorkItemToConditionalResponseEntity(appWI app.WorkItemSingle) app.ConditionalResponseEntity {
+func convertWorkItemToConditionalRequestEntity(appWI app.WorkItemSingle) app.ConditionalResponseEntity {
 	return workitem.WorkItem{
 		ID:      *appWI.Data.ID,
 		Version: appWI.Data.Attributes["version"].(int),
@@ -2533,49 +2533,4 @@ func convertWorkItemToConditionalResponseEntity(appWI app.WorkItemSingle) app.Co
 			workitem.SystemUpdatedAt: appWI.Data.Attributes[workitem.SystemUpdatedAt].(time.Time),
 		},
 	}
-}
-
-func (s *workItemChildSuite) TestWorkItemListFilterByNoParents() {
-	s.T().Run("without parentexists filter", func(t *testing.T) {
-		// given
-		var pe *bool
-		// when
-		_, result := test.ListWorkitemOK(t, nil, nil, s.workItemCtrl, s.userSpaceID, nil, nil, nil, nil, pe, nil, nil, nil, nil, nil, nil)
-		// then
-		assert.Len(t, result.Data, 3)
-		assert.Nil(t, result.Links.Prev)
-		assert.Nil(t, result.Links.Next)
-		shouldNotContain := "filter[parentexists]"
-		assert.NotContains(t, *result.Links.First, shouldNotContain)
-		assert.NotContains(t, *result.Links.Last, shouldNotContain)
-	})
-
-	s.T().Run("with parentexists value set to false", func(t *testing.T) {
-		// given
-		pe := false
-		// when
-		_, result2 := test.ListWorkitemOK(t, nil, nil, s.workItemCtrl, s.userSpaceID, nil, nil, nil, nil, &pe, nil, nil, nil, nil, nil, nil)
-		// then
-		assert.Len(t, result2.Data, 1)
-		assert.Nil(t, result2.Links.Prev)
-		assert.Nil(t, result2.Links.Next)
-		shouldContain := "filter[parentexists]=" + strconv.FormatBool(pe)
-		assert.Contains(t, *result2.Links.First, shouldContain)
-		assert.Contains(t, *result2.Links.Last, shouldContain)
-	})
-
-	s.T().Run("with parentexists value set to true", func(t *testing.T) {
-		// given
-		pe := true
-		// when
-		_, result2 := test.ListWorkitemOK(t, nil, nil, s.workItemCtrl, s.userSpaceID, nil, nil, nil, nil, &pe, nil, nil, nil, nil, nil, nil)
-		// then
-		assert.Len(t, result2.Data, 3)
-		assert.Nil(t, result2.Links.Prev)
-		assert.Nil(t, result2.Links.Next)
-		shouldContain := "filter[parentexists]=" + strconv.FormatBool(pe)
-		assert.Contains(t, *result2.Links.First, shouldContain)
-		assert.Contains(t, *result2.Links.Last, shouldContain)
-	})
-
 }

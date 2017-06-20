@@ -314,12 +314,12 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		comments := workItemIncludeCommentsAndTotal(ctx, c.db, ctx.WiID)
-		hasChildren := workItemIncludeHasChildren(appl, ctx)
 		wi, err := appl.WorkItems().Load(ctx, ctx.SpaceID, ctx.WiID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Fail to load work item with id %v", ctx.WiID)))
 		}
 		return ctx.ConditionalEntity(*wi, c.config.GetCacheControlWorkItems, func() error {
+			hasChildren := workItemIncludeHasChildren(appl, ctx)
 			wi2 := ConvertWorkItem(ctx.RequestData, *wi, comments, hasChildren)
 			resp := &app.WorkItemSingle{
 				Data: wi2,
@@ -659,6 +659,7 @@ func workItemIncludeHasChildren(appl application.Application, ctx context.Contex
 		repo := appl.WorkItemLinks()
 		if repo != nil {
 			hasChildren, err = appl.WorkItemLinks().WorkItemHasChildren(ctx, wi.ID)
+			log.Info(ctx, map[string]interface{}{"wi_id": wi.ID}, "Work item has children: %t", hasChildren)
 			if err != nil {
 				log.Error(ctx, map[string]interface{}{
 					"wi_id": wi.ID,
@@ -674,6 +675,7 @@ func workItemIncludeHasChildren(appl application.Application, ctx context.Contex
 		wi2.Relationships.Children.Meta = map[string]interface{}{
 			"hasChildren": hasChildren,
 		}
+
 	}
 }
 
