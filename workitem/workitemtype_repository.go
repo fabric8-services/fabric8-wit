@@ -1,7 +1,6 @@
 package workitem
 
 import (
-	"fmt"
 	"time"
 
 	"context"
@@ -24,6 +23,8 @@ type WorkItemTypeRepository interface {
 	repository.Exister
 	Load(ctx context.Context, spaceID uuid.UUID, id uuid.UUID) (*WorkItemType, error)
 	Create(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]FieldDefinition) (*WorkItemType, error)
+	CreateWithDates(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]FieldDefinition, CreatedAt, UpdatedAt *time.Time) (*WorkItemType, error)
+	CreateFromModel(ctx context.Context, model *WorkItemType) (*WorkItemType, error)
 	List(ctx context.Context, spaceID uuid.UUID, start *int, length *int) ([]WorkItemType, error)
 	ListPlannerItems(ctx context.Context, spaceID uuid.UUID) ([]WorkItemType, error)
 }
@@ -120,9 +121,32 @@ func ClearGlobalWorkItemTypeCache() {
 	cache.Clear()
 }
 
-// Create creates a new work item in the repository
+// CreateFromModel creates a new work item type in the repository without any
+// fancy stuff.
+func (r *GormWorkItemTypeRepository) CreateFromModel(ctx context.Context, model *WorkItemType) (*WorkItemType, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemtype", "create_from_model"}, time.Now())
+	// Make sure this WIT has an ID
+	if model.ID == uuid.Nil {
+		model.ID = uuid.NewV4()
+	}
+
+	if err := r.db.Create(&model).Error; err != nil {
+		return nil, errors.NewInternalError(errs.Wrap(err, "failed to create work item type"))
+	}
+
+	log.Debug(ctx, map[string]interface{}{"witID": model.ID}, "work item type created successfully!")
+	return model, nil
+}
+
+// Create creates a new work item type in the repository
 // returns BadParameterError, ConversionError or InternalError
 func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]FieldDefinition) (*WorkItemType, error) {
+	return r.CreateWithDates(ctx, spaceID, id, extendedTypeID, name, description, icon, fields, nil, nil)
+}
+
+// CreateWithDates creates a new work item type in the repository and allows to specify creation and update times
+// returns BadParameterError, ConversionError or InternalError
+func (r *GormWorkItemTypeRepository) CreateWithDates(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]FieldDefinition, createdAt, updatedAt *time.Time) (*WorkItemType, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitemtype", "create"}, time.Now())
 	// Make sure this WIT has an ID
 	if id == nil {
@@ -151,12 +175,12 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UU
 	for field, definition := range fields {
 		existing, exists := allFields[field]
 		if exists && !compatibleFields(existing, definition) {
-			return nil, fmt.Errorf("incompatible change for field %s", field)
+			return nil, errs.Errorf("incompatible change for field %s", field)
 		}
 		allFields[field] = definition
 	}
 
-	created := WorkItemType{
+	model := WorkItemType{
 		Version:     0,
 		ID:          *id,
 		Name:        name,
@@ -167,12 +191,14 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UU
 		SpaceID:     spaceID,
 	}
 
-	if err := r.db.Create(&created).Error; err != nil {
-		return nil, errors.NewInternalError(err)
+	if createdAt != nil {
+		model.Lifecycle.CreatedAt = *createdAt
+	}
+	if updatedAt != nil {
+		model.Lifecycle.UpdatedAt = *updatedAt
 	}
 
-	log.Debug(ctx, map[string]interface{}{"witID": created.ID}, "Work item type created successfully!")
-	return &created, nil
+	return r.CreateFromModel(ctx, &model)
 }
 
 // List returns work item types that derives from PlannerItem type
