@@ -131,7 +131,7 @@ func (r *GormWorkItemTypeRepository) CreateFromModel(ctx context.Context, model 
 	}
 
 	if err := r.db.Create(&model).Error; err != nil {
-		return nil, errors.NewInternalError(errs.Wrap(err, "failed to create work item type"))
+		return nil, errors.NewInternalError(ctx, errs.Wrap(err, "failed to create work item type"))
 	}
 
 	log.Debug(ctx, map[string]interface{}{"witID": model.ID}, "work item type created successfully!")

@@ -257,8 +257,7 @@ func lookupWorkItemTypes(witCollection app.WorkItemTypeList, workItemTypes ...ap
 // Test on work item types retrieval (single and list)
 //-----------------------------------------------------------------------------
 
-// TestCreateWorkItemType tests if we can create two work item types: "animal" and "person"
-func (s *workItemTypeSuite) TestCreateWorkItemType() {
+func (s *workItemTypeSuite) TestCreate() {
 	// Disable gorm's automatic setting of "created_at" and "updated_at"
 	s.DB.Callback().Create().Remove("gorm:update_time_stamp")
 	s.DB.Callback().Update().Remove("gorm:update_time_stamp")
