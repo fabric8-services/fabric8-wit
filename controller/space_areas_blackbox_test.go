@@ -173,7 +173,7 @@ func (rest *TestSpaceAreaREST) TestListAreasNotModifiedUsingIfNoneMatchHeader() 
 	// given
 	parentArea, _, createdAreas := rest.setupAreas()
 	// when
-	ifNoneMatch := app.GenerateEntitiesTag([]app.ConditionalResponseEntity{
+	ifNoneMatch := app.GenerateEntitiesTag([]app.ConditionalRequestEntity{
 		createdAreas[0],
 		createdAreas[1],
 		createdAreas[2],
