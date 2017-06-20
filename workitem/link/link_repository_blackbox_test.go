@@ -23,7 +23,7 @@ import (
 
 type linkRepoBlackBoxTest struct {
 	gormtestsupport.DBTestSuite
-	workitemLinkRepo         link.WorkItemLinkRepository
+	workitemLinkRepo         *link.GormWorkItemLinkRepository
 	workitemLinkTypeRepo     link.WorkItemLinkTypeRepository
 	workitemLinkCategoryRepo link.WorkItemLinkCategoryRepository
 	workitemRepo             workitem.WorkItemRepository
@@ -31,6 +31,7 @@ type linkRepoBlackBoxTest struct {
 	ctx                      context.Context
 	testSpace                uuid.UUID
 	testIdentity             account.Identity
+	linkCategoryID           uuid.UUID
 	testTreeLinkTypeID       uuid.UUID
 }
 
@@ -76,9 +77,10 @@ func (s *linkRepoBlackBoxTest) SetupTest() {
 	}
 	linkCategory, err := s.workitemLinkCategoryRepo.Create(s.ctx, &linkCategoryModel1)
 	require.Nil(s.T(), err)
+	s.linkCategoryID = linkCategory.ID
 
 	// create tree topology link type
-	linkTypeModel1 := link.WorkItemLinkType{
+	treeLinkTypeModel := link.WorkItemLinkType{
 		Name:           "Parent child item",
 		SourceTypeID:   workitem.SystemBug,
 		TargetTypeID:   workitem.SystemBug,
@@ -88,9 +90,9 @@ func (s *linkRepoBlackBoxTest) SetupTest() {
 		LinkCategoryID: linkCategory.ID,
 		SpaceID:        s.testSpace,
 	}
-	TestTreeLinkType, err := s.workitemLinkTypeRepo.Create(s.ctx, &linkTypeModel1)
+	testTreeLinkType, err := s.workitemLinkTypeRepo.Create(s.ctx, &treeLinkTypeModel)
 	require.Nil(s.T(), err)
-	s.testTreeLinkTypeID = TestTreeLinkType.ID
+	s.testTreeLinkTypeID = testTreeLinkType.ID
 }
 
 func (s *linkRepoBlackBoxTest) TearDownTest() {
@@ -198,7 +200,6 @@ func (s *linkRepoBlackBoxTest) TestWorkItemHasNoChildAfterDeletion() {
 	require.Nil(s.T(), err)
 	parentID, err := strconv.ParseUint(parent.ID, 10, 64)
 	require.Nil(s.T(), err)
-	// create 3 workitems for linking as children to parent workitem
 	child, err := s.createWorkitem(workitem.SystemBug, "Child", workitem.SystemStateNew)
 	require.Nil(s.T(), err)
 	childID, err := strconv.ParseUint(child.ID, 10, 64)
@@ -217,4 +218,186 @@ func (s *linkRepoBlackBoxTest) TestWorkItemHasNoChildAfterDeletion() {
 	// then
 	assert.Nil(s.T(), err)
 	assert.False(s.T(), hasChildren)
+}
+
+func (s *linkRepoBlackBoxTest) TestValidateTopologyOkNoLink() {
+	// given
+	// create 2 workitems but do not link them together
+	s.createWorkitem(workitem.SystemBug, "Parent", workitem.SystemStateNew)
+	child, err := s.createWorkitem(workitem.SystemBug, "Child", workitem.SystemStateNew)
+	require.Nil(s.T(), err)
+	childID, err := strconv.ParseUint(child.ID, 10, 64)
+	require.Nil(s.T(), err)
+	linkType, err := s.workitemLinkTypeRepo.Load(s.ctx, s.testTreeLinkTypeID)
+	require.Nil(s.T(), err)
+	// when
+	err = s.workitemLinkRepo.ValidateTopology(s.ctx, nil, childID, *linkType)
+	// then: there must be no error because no link exists
+	assert.Nil(s.T(), err)
+}
+
+func (s *linkRepoBlackBoxTest) TestValidateTopologyOkLinkExistsButIgnored() {
+	// given
+	// create 2 workitems and link them together
+	parent, err := s.createWorkitem(workitem.SystemBug, "Parent", workitem.SystemStateNew)
+	require.Nil(s.T(), err)
+	parentID, err := strconv.ParseUint(parent.ID, 10, 64)
+	require.Nil(s.T(), err)
+	child, err := s.createWorkitem(workitem.SystemBug, "Child", workitem.SystemStateNew)
+	require.Nil(s.T(), err)
+	childID, err := strconv.ParseUint(child.ID, 10, 64)
+	require.Nil(s.T(), err)
+	s.T().Log(fmt.Sprintf("creating link with treelinktype.ID=%v", s.testTreeLinkTypeID))
+	s.workitemLinkRepo.Create(s.ctx, parentID, childID, s.testTreeLinkTypeID, s.testIdentity.ID)
+	require.Nil(s.T(), err)
+	linkType, err := s.workitemLinkTypeRepo.Load(s.ctx, s.testTreeLinkTypeID)
+	require.Nil(s.T(), err)
+	// when
+	err = s.workitemLinkRepo.ValidateTopology(s.ctx, &parentID, childID, *linkType)
+	// then: there must be no error because the existing link was ignored
+	assert.Nil(s.T(), err)
+}
+
+func (s *linkRepoBlackBoxTest) TestValidateTopologyOkNoLinkWithSameType() {
+	// given
+	// create 2 workitems and link them together
+	parent, err := s.createWorkitem(workitem.SystemBug, "Parent", workitem.SystemStateNew)
+	require.Nil(s.T(), err)
+	parentID, err := strconv.ParseUint(parent.ID, 10, 64)
+	require.Nil(s.T(), err)
+	child, err := s.createWorkitem(workitem.SystemBug, "Child", workitem.SystemStateNew)
+	require.Nil(s.T(), err)
+	childID, err := strconv.ParseUint(child.ID, 10, 64)
+	require.Nil(s.T(), err)
+	s.T().Log(fmt.Sprintf("creating link with treelinktype.ID=%v", s.testTreeLinkTypeID))
+	s.workitemLinkRepo.Create(s.ctx, parentID, childID, s.testTreeLinkTypeID, s.testIdentity.ID)
+	require.Nil(s.T(), err)
+	// use another link type to validate
+	linkTypeModel := link.WorkItemLinkType{
+		Name:           "foo/bar relationship",
+		SourceTypeID:   workitem.SystemBug,
+		TargetTypeID:   workitem.SystemBug,
+		ForwardName:    "foo",
+		ReverseName:    "bar",
+		Topology:       "tree",
+		LinkCategoryID: s.linkCategoryID,
+		SpaceID:        s.testSpace,
+	}
+	foobarLinkType, err := s.workitemLinkTypeRepo.Create(s.ctx, &linkTypeModel)
+	require.Nil(s.T(), err)
+	// when
+	err = s.workitemLinkRepo.ValidateTopology(s.ctx, nil, childID, *foobarLinkType)
+	// then: there must be no error because no link of the same type exists
+	assert.Nil(s.T(), err)
+}
+
+func (s *linkRepoBlackBoxTest) TestValidateTopologyErrorLinkExists() {
+	// given
+	// create 2 workitems and link them together
+	parent, err := s.createWorkitem(workitem.SystemBug, "Parent", workitem.SystemStateNew)
+	require.Nil(s.T(), err)
+	parentID, err := strconv.ParseUint(parent.ID, 10, 64)
+	require.Nil(s.T(), err)
+	child, err := s.createWorkitem(workitem.SystemBug, "Child", workitem.SystemStateNew)
+	require.Nil(s.T(), err)
+	childID, err := strconv.ParseUint(child.ID, 10, 64)
+	require.Nil(s.T(), err)
+	s.T().Log(fmt.Sprintf("creating link with treelinktype.ID=%v", s.testTreeLinkTypeID))
+	s.workitemLinkRepo.Create(s.ctx, parentID, childID, s.testTreeLinkTypeID, s.testIdentity.ID)
+	require.Nil(s.T(), err)
+	linkType, err := s.workitemLinkTypeRepo.Load(s.ctx, s.testTreeLinkTypeID)
+	require.Nil(s.T(), err)
+	// when checking the child *without* excluding the parent item
+	err = s.workitemLinkRepo.ValidateTopology(s.ctx, nil, childID, *linkType)
+	// then: there must be an error because a link of the same type already exists
+	assert.NotNil(s.T(), err)
+}
+
+func (s *linkRepoBlackBoxTest) TestValidateTopologyErrorAnotherLinkExists() {
+	// given
+	// create 2 workitems and link them together
+	parent1, err := s.createWorkitem(workitem.SystemBug, "Parent", workitem.SystemStateNew)
+	require.Nil(s.T(), err)
+	parent1ID, err := strconv.ParseUint(parent1.ID, 10, 64)
+	require.Nil(s.T(), err)
+	child, err := s.createWorkitem(workitem.SystemBug, "Child", workitem.SystemStateNew)
+	require.Nil(s.T(), err)
+	childID, err := strconv.ParseUint(child.ID, 10, 64)
+	require.Nil(s.T(), err)
+	s.T().Log(fmt.Sprintf("creating link with treelinktype.ID=%v", s.testTreeLinkTypeID))
+	s.workitemLinkRepo.Create(s.ctx, parent1ID, childID, s.testTreeLinkTypeID, s.testIdentity.ID)
+	require.Nil(s.T(), err)
+	linkType, err := s.workitemLinkTypeRepo.Load(s.ctx, s.testTreeLinkTypeID)
+	require.Nil(s.T(), err)
+	parent2, err := s.createWorkitem(workitem.SystemBug, "Parent", workitem.SystemStateNew)
+	require.Nil(s.T(), err)
+	parent2ID, err := strconv.ParseUint(parent2.ID, 10, 64)
+	require.Nil(s.T(), err)
+	// when checking the child  while excluding the parent item
+	err = s.workitemLinkRepo.ValidateTopology(s.ctx, &parent2ID, childID, *linkType)
+	// then: there must be an error because a link of the same type already exists with another parent
+	assert.NotNil(s.T(), err)
+}
+
+func (s *linkRepoBlackBoxTest) TestCreateLinkOK() {
+	// given
+	// create 2 workitems and link them together
+	parent1, err := s.createWorkitem(workitem.SystemBug, "Parent", workitem.SystemStateNew)
+	require.Nil(s.T(), err)
+	parent1ID, err := strconv.ParseUint(parent1.ID, 10, 64)
+	require.Nil(s.T(), err)
+	child, err := s.createWorkitem(workitem.SystemBug, "Child", workitem.SystemStateNew)
+	require.Nil(s.T(), err)
+	childID, err := strconv.ParseUint(child.ID, 10, 64)
+	require.Nil(s.T(), err)
+	// when
+	s.T().Log(fmt.Sprintf("creating link with treelinktype.ID=%v", s.testTreeLinkTypeID))
+	_, err = s.workitemLinkRepo.Create(s.ctx, parent1ID, childID, s.testTreeLinkTypeID, s.testIdentity.ID)
+	// then
+	require.Nil(s.T(), err)
+}
+
+func (s *linkRepoBlackBoxTest) TestUpdateLinkOK() {
+	// given
+	// create 2 workitems and link them together
+	parent1, err := s.createWorkitem(workitem.SystemBug, "Parent", workitem.SystemStateNew)
+	require.Nil(s.T(), err)
+	parent1ID, err := strconv.ParseUint(parent1.ID, 10, 64)
+	require.Nil(s.T(), err)
+	child, err := s.createWorkitem(workitem.SystemBug, "Child", workitem.SystemStateNew)
+	require.Nil(s.T(), err)
+	childID, err := strconv.ParseUint(child.ID, 10, 64)
+	require.Nil(s.T(), err)
+	s.T().Log(fmt.Sprintf("creating link with treelinktype.ID=%v", s.testTreeLinkTypeID))
+	wiLink, err := s.workitemLinkRepo.Create(s.ctx, parent1ID, childID, s.testTreeLinkTypeID, s.testIdentity.ID)
+	require.Nil(s.T(), err)
+	// when
+	s.T().Log(fmt.Sprintf("updating link with treelinktype.ID=%v", s.testTreeLinkTypeID))
+	_, err = s.workitemLinkRepo.Save(s.ctx, *wiLink, s.testIdentity.ID)
+	// then
+	require.Nil(s.T(), err)
+}
+
+func (s *linkRepoBlackBoxTest) TestCreateLinkErrorOtherParentChildLinkExist() {
+	// given
+	// create 2 workitems and link them together
+	parent1, err := s.createWorkitem(workitem.SystemBug, "Parent 1", workitem.SystemStateNew)
+	require.Nil(s.T(), err)
+	parent1ID, err := strconv.ParseUint(parent1.ID, 10, 64)
+	require.Nil(s.T(), err)
+	child, err := s.createWorkitem(workitem.SystemBug, "Child", workitem.SystemStateNew)
+	require.Nil(s.T(), err)
+	childID, err := strconv.ParseUint(child.ID, 10, 64)
+	require.Nil(s.T(), err)
+	s.T().Log(fmt.Sprintf("creating link with treelinktype.ID=%v", s.testTreeLinkTypeID))
+	_, err = s.workitemLinkRepo.Create(s.ctx, parent1ID, childID, s.testTreeLinkTypeID, s.testIdentity.ID)
+	require.Nil(s.T(), err)
+	parent2, err := s.createWorkitem(workitem.SystemBug, "Parent 2", workitem.SystemStateNew)
+	require.Nil(s.T(), err)
+	parent2ID, err := strconv.ParseUint(parent2.ID, 10, 64)
+	require.Nil(s.T(), err)
+	// when try to link parent#2 to child
+	_, err = s.workitemLinkRepo.Create(s.ctx, parent2ID, childID, s.testTreeLinkTypeID, s.testIdentity.ID)
+	// then expect an error because a parent/link relation already exists with the child item
+	require.NotNil(s.T(), err)
 }

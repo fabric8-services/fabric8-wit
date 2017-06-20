@@ -1,6 +1,7 @@
 package link
 
 import (
+	"database/sql"
 	"fmt"
 	"strconv"
 	"time"
@@ -100,8 +101,21 @@ func (r *GormWorkItemLinkRepository) ValidateCorrectSourceAndTargetType(ctx cont
 }
 
 // CheckParentExists returns error if there is an attempt to create more than 1 parent of a workitem.
-func (r *GormWorkItemLinkRepository) CheckParentExists(ctx context.Context, targetID uint64, linkType *WorkItemLinkType) (bool, error) {
-	query := fmt.Sprintf(`
+func (r *GormWorkItemLinkRepository) CheckParentExists(ctx context.Context, sourceID *uint64, targetID uint64, linkType WorkItemLinkType) (bool, error) {
+	var row *sql.Row
+	if sourceID != nil {
+		query := fmt.Sprintf(`
+		SELECT EXISTS (
+			SELECT 1 FROM %[1]s
+			WHERE
+				link_type_id=$1
+				AND source_id!=$2
+				AND target_id=$3
+				AND deleted_at IS NULL
+		)`, WorkItemLink{}.TableName())
+		row = r.db.CommonDB().QueryRow(query, linkType.ID, *sourceID, targetID)
+	} else {
+		query := fmt.Sprintf(`
 		SELECT EXISTS (
 			SELECT 1 FROM %[1]s
 			WHERE
@@ -109,7 +123,8 @@ func (r *GormWorkItemLinkRepository) CheckParentExists(ctx context.Context, targ
 				AND target_id=$2
 				AND deleted_at IS NULL
 		)`, WorkItemLink{}.TableName())
-	row := r.db.CommonDB().QueryRow(query, linkType.ID, targetID)
+		row = r.db.CommonDB().QueryRow(query, linkType.ID, targetID)
+	}
 	var exists bool
 	if err := row.Scan(&exists); err != nil {
 		return false, errs.Wrapf(err, "failed to check if a parent exists for the work item %d", targetID)
@@ -117,10 +132,12 @@ func (r *GormWorkItemLinkRepository) CheckParentExists(ctx context.Context, targ
 	return exists, nil
 }
 
-func (r *GormWorkItemLinkRepository) ValidateTopology(ctx context.Context, targetID uint64, linkType *WorkItemLinkType) error {
+// ValidateTopology validates the link topology of the work item given its ID. I.e, the given item should not have a parent with the same kind of link
+// if the `sourceID` arg is not empty, then the corresponding source item is ignored when checking the existing links of the given type.
+func (r *GormWorkItemLinkRepository) ValidateTopology(ctx context.Context, sourceID *uint64, targetID uint64, linkType WorkItemLinkType) error {
 	// check to disallow multiple parents in tree topology
 	if linkType.Topology == TopologyTree {
-		parentExists, err := r.CheckParentExists(ctx, targetID, linkType)
+		parentExists, err := r.CheckParentExists(ctx, sourceID, targetID, linkType)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"wilt_id":   linkType.ID,
@@ -134,7 +151,7 @@ func (r *GormWorkItemLinkRepository) ValidateTopology(ctx context.Context, targe
 				"wilt_id":   linkType.ID,
 				"target_id": targetID,
 				"err":       err,
-			}, "unable to create work item link because a topology of type \"%s\" only allows one parent to exist and the target %d already a parent", TopologyTree, targetID)
+			}, "unable to create/update work item link because a topology of type \"%s\" only allows one parent to exist and the target %d already a parent", TopologyTree, targetID)
 			return errors.NewBadParameterError("linkTypeID + targetID", fmt.Sprintf("%s + %d", linkType.ID, targetID)).Expected("single parent in tree topology")
 		}
 	}
@@ -164,7 +181,7 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 		return nil, errs.WithStack(err)
 	}
 
-	if err := r.ValidateTopology(ctx, targetID, linkType); err != nil {
+	if err := r.ValidateTopology(ctx, nil, targetID, *linkType); err != nil {
 		return nil, errs.WithStack(err)
 	}
 
@@ -336,7 +353,7 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, linkToSave WorkIt
 		return nil, errs.WithStack(err)
 	}
 
-	if err := r.ValidateTopology(ctx, linkToSave.TargetID, linkTypeToSave); err != nil {
+	if err := r.ValidateTopology(ctx, &linkToSave.SourceID, linkToSave.TargetID, *linkTypeToSave); err != nil {
 		return nil, errs.WithStack(err)
 	}
 
