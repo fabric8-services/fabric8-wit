@@ -677,7 +677,7 @@ func minimumRequiredUpdateSpace() *app.UpdateSpacePayload {
 }
 
 func generateSpacesTag(entities app.SpaceList) string {
-	modelEntities := make([]app.ConditionalResponseEntity, len(entities.Data))
+	modelEntities := make([]app.ConditionalRequestEntity, len(entities.Data))
 	for i, entityData := range entities.Data {
 		modelEntities[i] = ConvertSpaceToModel(*entityData)
 	}
@@ -688,8 +688,8 @@ func generateSpaceTag(entity app.SpaceSingle) string {
 	return app.GenerateEntityTag(ConvertSpaceToModel(*entity.Data))
 }
 
-func convertSpacesToConditionalEntities(spaceList app.SpaceList) []app.ConditionalResponseEntity {
-	conditionalSpaces := make([]app.ConditionalResponseEntity, len(spaceList.Data))
+func convertSpacesToConditionalEntities(spaceList app.SpaceList) []app.ConditionalRequestEntity {
+	conditionalSpaces := make([]app.ConditionalRequestEntity, len(spaceList.Data))
 	for i, spaceData := range spaceList.Data {
 		conditionalSpaces[i] = ConvertSpaceToModel(*spaceData)
 	}

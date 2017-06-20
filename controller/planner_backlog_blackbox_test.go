@@ -132,7 +132,7 @@ func assertPlannerBacklogWorkItems(t *testing.T, workitems *app.WorkItemList, te
 }
 
 func generateWorkitemsTag(workitems *app.WorkItemList) string {
-	entities := make([]app.ConditionalResponseEntity, len(workitems.Data))
+	entities := make([]app.ConditionalRequestEntity, len(workitems.Data))
 	for i, wi := range workitems.Data {
 		entities[i] = workitem.WorkItem{
 			ID:      *wi.ID,
