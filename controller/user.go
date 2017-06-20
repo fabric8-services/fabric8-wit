@@ -64,7 +64,7 @@ func (c *UserController) Show(ctx *app.ShowUserContext) error {
 				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, fmt.Sprintf("Can't load user with id %s", userID.UUID)))
 			}
 		}
-		return ctx.ConditionalEntity(*user, c.config.GetCacheControlUser, func() error {
+		return ctx.ConditionalRequest(*user, c.config.GetCacheControlUser, func() error {
 			if c.InitTenant != nil {
 				go func(ctx context.Context) {
 					c.InitTenant(ctx)
