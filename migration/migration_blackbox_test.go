@@ -342,56 +342,40 @@ func testMigration62(t *testing.T) {
 	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+18)], (initialMigratedVersion + 18))
 	assert.Nil(t, runSQLscript(sqlDB, "062-workitem-related-changes.sql"))
 	var createdAt time.Time
-	var updatedAt time.Time
 	var deletedAt time.Time
-	var commentedAt time.Time
-	var linkedAt time.Time
+	var relationshipsChangeddAt time.Time
 
 	// comments
 	// work item 62001 was commented
-	row := sqlDB.QueryRow("SELECT wi.commented_at, c.created_at FROM work_items wi left join comments c on c.parent_id::bigint = wi.id where wi.id = 62001")
-	err := row.Scan(&commentedAt, &createdAt)
+	row := sqlDB.QueryRow("SELECT wi.relationships_changed_at, c.created_at FROM work_items wi left join comments c on c.parent_id::bigint = wi.id where wi.id = 62001")
+	err := row.Scan(&relationshipsChangeddAt, &createdAt)
 	require.Nil(t, err)
-	assert.Equal(t, commentedAt, createdAt)
-	// work item 62002 was commented, then the comment was updated
-	row = sqlDB.QueryRow("SELECT wi.commented_at, c.updated_at FROM work_items wi left join comments c on c.parent_id::bigint = wi.id where wi.id = 62002")
-	err = row.Scan(&commentedAt, &updatedAt)
-	require.Nil(t, err)
-	assert.Equal(t, commentedAt, updatedAt)
+	assert.Equal(t, relationshipsChangeddAt, createdAt)
 	// work item 62003 was commented, then the comment was (soft) deleted
-	row = sqlDB.QueryRow("SELECT wi.commented_at, c.deleted_at FROM work_items wi left join comments c on c.parent_id::bigint = wi.id where wi.id = 62003")
-	err = row.Scan(&commentedAt, &deletedAt)
+	row = sqlDB.QueryRow("SELECT wi.relationships_changed_at, c.deleted_at FROM work_items wi left join comments c on c.parent_id::bigint = wi.id where wi.id = 62003")
+	err = row.Scan(&relationshipsChangeddAt, &deletedAt)
 	require.Nil(t, err)
-	assert.Equal(t, commentedAt, deletedAt)
+	assert.Equal(t, relationshipsChangeddAt, deletedAt)
 
 	// links
 	// work items 62004 and 62005 were linked together
-	row = sqlDB.QueryRow("SELECT wi.linked_at, wil.created_at FROM work_items wi left join work_item_links wil on wil.source_id = wi.id where wi.id = 62004")
-	err = row.Scan(&linkedAt, &createdAt)
+	row = sqlDB.QueryRow("SELECT wi.relationships_changed_at, wil.created_at FROM work_items wi left join work_item_links wil on wil.source_id = wi.id where wi.id = 62004")
+	err = row.Scan(&relationshipsChangeddAt, &createdAt)
 	require.Nil(t, err)
-	assert.Equal(t, linkedAt, createdAt)
-	row = sqlDB.QueryRow("SELECT wi.linked_at, wil.created_at FROM work_items wi left join work_item_links wil on wil.target_id = wi.id where wi.id = 62005")
-	err = row.Scan(&linkedAt, &createdAt)
+	assert.Equal(t, relationshipsChangeddAt, createdAt)
+	row = sqlDB.QueryRow("SELECT wi.relationships_changed_at, wil.created_at FROM work_items wi left join work_item_links wil on wil.target_id = wi.id where wi.id = 62005")
+	err = row.Scan(&relationshipsChangeddAt, &createdAt)
 	require.Nil(t, err)
-	assert.Equal(t, linkedAt, createdAt)
-	// work items 62006 and 62007 were linked together, but then the link was updated
-	row = sqlDB.QueryRow("SELECT wi.linked_at, wil.updated_at FROM work_items wi left join work_item_links wil on wil.source_id = wi.id where wi.id = 62006")
-	err = row.Scan(&linkedAt, &updatedAt)
-	require.Nil(t, err)
-	assert.Equal(t, linkedAt, updatedAt)
-	row = sqlDB.QueryRow("SELECT wi.linked_at, wil.updated_at FROM work_items wi left join work_item_links wil on wil.target_id = wi.id where wi.id = 62007")
-	err = row.Scan(&linkedAt, &updatedAt)
-	require.Nil(t, err)
-	assert.Equal(t, linkedAt, updatedAt)
+	assert.Equal(t, relationshipsChangeddAt, createdAt)
 	// work items 62008 and 62009 were linked together, but then the link was deleted
-	row = sqlDB.QueryRow("SELECT wi.linked_at, wil.deleted_at FROM work_items wi left join work_item_links wil on wil.source_id = wi.id where wi.id = 62008")
-	err = row.Scan(&linkedAt, &deletedAt)
+	row = sqlDB.QueryRow("SELECT wi.relationships_changed_at, wil.deleted_at FROM work_items wi left join work_item_links wil on wil.source_id = wi.id where wi.id = 62008")
+	err = row.Scan(&relationshipsChangeddAt, &deletedAt)
 	require.Nil(t, err)
-	assert.Equal(t, linkedAt, deletedAt)
-	row = sqlDB.QueryRow("SELECT wi.linked_at, wil.deleted_at FROM work_items wi left join work_item_links wil on wil.target_id = wi.id where wi.id = 62009")
-	err = row.Scan(&linkedAt, &deletedAt)
+	assert.Equal(t, relationshipsChangeddAt, deletedAt)
+	row = sqlDB.QueryRow("SELECT wi.relationships_changed_at, wil.deleted_at FROM work_items wi left join work_item_links wil on wil.target_id = wi.id where wi.id = 62009")
+	err = row.Scan(&relationshipsChangeddAt, &deletedAt)
 	require.Nil(t, err)
-	assert.Equal(t, linkedAt, deletedAt)
+	assert.Equal(t, relationshipsChangeddAt, deletedAt)
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and

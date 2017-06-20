@@ -477,53 +477,54 @@ func (s *CommentsSuite) TestOtherCollaboratorCanDelete() {
 func (s *CommentsSuite) TestAddCommentOnWorkItem() {
 	// given a work item with a comment
 	wiID := s.createWorkItem(s.testIdentity)
-	commentedAt := s.getCommentedAt(wiID)
+	commentedAt := s.getRelationshipChangedAt(wiID)
 	require.Nil(s.T(), commentedAt)
 	// when
 	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &plaintextMarkup)
 	// then load the work item again and verify the timestamps
-	commentedAt = s.getCommentedAt(wiID)
+	commentedAt = s.getRelationshipChangedAt(wiID)
 	assert.Equal(s.T(), c.Data.Attributes.CreatedAt.UTC(), commentedAt.UTC())
 }
 
 func (s *CommentsSuite) TestAddAndUpdateCommentOnWorkItem() {
 	// given a work item with a (soft) delete comment
 	wiID := s.createWorkItem(s.testIdentity)
-	commentedAt := s.getCommentedAt(wiID)
+	commentedAt := s.getRelationshipChangedAt(wiID)
 	assert.Nil(s.T(), commentedAt)
 	// when
 	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &plaintextMarkup)
+	time.Sleep(1 * time.Second)
 	s.updateComment(s.testIdentity, *c.Data.ID, "Updated body", &plaintextMarkup)
 	// then load the work item again and verify the timestamps
-	commentedAt = s.getCommentedAt(wiID)
-	// the comparison with the 'deleted_at' column was verified in the migration tests
-	assert.True(s.T(), commentedAt.After(*c.Data.Attributes.CreatedAt))
+	commentedAt = s.getRelationshipChangedAt(wiID)
+	// the timestamp is still the one of the comment creation
+	assert.Equal(s.T(), c.Data.Attributes.CreatedAt.UTC(), commentedAt.UTC())
 }
 
 func (s *CommentsSuite) TestAddAndRemoveCommentOnWorkItem() {
 	// given a work item with a (soft) delete comment
 	wiID := s.createWorkItem(s.testIdentity)
-	commentedAt := s.getCommentedAt(wiID)
+	commentedAt := s.getRelationshipChangedAt(wiID)
 	assert.Nil(s.T(), commentedAt)
 	// when
 	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &plaintextMarkup)
 	time.Sleep(1 * time.Second)
 	s.deleteComment(s.testIdentity, *c.Data.ID)
 	// then load the work item again and verify the timestamps
-	commentedAt = s.getCommentedAt(wiID)
+	commentedAt = s.getRelationshipChangedAt(wiID)
 	// the comparison with the 'deleted_at' column was verified in the migration tests
 	assert.True(s.T(), commentedAt.After(*c.Data.Attributes.CreatedAt))
 }
 
 // utility method to retrieve the value of the 'system.commented_at' field for a work item given its ID.
-func (s *CommentsSuite) getCommentedAt(wiID string) *time.Time {
+func (s *CommentsSuite) getRelationshipChangedAt(wiID string) *time.Time {
 	workitemRepo := workitem.NewWorkItemRepository(s.DB)
 	wi, err := workitemRepo.LoadByID(context.Background(), wiID)
 	require.Nil(s.T(), err)
-	commentedAt, ok := wi.Fields[workitem.SystemCommentedAt]
+	relationShipsChangedAt, ok := wi.Fields[workitem.SystemRelationShipsChangedAt]
 	require.True(s.T(), ok)
-	if commentedAt == nil {
+	if relationShipsChangedAt == nil {
 		return nil
 	}
-	return commentedAt.(*time.Time)
+	return relationShipsChangedAt.(*time.Time)
 }

@@ -25,10 +25,8 @@ type WorkItemStorage struct {
 	ExecutionOrder float64
 	// Reference to one Space
 	SpaceID uuid.UUID `sql:"type:uuid"`
-	// optional timestamp of the latest addition/removal of a comment on this workitem
-	CommentedAt *time.Time `sql:"column:commented_at"`
-	// timestamp of the latest addition/removal of a comment on this workitem
-	LinkedAt *time.Time `sql:"column:linked_at"`
+	// optional timestamp of the latest addition/removal of a relationship with this workitem
+	RelationShipsChangedAt *time.Time `sql:"column:relationships_changed_at"`
 }
 
 const (

@@ -983,9 +983,9 @@ func (s *workItemLinkSuite) TestAddLinkToWorkItem() {
 	// given (need to create work items of type 'bug' to have the 'linked_at' field defined)
 	sourceItemID := s.createWorkItem(workitem.SystemBug, "source item")
 	targetItemID := s.createWorkItem(workitem.SystemBug, "target item")
-	sourceItemLinkedAt := s.getLinkedAt(sourceItemID)
+	sourceItemLinkedAt := s.getRelationshipChangedAt(sourceItemID)
 	require.Nil(s.T(), sourceItemLinkedAt)
-	targetItemLinkedAt := s.getLinkedAt(targetItemID)
+	targetItemLinkedAt := s.getRelationshipChangedAt(targetItemID)
 	require.Nil(s.T(), targetItemLinkedAt)
 	createLinkTypePayload := newCreateWorkItemLinkTypePayload("TestAddLinkToWorkItem", workitem.SystemBug, workitem.SystemBug, s.userLinkCategoryID, s.userSpaceID)
 	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkTypeCtrl, s.userSpaceID, createLinkTypePayload)
@@ -993,9 +993,9 @@ func (s *workItemLinkSuite) TestAddLinkToWorkItem() {
 	createPayload := newCreateWorkItemLinkPayload(sourceItemID, targetItemID, *workItemLinkType.Data.ID)
 	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload)
 	// then load the work items again and verify the timestamps
-	sourceItemLinkedAt = s.getLinkedAt(sourceItemID)
+	sourceItemLinkedAt = s.getRelationshipChangedAt(sourceItemID)
 	assert.Equal(s.T(), workItemLink.Data.Attributes.CreatedAt.UTC(), sourceItemLinkedAt.UTC())
-	targetItemLinkedAt = s.getLinkedAt(targetItemID)
+	targetItemLinkedAt = s.getRelationshipChangedAt(targetItemID)
 	assert.Equal(s.T(), workItemLink.Data.Attributes.CreatedAt.UTC(), targetItemLinkedAt.UTC())
 }
 
@@ -1003,9 +1003,9 @@ func (s *workItemLinkSuite) TestAddAndUpdateLinkToWorkItem() {
 	// given (need to create work items of type 'bug' to have the 'linked_at' field defined)
 	sourceItemID := s.createWorkItem(workitem.SystemBug, "source item")
 	targetItemID := s.createWorkItem(workitem.SystemBug, "target item")
-	sourceItemLinkedAt := s.getLinkedAt(sourceItemID)
+	sourceItemLinkedAt := s.getRelationshipChangedAt(sourceItemID)
 	require.Nil(s.T(), sourceItemLinkedAt)
-	targetItemLinkedAt := s.getLinkedAt(targetItemID)
+	targetItemLinkedAt := s.getRelationshipChangedAt(targetItemID)
 	require.Nil(s.T(), targetItemLinkedAt)
 	createLinkTypePayload := newCreateWorkItemLinkTypePayload("TestAddLinkToWorkItem", workitem.SystemBug, workitem.SystemBug, s.userLinkCategoryID, s.userSpaceID)
 	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkTypeCtrl, s.userSpaceID, createLinkTypePayload)
@@ -1014,23 +1014,23 @@ func (s *workItemLinkSuite) TestAddAndUpdateLinkToWorkItem() {
 	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createLinkPayload)
 	time.Sleep(1 * time.Second)
 	updateLinkPayload := newUpdateWorkItemLinkPayload(*workItemLink.Data.ID, sourceItemID, targetItemID, *workItemLinkType.Data.ID)
-	s.DB.LogMode(true)
-	_, updatedWorkItemLink := test.UpdateWorkItemLinkOK(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, *workItemLink.Data.ID, updateLinkPayload)
-	s.DB.LogMode(false)
-	// then load the work items again and verify the timestamps
-	sourceItemLinkedAt = s.getLinkedAt(sourceItemID)
-	assert.Equal(s.T(), updatedWorkItemLink.Data.Attributes.UpdatedAt.UTC(), sourceItemLinkedAt.UTC())
-	targetItemLinkedAt = s.getLinkedAt(targetItemID)
-	assert.Equal(s.T(), updatedWorkItemLink.Data.Attributes.UpdatedAt.UTC(), targetItemLinkedAt.UTC())
+	_, updatedWorkitemLink := test.UpdateWorkItemLinkOK(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, *workItemLink.Data.ID, updateLinkPayload)
+	// then load the work items again and verify the timestamps are the ones of the created link, not the updated one
+	sourceItemLinkedAt = s.getRelationshipChangedAt(sourceItemID)
+	assert.Equal(s.T(), workItemLink.Data.Attributes.UpdatedAt.UTC(), sourceItemLinkedAt.UTC())
+	assert.NotEqual(s.T(), updatedWorkitemLink.Data.Attributes.UpdatedAt.UTC(), sourceItemLinkedAt.UTC())
+	targetItemLinkedAt = s.getRelationshipChangedAt(targetItemID)
+	assert.Equal(s.T(), workItemLink.Data.Attributes.UpdatedAt.UTC(), targetItemLinkedAt.UTC())
+	assert.NotEqual(s.T(), updatedWorkitemLink.Data.Attributes.UpdatedAt.UTC(), targetItemLinkedAt.UTC())
 }
 
 func (s *workItemLinkSuite) TestAddAndRemoveLinkToWorkItem() {
 	// given (need to create work items of type 'bug' to have the 'linked_at' field defined)
 	sourceItemID := s.createWorkItem(workitem.SystemBug, "source item")
 	targetItemID := s.createWorkItem(workitem.SystemBug, "target item")
-	sourceItemLinkedAt := s.getLinkedAt(sourceItemID)
+	sourceItemLinkedAt := s.getRelationshipChangedAt(sourceItemID)
 	require.Nil(s.T(), sourceItemLinkedAt)
-	targetItemLinkedAt := s.getLinkedAt(targetItemID)
+	targetItemLinkedAt := s.getRelationshipChangedAt(targetItemID)
 	require.Nil(s.T(), targetItemLinkedAt)
 	createLinkTypePayload := newCreateWorkItemLinkTypePayload("TestAddLinkToWorkItem", workitem.SystemBug, workitem.SystemBug, s.userLinkCategoryID, s.userSpaceID)
 	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkTypeCtrl, s.userSpaceID, createLinkTypePayload)
@@ -1040,23 +1040,23 @@ func (s *workItemLinkSuite) TestAddAndRemoveLinkToWorkItem() {
 	time.Sleep(1 * time.Second)
 	test.DeleteWorkItemLinkOK(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, *workItemLink.Data.ID)
 	// then load the work items again and verify the timestamps
-	sourceItemLinkedAt = s.getLinkedAt(sourceItemID)
+	sourceItemLinkedAt = s.getRelationshipChangedAt(sourceItemID)
 	assert.True(s.T(), sourceItemLinkedAt.After(*workItemLink.Data.Attributes.CreatedAt))
-	targetItemLinkedAt = s.getLinkedAt(targetItemID)
+	targetItemLinkedAt = s.getRelationshipChangedAt(targetItemID)
 	assert.True(s.T(), targetItemLinkedAt.After(*workItemLink.Data.Attributes.CreatedAt))
 }
 
 // utility method to retrieve the value of the 'system.linked_at' field for a work item given its ID.
-func (s *workItemLinkSuite) getLinkedAt(wiID uint64) *time.Time {
+func (s *workItemLinkSuite) getRelationshipChangedAt(wiID uint64) *time.Time {
 	workitemRepo := workitem.NewWorkItemRepository(s.DB)
 	wi, err := workitemRepo.LoadByID(context.Background(), strconv.FormatUint(wiID, 10))
 	require.Nil(s.T(), err)
-	linkedAt, ok := wi.Fields[workitem.SystemLinkedAt]
+	relationShipsChangedAt, ok := wi.Fields[workitem.SystemRelationShipsChangedAt]
 	require.True(s.T(), ok)
-	if linkedAt == nil {
+	if relationShipsChangedAt == nil {
 		return nil
 	}
-	return linkedAt.(*time.Time)
+	return relationShipsChangedAt.(*time.Time)
 }
 
 func TestNewWorkItemLinkControllerDBNull(t *testing.T) {
