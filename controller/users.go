@@ -71,7 +71,7 @@ func (c *UsersController) Show(ctx *app.ShowUsersContext) error {
 				return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError(fmt.Sprintf("User ID %s not valid", userID.UUID), err))
 			}
 		}
-		return ctx.ConditionalEntity(*user, c.config.GetCacheControlUsers, func() error {
+		return ctx.ConditionalRequest(*user, c.config.GetCacheControlUsers, func() error {
 			return ctx.OK(ConvertToAppUser(ctx.RequestData, user, identity))
 		})
 	})
