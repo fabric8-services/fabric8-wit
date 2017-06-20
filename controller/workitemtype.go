@@ -72,7 +72,7 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		witTypeModel, err := appl.WorkItemTypes().CreateWithDates(
+		witTypeModel, err := appl.WorkItemTypes().Create(
 			ctx.Context,
 			*ctx.Payload.Data.Relationships.Space.Data.ID,
 			ctx.Payload.Data.ID,
@@ -80,9 +80,7 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 			ctx.Payload.Data.Attributes.Name,
 			ctx.Payload.Data.Attributes.Description,
 			ctx.Payload.Data.Attributes.Icon,
-			modelFields,
-			ctx.Payload.Data.Attributes.CreatedAt,
-			ctx.Payload.Data.Attributes.UpdatedAt)
+			modelFields)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}

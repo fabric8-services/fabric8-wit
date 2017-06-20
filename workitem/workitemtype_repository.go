@@ -23,7 +23,6 @@ type WorkItemTypeRepository interface {
 	repository.Exister
 	Load(ctx context.Context, spaceID uuid.UUID, id uuid.UUID) (*WorkItemType, error)
 	Create(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]FieldDefinition) (*WorkItemType, error)
-	CreateWithDates(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]FieldDefinition, CreatedAt, UpdatedAt *time.Time) (*WorkItemType, error)
 	CreateFromModel(ctx context.Context, model *WorkItemType) (*WorkItemType, error)
 	List(ctx context.Context, spaceID uuid.UUID, start *int, length *int) ([]WorkItemType, error)
 	ListPlannerItems(ctx context.Context, spaceID uuid.UUID) ([]WorkItemType, error)
@@ -141,12 +140,6 @@ func (r *GormWorkItemTypeRepository) CreateFromModel(ctx context.Context, model 
 // Create creates a new work item type in the repository
 // returns BadParameterError, ConversionError or InternalError
 func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]FieldDefinition) (*WorkItemType, error) {
-	return r.CreateWithDates(ctx, spaceID, id, extendedTypeID, name, description, icon, fields, nil, nil)
-}
-
-// CreateWithDates creates a new work item type in the repository and allows to specify creation and update times
-// returns BadParameterError, ConversionError or InternalError
-func (r *GormWorkItemTypeRepository) CreateWithDates(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]FieldDefinition, createdAt, updatedAt *time.Time) (*WorkItemType, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitemtype", "create"}, time.Now())
 	// Make sure this WIT has an ID
 	if id == nil {
@@ -189,13 +182,6 @@ func (r *GormWorkItemTypeRepository) CreateWithDates(ctx context.Context, spaceI
 		Path:        path,
 		Fields:      allFields,
 		SpaceID:     spaceID,
-	}
-
-	if createdAt != nil {
-		model.Lifecycle.CreatedAt = *createdAt
-	}
-	if updatedAt != nil {
-		model.Lifecycle.UpdatedAt = *updatedAt
 	}
 
 	return r.CreateFromModel(ctx, &model)

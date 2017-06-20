@@ -128,7 +128,7 @@ func (s *workItemTypeSuite) createWorkItemTypeAnimalWithDates(createdAt, updated
 				Description: &desc,
 				Icon:        "fa-hand-lizard-o",
 				Fields: map[string]*app.FieldDefinition{
-					"animal_type": &app.FieldDefinition{
+					"animal_type": {
 						Required: true,
 						Type: &app.FieldType{
 							BaseType: &stString,
@@ -136,7 +136,7 @@ func (s *workItemTypeSuite) createWorkItemTypeAnimalWithDates(createdAt, updated
 							Values:   typeEnum,
 						},
 					},
-					"color": &app.FieldDefinition{
+					"color": {
 						Required: false,
 						Type: &app.FieldType{
 							Kind: "string",
@@ -182,7 +182,7 @@ func (s *workItemTypeSuite) createWorkItemTypePersonWithDates(createdAt, updated
 				Description: &desc,
 				Icon:        "fa-user",
 				Fields: map[string]*app.FieldDefinition{
-					"name": &app.FieldDefinition{
+					"name": {
 						Required: true,
 						Type: &app.FieldType{
 							Kind: "string",
@@ -217,7 +217,7 @@ func CreateWorkItemType(id uuid.UUID, spaceID uuid.UUID) app.CreateWorkitemtypeP
 				Description: &desc,
 				Icon:        "fa-user",
 				Fields: map[string]*app.FieldDefinition{
-					"test": &app.FieldDefinition{
+					"test": {
 						Required: false,
 						Type: &app.FieldType{
 							Kind: "string",
@@ -289,7 +289,7 @@ func (s *workItemTypeSuite) TestValidate() {
 				Description: &desc,
 				Icon:        "fa-user",
 				Fields: map[string]*app.FieldDefinition{
-					"name": &app.FieldDefinition{
+					"name": {
 						Required: true,
 						Type: &app.FieldType{
 							Kind: "string",

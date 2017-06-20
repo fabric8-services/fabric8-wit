@@ -1,7 +1,7 @@
 {
   "data": {
     "attributes": {
-      "created-at": "2017-05-01T00:00:00Z",
+      "created-at": "0001-01-01T00:00:00Z",
       "description": "Description for 'animal'",
       "fields": {
         "animal_type": {
@@ -29,7 +29,7 @@
       },
       "icon": "fa-hand-lizard-o",
       "name": "animal",
-      "updated-at": "2017-05-01T00:00:00Z",
+      "updated-at": "0001-01-01T00:00:00Z",
       "version": 0
     },
     "id": "729431f2-bca4-4062-9087-c751807b569f",
