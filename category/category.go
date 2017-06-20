@@ -86,7 +86,7 @@ type Repository interface {
 	Create(ctx context.Context, category *Category) (*Category, error)
 	LoadCategoryFromDB(ctx context.Context, id uuid.UUID) (*Category, error)
 	List(ctx context.Context) ([]*Category, error)
-	CreateRelationship(ctx context.Context, relationship *WorkItemTypeCategoryRelationship) error
+	AssociateWIT(ctx context.Context, relationship *WorkItemTypeCategoryRelationship) error
 	LoadWorkItemTypeCategoryRelationship(ctx context.Context, workitemtypeID uuid.UUID, categoryID uuid.UUID) (*WorkItemTypeCategoryRelationship, error)
 	LoadAllRelationshipsOfCategory(ctx context.Context, categoryID uuid.UUID) ([]*WorkItemTypeCategoryRelationship, error)
 	Save(ctx context.Context, category *Category) (*Category, error)
@@ -115,8 +115,8 @@ func (m *GormRepository) List(ctx context.Context) ([]*Category, error) {
 	return objs, nil
 }
 
-// CreateRelationship creates relationship between workitemtype and category
-func (m *GormRepository) CreateRelationship(ctx context.Context, relationship *WorkItemTypeCategoryRelationship) error {
+// AssociateWIT creates relationship between workitemtype and category
+func (m *GormRepository) AssociateWIT(ctx context.Context, relationship *WorkItemTypeCategoryRelationship) error {
 	db := m.db.Create(relationship)
 	if db.Error != nil {
 		if gormsupport.IsUniqueViolation(db.Error, "work_item_type_categories_idx") {

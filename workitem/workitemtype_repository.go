@@ -169,7 +169,7 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UU
 				CategoryID:     *categoryID,
 				WorkItemTypeID: *id,
 			}
-			err := c.CreateRelationship(ctx, &WorkItemTypeCategoryRelationship)
+			err := c.AssociateWIT(ctx, &WorkItemTypeCategoryRelationship)
 			if err != nil {
 				log.Info(ctx, map[string]interface{}{
 					"category_id":       *categoryID,

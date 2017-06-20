@@ -1375,7 +1375,7 @@ func (s *WorkItem2Suite) TestWI2ListByCategoryFilter() {
 		CategoryID:     category.PlannerRequirementsID,
 		WorkItemTypeID: workitem.SystemValueProposition,
 	}
-	err := cat.CreateRelationship(s.svc.Context, &relationship)
+	err := cat.AssociateWIT(s.svc.Context, &relationship)
 	require.Nil(s.T(), err)
 
 	// create relationship between "Scenario" workitemtype and "planner.requirements" category
@@ -1383,7 +1383,7 @@ func (s *WorkItem2Suite) TestWI2ListByCategoryFilter() {
 		CategoryID:     category.PlannerRequirementsID,
 		WorkItemTypeID: workitem.SystemScenario,
 	}
-	err = cat.CreateRelationship(s.svc.Context, &relationship)
+	err = cat.AssociateWIT(s.svc.Context, &relationship)
 	require.Nil(s.T(), err)
 
 	// Create 3 workitems
