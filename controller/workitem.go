@@ -534,7 +534,7 @@ func setupCodebase(appl application.Application, cb *codebase.Content, spaceID u
 		}
 		err = appl.Codebases().Create(context.Background(), &newCodeBase)
 		if err != nil {
-			return errors.NewInternalError(err)
+			return errors.NewInternalError(context.Background(), err)
 		}
 		cb.CodebaseID = newCodeBase.ID.String()
 	}

@@ -293,7 +293,7 @@ func (m *GormCodebaseRepository) LoadByRepo(ctx context.Context, spaceID uuid.UU
 		return nil, errors.NewNotFoundError("codebase url", repository)
 	}
 	if tx.Error != nil {
-		return nil, errors.NewInternalError(tx.Error)
+		return nil, errors.NewInternalError(ctx, tx.Error)
 	}
 	return &obj, nil
 }
