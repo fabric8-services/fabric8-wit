@@ -193,6 +193,7 @@ func WriteNames(api *design.APIDefinition, outDir string) ([]string, error) {
 		codegen.SimpleImport("strconv"),
 		codegen.SimpleImport("net/http"),
 		codegen.SimpleImport("time"),
+		codegen.SimpleImport("fmt"),
 		codegen.SimpleImport("reflect"),
 		codegen.SimpleImport("github.com/almighty/almighty-core/configuration"),
 		codegen.SimpleImport("github.com/almighty/almighty-core/log"),
@@ -289,8 +290,8 @@ type ConditionalRequestContext interface {
 }`
 
 	conditionalResponseEntity = `
-	// ConditionalResponseEntity interface with methods for the response entities
-type ConditionalResponseEntity interface {
+	// ConditionalRequestEntity interface with methods for the response entities
+type ConditionalRequestEntity interface {
 	// returns the time of last update
 	GetLastModified() time.Time
 	// returns the values to use to generate the ETag
@@ -301,7 +302,7 @@ type ConditionalResponseEntity interface {
    type CacheControlConfig func() string
    `
 	doConditionals = `
-func doConditionalEntity(ctx ConditionalRequestContext, entity ConditionalResponseEntity, cacheControlConfig CacheControlConfig, nonConditionalCallback func() error) error {
+func doConditionalRequest(ctx ConditionalRequestContext, entity ConditionalRequestEntity, cacheControlConfig CacheControlConfig, nonConditionalCallback func() error) error {
 	lastModified := entity.GetLastModified()
 	eTag := GenerateEntityTag(entity)
 	cacheControl := cacheControlConfig()
@@ -323,7 +324,7 @@ func doConditionalEntity(ctx ConditionalRequestContext, entity ConditionalRespon
 	return nonConditionalCallback()
 }
 
-func doConditionalEntities(ctx ConditionalRequestContext, entities []ConditionalResponseEntity, cacheControlConfig CacheControlConfig, nonConditionalCallback func() error) error {
+func doConditionalEntities(ctx ConditionalRequestContext, entities []ConditionalRequestEntity, cacheControlConfig CacheControlConfig, nonConditionalCallback func() error) error {
 	var lastModified time.Time
 	var eTag string
 	if len(entities) > 0 {
@@ -360,22 +361,24 @@ func doConditionalEntities(ctx ConditionalRequestContext, entities []Conditional
 {{ $resp := . }}
 {{ $entity := $resp.Entity }}
 {{ if $entity.IsSingle }}
-// ConditionalEntity checks if the entity to return changed since the client's last call and returns a "304 Not Modified" response
+// ConditionalRequest checks if the entity to return changed since the client's last call and returns a "304 Not Modified" response
 // or calls the 'nonConditionalCallback' function to carry on.
-func (ctx *{{$resp.Name}}) ConditionalEntity(entity {{$entity.DomainTypeName}}, cacheControlConfig CacheControlConfig, nonConditionalCallback func() error) error {
-	return doConditionalEntity(ctx, entity, cacheControlConfig, nonConditionalCallback)
+func (ctx *{{$resp.Name}}) ConditionalRequest(entity {{$entity.DomainTypeName}}, cacheControlConfig CacheControlConfig, nonConditionalCallback func() error) error {
+	return doConditionalRequest(ctx, entity, cacheControlConfig, nonConditionalCallback)
 }
+
 {{ end }}
 {{ if $entity.IsList }}
-// ConditionalEntities checks if the entity to return changed since the client's last call and returns a "304 Not Modified" response
+// ConditionalEntities checks if the entities to return changed since the client's last call and returns a "304 Not Modified" response
 // or calls the 'nonConditionalCallback' function to carry on.
 func (ctx *{{$resp.Name}}) ConditionalEntities(entities []{{$entity.DomainTypeName}}, cacheControlConfig CacheControlConfig, nonConditionalCallback func() error) error {
-	conditionalEntities := make([]ConditionalResponseEntity, len(entities))
+	conditionalEntities := make([]ConditionalRequestEntity, len(entities))
 	for i, entity := range entities {
 		conditionalEntities[i] = entity
 	}
 	return doConditionalEntities(ctx, conditionalEntities, cacheControlConfig, nonConditionalCallback)
 }
+
 {{ end }}`
 	generateETag = `
 // GenerateEmptyTag generates the value to return in the "ETag" HTTP response header for the an empty list of entities
@@ -389,7 +392,7 @@ func GenerateEmptyTag() string {
 }
 // GenerateEntityTag generates the value to return in the "ETag" HTTP response header for the given entity
 // The ETag is the base64-encoded value of the md5 hash of the buffer content
-func GenerateEntityTag(entity ConditionalResponseEntity) string {
+func GenerateEntityTag(entity ConditionalRequestEntity) string {
 	var buffer bytes.Buffer
 	buffer.WriteString(generateETagValue(entity.GetETagData()))
 	etagData := md5.Sum(buffer.Bytes())
@@ -399,7 +402,7 @@ func GenerateEntityTag(entity ConditionalResponseEntity) string {
 
 // GenerateEntitiesTag generates the value to return in the "ETag" HTTP response header for the given list of entities
 // The ETag is the base64-encoded value of the md5 hash of the buffer content
-func GenerateEntitiesTag(entities []ConditionalResponseEntity) string {
+func GenerateEntitiesTag(entities []ConditionalRequestEntity) string {
 	var buffer bytes.Buffer
 	for i, entity := range entities {
 		buffer.WriteString(generateETagValue(entity.GetETagData()))
@@ -411,30 +414,44 @@ func GenerateEntitiesTag(entities []ConditionalResponseEntity) string {
 	etag := base64.StdEncoding.EncodeToString(etagData[:])
 	return etag
 }
-func generateETagValue(data []interface{}) string {
+func generateETagValue(data []interface{}, options ...interface{}) string {
 	var buffer bytes.Buffer
 	for i, d := range data {
 		switch d := d.(type) {
 		case []interface{}:
+			// if the entry in the 'data' array is itself an array,
+			// then we recursively call the 'generateETagValue' function with this array entry.
 			buffer.WriteString(generateETagValue(d))
 		case string:
 			buffer.WriteString(d)
 		case *string:
+			if d == nil {
+				continue
+			}
 			buffer.WriteString(*d)
 		case time.Time:
 			buffer.WriteString(d.UTC().String())
 		case *time.Time:
+			if d == nil {
+				continue
+			}
 			buffer.WriteString(d.UTC().String())
 		case int:
 			buffer.WriteString(strconv.Itoa(d))
 		case *int:
+			if d == nil {
+				continue
+			}
 			buffer.WriteString(strconv.Itoa(*d))
 		case uuid.UUID:
 			buffer.WriteString(d.String())
 		case *uuid.UUID:
+			if d == nil {
+				continue
+			}
 			buffer.WriteString(d.String())
 		default:
-			log.Logger().Errorln("Unexpected etag fragment format ", reflect.TypeOf(d).String())
+			log.Logger().Errorln(fmt.Sprintf("Unexpected Etag fragment format: %v", reflect.TypeOf(d)))
 		}
 		if i < len(data)-1 {
 			buffer.WriteString("|")

@@ -472,7 +472,7 @@ func (s *workItemLinkTypeSuite) TestListWorkItemLinkTypeNotModifiedUsingIfNoneMa
 	_, createdWorkItemLinkType := s.createWorkItemLinkTypes()
 	_, existingLinkTypes := test.ListWorkItemLinkTypeOK(s.T(), nil, nil, s.linkTypeCtrl, *createdWorkItemLinkType.Data.Relationships.Space.Data.ID, nil, nil)
 	// when fetching all work item link type in a give space
-	createdWorkItemLinkTypeModels := make([]app.ConditionalResponseEntity, len(existingLinkTypes.Data))
+	createdWorkItemLinkTypeModels := make([]app.ConditionalRequestEntity, len(existingLinkTypes.Data))
 	for i, linkTypeData := range existingLinkTypes.Data {
 		createdWorkItemLinkTypeModel, err := ConvertWorkItemLinkTypeToModel(
 			app.WorkItemLinkTypeSingle{
