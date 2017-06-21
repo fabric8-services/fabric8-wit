@@ -240,6 +240,10 @@ migrate-database: $(BINARY_SERVER_BIN)
 ## Generate GOA sources. Only necessary after clean of if changed `design` folder.
 generate: app/controllers.go assets/js/client.js bindata_assetfs.go migration/sqlbindata.go
 
+.PHONY: regenerate
+## Runs the "clean-generated" and the "generate" target
+regenerate: clean-generated generate 
+
 .PHONY: dev
 dev: prebuild-check deps generate $(FRESH_BIN)
 	docker-compose up -d db
