@@ -96,10 +96,6 @@ var (
 // createWorkItemTypeAnimal defines a work item type "animal" that consists of
 // two fields ("animal-type" and "color"). The type is mandatory but the color is not.
 func (s *workItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *app.WorkItemTypeSingle) {
-	return s.createWorkItemTypeAnimalWithDates(nil, nil)
-}
-
-func (s *workItemTypeSuite) createWorkItemTypeAnimalWithDates(createdAt, updatedAt *time.Time) (http.ResponseWriter, *app.WorkItemTypeSingle) {
 	// Create an enumeration of animal names
 	typeStrings := []string{"elephant", "blue whale", "Tyrannosaurus rex"}
 
@@ -122,8 +118,6 @@ func (s *workItemTypeSuite) createWorkItemTypeAnimalWithDates(createdAt, updated
 			Type: "workitemtypes",
 			ID:   &animalID,
 			Attributes: &app.WorkItemTypeAttributes{
-				CreatedAt:   createdAt,
-				UpdatedAt:   updatedAt,
 				Name:        "animal",
 				Description: &desc,
 				Icon:        "fa-hand-lizard-o",
@@ -157,13 +151,9 @@ func (s *workItemTypeSuite) createWorkItemTypeAnimalWithDates(createdAt, updated
 	return responseWriter, wi
 }
 
-func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *app.WorkItemTypeSingle) {
-	return s.createWorkItemTypePersonWithDates(nil, nil)
-}
-
 // createWorkItemTypePerson defines a work item type "person" that consists of
 // a required "name" field.
-func (s *workItemTypeSuite) createWorkItemTypePersonWithDates(createdAt, updatedAt *time.Time) (http.ResponseWriter, *app.WorkItemTypeSingle) {
+func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *app.WorkItemTypeSingle) {
 	// Use the goa generated code to create a work item type
 	desc := "Description for 'person'"
 	id := personID
@@ -176,8 +166,6 @@ func (s *workItemTypeSuite) createWorkItemTypePersonWithDates(createdAt, updated
 			ID:   &id,
 			Type: "workitemtypes",
 			Attributes: &app.WorkItemTypeAttributes{
-				CreatedAt:   createdAt,
-				UpdatedAt:   updatedAt,
 				Name:        "person",
 				Description: &desc,
 				Icon:        "fa-user",
@@ -342,15 +330,13 @@ func (s *workItemTypeSuite) TestValidate() {
 	})
 }
 
-// TestShowWorkItemType200OK tests if we can fetch the work item type "animal".
 func (s *workItemTypeSuite) TestShow() {
 	// Disable gorm's automatic setting of "created_at" and "updated_at"
 	s.DB.Callback().Create().Remove("gorm:update_time_stamp")
 	s.DB.Callback().Update().Remove("gorm:update_time_stamp")
 
 	// given
-	date := time.Date(2017, 05, 01, 0, 0, 0, 0, time.UTC)
-	_, wit := s.createWorkItemTypeAnimalWithDates(&date, &date)
+	_, wit := s.createWorkItemTypeAnimal()
 	require.NotNil(s.T(), wit)
 	require.NotNil(s.T(), wit.Data)
 	require.NotNil(s.T(), wit.Data.ID)
