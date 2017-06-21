@@ -123,7 +123,7 @@ func ClearGlobalWorkItemTypeCache() {
 // CreateFromModel creates a new work item type in the repository without any
 // fancy stuff.
 func (r *GormWorkItemTypeRepository) CreateFromModel(ctx context.Context, model *WorkItemType) (*WorkItemType, error) {
-	defer goa.MeasureSince([]string{"goa", "db", "workitemtype", "create_from_model"}, time.Now())
+	defer goa.MeasureSince([]string{"goa", "db", "workitemtype", "createfrommodel"}, time.Now())
 	// Make sure this WIT has an ID
 	if model.ID == uuid.Nil {
 		model.ID = uuid.NewV4()
