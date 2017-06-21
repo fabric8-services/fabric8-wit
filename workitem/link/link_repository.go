@@ -100,7 +100,11 @@ func (r *GormWorkItemLinkRepository) ValidateCorrectSourceAndTargetType(ctx cont
 	return nil
 }
 
-// CheckParentExists returns error if there is an attempt to create more than 1 parent of a workitem.
+// CheckParentExists returns `true` if a link to a work item with the given `targetID` and of the given `linkType` already exists, `false` otherwise.
+// If the `sourceId` argument is not nil, then existing link from the source item to the target item with the given type is ignored.
+// In the context of a link creation, the `sourceID` argument should be nil, so the method will look for a link of the given type and target,
+// since during link creation we need to ensure that the child item has no parent yet. During the link update, the verification should not take into account
+// the existing record in the database.
 func (r *GormWorkItemLinkRepository) CheckParentExists(ctx context.Context, sourceID *uint64, targetID uint64, linkType WorkItemLinkType) (bool, error) {
 	var row *sql.Row
 	if sourceID != nil {
