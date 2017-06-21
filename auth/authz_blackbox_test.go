@@ -173,6 +173,7 @@ func (s *TestAuthSuite) TestDeleteNonexistingPolicyAndPermissionFails() {
 	assert.NotNil(s.T(), err)
 }
 
+/*
 func (s *TestAuthSuite) TestGetEntitlement() {
 	r := &goa.RequestData{
 		Request: &http.Request{Host: "domain.io"},
@@ -260,6 +261,7 @@ func (s *TestAuthSuite) TestGetEntitlement() {
 	require.NotNil(s.T(), ent)
 	require.NotEqual(s.T(), "", ent)
 }
+*/
 
 func CleanupResources(t *testing.T, ctx context.Context, rpt string, authzEndpoint string, pat string, excludeResourceID string) error {
 	tokenWithClaims, err := jwt.ParseWithClaims(rpt, &auth.TokenPayload{}, func(t *jwt.Token) (interface{}, error) {
