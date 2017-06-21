@@ -364,15 +364,6 @@ type showWorkItemLinkFuncs interface {
 	InternalServerError(r *app.JSONAPIErrors) error
 }
 
-func showWorkItemLink(modelLink link.WorkItemLink, ctx *workItemLinkContext, httpFuncs showWorkItemLinkFuncs) error {
-	// convert to rest representation
-	appLink := ConvertLinkFromModel(modelLink)
-	if err := enrichLinkSingle(ctx, &appLink); err != nil {
-		return jsonapi.JSONErrorResponse(httpFuncs, err)
-	}
-	return httpFuncs.OK(&appLink)
-}
-
 // Show runs the show action.
 func (c *WorkItemLinkController) Show(ctx *app.ShowWorkItemLinkContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
@@ -380,9 +371,14 @@ func (c *WorkItemLinkController) Show(ctx *app.ShowWorkItemLinkContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		return ctx.ConditionalEntity(*modelLink, c.config.GetCacheControlWorkItemLinks, func() error {
+		return ctx.ConditionalRequest(*modelLink, c.config.GetCacheControlWorkItemLinks, func() error {
 			linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkHref, nil)
-			return showWorkItemLink(*modelLink, linkCtx, ctx)
+			// convert to rest representation
+			appLink := ConvertLinkFromModel(*modelLink)
+			if err := enrichLinkSingle(linkCtx, &appLink); err != nil {
+				return jsonapi.JSONErrorResponse(ctx, err)
+			}
+			return ctx.OK(&appLink)
 		})
 	})
 }

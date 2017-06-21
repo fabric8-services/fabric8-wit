@@ -2,15 +2,25 @@
 package test
 
 import (
+	"context"
 	"sync"
 
-	"context"
 	"github.com/almighty/almighty-core/criteria"
 	"github.com/almighty/almighty-core/workitem"
 	uuid "github.com/satori/go.uuid"
 )
 
 type WorkItemRepository struct {
+	ExistsStub        func(ctx context.Context, id string) (bool, error)
+	existsMutex       sync.RWMutex
+	existsArgsForCall []struct {
+		ctx context.Context
+		id  string
+	}
+	existsReturns struct {
+		result1 bool
+		result2 error
+	}
 	LoadByIDStub        func(ctx context.Context, id uuid.UUID) (*workitem.WorkItem, error)
 	loadByIDMutex       sync.RWMutex
 	loadByIDArgsForCall []struct {
@@ -139,6 +149,40 @@ type WorkItemRepository struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *WorkItemRepository) Exists(ctx context.Context, id string) (bool, error) {
+	fake.existsMutex.Lock()
+	fake.existsArgsForCall = append(fake.existsArgsForCall, struct {
+		ctx context.Context
+		id  string
+	}{ctx, id})
+	fake.recordInvocation("Exists", []interface{}{ctx, id})
+	fake.existsMutex.Unlock()
+	if fake.ExistsStub != nil {
+		return fake.ExistsStub(ctx, id)
+	}
+	return fake.existsReturns.result1, fake.existsReturns.result2
+}
+
+func (fake *WorkItemRepository) ExistsCallCount() int {
+	fake.existsMutex.RLock()
+	defer fake.existsMutex.RUnlock()
+	return len(fake.existsArgsForCall)
+}
+
+func (fake *WorkItemRepository) ExistsArgsForCall(i int) (context.Context, string) {
+	fake.existsMutex.RLock()
+	defer fake.existsMutex.RUnlock()
+	return fake.existsArgsForCall[i].ctx, fake.existsArgsForCall[i].id
+}
+
+func (fake *WorkItemRepository) ExistsReturns(result1 bool, result2 error) {
+	fake.ExistsStub = nil
+	fake.existsReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *WorkItemRepository) LoadByID(ctx context.Context, id uuid.UUID) (*workitem.WorkItem, error) {
@@ -534,6 +578,8 @@ func (fake *WorkItemRepository) CountReturns(result1 int, result2 error) {
 func (fake *WorkItemRepository) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.existsMutex.RLock()
+	defer fake.existsMutex.RUnlock()
 	fake.loadByIDMutex.RLock()
 	defer fake.loadByIDMutex.RUnlock()
 	fake.loadMutex.RLock()

@@ -1,11 +1,13 @@
 package link
 
 import (
+	"database/sql"
 	"fmt"
 	"time"
 
 	"context"
 
+	"github.com/almighty/almighty-core/application/repository"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/log"
@@ -28,6 +30,7 @@ const (
 
 // WorkItemLinkRepository encapsulates storage & retrieval of work item links
 type WorkItemLinkRepository interface {
+	repository.Exister
 	Create(ctx context.Context, sourceID, targetID uuid.UUID, linkTypeID uuid.UUID, creatorID uuid.UUID) (*WorkItemLink, error)
 	Load(ctx context.Context, ID uuid.UUID) (*WorkItemLink, error)
 	List(ctx context.Context) ([]WorkItemLink, error)
@@ -96,9 +99,26 @@ func (r *GormWorkItemLinkRepository) ValidateCorrectSourceAndTargetType(ctx cont
 	return nil
 }
 
-// CheckParentExists returns error if there is an attempt to create more than 1 parent of a workitem.
-func (r *GormWorkItemLinkRepository) CheckParentExists(ctx context.Context, targetID uuid.UUID, linkType *WorkItemLinkType) (bool, error) {
-	query := fmt.Sprintf(`
+// CheckParentExists returns `true` if a link to a work item with the given `targetID` and of the given `linkType` already exists, `false` otherwise.
+// If the `sourceId` argument is not nil, then existing link from the source item to the target item with the given type is ignored.
+// In the context of a link creation, the `sourceID` argument should be nil, so the method will look for a link of the given type and target,
+// since during link creation we need to ensure that the child item has no parent yet. During the link update, the verification should not take into account
+// the existing record in the database.
+func (r *GormWorkItemLinkRepository) CheckParentExists(ctx context.Context, sourceID *uuid.UUID, targetID uuid.UUID, linkType WorkItemLinkType) (bool, error) {
+	var row *sql.Row
+	if sourceID != nil {
+		query := fmt.Sprintf(`
+		SELECT EXISTS (
+			SELECT 1 FROM %[1]s
+			WHERE
+				link_type_id=$1
+				AND source_id!=$2
+				AND target_id=$3
+				AND deleted_at IS NULL
+		)`, WorkItemLink{}.TableName())
+		row = r.db.CommonDB().QueryRow(query, linkType.ID, *sourceID, targetID)
+	} else {
+		query := fmt.Sprintf(`
 		SELECT EXISTS (
 			SELECT 1 FROM %[1]s
 			WHERE
@@ -106,7 +126,8 @@ func (r *GormWorkItemLinkRepository) CheckParentExists(ctx context.Context, targ
 				AND target_id=$2
 				AND deleted_at IS NULL
 		)`, WorkItemLink{}.TableName())
-	row := r.db.CommonDB().QueryRow(query, linkType.ID, targetID)
+		row = r.db.CommonDB().QueryRow(query, linkType.ID, targetID)
+	}
 	var exists bool
 	if err := row.Scan(&exists); err != nil {
 		return false, errs.Wrapf(err, "failed to check if a parent exists for the work item %d", targetID)
@@ -114,10 +135,12 @@ func (r *GormWorkItemLinkRepository) CheckParentExists(ctx context.Context, targ
 	return exists, nil
 }
 
-func (r *GormWorkItemLinkRepository) ValidateTopology(ctx context.Context, targetID uuid.UUID, linkType *WorkItemLinkType) error {
+// ValidateTopology validates the link topology of the work item given its ID. I.e, the given item should not have a parent with the same kind of link
+// if the `sourceID` arg is not empty, then the corresponding source item is ignored when checking the existing links of the given type.
+func (r *GormWorkItemLinkRepository) ValidateTopology(ctx context.Context, sourceID *uuid.UUID, targetID uuid.UUID, linkType WorkItemLinkType) error {
 	// check to disallow multiple parents in tree topology
 	if linkType.Topology == TopologyTree {
-		parentExists, err := r.CheckParentExists(ctx, targetID, linkType)
+		parentExists, err := r.CheckParentExists(ctx, sourceID, targetID, linkType)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"wilt_id":   linkType.ID,
@@ -131,7 +154,7 @@ func (r *GormWorkItemLinkRepository) ValidateTopology(ctx context.Context, targe
 				"wilt_id":   linkType.ID,
 				"target_id": targetID,
 				"err":       err,
-			}, "unable to create work item link because a topology of type \"%s\" only allows one parent to exist and the target %d already a parent", TopologyTree, targetID)
+			}, "unable to create/update work item link because a topology of type \"%s\" only allows one parent to exist and the target %d already a parent", TopologyTree, targetID)
 			return errors.NewBadParameterError("linkTypeID + targetID", fmt.Sprintf("%s + %d", linkType.ID, targetID)).Expected("single parent in tree topology")
 		}
 	}
@@ -141,6 +164,7 @@ func (r *GormWorkItemLinkRepository) ValidateTopology(ctx context.Context, targe
 // Create creates a new work item link in the repository.
 // Returns BadParameterError, ConversionError or InternalError
 func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targetID uuid.UUID, linkTypeID uuid.UUID, creatorID uuid.UUID) (*WorkItemLink, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "create"}, time.Now())
 	link := &WorkItemLink{
 		SourceID:   sourceID,
 		TargetID:   targetID,
@@ -160,7 +184,7 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 		return nil, errs.WithStack(err)
 	}
 
-	if err := r.ValidateTopology(ctx, targetID, linkType); err != nil {
+	if err := r.ValidateTopology(ctx, nil, targetID, *linkType); err != nil {
 		return nil, errs.WithStack(err)
 	}
 
@@ -170,7 +194,7 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 			// TODO(kwk): Make NewBadParameterError a variadic function to avoid this ugliness ;)
 			return nil, errors.NewBadParameterError("data.relationships.source_id + data.relationships.target_id + data.relationships.link_type_id", sourceID).Expected("unique")
 		}
-		return nil, errors.NewInternalError(db.Error)
+		return nil, errors.NewInternalError(ctx, db.Error)
 	}
 	// save a revision of the created work item link
 	if err := r.revisionRepo.Create(ctx, creatorID, RevisionTypeCreate, *link); err != nil {
@@ -182,6 +206,7 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 // Load returns the work item link for the given ID.
 // Returns NotFoundError, ConversionError or InternalError
 func (r *GormWorkItemLinkRepository) Load(ctx context.Context, ID uuid.UUID) (*WorkItemLink, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "load"}, time.Now())
 	log.Info(ctx, map[string]interface{}{
 		"wil_id": ID,
 	}, "Loading work item link")
@@ -194,14 +219,21 @@ func (r *GormWorkItemLinkRepository) Load(ctx context.Context, ID uuid.UUID) (*W
 		return nil, errors.NewNotFoundError("work item link", ID.String())
 	}
 	if db.Error != nil {
-		return nil, errors.NewInternalError(db.Error)
+		return nil, errors.NewInternalError(ctx, db.Error)
 	}
 	return &result, nil
+}
+
+// Exists returns true|false whether a work item link exists with a specific identifier
+func (m *GormWorkItemLinkRepository) Exists(ctx context.Context, id string) (bool, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "exists"}, time.Now())
+	return repository.Exists(ctx, m.db, WorkItemLink{}.TableName(), id)
 }
 
 // ListByWorkItem returns the work item links that have wiID as source or target.
 // TODO: Handle pagination
 func (r *GormWorkItemLinkRepository) ListByWorkItem(ctx context.Context, wiID uuid.UUID) ([]WorkItemLink, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "listByWorkItem"}, time.Now())
 	var modelLinks []WorkItemLink
 	wi, err := r.workItemRepo.LoadFromDB(ctx, wiID)
 	if err != nil {
@@ -219,6 +251,7 @@ func (r *GormWorkItemLinkRepository) ListByWorkItem(ctx context.Context, wiID uu
 // that have wiID as source or target.
 // TODO: Handle pagination
 func (r *GormWorkItemLinkRepository) List(ctx context.Context) ([]WorkItemLink, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "list"}, time.Now())
 	var modelLinks []WorkItemLink
 	db := r.db.Find(&modelLinks)
 	if db.Error != nil {
@@ -230,6 +263,7 @@ func (r *GormWorkItemLinkRepository) List(ctx context.Context) ([]WorkItemLink, 
 // Delete deletes the work item link with the given id
 // returns NotFoundError or InternalError
 func (r *GormWorkItemLinkRepository) Delete(ctx context.Context, linkID uuid.UUID, suppressorID uuid.UUID) error {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "delete"}, time.Now())
 	var lnk = WorkItemLink{}
 	tx := r.db.Where("id = ?", linkID).Find(&lnk)
 	if tx.RecordNotFound() {
@@ -242,6 +276,7 @@ func (r *GormWorkItemLinkRepository) Delete(ctx context.Context, linkID uuid.UUI
 // DeleteRelatedLinks deletes all links in which the source or target equals the
 // given work item ID.
 func (r *GormWorkItemLinkRepository) DeleteRelatedLinks(ctx context.Context, wiID uuid.UUID, suppressorID uuid.UUID) error {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "deleteRelatedLinks"}, time.Now())
 	log.Info(ctx, map[string]interface{}{
 		"wi_id": wiID,
 	}, "Deleting the links related to work item")
@@ -271,7 +306,7 @@ func (r *GormWorkItemLinkRepository) deleteLink(ctx context.Context, lnk WorkIte
 			"wil_id": lnk.ID,
 			"err":    tx.Error,
 		}, "unable to delete work item link")
-		return errors.NewInternalError(tx.Error)
+		return errors.NewInternalError(ctx, tx.Error)
 	}
 	// save a revision of the deleted work item link
 	if err := r.revisionRepo.Create(ctx, suppressorID, RevisionTypeDelete, lnk); err != nil {
@@ -283,6 +318,7 @@ func (r *GormWorkItemLinkRepository) deleteLink(ctx context.Context, lnk WorkIte
 // Save updates the given work item link in storage. Version must be the same as the one int the stored version.
 // returns NotFoundError, VersionConflictError, ConversionError or InternalError
 func (r *GormWorkItemLinkRepository) Save(ctx context.Context, linkToSave WorkItemLink, modifierID uuid.UUID) (*WorkItemLink, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "save"}, time.Now())
 	log.Info(ctx, map[string]interface{}{
 		"wil_id": linkToSave.LinkTypeID,
 	}, "Saving workitem link with type =  %s", linkToSave.LinkTypeID)
@@ -299,7 +335,7 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, linkToSave WorkIt
 			"wil_id": linkToSave.ID,
 			"err":    db.Error,
 		}, "unable to find work item link")
-		return nil, errors.NewInternalError(db.Error)
+		return nil, errors.NewInternalError(ctx, db.Error)
 	}
 	if existingLink.Version != linkToSave.Version {
 		return nil, errors.NewVersionConflictError("version conflict")
@@ -315,7 +351,7 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, linkToSave WorkIt
 		return nil, errs.WithStack(err)
 	}
 
-	if err := r.ValidateTopology(ctx, linkToSave.TargetID, linkTypeToSave); err != nil {
+	if err := r.ValidateTopology(ctx, &linkToSave.SourceID, linkToSave.TargetID, *linkTypeToSave); err != nil {
 		return nil, errs.WithStack(err)
 	}
 
@@ -326,7 +362,7 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, linkToSave WorkIt
 			"wil_id": linkToSave.ID,
 			"err":    db.Error,
 		}, "unable to save work item link")
-		return nil, errors.NewInternalError(db.Error)
+		return nil, errors.NewInternalError(ctx, db.Error)
 	}
 	// save a revision of the modified work item link
 	if err := r.revisionRepo.Create(ctx, modifierID, RevisionTypeUpdate, linkToSave); err != nil {
@@ -340,7 +376,7 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, linkToSave WorkIt
 
 // ListWorkItemChildren get all child work items
 func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, parentID uuid.UUID, start *int, limit *int) ([]workitem.WorkItem, uint64, error) {
-	defer goa.MeasureSince([]string{"goa", "db", "workitem", "children", "query"}, time.Now())
+	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "children", "query"}, time.Now())
 	where := fmt.Sprintf(`
 	id in (
 		SELECT target_id FROM %s
@@ -372,7 +408,7 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 
 	columns, err := rows.Columns()
 	if err != nil {
-		return nil, 0, errors.NewInternalError(err)
+		return nil, 0, errors.NewInternalError(ctx, err)
 	}
 
 	var count uint64
@@ -392,7 +428,7 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 		if first {
 			first = false
 			if err = rows.Scan(columnValues...); err != nil {
-				return nil, 0, errors.NewInternalError(err)
+				return nil, 0, errors.NewInternalError(ctx, err)
 			}
 		}
 		result = append(result, value)
@@ -415,11 +451,11 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 	for index, value := range result {
 		wiType, err := r.workItemTypeRepo.LoadTypeFromDB(ctx, value.Type)
 		if err != nil {
-			return nil, 0, errors.NewInternalError(err)
+			return nil, 0, errors.NewInternalError(ctx, err)
 		}
 		modelWI, err := workitem.ConvertWorkItemStorageToModel(wiType, &value)
 		if err != nil {
-			return nil, 0, errors.NewInternalError(err)
+			return nil, 0, errors.NewInternalError(ctx, err)
 		}
 		res[index] = *modelWI
 	}
@@ -430,12 +466,12 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 // WorkItemHasChildren returns true if the given parent work item has children;
 // otherwise false is returned
 func (r *GormWorkItemLinkRepository) WorkItemHasChildren(ctx context.Context, parentID uuid.UUID) (bool, error) {
-	defer goa.MeasureSince([]string{"goa", "db", "workitem", "has", "children"}, time.Now())
+	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "has", "children"}, time.Now())
 	query := fmt.Sprintf(`
 		SELECT EXISTS (
 			SELECT 1 FROM %[1]s WHERE id in (
 				SELECT target_id FROM %[2]s
-				WHERE source_id = $1 AND link_type_id IN (
+				WHERE source_id = $1 AND deleted_at IS NULL AND link_type_id IN (
 					SELECT id FROM %[3]s WHERE forward_name = 'parent of'
 				)
 			)

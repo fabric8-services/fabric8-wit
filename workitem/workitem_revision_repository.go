@@ -52,7 +52,7 @@ func (r *GormRevisionRepository) Create(ctx context.Context, modifierID uuid.UUI
 		workitemRevision.WorkItemFields = Fields{}
 	}
 	if err := tx.Create(&workitemRevision).Error; err != nil {
-		return errors.NewInternalError(errs.Wrap(err, "failed to create new work item revision"))
+		return errors.NewInternalError(ctx, errs.Wrap(err, "failed to create new work item revision"))
 	}
 	log.Debug(ctx, map[string]interface{}{"wi_id": workitem.ID}, "Work item revision occurrence created")
 	return nil
@@ -63,7 +63,7 @@ func (r *GormRevisionRepository) List(ctx context.Context, workitemID uuid.UUID)
 	log.Debug(nil, map[string]interface{}{}, "List all revisions for work item with ID=%v", workitemID)
 	revisions := make([]Revision, 0)
 	if err := r.db.Where("work_item_id = ?", workitemID).Order("revision_time asc").Find(&revisions).Error; err != nil {
-		return nil, errors.NewInternalError(errs.Wrap(err, "failed to retrieve work item revisions"))
+		return nil, errors.NewInternalError(ctx, errs.Wrap(err, "failed to retrieve work item revisions"))
 	}
 	return revisions, nil
 }

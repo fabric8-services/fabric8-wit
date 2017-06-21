@@ -232,7 +232,7 @@ func (rest *TestCommentREST) TestListCommentsByParentWorkItemNotModifiedUsingIfN
 	svc, ctrl := rest.UnSecuredController()
 	offset := "0"
 	limit := 3
-	ifNoneMatch := app.GenerateEntitiesTag([]app.ConditionalResponseEntity{
+	ifNoneMatch := app.GenerateEntitiesTag([]app.ConditionalRequestEntity{
 		comments[2],
 		comments[1],
 		comments[0],

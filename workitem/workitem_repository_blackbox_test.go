@@ -17,6 +17,7 @@ import (
 	"github.com/almighty/almighty-core/workitem"
 
 	"context"
+
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -144,6 +145,40 @@ func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionNoMarkup() {
 	require.Nil(s.T(), err)
 	// workitem.WorkItem does not contain the markup associated with the description (yet)
 	assert.Equal(s.T(), rendering.NewMarkupContentFromLegacy("Description"), wi.Fields[workitem.SystemDescription])
+}
+
+func (s *workItemRepoBlackBoxTest) TestExistsWorkItem() {
+	t := s.T()
+	resource.Require(t, resource.Database)
+
+	t.Run("work item exists", func(t *testing.T) {
+		// given
+		wi, err := s.repo.Create(
+			s.ctx, s.spaceID, workitem.SystemBug,
+			map[string]interface{}{
+				workitem.SystemTitle:       "Title",
+				workitem.SystemDescription: rendering.NewMarkupContentFromLegacy("Description"),
+				workitem.SystemState:       workitem.SystemStateNew,
+			}, s.creatorID)
+		require.Nil(s.T(), err, "Could not create workitem")
+		// when
+		var exists bool
+		exists, err = s.repo.Exists(s.ctx, wi.ID.String())
+		// then
+		require.Nil(t, err)
+		require.True(t, exists)
+	})
+
+	t.Run("work item doesn't exist", func(t *testing.T) {
+		t.Parallel()
+		// when
+		var exists bool
+		exists, err := s.repo.Exists(s.ctx, "00000000-0000-0000-0000-000000000000")
+		// then
+		require.False(t, exists)
+		require.IsType(t, errors.NotFoundError{}, err)
+	})
+
 }
 
 func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionMarkup() {
