@@ -119,7 +119,7 @@ func (c *IterationController) Show(ctx *app.ShowIterationContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		return ctx.ConditionalEntity(*iter, c.config.GetCacheControlIterations, func() error {
+		return ctx.ConditionalRequest(*iter, c.config.GetCacheControlIterations, func() error {
 			wiCounts, err := appl.WorkItems().GetCountsForIteration(ctx, iter.ID)
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, err)

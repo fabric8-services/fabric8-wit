@@ -48,7 +48,7 @@ func (c *CommentsController) Show(ctx *app.ShowCommentsContext) error {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
 			return ctx.NotFound(jerrors)
 		}
-		return ctx.ConditionalEntity(*cmt, c.config.GetCacheControlComments, func() error {
+		return ctx.ConditionalRequest(*cmt, c.config.GetCacheControlComments, func() error {
 			res := &app.CommentSingle{}
 			// This code should change if others type of parents than WI are allowed
 			includeParentWorkItem, err := CommentIncludeParentWorkItem(ctx, appl, cmt)
