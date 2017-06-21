@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -122,6 +123,11 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, c
 			"known_referrer": knownReferrer,
 		}, "referrer found")
 
+		tr := &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+		sslcli := &http.Client{Transport: tr}
+		ctx.Context = context.WithValue(ctx, oauth2.HTTPClient, sslcli)
 		keycloakToken, err := config.Exchange(ctx, code)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
