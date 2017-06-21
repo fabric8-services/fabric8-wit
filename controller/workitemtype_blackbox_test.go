@@ -366,7 +366,7 @@ func (s *workItemTypeSuite) TestShow() {
 
 	s.T().Run("ok - using expired IfModifiedSince header", func(t *testing.T) {
 		// when
-		lastModified := app.ToHTTPTime(wit.Data.Attributes.CreatedAt.Add(-1 * time.Hour))
+		lastModified := app.ToHTTPTime(time.Now().Add(-1 * time.Hour))
 		res, actual := test.ShowWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, *wit.Data.ID, &lastModified, nil)
 		// then
 		require.NotNil(t, actual)
@@ -374,7 +374,7 @@ func (s *workItemTypeSuite) TestShow() {
 		compareWithGolden(t, filepath.Join(s.testDir, "show", "ok_using_expired_lastmodified_header.headers.golden.json"), res.Header())
 	})
 
-	s.T().Run("TestShowWorkItemType200UsingExpiredETagHeader", func(t *testing.T) {
+	s.T().Run("ok - using IfNoneMatch header", func(t *testing.T) {
 		// when
 		ifNoneMatch := "foo"
 		res, actual := test.ShowWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, *wit.Data.Relationships.Space.Data.ID, *wit.Data.ID, nil, &ifNoneMatch)
@@ -386,7 +386,7 @@ func (s *workItemTypeSuite) TestShow() {
 
 	s.T().Run("not modified - using IfModifiedSince header", func(t *testing.T) {
 		// when
-		lastModified := app.ToHTTPTime(wit.Data.Attributes.UpdatedAt.Add(1 * time.Second))
+		lastModified := app.ToHTTPTime(time.Now().Add(1 * time.Second))
 		res := test.ShowWorkitemtypeNotModified(s.T(), nil, nil, s.typeCtrl, *wit.Data.Relationships.Space.Data.ID, *wit.Data.ID, &lastModified, nil)
 		// then
 		compareWithGolden(t, filepath.Join(s.testDir, "show", "not_modified_using_if_modified_since_header.headers.golden.json"), res.Header())
@@ -403,9 +403,9 @@ func (s *workItemTypeSuite) TestShow() {
 
 func (s *workItemTypeSuite) TestList() {
 	// given
-	_, witAnimal := s.createWorkItemTypeAnimalWithDates(nil, nil)
+	_, witAnimal := s.createWorkItemTypeAnimal()
 	require.NotNil(s.T(), witAnimal)
-	_, witPerson := s.createWorkItemTypePersonWithDates(nil, nil)
+	_, witPerson := s.createWorkItemTypePerson()
 	require.NotNil(s.T(), witPerson)
 
 	s.T().Run("ok", func(t *testing.T) {
@@ -420,7 +420,7 @@ func (s *workItemTypeSuite) TestList() {
 		assert.Condition(s.T(), lookupWorkItemTypes(*witCollection, *witAnimal, *witPerson),
 			"Not all required work item types (animal and person) where found.")
 		require.NotNil(s.T(), res.Header()[app.LastModified])
-		//assert.Equal(s.T(), app.ToHTTPTime(getWorkItemTypeUpdatedAt(*witPerson)), res.Header()[app.LastModified][0])
+		assert.Equal(s.T(), app.ToHTTPTime(getWorkItemTypeUpdatedAt(*witPerson)), res.Header()[app.LastModified][0])
 		require.NotNil(s.T(), res.Header()[app.CacheControl])
 		assert.NotNil(s.T(), res.Header()[app.CacheControl][0])
 		require.NotNil(s.T(), res.Header()[app.ETag])
@@ -439,7 +439,7 @@ func (s *workItemTypeSuite) TestList() {
 		assert.Condition(s.T(), lookupWorkItemTypes(*witCollection, *witAnimal, *witPerson),
 			"Not all required work item types (animal and person) where found.")
 		require.NotNil(s.T(), res.Header()[app.LastModified])
-		//assert.Equal(s.T(), app.ToHTTPTime(getWorkItemTypeUpdatedAt(*witPerson)), res.Header()[app.LastModified][0])
+		assert.Equal(s.T(), app.ToHTTPTime(getWorkItemTypeUpdatedAt(*witPerson)), res.Header()[app.LastModified][0])
 		require.NotNil(s.T(), res.Header()[app.CacheControl])
 		assert.NotNil(s.T(), res.Header()[app.CacheControl][0])
 		require.NotNil(s.T(), res.Header()[app.ETag])
@@ -458,7 +458,7 @@ func (s *workItemTypeSuite) TestList() {
 		assert.Condition(s.T(), lookupWorkItemTypes(*witCollection, *witAnimal, *witPerson),
 			"Not all required work item types (animal and person) where found.")
 		require.NotNil(s.T(), res.Header()[app.LastModified])
-		//assert.Equal(s.T(), app.ToHTTPTime(getWorkItemTypeUpdatedAt(*witPerson)), res.Header()[app.LastModified][0])
+		assert.Equal(s.T(), app.ToHTTPTime(getWorkItemTypeUpdatedAt(*witPerson)), res.Header()[app.LastModified][0])
 		require.NotNil(s.T(), res.Header()[app.CacheControl])
 		assert.NotNil(s.T(), res.Header()[app.CacheControl][0])
 		require.NotNil(s.T(), res.Header()[app.ETag])
@@ -468,8 +468,7 @@ func (s *workItemTypeSuite) TestList() {
 	s.T().Run("not modified - using IfModifiedSince header", func(t *testing.T) {
 		// when/then
 		// Paging in the format <start>,<limit>"
-		//lastModified := app.ToHTTPTime(getWorkItemTypeUpdatedAt(*witPerson))
-		lastModified := app.ToHTTPTime(time.Now())
+		lastModified := app.ToHTTPTime(getWorkItemTypeUpdatedAt(*witPerson))
 		page := "0,-1"
 		test.ListWorkitemtypeNotModified(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, &page, &lastModified, nil)
 	})
