@@ -352,7 +352,7 @@ func (s *workItemTypeSuite) TestShow() {
 
 	s.T().Run("ok - using expired IfModifiedSince header", func(t *testing.T) {
 		// when
-		lastModified := app.ToHTTPTime(time.Now().Add(-1 * time.Hour))
+		lastModified := app.ToHTTPTime(wit.Data.Attributes.CreatedAt.Add(-1 * time.Hour))
 		res, actual := test.ShowWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, *wit.Data.ID, &lastModified, nil)
 		// then
 		require.NotNil(t, actual)
