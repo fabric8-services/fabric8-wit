@@ -246,9 +246,8 @@ func lookupWorkItemTypes(witCollection app.WorkItemTypeList, workItemTypes ...ap
 //-----------------------------------------------------------------------------
 
 func (s *workItemTypeSuite) TestCreate() {
-	// Disable gorm's automatic setting of "created_at" and "updated_at"
-	s.DB.Callback().Create().Remove("gorm:update_time_stamp")
-	s.DB.Callback().Update().Remove("gorm:update_time_stamp")
+	resetFn := s.DisableGormCallbacks()
+	defer resetFn()
 
 	s.T().Run("ok", func(t *testing.T) {
 		res, animal := s.createWorkItemTypeAnimal()
@@ -331,9 +330,8 @@ func (s *workItemTypeSuite) TestValidate() {
 }
 
 func (s *workItemTypeSuite) TestShow() {
-	// Disable gorm's automatic setting of "created_at" and "updated_at"
-	s.DB.Callback().Create().Remove("gorm:update_time_stamp")
-	s.DB.Callback().Update().Remove("gorm:update_time_stamp")
+	resetFn := s.DisableGormCallbacks()
+	defer resetFn()
 
 	// given
 	_, wit := s.createWorkItemTypeAnimal()
