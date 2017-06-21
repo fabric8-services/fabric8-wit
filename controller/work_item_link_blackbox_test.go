@@ -706,7 +706,7 @@ func (s *workItemLinkSuite) TestListWorkItemLinkNotModifiedUsingIfNoneMatchHeade
 	// when
 	modelLink1, _ := ConvertLinkToModel(*link1)
 	modelLink2, _ := ConvertLinkToModel(*link2)
-	ifNoneMatch := app.GenerateEntitiesTag([]app.ConditionalResponseEntity{modelLink1, modelLink2})
+	ifNoneMatch := app.GenerateEntitiesTag([]app.ConditionalRequestEntity{modelLink1, modelLink2})
 	res := test.ListWorkItemLinkNotModified(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, nil, &ifNoneMatch)
 	// then
 	assertResponseHeaders(s.T(), res)

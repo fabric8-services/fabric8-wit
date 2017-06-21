@@ -790,7 +790,7 @@ func convertWorkItemTypeToModel(data app.WorkItemTypeData) workitem.WorkItemType
 }
 
 func generateWorkItemTypesTag(entities app.WorkItemTypeList) string {
-	modelEntities := make([]app.ConditionalResponseEntity, len(entities.Data))
+	modelEntities := make([]app.ConditionalRequestEntity, len(entities.Data))
 	for i, entityData := range entities.Data {
 		modelEntities[i] = convertWorkItemTypeToModel(*entityData)
 	}
@@ -802,7 +802,7 @@ func generateWorkItemTypeTag(entity app.WorkItemTypeSingle) string {
 }
 
 func generateWorkItemLinkTypesTag(entities app.WorkItemLinkTypeList) string {
-	modelEntities := make([]app.ConditionalResponseEntity, len(entities.Data))
+	modelEntities := make([]app.ConditionalRequestEntity, len(entities.Data))
 	for i, entityData := range entities.Data {
 		e, _ := ConvertWorkItemLinkTypeToModel(app.WorkItemLinkTypeSingle{Data: entityData})
 		modelEntities[i] = e
@@ -815,8 +815,8 @@ func generateWorkItemLinkTypeTag(entity app.WorkItemLinkTypeSingle) string {
 	return app.GenerateEntityTag(e)
 }
 
-func convertWorkItemTypesToConditionalEntities(workItemTypeList app.WorkItemTypeList) []app.ConditionalResponseEntity {
-	conditionalWorkItemTypes := make([]app.ConditionalResponseEntity, len(workItemTypeList.Data))
+func convertWorkItemTypesToConditionalEntities(workItemTypeList app.WorkItemTypeList) []app.ConditionalRequestEntity {
+	conditionalWorkItemTypes := make([]app.ConditionalRequestEntity, len(workItemTypeList.Data))
 	for i, data := range workItemTypeList.Data {
 		conditionalWorkItemTypes[i] = convertWorkItemTypeToModel(*data)
 	}
