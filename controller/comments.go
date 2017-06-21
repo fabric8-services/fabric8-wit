@@ -48,7 +48,7 @@ func (c *CommentsController) Show(ctx *app.ShowCommentsContext) error {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
 			return ctx.NotFound(jerrors)
 		}
-		return ctx.ConditionalEntity(*cmt, c.config.GetCacheControlComments, func() error {
+		return ctx.ConditionalRequest(*cmt, c.config.GetCacheControlComments, func() error {
 			res := &app.CommentSingle{}
 			// This code should change if others type of parents than WI are allowed
 			includeParentWorkItem, err := CommentIncludeParentWorkItem(ctx, appl, cmt)
@@ -137,13 +137,17 @@ func (c *CommentsController) Delete(ctx *app.DeleteCommentsContext) error {
 	}
 	var cm *comment.Comment
 	var wi *workitem.WorkItem
+	var userIsCreator bool
 	// Following transaction verifies if a user is allowed to delete or not
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		cm, err = appl.Comments().Load(ctx.Context, ctx.CommentID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-
+		if *identityID == cm.CreatedBy {
+			userIsCreator = true
+			return nil
+		}
 		wi, err = appl.WorkItems().LoadByID(ctx.Context, cm.ParentID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
@@ -154,7 +158,7 @@ func (c *CommentsController) Delete(ctx *app.DeleteCommentsContext) error {
 		return err
 	}
 	// User is allowed to delete if user is creator of the comment OR user is a space collaborator
-	if *identityID == cm.CreatedBy {
+	if userIsCreator {
 		return c.performDelete(ctx, cm, identityID)
 	}
 
@@ -162,7 +166,7 @@ func (c *CommentsController) Delete(ctx *app.DeleteCommentsContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
-	if authorized == false {
+	if !authorized {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not a space collaborator"))
 	}
 	return c.performDelete(ctx, cm, identityID)
