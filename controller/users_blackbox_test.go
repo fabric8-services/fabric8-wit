@@ -952,7 +952,7 @@ func getUserUpdatedAt(appUser app.User) time.Time {
 }
 
 func (s *TestUsersSuite) generateUsersTag(allUsers app.UserArray) string {
-	entities := make([]app.ConditionalResponseEntity, len(allUsers.Data))
+	entities := make([]app.ConditionalRequestEntity, len(allUsers.Data))
 	for i, user := range allUsers.Data {
 		userID, err := uuid.FromString(*user.Attributes.UserID)
 		require.Nil(s.T(), err)
