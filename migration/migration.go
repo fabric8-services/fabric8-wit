@@ -306,6 +306,9 @@ func GetMigrations() Migrations {
 	// Version 61
 	m = append(m, steps{ExecuteSQLFile("061-replace-index-space-name.sql")})
 
+	// Version 62
+	m = append(m, steps{ExecuteSQLFile("062-link-system-preparation.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
