@@ -584,6 +584,9 @@ func (c *ConfigurationData) getKeycloakURL(req *goa.RequestData, path string) (s
 	if req.URL != nil && req.URL.Scheme == "https" { // isHTTPS
 		scheme = "https"
 	}
+	if req.TLS != nil {
+		scheme = "https"
+	}
 	xForwardProto := req.Header.Get("X-Forwarded-Proto")
 	if xForwardProto != "" {
 		scheme = xForwardProto
