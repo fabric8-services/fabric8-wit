@@ -19,11 +19,20 @@ var _ = a.API("alm", func() {
 		a.Name("Apache License Version 2.0")
 		a.URL("http://www.apache.org/licenses/LICENSE-2.0")
 	})
-	a.Origin("/[.*almighty.io|localhost]/", func() {
-		a.Methods("GET", "POST", "PUT", "PATCH", "DELETE")
-		a.Headers("X-Request-Id", "Content-Type", "Authorization", "If-None-Match", "If-Modified-Since")
-		a.MaxAge(600)
+	a.Origin("/[.*openshift.io|localhost]/", func() {
+		a.Methods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
 		a.Credentials()
+		a.Headers(
+			"Access-Control-Allow-Origin",
+			"Access-Control-Allow-Credentials",
+			"Access-Control-Allow-Methods",
+			"Access-Control-Allow-Headers",
+			"X-Request-Id",
+			"Content-Type",
+			"Authorization",
+			"If-None-Match",
+			"If-Modified-Since")
+		a.MaxAge(600)
 	})
 
 	a.Trait("GenericLinksTrait", func() {
@@ -40,6 +49,7 @@ var _ = a.API("alm", func() {
 		a.Headers(func() {
 			a.Header("If-Modified-Since", d.String)
 			a.Header("If-None-Match", d.String)
+			a.Header("Access-Control-Allow-Origin", d.String)
 		})
 	})
 
@@ -56,6 +66,10 @@ var _ = a.API("alm", func() {
 			a.Header("Last-Modified", d.DateTime)
 			a.Header("ETag")
 			a.Header("Cache-Control")
+			a.Header("Access-Control-Request-Method")
+			a.Header("Access-Control-Request-Headers")
+			a.Header("Access-Control-Allow-Origin")
+			a.Header("Access-Control-Allow-Credentials")
 		})
 	})
 
@@ -66,6 +80,21 @@ var _ = a.API("alm", func() {
 			a.Header("Location", d.String, "href to created resource", func() {
 				a.Pattern(pattern)
 			})
+			a.Header("Access-Control-Request-Method")
+			a.Header("Access-Control-Request-Headers")
+			a.Header("Access-Control-Allow-Origin")
+			a.Header("Access-Control-Allow-Credentials")
+		})
+	})
+
+	a.ResponseTemplate(d.NotFound, func(pattern string) {
+		a.Description("Resource not found")
+		a.Status(404)
+		a.Headers(func() {
+			a.Header("Access-Control-Request-Method")
+			a.Header("Access-Control-Request-Headers")
+			a.Header("Access-Control-Allow-Origin")
+			a.Header("Access-Control-Allow-Credentials")
 		})
 	})
 })
