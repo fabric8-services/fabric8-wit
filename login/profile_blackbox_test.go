@@ -1,6 +1,7 @@
 package login_test
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -16,6 +17,7 @@ import (
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/test"
 	"github.com/goadesign/goa"
+	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 
 	"github.com/almighty/almighty-core/login"
@@ -69,7 +71,7 @@ func (s *ProfileBlackBoxTest) SetupSuite() {
 	s.accessToken = token
 
 	// Get the initial profile state.
-	profile, err := s.profileService.Get(*s.accessToken, *s.profileAPIURL)
+	profile, err := s.profileService.Get(context.Background(), *s.accessToken, *s.profileAPIURL)
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), profile)
 
@@ -109,10 +111,10 @@ func (s *ProfileBlackBoxTest) generateAccessToken() (*string, error) {
 		"grant_type":    {"password"},
 	})
 	if err != nil {
-		return nil, errors.NewInternalError("error when obtaining token " + err.Error())
+		return nil, errors.NewInternalError(context.Background(), errs.Wrap(err, "error when obtaining token"))
 	}
 
-	token, err := auth.ReadToken(res)
+	token, err := auth.ReadToken(context.Background(), res)
 	require.Nil(s.T(), err)
 	return token.AccessToken, err
 }
@@ -143,7 +145,7 @@ func (s *ProfileBlackBoxTest) TestKeycloakUserProfileUpdate() {
 
 	// Do a GET on the user profile
 	// Use the token to update user profile
-	retrievedkeycloakUserProfileData, err := s.profileService.Get(*s.accessToken, *s.profileAPIURL)
+	retrievedkeycloakUserProfileData, err := s.profileService.Get(context.Background(), *s.accessToken, *s.profileAPIURL)
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), retrievedkeycloakUserProfileData)
 
@@ -161,7 +163,7 @@ func (s *ProfileBlackBoxTest) TestKeycloakUserProfileUpdate() {
 }
 
 func (s *ProfileBlackBoxTest) TestKeycloakUserProfileGet() {
-	profile, err := s.profileService.Get(*s.accessToken, *s.profileAPIURL)
+	profile, err := s.profileService.Get(context.Background(), *s.accessToken, *s.profileAPIURL)
 
 	require.Nil(s.T(), err)
 	assert.NotNil(s.T(), profile)
@@ -176,7 +178,7 @@ func (s *ProfileBlackBoxTest) TestKeycloakUserProfileGet() {
 
 func (s *ProfileBlackBoxTest) updateUserProfile(userProfile *login.KeycloakUserProfile) func() {
 	return func() {
-		err := s.profileService.Update(userProfile, *s.accessToken, *s.profileAPIURL)
+		err := s.profileService.Update(context.Background(), userProfile, *s.accessToken, *s.profileAPIURL)
 		require.Nil(s.T(), err)
 	}
 }

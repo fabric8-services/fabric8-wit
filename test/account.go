@@ -50,14 +50,28 @@ var TestIdentity2 = account.Identity{
 
 // CreateTestIdentity creates an identity with the given `username` in the database. For testing purpose only.
 func CreateTestIdentity(db *gorm.DB, username, providerType string) (account.Identity, error) {
-	identityRepository := account.NewIdentityRepository(db)
 	testIdentity := account.Identity{
 		Username:     username,
 		ProviderType: providerType,
 	}
-	err := models.Transactional(db, func(tx *gorm.DB) error {
-		return identityRepository.Create(context.Background(), &testIdentity)
-	})
-	log.Info(nil, map[string]interface{}{"identity_id": testIdentity.ID}, "created identity")
+	err := CreateTestIdentityForAccountIdentity(db, &testIdentity)
 	return testIdentity, err
+}
+
+// CreateTestIdentityForAccountIdentity creates an account.Identity in the database. For testing purpose only.
+// This function unlike CreateTestIdentity() allows to create an Identity with pre-defined ID.
+func CreateTestIdentityForAccountIdentity(db *gorm.DB, identity *account.Identity) error {
+	identityRepository := account.NewIdentityRepository(db)
+	err := models.Transactional(db, func(tx *gorm.DB) error {
+		return identityRepository.Create(context.Background(), identity)
+	})
+	if err != nil {
+		log.Error(nil, map[string]interface{}{
+			"err":      err,
+			"identity": identity,
+		}, "unable to create identity")
+	} else {
+		log.Info(nil, map[string]interface{}{"identity_id": identity.ID}, "created identity")
+	}
+	return err
 }

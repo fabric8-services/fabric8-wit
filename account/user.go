@@ -1,20 +1,20 @@
 package account
 
 import (
+	"context"
 	"strconv"
 	"time"
 
+	"github.com/almighty/almighty-core/application/repository"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/log"
-
 	"github.com/almighty/almighty-core/workitem"
 
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
-	"golang.org/x/net/context"
 )
 
 // In future, we could add support for FieldDefinitions the way we have for workitems.
@@ -64,6 +64,7 @@ func NewUserRepository(db *gorm.DB) UserRepository {
 
 // UserRepository represents the storage interface.
 type UserRepository interface {
+	repository.Exister
 	Load(ctx context.Context, ID uuid.UUID) (*User, error)
 	Create(ctx context.Context, u *User) error
 	Save(ctx context.Context, u *User) error
@@ -90,6 +91,12 @@ func (m *GormUserRepository) Load(ctx context.Context, id uuid.UUID) (*User, err
 		return nil, errors.NewNotFoundError("user", id.String())
 	}
 	return &native, errs.WithStack(err)
+}
+
+// Exists returns true|false whether an user exists with a specific identifier
+func (m *GormUserRepository) Exists(ctx context.Context, id string) (bool, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "user", "exists"}, time.Now())
+	return repository.Exists(ctx, m.db, m.TableName(), id)
 }
 
 // Create creates a new record.

@@ -255,7 +255,7 @@ func (rest *TestCollaboratorsREST) TestListCollaboratorsNotModifiedUsingIfNoneMa
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
 	rest.policy.AddUserToPolicy(rest.testIdentity2.ID.String())
 	// when
-	ifNoneMatch := app.GenerateEntitiesTag([]app.ConditionalResponseEntity{
+	ifNoneMatch := app.GenerateEntitiesTag([]app.ConditionalRequestEntity{
 		rest.testIdentity1.User,
 		rest.testIdentity2.User,
 	})

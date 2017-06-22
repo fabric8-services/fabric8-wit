@@ -15,12 +15,12 @@ import (
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/almighty/almighty-core/workitem/link"
 
+	"context"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/client"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
-	"golang.org/x/net/context"
 )
 
 // AdvisoryLockID is a random number that should be used within the application
@@ -305,6 +305,9 @@ func GetMigrations() Migrations {
 
 	// Version 61
 	m = append(m, steps{ExecuteSQLFile("061-replace-index-space-name.sql")})
+
+	// Version 62
+	m = append(m, steps{ExecuteSQLFile("062-link-system-preparation.sql")})
 
 	// Version N
 	//

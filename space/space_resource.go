@@ -1,14 +1,18 @@
 package space
 
 import (
+	"context"
+	"time"
+
+	"github.com/almighty/almighty-core/application/repository"
 	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/log"
 
+	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
-	"golang.org/x/net/context"
 )
 
 const (
@@ -50,6 +54,7 @@ func (r Resource) Equal(u convert.Equaler) bool {
 
 // ResourceRepository encapsulate storage & retrieval of space resources
 type ResourceRepository interface {
+	repository.Exister
 	Create(ctx context.Context, space *Resource) (*Resource, error)
 	Save(ctx context.Context, space *Resource) (*Resource, error)
 	Load(ctx context.Context, ID uuid.UUID) (*Resource, error)
@@ -70,6 +75,7 @@ type GormResourceRepository struct {
 // Load returns the space resource for the given id
 // returns NotFoundError or InternalError
 func (r *GormResourceRepository) Load(ctx context.Context, ID uuid.UUID) (*Resource, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "spaceresource", "load"}, time.Now())
 	res := Resource{}
 	tx := r.db.Where("id=?", ID).First(&res)
 	if tx.RecordNotFound() {
@@ -79,14 +85,21 @@ func (r *GormResourceRepository) Load(ctx context.Context, ID uuid.UUID) (*Resou
 		return nil, errors.NewNotFoundError("space resource", ID.String())
 	}
 	if tx.Error != nil {
-		return nil, errors.NewInternalError(tx.Error.Error())
+		return nil, errors.NewInternalError(ctx, tx.Error)
 	}
 	return &res, nil
+}
+
+// Exists returns true|false whether a space resource exists with a specific identifier
+func (m *GormResourceRepository) Exists(ctx context.Context, id string) (bool, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "spaceresource", "exists"}, time.Now())
+	return repository.Exists(ctx, m.db, Resource{}.TableName(), id)
 }
 
 // Delete deletes the space resource with the given id
 // returns NotFoundError or InternalError
 func (r *GormResourceRepository) Delete(ctx context.Context, ID uuid.UUID) error {
+	defer goa.MeasureSince([]string{"goa", "db", "spaceresource", "delete"}, time.Now())
 	if ID == uuid.Nil {
 		log.Error(ctx, map[string]interface{}{
 			"space_resource_id": ID.String(),
@@ -100,7 +113,7 @@ func (r *GormResourceRepository) Delete(ctx context.Context, ID uuid.UUID) error
 		log.Error(ctx, map[string]interface{}{
 			"space_resource_id": ID.String(),
 		}, "unable to delete the space resource")
-		return errors.NewInternalError(err.Error())
+		return errors.NewInternalError(ctx, err)
 	}
 	if tx.RowsAffected == 0 {
 		log.Error(ctx, map[string]interface{}{
@@ -115,6 +128,7 @@ func (r *GormResourceRepository) Delete(ctx context.Context, ID uuid.UUID) error
 // Save updates the given space resource in the DB
 // returns NotFoundError or InternalError
 func (r *GormResourceRepository) Save(ctx context.Context, p *Resource) (*Resource, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "spaceresource", "save"}, time.Now())
 	pr := Resource{}
 	tx := r.db.Where("id=?", p.ID).First(&pr)
 	if tx.RecordNotFound() {
@@ -128,7 +142,7 @@ func (r *GormResourceRepository) Save(ctx context.Context, p *Resource) (*Resour
 			"space_resource_id": p.ID,
 			"err":               err,
 		}, "unknown error happened when searching the space resource")
-		return nil, errors.NewInternalError(err.Error())
+		return nil, errors.NewInternalError(ctx, err)
 	}
 	tx = tx.Save(&p)
 	if err := tx.Error; err != nil {
@@ -136,7 +150,7 @@ func (r *GormResourceRepository) Save(ctx context.Context, p *Resource) (*Resour
 			"space_resource_id": p.ID,
 			"err":               err,
 		}, "unable to save the space resource")
-		return nil, errors.NewInternalError(err.Error())
+		return nil, errors.NewInternalError(ctx, err)
 	}
 
 	log.Info(ctx, map[string]interface{}{
@@ -148,13 +162,14 @@ func (r *GormResourceRepository) Save(ctx context.Context, p *Resource) (*Resour
 // Create creates a new Space Resource in the DB
 // returns InternalError
 func (r *GormResourceRepository) Create(ctx context.Context, resource *Resource) (*Resource, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "spaceresource", "create"}, time.Now())
 	if resource.ID == uuid.Nil {
 		resource.ID = uuid.NewV4()
 	}
 
 	tx := r.db.Create(resource)
 	if err := tx.Error; err != nil {
-		return nil, errors.NewInternalError(err.Error())
+		return nil, errors.NewInternalError(ctx, err)
 	}
 
 	log.Info(ctx, map[string]interface{}{
@@ -165,6 +180,7 @@ func (r *GormResourceRepository) Create(ctx context.Context, resource *Resource)
 
 // LoadBySpace loads space resource by space ID
 func (r *GormResourceRepository) LoadBySpace(ctx context.Context, spaceID *uuid.UUID) (*Resource, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "spaceresource", "loadBySpace"}, time.Now())
 	res := Resource{}
 	tx := r.db.Where("space_resources.space_id=?", *spaceID).First(&res)
 	if tx.RecordNotFound() {
@@ -174,7 +190,7 @@ func (r *GormResourceRepository) LoadBySpace(ctx context.Context, spaceID *uuid.
 		return nil, errors.NewNotFoundError("space resource", spaceID.String())
 	}
 	if tx.Error != nil {
-		return nil, errors.NewInternalError(tx.Error.Error())
+		return nil, errors.NewInternalError(ctx, tx.Error)
 	}
 	return &res, nil
 }

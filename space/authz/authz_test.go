@@ -20,10 +20,10 @@ import (
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/almighty/almighty-core/workitem/link"
-	"github.com/satori/go.uuid"
+
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	netcontext "golang.org/x/net/context"
 )
 
 var (
@@ -58,7 +58,7 @@ func (s *TestAuthzSuite) TestFailsIfNoTokenInContext() {
 
 func (s *TestAuthzSuite) TestUserAmongSpaceCollaboratorsOK() {
 	spaceID := uuid.NewV4().String()
-	authzPayload := authz.AuthorizationPayload{Permissions: []authz.Permissions{{ResourceSetName: &spaceID}}}
+	authzPayload := auth.AuthorizationPayload{Permissions: []auth.Permissions{{ResourceSetName: &spaceID}}}
 	ok := s.checkPermissions(authzPayload, spaceID)
 	require.True(s.T(), ok)
 }
@@ -66,12 +66,12 @@ func (s *TestAuthzSuite) TestUserAmongSpaceCollaboratorsOK() {
 func (s *TestAuthzSuite) TestUserIsNotAmongSpaceCollaboratorsFails() {
 	spaceID1 := uuid.NewV4().String()
 	spaceID2 := uuid.NewV4().String()
-	authzPayload := authz.AuthorizationPayload{Permissions: []authz.Permissions{{ResourceSetName: &spaceID1}}}
+	authzPayload := auth.AuthorizationPayload{Permissions: []auth.Permissions{{ResourceSetName: &spaceID1}}}
 	ok := s.checkPermissions(authzPayload, spaceID2)
 	require.False(s.T(), ok)
 }
 
-func (s *TestAuthzSuite) checkPermissions(authzPayload authz.AuthorizationPayload, spaceID string) bool {
+func (s *TestAuthzSuite) checkPermissions(authzPayload auth.AuthorizationPayload, spaceID string) bool {
 	resource := &space.Resource{}
 	authzService := authz.NewAuthzService(nil, &db{app{resource: resource}})
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
@@ -180,23 +180,27 @@ func (a *app) Codebases() codebase.Repository {
 	return nil
 }
 
-func (r *resourceRepo) Create(ctx netcontext.Context, s *space.Resource) (*space.Resource, error) {
+func (r *resourceRepo) Create(ctx context.Context, s *space.Resource) (*space.Resource, error) {
 	return nil, nil
 }
 
-func (r *resourceRepo) Save(ctx netcontext.Context, s *space.Resource) (*space.Resource, error) {
+func (r *resourceRepo) Save(ctx context.Context, s *space.Resource) (*space.Resource, error) {
 	return nil, nil
 }
 
-func (r *resourceRepo) Load(ctx netcontext.Context, ID uuid.UUID) (*space.Resource, error) {
+func (r *resourceRepo) Load(ctx context.Context, ID uuid.UUID) (*space.Resource, error) {
 	return nil, nil
 }
 
-func (r *resourceRepo) Delete(ctx netcontext.Context, ID uuid.UUID) error {
+func (r *resourceRepo) Delete(ctx context.Context, ID uuid.UUID) error {
 	return nil
 }
 
-func (r *resourceRepo) LoadBySpace(ctx netcontext.Context, spaceID *uuid.UUID) (*space.Resource, error) {
+func (r *resourceRepo) Exists(ctx context.Context, ID string) (bool, error) {
+	return false, nil
+}
+
+func (r *resourceRepo) LoadBySpace(ctx context.Context, spaceID *uuid.UUID) (*space.Resource, error) {
 	resource := &space.Resource{}
 	past := time.Now().Unix() - 1000
 	resource.UpdatedAt = time.Unix(past, 0)

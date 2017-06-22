@@ -10,10 +10,11 @@ import (
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/workitem"
 
+	"context"
+
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq" // need to import postgres driver
 	"github.com/stretchr/testify/suite"
-	"golang.org/x/net/context"
 )
 
 var _ suite.SetupAllSuite = &DBTestSuite{}
@@ -70,4 +71,25 @@ func (s *DBTestSuite) PopulateDBTestSuite(ctx context.Context) {
 // TearDownSuite implements suite.TearDownAllSuite
 func (s *DBTestSuite) TearDownSuite() {
 	s.DB.Close()
+}
+
+// DisableGormCallbacks will turn off gorm's automatic setting of `created_at`
+// and `updated_at` columns. Call this function and make sure to `defer` the
+// returned function.
+//
+//    resetFn := DisableGormCallbacks()
+//    defer resetFn()
+func (s *DBTestSuite) DisableGormCallbacks() func() {
+	gormCallbackName := "gorm:update_time_stamp"
+	// remember old callbacks
+	oldCreateCallback := s.DB.Callback().Create().Get(gormCallbackName)
+	oldUpdateCallback := s.DB.Callback().Update().Get(gormCallbackName)
+	// remove current callbacks
+	s.DB.Callback().Create().Remove(gormCallbackName)
+	s.DB.Callback().Update().Remove(gormCallbackName)
+	// return a function to restore old callbacks
+	return func() {
+		s.DB.Callback().Create().Register(gormCallbackName, oldCreateCallback)
+		s.DB.Callback().Update().Register(gormCallbackName, oldUpdateCallback)
+	}
 }
