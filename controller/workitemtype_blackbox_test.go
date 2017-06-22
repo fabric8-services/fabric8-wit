@@ -96,10 +96,6 @@ var (
 // createWorkItemTypeAnimal defines a work item type "animal" that consists of
 // two fields ("animal-type" and "color"). The type is mandatory but the color is not.
 func (s *workItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *app.WorkItemTypeSingle) {
-	return s.createWorkItemTypeAnimalWithDates(nil, nil)
-}
-
-func (s *workItemTypeSuite) createWorkItemTypeAnimalWithDates(createdAt, updatedAt *time.Time) (http.ResponseWriter, *app.WorkItemTypeSingle) {
 	// Create an enumeration of animal names
 	typeStrings := []string{"elephant", "blue whale", "Tyrannosaurus rex"}
 
@@ -122,8 +118,6 @@ func (s *workItemTypeSuite) createWorkItemTypeAnimalWithDates(createdAt, updated
 			Type: "workitemtypes",
 			ID:   &animalID,
 			Attributes: &app.WorkItemTypeAttributes{
-				CreatedAt:   createdAt,
-				UpdatedAt:   updatedAt,
 				Name:        "animal",
 				Description: &desc,
 				Icon:        "fa-hand-lizard-o",
@@ -157,13 +151,9 @@ func (s *workItemTypeSuite) createWorkItemTypeAnimalWithDates(createdAt, updated
 	return responseWriter, wi
 }
 
-func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *app.WorkItemTypeSingle) {
-	return s.createWorkItemTypePersonWithDates(nil, nil)
-}
-
 // createWorkItemTypePerson defines a work item type "person" that consists of
 // a required "name" field.
-func (s *workItemTypeSuite) createWorkItemTypePersonWithDates(createdAt, updatedAt *time.Time) (http.ResponseWriter, *app.WorkItemTypeSingle) {
+func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *app.WorkItemTypeSingle) {
 	// Use the goa generated code to create a work item type
 	desc := "Description for 'person'"
 	id := personID
@@ -176,8 +166,6 @@ func (s *workItemTypeSuite) createWorkItemTypePersonWithDates(createdAt, updated
 			ID:   &id,
 			Type: "workitemtypes",
 			Attributes: &app.WorkItemTypeAttributes{
-				CreatedAt:   createdAt,
-				UpdatedAt:   updatedAt,
 				Name:        "person",
 				Description: &desc,
 				Icon:        "fa-user",
@@ -258,9 +246,8 @@ func lookupWorkItemTypes(witCollection app.WorkItemTypeList, workItemTypes ...ap
 //-----------------------------------------------------------------------------
 
 func (s *workItemTypeSuite) TestCreate() {
-	// Disable gorm's automatic setting of "created_at" and "updated_at"
-	s.DB.Callback().Create().Remove("gorm:update_time_stamp")
-	s.DB.Callback().Update().Remove("gorm:update_time_stamp")
+	resetFn := s.DisableGormCallbacks()
+	defer resetFn()
 
 	s.T().Run("ok", func(t *testing.T) {
 		res, animal := s.createWorkItemTypeAnimal()
@@ -342,15 +329,12 @@ func (s *workItemTypeSuite) TestValidate() {
 	})
 }
 
-// TestShowWorkItemType200OK tests if we can fetch the work item type "animal".
 func (s *workItemTypeSuite) TestShow() {
-	// Disable gorm's automatic setting of "created_at" and "updated_at"
-	s.DB.Callback().Create().Remove("gorm:update_time_stamp")
-	s.DB.Callback().Update().Remove("gorm:update_time_stamp")
+	resetFn := s.DisableGormCallbacks()
+	defer resetFn()
 
 	// given
-	date := time.Date(2017, 05, 01, 0, 0, 0, 0, time.UTC)
-	_, wit := s.createWorkItemTypeAnimalWithDates(&date, &date)
+	_, wit := s.createWorkItemTypeAnimal()
 	require.NotNil(s.T(), wit)
 	require.NotNil(s.T(), wit.Data)
 	require.NotNil(s.T(), wit.Data.ID)
@@ -374,7 +358,7 @@ func (s *workItemTypeSuite) TestShow() {
 		compareWithGolden(t, filepath.Join(s.testDir, "show", "ok_using_expired_lastmodified_header.headers.golden.json"), res.Header())
 	})
 
-	s.T().Run("TestShowWorkItemType200UsingExpiredETagHeader", func(t *testing.T) {
+	s.T().Run("ok - using IfNoneMatch header", func(t *testing.T) {
 		// when
 		ifNoneMatch := "foo"
 		res, actual := test.ShowWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, *wit.Data.Relationships.Space.Data.ID, *wit.Data.ID, nil, &ifNoneMatch)
@@ -386,7 +370,7 @@ func (s *workItemTypeSuite) TestShow() {
 
 	s.T().Run("not modified - using IfModifiedSince header", func(t *testing.T) {
 		// when
-		lastModified := app.ToHTTPTime(wit.Data.Attributes.UpdatedAt.Add(1 * time.Second))
+		lastModified := app.ToHTTPTime(time.Now().Add(1 * time.Second))
 		res := test.ShowWorkitemtypeNotModified(s.T(), nil, nil, s.typeCtrl, *wit.Data.Relationships.Space.Data.ID, *wit.Data.ID, &lastModified, nil)
 		// then
 		compareWithGolden(t, filepath.Join(s.testDir, "show", "not_modified_using_if_modified_since_header.headers.golden.json"), res.Header())
@@ -403,9 +387,9 @@ func (s *workItemTypeSuite) TestShow() {
 
 func (s *workItemTypeSuite) TestList() {
 	// given
-	_, witAnimal := s.createWorkItemTypeAnimalWithDates(nil, nil)
+	_, witAnimal := s.createWorkItemTypeAnimal()
 	require.NotNil(s.T(), witAnimal)
-	_, witPerson := s.createWorkItemTypePersonWithDates(nil, nil)
+	_, witPerson := s.createWorkItemTypePerson()
 	require.NotNil(s.T(), witPerson)
 
 	s.T().Run("ok", func(t *testing.T) {
@@ -420,7 +404,7 @@ func (s *workItemTypeSuite) TestList() {
 		assert.Condition(s.T(), lookupWorkItemTypes(*witCollection, *witAnimal, *witPerson),
 			"Not all required work item types (animal and person) where found.")
 		require.NotNil(s.T(), res.Header()[app.LastModified])
-		//assert.Equal(s.T(), app.ToHTTPTime(getWorkItemTypeUpdatedAt(*witPerson)), res.Header()[app.LastModified][0])
+		assert.Equal(s.T(), app.ToHTTPTime(getWorkItemTypeUpdatedAt(*witPerson)), res.Header()[app.LastModified][0])
 		require.NotNil(s.T(), res.Header()[app.CacheControl])
 		assert.NotNil(s.T(), res.Header()[app.CacheControl][0])
 		require.NotNil(s.T(), res.Header()[app.ETag])
@@ -439,7 +423,7 @@ func (s *workItemTypeSuite) TestList() {
 		assert.Condition(s.T(), lookupWorkItemTypes(*witCollection, *witAnimal, *witPerson),
 			"Not all required work item types (animal and person) where found.")
 		require.NotNil(s.T(), res.Header()[app.LastModified])
-		//assert.Equal(s.T(), app.ToHTTPTime(getWorkItemTypeUpdatedAt(*witPerson)), res.Header()[app.LastModified][0])
+		assert.Equal(s.T(), app.ToHTTPTime(getWorkItemTypeUpdatedAt(*witPerson)), res.Header()[app.LastModified][0])
 		require.NotNil(s.T(), res.Header()[app.CacheControl])
 		assert.NotNil(s.T(), res.Header()[app.CacheControl][0])
 		require.NotNil(s.T(), res.Header()[app.ETag])
@@ -458,7 +442,7 @@ func (s *workItemTypeSuite) TestList() {
 		assert.Condition(s.T(), lookupWorkItemTypes(*witCollection, *witAnimal, *witPerson),
 			"Not all required work item types (animal and person) where found.")
 		require.NotNil(s.T(), res.Header()[app.LastModified])
-		//assert.Equal(s.T(), app.ToHTTPTime(getWorkItemTypeUpdatedAt(*witPerson)), res.Header()[app.LastModified][0])
+		assert.Equal(s.T(), app.ToHTTPTime(getWorkItemTypeUpdatedAt(*witPerson)), res.Header()[app.LastModified][0])
 		require.NotNil(s.T(), res.Header()[app.CacheControl])
 		assert.NotNil(s.T(), res.Header()[app.CacheControl][0])
 		require.NotNil(s.T(), res.Header()[app.ETag])
@@ -468,8 +452,7 @@ func (s *workItemTypeSuite) TestList() {
 	s.T().Run("not modified - using IfModifiedSince header", func(t *testing.T) {
 		// when/then
 		// Paging in the format <start>,<limit>"
-		//lastModified := app.ToHTTPTime(getWorkItemTypeUpdatedAt(*witPerson))
-		lastModified := app.ToHTTPTime(time.Now())
+		lastModified := app.ToHTTPTime(getWorkItemTypeUpdatedAt(*witPerson))
 		page := "0,-1"
 		test.ListWorkitemtypeNotModified(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, &page, &lastModified, nil)
 	})
