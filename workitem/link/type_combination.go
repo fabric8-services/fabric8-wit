@@ -10,7 +10,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-// WorkItemLinkTypeCombination stores the allowed work item types for each each link type
+// WorkItemLinkTypeCombination stores the allowed work item types for each link type
 type WorkItemLinkTypeCombination struct {
 	gormsupport.Lifecycle
 	ID           uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // ID
