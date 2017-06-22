@@ -14,11 +14,7 @@ import (
 // AbsoluteURL prefixes a relative URL with absolute address
 func AbsoluteURL(req *goa.RequestData, relative string) string {
 	scheme := "http"
-
 	if req.URL != nil && req.URL.Scheme == "https" { // isHTTPS
-		scheme = "https"
-	}
-	if req.TLS != nil {
 		scheme = "https"
 	}
 	xForwardProto := req.Header.Get("X-Forwarded-Proto")
