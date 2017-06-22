@@ -10,8 +10,6 @@ RUN useradd --no-create-home -s /bin/bash ${ALMIGHTY_USER_NAME}
 
 COPY bin/alm ${ALMIGHTY_INSTALL_PREFIX}/bin/alm
 COPY config.yaml ${ALMIGHTY_INSTALL_PREFIX}/etc/config.yaml
-COPY cert.pem ${ALMIGHTY_INSTALL_PREFIX}/cert.pem
-COPY key.pem ${ALMIGHTY_INSTALL_PREFIX}/key.pem
 
 # Install little pcp pmcd server for metrics collection
 # would prefer only pmcd, and not the /bin/pm*tools etc.
