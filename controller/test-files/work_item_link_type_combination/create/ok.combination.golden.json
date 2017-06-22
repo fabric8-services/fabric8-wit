@@ -1,0 +1,49 @@
+{
+  "data": {
+    "attributes": {
+      "created-at": "0001-01-01T00:00:00Z",
+      "updated-at": "0001-01-01T00:00:00Z",
+      "version": 0
+    },
+    "id": "4c986308-0f19-41f9-b8b3-b904291bda28",
+    "links": {
+      "self": "http:///api/spaces/38f6a5e5-c241-4477-894b-530461636056/workitemlinktypecombinations/4c986308-0f19-41f9-b8b3-b904291bda28"
+    },
+    "relationships": {
+      "link_type": {
+        "data": {
+          "id": "53ca887a-025b-4be7-9a79-79e0c8e28fa3",
+          "type": "workitemlinktypes"
+        }
+      },
+      "source_type": {
+        "data": {
+          "id": "f3b1d121-04ad-496d-a9c1-4cbea99185a3",
+          "type": "workitemtypes"
+        },
+        "links": {
+          "self": "http:///api/spaces/38f6a5e5-c241-4477-894b-530461636056/workitemtypes/f3b1d121-04ad-496d-a9c1-4cbea99185a3"
+        }
+      },
+      "space": {
+        "data": {
+          "id": "38f6a5e5-c241-4477-894b-530461636056",
+          "type": "spaces"
+        },
+        "links": {
+          "self": "http:///api/spaces/38f6a5e5-c241-4477-894b-530461636056"
+        }
+      },
+      "target_type": {
+        "data": {
+          "id": "143befee-a646-4ce6-a192-b38134db4075",
+          "type": "workitemtypes"
+        },
+        "links": {
+          "self": "http:///api/spaces/38f6a5e5-c241-4477-894b-530461636056/workitemtypes/143befee-a646-4ce6-a192-b38134db4075"
+        }
+      }
+    },
+    "type": "workitemlinktypecombinations"
+  }
+}
