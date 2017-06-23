@@ -87,13 +87,27 @@ func (c *WorkItemRelationshipsLinksController) Create(ctx *app.CreateWorkItemRel
 // List runs the list action.
 func (c *WorkItemRelationshipsLinksController) List(ctx *app.ListWorkItemRelationshipsLinksContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkHref, nil)
 		modelLinks, err := appl.WorkItemLinks().ListByWorkItemID(ctx.Context, ctx.WiID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		return ctx.ConditionalEntities(modelLinks, c.config.GetCacheControlWorkItemLinks, func() error {
-			return listWorkItemLink(modelLinks, linkCtx, ctx)
+			appLinks := app.WorkItemLinkList{}
+			appLinks.Data = make([]*app.WorkItemLinkData, len(modelLinks))
+			for index, modelLink := range modelLinks {
+				appLink := ConvertLinkFromModel(modelLink)
+				appLinks.Data[index] = appLink.Data
+			}
+			// TODO: When adding pagination, this must not be len(rows) but
+			// the overall total number of elements from all pages.
+			appLinks.Meta = &app.WorkItemLinkListMeta{
+				TotalCount: len(modelLinks),
+			}
+			linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkHref, nil)
+			if err := enrichLinkList(linkCtx, &appLinks); err != nil {
+				return jsonapi.JSONErrorResponse(ctx, err)
+			}
+			return ctx.OK(&appLinks)
 		})
 	})
 }

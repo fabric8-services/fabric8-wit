@@ -657,61 +657,6 @@ func (s *workItemLinkSuite) validateSomeLinks(linkCollection *app.WorkItemLinkLi
 	require.Exactly(s.T(), 0, toBeFound, "Not all required included elements where found.")
 }
 
-// TestListWorkItemLinkOK tests if we can find the work item links
-// "test-bug-blocker" and "related" in the list of work item links
-func (s *workItemLinkSuite) TestListWorkItemLinkOK() {
-	// given
-	link1, link2 := s.createSomeLinks()
-	// when
-	_, linkCollection := test.ListWorkItemLinkOK(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, nil, nil)
-	// then
-	s.validateSomeLinks(linkCollection, link1, link2)
-}
-
-func (s *workItemLinkSuite) TestListWorkItemLinkOKUsingExpiredIfModifiedSinceHeader() {
-	// given
-	link1, link2 := s.createSomeLinks()
-	// when
-	ifModifiedSince := app.ToHTTPTime(link2.Data.Attributes.UpdatedAt.Add(-1 * time.Hour))
-	res, linkCollection := test.ListWorkItemLinkOK(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, &ifModifiedSince, nil)
-	// then
-	s.validateSomeLinks(linkCollection, link1, link2)
-	assertResponseHeaders(s.T(), res)
-}
-
-func (s *workItemLinkSuite) TestListWorkItemLinkOKUsingExpiredIfNoneMatchHeader() {
-	// given
-	link1, link2 := s.createSomeLinks()
-	// when
-	ifNoneMatch := "foo"
-	res, linkCollection := test.ListWorkItemLinkOK(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, nil, &ifNoneMatch)
-	// then
-	s.validateSomeLinks(linkCollection, link1, link2)
-	assertResponseHeaders(s.T(), res)
-}
-
-func (s *workItemLinkSuite) TestListWorkItemLinkNotModifiedUsingIfModifiedSinceHeader() {
-	// given
-	_, link2 := s.createSomeLinks()
-	// when
-	ifModifiedSince := app.ToHTTPTime(*link2.Data.Attributes.UpdatedAt)
-	res := test.ListWorkItemLinkNotModified(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, &ifModifiedSince, nil)
-	// then
-	assertResponseHeaders(s.T(), res)
-}
-
-func (s *workItemLinkSuite) TestListWorkItemLinkNotModifiedUsingIfNoneMatchHeader() {
-	// given
-	link1, link2 := s.createSomeLinks()
-	// when
-	modelLink1, _ := ConvertLinkToModel(*link1)
-	modelLink2, _ := ConvertLinkToModel(*link2)
-	ifNoneMatch := app.GenerateEntitiesTag([]app.ConditionalRequestEntity{modelLink1, modelLink2})
-	res := test.ListWorkItemLinkNotModified(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, nil, &ifNoneMatch)
-	// then
-	assertResponseHeaders(s.T(), res)
-}
-
 // Same as TestListWorkItemLinkOK, for /api/workitems/:id/relationships/links
 func (s *workItemLinkSuite) TestListWorkItemRelationshipsLinksOK() {
 	link1, link2 := s.createSomeLinks()
