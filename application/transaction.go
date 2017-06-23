@@ -1,10 +1,14 @@
 package application
 
 import (
+	"time"
+
 	"github.com/almighty/almighty-core/log"
 
 	"github.com/pkg/errors"
 )
+
+const databaseTransactionTimeout = 6 * time.Minute
 
 // Transactional executes the given function in a transaction. If todo returns an error, the transaction is rolled back
 func Transactional(db DB, todo func(f Application) error) error {
@@ -18,21 +22,33 @@ func Transactional(db DB, todo func(f Application) error) error {
 		return errors.WithStack(err)
 	}
 
-	defer func() {
-		switch err {
-		case nil:
-			log.Debug(nil, map[string]interface{}{}, "Commit the transaction!")
-			err = tx.Commit()
-		default:
-			log.Debug(nil, map[string]interface{}{}, "Rolling back the transaction...")
-			_ = tx.Rollback()
-			log.Error(nil, map[string]interface{}{
-				"err": err,
-			}, "database transaction failed!")
-			err = errors.WithStack(err)
+	return func() error {
+		errorChan := make(chan error, 1)
+		txTimeout := time.After(databaseTransactionTimeout)
+
+		go func(tx Transaction) {
+			errorChan <- todo(tx)
+		}(tx)
+
+		select {
+		case err := <-errorChan:
+			if err != nil {
+				log.Debug(nil, nil, "Rolling back the transaction...")
+				tx.Rollback()
+				log.Error(nil, map[string]interface{}{
+					"err": err,
+				}, "database transaction failed!")
+				return errors.WithStack(err)
+			}
+
+			tx.Commit()
+			log.Debug(nil, nil, "Commit the transaction!")
+			return nil
+		case <-txTimeout:
+			log.Debug(nil, nil, "Rolling back the transaction...")
+			tx.Rollback()
+			log.Error(nil, nil, "database transaction timeout!")
+			return errors.New("database transaction timeout!")
 		}
 	}()
-
-	err = todo(tx)
-	return err
 }
