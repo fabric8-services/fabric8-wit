@@ -1,0 +1,10 @@
+{
+  "errors": [
+    {
+      "code": "not_found",
+      "detail": "work_item_types with id '959f3ee6-4171-44ff-9200-ed592d5a8722' not found",
+      "status": "404",
+      "title": "Not found error"
+    }
+  ]
+}
