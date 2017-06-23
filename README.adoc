@@ -418,3 +418,42 @@ In response you should get ID of created item, using that you can retrieve the w
 ----
 $ ./bin/alm-cli show workitem --id <ID> -H localhost:8080 --pp
 ----
+
+==== OpenCompose usage
+
+Running almighty-core with OpenCompose
+
+ * Download kompose release with OpenCompose support from link:https://github.com/redhat-developer/opencompose/releases/tag/v0.1.1[here]. Extract that downloaded kompose release and put in path (This is a temporary solution, future releases will have packages or some form of better delivery mechanism).
+
+
+ * Start a OpenShift cluster and make sure you can access it from your `oc` command line.
+
+ * Create OpenShift project to deploy application
+
+----
+$ oc login -u username -p password
+$ oc new-project almightycore
+----
+
+NOTE: If above commands fail you have no access to cluster.
+
+
+ * Using services file to deploy application to OpenShift directly:
+
+----
+$ cd $GOPATH/src/github.com/almighty/almighty-core/
+$ kompose --opencompose services.yml --provider openshift up
+----
+
+ * If you want to tweak the OpenShift artifacts or just study them before you deploy the application to OpenShift then you do a 2 step process.
+
+----
+$ kompose --opencompose services.yml --provider openshift convert
+----
+
+ * At this step you can view or edit the OpenShift artifacts, and then deploy it to OpenShift.
+
+----
+$ oc create -f .
+----
+
