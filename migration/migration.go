@@ -16,6 +16,7 @@ import (
 	"github.com/almighty/almighty-core/workitem/link"
 
 	"context"
+
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/client"
 	"github.com/jinzhu/gorm"
@@ -306,8 +307,14 @@ func GetMigrations() Migrations {
 	// Version 61
 	m = append(m, steps{ExecuteSQLFile("061-replace-index-space-name.sql")})
 
-	// Version 61
-	m = append(m, steps{ExecuteSQLFile("062-workitem-id-unique-per-space.sql")})
+	// Version 62
+	m = append(m, steps{ExecuteSQLFile("062-link-system-preparation.sql")})
+
+	// Version 63
+	m = append(m, steps{ExecuteSQLFile("063-workitem-related-changes.sql")})
+
+	// Version 64
+	m = append(m, steps{ExecuteSQLFile("064-workitem-id-unique-per-space.sql")})
 
 	// Version N
 	//

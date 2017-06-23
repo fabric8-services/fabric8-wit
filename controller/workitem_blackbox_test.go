@@ -1529,7 +1529,7 @@ func (s *WorkItem2Suite) TestWI2ListByAreaFilterNotModifiedUsingIfNoneMatchHeade
 	// given
 	spaceID, areaID, wi := s.setupAreaWorkItem(true)
 	// when
-	ifNoneMatch := app.GenerateEntityTag(convertWorkItemToConditionalResponseEntity(*wi))
+	ifNoneMatch := app.GenerateEntityTag(convertWorkItemToConditionalRequestEntity(*wi))
 	res := test.ListWorkitemNotModified(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil, &ifNoneMatch)
 	// then
 	assertResponseHeaders(s.T(), res)
@@ -1691,7 +1691,7 @@ func (s *WorkItem2Suite) TestWI2ShowNotModifiedUsingIfNoneMatchHeader() {
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 	_, createdWI := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 	// when
-	ifNoneMatch := app.GenerateEntityTag(convertWorkItemToConditionalResponseEntity(*createdWI))
+	ifNoneMatch := app.GenerateEntityTag(convertWorkItemToConditionalRequestEntity(*createdWI))
 	res := test.ShowWorkitemNotModified(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWI.Data.Relationships.Space.Data.ID, *createdWI.Data.ID, nil, &ifNoneMatch)
 	// then
 	assertResponseHeaders(s.T(), res)
@@ -1760,7 +1760,7 @@ func (s *WorkItem2Suite) xTestWI2DeleteLinksOnWIDeletionOK() {
 	require.NotNil(s.T(), wi2)
 
 	// Create link category
-	linkCatPayload := CreateWorkItemLinkCategory("test-user")
+	linkCatPayload := newCreateWorkItemLinkCategoryPayload("test-user")
 	_, linkCat := test.CreateWorkItemLinkCategoryCreated(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, linkCatPayload)
 	require.NotNil(s.T(), linkCat)
 
@@ -1769,12 +1769,12 @@ func (s *WorkItem2Suite) xTestWI2DeleteLinksOnWIDeletionOK() {
 	_, space := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, spacePayload)
 
 	// Create work item link type payload
-	linkTypePayload := CreateWorkItemLinkType("MyLinkType", workitem.SystemBug, workitem.SystemBug, *linkCat.Data.ID, *space.Data.ID)
+	linkTypePayload := newCreateWorkItemLinkTypePayload("MyLinkType", workitem.SystemBug, workitem.SystemBug, *linkCat.Data.ID, *space.Data.ID)
 	_, linkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *space.Data.ID, linkTypePayload)
 	require.NotNil(s.T(), linkType)
 
 	// Create link between wi1 and wi2
-	linkPayload := CreateWorkItemLink(*wi1.Data.ID, *wi2.Data.ID, *linkType.Data.ID)
+	linkPayload := newCreateWorkItemLinkPayload(*wi1.Data.ID, *wi2.Data.ID, *linkType.Data.ID)
 	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.linkCtrl, linkPayload)
 	require.NotNil(s.T(), workItemLink)
 
@@ -2507,7 +2507,7 @@ func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	test.ReorderWorkitemForbidden(s.T(), svcNotAuthrized.Context, svcNotAuthrized, ctrlNotAuthrize, *space.ID, &payload4)
 }
 
-func convertWorkItemToConditionalResponseEntity(appWI app.WorkItemSingle) app.ConditionalRequestEntity {
+func convertWorkItemToConditionalRequestEntity(appWI app.WorkItemSingle) app.ConditionalRequestEntity {
 	return workitem.WorkItem{
 		ID:      *appWI.Data.ID,
 		Version: appWI.Data.Attributes["version"].(int),
@@ -2515,86 +2515,4 @@ func convertWorkItemToConditionalResponseEntity(appWI app.WorkItemSingle) app.Co
 			workitem.SystemUpdatedAt: appWI.Data.Attributes[workitem.SystemUpdatedAt].(time.Time),
 		},
 	}
-}
-
-func (s *workItemChildSuite) TestWorkItemListFilterByNoParents() {
-	s.T().Run("without parentexists filter", func(t *testing.T) {
-		// given
-		var pe *bool
-		// when
-		_, result := test.ListWorkitemOK(t, nil, nil, s.workItemCtrl, s.userSpaceID, nil, nil, nil, nil, pe, nil, nil, nil, nil, nil, nil)
-		// then
-		assert.Len(t, result.Data, 3)
-		assert.Nil(t, result.Links.Prev)
-		assert.Nil(t, result.Links.Next)
-		shouldNotContain := "filter[parentexists]"
-		assert.NotContains(t, *result.Links.First, shouldNotContain)
-		assert.NotContains(t, *result.Links.Last, shouldNotContain)
-	})
-
-	s.T().Run("with parentexists value set to false", func(t *testing.T) {
-		// given
-		pe := false
-		// when
-		_, result2 := test.ListWorkitemOK(t, nil, nil, s.workItemCtrl, s.userSpaceID, nil, nil, nil, nil, &pe, nil, nil, nil, nil, nil, nil)
-		// then
-		assert.Len(t, result2.Data, 1)
-		assert.Nil(t, result2.Links.Prev)
-		assert.Nil(t, result2.Links.Next)
-		shouldContain := "filter[parentexists]=" + strconv.FormatBool(pe)
-		assert.Contains(t, *result2.Links.First, shouldContain)
-		assert.Contains(t, *result2.Links.Last, shouldContain)
-	})
-
-	s.T().Run("with parentexists value set to true", func(t *testing.T) {
-		// given
-		pe := true
-		// when
-		_, result2 := test.ListWorkitemOK(t, nil, nil, s.workItemCtrl, s.userSpaceID, nil, nil, nil, nil, &pe, nil, nil, nil, nil, nil, nil)
-		// then
-		assert.Len(t, result2.Data, 3)
-		assert.Nil(t, result2.Links.Prev)
-		assert.Nil(t, result2.Links.Next)
-		shouldContain := "filter[parentexists]=" + strconv.FormatBool(pe)
-		assert.Contains(t, *result2.Links.First, shouldContain)
-		assert.Contains(t, *result2.Links.Last, shouldContain)
-	})
-
-}
-
-// TestCreateMultipleWIs create multiple work items in parallel in different spaces to be sure that the implementation supports
-// concurrent writes (micro stress test)
-func (s *WorkItemSuite) TestCreateMultipleWIs() {
-	// given
-	spaceCount := 4
-	workitemsPerSpace := 4
-	results := make(chan struct{})
-	// when
-	for i := 0; i < spaceCount; i++ {
-		// Create space
-		spacePayload := CreateSpacePayload("test-space"+uuid.NewV4().String(), "description")
-		_, testSpace := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, spacePayload)
-		log.Info(nil, nil, "Created space with ID %v", *testSpace.Data.ID)
-		for j := 0; j < workitemsPerSpace; j++ {
-			go func() {
-				payload := minimumRequiredCreateWithTypeAndSpace(workitem.SystemBug, *testSpace.Data.ID)
-				payload.Data.Attributes[workitem.SystemTitle] = "Test WI" + uuid.NewV4().String()
-				payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-
-				log.Info(nil, nil, "Creating a work item in space %v", *payload.Data.Relationships.Space.Data.ID)
-				// each go routine needs its own goa service.
-				svc := testsupport.ServiceAsUser("TestUpdateWI-Service", almtoken.NewManagerWithPrivateKey(s.priKey), s.testIdentity)
-				// when using a work item controller (ie, with its own Tx)
-				res, createdWorkitem := test.CreateWorkitemCreated(s.T(), svc.Context, svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
-				// then
-				assert.NotNil(s.T(), createdWorkitem, "Work item creation failed", res)
-				results <- struct{}{}
-			}()
-		}
-	}
-	// then expect (spaceCount * workitemsPerSpace) responses
-	for r := 0; r < (spaceCount * workitemsPerSpace); r++ {
-		<-results
-	}
-	log.Info(nil, nil, "Test completed")
 }

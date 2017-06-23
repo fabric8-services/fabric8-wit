@@ -199,7 +199,7 @@ func (rest *TestTrackerQueryREST) TestCreateTrackerQuery() {
 	_, result := test.CreateTrackerCreated(t, svc.Context, svc, trackerCtrl, &payload)
 	t.Log(result.ID)
 
-	tqpayload := getCreateTrackerQueryPayload(result.ID)
+	tqpayload := newCreateTrackerQueryPayload(result.ID)
 
 	_, tqresult := test.CreateTrackerqueryCreated(t, nil, nil, trackerQueryCtrl, &tqpayload)
 	t.Log(tqresult)
@@ -219,7 +219,7 @@ func (rest *TestTrackerQueryREST) TestGetTrackerQuery() {
 	}
 	_, result := test.CreateTrackerCreated(t, svc.Context, svc, trackerCtrl, &payload)
 
-	tqpayload := getCreateTrackerQueryPayload(result.ID)
+	tqpayload := newCreateTrackerQueryPayload(result.ID)
 
 	fmt.Printf("tq payload %#v", tqpayload)
 	_, tqresult := test.CreateTrackerqueryCreated(t, nil, nil, trackerQueryCtrl, &tqpayload)
@@ -245,7 +245,7 @@ func (rest *TestTrackerQueryREST) TestUpdateTrackerQuery() {
 	}
 	_, result := test.CreateTrackerCreated(t, svc.Context, svc, trackerCtrl, &payload)
 
-	tqpayload := getCreateTrackerQueryPayload(result.ID)
+	tqpayload := newCreateTrackerQueryPayload(result.ID)
 
 	_, tqresult := test.CreateTrackerqueryCreated(t, nil, nil, trackerQueryCtrl, &tqpayload)
 	test.ShowTrackerqueryOK(t, nil, nil, trackerQueryCtrl, tqresult.ID)
@@ -297,7 +297,7 @@ func (rest *TestTrackerQueryREST) TestTrackerQueryListItemsNotNil() {
 	_, result := test.CreateTrackerCreated(t, svc.Context, svc, trackerCtrl, &payload)
 	t.Log(result.ID)
 
-	tqpayload := getCreateTrackerQueryPayload(result.ID)
+	tqpayload := newCreateTrackerQueryPayload(result.ID)
 
 	test.CreateTrackerqueryCreated(t, nil, nil, trackerQueryCtrl, &tqpayload)
 	test.CreateTrackerqueryCreated(t, nil, nil, trackerQueryCtrl, &tqpayload)
@@ -324,7 +324,7 @@ func (rest *TestTrackerQueryREST) TestCreateTrackerQueryValidId() {
 	_, result := test.CreateTrackerCreated(t, svc.Context, svc, trackerCtrl, &payload)
 	t.Log(result.ID)
 
-	tqpayload := getCreateTrackerQueryPayload(result.ID)
+	tqpayload := newCreateTrackerQueryPayload(result.ID)
 
 	_, trackerquery := test.CreateTrackerqueryCreated(t, nil, nil, trackerQueryCtrl, &tqpayload)
 	_, created := test.ShowTrackerqueryOK(t, nil, nil, trackerQueryCtrl, trackerquery.ID)
@@ -333,7 +333,7 @@ func (rest *TestTrackerQueryREST) TestCreateTrackerQueryValidId() {
 	}
 }
 
-func getCreateTrackerQueryPayload(trackerID string) app.CreateTrackerQueryAlternatePayload {
+func newCreateTrackerQueryPayload(trackerID string) app.CreateTrackerQueryAlternatePayload {
 	reqLong := &goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}

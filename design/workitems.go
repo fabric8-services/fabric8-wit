@@ -234,69 +234,6 @@ var _ = a.Resource("workitem", func() {
 	})
 })
 
-// new version of "list" for migration
-var _ = a.Resource("redirect_workitem", func() {
-	a.BasePath("/workitems")
-	a.Action("show", func() {
-		a.Routing(
-			a.GET("/:wiID"),
-		)
-		a.Params(func() {
-			a.Param("wiID", d.UUID, "ID of the work item to show")
-		})
-		a.Response(d.MovedPermanently)
-	})
-	a.Action("list", func() {
-		a.Routing(
-			a.GET(""),
-		)
-		a.Description("List work items.")
-		a.Params(func() {
-			a.Param("filter", d.String, "a query language expression restricting the set of found work items")
-			a.Param("page[offset]", d.String, "Paging start position")
-			a.Param("page[limit]", d.Integer, "Paging size")
-			a.Param("filter[assignee]", d.String, "Work Items assigned to the given user")
-			a.Param("filter[iteration]", d.String, "IterationID to filter work items")
-			a.Param("filter[workitemtype]", d.UUID, "ID of work item type to filter work items by")
-			a.Param("filter[area]", d.String, "AreaID to filter work items")
-			a.Param("filter[workitemstate]", d.String, "work item state to filter work items by")
-
-		})
-		a.Response(d.MovedPermanently)
-	})
-	a.Action("create", func() {
-		a.Routing(
-			a.POST(""),
-		)
-		a.Response(d.MovedPermanently)
-	})
-	a.Action("delete", func() {
-		a.Routing(
-			a.DELETE("/:wiID"),
-		)
-		a.Params(func() {
-			a.Param("wiID", d.UUID, "ID of the work item to delete")
-		})
-		a.Response(d.MovedPermanently)
-	})
-	a.Action("update", func() {
-		a.Routing(
-			a.PATCH("/:wiID"),
-		)
-		a.Params(func() {
-			a.Param("wiID", d.UUID, "ID of the work item to update")
-		})
-		a.Response(d.MovedPermanently)
-	})
-	a.Action("reorder", func() {
-		a.Security("jwt")
-		a.Routing(
-			a.PATCH("/reorder"),
-		)
-		a.Response(d.MovedPermanently)
-	})
-})
-
 var _ = a.Resource("planner_backlog", func() {
 	a.Parent("space")
 	a.BasePath("/backlog")
