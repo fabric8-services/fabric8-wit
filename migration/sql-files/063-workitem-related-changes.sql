@@ -1,5 +1,6 @@
 -- add a column to record the timestamp of the latest addition/change/removal of an entity in relationship with a workitem
 ALTER TABLE work_items ADD COLUMN relationships_changed_at timestamp with time zone;
+COMMENT ON COLUMN work_items.relationships_changed_at IS 'see triggers on the ''comments'' and ''work_item_links tables''.';
 
 CREATE FUNCTION workitem_comment_insert_timestamp() RETURNS trigger AS $$
     -- trigger to fill the `relationships_changed_at` column when a comment is added
