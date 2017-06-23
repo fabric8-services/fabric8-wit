@@ -922,15 +922,3 @@ func (s *workItemLinkSuite) TestUnauthorizeWorkItemRelationshipsLinksCUD() {
 		return nil
 	})
 }
-
-func TestNewWorkItemLinkControllerDBNull(t *testing.T) {
-	require.Panics(t, func() {
-		NewWorkItemLinkController(nil, nil, nil)
-	})
-}
-
-func TestNewWorkItemRelationshipsLinksControllerDBNull(t *testing.T) {
-	require.Panics(t, func() {
-		NewWorkItemRelationshipsLinksController(nil, nil, nil)
-	})
-}
