@@ -339,8 +339,8 @@ func testMigration61(t *testing.T) {
 }
 
 func testMigration63(t *testing.T) {
-	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+18)], (initialMigratedVersion + 18))
-	assert.Nil(t, runSQLscript(sqlDB, "062-workitem-related-changes.sql"))
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+19)], (initialMigratedVersion + 19))
+	assert.Nil(t, runSQLscript(sqlDB, "063-workitem-related-changes.sql"))
 	var createdAt time.Time
 	var deletedAt time.Time
 	var relationshipsChangeddAt time.Time

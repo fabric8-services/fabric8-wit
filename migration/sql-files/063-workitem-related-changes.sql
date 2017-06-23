@@ -31,8 +31,7 @@ CREATE TRIGGER workitem_comment_softdelete_trigger AFTER UPDATE OF deleted_at ON
 CREATE FUNCTION workitem_link_insert_timestamp() RETURNS trigger AS $$
     -- trigger to fill the `relationships_changed_at` column when a link is added
     BEGIN
-        UPDATE work_items wi SET relationships_changed_at = NEW.created_at WHERE wi.id = NEW.source_id;
-        UPDATE work_items wi SET relationships_changed_at = NEW.created_at WHERE wi.id = NEW.target_id;
+        UPDATE work_items wi SET relationships_changed_at = NEW.created_at WHERE wi.id in (NEW.source_id, NEW.target_id);
         RETURN NEW;
     END;
 $$ LANGUAGE plpgsql;
@@ -40,8 +39,7 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION workitem_link_softdelete_timestamp() RETURNS trigger AS $$
     -- trigger to fill the `relationships_changed_at` column when a link is removed (soft delete, it's a record update)
     BEGIN
-        UPDATE work_items wi SET relationships_changed_at = NEW.deleted_at WHERE wi.id = NEW.source_id;
-        UPDATE work_items wi SET relationships_changed_at = NEW.deleted_at WHERE wi.id = NEW.target_id;
+        UPDATE work_items wi SET relationships_changed_at = NEW.deleted_at WHERE wi.id in (NEW.source_id, NEW.target_id);
         RETURN NEW;
     END;
 $$ LANGUAGE plpgsql;
