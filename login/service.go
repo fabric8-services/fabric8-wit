@@ -82,7 +82,7 @@ type keycloakTokenClaims struct {
 	jwt.StandardClaims
 }
 
-var allProvidersToLink = []string{"github", "openshift-v3"}
+var allProvidersToLink = []string{"github"} //, "openshift-v3"}
 
 const (
 	initiateLinkingParam = "initlinking"
