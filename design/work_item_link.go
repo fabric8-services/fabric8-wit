@@ -125,7 +125,6 @@ var workItemLinkList = JSONList(
 var _ = a.Resource("work_item_link", func() {
 	a.BasePath("/workitemlinks")
 	a.Action("show", showWorkItemLink)
-	a.Action("list", listWorkItemLinks)
 	a.Action("create", createWorkItemLink)
 	a.Action("delete", deleteWorkItemLink)
 	a.Action("update", updateWorkItemLink)

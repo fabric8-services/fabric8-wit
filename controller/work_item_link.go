@@ -319,53 +319,6 @@ func (c *WorkItemLinkController) Delete(ctx *app.DeleteWorkItemLinkContext) erro
 	})
 }
 
-type listWorkItemLinkFuncs interface {
-	OK(r *app.WorkItemLinkList) error
-	BadRequest(r *app.JSONAPIErrors) error
-	NotModified() error
-	InternalServerError(r *app.JSONAPIErrors) error
-}
-
-func listWorkItemLink(modelLinks []link.WorkItemLink, ctx *workItemLinkContext, httpFuncs listWorkItemLinkFuncs) error {
-	appLinks := app.WorkItemLinkList{}
-	appLinks.Data = make([]*app.WorkItemLinkData, len(modelLinks))
-	for index, modelLink := range modelLinks {
-		appLink := ConvertLinkFromModel(modelLink)
-		appLinks.Data[index] = appLink.Data
-	}
-	// TODO: When adding pagination, this must not be len(rows) but
-	// the overall total number of elements from all pages.
-	appLinks.Meta = &app.WorkItemLinkListMeta{
-		TotalCount: len(modelLinks),
-	}
-	if err := enrichLinkList(ctx, &appLinks); err != nil {
-		return jsonapi.JSONErrorResponse(httpFuncs, err)
-	}
-	return httpFuncs.OK(&appLinks)
-}
-
-// List runs the list action.
-func (c *WorkItemLinkController) List(ctx *app.ListWorkItemLinkContext) error {
-	return application.Transactional(c.db, func(appl application.Application) error {
-		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkHref, nil)
-		modelLinks, err := appl.WorkItemLinks().List(ctx.Context)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
-		return ctx.ConditionalEntities(modelLinks, c.config.GetCacheControlWorkItemLinks, func() error {
-			return listWorkItemLink(modelLinks, linkCtx, ctx)
-		})
-	})
-}
-
-type showWorkItemLinkFuncs interface {
-	OK(r *app.WorkItemLinkSingle) error
-	NotFound(r *app.JSONAPIErrors) error
-	NotModified() error
-	BadRequest(r *app.JSONAPIErrors) error
-	InternalServerError(r *app.JSONAPIErrors) error
-}
-
 // Show runs the show action.
 func (c *WorkItemLinkController) Show(ctx *app.ShowWorkItemLinkContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
