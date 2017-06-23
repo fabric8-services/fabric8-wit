@@ -155,7 +155,7 @@ func (r *GormWorkItemLinkRepository) ValidateTopology(ctx context.Context, sourc
 				"wilt_id":   linkType.ID,
 				"target_id": targetID,
 				"err":       err,
-			}, "unable to create/update work item link because a topology of type \"%s\" only allows one parent to exist and the target %d already a parent", TopologyTree, targetID)
+			}, "unable to create/update work item link because a topology of type \"%s\" only allows one parent to exist and the target %d already has a parent", TopologyTree, targetID)
 			return errors.NewBadParameterError("linkTypeID + targetID", fmt.Sprintf("%s + %d", linkType.ID, targetID)).Expected("single parent in tree topology")
 		}
 	}
@@ -346,6 +346,8 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, linkToSave WorkIt
 	if existingLink.Version != linkToSave.Version {
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
+	// retain the creation timestamp of the existing record
+	linkToSave.CreatedAt = existingLink.CreatedAt
 	linkToSave.Version = linkToSave.Version + 1
 
 	linkTypeToSave, err := r.workItemLinkTypeRepo.Load(ctx, linkToSave.LinkTypeID)

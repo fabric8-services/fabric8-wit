@@ -2,6 +2,7 @@ package workitem
 
 import (
 	"strconv"
+	"time"
 
 	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/errors"
@@ -24,6 +25,8 @@ type WorkItemStorage struct {
 	ExecutionOrder float64
 	// Reference to one Space
 	SpaceID uuid.UUID `sql:"type:uuid"`
+	// optional timestamp of the latest addition/removal of a relationship with this workitem
+	RelationShipsChangedAt *time.Time `sql:"column:relationships_changed_at"`
 }
 
 const (

@@ -131,20 +131,6 @@ func assertPlannerBacklogWorkItems(t *testing.T, workitems *app.WorkItemList, te
 	}
 }
 
-func generateWorkitemsTag(workitems *app.WorkItemList) string {
-	entities := make([]app.ConditionalRequestEntity, len(workitems.Data))
-	for i, wi := range workitems.Data {
-		entities[i] = workitem.WorkItem{
-			ID:      *wi.ID,
-			Version: wi.Attributes["version"].(int),
-			Fields: map[string]interface{}{
-				workitem.SystemUpdatedAt: wi.Attributes[workitem.SystemUpdatedAt],
-			},
-		}
-	}
-	return app.GenerateEntitiesTag(entities)
-}
-
 func (rest *TestPlannerBacklogBlackboxREST) TestListPlannerBacklogWorkItemsOK() {
 	// given
 	testSpace, parentIteration, _ := rest.setupPlannerBacklogWorkItems()
@@ -211,10 +197,10 @@ func (rest *TestPlannerBacklogBlackboxREST) TestListPlannerBacklogWorkItemsNotMo
 	offset := "0"
 	filter := ""
 	limit := -1
-	_, workitems := test.ListPlannerBacklogOK(rest.T(), svc.Context, svc, ctrl, testSpace.ID, &filter, nil, nil, nil, &limit, &offset, nil, nil)
+	res, _ := test.ListPlannerBacklogOK(rest.T(), svc.Context, svc, ctrl, testSpace.ID, &filter, nil, nil, nil, &limit, &offset, nil, nil)
 	// when
-	ifNoneMatch := generateWorkitemsTag(workitems)
-	res := test.ListPlannerBacklogNotModified(rest.T(), svc.Context, svc, ctrl, testSpace.ID, &filter, nil, nil, nil, &limit, &offset, nil, &ifNoneMatch)
+	ifNoneMatch := res.Header()[app.ETag][0]
+	res = test.ListPlannerBacklogNotModified(rest.T(), svc.Context, svc, ctrl, testSpace.ID, &filter, nil, nil, nil, &limit, &offset, nil, &ifNoneMatch)
 	// then
 	assertResponseHeaders(rest.T(), res)
 }

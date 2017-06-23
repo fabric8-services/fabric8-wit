@@ -164,11 +164,12 @@ func (wit WorkItemType) Equal(u convert.Equaler) bool {
 // ConvertWorkItemStorageToModel converts a workItem from the storage/persistence layer into a workItem of the model domain layer
 func (wit WorkItemType) ConvertWorkItemStorageToModel(workItem WorkItemStorage) (*WorkItem, error) {
 	result := WorkItem{
-		ID:      strconv.FormatUint(workItem.ID, 10),
-		Type:    workItem.Type,
-		Version: workItem.Version,
-		Fields:  map[string]interface{}{},
-		SpaceID: workItem.SpaceID,
+		ID:                     strconv.FormatUint(workItem.ID, 10),
+		Type:                   workItem.Type,
+		Version:                workItem.Version,
+		Fields:                 map[string]interface{}{},
+		SpaceID:                workItem.SpaceID,
+		relationShipsChangedAt: workItem.RelationShipsChangedAt,
 	}
 
 	for name, field := range wit.Fields {
