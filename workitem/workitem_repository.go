@@ -771,7 +771,8 @@ func (r *GormWorkItemRepository) getFinalCountAddingChild(ctx context.Context, d
 				ELSE concat(path::text, '.', REPLACE(id::text, '-', '_'))::ltree
 			END AS pathself,
 			id
-	FROM %s)
+	FROM %s
+	WHERE space_id = ?)
 	SELECT array_agg(iterations.id)::text AS children,
 		PathResolver.id::text AS iterationid
 	FROM %s,
@@ -782,7 +783,7 @@ func (r *GormWorkItemRepository) getFinalCountAddingChild(ctx context.Context, d
 		PathResolver.id)`,
 		iterationTableName,
 		iterationTableName)
-	db = r.db.Raw(queryIterationWithChildren, spaceID.String())
+	db = r.db.Raw(queryIterationWithChildren, spaceID.String(), spaceID.String())
 	db.Scan(&itrChildren)
 	if db.Error != nil {
 		log.Error(ctx, map[string]interface{}{
