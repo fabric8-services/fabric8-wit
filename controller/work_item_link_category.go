@@ -20,9 +20,6 @@ type WorkItemLinkCategoryController struct {
 
 // NewWorkItemLinkCategoryController creates a WorkItemLinkCategoryController.
 func NewWorkItemLinkCategoryController(service *goa.Service, db application.DB) *WorkItemLinkCategoryController {
-	if db == nil {
-		panic("db must not be nil")
-	}
 	return &WorkItemLinkCategoryController{
 		Controller: service.NewController("WorkItemLinkCategoryController"),
 		db:         db,

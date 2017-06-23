@@ -49,9 +49,6 @@ type WorkItemControllerConfig interface {
 
 // NewWorkitemController creates a workitem controller.
 func NewWorkitemController(service *goa.Service, db application.DB, config WorkItemControllerConfig) *WorkitemController {
-	if db == nil {
-		panic("db must not be nil")
-	}
 	return &WorkitemController{
 		Controller: service.NewController("WorkitemController"),
 		db:         db,
