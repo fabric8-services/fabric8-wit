@@ -310,6 +310,9 @@ func GetMigrations() Migrations {
 	// Version 62
 	m = append(m, steps{ExecuteSQLFile("062-workitem-related-changes.sql")})
 
+	// Version 63
+	m = append(m, steps{ExecuteSQLFile("063-link-system-preparation.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the

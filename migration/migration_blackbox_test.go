@@ -119,7 +119,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration57", testMigration57)
 	t.Run("TestMigration60", testMigration60)
 	t.Run("TestMigration61", testMigration61)
-	t.Run("TestMigration62", testMigration62)
+	t.Run("TestMigration63", testMigration63)
 
 	// Perform the migration
 	if err := migration.Migrate(sqlDB, databaseName); err != nil {
@@ -338,7 +338,7 @@ func testMigration61(t *testing.T) {
 
 }
 
-func testMigration62(t *testing.T) {
+func testMigration63(t *testing.T) {
 	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+18)], (initialMigratedVersion + 18))
 	assert.Nil(t, runSQLscript(sqlDB, "062-workitem-related-changes.sql"))
 	var createdAt time.Time
