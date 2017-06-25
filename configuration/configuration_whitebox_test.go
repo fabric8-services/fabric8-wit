@@ -6,6 +6,7 @@ import (
 	"os"
 	"regexp"
 	"testing"
+	"time"
 
 	"github.com/almighty/almighty-core/resource"
 	"github.com/goadesign/goa"
@@ -122,6 +123,26 @@ func TestGetLogLevelOK(t *testing.T) {
 	resetConfiguration()
 
 	assert.Equal(t, "warning", config.GetLogLevel())
+}
+
+func TestGetTransactionTimeoutOK(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+
+	key := "ALMIGHTY_POSTGRES_TRANSACTION_TIMEOUT"
+	realEnvValue := os.Getenv(key)
+
+	os.Unsetenv(key)
+	defer func() {
+		os.Setenv(key, realEnvValue)
+		resetConfiguration()
+	}()
+
+	assert.Equal(t, time.Duration(5*time.Minute), config.GetPostgresTransactionTimeout())
+
+	os.Setenv(key, "6m")
+	resetConfiguration()
+
+	assert.Equal(t, time.Duration(6*time.Minute), config.GetPostgresTransactionTimeout())
 }
 
 func TestValidRedirectURLsInDevModeCanBeOverridden(t *testing.T) {
