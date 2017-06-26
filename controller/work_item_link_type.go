@@ -29,9 +29,6 @@ type WorkItemLinkTypeControllerConfiguration interface {
 
 // NewWorkItemLinkTypeController creates a work-item-link-type controller.
 func NewWorkItemLinkTypeController(service *goa.Service, db application.DB, config WorkItemLinkTypeControllerConfiguration) *WorkItemLinkTypeController {
-	if db == nil {
-		panic("db must not be nil")
-	}
 	return &WorkItemLinkTypeController{
 		Controller: service.NewController("WorkItemLinkTypeController"),
 		db:         db,
@@ -218,7 +215,7 @@ func (c *WorkItemLinkTypeController) Show(ctx *app.ShowWorkItemLinkTypeContext) 
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		return ctx.ConditionalEntity(*modelLinkType, c.config.GetCacheControlWorkItemLinkTypes, func() error {
+		return ctx.ConditionalRequest(*modelLinkType, c.config.GetCacheControlWorkItemLinkTypes, func() error {
 			// Convert the created link type entry into a rest representation
 			appLinkType := ConvertWorkItemLinkTypeFromModel(ctx.RequestData, *modelLinkType)
 

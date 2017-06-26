@@ -1,5 +1,5 @@
-hash: 3e9f1b6af7274e8d50e57500f92f1374c63cce5e765993d8649e03350936560c
-updated: 2017-04-17T23:07:16.622277679+02:00
+hash: 378d674999f7e01a1ab519f10383af8e4dbc798c52e3227c6b9780bf6239c2c1
+updated: 2017-06-12T16:35:16.128991846+02:00
 imports:
 - name: bitbucket.org/pkg/inflect
   version: 8961c3750a47b8c0b3e118d52513b97adf85a7e8
@@ -22,7 +22,7 @@ imports:
 - name: github.com/dimfeld/httppath
   version: c8e499c3ef3c3e272ed8bdcc1ccf39f73c88debc
 - name: github.com/dimfeld/httptreemux
-  version: 86f7c217d9043ebc6adfd8e2ed04a0bb1e1db651
+  version: 13dde8a00d96b369e7398490fd8a3af9ca114b84
 - name: github.com/dnaeon/go-vcr
   version: 9d71b8a6df86e00127f96bc8dabc09856ab8afdb
   subpackages:
@@ -43,7 +43,7 @@ imports:
 - name: github.com/fzipp/gocyclo
   version: 6acd4345c835499920e8426c7e4e8d7a34f1bb83
 - name: github.com/goadesign/goa
-  version: be1e8b9a2614909d8805079ebd1c947778170c0e
+  version: 58f3177f36f2c50ee6119da92795e48bac6d6243
   vcs: git
   subpackages:
   - client
@@ -144,6 +144,10 @@ imports:
   version: 5f33e7b7878355cd2b7e6b8eefc48a5472c69f70
 - name: github.com/satori/go.uuid
   version: b061729afc07e77a8aa4fad0a2fd840958f1942a
+- name: github.com/sergi/go-diff
+  version: feef008d51ad2b3778f85d387ccf91735543008d
+  subpackages:
+  - diffmatchpatch
 - name: github.com/shurcooL/sanitized_anchor_name
   version: 1dba4b3954bc059efc3991ec364f9f9a35f597d2
 - name: github.com/Sirupsen/logrus

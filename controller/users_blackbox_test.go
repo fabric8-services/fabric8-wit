@@ -1,6 +1,7 @@
 package controller_test
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"testing"
@@ -25,7 +26,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"golang.org/x/net/context"
 )
 
 func TestUsers(t *testing.T) {
@@ -952,7 +952,7 @@ func getUserUpdatedAt(appUser app.User) time.Time {
 }
 
 func (s *TestUsersSuite) generateUsersTag(allUsers app.UserArray) string {
-	entities := make([]app.ConditionalResponseEntity, len(allUsers.Data))
+	entities := make([]app.ConditionalRequestEntity, len(allUsers.Data))
 	for i, user := range allUsers.Data {
 		userID, err := uuid.FromString(*user.Attributes.UserID)
 		require.Nil(s.T(), err)
@@ -977,11 +977,11 @@ func newDummyUserProfileService(dummyGetResponse *login.KeycloakUserProfileRespo
 	}
 }
 
-func (d *dummyUserProfileService) Update(keycloakUserProfile *login.KeycloakUserProfile, accessToken string, keycloakProfileURL string) error {
+func (d *dummyUserProfileService) Update(ctx context.Context, keycloakUserProfile *login.KeycloakUserProfile, accessToken string, keycloakProfileURL string) error {
 	return nil
 }
 
-func (d *dummyUserProfileService) Get(accessToken string, keycloakProfileURL string) (*login.KeycloakUserProfileResponse, error) {
+func (d *dummyUserProfileService) Get(ctx context.Context, accessToken string, keycloakProfileURL string) (*login.KeycloakUserProfileResponse, error) {
 	return d.dummyGetResponse, nil
 }
 

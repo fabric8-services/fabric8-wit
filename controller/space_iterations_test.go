@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"golang.org/x/net/context"
+	"context"
 
 	"fmt"
 
@@ -497,7 +497,7 @@ func assertIterations(t *testing.T, data []*app.Iteration, fatherIteration, chil
 }
 
 func generateIterationsTag(iterations app.IterationList) string {
-	modelEntities := make([]app.ConditionalResponseEntity, len(iterations.Data))
+	modelEntities := make([]app.ConditionalRequestEntity, len(iterations.Data))
 	for i, entity := range iterations.Data {
 		modelEntities[i] = iteration.Iteration{
 			ID: *entity.ID,

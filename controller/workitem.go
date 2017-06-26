@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"golang.org/x/net/context"
+	"context"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
@@ -49,9 +49,6 @@ type WorkItemControllerConfig interface {
 
 // NewWorkitemController creates a workitem controller.
 func NewWorkitemController(service *goa.Service, db application.DB, config WorkItemControllerConfig) *WorkitemController {
-	if db == nil {
-		panic("db must not be nil")
-	}
 	return &WorkitemController{
 		Controller: service.NewController("WorkitemController"),
 		db:         db,
@@ -109,6 +106,11 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 	if ctx.FilterWorkitemstate != nil {
 		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemState), criteria.Literal(string(*ctx.FilterWorkitemstate))))
 		additionalQuery = append(additionalQuery, "filter[workitemstate]="+*ctx.FilterWorkitemstate)
+	}
+	if ctx.FilterParentexists != nil {
+		// no need to build expression: it is taken care in wi.List call
+		// we need additionalQuery to make sticky filters in URL links
+		additionalQuery = append(additionalQuery, "filter[parentexists]="+strconv.FormatBool(*ctx.FilterParentexists))
 	}
 
 	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
@@ -168,7 +170,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	}
 	creator := wi.Fields[workitem.SystemCreator]
 	if creator == nil {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError("work item doesn't have creator"))
+		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.New("work item doesn't have creator")))
 	}
 	authorized, err := authorizeWorkitemEditor(ctx, c.db, ctx.SpaceID, creator.(string), currentUserIdentityID.String())
 	if err != nil {
@@ -308,13 +310,13 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 // Show does GET workitem
 func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		comments := workItemIncludeCommentsAndTotal(ctx, c.db, ctx.WiID)
-		hasChildren := workItemIncludeHasChildren(appl, ctx)
 		wi, err := appl.WorkItems().Load(ctx, ctx.SpaceID, ctx.WiID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Fail to load work item with id %v", ctx.WiID)))
 		}
-		return ctx.ConditionalEntity(*wi, c.config.GetCacheControlWorkItems, func() error {
+		return ctx.ConditionalRequest(*wi, c.config.GetCacheControlWorkItems, func() error {
+			comments := workItemIncludeCommentsAndTotal(ctx, c.db, ctx.WiID)
+			hasChildren := workItemIncludeHasChildren(appl, ctx)
 			wi2 := ConvertWorkItem(ctx.RequestData, *wi, comments, hasChildren)
 			resp := &app.WorkItemSingle{
 				Data: wi2,
@@ -654,6 +656,7 @@ func workItemIncludeHasChildren(appl application.Application, ctx context.Contex
 		repo := appl.WorkItemLinks()
 		if repo != nil {
 			hasChildren, err = appl.WorkItemLinks().WorkItemHasChildren(ctx, wi.ID)
+			log.Info(ctx, map[string]interface{}{"wi_id": wi.ID}, "Work item has children: %t", hasChildren)
 			if err != nil {
 				log.Error(ctx, map[string]interface{}{
 					"wi_id": wi.ID,
@@ -669,6 +672,7 @@ func workItemIncludeHasChildren(appl application.Application, ctx context.Contex
 		wi2.Relationships.Children.Meta = map[string]interface{}{
 			"hasChildren": hasChildren,
 		}
+
 	}
 }
 
@@ -676,17 +680,22 @@ func workItemIncludeHasChildren(appl application.Application, ctx context.Contex
 func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) error {
 	// WorkItemChildrenController_List: start_implement
 
-	// Put your logic here
+	var additionalQuery []string
+	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
 	return application.Transactional(c.db, func(appl application.Application) error {
-		result, err := appl.WorkItemLinks().ListWorkItemChildren(ctx, ctx.WiID)
+		result, tc, err := appl.WorkItemLinks().ListWorkItemChildren(ctx, ctx.WiID, &offset, &limit)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "unable to list work item children"))
 		}
+		count := int(tc)
 		return ctx.ConditionalEntities(result, c.config.GetCacheControlWorkItems, func() error {
 			hasChildren := workItemIncludeHasChildren(appl, ctx)
 			response := app.WorkItemList{
-				Data: ConvertWorkItems(ctx.RequestData, result, hasChildren),
+				Links: &app.PagingLinks{},
+				Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
+				Data:  ConvertWorkItems(ctx.RequestData, result, hasChildren),
 			}
+			setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(result), offset, limit, count, additionalQuery...)
 			return ctx.OK(&response)
 		})
 	})

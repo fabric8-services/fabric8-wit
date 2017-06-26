@@ -67,6 +67,9 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 	reqSpace := ctx.Payload.Data
 	spaceName := *reqSpace.Attributes.Name
 	spaceID := uuid.NewV4()
+	if reqSpace.ID != nil {
+		spaceID = *reqSpace.ID
+	}
 
 	var rSpace *space.Space
 	err = application.Transactional(c.db, func(appl application.Application) error {
@@ -249,7 +252,7 @@ func (c *SpaceController) Show(ctx *app.ShowSpaceContext) error {
 		if err != nil {
 			return err
 		}
-		entityErr := ctx.ConditionalEntity(*s, c.config.GetCacheControlSpaces, func() error {
+		entityErr := ctx.ConditionalRequest(*s, c.config.GetCacheControlSpaces, func() error {
 			spaceData, err := ConvertSpaceFromModel(ctx.Context, c.db, ctx.RequestData, *s)
 			if err != nil {
 				return err

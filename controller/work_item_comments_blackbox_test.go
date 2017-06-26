@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"golang.org/x/net/context"
+	"context"
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
@@ -231,7 +231,7 @@ func (rest *TestCommentREST) TestListCommentsByParentWorkItemNotModifiedUsingIfN
 	svc, ctrl := rest.UnSecuredController()
 	offset := "0"
 	limit := 3
-	ifNoneMatch := app.GenerateEntitiesTag([]app.ConditionalResponseEntity{
+	ifNoneMatch := app.GenerateEntitiesTag([]app.ConditionalRequestEntity{
 		comments[2],
 		comments[1],
 		comments[0],

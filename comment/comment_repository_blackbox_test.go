@@ -4,10 +4,11 @@ import (
 	"testing"
 	"time"
 
-	"golang.org/x/net/context"
+	"context"
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/comment"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/migration"
@@ -221,4 +222,29 @@ func (s *TestCommentRepository) TestLoadComment() {
 	require.Nil(s.T(), err)
 	assert.Equal(s.T(), comment.ID, loadedComment.ID)
 	assert.Equal(s.T(), comment.Body, loadedComment.Body)
+}
+
+func (s *TestCommentRepository) TestExistsComment() {
+	t := s.T()
+	resource.Require(t, resource.Database)
+
+	t.Run("comment exists", func(t *testing.T) {
+		// given
+		comment := newComment("C", "Test C", rendering.SystemMarkupMarkdown)
+		s.createComment(comment, s.testIdentity.ID)
+		// when
+		exists, err := s.repo.Exists(s.ctx, comment.ID.String())
+		// then
+		require.Nil(t, err)
+		assert.True(t, exists)
+	})
+
+	t.Run("comment doesn't exist", func(t *testing.T) {
+		// when
+		exists, err := s.repo.Exists(s.ctx, uuid.NewV4().String())
+		// then
+		require.IsType(t, errors.NotFoundError{}, err)
+		assert.False(t, exists)
+	})
+
 }
