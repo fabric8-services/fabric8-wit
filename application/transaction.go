@@ -8,7 +8,11 @@ import (
 	"github.com/pkg/errors"
 )
 
-const databaseTransactionTimeout = 6 * time.Minute
+var databaseTransactionTimeout = 5 * time.Minute
+
+func SetDatabaseTransactionTimeout(t time.Duration) {
+	databaseTransactionTimeout = t
+}
 
 // Transactional executes the given function in a transaction. If todo returns an error, the transaction is rolled back
 func Transactional(db DB, todo func(f Application) error) error {

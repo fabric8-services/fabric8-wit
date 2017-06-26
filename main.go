@@ -15,6 +15,7 @@ import (
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/auth"
 	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/controller"
@@ -108,6 +109,9 @@ func main() {
 		log.Logger().Infof("Configured connection pool max open %v", configuration.GetPostgresConnectionMaxOpen())
 		db.DB().SetMaxOpenConns(configuration.GetPostgresConnectionMaxOpen())
 	}
+
+	// Set the database transaction timeout
+	application.SetDatabaseTransactionTimeout(configuration.GetPostgresTransactionTimeout())
 
 	// Migrate the schema
 	err = migration.Migrate(db.DB(), configuration.GetPostgresDatabase())
