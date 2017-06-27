@@ -87,7 +87,6 @@ type Repository interface {
 	LoadCategory(ctx context.Context, id uuid.UUID) (*Category, error)
 	List(ctx context.Context) ([]*Category, error)
 	AssociateWIT(ctx context.Context, relationship *WorkItemTypeCategoryRelationship) error
-	LoadWorkItemTypeCategoryRelationship(ctx context.Context, workitemtypeID uuid.UUID, categoryID uuid.UUID) (*WorkItemTypeCategoryRelationship, error)
 	LoadAllRelationshipsOfCategory(ctx context.Context, categoryID uuid.UUID) ([]*WorkItemTypeCategoryRelationship, error)
 	Save(ctx context.Context, category *Category) (*Category, error)
 }
@@ -200,36 +199,6 @@ func (m *GormRepository) LoadCategory(ctx context.Context, id uuid.UUID) (*Categ
 		return nil, errors.NewInternalError(errs.Wrap(db.Error, "unable to load category"))
 	}
 	return &res, nil
-}
-
-// LoadWorkItemTypeCategoryRelationship loads all the relationships of a category. This is required for testing.
-func (m *GormRepository) LoadWorkItemTypeCategoryRelationship(ctx context.Context, workitemtypeID uuid.UUID, categoryID uuid.UUID) (*WorkItemTypeCategoryRelationship, error) {
-	// Check if category is present
-	_, err := m.LoadCategory(ctx, categoryID)
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"category_id": categoryID,
-		}, "category not found")
-		return nil, errs.Wrap(err, fmt.Sprintf("failed to load category with id %s", categoryID))
-	}
-	relationship := WorkItemTypeCategoryRelationship{}
-	db := m.db.Model(&relationship).Where("category_id=? AND work_item_type_id=?", categoryID, workitemtypeID).Find(&relationship)
-	if db.RecordNotFound() {
-		log.Error(ctx, map[string]interface{}{
-			"category_id": categoryID,
-			"wit_id":      workitemtypeID,
-		}, "workitemtype category relationship not found")
-		return nil, errors.NewNotFoundError("work item type category", categoryID.String())
-	}
-	if err := db.Error; err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"category_id": categoryID,
-			"wit_id":      workitemtypeID,
-			"err":         err,
-		}, "unable to load workitemtype category relationship")
-		return nil, errors.NewInternalError(errs.Wrap(db.Error, "unable to load workitemtype category relationship"))
-	}
-	return &relationship, nil
 }
 
 // Save updates a category in the database based on the ID by the given category object

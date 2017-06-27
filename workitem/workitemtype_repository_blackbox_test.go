@@ -1,13 +1,16 @@
 package workitem_test
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"testing"
 
 	"github.com/almighty/almighty-core/category"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/workitem"
@@ -15,6 +18,7 @@ import (
 	"context"
 
 	"github.com/goadesign/goa"
+	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -151,6 +155,36 @@ func (s *workItemTypeRepoBlackBoxTest) TestDoNotCreateWITWithMissingBaseType() {
 	require.Nil(s.T(), extendedWit)
 }
 
+// LoadWorkItemTypeCategoryRelationship loads all the relationships of a category. This is required for testing.
+func (s *workItemTypeRepoBlackBoxTest) loadWorkItemTypeCategoryRelationship(ctx context.Context, workitemtypeID uuid.UUID, categoryID uuid.UUID) (*category.WorkItemTypeCategoryRelationship, error) {
+	// Check if category is present
+	_, err := s.categoryRepo.LoadCategory(ctx, categoryID)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"category_id": categoryID,
+		}, "category not found")
+		return nil, errs.Wrap(err, fmt.Sprintf("failed to load category with id %s", categoryID))
+	}
+	relationship := category.WorkItemTypeCategoryRelationship{}
+	db := s.DB.Model(&relationship).Where("category_id=? AND work_item_type_id=?", categoryID, workitemtypeID).Find(&relationship)
+	if db.RecordNotFound() {
+		log.Error(ctx, map[string]interface{}{
+			"category_id": categoryID,
+			"wit_id":      workitemtypeID,
+		}, "workitemtype category relationship not found")
+		return nil, errors.NewNotFoundError("work item type category", categoryID.String())
+	}
+	if err := db.Error; err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"category_id": categoryID,
+			"wit_id":      workitemtypeID,
+			"err":         err,
+		}, "unable to load workitemtype category relationship")
+		return nil, errors.NewInternalError(errs.Wrap(db.Error, "unable to load workitemtype category relationship"))
+	}
+	return &relationship, nil
+}
+
 //----------------------------------------------------------------------------------------------
 // Tests on WorkItemType and Category Relationship
 //----------------------------------------------------------------------------------------------
@@ -172,7 +206,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestSingleWorkItemTypeToSingleCategoryRel
 
 	err = s.repo.AssociateWithCategories(s.ctx, wit.ID, categoryID) // associate workitemtype with category
 	require.Nil(s.T(), err)
-	relationship, err := s.categoryRepo.LoadWorkItemTypeCategoryRelationship(s.ctx, wit.ID, *categoryID[0])
+	relationship, err := s.loadWorkItemTypeCategoryRelationship(s.ctx, wit.ID, *categoryID[0])
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), relationship)
 	require.Equal(s.T(), wit.ID, relationship.WorkItemTypeID)
@@ -197,13 +231,13 @@ func (s *workItemTypeRepoBlackBoxTest) TestSingleWorkItemTypeToMultipleCategoryR
 	err = s.repo.AssociateWithCategories(s.ctx, wit.ID, categoryID) // associate workitemtype with categories
 	require.Nil(s.T(), err)
 
-	relationship, err := s.categoryRepo.LoadWorkItemTypeCategoryRelationship(s.ctx, wit.ID, *categoryID[0])
+	relationship, err := s.loadWorkItemTypeCategoryRelationship(s.ctx, wit.ID, *categoryID[0])
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), relationship)
 	require.Equal(s.T(), wit.ID, relationship.WorkItemTypeID)
 	require.Equal(s.T(), *categoryID[0], relationship.CategoryID)
 
-	relationship, err = s.categoryRepo.LoadWorkItemTypeCategoryRelationship(s.ctx, wit.ID, *categoryID[1])
+	relationship, err = s.loadWorkItemTypeCategoryRelationship(s.ctx, wit.ID, *categoryID[1])
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), relationship)
 	require.Equal(s.T(), wit.ID, relationship.WorkItemTypeID)
@@ -228,7 +262,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestMultipleWorkItemTypeToSingleCategoryR
 	err = s.repo.AssociateWithCategories(s.ctx, wit1.ID, categoryID) // associate workitemtype with category
 	require.Nil(s.T(), err)
 
-	relationship, err := s.categoryRepo.LoadWorkItemTypeCategoryRelationship(s.ctx, wit1.ID, *categoryID[0])
+	relationship, err := s.loadWorkItemTypeCategoryRelationship(s.ctx, wit1.ID, *categoryID[0])
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), relationship)
 	require.Equal(s.T(), wit1.ID, relationship.WorkItemTypeID)
@@ -246,7 +280,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestMultipleWorkItemTypeToSingleCategoryR
 
 	err = s.repo.AssociateWithCategories(s.ctx, wit2.ID, categoryID) // associate workitemtype with category
 	require.Nil(s.T(), err)
-	relationship, err = s.categoryRepo.LoadWorkItemTypeCategoryRelationship(s.ctx, wit2.ID, *categoryID[0])
+	relationship, err = s.loadWorkItemTypeCategoryRelationship(s.ctx, wit2.ID, *categoryID[0])
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), relationship)
 	require.Equal(s.T(), wit2.ID, relationship.WorkItemTypeID)
@@ -270,13 +304,13 @@ func (s *workItemTypeRepoBlackBoxTest) TestMultipleWorkItemTypeToMultipleCategor
 
 	err = s.repo.AssociateWithCategories(s.ctx, wit1.ID, categoryID) // associate workitemtype with categories
 	require.Nil(s.T(), err)
-	relationship, err := s.categoryRepo.LoadWorkItemTypeCategoryRelationship(s.ctx, wit1.ID, *categoryID[0])
+	relationship, err := s.loadWorkItemTypeCategoryRelationship(s.ctx, wit1.ID, *categoryID[0])
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), relationship)
 	require.Equal(s.T(), wit1.ID, relationship.WorkItemTypeID)
 	require.Equal(s.T(), *categoryID[0], relationship.CategoryID)
 
-	relationship, err = s.categoryRepo.LoadWorkItemTypeCategoryRelationship(s.ctx, wit1.ID, *categoryID[1])
+	relationship, err = s.loadWorkItemTypeCategoryRelationship(s.ctx, wit1.ID, *categoryID[1])
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), relationship)
 	require.Equal(s.T(), wit1.ID, relationship.WorkItemTypeID)
@@ -294,13 +328,13 @@ func (s *workItemTypeRepoBlackBoxTest) TestMultipleWorkItemTypeToMultipleCategor
 
 	err = s.repo.AssociateWithCategories(s.ctx, wit2.ID, categoryID) // associate workitemtype with categories
 	require.Nil(s.T(), err)
-	relationship, err = s.categoryRepo.LoadWorkItemTypeCategoryRelationship(s.ctx, wit2.ID, *categoryID[0])
+	relationship, err = s.loadWorkItemTypeCategoryRelationship(s.ctx, wit2.ID, *categoryID[0])
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), relationship)
 	require.Equal(s.T(), wit2.ID, relationship.WorkItemTypeID)
 	require.Equal(s.T(), *categoryID[0], relationship.CategoryID)
 
-	relationship, err = s.categoryRepo.LoadWorkItemTypeCategoryRelationship(s.ctx, wit2.ID, *categoryID[1])
+	relationship, err = s.loadWorkItemTypeCategoryRelationship(s.ctx, wit2.ID, *categoryID[1])
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), relationship)
 	require.Equal(s.T(), wit2.ID, relationship.WorkItemTypeID)
