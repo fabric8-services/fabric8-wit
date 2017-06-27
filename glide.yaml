@@ -49,7 +49,7 @@ import:
 - package: github.com/mattn/go-colorable
 - package: github.com/pilu/config
 - package: github.com/jinzhu/gorm
-  version: 9acaa33324bbcc78239a1c913d4f1292c12177b9
+  version: c1b9cf186e4bcd8e5d566ef43f2ae2dfe22dc34e
 - package: github.com/mattn/go-isatty
   version: ^0.0.1
 - package: github.com/axw/gocov
