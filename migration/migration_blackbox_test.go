@@ -13,6 +13,8 @@ import (
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/resource"
 
+	"time"
+
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 	errs "github.com/pkg/errors"
@@ -117,6 +119,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration57", testMigration57)
 	t.Run("TestMigration60", testMigration60)
 	t.Run("TestMigration61", testMigration61)
+	t.Run("TestMigration63", testMigration63)
 
 	// Perform the migration
 	if err := migration.Migrate(sqlDB, databaseName); err != nil {
@@ -333,6 +336,46 @@ func testMigration61(t *testing.T) {
 		assert.True(t, count == 1)
 	}
 
+}
+
+func testMigration63(t *testing.T) {
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+19)], (initialMigratedVersion + 19))
+	assert.Nil(t, runSQLscript(sqlDB, "063-workitem-related-changes.sql"))
+	var createdAt time.Time
+	var deletedAt time.Time
+	var relationshipsChangeddAt time.Time
+
+	// comments
+	// work item 62001 was commented
+	row := sqlDB.QueryRow("SELECT wi.relationships_changed_at, c.created_at FROM work_items wi left join comments c on c.parent_id::bigint = wi.id where wi.id = 62001")
+	err := row.Scan(&relationshipsChangeddAt, &createdAt)
+	require.Nil(t, err)
+	assert.Equal(t, relationshipsChangeddAt, createdAt)
+	// work item 62003 was commented, then the comment was (soft) deleted
+	row = sqlDB.QueryRow("SELECT wi.relationships_changed_at, c.deleted_at FROM work_items wi left join comments c on c.parent_id::bigint = wi.id where wi.id = 62003")
+	err = row.Scan(&relationshipsChangeddAt, &deletedAt)
+	require.Nil(t, err)
+	assert.Equal(t, relationshipsChangeddAt, deletedAt)
+
+	// links
+	// work items 62004 and 62005 were linked together
+	row = sqlDB.QueryRow("SELECT wi.relationships_changed_at, wil.created_at FROM work_items wi left join work_item_links wil on wil.source_id = wi.id where wi.id = 62004")
+	err = row.Scan(&relationshipsChangeddAt, &createdAt)
+	require.Nil(t, err)
+	assert.Equal(t, relationshipsChangeddAt, createdAt)
+	row = sqlDB.QueryRow("SELECT wi.relationships_changed_at, wil.created_at FROM work_items wi left join work_item_links wil on wil.target_id = wi.id where wi.id = 62005")
+	err = row.Scan(&relationshipsChangeddAt, &createdAt)
+	require.Nil(t, err)
+	assert.Equal(t, relationshipsChangeddAt, createdAt)
+	// work items 62008 and 62009 were linked together, but then the link was deleted
+	row = sqlDB.QueryRow("SELECT wi.relationships_changed_at, wil.deleted_at FROM work_items wi left join work_item_links wil on wil.source_id = wi.id where wi.id = 62008")
+	err = row.Scan(&relationshipsChangeddAt, &deletedAt)
+	require.Nil(t, err)
+	assert.Equal(t, relationshipsChangeddAt, deletedAt)
+	row = sqlDB.QueryRow("SELECT wi.relationships_changed_at, wil.deleted_at FROM work_items wi left join work_item_links wil on wil.target_id = wi.id where wi.id = 62009")
+	err = row.Scan(&relationshipsChangeddAt, &deletedAt)
+	require.Nil(t, err)
+	assert.Equal(t, relationshipsChangeddAt, deletedAt)
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and

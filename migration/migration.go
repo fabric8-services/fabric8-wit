@@ -16,6 +16,7 @@ import (
 	"github.com/almighty/almighty-core/workitem/link"
 
 	"context"
+
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/client"
 	"github.com/jinzhu/gorm"
@@ -308,6 +309,9 @@ func GetMigrations() Migrations {
 
 	// Version 62
 	m = append(m, steps{ExecuteSQLFile("062-link-system-preparation.sql")})
+
+	// Version 63
+	m = append(m, steps{ExecuteSQLFile("063-workitem-related-changes.sql")})
 
 	// Version N
 	//
