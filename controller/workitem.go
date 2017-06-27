@@ -116,14 +116,11 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 		err := application.Transactional(c.db, func(tx application.Application) error {
 			// Load all workitemtypes related to the specific category
 			relationships, err = tx.Categories().LoadAllRelationshipsOfCategory(ctx, *ctx.FilterCategory)
-			if err != nil {
-				log.Error(ctx, map[string]interface{}{
-					"category_id": *ctx.FilterCategory,
-					"err":         err,
-				}, "failed to list work items in category")
-				return err
-			}
-			return nil
+			log.Error(ctx, map[string]interface{}{
+				"category_id": *ctx.FilterCategory,
+				"err":         err,
+			}, "failed to list work items in category")
+			return err
 		})
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("failed to list work items in category %v", *ctx.FilterCategory)))
