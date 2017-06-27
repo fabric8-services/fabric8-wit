@@ -659,34 +659,21 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 	return nil
 }
 
-// createCategory creates category in db
-func createOrUpdateSingleCategory(ctx context.Context, categoryRepo category.Repository, categoryID *uuid.UUID, categoryName string) error {
-	category := category.Category{
-		ID:   *categoryID,
-		Name: categoryName,
-	}
-	_, err := categoryRepo.Create(ctx, &category)
-	if err != nil {
-		log.Info(ctx, map[string]interface{}{
-			"category_id": categoryID,
-			"err":         err,
-		}, "unable to create/update category")
-		return errs.WithStack(err)
-	}
-	return nil
-}
-
 func createOrUpdateCategories(ctx context.Context, db *gorm.DB, categoryRepo category.Repository, categoryID *uuid.UUID, categoryName string) error {
 	_, err := categoryRepo.LoadCategory(ctx, *categoryID)
 	cause := errs.Cause(err)
 	switch cause.(type) {
 	case errors.NotFoundError:
-		err = createOrUpdateSingleCategory(ctx, categoryRepo, categoryID, categoryName)
+		category := category.Category{
+			ID:   *categoryID,
+			Name: categoryName,
+		}
+		_, err := categoryRepo.Create(ctx, &category)
 		if err != nil {
 			log.Info(ctx, map[string]interface{}{
 				"category_id": categoryID,
 				"err":         err,
-			}, "unable to create/update category")
+			}, "unable to create category")
 			return errs.WithStack(err)
 		}
 	case nil:
@@ -703,8 +690,8 @@ func createOrUpdateCategories(ctx context.Context, db *gorm.DB, categoryRepo cat
 			log.Info(ctx, map[string]interface{}{
 				"category_id": categoryID,
 				"err":         err,
-			}, "unable to create/update category")
-			return errors.NewInternalError(ctx, errs.Wrap(err, "unable to create/update category"))
+			}, "unable to update category")
+			return errors.NewInternalError(ctx, errs.Wrap(err, "unable to update category"))
 		}
 	}
 	return nil
