@@ -705,26 +705,11 @@ func (r *GormWorkItemRepository) Fetch(ctx context.Context, spaceID uuid.UUID, c
 func (r *GormWorkItemRepository) getAllIterationWithCounts(ctx context.Context, db *gorm.DB, spaceID uuid.UUID) (map[string]WICountsPerIteration, error) {
 	var allIterations []uuid.UUID
 	db.Pluck("id", &allIterations)
-	iterationTable := iteration.Iteration{}
-	iterationTableName := iterationTable.TableName()
-	iterationWithWICount := fmt.Sprintf(`
-	SELECT count(*) AS Total,
-		count(CASE fields->>'system.state'
-					WHEN 'closed' THEN '1'
-					ELSE NULL
-				END) AS Closed,
-		fields->>'system.iteration' AS iterationID
-	FROM %s wi
-	WHERE fields->>'system.iteration' IN
-		(SELECT id::text
-		FROM %s
-		WHERE space_id=?)
-	AND wi.deleted_at IS NULL
-	GROUP BY fields->>'system.iteration'`,
-		workitemTableName,
-		iterationTableName)
-	db = r.db.Raw(iterationWithWICount, spaceID.String())
 	var res []WICountsPerIteration
+	db = r.db.Table(workitemTableName).Select(`iterations.id as IterationId, count(*) as Total,
+			count( case fields->>'system.state' when 'closed' then '1' else null end ) as Closed`).Joins(`left join iterations
+			on fields@> concat('{"system.iteration": "', iterations.id, '"}')::jsonb`).Where(`iterations.space_id = ?
+			and work_items.deleted_at IS NULL`, spaceID).Group(`IterationId`).Scan(&res)
 	db.Scan(&res)
 	if db.Error != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -874,19 +859,20 @@ func (r *GormWorkItemRepository) GetCountsForIteration(ctx context.Context, itr 
 	// build where clause usig above ID list
 	idsToLookFor := []string{}
 	for _, x := range childIDs {
-		idsToLookFor = append(idsToLookFor, x.String())
+		partialClause := fmt.Sprintf(`fields @> '{"system.iteration":"%s"}'`, x.String())
+		idsToLookFor = append(idsToLookFor, partialClause)
 	}
-	whereClause := strings.Join(idsToLookFor, ",")
+	whereClause := strings.Join(idsToLookFor, " OR ")
 	query := fmt.Sprintf(`SELECT count(*) AS Total,
 						count(CASE fields->>'system.state'
 									WHEN 'closed' THEN '1'
 									ELSE NULL
 								END) AS Closed
 					FROM %s wi
-					WHERE fields->>'system.iteration' IN (?)
+					WHERE %s
 					AND wi.deleted_at IS NULL`,
-		workitemTableName)
-	db = r.db.Raw(query, whereClause)
+		workitemTableName, whereClause)
+	db = r.db.Raw(query)
 	db.Scan(&res)
 	if db.Error != nil {
 		log.Error(ctx, map[string]interface{}{
