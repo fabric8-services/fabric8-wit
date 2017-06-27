@@ -217,7 +217,7 @@ func main() {
 	commentsCtrl := controller.NewCommentsController(service, appDB, configuration)
 	app.MountCommentsController(service, commentsCtrl)
 
-	if !configuration.GetFeatureWorkitemRemote() {
+	if configuration.GetFeatureWorkitemRemote() {
 		// Scheduler to fetch and import remote tracker items
 		scheduler = remoteworkitem.NewScheduler(db)
 		defer scheduler.Stop()
