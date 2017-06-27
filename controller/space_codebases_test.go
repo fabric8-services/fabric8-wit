@@ -66,7 +66,8 @@ func (rest *TestSpaceCodebaseREST) UnSecuredController() (*goa.Service, *SpaceCo
 
 func (rest *TestSpaceCodebaseREST) TestCreateCodebaseCreated() {
 	s := rest.createSpace(testsupport.TestIdentity.ID)
-	ci := createSpaceCodebase("https://github.com/fabric8-services/fabric8-wit.git", "stackId")
+	stackId := "stackId"
+	ci := createSpaceCodebase("https://github.com/fabric8-services/fabric8-wit.git", &stackId)
 
 	svc, ctrl := rest.SecuredController()
 	_, c := test.CreateSpaceCodebasesCreated(rest.T(), svc.Context, svc, ctrl, s.ID, ci)
@@ -77,9 +78,23 @@ func (rest *TestSpaceCodebaseREST) TestCreateCodebaseCreated() {
 	assert.Equal(rest.T(), "stackId", *c.Data.Attributes.StackID)
 }
 
+func (rest *TestSpaceCodebaseREST) TestCreateCodebaseWithNoStackIdCreated() {
+	s := rest.createSpace(testsupport.TestIdentity.ID)
+	ci := createSpaceCodebase("https://github.com/fabric8-services/fabric8-wit.git", nil)
+
+	svc, ctrl := rest.SecuredController()
+	_, c := test.CreateSpaceCodebasesCreated(rest.T(), svc.Context, svc, ctrl, s.ID, ci)
+	require.NotNil(rest.T(), c.Data.ID)
+	require.NotNil(rest.T(), c.Data.Relationships.Space)
+	assert.Equal(rest.T(), s.ID.String(), *c.Data.Relationships.Space.Data.ID)
+	assert.Equal(rest.T(), "https://github.com/fabric8-services/fabric8-wit.git", *c.Data.Attributes.URL)
+	assert.Nil(rest.T(), c.Data.Attributes.StackID)
+}
+
 func (rest *TestSpaceCodebaseREST) TestCreateCodebaseForbidden() {
 	s := rest.createSpace(testsupport.TestIdentity2.ID)
-	ci := createSpaceCodebase("https://github.com/fabric8-services/fabric8-wit.git", "stackId")
+	stackId := "stackId"
+	ci := createSpaceCodebase("https://github.com/fabric8-services/fabric8-wit.git", &stackId)
 
 	svc, ctrl := rest.SecuredController()
 	// Codebase creation is forbidden if the user is not the space owner
@@ -104,7 +119,8 @@ func (rest *TestSpaceCodebaseREST) TestListCodebase() {
 
 	for i := 0; i < 3; i++ {
 		repoURL := strings.Replace(repo, "core", "core"+strconv.Itoa(i), -1)
-		spaceCodebaseContext := createSpaceCodebase(repoURL, "stackId")
+		stackId := "stackId"
+		spaceCodebaseContext := createSpaceCodebase(repoURL, &stackId)
 		_, c := test.CreateSpaceCodebasesCreated(t, svc.Context, svc, ctrl, spaceId, spaceCodebaseContext)
 		require.NotNil(t, c.Data.ID)
 		require.NotNil(t, c.Data.Relationships.Space)
@@ -112,7 +128,8 @@ func (rest *TestSpaceCodebaseREST) TestListCodebase() {
 	}
 
 	otherRepo := "https://github.com/fabric8io/fabric8-planner.git"
-	anotherSpaceCodebaseContext := createSpaceCodebase(otherRepo, "stackId")
+	stackId := "stackId"
+	anotherSpaceCodebaseContext := createSpaceCodebase(otherRepo, &stackId)
 	_, createdCodebase := test.CreateSpaceCodebasesCreated(t, svc.Context, svc, ctrl, anotherSpaceId, anotherSpaceCodebaseContext)
 	require.NotNil(t, createdCodebase)
 
@@ -135,8 +152,9 @@ func (rest *TestSpaceCodebaseREST) TestListCodebase() {
 func (rest *TestSpaceCodebaseREST) TestCreateCodebaseMissingSpace() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
+	stackId := "stackId"
 
-	ci := createSpaceCodebase("https://github.com/fabric8io/fabric8-planner.git", "stackId")
+	ci := createSpaceCodebase("https://github.com/fabric8io/fabric8-planner.git", &stackId)
 
 	svc, ctrl := rest.SecuredController()
 	test.CreateSpaceCodebasesNotFound(t, svc.Context, svc, ctrl, uuid.NewV4(), ci)
@@ -145,8 +163,9 @@ func (rest *TestSpaceCodebaseREST) TestCreateCodebaseMissingSpace() {
 func (rest *TestSpaceCodebaseREST) TestFailCreateCodebaseNotAuthorized() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
+	stackId := "stackId"
 
-	ci := createSpaceCodebase("https://github.com/fabric8io/fabric8-planner.git", "stackId")
+	ci := createSpaceCodebase("https://github.com/fabric8io/fabric8-planner.git", &stackId)
 
 	svc, ctrl := rest.UnSecuredController()
 	test.CreateSpaceCodebasesUnauthorized(t, svc.Context, svc, ctrl, uuid.NewV4(), ci)
@@ -172,7 +191,7 @@ func searchInCodebaseSlice(searchKey uuid.UUID, codebaseList *app.CodebaseList) 
 	return nil
 }
 
-func createSpaceCodebase(url string, stackId string) *app.CreateSpaceCodebasesPayload {
+func createSpaceCodebase(url string, stackId *string) *app.CreateSpaceCodebasesPayload {
 	repoType := "git"
 	return &app.CreateSpaceCodebasesPayload{
 		Data: &app.Codebase{
@@ -180,7 +199,7 @@ func createSpaceCodebase(url string, stackId string) *app.CreateSpaceCodebasesPa
 			Attributes: &app.CodebaseAttributes{
 				Type:    &repoType,
 				URL:     &url,
-				StackID: &stackId,
+				StackID: stackId,
 			},
 		},
 	}
