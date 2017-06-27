@@ -29,9 +29,6 @@ type WorkItemLinkTypeControllerConfiguration interface {
 
 // NewWorkItemLinkTypeController creates a work-item-link-type controller.
 func NewWorkItemLinkTypeController(service *goa.Service, db application.DB, config WorkItemLinkTypeControllerConfiguration) *WorkItemLinkTypeController {
-	if db == nil {
-		panic("db must not be nil")
-	}
 	return &WorkItemLinkTypeController{
 		Controller: service.NewController("WorkItemLinkTypeController"),
 		db:         db,

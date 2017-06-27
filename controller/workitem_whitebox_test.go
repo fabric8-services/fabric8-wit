@@ -25,14 +25,6 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-func TestNewWorkitemController(t *testing.T) {
-	t.Parallel()
-	resource.Require(t, resource.UnitTest)
-	assert.Panics(t, func() {
-		NewWorkitemController(goa.New("Test service"), nil, nil)
-	})
-}
-
 func TestParseInts(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
