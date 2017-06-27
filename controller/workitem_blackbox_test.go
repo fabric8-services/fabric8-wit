@@ -17,7 +17,6 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/area"
-	"github.com/almighty/almighty-core/category"
 	"github.com/almighty/almighty-core/codebase"
 	"github.com/almighty/almighty-core/configuration"
 	. "github.com/almighty/almighty-core/controller"
@@ -1366,74 +1365,6 @@ func (s *WorkItem2Suite) TestWI2ListByStateFilterOK() {
 	}
 }
 
-// This test creates 3 workitems of 3 different workitemtypes. Two workitemtypes belong to a category. After filter by category, the list should return only 2 workitems.
-func (s *WorkItem2Suite) TestWI2ListByCategoryFilter() {
-	cat := category.NewRepository(s.DB)
-
-	// create relationship between "ValueProposition" workitemtype and "planner.requirements" category
-	relationship := category.WorkItemTypeCategoryRelationship{
-		CategoryID:     category.PlannerRequirementsID,
-		WorkItemTypeID: workitem.SystemValueProposition,
-	}
-	err := cat.AssociateWIT(s.svc.Context, &relationship)
-	require.Nil(s.T(), err)
-
-	// create relationship between "Scenario" workitemtype and "planner.requirements" category
-	relationship = category.WorkItemTypeCategoryRelationship{
-		CategoryID:     category.PlannerRequirementsID,
-		WorkItemTypeID: workitem.SystemScenario,
-	}
-	err = cat.AssociateWIT(s.svc.Context, &relationship)
-	require.Nil(s.T(), err)
-
-	// Create 3 workitems
-	// First Workitem
-	c := minimumRequiredCreatePayload()
-	c.Data.Attributes[workitem.SystemTitle] = "Title1"
-	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemValueProposition)
-	_, wi1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
-	assert.NotNil(s.T(), wi1.Data)
-	require.NotNil(s.T(), wi1.Data.ID)
-	require.NotNil(s.T(), wi1.Data.Type)
-
-	// Second Workitem
-	c = minimumRequiredCreatePayload()
-	c.Data.Attributes[workitem.SystemTitle] = "Title2"
-	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemScenario)
-	_, wi2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
-	assert.NotNil(s.T(), wi2.Data)
-	require.NotNil(s.T(), wi2.Data.ID)
-	require.NotNil(s.T(), wi2.Data.Type)
-
-	// Third workitem
-	c = minimumRequiredCreatePayload()
-	c.Data.Attributes[workitem.SystemTitle] = "Title3"
-	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemPlannerItem)
-	_, wi3 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
-	assert.NotNil(s.T(), wi3.Data)
-	require.NotNil(s.T(), wi3.Data.ID)
-	require.NotNil(s.T(), wi3.Data.Type)
-
-	// List workitems - filter by category.
-	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace, nil, nil, nil, &category.PlannerRequirementsID, nil, nil, nil, nil, nil, nil, nil, nil)
-	require.NotNil(s.T(), list)
-	assert.Len(s.T(), list.Data, 2)
-	assert.Contains(s.T(), *list.Links.First, fmt.Sprintf("filter[category]=%s", category.PlannerRequirementsID))
-
-	for _, actualWI := range list.Data {
-		assert.NotNil(s.T(), actualWI.ID)
-
-		assert.Contains(s.T(), []string{*wi1.Data.ID, *wi2.Data.ID}, *actualWI.ID)
-		assert.Contains(s.T(), []uuid.UUID{workitem.SystemValueProposition, workitem.SystemScenario}, actualWI.Relationships.BaseType.Data.ID)
-
-		assert.NotContains(s.T(), []string{*wi3.Data.ID}, *actualWI.ID)
-		assert.NotContains(s.T(), []uuid.UUID{workitem.SystemPlannerItem}, actualWI.Relationships.BaseType.Data.ID)
-	}
-}
-
 // see https://github.com/almighty/almighty-core/issues/1268
 func (s *WorkItem2Suite) TestWI2ListByStateFilterNotModifiedUsingIfNoneMatchIfModifiedSinceHeaders() {
 	// given
@@ -1596,7 +1527,7 @@ func (s *WorkItem2Suite) TestWI2ListByAreaFilterNotModifiedUsingIfNoneMatchHeade
 	// given
 	spaceID, areaID, wi := s.setupAreaWorkItem(true)
 	// when
-	ifNoneMatch := app.GenerateEntityTag(convertWorkItemToConditionalResponseEntity(*wi))
+	ifNoneMatch := app.GenerateEntityTag(convertWorkItemToConditionalRequestEntity(*wi))
 	res := test.ListWorkitemNotModified(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil, nil, &ifNoneMatch)
 	// then
 	assertResponseHeaders(s.T(), res)
@@ -1758,7 +1689,7 @@ func (s *WorkItem2Suite) TestWI2ShowNotModifiedUsingIfNoneMatchHeader() {
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 	_, createdWI := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 	// when
-	ifNoneMatch := app.GenerateEntityTag(convertWorkItemToConditionalResponseEntity(*createdWI))
+	ifNoneMatch := app.GenerateEntityTag(convertWorkItemToConditionalRequestEntity(*createdWI))
 	res := test.ShowWorkitemNotModified(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWI.Data.Relationships.Space.Data.ID, *createdWI.Data.ID, nil, &ifNoneMatch)
 	// then
 	assertResponseHeaders(s.T(), res)
@@ -1832,7 +1763,7 @@ func (s *WorkItem2Suite) xTestWI2DeleteLinksOnWIDeletionOK() {
 	require.NotNil(s.T(), wi2)
 
 	// Create link category
-	linkCatPayload := CreateWorkItemLinkCategory("test-user")
+	linkCatPayload := newCreateWorkItemLinkCategoryPayload("test-user")
 	_, linkCat := test.CreateWorkItemLinkCategoryCreated(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, linkCatPayload)
 	require.NotNil(s.T(), linkCat)
 
@@ -1841,7 +1772,7 @@ func (s *WorkItem2Suite) xTestWI2DeleteLinksOnWIDeletionOK() {
 	_, space := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, spacePayload)
 
 	// Create work item link type payload
-	linkTypePayload := CreateWorkItemLinkType("MyLinkType", workitem.SystemBug, workitem.SystemBug, *linkCat.Data.ID, *space.Data.ID)
+	linkTypePayload := newCreateWorkItemLinkTypePayload("MyLinkType", workitem.SystemBug, workitem.SystemBug, *linkCat.Data.ID, *space.Data.ID)
 	_, linkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *space.Data.ID, linkTypePayload)
 	require.NotNil(s.T(), linkType)
 
@@ -1850,7 +1781,7 @@ func (s *WorkItem2Suite) xTestWI2DeleteLinksOnWIDeletionOK() {
 	require.Nil(s.T(), err)
 	id2, err := strconv.ParseUint(*wi2.Data.ID, 10, 64)
 	require.Nil(s.T(), err)
-	linkPayload := CreateWorkItemLink(id1, id2, *linkType.Data.ID)
+	linkPayload := newCreateWorkItemLinkPayload(id1, id2, *linkType.Data.ID)
 	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.linkCtrl, linkPayload)
 	require.NotNil(s.T(), workItemLink)
 
@@ -2594,7 +2525,7 @@ func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	test.ReorderWorkitemForbidden(s.T(), svcNotAuthrized.Context, svcNotAuthrized, ctrlNotAuthrize, *space.ID, &payload4)
 }
 
-func convertWorkItemToConditionalResponseEntity(appWI app.WorkItemSingle) app.ConditionalResponseEntity {
+func convertWorkItemToConditionalRequestEntity(appWI app.WorkItemSingle) app.ConditionalRequestEntity {
 	return workitem.WorkItem{
 		ID:      *appWI.Data.ID,
 		Version: appWI.Data.Attributes["version"].(int),
@@ -2602,49 +2533,4 @@ func convertWorkItemToConditionalResponseEntity(appWI app.WorkItemSingle) app.Co
 			workitem.SystemUpdatedAt: appWI.Data.Attributes[workitem.SystemUpdatedAt].(time.Time),
 		},
 	}
-}
-
-func (s *workItemChildSuite) TestWorkItemListFilterByNoParents() {
-	s.T().Run("without parentexists filter", func(t *testing.T) {
-		// given
-		var pe *bool
-		// when
-		_, result := test.ListWorkitemOK(t, nil, nil, s.workItemCtrl, s.userSpaceID, nil, nil, nil, nil, nil, pe, nil, nil, nil, nil, nil, nil)
-		// then
-		assert.Len(t, result.Data, 3)
-		assert.Nil(t, result.Links.Prev)
-		assert.Nil(t, result.Links.Next)
-		shouldNotContain := "filter[parentexists]"
-		assert.NotContains(t, *result.Links.First, shouldNotContain)
-		assert.NotContains(t, *result.Links.Last, shouldNotContain)
-	})
-
-	s.T().Run("with parentexists value set to false", func(t *testing.T) {
-		// given
-		pe := false
-		// when
-		_, result2 := test.ListWorkitemOK(t, nil, nil, s.workItemCtrl, s.userSpaceID, nil, nil, nil, nil, nil, &pe, nil, nil, nil, nil, nil, nil)
-		// then
-		assert.Len(t, result2.Data, 1)
-		assert.Nil(t, result2.Links.Prev)
-		assert.Nil(t, result2.Links.Next)
-		shouldContain := "filter[parentexists]=" + strconv.FormatBool(pe)
-		assert.Contains(t, *result2.Links.First, shouldContain)
-		assert.Contains(t, *result2.Links.Last, shouldContain)
-	})
-
-	s.T().Run("with parentexists value set to true", func(t *testing.T) {
-		// given
-		pe := true
-		// when
-		_, result2 := test.ListWorkitemOK(t, nil, nil, s.workItemCtrl, s.userSpaceID, nil, nil, nil, nil, nil, &pe, nil, nil, nil, nil, nil, nil)
-		// then
-		assert.Len(t, result2.Data, 3)
-		assert.Nil(t, result2.Links.Prev)
-		assert.Nil(t, result2.Links.Next)
-		shouldContain := "filter[parentexists]=" + strconv.FormatBool(pe)
-		assert.Contains(t, *result2.Links.First, shouldContain)
-		assert.Contains(t, *result2.Links.Last, shouldContain)
-	})
-
 }

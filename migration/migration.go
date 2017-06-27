@@ -309,6 +309,12 @@ func GetMigrations() Migrations {
 	m = append(m, steps{ExecuteSQLFile("061-replace-index-space-name.sql")})
 
 	// Version 62
+	m = append(m, steps{ExecuteSQLFile("062-link-system-preparation.sql")})
+
+	// Version 63
+	m = append(m, steps{ExecuteSQLFile("063-workitem-related-changes.sql")})
+
+	// Version 64
 	m = append(m, steps{ExecuteSQLFile("062-categories.sql")})
 	// Version N
 	//
@@ -698,7 +704,7 @@ func createOrUpdateCategories(ctx context.Context, db *gorm.DB, categoryRepo cat
 				"category_id": categoryID,
 				"err":         err,
 			}, "unable to create/update category")
-			return errors.NewInternalError(err)
+			return errors.NewInternalError(ctx, errs.Wrap(err, "unable to create/update category"))
 		}
 	}
 	return nil

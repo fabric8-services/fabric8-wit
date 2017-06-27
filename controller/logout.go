@@ -34,11 +34,11 @@ func (c *LogoutController) Logout(ctx *app.LogoutLogoutContext) error {
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
 		}, "Unable to get Keycloak logout endpoint URL")
-		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(errs.Wrap(err, "unable to get Keycloak logout endpoint URL")))
+		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.Wrap(err, "unable to get Keycloak logout endpoint URL")))
 	}
 	whitelist, err := c.configuration.GetValidRedirectURLs(ctx.RequestData)
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(err))
+		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
 	}
 
 	ctx.ResponseData.Header().Set("Cache-Control", "no-cache")

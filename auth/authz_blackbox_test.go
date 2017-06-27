@@ -311,7 +311,7 @@ func (s *TestAuthSuite) TestGetProtectedAPITokenOK() {
 func (s *TestAuthSuite) TestReadTokenOK() {
 	b := closer{bytes.NewBufferString("{\"access_token\":\"accToken\", \"expires_in\":3000000, \"refresh_expires_in\":2, \"refresh_token\":\"refToken\"}")}
 	response := http.Response{Body: b}
-	token, err := auth.ReadToken(&response)
+	token, err := auth.ReadToken(context.Background(), &response)
 	require.Nil(s.T(), err)
 	assert.Equal(s.T(), "accToken", *token.AccessToken)
 	assert.Equal(s.T(), int64(3000000), *token.ExpiresIn)
@@ -524,7 +524,7 @@ func getProtectedAPITokenOK(t *testing.T) string {
 
 	endpoint, err := configuration.GetKeycloakEndpointToken(r)
 	require.Nil(t, err)
-	token, err := auth.GetProtectedAPIToken(endpoint, configuration.GetKeycloakClientID(), configuration.GetKeycloakSecret())
+	token, err := auth.GetProtectedAPIToken(context.Background(), endpoint, configuration.GetKeycloakClientID(), configuration.GetKeycloakSecret())
 	require.Nil(t, err)
 	return token
 }

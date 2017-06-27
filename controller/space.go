@@ -252,7 +252,7 @@ func (c *SpaceController) Show(ctx *app.ShowSpaceContext) error {
 		if err != nil {
 			return err
 		}
-		entityErr := ctx.ConditionalEntity(*s, c.config.GetCacheControlSpaces, func() error {
+		entityErr := ctx.ConditionalRequest(*s, c.config.GetCacheControlSpaces, func() error {
 			spaceData, err := ConvertSpaceFromModel(ctx.Context, c.db, ctx.RequestData, *s)
 			if err != nil {
 				return err

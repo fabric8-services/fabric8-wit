@@ -89,7 +89,7 @@ func (c *FilterController) List(ctx *app.ListFilterContext) error {
 		Data: arr,
 	}
 	// compute an ETag based on the type and query of each filter
-	filterEtagData := make([]app.ConditionalResponseEntity, len(result.Data))
+	filterEtagData := make([]app.ConditionalRequestEntity, len(result.Data))
 	for i, filter := range result.Data {
 		filterEtagData[i] = FilterEtagData{
 			Type:  filter.Attributes.Type,

@@ -1,6 +1,7 @@
 package workitem_test
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -12,10 +13,9 @@ import (
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/migration"
+	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/workitem"
-
-	"context"
 
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
@@ -89,6 +89,37 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWIT() {
 	require.NotNil(s.T(), field)
 	assert.Equal(s.T(), workitem.KindFloat, field.Type.GetKind())
 	assert.Equal(s.T(), true, field.Required)
+}
+
+func (s *workItemTypeRepoBlackBoxTest) TestExistsWIT() {
+	t := s.T()
+	resource.Require(t, resource.Database)
+
+	t.Run("wit exists", func(t *testing.T) {
+		t.Parallel()
+		// given
+		wit, err := s.repo.Create(s.ctx, space.SystemSpace, nil, nil, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{
+			"foo": {
+				Required: true,
+				Type:     &workitem.SimpleType{Kind: workitem.KindFloat},
+			},
+		})
+		require.Nil(s.T(), err)
+		require.NotNil(s.T(), wit)
+		require.NotNil(s.T(), wit.ID)
+
+		exists, err := s.repo.Exists(s.ctx, wit.ID.String())
+		require.Nil(s.T(), err)
+		require.True(s.T(), exists)
+	})
+
+	t.Run("wit doesn't exist", func(t *testing.T) {
+		t.Parallel()
+		exists, err := s.repo.Exists(s.ctx, uuid.NewV4().String())
+		require.False(t, exists)
+		require.IsType(t, errors.NotFoundError{}, err)
+	})
+
 }
 
 func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWITWithList() {
@@ -180,7 +211,7 @@ func (s *workItemTypeRepoBlackBoxTest) loadWorkItemTypeCategoryRelationship(ctx 
 			"wit_id":      workitemtypeID,
 			"err":         err,
 		}, "unable to load workitemtype category relationship")
-		return nil, errors.NewInternalError(errs.Wrap(db.Error, "unable to load workitemtype category relationship"))
+		return nil, errors.NewInternalError(ctx, errs.Wrap(db.Error, "unable to load workitemtype category relationship"))
 	}
 	return &relationship, nil
 }

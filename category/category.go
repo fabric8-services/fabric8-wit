@@ -109,7 +109,7 @@ func (m *GormRepository) List(ctx context.Context) ([]*Category, error) {
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
 		}, "unable to list categories")
-		return nil, errors.NewInternalError(errs.Wrap(err, "failed to list categories"))
+		return nil, errors.NewInternalError(ctx, errs.Wrap(err, "failed to list categories"))
 	}
 	return objs, nil
 }
@@ -126,7 +126,7 @@ func (m *GormRepository) AssociateWIT(ctx context.Context, relationship *WorkIte
 			"wit_id":      relationship.WorkItemTypeID,
 			"err":         db.Error.Error(),
 		}, "unable to create workitemtype category relationship")
-		return errors.NewInternalError(errs.Wrap(db.Error, "unable to create workitemtype category relationship"))
+		return errors.NewInternalError(ctx, errs.Wrap(db.Error, "unable to create workitemtype category relationship"))
 	}
 	return nil
 }
@@ -146,7 +146,7 @@ func (m *GormRepository) Create(ctx context.Context, category *Category) (*Categ
 			"category_id": category.ID,
 			"err":         db.Error.Error(),
 		}, "unable to create category")
-		return nil, errors.NewInternalError(errs.Wrap(db.Error, "unable to create category"))
+		return nil, errors.NewInternalError(ctx, errs.Wrap(db.Error, "unable to create category"))
 	}
 	log.Info(ctx, map[string]interface{}{
 		"category_id": category.ID,
@@ -175,7 +175,7 @@ func (m *GormRepository) LoadAllRelationshipsOfCategory(ctx context.Context, cat
 			"category_id": categoryID,
 			"err":         err,
 		}, "unable to list workitemtype category relationships")
-		return nil, errors.NewInternalError(errs.Wrap(db.Error, "unable to list workitemtype category relationships"))
+		return nil, errors.NewInternalError(ctx, errs.Wrap(db.Error, "unable to list workitemtype category relationships"))
 	}
 	return relationship, nil
 }
@@ -196,7 +196,7 @@ func (m *GormRepository) LoadCategory(ctx context.Context, id uuid.UUID) (*Categ
 			"category_id": id,
 			"err":         err,
 		}, "unable to load category", err.Error())
-		return nil, errors.NewInternalError(errs.Wrap(db.Error, "unable to load category"))
+		return nil, errors.NewInternalError(ctx, errs.Wrap(db.Error, "unable to load category"))
 	}
 	return &res, nil
 }
@@ -219,7 +219,7 @@ func (m *GormRepository) Save(ctx context.Context, category *Category) (*Categor
 			"category_id": category.ID,
 			"err":         tx.Error,
 		}, "unable to load category")
-		return nil, errors.NewInternalError(errs.Wrap(tx.Error, "unable to save category"))
+		return nil, errors.NewInternalError(ctx, errs.Wrap(tx.Error, "unable to save category"))
 	}
 
 	res.Name = category.Name
@@ -229,7 +229,7 @@ func (m *GormRepository) Save(ctx context.Context, category *Category) (*Categor
 			"category_id": category.ID,
 			"err":         err,
 		}, "unable to save category")
-		return nil, errors.NewInternalError(errs.Wrap(tx.Error, "unable to save category"))
+		return nil, errors.NewInternalError(ctx, errs.Wrap(tx.Error, "unable to save category"))
 	}
 	log.Info(ctx, map[string]interface{}{
 		"category_id": category.ID,
