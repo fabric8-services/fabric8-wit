@@ -157,34 +157,4 @@ var _ = a.Resource("workitemtype", func() {
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
-
-	a.Action("list-source-link-types", func() {
-		a.Routing(
-			a.GET("/:witID/source-link-types"),
-		)
-		a.Params(func() {
-			a.Param("witID", d.UUID, "ID of the work item type")
-		})
-		a.Description(`Retrieve work item link types where the given work item type can be used in the source of the link.`)
-		a.UseTrait("conditional")
-		a.Response(d.OK, workItemLinkTypeList)
-		a.Response(d.NotModified)
-		a.Response(d.NotFound, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-	})
-
-	a.Action("list-target-link-types", func() {
-		a.Routing(
-			a.GET("/:witID/target-link-types"),
-		)
-		a.Params(func() {
-			a.Param("witID", d.UUID, "ID of work item type")
-		})
-		a.Description(`Retrieve work item link types where the given work item type can be used in the target of the link.`)
-		a.UseTrait("conditional")
-		a.Response(d.OK, workItemLinkTypeList)
-		a.Response(d.NotModified)
-		a.Response(d.NotFound, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-	})
 })

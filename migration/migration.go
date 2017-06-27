@@ -313,6 +313,9 @@ func GetMigrations() Migrations {
 	// Version 63
 	m = append(m, steps{ExecuteSQLFile("063-workitem-related-changes.sql")})
 
+	// Version 64
+	m = append(m, steps{ExecuteSQLFile("064-remove-link-combinations.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -516,8 +519,6 @@ func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkIte
 		Topology:       link.TopologyNetwork,
 		ForwardName:    "blocks",
 		ReverseName:    "blocked by",
-		SourceTypeID:   workitem.SystemBug,
-		TargetTypeID:   workitem.SystemPlannerItem,
 		LinkCategoryID: systemCat.ID,
 		SpaceID:        space.SystemSpace,
 	}
@@ -532,8 +533,6 @@ func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkIte
 		Topology:       link.TopologyNetwork,
 		ForwardName:    "relates to",
 		ReverseName:    "is related to",
-		SourceTypeID:   workitem.SystemPlannerItem,
-		TargetTypeID:   workitem.SystemPlannerItem,
 		LinkCategoryID: systemCat.ID,
 		SpaceID:        space.SystemSpace,
 	}
@@ -548,8 +547,6 @@ func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkIte
 		Topology:       link.TopologyNetwork,
 		ForwardName:    "parent of",
 		ReverseName:    "child of",
-		SourceTypeID:   workitem.SystemPlannerItem,
-		TargetTypeID:   workitem.SystemPlannerItem,
 		LinkCategoryID: systemCat.ID,
 		SpaceID:        space.SystemSpace,
 	}
