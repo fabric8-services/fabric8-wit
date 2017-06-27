@@ -56,7 +56,7 @@ func (test *categoryRepoBlackBoxTest) TestCreateLoadValidCategory() {
 		require.NotNil(test.T(), result1.ID)
 		require.NotNil(test.T(), result1.Name)
 
-		result2, err := test.repo.LoadCategoryFromDB(test.ctx, result1.ID) // Load
+		result2, err := test.repo.LoadCategory(test.ctx, result1.ID) // Load
 		require.Nil(test.T(), err)
 		require.NotNil(test.T(), result2)
 		require.NotNil(test.T(), result2.ID)
@@ -87,7 +87,7 @@ func (test *categoryRepoBlackBoxTest) TestCreateLoadInvalidCategory() {
 		require.NotNil(test.T(), result2.ID)
 		require.NotNil(test.T(), result2.Name)
 
-		result3, err := test.repo.LoadCategoryFromDB(test.ctx, result2.ID) // Load
+		result3, err := test.repo.LoadCategory(test.ctx, result2.ID) // Load
 		require.Nil(test.T(), err)
 		require.NotNil(test.T(), result3)
 		require.NotNil(test.T(), result3.ID)
@@ -109,7 +109,7 @@ func (test *categoryRepoBlackBoxTest) TestCategoryNotFoundError() {
 
 		// loads a random category by ID which is not created and tests it should return NotFoundError.
 		randomID := uuid.FromStringOrNil("e42d0f80-9b1f-4715-b616-1fd931ce73cd")
-		result1, err := test.repo.LoadCategoryFromDB(test.ctx, randomID) // Load
+		result1, err := test.repo.LoadCategory(test.ctx, randomID) // Load
 		require.NotNil(test.T(), err)
 		require.Nil(test.T(), result1)
 		_, ok := errors.Cause(err).(errs.NotFoundError)
@@ -122,7 +122,7 @@ func (test *categoryRepoBlackBoxTest) TestCategoryNotFoundError() {
 		require.NotNil(test.T(), result2.Name)
 
 		// Loads the created category and tests that NotFound error is Nil
-		result3, err := test.repo.LoadCategoryFromDB(test.ctx, category1.ID) // Load
+		result3, err := test.repo.LoadCategory(test.ctx, category1.ID) // Load
 		require.Nil(test.T(), err)
 		require.NotNil(test.T(), result3)
 		require.NotNil(test.T(), result3.ID)

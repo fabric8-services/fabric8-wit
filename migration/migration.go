@@ -671,7 +671,7 @@ func createOrUpdateSingleCategory(ctx context.Context, categoryRepo category.Rep
 }
 
 func createOrUpdateCategories(ctx context.Context, db *gorm.DB, categoryRepo category.Repository, categoryID *uuid.UUID, categoryName string) error {
-	_, err := categoryRepo.LoadCategoryFromDB(ctx, *categoryID)
+	_, err := categoryRepo.LoadCategory(ctx, *categoryID)
 	cause := errs.Cause(err)
 	switch cause.(type) {
 	case errors.NotFoundError:

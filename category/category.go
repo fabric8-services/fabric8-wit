@@ -84,7 +84,7 @@ func (category Category) Equal(u convert.Equaler) bool {
 // Repository encapsulates storage and retrieval of categories
 type Repository interface {
 	Create(ctx context.Context, category *Category) (*Category, error)
-	LoadCategoryFromDB(ctx context.Context, id uuid.UUID) (*Category, error)
+	LoadCategory(ctx context.Context, id uuid.UUID) (*Category, error)
 	List(ctx context.Context) ([]*Category, error)
 	AssociateWIT(ctx context.Context, relationship *WorkItemTypeCategoryRelationship) error
 	LoadWorkItemTypeCategoryRelationship(ctx context.Context, workitemtypeID uuid.UUID, categoryID uuid.UUID) (*WorkItemTypeCategoryRelationship, error)
@@ -158,7 +158,7 @@ func (m *GormRepository) Create(ctx context.Context, category *Category) (*Categ
 // LoadAllRelationshipsOfCategory loads all the relationships of a category. This is required for workitemtype filtering.
 func (m *GormRepository) LoadAllRelationshipsOfCategory(ctx context.Context, categoryID uuid.UUID) ([]*WorkItemTypeCategoryRelationship, error) {
 	// Check if category is present
-	_, err := m.LoadCategoryFromDB(ctx, categoryID)
+	_, err := m.LoadCategory(ctx, categoryID)
 	if err != nil {
 		return nil, errs.Wrap(err, fmt.Sprintf("failed to load category with id %s", categoryID))
 	}
@@ -181,9 +181,9 @@ func (m *GormRepository) LoadAllRelationshipsOfCategory(ctx context.Context, cat
 	return relationship, nil
 }
 
-// LoadCategoryFromDB returns category for the given id
+// LoadCategory returns category for the given id
 // This is needed to check if a category is present in db or not.
-func (m *GormRepository) LoadCategoryFromDB(ctx context.Context, id uuid.UUID) (*Category, error) {
+func (m *GormRepository) LoadCategory(ctx context.Context, id uuid.UUID) (*Category, error) {
 	res := Category{}
 	db := m.db.Model(&res).Where("id=?", id).First(&res)
 	if db.RecordNotFound() {
@@ -205,7 +205,7 @@ func (m *GormRepository) LoadCategoryFromDB(ctx context.Context, id uuid.UUID) (
 // LoadWorkItemTypeCategoryRelationship loads all the relationships of a category. This is required for testing.
 func (m *GormRepository) LoadWorkItemTypeCategoryRelationship(ctx context.Context, workitemtypeID uuid.UUID, categoryID uuid.UUID) (*WorkItemTypeCategoryRelationship, error) {
 	// Check if category is present
-	_, err := m.LoadCategoryFromDB(ctx, categoryID)
+	_, err := m.LoadCategory(ctx, categoryID)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"category_id": categoryID,
