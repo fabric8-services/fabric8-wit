@@ -106,7 +106,8 @@ func (r *GormWorkItemLinkTypeRepository) List(ctx context.Context, spaceID uuid.
 
 	// We don't have any where clause or paging at the moment.
 	var modelLinkTypes []WorkItemLinkType
-	db := r.db.Where("space_id = ?", spaceID)
+	// TODO(kwk): Remove the system space from the query, once we have space templates
+	db := r.db.Where("space_id IN (?, ?)", spaceID, space.SystemSpace)
 	if err := db.Find(&modelLinkTypes).Error; err != nil {
 		return nil, errs.WithStack(err)
 	}
