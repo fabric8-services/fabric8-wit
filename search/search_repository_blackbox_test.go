@@ -15,6 +15,7 @@ import (
 	"github.com/almighty/almighty-core/workitem"
 
 	"context"
+
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -71,17 +72,17 @@ func (s *searchRepositoryBlackboxTest) TestRestrictByType() {
 	}
 
 	extended := workitem.SystemBug
-	base, err := s.witRepo.Create(ctx, space.SystemSpace, nil, &extended, "base", nil, "fa-bomb", map[string]workitem.FieldDefinition{}, nil)
+	base, err := s.witRepo.Create(ctx, space.SystemSpace, nil, &extended, "base", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), base)
 	require.NotNil(s.T(), base.ID)
 
-	sub1, err := s.witRepo.Create(ctx, space.SystemSpace, nil, &base.ID, "sub1", nil, "fa-bomb", map[string]workitem.FieldDefinition{}, nil)
+	sub1, err := s.witRepo.Create(ctx, space.SystemSpace, nil, &base.ID, "sub1", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), sub1)
 	require.NotNil(s.T(), sub1.ID)
 
-	sub2, err := s.witRepo.Create(ctx, space.SystemSpace, nil, &base.ID, "subtwo", nil, "fa-bomb", map[string]workitem.FieldDefinition{}, nil)
+	sub2, err := s.witRepo.Create(ctx, space.SystemSpace, nil, &base.ID, "subtwo", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), sub2)
 	require.NotNil(s.T(), sub2.ID)

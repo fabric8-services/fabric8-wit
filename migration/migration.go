@@ -817,7 +817,7 @@ func createOrUpdateType(ctx context.Context, typeID uuid.UUID, spaceID uuid.UUID
 	cause := errs.Cause(err)
 	switch cause.(type) {
 	case errors.NotFoundError:
-		_, err := witr.Create(ctx, spaceID, &typeID, extendedTypeID, name, &description, icon, fields, categories)
+		_, err := witr.Create(ctx, spaceID, &typeID, extendedTypeID, name, &description, icon, fields)
 		if err != nil {
 			return errs.WithStack(err)
 		}

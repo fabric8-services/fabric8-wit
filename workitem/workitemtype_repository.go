@@ -20,9 +20,10 @@ var cache = NewWorkItemTypeCache()
 // WorkItemTypeRepository encapsulates storage & retrieval of work item types
 type WorkItemTypeRepository interface {
 	Load(ctx context.Context, spaceID uuid.UUID, id uuid.UUID) (*WorkItemType, error)
-	Create(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]FieldDefinition, categories []*uuid.UUID) (*WorkItemType, error)
+	Create(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]FieldDefinition) (*WorkItemType, error)
 	List(ctx context.Context, spaceID uuid.UUID, start *int, length *int) ([]WorkItemType, error)
 	ListPlannerItems(ctx context.Context, spaceID uuid.UUID) ([]WorkItemType, error)
+	AssociateWithCategories(ctx context.Context, witID uuid.UUID, categories []*uuid.UUID) error
 }
 
 // NewWorkItemTypeRepository creates a wi type repository based on gorm
@@ -112,7 +113,7 @@ func ClearGlobalWorkItemTypeCache() {
 
 // Create creates a new work item in the repository
 // returns BadParameterError, ConversionError or InternalError
-func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]FieldDefinition, categories []*uuid.UUID) (*WorkItemType, error) {
+func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]FieldDefinition) (*WorkItemType, error) {
 	// Make sure this WIT has an ID
 
 	if id == nil {
@@ -161,27 +162,32 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UU
 		return nil, errors.NewInternalError(err)
 	}
 
+	log.Debug(ctx, map[string]interface{}{"wit_id": created.ID}, "Work item type created successfully!")
+	return &created, nil
+}
+
+// AssociateWithCategory associates a workitemtype with a category
+func (r *GormWorkItemTypeRepository) AssociateWithCategories(ctx context.Context, witID uuid.UUID, categories []*uuid.UUID) error {
 	// create relationship between workitemtype and category
 	for _, categoryID := range categories {
 		if categoryID != nil {
 			c := category.NewRepository(r.db)
 			WorkItemTypeCategoryRelationship := category.WorkItemTypeCategoryRelationship{
 				CategoryID:     *categoryID,
-				WorkItemTypeID: *id,
+				WorkItemTypeID: witID,
 			}
 			err := c.AssociateWIT(ctx, &WorkItemTypeCategoryRelationship)
 			if err != nil {
 				log.Info(ctx, map[string]interface{}{
 					"category_id":       *categoryID,
-					"work_item_type_id": *id,
+					"work_item_type_id": witID,
 					"err":               err,
 				}, "unable to create workitemtype category relationship")
-				return nil, errors.NewInternalError(err)
+				return errors.NewInternalError(err)
 			}
 		}
 	}
-	log.Debug(ctx, map[string]interface{}{"wit_id": created.ID}, "Work item type created successfully!")
-	return &created, nil
+	return nil
 }
 
 // List returns work item types that derives from PlannerItem type

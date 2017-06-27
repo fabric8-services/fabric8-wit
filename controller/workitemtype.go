@@ -74,13 +74,6 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
-		var category []*uuid.UUID
-		if ctx.Payload.Data.Relationships.Categories.Data != nil {
-			for _, cat := range ctx.Payload.Data.Relationships.Categories.Data {
-				catID := uuid.FromStringOrNil(*cat.ID)
-				category = append(category, &catID)
-			}
-		}
 		witTypeModel, err := appl.WorkItemTypes().Create(
 			ctx.Context,
 			*ctx.Payload.Data.Relationships.Space.Data.ID,
@@ -90,11 +83,23 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 			ctx.Payload.Data.Attributes.Description,
 			ctx.Payload.Data.Attributes.Icon,
 			modelFields,
-			category,
 		)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
+
+		var category []*uuid.UUID
+		if ctx.Payload.Data.Relationships.Categories.Data != nil {
+			for _, cat := range ctx.Payload.Data.Relationships.Categories.Data {
+				catID := uuid.FromStringOrNil(*cat.ID)
+				category = append(category, &catID)
+			}
+		}
+		err = appl.WorkItemTypes().AssociateWithCategories(ctx.Context, *ctx.Payload.Data.ID, category)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+
 		witData := ConvertWorkItemTypeFromModel(ctx.RequestData, witTypeModel)
 		wit := &app.WorkItemTypeSingle{Data: &witData}
 		ctx.ResponseData.Header().Set("Location", app.WorkitemtypeHref(*ctx.Payload.Data.Relationships.Space.Data.ID, wit.Data.ID))
