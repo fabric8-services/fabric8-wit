@@ -68,59 +68,6 @@ func (r *BenchWorkItemTypeRepository) BenchmarkLoadTypeFromDB() {
 	}
 }
 
-/*
-func (r *BenchWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]FieldDefinition) (*WorkItemType, error) {
-	// Make sure this WIT has an ID
-	if id == nil {
-		tmpID := uuid.NewV4()
-		id = &tmpID
-	}
-
-	allFields := map[string]FieldDefinition{}
-	path := LtreeSafeID(*id)
-	if extendedTypeID != nil {
-		extendedType := WorkItemType{}
-		db := r.db.Model(&extendedType).Where("id=?", extendedTypeID).First(&extendedType)
-		if db.RecordNotFound() {
-			return nil, errors.NewBadParameterError("extendedTypeID", *extendedTypeID)
-		}
-		if err := db.Error; err != nil {
-			return nil, errors.NewInternalError(err.Error())
-		}
-		// copy fields from extended type
-		for key, value := range extendedType.Fields {
-			allFields[key] = value
-		}
-		path = extendedType.Path + pathSep + path
-	}
-	// now process new fields, checking whether they are already there.
-	for field, definition := range fields {
-		existing, exists := allFields[field]
-		if exists && !compatibleFields(existing, definition) {
-			return nil, fmt.Errorf("incompatible change for field %s", field)
-		}
-		allFields[field] = definition
-	}
-
-	created := WorkItemType{
-		Version:     0,
-		ID:          *id,
-		Name:        name,
-		Description: description,
-		Icon:        icon,
-		Path:        path,
-		Fields:      allFields,
-		SpaceID:     spaceID,
-	}
-
-	if err := r.db.Create(&created).Error; err != nil {
-		return nil, errors.NewInternalError(err.Error())
-	}
-
-	log.Debug(ctx, map[string]interface{}{"witID": created.ID}, "Work item type created successfully!")
-	return &created, nil
-}
-*/
 func (r *BenchWorkItemTypeRepository) BenchmarkListPlannerItems() {
 	r.B().ResetTimer()
 	for n := 0; n < r.B().N; n++ {
