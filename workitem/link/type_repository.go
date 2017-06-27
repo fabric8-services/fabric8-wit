@@ -1,7 +1,6 @@
 package link
 
 import (
-	"fmt"
 	"time"
 
 	"context"
@@ -10,7 +9,6 @@ import (
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/space"
-	"github.com/almighty/almighty-core/workitem"
 
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -26,12 +24,6 @@ type WorkItemLinkTypeRepository interface {
 	List(ctx context.Context, spaceID uuid.UUID) ([]WorkItemLinkType, error)
 	Delete(ctx context.Context, spaceID uuid.UUID, ID uuid.UUID) error
 	Save(ctx context.Context, linkCat WorkItemLinkType) (*WorkItemLinkType, error)
-	// ListSourceLinkTypes returns the possible link types for where the given
-	// WIT can be used in the source.
-	ListSourceLinkTypes(ctx context.Context, witID uuid.UUID) ([]WorkItemLinkType, error)
-	// ListSourceLinkTypes returns the possible link types for where the given
-	// WIT can be used in the target.
-	ListTargetLinkTypes(ctx context.Context, witID uuid.UUID) ([]WorkItemLinkType, error)
 }
 
 // NewWorkItemLinkTypeRepository creates a work item link type repository based on gorm
@@ -181,52 +173,4 @@ func (r *GormWorkItemLinkTypeRepository) Save(ctx context.Context, modelToSave W
 		"wilt":    existingModel,
 	}, "Work item link type updated %v", modelToSave)
 	return &modelToSave, nil
-}
-
-func (r *GormWorkItemLinkTypeRepository) ListSourceLinkTypes(ctx context.Context, witID uuid.UUID) ([]WorkItemLinkType, error) {
-	defer goa.MeasureSince([]string{"goa", "db", "workitemlinktype", "listSourceLinkTypes"}, time.Now())
-	db := r.db.Model(WorkItemLinkType{})
-	query := fmt.Sprintf(`
-			-- Get link types we can use with a specific WIT if the WIT is at the
-			-- source of the link.
-			(SELECT path FROM %[2]s WHERE id = %[1]s.source_type_id LIMIT 1)
-			@>
-			(SELECT path FROM %[2]s WHERE id = ? LIMIT 1)`,
-		WorkItemLinkType{}.TableName(),
-		workitem.WorkItemType{}.TableName(),
-	)
-	db = db.Where(query, witID)
-	var rows []WorkItemLinkType
-	db = db.Find(&rows)
-	if db.RecordNotFound() {
-		return nil, nil
-	}
-	if db.Error != nil {
-		return nil, errs.WithStack(db.Error)
-	}
-	return rows, nil
-}
-
-func (r *GormWorkItemLinkTypeRepository) ListTargetLinkTypes(ctx context.Context, witID uuid.UUID) ([]WorkItemLinkType, error) {
-	defer goa.MeasureSince([]string{"goa", "db", "workitemlinktype", "listTargetLinkTypes"}, time.Now())
-	db := r.db.Model(WorkItemLinkType{})
-	query := fmt.Sprintf(`
-			-- Get link types we can use with a specific WIT if the WIT is at the
-			-- target of the link.
-			(SELECT path FROM %[2]s WHERE id = %[1]s.target_type_id LIMIT 1)
-			@>
-			(SELECT path FROM %[2]s WHERE id = ? LIMIT 1)`,
-		WorkItemLinkType{}.TableName(),
-		workitem.WorkItemType{}.TableName(),
-	)
-	db = db.Where(query, witID)
-	var rows []WorkItemLinkType
-	db = db.Find(&rows)
-	if db.RecordNotFound() {
-		return nil, nil
-	}
-	if db.Error != nil {
-		return nil, errs.WithStack(db.Error)
-	}
-	return rows, nil
 }

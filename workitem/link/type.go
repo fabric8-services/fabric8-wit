@@ -54,9 +54,6 @@ type WorkItemLinkType struct {
 	Version  int
 	Topology string // Valid values: network, directed_network, dependency, tree
 
-	SourceTypeID uuid.UUID `sql:"type:uuid"`
-	TargetTypeID uuid.UUID `sql:"type:uuid"`
-
 	ForwardName string
 	ReverseName string
 
@@ -94,12 +91,6 @@ func (t WorkItemLinkType) Equal(u convert.Equaler) bool {
 	if t.Topology != other.Topology {
 		return false
 	}
-	if !uuid.Equal(t.SourceTypeID, other.SourceTypeID) {
-		return false
-	}
-	if !uuid.Equal(t.TargetTypeID, other.TargetTypeID) {
-		return false
-	}
 	if t.ForwardName != other.ForwardName {
 		return false
 	}
@@ -120,12 +111,6 @@ func (t WorkItemLinkType) Equal(u convert.Equaler) bool {
 func (t *WorkItemLinkType) CheckValidForCreation() error {
 	if t.Name == "" {
 		return errors.NewBadParameterError("name", t.Name)
-	}
-	if uuid.Equal(t.SourceTypeID, uuid.Nil) {
-		return errors.NewBadParameterError("source_type_name", t.SourceTypeID)
-	}
-	if uuid.Equal(t.TargetTypeID, uuid.Nil) {
-		return errors.NewBadParameterError("target_type_name", t.TargetTypeID)
 	}
 	if t.ForwardName == "" {
 		return errors.NewBadParameterError("forward_name", t.ForwardName)
