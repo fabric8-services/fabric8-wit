@@ -183,7 +183,7 @@ func (r *GormWorkItemTypeRepository) AssociateWithCategories(ctx context.Context
 					"work_item_type_id": witID,
 					"err":               err,
 				}, "unable to create workitemtype category relationship")
-				return errors.NewInternalError(err)
+				return errors.NewInternalError(errs.Wrap(err, "unable to create workitemtype category relationship"))
 			}
 		}
 	}
