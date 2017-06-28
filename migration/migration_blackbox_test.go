@@ -121,6 +121,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration61", testMigration61)
 	t.Run("TestMigration63", testMigration63)
 	t.Run("TestMigration62", testMigration64)
+	t.Run("TestMigration62", testMigration65)
 
 	// Perform the migration
 	if err := migration.Migrate(sqlDB, databaseName); err != nil {
@@ -379,8 +380,8 @@ func testMigration63(t *testing.T) {
 	assert.Equal(t, relationshipsChangeddAt, deletedAt)
 }
 
-func testMigration64(t *testing.T) {
-	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+20)], (initialMigratedVersion + 20))
+func testMigration65(t *testing.T) {
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+21)], (initialMigratedVersion + 21))
 
 	assert.True(t, gormDB.HasTable("categories"))
 	assert.True(t, dialect.HasIndex("categories", "categories_id_index"))
@@ -394,8 +395,8 @@ func testMigration64(t *testing.T) {
 	assert.True(t, dialect.HasColumn("work_item_type_categories", "work_item_type_id"))
 
 	// These script execution has to fail
-	assert.NotNil(t, runSQLscript(sqlDB, "062-insert-category-no-name-fail.sql"))
-	assert.NotNil(t, runSQLscript(sqlDB, "063-unique-idx-failed-insert-category.sql"))
+	assert.NotNil(t, runSQLscript(sqlDB, "065-insert-category-no-name-fail.sql"))
+	assert.NotNil(t, runSQLscript(sqlDB, "065-unique-idx-failed-insert-category.sql"))
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and
