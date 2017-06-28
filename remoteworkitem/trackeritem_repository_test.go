@@ -10,12 +10,12 @@ import (
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/test"
 	"github.com/fabric8-services/fabric8-wit/workitem"
-	"github.com/fabric8io/fabric8-init-tenant/migration"
 
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
