@@ -123,6 +123,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration61", testMigration61)
 	t.Run("TestMigration63", testMigration63)
 	t.Run("TestMigration65", testMigration65)
+	t.Run("TestMigration66", testMigration66)
 
 	// Perform the migration
 	if err := migration.Migrate(sqlDB, databaseName); err != nil {
@@ -410,6 +411,27 @@ func testMigration65(t *testing.T) {
 		t.Log(fmt.Sprintf("Found %d (/%d) for space %v", currentVal, expectedCurrentVal, spaceID))
 		assert.Equal(t, expectedCurrentVal, currentVal)
 	}
+}
+
+func testMigration66(t *testing.T) {
+	// migrate to previous version
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+21)], (initialMigratedVersion + 21))
+	// fill DB with data
+	assert.Nil(t, runSQLscript(sqlDB, "066-comment-parentid-uuid.sql"))
+	// then apply the change
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+22)], (initialMigratedVersion + 22))
+	// verify the data
+	var parentID uuid.UUID
+	stmt, err := sqlDB.Prepare("select parent_id from comments where id = $1")
+	require.Nil(t, err)
+	err = stmt.QueryRow("00000066-0000-0000-0000-000000000000").Scan(&parentID)
+	require.Nil(t, err)
+	assert.NotNil(t, parentID)
+	stmt, err = sqlDB.Prepare("select comment_parent_id from comment_revisions where id = $1")
+	require.Nil(t, err)
+	err = stmt.QueryRow("00000066-0000-0000-0000-000000000000").Scan(&parentID)
+	require.Nil(t, err)
+	assert.NotNil(t, parentID)
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and
