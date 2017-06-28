@@ -190,7 +190,7 @@ setx PATH "%PATH%;%HOMEDRIVE%\%HOMEPATH%\glide\windows-amd64"
 
 IMPORTANT: Before you continue, *close any existing Windows Command Prompt* (or at least close the one you've opened while working through this document). This is important because otherwise the environment variables that we have modified won't be available.
 
-Typically, Go projects are checked out under a special directory which is commonly known as `GOPATHfabric8-services/fabric8-wit project makes not exception here. In most of the documentation that is written for Linux or MacOSX you will find us referencing this path as `$GOPATH`. On Windows this translates to `%GOPATH%`.
+Typically, Go projects are checked out under a special directory which is commonly known as `GOPATH`. The fabric8-wit project makes not exception here. In most of the documentation that is written for Linux or MacOSX you will find us referencing this path as `$GOPATH`. On Windows this translates to `%GOPATH%`.
 
 Now you may already have guessed this but `%GOPATH%` is also an environment variable that contains a path (sometimes a list of paths separated by semicolons) to various locations that will all be treated as `GOPATH`s by Go. 
 
