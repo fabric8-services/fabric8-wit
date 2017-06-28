@@ -149,7 +149,7 @@ func (s *workItemLinkTypeSuite) createDemoLinkType(name string) *app.CreateWorkI
 	require.NotNil(s.T(), workItemLinkCategory)
 
 	// 4. Create work item link type payload
-	createLinkTypePayload := newCreateWorkItemLinkTypePayload(name, *workItemType.Data.ID, *workItemType.Data.ID, *workItemLinkCategory.Data.ID, *space.Data.ID)
+	createLinkTypePayload := newCreateWorkItemLinkTypePayload(name, *workItemLinkCategory.Data.ID, *space.Data.ID)
 	return createLinkTypePayload
 }
 
@@ -388,7 +388,7 @@ func (s *workItemLinkTypeSuite) createWorkItemLinkTypes() (*app.WorkItemTypeSing
 	_, workItemType := test.CreateWorkitemtypeCreated(s.T(), s.svc.Context, s.svc, s.typeCtrl, *bugBlockerPayload.Data.Relationships.Space.Data.ID, &workItemTypePayload)
 	require.NotNil(s.T(), workItemType)
 
-	relatedPayload := newCreateWorkItemLinkTypePayload(s.linkName, *workItemType.Data.ID, *workItemType.Data.ID, bugBlockerType.Data.Relationships.LinkCategory.Data.ID, *bugBlockerType.Data.Relationships.Space.Data.ID)
+	relatedPayload := newCreateWorkItemLinkTypePayload(s.linkName, bugBlockerType.Data.Relationships.LinkCategory.Data.ID, *bugBlockerType.Data.Relationships.Space.Data.ID)
 	_, relatedType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *relatedPayload.Data.Relationships.Space.Data.ID, relatedPayload)
 	require.NotNil(s.T(), relatedType)
 	return workItemType, relatedType
