@@ -189,7 +189,7 @@ func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 	return responseWriter, wi
 }
 
-func CreateWorkItemType(id uuid.UUID, spaceID uuid.UUID) app.CreateWorkitemtypePayload {
+func newCreateWorkItemTypePayload(id uuid.UUID, spaceID uuid.UUID) app.CreateWorkitemtypePayload {
 	// Use the goa generated code to create a work item type
 	desc := "Description for 'person'"
 	reqLong := &goa.RequestData{
@@ -486,7 +486,7 @@ func (s *workItemTypeSuite) createWorkitemtypeLinks() (app.WorkItemLinkTypeSingl
 	require.NotNil(s.T(), witPerson)
 	s.T().Log("Created work items")
 	// Create work item link category
-	linkCatPayload := CreateWorkItemLinkCategory("some-link-category-" + uuid.NewV4().String())
+	linkCatPayload := newCreateWorkItemLinkCategoryPayload("some-link-category-" + uuid.NewV4().String())
 	_, linkCat := test.CreateWorkItemLinkCategoryCreated(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, linkCatPayload)
 	require.NotNil(s.T(), linkCat)
 	s.T().Log("Created work item link category")
@@ -495,207 +495,16 @@ func (s *workItemTypeSuite) createWorkitemtypeLinks() (app.WorkItemLinkTypeSingl
 	_, sp := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, spacePayload)
 	s.T().Log("Created space")
 	// Create work item link type
-	linkTypePayload := CreateWorkItemLinkType(animalLinksToBugStr, animalID, workitem.SystemBug, *linkCat.Data.ID, *sp.Data.ID)
+	linkTypePayload := newCreateWorkItemLinkTypePayload(animalLinksToBugStr, *linkCat.Data.ID, *sp.Data.ID)
 	_, sourceLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *sp.Data.ID, linkTypePayload)
 	require.NotNil(s.T(), sourceLinkType)
 	s.T().Log("Created work item source link")
 	// Create another work item link type
-	linkTypePayload = CreateWorkItemLinkType(bugLinksToAnimalStr, workitem.SystemBug, animalID, *linkCat.Data.ID, *sp.Data.ID)
+	linkTypePayload = newCreateWorkItemLinkTypePayload(bugLinksToAnimalStr, *linkCat.Data.ID, *sp.Data.ID)
 	_, targetLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *sp.Data.ID, linkTypePayload)
 	require.NotNil(s.T(), targetLinkType)
 	s.T().Log("Created work item target link")
 	return *sourceLinkType, *targetLinkType
-}
-
-// TestListWorkItemLinkTypeSources200OK tests if we can find the work item link
-// types for a given WIT.
-func (s *workItemTypeSuite) TestListWorkItemLinkTypeSources200OK() {
-	// given
-	sourceLinkType, _ := s.createWorkitemtypeLinks()
-	// when fetch source link types
-	res, wiltCollection := test.ListSourceLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, animalID, nil, nil)
-	require.NotNil(s.T(), wiltCollection)
-	assert.Nil(s.T(), wiltCollection.Validate())
-	// then check the number of found work item link types
-	require.Len(s.T(), wiltCollection.Data, 1)
-	assert.Equal(s.T(), animalLinksToBugStr, *wiltCollection.Data[0].Attributes.Name)
-	require.NotNil(s.T(), res.Header()[app.LastModified])
-	assert.Equal(s.T(), app.ToHTTPTime(getWorkItemLinkTypeUpdatedAt(sourceLinkType)), res.Header()[app.LastModified][0])
-	require.NotNil(s.T(), res.Header()[app.CacheControl])
-	assert.NotNil(s.T(), res.Header()[app.CacheControl][0])
-	require.NotNil(s.T(), res.Header()[app.ETag])
-	assert.Equal(s.T(), generateWorkItemLinkTypeTag(sourceLinkType), res.Header()[app.ETag][0])
-}
-
-// TestListWorkItemLinkTypeTargets200OK tests if we can find the work item link
-// types for a given WIT.
-func (s *workItemTypeSuite) TestListWorkItemLinkTypeTargets200OK() {
-	// given
-	_, targetLinkType := s.createWorkitemtypeLinks()
-	// When fetch target link types
-	res, wiltCollection := test.ListTargetLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, animalID, nil, nil)
-	require.NotNil(s.T(), wiltCollection)
-	assert.Nil(s.T(), wiltCollection.Validate())
-	// Then check the number of found work item link types
-	require.Len(s.T(), wiltCollection.Data, 1)
-	assert.Equal(s.T(), bugLinksToAnimalStr, *wiltCollection.Data[0].Attributes.Name)
-	require.NotNil(s.T(), res.Header()[app.LastModified])
-	assert.Equal(s.T(), app.ToHTTPTime(getWorkItemLinkTypeUpdatedAt(targetLinkType)), res.Header()[app.LastModified][0])
-	require.NotNil(s.T(), res.Header()[app.CacheControl])
-	assert.NotNil(s.T(), res.Header()[app.CacheControl][0])
-	require.NotNil(s.T(), res.Header()[app.ETag])
-	assert.Equal(s.T(), generateWorkItemLinkTypeTag(targetLinkType), res.Header()[app.ETag][0])
-}
-
-// TestListSourceLinkTypes200UsingExpiredIfModifiedSinceHeader tests if we can find the work item link
-// types for a given WIT.
-func (s *workItemTypeSuite) TestListSourceLinkTypes200UsingExpiredIfModifiedSinceHeader() {
-	// given
-	sourceLinkType, _ := s.createWorkitemtypeLinks()
-	// when fetch source link types
-	ifModifiedSince := app.ToHTTPTime(sourceLinkType.Data.Attributes.UpdatedAt.Add(-1 * time.Hour))
-	res, wiltCollection := test.ListSourceLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, animalID, &ifModifiedSince, nil)
-	require.NotNil(s.T(), wiltCollection)
-	assert.Nil(s.T(), wiltCollection.Validate())
-	// then check the number of found work item link types
-	require.Len(s.T(), wiltCollection.Data, 1)
-	assert.Equal(s.T(), animalLinksToBugStr, *wiltCollection.Data[0].Attributes.Name)
-	require.NotNil(s.T(), res.Header()[app.LastModified])
-	assert.Equal(s.T(), app.ToHTTPTime(getWorkItemLinkTypeUpdatedAt(sourceLinkType)), res.Header()[app.LastModified][0])
-	require.NotNil(s.T(), res.Header()[app.CacheControl])
-	assert.NotNil(s.T(), res.Header()[app.CacheControl][0])
-	require.NotNil(s.T(), res.Header()[app.ETag])
-	assert.Equal(s.T(), generateWorkItemLinkTypeTag(sourceLinkType), res.Header()[app.ETag][0])
-}
-
-// TestListTargetLinkTypes200UsingExpiredIfModifiedSinceHeader tests if we can find the work item link
-// types for a given WIT.
-func (s *workItemTypeSuite) TestListTargetLinkTypes200UsingExpiredIfModifiedSinceHeader() {
-	// given
-	_, targetLinkType := s.createWorkitemtypeLinks()
-	// When fetch target link types
-	ifModifiedSince := app.ToHTTPTime(targetLinkType.Data.Attributes.UpdatedAt.Add(-1 * time.Hour))
-	res, wiltCollection := test.ListTargetLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, animalID, &ifModifiedSince, nil)
-	require.NotNil(s.T(), wiltCollection)
-	assert.Nil(s.T(), wiltCollection.Validate())
-	// Then check the number of found work item link types
-	require.Len(s.T(), wiltCollection.Data, 1)
-	assert.Equal(s.T(), bugLinksToAnimalStr, *wiltCollection.Data[0].Attributes.Name)
-	require.NotNil(s.T(), res.Header()[app.LastModified])
-	assert.Equal(s.T(), app.ToHTTPTime(getWorkItemLinkTypeUpdatedAt(targetLinkType)), res.Header()[app.LastModified][0])
-	require.NotNil(s.T(), res.Header()[app.CacheControl])
-	assert.NotNil(s.T(), res.Header()[app.CacheControl][0])
-	require.NotNil(s.T(), res.Header()[app.ETag])
-	assert.Equal(s.T(), generateWorkItemLinkTypeTag(targetLinkType), res.Header()[app.ETag][0])
-}
-
-// TestListSourceLinkTypes200UsingExpiredIfNoneMatchHeader tests if we can find the work item link
-// types for a given WIT.
-func (s *workItemTypeSuite) TestListSourceLinkTypes200UsingExpiredIfNoneMatchHeader() {
-	// given
-	sourceLinkType, _ := s.createWorkitemtypeLinks()
-	// when fetch source link types
-	ifNoneMatch := "foo"
-	res, wiltCollection := test.ListSourceLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, animalID, nil, &ifNoneMatch)
-	require.NotNil(s.T(), wiltCollection)
-	assert.Nil(s.T(), wiltCollection.Validate())
-	// then check the number of found work item link types
-	require.Len(s.T(), wiltCollection.Data, 1)
-	assert.Equal(s.T(), animalLinksToBugStr, *wiltCollection.Data[0].Attributes.Name)
-	require.NotNil(s.T(), res.Header()[app.LastModified])
-	assert.Equal(s.T(), app.ToHTTPTime(getWorkItemLinkTypeUpdatedAt(sourceLinkType)), res.Header()[app.LastModified][0])
-	require.NotNil(s.T(), res.Header()[app.CacheControl])
-	assert.NotNil(s.T(), res.Header()[app.CacheControl][0])
-	require.NotNil(s.T(), res.Header()[app.ETag])
-	assert.Equal(s.T(), generateWorkItemLinkTypeTag(sourceLinkType), res.Header()[app.ETag][0])
-}
-
-// TestListTargetLinkTypes200UsingExpiredIfNoneMatchHeader tests if we can find the work item link
-// types for a given WIT.
-func (s *workItemTypeSuite) TestListTargetLinkTypes200UsingExpiredIfNoneMatchHeader() {
-	// given
-	_, targetLinkType := s.createWorkitemtypeLinks()
-	// When fetch target link types
-	ifNoneMatch := "foo"
-	res, wiltCollection := test.ListTargetLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, animalID, nil, &ifNoneMatch)
-	require.NotNil(s.T(), wiltCollection)
-	assert.Nil(s.T(), wiltCollection.Validate())
-	// Then check the number of found work item link types
-	require.Len(s.T(), wiltCollection.Data, 1)
-	assert.Equal(s.T(), bugLinksToAnimalStr, *wiltCollection.Data[0].Attributes.Name)
-	require.NotNil(s.T(), res.Header()[app.LastModified])
-	assert.Equal(s.T(), app.ToHTTPTime(getWorkItemLinkTypeUpdatedAt(targetLinkType)), res.Header()[app.LastModified][0])
-	require.NotNil(s.T(), res.Header()[app.CacheControl])
-	assert.NotNil(s.T(), res.Header()[app.CacheControl][0])
-	require.NotNil(s.T(), res.Header()[app.ETag])
-	assert.Equal(s.T(), generateWorkItemLinkTypeTag(targetLinkType), res.Header()[app.ETag][0])
-}
-
-// TestListSourceLinkTypes304UsingIfModifiedSinceHeader tests if we can find the work item link
-// types for a given WIT.
-func (s *workItemTypeSuite) TestListSourceLinkTypes304UsingIfModifiedSinceHeader() {
-	// given
-	sourceLinkType, _ := s.createWorkitemtypeLinks()
-	// when/then
-	ifModifiedSince := app.ToHTTPTime(getWorkItemLinkTypeUpdatedAt(sourceLinkType))
-	test.ListSourceLinkTypesWorkitemtypeNotModified(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, animalID, &ifModifiedSince, nil)
-}
-
-// TestListTargetLinkTypes200UsingExpiredIfModifiedSinceHeader tests if we can find the work item link
-// types for a given WIT.
-func (s *workItemTypeSuite) TestListTargetLinkTypes304UsingIfModifiedSinceHeader() {
-	// given
-	_, targetLinkType := s.createWorkitemtypeLinks()
-	// When fetch target link types
-	ifModifiedSince := app.ToHTTPTime(getWorkItemLinkTypeUpdatedAt(targetLinkType))
-	test.ListTargetLinkTypesWorkitemtypeNotModified(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, animalID, &ifModifiedSince, nil)
-}
-
-// TestListSourceLinkTypes200UsingExpiredIfNoneMatchHeader tests if we can find the work item link
-// types for a given WIT.
-func (s *workItemTypeSuite) TestListSourceLinkTypes304UsingIfNoneMatchHeader() {
-	// given
-	sourceLinkType, _ := s.createWorkitemtypeLinks()
-	// when fetch source link types
-	ifNoneMatch := generateWorkItemLinkTypeTag(sourceLinkType)
-	test.ListSourceLinkTypesWorkitemtypeNotModified(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, animalID, nil, &ifNoneMatch)
-}
-
-// TestListTargetLinkTypes304UsingIfNoneMatchHeader tests if we can find the work item link
-// types for a given WIT.
-func (s *workItemTypeSuite) TestListTargetLinkTypes304UsingIfNoneMatchHeader() {
-	// given
-	_, targetLinkType := s.createWorkitemtypeLinks()
-	// When fetch target link types
-	ifNoneMatch := generateWorkItemLinkTypeTag(targetLinkType)
-	test.ListTargetLinkTypesWorkitemtypeNotModified(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, animalID, nil, &ifNoneMatch)
-}
-
-// TestListSourceAndTargetLinkTypesEmpty tests that no link type is returned for
-// WITs that don't have link types associated to them
-func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypesEmpty() {
-	_, witPerson := s.createWorkItemTypePerson()
-	require.NotNil(s.T(), witPerson)
-
-	_, wiltCollection := test.ListSourceLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, personID, nil, nil)
-	require.NotNil(s.T(), wiltCollection)
-	require.Nil(s.T(), wiltCollection.Validate())
-	require.Len(s.T(), wiltCollection.Data, 0)
-
-	_, wiltCollection = test.ListTargetLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, personID, nil, nil)
-	require.NotNil(s.T(), wiltCollection)
-	require.Nil(s.T(), wiltCollection.Validate())
-	require.Len(s.T(), wiltCollection.Data, 0)
-}
-
-// TestListSourceAndTargetLinkTypesNotFound tests that a NotFound error is
-// returned when you query a non existing WIT.
-func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypesNotFound() {
-	_, jerrors := test.ListSourceLinkTypesWorkitemtypeNotFound(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, uuid.Nil, nil, nil)
-	require.NotNil(s.T(), jerrors)
-
-	_, jerrors = test.ListTargetLinkTypesWorkitemtypeNotFound(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, uuid.Nil, nil, nil)
-	require.NotNil(s.T(), jerrors)
 }
 
 // used for testing purpose only

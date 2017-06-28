@@ -95,7 +95,7 @@ func (rest *TestSpaceAreaREST) setupAreas() (area.Area, []uuid.UUID, []area.Area
 	createdAreaUuids = append(createdAreaUuids, parentArea.ID)
 	parentID := parentArea.ID
 	name := "TestListAreas  A"
-	ci := getCreateChildAreaPayload(&name)
+	ci := newCreateChildAreaPayload(&name)
 	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerId)
 	require.Nil(rest.T(), err)
 	svc, ctrl := rest.SecuredAreasControllerWithIdentity(owner)
@@ -107,7 +107,7 @@ func (rest *TestSpaceAreaREST) setupAreas() (area.Area, []uuid.UUID, []area.Area
 
 	// Create a child of the child created above.
 	name = "TestListAreas B"
-	ci = getCreateChildAreaPayload(&name)
+	ci = newCreateChildAreaPayload(&name)
 	newParentID := *created.Data.Relationships.Parent.Data.ID
 	_, created = test.CreateChildAreaCreated(rest.T(), svc.Context, svc, ctrl, newParentID, ci)
 	assert.Equal(rest.T(), *ci.Data.Attributes.Name, *created.Data.Attributes.Name)

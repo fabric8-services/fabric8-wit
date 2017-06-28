@@ -16,6 +16,7 @@ import (
 	"github.com/almighty/almighty-core/workitem/link"
 
 	"context"
+
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/client"
 	"github.com/jinzhu/gorm"
@@ -306,6 +307,15 @@ func GetMigrations() Migrations {
 	// Version 61
 	m = append(m, steps{ExecuteSQLFile("061-replace-index-space-name.sql")})
 
+	// Version 62
+	m = append(m, steps{ExecuteSQLFile("062-link-system-preparation.sql")})
+
+	// Version 63
+	m = append(m, steps{ExecuteSQLFile("063-workitem-related-changes.sql")})
+
+	// Version 64
+	m = append(m, steps{ExecuteSQLFile("064-remove-link-combinations.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -509,8 +519,6 @@ func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkIte
 		Topology:       link.TopologyNetwork,
 		ForwardName:    "blocks",
 		ReverseName:    "blocked by",
-		SourceTypeID:   workitem.SystemBug,
-		TargetTypeID:   workitem.SystemPlannerItem,
 		LinkCategoryID: systemCat.ID,
 		SpaceID:        space.SystemSpace,
 	}
@@ -525,8 +533,6 @@ func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkIte
 		Topology:       link.TopologyNetwork,
 		ForwardName:    "relates to",
 		ReverseName:    "is related to",
-		SourceTypeID:   workitem.SystemPlannerItem,
-		TargetTypeID:   workitem.SystemPlannerItem,
 		LinkCategoryID: systemCat.ID,
 		SpaceID:        space.SystemSpace,
 	}
@@ -541,8 +547,6 @@ func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkIte
 		Topology:       link.TopologyNetwork,
 		ForwardName:    "parent of",
 		ReverseName:    "child of",
-		SourceTypeID:   workitem.SystemPlannerItem,
-		TargetTypeID:   workitem.SystemPlannerItem,
 		LinkCategoryID: systemCat.ID,
 		SpaceID:        space.SystemSpace,
 	}

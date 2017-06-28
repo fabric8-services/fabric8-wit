@@ -49,9 +49,6 @@ type WorkItemControllerConfig interface {
 
 // NewWorkitemController creates a workitem controller.
 func NewWorkitemController(service *goa.Service, db application.DB, config WorkItemControllerConfig) *WorkitemController {
-	if db == nil {
-		panic("db must not be nil")
-	}
 	return &WorkitemController{
 		Controller: service.NewController("WorkitemController"),
 		db:         db,
@@ -313,13 +310,13 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 // Show does GET workitem
 func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		comments := workItemIncludeCommentsAndTotal(ctx, c.db, ctx.WiID)
-		hasChildren := workItemIncludeHasChildren(appl, ctx)
 		wi, err := appl.WorkItems().Load(ctx, ctx.SpaceID, ctx.WiID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Fail to load work item with id %v", ctx.WiID)))
 		}
 		return ctx.ConditionalRequest(*wi, c.config.GetCacheControlWorkItems, func() error {
+			comments := workItemIncludeCommentsAndTotal(ctx, c.db, ctx.WiID)
+			hasChildren := workItemIncludeHasChildren(appl, ctx)
 			wi2 := ConvertWorkItem(ctx.RequestData, *wi, comments, hasChildren)
 			resp := &app.WorkItemSingle{
 				Data: wi2,
@@ -571,8 +568,6 @@ func ConvertWorkItems(request *goa.RequestData, wis []workitem.WorkItem, additio
 func ConvertWorkItem(request *goa.RequestData, wi workitem.WorkItem, additional ...WorkItemConvertFunc) *app.WorkItem {
 	// construct default values from input WI
 	selfURL := rest.AbsoluteURL(request, app.WorkitemHref(wi.SpaceID.String(), wi.ID))
-	sourceLinkTypesURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.SpaceID.String(), wi.Type)+sourceLinkTypesRouteEnd)
-	targetLinkTypesURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.SpaceID.String(), wi.Type)+targetLinkTypesRouteEnd)
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(wi.SpaceID.String()))
 	witSelfURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.SpaceID.String(), wi.Type))
 
@@ -595,9 +590,7 @@ func ConvertWorkItem(request *goa.RequestData, wi workitem.WorkItem, additional 
 			Space: app.NewSpaceRelation(wi.SpaceID, spaceSelfURL),
 		},
 		Links: &app.GenericLinksForWorkItem{
-			Self:            &selfURL,
-			SourceLinkTypes: &sourceLinkTypesURL,
-			TargetLinkTypes: &targetLinkTypesURL,
+			Self: &selfURL,
 		},
 	}
 
@@ -685,6 +678,7 @@ func workItemIncludeHasChildren(appl application.Application, ctx context.Contex
 		repo := appl.WorkItemLinks()
 		if repo != nil {
 			hasChildren, err = appl.WorkItemLinks().WorkItemHasChildren(ctx, wi.ID)
+			log.Info(ctx, map[string]interface{}{"wi_id": wi.ID}, "Work item has children: %t", hasChildren)
 			if err != nil {
 				log.Error(ctx, map[string]interface{}{
 					"wi_id": wi.ID,
@@ -700,6 +694,7 @@ func workItemIncludeHasChildren(appl application.Application, ctx context.Contex
 		wi2.Relationships.Children.Meta = map[string]interface{}{
 			"hasChildren": hasChildren,
 		}
+
 	}
 }
 

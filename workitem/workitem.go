@@ -20,6 +20,9 @@ type WorkItem struct {
 	SpaceID uuid.UUID
 	// The field values, according to the field type
 	Fields map[string]interface{}
+	// optional, private timestamp of the latest addition/removal of a relationship with this workitem
+	// this field is used to generate the `ETag` and `Last-Modified` values in the HTTP responses and conditional requests processing
+	relationShipsChangedAt *time.Time
 }
 
 // WICountsPerIteration counting work item states by iteration
@@ -31,19 +34,20 @@ type WICountsPerIteration struct {
 
 // GetETagData returns the field values to use to generate the ETag
 func (wi WorkItem) GetETagData() []interface{} {
-	return []interface{}{wi.ID, wi.Version}
+	return []interface{}{wi.ID, wi.Version, wi.relationShipsChangedAt}
 }
 
 // GetLastModified returns the last modification time
 func (wi WorkItem) GetLastModified() time.Time {
-	if updatedAt, ok := wi.Fields[SystemUpdatedAt]; ok {
-		switch updatedAt := updatedAt.(type) {
-		case time.Time:
-			return updatedAt
-		default:
-			log.Info(nil, map[string]interface{}{"wi_id": wi.ID}, "'system.update_at' field value is not a valid time for work item with ID=%v", wi.ID)
-		}
+	var lastModified *time.Time // default value
+	if updatedAt, ok := wi.Fields[SystemUpdatedAt].(time.Time); ok {
+		lastModified = &updatedAt
 	}
-	// fallback value if none/no valid data was found.
-	return time.Now()
+	// also check the optional 'relationShipsChangedAt' field
+	if wi.relationShipsChangedAt != nil && (lastModified == nil || wi.relationShipsChangedAt.After(*lastModified)) {
+		lastModified = wi.relationShipsChangedAt
+	}
+
+	log.Debug(nil, map[string]interface{}{"wi_id": wi.ID}, "Last modified value: %v", lastModified)
+	return *lastModified
 }
