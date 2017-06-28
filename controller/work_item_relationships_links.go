@@ -11,6 +11,7 @@ import (
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/workitem/link"
 	"github.com/goadesign/goa"
+	uuid "github.com/satori/go.uuid"
 )
 
 // WorkItemRelationshipsLinksController implements the work-item-relationships-links resource.
@@ -50,15 +51,16 @@ func (c *WorkItemRelationshipsLinksController) Create(ctx *app.CreateWorkItemRel
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		// Check that current work item does indeed exist
-		if _, err := appl.WorkItems().LoadByID(ctx.Context, ctx.WiID); err != nil {
+		wi, err := appl.WorkItems().LoadByID(ctx, ctx.WiID)
+		if err != nil {
 			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
 		// Check that the source ID of the link is the same as the current work
 		// item ID.
 		src, _ := getSrcTgt(ctx.Payload.Data)
-		if src != nil && *src != ctx.WiID {
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("data.relationships.source.data.id is \"%s\" but must be \"%s\"", ctx.Payload.Data.Relationships.Source.Data.ID, ctx.WiID)))
+		if src != nil && *src != wi.ID {
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("data.relationships.source.data.id is \"%s\" but must be \"%s\"", ctx.Payload.Data.Relationships.Source.Data.ID.String(), wi.ID.String())))
 			return ctx.BadRequest(jerrors)
 		}
 		// If no source is specified we pre-fill the source field of the payload
@@ -73,7 +75,7 @@ func (c *WorkItemRelationshipsLinksController) Create(ctx *app.CreateWorkItemRel
 			if ctx.Payload.Data.Relationships.Source.Data == nil {
 				ctx.Payload.Data.Relationships.Source.Data = &app.RelationWorkItemData{}
 			}
-			ctx.Payload.Data.Relationships.Source.Data.ID = ctx.WiID
+			ctx.Payload.Data.Relationships.Source.Data.ID = wi.ID
 			ctx.Payload.Data.Relationships.Source.Data.Type = link.EndpointWorkItems
 		}
 		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkHref, currentUserIdentityID)
@@ -84,7 +86,7 @@ func (c *WorkItemRelationshipsLinksController) Create(ctx *app.CreateWorkItemRel
 // List runs the list action.
 func (c *WorkItemRelationshipsLinksController) List(ctx *app.ListWorkItemRelationshipsLinksContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		modelLinks, err := appl.WorkItemLinks().ListByWorkItemID(ctx.Context, ctx.WiID)
+		modelLinks, err := appl.WorkItemLinks().ListByWorkItem(ctx.Context, ctx.WiID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -109,8 +111,8 @@ func (c *WorkItemRelationshipsLinksController) List(ctx *app.ListWorkItemRelatio
 	})
 }
 
-func getSrcTgt(wilData *app.WorkItemLinkData) (*string, *string) {
-	var src, tgt *string
+func getSrcTgt(wilData *app.WorkItemLinkData) (*uuid.UUID, *uuid.UUID) {
+	var src, tgt *uuid.UUID
 	if wilData != nil && wilData.Relationships != nil {
 		if wilData.Relationships.Source != nil && wilData.Relationships.Source.Data != nil {
 			src = &wilData.Relationships.Source.Data.ID

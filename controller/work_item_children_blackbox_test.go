@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strconv"
 	"testing"
 	"time"
 
@@ -176,29 +175,18 @@ func (s *workItemChildSuite) SetupTest() {
 }
 
 func (s *workItemChildSuite) linkWorkItems(source, target *app.WorkItemSingle) app.WorkItemLinkSingle {
-	sourceID := s.convertWorkItemID(source)
-	targetID := s.convertWorkItemID(target)
-	createPayload := newCreateWorkItemLinkPayload(sourceID, targetID, s.bugBlockerLinkTypeID)
+	createPayload := newCreateWorkItemLinkPayload(*source.Data.ID, *target.Data.ID, s.bugBlockerLinkTypeID)
 	_, workitemLink := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.workitemLinkCtrl, createPayload)
 	require.NotNil(s.T(), workitemLink)
 	return *workitemLink
 }
 
 func (s *workItemChildSuite) updateWorkItemLink(workitemLinkID uuid.UUID, source, target *app.WorkItemSingle) app.WorkItemLinkSingle {
-	sourceID := s.convertWorkItemID(source)
-	targetID := s.convertWorkItemID(target)
-	updatePayload := newUpdateWorkItemLinkPayload(workitemLinkID, sourceID, targetID, s.bugBlockerLinkTypeID)
-	log.Warn(nil, nil, fmt.Sprintf("Updating work item link from %v to %v", sourceID, targetID))
-
+	updatePayload := newUpdateWorkItemLinkPayload(workitemLinkID, *source.Data.ID, *target.Data.ID, s.bugBlockerLinkTypeID)
+	log.Info(nil, nil, fmt.Sprintf("Updating work item link from %v to %v", *source.Data.ID, *target.Data.ID))
 	_, workitemLink := test.UpdateWorkItemLinkOK(s.T(), s.svc.Context, s.svc, s.workitemLinkCtrl, workitemLinkID, updatePayload)
 	require.NotNil(s.T(), workitemLink)
 	return *workitemLink
-}
-
-func (s *workItemChildSuite) convertWorkItemID(wi *app.WorkItemSingle) uint64 {
-	id, err := strconv.ParseUint(*wi.Data.ID, 10, 64)
-	require.Nil(s.T(), err)
-	return id
 }
 
 // The TearDownTest method will be run after every test in the suite.
@@ -818,7 +806,7 @@ func (s *workItemChildSuite) TestCreateAndUpdateLinkToChildrenThenListOKUsingIfN
 	checkChildrenRelationship(s.T(), lookupWorkitem(s.T(), *workitemList, *s.bug1.Data.ID), hasChildren)
 }
 
-func lookupWorkitem(t *testing.T, wiList app.WorkItemList, wiID string) *app.WorkItem {
+func lookupWorkitem(t *testing.T, wiList app.WorkItemList, wiID uuid.UUID) *app.WorkItem {
 	for _, wiData := range wiList.Data {
 		if *wiData.ID == wiID {
 			return wiData

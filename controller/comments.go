@@ -16,7 +16,8 @@ import (
 	"github.com/almighty/almighty-core/space/authz"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
-	"github.com/satori/go.uuid"
+	errs "github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 )
 
 // CommentsController implements the comments resource.
@@ -83,7 +84,11 @@ func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
 			editorIsCreator = true
 			return nil
 		}
-		wi, err = appl.WorkItems().LoadByID(ctx.Context, cm.ParentID)
+		parentID, err := uuid.FromString(cm.ParentID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		wi, err = appl.WorkItems().LoadByID(ctx.Context, parentID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -148,7 +153,11 @@ func (c *CommentsController) Delete(ctx *app.DeleteCommentsContext) error {
 			userIsCreator = true
 			return nil
 		}
-		wi, err = appl.WorkItems().LoadByID(ctx.Context, cm.ParentID)
+		wiID, err := uuid.FromString(cm.ParentID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "unable to delete the comment: the id of the parent entity is not a valid UUID"))
+		}
+		wi, err = appl.WorkItems().LoadByID(ctx.Context, wiID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -260,7 +269,11 @@ type HrefFunc func(id interface{}) string
 func CommentIncludeParentWorkItem(ctx context.Context, appl application.Application, c *comment.Comment) (CommentConvertFunc, error) {
 	// NOTE: This function assumes that the comment is bound to a WorkItem. Therefore,
 	// we can extract the space out of this WI.
-	wi, err := appl.WorkItems().LoadByID(ctx, c.ParentID)
+	wiID, err := uuid.FromString(c.ParentID)
+	if err != nil {
+		return nil, err
+	}
+	wi, err := appl.WorkItems().LoadByID(ctx, wiID)
 	if err != nil {
 		return nil, err
 	}

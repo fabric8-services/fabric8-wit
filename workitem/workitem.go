@@ -10,8 +10,10 @@ import (
 
 // WorkItem the model structure for the work item.
 type WorkItem struct {
-	// unique id per installation
-	ID string
+	// unique id per installation (used for references at the DB level)
+	ID uuid.UUID
+	// unique number per _space_
+	Number int
 	// ID of the type of this work item
 	Type uuid.UUID
 	// Version for optimistic concurrency control

@@ -1,8 +1,6 @@
 package controller
 
 import (
-	"strconv"
-
 	"context"
 
 	"github.com/almighty/almighty-core/app"
@@ -97,7 +95,7 @@ func getTypesOfLinks(ctx *workItemLinkContext, linksDataArr []*app.WorkItemLinkD
 // source or target in the given work item links.
 func getWorkItemsOfLinks(ctx *workItemLinkContext, linksDataArr []*app.WorkItemLinkData) ([]*app.WorkItem, error) {
 	// Build our "set" of distinct work item IDs already converted as strings
-	workItemIDMap := map[string]bool{}
+	workItemIDMap := map[uuid.UUID]bool{}
 	for _, linkData := range linksDataArr {
 		workItemIDMap[linkData.Relationships.Source.Data.ID] = true
 		workItemIDMap[linkData.Relationships.Target.Data.ID] = true
@@ -398,13 +396,13 @@ func ConvertLinkFromModel(t link.WorkItemLink) app.WorkItemLinkSingle {
 				Source: &app.RelationWorkItem{
 					Data: &app.RelationWorkItemData{
 						Type: link.EndpointWorkItems,
-						ID:   strconv.FormatUint(t.SourceID, 10),
+						ID:   t.SourceID,
 					},
 				},
 				Target: &app.RelationWorkItem{
 					Data: &app.RelationWorkItemData{
 						Type: link.EndpointWorkItems,
-						ID:   strconv.FormatUint(t.TargetID, 10),
+						ID:   t.TargetID,
 					},
 				},
 			},
@@ -421,7 +419,6 @@ func ConvertLinkToModel(appLink app.WorkItemLinkSingle) (*link.WorkItemLink, err
 	modelLink := link.WorkItemLink{}
 	attrs := appLink.Data.Attributes
 	rel := appLink.Data.Relationships
-	var err error
 	if appLink.Data.ID != nil {
 		modelLink.ID = *appLink.Data.ID
 	}
@@ -437,24 +434,20 @@ func ConvertLinkToModel(appLink app.WorkItemLinkSingle) (*link.WorkItemLink, err
 	if rel != nil && rel.Source != nil && rel.Source.Data != nil {
 		d := rel.Source.Data
 		// The the work item id MUST NOT be empty
-		if d.ID == "" {
+		if d.ID == uuid.Nil {
 			return nil, errors.NewBadParameterError("data.relationships.source.data.id", d.ID)
 		}
-		if modelLink.SourceID, err = strconv.ParseUint(d.ID, 10, 64); err != nil {
-			return nil, errors.NewBadParameterError("data.relationships.source.data.id", d.ID)
-		}
+		modelLink.SourceID = d.ID
 	}
 
 	if rel != nil && rel.Target != nil && rel.Target.Data != nil {
 		d := rel.Target.Data
 		// If the the target type is not nil, it MUST be "workitems"
 		// The the work item id MUST NOT be empty
-		if d.ID == "" {
+		if d.ID == uuid.Nil {
 			return nil, errors.NewBadParameterError("data.relationships.target.data.id", d.ID)
 		}
-		if modelLink.TargetID, err = strconv.ParseUint(d.ID, 10, 64); err != nil {
-			return nil, errors.NewBadParameterError("data.relationships.target.data.id", d.ID)
-		}
+		modelLink.TargetID = d.ID
 	}
 
 	return &modelLink, nil

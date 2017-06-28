@@ -32,13 +32,13 @@ const (
 // WorkItemRepository encapsulates storage & retrieval of work items
 type WorkItemRepository interface {
 	repository.Exister
-	LoadByID(ctx context.Context, ID string) (*WorkItem, error)
-	Load(ctx context.Context, spaceID uuid.UUID, ID string) (*WorkItem, error)
+	LoadByID(ctx context.Context, id uuid.UUID) (*WorkItem, error)
+	Load(ctx context.Context, spaceID uuid.UUID, wiNumber int) (*WorkItem, error)
 	Save(ctx context.Context, spaceID uuid.UUID, wi WorkItem, modifierID uuid.UUID) (*WorkItem, error)
-	Reorder(ctx context.Context, direction DirectionType, targetID *string, wi WorkItem, modifierID uuid.UUID) (*WorkItem, error)
-	Delete(ctx context.Context, spaceID uuid.UUID, ID string, suppressorID uuid.UUID) error
+	Reorder(ctx context.Context, direction DirectionType, targetID *uuid.UUID, wi WorkItem, modifierID uuid.UUID) (*WorkItem, error)
+	Delete(ctx context.Context, id uuid.UUID, suppressorID uuid.UUID) error
 	Create(ctx context.Context, spaceID uuid.UUID, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*WorkItem, error)
-	List(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, parentExists *bool, start *int, length *int) ([]WorkItem, uint64, error)
+	List(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, parentExists *bool, start *int, length *int) ([]WorkItem, int, error)
 	Fetch(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression) (*WorkItem, error)
 	GetCountsPerIteration(ctx context.Context, spaceID uuid.UUID) (map[string]WICountsPerIteration, error)
 	GetCountsForIteration(ctx context.Context, iterationID uuid.UUID) (map[string]WICountsPerIteration, error)
@@ -62,24 +62,19 @@ type GormWorkItemRepository struct {
 // WorkItemRepository implementation
 // ************************************************
 
-// LoadFromDB returns the work item with the given ID in model representation.
-func (r *GormWorkItemRepository) LoadFromDB(ctx context.Context, workitemID string) (*WorkItemStorage, error) {
-	id, err := strconv.ParseUint(workitemID, 10, 64)
-	if err != nil || id == 0 {
-		// treating this as a not found error: the fact that we're using number internal is implementation detail
-		return nil, errors.NewNotFoundError("work item", workitemID)
-	}
+// LoadFromDB returns the work item with the given natural ID in model representation.
+func (r *GormWorkItemRepository) LoadFromDB(ctx context.Context, id uuid.UUID) (*WorkItemStorage, error) {
 	log.Info(nil, map[string]interface{}{
-		"wi_id": workitemID,
+		"wi_id": id,
 	}, "Loading work item")
 
 	res := WorkItemStorage{}
-	tx := r.db.First(&res, id)
+	tx := r.db.Model(WorkItemStorage{}).Where("id = ?", id).First(&res)
 	if tx.RecordNotFound() {
 		log.Error(nil, map[string]interface{}{
-			"wi_id": workitemID,
+			"wi_id": id,
 		}, "work item not found")
-		return nil, errors.NewNotFoundError("work item", workitemID)
+		return nil, errors.NewNotFoundError("work item", id.String())
 	}
 	if tx.Error != nil {
 		return nil, errors.NewInternalError(ctx, tx.Error)
@@ -87,11 +82,11 @@ func (r *GormWorkItemRepository) LoadFromDB(ctx context.Context, workitemID stri
 	return &res, nil
 }
 
-// Load returns the work item for the given id
+// LoadByID returns the work item for the given id
 // returns NotFoundError, ConversionError or InternalError
-func (r *GormWorkItemRepository) LoadByID(ctx context.Context, ID string) (*WorkItem, error) {
+func (r *GormWorkItemRepository) LoadByID(ctx context.Context, id uuid.UUID) (*WorkItem, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitem", "loadById"}, time.Now())
-	res, err := r.LoadFromDB(ctx, ID)
+	res, err := r.LoadFromDB(ctx, id)
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
@@ -104,9 +99,9 @@ func (r *GormWorkItemRepository) LoadByID(ctx context.Context, ID string) (*Work
 
 // Load returns the work item for the given spaceID and item id
 // returns NotFoundError, ConversionError or InternalError
-func (r *GormWorkItemRepository) Load(ctx context.Context, spaceID uuid.UUID, workitemID string) (*WorkItem, error) {
+func (r *GormWorkItemRepository) Load(ctx context.Context, spaceID uuid.UUID, wiNumber int) (*WorkItem, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitem", "load"}, time.Now())
-	wiStorage, wiType, err := r.loadWorkItemStorage(ctx, spaceID, workitemID, false)
+	wiStorage, wiType, err := r.loadWorkItemStorage(ctx, spaceID, wiNumber, false)
 	if err != nil {
 		return nil, err
 	}
@@ -119,15 +114,10 @@ func (m *GormWorkItemRepository) Exists(ctx context.Context, workitemID string) 
 	return repository.Exists(ctx, m.db, workitemTableName, workitemID)
 }
 
-func (r *GormWorkItemRepository) loadWorkItemStorage(ctx context.Context, spaceID uuid.UUID, workitemID string, selectForUpdate bool) (*WorkItemStorage, *WorkItemType, error) {
-	id, err := strconv.ParseUint(workitemID, 10, 64)
-	if err != nil || id == 0 {
-		// treating this as a not found error: the fact that we're using number internal is implementation detail
-		return nil, nil, errors.NewNotFoundError("work item", workitemID)
-	}
+func (r *GormWorkItemRepository) loadWorkItemStorage(ctx context.Context, spaceID uuid.UUID, wiNumber int, selectForUpdate bool) (*WorkItemStorage, *WorkItemType, error) {
 	log.Info(nil, map[string]interface{}{
-		"wi_id":    workitemID,
-		"space_id": spaceID,
+		"wi_number": wiNumber,
+		"space_id":  spaceID,
 	}, "Loading work item")
 	wiStorage := &WorkItemStorage{}
 	// SELECT ... FOR UPDATE will lock the row to prevent concurrent update while until surrounding transaction ends.
@@ -135,20 +125,13 @@ func (r *GormWorkItemRepository) loadWorkItemStorage(ctx context.Context, spaceI
 	if selectForUpdate {
 		tx = tx.Set("gorm:query_option", "FOR UPDATE")
 	}
-	tx = tx.Model(wiStorage).Where("id=? AND space_id=?", id, spaceID).First(wiStorage)
+	tx = tx.Model(wiStorage).Where("number=? AND space_id=?", wiNumber, spaceID).First(wiStorage)
 	if tx.RecordNotFound() {
 		log.Error(nil, map[string]interface{}{
-			"wi_id":    workitemID,
-			"space_id": spaceID,
+			"wi_number": wiNumber,
+			"space_id":  spaceID,
 		}, "work item not found")
-		tx = r.db.Model(wiStorage).Where("id=?", id).First(wiStorage)
-		if tx.RecordNotFound() {
-			log.Error(nil, map[string]interface{}{
-				"wi_id":    workitemID,
-				"space_id": spaceID,
-			}, "work item with id=<wi_id> does not belong to space with id=<space_id>")
-		}
-		return nil, nil, errors.NewNotFoundError("work item", workitemID)
+		return nil, nil, errors.NewNotFoundError("work item", strconv.Itoa(wiNumber))
 	}
 	if tx.Error != nil {
 		return nil, nil, errors.NewInternalError(ctx, tx.Error)
@@ -209,49 +192,42 @@ func (r *GormWorkItemRepository) LoadHighestOrder(ctx context.Context) (float64,
 
 // Delete deletes the work item with the given id
 // returns NotFoundError or InternalError
-func (r *GormWorkItemRepository) Delete(ctx context.Context, spaceID uuid.UUID, workitemID string, suppressorID uuid.UUID) error {
+func (r *GormWorkItemRepository) Delete(ctx context.Context, workitemID uuid.UUID, suppressorID uuid.UUID) error {
 	defer goa.MeasureSince([]string{"goa", "db", "workitem", "delete"}, time.Now())
 	var workItem = WorkItemStorage{}
-	id, err := strconv.ParseUint(workitemID, 10, 64)
-	if err != nil || id == 0 {
-		// treat as not found: clients don't know it must be a number
-		return errors.NewNotFoundError("work item", workitemID)
-	}
-	workItem.ID = id
-	workItem.SpaceID = spaceID
+	workItem.ID = workitemID
 	// retrieve the current version of the work item to delete
-	r.db.Select("id, version, type").Where("id = ? AND space_id = ?", workItem.ID, spaceID).Find(&workItem)
+	r.db.Select("id, version, type").Where("id = ?", workitemID).Find(&workItem)
 	// delete the work item
 	tx := r.db.Delete(workItem)
-	if err = tx.Error; err != nil {
+	if err := tx.Error; err != nil {
 		return errors.NewInternalError(ctx, err)
 	}
 	if tx.RowsAffected == 0 {
-		return errors.NewNotFoundError("work item", workitemID)
+		return errors.NewNotFoundError("work item", workitemID.String())
 	}
 	// store a revision of the deleted work item
-	err = r.wirr.Create(context.Background(), suppressorID, RevisionTypeDelete, workItem)
-	if err != nil {
+	if err := r.wirr.Create(context.Background(), suppressorID, RevisionTypeDelete, workItem); err != nil {
 		return errs.Wrapf(err, "error while deleting work item")
 	}
-	log.Debug(ctx, map[string]interface{}{"wi_id": workitemID, "space_id": spaceID}, "Work item deleted successfully!")
+	log.Debug(ctx, map[string]interface{}{"wi_id": workitemID}, "Work item deleted successfully!")
 	return nil
 }
 
-// Calculates the order of the reorder workitem
+// CalculateOrder calculates the order of the reorder workitem
 func (r *GormWorkItemRepository) CalculateOrder(above, below *float64) float64 {
 	return (*above + *below) / 2
 }
 
-// Reordering a workitem requires order of two closest workitems: above and below.
 // FindSecondItem returns the order of the second workitem required to reorder.
+// Reordering a workitem requires order of two closest workitems: above and below.
 // If direction == "above", then
 //	FindFirstItem returns the value above which reorder item has to be placed
 //      FindSecondItem returns the value below which reorder item has to be placed
 // If direction == "below", then
 //	FindFirstItem returns the value below which reorder item has to be placed
 //      FindSecondItem returns the value above which reorder item has to be placed
-func (r *GormWorkItemRepository) FindSecondItem(ctx context.Context, order *float64, secondItemDirection DirectionType) (*string, *float64, error) {
+func (r *GormWorkItemRepository) FindSecondItem(ctx context.Context, order *float64, secondItemDirection DirectionType) (*uuid.UUID, *float64, error) {
 	Item := WorkItemStorage{}
 	var tx *gorm.DB
 	switch secondItemDirection {
@@ -266,60 +242,52 @@ func (r *GormWorkItemRepository) FindSecondItem(ctx context.Context, order *floa
 	default:
 		return nil, nil, nil
 	}
-
 	if tx.RecordNotFound() {
 		// Item is placed at first or last position
-		ItemID := strconv.FormatUint(Item.ID, 10)
+		ItemID := Item.ID
 		return &ItemID, nil, nil
 	}
 	if tx.Error != nil {
 		return nil, nil, errors.NewInternalError(ctx, tx.Error)
 	}
-
-	ItemID := strconv.FormatUint(Item.ID, 10)
+	ItemID := Item.ID
 	return &ItemID, &Item.ExecutionOrder, nil
-
 }
 
 // FindFirstItem returns the order of the target workitem
-func (r *GormWorkItemRepository) FindFirstItem(ctx context.Context, id string) (*float64, error) {
-	Item := WorkItemStorage{}
-	ID, err := strconv.ParseUint(id, 10, 64)
-	if err != nil || ID == 0 {
-		return nil, errors.NewNotFoundError("work item", string(ID))
-	}
-	tx := r.db.First(&Item, ID)
+func (r *GormWorkItemRepository) FindFirstItem(ctx context.Context, id uuid.UUID) (*float64, error) {
+	res := WorkItemStorage{}
+	tx := r.db.Model(WorkItemStorage{}).Where("id = ?", id).First(&res)
 	if tx.RecordNotFound() {
-		return nil, errors.NewNotFoundError("work item", id)
+		return nil, errors.NewNotFoundError("work item", id.String())
 	}
 	if tx.Error != nil {
 		return nil, errors.NewInternalError(ctx, tx.Error)
 	}
-	return &Item.ExecutionOrder, nil
+	return &res.ExecutionOrder, nil
 }
 
 // Reorder places the to-be-reordered workitem above the input workitem.
 // The order of workitems are spaced by a factor of 1000.
 // The new order of workitem := (order of previousitem + order of nextitem)/2
 // Version must be the same as the one int the stored version
-func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction DirectionType, targetID *string, wi WorkItem, modifierID uuid.UUID) (*WorkItem, error) {
+func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction DirectionType, targetID *uuid.UUID, wi WorkItem, modifierID uuid.UUID) (*WorkItem, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitem", "reorder"}, time.Now())
 	var order float64
 	res := WorkItemStorage{}
-
-	id, err := strconv.ParseUint(wi.ID, 10, 64)
-	if err != nil || id == 0 {
-		return nil, errors.NewNotFoundError("work item", wi.ID)
-	}
-
-	tx := r.db.First(&res, id)
+	tx := r.db.Model(WorkItemStorage{}).Where("id = ?", wi.ID).First(&res)
 	if tx.RecordNotFound() {
-		return nil, errors.NewNotFoundError("work item", wi.ID)
+		return nil, errors.NewNotFoundError("work item", wi.ID.String())
 	}
 	if err := tx.Error; err != nil {
 		return nil, errors.NewInternalError(ctx, err)
 	}
 	if res.Version != wi.Version {
+		log.Info(ctx, map[string]interface{}{
+			"wi_id":           wi.ID.String(),
+			"current_version": res.Version,
+			"input_version":   wi.Version},
+			"version_conflict while reordering items")
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
 
@@ -333,17 +301,17 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction Directio
 		// if direction == "below", place the reorder item **below** the workitem having id equal to targetID
 		aboveItemOrder, err := r.FindFirstItem(ctx, *targetID)
 		if aboveItemOrder == nil || err != nil {
-			return nil, errors.NewNotFoundError("work item", *targetID)
+			return nil, errors.NewNotFoundError("work item", targetID.String())
 		}
 		belowItemID, belowItemOrder, err := r.FindSecondItem(ctx, aboveItemOrder, DirectionAbove)
 		if err != nil {
-			return nil, errors.NewNotFoundError("work item", *targetID)
+			return nil, errors.NewNotFoundError("work item", targetID.String())
 		}
-		if *belowItemID == "0" {
+		if belowItemOrder == nil {
 			// Item is placed at last position
 			belowItemOrder := float64(0)
 			order = r.CalculateOrder(aboveItemOrder, &belowItemOrder)
-		} else if *belowItemID == strconv.FormatUint(res.ID, 10) {
+		} else if *belowItemID == res.ID {
 			// When same reorder request is made again
 			order = wi.Fields[SystemOrder].(float64)
 		} else {
@@ -353,16 +321,16 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction Directio
 		// if direction == "above", place the reorder item **above** the workitem having id equal to targetID
 		belowItemOrder, err := r.FindFirstItem(ctx, *targetID)
 		if belowItemOrder == nil || err != nil {
-			return nil, errors.NewNotFoundError("work item", *targetID)
+			return nil, errors.NewNotFoundError("work item", targetID.String())
 		}
 		aboveItemID, aboveItemOrder, err := r.FindSecondItem(ctx, belowItemOrder, DirectionBelow)
 		if err != nil {
-			return nil, errors.NewNotFoundError("work item", *targetID)
+			return nil, errors.NewNotFoundError("work item", targetID.String())
 		}
-		if *aboveItemID == "0" {
+		if aboveItemOrder == nil {
 			// Item is placed at first position
 			order = *belowItemOrder + float64(orderValue)
-		} else if *aboveItemID == strconv.FormatUint(res.ID, 10) {
+		} else if *aboveItemID == res.ID {
 			// When same reorder request is made again
 			order = wi.Fields[SystemOrder].(float64)
 		} else {
@@ -433,7 +401,7 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction Directio
 // returns NotFoundError, VersionConflictError, ConversionError or InternalError
 func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, updatedWorkItem WorkItem, modifierID uuid.UUID) (*WorkItem, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitem", "save"}, time.Now())
-	wiStorage, wiType, err := r.loadWorkItemStorage(ctx, spaceID, updatedWorkItem.ID, true)
+	wiStorage, wiType, err := r.loadWorkItemStorage(ctx, spaceID, updatedWorkItem.Number, true)
 	if err != nil {
 		return nil, err
 	}
@@ -489,6 +457,18 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 	if err != nil {
 		return nil, errors.NewBadParameterError("typeID", typeID)
 	}
+	// retrieve the current issue number in the given space
+	numberSequence := WorkItemNumberSequence{}
+	tx := r.db.Model(&WorkItemNumberSequence{}).Set("gorm:query_option", "FOR UPDATE").Where("space_id = ?", spaceID).First(&numberSequence)
+	if tx.RecordNotFound() {
+		numberSequence.SpaceID = spaceID
+		numberSequence.CurrentVal = 1
+	} else {
+		numberSequence.CurrentVal++
+	}
+	if err = r.db.Save(&numberSequence).Error; err != nil {
+		return nil, errs.Wrapf(err, "failed to create work item")
+	}
 
 	// The order of workitems are spaced by a factor of 1000.
 	pos, err := r.LoadHighestOrder(ctx)
@@ -501,6 +481,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 		Fields:         Fields{},
 		ExecutionOrder: pos,
 		SpaceID:        spaceID,
+		Number:         numberSequence.CurrentVal,
 	}
 	fields[SystemCreator] = creatorID.String()
 	for fieldName, fieldDef := range wiType.Fields {
@@ -520,8 +501,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 			}
 		}
 	}
-	tx := r.db
-	if err = tx.Create(&wi).Error; err != nil {
+	if err = r.db.Create(&wi).Error; err != nil {
 		return nil, errs.Wrapf(err, "failed to create work item")
 	}
 
@@ -559,13 +539,13 @@ func ConvertWorkItemStorageToModel(wiType *WorkItemType, wi *WorkItemStorage) (*
 
 // extracted this function from List() in order to close the rows object with "defer" for more readability
 // workaround for https://github.com/lib/pq/issues/81
-func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, parentExists *bool, start *int, limit *int) ([]WorkItemStorage, uint64, error) {
+func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, parentExists *bool, start *int, limit *int) ([]WorkItemStorage, int, error) {
 	where, parameters, compileError := Compile(criteria)
 	if compileError != nil {
 		return nil, 0, errors.NewBadParameterError("expression", criteria)
 	}
 	where = where + " AND space_id = ?"
-	parameters = append(parameters, spaceID)
+	parameters = append(parameters, spaceID.String())
 
 	if parentExists != nil && !*parentExists {
 		where += ` AND
@@ -607,7 +587,7 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, spaceID uu
 	}
 
 	// need to set up a result for Scan() in order to extract total count.
-	var count uint64
+	var count int
 	var ignore interface{}
 	columnValues := make([]interface{}, len(columns))
 
@@ -645,9 +625,8 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, spaceID uu
 }
 
 // List returns work item selected by the given criteria.Expression, starting with start (zero-based) and returning at most limit items
-func (r *GormWorkItemRepository) List(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, parentExists *bool, start *int, limit *int) ([]WorkItem, uint64, error) {
+func (r *GormWorkItemRepository) List(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, parentExists *bool, start *int, limit *int) ([]WorkItem, int, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitem", "list"}, time.Now())
-
 	result, count, err := r.listItemsFromDB(ctx, spaceID, criteria, parentExists, start, limit)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)

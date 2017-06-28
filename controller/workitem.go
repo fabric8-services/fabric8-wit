@@ -159,7 +159,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 
 	var wi *workitem.WorkItem
 	err = application.Transactional(c.db, func(appl application.Application) error {
-		wi, err = appl.WorkItems().Load(ctx, ctx.SpaceID, *ctx.Payload.Data.ID)
+		wi, err = appl.WorkItems().LoadByID(ctx, *ctx.Payload.Data.ID)
 		if err != nil {
 			return errs.Wrap(err, fmt.Sprintf("Failed to load work item with id %v", *ctx.Payload.Data.ID))
 		}
@@ -227,7 +227,7 @@ func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
 
 		// Reorder workitems in the array one by one
 		for i := 0; i < len(ctx.Payload.Data); i++ {
-			wi, err := appl.WorkItems().Load(ctx, ctx.SpaceID, *ctx.Payload.Data[i].ID)
+			wi, err := appl.WorkItems().LoadByID(ctx, *ctx.Payload.Data[i].ID)
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "failed to reorder work item"))
 			}
@@ -244,6 +244,7 @@ func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
 			wi2 := ConvertWorkItem(ctx.RequestData, *wi, hasChildren)
 			dataArray = append(dataArray, wi2)
 		}
+		log.Debug(ctx, nil, "Reordered items: %d", len(dataArray))
 		resp := &app.WorkItemReorder{
 			Data: dataArray,
 		}
@@ -310,7 +311,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 // Show does GET workitem
 func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		wi, err := appl.WorkItems().Load(ctx, ctx.SpaceID, ctx.WiID)
+		wi, err := appl.WorkItems().LoadByID(ctx, ctx.WiID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Fail to load work item with id %v", ctx.WiID)))
 		}
@@ -346,7 +347,7 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to access the space"))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-		err := appl.WorkItems().Delete(ctx, ctx.SpaceID, ctx.WiID, *currentUserIdentityID)
+		err := appl.WorkItems().Delete(ctx, ctx.WiID, *currentUserIdentityID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "error deleting work item %s", ctx.WiID))
 		}
@@ -548,7 +549,8 @@ func ConvertWorkItem(request *goa.RequestData, wi workitem.WorkItem, additional 
 		ID:   &wi.ID,
 		Type: APIStringTypeWorkItem,
 		Attributes: map[string]interface{}{
-			"version": wi.Version,
+			workitem.SystemVersion: wi.Version,
+			workitem.SystemNumber:  wi.Number,
 		},
 		Relationships: &app.WorkItemRelationships{
 			BaseType: &app.RelationBaseType{

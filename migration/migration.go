@@ -316,6 +316,9 @@ func GetMigrations() Migrations {
 	// Version 64
 	m = append(m, steps{ExecuteSQLFile("064-remove-link-combinations.sql")})
 
+	// Version 64
+	m = append(m, steps{ExecuteSQLFile("065-workitem-id-unique-per-space.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the

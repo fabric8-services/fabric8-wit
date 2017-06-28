@@ -60,7 +60,7 @@ func (s *TestPagingSuite) TestPagingLinks() {
 }
 
 func (s *TestPagingSuite) TestPagingErrors() {
-	s.repo.ListReturns(makeWorkItems(100), uint64(100), nil)
+	s.repo.ListReturns(makeWorkItems(100), 100, nil)
 
 	var offset string = "-1"
 	var limit int = 2
@@ -108,7 +108,7 @@ func (s *TestPagingSuite) TestPagingLinksHasAbsoluteURL() {
 	// given
 	offset := "10"
 	limit := 10
-	s.repo.ListReturns(makeWorkItems(10), uint64(100), nil)
+	s.repo.ListReturns(makeWorkItems(10), 100, nil)
 	// when
 	_, result := test.ListWorkitemOK(s.T(), context.Background(), nil, s.controller, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
 	// then
@@ -130,7 +130,7 @@ func (s *TestPagingSuite) TestPagingDefaultAndMaxSize() {
 	// given
 	offset := "0"
 	var limit int
-	s.repo.ListReturns(makeWorkItems(10), uint64(100), nil)
+	s.repo.ListReturns(makeWorkItems(10), 100, nil)
 	// when
 	_, result := test.ListWorkitemOK(s.T(), context.Background(), nil, s.controller, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &offset, nil, nil)
 	// then

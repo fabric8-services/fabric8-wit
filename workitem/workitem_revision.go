@@ -30,7 +30,7 @@ type Revision struct {
 	// the identity of author of the workitem modification
 	ModifierIdentity uuid.UUID `sql:"type:uuid" gorm:"column:modifier_id"`
 	// the id of the work item that changed
-	WorkItemID uint64 `gorm:"column:work_item_id"`
+	WorkItemID uuid.UUID `gorm:"column:work_item_id"`
 	// Id of the type of this work item
 	WorkItemTypeID uuid.UUID `gorm:"column:work_item_type_id"`
 	// Version of the workitem that was modified
