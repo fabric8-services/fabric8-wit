@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"testing"
 
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
@@ -17,7 +18,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/resource"
 	almrest "github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space"
-	jwt "github.com/dgrijalva/jwt-go"
 
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	almtoken "github.com/fabric8-services/fabric8-wit/token"

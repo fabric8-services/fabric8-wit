@@ -5,10 +5,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/asaskevich/govalidator"
 	"github.com/fabric8-services/fabric8-wit/codebase"
 	"github.com/fabric8-services/fabric8-wit/convert"
 	"github.com/fabric8-services/fabric8-wit/rendering"
-	"github.com/asaskevich/govalidator"
 	errs "github.com/pkg/errors"
 )
 

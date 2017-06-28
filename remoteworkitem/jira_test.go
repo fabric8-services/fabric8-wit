@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fabric8-services/fabric8-wit/resource"
 	jira "github.com/andygrunwald/go-jira"
 	"github.com/dnaeon/go-vcr/recorder"
+	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
