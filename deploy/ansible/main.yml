@@ -1,0 +1,49 @@
+- hosts: app
+  tasks:
+    - name: Install the packages
+      yum:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - findutils
+        - git
+        - golang
+        - make
+        - mercurial
+        - procps-ng
+        - tar
+        - wget 
+        - which
+        
+    - name: Get glide for Go package management
+      shell: cd /tmp; wget https://github.com/Masterminds/glide/releases/download/v0.11.1/glide-v0.11.1-linux-amd64.tar.gz
+   
+    - name: Untar the file
+      shell: cd /tmp && \ 
+             tar xvzf glide-v*.tar.gz && \
+             mv linux-amd64/glide /usr/bin && \
+             rm -rfv glide-v* linux-amd64 
+
+    - name: Make working directory
+      shell: mkdir $HOME/work        
+      
+    - name: Set GOPATH
+      shell: echo 'export GOPATH=$HOME/work' >> ~/.bash_profile
+
+    - name: Export GOPATH
+      shell: export GOPATH=$HOME/work
+                   
+
+    - name: Git clone the repo
+      shell: source ~/.bash_profile && \
+             mkdir -p $GOPATH/src/github.com/almighty && \
+             cd $GOPATH/src/github.com/almighty && \
+             git clone https://github.com/almighty/almighty-core 
+      
+    - name: Make build
+      shell: source ~/.bash_profile && \
+             cd $GOPATH/src/github.com/almighty/almighty-core && \
+             make && \
+             make generate && \
+             make build && \     
+             cp  bin/alm /usr/bin/alm
