@@ -10,10 +10,10 @@ services:
     networks:
       - default
   core:
-    image: almightycore/almighty-core:latest
+    image: fabric8/fabric8-wit:latest
     command: -config /usr/local/alm/etc/config.yaml
     environment:
-      ALMIGHTY_POSTGRES_HOST: db
+      F8_POSTGRES_HOST: db
     ports:
       - "8080:8080"
     networks:

@@ -5,8 +5,8 @@ import (
 	a "github.com/goadesign/goa/design/apidsl"
 )
 
-var _ = a.API("alm", func() {
-	a.Title("ALMighty: One to rule them all")
+var _ = a.API("wit", func() {
+	a.Title("Fabric8-wit: One to rule them all")
 	a.Description("The next big thing")
 	a.Version("1.0")
 	a.Host("almighty.io")

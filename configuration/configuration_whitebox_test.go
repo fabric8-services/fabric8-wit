@@ -87,7 +87,7 @@ func TestGetKeycloakURLForTooShortHostFails(t *testing.T) {
 func TestKeycloakRealmInDevModeCanBeOverridden(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
-	key := "ALMIGHTY_KEYCLOAK_REALM"
+	key := "F8_KEYCLOAK_REALM"
 	realEnvValue := os.Getenv(key)
 
 	os.Unsetenv(key)
@@ -107,7 +107,7 @@ func TestKeycloakRealmInDevModeCanBeOverridden(t *testing.T) {
 func TestGetLogLevelOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
-	key := "ALMIGHTY_LOG_LEVEL"
+	key := "F8_LOG_LEVEL"
 	realEnvValue := os.Getenv(key)
 
 	os.Unsetenv(key)
@@ -127,7 +127,7 @@ func TestGetLogLevelOK(t *testing.T) {
 func TestValidRedirectURLsInDevModeCanBeOverridden(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
-	key := "ALMIGHTY_REDIRECT_VALID"
+	key := "F8_REDIRECT_VALID"
 	realEnvValue := os.Getenv(key)
 
 	os.Unsetenv(key)

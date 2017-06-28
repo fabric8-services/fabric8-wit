@@ -324,9 +324,9 @@ github.secret : 2fe6736e90a9283036a37059d75ac0c82f4f5288
 Although this is a YAML file, we highly suggest to stick to this rather lenghty notation instead of nesting structs.
 
 To override configuration values using environment variables, use the prefix
-`ALMIGHTY_` and replace the dots in the variables names with underscores.
+`F8_` and replace the dots in the variables names with underscores.
 
-For example to override `postgres.password`, set the environment variable `ALMIGHTY_POSTGRES_PASSWORD` to the value of you liking.
+For example to override `postgres.password`, set the environment variable `F8_POSTGRES_PASSWORD` to the value of you liking.
 
 NOTE: Environment variables override the default values and the ones you've set in your config file.
 
