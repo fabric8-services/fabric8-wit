@@ -11,6 +11,11 @@ import (
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 
+<<<<<<< HEAD
+=======
+	"context"
+
+>>>>>>> 72a6d9b... add token to response and start using limit
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
@@ -206,4 +211,9 @@ func UserFilterByEmail(email string) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Where("email = ?", email)
 	}
+}
+
+// GetRecentUserSpaces returns the list of spaces recently accessed by the user
+func GetRecentUserSpaces(userID uuid.UUID) *[]uuid.UUID {
+	return nil
 }

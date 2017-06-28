@@ -19,7 +19,7 @@ import (
 type dummySpaceAuthzService struct {
 }
 
-func (s *dummySpaceAuthzService) Authorize(ctx context.Context, entitlementEndpoint string, spaceID string) (bool, error) {
+func (s *dummySpaceAuthzService) Authorize(ctx context.Context, entitlementEndpoint string, spaceID string, token *string) (bool, error) {
 	return true, nil
 }
 

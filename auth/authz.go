@@ -143,7 +143,12 @@ type UserInfo struct {
 
 // EntitlementResource represents a payload for obtaining entitlement for specific resource
 type EntitlementResource struct {
-	Permissions []ResourceSet `json:"permissions"`
+	Permissions     []ResourceSet   `json:"permissions"`
+	MetaInformation EntitlementMeta `json:"metadata"`
+}
+
+type EntitlementMeta struct {
+	Limit string `json:"limit"`
 }
 
 // ResourceSet represents a resource set for Entitlement payload
@@ -177,8 +182,12 @@ type Permissions struct {
 func VerifyResourceUser(ctx context.Context, token string, resourceName string, entitlementEndpoint string) (bool, error) {
 	resource := EntitlementResource{
 		Permissions: []ResourceSet{{Name: resourceName}},
+		MetaInformation: EntitlementMeta{
+			Limit: "5",
+		},
 	}
 	ent, err := GetEntitlement(ctx, entitlementEndpoint, &resource, token)
+
 	if err != nil {
 		return false, err
 	}
@@ -645,6 +654,7 @@ func GetEntitlement(ctx context.Context, entitlementEndpoint string, entitlement
 	var reqErr error
 	if entitlementResource != nil {
 		b, err := json.Marshal(entitlementResource)
+		fmt.Println(string(b))
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"entitlement_resource": entitlementResource,

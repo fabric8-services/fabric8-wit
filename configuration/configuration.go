@@ -706,7 +706,7 @@ R6WowwXkce3+vHsVpwgy62RFlSV0StNggt06+oVqGotwZdnZU43qdRWyDpsfdR8F
 	defaultLogLevel = "info"
 
 	defaultKeycloakClientID = "fabric8-online-platform"
-	defaultKeycloakSecret   = "cd382c22-5445-48f7-9c5f-78752963cdfa"
+	defaultKeycloakSecret   = "4c4346a0-d9a9-4d54-a74c-18e892e59f58"
 
 	defaultKeycloakDomainPrefix = "sso"
 	defaultKeycloakRealm        = "fabric8"
