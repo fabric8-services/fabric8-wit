@@ -1719,6 +1719,10 @@ func assertResponseHeaders(t *testing.T, res http.ResponseWriter) (string, strin
 }
 
 // Temporarly disabled, See https://github.com/fabric8-services/fabric8-wit/issues/1036
+func (s *WorkItem2Suite) TestWI2FailShowMissing() {
+	test.ShowWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace, uuid.NewV4(), nil, nil)
+}
+
 func (s *WorkItem2Suite) TestWI2FailOnDelete() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
