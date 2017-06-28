@@ -4,7 +4,7 @@ import (
 	"crypto/rsa"
 
 	"context"
-	"github.com/almighty/almighty-core/account"
+	"github.com/fabric8-services/fabric8-wit/account"
 	jwt "github.com/dgrijalva/jwt-go"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/pkg/errors"

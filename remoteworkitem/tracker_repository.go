@@ -7,11 +7,11 @@ import (
 
 	"context"
 
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/application/repository"
-	"github.com/almighty/almighty-core/criteria"
-	"github.com/almighty/almighty-core/log"
-	"github.com/almighty/almighty-core/workitem"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/application/repository"
+	"github.com/fabric8-services/fabric8-wit/criteria"
+	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 	govalidator "gopkg.in/asaskevich/govalidator.v4"

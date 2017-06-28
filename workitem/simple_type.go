@@ -5,9 +5,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/almighty/almighty-core/codebase"
-	"github.com/almighty/almighty-core/convert"
-	"github.com/almighty/almighty-core/rendering"
+	"github.com/fabric8-services/fabric8-wit/codebase"
+	"github.com/fabric8-services/fabric8-wit/convert"
+	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/asaskevich/govalidator"
 	errs "github.com/pkg/errors"
 )

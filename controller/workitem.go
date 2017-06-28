@@ -8,19 +8,19 @@ import (
 
 	"context"
 
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/codebase"
-	"github.com/almighty/almighty-core/criteria"
-	"github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/jsonapi"
-	"github.com/almighty/almighty-core/log"
-	"github.com/almighty/almighty-core/login"
-	query "github.com/almighty/almighty-core/query/simple"
-	"github.com/almighty/almighty-core/rendering"
-	"github.com/almighty/almighty-core/rest"
-	"github.com/almighty/almighty-core/space/authz"
-	"github.com/almighty/almighty-core/workitem"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/codebase"
+	"github.com/fabric8-services/fabric8-wit/criteria"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/jsonapi"
+	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/login"
+	query "github.com/fabric8-services/fabric8-wit/query/simple"
+	"github.com/fabric8-services/fabric8-wit/rendering"
+	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/space/authz"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
@@ -331,7 +331,7 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 // Delete does DELETE workitem
 func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 
-	// Temporarly disabled, See https://github.com/almighty/almighty-core/issues/1036
+	// Temporarly disabled, See https://github.com/fabric8-services/fabric8-wit/issues/1036
 	if true {
 		return ctx.MethodNotAllowed()
 	}

@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/almighty/almighty-core/client"
-	"github.com/almighty/almighty-core/tool/cli"
+	"github.com/fabric8-services/fabric8-wit/client"
+	"github.com/fabric8-services/fabric8-wit/tool/cli"
 	goaclient "github.com/goadesign/goa/client"
 	"github.com/spf13/cobra"
 )

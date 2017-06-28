@@ -9,10 +9,10 @@ import (
 	logger "log"
 	"testing"
 
-	config "github.com/almighty/almighty-core/configuration"
-	"github.com/almighty/almighty-core/log"
-	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/resource"
+	config "github.com/fabric8-services/fabric8-wit/configuration"
+	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/migration"
+	"github.com/fabric8-services/fabric8-wit/resource"
 	uuid "github.com/satori/go.uuid"
 
 	"time"

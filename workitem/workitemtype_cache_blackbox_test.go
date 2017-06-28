@@ -4,8 +4,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/workitem"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 )

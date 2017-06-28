@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/almighty/almighty-core/resource"
+	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/stretchr/testify/assert"
 )
 

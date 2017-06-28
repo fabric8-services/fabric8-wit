@@ -8,12 +8,12 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/auth"
-	config "github.com/almighty/almighty-core/configuration"
-	"github.com/almighty/almighty-core/resource"
-	testtoken "github.com/almighty/almighty-core/test/token"
-	"github.com/almighty/almighty-core/token"
+	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/auth"
+	config "github.com/fabric8-services/fabric8-wit/configuration"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	testtoken "github.com/fabric8-services/fabric8-wit/test/token"
+	"github.com/fabric8-services/fabric8-wit/token"
 
 	_ "github.com/lib/pq"
 	uuid "github.com/satori/go.uuid"
