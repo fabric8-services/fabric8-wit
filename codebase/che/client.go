@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 
-	"github.com/almighty/almighty-core/log"
+	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/goadesign/goa/middleware"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 )

@@ -5,7 +5,7 @@
       "last_used_workspace": "my-last-used-workspace",
       "stackId": "golang-default",
       "type": "git",
-      "url": "https://github.com/almighty/almighty-core.git"
+      "url": "https://github.com/fabric8-services/fabric8-wit.git"
     },
     "id": "d7a282f6-1c10-459e-bb44-55a1a6d48bdd",
     "links": {
