@@ -1788,14 +1788,6 @@ func (s *WorkItem2Suite) xTestWI2DeleteLinksOnWIDeletionOK() {
 	test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *wi2.Data.Relationships.Space.Data.ID, *wi2.Data.ID, nil, nil)
 }
 
-<<<<<<< 780aa61a2e8cefb78823bd458a3ad7b44a2191d8
-=======
-// Temporarly disabled, See https://github.com/fabric8-services/fabric8-wit/issues/1036
-func (s *WorkItem2Suite) xTestWI2FailMissingDelete() {
-	test.DeleteWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace, "00000000")
-}
-
->>>>>>> Rename project to Fabric8-WIT
 func (s *WorkItem2Suite) TestWI2CreateWithArea() {
 	// given
 	_, areaInstance := createSpaceAndArea(s.T(), gormapplication.NewGormDB(s.DB))
