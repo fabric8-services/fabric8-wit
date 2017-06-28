@@ -12,7 +12,7 @@ or
 
 ## Reporting Issues
 
-All the issues related to Fabric8-Wit should be reported in the
+All the issues related to fabric8-wit should be reported in the
 [GitHub issue tracker](https://github.com/fabric8-services/fabric8-wit/issues/new).
 
 ## Pull Requests
