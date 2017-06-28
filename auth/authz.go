@@ -11,10 +11,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/rest"
-	"github.com/dgrijalva/jwt-go"
 	errs "github.com/pkg/errors"
 )
 
