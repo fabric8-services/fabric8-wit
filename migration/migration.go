@@ -314,7 +314,10 @@ func GetMigrations() Migrations {
 	m = append(m, steps{ExecuteSQLFile("063-workitem-related-changes.sql")})
 
 	// Version 64
-	m = append(m, steps{ExecuteSQLFile("064-workitem-id-unique-per-space.sql")})
+	m = append(m, steps{ExecuteSQLFile("064-remove-link-combinations.sql")})
+
+	// Version 64
+	m = append(m, steps{ExecuteSQLFile("065-workitem-id-unique-per-space.sql")})
 
 	// Version N
 	//
@@ -519,8 +522,6 @@ func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkIte
 		Topology:       link.TopologyNetwork,
 		ForwardName:    "blocks",
 		ReverseName:    "blocked by",
-		SourceTypeID:   workitem.SystemBug,
-		TargetTypeID:   workitem.SystemPlannerItem,
 		LinkCategoryID: systemCat.ID,
 		SpaceID:        space.SystemSpace,
 	}
@@ -535,8 +536,6 @@ func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkIte
 		Topology:       link.TopologyNetwork,
 		ForwardName:    "relates to",
 		ReverseName:    "is related to",
-		SourceTypeID:   workitem.SystemPlannerItem,
-		TargetTypeID:   workitem.SystemPlannerItem,
 		LinkCategoryID: systemCat.ID,
 		SpaceID:        space.SystemSpace,
 	}
@@ -551,8 +550,6 @@ func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkIte
 		Topology:       link.TopologyNetwork,
 		ForwardName:    "parent of",
 		ReverseName:    "child of",
-		SourceTypeID:   workitem.SystemPlannerItem,
-		TargetTypeID:   workitem.SystemPlannerItem,
 		LinkCategoryID: systemCat.ID,
 		SpaceID:        space.SystemSpace,
 	}

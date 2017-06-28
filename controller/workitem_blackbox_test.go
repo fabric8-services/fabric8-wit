@@ -1769,7 +1769,7 @@ func (s *WorkItem2Suite) xTestWI2DeleteLinksOnWIDeletionOK() {
 	_, space := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, spacePayload)
 
 	// Create work item link type payload
-	linkTypePayload := newCreateWorkItemLinkTypePayload("MyLinkType", workitem.SystemBug, workitem.SystemBug, *linkCat.Data.ID, *space.Data.ID)
+	linkTypePayload := newCreateWorkItemLinkTypePayload("MyLinkType", *linkCat.Data.ID, *space.Data.ID)
 	_, linkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *space.Data.ID, linkTypePayload)
 	require.NotNil(s.T(), linkType)
 

@@ -62,43 +62,6 @@ type GormWorkItemLinkRepository struct {
 	revisionRepo         *GormWorkItemLinkRevisionRepository
 }
 
-// ValidateCorrectSourceAndTargetType returns an error if the Path of
-// the source WIT as defined by the work item link type is not part of
-// the actual source's WIT; the same applies for the target.
-func (r *GormWorkItemLinkRepository) ValidateCorrectSourceAndTargetType(ctx context.Context, sourceID, targetID uuid.UUID, linkTypeID uuid.UUID) error {
-	linkType, err := r.workItemLinkTypeRepo.Load(ctx, linkTypeID)
-	if err != nil {
-		return errs.WithStack(err)
-	}
-	// Fetch the source work item
-	source, err := r.workItemRepo.LoadFromDB(ctx, sourceID)
-	if err != nil {
-		return errs.WithStack(err)
-	}
-	// Fetch the target work item
-	target, err := r.workItemRepo.LoadFromDB(ctx, targetID)
-	if err != nil {
-		return errs.WithStack(err)
-	}
-	// Fetch the concrete work item types of the target and the source.
-	sourceWorkItemType, err := r.workItemTypeRepo.LoadTypeFromDB(ctx, source.Type)
-	if err != nil {
-		return errs.WithStack(err)
-	}
-	targetWorkItemType, err := r.workItemTypeRepo.LoadTypeFromDB(ctx, target.Type)
-	if err != nil {
-		return errs.WithStack(err)
-	}
-	// Check type paths
-	if !sourceWorkItemType.IsTypeOrSubtypeOf(linkType.SourceTypeID) {
-		return errors.NewBadParameterError("source work item type", source.Type)
-	}
-	if !targetWorkItemType.IsTypeOrSubtypeOf(linkType.TargetTypeID) {
-		return errors.NewBadParameterError("target work item type", target.Type)
-	}
-	return nil
-}
-
 // CheckParentExists returns `true` if a link to a work item with the given `targetID` and of the given `linkType` already exists, `false` otherwise.
 // If the `sourceId` argument is not nil, then existing link from the source item to the target item with the given type is ignored.
 // In the context of a link creation, the `sourceID` argument should be nil, so the method will look for a link of the given type and target,
@@ -180,10 +143,6 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 		return nil, errs.Wrap(err, "failed to load link type")
 	}
 
-	if err := r.ValidateCorrectSourceAndTargetType(ctx, sourceID, targetID, linkType.ID); err != nil {
-		return nil, errs.WithStack(err)
-	}
-
 	if err := r.ValidateTopology(ctx, nil, targetID, *linkType); err != nil {
 		return nil, errs.WithStack(err)
 	}
@@ -193,6 +152,12 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 		if gormsupport.IsUniqueViolation(db.Error, "work_item_links_unique_idx") {
 			// TODO(kwk): Make NewBadParameterError a variadic function to avoid this ugliness ;)
 			return nil, errors.NewBadParameterError("data.relationships.source_id + data.relationships.target_id + data.relationships.link_type_id", sourceID).Expected("unique")
+		}
+		if gormsupport.IsForeignKeyViolation(db.Error, "work_item_links_source_id_fkey") {
+			return nil, errors.NewNotFoundError("source", sourceID.String())
+		}
+		if gormsupport.IsForeignKeyViolation(db.Error, "work_item_links_target_id_fkey") {
+			return nil, errors.NewNotFoundError("target", targetID.String())
 		}
 		return nil, errors.NewInternalError(ctx, db.Error)
 	}
@@ -347,10 +312,6 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, linkToSave WorkIt
 	linkTypeToSave, err := r.workItemLinkTypeRepo.Load(ctx, linkToSave.LinkTypeID)
 	if err != nil {
 		return nil, errs.Wrap(err, "failed to load link type")
-	}
-
-	if err := r.ValidateCorrectSourceAndTargetType(ctx, linkToSave.SourceID, linkToSave.TargetID, linkTypeToSave.ID); err != nil {
-		return nil, errs.WithStack(err)
 	}
 
 	if err := r.ValidateTopology(ctx, &linkToSave.SourceID, linkToSave.TargetID, *linkTypeToSave); err != nil {

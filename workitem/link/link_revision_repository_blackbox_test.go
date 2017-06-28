@@ -103,8 +103,6 @@ func (s *revisionRepositoryBlackBoxTest) SetupTest() {
 	linkTypeRepository := link.NewWorkItemLinkTypeRepository(s.DB)
 	linkTypeModel1 := link.WorkItemLinkType{
 		Name:           "test link type 1",
-		SourceTypeID:   workitem.SystemBug,
-		TargetTypeID:   workitem.SystemBug,
 		ForwardName:    "foo",
 		ReverseName:    "foo",
 		Topology:       "dependency",
@@ -116,8 +114,6 @@ func (s *revisionRepositoryBlackBoxTest) SetupTest() {
 	s.testLinkType1ID = linkType1.ID
 	linkTypeModel2 := link.WorkItemLinkType{
 		Name:           "test link type 2",
-		SourceTypeID:   workitem.SystemBug,
-		TargetTypeID:   workitem.SystemBug,
 		ForwardName:    "bar",
 		ReverseName:    "bar",
 		Topology:       "dependency",

@@ -167,7 +167,7 @@ func (s *workItemChildSuite) SetupTest() {
 	s.T().Logf("Created link category with ID: %s\n", *workitemLinkCategory.Data.ID)
 
 	// Create work item link type payload
-	createLinkTypePayload := createParentChildWorkItemLinkType("test-bug-blocker", workitem.SystemBug, workitem.SystemBug, userLinkCategoryID, s.userSpaceID)
+	createLinkTypePayload := createParentChildWorkItemLinkType("test-bug-blocker", userLinkCategoryID, s.userSpaceID)
 	_, workitemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.workitemLinkTypeCtrl, s.userSpaceID, createLinkTypePayload)
 	require.NotNil(s.T(), workitemLinkType)
 	s.bugBlockerLinkTypeID = *workitemLinkType.Data.ID
@@ -199,13 +199,11 @@ func (s *workItemChildSuite) TearDownTest() {
 //-----------------------------------------------------------------------------
 
 // createParentChildWorkItemLinkType defines a work item link type
-func createParentChildWorkItemLinkType(name string, sourceTypeID, targetTypeID, categoryID, spaceID uuid.UUID) *app.CreateWorkItemLinkTypePayload {
+func createParentChildWorkItemLinkType(name string, categoryID, spaceID uuid.UUID) *app.CreateWorkItemLinkTypePayload {
 	description := "Specify that one bug blocks another one."
 	lt := link.WorkItemLinkType{
 		Name:           name,
 		Description:    &description,
-		SourceTypeID:   sourceTypeID,
-		TargetTypeID:   targetTypeID,
 		Topology:       link.TopologyTree,
 		ForwardName:    "parent of",
 		ReverseName:    "child of",

@@ -158,7 +158,7 @@ func (s *workItemLinkSuite) SetupTest() {
 	s.T().Logf("Created link category with ID: %s\n", *workItemLinkCategory.Data.ID)
 
 	// Create work item link type payload
-	createLinkTypePayload := newCreateWorkItemLinkTypePayload("test-bug-blocker", *wit.Data.ID, *wit.Data.ID, s.userLinkCategoryID, s.userSpaceID)
+	createLinkTypePayload := newCreateWorkItemLinkTypePayload("test-bug-blocker", s.userLinkCategoryID, s.userSpaceID)
 	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkTypeCtrl, s.userSpaceID, createLinkTypePayload)
 	require.NotNil(s.T(), workItemLinkType)
 	//s.deleteWorkItemLinkTypes = append(s.deleteWorkItemLinkTypes, *workItemLinkType.Data.ID)
@@ -232,13 +232,11 @@ func newCreateWorkItemPayload(spaceID uuid.UUID, workItemType uuid.UUID, title s
 }
 
 // CreateWorkItemLinkType defines a work item link type
-func newCreateWorkItemLinkTypePayload(name string, sourceTypeID, targetTypeID, categoryID, spaceID uuid.UUID) *app.CreateWorkItemLinkTypePayload {
+func newCreateWorkItemLinkTypePayload(name string, categoryID, spaceID uuid.UUID) *app.CreateWorkItemLinkTypePayload {
 	description := "Specify that one bug blocks another one."
 	lt := link.WorkItemLinkType{
 		Name:           name,
 		Description:    &description,
-		SourceTypeID:   sourceTypeID,
-		TargetTypeID:   targetTypeID,
 		Topology:       link.TopologyNetwork,
 		ForwardName:    "forward name string for " + name,
 		ReverseName:    "reverse name string for " + name,
@@ -390,36 +388,6 @@ func (s *workItemLinkSuite) TestCreateWorkItemLinkBadRequestDueToNotFoundTarget(
 // Same for /api/workitems/:id/relationships/links
 func (s *workItemLinkSuite) TestCreateWorkItemRelationshipsLinksBadRequestDueToNotFoundTarget() {
 	createPayload := newCreateWorkItemLinkPayload(s.bug1ID, uuid.NewV4(), s.bugBlockerLinkTypeID)
-	_, _ = test.CreateWorkItemRelationshipsLinksBadRequest(s.T(), s.svc.Context, s.svc, s.workItemRelsLinksCtrl, s.userSpaceID, s.bug1ID, createPayload)
-}
-
-func (s *workItemLinkSuite) TestCreateWorkItemLinkBadRequestDueToBadSourceType() {
-	// Linking a bug and a feature isn't allowed for the bug blocker link type,
-	// thererfore this will cause a bad parameter error (which results in a bad request error).
-	createPayload := newCreateWorkItemLinkPayload(s.feature1ID, s.bug1ID, s.bugBlockerLinkTypeID)
-	_, _ = test.CreateWorkItemLinkBadRequest(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload)
-}
-
-// Same for /api/workitems/:id/relationships/links
-func (s *workItemLinkSuite) TestCreateWorkItemRelationshipsLinksBadRequestDueToBadSourceType() {
-	// Linking a bug and a feature isn't allowed for the bug blocker link type,
-	// thererfore this will cause a bad parameter error (which results in a bad request error).
-	createPayload := newCreateWorkItemLinkPayload(s.feature1ID, s.bug1ID, s.bugBlockerLinkTypeID)
-	_, _ = test.CreateWorkItemRelationshipsLinksBadRequest(s.T(), s.svc.Context, s.svc, s.workItemRelsLinksCtrl, s.userSpaceID, s.feature1ID, createPayload)
-}
-
-func (s *workItemLinkSuite) TestCreateWorkItemLinkBadRequestDueToBadTargetType() {
-	// Linking a bug and a feature isn't allowed for the bug blocker link type,
-	// thererfore this will cause a bad parameter error (which results in a bad request error).
-	createPayload := newCreateWorkItemLinkPayload(s.bug1ID, s.feature1ID, s.bugBlockerLinkTypeID)
-	_, _ = test.CreateWorkItemLinkBadRequest(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload)
-}
-
-// Same for /api/workitems/:id/relationships/links
-func (s *workItemLinkSuite) TestCreateWorkItemRelationshipsLinksBadRequestDueToBadTargetType() {
-	// Linking a bug and a feature isn't allowed for the bug blocker link type,
-	// thererfore this will cause a bad parameter error (which results in a bad request error).
-	createPayload := newCreateWorkItemLinkPayload(s.bug1ID, s.feature1ID, s.bugBlockerLinkTypeID)
 	_, _ = test.CreateWorkItemRelationshipsLinksBadRequest(s.T(), s.svc.Context, s.svc, s.workItemRelsLinksCtrl, s.userSpaceID, s.bug1ID, createPayload)
 }
 

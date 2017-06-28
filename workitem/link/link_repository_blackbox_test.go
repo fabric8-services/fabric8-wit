@@ -84,8 +84,6 @@ func (s *linkRepoBlackBoxTest) SetupTest() {
 	// create tree topology link type
 	treeLinkTypeModel := link.WorkItemLinkType{
 		Name:           "Parent child item",
-		SourceTypeID:   workitem.SystemBug,
-		TargetTypeID:   workitem.SystemBug,
 		ForwardName:    "parent of",
 		ReverseName:    "child of",
 		Topology:       "tree",
@@ -218,8 +216,6 @@ func (s *linkRepoBlackBoxTest) TestValidateTopologyOkNoLinkWithSameType() {
 	// use another link type to validate
 	linkTypeModel := link.WorkItemLinkType{
 		Name:           "foo/bar relationship",
-		SourceTypeID:   workitem.SystemBug,
-		TargetTypeID:   workitem.SystemBug,
 		ForwardName:    "foo",
 		ReverseName:    "bar",
 		Topology:       "tree",

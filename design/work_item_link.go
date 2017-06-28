@@ -140,12 +140,7 @@ var _ = a.Resource("work_item_relationships_links", func() {
 			a.Description("This error arises when the given work item does not exist.")
 		})
 	})
-	a.Action("create", func() {
-		createWorkItemLink()
-		a.Response(d.NotFound, JSONAPIErrors, func() {
-			a.Description("This error arises when the given work item does not exist.")
-		})
-	})
+	a.Action("create", createWorkItemLink)
 })
 
 // listWorkItemLinks defines the list action for endpoints that return an array
@@ -191,6 +186,7 @@ func createWorkItemLink() {
 	a.Response(d.BadRequest, JSONAPIErrors)
 	a.Response(d.InternalServerError, JSONAPIErrors)
 	a.Response(d.Unauthorized, JSONAPIErrors)
+	a.Response(d.NotFound, JSONAPIErrors)
 }
 
 func deleteWorkItemLink() {

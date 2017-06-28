@@ -5,10 +5,10 @@ insert into spaces (id, name) values ('22222222-0000-0000-0000-000000000000', 't
 insert into work_item_types (id, name, space_id) values ('11111111-0000-0000-0000-000000000000', 'test type 1', '11111111-0000-0000-0000-000000000000');
 insert into work_item_types (id, name, space_id) values ('22222222-0000-0000-0000-000000000000', 'test type 2', '22222222-0000-0000-0000-000000000000');
 -- create work item link types for spaces 1 and 2
-insert into work_item_link_types (id, name, topology, forward_name, reverse_name, space_id, source_type_id, target_type_id) 
-    values ('11111111-0000-0000-0000-000000000000', 'foo', 'dependency', 'foo', 'foo', '11111111-0000-0000-0000-000000000000', '11111111-0000-0000-0000-000000000000', '11111111-0000-0000-0000-000000000000');
-insert into work_item_link_types (id, name, topology, forward_name, reverse_name, space_id, source_type_id, target_type_id) 
-    values ('22222222-0000-0000-0000-000000000000', 'bar', 'dependency', 'bar', 'bar', '22222222-0000-0000-0000-000000000000', '22222222-0000-0000-0000-000000000000', '22222222-0000-0000-0000-000000000000');
+insert into work_item_link_types (id, name, topology, forward_name, reverse_name, space_id) 
+    values ('11111111-0000-0000-0000-000000000000', 'foo', 'dependency', 'foo', 'foo', '11111111-0000-0000-0000-000000000000');
+insert into work_item_link_types (id, name, topology, forward_name, reverse_name, space_id) 
+    values ('22222222-0000-0000-0000-000000000000', 'bar', 'dependency', 'bar', 'bar', '22222222-0000-0000-0000-000000000000');
 -- create identity (for revisions)
 insert into identities (id, username) values ('cafebabe-0000-0000-0000-000000000000', 'foo');
 -- inserting work items, their revisions and comments in space '1'

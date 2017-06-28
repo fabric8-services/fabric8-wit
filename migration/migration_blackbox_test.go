@@ -122,7 +122,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration60", testMigration60)
 	t.Run("TestMigration61", testMigration61)
 	t.Run("TestMigration63", testMigration63)
-	t.Run("TestMigration64", testMigration64)
+	t.Run("TestMigration65", testMigration65)
 
 	// Perform the migration
 	if err := migration.Migrate(sqlDB, databaseName); err != nil {
@@ -381,13 +381,13 @@ func testMigration63(t *testing.T) {
 	assert.Equal(t, relationshipsChangeddAt, deletedAt)
 }
 
-func testMigration64(t *testing.T) {
+func testMigration65(t *testing.T) {
 	// migrate to previous version
-	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+19)], (initialMigratedVersion + 19))
-	// fill DB with data (ie, work items, links, comments, etc on different spaces)
-	assert.Nil(t, runSQLscript(sqlDB, "064-workitem-id-unique-per-space.sql"))
-	// then apply the change
 	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+20)], (initialMigratedVersion + 20))
+	// fill DB with data (ie, work items, links, comments, etc on different spaces)
+	assert.Nil(t, runSQLscript(sqlDB, "065-workitem-id-unique-per-space.sql"))
+	// then apply the change
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+21)], (initialMigratedVersion + 21))
 	// and verify that the work item id sequence table is filled as expected
 	type WorkItemSequence struct {
 		SpaceID    uuid.UUID `sql:"type:UUID"`
