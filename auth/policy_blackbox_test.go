@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/almighty/almighty-core/auth"
-	"github.com/almighty/almighty-core/resource"
+	"github.com/fabric8-services/fabric8-wit/auth"
+	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/goadesign/goa"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"

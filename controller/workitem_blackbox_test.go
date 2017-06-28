@@ -13,28 +13,28 @@ import (
 
 	"context"
 
-	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/app/test"
-	"github.com/almighty/almighty-core/area"
-	"github.com/almighty/almighty-core/codebase"
-	"github.com/almighty/almighty-core/configuration"
-	. "github.com/almighty/almighty-core/controller"
-	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/iteration"
-	"github.com/almighty/almighty-core/jsonapi"
-	"github.com/almighty/almighty-core/log"
-	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/path"
-	"github.com/almighty/almighty-core/rendering"
-	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/rest"
-	"github.com/almighty/almighty-core/space"
-	testsupport "github.com/almighty/almighty-core/test"
-	almtoken "github.com/almighty/almighty-core/token"
-	"github.com/almighty/almighty-core/workitem"
+	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/app/test"
+	"github.com/fabric8-services/fabric8-wit/area"
+	"github.com/fabric8-services/fabric8-wit/codebase"
+	"github.com/fabric8-services/fabric8-wit/configuration"
+	. "github.com/fabric8-services/fabric8-wit/controller"
+	"github.com/fabric8-services/fabric8-wit/gormapplication"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/iteration"
+	"github.com/fabric8-services/fabric8-wit/jsonapi"
+	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/migration"
+	"github.com/fabric8-services/fabric8-wit/path"
+	"github.com/fabric8-services/fabric8-wit/rendering"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/space"
+	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	almtoken "github.com/fabric8-services/fabric8-wit/token"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
@@ -881,7 +881,7 @@ func (s *WorkItem2Suite) TestWI2UpdateOnlyLegacyDescription() {
 	assert.Equal(s.T(), rendering.SystemMarkupDefault, updatedWI.Data.Attributes[workitem.SystemDescriptionMarkup])
 }
 
-// fixing https://github.com/almighty/almighty-core/issues/986
+// fixing https://github.com/fabric8-services/fabric8-wit/issues/986
 func (s *WorkItem2Suite) TestWI2UpdateDescriptionAndMarkup() {
 	s.minimumPayload.Data.Attributes[workitem.SystemTitle] = "Test title"
 	modifiedDescription := "# Description is modified"
@@ -1367,7 +1367,7 @@ func (s *WorkItem2Suite) TestWI2ListByStateFilterOK() {
 	}
 }
 
-// see https://github.com/almighty/almighty-core/issues/1268
+// see https://github.com/fabric8-services/fabric8-wit/issues/1268
 func (s *WorkItem2Suite) TestWI2ListByStateFilterNotModifiedUsingIfNoneMatchIfModifiedSinceHeaders() {
 	// given
 	_ = s.createWorkItem("title", workitem.SystemStateNew)
@@ -1392,7 +1392,7 @@ func (s *WorkItem2Suite) TestWI2ListByStateFilterNotModifiedUsingIfNoneMatchIfMo
 	assertResponseHeaders(s.T(), res)
 }
 
-// see https://github.com/almighty/almighty-core/issues/1268
+// see https://github.com/fabric8-services/fabric8-wit/issues/1268
 func (s *WorkItem2Suite) TestWI2ListByStateFilterOKModifiedUsingIfNoneMatchIfModifiedSinceHeaders() {
 	// given
 	_ = s.createWorkItem("title", workitem.SystemStateNew)
@@ -1718,7 +1718,7 @@ func assertResponseHeaders(t *testing.T, res http.ResponseWriter) (string, strin
 	return etag[0], lastModified[0], cacheControl[0]
 }
 
-// Temporarly disabled, See https://github.com/almighty/almighty-core/issues/1036
+// Temporarly disabled, See https://github.com/fabric8-services/fabric8-wit/issues/1036
 func (s *WorkItem2Suite) TestWI2FailOnDelete() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
@@ -1730,7 +1730,7 @@ func (s *WorkItem2Suite) TestWI2FailOnDelete() {
 	test.DeleteWorkitemMethodNotAllowed(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, *createdWI.Data.ID)
 }
 
-// Temporarly disabled, See https://github.com/almighty/almighty-core/issues/1036
+// Temporarly disabled, See https://github.com/fabric8-services/fabric8-wit/issues/1036
 func (s *WorkItem2Suite) xTestWI2SuccessDelete() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
@@ -1746,7 +1746,7 @@ func (s *WorkItem2Suite) xTestWI2SuccessDelete() {
 // TestWI2DeleteLinksOnWIDeletionOK creates two work items (WI1 and WI2) and
 // creates a link between them. When one of the work items is deleted, the
 // link shall be gone as well.
-// Temporarly disabled, See https://github.com/almighty/almighty-core/issues/1036
+// Temporarly disabled, See https://github.com/fabric8-services/fabric8-wit/issues/1036
 func (s *WorkItem2Suite) xTestWI2DeleteLinksOnWIDeletionOK() {
 	// Create two work items (wi1 and wi2)
 	c := minimumRequiredCreatePayload()
@@ -2496,7 +2496,7 @@ func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	// Not a space collaborator is not authorized to update
 	test.UpdateWorkitemForbidden(s.T(), svcNotAuthrized.Context, svcNotAuthrized, ctrlNotAuthrize, *payload.Data.Relationships.Space.Data.ID, *wi.Data.ID, &payload2)
 	// Not a space collaborator is not authorized to delete
-	// Temporarly disabled, See https://github.com/almighty/almighty-core/issues/1036
+	// Temporarly disabled, See https://github.com/fabric8-services/fabric8-wit/issues/1036
 	// test.DeleteWorkitemForbidden(s.T(), svcNotAuthrized.Context, svcNotAuthrized, ctrlNotAuthrize, *payload.Data.Relationships.Space.Data.ID, *wi.Data.ID)
 	// Not a space collaborator is not authorized to reoder
 	payload4 := minimumRequiredReorderPayload()

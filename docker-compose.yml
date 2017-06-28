@@ -10,7 +10,7 @@ services:
     networks:
       - default
   core:
-    image: fabric8/fabric8-wit:latest
+    image: fabric8-services/fabric8-wit:latest
     command: -config /usr/local/alm/etc/config.yaml
     environment:
       F8_POSTGRES_HOST: db

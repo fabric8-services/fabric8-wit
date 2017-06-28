@@ -11,9 +11,9 @@ import (
 
 	"time"
 
-	"github.com/almighty/almighty-core/configuration"
-	"github.com/almighty/almighty-core/resource"
 	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/fabric8-services/fabric8-wit/configuration"
+	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/goadesign/goa"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
