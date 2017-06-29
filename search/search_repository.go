@@ -241,11 +241,67 @@ func parseSearchString(rawSearchString string) (searchKeyword, error) {
 	return res, nil
 }
 
+func parseMap(queryMap map[string]interface{}, q *Query) {
+	for key, val := range queryMap {
+		switch concreteVal := val.(type) {
+		case map[string]interface{}:
+			fmt.Println(key)
+			c1 := &Query{}
+			c := []*Query{c1}
+			q.Children = c
+			parseMap(val.(map[string]interface{}), c1)
+		case []interface{}:
+			fmt.Println(key)
+		default:
+			fmt.Println(key, ":", concreteVal)
+			q.Name = key
+			q.Value = concreteVal.(*string)
+		}
+	}
+
+}
+
+// Query represents tree structure of the filter query
+type Query struct {
+	Name     string
+	Value    *string
+	Children []*Query
+}
+
+/*
+  {
+    "OR": [
+      {
+        "space": "openshiftio",
+	"AND": [
+	    {"area": "planner"},
+	    {"area": "platform"},
+	]
+      },
+      {
+        "space": "rhel"
+      }
+    ]
+  }
+  a := Query{Name: "OR", Value: nil, Children: []Query{}{Query}}
+*/
+
 // parseFilterString accepts a raw string and generates a criteria expression
 func parseFilterString(rawSearchString string) (criteria.Expression, error) {
+
+	fm := map[string]interface{}{}
+	// Parsing/Unmarshalling JSON encoding/json
+	err := json.Unmarshal([]byte(rawSearchString), &fm)
+
+	if err != nil {
+		return nil, errors.NewBadParameterError("expression", rawSearchString)
+	}
+	q := &Query{}
+	parseMap(fm, q)
+
 	m := map[string]string{}
 	// Parsing/Unmarshalling JSON encoding/json
-	err := json.Unmarshal([]byte(rawSearchString), &m)
+	err = json.Unmarshal([]byte(rawSearchString), &m)
 
 	if err != nil {
 		return nil, errors.NewBadParameterError("expression", rawSearchString)

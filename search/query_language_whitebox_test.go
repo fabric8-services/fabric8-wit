@@ -3,57 +3,18 @@ package search
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"testing"
 
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/resource"
-	testsupport "github.com/almighty/almighty-core/test"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/migration"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	uuid "github.com/satori/go.uuid"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
-
-type Query struct {
-	Name     string
-	Value    string
-	Children []*Query
-}
-
-func parseMap(queryMap map[string]interface{}, q *Query) {
-	for key, val := range queryMap {
-		switch concreteVal := val.(type) {
-		case map[string]interface{}:
-			fmt.Println(key)
-			c1 := &Query{}
-			c := []c1{}
-			q.Children = c
-			parseMap(val.(map[string]interface{}), c)
-		case []interface{}:
-			fmt.Println(key)
-		default:
-			fmt.Println(key, ":", concreteVal)
-			q.Name = key
-			q.Value = concreteVal
-		}
-	}
-
-}
-
-func convert(input string) {
-	m := map[string]interface{}{}
-
-	// Parsing/Unmarshalling JSON encoding/json
-	err := json.Unmarshal([]byte(input), &m)
-
-	if err != nil {
-		panic(err)
-	}
-	q := &Query{}
-	parseMap(m, q)
-}
 
 func TestQueryLanguageWhiteboxTest(t *testing.T) {
 	resource.Require(t, resource.Database)
@@ -84,11 +45,22 @@ func (s *queryLanguageWhiteboxTest) TearDownTest() {
 	s.clean()
 }
 
-func (s *queryLanguageWhiteboxTest) TestSmallestPossibleScenario() {
-	q := `
-	{"space": "openshiftio",
-    "status": "NEW"
-	}`
-	qo := &Query{}
-	convert(q)
+func (s *queryLanguageWhiteboxTest) TestMinimalANDOperation() {
+	input := `
+	{"AND": [{"space": "openshiftio"},
+                 {"status": "NEW"}
+	]}`
+	fm := map[string]interface{}{}
+
+	// Parsing/Unmarshalling JSON encoding/json
+	err := json.Unmarshal([]byte(input), &fm)
+
+	if err != nil {
+		panic(err)
+	}
+	q := &Query{}
+
+	parseMap(fm, q)
+	expected := &Query{Name: "", Value: nil, Children: []*Query(nil)}
+	assert.Equal(s.T(), expected, q)
 }
