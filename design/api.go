@@ -5,11 +5,11 @@ import (
 	a "github.com/goadesign/goa/design/apidsl"
 )
 
-var _ = a.API("alm", func() {
-	a.Title("ALMighty: One to rule them all")
+var _ = a.API("wit", func() {
+	a.Title("Fabric8-wit: One to rule them all")
 	a.Description("The next big thing")
 	a.Version("1.0")
-	a.Host("almighty.io")
+	a.Host("openshift.io")
 	a.Scheme("http")
 	a.BasePath("/api")
 	a.Consumes("application/json")
@@ -19,7 +19,7 @@ var _ = a.API("alm", func() {
 		a.Name("Apache License Version 2.0")
 		a.URL("http://www.apache.org/licenses/LICENSE-2.0")
 	})
-	a.Origin("/[.*almighty.io|localhost]/", func() {
+	a.Origin("/[.*openshift.io|localhost]/", func() {
 		a.Methods("GET", "POST", "PUT", "PATCH", "DELETE")
 		a.Headers("X-Request-Id", "Content-Type", "Authorization", "If-None-Match", "If-Modified-Since")
 		a.MaxAge(600)
