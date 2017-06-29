@@ -188,9 +188,15 @@ func (s *workItemTypeRepoBlackBoxTest) TestDoNotCreateWITWithMissingBaseType() {
 
 // LoadWorkItemTypeCategoryRelationship loads all the relationships of a category. This is required for testing.
 func (s *workItemTypeRepoBlackBoxTest) loadWorkItemTypeCategoryRelationship(ctx context.Context, workitemtypeID uuid.UUID, categoryID uuid.UUID) (*category.WorkItemTypeCategoryRelationship, error) {
-	// Check if category is present
-	_, err := s.categoryRepo.LoadCategory(ctx, categoryID)
+	// Check if category exists
+	categoryExists, err := s.categoryRepo.Exists(ctx, categoryID.String())
 	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"category_id": categoryID,
+		}, "category not found")
+		return nil, errs.Wrap(err, fmt.Sprintf("failed to load category with id %s", categoryID))
+	}
+	if categoryExists == false {
 		log.Error(ctx, map[string]interface{}{
 			"category_id": categoryID,
 		}, "category not found")
