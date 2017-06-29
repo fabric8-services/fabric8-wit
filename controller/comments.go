@@ -102,7 +102,8 @@ func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
 		return c.performUpdate(ctx, cm, identityID)
 	}
 
-	authorized, err := authz.Authorize(ctx, wi.SpaceID.String())
+	var rptToken string
+	authorized, err := authz.Authorize(ctx, wi.SpaceID.String(), &rptToken)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
@@ -171,7 +172,8 @@ func (c *CommentsController) Delete(ctx *app.DeleteCommentsContext) error {
 		return c.performDelete(ctx, cm, identityID)
 	}
 
-	authorized, err := authz.Authorize(ctx, wi.SpaceID.String())
+	var rptToken string
+	authorized, err := authz.Authorize(ctx, wi.SpaceID.String(), &rptToken)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}

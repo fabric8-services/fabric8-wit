@@ -10,12 +10,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/workitem"
-
-<<<<<<< HEAD
-=======
-	"context"
-
->>>>>>> 72a6d9b... add token to response and start using limit
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
