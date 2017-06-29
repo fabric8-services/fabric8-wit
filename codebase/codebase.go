@@ -108,7 +108,7 @@ type Codebase struct {
 	SpaceID           uuid.UUID `sql:"type:uuid"`
 	Type              string
 	URL               string
-	StackID           string
+	StackID           *string
 	LastUsedWorkspace string
 }
 
