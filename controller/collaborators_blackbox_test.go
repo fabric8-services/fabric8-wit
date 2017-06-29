@@ -41,7 +41,7 @@ type DummySpaceAuthzService struct {
 	rest *TestCollaboratorsREST
 }
 
-func (s *DummySpaceAuthzService) Authorize(ctx context.Context, endpoint string, spaceID string) (bool, error) {
+func (s *DummySpaceAuthzService) Authorize(ctx context.Context, endpoint string, spaceID string, rptToken *string) (bool, error) {
 	jwtToken := goajwt.ContextJWT(ctx)
 	if jwtToken == nil {
 		return false, errors.NewUnauthorizedError("Missing token")
@@ -565,7 +565,7 @@ type TestSpaceAuthzService struct {
 	owner account.Identity
 }
 
-func (s *TestSpaceAuthzService) Authorize(ctx context.Context, endpoint string, spaceID string) (bool, error) {
+func (s *TestSpaceAuthzService) Authorize(ctx context.Context, endpoint string, spaceID string, rptToken *string) (bool, error) {
 	jwtToken := goajwt.ContextJWT(ctx)
 	if jwtToken == nil {
 		return false, errors.NewUnauthorizedError("Missing token")

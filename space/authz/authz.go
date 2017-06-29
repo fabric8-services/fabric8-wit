@@ -25,7 +25,7 @@ import (
 
 // AuthzService represents a space authorization service
 type AuthzService interface {
-	Authorize(ctx context.Context, entitlementEndpoint string, spaceID string) (bool, error)
+	Authorize(ctx context.Context, entitlementEndpoint string, spaceID string, entitlementToken *string) (bool, error)
 	Configuration() AuthzConfiguration
 }
 
@@ -73,8 +73,10 @@ func (s *KeycloakAuthzService) Configuration() AuthzConfiguration {
 }
 
 // Authorize returns true and the corresponding Requesting Party Token if the current user is among the space collaborators
-func (s *KeycloakAuthzService) Authorize(ctx context.Context, entitlementEndpoint string, spaceID string) (bool, error) {
+func (s *KeycloakAuthzService) Authorize(ctx context.Context, entitlementEndpoint string, spaceID string, entitlementToken *string) (bool, error) {
 	jwttoken := goajwt.ContextJWT(ctx)
+	var rpttoken string
+
 	if jwttoken == nil {
 		return false, errors.NewUnauthorizedError("missing token")
 	}
@@ -103,7 +105,10 @@ func (s *KeycloakAuthzService) Authorize(ctx context.Context, entitlementEndpoin
 		log.Warn(ctx, map[string]interface{}{
 			"space-id": spaceID,
 		}, "no authorization found in the token; this is an access token (not a RPT token)")
-		return s.checkEntitlementForSpace(ctx, *jwttoken, entitlementEndpoint, spaceID)
+
+		isEntitled, err := s.checkEntitlementForSpace(ctx, &rpttoken, *jwttoken, entitlementEndpoint, spaceID)
+		*entitlementToken = rpttoken
+		return isEntitled, err
 	}
 
 	// Check if the token was issued before the space resouces changed the last time.
@@ -113,7 +118,9 @@ func (s *KeycloakAuthzService) Authorize(ctx context.Context, entitlementEndpoin
 		return false, err
 	}
 	if outdated {
-		return s.checkEntitlementForSpace(ctx, *jwttoken, entitlementEndpoint, spaceID)
+		isEntitled, err := s.checkEntitlementForSpace(ctx, &rpttoken, *jwttoken, entitlementEndpoint, spaceID)
+		*entitlementToken = rpttoken
+		return isEntitled, err
 	}
 
 	permissions := claims.Authorization.Permissions
@@ -129,11 +136,22 @@ func (s *KeycloakAuthzService) Authorize(ctx context.Context, entitlementEndpoin
 	return false, nil
 }
 
-func (s *KeycloakAuthzService) checkEntitlementForSpace(ctx context.Context, token jwt.Token, entitlementEndpoint string, spaceID string) (bool, error) {
+func (s *KeycloakAuthzService) checkEntitlementForSpace(ctx context.Context, rpttoken *string, token jwt.Token, entitlementEndpoint string, spaceID string) (bool, error) {
 	resource := auth.EntitlementResource{
 		Permissions: []auth.ResourceSet{{Name: spaceID}},
+		MetaInformation: auth.EntitlementMeta{
+			Limit: "2",
+		},
 	}
+
 	ent, err := auth.GetEntitlement(ctx, entitlementEndpoint, &resource, token.Raw)
+
+	// bubble up the rpt token
+	*rpttoken = ""
+	if ent != nil {
+		*rpttoken = *ent
+	}
+
 	if err != nil {
 		return false, err
 	}
@@ -183,8 +201,9 @@ func InjectAuthzService(service AuthzService) goa.Middleware {
 }
 
 // Authorize returns true and the corresponding Requesting Party Token if the current user is among the space collaborators
-func Authorize(ctx context.Context, spaceID string) (bool, error) {
+func Authorize(ctx context.Context, spaceID string, rptToken *string) (bool, error) {
 	srv := tokencontext.ReadSpaceAuthzServiceFromContext(ctx)
+	var generatedToken string
 	if srv == nil {
 		log.Error(ctx, map[string]interface{}{
 			"space-id": spaceID,
@@ -193,5 +212,7 @@ func Authorize(ctx context.Context, spaceID string) (bool, error) {
 		return false, errs.New("missing space authz service")
 	}
 	manager := srv.(AuthzServiceManager)
-	return manager.AuthzService().Authorize(ctx, manager.EntitlementEndpoint(), spaceID)
+	isAuthorized, err := manager.AuthzService().Authorize(ctx, manager.EntitlementEndpoint(), spaceID, &generatedToken)
+	*rptToken = generatedToken
+	return isAuthorized, err
 }

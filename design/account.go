@@ -63,6 +63,7 @@ var userArray = a.MediaType("application/vnd.user-array+json", func() {
 
 var userListMeta = a.Type("UserListMeta", func() {
 	a.Attribute("totalCount", d.Integer)
+	a.Attribute("token", d.String)
 	a.Required("totalCount")
 })
 

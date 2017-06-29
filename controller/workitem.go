@@ -140,7 +140,8 @@ func authorizeWorkitemEditor(ctx context.Context, db application.DB, spaceID uui
 	if editorID == creatorID {
 		return true, nil
 	}
-	authorized, err := authz.Authorize(ctx, spaceID.String())
+	var rptToken string
+	authorized, err := authz.Authorize(ctx, spaceID.String(), &rptToken)
 	if err != nil {
 		return false, errors.NewUnauthorizedError(err.Error())
 	}
@@ -212,7 +213,9 @@ func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
-	authorized, err := authz.Authorize(ctx, ctx.SpaceID.String())
+
+	var rptToken string
+	authorized, err := authz.Authorize(ctx, ctx.SpaceID.String(), &rptToken)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
@@ -339,7 +342,8 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
-	authorized, err := authz.Authorize(ctx, ctx.SpaceID.String())
+	var rptToken string
+	authorized, err := authz.Authorize(ctx, ctx.SpaceID.String(), &rptToken)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}

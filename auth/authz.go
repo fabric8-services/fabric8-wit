@@ -11,10 +11,14 @@ import (
 	"strings"
 	"time"
 
+	goajwt "github.com/goadesign/goa/middleware/security/jwt"
+
 	"github.com/dgrijalva/jwt-go"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/login/tokencontext"
 	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/token"
 	errs "github.com/pkg/errors"
 )
 
@@ -143,7 +147,12 @@ type UserInfo struct {
 
 // EntitlementResource represents a payload for obtaining entitlement for specific resource
 type EntitlementResource struct {
-	Permissions []ResourceSet `json:"permissions"`
+	Permissions     []ResourceSet   `json:"permissions"`
+	MetaInformation EntitlementMeta `json:"metadata"`
+}
+
+type EntitlementMeta struct {
+	Limit string `json:"limit"`
 }
 
 // ResourceSet represents a resource set for Entitlement payload
@@ -177,8 +186,12 @@ type Permissions struct {
 func VerifyResourceUser(ctx context.Context, token string, resourceName string, entitlementEndpoint string) (bool, error) {
 	resource := EntitlementResource{
 		Permissions: []ResourceSet{{Name: resourceName}},
+		MetaInformation: EntitlementMeta{
+			Limit: "5",
+		},
 	}
 	ent, err := GetEntitlement(ctx, entitlementEndpoint, &resource, token)
+
 	if err != nil {
 		return false, err
 	}
@@ -307,7 +320,6 @@ func CreatePolicy(ctx context.Context, clientsEndpoint string, clientID string, 
 		}, "unable to marshal keycloak policy struct")
 		return "", errors.NewInternalError(ctx, errs.Wrap(err, "unable to marshal keycloak policy struct"))
 	}
-
 	req, err := http.NewRequest("POST", clientsEndpoint+"/"+clientID+"/authz/resource-server/policy", strings.NewReader(string(b)))
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -641,6 +653,7 @@ func GetEntitlement(ctx context.Context, entitlementEndpoint string, entitlement
 	var reqErr error
 	if entitlementResource != nil {
 		b, err := json.Marshal(entitlementResource)
+		fmt.Println(string(b)) //temporary
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"entitlement_resource": entitlementResource,
@@ -807,4 +820,25 @@ func ReadToken(ctx context.Context, res *http.Response) (*Token, error) {
 		return nil, errors.NewInternalError(ctx, errs.Wrapf(err, "error when unmarshal json with access token %s ", jsonString))
 	}
 	return &token, nil
+}
+
+// ConvertRPTStringToTokenPayload Converts an RPT raw token string to a standard token json format
+func ConvertRPTStringToTokenPayload(ctx context.Context, rawToken string) (*TokenPayload, error) {
+
+	jwttoken := goajwt.ContextJWT(ctx)
+	if jwttoken == nil {
+		return nil, errors.NewUnauthorizedError("missing token")
+	}
+	tm := tokencontext.ReadTokenManagerFromContext(ctx)
+	tokenWithClaims, err := jwt.ParseWithClaims(rawToken, &TokenPayload{}, func(t *jwt.Token) (interface{}, error) {
+		return tm.(token.Manager).PublicKey(), nil
+	})
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "unable to parse the rpt token")
+		return nil, errors.NewInternalError(ctx, errs.Wrap(err, "unable to parse the rpt token"))
+	}
+	claims := tokenWithClaims.Claims.(*TokenPayload)
+	return claims, nil
 }

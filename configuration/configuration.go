@@ -694,19 +694,19 @@ OCCAgsB8g8yTB4qntAYyfofEoDiseKrngQT5DSdxd51A/jw7B8WyBK8=
 	// RSAPublicKey for verifying JWT Tokens
 	// openssl rsa -in alm_rsa -pubout -out alm_rsa.pub
 	defaultTokenPublicKey = `-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvQ8p+HsTMrgcsuIMoOR1
-LXRhynL9YAU0qoDON6PLKCpdBv0Xy/jnsPjo5DrtUOijuJcID8CR7E0hYpY9MgK5
-H5pDFwC4lbUVENquHEVS/E0pQSKCIzSmORcIhjYW2+wKfDOVjeudZwdFBIxJ6KpI
-ty/aF78hlUJZuvghFVqoHQYTq/DZOmKjS+PAVLw8FKE3wa/3WU0EkpP+iovRMCkl
-lzxqrcLPIvx+T2gkwe0bn0kTvdMOhTLTN2tuvKrFpVUxVi8RM/V8PtgdKroxnES7
-SyUqK8rLO830jKJzAYrByQL+sdGuSqInIY/geahQHEGTwMI0CLj6zfhpjSgCflst
-vwIDAQAB
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzDvrcYlz8SQFY2Y6OKHN
+im3pMinvY46rem8eWm/SYGdG4gpkx7UjVD3JTI65gSfKO0L+OTGK1xTIUO3tA3ji
+H4NB1RtEGLGJMCtafeyZ3x0UnCKiw0YW4b8jYm/XtrX39aoSyUuLlPU0o3Jdn/0f
+cv/kM0+fElCKwjtdftvROlW6wCj3+k6Z7PiJpKGIBnOZ40gwjRj79pGvCGFk2CYc
+F1WC2Bu9qtVcZXGfhdpgBBvAw5slH8iztEiMBTm9xTs7S+lG5FeMxas6uzKXAGBL
+R6WowwXkce3+vHsVpwgy62RFlSV0StNggt06+oVqGotwZdnZU43qdRWyDpsfdR8F
+5wIDAQAB
 -----END PUBLIC KEY-----`
 
 	defaultLogLevel = "info"
 
 	defaultKeycloakClientID = "fabric8-online-platform"
-	defaultKeycloakSecret   = "7a3d5a00-7f80-40cf-8781-b5b6f2dfd1bd"
+	defaultKeycloakSecret   = "4c4346a0-d9a9-4d54-a74c-18e892e59f58"
 
 	defaultKeycloakDomainPrefix = "sso"
 	defaultKeycloakRealm        = "fabric8"
@@ -720,8 +720,8 @@ vwIDAQAB
 	defaultKeycloakTesUser2Secret = "testuser2"
 
 	// Keycloak vars to be used in dev mode. Can be overridden by setting up keycloak.url & keycloak.realm
-	devModeKeycloakURL   = "https://sso.prod-preview.openshift.io"
-	devModeKeycloakRealm = "fabric8-test"
+	devModeKeycloakURL   = "http://keycloak-keycloak3-2.dev.rdu2c.fabric8.io"
+	devModeKeycloakRealm = "fabric8"
 
 	defaultOpenshiftTenantMasterURL = "https://tsrv.devshift.net:8443"
 	defaultCheStarterURL            = "che-server"

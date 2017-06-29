@@ -103,6 +103,7 @@ func (c *CollaboratorsController) List(ctx *app.ListCollaboratorsContext) error 
 			appUser := ConvertToAppUser(ctx.RequestData, &resultUsers[i], &resultIdentities[i])
 			data[i] = appUser.Data
 		}
+
 		response := app.UserList{
 			Links: &app.PagingLinks{},
 			Meta:  &app.UserListMeta{TotalCount: count},
@@ -116,26 +117,50 @@ func (c *CollaboratorsController) List(ctx *app.ListCollaboratorsContext) error 
 // Add user's identity to the list of space collaborators.
 func (c *CollaboratorsController) Add(ctx *app.AddCollaboratorsContext) error {
 	identityIDs := []*app.UpdateUserID{{ID: ctx.IdentityID}}
-	err := c.updatePolicy(ctx, ctx.RequestData, ctx.SpaceID, identityIDs, c.policyManager.AddUserToPolicy)
+	var rptToken string
+	err := c.updatePolicy(ctx, ctx.RequestData, ctx.SpaceID, identityIDs, c.policyManager.AddUserToPolicy, &rptToken)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	return ctx.OK([]byte{})
+
+	// Convert the token string to a nice object for marshal<->unmarshal
+	tokenPayload, err := auth.ConvertRPTStringToTokenPayload(ctx, rptToken)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+
+	// Convert to the exposed AuthToken format.
+	appAuthToken := convertRPT(*tokenPayload, rptToken)
+
+	return ctx.OK(appAuthToken)
 }
 
 // AddMany adds user's identities to the list of space collaborators.
 func (c *CollaboratorsController) AddMany(ctx *app.AddManyCollaboratorsContext) error {
+	var rptToken string
 	if ctx.Payload != nil && ctx.Payload.Data != nil {
-		err := c.updatePolicy(ctx, ctx.RequestData, ctx.SpaceID, ctx.Payload.Data, c.policyManager.AddUserToPolicy)
+
+		err := c.updatePolicy(ctx, ctx.RequestData, ctx.SpaceID, ctx.Payload.Data, c.policyManager.AddUserToPolicy, &rptToken)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 	}
-	return ctx.OK([]byte{})
+
+	// Convert the token string to a nice object for marshal<->unmarshal
+	tokenPayload, err := auth.ConvertRPTStringToTokenPayload(ctx, rptToken)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+
+	// Convert to the exposed AuthToken format.
+	appAuthToken := convertRPT(*tokenPayload, rptToken)
+
+	return ctx.OK(appAuthToken)
 }
 
 // Remove user from the list of space collaborators.
 func (c *CollaboratorsController) Remove(ctx *app.RemoveCollaboratorsContext) error {
+
 	// Don't remove the space owner
 	err := c.checkSpaceOwner(ctx, ctx.SpaceID, ctx.IdentityID)
 	if err != nil {
@@ -143,15 +168,26 @@ func (c *CollaboratorsController) Remove(ctx *app.RemoveCollaboratorsContext) er
 	}
 
 	identityIDs := []*app.UpdateUserID{{ID: ctx.IdentityID}}
-	err = c.updatePolicy(ctx, ctx.RequestData, ctx.SpaceID, identityIDs, c.policyManager.RemoveUserFromPolicy)
+	var rptToken string
+	err = c.updatePolicy(ctx, ctx.RequestData, ctx.SpaceID, identityIDs, c.policyManager.RemoveUserFromPolicy, &rptToken)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	return ctx.OK([]byte{})
+	// Convert the token string to a nice object for marshal<->unmarshal
+	tokenPayload, err := auth.ConvertRPTStringToTokenPayload(ctx, rptToken)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+
+	// Convert to the exposed AuthToken format.
+	appAuthToken := convertRPT(*tokenPayload, rptToken)
+
+	return ctx.OK(appAuthToken)
 }
 
 // RemoveMany removes users from the list of space collaborators.
 func (c *CollaboratorsController) RemoveMany(ctx *app.RemoveManyCollaboratorsContext) error {
+	var rptToken string
 	if ctx.Payload != nil && ctx.Payload.Data != nil {
 		// Don't remove the space owner
 		for _, idn := range ctx.Payload.Data {
@@ -162,13 +198,22 @@ func (c *CollaboratorsController) RemoveMany(ctx *app.RemoveManyCollaboratorsCon
 				}
 			}
 		}
-		err := c.updatePolicy(ctx, ctx.RequestData, ctx.SpaceID, ctx.Payload.Data, c.policyManager.RemoveUserFromPolicy)
+		err := c.updatePolicy(ctx, ctx.RequestData, ctx.SpaceID, ctx.Payload.Data, c.policyManager.RemoveUserFromPolicy, &rptToken)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 	}
 
-	return ctx.OK([]byte{})
+	// Convert the token string to a nice object for marshal<->unmarshal
+	tokenPayload, err := auth.ConvertRPTStringToTokenPayload(ctx, rptToken)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+
+	// Convert to the exposed AuthToken format.
+	appAuthToken := convertRPT(*tokenPayload, rptToken)
+
+	return ctx.OK(appAuthToken)
 }
 
 func (c *CollaboratorsController) checkSpaceOwner(ctx context.Context, spaceID uuid.UUID, identityID string) error {
@@ -194,9 +239,11 @@ func (c *CollaboratorsController) checkSpaceOwner(ctx context.Context, spaceID u
 	return nil
 }
 
-func (c *CollaboratorsController) updatePolicy(ctx collaboratorContext, req *goa.RequestData, spaceID uuid.UUID, identityIDs []*app.UpdateUserID, update func(policy *auth.KeycloakPolicy, identityID string) bool) error {
-	// Authorize current user
-	authorized, err := authz.Authorize(ctx, spaceID.String())
+func (c *CollaboratorsController) updatePolicy(ctx collaboratorContext, req *goa.RequestData, spaceID uuid.UUID, identityIDs []*app.UpdateUserID, update func(policy *auth.KeycloakPolicy, identityID string) bool, rptToken *string) error {
+
+	var generatedToken string
+	authorized, err := authz.Authorize(ctx, spaceID.String(), &generatedToken)
+	*rptToken = generatedToken
 	if err != nil {
 		return goa.ErrUnauthorized(err.Error())
 	}
@@ -297,3 +344,22 @@ func (c *CollaboratorsController) getPolicy(ctx collaboratorContext, req *goa.Re
 	}
 	return policy, pat, nil
 }
+
+/*
+func useRPT(ctx collaboratorContext, rpt *string) *jwt.Token {
+	jwttoken := goajwt.ContextJWT(ctx)
+	tokenWithClaims, err := jwt.ParseWithClaims(jwttoken.Raw, &auth.TokenPayload{}, func(t *jwt.Token) (interface{}, error) {
+		return tm.(token.Manager).PublicKey(), nil
+	})
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"space-id": spaceID,
+			"err":      err,
+		}, "unable to parse the rpt token")
+		return false, errors.NewInternalError(ctx, errs.Wrap(err, "unable to parse the rpt token"))
+	}
+	claims := tokenWithClaims.Claims.(*auth.TokenPayload)
+
+	return jwttoken
+}
+*/

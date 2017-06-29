@@ -10,7 +10,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/workitem"
-
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
@@ -206,4 +205,9 @@ func UserFilterByEmail(email string) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Where("email = ?", email)
 	}
+}
+
+// GetRecentUserSpaces returns the list of spaces recently accessed by the user
+func GetRecentUserSpaces(userID uuid.UUID) *[]uuid.UUID {
+	return nil
 }
