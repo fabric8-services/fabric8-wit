@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/comment"
@@ -156,8 +157,8 @@ func CreateCommentsRelation(request *goa.RequestData, wi *workitem.WorkItem) *ap
 
 // CreateCommentsRelationLinks returns a RelationGeneric object representing the links for a workitem to comment relation
 func CreateCommentsRelationLinks(request *goa.RequestData, wi *workitem.WorkItem) *app.GenericLinks {
-	commentsSelf := rest.AbsoluteURL(request, app.WorkitemHref(wi.SpaceID, wi.ID)) + "/relationships/comments"
-	commentsRelated := rest.AbsoluteURL(request, app.WorkitemHref(wi.SpaceID, wi.ID)) + "/comments"
+	commentsSelf := rest.AbsoluteURL(request, app.WorkitemHref(wi.ID)) + "/relationships/comments"
+	commentsRelated := rest.AbsoluteURL(request, app.WorkitemHref(wi.ID)) + "/comments"
 	return &app.GenericLinks{
 		Self:    &commentsSelf,
 		Related: &commentsRelated,

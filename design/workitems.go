@@ -101,9 +101,8 @@ var workItemReorder = Reorder(
 	workItem,
 	position)
 
-// new version of "list" for migration
+// endpoints that DO NOT depend on the space id (ie, when the work item ID is specified in the URL, there's no need to pass the space ID)
 var _ = a.Resource("workitem", func() {
-	a.Parent("space")
 	a.BasePath("/workitems")
 	a.Action("show", func() {
 		a.Routing(
@@ -120,6 +119,69 @@ var _ = a.Resource("workitem", func() {
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 	})
+
+	a.Action("list-children", func() {
+		a.Routing(
+			a.GET("/:wiID/children"),
+		)
+		a.Description("List children associated with the given work item")
+		a.Params(func() {
+			a.Param("wiID", d.UUID, "ID of the work item to look-up")
+			a.Param("page[offset]", d.String, `Paging start position is a string pointing to the beginning of pagination.  The value starts from 0 onwards.`)
+			a.Param("page[limit]", d.Integer, `Paging size is the number of items in a page`)
+		})
+		a.UseTrait("conditional")
+		a.Response(d.OK, workItemList)
+		a.Response(d.NotModified)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+	})
+
+	a.Action("delete", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.DELETE("/:wiID"),
+		)
+		a.Description("Delete work item with given its id.")
+		a.Params(func() {
+			a.Param("wiID", d.UUID, "ID of the work item to delete")
+		})
+		a.Response(d.MethodNotAllowed)
+		a.Response(d.OK)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.Forbidden, JSONAPIErrors)
+	})
+
+	a.Action("update", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.PATCH("/:wiID"),
+		)
+		a.Description("update the work item with the given natural id.")
+		a.Params(func() {
+			a.Param("wiID", d.UUID, "ID of the work item to update")
+		})
+		a.Payload(workItemSingle)
+		a.Response(d.OK, func() {
+			a.Media(workItemSingle)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.Conflict, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.Forbidden, JSONAPIErrors)
+	})
+})
+
+// endpoints that depend on the space id
+var _ = a.Resource("workitems", func() {
+	a.Parent("space")
+	a.BasePath("/workitems")
 	a.Action("list", func() {
 		a.Routing(
 			a.GET(""),
@@ -142,23 +204,6 @@ var _ = a.Resource("workitem", func() {
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
-	a.Action("list-children", func() {
-		a.Routing(
-			a.GET("/:wiID/children"),
-		)
-		a.Description("List children associated with the given work item")
-		a.Params(func() {
-			a.Param("wiID", d.UUID, "ID of the work item to look-up")
-			a.Param("page[offset]", d.String, `Paging start position is a string pointing to the beginning of pagination.  The value starts from 0 onwards.`)
-			a.Param("page[limit]", d.Integer, `Paging size is the number of items in a page`)
-		})
-		a.UseTrait("conditional")
-		a.Response(d.OK, workItemList)
-		a.Response(d.NotModified)
-		a.Response(d.BadRequest, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-		a.Response(d.NotFound, JSONAPIErrors)
-	})
 
 	a.Action("create", func() {
 		a.Security("jwt")
@@ -174,43 +219,7 @@ var _ = a.Resource("workitem", func() {
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
-	a.Action("delete", func() {
-		a.Security("jwt")
-		a.Routing(
-			a.DELETE("/:wiID"),
-		)
-		a.Description("Delete work item with given its id.")
-		a.Params(func() {
-			a.Param("wiID", d.UUID, "ID of the work item to delete")
-		})
-		a.Response(d.MethodNotAllowed)
-		a.Response(d.OK)
-		a.Response(d.BadRequest, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-		a.Response(d.NotFound, JSONAPIErrors)
-		a.Response(d.Unauthorized, JSONAPIErrors)
-		a.Response(d.Forbidden, JSONAPIErrors)
-	})
-	a.Action("update", func() {
-		a.Security("jwt")
-		a.Routing(
-			a.PATCH("/:wiID"),
-		)
-		a.Description("update the work item with the given natural id.")
-		a.Params(func() {
-			a.Param("wiID", d.UUID, "ID of the work item to update")
-		})
-		a.Payload(workItemSingle)
-		a.Response(d.OK, func() {
-			a.Media(workItemSingle)
-		})
-		a.Response(d.BadRequest, JSONAPIErrors)
-		a.Response(d.Conflict, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-		a.Response(d.NotFound, JSONAPIErrors)
-		a.Response(d.Unauthorized, JSONAPIErrors)
-		a.Response(d.Forbidden, JSONAPIErrors)
-	})
+
 	a.Action("reorder", func() {
 		a.Security("jwt")
 		a.Routing(

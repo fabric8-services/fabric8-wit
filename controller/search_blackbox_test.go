@@ -29,6 +29,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 
 	"context"
+
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/goatest"
 	"github.com/stretchr/testify/assert"
@@ -254,14 +255,14 @@ func (s *searchBlackBoxTest) TestUnwantedCharactersRelatedToSearchLogic() {
 	assert.Empty(s.T(), sr.Data)
 }
 
-func (s *searchBlackBoxTest) getWICreatePayload() *app.CreateWorkitemPayload {
+func (s *searchBlackBoxTest) getWICreatePayload() *app.CreateWorkitemsPayload {
 	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.SpaceHref(space.SystemSpace.String()))
 	witSelfURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.WorkitemtypeHref(space.SystemSpace.String(), workitem.SystemTask.String()))
-	c := app.CreateWorkitemPayload{
+	c := app.CreateWorkitemsPayload{
 		Data: &app.WorkItem{
 			Type:       APIStringTypeWorkItem,
 			Attributes: map[string]interface{}{},
@@ -339,10 +340,10 @@ func (s *searchBlackBoxTest) verifySearchByKnownURLs(wi *app.WorkItemSingle, hos
 // Uses helper functions verifySearchByKnownURLs, searchByURL, getWICreatePayload
 func (s *searchBlackBoxTest) TestAutoRegisterHostURL() {
 	// service := getServiceAsUser(s.testIdentity)
-	wiCtrl := NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	wiCtrl := NewWorkitemsController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	// create a WI, search by `list view URL` of newly created item
 	newWI := s.getWICreatePayload()
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, wiCtrl, *newWI.Data.Relationships.Space.Data.ID, newWI)
+	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, wiCtrl, *newWI.Data.Relationships.Space.Data.ID, newWI)
 	require.NotNil(s.T(), wi)
 	customHost := "own.domain.one"
 	queryString := fmt.Sprintf("http://%s/work-item/list/detail/%d", customHost, wi.Data.Attributes[workitem.SystemNumber])

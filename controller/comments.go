@@ -267,20 +267,9 @@ type HrefFunc func(id interface{}) string
 
 // CommentIncludeParentWorkItem includes a "parent" relation to a WorkItem
 func CommentIncludeParentWorkItem(ctx context.Context, appl application.Application, c *comment.Comment) (CommentConvertFunc, error) {
-	// NOTE: This function assumes that the comment is bound to a WorkItem. Therefore,
-	// we can extract the space out of this WI.
-	wiID, err := uuid.FromString(c.ParentID)
-	if err != nil {
-		return nil, err
-	}
-	wi, err := appl.WorkItems().LoadByID(ctx, wiID)
-	if err != nil {
-		return nil, err
-	}
-
 	return func(request *goa.RequestData, comment *comment.Comment, data *app.Comment) {
 		hrefFunc := func(obj interface{}) string {
-			return fmt.Sprintf(app.WorkitemHref(wi.SpaceID, "%v"), obj)
+			return fmt.Sprintf(app.WorkitemHref("%v"), obj)
 		}
 		CommentIncludeParent(request, comment, data, hrefFunc, APIStringTypeWorkItem)
 	}, nil
