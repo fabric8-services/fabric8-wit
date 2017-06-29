@@ -7,7 +7,7 @@ import (
 
 	"strings"
 
-	"github.com/almighty/almighty-core/convert"
+	"github.com/fabric8-services/fabric8-wit/convert"
 
 	errs "github.com/pkg/errors"
 )

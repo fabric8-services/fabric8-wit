@@ -3,9 +3,9 @@ package link
 import (
 	"time"
 
-	convert "github.com/almighty/almighty-core/convert"
-	"github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/gormsupport"
+	convert "github.com/fabric8-services/fabric8-wit/convert"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -16,8 +16,8 @@ type WorkItemLink struct {
 	ID uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
 	// Version for optimistic concurrency control
 	Version    int
-	SourceID   uint64
-	TargetID   uint64
+	SourceID   uuid.UUID `sql:"type:uuid"`
+	TargetID   uuid.UUID `sql:"type:uuid"`
 	LinkTypeID uuid.UUID `sql:"type:uuid"`
 }
 

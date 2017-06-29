@@ -9,11 +9,11 @@ import (
 	"sync"
 	"text/template"
 
-	"github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/log"
-	"github.com/almighty/almighty-core/space"
-	"github.com/almighty/almighty-core/workitem"
-	"github.com/almighty/almighty-core/workitem/link"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/space"
+	"github.com/fabric8-services/fabric8-wit/workitem"
+	"github.com/fabric8-services/fabric8-wit/workitem/link"
 
 	"context"
 
@@ -313,6 +313,12 @@ func GetMigrations() Migrations {
 	// Version 63
 	m = append(m, steps{ExecuteSQLFile("063-workitem-related-changes.sql")})
 
+	// Version 64
+	m = append(m, steps{ExecuteSQLFile("064-remove-link-combinations.sql")})
+
+	// Version 64
+	m = append(m, steps{ExecuteSQLFile("065-workitem-id-unique-per-space.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -516,8 +522,6 @@ func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkIte
 		Topology:       link.TopologyNetwork,
 		ForwardName:    "blocks",
 		ReverseName:    "blocked by",
-		SourceTypeID:   workitem.SystemBug,
-		TargetTypeID:   workitem.SystemPlannerItem,
 		LinkCategoryID: systemCat.ID,
 		SpaceID:        space.SystemSpace,
 	}
@@ -532,8 +536,6 @@ func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkIte
 		Topology:       link.TopologyNetwork,
 		ForwardName:    "relates to",
 		ReverseName:    "is related to",
-		SourceTypeID:   workitem.SystemPlannerItem,
-		TargetTypeID:   workitem.SystemPlannerItem,
 		LinkCategoryID: systemCat.ID,
 		SpaceID:        space.SystemSpace,
 	}
@@ -548,8 +550,6 @@ func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkIte
 		Topology:       link.TopologyNetwork,
 		ForwardName:    "parent of",
 		ReverseName:    "child of",
-		SourceTypeID:   workitem.SystemPlannerItem,
-		TargetTypeID:   workitem.SystemPlannerItem,
 		LinkCategoryID: systemCat.ID,
 		SpaceID:        space.SystemSpace,
 	}

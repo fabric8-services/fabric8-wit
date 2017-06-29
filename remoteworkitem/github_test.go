@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/almighty/almighty-core/resource"
 	"github.com/dnaeon/go-vcr/recorder"
+	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/google/go-github/github"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

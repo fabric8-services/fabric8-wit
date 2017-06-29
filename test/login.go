@@ -3,11 +3,11 @@ package test
 import (
 	"context"
 
-	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/auth"
-	tokencontext "github.com/almighty/almighty-core/login/tokencontext"
-	"github.com/almighty/almighty-core/space/authz"
-	"github.com/almighty/almighty-core/token"
+	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/auth"
+	tokencontext "github.com/fabric8-services/fabric8-wit/login/tokencontext"
+	"github.com/fabric8-services/fabric8-wit/space/authz"
+	"github.com/fabric8-services/fabric8-wit/token"
 
 	"time"
 

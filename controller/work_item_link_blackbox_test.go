@@ -4,31 +4,30 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"math"
 	"net/http"
-	"strconv"
 	"testing"
 	"time"
 
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/app/test"
-	. "github.com/almighty/almighty-core/controller"
-	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/jsonapi"
-	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/rest"
-	"github.com/almighty/almighty-core/space"
-	testsupport "github.com/almighty/almighty-core/test"
-	almtoken "github.com/almighty/almighty-core/token"
-	"github.com/almighty/almighty-core/workitem"
-	"github.com/almighty/almighty-core/workitem/link"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/app/test"
+	. "github.com/fabric8-services/fabric8-wit/controller"
+	"github.com/fabric8-services/fabric8-wit/gormapplication"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/jsonapi"
+	"github.com/fabric8-services/fabric8-wit/migration"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/space"
+	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	almtoken "github.com/fabric8-services/fabric8-wit/token"
+	"github.com/fabric8-services/fabric8-wit/workitem"
+	"github.com/fabric8-services/fabric8-wit/workitem/link"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -51,10 +50,10 @@ type workItemLinkSuite struct {
 	spaceCtrl                *SpaceController
 	typeCtrl                 *WorkitemtypeController
 	// These IDs can safely be used by all tests
-	bug1ID               uint64
-	bug2ID               uint64
-	bug3ID               uint64
-	feature1ID           uint64
+	bug1ID               uuid.UUID
+	bug2ID               uuid.UUID
+	bug3ID               uuid.UUID
+	feature1ID           uuid.UUID
 	userLinkCategoryID   uuid.UUID
 	bugBlockerLinkTypeID uuid.UUID
 	userSpaceID          uuid.UUID
@@ -159,7 +158,7 @@ func (s *workItemLinkSuite) SetupTest() {
 	s.T().Logf("Created link category with ID: %s\n", *workItemLinkCategory.Data.ID)
 
 	// Create work item link type payload
-	createLinkTypePayload := newCreateWorkItemLinkTypePayload("test-bug-blocker", *wit.Data.ID, *wit.Data.ID, s.userLinkCategoryID, s.userSpaceID)
+	createLinkTypePayload := newCreateWorkItemLinkTypePayload("test-bug-blocker", s.userLinkCategoryID, s.userSpaceID)
 	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkTypeCtrl, s.userSpaceID, createLinkTypePayload)
 	require.NotNil(s.T(), workItemLinkType)
 	//s.deleteWorkItemLinkTypes = append(s.deleteWorkItemLinkTypes, *workItemLinkType.Data.ID)
@@ -168,14 +167,12 @@ func (s *workItemLinkSuite) SetupTest() {
 }
 
 // creates a work item with the given name and type and returns its ID
-func (s *workItemLinkSuite) createWorkItem(typeID uuid.UUID, name string) uint64 {
+func (s *workItemLinkSuite) createWorkItem(typeID uuid.UUID, name string) uuid.UUID {
 	payload := newCreateWorkItemPayload(s.userSpaceID, typeID, name)
 	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workItemCtrl, *payload.Data.Relationships.Space.Data.ID, payload)
 	require.NotNil(s.T(), wi)
-	wiID, err := strconv.ParseUint(*wi.Data.ID, 10, 64)
-	require.Nil(s.T(), err)
-	s.T().Logf("Created bug with ID: %d\n", wiID)
-	return wiID
+	s.T().Logf("Created bug with ID: %d\n", *wi.Data.ID)
+	return *wi.Data.ID
 }
 
 // The TearDownTest method will be run after every test in the suite.
@@ -235,13 +232,11 @@ func newCreateWorkItemPayload(spaceID uuid.UUID, workItemType uuid.UUID, title s
 }
 
 // CreateWorkItemLinkType defines a work item link type
-func newCreateWorkItemLinkTypePayload(name string, sourceTypeID, targetTypeID, categoryID, spaceID uuid.UUID) *app.CreateWorkItemLinkTypePayload {
+func newCreateWorkItemLinkTypePayload(name string, categoryID, spaceID uuid.UUID) *app.CreateWorkItemLinkTypePayload {
 	description := "Specify that one bug blocks another one."
 	lt := link.WorkItemLinkType{
 		Name:           name,
 		Description:    &description,
-		SourceTypeID:   sourceTypeID,
-		TargetTypeID:   targetTypeID,
 		Topology:       link.TopologyNetwork,
 		ForwardName:    "forward name string for " + name,
 		ReverseName:    "reverse name string for " + name,
@@ -259,7 +254,7 @@ func newCreateWorkItemLinkTypePayload(name string, sourceTypeID, targetTypeID, c
 }
 
 // newCreateWorkItemLinkPayload returns the payload to create a work item link
-func newCreateWorkItemLinkPayload(sourceID uint64, targetID uint64, linkTypeID uuid.UUID) *app.CreateWorkItemLinkPayload {
+func newCreateWorkItemLinkPayload(sourceID, targetID, linkTypeID uuid.UUID) *app.CreateWorkItemLinkPayload {
 	lt := link.WorkItemLink{
 		SourceID:   sourceID,
 		TargetID:   targetID,
@@ -273,7 +268,7 @@ func newCreateWorkItemLinkPayload(sourceID uint64, targetID uint64, linkTypeID u
 }
 
 // newUpdateWorkItemLinkPayload returns the payload to update a work item link
-func newUpdateWorkItemLinkPayload(linkID uuid.UUID, sourceID uint64, targetID uint64, linkTypeID uuid.UUID) *app.UpdateWorkItemLinkPayload {
+func newUpdateWorkItemLinkPayload(linkID, sourceID, targetID, linkTypeID uuid.UUID) *app.UpdateWorkItemLinkPayload {
 	lt := link.WorkItemLink{
 		ID:         linkID,
 		SourceID:   sourceID,
@@ -348,7 +343,7 @@ func (s *workItemLinkSuite) TestCreateAndDeleteWorkItemLinkBadRequestDueToUnique
 // Same for /api/workitems/:id/relationships/links
 func (s *workItemLinkSuite) TestCreateAndDeleteWorkItemRelationshipsLink() {
 	createPayload := newCreateWorkItemLinkPayload(s.bug1ID, s.bug2ID, s.bugBlockerLinkTypeID)
-	_, workItemLink := test.CreateWorkItemRelationshipsLinksCreated(s.T(), s.svc.Context, s.svc, s.workItemRelsLinksCtrl, s.userSpaceID, strconv.FormatUint(s.bug1ID, 10), createPayload)
+	_, workItemLink := test.CreateWorkItemRelationshipsLinksCreated(s.T(), s.svc.Context, s.svc, s.workItemRelsLinksCtrl, s.userSpaceID, s.bug1ID, createPayload)
 	require.NotNil(s.T(), workItemLink)
 }
 
@@ -360,7 +355,7 @@ func (s *workItemLinkSuite) TestCreateWorkItemLinkBadRequestDueToInvalidLinkType
 // Same for /api/workitems/:id/relationships/links
 func (s *workItemLinkSuite) TestCreateWorkItemRelationshipsLinksBadRequestDueToInvalidLinkTypeID() {
 	createPayload := newCreateWorkItemLinkPayload(s.bug1ID, s.bug2ID, uuid.Nil)
-	_, _ = test.CreateWorkItemRelationshipsLinksBadRequest(s.T(), s.svc.Context, s.svc, s.workItemRelsLinksCtrl, s.userSpaceID, strconv.FormatUint(s.bug1ID, 10), createPayload)
+	_, _ = test.CreateWorkItemRelationshipsLinksBadRequest(s.T(), s.svc.Context, s.svc, s.workItemRelsLinksCtrl, s.userSpaceID, s.bug1ID, createPayload)
 }
 
 func (s *workItemLinkSuite) TestCreateWorkItemLinkBadRequestDueToNotFoundLinkType() {
@@ -371,59 +366,29 @@ func (s *workItemLinkSuite) TestCreateWorkItemLinkBadRequestDueToNotFoundLinkTyp
 // Same for /api/workitems/:id/relationships/links
 func (s *workItemLinkSuite) TestCreateWorkItemRelationshipLinksBadRequestDueToNotFoundLinkType() {
 	createPayload := newCreateWorkItemLinkPayload(s.bug1ID, s.bug2ID, uuid.FromStringOrNil("11122233-871b-43a6-9166-0c4bd573e333"))
-	_, _ = test.CreateWorkItemRelationshipsLinksBadRequest(s.T(), s.svc.Context, s.svc, s.workItemRelsLinksCtrl, s.userSpaceID, strconv.FormatUint(s.bug1ID, 10), createPayload)
+	_, _ = test.CreateWorkItemRelationshipsLinksBadRequest(s.T(), s.svc.Context, s.svc, s.workItemRelsLinksCtrl, s.userSpaceID, s.bug1ID, createPayload)
 }
 
 func (s *workItemLinkSuite) TestCreateWorkItemLinkBadRequestDueToNotFoundSource() {
-	createPayload := newCreateWorkItemLinkPayload(666666, s.bug2ID, s.bugBlockerLinkTypeID)
+	createPayload := newCreateWorkItemLinkPayload(uuid.NewV4(), s.bug2ID, s.bugBlockerLinkTypeID)
 	_, _ = test.CreateWorkItemLinkBadRequest(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload)
 }
 
 // Same for /api/workitems/:id/relationships/links
 func (s *workItemLinkSuite) TestCreateWorkItemRelationshipsLinksBadRequestDueToNotFoundSource() {
-	createPayload := newCreateWorkItemLinkPayload(666666, s.bug2ID, s.bugBlockerLinkTypeID)
-	_, _ = test.CreateWorkItemRelationshipsLinksBadRequest(s.T(), s.svc.Context, s.svc, s.workItemRelsLinksCtrl, s.userSpaceID, strconv.FormatUint(s.bug2ID, 10), createPayload)
+	createPayload := newCreateWorkItemLinkPayload(uuid.NewV4(), s.bug2ID, s.bugBlockerLinkTypeID)
+	_, _ = test.CreateWorkItemRelationshipsLinksBadRequest(s.T(), s.svc.Context, s.svc, s.workItemRelsLinksCtrl, s.userSpaceID, s.bug2ID, createPayload)
 }
 
 func (s *workItemLinkSuite) TestCreateWorkItemLinkBadRequestDueToNotFoundTarget() {
-	createPayload := newCreateWorkItemLinkPayload(s.bug1ID, 666666, s.bugBlockerLinkTypeID)
+	createPayload := newCreateWorkItemLinkPayload(s.bug1ID, uuid.NewV4(), s.bugBlockerLinkTypeID)
 	_, _ = test.CreateWorkItemLinkBadRequest(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload)
 }
 
 // Same for /api/workitems/:id/relationships/links
 func (s *workItemLinkSuite) TestCreateWorkItemRelationshipsLinksBadRequestDueToNotFoundTarget() {
-	createPayload := newCreateWorkItemLinkPayload(s.bug1ID, 666666, s.bugBlockerLinkTypeID)
-	_, _ = test.CreateWorkItemRelationshipsLinksBadRequest(s.T(), s.svc.Context, s.svc, s.workItemRelsLinksCtrl, s.userSpaceID, strconv.FormatUint(s.bug1ID, 10), createPayload)
-}
-
-func (s *workItemLinkSuite) TestCreateWorkItemLinkBadRequestDueToBadSourceType() {
-	// Linking a bug and a feature isn't allowed for the bug blocker link type,
-	// thererfore this will cause a bad parameter error (which results in a bad request error).
-	createPayload := newCreateWorkItemLinkPayload(s.feature1ID, s.bug1ID, s.bugBlockerLinkTypeID)
-	_, _ = test.CreateWorkItemLinkBadRequest(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload)
-}
-
-// Same for /api/workitems/:id/relationships/links
-func (s *workItemLinkSuite) TestCreateWorkItemRelationshipsLinksBadRequestDueToBadSourceType() {
-	// Linking a bug and a feature isn't allowed for the bug blocker link type,
-	// thererfore this will cause a bad parameter error (which results in a bad request error).
-	createPayload := newCreateWorkItemLinkPayload(s.feature1ID, s.bug1ID, s.bugBlockerLinkTypeID)
-	_, _ = test.CreateWorkItemRelationshipsLinksBadRequest(s.T(), s.svc.Context, s.svc, s.workItemRelsLinksCtrl, s.userSpaceID, strconv.FormatUint(s.feature1ID, 10), createPayload)
-}
-
-func (s *workItemLinkSuite) TestCreateWorkItemLinkBadRequestDueToBadTargetType() {
-	// Linking a bug and a feature isn't allowed for the bug blocker link type,
-	// thererfore this will cause a bad parameter error (which results in a bad request error).
-	createPayload := newCreateWorkItemLinkPayload(s.bug1ID, s.feature1ID, s.bugBlockerLinkTypeID)
-	_, _ = test.CreateWorkItemLinkBadRequest(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload)
-}
-
-// Same for /api/workitems/:id/relationships/links
-func (s *workItemLinkSuite) TestCreateWorkItemRelationshipsLinksBadRequestDueToBadTargetType() {
-	// Linking a bug and a feature isn't allowed for the bug blocker link type,
-	// thererfore this will cause a bad parameter error (which results in a bad request error).
-	createPayload := newCreateWorkItemLinkPayload(s.bug1ID, s.feature1ID, s.bugBlockerLinkTypeID)
-	_, _ = test.CreateWorkItemRelationshipsLinksBadRequest(s.T(), s.svc.Context, s.svc, s.workItemRelsLinksCtrl, s.userSpaceID, strconv.FormatUint(s.bug1ID, 10), createPayload)
+	createPayload := newCreateWorkItemLinkPayload(s.bug1ID, uuid.NewV4(), s.bugBlockerLinkTypeID)
+	_, _ = test.CreateWorkItemRelationshipsLinksBadRequest(s.T(), s.svc.Context, s.svc, s.workItemRelsLinksCtrl, s.userSpaceID, s.bug1ID, createPayload)
 }
 
 func (s *workItemLinkSuite) TestDeleteWorkItemLinkNotFound() {
@@ -457,7 +422,7 @@ func (s *workItemLinkSuite) TestUpdateWorkItemLinkOK() {
 	require.NotNil(s.T(), l.Data.Attributes.CreatedAt)
 	require.NotNil(s.T(), l.Data.Relationships)
 	require.NotNil(s.T(), l.Data.Relationships.Target.Data)
-	require.Equal(s.T(), strconv.FormatUint(s.bug3ID, 10), l.Data.Relationships.Target.Data.ID)
+	assert.Equal(s.T(), s.bug3ID, l.Data.Relationships.Target.Data.ID)
 }
 
 func (s *workItemLinkSuite) TestUpdateWorkItemLinkVersionConflict() {
@@ -470,7 +435,7 @@ func (s *workItemLinkSuite) TestUpdateWorkItemLinkVersionConflict() {
 	updateLinkPayload := &app.UpdateWorkItemLinkPayload{
 		Data: workItemLink.Data,
 	}
-	updateLinkPayload.Data.Relationships.Target.Data.ID = strconv.FormatUint(s.bug3ID, 10)
+	updateLinkPayload.Data.Relationships.Target.Data.ID = s.bug3ID
 	// force a different version of the entity
 	previousVersion := *updateLinkPayload.Data.Attributes.Version - 1
 	updateLinkPayload.Data.Attributes.Version = &previousVersion
@@ -642,8 +607,7 @@ func (s *workItemLinkSuite) validateSomeLinks(linkCollection *app.WorkItemLinkLi
 				toBeFound--
 			}
 		case *app.WorkItem:
-			wid, err := strconv.ParseUint(*v.ID, 10, 64)
-			require.Nil(s.T(), err)
+			wid := *v.ID
 			if wid == s.bug1ID || wid == s.bug2ID || wid == s.bug3ID {
 				s.T().Log("Found work item in \"included\" element: ", *v.ID)
 				toBeFound--
@@ -660,20 +624,12 @@ func (s *workItemLinkSuite) validateSomeLinks(linkCollection *app.WorkItemLinkLi
 // Same as TestListWorkItemLinkOK, for /api/workitems/:id/relationships/links
 func (s *workItemLinkSuite) TestListWorkItemRelationshipsLinksOK() {
 	link1, link2 := s.createSomeLinks()
-	filterByWorkItemID := strconv.FormatUint(s.bug2ID, 10)
-	_, linkCollection := test.ListWorkItemRelationshipsLinksOK(s.T(), s.svc.Context, s.svc, s.workItemRelsLinksCtrl, s.userSpaceID, filterByWorkItemID, nil, nil)
+	_, linkCollection := test.ListWorkItemRelationshipsLinksOK(s.T(), s.svc.Context, s.svc, s.workItemRelsLinksCtrl, s.userSpaceID, s.bug2ID, nil, nil)
 	s.validateSomeLinks(linkCollection, link1, link2)
 }
 
 func (s *workItemLinkSuite) TestListWorkItemRelationshipsLinksNotFound() {
-	filterByWorkItemID := strconv.FormatUint(math.MaxUint32, 10) // not existing bug ID
-	spaceRandomID := uuid.NewV4()                                // non-existing space ID
-	_, _ = test.ListWorkItemRelationshipsLinksNotFound(s.T(), s.svc.Context, s.svc, s.workItemRelsLinksCtrl, spaceRandomID, filterByWorkItemID, nil, nil)
-}
-
-func (s *workItemLinkSuite) TestListWorkItemRelationshipsLinksNotFoundDueToInvalidID() {
-	filterByWorkItemID := "invalid uint64"
-	_, _ = test.ListWorkItemRelationshipsLinksNotFound(s.T(), s.svc.Context, s.svc, s.workItemRelsLinksCtrl, s.userSpaceID, filterByWorkItemID, nil, nil)
+	_, _ = test.ListWorkItemRelationshipsLinksNotFound(s.T(), s.svc.Context, s.svc, s.workItemRelsLinksCtrl, uuid.NewV4(), uuid.NewV4(), nil, nil)
 }
 
 func (s *workItemLinkSuite) getWorkItemLinkTestDataFunc() func(t *testing.T) []testSecureAPI {
@@ -832,7 +788,7 @@ func (s *workItemLinkSuite) TestUnauthorizeWorkItemLinkCUD() {
 }
 
 // The work item ID will be used to construct /api/workitems/:id/relationships/links endpoints
-func (s *workItemLinkSuite) getWorkItemRelationshipLinksTestData(spaceID, wiID string) func(t *testing.T) []testSecureAPI {
+func (s *workItemLinkSuite) getWorkItemRelationshipLinksTestData(spaceID, wiID uuid.UUID) func(t *testing.T) []testSecureAPI {
 	return func(t *testing.T) []testSecureAPI {
 		privatekey, err := jwt.ParseRSAPrivateKeyFromPEM(s.Configuration.GetTokenPrivateKey())
 		if err != nil {
@@ -913,8 +869,7 @@ func (s *workItemLinkSuite) getWorkItemRelationshipLinksTestData(spaceID, wiID s
 }
 
 func (s *workItemLinkSuite) TestUnauthorizeWorkItemRelationshipsLinksCUD() {
-	wiID := strconv.FormatUint(s.bug1ID, 10)
-	UnauthorizeCreateUpdateDeleteTest(s.T(), s.getWorkItemRelationshipLinksTestData(space.SystemSpace.String(), wiID), func() *goa.Service {
+	UnauthorizeCreateUpdateDeleteTest(s.T(), s.getWorkItemRelationshipLinksTestData(space.SystemSpace, s.bug1ID), func() *goa.Service {
 		return goa.New("TestUnauthorizedCreateWorkItemRelationshipsLinks-Service")
 	}, func(service *goa.Service) error {
 		controller := NewWorkItemRelationshipsLinksController(service, gormapplication.NewGormDB(s.DB), s.Configuration)

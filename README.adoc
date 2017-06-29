@@ -1,19 +1,19 @@
-= ALMighty Core
+= Fabric8 WIT
 :toc:
 :toc-placement: preamble
 :sectnums:
 :experimental:
 
-image:https://ci.centos.org/buildStatus/icon?job=devtools-almighty-core-build-master[Jenkins,link="https://ci.centos.org/view/Devtools/job/devtools-almighty-core-build-master/lastBuild/"]
-image:https://goreportcard.com/badge/github.com/almighty/almighty-core[Go Report Card, link="https://goreportcard.com/report/github.com/almighty/almighty-core"]
-image:https://godoc.org/github.com/almighty/almighty-core?status.png[GoDoc,link="https://godoc.org/github.com/almighty/almighty-core"]
-image:https://codecov.io/gh/almighty/almighty-core/branch/master/graph/badge.svg[Codecov.io,link="https://codecov.io/gh/almighty/almighty-core"]
+image:https://ci.centos.org/buildStatus/icon?job=devtools-fabric8-wit-build-master[Jenkins,link="https://ci.centos.org/view/Devtools/job/devtools-fabric8-wit-build-master/lastBuild/"]
+image:https://goreportcard.com/badge/github.com/fabric8-services/fabric8-wit[Go Report Card, link="https://goreportcard.com/report/github.com/fabric8-services/fabric8-wit"]
+image:https://godoc.org/github.com/fabric8-services/fabric8-wit?status.png[GoDoc,link="https://godoc.org/github.com/fabric8-services/fabric8-wit"]
+image:https://codecov.io/gh/fabric8-services/fabric8-wit/branch/master/graph/badge.svg[Codecov.io,link="https://codecov.io/gh/fabric8-services/fabric8-wit"]
 
 == Building from source [[building]]
 
 The following guide is mainly targeted towards a Linux or Mac OSX development
 machine. If you are on Windows, we recommend to take a look at
-link:docs/development/getting-started-win.adoc[Getting started with almighty-core development on Windows].
+link:docs/development/getting-started-win.adoc[Getting started with fabric8-wit development on Windows].
 
 === Prerequisites [[prerequisites]]
 
@@ -65,7 +65,7 @@ how to build.
 Check out the code
 
 ----
-$ git clone https://github.com/almighty/almighty-core $GOPATH/src/github.com/almighty/almighty-core
+$ git clone https://github.com/fabric8-services/fabric8-wit $GOPATH/src/github.com/fabric8-services/fabric8-wit
 ----
 
 === Build [[build]]
@@ -80,7 +80,7 @@ To fetch the dependencies, generate code and finally build the project you can
 type `make` in a freshly clone repository of this project.
 
 ----
-$ cd $GOPATH/src/github.com/almighty/almighty-core
+$ cd $GOPATH/src/github.com/fabric8-services/fabric8-wit
 $ make
 ----
 
@@ -103,7 +103,7 @@ called `vendor`. This way we can ensure that every developer and our CI system
 is using the same version.
 
 ----
-$ cd $GOPATH/src/github.com/almighty/almighty-core
+$ cd $GOPATH/src/github.com/fabric8-services/fabric8-wit
 $ make deps
 ----
 
@@ -118,7 +118,7 @@ You need to run this command if you just checked out the code and later if
 you've modified the designs.
 
 ----
-$ cd $GOPATH/src/github.com/almighty/almighty-core
+$ cd $GOPATH/src/github.com/fabric8-services/fabric8-wit
 $ make generate
 ----
 
@@ -127,7 +127,7 @@ $ make generate
 If you want to just build the ALM server and client, run `make build`.
 
 ----
-$ cd $GOPATH/src/github.com/almighty/almighty-core
+$ cd $GOPATH/src/github.com/fabric8-services/fabric8-wit
 $ make build
 ----
 
@@ -137,7 +137,7 @@ This removes all downloaded dependencies, all generated code and compiled
 artifacts.
 
 ----
-$ cd $GOPATH/src/github.com/almighty/almighty-core
+$ cd $GOPATH/src/github.com/fabric8-services/fabric8-wit
 $ make clean
 ----
 
@@ -156,7 +156,7 @@ unit-tests::
 Unit tests have the minimum requirement on time and environment setup.
 +
 ----
-$ cd $GOPATH/src/github.com/almighty/almighty-core
+$ cd $GOPATH/src/github.com/fabric8-services/fabric8-wit
 $ make test-unit
 ----
 
@@ -165,7 +165,7 @@ Integration tests demand more setup (i.e. the PostgreSQL DB must be already
 running) and probably time. We recommend that you use `docker-compose up -d db`.
 +
 ----
-$ cd $GOPATH/src/github.com/almighty/almighty-core
+$ cd $GOPATH/src/github.com/fabric8-services/fabric8-wit
 $ make test-integration
 ----
 
@@ -173,7 +173,7 @@ all::
 To run both, the unit and the integration tests you can run
 +
 ----
-$ cd $GOPATH/src/github.com/almighty/almighty-core
+$ cd $GOPATH/src/github.com/fabric8-services/fabric8-wit
 $ make test-all
 ----
 
@@ -201,7 +201,7 @@ Here's how the <placeholders> expand
 
 [horizontal]
 `<package>`::
-something like `github.com/almighty/almighty-core/models`
+something like `github.com/fabric8-services/fabric8-wit/models`
 
 `<test>`::
 `unit` or `integration`
@@ -348,7 +348,7 @@ These files and directory are generated:
 Start up dependent docker services using `docker-compose` and runs auto reload on source change tool `fresh`.
 
 ----
-$ cd $GOPATH/src/github.com/almighty/almighty-core
+$ cd $GOPATH/src/github.com/fabric8-services/fabric8-wit
 $ make dev
 ----
 

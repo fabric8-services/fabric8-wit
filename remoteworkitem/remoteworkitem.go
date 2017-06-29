@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/almighty/almighty-core/rendering"
-	"github.com/almighty/almighty-core/workitem"
+	"github.com/fabric8-services/fabric8-wit/rendering"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
@@ -44,7 +44,7 @@ type RemoteWorkItem struct {
 	// The field values, according to the field type
 	Fields map[string]interface{}
 	// unique id per installation
-	ID string
+	ID uuid.UUID
 	// Name of the type of this work item
 	Type uuid.UUID `sql:"type:uuid"`
 }

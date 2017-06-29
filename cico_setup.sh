@@ -103,7 +103,7 @@ function run_tests_with_coverage() {
 
 function tag_push() {
   TARGET=$1
-  docker tag almighty-core-deploy $TARGET
+  docker tag fabric8-wit-deploy $TARGET
   docker push $TARGET
 }
 
@@ -113,8 +113,8 @@ function deploy() {
 
   TAG=$(echo $GIT_COMMIT | cut -c1-6)
 
-  tag_push registry.devshift.net/almighty/almighty-core:$TAG
-  tag_push registry.devshift.net/almighty/almighty-core:latest
+  tag_push registry.devshift.net/fabric8-services/fabric8-wit:$TAG
+  tag_push registry.devshift.net/fabric8-services/fabric8-wit:latest
   echo 'CICO: Image pushed, ready to update deployed app'
 }
 

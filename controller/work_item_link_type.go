@@ -3,13 +3,13 @@ package controller
 import (
 	"fmt"
 
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/jsonapi"
-	"github.com/almighty/almighty-core/login"
-	"github.com/almighty/almighty-core/rest"
-	"github.com/almighty/almighty-core/workitem/link"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/jsonapi"
+	"github.com/fabric8-services/fabric8-wit/login"
+	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/workitem/link"
 
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
@@ -275,8 +275,6 @@ func (c *WorkItemLinkTypeController) Update(ctx *app.UpdateWorkItemLinkTypeConte
 // ConvertWorkItemLinkTypeFromModel converts a work item link type from model to REST representation
 func ConvertWorkItemLinkTypeFromModel(request *goa.RequestData, modelLinkType link.WorkItemLinkType) app.WorkItemLinkTypeSingle {
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(modelLinkType.SpaceID.String()))
-	witTargetSelfURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(modelLinkType.SpaceID.String(), modelLinkType.SourceTypeID.String()))
-	witSourceSelfURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(modelLinkType.SpaceID.String(), modelLinkType.SourceTypeID.String()))
 	linkCategorySelfURL := rest.AbsoluteURL(request, app.WorkItemLinkCategoryHref(modelLinkType.LinkCategoryID.String()))
 
 	var converted = app.WorkItemLinkTypeSingle{
@@ -301,24 +299,6 @@ func ConvertWorkItemLinkTypeFromModel(request *goa.RequestData, modelLinkType li
 					},
 					Links: &app.GenericLinks{
 						Self: &linkCategorySelfURL,
-					},
-				},
-				SourceType: &app.RelationWorkItemType{
-					Data: &app.RelationWorkItemTypeData{
-						Type: link.EndpointWorkItemTypes,
-						ID:   modelLinkType.SourceTypeID,
-					},
-					Links: &app.GenericLinks{
-						Self: &witSourceSelfURL,
-					},
-				},
-				TargetType: &app.RelationWorkItemType{
-					Data: &app.RelationWorkItemTypeData{
-						Type: link.EndpointWorkItemTypes,
-						ID:   modelLinkType.TargetTypeID,
-					},
-					Links: &app.GenericLinks{
-						Self: &witTargetSelfURL,
 					},
 				},
 				Space: app.NewSpaceRelation(modelLinkType.SpaceID, spaceSelfURL),
@@ -392,12 +372,6 @@ func ConvertWorkItemLinkTypeToModel(appLinkType app.WorkItemLinkTypeSingle) (*li
 
 	if rel != nil && rel.LinkCategory != nil && rel.LinkCategory.Data != nil {
 		modelLinkType.LinkCategoryID = rel.LinkCategory.Data.ID
-	}
-	if rel != nil && rel.SourceType != nil && rel.SourceType.Data != nil {
-		modelLinkType.SourceTypeID = rel.SourceType.Data.ID
-	}
-	if rel != nil && rel.TargetType != nil && rel.TargetType.Data != nil {
-		modelLinkType.TargetTypeID = rel.TargetType.Data.ID
 	}
 	if rel != nil && rel.Space != nil && rel.Space.Data != nil {
 		modelLinkType.SpaceID = *rel.Space.Data.ID
