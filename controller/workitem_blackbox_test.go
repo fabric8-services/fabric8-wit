@@ -1718,7 +1718,6 @@ func assertResponseHeaders(t *testing.T, res http.ResponseWriter) (string, strin
 	return etag[0], lastModified[0], cacheControl[0]
 }
 
-// Temporarly disabled, See https://github.com/fabric8-services/fabric8-wit/issues/1036
 func (s *WorkItem2Suite) TestWI2FailShowMissing() {
 	test.ShowWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace, uuid.NewV4(), nil, nil)
 }
