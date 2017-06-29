@@ -14,7 +14,9 @@ objects:
     selector:
       service: core
     strategy:
-      resources: {}
+      resources:
+        limits:
+          memory: 1.5Gi
       rollingParams:
         intervalSeconds: 1
         maxSurge: 25%
@@ -135,7 +137,6 @@ objects:
             periodSeconds: 10
             successThreshold: 1
             timeoutSeconds: 1
-          resources: {}
           terminationMessagePath: /dev/termination-log
         dnsPolicy: ClusterFirst
         restartPolicy: Always
