@@ -29,7 +29,7 @@ export GIT_COMMITTER_NAME
 export GIT_COMMITTER_EMAIL
 
 # Used as target and binary output names... defined in includes
-CLIENT_DIR=tool/alm-cli
+CLIENT_DIR=tool/wit-cli
 
 COMMIT=$(shell git rev-parse HEAD)
 GITUNTRACKEDCHANGES := $(shell git status --porcelain --untracked-files=no)
@@ -242,12 +242,12 @@ generate: app/controllers.go assets/js/client.js bindata_assetfs.go migration/sq
 
 .PHONY: regenerate
 ## Runs the "clean-generated" and the "generate" target
-regenerate: clean-generated generate 
+regenerate: clean-generated generate
 
 .PHONY: dev
 dev: prebuild-check deps generate $(FRESH_BIN)
 	docker-compose up -d db
-	ALMIGHTY_DEVELOPER_MODE_ENABLED=true $(FRESH_BIN)
+	F8_DEVELOPER_MODE_ENABLED=true $(FRESH_BIN)
 
 include ./.make/test.mk
 

@@ -58,7 +58,7 @@ func (rest *TestUserREST) SetupSuite() {
 
 func (rest *TestUserREST) newUserController(identity *account.Identity, user *account.User) *UserController {
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	return NewUserController(goa.New("alm-test"), newGormTestBase(identity, user), almtoken.NewManagerWithPrivateKey(priv), &rest.config)
+	return NewUserController(goa.New("wit-test"), newGormTestBase(identity, user), almtoken.NewManagerWithPrivateKey(priv), &rest.config)
 }
 
 func (rest *TestUserREST) TestCurrentAuthorizedMissingUUID() {
