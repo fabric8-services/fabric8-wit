@@ -115,8 +115,8 @@ func (test *TestCodebaseRepository) TestListCodebases() {
 	// given
 	spaceID := space.SystemSpace
 	repo := codebase.NewCodebaseRepository(test.DB)
-	codebase1 := newCodebase(spaceID, "golang-default", "my-used-last-workspace", "git", "git@github.com:almighty/almighty-core.git")
-	codebase2 := newCodebase(spaceID, "python-default", "my-used-last-workspace", "git", "git@github.com:aslakknutsen/almighty-core.git")
+	codebase1 := newCodebase(spaceID, "golang-default", "my-used-last-workspace", "git", "git@github.com:fabric8-services/fabric8-wit.git")
+	codebase2 := newCodebase(spaceID, "python-default", "my-used-last-workspace", "git", "git@github.com:aslakknutsen/fabric8-wit.git")
 
 	test.createCodebase(codebase1)
 	test.createCodebase(codebase2)
@@ -138,7 +138,7 @@ func (test *TestCodebaseRepository) TestExistsCodebase() {
 		// given
 		spaceID := space.SystemSpace
 		repo := codebase.NewCodebaseRepository(test.DB)
-		codebase := newCodebase(spaceID, "lisp-default", "my-used-lisp-workspace", "git", "git@github.com:hectorj2f/almighty-core.git")
+		codebase := newCodebase(spaceID, "lisp-default", "my-used-lisp-workspace", "git", "git@github.com:hectorj2f/fabric8-wit.git")
 		test.createCodebase(codebase)
 		// when
 		exists, err := repo.Exists(context.Background(), codebase.ID.String())
@@ -163,7 +163,7 @@ func (test *TestCodebaseRepository) TestLoadCodebase() {
 	// given
 	spaceID := space.SystemSpace
 	repo := codebase.NewCodebaseRepository(test.DB)
-	codebase := newCodebase(spaceID, "golang-default", "my-used-last-workspace", "git", "git@github.com:aslakknutsen/almighty-core.git")
+	codebase := newCodebase(spaceID, "golang-default", "my-used-last-workspace", "git", "git@github.com:aslakknutsen/fabric8-wit.git")
 	test.createCodebase(codebase)
 	// when
 	loadedCodebase, err := repo.Load(context.Background(), codebase.ID)

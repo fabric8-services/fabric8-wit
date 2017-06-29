@@ -332,7 +332,7 @@ NOTE: Environment variables override the default values and the ones you've set 
 
 ==== Development
 
-Only files `+./*.go+`, `+./design/*.go+`, `+./models/*.go+` and `+./tool/alm-cli/main.go+` should be edited.
+Only files `+./*.go+`, `+./design/*.go+`, `+./models/*.go+` and `+./tool/wit-cli/main.go+` should be edited.
 
 These files and directory are generated:
 
@@ -360,26 +360,26 @@ NOTE: The CLI needs the API Server which was started on executing `make dev`  to
 
 Generate a token for future use.
 ----
-./bin/alm-cli generate login -H localhost:8080 --pp
+./bin/wit-cli generate login -H localhost:8080 --pp
 ----
 
 You should get Token in response, save this token in your favourite editor as you need to use this token for POST API calls
 
 Create a work item type (using above token).
 ----
-./bin/alm-cli create workitemtype --key "<GENERATED TOKEN>" --payload '{"fields":{"system.owner":{"Type":{"Kind":"user"},"Required":true},"system.state":{"Type":{"Kind":"string"},"Required":false}},"name":"Epic"}' -H localhost:8080 --pp
+./bin/wit-cli create workitemtype --key "<GENERATED TOKEN>" --payload '{"fields":{"system.owner":{"Type":{"Kind":"user"},"Required":true},"system.state":{"Type":{"Kind":"string"},"Required":false}},"name":"Epic"}' -H localhost:8080 --pp
 ----
 Note: Work Item Type `Name` is unique. If one tries to create another work item type with same name, error will be trown.
 
 Retrieve the work item type.
 
 ----
-$ ./bin/alm-cli show workitemtype --name "Epic" -H localhost:8080
+$ ./bin/wit-cli show workitemtype --name "Epic" -H localhost:8080
 ----
 
 List all available work item types.
 ----
-$ ./bin/alm-cli list workitemtype -H localhost:8080 --pp
+$ ./bin/wit-cli list workitemtype -H localhost:8080 --pp
 ----
 
 Create a work item.
@@ -388,13 +388,13 @@ Based on WorkItemType created above, we can create WorkItem.
 We need to use name of work item type in the `type` field below.
 
 ----
-$ ./bin/alm-cli create workitem --key "<GENERATED TOKEN>" --payload '{"type": "Epic", "fields": { "system.owner": "tmaeder", "system.state": "open" }}' -H localhost:8080
+$ ./bin/wit-cli create workitem --key "<GENERATED TOKEN>" --payload '{"type": "Epic", "fields": { "system.owner": "tmaeder", "system.state": "open" }}' -H localhost:8080
 ----
 
 Retrieve the work item.
 
 ----
-$ ./bin/alm-cli show workitem --id 1 -H localhost:8080 --pp
+$ ./bin/wit-cli show workitem --id 1 -H localhost:8080 --pp
 ----
 
 
@@ -410,11 +410,11 @@ System defined Work Item Types are
 Use any one of above to create Work Item based on that type.
 Following example creates a Work Item of type `userstory`
 ----
-$ ./bin/alm-cli create workitem --key "<GENERATED TOKEN>" --payload '{ "data": { "attributes": { "system.owner": "tmaeder", "system.state": "open", "system.title": "Example of an Epic", "version": "1" }, "relationships": { "baseType": { "data": { "id": "Epic", "type": "workitemtypes" } } }, "type": "workitems" } }' -H localhost:8080
+$ ./bin/wit-cli create workitem --key "<GENERATED TOKEN>" --payload '{ "data": { "attributes": { "system.owner": "tmaeder", "system.state": "open", "system.title": "Example of an Epic", "version": "1" }, "relationships": { "baseType": { "data": { "id": "Epic", "type": "workitemtypes" } } }, "type": "workitems" } }' -H localhost:8080
 ----
 
 In response you should get ID of created item, using that you can retrieve the work item.
 
 ----
-$ ./bin/alm-cli show workitem --id <ID> -H localhost:8080 --pp
+$ ./bin/wit-cli show workitem --id <ID> -H localhost:8080 --pp
 ----

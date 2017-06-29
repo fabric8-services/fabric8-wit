@@ -102,7 +102,7 @@ func NewConfigurationData(configFilePath string) (*ConfigurationData, error) {
 	c := ConfigurationData{
 		v: viper.New(),
 	}
-	c.v.SetEnvPrefix("ALMIGHTY")
+	c.v.SetEnvPrefix("F8")
 	c.v.AutomaticEnv()
 	c.v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	c.v.SetTypeByDefaultValue(true)

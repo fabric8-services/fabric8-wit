@@ -87,7 +87,7 @@ var workItemTypeData = a.Type("WorkItemTypeData", func() {
 // workItemTypeLinks has `self` as of now according to http://jsonapi.org/format/#fetching-resources
 var workItemTypeLinks = a.Type("WorkItemTypeLinks", func() {
 	a.Attribute("self", d.String, func() {
-		a.Example("http://api.almighty.io/api/workitemtypes/bug")
+		a.Example("http://api.openshift.io/api/workitemtypes/bug")
 	})
 	a.Required("self")
 })

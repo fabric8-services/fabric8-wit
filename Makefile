@@ -29,7 +29,7 @@ export GIT_COMMITTER_NAME
 export GIT_COMMITTER_EMAIL
 
 # Used as target and binary output names... defined in includes
-CLIENT_DIR=tool/alm-cli
+CLIENT_DIR=tool/wit-cli
 
 COMMIT=$(shell git rev-parse HEAD)
 GITUNTRACKEDCHANGES := $(shell git status --porcelain --untracked-files=no)
