@@ -60,7 +60,7 @@ func main() {
 		}
 	})
 	if !configSwitchIsSet {
-		if envConfigPath, ok := os.LookupEnv("ALMIGHTY_CONFIG_FILE_PATH"); ok {
+		if envConfigPath, ok := os.LookupEnv("F8_CONFIG_FILE_PATH"); ok {
 			configFilePath = envConfigPath
 		}
 	}
@@ -143,7 +143,7 @@ func main() {
 	}
 
 	// Create service
-	service := goa.New("alm")
+	service := goa.New("wit")
 
 	// Mount middleware
 	service.Use(middleware.RequestID())

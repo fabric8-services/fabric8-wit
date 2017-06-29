@@ -62,7 +62,7 @@ var baseTypeData = a.Type("BaseTypeData", func() {
 // workItemLinks has `self` as of now according to http://jsonapi.org/format/#fetching-resources
 var workItemLinks = a.Type("WorkItemLinks", func() {
 	a.Attribute("self", d.String, func() {
-		a.Example("http://api.almighty.io/api/workitems.2/1")
+		a.Example("http://api.openshift.io/api/workitems.2/1")
 	})
 	a.Required("self")
 })

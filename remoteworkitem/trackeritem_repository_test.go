@@ -83,7 +83,7 @@ func (s *TrackerItemRepositorySuite) TearDownTest() {
 	s.clean()
 }
 
-var GitIssueWithAssignee = "http://api.github.com/repos/almighty-test/almighty-test-unit/issues/2"
+var GitIssueWithAssignee = "http://api.github.com/repos/fabric8-wit-test/fabric8-wit-test-unit/issues/2"
 
 func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithExistingIdentities() {
 	// given
