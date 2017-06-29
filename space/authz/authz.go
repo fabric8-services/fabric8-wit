@@ -130,7 +130,7 @@ func (s *KeycloakAuthzService) Authorize(ctx context.Context, entitlementEndpoin
 	for _, permission := range permissions {
 		name := permission.ResourceSetName
 		if name != nil && spaceID == *name {
-			return false, nil
+			return true, nil
 		}
 	}
 	return false, nil

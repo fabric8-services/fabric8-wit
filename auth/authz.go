@@ -208,8 +208,6 @@ func CreateResource(ctx context.Context, resource KeycloakResource, authzEndpoin
 		}, "unable to marshal keycloak resource struct")
 		return "", errors.NewInternalError(ctx, errs.Wrap(err, "unable to marshal keycloak resource struct"))
 	}
-	fmt.Println(string(b))
-	fmt.Println(authzEndpoint)
 
 	req, err := http.NewRequest("POST", authzEndpoint, strings.NewReader(string(b)))
 	if err != nil {
@@ -268,7 +266,6 @@ func GetClientID(ctx context.Context, clientsEndpoint string, publicClientID str
 		return "", errors.NewInternalError(ctx, errs.Wrap(err, "unable to create http request"))
 	}
 	req.Header.Add("Authorization", "Bearer "+protectionAPIToken)
-	fmt.Println(clientsEndpoint)
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -312,7 +309,6 @@ func GetClientID(ctx context.Context, clientsEndpoint string, publicClientID str
 // CreatePolicy creates a Keycloak policy
 func CreatePolicy(ctx context.Context, clientsEndpoint string, clientID string, policy KeycloakPolicy, protectionAPIToken string) (string, error) {
 	b, err := json.Marshal(policy)
-	fmt.Println(string(b))
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"policy": policy,
@@ -320,7 +316,6 @@ func CreatePolicy(ctx context.Context, clientsEndpoint string, clientID string, 
 		}, "unable to marshal keycloak policy struct")
 		return "", errors.NewInternalError(ctx, errs.Wrap(err, "unable to marshal keycloak policy struct"))
 	}
-	fmt.Println(clientsEndpoint + "/" + clientID + "/authz/resource-server/policy")
 	req, err := http.NewRequest("POST", clientsEndpoint+"/"+clientID+"/authz/resource-server/policy", strings.NewReader(string(b)))
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -654,7 +649,7 @@ func GetEntitlement(ctx context.Context, entitlementEndpoint string, entitlement
 	var reqErr error
 	if entitlementResource != nil {
 		b, err := json.Marshal(entitlementResource)
-		fmt.Println(string(b))
+		fmt.Println(string(b)) //temporary
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"entitlement_resource": entitlementResource,
