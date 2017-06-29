@@ -299,7 +299,7 @@ func (s *TrackerItemRepositorySuite) TestConvertGithubIssue() {
 	// when
 	workItemGithub, err := convertToWorkItemModel(s.ctx, s.DB, int(s.trackerQuery.ID), remoteItemDataGithub, ProviderGithub, s.trackerQuery.SpaceID)
 	// then
-	assert.Nil(s.T(), err)
+	require.Nil(s.T(), err)
 	assert.Equal(s.T(), "map flatten : test case : with assignee", workItemGithub.Fields[workitem.SystemTitle])
 	assert.Equal(s.T(), identity.ID.String(), workItemGithub.Fields[workitem.SystemCreator])
 	assert.Equal(s.T(), identity.ID.String(), workItemGithub.Fields[workitem.SystemAssignees].([]interface{})[0])
