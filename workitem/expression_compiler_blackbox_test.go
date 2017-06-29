@@ -5,9 +5,9 @@ import (
 	"runtime/debug"
 	"testing"
 
-	. "github.com/almighty/almighty-core/criteria"
-	"github.com/almighty/almighty-core/resource"
-	. "github.com/almighty/almighty-core/workitem"
+	. "github.com/fabric8-services/fabric8-wit/criteria"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	. "github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/stretchr/testify/assert"
 )
 

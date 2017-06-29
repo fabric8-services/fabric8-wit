@@ -1,8 +1,8 @@
 package link
 
 import (
-	convert "github.com/almighty/almighty-core/convert"
-	"github.com/almighty/almighty-core/gormsupport"
+	convert "github.com/fabric8-services/fabric8-wit/convert"
+	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	uuid "github.com/satori/go.uuid"
 )
 

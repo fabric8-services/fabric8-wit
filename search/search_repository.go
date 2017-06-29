@@ -12,9 +12,9 @@ import (
 
 	"net/url"
 
-	"github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/log"
-	"github.com/almighty/almighty-core/workitem"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	"github.com/asaskevich/govalidator"
 	"github.com/jinzhu/gorm"
@@ -46,7 +46,7 @@ func generateSearchQuery(q string) (string, error) {
 //searchKeyword defines how a decomposed raw search query will look like
 type searchKeyword struct {
 	workItemTypes []uuid.UUID
-	id            []string
+	number        []string
 	words         []string
 }
 
@@ -210,10 +210,10 @@ func parseSearchString(rawSearchString string) (searchKeyword, error) {
 				"part": part,
 			}, "unable to escape url!")
 		}
-		// IF part is for search with id:1234
+		// IF part is for search with number:1234
 		// TODO: need to find out the way to use ID fields.
-		if strings.HasPrefix(part, "id:") {
-			res.id = append(res.id, strings.TrimPrefix(part, "id:")+":*A")
+		if strings.HasPrefix(part, "number:") {
+			res.number = append(res.number, strings.TrimPrefix(part, "number:")+":*A")
 		} else if strings.HasPrefix(part, "type:") {
 			typeIDStr := strings.TrimPrefix(part, "type:")
 			if len(typeIDStr) == 0 {
@@ -235,24 +235,28 @@ func parseSearchString(rawSearchString string) (searchKeyword, error) {
 			res.words = append(res.words, part+":*")
 		}
 	}
+	log.Info(nil, nil, "Search keywords: '%s' -> %v", rawSearchString, res)
 	return res, nil
 }
 
 // generateSQLSearchInfo accepts searchKeyword and join them in a way that can be used in sql
 func generateSQLSearchInfo(keywords searchKeyword) (sqlParameter string) {
-	idStr := strings.Join(keywords.id, " & ")
+	numberStr := strings.Join(keywords.number, " & ")
 	wordStr := strings.Join(keywords.words, " & ")
-
-	searchStr := idStr + wordStr
-	if len(wordStr) != 0 && len(idStr) != 0 {
-		searchStr = idStr + " & " + wordStr
+	fragments := make([]string, 0)
+	for _, v := range []string{numberStr, wordStr} {
+		if v != "" {
+			fragments = append(fragments, v)
+		}
 	}
+	searchStr := strings.Join(fragments, " & ")
 	return searchStr
 }
 
 // extracted this function from List() in order to close the rows object with "defer" for more readability
 // workaround for https://github.com/lib/pq/issues/81
 func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParameter string, workItemTypes []uuid.UUID, start *int, limit *int, spaceID *string) ([]workitem.WorkItemStorage, uint64, error) {
+	log.Info(ctx, nil, "Searching work items...")
 	db := r.db.Model(workitem.WorkItemStorage{}).Where("tsv @@ query")
 	if start != nil {
 		if *start < 0 {
@@ -321,6 +325,7 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 		// means 0 rows were returned from the first query,
 		count = 0
 	}
+	log.Info(ctx, nil, "Search results: %d matches", count)
 	return result, count, nil
 	//*/
 }

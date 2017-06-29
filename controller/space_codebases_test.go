@@ -8,18 +8,18 @@ import (
 
 	"context"
 
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/app/test"
-	"github.com/almighty/almighty-core/application"
-	. "github.com/almighty/almighty-core/controller"
-	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/app/test"
+	"github.com/fabric8-services/fabric8-wit/application"
+	. "github.com/fabric8-services/fabric8-wit/controller"
+	"github.com/fabric8-services/fabric8-wit/gormapplication"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 
-	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/space"
-	testsupport "github.com/almighty/almighty-core/test"
-	almtoken "github.com/almighty/almighty-core/token"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/space"
+	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	almtoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -66,20 +66,20 @@ func (rest *TestSpaceCodebaseREST) UnSecuredController() (*goa.Service, *SpaceCo
 
 func (rest *TestSpaceCodebaseREST) TestCreateCodebaseCreated() {
 	s := rest.createSpace(testsupport.TestIdentity.ID)
-	ci := createSpaceCodebase("https://github.com/almighty/almighty-core.git", "stackId")
+	ci := createSpaceCodebase("https://github.com/fabric8-services/fabric8-wit.git", "stackId")
 
 	svc, ctrl := rest.SecuredController()
 	_, c := test.CreateSpaceCodebasesCreated(rest.T(), svc.Context, svc, ctrl, s.ID, ci)
 	require.NotNil(rest.T(), c.Data.ID)
 	require.NotNil(rest.T(), c.Data.Relationships.Space)
 	assert.Equal(rest.T(), s.ID.String(), *c.Data.Relationships.Space.Data.ID)
-	assert.Equal(rest.T(), "https://github.com/almighty/almighty-core.git", *c.Data.Attributes.URL)
+	assert.Equal(rest.T(), "https://github.com/fabric8-services/fabric8-wit.git", *c.Data.Attributes.URL)
 	assert.Equal(rest.T(), "stackId", *c.Data.Attributes.StackID)
 }
 
 func (rest *TestSpaceCodebaseREST) TestCreateCodebaseForbidden() {
 	s := rest.createSpace(testsupport.TestIdentity2.ID)
-	ci := createSpaceCodebase("https://github.com/almighty/almighty-core.git", "stackId")
+	ci := createSpaceCodebase("https://github.com/fabric8-services/fabric8-wit.git", "stackId")
 
 	svc, ctrl := rest.SecuredController()
 	// Codebase creation is forbidden if the user is not the space owner
@@ -95,7 +95,7 @@ func (rest *TestSpaceCodebaseREST) TestListCodebase() {
 	// Create another space where we'll create 1 codebase.
 	anotherSpace := rest.createSpace(testsupport.TestIdentity.ID)
 
-	repo := "https://github.com/almighty/almighty-core.git"
+	repo := "https://github.com/fabric8-services/fabric8-wit.git"
 
 	svc, ctrl := rest.SecuredController()
 	spaceId := s.ID

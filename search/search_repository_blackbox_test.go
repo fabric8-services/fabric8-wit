@@ -5,14 +5,14 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/search"
-	"github.com/almighty/almighty-core/space"
-	testsupport "github.com/almighty/almighty-core/test"
-	"github.com/almighty/almighty-core/workitem"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/migration"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/search"
+	"github.com/fabric8-services/fabric8-wit/space"
+	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	"context"
 	"github.com/goadesign/goa"
@@ -67,7 +67,7 @@ func (s *searchRepositoryBlackboxTest) TestRestrictByType() {
 	require.Nil(s.T(), err)
 	require.True(s.T(), count == uint64(len(res))) // safety check for many, many instances of bogus search results.
 	for _, wi := range res {
-		s.wiRepo.Delete(ctx, wi.SpaceID, wi.ID, s.modifierID)
+		s.wiRepo.Delete(ctx, wi.ID, s.modifierID)
 	}
 
 	extended := workitem.SystemBug

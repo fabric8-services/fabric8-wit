@@ -1,4 +1,4 @@
-PROJECT_NAME=almighty-core
+PROJECT_NAME=fabric8-wit
 CUR_DIR=$(shell pwd)
 TMP_PATH=$(CUR_DIR)/tmp
 INSTALL_PREFIX=$(CUR_DIR)/bin
@@ -38,7 +38,7 @@ COMMIT := $(COMMIT)-dirty
 endif
 BUILD_TIME=`date -u '+%Y-%m-%dT%H:%M:%SZ'`
 
-PACKAGE_NAME := github.com/almighty/almighty-core
+PACKAGE_NAME := github.com/fabric8-services/fabric8-wit
 
 # For the global "clean" target all targets in this variable will be executed
 CLEAN_TARGETS =
