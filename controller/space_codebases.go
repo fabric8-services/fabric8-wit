@@ -54,7 +54,7 @@ func (c *SpaceCodebasesController) Create(ctx *app.CreateSpaceCodebasesContext) 
 			SpaceID: ctx.SpaceID,
 			Type:    *reqIter.Attributes.Type,
 			URL:     *reqIter.Attributes.URL,
-			StackID: *reqIter.Attributes.StackID,
+			StackID: reqIter.Attributes.StackID,
 		}
 		err = appl.Codebases().Create(ctx, &newCodeBase)
 		if err != nil {

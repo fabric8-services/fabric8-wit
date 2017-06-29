@@ -100,7 +100,7 @@ func newCodebase(spaceID uuid.UUID, stackID, lastUsedWorkspace, repotype, url st
 		SpaceID:           spaceID,
 		Type:              repotype,
 		URL:               url,
-		StackID:           stackID,
+		StackID:           &stackID,
 		LastUsedWorkspace: lastUsedWorkspace,
 	}
 }
@@ -169,6 +169,6 @@ func (test *TestCodebaseRepository) TestLoadCodebase() {
 	loadedCodebase, err := repo.Load(context.Background(), codebase.ID)
 	require.Nil(test.T(), err)
 	assert.Equal(test.T(), codebase.ID, loadedCodebase.ID)
-	assert.Equal(test.T(), "golang-default", loadedCodebase.StackID)
+	assert.Equal(test.T(), "golang-default", *loadedCodebase.StackID)
 	assert.Equal(test.T(), "my-used-last-workspace", loadedCodebase.LastUsedWorkspace)
 }
