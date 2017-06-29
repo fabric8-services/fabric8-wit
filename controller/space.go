@@ -241,6 +241,7 @@ func (c *SpaceController) List(ctx *app.ListSpaceContext) error {
 	if txnErr != nil {
 		return jsonapi.JSONErrorResponse(ctx, txnErr)
 	}
+	ctx.ResponseData.Header().Set("Access-Control-Allow-Origin", "*")
 	return ctx.OK(&response)
 }
 
