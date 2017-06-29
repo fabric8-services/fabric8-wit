@@ -207,7 +207,7 @@ var _ = a.Resource("work_item_comments", func() {
 		a.Routing(
 			a.POST("comments"),
 		)
-		a.Description("List comments associated with the given work item")
+		a.Description("Creates a comment associated with the given work item")
 		a.Response(d.OK, func() {
 			a.Media(commentSingle)
 		})

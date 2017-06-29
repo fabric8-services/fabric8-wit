@@ -3,7 +3,7 @@ package workitem_test
 import (
 	"testing"
 
-	"github.com/almighty/almighty-core/rendering"
+	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/stretchr/testify/assert"
 )
 

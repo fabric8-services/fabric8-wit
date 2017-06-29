@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/almighty/almighty-core/convert"
+	"github.com/fabric8-services/fabric8-wit/convert"
 )
 
 type EnumType struct {

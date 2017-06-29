@@ -6,8 +6,8 @@ import (
 	"sync"
 	"testing"
 
-	config "github.com/almighty/almighty-core/configuration"
-	"github.com/almighty/almighty-core/resource"
+	config "github.com/fabric8-services/fabric8-wit/configuration"
+	"github.com/fabric8-services/fabric8-wit/resource"
 
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"

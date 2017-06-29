@@ -4,12 +4,12 @@ import (
 	"context"
 	"testing"
 
-	"github.com/almighty/almighty-core/codebase"
-	"github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/space"
+	"github.com/fabric8-services/fabric8-wit/codebase"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/space"
 
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -100,7 +100,7 @@ func newCodebase(spaceID uuid.UUID, stackID, lastUsedWorkspace, repotype, url st
 		SpaceID:           spaceID,
 		Type:              repotype,
 		URL:               url,
-		StackID:           stackID,
+		StackID:           &stackID,
 		LastUsedWorkspace: lastUsedWorkspace,
 	}
 }
@@ -169,6 +169,6 @@ func (test *TestCodebaseRepository) TestLoadCodebase() {
 	loadedCodebase, err := repo.Load(context.Background(), codebase.ID)
 	require.Nil(test.T(), err)
 	assert.Equal(test.T(), codebase.ID, loadedCodebase.ID)
-	assert.Equal(test.T(), "golang-default", loadedCodebase.StackID)
+	assert.Equal(test.T(), "golang-default", *loadedCodebase.StackID)
 	assert.Equal(test.T(), "my-used-last-workspace", loadedCodebase.LastUsedWorkspace)
 }

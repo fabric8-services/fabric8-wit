@@ -4,7 +4,7 @@
 :sectnums:
 :experimental:
 
-*Requirements:* Need token to use following API. Please go through link:https://github.com/almighty/almighty-core/#3-developer-setup[README] to generate a token to use.
+*Requirements:* Need token to use following API. Please go through link:https://github.com/fabric8-services/fabric8-wit/#3-developer-setup[README] to generate a token to use.
 
 == Create an "Epic" Work Item Type
 

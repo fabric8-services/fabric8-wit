@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/almighty/almighty-core/resource"
-	. "github.com/almighty/almighty-core/workitem"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	. "github.com/fabric8-services/fabric8-wit/workitem"
 )
 
 func TestListFieldDefMarshalling(t *testing.T) {
