@@ -52,7 +52,8 @@ func (s *TestAuthzSuite) SetupSuite() {
 func (s *TestAuthzSuite) TestFailsIfNoTokenInContext() {
 	ctx := context.Background()
 	spaceID := ""
-	_, err := s.authzService.Authorize(ctx, "", spaceID)
+	var rptToken string
+	_, err := s.authzService.Authorize(ctx, "", spaceID, &rptToken)
 	require.NotNil(s.T(), err)
 }
 
@@ -78,8 +79,8 @@ func (s *TestAuthzSuite) checkPermissions(authzPayload auth.AuthorizationPayload
 	testIdentity := testsupport.TestIdentity
 	svc := testsupport.ServiceAsUserWithAuthz("SpaceAuthz-Service", almtoken.NewManagerWithPrivateKey(priv), priv, testIdentity, authzPayload)
 	resource.UpdatedAt = time.Now()
-
-	ok, err := authzService.Authorize(svc.Context, "", spaceID)
+	var rptToken string
+	ok, err := authzService.Authorize(svc.Context, "", spaceID, &rptToken)
 	require.Nil(s.T(), err)
 	return ok
 }

@@ -189,6 +189,16 @@ func convertToken(token auth.Token) *app.AuthToken {
 	}}
 }
 
+func convertRPT(token auth.TokenPayload, rawRPT string) *app.AuthToken {
+
+	return &app.AuthToken{Token: &app.TokenData{
+		ExpiresIn:        token.ExpiresAt,
+		RefreshExpiresIn: token.ExpiresAt, // temporary, this needs to be set from access token
+		AccessToken:      &rawRPT,
+		NotBeforePolicy:  token.NotBefore,
+	}}
+}
+
 // Link links identity provider(s) to the user's account
 func (c *LoginController) Link(ctx *app.LinkLoginContext) error {
 	brokerEndpoint, err := c.configuration.GetKeycloakEndpointBroker(ctx.RequestData)

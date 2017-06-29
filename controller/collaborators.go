@@ -122,10 +122,17 @@ func (c *CollaboratorsController) Add(ctx *app.AddCollaboratorsContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	response := app.UserList{
-		Meta: &app.UserListMeta{TotalCount: 0, Token: &rptToken},
+
+	// Convert the token string to a nice object for marshal<->unmarshal
+	tokenPayload, err := auth.ConvertRPTStringToTokenPayload(ctx, rptToken)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	return ctx.OK(&response)
+
+	// Convert to the exposed AuthToken format.
+	appAuthToken := convertRPT(*tokenPayload, rptToken)
+
+	return ctx.OK(appAuthToken)
 }
 
 // AddMany adds user's identities to the list of space collaborators.
@@ -139,10 +146,16 @@ func (c *CollaboratorsController) AddMany(ctx *app.AddManyCollaboratorsContext) 
 		}
 	}
 
-	response := app.UserList{
-		Meta: &app.UserListMeta{TotalCount: 0, Token: &rptToken},
+	// Convert the token string to a nice object for marshal<->unmarshal
+	tokenPayload, err := auth.ConvertRPTStringToTokenPayload(ctx, rptToken)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	return ctx.OK(&response)
+
+	// Convert to the exposed AuthToken format.
+	appAuthToken := convertRPT(*tokenPayload, rptToken)
+
+	return ctx.OK(appAuthToken)
 }
 
 // Remove user from the list of space collaborators.
@@ -160,10 +173,16 @@ func (c *CollaboratorsController) Remove(ctx *app.RemoveCollaboratorsContext) er
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	response := app.UserList{
-		Meta: &app.UserListMeta{TotalCount: 0, Token: &rptToken},
+	// Convert the token string to a nice object for marshal<->unmarshal
+	tokenPayload, err := auth.ConvertRPTStringToTokenPayload(ctx, rptToken)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	return ctx.OK(&response)
+
+	// Convert to the exposed AuthToken format.
+	appAuthToken := convertRPT(*tokenPayload, rptToken)
+
+	return ctx.OK(appAuthToken)
 }
 
 // RemoveMany removes users from the list of space collaborators.
@@ -185,10 +204,16 @@ func (c *CollaboratorsController) RemoveMany(ctx *app.RemoveManyCollaboratorsCon
 		}
 	}
 
-	response := app.UserList{
-		Meta: &app.UserListMeta{TotalCount: 0, Token: &rptToken},
+	// Convert the token string to a nice object for marshal<->unmarshal
+	tokenPayload, err := auth.ConvertRPTStringToTokenPayload(ctx, rptToken)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	return ctx.OK(&response)
+
+	// Convert to the exposed AuthToken format.
+	appAuthToken := convertRPT(*tokenPayload, rptToken)
+
+	return ctx.OK(appAuthToken)
 }
 
 func (c *CollaboratorsController) checkSpaceOwner(ctx context.Context, spaceID uuid.UUID, identityID string) error {
@@ -319,3 +344,22 @@ func (c *CollaboratorsController) getPolicy(ctx collaboratorContext, req *goa.Re
 	}
 	return policy, pat, nil
 }
+
+/*
+func useRPT(ctx collaboratorContext, rpt *string) *jwt.Token {
+	jwttoken := goajwt.ContextJWT(ctx)
+	tokenWithClaims, err := jwt.ParseWithClaims(jwttoken.Raw, &auth.TokenPayload{}, func(t *jwt.Token) (interface{}, error) {
+		return tm.(token.Manager).PublicKey(), nil
+	})
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"space-id": spaceID,
+			"err":      err,
+		}, "unable to parse the rpt token")
+		return false, errors.NewInternalError(ctx, errs.Wrap(err, "unable to parse the rpt token"))
+	}
+	claims := tokenWithClaims.Claims.(*auth.TokenPayload)
+
+	return jwttoken
+}
+*/

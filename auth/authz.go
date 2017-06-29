@@ -11,10 +11,14 @@ import (
 	"strings"
 	"time"
 
+	goajwt "github.com/goadesign/goa/middleware/security/jwt"
+
 	"github.com/dgrijalva/jwt-go"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/login/tokencontext"
 	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/token"
 	errs "github.com/pkg/errors"
 )
 
@@ -816,4 +820,25 @@ func ReadToken(ctx context.Context, res *http.Response) (*Token, error) {
 		return nil, errors.NewInternalError(ctx, errs.Wrapf(err, "error when unmarshal json with access token %s ", jsonString))
 	}
 	return &token, nil
+}
+
+// ConvertRPTStringToTokenPayload Converts an RPT raw token string to a standard token json format
+func ConvertRPTStringToTokenPayload(ctx context.Context, rawToken string) (*TokenPayload, error) {
+
+	jwttoken := goajwt.ContextJWT(ctx)
+	if jwttoken == nil {
+		return nil, errors.NewUnauthorizedError("missing token")
+	}
+	tm := tokencontext.ReadTokenManagerFromContext(ctx)
+	tokenWithClaims, err := jwt.ParseWithClaims(rawToken, &TokenPayload{}, func(t *jwt.Token) (interface{}, error) {
+		return tm.(token.Manager).PublicKey(), nil
+	})
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "unable to parse the rpt token")
+		return nil, errors.NewInternalError(ctx, errs.Wrap(err, "unable to parse the rpt token"))
+	}
+	claims := tokenWithClaims.Claims.(*TokenPayload)
+	return claims, nil
 }
