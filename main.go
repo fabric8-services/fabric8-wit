@@ -5,30 +5,31 @@ import (
 	"net/http"
 	"os"
 	"os/user"
+	"runtime"
 	"time"
 
-	"golang.org/x/net/context"
+	"context"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 
-	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/auth"
-	config "github.com/almighty/almighty-core/configuration"
-	"github.com/almighty/almighty-core/controller"
-	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/jsonapi"
-	"github.com/almighty/almighty-core/log"
-	"github.com/almighty/almighty-core/login"
-	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/models"
-	"github.com/almighty/almighty-core/remoteworkitem"
-	"github.com/almighty/almighty-core/space"
-	"github.com/almighty/almighty-core/space/authz"
-	"github.com/almighty/almighty-core/token"
-	"github.com/almighty/almighty-core/workitem"
-	"github.com/almighty/almighty-core/workitem/link"
+	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/auth"
+	config "github.com/fabric8-services/fabric8-wit/configuration"
+	"github.com/fabric8-services/fabric8-wit/controller"
+	"github.com/fabric8-services/fabric8-wit/gormapplication"
+	"github.com/fabric8-services/fabric8-wit/jsonapi"
+	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/login"
+	"github.com/fabric8-services/fabric8-wit/migration"
+	"github.com/fabric8-services/fabric8-wit/models"
+	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
+	"github.com/fabric8-services/fabric8-wit/space"
+	"github.com/fabric8-services/fabric8-wit/space/authz"
+	"github.com/fabric8-services/fabric8-wit/token"
+	"github.com/fabric8-services/fabric8-wit/workitem"
+	"github.com/fabric8-services/fabric8-wit/workitem/link"
 
 	"github.com/goadesign/goa"
 	goalogrus "github.com/goadesign/goa/logging/logrus"
@@ -146,7 +147,8 @@ func main() {
 
 	// Mount middleware
 	service.Use(middleware.RequestID())
-	service.Use(middleware.LogRequest(configuration.IsPostgresDeveloperModeEnabled()))
+	// Use our own log request to inject identity id and modify other properties
+	service.Use(log.LogRequest(configuration.IsPostgresDeveloperModeEnabled()))
 	service.Use(gzip.Middleware(9))
 	service.Use(jsonapi.ErrorHandler(service, true))
 	service.Use(middleware.Recover())
@@ -215,7 +217,7 @@ func main() {
 	commentsCtrl := controller.NewCommentsController(service, appDB, configuration)
 	app.MountCommentsController(service, commentsCtrl)
 
-	if !configuration.GetFeatureWorkitemRemote() {
+	if configuration.GetFeatureWorkitemRemote() {
 		// Scheduler to fetch and import remote tracker items
 		scheduler = remoteworkitem.NewScheduler(db)
 		defer scheduler.Stop()
@@ -303,22 +305,12 @@ func main() {
 	collaboratorsCtrl := controller.NewCollaboratorsController(service, appDB, configuration, auth.NewKeycloakPolicyManager(configuration))
 	app.MountCollaboratorsController(service, collaboratorsCtrl)
 
-	if !configuration.IsPostgresDeveloperModeEnabled() {
-		// TEMP MOUNT "redirect" controller
-		redirectWorkItemTypesCtrl := controller.NewRedirectWorkitemtypeController(service)
-		app.MountRedirectWorkitemtypeController(service, redirectWorkItemTypesCtrl)
-
-		redirectWorkItemCtrl := controller.NewRedirectWorkitemController(service)
-		app.MountRedirectWorkitemController(service, redirectWorkItemCtrl)
-
-		redirectWorkItemLinkTypesCtrl := controller.NewRedirectWorkItemLinkTypeController(service)
-		app.MountRedirectWorkItemLinkTypeController(service, redirectWorkItemLinkTypesCtrl)
-	}
-
 	log.Logger().Infoln("Git Commit SHA: ", controller.Commit)
 	log.Logger().Infoln("UTC Build Time: ", controller.BuildTime)
 	log.Logger().Infoln("UTC Start Time: ", controller.StartTime)
 	log.Logger().Infoln("Dev mode:       ", configuration.IsPostgresDeveloperModeEnabled())
+	log.Logger().Infoln("GOMAXPROCS:     ", runtime.GOMAXPROCS(-1))
+	log.Logger().Infoln("NumCPU:         ", runtime.NumCPU())
 
 	http.Handle("/api/", service.Mux)
 	http.Handle("/", http.FileServer(assetFS()))

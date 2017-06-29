@@ -30,7 +30,7 @@ objects:
           service: core
       spec:
         containers:
-        - image: registry.devshift.net/almighty/almighty-core:${IMAGE_TAG}
+        - image: registry.devshift.net/fabric8-services/fabric8-wit:${IMAGE_TAG}
           env:
           - name: ALMIGHTY_POSTGRES_HOST
             valueFrom:
@@ -107,6 +107,11 @@ objects:
               configMapKeyRef:
                 name: core
                 key: openshift.tenant.masterurl
+          - name: ALMIGHTY_FEATURE_WORKITEM_REMOTE
+            valueFrom:
+              configMapKeyRef:
+                name: core
+                key: feature.workitem.remote
           imagePullPolicy: Always
           name: core
           ports:

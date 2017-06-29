@@ -1,14 +1,14 @@
 package auth
 
 import (
-	"github.com/almighty/almighty-core/convert"
-	"github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/gormsupport"
-	"github.com/almighty/almighty-core/log"
+	"github.com/fabric8-services/fabric8-wit/convert"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/gormsupport"
+	"github.com/fabric8-services/fabric8-wit/log"
 
+	"context"
 	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
-	"golang.org/x/net/context"
 )
 
 const (
@@ -75,7 +75,7 @@ func (r *GormOauthStateReferenceRepository) Delete(ctx context.Context, ID uuid.
 		log.Error(ctx, map[string]interface{}{
 			"oauth_state_reference_id": ID.String(),
 		}, "unable to delete the oauth state reference")
-		return errors.NewInternalError(err.Error())
+		return errors.NewInternalError(ctx, err)
 	}
 	if tx.RowsAffected == 0 {
 		log.Error(ctx, map[string]interface{}{
@@ -96,7 +96,7 @@ func (r *GormOauthStateReferenceRepository) Create(ctx context.Context, referenc
 
 	tx := r.db.Create(reference)
 	if err := tx.Error; err != nil {
-		return nil, errors.NewInternalError(err.Error())
+		return nil, errors.NewInternalError(ctx, err)
 	}
 
 	log.Info(ctx, map[string]interface{}{
@@ -116,7 +116,7 @@ func (r *GormOauthStateReferenceRepository) Load(ctx context.Context, id uuid.UU
 		return nil, errors.NewNotFoundError("oauth state reference", id.String())
 	}
 	if tx.Error != nil {
-		return nil, errors.NewInternalError(tx.Error.Error())
+		return nil, errors.NewInternalError(ctx, tx.Error)
 	}
 	return &ref, nil
 }

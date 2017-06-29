@@ -6,13 +6,13 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/almighty/almighty-core/configuration"
+	"github.com/fabric8-services/fabric8-wit/configuration"
 
+	"context"
 	log "github.com/Sirupsen/logrus"
-	"golang.org/x/net/context"
 )
 
-const defaultPackageName = "github.com/almighty/almighty-core/"
+const defaultPackageName = "github.com/fabric8-services/fabric8-wit/"
 
 var (
 	logger = &log.Logger{

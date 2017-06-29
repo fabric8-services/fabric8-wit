@@ -1,31 +1,29 @@
 package controller
 
 import (
+	"context"
+	"os"
 	"testing"
 
 	"net/http"
 
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/rendering"
-	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/rest"
-	"github.com/almighty/almighty-core/space"
-	"github.com/almighty/almighty-core/workitem"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/gormapplication"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/rendering"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/space"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
-
-func TestNewWorkitemController(t *testing.T) {
-	t.Parallel()
-	resource.Require(t, resource.UnitTest)
-	assert.Panics(t, func() {
-		NewWorkitemController(goa.New("Test service"), nil, nil)
-	})
-}
 
 func TestParseInts(t *testing.T) {
 	t.Parallel()
@@ -143,6 +141,30 @@ func TestConvertWorkItemWithoutDescription(t *testing.T) {
 	assert.Nil(t, wi2.Attributes[workitem.SystemDescription])
 }
 
+type TestWorkItemREST struct {
+	gormtestsupport.DBTestSuite
+
+	db    *gormapplication.GormDB
+	clean func()
+}
+
+func TestRunWorkItemREST(t *testing.T) {
+	pwd, err := os.Getwd()
+	if err != nil {
+		require.Nil(t, err)
+	}
+	suite.Run(t, &TestWorkItemREST{DBTestSuite: gormtestsupport.NewDBTestSuite(pwd + "/../config.yaml")})
+}
+
+func (rest *TestWorkItemREST) SetupTest() {
+	rest.db = gormapplication.NewGormDB(rest.DB)
+	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
+}
+
+func (rest *TestWorkItemREST) TearDownTest() {
+	rest.clean()
+}
+
 func prepareWI2(attributes map[string]interface{}) app.WorkItem {
 	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
@@ -168,32 +190,43 @@ func prepareWI2(attributes map[string]interface{}) app.WorkItem {
 	}
 }
 
-func TestConvertJSONAPIToWorkItemWithLegacyDescription(t *testing.T) {
-	appl := new(application.Application)
+func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithLegacyDescription() {
+	t := rest.T()
+	resource.Require(t, resource.Database)
+	//given
 	attributes := map[string]interface{}{
 		workitem.SystemTitle:       "title",
 		workitem.SystemDescription: "description",
 	}
 	source := prepareWI2(attributes)
 	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
-	err := ConvertJSONAPIToWorkItem(*appl, source, target, space.SystemSpace)
+
+	err := application.Transactional(rest.db, func(app application.Application) error {
+		return ConvertJSONAPIToWorkItem(context.Background(), app, source, target, space.SystemSpace)
+	})
+	// assert
 	require.Nil(t, err)
 	require.NotNil(t, target)
 	require.NotNil(t, target.Fields)
 	require.True(t, uuid.Equal(source.Relationships.BaseType.Data.ID, target.Type))
 	expectedDescription := rendering.NewMarkupContentFromLegacy("description")
 	assert.Equal(t, expectedDescription, target.Fields[workitem.SystemDescription])
+
 }
 
-func TestConvertJSONAPIToWorkItemWithDescriptionContentNoMarkup(t *testing.T) {
-	appl := new(application.Application)
+func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithDescriptionContentNoMarkup() {
+	t := rest.T()
+	resource.Require(t, resource.Database)
+	//given
 	attributes := map[string]interface{}{
 		workitem.SystemTitle:       "title",
 		workitem.SystemDescription: rendering.NewMarkupContentFromLegacy("description"),
 	}
 	source := prepareWI2(attributes)
 	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
-	err := ConvertJSONAPIToWorkItem(*appl, source, target, space.SystemSpace)
+	err := application.Transactional(rest.db, func(app application.Application) error {
+		return ConvertJSONAPIToWorkItem(context.Background(), app, source, target, space.SystemSpace)
+	})
 	require.Nil(t, err)
 	require.NotNil(t, target)
 	require.NotNil(t, target.Fields)
@@ -202,15 +235,19 @@ func TestConvertJSONAPIToWorkItemWithDescriptionContentNoMarkup(t *testing.T) {
 	assert.Equal(t, expectedDescription, target.Fields[workitem.SystemDescription])
 }
 
-func TestConvertJSONAPIToWorkItemWithDescriptionContentAndMarkup(t *testing.T) {
-	appl := new(application.Application)
+func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithDescriptionContentAndMarkup() {
+	t := rest.T()
+	resource.Require(t, resource.Database)
+	//given
 	attributes := map[string]interface{}{
 		workitem.SystemTitle:       "title",
 		workitem.SystemDescription: rendering.NewMarkupContent("description", rendering.SystemMarkupMarkdown),
 	}
 	source := prepareWI2(attributes)
 	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
-	err := ConvertJSONAPIToWorkItem(*appl, source, target, space.SystemSpace)
+	err := application.Transactional(rest.db, func(app application.Application) error {
+		return ConvertJSONAPIToWorkItem(context.Background(), app, source, target, space.SystemSpace)
+	})
 	require.Nil(t, err)
 	require.NotNil(t, target)
 	require.NotNil(t, target.Fields)
@@ -219,15 +256,19 @@ func TestConvertJSONAPIToWorkItemWithDescriptionContentAndMarkup(t *testing.T) {
 	assert.Equal(t, expectedDescription, target.Fields[workitem.SystemDescription])
 }
 
-func TestConvertJSONAPIToWorkItemWithTitle(t *testing.T) {
+func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithTitle() {
+	t := rest.T()
+	resource.Require(t, resource.Database)
+	//given
 	title := "title"
-	appl := new(application.Application)
 	attributes := map[string]interface{}{
 		workitem.SystemTitle: title,
 	}
 	source := prepareWI2(attributes)
 	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
-	err := ConvertJSONAPIToWorkItem(*appl, source, target, space.SystemSpace)
+	err := application.Transactional(rest.db, func(app application.Application) error {
+		return ConvertJSONAPIToWorkItem(context.Background(), app, source, target, space.SystemSpace)
+	})
 	require.Nil(t, err)
 	require.NotNil(t, target)
 	require.NotNil(t, target.Fields)
@@ -235,28 +276,35 @@ func TestConvertJSONAPIToWorkItemWithTitle(t *testing.T) {
 	assert.Equal(t, title, target.Fields[workitem.SystemTitle])
 }
 
-func TestConvertJSONAPIToWorkItemWithMissingTitle(t *testing.T) {
+func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithMissingTitle() {
+	t := rest.T()
+	resource.Require(t, resource.Database)
+	//given
 	// given
-	appl := new(application.Application)
 	attributes := map[string]interface{}{}
 	source := prepareWI2(attributes)
 	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
 	// when
-	err := ConvertJSONAPIToWorkItem(*appl, source, target, space.SystemSpace)
+	err := application.Transactional(rest.db, func(app application.Application) error {
+		return ConvertJSONAPIToWorkItem(context.Background(), app, source, target, space.SystemSpace)
+	})
 	// then: no error expected at this level, even though the title is missing
 	require.Nil(t, err)
 }
 
-func TestConvertJSONAPIToWorkItemWithEmptyTitle(t *testing.T) {
+func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithEmptyTitle() {
+	t := rest.T()
+	resource.Require(t, resource.Database)
 	// given
-	appl := new(application.Application)
 	attributes := map[string]interface{}{
 		workitem.SystemTitle: "",
 	}
 	source := prepareWI2(attributes)
 	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
 	// when
-	err := ConvertJSONAPIToWorkItem(*appl, source, target, space.SystemSpace)
+	err := application.Transactional(rest.db, func(app application.Application) error {
+		return ConvertJSONAPIToWorkItem(context.Background(), app, source, target, space.SystemSpace)
+	})
 	// then: no error expected at this level, even though the title is missing
 	require.Nil(t, err)
 }

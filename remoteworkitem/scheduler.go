@@ -1,14 +1,14 @@
 package remoteworkitem
 
 import (
-	"github.com/almighty/almighty-core/log"
-	"github.com/almighty/almighty-core/models"
+	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/models"
 
+	"context"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 	"github.com/robfig/cron"
 	uuid "github.com/satori/go.uuid"
-	"golang.org/x/net/context"
 )
 
 // TrackerSchedule capture all configuration

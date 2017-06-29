@@ -34,9 +34,9 @@ type Revision struct {
 	// the version of the work item link that changed
 	WorkItemLinkVersion int
 	// the ID of the source of the work item link that changed
-	WorkItemLinkSourceID uint64
+	WorkItemLinkSourceID uuid.UUID `sql:"type:uuid"`
 	// the ID of the target of the work item link that changed
-	WorkItemLinkTargetID uint64
+	WorkItemLinkTargetID uuid.UUID `sql:"type:uuid"`
 	// the ID of the type of the work item link that changed
 	WorkItemLinkTypeID uuid.UUID `sql:"type:uuid"`
 }

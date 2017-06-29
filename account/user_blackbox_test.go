@@ -1,20 +1,21 @@
 package account_test
 
 import (
+	"context"
 	"testing"
 
-	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/workitem"
+	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/migration"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"golang.org/x/net/context"
 )
 
 type userBlackBoxTest struct {
@@ -74,6 +75,30 @@ func (s *userBlackBoxTest) TestOKToLoad() {
 	resource.Require(t, resource.Database)
 
 	createAndLoadUser(s) // this function does the needful already
+}
+
+func (s *userBlackBoxTest) TestExistsUser() {
+	t := s.T()
+	resource.Require(t, resource.Database)
+
+	t.Run("user exists", func(t *testing.T) {
+		t.Parallel()
+		user := createAndLoadUser(s)
+		// when
+		exists, err := s.repo.Exists(s.ctx, user.ID.String())
+		// then
+		require.Nil(t, err)
+		require.True(t, exists)
+	})
+
+	t.Run("user doesn't exist", func(t *testing.T) {
+		t.Parallel()
+		// Check not existing
+		exists, err := s.repo.Exists(s.ctx, uuid.NewV4().String())
+		// then
+		require.IsType(s.T(), errors.NotFoundError{}, err)
+		require.False(t, exists)
+	})
 }
 
 func (s *userBlackBoxTest) TestOKToSave() {

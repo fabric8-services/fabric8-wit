@@ -4,16 +4,17 @@ import (
 	"testing"
 	"time"
 
-	"golang.org/x/net/context"
+	"context"
 
-	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/comment"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/rendering"
-	"github.com/almighty/almighty-core/resource"
-	testsupport "github.com/almighty/almighty-core/test"
+	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/comment"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/migration"
+	"github.com/fabric8-services/fabric8-wit/rendering"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	testsupport "github.com/fabric8-services/fabric8-wit/test"
 
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -221,4 +222,29 @@ func (s *TestCommentRepository) TestLoadComment() {
 	require.Nil(s.T(), err)
 	assert.Equal(s.T(), comment.ID, loadedComment.ID)
 	assert.Equal(s.T(), comment.Body, loadedComment.Body)
+}
+
+func (s *TestCommentRepository) TestExistsComment() {
+	t := s.T()
+	resource.Require(t, resource.Database)
+
+	t.Run("comment exists", func(t *testing.T) {
+		// given
+		comment := newComment("C", "Test C", rendering.SystemMarkupMarkdown)
+		s.createComment(comment, s.testIdentity.ID)
+		// when
+		exists, err := s.repo.Exists(s.ctx, comment.ID.String())
+		// then
+		require.Nil(t, err)
+		assert.True(t, exists)
+	})
+
+	t.Run("comment doesn't exist", func(t *testing.T) {
+		// when
+		exists, err := s.repo.Exists(s.ctx, uuid.NewV4().String())
+		// then
+		require.IsType(t, errors.NotFoundError{}, err)
+		assert.False(t, exists)
+	})
+
 }

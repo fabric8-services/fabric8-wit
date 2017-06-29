@@ -1,16 +1,21 @@
 package link
 
 import (
-	"golang.org/x/net/context"
+	"context"
+	"time"
 
-	"github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/log"
+	"github.com/fabric8-services/fabric8-wit/application/repository"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/log"
+
+	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
 )
 
 // WorkItemLinkCategoryRepository encapsulates storage & retrieval of work item link categories
 type WorkItemLinkCategoryRepository interface {
+	repository.Exister
 	Create(ctx context.Context, linkCat *WorkItemLinkCategory) (*WorkItemLinkCategory, error)
 	Load(ctx context.Context, ID uuid.UUID) (*WorkItemLinkCategory, error)
 	List(ctx context.Context) ([]WorkItemLinkCategory, error)
@@ -31,12 +36,13 @@ type GormWorkItemLinkCategoryRepository struct {
 // Create creates a new work item link category in the repository.
 // Returns BadParameterError, ConversionError or InternalError
 func (r *GormWorkItemLinkCategoryRepository) Create(ctx context.Context, linkCat *WorkItemLinkCategory) (*WorkItemLinkCategory, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemlinkcategory", "create"}, time.Now())
 	if linkCat.Name == "" {
 		return nil, errors.NewBadParameterError("name", linkCat.Name)
 	}
 	db := r.db.Create(linkCat)
 	if db.Error != nil {
-		return nil, errors.NewInternalError(db.Error.Error())
+		return nil, errors.NewInternalError(ctx, db.Error)
 	}
 	log.Info(ctx, map[string]interface{}{
 		"wilc_id": linkCat.ID,
@@ -47,6 +53,7 @@ func (r *GormWorkItemLinkCategoryRepository) Create(ctx context.Context, linkCat
 // Load returns the work item link category for the given ID.
 // Returns NotFoundError, ConversionError or InternalError
 func (r *GormWorkItemLinkCategoryRepository) Load(ctx context.Context, ID uuid.UUID) (*WorkItemLinkCategory, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemlinkcategory", "load"}, time.Now())
 	log.Info(ctx, map[string]interface{}{
 		"wilc_id": ID,
 	}, "Loading work item link category")
@@ -59,14 +66,21 @@ func (r *GormWorkItemLinkCategoryRepository) Load(ctx context.Context, ID uuid.U
 		return nil, errors.NewNotFoundError("work item link category", ID.String())
 	}
 	if db.Error != nil {
-		return nil, errors.NewInternalError(db.Error.Error())
+		return nil, errors.NewInternalError(ctx, db.Error)
 	}
 	return &result, nil
+}
+
+// Exists returns true|false whether a work item link category exists with a specific identifier
+func (m *GormWorkItemLinkCategoryRepository) Exists(ctx context.Context, id string) (bool, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemlinkcategory", "exists"}, time.Now())
+	return repository.Exists(ctx, m.db, WorkItemLinkCategory{}.TableName(), id)
 }
 
 // List returns all work item link categories
 // TODO: Handle pagination
 func (r *GormWorkItemLinkCategoryRepository) List(ctx context.Context) ([]WorkItemLinkCategory, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemlinkcategory", "list"}, time.Now())
 	var rows []WorkItemLinkCategory
 	db := r.db.Find(&rows)
 	if db.Error != nil {
@@ -78,6 +92,7 @@ func (r *GormWorkItemLinkCategoryRepository) List(ctx context.Context) ([]WorkIt
 // Delete deletes the work item link category with the given id
 // returns NotFoundError or InternalError
 func (r *GormWorkItemLinkCategoryRepository) Delete(ctx context.Context, ID uuid.UUID) error {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemlinkcategory", "delete"}, time.Now())
 	var cat = WorkItemLinkCategory{
 		ID: ID,
 	}
@@ -86,7 +101,7 @@ func (r *GormWorkItemLinkCategoryRepository) Delete(ctx context.Context, ID uuid
 	}, "Work item link category to delete")
 	db := r.db.Delete(&cat)
 	if db.Error != nil {
-		return errors.NewInternalError(db.Error.Error())
+		return errors.NewInternalError(ctx, db.Error)
 	}
 	if db.RowsAffected == 0 {
 		return errors.NewNotFoundError("work item link category", ID.String())
@@ -97,6 +112,7 @@ func (r *GormWorkItemLinkCategoryRepository) Delete(ctx context.Context, ID uuid
 // Save updates the given work item link category in storage. Version must be the same as the one int the stored version.
 // returns NotFoundError, VersionConflictError, ConversionError or InternalError
 func (r *GormWorkItemLinkCategoryRepository) Save(ctx context.Context, linkCat WorkItemLinkCategory) (*WorkItemLinkCategory, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemlinkcategory", "save"}, time.Now())
 	res := WorkItemLinkCategory{}
 
 	db := r.db.Model(&res).Where("id=?", linkCat.ID).First(&res)
@@ -111,7 +127,7 @@ func (r *GormWorkItemLinkCategoryRepository) Save(ctx context.Context, linkCat W
 			"wilc_id": linkCat.ID,
 			"err":     db.Error,
 		}, "unable to find work item link category")
-		return nil, errors.NewInternalError(db.Error.Error())
+		return nil, errors.NewInternalError(ctx, db.Error)
 	}
 	if res.Version != linkCat.Version {
 		return nil, errors.NewVersionConflictError("version conflict")
@@ -128,7 +144,7 @@ func (r *GormWorkItemLinkCategoryRepository) Save(ctx context.Context, linkCat W
 			"wilc_id": newLinkCat.ID,
 			"err":     db.Error,
 		}, "unable to save work item link category repository")
-		return nil, errors.NewInternalError(db.Error.Error())
+		return nil, errors.NewInternalError(ctx, db.Error)
 	}
 	log.Info(ctx, map[string]interface{}{
 		"wilc_id":         newLinkCat.ID,

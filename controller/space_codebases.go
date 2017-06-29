@@ -1,15 +1,14 @@
 package controller
 
 import (
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/codebase"
-	"github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/jsonapi"
-	"github.com/almighty/almighty-core/login"
-	"github.com/almighty/almighty-core/rest"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/codebase"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/jsonapi"
+	"github.com/fabric8-services/fabric8-wit/login"
+	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/goadesign/goa"
-	uuid "github.com/satori/go.uuid"
 )
 
 // SpaceCodebasesController implements the space-codebases resource.
@@ -25,15 +24,10 @@ func NewSpaceCodebasesController(service *goa.Service, db application.DB) *Space
 
 // Create runs the create action.
 func (c *SpaceCodebasesController) Create(ctx *app.CreateSpaceCodebasesContext) error {
-	_, err := login.ContextIdentity(ctx)
+	identityID, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
-	spaceID, err := uuid.FromString(ctx.ID)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-	}
-
 	// Validate Request
 	if ctx.Payload.Data == nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data", nil).Expected("not nil"))
@@ -47,16 +41,20 @@ func (c *SpaceCodebasesController) Create(ctx *app.CreateSpaceCodebasesContext) 
 	}
 
 	return application.Transactional(c.db, func(appl application.Application) error {
-		_, err = appl.Spaces().Load(ctx, spaceID)
+		space, err := appl.Spaces().Load(ctx, ctx.SpaceID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+
+		if *identityID != space.OwnerId {
+			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the space owner"))
 		}
 
 		newCodeBase := codebase.Codebase{
-			SpaceID: spaceID,
+			SpaceID: ctx.SpaceID,
 			Type:    *reqIter.Attributes.Type,
 			URL:     *reqIter.Attributes.URL,
-			//TODO: We don't have the StackID here.
+			StackID: *reqIter.Attributes.StackID,
 		}
 		err = appl.Codebases().Create(ctx, &newCodeBase)
 		if err != nil {
@@ -74,12 +72,8 @@ func (c *SpaceCodebasesController) Create(ctx *app.CreateSpaceCodebasesContext) 
 // List runs the list action.
 func (c *SpaceCodebasesController) List(ctx *app.ListSpaceCodebasesContext) error {
 	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
-	spaceID, err := uuid.FromString(ctx.ID)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-		_, err = appl.Spaces().Load(ctx, spaceID)
+		_, err := appl.Spaces().Load(ctx, ctx.SpaceID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
@@ -87,7 +81,7 @@ func (c *SpaceCodebasesController) List(ctx *app.ListSpaceCodebasesContext) erro
 		res := &app.CodebaseList{}
 		res.Data = []*app.Codebase{}
 
-		codebases, tc, err := appl.Codebases().List(ctx, spaceID, &offset, &limit)
+		codebases, tc, err := appl.Codebases().List(ctx, ctx.SpaceID, &offset, &limit)
 		count := int(tc)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))

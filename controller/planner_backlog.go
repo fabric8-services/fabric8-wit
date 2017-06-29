@@ -3,13 +3,13 @@ package controller
 import (
 	"context"
 
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/criteria"
-	"github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/jsonapi"
-	query "github.com/almighty/almighty-core/query/simple"
-	"github.com/almighty/almighty-core/workitem"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/criteria"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/jsonapi"
+	query "github.com/fabric8-services/fabric8-wit/query/simple"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
@@ -37,13 +37,7 @@ func NewPlannerBacklogController(service *goa.Service, db application.DB, config
 }
 
 func (c *PlannerBacklogController) List(ctx *app.ListPlannerBacklogContext) error {
-	spaceID, err := uuid.FromString(ctx.ID)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-	}
-
 	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
-
 	exp, err := query.Parse(ctx.Filter)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("could not parse filter", err))
@@ -59,7 +53,7 @@ func (c *PlannerBacklogController) List(ctx *app.ListPlannerBacklogContext) erro
 	}
 
 	// Get the list of work items for the following criteria
-	result, count, err := getBacklogItems(ctx.Context, c.db, spaceID, exp, &offset, &limit)
+	result, count, err := getBacklogItems(ctx.Context, c.db, ctx.SpaceID, exp, &offset, &limit)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
@@ -129,9 +123,7 @@ func getBacklogItems(ctx context.Context, db application.DB, spaceID uuid.UUID, 
 
 	err = application.Transactional(db, func(appl application.Application) error {
 		// Get the list of work items for the following criteria
-		var tc uint64
-		result, tc, err = appl.WorkItems().List(ctx, spaceID, backlogExp, nil, offset, limit)
-		count = int(tc)
+		result, count, err = appl.WorkItems().List(ctx, spaceID, backlogExp, nil, offset, limit)
 		if err != nil {
 			return errs.Wrap(err, "error listing backlog items")
 		}
@@ -140,7 +132,6 @@ func getBacklogItems(ctx context.Context, db application.DB, spaceID uuid.UUID, 
 	if err != nil {
 		return result, count, err
 	}
-
 	return result, count, nil
 }
 

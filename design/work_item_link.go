@@ -87,8 +87,8 @@ var relationWorkItemData = a.Type("RelationWorkItemData", func() {
 	a.Attribute("type", d.String, "The type of the related resource", func() {
 		a.Enum("workitems")
 	})
-	a.Attribute("id", d.String, "ID of the work item", func() {
-		a.Example("1234")
+	a.Attribute("id", d.UUID, "ID (UUID) of the work item", func() {
+		a.Example("6c5610be-30b2-4880-9fec-81e4f8e4fd76")
 	})
 	a.Required("type", "id")
 })
@@ -125,7 +125,6 @@ var workItemLinkList = JSONList(
 var _ = a.Resource("work_item_link", func() {
 	a.BasePath("/workitemlinks")
 	a.Action("show", showWorkItemLink)
-	a.Action("list", listWorkItemLinks)
 	a.Action("create", createWorkItemLink)
 	a.Action("delete", deleteWorkItemLink)
 	a.Action("update", updateWorkItemLink)
@@ -141,12 +140,7 @@ var _ = a.Resource("work_item_relationships_links", func() {
 			a.Description("This error arises when the given work item does not exist.")
 		})
 	})
-	a.Action("create", func() {
-		createWorkItemLink()
-		a.Response(d.NotFound, JSONAPIErrors, func() {
-			a.Description("This error arises when the given work item does not exist.")
-		})
-	})
+	a.Action("create", createWorkItemLink)
 })
 
 // listWorkItemLinks defines the list action for endpoints that return an array
@@ -192,6 +186,7 @@ func createWorkItemLink() {
 	a.Response(d.BadRequest, JSONAPIErrors)
 	a.Response(d.InternalServerError, JSONAPIErrors)
 	a.Response(d.Unauthorized, JSONAPIErrors)
+	a.Response(d.NotFound, JSONAPIErrors)
 }
 
 func deleteWorkItemLink() {
@@ -224,6 +219,7 @@ func updateWorkItemLink() {
 		a.Media(workItemLink)
 	})
 	a.Response(d.BadRequest, JSONAPIErrors)
+	a.Response(d.Conflict, JSONAPIErrors)
 	a.Response(d.InternalServerError, JSONAPIErrors)
 	a.Response(d.NotFound, JSONAPIErrors)
 	a.Response(d.Unauthorized, JSONAPIErrors)

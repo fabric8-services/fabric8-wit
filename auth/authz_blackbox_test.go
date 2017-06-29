@@ -9,19 +9,21 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/almighty/almighty-core/auth"
-	config "github.com/almighty/almighty-core/configuration"
-	"github.com/almighty/almighty-core/controller"
-	"github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/rest"
+	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/fabric8-services/fabric8-wit/auth"
+	config "github.com/fabric8-services/fabric8-wit/configuration"
+	"github.com/fabric8-services/fabric8-wit/controller"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/rest"
+	almtoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/goadesign/goa"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	"strings"
+	"crypto/rsa"
 
 	_ "github.com/lib/pq"
 )
@@ -29,6 +31,7 @@ import (
 var (
 	configuration *config.ConfigurationData
 	scopes        = []string{"read:test", "admin:test"}
+	publicKey     *rsa.PublicKey
 )
 
 func init() {
@@ -36,6 +39,10 @@ func init() {
 	configuration, err = config.GetConfigurationData()
 	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
+	publicKey, err = almtoken.ParsePublicKey([]byte(configuration.GetTokenPublicKey()))
+	if err != nil {
+		panic(fmt.Errorf("Failed to parse the public key: %s", err.Error()))
 	}
 }
 
@@ -238,10 +245,57 @@ func (s *TestAuthSuite) TestGetEntitlement() {
 	require.NotNil(s.T(), ent)
 	require.NotEqual(s.T(), "", ent)
 
+	if int64(len(*ent)) > configuration.GetHeaderMaxLength() {
+		// The RPT token is too long. Remove existing resources and re-obtain the entitlement
+		require.Nil(s.T(), CleanupResources(s.T(), ctx, *ent, authzEndpoint, pat, resourceID))
+
+		ent, err = auth.GetEntitlement(ctx, entitlementEndpoint, nil, *testUserToken.Token.AccessToken)
+		require.Nil(s.T(), err)
+		require.NotNil(s.T(), ent)
+		require.NotEqual(s.T(), "", ent)
+	}
+
 	ent, err = auth.GetEntitlement(ctx, entitlementEndpoint, nil, *ent)
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), ent)
 	require.NotEqual(s.T(), "", ent)
+}
+
+func CleanupResources(t *testing.T, ctx context.Context, rpt string, authzEndpoint string, pat string, excludeResourceID string) error {
+	tokenWithClaims, err := jwt.ParseWithClaims(rpt, &auth.TokenPayload{}, func(t *jwt.Token) (interface{}, error) {
+		return publicKey, nil
+	})
+	if err != nil {
+		return err
+	}
+	claims := tokenWithClaims.Claims.(*auth.TokenPayload)
+	permissions := claims.Authorization.Permissions
+	if permissions == nil {
+		return nil
+	}
+	clientId, clientsEndpoint := getClientIDAndEndpoint(t)
+	for _, permission := range permissions {
+		if excludeResourceID != *permission.ResourceSetID {
+			policyEndpoint := fmt.Sprintf("%s/%s/authz/resource-server/policy?first=0&max=100&resource=%s", clientsEndpoint, clientId, *permission.ResourceSetID)
+			req, err := http.NewRequest("GET", policyEndpoint, nil)
+			require.Nil(t, err)
+			req.Header.Add("Authorization", "Bearer "+pat)
+			res, err := http.DefaultClient.Do(req)
+			require.Nil(t, err)
+			require.Equal(t, 200, res.StatusCode)
+
+			jsonString := rest.ReadBody(res.Body)
+			var policyResult []policyRequestResultPayload
+			err = json.Unmarshal([]byte(jsonString), &policyResult)
+			require.Nil(t, err)
+			for _, policy := range policyResult {
+				deletePolicy(t, ctx, clientsEndpoint, clientId, policy.ID, pat)
+			}
+
+			deleteResource(t, ctx, *permission.ResourceSetID, authzEndpoint, pat)
+		}
+	}
+	return nil
 }
 
 func (s *TestAuthSuite) TestGetClientIDOK() {
@@ -257,7 +311,7 @@ func (s *TestAuthSuite) TestGetProtectedAPITokenOK() {
 func (s *TestAuthSuite) TestReadTokenOK() {
 	b := closer{bytes.NewBufferString("{\"access_token\":\"accToken\", \"expires_in\":3000000, \"refresh_expires_in\":2, \"refresh_token\":\"refToken\"}")}
 	response := http.Response{Body: b}
-	token, err := auth.ReadToken(&response)
+	token, err := auth.ReadToken(context.Background(), &response)
 	require.Nil(s.T(), err)
 	assert.Equal(s.T(), "accToken", *token.AccessToken)
 	assert.Equal(s.T(), int64(3000000), *token.ExpiresIn)
@@ -323,7 +377,7 @@ func cleanKeycloakResources(t *testing.T) {
 	require.Nil(t, err)
 
 	clientId, clientsEndpoint := getClientIDAndEndpoint(t)
-	resourceEndpoint := clientsEndpoint + "/" + clientId + "/authz/resource-server/resource?deep=false&first=0&max=1000"
+	resourceEndpoint := clientsEndpoint + "/" + clientId + "/authz/resource-server/resource?deep=false&first=0&max=1000&name=test"
 	pat := getProtectedAPITokenOK(t)
 
 	req, err := http.NewRequest("GET", resourceEndpoint, nil)
@@ -339,12 +393,10 @@ func cleanKeycloakResources(t *testing.T) {
 	err = json.Unmarshal([]byte(jsonString), &result)
 	require.Nil(t, err)
 	for _, res := range result {
-		if strings.Contains(strings.ToLower(res.Uri), "test") {
-			deleteResource(t, ctx, res.ID, authzEndpoint, pat)
-		}
+		deleteResource(t, ctx, res.ID, authzEndpoint, pat)
 	}
 
-	policyEndpoint := clientsEndpoint + "/" + clientId + "/authz/resource-server/policy?first=0&max=1000&permission=false"
+	policyEndpoint := clientsEndpoint + "/" + clientId + "/authz/resource-server/policy?first=0&max=1000&name=test&permission=false"
 	req, err = http.NewRequest("GET", policyEndpoint, nil)
 	require.Nil(t, err)
 	req.Header.Add("Authorization", "Bearer "+pat)
@@ -357,9 +409,7 @@ func cleanKeycloakResources(t *testing.T) {
 	err = json.Unmarshal([]byte(jsonString), &policyResult)
 	require.Nil(t, err)
 	for _, policy := range policyResult {
-		if strings.Contains(strings.ToLower(policy.Name), "test") {
-			deletePolicy(t, ctx, clientsEndpoint, clientId, policy.ID, pat)
-		}
+		deletePolicy(t, ctx, clientsEndpoint, clientId, policy.ID, pat)
 	}
 }
 
@@ -441,6 +491,7 @@ func getUserID(t *testing.T, username string, usersecret string) string {
 	testToken, err := controller.GenerateUserToken(ctx, tokenEndpoint, configuration, username, usersecret)
 	require.Nil(t, err)
 	accessToken := testToken.Token.AccessToken
+	require.NotNil(t, accessToken)
 	userinfo, err := auth.GetUserInfo(ctx, userinfoEndpoint, *accessToken)
 	require.Nil(t, err)
 	userID := userinfo.Sub
@@ -473,7 +524,7 @@ func getProtectedAPITokenOK(t *testing.T) string {
 
 	endpoint, err := configuration.GetKeycloakEndpointToken(r)
 	require.Nil(t, err)
-	token, err := auth.GetProtectedAPIToken(endpoint, configuration.GetKeycloakClientID(), configuration.GetKeycloakSecret())
+	token, err := auth.GetProtectedAPIToken(context.Background(), endpoint, configuration.GetKeycloakClientID(), configuration.GetKeycloakSecret())
 	require.Nil(t, err)
 	return token
 }

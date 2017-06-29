@@ -6,24 +6,24 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/app/test"
-	config "github.com/almighty/almighty-core/configuration"
-	. "github.com/almighty/almighty-core/controller"
-	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/jsonapi"
-	"github.com/almighty/almighty-core/resource"
-	testsupport "github.com/almighty/almighty-core/test"
-	almtoken "github.com/almighty/almighty-core/token"
-	"github.com/almighty/almighty-core/workitem/link"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/app/test"
+	config "github.com/fabric8-services/fabric8-wit/configuration"
+	. "github.com/fabric8-services/fabric8-wit/controller"
+	"github.com/fabric8-services/fabric8-wit/gormapplication"
+	"github.com/fabric8-services/fabric8-wit/jsonapi"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	almtoken "github.com/fabric8-services/fabric8-wit/token"
+	"github.com/fabric8-services/fabric8-wit/workitem/link"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
+	uuid "github.com/satori/go.uuid"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-
-	uuid "github.com/satori/go.uuid"
 )
 
 // In order for 'go test' to run this suite, we need to create
@@ -171,7 +171,55 @@ func (s *workItemLinkCategorySuite) TestCreateWorkItemLinkCategoryBadRequest() {
 			},
 		},
 	}
-	test.CreateWorkItemLinkCategoryBadRequest(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, payload)
+	err := payload.Validate()
+
+	// Validate payload function returns an error
+	assert.NotNil(s.T(), err)
+	assert.Contains(s.T(), err.Error(), "response.name must match the regexp")
+}
+
+func (s *workItemLinkCategorySuite) TestFailValidationWorkItemLinkCategoryNameLength() {
+	// given
+	description := "New description for work item link category."
+	id := uuid.FromStringOrNil("88727441-4a21-4b35-aabe-007f8273cdBB")
+	payload := &app.CreateWorkItemLinkCategoryPayload{
+		Data: &app.WorkItemLinkCategoryData{
+			ID:   &id,
+			Type: link.EndpointWorkItemLinkCategories,
+			Attributes: &app.WorkItemLinkCategoryAttributes{
+				Name:        &testsupport.TestOversizedNameObj,
+				Description: &description,
+			},
+		},
+	}
+
+	err := payload.Validate()
+
+	// Validate payload function returns an error
+	assert.NotNil(s.T(), err)
+	assert.Contains(s.T(), err.Error(), "length of response.name must be less than or equal to than 62")
+}
+
+func (s *workItemLinkCategorySuite) TestFailValidationWorkItemLinkCategoryNameStartWith() {
+	// given
+	description := "New description for work item link category."
+	name := "_Name" // This will lead to a bad parameter error
+	id := uuid.FromStringOrNil("88727441-4a21-4b35-aabe-007f8273cdBB")
+	payload := &app.CreateWorkItemLinkCategoryPayload{
+		Data: &app.WorkItemLinkCategoryData{
+			ID:   &id,
+			Type: link.EndpointWorkItemLinkCategories,
+			Attributes: &app.WorkItemLinkCategoryAttributes{
+				Name:        &name,
+				Description: &description,
+			},
+		},
+	}
+
+	err := payload.Validate()
+	// Validate payload function returns an error
+	assert.NotNil(s.T(), err)
+	assert.Contains(s.T(), err.Error(), "response.name must match the regexp")
 }
 
 func (s *workItemLinkCategorySuite) TestDeleteWorkItemLinkCategoryNotFound() {
@@ -252,22 +300,35 @@ func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryBadRequestDueT
 }
 
 func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryOK() {
+	// given
 	_, linkCatSystem := s.createWorkItemLinkCategorySystem()
 	require.NotNil(s.T(), linkCatSystem)
-
 	description := "New description for work item link category \"system\"."
 	updatePayload := &app.UpdateWorkItemLinkCategoryPayload{}
 	updatePayload.Data = linkCatSystem.Data
 	updatePayload.Data.Attributes.Description = &description
-
+	// when
 	_, newLinkCat := test.UpdateWorkItemLinkCategoryOK(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, *linkCatSystem.Data.ID, updatePayload)
-
+	// then
 	// Test that description was updated and version got incremented
 	require.NotNil(s.T(), newLinkCat.Data.Attributes.Description)
-	require.Equal(s.T(), description, *newLinkCat.Data.Attributes.Description)
-
+	assert.Equal(s.T(), description, *newLinkCat.Data.Attributes.Description)
 	require.NotNil(s.T(), newLinkCat.Data.Attributes.Version)
-	require.Equal(s.T(), *linkCatSystem.Data.Attributes.Version+1, *newLinkCat.Data.Attributes.Version)
+	assert.Equal(s.T(), *linkCatSystem.Data.Attributes.Version+1, *newLinkCat.Data.Attributes.Version)
+}
+
+func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryConflict() {
+	// given
+	_, linkCatSystem := s.createWorkItemLinkCategorySystem()
+	require.NotNil(s.T(), linkCatSystem)
+	description := "New description for work item link category \"system\"."
+	updatePayload := &app.UpdateWorkItemLinkCategoryPayload{}
+	updatePayload.Data = linkCatSystem.Data
+	updatePayload.Data.Attributes.Description = &description
+	version := 123456
+	updatePayload.Data.Attributes.Version = &version
+	// when/then
+	test.UpdateWorkItemLinkCategoryConflict(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, *linkCatSystem.Data.ID, updatePayload)
 }
 
 //func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryBadRequest() {
@@ -470,11 +531,5 @@ func (s *workItemLinkCategorySuite) TestUnauthorizeWorkItemLinkCategoryCUD() {
 		controller := NewWorkItemLinkCategoryController(service, gormapplication.NewGormDB(s.db))
 		app.MountWorkItemLinkCategoryController(service, controller)
 		return nil
-	})
-}
-
-func TestNewWorkItemLinkCategoryControllerDBNull(t *testing.T) {
-	require.Panics(t, func() {
-		NewWorkItemLinkCategoryController(nil, nil)
 	})
 }

@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/almighty/almighty-core/auth"
-	"github.com/almighty/almighty-core/resource"
+	"github.com/fabric8-services/fabric8-wit/auth"
+	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/goadesign/goa"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
@@ -52,7 +52,8 @@ func (s *TestPolicySuite) TestGetPolicyOK() {
 
 func (s *TestPolicySuite) TestUpdatePolicyOK() {
 	policy, policyID := createPermissionWithPolicy(s)
-	policy.AddUserToPolicy(uuid.NewV4().String())
+	secondTestUserID := getUserID(s.T(), configuration.GetKeycloakTestUser2Name(), configuration.GetKeycloakTestUser2Secret())
+	policy.RemoveUserFromPolicy(secondTestUserID)
 	policy.ID = &policyID
 	r := &goa.RequestData{
 		Request: &http.Request{Host: "domain.io"},

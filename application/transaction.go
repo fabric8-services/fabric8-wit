@@ -1,7 +1,7 @@
 package application
 
 import (
-	"github.com/almighty/almighty-core/log"
+	"github.com/fabric8-services/fabric8-wit/log"
 
 	"github.com/pkg/errors"
 )
@@ -18,18 +18,21 @@ func Transactional(db DB, todo func(f Application) error) error {
 		return errors.WithStack(err)
 	}
 
-	if err := todo(tx); err != nil {
-		log.Debug(nil, map[string]interface{}{}, "Rolling back the transaction...")
+	defer func() {
+		switch err {
+		case nil:
+			log.Debug(nil, map[string]interface{}{}, "Commit the transaction!")
+			err = tx.Commit()
+		default:
+			log.Debug(nil, map[string]interface{}{}, "Rolling back the transaction...")
+			_ = tx.Rollback()
+			log.Error(nil, map[string]interface{}{
+				"err": err,
+			}, "database transaction failed!")
+			err = errors.WithStack(err)
+		}
+	}()
 
-		tx.Rollback()
-
-		log.Error(nil, map[string]interface{}{
-			"err": err,
-		}, "database transaction failed!")
-		return errors.WithStack(err)
-	}
-
-	log.Debug(nil, map[string]interface{}{}, "Commit the transaction!")
-
-	return tx.Commit()
+	err = todo(tx)
+	return err
 }

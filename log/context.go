@@ -1,9 +1,9 @@
 package log
 
 import (
-	"golang.org/x/net/context"
+	"context"
 
-	tokencontext "github.com/almighty/almighty-core/login/tokencontext"
+	tokencontext "github.com/fabric8-services/fabric8-wit/login/tokencontext"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa/client"

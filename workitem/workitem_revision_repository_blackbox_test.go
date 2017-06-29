@@ -5,17 +5,16 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strconv"
 	"testing"
 
-	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/space"
-	testsupport "github.com/almighty/almighty-core/test"
-	"github.com/almighty/almighty-core/workitem"
+	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/migration"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/space"
+	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"
@@ -67,11 +66,10 @@ func (s *workItemRevisionRepositoryBlackBoxTest) TearDownTest() {
 }
 
 func (s *workItemRevisionRepositoryBlackBoxTest) TestStoreRevisions() {
+	// given
 	req := &http.Request{Host: "localhost"}
 	params := url.Values{}
 	ctx := goa.NewContext(context.Background(), nil, req, params)
-
-	// given
 	// create a workitem
 	workItem, err := s.repository.Create(
 		ctx, space.SystemSpace, workitem.SystemBug,
@@ -93,8 +91,7 @@ func (s *workItemRevisionRepositoryBlackBoxTest) TestStoreRevisions() {
 		ctx, space.SystemSpace, *workItem, s.testIdentity2.ID)
 	require.Nil(s.T(), err)
 	// delete the workitem
-	err = s.repository.Delete(
-		ctx, space.SystemSpace, workItem.ID, s.testIdentity3.ID)
+	err = s.repository.Delete(ctx, workItem.ID, s.testIdentity3.ID)
 	require.Nil(s.T(), err)
 	// when
 	revisions, err := s.revisionRepository.List(ctx, workItem.ID)
@@ -104,7 +101,7 @@ func (s *workItemRevisionRepositoryBlackBoxTest) TestStoreRevisions() {
 	// revision 1
 	revision1 := revisions[0]
 	s.T().Log(fmt.Sprintf("Work item revision 1: modifier:%s type: %v version:%v fields:%v", revision1.ModifierIdentity, revision1.Type, revision1.WorkItemVersion, revision1.WorkItemFields))
-	assert.Equal(s.T(), workItem.ID, strconv.FormatUint(revision1.WorkItemID, 10))
+	assert.Equal(s.T(), workItem.ID, revision1.WorkItemID)
 	assert.Equal(s.T(), workitem.RevisionTypeCreate, revision1.Type)
 	assert.Equal(s.T(), workItem.Type, revision1.WorkItemTypeID)
 	assert.Equal(s.T(), s.testIdentity1.ID, revision1.ModifierIdentity)
@@ -114,7 +111,7 @@ func (s *workItemRevisionRepositoryBlackBoxTest) TestStoreRevisions() {
 	// revision 2
 	revision2 := revisions[1]
 	s.T().Log(fmt.Sprintf("Work item revision 2: modifier:%s type: %v version:%v fields:%v", revision2.ModifierIdentity, revision2.Type, revision2.WorkItemVersion, revision2.WorkItemFields))
-	assert.Equal(s.T(), workItem.ID, strconv.FormatUint(revision2.WorkItemID, 10))
+	assert.Equal(s.T(), workItem.ID, revision2.WorkItemID)
 	assert.Equal(s.T(), workitem.RevisionTypeUpdate, revision2.Type)
 	assert.Equal(s.T(), workItem.Type, revision2.WorkItemTypeID)
 	assert.Equal(s.T(), s.testIdentity2.ID, revision2.ModifierIdentity)
@@ -124,7 +121,7 @@ func (s *workItemRevisionRepositoryBlackBoxTest) TestStoreRevisions() {
 	// revision 3
 	revision3 := revisions[2]
 	s.T().Log(fmt.Sprintf("Work item revision 3: modifier:%s type: %v version:%v fields:%v", revision3.ModifierIdentity, revision3.Type, revision3.WorkItemVersion, revision3.WorkItemFields))
-	assert.Equal(s.T(), workItem.ID, strconv.FormatUint(revision3.WorkItemID, 10))
+	assert.Equal(s.T(), workItem.ID, revision3.WorkItemID)
 	assert.Equal(s.T(), workitem.RevisionTypeUpdate, revision3.Type)
 	assert.Equal(s.T(), workItem.Type, revision3.WorkItemTypeID)
 	require.NotNil(s.T(), revision3.WorkItemFields)
@@ -134,7 +131,7 @@ func (s *workItemRevisionRepositoryBlackBoxTest) TestStoreRevisions() {
 	// revision 4
 	revision4 := revisions[3]
 	s.T().Log(fmt.Sprintf("Work item revision 4: modifier:%s type: %v version:%v fields:%v", revision4.ModifierIdentity, revision4.Type, revision4.WorkItemVersion, revision4.WorkItemFields))
-	assert.Equal(s.T(), workItem.ID, strconv.FormatUint(revision4.WorkItemID, 10))
+	assert.Equal(s.T(), workItem.ID, revision4.WorkItemID)
 	assert.Equal(s.T(), workitem.RevisionTypeDelete, revision4.Type)
 	assert.Equal(s.T(), workItem.Type, revision4.WorkItemTypeID)
 	assert.Equal(s.T(), s.testIdentity3.ID, revision4.ModifierIdentity)

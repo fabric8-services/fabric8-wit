@@ -3,14 +3,14 @@ package controller
 import (
 	"fmt"
 
-	"golang.org/x/net/context"
+	"context"
 
-	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/jsonapi"
-	"github.com/almighty/almighty-core/log"
-	"github.com/almighty/almighty-core/token"
+	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/jsonapi"
+	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/token"
 	"github.com/goadesign/goa"
 	"github.com/pkg/errors"
 )
@@ -64,7 +64,7 @@ func (c *UserController) Show(ctx *app.ShowUserContext) error {
 				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, fmt.Sprintf("Can't load user with id %s", userID.UUID)))
 			}
 		}
-		return ctx.ConditionalEntity(*user, c.config.GetCacheControlUser, func() error {
+		return ctx.ConditionalRequest(*user, c.config.GetCacheControlUser, func() error {
 			if c.InitTenant != nil {
 				go func(ctx context.Context) {
 					c.InitTenant(ctx)

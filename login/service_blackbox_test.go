@@ -7,22 +7,23 @@ import (
 	"net/url"
 	"testing"
 
-	"golang.org/x/net/context"
+	"context"
+
 	"golang.org/x/oauth2"
 
-	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/app"
-	config "github.com/almighty/almighty-core/configuration"
-	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/gormtestsupport"
-	. "github.com/almighty/almighty-core/login"
-	"github.com/almighty/almighty-core/migration"
+	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/app"
+	config "github.com/fabric8-services/fabric8-wit/configuration"
+	"github.com/fabric8-services/fabric8-wit/gormapplication"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	. "github.com/fabric8-services/fabric8-wit/login"
+	"github.com/fabric8-services/fabric8-wit/migration"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 
-	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/token"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/token"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/uuid"
 	_ "github.com/lib/pq"
@@ -298,10 +299,8 @@ func keycloakLinkRedirect(s *serviceBlackBoxTest, provider string, redirect stri
 	req.Header.Add("referer", referrerUrl)
 
 	ss := uuid.NewV4().String()
-	cs := uuid.NewV4().String()
 	claims := jwt.MapClaims{}
 	claims["session_state"] = &ss
-	claims["client_session"] = &cs
 	token := &jwt.Token{Claims: claims}
 	ctx := goajwt.WithJWT(context.Background(), token)
 	goaCtx := goa.NewContext(goa.WithAction(ctx, "LinkTest"), rw, req, parameters)
@@ -338,7 +337,6 @@ func keycloakLinkCallbackRedirect(s *serviceBlackBoxTest, next string) {
 	parameters := url.Values{}
 	parameters.Add("state", uuid.NewV4().String())
 	parameters.Add("sessionState", uuid.NewV4().String())
-	parameters.Add("clientSession", uuid.NewV4().String())
 	if next != "" {
 		parameters.Add("next", next)
 	}
@@ -387,8 +385,8 @@ func (s *serviceBlackBoxTest) TestInvalidState() {
 	// The OAuth 'state' is sent as a query parameter by calling /api/login/authorize?code=_SOME_CODE_&state=_SOME_STATE_
 	// The request originates from Keycloak after a valid authorization by the end user.
 	// This is not where the redirection should happen on failure.
-	refererKeyclaokUrl := "https://keycloak-url.example.org/path-of-login"
-	req.Header.Add("referer", refererKeyclaokUrl)
+	refererKeycloakUrl := "https://keycloak-url.example.org/path-of-login"
+	req.Header.Add("referer", refererKeycloakUrl)
 
 	prms := url.Values{
 		"state": {},

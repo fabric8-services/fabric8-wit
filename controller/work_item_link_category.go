@@ -1,13 +1,13 @@
 package controller
 
 import (
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/jsonapi"
-	"github.com/almighty/almighty-core/login"
-	"github.com/almighty/almighty-core/rest"
-	"github.com/almighty/almighty-core/workitem/link"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/jsonapi"
+	"github.com/fabric8-services/fabric8-wit/login"
+	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	"github.com/goadesign/goa"
 	//uuid "github.com/satori/go.uuid"
 )
@@ -20,9 +20,6 @@ type WorkItemLinkCategoryController struct {
 
 // NewWorkItemLinkCategoryController creates a WorkItemLinkCategoryController.
 func NewWorkItemLinkCategoryController(service *goa.Service, db application.DB) *WorkItemLinkCategoryController {
-	if db == nil {
-		panic("db must not be nil")
-	}
 	return &WorkItemLinkCategoryController{
 		Controller: service.NewController("WorkItemLinkCategoryController"),
 		db:         db,

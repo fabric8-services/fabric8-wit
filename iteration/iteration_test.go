@@ -1,22 +1,20 @@
 package iteration_test
 
 import (
+	"context"
+	"reflect"
+	"strconv"
 	"testing"
 	"time"
 
-	"golang.org/x/net/context"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/iteration"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/space"
+	testcommon "github.com/fabric8-services/fabric8-wit/test"
 
-	"strconv"
-
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/iteration"
-	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/space"
-
-	"reflect"
-
-	"github.com/almighty/almighty-core/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -312,7 +310,7 @@ func (test *TestIterationRepository) TestLoadChildren() {
 	t := test.T()
 	resource.Require(t, resource.Database)
 	newSpace := space.Space{
-		Name: "Space To Test Listing of Iteration Children" + uuid.NewV4().String(),
+		Name: testcommon.CreateRandomValidTestName("Space Test Load Children"),
 	}
 	repoSpace := space.NewRepository(test.DB)
 	space, err := repoSpace.Create(context.Background(), &newSpace)
@@ -383,4 +381,42 @@ func (test *TestIterationRepository) TestLoadChildren() {
 	_, err = repo.LoadChildren(context.Background(), fakeParentId)
 	require.NotNil(t, err)
 	assert.Equal(t, reflect.TypeOf(errors.NotFoundError{}), reflect.TypeOf(err))
+}
+
+func (test *TestIterationRepository) TestExistsIteration() {
+	t := test.T()
+	resource.Require(t, resource.Database)
+
+	t.Run("iteration exists", func(t *testing.T) {
+		// given
+		newSpace := space.Space{
+			Name: testcommon.CreateRandomValidTestName("Space Exists"),
+		}
+		repoSpace := space.NewRepository(test.DB)
+		space, err := repoSpace.Create(context.Background(), &newSpace)
+		assert.Nil(t, err)
+
+		repo := iteration.NewIterationRepository(test.DB)
+		level0IterationName := "Top level iteration"
+		i1 := iteration.Iteration{
+			Name:    level0IterationName,
+			SpaceID: space.ID,
+		}
+		e := repo.Create(context.Background(), &i1)
+		require.Nil(t, e)
+
+		var exists bool
+		exists, err = repo.Exists(context.Background(), i1.ID.String())
+		require.Nil(t, err)
+		require.True(t, exists)
+	})
+
+	t.Run("iteration doesn't exist", func(t *testing.T) {
+		repo := iteration.NewIterationRepository(test.DB)
+
+		exists, err := repo.Exists(context.Background(), uuid.NewV4().String())
+		require.IsType(t, errors.NotFoundError{}, err)
+		require.False(t, exists)
+	})
+
 }

@@ -1,11 +1,11 @@
-= Getting started with almighty-core development on Windows
+= Getting started with fabric8-wit development on Windows
 :author: Konrad Kleine
 :toc:
 :toc-placement!:
 :sectnums:
 :experimental:
 
-This page explains how to get the software you need to use a Windows 10 64 bit machine for almighty-core development. In addition to that this page lists steps how to configure your development environment in terms of setting Windows environment variables.
+This page explains how to get the software you need to use a Windows 10 64 bit machine for fabric8-wit development. In addition to that this page lists steps how to configure your development environment in terms of setting Windows environment variables.
 
 NOTE: In this guide we assume that the drive where your home folder is located is `c:`. Please adjust this to your needs whenever your home folder is on another drive.
 
@@ -190,7 +190,7 @@ setx PATH "%PATH%;%HOMEDRIVE%\%HOMEPATH%\glide\windows-amd64"
 
 IMPORTANT: Before you continue, *close any existing Windows Command Prompt* (or at least close the one you've opened while working through this document). This is important because otherwise the environment variables that we have modified won't be available.
 
-Typically, Go projects are checked out under a special directory which is commonly known as `GOPATH`. The almighty-core project makes not exception here. In most of the documentation that is written for Linux or MacOSX you will find us referencing this path as `$GOPATH`. On Windows this translates to `%GOPATH%`.
+Typically, Go projects are checked out under a special directory which is commonly known as `GOPATH`. The fabric8-wit project makes not exception here. In most of the documentation that is written for Linux or MacOSX you will find us referencing this path as `$GOPATH`. On Windows this translates to `%GOPATH%`.
 
 Now you may already have guessed this but `%GOPATH%` is also an environment variable that contains a path (sometimes a list of paths separated by semicolons) to various locations that will all be treated as `GOPATH`s by Go. 
 
@@ -308,11 +308,11 @@ Build:
 == Get the code
 
 1. Hit the kbd:[Windows] key on your keyboard and type `cmd.exe` to start searching for the Windows Command Prompt. Hit kbd:[Enter].
-1. Run this command to clone the almight-core project into the correct folder that we've prepared in <<create-gopath>>.
+1. Run this command to clone the fabric8-wit project into the correct folder that we've prepared in <<create-gopath>>.
 +
 [source]
 ----
-git clone https://github.com/almighty/almighty-core.git %HOMEDRIVE%\%HOMEPATH%\go\src\github.com\almighty\almighty-core
+git clone https://github.com/fabric8-services/fabric8-wit.git %HOMEDRIVE%\%HOMEPATH%\go\src\github.com\fabric8-services/fabric8-wit
 ----
 
 [[fetch-dependencies]]
@@ -323,7 +323,7 @@ git clone https://github.com/almighty/almighty-core.git %HOMEDRIVE%\%HOMEPATH%\g
 +
 [source]
 ----
-cd %HOMEDRIVE\%HOMEPATH%\go\src\github.com\almighty\almighty-core
+cd %HOMEDRIVE\%HOMEPATH%\go\src\github.com\fabric8-services\fabric8-wit
 ----
 
 1. Fetch the Go packages that this project depends on by running
@@ -333,7 +333,7 @@ cd %HOMEDRIVE\%HOMEPATH%\go\src\github.com\almighty\almighty-core
 glide install
 ----
 +
-This command could take a while to finish. After that, the dependencies are stored in `%HOMEDRIVE\%HOMEPATH%\go\src\github.com\almighty\almighty-core\vendor`.
+This command could take a while to finish. After that, the dependencies are stored in `%HOMEDRIVE\%HOMEPATH%\go\src\github.com\fabric8-services\fabric8-wit\vendor`.
 
 [[build-from-source]]
 == Build from source
@@ -351,7 +351,7 @@ NOTE: Unlike the Windows Command Prompt, Cygwin64 Terminal can only handle forwa
 +
 [source,bash]
 ----
-cd "$(cygpath --unix $HOMEPATH)/go/src/github.com/almighty/almighty-core"
+cd "$(cygpath --unix $HOMEPATH)/go/src/github.com/fabric8-services/fabric8-wit"
 ----
 
 1. Now, generate code from the design templates using link:https://goa.design/[Goa]:

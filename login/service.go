@@ -16,22 +16,23 @@ import (
 
 	errs "github.com/pkg/errors"
 
-	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/auth"
-	coreerrors "github.com/almighty/almighty-core/errors"
-	er "github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/jsonapi"
-	"github.com/almighty/almighty-core/log"
-	tokencontext "github.com/almighty/almighty-core/login/tokencontext"
-	"github.com/almighty/almighty-core/rest"
-	"github.com/almighty/almighty-core/token"
+	"context"
+
 	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/auth"
+	coreerrors "github.com/fabric8-services/fabric8-wit/errors"
+	er "github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/jsonapi"
+	"github.com/fabric8-services/fabric8-wit/log"
+	tokencontext "github.com/fabric8-services/fabric8-wit/login/tokencontext"
+	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/token"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	uuid "github.com/satori/go.uuid"
-	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 )
 
@@ -45,7 +46,7 @@ func NewKeycloakOAuthProvider(identities account.IdentityRepository, users accou
 	}
 }
 
-// KeycloakOAuthProvider represents a keyclaok IDP
+// KeycloakOAuthProvider represents a keycloak IDP
 type KeycloakOAuthProvider struct {
 	Identities   account.IdentityRepository
 	Users        account.UserRepository
@@ -71,14 +72,13 @@ type linkInterface interface {
 
 // keycloakTokenClaims represents standard Keycloak token claims
 type keycloakTokenClaims struct {
-	Name          string `json:"name"`
-	Username      string `json:"preferred_username"`
-	GivenName     string `json:"given_name"`
-	FamilyName    string `json:"family_name"`
-	Email         string `json:"email"`
-	Company       string `json:"company"`
-	SessionState  string `json:"session_state"`
-	ClientSession string `json:"client_session"`
+	Name         string `json:"name"`
+	Username     string `json:"preferred_username"`
+	GivenName    string `json:"given_name"`
+	FamilyName   string `json:"family_name"`
+	Email        string `json:"email"`
+	Company      string `json:"company"`
+	SessionState string `json:"session_state"`
 	jwt.StandardClaims
 }
 
@@ -313,7 +313,6 @@ func (keycloak *KeycloakOAuthProvider) autoLinkProvidersDuringLogin(ctx *app.Aut
 	parameters := url.Values{}
 	parameters.Add("redirect", referrerURL)
 	parameters.Add("sessionState", fmt.Sprintf("%v", claims.SessionState))
-	parameters.Add("clientSession", fmt.Sprintf("%v", claims.ClientSession))
 	linkURL.RawQuery = parameters.Encode()
 	ctx.ResponseData.Header().Set("Location", linkURL.String())
 	return ctx.TemporaryRedirect()
@@ -339,8 +338,8 @@ func (keycloak *KeycloakOAuthProvider) checkFederatedIdentity(ctx context.Contex
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err.Error(),
-		}, "Unable to crete http request")
-		return false, er.NewInternalError("unable to crete http request " + err.Error())
+		}, "Unable to create http request")
+		return false, er.NewInternalError(ctx, errs.Wrap(err, "unable to create http request"))
 	}
 	req.Header.Add("Authorization", "Bearer "+token)
 	res, err := http.DefaultClient.Do(req)
@@ -349,8 +348,9 @@ func (keycloak *KeycloakOAuthProvider) checkFederatedIdentity(ctx context.Contex
 			"provider": provider,
 			"err":      err.Error(),
 		}, "Unable to obtain a federated identity token")
-		return false, er.NewInternalError("Unable to obtain a federated identity token " + err.Error())
+		return false, er.NewInternalError(ctx, errs.Wrap(err, "unable to obtain a federated identity token"))
 	}
+	defer res.Body.Close()
 	return res.StatusCode == http.StatusOK, nil
 }
 
@@ -359,24 +359,22 @@ func (keycloak *KeycloakOAuthProvider) Link(ctx *app.LinkLoginContext, brokerEnd
 	token := goajwt.ContextJWT(ctx)
 	claims := token.Claims.(jwt.MapClaims)
 	sessionState := claims["session_state"]
-	clientSession := claims["client_session"]
-	if sessionState == nil || clientSession == nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal("Session state or client session are missing in token"))
+	if sessionState == nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal("Session state is missing in token"))
 	}
 	ss := sessionState.(*string)
-	cs := clientSession.(*string)
-	return keycloak.linkAccountToProviders(ctx, ctx.RequestData, ctx.ResponseData, ctx.Redirect, ctx.Provider, *ss, *cs, brokerEndpoint, clientID, validRedirectURL)
+	return keycloak.linkAccountToProviders(ctx, ctx.RequestData, ctx.ResponseData, ctx.Redirect, ctx.Provider, *ss, brokerEndpoint, clientID, validRedirectURL)
 }
 
 // LinkSession links identity provider(s) to the user's account using session state
 func (keycloak *KeycloakOAuthProvider) LinkSession(ctx *app.LinksessionLoginContext, brokerEndpoint string, clientID string, validRedirectURL string) error {
-	if ctx.SessionState == nil || ctx.ClientSession == nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest("Authorization header or session state and client session params are required"))
+	if ctx.SessionState == nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest("Authorization header or session state param is required"))
 	}
-	return keycloak.linkAccountToProviders(ctx, ctx.RequestData, ctx.ResponseData, ctx.Redirect, ctx.Provider, *ctx.SessionState, *ctx.ClientSession, brokerEndpoint, clientID, validRedirectURL)
+	return keycloak.linkAccountToProviders(ctx, ctx.RequestData, ctx.ResponseData, ctx.Redirect, ctx.Provider, *ctx.SessionState, brokerEndpoint, clientID, validRedirectURL)
 }
 
-func (keycloak *KeycloakOAuthProvider) linkAccountToProviders(ctx linkInterface, req *goa.RequestData, res *goa.ResponseData, redirect *string, provider *string, sessionState string, clientSession, brokerEndpoint string, clientID string, validRedirectURL string) error {
+func (keycloak *KeycloakOAuthProvider) linkAccountToProviders(ctx linkInterface, req *goa.RequestData, res *goa.ResponseData, redirect *string, provider *string, sessionState string, brokerEndpoint string, clientID string, validRedirectURL string) error {
 	referrer := req.Header.Get("Referer")
 
 	rdr := redirect
@@ -391,10 +389,10 @@ func (keycloak *KeycloakOAuthProvider) linkAccountToProviders(ctx linkInterface,
 	}
 
 	if provider != nil {
-		return keycloak.linkProvider(ctx, req, res, state.String(), sessionState, clientSession, *provider, nil, brokerEndpoint, clientID)
+		return keycloak.linkProvider(ctx, req, res, state.String(), sessionState, *provider, nil, brokerEndpoint, clientID)
 	}
 
-	return keycloak.linkProvider(ctx, req, res, state.String(), sessionState, clientSession, allProvidersToLink[0], &allProvidersToLink[1], brokerEndpoint, clientID)
+	return keycloak.linkProvider(ctx, req, res, state.String(), sessionState, allProvidersToLink[0], &allProvidersToLink[1], brokerEndpoint, clientID)
 }
 
 // LinkCallback redirects to original referrer when Identity Provider account are linked to the user account
@@ -412,15 +410,14 @@ func (keycloak *KeycloakOAuthProvider) LinkCallback(ctx *app.LinkcallbackLoginCo
 	if next != nil {
 		// Link the next provider
 		sessionState := ctx.SessionState
-		clientSession := ctx.ClientSession
-		if sessionState == nil || clientSession == nil {
+		if sessionState == nil {
 			log.Error(ctx, map[string]interface{}{
 				"state": state,
-			}, "Session state or client session state is empty")
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest("Session state or client session state is empty"))
+			}, "session state is empty")
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest("session state is empty"))
 			return ctx.Unauthorized(jerrors)
 		}
-		providerURL, err := getProviderURL(ctx.RequestData, *state, *sessionState, *clientSession, *next, nextProvider(*next), brokerEndpoint, clientID)
+		providerURL, err := getProviderURL(ctx.RequestData, *state, *sessionState, *next, nextProvider(*next), brokerEndpoint, clientID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 		}
@@ -455,8 +452,8 @@ func nextProvider(currentProvider string) *string {
 	return nil
 }
 
-func (keycloak *KeycloakOAuthProvider) linkProvider(ctx linkInterface, req *goa.RequestData, res *goa.ResponseData, state string, sessionState string, clientSession string, provider string, nextProvider *string, brokerEndpoint string, clientID string) error {
-	providerURL, err := getProviderURL(req, state, sessionState, clientSession, provider, nextProvider, brokerEndpoint, clientID)
+func (keycloak *KeycloakOAuthProvider) linkProvider(ctx linkInterface, req *goa.RequestData, res *goa.ResponseData, state string, sessionState string, provider string, nextProvider *string, brokerEndpoint string, clientID string) error {
+	providerURL, err := getProviderURL(req, state, sessionState, provider, nextProvider, brokerEndpoint, clientID)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 	}
@@ -534,16 +531,16 @@ func (keycloak *KeycloakOAuthProvider) getReferrer(ctx context.Context, state st
 	return referrer, nil
 }
 
-func getProviderURL(req *goa.RequestData, state string, sessionState string, clientSession string, provider string, nextProvider *string, brokerEndpoint string, clientID string) (string, error) {
+func getProviderURL(req *goa.RequestData, state string, sessionState string, provider string, nextProvider *string, brokerEndpoint string, clientID string) (string, error) {
 	var nextParam string
 	if nextProvider != nil {
 		nextParam = "&next=" + *nextProvider
 	}
-	callbackURL := rest.AbsoluteURL(req, "/api/login/linkcallback?provider="+provider+nextParam+"&sessionState="+sessionState+"&clientSession="+clientSession+"&state="+state)
+	callbackURL := rest.AbsoluteURL(req, "/api/login/linkcallback?provider="+provider+nextParam+"&sessionState="+sessionState+"&state="+state)
 
 	nonce := uuid.NewV4().String()
 
-	s := nonce + sessionState + clientSession + provider
+	s := nonce + sessionState + clientID + provider
 	h := sha256.New()
 	h.Write([]byte(s))
 	hash := base64.StdEncoding.EncodeToString(h.Sum(nil))
@@ -554,6 +551,7 @@ func getProviderURL(req *goa.RequestData, state string, sessionState string, cli
 	}
 
 	parameters := url.Values{}
+	parameters.Add("provider_id", provider)
 	parameters.Add("client_id", clientID)
 	parameters.Add("redirect_uri", callbackURL)
 	parameters.Add("nonce", nonce)
@@ -622,7 +620,7 @@ func encodeToken(ctx context.Context, referrer *url.URL, outhToken *oauth2.Token
 	return nil
 }
 
-// CreateOrUpdateKeycloakUser creates a user and a keyclaok identity. If the user and identity already exist then update them.
+// CreateOrUpdateKeycloakUser creates a user and a keycloak identity. If the user and identity already exist then update them.
 func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken string, ctx context.Context, profileEndpoint string) (*account.Identity, *account.User, error) {
 	var identity *account.Identity
 	var user *account.User
@@ -664,18 +662,26 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 			return nil, nil, coreerrors.NewUnauthorizedError(fmt.Sprintf("user '%s' is not approved", claims.Username))
 		}
 		user = new(account.User)
-		fillUser(claims, user)
+		identity = &account.Identity{}
+		_, err = fillUser(claims, user, identity)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"keycloak_identity_id": keycloakIdentityID,
+				"err": err,
+			}, "unable to create user/identity")
+			return nil, nil, errors.New("failed to update user/identity from claims" + err.Error())
+		}
 		err = application.Transactional(keycloak.db, func(appl application.Application) error {
 			err := appl.Users().Create(ctx, user)
 			if err != nil {
 				return err
 			}
-			identity = &account.Identity{
-				ID:           keycloakIdentityID,
-				Username:     claims.Username,
-				ProviderType: account.KeycloakIDP,
-				UserID:       account.NullUUID{UUID: user.ID, Valid: true},
-				User:         *user}
+
+			identity.ID = keycloakIdentityID
+			identity.ProviderType = account.KeycloakIDP
+			identity.UserID = account.NullUUID{UUID: user.ID, Valid: true}
+			identity.User = *user
+
 			err = appl.Identities().Create(ctx, identity)
 			return err
 		})
@@ -685,8 +691,9 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 				"username":             claims.Username,
 				"err":                  err,
 			}, "unable to create user/identity")
-			return nil, nil, errors.New("Cant' create user/identity " + err.Error())
+			return nil, nil, errors.New("failed to create user/identity " + err.Error())
 		}
+
 	} else {
 		identity = &identities[0]
 		user = &identity.User
@@ -698,21 +705,48 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 		}
 		// let's update the existing user with the fullname, email and avatar from Keycloak,
 		// in case the user changed them since the last time he/she logged in
-		fillUser(claims, user)
-		err = keycloak.Users.Save(ctx, user)
+		isChanged, err := fillUser(claims, user, identity)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
-				"user_id": user.ID,
-				"err":     err,
-			}, "unable to update user")
-			return nil, nil, errors.New("Cant' update user " + err.Error())
+				"keycloak_identity_id": keycloakIdentityID,
+				"err": err,
+			}, "unable to create user/identity")
+			return nil, nil, errors.New("failed to update user/identity from claims" + err.Error())
+		} else if isChanged {
+			err = application.Transactional(keycloak.db, func(appl application.Application) error {
+				err = appl.Users().Save(ctx, user)
+				if err != nil {
+					log.Error(ctx, map[string]interface{}{
+						"user_id": user.ID,
+						"err":     err,
+					}, "unable to update user")
+					return errors.New("failed to update user " + err.Error())
+				}
+				err = appl.Identities().Save(ctx, identity)
+				if err != nil {
+					log.Error(ctx, map[string]interface{}{
+						"user_id": identity.ID,
+						"err":     err,
+					}, "unable to update identity")
+					return errors.New("failed to update identity " + err.Error())
+				}
+				return err
+			})
+			if err != nil {
+				log.Error(ctx, map[string]interface{}{
+					"keycloak_identity_id": keycloakIdentityID,
+					"username":             claims.Username,
+					"err":                  err,
+				}, "unable to update user/identity")
+				return nil, nil, errors.New("failed to update user/identity " + err.Error())
+			}
 		}
 	}
 	return identity, user, nil
 }
 
 func checkApproved(ctx context.Context, profileService UserProfileService, accessToken string, profileEndpoint string) (bool, error) {
-	profile, err := profileService.Get(accessToken, profileEndpoint)
+	profile, err := profileService.Get(ctx, accessToken, profileEndpoint)
 	if err != nil {
 		return false, err
 	}
@@ -805,10 +839,17 @@ func checkClaims(claims *keycloakTokenClaims) error {
 	return nil
 }
 
-func fillUser(claims *keycloakTokenClaims, user *account.User) error {
+func fillUser(claims *keycloakTokenClaims, user *account.User, identity *account.Identity) (bool, error) {
+	isChanged := false
+	if user.FullName != claims.Name || user.Email != claims.Email || user.Company != claims.Company || identity.Username != claims.Username || user.ImageURL == "" {
+		isChanged = true
+	} else {
+		return isChanged, nil
+	}
 	user.FullName = claims.Name
 	user.Email = claims.Email
 	user.Company = claims.Company
+	identity.Username = claims.Username
 	if user.ImageURL == "" {
 		image, err := generateGravatarURL(claims.Email)
 		if err != nil {
@@ -816,11 +857,12 @@ func fillUser(claims *keycloakTokenClaims, user *account.User) error {
 				"user_full_name": user.FullName,
 				"err":            err,
 			}, "error when generating gravatar")
-			return errors.New("Error when generating gravatar " + err.Error())
+			// if there is an error, we will qualify the identity/user as unchanged.
+			return false, errors.New("Error when generating gravatar " + err.Error())
 		}
 		user.ImageURL = image
 	}
-	return nil
+	return isChanged, nil
 }
 
 // ContextIdentity returns the identity's ID found in given context

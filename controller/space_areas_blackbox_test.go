@@ -1,21 +1,23 @@
 package controller_test
 
 import (
+	"context"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/app/test"
-	"github.com/almighty/almighty-core/area"
-	. "github.com/almighty/almighty-core/controller"
-	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/resource"
+	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/app/test"
+	"github.com/fabric8-services/fabric8-wit/area"
+	. "github.com/fabric8-services/fabric8-wit/controller"
+	"github.com/fabric8-services/fabric8-wit/gormapplication"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/resource"
 
-	testsupport "github.com/almighty/almighty-core/test"
-	almtoken "github.com/almighty/almighty-core/token"
+	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	almtoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -62,6 +64,12 @@ func (rest *TestSpaceAreaREST) SecuredAreasController() (*goa.Service, *AreaCont
 	return svc, NewAreaController(svc, rest.db, rest.Configuration)
 }
 
+func (rest *TestSpaceAreaREST) SecuredAreasControllerWithIdentity(idn *account.Identity) (*goa.Service, *AreaController) {
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	svc := testsupport.ServiceAsUser("Area-Service-With-Identity", almtoken.NewManagerWithPrivateKey(priv), *idn)
+	return svc, NewAreaController(svc, rest.db, rest.Configuration)
+}
+
 func (rest *TestSpaceAreaREST) UnSecuredController() (*goa.Service, *SpaceAreasController) {
 	svc := goa.New("Area-Service")
 	return svc, NewSpaceAreasController(svc, rest.db, rest.Configuration)
@@ -82,13 +90,15 @@ func (rest *TestSpaceAreaREST) setupAreas() (area.Area, []uuid.UUID, []area.Area
 	*/
 	var createdAreas []area.Area
 	var createdAreaUuids []uuid.UUID
-	_, parentArea := createSpaceAndArea(rest.T(), rest.db)
+	sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
 	createdAreas = append(createdAreas, parentArea)
 	createdAreaUuids = append(createdAreaUuids, parentArea.ID)
 	parentID := parentArea.ID
 	name := "TestListAreas  A"
-	ci := getCreateChildAreaPayload(&name)
-	svc, ctrl := rest.SecuredAreasController()
+	ci := newCreateChildAreaPayload(&name)
+	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerId)
+	require.Nil(rest.T(), err)
+	svc, ctrl := rest.SecuredAreasControllerWithIdentity(owner)
 	_, created := test.CreateChildAreaCreated(rest.T(), svc.Context, svc, ctrl, parentID.String(), ci)
 	assert.Equal(rest.T(), *ci.Data.Attributes.Name, *created.Data.Attributes.Name)
 	assert.Equal(rest.T(), parentID.String(), *created.Data.Relationships.Parent.Data.ID)
@@ -97,7 +107,7 @@ func (rest *TestSpaceAreaREST) setupAreas() (area.Area, []uuid.UUID, []area.Area
 
 	// Create a child of the child created above.
 	name = "TestListAreas B"
-	ci = getCreateChildAreaPayload(&name)
+	ci = newCreateChildAreaPayload(&name)
 	newParentID := *created.Data.Relationships.Parent.Data.ID
 	_, created = test.CreateChildAreaCreated(rest.T(), svc.Context, svc, ctrl, newParentID, ci)
 	assert.Equal(rest.T(), *ci.Data.Attributes.Name, *created.Data.Attributes.Name)
@@ -121,7 +131,7 @@ func (rest *TestSpaceAreaREST) TestListAreasOK() {
 	// given
 	parentArea, createdAreaUuids, _ := rest.setupAreas()
 	// when
-	res, areaList := test.ListSpaceAreasOK(rest.T(), rest.svcSpaceAreas.Context, rest.svcSpaceAreas, rest.ctrlSpaceAreas, parentArea.SpaceID.String(), nil, nil)
+	res, areaList := test.ListSpaceAreasOK(rest.T(), rest.svcSpaceAreas.Context, rest.svcSpaceAreas, rest.ctrlSpaceAreas, parentArea.SpaceID, nil, nil)
 	// then
 	assertSpaceAreas(rest.T(), areaList, createdAreaUuids)
 	assertResponseHeaders(rest.T(), res)
@@ -132,7 +142,7 @@ func (rest *TestSpaceAreaREST) TestListAreasOKUsingExpiredIfModifiedSinceHeader(
 	parentArea, createdAreaUuids, _ := rest.setupAreas()
 	// when
 	ifModifiedSince := app.ToHTTPTime(parentArea.UpdatedAt.Add(-1 * time.Hour))
-	res, areaList := test.ListSpaceAreasOK(rest.T(), rest.svcSpaceAreas.Context, rest.svcSpaceAreas, rest.ctrlSpaceAreas, parentArea.SpaceID.String(), &ifModifiedSince, nil)
+	res, areaList := test.ListSpaceAreasOK(rest.T(), rest.svcSpaceAreas.Context, rest.svcSpaceAreas, rest.ctrlSpaceAreas, parentArea.SpaceID, &ifModifiedSince, nil)
 	// then
 	assertSpaceAreas(rest.T(), areaList, createdAreaUuids)
 	assertResponseHeaders(rest.T(), res)
@@ -143,7 +153,7 @@ func (rest *TestSpaceAreaREST) TestListAreasOKUsingExpiredIfNoneMatchHeader() {
 	parentArea, createdAreaUuids, _ := rest.setupAreas()
 	// when
 	ifNoneMatch := "foo"
-	res, areaList := test.ListSpaceAreasOK(rest.T(), rest.svcSpaceAreas.Context, rest.svcSpaceAreas, rest.ctrlSpaceAreas, parentArea.SpaceID.String(), nil, &ifNoneMatch)
+	res, areaList := test.ListSpaceAreasOK(rest.T(), rest.svcSpaceAreas.Context, rest.svcSpaceAreas, rest.ctrlSpaceAreas, parentArea.SpaceID, nil, &ifNoneMatch)
 	// then
 	assertSpaceAreas(rest.T(), areaList, createdAreaUuids)
 	assertResponseHeaders(rest.T(), res)
@@ -154,7 +164,7 @@ func (rest *TestSpaceAreaREST) TestListAreasNotModifiedUsingIfModifiedSinceHeade
 	parentArea, _, areas := rest.setupAreas()
 	// when
 	ifModifiedSince := app.ToHTTPTime(areas[len(areas)-1].UpdatedAt)
-	res := test.ListSpaceAreasNotModified(rest.T(), rest.svcSpaceAreas.Context, rest.svcSpaceAreas, rest.ctrlSpaceAreas, parentArea.SpaceID.String(), &ifModifiedSince, nil)
+	res := test.ListSpaceAreasNotModified(rest.T(), rest.svcSpaceAreas.Context, rest.svcSpaceAreas, rest.ctrlSpaceAreas, parentArea.SpaceID, &ifModifiedSince, nil)
 	// then
 	assertResponseHeaders(rest.T(), res)
 }
@@ -163,12 +173,12 @@ func (rest *TestSpaceAreaREST) TestListAreasNotModifiedUsingIfNoneMatchHeader() 
 	// given
 	parentArea, _, createdAreas := rest.setupAreas()
 	// when
-	ifNoneMatch := app.GenerateEntitiesTag([]app.ConditionalResponseEntity{
+	ifNoneMatch := app.GenerateEntitiesTag([]app.ConditionalRequestEntity{
 		createdAreas[0],
 		createdAreas[1],
 		createdAreas[2],
 	})
-	res := test.ListSpaceAreasNotModified(rest.T(), rest.svcSpaceAreas.Context, rest.svcSpaceAreas, rest.ctrlSpaceAreas, parentArea.SpaceID.String(), nil, &ifNoneMatch)
+	res := test.ListSpaceAreasNotModified(rest.T(), rest.svcSpaceAreas.Context, rest.svcSpaceAreas, rest.ctrlSpaceAreas, parentArea.SpaceID, nil, &ifNoneMatch)
 	// then
 	assertResponseHeaders(rest.T(), res)
 }

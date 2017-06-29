@@ -1,13 +1,12 @@
 package controller
 
 import (
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/jsonapi"
-	"github.com/almighty/almighty-core/log"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/jsonapi"
+	"github.com/fabric8-services/fabric8-wit/log"
 
 	"github.com/goadesign/goa"
-	uuid "github.com/satori/go.uuid"
 )
 
 // SpaceAreasController implements the space-Areas resource.
@@ -33,16 +32,12 @@ func NewSpaceAreasController(service *goa.Service, db application.DB, config Spa
 
 // List runs the list action.
 func (c *SpaceAreasController) List(ctx *app.ListSpaceAreasContext) error {
-	spaceID, err := uuid.FromString(ctx.ID)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-		_, err = appl.Spaces().Load(ctx, spaceID)
+		_, err := appl.Spaces().Load(ctx, ctx.SpaceID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
-		areas, err := appl.Areas().List(ctx, spaceID)
+		areas, err := appl.Areas().List(ctx, ctx.SpaceID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}

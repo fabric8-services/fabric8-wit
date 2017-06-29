@@ -11,7 +11,7 @@ import (
 	"github.com/pkg/errors"
 	yaml "gopkg.in/yaml.v2"
 
-	"github.com/almighty/almighty-core/rest"
+	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/goadesign/goa"
 	"github.com/spf13/viper"
 )
@@ -81,6 +81,7 @@ const (
 	varCacheControlComments             = "cachecontrol.comments"
 	varCacheControlFilters              = "cachecontrol.filters"
 	varCacheControlUsers                = "cachecontrol.users"
+	varCacheControlCollaborators        = "cachecontrol.collaborators"
 	varCacheControlUser                 = "cachecontrol.user"
 	defaultConfigFile                   = "config.yaml"
 	varOpenshiftTenantMasterURL         = "openshift.tenant.masterurl"
@@ -195,12 +196,13 @@ func (c *ConfigurationData) setConfigDefaults() {
 	c.v.SetDefault(varCacheControlComments, "max-age=2")
 	c.v.SetDefault(varCacheControlFilters, "max-age=86400")
 	c.v.SetDefault(varCacheControlUsers, "max-age=2")
+	c.v.SetDefault(varCacheControlCollaborators, "max-age=2")
 	// data returned from '/api/user' must not be cached by intermediate proxies,
 	// but can only be kept in the client's local cache.
 	c.v.SetDefault(varCacheControlUser, "private,max-age=2")
 
 	// Features
-	c.v.SetDefault(varFeatureWorkitemRemote, false)
+	c.v.SetDefault(varFeatureWorkitemRemote, true)
 
 	c.v.SetDefault(varKeycloakTesUser2Name, defaultKeycloakTesUser2Name)
 	c.v.SetDefault(varKeycloakTesUser2Secret, defaultKeycloakTesUser2Secret)
@@ -363,6 +365,12 @@ func (c *ConfigurationData) GetCacheControlUsers() string {
 	return c.v.GetString(varCacheControlUsers)
 }
 
+// GetCacheControlCollaborators returns the value to set in the "Cache-Control" HTTP response header
+// when returning collaborators.
+func (c *ConfigurationData) GetCacheControlCollaborators() string {
+	return c.v.GetString(varCacheControlCollaborators)
+}
+
 // GetCacheControlUser returns the value to set in the "Cache-Control" HTTP response header
 // when data for the current user.
 func (c *ConfigurationData) GetCacheControlUser() string {
@@ -409,7 +417,7 @@ func (c *ConfigurationData) GetKeycloakDomainPrefix() string {
 	return c.v.GetString(varKeycloakDomainPrefix)
 }
 
-// GetKeycloakRealm returns the keyclaok realm name
+// GetKeycloakRealm returns the keycloak realm name
 func (c *ConfigurationData) GetKeycloakRealm() string {
 	if c.v.IsSet(varKeycloakRealm) {
 		return c.v.GetString(varKeycloakRealm)
@@ -467,7 +475,7 @@ func (c *ConfigurationData) GetKeycloakEndpointUserInfo(req *goa.RequestData) (s
 	return c.getKeycloakOpenIDConnectEndpoint(req, varKeycloakEndpointUserinfo, "userinfo")
 }
 
-// GetKeycloakEndpointAdmin returns the <keyclaok>/realms/admin/<realm> endpoint
+// GetKeycloakEndpointAdmin returns the <keycloak>/realms/admin/<realm> endpoint
 // set via config file or environment variable.
 // If nothing set then in Dev environment the defualt endopoint will be returned.
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
@@ -477,7 +485,7 @@ func (c *ConfigurationData) GetKeycloakEndpointAdmin(req *goa.RequestData) (stri
 	return c.getKeycloakEndpoint(req, varKeycloakEndpointAdmin, "auth/admin/realms/"+c.GetKeycloakRealm())
 }
 
-// GetKeycloakEndpointAuthzResourceset returns the <keyclaok>/realms/<realm>/authz/protection/resource_set endpoint
+// GetKeycloakEndpointAuthzResourceset returns the <keycloak>/realms/<realm>/authz/protection/resource_set endpoint
 // set via config file or environment variable.
 // If nothing set then in Dev environment the defualt endopoint will be returned.
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
@@ -487,7 +495,7 @@ func (c *ConfigurationData) GetKeycloakEndpointAuthzResourceset(req *goa.Request
 	return c.getKeycloakEndpoint(req, varKeycloakEndpointAuthzResourceset, "auth/realms/"+c.GetKeycloakRealm()+"/authz/protection/resource_set")
 }
 
-// GetKeycloakEndpointClients returns the <keyclaok>/admin/realms/<realm>/clients endpoint
+// GetKeycloakEndpointClients returns the <keycloak>/admin/realms/<realm>/clients endpoint
 // set via config file or environment variable.
 // If nothing set then in Dev environment the defualt endopoint will be returned.
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
@@ -497,7 +505,7 @@ func (c *ConfigurationData) GetKeycloakEndpointClients(req *goa.RequestData) (st
 	return c.getKeycloakEndpoint(req, varKeycloakEndpointClients, "auth/admin/realms/"+c.GetKeycloakRealm()+"/clients")
 }
 
-// GetKeycloakEndpointEntitlement returns the <keyclaok>/realms/<realm>/authz/entitlement/<clientID> endpoint
+// GetKeycloakEndpointEntitlement returns the <keycloak>/realms/<realm>/authz/entitlement/<clientID> endpoint
 // set via config file or environment variable.
 // If nothing set then in Dev environment the defualt endopoint will be returned.
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
@@ -507,7 +515,7 @@ func (c *ConfigurationData) GetKeycloakEndpointEntitlement(req *goa.RequestData)
 	return c.getKeycloakEndpoint(req, varKeycloakEndpointEntitlement, "auth/realms/"+c.GetKeycloakRealm()+"/authz/entitlement/"+c.GetKeycloakClientID())
 }
 
-// GetKeycloakEndpointBroker returns the <keyclaok>/realms/<realm>/authz/entitlement/<clientID> endpoint
+// GetKeycloakEndpointBroker returns the <keycloak>/realms/<realm>/authz/entitlement/<clientID> endpoint
 // set via config file or environment variable.
 // If nothing set then in Dev environment the defualt endopoint will be returned.
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
@@ -551,7 +559,7 @@ func (c *ConfigurationData) getKeycloakEndpoint(req *goa.RequestData, endpointVa
 		endpoint = fmt.Sprintf("%s/%s", c.v.GetString(varKeycloakURL), pathSufix)
 	} else {
 		if c.IsPostgresDeveloperModeEnabled() {
-			// Devmode is enabled. Calculate the URL endopoint using the devmode Keyclaok URL
+			// Devmode is enabled. Calculate the URL endopoint using the devmode Keycloak URL
 			endpoint = fmt.Sprintf("%s/%s", devModeKeycloakURL, pathSufix)
 		} else {
 			// Calculate relative URL based on request

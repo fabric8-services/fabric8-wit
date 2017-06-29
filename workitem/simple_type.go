@@ -5,10 +5,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/almighty/almighty-core/codebase"
-	"github.com/almighty/almighty-core/convert"
-	"github.com/almighty/almighty-core/rendering"
 	"github.com/asaskevich/govalidator"
+	"github.com/fabric8-services/fabric8-wit/codebase"
+	"github.com/fabric8-services/fabric8-wit/convert"
+	"github.com/fabric8-services/fabric8-wit/rendering"
 	errs "github.com/pkg/errors"
 )
 
@@ -66,7 +66,8 @@ func (fieldType SimpleType) ConvertToModel(value interface{}) (interface{}, erro
 		return value, nil
 	case KindInstant:
 		// instant == milliseconds
-		if !valueType.Implements(timeType) {
+		// if !valueType.Implements(timeType) {
+		if valueType.Kind() != timeType.Kind() {
 			return nil, errs.Errorf("value %v should be %s, but is %s", value, "time.Time", valueType.Name())
 		}
 		return value.(time.Time).UnixNano(), nil
@@ -107,13 +108,13 @@ func (fieldType SimpleType) ConvertToModel(value interface{}) (interface{}, erro
 	}
 }
 
-// ConvertFromModel implements the FieldType interface
-func (fieldType SimpleType) ConvertFromModel(value interface{}) (interface{}, error) {
+// ConvertFromModel implements the t interface
+func (t SimpleType) ConvertFromModel(value interface{}) (interface{}, error) {
 	if value == nil {
 		return nil, nil
 	}
 	valueType := reflect.TypeOf(value)
-	switch fieldType.GetKind() {
+	switch t.GetKind() {
 	case KindString, KindURL, KindUser, KindInteger, KindFloat, KindDuration, KindIteration, KindArea:
 		return value, nil
 	case KindInstant:
@@ -139,6 +140,6 @@ func (fieldType SimpleType) ConvertFromModel(value interface{}) (interface{}, er
 		}
 		return cb, nil
 	default:
-		return nil, errs.Errorf("unexpected field type: %s", fieldType.GetKind())
+		return nil, errs.Errorf("unexpected field type: %s", t.GetKind())
 	}
 }

@@ -1,9 +1,9 @@
 package controller
 
 import (
-	"golang.org/x/net/context"
+	"context"
 
-	"github.com/almighty/almighty-core/app"
+	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/goadesign/goa"
 )
 

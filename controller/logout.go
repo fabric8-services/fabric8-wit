@@ -1,12 +1,13 @@
 package controller
 
 import (
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/jsonapi"
-	"github.com/almighty/almighty-core/log"
-	"github.com/almighty/almighty-core/login"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/jsonapi"
+	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/goadesign/goa"
+	errs "github.com/pkg/errors"
 )
 
 type logoutConfiguration interface {
@@ -33,11 +34,11 @@ func (c *LogoutController) Logout(ctx *app.LogoutLogoutContext) error {
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
 		}, "Unable to get Keycloak logout endpoint URL")
-		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError("unable to get Keycloak logout endpoint URL. "+err.Error()))
+		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.Wrap(err, "unable to get Keycloak logout endpoint URL")))
 	}
 	whitelist, err := c.configuration.GetValidRedirectURLs(ctx.RequestData)
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(err.Error()))
+		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
 	}
 
 	ctx.ResponseData.Header().Set("Cache-Control", "no-cache")

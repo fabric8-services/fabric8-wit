@@ -5,16 +5,17 @@ import (
 	"net/url"
 	"testing"
 
-	"golang.org/x/net/context"
+	"context"
 
-	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/rendering"
-	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/space"
-	"github.com/almighty/almighty-core/test"
-	"github.com/almighty/almighty-core/workitem"
+	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/migration"
+	"github.com/fabric8-services/fabric8-wit/rendering"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/space"
+	"github.com/fabric8-services/fabric8-wit/test"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
@@ -35,6 +36,14 @@ type TrackerItemRepositorySuite struct {
 	clean        func()
 	trackerQuery TrackerQuery
 	ctx          context.Context
+}
+
+// The SetupSuite method will run before the tests in the suite are run.
+// It sets up a database connection for all the tests in this suite without polluting global space.
+func (s *TrackerItemRepositorySuite) SetupSuite() {
+	s.DBTestSuite.SetupSuite()
+	ctx := migration.NewMigrationContext(context.Background())
+	s.DBTestSuite.PopulateDBTestSuite(ctx)
 }
 
 func (s *TrackerItemRepositorySuite) SetupTest() {
@@ -253,7 +262,7 @@ func (s *TrackerItemRepositorySuite) TestConvertExistingWorkItem() {
 		Content: []byte(`
 			{
 				"title": "linking-updated",
-				"url": "http://github.com/api/testonly/1",
+				"url": "http://github.com/sbose/api/testonly/1",
 				"state": "closed",
 				"body": "body of issue",
 				"user.login": "jdoe3",
@@ -290,7 +299,7 @@ func (s *TrackerItemRepositorySuite) TestConvertGithubIssue() {
 	// when
 	workItemGithub, err := convertToWorkItemModel(s.ctx, s.DB, int(s.trackerQuery.ID), remoteItemDataGithub, ProviderGithub, s.trackerQuery.SpaceID)
 	// then
-	assert.Nil(s.T(), err)
+	require.Nil(s.T(), err)
 	assert.Equal(s.T(), "map flatten : test case : with assignee", workItemGithub.Fields[workitem.SystemTitle])
 	assert.Equal(s.T(), identity.ID.String(), workItemGithub.Fields[workitem.SystemCreator])
 	assert.Equal(s.T(), identity.ID.String(), workItemGithub.Fields[workitem.SystemAssignees].([]interface{})[0])

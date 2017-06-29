@@ -43,9 +43,7 @@ See also http://jsonapi.org/format/#document-resource-object`)
 var workItemLinkTypeAttributes = a.Type("WorkItemLinkTypeAttributes", func() {
 	a.Description(`JSONAPI store for all the "attributes" of a work item link type.
 See also see http://jsonapi.org/format/#document-resource-object-attributes`)
-	a.Attribute("name", d.String, "Name of the work item link type (required on creation, optional on update)", func() {
-		a.Example("tested-by-link-type")
-	})
+	a.Attribute("name", d.String, "Name of the work item link type (required on creation, optional on update)", nameValidationFunction)
 	a.Attribute("description", d.String, "Description of the work item link type (optional)", func() {
 		a.Example("A test work item can 'test' if a the code in a pull request passes the tests.")
 	})
@@ -78,8 +76,6 @@ var workItemLinkTypeRelationships = a.Type("WorkItemLinkTypeRelationships", func
 	a.Description(`JSONAPI store for the data of a work item link type.
 See also http://jsonapi.org/format/#document-resource-object-relationships`)
 	a.Attribute("link_category", relationWorkItemLinkCategory, "The work item link category of this work item link type.")
-	a.Attribute("source_type", relationWorkItemType, "The source type specifies the type of work item that can be used as a source.")
-	a.Attribute("target_type", relationWorkItemType, "The target type specifies the type of work item that can be used as a target.")
 	a.Attribute("space", relationSpaces, "This defines the owning space of this work item link type.")
 })
 
@@ -155,11 +151,11 @@ var _ = a.Resource("work_item_link_type", func() {
 
 	a.Action("show", func() {
 		a.Routing(
-			a.GET("/:wiltId"),
+			a.GET("/:wiltID"),
 		)
 		a.Description("Retrieve work item link type (as JSONAPI) for the given link ID.")
 		a.Params(func() {
-			a.Param("id", d.UUID, "ID of the work item link type")
+			a.Param("wiltID", d.UUID, "ID of the work item link type")
 		})
 		a.UseTrait("conditional")
 		a.Response(d.OK, workItemLinkType)
@@ -199,11 +195,11 @@ var _ = a.Resource("work_item_link_type", func() {
 	a.Action("delete", func() {
 		a.Security("jwt")
 		a.Routing(
-			a.DELETE("/:wiltId"),
+			a.DELETE("/:wiltID"),
 		)
 		a.Description("Delete work item link type with given id.")
 		a.Params(func() {
-			a.Param("wiltId", d.UUID, "wiltId")
+			a.Param("wiltID", d.UUID, "wiltID")
 		})
 		a.Response(d.OK)
 		a.Response(d.BadRequest, JSONAPIErrors)
@@ -215,65 +211,18 @@ var _ = a.Resource("work_item_link_type", func() {
 	a.Action("update", func() {
 		a.Security("jwt")
 		a.Routing(
-			a.PATCH("/:wiltId"),
+			a.PATCH("/:wiltID"),
 		)
 		a.Description("Update the given work item link type with given id.")
 		a.Params(func() {
-			a.Param("wiltId", d.UUID, "wiltId")
+			a.Param("wiltID", d.UUID, "wiltID")
 		})
 		a.Payload(updateWorkItemLinkTypePayload)
 		a.Response(d.OK, workItemLinkType)
 		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.Conflict, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
-	})
-})
-
-var _ = a.Resource("redirect_work_item_link_type", func() {
-	a.BasePath("/workitemlinktypes")
-
-	a.Action("show", func() {
-		a.Routing(
-			a.GET("/:wiltId"),
-		)
-		a.Params(func() {
-			a.Param("wiltId", d.UUID, "ID of the work item link type")
-		})
-		a.Response(d.MovedPermanently)
-	})
-
-	a.Action("list", func() {
-		a.Routing(
-			a.GET(""),
-		)
-		a.Response(d.MovedPermanently)
-	})
-
-	a.Action("create", func() {
-		a.Routing(
-			a.POST(""),
-		)
-		a.Response(d.MovedPermanently)
-	})
-
-	a.Action("delete", func() {
-		a.Routing(
-			a.DELETE("/:wiltId"),
-		)
-		a.Params(func() {
-			a.Param("wiltId", d.UUID, "wiltId")
-		})
-		a.Response(d.MovedPermanently)
-	})
-
-	a.Action("update", func() {
-		a.Routing(
-			a.PATCH("/:wiltId"),
-		)
-		a.Params(func() {
-			a.Param("wiltId", d.UUID, "wiltId")
-		})
-		a.Response(d.MovedPermanently)
 	})
 })

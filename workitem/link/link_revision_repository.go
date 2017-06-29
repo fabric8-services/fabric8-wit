@@ -3,13 +3,12 @@ package link
 import (
 	"context"
 
-	"fmt"
-
 	"time"
 
-	"github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/log"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/jinzhu/gorm"
+	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -50,7 +49,7 @@ func (r *GormWorkItemLinkRevisionRepository) Create(ctx context.Context, modifie
 		WorkItemLinkTypeID:   l.LinkTypeID,
 	}
 	if err := tx.Create(&revision).Error; err != nil {
-		return errors.NewInternalError(fmt.Sprintf("failed to create new work item link revision: %s", err.Error()))
+		return errors.NewInternalError(ctx, errs.Wrap(err, "failed to create new work item link revision"))
 	}
 	log.Debug(ctx, map[string]interface{}{"wil_id": l.ID}, "work item link revision occurrence created")
 	return nil
@@ -61,7 +60,7 @@ func (r *GormWorkItemLinkRevisionRepository) List(ctx context.Context, linkID uu
 	log.Debug(nil, map[string]interface{}{}, "List all revisions for work item link with ID=%v", linkID.String())
 	revisions := make([]Revision, 0)
 	if err := r.db.Where("work_item_link_id = ?", linkID.String()).Order("revision_time asc").Find(&revisions).Error; err != nil {
-		return nil, errors.NewInternalError(fmt.Sprintf("failed to retrieve work item link revisions: %s", err.Error()))
+		return nil, errors.NewInternalError(ctx, errs.Wrap(err, "failed to retrieve work item link revisions"))
 	}
 	return revisions, nil
 }

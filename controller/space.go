@@ -4,17 +4,17 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/area"
-	"github.com/almighty/almighty-core/auth"
-	"github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/iteration"
-	"github.com/almighty/almighty-core/jsonapi"
-	"github.com/almighty/almighty-core/log"
-	"github.com/almighty/almighty-core/login"
-	"github.com/almighty/almighty-core/rest"
-	"github.com/almighty/almighty-core/space"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/area"
+	"github.com/fabric8-services/fabric8-wit/auth"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/iteration"
+	"github.com/fabric8-services/fabric8-wit/jsonapi"
+	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/login"
+	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -67,6 +67,9 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 	reqSpace := ctx.Payload.Data
 	spaceName := *reqSpace.Attributes.Name
 	spaceID := uuid.NewV4()
+	if reqSpace.ID != nil {
+		spaceID = *reqSpace.ID
+	}
 
 	var rSpace *space.Space
 	err = application.Transactional(c.db, func(appl application.Application) error {
@@ -157,29 +160,26 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
-	id, err := uuid.FromString(ctx.ID)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-	}
 	var resourceID string
 	var permissionID string
 	var policyID string
 	err = application.Transactional(c.db, func(appl application.Application) error {
-		s, err := appl.Spaces().Load(ctx.Context, id)
+		s, err := appl.Spaces().Load(ctx.Context, ctx.SpaceID)
 		if err != nil {
 			return err
 		}
 		if !uuid.Equal(*currentUser, s.OwnerId) {
 			log.Warn(ctx, map[string]interface{}{
-				"space_id":     id,
+				"space_id":     ctx.SpaceID,
 				"space_owner":  s.OwnerId,
 				"current_user": *currentUser,
 			}, "user is not the space owner")
 			return errors.NewForbiddenError("user is not the space owner")
 		}
 
+		// FIXME: what about relying on CASCADE DELETE in the DB instead of doing this ?
 		// Delete associated space resource
-		resource, err := appl.SpaceResources().LoadBySpace(ctx, &id)
+		resource, err := appl.SpaceResources().LoadBySpace(ctx, &ctx.SpaceID)
 		if err != nil {
 			return err
 		}
@@ -191,7 +191,7 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 		if err != nil {
 			return err
 		}
-		return appl.Spaces().Delete(ctx.Context, id)
+		return appl.Spaces().Delete(ctx.Context, ctx.SpaceID)
 	})
 
 	if err != nil {
@@ -206,6 +206,10 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 
 // List runs the list action.
 func (c *SpaceController) List(ctx *app.ListSpaceContext) error {
+	_, err := login.ContextIdentity(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
+	}
 	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
 
 	var response app.SpaceList
@@ -242,19 +246,13 @@ func (c *SpaceController) List(ctx *app.ListSpaceContext) error {
 
 // Show runs the show action.
 func (c *SpaceController) Show(ctx *app.ShowSpaceContext) error {
-	id, err := uuid.FromString(ctx.ID)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-	}
-
 	var result app.SpaceSingle
 	txnErr := application.Transactional(c.db, func(appl application.Application) error {
-		s, err := appl.Spaces().Load(ctx.Context, id)
+		s, err := appl.Spaces().Load(ctx.Context, ctx.SpaceID)
 		if err != nil {
 			return err
 		}
-
-		entityErr := ctx.ConditionalEntity(*s, c.config.GetCacheControlSpaces, func() error {
+		entityErr := ctx.ConditionalRequest(*s, c.config.GetCacheControlSpaces, func() error {
 			spaceData, err := ConvertSpaceFromModel(ctx.Context, c.db, ctx.RequestData, *s)
 			if err != nil {
 				return err
@@ -281,11 +279,6 @@ func (c *SpaceController) Update(ctx *app.UpdateSpaceContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
-	id, err := uuid.FromString(ctx.ID)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-	}
-
 	err = validateUpdateSpace(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
@@ -293,7 +286,7 @@ func (c *SpaceController) Update(ctx *app.UpdateSpaceContext) error {
 
 	var response app.SpaceSingle
 	txnErr := application.Transactional(c.db, func(appl application.Application) error {
-		s, err := appl.Spaces().Load(ctx.Context, id)
+		s, err := appl.Spaces().Load(ctx.Context, ctx.SpaceID)
 		if err != nil {
 			return err
 		}

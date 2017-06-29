@@ -1,5 +1,5 @@
-package: github.com/almighty/almighty-core
-homepage: https://github.com/almighty/almighty-core
+package: github.com/fabric8-services/fabric8-wit
+homepage: https://github.com/fabric8-services/fabric8-wit
 license: Apache-2.0
 import:
 - package: github.com/fabric8io/fabric8-init-tenant
@@ -8,7 +8,7 @@ import:
 - package: github.com/dgrijalva/jwt-go
   version: ^3.0.0
 - package: github.com/goadesign/goa
-  version: ^1.1.0
+  version: ^1.2.0
   vcs: git
   subpackages:
   - client
@@ -101,3 +101,6 @@ import:
 - package: github.com/Sirupsen/logrus
 - package: github.com/sourcegraph/syntaxhighlight
 - package: github.com/sourcegraph/annotate
+- package: github.com/sergi/go-diff
+  subpackages:
+  - diffmatchpatch

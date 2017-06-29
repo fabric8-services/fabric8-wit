@@ -1,19 +1,19 @@
 package codebase_test
 
 import (
+	"context"
 	"testing"
 
+	"github.com/fabric8-services/fabric8-wit/codebase"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/space"
+
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"golang.org/x/net/context"
-
-	"github.com/almighty/almighty-core/codebase"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/space"
-	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -128,6 +128,35 @@ func (test *TestCodebaseRepository) TestListCodebases() {
 	require.Nil(test.T(), err)
 	require.Equal(test.T(), 1, len(codebases))
 	assert.Equal(test.T(), codebase1.URL, codebases[0].URL)
+}
+
+func (test *TestCodebaseRepository) TestExistsCodebase() {
+	t := test.T()
+	resource.Require(t, resource.Database)
+
+	t.Run("codebase exists", func(t *testing.T) {
+		// given
+		spaceID := space.SystemSpace
+		repo := codebase.NewCodebaseRepository(test.DB)
+		codebase := newCodebase(spaceID, "lisp-default", "my-used-lisp-workspace", "git", "git@github.com:hectorj2f/almighty-core.git")
+		test.createCodebase(codebase)
+		// when
+		exists, err := repo.Exists(context.Background(), codebase.ID.String())
+		// then
+		require.Nil(t, err)
+		assert.True(t, exists)
+	})
+
+	t.Run("codebase doesn't exist", func(t *testing.T) {
+		// given
+		repo := codebase.NewCodebaseRepository(test.DB)
+		// when
+		exists, err := repo.Exists(context.Background(), uuid.NewV4().String())
+		// then
+		require.IsType(t, errors.NotFoundError{}, err)
+		assert.False(t, exists)
+	})
+
 }
 
 func (test *TestCodebaseRepository) TestLoadCodebase() {

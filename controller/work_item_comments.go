@@ -1,17 +1,18 @@
 package controller
 
 import (
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/comment"
-	"github.com/almighty/almighty-core/jsonapi"
-	"github.com/almighty/almighty-core/login"
-	"github.com/almighty/almighty-core/rendering"
-	"github.com/almighty/almighty-core/rest"
-	"github.com/almighty/almighty-core/workitem"
+	"context"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/comment"
+	"github.com/fabric8-services/fabric8-wit/jsonapi"
+	"github.com/fabric8-services/fabric8-wit/login"
+	"github.com/fabric8-services/fabric8-wit/rendering"
+	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/goadesign/goa"
-	"github.com/pkg/errors"
-	"golang.org/x/net/context"
+	errs "github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 )
 
 // WorkItemCommentsController implements the work-item-comments resource.
@@ -21,6 +22,7 @@ type WorkItemCommentsController struct {
 	config WorkItemCommentsControllerConfiguration
 }
 
+//WorkItemCommentsControllerConfiguration configuration for the WorkItemCommentsController
 type WorkItemCommentsControllerConfiguration interface {
 	GetCacheControlComments() string
 }
@@ -41,7 +43,6 @@ func (c *WorkItemCommentsController) Create(ctx *app.CreateWorkItemCommentsConte
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
-
 		currentUserIdentityID, err := login.ContextIdentity(ctx)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
@@ -50,7 +51,7 @@ func (c *WorkItemCommentsController) Create(ctx *app.CreateWorkItemCommentsConte
 		reqComment := ctx.Payload.Data
 		markup := rendering.NilSafeGetMarkup(reqComment.Attributes.Markup)
 		newComment := comment.Comment{
-			ParentID:  ctx.WiID,
+			ParentID:  ctx.WiID.String(),
 			Body:      reqComment.Attributes.Body,
 			Markup:    markup,
 			CreatedBy: *currentUserIdentityID,
@@ -72,11 +73,11 @@ func (c *WorkItemCommentsController) Create(ctx *app.CreateWorkItemCommentsConte
 func (c *WorkItemCommentsController) List(ctx *app.ListWorkItemCommentsContext) error {
 	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
 	return application.Transactional(c.db, func(appl application.Application) error {
-		_, err := appl.WorkItems().LoadByID(ctx, ctx.WiID)
+		wi, err := appl.WorkItems().LoadByID(ctx, ctx.WiID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
-		comments, tc, err := appl.Comments().List(ctx, ctx.WiID, &offset, &limit)
+		comments, tc, err := appl.Comments().List(ctx, wi.ID.String(), &offset, &limit)
 		count := int(tc)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
@@ -102,8 +103,7 @@ func (c *WorkItemCommentsController) Relations(ctx *app.RelationsWorkItemComment
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
-
-		comments, tc, err := appl.Comments().List(ctx, ctx.WiID, &offset, &limit)
+		comments, tc, err := appl.Comments().List(ctx, wi.ID.String(), &offset, &limit)
 		count := int(tc)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
@@ -114,22 +114,21 @@ func (c *WorkItemCommentsController) Relations(ctx *app.RelationsWorkItemComment
 		res.Meta = &app.CommentListMeta{TotalCount: count}
 		res.Data = ConvertCommentsResourceID(ctx.RequestData, comments)
 		res.Links = CreateCommentsRelationLinks(ctx.RequestData, wi)
-
 		return ctx.OK(res)
 	})
 }
 
 // workItemIncludeCommentsAndTotal adds relationship about comments to workitem (include totalCount)
-func workItemIncludeCommentsAndTotal(ctx context.Context, db application.DB, parentID string) WorkItemConvertFunc {
+func workItemIncludeCommentsAndTotal(ctx context.Context, db application.DB, parentID uuid.UUID) WorkItemConvertFunc {
 	// TODO: Wrap ctx in a Timeout context?
 	count := make(chan int)
 	go func() {
 		defer close(count)
 		application.Transactional(db, func(appl application.Application) error {
-			cs, err := appl.Comments().Count(ctx, parentID)
+			cs, err := appl.Comments().Count(ctx, parentID.String())
 			if err != nil {
 				count <- 0
-				return errors.WithStack(err)
+				return errs.WithStack(err)
 			}
 			count <- cs
 			return nil

@@ -3,15 +3,18 @@ package remoteworkitem
 import (
 	"testing"
 
-	"golang.org/x/net/context"
+	"context"
 
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/criteria"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/resource"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/criteria"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/resource"
+
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -53,6 +56,33 @@ func (test *TestTrackerRepository) TestTrackerCreate() {
 	tracker2, err := test.repo.Load(context.Background(), tracker.ID)
 	assert.Nil(t, err)
 	assert.NotNil(t, tracker2)
+}
+
+func (test *TestTrackerRepository) TestExistsTracker() {
+	t := test.T()
+	resource.Require(t, resource.Database)
+
+	t.Run("tracker exists", func(t *testing.T) {
+		t.Parallel()
+		// given
+		tracker, err := test.repo.Create(context.Background(), "http://api.github.com", ProviderGithub)
+		assert.Nil(t, err)
+		require.NotNil(t, tracker)
+		assert.Equal(t, "http://api.github.com", tracker.URL)
+		assert.Equal(t, ProviderGithub, tracker.Type)
+
+		exists, err := test.repo.Exists(context.Background(), tracker.ID)
+		assert.Nil(t, err)
+		assert.True(t, exists)
+	})
+
+	t.Run("tracker doesn't exist", func(t *testing.T) {
+		t.Parallel()
+		exists, err := test.repo.Exists(context.Background(), "11111111")
+		require.IsType(t, errors.NotFoundError{}, err)
+		assert.False(t, exists)
+	})
+
 }
 
 func (test *TestTrackerRepository) TestTrackerSave() {

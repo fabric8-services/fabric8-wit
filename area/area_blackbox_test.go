@@ -1,22 +1,20 @@
 package area_test
 
 import (
+	"context"
 	"strconv"
 	"testing"
 	"time"
 
-	"golang.org/x/net/context"
+	"github.com/fabric8-services/fabric8-wit/area"
+	errs "github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/path"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/space"
 
-	"github.com/almighty/almighty-core/area"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/path"
 	"github.com/pkg/errors"
-
-	localerror "github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/space"
-
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -69,7 +67,7 @@ func (test *TestAreaRepository) TestCreateAreaWithSameNameFail() {
 	// then
 	require.NotNil(test.T(), err)
 	// In case of unique constrain error, a BadParameterError is returned.
-	_, ok := errors.Cause(err).(localerror.BadParameterError)
+	_, ok := errors.Cause(err).(errs.BadParameterError)
 	assert.True(test.T(), ok)
 }
 
@@ -94,6 +92,48 @@ func (test *TestAreaRepository) TestCreateArea() {
 	require.NotEqual(test.T(), uuid.Nil, a.ID)
 	assert.True(test.T(), !a.CreatedAt.After(time.Now()), "Area was not created, CreatedAt after Now()?")
 	assert.Equal(test.T(), name, a.Name)
+}
+
+func (test *TestAreaRepository) TestExistsArea() {
+	t := test.T()
+	resource.Require(t, resource.Database)
+
+	t.Run("area exists", func(t *testing.T) {
+		// given
+		repo := area.NewAreaRepository(test.DB)
+		name := "TestCreateArea"
+		newSpace := space.Space{
+			Name: uuid.NewV4().String(),
+		}
+		repoSpace := space.NewRepository(test.DB)
+		space, err := repoSpace.Create(context.Background(), &newSpace)
+		require.Nil(t, err)
+		a := area.Area{
+			Name:    name,
+			SpaceID: space.ID,
+		}
+		// when
+		err = repo.Create(context.Background(), &a)
+		// then
+		require.Nil(t, err)
+		require.NotEqual(t, uuid.Nil, a.ID)
+
+		// when
+		exists, err1 := repo.Exists(context.Background(), a.ID.String())
+		// then
+		require.Nil(t, err1)
+		assert.True(t, exists)
+	})
+
+	t.Run("area doesn't exist", func(t *testing.T) {
+		// given
+		repo := area.NewAreaRepository(test.DB)
+		// when
+		exists, err := repo.Exists(context.Background(), uuid.NewV4().String())
+		// then
+		require.IsType(t, errs.NotFoundError{}, err)
+		assert.False(t, exists)
+	})
 }
 
 func (test *TestAreaRepository) TestCreateChildArea() {

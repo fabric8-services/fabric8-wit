@@ -3,12 +3,12 @@ package token
 import (
 	"crypto/rsa"
 
-	"github.com/almighty/almighty-core/account"
+	"context"
 	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/fabric8-services/fabric8-wit/account"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
-	"golang.org/x/net/context"
 )
 
 // Manager generate and find auth token information

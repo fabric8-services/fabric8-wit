@@ -9,20 +9,19 @@ import (
 	"sync"
 	"text/template"
 
-	"github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/log"
-	"github.com/almighty/almighty-core/space"
-	"github.com/almighty/almighty-core/workitem"
-	"github.com/almighty/almighty-core/workitem/link"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/space"
+	"github.com/fabric8-services/fabric8-wit/workitem"
+	"github.com/fabric8-services/fabric8-wit/workitem/link"
 
-	"fmt"
+	"context"
 
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/client"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
-	"golang.org/x/net/context"
 )
 
 // AdvisoryLockID is a random number that should be used within the application
@@ -302,6 +301,24 @@ func GetMigrations() Migrations {
 		link.SystemWorkItemLinkCategorySystemID.String(),
 		link.SystemWorkItemLinkCategoryUserID.String())})
 
+	// Version 60
+	m = append(m, steps{ExecuteSQLFile("060-fixed-identities-username-idx.sql")})
+
+	// Version 61
+	m = append(m, steps{ExecuteSQLFile("061-replace-index-space-name.sql")})
+
+	// Version 62
+	m = append(m, steps{ExecuteSQLFile("062-link-system-preparation.sql")})
+
+	// Version 63
+	m = append(m, steps{ExecuteSQLFile("063-workitem-related-changes.sql")})
+
+	// Version 64
+	m = append(m, steps{ExecuteSQLFile("064-remove-link-combinations.sql")})
+
+	// Version 64
+	m = append(m, steps{ExecuteSQLFile("065-workitem-id-unique-per-space.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -425,7 +442,11 @@ func MigrateToNextVersion(tx *sql.Tx, nextVersion *int64, m Migrations, catalog 
 // the next version is always the current version + 1 which results
 // in -1 + 1 = 0 which is exactly what we want as the first version.
 func getCurrentVersion(db *sql.Tx, catalog string) (int64, error) {
-	row := db.QueryRow(fmt.Sprintf("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_catalog='%s' AND table_name='version')", catalog))
+	query := `SELECT EXISTS(
+				SELECT 1 FROM information_schema.tables 
+				WHERE table_catalog=$1
+				AND table_name='version')`
+	row := db.QueryRow(query, catalog)
 
 	var exists bool
 	if err := row.Scan(&exists); err != nil {
@@ -501,8 +522,6 @@ func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkIte
 		Topology:       link.TopologyNetwork,
 		ForwardName:    "blocks",
 		ReverseName:    "blocked by",
-		SourceTypeID:   workitem.SystemBug,
-		TargetTypeID:   workitem.SystemPlannerItem,
 		LinkCategoryID: systemCat.ID,
 		SpaceID:        space.SystemSpace,
 	}
@@ -517,8 +536,6 @@ func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkIte
 		Topology:       link.TopologyNetwork,
 		ForwardName:    "relates to",
 		ReverseName:    "is related to",
-		SourceTypeID:   workitem.SystemPlannerItem,
-		TargetTypeID:   workitem.SystemPlannerItem,
 		LinkCategoryID: systemCat.ID,
 		SpaceID:        space.SystemSpace,
 	}
@@ -533,8 +550,6 @@ func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkIte
 		Topology:       link.TopologyNetwork,
 		ForwardName:    "parent of",
 		ReverseName:    "child of",
-		SourceTypeID:   workitem.SystemPlannerItem,
-		TargetTypeID:   workitem.SystemPlannerItem,
 		LinkCategoryID: systemCat.ID,
 		SpaceID:        space.SystemSpace,
 	}

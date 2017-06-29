@@ -1,17 +1,18 @@
 package controller_test
 
 import (
+	"strings"
 	"testing"
 
-	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/app/test"
-	. "github.com/almighty/almighty-core/controller"
-	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/resource"
-	testsupport "github.com/almighty/almighty-core/test"
-	almtoken "github.com/almighty/almighty-core/token"
+	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/app/test"
+	. "github.com/fabric8-services/fabric8-wit/controller"
+	"github.com/fabric8-services/fabric8-wit/gormapplication"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	almtoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -96,6 +97,11 @@ func (rest *TestNamedSpaceREST) TestSuccessQuerySpace() {
 	assert.Equal(t, created.Data.Attributes.Name, namedspace.Data.Attributes.Name)
 	assert.Equal(t, created.Data.Attributes.Description, namedspace.Data.Attributes.Description)
 	assert.Equal(t, created.Data.Links.Self, namedspace.Data.Links.Self)
+
+	// test that show namedspaces operation is not case sensitive for the space name
+	_, namedspace = test.ShowNamedspacesOK(t, namedSpaceSvc.Context, namedSpaceSvc, namedSpacectrl, testsupport.TestIdentity.Username, strings.ToLower(name))
+	assert.NotNil(t, namedspace)
+	assert.Equal(t, created.Data.Attributes.Name, namedspace.Data.Attributes.Name)
 }
 
 func (rest *TestNamedSpaceREST) TestSuccessListSpaces() {

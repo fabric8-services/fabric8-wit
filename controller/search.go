@@ -3,14 +3,14 @@ package controller
 import (
 	"fmt"
 
-	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/jsonapi"
-	"github.com/almighty/almighty-core/log"
-	"github.com/almighty/almighty-core/search"
-	"github.com/almighty/almighty-core/space"
+	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/jsonapi"
+	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/search"
+	"github.com/fabric8-services/fabric8-wit/space"
 
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
@@ -29,9 +29,6 @@ type SearchController struct {
 
 // NewSearchController creates a search controller.
 func NewSearchController(service *goa.Service, db application.DB, configuration searchConfiguration) *SearchController {
-	if db == nil {
-		panic("db must not be nil")
-	}
 	return &SearchController{Controller: service.NewController("SearchController"), db: db, configuration: configuration}
 }
 

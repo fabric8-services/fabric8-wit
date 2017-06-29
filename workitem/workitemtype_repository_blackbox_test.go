@@ -1,22 +1,24 @@
 package workitem_test
 
 import (
+	"context"
 	"net/http"
 	"net/url"
 	"testing"
 
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/space"
-	"github.com/almighty/almighty-core/workitem"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/migration"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/space"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"golang.org/x/net/context"
 )
 
 type workItemTypeRepoBlackBoxTest struct {
@@ -79,6 +81,37 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWIT() {
 	require.NotNil(s.T(), field)
 	assert.Equal(s.T(), workitem.KindFloat, field.Type.GetKind())
 	assert.Equal(s.T(), true, field.Required)
+}
+
+func (s *workItemTypeRepoBlackBoxTest) TestExistsWIT() {
+	t := s.T()
+	resource.Require(t, resource.Database)
+
+	t.Run("wit exists", func(t *testing.T) {
+		t.Parallel()
+		// given
+		wit, err := s.repo.Create(s.ctx, space.SystemSpace, nil, nil, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{
+			"foo": {
+				Required: true,
+				Type:     &workitem.SimpleType{Kind: workitem.KindFloat},
+			},
+		})
+		require.Nil(s.T(), err)
+		require.NotNil(s.T(), wit)
+		require.NotNil(s.T(), wit.ID)
+
+		exists, err := s.repo.Exists(s.ctx, wit.ID.String())
+		require.Nil(s.T(), err)
+		require.True(s.T(), exists)
+	})
+
+	t.Run("wit doesn't exist", func(t *testing.T) {
+		t.Parallel()
+		exists, err := s.repo.Exists(s.ctx, uuid.NewV4().String())
+		require.False(t, exists)
+		require.IsType(t, errors.NotFoundError{}, err)
+	})
+
 }
 
 func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWITWithList() {

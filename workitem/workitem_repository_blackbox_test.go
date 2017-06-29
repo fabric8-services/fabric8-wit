@@ -4,24 +4,25 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/almighty/almighty-core/codebase"
-	"github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/iteration"
-	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/rendering"
-	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/space"
-	testsupport "github.com/almighty/almighty-core/test"
-	"github.com/almighty/almighty-core/workitem"
+	"github.com/fabric8-services/fabric8-wit/codebase"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/iteration"
+	"github.com/fabric8-services/fabric8-wit/migration"
+	"github.com/fabric8-services/fabric8-wit/rendering"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/space"
+	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	"github.com/fabric8-services/fabric8-wit/workitem"
+
+	"context"
 
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"golang.org/x/net/context"
 )
 
 type workItemRepoBlackBoxTest struct {
@@ -60,23 +61,7 @@ func (s *workItemRepoBlackBoxTest) TearDownTest() {
 	s.clean()
 }
 
-func (s *workItemRepoBlackBoxTest) TestFailDeleteZeroID() {
-	// Create at least 1 item to avoid RowsEffectedCheck
-	// given
-	_, err := s.repo.Create(
-		s.ctx, s.spaceID, workitem.SystemBug,
-		map[string]interface{}{
-			workitem.SystemTitle: "Title",
-			workitem.SystemState: workitem.SystemStateNew,
-		}, s.creatorID)
-	require.Nil(s.T(), err, "Could not create work item")
-	// when
-	err = s.repo.Delete(s.ctx, s.spaceID, "0", s.creatorID)
-	// then
-	require.IsType(s.T(), errors.NotFoundError{}, errs.Cause(err))
-}
-
-func (s *workItemRepoBlackBoxTest) TestFailSaveZeroID() {
+func (s *workItemRepoBlackBoxTest) TestFailSaveNilNumber() {
 	// Create at least 1 item to avoid RowsEffectedCheck
 	// given
 	wi, err := s.repo.Create(
@@ -87,13 +72,13 @@ func (s *workItemRepoBlackBoxTest) TestFailSaveZeroID() {
 		}, s.creatorID)
 	require.Nil(s.T(), err, "Could not create workitem")
 	// when
-	wi.ID = "0"
+	wi.Number = 0
 	_, err = s.repo.Save(s.ctx, s.spaceID, *wi, s.creatorID)
 	// then
 	assert.IsType(s.T(), errors.NotFoundError{}, errs.Cause(err))
 }
 
-func (s *workItemRepoBlackBoxTest) TestFaiLoadZeroID() {
+func (s *workItemRepoBlackBoxTest) TestFailLoadNilID() {
 	// Create at least 1 item to avoid RowsEffectedCheck
 	// given
 	_, err := s.repo.Create(
@@ -104,7 +89,7 @@ func (s *workItemRepoBlackBoxTest) TestFaiLoadZeroID() {
 		}, s.creatorID)
 	require.Nil(s.T(), err, "Could not create workitem")
 	// when
-	_, err = s.repo.Load(s.ctx, s.spaceID, "0")
+	_, err = s.repo.LoadByID(s.ctx, uuid.Nil)
 	// then
 	assert.IsType(s.T(), errors.NotFoundError{}, errs.Cause(err))
 }
@@ -136,7 +121,7 @@ func (s *workItemRepoBlackBoxTest) TestSaveForUnchangedCreatedDate() {
 		}, s.creatorID)
 	require.Nil(s.T(), err, "Could not create workitem")
 	// when
-	wi, err = s.repo.Load(s.ctx, s.spaceID, wi.ID)
+	wi, err = s.repo.LoadByID(s.ctx, wi.ID)
 	require.Nil(s.T(), err)
 	wiNew, err := s.repo.Save(s.ctx, s.spaceID, *wi, s.creatorID)
 	// then
@@ -155,11 +140,45 @@ func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionNoMarkup() {
 		}, s.creatorID)
 	require.Nil(s.T(), err, "Could not create workitem")
 	// when
-	wi, err = s.repo.Load(s.ctx, s.spaceID, wi.ID)
+	wi, err = s.repo.LoadByID(s.ctx, wi.ID)
 	// then
 	require.Nil(s.T(), err)
 	// workitem.WorkItem does not contain the markup associated with the description (yet)
 	assert.Equal(s.T(), rendering.NewMarkupContentFromLegacy("Description"), wi.Fields[workitem.SystemDescription])
+}
+
+func (s *workItemRepoBlackBoxTest) TestExistsWorkItem() {
+	t := s.T()
+	resource.Require(t, resource.Database)
+
+	t.Run("work item exists", func(t *testing.T) {
+		// given
+		wi, err := s.repo.Create(
+			s.ctx, s.spaceID, workitem.SystemBug,
+			map[string]interface{}{
+				workitem.SystemTitle:       "Title",
+				workitem.SystemDescription: rendering.NewMarkupContentFromLegacy("Description"),
+				workitem.SystemState:       workitem.SystemStateNew,
+			}, s.creatorID)
+		require.Nil(s.T(), err, "Could not create workitem")
+		// when
+		var exists bool
+		exists, err = s.repo.Exists(s.ctx, wi.ID.String())
+		// then
+		require.Nil(t, err)
+		require.True(t, exists)
+	})
+
+	t.Run("work item doesn't exist", func(t *testing.T) {
+		t.Parallel()
+		// when
+		var exists bool
+		exists, err := s.repo.Exists(s.ctx, "00000000-0000-0000-0000-000000000000")
+		// then
+		require.False(t, exists)
+		require.IsType(t, errors.NotFoundError{}, err)
+	})
+
 }
 
 func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionMarkup() {
@@ -176,7 +195,7 @@ func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionMarkup() {
 		s.creatorID)
 	require.Nil(s.T(), err, "Could not create workitem")
 	// when
-	wi, err = s.repo.Load(s.ctx, s.spaceID, wi.ID)
+	wi, err = s.repo.LoadByID(s.ctx, wi.ID)
 	// then
 	require.Nil(s.T(), err)
 	// workitem.WorkItem does not contain the markup associated with the description (yet)
@@ -290,7 +309,7 @@ func (s *workItemRepoBlackBoxTest) TestCodebaseAttributes() {
 		}, s.creatorID)
 	require.Nil(s.T(), err, "Could not create workitem")
 	// when
-	wi, err = s.repo.Load(s.ctx, space.SystemSpace, wi.ID)
+	wi, err = s.repo.LoadByID(s.ctx, wi.ID)
 	// then
 	require.Nil(s.T(), err)
 	assert.Equal(s.T(), title, wi.Fields[workitem.SystemTitle].(string))

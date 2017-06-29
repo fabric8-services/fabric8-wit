@@ -1,31 +1,31 @@
 package controller_test
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"testing"
 	"time"
 
-	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/app/test"
-	. "github.com/almighty/almighty-core/controller"
-	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormsupport"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/log"
-	"github.com/almighty/almighty-core/login"
-	"github.com/almighty/almighty-core/resource"
-	testsupport "github.com/almighty/almighty-core/test"
-	almtoken "github.com/almighty/almighty-core/token"
+	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/app/test"
+	. "github.com/fabric8-services/fabric8-wit/controller"
+	"github.com/fabric8-services/fabric8-wit/gormapplication"
+	"github.com/fabric8-services/fabric8-wit/gormsupport"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/login"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	almtoken "github.com/fabric8-services/fabric8-wit/token"
 
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"golang.org/x/net/context"
 )
 
 func TestUsers(t *testing.T) {
@@ -443,6 +443,52 @@ func (s *TestUsersSuite) TestUpdateUserOKWithoutContextInfo() {
 
 	updateUsersPayload := createUpdateUsersPayloadWithoutContextInformation(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL)
 	test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
+}
+
+/*
+	Pass " " as email in HTTP PATCH  /api/Users
+*/
+
+func (s *TestUsersSuite) TestUpdateUserWithInvalidEmail() {
+	// given
+	user := s.createRandomUser("TestUpdateUserOKWithoutContextInfo")
+	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+	test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), nil, nil)
+
+	// when
+	newEmail := " "
+	newFullName := "TestUpdateUserOKWithoutContextInfo"
+	newImageURL := "http://new.image.io/imageurl"
+	newBio := "new bio"
+	newProfileURL := "http://new.profile.url/url"
+	secureService, secureController := s.SecuredController(identity)
+
+	//then
+	updateUsersPayload := createUpdateUsersPayloadWithoutContextInformation(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL)
+	test.UpdateUsersBadRequest(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
+}
+
+/*
+	Pass " " as username in HTTP PATCH  /api/Users
+*/
+
+func (s *TestUsersSuite) TestUpdateUserWithInvalidUsername() {
+	// given
+	user := s.createRandomUser("TestUpdateUserOKWithoutContextInfo")
+	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+	test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), nil, nil)
+
+	contextInformation := map[string]interface{}{
+		"last_visited": "yesterday",
+		"count":        3,
+	}
+	//when
+	username := " "
+	secureService, secureController := s.SecuredController(identity)
+	updateUsersPayload := createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, &username, nil, contextInformation)
+
+	//then
+	test.UpdateUsersBadRequest(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 }
 
 func (s *TestUsersSuite) TestPatchUserContextInformation() {
@@ -906,7 +952,7 @@ func getUserUpdatedAt(appUser app.User) time.Time {
 }
 
 func (s *TestUsersSuite) generateUsersTag(allUsers app.UserArray) string {
-	entities := make([]app.ConditionalResponseEntity, len(allUsers.Data))
+	entities := make([]app.ConditionalRequestEntity, len(allUsers.Data))
 	for i, user := range allUsers.Data {
 		userID, err := uuid.FromString(*user.Attributes.UserID)
 		require.Nil(s.T(), err)
@@ -931,11 +977,11 @@ func newDummyUserProfileService(dummyGetResponse *login.KeycloakUserProfileRespo
 	}
 }
 
-func (d *dummyUserProfileService) Update(keycloakUserProfile *login.KeycloakUserProfile, accessToken string, keycloakProfileURL string) error {
+func (d *dummyUserProfileService) Update(ctx context.Context, keycloakUserProfile *login.KeycloakUserProfile, accessToken string, keycloakProfileURL string) error {
 	return nil
 }
 
-func (d *dummyUserProfileService) Get(accessToken string, keycloakProfileURL string) (*login.KeycloakUserProfileResponse, error) {
+func (d *dummyUserProfileService) Get(ctx context.Context, accessToken string, keycloakProfileURL string) (*login.KeycloakUserProfileResponse, error) {
 	return d.dummyGetResponse, nil
 }
 

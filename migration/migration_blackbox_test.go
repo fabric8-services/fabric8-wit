@@ -6,12 +6,16 @@ import (
 	"database/sql"
 	"fmt"
 	"html/template"
+	logger "log"
 	"testing"
 
-	config "github.com/almighty/almighty-core/configuration"
-	"github.com/almighty/almighty-core/log"
-	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/resource"
+	config "github.com/fabric8-services/fabric8-wit/configuration"
+	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/migration"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	uuid "github.com/satori/go.uuid"
+
+	"time"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
@@ -115,6 +119,10 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration55", testMigration55)
 	t.Run("TestMigration56", testMigration56)
 	t.Run("TestMigration57", testMigration57)
+	t.Run("TestMigration60", testMigration60)
+	t.Run("TestMigration61", testMigration61)
+	t.Run("TestMigration63", testMigration63)
+	t.Run("TestMigration65", testMigration65)
 
 	// Perform the migration
 	if err := migration.Migrate(sqlDB, databaseName); err != nil {
@@ -304,6 +312,106 @@ func testMigration57(t *testing.T) {
 	assert.Nil(t, runSQLscript(sqlDB, "057-add-last-used-workspace-to-codebase.sql"))
 }
 
+func testMigration60(t *testing.T) {
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+16)], (initialMigratedVersion + 16))
+
+	assert.True(t, dialect.HasIndex("identities", "idx_identities_username"))
+}
+
+func testMigration61(t *testing.T) {
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+16)], (initialMigratedVersion + 16))
+
+	// Add on purpose a duplicate to verify that we can successfully run this migration
+	assert.Nil(t, runSQLscript(sqlDB, "061-add-duplicate-space-owner-name.sql"))
+
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+17)], (initialMigratedVersion + 17))
+
+	assert.True(t, dialect.HasIndex("spaces", "spaces_name_idx"))
+
+	rows, err := sqlDB.Query("SELECT COUNT(*) FROM spaces WHERE name='test.space.one-renamed'")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var count int
+		err = rows.Scan(&count)
+		assert.True(t, count == 1)
+	}
+
+}
+
+func testMigration63(t *testing.T) {
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+19)], (initialMigratedVersion + 19))
+	assert.Nil(t, runSQLscript(sqlDB, "063-workitem-related-changes.sql"))
+	var createdAt time.Time
+	var deletedAt time.Time
+	var relationshipsChangeddAt time.Time
+
+	// comments
+	// work item 62001 was commented
+	row := sqlDB.QueryRow("SELECT wi.relationships_changed_at, c.created_at FROM work_items wi left join comments c on c.parent_id::bigint = wi.id where wi.id = 62001")
+	err := row.Scan(&relationshipsChangeddAt, &createdAt)
+	require.Nil(t, err)
+	assert.Equal(t, relationshipsChangeddAt, createdAt)
+	// work item 62003 was commented, then the comment was (soft) deleted
+	row = sqlDB.QueryRow("SELECT wi.relationships_changed_at, c.deleted_at FROM work_items wi left join comments c on c.parent_id::bigint = wi.id where wi.id = 62003")
+	err = row.Scan(&relationshipsChangeddAt, &deletedAt)
+	require.Nil(t, err)
+	assert.Equal(t, relationshipsChangeddAt, deletedAt)
+
+	// links
+	// work items 62004 and 62005 were linked together
+	row = sqlDB.QueryRow("SELECT wi.relationships_changed_at, wil.created_at FROM work_items wi left join work_item_links wil on wil.source_id = wi.id where wi.id = 62004")
+	err = row.Scan(&relationshipsChangeddAt, &createdAt)
+	require.Nil(t, err)
+	assert.Equal(t, relationshipsChangeddAt, createdAt)
+	row = sqlDB.QueryRow("SELECT wi.relationships_changed_at, wil.created_at FROM work_items wi left join work_item_links wil on wil.target_id = wi.id where wi.id = 62005")
+	err = row.Scan(&relationshipsChangeddAt, &createdAt)
+	require.Nil(t, err)
+	assert.Equal(t, relationshipsChangeddAt, createdAt)
+	// work items 62008 and 62009 were linked together, but then the link was deleted
+	row = sqlDB.QueryRow("SELECT wi.relationships_changed_at, wil.deleted_at FROM work_items wi left join work_item_links wil on wil.source_id = wi.id where wi.id = 62008")
+	err = row.Scan(&relationshipsChangeddAt, &deletedAt)
+	require.Nil(t, err)
+	assert.Equal(t, relationshipsChangeddAt, deletedAt)
+	row = sqlDB.QueryRow("SELECT wi.relationships_changed_at, wil.deleted_at FROM work_items wi left join work_item_links wil on wil.target_id = wi.id where wi.id = 62009")
+	err = row.Scan(&relationshipsChangeddAt, &deletedAt)
+	require.Nil(t, err)
+	assert.Equal(t, relationshipsChangeddAt, deletedAt)
+}
+
+func testMigration65(t *testing.T) {
+	// migrate to previous version
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+20)], (initialMigratedVersion + 20))
+	// fill DB with data (ie, work items, links, comments, etc on different spaces)
+	assert.Nil(t, runSQLscript(sqlDB, "065-workitem-id-unique-per-space.sql"))
+	// then apply the change
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+21)], (initialMigratedVersion + 21))
+	// and verify that the work item id sequence table is filled as expected
+	type WorkItemSequence struct {
+		SpaceID    uuid.UUID `sql:"type:UUID"`
+		CurrentVal int
+	}
+	space1, err := uuid.FromString("11111111-0000-0000-0000-000000000000")
+	require.Nil(t, err)
+	space2, err := uuid.FromString("22222222-0000-0000-0000-000000000000")
+	require.Nil(t, err)
+	expectations := make(map[uuid.UUID]int)
+	expectations[space1] = 12348
+	expectations[space2] = 12350
+	for spaceID, expectedCurrentVal := range expectations {
+		var currentVal int
+		stmt, err := sqlDB.Prepare("select current_val from work_item_number_sequences where space_id = $1")
+		require.Nil(t, err)
+		err = stmt.QueryRow(spaceID.String()).Scan(&currentVal)
+		require.Nil(t, err)
+		require.NotNil(t, currentVal)
+		t.Log(fmt.Sprintf("Found %d (/%d) for space %v", currentVal, expectedCurrentVal, spaceID))
+		assert.Equal(t, expectedCurrentVal, currentVal)
+	}
+}
+
 // runSQLscript loads the given filename from the packaged SQL test files and
 // executes it on the given database. Golang text/template module is used
 // to handle all the optional arguments passed to the sql test files
@@ -314,9 +422,9 @@ func runSQLscript(db *sql.DB, sqlFilename string) error {
 		return errs.New(fmt.Sprintf("Failed to start transaction: %s\n", err))
 	}
 	if err := executeSQLTestFile(sqlFilename)(tx); err != nil {
-		log.Warn(nil, nil, "Failed to execute data insertion of version: %s\n", err)
+		log.Warn(nil, nil, "Failed to execute data insertion using '%s': %s\n", sqlFilename, err)
 		if err = tx.Rollback(); err != nil {
-			return errs.New(fmt.Sprintf("error while rolling back transaction: ", err))
+			return errs.New(fmt.Sprintf("error while rolling back transaction: %s", err))
 		}
 	}
 	if err = tx.Commit(); err != nil {
@@ -331,6 +439,7 @@ func runSQLscript(db *sql.DB, sqlFilename string) error {
 // to handle all the optional arguments passed to the sql test files
 func executeSQLTestFile(filename string, args ...string) fn {
 	return func(db *sql.Tx) error {
+		log.Info(nil, nil, "Executing SQL test script '%s'", filename)
 		data, err := Asset(filename)
 		if err != nil {
 			return errs.WithStack(err)
@@ -370,13 +479,13 @@ func migrateToVersion(db *sql.DB, m migration.Migrations, version int64) {
 
 		if err = migration.MigrateToNextVersion(tx, &nextVersion, m, databaseName); err != nil {
 			if err = tx.Rollback(); err != nil {
-				panic(fmt.Errorf("error while rolling back transaction: ", err))
+				logger.Fatalf("error while rolling back transaction: %v", err)
 			}
-			panic(fmt.Errorf("Failed to migrate to version after rolling back"))
+			logger.Fatalf("Failed to migrate to version after rolling back")
 		}
 
 		if err = tx.Commit(); err != nil {
-			panic(fmt.Errorf("Error during transaction commit: %s\n", err))
+			logger.Fatalf("Error during transaction commit: %s", err)
 		}
 	}
 }

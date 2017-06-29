@@ -4,13 +4,13 @@ import (
 	"net/url"
 	"regexp"
 
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/jsonapi"
-	"github.com/almighty/almighty-core/log"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/jsonapi"
+	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/goadesign/goa"
 )
 
-// KeycloakLogoutService represents a keyclaok logout service
+// KeycloakLogoutService represents a keycloak logout service
 type KeycloakLogoutService struct {
 }
 

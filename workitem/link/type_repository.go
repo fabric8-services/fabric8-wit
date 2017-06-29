@@ -1,15 +1,16 @@
 package link
 
 import (
-	"fmt"
+	"time"
 
-	"golang.org/x/net/context"
+	"context"
 
-	"github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/log"
-	"github.com/almighty/almighty-core/space"
-	"github.com/almighty/almighty-core/workitem"
+	"github.com/fabric8-services/fabric8-wit/application/repository"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/space"
 
+	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -17,17 +18,12 @@ import (
 
 // WorkItemLinkTypeRepository encapsulates storage & retrieval of work item link types
 type WorkItemLinkTypeRepository interface {
+	repository.Exister
 	Create(ctx context.Context, linkType *WorkItemLinkType) (*WorkItemLinkType, error)
 	Load(ctx context.Context, ID uuid.UUID) (*WorkItemLinkType, error)
 	List(ctx context.Context, spaceID uuid.UUID) ([]WorkItemLinkType, error)
 	Delete(ctx context.Context, spaceID uuid.UUID, ID uuid.UUID) error
 	Save(ctx context.Context, linkCat WorkItemLinkType) (*WorkItemLinkType, error)
-	// ListSourceLinkTypes returns the possible link types for where the given
-	// WIT can be used in the source.
-	ListSourceLinkTypes(ctx context.Context, witID uuid.UUID) ([]WorkItemLinkType, error)
-	// ListSourceLinkTypes returns the possible link types for where the given
-	// WIT can be used in the target.
-	ListTargetLinkTypes(ctx context.Context, witID uuid.UUID) ([]WorkItemLinkType, error)
 }
 
 // NewWorkItemLinkTypeRepository creates a work item link type repository based on gorm
@@ -43,6 +39,7 @@ type GormWorkItemLinkTypeRepository struct {
 // Create creates a new work item link type in the repository.
 // Returns BadParameterError, ConversionError or InternalError
 func (r *GormWorkItemLinkTypeRepository) Create(ctx context.Context, linkType *WorkItemLinkType) (*WorkItemLinkType, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemlinktype", "create"}, time.Now())
 	if err := linkType.CheckValidForCreation(); err != nil {
 		return nil, errs.WithStack(err)
 	}
@@ -53,7 +50,7 @@ func (r *GormWorkItemLinkTypeRepository) Create(ctx context.Context, linkType *W
 		return nil, errors.NewBadParameterError("work item link category", linkType.LinkCategoryID)
 	}
 	if db.Error != nil {
-		return nil, errors.NewInternalError(fmt.Sprintf("Failed to find work item link category: %s", db.Error.Error()))
+		return nil, errors.NewInternalError(ctx, errs.Wrap(db.Error, "failed to find work item link category"))
 	}
 	// Check space exists
 	space := space.Space{}
@@ -62,12 +59,12 @@ func (r *GormWorkItemLinkTypeRepository) Create(ctx context.Context, linkType *W
 		return nil, errors.NewBadParameterError("work item link space", linkType.SpaceID)
 	}
 	if db.Error != nil {
-		return nil, errors.NewInternalError(fmt.Sprintf("Failed to find work item link space: %s", db.Error.Error()))
+		return nil, errors.NewInternalError(ctx, errs.Wrap(db.Error, "failed to find work item link space"))
 	}
 
 	db = r.db.Create(linkType)
 	if db.Error != nil {
-		return nil, errors.NewInternalError(db.Error.Error())
+		return nil, errors.NewInternalError(ctx, db.Error)
 	}
 	return linkType, nil
 }
@@ -75,6 +72,7 @@ func (r *GormWorkItemLinkTypeRepository) Create(ctx context.Context, linkType *W
 // Load returns the work item link type for the given ID.
 // Returns NotFoundError, ConversionError or InternalError
 func (r *GormWorkItemLinkTypeRepository) Load(ctx context.Context, ID uuid.UUID) (*WorkItemLinkType, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemlinktype", "load"}, time.Now())
 	log.Info(ctx, map[string]interface{}{
 		"wilt_id": ID,
 	}, "loading work item link type")
@@ -87,21 +85,29 @@ func (r *GormWorkItemLinkTypeRepository) Load(ctx context.Context, ID uuid.UUID)
 		return nil, errors.NewNotFoundError("work item link type", ID.String())
 	}
 	if db.Error != nil {
-		return nil, errors.NewInternalError(db.Error.Error())
+		return nil, errors.NewInternalError(ctx, db.Error)
 	}
 	return &modelLinkType, nil
+}
+
+// Exists returns true|false whether a work item link type exists with a specific identifier
+func (m *GormWorkItemLinkTypeRepository) Exists(ctx context.Context, id string) (bool, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemlinktype", "exists"}, time.Now())
+	return repository.Exists(ctx, m.db, WorkItemLinkType{}.TableName(), id)
 }
 
 // List returns all work item link types
 // TODO: Handle pagination
 func (r *GormWorkItemLinkTypeRepository) List(ctx context.Context, spaceID uuid.UUID) ([]WorkItemLinkType, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemlinktype", "list"}, time.Now())
 	log.Info(ctx, map[string]interface{}{
 		"space_id": spaceID,
 	}, "Listing work item link types by space ID %s", spaceID.String())
 
 	// We don't have any where clause or paging at the moment.
 	var modelLinkTypes []WorkItemLinkType
-	db := r.db.Where("space_id = ?", spaceID)
+	// TODO(kwk): Remove the system space from the query, once we have space templates
+	db := r.db.Where("space_id IN (?, ?)", spaceID, space.SystemSpace)
 	if err := db.Find(&modelLinkTypes).Error; err != nil {
 		return nil, errs.WithStack(err)
 	}
@@ -111,6 +117,7 @@ func (r *GormWorkItemLinkTypeRepository) List(ctx context.Context, spaceID uuid.
 // Delete deletes the work item link type with the given id
 // returns NotFoundError or InternalError
 func (r *GormWorkItemLinkTypeRepository) Delete(ctx context.Context, spaceID uuid.UUID, ID uuid.UUID) error {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemlinktype", "delete"}, time.Now())
 	var cat = WorkItemLinkType{
 		ID:      ID,
 		SpaceID: spaceID,
@@ -122,7 +129,7 @@ func (r *GormWorkItemLinkTypeRepository) Delete(ctx context.Context, spaceID uui
 
 	db := r.db.Delete(&cat)
 	if db.Error != nil {
-		return errors.NewInternalError(db.Error.Error())
+		return errors.NewInternalError(ctx, db.Error)
 	}
 	if db.RowsAffected == 0 {
 		return errors.NewNotFoundError("work item link type", ID.String())
@@ -133,6 +140,7 @@ func (r *GormWorkItemLinkTypeRepository) Delete(ctx context.Context, spaceID uui
 // Save updates the given work item link type in storage. Version must be the same as the one int the stored version.
 // returns NotFoundError, VersionConflictError, ConversionError or InternalError
 func (r *GormWorkItemLinkTypeRepository) Save(ctx context.Context, modelToSave WorkItemLinkType) (*WorkItemLinkType, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemlinktype", "save"}, time.Now())
 	existingModel := WorkItemLinkType{}
 	db := r.db.Model(&existingModel).Where("id=?", modelToSave.ID).First(&existingModel)
 	if db.RecordNotFound() {
@@ -146,7 +154,7 @@ func (r *GormWorkItemLinkTypeRepository) Save(ctx context.Context, modelToSave W
 			"wilt_id": modelToSave.ID,
 			"err":     db.Error,
 		}, "unable to find work item link type repository")
-		return nil, errors.NewInternalError(db.Error.Error())
+		return nil, errors.NewInternalError(ctx, db.Error)
 	}
 	if existingModel.Version != modelToSave.Version {
 		return nil, errors.NewVersionConflictError("version conflict")
@@ -159,57 +167,11 @@ func (r *GormWorkItemLinkTypeRepository) Save(ctx context.Context, modelToSave W
 			"wilt":    existingModel,
 			"err":     db.Error,
 		}, "unable to save work item link type repository")
-		return nil, errors.NewInternalError(db.Error.Error())
+		return nil, errors.NewInternalError(ctx, db.Error)
 	}
 	log.Info(ctx, map[string]interface{}{
 		"wilt_id": existingModel.ID,
 		"wilt":    existingModel,
 	}, "Work item link type updated %v", modelToSave)
 	return &modelToSave, nil
-}
-
-func (r *GormWorkItemLinkTypeRepository) ListSourceLinkTypes(ctx context.Context, witID uuid.UUID) ([]WorkItemLinkType, error) {
-	db := r.db.Model(WorkItemLinkType{})
-	query := fmt.Sprintf(`
-			-- Get link types we can use with a specific WIT if the WIT is at the
-			-- source of the link.
-			(SELECT path FROM %[2]s WHERE id = %[1]s.source_type_id LIMIT 1)
-			@>
-			(SELECT path FROM %[2]s WHERE id = ? LIMIT 1)`,
-		WorkItemLinkType{}.TableName(),
-		workitem.WorkItemType{}.TableName(),
-	)
-	db = db.Where(query, witID)
-	var rows []WorkItemLinkType
-	db = db.Find(&rows)
-	if db.RecordNotFound() {
-		return nil, nil
-	}
-	if db.Error != nil {
-		return nil, errs.WithStack(db.Error)
-	}
-	return rows, nil
-}
-
-func (r *GormWorkItemLinkTypeRepository) ListTargetLinkTypes(ctx context.Context, witID uuid.UUID) ([]WorkItemLinkType, error) {
-	db := r.db.Model(WorkItemLinkType{})
-	query := fmt.Sprintf(`
-			-- Get link types we can use with a specific WIT if the WIT is at the
-			-- target of the link.
-			(SELECT path FROM %[2]s WHERE id = %[1]s.target_type_id LIMIT 1)
-			@>
-			(SELECT path FROM %[2]s WHERE id = ? LIMIT 1)`,
-		WorkItemLinkType{}.TableName(),
-		workitem.WorkItemType{}.TableName(),
-	)
-	db = db.Where(query, witID)
-	var rows []WorkItemLinkType
-	db = db.Find(&rows)
-	if db.RecordNotFound() {
-		return nil, nil
-	}
-	if db.Error != nil {
-		return nil, errs.WithStack(db.Error)
-	}
-	return rows, nil
 }
