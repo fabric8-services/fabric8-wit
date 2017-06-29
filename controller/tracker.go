@@ -3,12 +3,12 @@ package controller
 import (
 	"fmt"
 
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/jsonapi"
-	"github.com/almighty/almighty-core/log"
-	query "github.com/almighty/almighty-core/query/simple"
-	"github.com/almighty/almighty-core/remoteworkitem"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/jsonapi"
+	"github.com/fabric8-services/fabric8-wit/log"
+	query "github.com/fabric8-services/fabric8-wit/query/simple"
+	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 )

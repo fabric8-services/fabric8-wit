@@ -33,13 +33,13 @@ func LoadTestData(filename string, provider TestDataProvider) ([]byte, error) {
 		return content, nil
 	}
 
-	// Get path to src/github.com/almighty/almighty-core/test/remote_test_data.go
+	// Get path to src/github.com/fabric8-services/fabric8-wit/test/remote_test_data.go
 	_, packagefilename, _, ok := runtime.Caller(0)
 	if !ok {
 		panic("No caller information")
 	}
 
-	// The target dir would be src/github.com/almighty/almighty-core/examples/test
+	// The target dir would be src/github.com/fabric8-services/fabric8-wit/examples/test
 	targetDir := filepath.FromSlash(path.Dir(packagefilename) + "/../test/data/")
 	err := os.MkdirAll(targetDir, 0777)
 	if err != nil {

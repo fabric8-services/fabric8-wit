@@ -11,7 +11,7 @@ import (
 	"github.com/pkg/errors"
 	yaml "gopkg.in/yaml.v2"
 
-	"github.com/almighty/almighty-core/rest"
+	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/goadesign/goa"
 	"github.com/spf13/viper"
 )
@@ -202,7 +202,7 @@ func (c *ConfigurationData) setConfigDefaults() {
 	c.v.SetDefault(varCacheControlUser, "private,max-age=2")
 
 	// Features
-	c.v.SetDefault(varFeatureWorkitemRemote, false)
+	c.v.SetDefault(varFeatureWorkitemRemote, true)
 
 	c.v.SetDefault(varKeycloakTesUser2Name, defaultKeycloakTesUser2Name)
 	c.v.SetDefault(varKeycloakTesUser2Secret, defaultKeycloakTesUser2Secret)

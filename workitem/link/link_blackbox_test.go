@@ -5,10 +5,10 @@ import (
 
 	"time"
 
-	"github.com/almighty/almighty-core/convert"
-	"github.com/almighty/almighty-core/gormsupport"
-	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/workitem/link"
+	"github.com/fabric8-services/fabric8-wit/convert"
+	"github.com/fabric8-services/fabric8-wit/gormsupport"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 )
@@ -19,10 +19,10 @@ func TestWorkItemLink_Equal(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
 	a := link.WorkItemLink{
-		ID:         uuid.FromStringOrNil("0e671e36-871b-43a6-9166-0c4bd573e231"),
-		SourceID:   1,
-		TargetID:   2,
-		LinkTypeID: uuid.FromStringOrNil("966e982c-615c-4879-961f-56e912cbc4f2"),
+		ID:         uuid.NewV4(),
+		SourceID:   uuid.NewV4(),
+		TargetID:   uuid.NewV4(),
+		LinkTypeID: uuid.NewV4(),
 	}
 
 	// Test equality
@@ -40,7 +40,7 @@ func TestWorkItemLink_Equal(t *testing.T) {
 
 	// Test ID
 	b = a
-	b.ID = uuid.FromStringOrNil("10616dae-0a28-4de5-9d79-c831dbcfd039")
+	b.ID = uuid.NewV4()
 	require.False(t, a.Equal(b))
 
 	// Test Version
@@ -50,17 +50,17 @@ func TestWorkItemLink_Equal(t *testing.T) {
 
 	// Test SourceID
 	b = a
-	b.SourceID = 1292387473
+	b.SourceID = uuid.NewV4()
 	require.False(t, a.Equal(b))
 
 	// Test TargetID
 	b = a
-	b.TargetID = 93092303290
+	b.TargetID = uuid.NewV4()
 	require.False(t, a.Equal(b))
 
 	// Test LinkTypeID
 	b = a
-	b.LinkTypeID = uuid.FromStringOrNil("10a41146-3868-47cd-84ae-f96ea4c9d797")
+	b.LinkTypeID = uuid.NewV4()
 	require.False(t, a.Equal(b))
 }
 
@@ -69,10 +69,10 @@ func TestWorkItemLinkCheckValidForCreation(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
 	a := link.WorkItemLink{
-		ID:         uuid.FromStringOrNil("0e671e36-871b-43a6-9166-0c4bd573e231"),
-		SourceID:   1,
-		TargetID:   2,
-		LinkTypeID: uuid.FromStringOrNil("966e982c-615c-4879-961f-56e912cbc4f2"),
+		ID:         uuid.NewV4(),
+		SourceID:   uuid.NewV4(),
+		TargetID:   uuid.NewV4(),
+		LinkTypeID: uuid.NewV4(),
 	}
 
 	// Check valid

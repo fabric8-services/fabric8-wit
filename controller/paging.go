@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/rest"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 )

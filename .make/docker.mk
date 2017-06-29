@@ -35,8 +35,8 @@ docker-image-deploy:
 .PHONY: docker-publish-deploy
 ## Tags the runnable image and pushes it to the docker hub.
 docker-publish-deploy:
-	docker tag $(DOCKER_IMAGE_DEPLOY) almightycore/almighty-core:latest
-	docker push almightycore/almighty-core:latest
+	docker tag $(DOCKER_IMAGE_DEPLOY) fabric8-services/fabric8-wit:latest
+	docker push fabric8-services/fabric8-wit:latest
 
 .PHONY: docker-build-dir
 ## Creates the docker build directory.

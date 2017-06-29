@@ -63,7 +63,7 @@ Let's assume the binary `./bin/alm` is running.
 === Attach to program
 
 To link:https://github.com/derekparker/delve/blob/master/Documentation/usage/dlv_attach.md#dlv-attach[*attach*]
-the debugger to your running almight-core server,run:
+the debugger to your running fabric8-wit server,run:
 
 ----
 $ dlv attach $(pidof ./bin/alm)
@@ -88,7 +88,7 @@ on the on the `WorkitemController.Show` function that is defined in `workitem.go
 (dlv) break WorkitemController.Show
 ----
 
-As mentioned before the almighty-core server is paused and we need to bring it
+As mentioned before the fabric8-wit server is paused and we need to bring it
 back into a *run* state. To do this, we let the program
 link:https://github.com/derekparker/delve/tree/master/Documentation/cli#continue[*continue*]:
 
@@ -109,7 +109,7 @@ $ curl http://localhost:8080/api/workitems/1
 Now, your debugger shell show something like this:
 
 ----
-> main.(*WorkitemController).Show() /tmp/go/src/github.com/almighty/almighty-core/workitem.go:30 (hits goroutine(11):1 total:3) (PC: 0x405633)
+> main.(*WorkitemController).Show() /tmp/go/src/github.com/fabric8-services/fabric8-wit/workitem.go:30 (hits goroutine(11):1 total:3) (PC: 0x405633)
 (dlv)
 ----
 
@@ -129,27 +129,27 @@ development goes on:
 
 ----
 0  0x0000000000405633 in main.(*WorkitemController).Show
-   at /tmp/go/src/github.com/almighty/almighty-core/workitem.go:30
-1  0x0000000000520014 in github.com/almighty/almighty-core/app.MountWorkitemController.func3
-   at /tmp/go/src/github.com/almighty/almighty-core/app/controllers.go:222
-2  0x00000000005202fe in github.com/almighty/almighty-core/app.handleWorkitemOrigin.func1
-   at /tmp/go/src/github.com/almighty/almighty-core/app/controllers.go:257
-3  0x0000000000540868 in github.com/almighty/almighty-core/vendor/github.com/goadesign/goa.(*Controller).MuxHandler.func1.1
-   at /tmp/go/src/github.com/almighty/almighty-core/vendor/github.com/goadesign/goa/service.go:250
-4  0x00000000005d6d3e in github.com/almighty/almighty-core/vendor/github.com/goadesign/goa/middleware.Recover.func1.1
-   at /tmp/go/src/github.com/almighty/almighty-core/vendor/github.com/goadesign/goa/middleware/recover.go:37
-5  0x00000000005d3b9c in github.com/almighty/almighty-core/vendor/github.com/goadesign/goa/middleware.ErrorHandler.func1.1
-   at /tmp/go/src/github.com/almighty/almighty-core/vendor/github.com/goadesign/goa/middleware/error_handler.go:19
-6  0x00000000005d5649 in github.com/almighty/almighty-core/vendor/github.com/goadesign/goa/middleware.LogRequest.func1.1
-   at /tmp/go/src/github.com/almighty/almighty-core/vendor/github.com/goadesign/goa/middleware/log_request.go:65
-7  0x00000000005d7229 in github.com/almighty/almighty-core/vendor/github.com/goadesign/goa/middleware.RequestIDWithHeaderAndLengthLimit.func1.1
-   at /tmp/go/src/github.com/almighty/almighty-core/vendor/github.com/goadesign/goa/middleware/request_id.go:63
-8  0x000000000054192c in github.com/almighty/almighty-core/vendor/github.com/goadesign/goa.(*Controller).MuxHandler.func1
-   at /tmp/go/src/github.com/almighty/almighty-core/vendor/github.com/goadesign/goa/service.go:283
-9  0x000000000053faf9 in github.com/almighty/almighty-core/vendor/github.com/goadesign/goa.(*mux).Handle.func1
-   at /tmp/go/src/github.com/almighty/almighty-core/vendor/github.com/goadesign/goa/mux.go:57
-10  0x000000000076c3c2 in github.com/almighty/almighty-core/vendor/github.com/dimfeld/httptreemux.(*TreeMux).ServeHTTP
-   at /tmp/go/src/github.com/almighty/almighty-core/vendor/github.com/dimfeld/httptreemux/router.go:247
+   at /tmp/go/src/github.com/fabric8-services/fabric8-wit/workitem.go:30
+1  0x0000000000520014 in github.com/fabric8-services/fabric8-wit/app.MountWorkitemController.func3
+   at /tmp/go/src/github.com/fabric8-services/fabric8-wit/app/controllers.go:222
+2  0x00000000005202fe in github.com/fabric8-services/fabric8-wit/app.handleWorkitemOrigin.func1
+   at /tmp/go/src/github.com/fabric8-services/fabric8-wit/app/controllers.go:257
+3  0x0000000000540868 in github.com/fabric8-services/fabric8-wit/vendor/github.com/goadesign/goa.(*Controller).MuxHandler.func1.1
+   at /tmp/go/src/github.com/fabric8-services/fabric8-wit/vendor/github.com/goadesign/goa/service.go:250
+4  0x00000000005d6d3e in github.com/fabric8-services/fabric8-wit/vendor/github.com/goadesign/goa/middleware.Recover.func1.1
+   at /tmp/go/src/github.com/fabric8-services/fabric8-wit/vendor/github.com/goadesign/goa/middleware/recover.go:37
+5  0x00000000005d3b9c in github.com/fabric8-services/fabric8-wit/vendor/github.com/goadesign/goa/middleware.ErrorHandler.func1.1
+   at /tmp/go/src/github.com/fabric8-services/fabric8-wit/vendor/github.com/goadesign/goa/middleware/error_handler.go:19
+6  0x00000000005d5649 in github.com/fabric8-services/fabric8-wit/vendor/github.com/goadesign/goa/middleware.LogRequest.func1.1
+   at /tmp/go/src/github.com/fabric8-services/fabric8-wit/vendor/github.com/goadesign/goa/middleware/log_request.go:65
+7  0x00000000005d7229 in github.com/fabric8-services/fabric8-wit/vendor/github.com/goadesign/goa/middleware.RequestIDWithHeaderAndLengthLimit.func1.1
+   at /tmp/go/src/github.com/fabric8-services/fabric8-wit/vendor/github.com/goadesign/goa/middleware/request_id.go:63
+8  0x000000000054192c in github.com/fabric8-services/fabric8-wit/vendor/github.com/goadesign/goa.(*Controller).MuxHandler.func1
+   at /tmp/go/src/github.com/fabric8-services/fabric8-wit/vendor/github.com/goadesign/goa/service.go:283
+9  0x000000000053faf9 in github.com/fabric8-services/fabric8-wit/vendor/github.com/goadesign/goa.(*mux).Handle.func1
+   at /tmp/go/src/github.com/fabric8-services/fabric8-wit/vendor/github.com/goadesign/goa/mux.go:57
+10  0x000000000076c3c2 in github.com/fabric8-services/fabric8-wit/vendor/github.com/dimfeld/httptreemux.(*TreeMux).ServeHTTP
+   at /tmp/go/src/github.com/fabric8-services/fabric8-wit/vendor/github.com/dimfeld/httptreemux/router.go:247
 ----
 
 The first incrementing number on every second line stands for the number of the

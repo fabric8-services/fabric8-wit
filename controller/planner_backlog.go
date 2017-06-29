@@ -3,13 +3,13 @@ package controller
 import (
 	"context"
 
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/criteria"
-	"github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/jsonapi"
-	query "github.com/almighty/almighty-core/query/simple"
-	"github.com/almighty/almighty-core/workitem"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/criteria"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/jsonapi"
+	query "github.com/fabric8-services/fabric8-wit/query/simple"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
@@ -123,12 +123,10 @@ func getBacklogItems(ctx context.Context, db application.DB, spaceID uuid.UUID, 
 
 	err = application.Transactional(db, func(appl application.Application) error {
 		// Get the list of work items for the following criteria
-		var tc uint64
-		result, tc, err = appl.WorkItems().List(ctx, spaceID, backlogExp, nil, offset, limit)
+		result, count, err = appl.WorkItems().List(ctx, spaceID, backlogExp, nil, offset, limit)
 		if err != nil {
 			return errs.Wrap(err, "error listing backlog items")
 		}
-		count = int(tc)
 		return nil
 	})
 	if err != nil {

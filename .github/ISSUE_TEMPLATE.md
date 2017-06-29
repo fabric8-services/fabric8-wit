@@ -12,9 +12,9 @@ Please, make sure to provide all the information asked for below and then delete
 
 ## Steps to reproduce the problem
 
-* *Please describe how a developer can reproduce the issue that you faced. Make sure you include information how you've configured, built, or started the almighty-core server.*
+* *Please describe how a developer can reproduce the issue that you faced. Make sure you include information how you've configured, built, or started the fabric8-wit server.*
 
 ## Specifications
 
-* Which version of almighty-core are you running?
+* Which version of fabric8-wit are you running?
 * Which operating system do you use?
