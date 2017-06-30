@@ -1,10 +1,10 @@
 {
-  "url": "https://api.github.com/repos/almighty-unit-test/almighty-test/issues/1",
-  "repository_url": "https://api.github.com/repos/almighty-unit-test/almighty-test",
-  "labels_url": "https://api.github.com/repos/almighty-unit-test/almighty-test/issues/1/labels{/name}",
-  "comments_url": "https://api.github.com/repos/almighty-unit-test/almighty-test/issues/1/comments",
-  "events_url": "https://api.github.com/repos/almighty-unit-test/almighty-test/issues/1/events",
-  "html_url": "https://github.com/almighty-unit-test/almighty-test/issues/1",
+  "url": "https://api.github.com/repos/fabric8-wit-unit-test/fabric8-wit-test/issues/1",
+  "repository_url": "https://api.github.com/repos/fabric8-wit-unit-test/fabric8-wit-test",
+  "labels_url": "https://api.github.com/repos/fabric8-wit-unit-test/fabric8-wit-test/issues/1/labels{/name}",
+  "comments_url": "https://api.github.com/repos/fabric8-wit-unit-test/fabric8-wit-test/issues/1/comments",
+  "events_url": "https://api.github.com/repos/fabric8-wit-unit-test/fabric8-wit-test/issues/1/events",
+  "html_url": "https://github.com/fabric8-wit-unit-test/fabric8-wit-test/issues/1",
   "id": 190659499,
   "number": 1,
   "title": "alm-test case",
@@ -30,7 +30,7 @@
   "labels": [
     {
       "id": 485776411,
-      "url": "https://api.github.com/repos/almighty-unit-test/almighty-test/labels/enhancement",
+      "url": "https://api.github.com/repos/fabric8-wit-unit-test/fabric8-wit-test/labels/enhancement",
       "name": "enhancement",
       "color": "84b6eb",
       "default": true

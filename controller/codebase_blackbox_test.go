@@ -91,12 +91,13 @@ func requireSpaceAndCodebase(t *testing.T, db *gormapplication.GormDB, ID, space
 		}
 		_, err := appl.Spaces().Create(context.Background(), s)
 		require.Nil(t, err)
+		stackId := "golang-default"
 		c = &codebase.Codebase{
 			ID:                ID,
 			SpaceID:           spaceID,
 			Type:              "git",
 			URL:               "https://github.com/fabric8-services/fabric8-wit.git",
-			StackID:           "golang-default",
+			StackID:           &stackId,
 			LastUsedWorkspace: "my-last-used-workspace",
 		}
 		err = appl.Codebases().Create(context.Background(), c)

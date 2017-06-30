@@ -519,7 +519,7 @@ func getClientIDAndEndpoint(t *testing.T) (string, string) {
 
 func getProtectedAPITokenOK(t *testing.T) string {
 	r := &goa.RequestData{
-		Request: &http.Request{Host: "demo.api.almighty.io"},
+		Request: &http.Request{Host: "demo.api.openshift.io"},
 	}
 
 	endpoint, err := configuration.GetKeycloakEndpointToken(r)
