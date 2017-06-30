@@ -5,13 +5,13 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/comment"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	gormbench "github.com/almighty/almighty-core/gormtestsupport/benchmark"
-	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/rendering"
-	testsupport "github.com/almighty/almighty-core/test"
+	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/comment"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	gormbench "github.com/fabric8-services/fabric8-wit/gormtestsupport/benchmark"
+	"github.com/fabric8-services/fabric8-wit/migration"
+	"github.com/fabric8-services/fabric8-wit/rendering"
+	testsupport "github.com/fabric8-services/fabric8-wit/test"
 
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
@@ -68,6 +68,7 @@ func (s *BenchCommentRepository) BenchmarkCreateCommentWithMarkup() {
 	comment := newComment("A", "Test A", rendering.SystemMarkupMarkdown)
 	// when
 	s.B().ResetTimer()
+	s.B().ReportAllocs()
 	for n := 0; n < s.B().N; n++ {
 		if err := s.repo.Create(s.ctx, comment, s.testIdentity.ID); err != nil {
 			s.B().Fail()
@@ -81,6 +82,7 @@ func (s *BenchCommentRepository) BenchmarkLoadComment() {
 	s.createComment(comment, s.testIdentity.ID)
 	// when
 	s.B().ResetTimer()
+	s.B().ReportAllocs()
 	for n := 0; n < s.B().N; n++ {
 		if loadedComment, err := s.repo.Load(s.ctx, comment.ID); err != nil || (err == nil && loadedComment == nil) {
 			s.B().Fail()
@@ -97,6 +99,7 @@ func (s *BenchCommentRepository) BenchmarkCountComments() {
 	s.createComments(comments, s.testIdentity.ID)
 	// when
 	s.B().ResetTimer()
+	s.B().ReportAllocs()
 	for n := 0; n < s.B().N; n++ {
 		if count, err := s.repo.Count(s.ctx, parentID); err != nil || (err == nil && count == 0) {
 			s.B().Fail()
@@ -109,6 +112,7 @@ func (s *BenchCommentRepository) BenchmarkCreateDeleteComment() {
 	parentID := "AA"
 	// when
 	s.B().ResetTimer()
+	s.B().ReportAllocs()
 	for n := 0; n < s.B().N; n++ {
 		c := &comment.Comment{
 			ParentID:  parentID,

@@ -5,12 +5,12 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/almighty/almighty-core/codebase"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	gormbench "github.com/almighty/almighty-core/gormtestsupport/benchmark"
-	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/space"
-	testsupport "github.com/almighty/almighty-core/test"
+	"github.com/fabric8-services/fabric8-wit/codebase"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	gormbench "github.com/fabric8-services/fabric8-wit/gormtestsupport/benchmark"
+	"github.com/fabric8-services/fabric8-wit/migration"
+	"github.com/fabric8-services/fabric8-wit/space"
+	testsupport "github.com/fabric8-services/fabric8-wit/test"
 )
 
 type BenchCodebaseRepository struct {
@@ -51,6 +51,7 @@ func (s *BenchCodebaseRepository) createCodebase(c *codebase.Codebase) {
 
 func (s *BenchCodebaseRepository) BenchmarkCreateCodebases() {
 	s.B().ResetTimer()
+	s.B().ReportAllocs()
 	for n := 0; n < s.B().N; n++ {
 		codebase2 := newCodebase(space.SystemSpace, "python-default", "my-used-last-workspace", "git", "git@github.com:aslakknutsen/almighty-core.git")
 		s.createCodebase(codebase2)
@@ -65,6 +66,7 @@ func (s *BenchCodebaseRepository) BenchmarkListCodebases() {
 	offset := 0
 	limit := 1
 	s.B().ResetTimer()
+	s.B().ReportAllocs()
 	for n := 0; n < s.B().N; n++ {
 		if codebases, _, err := s.repo.List(s.ctx, space.SystemSpace, &offset, &limit); err != nil || (err == nil && len(codebases) == 0) {
 			s.B().Fail()
@@ -78,6 +80,7 @@ func (s *BenchCodebaseRepository) BenchmarkLoadCodebase() {
 	s.createCodebase(codebaseTest)
 	// when
 	s.B().ResetTimer()
+	s.B().ReportAllocs()
 	for n := 0; n < s.B().N; n++ {
 		if loadedCodebase, err := s.repo.Load(s.ctx, codebaseTest.ID); err != nil || (err == nil && loadedCodebase == nil) {
 			s.B().Fail()

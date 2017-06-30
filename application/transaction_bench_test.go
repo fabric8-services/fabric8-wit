@@ -7,13 +7,13 @@ import (
 	_ "github.com/lib/pq"
 	"golang.org/x/net/context"
 
-	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	gormbench "github.com/almighty/almighty-core/gormtestsupport/benchmark"
-	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/space"
-	testsupport "github.com/almighty/almighty-core/test"
+	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/gormapplication"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	gormbench "github.com/fabric8-services/fabric8-wit/gormtestsupport/benchmark"
+	"github.com/fabric8-services/fabric8-wit/migration"
+	"github.com/fabric8-services/fabric8-wit/space"
+	testsupport "github.com/fabric8-services/fabric8-wit/test"
 )
 
 type BenchTransactional struct {

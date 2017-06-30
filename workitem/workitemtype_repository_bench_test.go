@@ -5,13 +5,15 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	gormbench "github.com/almighty/almighty-core/gormtestsupport/benchmark"
-	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/path"
-	"github.com/almighty/almighty-core/space"
-	testsupport "github.com/almighty/almighty-core/test"
-	"github.com/almighty/almighty-core/workitem"
+	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/gormapplication"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	gormbench "github.com/fabric8-services/fabric8-wit/gormtestsupport/benchmark"
+	"github.com/fabric8-services/fabric8-wit/migration"
+	"github.com/fabric8-services/fabric8-wit/path"
+	"github.com/fabric8-services/fabric8-wit/space"
+	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 )
 
 type BenchWorkItemTypeRepository struct {
@@ -42,6 +44,7 @@ func (s *BenchWorkItemTypeRepository) TearDownBenchmark() {
 
 func (r *BenchWorkItemTypeRepository) BenchmarkLoad() {
 	r.B().ResetTimer()
+	r.B().ReportAllocs()
 	for n := 0; n < r.B().N; n++ {
 		res := workitem.WorkItemType{}
 		db := r.DB.Model(&res).Where("id=? AND space_id=?", workitem.SystemExperience, space.SystemSpace).First(&res)
@@ -56,6 +59,7 @@ func (r *BenchWorkItemTypeRepository) BenchmarkLoad() {
 
 func (r *BenchWorkItemTypeRepository) BenchmarkLoadTypeFromDB() {
 	r.B().ResetTimer()
+	r.B().ReportAllocs()
 	for n := 0; n < r.B().N; n++ {
 		res := workitem.WorkItemType{}
 		db := r.DB.Model(&res).Where("id=?", workitem.SystemExperience).First(&res)
@@ -68,8 +72,42 @@ func (r *BenchWorkItemTypeRepository) BenchmarkLoadTypeFromDB() {
 	}
 }
 
+func (r *BenchWorkItemTypeRepository) BenchmarkLoadWorkItemType() {
+	r.B().ResetTimer()
+	r.B().ReportAllocs()
+	for n := 0; n < r.B().N; n++ {
+		if s, err := r.repo.Load(context.Background(), space.SystemSpace, workitem.SystemExperience); err != nil || (err == nil && s == nil) {
+			r.B().Fail()
+		}
+	}
+}
+
+func (r *BenchWorkItemTypeRepository) BenchmarkListWorkItemTypes() {
+	r.B().ResetTimer()
+	r.B().ReportAllocs()
+	for n := 0; n < r.B().N; n++ {
+		if s, err := r.repo.List(context.Background(), space.SystemSpace, nil, nil); err != nil || (err == nil && s == nil) {
+			r.B().Fail()
+		}
+	}
+}
+
+func (r *BenchWorkItemTypeRepository) BenchmarkListWorkItemTypesTransaction() {
+	r.B().ResetTimer()
+	r.B().ReportAllocs()
+	for n := 0; n < r.B().N; n++ {
+		if err := application.Transactional(gormapplication.NewGormDB(r.DB), func(app application.Application) error {
+			_, err := r.repo.List(context.Background(), space.SystemSpace, nil, nil)
+			return err
+		}); err != nil {
+			r.B().Fail()
+		}
+	}
+}
+
 func (r *BenchWorkItemTypeRepository) BenchmarkListPlannerItems() {
 	r.B().ResetTimer()
+	r.B().ReportAllocs()
 	for n := 0; n < r.B().N; n++ {
 		var rows []workitem.WorkItemType
 		path := path.Path{}
@@ -83,6 +121,7 @@ func (r *BenchWorkItemTypeRepository) BenchmarkListPlannerItems() {
 
 func (r *BenchWorkItemTypeRepository) BenchmarkListFind() {
 	r.B().ResetTimer()
+	r.B().ReportAllocs()
 	for n := 0; n < r.B().N; n++ {
 		var rows []workitem.WorkItemType
 		db := r.DB.Where("space_id = ?", space.SystemSpace)
@@ -94,6 +133,7 @@ func (r *BenchWorkItemTypeRepository) BenchmarkListFind() {
 
 func (r *BenchWorkItemTypeRepository) BenchmarkListRawScan() {
 	r.B().ResetTimer()
+	r.B().ReportAllocs()
 	for n := 0; n < r.B().N; n++ {
 		var rows []workitem.WorkItemType
 		result, err := r.DB.Raw("select  from work_item_types where space_id = ?", space.SystemSpace).Rows()
@@ -111,6 +151,7 @@ func (r *BenchWorkItemTypeRepository) BenchmarkListRawScan() {
 
 func (r *BenchWorkItemTypeRepository) BenchmarkListRawScanAll() {
 	r.B().ResetTimer()
+	r.B().ReportAllocs()
 	for n := 0; n < r.B().N; n++ {
 		var rows []workitem.WorkItemType
 		result, err := r.DB.Raw("select * from work_item_types where space_id = ?", space.SystemSpace).Rows()
@@ -128,6 +169,7 @@ func (r *BenchWorkItemTypeRepository) BenchmarkListRawScanAll() {
 
 func (r *BenchWorkItemTypeRepository) BenchmarkListRawScanName() {
 	r.B().ResetTimer()
+	r.B().ReportAllocs()
 	for n := 0; n < r.B().N; n++ {
 		var rows []string
 		result, err := r.DB.Raw("select name from work_item_types where space_id = ?", space.SystemSpace).Rows()
@@ -145,6 +187,7 @@ func (r *BenchWorkItemTypeRepository) BenchmarkListRawScanName() {
 
 func (r *BenchWorkItemTypeRepository) BenchmarkListRawScanFields() {
 	r.B().ResetTimer()
+	r.B().ReportAllocs()
 	for n := 0; n < r.B().N; n++ {
 		var rows []workitem.FieldDefinition
 		result, err := r.DB.Raw("select fields from work_item_types where space_id = ?", space.SystemSpace).Rows()

@@ -5,12 +5,12 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/almighty/almighty-core/area"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	gormbench "github.com/almighty/almighty-core/gormtestsupport/benchmark"
-	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/space"
-	"github.com/almighty/almighty-core/test"
+	"github.com/fabric8-services/fabric8-wit/area"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	gormbench "github.com/fabric8-services/fabric8-wit/gormtestsupport/benchmark"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/space"
+	"github.com/fabric8-services/fabric8-wit/test"
 
 	uuid "github.com/satori/go.uuid"
 )
@@ -46,6 +46,7 @@ func (bench *BenchAreaRepository) BenchmarkRootArea() {
 	}
 	// when
 	bench.B().ResetTimer()
+	bench.B().ReportAllocs()
 	for n := 0; n < bench.B().N; n++ {
 		if _, err := bench.repo.Root(context.Background(), space.SystemSpace); err != nil {
 			bench.B().Fail()
@@ -55,6 +56,7 @@ func (bench *BenchAreaRepository) BenchmarkRootArea() {
 
 func (bench *BenchAreaRepository) BenchmarkCreateArea() {
 	bench.B().ResetTimer()
+	bench.B().ReportAllocs()
 	for n := 0; n < bench.B().N; n++ {
 		newSpace := space.Space{
 			Name: "BenchmarkCreateArea " + uuid.NewV4().String(),
@@ -82,6 +84,7 @@ func (bench *BenchAreaRepository) BenchmarkListAreaBySpace() {
 	}
 	// when
 	bench.B().ResetTimer()
+	bench.B().ReportAllocs()
 	for n := 0; n < bench.B().N; n++ {
 		if its, err := bench.repo.List(context.Background(), space.SystemSpace); err != nil || (err == nil && len(its) == 0) {
 			bench.B().Fail()
