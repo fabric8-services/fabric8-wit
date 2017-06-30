@@ -6,6 +6,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/criteria"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	gormbench "github.com/fabric8-services/fabric8-wit/gormtestsupport/benchmark"
@@ -73,7 +74,7 @@ func (r *BenchWorkItemRepository) BenchmarkListWorkItems() {
 	r.B().ResetTimer()
 	r.B().ReportAllocs()
 	for n := 0; n < r.B().N; n++ {
-		if s, _, err := r.repo.List(context.Background(), space.SystemSpace, nil, nil, nil, nil); err != nil || (err == nil && s == nil) {
+		if s, _, err := r.repo.List(context.Background(), space.SystemSpace, criteria.Literal(true), nil, nil, nil); err != nil || (err == nil && s == nil) {
 			r.B().Fail()
 		}
 	}
@@ -84,7 +85,7 @@ func (r *BenchWorkItemRepository) BenchmarkListWorkItemsTransaction() {
 	r.B().ReportAllocs()
 	for n := 0; n < r.B().N; n++ {
 		if err := application.Transactional(gormapplication.NewGormDB(r.DB), func(app application.Application) error {
-			_, _, err := r.repo.List(context.Background(), space.SystemSpace, nil, nil, nil, nil)
+			_, _, err := r.repo.List(context.Background(), space.SystemSpace, criteria.Literal(true), nil, nil, nil)
 			return err
 		}); err != nil {
 			r.B().Fail()

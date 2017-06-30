@@ -46,11 +46,18 @@ func (bench *repoSpaceBench) BenchmarkCreate() {
 }
 
 func (bench *repoSpaceBench) BenchmarkLoadSpaceByName() {
-	name := "system.space"
+	newSpace := space.Space{
+		Name:    test.CreateRandomValidTestName("BenchmarkLoadSpaceByName"),
+		OwnerId: uuid.Nil,
+	}
+	if s, err := bench.repo.Create(context.Background(), &newSpace); err != nil || (err == nil && s == nil) {
+		bench.B().Fail()
+	}
+
 	bench.B().ResetTimer()
 	bench.B().ReportAllocs()
 	for n := 0; n < bench.B().N; n++ {
-		if s, err := bench.repo.LoadByOwnerAndName(context.Background(), &uuid.Nil, &name); err != nil || (err == nil && s == nil) {
+		if s, err := bench.repo.LoadByOwnerAndName(context.Background(), &newSpace.OwnerId, &newSpace.Name); err != nil || (err == nil && s == nil) {
 			bench.B().Fail()
 		}
 	}
