@@ -13,7 +13,6 @@ SOURCES := $(shell find $(SOURCE_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name
 DESIGN_DIR=design
 DESIGNS := $(shell find $(SOURCE_DIR)/$(DESIGN_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name '*.go' -print)
 
-VERSION ?= $(shell cat VERSION)
 
 # Find all required tools:
 GIT_BIN := $(shell command -v $(GIT_BIN_NAME) 2> /dev/null)
@@ -96,15 +95,6 @@ check-go-format: prebuild-check
 	&& exit 1 \
 	|| true
 
-
-
-.PHONY: release
-release: all
-	 mkdir -p release
-	 cp bin/wit release
-	 cp bin/wit-cli release
-	 gh-release checksums sha256
-	 gh-release create fabric8-services/$(PROJECT_NAME) $(VERSION) master v$(VERSION)
 
 .PHONY: analyze-go-code
 ## Run a complete static code analysis using the following tools: golint, gocyclo and go-vet.
