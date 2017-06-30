@@ -94,9 +94,9 @@ GO_TEST_VERBOSITY_FLAG ?= -v
 
 # By default use the "localhost" or specify manually during make invocation:
 #
-# 	ALMIGHTY_POSTGRES_HOST=somehost make test-integration
+# 	F8_POSTGRES_HOST=somehost make test-integration
 #
-ALMIGHTY_POSTGRES_HOST ?= localhost
+F8_POSTGRES_HOST ?= localhost
 
 # Output directory for coverage information
 COV_DIR = $(TMP_PATH)/coverage
@@ -144,7 +144,7 @@ test-unit: prebuild-check clean-coverage-unit $(COV_PATH_UNIT)
 test-unit-no-coverage: prebuild-check $(SOURCES)
 	$(call log-info,"Running test: $@")
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
-	ALMIGHTY_DEVELOPER_MODE_ENABLED=1 ALMIGHTY_RESOURCE_UNIT_TEST=1 go test $(GO_TEST_VERBOSITY_FLAG) $(TEST_PACKAGES)
+	F8_DEVELOPER_MODE_ENABLED=1 F8_RESOURCE_UNIT_TEST=1 go test $(GO_TEST_VERBOSITY_FLAG) $(TEST_PACKAGES)
 
 .PHONY: test-integration
 ## Runs the integration tests and produces coverage files for each package.
@@ -157,7 +157,7 @@ test-integration: prebuild-check clean-coverage-integration migrate-database $(C
 test-integration-no-coverage: prebuild-check migrate-database $(SOURCES)
 	$(call log-info,"Running test: $@")
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
-	ALMIGHTY_DEVELOPER_MODE_ENABLED=1 ALMIGHTY_RESOURCE_DATABASE=1 ALMIGHTY_RESOURCE_UNIT_TEST=0 go test $(GO_TEST_VERBOSITY_FLAG) $(TEST_PACKAGES)
+	F8_DEVELOPER_MODE_ENABLED=1 F8_RESOURCE_DATABASE=1 F8_RESOURCE_UNIT_TEST=0 go test $(GO_TEST_VERBOSITY_FLAG) $(TEST_PACKAGES)
 
 test-integration-benchmark: prebuild-check migrate-database $(SOURCES)
 	$(call log-info,"Running benchmarks: $@")
@@ -173,13 +173,13 @@ test-remote: prebuild-check clean-coverage-remote $(COV_PATH_REMOTE)
 test-remote-no-coverage: prebuild-check $(SOURCES)
 	$(call log-info,"Running test: $@")
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
-	ALMIGHTY_DEVELOPER_MODE_ENABLED=1 ALMIGHTY_RESOURCE_REMOTE=1 ALMIGHTY_RESOURCE_UNIT_TEST=0 go test $(GO_TEST_VERBOSITY_FLAG) $(TEST_PACKAGES)
+	F8_DEVELOPER_MODE_ENABLED=1 F8_RESOURCE_REMOTE=1 F8_RESOURCE_UNIT_TEST=0 go test $(GO_TEST_VERBOSITY_FLAG) $(TEST_PACKAGES)
 
 .PHONY: test-migration
 ## Runs the migration tests and should be executed before running the integration tests
 ## in order to have a clean database
 test-migration: prebuild-check
-	ALMIGHTY_RESOURCE_DATABASE=1 go test $(GO_TEST_VERBOSITY_FLAG) github.com/fabric8-services/fabric8-wit/migration
+	F8_RESOURCE_DATABASE=1 go test $(GO_TEST_VERBOSITY_FLAG) github.com/fabric8-services/fabric8-wit/migration
 
 # Downloads docker-compose to tmp/docker-compose if it does not already exist.
 define download-docker-compose
@@ -416,7 +416,7 @@ $(eval ENV_VAR := $(5))
 $(eval ALL_PKGS_COMMA_SEPARATED := $(6))
 @mkdir -p $(COV_DIR)/$(PACKAGE_NAME);
 $(eval COV_OUT_FILE := $(COV_DIR)/$(PACKAGE_NAME)/coverage.$(TEST_NAME).mode-$(COVERAGE_MODE))
-@$(ENV_VAR) ALMIGHTY_DEVELOPER_MODE_ENABLED=1 ALMIGHTY_POSTGRES_HOST=$(ALMIGHTY_POSTGRES_HOST) \
+@$(ENV_VAR) F8_DEVELOPER_MODE_ENABLED=1 F8_POSTGRES_HOST=$(F8_POSTGRES_HOST) \
 	go test $(PACKAGE_NAME) \
 		$(GO_TEST_VERBOSITY_FLAG) \
 		-coverprofile $(COV_OUT_FILE) \
@@ -476,7 +476,7 @@ $(COV_PATH_INTEGRATION): $(SOURCES) $(GOCOVMERGE_BIN)
 	@-rm -f $(ERRORS_FILE)
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
 	$(eval ALL_PKGS_COMMA_SEPARATED:=$(shell echo $(TEST_PACKAGES)  | tr ' ' ,))
-	$(foreach package, $(TEST_PACKAGES), $(call test-package,$(TEST_NAME),$(package),$(COV_PATH_INTEGRATION),$(ERRORS_FILE),ALMIGHTY_RESOURCE_DATABASE=1 ALMIGHTY_RESOURCE_UNIT_TEST=0,$(ALL_PKGS_COMMA_SEPARATED)))
+	$(foreach package, $(TEST_PACKAGES), $(call test-package,$(TEST_NAME),$(package),$(COV_PATH_INTEGRATION),$(ERRORS_FILE),F8_RESOURCE_DATABASE=1 F8_RESOURCE_UNIT_TEST=0,$(ALL_PKGS_COMMA_SEPARATED)))
 	$(call check-test-results,$(ERRORS_FILE))
 
 # NOTE: We don't have prebuild-check as a dependency here because it would cause

@@ -61,10 +61,10 @@ func TestGitHubIssueMapping(t *testing.T) {
 	var gitData = []remoteData{
 		// JSON data file of Github issue with assignee to test that the data is getting correctly Mapped through the Map function
 		// Github Issue API URL for the respective JSON data file to update the cache
-		{"github_issue_with_assignee.json", true, "http://api.github.com/repos/almighty-test/almighty-test-unit/issues/2"},
+		{"github_issue_with_assignee.json", true, "http://api.github.com/repos/fabric8-wit-test/fabric8-wit-test-unit/issues/2"},
 		// JSON data file of Github issue with assignee and label
 		// Issue API URL for the respective JSON file to update the cache
-		{"github_issue_with_assignee_labels.json", true, "https://api.github.com/repos/almighty-unit-test/almighty-test/issues/1"},
+		{"github_issue_with_assignee_labels.json", true, "https://api.github.com/repos/fabric8-wit-unit-test/fabric8-wit-test/issues/1"},
 	}
 	// when/then
 	for _, j := range gitData {
@@ -122,12 +122,12 @@ func TestFlattenGithubResponseMap(t *testing.T) {
 		// JSON data file of Github issue with assignee to test that the data
 		// is getting correctly Mapped through the Map function
 		// Github Issue API URL for the respective JSON data file to update the cache
-		{"github_issue_with_assignee.json", true, "http://api.github.com/repos/almighty-test/almighty-test-unit/issues/2"},
+		{"github_issue_with_assignee.json", true, "http://api.github.com/repos/fabric8-wit-test/fabric8-wit-test-unit/issues/2"},
 		// Github issue with assignee and label
-		{"github_issue_with_assignee_labels.json", true, "https://api.github.com/repos/almighty-unit-test/almighty-test/issues/1"},
+		{"github_issue_with_assignee_labels.json", true, "https://api.github.com/repos/fabric8-wit-unit-test/fabric8-wit-test/issues/1"},
 		// The Github issue URL doesn't exist. So, the mapping will not happen
 		// The map created from the Flatten will be empty
-		{"github_issue_invalid.json", false, "https://api.github.com/repos/almighty-unit-test/almighty-test/issues/255"},
+		{"github_issue_invalid.json", false, "https://api.github.com/repos/fabric8-wit-unit-test/fabric8-wit-test/issues/255"},
 	}
 
 	for _, data := range gitData {
@@ -157,10 +157,10 @@ func TestFlattenGithubResponseMapWithoutAssignee(t *testing.T) {
 	var gitData = []remoteData{
 		// Github data with labels and without assignee
 		// assignees field is skipped if that is an empty array
-		{"github_issue_with_labels.json", true, "https://api.github.com/repos/almighty-test/almighty-test-unit/issues/3"},
+		{"github_issue_with_labels.json", true, "https://api.github.com/repos/fabric8-wit-test/fabric8-wit-test-unit/issues/3"},
 		// The Github issue URL doesn't exist. So, the mapping will not happen
 		// The map created from the Flatten will be empty
-		{"github_issue_invalid.json", false, "https://api.github.com/repos/almighty-unit-test/almighty-test/issues/255"},
+		{"github_issue_invalid.json", false, "https://api.github.com/repos/fabric8-wit-unit-test/fabric8-wit-test/issues/255"},
 	}
 	// when/then
 	for _, data := range gitData {
