@@ -84,7 +84,10 @@ func (rest *BenchPlannerBacklogREST) setupPlannerBacklogWorkItems() (testSpace *
 			SpaceID: testSpace.ID,
 			State:   iteration.IterationStateNew,
 		}
-		iterationsRepo.Create(rest.ctx, parentIteration)
+		err = iterationsRepo.Create(rest.ctx, parentIteration)
+		if err != nil {
+			rest.B().Fail()
+		}
 		log.Info(nil, map[string]interface{}{"parent_iteration_id": parentIteration.ID}, "created parent iteration")
 
 		childIteration := &iteration.Iteration{
@@ -93,7 +96,10 @@ func (rest *BenchPlannerBacklogREST) setupPlannerBacklogWorkItems() (testSpace *
 			Path:    append(parentIteration.Path, parentIteration.ID),
 			State:   iteration.IterationStateStart,
 		}
-		iterationsRepo.Create(rest.ctx, childIteration)
+		err = iterationsRepo.Create(rest.ctx, childIteration)
+		if err != nil {
+			rest.B().Fail()
+		}
 		log.Info(nil, map[string]interface{}{"child_iteration_id": childIteration.ID}, "created child iteration")
 
 		fields := map[string]interface{}{
@@ -101,7 +107,10 @@ func (rest *BenchPlannerBacklogREST) setupPlannerBacklogWorkItems() (testSpace *
 			workitem.SystemState:     "new",
 			workitem.SystemIteration: parentIteration.ID.String(),
 		}
-		app.WorkItems().Create(rest.ctx, testSpace.ID, workitemType.ID, fields, rest.testIdentity.ID)
+		w, err := app.WorkItems().Create(rest.ctx, testSpace.ID, workitemType.ID, fields, rest.testIdentity.ID)
+		if w == nil || err != nil {
+			rest.B().Fail()
+		}
 
 		fields2 := map[string]interface{}{
 			workitem.SystemTitle:     "childIteration Test",
