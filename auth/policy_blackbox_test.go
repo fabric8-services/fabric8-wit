@@ -13,6 +13,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
+	"fmt"
+
 	_ "github.com/lib/pq"
 )
 
@@ -104,7 +106,8 @@ func createPermissionWithPolicy(s *TestPolicySuite) (*auth.KeycloakPolicy, strin
 func (s *TestPolicySuite) policiesEqual(expectedUserIDs string, actaulUserIDs string) {
 	actualUsers := strings.Split(actaulUserIDs, ",")
 	expectedUsers := strings.Split(expectedUserIDs, ",")
-	require.Equal(s.T(), len(expectedUsers), len(actualUsers), "")
+	errMessage := fmt.Sprintf("user IDs don't match. Expected: %s Actual: %s", expectedUserIDs, actaulUserIDs)
+	require.Equal(s.T(), len(expectedUsers), len(actualUsers), errMessage)
 	for _, actualID := range actualUsers {
 		actualUser := strings.Trim(actualID, "[]")
 		found := false
@@ -115,7 +118,7 @@ func (s *TestPolicySuite) policiesEqual(expectedUserIDs string, actaulUserIDs st
 			}
 		}
 		if !found {
-			require.Fail(s.T(), "")
+			require.Fail(s.T(), errMessage)
 		}
 	}
 }
