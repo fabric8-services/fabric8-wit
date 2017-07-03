@@ -37,3 +37,10 @@ func Exists(ctx context.Context, db *gorm.DB, tableName string, id string) (bool
 	}
 	return exists, nil
 }
+
+// CheckExists does the same as Exists but only returns the error value; thereby
+// being a handy convenience function.
+func CheckExists(ctx context.Context, db *gorm.DB, tableName string, id string) error {
+	_, err := Exists(ctx, db, tableName, id)
+	return err
+}
