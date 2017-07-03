@@ -128,7 +128,7 @@ func TestGetLogLevelOK(t *testing.T) {
 func TestGetTransactionTimeoutOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
-	key := "ALMIGHTY_POSTGRES_TRANSACTION_TIMEOUT"
+	key := "F8_POSTGRES_TRANSACTION_TIMEOUT"
 	realEnvValue := os.Getenv(key)
 
 	os.Unsetenv(key)
