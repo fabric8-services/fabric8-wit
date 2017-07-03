@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/almighty/almighty-core/client"
-	"github.com/almighty/almighty-core/tool/cli"
+	"github.com/fabric8-services/fabric8-wit/client"
+	"github.com/fabric8-services/fabric8-wit/tool/cli"
 	goaclient "github.com/goadesign/goa/client"
 	"github.com/spf13/cobra"
 )
@@ -15,8 +15,8 @@ import (
 func main() {
 	// Create command line parser
 	app := &cobra.Command{
-		Use:   "alm-cli",
-		Short: `CLI client for the alm service`,
+		Use:   "wit-cli",
+		Short: `CLI client for the wit service`,
 	}
 
 	// Create client struct
@@ -25,7 +25,7 @@ func main() {
 
 	// Register global flags
 	app.PersistentFlags().StringVarP(&c.Scheme, "scheme", "s", "", "Set the requests scheme")
-	app.PersistentFlags().StringVarP(&c.Host, "host", "H", "almighty.io", "API hostname")
+	app.PersistentFlags().StringVarP(&c.Host, "host", "H", "openshift.io", "API hostname")
 	app.PersistentFlags().DurationVarP(&httpClient.Timeout, "timeout", "t", time.Duration(20)*time.Second, "Set the request timeout")
 	app.PersistentFlags().BoolVar(&c.Dump, "dump", false, "Dump HTTP request and response.")
 
@@ -40,7 +40,7 @@ func main() {
 
 	// Initialize API client
 	c.SetJWTSigner(jwtSigner)
-	c.UserAgent = "alm-cli/1.0"
+	c.UserAgent = "wit-cli/1.0"
 
 	// Register API commands
 	cli.RegisterCommands(app, c)

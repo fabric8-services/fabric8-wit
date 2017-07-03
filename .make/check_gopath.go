@@ -13,7 +13,7 @@ import (
 // under GOPATH[i]/src/packageName.
 func main() {
 	var packageName string
-	flag.StringVar(&packageName, "packageName", "github.com/almighty/almighty-core", "Package Name (e.g.)")
+	flag.StringVar(&packageName, "packageName", "github.com/fabric8-services/fabric8-wit", "Package Name (e.g.)")
 	flag.Parse()
 
 	wd, err := os.Getwd()

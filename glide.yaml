@@ -1,5 +1,5 @@
-package: github.com/almighty/almighty-core
-homepage: https://github.com/almighty/almighty-core
+package: github.com/fabric8-services/fabric8-wit
+homepage: https://github.com/fabric8-services/fabric8-wit
 license: Apache-2.0
 import:
 - package: github.com/fabric8io/fabric8-init-tenant
@@ -59,7 +59,7 @@ import:
 - package: gopkg.in/asaskevich/govalidator.v4
 - package: github.com/lib/pq
 - package: github.com/stretchr/testify
-  version: ^1.1.3
+  version: ^1.1.4
   subpackages:
   - assert
   - suite

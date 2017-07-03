@@ -66,7 +66,7 @@ var UpdateTrackerAlternatePayload = a.Type("UpdateTrackerAlternatePayload", func
 // CreateTrackerQueryAlternatePayload defines the structure of tracker query payload for create
 var CreateTrackerQueryAlternatePayload = a.Type("CreateTrackerQueryAlternatePayload", func() {
 	a.Attribute("query", d.String, "Search query", func() {
-		a.Example("is:open is:issue user:almighty")
+		a.Example("is:open is:issue user:wit")
 		a.MinLength(1)
 	})
 	a.Attribute("schedule", d.String, "Schedule for fetch and import", func() {
@@ -87,7 +87,7 @@ var CreateTrackerQueryAlternatePayload = a.Type("CreateTrackerQueryAlternatePayl
 // UpdateTrackerQueryAlternatePayload defines the structure of tracker query payload for update
 var UpdateTrackerQueryAlternatePayload = a.Type("UpdateTrackerQueryAlternatePayload", func() {
 	a.Attribute("query", d.String, "Search query", func() {
-		a.Example("is:open is:issue user:almighty")
+		a.Example("is:open is:issue user:wit")
 		a.MinLength(1)
 	})
 	a.Attribute("schedule", d.String, "Schedule for fetch and import", func() {

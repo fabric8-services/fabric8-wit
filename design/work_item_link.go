@@ -8,7 +8,7 @@ import (
 // workItemLinkLinks has `self` as of now according to http://jsonapi.org/format/#fetching-resources
 var workItemLinkLinks = a.Type("WorkItemLinkLinks", func() {
 	a.Attribute("self", d.String, func() {
-		a.Example("http://api.almighty.io/api/workitemlinks/2d98c73d-6969-4ea6-958a-812c832b6c18")
+		a.Example("http://api.openshift.io/api/workitemlinks/2d98c73d-6969-4ea6-958a-812c832b6c18")
 	})
 	a.Required("self")
 })
@@ -87,8 +87,8 @@ var relationWorkItemData = a.Type("RelationWorkItemData", func() {
 	a.Attribute("type", d.String, "The type of the related resource", func() {
 		a.Enum("workitems")
 	})
-	a.Attribute("id", d.String, "ID of the work item", func() {
-		a.Example("1234")
+	a.Attribute("id", d.UUID, "ID (UUID) of the work item", func() {
+		a.Example("6c5610be-30b2-4880-9fec-81e4f8e4fd76")
 	})
 	a.Required("type", "id")
 })

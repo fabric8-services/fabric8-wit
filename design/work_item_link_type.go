@@ -111,7 +111,7 @@ var relationWorkItemLinkTypeData = a.Type("RelationWorkItemLinkTypeData", func()
 // workItemLinkTypeLinks has `self` as of now according to http://jsonapi.org/format/#fetching-resources
 var workItemLinkTypeLinks = a.Type("WorkItemLinkTypeLinks", func() {
 	a.Attribute("self", d.String, func() {
-		a.Example("http://api.almighty.io/api/workitemlinktypes/2d98c73d-6969-4ea6-958a-812c832b6c18")
+		a.Example("http://api.openshift.io/api/workitemlinktypes/2d98c73d-6969-4ea6-958a-812c832b6c18")
 	})
 	a.Required("self")
 })

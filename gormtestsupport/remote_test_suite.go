@@ -1,9 +1,9 @@
 package gormtestsupport
 
 import (
-	config "github.com/almighty/almighty-core/configuration"
-	"github.com/almighty/almighty-core/log"
-	"github.com/almighty/almighty-core/resource"
+	config "github.com/fabric8-services/fabric8-wit/configuration"
+	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/resource"
 
 	"github.com/stretchr/testify/suite"
 )
