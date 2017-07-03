@@ -411,6 +411,25 @@ func testMigration65(t *testing.T) {
 		assert.Equal(t, expectedCurrentVal, currentVal)
 	}
 }
+func testMigration66(t *testing.T) {
+	// migrate to previous version
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+20)], (initialMigratedVersion + 21))
+	// fill DB with data (ie, work items, links, comments, etc on different spaces)
+	assert.Nil(t, runSQLscript(sqlDB, "066-work_item_links_data_integrity.sql"))
+	// then apply the change
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+22)], (initialMigratedVersion + 22))
+	// verify that some records where removed
+	row := sqlDB.QueryRow("select id from work_item_links where id = '00000066-0000-0000-0000-000000000001'")
+	require.NotNil(t, row)
+	// 3 other rows where deleted
+	for id := range []string{"00000066-0000-0000-0000-000000000002", "00000066-0000-0000-0000-000000000003", "00000066-0000-0000-0000-000000000004"} {
+		stmt, err := sqlDB.Prepare("select id from work_item_links where id = $1")
+		require.Nil(t, err)
+		row = stmt.QueryRow(id)
+		require.Nil(t, row)
+	}
+
+}
 
 // runSQLscript loads the given filename from the packaged SQL test files and
 // executes it on the given database. Golang text/template module is used
