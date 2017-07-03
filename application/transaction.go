@@ -1,6 +1,7 @@
 package application
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/log"
@@ -33,7 +34,7 @@ func Transactional(db DB, todo func(f Application) error) error {
 		go func(tx Transaction) {
 			defer func() {
 				if err := recover(); err != nil {
-					errorChan <- err
+					errorChan <- errors.New(fmt.Sprintf("Unknown error: %v", err))
 				}
 			}()
 			errorChan <- todo(tx)
