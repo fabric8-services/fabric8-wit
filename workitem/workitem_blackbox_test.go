@@ -4,11 +4,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/almighty/almighty-core/convert"
-	"github.com/almighty/almighty-core/gormsupport"
-	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/space"
-	"github.com/almighty/almighty-core/workitem"
+	"github.com/fabric8-services/fabric8-wit/convert"
+	"github.com/fabric8-services/fabric8-wit/gormsupport"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/space"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -19,7 +19,8 @@ func TestWorkItem_Equal(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
 	a := workitem.WorkItemStorage{
-		ID:      0,
+		ID:      uuid.NewV4(),
+		Number:  1,
 		Type:    uuid.NewV4(),
 		Version: 0,
 		Fields: workitem.Fields{
@@ -54,21 +55,26 @@ func TestWorkItem_Equal(t *testing.T) {
 
 	// Test ID difference
 	g := a
-	g.ID = 1
+	g.ID = uuid.NewV4()
+	assert.False(t, a.Equal(g))
+
+	// Test Number difference
+	h := a
+	h.Number = 42
 	assert.False(t, a.Equal(g))
 
 	// Test fields difference
-	h := a
-	h.Fields = workitem.Fields{}
-	assert.False(t, a.Equal(h))
-
-	// Test Space
 	i := a
-	i.SpaceID = uuid.NewV4()
+	i.Fields = workitem.Fields{}
 	assert.False(t, a.Equal(i))
 
-	j := workitem.WorkItemStorage{
-		ID:      0,
+	// Test Space
+	j := a
+	j.SpaceID = uuid.NewV4()
+	assert.False(t, a.Equal(j))
+
+	k := workitem.WorkItemStorage{
+		ID:      a.ID,
 		Type:    a.Type,
 		Version: 0,
 		Fields: workitem.Fields{
@@ -76,6 +82,6 @@ func TestWorkItem_Equal(t *testing.T) {
 		},
 		SpaceID: space.SystemSpace,
 	}
-	assert.True(t, a.Equal(j))
-	assert.True(t, j.Equal(a))
+	assert.True(t, a.Equal(k))
+	assert.True(t, k.Equal(a))
 }

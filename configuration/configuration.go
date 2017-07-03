@@ -11,7 +11,7 @@ import (
 	"github.com/pkg/errors"
 	yaml "gopkg.in/yaml.v2"
 
-	"github.com/almighty/almighty-core/rest"
+	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/goadesign/goa"
 	"github.com/spf13/viper"
 )
@@ -102,7 +102,7 @@ func NewConfigurationData(configFilePath string) (*ConfigurationData, error) {
 	c := ConfigurationData{
 		v: viper.New(),
 	}
-	c.v.SetEnvPrefix("ALMIGHTY")
+	c.v.SetEnvPrefix("F8")
 	c.v.AutomaticEnv()
 	c.v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	c.v.SetTypeByDefaultValue(true)
@@ -121,7 +121,7 @@ func NewConfigurationData(configFilePath string) (*ConfigurationData, error) {
 
 func getConfigFilePath() string {
 	// This was either passed as a env var Or, set inside main.go from --config
-	envConfigPath, ok := os.LookupEnv("ALMIGHTY_CONFIG_FILE_PATH")
+	envConfigPath, ok := os.LookupEnv("F8_CONFIG_FILE_PATH")
 	if !ok {
 		return ""
 	}
@@ -202,7 +202,7 @@ func (c *ConfigurationData) setConfigDefaults() {
 	c.v.SetDefault(varCacheControlUser, "private,max-age=2")
 
 	// Features
-	c.v.SetDefault(varFeatureWorkitemRemote, false)
+	c.v.SetDefault(varFeatureWorkitemRemote, true)
 
 	c.v.SetDefault(varKeycloakTesUser2Name, defaultKeycloakTesUser2Name)
 	c.v.SetDefault(varKeycloakTesUser2Secret, defaultKeycloakTesUser2Secret)
@@ -625,7 +625,7 @@ func (c *ConfigurationData) IsLogJSON() bool {
 }
 
 // GetValidRedirectURLs returns the RegEx of valid redirect URLs for auth requests
-// If the ALMIGHTY_REDIRECT_VALID env var is not set then in Dev Mode all redirects allowed - *
+// If the F8_REDIRECT_VALID env var is not set then in Dev Mode all redirects allowed - *
 // In prod mode the default regex will be returned
 func (c *ConfigurationData) GetValidRedirectURLs(req *goa.RequestData) (string, error) {
 	if c.v.IsSet(varValidRedirectURLs) {
@@ -727,7 +727,7 @@ vwIDAQAB
 	defaultCheStarterURL            = "che-server"
 
 	// DefaultValidRedirectURLs is a regex to be used to whitelist redirect URL for auth
-	// If the ALMIGHTY_REDIRECT_VALID env var is not set then in Dev Mode all redirects allowed - *
+	// If the F8_REDIRECT_VALID env var is not set then in Dev Mode all redirects allowed - *
 	// In prod mode the following regex will be used by default:
 	DefaultValidRedirectURLs = "^(https|http)://([^/]+[.])?(?i:openshift[.]io)(/.*)?$" // *.openshift.io/*
 	devModeValidRedirectURLs = ".*"

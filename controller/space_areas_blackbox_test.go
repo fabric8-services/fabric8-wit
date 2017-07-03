@@ -6,18 +6,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/app/test"
-	"github.com/almighty/almighty-core/area"
-	. "github.com/almighty/almighty-core/controller"
-	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/resource"
+	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/app/test"
+	"github.com/fabric8-services/fabric8-wit/area"
+	. "github.com/fabric8-services/fabric8-wit/controller"
+	"github.com/fabric8-services/fabric8-wit/gormapplication"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/resource"
 
-	testsupport "github.com/almighty/almighty-core/test"
-	almtoken "github.com/almighty/almighty-core/token"
+	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	almtoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -95,7 +95,7 @@ func (rest *TestSpaceAreaREST) setupAreas() (area.Area, []uuid.UUID, []area.Area
 	createdAreaUuids = append(createdAreaUuids, parentArea.ID)
 	parentID := parentArea.ID
 	name := "TestListAreas  A"
-	ci := getCreateChildAreaPayload(&name)
+	ci := newCreateChildAreaPayload(&name)
 	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerId)
 	require.Nil(rest.T(), err)
 	svc, ctrl := rest.SecuredAreasControllerWithIdentity(owner)
@@ -107,7 +107,7 @@ func (rest *TestSpaceAreaREST) setupAreas() (area.Area, []uuid.UUID, []area.Area
 
 	// Create a child of the child created above.
 	name = "TestListAreas B"
-	ci = getCreateChildAreaPayload(&name)
+	ci = newCreateChildAreaPayload(&name)
 	newParentID := *created.Data.Relationships.Parent.Data.ID
 	_, created = test.CreateChildAreaCreated(rest.T(), svc.Context, svc, ctrl, newParentID, ci)
 	assert.Equal(rest.T(), *ci.Data.Attributes.Name, *created.Data.Attributes.Name)
@@ -173,7 +173,7 @@ func (rest *TestSpaceAreaREST) TestListAreasNotModifiedUsingIfNoneMatchHeader() 
 	// given
 	parentArea, _, createdAreas := rest.setupAreas()
 	// when
-	ifNoneMatch := app.GenerateEntitiesTag([]app.ConditionalResponseEntity{
+	ifNoneMatch := app.GenerateEntitiesTag([]app.ConditionalRequestEntity{
 		createdAreas[0],
 		createdAreas[1],
 		createdAreas[2],

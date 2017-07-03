@@ -87,7 +87,7 @@ var workItemTypeData = a.Type("WorkItemTypeData", func() {
 // workItemTypeLinks has `self` as of now according to http://jsonapi.org/format/#fetching-resources
 var workItemTypeLinks = a.Type("WorkItemTypeLinks", func() {
 	a.Attribute("self", d.String, func() {
-		a.Example("http://api.almighty.io/api/workitemtypes/bug")
+		a.Example("http://api.openshift.io/api/workitemtypes/bug")
 	})
 	a.Required("self")
 })
@@ -156,81 +156,5 @@ var _ = a.Resource("workitemtype", func() {
 		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
-	})
-
-	a.Action("list-source-link-types", func() {
-		a.Routing(
-			a.GET("/:witID/source-link-types"),
-		)
-		a.Params(func() {
-			a.Param("witID", d.UUID, "ID of the work item type")
-		})
-		a.Description(`Retrieve work item link types where the given work item type can be used in the source of the link.`)
-		a.UseTrait("conditional")
-		a.Response(d.OK, workItemLinkTypeList)
-		a.Response(d.NotModified)
-		a.Response(d.NotFound, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-	})
-
-	a.Action("list-target-link-types", func() {
-		a.Routing(
-			a.GET("/:witID/target-link-types"),
-		)
-		a.Params(func() {
-			a.Param("witID", d.UUID, "ID of work item type")
-		})
-		a.Description(`Retrieve work item link types where the given work item type can be used in the target of the link.`)
-		a.UseTrait("conditional")
-		a.Response(d.OK, workItemLinkTypeList)
-		a.Response(d.NotModified)
-		a.Response(d.NotFound, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-	})
-})
-
-var _ = a.Resource("redirect_workitemtype", func() {
-	a.BasePath("/workitemtypes")
-	a.Action("show", func() {
-		a.Routing(
-			a.GET("/:witId"),
-		)
-		a.Params(func() {
-			a.Param("witId", d.UUID, "ID of the work item type")
-		})
-		a.Response(d.MovedPermanently)
-	})
-	a.Action("create", func() {
-		a.Routing(
-			a.POST(""),
-		)
-		a.Response(d.MovedPermanently)
-	})
-	a.Action("list", func() {
-		a.Routing(
-			a.GET(""),
-		)
-		a.Params(func() {
-			a.Param("page", d.String, "Paging in the format <start>,<limit>")
-			// TODO: Support same params as in work item list-action?
-		})
-		a.Response(d.MovedPermanently)
-	})
-
-	a.Action("list-source-link-types", func() {
-		a.Routing(
-			a.GET("/:witId/source-link-types"),
-		)
-		a.Params(func() {
-			a.Param("witId", d.UUID, "ID of the work item type")
-		})
-		a.Response(d.MovedPermanently)
-	})
-
-	a.Action("list-target-link-types", func() {
-		a.Routing(
-			a.GET("/:witId/target-link-types"),
-		)
-		a.Response(d.MovedPermanently)
 	})
 })

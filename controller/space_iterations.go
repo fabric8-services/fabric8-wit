@@ -1,15 +1,15 @@
 package controller
 
 import (
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/iteration"
-	"github.com/almighty/almighty-core/jsonapi"
-	"github.com/almighty/almighty-core/log"
-	"github.com/almighty/almighty-core/login"
-	"github.com/almighty/almighty-core/rest"
-	"github.com/almighty/almighty-core/workitem"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/iteration"
+	"github.com/fabric8-services/fabric8-wit/jsonapi"
+	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/login"
+	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 	uuid "github.com/satori/go.uuid"
 
 	"github.com/goadesign/goa"

@@ -7,21 +7,21 @@ import (
 
 	"context"
 
-	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/app/test"
-	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/auth"
-	. "github.com/almighty/almighty-core/controller"
-	"github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/space/authz"
-	testsupport "github.com/almighty/almighty-core/test"
-	almtoken "github.com/almighty/almighty-core/token"
 	token "github.com/dgrijalva/jwt-go"
+	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/app/test"
+	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/auth"
+	. "github.com/fabric8-services/fabric8-wit/controller"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/gormapplication"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/space/authz"
+	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	almtoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/satori/go.uuid"
@@ -255,7 +255,7 @@ func (rest *TestCollaboratorsREST) TestListCollaboratorsNotModifiedUsingIfNoneMa
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
 	rest.policy.AddUserToPolicy(rest.testIdentity2.ID.String())
 	// when
-	ifNoneMatch := app.GenerateEntitiesTag([]app.ConditionalResponseEntity{
+	ifNoneMatch := app.GenerateEntitiesTag([]app.ConditionalRequestEntity{
 		rest.testIdentity1.User,
 		rest.testIdentity2.User,
 	})

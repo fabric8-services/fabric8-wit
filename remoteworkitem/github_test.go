@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/almighty/almighty-core/resource"
 	"github.com/dnaeon/go-vcr/recorder"
+	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/google/go-github/github"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -82,9 +82,9 @@ func TestGithubFetchWithRecording(t *testing.T) {
 	fetch := g.fetch(&f)
 	// then
 	i := <-fetch
-	assert.Contains(t, string(i.Content), `"html_url":"https://github.com/almighty-test/almighty-test-unit/issues/2"`)
+	assert.Contains(t, string(i.Content), `"html_url":"https://github.com/fabric8-wit-test/fabric8-wit-test-unit/issues/2"`)
 	assert.Contains(t, string(i.Content), `"body":"desc\n"`)
 	i2 := <-fetch
-	assert.Contains(t, string(i2.Content), `"html_url":"https://github.com/almighty-test/almighty-test-unit/issues/1"`)
+	assert.Contains(t, string(i2.Content), `"html_url":"https://github.com/fabric8-wit-test/fabric8-wit-test-unit/issues/1"`)
 	assert.Contains(t, string(i2.Content), `"body":"sample desc\n"`)
 }

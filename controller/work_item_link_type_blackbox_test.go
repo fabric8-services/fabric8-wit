@@ -8,18 +8,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/app/test"
-	. "github.com/almighty/almighty-core/controller"
-	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/jsonapi"
-	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/space"
-	testsupport "github.com/almighty/almighty-core/test"
-	almtoken "github.com/almighty/almighty-core/token"
-	"github.com/almighty/almighty-core/workitem/link"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/app/test"
+	. "github.com/fabric8-services/fabric8-wit/controller"
+	"github.com/fabric8-services/fabric8-wit/gormapplication"
+	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/jsonapi"
+	"github.com/fabric8-services/fabric8-wit/migration"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/space"
+	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	almtoken "github.com/fabric8-services/fabric8-wit/token"
+	"github.com/fabric8-services/fabric8-wit/workitem/link"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
@@ -139,17 +139,17 @@ func (s *workItemLinkTypeSuite) createDemoLinkType(name string) *app.CreateWorkI
 	s.spaceID = space.Data.ID
 
 	//	 2. Create at least one work item type
-	workItemTypePayload := CreateWorkItemType(uuid.NewV4(), *space.Data.ID)
+	workItemTypePayload := newCreateWorkItemTypePayload(uuid.NewV4(), *space.Data.ID)
 	_, workItemType := test.CreateWorkitemtypeCreated(s.T(), s.svc.Context, s.svc, s.typeCtrl, *s.spaceID, &workItemTypePayload)
 	require.NotNil(s.T(), workItemType)
 
 	//   3. Create a work item link category
-	createLinkCategoryPayload := CreateWorkItemLinkCategory(s.categoryName)
+	createLinkCategoryPayload := newCreateWorkItemLinkCategoryPayload(s.categoryName)
 	_, workItemLinkCategory := test.CreateWorkItemLinkCategoryCreated(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, createLinkCategoryPayload)
 	require.NotNil(s.T(), workItemLinkCategory)
 
 	// 4. Create work item link type payload
-	createLinkTypePayload := CreateWorkItemLinkType(name, *workItemType.Data.ID, *workItemType.Data.ID, *workItemLinkCategory.Data.ID, *space.Data.ID)
+	createLinkTypePayload := newCreateWorkItemLinkTypePayload(name, *workItemLinkCategory.Data.ID, *space.Data.ID)
 	return createLinkTypePayload
 }
 
@@ -384,11 +384,11 @@ func (s *workItemLinkTypeSuite) createWorkItemLinkTypes() (*app.WorkItemTypeSing
 	_, bugBlockerType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *bugBlockerPayload.Data.Relationships.Space.Data.ID, bugBlockerPayload)
 	require.NotNil(s.T(), bugBlockerType)
 
-	workItemTypePayload := CreateWorkItemType(uuid.NewV4(), *s.spaceID)
+	workItemTypePayload := newCreateWorkItemTypePayload(uuid.NewV4(), *s.spaceID)
 	_, workItemType := test.CreateWorkitemtypeCreated(s.T(), s.svc.Context, s.svc, s.typeCtrl, *bugBlockerPayload.Data.Relationships.Space.Data.ID, &workItemTypePayload)
 	require.NotNil(s.T(), workItemType)
 
-	relatedPayload := CreateWorkItemLinkType(s.linkName, *workItemType.Data.ID, *workItemType.Data.ID, bugBlockerType.Data.Relationships.LinkCategory.Data.ID, *bugBlockerType.Data.Relationships.Space.Data.ID)
+	relatedPayload := newCreateWorkItemLinkTypePayload(s.linkName, bugBlockerType.Data.Relationships.LinkCategory.Data.ID, *bugBlockerType.Data.Relationships.Space.Data.ID)
 	_, relatedType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *relatedPayload.Data.Relationships.Space.Data.ID, relatedPayload)
 	require.NotNil(s.T(), relatedType)
 	return workItemType, relatedType
@@ -472,7 +472,7 @@ func (s *workItemLinkTypeSuite) TestListWorkItemLinkTypeNotModifiedUsingIfNoneMa
 	_, createdWorkItemLinkType := s.createWorkItemLinkTypes()
 	_, existingLinkTypes := test.ListWorkItemLinkTypeOK(s.T(), nil, nil, s.linkTypeCtrl, *createdWorkItemLinkType.Data.Relationships.Space.Data.ID, nil, nil)
 	// when fetching all work item link type in a give space
-	createdWorkItemLinkTypeModels := make([]app.ConditionalResponseEntity, len(existingLinkTypes.Data))
+	createdWorkItemLinkTypeModels := make([]app.ConditionalRequestEntity, len(existingLinkTypes.Data))
 	for i, linkTypeData := range existingLinkTypes.Data {
 		createdWorkItemLinkTypeModel, err := ConvertWorkItemLinkTypeToModel(
 			app.WorkItemLinkTypeSingle{

@@ -4,17 +4,17 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/area"
-	"github.com/almighty/almighty-core/auth"
-	"github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/iteration"
-	"github.com/almighty/almighty-core/jsonapi"
-	"github.com/almighty/almighty-core/log"
-	"github.com/almighty/almighty-core/login"
-	"github.com/almighty/almighty-core/rest"
-	"github.com/almighty/almighty-core/space"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/area"
+	"github.com/fabric8-services/fabric8-wit/auth"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/iteration"
+	"github.com/fabric8-services/fabric8-wit/jsonapi"
+	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/login"
+	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -252,7 +252,7 @@ func (c *SpaceController) Show(ctx *app.ShowSpaceContext) error {
 		if err != nil {
 			return err
 		}
-		entityErr := ctx.ConditionalEntity(*s, c.config.GetCacheControlSpaces, func() error {
+		entityErr := ctx.ConditionalRequest(*s, c.config.GetCacheControlSpaces, func() error {
 			spaceData, err := ConvertSpaceFromModel(ctx.Context, c.db, ctx.RequestData, *s)
 			if err != nil {
 				return err

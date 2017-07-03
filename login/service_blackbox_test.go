@@ -11,19 +11,19 @@ import (
 
 	"golang.org/x/oauth2"
 
-	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/app"
-	config "github.com/almighty/almighty-core/configuration"
-	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/gormtestsupport"
-	. "github.com/almighty/almighty-core/login"
-	"github.com/almighty/almighty-core/migration"
+	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/app"
+	config "github.com/fabric8-services/fabric8-wit/configuration"
+	"github.com/fabric8-services/fabric8-wit/gormapplication"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	. "github.com/fabric8-services/fabric8-wit/login"
+	"github.com/fabric8-services/fabric8-wit/migration"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 
-	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/token"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/token"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/uuid"
 	_ "github.com/lib/pq"
@@ -123,7 +123,7 @@ func (s *serviceBlackBoxTest) TestKeycloakAuthorizationRedirect() {
 	}
 
 	r := &goa.RequestData{
-		Request: &http.Request{Host: "demo.api.almighty.io"},
+		Request: &http.Request{Host: "demo.api.openshift.io"},
 	}
 	brokerEndpoint, err := s.configuration.GetKeycloakEndpointBroker(r)
 	require.Nil(s.T(), err)
@@ -398,7 +398,7 @@ func (s *serviceBlackBoxTest) TestInvalidState() {
 	require.Nil(s.T(), err)
 
 	r := &goa.RequestData{
-		Request: &http.Request{Host: "demo.api.almighty.io"},
+		Request: &http.Request{Host: "demo.api.openshift.io"},
 	}
 	brokerEndpoint, err := s.configuration.GetKeycloakEndpointBroker(r)
 	require.Nil(s.T(), err)
@@ -413,7 +413,7 @@ func (s *serviceBlackBoxTest) TestInvalidOAuthAuthorizationCode() {
 	// an invalid OAuth2.0 code, the access token exchange
 	// fails. In such a scenario, there is response redirection
 	// to the valid referer, ie, the URL where the request originated from.
-	// Currently, this should be something like https://demo.almighty.org/somepage/
+	// Currently, this should be something like https://demo.openshift.io/somepage/
 
 	resource.Require(s.T(), resource.Database)
 
@@ -429,7 +429,7 @@ func (s *serviceBlackBoxTest) TestInvalidOAuthAuthorizationCode() {
 
 	// The user clicks login while on ALM UI.
 	// Therefore the referer would be an ALM URL.
-	refererUrl := "https://alm-url.example.org/path"
+	refererUrl := "https://wit-url.example.org/path"
 	req.Header.Add("referer", refererUrl)
 
 	prms := url.Values{}
@@ -439,7 +439,7 @@ func (s *serviceBlackBoxTest) TestInvalidOAuthAuthorizationCode() {
 	require.Nil(s.T(), err)
 
 	r := &goa.RequestData{
-		Request: &http.Request{Host: "demo.api.almighty.io"},
+		Request: &http.Request{Host: "demo.api.openshift.io"},
 	}
 	brokerEndpoint, err := s.configuration.GetKeycloakEndpointBroker(r)
 	require.Nil(s.T(), err)

@@ -9,14 +9,14 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/almighty/almighty-core/auth"
-	config "github.com/almighty/almighty-core/configuration"
-	"github.com/almighty/almighty-core/controller"
-	"github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/rest"
-	almtoken "github.com/almighty/almighty-core/token"
 	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/fabric8-services/fabric8-wit/auth"
+	config "github.com/fabric8-services/fabric8-wit/configuration"
+	"github.com/fabric8-services/fabric8-wit/controller"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/rest"
+	almtoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/goadesign/goa"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -519,7 +519,7 @@ func getClientIDAndEndpoint(t *testing.T) (string, string) {
 
 func getProtectedAPITokenOK(t *testing.T) string {
 	r := &goa.RequestData{
-		Request: &http.Request{Host: "demo.api.almighty.io"},
+		Request: &http.Request{Host: "demo.api.openshift.io"},
 	}
 
 	endpoint, err := configuration.GetKeycloakEndpointToken(r)

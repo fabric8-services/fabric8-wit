@@ -7,19 +7,19 @@ import (
 
 	"time"
 
-	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/app/test"
-	"github.com/almighty/almighty-core/auth"
-	"github.com/almighty/almighty-core/configuration"
-	. "github.com/almighty/almighty-core/controller"
-	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/iteration"
-	"github.com/almighty/almighty-core/resource"
-	testsupport "github.com/almighty/almighty-core/test"
-	almtoken "github.com/almighty/almighty-core/token"
+	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/app/test"
+	"github.com/fabric8-services/fabric8-wit/auth"
+	"github.com/fabric8-services/fabric8-wit/configuration"
+	. "github.com/fabric8-services/fabric8-wit/controller"
+	"github.com/fabric8-services/fabric8-wit/gormapplication"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/iteration"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	almtoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -677,7 +677,7 @@ func minimumRequiredUpdateSpace() *app.UpdateSpacePayload {
 }
 
 func generateSpacesTag(entities app.SpaceList) string {
-	modelEntities := make([]app.ConditionalResponseEntity, len(entities.Data))
+	modelEntities := make([]app.ConditionalRequestEntity, len(entities.Data))
 	for i, entityData := range entities.Data {
 		modelEntities[i] = ConvertSpaceToModel(*entityData)
 	}
@@ -688,8 +688,8 @@ func generateSpaceTag(entity app.SpaceSingle) string {
 	return app.GenerateEntityTag(ConvertSpaceToModel(*entity.Data))
 }
 
-func convertSpacesToConditionalEntities(spaceList app.SpaceList) []app.ConditionalResponseEntity {
-	conditionalSpaces := make([]app.ConditionalResponseEntity, len(spaceList.Data))
+func convertSpacesToConditionalEntities(spaceList app.SpaceList) []app.ConditionalRequestEntity {
+	conditionalSpaces := make([]app.ConditionalRequestEntity, len(spaceList.Data))
 	for i, spaceData := range spaceList.Data {
 		conditionalSpaces[i] = ConvertSpaceToModel(*spaceData)
 	}

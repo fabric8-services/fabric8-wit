@@ -76,8 +76,6 @@ var workItemLinkTypeRelationships = a.Type("WorkItemLinkTypeRelationships", func
 	a.Description(`JSONAPI store for the data of a work item link type.
 See also http://jsonapi.org/format/#document-resource-object-relationships`)
 	a.Attribute("link_category", relationWorkItemLinkCategory, "The work item link category of this work item link type.")
-	a.Attribute("source_type", relationWorkItemType, "The source type specifies the type of work item that can be used as a source.")
-	a.Attribute("target_type", relationWorkItemType, "The target type specifies the type of work item that can be used as a target.")
 	a.Attribute("space", relationSpaces, "This defines the owning space of this work item link type.")
 })
 
@@ -113,7 +111,7 @@ var relationWorkItemLinkTypeData = a.Type("RelationWorkItemLinkTypeData", func()
 // workItemLinkTypeLinks has `self` as of now according to http://jsonapi.org/format/#fetching-resources
 var workItemLinkTypeLinks = a.Type("WorkItemLinkTypeLinks", func() {
 	a.Attribute("self", d.String, func() {
-		a.Example("http://api.almighty.io/api/workitemlinktypes/2d98c73d-6969-4ea6-958a-812c832b6c18")
+		a.Example("http://api.openshift.io/api/workitemlinktypes/2d98c73d-6969-4ea6-958a-812c832b6c18")
 	})
 	a.Required("self")
 })
@@ -226,53 +224,5 @@ var _ = a.Resource("work_item_link_type", func() {
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
-	})
-})
-
-var _ = a.Resource("redirect_work_item_link_type", func() {
-	a.BasePath("/workitemlinktypes")
-
-	a.Action("show", func() {
-		a.Routing(
-			a.GET("/:wiltID"),
-		)
-		a.Params(func() {
-			a.Param("wiltID", d.UUID, "ID of the work item link type")
-		})
-		a.Response(d.MovedPermanently)
-	})
-
-	a.Action("list", func() {
-		a.Routing(
-			a.GET(""),
-		)
-		a.Response(d.MovedPermanently)
-	})
-
-	a.Action("create", func() {
-		a.Routing(
-			a.POST(""),
-		)
-		a.Response(d.MovedPermanently)
-	})
-
-	a.Action("delete", func() {
-		a.Routing(
-			a.DELETE("/:wiltID"),
-		)
-		a.Params(func() {
-			a.Param("wiltID", d.UUID, "wiltID")
-		})
-		a.Response(d.MovedPermanently)
-	})
-
-	a.Action("update", func() {
-		a.Routing(
-			a.PATCH("/:wiltID"),
-		)
-		a.Params(func() {
-			a.Param("wiltID", d.UUID, "wiltID")
-		})
-		a.Response(d.MovedPermanently)
 	})
 })

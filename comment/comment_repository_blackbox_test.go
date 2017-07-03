@@ -6,14 +6,15 @@ import (
 
 	"context"
 
-	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/comment"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/rendering"
-	"github.com/almighty/almighty-core/resource"
-	testsupport "github.com/almighty/almighty-core/test"
+	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/comment"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/migration"
+	"github.com/fabric8-services/fabric8-wit/rendering"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	testsupport "github.com/fabric8-services/fabric8-wit/test"
 
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"

@@ -8,24 +8,24 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/app/test"
-	"github.com/almighty/almighty-core/application"
-	config "github.com/almighty/almighty-core/configuration"
-	. "github.com/almighty/almighty-core/controller"
-	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/rendering"
-	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/rest"
-	"github.com/almighty/almighty-core/search"
-	"github.com/almighty/almighty-core/space"
-	testsupport "github.com/almighty/almighty-core/test"
-	almtoken "github.com/almighty/almighty-core/token"
-	"github.com/almighty/almighty-core/workitem"
+	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/app/test"
+	"github.com/fabric8-services/fabric8-wit/application"
+	config "github.com/fabric8-services/fabric8-wit/configuration"
+	. "github.com/fabric8-services/fabric8-wit/controller"
+	"github.com/fabric8-services/fabric8-wit/gormapplication"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/migration"
+	"github.com/fabric8-services/fabric8-wit/rendering"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/search"
+	"github.com/fabric8-services/fabric8-wit/space"
+	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	almtoken "github.com/fabric8-services/fabric8-wit/token"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 	uuid "github.com/satori/go.uuid"
 
 	"context"
@@ -345,12 +345,12 @@ func (s *searchBlackBoxTest) TestAutoRegisterHostURL() {
 	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, wiCtrl, *newWI.Data.Relationships.Space.Data.ID, newWI)
 	require.NotNil(s.T(), wi)
 	customHost := "own.domain.one"
-	queryString := fmt.Sprintf("http://%s/work-item/list/detail/%s", customHost, *wi.Data.ID)
+	queryString := fmt.Sprintf("http://%s/work-item/list/detail/%d", customHost, wi.Data.Attributes[workitem.SystemNumber])
 	s.verifySearchByKnownURLs(wi, customHost, queryString)
 
 	// Search by `board view URL` of newly created item
 	customHost2 := "own.domain.two"
-	queryString2 := fmt.Sprintf("http://%s/work-item/board/detail/%s", customHost2, *wi.Data.ID)
+	queryString2 := fmt.Sprintf("http://%s/work-item/board/detail/%d", customHost2, wi.Data.Attributes[workitem.SystemNumber])
 	s.verifySearchByKnownURLs(wi, customHost2, queryString2)
 }
 

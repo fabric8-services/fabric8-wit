@@ -3,18 +3,17 @@ package link_test
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"testing"
 
-	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/space"
-	testsupport "github.com/almighty/almighty-core/test"
-	"github.com/almighty/almighty-core/workitem"
-	"github.com/almighty/almighty-core/workitem/link"
+	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/migration"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/space"
+	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	"github.com/fabric8-services/fabric8-wit/workitem"
+	"github.com/fabric8-services/fabric8-wit/workitem/link"
 
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -36,8 +35,8 @@ type revisionRepositoryBlackBoxTest struct {
 	testIdentity1      account.Identity
 	testIdentity2      account.Identity
 	testIdentity3      account.Identity
-	sourceWorkItemID   uint64
-	targetWorkItemID   uint64
+	sourceWorkItemID   uuid.UUID
+	targetWorkItemID   uuid.UUID
 	testLinkType1ID    uuid.UUID
 	testLinkType2ID    uuid.UUID
 }
@@ -80,9 +79,7 @@ func (s *revisionRepositoryBlackBoxTest) SetupTest() {
 			workitem.SystemState: workitem.SystemStateNew,
 		}, s.testIdentity1.ID)
 	require.Nil(s.T(), err)
-	sourceWorkItemID, err := strconv.ParseUint(wi.ID, 10, 64)
-	require.Nil(s.T(), err)
-	s.sourceWorkItemID = sourceWorkItemID
+	s.sourceWorkItemID = wi.ID
 	wi, err = workitemRepository.Create(
 		s.ctx, testSpace.ID, workitem.SystemBug,
 		map[string]interface{}{
@@ -90,9 +87,7 @@ func (s *revisionRepositoryBlackBoxTest) SetupTest() {
 			workitem.SystemState: workitem.SystemStateNew,
 		}, s.testIdentity1.ID)
 	require.Nil(s.T(), err)
-	targetWorkItemID, err := strconv.ParseUint(wi.ID, 10, 64)
-	require.Nil(s.T(), err)
-	s.targetWorkItemID = targetWorkItemID
+	s.targetWorkItemID = wi.ID
 
 	// Create a work item link category
 	linkCategoryRepository := link.NewWorkItemLinkCategoryRepository(s.DB)
@@ -108,8 +103,6 @@ func (s *revisionRepositoryBlackBoxTest) SetupTest() {
 	linkTypeRepository := link.NewWorkItemLinkTypeRepository(s.DB)
 	linkTypeModel1 := link.WorkItemLinkType{
 		Name:           "test link type 1",
-		SourceTypeID:   workitem.SystemBug,
-		TargetTypeID:   workitem.SystemBug,
 		ForwardName:    "foo",
 		ReverseName:    "foo",
 		Topology:       "dependency",
@@ -121,8 +114,6 @@ func (s *revisionRepositoryBlackBoxTest) SetupTest() {
 	s.testLinkType1ID = linkType1.ID
 	linkTypeModel2 := link.WorkItemLinkType{
 		Name:           "test link type 2",
-		SourceTypeID:   workitem.SystemBug,
-		TargetTypeID:   workitem.SystemBug,
 		ForwardName:    "bar",
 		ReverseName:    "bar",
 		Topology:       "dependency",
@@ -190,8 +181,7 @@ func (s *revisionRepositoryBlackBoxTest) TestStoreWorkItemLinkRevisionsWhenDelet
 	workitemLink, err := linkRepository.Create(s.ctx, s.sourceWorkItemID, s.targetWorkItemID, s.testLinkType1ID, s.testIdentity1.ID)
 	require.Nil(s.T(), err)
 	// delete the source work item
-	sourceWorkItemID := strconv.FormatUint(s.sourceWorkItemID, 10)
-	err = linkRepository.DeleteRelatedLinks(s.ctx, sourceWorkItemID, s.testIdentity3.ID)
+	err = linkRepository.DeleteRelatedLinks(s.ctx, s.sourceWorkItemID, s.testIdentity3.ID)
 	require.Nil(s.T(), err)
 	// when
 	workitemLinkRevisions, err := s.revisionRepository.List(s.ctx, workitemLink.ID)

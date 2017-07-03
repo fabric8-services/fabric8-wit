@@ -5,20 +5,20 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/almighty/almighty-core/app/test"
-	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/codebase"
+	"github.com/fabric8-services/fabric8-wit/app/test"
+	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/codebase"
 
-	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/controller"
-	. "github.com/almighty/almighty-core/controller"
-	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/space"
-	testsupport "github.com/almighty/almighty-core/test"
-	almtoken "github.com/almighty/almighty-core/token"
+	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/controller"
+	. "github.com/fabric8-services/fabric8-wit/controller"
+	"github.com/fabric8-services/fabric8-wit/gormapplication"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/space"
+	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	almtoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
@@ -63,9 +63,8 @@ func (s *TestCodebaseREST) SecuredControllers(identity account.Identity) (*goa.S
 }
 
 func (s *TestCodebaseREST) TestSuccessShowCodebaseWithoutAuth() {
-	// Disable gorm's automatic setting of "created_at" and "updated_at"
-	s.DB.Callback().Create().Remove("gorm:update_time_stamp")
-	s.DB.Callback().Update().Remove("gorm:update_time_stamp")
+	resetFn := s.DisableGormCallbacks()
+	defer resetFn()
 
 	s.T().Run("success without auth", func(t *testing.T) {
 		resource.Require(t, resource.Database)
@@ -92,12 +91,13 @@ func requireSpaceAndCodebase(t *testing.T, db *gormapplication.GormDB, ID, space
 		}
 		_, err := appl.Spaces().Create(context.Background(), s)
 		require.Nil(t, err)
+		stackId := "golang-default"
 		c = &codebase.Codebase{
 			ID:                ID,
 			SpaceID:           spaceID,
 			Type:              "git",
-			URL:               "https://github.com/almighty/almighty-core.git",
-			StackID:           "golang-default",
+			URL:               "https://github.com/fabric8-services/fabric8-wit.git",
+			StackID:           &stackId,
 			LastUsedWorkspace: "my-last-used-workspace",
 		}
 		err = appl.Codebases().Create(context.Background(), c)

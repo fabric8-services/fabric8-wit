@@ -9,21 +9,21 @@ import (
 
 	"context"
 
-	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/app/test"
-	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/comment"
-	. "github.com/almighty/almighty-core/controller"
-	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/rendering"
-	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/space"
-	testsupport "github.com/almighty/almighty-core/test"
-	almtoken "github.com/almighty/almighty-core/token"
-	"github.com/almighty/almighty-core/workitem"
+	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/app/test"
+	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/comment"
+	. "github.com/fabric8-services/fabric8-wit/controller"
+	"github.com/fabric8-services/fabric8-wit/gormapplication"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/rendering"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/space"
+	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	almtoken "github.com/fabric8-services/fabric8-wit/token"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/goadesign/goa"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -151,10 +151,10 @@ func (rest *TestCommentREST) TestSuccessCreateSingleCommentWithDefaultMarkup() {
 func (rest *TestCommentREST) setupComments() (workitem.WorkItem, []*comment.Comment) {
 	wi := rest.createDefaultWorkItem()
 	comments := make([]*comment.Comment, 4)
-	comments[0] = &comment.Comment{ParentID: wi.ID, Body: "Test 1", CreatedBy: rest.testIdentity.ID}
-	comments[1] = &comment.Comment{ParentID: wi.ID, Body: "Test 2", CreatedBy: rest.testIdentity.ID}
-	comments[2] = &comment.Comment{ParentID: wi.ID, Body: "Test 3", CreatedBy: rest.testIdentity.ID}
-	comments[3] = &comment.Comment{ParentID: wi.ID + "_other", Body: "Test 1", CreatedBy: rest.testIdentity.ID}
+	comments[0] = &comment.Comment{ParentID: wi.ID.String(), Body: "Test 1", CreatedBy: rest.testIdentity.ID}
+	comments[1] = &comment.Comment{ParentID: wi.ID.String(), Body: "Test 2", CreatedBy: rest.testIdentity.ID}
+	comments[2] = &comment.Comment{ParentID: wi.ID.String(), Body: "Test 3", CreatedBy: rest.testIdentity.ID}
+	comments[3] = &comment.Comment{ParentID: wi.ID.String() + "_other", Body: "Test 1", CreatedBy: rest.testIdentity.ID}
 	application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Comments()
 		for _, c := range comments {
@@ -231,7 +231,7 @@ func (rest *TestCommentREST) TestListCommentsByParentWorkItemNotModifiedUsingIfN
 	svc, ctrl := rest.UnSecuredController()
 	offset := "0"
 	limit := 3
-	ifNoneMatch := app.GenerateEntitiesTag([]app.ConditionalResponseEntity{
+	ifNoneMatch := app.GenerateEntitiesTag([]app.ConditionalRequestEntity{
 		comments[2],
 		comments[1],
 		comments[0],
@@ -258,7 +258,7 @@ func (rest *TestCommentREST) TestCreateSingleCommentMissingWorkItem() {
 	p := rest.newCreateWorkItemCommentsPayload("Test", nil)
 	// when/then
 	svc, ctrl := rest.SecuredController()
-	test.CreateWorkItemCommentsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4(), "0000000", p)
+	test.CreateWorkItemCommentsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4(), uuid.NewV4(), p)
 }
 
 func (rest *TestCommentREST) TestCreateSingleNoAuthorized() {
@@ -288,5 +288,5 @@ func (rest *TestCommentREST) TestListCommentsByMissingParentWorkItem() {
 	// when/then
 	offset := "0"
 	limit := 1
-	test.ListWorkItemCommentsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4(), "0000000", &limit, &offset, nil, nil)
+	test.ListWorkItemCommentsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4(), uuid.NewV4(), &limit, &offset, nil, nil)
 }

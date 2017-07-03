@@ -11,9 +11,9 @@ import (
 
 	"time"
 
-	"github.com/almighty/almighty-core/configuration"
-	"github.com/almighty/almighty-core/resource"
 	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/fabric8-services/fabric8-wit/configuration"
+	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/goadesign/goa"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -55,13 +55,13 @@ func resetConfiguration(configPath string) {
 
 func TestGetKeycloakEndpointSetByUrlEnvVaribaleOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	env := os.Getenv("ALMIGHTY_KEYCLOAK_URL")
+	env := os.Getenv("F8_KEYCLOAK_URL")
 	defer func() {
-		os.Setenv("ALMIGHTY_KEYCLOAK_URL", env)
+		os.Setenv("F8_KEYCLOAK_URL", env)
 		resetConfiguration(defaultValuesConfigFilePath)
 	}()
 
-	os.Setenv("ALMIGHTY_KEYCLOAK_URL", "http://xyz.io")
+	os.Setenv("F8_KEYCLOAK_URL", "http://xyz.io")
 	resetConfiguration(defaultValuesConfigFilePath)
 
 	url, err := config.GetKeycloakEndpointAuth(reqLong)
@@ -101,7 +101,7 @@ func TestGetKeycloakEndpointAdminDevModeOK(t *testing.T) {
 
 func TestGetKeycloakEndpointAdminSetByEnvVaribaleOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "ALMIGHTY_KEYCLOAK_ENDPOINT_ADMIN", config.GetKeycloakEndpointAdmin)
+	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "F8_KEYCLOAK_ENDPOINT_ADMIN", config.GetKeycloakEndpointAdmin)
 }
 
 func TestGetKeycloakEndpointAuthzResourcesetDevModeOK(t *testing.T) {
@@ -112,7 +112,7 @@ func TestGetKeycloakEndpointAuthzResourcesetDevModeOK(t *testing.T) {
 
 func TestGetKeycloakEndpointAuthzResourcesetSetByEnvVaribaleOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "ALMIGHTY_KEYCLOAK_ENDPOINT_AUTHZ_RESOURCESET", config.GetKeycloakEndpointAuthzResourceset)
+	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "F8_KEYCLOAK_ENDPOINT_AUTHZ_RESOURCESET", config.GetKeycloakEndpointAuthzResourceset)
 }
 
 func TestGetKeycloakEndpointClientsDevModeOK(t *testing.T) {
@@ -123,7 +123,7 @@ func TestGetKeycloakEndpointClientsDevModeOK(t *testing.T) {
 
 func TestGetKeycloakEndpoinClientsSetByEnvVaribaleOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "ALMIGHTY_KEYCLOAK_ENDPOINT_CLIENTS", config.GetKeycloakEndpointClients)
+	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "F8_KEYCLOAK_ENDPOINT_CLIENTS", config.GetKeycloakEndpointClients)
 }
 
 func TestGetKeycloakEndpointAuthDevModeOK(t *testing.T) {
@@ -134,7 +134,7 @@ func TestGetKeycloakEndpointAuthDevModeOK(t *testing.T) {
 
 func TestGetKeycloakEndpointAuthSetByEnvVaribaleOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "ALMIGHTY_KEYCLOAK_ENDPOINT_AUTH", config.GetKeycloakEndpointAuth)
+	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "F8_KEYCLOAK_ENDPOINT_AUTH", config.GetKeycloakEndpointAuth)
 }
 
 func TestGetKeycloakEndpointLogoutDevModeOK(t *testing.T) {
@@ -145,7 +145,7 @@ func TestGetKeycloakEndpointLogoutDevModeOK(t *testing.T) {
 
 func TestGetKeycloakEndpointLogoutSetByEnvVaribaleOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "ALMIGHTY_KEYCLOAK_ENDPOINT_LOGOUT", config.GetKeycloakEndpointLogout)
+	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "F8_KEYCLOAK_ENDPOINT_LOGOUT", config.GetKeycloakEndpointLogout)
 }
 
 func TestGetKeycloakEndpointTokenOK(t *testing.T) {
@@ -156,7 +156,7 @@ func TestGetKeycloakEndpointTokenOK(t *testing.T) {
 
 func TestGetKeycloakEndpointTokenSetByEnvVaribaleOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "ALMIGHTY_KEYCLOAK_ENDPOINT_TOKEN", config.GetKeycloakEndpointToken)
+	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "F8_KEYCLOAK_ENDPOINT_TOKEN", config.GetKeycloakEndpointToken)
 }
 
 func TestGetKeycloakEndpointUserInfoOK(t *testing.T) {
@@ -167,7 +167,7 @@ func TestGetKeycloakEndpointUserInfoOK(t *testing.T) {
 
 func TestGetKeycloakEndpointUserInfoSetByEnvVaribaleOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "ALMIGHTY_KEYCLOAK_ENDPOINT_USERINFO", config.GetKeycloakEndpointUserInfo)
+	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "F8_KEYCLOAK_ENDPOINT_USERINFO", config.GetKeycloakEndpointUserInfo)
 }
 
 func TestGetKeycloakEndpointEntitlementOK(t *testing.T) {
@@ -178,7 +178,7 @@ func TestGetKeycloakEndpointEntitlementOK(t *testing.T) {
 
 func TestGetKeycloakEndpointEntitlementSetByEnvVaribaleOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "ALMIGHTY_KEYCLOAK_ENDPOINT_ENTITLEMENT", config.GetKeycloakEndpointEntitlement)
+	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "F8_KEYCLOAK_ENDPOINT_ENTITLEMENT", config.GetKeycloakEndpointEntitlement)
 }
 
 func TestGetKeycloakEndpointBrokerOK(t *testing.T) {
@@ -189,7 +189,7 @@ func TestGetKeycloakEndpointBrokerOK(t *testing.T) {
 
 func TestGetKeycloakEndpointBrokerSetByEnvVaribaleOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "ALMIGHTY_KEYCLOAK_ENDPOINT_BROKER", config.GetKeycloakEndpointBroker)
+	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "F8_KEYCLOAK_ENDPOINT_BROKER", config.GetKeycloakEndpointBroker)
 }
 
 func TestGetKeycloakUserInfoEndpointOK(t *testing.T) {
@@ -200,7 +200,7 @@ func TestGetKeycloakUserInfoEndpointOK(t *testing.T) {
 
 func TestGetKeycloakUserInfoEndpointOKrSetByEnvVaribaleOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "ALMIGHTY_KEYCLOAK_ENDPOINT_ACCOUNT", config.GetKeycloakAccountEndpoint)
+	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "F8_KEYCLOAK_ENDPOINT_ACCOUNT", config.GetKeycloakAccountEndpoint)
 }
 
 func checkGetKeycloakEndpointOK(t *testing.T, expectedEndpoint string, getEndpoint func(req *goa.RequestData) (string, error)) {
@@ -269,7 +269,7 @@ func TestGetMaxHeaderSizeUsingDefaults(t *testing.T) {
 
 func TestGetMaxHeaderSizeSetByEnvVaribaleOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	envName := "ALMIGHTY_HEADER_MAXLENGTH"
+	envName := "F8_HEADER_MAXLENGTH"
 	envValue := time.Now().Unix()
 	env := os.Getenv(envName)
 	defer func() {
@@ -286,7 +286,7 @@ func TestGetMaxHeaderSizeSetByEnvVaribaleOK(t *testing.T) {
 }
 
 func generateEnvKey(yamlKey string) string {
-	return "ALMIGHTY_" + strings.ToUpper(strings.Replace(yamlKey, ".", "_", -1))
+	return "F8_" + strings.ToUpper(strings.Replace(yamlKey, ".", "_", -1))
 }
 
 func checkGetKeycloakEndpointSetByEnvVaribaleOK(t *testing.T, envName string, getEndpoint func(req *goa.RequestData) (string, error)) {

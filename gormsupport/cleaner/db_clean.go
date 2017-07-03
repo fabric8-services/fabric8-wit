@@ -3,8 +3,8 @@ package cleaner
 import (
 	"database/sql"
 
-	"github.com/almighty/almighty-core/log"
-	"github.com/almighty/almighty-core/workitem"
+	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 	uuid "github.com/satori/go.uuid"
 
 	"fmt"
@@ -69,7 +69,7 @@ func DeleteCreatedEntities(db *gorm.DB) func() {
 				"table":     entry.table,
 				"key":       entry.key,
 				"hook_name": hookName,
-			}, "Deleting entities from %s with key %s", entry.table, entry.key)
+			}, "Deleting entities from '%s' table with key %v", entry.table, entry.key)
 			tx.Table(entry.table).Where(entry.keyname+" = ?", entry.key).Delete("")
 		}
 

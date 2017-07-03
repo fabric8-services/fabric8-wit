@@ -25,7 +25,7 @@ var codebaseAttributes = a.Type("CodebaseAttributes", func() {
 		a.Example("git")
 	})
 	a.Attribute("url", d.String, "The URL of the codebase ", func() {
-		a.Example("git@github.com:almighty/almighty-core.git")
+		a.Example("git@github.com:fabric8-services/fabric8-wit.git")
 	})
 	a.Attribute("stackId", d.String, "The stack id of the codebase ", func() {
 		a.Example("java-centos")

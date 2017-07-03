@@ -7,19 +7,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/app/test"
-	. "github.com/almighty/almighty-core/controller"
-	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormsupport"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/log"
-	"github.com/almighty/almighty-core/login"
-	"github.com/almighty/almighty-core/resource"
-	testsupport "github.com/almighty/almighty-core/test"
-	almtoken "github.com/almighty/almighty-core/token"
+	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/app/test"
+	. "github.com/fabric8-services/fabric8-wit/controller"
+	"github.com/fabric8-services/fabric8-wit/gormapplication"
+	"github.com/fabric8-services/fabric8-wit/gormsupport"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/login"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	almtoken "github.com/fabric8-services/fabric8-wit/token"
 
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
@@ -952,7 +952,7 @@ func getUserUpdatedAt(appUser app.User) time.Time {
 }
 
 func (s *TestUsersSuite) generateUsersTag(allUsers app.UserArray) string {
-	entities := make([]app.ConditionalResponseEntity, len(allUsers.Data))
+	entities := make([]app.ConditionalRequestEntity, len(allUsers.Data))
 	for i, user := range allUsers.Data {
 		userID, err := uuid.FromString(*user.Attributes.UserID)
 		require.Nil(s.T(), err)

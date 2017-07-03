@@ -2,10 +2,11 @@ package workitem
 
 import (
 	"strconv"
+	"time"
 
-	"github.com/almighty/almighty-core/convert"
-	"github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/fabric8-services/fabric8-wit/convert"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/gormsupport"
 
 	uuid "github.com/satori/go.uuid"
 )
@@ -13,7 +14,10 @@ import (
 // WorkItemStorage represents a work item as it is stored in the database
 type WorkItemStorage struct {
 	gormsupport.Lifecycle
-	ID uint64 `gorm:"primary_key"`
+	// unique id per installation (used for references at the DB level)
+	ID uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
+	// unique number per _space_
+	Number int
 	// Id of the type of this work item
 	Type uuid.UUID `sql:"type:uuid"`
 	// Version for optimistic concurrency control
@@ -24,6 +28,8 @@ type WorkItemStorage struct {
 	ExecutionOrder float64
 	// Reference to one Space
 	SpaceID uuid.UUID `sql:"type:uuid"`
+	// optional timestamp of the latest addition/removal of a relationship with this workitem
+	RelationShipsChangedAt *time.Time `sql:"column:relationships_changed_at"`
 }
 
 const (

@@ -5,18 +5,19 @@ import (
 	"fmt"
 	"html"
 
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/comment"
-	"github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/jsonapi"
-	"github.com/almighty/almighty-core/login"
-	"github.com/almighty/almighty-core/rendering"
-	"github.com/almighty/almighty-core/rest"
-	"github.com/almighty/almighty-core/space/authz"
-	"github.com/almighty/almighty-core/workitem"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/comment"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/jsonapi"
+	"github.com/fabric8-services/fabric8-wit/login"
+	"github.com/fabric8-services/fabric8-wit/rendering"
+	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/space/authz"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/goadesign/goa"
-	"github.com/satori/go.uuid"
+	errs "github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 )
 
 // CommentsController implements the comments resource.
@@ -48,7 +49,7 @@ func (c *CommentsController) Show(ctx *app.ShowCommentsContext) error {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
 			return ctx.NotFound(jerrors)
 		}
-		return ctx.ConditionalEntity(*cmt, c.config.GetCacheControlComments, func() error {
+		return ctx.ConditionalRequest(*cmt, c.config.GetCacheControlComments, func() error {
 			res := &app.CommentSingle{}
 			// This code should change if others type of parents than WI are allowed
 			includeParentWorkItem, err := CommentIncludeParentWorkItem(ctx, appl, cmt)
@@ -70,22 +71,52 @@ func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
-
-	return application.Transactional(c.db, func(appl application.Application) error {
-		cm, err := appl.Comments().Load(ctx.Context, ctx.CommentID)
+	var cm *comment.Comment
+	var wi *workitem.WorkItem
+	var editorIsCreator bool
+	// Following transaction verifies if a user is allowed to update or not
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		cm, err = appl.Comments().Load(ctx.Context, ctx.CommentID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-
-		if *identityID != cm.CreatedBy {
-			// need to use the goa.NewErrorClass() func as there is no native support for 403 in goa
-			// and it is not planned to be supported yet: https://github.com/goadesign/goa/pull/1030
-			return jsonapi.JSONErrorResponse(ctx, goa.NewErrorClass("forbidden", 403)("User is not the comment author"))
+		if *identityID == cm.CreatedBy {
+			editorIsCreator = true
+			return nil
 		}
+		parentID, err := uuid.FromString(cm.ParentID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		wi, err = appl.WorkItems().LoadByID(ctx.Context, parentID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	// User is allowed to update if user is creator of the comment OR user is a space collaborator
+	if editorIsCreator {
+		return c.performUpdate(ctx, cm, identityID)
+	}
 
+	authorized, err := authz.Authorize(ctx, wi.SpaceID.String())
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
+	}
+	if !authorized {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not a space collaborator"))
+	}
+	return c.performUpdate(ctx, cm, identityID)
+}
+
+func (c *CommentsController) performUpdate(ctx *app.UpdateCommentsContext, cm *comment.Comment, identityID *uuid.UUID) error {
+	return application.Transactional(c.db, func(appl application.Application) error {
 		cm.Body = *ctx.Payload.Data.Attributes.Body
 		cm.Markup = rendering.NilSafeGetMarkup(ctx.Payload.Data.Attributes.Markup)
-		err = appl.Comments().Save(ctx.Context, cm, *identityID)
+		err := appl.Comments().Save(ctx.Context, cm, *identityID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -111,14 +142,22 @@ func (c *CommentsController) Delete(ctx *app.DeleteCommentsContext) error {
 	}
 	var cm *comment.Comment
 	var wi *workitem.WorkItem
+	var userIsCreator bool
 	// Following transaction verifies if a user is allowed to delete or not
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		cm, err = appl.Comments().Load(ctx.Context, ctx.CommentID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-
-		wi, err = appl.WorkItems().LoadByID(ctx.Context, cm.ParentID)
+		if *identityID == cm.CreatedBy {
+			userIsCreator = true
+			return nil
+		}
+		wiID, err := uuid.FromString(cm.ParentID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "unable to delete the comment: the id of the parent entity is not a valid UUID"))
+		}
+		wi, err = appl.WorkItems().LoadByID(ctx.Context, wiID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -128,7 +167,7 @@ func (c *CommentsController) Delete(ctx *app.DeleteCommentsContext) error {
 		return err
 	}
 	// User is allowed to delete if user is creator of the comment OR user is a space collaborator
-	if *identityID == cm.CreatedBy {
+	if userIsCreator {
 		return c.performDelete(ctx, cm, identityID)
 	}
 
@@ -136,7 +175,7 @@ func (c *CommentsController) Delete(ctx *app.DeleteCommentsContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
-	if authorized == false {
+	if !authorized {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not a space collaborator"))
 	}
 	return c.performDelete(ctx, cm, identityID)
@@ -230,7 +269,11 @@ type HrefFunc func(id interface{}) string
 func CommentIncludeParentWorkItem(ctx context.Context, appl application.Application, c *comment.Comment) (CommentConvertFunc, error) {
 	// NOTE: This function assumes that the comment is bound to a WorkItem. Therefore,
 	// we can extract the space out of this WI.
-	wi, err := appl.WorkItems().LoadByID(ctx, c.ParentID)
+	wiID, err := uuid.FromString(c.ParentID)
+	if err != nil {
+		return nil, err
+	}
+	wi, err := appl.WorkItems().LoadByID(ctx, wiID)
 	if err != nil {
 		return nil, err
 	}

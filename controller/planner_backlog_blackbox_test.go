@@ -6,21 +6,21 @@ import (
 
 	"context"
 
-	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/app/test"
-	"github.com/almighty/almighty-core/application"
-	. "github.com/almighty/almighty-core/controller"
-	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/iteration"
-	"github.com/almighty/almighty-core/log"
-	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/space"
-	testsupport "github.com/almighty/almighty-core/test"
-	"github.com/almighty/almighty-core/workitem"
+	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/app/test"
+	"github.com/fabric8-services/fabric8-wit/application"
+	. "github.com/fabric8-services/fabric8-wit/controller"
+	"github.com/fabric8-services/fabric8-wit/gormapplication"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/iteration"
+	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/migration"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/space"
+	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
@@ -131,20 +131,6 @@ func assertPlannerBacklogWorkItems(t *testing.T, workitems *app.WorkItemList, te
 	}
 }
 
-func generateWorkitemsTag(workitems *app.WorkItemList) string {
-	entities := make([]app.ConditionalResponseEntity, len(workitems.Data))
-	for i, wi := range workitems.Data {
-		entities[i] = workitem.WorkItem{
-			ID:      *wi.ID,
-			Version: wi.Attributes["version"].(int),
-			Fields: map[string]interface{}{
-				workitem.SystemUpdatedAt: wi.Attributes[workitem.SystemUpdatedAt],
-			},
-		}
-	}
-	return app.GenerateEntitiesTag(entities)
-}
-
 func (rest *TestPlannerBacklogBlackboxREST) TestListPlannerBacklogWorkItemsOK() {
 	// given
 	testSpace, parentIteration, _ := rest.setupPlannerBacklogWorkItems()
@@ -211,10 +197,10 @@ func (rest *TestPlannerBacklogBlackboxREST) TestListPlannerBacklogWorkItemsNotMo
 	offset := "0"
 	filter := ""
 	limit := -1
-	_, workitems := test.ListPlannerBacklogOK(rest.T(), svc.Context, svc, ctrl, testSpace.ID, &filter, nil, nil, nil, &limit, &offset, nil, nil)
+	res, _ := test.ListPlannerBacklogOK(rest.T(), svc.Context, svc, ctrl, testSpace.ID, &filter, nil, nil, nil, &limit, &offset, nil, nil)
 	// when
-	ifNoneMatch := generateWorkitemsTag(workitems)
-	res := test.ListPlannerBacklogNotModified(rest.T(), svc.Context, svc, ctrl, testSpace.ID, &filter, nil, nil, nil, &limit, &offset, nil, &ifNoneMatch)
+	ifNoneMatch := res.Header()[app.ETag][0]
+	res = test.ListPlannerBacklogNotModified(rest.T(), svc.Context, svc, ctrl, testSpace.ID, &filter, nil, nil, nil, &limit, &offset, nil, &ifNoneMatch)
 	// then
 	assertResponseHeaders(rest.T(), res)
 }

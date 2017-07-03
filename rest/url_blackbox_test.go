@@ -5,7 +5,7 @@ import (
 
 	"net/http"
 
-	"github.com/almighty/almighty-core/resource"
+	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

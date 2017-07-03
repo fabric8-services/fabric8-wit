@@ -17,13 +17,13 @@ const (
 	// specify that unit tests shall be run. Unless this environment variable
 	// is explicitly set to evaluate to false ("0", "no", or "false"), unit
 	// tests are executed all the time.
-	UnitTest = "ALMIGHTY_RESOURCE_UNIT_TEST"
+	UnitTest = "F8_RESOURCE_UNIT_TEST"
 	// Database refers to the name of the environment variable that is used to
 	// specify that test can be run that require a database.
-	Database = "ALMIGHTY_RESOURCE_DATABASE"
+	Database = "F8_RESOURCE_DATABASE"
 	// Remote refers to the name of the environment variable that is used to
 	// specify that test can be run that require availability of some remote servers such as Keycloak.
-	Remote = "ALMIGHTY_RESOURCE_REMOTE"
+	Remote = "F8_RESOURCE_REMOTE"
 	// StSkipReasonValueFalse is the skip message for tests when an environment variable is present but evaluates to false.
 	StSkipReasonValueFalse = "Skipping test because environment variable %s evaluates to false: %s"
 	// StSkipReasonNotSet is the skip message for tests when an environment is not present.
@@ -37,12 +37,12 @@ const (
 // and if one is not set it will skip the test ("t"). The only exception is
 // that the unit test resource is always considered to be available unless
 // is is explicitly set to false (e.g. "no", "0", "false").
-func Require(t *testing.T, envVars ...string) {
+func Require(t testing.TB, envVars ...string) {
 	for _, envVar := range envVars {
 		v, isSet := os.LookupEnv(envVar)
 
 		// If we don't explicitly opt out from unit tests
-		// by specifying ALMIGHTY_RESOURCE_UNIT_TEST=0
+		// by specifying F8_RESOURCE_UNIT_TEST=0
 		// we're going to run them
 		if !isSet && envVar == UnitTest {
 			continue

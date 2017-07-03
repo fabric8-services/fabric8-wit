@@ -5,13 +5,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/almighty/almighty-core/app/test"
-	. "github.com/almighty/almighty-core/controller"
-	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/space"
-	testsupport "github.com/almighty/almighty-core/test"
+	"github.com/fabric8-services/fabric8-wit/app/test"
+	. "github.com/fabric8-services/fabric8-wit/controller"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/space"
+	testsupport "github.com/fabric8-services/fabric8-wit/test"
 
-	"github.com/almighty/almighty-core/configuration"
+	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -60,7 +60,7 @@ func (s *TestPagingSuite) TestPagingLinks() {
 }
 
 func (s *TestPagingSuite) TestPagingErrors() {
-	s.repo.ListReturns(makeWorkItems(100), uint64(100), nil)
+	s.repo.ListReturns(makeWorkItems(100), 100, nil)
 
 	var offset string = "-1"
 	var limit int = 2
@@ -108,7 +108,7 @@ func (s *TestPagingSuite) TestPagingLinksHasAbsoluteURL() {
 	// given
 	offset := "10"
 	limit := 10
-	s.repo.ListReturns(makeWorkItems(10), uint64(100), nil)
+	s.repo.ListReturns(makeWorkItems(10), 100, nil)
 	// when
 	_, result := test.ListWorkitemOK(s.T(), context.Background(), nil, s.controller, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
 	// then
@@ -130,7 +130,7 @@ func (s *TestPagingSuite) TestPagingDefaultAndMaxSize() {
 	// given
 	offset := "0"
 	var limit int
-	s.repo.ListReturns(makeWorkItems(10), uint64(100), nil)
+	s.repo.ListReturns(makeWorkItems(10), 100, nil)
 	// when
 	_, result := test.ListWorkitemOK(s.T(), context.Background(), nil, s.controller, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &offset, nil, nil)
 	// then

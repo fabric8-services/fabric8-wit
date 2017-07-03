@@ -6,21 +6,21 @@ import (
 	"testing"
 	"time"
 
-	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/app/test"
-	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/area"
-	. "github.com/almighty/almighty-core/controller"
-	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormsupport"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/log"
-	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/space"
-	testsupport "github.com/almighty/almighty-core/test"
-	almtoken "github.com/almighty/almighty-core/token"
+	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/app/test"
+	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/area"
+	. "github.com/fabric8-services/fabric8-wit/controller"
+	"github.com/fabric8-services/fabric8-wit/gormapplication"
+	"github.com/fabric8-services/fabric8-wit/gormsupport"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/space"
+	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	almtoken "github.com/fabric8-services/fabric8-wit/token"
 
 	"context"
 	"github.com/goadesign/goa"
@@ -76,7 +76,7 @@ func (rest *TestAreaREST) TestSuccessCreateChildArea() {
 	sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
 	parentID := parentArea.ID
 	name := "TestSuccessCreateChildArea"
-	ci := getCreateChildAreaPayload(&name)
+	ci := newCreateChildAreaPayload(&name)
 	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerId)
 	require.Nil(rest.T(), err)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
@@ -106,7 +106,7 @@ func (rest *TestAreaREST) TestSuccessCreateMultiChildArea() {
 	sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
 	parentID := parentArea.ID
 	name := "TestSuccessCreateMultiChildArea-0"
-	ci := getCreateChildAreaPayload(&name)
+	ci := newCreateChildAreaPayload(&name)
 	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerId)
 	require.Nil(rest.T(), err)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
@@ -117,7 +117,7 @@ func (rest *TestAreaREST) TestSuccessCreateMultiChildArea() {
 	assert.Equal(rest.T(), parentID.String(), *created.Data.Relationships.Parent.Data.ID)
 	// Create a child of the child created above.
 	name = "TestSuccessCreateMultiChildArea-0-0"
-	ci = getCreateChildAreaPayload(&name)
+	ci = newCreateChildAreaPayload(&name)
 	newParentID := *created.Data.Relationships.Parent.Data.ID
 	// when
 	_, created = test.CreateChildAreaCreated(rest.T(), svc.Context, svc, ctrl, newParentID, ci)
@@ -133,7 +133,7 @@ func (rest *TestAreaREST) TestFailCreateChildAreaMissingName() {
 	// given
 	sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
 	parentID := parentArea.ID
-	createChildAreaPayload := getCreateChildAreaPayload(nil)
+	createChildAreaPayload := newCreateChildAreaPayload(nil)
 	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerId)
 	require.Nil(rest.T(), err)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
@@ -144,7 +144,7 @@ func (rest *TestAreaREST) TestFailCreateChildAreaMissingName() {
 func (rest *TestAreaREST) TestFailCreateChildAreaWithInvalidsParent() {
 	// given
 	name := "TestFailCreateChildAreaWithInvalidsParent"
-	createChildAreaPayload := getCreateChildAreaPayload(&name)
+	createChildAreaPayload := newCreateChildAreaPayload(&name)
 	svc, ctrl := rest.SecuredController()
 	// when/then
 	test.CreateChildAreaNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4().String(), createChildAreaPayload)
@@ -155,7 +155,7 @@ func (rest *TestAreaREST) TestFailCreateChildAreaNotAuthorized() {
 	_, parentArea := createSpaceAndArea(rest.T(), rest.db)
 	parentID := parentArea.ID
 	name := "TestFailCreateChildAreaNotAuthorized"
-	createChildAreaPayload := getCreateChildAreaPayload(&name)
+	createChildAreaPayload := newCreateChildAreaPayload(&name)
 	svc, ctrl := rest.UnSecuredController()
 	// when/then
 	test.CreateChildAreaUnauthorized(rest.T(), svc.Context, svc, ctrl, parentID.String(), createChildAreaPayload)
@@ -163,7 +163,7 @@ func (rest *TestAreaREST) TestFailCreateChildAreaNotAuthorized() {
 
 func (rest *TestAreaREST) TestFailValidationAreaNameLength() {
 	// given
-	ci := getCreateChildAreaPayload(&testsupport.TestOversizedNameObj)
+	ci := newCreateChildAreaPayload(&testsupport.TestOversizedNameObj)
 
 	err := ci.Validate()
 	// Validate payload function returns an error
@@ -174,7 +174,7 @@ func (rest *TestAreaREST) TestFailValidationAreaNameLength() {
 func (rest *TestAreaREST) TestFailValidationAreaNameStartWith() {
 	// given
 	name := "_TestSuccessCreateChildArea"
-	ci := getCreateChildAreaPayload(&name)
+	ci := newCreateChildAreaPayload(&name)
 
 	err := ci.Validate()
 	// Validate payload function returns an error
@@ -244,7 +244,7 @@ func (rest *TestAreaREST) TestShowAreaNotModifiedIfNoneMatchHeader() {
 }
 
 func (rest *TestAreaREST) createChildArea(name string, parent area.Area, svc *goa.Service, ctrl *AreaController) *app.AreaSingle {
-	ci := getCreateChildAreaPayload(&name)
+	ci := newCreateChildAreaPayload(&name)
 	// when
 	_, created := test.CreateChildAreaCreated(rest.T(), svc.Context, svc, ctrl, parent.ID.String(), ci)
 	return created
@@ -333,7 +333,7 @@ func convertAreaToModel(appArea app.AreaSingle) area.Area {
 	}
 }
 
-func getCreateChildAreaPayload(name *string) *app.CreateChildAreaPayload {
+func newCreateChildAreaPayload(name *string) *app.CreateChildAreaPayload {
 	areaType := area.APIStringTypeAreas
 	return &app.CreateChildAreaPayload{
 		Data: &app.Area{
