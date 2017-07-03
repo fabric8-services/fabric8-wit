@@ -45,7 +45,6 @@ func (test *TestTransaction) TestTransactionInTime() {
 	})
 	// then
 	require.Nil(test.T(), err)
-	//require.Equal(test.T(), 1, len(codebases))
 }
 
 func (test *TestTransaction) TestTransactionOut() {
