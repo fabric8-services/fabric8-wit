@@ -1,6 +1,8 @@
 package application
 
 import (
+	"time"
+
 	"github.com/fabric8-services/fabric8-wit/log"
 
 	"github.com/pkg/errors"
@@ -29,6 +31,11 @@ func Transactional(db DB, todo func(f Application) error) error {
 		txTimeout := time.After(databaseTransactionTimeout)
 
 		go func(tx Transaction) {
+			defer func() {
+				if err := recover(); err != nil {
+					errorChan <- err
+				}
+			}()
 			errorChan <- todo(tx)
 		}(tx)
 
