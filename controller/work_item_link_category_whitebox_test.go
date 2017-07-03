@@ -3,9 +3,9 @@ package controller
 import (
 	"testing"
 
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/workitem/link"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 )

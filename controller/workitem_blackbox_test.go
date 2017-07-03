@@ -13,28 +13,28 @@ import (
 
 	"context"
 
-	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/app/test"
-	"github.com/almighty/almighty-core/area"
-	"github.com/almighty/almighty-core/codebase"
-	"github.com/almighty/almighty-core/configuration"
-	. "github.com/almighty/almighty-core/controller"
-	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/iteration"
-	"github.com/almighty/almighty-core/jsonapi"
-	"github.com/almighty/almighty-core/log"
-	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/path"
-	"github.com/almighty/almighty-core/rendering"
-	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/rest"
-	"github.com/almighty/almighty-core/space"
-	testsupport "github.com/almighty/almighty-core/test"
-	almtoken "github.com/almighty/almighty-core/token"
-	"github.com/almighty/almighty-core/workitem"
+	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/app/test"
+	"github.com/fabric8-services/fabric8-wit/area"
+	"github.com/fabric8-services/fabric8-wit/codebase"
+	"github.com/fabric8-services/fabric8-wit/configuration"
+	. "github.com/fabric8-services/fabric8-wit/controller"
+	"github.com/fabric8-services/fabric8-wit/gormapplication"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/iteration"
+	"github.com/fabric8-services/fabric8-wit/jsonapi"
+	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/migration"
+	"github.com/fabric8-services/fabric8-wit/path"
+	"github.com/fabric8-services/fabric8-wit/rendering"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/space"
+	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	almtoken "github.com/fabric8-services/fabric8-wit/token"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
@@ -55,7 +55,8 @@ func TestSuiteWorkItem1(t *testing.T) {
 type WorkItemSuite struct {
 	gormtestsupport.DBTestSuite
 	clean          func()
-	controller     app.WorkitemController
+	workitemCtrl   app.WorkitemController
+	spaceCtrl      app.SpaceController
 	pubKey         *rsa.PublicKey
 	priKey         *rsa.PrivateKey
 	svc            *goa.Service
@@ -90,18 +91,21 @@ func (s *WorkItemSuite) SetupTest() {
 	s.testIdentity = testIdentity
 
 	s.svc = testsupport.ServiceAsUser("TestUpdateWI-Service", almtoken.NewManagerWithPrivateKey(s.priKey), s.testIdentity)
-	s.controller = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	s.workitemCtrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	s.spaceCtrl = NewSpaceController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration, &DummyResourceManager{})
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
+	log.Info(nil, nil, "Creating work item during test setup...")
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	log.Info(nil, nil, "Creating work item during test setup: done")
 	s.wi = wi.Data
 	s.minimumPayload = getMinimumRequiredUpdatePayload(s.wi)
 }
 
 func (s *WorkItemSuite) TestGetWorkItemWithLegacyDescription() {
 	// given
-	_, wi := test.ShowWorkitemOK(s.T(), nil, nil, s.controller, *s.wi.Relationships.Space.Data.ID, *s.wi.ID, nil, nil)
+	_, wi := test.ShowWorkitemOK(s.T(), nil, nil, s.workitemCtrl, *s.wi.Relationships.Space.Data.ID, *s.wi.ID, nil, nil)
 	require.NotNil(s.T(), wi)
 	assert.Equal(s.T(), s.wi.ID, wi.Data.ID)
 	assert.NotNil(s.T(), wi.Data.Attributes[workitem.SystemCreatedAt])
@@ -113,7 +117,7 @@ func (s *WorkItemSuite) TestGetWorkItemWithLegacyDescription() {
 	payload2 := minimumRequiredUpdatePayload()
 	payload2.Data.ID = wi.Data.ID
 	payload2.Data.Attributes = wi.Data.Attributes
-	_, updated := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.controller, *payload2.Data.Relationships.Space.Data.ID, *wi.Data.ID, &payload2)
+	_, updated := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload2.Data.Relationships.Space.Data.ID, *wi.Data.ID, &payload2)
 	// then
 	assert.NotNil(s.T(), updated.Data.Attributes[workitem.SystemCreatedAt])
 	assert.Equal(s.T(), (s.wi.Attributes["version"].(int) + 1), updated.Data.Attributes["version"])
@@ -128,7 +132,7 @@ func (s *WorkItemSuite) TestCreateWI() {
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	// when
-	_, created := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, created := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	// then
 	require.NotNil(s.T(), created.Data.ID)
 	assert.NotEmpty(s.T(), *created.Data.ID)
@@ -145,10 +149,10 @@ func (s *WorkItemSuite) TestReorderWorkitemAboveOK() {
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
 
 	// This workitem is created but not used to clearly test that the reorder workitem is moved between **two** workitems i.e. result1 and result2 and not to the **top** of the list
-	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
+	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 
-	_, result2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
-	_, result3 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result3 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	payload2 := minimumRequiredReorderPayload()
 
 	var dataArray []*app.WorkItem // dataArray contains the workitem(s) that have to be reordered
@@ -156,7 +160,7 @@ func (s *WorkItemSuite) TestReorderWorkitemAboveOK() {
 	payload2.Data = dataArray
 	payload2.Position.ID = result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
 	payload2.Position.Direction = string(workitem.DirectionAbove)
-	_, reordered1 := test.ReorderWorkitemOK(s.T(), s.svc.Context, s.svc, s.controller, space.SystemSpace, &payload2) // Returns the workitems which are reordered
+	_, reordered1 := test.ReorderWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, space.SystemSpace, &payload2) // Returns the workitems which are reordered
 
 	require.Len(s.T(), reordered1.Data, 1) // checks the correct number of workitems reordered
 	assert.Equal(s.T(), result3.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
@@ -170,10 +174,10 @@ func (s *WorkItemSuite) TestReorderWorkitemConflict() {
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
 
 	// This workitem is created but not used to clearly test that the reorder workitem is moved between **two** workitems i.e. result1 and result2 and not to the **top** of the list
-	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
+	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 
-	_, result2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
-	_, result3 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result3 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	payload2 := minimumRequiredReorderPayload()
 
 	var dataArray []*app.WorkItem // dataArray contains the workitem(s) that have to be reordered
@@ -183,7 +187,7 @@ func (s *WorkItemSuite) TestReorderWorkitemConflict() {
 	payload2.Position.ID = result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
 	payload2.Position.Direction = string(workitem.DirectionAbove)
 
-	_, err := test.ReorderWorkitemConflict(s.T(), s.svc.Context, s.svc, s.controller, space.SystemSpace, &payload2) // Returns the workitems which are reordered
+	_, err := test.ReorderWorkitemConflict(s.T(), s.svc.Context, s.svc, s.workitemCtrl, space.SystemSpace, &payload2) // Returns the workitems which are reordered
 
 	require.NotNil(s.T(), err)
 }
@@ -195,11 +199,11 @@ func (s *WorkItemSuite) TestReorderWorkitemBelowOK() {
 	payload.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
 
-	_, result1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
-	_, result2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 
 	// This workitem is created but not used to clearly demonstrate that the reorder workitem is moved between **two** workitems i.e. result2 and result3 and not to the **bottom** of the list
-	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
+	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 
 	payload2 := minimumRequiredReorderPayload()
 
@@ -209,7 +213,7 @@ func (s *WorkItemSuite) TestReorderWorkitemBelowOK() {
 	payload2.Position.ID = result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
 	payload2.Position.Direction = string(workitem.DirectionBelow)
 
-	_, reordered1 := test.ReorderWorkitemOK(s.T(), s.svc.Context, s.svc, s.controller, space.SystemSpace, &payload2) // Returns the workitems which are reordered
+	_, reordered1 := test.ReorderWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, space.SystemSpace, &payload2) // Returns the workitems which are reordered
 
 	require.Len(s.T(), reordered1.Data, 1) // checks the correct number of workitems reordered
 	assert.Equal(s.T(), result1.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
@@ -224,15 +228,15 @@ func (s *WorkItemSuite) TestReorderWorkitemTopOK() {
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
 	// There are two workitems in the list -> result1 and result2
 	// In this case, we reorder result2 to the top of the list i.e. above result1
-	_, result1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
-	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	payload2 := minimumRequiredReorderPayload()
 
 	var dataArray []*app.WorkItem // dataArray contains the workitem(s) that have to be reordered
 	dataArray = append(dataArray, result1.Data)
 	payload2.Data = dataArray
 	payload2.Position.Direction = string(workitem.DirectionTop)
-	_, reordered1 := test.ReorderWorkitemOK(s.T(), s.svc.Context, s.svc, s.controller, space.SystemSpace, &payload2) // Returns the workitems which are reordered
+	_, reordered1 := test.ReorderWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, space.SystemSpace, &payload2) // Returns the workitems which are reordered
 
 	require.Len(s.T(), reordered1.Data, 1) // checks the correct number of workitems reordered
 	assert.Equal(s.T(), result1.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
@@ -248,8 +252,8 @@ func (s *WorkItemSuite) TestReorderWorkitemBottomOK() {
 
 	// There are two workitems in the list -> result1 and result2
 	// In this case, we reorder result1 to the bottom of the list i.e. below result2
-	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
-	_, result2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
+	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	payload2 := minimumRequiredReorderPayload()
 
 	var dataArray []*app.WorkItem // dataArray contains the workitem(s) that have to be reordered
@@ -257,7 +261,7 @@ func (s *WorkItemSuite) TestReorderWorkitemBottomOK() {
 	payload2.Data = dataArray
 	payload2.Position.Direction = string(workitem.DirectionBottom)
 
-	_, reordered1 := test.ReorderWorkitemOK(s.T(), s.svc.Context, s.svc, s.controller, space.SystemSpace, &payload2) // Returns the workitems which are reordered
+	_, reordered1 := test.ReorderWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, space.SystemSpace, &payload2) // Returns the workitems which are reordered
 
 	require.Len(s.T(), reordered1.Data, 1) // checks the correct number of workitems reordered
 	assert.Equal(s.T(), result2.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
@@ -267,29 +271,28 @@ func (s *WorkItemSuite) TestReorderWorkitemBottomOK() {
 // TestReorderMultipleWorkitem is positive test which tests successful reorder by providing valid input
 // This case reorders two workitems -> result3 and result4 and places them above result2
 func (s *WorkItemSuite) TestReorderMultipleWorkitems() {
+	// given
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
 	payload.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
-
-	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
-	_, result2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
-	_, result3 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
-	_, result4 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
+	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result3 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result4 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	payload2 := minimumRequiredReorderPayload()
-
 	var dataArray []*app.WorkItem // dataArray contains the workitems that have to be reordered
 	dataArray = append(dataArray, result3.Data, result4.Data)
 	payload2.Data = dataArray
 	payload2.Position.ID = result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
 	payload2.Position.Direction = string(workitem.DirectionAbove)
-
-	_, reordered1 := test.ReorderWorkitemOK(s.T(), s.svc.Context, s.svc, s.controller, space.SystemSpace, &payload2) // Returns the workitems which are reordered
-
+	// when
+	_, reordered1 := test.ReorderWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, space.SystemSpace, &payload2) // Returns the workitems which are reordered
+	// then
+	require.NotNil(s.T(), reordered1)
+	require.NotNil(s.T(), reordered1.Data)
 	require.Len(s.T(), reordered1.Data, 2) // checks the correct number of workitems reordered
-
 	assert.Equal(s.T(), result3.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
 	assert.Equal(s.T(), result4.Data.Attributes["version"].(int)+1, reordered1.Data[1].Attributes["version"])
-
 	assert.Equal(s.T(), *result3.Data.ID, *reordered1.Data[0].ID)
 	assert.Equal(s.T(), *result4.Data.ID, *reordered1.Data[1].ID)
 }
@@ -299,7 +302,7 @@ func (s *WorkItemSuite) TestReorderWorkitemBadRequestOK() {
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
 	payload.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
-	_, result1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	payload2 := minimumRequiredReorderPayload()
 
 	// This case gives empty dataArray as input
@@ -310,7 +313,7 @@ func (s *WorkItemSuite) TestReorderWorkitemBadRequestOK() {
 	payload2.Data = dataArray
 	payload2.Position.ID = result1.Data.ID
 	payload2.Position.Direction = string(workitem.DirectionAbove)
-	test.ReorderWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.controller, space.SystemSpace, &payload2)
+	test.ReorderWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.workitemCtrl, space.SystemSpace, &payload2)
 }
 
 // TestReorderWorkitemNotFound is negative test which tests unsuccessful reorder by providing invalid input
@@ -318,7 +321,7 @@ func (s *WorkItemSuite) TestReorderWorkitemNotFoundOK() {
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
 	payload.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
-	_, result1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	payload2 := minimumRequiredReorderPayload()
 
 	// This case gives id of workitem in position.ID which is not present in db as input
@@ -328,10 +331,10 @@ func (s *WorkItemSuite) TestReorderWorkitemNotFoundOK() {
 	var dataArray []*app.WorkItem
 	dataArray = append(dataArray, result1.Data)
 	payload2.Data = dataArray
-	randomID := "78"
+	randomID := uuid.NewV4()
 	payload2.Position.ID = &randomID
 	payload2.Position.Direction = string(workitem.DirectionAbove)
-	test.ReorderWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.controller, space.SystemSpace, &payload2)
+	test.ReorderWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.workitemCtrl, space.SystemSpace, &payload2)
 }
 
 // TestUpdateWorkitemWithoutReorder tests that when workitem is updated, execution order of workitem doesnot change.
@@ -341,14 +344,14 @@ func (s *WorkItemSuite) TestUpdateWorkitemWithoutReorder() {
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 
 	// Update the workitem
 	wi.Data.Attributes[workitem.SystemTitle] = "Updated Test WI"
 	payload2 := minimumRequiredUpdatePayload()
 	payload2.Data.ID = wi.Data.ID
 	payload2.Data.Attributes = wi.Data.Attributes
-	_, updated := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, *wi.Data.ID, &payload2)
+	_, updated := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, *wi.Data.ID, &payload2)
 
 	assert.Equal(s.T(), *wi.Data.ID, *updated.Data.ID)
 	assert.Equal(s.T(), (s.wi.Attributes["version"].(int) + 1), updated.Data.Attributes["version"])
@@ -365,7 +368,7 @@ func (s *WorkItemSuite) TestCreateWorkItemWithoutContext() {
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	// when/then
-	test.CreateWorkitemUnauthorized(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
+	test.CreateWorkitemUnauthorized(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 }
 
 func (s *WorkItemSuite) TestListByFields() {
@@ -373,19 +376,19 @@ func (s *WorkItemSuite) TestListByFields() {
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
 	payload.Data.Attributes[workitem.SystemTitle] = "run integration test"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
-	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
+	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	// when
 	filter := "{\"system.title\":\"run integration test\"}"
 	offset := "0"
 	limit := 1
-	_, result := test.ListWorkitemOK(s.T(), nil, nil, s.controller, *payload.Data.Relationships.Space.Data.ID, &filter, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	_, result := test.ListWorkitemOK(s.T(), nil, nil, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &filter, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
 	// then
 	require.NotNil(s.T(), result)
 	require.Equal(s.T(), 1, len(result.Data))
 	// when
 	filter = fmt.Sprintf("{\"system.creator\":\"%s\"}", s.testIdentity.ID.String())
 	// then
-	_, result = test.ListWorkitemOK(s.T(), nil, nil, s.controller, *payload.Data.Relationships.Space.Data.ID, &filter, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	_, result = test.ListWorkitemOK(s.T(), nil, nil, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &filter, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
 	require.NotNil(s.T(), result)
 	require.Equal(s.T(), 1, len(result.Data))
 }
@@ -447,28 +450,28 @@ func getWorkItemTestDataFunc(config configuration.ConfigurationData) func(t *tes
 			// Update Work Item API with different parameters
 			{
 				method:             http.MethodPatch,
-				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/12345",
+				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/" + uuid.NewV4().String(),
 				expectedStatusCode: http.StatusUnauthorized,
 				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 				payload:            createWIPayloadString,
 				jwtToken:           getExpiredAuthHeader(t, privatekey),
 			}, {
 				method:             http.MethodPatch,
-				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/12345",
+				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/" + uuid.NewV4().String(),
 				expectedStatusCode: http.StatusUnauthorized,
 				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 				payload:            createWIPayloadString,
 				jwtToken:           getMalformedAuthHeader(t, privatekey),
 			}, {
 				method:             http.MethodPatch,
-				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/12345",
+				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/" + uuid.NewV4().String(),
 				expectedStatusCode: http.StatusUnauthorized,
 				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 				payload:            createWIPayloadString,
 				jwtToken:           getValidAuthHeader(t, differentPrivatekey),
 			}, {
 				method:             http.MethodPatch,
-				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/12345",
+				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/" + uuid.NewV4().String(),
 				expectedStatusCode: http.StatusUnauthorized,
 				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 				payload:            createWIPayloadString,
@@ -477,28 +480,28 @@ func getWorkItemTestDataFunc(config configuration.ConfigurationData) func(t *tes
 			// Delete Work Item API with different parameters
 			{
 				method:             http.MethodDelete,
-				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/12345",
+				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/" + uuid.NewV4().String(),
 				expectedStatusCode: http.StatusUnauthorized,
 				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 				payload:            nil,
 				jwtToken:           getExpiredAuthHeader(t, privatekey),
 			}, {
 				method:             http.MethodDelete,
-				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/12345",
+				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/" + uuid.NewV4().String(),
 				expectedStatusCode: http.StatusUnauthorized,
 				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 				payload:            nil,
 				jwtToken:           getMalformedAuthHeader(t, privatekey),
 			}, {
 				method:             http.MethodDelete,
-				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/12345",
+				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/" + uuid.NewV4().String(),
 				expectedStatusCode: http.StatusUnauthorized,
 				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 				payload:            nil,
 				jwtToken:           getValidAuthHeader(t, differentPrivatekey),
 			}, {
 				method:             http.MethodDelete,
-				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/12345",
+				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/" + uuid.NewV4().String(),
 				expectedStatusCode: http.StatusUnauthorized,
 				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 				payload:            nil,
@@ -508,7 +511,7 @@ func getWorkItemTestDataFunc(config configuration.ConfigurationData) func(t *tes
 			// We do not have security on GET hence this should return 404 not found
 			{
 				method:             http.MethodGet,
-				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/088481764871",
+				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/" + uuid.NewV4().String(),
 				expectedStatusCode: http.StatusNotFound,
 				expectedErrorCode:  jsonapi.ErrorCodeNotFound,
 				payload:            nil,
@@ -532,7 +535,7 @@ func (s *WorkItemSuite) TestUnauthorizeWorkItemCUD() {
 func createPagingTest(t *testing.T, ctx context.Context, controller *WorkitemController, repo *testsupport.WorkItemRepository, spaceID uuid.UUID, totalCount int) func(start int, limit int, first string, last string, prev string, next string) {
 	return func(start int, limit int, first string, last string, prev string, next string) {
 		count := computeCount(totalCount, int(start), int(limit))
-		repo.ListReturns(makeWorkItems(count), uint64(totalCount), nil)
+		repo.ListReturns(makeWorkItems(count), totalCount, nil)
 		offset := strconv.Itoa(start)
 
 		_, response := test.ListWorkitemOK(t, ctx, nil, controller, spaceID, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
@@ -572,7 +575,7 @@ func makeWorkItems(count int) []workitem.WorkItem {
 	res := make([]workitem.WorkItem, count)
 	for index := range res {
 		res[index] = workitem.WorkItem{
-			ID:   fmt.Sprintf("id%d", index),
+			ID:   uuid.NewV4(),
 			Type: uuid.NewV4(), // used to be "foobar"
 			Fields: map[string]interface{}{
 				workitem.SystemUpdatedAt: time.Now(),
@@ -621,9 +624,15 @@ func minimumRequiredReorderPayload() app.ReorderWorkitemPayload {
 	}
 }
 
-func minimumRequiredCreateWithType(wit uuid.UUID) app.CreateWorkitemPayload {
+func minimumRequiredCreateWithType(witID uuid.UUID) app.CreateWorkitemPayload {
 	c := minimumRequiredCreatePayload()
-	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, wit)
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, witID)
+	return c
+}
+
+func minimumRequiredCreateWithTypeAndSpace(witID uuid.UUID, spaceID uuid.UUID) app.CreateWorkitemPayload {
+	c := minimumRequiredCreatePayload()
+	c.Data.Relationships.BaseType = newRelationBaseType(spaceID, witID)
 	return c
 }
 
@@ -831,17 +840,9 @@ func (s *WorkItem2Suite) TestWI2UpdateVersionConflict() {
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateWithNonExistentID() {
-	id := "2398475203"
+	id := uuid.NewV4()
 	s.minimumPayload.Data.ID = &id
 	test.UpdateWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.minimumPayload.Data.Relationships.Space.Data.ID, id, s.minimumPayload)
-}
-
-func (s *WorkItem2Suite) TestWI2UpdateWithInvalidID() {
-	id := "some non-int ID"
-	s.minimumPayload.Data.ID = &id
-	// pass*s.wi.ID below, because that creates a route to the controller
-	// if do not pass*s.wi.ID then we will be testing goa's code and not ours
-	test.UpdateWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.minimumPayload.Data.Relationships.Space.Data.ID, *s.wi.ID, s.minimumPayload)
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateSetBaseType() {
@@ -880,7 +881,7 @@ func (s *WorkItem2Suite) TestWI2UpdateOnlyLegacyDescription() {
 	assert.Equal(s.T(), rendering.SystemMarkupDefault, updatedWI.Data.Attributes[workitem.SystemDescriptionMarkup])
 }
 
-// fixing https://github.com/almighty/almighty-core/issues/986
+// fixing https://github.com/fabric8-services/fabric8-wit/issues/986
 func (s *WorkItem2Suite) TestWI2UpdateDescriptionAndMarkup() {
 	s.minimumPayload.Data.Attributes[workitem.SystemTitle] = "Test title"
 	modifiedDescription := "# Description is modified"
@@ -1008,6 +1009,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItem() {
 	assert.NotNil(s.T(), wi.Data.Type)
 	require.NotNil(s.T(), wi.Data.Attributes)
 	assert.Equal(s.T(), "Title", wi.Data.Attributes[workitem.SystemTitle])
+	assert.NotNil(s.T(), wi.Data.Attributes[workitem.SystemNumber])
 	assert.NotNil(s.T(), wi.Data.Relationships.BaseType.Data.ID)
 	assert.NotNil(s.T(), wi.Data.Relationships.Comments.Links.Self)
 	assert.NotNil(s.T(), wi.Data.Relationships.Area.Data.ID)
@@ -1365,7 +1367,7 @@ func (s *WorkItem2Suite) TestWI2ListByStateFilterOK() {
 	}
 }
 
-// see https://github.com/almighty/almighty-core/issues/1268
+// see https://github.com/fabric8-services/fabric8-wit/issues/1268
 func (s *WorkItem2Suite) TestWI2ListByStateFilterNotModifiedUsingIfNoneMatchIfModifiedSinceHeaders() {
 	// given
 	_ = s.createWorkItem("title", workitem.SystemStateNew)
@@ -1390,7 +1392,7 @@ func (s *WorkItem2Suite) TestWI2ListByStateFilterNotModifiedUsingIfNoneMatchIfMo
 	assertResponseHeaders(s.T(), res)
 }
 
-// see https://github.com/almighty/almighty-core/issues/1268
+// see https://github.com/fabric8-services/fabric8-wit/issues/1268
 func (s *WorkItem2Suite) TestWI2ListByStateFilterOKModifiedUsingIfNoneMatchIfModifiedSinceHeaders() {
 	// given
 	_ = s.createWorkItem("title", workitem.SystemStateNew)
@@ -1716,12 +1718,10 @@ func assertResponseHeaders(t *testing.T, res http.ResponseWriter) (string, strin
 	return etag[0], lastModified[0], cacheControl[0]
 }
 
-// Temporarly disabled, See https://github.com/almighty/almighty-core/issues/1036
-func (s *WorkItem2Suite) xTestWI2FailShowMissing() {
-	test.ShowWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace, "00000000", nil, nil)
+func (s *WorkItem2Suite) TestWI2FailShowMissing() {
+	test.ShowWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace, uuid.NewV4(), nil, nil)
 }
 
-// Temporarly disabled, See https://github.com/almighty/almighty-core/issues/1036
 func (s *WorkItem2Suite) TestWI2FailOnDelete() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
@@ -1733,7 +1733,7 @@ func (s *WorkItem2Suite) TestWI2FailOnDelete() {
 	test.DeleteWorkitemMethodNotAllowed(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, *createdWI.Data.ID)
 }
 
-// Temporarly disabled, See https://github.com/almighty/almighty-core/issues/1036
+// Temporarly disabled, See https://github.com/fabric8-services/fabric8-wit/issues/1036
 func (s *WorkItem2Suite) xTestWI2SuccessDelete() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
@@ -1749,7 +1749,7 @@ func (s *WorkItem2Suite) xTestWI2SuccessDelete() {
 // TestWI2DeleteLinksOnWIDeletionOK creates two work items (WI1 and WI2) and
 // creates a link between them. When one of the work items is deleted, the
 // link shall be gone as well.
-// Temporarly disabled, See https://github.com/almighty/almighty-core/issues/1036
+// Temporarly disabled, See https://github.com/fabric8-services/fabric8-wit/issues/1036
 func (s *WorkItem2Suite) xTestWI2DeleteLinksOnWIDeletionOK() {
 	// Create two work items (wi1 and wi2)
 	c := minimumRequiredCreatePayload()
@@ -1777,11 +1777,7 @@ func (s *WorkItem2Suite) xTestWI2DeleteLinksOnWIDeletionOK() {
 	require.NotNil(s.T(), linkType)
 
 	// Create link between wi1 and wi2
-	id1, err := strconv.ParseUint(*wi1.Data.ID, 10, 64)
-	require.Nil(s.T(), err)
-	id2, err := strconv.ParseUint(*wi2.Data.ID, 10, 64)
-	require.Nil(s.T(), err)
-	linkPayload := newCreateWorkItemLinkPayload(id1, id2, *linkType.Data.ID)
+	linkPayload := newCreateWorkItemLinkPayload(*wi1.Data.ID, *wi2.Data.ID, *linkType.Data.ID)
 	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.linkCtrl, linkPayload)
 	require.NotNil(s.T(), workItemLink)
 
@@ -1793,11 +1789,6 @@ func (s *WorkItem2Suite) xTestWI2DeleteLinksOnWIDeletionOK() {
 
 	// Check that we can query for wi2 without problems
 	test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *wi2.Data.Relationships.Space.Data.ID, *wi2.Data.ID, nil, nil)
-}
-
-// Temporarly disabled, See https://github.com/almighty/almighty-core/issues/1036
-func (s *WorkItem2Suite) xTestWI2FailMissingDelete() {
-	test.DeleteWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace, "00000000")
 }
 
 func (s *WorkItem2Suite) TestWI2CreateWithArea() {
@@ -2430,12 +2421,6 @@ func (s *WorkItem2Suite) TestWI2ListForChildIteration() {
 	require.Len(s.T(), list.Data, 2)
 }
 
-func minimumRequiredCreateWithTypeAndSpace(wit uuid.UUID, spaceID uuid.UUID) app.CreateWorkitemPayload {
-	c := minimumRequiredCreatePayloadWithSpace(spaceID)
-	c.Data.Relationships.BaseType = newRelationBaseType(spaceID, wit)
-	return c
-}
-
 func minimumRequiredCreatePayloadWithSpace(spaceID uuid.UUID) app.CreateWorkitemPayload {
 	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
@@ -2514,7 +2499,7 @@ func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	// Not a space collaborator is not authorized to update
 	test.UpdateWorkitemForbidden(s.T(), svcNotAuthrized.Context, svcNotAuthrized, ctrlNotAuthrize, *payload.Data.Relationships.Space.Data.ID, *wi.Data.ID, &payload2)
 	// Not a space collaborator is not authorized to delete
-	// Temporarly disabled, See https://github.com/almighty/almighty-core/issues/1036
+	// Temporarly disabled, See https://github.com/fabric8-services/fabric8-wit/issues/1036
 	// test.DeleteWorkitemForbidden(s.T(), svcNotAuthrized.Context, svcNotAuthrized, ctrlNotAuthrize, *payload.Data.Relationships.Space.Data.ID, *wi.Data.ID)
 	// Not a space collaborator is not authorized to reoder
 	payload4 := minimumRequiredReorderPayload()

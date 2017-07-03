@@ -9,12 +9,12 @@ import (
 	"sync"
 	"text/template"
 
-	"github.com/almighty/almighty-core/category"
-	"github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/log"
-	"github.com/almighty/almighty-core/space"
-	"github.com/almighty/almighty-core/workitem"
-	"github.com/almighty/almighty-core/workitem/link"
+	"github.com/fabric8-services/fabric8-wit/category"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/space"
+	"github.com/fabric8-services/fabric8-wit/workitem"
+	"github.com/fabric8-services/fabric8-wit/workitem/link"
 
 	"context"
 
@@ -318,7 +318,10 @@ func GetMigrations() Migrations {
 	m = append(m, steps{ExecuteSQLFile("064-remove-link-combinations.sql")})
 
 	// Version 65
-	m = append(m, steps{ExecuteSQLFile("065-categories.sql")})
+	m = append(m, steps{ExecuteSQLFile("065-workitem-id-unique-per-space.sql")})
+
+	// Version 66
+	m = append(m, steps{ExecuteSQLFile("066-categories.sql")})
 
 	// Version N
 	//
@@ -444,7 +447,7 @@ func MigrateToNextVersion(tx *sql.Tx, nextVersion *int64, m Migrations, catalog 
 // in -1 + 1 = 0 which is exactly what we want as the first version.
 func getCurrentVersion(db *sql.Tx, catalog string) (int64, error) {
 	query := `SELECT EXISTS(
-				SELECT 1 FROM information_schema.tables 
+				SELECT 1 FROM information_schema.tables
 				WHERE table_catalog=$1
 				AND table_name='version')`
 	row := db.QueryRow(query, catalog)

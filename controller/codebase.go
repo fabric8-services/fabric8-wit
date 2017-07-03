@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/codebase"
-	"github.com/almighty/almighty-core/codebase/che"
-	"github.com/almighty/almighty-core/jsonapi"
-	"github.com/almighty/almighty-core/log"
-	"github.com/almighty/almighty-core/login"
-	"github.com/almighty/almighty-core/rest"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/codebase"
+	"github.com/fabric8-services/fabric8-wit/codebase/che"
+	"github.com/fabric8-services/fabric8-wit/jsonapi"
+	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/login"
+	"github.com/fabric8-services/fabric8-wit/rest"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
@@ -136,8 +136,8 @@ func (c *CodebaseController) Create(ctx *app.CreateCodebaseContext) error {
 	}
 	cheClient := che.NewStarterClient(c.config.GetCheStarterURL(), c.config.GetOpenshiftTenantMasterURL(), getNamespace(ctx))
 
-	stackID := cb.StackID
-	if cb.StackID == "" {
+	stackID := *cb.StackID
+	if cb.StackID == nil || *cb.StackID == "" {
 		stackID = "java-centos"
 	}
 	workspace := che.WorkspaceRequest{
@@ -266,7 +266,7 @@ func ConvertCodebase(request *goa.RequestData, codebase *codebase.Codebase, addi
 			CreatedAt:         &codebase.CreatedAt,
 			Type:              &codebase.Type,
 			URL:               &codebase.URL,
-			StackID:           &codebase.StackID,
+			StackID:           codebase.StackID,
 			LastUsedWorkspace: &codebase.LastUsedWorkspace,
 		},
 		Relationships: &app.CodebaseRelations{

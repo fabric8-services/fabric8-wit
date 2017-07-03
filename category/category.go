@@ -4,11 +4,14 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
-	"github.com/almighty/almighty-core/convert"
-	"github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/gormsupport"
-	"github.com/almighty/almighty-core/log"
+	"github.com/fabric8-services/fabric8-wit/application/repository"
+	"github.com/fabric8-services/fabric8-wit/convert"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/gormsupport"
+	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -83,6 +86,7 @@ func (category Category) Equal(u convert.Equaler) bool {
 
 // Repository encapsulates storage and retrieval of categories
 type Repository interface {
+	repository.Exister
 	Create(ctx context.Context, category *Category) (*Category, error)
 	LoadCategory(ctx context.Context, id uuid.UUID) (*Category, error)
 	List(ctx context.Context) ([]*Category, error)
@@ -235,4 +239,16 @@ func (m *GormRepository) Save(ctx context.Context, category *Category) (*Categor
 		"category_id": category.ID,
 	}, "Updated category")
 	return &res, nil
+}
+
+// TableName overrides the table name settings in Gorm to force a specific table name
+// in the database.
+func (m *GormRepository) TableName() string {
+	return "categories"
+}
+
+// Exists returns true|false whether an identity exists with a specific identifier
+func (m *GormRepository) Exists(ctx context.Context, id string) (bool, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "identity", "exists"}, time.Now())
+	return repository.Exists(ctx, m.db, m.TableName(), id)
 }

@@ -5,11 +5,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/almighty/almighty-core/category"
-	errs "github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/migration"
+	"github.com/fabric8-services/fabric8-wit/category"
+	errs "github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/migration"
+	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -202,5 +203,36 @@ func (test *categoryRepoBlackBoxTest) TestListCategories() {
 			}
 			assert.True(t, found, "failed to find ID %s in list of categories", id)
 		}
+	})
+}
+
+// TestListCategories creates category and checks if it exists and checks that category should not exist when not created
+func (test *categoryRepoBlackBoxTest) TestExistsCategories() {
+	t := test.T()
+	resource.Require(t, resource.Database)
+
+	t.Run("category exists", func(t *testing.T) {
+		// given
+		category1Payload := category.Category{
+			Name: "Category1",
+		}
+		cat1, err := test.repo.Create(test.ctx, &category1Payload)
+		require.Nil(t, err)
+		require.NotNil(test.T(), cat1)
+		require.NotNil(test.T(), cat1.ID)
+
+		// when
+		exists, err1 := test.repo.Exists(context.Background(), cat1.ID.String())
+		// then
+		require.Nil(t, err1)
+		assert.True(t, exists)
+	})
+
+	t.Run("category doesn't exist", func(t *testing.T) {
+		// when
+		exists, err := test.repo.Exists(context.Background(), uuid.NewV4().String())
+		// then
+		require.IsType(t, errs.NotFoundError{}, err)
+		assert.False(t, exists)
 	})
 }

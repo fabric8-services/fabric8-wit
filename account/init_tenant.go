@@ -7,8 +7,8 @@ import (
 
 	"net/url"
 
-	"github.com/almighty/almighty-core/account/tenant"
-	"github.com/almighty/almighty-core/goasupport"
+	"github.com/fabric8-services/fabric8-wit/account/tenant"
+	"github.com/fabric8-services/fabric8-wit/goasupport"
 	goaclient "github.com/goadesign/goa/client"
 )
 

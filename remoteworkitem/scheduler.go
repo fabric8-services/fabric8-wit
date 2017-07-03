@@ -1,8 +1,8 @@
 package remoteworkitem
 
 import (
-	"github.com/almighty/almighty-core/log"
-	"github.com/almighty/almighty-core/models"
+	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/models"
 
 	"context"
 	"github.com/jinzhu/gorm"

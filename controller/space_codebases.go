@@ -1,13 +1,13 @@
 package controller
 
 import (
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/codebase"
-	"github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/jsonapi"
-	"github.com/almighty/almighty-core/login"
-	"github.com/almighty/almighty-core/rest"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/codebase"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/jsonapi"
+	"github.com/fabric8-services/fabric8-wit/login"
+	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/goadesign/goa"
 )
 
@@ -54,7 +54,7 @@ func (c *SpaceCodebasesController) Create(ctx *app.CreateSpaceCodebasesContext) 
 			SpaceID: ctx.SpaceID,
 			Type:    *reqIter.Attributes.Type,
 			URL:     *reqIter.Attributes.URL,
-			StackID: *reqIter.Attributes.StackID,
+			StackID: reqIter.Attributes.StackID,
 		}
 		err = appl.Codebases().Create(ctx, &newCodeBase)
 		if err != nil {

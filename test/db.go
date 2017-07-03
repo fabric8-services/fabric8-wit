@@ -1,17 +1,17 @@
 package test
 
 import (
-	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/area"
-	"github.com/almighty/almighty-core/auth"
-	"github.com/almighty/almighty-core/category"
-	"github.com/almighty/almighty-core/codebase"
-	"github.com/almighty/almighty-core/comment"
-	"github.com/almighty/almighty-core/iteration"
-	"github.com/almighty/almighty-core/space"
-	"github.com/almighty/almighty-core/workitem"
-	"github.com/almighty/almighty-core/workitem/link"
+	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/area"
+	"github.com/fabric8-services/fabric8-wit/auth"
+	"github.com/fabric8-services/fabric8-wit/codebase"
+	"github.com/fabric8-services/fabric8-wit/comment"
+	"github.com/fabric8-services/fabric8-wit/iteration"
+	"github.com/fabric8-services/fabric8-wit/space"
+	"github.com/fabric8-services/fabric8-wit/workitem"
+	"github.com/fabric8-services/fabric8-wit/category"
+	"github.com/fabric8-services/fabric8-wit/workitem/link"
 )
 
 func NewMockDB() *MockDB {

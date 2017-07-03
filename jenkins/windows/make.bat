@@ -1,6 +1,6 @@
-:: Run "set ALMIGHTY_DEBUG=1" before calling this script to enable debug output.
+:: Run "set F8_DEBUG=1" before calling this script to enable debug output.
 :: This basically just outputs every command before executing it.
-@if not defined ALMIGHTY_DEBUG echo off
+@if not defined F8_DEBUG echo off
 
 :: This is a script to help have a CI system on a Windows host with no
 :: other requirement other than to have a CMD.
@@ -16,7 +16,7 @@ if not "%PROCESSOR_ARCHITECTURE%" == "AMD64" goto error_wrong_architecture
 
 :: The workspace environment is set by Jenkins and defaults to %TEMP% if not set
 if "%WORKSPACE%" == "" set WORKSPACE=%TEMP%
-if "%BUILD_DIR%" == "" set "BUILD_DIR=%WORKSPACE%\almighty-core-windows-build"
+if "%BUILD_DIR%" == "" set "BUILD_DIR=%WORKSPACE%\fabric8-wit-windows-build"
 :: Create our build dir - see https://support.microsoft.com/en-us/kb/65994
 if not exist %BUILD_DIR%\NUL (
   mkdir %BUILD_DIR%
@@ -28,7 +28,7 @@ set POWERSHELL_BIN=%SystemRoot%\system32\WindowsPowerShell\v1.0\powershell.exe
 set GOPATH=%BUILD_DIR%\gopath
 set GOBIN=%GOPATH%\bin
 set PATH=%PATH%;%GOBIN%
-set PACKAGE_PATH=%GOPATH%\src\github.com\almighty\almighty-core
+set PACKAGE_PATH=%GOPATH%\src\github.com\fabric8-services\fabric8-wit
 
 set GIT_DOWNLOAD_URL=https://github.com/git-for-windows/git/releases/download/v2.9.0.windows.1/Git-2.9.0-64-bit.exe
 set GIT_INSTALLER_PATH=%BUILD_DIR%\git-installer.exe

@@ -9,25 +9,25 @@ import (
 
 	"net/http"
 
-	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/app/test"
-	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/area"
-	"github.com/almighty/almighty-core/auth"
-	"github.com/almighty/almighty-core/category"
-	"github.com/almighty/almighty-core/codebase"
-	"github.com/almighty/almighty-core/comment"
-	"github.com/almighty/almighty-core/configuration"
-	. "github.com/almighty/almighty-core/controller"
-	"github.com/almighty/almighty-core/gormsupport"
-	"github.com/almighty/almighty-core/iteration"
-	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/space"
-	almtoken "github.com/almighty/almighty-core/token"
-	"github.com/almighty/almighty-core/workitem"
-	"github.com/almighty/almighty-core/workitem/link"
 	token "github.com/dgrijalva/jwt-go"
+	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/app/test"
+	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/area"
+	"github.com/fabric8-services/fabric8-wit/auth"
+	"github.com/fabric8-services/fabric8-wit/category"
+	"github.com/fabric8-services/fabric8-wit/codebase"
+	"github.com/fabric8-services/fabric8-wit/comment"
+	"github.com/fabric8-services/fabric8-wit/configuration"
+	. "github.com/fabric8-services/fabric8-wit/controller"
+	"github.com/fabric8-services/fabric8-wit/gormsupport"
+	"github.com/fabric8-services/fabric8-wit/iteration"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/space"
+	almtoken "github.com/fabric8-services/fabric8-wit/token"
+	"github.com/fabric8-services/fabric8-wit/workitem"
+	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/jinzhu/gorm"
@@ -59,7 +59,7 @@ func (rest *TestUserREST) SetupSuite() {
 
 func (rest *TestUserREST) newUserController(identity *account.Identity, user *account.User) *UserController {
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	return NewUserController(goa.New("alm-test"), newGormTestBase(identity, user), almtoken.NewManagerWithPrivateKey(priv), &rest.config)
+	return NewUserController(goa.New("wit-test"), newGormTestBase(identity, user), almtoken.NewManagerWithPrivateKey(priv), &rest.config)
 }
 
 func (rest *TestUserREST) TestCurrentAuthorizedMissingUUID() {

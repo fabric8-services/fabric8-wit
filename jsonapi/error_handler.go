@@ -8,8 +8,8 @@ import (
 	"net/http"
 
 	"context"
-	"github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/log"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 )

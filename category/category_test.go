@@ -4,10 +4,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/almighty/almighty-core/category"
-	"github.com/almighty/almighty-core/convert"
-	"github.com/almighty/almighty-core/gormsupport"
-	"github.com/almighty/almighty-core/resource"
+	"github.com/fabric8-services/fabric8-wit/category"
+	"github.com/fabric8-services/fabric8-wit/convert"
+	"github.com/fabric8-services/fabric8-wit/gormsupport"
+	"github.com/fabric8-services/fabric8-wit/resource"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 )
