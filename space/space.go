@@ -118,10 +118,10 @@ func (r *GormRepository) Load(ctx context.Context, ID uuid.UUID) (*Space, error)
 	return &res, nil
 }
 
-// Exists returns true|false whether a space exists with a specific identifier
-func (r *GormRepository) Exists(ctx context.Context, id string) (bool, error) {
+// CheckExists returns nil if the given ID exists otherwise returns an error
+func (r *GormRepository) CheckExists(ctx context.Context, id string) error {
 	defer goa.MeasureSince([]string{"goa", "db", "space", "exists"}, time.Now())
-	return repository.Exists(ctx, r.db, r.TableName(), id)
+	return repository.CheckExists(ctx, r.db, r.TableName(), id)
 }
 
 // Delete deletes the space with the given id

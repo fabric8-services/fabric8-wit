@@ -586,17 +586,17 @@ func createOrUpdateWorkItemLinkCategory(ctx context.Context, linkCatRepo *link.G
 func createOrUpdateSpace(ctx context.Context, spaceRepo *space.GormRepository, id uuid.UUID, description string) error {
 	s, err := spaceRepo.Load(ctx, id)
 	cause := errs.Cause(err)
-	newSpace := &space.Space{
-		Description: description,
-		Name:        "system.space",
-		ID:          id,
-	}
 	switch cause.(type) {
 	case errors.NotFoundError:
 		log.Info(ctx, map[string]interface{}{
 			"pkg":      "migration",
 			"space_id": id,
 		}, "space %s will be created", id)
+		newSpace := &space.Space{
+			Description: description,
+			Name:        "system.space",
+			ID:          id,
+		}
 		_, err := spaceRepo.Create(ctx, newSpace)
 		if err != nil {
 			return errs.Wrapf(err, "failed to create space %s", id)
@@ -615,26 +615,24 @@ func createOrUpdateSpace(ctx context.Context, spaceRepo *space.GormRepository, i
 }
 
 func createSpace(ctx context.Context, spaceRepo *space.GormRepository, id uuid.UUID, description string) error {
-	exists, err := spaceRepo.Exists(ctx, id.String())
-	if !exists {
-		switch reflect.TypeOf(err) {
-		case reflect.TypeOf(&goa.ErrorResponse{}):
-			log.Info(ctx, map[string]interface{}{
-				"pkg":      "migration",
-				"space_id": id,
-			}, "space %s will be created", id)
-			newSpace := &space.Space{
-				Description: description,
-				Name:        "system.space",
-				ID:          id,
-			}
-			_, err := spaceRepo.Create(ctx, newSpace)
-			if err != nil {
-				return errs.Wrapf(err, "failed to create space %s", id)
-			}
-		default:
-			log.Error(ctx, map[string]interface{}{"err": err, "space_id": id}, "unable to verify if a space exists")
+	err := spaceRepo.CheckExists(ctx, id.String())
+	switch reflect.TypeOf(err) {
+	case reflect.TypeOf(&goa.ErrorResponse{}):
+		log.Info(ctx, map[string]interface{}{
+			"pkg":      "migration",
+			"space_id": id,
+		}, "space %s will be created", id)
+		newSpace := &space.Space{
+			Description: description,
+			Name:        "system.space",
+			ID:          id,
 		}
+		_, err := spaceRepo.Create(ctx, newSpace)
+		if err != nil {
+			return errs.Wrapf(err, "failed to create space %s", id)
+		}
+	default:
+		log.Error(ctx, map[string]interface{}{"err": err, "space_id": id}, "unable to verify if a space exists")
 	}
 	return nil
 }

@@ -8,7 +8,6 @@ import (
 	"context"
 
 	"github.com/fabric8-services/fabric8-wit/application"
-	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
@@ -84,10 +83,8 @@ func (test *TestTrackerQueryRepository) TestExistsTrackerQuery() {
 		query, err := test.queryRepo.Create(ctx, "abc", "xyz", tracker.ID, space.SystemSpace)
 		assert.Nil(t, err)
 
-		var exists bool
-		exists, err = test.queryRepo.Exists(ctx, query.ID)
+		err = test.queryRepo.CheckExists(ctx, query.ID)
 		assert.Nil(t, err)
-		assert.True(t, exists)
 	})
 
 	t.Run("tracker query doesn't exist", func(t *testing.T) {
@@ -96,9 +93,8 @@ func (test *TestTrackerQueryRepository) TestExistsTrackerQuery() {
 		params := url.Values{}
 		ctx := goa.NewContext(context.Background(), nil, req, params)
 
-		exists, err := test.queryRepo.Exists(ctx, "11111111111")
+		err := test.queryRepo.CheckExists(ctx, "11111111111")
 		require.IsType(t, &goa.ErrorResponse{}, err)
-		assert.False(t, exists)
 	})
 
 }

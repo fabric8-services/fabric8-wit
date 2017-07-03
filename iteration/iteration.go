@@ -172,10 +172,10 @@ func (m *GormIterationRepository) Load(ctx context.Context, id uuid.UUID) (*Iter
 	return &obj, nil
 }
 
-// Exists returns true|false whether an iteration exists with a specific identifier
-func (m *GormIterationRepository) Exists(ctx context.Context, id string) (bool, error) {
+// CheckExists returns nil if the given ID exists otherwise returns an error
+func (m *GormIterationRepository) CheckExists(ctx context.Context, id string) error {
 	defer goa.MeasureSince([]string{"goa", "db", "iteration", "exists"}, time.Now())
-	return repository.Exists(ctx, m.db, Iteration{}.TableName(), id)
+	return repository.CheckExists(ctx, m.db, Iteration{}.TableName(), id)
 }
 
 // Save updates the given iteration in the db. Version must be the same as the one in the stored version

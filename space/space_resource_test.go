@@ -72,15 +72,13 @@ func (test *resourceRepoBBTest) TestExistsSpaceResource() {
 		expectResource(test.load(uuid.NewV4()), test.assertNotFound())
 		res, _, _ := expectResource(test.create(testResourceID, testPolicyID, testPermissionID), test.requireOk)
 
-		exists, err := test.repo.Exists(context.Background(), res.ID.String())
+		err := test.repo.CheckExists(context.Background(), res.ID.String())
 		require.Nil(t, err)
-		assert.True(t, exists)
 	})
 
 	t.Run("space resource doesn't exist", func(t *testing.T) {
-		exists, err := test.repo.Exists(context.Background(), uuid.NewV4().String())
+		err := test.repo.CheckExists(context.Background(), uuid.NewV4().String())
 		require.IsType(t, &goa.ErrorResponse{}, err)
-		assert.False(t, exists)
 	})
 
 }

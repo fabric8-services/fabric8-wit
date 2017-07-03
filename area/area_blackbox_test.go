@@ -120,20 +120,18 @@ func (test *TestAreaRepository) TestExistsArea() {
 		require.NotEqual(t, uuid.Nil, a.ID)
 
 		// when
-		exists, err1 := repo.Exists(context.Background(), a.ID.String())
+		err1 := repo.CheckExists(context.Background(), a.ID.String())
 		// then
 		require.Nil(t, err1)
-		assert.True(t, exists)
 	})
 
 	t.Run("area doesn't exist", func(t *testing.T) {
 		// given
 		repo := area.NewAreaRepository(test.DB)
 		// when
-		exists, err := repo.Exists(context.Background(), uuid.NewV4().String())
+		err := repo.CheckExists(context.Background(), uuid.NewV4().String())
 		// then
 		require.IsType(t, &goa.ErrorResponse{}, err)
-		assert.False(t, exists)
 	})
 }
 

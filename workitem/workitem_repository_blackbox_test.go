@@ -163,20 +163,16 @@ func (s *workItemRepoBlackBoxTest) TestExistsWorkItem() {
 			}, s.creatorID)
 		require.Nil(s.T(), err, "Could not create workitem")
 		// when
-		var exists bool
-		exists, err = s.repo.Exists(s.ctx, wi.ID.String())
+		err = s.repo.CheckExists(s.ctx, wi.ID.String())
 		// then
 		require.Nil(t, err)
-		require.True(t, exists)
 	})
 
 	t.Run("work item doesn't exist", func(t *testing.T) {
 		t.Parallel()
 		// when
-		var exists bool
-		exists, err := s.repo.Exists(s.ctx, "00000000-0000-0000-0000-000000000000")
+		err := s.repo.CheckExists(s.ctx, "00000000-0000-0000-0000-000000000000")
 		// then
-		require.False(t, exists)
 		require.IsType(t, &goa.ErrorResponse{}, err)
 	})
 

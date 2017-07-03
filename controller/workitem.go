@@ -281,7 +281,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		//verify spaceID:
 		// To be removed once we have endpoint like - /api/space/{spaceID}/workitems
-		_, err := appl.Spaces().Exists(ctx, ctx.SpaceID.String())
+		err := appl.Spaces().CheckExists(ctx, ctx.SpaceID.String())
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -432,7 +432,7 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, appl application.Application,
 			if err != nil {
 				return errors.NewBadParameterError("data.relationships.iteration.data.id", *d.ID)
 			}
-			if _, err := appl.Iterations().Exists(ctx, iterationUUID.String()); err != nil {
+			if err := appl.Iterations().CheckExists(ctx, iterationUUID.String()); err != nil {
 				return errors.NewBadParameterError("data.relationships.iteration.data.id", *d.ID)
 			}
 			target.Fields[workitem.SystemIteration] = iterationUUID.String()
@@ -456,7 +456,7 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, appl application.Application,
 			if err != nil {
 				return errors.NewBadParameterError("data.relationships.area.data.id", *d.ID)
 			}
-			if _, err := appl.Areas().Exists(ctx, areaUUID.String()); err != nil {
+			if err := appl.Areas().CheckExists(ctx, areaUUID.String()); err != nil {
 				switch reflect.TypeOf(err) {
 				case reflect.TypeOf(&goa.ErrorResponse{}):
 					return errors.NewBadParameterError("data.relationships.area.data.id", *d.ID)

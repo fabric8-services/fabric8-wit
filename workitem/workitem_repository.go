@@ -108,10 +108,10 @@ func (r *GormWorkItemRepository) Load(ctx context.Context, spaceID uuid.UUID, wi
 	return ConvertWorkItemStorageToModel(wiType, wiStorage)
 }
 
-// Exists returns true if a work item exists with a given ID
-func (m *GormWorkItemRepository) Exists(ctx context.Context, workitemID string) (bool, error) {
+// CheckExists returns nil if the given ID exists otherwise returns an error
+func (m *GormWorkItemRepository) CheckExists(ctx context.Context, workitemID string) error {
 	defer goa.MeasureSince([]string{"goa", "db", "workitem", "exists"}, time.Now())
-	return repository.Exists(ctx, m.db, workitemTableName, workitemID)
+	return repository.CheckExists(ctx, m.db, workitemTableName, workitemID)
 }
 
 func (r *GormWorkItemRepository) loadWorkItemStorage(ctx context.Context, spaceID uuid.UUID, wiNumber int, selectForUpdate bool) (*WorkItemStorage, *WorkItemType, error) {

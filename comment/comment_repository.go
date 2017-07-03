@@ -237,8 +237,8 @@ func (m *GormCommentRepository) Load(ctx context.Context, id uuid.UUID) (*Commen
 	return &obj, nil
 }
 
-// Exists returns true|false whether a comment exists with a specific identifier
-func (m *GormCommentRepository) Exists(ctx context.Context, id string) (bool, error) {
+// CheckExists returns nil if the given ID exists otherwise returns an error
+func (m *GormCommentRepository) CheckExists(ctx context.Context, id string) error {
 	defer goa.MeasureSince([]string{"goa", "db", "comment", "exists"}, time.Now())
-	return repository.Exists(ctx, m.db, m.TableName(), id)
+	return repository.CheckExists(ctx, m.db, m.TableName(), id)
 }

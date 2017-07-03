@@ -71,10 +71,10 @@ func (r *GormWorkItemLinkCategoryRepository) Load(ctx context.Context, ID uuid.U
 	return &result, nil
 }
 
-// Exists returns true|false whether a work item link category exists with a specific identifier
-func (m *GormWorkItemLinkCategoryRepository) Exists(ctx context.Context, id string) (bool, error) {
+// CheckExists returns nil if the given ID exists otherwise returns an error
+func (m *GormWorkItemLinkCategoryRepository) CheckExists(ctx context.Context, id string) error {
 	defer goa.MeasureSince([]string{"goa", "db", "workitemlinkcategory", "exists"}, time.Now())
-	return repository.Exists(ctx, m.db, WorkItemLinkCategory{}.TableName(), id)
+	return repository.CheckExists(ctx, m.db, WorkItemLinkCategory{}.TableName(), id)
 }
 
 // List returns all work item link categories

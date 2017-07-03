@@ -80,8 +80,8 @@ func (r *GormWorkItemTypeRepository) Load(ctx context.Context, spaceID uuid.UUID
 	return &res, nil
 }
 
-// Exists returns true if a work item type exists with a given ID
-func (m *GormWorkItemTypeRepository) Exists(ctx context.Context, id string) (bool, error) {
+// CheckExists returns nil if the given ID exists otherwise returns an error
+func (m *GormWorkItemTypeRepository) CheckExists(ctx context.Context, id string) error {
 	defer goa.MeasureSince([]string{"goa", "db", "workitemtype", "exists"}, time.Now())
 	log.Info(ctx, map[string]interface{}{
 		"wit_id": id,
@@ -89,13 +89,13 @@ func (m *GormWorkItemTypeRepository) Exists(ctx context.Context, id string) (boo
 
 	uuid, err := uuid.FromString(id)
 	if err != nil {
-		return false, errors.NewBadParameterError("id", id)
+		return errors.NewBadParameterError("id", id)
 	}
 	_, exists := cache.Get(uuid)
 	if exists {
-		return true, nil
+		return nil
 	}
-	return repository.Exists(ctx, m.db, WorkItemType{}.TableName(), id)
+	return repository.CheckExists(ctx, m.db, WorkItemType{}.TableName(), id)
 }
 
 // LoadTypeFromDB return work item type for the given id

@@ -93,10 +93,10 @@ func (m *GormUserRepository) Load(ctx context.Context, id uuid.UUID) (*User, err
 	return &native, errs.WithStack(err)
 }
 
-// Exists returns true|false whether an user exists with a specific identifier
-func (m *GormUserRepository) Exists(ctx context.Context, id string) (bool, error) {
+// CheckExists returns nil if the given ID exists otherwise returns an error
+func (m *GormUserRepository) CheckExists(ctx context.Context, id string) error {
 	defer goa.MeasureSince([]string{"goa", "db", "user", "exists"}, time.Now())
-	return repository.Exists(ctx, m.db, m.TableName(), id)
+	return repository.CheckExists(ctx, m.db, m.TableName(), id)
 }
 
 // Create creates a new record.

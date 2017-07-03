@@ -6,7 +6,6 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/migration"
@@ -100,15 +99,13 @@ func (s *workItemTypeRepoBlackBoxTest) TestExistsWIT() {
 		require.NotNil(s.T(), wit)
 		require.NotNil(s.T(), wit.ID)
 
-		exists, err := s.repo.Exists(s.ctx, wit.ID.String())
+		err = s.repo.CheckExists(s.ctx, wit.ID.String())
 		require.Nil(s.T(), err)
-		require.True(s.T(), exists)
 	})
 
 	t.Run("wit doesn't exist", func(t *testing.T) {
 		t.Parallel()
-		exists, err := s.repo.Exists(s.ctx, uuid.NewV4().String())
-		require.False(t, exists)
+		err := s.repo.CheckExists(s.ctx, uuid.NewV4().String())
 		require.IsType(t, &goa.ErrorResponse{}, err)
 	})
 

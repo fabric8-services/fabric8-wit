@@ -11,15 +11,14 @@ import (
 )
 
 type WorkItemRepository struct {
-	ExistsStub        func(ctx context.Context, id string) (bool, error)
+	ExistsStub        func(ctx context.Context, id string) error
 	existsMutex       sync.RWMutex
 	existsArgsForCall []struct {
 		ctx context.Context
 		id  string
 	}
 	existsReturns struct {
-		result1 bool
-		result2 error
+		result1 error
 	}
 	LoadByIDStub        func(ctx context.Context, id uuid.UUID) (*workitem.WorkItem, error)
 	loadByIDMutex       sync.RWMutex
@@ -151,7 +150,7 @@ type WorkItemRepository struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *WorkItemRepository) Exists(ctx context.Context, id string) (bool, error) {
+func (fake *WorkItemRepository) CheckExists(ctx context.Context, id string) error {
 	fake.existsMutex.Lock()
 	fake.existsArgsForCall = append(fake.existsArgsForCall, struct {
 		ctx context.Context
@@ -162,7 +161,7 @@ func (fake *WorkItemRepository) Exists(ctx context.Context, id string) (bool, er
 	if fake.ExistsStub != nil {
 		return fake.ExistsStub(ctx, id)
 	}
-	return fake.existsReturns.result1, fake.existsReturns.result2
+	return fake.existsReturns.result1
 }
 
 func (fake *WorkItemRepository) ExistsCallCount() int {
@@ -177,12 +176,11 @@ func (fake *WorkItemRepository) ExistsArgsForCall(i int) (context.Context, strin
 	return fake.existsArgsForCall[i].ctx, fake.existsArgsForCall[i].id
 }
 
-func (fake *WorkItemRepository) ExistsReturns(result1 bool, result2 error) {
+func (fake *WorkItemRepository) ExistsReturns(result1 error) {
 	fake.ExistsStub = nil
 	fake.existsReturns = struct {
-		result1 bool
-		result2 error
-	}{result1, result2}
+		result1 error
+	}{result1}
 }
 
 func (fake *WorkItemRepository) LoadByID(ctx context.Context, id uuid.UUID) (*workitem.WorkItem, error) {

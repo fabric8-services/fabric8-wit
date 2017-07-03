@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/codebase"
-	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
@@ -142,20 +141,18 @@ func (test *TestCodebaseRepository) TestExistsCodebase() {
 		codebase := newCodebase(spaceID, "lisp-default", "my-used-lisp-workspace", "git", "git@github.com:hectorj2f/fabric8-wit.git")
 		test.createCodebase(codebase)
 		// when
-		exists, err := repo.Exists(context.Background(), codebase.ID.String())
+		err := repo.CheckExists(context.Background(), codebase.ID.String())
 		// then
 		require.Nil(t, err)
-		assert.True(t, exists)
 	})
 
 	t.Run("codebase doesn't exist", func(t *testing.T) {
 		// given
 		repo := codebase.NewCodebaseRepository(test.DB)
 		// when
-		exists, err := repo.Exists(context.Background(), uuid.NewV4().String())
+		err := repo.CheckExists(context.Background(), uuid.NewV4().String())
 		// then
 		require.IsType(t, &goa.ErrorResponse{}, err)
-		assert.False(t, exists)
 	})
 
 }

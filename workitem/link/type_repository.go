@@ -90,10 +90,10 @@ func (r *GormWorkItemLinkTypeRepository) Load(ctx context.Context, ID uuid.UUID)
 	return &modelLinkType, nil
 }
 
-// Exists returns true|false whether a work item link type exists with a specific identifier
-func (m *GormWorkItemLinkTypeRepository) Exists(ctx context.Context, id string) (bool, error) {
+// CheckExists returns nil if the given ID exists otherwise returns an error
+func (m *GormWorkItemLinkTypeRepository) CheckExists(ctx context.Context, id string) error {
 	defer goa.MeasureSince([]string{"goa", "db", "workitemlinktype", "exists"}, time.Now())
-	return repository.Exists(ctx, m.db, WorkItemLinkType{}.TableName(), id)
+	return repository.CheckExists(ctx, m.db, WorkItemLinkType{}.TableName(), id)
 }
 
 // List returns all work item link types

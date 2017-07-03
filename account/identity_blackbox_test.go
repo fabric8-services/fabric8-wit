@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/account"
-	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/migration"
@@ -88,18 +87,16 @@ func (s *identityBlackBoxTest) TestExistsIdentity() {
 		// given
 		identity := createAndLoad(s)
 		// when
-		exists, err := s.repo.Exists(s.ctx, identity.ID.String())
+		err := s.repo.CheckExists(s.ctx, identity.ID.String())
 		// then
 		require.Nil(t, err, "Could not check if identity exists")
-		require.True(t, exists)
 	})
 
 	t.Run("identity doesn't exist", func(t *testing.T) {
 		t.Parallel()
-		exists, err := s.repo.Exists(s.ctx, uuid.NewV4().String())
+		err := s.repo.CheckExists(s.ctx, uuid.NewV4().String())
 		// then
 		require.IsType(t, &goa.ErrorResponse{}, err)
-		require.False(t, exists)
 	})
 
 }

@@ -8,7 +8,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/criteria"
-	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
@@ -72,16 +71,14 @@ func (test *TestTrackerRepository) TestExistsTracker() {
 		assert.Equal(t, "http://api.github.com", tracker.URL)
 		assert.Equal(t, ProviderGithub, tracker.Type)
 
-		exists, err := test.repo.Exists(context.Background(), tracker.ID)
+		err = test.repo.CheckExists(context.Background(), tracker.ID)
 		assert.Nil(t, err)
-		assert.True(t, exists)
 	})
 
 	t.Run("tracker doesn't exist", func(t *testing.T) {
 		t.Parallel()
-		exists, err := test.repo.Exists(context.Background(), "11111111")
+		err := test.repo.CheckExists(context.Background(), "11111111")
 		require.IsType(t, &goa.ErrorResponse{}, err)
-		assert.False(t, exists)
 	})
 
 }

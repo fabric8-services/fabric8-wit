@@ -8,7 +8,6 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/comment"
-	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/migration"
@@ -234,18 +233,16 @@ func (s *TestCommentRepository) TestExistsComment() {
 		comment := newComment("C", "Test C", rendering.SystemMarkupMarkdown)
 		s.createComment(comment, s.testIdentity.ID)
 		// when
-		exists, err := s.repo.Exists(s.ctx, comment.ID.String())
+		err := s.repo.CheckExists(s.ctx, comment.ID.String())
 		// then
 		require.Nil(t, err)
-		assert.True(t, exists)
 	})
 
 	t.Run("comment doesn't exist", func(t *testing.T) {
 		// when
-		exists, err := s.repo.Exists(s.ctx, uuid.NewV4().String())
+		err := s.repo.CheckExists(s.ctx, uuid.NewV4().String())
 		// then
 		require.IsType(t, &goa.ErrorResponse{}, err)
-		assert.False(t, exists)
 	})
 
 }

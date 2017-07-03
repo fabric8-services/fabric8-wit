@@ -4,11 +4,13 @@ import (
 	"testing"
 
 	"context"
+
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
+	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -88,7 +90,6 @@ func (s *trackerRepoBlackBoxTest) TestFaiLoadZeroID() {
 		s.T().Error("Could not create tracker", err)
 	}
 
-	exists, err := s.repo.Exists(context.Background(), "0")
-	require.False(s.T(), exists)
+	err = s.repo.CheckExists(context.Background(), "0")
 	require.IsType(s.T(), &goa.ErrorResponse{}, err)
 }

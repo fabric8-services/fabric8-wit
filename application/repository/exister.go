@@ -12,10 +12,10 @@ import (
 )
 
 type Exister interface {
-	// Exists returns true as the first parameter if the object with the given ID exists;
-	// otherwise false is returned. The error is either nil in case of success or not nil
-	// if there has been an issue.
-	Exists(ctx context.Context, id string) (bool, error)
+	// Exists returns nil if the object with the given ID exists;
+	// otherwise an error is returned in case the given ID doesn't exists or any
+	// other unknown issue occured
+	CheckExists(ctx context.Context, id string) error
 }
 
 // Exists returns true if an item exists in the database table with a given ID
@@ -37,4 +37,11 @@ func Exists(ctx context.Context, db *gorm.DB, tableName string, id string) (bool
 		return false, errors.NewInternalError(ctx, errs.Wrapf(err, "unable to verify if %s exists", tableName))
 	}
 	return exists, nil
+}
+
+// CheckExists does the same as Exists but only returns the error value; thereby
+// being a handy convenience function.
+func CheckExists(ctx context.Context, db *gorm.DB, tableName string, id string) error {
+	_, err := Exists(ctx, db, tableName, id)
+	return err
 }
