@@ -249,15 +249,6 @@ func (rest *TestLoginREST) generateAccessToken() (*string, error) {
 	return token.AccessToken, err
 }
 
-func minimumRequiredCreateSpace() *app.CreateSpacePayload {
-	return &app.CreateSpacePayload{
-		Data: &app.Space{
-			Type:       "spaces",
-			Attributes: &app.SpaceAttributes{},
-		},
-	}
-}
-
 func validateToken(t *testing.T, token *app.AuthToken, controler *LoginController) {
 	assert.NotNil(t, token, "Token data is nil")
 	assert.NotEmpty(t, token.Token.AccessToken, "Access token is empty")
