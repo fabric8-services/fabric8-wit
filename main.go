@@ -175,7 +175,7 @@ func main() {
 	service.Use(authz.InjectAuthzService(spaceAuthzService))
 
 	loginService := login.NewKeycloakOAuthProvider(identityRepository, userRepository, tokenManager, appDB)
-	loginCtrl := controller.NewLoginController(service, loginService, tokenManager, configuration)
+	loginCtrl := controller.NewLoginController(service, loginService, tokenManager, configuration, identityRepository)
 	app.MountLoginController(service, loginCtrl)
 
 	logoutCtrl := controller.NewLogoutController(service, &login.KeycloakLogoutService{}, configuration)

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"context"
+
 	"golang.org/x/oauth2"
 
 	"github.com/fabric8-services/fabric8-wit/account"
@@ -47,18 +48,19 @@ func (rest *TestLoginREST) TearDownTest() {
 
 func (rest *TestLoginREST) UnSecuredController() (*goa.Service, *LoginController) {
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-
+	identityRepository := account.NewIdentityRepository(rest.DB)
 	svc := testsupport.ServiceAsUser("Login-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
-	return svc, &LoginController{Controller: svc.NewController("login"), auth: TestLoginService{}, configuration: rest.Configuration}
+	return svc, &LoginController{Controller: svc.NewController("login"), auth: TestLoginService{}, configuration: rest.Configuration, identities: identityRepository}
 }
 
 func (rest *TestLoginREST) SecuredController() (*goa.Service, *LoginController) {
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 
 	loginService := newTestKeycloakOAuthProvider(rest.db, rest.Configuration)
+	identityRepository := account.NewIdentityRepository(rest.DB)
 
 	svc := testsupport.ServiceAsUser("Login-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
-	return svc, NewLoginController(svc, loginService, loginService.TokenManager, rest.Configuration)
+	return svc, NewLoginController(svc, loginService, loginService.TokenManager, rest.Configuration, identityRepository)
 }
 
 func newTestKeycloakOAuthProvider(db application.DB, configuration loginConfiguration) *login.KeycloakOAuthProvider {

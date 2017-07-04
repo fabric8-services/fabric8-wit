@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -48,11 +49,12 @@ type LoginController struct {
 	auth          login.KeycloakOAuthService
 	tokenManager  token.Manager
 	configuration loginConfiguration
+	identities    account.IdentityRepository
 }
 
 // NewLoginController creates a login controller.
-func NewLoginController(service *goa.Service, auth *login.KeycloakOAuthProvider, tokenManager token.Manager, configuration loginConfiguration) *LoginController {
-	return &LoginController{Controller: service.NewController("login"), auth: auth, tokenManager: tokenManager, configuration: configuration}
+func NewLoginController(service *goa.Service, auth *login.KeycloakOAuthProvider, tokenManager token.Manager, configuration loginConfiguration, identities account.IdentityRepository) *LoginController {
+	return &LoginController{Controller: service.NewController("login"), auth: auth, tokenManager: tokenManager, configuration: configuration, identities: identities}
 }
 
 // Authorize runs the authorize action.
@@ -112,6 +114,45 @@ func (c *LoginController) Authorize(ctx *app.AuthorizeLoginContext) error {
 	return c.auth.Perform(ctx, oauth, brokerEndpoint, entitlementEndpoint, profileEndpoint, whitelist, c.configuration.GetAuthNotApprovedRedirect())
 }
 
+// getEntitlementResourceRequestPayload creates the object which would have the information about which spaces/resources
+// the entitlements' info would need to be fetched for.
+
+func (c *LoginController) getEntitlementResourceRequestPayload(ctx context.Context, token *string) (*auth.EntitlementResource, error) {
+	loggedInIdentityID, err := c.tokenManager.Extract(*token)
+	fmt.Println(loggedInIdentityID)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "Unable to get ID from access token")
+		return nil, errors.NewInternalError(ctx, errs.Wrap(err, "Unable to get ID from access token"))
+	}
+
+	// get the user object as well for this identity
+	queryResult, err := c.identities.Query(account.IdentityFilterByID(loggedInIdentityID.ID), account.IdentityWithUser())
+	if err != nil || len(queryResult) == 0 {
+		log.Error(ctx, map[string]interface{}{
+			"err":         err,
+			"identity_id": *loggedInIdentityID,
+		}, "Unable to query Identity")
+		return nil, errors.NewInternalError(ctx, errs.Wrap(err, "Unable to query Identity"))
+	}
+	loggedInIdentity := queryResult[0]
+	contextInfoLoggedInIdentity := loggedInIdentity.User.ContextInformation
+
+	var spacesToGetEntitlementsFor []auth.ResourceSet
+	for _, v := range contextInfoLoggedInIdentity["recentSpaces"].([]interface{}) {
+		recentSpaceID := v.(string)
+		spacesToGetEntitlementsFor = append(spacesToGetEntitlementsFor, auth.ResourceSet{Name: recentSpaceID}) // pass by reference?
+	}
+	if len(spacesToGetEntitlementsFor) == 0 {
+		return nil, nil
+	}
+	resource := &auth.EntitlementResource{
+		Permissions: spacesToGetEntitlementsFor,
+	}
+	return resource, nil
+}
+
 // Refresh obtain a new access token using the refresh token.
 func (c *LoginController) Refresh(ctx *app.RefreshLoginContext) error {
 	refreshToken := ctx.Payload.RefreshToken
@@ -161,7 +202,15 @@ func (c *LoginController) Refresh(ctx *app.RefreshLoginContext) error {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.Wrap(err, "unable to get Keycloak token endpoint URL")))
 	}
 
-	rpt, err := auth.GetEntitlement(ctx, entitlementEndpoint, nil, *token.AccessToken)
+	resources, err := c.getEntitlementResourceRequestPayload(ctx, token.AccessToken)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "failed to obtain create entitlement resource request ")
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+	}
+
+	rpt, err := auth.GetEntitlement(ctx, entitlementEndpoint, resources, *token.AccessToken)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
