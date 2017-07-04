@@ -20,6 +20,7 @@ import (
 	query "github.com/fabric8-services/fabric8-wit/query/simple"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/space/authz"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 
@@ -260,6 +261,43 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
+
+	var space *space.Space
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		// verify spaceID:
+		// To be removed once we have endpoint like - /api/space/{spaceID}/workitems
+		space, err = appl.Spaces().Load(ctx, ctx.SpaceID)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"err":      err,
+				"space_id": ctx.SpaceID,
+			}, "unable to load space")
+			return errors.NewBadParameterError("space", "string").Expected("valid space ID")
+		}
+		return nil
+	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+
+	// FIXME
+	// A workaround for https://github.com/almighty/almighty-core/issues/1358
+	// Allow any user to create a work item in spaces belong to the "openshiftio" user
+	// Other spaces are open for the space collaborators only
+	// ----
+	spaceOwnerID := space.OwnerId.String()
+	// check both the "openshiftio" user and the "test" user from the test realm.
+	if "7b50ddb4-5e12-4031-bca7-3b88f92e2339" != spaceOwnerID && "ae68a343-c866-430c-b6ce-a36f0b38d8e5" != spaceOwnerID {
+		authorized, err := authz.Authorize(ctx, ctx.SpaceID.String())
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
+		}
+		if !authorized {
+			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to access the space"))
+		}
+	}
+	// ----
+
 	var wit *uuid.UUID
 	if ctx.Payload.Data != nil && ctx.Payload.Data.Relationships != nil &&
 		ctx.Payload.Data.Relationships.BaseType != nil && ctx.Payload.Data.Relationships.BaseType.Data != nil {
