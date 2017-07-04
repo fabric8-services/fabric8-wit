@@ -151,10 +151,10 @@ func (rest *TestCommentREST) TestSuccessCreateSingleCommentWithDefaultMarkup() {
 func (rest *TestCommentREST) setupComments() (workitem.WorkItem, []*comment.Comment) {
 	wi := rest.createDefaultWorkItem()
 	comments := make([]*comment.Comment, 4)
-	comments[0] = &comment.Comment{ParentID: wi.ID.String(), Body: "Test 1", CreatedBy: rest.testIdentity.ID}
-	comments[1] = &comment.Comment{ParentID: wi.ID.String(), Body: "Test 2", CreatedBy: rest.testIdentity.ID}
-	comments[2] = &comment.Comment{ParentID: wi.ID.String(), Body: "Test 3", CreatedBy: rest.testIdentity.ID}
-	comments[3] = &comment.Comment{ParentID: wi.ID.String() + "_other", Body: "Test 1", CreatedBy: rest.testIdentity.ID}
+	comments[0] = &comment.Comment{ParentID: wi.ID, Body: "Test 1", CreatedBy: rest.testIdentity.ID}
+	comments[1] = &comment.Comment{ParentID: wi.ID, Body: "Test 2", CreatedBy: rest.testIdentity.ID}
+	comments[2] = &comment.Comment{ParentID: wi.ID, Body: "Test 3", CreatedBy: rest.testIdentity.ID}
+	comments[3] = &comment.Comment{ParentID: uuid.NewV4(), Body: "Test 1", CreatedBy: rest.testIdentity.ID}
 	application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Comments()
 		for _, c := range comments {
