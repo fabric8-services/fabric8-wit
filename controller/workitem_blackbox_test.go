@@ -2553,7 +2553,8 @@ func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	ctrlNotAuthrize := NewWorkitemController(svcNotAuthrized, gormapplication.NewGormDB(s.DB), s.Configuration)
 
 	_, wi := test.CreateWorkitemCreated(s.T(), svc.Context, svc, ctrl, *payload.Data.Relationships.Space.Data.ID, &payload)
-	_, wi2 := test.CreateWorkitemCreated(s.T(), svcNotAuthrized.Context, svcNotAuthrized, ctrlNotAuthrize, *payload.Data.Relationships.Space.Data.ID, &payload)
+	// Not a space owner is not authorized to create
+	test.CreateWorkitemForbidden(s.T(), svcNotAuthrized.Context, svcNotAuthrized, ctrlNotAuthrize, *payload.Data.Relationships.Space.Data.ID, &payload)
 
 	// Update the workitem by space collaborator
 	wi.Data.Attributes[workitem.SystemTitle] = "Updated Test WI"
@@ -2566,12 +2567,29 @@ func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	assert.Equal(s.T(), (s.wi.Attributes["version"].(int) + 1), updated.Data.Attributes["version"])
 	assert.Equal(s.T(), wi.Data.Attributes[workitem.SystemTitle], updated.Data.Attributes[workitem.SystemTitle])
 
-	// Update the workitem by the owner
+	// A not-space collaborator can create a work item in a space which belongs to the openshiftio test identity
+	openshiftioTestIdentityID, err := uuid.FromString("7b50ddb4-5e12-4031-bca7-3b88f92e2339")
+	require.Nil(s.T(), err)
+	openshiftioTestIdentity := account.Identity{
+		Username:     "TestUpdateWorkitemForSpaceCollaborator-" + uuid.NewV4().String(),
+		ProviderType: "TestWI",
+		ID:           openshiftioTestIdentityID,
+	}
+	err = testsupport.CreateTestIdentityForAccountIdentity(s.DB, &openshiftioTestIdentity)
+	require.Nil(s.T(), err)
+	openshiftioTestIdentitySpace := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, openshiftioTestIdentity)
+	payload3 := minimumRequiredCreateWithTypeAndSpace(workitem.SystemBug, *openshiftioTestIdentitySpace.ID)
+	payload3.Data.Attributes[workitem.SystemTitle] = "Test WI"
+	payload3.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	payload3.Data.Relationships.Space.Data.ID = openshiftioTestIdentitySpace.ID
+	_, wi2 := test.CreateWorkitemCreated(s.T(), ctrlNotAuthrize.Context, svcNotAuthrized, ctrlNotAuthrize, *payload3.Data.Relationships.Space.Data.ID, &payload3)
+
+	// Update the work item by the work item creator
 	wi2.Data.Attributes[workitem.SystemTitle] = "Updated Test WI"
-	payload3 := minimumRequiredUpdatePayloadWithSpace(*space.ID)
-	payload3.Data.ID = wi2.Data.ID
-	payload3.Data.Attributes = wi2.Data.Attributes
-	_, updated = test.UpdateWorkitemOK(s.T(), svcNotAuthrized.Context, svcNotAuthrized, ctrlNotAuthrize, *payload.Data.Relationships.Space.Data.ID, *wi2.Data.ID, &payload3)
+	payload4 := minimumRequiredUpdatePayloadWithSpace(*openshiftioTestIdentitySpace.ID)
+	payload4.Data.ID = wi2.Data.ID
+	payload4.Data.Attributes = wi2.Data.Attributes
+	_, updated = test.UpdateWorkitemOK(s.T(), svcNotAuthrized.Context, svcNotAuthrized, ctrlNotAuthrize, *payload4.Data.Relationships.Space.Data.ID, *wi2.Data.ID, &payload4)
 
 	assert.Equal(s.T(), *wi2.Data.ID, *updated.Data.ID)
 	assert.Equal(s.T(), (s.wi.Attributes["version"].(int) + 1), updated.Data.Attributes["version"])
@@ -2586,12 +2604,12 @@ func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	// Temporarly disabled, See https://github.com/fabric8-services/fabric8-wit/issues/1036
 	// test.DeleteWorkitemForbidden(s.T(), svcNotAuthrized.Context, svcNotAuthrized, ctrlNotAuthrize, *payload.Data.Relationships.Space.Data.ID, *wi.Data.ID)
 	// Not a space collaborator is not authorized to reoder
-	payload4 := minimumRequiredReorderPayload()
+	payload5 := minimumRequiredReorderPayload()
 	var dataArray []*app.WorkItem // dataArray contains the workitem(s) that have to be reordered
 	dataArray = append(dataArray, wi.Data)
-	payload4.Data = dataArray
-	payload4.Position.Direction = string(workitem.DirectionTop)
-	test.ReorderWorkitemForbidden(s.T(), svcNotAuthrized.Context, svcNotAuthrized, ctrlNotAuthrize, *space.ID, &payload4)
+	payload5.Data = dataArray
+	payload5.Position.Direction = string(workitem.DirectionTop)
+	test.ReorderWorkitemForbidden(s.T(), svcNotAuthrized.Context, svcNotAuthrized, ctrlNotAuthrize, *space.ID, &payload5)
 }
 
 func convertWorkItemToConditionalRequestEntity(appWI app.WorkItemSingle) app.ConditionalRequestEntity {
