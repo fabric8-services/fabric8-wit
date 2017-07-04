@@ -471,7 +471,7 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, appl application.Application,
 				return errors.NewBadParameterError("data.relationships.iteration.data.id", *d.ID)
 			}
 			if err := appl.Iterations().CheckExists(ctx, iterationUUID.String()); err != nil {
-				return errors.NewBadParameterError("data.relationships.iteration.data.id", *d.ID)
+				return errors.NewNotFoundError("data.relationships.iteration.data.id", *d.ID)
 			}
 			target.Fields[workitem.SystemIteration] = iterationUUID.String()
 		}

@@ -2119,7 +2119,7 @@ func (s *WorkItem2Suite) TestWI2CreateUnknownIteration() {
 		},
 	}
 	// when/then
-	test.CreateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	test.CreateWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 }
 
 func (s *WorkItem2Suite) TestWI2SuccessCreateAndPreventJavascriptInjectionWithLegacyDescription() {
