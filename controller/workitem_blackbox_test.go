@@ -2296,7 +2296,7 @@ func (s *WorkItem2Suite) TestCreateWorkItemWithInvalidSpace() {
 	fakeSpaceID := uuid.NewV4()
 	c.Data.Relationships.Space.Data.ID = &fakeSpaceID
 	// when/then
-	test.CreateWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	test.CreateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 }
 
 func (s *WorkItem2Suite) TestDefaultSpaceAndIterationRelations() {
