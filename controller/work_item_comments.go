@@ -52,7 +52,7 @@ func (c *WorkItemCommentsController) Create(ctx *app.CreateWorkItemCommentsConte
 		reqComment := ctx.Payload.Data
 		markup := rendering.NilSafeGetMarkup(reqComment.Attributes.Markup)
 		newComment := comment.Comment{
-			ParentID:  ctx.WiID.String(),
+			ParentID:  ctx.WiID,
 			Body:      reqComment.Attributes.Body,
 			Markup:    markup,
 			CreatedBy: *currentUserIdentityID,
@@ -78,7 +78,7 @@ func (c *WorkItemCommentsController) List(ctx *app.ListWorkItemCommentsContext) 
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
-		comments, tc, err := appl.Comments().List(ctx, wi.ID.String(), &offset, &limit)
+		comments, tc, err := appl.Comments().List(ctx, wi.ID, &offset, &limit)
 		count := int(tc)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
@@ -104,7 +104,7 @@ func (c *WorkItemCommentsController) Relations(ctx *app.RelationsWorkItemComment
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
-		comments, tc, err := appl.Comments().List(ctx, wi.ID.String(), &offset, &limit)
+		comments, tc, err := appl.Comments().List(ctx, wi.ID, &offset, &limit)
 		count := int(tc)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
@@ -126,7 +126,7 @@ func workItemIncludeCommentsAndTotal(ctx context.Context, db application.DB, par
 	go func() {
 		defer close(count)
 		application.Transactional(db, func(appl application.Application) error {
-			cs, err := appl.Comments().Count(ctx, parentID.String())
+			cs, err := appl.Comments().Count(ctx, parentID)
 			if err != nil {
 				count <- 0
 				return errs.WithStack(err)

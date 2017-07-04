@@ -12,7 +12,7 @@ import (
 type Comment struct {
 	gormsupport.Lifecycle
 	ID        uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
-	ParentID  string
+	ParentID  uuid.UUID `sql:"type:uuid"`
 	CreatedBy uuid.UUID `sql:"type:uuid"` // Belongs To Identity
 	Body      string
 	Markup    string
