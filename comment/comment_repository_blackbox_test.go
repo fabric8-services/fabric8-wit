@@ -56,7 +56,7 @@ func (s *TestCommentRepository) TearDownTest() {
 	s.clean()
 }
 
-func newComment(parentID, body, markup string) *comment.Comment {
+func newComment(parentID uuid.UUID, body, markup string) *comment.Comment {
 	return &comment.Comment{
 		ParentID:  parentID,
 		Body:      body,
@@ -78,7 +78,7 @@ func (s *TestCommentRepository) createComments(comments []*comment.Comment, crea
 
 func (s *TestCommentRepository) TestCreateCommentWithMarkup() {
 	// given
-	comment := newComment("A", "Test A", rendering.SystemMarkupMarkdown)
+	comment := newComment(uuid.NewV4(), "Test A", rendering.SystemMarkupMarkdown)
 	// when
 	s.repo.Create(s.ctx, comment, s.testIdentity.ID)
 	// then
@@ -89,7 +89,7 @@ func (s *TestCommentRepository) TestCreateCommentWithMarkup() {
 
 func (s *TestCommentRepository) TestCreateCommentWithoutMarkup() {
 	// given
-	comment := newComment("A", "Test A", "")
+	comment := newComment(uuid.NewV4(), "Test A", "")
 	// when
 	s.repo.Create(s.ctx, comment, s.testIdentity.ID)
 	// then
@@ -101,7 +101,7 @@ func (s *TestCommentRepository) TestCreateCommentWithoutMarkup() {
 
 func (s *TestCommentRepository) TestSaveCommentWithMarkup() {
 	// given
-	comment := newComment("A", "Test A", rendering.SystemMarkupPlainText)
+	comment := newComment(uuid.NewV4(), "Test A", rendering.SystemMarkupPlainText)
 	s.createComment(comment, s.testIdentity.ID)
 	assert.NotNil(s.T(), comment.ID, "Comment was not created, ID nil")
 	// when
@@ -120,7 +120,7 @@ func (s *TestCommentRepository) TestSaveCommentWithMarkup() {
 
 func (s *TestCommentRepository) TestSaveCommentWithoutMarkup() {
 	// given
-	comment := newComment("A", "Test A", rendering.SystemMarkupMarkdown)
+	comment := newComment(uuid.NewV4(), "Test A", rendering.SystemMarkupMarkdown)
 	s.createComment(comment, s.testIdentity.ID)
 	assert.NotNil(s.T(), comment.ID, "Comment was not created, ID nil")
 	// when
@@ -139,7 +139,7 @@ func (s *TestCommentRepository) TestSaveCommentWithoutMarkup() {
 
 func (s *TestCommentRepository) TestDeleteComment() {
 	// given
-	parentID := "AA"
+	parentID := uuid.NewV4()
 	c := &comment.Comment{
 		ParentID:  parentID,
 		Body:      "Test AA",
@@ -156,9 +156,9 @@ func (s *TestCommentRepository) TestDeleteComment() {
 
 func (s *TestCommentRepository) TestCountComments() {
 	// given
-	parentID := "A"
-	comment1 := newComment("A", "Test A", rendering.SystemMarkupMarkdown)
-	comment2 := newComment("B", "Test B", rendering.SystemMarkupMarkdown)
+	parentID := uuid.NewV4()
+	comment1 := newComment(parentID, "Test A", rendering.SystemMarkupMarkdown)
+	comment2 := newComment(uuid.NewV4(), "Test B", rendering.SystemMarkupMarkdown)
 	comments := []*comment.Comment{comment1, comment2}
 	s.createComments(comments, s.testIdentity.ID)
 	// when
@@ -170,8 +170,8 @@ func (s *TestCommentRepository) TestCountComments() {
 
 func (s *TestCommentRepository) TestListComments() {
 	// given
-	comment1 := newComment("A", "Test A", rendering.SystemMarkupMarkdown)
-	comment2 := newComment("B", "Test B", rendering.SystemMarkupMarkdown)
+	comment1 := newComment(uuid.NewV4(), "Test A", rendering.SystemMarkupMarkdown)
+	comment2 := newComment(uuid.NewV4(), "Test B", rendering.SystemMarkupMarkdown)
 	createdComments := []*comment.Comment{comment1, comment2}
 	s.createComments(createdComments, s.testIdentity.ID)
 	// when
@@ -186,8 +186,8 @@ func (s *TestCommentRepository) TestListComments() {
 
 func (s *TestCommentRepository) TestListCommentsWrongOffset() {
 	// given
-	comment1 := newComment("A", "Test A", rendering.SystemMarkupMarkdown)
-	comment2 := newComment("B", "Test B", rendering.SystemMarkupMarkdown)
+	comment1 := newComment(uuid.NewV4(), "Test A", rendering.SystemMarkupMarkdown)
+	comment2 := newComment(uuid.NewV4(), "Test B", rendering.SystemMarkupMarkdown)
 	comments := []*comment.Comment{comment1, comment2}
 	s.createComments(comments, s.testIdentity.ID)
 	// when
@@ -200,8 +200,8 @@ func (s *TestCommentRepository) TestListCommentsWrongOffset() {
 
 func (s *TestCommentRepository) TestListCommentsWrongLimit() {
 	// given
-	comment1 := newComment("A", "Test A", rendering.SystemMarkupMarkdown)
-	comment2 := newComment("B", "Test B", rendering.SystemMarkupMarkdown)
+	comment1 := newComment(uuid.NewV4(), "Test A", rendering.SystemMarkupMarkdown)
+	comment2 := newComment(uuid.NewV4(), "Test B", rendering.SystemMarkupMarkdown)
 	comments := []*comment.Comment{comment1, comment2}
 	s.createComments(comments, s.testIdentity.ID)
 	// when
@@ -214,7 +214,7 @@ func (s *TestCommentRepository) TestListCommentsWrongLimit() {
 
 func (s *TestCommentRepository) TestLoadComment() {
 	// given
-	comment := newComment("A", "Test A", rendering.SystemMarkupMarkdown)
+	comment := newComment(uuid.NewV4(), "Test A", rendering.SystemMarkupMarkdown)
 	s.createComment(comment, s.testIdentity.ID)
 	// when
 	loadedComment, err := s.repo.Load(s.ctx, comment.ID)
@@ -230,7 +230,7 @@ func (s *TestCommentRepository) TestExistsComment() {
 
 	t.Run("comment exists", func(t *testing.T) {
 		// given
-		comment := newComment("C", "Test C", rendering.SystemMarkupMarkdown)
+		comment := newComment(uuid.NewV4(), "Test C", rendering.SystemMarkupMarkdown)
 		s.createComment(comment, s.testIdentity.ID)
 		// when
 		exists, err := s.repo.Exists(s.ctx, comment.ID.String())
