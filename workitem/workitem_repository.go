@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/application/repository"
 	"github.com/fabric8-services/fabric8-wit/criteria"
 	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 
@@ -41,7 +43,7 @@ type WorkItemRepository interface {
 	List(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, parentExists *bool, start *int, length *int) ([]WorkItem, int, error)
 	Fetch(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression) (*WorkItem, error)
 	GetCountsPerIteration(ctx context.Context, spaceID uuid.UUID) (map[string]WICountsPerIteration, error)
-	GetCountsForIteration(ctx context.Context, iterationID uuid.UUID) (map[string]WICountsPerIteration, error)
+	GetCountsForIteration(ctx context.Context, itr *iteration.Iteration) (map[string]WICountsPerIteration, error)
 	Count(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression) (int, error)
 }
 
@@ -646,7 +648,7 @@ func (r *GormWorkItemRepository) List(ctx context.Context, spaceID uuid.UUID, cr
 	return res, count, nil
 }
 
-// Counts returns the amount of work item that satisfy the given criteria.Expression
+// Count returns the amount of work item that satisfy the given criteria.Expression
 func (r *GormWorkItemRepository) Count(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression) (int, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitem", "count"}, time.Now())
 
@@ -680,50 +682,188 @@ func (r *GormWorkItemRepository) Fetch(ctx context.Context, spaceID uuid.UUID, c
 	return &result, nil
 }
 
-// GetCountsPerIteration fetches WI count from DB and returns a map of iterationID->WICountsPerIteration
-// This function executes following query to fetch 'closed' and 'total' counts of the WI for each iteration in given spaceID
-// 	SELECT iterations.id as IterationId, count(*) as Total,
-// 		count( case fields->>'system.state' when 'closed' then '1' else null end ) as Closed
-// 		FROM "work_items" left join iterations
-// 		on fields@> concat('{"system.iteration": "', iterations.id, '"}')::jsonb
-// 		WHERE (iterations.space_id = '33406de1-25f1-4969-bcec-88f29d0a7de3'
-// 		and work_items.deleted_at IS NULL) GROUP BY IterationId
-func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spaceID uuid.UUID) (map[string]WICountsPerIteration, error) {
-	defer goa.MeasureSince([]string{"goa", "db", "workitem", "getCountPerIteration"}, time.Now())
+func (r *GormWorkItemRepository) getAllIterationWithCounts(ctx context.Context, db *gorm.DB, spaceID uuid.UUID) (map[string]WICountsPerIteration, error) {
+	var allIterations []uuid.UUID
+	db.Pluck("id", &allIterations)
 	var res []WICountsPerIteration
-	db := r.db.Table("work_items").Select(`iterations.id as IterationId, count(*) as Total,
-				count( case fields->>'system.state' when 'closed' then '1' else null end ) as Closed`).Joins(`left join iterations
-				on fields@> concat('{"system.iteration": "', iterations.id, '"}')::jsonb`).Where(`iterations.space_id = ?
-				and work_items.deleted_at IS NULL`, spaceID).Group(`IterationId`).Scan(&res)
+	db = r.db.Table(workitemTableName).Select(`iterations.id as IterationId, count(*) as Total,
+			count( case fields->>'system.state' when 'closed' then '1' else null end ) as Closed`).Joins(`left join iterations
+			on fields@> concat('{"system.iteration": "', iterations.id, '"}')::jsonb`).Where(`iterations.space_id = ?
+			and work_items.deleted_at IS NULL`, spaceID).Group(`IterationId`).Scan(&res)
+	db.Scan(&res)
 	if db.Error != nil {
+		log.Error(ctx, map[string]interface{}{
+			"space_id": spaceID,
+			"err":      db.Error,
+		}, "unable to count WI for every iteration in a space")
 		return nil, errors.NewInternalError(ctx, db.Error)
 	}
+	wiMap := map[string]WICountsPerIteration{}
+	for _, r := range res {
+		wiMap[r.IterationID] = WICountsPerIteration{
+			IterationID: r.IterationID,
+			Total:       r.Total,
+			Closed:      r.Closed,
+		}
+	}
+	// put 0 count for iterations which are not in wiMap
+	// ToDo: Update count query to include non matching rows with 0 values
+	// Following operation can be skipped once above is done
+	for _, i := range allIterations {
+		if _, exists := wiMap[i.String()]; exists == false {
+			wiMap[i.String()] = WICountsPerIteration{
+				IterationID: i.String(),
+				Total:       0,
+				Closed:      0,
+			}
+		}
+	}
+	return wiMap, nil
+}
+
+func (r *GormWorkItemRepository) getFinalCountAddingChild(ctx context.Context, db *gorm.DB, spaceID uuid.UUID, wiMap map[string]WICountsPerIteration) (map[string]WICountsPerIteration, error) {
+	iterationTable := iteration.Iteration{}
+	iterationTableName := iterationTable.TableName()
+	type IterationHavingChildrenID struct {
+		Children    string `gorm:"column:children"`
+		IterationID string `gorm:"column:iterationid"`
+	}
+	var itrChildren []IterationHavingChildrenID
+	queryIterationWithChildren := fmt.Sprintf(`
+	WITH PathResolver AS
+	(SELECT CASE
+				WHEN path = '' THEN replace(id::text, '-', '_')::ltree
+				ELSE concat(path::text, '.', REPLACE(id::text, '-', '_'))::ltree
+			END AS pathself,
+			id
+	FROM %s
+	WHERE space_id = ?)
+	SELECT array_agg(iterations.id)::text AS children,
+		PathResolver.id::text AS iterationid
+	FROM %s,
+		PathResolver
+	WHERE path <@ PathResolver.pathself
+	AND space_id = ?
+	GROUP BY (PathResolver.pathself,
+		PathResolver.id)`,
+		iterationTableName,
+		iterationTableName)
+	db = r.db.Raw(queryIterationWithChildren, spaceID.String(), spaceID.String())
+	db.Scan(&itrChildren)
+	if db.Error != nil {
+		log.Error(ctx, map[string]interface{}{
+			"space_id": spaceID.String(),
+			"err":      db.Error,
+		}, "unable to fetch children for every iteration in a space")
+		return nil, errors.NewInternalError(ctx, db.Error)
+	}
+	childMap := map[string][]string{}
+	for _, r := range itrChildren {
+		// Following can be done by implementing Valuer interface for type IterationHavingChildrenID
+		r.Children = strings.TrimPrefix(r.Children, "{")
+		r.Children = strings.TrimRight(r.Children, "}")
+		children := strings.Split(r.Children, ",")
+		childMap[r.IterationID] = children
+	}
 	countsMap := map[string]WICountsPerIteration{}
-	for _, iterationWithCount := range res {
-		countsMap[iterationWithCount.IterationID] = iterationWithCount
+	for _, i := range wiMap {
+		t := i.Total
+		c := i.Closed
+		if children, exists := childMap[i.IterationID]; exists {
+			for _, child := range children {
+				if _, exists := wiMap[child]; exists {
+					t += wiMap[child].Total
+					c += wiMap[child].Closed
+				}
+			}
+		}
+		countsMap[i.IterationID] = WICountsPerIteration{
+			IterationID: i.IterationID,
+			Total:       t,
+			Closed:      c,
+		}
 	}
 	return countsMap, nil
 }
 
-// GetCountsForIteration returns Closed and Total counts of WI for given iteration
-// It executes
-// SELECT count(*) as Total, count( case fields->>'system.state' when 'closed' then '1' else null end ) as Closed FROM "work_items" where fields@> concat('{"system.iteration": "%s"}')::jsonb and work_items.deleted_at is null
-func (r *GormWorkItemRepository) GetCountsForIteration(ctx context.Context, iterationID uuid.UUID) (map[string]WICountsPerIteration, error) {
-	defer goa.MeasureSince([]string{"goa", "db", "workitem", "getCountForIteration"}, time.Now())
-	var res WICountsPerIteration
-	query := fmt.Sprintf(`SELECT count(*) as Total,
-						count( case fields->>'system.state' when 'closed' then '1' else null end ) as Closed
-						FROM "work_items"
-						where fields@> concat('{"system.iteration": "%s"}')::jsonb
-						and work_items.deleted_at is null`, iterationID)
-	db := r.db.Raw(query)
-	db.Scan(&res)
+// GetCountsPerIteration counts WIs including iteration-children and returns a map of iterationID->WICountsPerIteration
+func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spaceID uuid.UUID) (map[string]WICountsPerIteration, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitem", "getCountsPerIteration"}, time.Now())
+	db := r.db.Model(&iteration.Iteration{}).Where("space_id = ?", spaceID)
 	if db.Error != nil {
 		return nil, errors.NewInternalError(ctx, db.Error)
 	}
+
+	wiMap, err := r.getAllIterationWithCounts(ctx, db, spaceID)
+	if err != nil {
+		return nil, err
+	}
+
+	countsMap, err := r.getFinalCountAddingChild(ctx, db, spaceID, wiMap)
+	if err != nil {
+		return nil, err
+	}
+	return countsMap, nil
+}
+
+// GetCountsForIteration returns Closed and Total counts of WIs for given iteration
+// It fetches all child iterations of input iteration and then uses list to counts work items
+// SELECT count(*) AS Total,
+//        count(CASE fields->>'system.state'
+//                  WHEN 'closed' THEN '1'
+//                  ELSE NULL
+//              END) AS Closed
+// FROM work_items wi
+// WHERE fields->>'system.iteration' IN ('input iteration ID + children IDs')
+//   AND wi.deleted_at IS NULL
+func (r *GormWorkItemRepository) GetCountsForIteration(ctx context.Context, itr *iteration.Iteration) (map[string]WICountsPerIteration, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitem", "getCountsForIteration"}, time.Now())
+	var res WICountsPerIteration
+	pathOfIteration := append(itr.Path, itr.ID)
+	// get child IDs of the iteration
+	var childIDs []uuid.UUID
+	iterationTable := iteration.Iteration{}
+	iterationTableName := iterationTable.TableName()
+	getIterationsOfSpace := fmt.Sprintf(`SELECT id FROM %s WHERE path <@ ? and space_id = ?`, iterationTableName)
+	db := r.db.Raw(getIterationsOfSpace, pathOfIteration.Convert(), itr.SpaceID.String())
+	db.Pluck("id", &childIDs)
+	if db.Error != nil {
+		log.Error(ctx, map[string]interface{}{
+			"path": pathOfIteration.Convert(),
+			"err":  db.Error,
+		}, "unable to fetch children for path")
+		return nil, errors.NewInternalError(ctx, db.Error)
+	}
+	childIDs = append(childIDs, itr.ID)
+
+	// build where clause usig above ID list
+	idsToLookFor := []string{}
+	for _, x := range childIDs {
+		partialClause := fmt.Sprintf(`fields @> '{"system.iteration":"%s"}'`, x.String())
+		idsToLookFor = append(idsToLookFor, partialClause)
+	}
+	whereClause := strings.Join(idsToLookFor, " OR ")
+	query := fmt.Sprintf(`SELECT count(*) AS Total,
+						count(CASE fields->>'system.state'
+									WHEN 'closed' THEN '1'
+									ELSE NULL
+								END) AS Closed
+					FROM %s wi
+					WHERE %s
+					AND wi.deleted_at IS NULL`,
+		workitemTableName, whereClause)
+	db = r.db.Raw(query)
+	db.Scan(&res)
+	if db.Error != nil {
+		log.Error(ctx, map[string]interface{}{
+			"iteration_id`": whereClause,
+			"err":           db.Error,
+		}, "unable to count WI for an iteration")
+		return nil, errors.NewInternalError(ctx, db.Error)
+	}
 	countsMap := map[string]WICountsPerIteration{}
-	countsMap[iterationID.String()] = WICountsPerIteration{
-		IterationID: iterationID.String(),
+	countsMap[itr.ID.String()] = WICountsPerIteration{
+		IterationID: itr.ID.String(),
 		Closed:      res.Closed,
 		Total:       res.Total,
 	}
