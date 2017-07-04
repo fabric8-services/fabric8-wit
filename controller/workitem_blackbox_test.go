@@ -1952,7 +1952,7 @@ func (s *WorkItem2Suite) TestWI2CreateUnknownArea() {
 
 func (s *WorkItem2Suite) TestWI2CreateWithIteration() {
 	// given
-	_, _, _, iterationInstance := createSpaceAndRootAreaAndIterations(s.T(), gormapplication.NewGormDB(s.DB))
+	_, _, _, _, iterationInstance := createSpaceAndRootAreaAndIterations(s.T(), gormapplication.NewGormDB(s.DB))
 	iterationID := iterationInstance.ID.String()
 	itType := iteration.APIStringTypeIteration
 	// when
@@ -1980,7 +1980,7 @@ func (s *WorkItem2Suite) TestWI2CreateWithIteration() {
 
 func (s *WorkItem2Suite) TestWI2UpdateWithIteration() {
 	// given
-	_, _, _, iterationInstance := createSpaceAndRootAreaAndIterations(s.T(), gormapplication.NewGormDB(s.DB))
+	_, _, _, _, iterationInstance := createSpaceAndRootAreaAndIterations(s.T(), gormapplication.NewGormDB(s.DB))
 	iterationID := iterationInstance.ID.String()
 	itType := iteration.APIStringTypeIteration
 	c := minimumRequiredCreatePayload()
@@ -2017,7 +2017,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithIteration() {
 
 func (s *WorkItem2Suite) TestWI2UpdateWithRootIterationIfMissing() {
 	// given
-	testSpace, _, rootIteration, otherIteration := createSpaceAndRootAreaAndIterations(s.T(), gormapplication.NewGormDB(s.DB))
+	testSpace, _, rootIteration, _, otherIteration := createSpaceAndRootAreaAndIterations(s.T(), gormapplication.NewGormDB(s.DB))
 	iterationID := otherIteration.ID.String()
 	iterationType := iteration.APIStringTypeIteration
 	payload := app.CreateWorkitemPayload{
@@ -2075,7 +2075,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithRootIterationIfMissing() {
 func (s *WorkItem2Suite) TestWI2UpdateRemoveIteration() {
 	s.T().Skip("iteration.data can't be sent as nil from client libs since it's optionall and is removed during json encoding")
 	// given
-	_, _, _, iterationInstance := createSpaceAndRootAreaAndIterations(s.T(), gormapplication.NewGormDB(s.DB))
+	_, _, _, _, iterationInstance := createSpaceAndRootAreaAndIterations(s.T(), gormapplication.NewGormDB(s.DB))
 	iterationID := iterationInstance.ID.String()
 	itType := iteration.APIStringTypeIteration
 	// when
@@ -2317,6 +2317,90 @@ func (s *WorkItem2Suite) TestDefaultSpaceAndIterationRelations() {
 	rootIteration, err := iterationRepo.Root(context.Background(), spaceInstance.ID)
 	require.Nil(s.T(), err)
 	assert.Equal(s.T(), rootIteration.ID.String(), *wi.Data.Relationships.Iteration.Data.ID)
+}
+
+// Following test verifies that UPDATE on WI by setting AREA & Iteration
+// works as expected and do not alter previously set values
+func (s *WorkItem2Suite) TestWI2UpdateWithAreaIterationSuccessively() {
+	sp, _, _, areaInstance, iterationInstance := createSpaceAndRootAreaAndIterations(s.T(), gormapplication.NewGormDB(s.DB))
+	iterationID := iterationInstance.ID.String()
+	areaID := areaInstance.ID.String()
+	itType := iteration.APIStringTypeIteration
+	arType := area.APIStringTypeAreas
+
+	iterationRepo := iteration.NewIterationRepository(s.DB)
+	rootIteration, err := iterationRepo.Root(context.Background(), sp.ID)
+	require.Nil(s.T(), err)
+
+	areaRepo := area.NewAreaRepository(s.DB)
+	rootArea, err := areaRepo.Root(context.Background(), sp.ID)
+	require.Nil(s.T(), err)
+
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = "Title"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
+	*c.Data.Relationships.Space.Data.ID = sp.ID
+	_, wiCreated := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, sp.ID, &c)
+	assert.NotNil(s.T(), wiCreated.Data.Relationships.Iteration)
+	require.Equal(s.T(), rootIteration.ID.String(), *wiCreated.Data.Relationships.Iteration.Data.ID)
+	assert.NotNil(s.T(), wiCreated.Data.Relationships.Area)
+	require.Equal(s.T(), rootArea.ID.String(), *wiCreated.Data.Relationships.Area.Data.ID)
+
+	workItemRepo := workitem.NewWorkItemRepository(s.DB)
+	wi, err := workItemRepo.LoadByID(context.Background(), *wiCreated.Data.ID)
+	require.Nil(s.T(), err)
+
+	// update iteration of WI
+	u := minimumRequiredUpdatePayload()
+	u.Data.ID = &wi.ID
+	u.Data.Attributes[workitem.SystemTitle] = "Title"
+	u.Data.Attributes["version"] = wi.Version
+	u.Data.Relationships.Iteration = &app.RelationGeneric{
+		Data: &app.GenericData{
+			Type: &itType,
+			ID:   &iterationID,
+		},
+	}
+	*u.Data.Relationships.Space.Data.ID = sp.ID
+	_, wiu := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *u.Data.Relationships.Space.Data.ID, wi.ID, &u)
+	require.NotNil(s.T(), wiu.Data.Relationships.Iteration)
+	require.NotNil(s.T(), wiu.Data.Relationships.Iteration.Data)
+	assert.Equal(s.T(), iterationID, *wiu.Data.Relationships.Iteration.Data.ID)
+	assert.Equal(s.T(), itType, *wiu.Data.Relationships.Iteration.Data.Type)
+
+	require.NotNil(s.T(), wiu.Data.Relationships.Area)
+	require.NotNil(s.T(), wiu.Data.Relationships.Area.Data)
+	assert.Equal(s.T(), rootArea.ID.String(), *wiu.Data.Relationships.Area.Data.ID)
+	assert.Equal(s.T(), arType, *wiu.Data.Relationships.Area.Data.Type)
+
+	// reload the WI (version value changed)
+	wi, err = workItemRepo.LoadByID(context.Background(), *wiCreated.Data.ID)
+	require.Nil(s.T(), err)
+
+	// now update AREA of WI, that should not affect previously set Iteration
+	u2 := minimumRequiredUpdatePayload()
+	u2.Data.ID = &wi.ID
+	u2.Data.Attributes[workitem.SystemTitle] = "Title"
+	u2.Data.Attributes["version"] = wi.Version
+	u2.Data.Relationships.Area = &app.RelationGeneric{
+		Data: &app.GenericData{
+			Type: &arType,
+			ID:   &areaID,
+		},
+	}
+	*u2.Data.Relationships.Space.Data.ID = sp.ID
+	_, wiu2 := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *u2.Data.Relationships.Space.Data.ID, wi.ID, &u2)
+	// then
+	require.NotNil(s.T(), wiu2.Data.Relationships.Area)
+	require.NotNil(s.T(), wiu2.Data.Relationships.Area.Data)
+	assert.Equal(s.T(), areaID, *wiu2.Data.Relationships.Area.Data.ID)
+	assert.Equal(s.T(), arType, *wiu2.Data.Relationships.Area.Data.Type)
+
+	require.NotNil(s.T(), wiu2.Data.Relationships.Iteration)
+	require.NotNil(s.T(), wiu2.Data.Relationships.Iteration.Data)
+	assert.Equal(s.T(), iterationID, *wiu2.Data.Relationships.Iteration.Data.ID)
+	assert.Equal(s.T(), itType, *wiu2.Data.Relationships.Iteration.Data.Type)
 }
 
 //Ignore, middlewares not respected by the generated test framework. No way to modify Request?
