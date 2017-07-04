@@ -16,7 +16,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/space/authz"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/goadesign/goa"
-	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -54,7 +53,7 @@ func (c *CommentsController) Show(ctx *app.ShowCommentsContext) error {
 			// This code should change if others type of parents than WI are allowed
 			includeParentWorkItem, err := CommentIncludeParentWorkItem(ctx, appl, cmt)
 			if err != nil {
-				return errors.NewNotFoundError("comment parentID", cmt.ParentID)
+				return errors.NewNotFoundError("comment parentID", cmt.ParentID.String())
 			}
 			res.Data = ConvertComment(
 				ctx.RequestData,
@@ -84,11 +83,7 @@ func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
 			editorIsCreator = true
 			return nil
 		}
-		parentID, err := uuid.FromString(cm.ParentID)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
-		wi, err = appl.WorkItems().LoadByID(ctx.Context, parentID)
+		wi, err = appl.WorkItems().LoadByID(ctx.Context, cm.ParentID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -124,7 +119,7 @@ func (c *CommentsController) performUpdate(ctx *app.UpdateCommentsContext, cm *c
 		// This code should change if others type of parents than WI are allowed
 		includeParentWorkItem, err := CommentIncludeParentWorkItem(ctx, appl, cm)
 		if err != nil {
-			return errors.NewNotFoundError("comment parentID", cm.ParentID)
+			return errors.NewNotFoundError("comment parentID", cm.ParentID.String())
 		}
 
 		res := &app.CommentSingle{
@@ -153,11 +148,7 @@ func (c *CommentsController) Delete(ctx *app.DeleteCommentsContext) error {
 			userIsCreator = true
 			return nil
 		}
-		wiID, err := uuid.FromString(cm.ParentID)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "unable to delete the comment: the id of the parent entity is not a valid UUID"))
-		}
-		wi, err = appl.WorkItems().LoadByID(ctx.Context, wiID)
+		wi, err = appl.WorkItems().LoadByID(ctx.Context, cm.ParentID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -269,11 +260,7 @@ type HrefFunc func(id interface{}) string
 func CommentIncludeParentWorkItem(ctx context.Context, appl application.Application, c *comment.Comment) (CommentConvertFunc, error) {
 	// NOTE: This function assumes that the comment is bound to a WorkItem. Therefore,
 	// we can extract the space out of this WI.
-	wiID, err := uuid.FromString(c.ParentID)
-	if err != nil {
-		return nil, err
-	}
-	wi, err := appl.WorkItems().LoadByID(ctx, wiID)
+	wi, err := appl.WorkItems().LoadByID(ctx, c.ParentID)
 	if err != nil {
 		return nil, err
 	}
@@ -289,11 +276,11 @@ func CommentIncludeParentWorkItem(ctx context.Context, appl application.Applicat
 // CommentIncludeParent adds the "parent" relationship to this Comment
 func CommentIncludeParent(request *goa.RequestData, comment *comment.Comment, data *app.Comment, ref HrefFunc, parentType string) {
 	parentSelf := rest.AbsoluteURL(request, ref(comment.ParentID))
-
+	parentID := comment.ParentID.String()
 	data.Relationships.Parent = &app.RelationGeneric{
 		Data: &app.GenericData{
 			Type: &parentType,
-			ID:   &comment.ParentID,
+			ID:   &parentID,
 		},
 		Links: &app.GenericLinks{
 			Self: &parentSelf,
