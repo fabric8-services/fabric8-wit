@@ -1,0 +1,6 @@
+#!/bin/sh
+
+set -x
+set -e
+
+make check-go-format

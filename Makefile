@@ -94,7 +94,16 @@ check-go-format: prebuild-check
 	&& exit 1 \
 	|| true
 
+.PHONY: install-git-hooks
+## Creates useful git hooks (e.g. pre-push go-format-code check)
+install-git-hooks:
+	ln -sfv ../../.pre-push .git/hooks/pre-push
 
+CLEAN_TARGETS += clean-git-hooks
+.PHONY: clean-git-hooks
+## Removes hooks that have been installed with the "install-git-hooks" target
+clean-git-hooks:
+	-rm .git/hooks/pre-push
 
 .PHONY: release
 release: all
