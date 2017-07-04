@@ -317,8 +317,11 @@ func GetMigrations() Migrations {
 	// Version 64
 	m = append(m, steps{ExecuteSQLFile("064-remove-link-combinations.sql")})
 
-	// Version 64
+	// Version 65
 	m = append(m, steps{ExecuteSQLFile("065-workitem-id-unique-per-space.sql")})
+
+	// Version 66
+	m = append(m, steps{ExecuteSQLFile("066-work_item_links_data_integrity.sql")})
 
 	// Version N
 	//
