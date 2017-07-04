@@ -280,10 +280,13 @@ func (s *workItemRepoBlackBoxTest) TestGetCountsPerIteration() {
 	// when
 	countsMap, _ := s.repo.GetCountsPerIteration(s.ctx, spaceInstance.ID)
 	// then
-	require.Len(s.T(), countsMap, 1)
+	require.Len(s.T(), countsMap, 2)
 	require.Contains(s.T(), countsMap, iteration1.ID.String())
 	assert.Equal(s.T(), 5, countsMap[iteration1.ID.String()].Total)
 	assert.Equal(s.T(), 2, countsMap[iteration1.ID.String()].Closed)
+	require.Contains(s.T(), countsMap, iteration2.ID.String())
+	assert.Equal(s.T(), 0, countsMap[iteration2.ID.String()].Total)
+	assert.Equal(s.T(), 0, countsMap[iteration2.ID.String()].Closed)
 }
 
 func (s *workItemRepoBlackBoxTest) TestCodebaseAttributes() {
