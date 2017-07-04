@@ -37,7 +37,7 @@ const (
 // and if one is not set it will skip the test ("t"). The only exception is
 // that the unit test resource is always considered to be available unless
 // is is explicitly set to false (e.g. "no", "0", "false").
-func Require(t *testing.T, envVars ...string) {
+func Require(t testing.TB, envVars ...string) {
 	for _, envVar := range envVars {
 		v, isSet := os.LookupEnv(envVar)
 
