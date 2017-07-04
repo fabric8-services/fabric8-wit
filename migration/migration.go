@@ -320,7 +320,10 @@ func GetMigrations() Migrations {
 	m = append(m, steps{ExecuteSQLFile("065-workitem-id-unique-per-space.sql")})
 
 	// Version 66
-	m = append(m, steps{ExecuteSQLFile("066-comment-parentid-uuid.sql")})
+	m = append(m, steps{ExecuteSQLFile("066-work_item_links_data_integrity.sql")})
+
+	// Version 67
+	m = append(m, steps{ExecuteSQLFile("067-comment-parentid-uuid.sql")})
 
 	// Version N
 	//

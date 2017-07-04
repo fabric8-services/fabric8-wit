@@ -408,28 +408,47 @@ func testMigration65(t *testing.T) {
 		err = stmt.QueryRow(spaceID.String()).Scan(&currentVal)
 		require.Nil(t, err)
 		require.NotNil(t, currentVal)
-		t.Log(fmt.Sprintf("Found %d (/%d) for space %v", currentVal, expectedCurrentVal, spaceID))
 		assert.Equal(t, expectedCurrentVal, currentVal)
 	}
 }
-
 func testMigration66(t *testing.T) {
 	// migrate to previous version
 	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+21)], (initialMigratedVersion + 21))
-	// fill DB with data
-	assert.Nil(t, runSQLscript(sqlDB, "066-comment-parentid-uuid.sql"))
+	// fill DB with data (ie, work items, links, comments, etc on different spaces)
+	assert.Nil(t, runSQLscript(sqlDB, "066-work_item_links_data_integrity.sql"))
 	// then apply the change
 	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+22)], (initialMigratedVersion + 22))
+	var workitemLinkId string
+	// verify that the first record was not removed
+	err := sqlDB.QueryRow("select id from work_item_links where id = '00000066-0000-0000-0000-000000000001'").Scan(&workitemLinkId)
+	require.Nil(t, err)
+	// verify that the 3 other records where deleted (because of invalid/null data)
+	stmt, err := sqlDB.Prepare("select id from work_item_links where id = $1")
+	require.Nil(t, err)
+	for _, id := range []string{"00000066-0000-0000-0000-000000000002", "00000066-0000-0000-0000-000000000003", "00000066-0000-0000-0000-000000000004"} {
+		err = stmt.QueryRow(id).Scan(&workitemLinkId)
+		assert.Equal(t, sql.ErrNoRows, err, "link with id='%v' was not removed", id)
+	}
+
+}
+
+func testMigration67(t *testing.T) {
+	// migrate to previous version
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+22)], (initialMigratedVersion + 22))
+	// fill DB with data
+	assert.Nil(t, runSQLscript(sqlDB, "067-comment-parentid-uuid.sql"))
+	// then apply the change
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+23)], (initialMigratedVersion + 23))
 	// verify the data
 	var parentID uuid.UUID
 	stmt, err := sqlDB.Prepare("select parent_id from comments where id = $1")
 	require.Nil(t, err)
-	err = stmt.QueryRow("00000066-0000-0000-0000-000000000000").Scan(&parentID)
+	err = stmt.QueryRow("00000067-0000-0000-0000-000000000000").Scan(&parentID)
 	require.Nil(t, err)
 	assert.NotNil(t, parentID)
 	stmt, err = sqlDB.Prepare("select comment_parent_id from comment_revisions where id = $1")
 	require.Nil(t, err)
-	err = stmt.QueryRow("00000066-0000-0000-0000-000000000000").Scan(&parentID)
+	err = stmt.QueryRow("00000067-0000-0000-0000-000000000000").Scan(&parentID)
 	require.Nil(t, err)
 	assert.NotNil(t, parentID)
 }
