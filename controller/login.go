@@ -138,6 +138,9 @@ func (c *LoginController) getEntitlementResourceRequestPayload(ctx context.Conte
 	}
 	loggedInIdentity := queryResult[0]
 	contextInfoLoggedInIdentity := loggedInIdentity.User.ContextInformation
+	if contextInfoLoggedInIdentity == nil {
+		return nil, nil
+	}
 
 	var spacesToGetEntitlementsFor []auth.ResourceSet
 	for _, v := range contextInfoLoggedInIdentity["recentSpaces"].([]interface{}) {
