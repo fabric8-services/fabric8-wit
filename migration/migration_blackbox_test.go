@@ -418,10 +418,10 @@ func testMigration66(t *testing.T) {
 	assert.Nil(t, runSQLscript(sqlDB, "066-work_item_links_data_integrity.sql"))
 	// then apply the change
 	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+22)], (initialMigratedVersion + 22))
-	// verify that some records where removed
+	// verify that the first record was not removed
 	row := sqlDB.QueryRow("select id from work_item_links where id = '00000066-0000-0000-0000-000000000001'")
 	require.NotNil(t, row)
-	// 3 other rows where deleted
+	// verify that the 3 other records where deleted (because of invalid/null data)
 	for id := range []string{"00000066-0000-0000-0000-000000000002", "00000066-0000-0000-0000-000000000003", "00000066-0000-0000-0000-000000000004"} {
 		stmt, err := sqlDB.Prepare("select id from work_item_links where id = $1")
 		require.Nil(t, err)
