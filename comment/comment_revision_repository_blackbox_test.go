@@ -12,6 +12,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	uuid "github.com/satori/go.uuid"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -64,7 +65,7 @@ func (s *revisionRepositoryBlackBoxTest) TearDownTest() {
 func (s *revisionRepositoryBlackBoxTest) TestStoreCommentRevisions() {
 	// given
 	// create a comment
-	c := newComment("A", "Body", rendering.SystemMarkupMarkdown)
+	c := newComment(uuid.NewV4(), "Body", rendering.SystemMarkupMarkdown)
 	err := s.repository.Create(context.Background(), c, s.testIdentity1.ID)
 	require.Nil(s.T(), err)
 	// modify the comment
