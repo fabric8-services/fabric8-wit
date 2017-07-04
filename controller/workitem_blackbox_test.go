@@ -106,24 +106,39 @@ func (s *WorkItemSuite) SetupTest() {
 	s.minimumPayload = getMinimumRequiredUpdatePayload(s.wi)
 }
 
-/*func (s *WorkItemSuite) TestPagingLinks() {
+func (s *WorkItemSuite) TestPagingLinks() {
 	witCtrl := NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	// With only ONE work item
+	pagingTest := createPagingTest(s.T(), s.svc.Context, witCtrl, &s.repoWit, space.SystemSpace, 1)
+	pagingTest(2, 5, "page[offset]=0&page[limit]=2", "page[offset]=0&page[limit]=2", "page[offset]=0&page[limit]=2", "")
 
-	pagingTest := createPagingTest(s.T(), s.svc.Context, witCtrl, &s.repoWit, space.SystemSpace, 13)
-	pagingTest(2, 5, "page[offset]=0&page[limit]=2", "page[offset]=12&page[limit]=5", "page[offset]=0&page[limit]=2", "page[offset]=7&page[limit]=5")
-	pagingTest(10, 3, "page[offset]=0&page[limit]=1", "page[offset]=10&page[limit]=3", "page[offset]=7&page[limit]=3", "")
-	pagingTest(0, 4, "page[offset]=0&page[limit]=4", "page[offset]=12&page[limit]=4", "", "page[offset]=4&page[limit]=4")
-	pagingTest(4, 8, "page[offset]=0&page[limit]=4", "page[offset]=12&page[limit]=8", "page[offset]=0&page[limit]=4", "page[offset]=12&page[limit]=8")
+	// With only TEN work items
+	payload := minimumRequiredCreateWithType(workitem.SystemBug)
+	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	for i := 1; i <= 9; i++ {
+		payload.Data.Attributes[workitem.SystemTitle] = fmt.Sprintf("Paging WI %d", i)
+		test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	}
+	pagingTest = createPagingTest(s.T(), s.svc.Context, witCtrl, &s.repoWit, space.SystemSpace, 10)
+	pagingTest(2, 5, "page[offset]=0&page[limit]=2", "page[offset]=7&page[limit]=5", "page[offset]=0&page[limit]=2", "page[offset]=7&page[limit]=5")
+	pagingTest(1, 10, "page[offset]=0&page[limit]=1", "page[offset]=1&page[limit]=10", "page[offset]=0&page[limit]=1", "")
+	pagingTest(0, 4, "page[offset]=0&page[limit]=4", "page[offset]=8&page[limit]=4", "", "page[offset]=4&page[limit]=4")
 
-	pagingTest(16, 14, "page[offset]=0&page[limit]=2", "page[offset]=2&page[limit]=14", "page[offset]=2&page[limit]=14", "")
-	pagingTest(16, 18, "page[offset]=0&page[limit]=16", "page[offset]=0&page[limit]=16", "page[offset]=0&page[limit]=16", "")
-
-	pagingTest(3, 50, "page[offset]=0&page[limit]=3", "page[offset]=3&page[limit]=50", "page[offset]=0&page[limit]=3", "")
-	pagingTest(0, 50, "page[offset]=0&page[limit]=50", "page[offset]=0&page[limit]=50", "", "")
-
-	pagingTest = createPagingTest(s.T(), s.svc.Context, witCtrl, &s.repoWit, space.SystemSpace, 0)
-	pagingTest(2, 5, "page[offset]=0&page[limit]=2", "page[offset]=0&page[limit]=2", "", "")
-}*/
+	// With only ZERO work items
+	spaceName := "paging zero space " + uuid.NewV4().String()
+	sp := &app.CreateSpacePayload{
+		Data: &app.Space{
+			Type: "spaces",
+			Attributes: &app.SpaceAttributes{
+				Name: &spaceName,
+			},
+		},
+	}
+	_, customSpace := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, sp)
+	pagingTest = createPagingTest(s.T(), s.svc.Context, witCtrl, &s.repoWit, *customSpace.Data.ID, 0)
+	pagingTest(10, 2, "page[offset]=0&page[limit]=0", "page[offset]=0&page[limit]=0", "", "")
+	pagingTest(0, 2, "page[offset]=0&page[limit]=2", "page[offset]=0&page[limit]=0", "", "")
+}
 
 func (s *WorkItemSuite) TestPagingErrors() {
 	var offset string = "-1"
@@ -643,8 +658,6 @@ func (s *WorkItemSuite) TestUnauthorizeWorkItemCUD() {
 
 func createPagingTest(t *testing.T, ctx context.Context, controller *WorkitemController, repo *workitem.WorkItemRepository, spaceID uuid.UUID, totalCount int) func(start int, limit int, first string, last string, prev string, next string) {
 	return func(start int, limit int, first string, last string, prev string, next string) {
-		//count := computeCount(totalCount, int(start), int(limit))
-		//repo.ListReturns(makeWorkItems(count), totalCount, nil)
 		offset := strconv.Itoa(start)
 
 		_, response := test.ListWorkitemOK(t, ctx, nil, controller, spaceID, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
@@ -668,31 +681,6 @@ func assertLink(t *testing.T, l string, expected string, actual *string) {
 			assert.True(t, strings.HasSuffix(*actual, expected), "link %s should be %s, but is %s", l, expected, *actual)
 		}
 	}
-}
-
-func computeCount(totalCount int, start int, limit int) int {
-	if start < 0 || start >= totalCount {
-		return 0
-	}
-	if start+limit > totalCount {
-		return totalCount - start
-	}
-	return limit
-}
-
-func makeWorkItems(count int) []workitem.WorkItem {
-	res := make([]workitem.WorkItem, count)
-	for index := range res {
-		res[index] = workitem.WorkItem{
-			ID:   uuid.NewV4(),
-			Type: uuid.NewV4(), // used to be "foobar"
-			Fields: map[string]interface{}{
-				workitem.SystemUpdatedAt: time.Now(),
-			},
-			SpaceID: space.SystemSpace,
-		}
-	}
-	return res
 }
 
 // ========== helper functions for tests inside WorkItem2Suite ==========
