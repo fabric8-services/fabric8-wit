@@ -111,7 +111,7 @@ function deploy() {
   # Let's deploy
   make docker-image-deploy
 
-  TAG=$(echo $GIT_COMMIT | cut -c1-6)
+  TAG=$(echo $GIT_COMMIT | cut -c1-7)
 
   tag_push registry.devshift.net/fabric8-services/fabric8-wit:$TAG
   tag_push registry.devshift.net/fabric8-services/fabric8-wit:latest
