@@ -18,7 +18,6 @@ import (
 
 	"context"
 
-	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -173,7 +172,8 @@ func (s *workItemRepoBlackBoxTest) TestExistsWorkItem() {
 		// when
 		err := s.repo.CheckExists(s.ctx, "00000000-0000-0000-0000-000000000000")
 		// then
-		require.IsType(t, &goa.ErrorResponse{}, err)
+		var errorType errors.NotFoundError
+		require.IsType(t, errorType, err)
 	})
 
 }

@@ -6,7 +6,6 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/errors"
 
-	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 )
@@ -31,7 +30,7 @@ func Exists(ctx context.Context, db *gorm.DB, tableName string, id string) (bool
 
 	err := db.CommonDB().QueryRow(query, id).Scan(&exists)
 	if err == nil && !exists {
-		return exists, goa.ErrNotFound(errors.NewNotFoundError(tableName, id).Error())
+		return exists, errors.NewNotFoundError(tableName, id)
 	}
 	if err != nil {
 		return false, errors.NewInternalError(ctx, errs.Wrapf(err, "unable to verify if %s exists", tableName))

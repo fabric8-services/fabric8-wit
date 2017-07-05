@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	"net/http"
 	"net/url"
-	"reflect"
 	"sync"
 	"text/template"
 
@@ -622,8 +621,9 @@ func createOrUpdateSpace(ctx context.Context, spaceRepo *space.GormRepository, i
 
 func createSpace(ctx context.Context, spaceRepo *space.GormRepository, id uuid.UUID, description string) error {
 	err := spaceRepo.CheckExists(ctx, id.String())
-	switch reflect.TypeOf(err) {
-	case reflect.TypeOf(&goa.ErrorResponse{}):
+	cause := errs.Cause(err)
+	switch cause.(type) {
+	case errors.NotFoundError:
 		log.Info(ctx, map[string]interface{}{
 			"pkg":      "migration",
 			"space_id": id,

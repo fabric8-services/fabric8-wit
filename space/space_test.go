@@ -12,7 +12,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 
-	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -80,7 +79,8 @@ func (test *repoBBTest) TestExistsSpace() {
 
 	t.Run("space doesn't exist", func(t *testing.T) {
 		err := test.repo.CheckExists(context.Background(), uuid.NewV4().String())
-		require.IsType(t, &goa.ErrorResponse{}, err)
+		var errorType errors.NotFoundError
+		require.IsType(t, errorType, err)
 	})
 
 }

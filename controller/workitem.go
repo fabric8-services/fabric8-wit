@@ -496,7 +496,7 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, appl application.Application,
 			}
 			if err := appl.Areas().CheckExists(ctx, areaUUID.String()); err != nil {
 				switch reflect.TypeOf(err) {
-				case reflect.TypeOf(&goa.ErrorResponse{}):
+				case reflect.TypeOf(&errors.NotFoundError{}):
 					return errors.NewNotFoundError("data.relationships.area.data.id", *d.ID)
 				default:
 					return errs.Wrapf(err, "unknown error when verifying the area id %s", *d.ID)

@@ -1,6 +1,7 @@
 package remoteworkitem
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
@@ -8,8 +9,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/application/repository"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/rest"
-
-	"context"
 
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"

@@ -15,7 +15,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/space"
 	testcommon "github.com/fabric8-services/fabric8-wit/test"
 
-	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -414,7 +413,8 @@ func (test *TestIterationRepository) TestExistsIteration() {
 		repo := iteration.NewIterationRepository(test.DB)
 
 		err := repo.CheckExists(context.Background(), uuid.NewV4().String())
-		require.IsType(t, &goa.ErrorResponse{}, err)
+		var errorType errors.NotFoundError
+		require.IsType(t, errorType, err)
 	})
 
 }

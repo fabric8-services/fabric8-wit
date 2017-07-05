@@ -10,7 +10,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
-	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -90,6 +89,7 @@ func (s *trackerRepoBlackBoxTest) TestFaiLoadZeroID() {
 		s.T().Error("Could not create tracker", err)
 	}
 
-	err = s.repo.CheckExists(context.Background(), "0")
-	require.IsType(s.T(), &goa.ErrorResponse{}, err)
+	_, err = s.repo.Load(context.Background(), "0")
+	var errorType remoteworkitem.NotFoundError
+	require.IsType(s.T(), errorType, err)
 }

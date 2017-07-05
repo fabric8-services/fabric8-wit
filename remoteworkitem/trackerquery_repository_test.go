@@ -8,6 +8,7 @@ import (
 	"context"
 
 	"github.com/fabric8-services/fabric8-wit/application"
+	errs "github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
@@ -94,7 +95,8 @@ func (test *TestTrackerQueryRepository) TestExistsTrackerQuery() {
 		ctx := goa.NewContext(context.Background(), nil, req, params)
 
 		err := test.queryRepo.CheckExists(ctx, "11111111111")
-		require.IsType(t, &goa.ErrorResponse{}, err)
+		var errorType errs.NotFoundError
+		require.IsType(t, errorType, err)
 	})
 
 }

@@ -14,7 +14,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 
-	"github.com/goadesign/goa"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -131,7 +130,8 @@ func (test *TestAreaRepository) TestExistsArea() {
 		// when
 		err := repo.CheckExists(context.Background(), uuid.NewV4().String())
 		// then
-		require.IsType(t, &goa.ErrorResponse{}, err)
+		var errorType errs.NotFoundError
+		require.IsType(t, errorType, err)
 	})
 }
 

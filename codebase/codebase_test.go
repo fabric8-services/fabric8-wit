@@ -5,12 +5,12 @@ import (
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/codebase"
+	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 
-	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -152,7 +152,8 @@ func (test *TestCodebaseRepository) TestExistsCodebase() {
 		// when
 		err := repo.CheckExists(context.Background(), uuid.NewV4().String())
 		// then
-		require.IsType(t, &goa.ErrorResponse{}, err)
+		var errorType errors.NotFoundError
+		require.IsType(t, errorType, err)
 	})
 
 }
