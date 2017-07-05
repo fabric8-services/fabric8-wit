@@ -2419,19 +2419,11 @@ func (s *WorkItem2Suite) TestDefaultSpaceAndIterationRelations() {
 // Following test verifies that UPDATE on WI by setting AREA & Iteration
 // works as expected and do not alter previously set values
 func (s *WorkItem2Suite) TestWI2UpdateWithAreaIterationSuccessively() {
-	sp, _, _, areaInstance, iterationInstance := createSpaceAndRootAreaAndIterations(s.T(), gormapplication.NewGormDB(s.DB))
+	sp, rootArea, rootIteration, areaInstance, iterationInstance := createSpaceAndRootAreaAndIterations(s.T(), gormapplication.NewGormDB(s.DB))
 	iterationID := iterationInstance.ID.String()
 	areaID := areaInstance.ID.String()
 	itType := iteration.APIStringTypeIteration
 	arType := area.APIStringTypeAreas
-
-	iterationRepo := iteration.NewIterationRepository(s.DB)
-	rootIteration, err := iterationRepo.Root(context.Background(), sp.ID)
-	require.Nil(s.T(), err)
-
-	areaRepo := area.NewAreaRepository(s.DB)
-	rootArea, err := areaRepo.Root(context.Background(), sp.ID)
-	require.Nil(s.T(), err)
 
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
