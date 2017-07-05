@@ -65,7 +65,7 @@ func (s *BenchCommentRepository) createComments(comments []*comment.Comment, cre
 
 func (s *BenchCommentRepository) BenchmarkCreateCommentWithMarkup() {
 	// given
-	comment := newComment("A", "Test A", rendering.SystemMarkupMarkdown)
+	comment := newComment(uuid.NewV4(), "Test A", rendering.SystemMarkupMarkdown)
 	// when
 	s.B().ResetTimer()
 	s.B().ReportAllocs()
@@ -78,7 +78,7 @@ func (s *BenchCommentRepository) BenchmarkCreateCommentWithMarkup() {
 
 func (s *BenchCommentRepository) BenchmarkLoadComment() {
 	// given
-	comment := newComment("A", "Test A", rendering.SystemMarkupMarkdown)
+	comment := newComment(uuid.NewV4(), "Test A", rendering.SystemMarkupMarkdown)
 	s.createComment(comment, s.testIdentity.ID)
 	// when
 	s.B().ResetTimer()
@@ -92,9 +92,9 @@ func (s *BenchCommentRepository) BenchmarkLoadComment() {
 
 func (s *BenchCommentRepository) BenchmarkCountComments() {
 	// given
-	parentID := "A"
-	comment1 := newComment("A", "Test A", rendering.SystemMarkupMarkdown)
-	comment2 := newComment("B", "Test B", rendering.SystemMarkupMarkdown)
+	parentID := uuid.NewV4()
+	comment1 := newComment(parentID, "Test A", rendering.SystemMarkupMarkdown)
+	comment2 := newComment(uuid.NewV4(), "Test B", rendering.SystemMarkupMarkdown)
 	comments := []*comment.Comment{comment1, comment2}
 	s.createComments(comments, s.testIdentity.ID)
 	// when
@@ -109,7 +109,7 @@ func (s *BenchCommentRepository) BenchmarkCountComments() {
 
 func (s *BenchCommentRepository) BenchmarkCreateDeleteComment() {
 	// given
-	parentID := "AA"
+	parentID := uuid.NewV4()
 	// when
 	s.B().ResetTimer()
 	s.B().ReportAllocs()
