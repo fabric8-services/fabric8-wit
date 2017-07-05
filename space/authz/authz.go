@@ -23,6 +23,8 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+const ENTITLEMENTS_LIMIT = "10"
+
 // AuthzService represents a space authorization service
 type AuthzService interface {
 	Authorize(ctx context.Context, entitlementEndpoint string, spaceID string) (bool, error)
@@ -132,7 +134,7 @@ func (s *KeycloakAuthzService) Authorize(ctx context.Context, entitlementEndpoin
 func (s *KeycloakAuthzService) checkEntitlementForSpace(ctx context.Context, token jwt.Token, entitlementEndpoint string, spaceID string) (bool, error) {
 	resource := auth.EntitlementResource{
 		Permissions:     []auth.ResourceSet{{Name: spaceID}},
-		MetaInformation: auth.EntitlementMeta{Limit: "10"}, // Will move this to configuration
+		MetaInformation: auth.EntitlementMeta{Limit: ENTITLEMENTS_LIMIT},
 	}
 	ent, err := auth.GetEntitlement(ctx, entitlementEndpoint, &resource, token.Raw)
 	if err != nil {
