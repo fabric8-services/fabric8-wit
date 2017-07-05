@@ -45,15 +45,15 @@ type loginConfiguration interface {
 // LoginController implements the login resource.
 type LoginController struct {
 	*goa.Controller
-	auth          login.KeycloakOAuthService
-	tokenManager  token.Manager
-	configuration loginConfiguration
-	identities    account.IdentityRepository
+	auth               login.KeycloakOAuthService
+	tokenManager       token.Manager
+	configuration      loginConfiguration
+	identityRepository account.IdentityRepository
 }
 
 // NewLoginController creates a login controller.
-func NewLoginController(service *goa.Service, auth *login.KeycloakOAuthProvider, tokenManager token.Manager, configuration loginConfiguration, identities account.IdentityRepository) *LoginController {
-	return &LoginController{Controller: service.NewController("login"), auth: auth, tokenManager: tokenManager, configuration: configuration, identities: identities}
+func NewLoginController(service *goa.Service, auth *login.KeycloakOAuthProvider, tokenManager token.Manager, configuration loginConfiguration, identityRepository account.IdentityRepository) *LoginController {
+	return &LoginController{Controller: service.NewController("login"), auth: auth, tokenManager: tokenManager, configuration: configuration, identityRepository: identityRepository}
 }
 
 // Authorize runs the authorize action.
@@ -62,7 +62,7 @@ func (c *LoginController) Authorize(ctx *app.AuthorizeLoginContext) error {
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
-		}, "Unable to get Keycloak auth endpoint URL")
+		}, "unable to get Keycloak auth endpoint URL")
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.Wrap(err, "unable to get Keycloak auth endpoint URL")))
 	}
 
@@ -70,7 +70,7 @@ func (c *LoginController) Authorize(ctx *app.AuthorizeLoginContext) error {
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
-		}, "Unable to get Keycloak token endpoint URL")
+		}, "unable to get Keycloak token endpoint URL")
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.Wrap(err, "unable to get Keycloak token endpoint URL")))
 	}
 
@@ -78,7 +78,7 @@ func (c *LoginController) Authorize(ctx *app.AuthorizeLoginContext) error {
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
-		}, "Unable to get Keycloak entitlement endpoint URL")
+		}, "unable to get Keycloak entitlement endpoint URL")
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.Wrap(err, "unable to get Keycloak entitlement endpoint URL")))
 	}
 
@@ -86,7 +86,7 @@ func (c *LoginController) Authorize(ctx *app.AuthorizeLoginContext) error {
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
-		}, "Unable to get Keycloak broker endpoint URL")
+		}, "unable to get Keycloak broker endpoint URL")
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.Wrap(err, "unable to get Keycloak broker endpoint URL")))
 	}
 	profileEndpoint, err := c.configuration.GetKeycloakAccountEndpoint(ctx.RequestData)
@@ -121,18 +121,18 @@ func (c *LoginController) getEntitlementResourceRequestPayload(ctx context.Conte
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
-		}, "Unable to get ID from access token")
-		return nil, errors.NewInternalError(ctx, errs.Wrap(err, "Unable to get ID from access token"))
+		}, "unable to get ID from access token")
+		return nil, errors.NewInternalError(ctx, errs.Wrap(err, "unable to get ID from access token"))
 	}
 
 	// get the user object as well for this identity
-	queryResult, err := c.identities.Query(account.IdentityFilterByID(loggedInIdentityID.ID), account.IdentityWithUser())
+	queryResult, err := c.identityRepository.Query(account.IdentityFilterByID(loggedInIdentityID.ID), account.IdentityWithUser())
 	if err != nil || len(queryResult) == 0 {
 		log.Error(ctx, map[string]interface{}{
 			"err":         err,
 			"identity_id": *loggedInIdentityID,
-		}, "Unable to query Identity")
-		return nil, errors.NewInternalError(ctx, errs.Wrap(err, "Unable to query Identity"))
+		}, "unable to query Identity")
+		return nil, errors.NewInternalError(ctx, errs.Wrap(err, "unable to query Identity"))
 	}
 	loggedInIdentity := queryResult[0]
 	contextInfoLoggedInIdentity := loggedInIdentity.User.ContextInformation
@@ -142,7 +142,10 @@ func (c *LoginController) getEntitlementResourceRequestPayload(ctx context.Conte
 
 	var spacesToGetEntitlementsFor []auth.ResourceSet
 	for _, v := range contextInfoLoggedInIdentity["recentSpaces"].([]interface{}) {
-		recentSpaceID := v.(string)
+		recentSpaceID, ok := v.(string)
+		if !ok {
+			return nil, errors.NewBadParameterError("recentSpaces", "string").Expected("not string")
+		}
 		spacesToGetEntitlementsFor = append(spacesToGetEntitlementsFor, auth.ResourceSet{Name: recentSpaceID}) // pass by reference?
 	}
 	if len(spacesToGetEntitlementsFor) == 0 {
@@ -166,7 +169,7 @@ func (c *LoginController) Refresh(ctx *app.RefreshLoginContext) error {
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
-		}, "Unable to get Keycloak token endpoint URL")
+		}, "unable to get Keycloak token endpoint URL")
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.Wrap(err, "unable to get Keycloak token endpoint URL")))
 	}
 	res, err := client.PostForm(endpoint, url.Values{
@@ -199,7 +202,7 @@ func (c *LoginController) Refresh(ctx *app.RefreshLoginContext) error {
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
-		}, "Unable to get Keycloak token endpoint URL")
+		}, "unable to get Keycloak token endpoint URL")
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.Wrap(err, "unable to get Keycloak token endpoint URL")))
 	}
 
@@ -245,7 +248,7 @@ func (c *LoginController) Link(ctx *app.LinkLoginContext) error {
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
-		}, "Unable to get Keycloak broker endpoint URL")
+		}, "unable to get Keycloak broker endpoint URL")
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.Wrap(err, "unable to get Keycloak broker endpoint URL")))
 	}
 	clientID := c.configuration.GetKeycloakClientID()
@@ -264,7 +267,7 @@ func (c *LoginController) Linksession(ctx *app.LinksessionLoginContext) error {
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
-		}, "Unable to get Keycloak broker endpoint URL")
+		}, "unable to get Keycloak broker endpoint URL")
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.Wrap(err, "unable to get Keycloak broker endpoint URL")))
 	}
 	clientID := c.configuration.GetKeycloakClientID()
@@ -283,7 +286,7 @@ func (c *LoginController) Linkcallback(ctx *app.LinkcallbackLoginContext) error 
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
-		}, "Unable to get Keycloak broker endpoint URL")
+		}, "unable to get Keycloak broker endpoint URL")
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.Wrap(err, "unable to get Keycloak broker endpoint URL ")))
 	}
 	clientID := c.configuration.GetKeycloakClientID()
