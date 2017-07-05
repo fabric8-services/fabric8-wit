@@ -21,6 +21,7 @@ const (
 	SystemRemoteItemID        = "system.remote_item_id"
 	SystemNumber              = "system.number"
 	SystemTitle               = "system.title"
+	SystemTitleRendered       = "system.title.rendered"
 	SystemDescription         = "system.description"
 	SystemDescriptionMarkup   = "system.description.markup"
 	SystemDescriptionRendered = "system.description.rendered"

@@ -634,8 +634,11 @@ func ConvertWorkItem(request *goa.RequestData, wi workitem.WorkItem, additional 
 			}
 
 		case workitem.SystemTitle:
-			// 'HTML escape' the title to prevent script injection
-			op.Attributes[name] = html.EscapeString(val.(string))
+			if val != nil {
+				op.Attributes[name] = val.(string)
+				// 'HTML escape' the title to prevent script injection
+				op.Attributes[workitem.SystemTitleRendered] = html.EscapeString(val.(string))
+			}
 		case workitem.SystemDescription:
 			description := rendering.NewMarkupContentFromValue(val)
 			if description != nil {
