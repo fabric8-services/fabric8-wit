@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -119,7 +118,6 @@ func (c *LoginController) Authorize(ctx *app.AuthorizeLoginContext) error {
 
 func (c *LoginController) getEntitlementResourceRequestPayload(ctx context.Context, token *string) (*auth.EntitlementResource, error) {
 	loggedInIdentityID, err := c.tokenManager.Extract(*token)
-	fmt.Println(loggedInIdentityID)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
