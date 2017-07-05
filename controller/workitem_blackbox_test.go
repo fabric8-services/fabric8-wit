@@ -64,6 +64,7 @@ type WorkItemSuite struct {
 	minimumPayload *app.UpdateWorkitemPayload
 	testIdentity   account.Identity
 	ctx            context.Context
+	repoWit        workitem.WorkItemRepository
 }
 
 func (s *WorkItemSuite) SetupSuite() {
@@ -71,6 +72,7 @@ func (s *WorkItemSuite) SetupSuite() {
 	s.ctx = migration.NewMigrationContext(context.Background())
 	s.DBTestSuite.PopulateDBTestSuite(s.ctx)
 	s.priKey, _ = almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	s.repoWit = workitem.NewWorkItemRepository(s.DB)
 }
 
 func (s *WorkItemSuite) TearDownSuite() {
@@ -93,6 +95,7 @@ func (s *WorkItemSuite) SetupTest() {
 	s.svc = testsupport.ServiceAsUser("TestUpdateWI-Service", almtoken.NewManagerWithPrivateKey(s.priKey), s.testIdentity)
 	s.workitemCtrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.spaceCtrl = NewSpaceController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration, &DummyResourceManager{})
+
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
@@ -101,6 +104,127 @@ func (s *WorkItemSuite) SetupTest() {
 	log.Info(nil, nil, "Creating work item during test setup: done")
 	s.wi = wi.Data
 	s.minimumPayload = getMinimumRequiredUpdatePayload(s.wi)
+}
+
+func (s *WorkItemSuite) TestPagingLinks() {
+	witCtrl := NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	// With only ONE work item
+	pagingTest := createPagingTest(s.T(), s.svc.Context, witCtrl, &s.repoWit, space.SystemSpace, 1)
+	pagingTest(2, 5, "page[offset]=0&page[limit]=2", "page[offset]=0&page[limit]=2", "page[offset]=0&page[limit]=2", "")
+
+	// With only TEN work items
+	payload := minimumRequiredCreateWithType(workitem.SystemBug)
+	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	for i := 1; i <= 9; i++ {
+		payload.Data.Attributes[workitem.SystemTitle] = fmt.Sprintf("Paging WI %d", i)
+		test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	}
+	pagingTest = createPagingTest(s.T(), s.svc.Context, witCtrl, &s.repoWit, space.SystemSpace, 10)
+	pagingTest(2, 5, "page[offset]=0&page[limit]=2", "page[offset]=7&page[limit]=5", "page[offset]=0&page[limit]=2", "page[offset]=7&page[limit]=5")
+	pagingTest(1, 10, "page[offset]=0&page[limit]=1", "page[offset]=1&page[limit]=10", "page[offset]=0&page[limit]=1", "")
+	pagingTest(0, 4, "page[offset]=0&page[limit]=4", "page[offset]=8&page[limit]=4", "", "page[offset]=4&page[limit]=4")
+
+	// With only ZERO work items
+	spaceName := "paging zero space " + uuid.NewV4().String()
+	sp := &app.CreateSpacePayload{
+		Data: &app.Space{
+			Type: "spaces",
+			Attributes: &app.SpaceAttributes{
+				Name: &spaceName,
+			},
+		},
+	}
+	_, customSpace := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, sp)
+	pagingTest = createPagingTest(s.T(), s.svc.Context, witCtrl, &s.repoWit, *customSpace.Data.ID, 0)
+	pagingTest(10, 2, "page[offset]=0&page[limit]=0", "page[offset]=0&page[limit]=0", "", "")
+	pagingTest(0, 2, "page[offset]=0&page[limit]=2", "page[offset]=0&page[limit]=0", "", "")
+}
+
+func (s *WorkItemSuite) TestPagingErrors() {
+	var offset string = "-1"
+	var limit int = 2
+	_, result := test.ListWorkitemOK(s.T(), context.Background(), nil, s.workitemCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	if !strings.Contains(*result.Links.First, "page[offset]=0") {
+		assert.Fail(s.T(), "Offset is negative", "Expected offset to be %d, but was %s", 0, *result.Links.First)
+	}
+
+	offset = "0"
+	limit = 0
+	_, result = test.ListWorkitemOK(s.T(), context.Background(), nil, s.workitemCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	if !strings.Contains(*result.Links.First, "page[limit]=20") {
+		assert.Fail(s.T(), "Limit is 0", "Expected limit to be default size %d, but was %s", 20, *result.Links.First)
+	}
+
+	offset = "0"
+	limit = -1
+	_, result = test.ListWorkitemOK(s.T(), context.Background(), nil, s.workitemCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	if !strings.Contains(*result.Links.First, "page[limit]=20") {
+		assert.Fail(s.T(), "Limit is negative", "Expected limit to be default size %d, but was %s", 20, *result.Links.First)
+	}
+
+	offset = "-3"
+	limit = -1
+	_, result = test.ListWorkitemOK(s.T(), context.Background(), nil, s.workitemCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	if !strings.Contains(*result.Links.First, "page[limit]=20") {
+		assert.Fail(s.T(), "Limit is negative", "Expected limit to be default size %d, but was %s", 20, *result.Links.First)
+	}
+	if !strings.Contains(*result.Links.First, "page[offset]=0") {
+		assert.Fail(s.T(), "Offset is negative", "Expected offset to be %d, but was %s", 0, *result.Links.First)
+	}
+
+	offset = "ALPHA"
+	limit = 40
+	_, result = test.ListWorkitemOK(s.T(), context.Background(), nil, s.workitemCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	if !strings.Contains(*result.Links.First, "page[limit]=40") {
+		assert.Fail(s.T(), "Limit is within range", "Expected limit to be size %d, but was %s", 40, *result.Links.First)
+	}
+	if !strings.Contains(*result.Links.First, "page[offset]=0") {
+		assert.Fail(s.T(), "Offset is negative", "Expected offset to be %d, but was %s", 0, *result.Links.First)
+	}
+}
+
+func (s *WorkItemSuite) TestPagingLinksHasAbsoluteURL() {
+	// given
+	offset := "10"
+	limit := 10
+	// when
+	_, result := test.ListWorkitemOK(s.T(), context.Background(), nil, s.workitemCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	// then
+	if !strings.HasPrefix(*result.Links.First, "http://") {
+		assert.Fail(s.T(), "Not Absolute URL", "Expected link %s to contain absolute URL but was %s", "First", *result.Links.First)
+	}
+	if !strings.HasPrefix(*result.Links.Last, "http://") {
+		assert.Fail(s.T(), "Not Absolute URL", "Expected link %s to contain absolute URL but was %s", "Last", *result.Links.Last)
+	}
+	if !strings.HasPrefix(*result.Links.Prev, "http://") {
+		assert.Fail(s.T(), "Not Absolute URL", "Expected link %s to contain absolute URL but was %s", "Prev", *result.Links.Prev)
+	}
+}
+
+func (s *WorkItemSuite) TestPagingDefaultAndMaxSize() {
+	// given
+	offset := "0"
+	var limit int
+	// when
+	_, result := test.ListWorkitemOK(s.T(), context.Background(), nil, s.workitemCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &offset, nil, nil)
+	// then
+	if !strings.Contains(*result.Links.First, "page[limit]=20") {
+		assert.Fail(s.T(), "Limit is nil", "Expected limit to be default size %d, got %v", 20, *result.Links.First)
+	}
+	// when
+	limit = 1000
+	_, result = test.ListWorkitemOK(s.T(), context.Background(), nil, s.workitemCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	// then
+	if !strings.Contains(*result.Links.First, "page[limit]=100") {
+		assert.Fail(s.T(), "Limit is more than max", "Expected limit to be %d, got %v", 100, *result.Links.First)
+	}
+	// when
+	limit = 50
+	_, result = test.ListWorkitemOK(s.T(), context.Background(), nil, s.workitemCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	// then
+	if !strings.Contains(*result.Links.First, "page[limit]=50") {
+		assert.Fail(s.T(), "Limit is within range", "Expected limit to be %d, got %v", 50, *result.Links.First)
+	}
 }
 
 func (s *WorkItemSuite) TestGetWorkItemWithLegacyDescription() {
@@ -532,10 +656,8 @@ func (s *WorkItemSuite) TestUnauthorizeWorkItemCUD() {
 	})
 }
 
-func createPagingTest(t *testing.T, ctx context.Context, controller *WorkitemController, repo *testsupport.WorkItemRepository, spaceID uuid.UUID, totalCount int) func(start int, limit int, first string, last string, prev string, next string) {
+func createPagingTest(t *testing.T, ctx context.Context, controller *WorkitemController, repo *workitem.WorkItemRepository, spaceID uuid.UUID, totalCount int) func(start int, limit int, first string, last string, prev string, next string) {
 	return func(start int, limit int, first string, last string, prev string, next string) {
-		count := computeCount(totalCount, int(start), int(limit))
-		repo.ListReturns(makeWorkItems(count), totalCount, nil)
 		offset := strconv.Itoa(start)
 
 		_, response := test.ListWorkitemOK(t, ctx, nil, controller, spaceID, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
@@ -559,31 +681,6 @@ func assertLink(t *testing.T, l string, expected string, actual *string) {
 			assert.True(t, strings.HasSuffix(*actual, expected), "link %s should be %s, but is %s", l, expected, *actual)
 		}
 	}
-}
-
-func computeCount(totalCount int, start int, limit int) int {
-	if start < 0 || start >= totalCount {
-		return 0
-	}
-	if start+limit > totalCount {
-		return totalCount - start
-	}
-	return limit
-}
-
-func makeWorkItems(count int) []workitem.WorkItem {
-	res := make([]workitem.WorkItem, count)
-	for index := range res {
-		res[index] = workitem.WorkItem{
-			ID:   uuid.NewV4(),
-			Type: uuid.NewV4(), // used to be "foobar"
-			Fields: map[string]interface{}{
-				workitem.SystemUpdatedAt: time.Now(),
-			},
-			SpaceID: space.SystemSpace,
-		}
-	}
-	return res
 }
 
 // ========== helper functions for tests inside WorkItem2Suite ==========
