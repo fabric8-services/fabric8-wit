@@ -21,9 +21,9 @@ type Repository interface {
 	Create(ctx context.Context, comment *Comment, creator uuid.UUID) error
 	Save(ctx context.Context, comment *Comment, modifier uuid.UUID) error
 	Delete(ctx context.Context, commentID uuid.UUID, suppressor uuid.UUID) error
-	List(ctx context.Context, parent string, start *int, limit *int) ([]Comment, uint64, error)
+	List(ctx context.Context, parent uuid.UUID, start *int, limit *int) ([]Comment, uint64, error)
 	Load(ctx context.Context, id uuid.UUID) (*Comment, error)
-	Count(ctx context.Context, parent string) (int, error)
+	Count(ctx context.Context, parentID uuid.UUID) (int, error)
 }
 
 // NewRepository creates a new storage type.
@@ -135,10 +135,10 @@ func (m *GormCommentRepository) Delete(ctx context.Context, commentID uuid.UUID,
 }
 
 // List all comments related to a single item
-func (m *GormCommentRepository) List(ctx context.Context, parent string, start *int, limit *int) ([]Comment, uint64, error) {
+func (m *GormCommentRepository) List(ctx context.Context, parentID uuid.UUID, start *int, limit *int) ([]Comment, uint64, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "comment", "query"}, time.Now())
 
-	db := m.db.Model(&Comment{}).Where("parent_id = ?", parent)
+	db := m.db.Model(&Comment{}).Where("parent_id = ?", parentID)
 	orgDB := db
 	if start != nil {
 		if *start < 0 {
@@ -204,11 +204,11 @@ func (m *GormCommentRepository) List(ctx context.Context, parent string, start *
 }
 
 // Count all comments related to a single item
-func (m *GormCommentRepository) Count(ctx context.Context, parent string) (int, error) {
+func (m *GormCommentRepository) Count(ctx context.Context, parentID uuid.UUID) (int, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "comment", "query"}, time.Now())
 	var count int
 
-	m.db.Model(&Comment{}).Where("parent_id = ?", parent).Count(&count)
+	m.db.Model(&Comment{}).Where("parent_id = ?", parentID).Count(&count)
 
 	return count, nil
 }
