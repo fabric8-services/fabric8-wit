@@ -32,7 +32,7 @@ type Revision struct {
 	// the id of the comment that changed
 	CommentID uuid.UUID `gorm:"column:comment_id"`
 	// the id of the parent of the comment that changed
-	CommentParentID string `gorm:"column:comment_parent_id"`
+	CommentParentID uuid.UUID `gorm:"column:comment_parent_id"`
 	// the body of the comment (nil when comment was deleted)
 	CommentBody *string `gorm:"column:comment_body"`
 	// the markup used to input the comment body (nil when comment was deleted)
