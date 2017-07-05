@@ -175,14 +175,14 @@ func (r *GormWorkItemRepository) LoadBottomWorkitem(ctx context.Context) (*WorkI
 	return ConvertWorkItemStorageToModel(wiType, &res)
 }
 
-// LoadHighestOrder returns the highest order
-func (r *GormWorkItemRepository) LoadHighestOrder(ctx context.Context) (float64, error) {
+// LoadHighestOrder returns the highest execution order in the given space
+func (r *GormWorkItemRepository) LoadHighestOrder(ctx context.Context, spaceID uuid.UUID) (float64, error) {
 	res := WorkItemStorage{}
 	db := r.db.Model(WorkItemStorage{})
-	query := fmt.Sprintf("execution_order = (SELECT max(execution_order) FROM %[1]s)",
+	query := fmt.Sprintf("execution_order = (SELECT max(execution_order) FROM %[1]s where space_id=?)",
 		WorkItemStorage{}.TableName(),
 	)
-	db = db.Where(query).First(&res)
+	db = db.Where(query, spaceID).First(&res)
 	order, err := strconv.ParseFloat(fmt.Sprintf("%v", res.ExecutionOrder), 64)
 	if err != nil {
 		return 0, errors.NewInternalError(ctx, err)
@@ -471,7 +471,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 	}
 
 	// The order of workitems are spaced by a factor of 1000.
-	pos, err := r.LoadHighestOrder(ctx)
+	pos, err := r.LoadHighestOrder(ctx, spaceID)
 	if err != nil {
 		return nil, errors.NewInternalError(ctx, err)
 	}
