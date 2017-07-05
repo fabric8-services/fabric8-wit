@@ -458,11 +458,13 @@ func getChildIterationPayload(name *string) *app.CreateChildIterationPayload {
 // following helper function creates a space , root area, root iteration for that space.
 // Also creates a new iteration and new area in the same space
 func createSpaceAndRootAreaAndIterations(t *testing.T, db application.DB) (space.Space, area.Area, iteration.Iteration, area.Area, iteration.Iteration) {
-	var spaceObj space.Space
-	var rootAreaObj area.Area
-	var rootIterationObj iteration.Iteration
-	var otherIterationObj iteration.Iteration
-	var otherAreaObj area.Area
+	var (
+		spaceObj          space.Space
+		rootAreaObj       area.Area
+		rootIterationObj  iteration.Iteration
+		otherIterationObj iteration.Iteration
+		otherAreaObj      area.Area
+	)
 	application.Transactional(db, func(app application.Application) error {
 		owner := &account.Identity{
 			Username:     "new-space-owner-identity",
