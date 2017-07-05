@@ -3,6 +3,7 @@ package auth_test
 import (
 	"context"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/auth"
@@ -11,6 +12,8 @@ import (
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+
+	"fmt"
 
 	_ "github.com/lib/pq"
 )
@@ -45,7 +48,7 @@ func (s *TestPolicySuite) TestGetPolicyOK() {
 	require.NotNil(s.T(), newPat)
 	require.NotNil(s.T(), obtainedPolicy.ID)
 	require.Equal(s.T(), policyID, *obtainedPolicy.ID)
-	require.Equal(s.T(), policy.Config.UserIDs, obtainedPolicy.Config.UserIDs)
+	s.policiesEqual(policy.Config.UserIDs, obtainedPolicy.Config.UserIDs)
 	require.Equal(s.T(), policy.Type, obtainedPolicy.Type)
 	require.Equal(s.T(), policy.Name, obtainedPolicy.Name)
 }
@@ -67,7 +70,7 @@ func (s *TestPolicySuite) TestUpdatePolicyOK() {
 	require.NotNil(s.T(), newPat)
 	require.NotNil(s.T(), obtainedPolicy.ID)
 	require.Equal(s.T(), policyID, *obtainedPolicy.ID)
-	require.Equal(s.T(), policy.Config.UserIDs, obtainedPolicy.Config.UserIDs)
+	s.policiesEqual(policy.Config.UserIDs, obtainedPolicy.Config.UserIDs)
 	require.Equal(s.T(), policy.Type, obtainedPolicy.Type)
 	require.Equal(s.T(), policy.Name, obtainedPolicy.Name)
 }
@@ -98,4 +101,24 @@ func createPermissionWithPolicy(s *TestPolicySuite) (*auth.KeycloakPolicy, strin
 	require.NotEqual(s.T(), "", permissionID)
 
 	return &policy, policyID
+}
+
+func (s *TestPolicySuite) policiesEqual(expectedUserIDs string, actaulUserIDs string) {
+	actualUsers := strings.Split(actaulUserIDs, ",")
+	expectedUsers := strings.Split(expectedUserIDs, ",")
+	errMessage := fmt.Sprintf("user IDs don't match. Expected: %s Actual: %s", expectedUserIDs, actaulUserIDs)
+	require.Equal(s.T(), len(expectedUsers), len(actualUsers), errMessage)
+	for _, actualID := range actualUsers {
+		actualUser := strings.Trim(actualID, "[]")
+		found := false
+		for _, expectedID := range expectedUsers {
+			found = actualUser == strings.Trim(expectedID, "[]")
+			if found {
+				break
+			}
+		}
+		if !found {
+			require.Fail(s.T(), errMessage)
+		}
+	}
 }
