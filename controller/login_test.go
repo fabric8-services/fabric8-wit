@@ -3,9 +3,7 @@ package controller
 import (
 	"fmt"
 	"net/http"
-	"net/url"
 	"testing"
-	"time"
 
 	"context"
 
@@ -13,14 +11,11 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/workitem"
-	errs "github.com/pkg/errors"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	"github.com/fabric8-services/fabric8-wit/application"
-	"github.com/fabric8-services/fabric8-wit/auth"
 	"github.com/fabric8-services/fabric8-wit/configuration"
-	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
@@ -173,12 +168,22 @@ func (rest *TestLoginREST) TestResourceRequestPayload() {
 	service, controller := rest.SecuredController()
 
 	// Generate an access token for a test identity
-	accessTokenString, err := rest.generateAccessToken()
+	r := &goa.RequestData{
+		Request: &http.Request{Host: "api.example.org"},
+	}
+	tokenEndpoint, err := rest.configuration.GetKeycloakEndpointToken(r)
+	require.Nil(t, err)
+
+	accessToken, err := GenerateUserToken(service.Context, tokenEndpoint, rest.configuration, rest.configuration.GetKeycloakTestUserName(), rest.configuration.GetKeycloakTestUserSecret())
+	require.Nil(t, err)
+
+	accessTokenString := accessToken.Token.AccessToken
+
 	require.Nil(t, err)
 	require.NotNil(t, accessTokenString)
 
 	// Update DB
-	r := &goa.RequestData{
+	r = &goa.RequestData{
 		Request: &http.Request{Host: "demo.api.openshift.io"},
 	}
 	profileEndpoint, err := rest.configuration.GetKeycloakAccountEndpoint(r)
@@ -217,35 +222,6 @@ func (rest *TestLoginREST) TestResourceRequestPayload() {
 	require.NotNil(t, resource.Permissions)
 	assert.Len(t, resource.Permissions, 1)
 
-}
-
-func (rest *TestLoginREST) generateAccessToken() (*string, error) {
-	t := rest.T()
-
-	var scopes []account.Identity
-	scopes = append(scopes, testsupport.TestIdentity)
-	scopes = append(scopes, testsupport.TestObserverIdentity)
-
-	client := &http.Client{Timeout: 10 * time.Second}
-	r := &goa.RequestData{
-		Request: &http.Request{Host: "api.example.org"},
-	}
-	tokenEndpoint, err := rest.configuration.GetKeycloakEndpointToken(r)
-
-	res, err := client.PostForm(tokenEndpoint, url.Values{
-		"client_id":     {rest.configuration.GetKeycloakClientID()},
-		"client_secret": {rest.configuration.GetKeycloakSecret()},
-		"username":      {rest.configuration.GetKeycloakTestUserName()},
-		"password":      {rest.configuration.GetKeycloakTestUserSecret()},
-		"grant_type":    {"password"},
-	})
-	if err != nil {
-		return nil, errors.NewInternalError(context.Background(), errs.Wrap(err, "error when obtaining token"))
-	}
-
-	token, err := auth.ReadToken(context.Background(), res)
-	require.Nil(t, err)
-	return token.AccessToken, err
 }
 
 func validateToken(t *testing.T, token *app.AuthToken, controler *LoginController) {
