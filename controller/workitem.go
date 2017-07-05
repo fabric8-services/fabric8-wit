@@ -321,7 +321,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 		// To be removed once we have endpoint like - /api/space/{spaceID}/workitems
 		_, spaceLoadErr := appl.Spaces().Load(ctx, ctx.SpaceID)
 		if spaceLoadErr != nil {
-			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("space", "string").Expected("valid space ID"))
+			return jsonapi.JSONErrorResponse(ctx, errors.NewNotFoundError("space", ctx.SpaceID.String()))
 		}
 		err := ConvertJSONAPIToWorkItem(ctx, ctx.Method, appl, *ctx.Payload.Data, &wi, ctx.SpaceID)
 		if err != nil {
