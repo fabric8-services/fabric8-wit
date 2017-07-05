@@ -62,7 +62,8 @@ function run_tests_without_coverage() {
 
   make docker-test-migration
   make docker-test-integration-no-coverage
-  make docker-test-remote-no-coverage
+  # Temporarily disabled. See https://github.com/almighty/keycloak/issues/47
+  #make docker-test-remote-no-coverage
   echo "CICO: ran tests without coverage"
 }
 
@@ -89,7 +90,8 @@ function run_tests_with_coverage() {
   make docker-test-integration
 
   # Run the remote tests that generate coverage information
-  make docker-test-remote
+  # Temporarily disabled. See https://github.com/almighty/keycloak/issues/47
+  #make docker-test-remote
 
   # Output coverage
   make docker-coverage-all
