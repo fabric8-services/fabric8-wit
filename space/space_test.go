@@ -73,15 +73,14 @@ func (test *repoBBTest) TestExistsSpace() {
 
 	t.Run("space exists", func(t *testing.T) {
 		// given
-		exists, err := test.repo.Exists(context.Background(), space.SystemSpace.String())
+		err := test.repo.CheckExists(context.Background(), space.SystemSpace.String())
 		require.Nil(t, err)
-		assert.True(t, exists)
 	})
 
 	t.Run("space doesn't exist", func(t *testing.T) {
-		exists, err := test.repo.Exists(context.Background(), uuid.NewV4().String())
+		err := test.repo.CheckExists(context.Background(), uuid.NewV4().String())
+
 		require.IsType(t, errors.NotFoundError{}, err)
-		assert.False(t, exists)
 	})
 
 }

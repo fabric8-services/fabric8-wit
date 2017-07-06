@@ -162,20 +162,17 @@ func (s *workItemRepoBlackBoxTest) TestExistsWorkItem() {
 			}, s.creatorID)
 		require.Nil(s.T(), err, "Could not create workitem")
 		// when
-		var exists bool
-		exists, err = s.repo.Exists(s.ctx, wi.ID.String())
+		err = s.repo.CheckExists(s.ctx, wi.ID.String())
 		// then
 		require.Nil(t, err)
-		require.True(t, exists)
 	})
 
 	t.Run("work item doesn't exist", func(t *testing.T) {
 		t.Parallel()
 		// when
-		var exists bool
-		exists, err := s.repo.Exists(s.ctx, "00000000-0000-0000-0000-000000000000")
+		err := s.repo.CheckExists(s.ctx, "00000000-0000-0000-0000-000000000000")
 		// then
-		require.False(t, exists)
+
 		require.IsType(t, errors.NotFoundError{}, err)
 	})
 
@@ -280,10 +277,13 @@ func (s *workItemRepoBlackBoxTest) TestGetCountsPerIteration() {
 	// when
 	countsMap, _ := s.repo.GetCountsPerIteration(s.ctx, spaceInstance.ID)
 	// then
-	require.Len(s.T(), countsMap, 1)
+	require.Len(s.T(), countsMap, 2)
 	require.Contains(s.T(), countsMap, iteration1.ID.String())
 	assert.Equal(s.T(), 5, countsMap[iteration1.ID.String()].Total)
 	assert.Equal(s.T(), 2, countsMap[iteration1.ID.String()].Closed)
+	require.Contains(s.T(), countsMap, iteration2.ID.String())
+	assert.Equal(s.T(), 0, countsMap[iteration2.ID.String()].Total)
+	assert.Equal(s.T(), 0, countsMap[iteration2.ID.String()].Closed)
 }
 
 func (s *workItemRepoBlackBoxTest) TestCodebaseAttributes() {

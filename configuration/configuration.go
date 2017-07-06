@@ -40,6 +40,7 @@ const (
 	varPostgresPassword                 = "postgres.password"
 	varPostgresSSLMode                  = "postgres.sslmode"
 	varPostgresConnectionTimeout        = "postgres.connection.timeout"
+	varPostgresTransactionTimeout       = "postgres.transaction.timeout"
 	varPostgresConnectionRetrySleep     = "postgres.connection.retrysleep"
 	varPostgresConnectionMaxIdle        = "postgres.connection.maxidle"
 	varPostgresConnectionMaxOpen        = "postgres.connection.maxopen"
@@ -158,6 +159,9 @@ func (c *ConfigurationData) setConfigDefaults() {
 	// Number of seconds to wait before trying to connect again
 	c.v.SetDefault(varPostgresConnectionRetrySleep, time.Duration(time.Second))
 
+	// Timeout of a transaction in minutes
+	c.v.SetDefault(varPostgresTransactionTimeout, time.Duration(5*time.Minute))
+
 	//-----
 	// HTTP
 	//-----
@@ -254,6 +258,11 @@ func (c *ConfigurationData) GetPostgresConnectionTimeout() int64 {
 // to wait before trying to connect again
 func (c *ConfigurationData) GetPostgresConnectionRetrySleep() time.Duration {
 	return c.v.GetDuration(varPostgresConnectionRetrySleep)
+}
+
+// GetPostgresTransactionTimeout returns the number of minutes to timeout a transaction
+func (c *ConfigurationData) GetPostgresTransactionTimeout() time.Duration {
+	return c.v.GetDuration(varPostgresTransactionTimeout)
 }
 
 // GetPostgresConnectionMaxIdle returns the number of connections that should be keept alive in the database connection pool at
