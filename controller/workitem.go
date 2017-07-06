@@ -319,11 +319,12 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		//verify spaceID:
 		// To be removed once we have endpoint like - /api/space/{spaceID}/workitems
-		_, spaceLoadErr := appl.Spaces().Load(ctx, ctx.SpaceID)
-		if spaceLoadErr != nil {
-			return jsonapi.JSONErrorResponse(ctx, errors.NewNotFoundError("space", ctx.SpaceID.String()))
+		err := appl.Spaces().CheckExists(ctx, ctx.SpaceID.String())
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		err := ConvertJSONAPIToWorkItem(ctx, ctx.Method, appl, *ctx.Payload.Data, &wi, ctx.SpaceID)
+
+		err = ConvertJSONAPIToWorkItem(ctx, ctx.Method, appl, *ctx.Payload.Data, &wi, ctx.SpaceID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))
 		}
@@ -475,8 +476,8 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 			if err != nil {
 				return errors.NewBadParameterError("data.relationships.iteration.data.id", *d.ID)
 			}
-			if _, err = appl.Iterations().Load(ctx, iterationUUID); err != nil {
-				return errors.NewBadParameterError("data.relationships.iteration.data.id", *d.ID)
+			if err := appl.Iterations().CheckExists(ctx, iterationUUID.String()); err != nil {
+				return errors.NewNotFoundError("data.relationships.iteration.data.id", *d.ID)
 			}
 			target.Fields[workitem.SystemIteration] = iterationUUID.String()
 		}
@@ -505,8 +506,14 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 			if err != nil {
 				return errors.NewBadParameterError("data.relationships.area.data.id", *d.ID)
 			}
-			if _, err = appl.Areas().Load(ctx, areaUUID); err != nil {
-				return errors.NewBadParameterError("data.relationships.area.data.id", *d.ID)
+			if err := appl.Areas().CheckExists(ctx, areaUUID.String()); err != nil {
+				cause := errs.Cause(err)
+				switch cause.(type) {
+				case errors.NotFoundError:
+					return errors.NewNotFoundError("data.relationships.area.data.id", *d.ID)
+				default:
+					return errs.Wrapf(err, "unknown error when verifying the area id %s", *d.ID)
+				}
 			}
 			target.Fields[workitem.SystemArea] = areaUUID.String()
 		}

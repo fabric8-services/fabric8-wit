@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"context"
+
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
@@ -89,5 +90,6 @@ func (s *trackerRepoBlackBoxTest) TestFaiLoadZeroID() {
 	}
 
 	_, err = s.repo.Load(context.Background(), "0")
-	require.IsType(s.T(), remoteworkitem.NotFoundError{}, err)
+	var errorType remoteworkitem.NotFoundError
+	require.IsType(s.T(), errorType, err)
 }

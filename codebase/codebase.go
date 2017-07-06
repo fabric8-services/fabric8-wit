@@ -242,10 +242,10 @@ func (m *GormCodebaseRepository) List(ctx context.Context, spaceID uuid.UUID, st
 	return result, count, nil
 }
 
-// Exists returns true|false whether a codebase exists with a specific identifier
-func (m *GormCodebaseRepository) Exists(ctx context.Context, id string) (bool, error) {
+// CheckExists returns nil if the given ID exists otherwise returns an error
+func (m *GormCodebaseRepository) CheckExists(ctx context.Context, id string) error {
 	defer goa.MeasureSince([]string{"goa", "db", "codebase", "exists"}, time.Now())
-	return repository.Exists(ctx, m.db, m.TableName(), id)
+	return repository.CheckExists(ctx, m.db, m.TableName(), id)
 }
 
 // Load a single codebase regardless of parent
