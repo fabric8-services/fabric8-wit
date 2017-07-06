@@ -95,8 +95,7 @@ func (test *TestTrackerQueryRepository) TestExistsTrackerQuery() {
 		ctx := goa.NewContext(context.Background(), nil, req, params)
 
 		err := test.queryRepo.CheckExists(ctx, "11111111111")
-		var errorType errs.NotFoundError
-		require.IsType(t, errorType, err)
+		require.IsType(t, errs.NotFoundError{}, err)
 	})
 
 }

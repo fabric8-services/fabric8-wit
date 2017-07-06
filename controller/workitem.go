@@ -3,7 +3,6 @@ package controller
 import (
 	"fmt"
 	"html"
-	"reflect"
 	"strconv"
 	"time"
 
@@ -495,8 +494,9 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, appl application.Application,
 				return errors.NewBadParameterError("data.relationships.area.data.id", *d.ID)
 			}
 			if err := appl.Areas().CheckExists(ctx, areaUUID.String()); err != nil {
-				switch reflect.TypeOf(err) {
-				case reflect.TypeOf(&errors.NotFoundError{}):
+				cause := errs.Cause(err)
+				switch cause.(type) {
+				case errors.NotFoundError:
 					return errors.NewNotFoundError("data.relationships.area.data.id", *d.ID)
 				default:
 					return errs.Wrapf(err, "unknown error when verifying the area id %s", *d.ID)

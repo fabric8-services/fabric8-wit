@@ -130,8 +130,7 @@ func (test *TestAreaRepository) TestExistsArea() {
 		// when
 		err := repo.CheckExists(context.Background(), uuid.NewV4().String())
 		// then
-		var errorType errs.NotFoundError
-		require.IsType(t, errorType, err)
+		require.IsType(t, errs.NotFoundError{}, err)
 	})
 }
 

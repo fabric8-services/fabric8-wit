@@ -77,8 +77,8 @@ func (test *resourceRepoBBTest) TestExistsSpaceResource() {
 
 	t.Run("space resource doesn't exist", func(t *testing.T) {
 		err := test.repo.CheckExists(context.Background(), uuid.NewV4().String())
-		var errorType errors.NotFoundError
-		require.IsType(t, errorType, err)
+
+		require.IsType(t, errors.NotFoundError{}, err)
 	})
 
 }

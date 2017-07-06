@@ -78,8 +78,7 @@ func (test *TestTrackerRepository) TestExistsTracker() {
 	t.Run("tracker doesn't exist", func(t *testing.T) {
 		t.Parallel()
 		err := test.repo.CheckExists(context.Background(), "11111111")
-		var errorType errs.NotFoundError
-		require.IsType(t, errorType, err)
+		require.IsType(t, errs.NotFoundError{}, err)
 	})
 
 }

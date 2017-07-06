@@ -172,8 +172,8 @@ func (s *workItemRepoBlackBoxTest) TestExistsWorkItem() {
 		// when
 		err := s.repo.CheckExists(s.ctx, "00000000-0000-0000-0000-000000000000")
 		// then
-		var errorType errors.NotFoundError
-		require.IsType(t, errorType, err)
+
+		require.IsType(t, errors.NotFoundError{}, err)
 	})
 
 }

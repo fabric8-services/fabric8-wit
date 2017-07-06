@@ -242,8 +242,8 @@ func (s *TestCommentRepository) TestExistsComment() {
 		// when
 		err := s.repo.CheckExists(s.ctx, uuid.NewV4().String())
 		// then
-		var errorType errors.NotFoundError
-		require.IsType(t, errorType, err)
+
+		require.IsType(t, errors.NotFoundError{}, err)
 	})
 
 }

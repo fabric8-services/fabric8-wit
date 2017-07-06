@@ -107,8 +107,8 @@ func (s *workItemTypeRepoBlackBoxTest) TestExistsWIT() {
 	t.Run("wit doesn't exist", func(t *testing.T) {
 		t.Parallel()
 		err := s.repo.CheckExists(s.ctx, uuid.NewV4().String())
-		var errorType errors.NotFoundError
-		require.IsType(t, errorType, err)
+
+		require.IsType(t, errors.NotFoundError{}, err)
 	})
 
 }

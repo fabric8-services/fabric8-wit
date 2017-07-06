@@ -413,8 +413,8 @@ func (test *TestIterationRepository) TestExistsIteration() {
 		repo := iteration.NewIterationRepository(test.DB)
 
 		err := repo.CheckExists(context.Background(), uuid.NewV4().String())
-		var errorType errors.NotFoundError
-		require.IsType(t, errorType, err)
+
+		require.IsType(t, errors.NotFoundError{}, err)
 	})
 
 }
