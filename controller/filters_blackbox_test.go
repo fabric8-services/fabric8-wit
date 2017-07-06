@@ -35,7 +35,7 @@ func (rest *TestFiltersREST) TestListFiltersOK() {
 	svc := goa.New("filterService")
 	ctrl := controller.NewFilterController(svc, rest.Configuration)
 	// when
-	res, filters := test.ListFilterOK(rest.T(), svc.Context, svc, ctrl, nil)
+	res, filters := test.ListFilterOK(rest.T(), svc.Context, svc, ctrl)
 	// then
 	assert.Equal(rest.T(), 5, len(filters.Data))
 	assertResponseHeaders(rest.T(), res)
