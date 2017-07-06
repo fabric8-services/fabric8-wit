@@ -1,5 +1,5 @@
-BINARY_SERVER_BIN=$(INSTALL_PREFIX)/alm
-BINARY_CLIENT_BIN=$(INSTALL_PREFIX)/alm-cli
+BINARY_SERVER_BIN=$(INSTALL_PREFIX)/wit
+BINARY_CLIENT_BIN=$(INSTALL_PREFIX)/wit-cli
 GLIDE_BIN=glide
 GOAGEN_BIN=$(VENDOR_DIR)/github.com/goadesign/goa/goagen/goagen
 GO_BINDATA_BIN=$(VENDOR_DIR)/github.com/jteeuwen/go-bindata/go-bindata/go-bindata

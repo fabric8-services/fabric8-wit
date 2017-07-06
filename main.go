@@ -15,6 +15,7 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/auth"
 	config "github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/controller"
@@ -60,7 +61,7 @@ func main() {
 		}
 	})
 	if !configSwitchIsSet {
-		if envConfigPath, ok := os.LookupEnv("ALMIGHTY_CONFIG_FILE_PATH"); ok {
+		if envConfigPath, ok := os.LookupEnv("F8_CONFIG_FILE_PATH"); ok {
 			configFilePath = envConfigPath
 		}
 	}
@@ -109,6 +110,9 @@ func main() {
 		db.DB().SetMaxOpenConns(configuration.GetPostgresConnectionMaxOpen())
 	}
 
+	// Set the database transaction timeout
+	application.SetDatabaseTransactionTimeout(configuration.GetPostgresTransactionTimeout())
+
 	// Migrate the schema
 	err = migration.Migrate(db.DB(), configuration.GetPostgresDatabase())
 	if err != nil {
@@ -143,7 +147,7 @@ func main() {
 	}
 
 	// Create service
-	service := goa.New("alm")
+	service := goa.New("wit")
 
 	// Mount middleware
 	service.Use(middleware.RequestID())

@@ -1,4 +1,4 @@
-# Contributing to almigthy-core
+# Contributing to fabric8-wit
 
 You are welcome to contribute to this project.  Here are few
 suggestions to help you to contribute.  You can contribute to this

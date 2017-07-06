@@ -123,7 +123,7 @@ func (s *serviceBlackBoxTest) TestKeycloakAuthorizationRedirect() {
 	}
 
 	r := &goa.RequestData{
-		Request: &http.Request{Host: "demo.api.almighty.io"},
+		Request: &http.Request{Host: "demo.api.openshift.io"},
 	}
 	brokerEndpoint, err := s.configuration.GetKeycloakEndpointBroker(r)
 	require.Nil(s.T(), err)
@@ -398,7 +398,7 @@ func (s *serviceBlackBoxTest) TestInvalidState() {
 	require.Nil(s.T(), err)
 
 	r := &goa.RequestData{
-		Request: &http.Request{Host: "demo.api.almighty.io"},
+		Request: &http.Request{Host: "demo.api.openshift.io"},
 	}
 	brokerEndpoint, err := s.configuration.GetKeycloakEndpointBroker(r)
 	require.Nil(s.T(), err)
@@ -413,7 +413,7 @@ func (s *serviceBlackBoxTest) TestInvalidOAuthAuthorizationCode() {
 	// an invalid OAuth2.0 code, the access token exchange
 	// fails. In such a scenario, there is response redirection
 	// to the valid referer, ie, the URL where the request originated from.
-	// Currently, this should be something like https://demo.almighty.org/somepage/
+	// Currently, this should be something like https://demo.openshift.io/somepage/
 
 	resource.Require(s.T(), resource.Database)
 
@@ -429,7 +429,7 @@ func (s *serviceBlackBoxTest) TestInvalidOAuthAuthorizationCode() {
 
 	// The user clicks login while on ALM UI.
 	// Therefore the referer would be an ALM URL.
-	refererUrl := "https://alm-url.example.org/path"
+	refererUrl := "https://wit-url.example.org/path"
 	req.Header.Add("referer", refererUrl)
 
 	prms := url.Values{}
@@ -439,7 +439,7 @@ func (s *serviceBlackBoxTest) TestInvalidOAuthAuthorizationCode() {
 	require.Nil(s.T(), err)
 
 	r := &goa.RequestData{
-		Request: &http.Request{Host: "demo.api.almighty.io"},
+		Request: &http.Request{Host: "demo.api.openshift.io"},
 	}
 	brokerEndpoint, err := s.configuration.GetKeycloakEndpointBroker(r)
 	require.Nil(s.T(), err)

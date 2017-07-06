@@ -60,11 +60,11 @@ _testmain.go
 *.test
 *.prof
 
-# ALMighty specific artifacts
+# Fabric8-wit specific artifacts
 /debug
 **/debug.test
 
-# ALMighty binaries
+# Fabric8-wit binaries
 bin/
 
 # Glide package manager

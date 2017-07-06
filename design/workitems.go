@@ -62,7 +62,7 @@ var baseTypeData = a.Type("BaseTypeData", func() {
 // workItemLinks has `self` as of now according to http://jsonapi.org/format/#fetching-resources
 var workItemLinks = a.Type("WorkItemLinks", func() {
 	a.Attribute("self", d.String, func() {
-		a.Example("http://api.almighty.io/api/workitems.2/1")
+		a.Example("http://api.openshift.io/api/workitems.2/1")
 	})
 	a.Required("self")
 })
@@ -173,6 +173,8 @@ var _ = a.Resource("workitem", func() {
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.Forbidden, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
 	})
 	a.Action("delete", func() {
 		a.Security("jwt")

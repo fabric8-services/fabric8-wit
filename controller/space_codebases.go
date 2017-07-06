@@ -54,7 +54,7 @@ func (c *SpaceCodebasesController) Create(ctx *app.CreateSpaceCodebasesContext) 
 			SpaceID: ctx.SpaceID,
 			Type:    *reqIter.Attributes.Type,
 			URL:     *reqIter.Attributes.URL,
-			StackID: *reqIter.Attributes.StackID,
+			StackID: reqIter.Attributes.StackID,
 		}
 		err = appl.Codebases().Create(ctx, &newCodeBase)
 		if err != nil {
@@ -73,9 +73,9 @@ func (c *SpaceCodebasesController) Create(ctx *app.CreateSpaceCodebasesContext) 
 func (c *SpaceCodebasesController) List(ctx *app.ListSpaceCodebasesContext) error {
 	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
 	return application.Transactional(c.db, func(appl application.Application) error {
-		_, err := appl.Spaces().Load(ctx, ctx.SpaceID)
+		err := appl.Spaces().CheckExists(ctx, ctx.SpaceID.String())
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
 		res := &app.CodebaseList{}

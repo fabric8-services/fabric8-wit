@@ -40,6 +40,7 @@ const (
 	varPostgresPassword                 = "postgres.password"
 	varPostgresSSLMode                  = "postgres.sslmode"
 	varPostgresConnectionTimeout        = "postgres.connection.timeout"
+	varPostgresTransactionTimeout       = "postgres.transaction.timeout"
 	varPostgresConnectionRetrySleep     = "postgres.connection.retrysleep"
 	varPostgresConnectionMaxIdle        = "postgres.connection.maxidle"
 	varPostgresConnectionMaxOpen        = "postgres.connection.maxopen"
@@ -102,7 +103,7 @@ func NewConfigurationData(configFilePath string) (*ConfigurationData, error) {
 	c := ConfigurationData{
 		v: viper.New(),
 	}
-	c.v.SetEnvPrefix("ALMIGHTY")
+	c.v.SetEnvPrefix("F8")
 	c.v.AutomaticEnv()
 	c.v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	c.v.SetTypeByDefaultValue(true)
@@ -121,7 +122,7 @@ func NewConfigurationData(configFilePath string) (*ConfigurationData, error) {
 
 func getConfigFilePath() string {
 	// This was either passed as a env var Or, set inside main.go from --config
-	envConfigPath, ok := os.LookupEnv("ALMIGHTY_CONFIG_FILE_PATH")
+	envConfigPath, ok := os.LookupEnv("F8_CONFIG_FILE_PATH")
 	if !ok {
 		return ""
 	}
@@ -157,6 +158,9 @@ func (c *ConfigurationData) setConfigDefaults() {
 
 	// Number of seconds to wait before trying to connect again
 	c.v.SetDefault(varPostgresConnectionRetrySleep, time.Duration(time.Second))
+
+	// Timeout of a transaction in minutes
+	c.v.SetDefault(varPostgresTransactionTimeout, time.Duration(5*time.Minute))
 
 	//-----
 	// HTTP
@@ -254,6 +258,11 @@ func (c *ConfigurationData) GetPostgresConnectionTimeout() int64 {
 // to wait before trying to connect again
 func (c *ConfigurationData) GetPostgresConnectionRetrySleep() time.Duration {
 	return c.v.GetDuration(varPostgresConnectionRetrySleep)
+}
+
+// GetPostgresTransactionTimeout returns the number of minutes to timeout a transaction
+func (c *ConfigurationData) GetPostgresTransactionTimeout() time.Duration {
+	return c.v.GetDuration(varPostgresTransactionTimeout)
 }
 
 // GetPostgresConnectionMaxIdle returns the number of connections that should be keept alive in the database connection pool at
@@ -625,7 +634,7 @@ func (c *ConfigurationData) IsLogJSON() bool {
 }
 
 // GetValidRedirectURLs returns the RegEx of valid redirect URLs for auth requests
-// If the ALMIGHTY_REDIRECT_VALID env var is not set then in Dev Mode all redirects allowed - *
+// If the F8_REDIRECT_VALID env var is not set then in Dev Mode all redirects allowed - *
 // In prod mode the default regex will be returned
 func (c *ConfigurationData) GetValidRedirectURLs(req *goa.RequestData) (string, error) {
 	if c.v.IsSet(varValidRedirectURLs) {
@@ -727,7 +736,7 @@ vwIDAQAB
 	defaultCheStarterURL            = "che-server"
 
 	// DefaultValidRedirectURLs is a regex to be used to whitelist redirect URL for auth
-	// If the ALMIGHTY_REDIRECT_VALID env var is not set then in Dev Mode all redirects allowed - *
+	// If the F8_REDIRECT_VALID env var is not set then in Dev Mode all redirects allowed - *
 	// In prod mode the following regex will be used by default:
 	DefaultValidRedirectURLs = "^(https|http)://([^/]+[.])?(?i:openshift[.]io)(/.*)?$" // *.openshift.io/*
 	devModeValidRedirectURLs = ".*"
