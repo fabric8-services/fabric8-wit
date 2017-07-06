@@ -575,11 +575,12 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 // for future use
 func setupCodebase(appl application.Application, cb *codebase.Content, spaceID uuid.UUID) error {
 	if cb.CodebaseID == "" {
+		defaultStackID := "java-centos"
 		newCodeBase := codebase.Codebase{
 			SpaceID: spaceID,
 			Type:    "git",
 			URL:     cb.Repository,
-			StackID: "java-centos",
+			StackID: &defaultStackID,
 			//TODO: Think of making stackID dynamic value (from analyzer)
 		}
 		existingCB, err := appl.Codebases().LoadByRepo(context.Background(), spaceID, cb.Repository)
