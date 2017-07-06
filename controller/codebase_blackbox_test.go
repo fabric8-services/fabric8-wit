@@ -72,7 +72,8 @@ func (s *TestCodebaseREST) TestSuccessShowCodebaseWithoutAuth() {
 		// Create space and codebase with sticky IDs
 		spaceID := uuid.FromStringOrNil("a8bee527-12d2-4aff-9823-3511c1c8e6b9")
 		codebaseID := uuid.FromStringOrNil("d7a282f6-1c10-459e-bb44-55a1a6d48bdd")
-		cb := requireSpaceAndCodebase(t, s.db, codebaseID, spaceID)
+		stackId := "golang-default"
+		cb := requireSpaceAndCodebase(t, s.db, codebaseID, spaceID, &stackId)
 
 		svc, ctrl := s.UnsecuredController()
 		_, cbresp := test.ShowCodebaseOK(t, svc.Context, svc, ctrl, cb.ID)
@@ -81,7 +82,25 @@ func (s *TestCodebaseREST) TestSuccessShowCodebaseWithoutAuth() {
 	})
 }
 
-func requireSpaceAndCodebase(t *testing.T, db *gormapplication.GormDB, ID, spaceID uuid.UUID) *codebase.Codebase {
+func (s *TestCodebaseREST) TestSuccessCreateCodebaseWithoutStackID() {
+	resetFn := s.DisableGormCallbacks()
+	defer resetFn()
+
+	s.T().Run("success with stackId nil", func(t *testing.T) {
+		resource.Require(t, resource.Database)
+
+		spaceID := uuid.FromStringOrNil("a8bee527-12d2-4aff-9823-3511c1c8e6b9")
+		codebaseID := uuid.FromStringOrNil("d7a282f6-1c10-459e-bb44-55a1a6d48bdd")
+		cb := requireSpaceAndCodebase(t, s.db, codebaseID, spaceID, nil)
+
+		svc, ctrl := s.UnsecuredController()
+		_, cbresp := test.ShowCodebaseOK(t, svc.Context, svc, ctrl, cb.ID)
+		require.NotNil(t, cbresp)
+		compareWithGolden(t, filepath.Join(s.testDir, "show", "ok_without_stackId.golden.json"), cbresp)
+	})
+}
+
+func requireSpaceAndCodebase(t *testing.T, db *gormapplication.GormDB, ID, spaceID uuid.UUID, stackId *string) *codebase.Codebase {
 	var c *codebase.Codebase
 	application.Transactional(db, func(appl application.Application) error {
 
@@ -91,13 +110,12 @@ func requireSpaceAndCodebase(t *testing.T, db *gormapplication.GormDB, ID, space
 		}
 		_, err := appl.Spaces().Create(context.Background(), s)
 		require.Nil(t, err)
-		stackId := "golang-default"
 		c = &codebase.Codebase{
 			ID:                ID,
 			SpaceID:           spaceID,
 			Type:              "git",
 			URL:               "https://github.com/fabric8-services/fabric8-wit.git",
-			StackID:           &stackId,
+			StackID:           stackId,
 			LastUsedWorkspace: "my-last-used-workspace",
 		}
 		err = appl.Codebases().Create(context.Background(), c)
