@@ -244,47 +244,43 @@ func parseSearchString(rawSearchString string) (searchKeyword, error) {
 func parseMap(queryMap map[string]interface{}, q *Query) {
 	for key, val := range queryMap {
 		switch concreteVal := val.(type) {
-		case map[string]interface{}:
-			fmt.Println(key)
-			c1 := &Query{}
-			c := []*Query{c1}
-			q.Children = c
-			parseMap(val.(map[string]interface{}), c1)
 		case []interface{}:
-			fmt.Println(key)
-		default:
-			fmt.Println(key, ":", concreteVal)
 			q.Name = key
-			q.Value = concreteVal.(*string)
+			l := []*Query{}
+			q.Children = &l
+			parseArray(val.([]interface{}), &l)
+		case string:
+			q.Name = key
+			s := string(concreteVal)
+			q.Value = &s
+		case bool:
+			s := concreteVal
+			q.Negate = s
+
 		}
 	}
+}
 
+func parseArray(anArray []interface{}, l *[]*Query) {
+	for _, val := range anArray {
+		switch val.(type) {
+		case map[string]interface{}:
+			o := val.(map[string]interface{})
+			q := &Query{}
+			*l = append(*l, q)
+			parseMap(o, q)
+
+		}
+	}
 }
 
 // Query represents tree structure of the filter query
 type Query struct {
 	Name     string
 	Value    *string
-	Children []*Query
+	Negate   bool
+	Children *[]*Query
 }
-
-/*
-  {
-    "OR": [
-      {
-        "space": "openshiftio",
-	"AND": [
-	    {"area": "planner"},
-	    {"area": "platform"},
-	]
-      },
-      {
-        "space": "rhel"
-      }
-    ]
-  }
-  a := Query{Name: "OR", Value: nil, Children: []Query{}{Query}}
-*/
 
 // parseFilterString accepts a raw string and generates a criteria expression
 func parseFilterString(rawSearchString string) (criteria.Expression, error) {

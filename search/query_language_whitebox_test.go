@@ -61,6 +61,72 @@ func (s *queryLanguageWhiteboxTest) TestMinimalANDOperation() {
 	q := &Query{}
 
 	parseMap(fm, q)
-	expected := &Query{Name: "", Value: nil, Children: []*Query(nil)}
+
+	openshiftio := "openshiftio"
+	status := "NEW"
+	expected := &Query{Name: "AND", Value: nil, Negate: false, Children: &[]*Query{
+		&Query{Name: "space", Value: &openshiftio, Negate: false, Children: nil},
+		&Query{Name: "status", Value: &status, Negate: false, Children: nil}},
+	}
+	assert.Equal(s.T(), expected, q)
+}
+
+func (s *queryLanguageWhiteboxTest) TestMinimalORandANDOperation() {
+	input := `
+	{"OR": [{"AND": [{"space": "openshiftio"},
+                         {"area": "planner"}]},
+	        {"AND": [{"space": "rhel"}]}]}`
+	fm := map[string]interface{}{}
+
+	// Parsing/Unmarshalling JSON encoding/json
+	err := json.Unmarshal([]byte(input), &fm)
+
+	if err != nil {
+		panic(err)
+	}
+	q := &Query{}
+
+	parseMap(fm, q)
+
+	openshiftio := "openshiftio"
+	area := "planner"
+	rhel := "rhel"
+	expected := &Query{Name: "OR", Value: nil, Negate: false, Children: &[]*Query{
+		&Query{Name: "AND", Value: nil, Negate: false, Children: &[]*Query{
+			&Query{Name: "space", Value: &openshiftio, Children: nil},
+			&Query{Name: "area", Value: &area, Children: nil}}},
+		&Query{Name: "AND", Value: nil, Negate: false, Children: &[]*Query{
+			&Query{Name: "space", Value: &rhel, Children: nil}}},
+	}}
+	assert.Equal(s.T(), expected, q)
+}
+
+func (s *queryLanguageWhiteboxTest) TestMinimalORandANDandNegateOperation() {
+	input := `
+	{"OR": [{"AND": [{"space": "openshiftio"},
+                         {"area": "planner"}]},
+			 {"AND": [{"space": "rhel", "negate": true}]}]}`
+	fm := map[string]interface{}{}
+
+	// Parsing/Unmarshalling JSON encoding/json
+	err := json.Unmarshal([]byte(input), &fm)
+
+	if err != nil {
+		panic(err)
+	}
+	q := &Query{}
+
+	parseMap(fm, q)
+
+	openshiftio := "openshiftio"
+	area := "planner"
+	rhel := "rhel"
+	expected := &Query{Name: "OR", Value: nil, Negate: false, Children: &[]*Query{
+		&Query{Name: "AND", Value: nil, Negate: false, Children: &[]*Query{
+			&Query{Name: "space", Value: &openshiftio, Children: nil},
+			&Query{Name: "area", Value: &area, Children: nil}}},
+		&Query{Name: "AND", Value: nil, Negate: false, Children: &[]*Query{
+			&Query{Name: "space", Value: &rhel, Negate: true, Children: nil}}},
+	}}
 	assert.Equal(s.T(), expected, q)
 }
