@@ -83,10 +83,19 @@ help:/
           } \
         }' $(MAKEFILE_LIST)
 
+GOFORMAT_FILES := $(shell find  . -name '*.go' \
+	! -wholename './bindata_assetfs.go' \
+	! -wholename './migration/sqlbindata_test.go' \
+	! -wholename './migration/sqlbindata.go' \
+	! -path './vendor/*' \
+	! -path './app/*' \
+	! -path './client/*' \
+	! -path './tool/cli/*' )
+
 .PHONY: check-go-format
 ## Exists with an error if there are files whose formatting differs from gofmt's
 check-go-format: prebuild-check
-	@gofmt -s -l ${SOURCES} 2>&1 \
+	@gofmt -s -l ${GOFORMAT_FILES} 2>&1 \
 		| tee /tmp/gofmt-errors \
 		| read \
 	&& echo "ERROR: These files differ from gofmt's style (run 'make format-go-code' to fix this):" \
@@ -130,7 +139,7 @@ govet:
 .PHONY: format-go-code
 ## Formats any go file that differs from gofmt's style
 format-go-code: prebuild-check
-	@gofmt -s -l -w ${SOURCES}
+	@gofmt -s -l -w ${GOFORMAT_FILES}
 
 .PHONY: build
 ## Build server and client.
