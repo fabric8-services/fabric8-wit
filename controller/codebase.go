@@ -136,9 +136,9 @@ func (c *CodebaseController) Create(ctx *app.CreateCodebaseContext) error {
 	}
 	cheClient := che.NewStarterClient(c.config.GetCheStarterURL(), c.config.GetOpenshiftTenantMasterURL(), getNamespace(ctx))
 
-	stackID := *cb.StackID
-	if cb.StackID == nil || *cb.StackID == "" {
-		stackID = "java-centos"
+	stackID := "java-centos"
+	if cb.StackID != nil && *cb.StackID != "" {
+		stackID = *cb.StackID
 	}
 	workspace := che.WorkspaceRequest{
 		Branch:     "master",
