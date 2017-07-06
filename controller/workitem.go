@@ -232,11 +232,17 @@ func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
 				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "failed to reorder work item"))
 			}
 
+			// check if the workitems to reorder belongs to the space
+			_, err = appl.WorkItems().Load(ctx, ctx.SpaceID, wi.Number)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "failed to reorder work item"))
+			}
+
 			err = ConvertJSONAPIToWorkItem(ctx, appl, *ctx.Payload.Data[i], wi, ctx.SpaceID)
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "failed to reorder work item"))
 			}
-			wi, err = appl.WorkItems().Reorder(ctx, workitem.DirectionType(ctx.Payload.Position.Direction), ctx.Payload.Position.ID, *wi, *currentUserIdentityID)
+			wi, err = appl.WorkItems().Reorder(ctx, ctx.SpaceID, workitem.DirectionType(ctx.Payload.Position.Direction), ctx.Payload.Position.ID, *wi, *currentUserIdentityID)
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, err)
 			}

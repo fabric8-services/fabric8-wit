@@ -54,10 +54,11 @@ type WorkItemRepository struct {
 		result1 *workitem.WorkItem
 		result2 error
 	}
-	ReorderStub        func(ctx context.Context, direction workitem.DirectionType, targetID *uuid.UUID, wi workitem.WorkItem, modifierID uuid.UUID) (*workitem.WorkItem, error)
+	ReorderStub        func(ctx context.Context, spaceID uuid.UUID, direction workitem.DirectionType, targetID *uuid.UUID, wi workitem.WorkItem, modifierID uuid.UUID) (*workitem.WorkItem, error)
 	reorderMutex       sync.RWMutex
 	reorderArgsForCall []struct {
 		ctx        context.Context
+		spaceID    uuid.UUID
 		direction  workitem.DirectionType
 		targetID   *uuid.UUID
 		wi         workitem.WorkItem
@@ -290,19 +291,20 @@ func (fake *WorkItemRepository) SaveReturns(result1 *workitem.WorkItem, result2 
 	}{result1, result2}
 }
 
-func (fake *WorkItemRepository) Reorder(ctx context.Context, direction workitem.DirectionType, targetID *uuid.UUID, wi workitem.WorkItem, modifierID uuid.UUID) (*workitem.WorkItem, error) {
+func (fake *WorkItemRepository) Reorder(ctx context.Context, spaceID uuid.UUID, direction workitem.DirectionType, targetID *uuid.UUID, wi workitem.WorkItem, modifierID uuid.UUID) (*workitem.WorkItem, error) {
 	fake.reorderMutex.Lock()
 	fake.reorderArgsForCall = append(fake.reorderArgsForCall, struct {
 		ctx        context.Context
+		spaceID    uuid.UUID
 		direction  workitem.DirectionType
 		targetID   *uuid.UUID
 		wi         workitem.WorkItem
 		modifierID uuid.UUID
-	}{ctx, direction, targetID, wi, modifierID})
-	fake.recordInvocation("Reorder", []interface{}{ctx, direction, targetID, wi, modifierID})
+	}{ctx, spaceID, direction, targetID, wi, modifierID})
+	fake.recordInvocation("Reorder", []interface{}{ctx, spaceID, direction, targetID, wi, modifierID})
 	fake.reorderMutex.Unlock()
 	if fake.ReorderStub != nil {
-		return fake.ReorderStub(ctx, direction, targetID, wi, modifierID)
+		return fake.ReorderStub(ctx, spaceID, direction, targetID, wi, modifierID)
 	}
 	return fake.reorderReturns.result1, fake.reorderReturns.result2
 }
@@ -313,10 +315,10 @@ func (fake *WorkItemRepository) ReorderCallCount() int {
 	return len(fake.reorderArgsForCall)
 }
 
-func (fake *WorkItemRepository) ReorderArgsForCall(i int) (context.Context, workitem.DirectionType, *uuid.UUID, workitem.WorkItem, uuid.UUID) {
+func (fake *WorkItemRepository) ReorderArgsForCall(i int) (context.Context, uuid.UUID, workitem.DirectionType, *uuid.UUID, workitem.WorkItem, uuid.UUID) {
 	fake.reorderMutex.RLock()
 	defer fake.reorderMutex.RUnlock()
-	return fake.reorderArgsForCall[i].ctx, fake.reorderArgsForCall[i].direction, fake.reorderArgsForCall[i].targetID, fake.reorderArgsForCall[i].wi, fake.reorderArgsForCall[i].modifierID
+	return fake.reorderArgsForCall[i].ctx, fake.reorderArgsForCall[i].spaceID, fake.reorderArgsForCall[i].direction, fake.reorderArgsForCall[i].targetID, fake.reorderArgsForCall[i].wi, fake.reorderArgsForCall[i].modifierID
 }
 
 func (fake *WorkItemRepository) ReorderReturns(result1 *workitem.WorkItem, result2 error) {
