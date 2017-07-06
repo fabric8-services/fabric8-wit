@@ -27,6 +27,9 @@ const (
 	PolicyLogicPossitive = "POSITIVE"
 	// PolicyDecisionStrategyUnanimous is to used in a Keycloak Policy payload: {"decisionStrategy":""UNANIMOUS"}
 	PolicyDecisionStrategyUnanimous = "UNANIMOUS"
+
+	// EntitlementLimit is used to specify the number of entitlement resources info in the RPT
+	EntitlementLimit = "1"
 )
 
 // KeycloakResource represents a keycloak resource payload
@@ -182,7 +185,7 @@ type Permissions struct {
 func VerifyResourceUser(ctx context.Context, token string, resourceName string, entitlementEndpoint string) (bool, error) {
 	resource := EntitlementResource{
 		Permissions:     []ResourceSet{{Name: resourceName}},
-		MetaInformation: EntitlementMeta{Limit: "1"}, // We dont need to fetch everything for 1 resource
+		MetaInformation: EntitlementMeta{Limit: EntitlementLimit}, // We dont need to fetch everything for 1 resource
 	}
 	ent, err := GetEntitlement(ctx, entitlementEndpoint, &resource, token)
 	if err != nil {
