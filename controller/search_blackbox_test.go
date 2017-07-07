@@ -29,6 +29,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 
 	"context"
+
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/goatest"
 	"github.com/stretchr/testify/assert"
@@ -255,10 +256,10 @@ func (s *searchBlackBoxTest) TestUnwantedCharactersRelatedToSearchLogic() {
 }
 
 func (s *searchBlackBoxTest) getWICreatePayload() *app.CreateWorkitemPayload {
-	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
+	spaceRelatedURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.SpaceHref(space.SystemSpace.String()))
-	witSelfURL := rest.AbsoluteURL(&goa.RequestData{
+	witRelatedURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.WorkitemtypeHref(space.SystemSpace.String(), workitem.SystemTask.String()))
 	c := app.CreateWorkitemPayload{
@@ -272,10 +273,11 @@ func (s *searchBlackBoxTest) getWICreatePayload() *app.CreateWorkitemPayload {
 						ID:   workitem.SystemTask,
 					},
 					Links: &app.GenericLinks{
-						Self: &witSelfURL,
+						Self:    &witRelatedURL,
+						Related: &witRelatedURL,
 					},
 				},
-				Space: app.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
+				Space: app.NewSpaceRelation(space.SystemSpace, spaceRelatedURL),
 			},
 		},
 	}

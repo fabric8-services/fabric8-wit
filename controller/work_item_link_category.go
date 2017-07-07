@@ -29,9 +29,10 @@ func NewWorkItemLinkCategoryController(service *goa.Service, db application.DB) 
 // enrichLinkCategorySingle includes related resources in the single's "included" array
 func enrichLinkCategorySingle(ctx *workItemLinkContext, single app.WorkItemLinkCategorySingle) error {
 	// Add "links" element
-	selfURL := rest.AbsoluteURL(ctx.RequestData, ctx.LinkFunc(single.Data.ID))
+	relatedURL := rest.AbsoluteURL(ctx.RequestData, ctx.LinkFunc(single.Data.ID))
 	single.Data.Links = &app.GenericLinks{
-		Self: &selfURL,
+		Self:    &relatedURL,
+		Related: &relatedURL,
 	}
 	return nil
 }
@@ -40,9 +41,10 @@ func enrichLinkCategorySingle(ctx *workItemLinkContext, single app.WorkItemLinkC
 func enrichLinkCategoryList(ctx *workItemLinkContext, list *app.WorkItemLinkCategoryList) error {
 	// Add "links" element
 	for _, data := range list.Data {
-		selfURL := rest.AbsoluteURL(ctx.RequestData, ctx.LinkFunc(*data.ID))
+		relatedURL := rest.AbsoluteURL(ctx.RequestData, ctx.LinkFunc(*data.ID))
 		data.Links = &app.GenericLinks{
-			Self: &selfURL,
+			Self:    &relatedURL,
+			Related: &relatedURL,
 		}
 	}
 	return nil

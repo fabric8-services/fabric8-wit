@@ -26,7 +26,8 @@
           "type": "spaces"
         },
         "links": {
-          "self": "http:///api/spaces/2e0698d8-753e-4cef-bb7c-f027634824a2"
+          "self": "http:///api/spaces/2e0698d8-753e-4cef-bb7c-f027634824a2",
+          "related": "http:///api/spaces/2e0698d8-753e-4cef-bb7c-f027634824a2"
         }
       }
     },

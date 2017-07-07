@@ -598,9 +598,9 @@ func ConvertWorkItems(request *goa.RequestData, wis []workitem.WorkItem, additio
 // response resource object by jsonapi.org specifications
 func ConvertWorkItem(request *goa.RequestData, wi workitem.WorkItem, additional ...WorkItemConvertFunc) *app.WorkItem {
 	// construct default values from input WI
-	selfURL := rest.AbsoluteURL(request, app.WorkitemHref(wi.SpaceID.String(), wi.ID))
-	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(wi.SpaceID.String()))
-	witSelfURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.SpaceID.String(), wi.Type))
+	relatedURL := rest.AbsoluteURL(request, app.WorkitemHref(wi.SpaceID.String(), wi.ID))
+	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(wi.SpaceID.String()))
+	witRelatedURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.SpaceID.String(), wi.Type))
 
 	op := &app.WorkItem{
 		ID:   &wi.ID,
@@ -616,13 +616,14 @@ func ConvertWorkItem(request *goa.RequestData, wi workitem.WorkItem, additional 
 					Type: APIStringTypeWorkItemType,
 				},
 				Links: &app.GenericLinks{
-					Self: &witSelfURL,
+					Self: &witRelatedURL,
 				},
 			},
-			Space: app.NewSpaceRelation(wi.SpaceID, spaceSelfURL),
+			Space: app.NewSpaceRelation(wi.SpaceID, spaceRelatedURL),
 		},
 		Links: &app.GenericLinksForWorkItem{
-			Self: &selfURL,
+			Self:    &relatedURL,
+			Related: &relatedURL,
 		},
 	}
 

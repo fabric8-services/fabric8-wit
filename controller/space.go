@@ -405,7 +405,7 @@ func ConvertSpacesFromModel(ctx context.Context, db application.DB, request *goa
 
 // ConvertSpaceFromModel converts between internal and external REST representation
 func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *goa.RequestData, sp space.Space, additional ...SpaceConvertFunc) (*app.Space, error) {
-	selfURL := rest.AbsoluteURL(request, app.SpaceHref(sp.ID))
+	relatedURL := rest.AbsoluteURL(request, app.SpaceHref(sp.ID))
 	spaceIDStr := sp.ID.String()
 	relatedIterationList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/iterations", spaceIDStr))
 	relatedAreaList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/areas", spaceIDStr))
@@ -433,7 +433,8 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *goa.
 			Version:     &sp.Version,
 		},
 		Links: &app.GenericLinksForSpace{
-			Self: &selfURL,
+			Self:    &relatedURL,
+			Related: &relatedURL,
 			Backlog: &app.BacklogGenericLink{
 				Self: &relatedBacklogList,
 				Meta: &app.BacklogLinkMeta{TotalCount: count},
