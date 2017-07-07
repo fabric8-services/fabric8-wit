@@ -710,7 +710,7 @@ func (r *GormWorkItemRepository) getAllIterationWithCounts(ctx context.Context, 
 	// ToDo: Update count query to include non matching rows with 0 values
 	// Following operation can be skipped once above is done
 	for _, i := range allIterations {
-		if _, exists := wiMap[i.String()]; exists == false {
+		if _, exists := wiMap[i.String()]; !exists {
 			wiMap[i.String()] = WICountsPerIteration{
 				IterationID: i.String(),
 				Total:       0,
