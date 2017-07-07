@@ -263,11 +263,18 @@ func (c *SpaceController) Show(ctx *app.ShowSpaceContext) error {
 			return nil
 		})
 		if entityErr != nil {
+			log.Error(ctx, map[string]interface{}{
+				"err": entityErr,
+			}, "unable to convert space from model")
 			return entityErr
 		}
 		return nil
 	})
 	if txnErr != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err":      txnErr,
+			"space_id": ctx.SpaceID,
+		}, "unable to show the space by ID")
 		return jsonapi.JSONErrorResponse(ctx, txnErr)
 	}
 	return ctx.OK(&result)

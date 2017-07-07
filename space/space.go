@@ -113,6 +113,9 @@ func (r *GormRepository) Load(ctx context.Context, ID uuid.UUID) (*Space, error)
 		return nil, errors.NewNotFoundError("space", ID.String())
 	}
 	if tx.Error != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": tx.Error,
+		}, "unable to load the space by ID")
 		return nil, errors.NewInternalError(ctx, tx.Error)
 	}
 	return &res, nil
@@ -166,6 +169,9 @@ func (r *GormRepository) Save(ctx context.Context, p *Space) (*Space, error) {
 		return nil, errors.NewNotFoundError("space", p.ID.String())
 	}
 	if err := tx.Error; err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": tx.Error,
+		}, "unable to find the space by ID")
 		return nil, errors.NewInternalError(ctx, err)
 	}
 	tx = tx.Where("Version = ?", oldVersion).Save(p)
@@ -176,6 +182,9 @@ func (r *GormRepository) Save(ctx context.Context, p *Space) (*Space, error) {
 		if gormsupport.IsUniqueViolation(tx.Error, "spaces_name_idx") {
 			return nil, errors.NewBadParameterError("Name", p.Name).Expected("unique")
 		}
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "unable to find the space by version")
 		return nil, errors.NewInternalError(ctx, err)
 	}
 	if tx.RowsAffected == 0 {
@@ -249,6 +258,9 @@ func (r *GormRepository) listSpaceFromDB(ctx context.Context, q *string, userID 
 	result := []Space{}
 	columns, err := rows.Columns()
 	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "unable to load spaces")
 		return nil, 0, errors.NewInternalError(ctx, err)
 	}
 
@@ -269,6 +281,9 @@ func (r *GormRepository) listSpaceFromDB(ctx context.Context, q *string, userID 
 		if first {
 			first = false
 			if err = rows.Scan(columnValues...); err != nil {
+				log.Error(ctx, map[string]interface{}{
+					"err": err,
+				}, "unable to load spaces")
 				return nil, 0, errors.NewInternalError(ctx, err)
 			}
 		}
@@ -333,6 +348,9 @@ func (r *GormRepository) LoadByOwnerAndName(ctx context.Context, userID *uuid.UU
 		return nil, errors.NewNotFoundError("space", *spaceName)
 	}
 	if tx.Error != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": tx.Error,
+		}, "unable to load space by owner and name")
 		return nil, errors.NewInternalError(ctx, tx.Error)
 	}
 	return &res, nil
