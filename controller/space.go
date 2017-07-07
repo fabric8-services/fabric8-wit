@@ -264,7 +264,8 @@ func (c *SpaceController) Show(ctx *app.ShowSpaceContext) error {
 		})
 		if entityErr != nil {
 			log.Error(ctx, map[string]interface{}{
-				"err": entityErr,
+				"space_id": ctx.SpaceID,
+				"err":      entityErr,
 			}, "unable to convert space from model")
 			return entityErr
 		}
