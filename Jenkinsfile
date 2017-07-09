@@ -1,5 +1,5 @@
 #!/usr/bin/groovy
-@Library('github.com/fabric8io/fabric8-pipeline-library@master')
+@Library('github.com/hectorj2f/fabric8-pipeline-library@wit_pipeline')
 def dummy
 goTemplate{
   dockerNode{
@@ -9,6 +9,7 @@ goTemplate{
         dockerOrganisation = 'fabric8'
         project = 'fabric8-wit'
         dockerBuildOptions = '--file Dockerfile.deploy'
+        dockerfileBuilder = '--file Dockerfile.builder'
       }
     } else if (env.BRANCH_NAME.equals('master')) {
       goRelease{
