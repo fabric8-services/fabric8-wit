@@ -4,7 +4,7 @@ def dummy
 goTemplate{
   dockerNode{
     if (env.BRANCH_NAME.startsWith('PR-')) {
-      goCI{
+      goCIwit{
         githubOrganisation = 'fabric8-services'
         dockerOrganisation = 'fabric8'
         project = 'fabric8-wit'
