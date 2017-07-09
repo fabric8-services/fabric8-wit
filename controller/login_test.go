@@ -37,11 +37,10 @@ import (
 
 type TestLoginREST struct {
 	gormtestsupport.DBTestSuite
-	configuration   *configuration.ConfigurationData
-	loginService    *login.KeycloakOAuthProvider
-	userRespository account.UserRepository
-	db              *gormapplication.GormDB
-	clean           func()
+	configuration *configuration.ConfigurationData
+	loginService  *login.KeycloakOAuthProvider
+	db            *gormapplication.GormDB
+	clean         func()
 }
 
 func TestRunLoginREST(t *testing.T) {
@@ -57,7 +56,6 @@ func (rest *TestLoginREST) SetupTest() {
 	}
 	rest.configuration = c
 	rest.loginService = rest.newTestKeycloakOAuthProvider(rest.db)
-	rest.userRespository = account.NewUserRepository(rest.DB)
 }
 
 func (rest *TestLoginREST) TearDownTest() {
@@ -84,8 +82,7 @@ func (rest *TestLoginREST) newTestKeycloakOAuthProvider(db application.DB) *logi
 	publicKey, err := token.ParsePublicKey([]byte(rest.configuration.GetTokenPublicKey()))
 	require.Nil(rest.T(), err)
 	tokenManager := token.NewManager(publicKey)
-	identityRepository := account.NewIdentityRepository(rest.DB)
-	return login.NewKeycloakOAuthProvider(identityRepository, rest.userRespository, tokenManager, db)
+	return login.NewKeycloakOAuthProvider(db.Identities(), db.Users(), tokenManager, db)
 }
 
 func (rest *TestLoginREST) TestAuthorizeLoginOK() {
@@ -163,68 +160,6 @@ func (rest *TestLoginREST) TestLinkIdPWithTokenRedirects() {
 	svc, ctrl := rest.UnSecuredController()
 
 	test.LinkLoginTemporaryRedirect(t, svc.Context, svc, ctrl, nil, nil)
-}
-
-func (rest *TestLoginREST) TestResourceRequestPayload() {
-	t := rest.T()
-	resource.Require(t, resource.Database)
-	service, controller := rest.SecuredController()
-
-	// Generate an access token for a test identity
-	r := &goa.RequestData{
-		Request: &http.Request{Host: "api.example.org"},
-	}
-	tokenEndpoint, err := rest.configuration.GetKeycloakEndpointToken(r)
-	require.Nil(t, err)
-
-	accessToken, err := GenerateUserToken(service.Context, tokenEndpoint, rest.configuration, rest.configuration.GetKeycloakTestUserName(), rest.configuration.GetKeycloakTestUserSecret())
-	require.Nil(t, err)
-
-	accessTokenString := accessToken.Token.AccessToken
-
-	require.Nil(t, err)
-	require.NotNil(t, accessTokenString)
-
-	// Update DB
-	r = &goa.RequestData{
-		Request: &http.Request{Host: "demo.api.openshift.io"},
-	}
-	profileEndpoint, err := rest.configuration.GetKeycloakAccountEndpoint(r)
-	require.Nil(t, err)
-	identity, user, err := rest.loginService.CreateOrUpdateKeycloakUser(*accessTokenString, service.Context, profileEndpoint)
-	require.Nil(t, err)
-	require.NotNil(t, identity)
-	require.NotNil(t, user)
-
-	// Scenario 1 - Test user has a nil contextInformation, hence there are no recent spaces to
-	// add to the resource object
-
-	user.ContextInformation = nil
-	err = rest.userRespository.Save(service.Context, user)
-	require.Nil(t, err)
-
-	//Use the same access token to retrieve
-	resource, err := controller.getEntitlementResourceRequestPayload(service.Context, accessTokenString)
-	require.Nil(t, err)
-
-	// This will be nil because contextInformation for the test user is empty!
-	require.Nil(t, resource)
-
-	// Scenario 2 - Test user has 'some' contextInformation
-	user.ContextInformation = workitem.Fields{
-		"recentSpaces": []string{"29dd4613-3da1-4100-a2d6-414573eaa470"},
-	}
-	err = rest.userRespository.Save(service.Context, user)
-	require.Nil(t, err)
-
-	//Use the same access token to retrieve
-	resource, err = controller.getEntitlementResourceRequestPayload(service.Context, accessTokenString)
-	require.Nil(t, err)
-
-	require.NotNil(t, resource)
-	require.NotNil(t, resource.Permissions)
-	assert.Len(t, resource.Permissions, 1)
-
 }
 
 func validateToken(t *testing.T, token *app.AuthToken, controler *LoginController) {
