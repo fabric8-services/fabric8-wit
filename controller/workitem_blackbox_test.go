@@ -143,28 +143,28 @@ func (s *WorkItemSuite) TestPagingLinks() {
 func (s *WorkItemSuite) TestPagingErrors() {
 	var offset string = "-1"
 	var limit int = 2
-	_, result := test.ListWorkitemOK(s.T(), context.Background(), nil, s.workitemCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	_, result := test.ListWorkitemOK(s.T(), context.Background(), nil, s.workitemCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
 	if !strings.Contains(*result.Links.First, "page[offset]=0") {
 		assert.Fail(s.T(), "Offset is negative", "Expected offset to be %d, but was %s", 0, *result.Links.First)
 	}
 
 	offset = "0"
 	limit = 0
-	_, result = test.ListWorkitemOK(s.T(), context.Background(), nil, s.workitemCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	_, result = test.ListWorkitemOK(s.T(), context.Background(), nil, s.workitemCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
 	if !strings.Contains(*result.Links.First, "page[limit]=20") {
 		assert.Fail(s.T(), "Limit is 0", "Expected limit to be default size %d, but was %s", 20, *result.Links.First)
 	}
 
 	offset = "0"
 	limit = -1
-	_, result = test.ListWorkitemOK(s.T(), context.Background(), nil, s.workitemCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	_, result = test.ListWorkitemOK(s.T(), context.Background(), nil, s.workitemCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
 	if !strings.Contains(*result.Links.First, "page[limit]=20") {
 		assert.Fail(s.T(), "Limit is negative", "Expected limit to be default size %d, but was %s", 20, *result.Links.First)
 	}
 
 	offset = "-3"
 	limit = -1
-	_, result = test.ListWorkitemOK(s.T(), context.Background(), nil, s.workitemCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	_, result = test.ListWorkitemOK(s.T(), context.Background(), nil, s.workitemCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
 	if !strings.Contains(*result.Links.First, "page[limit]=20") {
 		assert.Fail(s.T(), "Limit is negative", "Expected limit to be default size %d, but was %s", 20, *result.Links.First)
 	}
@@ -174,7 +174,7 @@ func (s *WorkItemSuite) TestPagingErrors() {
 
 	offset = "ALPHA"
 	limit = 40
-	_, result = test.ListWorkitemOK(s.T(), context.Background(), nil, s.workitemCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	_, result = test.ListWorkitemOK(s.T(), context.Background(), nil, s.workitemCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
 	if !strings.Contains(*result.Links.First, "page[limit]=40") {
 		assert.Fail(s.T(), "Limit is within range", "Expected limit to be size %d, but was %s", 40, *result.Links.First)
 	}
@@ -188,7 +188,7 @@ func (s *WorkItemSuite) TestPagingLinksHasAbsoluteURL() {
 	offset := "10"
 	limit := 10
 	// when
-	_, result := test.ListWorkitemOK(s.T(), context.Background(), nil, s.workitemCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	_, result := test.ListWorkitemOK(s.T(), context.Background(), nil, s.workitemCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
 	// then
 	if !strings.HasPrefix(*result.Links.First, "http://") {
 		assert.Fail(s.T(), "Not Absolute URL", "Expected link %s to contain absolute URL but was %s", "First", *result.Links.First)
@@ -206,21 +206,21 @@ func (s *WorkItemSuite) TestPagingDefaultAndMaxSize() {
 	offset := "0"
 	var limit int
 	// when
-	_, result := test.ListWorkitemOK(s.T(), context.Background(), nil, s.workitemCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &offset, nil, nil)
+	_, result := test.ListWorkitemOK(s.T(), context.Background(), nil, s.workitemCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, nil, &offset, nil, nil)
 	// then
 	if !strings.Contains(*result.Links.First, "page[limit]=20") {
 		assert.Fail(s.T(), "Limit is nil", "Expected limit to be default size %d, got %v", 20, *result.Links.First)
 	}
 	// when
 	limit = 1000
-	_, result = test.ListWorkitemOK(s.T(), context.Background(), nil, s.workitemCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	_, result = test.ListWorkitemOK(s.T(), context.Background(), nil, s.workitemCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
 	// then
 	if !strings.Contains(*result.Links.First, "page[limit]=100") {
 		assert.Fail(s.T(), "Limit is more than max", "Expected limit to be %d, got %v", 100, *result.Links.First)
 	}
 	// when
 	limit = 50
-	_, result = test.ListWorkitemOK(s.T(), context.Background(), nil, s.workitemCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	_, result = test.ListWorkitemOK(s.T(), context.Background(), nil, s.workitemCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
 	// then
 	if !strings.Contains(*result.Links.First, "page[limit]=50") {
 		assert.Fail(s.T(), "Limit is within range", "Expected limit to be %d, got %v", 50, *result.Links.First)

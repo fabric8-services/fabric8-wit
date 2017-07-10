@@ -456,7 +456,7 @@ func testMigration67(t *testing.T) {
 }
 
 func testMigration68(t *testing.T) {
-	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+23)], (initialMigratedVersion + 23))
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+24)], (initialMigratedVersion + 24))
 
 	assert.True(t, gormDB.HasTable("categories"))
 	assert.True(t, dialect.HasIndex("categories", "categories_id_index"))

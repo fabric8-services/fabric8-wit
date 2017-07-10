@@ -222,17 +222,15 @@ func (test *categoryRepoBlackBoxTest) TestExistsCategories() {
 		require.NotNil(test.T(), cat1.ID)
 
 		// when
-		exists, err1 := test.repo.Exists(context.Background(), cat1.ID.String())
+		err1 := test.repo.CheckExists(context.Background(), cat1.ID.String())
 		// then
 		require.Nil(t, err1)
-		assert.True(t, exists)
 	})
 
 	t.Run("category doesn't exist", func(t *testing.T) {
 		// when
-		exists, err := test.repo.Exists(context.Background(), uuid.NewV4().String())
+		err := test.repo.CheckExists(context.Background(), uuid.NewV4().String())
 		// then
 		require.IsType(t, errs.NotFoundError{}, err)
-		assert.False(t, exists)
 	})
 }
