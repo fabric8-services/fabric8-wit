@@ -49,10 +49,7 @@ var _ = a.Resource("filter", func() {
 		a.Routing(
 			a.GET(""),
 		)
-		a.Description("List work items.")
-		a.Params(func() {
-			a.Param("filter", d.String, "a query language expression restricting the set of found work items")
-		})
+		a.Description("List filters.")
 		a.Response(d.OK, func() {
 			a.Media(filterList)
 		})

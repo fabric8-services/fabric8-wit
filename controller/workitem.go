@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 	"html"
+	"net/http"
 	"strconv"
 	"time"
 
@@ -20,6 +21,7 @@ import (
 	query "github.com/fabric8-services/fabric8-wit/query/simple"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/space/authz"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 
@@ -213,7 +215,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 		// Type changes of WI are not allowed which is why we overwrite it the
 		// type with the old one after the WI has been converted.
 		oldType := wi.Type
-		err = ConvertJSONAPIToWorkItem(ctx, appl, *ctx.Payload.Data, wi, ctx.SpaceID)
+		err = ConvertJSONAPIToWorkItem(ctx, ctx.Method, appl, *ctx.Payload.Data, wi, ctx.SpaceID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -262,7 +264,7 @@ func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
 				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "failed to reorder work item"))
 			}
 
-			err = ConvertJSONAPIToWorkItem(ctx, appl, *ctx.Payload.Data[i], wi, ctx.SpaceID)
+			err = ConvertJSONAPIToWorkItem(ctx, ctx.Method, appl, *ctx.Payload.Data[i], wi, ctx.SpaceID)
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "failed to reorder work item"))
 			}
@@ -289,6 +291,43 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
+
+	var space *space.Space
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		// verify spaceID:
+		// To be removed once we have endpoint like - /api/space/{spaceID}/workitems
+		space, err = appl.Spaces().Load(ctx, ctx.SpaceID)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"err":      err,
+				"space_id": ctx.SpaceID,
+			}, "unable to load space")
+			return errors.NewBadParameterError("space", "string").Expected("valid space ID")
+		}
+		return nil
+	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+
+	// FIXME
+	// A workaround for https://github.com/almighty/almighty-core/issues/1358
+	// Allow any user to create a work item in spaces belong to the "openshiftio" user
+	// Other spaces are open for the space collaborators only
+	// ----
+	spaceOwnerID := space.OwnerId.String()
+	// check both the "openshiftio" user and the "test" user from the test realm.
+	if "7b50ddb4-5e12-4031-bca7-3b88f92e2339" != spaceOwnerID && "ae68a343-c866-430c-b6ce-a36f0b38d8e5" != spaceOwnerID {
+		authorized, err := authz.Authorize(ctx, ctx.SpaceID.String())
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
+		}
+		if !authorized {
+			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to access the space"))
+		}
+	}
+	// ----
+
 	var wit *uuid.UUID
 	if ctx.Payload.Data != nil && ctx.Payload.Data.Relationships != nil &&
 		ctx.Payload.Data.Relationships.BaseType != nil && ctx.Payload.Data.Relationships.BaseType.Data != nil {
@@ -310,12 +349,12 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		//verify spaceID:
 		// To be removed once we have endpoint like - /api/space/{spaceID}/workitems
-		_, spaceLoadErr := appl.Spaces().Load(ctx, ctx.SpaceID)
-		if spaceLoadErr != nil {
-			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("space", "string").Expected("valid space ID"))
+		err := appl.Spaces().CheckExists(ctx, ctx.SpaceID.String())
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
-		err := ConvertJSONAPIToWorkItem(ctx, appl, *ctx.Payload.Data, &wi, ctx.SpaceID)
+		err = ConvertJSONAPIToWorkItem(ctx, ctx.Method, appl, *ctx.Payload.Data, &wi, ctx.SpaceID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))
 		}
@@ -418,7 +457,7 @@ func findLastModified(wis []workitem.WorkItem) time.Time {
 
 // ConvertJSONAPIToWorkItem is responsible for converting given WorkItem model object into a
 // response resource object by jsonapi.org specifications
-func ConvertJSONAPIToWorkItem(ctx context.Context, appl application.Application, source app.WorkItem, target *workitem.WorkItem, spaceID uuid.UUID) error {
+func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl application.Application, source app.WorkItem, target *workitem.WorkItem, spaceID uuid.UUID) error {
 	// construct default values from input WI
 	version, err := getVersion(source.Attributes["version"])
 	if err != nil {
@@ -454,15 +493,21 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, appl application.Application,
 			if err != nil {
 				return errors.NewBadParameterError("space", spaceID).Expected("valid space ID")
 			}
-			target.Fields[workitem.SystemIteration] = rootIteration.ID.String()
+			if method == http.MethodPost {
+				target.Fields[workitem.SystemIteration] = rootIteration.ID.String()
+			} else if method == http.MethodPatch {
+				if source.Relationships.Iteration != nil && source.Relationships.Iteration.Data == nil {
+					target.Fields[workitem.SystemIteration] = rootIteration.ID.String()
+				}
+			}
 		} else if source.Relationships.Iteration != nil && source.Relationships.Iteration.Data != nil {
 			d := source.Relationships.Iteration.Data
 			iterationUUID, err := uuid.FromString(*d.ID)
 			if err != nil {
 				return errors.NewBadParameterError("data.relationships.iteration.data.id", *d.ID)
 			}
-			if _, err = appl.Iterations().Load(ctx, iterationUUID); err != nil {
-				return errors.NewBadParameterError("data.relationships.iteration.data.id", *d.ID)
+			if err := appl.Iterations().CheckExists(ctx, iterationUUID.String()); err != nil {
+				return errors.NewNotFoundError("data.relationships.iteration.data.id", *d.ID)
 			}
 			target.Fields[workitem.SystemIteration] = iterationUUID.String()
 		}
@@ -478,15 +523,27 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, appl application.Application,
 			if err != nil {
 				return errors.NewBadParameterError("space", spaceID).Expected("valid space ID")
 			}
-			target.Fields[workitem.SystemArea] = rootArea.ID.String()
+			if method == http.MethodPost {
+				target.Fields[workitem.SystemArea] = rootArea.ID.String()
+			} else if method == http.MethodPatch {
+				if source.Relationships.Area != nil && source.Relationships.Area.Data == nil {
+					target.Fields[workitem.SystemArea] = rootArea.ID.String()
+				}
+			}
 		} else if source.Relationships.Area != nil && source.Relationships.Area.Data != nil {
 			d := source.Relationships.Area.Data
 			areaUUID, err := uuid.FromString(*d.ID)
 			if err != nil {
 				return errors.NewBadParameterError("data.relationships.area.data.id", *d.ID)
 			}
-			if _, err = appl.Areas().Load(ctx, areaUUID); err != nil {
-				return errors.NewBadParameterError("data.relationships.area.data.id", *d.ID)
+			if err := appl.Areas().CheckExists(ctx, areaUUID.String()); err != nil {
+				cause := errs.Cause(err)
+				switch cause.(type) {
+				case errors.NotFoundError:
+					return errors.NewNotFoundError("data.relationships.area.data.id", *d.ID)
+				default:
+					return errs.Wrapf(err, "unknown error when verifying the area id %s", *d.ID)
+				}
 			}
 			target.Fields[workitem.SystemArea] = areaUUID.String()
 		}

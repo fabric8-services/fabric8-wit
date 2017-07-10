@@ -94,6 +94,11 @@ check-go-format: prebuild-check
 	&& exit 1 \
 	|| true
 
+
+
+.PHONY: release
+release: all
+
 .PHONY: analyze-go-code
 ## Run a complete static code analysis using the following tools: golint, gocyclo and go-vet.
 analyze-go-code: golint gocyclo govet

@@ -1,6 +1,7 @@
 package remoteworkitem
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
@@ -8,8 +9,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/application/repository"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/rest"
-
-	"context"
 
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -111,9 +110,9 @@ func (r *GormTrackerQueryRepository) Load(ctx context.Context, ID string) (*app.
 	return &tq, nil
 }
 
-// Exists returns true|false whether a tracker query exists with a specific identifier
-func (m *GormTrackerQueryRepository) Exists(ctx context.Context, id string) (bool, error) {
-	return repository.Exists(ctx, m.db, trackerQueriesTableName, id)
+// CheckExists returns nil if the given ID exists otherwise returns an error
+func (m *GormTrackerQueryRepository) CheckExists(ctx context.Context, id string) error {
+	return repository.CheckExists(ctx, m.db, trackerQueriesTableName, id)
 }
 
 // Save updates the given tracker query in storage.

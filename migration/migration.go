@@ -321,7 +321,13 @@ func GetMigrations() Migrations {
 	m = append(m, steps{ExecuteSQLFile("065-workitem-id-unique-per-space.sql")})
 
 	// Version 66
-	m = append(m, steps{ExecuteSQLFile("066-categories.sql")})
+	m = append(m, steps{ExecuteSQLFile("066-work_item_links_data_integrity.sql")})
+
+	// Version 67
+	m = append(m, steps{ExecuteSQLFile("067-comment-parentid-uuid.sql")})
+
+	// Version 68
+	m = append(m, steps{ExecuteSQLFile("068-categories.sql")})
 
 	// Version N
 	//
@@ -589,17 +595,17 @@ func createOrUpdateWorkItemLinkCategory(ctx context.Context, linkCatRepo *link.G
 func createOrUpdateSpace(ctx context.Context, spaceRepo *space.GormRepository, id uuid.UUID, description string) error {
 	s, err := spaceRepo.Load(ctx, id)
 	cause := errs.Cause(err)
-	newSpace := &space.Space{
-		Description: description,
-		Name:        "system.space",
-		ID:          id,
-	}
 	switch cause.(type) {
 	case errors.NotFoundError:
 		log.Info(ctx, map[string]interface{}{
 			"pkg":      "migration",
 			"space_id": id,
 		}, "space %s will be created", id)
+		newSpace := &space.Space{
+			Description: description,
+			Name:        "system.space",
+			ID:          id,
+		}
 		_, err := spaceRepo.Create(ctx, newSpace)
 		if err != nil {
 			return errs.Wrapf(err, "failed to create space %s", id)
@@ -618,22 +624,26 @@ func createOrUpdateSpace(ctx context.Context, spaceRepo *space.GormRepository, i
 }
 
 func createSpace(ctx context.Context, spaceRepo *space.GormRepository, id uuid.UUID, description string) error {
-	_, err := spaceRepo.Load(ctx, id)
-	cause := errs.Cause(err)
-	newSpace := &space.Space{
-		Description: description,
-		Name:        "system.space",
-		ID:          id,
-	}
-	switch cause.(type) {
-	case errors.NotFoundError:
-		log.Info(ctx, map[string]interface{}{
-			"pkg":      "migration",
-			"space_id": id,
-		}, "space %s will be created", id)
-		_, err := spaceRepo.Create(ctx, newSpace)
-		if err != nil {
-			return errs.Wrapf(err, "failed to create space %s", id)
+	err := spaceRepo.CheckExists(ctx, id.String())
+	if err != nil {
+		cause := errs.Cause(err)
+		switch cause.(type) {
+		case errors.NotFoundError:
+			log.Info(ctx, map[string]interface{}{
+				"pkg":      "migration",
+				"space_id": id,
+			}, "space %s will be created", id)
+			newSpace := &space.Space{
+				Description: description,
+				Name:        "system.space",
+				ID:          id,
+			}
+			_, err := spaceRepo.Create(ctx, newSpace)
+			if err != nil {
+				return errs.Wrapf(err, "failed to create space %s", id)
+			}
+		default:
+			log.Error(ctx, map[string]interface{}{"err": err, "space_id": id}, "unable to verify if a space exists")
 		}
 	}
 	return nil
