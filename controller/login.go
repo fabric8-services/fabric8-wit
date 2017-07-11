@@ -136,7 +136,8 @@ func (c *LoginController) getEntitlementResourceRequestPayload(ctx context.Conte
 	}
 	loggedInIdentity := queryResult[0]
 	contextInfoLoggedInIdentity := loggedInIdentity.User.ContextInformation
-	if contextInfoLoggedInIdentity == nil {
+	_, recentSpacesPresent := contextInfoLoggedInIdentity["recentSpaces"]
+	if contextInfoLoggedInIdentity == nil || !recentSpacesPresent {
 		return nil, nil
 	}
 
