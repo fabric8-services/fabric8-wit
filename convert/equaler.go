@@ -19,8 +19,5 @@ var _ Equaler = (*DummyEqualer)(nil)
 // Equal returns true if the argument is also an DummyEqualer; otherwise false is returned.
 func (d DummyEqualer) Equal(u Equaler) bool {
 	_, ok := u.(DummyEqualer)
-	if !ok {
-		return false
-	}
-	return true
+	return ok
 }

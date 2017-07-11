@@ -157,10 +157,7 @@ func (wit WorkItemType) Equal(u convert.Equaler) bool {
 			return false
 		}
 	}
-	if wit.SpaceID != other.SpaceID {
-		return false
-	}
-	return true
+	return wit.SpaceID == other.SpaceID
 }
 
 // ConvertWorkItemStorageToModel converts a workItem from the storage/persistence layer into a workItem of the model domain layer
