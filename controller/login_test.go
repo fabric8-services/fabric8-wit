@@ -367,6 +367,10 @@ func (m *MockIdentityRepository) List(ctx context.Context) ([]account.Identity, 
 	return rows, nil
 }
 
+func (m *MockIdentityRepository) CheckExists(ctx context.Context, id string) error {
+	return nil
+}
+
 func (m *MockIdentityRepository) IsValid(ctx context.Context, id uuid.UUID) bool {
 	return true
 }
@@ -404,6 +408,11 @@ func (m MockUserRepository) Create(ctx context.Context, u *account.User) error {
 // Save modifies a single record
 func (m MockUserRepository) Save(ctx context.Context, model *account.User) error {
 	return m.Create(ctx, model)
+}
+
+// Save modifies a single record
+func (m MockUserRepository) CheckExists(ctx context.Context, id string) error {
+	return nil
 }
 
 // Delete removes a single record.
