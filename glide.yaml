@@ -2,7 +2,7 @@ package: github.com/fabric8-services/fabric8-wit
 homepage: https://github.com/fabric8-services/fabric8-wit
 license: Apache-2.0
 import:
-- package: github.com/fabric8io/fabric8-init-tenant
+- package: github.com/fabric8-services/fabric8-tenant
   subpackages:
   - design
 - package: github.com/dgrijalva/jwt-go
