@@ -5,9 +5,9 @@ UPDATE comments SET parent_id_uuid = parent_id::uuid;
 ALTER TABLE comments DROP COLUMN "parent_id";
 ALTER TABLE comments RENAME COLUMN "parent_id_uuid" TO "parent_id";
 
--- second, we ADD a new COLUMN for the 'parent id' as a UUID in the `comment_revisions` table:
+-- second, we ADD a new COLUMN for the 'parent id' as a UUID in the `comment_revisions` table (after migrating the content of `comment_parent_id`, forgotten in step 65) :
 ALTER TABLE comment_revisions ADD COLUMN "comment_parent_id_uuid" UUID;
-UPDATE comment_revisions SET comment_parent_id_uuid = comment_parent_id::uuid;
+UPDATE comment_revisions SET comment_parent_id_uuid = c.parent_id FROM comments c WHERE c.id = comment_revisions.comment_id;
 -- then drop the old 'parent_id' column and rename the new one to 'parent_id'
 ALTER TABLE comment_revisions DROP COLUMN "comment_parent_id";
 ALTER TABLE comment_revisions RENAME COLUMN "comment_parent_id_uuid" TO "comment_parent_id";

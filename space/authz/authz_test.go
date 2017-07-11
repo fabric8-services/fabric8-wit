@@ -196,8 +196,8 @@ func (r *resourceRepo) Delete(ctx context.Context, ID uuid.UUID) error {
 	return nil
 }
 
-func (r *resourceRepo) Exists(ctx context.Context, ID string) (bool, error) {
-	return false, nil
+func (r *resourceRepo) CheckExists(ctx context.Context, ID string) error {
+	return nil
 }
 
 func (r *resourceRepo) LoadBySpace(ctx context.Context, spaceID *uuid.UUID) (*space.Resource, error) {
