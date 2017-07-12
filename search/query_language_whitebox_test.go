@@ -3,6 +3,8 @@ package search
 import (
 	"context"
 	"encoding/json"
+	"reflect"
+	"runtime/debug"
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/criteria"
@@ -11,6 +13,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -132,6 +135,23 @@ func (s *queryLanguageWhiteboxTest) TestMinimalORandANDandNegateOperation() {
 	assert.Equal(s.T(), expected, q)
 }
 
+func criteriaExpect(t *testing.T, expr criteria.Expression, expectedClause string, expectedParameters []interface{}) {
+	clause, parameters, err := workitem.Compile(expr)
+	if len(err) > 0 {
+		debug.PrintStack()
+		t.Fatal(err[0].Error())
+	}
+	if clause != expectedClause {
+		debug.PrintStack()
+		t.Fatalf("clause should be %s but is %s", expectedClause, clause)
+	}
+
+	if !reflect.DeepEqual(expectedParameters, parameters) {
+		debug.PrintStack()
+		t.Fatalf("parameters should be %v but is %v", expectedParameters, parameters)
+	}
+}
+
 func (s *queryLanguageWhiteboxTest) TestMinimalANDExpression() {
 	openshiftio := "openshiftio"
 	status := "NEW"
@@ -142,5 +162,8 @@ func (s *queryLanguageWhiteboxTest) TestMinimalANDExpression() {
 
 	var result *criteria.Expression
 	criteriaExpression(q, result)
-	assert.Equal(s.T(), 2, 2)
+
+	expectedExpression := ""
+
+	criteriaExpect(s.T(), *result, expectedExpression, []interface{}{})
 }

@@ -308,7 +308,7 @@ func (s *Stack) Pop() (int, error) {
 
 	l := len(s.s)
 	if l == 0 {
-		return 0, errors.New("Empty Stack")
+		return 0, errs.New("Empty Stack")
 	}
 
 	res := s.s[l-1]
@@ -317,6 +317,19 @@ func (s *Stack) Pop() (int, error) {
 }
 
 func criteriaExpression(q Query, e *criteria.Expression) {
+	if q.Children == nil {
+		if q.Value != nil {
+			current := criteria.Equals(criteria.Field(q.Name), criteria.Literal(q.Value))
+			e = &current
+		} else {
+			// ???
+		}
+		return
+	}
+	for i, child := range *q.Children {
+		fmt.Printf("%d%d%d%d%d%d%d%d%d%d%d%d%d\t", i, i, i, i, i, i, i, i, i, i, i, i, i)
+		fmt.Printf("%#v\n", child)
+	}
 }
 
 // parseFilterString accepts a raw string and generates a criteria expression
