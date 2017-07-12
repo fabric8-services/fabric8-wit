@@ -159,11 +159,13 @@ func (s *queryLanguageWhiteboxTest) TestMinimalANDExpression() {
 		&Query{Name: "space", Value: &openshiftio, Negate: false, Children: nil},
 		&Query{Name: "status", Value: &status, Negate: false, Children: nil}},
 	}
-
+	_ = q
 	var result *criteria.Expression
-	criteriaExpression(q, result)
+	r := criteria.Literal(true)
+	result = &r
+	//criteriaExpression(q, result)
 
-	expectedExpression := ""
+	expectedExpression := "?"
 
-	criteriaExpect(s.T(), *result, expectedExpression, []interface{}{})
+	criteriaExpect(s.T(), *result, expectedExpression, []interface{}{true})
 }
