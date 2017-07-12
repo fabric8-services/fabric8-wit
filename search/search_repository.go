@@ -282,6 +282,40 @@ type Query struct {
 	Children *[]*Query
 }
 
+// Stack holds the stack values
+type Stack struct {
+	l sync.Mutex
+	s []int
+}
+
+// NewStack creates a Stack
+func NewStack() *Stack {
+	return &Stack{sync.Mutex{}, make([]int, 0)}
+}
+
+// Push values into stack
+func (s *Stack) Push(v int) {
+	s.l.Lock()
+	defer s.l.Unlock()
+
+	s.s = append(s.s, v)
+}
+
+// Pop values from stack
+func (s *Stack) Pop() (int, error) {
+	s.l.Lock()
+	defer s.l.Unlock()
+
+	l := len(s.s)
+	if l == 0 {
+		return 0, errors.New("Empty Stack")
+	}
+
+	res := s.s[l-1]
+	s.s = s.s[:l-1]
+	return res, nil
+}
+
 func criteriaExpression(q Query, e *criteria.Expression) {
 }
 
