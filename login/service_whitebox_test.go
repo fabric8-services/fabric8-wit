@@ -156,8 +156,7 @@ func TestEncodeTokenOK(t *testing.T) {
 	refreshToken := "refreshToken%@!/\\&?"
 	tokenType := "tokenType%@!/\\&?"
 	expiresIn := 1800
-	var refreshExpiresIn float64
-	refreshExpiresIn = 2.59e6
+	refreshExpiresIn := 2.59e6
 
 	outhToken := &oauth2.Token{
 		AccessToken:  accessToken,
@@ -188,8 +187,7 @@ func TestEncodeTokenOK(t *testing.T) {
 }
 
 func TestInt32ToInt64OK(t *testing.T) {
-	var i32 int32
-	i32 = 60
+	i32 := 60
 	i, err := numberToInt(i32)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(i32), i)
@@ -204,16 +202,14 @@ func TestInt64ToInt64OK(t *testing.T) {
 }
 
 func TestFloat32ToInt64OK(t *testing.T) {
-	var f32 float32
-	f32 = 0.1e1
+	f32 := 0.1e1
 	i, err := numberToInt(f32)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(f32), i)
 }
 
 func TestFloat64ToInt64OK(t *testing.T) {
-	var f64 float64
-	f64 = 0.1e10
+	f64 := 0.1e10
 	i, err := numberToInt(f64)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(f64), i)
@@ -230,8 +226,7 @@ func TestApprovedUserOK(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 
-	var attributes KeycloakUserProfileAttributes
-	attributes = make(map[string][]string)
+	attributes := KeycloakUserProfileAttributes{}
 	attributes[ApprovedAttributeName] = []string{"true"}
 	profile := &KeycloakUserProfileResponse{Attributes: &attributes}
 	approved, err := checkApproved(context.Background(), newDummyUserProfileService(profile), "", "")
@@ -247,8 +242,7 @@ func TestNotApprovedUserFails(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, approved)
 
-	var attributes KeycloakUserProfileAttributes
-	attributes = make(map[string][]string)
+	attributes := KeycloakUserProfileAttributes{}
 	profile := &KeycloakUserProfileResponse{Attributes: &attributes}
 
 	approved, err = checkApproved(context.Background(), newDummyUserProfileService(profile), "", "")

@@ -254,7 +254,7 @@ func testMigration53(t *testing.T) {
 	for rows.Next() {
 		var registration_completed bool
 		err = rows.Scan(&registration_completed)
-		assert.True(t, registration_completed == false)
+		assert.True(t, !registration_completed)
 	}
 }
 

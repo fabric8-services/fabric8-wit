@@ -758,7 +758,7 @@ func checkApproved(ctx context.Context, profileService UserProfileService, acces
 	}
 	attributes := *profile.Attributes
 	approved := attributes[ApprovedAttributeName]
-	if approved == nil || len(approved) == 0 {
+	if len(approved) == 0 {
 		log.Warn(ctx, map[string]interface{}{
 			"username": profile.Username,
 		}, "no approved attribute found in the user's profile or the value is empty")
