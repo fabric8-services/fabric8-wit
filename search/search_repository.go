@@ -282,6 +282,9 @@ type Query struct {
 	Children *[]*Query
 }
 
+func criteriaExpression(q Query, e *criteria.Expression) {
+}
+
 // parseFilterString accepts a raw string and generates a criteria expression
 func parseFilterString(rawSearchString string) (criteria.Expression, error) {
 
@@ -305,17 +308,20 @@ func parseFilterString(rawSearchString string) (criteria.Expression, error) {
 
 	var result *criteria.Expression
 
-	if len(m) > 0 {
-		for key, value := range m {
-			current := criteria.Equals(criteria.Field(key), criteria.Literal(value))
-			if result == nil {
-				result = &current
-			} else {
-				current = criteria.And(*result, current)
-				result = &current
-			}
+	if len(fm) > 0 {
+		/*
+			for key, value := range m {
+				current := criteria.Equals(criteria.Field(key), criteria.Literal(value))
+				if result == nil {
+					result = &current
+				} else {
+					current = criteria.And(*result, current)
+					result = &current
+				}
 
-		}
+			}
+		*/
+		criteriaExpression(*q, result)
 		return *result, nil
 	}
 	return criteria.Literal(true), nil

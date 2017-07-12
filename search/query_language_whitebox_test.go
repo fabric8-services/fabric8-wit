@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/fabric8-services/fabric8-wit/criteria"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/migration"
@@ -129,4 +130,17 @@ func (s *queryLanguageWhiteboxTest) TestMinimalORandANDandNegateOperation() {
 			&Query{Name: "space", Value: &rhel, Negate: true, Children: nil}}},
 	}}
 	assert.Equal(s.T(), expected, q)
+}
+
+func (s *queryLanguageWhiteboxTest) TestMinimalANDExpression() {
+	openshiftio := "openshiftio"
+	status := "NEW"
+	q := Query{Name: "AND", Value: nil, Negate: false, Children: &[]*Query{
+		&Query{Name: "space", Value: &openshiftio, Negate: false, Children: nil},
+		&Query{Name: "status", Value: &status, Negate: false, Children: nil}},
+	}
+
+	var result *criteria.Expression
+	criteriaExpression(q, result)
+	assert.Equal(s.T(), 2, 2)
 }
