@@ -325,6 +325,9 @@ func GetMigrations() Migrations {
 	// Version 67
 	m = append(m, steps{ExecuteSQLFile("067-comment-parentid-uuid.sql")})
 
+	// Version 68
+	m = append(m, steps{ExecuteSQLFile("068-spaces_identities_fk.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
