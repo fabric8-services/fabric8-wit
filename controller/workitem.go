@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 	"html"
+	"net/http"
 	"strconv"
 	"time"
 
@@ -101,7 +102,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 		// Type changes of WI are not allowed which is why we overwrite it the
 		// type with the old one after the WI has been converted.
 		oldType := wi.Type
-		err = ConvertJSONAPIToWorkItem(ctx, appl, *ctx.Payload.Data, wi, wi.SpaceID)
+		err = ConvertJSONAPIToWorkItem(ctx, ctx.Method, appl, *ctx.Payload.Data, wi, wi.SpaceID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -215,7 +216,7 @@ func findLastModified(wis []workitem.WorkItem) time.Time {
 
 // ConvertJSONAPIToWorkItem is responsible for converting given WorkItem model object into a
 // response resource object by jsonapi.org specifications
-func ConvertJSONAPIToWorkItem(ctx context.Context, appl application.Application, source app.WorkItem, target *workitem.WorkItem, spaceID uuid.UUID) error {
+func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl application.Application, source app.WorkItem, target *workitem.WorkItem, spaceID uuid.UUID) error {
 	// construct default values from input WI
 	version, err := getVersion(source.Attributes["version"])
 	if err != nil {
@@ -251,15 +252,21 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, appl application.Application,
 			if err != nil {
 				return errors.NewBadParameterError("space", spaceID).Expected("valid space ID")
 			}
-			target.Fields[workitem.SystemIteration] = rootIteration.ID.String()
+			if method == http.MethodPost {
+				target.Fields[workitem.SystemIteration] = rootIteration.ID.String()
+			} else if method == http.MethodPatch {
+				if source.Relationships.Iteration != nil && source.Relationships.Iteration.Data == nil {
+					target.Fields[workitem.SystemIteration] = rootIteration.ID.String()
+				}
+			}
 		} else if source.Relationships.Iteration != nil && source.Relationships.Iteration.Data != nil {
 			d := source.Relationships.Iteration.Data
 			iterationUUID, err := uuid.FromString(*d.ID)
 			if err != nil {
 				return errors.NewBadParameterError("data.relationships.iteration.data.id", *d.ID)
 			}
-			if _, err = appl.Iterations().Load(ctx, iterationUUID); err != nil {
-				return errors.NewBadParameterError("data.relationships.iteration.data.id", *d.ID)
+			if err := appl.Iterations().CheckExists(ctx, iterationUUID.String()); err != nil {
+				return errors.NewNotFoundError("data.relationships.iteration.data.id", *d.ID)
 			}
 			target.Fields[workitem.SystemIteration] = iterationUUID.String()
 		}
@@ -275,15 +282,27 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, appl application.Application,
 			if err != nil {
 				return errors.NewBadParameterError("space", spaceID).Expected("valid space ID")
 			}
-			target.Fields[workitem.SystemArea] = rootArea.ID.String()
+			if method == http.MethodPost {
+				target.Fields[workitem.SystemArea] = rootArea.ID.String()
+			} else if method == http.MethodPatch {
+				if source.Relationships.Area != nil && source.Relationships.Area.Data == nil {
+					target.Fields[workitem.SystemArea] = rootArea.ID.String()
+				}
+			}
 		} else if source.Relationships.Area != nil && source.Relationships.Area.Data != nil {
 			d := source.Relationships.Area.Data
 			areaUUID, err := uuid.FromString(*d.ID)
 			if err != nil {
 				return errors.NewBadParameterError("data.relationships.area.data.id", *d.ID)
 			}
-			if _, err = appl.Areas().Load(ctx, areaUUID); err != nil {
-				return errors.NewBadParameterError("data.relationships.area.data.id", *d.ID)
+			if err := appl.Areas().CheckExists(ctx, areaUUID.String()); err != nil {
+				cause := errs.Cause(err)
+				switch cause.(type) {
+				case errors.NotFoundError:
+					return errors.NewNotFoundError("data.relationships.area.data.id", *d.ID)
+				default:
+					return errs.Wrapf(err, "unknown error when verifying the area id %s", *d.ID)
+				}
 			}
 			target.Fields[workitem.SystemArea] = areaUUID.String()
 		}

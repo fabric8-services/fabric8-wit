@@ -202,7 +202,7 @@ func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithLegacyDescription(
 	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
 
 	err := application.Transactional(rest.db, func(app application.Application) error {
-		return ConvertJSONAPIToWorkItem(context.Background(), app, source, target, space.SystemSpace)
+		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, space.SystemSpace)
 	})
 	// assert
 	require.Nil(t, err)
@@ -225,7 +225,7 @@ func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithDescriptionContent
 	source := prepareWI2(attributes)
 	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
 	err := application.Transactional(rest.db, func(app application.Application) error {
-		return ConvertJSONAPIToWorkItem(context.Background(), app, source, target, space.SystemSpace)
+		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, space.SystemSpace)
 	})
 	require.Nil(t, err)
 	require.NotNil(t, target)
@@ -246,7 +246,7 @@ func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithDescriptionContent
 	source := prepareWI2(attributes)
 	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
 	err := application.Transactional(rest.db, func(app application.Application) error {
-		return ConvertJSONAPIToWorkItem(context.Background(), app, source, target, space.SystemSpace)
+		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, space.SystemSpace)
 	})
 	require.Nil(t, err)
 	require.NotNil(t, target)
@@ -267,7 +267,7 @@ func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithTitle() {
 	source := prepareWI2(attributes)
 	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
 	err := application.Transactional(rest.db, func(app application.Application) error {
-		return ConvertJSONAPIToWorkItem(context.Background(), app, source, target, space.SystemSpace)
+		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, space.SystemSpace)
 	})
 	require.Nil(t, err)
 	require.NotNil(t, target)
@@ -286,7 +286,7 @@ func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithMissingTitle() {
 	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
 	// when
 	err := application.Transactional(rest.db, func(app application.Application) error {
-		return ConvertJSONAPIToWorkItem(context.Background(), app, source, target, space.SystemSpace)
+		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, space.SystemSpace)
 	})
 	// then: no error expected at this level, even though the title is missing
 	require.Nil(t, err)
@@ -303,7 +303,7 @@ func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithEmptyTitle() {
 	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
 	// when
 	err := application.Transactional(rest.db, func(app application.Application) error {
-		return ConvertJSONAPIToWorkItem(context.Background(), app, source, target, space.SystemSpace)
+		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, space.SystemSpace)
 	})
 	// then: no error expected at this level, even though the title is missing
 	require.Nil(t, err)

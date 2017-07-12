@@ -45,10 +45,8 @@ func InitTenant(ctx context.Context, config tenantConfig) error {
 
 	// Ignore response for now
 	_, err = c.SetupTenant(ctx, tenant.SetupTenantPath())
-	if err != nil {
-		return err
-	}
-	return nil
+
+	return err
 }
 
 // UpdateTenant creates a new tenant service in oso
@@ -66,8 +64,6 @@ func UpdateTenant(ctx context.Context, config tenantConfig) error {
 
 	// Ignore response for now
 	_, err = c.UpdateTenant(ctx, tenant.SetupTenantPath())
-	if err != nil {
-		return err
-	}
-	return nil
+
+	return err
 }

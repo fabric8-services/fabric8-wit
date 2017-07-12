@@ -233,18 +233,17 @@ func (s *TestCommentRepository) TestExistsComment() {
 		comment := newComment(uuid.NewV4(), "Test C", rendering.SystemMarkupMarkdown)
 		s.createComment(comment, s.testIdentity.ID)
 		// when
-		exists, err := s.repo.Exists(s.ctx, comment.ID.String())
+		err := s.repo.CheckExists(s.ctx, comment.ID.String())
 		// then
 		require.Nil(t, err)
-		assert.True(t, exists)
 	})
 
 	t.Run("comment doesn't exist", func(t *testing.T) {
 		// when
-		exists, err := s.repo.Exists(s.ctx, uuid.NewV4().String())
+		err := s.repo.CheckExists(s.ctx, uuid.NewV4().String())
 		// then
+
 		require.IsType(t, errors.NotFoundError{}, err)
-		assert.False(t, exists)
 	})
 
 }

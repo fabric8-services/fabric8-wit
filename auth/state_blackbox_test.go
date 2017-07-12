@@ -10,6 +10,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/migration"
 
 	"context"
+
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
