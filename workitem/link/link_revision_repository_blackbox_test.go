@@ -67,7 +67,8 @@ func (s *revisionRepositoryBlackBoxTest) SetupTest() {
 	spaceRepository := space.NewRepository(s.DB)
 	spaceName := testsupport.CreateRandomValidTestName("test-space")
 	testSpace, err := spaceRepository.Create(s.ctx, &space.Space{
-		Name: spaceName,
+		Name:    spaceName,
+		OwnerId: s.testIdentity1.ID,
 	})
 	require.Nil(s.T(), err)
 	// create source and target work items before linking them

@@ -67,10 +67,11 @@ func (s *linkRepoBlackBoxTest) SetupTest() {
 	spaceRepository := space.NewRepository(s.DB)
 	spaceName := testsupport.CreateRandomValidTestName("test-space")
 	testSpace, err := spaceRepository.Create(s.ctx, &space.Space{
-		Name: spaceName,
+		Name:    spaceName,
+		OwnerId: testIdentity.ID,
 	})
-	s.testSpace = testSpace.ID
 	require.Nil(s.T(), err)
+	s.testSpace = testSpace.ID
 
 	// Create a work item link category
 	categoryName := "test" + uuid.NewV4().String()
