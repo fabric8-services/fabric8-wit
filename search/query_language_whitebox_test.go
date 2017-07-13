@@ -67,9 +67,9 @@ func (s *queryLanguageWhiteboxTest) TestMinimalANDOperation() {
 
 	openshiftio := "openshiftio"
 	status := "NEW"
-	expected := &Query{Name: "AND", Children: &[]*Query{
-		&Query{Name: "space", Value: &openshiftio},
-		&Query{Name: "status", Value: &status}},
+	expected := &Query{Name: "AND", Children: []Query{
+		Query{Name: "space", Value: &openshiftio},
+		Query{Name: "status", Value: &status}},
 	}
 	assert.Equal(s.T(), expected, q)
 }
@@ -94,12 +94,12 @@ func (s *queryLanguageWhiteboxTest) TestMinimalORandANDOperation() {
 	openshiftio := "openshiftio"
 	area := "planner"
 	rhel := "rhel"
-	expected := &Query{Name: "OR", Children: &[]*Query{
-		&Query{Name: "AND", Children: &[]*Query{
-			&Query{Name: "space", Value: &openshiftio},
-			&Query{Name: "area", Value: &area}}},
-		&Query{Name: "AND", Children: &[]*Query{
-			&Query{Name: "space", Value: &rhel}}},
+	expected := &Query{Name: "OR", Children: []Query{
+		Query{Name: "AND", Children: []Query{
+			Query{Name: "space", Value: &openshiftio},
+			Query{Name: "area", Value: &area}}},
+		Query{Name: "AND", Children: []Query{
+			Query{Name: "space", Value: &rhel}}},
 	}}
 	assert.Equal(s.T(), expected, q)
 }
@@ -124,12 +124,12 @@ func (s *queryLanguageWhiteboxTest) TestMinimalORandANDandNegateOperation() {
 	openshiftio := "openshiftio"
 	area := "planner"
 	rhel := "rhel"
-	expected := &Query{Name: "OR", Children: &[]*Query{
-		&Query{Name: "AND", Children: &[]*Query{
-			&Query{Name: "space", Value: &openshiftio},
-			&Query{Name: "area", Value: &area}}},
-		&Query{Name: "AND", Children: &[]*Query{
-			&Query{Name: "space", Value: &rhel, Negate: true}}},
+	expected := &Query{Name: "OR", Children: []Query{
+		Query{Name: "AND", Children: []Query{
+			Query{Name: "space", Value: &openshiftio},
+			Query{Name: "area", Value: &area}}},
+		Query{Name: "AND", Children: []Query{
+			Query{Name: "space", Value: &rhel, Negate: true}}},
 	}}
 	assert.Equal(s.T(), expected, q)
 }
@@ -155,7 +155,7 @@ func TestGenerateExpression(t *testing.T) {
 		spaceName := "openshiftio"
 		q := Query{Name: "space", Value: &spaceName}
 		// when
-		actualExpr := generateExpression(&q)
+		actualExpr := generateExpression(q)
 		// then
 		expectedExpr := c.Equals(
 			c.Field("space"),
@@ -169,7 +169,7 @@ func TestGenerateExpression(t *testing.T) {
 		spaceName := "openshiftio"
 		q := Query{Name: "space", Value: &spaceName, Negate: true}
 		// when
-		actualExpr := generateExpression(&q)
+		actualExpr := generateExpression(q)
 		// then
 		expectedExpr := c.Not(
 			c.Field("space"),
@@ -184,13 +184,13 @@ func TestGenerateExpression(t *testing.T) {
 		spaceName := "openshiftio"
 		q := Query{
 			Name: "AND",
-			Children: &[]*Query{
-				&Query{Name: "space", Value: &spaceName},
-				&Query{Name: "status", Value: &statusName},
+			Children: []Query{
+				Query{Name: "space", Value: &spaceName},
+				Query{Name: "status", Value: &statusName},
 			},
 		}
 		// when
-		actualExpr := generateExpression(&q)
+		actualExpr := generateExpression(q)
 		// then
 		expectedExpr := c.And(
 			c.Equals(
@@ -211,13 +211,13 @@ func TestGenerateExpression(t *testing.T) {
 		spaceName := "openshiftio"
 		q := Query{
 			Name: "OR",
-			Children: &[]*Query{
-				&Query{Name: "space", Value: &spaceName},
-				&Query{Name: "status", Value: &statusName},
+			Children: []Query{
+				Query{Name: "space", Value: &spaceName},
+				Query{Name: "status", Value: &statusName},
 			},
 		}
 		// when
-		actualExpr := generateExpression(&q)
+		actualExpr := generateExpression(q)
 		// then
 		expectedExpr := c.Or(
 			c.Equals(
@@ -238,13 +238,13 @@ func TestGenerateExpression(t *testing.T) {
 		spaceName := "openshiftio"
 		q := Query{
 			Name: "AND",
-			Children: &[]*Query{
-				&Query{Name: "space", Value: &spaceName, Negate: true},
-				&Query{Name: "status", Value: &statusName},
+			Children: []Query{
+				Query{Name: "space", Value: &spaceName, Negate: true},
+				Query{Name: "status", Value: &statusName},
 			},
 		}
 		// when
-		actualExpr := generateExpression(&q)
+		actualExpr := generateExpression(q)
 		// then
 		expectedExpr := c.And(
 			c.Not(

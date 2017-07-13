@@ -246,8 +246,8 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 		switch concreteVal := val.(type) {
 		case []interface{}:
 			q.Name = key
-			l := []*Query{}
-			q.Children = &l
+			l := []Query{}
+			q.Children = l
 			parseArray(val.([]interface{}), &l)
 		case string:
 			q.Name = key
@@ -261,14 +261,14 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 	}
 }
 
-func parseArray(anArray []interface{}, l *[]*Query) {
+func parseArray(anArray []interface{}, l *[]Query) {
 	for _, val := range anArray {
 		switch val.(type) {
 		case map[string]interface{}:
 			o := val.(map[string]interface{})
-			q := &Query{}
+			q := Query{}
 			*l = append(*l, q)
-			parseMap(o, q)
+			parseMap(o, &q)
 
 		}
 	}
@@ -279,14 +279,14 @@ type Query struct {
 	Name     string
 	Value    *string
 	Negate   bool
-	Children *[]*Query
+	Children []Query
 }
 
 func isOperator(str string) bool {
 	return str == "AND" || str == "OR"
 }
 
-func generateExpression(n *Query) criteria.Expression {
+func generateExpression(n Query) criteria.Expression {
 	var myexpr []criteria.Expression
 	currentOperator := n.Name
 	if !isOperator(currentOperator) {
@@ -298,13 +298,13 @@ func generateExpression(n *Query) criteria.Expression {
 			myexpr = append(myexpr, criteria.Equals(left, right))
 		}
 	}
-	if n.Children != nil {
-		for _, child := range *n.Children {
-			if isOperator(child.Name) {
-				q := generateExpression(child)
-				myexpr = append(myexpr, q)
-			} else {
-				left := criteria.Field(child.Name)
+	for _, child := range n.Children {
+		if isOperator(child.Name) {
+			q := generateExpression(child)
+			myexpr = append(myexpr, q)
+		} else {
+			left := criteria.Field(child.Name)
+			if child.Value != nil {
 				right := criteria.Literal(*child.Value)
 				if child.Negate {
 					myexpr = append(myexpr, criteria.Not(left, right))
@@ -352,9 +352,9 @@ func parseFilterString(rawSearchString string) (criteria.Expression, error) {
 	if err != nil {
 		return nil, errors.NewBadParameterError("expression", rawSearchString)
 	}
-	q := &Query{}
+	q := Query{}
 	fmt.Println("before parseMap")
-	parseMap(fm, q)
+	parseMap(fm, &q)
 	fmt.Println("after parseMap")
 
 	fmt.Println("before generateExpression")
