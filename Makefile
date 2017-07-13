@@ -83,14 +83,7 @@ help:/
           } \
         }' $(MAKEFILE_LIST)
 
-GOFORMAT_FILES := $(shell find  . -name '*.go' \
-	! -wholename './bindata_assetfs.go' \
-	! -wholename './migration/sqlbindata_test.go' \
-	! -wholename './migration/sqlbindata.go' \
-	! -path './vendor/*' \
-	! -path './app/*' \
-	! -path './client/*' \
-	! -path './tool/cli/*' )
+GOFORMAT_FILES := $(shell find  . -name '*.go' | grep -vEf .gofmt_exclude)
 
 .PHONY: check-go-format
 ## Exists with an error if there are files whose formatting differs from gofmt's
