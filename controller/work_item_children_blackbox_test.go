@@ -66,7 +66,7 @@ func (s *workItemChildSuite) SetupSuite() {
 
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "workItemChildSuite user", "test provider")
 	require.Nil(s.T(), err)
-	s.testIdentity = testIdentity
+	s.testIdentity = *testIdentity
 
 	priv, err := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	require.Nil(s.T(), err)
@@ -101,13 +101,13 @@ func (s *workItemChildSuite) SetupSuite() {
 	s.workItemRelsLinksCtrl = NewWorkItemRelationshipsLinksController(svc, s.db, s.Configuration)
 	require.NotNil(s.T(), s.workItemRelsLinksCtrl)
 
-	svc = testsupport.ServiceAsUser("TestWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity)
+	svc = testsupport.ServiceAsUser("TestWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), s.testIdentity)
 	require.NotNil(s.T(), svc)
 	s.svc = svc
 	s.workItemCtrl = NewWorkitemController(svc, s.db, s.Configuration)
 	require.NotNil(s.T(), s.workItemCtrl)
 
-	svc = testsupport.ServiceAsUser("Space-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity)
+	svc = testsupport.ServiceAsUser("Space-Service", almtoken.NewManagerWithPrivateKey(priv), s.testIdentity)
 	require.NotNil(s.T(), svc)
 	s.spaceCtrl = NewSpaceController(svc, s.db, s.Configuration, &DummyResourceManager{})
 	require.NotNil(s.T(), s.spaceCtrl)
@@ -131,7 +131,7 @@ func (s *workItemChildSuite) SetupTest() {
 	require.Nil(s.T(), err)
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "test user", "test provider")
 	require.Nil(s.T(), err)
-	s.svc = testsupport.ServiceAsUser("TestWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity)
+	s.svc = testsupport.ServiceAsUser("TestWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), *testIdentity)
 	require.NotNil(s.T(), s.svc)
 
 	// Create a work item link space

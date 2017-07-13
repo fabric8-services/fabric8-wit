@@ -45,7 +45,7 @@ func (s *BenchCommentRepository) SetupBenchmark() {
 	if err != nil {
 		s.B().Fail()
 	}
-	s.testIdentity = testIdentity
+	s.testIdentity = *testIdentity
 }
 
 func (s *BenchCommentRepository) TearDownBenchmark() {

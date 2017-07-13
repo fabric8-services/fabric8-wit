@@ -20,7 +20,6 @@ import (
 
 type TestNamedSpaceREST struct {
 	gormtestsupport.DBTestSuite
-
 	db    *gormapplication.GormDB
 	clean func()
 }
