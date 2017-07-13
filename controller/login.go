@@ -12,6 +12,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/auth"
 	"github.com/fabric8-services/fabric8-wit/rest"
+	errs "github.com/pkg/errors"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/errors"
@@ -21,7 +22,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/test"
 	"github.com/fabric8-services/fabric8-wit/token"
 	"github.com/goadesign/goa"
-	errs "github.com/pkg/errors"
 )
 
 type loginConfiguration interface {
@@ -138,6 +138,9 @@ func (c *LoginController) getEntitlementResourceRequestPayload(ctx context.Conte
 	contextInfoLoggedInIdentity := loggedInIdentity.User.ContextInformation
 	_, recentSpacesPresent := contextInfoLoggedInIdentity["recentSpaces"]
 	if contextInfoLoggedInIdentity == nil || !recentSpacesPresent {
+		log.Warn(ctx, map[string]interface{}{
+			"identity_id": *loggedInIdentityID,
+		}, "unable to find recentSpaces in ContextInformation")
 		return nil, nil
 	}
 
@@ -145,16 +148,25 @@ func (c *LoginController) getEntitlementResourceRequestPayload(ctx context.Conte
 	for _, v := range contextInfoLoggedInIdentity["recentSpaces"].([]interface{}) {
 		recentSpaceID, ok := v.(string)
 		if !ok {
-			return nil, errors.NewBadParameterError("recentSpaces", "string").Expected("not string")
+			log.Warn(ctx, map[string]interface{}{
+				"identity_id": *loggedInIdentityID,
+			}, "unable to find a string uuid in recentSpaces in contextInformation")
+			return nil, nil
 		}
 		spacesToGetEntitlementsFor = append(spacesToGetEntitlementsFor, auth.ResourceSet{Name: recentSpaceID}) // pass by reference?
 	}
 	if len(spacesToGetEntitlementsFor) == 0 {
+		log.Info(ctx, map[string]interface{}{
+			"identity_id": *loggedInIdentityID,
+		}, "no recent spaces found for optimizing fetching of rpt")
 		return nil, nil
 	}
 	resource := &auth.EntitlementResource{
 		Permissions: spacesToGetEntitlementsFor,
 	}
+	log.Info(ctx, map[string]interface{}{
+		"identity_id": *loggedInIdentityID,
+	}, "recent spaces will be used for fetching rpt")
 	return resource, nil
 }
 
