@@ -35,7 +35,7 @@ var (
 )
 
 func TestAuthz(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
+	resource.Require(t, resource.Remote)
 	suite.Run(t, new(TestAuthzSuite))
 }
 
@@ -85,7 +85,7 @@ func (s *TestAuthzSuite) checkPermissions(authzPayload auth.AuthorizationPayload
 	svc := testsupport.ServiceAsUserWithAuthz("SpaceAuthz-Service", almtoken.NewManagerWithPrivateKey(priv), priv, testIdentity, authzPayload)
 	resource.UpdatedAt = time.Now()
 	r := &goa.RequestData{
-		Request: &http.Request{Host: "api.prod-preview.openshift.io"},
+		Request: &http.Request{Host: "api.example.org"},
 	}
 	entitlementEndpoint, err := s.configuration.GetKeycloakEndpointEntitlement(r)
 	require.Nil(s.T(), err)
