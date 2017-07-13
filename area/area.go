@@ -40,7 +40,7 @@ func (m Area) GetLastModified() time.Time {
 
 // TableName overrides the table name settings in Gorm to force a specific table name
 // in the database.
-func (m *GormAreaRepository) TableName() string {
+func (m Area) TableName() string {
 	return "areas"
 }
 
@@ -108,10 +108,10 @@ func (m *GormAreaRepository) Load(ctx context.Context, id uuid.UUID) (*Area, err
 	return &obj, nil
 }
 
-// Exists returns true|false whether an area exists with a specific identifier
-func (m *GormAreaRepository) Exists(ctx context.Context, id string) (bool, error) {
+// CheckExists returns nil if the given ID exists otherwise returns an error
+func (m *GormAreaRepository) CheckExists(ctx context.Context, id string) error {
 	defer goa.MeasureSince([]string{"goa", "db", "area", "exists"}, time.Now())
-	return repository.Exists(ctx, m.db, m.TableName(), id)
+	return repository.CheckExists(ctx, m.db, Area{}.TableName(), id)
 }
 
 // Load multiple areas
@@ -165,7 +165,7 @@ func (m *GormAreaRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]Area, er
 	defer goa.MeasureSince([]string{"goa", "db", "area", "query"}, time.Now())
 	var objs []Area
 
-	err := m.db.Scopes(funcs...).Table(m.TableName()).Find(&objs).Error
+	err := m.db.Scopes(funcs...).Table(Area{}.TableName()).Find(&objs).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, errs.WithStack(err)
 	}

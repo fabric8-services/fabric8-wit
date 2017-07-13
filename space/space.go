@@ -71,6 +71,12 @@ func (p Space) GetLastModified() time.Time {
 	return p.UpdatedAt
 }
 
+// TableName overrides the table name settings in Gorm to force a specific table name
+// in the database.
+func (p Space) TableName() string {
+	return "spaces"
+}
+
 // Repository encapsulate storage & retrieval of spaces
 type Repository interface {
 	repository.Exister
@@ -87,12 +93,6 @@ type Repository interface {
 // NewRepository creates a new space repo
 func NewRepository(db *gorm.DB) *GormRepository {
 	return &GormRepository{db}
-}
-
-// TableName overrides the table name settings in Gorm to force a specific table name
-// in the database.
-func (m *GormRepository) TableName() string {
-	return "spaces"
 }
 
 // GormRepository implements SpaceRepository using gorm
@@ -113,15 +113,19 @@ func (r *GormRepository) Load(ctx context.Context, ID uuid.UUID) (*Space, error)
 		return nil, errors.NewNotFoundError("space", ID.String())
 	}
 	if tx.Error != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err":      tx.Error,
+			"space_id": ID.String(),
+		}, "unable to load the space by ID")
 		return nil, errors.NewInternalError(ctx, tx.Error)
 	}
 	return &res, nil
 }
 
-// Exists returns true|false whether a space exists with a specific identifier
-func (r *GormRepository) Exists(ctx context.Context, id string) (bool, error) {
+// CheckExists returns nil if the given ID exists otherwise returns an error
+func (r *GormRepository) CheckExists(ctx context.Context, id string) error {
 	defer goa.MeasureSince([]string{"goa", "db", "space", "exists"}, time.Now())
-	return repository.Exists(ctx, r.db, r.TableName(), id)
+	return repository.CheckExists(ctx, r.db, Space{}.TableName(), id)
 }
 
 // Delete deletes the space with the given id
@@ -166,6 +170,10 @@ func (r *GormRepository) Save(ctx context.Context, p *Space) (*Space, error) {
 		return nil, errors.NewNotFoundError("space", p.ID.String())
 	}
 	if err := tx.Error; err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err":      tx.Error,
+			"space_id": p.ID,
+		}, "unable to find the space by ID")
 		return nil, errors.NewInternalError(ctx, err)
 	}
 	tx = tx.Where("Version = ?", oldVersion).Save(p)
@@ -176,6 +184,11 @@ func (r *GormRepository) Save(ctx context.Context, p *Space) (*Space, error) {
 		if gormsupport.IsUniqueViolation(tx.Error, "spaces_name_idx") {
 			return nil, errors.NewBadParameterError("Name", p.Name).Expected("unique")
 		}
+		log.Error(ctx, map[string]interface{}{
+			"err":      err,
+			"version":  oldVersion,
+			"space_id": p.ID,
+		}, "unable to find the space by version")
 		return nil, errors.NewInternalError(ctx, err)
 	}
 	if tx.RowsAffected == 0 {
@@ -249,6 +262,10 @@ func (r *GormRepository) listSpaceFromDB(ctx context.Context, q *string, userID 
 	result := []Space{}
 	columns, err := rows.Columns()
 	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err":   err,
+			"query": q,
+		}, "unable to load spaces")
 		return nil, 0, errors.NewInternalError(ctx, err)
 	}
 
@@ -269,6 +286,9 @@ func (r *GormRepository) listSpaceFromDB(ctx context.Context, q *string, userID 
 		if first {
 			first = false
 			if err = rows.Scan(columnValues...); err != nil {
+				log.Error(ctx, map[string]interface{}{
+					"err": err,
+				}, "unable to load spaces")
 				return nil, 0, errors.NewInternalError(ctx, err)
 			}
 		}
@@ -333,6 +353,11 @@ func (r *GormRepository) LoadByOwnerAndName(ctx context.Context, userID *uuid.UU
 		return nil, errors.NewNotFoundError("space", *spaceName)
 	}
 	if tx.Error != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err":        tx.Error,
+			"space_name": *spaceName,
+			"user_id":    *userID,
+		}, "unable to load space by owner and name")
 		return nil, errors.NewInternalError(ctx, tx.Error)
 	}
 	return &res, nil

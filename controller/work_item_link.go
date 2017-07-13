@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"reflect"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
@@ -257,10 +258,8 @@ func createWorkItemLink(ctx *workItemLinkContext, httpFuncs createWorkItemLinkFu
 	}
 	createdModelLink, err := ctx.Application.WorkItemLinks().Create(ctx.Context, modelLink.SourceID, modelLink.TargetID, modelLink.LinkTypeID, *ctx.CurrentUserIdentityID)
 	if err != nil {
-		cause := errs.Cause(err)
-		switch cause.(type) {
-		// if the link type was not found/invalid, we return a "400 Bad Request" response
-		case errors.NotFoundError, errors.BadParameterError:
+		switch reflect.TypeOf(err) {
+		case reflect.TypeOf(&goa.ErrorResponse{}):
 			return jsonapi.JSONErrorResponse(httpFuncs, goa.ErrBadRequest(err.Error()))
 		default:
 			return jsonapi.JSONErrorResponse(httpFuncs, err)
