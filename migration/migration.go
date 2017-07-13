@@ -326,7 +326,7 @@ func GetMigrations() Migrations {
 	m = append(m, steps{ExecuteSQLFile("067-comment-parentid-uuid.sql")})
 
 	// Version 68
-	m = append(m, steps{ExecuteSQLFile("068-spaces_identities_fk.sql")})
+	m = append(m, steps{ExecuteSQLFile("068-index_identities_username.sql")})
 
 	// Version N
 	//

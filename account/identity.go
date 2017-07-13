@@ -364,7 +364,7 @@ func (m *GormIdentityRepository) Search(ctx context.Context, q string, start int
 	db = db.Joins("LEFT JOIN users ON identities.user_id = users.id")
 	db = db.Where("LOWER(users.full_name) like ?", "%"+strings.ToLower(q)+"%")
 	db = db.Or("users.email like ?", "%"+strings.ToLower(q)+"%")
-	db = db.Or("lower(identities.username) like lower(?)", "%"+strings.ToLower(q)+"%")
+	db = db.Or("lower(identities.username) like ?", "%"+strings.ToLower(q)+"%")
 	db = db.Group("identities.id,identities.username,users.id")
 	//db = db.Preload("user")
 
