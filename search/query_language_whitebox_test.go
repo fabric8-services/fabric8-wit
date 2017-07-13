@@ -165,7 +165,7 @@ func (s *queryLanguageWhiteboxTest) TestMinimalANDExpression() {
 	//criteriaExpression(q, result)
 	result := generateExpression2(&q)
 
-	expectedExpression := `((Fields@>'{"space" : ["openshiftio"]}') and (Fields@>'{"status" : ["NEW"]}'))`
+	expectedExpression := `((Fields@>'{"space" : "openshiftio"}') and (Fields@>'{"status" : "NEW"}'))`
 
 	criteriaExpect(s.T(), result, expectedExpression, []interface{}{})
 }
