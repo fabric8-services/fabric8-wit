@@ -349,7 +349,7 @@ func generateExpression2(n *Query) criteria.Expression {
 	var myexpr []criteria.Expression
 	currentOperator := n.Name
 	if !isOperator(currentOperator) {
-		q := criteria.Equals(criteria.Field(n.Name), criteria.Literal([]string{*n.Value}))
+		q := criteria.Equals(criteria.Field(n.Name), criteria.Literal(*n.Value))
 		myexpr = append(myexpr, q)
 	}
 	for _, child := range *n.Children {
@@ -357,7 +357,7 @@ func generateExpression2(n *Query) criteria.Expression {
 			q := generateExpression2(child)
 			myexpr = append(myexpr, q)
 		} else {
-			q := criteria.Equals(criteria.Field(child.Name), criteria.Literal([]string{*child.Value}))
+			q := criteria.Equals(criteria.Field(child.Name), criteria.Literal(*child.Value))
 			myexpr = append(myexpr, q)
 		}
 	}
