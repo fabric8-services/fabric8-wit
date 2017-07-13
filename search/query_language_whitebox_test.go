@@ -164,6 +164,20 @@ func TestGenerateExpression(t *testing.T) {
 		expectEqualExpr(t, expectedExpr, actualExpr)
 	})
 
+	t.Run("NOT (top-level)", func(t *testing.T) {
+		// given
+		spaceName := "openshiftio"
+		q := Query{Name: "space", Value: &spaceName, Negate: true}
+		// when
+		actualExpr := generateExpression(&q)
+		// then
+		expectedExpr := c.Not(
+			c.Field("space"),
+			c.Literal(spaceName),
+		)
+		expectEqualExpr(t, expectedExpr, actualExpr)
+	})
+
 	t.Run("AND", func(t *testing.T) {
 		// given
 		statusName := "NEW"
@@ -207,6 +221,33 @@ func TestGenerateExpression(t *testing.T) {
 		// then
 		expectedExpr := c.Or(
 			c.Equals(
+				c.Field("space"),
+				c.Literal(spaceName),
+			),
+			c.Equals(
+				c.Field("status"),
+				c.Literal(statusName),
+			),
+		)
+		expectEqualExpr(t, expectedExpr, actualExpr)
+	})
+
+	t.Run("NOT (nested)", func(t *testing.T) {
+		// given
+		statusName := "NEW"
+		spaceName := "openshiftio"
+		q := Query{
+			Name: "AND",
+			Children: &[]*Query{
+				&Query{Name: "space", Value: &spaceName, Negate: true},
+				&Query{Name: "status", Value: &statusName},
+			},
+		}
+		// when
+		actualExpr := generateExpression(&q)
+		// then
+		expectedExpr := c.And(
+			c.Not(
 				c.Field("space"),
 				c.Literal(spaceName),
 			),
