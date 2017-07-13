@@ -18,6 +18,12 @@ type Comment struct {
 	Markup    string
 }
 
+// TableName overrides the table name settings in Gorm to force a specific table name
+// in the database.
+func (m Comment) TableName() string {
+	return "comments"
+}
+
 // GetETagData returns the field values to use to generate the ETag
 func (m Comment) GetETagData() []interface{} {
 	// using the 'ID' and 'UpdatedAt' (converted to number of seconds since epoch) fields
