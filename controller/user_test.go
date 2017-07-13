@@ -16,6 +16,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/area"
 	"github.com/fabric8-services/fabric8-wit/auth"
+	"github.com/fabric8-services/fabric8-wit/category"
 	"github.com/fabric8-services/fabric8-wit/codebase"
 	"github.com/fabric8-services/fabric8-wit/comment"
 	"github.com/fabric8-services/fabric8-wit/configuration"
@@ -354,6 +355,11 @@ func (g *GormTestBase) Comments() comment.Repository {
 
 // Iterations returns a iteration repository
 func (g *GormTestBase) Iterations() iteration.Repository {
+	return nil
+}
+
+// Categories returns a category repository
+func (g *GormTestBase) Categories() category.Repository {
 	return nil
 }
 

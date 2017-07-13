@@ -10,6 +10,7 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
+	"github.com/fabric8-services/fabric8-wit/category"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
@@ -93,6 +94,17 @@ var (
 	personID = uuid.FromStringOrNil("22a1e4f1-7e9d-4ce8-ac87-fe7c79356b16")
 )
 
+func getCategory() []*app.GenericData {
+	categoriesData := []*app.GenericData{}
+	catId := category.PlannerRequirementsID.String()
+	catList := app.GenericData{
+		ID: &catId,
+	}
+	categoriesData = append(categoriesData, &catList)
+
+	return categoriesData
+}
+
 // createWorkItemTypeAnimal defines a work item type "animal" that consists of
 // two fields ("animal-type" and "color"). The type is mandatory but the color is not.
 func (s *workItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *app.WorkItemTypeSingle) {
@@ -113,6 +125,8 @@ func (s *workItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *ap
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}
 	spaceSelfURL := rest.AbsoluteURL(reqLong, app.SpaceHref(space.SystemSpace.String()))
+
+	categoriesData := getCategory()
 	payload := app.CreateWorkitemtypePayload{
 		Data: &app.WorkItemTypeData{
 			Type: "workitemtypes",
@@ -140,6 +154,9 @@ func (s *workItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *ap
 			},
 			Relationships: &app.WorkItemTypeRelationships{
 				Space: app.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
+				Categories: &app.RelationGenericList{
+					Data: categoriesData,
+				},
 			},
 		},
 	}
@@ -161,6 +178,8 @@ func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}
 	spaceSelfURL := rest.AbsoluteURL(reqLong, app.SpaceHref(space.SystemSpace.String()))
+
+	categoriesData := getCategory()
 	payload := app.CreateWorkitemtypePayload{
 		Data: &app.WorkItemTypeData{
 			ID:   &id,
@@ -180,6 +199,9 @@ func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 			},
 			Relationships: &app.WorkItemTypeRelationships{
 				Space: app.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
+				Categories: &app.RelationGenericList{
+					Data: categoriesData,
+				},
 			},
 		},
 	}
@@ -196,6 +218,8 @@ func newCreateWorkItemTypePayload(id uuid.UUID, spaceID uuid.UUID) app.CreateWor
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}
 	spaceSelfURL := rest.AbsoluteURL(reqLong, app.SpaceHref(spaceID.String()))
+
+	categoriesData := getCategory()
 	payload := app.CreateWorkitemtypePayload{
 		Data: &app.WorkItemTypeData{
 			ID:   &id,
@@ -215,6 +239,9 @@ func newCreateWorkItemTypePayload(id uuid.UUID, spaceID uuid.UUID) app.CreateWor
 			},
 			Relationships: &app.WorkItemTypeRelationships{
 				Space: app.NewSpaceRelation(spaceID, spaceSelfURL),
+				Categories: &app.RelationGenericList{
+					Data: categoriesData,
+				},
 			},
 		},
 	}

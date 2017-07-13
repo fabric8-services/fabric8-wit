@@ -6,6 +6,7 @@ import (
 	"context"
 
 	"github.com/fabric8-services/fabric8-wit/application/repository"
+	"github.com/fabric8-services/fabric8-wit/category"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/path"
@@ -26,6 +27,7 @@ type WorkItemTypeRepository interface {
 	CreateFromModel(ctx context.Context, model *WorkItemType) (*WorkItemType, error)
 	List(ctx context.Context, spaceID uuid.UUID, start *int, length *int) ([]WorkItemType, error)
 	ListPlannerItems(ctx context.Context, spaceID uuid.UUID) ([]WorkItemType, error)
+	AssociateWithCategories(ctx context.Context, witID uuid.UUID, categories []*uuid.UUID) error
 }
 
 // NewWorkItemTypeRepository creates a wi type repository based on gorm
@@ -154,6 +156,7 @@ func (r *GormWorkItemTypeRepository) CreateFromModel(ctx context.Context, model 
 func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]FieldDefinition) (*WorkItemType, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitemtype", "create"}, time.Now())
 	// Make sure this WIT has an ID
+
 	if id == nil {
 		tmpID := uuid.NewV4()
 		id = &tmpID
@@ -197,6 +200,30 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UU
 	}
 
 	return r.CreateFromModel(ctx, &model)
+}
+
+// AssociateWithCategory associates a workitemtype with a category
+func (r *GormWorkItemTypeRepository) AssociateWithCategories(ctx context.Context, witID uuid.UUID, categories []*uuid.UUID) error {
+	// create relationship between workitemtype and category
+	for _, categoryID := range categories {
+		if categoryID != nil {
+			c := category.NewRepository(r.db)
+			WorkItemTypeCategoryRelationship := category.WorkItemTypeCategoryRelationship{
+				CategoryID:     *categoryID,
+				WorkItemTypeID: witID,
+			}
+			err := c.AssociateWIT(ctx, &WorkItemTypeCategoryRelationship)
+			if err != nil {
+				log.Info(ctx, map[string]interface{}{
+					"category_id":       *categoryID,
+					"work_item_type_id": witID,
+					"err":               err,
+				}, "unable to create workitemtype category relationship")
+				return errors.NewInternalError(ctx, errs.Wrap(err, "unable to create workitemtype category relationship"))
+			}
+		}
+	}
+	return nil
 }
 
 // List returns work item types that derives from PlannerItem type

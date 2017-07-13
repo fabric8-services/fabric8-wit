@@ -8,6 +8,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/category"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
@@ -74,6 +75,9 @@ func (rest *TestPlannerBacklogREST) setupPlannerBacklogWorkItems() (testSpace *s
 		require.NotNil(rest.T(), testSpace.ID)
 		log.Info(nil, map[string]interface{}{"space_id": testSpace.ID}, "created space")
 		workitemTypesRepo := app.WorkItemTypes()
+
+		categoryID := []*uuid.UUID{}
+		categoryID = append(categoryID, &category.PlannerRequirementsID)
 		workitemType, err := workitemTypesRepo.Create(rest.ctx, testSpace.ID, nil, &workitem.SystemPlannerItem, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
 		require.Nil(rest.T(), err)
 		log.Info(nil, map[string]interface{}{"wit_id": workitemType.ID}, "created workitem type")

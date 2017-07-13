@@ -15,6 +15,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	"context"
+
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"

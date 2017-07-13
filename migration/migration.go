@@ -9,6 +9,7 @@ import (
 	"sync"
 	"text/template"
 
+	"github.com/fabric8-services/fabric8-wit/category"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/space"
@@ -325,6 +326,9 @@ func GetMigrations() Migrations {
 	// Version 67
 	m = append(m, steps{ExecuteSQLFile("067-comment-parentid-uuid.sql")})
 
+	// Version 68
+	m = append(m, steps{ExecuteSQLFile("068-categories.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -576,7 +580,7 @@ func createOrUpdateWorkItemLinkCategory(ctx context.Context, linkCatRepo *link.G
 		}
 	case nil:
 		log.Info(ctx, map[string]interface{}{
-			"category": linkCat,
+			"category_name": linkCat,
 		}, "Work item link category %s exists, will update/overwrite the description", linkCat.Name)
 
 		cat.Description = linkCat.Description
@@ -666,6 +670,52 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 	return nil
 }
 
+func createOrUpdateCategories(ctx context.Context, db *gorm.DB, categoryRepo category.Repository, categoryID *uuid.UUID, categoryName string) error {
+	_, err := categoryRepo.LoadCategory(ctx, *categoryID)
+	cause := errs.Cause(err)
+	switch cause.(type) {
+	case errors.NotFoundError:
+		category := category.Category{
+			ID:   *categoryID,
+			Name: categoryName,
+		}
+		_, err := categoryRepo.Create(ctx, &category)
+		if err != nil {
+			log.Info(ctx, map[string]interface{}{
+				"category_id": categoryID,
+				"err":         err,
+			}, "unable to create category")
+			return errs.WithStack(err)
+		}
+	case nil:
+		log.Info(ctx, map[string]interface{}{
+			"category_name": categoryName,
+		}, "Category %s exists, will update/overwrite all fields", categoryName)
+
+		updateCategory := category.Category{
+			ID:   *categoryID,
+			Name: categoryName,
+		}
+		_, err := categoryRepo.Save(ctx, &updateCategory)
+		if err != nil {
+			log.Info(ctx, map[string]interface{}{
+				"category_id": categoryID,
+				"err":         err,
+			}, "unable to update category")
+			return errors.NewInternalError(ctx, errs.Wrap(err, "unable to update category"))
+		}
+	}
+	return nil
+}
+
+// populateCategories populates the categories table with system defined categories
+func populateCategories(ctx context.Context, db *gorm.DB, categoryRepo category.Repository) {
+	log.Info(ctx, nil, "Creating or updating categories...")
+	createOrUpdateCategories(ctx, db, categoryRepo, &category.PlannerRequirementsID, category.PlannerRequirements)
+	createOrUpdateCategories(ctx, db, categoryRepo, &category.PlannerPortfolioID, category.PlannerPortfolio)
+	log.Info(ctx, nil, "Creating/updating of categories done.")
+}
+
 // PopulateCommonTypes makes sure the database is populated with the correct types (e.g. bug etc.)
 func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *workitem.GormWorkItemTypeRepository) error {
 	populateLocker.Lock()
@@ -673,7 +723,13 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *workitem.GormWo
 	if err := createSpace(ctx, space.NewRepository(db), space.SystemSpace, "The system space is reserved for spaces that can to be manipulated by the user."); err != nil {
 		return errs.WithStack(err)
 	}
-	if err := createOrUpdateSystemPlannerItemType(ctx, witr, db, space.SystemSpace); err != nil {
+
+	c := category.NewRepository(db)
+	populateCategories(ctx, db, c) // populate the categories
+
+	var categories []*uuid.UUID
+
+	if err := createOrUpdateSystemPlannerItemType(ctx, witr, db, space.SystemSpace, categories); err != nil {
 		return errs.WithStack(err)
 	}
 	workitem.ClearGlobalWorkItemTypeCache() // Clear the WIT cache after updating existing WITs
@@ -683,20 +739,21 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *workitem.GormWo
 		name        string
 		description string
 		icon        string
+		categories  []*uuid.UUID
 	}
 
 	info := []witInfo{
-		{workitem.SystemBug, "Bug", "", "fa fa-bug"},
-		{workitem.SystemTask, "Task", "", "fa fa-tasks"},
-		{workitem.SystemFeature, "Feature", "", "fa fa-puzzle-piece"},
-		{workitem.SystemScenario, "Scenario", "", "fa fa-bolt"},
-		{workitem.SystemValueProposition, "Value Proposition", "", "fa fa-diamond"},
-		{workitem.SystemExperience, "Experience", "", "fa fa-map"},
-		{workitem.SystemFundamental, "Fundamental", "", "fa fa-university"},
-		{workitem.SystemPapercuts, "Papercuts", "", "fa fa-scissors"},
+		{workitem.SystemBug, "Bug", "", "fa fa-bug", categories},
+		{workitem.SystemTask, "Task", "", "fa fa-tasks", categories},
+		{workitem.SystemFeature, "Feature", "", "fa fa-puzzle-piece", categories},
+		{workitem.SystemScenario, "Scenario", "", "fa fa-bolt", categories},
+		{workitem.SystemValueProposition, "Value Proposition", "", "fa fa-diamond", categories},
+		{workitem.SystemExperience, "Experience", "", "fa fa-map", categories},
+		{workitem.SystemFundamental, "Fundamental", "", "fa fa-university", categories},
+		{workitem.SystemPapercuts, "Papercuts", "", "fa fa-scissors", categories},
 	}
 	for _, i := range info {
-		if err := createOrUpdatePlannerItemExtension(ctx, i.id, i.name, i.description, i.icon, witr, db, space.SystemSpace); err != nil {
+		if err := createOrUpdatePlannerItemExtension(ctx, i.id, i.name, i.description, i.icon, witr, db, space.SystemSpace, i.categories); err != nil {
 			return errs.Wrapf(err, "failed to create WIT with %+v", i)
 		}
 	}
@@ -705,7 +762,7 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *workitem.GormWo
 	return nil
 }
 
-func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB, spaceID uuid.UUID) error {
+func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB, spaceID uuid.UUID, categories []*uuid.UUID) error {
 	log.Info(ctx, nil, "Creating or updating planner item type...")
 	typeID := workitem.SystemPlannerItem
 	typeName := "Planner Item"
@@ -748,16 +805,17 @@ func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.Gor
 			Description: "The state of the work item",
 		},
 	}
-	return createOrUpdateType(ctx, typeID, spaceID, typeName, description, nil, workItemTypeFields, icon, witr, db)
+
+	return createOrUpdateType(ctx, typeID, spaceID, typeName, description, nil, workItemTypeFields, icon, witr, db, categories)
 }
 
-func createOrUpdatePlannerItemExtension(ctx context.Context, typeID uuid.UUID, name string, description string, icon string, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB, spaceID uuid.UUID) error {
+func createOrUpdatePlannerItemExtension(ctx context.Context, typeID uuid.UUID, name string, description string, icon string, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB, spaceID uuid.UUID, categories []*uuid.UUID) error {
 	workItemTypeFields := map[string]workitem.FieldDefinition{}
 	extTypeName := workitem.SystemPlannerItem
-	return createOrUpdateType(ctx, typeID, spaceID, name, description, &extTypeName, workItemTypeFields, icon, witr, db)
+	return createOrUpdateType(ctx, typeID, spaceID, name, description, &extTypeName, workItemTypeFields, icon, witr, db, categories)
 }
 
-func createOrUpdateType(ctx context.Context, typeID uuid.UUID, spaceID uuid.UUID, name string, description string, extendedTypeID *uuid.UUID, fields map[string]workitem.FieldDefinition, icon string, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB) error {
+func createOrUpdateType(ctx context.Context, typeID uuid.UUID, spaceID uuid.UUID, name string, description string, extendedTypeID *uuid.UUID, fields map[string]workitem.FieldDefinition, icon string, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB, categories []*uuid.UUID) error {
 	log.Info(ctx, nil, "Creating or updating planner item types...")
 	wit, err := witr.LoadTypeFromDB(ctx, typeID)
 	cause := errs.Cause(err)

@@ -8,6 +8,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/area"
 	"github.com/fabric8-services/fabric8-wit/auth"
+	"github.com/fabric8-services/fabric8-wit/category"
 	"github.com/fabric8-services/fabric8-wit/codebase"
 	"github.com/fabric8-services/fabric8-wit/comment"
 	"github.com/fabric8-services/fabric8-wit/iteration"
@@ -131,6 +132,11 @@ func (g *GormBase) Iterations() iteration.Repository {
 // Areas returns a area repository
 func (g *GormBase) Areas() area.Repository {
 	return area.NewAreaRepository(g.db)
+}
+
+// Categories returns a category repository
+func (g *GormBase) Categories() category.Repository {
+	return category.NewRepository(g.db)
 }
 
 // OauthStates returns an oauth state reference repository

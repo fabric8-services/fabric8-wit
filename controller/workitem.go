@@ -11,6 +11,7 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/category"
 	"github.com/fabric8-services/fabric8-wit/codebase"
 	"github.com/fabric8-services/fabric8-wit/criteria"
 	"github.com/fabric8-services/fabric8-wit/errors"
@@ -109,10 +110,39 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemState), criteria.Literal(string(*ctx.FilterWorkitemstate))))
 		additionalQuery = append(additionalQuery, "filter[workitemstate]="+*ctx.FilterWorkitemstate)
 	}
+	if ctx.FilterCategory != nil {
+		var relationships []*category.WorkItemTypeCategoryRelationship
+		err := application.Transactional(c.db, func(tx application.Application) error {
+			// Load all workitemtypes related to the specific category
+			relationships, err = tx.Categories().LoadAllRelationshipsOfCategory(ctx, *ctx.FilterCategory)
+			log.Error(ctx, map[string]interface{}{
+				"category_id": *ctx.FilterCategory,
+				"err":         err,
+			}, "failed to list work items in category")
+			return err
+		})
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("failed to list work items in category %v", *ctx.FilterCategory)))
+		}
+		if len(relationships) == 0 {
+			log.Info(ctx, map[string]interface{}{
+				"category": *ctx.FilterCategory,
+			}, "no workitems belong to category: %s", *ctx.FilterCategory)
+			return nil
+		} else {
+			exp = criteria.And(exp, criteria.Equals(criteria.Field("Type"), criteria.Literal(relationships[0].WorkItemTypeID)))
+			// for each workitemtype associated with the category, build the query expression
+			for i := 1; i < len(relationships); i++ {
+				exp = criteria.Or(exp, criteria.Equals(criteria.Field("Type"), criteria.Literal(relationships[i].WorkItemTypeID)))
+			}
+		}
+		additionalQuery = append(additionalQuery, "filter[category]="+ctx.FilterCategory.String())
+	}
 	if ctx.FilterParentexists != nil {
 		// no need to build expression: it is taken care in wi.List call
 		// we need additionalQuery to make sticky filters in URL links
 		additionalQuery = append(additionalQuery, "filter[parentexists]="+strconv.FormatBool(*ctx.FilterParentexists))
+
 	}
 
 	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)

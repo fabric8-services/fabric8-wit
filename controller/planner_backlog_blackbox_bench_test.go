@@ -137,7 +137,7 @@ func (rest *BenchPlannerBacklogBlackboxREST) BenchmarkListPlannerBacklogWorkItem
 	rest.B().ResetTimer()
 	rest.B().ReportAllocs()
 	for n := 0; n < rest.B().N; n++ {
-		if _, workitems := test.ListPlannerBacklogOK(testBench, rest.svc.Context, rest.svc, rest.ctrl, testSpace.ID, &filter, nil, nil, nil, &limit, &offset, nil, nil); len(workitems.Data) != 1 {
+		if _, workitems := test.ListPlannerBacklogOK(testBench, rest.svc.Context, rest.svc, rest.ctrl, testSpace.ID, &filter, nil, nil, nil, nil, &limit, &offset, nil, nil); len(workitems.Data) != 1 {
 			rest.B().Fail()
 		}
 	}

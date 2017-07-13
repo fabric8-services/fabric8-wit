@@ -10,6 +10,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/area"
 	"github.com/fabric8-services/fabric8-wit/auth"
+	"github.com/fabric8-services/fabric8-wit/category"
 	"github.com/fabric8-services/fabric8-wit/codebase"
 	"github.com/fabric8-services/fabric8-wit/comment"
 	"github.com/fabric8-services/fabric8-wit/iteration"
@@ -133,6 +134,10 @@ func (a *app) SearchItems() application.SearchRepository {
 }
 
 func (a *app) Identities() account.IdentityRepository {
+	return nil
+}
+
+func (a *app) Categories() category.Repository {
 	return nil
 }
 

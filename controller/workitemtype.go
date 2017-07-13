@@ -10,6 +10,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem"
+	uuid "github.com/satori/go.uuid"
 
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
@@ -72,6 +73,7 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
+
 		witTypeModel, err := appl.WorkItemTypes().Create(
 			ctx.Context,
 			*ctx.Payload.Data.Relationships.Space.Data.ID,
@@ -80,10 +82,24 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 			ctx.Payload.Data.Attributes.Name,
 			ctx.Payload.Data.Attributes.Description,
 			ctx.Payload.Data.Attributes.Icon,
-			modelFields)
+			modelFields,
+		)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
+
+		var category []*uuid.UUID
+		if ctx.Payload.Data.Relationships.Categories.Data != nil {
+			for _, cat := range ctx.Payload.Data.Relationships.Categories.Data {
+				catID := uuid.FromStringOrNil(*cat.ID)
+				category = append(category, &catID)
+			}
+		}
+		err = appl.WorkItemTypes().AssociateWithCategories(ctx.Context, *ctx.Payload.Data.ID, category)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+
 		witData := ConvertWorkItemTypeFromModel(ctx.RequestData, witTypeModel)
 		wit := &app.WorkItemTypeSingle{Data: &witData}
 		ctx.ResponseData.Header().Set("Location", app.WorkitemtypeHref(*ctx.Payload.Data.Relationships.Space.Data.ID, wit.Data.ID))

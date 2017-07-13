@@ -4,6 +4,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/area"
 	"github.com/fabric8-services/fabric8-wit/auth"
+	"github.com/fabric8-services/fabric8-wit/category"
 	"github.com/fabric8-services/fabric8-wit/codebase"
 
 	"github.com/fabric8-services/fabric8-wit/comment"
@@ -30,6 +31,7 @@ type Application interface {
 	Iterations() iteration.Repository
 	Users() account.UserRepository
 	Areas() area.Repository
+	Categories() category.Repository
 	OauthStates() auth.OauthStateReferenceRepository
 	Codebases() codebase.Repository
 }
