@@ -7,12 +7,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/application/repository"
 	"github.com/fabric8-services/fabric8-wit/criteria"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/rendering"
+	"github.com/fabric8-services/fabric8-wit/space"
 
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -34,8 +36,9 @@ const (
 // WorkItemRepository encapsulates storage & retrieval of work items
 type WorkItemRepository interface {
 	repository.Exister
-	LoadByID(ctx context.Context, id uuid.UUID) (*WorkItem, error)
 	Load(ctx context.Context, spaceID uuid.UUID, wiNumber int) (*WorkItem, error)
+	LoadByID(ctx context.Context, id uuid.UUID) (*WorkItem, error)
+	LookupIDByNamedSpaceAndNumber(ctx context.Context, ownerName, spaceName string, wiNumber int) (*uuid.UUID, *uuid.UUID, error)
 	Save(ctx context.Context, spaceID uuid.UUID, wi WorkItem, modifierID uuid.UUID) (*WorkItem, error)
 	Reorder(ctx context.Context, direction DirectionType, targetID *uuid.UUID, wi WorkItem, modifierID uuid.UUID) (*WorkItem, error)
 	Delete(ctx context.Context, id uuid.UUID, suppressorID uuid.UUID) error
@@ -110,6 +113,47 @@ func (r *GormWorkItemRepository) Load(ctx context.Context, spaceID uuid.UUID, wi
 	return ConvertWorkItemStorageToModel(wiType, wiStorage)
 }
 
+// LookupIDByNamedSpaceAndNumber returns the work item's ID for the given owner name, space name and item number
+// returns NotFoundError, ConversionError or InternalError
+func (r *GormWorkItemRepository) LookupIDByNamedSpaceAndNumber(ctx context.Context, ownerName, spaceName string, wiNumber int) (*uuid.UUID, *uuid.UUID, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitem", "lookupIDByNamedSpaceAndNumber"}, time.Now())
+	log.Debug(nil, map[string]interface{}{
+		"wi_number":  wiNumber,
+		"space_name": spaceName,
+		"owner_name": ownerName,
+	}, "Loading work item")
+	query := fmt.Sprintf("select wi.id, wi.space_id from %[1]s wi "+
+		"join %[2]s s on wi.space_id = s.id "+
+		"join %[3]s i on s.owner_id = i.id "+
+		"where lower(i.username) = lower(?) and lower(s.name) = lower(?) and wi.number = ?",
+		WorkItemStorage{}.TableName(), space.Space{}.TableName(), account.Identity{}.TableName())
+	// 'scan' destination must be slice or struct
+	type Result struct {
+		WiID uuid.UUID `gorm:"column:id"`
+		// TODO(xcoulon) SpaceID can be removed once PR for #1452 is merged, as we won't need it anymore in the controller
+		SpaceID uuid.UUID
+	}
+	var result Result
+	db := r.db.Raw(query, ownerName, spaceName, wiNumber).Scan(&result)
+	if db.RecordNotFound() {
+		log.Error(nil, map[string]interface{}{
+			"wi_number":  wiNumber,
+			"space_name": spaceName,
+			"owner_name": ownerName,
+		}, "work item not found")
+		return nil, nil, errors.NewNotFoundError("work item", strconv.Itoa(wiNumber))
+	}
+	if db.Error != nil {
+		return nil, nil, errors.NewInternalError(ctx, errs.Wrap(db.Error, "error while looking up a work item ID"))
+	}
+	log.Debug(ctx, map[string]interface{}{
+		"wi_number":  wiNumber,
+		"space_name": spaceName,
+		"owner_name": ownerName,
+	}, "Matching work item with ID='%s' in space with ID='%s'", result.WiID.String(), result.SpaceID.String())
+	return &result.WiID, &result.SpaceID, nil
+}
+
 // CheckExists returns nil if the given ID exists otherwise returns an error
 func (m *GormWorkItemRepository) CheckExists(ctx context.Context, workitemID string) error {
 	defer goa.MeasureSince([]string{"goa", "db", "workitem", "exists"}, time.Now())
@@ -117,7 +161,7 @@ func (m *GormWorkItemRepository) CheckExists(ctx context.Context, workitemID str
 }
 
 func (r *GormWorkItemRepository) loadWorkItemStorage(ctx context.Context, spaceID uuid.UUID, wiNumber int, selectForUpdate bool) (*WorkItemStorage, *WorkItemType, error) {
-	log.Info(nil, map[string]interface{}{
+	log.Debug(nil, map[string]interface{}{
 		"wi_number": wiNumber,
 		"space_id":  spaceID,
 	}, "Loading work item")

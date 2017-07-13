@@ -90,7 +90,7 @@ func (s *WorkItemSuite) SetupTest() {
 	// create a test identity
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "WorkItemSuite setup user", "test provider")
 	require.Nil(s.T(), err)
-	s.testIdentity = testIdentity
+	s.testIdentity = *testIdentity
 
 	s.svc = testsupport.ServiceAsUser("TestUpdateWI-Service", almtoken.NewManagerWithPrivateKey(s.priKey), s.testIdentity)
 	s.workitemCtrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
@@ -892,7 +892,7 @@ func (s *WorkItem2Suite) SetupTest() {
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "WorkItem2Suite setup user", "test provider")
 	require.Nil(s.T(), err)
 	s.priKey, _ = almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManagerWithPrivateKey(s.priKey), testIdentity)
+	s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManagerWithPrivateKey(s.priKey), *testIdentity)
 	s.wiCtrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.wi2Ctrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(s.DB))
@@ -2654,17 +2654,17 @@ func minimumRequiredUpdatePayloadWithSpace(spaceID uuid.UUID) app.UpdateWorkitem
 func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "TestUpdateWorkitemForSpaceCollaborator-"+uuid.NewV4().String(), "TestWI")
 	require.Nil(s.T(), err)
-	space := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, testIdentity)
+	space := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, *testIdentity)
 	// Create new workitem
 	payload := minimumRequiredCreateWithTypeAndSpace(workitem.SystemBug, *space.ID)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity, &TestSpaceAuthzService{testIdentity})
+	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", almtoken.NewManagerWithPrivateKey(priv), *testIdentity, &TestSpaceAuthzService{*testIdentity})
 	ctrl := NewWorkitemController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	testIdentity2, err := testsupport.CreateTestIdentity(s.DB, "TestUpdateWorkitemForSpaceCollaborator-"+uuid.NewV4().String(), "TestWI")
-	svcNotAuthrized := testsupport.ServiceAsSpaceUser("Collaborators-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity2, &TestSpaceAuthzService{testIdentity})
+	svcNotAuthrized := testsupport.ServiceAsSpaceUser("Collaborators-Service", almtoken.NewManagerWithPrivateKey(priv), *testIdentity2, &TestSpaceAuthzService{*testIdentity})
 	ctrlNotAuthrize := NewWorkitemController(svcNotAuthrized, gormapplication.NewGormDB(s.DB), s.Configuration)
 
 	_, wi := test.CreateWorkitemCreated(s.T(), svc.Context, svc, ctrl, *payload.Data.Relationships.Space.Data.ID, &payload)
