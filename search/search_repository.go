@@ -317,26 +317,70 @@ func (s *Stack) Pop() (int, error) {
 }
 
 func criteriaExpression(q Query, e *criteria.Expression) {
-	if q.Name == "AND" {
-	}
-	if q.Children != nil {
-		fmt.Println("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", q.Name)
-		current := criteria.Equals(criteria.Field(q.Name), criteria.Literal(q.Value))
-		if q.Value == nil {
-			fmt.Println("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
-			e = &current
-		} else {
-			fmt.Println("ccccccccccccccccccccccccccccccccccccccccccccccccc")
-			r := criteria.And(*e, current)
-			e = &r
-		}
+	if q.Children == nil {
 		return
 	}
+	if q.Value != nil {
+		fmt.Println("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", q.Name)
+		current := criteria.Equals(criteria.Field(q.Name), criteria.Literal(q.Value))
+		fmt.Println("ccccccccccccccccccccccccccccccccccccccccccccccccc")
+		r := criteria.And(*e, current)
+		e = &r
+	}
+	/*
+		else {
+			current := criteria.Equals(criteria.Field(q.Name), criteria.Literal(q.Value))
+			fmt.Println("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
+			e = &current
+		}
+	*/
 	for i, child := range *q.Children {
 		fmt.Printf("%d%d%d%d%d%d%d%d%d%d%d%d%d\t", i, i, i, i, i, i, i, i, i, i, i, i, i)
 		fmt.Printf("%#v\n", child)
 		criteriaExpression(*child, e)
 	}
+}
+
+func isOperator(str string) bool {
+	return str == "AND" || str == "OR"
+}
+
+func generateExpression2(n *Query) criteria.Expression {
+	var myexpr []criteria.Expression
+	currentOperator := n.Name
+	if !isOperator(currentOperator) {
+		q := criteria.Equals(criteria.Field(n.Name), criteria.Literal([]string{*n.Value}))
+		myexpr = append(myexpr, q)
+	}
+	for _, child := range *n.Children {
+		if isOperator(child.Name) {
+			q := generateExpression2(child)
+			myexpr = append(myexpr, q)
+		} else {
+			q := criteria.Equals(criteria.Field(child.Name), criteria.Literal([]string{*child.Value}))
+			myexpr = append(myexpr, q)
+		}
+	}
+	var e criteria.Expression
+	switch currentOperator {
+	case "AND":
+		for _, o := range myexpr {
+			if e == nil {
+				e = o
+			} else {
+				e = criteria.And(e, o)
+			}
+		}
+	case "OR":
+		for _, o := range myexpr {
+			if e == nil {
+				e = o
+			} else {
+				e = criteria.Or(e, o)
+			}
+		}
+	}
+	return e
 }
 
 // parseFilterString accepts a raw string and generates a criteria expression

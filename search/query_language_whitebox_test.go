@@ -161,10 +161,11 @@ func (s *queryLanguageWhiteboxTest) TestMinimalANDExpression() {
 		&Query{Name: "space", Value: &openshiftio, Negate: false, Children: nil},
 		&Query{Name: "status", Value: &status, Negate: false, Children: nil}},
 	}
-	var result *criteria.Expression
-	criteriaExpression(q, result)
+	//var result *criteria.Expression
+	//criteriaExpression(q, result)
+	result := generateExpression2(&q)
 
-	expectedExpression := `((Fields@>'{"space": "openshiftio"}') and (Fields@>'status'{"status": "NEW"}))`
+	expectedExpression := `((Fields@>'{"space" : ["openshiftio"]}') and (Fields@>'{"status" : ["NEW"]}'))`
 
-	criteriaExpect(s.T(), *result, expectedExpression, []interface{}{})
+	criteriaExpect(s.T(), result, expectedExpression, []interface{}{})
 }
