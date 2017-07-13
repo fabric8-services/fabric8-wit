@@ -193,7 +193,7 @@ func main() {
 	workitemCtrl := controller.NewWorkitemController(service, appDB, configuration)
 	app.MountWorkitemController(service, workitemCtrl)
 
-	// Mount "workitem" controller
+	// Mount "named workitem" controller
 	namedWorkitemsCtrl := controller.NewNamedWorkItemsController(service, appDB)
 	app.MountNamedWorkItemsController(service, namedWorkitemsCtrl)
 

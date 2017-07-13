@@ -344,7 +344,7 @@ func (s *workItemRepoBlackBoxTest) TestLookupIDByNamedSpaceAndNumberOK() {
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), wiID)
 	assert.Equal(s.T(), wi.ID, *wiID)
-	// can be removed once PR for #1452 is merged
+	// TODO(xcoulon) can be removed once PR for #1452 is merged
 	require.NotNil(s.T(), spaceID)
 	assert.Equal(s.T(), wi.SpaceID, *spaceID)
 }

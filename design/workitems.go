@@ -270,7 +270,6 @@ var _ = a.Resource("named_work_items", func() {
 			a.Param("wiNumber", d.Integer, "Number of the work item to show")
 		})
 		a.Response(d.MovedPermanently)
-		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 	})

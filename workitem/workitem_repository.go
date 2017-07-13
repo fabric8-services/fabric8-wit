@@ -114,7 +114,7 @@ func (r *GormWorkItemRepository) Load(ctx context.Context, spaceID uuid.UUID, wi
 // LookupIDByNamedSpaceAndNumber returns the work item's ID for the given owner name, space name and item number
 // returns NotFoundError, ConversionError or InternalError
 func (r *GormWorkItemRepository) LookupIDByNamedSpaceAndNumber(ctx context.Context, ownerName, spaceName string, wiNumber int) (*uuid.UUID, *uuid.UUID, error) {
-	defer goa.MeasureSince([]string{"goa", "db", "workitem", "LookupIDByNamedSpaceAndNumber"}, time.Now())
+	defer goa.MeasureSince([]string{"goa", "db", "workitem", "lookupIDByNamedSpaceAndNumber"}, time.Now())
 	log.Debug(nil, map[string]interface{}{
 		"wi_number":  wiNumber,
 		"space_name": spaceName,
@@ -127,7 +127,7 @@ func (r *GormWorkItemRepository) LookupIDByNamedSpaceAndNumber(ctx context.Conte
 	// 'scan' destination must be slice or struct
 	type Result struct {
 		WiID uuid.UUID `gorm:"column:id"`
-		// SpaceID can be removed once PR for #1452 is merged, as we won't need it anymore in the controller
+		// TODO(xcoulon) SpaceID can be removed once PR for #1452 is merged, as we won't need it anymore in the controller
 		SpaceID uuid.UUID
 	}
 	var result Result
@@ -141,13 +141,13 @@ func (r *GormWorkItemRepository) LookupIDByNamedSpaceAndNumber(ctx context.Conte
 		return nil, nil, errors.NewNotFoundError("work item", strconv.Itoa(wiNumber))
 	}
 	if db.Error != nil {
-		return nil, nil, errors.NewInternalError(ctx, errs.Wrapf(db.Error, "error while looking up a work item ID"))
+		return nil, nil, errors.NewInternalError(ctx, errs.Wrap(db.Error, "error while looking up a work item ID"))
 	}
 	log.Debug(ctx, map[string]interface{}{
 		"wi_number":  wiNumber,
 		"space_name": spaceName,
 		"owner_name": ownerName,
-	}, fmt.Sprintf("Matching work item with ID='%s' in space with ID='%s'", result.WiID.String(), result.SpaceID.String()))
+	}, "Matching work item with ID='%s' in space with ID='%s'", result.WiID.String(), result.SpaceID.String())
 	return &result.WiID, &result.SpaceID, nil
 }
 
