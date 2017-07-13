@@ -292,7 +292,7 @@ func IdentityFilterByUserID(userID uuid.UUID) func(db *gorm.DB) *gorm.DB {
 // IdentityFilterByUsername is a gorm filter by 'username'
 func IdentityFilterByUsername(username string) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("lower(username) = lower(?)", username).Limit(1)
+		return db.Where("lower(username) = ?", strings.ToLower(username)).Limit(1)
 	}
 }
 
