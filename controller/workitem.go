@@ -632,38 +632,44 @@ func ConvertWorkItem(request *goa.RequestData, wi workitem.WorkItem, additional 
 		switch name {
 		case workitem.SystemAssignees:
 			if val != nil {
-				userID := val.([]interface{})
-				op.Relationships.Assignees = &app.RelationGenericList{
-					Data: ConvertUsersSimple(request, userID),
+				if userID, ok := val.([]interface{}); ok {
+					op.Relationships.Assignees = &app.RelationGenericList{
+						Data: ConvertUsersSimple(request, userID),
+					}
 				}
 			}
 		case workitem.SystemCreator:
 			if val != nil {
-				userID := val.(string)
-				op.Relationships.Creator = &app.RelationGeneric{
-					Data: ConvertUserSimple(request, userID),
+				if userID, ok := val.(string); ok {
+					op.Relationships.Creator = &app.RelationGeneric{
+						Data: ConvertUserSimple(request, userID),
+					}
 				}
 			}
 		case workitem.SystemIteration:
 			if val != nil {
-				valStr := val.(string)
-				op.Relationships.Iteration = &app.RelationGeneric{
-					Data: ConvertIterationSimple(request, valStr),
+				if valStr, ok := val.(string); ok {
+					op.Relationships.Iteration = &app.RelationGeneric{
+						Data: ConvertIterationSimple(request, valStr),
+					}
 				}
 			}
 		case workitem.SystemArea:
 			if val != nil {
-				valStr := val.(string)
-				op.Relationships.Area = &app.RelationGeneric{
-					Data: ConvertAreaSimple(request, valStr),
+				if valStr, ok := val.(string); ok {
+					op.Relationships.Area = &app.RelationGeneric{
+						Data: ConvertAreaSimple(request, valStr),
+					}
 				}
 			}
 
 		case workitem.SystemTitle:
 			if val != nil {
-				op.Attributes[name] = val.(string)
-				// 'HTML escape' the title to prevent script injection
-				op.Attributes[workitem.SystemTitleRendered] = html.EscapeString(val.(string))
+				if valStr, ok := val.(string); ok {
+					op.Attributes[name] = valStr
+					// 'HTML escape' the title to prevent script injection
+					op.Attributes[workitem.SystemTitleRendered] = html.EscapeString(val.(string))
+				}
 			}
 		case workitem.SystemDescription:
 			description := rendering.NewMarkupContentFromValue(val)
