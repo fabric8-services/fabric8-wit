@@ -7,12 +7,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/application/repository"
 	"github.com/fabric8-services/fabric8-wit/criteria"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/rendering"
+	"github.com/fabric8-services/fabric8-wit/space"
 
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -123,7 +125,8 @@ func (r *GormWorkItemRepository) LookupIDByNamedSpaceAndNumber(ctx context.Conte
 	query := fmt.Sprintf("select wi.id, wi.space_id from %[1]s wi "+
 		"join %[2]s s on wi.space_id = s.id "+
 		"join %[3]s i on s.owner_id = i.id "+
-		"where lower(i.username) = lower(?) and lower(s.name) = lower(?) and wi.number = ?", "work_items", "spaces", "identities")
+		"where lower(i.username) = lower(?) and lower(s.name) = lower(?) and wi.number = ?",
+		WorkItemStorage{}.TableName(), space.Space{}.TableName(), account.Identity{}.TableName())
 	// 'scan' destination must be slice or struct
 	type Result struct {
 		WiID uuid.UUID `gorm:"column:id"`
