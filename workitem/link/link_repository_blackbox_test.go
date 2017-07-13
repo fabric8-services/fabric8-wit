@@ -60,7 +60,7 @@ func (s *linkRepoBlackBoxTest) SetupTest() {
 	s.workitemLinkCategoryRepo = link.NewWorkItemLinkCategoryRepository(s.DB)
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "jdoe1", "test")
-	s.testIdentity = testIdentity
+	s.testIdentity = *testIdentity
 	require.Nil(s.T(), err)
 
 	// create a space

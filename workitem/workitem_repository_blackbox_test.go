@@ -54,7 +54,7 @@ func (s *workItemRepoBlackBoxTest) SetupTest() {
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "jdoe", "test")
 	require.Nil(s.T(), err)
-	s.creator = testIdentity
+	s.creator = *testIdentity
 	spaceRepo := space.NewRepository(s.DB)
 	testSpace, err := spaceRepo.Create(context.Background(), &space.Space{
 		Name:        "test-" + uuid.NewV4().String(),

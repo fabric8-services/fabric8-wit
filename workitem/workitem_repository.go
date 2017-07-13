@@ -123,7 +123,7 @@ func (r *GormWorkItemRepository) LookupIDByNamedSpaceAndNumber(ctx context.Conte
 	query := fmt.Sprintf("select wi.id, wi.space_id from %[1]s wi "+
 		"join %[2]s s on wi.space_id = s.id "+
 		"join %[3]s i on s.owner_id = i.id "+
-		"where i.username = ? and s.name = ? and wi.number = ?", "work_items", "spaces", "identities")
+		"where lower(i.username) = lower(?) and lower(s.name) = lower(?) and wi.number = ?", "work_items", "spaces", "identities")
 	// 'scan' destination must be slice or struct
 	type Result struct {
 		WiID uuid.UUID `gorm:"column:id"`
@@ -143,7 +143,7 @@ func (r *GormWorkItemRepository) LookupIDByNamedSpaceAndNumber(ctx context.Conte
 	if db.Error != nil {
 		return nil, nil, errors.NewInternalError(ctx, errs.Wrapf(db.Error, "error while looking up a work item ID"))
 	}
-	log.Warn(ctx, map[string]interface{}{
+	log.Debug(ctx, map[string]interface{}{
 		"wi_number":  wiNumber,
 		"space_name": spaceName,
 		"owner_name": ownerName,

@@ -292,7 +292,7 @@ func IdentityFilterByUserID(userID uuid.UUID) func(db *gorm.DB) *gorm.DB {
 // IdentityFilterByUsername is a gorm filter by 'username'
 func IdentityFilterByUsername(username string) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("username = ?", username).Limit(1)
+		return db.Where("lower(username) = lower(?)", username).Limit(1)
 	}
 }
 
@@ -364,7 +364,7 @@ func (m *GormIdentityRepository) Search(ctx context.Context, q string, start int
 	db = db.Joins("LEFT JOIN users ON identities.user_id = users.id")
 	db = db.Where("LOWER(users.full_name) like ?", "%"+strings.ToLower(q)+"%")
 	db = db.Or("users.email like ?", "%"+strings.ToLower(q)+"%")
-	db = db.Or("identities.username like ?", "%"+strings.ToLower(q)+"%")
+	db = db.Or("lower(identities.username) like lower(?)", "%"+strings.ToLower(q)+"%")
 	db = db.Group("identities.id,identities.username,users.id")
 	//db = db.Preload("user")
 
