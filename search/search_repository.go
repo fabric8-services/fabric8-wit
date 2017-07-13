@@ -250,9 +250,7 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 		switch concreteVal := val.(type) {
 		case []interface{}:
 			q.Name = key
-			l := []Query{}
-			q.Children = l
-			parseArray(val.([]interface{}), &l)
+			parseArray(val.([]interface{}), &q.Children)
 		case string:
 			q.Name = key
 			s := string(concreteVal)
@@ -260,7 +258,6 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 		case bool:
 			s := concreteVal
 			q.Negate = s
-
 		}
 	}
 }
@@ -272,8 +269,8 @@ func parseArray(anArray []interface{}, l *[]Query) {
 			o := val.(map[string]interface{})
 			q := Query{}
 			*l = append(*l, q)
-			parseMap(o, &q)
-
+			ptrToLastAppendedQuery := &(*l)[len(*l)-1]
+			parseMap(o, ptrToLastAppendedQuery)
 		}
 	}
 }
