@@ -282,70 +282,11 @@ type Query struct {
 	Children *[]*Query
 }
 
-// Stack holds the stack values
-type Stack struct {
-	l sync.Mutex
-	s []int
-}
-
-// NewStack creates a Stack
-func NewStack() *Stack {
-	return &Stack{sync.Mutex{}, make([]int, 0)}
-}
-
-// Push values into stack
-func (s *Stack) Push(v int) {
-	s.l.Lock()
-	defer s.l.Unlock()
-
-	s.s = append(s.s, v)
-}
-
-// Pop values from stack
-func (s *Stack) Pop() (int, error) {
-	s.l.Lock()
-	defer s.l.Unlock()
-
-	l := len(s.s)
-	if l == 0 {
-		return 0, errs.New("Empty Stack")
-	}
-
-	res := s.s[l-1]
-	s.s = s.s[:l-1]
-	return res, nil
-}
-
-func criteriaExpression(q Query, e *criteria.Expression) {
-	if q.Children == nil {
-		return
-	}
-	if q.Value != nil {
-		fmt.Println("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", q.Name)
-		current := criteria.Equals(criteria.Field(q.Name), criteria.Literal(q.Value))
-		fmt.Println("ccccccccccccccccccccccccccccccccccccccccccccccccc")
-		r := criteria.And(*e, current)
-		e = &r
-	}
-	/*
-		else {
-			current := criteria.Equals(criteria.Field(q.Name), criteria.Literal(q.Value))
-			fmt.Println("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
-			e = &current
-		}
-	*/
-	for i, child := range *q.Children {
-		fmt.Printf("%d%d%d%d%d%d%d%d%d%d%d%d%d\t", i, i, i, i, i, i, i, i, i, i, i, i, i)
-		fmt.Printf("%#v\n", child)
-		criteriaExpression(*child, e)
-	}
-}
-
 func isOperator(str string) bool {
 	return str == "AND" || str == "OR"
 }
 
-func generateExpression2(n *Query) criteria.Expression {
+func generateExpression(n *Query) criteria.Expression {
 	var myexpr []criteria.Expression
 	currentOperator := n.Name
 	if !isOperator(currentOperator) {
@@ -355,7 +296,7 @@ func generateExpression2(n *Query) criteria.Expression {
 	if n.Children != nil {
 		for _, child := range *n.Children {
 			if isOperator(child.Name) {
-				q := generateExpression2(child)
+				q := generateExpression(child)
 				myexpr = append(myexpr, q)
 			} else {
 				q := criteria.Equals(criteria.Field(child.Name), criteria.Literal(*child.Value))
@@ -406,9 +347,9 @@ func parseFilterString(rawSearchString string) (criteria.Expression, error) {
 	parseMap(fm, q)
 	fmt.Println("after parseMap")
 
-	fmt.Println("before generateExpression2")
-	result := generateExpression2(q)
-	fmt.Println("after generateExpression2")
+	fmt.Println("before generateExpression")
+	result := generateExpression(q)
+	fmt.Println("after generateExpression")
 	return result, nil
 }
 
