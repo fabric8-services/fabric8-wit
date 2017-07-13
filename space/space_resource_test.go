@@ -43,7 +43,6 @@ func (test *resourceRepoBBTest) SetupTest() {
 	test.repo = space.NewResourceRepository(test.DB)
 	test.sRepo = space.NewRepository(test.DB)
 	test.clean = cleaner.DeleteCreatedEntities(test.DB)
-	test.DB.LogMode(true)
 	testIdentity, err := testsupport.CreateTestIdentity(test.DB, "WorkItemSuite setup user", "test provider")
 	require.Nil(test.T(), err)
 	test.testIdentity = *testIdentity
