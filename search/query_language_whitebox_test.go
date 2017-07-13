@@ -3,18 +3,16 @@ package search
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"reflect"
 	"runtime/debug"
 	"testing"
 
-	"github.com/fabric8-services/fabric8-wit/criteria"
+	c "github.com/fabric8-services/fabric8-wit/criteria"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	"github.com/fabric8-services/fabric8-wit/workitem"
+	w "github.com/fabric8-services/fabric8-wit/workitem"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -136,48 +134,87 @@ func (s *queryLanguageWhiteboxTest) TestMinimalORandANDandNegateOperation() {
 	assert.Equal(s.T(), expected, q)
 }
 
-func criteriaExpect(t *testing.T, expr criteria.Expression, expectedClause string, expectedParameters []interface{}) {
-	clause, parameters, err := workitem.Compile(expr)
-	if len(err) > 0 {
+func expectEqualExpr(t *testing.T, expectedExpr, actualExpr c.Expression) {
+	actualClause, actualParameters, actualErrs := w.Compile(actualExpr)
+	if len(actualErrs) > 0 {
 		debug.PrintStack()
-		t.Fatal(err[0].Error())
+		require.Nil(t, actualErrs, "failed to compile actual expression")
 	}
-	fmt.Printf("clause: %#v\n expectedClause %#v\n", clause, expectedClause)
-	if clause != expectedClause {
+	exprectedClause, expectedParameters, expectedErrs := w.Compile(expectedExpr)
+	if len(expectedErrs) > 0 {
 		debug.PrintStack()
-		t.Fatalf("clause should be %s but is %s", expectedClause, clause)
+		require.Nil(t, expectedErrs, "failed to compile expected expression")
 	}
-
-	if !reflect.DeepEqual(expectedParameters, parameters) {
-		debug.PrintStack()
-		t.Fatalf("parameters should be %v but is %v", expectedParameters, parameters)
-	}
+	require.Equal(t, exprectedClause, actualClause, "where clause differs")
+	require.Equal(t, expectedParameters, actualParameters, "parameters differ")
 }
 
-func (s *queryLanguageWhiteboxTest) TestMinimalANDExpression() {
-	openshiftio := "openshiftio"
-	status := "NEW"
-	q := Query{Name: "AND", Value: nil, Negate: false, Children: &[]*Query{
-		&Query{Name: "space", Value: &openshiftio, Negate: false, Children: nil},
-		&Query{Name: "status", Value: &status, Negate: false, Children: nil}},
-	}
-	result := generateExpression(&q)
+func TestGenerateExpression(t *testing.T) {
+	t.Run("EQUAL (top-level)", func(t *testing.T) {
+		// given
+		spaceName := "openshiftio"
+		q := Query{Name: "space", Value: &spaceName}
+		// when
+		actualExpr := generateExpression(&q)
+		// then
+		expectedExpr := c.Equals(
+			c.Field("space"),
+			c.Literal(spaceName),
+		)
+		expectEqualExpr(t, expectedExpr, actualExpr)
+	})
 
-	expectedExpression := `((Fields@>'{"space" : "openshiftio"}') and (Fields@>'{"status" : "NEW"}'))`
+	t.Run("AND", func(t *testing.T) {
+		// given
+		statusName := "NEW"
+		spaceName := "openshiftio"
+		q := Query{
+			Name: "AND",
+			Children: &[]*Query{
+				&Query{Name: "space", Value: &spaceName},
+				&Query{Name: "status", Value: &statusName},
+			},
+		}
+		// when
+		actualExpr := generateExpression(&q)
+		// then
+		expectedExpr := c.And(
+			c.Equals(
+				c.Field("space"),
+				c.Literal(spaceName),
+			),
+			c.Equals(
+				c.Field("status"),
+				c.Literal(statusName),
+			),
+		)
+		expectEqualExpr(t, expectedExpr, actualExpr)
+	})
 
-	criteriaExpect(s.T(), result, expectedExpression, []interface{}{})
-}
-
-func (s *queryLanguageWhiteboxTest) TestMinimalORExpression() {
-	openshiftio := "openshiftio"
-	status := "NEW"
-	q := Query{Name: "OR", Value: nil, Negate: false, Children: &[]*Query{
-		&Query{Name: "space", Value: &openshiftio, Negate: false, Children: nil},
-		&Query{Name: "status", Value: &status, Negate: false, Children: nil}},
-	}
-	result := generateExpression(&q)
-
-	expectedExpression := `((Fields@>'{"space" : "openshiftio"}') or (Fields@>'{"status" : "NEW"}'))`
-
-	criteriaExpect(s.T(), result, expectedExpression, []interface{}{})
+	t.Run("OR", func(t *testing.T) {
+		// given
+		statusName := "NEW"
+		spaceName := "openshiftio"
+		q := Query{
+			Name: "OR",
+			Children: &[]*Query{
+				&Query{Name: "space", Value: &spaceName},
+				&Query{Name: "status", Value: &statusName},
+			},
+		}
+		// when
+		actualExpr := generateExpression(&q)
+		// then
+		expectedExpr := c.Or(
+			c.Equals(
+				c.Field("space"),
+				c.Literal(spaceName),
+			),
+			c.Equals(
+				c.Field("status"),
+				c.Literal(statusName),
+			),
+		)
+		expectEqualExpr(t, expectedExpr, actualExpr)
+	})
 }
