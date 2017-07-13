@@ -4,22 +4,22 @@ CREATE OR REPLACE FUNCTION limit_execution_order_to_space() RETURNS void as $$
 		i integer;
 		r RECORD;
 		a RECORD;
-		xyz CURSOR FOR SELECT id, execution_order, space_id from work_items;
-		abc CURSOR FOR SELECT id from spaces;
+		workitems_cursor CURSOR FOR SELECT id, execution_order, space_id from work_items;
+		spaces_cursor CURSOR FOR SELECT id from spaces;
 	BEGIN
-		open abc;
-			FOR a in FETCH ALL FROM abc
+		open spaces_cursor;
+			FOR a in FETCH ALL FROM spaces_cursor
 				LOOP
 					i:=1000;
-					open xyz;
-						FOR r in FETCH ALL FROM xyz
+					open workitems_cursor;
+						FOR r in FETCH ALL FROM workitems_cursor
 							LOOP
 								UPDATE work_items set execution_order=i where id=r.id AND space_id=a.id;
 								i := i+1000;
 							END LOOP;
-					close xyz;
+					close workitems_cursor;
 				END LOOP;
-		close abc;
+		close spaces_cursor;
 
 	END $$ LANGUAGE plpgsql;
 
