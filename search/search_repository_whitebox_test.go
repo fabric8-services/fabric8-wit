@@ -20,6 +20,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	"context"
+
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
@@ -172,9 +173,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			ctx := goa.NewContext(context.Background(), nil, req, params)
 
 			createdWorkItem, err := wir.Create(ctx, space.SystemSpace, workitem.SystemBug, workItem.Fields, s.modifierID)
-			if err != nil {
-				s.T().Fatal("Couldnt create test data")
-			}
+			require.Nil(s.T(), err, "failed to create test data")
 
 			// create the URL and use it in the search string
 			workItemURLInSearchString = workItemURLInSearchString + strconv.Itoa(createdWorkItem.Number)
@@ -187,9 +186,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			sr := NewGormSearchRepository(tx)
 			var start, limit int = 0, 100
 			workItemList, _, err := sr.SearchFullText(ctx, searchString, &start, &limit, nil)
-			if err != nil {
-				s.T().Fatal("Error getting search result ", err)
-			}
+			require.Nil(s.T(), err, "failed to get search result")
 			searchString = strings.Trim(searchString, "\"")
 			// Since this test adds test data, whether or not other workitems exist
 			// there must be at least 1 search result returned.

@@ -1,55 +1,23 @@
 package search
 
 import (
-	"context"
 	"encoding/json"
 	"runtime/debug"
 	"testing"
 
 	c "github.com/fabric8-services/fabric8-wit/criteria"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
-	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
-	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/resource"
-	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	w "github.com/fabric8-services/fabric8-wit/workitem"
-	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/stretchr/testify/suite"
 )
 
-func TestQueryLanguageWhiteboxTest(t *testing.T) {
-	resource.Require(t, resource.Database)
-	suite.Run(t, &queryLanguageWhiteboxTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
-}
-
-type queryLanguageWhiteboxTest struct {
-	gormtestsupport.DBTestSuite
-	clean      func()
-	modifierID uuid.UUID
-}
-
-// SetupSuite overrides the DBTestSuite's function but calls it before doing anything else
-func (s *queryLanguageWhiteboxTest) SetupSuite() {
-	s.DBTestSuite.SetupSuite()
-	ctx := migration.NewMigrationContext(context.Background())
-	s.DBTestSuite.PopulateDBTestSuite(ctx)
-}
-
-func (s *queryLanguageWhiteboxTest) SetupTest() {
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
-	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "jdoe", "test")
-	require.Nil(s.T(), err)
-	s.modifierID = testIdentity.ID
-}
-
-func (s *queryLanguageWhiteboxTest) TearDownTest() {
-	s.clean()
-}
-
 func TestParseMap(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	t.Parallel()
+
 	t.Run(Q_AND, func(t *testing.T) {
+		t.Parallel()
 		// given
 		input := `{"` + Q_AND + `": [{"space": "openshiftio"}, {"status": "NEW"}]}`
 		// Parsing/Unmarshalling JSON encoding/json
@@ -70,85 +38,75 @@ func TestParseMap(t *testing.T) {
 		}
 		assert.Equal(t, expectedQuery, actualQuery)
 	})
-}
 
-func (s *queryLanguageWhiteboxTest) TestMinimalORandANDOperation() {
-	input := `
-	{"` + Q_OR + `": [{"` + Q_AND + `": [{"space": "openshiftio"},
+	t.Run("Minimal OR and AND operation", func(t *testing.T) {
+		t.Parallel()
+		input := `
+			{"` + Q_OR + `": [{"` + Q_AND + `": [{"space": "openshiftio"},
                          {"area": "planner"}]},
 	        {"` + Q_AND + `": [{"space": "rhel"}]}]}`
-	fm := map[string]interface{}{}
+		fm := map[string]interface{}{}
 
-	// Parsing/Unmarshalling JSON encoding/json
-	err := json.Unmarshal([]byte(input), &fm)
+		// Parsing/Unmarshalling JSON encoding/json
+		err := json.Unmarshal([]byte(input), &fm)
 
-	if err != nil {
-		panic(err)
-	}
-	q := &Query{}
+		if err != nil {
+			panic(err)
+		}
+		q := &Query{}
 
-	parseMap(fm, q)
+		parseMap(fm, q)
 
-	openshiftio := "openshiftio"
-	area := "planner"
-	rhel := "rhel"
-	expected := &Query{Name: Q_OR, Children: []Query{
-		Query{Name: Q_AND, Children: []Query{
-			Query{Name: "space", Value: &openshiftio},
-			Query{Name: "area", Value: &area}}},
-		Query{Name: Q_AND, Children: []Query{
-			Query{Name: "space", Value: &rhel}}},
-	}}
-	assert.Equal(s.T(), expected, q)
-}
+		openshiftio := "openshiftio"
+		area := "planner"
+		rhel := "rhel"
+		expected := &Query{Name: Q_OR, Children: []Query{
+			Query{Name: Q_AND, Children: []Query{
+				Query{Name: "space", Value: &openshiftio},
+				Query{Name: "area", Value: &area}}},
+			Query{Name: Q_AND, Children: []Query{
+				Query{Name: "space", Value: &rhel}}},
+		}}
+		assert.Equal(t, expected, q)
+	})
 
-func (s *queryLanguageWhiteboxTest) TestMinimalORandANDandNegateOperation() {
-	input := `
-	{"` + Q_OR + `": [{"` + Q_AND + `": [{"space": "openshiftio"},
+	t.Run("minimal OR and AND and Negate operation", func(t *testing.T) {
+		t.Parallel()
+		input := `
+		{"` + Q_OR + `": [{"` + Q_AND + `": [{"space": "openshiftio"},
                          {"area": "planner"}]},
 			 {"` + Q_AND + `": [{"space": "rhel", "negate": true}]}]}`
-	fm := map[string]interface{}{}
+		fm := map[string]interface{}{}
 
-	// Parsing/Unmarshalling JSON encoding/json
-	err := json.Unmarshal([]byte(input), &fm)
+		// Parsing/Unmarshalling JSON encoding/json
+		err := json.Unmarshal([]byte(input), &fm)
 
-	if err != nil {
-		panic(err)
-	}
-	q := &Query{}
+		if err != nil {
+			panic(err)
+		}
+		q := &Query{}
 
-	parseMap(fm, q)
+		parseMap(fm, q)
 
-	openshiftio := "openshiftio"
-	area := "planner"
-	rhel := "rhel"
-	expected := &Query{Name: Q_OR, Children: []Query{
-		Query{Name: Q_AND, Children: []Query{
-			Query{Name: "space", Value: &openshiftio},
-			Query{Name: "area", Value: &area}}},
-		Query{Name: Q_AND, Children: []Query{
-			Query{Name: "space", Value: &rhel, Negate: true}}},
-	}}
-	assert.Equal(s.T(), expected, q)
+		openshiftio := "openshiftio"
+		area := "planner"
+		rhel := "rhel"
+		expected := &Query{Name: Q_OR, Children: []Query{
+			Query{Name: Q_AND, Children: []Query{
+				Query{Name: "space", Value: &openshiftio},
+				Query{Name: "area", Value: &area}}},
+			Query{Name: Q_AND, Children: []Query{
+				Query{Name: "space", Value: &rhel, Negate: true}}},
+		}}
+		assert.Equal(t, expected, q)
+	})
 }
-
-func expectEqualExpr(t *testing.T, expectedExpr, actualExpr c.Expression) {
-	actualClause, actualParameters, actualErrs := w.Compile(actualExpr)
-	if len(actualErrs) > 0 {
-		debug.PrintStack()
-		require.Nil(t, actualErrs, "failed to compile actual expression")
-	}
-	exprectedClause, expectedParameters, expectedErrs := w.Compile(expectedExpr)
-	if len(expectedErrs) > 0 {
-		debug.PrintStack()
-		require.Nil(t, expectedErrs, "failed to compile expected expression")
-	}
-	require.Equal(t, exprectedClause, actualClause, "where clause differs")
-	require.Equal(t, expectedParameters, actualParameters, "parameters differ")
-}
-
 func TestGenerateExpression(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	t.Parallel()
+
 	t.Run("Equals (top-level)", func(t *testing.T) {
+		t.Parallel()
 		// given
 		spaceName := "openshiftio"
 		q := Query{Name: "space", Value: &spaceName}
@@ -163,6 +121,7 @@ func TestGenerateExpression(t *testing.T) {
 	})
 
 	t.Run(Q_NOT+" (top-level)", func(t *testing.T) {
+		t.Parallel()
 		// given
 		spaceName := "openshiftio"
 		q := Query{Name: "space", Value: &spaceName, Negate: true}
@@ -177,6 +136,7 @@ func TestGenerateExpression(t *testing.T) {
 	})
 
 	t.Run(Q_AND, func(t *testing.T) {
+		t.Parallel()
 		// given
 		statusName := "NEW"
 		spaceName := "openshiftio"
@@ -204,6 +164,7 @@ func TestGenerateExpression(t *testing.T) {
 	})
 
 	t.Run(Q_OR, func(t *testing.T) {
+		t.Parallel()
 		// given
 		statusName := "NEW"
 		spaceName := "openshiftio"
@@ -231,6 +192,7 @@ func TestGenerateExpression(t *testing.T) {
 	})
 
 	t.Run(Q_NOT+" (nested)", func(t *testing.T) {
+		t.Parallel()
 		// given
 		statusName := "NEW"
 		spaceName := "openshiftio"
@@ -256,4 +218,19 @@ func TestGenerateExpression(t *testing.T) {
 		)
 		expectEqualExpr(t, expectedExpr, actualExpr)
 	})
+}
+
+func expectEqualExpr(t *testing.T, expectedExpr, actualExpr c.Expression) {
+	actualClause, actualParameters, actualErrs := w.Compile(actualExpr)
+	if len(actualErrs) > 0 {
+		debug.PrintStack()
+		require.Nil(t, actualErrs, "failed to compile actual expression")
+	}
+	exprectedClause, expectedParameters, expectedErrs := w.Compile(expectedExpr)
+	if len(expectedErrs) > 0 {
+		debug.PrintStack()
+		require.Nil(t, expectedErrs, "failed to compile expected expression")
+	}
+	require.Equal(t, exprectedClause, actualClause, "where clause differs")
+	require.Equal(t, expectedParameters, actualParameters, "parameters differ")
 }
