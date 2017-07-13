@@ -394,35 +394,14 @@ func parseFilterString(rawSearchString string) (criteria.Expression, error) {
 		return nil, errors.NewBadParameterError("expression", rawSearchString)
 	}
 	q := &Query{}
+	fmt.Println("before parseMap")
 	parseMap(fm, q)
+	fmt.Println("after parseMap")
 
-	m := map[string]string{}
-	// Parsing/Unmarshalling JSON encoding/json
-	err = json.Unmarshal([]byte(rawSearchString), &m)
-
-	if err != nil {
-		return nil, errors.NewBadParameterError("expression", rawSearchString)
-	}
-
-	var result *criteria.Expression
-
-	if len(fm) > 0 {
-		/*
-			for key, value := range m {
-				current := criteria.Equals(criteria.Field(key), criteria.Literal(value))
-				if result == nil {
-					result = &current
-				} else {
-					current = criteria.And(*result, current)
-					result = &current
-				}
-
-			}
-		*/
-		criteriaExpression(*q, result)
-		return *result, nil
-	}
-	return criteria.Literal(true), nil
+	fmt.Println("before generateExpression2")
+	result := generateExpression2(q)
+	fmt.Println("after generateExpression2")
+	return result, nil
 }
 
 // generateSQLSearchInfo accepts searchKeyword and join them in a way that can be used in sql
@@ -629,6 +608,7 @@ func (r *GormSearchRepository) Filter(ctx context.Context, rawFilterString strin
 	// parse
 	// generateSearchQuery
 	// ....
+	fmt.Println("This is from search Filter")
 	exp, err := parseFilterString(rawFilterString)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
