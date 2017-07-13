@@ -44,7 +44,7 @@ func InitTenant(ctx context.Context, config tenantConfig) error {
 	c.SetJWTSigner(goasupport.NewForwardSigner(ctx))
 
 	// Ignore response for now
-	_, err = c.SetupTenant(ctx, tenant.SetupTenantPath())
+	_, err = c.SetupTenant(goasupport.ForwardContextRequestID(ctx), tenant.SetupTenantPath())
 
 	return err
 }
@@ -63,7 +63,7 @@ func UpdateTenant(ctx context.Context, config tenantConfig) error {
 	c.SetJWTSigner(goasupport.NewForwardSigner(ctx))
 
 	// Ignore response for now
-	_, err = c.UpdateTenant(ctx, tenant.SetupTenantPath())
+	_, err = c.UpdateTenant(goasupport.ForwardContextRequestID(ctx), tenant.SetupTenantPath())
 
 	return err
 }
