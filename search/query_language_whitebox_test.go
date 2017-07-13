@@ -167,3 +167,17 @@ func (s *queryLanguageWhiteboxTest) TestMinimalANDExpression() {
 
 	criteriaExpect(s.T(), result, expectedExpression, []interface{}{})
 }
+
+func (s *queryLanguageWhiteboxTest) TestMinimalORExpression() {
+	openshiftio := "openshiftio"
+	status := "NEW"
+	q := Query{Name: "OR", Value: nil, Negate: false, Children: &[]*Query{
+		&Query{Name: "space", Value: &openshiftio, Negate: false, Children: nil},
+		&Query{Name: "status", Value: &status, Negate: false, Children: nil}},
+	}
+	result := generateExpression(&q)
+
+	expectedExpression := `((Fields@>'{"space" : "openshiftio"}') or (Fields@>'{"status" : "NEW"}'))`
+
+	criteriaExpect(s.T(), result, expectedExpression, []interface{}{})
+}
