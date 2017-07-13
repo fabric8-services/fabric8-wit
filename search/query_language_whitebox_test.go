@@ -155,7 +155,7 @@ func TestGenerateExpression(t *testing.T) {
 		spaceName := "openshiftio"
 		q := Query{Name: "space", Value: &spaceName}
 		// when
-		actualExpr := generateExpression(q)
+		actualExpr := q.generateExpression()
 		// then
 		expectedExpr := c.Equals(
 			c.Field("space"),
@@ -169,7 +169,7 @@ func TestGenerateExpression(t *testing.T) {
 		spaceName := "openshiftio"
 		q := Query{Name: "space", Value: &spaceName, Negate: true}
 		// when
-		actualExpr := generateExpression(q)
+		actualExpr := q.generateExpression()
 		// then
 		expectedExpr := c.Not(
 			c.Field("space"),
@@ -190,7 +190,7 @@ func TestGenerateExpression(t *testing.T) {
 			},
 		}
 		// when
-		actualExpr := generateExpression(q)
+		actualExpr := q.generateExpression()
 		// then
 		expectedExpr := c.And(
 			c.Equals(
@@ -217,7 +217,7 @@ func TestGenerateExpression(t *testing.T) {
 			},
 		}
 		// when
-		actualExpr := generateExpression(q)
+		actualExpr := q.generateExpression()
 		// then
 		expectedExpr := c.Or(
 			c.Equals(
@@ -244,7 +244,7 @@ func TestGenerateExpression(t *testing.T) {
 			},
 		}
 		// when
-		actualExpr := generateExpression(q)
+		actualExpr := q.generateExpression()
 		// then
 		expectedExpr := c.And(
 			c.Not(

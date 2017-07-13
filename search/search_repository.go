@@ -286,22 +286,21 @@ func isOperator(str string) bool {
 	return str == "AND" || str == "OR"
 }
 
-func generateExpression(n Query) criteria.Expression {
+func (q Query) generateExpression() criteria.Expression {
 	var myexpr []criteria.Expression
-	currentOperator := n.Name
+	currentOperator := q.Name
 	if !isOperator(currentOperator) {
-		left := criteria.Field(n.Name)
-		right := criteria.Literal(*n.Value)
-		if n.Negate {
+		left := criteria.Field(q.Name)
+		right := criteria.Literal(*q.Value)
+		if q.Negate {
 			myexpr = append(myexpr, criteria.Not(left, right))
 		} else {
 			myexpr = append(myexpr, criteria.Equals(left, right))
 		}
 	}
-	for _, child := range n.Children {
+	for _, child := range q.Children {
 		if isOperator(child.Name) {
-			q := generateExpression(child)
-			myexpr = append(myexpr, q)
+			myexpr = append(myexpr, child.generateExpression())
 		} else {
 			left := criteria.Field(child.Name)
 			if child.Value != nil {
@@ -314,32 +313,32 @@ func generateExpression(n Query) criteria.Expression {
 			}
 		}
 	}
-	var e criteria.Expression
+	var res criteria.Expression
 	switch currentOperator {
 	case "AND":
-		for _, o := range myexpr {
-			if e == nil {
-				e = o
+		for _, expr := range myexpr {
+			if res == nil {
+				res = expr
 			} else {
-				e = criteria.And(e, o)
+				res = criteria.And(res, expr)
 			}
 		}
 	case "OR":
-		for _, o := range myexpr {
-			if e == nil {
-				e = o
+		for _, expr := range myexpr {
+			if res == nil {
+				res = expr
 			} else {
-				e = criteria.Or(e, o)
+				res = criteria.Or(res, expr)
 			}
 		}
 	default:
-		for _, o := range myexpr {
-			if e == nil {
-				e = o
+		for _, expr := range myexpr {
+			if res == nil {
+				res = expr
 			}
 		}
 	}
-	return e
+	return res
 }
 
 // parseFilterString accepts a raw string and generates a criteria expression
@@ -358,7 +357,7 @@ func parseFilterString(rawSearchString string) (criteria.Expression, error) {
 	fmt.Println("after parseMap")
 
 	fmt.Println("before generateExpression")
-	result := generateExpression(q)
+	result := q.generateExpression()
 	fmt.Println("after generateExpression")
 	return result, nil
 }
