@@ -156,7 +156,8 @@ func TestEncodeTokenOK(t *testing.T) {
 	refreshToken := "refreshToken%@!/\\&?"
 	tokenType := "tokenType%@!/\\&?"
 	expiresIn := 1800
-	refreshExpiresIn := 2.59e6
+	var refreshExpiresIn float64
+	refreshExpiresIn = 2.59e6
 
 	outhToken := &oauth2.Token{
 		AccessToken:  accessToken,
@@ -187,7 +188,8 @@ func TestEncodeTokenOK(t *testing.T) {
 }
 
 func TestInt32ToInt64OK(t *testing.T) {
-	i32 := 60
+	var i32 int32
+	i32 = 60
 	i, err := numberToInt(i32)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(i32), i)
@@ -202,14 +204,16 @@ func TestInt64ToInt64OK(t *testing.T) {
 }
 
 func TestFloat32ToInt64OK(t *testing.T) {
-	f32 := 0.1e1
+	var f32 float32
+	f32 = 0.1e1
 	i, err := numberToInt(f32)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(f32), i)
 }
 
 func TestFloat64ToInt64OK(t *testing.T) {
-	f64 := 0.1e10
+	var f64 float64
+	f64 = 0.1e10
 	i, err := numberToInt(f64)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(f64), i)
