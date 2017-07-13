@@ -3,6 +3,7 @@ package search
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"runtime/debug"
 	"testing"
@@ -141,6 +142,7 @@ func criteriaExpect(t *testing.T, expr criteria.Expression, expectedClause strin
 		debug.PrintStack()
 		t.Fatal(err[0].Error())
 	}
+	fmt.Printf("clause: %#v\n expectedClause %#v\n", clause, expectedClause)
 	if clause != expectedClause {
 		debug.PrintStack()
 		t.Fatalf("clause should be %s but is %s", expectedClause, clause)
@@ -159,13 +161,10 @@ func (s *queryLanguageWhiteboxTest) TestMinimalANDExpression() {
 		&Query{Name: "space", Value: &openshiftio, Negate: false, Children: nil},
 		&Query{Name: "status", Value: &status, Negate: false, Children: nil}},
 	}
-	_ = q
 	var result *criteria.Expression
-	r := criteria.Literal(true)
-	result = &r
-	//criteriaExpression(q, result)
+	criteriaExpression(q, result)
 
-	expectedExpression := "?"
+	expectedExpression := `((Fields@>'{"space": "openshiftio"}') and (Fields@>'status'{"status": "NEW"}))`
 
-	criteriaExpect(s.T(), *result, expectedExpression, []interface{}{true})
+	criteriaExpect(s.T(), *result, expectedExpression, []interface{}{})
 }

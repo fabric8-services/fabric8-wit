@@ -317,18 +317,25 @@ func (s *Stack) Pop() (int, error) {
 }
 
 func criteriaExpression(q Query, e *criteria.Expression) {
-	if q.Children == nil {
-		if q.Value != nil {
-			current := criteria.Equals(criteria.Field(q.Name), criteria.Literal(q.Value))
+	if q.Name == "AND" {
+	}
+	if q.Children != nil {
+		fmt.Println("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", q.Name)
+		current := criteria.Equals(criteria.Field(q.Name), criteria.Literal(q.Value))
+		if q.Value == nil {
+			fmt.Println("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
 			e = &current
 		} else {
-			// ???
+			fmt.Println("ccccccccccccccccccccccccccccccccccccccccccccccccc")
+			r := criteria.And(*e, current)
+			e = &r
 		}
 		return
 	}
 	for i, child := range *q.Children {
 		fmt.Printf("%d%d%d%d%d%d%d%d%d%d%d%d%d\t", i, i, i, i, i, i, i, i, i, i, i, i, i)
 		fmt.Printf("%#v\n", child)
+		criteriaExpression(*child, e)
 	}
 }
 
