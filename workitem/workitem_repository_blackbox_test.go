@@ -35,7 +35,7 @@ type workItemRepoBlackBoxTest struct {
 	ctx     context.Context
 }
 
-func TestRunWorkTypeRepoBlackBoxTest(t *testing.T) {
+func TestRunWorkItemRepoBlackBoxTest(t *testing.T) {
 	resource.Require(t, resource.Database)
 	suite.Run(t, &workItemRepoBlackBoxTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
@@ -236,6 +236,7 @@ func (s *workItemRepoBlackBoxTest) TestGetCountsPerIteration() {
 	spaceRepo := space.NewRepository(s.DB)
 	spaceInstance := space.Space{
 		Name: "Testing space" + uuid.NewV4().String(),
+		OwnerId: s.creator.ID,
 	}
 	spaceRepo.Create(s.ctx, &spaceInstance)
 	assert.NotEqual(s.T(), uuid.UUID{}, spaceInstance.ID)
