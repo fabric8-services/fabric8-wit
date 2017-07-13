@@ -235,7 +235,7 @@ func (s *workItemRepoBlackBoxTest) TestGetCountsPerIteration() {
 	// given
 	spaceRepo := space.NewRepository(s.DB)
 	spaceInstance := space.Space{
-		Name:    "Testing space" + uuid.NewV4().String(),
+		Name:    testsupport.CreateRandomValidTestName("Testing space"),
 		OwnerId: s.creator.ID,
 	}
 	spaceRepo.Create(s.ctx, &spaceInstance)
