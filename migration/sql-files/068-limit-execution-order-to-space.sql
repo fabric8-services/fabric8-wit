@@ -1,5 +1,5 @@
-CREATE OR REPLACE FUNCTION limit_ooe_to_space() RETURNS void as $$
--- limit_ooe_to_space() function limits order to space
+CREATE OR REPLACE FUNCTION limit_execution_order_to_space() RETURNS void as $$
+-- limit_execution_order_to_space() function limits order to space
 	DECLARE
 		i integer;
 		r RECORD;
@@ -24,6 +24,6 @@ CREATE OR REPLACE FUNCTION limit_ooe_to_space() RETURNS void as $$
 	END $$ LANGUAGE plpgsql;
 
 DO $$ BEGIN
-	PERFORM limit_ooe_to_space();
-	DROP FUNCTION limit_ooe_to_space();
+	PERFORM limit_execution_order_to_space();
+	DROP FUNCTION limit_execution_order_to_space();
 END $$;
