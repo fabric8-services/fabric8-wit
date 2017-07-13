@@ -75,10 +75,8 @@ func NewCodebaseContent(value map[string]interface{}) (Content, error) {
 		}
 	}
 	err := cb.IsValid()
-	if err != nil {
-		return cb, err
-	}
-	return cb, nil
+
+	return cb, err
 }
 
 // NewCodebaseContentFromValue builds Content from interface{}
