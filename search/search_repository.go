@@ -28,6 +28,10 @@ import (
 const (
 	HostRegistrationKeyForListWI  = "work-item-list-details"
 	HostRegistrationKeyForBoardWI = "work-item-board-details"
+
+	Q_AND = "$AND"
+	Q_OR  = "$OR"
+	Q_NOT = "$NOT"
 )
 
 // GormSearchRepository provides a Gorm based repository
@@ -283,7 +287,7 @@ type Query struct {
 }
 
 func isOperator(str string) bool {
-	return str == "AND" || str == "OR"
+	return str == Q_AND || str == Q_OR
 }
 
 func (q Query) generateExpression() criteria.Expression {
@@ -315,7 +319,7 @@ func (q Query) generateExpression() criteria.Expression {
 	}
 	var res criteria.Expression
 	switch currentOperator {
-	case "AND":
+	case Q_AND:
 		for _, expr := range myexpr {
 			if res == nil {
 				res = expr
@@ -323,7 +327,7 @@ func (q Query) generateExpression() criteria.Expression {
 				res = criteria.And(res, expr)
 			}
 		}
-	case "OR":
+	case Q_OR:
 		for _, expr := range myexpr {
 			if res == nil {
 				res = expr

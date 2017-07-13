@@ -50,7 +50,7 @@ func (s *queryLanguageWhiteboxTest) TearDownTest() {
 
 func (s *queryLanguageWhiteboxTest) TestMinimalANDOperation() {
 	input := `
-	{"AND": [{"space": "openshiftio"},
+	{"` + Q_AND + `": [{"space": "openshiftio"},
                  {"status": "NEW"}
 	]}`
 	fm := map[string]interface{}{}
@@ -67,7 +67,7 @@ func (s *queryLanguageWhiteboxTest) TestMinimalANDOperation() {
 
 	openshiftio := "openshiftio"
 	status := "NEW"
-	expected := &Query{Name: "AND", Children: []Query{
+	expected := &Query{Name: Q_AND, Children: []Query{
 		Query{Name: "space", Value: &openshiftio},
 		Query{Name: "status", Value: &status}},
 	}
@@ -76,9 +76,9 @@ func (s *queryLanguageWhiteboxTest) TestMinimalANDOperation() {
 
 func (s *queryLanguageWhiteboxTest) TestMinimalORandANDOperation() {
 	input := `
-	{"OR": [{"AND": [{"space": "openshiftio"},
+	{"` + Q_OR + `": [{"` + Q_AND + `": [{"space": "openshiftio"},
                          {"area": "planner"}]},
-	        {"AND": [{"space": "rhel"}]}]}`
+	        {"` + Q_AND + `": [{"space": "rhel"}]}]}`
 	fm := map[string]interface{}{}
 
 	// Parsing/Unmarshalling JSON encoding/json
@@ -94,11 +94,11 @@ func (s *queryLanguageWhiteboxTest) TestMinimalORandANDOperation() {
 	openshiftio := "openshiftio"
 	area := "planner"
 	rhel := "rhel"
-	expected := &Query{Name: "OR", Children: []Query{
-		Query{Name: "AND", Children: []Query{
+	expected := &Query{Name: Q_OR, Children: []Query{
+		Query{Name: Q_AND, Children: []Query{
 			Query{Name: "space", Value: &openshiftio},
 			Query{Name: "area", Value: &area}}},
-		Query{Name: "AND", Children: []Query{
+		Query{Name: Q_AND, Children: []Query{
 			Query{Name: "space", Value: &rhel}}},
 	}}
 	assert.Equal(s.T(), expected, q)
@@ -106,9 +106,9 @@ func (s *queryLanguageWhiteboxTest) TestMinimalORandANDOperation() {
 
 func (s *queryLanguageWhiteboxTest) TestMinimalORandANDandNegateOperation() {
 	input := `
-	{"OR": [{"AND": [{"space": "openshiftio"},
+	{"` + Q_OR + `": [{"` + Q_AND + `": [{"space": "openshiftio"},
                          {"area": "planner"}]},
-			 {"AND": [{"space": "rhel", "negate": true}]}]}`
+			 {"` + Q_AND + `": [{"space": "rhel", "negate": true}]}]}`
 	fm := map[string]interface{}{}
 
 	// Parsing/Unmarshalling JSON encoding/json
@@ -124,11 +124,11 @@ func (s *queryLanguageWhiteboxTest) TestMinimalORandANDandNegateOperation() {
 	openshiftio := "openshiftio"
 	area := "planner"
 	rhel := "rhel"
-	expected := &Query{Name: "OR", Children: []Query{
-		Query{Name: "AND", Children: []Query{
+	expected := &Query{Name: Q_OR, Children: []Query{
+		Query{Name: Q_AND, Children: []Query{
 			Query{Name: "space", Value: &openshiftio},
 			Query{Name: "area", Value: &area}}},
-		Query{Name: "AND", Children: []Query{
+		Query{Name: Q_AND, Children: []Query{
 			Query{Name: "space", Value: &rhel, Negate: true}}},
 	}}
 	assert.Equal(s.T(), expected, q)
@@ -150,7 +150,7 @@ func expectEqualExpr(t *testing.T, expectedExpr, actualExpr c.Expression) {
 }
 
 func TestGenerateExpression(t *testing.T) {
-	t.Run("EQUAL (top-level)", func(t *testing.T) {
+	t.Run("$EQUAL (top-level)", func(t *testing.T) {
 		// given
 		spaceName := "openshiftio"
 		q := Query{Name: "space", Value: &spaceName}
@@ -164,7 +164,7 @@ func TestGenerateExpression(t *testing.T) {
 		expectEqualExpr(t, expectedExpr, actualExpr)
 	})
 
-	t.Run("NOT (top-level)", func(t *testing.T) {
+	t.Run("$NOT (top-level)", func(t *testing.T) {
 		// given
 		spaceName := "openshiftio"
 		q := Query{Name: "space", Value: &spaceName, Negate: true}
@@ -178,12 +178,12 @@ func TestGenerateExpression(t *testing.T) {
 		expectEqualExpr(t, expectedExpr, actualExpr)
 	})
 
-	t.Run("AND", func(t *testing.T) {
+	t.Run("$AND", func(t *testing.T) {
 		// given
 		statusName := "NEW"
 		spaceName := "openshiftio"
 		q := Query{
-			Name: "AND",
+			Name: Q_AND,
 			Children: []Query{
 				Query{Name: "space", Value: &spaceName},
 				Query{Name: "status", Value: &statusName},
@@ -205,12 +205,12 @@ func TestGenerateExpression(t *testing.T) {
 		expectEqualExpr(t, expectedExpr, actualExpr)
 	})
 
-	t.Run("OR", func(t *testing.T) {
+	t.Run("$OR", func(t *testing.T) {
 		// given
 		statusName := "NEW"
 		spaceName := "openshiftio"
 		q := Query{
-			Name: "OR",
+			Name: Q_OR,
 			Children: []Query{
 				Query{Name: "space", Value: &spaceName},
 				Query{Name: "status", Value: &statusName},
@@ -232,12 +232,12 @@ func TestGenerateExpression(t *testing.T) {
 		expectEqualExpr(t, expectedExpr, actualExpr)
 	})
 
-	t.Run("NOT (nested)", func(t *testing.T) {
+	t.Run("$NOT (nested)", func(t *testing.T) {
 		// given
 		statusName := "NEW"
 		spaceName := "openshiftio"
 		q := Query{
-			Name: "AND",
+			Name: Q_AND,
 			Children: []Query{
 				Query{Name: "space", Value: &spaceName, Negate: true},
 				Query{Name: "status", Value: &statusName},
