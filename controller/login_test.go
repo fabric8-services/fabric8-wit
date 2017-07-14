@@ -11,7 +11,6 @@ import (
 	"golang.org/x/oauth2"
 
 	"github.com/fabric8-services/fabric8-wit/account"
-	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
 
@@ -300,7 +299,7 @@ func (rest *TestRecentSpacesREST) TestResourceRequestPayload() {
 	// Scenario 2 - Test user has 'some' contextInformation
 	identity := account.Identity{}
 	user := account.User{
-		ContextInformation: workitem.Fields{
+		ContextInformation: account.ContextInformation{
 			"recentSpaces": []interface{}{"29dd4613-3da1-4100-a2d6-414573eaa470"},
 		},
 	}
