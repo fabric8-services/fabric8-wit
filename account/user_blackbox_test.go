@@ -10,7 +10,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/resource"
-	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -127,7 +126,7 @@ func createAndLoadUser(s *userBlackBoxTest) *account.User {
 		ImageURL: "someImageUrl" + uuid.NewV4().String(),
 		Bio:      "somebio" + uuid.NewV4().String(),
 		URL:      "someurl" + uuid.NewV4().String(),
-		ContextInformation: workitem.Fields{
+		ContextInformation: account.ContextInformation{
 			"space":        uuid.NewV4(),
 			"last_visited": "http://www.google.com",
 			"myid":         "71f343e3-2bfa-4ec6-86d4-79b91476acfc",

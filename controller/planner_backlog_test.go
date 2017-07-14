@@ -51,7 +51,7 @@ func (rest *TestPlannerBacklogREST) SetupTest() {
 	// create a test identity
 	testIdentity, err := testsupport.CreateTestIdentity(rest.DB, "TestPlannerBacklogREST user", "test provider")
 	require.Nil(rest.T(), err)
-	rest.testIdentity = testIdentity
+	rest.testIdentity = *testIdentity
 }
 
 func (rest *TestPlannerBacklogREST) TearDownTest() {
@@ -67,7 +67,8 @@ func (rest *TestPlannerBacklogREST) setupPlannerBacklogWorkItems() (testSpace *s
 	application.Transactional(gormapplication.NewGormDB(rest.DB), func(app application.Application) error {
 		spacesRepo := app.Spaces()
 		testSpace = &space.Space{
-			Name: "PlannerBacklogWorkItems-" + uuid.NewV4().String(),
+			Name:    "PlannerBacklogWorkItems-" + uuid.NewV4().String(),
+			OwnerId: rest.testIdentity.ID,
 		}
 		_, err := spacesRepo.Create(rest.ctx, testSpace)
 		require.Nil(rest.T(), err)
@@ -145,7 +146,8 @@ func (rest *TestPlannerBacklogREST) TestCountZeroPlannerBacklogWorkItemsOK() {
 	application.Transactional(gormapplication.NewGormDB(rest.DB), func(app application.Application) error {
 		spacesRepo := app.Spaces()
 		spaceCount = &space.Space{
-			Name: "PlannerBacklogWorkItems-" + uuid.NewV4().String(),
+			Name:    "PlannerBacklogWorkItems-" + uuid.NewV4().String(),
+			OwnerId: rest.testIdentity.ID,
 		}
 		_, err := spacesRepo.Create(rest.ctx, spaceCount)
 		require.Nil(rest.T(), err)

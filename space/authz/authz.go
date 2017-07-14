@@ -90,7 +90,7 @@ func (s *KeycloakAuthzService) Authorize(ctx context.Context, entitlementEndpoin
 	})
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"space-id": spaceID,
+			"space_id": spaceID,
 			"err":      err,
 		}, "unable to parse the rpt token")
 		return false, errors.NewInternalError(ctx, errs.Wrap(err, "unable to parse the rpt token"))
@@ -101,7 +101,7 @@ func (s *KeycloakAuthzService) Authorize(ctx context.Context, entitlementEndpoin
 		// No authorization in the token. This is not a RPT token. This is an access token.
 		// We need to obtain an PRT token.
 		log.Warn(ctx, map[string]interface{}{
-			"space-id": spaceID,
+			"space_id": spaceID,
 		}, "no authorization found in the token; this is an access token (not a RPT token)")
 		return s.checkEntitlementForSpace(ctx, *jwttoken, entitlementEndpoint, spaceID)
 	}
@@ -187,7 +187,7 @@ func Authorize(ctx context.Context, spaceID string) (bool, error) {
 	srv := tokencontext.ReadSpaceAuthzServiceFromContext(ctx)
 	if srv == nil {
 		log.Error(ctx, map[string]interface{}{
-			"space-id": spaceID,
+			"space_id": spaceID,
 		}, "Missing space authz service")
 
 		return false, errs.New("missing space authz service")

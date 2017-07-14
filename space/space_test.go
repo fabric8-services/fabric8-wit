@@ -6,12 +6,14 @@ import (
 
 	"context"
 
+	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 
+	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -28,13 +30,17 @@ func TestRunRepoBBTest(t *testing.T) {
 
 type repoBBTest struct {
 	gormtestsupport.DBTestSuite
-	repo  space.Repository
-	clean func()
+	repo         space.Repository
+	testIdentity account.Identity
+	clean        func()
 }
 
 func (test *repoBBTest) SetupTest() {
 	test.repo = space.NewRepository(test.DB)
 	test.clean = cleaner.DeleteCreatedEntities(test.DB)
+	testIdentity, err := testsupport.CreateTestIdentity(test.DB, "WorkItemSuite setup user", "test provider")
+	require.Nil(test.T(), err)
+	test.testIdentity = *testIdentity
 }
 
 func (test *repoBBTest) TearDownTest() {
@@ -43,7 +49,6 @@ func (test *repoBBTest) TearDownTest() {
 
 func (test *repoBBTest) TestCreate() {
 	res, _ := expectSpace(test.create(testSpace), test.requireOk)
-
 	require.Equal(test.T(), res.Name, testSpace)
 }
 
@@ -160,7 +165,7 @@ func (test *repoBBTest) TestLoadSpaceByName() {
 	expectSpace(test.load(uuid.NewV4()), test.assertNotFound())
 	res, _ := expectSpace(test.create(testSpace), test.requireOk)
 
-	res2, _ := expectSpace(test.loadByUserIdAndName(uuid.Nil, res.Name), test.requireOk)
+	res2, _ := expectSpace(test.loadByUserIdAndName(test.testIdentity.ID, res.Name), test.requireOk)
 	assert.True(test.T(), (*res).Equal(*res2))
 }
 
@@ -176,7 +181,7 @@ func (test *repoBBTest) TestLoadSpaceByNameNonExistentSpaceName() {
 	expectSpace(test.load(uuid.NewV4()), test.assertNotFound())
 	expectSpace(test.create(testSpace), test.requireOk)
 
-	_, err := expectSpace(test.loadByUserIdAndName(uuid.Nil, uuid.NewV4().String()), test.requireErrorType(errors.NotFoundError{}))
+	_, err := expectSpace(test.loadByUserIdAndName(test.testIdentity.ID, uuid.NewV4().String()), test.requireErrorType(errors.NotFoundError{}))
 	assert.NotNil(test.T(), err)
 }
 
@@ -217,7 +222,7 @@ func (test *repoBBTest) requireErrorType(e error) func(p *space.Space, err error
 func (test *repoBBTest) create(name string) func() (*space.Space, error) {
 	newSpace := space.Space{
 		Name:    name,
-		OwnerId: uuid.Nil,
+		OwnerId: test.testIdentity.ID,
 	}
 	return func() (*space.Space, error) { return test.repo.Create(context.Background(), &newSpace) }
 }
