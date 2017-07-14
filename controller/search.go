@@ -62,7 +62,8 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 					return ctx.BadRequest(jerrors)
 				default:
 					log.Error(ctx, map[string]interface{}{
-						"err": err,
+						"err":               err,
+						"filter_expression": *ctx.FilterExpression,
 					}, "unable to list the work items")
 					jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(err.Error()))
 					return ctx.InternalServerError(jerrors)
