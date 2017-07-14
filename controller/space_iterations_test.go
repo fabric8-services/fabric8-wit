@@ -56,7 +56,7 @@ func (rest *TestSpaceIterationREST) SetupSuite() {
 	rest.DBTestSuite.PopulateDBTestSuite(rest.ctx)
 	testIdentity, err := testsupport.CreateTestIdentity(rest.DB, "TestSpaceIterationREST user", "test provider")
 	require.Nil(rest.T(), err)
-	rest.testIdentity = testIdentity
+	rest.testIdentity = *testIdentity
 }
 
 func (rest *TestSpaceIterationREST) SetupTest() {
