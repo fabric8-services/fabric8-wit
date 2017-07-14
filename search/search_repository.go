@@ -307,16 +307,6 @@ func (q Query) determineLiteralType(key string, val string) criteria.Expression 
 	switch key {
 	case workitem.SystemAssignees:
 		return criteria.Literal([]string{val})
-	case "Type":
-		u, err := uuid.FromString(val)
-		if err != nil {
-			// TODO:
-			// Ideally this should shout out saying invalid UUID for TYPE search
-			// But for now returning as string instead of UUID
-			// no error mechanism in search
-			return criteria.Literal([]string{val})
-		}
-		return criteria.Literal([]uuid.UUID{u})
 	default:
 		return criteria.Literal(val)
 	}
