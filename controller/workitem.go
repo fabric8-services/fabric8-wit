@@ -66,6 +66,17 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("could not parse filter", err))
 	}
+	if ctx.FilterExpression != nil {
+		q := *ctx.FilterExpression
+		// Better approach would be to convert string to Query instance itself.
+		// Then add new AND clause with spaceID as another child of input query
+		// Then convert new Query object into simple string
+		queryWithSpaceID := fmt.Sprintf(`{"$AND":[{"space": "%s" }, %s]}`, ctx.SpaceID, q)
+		queryWithSpaceID = fmt.Sprintf("?filter[expression]=%s", queryWithSpaceID)
+		searchURL := app.SearchHref() + queryWithSpaceID
+		ctx.ResponseData.Header().Set("Location", searchURL)
+		return ctx.TemporaryRedirect()
+	}
 	if ctx.FilterAssignee != nil {
 		if *ctx.FilterAssignee == none {
 			exp = criteria.And(exp, criteria.IsNull("system.assignees"))
