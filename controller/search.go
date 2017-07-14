@@ -59,7 +59,7 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 				cause := errs.Cause(err)
 				switch cause.(type) {
 				case errors.BadParameterError:
-					jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("error listing work items: %s", err.Error())))
+					jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest("error listing work items for expression '%s': %s", *ctx.FilterExpression, err.Error()))
 					return ctx.BadRequest(jerrors)
 				default:
 					log.Error(ctx, map[string]interface{}{
