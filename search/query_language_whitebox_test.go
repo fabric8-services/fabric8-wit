@@ -33,8 +33,8 @@ func TestParseMap(t *testing.T) {
 		openshiftio := "openshiftio"
 		status := "NEW"
 		expectedQuery := Query{Name: Q_AND, Children: []Query{
-			Query{Name: "space", Value: &openshiftio},
-			Query{Name: "status", Value: &status}},
+			{Name: "space", Value: &openshiftio},
+			{Name: "status", Value: &status}},
 		}
 		assert.Equal(t, expectedQuery, actualQuery)
 	})
@@ -61,11 +61,11 @@ func TestParseMap(t *testing.T) {
 		area := "planner"
 		rhel := "rhel"
 		expected := &Query{Name: Q_OR, Children: []Query{
-			Query{Name: Q_AND, Children: []Query{
-				Query{Name: "space", Value: &openshiftio},
-				Query{Name: "area", Value: &area}}},
-			Query{Name: Q_AND, Children: []Query{
-				Query{Name: "space", Value: &rhel}}},
+			{Name: Q_AND, Children: []Query{
+				{Name: "space", Value: &openshiftio},
+				{Name: "area", Value: &area}}},
+			{Name: Q_AND, Children: []Query{
+				{Name: "space", Value: &rhel}}},
 		}}
 		assert.Equal(t, expected, q)
 	})
@@ -92,11 +92,11 @@ func TestParseMap(t *testing.T) {
 		area := "planner"
 		rhel := "rhel"
 		expected := &Query{Name: Q_OR, Children: []Query{
-			Query{Name: Q_AND, Children: []Query{
-				Query{Name: "space", Value: &openshiftio},
-				Query{Name: "area", Value: &area}}},
-			Query{Name: Q_AND, Children: []Query{
-				Query{Name: "space", Value: &rhel, Negate: true}}},
+			{Name: Q_AND, Children: []Query{
+				{Name: "space", Value: &openshiftio},
+				{Name: "area", Value: &area}}},
+			{Name: Q_AND, Children: []Query{
+				{Name: "space", Value: &rhel, Negate: true}}},
 		}}
 		assert.Equal(t, expected, q)
 	})
@@ -143,8 +143,8 @@ func TestGenerateExpression(t *testing.T) {
 		q := Query{
 			Name: Q_AND,
 			Children: []Query{
-				Query{Name: "space", Value: &spaceName},
-				Query{Name: "status", Value: &statusName},
+				{Name: "space", Value: &spaceName},
+				{Name: "status", Value: &statusName},
 			},
 		}
 		// when
@@ -171,8 +171,8 @@ func TestGenerateExpression(t *testing.T) {
 		q := Query{
 			Name: Q_OR,
 			Children: []Query{
-				Query{Name: "space", Value: &spaceName},
-				Query{Name: "status", Value: &statusName},
+				{Name: "space", Value: &spaceName},
+				{Name: "status", Value: &statusName},
 			},
 		}
 		// when
@@ -199,8 +199,8 @@ func TestGenerateExpression(t *testing.T) {
 		q := Query{
 			Name: Q_AND,
 			Children: []Query{
-				Query{Name: "space", Value: &spaceName, Negate: true},
-				Query{Name: "status", Value: &statusName},
+				{Name: "space", Value: &spaceName, Negate: true},
+				{Name: "status", Value: &statusName},
 			},
 		}
 		// when

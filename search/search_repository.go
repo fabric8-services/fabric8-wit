@@ -287,11 +287,26 @@ func isOperator(str string) bool {
 	return str == Q_AND || str == Q_OR
 }
 
+var searchKeyMap = map[string]string{
+	"area":      workitem.SystemArea,
+	"iteration": workitem.SystemIteration,
+	"assignee":  workitem.SystemAssignees,
+	"state":     workitem.SystemState,
+}
+
+// returns SQL attibute name in query if found otherwise returns input key as is
+func (q Query) getAttributeKey(key string) string {
+	if val, ok := searchKeyMap[key]; ok {
+		return val
+	}
+	return key
+}
+
 func (q Query) generateExpression() criteria.Expression {
 	var myexpr []criteria.Expression
 	currentOperator := q.Name
 	if !isOperator(currentOperator) {
-		left := criteria.Field(q.Name)
+		left := criteria.Field(q.getAttributeKey(q.Name))
 		right := criteria.Literal(*q.Value)
 		if q.Negate {
 			myexpr = append(myexpr, criteria.Not(left, right))
@@ -303,7 +318,7 @@ func (q Query) generateExpression() criteria.Expression {
 		if isOperator(child.Name) {
 			myexpr = append(myexpr, child.generateExpression())
 		} else {
-			left := criteria.Field(child.Name)
+			left := criteria.Field(q.getAttributeKey(child.Name))
 			if child.Value != nil {
 				right := criteria.Literal(*child.Value)
 				if child.Negate {
@@ -353,13 +368,9 @@ func parseFilterString(rawSearchString string) (criteria.Expression, error) {
 		return nil, errors.NewBadParameterError("expression", rawSearchString)
 	}
 	q := Query{}
-	fmt.Println("before parseMap")
 	parseMap(fm, &q)
-	fmt.Println("after parseMap")
 
-	fmt.Println("before generateExpression")
 	result := q.generateExpression()
-	fmt.Println("after generateExpression")
 	return result, nil
 }
 
