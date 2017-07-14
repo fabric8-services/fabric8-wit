@@ -54,7 +54,7 @@ func (rest *TestPlannerBacklogBlackboxREST) SetupTest() {
 	// create a test identity
 	testIdentity, err := testsupport.CreateTestIdentity(rest.DB, "TestPlannerBacklogBlackboxREST user", "test provider")
 	require.Nil(rest.T(), err)
-	rest.testIdentity = testIdentity
+	rest.testIdentity = *testIdentity
 }
 
 func (rest *TestPlannerBacklogBlackboxREST) TearDownTest() {

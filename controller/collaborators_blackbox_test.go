@@ -100,13 +100,13 @@ func (rest *TestCollaboratorsREST) SetupTest() {
 	}
 	testIdentity, err := testsupport.CreateTestIdentity(rest.DB, "TestCollaborators-"+uuid.NewV4().String(), "TestCollaborators")
 	require.Nil(rest.T(), err)
-	rest.testIdentity1 = testIdentity
+	rest.testIdentity1 = *testIdentity
 	testIdentity, err = testsupport.CreateTestIdentity(rest.DB, "TestCollaborators-"+uuid.NewV4().String(), "TestCollaborators")
 	require.Nil(rest.T(), err)
-	rest.testIdentity2 = testIdentity
+	rest.testIdentity2 = *testIdentity
 	testIdentity, err = testsupport.CreateTestIdentity(rest.DB, "TestCollaborators-"+uuid.NewV4().String(), "TestCollaborators")
 	require.Nil(rest.T(), err)
-	rest.testIdentity3 = testIdentity
+	rest.testIdentity3 = *testIdentity
 	space := rest.createSpace()
 	rest.spaceID = *space.ID
 }

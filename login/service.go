@@ -466,7 +466,7 @@ func (keycloak *KeycloakOAuthProvider) saveReferrer(ctx linkInterface, state uui
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"referrer":           referrer,
-			"valid-referrer-url": validReferrerURL,
+			"valid_referrer_url": validReferrerURL,
 			"err":                err,
 		}, "Can't match referrer and whitelist regex")
 		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(err.Error()))
@@ -475,7 +475,7 @@ func (keycloak *KeycloakOAuthProvider) saveReferrer(ctx linkInterface, state uui
 	if !matched {
 		log.Error(ctx, map[string]interface{}{
 			"referrer":           referrer,
-			"valid-referrer-url": validReferrerURL,
+			"valid_referrer_url": validReferrerURL,
 		}, "Referrer not valid")
 		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest("Not valid redirect URL"))
 		return ctx.BadRequest(jerrors)
