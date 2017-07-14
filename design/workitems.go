@@ -135,12 +135,14 @@ var _ = a.Resource("workitem", func() {
 			a.Param("filter[area]", d.String, "AreaID to filter work items")
 			a.Param("filter[workitemstate]", d.String, "work item state to filter work items by")
 			a.Param("filter[parentexists]", d.Boolean, "if false list work items without any parent")
+			a.Param("filter[expression]", d.String, "Accepts query in JSON and Redirects to /api/search? API.")
 		})
 		a.UseTrait("conditional")
 		a.Response(d.OK, workItemList)
 		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.TemporaryRedirect)
 	})
 	a.Action("list-children", func() {
 		a.Routing(
