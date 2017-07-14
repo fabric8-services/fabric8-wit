@@ -268,9 +268,8 @@ func parseArray(anArray []interface{}, l *[]Query) {
 		case map[string]interface{}:
 			o := val.(map[string]interface{})
 			q := Query{}
+			parseMap(o, &q)
 			*l = append(*l, q)
-			ptrToLastAppendedQuery := &(*l)[len(*l)-1]
-			parseMap(o, ptrToLastAppendedQuery)
 		}
 	}
 }
