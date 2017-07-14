@@ -114,7 +114,7 @@ func TestGenerateExpression(t *testing.T) {
 		actualExpr := q.generateExpression()
 		// then
 		expectedExpr := c.Equals(
-			c.Field("space"),
+			c.Field("SpaceID"),
 			c.Literal(spaceName),
 		)
 		expectEqualExpr(t, expectedExpr, actualExpr)
@@ -129,7 +129,7 @@ func TestGenerateExpression(t *testing.T) {
 		actualExpr := q.generateExpression()
 		// then
 		expectedExpr := c.Not(
-			c.Field("space"),
+			c.Field("SpaceID"),
 			c.Literal(spaceName),
 		)
 		expectEqualExpr(t, expectedExpr, actualExpr)
@@ -152,7 +152,7 @@ func TestGenerateExpression(t *testing.T) {
 		// then
 		expectedExpr := c.And(
 			c.Equals(
-				c.Field("space"),
+				c.Field("SpaceID"),
 				c.Literal(spaceName),
 			),
 			c.Equals(
@@ -180,7 +180,7 @@ func TestGenerateExpression(t *testing.T) {
 		// then
 		expectedExpr := c.Or(
 			c.Equals(
-				c.Field("space"),
+				c.Field("SpaceID"),
 				c.Literal(spaceName),
 			),
 			c.Equals(
@@ -208,7 +208,7 @@ func TestGenerateExpression(t *testing.T) {
 		// then
 		expectedExpr := c.And(
 			c.Not(
-				c.Field("space"),
+				c.Field("SpaceID"),
 				c.Literal(spaceName),
 			),
 			c.Equals(
