@@ -291,6 +291,7 @@ var searchKeyMap = map[string]string{
 	"iteration": workitem.SystemIteration,
 	"assignee":  workitem.SystemAssignees,
 	"state":     workitem.SystemState,
+	"space":     "SpaceID",
 }
 
 // returns SQL attibute name in query if found otherwise returns input key as is
