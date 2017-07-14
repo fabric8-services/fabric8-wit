@@ -503,3 +503,27 @@ func (s *searchBlackBoxTest) TestSearchWorkItemsWithoutSpaceContext() {
 	require.NotEmpty(s.T(), sr.Data)
 	assert.Len(s.T(), sr.Data, 15)
 }
+
+func (s *searchBlackBoxTest) TestSearchFilter() {
+	// given
+	_, err := s.wiRepo.Create(
+		s.ctx,
+		space.SystemSpace,
+		workitem.SystemBug,
+		map[string]interface{}{
+			workitem.SystemTitle:       "specialwordforsearch",
+			workitem.SystemDescription: nil,
+			workitem.SystemCreator:     "baijum",
+			workitem.SystemState:       workitem.SystemStateClosed,
+		},
+		s.testIdentity.ID)
+	require.Nil(s.T(), err)
+	// when
+	filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, space.SystemSpace)
+	spaceIDStr := space.SystemSpace.String()
+	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, &spaceIDStr)
+	// then
+	require.NotEmpty(s.T(), sr.Data)
+	r := sr.Data[0]
+	assert.Equal(s.T(), "specialwordforsearch", r.Attributes[workitem.SystemTitle])
+}
