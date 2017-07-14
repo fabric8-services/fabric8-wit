@@ -291,6 +291,7 @@ var searchKeyMap = map[string]string{
 	"iteration": workitem.SystemIteration,
 	"assignee":  workitem.SystemAssignees,
 	"state":     workitem.SystemState,
+	"type":      "Type",
 	"space":     "SpaceID",
 }
 
@@ -302,12 +303,32 @@ func (q Query) getAttributeKey(key string) string {
 	return key
 }
 
+func (q Query) determineLiteralType(key string, val string) criteria.Expression {
+	switch key {
+	case workitem.SystemAssignees:
+		return criteria.Literal([]string{val})
+	case "Type":
+		u, err := uuid.FromString(val)
+		if err != nil {
+			// TODO:
+			// Ideally this should shout out saying invalid UUID for TYPE search
+			// But for now returning as string instead of UUID
+			// no error mechanism in search
+			return criteria.Literal([]string{val})
+		}
+		return criteria.Literal([]uuid.UUID{u})
+	default:
+		return criteria.Literal(val)
+	}
+}
+
 func (q Query) generateExpression() criteria.Expression {
 	var myexpr []criteria.Expression
 	currentOperator := q.Name
 	if !isOperator(currentOperator) {
-		left := criteria.Field(q.getAttributeKey(q.Name))
-		right := criteria.Literal(*q.Value)
+		key := q.getAttributeKey(q.Name)
+		left := criteria.Field(key)
+		right := q.determineLiteralType(key, *q.Value)
 		if q.Negate {
 			myexpr = append(myexpr, criteria.Not(left, right))
 		} else {
@@ -318,9 +339,10 @@ func (q Query) generateExpression() criteria.Expression {
 		if isOperator(child.Name) {
 			myexpr = append(myexpr, child.generateExpression())
 		} else {
-			left := criteria.Field(q.getAttributeKey(child.Name))
+			key := q.getAttributeKey(child.Name)
+			left := criteria.Field(key)
 			if child.Value != nil {
-				right := criteria.Literal(*child.Value)
+				right := q.determineLiteralType(key, *child.Value)
 				if child.Negate {
 					myexpr = append(myexpr, criteria.Not(left, right))
 				} else {
