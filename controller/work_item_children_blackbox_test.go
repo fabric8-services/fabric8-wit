@@ -63,10 +63,22 @@ func (s *workItemChildSuite) SetupSuite() {
 	s.DBTestSuite.PopulateDBTestSuite(ctx)
 
 	s.db = gormapplication.NewGormDB(s.DB)
+}
+
+const (
+	hasChildren   bool = true
+	hasNoChildren bool = false
+)
+
+// The SetupTest method will be run before every test in the suite.
+// SetupTest ensures that none of the work item links that we will create already exist.
+// It will also make sure that some resources that we rely on do exists.
+func (s *workItemChildSuite) SetupTest() {
+	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "workItemChildSuite user", "test provider")
 	require.Nil(s.T(), err)
-	s.testIdentity = testIdentity
+	s.testIdentity = *testIdentity
 
 	priv, err := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	require.Nil(s.T(), err)
@@ -101,37 +113,19 @@ func (s *workItemChildSuite) SetupSuite() {
 	s.workItemRelsLinksCtrl = NewWorkItemRelationshipsLinksController(svc, s.db, s.Configuration)
 	require.NotNil(s.T(), s.workItemRelsLinksCtrl)
 
-	svc = testsupport.ServiceAsUser("TestWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity)
+	svc = testsupport.ServiceAsUser("TestWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), s.testIdentity)
 	require.NotNil(s.T(), svc)
 	s.svc = svc
 	s.workItemCtrl = NewWorkitemController(svc, s.db, s.Configuration)
 	require.NotNil(s.T(), s.workItemCtrl)
 
-	svc = testsupport.ServiceAsUser("Space-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity)
+	svc = testsupport.ServiceAsUser("Space-Service", almtoken.NewManagerWithPrivateKey(priv), s.testIdentity)
 	require.NotNil(s.T(), svc)
 	s.spaceCtrl = NewSpaceController(svc, s.db, s.Configuration, &DummyResourceManager{})
 	require.NotNil(s.T(), s.spaceCtrl)
 
-}
-
-const (
-	hasChildren   bool = true
-	hasNoChildren bool = false
-)
-
-// The SetupTest method will be run before every test in the suite.
-// SetupTest ensures that none of the work item links that we will create already exist.
-// It will also make sure that some resources that we rely on do exists.
-func (s *workItemChildSuite) SetupTest() {
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
-	var err error
-
 	// Create a test user identity
-	priv, err := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	require.Nil(s.T(), err)
-	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "test user", "test provider")
-	require.Nil(s.T(), err)
-	s.svc = testsupport.ServiceAsUser("TestWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity)
+	s.svc = testsupport.ServiceAsUser("TestWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), s.testIdentity)
 	require.NotNil(s.T(), s.svc)
 
 	// Create a work item link space

@@ -193,6 +193,10 @@ func main() {
 	workitemCtrl := controller.NewWorkitemController(service, appDB, configuration)
 	app.MountWorkitemController(service, workitemCtrl)
 
+	// Mount "named workitem" controller
+	namedWorkitemsCtrl := controller.NewNamedWorkItemsController(service, appDB)
+	app.MountNamedWorkItemsController(service, namedWorkitemsCtrl)
+
 	// Mount "workitemtype" controller
 	workitemtypeCtrl := controller.NewWorkitemtypeController(service, appDB, configuration)
 	app.MountWorkitemtypeController(service, workitemtypeCtrl)

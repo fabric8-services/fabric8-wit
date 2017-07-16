@@ -56,18 +56,19 @@ func (s *revisionRepositoryBlackBoxTest) SetupTest() {
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 	testIdentity1, err := testsupport.CreateTestIdentity(s.DB, "jdoe1", "test")
 	require.Nil(s.T(), err)
-	s.testIdentity1 = testIdentity1
+	s.testIdentity1 = *testIdentity1
 	testIdentity2, err := testsupport.CreateTestIdentity(s.DB, "jdoe2", "test")
 	require.Nil(s.T(), err)
-	s.testIdentity2 = testIdentity2
+	s.testIdentity2 = *testIdentity2
 	testIdentity3, err := testsupport.CreateTestIdentity(s.DB, "jdoe3", "test")
 	require.Nil(s.T(), err)
-	s.testIdentity3 = testIdentity3
+	s.testIdentity3 = *testIdentity3
 	// create a space
 	spaceRepository := space.NewRepository(s.DB)
 	spaceName := testsupport.CreateRandomValidTestName("test-space")
 	testSpace, err := spaceRepository.Create(s.ctx, &space.Space{
-		Name: spaceName,
+		Name:    spaceName,
+		OwnerId: s.testIdentity1.ID,
 	})
 	require.Nil(s.T(), err)
 	// create source and target work items before linking them
