@@ -60,6 +60,11 @@ func (s *searchBlackBoxTest) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
 	s.ctx = migration.NewMigrationContext(context.Background())
 	s.DBTestSuite.PopulateDBTestSuite(s.ctx)
+}
+
+func (s *searchBlackBoxTest) SetupTest() {
+	s.db = gormapplication.NewGormDB(s.DB)
+	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 
 	var err error
 	// create a test identity
@@ -74,11 +79,6 @@ func (s *searchBlackBoxTest) SetupSuite() {
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	s.svc = testsupport.ServiceAsUser("WorkItemComment-Service", almtoken.NewManagerWithPrivateKey(priv), s.testIdentity)
 	s.controller = NewSearchController(s.svc, gormapplication.NewGormDB(s.DB), spaceBlackBoxTestConfiguration)
-}
-
-func (s *searchBlackBoxTest) SetupTest() {
-	s.db = gormapplication.NewGormDB(s.DB)
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 }
 
 func (s *searchBlackBoxTest) TearDownTest() {

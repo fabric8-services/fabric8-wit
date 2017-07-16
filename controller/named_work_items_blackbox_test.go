@@ -51,7 +51,7 @@ func (s *TestNamedWorkItemsSuite) SetupTest() {
 }
 
 func (s *TestNamedWorkItemsSuite) TearDownTest() {
-	// s.clean()
+	s.clean()
 }
 
 func (s *TestNamedWorkItemsSuite) createWorkItem() *app.WorkItemSingle {
