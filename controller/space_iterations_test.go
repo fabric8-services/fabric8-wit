@@ -54,14 +54,14 @@ func (rest *TestSpaceIterationREST) SetupSuite() {
 	rest.DBTestSuite.SetupSuite()
 	rest.ctx = migration.NewMigrationContext(context.Background())
 	rest.DBTestSuite.PopulateDBTestSuite(rest.ctx)
-	testIdentity, err := testsupport.CreateTestIdentity(rest.DB, "TestSpaceIterationREST user", "test provider")
-	require.Nil(rest.T(), err)
-	rest.testIdentity = *testIdentity
 }
 
 func (rest *TestSpaceIterationREST) SetupTest() {
 	rest.db = gormapplication.NewGormDB(rest.DB)
 	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
+	testIdentity, err := testsupport.CreateTestIdentity(rest.DB, "TestSpaceIterationREST user", "test provider")
+	require.Nil(rest.T(), err)
+	rest.testIdentity = *testIdentity
 	req := &http.Request{Host: "localhost"}
 	params := url.Values{}
 	rest.ctx = goa.NewContext(context.Background(), nil, req, params)
