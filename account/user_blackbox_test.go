@@ -81,7 +81,7 @@ func (s *userBlackBoxTest) TestExistsUser() {
 	resource.Require(t, resource.Database)
 
 	t.Run("user exists", func(t *testing.T) {
-		t.Parallel()
+		//t.Parallel()
 		user := createAndLoadUser(s)
 		// when
 		err := s.repo.CheckExists(s.ctx, user.ID.String())
@@ -90,7 +90,7 @@ func (s *userBlackBoxTest) TestExistsUser() {
 	})
 
 	t.Run("user doesn't exist", func(t *testing.T) {
-		t.Parallel()
+		//t.Parallel()
 		// Check not existing
 		err := s.repo.CheckExists(s.ctx, uuid.NewV4().String())
 		// then
