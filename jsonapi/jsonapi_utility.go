@@ -22,7 +22,7 @@ const (
 	ErrorCodeUnauthorizedError = "unauthorized_error"
 	ErrorCodeForbiddenError    = "forbidden_error"
 	ErrorCodeJWTSecurityError  = "jwt_security_error"
-	ErrorCodeDataConflict      = "data_conflict"
+	ErrorCodeDataConflict      = "data_conflict_error"
 )
 
 // ErrorToJSONAPIError returns the JSONAPI representation
