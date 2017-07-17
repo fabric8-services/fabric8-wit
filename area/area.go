@@ -77,10 +77,10 @@ func (m *GormAreaRepository) Create(ctx context.Context, u *Area) error {
 		// ( name, spaceID ,path ) needs to be unique
 		if gormsupport.IsUniqueViolation(err, "areas_name_space_id_path_unique") {
 			log.Error(ctx, map[string]interface{}{
-				"err":   err,
-				"name":  u.Name,
-				"path":  u.Path,
-				"space": u.SpaceID,
+				"err":      err,
+				"name":     u.Name,
+				"path":     u.Path,
+				"space_id": u.SpaceID,
 			}, "unable to create child area because an area in the same path already exists")
 			return errors.NewDataConflictError(fmt.Sprintf("area already exists with name = %s , space_id = %s , path = %s ", u.Name, u.SpaceID.String(), u.Path.String()))
 		}
