@@ -605,110 +605,188 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 		require.Nil(s.T(), err)
 	}
 
-	// Get all work items where state=resolved && iteration=sprint1
-	filter1 := fmt.Sprintf(`{"$AND": [{"state": "%s"}, {"iteration": "%s"}]}`, workitem.SystemStateResolved, sprint1.ID)
-	_, result1 := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter1, nil, nil, nil, &spaceIDStr)
-	require.NotEmpty(s.T(), result1.Data)
-	assert.Len(s.T(), result1.Data, 3) // resolved items having sprint1 are 3
+	s.T().Run("state=resolved AND iteration=sprint1", func(t *testing.T) {
+		filter := fmt.Sprintf(`
+			{"$AND": [
+				{"state": "%s"},
+				{"iteration": "%s"}
+			]}`,
+			workitem.SystemStateResolved, sprint1.ID)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(s.T(), result.Data)
+		require.Len(s.T(), result.Data, 3) // resolved items having sprint1 are 3
+	})
 
-	// Get all work items where state=resolved && iteration=sprint2
-	filter2 := fmt.Sprintf(`{"$AND": [{"state": "%s"}, {"iteration": "%s"}]}`, workitem.SystemStateResolved, sprint2.ID)
-	_, result2 := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter2, nil, nil, nil, &spaceIDStr)
-	assert.Len(s.T(), result2.Data, 0) // No items having state=resolved && sprint2
+	s.T().Run("state=resolved AND iteration=sprint2", func(t *testing.T) {
+		filter := fmt.Sprintf(`
+			{"$AND": [
+				{"state": "%s"},
+				{"iteration": "%s"}
+			]}`,
+			workitem.SystemStateResolved, sprint2.ID)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, &spaceIDStr)
+		require.Len(s.T(), result.Data, 0) // No items having state=resolved && sprint2
+	})
 
-	// Get all work items where state=resolved || iteration=sprint2
-	// following test does not include any "space" deliberately
-	// Hence if there is any work item in the test-DB having state=resolved following count will fail
-	filter3 := fmt.Sprintf(`{"$OR": [{"state": "%s"}, {"iteration": "%s"}]}`, workitem.SystemStateResolved, sprint2.ID)
-	_, result3 := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter3, nil, nil, nil, &spaceIDStr)
-	require.NotEmpty(s.T(), result3.Data)
-	assert.Len(s.T(), result3.Data, 3+5) // resolved items + items in iteraion2
+	s.T().Run("state=resolved OR iteration=sprint2", func(t *testing.T) {
+		// following test does not include any "space" deliberately, hence if there
+		// is any work item in the test-DB having state=resolved following count
+		// will fail
+		filter := fmt.Sprintf(`
+			{"$OR": [
+				{"state": "%s"},
+				{"iteration": "%s"}
+			]}`,
+			workitem.SystemStateResolved, sprint2.ID)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(s.T(), result.Data)
+		require.Len(s.T(), result.Data, 3+5) // resolved items + items in iteraion2
+	})
 
-	// Get all work items where (space=ID) and (state=resolved or iteration=sprint2)
-	filter4 := fmt.Sprintf(`
-	{"$AND": [{"space":"%s"}, {"$OR": [{"state": "%s"}, {"iteration": "%s"}]}] }
-	`, spaceIDStr, workitem.SystemStateResolved, sprint2.ID)
-	_, result4 := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter4, nil, nil, nil, &spaceIDStr)
-	require.NotEmpty(s.T(), result4.Data)
-	assert.Len(s.T(), result4.Data, 3+5)
-
-	// Get all work items where (space=ID) and (state != resolved && iteration=sprint1)
-	filter5 := fmt.Sprintf(`
-	{"$AND": [{"space":"%s"}, {"$AND": [{"state": "%s", "negate": true}, {"iteration": "%s"}]}] }
-	`, spaceIDStr, workitem.SystemStateResolved, sprint1.ID)
-	_, result5 := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter5, nil, nil, nil, &spaceIDStr)
-	assert.Len(s.T(), result5.Data, 0)
-
-	// Get all work items where (space=ID) and (state != open && iteration != fake-iterationID)
-	fakeIterationID1 := uuid.NewV4()
-	filter6 := fmt.Sprintf(`
-	{"$AND": [{"space":"%s"}, {"$AND": [{"state": "%s", "negate": true}, {"iteration": "%s", "negate": true}]}] }
-	`, spaceIDStr, workitem.SystemStateOpen, fakeIterationID1)
-	_, result6 := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter6, nil, nil, nil, &spaceIDStr)
-	require.NotEmpty(s.T(), result6.Data)
-	assert.Len(s.T(), result6.Data, 8) // all items are other than open state & in other thatn fake itr
-
-	// Get all work items where space=FakeID and state = closed
-	fakeSpaceID1 := uuid.NewV4().String()
-	filter7 := fmt.Sprintf(`{"$AND": [{"space":"%s"}, {"state": "%s"}] }`, fakeSpaceID1, workitem.SystemStateOpen)
-	_, result7 := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter7, nil, nil, nil, &fakeSpaceID1)
-	assert.Len(s.T(), result7.Data, 0) // we have 5 closed items but they are in different space
-
-	// Get all work items where space=spaceID and state = closed and assignee=bob
-	filter8 := fmt.Sprintf(`
-		{"$AND": [{"space":"%s"}, {"assignee":"%s"}, {"state": "%s"}]}`,
-		spaceIDStr, bob.ID, workitem.SystemStateClosed)
-	_, result8 := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter8, nil, nil, nil, &spaceIDStr)
-	require.NotEmpty(s.T(), result8.Data)
-	assert.Len(s.T(), result8.Data, 5) // we have 5 closed items assigned to bob
-
-	// Let's see what alice did in sprint1 i.e iteration=sprint1 && assignee=alice
-	filter9 := fmt.Sprintf(`
-		{"$AND": [{"space":"%s"}, {"assignee":"%s"}, {"iteration": "%s"}]}`,
-		spaceIDStr, alice.ID, sprint1.ID)
-	_, result9 := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter9, nil, nil, nil, &spaceIDStr)
-	require.NotEmpty(s.T(), result9.Data)
-	assert.Len(s.T(), result9.Data, 3) // alice worked on 3 issues in sprint1
-
-	// Let's see non-closed issues alice working on from sprint1
-	// i.e state != closed && iteration=sprint1 && assignee=alice
-	filter10 := fmt.Sprintf(`
-		{"$AND": [{"space":"%s"}, {"assignee":"%s"},{"state":"%s", "negate": true}, {"iteration": "%s"}]}`,
-		spaceIDStr, alice.ID, workitem.SystemStateClosed, sprint1.ID)
-	_, result10 := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter10, nil, nil, nil, &spaceIDStr)
-	require.NotEmpty(s.T(), result10.Data)
-	assert.Len(s.T(), result10.Data, 3)
-
-	// get me all closed and resolved work items from my space
-	// i.e space=spaceID & (state = closed or state = resolved)
-	filter11 := fmt.Sprintf(`
-		{"$AND": [{"space":"%s"}, {"$OR": [{"state":"%s"},{"state":"%s"}]}]}`,
-		spaceIDStr, workitem.SystemStateClosed, workitem.SystemStateResolved)
-	_, result11 := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter11, nil, nil, nil, &spaceIDStr)
-	require.NotEmpty(s.T(), result11.Data)
-	assert.Len(s.T(), result11.Data, 3+5) //resolved + closed
-
-	// get me all bugs or features in myspace
-	// i.e space=spaceID & (type = bug or type = feature)
-	filter12 := fmt.Sprintf(`
-		{"$AND": [{"space":"%s"}, {"$OR": [{"type":"%s"},{"type":"%s"}]}]}`,
-		spaceIDStr, workitem.SystemBug, workitem.SystemFeature)
-	_, result12 := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter12, nil, nil, nil, &spaceIDStr)
-	require.NotEmpty(s.T(), result12.Data)
-	assert.Len(s.T(), result12.Data, 3+5) //bugs + features
-
-	// get me all Resolved bugs assigned to bob or alice
-	// i.e space=spaceID & (type = bug and state = resolved and (assignee = bob or assignee = alice))
-	filter13 := fmt.Sprintf(`
-		{"$AND": [
-			{"space":"%s"},
-				{"$AND": [
-						{"$AND": [{"type":"%s"},{"state":"%s"}]},
-						{"$OR": [{"assignee":"%s"},{"assignee":"%s"}]}
+	s.T().Run("space=ID AND (state=resolved OR iteration=sprint2)", func(t *testing.T) {
+		filter := fmt.Sprintf(`
+			{"$AND": [
+				{"space":"%s"},
+				{"$OR": [
+					{"state": "%s"},
+					{"iteration": "%s"}
 				]}
-		]}`,
-		spaceIDStr, workitem.SystemBug, workitem.SystemStateResolved, bob.ID, alice.ID)
-	_, result13 := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter13, nil, nil, nil, &spaceIDStr)
-	require.NotEmpty(s.T(), result13.Data)
-	assert.Len(s.T(), result13.Data, 3) //resolved bugs
+			]}`,
+			spaceIDStr, workitem.SystemStateResolved, sprint2.ID)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(s.T(), result.Data)
+		require.Len(s.T(), result.Data, 3+5)
+	})
+
+	s.T().Run("space=ID AND (state!=resolved AND iteration=sprint1)", func(t *testing.T) {
+		filter := fmt.Sprintf(`
+			{"$AND": [
+				{"space":"%s"},
+				{"$AND": [
+					{"state": "%s", "negate": true},
+					{"iteration": "%s"}
+				]}
+			]}`,
+			spaceIDStr, workitem.SystemStateResolved, sprint1.ID)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, &spaceIDStr)
+		require.Len(s.T(), result.Data, 0)
+	})
+
+	s.T().Run("space=ID AND (state!=open AND iteration!=fake-iterationID)", func(t *testing.T) {
+		fakeIterationID1 := uuid.NewV4()
+		filter := fmt.Sprintf(`
+			{"$AND": [
+				{"space":"%s"},
+				{"$AND": [
+					{"state": "%s", "negate": true},
+					{"iteration": "%s", "negate": true}
+				]}
+			]}`,
+			spaceIDStr, workitem.SystemStateOpen, fakeIterationID1)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(s.T(), result.Data)
+		require.Len(s.T(), result.Data, 8) // all items are other than open state & in other thatn fake itr
+	})
+
+	s.T().Run("space=FakeID AND state=closed", func(t *testing.T) {
+		fakeSpaceID1 := uuid.NewV4().String()
+		filter := fmt.Sprintf(`
+			{"$AND": [
+				{"space":"%s"},
+				{"state": "%s"}
+			]}`,
+			fakeSpaceID1, workitem.SystemStateOpen)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, &fakeSpaceID1)
+		require.Len(s.T(), result.Data, 0) // we have 5 closed items but they are in different space
+	})
+
+	s.T().Run("space=spaceID AND state=closed AND assignee=bob", func(t *testing.T) {
+		filter := fmt.Sprintf(`
+			{"$AND": [
+				{"space":"%s"},
+				{"assignee":"%s"},
+				{"state": "%s"}
+			]}`,
+			spaceIDStr, bob.ID, workitem.SystemStateClosed)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(s.T(), result.Data)
+		require.Len(s.T(), result.Data, 5) // we have 5 closed items assigned to bob
+	})
+
+	s.T().Run("space=spaceID AND iteration=sprint1 AND assignee=alice", func(t *testing.T) {
+		// Let's see what alice did in sprint1
+		filter := fmt.Sprintf(`
+			{"$AND": [
+				{"space":"%s"},
+				{"assignee":"%s"},
+				{"iteration": "%s"}
+			]}`,
+			spaceIDStr, alice.ID, sprint1.ID)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(s.T(), result.Data)
+		require.Len(s.T(), result.Data, 3) // alice worked on 3 issues in sprint1
+	})
+
+	s.T().Run("space=spaceID AND state!=closed AND iteration=sprint1 AND assignee=alice", func(t *testing.T) {
+		// Let's see non-closed issues alice working on from sprint1
+		filter := fmt.Sprintf(`
+			{"$AND": [
+				{"space":"%s"},
+				{"assignee":"%s"},
+				{"state":"%s", "negate": true},
+				{"iteration": "%s"}
+			]}`,
+			spaceIDStr, alice.ID, workitem.SystemStateClosed, sprint1.ID)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(s.T(), result.Data)
+		require.Len(s.T(), result.Data, 3)
+	})
+
+	s.T().Run("space=spaceID AND (state=closed or state=resolved)", func(t *testing.T) {
+		// get me all closed and resolved work items from my space
+		filter := fmt.Sprintf(`
+			{"$AND": [
+				{"space":"%s"},
+				{"$OR": [
+					{"state":"%s"},
+					{"state":"%s"}
+				]}
+			]}`,
+			spaceIDStr, workitem.SystemStateClosed, workitem.SystemStateResolved)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(s.T(), result.Data)
+		require.Len(s.T(), result.Data, 3+5) //resolved + closed
+	})
+
+	s.T().Run("space=spaceID AND (type=bug OR type=feature)", func(t *testing.T) {
+		// get me all bugs or features in myspace
+		filter12 := fmt.Sprintf(`
+			{"$AND": [
+				{"space":"%s"},
+				{"$OR": [
+					{"type":"%s"},
+					{"type":"%s"}
+				]}
+			]}`,
+			spaceIDStr, workitem.SystemBug, workitem.SystemFeature)
+		_, result12 := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter12, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(s.T(), result12.Data)
+		require.Len(s.T(), result12.Data, 3+5) //bugs + features
+	})
+
+	s.T().Run("space=spaceID AND (type=bug AND state=resolved AND (assignee=bob OR assignee=alice))", func(t *testing.T) {
+		// get me all Resolved bugs assigned to bob or alice
+		filter13 := fmt.Sprintf(`
+			{"$AND": [
+				{"space":"%s"},
+				{"$AND": [
+					{"$AND": [{"type":"%s"},{"state":"%s"}]},
+					{"$OR": [{"assignee":"%s"},{"assignee":"%s"}]}
+				]}
+			]}`,
+			spaceIDStr, workitem.SystemBug, workitem.SystemStateResolved, bob.ID, alice.ID)
+		_, result13 := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter13, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(s.T(), result13.Data)
+		require.Len(s.T(), result13.Data, 3) //resolved bugs
+	})
 }
