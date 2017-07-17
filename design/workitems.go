@@ -135,7 +135,7 @@ var _ = a.Resource("workitem", func() {
 			a.Param("filter[area]", d.String, "AreaID to filter work items")
 			a.Param("filter[workitemstate]", d.String, "work item state to filter work items by")
 			a.Param("filter[parentexists]", d.Boolean, "if false list work items without any parent")
-			a.Param("filter[expression]", d.String, "Accepts query in JSON and Redirects to /api/search? API.", func() {
+			a.Param("filter[expression]", d.String, "accepts query in JSON format and redirects to /api/search? API", func() {
 				a.Example(`{$AND: [{"space": "f73988a2-1916-4572-910b-2df23df4dcc3"}, {"state": "NEW"}]}`)
 			})
 		})
