@@ -23,9 +23,7 @@ func TestParseMap(t *testing.T) {
 		// Parsing/Unmarshalling JSON encoding/json
 		fm := map[string]interface{}{}
 		err := json.Unmarshal([]byte(input), &fm)
-		if err != nil {
-			panic(err)
-		}
+		require.Nil(t, err)
 		// when
 		actualQuery := Query{}
 		parseMap(fm, &actualQuery)
@@ -49,10 +47,7 @@ func TestParseMap(t *testing.T) {
 
 		// Parsing/Unmarshalling JSON encoding/json
 		err := json.Unmarshal([]byte(input), &fm)
-
-		if err != nil {
-			panic(err)
-		}
+		require.Nil(t, err)
 		q := &Query{}
 
 		parseMap(fm, q)
@@ -80,10 +75,7 @@ func TestParseMap(t *testing.T) {
 
 		// Parsing/Unmarshalling JSON encoding/json
 		err := json.Unmarshal([]byte(input), &fm)
-
-		if err != nil {
-			panic(err)
-		}
+		require.Nil(t, err)
 		q := &Query{}
 
 		parseMap(fm, q)
