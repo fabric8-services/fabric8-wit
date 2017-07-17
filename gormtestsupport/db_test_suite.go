@@ -87,7 +87,7 @@ func (s *DBTestSuite) waitGroup() *sync.WaitGroup {
 	return wg
 }
 
-var allowParallelSubTests = flag.Bool("allowParallelSubTests", false, "when set, parallel tests are enabled")
+var allowParallelSubTests = flag.Bool("allowParallelSubTests", true, "when set, parallel tests are enabled")
 
 // RunParallel does all the setup for running the function t as a parallel
 // subtest that takes care of setting up synchronization primitives. See the
