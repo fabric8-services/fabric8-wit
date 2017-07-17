@@ -29,10 +29,10 @@ func NewDBTestSuite(configFilePath string) DBTestSuite {
 // DBTestSuite is a base for tests using a gorm db
 type DBTestSuite struct {
 	suite.Suite
-	configFile    string
-	Configuration *config.ConfigurationData
-	DB            *gorm.DB
-	waitGroups    map[*testing.T]*sync.WaitGroup
+	configFile     string
+	Configuration  *config.ConfigurationData
+	DB             *gorm.DB
+	waitGroups     map[*testing.T]*sync.WaitGroup
 	waitGroupsLock sync.Mutex
 }
 
@@ -77,13 +77,15 @@ func (s *DBTestSuite) SetupSuite() {
 func (s *DBTestSuite) WaitGroup() *sync.WaitGroup {
 	s.waitGroupsLock.Lock()
 	defer s.waitGroupsLock.Unlock()
-	
-	wg, ok := s.waitGroups[s.T()]
-	if ok {
-		return wg
-	}
-	wg = &sync.WaitGroup{}
-	s.waitGroups[s.T()] = wg
+
+	// Initialize wait group on first call and only once
+	var once sync.Once
+	once.Do(func() {
+		wg := &sync.WaitGroup{}
+		s.waitGroups[s.T()] = wg
+	})
+
+	wg, _ := s.waitGroups[s.T()]
 	return wg
 }
 
