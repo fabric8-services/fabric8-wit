@@ -452,7 +452,10 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 	value := workitem.WorkItemStorage{}
 	columns, err := rows.Columns()
 	if err != nil {
-		return nil, 0, errors.NewInternalError(ctx, err)
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "failed to get column names")
+		return nil, 0, errors.NewInternalError(ctx, errs.Wrap(err, "failed to get column names"))
 	}
 
 	// need to set up a result for Scan() in order to extract total count.
@@ -471,7 +474,10 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 		if first {
 			first = false
 			if err = rows.Scan(columnValues...); err != nil {
-				return nil, 0, errors.NewInternalError(ctx, err)
+				log.Error(ctx, map[string]interface{}{
+					"err": err,
+				}, "failed to scan rows")
+				return nil, 0, errors.NewInternalError(ctx, errs.Wrap(err, "failed to scan rows"))
 			}
 		}
 		result = append(result, value)
@@ -509,7 +515,11 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 		// FIXME: Against best practice http://go-database-sql.org/retrieving.html
 		wiType, err := r.wir.LoadTypeFromDB(ctx, value.Type)
 		if err != nil {
-			return nil, 0, errors.NewInternalError(ctx, err)
+			log.Error(ctx, map[string]interface{}{
+				"err": err,
+				"wit": value.Type,
+			}, "failed to load work item type")
+			return nil, 0, errors.NewInternalError(ctx, errs.Wrap(err, "failed to load work item type"))
 		}
 		wiModel, err := wiType.ConvertWorkItemStorageToModel(value)
 		if err != nil {
@@ -553,7 +563,10 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 	result := []workitem.WorkItemStorage{}
 	columns, err := rows.Columns()
 	if err != nil {
-		return nil, 0, errors.NewInternalError(ctx, err)
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "failed to list column names")
+		return nil, 0, errors.NewInternalError(ctx, errs.Wrap(err, "failed to list column names"))
 	}
 
 	// need to set up a result for Scan() in order to extract total count.
@@ -573,7 +586,10 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 		if first {
 			first = false
 			if err = rows.Scan(columnValues...); err != nil {
-				return nil, 0, errors.NewInternalError(ctx, err)
+				log.Error(ctx, map[string]interface{}{
+					"err": err,
+				}, "failed to scan rows")
+				return nil, 0, errors.NewInternalError(ctx, errs.Wrap(err, "failed to scan rows"))
 			}
 		}
 		result = append(result, value)
@@ -612,11 +628,18 @@ func (r *GormSearchRepository) Filter(ctx context.Context, rawFilterString strin
 	for index, value := range result {
 		wiType, err := r.wir.LoadTypeFromDB(ctx, value.Type)
 		if err != nil {
-			return nil, 0, errors.NewInternalError(ctx, err)
+			log.Error(ctx, map[string]interface{}{
+				"err": err,
+				"wit": value.Type,
+			}, "failed to load work item type")
+			return nil, 0, errors.NewInternalError(ctx, errs.Wrap(err, "failed to load work item type"))
 		}
 		modelWI, err := workitem.ConvertWorkItemStorageToModel(wiType, &value)
 		if err != nil {
-			return nil, 0, errors.NewInternalError(ctx, err)
+			log.Error(ctx, map[string]interface{}{
+				"err": err,
+			}, "failed to convert to storage to model")
+			return nil, 0, errors.NewInternalError(ctx, errs.Wrap(err, "failed to convert storage to model"))
 		}
 		res[index] = *modelWI
 	}
