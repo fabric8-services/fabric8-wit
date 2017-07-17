@@ -7,7 +7,7 @@ import (
 
 	c "github.com/fabric8-services/fabric8-wit/criteria"
 	"github.com/fabric8-services/fabric8-wit/resource"
-	w "github.com/fabric8-services/fabric8-wit/workitem"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -213,12 +213,12 @@ func TestGenerateExpression(t *testing.T) {
 }
 
 func expectEqualExpr(t *testing.T, expectedExpr, actualExpr c.Expression) {
-	actualClause, actualParameters, actualErrs := w.Compile(actualExpr)
+	actualClause, actualParameters, actualErrs := workitem.Compile(actualExpr)
 	if len(actualErrs) > 0 {
 		debug.PrintStack()
 		require.Nil(t, actualErrs, "failed to compile actual expression")
 	}
-	exprectedClause, expectedParameters, expectedErrs := w.Compile(expectedExpr)
+	exprectedClause, expectedParameters, expectedErrs := workitem.Compile(expectedExpr)
 	if len(expectedErrs) > 0 {
 		debug.PrintStack()
 		require.Nil(t, expectedErrs, "failed to compile expected expression")
