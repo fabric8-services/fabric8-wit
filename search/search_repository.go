@@ -601,7 +601,6 @@ func (r *GormSearchRepository) Filter(ctx context.Context, rawFilterString strin
 	// parse
 	// generateSearchQuery
 	// ....
-	fmt.Println("This is from search Filter")
 	exp, err := parseFilterString(rawFilterString)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
