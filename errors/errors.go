@@ -100,6 +100,26 @@ func NewVersionConflictError(msg string) VersionConflictError {
 	return VersionConflictError{simpleError{msg}}
 }
 
+// DataConflictError means that the version was not as expected in an update operation
+type DataConflictError struct {
+	simpleError
+}
+
+// IsDataConflictError returns true if the cause of the given error can be
+// converted to an IsDataConflictError, which is returned as the second result.
+func IsDataConflictError(err error) (bool, error) {
+	e, ok := errs.Cause(err).(DataConflictError)
+	if !ok {
+		return false, nil
+	}
+	return true, e
+}
+
+// NewDataConflictError returns the custom defined error of type NewDataConflictError.
+func NewDataConflictError(msg string) DataConflictError {
+	return DataConflictError{simpleError{msg}}
+}
+
 // IsVersionConflictError returns true if the cause of the given error can be
 // converted to an VersionConflictError, which is returned as the second result.
 func IsVersionConflictError(err error) (bool, error) {
