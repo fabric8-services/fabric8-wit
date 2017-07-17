@@ -1,6 +1,8 @@
 package gormtestsupport
 
 import (
+	"context"
+	"flag"
 	"os"
 	"sync"
 	"testing"
@@ -11,9 +13,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/models"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/workitem"
-
-	"context"
-
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq" // need to import postgres driver
 	"github.com/stretchr/testify/suite"
@@ -84,15 +83,19 @@ func (s *DBTestSuite) WaitGroup() *sync.WaitGroup {
 	return wg
 }
 
+var allowParallelSubTests = flag.Bool("allowParallelSubTests", false, "when set, parallel tests are enabled")
+
 // RunParallel does all the setup for running the function t as a parallel
 // subtest that takes care of setting up synchronization primitives. See the
 // description of WaitGroup as well to find out about freeing of resources.
 func (s *DBTestSuite) RunParallel(name string, f func(subtest *testing.T)) bool {
 	return s.T().Run(name, func(t *testing.T) {
-		// Make the outer suite's test wait for this subtest
-		s.WaitGroup().Add(1)
-		defer s.WaitGroup().Done()
-		t.Parallel()
+		if *allowParallelSubTests {
+			// Make the outer suite's test wait for this subtest
+			s.WaitGroup().Add(1)
+			defer s.WaitGroup().Done()
+			t.Parallel()
+		}
 		f(t)
 	})
 }
