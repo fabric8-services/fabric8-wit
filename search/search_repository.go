@@ -276,9 +276,19 @@ func parseArray(anArray []interface{}, l *[]Query) {
 
 // Query represents tree structure of the filter query
 type Query struct {
-	Name     string
-	Value    *string
-	Negate   bool
+	// Name can contain a field name to search for (e.g. "space") or one of the
+	// binary operators "$AND", or "$OR". If the Name is not an operator, we
+	// compare the Value against a column in the database that maps to this
+	// Name. We check the Value for equality and for inequality if the Negate
+	// field is set to true.
+	Name  string
+	Value *string
+	// When Negate is true the comparison desribed above is negated; hence we
+	// check for inequality.
+	Negate bool
+	// A Query is expected to have child queries only if the Name field contains
+	// an operator like "$AND", or "$OR". If the Name is not an operator, the
+	// Children slice MUST be empty.
 	Children []Query
 }
 
