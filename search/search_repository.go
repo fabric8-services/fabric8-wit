@@ -264,9 +264,7 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 
 func parseArray(anArray []interface{}, l *[]Query) {
 	for _, val := range anArray {
-		switch val.(type) {
-		case map[string]interface{}:
-			o := val.(map[string]interface{})
+		if o, ok := val.(map[string]interface{}); ok {
 			q := Query{}
 			parseMap(o, &q)
 			*l = append(*l, q)
