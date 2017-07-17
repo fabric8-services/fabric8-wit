@@ -74,7 +74,7 @@ func (s *DBTestSuite) SetupSuite() {
 //	s.RunParallel("my subtest", func(t *testing.T){
 //		/*just do your normal testing here*/
 //	})
-func (s *DBTestSuite) WaitGroup() *sync.WaitGroup {
+func (s *DBTestSuite) waitGroup() *sync.WaitGroup {
 	s.waitGroupsLock.Lock()
 	defer s.waitGroupsLock.Unlock()
 
@@ -91,13 +91,13 @@ var allowParallelSubTests = flag.Bool("allowParallelSubTests", false, "when set,
 
 // RunParallel does all the setup for running the function t as a parallel
 // subtest that takes care of setting up synchronization primitives. See the
-// description of WaitGroup as well to find out about freeing of resources.
+// description of waitGroup as well to find out about freeing of resources.
 func (s *DBTestSuite) RunParallel(name string, f func(subtest *testing.T)) bool {
 	return s.T().Run(name, func(t *testing.T) {
 		if *allowParallelSubTests {
 			// Make the outer suite's test wait for this subtest
-			s.WaitGroup().Add(1)
-			defer s.WaitGroup().Done()
+			s.waitGroup().Add(1)
+			defer s.waitGroup().Done()
 			t.Parallel()
 		}
 		f(t)
