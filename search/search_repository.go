@@ -278,7 +278,7 @@ func parseArray(anArray []interface{}, l *[]Query) {
 type Query struct {
 	Name     string
 	Value    *string
-	Negate   bool
+	Negate   bool // mark the expression negative (Name != Value)
 	Children []Query
 }
 
