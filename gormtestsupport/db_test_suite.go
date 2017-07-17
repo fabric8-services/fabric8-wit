@@ -33,6 +33,7 @@ type DBTestSuite struct {
 	Configuration *config.ConfigurationData
 	DB            *gorm.DB
 	waitGroups    map[*testing.T]*sync.WaitGroup
+	waitGroupsLock sync.Mutex
 }
 
 // SetupSuite implements suite.SetupAllSuite
@@ -74,6 +75,9 @@ func (s *DBTestSuite) SetupSuite() {
 //		/*just do your normal testing here*/
 //	})
 func (s *DBTestSuite) WaitGroup() *sync.WaitGroup {
+	s.waitGroupsLock.Lock()
+	defer s.waitGroupsLock.Unlock()
+	
 	wg, ok := s.waitGroups[s.T()]
 	if ok {
 		return wg
