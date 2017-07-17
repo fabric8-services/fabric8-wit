@@ -42,6 +42,8 @@ type loginConfiguration interface {
 	GetAuthNotApprovedRedirect() string
 }
 
+const maxRecentSpacesForRPT = 10
+
 // LoginController implements the login resource.
 type LoginController struct {
 	*goa.Controller
@@ -146,6 +148,13 @@ func (c *LoginController) getEntitlementResourceRequestPayload(ctx context.Conte
 
 	var spacesToGetEntitlementsFor []auth.ResourceSet
 	for _, v := range contextInfoLoggedInIdentity["recentSpaces"].([]interface{}) {
+		if len(spacesToGetEntitlementsFor) == maxRecentSpacesForRPT {
+			log.Info(ctx, map[string]interface{}{
+				"identity_id":               *loggedInIdentityID,
+				"max_recent_spaces_for_rpt": maxRecentSpacesForRPT,
+			}, "more than the allowed maximum number of recent spaces found")
+			break
+		}
 		recentSpaceID, ok := v.(string)
 		if !ok {
 			log.Warn(ctx, map[string]interface{}{
@@ -227,17 +236,20 @@ func (c *LoginController) Refresh(ctx *app.RefreshLoginContext) error {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 	}
 
-	rpt, err := auth.GetEntitlement(ctx, entitlementEndpoint, resources, *token.AccessToken)
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"err": err,
-		}, "failed to obtain entitlement during login")
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
-	}
-	if rpt != nil && int64(len(*rpt)) <= c.configuration.GetHeaderMaxLength() {
-		// If the rpt token is not too long for using it as a Bearer in http requests because of header size limit
-		// the swap access token for the rpt token which contains all resources available to the user
-		token.AccessToken = rpt
+	// Disallow fetching of all entitlements if no resources are specified
+	if resources != nil {
+		rpt, err := auth.GetEntitlement(ctx, entitlementEndpoint, resources, *token.AccessToken)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"err": err,
+			}, "failed to obtain entitlement during login")
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+		}
+		if rpt != nil && int64(len(*rpt)) <= c.configuration.GetHeaderMaxLength() {
+			// If the rpt token is not too long for using it as a Bearer in http requests because of header size limit
+			// the swap access token for the rpt token which contains all resources available to the user
+			token.AccessToken = rpt
+		}
 	}
 
 	ctx.ResponseData.Header().Set("Cache-Control", "no-cache")
