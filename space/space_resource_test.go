@@ -5,11 +5,13 @@ import (
 
 	"context"
 
+	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
+	testsupport "github.com/fabric8-services/fabric8-wit/test"
 
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -31,15 +33,19 @@ func TestRunResourceRepoBBTest(t *testing.T) {
 
 type resourceRepoBBTest struct {
 	gormtestsupport.DBTestSuite
-	repo  space.ResourceRepository
-	sRepo space.Repository
-	clean func()
+	repo         space.ResourceRepository
+	sRepo        space.Repository
+	testIdentity account.Identity
+	clean        func()
 }
 
 func (test *resourceRepoBBTest) SetupTest() {
 	test.repo = space.NewResourceRepository(test.DB)
 	test.sRepo = space.NewRepository(test.DB)
 	test.clean = cleaner.DeleteCreatedEntities(test.DB)
+	testIdentity, err := testsupport.CreateTestIdentity(test.DB, "WorkItemSuite setup user", "test provider")
+	require.Nil(test.T(), err)
+	test.testIdentity = *testIdentity
 }
 
 func (test *resourceRepoBBTest) TearDownTest() {
@@ -167,7 +173,7 @@ func (test *resourceRepoBBTest) requireErrorType(e error) func(p *space.Resource
 func (test *resourceRepoBBTest) create(resourceID string, policyID string, permissionID string) func() (*space.Resource, *space.Space, error) {
 	newSpace := space.Space{
 		Name:    uuid.NewV4().String(),
-		OwnerId: uuid.Nil,
+		OwnerId: test.testIdentity.ID,
 	}
 
 	newResource := space.Resource{

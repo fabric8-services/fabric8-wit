@@ -127,7 +127,7 @@ func (s *workItemLinkSuite) SetupTest() {
 	// create a test identity
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "test user", "test provider")
 	require.Nil(s.T(), err)
-	s.svc = testsupport.ServiceAsUser("TestWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity)
+	s.svc = testsupport.ServiceAsUser("TestWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), *testIdentity)
 	require.NotNil(s.T(), s.svc)
 	s.workItemCtrl = NewWorkitemController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	require.NotNil(s.T(), s.workItemCtrl)

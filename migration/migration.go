@@ -325,6 +325,9 @@ func GetMigrations() Migrations {
 	// Version 67
 	m = append(m, steps{ExecuteSQLFile("067-comment-parentid-uuid.sql")})
 
+	// Version 68
+	m = append(m, steps{ExecuteSQLFile("068-index_identities_username.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -621,24 +624,26 @@ func createOrUpdateSpace(ctx context.Context, spaceRepo *space.GormRepository, i
 
 func createSpace(ctx context.Context, spaceRepo *space.GormRepository, id uuid.UUID, description string) error {
 	err := spaceRepo.CheckExists(ctx, id.String())
-	cause := errs.Cause(err)
-	switch cause.(type) {
-	case errors.NotFoundError:
-		log.Info(ctx, map[string]interface{}{
-			"pkg":      "migration",
-			"space_id": id,
-		}, "space %s will be created", id)
-		newSpace := &space.Space{
-			Description: description,
-			Name:        "system.space",
-			ID:          id,
+	if err != nil {
+		cause := errs.Cause(err)
+		switch cause.(type) {
+		case errors.NotFoundError:
+			log.Info(ctx, map[string]interface{}{
+				"pkg":      "migration",
+				"space_id": id,
+			}, "space %s will be created", id)
+			newSpace := &space.Space{
+				Description: description,
+				Name:        "system.space",
+				ID:          id,
+			}
+			_, err := spaceRepo.Create(ctx, newSpace)
+			if err != nil {
+				return errs.Wrapf(err, "failed to create space %s", id)
+			}
+		default:
+			log.Error(ctx, map[string]interface{}{"err": err, "space_id": id}, "unable to verify if a space exists")
 		}
-		_, err := spaceRepo.Create(ctx, newSpace)
-		if err != nil {
-			return errs.Wrapf(err, "failed to create space %s", id)
-		}
-	default:
-		log.Error(ctx, map[string]interface{}{"err": err, "space_id": id}, "unable to verify if a space exists")
 	}
 	return nil
 }

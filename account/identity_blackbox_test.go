@@ -83,7 +83,7 @@ func (s *identityBlackBoxTest) TestExistsIdentity() {
 	resource.Require(t, resource.Database)
 
 	t.Run("identity exists", func(t *testing.T) {
-		t.Parallel()
+		//t.Parallel()
 		// given
 		identity := createAndLoad(s)
 		// when
@@ -93,7 +93,7 @@ func (s *identityBlackBoxTest) TestExistsIdentity() {
 	})
 
 	t.Run("identity doesn't exist", func(t *testing.T) {
-		t.Parallel()
+		//t.Parallel()
 		err := s.repo.CheckExists(s.ctx, uuid.NewV4().String())
 		// then
 

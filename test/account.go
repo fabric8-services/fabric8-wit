@@ -49,13 +49,13 @@ var TestIdentity2 = account.Identity{
 }
 
 // CreateTestIdentity creates an identity with the given `username` in the database. For testing purpose only.
-func CreateTestIdentity(db *gorm.DB, username, providerType string) (account.Identity, error) {
+func CreateTestIdentity(db *gorm.DB, username, providerType string) (*account.Identity, error) {
 	testIdentity := account.Identity{
 		Username:     username,
 		ProviderType: providerType,
 	}
 	err := CreateTestIdentityForAccountIdentity(db, &testIdentity)
-	return testIdentity, err
+	return &testIdentity, err
 }
 
 // CreateTestIdentityForAccountIdentity creates an account.Identity in the database. For testing purpose only.

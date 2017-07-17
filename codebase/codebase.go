@@ -75,10 +75,8 @@ func NewCodebaseContent(value map[string]interface{}) (Content, error) {
 		}
 	}
 	err := cb.IsValid()
-	if err != nil {
-		return cb, err
-	}
-	return cb, nil
+
+	return cb, err
 }
 
 // NewCodebaseContentFromValue builds Content from interface{}
@@ -112,6 +110,12 @@ type Codebase struct {
 	LastUsedWorkspace string
 }
 
+// TableName overrides the table name settings in Gorm to force a specific table name
+// in the database.
+func (m Codebase) TableName() string {
+	return "codebases"
+}
+
 // Repository describes interactions with codebases
 type Repository interface {
 	repository.Exister
@@ -129,12 +133,6 @@ func NewCodebaseRepository(db *gorm.DB) Repository {
 // GormCodebaseRepository is the implementation of the storage interface for Codebases.
 type GormCodebaseRepository struct {
 	db *gorm.DB
-}
-
-// TableName overrides the table name settings in Gorm to force a specific table name
-// in the database.
-func (m *GormCodebaseRepository) TableName() string {
-	return "codebases"
 }
 
 // Create creates a new record.
@@ -245,7 +243,7 @@ func (m *GormCodebaseRepository) List(ctx context.Context, spaceID uuid.UUID, st
 // CheckExists returns nil if the given ID exists otherwise returns an error
 func (m *GormCodebaseRepository) CheckExists(ctx context.Context, id string) error {
 	defer goa.MeasureSince([]string{"goa", "db", "codebase", "exists"}, time.Now())
-	return repository.CheckExists(ctx, m.db, m.TableName(), id)
+	return repository.CheckExists(ctx, m.db, Codebase{}.TableName(), id)
 }
 
 // Load a single codebase regardless of parent
