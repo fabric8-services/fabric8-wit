@@ -2,6 +2,8 @@ package gormtestsupport
 
 import (
 	"os"
+	"sync"
+	"testing"
 
 	config "github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/log"
@@ -31,6 +33,7 @@ type DBTestSuite struct {
 	configFile    string
 	Configuration *config.ConfigurationData
 	DB            *gorm.DB
+	waitGroups    map[*testing.T]*sync.WaitGroup
 }
 
 // SetupSuite implements suite.SetupAllSuite
@@ -52,6 +55,46 @@ func (s *DBTestSuite) SetupSuite() {
 			}, "failed to connect to the database")
 		}
 	}
+}
+
+// WaitGroup returns the WaitGroup associated with the current suite test. It
+// can be called from subtests as well. If no wait group is associated with a
+// test yet, one will be created on the fly.
+//
+// In the TearDownTest of each suite make s.WaitGroup().Wait() the first call
+// before cleaning up after each test:
+//
+// 	func (s *yourSuite) TearDownTest() {
+//		s.WaitGroup().Wait()
+//		/* cleanup resources only after waiting */
+//	}
+//
+// To Add a parallel subtest to the current suite's test, do this:
+//
+//	s.RunParallel("my subtest", func(t *testing.T){
+//		/*just do your normal testing here*/
+//	})
+func (s *DBTestSuite) WaitGroup() *sync.WaitGroup {
+	wg, ok := s.waitGroups[s.T()]
+	if ok {
+		return wg
+	}
+	wg = &sync.WaitGroup{}
+	s.waitGroups[s.T()] = wg
+	return wg
+}
+
+// RunParallel does all the setup for running the function t as a parallel
+// subtest that takes care of setting up synchronization primitives. See the
+// description of WaitGroup as well to find out about freeing of resources.
+func (s *DBTestSuite) RunParallel(name string, f func(subtest *testing.T)) bool {
+	return s.T().Run(name, func(t *testing.T) {
+		// Make the outer suite's test wait for this subtest
+		s.WaitGroup().Add(1)
+		defer s.WaitGroup().Done()
+		t.Parallel()
+		f(t)
+	})
 }
 
 // PopulateDBTestSuite populates the DB with common values
