@@ -147,8 +147,8 @@ func (c *LoginController) getEntitlementResourceRequestPayload(ctx context.Conte
 	}
 
 	var spacesToGetEntitlementsFor []auth.ResourceSet
-	for _, v := range contextInfoLoggedInIdentity["recentSpaces"].([]interface{}) {
-		if len(spacesToGetEntitlementsFor) == maxRecentSpacesForRPT {
+	for i, v := range contextInfoLoggedInIdentity["recentSpaces"].([]interface{}) {
+		if i == maxRecentSpacesForRPT-1 {
 			log.Info(ctx, map[string]interface{}{
 				"identity_id":               *loggedInIdentityID,
 				"max_recent_spaces_for_rpt": maxRecentSpacesForRPT,
