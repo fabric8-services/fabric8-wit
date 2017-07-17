@@ -81,7 +81,7 @@ func (s *workItemTypeSuite) SetupTest() {
 }
 
 func (s *workItemTypeSuite) TearDownTest() {
-	s.WaitGroup().Wait()
+	s.WaitForParallelTests()
 	s.clean()
 }
 

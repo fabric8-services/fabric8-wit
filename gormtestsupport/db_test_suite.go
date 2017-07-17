@@ -104,6 +104,11 @@ func (s *DBTestSuite) RunParallel(name string, f func(subtest *testing.T)) bool 
 	})
 }
 
+// WaitForTests waits for parallel subtests to finish.
+func (s *DBTestSuite) WaitForParallelTests() {
+	s.WaitGroup().Wait()
+}
+
 // PopulateDBTestSuite populates the DB with common values
 func (s *DBTestSuite) PopulateDBTestSuite(ctx context.Context) {
 	if _, c := os.LookupEnv(resource.Database); c != false {
