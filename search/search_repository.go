@@ -284,7 +284,8 @@ type Query struct {
 	Name  string
 	Value *string
 	// When Negate is true the comparison desribed above is negated; hence we
-	// check for inequality.
+	// check for inequality. When Name is an operator, the Negate field has no
+	// effect.
 	Negate bool
 	// A Query is expected to have child queries only if the Name field contains
 	// an operator like "$AND", or "$OR". If the Name is not an operator, the
