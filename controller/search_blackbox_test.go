@@ -536,7 +536,6 @@ func (s *searchBlackBoxTest) TestSearchFilter() {
 // 8 work items with different states & iterations & assignees & types
 // and tests multiple combinations of space, state, iteration, assignee, type
 func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
-	resource.Require(s.T(), resource.Database)
 	spaceOwner, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestSearchQueryScenarioDriven-"), "TestWISearch")
 	require.Nil(s.T(), err)
 
