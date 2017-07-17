@@ -198,7 +198,7 @@ func getSearchQueryFromURLString(url string) string {
 }
 
 // parseSearchString accepts a raw string and generates a searchKeyword object
-func parseSearchString(rawSearchString string) (searchKeyword, error) {
+func parseSearchString(ctx context.Context, rawSearchString string) (searchKeyword, error) {
 	// TODO remove special characters and exclaimations if any
 	rawSearchString = strings.Trim(rawSearchString, "/") // get rid of trailing slashes
 	rawSearchString = strings.Trim(rawSearchString, "\"")
@@ -223,10 +223,15 @@ func parseSearchString(rawSearchString string) (searchKeyword, error) {
 		} else if strings.HasPrefix(part, "type:") {
 			typeIDStr := strings.TrimPrefix(part, "type:")
 			if len(typeIDStr) == 0 {
+				log.Error(ctx, map[string]interface{}{}, "type: part is empty")
 				return res, errors.NewBadParameterError("Type ID must not be empty", part)
 			}
 			typeID, err := uuid.FromString(typeIDStr)
 			if err != nil {
+				log.Error(ctx, map[string]interface{}{
+					"err":    err,
+					"typeID": typeIDStr,
+				}, "failt to convert type ID string to UUID")
 				return res, errors.NewBadParameterError("failed to parse type ID string as UUID", typeIDStr)
 			}
 			res.workItemTypes = append(res.workItemTypes, typeID)
@@ -379,13 +384,17 @@ func (q Query) generateExpression() criteria.Expression {
 }
 
 // parseFilterString accepts a raw string and generates a criteria expression
-func parseFilterString(rawSearchString string) (criteria.Expression, error) {
+func parseFilterString(ctx context.Context, rawSearchString string) (criteria.Expression, error) {
 
 	fm := map[string]interface{}{}
 	// Parsing/Unmarshalling JSON encoding/json
 	err := json.Unmarshal([]byte(rawSearchString), &fm)
 
 	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err":             err,
+			"rawSearchString": rawSearchString,
+		}, "failed to unmarshal raw search string")
 		return nil, errors.NewBadParameterError("expression", rawSearchString)
 	}
 	q := Query{}
@@ -497,7 +506,7 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 	// parse
 	// generateSearchQuery
 	// ....
-	parsedSearchDict, err := parseSearchString(rawSearchString)
+	parsedSearchDict, err := parseSearchString(ctx, rawSearchString)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
 	}
@@ -534,6 +543,10 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria criteria.Expression, start *int, limit *int) ([]workitem.WorkItemStorage, uint64, error) {
 	where, parameters, compileError := workitem.Compile(criteria)
 	if compileError != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err":        compileError,
+			"expression": criteria,
+		}, "failed to compile expression")
 		return nil, 0, errors.NewBadParameterError("expression", criteria)
 	}
 
@@ -615,7 +628,7 @@ func (r *GormSearchRepository) Filter(ctx context.Context, rawFilterString strin
 	// parse
 	// generateSearchQuery
 	// ....
-	exp, err := parseFilterString(rawFilterString)
+	exp, err := parseFilterString(ctx, rawFilterString)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
 	}
