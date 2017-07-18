@@ -109,6 +109,35 @@ func (rest *TestIterationREST) TestSuccessCreateChildIteration() {
 	test.CreateChildIterationForbidden(rest.T(), svc.Context, svc, ctrl, parentID.String(), ci)
 }
 
+func (rest *TestIterationREST) TestFailCreateSameChildIterationConflict() {
+	// given
+	sp, _, _, _, parent := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	ri, err := rest.db.Iterations().Root(context.Background(), parent.SpaceID)
+	require.Nil(rest.T(), err)
+	parentID := parent.ID
+	name := uuid.NewV4().String()
+	ci := getChildIterationPayload(&name)
+	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerId)
+	require.Nil(rest.T(), err)
+	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
+	// when
+	_, created := test.CreateChildIterationCreated(rest.T(), svc.Context, svc, ctrl, parentID.String(), ci)
+	// then
+	require.NotNil(rest.T(), created)
+	assertChildIterationLinking(rest.T(), created.Data)
+	assert.Equal(rest.T(), *ci.Data.Attributes.Name, *created.Data.Attributes.Name)
+	expectedParentPath := parent.Path.String() + path.SepInService + parentID.String()
+	expectedResolvedParentPath := path.SepInService + ri.Name + path.SepInService + parent.Name
+	assert.Equal(rest.T(), expectedParentPath, *created.Data.Attributes.ParentPath)
+	assert.Equal(rest.T(), expectedResolvedParentPath, *created.Data.Attributes.ResolvedParentPath)
+	require.NotNil(rest.T(), created.Data.Relationships.Workitems.Meta)
+	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta["total"])
+	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta["closed"])
+
+	// try creating again with same name + hierarchy
+	test.CreateChildIterationConflict(rest.T(), svc.Context, svc, ctrl, parentID.String(), ci)
+}
+
 func (rest *TestIterationREST) TestFailValidationIterationNameLength() {
 	// given
 	_, _, _, _, parent := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
