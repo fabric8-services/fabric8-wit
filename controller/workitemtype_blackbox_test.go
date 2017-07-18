@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
@@ -72,7 +73,12 @@ func (s *workItemTypeSuite) SetupSuite() {
 func (s *workItemTypeSuite) SetupTest() {
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
+	idn := &account.Identity{
+		ID:           uuid.Nil,
+		Username:     "TestDeveloper",
+		ProviderType: "test provider",
+	}
+	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", almtoken.NewManagerWithPrivateKey(priv), *idn)
 	s.spaceCtrl = NewSpaceController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration, &DummyResourceManager{})
 	require.NotNil(s.T(), s.spaceCtrl)
 	s.typeCtrl = NewWorkitemtypeController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
@@ -146,7 +152,7 @@ func (s *workItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *ap
 	}
 
 	s.T().Log("Creating 'animal' work item type...")
-	responseWriter, wi := test.CreateWorkitemtypeCreated(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, &payload)
+	responseWriter, wi := test.CreateWorkitemtypeCreated(s.T(), s.svc.Context, s.svc, s.typeCtrl, space.SystemSpace, &payload)
 	require.NotNil(s.T(), wi)
 	s.T().Log("'animal' work item type created.")
 	return responseWriter, wi
@@ -185,7 +191,7 @@ func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 		},
 	}
 
-	responseWriter, wi := test.CreateWorkitemtypeCreated(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, &payload)
+	responseWriter, wi := test.CreateWorkitemtypeCreated(s.T(), s.svc.Context, s.svc, s.typeCtrl, space.SystemSpace, &payload)
 	require.NotNil(s.T(), wi)
 	return responseWriter, wi
 }
@@ -252,11 +258,30 @@ func (s *workItemTypeSuite) TestCreate() {
 
 	s.RunParallel("ok", func(t *testing.T) {
 		res, animal := s.createWorkItemTypeAnimal()
-		compareWithGolden(s.T(), filepath.Join(s.testDir, "create", "animal.wit.golden.json"), animal)
-		compareWithGolden(s.T(), filepath.Join(s.testDir, "create", "animal.headers.golden.json"), res.Header())
+		compareWithGolden(t, filepath.Join(s.testDir, "create", "animal.wit.golden.json"), animal)
+		compareWithGolden(t, filepath.Join(s.testDir, "create", "animal.headers.golden.json"), res.Header())
 		res, person := s.createWorkItemTypePerson()
-		compareWithGolden(s.T(), filepath.Join(s.testDir, "create", "person.golden.json"), person)
-		compareWithGolden(s.T(), filepath.Join(s.testDir, "create", "person.headers.golden.json"), res.Header())
+		compareWithGolden(t, filepath.Join(s.testDir, "create", "person.golden.json"), person)
+		compareWithGolden(t, filepath.Join(s.testDir, "create", "person.headers.golden.json"), res.Header())
+	})
+}
+
+func (s *workItemTypeSuite) TestCreateByNotOwnerForbidden() {
+	resetFn := s.DisableGormCallbacks()
+	defer resetFn()
+
+	s.T().Run("forbidden", func(t *testing.T) {
+		priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+		idn := &account.Identity{
+			ID:           uuid.NewV4(),
+			Username:     "TestDeveloper",
+			ProviderType: "test provider",
+		}
+		svc := testsupport.ServiceAsUser("TestCreateByNotOwnerForbidden-WorItemType-Service", almtoken.NewManagerWithPrivateKey(priv), *idn)
+		typeCtrl := NewWorkitemtypeController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+
+		payload := newCreateWorkItemTypePayload(uuid.NewV4(), space.SystemSpace)
+		test.CreateWorkitemtypeForbidden(s.T(), svc.Context, svc, typeCtrl, space.SystemSpace, &payload)
 	})
 }
 
