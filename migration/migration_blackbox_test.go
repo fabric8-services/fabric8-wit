@@ -459,7 +459,7 @@ func testMigration68(t *testing.T) {
 	// migrate to previous version
 	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+23)], (initialMigratedVersion + 23))
 	// fill DB with data
-	assert.Nil(t, runSQLscript(sqlDB, "068-create-wi.sql"))
+	assert.Nil(t, runSQLscript(sqlDB, "068-create-workitems.sql"))
 	// then apply the change
 	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+24)], (initialMigratedVersion + 24))
 	// check the value of execution_order
@@ -472,7 +472,7 @@ func testMigration68(t *testing.T) {
 	expectations := make(map[uuid.UUID]float64)
 	expectations[workitem1] = 1000
 	expectations[workitem2] = 2000
-	expectations[workitem3] = 3000
+	expectations[workitem3] = 1000
 	for workitemID, expectedExecutionOrder := range expectations {
 		var executionOrder float64
 		stmt, err := sqlDB.Prepare("select execution_order from work_items where id=$1")

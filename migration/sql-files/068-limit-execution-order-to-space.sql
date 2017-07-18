@@ -15,7 +15,7 @@ CREATE OR REPLACE FUNCTION limit_execution_order_to_space() RETURNS void as $$
 						FOR r in FETCH ALL FROM workitems_cursor
 							LOOP
 								UPDATE work_items set execution_order=i where id=r.id AND space_id=a.id;
-								i := i+1000;
+								i = i+1000;
 							END LOOP;
 					close workitems_cursor;
 				END LOOP;
