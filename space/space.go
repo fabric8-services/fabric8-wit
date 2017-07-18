@@ -11,6 +11,8 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
 
+	"fmt"
+
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
@@ -216,7 +218,7 @@ func (r *GormRepository) Create(ctx context.Context, space *Space) (*Space, erro
 			return nil, errors.NewBadParameterError("Name", space.Name).Expected("not empty")
 		}
 		if gormsupport.IsUniqueViolation(tx.Error, "spaces_name_idx") {
-			return nil, errors.NewBadParameterError("Name", space.Name).Expected("unique")
+			return nil, errors.NewDataConflictError(fmt.Sprintf("Space with Name:%s already exists", space.Name))
 		}
 		return nil, errors.NewInternalError(ctx, err)
 	}

@@ -205,6 +205,10 @@ func (test *repoBBTest) assertBadParameter() func(p *space.Space, err error) {
 	return test.assertErrorType(errors.BadParameterError{})
 }
 
+func (test *repoBBTest) assertDataConflict() func(p *space.Space, err error) {
+	return test.assertErrorType(errors.DataConflictError{})
+}
+
 func (test *repoBBTest) assertErrorType(e error) func(p *space.Space, e2 error) {
 	return func(p *space.Space, err error) {
 		assert.Nil(test.T(), p)
