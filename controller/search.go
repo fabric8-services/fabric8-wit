@@ -34,12 +34,13 @@ func NewSearchController(service *goa.Service, db application.DB, configuration 
 
 // Show runs the show action.
 func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
+
 	var offset int
 	var limit int
 
 	offset, limit = computePagingLimits(ctx.PageOffset, ctx.PageLimit)
 
-	// ToDo : Keep URL registeration central somehow.
+	// TODO: Keep URL registeration central somehow.
 	hostString := ctx.RequestData.Host
 	if hostString == "" {
 		hostString = c.configuration.GetHTTPAddress()
@@ -49,9 +50,39 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 	urlRegexString = fmt.Sprintf("(?P<domain>%s)(?P<path>/work-item/board/detail/)(?P<id>\\d*)", hostString)
 	search.RegisterAsKnownURL(search.HostRegistrationKeyForBoardWI, urlRegexString)
 
+	if ctx.FilterExpression != nil {
+		return application.Transactional(c.db, func(appl application.Application) error {
+			result, c, err := appl.SearchItems().Filter(ctx.Context, *ctx.FilterExpression, &offset, &limit)
+			count := int(c)
+			if err != nil {
+				cause := errs.Cause(err)
+				switch cause.(type) {
+				case errors.BadParameterError:
+					jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest("error listing work items for expression '%s': %s", *ctx.FilterExpression, err.Error()))
+					return ctx.BadRequest(jerrors)
+				default:
+					log.Error(ctx, map[string]interface{}{
+						"err":               err,
+						"filter_expression": *ctx.FilterExpression,
+					}, "unable to list the work items")
+					jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(err.Error()))
+					return ctx.InternalServerError(jerrors)
+				}
+			}
+
+			response := app.SearchWorkItemList{
+				Links: &app.PagingLinks{},
+				Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
+				Data:  ConvertWorkItems(ctx.RequestData, result),
+			}
+
+			setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(result), offset, limit, count, "filter[expression]="+*ctx.FilterExpression)
+			return ctx.OK(&response)
+		})
+
+	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-		//return transaction.Do(c.ts, func() error {
-		result, c, err := appl.SearchItems().SearchFullText(ctx.Context, ctx.Q, &offset, &limit, ctx.SpaceID)
+		result, c, err := appl.SearchItems().SearchFullText(ctx.Context, *ctx.Q, &offset, &limit, ctx.SpaceID)
 		count := int(c)
 		if err != nil {
 			cause := errs.Cause(err)
@@ -74,7 +105,7 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 			Data:  ConvertWorkItems(ctx.RequestData, result),
 		}
 
-		setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(result), offset, limit, count, "q="+ctx.Q)
+		setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(result), offset, limit, count, "q="+*ctx.Q)
 		return ctx.OK(&response)
 	})
 }

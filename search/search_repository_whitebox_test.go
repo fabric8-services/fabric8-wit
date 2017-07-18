@@ -20,6 +20,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	"context"
+
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
@@ -172,9 +173,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			ctx := goa.NewContext(context.Background(), nil, req, params)
 
 			createdWorkItem, err := wir.Create(ctx, space.SystemSpace, workitem.SystemBug, workItem.Fields, s.modifierID)
-			if err != nil {
-				s.T().Fatal("Couldnt create test data")
-			}
+			require.Nil(s.T(), err, "failed to create test data")
 
 			// create the URL and use it in the search string
 			workItemURLInSearchString = workItemURLInSearchString + strconv.Itoa(createdWorkItem.Number)
@@ -187,9 +186,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			sr := NewGormSearchRepository(tx)
 			var start, limit int = 0, 100
 			workItemList, _, err := sr.SearchFullText(ctx, searchString, &start, &limit, nil)
-			if err != nil {
-				s.T().Fatal("Error getting search result ", err)
-			}
+			require.Nil(s.T(), err, "failed to get search result")
 			searchString = strings.Trim(searchString, "\"")
 			// Since this test adds test data, whether or not other workitems exist
 			// there must be at least 1 search result returned.
@@ -342,7 +339,7 @@ func TestParseSearchString(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	input := "user input for search string with some ids like number:99 and number:400 but this is not id like 800"
-	op, _ := parseSearchString(input)
+	op, _ := parseSearchString(context.Background(), input)
 	expectedSearchRes := searchKeyword{
 		number: []string{"99:*A", "400:*A"},
 		words:  []string{"user:*", "input:*", "for:*", "search:*", "string:*", "with:*", "some:*", "ids:*", "like:*", "and:*", "but:*", "this:*", "is:*", "not:*", "id:*", "like:*", "800:*"},
@@ -374,7 +371,7 @@ func TestParseSearchStringURL(t *testing.T) {
 	}}
 
 	for _, input := range inputSet {
-		op, _ := parseSearchString(input.query)
+		op, _ := parseSearchString(context.Background(), input.query)
 		assert.True(t, assert.ObjectsAreEqualValues(input.expected, op))
 	}
 }
@@ -397,7 +394,7 @@ func TestParseSearchStringURLWithouID(t *testing.T) {
 	}}
 
 	for _, input := range inputSet {
-		op, _ := parseSearchString(input.query)
+		op, _ := parseSearchString(context.Background(), input.query)
 		assert.True(t, assert.ObjectsAreEqualValues(input.expected, op))
 	}
 
@@ -407,7 +404,7 @@ func TestParseSearchStringDifferentURL(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	input := "http://demo.redhat.io"
-	op, _ := parseSearchString(input)
+	op, _ := parseSearchString(context.Background(), input)
 	expectedSearchRes := searchKeyword{
 		number: nil,
 		words:  []string{"demo.redhat.io:*"},
@@ -421,7 +418,7 @@ func TestParseSearchStringCombination(t *testing.T) {
 	// do combination of ID, full text and URLs
 	// check if it works as expected.
 	input := "http://general.url.io http://demo.almighty.io/work-item/list/detail/100 number:300 golang book and           number:900 \t \n unwanted"
-	op, _ := parseSearchString(input)
+	op, _ := parseSearchString(context.Background(), input)
 	expectedSearchRes := searchKeyword{
 		number: []string{"300:*A", "900:*A"},
 		words:  []string{"general.url.io:*", "(100:* | demo.almighty.io/work-item/list/detail/100:*)", "golang:*", "book:*", "and:*", "unwanted:*"},
