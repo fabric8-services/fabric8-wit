@@ -61,7 +61,7 @@ func (test *repoBBTest) TestCreateFailSameOwner() {
 
 	require.Equal(test.T(), res.Name, testSpace)
 
-	expectSpace(test.create(testSpace), test.assertBadParameter())
+	expectSpace(test.create(testSpace), test.assertDataConflict())
 }
 
 func (test *repoBBTest) TestLoad() {
