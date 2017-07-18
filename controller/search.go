@@ -89,13 +89,18 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 			cause := errs.Cause(err)
 			switch cause.(type) {
 			case errors.BadParameterError:
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("error listing work items: %s", err)))
+				log.Error(ctx, map[string]interface{}{
+					"err":        err,
+					"expression": *ctx.Q,
+				}, "unable to list the work items")
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("error listing work items for expression: %s: %s", *ctx.Q, err)))
 				return ctx.BadRequest(jerrors)
 			default:
 				log.Error(ctx, map[string]interface{}{
-					"err": err,
+					"err":        err,
+					"expression": *ctx.Q,
 				}, "unable to list the work items")
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(fmt.Sprintf("unable to list the work items: %s", err)))
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(fmt.Sprintf("unable to list the work items expression: %s: %s", *ctx.Q, err)))
 				return ctx.InternalServerError(jerrors)
 			}
 		}
