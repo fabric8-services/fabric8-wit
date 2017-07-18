@@ -72,8 +72,8 @@ func (s *TestAreaRepository) TestCreateAreaWithSameNameFail() {
 	err = repo.Create(context.Background(), &anotherAreaWithSameName)
 	// then
 	require.NotNil(s.T(), err)
-	// In case of unique constrain error, a BadParameterError is returned.
-	_, ok := errors.Cause(err).(errs.BadParameterError)
+	// In case of unique constrain error, a DataConflictError is returned.
+	_, ok := errors.Cause(err).(errs.DataConflictError)
 	assert.True(s.T(), ok)
 }
 
