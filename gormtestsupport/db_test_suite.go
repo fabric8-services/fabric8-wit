@@ -3,6 +3,7 @@ package gormtestsupport
 import (
 	"context"
 	"flag"
+	"fmt"
 	"os"
 	"sync"
 	"testing"
@@ -33,14 +34,20 @@ type DBTestSuite struct {
 	Configuration  *config.ConfigurationData
 	DB             *gorm.DB
 	waitGroups     map[*testing.T]*sync.WaitGroup
-	waitGroupsLock sync.Mutex
+	waitGroupsLock sync.RWMutex
 }
 
 // SetupSuite implements suite.SetupAllSuite
 func (s *DBTestSuite) SetupSuite() {
 	resource.Require(s.T(), resource.Database)
+	fmt.Println("SetupSuite(): lock")
 	s.waitGroupsLock.Lock()
-	defer s.waitGroupsLock.Unlock()
+	fmt.Println("SetupSuite(): lock DONE")
+	defer func() {
+		fmt.Println("SetupSuite(): unlock")
+		s.waitGroupsLock.Unlock()
+		fmt.Println("SetupSuite(): unlock DONE")
+	}()
 	s.waitGroups = make(map[*testing.T]*sync.WaitGroup)
 	configuration, err := config.NewConfigurationData(s.configFile)
 	if err != nil {
@@ -78,13 +85,20 @@ func (s *DBTestSuite) SetupSuite() {
 //		/*just do your normal testing here*/
 //	})
 func (s *DBTestSuite) waitGroup() *sync.WaitGroup {
+	fmt.Println("waitGroup(): lock")
 	s.waitGroupsLock.Lock()
-	defer s.waitGroupsLock.Unlock()
+	fmt.Println("waitGroup(): lock DONE")
+	defer func() {
+		fmt.Println("waitGroup(): unlock")
+		s.waitGroupsLock.Unlock()
+		fmt.Println("waitGroup(): unlock DONE")
+	}()
 
 	wg, ok := s.waitGroups[s.T()]
 	if ok {
 		return wg
 	}
+	// No wait group available for this test yet
 	wg = &sync.WaitGroup{}
 	s.waitGroups[s.T()] = wg
 	return wg
@@ -96,20 +110,51 @@ var allowParallelSubTests = flag.Bool("allowParallelSubTests", true, "when set, 
 // subtest that takes care of setting up synchronization primitives. See the
 // description of waitGroup as well to find out about freeing of resources.
 func (s *DBTestSuite) RunParallel(name string, f func(subtest *testing.T)) bool {
+	var wg *sync.WaitGroup
+	if *allowParallelSubTests {
+		wg = s.waitGroup()
+		fmt.Println("RunParallel(): Add")
+		wg.Add(1)
+		fmt.Println("RunParallel(): Add DONE")
+	}
 	return s.T().Run(name, func(t *testing.T) {
 		if *allowParallelSubTests {
 			// Make the outer suite's test wait for this subtest
-			s.waitGroup().Add(1)
-			defer s.waitGroup().Done()
+			defer func() {
+				fmt.Println("RunParallel(): Done")
+				wg.Done()
+				fmt.Println("RunParallel(): Done DONE")
+			}()
+			fmt.Println("RunParallel(): signaling parallelism")
 			t.Parallel()
+			fmt.Println("RunParallel(): signaling parallelism DONE")
 		}
+		fmt.Println("RunParallel(): executing user function")
 		f(t)
+		fmt.Println("RunParallel(): executing user function DONE")
 	})
 }
 
 // WaitForTests waits for parallel subtests to finish.
 func (s *DBTestSuite) WaitForParallelTests() {
-	s.waitGroup().Wait()
+	if *allowParallelSubTests {
+
+		fmt.Println("WaitForParallelTests(): Lock")
+		s.waitGroupsLock.RLock()
+		fmt.Println("WaitForParallelTests(): Lock DONE")
+		defer func() {
+			fmt.Println("WaitForParallelTests(): RUnlock")
+			s.waitGroupsLock.RUnlock()
+			fmt.Println("WaitForParallelTests(): RUnlock DONE")
+		}()
+		wg, ok := s.waitGroups[s.T()]
+		if ok {
+			fmt.Println("WaitForParallelTests(): Wait")
+			wg.Wait()
+			fmt.Println("WaitForParallelTests(): Wait DONE")
+		}
+		//s.waitGroup().Wait()
+	}
 }
 
 // PopulateDBTestSuite populates the DB with common values
