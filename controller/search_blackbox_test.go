@@ -796,6 +796,11 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 	s.T().Run("bad expression missing curly brace", func(t *testing.T) {
 		filter := fmt.Sprintf(`{"state": "0fe7b23e-c66e-43a9-ab1b-fbad9924fe7c"`)
 		res, jerrs := test.ShowSearchBadRequest(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, &spaceIDStr)
+		require.NotNil(t, jerrs)
+		require.Len(t, jerrs.Errors, 1)
+		require.NotNil(t, jerrs.Errors[0].ID)
+		ignoreString := "IGNORE_ME"
+		jerrs.Errors[0].ID = &ignoreString
 		compareWithGolden(t, filepath.Join(s.testDir, "show", "bad_expression_missing_curly_brace.error.golden.json"), jerrs)
 		compareWithGolden(t, filepath.Join(s.testDir, "show", "bad_expression_missing_curly_brace.headers.golden.json"), res.Header())
 	})
