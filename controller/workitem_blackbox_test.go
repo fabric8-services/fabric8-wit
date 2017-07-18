@@ -735,7 +735,7 @@ func minimumRequiredCreateWithTypeAndSpace(witID uuid.UUID, spaceID uuid.UUID) a
 }
 
 func newRelationBaseType(spaceID, wit uuid.UUID) *app.RelationBaseType {
-	witSelfURL := rest.AbsoluteURL(&goa.RequestData{
+	witRelatedURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.WorkitemtypeHref(spaceID.String(), wit.String()))
 
@@ -745,7 +745,8 @@ func newRelationBaseType(spaceID, wit uuid.UUID) *app.RelationBaseType {
 			ID:   wit,
 		},
 		Links: &app.GenericLinks{
-			Self: &witSelfURL,
+			Self:    &witRelatedURL,
+			Related: &witRelatedURL,
 		},
 	}
 }
