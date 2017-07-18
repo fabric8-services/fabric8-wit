@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"path/filepath"
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/account"
@@ -54,12 +55,14 @@ type searchBlackBoxTest struct {
 	controller                     *SearchController
 	spaceBlackBoxTestConfiguration *config.ConfigurationData
 	ctx                            context.Context
+	testDir                        string
 }
 
 func (s *searchBlackBoxTest) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
 	s.ctx = migration.NewMigrationContext(context.Background())
 	s.DBTestSuite.PopulateDBTestSuite(s.ctx)
+	s.testDir = filepath.Join("test-files", "search")
 }
 
 func (s *searchBlackBoxTest) SetupTest() {
@@ -760,7 +763,7 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 
 	s.T().Run("space=spaceID AND (type=bug OR type=feature)", func(t *testing.T) {
 		// get me all bugs or features in myspace
-		filter12 := fmt.Sprintf(`
+		filter := fmt.Sprintf(`
 			{"$AND": [
 				{"space":"%s"},
 				{"$OR": [
@@ -769,14 +772,14 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 				]}
 			]}`,
 			spaceIDStr, workitem.SystemBug, workitem.SystemFeature)
-		_, result12 := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter12, nil, nil, nil, &spaceIDStr)
-		require.NotEmpty(s.T(), result12.Data)
-		require.Len(s.T(), result12.Data, 3+5) //bugs + features
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(s.T(), result.Data)
+		require.Len(s.T(), result.Data, 3+5) //bugs + features
 	})
 
 	s.T().Run("space=spaceID AND (type=bug AND state=resolved AND (assignee=bob OR assignee=alice))", func(t *testing.T) {
 		// get me all Resolved bugs assigned to bob or alice
-		filter13 := fmt.Sprintf(`
+		filter := fmt.Sprintf(`
 			{"$AND": [
 				{"space":"%s"},
 				{"$AND": [
@@ -785,8 +788,20 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 				]}
 			]}`,
 			spaceIDStr, workitem.SystemBug, workitem.SystemStateResolved, bob.ID, alice.ID)
-		_, result13 := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter13, nil, nil, nil, &spaceIDStr)
-		require.NotEmpty(s.T(), result13.Data)
-		require.Len(s.T(), result13.Data, 3) //resolved bugs
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(s.T(), result.Data)
+		require.Len(s.T(), result.Data, 3) //resolved bugs
+	})
+
+	s.T().Run("bad expression missing curly brace", func(t *testing.T) {
+		filter := fmt.Sprintf(`{"state": "0fe7b23e-c66e-43a9-ab1b-fbad9924fe7c"`)
+		res, jerrs := test.ShowSearchBadRequest(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, &spaceIDStr)
+		require.NotNil(t, jerrs)
+		require.Len(t, jerrs.Errors, 1)
+		require.NotNil(t, jerrs.Errors[0].ID)
+		ignoreString := "IGNORE_ME"
+		jerrs.Errors[0].ID = &ignoreString
+		compareWithGolden(t, filepath.Join(s.testDir, "show", "bad_expression_missing_curly_brace.error.golden.json"), jerrs)
+		compareWithGolden(t, filepath.Join(s.testDir, "show", "bad_expression_missing_curly_brace.headers.golden.json"), res.Header())
 	})
 }
