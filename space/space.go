@@ -2,6 +2,7 @@ package space
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -10,8 +11,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
-
-	"fmt"
 
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
