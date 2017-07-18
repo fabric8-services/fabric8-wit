@@ -39,6 +39,9 @@ type DBTestSuite struct {
 // SetupSuite implements suite.SetupAllSuite
 func (s *DBTestSuite) SetupSuite() {
 	resource.Require(s.T(), resource.Database)
+	s.waitGroupsLock.Lock()
+	defer s.waitGroupsLock.Unlock()
+	s.waitGroups = make(map[*testing.T]*sync.WaitGroup)
 	configuration, err := config.NewConfigurationData(s.configFile)
 	if err != nil {
 		log.Panic(nil, map[string]interface{}{
