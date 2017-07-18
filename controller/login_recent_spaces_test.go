@@ -120,11 +120,15 @@ func (rest *TestRecentSpacesREST) TestResourceRequestPayload() {
 	// This will be nil because contextInformation for the test user is empty!
 	require.Nil(t, resource)
 
-	// Scenario 2 - Test user has 'some' contextInformation
+	// Scenario 2 - Test user has 'some' contextInformation incl. 12 recent spaces.
 	identity := account.Identity{}
+	dummyRecentSpaces := []interface{}{}
+	for i := 1; i <= maxRecentSpacesForRPT+2; i++ {
+		dummyRecentSpaces = append(dummyRecentSpaces, uuid.NewV4().String())
+	}
 	user := account.User{
 		ContextInformation: account.ContextInformation{
-			"recentSpaces": []interface{}{"29dd4613-3da1-4100-a2d6-414573eaa470"},
+			"recentSpaces": dummyRecentSpaces,
 		},
 	}
 	identity.User = user
@@ -136,7 +140,7 @@ func (rest *TestRecentSpacesREST) TestResourceRequestPayload() {
 
 	require.NotNil(t, resource)
 	require.NotNil(t, resource.Permissions)
-	assert.Len(t, resource.Permissions, 1)
+	assert.Len(t, resource.Permissions, maxRecentSpacesForRPT)
 
 }
 
