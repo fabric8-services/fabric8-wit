@@ -101,6 +101,7 @@ var _ = a.Resource("iteration", func() {
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.Forbidden, JSONAPIErrors)
+		a.Response(d.Conflict, JSONAPIErrors)
 	})
 	a.Action("update", func() {
 		a.Security("jwt")

@@ -306,6 +306,7 @@ func (s *TestIterationRepository) TestCreateIterationSameNameFailsWithinSpace() 
 	err = repo.Create(context.Background(), &i)
 	require.NotNil(t, err)
 	require.Equal(t, uuid.Nil, i2.ID)
+	assert.Equal(t, reflect.TypeOf(errors.DataConflictError{}), reflect.TypeOf(err))
 
 	// create iteration with same name in anothe space, should pass
 	i3 := iteration.Iteration{
