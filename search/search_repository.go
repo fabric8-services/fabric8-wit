@@ -400,7 +400,7 @@ func parseFilterString(ctx context.Context, rawSearchString string) (criteria.Ex
 			"err":             err,
 			"rawSearchString": rawSearchString,
 		}, "failed to unmarshal raw search string")
-		return nil, errors.NewBadParameterError("expression", rawSearchString)
+		return nil, errors.NewBadParameterError("expression", rawSearchString+": "+err.Error())
 	}
 	q := Query{}
 	parseMap(fm, &q)
