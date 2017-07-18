@@ -47,7 +47,7 @@ func writeFunctions(api *design.APIDefinition, outDir string) ([]string, error) 
 }
 
 const (
-	newSpaceRelation = `func NewSpaceRelation(id uuid.UUID, selfURL string) *RelationSpaces {
+	newSpaceRelation = `func NewSpaceRelation(id uuid.UUID, relatedURL string) *RelationSpaces {
 	spaceType := "spaces"
 	return &RelationSpaces{
 		Data: &RelationSpacesData{
@@ -55,7 +55,8 @@ const (
 			ID:   &id,
 		},
 		Links: &GenericLinks{
-			Self: &selfURL,
+			Self: &relatedURL,
+			Related: &relatedURL,
 		},
 	}
 }`
