@@ -139,7 +139,13 @@ func (c *SearchController) Spaces(ctx *app.SpacesSearchContext) error {
 			cause := errs.Cause(err)
 			switch cause.(type) {
 			case errors.BadParameterError:
-				return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(fmt.Sprintf("error listing spaces: %s", err)))
+				log.Error(ctx, map[string]interface{}{
+					"query":  q,
+					"offset": offset,
+					"limit":  limit,
+					"err":    err,
+				}, "unable to list spaces")
+				return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(fmt.Sprintf("error listing spaces for expression: %s: %s", q, err)))
 			default:
 				log.Error(ctx, map[string]interface{}{
 					"query":  q,
@@ -147,7 +153,7 @@ func (c *SearchController) Spaces(ctx *app.SpacesSearchContext) error {
 					"limit":  limit,
 					"err":    err,
 				}, "unable to list spaces")
-				return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(fmt.Sprintf("unable to list spaces %s", err)))
+				return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(fmt.Sprintf("unable to list spaces for expression: %s: %s", q, err)))
 			}
 		}
 
