@@ -118,7 +118,10 @@ func (s *KeycloakAuthzService) Authorize(ctx context.Context, entitlementEndpoin
 
 	permissions := claims.Authorization.Permissions
 	if permissions == nil {
-		return false, nil
+		// if the RPT doesn't contain the resource info, it could be probably
+		// because the entitlement was never fetched in the first place. Hence we consider
+		// the token to be 'outdated' and hence re-fetch the entitlements from keycloak.
+		return s.checkEntitlementForSpace(ctx, *jwttoken, entitlementEndpoint, spaceID)
 	}
 	for _, permission := range permissions {
 		name := permission.ResourceSetName
@@ -126,7 +129,10 @@ func (s *KeycloakAuthzService) Authorize(ctx context.Context, entitlementEndpoin
 			return true, nil
 		}
 	}
-	return false, nil
+	// if the RPT doesn't contain the resource info, it could be probably
+	// because the entitlement was never fetched in the first place. Hence we consider
+	// the token to be 'outdated' and hence re-fetch the entitlements from keycloak.
+	return s.checkEntitlementForSpace(ctx, *jwttoken, entitlementEndpoint, spaceID)
 }
 
 func (s *KeycloakAuthzService) checkEntitlementForSpace(ctx context.Context, token jwt.Token, entitlementEndpoint string, spaceID string) (bool, error) {
