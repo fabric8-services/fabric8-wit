@@ -257,11 +257,11 @@ func (s *workItemTypeSuite) TestCreate() {
 
 	s.T().Run("ok", func(t *testing.T) {
 		res, animal := s.createWorkItemTypeAnimal()
-		compareWithGolden(s.T(), filepath.Join(s.testDir, "create", "animal.wit.golden.json"), animal)
-		compareWithGolden(s.T(), filepath.Join(s.testDir, "create", "animal.headers.golden.json"), res.Header())
+		compareWithGolden(t, filepath.Join(s.testDir, "create", "animal.wit.golden.json"), animal)
+		compareWithGolden(t, filepath.Join(s.testDir, "create", "animal.headers.golden.json"), res.Header())
 		res, person := s.createWorkItemTypePerson()
-		compareWithGolden(s.T(), filepath.Join(s.testDir, "create", "person.golden.json"), person)
-		compareWithGolden(s.T(), filepath.Join(s.testDir, "create", "person.headers.golden.json"), res.Header())
+		compareWithGolden(t, filepath.Join(s.testDir, "create", "person.golden.json"), person)
+		compareWithGolden(t, filepath.Join(s.testDir, "create", "person.headers.golden.json"), res.Header())
 	})
 }
 
