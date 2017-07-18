@@ -10,6 +10,8 @@ import (
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/path"
 
+	"fmt"
+
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
@@ -74,7 +76,13 @@ func (m *GormAreaRepository) Create(ctx context.Context, u *Area) error {
 	if err != nil {
 		// ( name, spaceID ,path ) needs to be unique
 		if gormsupport.IsUniqueViolation(err, "areas_name_space_id_path_unique") {
-			return errors.NewBadParameterError("name & space_id & path", u.Name+" & "+u.SpaceID.String()+" & "+u.Path.String()).Expected("unique")
+			log.Error(ctx, map[string]interface{}{
+				"err":      err,
+				"name":     u.Name,
+				"path":     u.Path,
+				"space_id": u.SpaceID,
+			}, "unable to create child area because an area in the same path already exists")
+			return errors.NewDataConflictError(fmt.Sprintf("area already exists with name = %s , space_id = %s , path = %s ", u.Name, u.SpaceID.String(), u.Path.String()))
 		}
 		log.Error(ctx, map[string]interface{}{}, "error adding Area: %s", err.Error())
 		return err

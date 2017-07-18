@@ -23,6 +23,7 @@ import (
 	almtoken "github.com/fabric8-services/fabric8-wit/token"
 
 	"context"
+
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -127,6 +128,26 @@ func (rest *TestAreaREST) TestSuccessCreateMultiChildArea() {
 	assert.NotNil(rest.T(), *created.Data.Attributes.Version)
 	assert.Equal(rest.T(), newParentID, *created.Data.Relationships.Parent.Data.ID)
 	assert.Contains(rest.T(), *created.Data.Relationships.Children.Links.Self, "children")
+}
+
+func (rest *TestAreaREST) TestConflictCreatDuplicateChildArea() {
+	// given
+	sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
+	parentID := parentArea.ID
+	name := uuid.NewV4().String()
+	ci := newCreateChildAreaPayload(&name)
+	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerId)
+	require.Nil(rest.T(), err)
+	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
+	// when
+	_, created := test.CreateChildAreaCreated(rest.T(), svc.Context, svc, ctrl, parentID.String(), ci)
+	// then
+	assert.Equal(rest.T(), *ci.Data.Attributes.Name, *created.Data.Attributes.Name)
+	assert.Equal(rest.T(), parentID.String(), *created.Data.Relationships.Parent.Data.ID)
+
+	// try creating the same area again
+	test.CreateChildAreaConflict(rest.T(), svc.Context, svc, ctrl, parentID.String(), ci)
+
 }
 
 func (rest *TestAreaREST) TestFailCreateChildAreaMissingName() {
