@@ -125,7 +125,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration65", testMigration65)
 	t.Run("TestMigration66", testMigration66)
 	t.Run("TestMigration67", testMigration67)
-	t.Run("TestMigration68", testMigration68)
+	t.Run("TestMigration69", testMigration69)
 
 	// Perform the migration
 	if err := migration.Migrate(sqlDB, databaseName); err != nil {
@@ -455,13 +455,13 @@ func testMigration67(t *testing.T) {
 	assert.NotNil(t, parentID)
 }
 
-func testMigration68(t *testing.T) {
+func testMigration69(t *testing.T) {
 	// migrate to previous version
-	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+23)], (initialMigratedVersion + 23))
-	// fill DB with data
-	assert.Nil(t, runSQLscript(sqlDB, "068-create-workitems.sql"))
-	// then apply the change
 	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+24)], (initialMigratedVersion + 24))
+	// fill DB with data
+	assert.Nil(t, runSQLscript(sqlDB, "069-create-workitems.sql"))
+	// then apply the change
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+25)], (initialMigratedVersion + 25))
 	// check the value of execution_order
 	workitem1, err := uuid.FromString("00000000-0000-0000-0000-000000000004")
 	require.Nil(t, err)

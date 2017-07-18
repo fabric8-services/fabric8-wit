@@ -7,13 +7,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
-	testcommon "github.com/fabric8-services/fabric8-wit/test"
+	testsupport "github.com/fabric8-services/fabric8-wit/test"
 
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -23,6 +24,7 @@ import (
 
 type TestIterationRepository struct {
 	gormtestsupport.DBTestSuite
+	testIdentity account.Identity
 
 	clean func()
 }
@@ -31,28 +33,30 @@ func TestRunIterationRepository(t *testing.T) {
 	suite.Run(t, &TestIterationRepository{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
-func (test *TestIterationRepository) SetupTest() {
-	test.clean = cleaner.DeleteCreatedEntities(test.DB)
+func (s *TestIterationRepository) SetupTest() {
+	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "WorkItemSuite setup user", "test provider")
+	require.Nil(s.T(), err)
+	s.testIdentity = *testIdentity
 }
 
-func (test *TestIterationRepository) TearDownTest() {
-	test.clean()
+func (s *TestIterationRepository) TearDownTest() {
+	s.clean()
 }
 
-func (test *TestIterationRepository) TestCreateIteration() {
-	t := test.T()
+func (s *TestIterationRepository) TestCreateIteration() {
+	t := s.T()
 	resource.Require(t, resource.Database)
-
-	repo := iteration.NewIterationRepository(test.DB)
-
+	repo := iteration.NewIterationRepository(s.DB)
 	start := time.Now()
 	end := start.Add(time.Hour * (24 * 8 * 3))
 	name := "Sprint #24"
 
 	newSpace := space.Space{
-		Name: "Space 1",
+		Name:    "Space 1",
+		OwnerId: s.testIdentity.ID,
 	}
-	repoSpace := space.NewRepository(test.DB)
+	repoSpace := space.NewRepository(s.DB)
 	space, err := repoSpace.Create(context.Background(), &newSpace)
 	assert.Nil(t, err)
 
@@ -76,11 +80,11 @@ func (test *TestIterationRepository) TestCreateIteration() {
 	assert.Equal(t, name, i.Name)
 }
 
-func (test *TestIterationRepository) TestCreateChildIteration() {
-	t := test.T()
+func (s *TestIterationRepository) TestCreateChildIteration() {
+	t := s.T()
 	resource.Require(t, resource.Database)
 
-	repo := iteration.NewIterationRepository(test.DB)
+	repo := iteration.NewIterationRepository(s.DB)
 
 	start := time.Now()
 	end := start.Add(time.Hour * (24 * 8 * 3))
@@ -88,9 +92,10 @@ func (test *TestIterationRepository) TestCreateChildIteration() {
 	name2 := "Sprint #24.1"
 
 	newSpace := space.Space{
-		Name: "Space 1",
+		Name:    "Space 1",
+		OwnerId: s.testIdentity.ID,
 	}
-	repoSpace := space.NewRepository(test.DB)
+	repoSpace := space.NewRepository(s.DB)
 	space, err := repoSpace.Create(context.Background(), &newSpace)
 	assert.Nil(t, err)
 
@@ -122,11 +127,11 @@ func (test *TestIterationRepository) TestCreateChildIteration() {
 	assert.Equal(t, expectedPath, i2L.Path.Convert())
 }
 
-func (test *TestIterationRepository) TestRootIteration() {
-	t := test.T()
+func (s *TestIterationRepository) TestRootIteration() {
+	t := s.T()
 	resource.Require(t, resource.Database)
 
-	repo := iteration.NewIterationRepository(test.DB)
+	repo := iteration.NewIterationRepository(s.DB)
 
 	start := time.Now()
 	end := start.Add(time.Hour * (24 * 8 * 3))
@@ -134,9 +139,10 @@ func (test *TestIterationRepository) TestRootIteration() {
 	name2 := "Sprint #24.1"
 
 	newSpace := space.Space{
-		Name: "Space 1",
+		Name:    "Space 1",
+		OwnerId: s.testIdentity.ID,
 	}
-	repoSpace := space.NewRepository(test.DB)
+	repoSpace := space.NewRepository(s.DB)
 	space, err := repoSpace.Create(context.Background(), &newSpace)
 	assert.Nil(t, err)
 
@@ -168,16 +174,17 @@ func (test *TestIterationRepository) TestRootIteration() {
 	assert.Equal(t, expectedPath, res.Path.Convert())
 }
 
-func (test *TestIterationRepository) TestListIterationBySpace() {
-	t := test.T()
+func (s *TestIterationRepository) TestListIterationBySpace() {
+	t := s.T()
 	resource.Require(t, resource.Database)
 
-	repo := iteration.NewIterationRepository(test.DB)
+	repo := iteration.NewIterationRepository(s.DB)
 
 	newSpace := space.Space{
-		Name: "Space 1",
+		Name:    "Space 1",
+		OwnerId: s.testIdentity.ID,
 	}
-	repoSpace := space.NewRepository(test.DB)
+	repoSpace := space.NewRepository(s.DB)
 	spaceInstance, err := repoSpace.Create(context.Background(), &newSpace)
 	assert.Nil(t, err)
 
@@ -197,7 +204,8 @@ func (test *TestIterationRepository) TestListIterationBySpace() {
 	}
 	// create another space and add iteration to another space
 	anotherSpace := space.Space{
-		Name: "Space 2",
+		Name:    "Space 2",
+		OwnerId: s.testIdentity.ID,
 	}
 	anotherSpaceCreated, err := repoSpace.Create(context.Background(), &anotherSpace)
 	assert.Nil(t, err)
@@ -212,20 +220,21 @@ func (test *TestIterationRepository) TestListIterationBySpace() {
 	assert.Len(t, its, 3)
 }
 
-func (test *TestIterationRepository) TestUpdateIteration() {
-	t := test.T()
+func (s *TestIterationRepository) TestUpdateIteration() {
+	t := s.T()
 	resource.Require(t, resource.Database)
 
-	repo := iteration.NewIterationRepository(test.DB)
+	repo := iteration.NewIterationRepository(s.DB)
 
 	start := time.Now()
 	end := start.Add(time.Hour * (24 * 8 * 3))
 	name := "Sprint #24"
 
 	newSpace := space.Space{
-		Name: "Space 1",
+		Name:    "Space 1",
+		OwnerId: s.testIdentity.ID,
 	}
-	repoSpace := space.NewRepository(test.DB)
+	repoSpace := space.NewRepository(s.DB)
 	space, err := repoSpace.Create(context.Background(), &newSpace)
 	assert.Nil(t, err)
 
@@ -260,20 +269,22 @@ func (test *TestIterationRepository) TestUpdateIteration() {
 	assert.Equal(t, changedEnd, *updatedIteration.EndAt)
 }
 
-func (test *TestIterationRepository) TestCreateIterationSameNameFailsWithinSpace() {
-	t := test.T()
+func (s *TestIterationRepository) TestCreateIterationSameNameFailsWithinSpace() {
+	t := s.T()
 	resource.Require(t, resource.Database)
-	repo := iteration.NewIterationRepository(test.DB)
+	repo := iteration.NewIterationRepository(s.DB)
 
 	sp1 := space.Space{
-		Name: "Space 1",
+		Name:    "Space 1",
+		OwnerId: s.testIdentity.ID,
 	}
-	repoSpace := space.NewRepository(test.DB)
+	repoSpace := space.NewRepository(s.DB)
 	space1, err := repoSpace.Create(context.Background(), &sp1)
 	assert.Nil(t, err)
 
 	sp2 := space.Space{
-		Name: "Space 2",
+		Name:    "Space 2",
+		OwnerId: s.testIdentity.ID,
 	}
 	space2, err := repoSpace.Create(context.Background(), &sp2)
 	assert.Nil(t, err)
@@ -306,17 +317,18 @@ func (test *TestIterationRepository) TestCreateIterationSameNameFailsWithinSpace
 	require.NotEqual(t, uuid.Nil, i3.ID)
 }
 
-func (test *TestIterationRepository) TestLoadChildren() {
-	t := test.T()
+func (s *TestIterationRepository) TestLoadChildren() {
+	t := s.T()
 	resource.Require(t, resource.Database)
 	newSpace := space.Space{
-		Name: testcommon.CreateRandomValidTestName("Space Test Load Children"),
+		Name:    testsupport.CreateRandomValidTestName("Space Test Load Children"),
+		OwnerId: s.testIdentity.ID,
 	}
-	repoSpace := space.NewRepository(test.DB)
+	repoSpace := space.NewRepository(s.DB)
 	space, err := repoSpace.Create(context.Background(), &newSpace)
 	assert.Nil(t, err)
 
-	repo := iteration.NewIterationRepository(test.DB)
+	repo := iteration.NewIterationRepository(s.DB)
 	level0IterationName := "Top level iteration"
 	i1 := iteration.Iteration{
 		Name:    level0IterationName,
@@ -383,20 +395,21 @@ func (test *TestIterationRepository) TestLoadChildren() {
 	assert.Equal(t, reflect.TypeOf(errors.NotFoundError{}), reflect.TypeOf(err))
 }
 
-func (test *TestIterationRepository) TestExistsIteration() {
-	t := test.T()
+func (s *TestIterationRepository) TestExistsIteration() {
+	t := s.T()
 	resource.Require(t, resource.Database)
 
 	t.Run("iteration exists", func(t *testing.T) {
 		// given
 		newSpace := space.Space{
-			Name: testcommon.CreateRandomValidTestName("Space Exists"),
+			Name:    testsupport.CreateRandomValidTestName("Space Exists"),
+			OwnerId: s.testIdentity.ID,
 		}
-		repoSpace := space.NewRepository(test.DB)
+		repoSpace := space.NewRepository(s.DB)
 		space, err := repoSpace.Create(context.Background(), &newSpace)
 		assert.Nil(t, err)
 
-		repo := iteration.NewIterationRepository(test.DB)
+		repo := iteration.NewIterationRepository(s.DB)
 		level0IterationName := "Top level iteration"
 		i1 := iteration.Iteration{
 			Name:    level0IterationName,
@@ -410,7 +423,7 @@ func (test *TestIterationRepository) TestExistsIteration() {
 	})
 
 	t.Run("iteration doesn't exist", func(t *testing.T) {
-		repo := iteration.NewIterationRepository(test.DB)
+		repo := iteration.NewIterationRepository(s.DB)
 
 		err := repo.CheckExists(context.Background(), uuid.NewV4().String())
 

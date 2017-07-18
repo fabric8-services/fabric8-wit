@@ -1,5 +1,5 @@
-bindata_assetfs.go
+bindata_assetfs\.go
 sqlbindata
-/design/.*
+design/.*
 .*exported
 EOF

@@ -326,7 +326,10 @@ func GetMigrations() Migrations {
 	m = append(m, steps{ExecuteSQLFile("067-comment-parentid-uuid.sql")})
 
 	// Version 68
-	m = append(m, steps{ExecuteSQLFile("068-limit-execution-order-to-space.sql")})
+	m = append(m, steps{ExecuteSQLFile("068-index_identities_username.sql")})
+
+	// Version 69
+	m = append(m, steps{ExecuteSQLFile("069-limit-execution-order-to-space.sql")})
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
