@@ -218,7 +218,11 @@ func (r *GormRepository) Create(ctx context.Context, space *Space) (*Space, erro
 			return nil, errors.NewBadParameterError("Name", space.Name).Expected("not empty")
 		}
 		if gormsupport.IsUniqueViolation(tx.Error, "spaces_name_idx") {
-			return nil, errors.NewDataConflictError(fmt.Sprintf("space already exists : %s ", space.Name))
+			log.Error(ctx, map[string]interface{}{
+				"err":        err,
+				"space_name": space.Name,
+			}, "unable to create space because a space with the same name already exists for this user")
+			return nil, errors.NewDataConflictError(fmt.Sprintf("space already exists ( for this user ) : %s ", space.Name))
 		}
 		return nil, errors.NewInternalError(ctx, err)
 	}
