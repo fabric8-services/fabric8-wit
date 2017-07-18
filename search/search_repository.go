@@ -231,7 +231,7 @@ func parseSearchString(ctx context.Context, rawSearchString string) (searchKeywo
 				log.Error(ctx, map[string]interface{}{
 					"err":    err,
 					"typeID": typeIDStr,
-				}, "failt to convert type ID string to UUID")
+				}, "failed to convert type ID string to UUID")
 				return res, errors.NewBadParameterError("failed to parse type ID string as UUID", typeIDStr)
 			}
 			res.workItemTypes = append(res.workItemTypes, typeID)
@@ -263,6 +263,8 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 		case bool:
 			s := concreteVal
 			q.Negate = s
+		default:
+			log.Error(nil, nil, "Unexpected value: %#v", val)
 		}
 	}
 }
@@ -284,7 +286,10 @@ type Query struct {
 	// compare the Value against a column in the database that maps to this
 	// Name. We check the Value for equality and for inequality if the Negate
 	// field is set to true.
-	Name  string
+	Name string
+	// Operator nodes, with names "$AND", "$OR" etc. will not have values.
+	// Since this struct represents tail nodes as well as these operator nodes,
+	// the pointer is more suitable.
 	Value *string
 	// When Negate is true the comparison desribed above is negated; hence we
 	// check for inequality. When Name is an operator, the Negate field has no
