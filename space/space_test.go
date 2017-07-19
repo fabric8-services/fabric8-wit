@@ -61,7 +61,7 @@ func (test *repoBBTest) TestCreateFailSameOwner() {
 
 	require.Equal(test.T(), res.Name, testSpace)
 
-	expectSpace(test.create(testSpace), test.assertBadParameter())
+	expectSpace(test.create(testSpace), test.assertDataConflict())
 }
 
 func (test *repoBBTest) TestLoad() {
@@ -203,6 +203,10 @@ func (test *repoBBTest) assertNotFound() func(p *space.Space, err error) {
 }
 func (test *repoBBTest) assertBadParameter() func(p *space.Space, err error) {
 	return test.assertErrorType(errors.BadParameterError{})
+}
+
+func (test *repoBBTest) assertDataConflict() func(p *space.Space, err error) {
+	return test.assertErrorType(errors.DataConflictError{})
 }
 
 func (test *repoBBTest) assertErrorType(e error) func(p *space.Space, e2 error) {

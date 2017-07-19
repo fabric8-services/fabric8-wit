@@ -17,10 +17,7 @@ var _ convert.Equaler = (*foo)(nil)
 
 func (f foo) Equal(u convert.Equaler) bool {
 	_, ok := u.(foo)
-	if !ok {
-		return false
-	}
-	return true
+	return ok
 }
 
 func TestDummyEqualerEqual(t *testing.T) {
