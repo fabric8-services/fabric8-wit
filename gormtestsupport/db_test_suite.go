@@ -61,7 +61,7 @@ func (s *DBTestSuite) SetupSuite() {
 // can be called from subtests as well. If no wait group is associated with a
 // test yet, one will be created on the fly.
 //
-// In the TearDownTest of each suite make s.WaitGroup().Wait() the first call
+// In the TearDownTest of each suite make s.WaitForParallelTests() the first call
 // before cleaning up after each test:
 //
 // 	func (s *yourSuite) TearDownTest() {
@@ -72,7 +72,7 @@ func (s *DBTestSuite) SetupSuite() {
 // To Add a parallel subtest to the current suite's test, do this:
 //
 //	s.RunParallel("my subtest", func(t *testing.T){
-//		/*just do your normal testing here*/
+//		/* just do your normal testing here as if running s.T().Run(...) */
 //	})
 func (s *DBTestSuite) waitGroup() *sync.WaitGroup {
 	s.waitGroupsLock.RLock()
@@ -108,7 +108,9 @@ func (s *DBTestSuite) RunParallel(name string, f func(subtest *testing.T)) bool 
 		wg.Add(1)
 	}
 	return s.T().Run(name, func(t *testing.T) {
-		t.Parallel()
+		if *allowParallelSubTests {
+			t.Parallel()
+		}
 		f(t)
 		if *allowParallelSubTests {
 			s.waitGroup().Done()
