@@ -478,7 +478,7 @@ func testMigration69(t *testing.T) {
 		stmt, err := sqlDB.Prepare("select execution_order from work_items where id=$1")
 		require.Nil(t, err)
 		_ = stmt.QueryRow(workitemID.String()).Scan(&executionOrder)
-		//require.NotNil(t, executionOrder)
+		require.NotNil(t, executionOrder)
 		assert.Equal(t, expectedExecutionOrder, executionOrder)
 	}
 }
