@@ -249,7 +249,11 @@ func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
 			// check if the workitems to reorder belongs to the space
 			_, err = appl.WorkItems().Load(ctx, ctx.SpaceID, wi.Number)
 			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "unable to load workitem"))
+				log.Error(ctx, map[string]interface{}{
+					"err":             err,
+					"workitem_number": wi.Number,
+				}, "unable to load space")
+				return errors.NewNotFoundError("work item", strconv.Itoa(wi.Number))
 			}
 
 			err = ConvertJSONAPIToWorkItem(ctx, ctx.Method, appl, *ctx.Payload.Data[i], wi, ctx.SpaceID)
