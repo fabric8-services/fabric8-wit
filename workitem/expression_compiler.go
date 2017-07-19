@@ -28,7 +28,8 @@ func Compile(where criteria.Expression) (whereClause string, parameters []interf
 func bubbleUpJSONContext(exp criteria.Expression) bool {
 	switch t := exp.(type) {
 	case *criteria.FieldExpression:
-		if isJSONField(t.FieldName) {
+		_, isJSONField := getFieldName(t.FieldName)
+		if isJSONField {
 			t.SetAnnotation(jsonAnnotation, true)
 		}
 	case *criteria.EqualsExpression:
@@ -43,13 +44,28 @@ func bubbleUpJSONContext(exp criteria.Expression) bool {
 	return true
 }
 
-// does the field name reference a json field or a column?
-func isJSONField(fieldName string) bool {
-	switch fieldName {
-	case "ID", "Type", "Version":
-		return false
+// fieldMap tells how to resolve struct fields as SQL fields in the work_items
+// SQL table.
+// NOTE: anything not listed here will be treated as if it is nested inside the
+// jsonb "fields" column.
+var fieldMap = map[string]string{
+	"ID":      "id",
+	"Type":    "type",
+	"Version": "version",
+	"Number":  "number",
+	"SpaceID": "space_id",
+}
+
+// getFieldName applies any potentially necessary mapping to field names (e.g.
+// SpaceID -> space_id) and tells if the field is stored inside the jsonb column
+// (last result is true then) or as a normal column.
+func getFieldName(fieldName string) (mappedFieldName string, isJSONField bool) {
+	mappedFieldName, isColumnField := fieldMap[fieldName]
+	if isColumnField {
+		return mappedFieldName, false
 	}
-	return true
+	// leave field untouched
+	return fieldName, true
 }
 
 func newExpressionCompiler() expressionCompiler {
@@ -67,15 +83,17 @@ type expressionCompiler struct {
 // the convention is to return nil when the expression cannot be compiled and to append an error to the err field
 
 func (c *expressionCompiler) Field(f *criteria.FieldExpression) interface{} {
-	if !isJSONField(f.FieldName) {
-		return f.FieldName
+	mappedFieldName, isJSONField := getFieldName(f.FieldName)
+	if !isJSONField {
+		return mappedFieldName
 	}
-	if strings.Contains(f.FieldName, "'") {
-		// beware of injection, it's a reasonable restriction for field names, make sure it's not allowed when creating wi types
+	if strings.Contains(mappedFieldName, "'") {
+		// beware of injection, it's a reasonable restriction for field names,
+		// make sure it's not allowed when creating wi types
 		c.err = append(c.err, fmt.Errorf("single quote not allowed in field name"))
 		return nil
 	}
-	return "Fields@>'{\"" + f.FieldName + "\""
+	return "Fields@>'{\"" + mappedFieldName + "\""
 }
 
 func (c *expressionCompiler) And(a *criteria.AndExpression) interface{} {
@@ -104,10 +122,11 @@ func (c *expressionCompiler) Equals(e *criteria.EqualsExpression) interface{} {
 }
 
 func (c *expressionCompiler) IsNull(e *criteria.IsNullExpression) interface{} {
-	if isJSONField(e.FieldName) {
-		return "(Fields->>'" + e.FieldName + "' IS NULL)"
+	mappedFieldName, isJSONField := getFieldName(e.FieldName)
+	if isJSONField {
+		return "(Fields->>'" + mappedFieldName + "' IS NULL)"
 	}
-	return "(" + e.FieldName + " IS NULL)"
+	return "(" + mappedFieldName + " IS NULL)"
 }
 
 func (c *expressionCompiler) Not(e *criteria.NotExpression) interface{} {
@@ -173,7 +192,7 @@ func (c *expressionCompiler) convertToString(value interface{}) (string, error) 
 	case float64:
 		result = strconv.FormatFloat(t, 'f', -1, 64)
 	case int:
-		result = strconv.FormatInt(int64(t), 10)
+		result = strconv.Itoa(t)
 	case int64:
 		result = strconv.FormatInt(t, 10)
 	case uint:

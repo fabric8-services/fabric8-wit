@@ -179,7 +179,7 @@ func main() {
 	service.Use(authz.InjectAuthzService(spaceAuthzService))
 
 	loginService := login.NewKeycloakOAuthProvider(identityRepository, userRepository, tokenManager, appDB)
-	loginCtrl := controller.NewLoginController(service, loginService, tokenManager, configuration)
+	loginCtrl := controller.NewLoginController(service, loginService, tokenManager, configuration, identityRepository)
 	app.MountLoginController(service, loginCtrl)
 
 	logoutCtrl := controller.NewLogoutController(service, &login.KeycloakLogoutService{}, configuration)
@@ -192,6 +192,10 @@ func main() {
 	// Mount "workitem" controller
 	workitemCtrl := controller.NewWorkitemController(service, appDB, configuration)
 	app.MountWorkitemController(service, workitemCtrl)
+
+	// Mount "named workitem" controller
+	namedWorkitemsCtrl := controller.NewNamedWorkItemsController(service, appDB)
+	app.MountNamedWorkItemsController(service, namedWorkitemsCtrl)
 
 	// Mount "workitemtype" controller
 	workitemtypeCtrl := controller.NewWorkitemtypeController(service, appDB, configuration)

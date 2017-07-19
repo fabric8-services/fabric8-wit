@@ -2,6 +2,7 @@ package space
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -71,6 +72,12 @@ func (p Space) GetLastModified() time.Time {
 	return p.UpdatedAt
 }
 
+// TableName overrides the table name settings in Gorm to force a specific table name
+// in the database.
+func (p Space) TableName() string {
+	return "spaces"
+}
+
 // Repository encapsulate storage & retrieval of spaces
 type Repository interface {
 	repository.Exister
@@ -87,12 +94,6 @@ type Repository interface {
 // NewRepository creates a new space repo
 func NewRepository(db *gorm.DB) *GormRepository {
 	return &GormRepository{db}
-}
-
-// TableName overrides the table name settings in Gorm to force a specific table name
-// in the database.
-func (m *GormRepository) TableName() string {
-	return "spaces"
 }
 
 // GormRepository implements SpaceRepository using gorm
@@ -125,7 +126,7 @@ func (r *GormRepository) Load(ctx context.Context, ID uuid.UUID) (*Space, error)
 // CheckExists returns nil if the given ID exists otherwise returns an error
 func (r *GormRepository) CheckExists(ctx context.Context, id string) error {
 	defer goa.MeasureSince([]string{"goa", "db", "space", "exists"}, time.Now())
-	return repository.CheckExists(ctx, r.db, r.TableName(), id)
+	return repository.CheckExists(ctx, r.db, Space{}.TableName(), id)
 }
 
 // Delete deletes the space with the given id
@@ -216,7 +217,11 @@ func (r *GormRepository) Create(ctx context.Context, space *Space) (*Space, erro
 			return nil, errors.NewBadParameterError("Name", space.Name).Expected("not empty")
 		}
 		if gormsupport.IsUniqueViolation(tx.Error, "spaces_name_idx") {
-			return nil, errors.NewBadParameterError("Name", space.Name).Expected("unique")
+			log.Error(ctx, map[string]interface{}{
+				"err":        err,
+				"space_name": space.Name,
+			}, "unable to create space because a space with the same name already exists for this user")
+			return nil, errors.NewDataConflictError(fmt.Sprintf("space already exists ( for this user ) : %s ", space.Name))
 		}
 		return nil, errors.NewInternalError(ctx, err)
 	}

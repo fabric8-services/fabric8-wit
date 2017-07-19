@@ -218,7 +218,7 @@ func ConvertCommentResourceID(request *goa.RequestData, comment comment.Comment,
 
 // ConvertComment converts between internal and external REST representation
 func ConvertComment(request *goa.RequestData, comment comment.Comment, additional ...CommentConvertFunc) *app.Comment {
-	selfURL := rest.AbsoluteURL(request, app.CommentsHref(comment.ID))
+	relatedURL := rest.AbsoluteURL(request, app.CommentsHref(comment.ID))
 	markup := rendering.NilSafeGetMarkup(&comment.Markup)
 	bodyRendered := rendering.RenderMarkupToHTML(html.EscapeString(comment.Body), comment.Markup)
 	relatedCreatorLink := rest.AbsoluteURL(request, fmt.Sprintf("%s/%s", usersEndpoint, comment.CreatedBy.String()))
@@ -244,7 +244,8 @@ func ConvertComment(request *goa.RequestData, comment comment.Comment, additiona
 			},
 		},
 		Links: &app.GenericLinks{
-			Self: &selfURL,
+			Self:    &relatedURL,
+			Related: &relatedURL,
 		},
 	}
 	for _, add := range additional {
