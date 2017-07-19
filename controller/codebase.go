@@ -255,9 +255,9 @@ func ConvertCodebase(request *goa.RequestData, codebase *codebase.Codebase, addi
 
 	spaceID := codebase.SpaceID.String()
 
-	selfURL := rest.AbsoluteURL(request, app.CodebaseHref(codebase.ID))
+	relatedURL := rest.AbsoluteURL(request, app.CodebaseHref(codebase.ID))
 	editURL := rest.AbsoluteURL(request, app.CodebaseHref(codebase.ID)+"/edit")
-	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
+	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
 
 	i := &app.Codebase{
 		Type: codebaseType,
@@ -276,13 +276,15 @@ func ConvertCodebase(request *goa.RequestData, codebase *codebase.Codebase, addi
 					ID:   &spaceID,
 				},
 				Links: &app.GenericLinks{
-					Self: &spaceSelfURL,
+					Self:    &spaceRelatedURL,
+					Related: &spaceRelatedURL,
 				},
 			},
 		},
 		Links: &app.CodebaseLinks{
-			Self: &selfURL,
-			Edit: &editURL,
+			Self:    &relatedURL,
+			Related: &relatedURL,
+			Edit:    &editURL,
 		},
 	}
 	for _, add := range additional {

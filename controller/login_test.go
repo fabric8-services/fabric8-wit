@@ -1,15 +1,19 @@
 package controller
 
 import (
+	"fmt"
 	"testing"
 
 	"context"
+
 	"golang.org/x/oauth2"
 
 	"github.com/fabric8-services/fabric8-wit/account"
+
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
@@ -22,14 +26,16 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
 type TestLoginREST struct {
 	gormtestsupport.DBTestSuite
-
-	db    *gormapplication.GormDB
-	clean func()
+	configuration *configuration.ConfigurationData
+	loginService  *login.KeycloakOAuthProvider
+	db            *gormapplication.GormDB
+	clean         func()
 }
 
 func TestRunLoginREST(t *testing.T) {
@@ -39,6 +45,12 @@ func TestRunLoginREST(t *testing.T) {
 func (rest *TestLoginREST) SetupTest() {
 	rest.db = gormapplication.NewGormDB(rest.DB)
 	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
+	c, err := configuration.GetConfigurationData()
+	if err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
+	rest.configuration = c
+	rest.loginService = rest.newTestKeycloakOAuthProvider(rest.db)
 }
 
 func (rest *TestLoginREST) TearDownTest() {
@@ -47,26 +59,23 @@ func (rest *TestLoginREST) TearDownTest() {
 
 func (rest *TestLoginREST) UnSecuredController() (*goa.Service, *LoginController) {
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-
+	identityRepository := account.NewIdentityRepository(rest.DB)
 	svc := testsupport.ServiceAsUser("Login-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
-	return svc, &LoginController{Controller: svc.NewController("login"), auth: TestLoginService{}, configuration: rest.Configuration}
+	return svc, &LoginController{Controller: svc.NewController("login"), auth: TestLoginService{}, configuration: rest.Configuration, identityRepository: identityRepository}
 }
 
 func (rest *TestLoginREST) SecuredController() (*goa.Service, *LoginController) {
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 
-	loginService := newTestKeycloakOAuthProvider(rest.db, rest.Configuration)
+	identityRepository := account.NewIdentityRepository(rest.DB)
 
 	svc := testsupport.ServiceAsUser("Login-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
-	return svc, NewLoginController(svc, loginService, loginService.TokenManager, rest.Configuration)
+	return svc, NewLoginController(svc, rest.loginService, rest.loginService.TokenManager, rest.Configuration, identityRepository)
 }
 
-func newTestKeycloakOAuthProvider(db application.DB, configuration loginConfiguration) *login.KeycloakOAuthProvider {
-	publicKey, err := token.ParsePublicKey([]byte(token.RSAPublicKey))
-	if err != nil {
-		panic(err)
-	}
-
+func (rest *TestLoginREST) newTestKeycloakOAuthProvider(db application.DB) *login.KeycloakOAuthProvider {
+	publicKey, err := token.ParsePublicKey([]byte(rest.configuration.GetTokenPublicKey()))
+	require.Nil(rest.T(), err)
 	tokenManager := token.NewManager(publicKey)
 	return login.NewKeycloakOAuthProvider(db.Identities(), db.Users(), tokenManager, db)
 }
