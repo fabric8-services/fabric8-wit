@@ -192,7 +192,7 @@ func (c *expressionCompiler) convertToString(value interface{}) (string, error) 
 	case float64:
 		result = strconv.FormatFloat(t, 'f', -1, 64)
 	case int:
-		result = strconv.FormatInt(int64(t), 10)
+		result = strconv.Itoa(t)
 	case int64:
 		result = strconv.FormatInt(t, 10)
 	case uint:
