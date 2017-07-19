@@ -46,6 +46,7 @@ type workItemLinkTypeSuite struct {
 	categoryName string
 	linkTypeName string
 	linkName     string
+	appDB        *gormapplication.GormDB
 }
 
 // The SetupSuite method will run before the tests in the suite are run.
@@ -71,6 +72,7 @@ func (s *workItemLinkTypeSuite) SetupSuite() {
 	s.categoryName = "test-workitem-category" + uuid.NewV4().String()
 	s.linkTypeName = "test-workitem-link-type" + uuid.NewV4().String()
 	s.linkName = "test-workitem-link" + uuid.NewV4().String()
+	s.appDB = gormapplication.NewGormDB(s.DB)
 }
 
 // The TearDownSuite method will run after all the tests in the suite have been run
@@ -144,12 +146,13 @@ func (s *workItemLinkTypeSuite) createDemoLinkType(name string) *app.CreateWorkI
 	require.NotNil(s.T(), workItemType)
 
 	//   3. Create a work item link category
-	createLinkCategoryPayload := newCreateWorkItemLinkCategoryPayload(s.categoryName)
-	_, workItemLinkCategory := test.CreateWorkItemLinkCategoryCreated(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, createLinkCategoryPayload)
-	require.NotNil(s.T(), workItemLinkCategory)
+	// createLinkCategoryPayload := newCreateWorkItemLinkCategoryPayload(s.categoryName)
+	// _, workItemLinkCategory := test.CreateWorkItemLinkCategoryCreated(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, createLinkCategoryPayload)
+	// require.NotNil(s.T(), workItemLinkCategory)
+	catID := createWorkItemLinkCategoryInRepo(s.T(), s.appDB, s.svc.Context, s.categoryName, "This work item link category is managed by an admin user.", nil)
 
 	// 4. Create work item link type payload
-	createLinkTypePayload := newCreateWorkItemLinkTypePayload(name, *workItemLinkCategory.Data.ID, *space.Data.ID)
+	createLinkTypePayload := newCreateWorkItemLinkTypePayload(name, catID, *space.Data.ID)
 	return createLinkTypePayload
 }
 

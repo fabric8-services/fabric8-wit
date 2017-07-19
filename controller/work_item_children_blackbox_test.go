@@ -154,11 +154,13 @@ func (s *workItemChildSuite) SetupTest() {
 	s.T().Logf("Created bug3 with ID: %s\n", *s.bug3.Data.ID)
 
 	// Create a work item link category
-	createLinkCategoryPayload := newCreateWorkItemLinkCategoryPayload("test-user" + uuid.NewV4().String())
-	_, workitemLinkCategory := test.CreateWorkItemLinkCategoryCreated(s.T(), s.svc.Context, s.svc, s.workitemLinkCategoryCtrl, createLinkCategoryPayload)
-	require.NotNil(s.T(), workitemLinkCategory)
-	userLinkCategoryID := *workitemLinkCategory.Data.ID
-	s.T().Logf("Created link category with ID: %s\n", *workitemLinkCategory.Data.ID)
+	// createLinkCategoryPayload := newCreateWorkItemLinkCategoryPayload("test-user" + uuid.NewV4().String())
+	// _, workitemLinkCategory := test.CreateWorkItemLinkCategoryCreated(s.T(), s.svc.Context, s.svc, s.workitemLinkCategoryCtrl, createLinkCategoryPayload)
+	// require.NotNil(s.T(), workitemLinkCategory)
+	// userLinkCategoryID := *workitemLinkCategory.Data.ID
+	// s.T().Logf("Created link category with ID: %s\n", *workitemLinkCategory.Data.ID)
+	userLinkCategoryID := createWorkItemLinkCategoryInRepo(s.T(), s.db, s.svc.Context, "test-user", "This work item link category is managed by an admin user.", nil)
+	s.T().Logf("Created link category with ID: %s\n", userLinkCategoryID)
 
 	// Create work item link type payload
 	createLinkTypePayload := createParentChildWorkItemLinkType("test-bug-blocker", userLinkCategoryID, s.userSpaceID)
