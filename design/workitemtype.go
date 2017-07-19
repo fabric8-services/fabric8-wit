@@ -141,6 +141,7 @@ var _ = a.Resource("workitemtype", func() {
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.Forbidden, JSONAPIErrors)
 	})
 	a.Action("list", func() {
 		a.Routing(

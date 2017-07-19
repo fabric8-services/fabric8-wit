@@ -20,6 +20,7 @@ import (
 	query "github.com/fabric8-services/fabric8-wit/query/simple"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/search"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/space/authz"
 	"github.com/fabric8-services/fabric8-wit/workitem"
@@ -65,6 +66,17 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 	exp, err := query.Parse(ctx.Filter)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("could not parse filter", err))
+	}
+	if ctx.FilterExpression != nil {
+		q := *ctx.FilterExpression
+		// Better approach would be to convert string to Query instance itself.
+		// Then add new AND clause with spaceID as another child of input query
+		// Then convert new Query object into simple string
+		queryWithSpaceID := fmt.Sprintf(`{"%s":[{"space": "%s" }, %s]}`, search.Q_AND, ctx.SpaceID, q)
+		queryWithSpaceID = fmt.Sprintf("?filter[expression]=%s", queryWithSpaceID)
+		searchURL := app.SearchHref() + queryWithSpaceID
+		ctx.ResponseData.Header().Set("Location", searchURL)
+		return ctx.TemporaryRedirect()
 	}
 	if ctx.FilterAssignee != nil {
 		if *ctx.FilterAssignee == none {
@@ -604,9 +616,9 @@ func ConvertWorkItems(request *goa.RequestData, wis []workitem.WorkItem, additio
 // response resource object by jsonapi.org specifications
 func ConvertWorkItem(request *goa.RequestData, wi workitem.WorkItem, additional ...WorkItemConvertFunc) *app.WorkItem {
 	// construct default values from input WI
-	selfURL := rest.AbsoluteURL(request, app.WorkitemHref(wi.SpaceID.String(), wi.ID))
-	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(wi.SpaceID.String()))
-	witSelfURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.SpaceID.String(), wi.Type))
+	relatedURL := rest.AbsoluteURL(request, app.WorkitemHref(wi.SpaceID.String(), wi.ID))
+	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(wi.SpaceID.String()))
+	witRelatedURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.SpaceID.String(), wi.Type))
 
 	op := &app.WorkItem{
 		ID:   &wi.ID,
@@ -622,13 +634,14 @@ func ConvertWorkItem(request *goa.RequestData, wi workitem.WorkItem, additional 
 					Type: APIStringTypeWorkItemType,
 				},
 				Links: &app.GenericLinks{
-					Self: &witSelfURL,
+					Self: &witRelatedURL,
 				},
 			},
-			Space: app.NewSpaceRelation(wi.SpaceID, spaceSelfURL),
+			Space: app.NewSpaceRelation(wi.SpaceID, spaceRelatedURL),
 		},
 		Links: &app.GenericLinksForWorkItem{
-			Self: &selfURL,
+			Self:    &relatedURL,
+			Related: &relatedURL,
 		},
 	}
 
