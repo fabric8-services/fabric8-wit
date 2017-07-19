@@ -18,6 +18,8 @@ import (
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/search"
+	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/space/authz"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 
@@ -52,6 +54,97 @@ func NewWorkitemController(service *goa.Service, db application.DB, config WorkI
 		Controller: service.NewController("WorkitemController"),
 		db:         db,
 		config:     config}
+}
+
+// List runs the list action.
+// Prev and Next links will be present only when there actually IS a next or previous page.
+// Last will always be present. Total Item count needs to be computed from the "Last" link.
+func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
+	var additionalQuery []string
+	exp, err := query.Parse(ctx.Filter)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("could not parse filter", err))
+	}
+	if ctx.FilterExpression != nil {
+		q := *ctx.FilterExpression
+		// Better approach would be to convert string to Query instance itself.
+		// Then add new AND clause with spaceID as another child of input query
+		// Then convert new Query object into simple string
+		queryWithSpaceID := fmt.Sprintf(`{"%s":[{"space": "%s" }, %s]}`, search.Q_AND, ctx.SpaceID, q)
+		queryWithSpaceID = fmt.Sprintf("?filter[expression]=%s", queryWithSpaceID)
+		searchURL := app.SearchHref() + queryWithSpaceID
+		ctx.ResponseData.Header().Set("Location", searchURL)
+		return ctx.TemporaryRedirect()
+	}
+	if ctx.FilterAssignee != nil {
+		if *ctx.FilterAssignee == none {
+			exp = criteria.And(exp, criteria.IsNull("system.assignees"))
+			additionalQuery = append(additionalQuery, "filter[assignee]=none")
+
+		} else {
+			exp = criteria.And(exp, criteria.Equals(criteria.Field("system.assignees"), criteria.Literal([]string{*ctx.FilterAssignee})))
+			additionalQuery = append(additionalQuery, "filter[assignee]="+*ctx.FilterAssignee)
+		}
+	}
+	if ctx.FilterIteration != nil {
+		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemIteration), criteria.Literal(string(*ctx.FilterIteration))))
+		additionalQuery = append(additionalQuery, "filter[iteration]="+*ctx.FilterIteration)
+		// Update filter by adding child iterations if any
+		application.Transactional(c.db, func(tx application.Application) error {
+			iterationUUID, errConversion := uuid.FromString(*ctx.FilterIteration)
+			if errConversion != nil {
+				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(errConversion, "Invalid iteration ID"))
+			}
+			childrens, err := tx.Iterations().LoadChildren(ctx.Context, iterationUUID)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Unable to fetch children"))
+			}
+			for _, child := range childrens {
+				childIDStr := child.ID.String()
+				exp = criteria.Or(exp, criteria.Equals(criteria.Field(workitem.SystemIteration), criteria.Literal(childIDStr)))
+				additionalQuery = append(additionalQuery, "filter[iteration]="+childIDStr)
+			}
+			return nil
+		})
+	}
+	if ctx.FilterWorkitemtype != nil {
+		exp = criteria.And(exp, criteria.Equals(criteria.Field("Type"), criteria.Literal([]uuid.UUID{*ctx.FilterWorkitemtype})))
+		additionalQuery = append(additionalQuery, "filter[workitemtype]="+ctx.FilterWorkitemtype.String())
+	}
+	if ctx.FilterArea != nil {
+		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemArea), criteria.Literal(string(*ctx.FilterArea))))
+		additionalQuery = append(additionalQuery, "filter[area]="+*ctx.FilterArea)
+	}
+	if ctx.FilterWorkitemstate != nil {
+		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemState), criteria.Literal(string(*ctx.FilterWorkitemstate))))
+		additionalQuery = append(additionalQuery, "filter[workitemstate]="+*ctx.FilterWorkitemstate)
+	}
+	if ctx.FilterParentexists != nil {
+		// no need to build expression: it is taken care in wi.List call
+		// we need additionalQuery to make sticky filters in URL links
+		additionalQuery = append(additionalQuery, "filter[parentexists]="+strconv.FormatBool(*ctx.FilterParentexists))
+	}
+
+	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
+	return application.Transactional(c.db, func(tx application.Application) error {
+		workitems, tc, err := tx.WorkItems().List(ctx.Context, ctx.SpaceID, exp, ctx.FilterParentexists, &offset, &limit)
+		count := int(tc)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work items"))
+		}
+		return ctx.ConditionalEntities(workitems, c.config.GetCacheControlWorkItems, func() error {
+			hasChildren := workItemIncludeHasChildren(tx, ctx)
+			response := app.WorkItemList{
+				Links: &app.PagingLinks{},
+				Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
+				Data:  ConvertWorkItems(ctx.RequestData, workitems, hasChildren),
+			}
+			setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(workitems), offset, limit, count, additionalQuery...)
+			addFilterLinks(response.Links, ctx.RequestData)
+			return ctx.OK(&response)
+		})
+
+	})
 }
 
 // Returns true if the user is the work item creator or space collaborator
@@ -387,9 +480,9 @@ func ConvertWorkItems(request *goa.RequestData, wis []workitem.WorkItem, additio
 // response resource object by jsonapi.org specifications
 func ConvertWorkItem(request *goa.RequestData, wi workitem.WorkItem, additional ...WorkItemConvertFunc) *app.WorkItem {
 	// construct default values from input WI
-	selfURL := rest.AbsoluteURL(request, app.WorkitemHref(wi.ID))
-	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(wi.SpaceID.String()))
-	witSelfURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.SpaceID.String(), wi.Type))
+	relatedURL := rest.AbsoluteURL(request, app.WorkitemHref(wi.SpaceID.String(), wi.ID))
+	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(wi.SpaceID.String()))
+	witRelatedURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.SpaceID.String(), wi.Type))
 
 	op := &app.WorkItem{
 		ID:   &wi.ID,
@@ -405,13 +498,14 @@ func ConvertWorkItem(request *goa.RequestData, wi workitem.WorkItem, additional 
 					Type: APIStringTypeWorkItemType,
 				},
 				Links: &app.GenericLinks{
-					Self: &witSelfURL,
+					Self: &witRelatedURL,
 				},
 			},
-			Space: app.NewSpaceRelation(wi.SpaceID, spaceSelfURL),
+			Space: app.NewSpaceRelation(wi.SpaceID, spaceRelatedURL),
 		},
 		Links: &app.GenericLinksForWorkItem{
-			Self: &selfURL,
+			Self:    &relatedURL,
+			Related: &relatedURL,
 		},
 	}
 

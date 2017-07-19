@@ -128,7 +128,7 @@ func (s *workItemLinkSuite) SetupTest() {
 	// create a test identity
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "test user", "test provider")
 	require.Nil(s.T(), err)
-	s.svc = testsupport.ServiceAsUser("TestWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity)
+	s.svc = testsupport.ServiceAsUser("TestWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), *testIdentity)
 	require.NotNil(s.T(), s.svc)
 	s.workItemCtrl = NewWorkitemController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	require.NotNil(s.T(), s.workItemCtrl)
@@ -203,11 +203,11 @@ func newCreateWorkItemLinkCategoryPayload(name string) *app.CreateWorkItemLinkCa
 }
 
 // CreateWorkItem defines a work item link
-func newCreateWorkItemPayload(spaceID uuid.UUID, workItemType uuid.UUID, title string) *app.CreateWorkitemsPayload {
-	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
+func newCreateWorkItemPayload(spaceID uuid.UUID, workItemType uuid.UUID, title string) *app.CreateWorkitemPayload {
+	spaceRelatedURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.SpaceHref(spaceID.String()))
-	witSelfURL := rest.AbsoluteURL(&goa.RequestData{
+	witRelatedURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.WorkitemtypeHref(spaceID.String(), workItemType))
 	payload := app.CreateWorkitemsPayload{
@@ -223,10 +223,11 @@ func newCreateWorkItemPayload(spaceID uuid.UUID, workItemType uuid.UUID, title s
 						Type: "workitemtypes",
 					},
 					Links: &app.GenericLinks{
-						Self: &witSelfURL,
+						Self:    &witRelatedURL,
+						Related: &witRelatedURL,
 					},
 				},
-				Space: app.NewSpaceRelation(spaceID, spaceSelfURL),
+				Space: app.NewSpaceRelation(spaceID, spaceRelatedURL),
 			},
 			Type: "workitems",
 		},

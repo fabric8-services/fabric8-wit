@@ -22,6 +22,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"context"
+
 	"github.com/goadesign/goa"
 )
 

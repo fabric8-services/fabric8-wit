@@ -172,9 +172,5 @@ func (m *KeycloakResourceManager) DeleteResource(ctx context.Context, request *g
 	}
 	// Delete policy
 	err = DeletePolicy(ctx, clientsEndpoint, clientID, resource.PolicyID, pat)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
