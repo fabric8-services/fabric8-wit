@@ -249,6 +249,6 @@ func (m *GormRepository) TableName() string {
 
 // CheckExists returns true|false whether an identity exists with a specific identifier
 func (m *GormRepository) CheckExists(ctx context.Context, id string) error {
-	defer goa.MeasureSince([]string{"goa", "db", "identity", "exists"}, time.Now())
+	defer goa.MeasureSince([]string{"goa", "db", "category", "exists"}, time.Now())
 	return repository.CheckExists(ctx, m.db, m.TableName(), id)
 }
