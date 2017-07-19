@@ -356,7 +356,7 @@ func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
-		}, "unable to get Keycloak token endpoint URL")
+		}, "unable to generate test token")
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.Wrap(err, "unable to generate test token")))
 	}
 	// Creates the testuser2 user and identity if they don't yet exist
@@ -393,6 +393,13 @@ func GenerateUserToken(ctx context.Context, tokenEndpoint string, configuration 
 		return nil, errors.NewInternalError(ctx, errs.Wrap(err, "error when obtaining token"))
 	}
 	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		log.Error(ctx, map[string]interface{}{
+			"response_status": res.Status,
+			"response_body":   rest.ReadBody(res.Body),
+		}, "unable to obtain token")
+		return nil, errors.NewInternalError(ctx, errs.Errorf("unable to obtain toke. Response status: %s. Responce body: %s", res.Status, rest.ReadBody(res.Body)))
+	}
 	token, err := auth.ReadToken(ctx, res)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
