@@ -230,8 +230,7 @@ func TestApprovedUserOK(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 
-	var attributes KeycloakUserProfileAttributes
-	attributes = make(map[string][]string)
+	attributes := KeycloakUserProfileAttributes{}
 	attributes[ApprovedAttributeName] = []string{"true"}
 	profile := &KeycloakUserProfileResponse{Attributes: &attributes}
 	approved, err := checkApproved(context.Background(), newDummyUserProfileService(profile), "", "")
@@ -247,8 +246,7 @@ func TestNotApprovedUserFails(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, approved)
 
-	var attributes KeycloakUserProfileAttributes
-	attributes = make(map[string][]string)
+	attributes := KeycloakUserProfileAttributes{}
 	profile := &KeycloakUserProfileResponse{Attributes: &attributes}
 
 	approved, err = checkApproved(context.Background(), newDummyUserProfileService(profile), "", "")

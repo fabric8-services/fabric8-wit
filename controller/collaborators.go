@@ -220,7 +220,6 @@ func (c *CollaboratorsController) updatePolicy(ctx collaboratorContext, req *goa
 				}, "unable to convert the identity ID to uuid v4")
 				return goa.ErrBadRequest(err.Error())
 			}
-			var identity *account.Identity
 			err = application.Transactional(c.db, func(appl application.Application) error {
 				identities, err := appl.Identities().Query(account.IdentityFilterByID(identityUUID), account.IdentityWithUser())
 				if err != nil {
@@ -236,7 +235,6 @@ func (c *CollaboratorsController) updatePolicy(ctx collaboratorContext, req *goa
 					}, "unable to find the identity")
 					return errors.New("Identity not found")
 				}
-				identity = &identities[0]
 				return nil
 			})
 			if err != nil {
