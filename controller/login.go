@@ -337,7 +337,8 @@ func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 	testuser, err := GenerateUserToken(ctx, tokenEndpoint, c.configuration, c.configuration.GetKeycloakTestUserName(), c.configuration.GetKeycloakTestUserSecret())
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"err": err,
+			"err":      err,
+			"username": c.configuration.GetKeycloakTestUserName(),
 		}, "unable to get Generate User token")
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.Wrap(err, "unable to generate test token ")))
 	}
@@ -355,8 +356,9 @@ func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 	testuser, err = GenerateUserToken(ctx, tokenEndpoint, c.configuration, c.configuration.GetKeycloakTestUser2Name(), c.configuration.GetKeycloakTestUser2Secret())
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"err": err,
-		}, "unable to get Keycloak token endpoint URL")
+			"err":      err,
+			"username": c.configuration.GetKeycloakTestUser2Name(),
+		}, "unable to generate test token")
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.Wrap(err, "unable to generate test token")))
 	}
 	// Creates the testuser2 user and identity if they don't yet exist
@@ -393,12 +395,21 @@ func GenerateUserToken(ctx context.Context, tokenEndpoint string, configuration 
 		return nil, errors.NewInternalError(ctx, errs.Wrap(err, "error when obtaining token"))
 	}
 	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		log.Error(ctx, map[string]interface{}{
+			"response_status": res.Status,
+			"response_body":   rest.ReadBody(res.Body),
+			"username":        username,
+		}, "unable to obtain token")
+		return nil, errors.NewInternalError(ctx, errs.Errorf("unable to obtain token. Response status: %s. Responce body: %s", res.Status, rest.ReadBody(res.Body)))
+	}
 	token, err := auth.ReadToken(ctx, res)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"token_endpoint": res,
 			"err":            err,
-		}, "Error when unmarshal json with access token")
+			"username":       username,
+		}, "error when unmarshal json with access token")
 		return nil, errors.NewInternalError(ctx, errs.Wrap(err, "error when unmarshal json with access token"))
 	}
 
