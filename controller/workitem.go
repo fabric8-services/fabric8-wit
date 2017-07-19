@@ -252,7 +252,7 @@ func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
 				log.Error(ctx, map[string]interface{}{
 					"err":             err,
 					"workitem_number": wi.Number,
-				}, "unable to load space")
+				}, "unable to load workitem")
 				return errors.NewNotFoundError("work item", strconv.Itoa(wi.Number))
 			}
 
