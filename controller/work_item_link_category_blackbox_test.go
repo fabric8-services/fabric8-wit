@@ -229,7 +229,7 @@ func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryFails() {
 
 // Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
 // TestCreateWorkItemLinkCategory tests if we can create the "test-system" work item link category
-func (s *workItemLinkCategorySuite) xTestCreateAndDeleteWorkItemLinkCategory() {
+func (s *workItemLinkCategorySuite) disabledTestCreateAndDeleteWorkItemLinkCategory() {
 	_, linkCatSystem := s.createWorkItemLinkCategorySystem()
 	require.NotNil(s.T(), linkCatSystem)
 
@@ -240,7 +240,7 @@ func (s *workItemLinkCategorySuite) xTestCreateAndDeleteWorkItemLinkCategory() {
 }
 
 // Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
-func (s *workItemLinkCategorySuite) xTestCreateWorkItemLinkCategoryBadRequest() {
+func (s *workItemLinkCategorySuite) disabledTestCreateWorkItemLinkCategoryBadRequest() {
 	description := "New description for work item link category."
 	name := "" // This will lead to a bad parameter error
 	id := uuid.FromStringOrNil("88727441-4a21-4b35-aabe-007f8273cdBB")
@@ -306,12 +306,12 @@ func (s *workItemLinkCategorySuite) TestFailValidationWorkItemLinkCategoryNameSt
 }
 
 // Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
-func (s *workItemLinkCategorySuite) xTestDeleteWorkItemLinkCategoryNotFound() {
+func (s *workItemLinkCategorySuite) disabledTestDeleteWorkItemLinkCategoryNotFound() {
 	test.DeleteWorkItemLinkCategoryNotFound(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, uuid.FromStringOrNil("01f6c751-53f3-401f-be9b-6a9a230db8AA"))
 }
 
 // Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
-func (s *workItemLinkCategorySuite) xTestUpdateWorkItemLinkCategoryNotFound() {
+func (s *workItemLinkCategorySuite) disabledTestUpdateWorkItemLinkCategoryNotFound() {
 	name := "Some name"
 	description := "New description for work item link category."
 	id := uuid.FromStringOrNil("88727441-4a21-4b35-aabe-007f8273cd19")
@@ -376,7 +376,7 @@ func (s *workItemLinkCategorySuite) xUpdateWorkItemLinkCategoryBadRequestDueToEm
 }
 
 // Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
-func (s *workItemLinkCategorySuite) xTestUpdateWorkItemLinkCategoryBadRequestDueToVersionConflictError() {
+func (s *workItemLinkCategorySuite) disabledTestUpdateWorkItemLinkCategoryBadRequestDueToVersionConflictError() {
 	_, linkCatSystem := s.createWorkItemLinkCategorySystem()
 	require.NotNil(s.T(), linkCatSystem)
 	updatePayload := &app.UpdateWorkItemLinkCategoryPayload{
@@ -388,7 +388,7 @@ func (s *workItemLinkCategorySuite) xTestUpdateWorkItemLinkCategoryBadRequestDue
 }
 
 // Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
-func (s *workItemLinkCategorySuite) xTestUpdateWorkItemLinkCategoryOK() {
+func (s *workItemLinkCategorySuite) disabledTestUpdateWorkItemLinkCategoryOK() {
 	// given
 	_, linkCatSystem := s.createWorkItemLinkCategorySystem()
 	require.NotNil(s.T(), linkCatSystem)
@@ -407,7 +407,7 @@ func (s *workItemLinkCategorySuite) xTestUpdateWorkItemLinkCategoryOK() {
 }
 
 // Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
-func (s *workItemLinkCategorySuite) xTestUpdateWorkItemLinkCategoryConflict() {
+func (s *workItemLinkCategorySuite) disabledTestUpdateWorkItemLinkCategoryConflict() {
 	// given
 	_, linkCatSystem := s.createWorkItemLinkCategorySystem()
 	require.NotNil(s.T(), linkCatSystem)
@@ -437,10 +437,6 @@ func (s *workItemLinkCategorySuite) xTestUpdateWorkItemLinkCategoryConflict() {
 // TestShowWorkItemLinkCategoryOK tests if we can fetch the "test-system" work item link category
 func (s *workItemLinkCategorySuite) TestShowWorkItemLinkCategoryOK() {
 	// Create the work item link category first and try to read it back in
-	// _, linkCat := s.createWorkItemLinkCategorySystem()
-	// require.NotNil(s.T(), linkCat)
-	// _, linkCat2 := test.ShowWorkItemLinkCategoryOK(s.T(), nil, nil, s.linkCatCtrl, *linkCat.Data.ID)
-
 	id := createWorkItemLinkCategorySystemInRepo(s.T(), s.appDB, s.linkCatCtrl.Context)
 	_, linkCat2 := test.ShowWorkItemLinkCategoryOK(s.T(), nil, nil, s.linkCatCtrl, id)
 
@@ -448,7 +444,6 @@ func (s *workItemLinkCategorySuite) TestShowWorkItemLinkCategoryOK() {
 	require.NotNil(s.T(), linkCat2.Data.Links, "The link category MUST include a self link")
 	require.NotEmpty(s.T(), linkCat2.Data.Links.Self, "The link category MUST include a self link that's not empty")
 	require.Len(s.T(), linkCat2.Included, 0, "The link category has nothing to include")
-	// require.EqualValues(s.T(), linkCat.Data, linkCat2.Data)
 }
 
 // TestShowWorkItemLinkCategoryNotFound tests if we can fetch a non existing work item link category
@@ -459,11 +454,6 @@ func (s *workItemLinkCategorySuite) TestShowWorkItemLinkCategoryNotFound() {
 // TestListWorkItemLinkCategoryOK tests if we can find the work item link categories
 // "test-system" and "test-user" in the list of work item link categories
 func (s *workItemLinkCategorySuite) TestListWorkItemLinkCategoryOK() {
-	// _, linkCatSystem := s.createWorkItemLinkCategorySystem()
-	// require.NotNil(s.T(), linkCatSystem)
-	// _, linkCatUser := s.createWorkItemLinkCategoryUser()
-	// require.NotNil(s.T(), linkCatUser)
-
 	createWorkItemLinkCategorySystemInRepo(s.T(), s.appDB, s.linkCatCtrl.Context)
 	createWorkItemLinkCategoryUserInRepo(s.T(), s.appDB, s.linkCatCtrl.Context)
 

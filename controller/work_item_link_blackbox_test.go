@@ -153,12 +153,6 @@ func (s *workItemLinkSuite) SetupTest() {
 	s.feature1ID = s.createWorkItem(*wit2.Data.ID, "feature1")
 
 	// Create a work item link category
-	// createLinkCategoryPayload := newCreateWorkItemLinkCategoryPayload("test-user")
-	// _, workItemLinkCategory := test.CreateWorkItemLinkCategoryCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkCategoryCtrl, createLinkCategoryPayload)
-	// require.NotNil(s.T(), workItemLinkCategory)
-	//s.deleteWorkItemLinkCategories = append(s.deleteWorkItemLinkCategories, *workItemLinkCategory.Data.ID)
-	// s.userLinkCategoryID = *workItemLinkCategory.Data.ID
-	// s.T().Logf("Created link category with ID: %s\n", *workItemLinkCategory.Data.ID)
 	s.userLinkCategoryID = createWorkItemLinkCategoryInRepo(s.T(), s.appDB, s.svc.Context, "test-user", "This work item link category is managed by an admin user.", nil)
 	s.T().Logf("Created link category with ID: %s\n", s.userLinkCategoryID)
 
