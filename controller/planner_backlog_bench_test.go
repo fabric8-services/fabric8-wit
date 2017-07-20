@@ -48,10 +48,11 @@ func (rest *BenchPlannerBacklogREST) SetupBenchmark() {
 	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
 	// create a test identity
 	var err error
-	rest.testIdentity, err = testsupport.CreateTestIdentity(rest.DB, "BenchPlannerBacklogREST user", "test provider")
+	testIdentity, err := testsupport.CreateTestIdentity(rest.DB, "BenchPlannerBacklogREST user", "test provider")
 	if err != nil {
 		rest.B().Fail()
 	}
+	rest.testIdentity = *testIdentity
 	rest.svc = goa.New("PlannerBacklog-Service")
 	rest.testSpace, _, _ = rest.setupPlannerBacklogWorkItems()
 }

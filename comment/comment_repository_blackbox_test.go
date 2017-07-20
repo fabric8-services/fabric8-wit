@@ -49,7 +49,7 @@ func (s *TestCommentRepository) SetupTest() {
 	s.repo = comment.NewRepository(s.DB)
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "jdoe", "test")
 	require.Nil(s.T(), err)
-	s.testIdentity = testIdentity
+	s.testIdentity = *testIdentity
 }
 
 func (s *TestCommentRepository) TearDownTest() {

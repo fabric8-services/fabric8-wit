@@ -60,17 +60,18 @@ func (s *linkRepoBlackBoxTest) SetupTest() {
 	s.workitemLinkCategoryRepo = link.NewWorkItemLinkCategoryRepository(s.DB)
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "jdoe1", "test")
-	s.testIdentity = testIdentity
+	s.testIdentity = *testIdentity
 	require.Nil(s.T(), err)
 
 	// create a space
 	spaceRepository := space.NewRepository(s.DB)
 	spaceName := testsupport.CreateRandomValidTestName("test-space")
 	testSpace, err := spaceRepository.Create(s.ctx, &space.Space{
-		Name: spaceName,
+		Name:    spaceName,
+		OwnerId: testIdentity.ID,
 	})
-	s.testSpace = testSpace.ID
 	require.Nil(s.T(), err)
+	s.testSpace = testSpace.ID
 
 	// Create a work item link category
 	categoryName := "test" + uuid.NewV4().String()

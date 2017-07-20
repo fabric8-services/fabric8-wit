@@ -640,10 +640,7 @@ func (rest *TestSpaceREST) TestFailCreateSameSpaceNameSameOwner() {
 	b := minimumRequiredCreateSpace()
 	b.Data.Attributes.Name = &name
 	b.Data.Attributes.Description = &newDescription
-	_, err := test.CreateSpaceBadRequest(rest.T(), svc.Context, svc, ctrl, b)
-	// then
-	assert.NotEmpty(rest.T(), err.Errors)
-	assert.Contains(rest.T(), err.Errors[0].Detail, "Bad value for parameter 'Name'", "expected: 'unique'")
+	test.CreateSpaceConflict(rest.T(), svc.Context, svc, ctrl, b)
 }
 
 func minimumRequiredCreateSpace() *app.CreateSpacePayload {

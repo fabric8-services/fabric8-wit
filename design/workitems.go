@@ -109,9 +109,9 @@ var _ = a.Resource("workitem", func() {
 		a.Routing(
 			a.GET("/:wiID"),
 		)
-		a.Description("Retrieve work item with given id.")
+		a.Description("Retrieve a work item from the given id.")
 		a.Params(func() {
-			a.Param("wiID", d.UUID, "ID of a work item")
+			a.Param("wiID", d.UUID, "ID of the work item to show")
 		})
 		a.UseTrait("conditional")
 		a.Response(d.OK, workItemSingle)
@@ -135,12 +135,16 @@ var _ = a.Resource("workitem", func() {
 			a.Param("filter[area]", d.String, "AreaID to filter work items")
 			a.Param("filter[workitemstate]", d.String, "work item state to filter work items by")
 			a.Param("filter[parentexists]", d.Boolean, "if false list work items without any parent")
+			a.Param("filter[expression]", d.String, "accepts query in JSON format and redirects to /api/search? API", func() {
+				a.Example(`{$AND: [{"space": "f73988a2-1916-4572-910b-2df23df4dcc3"}, {"state": "NEW"}]}`)
+			})
 		})
 		a.UseTrait("conditional")
 		a.Response(d.OK, workItemList)
 		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.TemporaryRedirect)
 	})
 	a.Action("list-children", func() {
 		a.Routing(
@@ -255,5 +259,22 @@ var _ = a.Resource("planner_backlog", func() {
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
+	})
+})
+
+var _ = a.Resource("named_work_items", func() {
+	a.Parent("namedspaces")
+	a.BasePath("/workitems")
+	a.Action("show", func() {
+		a.Routing(
+			a.GET("/:wiNumber"),
+		)
+		a.Description("Retrieve a work item from the given number.")
+		a.Params(func() {
+			a.Param("wiNumber", d.Integer, "Number of the work item to show")
+		})
+		a.Response(d.MovedPermanently)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
 	})
 })

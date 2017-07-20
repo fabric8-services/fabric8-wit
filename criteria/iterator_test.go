@@ -29,10 +29,7 @@ func TestIterator(t *testing.T) {
 	visited = []Expression{}
 	recorder = func(expr Expression) bool {
 		visited = append(visited, expr)
-		if expr == r {
-			return false
-		}
-		return true
+		return expr != r
 	}
 	IteratePostOrder(expr, recorder)
 	expected = []Expression{l, r}
