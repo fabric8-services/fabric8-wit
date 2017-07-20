@@ -4,8 +4,9 @@ import (
 	"context"
 	"flag"
 	"os"
-	"sync"
+	"sync/atomic"
 	"testing"
+	"unsafe"
 
 	config "github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/log"
@@ -29,16 +30,16 @@ func NewDBTestSuite(configFilePath string) DBTestSuite {
 // DBTestSuite is a base for tests using a gorm db
 type DBTestSuite struct {
 	suite.Suite
-	configFile     string
-	Configuration  *config.ConfigurationData
-	DB             *gorm.DB
-	waitGroups     map[*testing.T]*sync.WaitGroup
-	waitGroupsLock sync.RWMutex
+	configFile    string
+	Configuration *config.ConfigurationData
+	DB            *gorm.DB
+	numSubTests   map[*testing.T]*int64
 }
 
 // SetupSuite implements suite.SetupAllSuite
 func (s *DBTestSuite) SetupSuite() {
 	resource.Require(s.T(), resource.Database)
+	s.numSubTests = make(map[*testing.T]*int64)
 	configuration, err := config.NewConfigurationData(s.configFile)
 	if err != nil {
 		log.Panic(nil, map[string]interface{}{
@@ -57,55 +58,17 @@ func (s *DBTestSuite) SetupSuite() {
 	}
 }
 
-// WaitGroup returns the WaitGroup associated with the current suite test. It
-// can be called from subtests as well. If no wait group is associated with a
-// test yet, one will be created on the fly.
-//
-// In the TearDownTest of each suite make s.WaitForParallelTests() the first call
-// before cleaning up after each test:
-//
-// 	func (s *yourSuite) TearDownTest() {
-//		s.WaitForParallelTests()
-//		/* cleanup resources only after waiting */
-//	}
-//
-// To Add a parallel subtest to the current suite's test, do this:
-//
-//	s.RunParallel("my subtest", func(t *testing.T){
-//		/* just do your normal testing here as if running s.T().Run(...) */
-//	})
-func (s *DBTestSuite) waitGroup() *sync.WaitGroup {
-	s.waitGroupsLock.RLock()
-	wg, ok := s.waitGroups[s.T()]
-	if ok {
-		defer s.waitGroupsLock.RUnlock()
-		return wg
-	}
-	// Upgrade to write lock
-	s.waitGroupsLock.RUnlock()
-	s.waitGroupsLock.Lock()
-	defer s.waitGroupsLock.Unlock()
-	if s.waitGroups == nil {
-		s.waitGroups = make(map[*testing.T]*sync.WaitGroup)
-	}
-	// No wait group available for this test yet, let's create one.
-	wg = &sync.WaitGroup{}
-	s.waitGroups[s.T()] = wg
-	return wg
-}
-
 var allowParallelSubTests = flag.Bool("allowParallelSubTests", true, "when set, parallel tests are enabled")
 
 // RunParallel does all the setup for running the function t as a parallel
 // subtest that takes care of setting up synchronization primitives. See the
 // description of waitGroup as well to find out about freeing of resources.
 func (s *DBTestSuite) RunParallel(name string, f func(subtest *testing.T)) bool {
-	var wg *sync.WaitGroup
 	if *allowParallelSubTests {
-		// immediately add to the wait queue before going into parallel mode and
-		// don't use defer because that's not possible with go routines.
-		wg = s.waitGroup()
-		wg.Add(1)
+		var newInt64 int64
+		unsafePtr := unsafe.Pointer(s.numSubTests[s.T()])
+		atomic.CompareAndSwapPointer(&unsafePtr, unsafe.Pointer(nil), unsafe.Pointer(&newInt64))
+		atomic.AddInt64(s.numSubTests[s.T()], 1)
 	}
 	return s.T().Run(name, func(t *testing.T) {
 		if *allowParallelSubTests {
@@ -113,7 +76,7 @@ func (s *DBTestSuite) RunParallel(name string, f func(subtest *testing.T)) bool 
 		}
 		f(t)
 		if *allowParallelSubTests {
-			s.waitGroup().Done()
+			atomic.AddInt64(s.numSubTests[s.T()], -1)
 		}
 	})
 }
@@ -121,7 +84,8 @@ func (s *DBTestSuite) RunParallel(name string, f func(subtest *testing.T)) bool 
 // WaitForTests waits for parallel subtests to finish.
 func (s *DBTestSuite) WaitForParallelTests() {
 	if *allowParallelSubTests {
-		s.waitGroup().Wait()
+		for *s.numSubTests[s.T()] > 0 {
+		}
 	}
 }
 
