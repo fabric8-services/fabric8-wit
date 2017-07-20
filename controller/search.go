@@ -52,7 +52,7 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 
 	if ctx.FilterExpression != nil {
 		return application.Transactional(c.db, func(appl application.Application) error {
-			result, c, err := appl.SearchItems().Filter(ctx.Context, *ctx.FilterExpression, &offset, &limit)
+			result, c, err := appl.SearchItems().Filter(ctx.Context, *ctx.FilterExpression, ctx.FilterParentexists, &offset, &limit)
 			count := int(c)
 			if err != nil {
 				cause := errs.Cause(err)
