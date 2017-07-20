@@ -17,6 +17,41 @@ func TestParseMap(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
 
+	t.Run(Q_EQ, func(t *testing.T) {
+		t.Parallel()
+		// given
+		input := fmt.Sprintf(`{"space": { "%s": "openshiftio"}}`, Q_EQ)
+		// Parsing/Unmarshalling JSON encoding/json
+		fm := map[string]interface{}{}
+		err := json.Unmarshal([]byte(input), &fm)
+		require.Nil(t, err)
+		// when
+		actualQuery := Query{}
+		parseMap(fm, &actualQuery)
+		// then
+		openshiftio := "openshiftio"
+		expectedQuery := Query{Name: "space", Value: &openshiftio}
+		assert.Equal(t, expectedQuery, actualQuery)
+	})
+
+	t.Run(Q_NE, func(t *testing.T) {
+		t.Parallel()
+		// given
+		input := fmt.Sprintf(`{"space": { "%s": "openshiftio"}}`, Q_NE)
+		// Parsing/Unmarshalling JSON encoding/json
+		fm := map[string]interface{}{}
+		err := json.Unmarshal([]byte(input), &fm)
+		require.Nil(t, err)
+		// when
+		actualQuery := Query{}
+		parseMap(fm, &actualQuery)
+		// then
+		openshiftio := "openshiftio"
+		expectedQuery := Query{Name: "space", Value: &openshiftio, Negate: true}
+		assert.Equal(t, expectedQuery, actualQuery)
+	})
+
+	// {"type" : { "$IN" : ["", "" , ""] } }
 	t.Run(Q_AND, func(t *testing.T) {
 		t.Parallel()
 		// given
