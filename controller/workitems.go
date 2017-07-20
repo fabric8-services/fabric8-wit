@@ -123,7 +123,7 @@ func (c *WorkitemsController) Create(ctx *app.CreateWorkitemsContext) error {
 			},
 		}
 		ctx.ResponseData.Header().Set("Last-Modified", lastModified(*wi))
-		ctx.ResponseData.Header().Set("Location", app.WorkitemHref(wi2.ID))
+		ctx.ResponseData.Header().Set("Location", app.WorkitemHref(wi2.Relationships.Space.Data.ID.String(), wi2.ID))
 		return ctx.Created(resp)
 	})
 }

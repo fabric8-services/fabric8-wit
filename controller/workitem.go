@@ -9,6 +9,8 @@ import (
 
 	"context"
 
+	"github.com/almighty/almighty-core/criteria"
+	query "github.com/almighty/almighty-core/query/simple"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/codebase"
@@ -19,7 +21,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/search"
-	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/space/authz"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 
@@ -214,6 +215,63 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 		}
 
 		ctx.ResponseData.Header().Set("Last-Modified", lastModified(*wi))
+		return ctx.OK(resp)
+	})
+}
+
+// Reorder does PATCH workitem
+func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
+	currentUserIdentityID, err := login.ContextIdentity(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
+	}
+	authorized, err := authz.Authorize(ctx, ctx.SpaceID.String())
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
+	}
+	if !authorized {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to access the space"))
+	}
+	return application.Transactional(c.db, func(appl application.Application) error {
+		var dataArray []*app.WorkItem
+		if ctx.Payload == nil || ctx.Payload.Data == nil || ctx.Payload.Position == nil {
+			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("missing payload element in request", nil))
+		}
+
+		// Reorder workitems in the array one by one
+		for i := 0; i < len(ctx.Payload.Data); i++ {
+			wi, err := appl.WorkItems().LoadByID(ctx, *ctx.Payload.Data[i].ID)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "failed to reorder work item"))
+			}
+
+			// check if the workitems to reorder belongs to the space
+			_, err = appl.WorkItems().Load(ctx, ctx.SpaceID, wi.Number)
+			if err != nil {
+				log.Error(ctx, map[string]interface{}{
+					"err":             err,
+					"workitem_number": wi.Number,
+				}, "unable to load workitem")
+				return errors.NewNotFoundError("work item", strconv.Itoa(wi.Number))
+			}
+
+			err = ConvertJSONAPIToWorkItem(ctx, ctx.Method, appl, *ctx.Payload.Data[i], wi, ctx.SpaceID)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "failed to reorder work item"))
+			}
+			wi, err = appl.WorkItems().Reorder(ctx, ctx.SpaceID, workitem.DirectionType(ctx.Payload.Position.Direction), ctx.Payload.Position.ID, *wi, *currentUserIdentityID)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, err)
+			}
+			hasChildren := workItemIncludeHasChildren(appl, ctx)
+			wi2 := ConvertWorkItem(ctx.RequestData, *wi, hasChildren)
+			dataArray = append(dataArray, wi2)
+		}
+		log.Debug(ctx, nil, "Reordered items: %d", len(dataArray))
+		resp := &app.WorkItemReorder{
+			Data: dataArray,
+		}
+
 		return ctx.OK(resp)
 	})
 }
