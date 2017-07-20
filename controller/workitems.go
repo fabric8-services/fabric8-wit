@@ -13,6 +13,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/login"
 	query "github.com/fabric8-services/fabric8-wit/query/simple"
 	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/search"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/space/authz"
 	"github.com/fabric8-services/fabric8-wit/workitem"
@@ -123,7 +124,7 @@ func (c *WorkitemsController) Create(ctx *app.CreateWorkitemsContext) error {
 			},
 		}
 		ctx.ResponseData.Header().Set("Last-Modified", lastModified(*wi))
-		ctx.ResponseData.Header().Set("Location", app.WorkitemHref(wi2.Relationships.Space.Data.ID.String(), wi2.ID))
+		ctx.ResponseData.Header().Set("Location", app.WorkitemHref(wi2.ID))
 		return ctx.Created(resp)
 	})
 }
@@ -136,6 +137,17 @@ func (c *WorkitemsController) List(ctx *app.ListWorkitemsContext) error {
 	exp, err := query.Parse(ctx.Filter)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("could not parse filter", err))
+	}
+	if ctx.FilterExpression != nil {
+		q := *ctx.FilterExpression
+		// Better approach would be to convert string to Query instance itself.
+		// Then add new AND clause with spaceID as another child of input query
+		// Then convert new Query object into simple string
+		queryWithSpaceID := fmt.Sprintf(`{"%s":[{"space": "%s" }, %s]}`, search.Q_AND, ctx.SpaceID, q)
+		queryWithSpaceID = fmt.Sprintf("?filter[expression]=%s", queryWithSpaceID)
+		searchURL := app.SearchHref() + queryWithSpaceID
+		ctx.ResponseData.Header().Set("Location", searchURL)
+		return ctx.TemporaryRedirect()
 	}
 	if ctx.FilterAssignee != nil {
 		if *ctx.FilterAssignee == none {
@@ -234,11 +246,21 @@ func (c *WorkitemsController) Reorder(ctx *app.ReorderWorkitemsContext) error {
 				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "failed to reorder work item"))
 			}
 
+			// check if the workitems to reorder belongs to the space
+			_, err = appl.WorkItems().Load(ctx, ctx.SpaceID, wi.Number)
+			if err != nil {
+				log.Error(ctx, map[string]interface{}{
+					"err":             err,
+					"workitem_number": wi.Number,
+				}, "unable to load workitem")
+				return errors.NewNotFoundError("work item", strconv.Itoa(wi.Number))
+			}
+
 			err = ConvertJSONAPIToWorkItem(ctx, ctx.Method, appl, *ctx.Payload.Data[i], wi, ctx.SpaceID)
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "failed to reorder work item"))
 			}
-			wi, err = appl.WorkItems().Reorder(ctx, workitem.DirectionType(ctx.Payload.Position.Direction), ctx.Payload.Position.ID, *wi, *currentUserIdentityID)
+			wi, err = appl.WorkItems().Reorder(ctx, ctx.SpaceID, workitem.DirectionType(ctx.Payload.Position.Direction), ctx.Payload.Position.ID, *wi, *currentUserIdentityID)
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, err)
 			}

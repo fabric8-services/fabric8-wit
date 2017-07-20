@@ -203,7 +203,7 @@ func newCreateWorkItemLinkCategoryPayload(name string) *app.CreateWorkItemLinkCa
 }
 
 // CreateWorkItem defines a work item link
-func newCreateWorkItemPayload(spaceID uuid.UUID, workItemType uuid.UUID, title string) *app.CreateWorkitemPayload {
+func newCreateWorkItemPayload(spaceID uuid.UUID, workItemType uuid.UUID, title string) *app.CreateWorkitemsPayload {
 	spaceRelatedURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.SpaceHref(spaceID.String()))

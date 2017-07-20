@@ -260,7 +260,7 @@ func (s *searchBlackBoxTest) TestUnwantedCharactersRelatedToSearchLogic() {
 	assert.Empty(s.T(), sr.Data)
 }
 
-func (s *searchBlackBoxTest) getWICreatePayload() *app.CreateWorkitemPayload {
+func (s *searchBlackBoxTest) getWICreatePayload() *app.CreateWorkitemsPayload {
 	spaceRelatedURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.SpaceHref(space.SystemSpace.String()))
