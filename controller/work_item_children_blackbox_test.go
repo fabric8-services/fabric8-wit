@@ -159,7 +159,7 @@ func (s *workItemChildSuite) SetupTest() {
 
 	// Create work item link type payload
 	createLinkTypePayload := createParentChildWorkItemLinkType("test-bug-blocker", userLinkCategoryID, s.userSpaceID)
-	_, workitemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.workitemLinkTypeCtrl, s.userSpaceID, createLinkTypePayload)
+	workitemLinkType := createWorkItemLinkTypeInRepo(s.T(), s.db, s.svc.Context, createLinkTypePayload)
 	require.NotNil(s.T(), workitemLinkType)
 	s.bugBlockerLinkTypeID = *workitemLinkType.Data.ID
 	s.T().Logf("Created link type with ID: %s\n", *workitemLinkType.Data.ID)
