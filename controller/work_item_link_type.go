@@ -121,6 +121,10 @@ func enrichLinkTypeList(ctx *workItemLinkContext, list *app.WorkItemLinkTypeList
 
 // Create runs the create action.
 func (c *WorkItemLinkTypeController) Create(ctx *app.CreateWorkItemLinkTypeContext) error {
+	// Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
+	if true {
+		return ctx.MethodNotAllowed()
+	}
 	// WorkItemLinkTypeController_Create: start_implement
 	// Convert payload from app to model representation
 	appLinkType := app.WorkItemLinkTypeSingle{
@@ -164,6 +168,10 @@ func (c *WorkItemLinkTypeController) Create(ctx *app.CreateWorkItemLinkTypeConte
 
 // Delete runs the delete action.
 func (c *WorkItemLinkTypeController) Delete(ctx *app.DeleteWorkItemLinkTypeContext) error {
+	// Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
+	if true {
+		return ctx.MethodNotAllowed()
+	}
 	// WorkItemLinkTypeController_Delete: start_implement
 	return application.Transactional(c.db, func(appl application.Application) error {
 		err := appl.WorkItemLinkTypes().Delete(ctx.Context, ctx.SpaceID, ctx.WiltID)
@@ -238,6 +246,10 @@ func (c *WorkItemLinkTypeController) Show(ctx *app.ShowWorkItemLinkTypeContext) 
 
 // Update runs the update action.
 func (c *WorkItemLinkTypeController) Update(ctx *app.UpdateWorkItemLinkTypeContext) error {
+	// Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
+	if true {
+		return ctx.MethodNotAllowed()
+	}
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
