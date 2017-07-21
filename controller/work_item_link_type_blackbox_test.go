@@ -173,7 +173,8 @@ func TestNewWorkItemLinkTypeControllerDBNull(t *testing.T) {
 
 // Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
 // TestCreateWorkItemLinkType tests if we can create the s.linkTypeName work item link type
-func (s *workItemLinkTypeSuite) disabledTestCreateAndDeleteWorkItemLinkType() {
+func (s *workItemLinkTypeSuite) TestCreateAndDeleteWorkItemLinkType() {
+	s.T().Skip("skipped because Work Item Link Type Create/Update/Delete endpoints are disabled")
 	createPayload := s.createDemoLinkType(s.linkTypeName)
 	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *createPayload.Data.Relationships.Space.Data.ID, createPayload)
 	require.NotNil(s.T(), workItemLinkType)
@@ -212,12 +213,14 @@ func (s *workItemLinkTypeSuite) disabledTestCreateAndDeleteWorkItemLinkType() {
 //}
 
 // Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
-func (s *workItemLinkTypeSuite) disabledTestDeleteWorkItemLinkTypeNotFound() {
+func (s *workItemLinkTypeSuite) TestDeleteWorkItemLinkTypeNotFound() {
+	s.T().Skip("skipped because Work Item Link Type Create/Update/Delete endpoints are disabled")
 	test.DeleteWorkItemLinkTypeNotFound(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, space.SystemSpace, uuid.FromStringOrNil("1e9a8b53-73a6-40de-b028-5177add79ffa"))
 }
 
 // Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
-func (s *workItemLinkTypeSuite) disabledTestUpdateWorkItemLinkTypeNotFound() {
+func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeNotFound() {
+	s.T().Skip("skipped because Work Item Link Type Create/Update/Delete endpoints are disabled")
 	createPayload := s.createDemoLinkType(s.linkTypeName)
 	notExistingId := uuid.FromStringOrNil("46bbce9c-8219-4364-a450-dfd1b501654e") // This ID does not exist
 	createPayload.Data.ID = &notExistingId
@@ -240,7 +243,8 @@ func (s *workItemLinkTypeSuite) disabledTestUpdateWorkItemLinkTypeNotFound() {
 // }
 
 // Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
-func (s *workItemLinkTypeSuite) disabledTestUpdateWorkItemLinkTypeOK() {
+func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeOK() {
+	s.T().Skip("skipped because Work Item Link Type Create/Update/Delete endpoints are disabled")
 	// given
 	createPayload := s.createDemoLinkType(s.linkTypeName)
 	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *createPayload.Data.Relationships.Space.Data.ID, createPayload)
@@ -271,7 +275,8 @@ func (s *workItemLinkTypeSuite) disabledTestUpdateWorkItemLinkTypeOK() {
 }
 
 // Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
-func (s *workItemLinkTypeSuite) disabledTestUpdateWorkItemLinkTypeConflict() {
+func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeConflict() {
+	s.T().Skip("skipped because Work Item Link Type Create/Update/Delete endpoints are disabled")
 	// given
 	createPayload := s.createDemoLinkType(s.linkTypeName)
 	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *createPayload.Data.Relationships.Space.Data.ID, createPayload)

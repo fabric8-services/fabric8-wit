@@ -229,7 +229,8 @@ func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryFails() {
 
 // Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
 // TestCreateWorkItemLinkCategory tests if we can create the "test-system" work item link category
-func (s *workItemLinkCategorySuite) disabledTestCreateAndDeleteWorkItemLinkCategory() {
+func (s *workItemLinkCategorySuite) TestCreateAndDeleteWorkItemLinkCategory() {
+	s.T().Skip("skipped because Work Item Link Category Create/Update/Delete endpoints are disabled")
 	_, linkCatSystem := s.createWorkItemLinkCategorySystem()
 	require.NotNil(s.T(), linkCatSystem)
 
@@ -240,7 +241,8 @@ func (s *workItemLinkCategorySuite) disabledTestCreateAndDeleteWorkItemLinkCateg
 }
 
 // Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
-func (s *workItemLinkCategorySuite) disabledTestCreateWorkItemLinkCategoryBadRequest() {
+func (s *workItemLinkCategorySuite) TestCreateWorkItemLinkCategoryBadRequest() {
+	s.T().Skip("skipped because Work Item Link Category Create/Update/Delete endpoints are disabled")
 	description := "New description for work item link category."
 	name := "" // This will lead to a bad parameter error
 	id := uuid.FromStringOrNil("88727441-4a21-4b35-aabe-007f8273cdBB")
@@ -306,12 +308,14 @@ func (s *workItemLinkCategorySuite) TestFailValidationWorkItemLinkCategoryNameSt
 }
 
 // Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
-func (s *workItemLinkCategorySuite) disabledTestDeleteWorkItemLinkCategoryNotFound() {
+func (s *workItemLinkCategorySuite) TestDeleteWorkItemLinkCategoryNotFound() {
+	s.T().Skip("skipped because Work Item Link Category Create/Update/Delete endpoints are disabled")
 	test.DeleteWorkItemLinkCategoryNotFound(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, uuid.FromStringOrNil("01f6c751-53f3-401f-be9b-6a9a230db8AA"))
 }
 
 // Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
-func (s *workItemLinkCategorySuite) disabledTestUpdateWorkItemLinkCategoryNotFound() {
+func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryNotFound() {
+	s.T().Skip("skipped because Work Item Link Category Create/Update/Delete endpoints are disabled")
 	name := "Some name"
 	description := "New description for work item link category."
 	id := uuid.FromStringOrNil("88727441-4a21-4b35-aabe-007f8273cd19")
@@ -376,7 +380,8 @@ func (s *workItemLinkCategorySuite) xUpdateWorkItemLinkCategoryBadRequestDueToEm
 }
 
 // Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
-func (s *workItemLinkCategorySuite) disabledTestUpdateWorkItemLinkCategoryBadRequestDueToVersionConflictError() {
+func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryBadRequestDueToVersionConflictError() {
+	s.T().Skip("skipped because Work Item Link Category Create/Update/Delete endpoints are disabled")
 	_, linkCatSystem := s.createWorkItemLinkCategorySystem()
 	require.NotNil(s.T(), linkCatSystem)
 	updatePayload := &app.UpdateWorkItemLinkCategoryPayload{
@@ -388,7 +393,8 @@ func (s *workItemLinkCategorySuite) disabledTestUpdateWorkItemLinkCategoryBadReq
 }
 
 // Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
-func (s *workItemLinkCategorySuite) disabledTestUpdateWorkItemLinkCategoryOK() {
+func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryOK() {
+	s.T().Skip("skipped because Work Item Link Category Create/Update/Delete endpoints are disabled")
 	// given
 	_, linkCatSystem := s.createWorkItemLinkCategorySystem()
 	require.NotNil(s.T(), linkCatSystem)
@@ -407,7 +413,8 @@ func (s *workItemLinkCategorySuite) disabledTestUpdateWorkItemLinkCategoryOK() {
 }
 
 // Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
-func (s *workItemLinkCategorySuite) disabledTestUpdateWorkItemLinkCategoryConflict() {
+func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryConflict() {
+	s.T().Skip("skipped because Work Item Link Category Create/Update/Delete endpoints are disabled")
 	// given
 	_, linkCatSystem := s.createWorkItemLinkCategorySystem()
 	require.NotNil(s.T(), linkCatSystem)
