@@ -91,6 +91,7 @@ const (
 	varLogLevel                         = "log.level"
 	varLogJSON                          = "log.json"
 	varTenantServiceURL                 = "tenant.serviceurl"
+	varNotificationServiceURL           = "notification.serviceurl"
 )
 
 // ConfigurationData encapsulates the Viper configuration object which stores the configuration data in-memory.
@@ -663,6 +664,11 @@ func (c *ConfigurationData) checkLocalhostRedirectException(req *goa.RequestData
 // GetTenantServiceURL returns the URL for the Tenant service used by login to initialize OSO tenant space
 func (c *ConfigurationData) GetTenantServiceURL() string {
 	return c.v.GetString(varTenantServiceURL)
+}
+
+// GetNotificationServiceURL returns the URL for the Notification service used for event notification
+func (c *ConfigurationData) GetNotificationServiceURL() string {
+	return c.v.GetString(varNotificationServiceURL)
 }
 
 const (

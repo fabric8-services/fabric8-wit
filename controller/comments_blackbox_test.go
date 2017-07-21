@@ -20,6 +20,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/migration"
+	"github.com/fabric8-services/fabric8-wit/notification"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/rest"
@@ -47,6 +48,7 @@ type CommentsSuite struct {
 	clean         func()
 	testIdentity  account.Identity
 	testIdentity2 account.Identity
+	notification  notification.TestNotificationChannel
 }
 
 func (s *CommentsSuite) SetupSuite() {
@@ -64,6 +66,7 @@ func (s *CommentsSuite) SetupTest() {
 	testIdentity2, err := testsupport.CreateTestIdentity(s.DB, "CommentsSuite user2", "test provider")
 	require.Nil(s.T(), err)
 	s.testIdentity2 = *testIdentity2
+	s.notification = notification.TestNotificationChannel{}
 }
 
 func (s *CommentsSuite) TearDownTest() {
@@ -78,7 +81,7 @@ var (
 
 func (s *CommentsSuite) unsecuredController() (*goa.Service, *CommentsController) {
 	svc := goa.New("Comments-service-test")
-	commentsCtrl := NewCommentsController(svc, s.db, s.Configuration)
+	commentsCtrl := NewNotifyingCommentsController(svc, s.db, &s.notification, s.Configuration)
 	return svc, commentsCtrl
 }
 
@@ -88,7 +91,8 @@ func (s *CommentsSuite) securedControllers(identity account.Identity) (*goa.Serv
 	workitemCtrl := NewWorkitemController(svc, s.db, s.Configuration)
 	workitemsCtrl := NewWorkitemsController(svc, s.db, s.Configuration)
 	workitemCommentsCtrl := NewWorkItemCommentsController(svc, s.db, s.Configuration)
-	commentsCtrl := NewCommentsController(svc, s.db, s.Configuration)
+
+	commentsCtrl := NewNotifyingCommentsController(svc, s.db, &s.notification, s.Configuration)
 	return svc, workitemCtrl, workitemsCtrl, workitemCommentsCtrl, commentsCtrl
 }
 
@@ -585,4 +589,17 @@ func (s *CommentsSuite) TestOtherCollaboratorCanUpdate() {
 	commentCtrl = NewCommentsController(svcWithCollaborator2, gormapplication.NewGormDB(s.DB), s.Configuration)
 	_, result = test.UpdateCommentsOK(s.T(), svcWithCollaborator2.Context, svcWithCollaborator2, commentCtrl, *c.Data.ID, updateCommentPayload)
 	assertComment(s.T(), result.Data, *collaborator1, updatedBody, markdownMarkup)
+}
+
+func (s *CommentsSuite) TestNotificationSendOnUpdate() {
+	// given
+	wiID := s.createWorkItem(s.testIdentity)
+	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &plaintextMarkup)
+	// when
+	updateCommentPayload := newUpdateCommentsPayload("updated body", &markdownMarkup)
+	userSvc, _, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
+	test.UpdateCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID, updateCommentPayload)
+	assert.True(s.T(), len(s.notification.Messages) > 0)
+	assert.Equal(s.T(), "comment.update", s.notification.Messages[0].MessageType)
+	assert.Equal(s.T(), c.Data.ID.String(), s.notification.Messages[0].TargetID)
 }
