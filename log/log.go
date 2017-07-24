@@ -1,6 +1,8 @@
 package log
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"os"
 	"runtime"
@@ -8,8 +10,8 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/configuration"
 
-	"context"
 	log "github.com/Sirupsen/logrus"
+	"github.com/goadesign/goa"
 )
 
 const defaultPackageName = "github.com/fabric8-services/fabric8-wit/"
@@ -122,6 +124,27 @@ func Error(ctx context.Context, fields map[string]interface{}, format string, ar
 			identityID, err := extractIdentityID(ctx)
 			if err == nil {
 				entry = entry.WithField("identity_id", identityID)
+			}
+
+			if req := goa.ContextRequest(ctx); req != nil {
+				// Let's log some request details
+				if len(req.Header) > 0 {
+					entry = entry.WithField("req_headers", req.Header)
+				}
+				if len(req.Params) > 0 {
+					entry = entry.WithField("req_params", req.Params)
+				}
+				if req.ContentLength > 0 {
+					if mp, ok := req.Payload.(map[string]interface{}); ok && mp != nil {
+						entry = entry.WithField("req_payload", mp)
+					} else {
+						js, err := json.Marshal(req.Payload)
+						if err != nil {
+							js = []byte("<invalid JSON>")
+						}
+						entry = entry.WithField("req_payload", string(js))
+					}
+				}
 			}
 		}
 
