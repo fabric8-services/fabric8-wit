@@ -83,6 +83,12 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
+		if ctx.Q == nil || *ctx.Q == "" {
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(
+				goa.ErrBadRequest("empty search query not allowed"))
+			return ctx.BadRequest(jerrors)
+		}
+
 		result, c, err := appl.SearchItems().SearchFullText(ctx.Context, *ctx.Q, &offset, &limit, ctx.SpaceID)
 		count := int(c)
 		if err != nil {
