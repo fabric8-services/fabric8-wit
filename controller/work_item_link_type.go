@@ -50,7 +50,7 @@ func enrichLinkTypeSingle(ctx *workItemLinkContext, single *app.WorkItemLinkType
 	if err != nil {
 		return err
 	}
-	appCategory := convertLinkCategoryFromModel(*modelCategory)
+	appCategory := ConvertLinkCategoryFromModel(*modelCategory)
 	single.Included = append(single.Included, appCategory.Data)
 
 	// Now include the optional link space data in the work item link type "included" array
@@ -92,7 +92,7 @@ func enrichLinkTypeList(ctx *workItemLinkContext, list *app.WorkItemLinkTypeList
 		if err != nil {
 			return err
 		}
-		appCategory := convertLinkCategoryFromModel(*modelCategory)
+		appCategory := ConvertLinkCategoryFromModel(*modelCategory)
 		list.Included = append(list.Included, appCategory.Data)
 	}
 

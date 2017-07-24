@@ -153,7 +153,11 @@ func (s *workItemLinkSuite) SetupTest() {
 	s.feature1ID = s.createWorkItem(*wit2.Data.ID, "feature1")
 
 	// Create a work item link category
-	s.userLinkCategoryID = createWorkItemLinkCategoryInRepo(s.T(), s.appDB, s.svc.Context, "test-user", "This work item link category is managed by an admin user.", nil)
+	description := "This work item link category is managed by an admin user."
+	s.userLinkCategoryID = createWorkItemLinkCategoryInRepo(s.T(), s.appDB, s.svc.Context, link.WorkItemLinkCategory{
+		Name:        "test-user",
+		Description: &description,
+	})
 	s.T().Logf("Created link category with ID: %s\n", s.userLinkCategoryID)
 
 	// Create work item link type payload

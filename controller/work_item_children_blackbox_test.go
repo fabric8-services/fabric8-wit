@@ -154,7 +154,11 @@ func (s *workItemChildSuite) SetupTest() {
 	s.T().Logf("Created bug3 with ID: %s\n", *s.bug3.Data.ID)
 
 	// Create a work item link category
-	userLinkCategoryID := createWorkItemLinkCategoryInRepo(s.T(), s.db, s.svc.Context, "test-user", "This work item link category is managed by an admin user.", nil)
+	description := "This work item link category is managed by an admin user."
+	userLinkCategoryID := createWorkItemLinkCategoryInRepo(s.T(), s.db, s.svc.Context, link.WorkItemLinkCategory{
+		Name:        "test-user",
+		Description: &description,
+	})
 	s.T().Logf("Created link category with ID: %s\n", userLinkCategoryID)
 
 	// Create work item link type payload

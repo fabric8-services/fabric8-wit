@@ -147,42 +147,32 @@ func (s *workItemLinkCategorySuite) createWorkItemLinkCategoryUser() (http.Respo
 }
 
 func createWorkItemLinkCategorySystemInRepo(t *testing.T, db application.DB, ctx context.Context) uuid.UUID {
-	id := "0e671e36-871b-43a6-9166-0c4bd573e231"
-	return createWorkItemLinkCategoryInRepo(t, db, ctx, "test-system", "This work item link category is reserved for the core system.", &id)
+	description := "This work item link category is reserved for the core system."
+	linkCat := link.WorkItemLinkCategory{
+		ID:          uuid.FromStringOrNil("0e671e36-871b-43a6-9166-0c4bd573e231"),
+		Name:        "test-system",
+		Description: &description,
+	}
+	return createWorkItemLinkCategoryInRepo(t, db, ctx, linkCat)
 }
 
 func createWorkItemLinkCategoryUserInRepo(t *testing.T, db application.DB, ctx context.Context) uuid.UUID {
-	id := "bf30167a-9446-42de-82be-6b3815152051"
-	return createWorkItemLinkCategoryInRepo(t, db, ctx, "test-user", "This work item link category is managed by an admin user.", &id)
+	description := "This work item link category is managed by an admin user."
+	linkCat := link.WorkItemLinkCategory{
+		ID:          uuid.FromStringOrNil("bf30167a-9446-42de-82be-6b3815152051"),
+		Name:        "test-user",
+		Description: &description,
+	}
+	return createWorkItemLinkCategoryInRepo(t, db, ctx, linkCat)
 }
 
-func createWorkItemLinkCategoryInRepo(t *testing.T, db application.DB, ctx context.Context, name string, description string, id *string) uuid.UUID {
-	var cID uuid.UUID
-	if id == nil {
-		cID = uuid.NewV4()
-	} else {
-		cID = uuid.FromStringOrNil(*id)
-	}
-
-	// Use the goa generated code to create a work item link category
-	payload := app.CreateWorkItemLinkCategoryPayload{
-		Data: &app.WorkItemLinkCategoryData{
-			ID:   &cID,
-			Type: link.EndpointWorkItemLinkCategories,
-			Attributes: &app.WorkItemLinkCategoryAttributes{
-				Name:        &name,
-				Description: &description,
-			},
-		},
-	}
-
+func createWorkItemLinkCategoryInRepo(t *testing.T, db application.DB, ctx context.Context, linkCat link.WorkItemLinkCategory) uuid.UUID {
 	err := application.Transactional(db, func(appl application.Application) error {
-		modelCategory := ConvertLinkCategoryToModel(app.WorkItemLinkCategorySingle{Data: payload.Data})
-		_, err := appl.WorkItemLinkCategories().Create(ctx, &modelCategory)
+		_, err := appl.WorkItemLinkCategories().Create(ctx, &linkCat)
 		return err
 	})
 	require.Nil(t, err)
-	return cID
+	return linkCat.ID
 }
 
 //-----------------------------------------------------------------------------
@@ -190,41 +180,30 @@ func createWorkItemLinkCategoryInRepo(t *testing.T, db application.DB, ctx conte
 //-----------------------------------------------------------------------------
 
 func (s *workItemLinkCategorySuite) TestCreateAndDeleteWorkItemLinkCategoryFails() {
-	name := "test-user"
 	description := "This work item link category is managed by an admin user."
-	id := uuid.FromStringOrNil("bf30167a-9446-42de-82be-6b3815152051")
 
-	// Use the goa generated code to create a work item link category
-	payload := app.CreateWorkItemLinkCategoryPayload{
-		Data: &app.WorkItemLinkCategoryData{
-			ID:   &id,
-			Type: link.EndpointWorkItemLinkCategories,
-			Attributes: &app.WorkItemLinkCategoryAttributes{
-				Name:        &name,
-				Description: &description,
-			},
-		},
-	}
+	appLinkCat := ConvertLinkCategoryFromModel(link.WorkItemLinkCategory{
+		ID:          uuid.FromStringOrNil("bf30167a-9446-42de-82be-6b3815152051"),
+		Name:        "test-user",
+		Description: &description,
+	})
+	payload := app.CreateWorkItemLinkCategoryPayload{Data: appLinkCat.Data}
 
 	test.CreateWorkItemLinkCategoryMethodNotAllowed(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, &payload)
-	test.DeleteWorkItemLinkCategoryMethodNotAllowed(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, id)
+	test.DeleteWorkItemLinkCategoryMethodNotAllowed(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, *payload.Data.ID)
 }
 
 func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryFails() {
-	name := "Some name"
 	description := "New description for work item link category."
-	id := uuid.FromStringOrNil("88727441-4a21-4b35-aabe-007f8273cd19")
-	payload := &app.UpdateWorkItemLinkCategoryPayload{
-		Data: &app.WorkItemLinkCategoryData{
-			ID:   &id,
-			Type: link.EndpointWorkItemLinkCategories,
-			Attributes: &app.WorkItemLinkCategoryAttributes{
-				Name:        &name,
-				Description: &description,
-			},
-		},
-	}
-	test.UpdateWorkItemLinkCategoryMethodNotAllowed(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, *payload.Data.ID, payload)
+
+	appLinkCat := ConvertLinkCategoryFromModel(link.WorkItemLinkCategory{
+		ID:          uuid.FromStringOrNil("88727441-4a21-4b35-aabe-007f8273cd19"),
+		Name:        "Some name",
+		Description: &description,
+	})
+	payload := app.UpdateWorkItemLinkCategoryPayload{Data: appLinkCat.Data}
+
+	test.UpdateWorkItemLinkCategoryMethodNotAllowed(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, *payload.Data.ID, &payload)
 }
 
 // Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299

@@ -147,7 +147,11 @@ func (s *workItemLinkTypeSuite) createDemoLinkType(name string) *app.CreateWorkI
 	require.NotNil(s.T(), workItemType)
 
 	//   3. Create a work item link category
-	catID := createWorkItemLinkCategoryInRepo(s.T(), s.appDB, s.svc.Context, s.categoryName, "This work item link category is managed by an admin user.", nil)
+	description := "This work item link category is managed by an admin user."
+	catID := createWorkItemLinkCategoryInRepo(s.T(), s.appDB, s.svc.Context, link.WorkItemLinkCategory{
+		Name:        s.categoryName,
+		Description: &description,
+	})
 
 	// 4. Create work item link type payload
 	createLinkTypePayload := newCreateWorkItemLinkTypePayload(name, catID, *space.Data.ID)

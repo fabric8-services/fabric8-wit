@@ -67,7 +67,7 @@ func (c *WorkItemLinkCategoryController) Create(ctx *app.CreateWorkItemLinkCateg
 			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
-		appCategory := convertLinkCategoryFromModel(modelCategory)
+		appCategory := ConvertLinkCategoryFromModel(modelCategory)
 		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkCategoryHref, currentUserIdentityID)
 		err = enrichLinkCategorySingle(linkCtx, appCategory)
 		if err != nil {
@@ -87,7 +87,7 @@ func (c *WorkItemLinkCategoryController) Show(ctx *app.ShowWorkItemLinkCategoryC
 			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
-		appCategory := convertLinkCategoryFromModel(*modelCategory)
+		appCategory := ConvertLinkCategoryFromModel(*modelCategory)
 		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkCategoryHref, nil)
 		err = enrichLinkCategorySingle(linkCtx, appCategory)
 		if err != nil {
@@ -110,7 +110,7 @@ func (c *WorkItemLinkCategoryController) List(ctx *app.ListWorkItemLinkCategoryC
 		appCategories := app.WorkItemLinkCategoryList{}
 		appCategories.Data = make([]*app.WorkItemLinkCategoryData, len(modelCategories))
 		for index, value := range modelCategories {
-			cat := convertLinkCategoryFromModel(value)
+			cat := ConvertLinkCategoryFromModel(value)
 			appCategories.Data[index] = cat.Data
 		}
 		// TODO: When adding pagination, this must not be len(rows) but
@@ -172,7 +172,7 @@ func (c *WorkItemLinkCategoryController) Update(ctx *app.UpdateWorkItemLinkCateg
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
 		// convert to app representation
-		savedAppCategory := convertLinkCategoryFromModel(*savedModelCategory)
+		savedAppCategory := ConvertLinkCategoryFromModel(*savedModelCategory)
 		// Enrich
 		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkCategoryHref, currentUserIdentityID)
 		err = enrichLinkCategorySingle(linkCtx, savedAppCategory)
@@ -184,8 +184,8 @@ func (c *WorkItemLinkCategoryController) Update(ctx *app.UpdateWorkItemLinkCateg
 	})
 }
 
-// convertLinkCategoryFromModel converts work item link category from model to app representation
-func convertLinkCategoryFromModel(t link.WorkItemLinkCategory) app.WorkItemLinkCategorySingle {
+// ConvertLinkCategoryFromModel converts work item link category from model to app representation
+func ConvertLinkCategoryFromModel(t link.WorkItemLinkCategory) app.WorkItemLinkCategorySingle {
 	var converted = app.WorkItemLinkCategorySingle{
 		Data: &app.WorkItemLinkCategoryData{
 			Type: link.EndpointWorkItemLinkCategories,
