@@ -12,7 +12,7 @@ var genericLinksForWorkItem = a.Type("GenericLinksForWorkItem", func() {
 	a.Attribute("self", d.String)
 	a.Attribute("related", d.String)
 	a.Attribute("meta", a.HashOf(d.String, d.Any))
-	a.Attribute("doit", d.String, "URL to generate Che-editor's link based on values of codebase field")
+	a.Attribute("editCodebase", d.String, "URL to generate Che-editor's link based on values of codebase field")
 })
 
 // workItem defines how an update payload will look like

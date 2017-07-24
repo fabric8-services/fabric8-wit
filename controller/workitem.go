@@ -341,6 +341,7 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 			}
 		} else if key == workitem.SystemCodebase {
 			if m, err := codebase.NewCodebaseContentFromValue(val); err == nil {
+				setupCodebase(appl, m, spaceID)
 				target.Fields[key] = *m
 			} else {
 				return err
@@ -354,6 +355,33 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 		if !rendering.IsMarkupSupported(description.Markup) {
 			return errors.NewBadParameterError("data.relationships.attributes[system.description].markup", description.Markup)
 		}
+	}
+	return nil
+}
+
+// setupCodebase is the link between CodebaseContent & Codebase
+// setupCodebase creates a codebase and saves it's ID in CodebaseContent
+// for future use
+func setupCodebase(appl application.Application, cb *codebase.Content, spaceID uuid.UUID) error {
+	if cb.CodebaseID == "" {
+		defaultStackID := "java-centos"
+		newCodeBase := codebase.Codebase{
+			SpaceID: spaceID,
+			Type:    "git",
+			URL:     cb.Repository,
+			StackID: &defaultStackID,
+			//TODO: Think of making stackID dynamic value (from analyzer)
+		}
+		existingCB, err := appl.Codebases().LoadByRepo(context.Background(), spaceID, cb.Repository)
+		if existingCB != nil {
+			cb.CodebaseID = existingCB.ID.String()
+			return nil
+		}
+		err = appl.Codebases().Create(context.Background(), &newCodeBase)
+		if err != nil {
+			return errors.NewInternalError(context.Background(), err)
+		}
+		cb.CodebaseID = newCodeBase.ID.String()
 	}
 	return nil
 }
@@ -465,10 +493,9 @@ func ConvertWorkItem(request *goa.RequestData, wi workitem.WorkItem, additional 
 			if val != nil {
 				op.Attributes[name] = val
 				// TODO: Following format is TBD and hence commented out
-				// cb := val.(codebase.CodebaseContent)
-				// urlparams := fmt.Sprintf("/codebase/generate?repo=%s&branch=%s&file=%s&line=%d", cb.Repository, cb.Branch, cb.FileName, cb.LineNumber)
-				// doitURL := rest.AbsoluteURL(request, url.QueryEscape(urlparams))
-				// op.Links.Doit = &doitURL
+				cb := val.(codebase.Content)
+				editURL := rest.AbsoluteURL(request, app.CodebaseHref(cb.CodebaseID)+"/edit")
+				op.Links.EditCodebase = &editURL
 			}
 		default:
 			op.Attributes[name] = val
