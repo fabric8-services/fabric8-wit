@@ -129,7 +129,16 @@ func Error(ctx context.Context, fields map[string]interface{}, format string, ar
 			if req := goa.ContextRequest(ctx); req != nil {
 				// Let's log some request details
 				if len(req.Header) > 0 {
-					entry = entry.WithField("req_headers", req.Header)
+					headers := make(map[string]interface{}, len(req.Header))
+					for k, v := range req.Header {
+						// Hide sensitive information
+						if k == "Authorization" || k == "Cookie" {
+							headers[string(k)] = "*****"
+						} else {
+							headers[string(k)] = v
+						}
+					}
+					entry = entry.WithField("req_headers", headers)
 				}
 				if len(req.Params) > 0 {
 					entry = entry.WithField("req_params", req.Params)
