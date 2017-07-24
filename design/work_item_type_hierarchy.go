@@ -43,7 +43,7 @@ var workItemTypeHierarchy = a.Type("WorkItemTypeHierarchy", func() {
 	a.Attribute("sublevel", d.Integer, "ID of work item type (optional during creation)")
 	a.Attribute("group", d.String)
 	a.Attribute("name", d.String)
-	a.Attribute("wit_collection", a.ArrayOf(d.UUID))
+	a.Attribute("wit_collection", a.ArrayOf(d.UUID), "comment")
 	// a.Required("attributes", "relationships")
 })
 
@@ -60,7 +60,7 @@ var workItemTypeHierarchyData = a.Type("WorkItemTypeHierarchyData", func() {
 See also http://jsonapi.org/format/#document-resource-object`)
 	a.Attribute("id", d.UUID, "ID of work item link type (optional during creation)")
 	a.Attribute("attributes", workItemTypeHierarchyAttributes)
-	a.Attribute("included", a.ArrayOf(d.Any), "An array of mixed types")
+	a.Attribute("included", a.ArrayOf(workItemTypeData), "An array of mixed types")
 	// add type here
 	a.Required("attributes", "id")
 })
