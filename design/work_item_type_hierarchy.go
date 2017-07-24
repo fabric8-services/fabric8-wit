@@ -61,6 +61,7 @@ See also http://jsonapi.org/format/#document-resource-object`)
 	a.Attribute("id", d.UUID, "ID of work item link type (optional during creation)")
 	a.Attribute("attributes", workItemTypeHierarchyAttributes)
 	a.Attribute("included", a.ArrayOf(d.Any), "An array of mixed types")
+	// add type here
 	a.Required("attributes", "id")
 })
 
