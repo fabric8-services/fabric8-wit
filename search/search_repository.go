@@ -637,6 +637,18 @@ func (r *GormSearchRepository) Filter(ctx context.Context, rawFilterString strin
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
 	}
+	log.Debug(ctx, map[string]interface{}{
+		"expression": exp,
+		"raw_filter": rawFilterString,
+	}, "Filtering work items...")
+
+	if exp == nil {
+		log.Error(ctx, map[string]interface{}{
+			"expression": exp,
+			"raw_filter": rawFilterString,
+		}, "unable to parse the raw filter string")
+		return nil, 0, errors.NewBadParameterError("rawFilterString", rawFilterString)
+	}
 
 	result, count, err := r.listItemsFromDB(ctx, exp, start, limit)
 	if err != nil {
