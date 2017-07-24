@@ -155,10 +155,11 @@ func (s *searchBlackBoxTest) TestSearchWithEmptyValue() {
 	// when
 	q := ""
 	spaceIDStr := space.SystemSpace.String()
-	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, nil, &q, &spaceIDStr)
+	_, jerrs := test.ShowSearchBadRequest(s.T(), nil, nil, s.controller, nil, nil, nil, &q, &spaceIDStr)
 	// then
-	require.NotNil(s.T(), sr.Data)
-	assert.Empty(s.T(), sr.Data)
+	require.NotNil(s.T(), jerrs)
+	require.Len(s.T(), jerrs.Errors, 1)
+	require.NotNil(s.T(), jerrs.Errors[0].ID)
 }
 
 func (s *searchBlackBoxTest) TestSearchWithDomainPortCombination() {
