@@ -318,7 +318,7 @@ func main() {
 	app.MountSpaceTemplateController(service, spaceTemplateCtrl)
 
 	// Mount "type hierarchy" controller
-	workItemTypeGroupCtrl := controller.NewWorkItemTypeGroupController(service)
+	workItemTypeGroupCtrl := controller.NewWorkItemTypeGroupController(service, appDB)
 	app.MountWorkItemTypeGroupController(service, workItemTypeGroupCtrl)
 
 	log.Logger().Infoln("Git Commit SHA: ", controller.Commit)
