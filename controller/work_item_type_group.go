@@ -2,6 +2,7 @@ package controller
 
 import (
 	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/workitem/typegroup"
 	"github.com/goadesign/goa"
 )
 
@@ -22,6 +23,23 @@ func (c *WorkItemTypeGroupController) List(ctx *app.ListWorkItemTypeGroupContext
 	// Put your logic here
 
 	// WorkItemTypeGroupController_List: end_implement
-	res := &app.WorkItemTypeGroupsList{}
+	res := &app.WorkItemTypeGroupSigleSingle{}
+	res.Data = &app.WorkItemTypeGroupData{
+		Attributes: &app.WorkItemTypeGroupAttributes{
+			Hierarchy: []*app.WorkItemTypeGroup{
+				ConvertTypeGroup(ctx.RequestData, typegroup.Portfolio0),
+			},
+		},
+	}
 	return ctx.OK(res)
+}
+
+func ConvertTypeGroup(request *goa.RequestData, tg typegroup.WorkItemTypeGroup) *app.WorkItemTypeGroup {
+	return &app.WorkItemTypeGroup{
+		Group:         tg.Group,
+		Level:         tg.Level,
+		Name:          tg.Name,
+		Sublevel:      tg.Sublevel,
+		WitCollection: tg.WorkItemTypeCollection,
+	}
 }
