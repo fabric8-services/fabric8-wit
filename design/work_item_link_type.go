@@ -184,6 +184,7 @@ var _ = a.Resource("work_item_link_type", func() {
 		)
 		a.Description("Create a work item link type")
 		a.Payload(createWorkItemLinkTypePayload)
+		a.Response(d.MethodNotAllowed)
 		a.Response(d.Created, "/workitemlinktypes/.*", func() {
 			a.Media(workItemLinkType)
 		})
@@ -201,6 +202,7 @@ var _ = a.Resource("work_item_link_type", func() {
 		a.Params(func() {
 			a.Param("wiltID", d.UUID, "wiltID")
 		})
+		a.Response(d.MethodNotAllowed)
 		a.Response(d.OK)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
@@ -218,6 +220,7 @@ var _ = a.Resource("work_item_link_type", func() {
 			a.Param("wiltID", d.UUID, "wiltID")
 		})
 		a.Payload(updateWorkItemLinkTypePayload)
+		a.Response(d.MethodNotAllowed)
 		a.Response(d.OK, workItemLinkType)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.Conflict, JSONAPIErrors)

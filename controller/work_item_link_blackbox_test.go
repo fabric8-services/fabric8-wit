@@ -10,6 +10,7 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
+	"github.com/fabric8-services/fabric8-wit/application"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
@@ -57,6 +58,7 @@ type workItemLinkSuite struct {
 	userLinkCategoryID   uuid.UUID
 	bugBlockerLinkTypeID uuid.UUID
 	userSpaceID          uuid.UUID
+	appDB                application.DB
 }
 
 // cleanup removes all DB entries that will be created or have been created
@@ -86,6 +88,7 @@ func (s *workItemLinkSuite) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
 	ctx := migration.NewMigrationContext(context.Background())
 	s.DBTestSuite.PopulateDBTestSuite(ctx)
+	s.appDB = gormapplication.NewGormDB(s.DB)
 }
 
 // The SetupTest method will be run before every test in the suite.
@@ -150,16 +153,16 @@ func (s *workItemLinkSuite) SetupTest() {
 	s.feature1ID = s.createWorkItem(*wit2.Data.ID, "feature1")
 
 	// Create a work item link category
-	createLinkCategoryPayload := newCreateWorkItemLinkCategoryPayload("test-user")
-	_, workItemLinkCategory := test.CreateWorkItemLinkCategoryCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkCategoryCtrl, createLinkCategoryPayload)
-	require.NotNil(s.T(), workItemLinkCategory)
-	//s.deleteWorkItemLinkCategories = append(s.deleteWorkItemLinkCategories, *workItemLinkCategory.Data.ID)
-	s.userLinkCategoryID = *workItemLinkCategory.Data.ID
-	s.T().Logf("Created link category with ID: %s\n", *workItemLinkCategory.Data.ID)
+	description := "This work item link category is managed by an admin user."
+	s.userLinkCategoryID = createWorkItemLinkCategoryInRepo(s.T(), s.appDB, s.svc.Context, link.WorkItemLinkCategory{
+		Name:        "test-user",
+		Description: &description,
+	})
+	s.T().Logf("Created link category with ID: %s\n", s.userLinkCategoryID)
 
 	// Create work item link type payload
 	createLinkTypePayload := newCreateWorkItemLinkTypePayload("test-bug-blocker", s.userLinkCategoryID, s.userSpaceID)
-	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkTypeCtrl, s.userSpaceID, createLinkTypePayload)
+	workItemLinkType := createWorkItemLinkTypeInRepo(s.T(), s.appDB, s.svc.Context, createLinkTypePayload)
 	require.NotNil(s.T(), workItemLinkType)
 	//s.deleteWorkItemLinkTypes = append(s.deleteWorkItemLinkTypes, *workItemLinkType.Data.ID)
 	s.bugBlockerLinkTypeID = *workItemLinkType.Data.ID

@@ -128,7 +128,7 @@ func getCategoriesOfLinkTypes(ctx *workItemLinkContext, linkTypeDataArr []*app.W
 		if err != nil {
 			return nil, errs.WithStack(err)
 		}
-		appCategory := convertLinkCategoryFromModel(*modelCategory)
+		appCategory := ConvertLinkCategoryFromModel(*modelCategory)
 		catDataArr = append(catDataArr, appCategory.Data)
 	}
 	return catDataArr, nil
@@ -149,7 +149,7 @@ func enrichLinkSingle(ctx *workItemLinkContext, appLinks *app.WorkItemLinkSingle
 	if err != nil {
 		return errs.WithStack(err)
 	}
-	appCategory := convertLinkCategoryFromModel(*modelCategory)
+	appCategory := ConvertLinkCategoryFromModel(*modelCategory)
 	appLinks.Included = append(appLinks.Included, appCategory.Data)
 
 	// TODO(kwk): include source work item type (once #559 is merged)

@@ -2,12 +2,14 @@ package controller_test
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"net/http"
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
+	"github.com/fabric8-services/fabric8-wit/application"
 	config "github.com/fabric8-services/fabric8-wit/configuration"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
@@ -42,6 +44,7 @@ func TestSuiteWorkItemLinkCategory(t *testing.T) {
 type workItemLinkCategorySuite struct {
 	suite.Suite
 	db          *gorm.DB
+	appDB       application.DB
 	linkCatCtrl *WorkItemLinkCategoryController
 	svc         *goa.Service
 }
@@ -62,6 +65,7 @@ func (s *workItemLinkCategorySuite) SetupSuite() {
 	var err error
 	s.db, err = gorm.Open("postgres", wilCatConfiguration.GetPostgresConfigString())
 	require.Nil(s.T(), err)
+	s.appDB = gormapplication.NewGormDB(s.db)
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
 	require.NotNil(s.T(), s.svc)
@@ -142,12 +146,70 @@ func (s *workItemLinkCategorySuite) createWorkItemLinkCategoryUser() (http.Respo
 	return test.CreateWorkItemLinkCategoryCreated(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, &payload)
 }
 
+func createWorkItemLinkCategorySystemInRepo(t *testing.T, db application.DB, ctx context.Context) uuid.UUID {
+	description := "This work item link category is reserved for the core system."
+	linkCat := link.WorkItemLinkCategory{
+		ID:          uuid.FromStringOrNil("0e671e36-871b-43a6-9166-0c4bd573e231"),
+		Name:        "test-system",
+		Description: &description,
+	}
+	return createWorkItemLinkCategoryInRepo(t, db, ctx, linkCat)
+}
+
+func createWorkItemLinkCategoryUserInRepo(t *testing.T, db application.DB, ctx context.Context) uuid.UUID {
+	description := "This work item link category is managed by an admin user."
+	linkCat := link.WorkItemLinkCategory{
+		ID:          uuid.FromStringOrNil("bf30167a-9446-42de-82be-6b3815152051"),
+		Name:        "test-user",
+		Description: &description,
+	}
+	return createWorkItemLinkCategoryInRepo(t, db, ctx, linkCat)
+}
+
+func createWorkItemLinkCategoryInRepo(t *testing.T, db application.DB, ctx context.Context, linkCat link.WorkItemLinkCategory) uuid.UUID {
+	err := application.Transactional(db, func(appl application.Application) error {
+		_, err := appl.WorkItemLinkCategories().Create(ctx, &linkCat)
+		return err
+	})
+	require.Nil(t, err)
+	return linkCat.ID
+}
+
 //-----------------------------------------------------------------------------
 // Actual tests
 //-----------------------------------------------------------------------------
 
+func (s *workItemLinkCategorySuite) TestCreateAndDeleteWorkItemLinkCategoryFails() {
+	description := "This work item link category is managed by an admin user."
+
+	appLinkCat := ConvertLinkCategoryFromModel(link.WorkItemLinkCategory{
+		ID:          uuid.FromStringOrNil("bf30167a-9446-42de-82be-6b3815152051"),
+		Name:        "test-user",
+		Description: &description,
+	})
+	payload := app.CreateWorkItemLinkCategoryPayload{Data: appLinkCat.Data}
+
+	test.CreateWorkItemLinkCategoryMethodNotAllowed(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, &payload)
+	test.DeleteWorkItemLinkCategoryMethodNotAllowed(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, *payload.Data.ID)
+}
+
+func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryFails() {
+	description := "New description for work item link category."
+
+	appLinkCat := ConvertLinkCategoryFromModel(link.WorkItemLinkCategory{
+		ID:          uuid.FromStringOrNil("88727441-4a21-4b35-aabe-007f8273cd19"),
+		Name:        "Some name",
+		Description: &description,
+	})
+	payload := app.UpdateWorkItemLinkCategoryPayload{Data: appLinkCat.Data}
+
+	test.UpdateWorkItemLinkCategoryMethodNotAllowed(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, *payload.Data.ID, &payload)
+}
+
+// Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
 // TestCreateWorkItemLinkCategory tests if we can create the "test-system" work item link category
 func (s *workItemLinkCategorySuite) TestCreateAndDeleteWorkItemLinkCategory() {
+	s.T().Skip("skipped because Work Item Link Category Create/Update/Delete endpoints are disabled")
 	_, linkCatSystem := s.createWorkItemLinkCategorySystem()
 	require.NotNil(s.T(), linkCatSystem)
 
@@ -157,7 +219,9 @@ func (s *workItemLinkCategorySuite) TestCreateAndDeleteWorkItemLinkCategory() {
 	test.DeleteWorkItemLinkCategoryOK(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, *linkCatSystem.Data.ID)
 }
 
+// Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
 func (s *workItemLinkCategorySuite) TestCreateWorkItemLinkCategoryBadRequest() {
+	s.T().Skip("skipped because Work Item Link Category Create/Update/Delete endpoints are disabled")
 	description := "New description for work item link category."
 	name := "" // This will lead to a bad parameter error
 	id := uuid.FromStringOrNil("88727441-4a21-4b35-aabe-007f8273cdBB")
@@ -222,11 +286,15 @@ func (s *workItemLinkCategorySuite) TestFailValidationWorkItemLinkCategoryNameSt
 	assert.Contains(s.T(), err.Error(), "response.name must match the regexp")
 }
 
+// Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
 func (s *workItemLinkCategorySuite) TestDeleteWorkItemLinkCategoryNotFound() {
+	s.T().Skip("skipped because Work Item Link Category Create/Update/Delete endpoints are disabled")
 	test.DeleteWorkItemLinkCategoryNotFound(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, uuid.FromStringOrNil("01f6c751-53f3-401f-be9b-6a9a230db8AA"))
 }
 
+// Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
 func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryNotFound() {
+	s.T().Skip("skipped because Work Item Link Category Create/Update/Delete endpoints are disabled")
 	name := "Some name"
 	description := "New description for work item link category."
 	id := uuid.FromStringOrNil("88727441-4a21-4b35-aabe-007f8273cd19")
@@ -258,7 +326,8 @@ func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryNotFound() {
 // 	test.UpdateWorkItemLinkCategoryBadRequest(s.T(), nil, nil, s.linkCatCtrl, *payload.Data.ID, payload)
 // }
 
-func (s *workItemLinkCategorySuite) UpdateWorkItemLinkCategoryBadRequestDueToBadType() {
+// Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
+func (s *workItemLinkCategorySuite) xUpdateWorkItemLinkCategoryBadRequestDueToBadType() {
 	description := "New description for work item link category."
 	id := uuid.FromStringOrNil("88727441-4a21-4b35-aabe-007f8273cd19")
 	payload := &app.UpdateWorkItemLinkCategoryPayload{
@@ -273,7 +342,8 @@ func (s *workItemLinkCategorySuite) UpdateWorkItemLinkCategoryBadRequestDueToBad
 	test.UpdateWorkItemLinkCategoryBadRequest(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, *payload.Data.ID, payload)
 }
 
-func (s *workItemLinkCategorySuite) UpdateWorkItemLinkCategoryBadRequestDueToEmptyName() {
+// Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
+func (s *workItemLinkCategorySuite) xUpdateWorkItemLinkCategoryBadRequestDueToEmptyName() {
 	name := "" // When updating the name, it must not be empty
 	id := uuid.FromStringOrNil("88727441-4a21-4b35-aabe-007f8273cd19")
 	payload := &app.UpdateWorkItemLinkCategoryPayload{
@@ -288,7 +358,9 @@ func (s *workItemLinkCategorySuite) UpdateWorkItemLinkCategoryBadRequestDueToEmp
 	test.UpdateWorkItemLinkCategoryBadRequest(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, *payload.Data.ID, payload)
 }
 
+// Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
 func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryBadRequestDueToVersionConflictError() {
+	s.T().Skip("skipped because Work Item Link Category Create/Update/Delete endpoints are disabled")
 	_, linkCatSystem := s.createWorkItemLinkCategorySystem()
 	require.NotNil(s.T(), linkCatSystem)
 	updatePayload := &app.UpdateWorkItemLinkCategoryPayload{
@@ -299,7 +371,9 @@ func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryBadRequestDueT
 	test.UpdateWorkItemLinkCategoryConflict(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, *linkCatSystem.Data.ID, updatePayload)
 }
 
+// Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
 func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryOK() {
+	s.T().Skip("skipped because Work Item Link Category Create/Update/Delete endpoints are disabled")
 	// given
 	_, linkCatSystem := s.createWorkItemLinkCategorySystem()
 	require.NotNil(s.T(), linkCatSystem)
@@ -317,7 +391,9 @@ func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryOK() {
 	assert.Equal(s.T(), *linkCatSystem.Data.Attributes.Version+1, *newLinkCat.Data.Attributes.Version)
 }
 
+// Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
 func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryConflict() {
+	s.T().Skip("skipped because Work Item Link Category Create/Update/Delete endpoints are disabled")
 	// given
 	_, linkCatSystem := s.createWorkItemLinkCategorySystem()
 	require.NotNil(s.T(), linkCatSystem)
@@ -347,16 +423,13 @@ func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryConflict() {
 // TestShowWorkItemLinkCategoryOK tests if we can fetch the "test-system" work item link category
 func (s *workItemLinkCategorySuite) TestShowWorkItemLinkCategoryOK() {
 	// Create the work item link category first and try to read it back in
-	_, linkCat := s.createWorkItemLinkCategorySystem()
-	require.NotNil(s.T(), linkCat)
-
-	_, linkCat2 := test.ShowWorkItemLinkCategoryOK(s.T(), nil, nil, s.linkCatCtrl, *linkCat.Data.ID)
+	id := createWorkItemLinkCategorySystemInRepo(s.T(), s.appDB, s.linkCatCtrl.Context)
+	_, linkCat2 := test.ShowWorkItemLinkCategoryOK(s.T(), nil, nil, s.linkCatCtrl, id)
 
 	require.NotNil(s.T(), linkCat2)
 	require.NotNil(s.T(), linkCat2.Data.Links, "The link category MUST include a self link")
 	require.NotEmpty(s.T(), linkCat2.Data.Links.Self, "The link category MUST include a self link that's not empty")
 	require.Len(s.T(), linkCat2.Included, 0, "The link category has nothing to include")
-	require.EqualValues(s.T(), linkCat.Data, linkCat2.Data)
 }
 
 // TestShowWorkItemLinkCategoryNotFound tests if we can fetch a non existing work item link category
@@ -367,10 +440,8 @@ func (s *workItemLinkCategorySuite) TestShowWorkItemLinkCategoryNotFound() {
 // TestListWorkItemLinkCategoryOK tests if we can find the work item link categories
 // "test-system" and "test-user" in the list of work item link categories
 func (s *workItemLinkCategorySuite) TestListWorkItemLinkCategoryOK() {
-	_, linkCatSystem := s.createWorkItemLinkCategorySystem()
-	require.NotNil(s.T(), linkCatSystem)
-	_, linkCatUser := s.createWorkItemLinkCategoryUser()
-	require.NotNil(s.T(), linkCatUser)
+	createWorkItemLinkCategorySystemInRepo(s.T(), s.appDB, s.linkCatCtrl.Context)
+	createWorkItemLinkCategoryUserInRepo(s.T(), s.appDB, s.linkCatCtrl.Context)
 
 	// Fetch a single work item link category
 	_, linkCatCollection := test.ListWorkItemLinkCategoryOK(s.T(), nil, nil, s.linkCatCtrl)
