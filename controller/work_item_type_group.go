@@ -28,6 +28,8 @@ func (c *WorkItemTypeGroupController) List(ctx *app.ListWorkItemTypeGroupContext
 		Attributes: &app.WorkItemTypeGroupAttributes{
 			Hierarchy: []*app.WorkItemTypeGroup{
 				ConvertTypeGroup(ctx.RequestData, typegroup.Portfolio0),
+				ConvertTypeGroup(ctx.RequestData, typegroup.Portfolio1),
+				ConvertTypeGroup(ctx.RequestData, typegroup.Requirements0),
 			},
 		},
 	}
