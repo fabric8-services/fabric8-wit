@@ -154,15 +154,16 @@ func (s *workItemChildSuite) SetupTest() {
 	s.T().Logf("Created bug3 with ID: %s\n", *s.bug3.Data.ID)
 
 	// Create a work item link category
-	createLinkCategoryPayload := newCreateWorkItemLinkCategoryPayload("test-user" + uuid.NewV4().String())
-	_, workitemLinkCategory := test.CreateWorkItemLinkCategoryCreated(s.T(), s.svc.Context, s.svc, s.workitemLinkCategoryCtrl, createLinkCategoryPayload)
-	require.NotNil(s.T(), workitemLinkCategory)
-	userLinkCategoryID := *workitemLinkCategory.Data.ID
-	s.T().Logf("Created link category with ID: %s\n", *workitemLinkCategory.Data.ID)
+	description := "This work item link category is managed by an admin user."
+	userLinkCategoryID := createWorkItemLinkCategoryInRepo(s.T(), s.db, s.svc.Context, link.WorkItemLinkCategory{
+		Name:        "test-user",
+		Description: &description,
+	})
+	s.T().Logf("Created link category with ID: %s\n", userLinkCategoryID)
 
 	// Create work item link type payload
 	createLinkTypePayload := createParentChildWorkItemLinkType("test-bug-blocker", userLinkCategoryID, s.userSpaceID)
-	_, workitemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.workitemLinkTypeCtrl, s.userSpaceID, createLinkTypePayload)
+	workitemLinkType := createWorkItemLinkTypeInRepo(s.T(), s.db, s.svc.Context, createLinkTypePayload)
 	require.NotNil(s.T(), workitemLinkType)
 	s.bugBlockerLinkTypeID = *workitemLinkType.Data.ID
 	s.T().Logf("Created link type with ID: %s\n", *workitemLinkType.Data.ID)
