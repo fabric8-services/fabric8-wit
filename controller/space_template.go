@@ -22,5 +22,5 @@ func (c *SpaceTemplateController) Show(ctx *app.ShowSpaceTemplateContext) error 
 	// Put your logic here
 
 	// SpaceTemplateController_Show: end_implement
-	return ctx.MethodNotAllowed()
+	return nil
 }

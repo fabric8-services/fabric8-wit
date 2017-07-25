@@ -22,6 +22,6 @@ func (c *WorkItemTypeGroupController) List(ctx *app.ListWorkItemTypeGroupContext
 	// Put your logic here
 
 	// WorkItemTypeGroupController_List: end_implement
-	res := &app.WorkItemTypeHierarchyListList{}
+	res := &app.WorkItemTypeGroupsList{}
 	return ctx.OK(res)
 }

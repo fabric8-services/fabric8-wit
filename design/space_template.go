@@ -18,5 +18,4 @@ var _ = a.Resource("space_template", func() {
 		})
 		a.Response(d.MethodNotAllowed)
 	})
-
 })
