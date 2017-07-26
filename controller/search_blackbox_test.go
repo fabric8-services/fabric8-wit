@@ -648,6 +648,18 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 		require.Len(s.T(), result.Data, 3+5) // resolved items + items in iteraion2
 	})
 
+	s.T().Run("state IN resolved, closed", func(t *testing.T) {
+		// following test does not include any "space" deliberately, hence if there
+		// is any work item in the test-DB having state=resolved following count
+		// will fail
+		filter := fmt.Sprintf(`
+			{"state": {"$IN": ["%s", "%s"]}}`,
+			workitem.SystemStateResolved, workitem.SystemStateClosed)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(s.T(), result.Data)
+		require.Len(s.T(), result.Data, 3+5) // state = resolved or state = closed
+	})
+
 	s.T().Run("space=ID AND (state=resolved OR iteration=sprint2)", func(t *testing.T) {
 		filter := fmt.Sprintf(`
 			{"$AND": [
