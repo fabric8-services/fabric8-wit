@@ -52,10 +52,10 @@ func (c *WorkItemCommentsController) Create(ctx *app.CreateWorkItemCommentsConte
 		reqComment := ctx.Payload.Data
 		markup := rendering.NilSafeGetMarkup(reqComment.Attributes.Markup)
 		newComment := comment.Comment{
-			ParentID:  ctx.WiID,
-			Body:      reqComment.Attributes.Body,
-			Markup:    markup,
-			CreatedBy: *currentUserIdentityID,
+			ParentID: ctx.WiID,
+			Body:     reqComment.Attributes.Body,
+			Markup:   markup,
+			Creator:  *currentUserIdentityID,
 		}
 
 		err = appl.Comments().Create(ctx, &newComment, *currentUserIdentityID)
