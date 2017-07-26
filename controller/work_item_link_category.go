@@ -52,18 +52,22 @@ func enrichLinkCategoryList(ctx *workItemLinkContext, list *app.WorkItemLinkCate
 
 // Create runs the create action.
 func (c *WorkItemLinkCategoryController) Create(ctx *app.CreateWorkItemLinkCategoryContext) error {
+	// Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
+	if true {
+		return ctx.MethodNotAllowed()
+	}
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-		modelCategory := convertLinkCategoryToModel(app.WorkItemLinkCategorySingle{Data: ctx.Payload.Data})
+		modelCategory := ConvertLinkCategoryToModel(app.WorkItemLinkCategorySingle{Data: ctx.Payload.Data})
 		_, err := appl.WorkItemLinkCategories().Create(ctx.Context, &modelCategory)
 		if err != nil {
 			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
-		appCategory := convertLinkCategoryFromModel(modelCategory)
+		appCategory := ConvertLinkCategoryFromModel(modelCategory)
 		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkCategoryHref, currentUserIdentityID)
 		err = enrichLinkCategorySingle(linkCtx, appCategory)
 		if err != nil {
@@ -83,7 +87,7 @@ func (c *WorkItemLinkCategoryController) Show(ctx *app.ShowWorkItemLinkCategoryC
 			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
-		appCategory := convertLinkCategoryFromModel(*modelCategory)
+		appCategory := ConvertLinkCategoryFromModel(*modelCategory)
 		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkCategoryHref, nil)
 		err = enrichLinkCategorySingle(linkCtx, appCategory)
 		if err != nil {
@@ -106,7 +110,7 @@ func (c *WorkItemLinkCategoryController) List(ctx *app.ListWorkItemLinkCategoryC
 		appCategories := app.WorkItemLinkCategoryList{}
 		appCategories.Data = make([]*app.WorkItemLinkCategoryData, len(modelCategories))
 		for index, value := range modelCategories {
-			cat := convertLinkCategoryFromModel(value)
+			cat := ConvertLinkCategoryFromModel(value)
 			appCategories.Data[index] = cat.Data
 		}
 		// TODO: When adding pagination, this must not be len(rows) but
@@ -127,6 +131,10 @@ func (c *WorkItemLinkCategoryController) List(ctx *app.ListWorkItemLinkCategoryC
 
 // Delete runs the delete action.
 func (c *WorkItemLinkCategoryController) Delete(ctx *app.DeleteWorkItemLinkCategoryContext) error {
+	// Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
+	if true {
+		return ctx.MethodNotAllowed()
+	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		err := appl.WorkItemLinkCategories().Delete(ctx.Context, ctx.ID)
 		if err != nil {
@@ -139,6 +147,10 @@ func (c *WorkItemLinkCategoryController) Delete(ctx *app.DeleteWorkItemLinkCateg
 
 // Update runs the update action.
 func (c *WorkItemLinkCategoryController) Update(ctx *app.UpdateWorkItemLinkCategoryContext) error {
+	// Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
+	if true {
+		return ctx.MethodNotAllowed()
+	}
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
@@ -152,7 +164,7 @@ func (c *WorkItemLinkCategoryController) Update(ctx *app.UpdateWorkItemLinkCateg
 	if appCategory.Data.Attributes.Name == nil || *appCategory.Data.Attributes.Name == "" {
 		return errors.NewBadParameterError("data.attributes.name", "nil or empty")
 	}
-	modelCategory := convertLinkCategoryToModel(appCategory)
+	modelCategory := ConvertLinkCategoryToModel(appCategory)
 	return application.Transactional(c.db, func(appl application.Application) error {
 		savedModelCategory, err := appl.WorkItemLinkCategories().Save(ctx.Context, modelCategory)
 		if err != nil {
@@ -160,7 +172,7 @@ func (c *WorkItemLinkCategoryController) Update(ctx *app.UpdateWorkItemLinkCateg
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
 		// convert to app representation
-		savedAppCategory := convertLinkCategoryFromModel(*savedModelCategory)
+		savedAppCategory := ConvertLinkCategoryFromModel(*savedModelCategory)
 		// Enrich
 		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkCategoryHref, currentUserIdentityID)
 		err = enrichLinkCategorySingle(linkCtx, savedAppCategory)
@@ -172,8 +184,8 @@ func (c *WorkItemLinkCategoryController) Update(ctx *app.UpdateWorkItemLinkCateg
 	})
 }
 
-// convertLinkCategoryFromModel converts work item link category from model to app representation
-func convertLinkCategoryFromModel(t link.WorkItemLinkCategory) app.WorkItemLinkCategorySingle {
+// ConvertLinkCategoryFromModel converts work item link category from model to app representation
+func ConvertLinkCategoryFromModel(t link.WorkItemLinkCategory) app.WorkItemLinkCategorySingle {
 	var converted = app.WorkItemLinkCategorySingle{
 		Data: &app.WorkItemLinkCategoryData{
 			Type: link.EndpointWorkItemLinkCategories,
@@ -188,8 +200,8 @@ func convertLinkCategoryFromModel(t link.WorkItemLinkCategory) app.WorkItemLinkC
 	return converted
 }
 
-// convertLinkCategoryToModel converts work item link category from app to app representation
-func convertLinkCategoryToModel(t app.WorkItemLinkCategorySingle) link.WorkItemLinkCategory {
+// ConvertLinkCategoryToModel converts work item link category from app to app representation
+func ConvertLinkCategoryToModel(t app.WorkItemLinkCategorySingle) link.WorkItemLinkCategory {
 	var converted = link.WorkItemLinkCategory{}
 	if t.Data.ID != nil {
 		converted.ID = *t.Data.ID

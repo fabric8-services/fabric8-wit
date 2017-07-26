@@ -152,6 +152,7 @@ var _ = a.Resource("work_item_link_category", func() {
 		)
 		a.Description("Create a work item link category")
 		a.Payload(createWorkItemLinkCategoryPayload)
+		a.Response(d.MethodNotAllowed)
 		a.Response(d.Created, "/workitemlinkcategories/.*", func() {
 			a.Media(workItemLinkCategory)
 		})
@@ -169,6 +170,7 @@ var _ = a.Resource("work_item_link_category", func() {
 		a.Params(func() {
 			a.Param("id", d.UUID, "id")
 		})
+		a.Response(d.MethodNotAllowed)
 		a.Response(d.OK)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
@@ -186,6 +188,7 @@ var _ = a.Resource("work_item_link_category", func() {
 			a.Param("id", d.UUID, "id")
 		})
 		a.Payload(updateWorkItemLinkCategoryPayload)
+		a.Response(d.MethodNotAllowed)
 		a.Response(d.OK, func() {
 			a.Media(workItemLinkCategory)
 		})

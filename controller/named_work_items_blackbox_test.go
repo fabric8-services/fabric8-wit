@@ -27,7 +27,7 @@ type TestNamedWorkItemsSuite struct {
 	testIdentity       account.Identity
 	testSpace          app.Space
 	svc                *goa.Service
-	workitemsCtrl      *WorkitemController
+	workitemsCtrl      *WorkitemsController
 	namedWorkItemsCtrl *NamedWorkItemsController
 	wi                 *app.WorkItemSingle
 	clean              func()
@@ -45,7 +45,7 @@ func (s *TestNamedWorkItemsSuite) SetupTest() {
 	s.testIdentity = *testIdentity
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	s.svc = testsupport.ServiceAsSpaceUser("Collaborators-Service", almtoken.NewManagerWithPrivateKey(priv), s.testIdentity, &TestSpaceAuthzService{s.testIdentity})
-	s.workitemsCtrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	s.workitemsCtrl = NewWorkitemsController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.namedWorkItemsCtrl = NewNamedWorkItemsController(s.svc, gormapplication.NewGormDB(s.DB))
 	s.testSpace = CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, s.testIdentity)
 }
@@ -58,7 +58,7 @@ func (s *TestNamedWorkItemsSuite) createWorkItem() *app.WorkItemSingle {
 	payload := minimumRequiredCreateWithTypeAndSpace(workitem.SystemBug, *s.testSpace.ID)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *s.testSpace.ID, &payload)
+	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *s.testSpace.ID, &payload)
 	return wi
 }
 
