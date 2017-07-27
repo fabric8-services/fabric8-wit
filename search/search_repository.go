@@ -413,7 +413,7 @@ func parseFilterString(ctx context.Context, rawSearchString string) (criteria.Ex
 func generateSQLSearchInfo(keywords searchKeyword) (sqlParameter string) {
 	numberStr := strings.Join(keywords.number, " & ")
 	wordStr := strings.Join(keywords.words, " & ")
-	fragments := make([]string, 0)
+	var fragments []string
 	for _, v := range []string{numberStr, wordStr} {
 		if v != "" {
 			fragments = append(fragments, v)

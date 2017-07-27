@@ -91,9 +91,9 @@ func (r *GormResourceRepository) Load(ctx context.Context, ID uuid.UUID) (*Resou
 }
 
 // CheckExists returns nil if the given ID exists otherwise returns an error
-func (m *GormResourceRepository) CheckExists(ctx context.Context, id string) error {
+func (r *GormResourceRepository) CheckExists(ctx context.Context, id string) error {
 	defer goa.MeasureSince([]string{"goa", "db", "spaceresource", "exists"}, time.Now())
-	return repository.CheckExists(ctx, m.db, Resource{}.TableName(), id)
+	return repository.CheckExists(ctx, r.db, Resource{}.TableName(), id)
 }
 
 // Delete deletes the space resource with the given id
