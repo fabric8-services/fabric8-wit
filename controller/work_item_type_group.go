@@ -5,6 +5,7 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem/typegroup"
 	"github.com/goadesign/goa"
 )
@@ -46,22 +47,19 @@ func (c *WorkItemTypeGroupController) List(ctx *app.ListWorkItemTypeGroupContext
 }
 
 func IncludeWorkItemType(c *WorkItemTypeGroupController, ctx *app.ListWorkItemTypeGroupContext, res *app.WorkItemTypeGroupData) {
-	// witr := workitem.NewWorkItemTypeRepository()
-	for _, node := range res.Attributes.Hierarchy {
-		for _, witID := range node.WitCollection {
-			err := application.Transactional(c.db, func(appl application.Application) error {
-				t, err := appl.WorkItemTypes().LoadByID(ctx, witID)
-				if err != nil {
-					return err
-				}
-				converted := ConvertWorkItemTypeFromModel(ctx.RequestData, t)
-				res.Included = append(res.Included, &converted)
-				return nil
-			})
-			if err != nil {
-				fmt.Println("logging err")
-			}
+	err := application.Transactional(c.db, func(appl application.Application) error {
+		witTypes, err := appl.WorkItemTypes().List(ctx, space.SystemSpace, nil, nil)
+		if err != nil {
+			return err
 		}
+		for _, witType := range witTypes {
+			converted := ConvertWorkItemTypeFromModel(ctx.RequestData, &witType)
+			res.Included = append(res.Included, &converted)
+		}
+		return nil
+	})
+	if err != nil {
+		fmt.Println("logging err")
 	}
 }
 
