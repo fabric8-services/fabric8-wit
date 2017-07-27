@@ -118,10 +118,10 @@ func assertWorkItemComment(t *testing.T, c *app.Comment, expectedBody string, ex
 	require.NotNil(t, c.Attributes.CreatedAt)
 	assert.WithinDuration(t, time.Now(), *c.Attributes.CreatedAt, 2*time.Second)
 	require.NotNil(t, c.Relationships)
-	require.NotNil(t, c.Relationships.CreatedBy)
-	require.NotNil(t, c.Relationships.CreatedBy.Data)
-	assert.Equal(t, "identities", c.Relationships.CreatedBy.Data.Type)
-	assert.NotNil(t, c.Relationships.CreatedBy.Data.ID)
+	require.NotNil(t, c.Relationships.Creator)
+	require.NotNil(t, c.Relationships.Creator.Data)
+	assert.Equal(t, "identities", c.Relationships.Creator.Data.Type)
+	assert.NotNil(t, c.Relationships.Creator.Data.ID)
 }
 
 func (rest *TestCommentREST) TestSuccessCreateSingleCommentWithMarkup() {
@@ -151,10 +151,10 @@ func (rest *TestCommentREST) TestSuccessCreateSingleCommentWithDefaultMarkup() {
 func (rest *TestCommentREST) setupComments() (workitem.WorkItem, []*comment.Comment) {
 	wi := rest.createDefaultWorkItem()
 	comments := make([]*comment.Comment, 4)
-	comments[0] = &comment.Comment{ParentID: wi.ID, Body: "Test 1", CreatedBy: rest.testIdentity.ID}
-	comments[1] = &comment.Comment{ParentID: wi.ID, Body: "Test 2", CreatedBy: rest.testIdentity.ID}
-	comments[2] = &comment.Comment{ParentID: wi.ID, Body: "Test 3", CreatedBy: rest.testIdentity.ID}
-	comments[3] = &comment.Comment{ParentID: uuid.NewV4(), Body: "Test 1", CreatedBy: rest.testIdentity.ID}
+	comments[0] = &comment.Comment{ParentID: wi.ID, Body: "Test 1", Creator: rest.testIdentity.ID}
+	comments[1] = &comment.Comment{ParentID: wi.ID, Body: "Test 2", Creator: rest.testIdentity.ID}
+	comments[2] = &comment.Comment{ParentID: wi.ID, Body: "Test 3", Creator: rest.testIdentity.ID}
+	comments[3] = &comment.Comment{ParentID: uuid.NewV4(), Body: "Test 1", Creator: rest.testIdentity.ID}
 	application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Comments()
 		for _, c := range comments {
