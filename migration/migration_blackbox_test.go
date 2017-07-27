@@ -125,7 +125,6 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration65", testMigration65)
 	t.Run("TestMigration66", testMigration66)
 	t.Run("TestMigration67", testMigration67)
-	t.Run("TestMigration69", testMigration69)
 
 	// Perform the migration
 	if err := migration.Migrate(sqlDB, databaseName); err != nil {
@@ -453,34 +452,6 @@ func testMigration67(t *testing.T) {
 	err = stmt.QueryRow("00000067-0000-0000-0000-000000000000").Scan(&parentID)
 	require.Nil(t, err)
 	assert.NotNil(t, parentID)
-}
-
-func testMigration69(t *testing.T) {
-	// migrate to previous version
-	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+24)], (initialMigratedVersion + 24))
-	// fill DB with data
-	assert.Nil(t, runSQLscript(sqlDB, "069-create-workitems.sql"))
-	// then apply the change
-	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+25)], (initialMigratedVersion + 25))
-	// check the value of execution_order
-	workitem1, err := uuid.FromString("00000000-0000-0000-0000-000000000004")
-	require.Nil(t, err)
-	workitem2, err := uuid.FromString("00000000-0000-0000-0000-000000000005")
-	require.Nil(t, err)
-	workitem3, err := uuid.FromString("00000000-0000-0000-0000-000000000006")
-	require.Nil(t, err)
-	expectations := make(map[uuid.UUID]float64)
-	expectations[workitem1] = 1000
-	expectations[workitem2] = 2000
-	expectations[workitem3] = 1000
-	for workitemID, expectedExecutionOrder := range expectations {
-		var executionOrder float64
-		stmt, err := sqlDB.Prepare("select execution_order from work_items where id=$1")
-		require.Nil(t, err)
-		_ = stmt.QueryRow(workitemID.String()).Scan(&executionOrder)
-		require.NotNil(t, executionOrder)
-		assert.Equal(t, expectedExecutionOrder, executionOrder)
-	}
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and
