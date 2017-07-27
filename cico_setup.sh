@@ -66,6 +66,31 @@ function run_tests_without_coverage() {
   echo "CICO: ran tests without coverage"
 }
 
+function run_go_benchmarks() {
+  make integration-test-env-prepare
+  trap cleanup_env EXIT
+
+  # Check that postgresql container is healthy
+  check_postgres_healthiness
+
+  make docker-test-migration
+  make docker-test-integration-benchmark
+  echo "CICO: ran go benchmarks"
+}
+
+function run_tests_without_coverage() {
+  make integration-test-env-prepare
+  trap cleanup_env EXIT
+
+  # Check that postgresql container is healthy
+  check_postgres_healthiness
+
+  make docker-test-migration
+  make docker-test-integration-no-coverage
+  make docker-test-remote-no-coverage
+  echo "CICO: ran tests without coverage"
+}
+
 function check_postgres_healthiness(){
   echo "CICO: Waiting for postgresql container to be healthy...";
   while ! docker ps | grep postgres_integration_test | grep -q healthy; do
@@ -119,7 +144,7 @@ function deploy() {
 }
 
 function cico_setup() {
-  load_jenkins_vars;
-  install_deps;
+  #load_jenkins_vars;
+  #install_deps;
   prepare;
 }
