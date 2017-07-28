@@ -193,11 +193,11 @@ func assertComment(t *testing.T, resultData *app.Comment, expectedIdentity accou
 	assert.Equal(t, expectedMarkup, *resultData.Attributes.Markup)
 	assert.Equal(t, rendering.RenderMarkupToHTML(html.EscapeString(expectedBody), expectedMarkup), *resultData.Attributes.BodyRendered)
 	require.NotNil(t, resultData.Relationships)
-	require.NotNil(t, resultData.Relationships.CreatedBy)
-	require.NotNil(t, resultData.Relationships.CreatedBy.Data)
-	require.NotNil(t, resultData.Relationships.CreatedBy.Data.ID)
-	assert.Equal(t, expectedIdentity.ID, *resultData.Relationships.CreatedBy.Data.ID)
-	assert.True(t, strings.Contains(*resultData.Relationships.CreatedBy.Links.Related, resultData.Relationships.CreatedBy.Data.ID.String()), "Link not found")
+	require.NotNil(t, resultData.Relationships.Creator)
+	require.NotNil(t, resultData.Relationships.Creator.Data)
+	require.NotNil(t, resultData.Relationships.Creator.Data.ID)
+	assert.Equal(t, expectedIdentity.ID, uuid.FromStringOrNil(*resultData.Relationships.Creator.Data.ID))
+	assert.True(t, strings.Contains(*resultData.Relationships.Creator.Data.ID, *resultData.Relationships.Creator.Data.ID), "Link not found")
 }
 
 func convertCommentToModel(c app.CommentSingle) comment.Comment {
