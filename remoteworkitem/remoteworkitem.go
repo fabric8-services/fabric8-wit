@@ -130,7 +130,7 @@ func (converter ListConverter) Convert(value interface{}, item AttributeAccessor
 
 // Convert converts all fields from the given item that match this RegexpConverter's pattern, and returns an array of matching values as string
 func (converter PatternToListConverter) Convert(value interface{}, item AttributeAccessor) (interface{}, error) {
-	var result []string
+	result := make([]string, 0)
 	i := 0
 	for {
 		key := AttributeExpression(strings.Replace(converter.pattern, "?", strconv.Itoa(i), 1))
