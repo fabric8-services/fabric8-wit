@@ -28,12 +28,11 @@ var workItemTypeGroupLinks = a.Type("workItemTypeGroupLinks", func() {
 })
 
 var workItemTypeGroup = a.Type("WorkItemTypeGroup", func() {
-	a.Attribute("level", d.Integer, "denotes the hierarchical rank within the group")
-	a.Attribute("sublevel", d.Integer, "denotes the hierarchical rank within the node")
+	a.Attribute("level", a.ArrayOf(d.Integer), "Hierarchical position within the group")
 	a.Attribute("group", d.String, "Name of the group this node belongs to")
 	a.Attribute("name", d.String)
 	a.Attribute("wit_collection", a.ArrayOf(d.UUID), "Slice of UUIDs of work item type")
-	a.Required("level", "sublevel", "group", "name", "wit_collection")
+	a.Required("level", "group", "name", "wit_collection")
 })
 
 var workItemTypeGroupAttributes = a.Type("WorkItemTypeGroupAttributes", func() {
@@ -46,8 +45,6 @@ var workItemTypeGroupData = a.Type("WorkItemTypeGroupData", func() {
 	a.Description(`JSONAPI store for the data of a work item link type.
 See also http://jsonapi.org/format/#document-resource-object`)
 	a.Attribute("attributes", workItemTypeGroupAttributes)
-	a.Attribute("included", a.ArrayOf(workItemTypeData), "An array of work item types")
-	a.Required("attributes", "included")
 })
 
 var _ = a.Resource("work_item_type_group", func() {
