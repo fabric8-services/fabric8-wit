@@ -17,7 +17,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	wittoken "github.com/fabric8-services/fabric8-wit/token"
+	almtoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -63,9 +63,9 @@ func (rest *TestSearchSpacesREST) TearDownTest() {
 }
 
 func (rest *TestSearchSpacesREST) SecuredController() (*goa.Service, *SearchController) {
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 
-	svc := testsupport.ServiceAsUser("Search-Service", wittoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
+	svc := testsupport.ServiceAsUser("Search-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
 	return svc, NewSearchController(svc, rest.db, rest.Configuration)
 }
 

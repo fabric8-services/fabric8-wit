@@ -53,14 +53,14 @@ func (s *BenchCodebaseRepository) BenchmarkCreateCodebases() {
 	s.B().ResetTimer()
 	s.B().ReportAllocs()
 	for n := 0; n < s.B().N; n++ {
-		codebase2 := newCodebase(space.SystemSpace, "python-default", "my-used-last-workspace", "git", "git@github.com:aslakknutsen/fabric8-wit.git")
+		codebase2 := newCodebase(space.SystemSpace, "python-default", "my-used-last-workspace", "git", "git@github.com:aslakknutsen/almighty-core.git")
 		s.createCodebase(codebase2)
 	}
 }
 
 func (s *BenchCodebaseRepository) BenchmarkListCodebases() {
 	// given
-	codebase := newCodebase(space.SystemSpace, "java-default", "my-used-last-workspace", "git", "git@github.com:aslakknutsen/fabric8-wit.git")
+	codebase := newCodebase(space.SystemSpace, "java-default", "my-used-last-workspace", "git", "git@github.com:aslakknutsen/almighty-core.git")
 	s.createCodebase(codebase)
 	// when
 	offset := 0
@@ -76,7 +76,7 @@ func (s *BenchCodebaseRepository) BenchmarkListCodebases() {
 
 func (s *BenchCodebaseRepository) BenchmarkLoadCodebase() {
 	// given
-	codebaseTest := newCodebase(space.SystemSpace, "golang-default", "my-used-hector-workspace", "git", "git@github.com:hectorj2f/fabric8-wit.git")
+	codebaseTest := newCodebase(space.SystemSpace, "golang-default", "my-used-hector-workspace", "git", "git@github.com:hectorj2f/almighty-core.git")
 	s.createCodebase(codebaseTest)
 	// when
 	s.B().ResetTimer()

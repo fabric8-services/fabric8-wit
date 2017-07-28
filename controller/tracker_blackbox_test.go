@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	wittoken "github.com/fabric8-services/fabric8-wit/token"
+	almtoken "github.com/fabric8-services/fabric8-wit/token"
 
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
@@ -48,9 +48,9 @@ func (rest *TestTrackerREST) TearDownTest() {
 }
 
 func (rest *TestTrackerREST) SecuredController() (*goa.Service, *TrackerController) {
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 
-	svc := testsupport.ServiceAsUser("Tracker-Service", wittoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
+	svc := testsupport.ServiceAsUser("Tracker-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
 	return svc, NewTrackerController(svc, rest.db, rest.RwiScheduler, rest.Configuration)
 }
 
@@ -71,7 +71,7 @@ func (rest *TestTrackerREST) TestUnauthorizeTrackerCUD() {
 }
 
 func getTrackerTestData(t *testing.T) []testSecureAPI {
-	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(wittoken.RSAPrivateKey))
+	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(almtoken.RSAPrivateKey))
 	if err != nil {
 		t.Fatal("Could not parse Key ", err)
 	}

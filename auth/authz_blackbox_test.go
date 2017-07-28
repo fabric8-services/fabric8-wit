@@ -16,7 +16,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/rest"
-	wittoken "github.com/fabric8-services/fabric8-wit/token"
+	almtoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/goadesign/goa"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -40,7 +40,7 @@ func init() {
 	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
-	publicKey, err = wittoken.ParsePublicKey([]byte(configuration.GetTokenPublicKey()))
+	publicKey, err = almtoken.ParsePublicKey([]byte(configuration.GetTokenPublicKey()))
 	if err != nil {
 		panic(fmt.Errorf("Failed to parse the public key: %s", err.Error()))
 	}

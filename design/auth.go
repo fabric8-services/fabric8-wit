@@ -18,7 +18,7 @@ var _ = a.Resource("login", func() {
 			a.Param("redirect", d.String, "URL to be redirected to after successful login. If not set then will redirect to the referrer instead.")
 
 		})
-		a.Description("Authorize with the WIT")
+		a.Description("Authorize with the ALM")
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.TemporaryRedirect)
 		a.Response(d.InternalServerError, JSONAPIErrors)

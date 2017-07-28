@@ -38,4 +38,4 @@ exec /usr/libexec/pcp/bin/pmcd -l /dev/no-such-file -f -A -H $PCP_HOSTNAME
 sleep 5 # give time for pmcd's startup messages, so it doesn't intermix with ALM's
 
 
-exec bin/wit ${1+"$@"}
+exec bin/alm ${1+"$@"}

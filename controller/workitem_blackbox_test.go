@@ -34,7 +34,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/search"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	wittoken "github.com/fabric8-services/fabric8-wit/token"
+	almtoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	jwt "github.com/dgrijalva/jwt-go"
@@ -73,7 +73,7 @@ func (s *WorkItemSuite) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
 	s.ctx = migration.NewMigrationContext(context.Background())
 	s.DBTestSuite.PopulateDBTestSuite(s.ctx)
-	s.priKey, _ = wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	s.priKey, _ = almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	s.repoWit = workitem.NewWorkItemRepository(s.DB)
 }
 
@@ -94,7 +94,7 @@ func (s *WorkItemSuite) SetupTest() {
 	require.Nil(s.T(), err)
 	s.testIdentity = *testIdentity
 
-	s.svc = testsupport.ServiceAsUser("TestUpdateWI-Service", wittoken.NewManagerWithPrivateKey(s.priKey), s.testIdentity)
+	s.svc = testsupport.ServiceAsUser("TestUpdateWI-Service", almtoken.NewManagerWithPrivateKey(s.priKey), s.testIdentity)
 	s.workitemCtrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.workitemsCtrl = NewWorkitemsController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.spaceCtrl = NewSpaceController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration, &DummyResourceManager{})
@@ -897,8 +897,8 @@ func (s *WorkItem2Suite) SetupTest() {
 	// create identity
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "WorkItem2Suite setup user", "test provider")
 	require.Nil(s.T(), err)
-	s.priKey, _ = wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
-	s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", wittoken.NewManagerWithPrivateKey(s.priKey), *testIdentity)
+	s.priKey, _ = almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManagerWithPrivateKey(s.priKey), *testIdentity)
 	s.workitemCtrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.workitemsCtrl = NewWorkitemsController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(s.DB))
@@ -2751,12 +2751,12 @@ func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", wittoken.NewManagerWithPrivateKey(priv), *testIdentity, &TestSpaceAuthzService{*testIdentity})
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", almtoken.NewManagerWithPrivateKey(priv), *testIdentity, &TestSpaceAuthzService{*testIdentity})
 	workitemCtrl := NewWorkitemController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	workitemsCtrl := NewWorkitemsController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	testIdentity2, err := testsupport.CreateTestIdentity(s.DB, "TestUpdateWorkitemForSpaceCollaborator-"+uuid.NewV4().String(), "TestWI")
-	svcNotAuthorized := testsupport.ServiceAsSpaceUser("Collaborators-Service", wittoken.NewManagerWithPrivateKey(priv), *testIdentity2, &TestSpaceAuthzService{*testIdentity})
+	svcNotAuthorized := testsupport.ServiceAsSpaceUser("Collaborators-Service", almtoken.NewManagerWithPrivateKey(priv), *testIdentity2, &TestSpaceAuthzService{*testIdentity})
 	workitemCtrlNotAuthorized := NewWorkitemController(svcNotAuthorized, gormapplication.NewGormDB(s.DB), s.Configuration)
 	workitemsCtrlNotAuthorized := NewWorkitemsController(svcNotAuthorized, gormapplication.NewGormDB(s.DB), s.Configuration)
 

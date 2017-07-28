@@ -158,7 +158,7 @@ func (converter MarkupConverter) Convert(value interface{}, item AttributeAccess
 	}
 }
 
-// Convert method map the external tracker item to WIT WorkItem
+// Convert method map the external tracker item to ALM WorkItem
 func (sc ListStringConverter) Convert(value interface{}, item AttributeAccessor) (interface{}, error) {
 	return []interface{}{value}, nil
 }

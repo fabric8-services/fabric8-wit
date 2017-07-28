@@ -53,12 +53,12 @@ are instructions to install delve on different platforms.
 
 == Example debugging
 
-In this example we'll debug a running WIT server using delve and set a breakpoint
+In this example we'll debug a running ALM server using delve and set a breakpoint
 on the function `WorkitemController.Show`.
 
 NOTE: To see other ways to run `dlv`, see the link:https://github.com/derekparker/delve/blob/master/Documentation/usage/dlv.md#dlv[usage page].
 
-Let's assume the binary `./bin/wit` is running.
+Let's assume the binary `./bin/alm` is running.
 
 === Attach to program
 
@@ -66,7 +66,7 @@ To link:https://github.com/derekparker/delve/blob/master/Documentation/usage/dlv
 the debugger to your running fabric8-wit server,run:
 
 ----
-$ dlv attach $(pidof ./bin/wit)
+$ dlv attach $(pidof ./bin/alm)
 ----
 
 The will bring you into the delve shell which looks like this:
@@ -76,7 +76,7 @@ Type 'help' for list of commands.
 (dlv)
 ----
 
-The `./bin/wit` program is *paused* right now. Once we've set a breakpoint we will
+The `./bin/alm` program is *paused* right now. Once we've set a breakpoint we will
 let it run again.
 
 === Set breakpoint

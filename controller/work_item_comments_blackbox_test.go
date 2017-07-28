@@ -22,7 +22,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	wittoken "github.com/fabric8-services/fabric8-wit/token"
+	almtoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/goadesign/goa"
 	"github.com/pkg/errors"
@@ -61,8 +61,8 @@ func (rest *TestCommentREST) TearDownTest() {
 }
 
 func (rest *TestCommentREST) SecuredController() (*goa.Service, *WorkItemCommentsController) {
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsUser("WorkItemComment-Service", wittoken.NewManagerWithPrivateKey(priv), rest.testIdentity)
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	svc := testsupport.ServiceAsUser("WorkItemComment-Service", almtoken.NewManagerWithPrivateKey(priv), rest.testIdentity)
 	return svc, NewWorkItemCommentsController(svc, rest.db, rest.Configuration)
 }
 

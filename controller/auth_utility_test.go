@@ -14,7 +14,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/resource"
-	wittoken "github.com/fabric8-services/fabric8-wit/token"
+	almtoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/stretchr/testify/require"
@@ -86,7 +86,7 @@ func UnauthorizeCreateUpdateDeleteTest(t *testing.T, getDataFunc func(t *testing
 	resource.Require(t, resource.Database)
 
 	// This will be modified after merge PR for "Viper Environment configurations"
-	publickey, err := jwt.ParseRSAPublicKeyFromPEM([]byte(wittoken.RSAPublicKey))
+	publickey, err := jwt.ParseRSAPublicKeyFromPEM([]byte(almtoken.RSAPublicKey))
 	if err != nil {
 		t.Fatal("Could not parse Key ", err)
 	}

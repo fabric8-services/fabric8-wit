@@ -4,7 +4,6 @@ import (
 	"crypto/rsa"
 
 	"context"
-
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/fabric8-services/fabric8-wit/account"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
@@ -100,7 +99,7 @@ func ParsePrivateKey(key []byte) (*rsa.PrivateKey, error) {
 }
 
 // RSAPrivateKey for signing JWT Tokens
-// ssh-keygen -f wit_rsa
+// ssh-keygen -f alm_rsa
 var RSAPrivateKey = `-----BEGIN RSA PRIVATE KEY-----
 MIIEpQIBAAKCAQEAnwrjH5iTSErw9xUptp6QSFoUfpHUXZ+PaslYSUrpLjw1q27O
 DSFwmhV4+dAaTMO5chFv/kM36H3ZOyA146nwxBobS723okFaIkshRrf6qgtD6coT
@@ -130,7 +129,7 @@ OCCAgsB8g8yTB4qntAYyfofEoDiseKrngQT5DSdxd51A/jw7B8WyBK8=
 -----END RSA PRIVATE KEY-----`
 
 // RSAPublicKey for verifying JWT Tokens
-// openssl rsa -in wit_rsa -pubout -out wit_rsa.pub
+// openssl rsa -in alm_rsa -pubout -out alm_rsa.pub
 var RSAPublicKey = `-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAiRd6pdNjiwQFH2xmNugn
 TkVhkF+TdJw19Kpj3nRtsoUe4/6gIureVi7FWqcb+2t/E0dv8rAAs6vl+d7roz3R

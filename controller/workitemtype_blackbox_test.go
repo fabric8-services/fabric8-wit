@@ -21,7 +21,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	wittoken "github.com/fabric8-services/fabric8-wit/token"
+	almtoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	"time"
@@ -72,13 +72,13 @@ func (s *workItemTypeSuite) SetupSuite() {
 // The SetupTest method will be run before every test in the suite.
 func (s *workItemTypeSuite) SetupTest() {
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	idn := &account.Identity{
 		ID:           uuid.Nil,
 		Username:     "TestDeveloper",
 		ProviderType: "test provider",
 	}
-	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", wittoken.NewManagerWithPrivateKey(priv), *idn)
+	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", almtoken.NewManagerWithPrivateKey(priv), *idn)
 	s.spaceCtrl = NewSpaceController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration, &DummyResourceManager{})
 	require.NotNil(s.T(), s.spaceCtrl)
 	s.typeCtrl = NewWorkitemtypeController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
@@ -270,13 +270,13 @@ func (s *workItemTypeSuite) TestCreateByNotOwnerForbidden() {
 	defer resetFn()
 
 	s.T().Run("forbidden", func(t *testing.T) {
-		priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+		priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 		idn := &account.Identity{
 			ID:           uuid.NewV4(),
 			Username:     "TestDeveloper",
 			ProviderType: "test provider",
 		}
-		svc := testsupport.ServiceAsUser("TestCreateByNotOwnerForbidden-WorItemType-Service", wittoken.NewManagerWithPrivateKey(priv), *idn)
+		svc := testsupport.ServiceAsUser("TestCreateByNotOwnerForbidden-WorItemType-Service", almtoken.NewManagerWithPrivateKey(priv), *idn)
 		typeCtrl := NewWorkitemtypeController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 
 		payload := newCreateWorkItemTypePayload(uuid.NewV4(), space.SystemSpace)
