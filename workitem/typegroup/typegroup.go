@@ -15,6 +15,7 @@ type WorkItemTypeGroup struct {
 	WorkItemTypeCollection []uuid.UUID
 }
 
+// Portfolio0 defines first level of typegroup Portfolio
 var Portfolio0 = WorkItemTypeGroup{
 	Group:    "portfolio",
 	Level:    0,
@@ -27,6 +28,7 @@ var Portfolio0 = WorkItemTypeGroup{
 	},
 }
 
+// Portfolio1 defines second level of typegroup Portfolio
 var Portfolio1 = WorkItemTypeGroup{
 	Group:    "portfolio",
 	Level:    0,
@@ -38,6 +40,8 @@ var Portfolio1 = WorkItemTypeGroup{
 	},
 }
 
+// Requirements0 defines first level of typegroup Requirements
+// This group has less priority than Portfolio
 var Requirements0 = WorkItemTypeGroup{
 	Group:    "requirements",
 	Level:    1,
