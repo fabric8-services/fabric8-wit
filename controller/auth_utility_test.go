@@ -155,7 +155,7 @@ func UnauthorizeCreateUpdateDeleteTest(t *testing.T, getDataFunc func(t *testing
 
 // The RSADifferentPrivateKeyTest key will be used to sign the token but verification should
 // fail as this is not the key used by server security layer
-// ssh-keygen -f test-alm
+// ssh-keygen -f test-wit
 var RSADifferentPrivateKeyTest = `-----BEGIN RSA PRIVATE KEY-----
 MIIEpAIBAAKCAQEAsIT76Mr3p8VvtSrzCVcXEcyvalUp50mm4yvfqvZ1fZfbqAzJ
 c4GNJEkpBGoXF+WgjLNkPnwS+k1YuqvPeGG4vFPtErF7nxNCHpzU+cXScOOl3WrM
