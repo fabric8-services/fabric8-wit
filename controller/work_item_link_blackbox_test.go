@@ -21,7 +21,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	almtoken "github.com/fabric8-services/fabric8-wit/token"
+	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 
@@ -97,7 +97,7 @@ func (s *workItemLinkSuite) SetupSuite() {
 // It will also make sure that some resources that we rely on do exists.
 func (s *workItemLinkSuite) SetupTest() {
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
-	priv, err := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	priv, err := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
 	require.Nil(s.T(), err)
 	svc := goa.New("TestWorkItemLinkType-Service")
 	require.NotNil(s.T(), svc)
@@ -131,7 +131,7 @@ func (s *workItemLinkSuite) SetupTest() {
 	// create a test identity
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "test user", "test provider")
 	require.Nil(s.T(), err)
-	s.svc = testsupport.ServiceAsUser("TestWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), *testIdentity)
+	s.svc = testsupport.ServiceAsUser("TestWorkItem-Service", wittoken.NewManagerWithPrivateKey(priv), *testIdentity)
 	require.NotNil(s.T(), s.svc)
 	s.workItemCtrl = NewWorkitemController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	require.NotNil(s.T(), s.workItemCtrl)
