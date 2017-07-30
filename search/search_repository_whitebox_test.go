@@ -167,7 +167,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			workItem := testData.wi
 			searchString := testData.searchString
 			minimumResults := testData.minimumResults
-			workItemURLInSearchString := "http://demo.fabric8-wit.io/work-item/list/detail/"
+			workItemURLInSearchString := "http://demo.almighty.io/work-item/list/detail/"
 			req := &http.Request{Host: "localhost"}
 			params := url.Values{}
 			ctx := goa.NewContext(context.Background(), nil, req, params)
@@ -357,13 +357,13 @@ func TestParseSearchStringURL(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	inputSet := []searchTestData{{
-		query: "http://demo.fabric8-wit.io/work-item/list/detail/100",
+		query: "http://demo.almighty.io/work-item/list/detail/100",
 		expected: searchKeyword{
 			number: nil,
 			words:  []string{"(100:* | demo.almighty.io/work-item/list/detail/100:*)"},
 		},
 	}, {
-		query: "http://demo.fabric8-wit.io/work-item/board/detail/100",
+		query: "http://demo.almighty.io/work-item/board/detail/100",
 		expected: searchKeyword{
 			number: nil,
 			words:  []string{"(100:* | demo.almighty.io/work-item/board/detail/100:*)"},
@@ -380,13 +380,13 @@ func TestParseSearchStringURLWithouID(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	inputSet := []searchTestData{{
-		query: "http://demo.fabric8-wit.io/work-item/list/detail/",
+		query: "http://demo.almighty.io/work-item/list/detail/",
 		expected: searchKeyword{
 			number: nil,
 			words:  []string{"demo.almighty.io/work-item/list/detail:*"},
 		},
 	}, {
-		query: "http://demo.fabric8-wit.io/work-item/board/detail/",
+		query: "http://demo.almighty.io/work-item/board/detail/",
 		expected: searchKeyword{
 			number: nil,
 			words:  []string{"demo.almighty.io/work-item/board/detail:*"},
@@ -417,7 +417,7 @@ func TestParseSearchStringCombination(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	// do combination of ID, full text and URLs
 	// check if it works as expected.
-	input := "http://general.url.io http://demo.fabric8-wit.io/work-item/list/detail/100 number:300 golang book and           number:900 \t \n unwanted"
+	input := "http://general.url.io http://demo.almighty.io/work-item/list/detail/100 number:300 golang book and           number:900 \t \n unwanted"
 	op, _ := parseSearchString(context.Background(), input)
 	expectedSearchRes := searchKeyword{
 		number: []string{"300:*A", "900:*A"},
