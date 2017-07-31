@@ -18,8 +18,8 @@ import (
 // TokenContext is a new goa middleware that aims to extract the token from the
 // Authorization header when possible. If the Authorization header is missing in the request,
 // no error is returned. However, if the Authorization header contains a
-// token, it is validated and added to the context. In case the token is invalid
-// then this middleware will throw warning logs.
+// token, and it is valid then is added to the context. In case the token is invalid
+// then this middleware will throw an error.
 func TokenContext(validationKeys interface{}, validationFunc goa.Middleware, scheme *goa.JWTSecurity) goa.Middleware {
 	var rsaKeys []*rsa.PublicKey
 	var hmacKeys [][]byte
@@ -47,21 +47,28 @@ func TokenContext(validationKeys interface{}, validationFunc goa.Middleware, sch
 
 				if len(rsaKeys) > 0 {
 					token, err = validateRSAKeys(rsaKeys, "RS", incomingToken)
-					validated = err == nil
+					if err == nil {
+						validated = true
+					}
 				}
 
 				if !validated && len(ecdsaKeys) > 0 {
 					token, err = validateECDSAKeys(ecdsaKeys, "ES", incomingToken)
-					validated = err == nil
+					if err == nil {
+						validated = true
+					}
 				}
 
 				if !validated && len(hmacKeys) > 0 {
 					token, err = validateHMACKeys(hmacKeys, "HS", incomingToken)
+					if err == nil {
+						validated = true
+					}
 				}
 
-				if err != nil {
+				if !validated {
 					log.Warn(ctx, nil, "JWT validation failed %v", err)
-					return nil
+					return goajwt.ErrJWTError("JWT validation failed")
 				}
 
 				ctx = goajwt.WithJWT(ctx, token)
