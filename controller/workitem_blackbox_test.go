@@ -34,7 +34,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/search"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	almtoken "github.com/fabric8-services/fabric8-wit/token"
+	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	jwt "github.com/dgrijalva/jwt-go"
@@ -73,7 +73,7 @@ func (s *WorkItemSuite) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
 	s.ctx = migration.NewMigrationContext(context.Background())
 	s.DBTestSuite.PopulateDBTestSuite(s.ctx)
-	s.priKey, _ = almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	s.priKey, _ = wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
 	s.repoWit = workitem.NewWorkItemRepository(s.DB)
 }
 
@@ -94,7 +94,7 @@ func (s *WorkItemSuite) SetupTest() {
 	require.Nil(s.T(), err)
 	s.testIdentity = *testIdentity
 
-	s.svc = testsupport.ServiceAsUser("TestUpdateWI-Service", almtoken.NewManagerWithPrivateKey(s.priKey), s.testIdentity)
+	s.svc = testsupport.ServiceAsUser("TestUpdateWI-Service", wittoken.NewManagerWithPrivateKey(s.priKey), s.testIdentity)
 	s.workitemCtrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.workitemsCtrl = NewWorkitemsController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.spaceCtrl = NewSpaceController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration, &DummyResourceManager{})
@@ -885,6 +885,7 @@ type WorkItem2Suite struct {
 	wi             *app.WorkItem
 	minimumPayload *app.UpdateWorkitemPayload
 	ctx            context.Context
+	notification   testsupport.NotificationChannel
 }
 
 func (s *WorkItem2Suite) SetupSuite() {
@@ -894,13 +895,15 @@ func (s *WorkItem2Suite) SetupSuite() {
 
 func (s *WorkItem2Suite) SetupTest() {
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+
+	s.notification = testsupport.NotificationChannel{}
 	// create identity
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "WorkItem2Suite setup user", "test provider")
 	require.Nil(s.T(), err)
-	s.priKey, _ = almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManagerWithPrivateKey(s.priKey), *testIdentity)
-	s.workitemCtrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-	s.workitemsCtrl = NewWorkitemsController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	s.priKey, _ = wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", wittoken.NewManagerWithPrivateKey(s.priKey), *testIdentity)
+	s.workitemCtrl = NewNotifyingWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), &s.notification, s.Configuration)
+	s.workitemsCtrl = NewNotifyingWorkitemsController(s.svc, gormapplication.NewGormDB(s.DB), &s.notification, s.Configuration)
 	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(s.DB))
 	s.linkTypeCtrl = NewWorkItemLinkTypeController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.linkCtrl = NewWorkItemLinkController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
@@ -909,9 +912,7 @@ func (s *WorkItem2Suite) SetupTest() {
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	s.T().Log("Creating default WI in space#", payload.Data.Relationships.Space.Data.ID.String())
 	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
-	s.T().Log("Done creating default WI")
 	s.wi = wi.Data
 	s.minimumPayload = getMinimumRequiredUpdatePayload(s.wi)
 	//s.minimumReorderPayload = getMinimumRequiredReorderPayload(s.wi)
@@ -2711,6 +2712,36 @@ func (s *WorkItem2Suite) TestWI2FilterExpressionRedirection() {
 	assert.Contains(s.T(), location, expectedLocation)
 }
 
+func (s *WorkItem2Suite) TestNotificationSendOnCreate() {
+	// given
+	// Default created WI in setupTest
+	// when
+
+	// then
+	require.Equal(s.T(), 1, len(s.notification.Messages))
+	assert.Equal(s.T(), "workitem.create", s.notification.Messages[0].MessageType)
+	assert.Equal(s.T(), s.wi.ID.String(), s.notification.Messages[0].TargetID)
+}
+
+func (s *WorkItem2Suite) TestNotificationSendOnUpdate() {
+	// given
+	// Default created WI in setupTest
+
+	// when
+	u := minimumRequiredUpdatePayload()
+	u.Data.ID = s.wi.ID
+	u.Data.Attributes[workitem.SystemTitle] = "Title 2"
+	u.Data.Attributes[workitem.SystemVersion] = s.wi.Attributes[workitem.SystemVersion]
+
+	test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *u.Data.ID, &u)
+
+	// then
+	require.Equal(s.T(), 2, len(s.notification.Messages))
+	// index 0 is workitem.create, index 1 should be workitem.update
+	assert.Equal(s.T(), "workitem.update", s.notification.Messages[1].MessageType)
+	assert.Equal(s.T(), s.wi.ID.String(), s.notification.Messages[1].TargetID)
+}
+
 func minimumRequiredCreatePayloadWithSpace(spaceID uuid.UUID) app.CreateWorkitemsPayload {
 	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
@@ -2751,12 +2782,12 @@ func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", almtoken.NewManagerWithPrivateKey(priv), *testIdentity, &TestSpaceAuthzService{*testIdentity})
+	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", wittoken.NewManagerWithPrivateKey(priv), *testIdentity, &TestSpaceAuthzService{*testIdentity})
 	workitemCtrl := NewWorkitemController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	workitemsCtrl := NewWorkitemsController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	testIdentity2, err := testsupport.CreateTestIdentity(s.DB, "TestUpdateWorkitemForSpaceCollaborator-"+uuid.NewV4().String(), "TestWI")
-	svcNotAuthorized := testsupport.ServiceAsSpaceUser("Collaborators-Service", almtoken.NewManagerWithPrivateKey(priv), *testIdentity2, &TestSpaceAuthzService{*testIdentity})
+	svcNotAuthorized := testsupport.ServiceAsSpaceUser("Collaborators-Service", wittoken.NewManagerWithPrivateKey(priv), *testIdentity2, &TestSpaceAuthzService{*testIdentity})
 	workitemCtrlNotAuthorized := NewWorkitemController(svcNotAuthorized, gormapplication.NewGormDB(s.DB), s.Configuration)
 	workitemsCtrlNotAuthorized := NewWorkitemsController(svcNotAuthorized, gormapplication.NewGormDB(s.DB), s.Configuration)
 

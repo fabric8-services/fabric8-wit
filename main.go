@@ -19,12 +19,14 @@ import (
 	"github.com/fabric8-services/fabric8-wit/auth"
 	config "github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/controller"
+	witmiddleware "github.com/fabric8-services/fabric8-wit/goamiddleware"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/models"
+	"github.com/fabric8-services/fabric8-wit/notification"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/space/authz"
@@ -36,7 +38,7 @@ import (
 	goalogrus "github.com/goadesign/goa/logging/logrus"
 	"github.com/goadesign/goa/middleware"
 	"github.com/goadesign/goa/middleware/gzip"
-	"github.com/goadesign/goa/middleware/security/jwt"
+	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 )
 
 func main() {
@@ -152,12 +154,30 @@ func main() {
 	// Mount middleware
 	service.Use(middleware.RequestID())
 	// Use our own log request to inject identity id and modify other properties
-	service.Use(log.LogRequest(configuration.IsPostgresDeveloperModeEnabled()))
 	service.Use(gzip.Middleware(9))
 	service.Use(jsonapi.ErrorHandler(service, true))
 	service.Use(middleware.Recover())
 
 	service.WithLogger(goalogrus.New(log.Logger()))
+
+	// Setup Account/Login/Security
+	identityRepository := account.NewIdentityRepository(db)
+	userRepository := account.NewUserRepository(db)
+
+	var notificationChannel notification.Channel = &notification.DevNullChannel{}
+	if configuration.GetNotificationServiceURL() != "" {
+		log.Logger().Infof("Enabling Notification service %v", configuration.GetNotificationServiceURL())
+		channel, err := notification.NewServiceChannel(configuration)
+		if err != nil {
+			log.Panic(nil, map[string]interface{}{
+				"err": err,
+				"url": configuration.GetNotificationServiceURL(),
+			}, "failed to parse notification service url")
+		}
+		notificationChannel = channel
+	}
+
+	appDB := gormapplication.NewGormDB(db)
 
 	publicKey, err := token.ParsePublicKey(configuration.GetTokenPublicKey())
 	if err != nil {
@@ -165,16 +185,15 @@ func main() {
 			"err": err,
 		}, "failed to parse public token")
 	}
-
-	// Setup Account/Login/Security
-	identityRepository := account.NewIdentityRepository(db)
-	userRepository := account.NewUserRepository(db)
-
-	appDB := gormapplication.NewGormDB(db)
-
 	tokenManager := token.NewManager(publicKey)
-	app.UseJWTMiddleware(service, jwt.New(publicKey, nil, app.NewJWTSecurity()))
+	// Middleware that extracts and stores the token in the context
+	jwtMiddlewareTokenContext := witmiddleware.TokenContext(publicKey, nil, app.NewJWTSecurity())
+	service.Use(jwtMiddlewareTokenContext)
+
 	service.Use(login.InjectTokenManager(tokenManager))
+	service.Use(log.LogRequest(configuration.IsPostgresDeveloperModeEnabled()))
+	app.UseJWTMiddleware(service, goajwt.New(publicKey, nil, app.NewJWTSecurity()))
+
 	spaceAuthzService := authz.NewAuthzService(configuration, appDB)
 	service.Use(authz.InjectAuthzService(spaceAuthzService))
 
@@ -190,7 +209,8 @@ func main() {
 	app.MountStatusController(service, statusCtrl)
 
 	// Mount "workitem" controller
-	workitemCtrl := controller.NewWorkitemController(service, appDB, configuration)
+	//workitemCtrl := controller.NewWorkitemController(service, appDB, configuration)
+	workitemCtrl := controller.NewNotifyingWorkitemController(service, appDB, notificationChannel, configuration)
 	app.MountWorkitemController(service, workitemCtrl)
 
 	// Mount "named workitem" controller
@@ -198,7 +218,8 @@ func main() {
 	app.MountNamedWorkItemsController(service, namedWorkitemsCtrl)
 
 	// Mount "workitems" controller
-	workitemsCtrl := controller.NewWorkitemsController(service, appDB, configuration)
+	//workitemsCtrl := controller.NewWorkitemsController(service, appDB, configuration)
+	workitemsCtrl := controller.NewNotifyingWorkitemsController(service, appDB, notificationChannel, configuration)
 	app.MountWorkitemsController(service, workitemsCtrl)
 
 	// Mount "workitemtype" controller
@@ -218,7 +239,8 @@ func main() {
 	app.MountWorkItemLinkController(service, workItemLinkCtrl)
 
 	// Mount "work item comments" controller
-	workItemCommentsCtrl := controller.NewWorkItemCommentsController(service, appDB, configuration)
+	//workItemCommentsCtrl := controller.NewWorkItemCommentsController(service, appDB, configuration)
+	workItemCommentsCtrl := controller.NewNotifyingWorkItemCommentsController(service, appDB, notificationChannel, configuration)
 	app.MountWorkItemCommentsController(service, workItemCommentsCtrl)
 
 	// Mount "work item relationships links" controller
@@ -226,7 +248,8 @@ func main() {
 	app.MountWorkItemRelationshipsLinksController(service, workItemRelationshipsLinksCtrl)
 
 	// Mount "comments" controller
-	commentsCtrl := controller.NewCommentsController(service, appDB, configuration)
+	//commentsCtrl := controller.NewCommentsController(service, appDB, configuration)
+	commentsCtrl := controller.NewNotifyingCommentsController(service, appDB, notificationChannel, configuration)
 	app.MountCommentsController(service, commentsCtrl)
 
 	if configuration.GetFeatureWorkitemRemote() {

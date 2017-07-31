@@ -8,6 +8,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/comment"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/login"
+	"github.com/fabric8-services/fabric8-wit/notification"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/workitem"
@@ -19,8 +20,9 @@ import (
 // WorkItemCommentsController implements the work-item-comments resource.
 type WorkItemCommentsController struct {
 	*goa.Controller
-	db     application.DB
-	config WorkItemCommentsControllerConfiguration
+	db           application.DB
+	notification notification.Channel
+	config       WorkItemCommentsControllerConfiguration
 }
 
 //WorkItemCommentsControllerConfiguration configuration for the WorkItemCommentsController
@@ -30,16 +32,27 @@ type WorkItemCommentsControllerConfiguration interface {
 
 // NewWorkItemCommentsController creates a work-item-relationships-comments controller.
 func NewWorkItemCommentsController(service *goa.Service, db application.DB, config WorkItemCommentsControllerConfiguration) *WorkItemCommentsController {
+	return NewNotifyingWorkItemCommentsController(service, db, &notification.DevNullChannel{}, config)
+}
+
+// NewNotifyingWorkItemCommentsController creates a work-item-relationships-comments controller.
+func NewNotifyingWorkItemCommentsController(service *goa.Service, db application.DB, notificationChannel notification.Channel, config WorkItemCommentsControllerConfiguration) *WorkItemCommentsController {
+	n := notificationChannel
+	if n == nil {
+		n = &notification.DevNullChannel{}
+	}
 	return &WorkItemCommentsController{
-		Controller: service.NewController("WorkItemRelationshipsCommentsController"),
-		db:         db,
-		config:     config,
+		Controller:   service.NewController("WorkItemRelationshipsCommentsController"),
+		db:           db,
+		notification: n,
+		config:       config,
 	}
 }
 
 // Create runs the create action.
 func (c *WorkItemCommentsController) Create(ctx *app.CreateWorkItemCommentsContext) error {
-	return application.Transactional(c.db, func(appl application.Application) error {
+	var newComment comment.Comment
+	result := application.Transactional(c.db, func(appl application.Application) error {
 		_, err := appl.WorkItems().LoadByID(ctx, ctx.WiID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
@@ -51,7 +64,7 @@ func (c *WorkItemCommentsController) Create(ctx *app.CreateWorkItemCommentsConte
 
 		reqComment := ctx.Payload.Data
 		markup := rendering.NilSafeGetMarkup(reqComment.Attributes.Markup)
-		newComment := comment.Comment{
+		newComment = comment.Comment{
 			ParentID: ctx.WiID,
 			Body:     reqComment.Attributes.Body,
 			Markup:   markup,
@@ -68,6 +81,10 @@ func (c *WorkItemCommentsController) Create(ctx *app.CreateWorkItemCommentsConte
 		}
 		return ctx.OK(res)
 	})
+	if ctx.ResponseData.Status == 200 {
+		c.notification.Send(ctx, notification.NewCommentCreated(newComment.ID.String()))
+	}
+	return result
 }
 
 // List runs the list action.

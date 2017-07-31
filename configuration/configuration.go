@@ -91,6 +91,7 @@ const (
 	varLogLevel                         = "log.level"
 	varLogJSON                          = "log.json"
 	varTenantServiceURL                 = "tenant.serviceurl"
+	varNotificationServiceURL           = "notification.serviceurl"
 )
 
 // ConfigurationData encapsulates the Viper configuration object which stores the configuration data in-memory.
@@ -297,7 +298,7 @@ func (c *ConfigurationData) GetPopulateCommonTypes() bool {
 }
 
 // GetHTTPAddress returns the HTTP address (as set via default, config file, or environment variable)
-// that the alm server binds to (e.g. "0.0.0.0:8080")
+// that the wit server binds to (e.g. "0.0.0.0:8080")
 func (c *ConfigurationData) GetHTTPAddress() string {
 	return c.v.GetString(varHTTPAddress)
 }
@@ -665,13 +666,18 @@ func (c *ConfigurationData) GetTenantServiceURL() string {
 	return c.v.GetString(varTenantServiceURL)
 }
 
+// GetNotificationServiceURL returns the URL for the Notification service used for event notification
+func (c *ConfigurationData) GetNotificationServiceURL() string {
+	return c.v.GetString(varNotificationServiceURL)
+}
+
 const (
 	defaultHeaderMaxLength = 5000 // bytes
 
 	// Auth-related defaults
 
 	// RSAPrivateKey for signing JWT Tokens
-	// ssh-keygen -f alm_rsa
+	// ssh-keygen -f wit_rsa
 	defaultTokenPrivateKey = `-----BEGIN RSA PRIVATE KEY-----
 MIIEpQIBAAKCAQEAnwrjH5iTSErw9xUptp6QSFoUfpHUXZ+PaslYSUrpLjw1q27O
 DSFwmhV4+dAaTMO5chFv/kM36H3ZOyA146nwxBobS723okFaIkshRrf6qgtD6coT
@@ -701,7 +707,7 @@ OCCAgsB8g8yTB4qntAYyfofEoDiseKrngQT5DSdxd51A/jw7B8WyBK8=
 -----END RSA PRIVATE KEY-----`
 
 	// RSAPublicKey for verifying JWT Tokens
-	// openssl rsa -in alm_rsa -pubout -out alm_rsa.pub
+	// openssl rsa -in wit_rsa -pubout -out wit_rsa.pub
 	defaultTokenPublicKey = `-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvQ8p+HsTMrgcsuIMoOR1
 LXRhynL9YAU0qoDON6PLKCpdBv0Xy/jnsPjo5DrtUOijuJcID8CR7E0hYpY9MgK5

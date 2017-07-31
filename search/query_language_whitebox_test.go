@@ -2,6 +2,7 @@ package search
 
 import (
 	"encoding/json"
+	"fmt"
 	"runtime/debug"
 	"testing"
 
@@ -92,6 +93,28 @@ func TestParseMap(t *testing.T) {
 		}}
 		assert.Equal(t, expected, q)
 	})
+
+	t.Run(Q_IN, func(t *testing.T) {
+		t.Parallel()
+		// given
+		input := fmt.Sprintf(`{"status": { "%s": ["NEW", "OPEN"]}}`, Q_IN)
+		// Parsing/Unmarshalling JSON encoding/json
+		fm := map[string]interface{}{}
+		err := json.Unmarshal([]byte(input), &fm)
+		require.Nil(t, err)
+		// when
+		actualQuery := Query{}
+		parseMap(fm, &actualQuery)
+		// then
+		new := "NEW"
+		open := "OPEN"
+		expectedQuery := Query{Name: Q_OR, Children: []Query{
+			{Name: "status", Value: &new},
+			{Name: "status", Value: &open}},
+		}
+		assert.Equal(t, expectedQuery, actualQuery)
+	})
+
 }
 func TestGenerateExpression(t *testing.T) {
 	resource.Require(t, resource.UnitTest)

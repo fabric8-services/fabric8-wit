@@ -22,7 +22,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	almtoken "github.com/fabric8-services/fabric8-wit/token"
+	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/goadesign/goa"
 	"github.com/pkg/errors"
@@ -38,6 +38,7 @@ type TestCommentREST struct {
 	clean        func()
 	testIdentity account.Identity
 	ctx          context.Context
+	notification testsupport.NotificationChannel
 }
 
 func TestRunCommentREST(t *testing.T) {
@@ -54,6 +55,7 @@ func (rest *TestCommentREST) SetupTest() {
 	req := &http.Request{Host: "localhost"}
 	params := url.Values{}
 	rest.ctx = goa.NewContext(context.Background(), nil, req, params)
+	rest.notification = testsupport.NotificationChannel{}
 }
 
 func (rest *TestCommentREST) TearDownTest() {
@@ -61,9 +63,9 @@ func (rest *TestCommentREST) TearDownTest() {
 }
 
 func (rest *TestCommentREST) SecuredController() (*goa.Service, *WorkItemCommentsController) {
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsUser("WorkItemComment-Service", almtoken.NewManagerWithPrivateKey(priv), rest.testIdentity)
-	return svc, NewWorkItemCommentsController(svc, rest.db, rest.Configuration)
+	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	svc := testsupport.ServiceAsUser("WorkItemComment-Service", wittoken.NewManagerWithPrivateKey(priv), rest.testIdentity)
+	return svc, NewNotifyingWorkItemCommentsController(svc, rest.db, &rest.notification, rest.Configuration)
 }
 
 func (rest *TestCommentREST) UnSecuredController() (*goa.Service, *WorkItemCommentsController) {
@@ -146,6 +148,19 @@ func (rest *TestCommentREST) TestSuccessCreateSingleCommentWithDefaultMarkup() {
 	_, c := test.CreateWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.ID, p)
 	// then
 	assertComment(rest.T(), c.Data, rest.testIdentity, "Test", rendering.SystemMarkupDefault)
+}
+
+func (rest *TestCommentREST) TestNotificationSendOnCreate() {
+	// given
+	wi := rest.createDefaultWorkItem()
+	// when
+	p := rest.newCreateWorkItemCommentsPayload("Test", nil)
+	svc, ctrl := rest.SecuredController()
+	_, c := test.CreateWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.ID, p)
+	// then
+	assert.True(rest.T(), len(rest.notification.Messages) > 0)
+	assert.Equal(rest.T(), "comment.create", rest.notification.Messages[0].MessageType)
+	assert.Equal(rest.T(), c.Data.ID.String(), rest.notification.Messages[0].TargetID)
 }
 
 func (rest *TestCommentREST) setupComments() (workitem.WorkItem, []*comment.Comment) {
