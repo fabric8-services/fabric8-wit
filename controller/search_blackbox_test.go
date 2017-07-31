@@ -27,7 +27,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/search"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	almtoken "github.com/fabric8-services/fabric8-wit/token"
+	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	uuid "github.com/satori/go.uuid"
 
@@ -79,8 +79,8 @@ func (s *searchBlackBoxTest) SetupTest() {
 	spaceBlackBoxTestConfiguration, err := config.GetConfigurationData()
 	require.Nil(s.T(), err)
 	s.spaceBlackBoxTestConfiguration = spaceBlackBoxTestConfiguration
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	s.svc = testsupport.ServiceAsUser("WorkItemComment-Service", almtoken.NewManagerWithPrivateKey(priv), s.testIdentity)
+	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	s.svc = testsupport.ServiceAsUser("WorkItemComment-Service", wittoken.NewManagerWithPrivateKey(priv), s.testIdentity)
 	s.controller = NewSearchController(s.svc, gormapplication.NewGormDB(s.DB), spaceBlackBoxTestConfiguration)
 }
 
@@ -293,8 +293,8 @@ func (s *searchBlackBoxTest) getWICreatePayload() *app.CreateWorkitemsPayload {
 }
 
 func getServiceAsUser(testIdentity account.Identity) *goa.Service {
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	service := testsupport.ServiceAsUser("TestSearch-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity)
+	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	service := testsupport.ServiceAsUser("TestSearch-Service", wittoken.NewManagerWithPrivateKey(priv), testIdentity)
 	return service
 }
 
@@ -554,8 +554,8 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 	spaceInstance := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, *spaceOwner)
 	spaceIDStr := spaceInstance.ID.String()
 
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svcWithSpaceOwner := testsupport.ServiceAsSpaceUser("Search-Service", almtoken.NewManagerWithPrivateKey(priv), *spaceOwner, &TestSpaceAuthzService{*spaceOwner})
+	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	svcWithSpaceOwner := testsupport.ServiceAsSpaceUser("Search-Service", wittoken.NewManagerWithPrivateKey(priv), *spaceOwner, &TestSpaceAuthzService{*spaceOwner})
 	collaboratorRESTInstance := &TestCollaboratorsREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")}
 	collaboratorRESTInstance.policy = &auth.KeycloakPolicy{
 		Name:             "TestCollaborators-" + uuid.NewV4().String(),

@@ -63,7 +63,7 @@ func (c *WorkitemsController) Create(ctx *app.CreateWorkitemsContext) error {
 	}
 
 	// FIXME
-	// A workaround for https://github.com/almighty/almighty-core/issues/1358
+	// A workaround for https://github.com/fabric8-services/fabric8-wit/issues/1358
 	// Allow any user to create a work item in spaces belong to the "openshiftio" user
 	// Other spaces are open for the space collaborators only
 	// ----
