@@ -3,8 +3,12 @@ package authz_test
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"testing"
 	"time"
+
+	config "github.com/fabric8-services/fabric8-wit/configuration"
+	"github.com/goadesign/goa"
 
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/application"
@@ -17,7 +21,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/space/authz"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	almtoken "github.com/fabric8-services/fabric8-wit/token"
+	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 
@@ -31,13 +35,14 @@ var (
 )
 
 func TestAuthz(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
+	resource.Require(t, resource.Remote)
 	suite.Run(t, new(TestAuthzSuite))
 }
 
 type TestAuthzSuite struct {
 	suite.Suite
-	authzService *authz.KeycloakAuthzService
+	configuration *config.ConfigurationData
+	authzService  *authz.KeycloakAuthzService
 }
 
 func (s *TestAuthzSuite) SetupSuite() {
@@ -46,7 +51,8 @@ func (s *TestAuthzSuite) SetupSuite() {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
 	var resource *space.Resource
-	s.authzService = authz.NewAuthzService(nil, &db{app{resource: resource}})
+	s.configuration, err = config.GetConfigurationData()
+	s.authzService = authz.NewAuthzService(s.configuration, &db{app{resource: resource}})
 }
 
 func (s *TestAuthzSuite) TestFailsIfNoTokenInContext() {
@@ -74,12 +80,16 @@ func (s *TestAuthzSuite) TestUserIsNotAmongSpaceCollaboratorsFails() {
 func (s *TestAuthzSuite) checkPermissions(authzPayload auth.AuthorizationPayload, spaceID string) bool {
 	resource := &space.Resource{}
 	authzService := authz.NewAuthzService(nil, &db{app{resource: resource}})
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
 	testIdentity := testsupport.TestIdentity
-	svc := testsupport.ServiceAsUserWithAuthz("SpaceAuthz-Service", almtoken.NewManagerWithPrivateKey(priv), priv, testIdentity, authzPayload)
+	svc := testsupport.ServiceAsUserWithAuthz("SpaceAuthz-Service", wittoken.NewManagerWithPrivateKey(priv), priv, testIdentity, authzPayload)
 	resource.UpdatedAt = time.Now()
-
-	ok, err := authzService.Authorize(svc.Context, "", spaceID)
+	r := &goa.RequestData{
+		Request: &http.Request{Host: "api.example.org"},
+	}
+	entitlementEndpoint, err := s.configuration.GetKeycloakEndpointEntitlement(r)
+	require.Nil(s.T(), err)
+	ok, err := authzService.Authorize(svc.Context, entitlementEndpoint, spaceID)
 	require.Nil(s.T(), err)
 	return ok
 }

@@ -22,6 +22,7 @@ const (
 	ErrorCodeUnauthorizedError = "unauthorized_error"
 	ErrorCodeForbiddenError    = "forbidden_error"
 	ErrorCodeJWTSecurityError  = "jwt_security_error"
+	ErrorCodeDataConflict      = "data_conflict_error"
 )
 
 // ErrorToJSONAPIError returns the JSONAPI representation
@@ -34,7 +35,7 @@ func ErrorToJSONAPIError(err error) (app.JSONAPIError, int) {
 	var title, code string
 	var statusCode int
 	var id *string
-	log.Info(nil, map[string]interface{}{"err": cause, "error_message": cause.Error()}, "an error occurred in our api")
+	log.Error(nil, map[string]interface{}{"err": cause, "error_message": cause.Error()}, "an error occurred in our api")
 	switch cause.(type) {
 	case errors.NotFoundError:
 		code = ErrorCodeNotFound
@@ -51,6 +52,10 @@ func ErrorToJSONAPIError(err error) (app.JSONAPIError, int) {
 	case errors.VersionConflictError:
 		code = ErrorCodeVersionConflict
 		title = "Version conflict error"
+		statusCode = http.StatusConflict
+	case errors.DataConflictError:
+		code = ErrorCodeDataConflict
+		title = "Data conflict error"
 		statusCode = http.StatusConflict
 	case errors.InternalError:
 		code = ErrorCodeInternalError

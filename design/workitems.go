@@ -12,7 +12,7 @@ var genericLinksForWorkItem = a.Type("GenericLinksForWorkItem", func() {
 	a.Attribute("self", d.String)
 	a.Attribute("related", d.String)
 	a.Attribute("meta", a.HashOf(d.String, d.Any))
-	a.Attribute("doit", d.String, "URL to generate Che-editor's link based on values of codebase field")
+	a.Attribute("editCodebase", d.String, "URL to generate Che-editor's link based on values of codebase field")
 })
 
 // workItem defines how an update payload will look like
@@ -101,17 +101,16 @@ var workItemReorder = Reorder(
 	workItem,
 	position)
 
-// new version of "list" for migration
+// endpoints that DO NOT depend on the space id (ie, when the work item ID is specified in the URL, there's no need to pass the space ID)
 var _ = a.Resource("workitem", func() {
-	a.Parent("space")
 	a.BasePath("/workitems")
 	a.Action("show", func() {
 		a.Routing(
 			a.GET("/:wiID"),
 		)
-		a.Description("Retrieve work item with given id.")
+		a.Description("Retrieve a work item from the given id.")
 		a.Params(func() {
-			a.Param("wiID", d.UUID, "ID of a work item")
+			a.Param("wiID", d.UUID, "ID of the work item to show")
 		})
 		a.UseTrait("conditional")
 		a.Response(d.OK, workItemSingle)
@@ -120,28 +119,7 @@ var _ = a.Resource("workitem", func() {
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 	})
-	a.Action("list", func() {
-		a.Routing(
-			a.GET(""),
-		)
-		a.Description("List work items.")
-		a.Params(func() {
-			a.Param("filter", d.String, "a query language expression restricting the set of found work items")
-			a.Param("page[offset]", d.String, "Paging start position")
-			a.Param("page[limit]", d.Integer, "Paging size")
-			a.Param("filter[assignee]", d.String, "Work Items assigned to the given user")
-			a.Param("filter[iteration]", d.String, "IterationID to filter work items")
-			a.Param("filter[workitemtype]", d.UUID, "ID of work item type to filter work items by")
-			a.Param("filter[area]", d.String, "AreaID to filter work items")
-			a.Param("filter[workitemstate]", d.String, "work item state to filter work items by")
-			a.Param("filter[parentexists]", d.Boolean, "if false list work items without any parent")
-		})
-		a.UseTrait("conditional")
-		a.Response(d.OK, workItemList)
-		a.Response(d.NotModified)
-		a.Response(d.BadRequest, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-	})
+
 	a.Action("list-children", func() {
 		a.Routing(
 			a.GET("/:wiID/children"),
@@ -160,22 +138,6 @@ var _ = a.Resource("workitem", func() {
 		a.Response(d.NotFound, JSONAPIErrors)
 	})
 
-	a.Action("create", func() {
-		a.Security("jwt")
-		a.Routing(
-			a.POST(""),
-		)
-		a.Description("create work item with type and id.")
-		a.Payload(workItemSingle)
-		a.Response(d.Created, "/workitems/.*", func() {
-			a.Media(workItemSingle)
-		})
-		a.Response(d.BadRequest, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-		a.Response(d.Unauthorized, JSONAPIErrors)
-		a.Response(d.Forbidden, JSONAPIErrors)
-		a.Response(d.NotFound, JSONAPIErrors)
-	})
 	a.Action("delete", func() {
 		a.Security("jwt")
 		a.Routing(
@@ -193,6 +155,7 @@ var _ = a.Resource("workitem", func() {
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.Forbidden, JSONAPIErrors)
 	})
+
 	a.Action("update", func() {
 		a.Security("jwt")
 		a.Routing(
@@ -213,6 +176,56 @@ var _ = a.Resource("workitem", func() {
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.Forbidden, JSONAPIErrors)
 	})
+})
+
+// endpoints that depend on the space id
+var _ = a.Resource("workitems", func() {
+	a.Parent("space")
+	a.BasePath("/workitems")
+	a.Action("list", func() {
+		a.Routing(
+			a.GET(""),
+		)
+		a.Description("List work items.")
+		a.Params(func() {
+			a.Param("filter", d.String, "a query language expression restricting the set of found work items")
+			a.Param("page[offset]", d.String, "Paging start position")
+			a.Param("page[limit]", d.Integer, "Paging size")
+			a.Param("filter[assignee]", d.String, "Work Items assigned to the given user")
+			a.Param("filter[iteration]", d.String, "IterationID to filter work items")
+			a.Param("filter[workitemtype]", d.UUID, "ID of work item type to filter work items by")
+			a.Param("filter[area]", d.String, "AreaID to filter work items")
+			a.Param("filter[workitemstate]", d.String, "work item state to filter work items by")
+			a.Param("filter[parentexists]", d.Boolean, "if false list work items without any parent")
+			a.Param("filter[expression]", d.String, "accepts query in JSON format and redirects to /api/search? API", func() {
+				a.Example(`{$AND: [{"space": "f73988a2-1916-4572-910b-2df23df4dcc3"}, {"state": "NEW"}]}`)
+			})
+		})
+		a.UseTrait("conditional")
+		a.Response(d.OK, workItemList)
+		a.Response(d.NotModified)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.TemporaryRedirect)
+	})
+
+	a.Action("create", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.POST(""),
+		)
+		a.Description("create work item with type and id.")
+		a.Payload(workItemSingle)
+		a.Response(d.Created, "/workitems/.*", func() {
+			a.Media(workItemSingle)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.Forbidden, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+	})
+
 	a.Action("reorder", func() {
 		a.Security("jwt")
 		a.Routing(
@@ -255,5 +268,22 @@ var _ = a.Resource("planner_backlog", func() {
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
+	})
+})
+
+var _ = a.Resource("named_work_items", func() {
+	a.Parent("namedspaces")
+	a.BasePath("/workitems")
+	a.Action("show", func() {
+		a.Routing(
+			a.GET("/:wiNumber"),
+		)
+		a.Description("Retrieve a work item from the given number.")
+		a.Params(func() {
+			a.Param("wiNumber", d.Integer, "Number of the work item to show")
+		})
+		a.Response(d.MovedPermanently)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
 	})
 })

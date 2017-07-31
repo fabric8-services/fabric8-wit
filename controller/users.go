@@ -310,7 +310,7 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 			// instead of over-writing it altogether. Note: The PATCH-ing is only for the
 			// 1st level of JSON.
 			if user.ContextInformation == nil {
-				user.ContextInformation = workitem.Fields{}
+				user.ContextInformation = account.ContextInformation{}
 			}
 			for fieldName, fieldValue := range updatedContextInformation {
 				// Save it as is, for short-term.
@@ -538,7 +538,7 @@ func ConvertToAppUser(request *goa.RequestData, user *account.User, identity *ac
 	var createdAt time.Time
 	var updatedAt time.Time
 	var company string
-	var contextInformation workitem.Fields
+	var contextInformation account.ContextInformation
 
 	if user != nil {
 		fullName = user.FullName
@@ -623,9 +623,10 @@ func ConvertUserSimple(request *goa.RequestData, identityID interface{}) *app.Ge
 }
 
 func createUserLinks(request *goa.RequestData, identityID interface{}) *app.GenericLinks {
-	selfURL := rest.AbsoluteURL(request, app.UsersHref(identityID))
+	relatedURL := rest.AbsoluteURL(request, app.UsersHref(identityID))
 	return &app.GenericLinks{
-		Self: &selfURL,
+		Self:    &relatedURL,
+		Related: &relatedURL,
 	}
 }
 

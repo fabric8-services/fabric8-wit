@@ -62,7 +62,7 @@ func (rest *BenchPlannerBacklogBlackboxREST) SetupBenchmark() {
 	if err != nil {
 		rest.B().Fail()
 	}
-	rest.testIdentity = testIdentity
+	rest.testIdentity = *testIdentity
 }
 
 func (rest *BenchPlannerBacklogBlackboxREST) TearDownBenchmark() {

@@ -128,7 +128,7 @@ func getCategoriesOfLinkTypes(ctx *workItemLinkContext, linkTypeDataArr []*app.W
 		if err != nil {
 			return nil, errs.WithStack(err)
 		}
-		appCategory := convertLinkCategoryFromModel(*modelCategory)
+		appCategory := ConvertLinkCategoryFromModel(*modelCategory)
 		catDataArr = append(catDataArr, appCategory.Data)
 	}
 	return catDataArr, nil
@@ -149,7 +149,7 @@ func enrichLinkSingle(ctx *workItemLinkContext, appLinks *app.WorkItemLinkSingle
 	if err != nil {
 		return errs.WithStack(err)
 	}
-	appCategory := convertLinkCategoryFromModel(*modelCategory)
+	appCategory := ConvertLinkCategoryFromModel(*modelCategory)
 	appLinks.Included = append(appLinks.Included, appCategory.Data)
 
 	// TODO(kwk): include source work item type (once #559 is merged)
@@ -181,9 +181,10 @@ func enrichLinkSingle(ctx *workItemLinkContext, appLinks *app.WorkItemLinkSingle
 	appLinks.Included = append(appLinks.Included, ConvertWorkItem(ctx.RequestData, *targetWi))
 
 	// Add links to individual link data element
-	selfURL := rest.AbsoluteURL(ctx.RequestData, ctx.LinkFunc(*appLinks.Data.ID))
+	relatedURL := rest.AbsoluteURL(ctx.RequestData, ctx.LinkFunc(*appLinks.Data.ID))
 	appLinks.Data.Links = &app.GenericLinks{
-		Self: &selfURL,
+		Self:    &relatedURL,
+		Related: &relatedURL,
 	}
 
 	return nil
@@ -232,9 +233,10 @@ func enrichLinkList(ctx *workItemLinkContext, linkArr *app.WorkItemLinkList) err
 
 	// Add links to individual link data element
 	for _, link := range linkArr.Data {
-		selfURL := rest.AbsoluteURL(ctx.RequestData, ctx.LinkFunc(*link.ID))
+		relatedURL := rest.AbsoluteURL(ctx.RequestData, ctx.LinkFunc(*link.ID))
 		link.Links = &app.GenericLinks{
-			Self: &selfURL,
+			Self:    &relatedURL,
+			Related: &relatedURL,
 		}
 	}
 	return nil
