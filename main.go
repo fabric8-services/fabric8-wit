@@ -172,7 +172,7 @@ func main() {
 		}, "failed to parse public token")
 	}
 	tokenManager := token.NewManager(publicKey)
-	// Middleware that extracts the token if present, otherwise ignore the request
+	// Middleware that extracts and stores the token in the context
 	jwtMiddlewareTokenContext := witmiddleware.TokenContext(publicKey, nil, app.NewJWTSecurity())
 	service.Use(jwtMiddlewareTokenContext)
 

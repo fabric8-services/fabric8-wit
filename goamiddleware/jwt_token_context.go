@@ -18,8 +18,7 @@ import (
 // TokenContext is a new goa middleware that aims to extract the token from the
 // Authorization header when possible. If the Authorization header is missing in the request,
 // no error is returned. However, if the Authorization header contains a
-// token, and it is valid then is added to the context. In case the token is invalid
-// then this middleware will throw an error.
+// token, it will be stored it in the context.
 func TokenContext(validationKeys interface{}, validationFunc goa.Middleware, scheme *goa.JWTSecurity) goa.Middleware {
 	var rsaKeys []*rsa.PublicKey
 	var hmacKeys [][]byte
@@ -40,35 +39,34 @@ func TokenContext(validationKeys interface{}, validationFunc goa.Middleware, sch
 				log.Debug(ctx, nil, "extracted the incoming token %v ", incomingToken)
 
 				var (
-					token     *jwt.Token
-					err       error
-					validated = false
+					token  *jwt.Token
+					err    error
+					parsed = false
 				)
 
 				if len(rsaKeys) > 0 {
-					token, err = validateRSAKeys(rsaKeys, "RS", incomingToken)
+					token, err = parseRSAKeys(rsaKeys, "RS", incomingToken)
 					if err == nil {
-						validated = true
+						parsed = true
 					}
 				}
 
-				if !validated && len(ecdsaKeys) > 0 {
-					token, err = validateECDSAKeys(ecdsaKeys, "ES", incomingToken)
+				if !parsed && len(ecdsaKeys) > 0 {
+					token, err = parseECDSAKeys(ecdsaKeys, "ES", incomingToken)
 					if err == nil {
-						validated = true
+						parsed = true
 					}
 				}
 
-				if !validated && len(hmacKeys) > 0 {
-					token, err = validateHMACKeys(hmacKeys, "HS", incomingToken)
+				if !parsed && len(hmacKeys) > 0 {
+					token, err = parseHMACKeys(hmacKeys, "HS", incomingToken)
 					if err == nil {
-						validated = true
+						parsed = true
 					}
 				}
 
-				if !validated {
-					log.Warn(ctx, nil, "JWT validation failed %v", err)
-					return goajwt.ErrJWTError("JWT validation failed")
+				if !parsed {
+					log.Warn(ctx, nil, "unable to parse JWT token: %v", err)
 				}
 
 				ctx = goajwt.WithJWT(ctx, token)
@@ -111,7 +109,7 @@ func partitionKeys(k interface{}) ([]*rsa.PublicKey, []*ecdsa.PublicKey, [][]byt
 	return rsaKeys, ecdsaKeys, hmacKeys
 }
 
-func validateRSAKeys(rsaKeys []*rsa.PublicKey, algo, incomingToken string) (token *jwt.Token, err error) {
+func parseRSAKeys(rsaKeys []*rsa.PublicKey, algo, incomingToken string) (token *jwt.Token, err error) {
 	for _, pubkey := range rsaKeys {
 		token, err = jwt.Parse(incomingToken, func(token *jwt.Token) (interface{}, error) {
 			if !strings.HasPrefix(token.Method.Alg(), algo) {
@@ -126,7 +124,7 @@ func validateRSAKeys(rsaKeys []*rsa.PublicKey, algo, incomingToken string) (toke
 	return
 }
 
-func validateECDSAKeys(ecdsaKeys []*ecdsa.PublicKey, algo, incomingToken string) (token *jwt.Token, err error) {
+func parseECDSAKeys(ecdsaKeys []*ecdsa.PublicKey, algo, incomingToken string) (token *jwt.Token, err error) {
 	for _, pubkey := range ecdsaKeys {
 		token, err = jwt.Parse(incomingToken, func(token *jwt.Token) (interface{}, error) {
 			if !strings.HasPrefix(token.Method.Alg(), algo) {
@@ -141,7 +139,7 @@ func validateECDSAKeys(ecdsaKeys []*ecdsa.PublicKey, algo, incomingToken string)
 	return
 }
 
-func validateHMACKeys(hmacKeys [][]byte, algo, incomingToken string) (token *jwt.Token, err error) {
+func parseHMACKeys(hmacKeys [][]byte, algo, incomingToken string) (token *jwt.Token, err error) {
 	for _, key := range hmacKeys {
 		token, err = jwt.Parse(incomingToken, func(token *jwt.Token) (interface{}, error) {
 			if !strings.HasPrefix(token.Method.Alg(), algo) {
