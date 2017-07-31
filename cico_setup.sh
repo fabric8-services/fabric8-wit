@@ -144,7 +144,7 @@ function deploy() {
 }
 
 function cico_setup() {
-  #load_jenkins_vars;
-  #install_deps;
+  load_jenkins_vars;
+  install_deps;
   prepare;
 }
