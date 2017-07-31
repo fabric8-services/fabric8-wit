@@ -16,11 +16,11 @@ import (
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/resource"
-	almrest "github.com/fabric8-services/fabric8-wit/rest"
+	witrest "github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space"
 
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	almtoken "github.com/fabric8-services/fabric8-wit/token"
+	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -51,9 +51,9 @@ func (rest *TestTrackerQueryREST) TearDownTest() {
 }
 
 func (rest *TestTrackerQueryREST) SecuredController() (*goa.Service, *TrackerController, *TrackerqueryController) {
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
 
-	svc := testsupport.ServiceAsUser("Tracker-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
+	svc := testsupport.ServiceAsUser("Tracker-Service", wittoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
 	return svc, NewTrackerController(svc, rest.db, rest.RwiScheduler, rest.Configuration), NewTrackerqueryController(svc, rest.db, rest.RwiScheduler, rest.Configuration)
 }
 
@@ -63,7 +63,7 @@ func (rest *TestTrackerQueryREST) UnSecuredController() (*goa.Service, *TrackerC
 }
 
 func getTrackerQueryTestData(t *testing.T) []testSecureAPI {
-	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(almtoken.RSAPrivateKey))
+	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(wittoken.RSAPrivateKey))
 	if err != nil {
 		t.Fatal("Could not parse Key ", err)
 	}
@@ -261,7 +261,7 @@ func (rest *TestTrackerQueryREST) TestUpdateTrackerQuery() {
 	reqLong := &goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}
-	spaceSelfURL := almrest.AbsoluteURL(reqLong, app.SpaceHref(space.SystemSpace.String()))
+	spaceSelfURL := witrest.AbsoluteURL(reqLong, app.SpaceHref(space.SystemSpace.String()))
 	payload2 := app.UpdateTrackerQueryAlternatePayload{
 		Query:     tqr.Query,
 		Schedule:  tqr.Schedule,
@@ -337,7 +337,7 @@ func newCreateTrackerQueryPayload(trackerID string) app.CreateTrackerQueryAltern
 	reqLong := &goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}
-	spaceSelfURL := almrest.AbsoluteURL(reqLong, app.SpaceHref(space.SystemSpace.String()))
+	spaceSelfURL := witrest.AbsoluteURL(reqLong, app.SpaceHref(space.SystemSpace.String()))
 	return app.CreateTrackerQueryAlternatePayload{
 		Query:     "is:open is:issue user:arquillian author:aslakknutsen",
 		Schedule:  "15 * * * * *",

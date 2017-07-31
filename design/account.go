@@ -8,7 +8,7 @@ import (
 var updateUser = a.MediaType("application/vnd.updateuser+json", func() {
 	a.UseTrait("jsonapi-media-type")
 	a.TypeName("UpdateUser")
-	a.Description("ALM User Update")
+	a.Description("WIT User Update")
 	a.Attributes(func() {
 		a.Attribute("data", updateUserData)
 		a.Required("data")
@@ -32,7 +32,7 @@ var updateUserData = a.Type("UpdateUserData", func() {
 var user = a.MediaType("application/vnd.user+json", func() {
 	a.UseTrait("jsonapi-media-type")
 	a.TypeName("User")
-	a.Description("ALM User Identity")
+	a.Description("WIT User Identity")
 	a.Attributes(func() {
 		a.Attribute("data", userData)
 		a.Required("data")
