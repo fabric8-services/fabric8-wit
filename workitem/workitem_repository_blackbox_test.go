@@ -299,7 +299,7 @@ func (s *workItemRepoBlackBoxTest) TestCodebaseAttributes() {
 	// given
 	title := "solution on global warming"
 	branch := "earth-recycle-101"
-	repo := "golang-project"
+	repo := "https://github.com/pranavgore09/go-tutorial.git"
 	file := "main.go"
 	line := 200
 	cbase := codebase.Content{
@@ -328,6 +328,30 @@ func (s *workItemRepoBlackBoxTest) TestCodebaseAttributes() {
 	assert.Equal(s.T(), branch, cb.Branch)
 	assert.Equal(s.T(), file, cb.FileName)
 	assert.Equal(s.T(), line, cb.LineNumber)
+}
+
+func (s *workItemRepoBlackBoxTest) TestCodebaseInvalidRepo() {
+	// given
+	title := "solution on global warming"
+	branch := "earth-recycle-101"
+	repo := "https://non-github.com/pranavgore09/go-tutorial"
+	file := "main.go"
+	line := 200
+	cbase := codebase.Content{
+		Branch:     branch,
+		Repository: repo,
+		FileName:   file,
+		LineNumber: line,
+	}
+
+	_, err := s.repo.Create(
+		s.ctx, space.SystemSpace, workitem.SystemPlannerItem,
+		map[string]interface{}{
+			workitem.SystemTitle:    title,
+			workitem.SystemState:    workitem.SystemStateNew,
+			workitem.SystemCodebase: cbase,
+		}, s.creator.ID)
+	require.NotNil(s.T(), err, "Should not create workitem")
 }
 
 func (s *workItemRepoBlackBoxTest) TestLookupIDByNamedSpaceAndNumberOK() {

@@ -14,7 +14,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/resource"
-	almtoken "github.com/fabric8-services/fabric8-wit/token"
+	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/stretchr/testify/require"
@@ -22,13 +22,14 @@ import (
 
 const (
 	// the various HTTP endpoints
+	endpointWorkItem               = "/api/workitems"
 	endpointWorkItems              = "/api/spaces/%s/workitems"
 	endpointWorkItemTypes          = "/api/spaces/%s/workitemtypes"
 	endpointWorkItemLinkCategories = "/api/workitemlinkcategories"
 	endpointWorkItemLinkTypes      = "/api/spaces/%s/workitemlinktypes"
 	endpointWorkItemLinks          = "/api/workitemlinks"
 
-	endpointWorkItemRelationshipsLinks   = endpointWorkItems + "/%s/relationships/links"
+	endpointWorkItemRelationshipsLinks   = endpointWorkItem + "/%s/relationships/links"
 	endpointWorkItemTypesSourceLinkTypes = endpointWorkItemTypes + "/%s/source-link-types"
 	endpointWorkItemTypesTargetLinkTypes = endpointWorkItemTypes + "/%s/target-link-types"
 )
@@ -85,7 +86,7 @@ func UnauthorizeCreateUpdateDeleteTest(t *testing.T, getDataFunc func(t *testing
 	resource.Require(t, resource.Database)
 
 	// This will be modified after merge PR for "Viper Environment configurations"
-	publickey, err := jwt.ParseRSAPublicKeyFromPEM([]byte(almtoken.RSAPublicKey))
+	publickey, err := jwt.ParseRSAPublicKeyFromPEM([]byte(wittoken.RSAPublicKey))
 	if err != nil {
 		t.Fatal("Could not parse Key ", err)
 	}
@@ -154,7 +155,7 @@ func UnauthorizeCreateUpdateDeleteTest(t *testing.T, getDataFunc func(t *testing
 
 // The RSADifferentPrivateKeyTest key will be used to sign the token but verification should
 // fail as this is not the key used by server security layer
-// ssh-keygen -f test-alm
+// ssh-keygen -f test-wit
 var RSADifferentPrivateKeyTest = `-----BEGIN RSA PRIVATE KEY-----
 MIIEpAIBAAKCAQEAsIT76Mr3p8VvtSrzCVcXEcyvalUp50mm4yvfqvZ1fZfbqAzJ
 c4GNJEkpBGoXF+WgjLNkPnwS+k1YuqvPeGG4vFPtErF7nxNCHpzU+cXScOOl3WrM

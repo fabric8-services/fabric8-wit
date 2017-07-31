@@ -27,7 +27,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/search"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	almtoken "github.com/fabric8-services/fabric8-wit/token"
+	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	uuid "github.com/satori/go.uuid"
 
@@ -79,8 +79,8 @@ func (s *searchBlackBoxTest) SetupTest() {
 	spaceBlackBoxTestConfiguration, err := config.GetConfigurationData()
 	require.Nil(s.T(), err)
 	s.spaceBlackBoxTestConfiguration = spaceBlackBoxTestConfiguration
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	s.svc = testsupport.ServiceAsUser("WorkItemComment-Service", almtoken.NewManagerWithPrivateKey(priv), s.testIdentity)
+	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	s.svc = testsupport.ServiceAsUser("WorkItemComment-Service", wittoken.NewManagerWithPrivateKey(priv), s.testIdentity)
 	s.controller = NewSearchController(s.svc, gormapplication.NewGormDB(s.DB), spaceBlackBoxTestConfiguration)
 }
 
@@ -155,10 +155,11 @@ func (s *searchBlackBoxTest) TestSearchWithEmptyValue() {
 	// when
 	q := ""
 	spaceIDStr := space.SystemSpace.String()
-	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, nil, nil, &q, &spaceIDStr)
+	_, jerrs := test.ShowSearchBadRequest(s.T(), nil, nil, s.controller, nil, nil, nil, &q, &spaceIDStr)
 	// then
-	require.NotNil(s.T(), sr.Data)
-	assert.Empty(s.T(), sr.Data)
+	require.NotNil(s.T(), jerrs)
+	require.Len(s.T(), jerrs.Errors, 1)
+	require.NotNil(s.T(), jerrs.Errors[0].ID)
 }
 
 func (s *searchBlackBoxTest) TestSearchWithDomainPortCombination() {
@@ -260,14 +261,14 @@ func (s *searchBlackBoxTest) TestUnwantedCharactersRelatedToSearchLogic() {
 	assert.Empty(s.T(), sr.Data)
 }
 
-func (s *searchBlackBoxTest) getWICreatePayload() *app.CreateWorkitemPayload {
+func (s *searchBlackBoxTest) getWICreatePayload() *app.CreateWorkitemsPayload {
 	spaceRelatedURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.SpaceHref(space.SystemSpace.String()))
 	witRelatedURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.WorkitemtypeHref(space.SystemSpace.String(), workitem.SystemTask.String()))
-	c := app.CreateWorkitemPayload{
+	c := app.CreateWorkitemsPayload{
 		Data: &app.WorkItem{
 			Type:       APIStringTypeWorkItem,
 			Attributes: map[string]interface{}{},
@@ -292,8 +293,8 @@ func (s *searchBlackBoxTest) getWICreatePayload() *app.CreateWorkitemPayload {
 }
 
 func getServiceAsUser(testIdentity account.Identity) *goa.Service {
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	service := testsupport.ServiceAsUser("TestSearch-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity)
+	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	service := testsupport.ServiceAsUser("TestSearch-Service", wittoken.NewManagerWithPrivateKey(priv), testIdentity)
 	return service
 }
 
@@ -346,10 +347,10 @@ func (s *searchBlackBoxTest) verifySearchByKnownURLs(wi *app.WorkItemSingle, hos
 // Uses helper functions verifySearchByKnownURLs, searchByURL, getWICreatePayload
 func (s *searchBlackBoxTest) TestAutoRegisterHostURL() {
 	// service := getServiceAsUser(s.testIdentity)
-	wiCtrl := NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	wiCtrl := NewWorkitemsController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	// create a WI, search by `list view URL` of newly created item
 	newWI := s.getWICreatePayload()
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, wiCtrl, *newWI.Data.Relationships.Space.Data.ID, newWI)
+	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, wiCtrl, *newWI.Data.Relationships.Space.Data.ID, newWI)
 	require.NotNil(s.T(), wi)
 	customHost := "own.domain.one"
 	queryString := fmt.Sprintf("http://%s/work-item/list/detail/%d", customHost, wi.Data.Attributes[workitem.SystemNumber])
@@ -553,8 +554,8 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 	spaceInstance := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, *spaceOwner)
 	spaceIDStr := spaceInstance.ID.String()
 
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svcWithSpaceOwner := testsupport.ServiceAsSpaceUser("Search-Service", almtoken.NewManagerWithPrivateKey(priv), *spaceOwner, &TestSpaceAuthzService{*spaceOwner})
+	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	svcWithSpaceOwner := testsupport.ServiceAsSpaceUser("Search-Service", wittoken.NewManagerWithPrivateKey(priv), *spaceOwner, &TestSpaceAuthzService{*spaceOwner})
 	collaboratorRESTInstance := &TestCollaboratorsREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")}
 	collaboratorRESTInstance.policy = &auth.KeycloakPolicy{
 		Name:             "TestCollaborators-" + uuid.NewV4().String(),
@@ -645,6 +646,18 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotEmpty(s.T(), result.Data)
 		require.Len(s.T(), result.Data, 3+5) // resolved items + items in iteraion2
+	})
+
+	s.T().Run("state IN resolved, closed", func(t *testing.T) {
+		// following test does not include any "space" deliberately, hence if there
+		// is any work item in the test-DB having state=resolved following count
+		// will fail
+		filter := fmt.Sprintf(`
+			{"state": {"$IN": ["%s", "%s"]}}`,
+			workitem.SystemStateResolved, workitem.SystemStateClosed)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(s.T(), result.Data)
+		require.Len(s.T(), result.Data, 3+5) // state = resolved or state = closed
 	})
 
 	s.T().Run("space=ID AND (state=resolved OR iteration=sprint2)", func(t *testing.T) {

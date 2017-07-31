@@ -25,7 +25,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	almtoken "github.com/fabric8-services/fabric8-wit/token"
+	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
@@ -82,13 +82,14 @@ func (s *CommentsSuite) unsecuredController() (*goa.Service, *CommentsController
 	return svc, commentsCtrl
 }
 
-func (s *CommentsSuite) securedControllers(identity account.Identity) (*goa.Service, *WorkitemController, *WorkItemCommentsController, *CommentsController) {
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsUser("Comment-Service", almtoken.NewManagerWithPrivateKey(priv), identity)
+func (s *CommentsSuite) securedControllers(identity account.Identity) (*goa.Service, *WorkitemController, *WorkitemsController, *WorkItemCommentsController, *CommentsController) {
+	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	svc := testsupport.ServiceAsUser("Comment-Service", wittoken.NewManagerWithPrivateKey(priv), identity)
 	workitemCtrl := NewWorkitemController(svc, s.db, s.Configuration)
+	workitemsCtrl := NewWorkitemsController(svc, s.db, s.Configuration)
 	workitemCommentsCtrl := NewWorkItemCommentsController(svc, s.db, s.Configuration)
 	commentsCtrl := NewCommentsController(svc, s.db, s.Configuration)
-	return svc, workitemCtrl, workitemCommentsCtrl, commentsCtrl
+	return svc, workitemCtrl, workitemsCtrl, workitemCommentsCtrl, commentsCtrl
 }
 
 // createWorkItem creates a workitem that will be used to perform the comment operations during the tests.
@@ -99,7 +100,7 @@ func (s *CommentsSuite) createWorkItem(identity account.Identity) uuid.UUID {
 	witRelatedURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.WorkitemtypeHref(space.SystemSpace.String(), workitem.SystemBug.String()))
-	createWorkitemPayload := app.CreateWorkitemPayload{
+	createWorkitemPayload := app.CreateWorkitemsPayload{
 		Data: &app.WorkItem{
 			Type: APIStringTypeWorkItem,
 			Attributes: map[string]interface{}{
@@ -120,8 +121,8 @@ func (s *CommentsSuite) createWorkItem(identity account.Identity) uuid.UUID {
 			},
 		},
 	}
-	userSvc, workitemCtrl, _, _ := s.securedControllers(identity)
-	_, wi := test.CreateWorkitemCreated(s.T(), userSvc.Context, userSvc, workitemCtrl, *createWorkitemPayload.Data.Relationships.Space.Data.ID, &createWorkitemPayload)
+	userSvc, _, workitemsCtrl, _, _ := s.securedControllers(identity)
+	_, wi := test.CreateWorkitemsCreated(s.T(), userSvc.Context, userSvc, workitemsCtrl, *createWorkitemPayload.Data.Relationships.Space.Data.ID, &createWorkitemPayload)
 	wiID := *wi.Data.ID
 	s.T().Log(fmt.Sprintf("Created workitem with id %v", wiID))
 	return wiID
@@ -142,8 +143,8 @@ func newCreateWorkItemCommentsPayload(body string, markup *string) *app.CreateWo
 // createWorkItemComment creates a workitem comment that will be used to perform the comment operations during the tests.
 func (s *CommentsSuite) createWorkItemComment(identity account.Identity, wiID uuid.UUID, body string, markup *string) app.CommentSingle {
 	createWorkItemCommentPayload := newCreateWorkItemCommentsPayload(body, markup)
-	userSvc, _, workitemCommentsCtrl, _ := s.securedControllers(identity)
-	_, c := test.CreateWorkItemCommentsOK(s.T(), userSvc.Context, userSvc, workitemCommentsCtrl, space.SystemSpace, wiID, createWorkItemCommentPayload)
+	userSvc, _, _, workitemCommentsCtrl, _ := s.securedControllers(identity)
+	_, c := test.CreateWorkItemCommentsOK(s.T(), userSvc.Context, userSvc, workitemCommentsCtrl, wiID, createWorkItemCommentPayload)
 	require.NotNil(s.T(), c)
 	s.T().Log(fmt.Sprintf("Created comment with id %v", *c.Data.ID))
 	return *c
@@ -164,7 +165,7 @@ func newUpdateCommentsPayload(body string, markup *string) *app.UpdateCommentsPa
 // updateComment updates the comment with the given commentId
 func (s *CommentsSuite) updateComment(identity account.Identity, commentID uuid.UUID, body string, markup *string) app.CommentSingle {
 	updateCommentsPayload := newUpdateCommentsPayload(body, markup)
-	userSvc, _, _, commentsCtrl := s.securedControllers(identity)
+	userSvc, _, _, _, commentsCtrl := s.securedControllers(identity)
 	_, c := test.UpdateCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, commentID, updateCommentsPayload)
 	require.NotNil(s.T(), c)
 	s.T().Log(fmt.Sprintf("Updated comment with id %v", *c.Data.ID))
@@ -173,7 +174,7 @@ func (s *CommentsSuite) updateComment(identity account.Identity, commentID uuid.
 
 // deleteComment deletes the comment with the given commentId
 func (s *CommentsSuite) deleteComment(identity account.Identity, commentID uuid.UUID) {
-	userSvc, _, _, commentsCtrl := s.securedControllers(identity)
+	userSvc, _, _, _, commentsCtrl := s.securedControllers(identity)
 	test.DeleteCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, commentID)
 	s.T().Log(fmt.Sprintf("Deleted comment with id %v", commentID))
 }
@@ -192,11 +193,11 @@ func assertComment(t *testing.T, resultData *app.Comment, expectedIdentity accou
 	assert.Equal(t, expectedMarkup, *resultData.Attributes.Markup)
 	assert.Equal(t, rendering.RenderMarkupToHTML(html.EscapeString(expectedBody), expectedMarkup), *resultData.Attributes.BodyRendered)
 	require.NotNil(t, resultData.Relationships)
-	require.NotNil(t, resultData.Relationships.CreatedBy)
-	require.NotNil(t, resultData.Relationships.CreatedBy.Data)
-	require.NotNil(t, resultData.Relationships.CreatedBy.Data.ID)
-	assert.Equal(t, expectedIdentity.ID, *resultData.Relationships.CreatedBy.Data.ID)
-	assert.True(t, strings.Contains(*resultData.Relationships.CreatedBy.Links.Related, resultData.Relationships.CreatedBy.Data.ID.String()), "Link not found")
+	require.NotNil(t, resultData.Relationships.Creator)
+	require.NotNil(t, resultData.Relationships.Creator.Data)
+	require.NotNil(t, resultData.Relationships.Creator.Data.ID)
+	assert.Equal(t, expectedIdentity.ID, uuid.FromStringOrNil(*resultData.Relationships.Creator.Data.ID))
+	assert.True(t, strings.Contains(*resultData.Relationships.Creator.Data.ID, *resultData.Relationships.Creator.Data.ID), "Link not found")
 }
 
 func convertCommentToModel(c app.CommentSingle) comment.Comment {
@@ -206,6 +207,17 @@ func convertCommentToModel(c app.CommentSingle) comment.Comment {
 			UpdatedAt: *c.Data.Attributes.UpdatedAt,
 		},
 	}
+}
+
+func (s *CommentsSuite) TestShowCommentWithBackwardSupport() {
+	// given
+	wiID := s.createWorkItem(s.testIdentity)
+	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &markdownMarkup)
+	// when
+	userSvc, commentsCtrl := s.unsecuredController()
+	_, result := test.ShowCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID, nil, nil)
+	// then
+	assert.Equal(s.T(), *result.Data.Relationships.Creator.Data.ID, result.Data.Relationships.CreatedBy.Data.ID.String())
 }
 
 func (s *CommentsSuite) TestShowCommentWithoutAuthOK() {
@@ -286,7 +298,7 @@ func (s *CommentsSuite) TestShowCommentWithAuth() {
 	wiID := s.createWorkItem(s.testIdentity)
 	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &plaintextMarkup)
 	// when
-	userSvc, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
+	userSvc, _, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
 	_, result := test.ShowCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID, nil, nil)
 	// then
 	assertComment(s.T(), result.Data, s.testIdentity, "body", rendering.SystemMarkupPlainText)
@@ -297,7 +309,7 @@ func (s *CommentsSuite) TestShowCommentWithEscapedScriptInjection() {
 	wiID := s.createWorkItem(s.testIdentity)
 	c := s.createWorkItemComment(s.testIdentity, wiID, "<img src=x onerror=alert('body') />", &plaintextMarkup)
 	// when
-	userSvc, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
+	userSvc, _, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
 	_, result := test.ShowCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID, nil, nil)
 	// then
 	assertComment(s.T(), result.Data, s.testIdentity, "<img src=x onerror=alert('body') />", rendering.SystemMarkupPlainText)
@@ -319,7 +331,7 @@ func (s *CommentsSuite) TestUpdateCommentWithSameUserWithOtherMarkup() {
 	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &plaintextMarkup)
 	// when
 	updateCommentPayload := newUpdateCommentsPayload("updated body", &markdownMarkup)
-	userSvc, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
+	userSvc, _, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
 	_, result := test.UpdateCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID, updateCommentPayload)
 	assertComment(s.T(), result.Data, s.testIdentity, "updated body", rendering.SystemMarkupMarkdown)
 }
@@ -330,7 +342,7 @@ func (s *CommentsSuite) TestUpdateCommentWithSameUserWithNilMarkup() {
 	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &plaintextMarkup)
 	// when
 	updateCommentPayload := newUpdateCommentsPayload("updated body", nil)
-	userSvc, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
+	userSvc, _, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
 	_, result := test.UpdateCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID, updateCommentPayload)
 	assertComment(s.T(), result.Data, s.testIdentity, "updated body", rendering.SystemMarkupDefault)
 }
@@ -339,7 +351,7 @@ func (s *CommentsSuite) TestDeleteCommentWithSameAuthenticatedUser() {
 	// given
 	wiID := s.createWorkItem(s.testIdentity)
 	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &plaintextMarkup)
-	userSvc, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
+	userSvc, _, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
 	// when/then
 	test.DeleteCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID)
 }
@@ -371,18 +383,18 @@ func (s *CommentsSuite) TestNonCollaboraterCanNotDelete() {
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", almtoken.NewManagerWithPrivateKey(priv), *testIdentity, &TestSpaceAuthzService{*testIdentity})
-	ctrl := NewWorkitemController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", wittoken.NewManagerWithPrivateKey(priv), *testIdentity, &TestSpaceAuthzService{*testIdentity})
+	workitemsCtrl := NewWorkitemsController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 
-	_, wi := test.CreateWorkitemCreated(s.T(), svc.Context, svc, ctrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, wi := test.CreateWorkitemsCreated(s.T(), svc.Context, svc, workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	c := s.createWorkItemComment(*testIdentity, *wi.Data.ID, "body", &plaintextMarkup)
 
 	testIdentity2, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestNonCollaboraterCanNotDelete-"), "TestWI")
-	svcNotAuthrized := testsupport.ServiceAsSpaceUser("Collaborators-Service", almtoken.NewManagerWithPrivateKey(priv), *testIdentity2, &TestSpaceAuthzService{*testIdentity})
-	ctrlNotAuthrize := NewCommentsController(svcNotAuthrized, gormapplication.NewGormDB(s.DB), s.Configuration)
+	svcNotAuthorized := testsupport.ServiceAsSpaceUser("Collaborators-Service", wittoken.NewManagerWithPrivateKey(priv), *testIdentity2, &TestSpaceAuthzService{*testIdentity})
+	commentsCtrlNotAuthorized := NewCommentsController(svcNotAuthorized, gormapplication.NewGormDB(s.DB), s.Configuration)
 
-	test.DeleteCommentsForbidden(s.T(), svcNotAuthrized.Context, svcNotAuthrized, ctrlNotAuthrize, *c.Data.ID)
+	test.DeleteCommentsForbidden(s.T(), svcNotAuthorized.Context, svcNotAuthorized, commentsCtrlNotAuthorized, *c.Data.ID)
 }
 
 func (s *CommentsSuite) TestCollaboratorCanDelete() {
@@ -394,11 +406,12 @@ func (s *CommentsSuite) TestCollaboratorCanDelete() {
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", almtoken.NewManagerWithPrivateKey(priv), *testIdentity, &TestSpaceAuthzService{*testIdentity})
-	ctrl := NewWorkitemController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	svc, _, workitemsCtrl, _, _ := s.securedControllers(*testIdentity)
+	// priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	// svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", wittoken.NewManagerWithPrivateKey(priv), testIdentity, &TestSpaceAuthzService{testIdentity})
+	// ctrl := NewWorkitemsController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 
-	_, wi := test.CreateWorkitemCreated(s.T(), svc.Context, svc, ctrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, wi := test.CreateWorkitemsCreated(s.T(), svc.Context, svc, workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	c := s.createWorkItemComment(*testIdentity, *wi.Data.ID, "body", &plaintextMarkup)
 	commentCtrl := NewCommentsController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	test.DeleteCommentsOK(s.T(), svc.Context, svc, commentCtrl, *c.Data.ID)
@@ -407,7 +420,7 @@ func (s *CommentsSuite) TestCollaboratorCanDelete() {
 func (s *CommentsSuite) TestCreatorCanDelete() {
 	wID := s.createWorkItem(s.testIdentity)
 	c := s.createWorkItemComment(s.testIdentity, wID, "body", &plaintextMarkup)
-	userSvc, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
+	userSvc, _, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
 	test.DeleteCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID)
 }
 
@@ -425,8 +438,8 @@ func (s *CommentsSuite) TestOtherCollaboratorCanDelete() {
 
 	// Add 2 identities as Collaborators
 	space := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, *spaceOwner)
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svcWithSpaceOwner := testsupport.ServiceAsSpaceUser("Comments-Service", almtoken.NewManagerWithPrivateKey(priv), *spaceOwner, &TestSpaceAuthzService{*spaceOwner})
+	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	svcWithSpaceOwner := testsupport.ServiceAsSpaceUser("Comments-Service", wittoken.NewManagerWithPrivateKey(priv), *spaceOwner, &TestSpaceAuthzService{*spaceOwner})
 	collaboratorRESTInstance := &TestCollaboratorsREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")}
 	collaboratorRESTInstance.policy = &auth.KeycloakPolicy{
 		Name:             "TestCollaborators-" + uuid.NewV4().String(),
@@ -442,15 +455,15 @@ func (s *CommentsSuite) TestOtherCollaboratorCanDelete() {
 	payload := minimumRequiredCreateWithTypeAndSpace(workitem.SystemFeature, *space.ID)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	workitemCtrl := NewWorkitemController(svcWithSpaceOwner, gormapplication.NewGormDB(s.DB), s.Configuration)
+	workitemsCtrl := NewWorkitemsController(svcWithSpaceOwner, gormapplication.NewGormDB(s.DB), s.Configuration)
 
-	_, wi := test.CreateWorkitemCreated(s.T(), svcWithSpaceOwner.Context, svcWithSpaceOwner, workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, wi := test.CreateWorkitemsCreated(s.T(), svcWithSpaceOwner.Context, svcWithSpaceOwner, workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 
 	// collaborator1 adds a comment on newly created work item
 	c := s.createWorkItemComment(*collaborator1, *wi.Data.ID, "Hello woody", &plaintextMarkup)
 
 	// Collaborator2 deletes the comment
-	svcWithCollaborator2 := testsupport.ServiceAsSpaceUser("Comments-Service", almtoken.NewManagerWithPrivateKey(priv), *collaborator2, &TestSpaceAuthzService{*collaborator2})
+	svcWithCollaborator2 := testsupport.ServiceAsSpaceUser("Comments-Service", wittoken.NewManagerWithPrivateKey(priv), *collaborator2, &TestSpaceAuthzService{*collaborator2})
 	commentCtrl := NewCommentsController(svcWithCollaborator2, gormapplication.NewGormDB(s.DB), s.Configuration)
 	test.DeleteCommentsOK(s.T(), svcWithCollaborator2.Context, svcWithCollaborator2, commentCtrl, *c.Data.ID)
 }
@@ -468,19 +481,19 @@ func (s *CommentsSuite) TestNonCollaboraterCanNotUpdate() {
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI 2"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", almtoken.NewManagerWithPrivateKey(priv), *testIdentity, &TestSpaceAuthzService{*testIdentity})
-	ctrl := NewWorkitemController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", wittoken.NewManagerWithPrivateKey(priv), *testIdentity, &TestSpaceAuthzService{*testIdentity})
+	workitemsCtrl := NewWorkitemsController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 
-	_, wi := test.CreateWorkitemCreated(s.T(), svc.Context, svc, ctrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, wi := test.CreateWorkitemsCreated(s.T(), svc.Context, svc, workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	c := s.createWorkItemComment(*testIdentity, *wi.Data.ID, "body", &plaintextMarkup)
 
 	testIdentity2, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestNonCollaboraterCanNotUpdate-"), "TestWI")
-	svcNotAuthrized := testsupport.ServiceAsSpaceUser("Collaborators-Service", almtoken.NewManagerWithPrivateKey(priv), *testIdentity2, &TestSpaceAuthzService{*testIdentity})
-	ctrlNotAuthrize := NewCommentsController(svcNotAuthrized, gormapplication.NewGormDB(s.DB), s.Configuration)
+	svcNotAuthorized := testsupport.ServiceAsSpaceUser("Collaborators-Service", wittoken.NewManagerWithPrivateKey(priv), *testIdentity2, &TestSpaceAuthzService{*testIdentity})
+	commentCtrlNotAuthorized := NewCommentsController(svcNotAuthorized, gormapplication.NewGormDB(s.DB), s.Configuration)
 
 	updateCommentPayload := newUpdateCommentsPayload("updated body", &markdownMarkup)
-	test.UpdateCommentsForbidden(s.T(), svcNotAuthrized.Context, svcNotAuthrized, ctrlNotAuthrize, *c.Data.ID, updateCommentPayload)
+	test.UpdateCommentsForbidden(s.T(), svcNotAuthorized.Context, svcNotAuthorized, commentCtrlNotAuthorized, *c.Data.ID, updateCommentPayload)
 }
 
 func (s *CommentsSuite) TestCollaboratorCanUpdate() {
@@ -492,11 +505,12 @@ func (s *CommentsSuite) TestCollaboratorCanUpdate() {
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", almtoken.NewManagerWithPrivateKey(priv), *testIdentity, &TestSpaceAuthzService{*testIdentity})
-	ctrl := NewWorkitemController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	// priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	// svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", wittoken.NewManagerWithPrivateKey(priv), testIdentity, &TestSpaceAuthzService{testIdentity})
+	// ctrl := NewWorkitemController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	svc, _, workitemsCtrl, _, _ := s.securedControllers(*testIdentity)
 
-	_, wi := test.CreateWorkitemCreated(s.T(), svc.Context, svc, ctrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, wi := test.CreateWorkitemsCreated(s.T(), svc.Context, svc, workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	c := s.createWorkItemComment(*testIdentity, *wi.Data.ID, "body", &plaintextMarkup)
 	commentCtrl := NewCommentsController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 
@@ -509,7 +523,7 @@ func (s *CommentsSuite) TestCollaboratorCanUpdate() {
 func (s *CommentsSuite) TestCreatorCanUpdate() {
 	wID := s.createWorkItem(s.testIdentity)
 	c := s.createWorkItemComment(s.testIdentity, wID, "Hello world", &plaintextMarkup)
-	userSvc, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
+	userSvc, _, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
 
 	updatedBody := "Hello world in golang"
 	updateCommentPayload := newUpdateCommentsPayload(updatedBody, &markdownMarkup)
@@ -531,9 +545,10 @@ func (s *CommentsSuite) TestOtherCollaboratorCanUpdate() {
 
 	// Add 2 Collaborators in space
 	space := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, *spaceOwner)
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svcWithSpaceOwner := testsupport.ServiceAsSpaceUser("Comments-Service", almtoken.NewManagerWithPrivateKey(priv), *spaceOwner, &TestSpaceAuthzService{*spaceOwner})
-	collaboratorRESTInstance := &TestCollaboratorsREST{DBTestSuite: s.DBTestSuite}
+	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	svcWithSpaceOwner := testsupport.ServiceAsSpaceUser("Comments-Service", wittoken.NewManagerWithPrivateKey(priv), *spaceOwner, &TestSpaceAuthzService{*spaceOwner})
+
+	collaboratorRESTInstance := &TestCollaboratorsREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")}
 	collaboratorRESTInstance.policy = &auth.KeycloakPolicy{
 		Name:             "TestCollaborators-" + uuid.NewV4().String(),
 		Type:             auth.PolicyTypeUser,
@@ -548,9 +563,9 @@ func (s *CommentsSuite) TestOtherCollaboratorCanUpdate() {
 	payload := minimumRequiredCreateWithTypeAndSpace(workitem.SystemFeature, *space.ID)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	workitemCtrl := NewWorkitemController(svcWithSpaceOwner, gormapplication.NewGormDB(s.DB), s.Configuration)
+	workitemsCtrl := NewWorkitemsController(svcWithSpaceOwner, gormapplication.NewGormDB(s.DB), s.Configuration)
 
-	_, wi := test.CreateWorkitemCreated(s.T(), svcWithSpaceOwner.Context, svcWithSpaceOwner, workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, wi := test.CreateWorkitemsCreated(s.T(), svcWithSpaceOwner.Context, svcWithSpaceOwner, workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 
 	// collaborator1 adds a comment on newly created work item
 	c := s.createWorkItemComment(*collaborator1, *wi.Data.ID, "Hello woody", &plaintextMarkup)
@@ -558,7 +573,7 @@ func (s *CommentsSuite) TestOtherCollaboratorCanUpdate() {
 	// update comment by collaborator 1
 	updatedBody := "Another update on same comment"
 	updateCommentPayload := newUpdateCommentsPayload(updatedBody, &markdownMarkup)
-	svcWithCollaborator1 := testsupport.ServiceAsSpaceUser("Comments-Service", almtoken.NewManagerWithPrivateKey(priv), *collaborator1, &TestSpaceAuthzService{*collaborator1})
+	svcWithCollaborator1 := testsupport.ServiceAsSpaceUser("Comments-Service", wittoken.NewManagerWithPrivateKey(priv), *collaborator1, &TestSpaceAuthzService{*collaborator1})
 	commentCtrl := NewCommentsController(svcWithCollaborator1, gormapplication.NewGormDB(s.DB), s.Configuration)
 	_, result := test.UpdateCommentsOK(s.T(), svcWithCollaborator1.Context, svcWithCollaborator1, commentCtrl, *c.Data.ID, updateCommentPayload)
 	assertComment(s.T(), result.Data, *collaborator1, updatedBody, markdownMarkup)
@@ -566,7 +581,7 @@ func (s *CommentsSuite) TestOtherCollaboratorCanUpdate() {
 	// update comment by collaborator2
 	updatedBody = "Modified body of comment"
 	updateCommentPayload = newUpdateCommentsPayload(updatedBody, &markdownMarkup)
-	svcWithCollaborator2 := testsupport.ServiceAsSpaceUser("Comments-Service", almtoken.NewManagerWithPrivateKey(priv), *collaborator2, &TestSpaceAuthzService{*collaborator2})
+	svcWithCollaborator2 := testsupport.ServiceAsSpaceUser("Comments-Service", wittoken.NewManagerWithPrivateKey(priv), *collaborator2, &TestSpaceAuthzService{*collaborator2})
 	commentCtrl = NewCommentsController(svcWithCollaborator2, gormapplication.NewGormDB(s.DB), s.Configuration)
 	_, result = test.UpdateCommentsOK(s.T(), svcWithCollaborator2.Context, svcWithCollaborator2, commentCtrl, *c.Data.ID, updateCommentPayload)
 	assertComment(s.T(), result.Data, *collaborator1, updatedBody, markdownMarkup)

@@ -79,7 +79,7 @@ func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		if *identityID == cm.CreatedBy {
+		if *identityID == cm.Creator {
 			editorIsCreator = true
 			return nil
 		}
@@ -144,7 +144,7 @@ func (c *CommentsController) Delete(ctx *app.DeleteCommentsContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		if *identityID == cm.CreatedBy {
+		if *identityID == cm.Creator {
 			userIsCreator = true
 			return nil
 		}
@@ -218,10 +218,12 @@ func ConvertCommentResourceID(request *goa.RequestData, comment comment.Comment,
 
 // ConvertComment converts between internal and external REST representation
 func ConvertComment(request *goa.RequestData, comment comment.Comment, additional ...CommentConvertFunc) *app.Comment {
+	userType := APIStringTypeUser
+	creatorID := comment.Creator.String()
 	relatedURL := rest.AbsoluteURL(request, app.CommentsHref(comment.ID))
 	markup := rendering.NilSafeGetMarkup(&comment.Markup)
 	bodyRendered := rendering.RenderMarkupToHTML(html.EscapeString(comment.Body), comment.Markup)
-	relatedCreatorLink := rest.AbsoluteURL(request, fmt.Sprintf("%s/%s", usersEndpoint, comment.CreatedBy.String()))
+	relatedCreatorLink := rest.AbsoluteURL(request, fmt.Sprintf("%s/%s", usersEndpoint, creatorID))
 	c := &app.Comment{
 		Type: "comments",
 		ID:   &comment.ID,
@@ -233,10 +235,19 @@ func ConvertComment(request *goa.RequestData, comment comment.Comment, additiona
 			UpdatedAt:    &comment.UpdatedAt,
 		},
 		Relationships: &app.CommentRelations{
-			CreatedBy: &app.CommentCreatedBy{
+			Creator: &app.RelationGeneric{
+				Data: &app.GenericData{
+					Type: &userType,
+					ID:   &creatorID,
+					Links: &app.GenericLinks{
+						Related: &relatedCreatorLink,
+					},
+				},
+			},
+			CreatedBy: &app.CommentCreatedBy{ // Keep old API style until all cients are updated
 				Data: &app.IdentityRelationData{
-					Type: "identities",
-					ID:   &comment.CreatedBy,
+					Type: userType,
+					ID:   &comment.Creator,
 				},
 				Links: &app.GenericLinks{
 					Related: &relatedCreatorLink,
@@ -259,16 +270,9 @@ type HrefFunc func(id interface{}) string
 
 // CommentIncludeParentWorkItem includes a "parent" relation to a WorkItem
 func CommentIncludeParentWorkItem(ctx context.Context, appl application.Application, c *comment.Comment) (CommentConvertFunc, error) {
-	// NOTE: This function assumes that the comment is bound to a WorkItem. Therefore,
-	// we can extract the space out of this WI.
-	wi, err := appl.WorkItems().LoadByID(ctx, c.ParentID)
-	if err != nil {
-		return nil, err
-	}
-
 	return func(request *goa.RequestData, comment *comment.Comment, data *app.Comment) {
 		hrefFunc := func(obj interface{}) string {
-			return fmt.Sprintf(app.WorkitemHref(wi.SpaceID, "%v"), obj)
+			return fmt.Sprintf(app.WorkitemHref("%v"), obj)
 		}
 		CommentIncludeParent(request, comment, data, hrefFunc, APIStringTypeWorkItem)
 	}, nil

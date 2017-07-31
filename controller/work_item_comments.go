@@ -52,10 +52,10 @@ func (c *WorkItemCommentsController) Create(ctx *app.CreateWorkItemCommentsConte
 		reqComment := ctx.Payload.Data
 		markup := rendering.NilSafeGetMarkup(reqComment.Attributes.Markup)
 		newComment := comment.Comment{
-			ParentID:  ctx.WiID,
-			Body:      reqComment.Attributes.Body,
-			Markup:    markup,
-			CreatedBy: *currentUserIdentityID,
+			ParentID: ctx.WiID,
+			Body:     reqComment.Attributes.Body,
+			Markup:   markup,
+			Creator:  *currentUserIdentityID,
 		}
 
 		err = appl.Comments().Create(ctx, &newComment, *currentUserIdentityID)
@@ -157,8 +157,8 @@ func CreateCommentsRelation(request *goa.RequestData, wi *workitem.WorkItem) *ap
 
 // CreateCommentsRelationLinks returns a RelationGeneric object representing the links for a workitem to comment relation
 func CreateCommentsRelationLinks(request *goa.RequestData, wi *workitem.WorkItem) *app.GenericLinks {
-	commentsSelf := rest.AbsoluteURL(request, app.WorkitemHref(wi.SpaceID, wi.ID)) + "/relationships/comments"
-	commentsRelated := rest.AbsoluteURL(request, app.WorkitemHref(wi.SpaceID, wi.ID)) + "/comments"
+	commentsSelf := rest.AbsoluteURL(request, app.WorkitemHref(wi.ID)) + "/relationships/comments"
+	commentsRelated := rest.AbsoluteURL(request, app.WorkitemHref(wi.ID)) + "/comments"
 	return &app.GenericLinks{
 		Self:    &commentsSelf,
 		Related: &commentsRelated,
