@@ -21,7 +21,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/space/authz"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	almtoken "github.com/fabric8-services/fabric8-wit/token"
+	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 
@@ -80,9 +80,9 @@ func (s *TestAuthzSuite) TestUserIsNotAmongSpaceCollaboratorsFails() {
 func (s *TestAuthzSuite) checkPermissions(authzPayload auth.AuthorizationPayload, spaceID string) bool {
 	resource := &space.Resource{}
 	authzService := authz.NewAuthzService(nil, &db{app{resource: resource}})
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
 	testIdentity := testsupport.TestIdentity
-	svc := testsupport.ServiceAsUserWithAuthz("SpaceAuthz-Service", almtoken.NewManagerWithPrivateKey(priv), priv, testIdentity, authzPayload)
+	svc := testsupport.ServiceAsUserWithAuthz("SpaceAuthz-Service", wittoken.NewManagerWithPrivateKey(priv), priv, testIdentity, authzPayload)
 	resource.UpdatedAt = time.Now()
 	r := &goa.RequestData{
 		Request: &http.Request{Host: "api.example.org"},

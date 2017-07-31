@@ -18,7 +18,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	almtoken "github.com/fabric8-services/fabric8-wit/token"
+	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 
@@ -81,58 +81,58 @@ func (s *workItemChildSuite) SetupTest() {
 	require.Nil(s.T(), err)
 	s.testIdentity = *testIdentity
 
-	priv, err := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	priv, err := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
 	require.Nil(s.T(), err)
 
-	svc := testsupport.ServiceAsUser("WorkItemLink-Service", almtoken.NewManagerWithPrivateKey(priv), s.testIdentity)
+	svc := testsupport.ServiceAsUser("WorkItemLink-Service", wittoken.NewManagerWithPrivateKey(priv), s.testIdentity)
 	require.NotNil(s.T(), svc)
 	s.workitemLinkCtrl = NewWorkItemLinkController(svc, s.db, s.Configuration)
 	require.NotNil(s.T(), s.workitemLinkCtrl)
 
-	svc = testsupport.ServiceAsUser("WorkItemLinkType-Service", almtoken.NewManagerWithPrivateKey(priv), s.testIdentity)
+	svc = testsupport.ServiceAsUser("WorkItemLinkType-Service", wittoken.NewManagerWithPrivateKey(priv), s.testIdentity)
 	require.NotNil(s.T(), svc)
 	s.workitemLinkTypeCtrl = NewWorkItemLinkTypeController(svc, s.db, s.Configuration)
 	require.NotNil(s.T(), s.workitemLinkTypeCtrl)
 
-	svc = testsupport.ServiceAsUser("WorkItemLinkCategory-Service", almtoken.NewManagerWithPrivateKey(priv), s.testIdentity)
+	svc = testsupport.ServiceAsUser("WorkItemLinkCategory-Service", wittoken.NewManagerWithPrivateKey(priv), s.testIdentity)
 	require.NotNil(s.T(), svc)
 	s.workitemLinkCategoryCtrl = NewWorkItemLinkCategoryController(svc, s.db)
 	require.NotNil(s.T(), s.workitemLinkCategoryCtrl)
 
-	svc = testsupport.ServiceAsUser("WorkItemType-Service", almtoken.NewManagerWithPrivateKey(priv), s.testIdentity)
+	svc = testsupport.ServiceAsUser("WorkItemType-Service", wittoken.NewManagerWithPrivateKey(priv), s.testIdentity)
 	require.NotNil(s.T(), svc)
 	s.typeCtrl = NewWorkitemtypeController(svc, s.db, s.Configuration)
 	require.NotNil(s.T(), s.typeCtrl)
 
-	svc = testsupport.ServiceAsUser("WorkItemLink-Service", almtoken.NewManagerWithPrivateKey(priv), s.testIdentity)
+	svc = testsupport.ServiceAsUser("WorkItemLink-Service", wittoken.NewManagerWithPrivateKey(priv), s.testIdentity)
 	require.NotNil(s.T(), svc)
 	s.workitemLinkCtrl = NewWorkItemLinkController(svc, s.db, s.Configuration)
 	require.NotNil(s.T(), s.workitemLinkCtrl)
 
-	svc = testsupport.ServiceAsUser("WorkItemRelationshipsLinks-Service", almtoken.NewManagerWithPrivateKey(priv), s.testIdentity)
+	svc = testsupport.ServiceAsUser("WorkItemRelationshipsLinks-Service", wittoken.NewManagerWithPrivateKey(priv), s.testIdentity)
 	require.NotNil(s.T(), svc)
 	s.workItemRelsLinksCtrl = NewWorkItemRelationshipsLinksController(svc, s.db, s.Configuration)
 	require.NotNil(s.T(), s.workItemRelsLinksCtrl)
 
-	svc = testsupport.ServiceAsUser("TestWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), s.testIdentity)
+	svc = testsupport.ServiceAsUser("TestWorkItem-Service", wittoken.NewManagerWithPrivateKey(priv), s.testIdentity)
 	require.NotNil(s.T(), svc)
 	s.svc = svc
 	s.workItemCtrl = NewWorkitemController(svc, s.db, s.Configuration)
 	require.NotNil(s.T(), s.workItemCtrl)
 
-	svc = testsupport.ServiceAsUser("TestWorkItems-Service", almtoken.NewManagerWithPrivateKey(priv), *testIdentity)
+	svc = testsupport.ServiceAsUser("TestWorkItems-Service", wittoken.NewManagerWithPrivateKey(priv), *testIdentity)
 	require.NotNil(s.T(), svc)
 	s.svc = svc
 	s.workItemsCtrl = NewWorkitemsController(svc, s.db, s.Configuration)
 	require.NotNil(s.T(), s.workItemsCtrl)
 
-	svc = testsupport.ServiceAsUser("Space-Service", almtoken.NewManagerWithPrivateKey(priv), *testIdentity)
+	svc = testsupport.ServiceAsUser("Space-Service", wittoken.NewManagerWithPrivateKey(priv), *testIdentity)
 	require.NotNil(s.T(), svc)
 	s.spaceCtrl = NewSpaceController(svc, s.db, s.Configuration, &DummyResourceManager{})
 	require.NotNil(s.T(), s.spaceCtrl)
 
 	// Create a test user identity
-	s.svc = testsupport.ServiceAsUser("TestWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), s.testIdentity)
+	s.svc = testsupport.ServiceAsUser("TestWorkItem-Service", wittoken.NewManagerWithPrivateKey(priv), s.testIdentity)
 	require.NotNil(s.T(), s.svc)
 
 	// Create a work item link space

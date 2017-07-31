@@ -19,7 +19,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	almtoken "github.com/fabric8-services/fabric8-wit/token"
+	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 
 	jwt "github.com/dgrijalva/jwt-go"
@@ -65,8 +65,8 @@ func (s *workItemLinkTypeSuite) SetupSuite() {
 	require.NotNil(s.T(), s.linkCatCtrl)
 	s.typeCtrl = NewWorkitemtypeController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	require.NotNil(s.T(), s.typeCtrl)
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
+	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", wittoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
 	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(s.DB), s.Configuration, &DummyResourceManager{})
 	require.NotNil(s.T(), s.spaceCtrl)
 	s.spaceName = "test-space" + uuid.NewV4().String()
@@ -115,8 +115,8 @@ func (s *workItemLinkTypeSuite) SetupTest() {
 	require.NotNil(s.T(), s.linkCatCtrl)
 	s.typeCtrl = NewWorkitemtypeController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	require.NotNil(s.T(), s.typeCtrl)
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
+	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", wittoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
 	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(s.DB), s.Configuration, &DummyResourceManager{})
 	require.NotNil(s.T(), s.spaceCtrl)
 	s.spaceName = testsupport.CreateRandomValidTestName("test-space")

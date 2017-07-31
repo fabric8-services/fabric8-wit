@@ -4,7 +4,7 @@
 :sectnums:
 :experimental:
 
-This section of the documentation contains a guide for users who want to contribute code or documentation to the almigthy-core project.
+This section of the documentation contains a guide for users who want to contribute code or documentation to the fabric8-wit project.
 
 Code or documentation isn’t the only way to contribute. You can also link:https://github.com/fabric8-services/fabric8-wit/issues/new[report an issue].
 

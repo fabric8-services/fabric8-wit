@@ -7,7 +7,7 @@ import (
 
 var _ = a.Resource("status", func() {
 
-	a.DefaultMedia(ALMStatus)
+	a.DefaultMedia(WITStatus)
 	a.BasePath("/status")
 
 	a.Action("show", func() {
@@ -16,7 +16,7 @@ var _ = a.Resource("status", func() {
 		)
 		a.Description("Show the status of the current running instance")
 		a.Response(d.OK)
-		a.Response(d.ServiceUnavailable, ALMStatus)
+		a.Response(d.ServiceUnavailable, WITStatus)
 	})
 })
 
