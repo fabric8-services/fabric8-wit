@@ -112,6 +112,11 @@ objects:
               configMapKeyRef:
                 name: core
                 key: feature.workitem.remote
+          - name: F8_NOTIFICATION_SERVICEURL
+            valueFrom:
+              configMapKeyRef:
+                name: core
+                key: notification.serviceurl
           imagePullPolicy: Always
           name: core
           ports:
