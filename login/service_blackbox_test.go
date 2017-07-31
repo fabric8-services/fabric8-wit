@@ -109,9 +109,9 @@ func (s *serviceBlackBoxTest) TestKeycloakAuthorizationRedirect() {
 		panic("invalid test " + err.Error()) // bug
 	}
 
-	// The user clicks login while on ALM UI.
-	// Therefore the referer would be an ALM URL.
-	refererUrl := "https://alm-url.example.org/path"
+	// The user clicks login while on WIT UI.
+	// Therefore the referer would be an WIT URL.
+	refererUrl := "https://wit-url.example.org/path"
 	req.Header.Add("referer", refererUrl)
 
 	prms := url.Values{}
@@ -427,8 +427,8 @@ func (s *serviceBlackBoxTest) TestInvalidOAuthAuthorizationCode() {
 		panic("invalid test " + err.Error()) // bug
 	}
 
-	// The user clicks login while on ALM UI.
-	// Therefore the referer would be an ALM URL.
+	// The user clicks login while on WIT UI.
+	// Therefore the referer would be an WIT URL.
 	refererUrl := "https://wit-url.example.org/path"
 	req.Header.Add("referer", refererUrl)
 
@@ -486,7 +486,7 @@ func (s *serviceBlackBoxTest) TestInvalidOAuthAuthorizationCode() {
 	require.Nil(s.T(), err)
 
 	allQueryParameters = locationUrl.Query()
-	assert.Equal(s.T(), 307, rw.Code) // redirect to ALM page where login was clicked.
+	assert.Equal(s.T(), 307, rw.Code) // redirect to WIT page where login was clicked.
 	// Avoiding panics.
 	assert.NotNil(s.T(), allQueryParameters)
 	assert.NotNil(s.T(), allQueryParameters["error"])

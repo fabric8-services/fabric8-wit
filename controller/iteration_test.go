@@ -21,7 +21,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	almtoken "github.com/fabric8-services/fabric8-wit/token"
+	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	"context"
@@ -55,16 +55,16 @@ func (rest *TestIterationREST) TearDownTest() {
 }
 
 func (rest *TestIterationREST) SecuredController() (*goa.Service, *IterationController) {
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
 
-	svc := testsupport.ServiceAsUser("Iteration-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
+	svc := testsupport.ServiceAsUser("Iteration-Service", wittoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
 	return svc, NewIterationController(svc, rest.db, rest.Configuration)
 }
 
 func (rest *TestIterationREST) SecuredControllerWithIdentity(idn *account.Identity) (*goa.Service, *IterationController) {
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
 
-	svc := testsupport.ServiceAsUser("Iteration-Service", almtoken.NewManagerWithPrivateKey(priv), *idn)
+	svc := testsupport.ServiceAsUser("Iteration-Service", wittoken.NewManagerWithPrivateKey(priv), *idn)
 	return svc, NewIterationController(svc, rest.db, rest.Configuration)
 }
 

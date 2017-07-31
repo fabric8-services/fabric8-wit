@@ -21,7 +21,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	"github.com/fabric8-services/fabric8-wit/token"
-	almtoken "github.com/fabric8-services/fabric8-wit/token"
+	wittoken "github.com/fabric8-services/fabric8-wit/token"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
@@ -58,18 +58,18 @@ func (rest *TestLoginREST) TearDownTest() {
 }
 
 func (rest *TestLoginREST) UnSecuredController() (*goa.Service, *LoginController) {
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
 	identityRepository := account.NewIdentityRepository(rest.DB)
-	svc := testsupport.ServiceAsUser("Login-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
+	svc := testsupport.ServiceAsUser("Login-Service", wittoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
 	return svc, &LoginController{Controller: svc.NewController("login"), auth: TestLoginService{}, configuration: rest.Configuration, identityRepository: identityRepository}
 }
 
 func (rest *TestLoginREST) SecuredController() (*goa.Service, *LoginController) {
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
 
 	identityRepository := account.NewIdentityRepository(rest.DB)
 
-	svc := testsupport.ServiceAsUser("Login-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
+	svc := testsupport.ServiceAsUser("Login-Service", wittoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
 	return svc, NewLoginController(svc, rest.loginService, rest.loginService.TokenManager, rest.Configuration, identityRepository)
 }
 

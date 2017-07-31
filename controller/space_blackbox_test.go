@@ -19,7 +19,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	almtoken "github.com/fabric8-services/fabric8-wit/token"
+	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -71,9 +71,9 @@ func (rest *TestSpaceREST) TearDownTest() {
 }
 
 func (rest *TestSpaceREST) SecuredController(identity account.Identity) (*goa.Service, *SpaceController) {
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
 
-	svc := testsupport.ServiceAsUser("Space-Service", almtoken.NewManagerWithPrivateKey(priv), identity)
+	svc := testsupport.ServiceAsUser("Space-Service", wittoken.NewManagerWithPrivateKey(priv), identity)
 	return svc, NewSpaceController(svc, rest.db, spaceConfiguration, &DummyResourceManager{})
 }
 
@@ -133,14 +133,14 @@ func (rest *TestSpaceREST) TestSuccessCreateSpace() {
 }
 
 func (rest *TestSpaceREST) SecuredSpaceAreaController(identity account.Identity) (*goa.Service, *SpaceAreasController) {
-	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
-	svc := testsupport.ServiceAsUser("Area-Service", almtoken.NewManager(pub), identity)
+	pub, _ := wittoken.ParsePublicKey([]byte(wittoken.RSAPublicKey))
+	svc := testsupport.ServiceAsUser("Area-Service", wittoken.NewManager(pub), identity)
 	return svc, NewSpaceAreasController(svc, rest.db, rest.Configuration)
 }
 
 func (rest *TestSpaceREST) SecuredSpaceIterationController(identity account.Identity) (*goa.Service, *SpaceIterationsController) {
-	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
-	svc := testsupport.ServiceAsUser("Iteration-Service", almtoken.NewManager(pub), identity)
+	pub, _ := wittoken.ParsePublicKey([]byte(wittoken.RSAPublicKey))
+	svc := testsupport.ServiceAsUser("Iteration-Service", wittoken.NewManager(pub), identity)
 	return svc, NewSpaceIterationsController(svc, rest.db, rest.Configuration)
 }
 
