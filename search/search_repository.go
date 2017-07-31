@@ -32,6 +32,7 @@ const (
 	Q_AND = "$AND"
 	Q_OR  = "$OR"
 	Q_NOT = "$NOT"
+	Q_IN  = "$IN"
 )
 
 // GormSearchRepository provides a Gorm based repository
@@ -263,6 +264,18 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 		case bool:
 			s := concreteVal
 			q.Negate = s
+		case map[string]interface{}:
+			if v, ok := concreteVal["$IN"]; ok {
+				q.Name = Q_OR
+				c := &q.Children
+				for _, vl := range v.([]interface{}) {
+					sq := Query{}
+					sq.Name = key
+					t := vl.(string)
+					sq.Value = &t
+					*c = append(*c, sq)
+				}
+			}
 		default:
 			log.Error(nil, nil, "Unexpected value: %#v", val)
 		}
