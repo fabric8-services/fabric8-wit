@@ -103,6 +103,7 @@ func (s *Service) Send(ctx context.Context, msg Message) {
 		u, err := url.Parse(s.config.GetNotificationServiceURL())
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
+				"url": s.config.GetNotificationServiceURL(),
 				"err": err,
 			}, "unable to parse GetNotificationServiceURL")
 		}
