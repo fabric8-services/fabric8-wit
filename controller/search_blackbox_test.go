@@ -155,7 +155,7 @@ func (s *searchBlackBoxTest) TestSearchWithEmptyValue() {
 	// when
 	q := ""
 	spaceIDStr := space.SystemSpace.String()
-	_, jerrs := test.ShowSearchBadRequest(s.T(), nil, nil, s.controller, nil, nil, nil, &q, &spaceIDStr)
+	_, jerrs := test.ShowSearchBadRequest(s.T(), nil, nil, s.controller, nil, nil, nil, nil, &q, &spaceIDStr)
 	// then
 	require.NotNil(s.T(), jerrs)
 	require.Len(s.T(), jerrs.Errors, 1)
@@ -655,7 +655,7 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 		filter := fmt.Sprintf(`
 			{"state": {"$IN": ["%s", "%s"]}}`,
 			workitem.SystemStateResolved, workitem.SystemStateClosed)
-		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, &spaceIDStr)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotEmpty(s.T(), result.Data)
 		require.Len(s.T(), result.Data, 3+5) // state = resolved or state = closed
 	})
