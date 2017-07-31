@@ -146,6 +146,10 @@ test-unit-no-coverage: prebuild-check $(SOURCES)
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
 	F8_DEVELOPER_MODE_ENABLED=1 F8_RESOURCE_UNIT_TEST=1 go test $(GO_TEST_VERBOSITY_FLAG) $(TEST_PACKAGES)
 
+.PHONY: test-unit-no-coverage-junit
+test-unit-no-coverage-junit: prebuild-check ${GO_JUNIT_BIN} ${TMP_PATH}
+	bash -c "set -o pipefail; make test-unit-no-coverage 2>&1 | tee >(${GO_JUNIT_BIN} > ${TMP_PATH}/junit.xml)"
+
 .PHONY: test-integration
 ## Runs the integration tests and produces coverage files for each package.
 ## Make sure you ran "make integration-test-env-prepare" before you run this target.

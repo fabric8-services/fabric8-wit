@@ -100,6 +100,7 @@ import:
 - package: github.com/fzipp/gocyclo
 - package: github.com/Sirupsen/logrus
 - package: github.com/sourcegraph/syntaxhighlight
+- package: github.com/jstemmer/go-junit-report
 - package: github.com/sourcegraph/annotate
 - package: github.com/sergi/go-diff
   subpackages:
