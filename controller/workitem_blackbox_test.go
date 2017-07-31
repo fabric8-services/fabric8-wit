@@ -27,7 +27,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/migration"
-	"github.com/fabric8-services/fabric8-wit/notification"
 	"github.com/fabric8-services/fabric8-wit/path"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
@@ -886,7 +885,7 @@ type WorkItem2Suite struct {
 	wi             *app.WorkItem
 	minimumPayload *app.UpdateWorkitemPayload
 	ctx            context.Context
-	notification   notification.TestNotificationChannel
+	notification   testsupport.NotificationChannel
 }
 
 func (s *WorkItem2Suite) SetupSuite() {
@@ -897,7 +896,7 @@ func (s *WorkItem2Suite) SetupSuite() {
 func (s *WorkItem2Suite) SetupTest() {
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 
-	s.notification = notification.TestNotificationChannel{}
+	s.notification = testsupport.NotificationChannel{}
 	// create identity
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "WorkItem2Suite setup user", "test provider")
 	require.Nil(s.T(), err)

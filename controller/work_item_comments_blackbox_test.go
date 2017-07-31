@@ -18,7 +18,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
-	"github.com/fabric8-services/fabric8-wit/notification"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
@@ -39,7 +38,7 @@ type TestCommentREST struct {
 	clean        func()
 	testIdentity account.Identity
 	ctx          context.Context
-	notification notification.TestNotificationChannel
+	notification testsupport.NotificationChannel
 }
 
 func TestRunCommentREST(t *testing.T) {
@@ -56,7 +55,7 @@ func (rest *TestCommentREST) SetupTest() {
 	req := &http.Request{Host: "localhost"}
 	params := url.Values{}
 	rest.ctx = goa.NewContext(context.Background(), nil, req, params)
-	rest.notification = notification.TestNotificationChannel{}
+	rest.notification = testsupport.NotificationChannel{}
 }
 
 func (rest *TestCommentREST) TearDownTest() {

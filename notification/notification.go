@@ -149,14 +149,3 @@ func (s *Service) Send(ctx context.Context, msg Message) {
 
 	}(ctx, msg)
 }
-
-// TestNotificationChannel is a simple Sender impl that records the notifications for later verification
-type TestNotificationChannel struct {
-	Messages []Message
-}
-
-// Send records each sent message in Messages
-func (s *TestNotificationChannel) Send(ctx context.Context, msg Message) {
-	setCurrentIdentity(ctx, &msg)
-	s.Messages = append(s.Messages, msg)
-}

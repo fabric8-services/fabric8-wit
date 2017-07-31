@@ -20,7 +20,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/migration"
-	"github.com/fabric8-services/fabric8-wit/notification"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/rest"
@@ -48,7 +47,7 @@ type CommentsSuite struct {
 	clean         func()
 	testIdentity  account.Identity
 	testIdentity2 account.Identity
-	notification  notification.TestNotificationChannel
+	notification  testsupport.NotificationChannel
 }
 
 func (s *CommentsSuite) SetupSuite() {
@@ -66,7 +65,7 @@ func (s *CommentsSuite) SetupTest() {
 	testIdentity2, err := testsupport.CreateTestIdentity(s.DB, "CommentsSuite user2", "test provider")
 	require.Nil(s.T(), err)
 	s.testIdentity2 = *testIdentity2
-	s.notification = notification.TestNotificationChannel{}
+	s.notification = testsupport.NotificationChannel{}
 }
 
 func (s *CommentsSuite) TearDownTest() {
