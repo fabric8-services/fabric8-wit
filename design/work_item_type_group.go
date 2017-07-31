@@ -45,6 +45,10 @@ var workItemTypeGroupData = a.Type("WorkItemTypeGroupData", func() {
 	a.Description(`JSONAPI store for the data of a work item link type.
 See also http://jsonapi.org/format/#document-resource-object`)
 	a.Attribute("attributes", workItemTypeGroupAttributes)
+	a.Attribute("type", d.String, "The type string of the work item type group", func() {
+		a.Enum("workitemtypegroups")
+	})
+	a.Required("type", "attributes")
 })
 
 var _ = a.Resource("work_item_type_group", func() {

@@ -13,6 +13,8 @@ type WorkItemTypeGroupController struct {
 	db application.DB
 }
 
+const APIWorkItemTypeGroups = "workitemtypegroups"
+
 // NewWorkItemTypeGroupController creates a work_item_type_group controller.
 func NewWorkItemTypeGroupController(service *goa.Service, db application.DB) *WorkItemTypeGroupController {
 	return &WorkItemTypeGroupController{
@@ -32,6 +34,7 @@ func (c *WorkItemTypeGroupController) List(ctx *app.ListWorkItemTypeGroupContext
 				ConvertTypeGroup(ctx.RequestData, typegroup.Requirements0),
 			},
 		},
+		Type: APIWorkItemTypeGroups,
 	}
 	return ctx.OK(res)
 }

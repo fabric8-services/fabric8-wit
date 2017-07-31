@@ -18,7 +18,7 @@ type WorkItemTypeGroup struct {
 var Portfolio0 = WorkItemTypeGroup{
 	Group: "portfolio",
 	Level: []int{0, 0},
-	Name:  "Portfolio 0",
+	Name:  "Portfolio",
 	WorkItemTypeCollection: []uuid.UUID{
 		workitem.SystemScenario,
 		workitem.SystemFundamental,
@@ -30,7 +30,7 @@ var Portfolio0 = WorkItemTypeGroup{
 var Portfolio1 = WorkItemTypeGroup{
 	Group: "portfolio",
 	Level: []int{0, 1},
-	Name:  "Portfolio 1",
+	Name:  "Portfolio",
 	WorkItemTypeCollection: []uuid.UUID{
 		workitem.SystemExperience,
 		workitem.SystemValueProposition,
@@ -42,7 +42,7 @@ var Portfolio1 = WorkItemTypeGroup{
 var Requirements0 = WorkItemTypeGroup{
 	Group: "requirements",
 	Level: []int{1, 0},
-	Name:  "Requirements 0",
+	Name:  "Requirements",
 	WorkItemTypeCollection: []uuid.UUID{
 		workitem.SystemFeature,
 		workitem.SystemBug,
