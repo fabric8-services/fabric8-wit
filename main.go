@@ -19,6 +19,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/auth"
 	config "github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/controller"
+	witmiddleware "github.com/fabric8-services/fabric8-wit/goamiddleware"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
@@ -36,7 +37,7 @@ import (
 	goalogrus "github.com/goadesign/goa/logging/logrus"
 	"github.com/goadesign/goa/middleware"
 	"github.com/goadesign/goa/middleware/gzip"
-	"github.com/goadesign/goa/middleware/security/jwt"
+	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 )
 
 func main() {
@@ -152,19 +153,11 @@ func main() {
 	// Mount middleware
 	service.Use(middleware.RequestID())
 	// Use our own log request to inject identity id and modify other properties
-	service.Use(log.LogRequest(configuration.IsPostgresDeveloperModeEnabled()))
 	service.Use(gzip.Middleware(9))
 	service.Use(jsonapi.ErrorHandler(service, true))
 	service.Use(middleware.Recover())
 
 	service.WithLogger(goalogrus.New(log.Logger()))
-
-	publicKey, err := token.ParsePublicKey(configuration.GetTokenPublicKey())
-	if err != nil {
-		log.Panic(nil, map[string]interface{}{
-			"err": err,
-		}, "failed to parse public token")
-	}
 
 	// Setup Account/Login/Security
 	identityRepository := account.NewIdentityRepository(db)
@@ -172,9 +165,21 @@ func main() {
 
 	appDB := gormapplication.NewGormDB(db)
 
+	publicKey, err := token.ParsePublicKey(configuration.GetTokenPublicKey())
+	if err != nil {
+		log.Panic(nil, map[string]interface{}{
+			"err": err,
+		}, "failed to parse public token")
+	}
 	tokenManager := token.NewManager(publicKey)
-	app.UseJWTMiddleware(service, jwt.New(publicKey, nil, app.NewJWTSecurity()))
+	// Middleware that extracts and stores the token in the context
+	jwtMiddlewareTokenContext := witmiddleware.TokenContext(publicKey, nil, app.NewJWTSecurity())
+	service.Use(jwtMiddlewareTokenContext)
+
 	service.Use(login.InjectTokenManager(tokenManager))
+	service.Use(log.LogRequest(configuration.IsPostgresDeveloperModeEnabled()))
+	app.UseJWTMiddleware(service, goajwt.New(publicKey, nil, app.NewJWTSecurity()))
+
 	spaceAuthzService := authz.NewAuthzService(configuration, appDB)
 	service.Use(authz.InjectAuthzService(spaceAuthzService))
 
