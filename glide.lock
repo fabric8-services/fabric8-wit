@@ -146,6 +146,8 @@ imports:
   version: b024fc5ea0e34bc3f83d9941c8d60b0622bfaca4
 - name: github.com/russross/blackfriday
   version: 5f33e7b7878355cd2b7e6b8eefc48a5472c69f70
+- name: github.com/jstemmer/go-junit-report
+  version: 15422cf504f9dc030386499a5c68053a38763e58
 - name: github.com/satori/go.uuid
   version: b061729afc07e77a8aa4fad0a2fd840958f1942a
 - name: github.com/sergi/go-diff
