@@ -16,6 +16,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/login"
+	"github.com/fabric8-services/fabric8-wit/notification"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space/authz"
@@ -37,8 +38,9 @@ const (
 // WorkitemController implements the workitem resource.
 type WorkitemController struct {
 	*goa.Controller
-	db     application.DB
-	config WorkItemControllerConfig
+	db           application.DB
+	config       WorkItemControllerConfig
+	notification notification.Channel
 }
 
 // WorkItemControllerConfig the config interface for the WorkitemController
@@ -48,10 +50,20 @@ type WorkItemControllerConfig interface {
 
 // NewWorkitemController creates a workitem controller.
 func NewWorkitemController(service *goa.Service, db application.DB, config WorkItemControllerConfig) *WorkitemController {
+	return NewNotifyingWorkitemController(service, db, &notification.DevNullChannel{}, config)
+}
+
+// NewNotifyingWorkitemController creates a workitem controller with notification broadcast.
+func NewNotifyingWorkitemController(service *goa.Service, db application.DB, notificationChannel notification.Channel, config WorkItemControllerConfig) *WorkitemController {
+	n := notificationChannel
+	if n == nil {
+		n = &notification.DevNullChannel{}
+	}
 	return &WorkitemController{
-		Controller: service.NewController("WorkitemController"),
-		db:         db,
-		config:     config}
+		Controller:   service.NewController("WorkitemController"),
+		db:           db,
+		notification: n,
+		config:       config}
 }
 
 // Returns true if the user is the work item creator or space collaborator
@@ -98,7 +110,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	if !authorized {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to access the space"))
 	}
-	return application.Transactional(c.db, func(appl application.Application) error {
+	result := application.Transactional(c.db, func(appl application.Application) error {
 		// Type changes of WI are not allowed which is why we overwrite it the
 		// type with the old one after the WI has been converted.
 		oldType := wi.Type
@@ -123,6 +135,10 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 		ctx.ResponseData.Header().Set("Last-Modified", lastModified(*wi))
 		return ctx.OK(resp)
 	})
+	if ctx.ResponseData.Status == 200 {
+		c.notification.Send(ctx, notification.NewWorkItemUpdated(ctx.Payload.Data.ID.String()))
+	}
+	return result
 }
 
 // Show does GET workitem

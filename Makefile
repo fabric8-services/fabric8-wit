@@ -173,6 +173,8 @@ $(GO_BINDATA_ASSETFS_BIN): $(VENDOR_DIR)
 	cd $(VENDOR_DIR)/github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs && go build -v
 $(FRESH_BIN): $(VENDOR_DIR)
 	cd $(VENDOR_DIR)/github.com/pilu/fresh && go build -v
+$(GO_JUNIT_BIN): $(VENDOR_DIR)
+	cd $(VENDOR_DIR)/github.com/jstemmer/go-junit-report && go build -v
 
 CLEAN_TARGETS += clean-artifacts
 .PHONY: clean-artifacts
@@ -228,6 +230,7 @@ app/controllers.go: $(DESIGNS) $(GOAGEN_BIN) $(VENDOR_DIR)
 	$(GOAGEN_BIN) client -d ${PACKAGE_NAME}/${DESIGN_DIR}
 	$(GOAGEN_BIN) swagger -d ${PACKAGE_NAME}/${DESIGN_DIR}
 	$(GOAGEN_BIN) client -d github.com/fabric8-services/fabric8-tenant/design --notool --pkg tenant -o account
+	$(GOAGEN_BIN) client -d github.com/fabric8-services/fabric8-notification/design --notool --pkg client -o notification
 
 
 assets/js/client.js: $(DESIGNS) $(GOAGEN_BIN) $(VENDOR_DIR)

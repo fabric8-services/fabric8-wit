@@ -352,7 +352,7 @@ func updateWorkItemLink(ctx *workItemLinkContext, httpFuncs updateWorkItemLinkFu
 	}
 	savedModelLink, err := ctx.Application.WorkItemLinks().Save(ctx.Context, *modelLink, *ctx.CurrentUserIdentityID)
 	if err != nil {
-		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
+		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(ctx.Context, err)
 		return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 	}
 	// Convert the created link type entry into a rest representation

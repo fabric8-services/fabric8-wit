@@ -32,13 +32,13 @@ func (t EnumType) Equal(u convert.Equaler) bool {
 	return reflect.DeepEqual(t.Values, other.Values)
 }
 
-func (fieldType EnumType) ConvertToModel(value interface{}) (interface{}, error) {
-	converted, err := fieldType.BaseType.ConvertToModel(value)
+func (t EnumType) ConvertToModel(value interface{}) (interface{}, error) {
+	converted, err := t.BaseType.ConvertToModel(value)
 	if err != nil {
 		return nil, fmt.Errorf("error converting enum value: %s", err.Error())
 	}
 
-	if !contains(fieldType.Values, converted) {
+	if !contains(t.Values, converted) {
 		return nil, fmt.Errorf("not an enum value: %v", value)
 	}
 	return converted, nil
@@ -53,8 +53,8 @@ func contains(a []interface{}, v interface{}) bool {
 	return false
 }
 
-func (fieldType EnumType) ConvertFromModel(value interface{}) (interface{}, error) {
-	converted, err := fieldType.BaseType.ConvertToModel(value)
+func (t EnumType) ConvertFromModel(value interface{}) (interface{}, error) {
+	converted, err := t.BaseType.ConvertToModel(value)
 	if err != nil {
 		return nil, fmt.Errorf("error converting enum value: %s", err.Error())
 	}
