@@ -11,6 +11,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/login"
+	"github.com/fabric8-services/fabric8-wit/notification"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space/authz"
@@ -22,8 +23,9 @@ import (
 // CommentsController implements the comments resource.
 type CommentsController struct {
 	*goa.Controller
-	db     application.DB
-	config CommentsControllerConfiguration
+	db           application.DB
+	notification notification.Channel
+	config       CommentsControllerConfiguration
 }
 
 // CommentsControllerConfiguration the configuration for CommentsController
@@ -33,10 +35,20 @@ type CommentsControllerConfiguration interface {
 
 // NewCommentsController creates a comments controller.
 func NewCommentsController(service *goa.Service, db application.DB, config CommentsControllerConfiguration) *CommentsController {
+	return NewNotifyingCommentsController(service, db, &notification.DevNullChannel{}, config)
+}
+
+// NewNotifyingCommentsController creates a comments controller with notification broadcast.
+func NewNotifyingCommentsController(service *goa.Service, db application.DB, notificationChannel notification.Channel, config CommentsControllerConfiguration) *CommentsController {
+	n := notificationChannel
+	if n == nil {
+		n = &notification.DevNullChannel{}
+	}
 	return &CommentsController{
-		Controller: service.NewController("CommentsController"),
-		db:         db,
-		config:     config,
+		Controller:   service.NewController("CommentsController"),
+		db:           db,
+		notification: n,
+		config:       config,
 	}
 }
 
@@ -45,7 +57,7 @@ func (c *CommentsController) Show(ctx *app.ShowCommentsContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		cmt, err := appl.Comments().Load(ctx, ctx.CommentID)
 		if err != nil {
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrUnauthorized(err.Error()))
 			return ctx.NotFound(jerrors)
 		}
 		return ctx.ConditionalRequest(*cmt, c.config.GetCacheControlComments, func() error {
@@ -93,18 +105,20 @@ func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
 		return err
 	}
 	// User is allowed to update if user is creator of the comment OR user is a space collaborator
-	if editorIsCreator {
-		return c.performUpdate(ctx, cm, identityID)
+	if !editorIsCreator {
+		authorized, err := authz.Authorize(ctx, wi.SpaceID.String())
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
+		}
+		if !authorized {
+			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not a space collaborator"))
+		}
 	}
-
-	authorized, err := authz.Authorize(ctx, wi.SpaceID.String())
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
+	result := c.performUpdate(ctx, cm, identityID)
+	if ctx.ResponseData.Status == 200 {
+		c.notification.Send(ctx, notification.NewCommentUpdated(cm.ID.String()))
 	}
-	if !authorized {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not a space collaborator"))
-	}
-	return c.performUpdate(ctx, cm, identityID)
+	return result
 }
 
 func (c *CommentsController) performUpdate(ctx *app.UpdateCommentsContext, cm *comment.Comment, identityID *uuid.UUID) error {

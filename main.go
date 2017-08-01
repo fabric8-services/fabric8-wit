@@ -26,6 +26,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/models"
+	"github.com/fabric8-services/fabric8-wit/notification"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/space/authz"
@@ -163,6 +164,19 @@ func main() {
 	identityRepository := account.NewIdentityRepository(db)
 	userRepository := account.NewUserRepository(db)
 
+	var notificationChannel notification.Channel = &notification.DevNullChannel{}
+	if configuration.GetNotificationServiceURL() != "" {
+		log.Logger().Infof("Enabling Notification service %v", configuration.GetNotificationServiceURL())
+		channel, err := notification.NewServiceChannel(configuration)
+		if err != nil {
+			log.Panic(nil, map[string]interface{}{
+				"err": err,
+				"url": configuration.GetNotificationServiceURL(),
+			}, "failed to parse notification service url")
+		}
+		notificationChannel = channel
+	}
+
 	appDB := gormapplication.NewGormDB(db)
 
 	publicKey, err := token.ParsePublicKey(configuration.GetTokenPublicKey())
@@ -195,7 +209,8 @@ func main() {
 	app.MountStatusController(service, statusCtrl)
 
 	// Mount "workitem" controller
-	workitemCtrl := controller.NewWorkitemController(service, appDB, configuration)
+	//workitemCtrl := controller.NewWorkitemController(service, appDB, configuration)
+	workitemCtrl := controller.NewNotifyingWorkitemController(service, appDB, notificationChannel, configuration)
 	app.MountWorkitemController(service, workitemCtrl)
 
 	// Mount "named workitem" controller
@@ -203,7 +218,8 @@ func main() {
 	app.MountNamedWorkItemsController(service, namedWorkitemsCtrl)
 
 	// Mount "workitems" controller
-	workitemsCtrl := controller.NewWorkitemsController(service, appDB, configuration)
+	//workitemsCtrl := controller.NewWorkitemsController(service, appDB, configuration)
+	workitemsCtrl := controller.NewNotifyingWorkitemsController(service, appDB, notificationChannel, configuration)
 	app.MountWorkitemsController(service, workitemsCtrl)
 
 	// Mount "workitemtype" controller
@@ -223,7 +239,8 @@ func main() {
 	app.MountWorkItemLinkController(service, workItemLinkCtrl)
 
 	// Mount "work item comments" controller
-	workItemCommentsCtrl := controller.NewWorkItemCommentsController(service, appDB, configuration)
+	//workItemCommentsCtrl := controller.NewWorkItemCommentsController(service, appDB, configuration)
+	workItemCommentsCtrl := controller.NewNotifyingWorkItemCommentsController(service, appDB, notificationChannel, configuration)
 	app.MountWorkItemCommentsController(service, workItemCommentsCtrl)
 
 	// Mount "work item relationships links" controller
@@ -231,7 +248,8 @@ func main() {
 	app.MountWorkItemRelationshipsLinksController(service, workItemRelationshipsLinksCtrl)
 
 	// Mount "comments" controller
-	commentsCtrl := controller.NewCommentsController(service, appDB, configuration)
+	//commentsCtrl := controller.NewCommentsController(service, appDB, configuration)
+	commentsCtrl := controller.NewNotifyingCommentsController(service, appDB, notificationChannel, configuration)
 	app.MountCommentsController(service, commentsCtrl)
 
 	if configuration.GetFeatureWorkitemRemote() {
