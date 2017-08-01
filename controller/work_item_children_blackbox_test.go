@@ -814,6 +814,71 @@ func lookupWorkitem(t *testing.T, wiList app.WorkItemList, wiID uuid.UUID) *app.
 			return wiData
 		}
 	}
-	t.Error(fmt.Sprintf("Failed to look-up work item with id='%s'", wiID))
+	t.Errorf("Failed to look-up work item with id='%s'", wiID)
 	return nil
+}
+
+type searchParentExistsSuite struct {
+	workItemChildSuite
+	searchCtrl *SearchController
+}
+
+func (s *searchParentExistsSuite) SetupSuite() {
+	s.workItemChildSuite.SetupSuite()
+}
+
+func (s *searchParentExistsSuite) SetupTest() {
+	s.workItemChildSuite.SetupTest()
+
+	priv, err := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	require.Nil(s.T(), err)
+
+	s.svc = testsupport.ServiceAsUser("Search-Service", wittoken.NewManagerWithPrivateKey(priv), s.testIdentity)
+	s.searchCtrl = NewSearchController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+}
+
+func (s *searchParentExistsSuite) TearDownTest() {
+	s.clean()
+}
+
+func TestSearchParentExists(t *testing.T) {
+	resource.Require(t, resource.Database)
+	suite.Run(t, &searchParentExistsSuite{workItemChildSuite: workItemChildSuite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")}})
+}
+
+func (s *searchParentExistsSuite) TestSearchWorkItemListFilterByNoParents() {
+	s.linkWorkItems(s.bug1, s.bug2)
+	s.linkWorkItems(s.bug1, s.bug3)
+
+	s.T().Run("without parentexists filter", func(t *testing.T) {
+		// given
+		//var pe *bool
+		// when
+		//_, result := test.ListWorkitemsOK(t, nil, nil, s.workItemsCtrl, s.userSpaceID, nil, nil, nil, nil, nil, pe, nil, nil, nil, nil, nil, nil)
+		//func ShowSearchOK(t goatest.TInterface, ctx context.Context, service *goa.Service, ctrl app.SearchController, filterExpression *string, filterParentexists *bool, pageLimit *int, pageOffset *string, q *string, spaceID *string) (http.ResponseWriter, *app.SearchWorkItemList) {
+		//sid := s.userSpaceID.String()
+		//_, result := test.ShowSearchOK(t, nil, nil, s.searchCtrl, nil, nil, nil, nil, nil, &sid)
+		//fmt.Printf("%#v\n", result)
+		// then
+		//assert.Len(t, result.Data, 3)
+	})
+	/*
+		s.T().Run("with parentexists value set to false", func(t *testing.T) {
+			// given
+			pe := false
+			// when
+			_, result2 := test.ListWorkitemsOK(t, nil, nil, s.workItemsCtrl, s.userSpaceID, nil, nil, nil, nil, nil, &pe, nil, nil, nil, nil, nil, nil)
+			// then
+			assert.Len(t, result2.Data, 1)
+		})
+
+		s.T().Run("with parentexists value set to true", func(t *testing.T) {
+			// given
+			pe := true
+			// when
+			_, result2 := test.ListWorkitemsOK(t, nil, nil, s.workItemsCtrl, s.userSpaceID, nil, nil, nil, nil, nil, &pe, nil, nil, nil, nil, nil, nil)
+			// then
+			assert.Len(t, result2.Data, 3)
+		})
+	*/
 }
