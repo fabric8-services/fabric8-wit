@@ -876,14 +876,20 @@ func (s *searchParentExistsSuite) TestSearchWorkItemListFilterByNoParents() {
 		assert.Len(t, result.Data, 0)
 	})
 
-	/*
-		s.T().Run("with parentexists value set to true", func(t *testing.T) {
-			// given
-			pe := true
-			// when
-			_, result2 := test.ListWorkitemsOK(t, nil, nil, s.workItemsCtrl, s.userSpaceID, nil, nil, nil, nil, nil, &pe, nil, nil, nil, nil, nil, nil)
-			// then
-			assert.Len(t, result2.Data, 3)
-		})
-	*/
+	s.T().Run("with parentexists value set to true", func(t *testing.T) {
+		// given
+		pe := true
+		// when
+		sid := space.SystemSpace.String()
+		filter := fmt.Sprintf(`
+			{"$AND": [
+				{"type":"%s"}
+			]}`,
+			workitem.SystemBug)
+
+		_, result := test.ShowSearchOK(t, nil, nil, s.searchCtrl, &filter, &pe, nil, nil, nil, &sid)
+		// then
+		assert.Len(t, result.Data, 3)
+
+	})
 }
