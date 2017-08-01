@@ -30,20 +30,20 @@ func (t ListType) Equal(u convert.Equaler) bool {
 }
 
 // ConvertToModel implements the FieldType interface
-func (fieldType ListType) ConvertToModel(value interface{}) (interface{}, error) {
+func (t ListType) ConvertToModel(value interface{}) (interface{}, error) {
 	// the assumption is that work item types do not change over time...only new ones can be created
 	return ConvertList(func(fieldType FieldType, value interface{}) (interface{}, error) {
 		return fieldType.ConvertToModel(value)
-	}, fieldType.ComponentType, value)
+	}, t.ComponentType, value)
 
 }
 
 // ConvertFromModel implements the FieldType interface
-func (fieldType ListType) ConvertFromModel(value interface{}) (interface{}, error) {
+func (t ListType) ConvertFromModel(value interface{}) (interface{}, error) {
 	// the assumption is that work item types do not change over time...only new ones can be created
 	return ConvertList(func(fieldType FieldType, value interface{}) (interface{}, error) {
 		return fieldType.ConvertFromModel(value)
-	}, fieldType.ComponentType, value)
+	}, t.ComponentType, value)
 }
 
 type Converter func(FieldType, interface{}) (interface{}, error)
