@@ -853,11 +853,15 @@ func (s *searchParentExistsSuite) TestSearchWorkItemListFilterByNoParents() {
 
 	s.T().Run("without parentexists filter", func(t *testing.T) {
 		// given
-		//var pe *bool
+		var pe *bool
 		// when
-		//_, result := test.ListWorkitemsOK(t, nil, nil, s.workItemsCtrl, s.userSpaceID, nil, nil, nil, nil, nil, pe, nil, nil, nil, nil, nil, nil)
-		//func ShowSearchOK(t goatest.TInterface, ctx context.Context, service *goa.Service, ctrl app.SearchController, filterExpression *string, filterParentexists *bool, pageLimit *int, pageOffset *string, q *string, spaceID *string) (http.ResponseWriter, *app.SearchWorkItemList) {
-		//sid := s.userSpaceID.String()
+		sid := space.SystemSpace.String()
+		test.ShowSearchBadRequest(t, nil, nil, s.searchCtrl, nil, pe, nil, nil, nil, &sid)
+	})
+	s.T().Run("with parentexists value set to false", func(t *testing.T) {
+		// given
+		pe := false
+		// when
 		fakeSpaceID1 := uuid.NewV4().String()
 		filter := fmt.Sprintf(`
 			{"$AND": [
@@ -867,20 +871,12 @@ func (s *searchParentExistsSuite) TestSearchWorkItemListFilterByNoParents() {
 			fakeSpaceID1, workitem.SystemStateOpen)
 
 		sid := space.SystemSpace.String()
-		_, result := test.ShowSearchOK(t, nil, nil, s.searchCtrl, &filter, nil, nil, nil, nil, &sid)
+		_, result := test.ShowSearchOK(t, nil, nil, s.searchCtrl, &filter, &pe, nil, nil, nil, &sid)
 		// then
 		assert.Len(t, result.Data, 0)
 	})
-	/*
-		s.T().Run("with parentexists value set to false", func(t *testing.T) {
-			// given
-			pe := false
-			// when
-			_, result2 := test.ListWorkitemsOK(t, nil, nil, s.workItemsCtrl, s.userSpaceID, nil, nil, nil, nil, nil, &pe, nil, nil, nil, nil, nil, nil)
-			// then
-			assert.Len(t, result2.Data, 1)
-		})
 
+	/*
 		s.T().Run("with parentexists value set to true", func(t *testing.T) {
 			// given
 			pe := true
