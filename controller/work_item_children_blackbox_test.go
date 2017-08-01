@@ -17,6 +17,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
@@ -857,10 +858,18 @@ func (s *searchParentExistsSuite) TestSearchWorkItemListFilterByNoParents() {
 		//_, result := test.ListWorkitemsOK(t, nil, nil, s.workItemsCtrl, s.userSpaceID, nil, nil, nil, nil, nil, pe, nil, nil, nil, nil, nil, nil)
 		//func ShowSearchOK(t goatest.TInterface, ctx context.Context, service *goa.Service, ctrl app.SearchController, filterExpression *string, filterParentexists *bool, pageLimit *int, pageOffset *string, q *string, spaceID *string) (http.ResponseWriter, *app.SearchWorkItemList) {
 		//sid := s.userSpaceID.String()
-		//_, result := test.ShowSearchOK(t, nil, nil, s.searchCtrl, nil, nil, nil, nil, nil, &sid)
-		//fmt.Printf("%#v\n", result)
+		fakeSpaceID1 := uuid.NewV4().String()
+		filter := fmt.Sprintf(`
+			{"$AND": [
+				{"space":"%s"},
+				{"state": "%s"}
+			]}`,
+			fakeSpaceID1, workitem.SystemStateOpen)
+
+		sid := space.SystemSpace.String()
+		_, result := test.ShowSearchOK(t, nil, nil, s.searchCtrl, &filter, nil, nil, nil, nil, &sid)
 		// then
-		//assert.Len(t, result.Data, 3)
+		assert.Len(t, result.Data, 0)
 	})
 	/*
 		s.T().Run("with parentexists value set to false", func(t *testing.T) {
