@@ -14,7 +14,7 @@ goTemplate{
           dockerOrganisation = 'fabric8'
           project = 'fabric8-wit'
           dockerBuildOptions = '--file Dockerfile.deploy'
-          makeTarget = 'build analyze-go-code test-unit-no-coverage-junit'
+          makeTarget = 'build check-go-format analyze-go-code test-unit-no-coverage-junit'
         }
       } else if (utils.isCD()){
         def v = goRelease{
@@ -22,7 +22,7 @@ goTemplate{
           dockerOrganisation = 'fabric8'
           project = 'fabric8-wit'
           dockerBuildOptions = '--file Dockerfile.deploy'
-          makeTarget = 'build analyze-go-code test-unit-no-coverage-junit'
+          makeTarget = 'build check-go-format analyze-go-code test-unit-no-coverage-junit'
         }
 
         initServiceGitHash = sh(script: 'git rev-parse HEAD', returnStdout: true).toString().trim()
