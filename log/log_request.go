@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -89,11 +88,12 @@ func LogRequest(verbose bool) goa.Middleware {
 
 			timeInMilli := time.Since(startedAt).Seconds() * 1e3
 			reqCompletedProperties := map[string]interface{}{
-				"status": resp.Status,
-				"bytes":  resp.Length,
-				"time":   fmt.Sprintf("%vms", timeInMilli),
-				"ctrl":   goa.ContextController(ctx),
-				"action": goa.ContextAction(ctx),
+				"status":        resp.Status,
+				"bytes":         resp.Length,
+				"duration":      timeInMilli,
+				"duration_unit": "ms",
+				"ctrl":          goa.ContextController(ctx),
+				"action":        goa.ContextAction(ctx),
 			}
 			if code := resp.ErrorCode; code != "" {
 				reqCompletedProperties["error"] = code
