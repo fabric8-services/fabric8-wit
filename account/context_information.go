@@ -25,12 +25,12 @@ func (f ContextInformation) Equal(u convert.Equaler) bool {
 	return reflect.DeepEqual(f, other)
 }
 
-func (j ContextInformation) Value() (driver.Value, error) {
-	return toBytes(j)
+func (f ContextInformation) Value() (driver.Value, error) {
+	return toBytes(f)
 }
 
-func (j *ContextInformation) Scan(src interface{}) error {
-	return fromBytes(src, j)
+func (f *ContextInformation) Scan(src interface{}) error {
+	return fromBytes(src, f)
 }
 
 func toBytes(j interface{}) (driver.Value, error) {

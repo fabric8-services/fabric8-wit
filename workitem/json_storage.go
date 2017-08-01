@@ -25,12 +25,12 @@ func (f Fields) Equal(u convert.Equaler) bool {
 	return reflect.DeepEqual(f, other)
 }
 
-func (j Fields) Value() (driver.Value, error) {
-	return toBytes(j)
+func (f Fields) Value() (driver.Value, error) {
+	return toBytes(f)
 }
 
-func (j *Fields) Scan(src interface{}) error {
-	return fromBytes(src, j)
+func (f *Fields) Scan(src interface{}) error {
+	return fromBytes(src, f)
 }
 
 type FieldDefinitions map[string]FieldDefinition
