@@ -11,6 +11,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/login"
+	"github.com/fabric8-services/fabric8-wit/notification"
 	query "github.com/fabric8-services/fabric8-wit/query/simple"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/search"
@@ -25,16 +26,27 @@ import (
 // WorkitemsController implements the workitems resource.
 type WorkitemsController struct {
 	*goa.Controller
-	db     application.DB
-	config WorkItemControllerConfig
+	db           application.DB
+	config       WorkItemControllerConfig
+	notification notification.Channel
 }
 
 // NewWorkitemsController creates a workitems controller.
 func NewWorkitemsController(service *goa.Service, db application.DB, config WorkItemControllerConfig) *WorkitemsController {
+	return NewNotifyingWorkitemsController(service, db, &notification.DevNullChannel{}, config)
+}
+
+// NewNotifyingWorkitemsController creates a workitem controller with notification broadcast.
+func NewNotifyingWorkitemsController(service *goa.Service, db application.DB, notificationChannel notification.Channel, config WorkItemControllerConfig) *WorkitemsController {
+	n := notificationChannel
+	if n == nil {
+		n = &notification.DevNullChannel{}
+	}
 	return &WorkitemsController{
-		Controller: service.NewController("WorkitemsController"),
-		db:         db,
-		config:     config}
+		Controller:   service.NewController("WorkitemController"),
+		db:           db,
+		notification: n,
+		config:       config}
 }
 
 // Create does POST workitem
@@ -95,23 +107,24 @@ func (c *WorkitemsController) Create(ctx *app.CreateWorkitemsContext) error {
 		spaceSelfURL := rest.AbsoluteURL(goa.ContextRequest(ctx), app.SpaceHref(ctx.SpaceID.String()))
 		ctx.Payload.Data.Relationships.Space = app.NewSpaceRelation(ctx.SpaceID, spaceSelfURL)
 	}
-	wi := workitem.WorkItem{
+	wi := &workitem.WorkItem{
 		Fields: make(map[string]interface{}),
 	}
-	return application.Transactional(c.db, func(appl application.Application) error {
+	result := application.Transactional(c.db, func(appl application.Application) error {
 		//verify spaceID:
 		// To be removed once we have endpoint like - /api/space/{spaceID}/workitems
-		err := appl.Spaces().CheckExists(ctx, ctx.SpaceID.String())
+		var err error
+		err = appl.Spaces().CheckExists(ctx, ctx.SpaceID.String())
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
-		err = ConvertJSONAPIToWorkItem(ctx, ctx.Method, appl, *ctx.Payload.Data, &wi, ctx.SpaceID)
+		err = ConvertJSONAPIToWorkItem(ctx, ctx.Method, appl, *ctx.Payload.Data, wi, ctx.SpaceID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))
 		}
 
-		wi, err := appl.WorkItems().Create(ctx, ctx.SpaceID, *wit, wi.Fields, *currentUserIdentityID)
+		wi, err = appl.WorkItems().Create(ctx, ctx.SpaceID, *wit, wi.Fields, *currentUserIdentityID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))
 		}
@@ -127,6 +140,10 @@ func (c *WorkitemsController) Create(ctx *app.CreateWorkitemsContext) error {
 		ctx.ResponseData.Header().Set("Location", app.WorkitemHref(wi2.ID))
 		return ctx.Created(resp)
 	})
+	if ctx.ResponseData.Status == 201 {
+		c.notification.Send(ctx, notification.NewWorkItemCreated(wi.ID.String()))
+	}
+	return result
 }
 
 // List runs the list action.

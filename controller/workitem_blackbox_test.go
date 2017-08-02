@@ -885,6 +885,7 @@ type WorkItem2Suite struct {
 	wi             *app.WorkItem
 	minimumPayload *app.UpdateWorkitemPayload
 	ctx            context.Context
+	notification   testsupport.NotificationChannel
 }
 
 func (s *WorkItem2Suite) SetupSuite() {
@@ -894,13 +895,15 @@ func (s *WorkItem2Suite) SetupSuite() {
 
 func (s *WorkItem2Suite) SetupTest() {
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+
+	s.notification = testsupport.NotificationChannel{}
 	// create identity
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "WorkItem2Suite setup user", "test provider")
 	require.Nil(s.T(), err)
 	s.priKey, _ = wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
 	s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", wittoken.NewManagerWithPrivateKey(s.priKey), *testIdentity)
-	s.workitemCtrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-	s.workitemsCtrl = NewWorkitemsController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	s.workitemCtrl = NewNotifyingWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), &s.notification, s.Configuration)
+	s.workitemsCtrl = NewNotifyingWorkitemsController(s.svc, gormapplication.NewGormDB(s.DB), &s.notification, s.Configuration)
 	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(s.DB))
 	s.linkTypeCtrl = NewWorkItemLinkTypeController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.linkCtrl = NewWorkItemLinkController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
@@ -909,9 +912,7 @@ func (s *WorkItem2Suite) SetupTest() {
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	s.T().Log("Creating default WI in space#", payload.Data.Relationships.Space.Data.ID.String())
 	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
-	s.T().Log("Done creating default WI")
 	s.wi = wi.Data
 	s.minimumPayload = getMinimumRequiredUpdatePayload(s.wi)
 	//s.minimumReorderPayload = getMinimumRequiredReorderPayload(s.wi)
@@ -2709,6 +2710,36 @@ func (s *WorkItem2Suite) TestWI2FilterExpressionRedirection() {
 	respWriter := test.ListWorkitemsTemporaryRedirect(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, nil, nil, nil, &queryExpression, nil, nil, nil, nil, nil, nil, nil, nil)
 	location := respWriter.Header().Get("location")
 	assert.Contains(s.T(), location, expectedLocation)
+}
+
+func (s *WorkItem2Suite) TestNotificationSendOnCreate() {
+	// given
+	// Default created WI in setupTest
+	// when
+
+	// then
+	require.Equal(s.T(), 1, len(s.notification.Messages))
+	assert.Equal(s.T(), "workitem.create", s.notification.Messages[0].MessageType)
+	assert.Equal(s.T(), s.wi.ID.String(), s.notification.Messages[0].TargetID)
+}
+
+func (s *WorkItem2Suite) TestNotificationSendOnUpdate() {
+	// given
+	// Default created WI in setupTest
+
+	// when
+	u := minimumRequiredUpdatePayload()
+	u.Data.ID = s.wi.ID
+	u.Data.Attributes[workitem.SystemTitle] = "Title 2"
+	u.Data.Attributes[workitem.SystemVersion] = s.wi.Attributes[workitem.SystemVersion]
+
+	test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *u.Data.ID, &u)
+
+	// then
+	require.Equal(s.T(), 2, len(s.notification.Messages))
+	// index 0 is workitem.create, index 1 should be workitem.update
+	assert.Equal(s.T(), "workitem.update", s.notification.Messages[1].MessageType)
+	assert.Equal(s.T(), s.wi.ID.String(), s.notification.Messages[1].TargetID)
 }
 
 func minimumRequiredCreatePayloadWithSpace(spaceID uuid.UUID) app.CreateWorkitemsPayload {

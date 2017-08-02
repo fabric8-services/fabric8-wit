@@ -92,7 +92,7 @@ func lookupIdentities(ctx context.Context, db *gorm.DB, remoteWorkItem RemoteWor
 				workItem.Fields[workitem.SystemAssignees] = make([]string, 0)
 				continue
 			}
-			identities := make([]string, 0)
+			var identities []string
 			assigneeLogins := fieldValue.([]string)
 			assigneeProfileURLs := remoteWorkItem.Fields[remoteAssigneeProfileURLs].([]string)
 			for i, assigneeLogin := range assigneeLogins {

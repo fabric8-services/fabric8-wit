@@ -112,7 +112,7 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, c
 				"state": state,
 				"err":   err,
 			}, "uknown state")
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized("uknown state. " + err.Error()))
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrUnauthorized("uknown state. "+err.Error()))
 			return ctx.Unauthorized(jerrors)
 		}
 
@@ -254,7 +254,7 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, c
 	referrer := ctx.RequestData.Header.Get("Referer")
 	if redirect == nil {
 		if referrer == "" {
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest("Referer Header and redirect param are both empty. At least one should be specified."))
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrBadRequest("Referer Header and redirect param are both empty. At least one should be specified."))
 			return ctx.BadRequest(jerrors)
 		}
 		redirect = &referrer
@@ -414,7 +414,7 @@ func (keycloak *KeycloakOAuthProvider) LinkCallback(ctx *app.LinkcallbackLoginCo
 			log.Error(ctx, map[string]interface{}{
 				"state": state,
 			}, "session state is empty")
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest("session state is empty"))
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrBadRequest("session state is empty"))
 			return ctx.Unauthorized(jerrors)
 		}
 		providerURL, err := getProviderURL(ctx.RequestData, *state, *sessionState, *next, nextProvider(*next), brokerEndpoint, clientID)
@@ -432,7 +432,7 @@ func (keycloak *KeycloakOAuthProvider) LinkCallback(ctx *app.LinkcallbackLoginCo
 			"state": state,
 			"err":   err,
 		}, "uknown state")
-		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized("uknown state. " + err.Error()))
+		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrUnauthorized("uknown state. "+err.Error()))
 		return ctx.Unauthorized(jerrors)
 	}
 
@@ -469,7 +469,7 @@ func (keycloak *KeycloakOAuthProvider) saveReferrer(ctx linkInterface, state uui
 			"valid_referrer_url": validReferrerURL,
 			"err":                err,
 		}, "Can't match referrer and whitelist regex")
-		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(err.Error()))
+		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInternal(err.Error()))
 		return ctx.InternalServerError(jerrors)
 	}
 	if !matched {
@@ -477,7 +477,7 @@ func (keycloak *KeycloakOAuthProvider) saveReferrer(ctx linkInterface, state uui
 			"referrer":           referrer,
 			"valid_referrer_url": validReferrerURL,
 		}, "Referrer not valid")
-		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest("Not valid redirect URL"))
+		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrBadRequest("Not valid redirect URL"))
 		return ctx.BadRequest(jerrors)
 	}
 	// TODO The state reference table will be collecting dead states left from some failed login attempts.
@@ -496,7 +496,7 @@ func (keycloak *KeycloakOAuthProvider) saveReferrer(ctx linkInterface, state uui
 			"referrer": referrer,
 			"err":      err,
 		}, "unable to create oauth state reference")
-		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal("Unable to create oauth state reference " + err.Error()))
+		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInternal("Unable to create oauth state reference "+err.Error()))
 		return ctx.InternalServerError(jerrors)
 	}
 	return nil

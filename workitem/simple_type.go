@@ -38,12 +38,12 @@ func (t SimpleType) GetKind() Kind {
 var timeType = reflect.TypeOf((*time.Time)(nil)).Elem()
 
 // ConvertToModel implements the FieldType interface
-func (fieldType SimpleType) ConvertToModel(value interface{}) (interface{}, error) {
+func (t SimpleType) ConvertToModel(value interface{}) (interface{}, error) {
 	if value == nil {
 		return nil, nil
 	}
 	valueType := reflect.TypeOf(value)
-	switch fieldType.GetKind() {
+	switch t.GetKind() {
 	case KindString, KindUser, KindIteration, KindArea:
 		if valueType.Kind() != reflect.String {
 			return nil, errs.Errorf("value %v should be %s, but is %s", value, "string", valueType.Name())
@@ -104,7 +104,7 @@ func (fieldType SimpleType) ConvertToModel(value interface{}) (interface{}, erro
 			return nil, errs.Errorf("value %v should be %s, but is %s", value, "CodebaseContent", valueType)
 		}
 	default:
-		return nil, errs.Errorf("unexpected type constant: '%s'", fieldType.GetKind())
+		return nil, errs.Errorf("unexpected type constant: '%s'", t.GetKind())
 	}
 }
 
