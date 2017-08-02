@@ -847,7 +847,7 @@ func TestSearchParentExists(t *testing.T) {
 	suite.Run(t, &searchParentExistsSuite{workItemChildSuite: workItemChildSuite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")}})
 }
 
-func (s *searchParentExistsSuite) TestSearchWorkItemListFilterByNoParents() {
+func (s *searchParentExistsSuite) TestSearchWorkItemListFilterUsingParentExists() {
 	s.linkWorkItems(s.bug1, s.bug2)
 	s.linkWorkItems(s.bug1, s.bug3)
 
@@ -862,18 +862,16 @@ func (s *searchParentExistsSuite) TestSearchWorkItemListFilterByNoParents() {
 		// given
 		pe := false
 		// when
-		fakeSpaceID1 := uuid.NewV4().String()
+		sid := space.SystemSpace.String()
 		filter := fmt.Sprintf(`
 			{"$AND": [
-				{"space":"%s"},
-				{"state": "%s"}
+				{"type":"%s"}
 			]}`,
-			fakeSpaceID1, workitem.SystemStateOpen)
+			workitem.SystemBug)
 
-		sid := space.SystemSpace.String()
 		_, result := test.ShowSearchOK(t, nil, nil, s.searchCtrl, &filter, &pe, nil, nil, nil, &sid)
 		// then
-		assert.Len(t, result.Data, 0)
+		assert.Len(t, result.Data, 1)
 	})
 
 	s.T().Run("with parentexists value set to true", func(t *testing.T) {
