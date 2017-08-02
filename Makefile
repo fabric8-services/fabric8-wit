@@ -106,12 +106,12 @@ analyze-go-code: golint gocyclo govet
 ## Run gocyclo analysis over the code.
 golint: $(GOLINT_BIN)
 	$(info >>--- RESULTS: GOLINT CODE ANALYSIS ---<<)
-	@$(foreach d,$(GOANALYSIS_DIRS),$(GOLINT_BIN) $d 2>&1 | grep -vEf .golint_exclude;)
+	@$(foreach d,$(GOANALYSIS_DIRS),$(GOLINT_BIN) $d | grep -vEf .golint_exclude || true;)
 
 ## Run gocyclo analysis over the code.
 gocyclo: $(GOCYCLO_BIN)
 	$(info >>--- RESULTS: GOCYCLO CODE ANALYSIS ---<<)
-	@$(foreach d,$(GOANALYSIS_DIRS),$(GOCYCLO_BIN) -over 10 $d | grep -vEf .golint_exclude;)
+	@$(foreach d,$(GOANALYSIS_DIRS),$(GOCYCLO_BIN) -over 10 $d | grep -vEf .golint_exclude || true;)
 
 ## Run go vet analysis over the code.
 govet:
