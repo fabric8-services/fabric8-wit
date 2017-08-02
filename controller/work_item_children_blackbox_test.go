@@ -819,6 +819,16 @@ func lookupWorkitem(t *testing.T, wiList app.WorkItemList, wiID uuid.UUID) *app.
 	return nil
 }
 
+func lookupWorkitemFromSearchList(t *testing.T, wiList app.SearchWorkItemList, wiID uuid.UUID) *app.WorkItem {
+	for _, wiData := range wiList.Data {
+		if *wiData.ID == wiID {
+			return wiData
+		}
+	}
+	t.Errorf("Failed to look-up work item with id='%s'", wiID)
+	return nil
+}
+
 type searchParentExistsSuite struct {
 	workItemChildSuite
 	searchCtrl *SearchController
@@ -872,6 +882,7 @@ func (s *searchParentExistsSuite) TestSearchWorkItemListFilterUsingParentExists(
 		_, result := test.ShowSearchOK(t, nil, nil, s.searchCtrl, &filter, &pe, nil, nil, nil, &sid)
 		// then
 		assert.Len(t, result.Data, 1)
+		checkChildrenRelationship(t, lookupWorkitemFromSearchList(t, *result, *s.bug1.Data.ID), hasChildren)
 	})
 
 	s.T().Run("with parentexists value set to true", func(t *testing.T) {
