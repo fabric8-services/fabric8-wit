@@ -173,6 +173,8 @@ $(GO_BINDATA_ASSETFS_BIN): $(VENDOR_DIR)
 	cd $(VENDOR_DIR)/github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs && go build -v
 $(FRESH_BIN): $(VENDOR_DIR)
 	cd $(VENDOR_DIR)/github.com/pilu/fresh && go build -v
+$(GO_JUNIT_BIN): $(VENDOR_DIR)
+	cd $(VENDOR_DIR)/github.com/jstemmer/go-junit-report && go build -v
 
 CLEAN_TARGETS += clean-artifacts
 .PHONY: clean-artifacts
