@@ -558,7 +558,7 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 	return result, count, nil
 }
 
-func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria criteria.Expression, start *int, limit *int) ([]workitem.WorkItemStorage, uint64, error) {
+func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria criteria.Expression, parentExists *bool, start *int, limit *int) ([]workitem.WorkItemStorage, uint64, error) {
 	where, parameters, compileError := workitem.Compile(criteria)
 	if compileError != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -566,6 +566,17 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 			"expression": criteria,
 		}, "failed to compile expression")
 		return nil, 0, errors.NewBadParameterError("expression", criteria)
+	}
+
+	if parentExists != nil && !*parentExists {
+		where += ` AND
+			id not in (
+				SELECT target_id FROM work_item_links
+				WHERE link_type_id IN (
+					SELECT id FROM work_item_link_types WHERE forward_name = 'parent of'
+				)
+			)`
+
 	}
 
 	db := r.db.Model(&workitem.WorkItemStorage{}).Where(where, parameters...)
@@ -642,7 +653,7 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 }
 
 // Filter Search returns work items for the given query
-func (r *GormSearchRepository) Filter(ctx context.Context, rawFilterString string, start *int, limit *int) ([]workitem.WorkItem, uint64, error) {
+func (r *GormSearchRepository) Filter(ctx context.Context, rawFilterString string, parentExists *bool, start *int, limit *int) ([]workitem.WorkItem, uint64, error) {
 	// parse
 	// generateSearchQuery
 	// ....
@@ -663,7 +674,7 @@ func (r *GormSearchRepository) Filter(ctx context.Context, rawFilterString strin
 		return nil, 0, errors.NewBadParameterError("rawFilterString", rawFilterString)
 	}
 
-	result, count, err := r.listItemsFromDB(ctx, exp, start, limit)
+	result, count, err := r.listItemsFromDB(ctx, exp, parentExists, start, limit)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
 	}

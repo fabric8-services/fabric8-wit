@@ -52,7 +52,7 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 
 	if ctx.FilterExpression != nil {
 		return application.Transactional(c.db, func(appl application.Application) error {
-			result, c, err := appl.SearchItems().Filter(ctx.Context, *ctx.FilterExpression, &offset, &limit)
+			result, c, err := appl.SearchItems().Filter(ctx.Context, *ctx.FilterExpression, ctx.FilterParentexists, &offset, &limit)
 			count := int(c)
 			if err != nil {
 				cause := errs.Cause(err)
@@ -71,10 +71,11 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 				}
 			}
 
+			hasChildren := workItemIncludeHasChildren(appl, ctx)
 			response := app.SearchWorkItemList{
 				Links: &app.PagingLinks{},
 				Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
-				Data:  ConvertWorkItems(ctx.RequestData, result),
+				Data:  ConvertWorkItems(ctx.RequestData, result, hasChildren),
 			}
 
 			setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(result), offset, limit, count, "filter[expression]="+*ctx.FilterExpression)
