@@ -899,6 +899,9 @@ func (s *searchParentExistsSuite) TestSearchWorkItemListFilterUsingParentExists(
 		_, result := test.ShowSearchOK(t, nil, nil, s.searchCtrl, &filter, &pe, nil, nil, nil, &sid)
 		// then
 		assert.Len(t, result.Data, 3)
-
+		checkChildrenRelationship(t, lookupWorkitemFromSearchList(t, *result, *s.bug1.Data.ID), hasChildren)
+		checkChildrenRelationship(t, lookupWorkitemFromSearchList(t, *result, *s.bug2.Data.ID), hasNoChildren)
+		checkChildrenRelationship(t, lookupWorkitemFromSearchList(t, *result, *s.bug3.Data.ID), hasNoChildren)
 	})
+
 }
