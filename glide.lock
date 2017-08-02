@@ -1,8 +1,6 @@
 hash: 3485ba9192d8fa45e0ff6c2f460c338020158011ba2d3a3bce3e0b67d80fe6b2
 updated: 2017-07-31T13:11:16.984432662+02:00
 imports:
-- name: bitbucket.org/pkg/inflect
-  version: 8961c3750a47b8c0b3e118d52513b97adf85a7e8
 - name: github.com/andygrunwald/go-jira
   version: 9d1f282f93af41553ddb53b0116a8cdb75b4837a
 - name: github.com/armon/go-metrics
