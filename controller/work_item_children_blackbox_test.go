@@ -825,7 +825,7 @@ func lookupWorkitemFromSearchList(t *testing.T, wiList app.SearchWorkItemList, w
 			return wiData
 		}
 	}
-	t.Errorf("Failed to look-up work item with id='%s'", wiID)
+	t.Fatalf("Failed to look-up work item with id='%s'", wiID)
 	return nil
 }
 
