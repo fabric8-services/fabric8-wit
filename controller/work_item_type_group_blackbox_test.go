@@ -12,7 +12,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	almtoken "github.com/fabric8-services/fabric8-wit/token"
+	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -45,8 +45,8 @@ func (s *workItemTypeGroupSuite) SetupSuite() {
 // The SetupTest method will be run before every test in the suite.
 func (s *workItemTypeGroupSuite) SetupTest() {
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	s.svc = testsupport.ServiceAsUser("WITG-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
+	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	s.svc = testsupport.ServiceAsUser("WITG-Service", wittoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
 	s.typeGroupCtrl = NewWorkItemTypeGroupController(s.svc, gormapplication.NewGormDB(s.DB))
 }
 

@@ -12,14 +12,6 @@ var workItemTypeGroupSigle = JSONSingle(
 	workItemTypeGroupLinks,
 )
 
-var workItemTypeGroups = JSONList(
-	"workItemTypeGroups",
-	"...",
-	workItemTypeGroupData,
-	nil,
-	nil,
-)
-
 var workItemTypeGroupLinks = a.Type("workItemTypeGroupLinks", func() {
 	a.Attribute("self", d.String, func() {
 		a.Example("http://api.openshift.io/api/spacetemplates/2d98c73d-6969-4ea6-958a-812c832b6c18/workitemtypegroups")
