@@ -17,5 +17,6 @@ var _ = a.Resource("space_template", func() {
 			a.Param("spaceTemplateID", d.UUID, "id of the space template to fetch")
 		})
 		a.Response(d.MethodNotAllowed)
+		a.Response(d.TemporaryRedirect)
 	})
 })
