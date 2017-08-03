@@ -29,6 +29,8 @@ const (
 	HostRegistrationKeyForListWI  = "work-item-list-details"
 	HostRegistrationKeyForBoardWI = "work-item-board-details"
 
+	Q_EQ  = "$EQ"
+	Q_NE  = "$NE"
 	Q_AND = "$AND"
 	Q_OR  = "$OR"
 	Q_NOT = "$NOT"
@@ -265,6 +267,7 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 			s := concreteVal
 			q.Negate = s
 		case map[string]interface{}:
+			q.Name = key
 			if v, ok := concreteVal["$IN"]; ok {
 				q.Name = Q_OR
 				c := &q.Children
@@ -275,7 +278,15 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 					sq.Value = &t
 					*c = append(*c, sq)
 				}
+			} else if v, ok := concreteVal["$EQ"]; ok {
+				s := v.(string)
+				q.Value = &s
+			} else if v, ok := concreteVal["$NE"]; ok {
+				s := v.(string)
+				q.Value = &s
+				q.Negate = true
 			}
+
 		default:
 			log.Error(nil, nil, "Unexpected value: %#v", val)
 		}
@@ -319,12 +330,13 @@ func isOperator(str string) bool {
 }
 
 var searchKeyMap = map[string]string{
-	"area":      workitem.SystemArea,
-	"iteration": workitem.SystemIteration,
-	"assignee":  workitem.SystemAssignees,
-	"state":     workitem.SystemState,
-	"type":      "Type",
-	"space":     "SpaceID",
+	"area":         workitem.SystemArea,
+	"iteration":    workitem.SystemIteration,
+	"assignee":     workitem.SystemAssignees,
+	"state":        workitem.SystemState,
+	"type":         "Type",
+	"workitemtype": "Type", // same as 'type' - added for compatibility. (Ref. #1564)
+	"space":        "SpaceID",
 }
 
 // returns SQL attibute name in query if found otherwise returns input key as is
@@ -426,7 +438,7 @@ func parseFilterString(ctx context.Context, rawSearchString string) (criteria.Ex
 func generateSQLSearchInfo(keywords searchKeyword) (sqlParameter string) {
 	numberStr := strings.Join(keywords.number, " & ")
 	wordStr := strings.Join(keywords.words, " & ")
-	fragments := make([]string, 0)
+	var fragments []string
 	for _, v := range []string{numberStr, wordStr} {
 		if v != "" {
 			fragments = append(fragments, v)
@@ -558,7 +570,7 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 	return result, count, nil
 }
 
-func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria criteria.Expression, start *int, limit *int) ([]workitem.WorkItemStorage, uint64, error) {
+func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria criteria.Expression, parentExists *bool, start *int, limit *int) ([]workitem.WorkItemStorage, uint64, error) {
 	where, parameters, compileError := workitem.Compile(criteria)
 	if compileError != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -566,6 +578,17 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 			"expression": criteria,
 		}, "failed to compile expression")
 		return nil, 0, errors.NewBadParameterError("expression", criteria)
+	}
+
+	if parentExists != nil && !*parentExists {
+		where += ` AND
+			id not in (
+				SELECT target_id FROM work_item_links
+				WHERE link_type_id IN (
+					SELECT id FROM work_item_link_types WHERE forward_name = 'parent of'
+				)
+			)`
+
 	}
 
 	db := r.db.Model(&workitem.WorkItemStorage{}).Where(where, parameters...)
@@ -642,7 +665,7 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 }
 
 // Filter Search returns work items for the given query
-func (r *GormSearchRepository) Filter(ctx context.Context, rawFilterString string, start *int, limit *int) ([]workitem.WorkItem, uint64, error) {
+func (r *GormSearchRepository) Filter(ctx context.Context, rawFilterString string, parentExists *bool, start *int, limit *int) ([]workitem.WorkItem, uint64, error) {
 	// parse
 	// generateSearchQuery
 	// ....
@@ -663,7 +686,7 @@ func (r *GormSearchRepository) Filter(ctx context.Context, rawFilterString strin
 		return nil, 0, errors.NewBadParameterError("rawFilterString", rawFilterString)
 	}
 
-	result, count, err := r.listItemsFromDB(ctx, exp, start, limit)
+	result, count, err := r.listItemsFromDB(ctx, exp, parentExists, start, limit)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
 	}

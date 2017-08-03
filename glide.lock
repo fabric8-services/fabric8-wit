@@ -1,5 +1,5 @@
-hash: 378d674999f7e01a1ab519f10383af8e4dbc798c52e3227c6b9780bf6239c2c1
-updated: 2017-06-12T16:35:16.128991846+02:00
+hash: 3485ba9192d8fa45e0ff6c2f460c338020158011ba2d3a3bce3e0b67d80fe6b2
+updated: 2017-07-31T13:11:16.984432662+02:00
 imports:
 - name: bitbucket.org/pkg/inflect
   version: 8961c3750a47b8c0b3e118d52513b97adf85a7e8
@@ -32,6 +32,10 @@ imports:
   version: 9a6736ed45b44bf3835afeebb3034b57ed329f3e
   subpackages:
   - go-bindata-assetfs
+- name: github.com/fabric8-services/fabric8-notification
+  version: a3c7adb29a8ec1e0aab2af4f9a2d3c852d0daaef
+  subpackages:
+  - design
 - name: github.com/fabric8-services/fabric8-tenant
   version: 869b06d634f744e3bb171982b54950989f260c34
   subpackages:
@@ -113,7 +117,7 @@ imports:
 - name: github.com/lsegal/gucumber
   version: 71608e2f6e76fd4da5b09a376aeec7a5c0b5edbc
 - name: github.com/magiconair/properties
-  version: f917359f079a3759162704eaa8caeec3d01d9f91
+  version: be5ece7dd465ab0765a9682137865547526d1dfb
 - name: github.com/manveru/faker
   version: 717f7cf83fb78669bfab612749c2e8ff63d5be11
 - name: github.com/mattn/go-colorable
@@ -142,6 +146,8 @@ imports:
   version: b024fc5ea0e34bc3f83d9941c8d60b0622bfaca4
 - name: github.com/russross/blackfriday
   version: 5f33e7b7878355cd2b7e6b8eefc48a5472c69f70
+- name: github.com/jstemmer/go-junit-report
+  version: 15422cf504f9dc030386499a5c68053a38763e58
 - name: github.com/satori/go.uuid
   version: b061729afc07e77a8aa4fad0a2fd840958f1942a
 - name: github.com/sergi/go-diff

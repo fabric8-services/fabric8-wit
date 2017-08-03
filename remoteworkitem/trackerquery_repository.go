@@ -111,8 +111,8 @@ func (r *GormTrackerQueryRepository) Load(ctx context.Context, ID string) (*app.
 }
 
 // CheckExists returns nil if the given ID exists otherwise returns an error
-func (m *GormTrackerQueryRepository) CheckExists(ctx context.Context, id string) error {
-	return repository.CheckExists(ctx, m.db, trackerQueriesTableName, id)
+func (r *GormTrackerQueryRepository) CheckExists(ctx context.Context, id string) error {
+	return repository.CheckExists(ctx, r.db, trackerQueriesTableName, id)
 }
 
 // Save updates the given tracker query in storage.

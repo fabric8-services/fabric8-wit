@@ -52,13 +52,13 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 
 	if ctx.FilterExpression != nil {
 		return application.Transactional(c.db, func(appl application.Application) error {
-			result, c, err := appl.SearchItems().Filter(ctx.Context, *ctx.FilterExpression, &offset, &limit)
+			result, c, err := appl.SearchItems().Filter(ctx.Context, *ctx.FilterExpression, ctx.FilterParentexists, &offset, &limit)
 			count := int(c)
 			if err != nil {
 				cause := errs.Cause(err)
 				switch cause.(type) {
 				case errors.BadParameterError:
-					jerrors, _ := jsonapi.ErrorToJSONAPIErrors(
+					jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx,
 						goa.ErrBadRequest(fmt.Sprintf("error listing work items for expression '%s': %s", *ctx.FilterExpression, err)))
 					return ctx.BadRequest(jerrors)
 				default:
@@ -66,15 +66,16 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 						"err":               err,
 						"filter_expression": *ctx.FilterExpression,
 					}, "unable to list the work items")
-					jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(fmt.Sprintf("unable to list the work items: %s", err)))
+					jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInternal(fmt.Sprintf("unable to list the work items: %s", err)))
 					return ctx.InternalServerError(jerrors)
 				}
 			}
 
+			hasChildren := workItemIncludeHasChildren(appl, ctx)
 			response := app.SearchWorkItemList{
 				Links: &app.PagingLinks{},
 				Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
-				Data:  ConvertWorkItems(ctx.RequestData, result),
+				Data:  ConvertWorkItems(ctx.RequestData, result, hasChildren),
 			}
 
 			setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(result), offset, limit, count, "filter[expression]="+*ctx.FilterExpression)
@@ -84,7 +85,7 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		if ctx.Q == nil || *ctx.Q == "" {
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx,
 				goa.ErrBadRequest("empty search query not allowed"))
 			return ctx.BadRequest(jerrors)
 		}
@@ -99,14 +100,14 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 					"err":        err,
 					"expression": *ctx.Q,
 				}, "unable to list the work items")
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("error listing work items for expression: %s: %s", *ctx.Q, err)))
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrBadRequest(fmt.Sprintf("error listing work items for expression: %s: %s", *ctx.Q, err)))
 				return ctx.BadRequest(jerrors)
 			default:
 				log.Error(ctx, map[string]interface{}{
 					"err":        err,
 					"expression": *ctx.Q,
 				}, "unable to list the work items")
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(fmt.Sprintf("unable to list the work items expression: %s: %s", *ctx.Q, err)))
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInternal(fmt.Sprintf("unable to list the work items expression: %s: %s", *ctx.Q, err)))
 				return ctx.InternalServerError(jerrors)
 			}
 		}

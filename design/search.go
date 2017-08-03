@@ -34,6 +34,7 @@ var _ = a.Resource("search", func() {
 				3) "simple keywords separated by space" :- Search in Work Items based on these keywords.`)
 			a.Param("page[offset]", d.String, "Paging start position") // #428
 			a.Param("page[limit]", d.Integer, "Paging size")
+			a.Param("filter[parentexists]", d.Boolean, "if false list work items without any parent")
 			a.Param("filter[expression]", d.String, "Filter expression in JSON format", func() {
 				a.Example(`{$AND: [{"space": "f73988a2-1916-4572-910b-2df23df4dcc3"}, {"state": "NEW"}]}`)
 			})

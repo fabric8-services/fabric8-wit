@@ -2,7 +2,6 @@ package workitem_test
 
 import (
 	"encoding/json"
-	"fmt"
 	"reflect"
 	"testing"
 
@@ -28,7 +27,7 @@ func TestListFieldDefMarshalling(t *testing.T) {
 		return
 	}
 
-	fmt.Printf("bytes are " + string(bytes))
+	t.Logf("bytes are ", string(bytes))
 	unmarshalled := FieldDefinition{}
 	json.Unmarshal(bytes, &unmarshalled)
 

@@ -154,7 +154,7 @@ func (s *searchRepositoryBlackboxTest) TestFilterCount() {
 	ctx := goa.NewContext(context.Background(), nil, req, params)
 	notexistspace := "5f734617-472e-5dab-ab8d-e038345724b2"
 	fs1 := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, notexistspace)
-	res, count, err := s.searchRepo.Filter(ctx, fs1, nil, nil)
+	res, count, err := s.searchRepo.Filter(ctx, fs1, nil, nil, nil)
 	require.Nil(s.T(), err)
 	require.True(s.T(), count == uint64(len(res))) // safety check for many, many instances of bogus search results.
 	for _, wi := range res {
@@ -194,12 +194,12 @@ func (s *searchRepositoryBlackboxTest) TestFilterCount() {
 	// then
 	fs2 := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, space.SystemSpace)
 	start := 3
-	res, count, err = s.searchRepo.Filter(ctx, fs2, &start, nil)
+	res, count, err = s.searchRepo.Filter(ctx, fs2, nil, &start, nil)
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), uint64(2), count)
 	assert.Equal(s.T(), 0, len(res))
 
-	res, count, err = s.searchRepo.Filter(ctx, fs2, nil, nil)
+	res, count, err = s.searchRepo.Filter(ctx, fs2, nil, nil, nil)
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), uint64(2), count)
 	assert.Equal(s.T(), 2, len(res))
