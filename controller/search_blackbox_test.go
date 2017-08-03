@@ -850,6 +850,22 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 		require.Len(s.T(), result.Data, 3+5) //bugs + features
 	})
 
+	s.T().Run("space=spaceID AND (workitemtype=bug OR workitemtype=feature)", func(t *testing.T) {
+		// get me all bugs or features in myspace
+		filter := fmt.Sprintf(`
+			{"$AND": [
+				{"space":"%s"},
+				{"$OR": [
+					{"workitemtype":"%s"},
+					{"workitemtype":"%s"}
+				]}
+			]}`,
+			spaceIDStr, workitem.SystemBug, workitem.SystemFeature)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(s.T(), result.Data)
+		require.Len(s.T(), result.Data, 3+5) //bugs + features
+	})
+
 	s.T().Run("space=spaceID AND (type=bug AND state=resolved AND (assignee=bob OR assignee=alice))", func(t *testing.T) {
 		// get me all Resolved bugs assigned to bob or alice
 		filter := fmt.Sprintf(`
@@ -857,6 +873,22 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 				{"space":"%s"},
 				{"$AND": [
 					{"$AND": [{"type":"%s"},{"state":"%s"}]},
+					{"$OR": [{"assignee":"%s"},{"assignee":"%s"}]}
+				]}
+			]}`,
+			spaceIDStr, workitem.SystemBug, workitem.SystemStateResolved, bob.ID, alice.ID)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(s.T(), result.Data)
+		require.Len(s.T(), result.Data, 3) //resolved bugs
+	})
+
+	s.T().Run("space=spaceID AND (workitemtype=bug AND state=resolved AND (assignee=bob OR assignee=alice))", func(t *testing.T) {
+		// get me all Resolved bugs assigned to bob or alice
+		filter := fmt.Sprintf(`
+			{"$AND": [
+				{"space":"%s"},
+				{"$AND": [
+					{"$AND": [{"workitemtype":"%s"},{"state":"%s"}]},
 					{"$OR": [{"assignee":"%s"},{"assignee":"%s"}]}
 				]}
 			]}`,
