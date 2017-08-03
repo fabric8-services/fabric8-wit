@@ -690,7 +690,7 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 	s.T().Run("space=ID AND (state=resolved OR iteration=sprint2) using EQ", func(t *testing.T) {
 		filter := fmt.Sprintf(`
 			{"$AND": [
-				{"space":"%s"},
+				{"space": {"EQ": "%s"}},
 				{"$OR": [
 					{"state": {"$EQ": "%s"}},
 					{"iteration": {"$EQ": "%s"}}
@@ -720,7 +720,7 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 		fakeIterationID1 := uuid.NewV4()
 		filter := fmt.Sprintf(`
 			{"$AND": [
-				{"space":"%s"},
+				{"space": {"$EQ": "%s"}},
 				{"$AND": [
 					{"state": "%s", "negate": true},
 					{"iteration": "%s", "negate": true}
@@ -730,6 +730,22 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotEmpty(s.T(), result.Data)
 		require.Len(s.T(), result.Data, 8) // all items are other than open state & in other thatn fake itr
+	})
+
+	s.T().Run("space!=ID AND (state!=open AND iteration!=fake-iterationID)", func(t *testing.T) {
+		fakeIterationID1 := uuid.NewV4()
+		filter := fmt.Sprintf(`
+			{"$AND": [
+				{"space": {"$NE": "%s"}},
+				{"$AND": [
+					{"state": "%s", "negate": true},
+					{"iteration": "%s", "negate": true}
+				]}
+			]}`,
+			spaceIDStr, workitem.SystemStateOpen, fakeIterationID1)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.Empty(s.T(), result.Data)
+		assert.Len(s.T(), result.Data, 0) // all items are other than open state & in other thatn fake itr
 	})
 
 	s.T().Run("space=ID AND (state!=open AND iteration!=fake-iterationID) using NE", func(t *testing.T) {
