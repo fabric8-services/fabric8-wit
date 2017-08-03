@@ -335,7 +335,7 @@ var searchKeyMap = map[string]string{
 	"assignee":     workitem.SystemAssignees,
 	"state":        workitem.SystemState,
 	"type":         "Type",
-	"workitemtype": "Type", // same as 'type' - added for compatibility.
+	"workitemtype": "Type", // same as 'type' - added for compatibility. (Ref. #1564)
 	"space":        "SpaceID",
 }
 
