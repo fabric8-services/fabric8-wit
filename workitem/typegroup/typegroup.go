@@ -14,9 +14,15 @@ type WorkItemTypeGroup struct {
 	WorkItemTypeCollection []uuid.UUID
 }
 
+// Use following group constants while defining static groups
+const (
+	GroupPortfolio    = "portfolio"
+	GroupRequirements = "requirements"
+)
+
 // Portfolio0 defines first level of typegroup Portfolio
 var Portfolio0 = WorkItemTypeGroup{
-	Group: "portfolio",
+	Group: GroupPortfolio,
 	Level: []int{0, 0},
 	Name:  "Portfolio",
 	WorkItemTypeCollection: []uuid.UUID{
@@ -28,7 +34,7 @@ var Portfolio0 = WorkItemTypeGroup{
 
 // Portfolio1 defines second level of typegroup Portfolio
 var Portfolio1 = WorkItemTypeGroup{
-	Group: "portfolio",
+	Group: GroupPortfolio,
 	Level: []int{0, 1},
 	Name:  "Portfolio",
 	WorkItemTypeCollection: []uuid.UUID{
@@ -40,7 +46,7 @@ var Portfolio1 = WorkItemTypeGroup{
 // Requirements0 defines first level of typegroup Requirements
 // This group has less priority than Portfolio
 var Requirements0 = WorkItemTypeGroup{
-	Group: "requirements",
+	Group: GroupRequirements,
 	Level: []int{1, 0},
 	Name:  "Requirements",
 	WorkItemTypeCollection: []uuid.UUID{
