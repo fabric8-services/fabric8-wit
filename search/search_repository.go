@@ -29,6 +29,8 @@ const (
 	HostRegistrationKeyForListWI  = "work-item-list-details"
 	HostRegistrationKeyForBoardWI = "work-item-board-details"
 
+	Q_EQ  = "$EQ"
+	Q_NE  = "$NE"
 	Q_AND = "$AND"
 	Q_OR  = "$OR"
 	Q_NOT = "$NOT"
@@ -265,6 +267,7 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 			s := concreteVal
 			q.Negate = s
 		case map[string]interface{}:
+			q.Name = key
 			if v, ok := concreteVal["$IN"]; ok {
 				q.Name = Q_OR
 				c := &q.Children
@@ -275,7 +278,15 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 					sq.Value = &t
 					*c = append(*c, sq)
 				}
+			} else if v, ok := concreteVal["$EQ"]; ok {
+				s := v.(string)
+				q.Value = &s
+			} else if v, ok := concreteVal["$NE"]; ok {
+				s := v.(string)
+				q.Value = &s
+				q.Negate = true
 			}
+
 		default:
 			log.Error(nil, nil, "Unexpected value: %#v", val)
 		}

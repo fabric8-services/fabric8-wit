@@ -17,10 +17,66 @@ func TestParseMap(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
 
+	t.Run(Q_EQ, func(t *testing.T) {
+		t.Parallel()
+		// given
+		input := fmt.Sprintf(`{"space": { "%s": "openshiftio"}}`, Q_EQ)
+		// Parsing/Unmarshalling JSON encoding/json
+		fm := map[string]interface{}{}
+		err := json.Unmarshal([]byte(input), &fm)
+		require.Nil(t, err)
+		// when
+		actualQuery := Query{}
+		parseMap(fm, &actualQuery)
+		// then
+		openshiftio := "openshiftio"
+		expectedQuery := Query{Name: "space", Value: &openshiftio}
+		assert.Equal(t, expectedQuery, actualQuery)
+	})
+
+	t.Run(Q_NE, func(t *testing.T) {
+		t.Parallel()
+		// given
+		input := fmt.Sprintf(`{"space": { "%s": "openshiftio"}}`, Q_NE)
+		// Parsing/Unmarshalling JSON encoding/json
+		fm := map[string]interface{}{}
+		err := json.Unmarshal([]byte(input), &fm)
+		require.Nil(t, err)
+		// when
+		actualQuery := Query{}
+		parseMap(fm, &actualQuery)
+		// then
+		openshiftio := "openshiftio"
+		expectedQuery := Query{Name: "space", Value: &openshiftio, Negate: true}
+		assert.Equal(t, expectedQuery, actualQuery)
+	})
+
+	// {"type" : { "$IN" : ["", "" , ""] } }
 	t.Run(Q_AND, func(t *testing.T) {
 		t.Parallel()
 		// given
 		input := `{"` + Q_AND + `": [{"space": "openshiftio"}, {"status": "NEW"}]}`
+		// Parsing/Unmarshalling JSON encoding/json
+		fm := map[string]interface{}{}
+		err := json.Unmarshal([]byte(input), &fm)
+		require.Nil(t, err)
+		// when
+		actualQuery := Query{}
+		parseMap(fm, &actualQuery)
+		// then
+		openshiftio := "openshiftio"
+		status := "NEW"
+		expectedQuery := Query{Name: Q_AND, Children: []Query{
+			{Name: "space", Value: &openshiftio},
+			{Name: "status", Value: &status}},
+		}
+		assert.Equal(t, expectedQuery, actualQuery)
+	})
+
+	t.Run("AND with EQ", func(t *testing.T) {
+		t.Parallel()
+		// given
+		input := `{"` + Q_AND + `": [{"space": {"$EQ": "openshiftio"}}, {"status": "NEW"}]}`
 		// Parsing/Unmarshalling JSON encoding/json
 		fm := map[string]interface{}{}
 		err := json.Unmarshal([]byte(input), &fm)
@@ -72,6 +128,34 @@ func TestParseMap(t *testing.T) {
 		{"` + Q_OR + `": [{"` + Q_AND + `": [{"space": "openshiftio"},
                          {"area": "planner"}]},
 			 {"` + Q_AND + `": [{"space": "rhel", "negate": true}]}]}`
+		fm := map[string]interface{}{}
+
+		// Parsing/Unmarshalling JSON encoding/json
+		err := json.Unmarshal([]byte(input), &fm)
+		require.Nil(t, err)
+		q := &Query{}
+
+		parseMap(fm, q)
+
+		openshiftio := "openshiftio"
+		area := "planner"
+		rhel := "rhel"
+		expected := &Query{Name: Q_OR, Children: []Query{
+			{Name: Q_AND, Children: []Query{
+				{Name: "space", Value: &openshiftio},
+				{Name: "area", Value: &area}}},
+			{Name: Q_AND, Children: []Query{
+				{Name: "space", Value: &rhel, Negate: true}}},
+		}}
+		assert.Equal(t, expected, q)
+	})
+
+	t.Run("minimal OR and AND and Negate operation with EQ", func(t *testing.T) {
+		t.Parallel()
+		input := `
+		{"` + Q_OR + `": [{"` + Q_AND + `": [{"space": "openshiftio"},
+                         {"area": "planner"}]},
+			 {"` + Q_AND + `": [{"space": {"$EQ": "rhel"}, "negate": true}]}]}`
 		fm := map[string]interface{}{}
 
 		// Parsing/Unmarshalling JSON encoding/json
