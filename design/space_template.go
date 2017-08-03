@@ -18,5 +18,7 @@ var _ = a.Resource("space_template", func() {
 		})
 		a.Response(d.MethodNotAllowed)
 		a.Response(d.TemporaryRedirect)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 })

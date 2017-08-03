@@ -341,7 +341,7 @@ func main() {
 	app.MountCollaboratorsController(service, collaboratorsCtrl)
 
 	// Mount "space template" controller
-	spaceTemplateCtrl := controller.NewSpaceTemplateController(service)
+	spaceTemplateCtrl := controller.NewSpaceTemplateController(service, appDB)
 	app.MountSpaceTemplateController(service, spaceTemplateCtrl)
 
 	// Mount "type hierarchy" controller
