@@ -26,7 +26,6 @@ type WorkItemTypeRepository interface {
 	CreateFromModel(ctx context.Context, model *WorkItemType) (*WorkItemType, error)
 	List(ctx context.Context, spaceID uuid.UUID, start *int, length *int) ([]WorkItemType, error)
 	ListPlannerItems(ctx context.Context, spaceID uuid.UUID) ([]WorkItemType, error)
-	LoadByID(ctx context.Context, id uuid.UUID) (*WorkItemType, error)
 }
 
 // NewWorkItemTypeRepository creates a wi type repository based on gorm
