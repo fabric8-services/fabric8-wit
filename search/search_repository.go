@@ -330,12 +330,13 @@ func isOperator(str string) bool {
 }
 
 var searchKeyMap = map[string]string{
-	"area":      workitem.SystemArea,
-	"iteration": workitem.SystemIteration,
-	"assignee":  workitem.SystemAssignees,
-	"state":     workitem.SystemState,
-	"type":      "Type",
-	"space":     "SpaceID",
+	"area":         workitem.SystemArea,
+	"iteration":    workitem.SystemIteration,
+	"assignee":     workitem.SystemAssignees,
+	"state":        workitem.SystemState,
+	"type":         "Type",
+	"workitemtype": "Type", // same as 'type' - added for compatibility.
+	"space":        "SpaceID",
 }
 
 // returns SQL attibute name in query if found otherwise returns input key as is
