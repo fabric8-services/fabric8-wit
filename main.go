@@ -340,6 +340,14 @@ func main() {
 	collaboratorsCtrl := controller.NewCollaboratorsController(service, appDB, configuration, auth.NewKeycloakPolicyManager(configuration))
 	app.MountCollaboratorsController(service, collaboratorsCtrl)
 
+	// Mount "space template" controller
+	spaceTemplateCtrl := controller.NewSpaceTemplateController(service, appDB)
+	app.MountSpaceTemplateController(service, spaceTemplateCtrl)
+
+	// Mount "type hierarchy" controller
+	workItemTypeGroupCtrl := controller.NewWorkItemTypeGroupController(service, appDB)
+	app.MountWorkItemTypeGroupController(service, workItemTypeGroupCtrl)
+
 	log.Logger().Infoln("Git Commit SHA: ", controller.Commit)
 	log.Logger().Infoln("UTC Build Time: ", controller.BuildTime)
 	log.Logger().Infoln("UTC Start Time: ", controller.StartTime)
