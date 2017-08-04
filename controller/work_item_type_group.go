@@ -3,6 +3,7 @@ package controller
 import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/workitem/typegroup"
 	"github.com/goadesign/goa"
 )
@@ -25,6 +26,12 @@ func NewWorkItemTypeGroupController(service *goa.Service, db application.DB) *Wo
 
 // List runs the list action.
 func (c *WorkItemTypeGroupController) List(ctx *app.ListWorkItemTypeGroupContext) error {
+	err := application.Transactional(c.db, func(appl application.Application) error {
+		return appl.Spaces().CheckExists(ctx, ctx.SpaceTemplateID.String())
+	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
 	res := &app.WorkItemTypeGroupSigleSingle{}
 	res.Data = &app.WorkItemTypeGroupData{
 		Attributes: &app.WorkItemTypeGroupAttributes{
