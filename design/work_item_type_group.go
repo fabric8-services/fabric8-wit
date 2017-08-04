@@ -53,7 +53,6 @@ var _ = a.Resource("work_item_type_group", func() {
 		)
 		a.Description("List of work item type groups")
 		a.Response(d.OK, workItemTypeGroupSigle)
-		a.Response(d.NotModified)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 	})
