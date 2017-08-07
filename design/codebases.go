@@ -109,6 +109,17 @@ var workspaceOpen = a.MediaType("application/vnd.workspaceopen+json", func() {
 	})
 })
 
+var cheServerState = a.MediaType("CheServerState", func() {
+	a.TypeName("CheServerState")
+	a.Description(`JSONAPI store Che Server state.  See also http://jsonapi.org/format/#document-resource-object`)
+	a.Attributes(func() {
+		a.Attribute("running", d.Boolean, "Che server state")
+	})
+	a.View("default", func() {
+		a.Attribute("running")
+	})
+})
+
 // new version of "list" for migration
 var _ = a.Resource("codebase", func() {
 	a.BasePath("/codebases")
@@ -177,6 +188,35 @@ var _ = a.Resource("codebase", func() {
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+	})
+	a.Action("cheState", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.GET("/che/state"),
+		)
+		a.Description("Get che server state.")
+		a.Response(d.OK, func() {
+			a.Media(cheServerState)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+	})
+	a.Action("cheStart", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.PATCH("/che/start"),
+		)
+		a.Description("Start che server if not running.")
+		a.Response(d.OK, func() {
+			a.Media(cheServerState)
+		})
+		a.Response(d.Accepted, func() {
+			a.Media(cheServerState)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 })
