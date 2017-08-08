@@ -26,6 +26,7 @@ type WorkItemLinkController struct {
 // WorkItemLinkControllerConfig the config interface for the WorkitemLinkController
 type WorkItemLinkControllerConfig interface {
 	GetCacheControlWorkItemLinks() string
+	GetCacheControlWorkItemLink() string
 }
 
 // NewWorkItemLinkController creates a work-item-link controller.
@@ -322,7 +323,7 @@ func (c *WorkItemLinkController) Show(ctx *app.ShowWorkItemLinkContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		return ctx.ConditionalRequest(*modelLink, c.config.GetCacheControlWorkItemLinks, func() error {
+		return ctx.ConditionalRequest(*modelLink, c.config.GetCacheControlWorkItemLink, func() error {
 			linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkHref, nil)
 			// convert to rest representation
 			appLink := ConvertLinkFromModel(*modelLink)

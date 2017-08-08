@@ -72,26 +72,39 @@ const (
 	varTokenPrivateKey                  = "token.privatekey"
 	varAuthNotApprovedRedirect          = "auth.notapproved.redirect"
 	varHeaderMaxLength                  = "header.maxlength"
-	varCacheControlWorkItems            = "cachecontrol.workitems"
-	varCacheControlWorkItemTypes        = "cachecontrol.workitemtypes"
-	varCacheControlWorkItemLinks        = "cachecontrol.workitemLinks"
-	varCacheControlWorkItemLinkTypes    = "cachecontrol.workitemlinktypes"
-	varCacheControlSpaces               = "cachecontrol.spaces"
-	varCacheControlIterations           = "cachecontrol.iterations"
-	varCacheControlAreas                = "cachecontrol.areas"
-	varCacheControlComments             = "cachecontrol.comments"
-	varCacheControlFilters              = "cachecontrol.filters"
-	varCacheControlUsers                = "cachecontrol.users"
-	varCacheControlCollaborators        = "cachecontrol.collaborators"
-	varCacheControlUser                 = "cachecontrol.user"
-	defaultConfigFile                   = "config.yaml"
-	varOpenshiftTenantMasterURL         = "openshift.tenant.masterurl"
-	varCheStarterURL                    = "chestarterurl"
-	varValidRedirectURLs                = "redirect.valid"
-	varLogLevel                         = "log.level"
-	varLogJSON                          = "log.json"
-	varTenantServiceURL                 = "tenant.serviceurl"
-	varNotificationServiceURL           = "notification.serviceurl"
+
+	// cache control settings for a list of resources
+	varCacheControlWorkItems         = "cachecontrol.workitems"
+	varCacheControlWorkItemTypes     = "cachecontrol.workitemtypes"
+	varCacheControlWorkItemLinks     = "cachecontrol.workitemLinks"
+	varCacheControlWorkItemLinkTypes = "cachecontrol.workitemlinktypes"
+	varCacheControlSpaces            = "cachecontrol.spaces"
+	varCacheControlIterations        = "cachecontrol.iterations"
+	varCacheControlAreas             = "cachecontrol.areas"
+	varCacheControlComments          = "cachecontrol.comments"
+	varCacheControlFilters           = "cachecontrol.filters"
+	varCacheControlUsers             = "cachecontrol.users"
+	varCacheControlCollaborators     = "cachecontrol.collaborators"
+
+	// cache control settings for a single resource
+	varCacheControlUser             = "cachecontrol.user"
+	varCacheControlWorkItem         = "cachecontrol.workitem"
+	varCacheControlWorkItemType     = "cachecontrol.workitemtype"
+	varCacheControlWorkItemLink     = "cachecontrol.workitemLink"
+	varCacheControlWorkItemLinkType = "cachecontrol.workitemlinktype"
+	varCacheControlSpace            = "cachecontrol.space"
+	varCacheControlIteration        = "cachecontrol.iteration"
+	varCacheControlArea             = "cachecontrol.area"
+	varCacheControlComment          = "cachecontrol.comment"
+
+	defaultConfigFile           = "config.yaml"
+	varOpenshiftTenantMasterURL = "openshift.tenant.masterurl"
+	varCheStarterURL            = "chestarterurl"
+	varValidRedirectURLs        = "redirect.valid"
+	varLogLevel                 = "log.level"
+	varLogJSON                  = "log.json"
+	varTenantServiceURL         = "tenant.serviceurl"
+	varNotificationServiceURL   = "notification.serviceurl"
 )
 
 // ConfigurationData encapsulates the Viper configuration object which stores the configuration data in-memory.
@@ -190,7 +203,7 @@ func (c *ConfigurationData) setConfigDefaults() {
 	c.v.SetDefault(varKeycloakTesUserName, defaultKeycloakTesUserName)
 	c.v.SetDefault(varKeycloakTesUserSecret, defaultKeycloakTesUserSecret)
 
-	// HTTP Cache-Control/max-age default
+	// HTTP Cache-Control/max-age default for a list of resources
 	c.v.SetDefault(varCacheControlWorkItems, "max-age=2") // very short life in cache, to allow for quick, repetitive updates.
 	c.v.SetDefault(varCacheControlWorkItemTypes, "max-age=2")
 	c.v.SetDefault(varCacheControlWorkItemLinks, "max-age=2")
@@ -202,6 +215,16 @@ func (c *ConfigurationData) setConfigDefaults() {
 	c.v.SetDefault(varCacheControlFilters, "max-age=86400")
 	c.v.SetDefault(varCacheControlUsers, "max-age=2")
 	c.v.SetDefault(varCacheControlCollaborators, "max-age=2")
+
+	// Cache control values for a single resource
+	c.v.SetDefault(varCacheControlWorkItem, "private,max-age=120")
+	c.v.SetDefault(varCacheControlWorkItemType, "private,max-age=120")
+	c.v.SetDefault(varCacheControlWorkItemLink, "private,max-age=120")
+	c.v.SetDefault(varCacheControlWorkItemLinkType, "private,max-age=120")
+	c.v.SetDefault(varCacheControlSpace, "private,max-age=120")
+	c.v.SetDefault(varCacheControlIteration, "private,max-age=120")
+	c.v.SetDefault(varCacheControlArea, "private,max-age=120")
+	c.v.SetDefault(varCacheControlComment, "private,max-age=120")
 	// data returned from '/api/user' must not be cached by intermediate proxies,
 	// but can only be kept in the client's local cache.
 	c.v.SetDefault(varCacheControlUser, "private,max-age=2")
@@ -316,51 +339,99 @@ func (c *ConfigurationData) IsPostgresDeveloperModeEnabled() bool {
 }
 
 // GetCacheControlWorkItemTypes returns the value to set in the "Cache-Control" HTTP response header
-// when returning a work item type (or a list of).
+// when returning a list of work item types.
 func (c *ConfigurationData) GetCacheControlWorkItemTypes() string {
 	return c.v.GetString(varCacheControlWorkItemTypes)
 }
 
+// GetCacheControlWorkItemType returns the value to set in the "Cache-Control" HTTP response header
+// when returning a work item type.
+func (c *ConfigurationData) GetCacheControlWorkItemType() string {
+	return c.v.GetString(varCacheControlWorkItemType)
+}
+
 // GetCacheControlWorkItemLinkTypes returns the value to set in the "Cache-Control" HTTP response header
-// when returning a work item type (or a list of).
+// when returning a list of work item types.
 func (c *ConfigurationData) GetCacheControlWorkItemLinkTypes() string {
 	return c.v.GetString(varCacheControlWorkItemLinkTypes)
 }
 
+// GetCacheControlWorkItemLinkType returns the value to set in the "Cache-Control" HTTP response header
+// when returning a work item type.
+func (c *ConfigurationData) GetCacheControlWorkItemLinkType() string {
+	return c.v.GetString(varCacheControlWorkItemLinkType)
+}
+
 // GetCacheControlWorkItems returns the value to set in the "Cache-Control" HTTP response header
-// when returning a work item (or a list of).
+// when returning a list of work items.
 func (c *ConfigurationData) GetCacheControlWorkItems() string {
 	return c.v.GetString(varCacheControlWorkItems)
 }
 
+// GetCacheControlWorkItem returns the value to set in the "Cache-Control" HTTP response header
+// when returning a work item.
+func (c *ConfigurationData) GetCacheControlWorkItem() string {
+	return c.v.GetString(varCacheControlWorkItem)
+}
+
 // GetCacheControlWorkItemLinks returns the value to set in the "Cache-Control" HTTP response header
-// when returning a work item (or a list of).
+// when returning a list of work item links.
 func (c *ConfigurationData) GetCacheControlWorkItemLinks() string {
 	return c.v.GetString(varCacheControlWorkItemLinks)
 }
 
+// GetCacheControlWorkItemLink returns the value to set in the "Cache-Control" HTTP response header
+// when returning a work item.
+func (c *ConfigurationData) GetCacheControlWorkItemLink() string {
+	return c.v.GetString(varCacheControlWorkItemLink)
+}
+
 // GetCacheControlAreas returns the value to set in the "Cache-Control" HTTP response header
-// when returning a work item (or a list of).
+// when returning a list of work items.
 func (c *ConfigurationData) GetCacheControlAreas() string {
 	return c.v.GetString(varCacheControlAreas)
 }
 
+// GetCacheControlArea returns the value to set in the "Cache-Control" HTTP response header
+// when returning a work item (or a list of).
+func (c *ConfigurationData) GetCacheControlArea() string {
+	return c.v.GetString(varCacheControlArea)
+}
+
 // GetCacheControlSpaces returns the value to set in the "Cache-Control" HTTP response header
-// when returning spaces.
+// when returning a list of spaces.
 func (c *ConfigurationData) GetCacheControlSpaces() string {
 	return c.v.GetString(varCacheControlSpaces)
 }
 
+// GetCacheControlSpace returns the value to set in the "Cache-Control" HTTP response header
+// when returning a space.
+func (c *ConfigurationData) GetCacheControlSpace() string {
+	return c.v.GetString(varCacheControlSpace)
+}
+
 // GetCacheControlIterations returns the value to set in the "Cache-Control" HTTP response header
-// when returning iterations.
+// when returning a list of iterations.
 func (c *ConfigurationData) GetCacheControlIterations() string {
 	return c.v.GetString(varCacheControlIterations)
 }
 
+// GetCacheControlIteration returns the value to set in the "Cache-Control" HTTP response header
+// when returning an iteration.
+func (c *ConfigurationData) GetCacheControlIteration() string {
+	return c.v.GetString(varCacheControlIteration)
+}
+
 // GetCacheControlComments returns the value to set in the "Cache-Control" HTTP response header
-// when returning comments.
+// when returning a list of comments.
 func (c *ConfigurationData) GetCacheControlComments() string {
 	return c.v.GetString(varCacheControlComments)
+}
+
+// GetCacheControlComment returns the value to set in the "Cache-Control" HTTP response header
+// when returning a comment.
+func (c *ConfigurationData) GetCacheControlComment() string {
+	return c.v.GetString(varCacheControlComment)
 }
 
 // GetCacheControlFilters returns the value to set in the "Cache-Control" HTTP response header
