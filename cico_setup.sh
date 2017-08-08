@@ -126,7 +126,11 @@ function deploy() {
   TAG=$(echo $GIT_COMMIT | cut -c1-6)
   REGISTRY="push.registry.devshift.net"
 
-  docker login -u ${DEVSHIFT_USERNAME} -p ${DEVSHIFT_PASSWORD} ${REGISTRY}
+  if [ -n "${DEVSHIFT_USERNAME}" -a -n "${DEVSHIFT_PASSWORD}" ]; then
+    docker login -u ${DEVSHIFT_USERNAME} -p ${DEVSHIFT_PASSWORD} ${REGISTRY}
+  else
+    echo "Could not login, missing credentials for the registry"
+  fi
 
   tag_push ${REGISTRY}/fabric8-services/fabric8-wit:$TAG
   tag_push ${REGISTRY}/fabric8-services/fabric8-wit:latest
