@@ -395,7 +395,7 @@ func (s *workItemTypeSuite) TestShow() {
 
 	s.T().Run("not modified - using IfModifiedSince header", func(t *testing.T) {
 		// when
-		lastModified := app.ToHTTPTime(time.Now().Add(1 * time.Second))
+		lastModified := app.ToHTTPTime(time.Now().Add(119 * time.Second))
 		res := test.ShowWorkitemtypeNotModified(s.T(), nil, nil, s.typeCtrl, *wit.Data.Relationships.Space.Data.ID, *wit.Data.ID, &lastModified, nil)
 		// then
 		compareWithGolden(t, filepath.Join(s.testDir, "show", "not_modified_using_if_modified_since_header.headers.golden.json"), res.Header())
