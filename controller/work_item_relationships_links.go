@@ -24,7 +24,6 @@ type WorkItemRelationshipsLinksController struct {
 // WorkItemRelationshipsLinksControllerConfig the config interface for the WorkItemRelationshipsLinksController
 type WorkItemRelationshipsLinksControllerConfig interface {
 	GetCacheControlWorkItemLinks() string
-	GetCacheControlWorkItemLink() string
 }
 
 // NewWorkItemRelationshipsLinksController creates a work-item-relationships-links controller.
