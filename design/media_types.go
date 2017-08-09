@@ -5,8 +5,8 @@ import (
 	a "github.com/goadesign/goa/design/apidsl"
 )
 
-// ALMStatus defines the status of the current running ALM instance
-var ALMStatus = a.MediaType("application/vnd.status+json", func() {
+// WITStatus defines the status of the current running WIT instance
+var WITStatus = a.MediaType("application/vnd.status+json", func() {
 	a.Description("The status of the current running instance")
 	a.Attributes(func() {
 		a.Attribute("commit", d.String, "Commit SHA this build is based on")

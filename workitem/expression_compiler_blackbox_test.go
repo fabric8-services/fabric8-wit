@@ -15,8 +15,11 @@ func TestField(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	expect(t, Equals(Field("foo"), Literal(23)), "(Fields@>'{\"foo\" : 23}')", []interface{}{})
-	expect(t, Equals(Field("Type"), Literal("abcd")), "(Type = ?)", []interface{}{"abcd"})
-	expect(t, Not(Field("Type"), Literal("abcd")), "(Type != ?)", []interface{}{"abcd"})
+	expect(t, Equals(Field("Type"), Literal("abcd")), "(type = ?)", []interface{}{"abcd"})
+	expect(t, Not(Field("Type"), Literal("abcd")), "(type != ?)", []interface{}{"abcd"})
+	expect(t, Not(Field("Version"), Literal("abcd")), "(version != ?)", []interface{}{"abcd"})
+	expect(t, Not(Field("Number"), Literal("abcd")), "(number != ?)", []interface{}{"abcd"})
+	expect(t, Not(Field("SpaceID"), Literal("abcd")), "(space_id != ?)", []interface{}{"abcd"})
 }
 
 func TestAndOr(t *testing.T) {
@@ -33,9 +36,11 @@ func TestIsNull(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	expect(t, IsNull("system.assignees"), "(Fields->>'system.assignees' IS NULL)", []interface{}{})
-	expect(t, IsNull("ID"), "(ID IS NULL)", []interface{}{})
-	expect(t, IsNull("Type"), "(Type IS NULL)", []interface{}{})
-	expect(t, IsNull("Version"), "(Version IS NULL)", []interface{}{})
+	expect(t, IsNull("ID"), "(id IS NULL)", []interface{}{})
+	expect(t, IsNull("Type"), "(type IS NULL)", []interface{}{})
+	expect(t, IsNull("Version"), "(version IS NULL)", []interface{}{})
+	expect(t, IsNull("Number"), "(number IS NULL)", []interface{}{})
+	expect(t, IsNull("SpaceID"), "(space_id IS NULL)", []interface{}{})
 }
 
 func expect(t *testing.T, expr Expression, expectedClause string, expectedParameters []interface{}) {

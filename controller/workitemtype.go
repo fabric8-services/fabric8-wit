@@ -5,11 +5,14 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem"
+	"github.com/satori/go.uuid"
 
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
@@ -29,6 +32,7 @@ type WorkitemtypeController struct {
 
 type WorkItemControllerConfiguration interface {
 	GetCacheControlWorkItemTypes() string
+	GetCacheControlWorkItemType() string
 }
 
 // NewWorkitemtypeController creates a workitemtype controller.
@@ -47,7 +51,7 @@ func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		return ctx.ConditionalRequest(*witModel, c.config.GetCacheControlWorkItemTypes, func() error {
+		return ctx.ConditionalRequest(*witModel, c.config.GetCacheControlWorkItemType, func() error {
 			witData := ConvertWorkItemTypeFromModel(ctx.RequestData, witModel)
 			wit := &app.WorkItemTypeSingle{Data: &witData}
 			return ctx.OK(wit)
@@ -57,7 +61,23 @@ func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 
 // Create runs the create action.
 func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) error {
+	currentUserIdentityID, err := login.ContextIdentity(ctx)
+	if err != nil {
+		jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
+	}
 	return application.Transactional(c.db, func(appl application.Application) error {
+		space, err := appl.Spaces().Load(ctx, ctx.SpaceID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		if !uuid.Equal(*currentUserIdentityID, space.OwnerId) {
+			log.Warn(ctx, map[string]interface{}{
+				"space_id":     ctx.SpaceID,
+				"space_owner":  space.OwnerId,
+				"current_user": *currentUserIdentityID,
+			}, "user is not the space owner")
+			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the space owner"))
+		}
 		var fields = map[string]app.FieldDefinition{}
 		for key, fd := range ctx.Payload.Data.Attributes.Fields {
 			fields[key] = *fd

@@ -5,6 +5,9 @@ import:
 - package: github.com/fabric8-services/fabric8-tenant
   subpackages:
   - design
+- package: github.com/fabric8-services/fabric8-notification
+  subpackages:
+  - design
 - package: github.com/dgrijalva/jwt-go
   version: ^3.0.0
 - package: github.com/goadesign/goa
@@ -41,7 +44,6 @@ import:
   subpackages:
   - go/ast/astutil
 - package: gopkg.in/yaml.v2
-- package: bitbucket.org/pkg/inflect
 - package: github.com/kr/pretty
 - package: github.com/kr/text
 - package: github.com/pilu/fresh
@@ -100,6 +102,7 @@ import:
 - package: github.com/fzipp/gocyclo
 - package: github.com/Sirupsen/logrus
 - package: github.com/sourcegraph/syntaxhighlight
+- package: github.com/jstemmer/go-junit-report
 - package: github.com/sourcegraph/annotate
 - package: github.com/sergi/go-diff
   subpackages:

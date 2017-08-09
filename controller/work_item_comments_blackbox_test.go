@@ -22,7 +22,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	almtoken "github.com/fabric8-services/fabric8-wit/token"
+	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/goadesign/goa"
 	"github.com/pkg/errors"
@@ -38,6 +38,7 @@ type TestCommentREST struct {
 	clean        func()
 	testIdentity account.Identity
 	ctx          context.Context
+	notification testsupport.NotificationChannel
 }
 
 func TestRunCommentREST(t *testing.T) {
@@ -50,10 +51,11 @@ func (rest *TestCommentREST) SetupTest() {
 	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
 	testIdentity, err := testsupport.CreateTestIdentity(rest.DB, "TestCommentREST setup user", "test provider")
 	require.Nil(rest.T(), err)
-	rest.testIdentity = testIdentity
+	rest.testIdentity = *testIdentity
 	req := &http.Request{Host: "localhost"}
 	params := url.Values{}
 	rest.ctx = goa.NewContext(context.Background(), nil, req, params)
+	rest.notification = testsupport.NotificationChannel{}
 }
 
 func (rest *TestCommentREST) TearDownTest() {
@@ -61,9 +63,9 @@ func (rest *TestCommentREST) TearDownTest() {
 }
 
 func (rest *TestCommentREST) SecuredController() (*goa.Service, *WorkItemCommentsController) {
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsUser("WorkItemComment-Service", almtoken.NewManagerWithPrivateKey(priv), rest.testIdentity)
-	return svc, NewWorkItemCommentsController(svc, rest.db, rest.Configuration)
+	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	svc := testsupport.ServiceAsUser("WorkItemComment-Service", wittoken.NewManagerWithPrivateKey(priv), rest.testIdentity)
+	return svc, NewNotifyingWorkItemCommentsController(svc, rest.db, &rest.notification, rest.Configuration)
 }
 
 func (rest *TestCommentREST) UnSecuredController() (*goa.Service, *WorkItemCommentsController) {
@@ -118,10 +120,10 @@ func assertWorkItemComment(t *testing.T, c *app.Comment, expectedBody string, ex
 	require.NotNil(t, c.Attributes.CreatedAt)
 	assert.WithinDuration(t, time.Now(), *c.Attributes.CreatedAt, 2*time.Second)
 	require.NotNil(t, c.Relationships)
-	require.NotNil(t, c.Relationships.CreatedBy)
-	require.NotNil(t, c.Relationships.CreatedBy.Data)
-	assert.Equal(t, "identities", c.Relationships.CreatedBy.Data.Type)
-	assert.NotNil(t, c.Relationships.CreatedBy.Data.ID)
+	require.NotNil(t, c.Relationships.Creator)
+	require.NotNil(t, c.Relationships.Creator.Data)
+	assert.Equal(t, "identities", c.Relationships.Creator.Data.Type)
+	assert.NotNil(t, c.Relationships.Creator.Data.ID)
 }
 
 func (rest *TestCommentREST) TestSuccessCreateSingleCommentWithMarkup() {
@@ -132,7 +134,7 @@ func (rest *TestCommentREST) TestSuccessCreateSingleCommentWithMarkup() {
 	markup := rendering.SystemMarkupMarkdown
 	p := rest.newCreateWorkItemCommentsPayload("Test", &markup)
 	svc, ctrl := rest.SecuredController()
-	_, c := test.CreateWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.SpaceID, wi.ID, p)
+	_, c := test.CreateWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.ID, p)
 	// then
 	assertComment(rest.T(), c.Data, rest.testIdentity, "Test", markup)
 }
@@ -143,18 +145,31 @@ func (rest *TestCommentREST) TestSuccessCreateSingleCommentWithDefaultMarkup() {
 	// when
 	p := rest.newCreateWorkItemCommentsPayload("Test", nil)
 	svc, ctrl := rest.SecuredController()
-	_, c := test.CreateWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.SpaceID, wi.ID, p)
+	_, c := test.CreateWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.ID, p)
 	// then
 	assertComment(rest.T(), c.Data, rest.testIdentity, "Test", rendering.SystemMarkupDefault)
+}
+
+func (rest *TestCommentREST) TestNotificationSendOnCreate() {
+	// given
+	wi := rest.createDefaultWorkItem()
+	// when
+	p := rest.newCreateWorkItemCommentsPayload("Test", nil)
+	svc, ctrl := rest.SecuredController()
+	_, c := test.CreateWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.ID, p)
+	// then
+	assert.True(rest.T(), len(rest.notification.Messages) > 0)
+	assert.Equal(rest.T(), "comment.create", rest.notification.Messages[0].MessageType)
+	assert.Equal(rest.T(), c.Data.ID.String(), rest.notification.Messages[0].TargetID)
 }
 
 func (rest *TestCommentREST) setupComments() (workitem.WorkItem, []*comment.Comment) {
 	wi := rest.createDefaultWorkItem()
 	comments := make([]*comment.Comment, 4)
-	comments[0] = &comment.Comment{ParentID: wi.ID, Body: "Test 1", CreatedBy: rest.testIdentity.ID}
-	comments[1] = &comment.Comment{ParentID: wi.ID, Body: "Test 2", CreatedBy: rest.testIdentity.ID}
-	comments[2] = &comment.Comment{ParentID: wi.ID, Body: "Test 3", CreatedBy: rest.testIdentity.ID}
-	comments[3] = &comment.Comment{ParentID: uuid.NewV4(), Body: "Test 1", CreatedBy: rest.testIdentity.ID}
+	comments[0] = &comment.Comment{ParentID: wi.ID, Body: "Test 1", Creator: rest.testIdentity.ID}
+	comments[1] = &comment.Comment{ParentID: wi.ID, Body: "Test 2", Creator: rest.testIdentity.ID}
+	comments[2] = &comment.Comment{ParentID: wi.ID, Body: "Test 3", Creator: rest.testIdentity.ID}
+	comments[3] = &comment.Comment{ParentID: uuid.NewV4(), Body: "Test 1", Creator: rest.testIdentity.ID}
 	application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Comments()
 		for _, c := range comments {
@@ -177,7 +192,7 @@ func (rest *TestCommentREST) TestListCommentsByParentWorkItemOK() {
 	svc, ctrl := rest.UnSecuredController()
 	offset := "0"
 	limit := 3
-	res, cs := test.ListWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.SpaceID, wi.ID, &limit, &offset, nil, nil)
+	res, cs := test.ListWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.ID, &limit, &offset, nil, nil)
 	// then
 	assertComments(rest.T(), rest.testIdentity, cs)
 	assertResponseHeaders(rest.T(), res)
@@ -191,7 +206,7 @@ func (rest *TestCommentREST) TestListCommentsByParentWorkItemOKUsingExpiredIfMod
 	offset := "0"
 	limit := 3
 	ifModifiedSince := app.ToHTTPTime(comments[3].UpdatedAt.Add(-1 * time.Hour))
-	res, cs := test.ListWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.SpaceID, wi.ID, &limit, &offset, &ifModifiedSince, nil)
+	res, cs := test.ListWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.ID, &limit, &offset, &ifModifiedSince, nil)
 	// then
 	assertComments(rest.T(), rest.testIdentity, cs)
 	assertResponseHeaders(rest.T(), res)
@@ -205,7 +220,7 @@ func (rest *TestCommentREST) TestListCommentsByParentWorkItemOKUsingExpiredIfNon
 	offset := "0"
 	limit := 3
 	ifNoneMatch := "foo"
-	res, cs := test.ListWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.SpaceID, wi.ID, &limit, &offset, nil, &ifNoneMatch)
+	res, cs := test.ListWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.ID, &limit, &offset, nil, &ifNoneMatch)
 	// then
 	assertComments(rest.T(), rest.testIdentity, cs)
 	assertResponseHeaders(rest.T(), res)
@@ -219,7 +234,7 @@ func (rest *TestCommentREST) TestListCommentsByParentWorkItemNotModifiedUsingIfM
 	offset := "0"
 	limit := 3
 	ifModifiedSince := app.ToHTTPTime(comments[3].UpdatedAt)
-	res := test.ListWorkItemCommentsNotModified(rest.T(), svc.Context, svc, ctrl, wi.SpaceID, wi.ID, &limit, &offset, &ifModifiedSince, nil)
+	res := test.ListWorkItemCommentsNotModified(rest.T(), svc.Context, svc, ctrl, wi.ID, &limit, &offset, &ifModifiedSince, nil)
 	// then
 	assertResponseHeaders(rest.T(), res)
 }
@@ -236,7 +251,7 @@ func (rest *TestCommentREST) TestListCommentsByParentWorkItemNotModifiedUsingIfN
 		comments[1],
 		comments[0],
 	})
-	res := test.ListWorkItemCommentsNotModified(rest.T(), svc.Context, svc, ctrl, wi.SpaceID, wi.ID, &limit, &offset, nil, &ifNoneMatch)
+	res := test.ListWorkItemCommentsNotModified(rest.T(), svc.Context, svc, ctrl, wi.ID, &limit, &offset, nil, &ifNoneMatch)
 	// then
 	assertResponseHeaders(rest.T(), res)
 }
@@ -248,7 +263,7 @@ func (rest *TestCommentREST) TestEmptyListCommentsByParentWorkItem() {
 	svc, ctrl := rest.UnSecuredController()
 	offset := "0"
 	limit := 1
-	_, cs := test.ListWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.SpaceID, wi.ID, &limit, &offset, nil, nil)
+	_, cs := test.ListWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.ID, &limit, &offset, nil, nil)
 	// then
 	assert.Equal(rest.T(), 0, len(cs.Data))
 }
@@ -258,7 +273,7 @@ func (rest *TestCommentREST) TestCreateSingleCommentMissingWorkItem() {
 	p := rest.newCreateWorkItemCommentsPayload("Test", nil)
 	// when/then
 	svc, ctrl := rest.SecuredController()
-	test.CreateWorkItemCommentsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4(), uuid.NewV4(), p)
+	test.CreateWorkItemCommentsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4(), p)
 }
 
 func (rest *TestCommentREST) TestCreateSingleNoAuthorized() {
@@ -267,7 +282,7 @@ func (rest *TestCommentREST) TestCreateSingleNoAuthorized() {
 	// when/then
 	p := rest.newCreateWorkItemCommentsPayload("Test", nil)
 	svc, ctrl := rest.UnSecuredController()
-	test.CreateWorkItemCommentsUnauthorized(rest.T(), svc.Context, svc, ctrl, wi.SpaceID, wi.ID, p)
+	test.CreateWorkItemCommentsUnauthorized(rest.T(), svc.Context, svc, ctrl, wi.ID, p)
 }
 
 // Can not be tested via normal Goa testing framework as setting empty body on CreateCommentAttributes is
@@ -288,5 +303,5 @@ func (rest *TestCommentREST) TestListCommentsByMissingParentWorkItem() {
 	// when/then
 	offset := "0"
 	limit := 1
-	test.ListWorkItemCommentsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4(), uuid.NewV4(), &limit, &offset, nil, nil)
+	test.ListWorkItemCommentsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4(), &limit, &offset, nil, nil)
 }

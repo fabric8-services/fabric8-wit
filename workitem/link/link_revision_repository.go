@@ -58,7 +58,7 @@ func (r *GormWorkItemLinkRevisionRepository) Create(ctx context.Context, modifie
 // List retrieves all revisions for a given work item link
 func (r *GormWorkItemLinkRevisionRepository) List(ctx context.Context, linkID uuid.UUID) ([]Revision, error) {
 	log.Debug(nil, map[string]interface{}{}, "List all revisions for work item link with ID=%v", linkID.String())
-	revisions := make([]Revision, 0)
+	var revisions []Revision
 	if err := r.db.Where("work_item_link_id = ?", linkID.String()).Order("revision_time asc").Find(&revisions).Error; err != nil {
 		return nil, errors.NewInternalError(ctx, errs.Wrap(err, "failed to retrieve work item link revisions"))
 	}

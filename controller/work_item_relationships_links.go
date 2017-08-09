@@ -53,14 +53,14 @@ func (c *WorkItemRelationshipsLinksController) Create(ctx *app.CreateWorkItemRel
 		// Check that current work item does indeed exist
 		wi, err := appl.WorkItems().LoadByID(ctx, ctx.WiID)
 		if err != nil {
-			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
+			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(ctx, err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
 		// Check that the source ID of the link is the same as the current work
 		// item ID.
 		src, _ := getSrcTgt(ctx.Payload.Data)
 		if src != nil && *src != wi.ID {
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("data.relationships.source.data.id is \"%s\" but must be \"%s\"", ctx.Payload.Data.Relationships.Source.Data.ID.String(), wi.ID.String())))
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrBadRequest(fmt.Sprintf("data.relationships.source.data.id is \"%s\" but must be \"%s\"", ctx.Payload.Data.Relationships.Source.Data.ID.String(), wi.ID.String())))
 			return ctx.BadRequest(jerrors)
 		}
 		// If no source is specified we pre-fill the source field of the payload

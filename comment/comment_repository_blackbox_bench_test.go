@@ -45,7 +45,7 @@ func (s *BenchCommentRepository) SetupBenchmark() {
 	if err != nil {
 		s.B().Fail()
 	}
-	s.testIdentity = testIdentity
+	s.testIdentity = *testIdentity
 }
 
 func (s *BenchCommentRepository) TearDownBenchmark() {
@@ -115,10 +115,10 @@ func (s *BenchCommentRepository) BenchmarkCreateDeleteComment() {
 	s.B().ReportAllocs()
 	for n := 0; n < s.B().N; n++ {
 		c := &comment.Comment{
-			ParentID:  parentID,
-			Body:      "Test AA" + uuid.NewV4().String(),
-			CreatedBy: uuid.NewV4(),
-			ID:        uuid.NewV4(),
+			ParentID: parentID,
+			Body:     "Test AA" + uuid.NewV4().String(),
+			Creator:  uuid.NewV4(),
+			ID:       uuid.NewV4(),
 		}
 		if err := s.repo.Create(s.ctx, c, s.testIdentity.ID); err != nil {
 			s.B().Fail()

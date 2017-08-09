@@ -16,6 +16,7 @@ GOLINT_DIR=$(VENDOR_DIR)/github.com/golang/lint/golint
 GOLINT_BIN=$(GOLINT_DIR)/golint.exe
 GOCYCLO_DIR=$(VENDOR_DIR)/github.com/fzipp/gocyclo
 GOCYCLO_BIN=$(GOCYCLO_DIR)/gocyclo.exe
+GO_JUNIT_BIN=$(VENDOR_DIR)/github.com/jstemmer/go-junit-report/go-junit-report.exe
 
 GIT_BIN_NAME := git.exe
 GLIDE_BIN_NAME := glide.exe

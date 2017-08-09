@@ -32,7 +32,7 @@ func upload(db *gorm.DB, tID int, item TrackerItemContent) error {
 	return db.Save(&ti).Error
 }
 
-// Map a remote work item into an ALM work item and persist it into the database.
+// Map a remote work item into an WIT work item and persist it into the database.
 func convertToWorkItemModel(ctx context.Context, db *gorm.DB, tID int, item TrackerItemContent, providerType string, spaceID uuid.UUID) (*workitem.WorkItem, error) {
 	remoteID := item.ID
 	content := string(item.Content)
@@ -92,7 +92,7 @@ func lookupIdentities(ctx context.Context, db *gorm.DB, remoteWorkItem RemoteWor
 				workItem.Fields[workitem.SystemAssignees] = make([]string, 0)
 				continue
 			}
-			identities := make([]string, 0)
+			var identities []string
 			assigneeLogins := fieldValue.([]string)
 			assigneeProfileURLs := remoteWorkItem.Fields[remoteAssigneeProfileURLs].([]string)
 			for i, assigneeLogin := range assigneeLogins {

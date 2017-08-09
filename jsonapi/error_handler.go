@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"context"
+
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/goadesign/goa"
@@ -41,7 +42,7 @@ func ErrorHandler(service *goa.Service, verbose bool) goa.Middleware {
 			cause := errs.Cause(e)
 			status := http.StatusInternalServerError
 			var respBody interface{}
-			respBody, status = ErrorToJSONAPIErrors(e)
+			respBody, status = ErrorToJSONAPIErrors(ctx, e)
 			rw.Header().Set("Content-Type", ErrorMediaIdentifier)
 			if err, ok := cause.(goa.ServiceError); ok {
 				status = err.ResponseStatus()
@@ -69,7 +70,7 @@ func ErrorHandler(service *goa.Service, verbose bool) goa.Middleware {
 					rw.Header().Set("Content-Type", goa.ErrorMediaIdentifier)
 					msg := errors.NewInternalError(ctx, errs.Errorf("%s [%s]", http.StatusText(http.StatusInternalServerError), reqID))
 					//respBody = goa.ErrInternal(msg)
-					respBody, status = ErrorToJSONAPIErrors(msg)
+					respBody, status = ErrorToJSONAPIErrors(ctx, msg)
 					// Preserve the ID of the original error as that's what gets logged, the client
 					// received error ID must match the original
 					// TODO for JSONAPI this won't work I guess.

@@ -106,12 +106,12 @@ analyze-go-code: golint gocyclo govet
 ## Run gocyclo analysis over the code.
 golint: $(GOLINT_BIN)
 	$(info >>--- RESULTS: GOLINT CODE ANALYSIS ---<<)
-	@$(foreach d,$(GOANALYSIS_DIRS),$(GOLINT_BIN) $d 2>&1 | grep -vEf .golint_exclude;)
+	@$(foreach d,$(GOANALYSIS_DIRS),$(GOLINT_BIN) $d 2>&1 | grep -vEf .golint_exclude || true;)
 
 ## Run gocyclo analysis over the code.
 gocyclo: $(GOCYCLO_BIN)
 	$(info >>--- RESULTS: GOCYCLO CODE ANALYSIS ---<<)
-	@$(foreach d,$(GOANALYSIS_DIRS),$(GOCYCLO_BIN) -over 10 $d | grep -vEf .golint_exclude;)
+	@$(foreach d,$(GOANALYSIS_DIRS),$(GOCYCLO_BIN) -over 10 $d | grep -vEf .golint_exclude || true;)
 
 ## Run go vet analysis over the code.
 govet:
@@ -173,6 +173,8 @@ $(GO_BINDATA_ASSETFS_BIN): $(VENDOR_DIR)
 	cd $(VENDOR_DIR)/github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs && go build -v
 $(FRESH_BIN): $(VENDOR_DIR)
 	cd $(VENDOR_DIR)/github.com/pilu/fresh && go build -v
+$(GO_JUNIT_BIN): $(VENDOR_DIR)
+	cd $(VENDOR_DIR)/github.com/jstemmer/go-junit-report && go build -v
 
 CLEAN_TARGETS += clean-artifacts
 .PHONY: clean-artifacts
@@ -222,12 +224,13 @@ deps: $(VENDOR_DIR)
 
 app/controllers.go: $(DESIGNS) $(GOAGEN_BIN) $(VENDOR_DIR)
 	$(GOAGEN_BIN) app -d ${PACKAGE_NAME}/${DESIGN_DIR}
-	$(GOAGEN_BIN) controller -d ${PACKAGE_NAME}/${DESIGN_DIR} -o controller/ --pkg controller --app-pkg app
+	$(GOAGEN_BIN) controller -d ${PACKAGE_NAME}/${DESIGN_DIR} -o controller/ --pkg controller --app-pkg ${PACKAGE_NAME}/app
 	$(GOAGEN_BIN) gen -d ${PACKAGE_NAME}/${DESIGN_DIR} --pkg-path=${PACKAGE_NAME}/goasupport/conditional_request --out app
 	$(GOAGEN_BIN) gen -d ${PACKAGE_NAME}/${DESIGN_DIR} --pkg-path=${PACKAGE_NAME}/goasupport/helper_function --out app
 	$(GOAGEN_BIN) client -d ${PACKAGE_NAME}/${DESIGN_DIR}
 	$(GOAGEN_BIN) swagger -d ${PACKAGE_NAME}/${DESIGN_DIR}
 	$(GOAGEN_BIN) client -d github.com/fabric8-services/fabric8-tenant/design --notool --pkg tenant -o account
+	$(GOAGEN_BIN) client -d github.com/fabric8-services/fabric8-notification/design --notool --pkg client -o notification
 
 
 assets/js/client.js: $(DESIGNS) $(GOAGEN_BIN) $(VENDOR_DIR)

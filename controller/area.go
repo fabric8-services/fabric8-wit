@@ -30,6 +30,7 @@ type AreaController struct {
 // AreaControllerConfiguration the configuration for the AreaController
 type AreaControllerConfiguration interface {
 	GetCacheControlAreas() string
+	GetCacheControlArea() string
 }
 
 // NewAreaController creates a area controller.
@@ -129,7 +130,7 @@ func (c *AreaController) Show(ctx *app.ShowAreaContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		return ctx.ConditionalRequest(*a, c.config.GetCacheControlAreas, func() error {
+		return ctx.ConditionalRequest(*a, c.config.GetCacheControlArea, func() error {
 			res := &app.AreaSingle{}
 			res.Data = ConvertArea(appl, ctx.RequestData, *a, addResolvedPath)
 			return ctx.OK(res)
@@ -192,9 +193,9 @@ func ConvertAreas(appl application.Application, request *goa.RequestData, areas 
 func ConvertArea(appl application.Application, request *goa.RequestData, ar area.Area, additional ...AreaConvertFunc) *app.Area {
 	areaType := area.APIStringTypeAreas
 	spaceID := ar.SpaceID.String()
-	selfURL := rest.AbsoluteURL(request, app.AreaHref(ar.ID))
+	relatedURL := rest.AbsoluteURL(request, app.AreaHref(ar.ID))
 	childURL := rest.AbsoluteURL(request, app.AreaHref(ar.ID)+"/children")
-	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
+	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
 	pathToTopMostParent := ar.Path.String() // /uuid1/uuid2/uuid3s
 	i := &app.Area{
 		Type: areaType,
@@ -213,17 +214,20 @@ func ConvertArea(appl application.Application, request *goa.RequestData, ar area
 					ID:   &spaceID,
 				},
 				Links: &app.GenericLinks{
-					Self: &spaceSelfURL,
+					Self:    &spaceRelatedURL,
+					Related: &spaceRelatedURL,
 				},
 			},
 			Children: &app.RelationGeneric{
 				Links: &app.GenericLinks{
-					Self: &childURL,
+					Self:    &childURL,
+					Related: &childURL,
 				},
 			},
 		},
 		Links: &app.GenericLinks{
-			Self: &selfURL,
+			Self:    &relatedURL,
+			Related: &relatedURL,
 		},
 	}
 
@@ -262,8 +266,9 @@ func ConvertAreaSimple(request *goa.RequestData, id interface{}) *app.GenericDat
 }
 
 func createAreaLinks(request *goa.RequestData, id interface{}) *app.GenericLinks {
-	selfURL := rest.AbsoluteURL(request, app.AreaHref(id))
+	relatedURL := rest.AbsoluteURL(request, app.AreaHref(id))
 	return &app.GenericLinks{
-		Self: &selfURL,
+		Self:    &relatedURL,
+		Related: &relatedURL,
 	}
 }

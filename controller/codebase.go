@@ -152,7 +152,7 @@ func (c *CodebaseController) Create(ctx *app.CreateCodebaseContext) error {
 			"stack_id":    stackID,
 			"err":         err,
 		}, "unable to create workspaces")
-		if werr, ok := err.(*che.WorkspaceError); ok {
+		if werr, ok := err.(*che.CheStarterError); ok {
 			log.Error(ctx, map[string]interface{}{
 				"codebase_id": cb.ID,
 				"stack_id":    stackID,
@@ -211,8 +211,12 @@ func (c *CodebaseController) Open(ctx *app.OpenCodebaseContext) error {
 			"stack_id":    cb.StackID,
 			"err":         err,
 		}, "unable to open workspaces")
-		if werr, ok := err.(*che.WorkspaceError); ok {
-			fmt.Println(werr.String())
+		if werr, ok := err.(*che.CheStarterError); ok {
+			log.Error(ctx, map[string]interface{}{
+				"codebase_id": cb.ID,
+				"stack_id":    cb.StackID,
+				"err":         err,
+			}, "unable to open workspaces: %s", werr.String())
 		}
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 	}
@@ -255,9 +259,9 @@ func ConvertCodebase(request *goa.RequestData, codebase *codebase.Codebase, addi
 
 	spaceID := codebase.SpaceID.String()
 
-	selfURL := rest.AbsoluteURL(request, app.CodebaseHref(codebase.ID))
+	relatedURL := rest.AbsoluteURL(request, app.CodebaseHref(codebase.ID))
 	editURL := rest.AbsoluteURL(request, app.CodebaseHref(codebase.ID)+"/edit")
-	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
+	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
 
 	i := &app.Codebase{
 		Type: codebaseType,
@@ -276,19 +280,74 @@ func ConvertCodebase(request *goa.RequestData, codebase *codebase.Codebase, addi
 					ID:   &spaceID,
 				},
 				Links: &app.GenericLinks{
-					Self: &spaceSelfURL,
+					Self:    &spaceRelatedURL,
+					Related: &spaceRelatedURL,
 				},
 			},
 		},
 		Links: &app.CodebaseLinks{
-			Self: &selfURL,
-			Edit: &editURL,
+			Self:    &relatedURL,
+			Related: &relatedURL,
+			Edit:    &editURL,
 		},
 	}
 	for _, add := range additional {
 		add(request, codebase, i)
 	}
 	return i
+}
+
+// Get che server state.
+func (c *CodebaseController) CheState(ctx *app.CheStateCodebaseContext) error {
+	cheClient := che.NewStarterClient(c.config.GetCheStarterURL(), c.config.GetOpenshiftTenantMasterURL(), getNamespace(ctx))
+	cheState, err := cheClient.GetCheServerState(ctx)
+
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "unable to get che server state")
+		if werr, ok := err.(*che.CheStarterError); ok {
+			log.Error(ctx, map[string]interface{}{
+				"err": err,
+			}, "unable to get che server state: %s", werr.String())
+		}
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+	}
+
+	isRunning := cheState.Running
+	state := app.CheServerState{
+		Running: &isRunning,
+	}
+	return ctx.OK(&state)
+}
+
+// Start che server if not running.
+func (c *CodebaseController) CheStart(ctx *app.CheStartCodebaseContext) error {
+	cheClient := che.NewStarterClient(c.config.GetCheStarterURL(), c.config.GetOpenshiftTenantMasterURL(), getNamespace(ctx))
+	cheState, err := cheClient.StartCheServer(ctx)
+
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "unable to start che server")
+		if werr, ok := err.(*che.CheStarterError); ok {
+			log.Error(ctx, map[string]interface{}{
+				"err": err,
+			}, "unable to start che server: %s", werr.String())
+		}
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+	}
+
+	isRunning := cheState.Running
+	state := app.CheServerState{
+		Running: &isRunning,
+	}
+
+	if isRunning {
+		return ctx.OK(&state)
+	} else {
+		return ctx.Accepted(&state)
+	}
 }
 
 // TODO: We need to dynamically get the real che namespace name from the tenant namespace from

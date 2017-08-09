@@ -26,6 +26,7 @@ type WorkItemLinkController struct {
 // WorkItemLinkControllerConfig the config interface for the WorkitemLinkController
 type WorkItemLinkControllerConfig interface {
 	GetCacheControlWorkItemLinks() string
+	GetCacheControlWorkItemLink() string
 }
 
 // NewWorkItemLinkController creates a work-item-link controller.
@@ -128,7 +129,7 @@ func getCategoriesOfLinkTypes(ctx *workItemLinkContext, linkTypeDataArr []*app.W
 		if err != nil {
 			return nil, errs.WithStack(err)
 		}
-		appCategory := convertLinkCategoryFromModel(*modelCategory)
+		appCategory := ConvertLinkCategoryFromModel(*modelCategory)
 		catDataArr = append(catDataArr, appCategory.Data)
 	}
 	return catDataArr, nil
@@ -149,7 +150,7 @@ func enrichLinkSingle(ctx *workItemLinkContext, appLinks *app.WorkItemLinkSingle
 	if err != nil {
 		return errs.WithStack(err)
 	}
-	appCategory := convertLinkCategoryFromModel(*modelCategory)
+	appCategory := ConvertLinkCategoryFromModel(*modelCategory)
 	appLinks.Included = append(appLinks.Included, appCategory.Data)
 
 	// TODO(kwk): include source work item type (once #559 is merged)
@@ -181,9 +182,10 @@ func enrichLinkSingle(ctx *workItemLinkContext, appLinks *app.WorkItemLinkSingle
 	appLinks.Included = append(appLinks.Included, ConvertWorkItem(ctx.RequestData, *targetWi))
 
 	// Add links to individual link data element
-	selfURL := rest.AbsoluteURL(ctx.RequestData, ctx.LinkFunc(*appLinks.Data.ID))
+	relatedURL := rest.AbsoluteURL(ctx.RequestData, ctx.LinkFunc(*appLinks.Data.ID))
 	appLinks.Data.Links = &app.GenericLinks{
-		Self: &selfURL,
+		Self:    &relatedURL,
+		Related: &relatedURL,
 	}
 
 	return nil
@@ -232,9 +234,10 @@ func enrichLinkList(ctx *workItemLinkContext, linkArr *app.WorkItemLinkList) err
 
 	// Add links to individual link data element
 	for _, link := range linkArr.Data {
-		selfURL := rest.AbsoluteURL(ctx.RequestData, ctx.LinkFunc(*link.ID))
+		relatedURL := rest.AbsoluteURL(ctx.RequestData, ctx.LinkFunc(*link.ID))
 		link.Links = &app.GenericLinks{
-			Self: &selfURL,
+			Self:    &relatedURL,
+			Related: &relatedURL,
 		}
 	}
 	return nil
@@ -320,7 +323,7 @@ func (c *WorkItemLinkController) Show(ctx *app.ShowWorkItemLinkContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		return ctx.ConditionalRequest(*modelLink, c.config.GetCacheControlWorkItemLinks, func() error {
+		return ctx.ConditionalRequest(*modelLink, c.config.GetCacheControlWorkItemLink, func() error {
 			linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkHref, nil)
 			// convert to rest representation
 			appLink := ConvertLinkFromModel(*modelLink)
@@ -350,7 +353,7 @@ func updateWorkItemLink(ctx *workItemLinkContext, httpFuncs updateWorkItemLinkFu
 	}
 	savedModelLink, err := ctx.Application.WorkItemLinks().Save(ctx.Context, *modelLink, *ctx.CurrentUserIdentityID)
 	if err != nil {
-		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
+		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(ctx.Context, err)
 		return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 	}
 	// Convert the created link type entry into a rest representation

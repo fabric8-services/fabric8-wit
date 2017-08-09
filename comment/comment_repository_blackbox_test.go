@@ -49,7 +49,7 @@ func (s *TestCommentRepository) SetupTest() {
 	s.repo = comment.NewRepository(s.DB)
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "jdoe", "test")
 	require.Nil(s.T(), err)
-	s.testIdentity = testIdentity
+	s.testIdentity = *testIdentity
 }
 
 func (s *TestCommentRepository) TearDownTest() {
@@ -58,10 +58,10 @@ func (s *TestCommentRepository) TearDownTest() {
 
 func newComment(parentID uuid.UUID, body, markup string) *comment.Comment {
 	return &comment.Comment{
-		ParentID:  parentID,
-		Body:      body,
-		Markup:    markup,
-		CreatedBy: uuid.NewV4(),
+		ParentID: parentID,
+		Body:     body,
+		Markup:   markup,
+		Creator:  uuid.NewV4(),
 	}
 }
 
@@ -141,10 +141,10 @@ func (s *TestCommentRepository) TestDeleteComment() {
 	// given
 	parentID := uuid.NewV4()
 	c := &comment.Comment{
-		ParentID:  parentID,
-		Body:      "Test AA",
-		CreatedBy: uuid.NewV4(),
-		ID:        uuid.NewV4(),
+		ParentID: parentID,
+		Body:     "Test AA",
+		Creator:  uuid.NewV4(),
+		ID:       uuid.NewV4(),
 	}
 	s.repo.Create(s.ctx, c, s.testIdentity.ID)
 	require.NotEqual(s.T(), uuid.Nil, c.ID)
