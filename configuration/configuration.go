@@ -217,17 +217,17 @@ func (c *ConfigurationData) setConfigDefaults() {
 	c.v.SetDefault(varCacheControlCollaborators, "max-age=2")
 
 	// Cache control values for a single resource
-	c.v.SetDefault(varCacheControlWorkItem, "private,max-age=120")
+	c.v.SetDefault(varCacheControlWorkItem, "private,max-age=2")
 	c.v.SetDefault(varCacheControlWorkItemType, "private,max-age=120")
 	c.v.SetDefault(varCacheControlWorkItemLink, "private,max-age=120")
 	c.v.SetDefault(varCacheControlWorkItemLinkType, "private,max-age=120")
 	c.v.SetDefault(varCacheControlSpace, "private,max-age=120")
-	c.v.SetDefault(varCacheControlIteration, "private,max-age=120")
+	c.v.SetDefault(varCacheControlIteration, "private,max-age=2")
 	c.v.SetDefault(varCacheControlArea, "private,max-age=120")
 	c.v.SetDefault(varCacheControlComment, "private,max-age=120")
 	// data returned from '/api/user' must not be cached by intermediate proxies,
 	// but can only be kept in the client's local cache.
-	c.v.SetDefault(varCacheControlUser, "private,max-age=2")
+	c.v.SetDefault(varCacheControlUser, "private,max-age=120")
 
 	// Features
 	c.v.SetDefault(varFeatureWorkitemRemote, true)
