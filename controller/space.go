@@ -37,6 +37,7 @@ type SpaceConfiguration interface {
 	GetKeycloakClientID() string
 	GetKeycloakSecret() string
 	GetCacheControlSpaces() string
+	GetCacheControlSpace() string
 }
 
 // SpaceController implements the space resource.
@@ -255,7 +256,7 @@ func (c *SpaceController) Show(ctx *app.ShowSpaceContext) error {
 			}, "unable to load the space by ID")
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		return ctx.ConditionalRequest(*s, c.config.GetCacheControlSpaces, func() error {
+		return ctx.ConditionalRequest(*s, c.config.GetCacheControlSpace, func() error {
 			spaceData, err := ConvertSpaceFromModel(ctx.Context, c.db, ctx.RequestData, *s)
 			if err != nil {
 				log.Error(ctx, map[string]interface{}{

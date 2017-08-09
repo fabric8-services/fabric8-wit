@@ -1,6 +1,6 @@
 {
   "Cache-Control": [
-    "max-age=2"
+    "private,max-age=120"
   ],
   "Etag": [
     "6/t2yDx7UrWE2j4zZlaehg=="

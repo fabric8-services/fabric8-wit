@@ -31,6 +31,7 @@ type CommentsController struct {
 // CommentsControllerConfiguration the configuration for CommentsController
 type CommentsControllerConfiguration interface {
 	GetCacheControlComments() string
+	GetCacheControlComment() string
 }
 
 // NewCommentsController creates a comments controller.
@@ -60,7 +61,7 @@ func (c *CommentsController) Show(ctx *app.ShowCommentsContext) error {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrUnauthorized(err.Error()))
 			return ctx.NotFound(jerrors)
 		}
-		return ctx.ConditionalRequest(*cmt, c.config.GetCacheControlComments, func() error {
+		return ctx.ConditionalRequest(*cmt, c.config.GetCacheControlComment, func() error {
 			res := &app.CommentSingle{}
 			// This code should change if others type of parents than WI are allowed
 			includeParentWorkItem, err := CommentIncludeParentWorkItem(ctx, appl, cmt)

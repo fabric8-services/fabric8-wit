@@ -30,6 +30,7 @@ type AreaController struct {
 // AreaControllerConfiguration the configuration for the AreaController
 type AreaControllerConfiguration interface {
 	GetCacheControlAreas() string
+	GetCacheControlArea() string
 }
 
 // NewAreaController creates a area controller.
@@ -129,7 +130,7 @@ func (c *AreaController) Show(ctx *app.ShowAreaContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		return ctx.ConditionalRequest(*a, c.config.GetCacheControlAreas, func() error {
+		return ctx.ConditionalRequest(*a, c.config.GetCacheControlArea, func() error {
 			res := &app.AreaSingle{}
 			res.Data = ConvertArea(appl, ctx.RequestData, *a, addResolvedPath)
 			return ctx.OK(res)
