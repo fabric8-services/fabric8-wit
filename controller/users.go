@@ -38,6 +38,7 @@ type UsersController struct {
 // UsersControllerConfiguration the configuration for the UsersController
 type UsersControllerConfiguration interface {
 	GetCacheControlUsers() string
+	GetCacheControlUser() string
 	GetKeycloakAccountEndpoint(*goa.RequestData) (string, error)
 }
 
