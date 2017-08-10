@@ -18,6 +18,7 @@ type WorkItemTypeGroup struct {
 const (
 	GroupPortfolio    = "portfolio"
 	GroupRequirements = "requirements"
+	GroupExecution    = "execution"
 )
 
 // Portfolio0 defines first level of typegroup Portfolio
@@ -52,5 +53,16 @@ var Requirements0 = WorkItemTypeGroup{
 	WorkItemTypeCollection: []uuid.UUID{
 		workitem.SystemFeature,
 		workitem.SystemBug,
+	},
+}
+
+// Execution0 defines first level of typegroup Execution
+// This group has less priority than Requirements
+var Execution0 = WorkItemTypeGroup{
+	Group: GroupExecution,
+	Level: []int{2, 0},
+	Name:  "Execution",
+	WorkItemTypeCollection: []uuid.UUID{
+		workitem.SystemTask,
 	},
 }

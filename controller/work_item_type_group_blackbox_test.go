@@ -60,14 +60,16 @@ func (s *workItemTypeGroupSuite) TestListTypeGroups() {
 	sapcetemplateID := space.SystemSpace // must be valid space ID
 	_, groups := test.ListWorkItemTypeGroupOK(s.T(), nil, s.svc, s.typeGroupCtrl, sapcetemplateID)
 	assert.NotEmpty(s.T(), groups)
-	require.Len(s.T(), groups.Data.Attributes.Hierarchy, 3)
+	require.Len(s.T(), groups.Data.Attributes.Hierarchy, 4)
 	require.Equal(s.T(), typegroup.GroupPortfolio, groups.Data.Attributes.Hierarchy[0].Group)
 	require.Equal(s.T(), typegroup.GroupPortfolio, groups.Data.Attributes.Hierarchy[1].Group)
 	require.Equal(s.T(), typegroup.GroupRequirements, groups.Data.Attributes.Hierarchy[2].Group)
+	require.Equal(s.T(), typegroup.GroupExecution, groups.Data.Attributes.Hierarchy[3].Group)
 
 	assert.Equal(s.T(), typegroup.Portfolio0.WorkItemTypeCollection, groups.Data.Attributes.Hierarchy[0].WitCollection)
 	assert.Equal(s.T(), typegroup.Portfolio1.WorkItemTypeCollection, groups.Data.Attributes.Hierarchy[1].WitCollection)
 	assert.Equal(s.T(), typegroup.Requirements0.WorkItemTypeCollection, groups.Data.Attributes.Hierarchy[2].WitCollection)
+	assert.Equal(s.T(), typegroup.Execution0.WorkItemTypeCollection, groups.Data.Attributes.Hierarchy[3].WitCollection)
 }
 
 func (s *workItemTypeGroupSuite) TestListTypeGroupsNotFound() {
