@@ -14,7 +14,8 @@ import (
 func TestField(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
-	expect(t, Equals(Field("foo"), Literal(23)), "(Fields@>'{\"foo\" : 23}')", []interface{}{})
+	expect(t, Equals(Field("foo.bar"), Literal(23)), "(Fields@>'{\"foo.bar\" : 23}')", []interface{}{})
+	expect(t, Equals(Field("foo"), Literal(23)), "(foo = ?)", []interface{}{23})
 	expect(t, Equals(Field("Type"), Literal("abcd")), "(type = ?)", []interface{}{"abcd"})
 	expect(t, Not(Field("Type"), Literal("abcd")), "(type != ?)", []interface{}{"abcd"})
 	expect(t, Not(Field("Version"), Literal("abcd")), "(version != ?)", []interface{}{"abcd"})
@@ -27,9 +28,9 @@ func TestAndOr(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	expect(t, Or(Literal(true), Literal(false)), "(? or ?)", []interface{}{true, false})
 
-	expect(t, And(Not(Field("foo"), Literal("abcd")), Not(Literal(true), Literal(false))), "(NOT (Fields@>'{\"foo\" : \"abcd\"}') and (? != ?))", []interface{}{true, false})
-	expect(t, And(Equals(Field("foo"), Literal("abcd")), Equals(Literal(true), Literal(false))), "((Fields@>'{\"foo\" : \"abcd\"}') and (? = ?))", []interface{}{true, false})
-	expect(t, Or(Equals(Field("foo"), Literal("abcd")), Equals(Literal(true), Literal(false))), "((Fields@>'{\"foo\" : \"abcd\"}') or (? = ?))", []interface{}{true, false})
+	expect(t, And(Not(Field("foo.bar"), Literal("abcd")), Not(Literal(true), Literal(false))), "(NOT (Fields@>'{\"foo.bar\" : \"abcd\"}') and (? != ?))", []interface{}{true, false})
+	expect(t, And(Equals(Field("foo.bar"), Literal("abcd")), Equals(Literal(true), Literal(false))), "((Fields@>'{\"foo.bar\" : \"abcd\"}') and (? = ?))", []interface{}{true, false})
+	expect(t, Or(Equals(Field("foo.bar"), Literal("abcd")), Equals(Literal(true), Literal(false))), "((Fields@>'{\"foo.bar\" : \"abcd\"}') or (? = ?))", []interface{}{true, false})
 }
 
 func TestIsNull(t *testing.T) {
