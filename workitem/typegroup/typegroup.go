@@ -8,6 +8,13 @@ import (
 
 // WorkItemTypeGroup represents the node in the group of work item types
 type WorkItemTypeGroup struct {
+	// Generally Level should look like {0, 0}
+	// First Index defines the nested level of the object in TypeHierarchy.
+	// Second Index defines the child level within that object
+	// e.g> {0, 0} -> object is at 0th level and it is 0th child
+	// e.g> {0, 1} -> Object is at 0th level and it is 1st child
+	// e.g> {1, 0} -> Object is at 1st level and it is 0th child
+	// e.g> {1, 2, 3} -> Object is at 1st level & it is 2nd child's 3rd child
 	Level                  []int
 	Group                  string
 	Name                   string
