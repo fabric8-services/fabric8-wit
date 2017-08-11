@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -35,5 +37,10 @@ func main() {
 		}
 	}
 
-	log.Fatal(fmt.Errorf("Make sure you've checked out your project in GOPATH/src/%s", packageName))
+	goPathStr := path.Join("$GOPATH", "src", packageName)
+	if runtime.GOOS == "windows" {
+		goPathStr = path.Join("%GOPATH%", "src", packageName)
+	}
+	log.Fatal(fmt.Errorf("Make sure you've checked out your project in %s", goPathStr))
+
 }
