@@ -48,7 +48,7 @@ func (r *GormWorkItemLinkCategoryRepository) Create(ctx context.Context, linkCat
 			log.Error(ctx, map[string]interface{}{
 				"err":       db.Error,
 				"wilc_name": linkCat.Name,
-			}, "unable to create work item link category because a category exists with the same name")
+			}, "unable to create work item link category because a category already exists with the same name")
 			return nil, errors.NewDataConflictError(fmt.Sprintf("work item link category already exists with the same name: %s ", linkCat.Name))
 		}
 		return nil, errors.NewInternalError(ctx, db.Error)

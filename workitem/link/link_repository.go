@@ -153,7 +153,7 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 			log.Error(ctx, map[string]interface{}{
 				"err":       db.Error,
 				"source_id": sourceID,
-			}, "unable to create work item link because a link exists with the same source_id, target_id and type_id")
+			}, "unable to create work item link because a link already exists with the same source_id, target_id and type_id")
 			return nil, errors.NewDataConflictError(fmt.Sprintf("work item link already exists with data.relationships.source_id: %s; data.relationships.target_id: %s; data.relationships.link_type_id: %s ", sourceID, targetID, linkTypeID))
 		}
 		if gormsupport.IsForeignKeyViolation(db.Error, "work_item_links_source_id_fkey") {
