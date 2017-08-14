@@ -11,7 +11,7 @@ set -e
 function load_jenkins_vars() {
   if [ -e "jenkins-env" ]; then
     cat jenkins-env \
-      | grep -E "(DEVSHIFT_USERNAME|DEVSHIFT_PASSWORD|JENKINS_URL|GIT_BRANCH|GIT_COMMIT|BUILD_NUMBER|ghprbSourceBranch|ghprbActualCommit|BUILD_URL|ghprbPullId)=" \
+      | grep -E "(DEVSHIFT_TAG_LEN|DEVSHIFT_USERNAME|DEVSHIFT_PASSWORD|JENKINS_URL|GIT_BRANCH|GIT_COMMIT|BUILD_NUMBER|ghprbSourceBranch|ghprbActualCommit|BUILD_URL|ghprbPullId)=" \
       | sed 's/^/export /g' \
       > ~/.jenkins-env
     source ~/.jenkins-env
@@ -123,7 +123,7 @@ function deploy() {
   # Let's deploy
   make docker-image-deploy
 
-  TAG=$(echo $GIT_COMMIT | cut -c1-6)
+  TAG=$(echo $GIT_COMMIT | cut -c1-${DEVSHIFT_TAG_LEN})
   REGISTRY="push.registry.devshift.net"
 
   if [ -n "${DEVSHIFT_USERNAME}" -a -n "${DEVSHIFT_PASSWORD}" ]; then

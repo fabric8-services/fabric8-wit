@@ -83,10 +83,12 @@ help:/
           } \
         }' $(MAKEFILE_LIST)
 
+GOFORMAT_FILES := $(shell find  . -name '*.go' | grep -vEf .gofmt_exclude)
+
 .PHONY: check-go-format
 ## Exists with an error if there are files whose formatting differs from gofmt's
 check-go-format: prebuild-check
-	@gofmt -s -l ${SOURCES} 2>&1 \
+	@gofmt -s -l ${GOFORMAT_FILES} 2>&1 \
 		| tee /tmp/gofmt-errors \
 		| read \
 	&& echo "ERROR: These files differ from gofmt's style (run 'make format-go-code' to fix this):" \
@@ -94,7 +96,18 @@ check-go-format: prebuild-check
 	&& exit 1 \
 	|| true
 
+.PHONY: install-git-hooks
+## Creates useful git hooks (e.g. pre-push go-format-code check)
+install-git-hooks:
+	@ln -sfv ../../.pre-push .git/hooks/pre-push
 
+CLEAN_TARGETS += clean-git-hooks
+.PHONY: clean-git-hooks
+## Removes hooks that have been installed with the "install-git-hooks" target
+clean-git-hooks:
+	@test "$(shell readlink -f .git/hooks/pre-push)" = "${CUR_DIR}/.pre-push" \
+	&& rm -v .git/hooks/pre-push \
+	|| true
 
 .PHONY: release
 release: all
@@ -121,7 +134,7 @@ govet:
 .PHONY: format-go-code
 ## Formats any go file that differs from gofmt's style
 format-go-code: prebuild-check
-	@gofmt -s -l -w ${SOURCES}
+	@gofmt -s -l -w ${GOFORMAT_FILES}
 
 .PHONY: build
 ## Build server and client.
