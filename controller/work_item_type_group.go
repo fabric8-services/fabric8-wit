@@ -39,6 +39,7 @@ func (c *WorkItemTypeGroupController) List(ctx *app.ListWorkItemTypeGroupContext
 				ConvertTypeGroup(ctx.RequestData, typegroup.Portfolio0),
 				ConvertTypeGroup(ctx.RequestData, typegroup.Portfolio1),
 				ConvertTypeGroup(ctx.RequestData, typegroup.Requirements0),
+				ConvertTypeGroup(ctx.RequestData, typegroup.Execution0),
 			},
 		},
 		Type: APIWorkItemTypeGroups,
