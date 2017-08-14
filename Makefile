@@ -110,7 +110,7 @@ clean-git-hooks:
 	|| true
 
 .PHONY: release
-release: all
+release: prebuild-check deps generate build check-go-format analyze-go-code test-unit-no-coverage-junit
 
 .PHONY: analyze-go-code
 ## Run a complete static code analysis using the following tools: golint, gocyclo and go-vet.
