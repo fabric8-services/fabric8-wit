@@ -1,12 +1,14 @@
 package link
 
 import (
+	"fmt"
 	"time"
 
 	"context"
 
 	"github.com/fabric8-services/fabric8-wit/application/repository"
 	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/space"
 
@@ -64,6 +66,15 @@ func (r *GormWorkItemLinkTypeRepository) Create(ctx context.Context, linkType *W
 
 	db = r.db.Create(linkType)
 	if db.Error != nil {
+		if gormsupport.IsUniqueViolation(db.Error, "work_item_link_types_name_idx") {
+			log.Error(ctx, map[string]interface{}{
+				"err":       db.Error,
+				"wilc_id":   linkType.LinkCategoryID,
+				"wilt_name": linkType.Name,
+			}, "unable to create work item link type because a link already exists with the same link_category_id and name")
+			return nil, errors.NewDataConflictError(fmt.Sprintf("work item link type already exists with the same link_category_id: %s; name: %s ", linkType.LinkCategoryID, linkType.Name))
+		}
+
 		return nil, errors.NewInternalError(ctx, db.Error)
 	}
 	return linkType, nil
