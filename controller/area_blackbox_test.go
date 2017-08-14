@@ -20,7 +20,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	almtoken "github.com/fabric8-services/fabric8-wit/token"
+	wittoken "github.com/fabric8-services/fabric8-wit/token"
 
 	"context"
 
@@ -54,16 +54,16 @@ func (rest *TestAreaREST) TearDownTest() {
 }
 
 func (rest *TestAreaREST) SecuredController() (*goa.Service, *AreaController) {
-	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
-	//priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsUser("Area-Service", almtoken.NewManager(pub), testsupport.TestIdentity)
+	pub, _ := wittoken.ParsePublicKey([]byte(wittoken.RSAPublicKey))
+	//priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	svc := testsupport.ServiceAsUser("Area-Service", wittoken.NewManager(pub), testsupport.TestIdentity)
 	return svc, NewAreaController(svc, rest.db, rest.Configuration)
 }
 
 func (rest *TestAreaREST) SecuredControllerWithIdentity(idn *account.Identity) (*goa.Service, *AreaController) {
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
 
-	svc := testsupport.ServiceAsUser("Area-Service", almtoken.NewManagerWithPrivateKey(priv), *idn)
+	svc := testsupport.ServiceAsUser("Area-Service", wittoken.NewManagerWithPrivateKey(priv), *idn)
 	return svc, NewAreaController(svc, rest.db, rest.Configuration)
 }
 

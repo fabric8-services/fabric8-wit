@@ -32,6 +32,7 @@ type WorkitemtypeController struct {
 
 type WorkItemControllerConfiguration interface {
 	GetCacheControlWorkItemTypes() string
+	GetCacheControlWorkItemType() string
 }
 
 // NewWorkitemtypeController creates a workitemtype controller.
@@ -50,7 +51,7 @@ func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		return ctx.ConditionalRequest(*witModel, c.config.GetCacheControlWorkItemTypes, func() error {
+		return ctx.ConditionalRequest(*witModel, c.config.GetCacheControlWorkItemType, func() error {
 			witData := ConvertWorkItemTypeFromModel(ctx.RequestData, witModel)
 			wit := &app.WorkItemTypeSingle{Data: &witData}
 			return ctx.OK(wit)

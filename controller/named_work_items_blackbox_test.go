@@ -12,7 +12,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	almtoken "github.com/fabric8-services/fabric8-wit/token"
+	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
@@ -27,7 +27,7 @@ type TestNamedWorkItemsSuite struct {
 	testIdentity       account.Identity
 	testSpace          app.Space
 	svc                *goa.Service
-	workitemsCtrl      *WorkitemController
+	workitemsCtrl      *WorkitemsController
 	namedWorkItemsCtrl *NamedWorkItemsController
 	wi                 *app.WorkItemSingle
 	clean              func()
@@ -43,9 +43,9 @@ func (s *TestNamedWorkItemsSuite) SetupTest() {
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "TestUpdateWorkitemForSpaceCollaborator-"+uuid.NewV4().String(), "TestWI")
 	require.Nil(s.T(), err)
 	s.testIdentity = *testIdentity
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	s.svc = testsupport.ServiceAsSpaceUser("Collaborators-Service", almtoken.NewManagerWithPrivateKey(priv), s.testIdentity, &TestSpaceAuthzService{s.testIdentity})
-	s.workitemsCtrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	s.svc = testsupport.ServiceAsSpaceUser("Collaborators-Service", wittoken.NewManagerWithPrivateKey(priv), s.testIdentity, &TestSpaceAuthzService{s.testIdentity})
+	s.workitemsCtrl = NewWorkitemsController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.namedWorkItemsCtrl = NewNamedWorkItemsController(s.svc, gormapplication.NewGormDB(s.DB))
 	s.testSpace = CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, s.testIdentity)
 }
@@ -58,7 +58,7 @@ func (s *TestNamedWorkItemsSuite) createWorkItem() *app.WorkItemSingle {
 	payload := minimumRequiredCreateWithTypeAndSpace(workitem.SystemBug, *s.testSpace.ID)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *s.testSpace.ID, &payload)
+	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *s.testSpace.ID, &payload)
 	return wi
 }
 

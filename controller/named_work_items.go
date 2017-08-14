@@ -26,11 +26,11 @@ func NewNamedWorkItemsController(service *goa.Service, db application.DB) *Named
 // Show shows a work item from the given named space (ie, space name along with owner's username) and its number
 func (c *NamedWorkItemsController) Show(ctx *app.ShowNamedWorkItemsContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		wiID, spaceID, err := appl.WorkItems().LookupIDByNamedSpaceAndNumber(ctx, ctx.UserName, ctx.SpaceName, ctx.WiNumber)
+		wiID, _, err := appl.WorkItems().LookupIDByNamedSpaceAndNumber(ctx, ctx.UserName, ctx.SpaceName, ctx.WiNumber)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "Fail to load work item with number %v in %s/%s", ctx.WiNumber, ctx.UserName, ctx.SpaceName))
 		}
-		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.RequestData, app.WorkitemHref(spaceID, wiID)))
+		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.RequestData, app.WorkitemHref(wiID)))
 		return ctx.MovedPermanently()
 	})
 }

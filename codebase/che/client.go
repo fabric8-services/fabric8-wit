@@ -69,7 +69,7 @@ func (cs *StarterClient) ListWorkspaces(ctx context.Context, repository string) 
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
-		workspaceErr := WorkspaceError{}
+		workspaceErr := CheStarterError{}
 		err = json.NewDecoder(resp.Body).Decode(&workspaceErr)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
@@ -131,7 +131,7 @@ func (cs *StarterClient) CreateWorkspace(ctx context.Context, workspace Workspac
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
-		workspaceErr := WorkspaceError{}
+		workspaceErr := CheStarterError{}
 		err = json.NewDecoder(resp.Body).Decode(&workspaceErr)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
@@ -192,7 +192,7 @@ func (cs *StarterClient) StartExistingWorkspace(ctx context.Context, workspaceNa
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
-		workspaceErr := WorkspaceError{}
+		workspaceErr := CheStarterError{}
 		err = json.NewDecoder(resp.Body).Decode(&workspaceErr)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
@@ -218,6 +218,108 @@ func (cs *StarterClient) StartExistingWorkspace(ctx context.Context, workspaceNa
 		return nil, err
 	}
 	return &workspaceResp, nil
+}
+
+// GetCheServerState get che server state.
+func (cs *StarterClient) GetCheServerState(ctx context.Context) (*CheServerStateResponse, error) {
+	req, err := http.NewRequest("GET", cs.targetURL("server"), nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	cs.setHeaders(ctx, req)
+
+	if log.IsDebug() {
+		b, _ := httputil.DumpRequest(req, true)
+		log.Debug(ctx, map[string]interface{}{
+			"request": string(b),
+		}, "dump of the request to get the che server state")
+	}
+
+	resp, err := cs.client.Do(req)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
+		statusErr := CheStarterError{}
+		err = json.NewDecoder(resp.Body).Decode(&statusErr)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"err": err,
+			}, "failed to decode error response from get che server state")
+			return nil, err
+		}
+		log.Error(ctx, map[string]interface{}{
+			"err": statusErr.String(),
+		}, "failed to execute get che server state")
+		return nil, &statusErr
+	}
+
+	cheServerStateResponse := CheServerStateResponse{}
+	err = json.NewDecoder(resp.Body).Decode(&cheServerStateResponse)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "failed to decode response from getting che server state")
+		return nil, err
+	}
+	return &cheServerStateResponse, nil
+}
+
+// StartCheServer start che server if not running.
+func (cs *StarterClient) StartCheServer(ctx context.Context) (*CheServerStateResponse, error) {
+	req, err := http.NewRequest("PATCH", cs.targetURL("server"), nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	cs.setHeaders(ctx, req)
+
+	if log.IsDebug() {
+		b, _ := httputil.DumpRequest(req, true)
+		log.Debug(ctx, map[string]interface{}{
+			"request": string(b),
+		}, "dump of the request to star the che server")
+	}
+
+	resp, err := cs.client.Do(req)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusAccepted {
+		statusErr := CheStarterError{}
+		err = json.NewDecoder(resp.Body).Decode(&statusErr)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"err": err,
+			}, "failed to decode error response from start che server")
+			return nil, err
+		}
+		log.Error(ctx, map[string]interface{}{
+			"err": statusErr.String(),
+		}, "failed to execute start che server")
+		return nil, &statusErr
+	}
+
+	cheServerStateResponse := CheServerStateResponse{}
+	err = json.NewDecoder(resp.Body).Decode(&cheServerStateResponse)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "failed to decode response from getting che server state endpoint")
+		return nil, err
+	}
+	return &cheServerStateResponse, nil
 }
 
 // WorkspaceRequest represents a create workspace request body
@@ -266,8 +368,8 @@ type WorkspaceLink struct {
 	Rel    string `json:"rel"`
 }
 
-// WorkspaceError represent an error comming from the che-starter service
-type WorkspaceError struct {
+// CheStarterError represent an error comming from the che-starter service
+type CheStarterError struct {
 	Status    int    `json:"status"`
 	ErrorMsg  string `json:"error"`
 	Message   string `json:"message"`
@@ -275,10 +377,15 @@ type WorkspaceError struct {
 	Trace     string `json:"trace"`
 }
 
-func (err *WorkspaceError) Error() string {
+func (err *CheStarterError) Error() string {
 	return err.ErrorMsg
 }
 
-func (err *WorkspaceError) String() string {
+func (err *CheStarterError) String() string {
 	return fmt.Sprintf("Status %v Error %v Message %v Trace\n%v", err.Status, err.ErrorMsg, err.ErrorMsg, err.Trace)
+}
+
+// CheServerStateResponse represents a get che state response body
+type CheServerStateResponse struct {
+	Running bool `json:"running"`
 }

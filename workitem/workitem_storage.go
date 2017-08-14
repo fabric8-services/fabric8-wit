@@ -37,7 +37,7 @@ const (
 )
 
 // TableName implements gorm.tabler
-func (w WorkItemStorage) TableName() string {
+func (wi WorkItemStorage) TableName() string {
 	return workitemTableName
 }
 

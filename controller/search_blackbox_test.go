@@ -27,7 +27,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/search"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	almtoken "github.com/fabric8-services/fabric8-wit/token"
+	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	uuid "github.com/satori/go.uuid"
 
@@ -79,8 +79,8 @@ func (s *searchBlackBoxTest) SetupTest() {
 	spaceBlackBoxTestConfiguration, err := config.GetConfigurationData()
 	require.Nil(s.T(), err)
 	s.spaceBlackBoxTestConfiguration = spaceBlackBoxTestConfiguration
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	s.svc = testsupport.ServiceAsUser("WorkItemComment-Service", almtoken.NewManagerWithPrivateKey(priv), s.testIdentity)
+	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	s.svc = testsupport.ServiceAsUser("WorkItemComment-Service", wittoken.NewManagerWithPrivateKey(priv), s.testIdentity)
 	s.controller = NewSearchController(s.svc, gormapplication.NewGormDB(s.DB), spaceBlackBoxTestConfiguration)
 }
 
@@ -105,7 +105,7 @@ func (s *searchBlackBoxTest) TestSearchWorkItems() {
 	// when
 	q := "specialwordforsearch"
 	spaceIDStr := space.SystemSpace.String()
-	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, nil, &q, &spaceIDStr)
+	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, nil, nil, &q, &spaceIDStr)
 	// then
 	require.NotEmpty(s.T(), sr.Data)
 	r := sr.Data[0]
@@ -129,7 +129,7 @@ func (s *searchBlackBoxTest) TestSearchPagination() {
 	// when
 	q := "specialwordforsearch2"
 	spaceIDStr := space.SystemSpace.String()
-	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, nil, &q, &spaceIDStr)
+	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, nil, nil, &q, &spaceIDStr)
 	// then
 	// defaults in paging.go is 'pageSizeDefault = 20'
 	assert.Equal(s.T(), "http:///api/search?page[offset]=0&page[limit]=20&q=specialwordforsearch2", *sr.Links.First)
@@ -155,10 +155,11 @@ func (s *searchBlackBoxTest) TestSearchWithEmptyValue() {
 	// when
 	q := ""
 	spaceIDStr := space.SystemSpace.String()
-	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, nil, &q, &spaceIDStr)
+	_, jerrs := test.ShowSearchBadRequest(s.T(), nil, nil, s.controller, nil, nil, nil, nil, &q, &spaceIDStr)
 	// then
-	require.NotNil(s.T(), sr.Data)
-	assert.Empty(s.T(), sr.Data)
+	require.NotNil(s.T(), jerrs)
+	require.Len(s.T(), jerrs.Errors, 1)
+	require.NotNil(s.T(), jerrs.Errors[0].ID)
 }
 
 func (s *searchBlackBoxTest) TestSearchWithDomainPortCombination() {
@@ -178,7 +179,7 @@ func (s *searchBlackBoxTest) TestSearchWithDomainPortCombination() {
 	// when
 	q := `"http://localhost:8080/detail/154687364529310"`
 	spaceIDStr := space.SystemSpace.String()
-	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, nil, &q, &spaceIDStr)
+	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, nil, nil, &q, &spaceIDStr)
 	// then
 	require.NotEmpty(s.T(), sr.Data)
 	r := sr.Data[0]
@@ -203,7 +204,7 @@ func (s *searchBlackBoxTest) TestSearchURLWithoutPort() {
 	// when
 	q := `"http://localhost/detail/876394"`
 	spaceIDStr := space.SystemSpace.String()
-	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, nil, &q, &spaceIDStr)
+	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, nil, nil, &q, &spaceIDStr)
 	// then
 	require.NotEmpty(s.T(), sr.Data)
 	r := sr.Data[0]
@@ -228,7 +229,7 @@ func (s *searchBlackBoxTest) TestUnregisteredURLWithPort() {
 	// when
 	q := `http://some-other-domain:8080/different-path/`
 	spaceIDStr := space.SystemSpace.String()
-	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, nil, &q, &spaceIDStr)
+	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, nil, nil, &q, &spaceIDStr)
 	// then
 	require.NotEmpty(s.T(), sr.Data)
 	r := sr.Data[0]
@@ -254,20 +255,20 @@ func (s *searchBlackBoxTest) TestUnwantedCharactersRelatedToSearchLogic() {
 	// add url: in the query, that is not expected by the code hence need to make sure it gives expected result.
 	q := `http://url:some-random-other-domain:8080/different-path/`
 	spaceIDStr := space.SystemSpace.String()
-	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, nil, &q, &spaceIDStr)
+	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, nil, nil, &q, &spaceIDStr)
 	// then
 	require.NotNil(s.T(), sr.Data)
 	assert.Empty(s.T(), sr.Data)
 }
 
-func (s *searchBlackBoxTest) getWICreatePayload() *app.CreateWorkitemPayload {
+func (s *searchBlackBoxTest) getWICreatePayload() *app.CreateWorkitemsPayload {
 	spaceRelatedURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.SpaceHref(space.SystemSpace.String()))
 	witRelatedURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.WorkitemtypeHref(space.SystemSpace.String(), workitem.SystemTask.String()))
-	c := app.CreateWorkitemPayload{
+	c := app.CreateWorkitemsPayload{
 		Data: &app.WorkItem{
 			Type:       APIStringTypeWorkItem,
 			Attributes: map[string]interface{}{},
@@ -292,8 +293,8 @@ func (s *searchBlackBoxTest) getWICreatePayload() *app.CreateWorkitemPayload {
 }
 
 func getServiceAsUser(testIdentity account.Identity) *goa.Service {
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	service := testsupport.ServiceAsUser("TestSearch-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity)
+	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	service := testsupport.ServiceAsUser("TestSearch-Service", wittoken.NewManagerWithPrivateKey(priv), testIdentity)
 	return service
 }
 
@@ -346,10 +347,10 @@ func (s *searchBlackBoxTest) verifySearchByKnownURLs(wi *app.WorkItemSingle, hos
 // Uses helper functions verifySearchByKnownURLs, searchByURL, getWICreatePayload
 func (s *searchBlackBoxTest) TestAutoRegisterHostURL() {
 	// service := getServiceAsUser(s.testIdentity)
-	wiCtrl := NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	wiCtrl := NewWorkitemsController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	// create a WI, search by `list view URL` of newly created item
 	newWI := s.getWICreatePayload()
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, wiCtrl, *newWI.Data.Relationships.Space.Data.ID, newWI)
+	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, wiCtrl, *newWI.Data.Relationships.Space.Data.ID, newWI)
 	require.NotNil(s.T(), wi)
 	customHost := "own.domain.one"
 	queryString := fmt.Sprintf("http://%s/work-item/list/detail/%d", customHost, wi.Data.Attributes[workitem.SystemNumber])
@@ -421,7 +422,7 @@ func (s *searchBlackBoxTest) TestSearchWorkItemsSpaceContext() {
 	// when
 	q := "common_word"
 	space1IDStr := space1.ID.String()
-	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, nil, &q, &space1IDStr)
+	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, nil, nil, &q, &space1IDStr)
 	// then
 	require.NotEmpty(s.T(), sr.Data)
 	assert.Len(s.T(), sr.Data, 3)
@@ -430,7 +431,7 @@ func (s *searchBlackBoxTest) TestSearchWorkItemsSpaceContext() {
 		assert.Contains(s.T(), item.Attributes[workitem.SystemTitle], "shutter_island common_word")
 	}
 	space2IDStr := space2.ID.String()
-	_, sr = test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, nil, &q, &space2IDStr)
+	_, sr = test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, nil, nil, &q, &space2IDStr)
 	// then
 	require.NotEmpty(s.T(), sr.Data)
 	assert.Len(s.T(), sr.Data, 5)
@@ -440,7 +441,7 @@ func (s *searchBlackBoxTest) TestSearchWorkItemsSpaceContext() {
 	}
 
 	// when searched without spaceID then it should get all related WI
-	_, sr = test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, nil, &q, nil)
+	_, sr = test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, nil, nil, &q, nil)
 	// then
 	require.NotEmpty(s.T(), sr.Data)
 	assert.Len(s.T(), sr.Data, 8)
@@ -505,7 +506,7 @@ func (s *searchBlackBoxTest) TestSearchWorkItemsWithoutSpaceContext() {
 	}
 	q := "search_by_me"
 	// search without space context
-	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, nil, &q, nil)
+	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, nil, nil, &q, nil)
 	require.NotEmpty(s.T(), sr.Data)
 	assert.Len(s.T(), sr.Data, 15)
 }
@@ -527,7 +528,7 @@ func (s *searchBlackBoxTest) TestSearchFilter() {
 	// when
 	filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, space.SystemSpace)
 	spaceIDStr := space.SystemSpace.String()
-	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, &spaceIDStr)
+	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 	// then
 	require.NotEmpty(s.T(), sr.Data)
 	r := sr.Data[0]
@@ -553,8 +554,8 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 	spaceInstance := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, *spaceOwner)
 	spaceIDStr := spaceInstance.ID.String()
 
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svcWithSpaceOwner := testsupport.ServiceAsSpaceUser("Search-Service", almtoken.NewManagerWithPrivateKey(priv), *spaceOwner, &TestSpaceAuthzService{*spaceOwner})
+	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	svcWithSpaceOwner := testsupport.ServiceAsSpaceUser("Search-Service", wittoken.NewManagerWithPrivateKey(priv), *spaceOwner, &TestSpaceAuthzService{*spaceOwner})
 	collaboratorRESTInstance := &TestCollaboratorsREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")}
 	collaboratorRESTInstance.policy = &auth.KeycloakPolicy{
 		Name:             "TestCollaborators-" + uuid.NewV4().String(),
@@ -616,7 +617,19 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 				{"iteration": "%s"}
 			]}`,
 			workitem.SystemStateResolved, sprint1.ID)
-		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, &spaceIDStr)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(s.T(), result.Data)
+		require.Len(s.T(), result.Data, 3) // resolved items having sprint1 are 3
+	})
+
+	s.T().Run("state=resolved AND iteration=sprint1 using EQ", func(t *testing.T) {
+		filter := fmt.Sprintf(`
+			{"$AND": [
+				{"state": {"$EQ": "%s"}},
+				{"iteration": {"$EQ": "%s"}}
+			]}`,
+			workitem.SystemStateResolved, sprint1.ID)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotEmpty(s.T(), result.Data)
 		require.Len(s.T(), result.Data, 3) // resolved items having sprint1 are 3
 	})
@@ -628,7 +641,7 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 				{"iteration": "%s"}
 			]}`,
 			workitem.SystemStateResolved, sprint2.ID)
-		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, &spaceIDStr)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.Len(s.T(), result.Data, 0) // No items having state=resolved && sprint2
 	})
 
@@ -642,9 +655,21 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 				{"iteration": "%s"}
 			]}`,
 			workitem.SystemStateResolved, sprint2.ID)
-		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, &spaceIDStr)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotEmpty(s.T(), result.Data)
 		require.Len(s.T(), result.Data, 3+5) // resolved items + items in iteraion2
+	})
+
+	s.T().Run("state IN resolved, closed", func(t *testing.T) {
+		// following test does not include any "space" deliberately, hence if there
+		// is any work item in the test-DB having state=resolved following count
+		// will fail
+		filter := fmt.Sprintf(`
+			{"state": {"$IN": ["%s", "%s"]}}`,
+			workitem.SystemStateResolved, workitem.SystemStateClosed)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(s.T(), result.Data)
+		require.Len(s.T(), result.Data, 3+5) // state = resolved or state = closed
 	})
 
 	s.T().Run("space=ID AND (state=resolved OR iteration=sprint2)", func(t *testing.T) {
@@ -657,7 +682,22 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 				]}
 			]}`,
 			spaceIDStr, workitem.SystemStateResolved, sprint2.ID)
-		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, &spaceIDStr)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(s.T(), result.Data)
+		require.Len(s.T(), result.Data, 3+5)
+	})
+
+	s.T().Run("space=ID AND (state=resolved OR iteration=sprint2) using EQ", func(t *testing.T) {
+		filter := fmt.Sprintf(`
+			{"$AND": [
+				{"space": {"EQ": "%s"}},
+				{"$OR": [
+					{"state": {"$EQ": "%s"}},
+					{"iteration": {"$EQ": "%s"}}
+				]}
+			]}`,
+			spaceIDStr, workitem.SystemStateResolved, sprint2.ID)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotEmpty(s.T(), result.Data)
 		require.Len(s.T(), result.Data, 3+5)
 	})
@@ -672,7 +712,7 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 				]}
 			]}`,
 			spaceIDStr, workitem.SystemStateResolved, sprint1.ID)
-		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, &spaceIDStr)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.Len(s.T(), result.Data, 0)
 	})
 
@@ -680,14 +720,46 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 		fakeIterationID1 := uuid.NewV4()
 		filter := fmt.Sprintf(`
 			{"$AND": [
-				{"space":"%s"},
+				{"space": {"$EQ": "%s"}},
 				{"$AND": [
 					{"state": "%s", "negate": true},
 					{"iteration": "%s", "negate": true}
 				]}
 			]}`,
 			spaceIDStr, workitem.SystemStateOpen, fakeIterationID1)
-		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, &spaceIDStr)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(s.T(), result.Data)
+		require.Len(s.T(), result.Data, 8) // all items are other than open state & in other thatn fake itr
+	})
+
+	s.T().Run("space!=ID AND (state!=open AND iteration!=fake-iterationID)", func(t *testing.T) {
+		fakeIterationID1 := uuid.NewV4()
+		filter := fmt.Sprintf(`
+			{"$AND": [
+				{"space": {"$NE": "%s"}},
+				{"$AND": [
+					{"state": "%s", "negate": true},
+					{"iteration": "%s", "negate": true}
+				]}
+			]}`,
+			spaceIDStr, workitem.SystemStateOpen, fakeIterationID1)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.Empty(s.T(), result.Data)
+		assert.Len(s.T(), result.Data, 0) // all items are other than open state & in other thatn fake itr
+	})
+
+	s.T().Run("space=ID AND (state!=open AND iteration!=fake-iterationID) using NE", func(t *testing.T) {
+		fakeIterationID1 := uuid.NewV4()
+		filter := fmt.Sprintf(`
+			{"$AND": [
+				{"space":"%s"},
+				{"$AND": [
+					{"state": {"$NE": "%s"}},
+					{"iteration": {"$NE": "%s"}}
+				]}
+			]}`,
+			spaceIDStr, workitem.SystemStateOpen, fakeIterationID1)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotEmpty(s.T(), result.Data)
 		require.Len(s.T(), result.Data, 8) // all items are other than open state & in other thatn fake itr
 	})
@@ -700,7 +772,7 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 				{"state": "%s"}
 			]}`,
 			fakeSpaceID1, workitem.SystemStateOpen)
-		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, &fakeSpaceID1)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &fakeSpaceID1)
 		require.Len(s.T(), result.Data, 0) // we have 5 closed items but they are in different space
 	})
 
@@ -712,7 +784,7 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 				{"state": "%s"}
 			]}`,
 			spaceIDStr, bob.ID, workitem.SystemStateClosed)
-		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, &spaceIDStr)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotEmpty(s.T(), result.Data)
 		require.Len(s.T(), result.Data, 5) // we have 5 closed items assigned to bob
 	})
@@ -726,7 +798,7 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 				{"iteration": "%s"}
 			]}`,
 			spaceIDStr, alice.ID, sprint1.ID)
-		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, &spaceIDStr)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotEmpty(s.T(), result.Data)
 		require.Len(s.T(), result.Data, 3) // alice worked on 3 issues in sprint1
 	})
@@ -741,7 +813,7 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 				{"iteration": "%s"}
 			]}`,
 			spaceIDStr, alice.ID, workitem.SystemStateClosed, sprint1.ID)
-		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, &spaceIDStr)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotEmpty(s.T(), result.Data)
 		require.Len(s.T(), result.Data, 3)
 	})
@@ -757,7 +829,7 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 				]}
 			]}`,
 			spaceIDStr, workitem.SystemStateClosed, workitem.SystemStateResolved)
-		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, &spaceIDStr)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotEmpty(s.T(), result.Data)
 		require.Len(s.T(), result.Data, 3+5) //resolved + closed
 	})
@@ -773,7 +845,23 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 				]}
 			]}`,
 			spaceIDStr, workitem.SystemBug, workitem.SystemFeature)
-		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, &spaceIDStr)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(s.T(), result.Data)
+		require.Len(s.T(), result.Data, 3+5) //bugs + features
+	})
+
+	s.T().Run("space=spaceID AND (workitemtype=bug OR workitemtype=feature)", func(t *testing.T) {
+		// get me all bugs or features in myspace
+		filter := fmt.Sprintf(`
+			{"$AND": [
+				{"space":"%s"},
+				{"$OR": [
+					{"workitemtype":"%s"},
+					{"workitemtype":"%s"}
+				]}
+			]}`,
+			spaceIDStr, workitem.SystemBug, workitem.SystemFeature)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotEmpty(s.T(), result.Data)
 		require.Len(s.T(), result.Data, 3+5) //bugs + features
 	})
@@ -789,14 +877,30 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 				]}
 			]}`,
 			spaceIDStr, workitem.SystemBug, workitem.SystemStateResolved, bob.ID, alice.ID)
-		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, &spaceIDStr)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(s.T(), result.Data)
+		require.Len(s.T(), result.Data, 3) //resolved bugs
+	})
+
+	s.T().Run("space=spaceID AND (workitemtype=bug AND state=resolved AND (assignee=bob OR assignee=alice))", func(t *testing.T) {
+		// get me all Resolved bugs assigned to bob or alice
+		filter := fmt.Sprintf(`
+			{"$AND": [
+				{"space":"%s"},
+				{"$AND": [
+					{"$AND": [{"workitemtype":"%s"},{"state":"%s"}]},
+					{"$OR": [{"assignee":"%s"},{"assignee":"%s"}]}
+				]}
+			]}`,
+			spaceIDStr, workitem.SystemBug, workitem.SystemStateResolved, bob.ID, alice.ID)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotEmpty(s.T(), result.Data)
 		require.Len(s.T(), result.Data, 3) //resolved bugs
 	})
 
 	s.T().Run("bad expression missing curly brace", func(t *testing.T) {
 		filter := fmt.Sprintf(`{"state": "0fe7b23e-c66e-43a9-ab1b-fbad9924fe7c"`)
-		res, jerrs := test.ShowSearchBadRequest(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, &spaceIDStr)
+		res, jerrs := test.ShowSearchBadRequest(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotNil(t, jerrs)
 		require.Len(t, jerrs.Errors, 1)
 		require.NotNil(t, jerrs.Errors[0].ID)

@@ -62,7 +62,7 @@ func (r *GormCommentRevisionRepository) Create(ctx context.Context, modifierID u
 // List retrieves all revisions for a given comment
 func (r *GormCommentRevisionRepository) List(ctx context.Context, commentID uuid.UUID) ([]Revision, error) {
 	log.Debug(nil, map[string]interface{}{}, "List all revisions for comment with ID=%v", commentID.String())
-	revisions := make([]Revision, 0)
+	var revisions []Revision
 	if err := r.db.Where("comment_id = ?", commentID.String()).Order("revision_time asc").Find(&revisions).Error; err != nil {
 		return nil, errors.NewInternalError(ctx, errs.Wrap(err, "failed to retrieve comment revisions"))
 	}

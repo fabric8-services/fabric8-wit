@@ -29,6 +29,7 @@ type IterationController struct {
 
 type IterationControllerConfiguration interface {
 	GetCacheControlIterations() string
+	GetCacheControlIteration() string
 }
 
 // NewIterationController creates a iteration controller.
@@ -119,7 +120,7 @@ func (c *IterationController) Show(ctx *app.ShowIterationContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		return ctx.ConditionalRequest(*iter, c.config.GetCacheControlIterations, func() error {
+		return ctx.ConditionalRequest(*iter, c.config.GetCacheControlIteration, func() error {
 			wiCounts, err := appl.WorkItems().GetCountsForIteration(ctx, iter)
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, err)
@@ -237,7 +238,7 @@ func ConvertIteration(request *goa.RequestData, itr iteration.Iteration, additio
 	spaceID := itr.SpaceID.String()
 	relatedURL := rest.AbsoluteURL(request, app.IterationHref(itr.ID))
 	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
-	workitemsRelatedURL := rest.AbsoluteURL(request, app.WorkitemHref(spaceID, "?filter[iteration]="+itr.ID.String()))
+	workitemsRelatedURL := rest.AbsoluteURL(request, app.WorkitemHref("?filter[iteration]="+itr.ID.String()))
 	pathToTopMostParent := itr.Path.String()
 	i := &app.Iteration{
 		Type: iterationType,

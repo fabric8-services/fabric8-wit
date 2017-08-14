@@ -96,8 +96,8 @@ func (r *GormTrackerRepository) Load(ctx context.Context, ID string) (*app.Track
 }
 
 // CheckExists returns nil if the given ID exists otherwise returns an error
-func (m *GormTrackerRepository) CheckExists(ctx context.Context, id string) error {
-	return repository.CheckExists(ctx, m.db, trackersTableName, id)
+func (r *GormTrackerRepository) CheckExists(ctx context.Context, id string) error {
+	return repository.CheckExists(ctx, r.db, trackersTableName, id)
 }
 
 // List returns tracker selected by the given criteria.Expression, starting with start (zero-based) and returning at most limit items

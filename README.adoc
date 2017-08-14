@@ -328,6 +328,8 @@ To override configuration values using environment variables, use the prefix
 
 For example to override `postgres.password`, set the environment variable `F8_POSTGRES_PASSWORD` to the value of you liking.
 
+NOTE: config.yaml is *not* processed by default. In order to use it, the following environment variable must be set `export F8_CONFIG_FILE_PATH="config.yaml"`
+
 NOTE: Environment variables override the default values and the ones you've set in your config file.
 
 ==== Development
@@ -397,6 +399,19 @@ Retrieve the work item.
 $ ./bin/wit-cli show workitem --id 1 -H localhost:8080 --pp
 ----
 
+=== Reset Database
+
+The database are kept in a docker container that gets reused between restarts. Thus restarts will not clear out the database.
+
+To clear out the database kill the database like this:
+
+----
+$ docker kill almightycore_db_1 && docker rm almightycore_db_1
+----
+
+In case you have mulitple almighty running use `docker ps` to locate the container name.
+
+== Debugging [[debug]]
 
 System defined Work Item Types are
 
@@ -418,3 +433,22 @@ In response you should get ID of created item, using that you can retrieve the w
 ----
 $ ./bin/wit-cli show workitem --id <ID> -H localhost:8080 --pp
 ----
+
+== Prod preview setup
+
+In order to setup wit to work against link:https://prod-preview.openshift.io/[prod preview] one needs to update `token.publickey` in config.yaml.
+
+NOTE: Public key can be obtained from https://sso.prod-preview.openshift.io/auth/realms/fabric8/
+
+Also, the following environment variables must be set:
+
+* `export F8_DEVELOPER_MODE_ENABLED=1`
+* `export F8_OPENSHIFT_TENANT_MASTERURL="https://console.free-int.openshift.com/"`
+* `export F8_KEYCLOAK_REALM="fabric8"`
+* `export F8_CONFIG_FILE_PATH="config.yaml"`
+
+== che-starter setup
+
+link:https://github.com/redhat-developer/che-starter[che-starter] endpoint can be configure via the following environment variable:
+
+* `export F8_CHESTARTERURL="http://localhost:10000/"`

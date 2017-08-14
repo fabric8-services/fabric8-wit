@@ -37,6 +37,7 @@ type SpaceConfiguration interface {
 	GetKeycloakClientID() string
 	GetKeycloakSecret() string
 	GetCacheControlSpaces() string
+	GetCacheControlSpace() string
 }
 
 // SpaceController implements the space resource.
@@ -246,39 +247,30 @@ func (c *SpaceController) List(ctx *app.ListSpaceContext) error {
 
 // Show runs the show action.
 func (c *SpaceController) Show(ctx *app.ShowSpaceContext) error {
-	var result app.SpaceSingle
-	txnErr := application.Transactional(c.db, func(appl application.Application) error {
+	return application.Transactional(c.db, func(appl application.Application) error {
 		s, err := appl.Spaces().Load(ctx.Context, ctx.SpaceID)
 		if err != nil {
-			return err
+			log.Error(ctx, map[string]interface{}{
+				"err":      err,
+				"space_id": ctx.SpaceID,
+			}, "unable to load the space by ID")
+			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		entityErr := ctx.ConditionalRequest(*s, c.config.GetCacheControlSpaces, func() error {
+		return ctx.ConditionalRequest(*s, c.config.GetCacheControlSpace, func() error {
 			spaceData, err := ConvertSpaceFromModel(ctx.Context, c.db, ctx.RequestData, *s)
 			if err != nil {
-				return err
+				log.Error(ctx, map[string]interface{}{
+					"err":      err,
+					"space_id": ctx.SpaceID,
+				}, "unable to convert the space object")
+				return jsonapi.JSONErrorResponse(ctx, err)
 			}
-			result = app.SpaceSingle{
+			result := &app.SpaceSingle{
 				Data: spaceData,
 			}
-			return nil
+			return ctx.OK(result)
 		})
-		if entityErr != nil {
-			log.Error(ctx, map[string]interface{}{
-				"space_id": ctx.SpaceID,
-				"err":      entityErr,
-			}, "unable to convert space from model")
-			return entityErr
-		}
-		return nil
 	})
-	if txnErr != nil {
-		log.Error(ctx, map[string]interface{}{
-			"err":      txnErr,
-			"space_id": ctx.SpaceID,
-		}, "unable to show the space by ID")
-		return jsonapi.JSONErrorResponse(ctx, txnErr)
-	}
-	return ctx.OK(&result)
 }
 
 // Update runs the update action.
