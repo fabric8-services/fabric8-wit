@@ -21,4 +21,15 @@ var _ = a.Resource("UserService", func() {
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
+	a.Action("clean", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.DELETE(""),
+		)
+		a.Description("Clean the authenticated user tenant services")
+		a.Response(d.OK)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+	})
 })

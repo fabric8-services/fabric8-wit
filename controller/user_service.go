@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/goadesign/goa"
 )
 
@@ -11,6 +12,7 @@ import (
 type UserServiceController struct {
 	*goa.Controller
 	UpdateTenant func(context.Context) error
+	CleanTenant  func(context.Context) error
 }
 
 // NewUserServiceController creates a UserService controller.
@@ -21,5 +23,14 @@ func NewUserServiceController(service *goa.Service) *UserServiceController {
 // Update runs the update action.
 func (c *UserServiceController) Update(ctx *app.UpdateUserServiceContext) error {
 	c.UpdateTenant(ctx)
+	return ctx.OK([]byte{})
+}
+
+// Clean runs the clean action.
+func (c *UserServiceController) Clean(ctx *app.CleanUserServiceContext) error {
+	err := c.CleanTenant(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
 	return ctx.OK([]byte{})
 }

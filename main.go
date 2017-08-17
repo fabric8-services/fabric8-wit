@@ -283,6 +283,7 @@ func main() {
 
 	userServiceCtrl := controller.NewUserServiceController(service)
 	userServiceCtrl.UpdateTenant = account.NewUpdateTenant(configuration)
+	userServiceCtrl.CleanTenant = account.NewCleanTenant(configuration)
 	app.MountUserServiceController(service, userServiceCtrl)
 
 	// Mount "search" controller
