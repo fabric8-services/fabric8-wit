@@ -35,7 +35,7 @@ imports:
   subpackages:
   - design
 - name: github.com/fabric8-services/fabric8-tenant
-  version: 869b06d634f744e3bb171982b54950989f260c34
+  version: 5ce38dea6287d9bac7789a8bc24556867a4fcee6
   subpackages:
   - design
 - name: github.com/fatih/structs
