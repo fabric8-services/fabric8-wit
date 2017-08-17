@@ -68,7 +68,7 @@ var Requirements0 = WorkItemTypeGroup{
 var Execution0 = WorkItemTypeGroup{
 	Group: GroupExecution,
 	Level: []int{2, 0},
-	Name:  "Execution",
+	Name:  "Iterations",
 	WorkItemTypeCollection: []uuid.UUID{
 		workitem.SystemTask,
 	},
