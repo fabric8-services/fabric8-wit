@@ -6,6 +6,17 @@ import (
 	"github.com/goadesign/goa"
 )
 
+// KeycloakConfiguration represents a keycloak configuration
+type KeycloakConfiguration interface {
+	GetKeycloakEndpointAuthzResourceset(*goa.RequestData) (string, error)
+	GetKeycloakEndpointToken(*goa.RequestData) (string, error)
+	GetKeycloakEndpointClients(*goa.RequestData) (string, error)
+	GetKeycloakEndpointAdmin(*goa.RequestData) (string, error)
+	GetKeycloakEndpointEntitlement(*goa.RequestData) (string, error)
+	GetKeycloakClientID() string
+	GetKeycloakSecret() string
+}
+
 // AuthzPolicyManager represents a space collaborators policy manager
 type AuthzPolicyManager interface {
 	GetPolicy(ctx context.Context, request *goa.RequestData, policyID string) (*KeycloakPolicy, *string, error)
@@ -71,4 +82,16 @@ func (m *KeycloakPolicyManager) UpdatePolicy(ctx context.Context, request *goa.R
 	}
 
 	return UpdatePolicy(ctx, clientsEndpoint, clientID, policy, pat)
+}
+
+func getPat(ctx context.Context, requestData *goa.RequestData, config KeycloakConfiguration) (string, error) {
+	endpoint, err := config.GetKeycloakEndpointToken(requestData)
+	if err != nil {
+		return "", err
+	}
+	token, err := GetProtectedAPIToken(ctx, endpoint, config.GetKeycloakClientID(), config.GetKeycloakSecret())
+	if err != nil {
+		return "", err
+	}
+	return token, nil
 }

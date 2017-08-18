@@ -270,7 +270,7 @@ func main() {
 	}
 
 	// Mount "space" controller
-	spaceCtrl := controller.NewSpaceController(service, appDB, configuration, auth.NewKeycloakResourceManager(configuration))
+	spaceCtrl := controller.NewSpaceController(service, appDB, configuration, auth.NewAuthzResourceManager(configuration))
 	app.MountSpaceController(service, spaceCtrl)
 
 	// Mount "user" controller

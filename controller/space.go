@@ -45,11 +45,11 @@ type SpaceController struct {
 	*goa.Controller
 	db              application.DB
 	config          SpaceConfiguration
-	resourceManager auth.AuthzResourceManager
+	resourceManager auth.ResourceManager
 }
 
 // NewSpaceController creates a space controller.
-func NewSpaceController(service *goa.Service, db application.DB, config SpaceConfiguration, resourceManager auth.AuthzResourceManager) *SpaceController {
+func NewSpaceController(service *goa.Service, db application.DB, config SpaceConfiguration, resourceManager auth.ResourceManager) *SpaceController {
 	return &SpaceController{Controller: service.NewController("SpaceController"), db: db, config: config, resourceManager: resourceManager}
 }
 
@@ -124,14 +124,17 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 	}
 
 	// Create keycloak resource for this space
-	resource, err := c.resourceManager.CreateResource(ctx, ctx.RequestData, spaceID.String(), spaceResourceType, &spaceName, &scopes, currentUser.String())
+
+	resource, err := c.resourceManager.CreateSpace(ctx, ctx.RequestData, spaceID.String())
 	if err != nil {
+		// Unable to create a space resource. Can't proceed. Rool back space creation and return an error.
+		c.rollBackSpaceCreation(ctx, spaceID)
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	spaceResource := &space.Resource{
-		ResourceID:   resource.ResourceID,
-		PolicyID:     resource.PolicyID,
-		PermissionID: resource.PermissionID,
+		ResourceID:   resource.Data.ResourceID,
+		PolicyID:     resource.Data.PolicyID,
+		PermissionID: resource.Data.PermissionID,
 		SpaceID:      spaceID,
 	}
 
@@ -141,6 +144,15 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 		return err
 	})
 	if err != nil {
+		// Rool back space and space resource creation
+		c.rollBackSpaceCreation(ctx, spaceID)
+		remoteErr := c.resourceManager.DeleteSpace(ctx, ctx.RequestData, spaceID.String())
+		if remoteErr != nil {
+			log.Error(ctx, map[string]interface{}{
+				"err":      remoteErr,
+				"space_id": spaceID,
+			}, "unable to roll back space resource creation")
+		}
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
@@ -153,6 +165,19 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 	}
 	ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.RequestData, app.SpaceHref(res.Data.ID)))
 	return ctx.Created(res)
+}
+
+func (c *SpaceController) rollBackSpaceCreation(ctx context.Context, spaceID uuid.UUID) error {
+	err := application.Transactional(c.db, func(appl application.Application) error {
+		return appl.Spaces().Delete(ctx, spaceID)
+	})
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err":      err,
+			"space_id": spaceID,
+		}, "unable to roll back space creation")
+	}
+	return err
 }
 
 // Delete runs the delete action.
@@ -198,7 +223,7 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	c.resourceManager.DeleteResource(ctx, ctx.RequestData, auth.Resource{ResourceID: resourceID, PermissionID: permissionID, PolicyID: policyID})
+	c.resourceManager.DeleteSpace(ctx, ctx.RequestData, ctx.SpaceID.String())
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}

@@ -32,11 +32,11 @@ var spaceConfiguration *configuration.ConfigurationData
 type DummyResourceManager struct {
 }
 
-func (m *DummyResourceManager) CreateResource(ctx context.Context, request *goa.RequestData, name string, rType string, uri *string, scopes *[]string, userID string) (*auth.Resource, error) {
-	return &auth.Resource{ResourceID: uuid.NewV4().String(), PermissionID: uuid.NewV4().String(), PolicyID: uuid.NewV4().String()}, nil
+func (m *DummyResourceManager) CreateSpace(ctx context.Context, request *goa.RequestData, spaceID string) (*auth.SpaceResource, error) {
+	return &auth.SpaceResource{Data: auth.SpaceResourceData{ResourceID: uuid.NewV4().String(), PermissionID: uuid.NewV4().String(), PolicyID: uuid.NewV4().String()}}, nil
 }
 
-func (m *DummyResourceManager) DeleteResource(ctx context.Context, request *goa.RequestData, resource auth.Resource) error {
+func (m *DummyResourceManager) DeleteSpace(ctx context.Context, request *goa.RequestData, spaceID string) error {
 	return nil
 }
 

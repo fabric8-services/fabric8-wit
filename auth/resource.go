@@ -2,175 +2,144 @@ package auth
 
 import (
 	"context"
-
+	"encoding/json"
 	"fmt"
+	"net/http"
 
+	"github.com/almighty/almighty-core/rest"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/goadesign/goa"
-	"github.com/satori/go.uuid"
+	goajwt "github.com/goadesign/goa/middleware/security/jwt"
+	errs "github.com/pkg/errors"
 )
 
-// AuthzResourceManager represents a space resource manager
-type AuthzResourceManager interface {
-	CreateResource(ctx context.Context, request *goa.RequestData, name string, rType string, uri *string, scopes *[]string, userID string) (*Resource, error)
-	DeleteResource(ctx context.Context, request *goa.RequestData, resource Resource) error
+// ResourceManager represents a space resource manager
+type ResourceManager interface {
+	CreateSpace(ctx context.Context, request *goa.RequestData, spaceID string) (*SpaceResource, error)
+	DeleteSpace(ctx context.Context, request *goa.RequestData, spaceID string) error
 }
 
-// KeycloakResourceManager implements AuthzResourceManager interface
-type KeycloakResourceManager struct {
-	configuration KeycloakConfiguration
+// AuthzResourceManager implements ResourceManager interface
+type AuthzResourceManager struct {
+	configuration AuthServiceConfiguration
 }
 
-// Resource represents a Keycloak resource and associated permission and policy
-type Resource struct {
-	ResourceID   string
-	PolicyID     string
-	PermissionID string
+type SpaceResource struct {
+	Data SpaceResourceData `form:"data" json:"data" xml:"data"`
 }
 
-// KeycloakConfiguration represents a keycloak configuration
-type KeycloakConfiguration interface {
-	GetKeycloakEndpointAuthzResourceset(*goa.RequestData) (string, error)
-	GetKeycloakEndpointToken(*goa.RequestData) (string, error)
-	GetKeycloakEndpointClients(*goa.RequestData) (string, error)
-	GetKeycloakEndpointAdmin(*goa.RequestData) (string, error)
-	GetKeycloakEndpointEntitlement(*goa.RequestData) (string, error)
-	GetKeycloakClientID() string
-	GetKeycloakSecret() string
+type SpaceResourceData struct {
+	PermissionID string `form:"permissionID" json:"permissionID" xml:"permissionID"`
+	PolicyID     string `form:"policyID" json:"policyID" xml:"policyID"`
+	ResourceID   string `form:"resourceID" json:"resourceID" xml:"resourceID"`
 }
 
-// NewKeycloakResourceManager constructs KeycloakResourceManager
-func NewKeycloakResourceManager(config KeycloakConfiguration) *KeycloakResourceManager {
-	return &KeycloakResourceManager{config}
+// AuthServiceConfiguration represents auth service configuration
+type AuthServiceConfiguration interface {
+	GetAuthEndpointSpaces(*goa.RequestData) (string, error)
 }
 
-// CreateResource creates a keycloak resource and associated permission and policy
-func (m *KeycloakResourceManager) CreateResource(ctx context.Context, request *goa.RequestData, name string, rType string, uri *string, scopes *[]string, userID string) (*Resource, error) {
-	pat, err := getPat(ctx, request, m.configuration)
-	if err != nil {
-		return nil, err
-	}
-	publicClientID := m.configuration.GetKeycloakClientID()
-	clientsEndpoint, err := m.configuration.GetKeycloakEndpointClients(request)
-	if err != nil {
-		return nil, err
-	}
-	clientID, err := GetClientID(context.Background(), clientsEndpoint, publicClientID, pat)
-	if err != nil {
-		return nil, err
-	}
-	authzEndpoint, err := m.configuration.GetKeycloakEndpointAuthzResourceset(request)
-	if err != nil {
-		return nil, err
-	}
-	adminEndpoint, err := m.configuration.GetKeycloakEndpointAdmin(request)
-	// Create resource
-	kcResource := KeycloakResource{
-		Name:   name,
-		Type:   rType,
-		URI:    uri,
-		Scopes: scopes,
-	}
-	resourceID, err := CreateResource(ctx, kcResource, authzEndpoint, pat)
-	if err != nil {
-		return nil, err
-	}
+// NewAuthzResourceManager constructs AuthzResourceManager
+func NewAuthzResourceManager(config AuthServiceConfiguration) *AuthzResourceManager {
+	return &AuthzResourceManager{config}
+}
 
-	// Create policy
-	found, err := ValidateKeycloakUser(ctx, adminEndpoint, userID, pat)
+// CreateSpace calls auth service to create a keycloak resource associated with the space
+func (m *AuthzResourceManager) CreateSpace(ctx context.Context, request *goa.RequestData, spaceID string) (*SpaceResource, error) {
+	authSpacesEndpoint, err := m.configuration.GetAuthEndpointSpaces(request)
 	if err != nil {
 		return nil, err
 	}
-	if !found {
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/%s", authSpacesEndpoint, spaceID), nil)
+	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"user_id": userID,
-		}, "User not found in Keycloak")
-		return nil, errors.NewNotFoundError("keycloak user", userID) // The user is not found in the Keycloak user base
+			"err": err.Error(),
+		}, "unable to create http request")
+		return nil, errs.Wrap(err, "unable to create http request")
 	}
-	userIDs := "[\"" + userID + "\"]"
-	policy := KeycloakPolicy{
-		Name:             fmt.Sprintf("%s-%s", name, uuid.NewV4().String()),
-		Type:             PolicyTypeUser,
-		Logic:            PolicyLogicPossitive,
-		DecisionStrategy: PolicyDecisionStrategyUnanimous,
-		Config: PolicyConfigData{
-			UserIDs: userIDs,
-		},
+	jwttoken := goajwt.ContextJWT(ctx)
+	if jwttoken == nil {
+		return nil, errors.NewUnauthorizedError("missing token")
 	}
-	policyID, err := CreatePolicy(ctx, clientsEndpoint, clientID, policy, pat)
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", jwttoken.Raw))
+	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, err
+		log.Error(ctx, map[string]interface{}{
+			"space_id": spaceID,
+			"err":      err.Error(),
+		}, "unable to create a sapace resource via auth service")
+		return nil, errs.Wrap(err, "unable to create a sapace resource via auth service")
 	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		log.Error(ctx, map[string]interface{}{
+			"space_id":        spaceID,
+			"response_status": res.Status,
+			"response_body":   rest.ReadBody(res.Body),
+		}, "unable to create a sapace resource via auth service")
+		return nil, errs.Errorf("unable to create a sapace resource via auth service. Response status: %s. Responce body: %s", res.Status, rest.ReadBody(res.Body))
+	}
+	jsonString := rest.ReadBody(res.Body)
 
-	// Create permission
-	permission := KeycloakPermission{
-		Name:             fmt.Sprintf("%s-%s", name, uuid.NewV4().String()),
-		Type:             PermissionTypeResource,
-		Logic:            PolicyLogicPossitive,
-		DecisionStrategy: PolicyDecisionStrategyUnanimous,
-		Config: PermissionConfigData{
-			Resources:     "[\"" + resourceID + "\"]",
-			ApplyPolicies: "[\"" + policyID + "\"]",
-		},
-	}
-	permissionID, err := CreatePermission(ctx, clientsEndpoint, clientID, permission, pat)
+	var resource SpaceResource
+	err = json.Unmarshal([]byte(jsonString), &resource)
 	if err != nil {
-		return nil, err
+		log.Error(ctx, map[string]interface{}{
+			"space_id":    spaceID,
+			"json_string": jsonString,
+		}, "unable to unmarshal json with the create space resource request result")
+
+		return nil, errs.Wrapf(err, "unable to unmarshal json with the create space resource request result %s ", jsonString)
 	}
 
-	newResource := &Resource{
-		ResourceID:   resourceID,
-		PolicyID:     policyID,
-		PermissionID: permissionID,
-	}
+	log.Debug(ctx, map[string]interface{}{
+		"space_id":    spaceID,
+		"resource_id": resource.Data.ResourceID,
+	}, "Space resource created")
 
-	return newResource, nil
+	return &resource, nil
 }
 
-func getPat(ctx context.Context, requestData *goa.RequestData, config KeycloakConfiguration) (string, error) {
-	endpoint, err := config.GetKeycloakEndpointToken(requestData)
+// DeleteSpace calls auth service to delete the keycloak resource associated with the space
+func (m *AuthzResourceManager) DeleteSpace(ctx context.Context, request *goa.RequestData, spaceID string) error {
+	authSpacesEndpoint, err := m.configuration.GetAuthEndpointSpaces(request)
 	if err != nil {
-		return "", err
+		return err
 	}
-	token, err := GetProtectedAPIToken(ctx, endpoint, config.GetKeycloakClientID(), config.GetKeycloakSecret())
+	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/%s", authSpacesEndpoint, spaceID), nil)
 	if err != nil {
-		return "", err
+		log.Error(ctx, map[string]interface{}{
+			"err": err.Error(),
+		}, "unable to create http request")
+		return errs.Wrap(err, "unable to create http request")
 	}
-	return token, nil
-}
+	jwttoken := goajwt.ContextJWT(ctx)
+	if jwttoken == nil {
+		return errors.NewUnauthorizedError("missing token")
+	}
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", jwttoken.Raw))
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"space_id": spaceID,
+			"err":      err.Error(),
+		}, "unable to delete a sapace resource via auth service")
+		return errs.Wrap(err, "unable to delete a sapace resource via auth service")
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusCreated {
+		log.Error(ctx, map[string]interface{}{
+			"space_id":        spaceID,
+			"response_status": res.Status,
+			"response_body":   rest.ReadBody(res.Body),
+		}, "unable to delete a sapace resource via auth service")
+		return errs.Errorf("unable to delete a sapace resource via auth service. Response status: %s. Responce body: %s", res.Status, rest.ReadBody(res.Body))
+	}
 
-// DeleteResource deletes the keycloak resource and associated permission and policy
-func (m *KeycloakResourceManager) DeleteResource(ctx context.Context, request *goa.RequestData, resource Resource) error {
-	authzEndpoint, err := m.configuration.GetKeycloakEndpointAuthzResourceset(request)
-	if err != nil {
-		return err
-	}
-	clientsEndpoint, err := m.configuration.GetKeycloakEndpointClients(request)
-	if err != nil {
-		return err
-	}
-	pat, err := getPat(ctx, request, m.configuration)
-	if err != nil {
-		return err
-	}
-	publicClientID := m.configuration.GetKeycloakClientID()
-	clientID, err := GetClientID(context.Background(), clientsEndpoint, publicClientID, pat)
-	if err != nil {
-		return err
-	}
+	log.Debug(ctx, map[string]interface{}{
+		"space_id": spaceID,
+	}, "Space resource deleted")
 
-	// Delete resource
-	err = DeleteResource(ctx, resource.ResourceID, authzEndpoint, pat)
-	if err != nil {
-		return err
-	}
-	// Delete permission
-	err = DeletePermission(ctx, clientsEndpoint, clientID, resource.PermissionID, pat)
-	if err != nil {
-		return err
-	}
-	// Delete policy
-	err = DeletePolicy(ctx, clientsEndpoint, clientID, resource.PolicyID, pat)
-	return err
+	return nil
 }
