@@ -17,7 +17,7 @@ type WorkItemTypeGroup struct {
 	// e.g> {1, 2, 3} -> Object is at 1st level & it is 2nd child's 3rd child
 	Level                  []int
 	Group                  string
-	Name                   string
+	Name                   string // the name to be displayed to user
 	WorkItemTypeCollection []uuid.UUID
 }
 
@@ -68,7 +68,7 @@ var Requirements0 = WorkItemTypeGroup{
 var Execution0 = WorkItemTypeGroup{
 	Group: GroupExecution,
 	Level: []int{2, 0},
-	Name:  "Execution",
+	Name:  "Iterations",
 	WorkItemTypeCollection: []uuid.UUID{
 		workitem.SystemTask,
 	},
