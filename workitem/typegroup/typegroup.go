@@ -17,7 +17,7 @@ type WorkItemTypeGroup struct {
 	// e.g> {1, 2, 3} -> Object is at 1st level & it is 2nd child's 3rd child
 	Level                  []int
 	Group                  string
-	Name                   string
+	Name                   string // the name to be displayed to user
 	WorkItemTypeCollection []uuid.UUID
 }
 
