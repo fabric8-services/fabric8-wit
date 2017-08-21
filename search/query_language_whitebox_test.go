@@ -332,9 +332,18 @@ func expectEqualExpr(t *testing.T, expectedExpr, actualExpr c.Expression) {
 	require.Equal(t, expectedParameters, actualParameters, "parameters differ")
 }
 
-func NoTestGenerateExpressionWithNonExistingKey(t *testing.T) {
+func TestGenerateExpressionWithNonExistingKey(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
 	t.Parallel()
-	q := Query{}
-	_, err := q.generateExpression()
-	require.NotNil(t, err)
+	t.Run("Empty query", func(t *testing.T) {
+		t.Parallel()
+		// given
+		q := Query{}
+		// when
+		actualExpr, err := q.generateExpression()
+		// then
+		require.NotNil(t, err)
+		require.Nil(t, actualExpr)
+	})
+
 }
