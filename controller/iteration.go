@@ -74,12 +74,15 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 
 		childPath := append(parent.Path, parent.ID)
 
+		reqIter.Attributes.UserActive = ctx.Payload.Data.Attributes.UserActive
+
 		newItr := iteration.Iteration{
-			SpaceID: parent.SpaceID,
-			Path:    childPath,
-			Name:    *reqIter.Attributes.Name,
-			StartAt: reqIter.Attributes.StartAt,
-			EndAt:   reqIter.Attributes.EndAt,
+			SpaceID:    parent.SpaceID,
+			Path:       childPath,
+			Name:       *reqIter.Attributes.Name,
+			StartAt:    reqIter.Attributes.StartAt,
+			EndAt:      reqIter.Attributes.EndAt,
+			UserActive: reqIter.Attributes.UserActive,
 		}
 
 		err = appl.Iterations().Create(ctx, &newItr)
@@ -193,6 +196,11 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 			}
 			itr.State = *ctx.Payload.Data.Attributes.State
 		}
+
+		if ctx.Payload.Data.Attributes.UserActive != nil {
+			itr.UserActive = ctx.Payload.Data.Attributes.UserActive
+		}
+
 		itr, err = appl.Iterations().Save(ctx.Context, *itr)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
@@ -244,14 +252,16 @@ func ConvertIteration(request *goa.RequestData, itr iteration.Iteration, additio
 		Type: iterationType,
 		ID:   &itr.ID,
 		Attributes: &app.IterationAttributes{
-			Name:        &itr.Name,
-			CreatedAt:   &itr.CreatedAt,
-			UpdatedAt:   &itr.UpdatedAt,
-			StartAt:     itr.StartAt,
-			EndAt:       itr.EndAt,
-			Description: itr.Description,
-			State:       &itr.State,
-			ParentPath:  &pathToTopMostParent,
+			Name:         &itr.Name,
+			CreatedAt:    &itr.CreatedAt,
+			UpdatedAt:    &itr.UpdatedAt,
+			StartAt:      itr.StartAt,
+			EndAt:        itr.EndAt,
+			Description:  itr.Description,
+			State:        &itr.State,
+			ParentPath:   &pathToTopMostParent,
+			UserActive:   itr.UserActive,
+			ActiveStatus: &itr.ActiveStatus,
 		},
 		Relationships: &app.IterationRelations{
 			Space: &app.RelationGeneric{
