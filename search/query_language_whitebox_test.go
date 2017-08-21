@@ -345,5 +345,28 @@ func TestGenerateExpressionWithNonExistingKey(t *testing.T) {
 		require.NotNil(t, err)
 		require.Nil(t, actualExpr)
 	})
+	t.Run("Empty name", func(t *testing.T) {
+		t.Parallel()
+		// given
+		spaceName := "openshiftio"
+		q := Query{Name: "", Value: &spaceName}
+		// when
+		actualExpr, err := q.generateExpression()
+		// then
+		require.NotNil(t, err)
+		require.Nil(t, actualExpr)
+	})
+
+	t.Run("No existing key", func(t *testing.T) {
+		t.Parallel()
+		// given
+		spaceName := "openshiftio"
+		q := Query{Name: "nonexistingkey", Value: &spaceName}
+		// when
+		actualExpr, err := q.generateExpression()
+		// then
+		require.NotNil(t, err)
+		require.Nil(t, actualExpr)
+	})
 
 }
