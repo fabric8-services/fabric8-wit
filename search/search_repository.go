@@ -444,11 +444,7 @@ func parseFilterString(ctx context.Context, rawSearchString string) (criteria.Ex
 	q := Query{}
 	parseMap(fm, &q)
 
-	result, err := q.generateExpression()
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
+	return q.generateExpression()
 }
 
 // generateSQLSearchInfo accepts searchKeyword and join them in a way that can be used in sql
