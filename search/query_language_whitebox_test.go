@@ -210,7 +210,7 @@ func TestGenerateExpression(t *testing.T) {
 		spaceName := "openshiftio"
 		q := Query{Name: "space", Value: &spaceName}
 		// when
-		actualExpr := q.generateExpression()
+		actualExpr, _ := q.generateExpression()
 		// then
 		expectedExpr := c.Equals(
 			c.Field("SpaceID"),
@@ -225,7 +225,7 @@ func TestGenerateExpression(t *testing.T) {
 		spaceName := "openshiftio"
 		q := Query{Name: "space", Value: &spaceName, Negate: true}
 		// when
-		actualExpr := q.generateExpression()
+		actualExpr, _ := q.generateExpression()
 		// then
 		expectedExpr := c.Not(
 			c.Field("SpaceID"),
@@ -247,7 +247,7 @@ func TestGenerateExpression(t *testing.T) {
 			},
 		}
 		// when
-		actualExpr := q.generateExpression()
+		actualExpr, _ := q.generateExpression()
 		// then
 		expectedExpr := c.And(
 			c.Equals(
@@ -275,7 +275,7 @@ func TestGenerateExpression(t *testing.T) {
 			},
 		}
 		// when
-		actualExpr := q.generateExpression()
+		actualExpr, _ := q.generateExpression()
 		// then
 		expectedExpr := c.Or(
 			c.Equals(
@@ -303,7 +303,7 @@ func TestGenerateExpression(t *testing.T) {
 			},
 		}
 		// when
-		actualExpr := q.generateExpression()
+		actualExpr, _ := q.generateExpression()
 		// then
 		expectedExpr := c.And(
 			c.Not(
@@ -332,4 +332,11 @@ func expectEqualExpr(t *testing.T, expectedExpr, actualExpr c.Expression) {
 	}
 	require.Equal(t, exprectedClause, actualClause, "where clause differs")
 	require.Equal(t, expectedParameters, actualParameters, "parameters differ")
+}
+
+func TestGenerateExpressionWithNonExistingKey(t *testing.T) {
+	t.Parallel()
+	q := Query{}
+	_, err := q.generateExpression()
+	require.NotNil(t, err)
 }
