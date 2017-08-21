@@ -1,5 +1,5 @@
-hash: 3485ba9192d8fa45e0ff6c2f460c338020158011ba2d3a3bce3e0b67d80fe6b2
-updated: 2017-07-31T13:11:16.984432662+02:00
+hash: 127b602185e6a084a054a6cfafe6f51c4fec83ba79ae10f0a09ac461aab709d5
+updated: 2017-08-21T16:27:14.543411541+02:00
 imports:
 - name: github.com/andygrunwald/go-jira
   version: 9d1f282f93af41553ddb53b0116a8cdb75b4837a
@@ -100,6 +100,8 @@ imports:
   version: c1b9cf186e4bcd8e5d566ef43f2ae2dfe22dc34e
 - name: github.com/jinzhu/inflection
   version: 74387dc39a75e970e7a3ae6a3386b5bd2e5c5cff
+- name: github.com/jstemmer/go-junit-report
+  version: 15422cf504f9dc030386499a5c68053a38763e58
 - name: github.com/jteeuwen/go-bindata
   version: bbd0c6e271208dce66d8fda4bc536453cd27fc4a
   subpackages:
@@ -126,6 +128,12 @@ imports:
   version: e79763773ab6222ca1d5a7cbd9d62d83c1f77081
 - name: github.com/mitchellh/mapstructure
   version: 5a0325d7fafaac12dda6e7fb8bd222ec1b69875e
+- name: github.com/onsi/ginkgo
+  version: 9eda700730cba42af70d53180f9dcce9266bc2bc
+  subpackages:
+  - ginkgo
+- name: github.com/onsi/gomega
+  version: c893efa28eb45626cdaa76c9f653b62488858837
 - name: github.com/pelletier/go-buffruneio
   version: c37440a7cf42ac63b919c752ca73a85067e05992
 - name: github.com/pelletier/go-toml
@@ -144,8 +152,6 @@ imports:
   version: b024fc5ea0e34bc3f83d9941c8d60b0622bfaca4
 - name: github.com/russross/blackfriday
   version: 5f33e7b7878355cd2b7e6b8eefc48a5472c69f70
-- name: github.com/jstemmer/go-junit-report
-  version: 15422cf504f9dc030386499a5c68053a38763e58
 - name: github.com/satori/go.uuid
   version: b061729afc07e77a8aa4fad0a2fd840958f1942a
 - name: github.com/sergi/go-diff
