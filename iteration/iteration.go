@@ -75,7 +75,6 @@ type Repository interface {
 	CanStart(ctx context.Context, i *Iteration) (bool, error)
 	LoadMultiple(ctx context.Context, ids []uuid.UUID) ([]Iteration, error)
 	LoadChildren(ctx context.Context, parentIterationID uuid.UUID) ([]Iteration, error)
-	CalculateActiveIterationOnUpdate(ctx context.Context, itr *Iteration) (*bool, error)
 }
 
 // NewIterationRepository creates a new storage type.
@@ -109,7 +108,7 @@ func (m *GormIterationRepository) Create(ctx context.Context, u *Iteration) erro
 
 	u.ID = uuid.NewV4()
 	u.State = IterationStateNew
-	activeStatus := CalculateActiveIterationOnCreate(u)
+	activeStatus := calculateActiveIterationOnCreate(u)
 	u.ActiveStatus = activeStatus
 	err := m.db.Create(u).Error
 	// Composite key (name,space,path) must be unique
@@ -215,7 +214,7 @@ func (m *GormIterationRepository) Save(ctx context.Context, i Iteration) (*Itera
 		}, "unknown error happened when searching the iteration")
 		return nil, errors.NewInternalError(ctx, err)
 	}
-	activeStatus, err := m.CalculateActiveIterationOnUpdate(ctx, &i)
+	activeStatus, err := calculateActiveIterationOnUpdate(&itr, &i)
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
@@ -286,7 +285,7 @@ func startAtAndEndAtInTimeframe(startAt *time.Time, endAt *time.Time) bool {
 // To check if iteration is in timeframe on update it considers:
 // 1. Iteration Start Date in request payload (If nil, consider start date in db)
 // 2. Iteration End Date in request payload (If nil, consider end date in db)
-func IterationInTimeframeOnUpdate(newStartAt *time.Time, newEndAt *time.Time, existingStartAt *time.Time, existingEndAt *time.Time) bool {
+func iterationInTimeframeOnUpdate(newStartAt *time.Time, newEndAt *time.Time, existingStartAt *time.Time, existingEndAt *time.Time) bool {
 	if newStartAt != nil {
 		if newEndAt != nil {
 			// when user sets both startAt and endAt date, check if current date is after startAt date and before endAt date
@@ -314,11 +313,11 @@ func IterationInTimeframeOnUpdate(newStartAt *time.Time, newEndAt *time.Time, ex
 	return active
 }
 
-// IterationInTimeframeOnCreate checks if the start and end date of iteration falls in the current timeframe
+// iterationInTimeframeOnCreate checks if the start and end date of iteration falls in the current timeframe
 // To check if iteration is in timeframe on create it considers:
 // 1. Iteration Start Date in request payload
 // 2. Iteration End Date in request payload
-func IterationInTimeframeOnCreate(startAt *time.Time, endAt *time.Time) bool {
+func iterationInTimeframeOnCreate(startAt *time.Time, endAt *time.Time) bool {
 	if startAt != nil {
 		if endAt != nil {
 			// when user sets both startAt and endAt date, check if current date is after startAt date and before endAt date
@@ -334,73 +333,56 @@ func IterationInTimeframeOnCreate(startAt *time.Time, endAt *time.Time) bool {
 	return active
 }
 
-// CalculateActiveIterationOnCreate calculates the active status of an iteration when the iteration is to be created
+// calculateActiveIterationOnCreate calculates the active status of an iteration when the iteration is to be created
 // To calculate the active status of iteration, it considers:
 // 1. User set active flag in request payload
 // 2. Iteration Start Date in request payload
 // 3. Iteration End Date in request payload
-func CalculateActiveIterationOnCreate(u *Iteration) bool {
+func calculateActiveIterationOnCreate(u *Iteration) bool {
 	if u.UserActive != nil {
 		if *u.UserActive == IterationActive {
 			// when user sets active flag to true, activate the iteration
 			active = IterationActive
 		} else {
 			// when user sets active flag to false, check if iteration falls in timeframe
-			active = IterationInTimeframeOnCreate(u.StartAt, u.EndAt)
+			active = iterationInTimeframeOnCreate(u.StartAt, u.EndAt)
 		}
 	} else {
 		// when user does not set active flag, check if iteration falls in timeframe
-		active = IterationInTimeframeOnCreate(u.StartAt, u.EndAt)
+		active = iterationInTimeframeOnCreate(u.StartAt, u.EndAt)
 	}
 	return active
 }
 
-// CalculateActiveIterationOnUpdate calculates the active status of an iteration when the iteration is to be updated
+// calculateActiveIterationOnUpdate calculates the active status of an iteration when the iteration is to be updated
 // To calculate the active status of iteration, it considers:
 // 1. User set active flag in request payload (If nil, consider user set active flag in db)
 // 2. Iteration Start Date in request payload (If nil, consider start date in db)
 // 3. Iteration End Date in request payload (If nil, consider end date in db)
-func (m *GormIterationRepository) CalculateActiveIterationOnUpdate(ctx context.Context, itr *Iteration) (*bool, error) {
-	// fetch iteration from db
-	i := Iteration{}
-	tx := m.db.Where("id=?", itr.ID).First(&i)
-	if tx.RecordNotFound() {
-		log.Error(ctx, map[string]interface{}{
-			"iteration_id": itr.ID,
-		}, "iteration cannot be found")
-		return nil, errors.NewNotFoundError("iteration", itr.ID.String())
-	}
-	if err := tx.Error; err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"iteration_id": itr.ID,
-			"err":          err,
-		}, "unable to load iteration")
-		return nil, errors.NewInternalError(ctx, err)
-	}
-
-	if itr.UserActive != nil {
-		if *itr.UserActive == IterationActive {
+func calculateActiveIterationOnUpdate(existingIteration *Iteration, newIteration *Iteration) (*bool, error) {
+	if newIteration.UserActive != nil {
+		if *newIteration.UserActive == IterationActive {
 			// when user sets active flag to true, activate the iteration
-			itr.ActiveStatus = IterationActive
+			newIteration.ActiveStatus = IterationActive
 		} else {
 			// when user sets active flag to false, check if iteration falls in timeframe
-			itr.ActiveStatus = IterationInTimeframeOnUpdate(itr.StartAt, itr.EndAt, i.StartAt, i.EndAt)
+			newIteration.ActiveStatus = iterationInTimeframeOnUpdate(newIteration.StartAt, newIteration.EndAt, existingIteration.StartAt, existingIteration.EndAt)
 		}
 	} else {
 		// when user does not set active flag, check if active flag is present in db
-		if i.UserActive != nil {
-			if *i.UserActive == IterationActive {
-				itr.ActiveStatus = IterationActive
+		if existingIteration.UserActive != nil {
+			if *existingIteration.UserActive == IterationActive {
+				newIteration.ActiveStatus = IterationActive
 			} else {
 				// if active flag is set to false, check if iteration falls in timeframe
-				itr.ActiveStatus = IterationInTimeframeOnUpdate(itr.StartAt, itr.EndAt, i.StartAt, i.EndAt)
+				newIteration.ActiveStatus = iterationInTimeframeOnUpdate(newIteration.StartAt, newIteration.EndAt, existingIteration.StartAt, existingIteration.EndAt)
 			}
 		} else {
 			// if active flag is not already present, check if iteration falls in timeframe
-			itr.ActiveStatus = IterationInTimeframeOnUpdate(itr.StartAt, itr.EndAt, i.StartAt, i.EndAt)
+			newIteration.ActiveStatus = iterationInTimeframeOnUpdate(newIteration.StartAt, newIteration.EndAt, existingIteration.StartAt, existingIteration.EndAt)
 		}
 	}
-	return &itr.ActiveStatus, nil
+	return &newIteration.ActiveStatus, nil
 }
 
 // LoadChildren executes - select * from iterations where path <@ 'parent_path.parent_id';
