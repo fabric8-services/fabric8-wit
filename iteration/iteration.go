@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/fabric8-services/fabric8-wit/application/repository"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
@@ -39,17 +40,28 @@ type Iteration struct {
 	Name        string
 	Description *string
 	State       string // this tells if iteration is currently running or not
+	// optional, private timestamp of the latest addition/removal of a relationship with this iteration
+	// this field is used to generate the `ETag` and `Last-Modified` values in the HTTP responses and conditional requests processing
+	RelationShipsChangedAt *time.Time `sql:"column:relationships_changed_at"`
 }
 
 // GetETagData returns the field values to use to generate the ETag
 func (m Iteration) GetETagData() []interface{} {
 	// using the 'ID' and 'UpdatedAt' (converted to number of seconds since epoch) fields
-	return []interface{}{m.ID, strconv.FormatInt(m.UpdatedAt.Unix(), 10)}
+	values := []interface{}{m.ID, strconv.FormatInt(m.UpdatedAt.Unix(), 10), m.RelationShipsChangedAt}
+	return values
 }
 
 // GetLastModified returns the last modification time
 func (m Iteration) GetLastModified() time.Time {
-	return m.UpdatedAt
+	lastModified := m.UpdatedAt // default value
+	// also check the optional 'RelationShipsChangedAt' field
+	if m.RelationShipsChangedAt != nil && m.RelationShipsChangedAt.After(lastModified) {
+		lastModified = *m.RelationShipsChangedAt
+	}
+	logrus.Warnf("Last modification for iteration with id='%s': %s (updated at '%s' / relationships changed at '%s')", m.ID.String(), lastModified.String(), m.UpdatedAt.String(), m.RelationShipsChangedAt.String())
+	return lastModified
+
 }
 
 // TableName overrides the table name settings in Gorm to force a specific table name
