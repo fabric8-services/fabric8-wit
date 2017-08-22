@@ -71,11 +71,12 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 				}
 			}
 
-			hasChildren := workItemIncludeHasChildren(appl, ctx)
+			hasChildren := workItemIncludeHasChildren(ctx, appl)
+			includeParent := includeParentWorkItem(ctx, appl)
 			response := app.SearchWorkItemList{
 				Links: &app.PagingLinks{},
 				Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
-				Data:  ConvertWorkItems(ctx.RequestData, result, hasChildren),
+				Data:  ConvertWorkItems(ctx.RequestData, result, hasChildren, includeParent),
 			}
 
 			setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(result), offset, limit, count, "filter[expression]="+*ctx.FilterExpression)

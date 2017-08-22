@@ -28,6 +28,7 @@ var workItem = a.Type("WorkItem", func() {
 	})
 	a.Attribute("relationships", workItemRelationships)
 	a.Attribute("links", genericLinksForWorkItem)
+	a.Attribute("included", a.ArrayOf(d.Any), "An array of related workitems")
 	a.Required("type", "attributes")
 })
 
@@ -41,6 +42,7 @@ var workItemRelationships = a.Type("WorkItemRelationships", func() {
 	a.Attribute("area", relationGeneric, "This defines the area this work item belongs to")
 	a.Attribute("children", relationGeneric, "This defines the children of this work item")
 	a.Attribute("space", relationSpaces, "This defines the owning space of this work item.")
+	a.Attribute("parent", relationGeneric, "This defines the parent of this work item.")
 })
 
 // relationBaseType is top level block for WorkItemType relationship

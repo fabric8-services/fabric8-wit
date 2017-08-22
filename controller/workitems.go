@@ -128,7 +128,7 @@ func (c *WorkitemsController) Create(ctx *app.CreateWorkitemsContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))
 		}
-		hasChildren := workItemIncludeHasChildren(appl, ctx)
+		hasChildren := workItemIncludeHasChildren(ctx, appl)
 		wi2 := ConvertWorkItem(ctx.RequestData, *wi, hasChildren)
 		resp := &app.WorkItemSingle{
 			Data: wi2,
@@ -223,7 +223,7 @@ func (c *WorkitemsController) List(ctx *app.ListWorkitemsContext) error {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work items"))
 		}
 		return ctx.ConditionalEntities(workitems, c.config.GetCacheControlWorkItems, func() error {
-			hasChildren := workItemIncludeHasChildren(tx, ctx)
+			hasChildren := workItemIncludeHasChildren(ctx, tx)
 			response := app.WorkItemList{
 				Links: &app.PagingLinks{},
 				Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
@@ -281,7 +281,7 @@ func (c *WorkitemsController) Reorder(ctx *app.ReorderWorkitemsContext) error {
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, err)
 			}
-			hasChildren := workItemIncludeHasChildren(appl, ctx)
+			hasChildren := workItemIncludeHasChildren(ctx, appl)
 			wi2 := ConvertWorkItem(ctx.RequestData, *wi, hasChildren)
 			dataArray = append(dataArray, wi2)
 		}
