@@ -223,7 +223,7 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	c.resourceManager.DeleteSpace(ctx, ctx.RequestData, ctx.SpaceID.String())
+	err = c.resourceManager.DeleteSpace(ctx, ctx.RequestData, ctx.SpaceID.String())
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}

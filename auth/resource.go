@@ -128,7 +128,7 @@ func (m *AuthzResourceManager) DeleteSpace(ctx context.Context, request *goa.Req
 		return errs.Wrap(err, "unable to delete a sapace resource via auth service")
 	}
 	defer res.Body.Close()
-	if res.StatusCode != http.StatusCreated {
+	if res.StatusCode != http.StatusOK {
 		log.Error(ctx, map[string]interface{}{
 			"space_id":        spaceID,
 			"response_status": res.Status,
