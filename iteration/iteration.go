@@ -26,8 +26,8 @@ const (
 	IterationStateClose    = "close"
 	PathSepInService       = "/"
 	PathSepInDatabase      = "."
-	IterationActive        = bool(true)
-	IterationNotActive     = bool(false)
+	IterationActive        = true
+	IterationNotActive     = false
 )
 
 var active bool
