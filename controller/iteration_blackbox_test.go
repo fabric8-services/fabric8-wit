@@ -51,7 +51,7 @@ func (rest *TestIterationREST) SetupTest() {
 }
 
 func (rest *TestIterationREST) TearDownTest() {
-	// rest.clean()
+	rest.clean()
 }
 
 func (rest *TestIterationREST) SecuredController() (*goa.Service, *IterationController) {
