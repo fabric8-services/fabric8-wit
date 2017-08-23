@@ -591,9 +591,8 @@ func includeParentWorkItem(ctx context.Context, appl application.Application) Wo
 			}
 			parentID := parentWI.ID.String()
 			wi2.Relationships.Parent.Data.ID = &parentID
-			z := APIStringTypeWorkItem
-			wi2.Relationships.Parent.Data.Type = &z
-			wi2.Included = append(wi2.Included, *parentWI)
+			typeStr := APIStringTypeWorkItem
+			wi2.Relationships.Parent.Data.Type = &typeStr
 		}
 	}
 }

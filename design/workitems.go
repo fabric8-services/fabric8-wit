@@ -28,7 +28,6 @@ var workItem = a.Type("WorkItem", func() {
 	})
 	a.Attribute("relationships", workItemRelationships)
 	a.Attribute("links", genericLinksForWorkItem)
-	a.Attribute("included", a.ArrayOf(d.Any), "An array of related workitems")
 	a.Required("type", "attributes")
 })
 

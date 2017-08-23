@@ -14,6 +14,7 @@ import (
 
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 )
 
 type searchConfiguration interface {
@@ -52,8 +53,8 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 
 	if ctx.FilterExpression != nil {
 		return application.Transactional(c.db, func(appl application.Application) error {
-			result, c, err := appl.SearchItems().Filter(ctx.Context, *ctx.FilterExpression, ctx.FilterParentexists, &offset, &limit)
-			count := int(c)
+			result, cnt, err := appl.SearchItems().Filter(ctx.Context, *ctx.FilterExpression, ctx.FilterParentexists, &offset, &limit)
+			count := int(cnt)
 			if err != nil {
 				cause := errs.Cause(err)
 				switch cause.(type) {
@@ -78,7 +79,7 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 				Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
 				Data:  ConvertWorkItems(ctx.RequestData, result, hasChildren, includeParent),
 			}
-
+			c.enrichWorkItemList(ctx, &response) // append parentWI in response
 			setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(result), offset, limit, count, "filter[expression]="+*ctx.FilterExpression)
 			return ctx.OK(&response)
 		})
@@ -243,4 +244,38 @@ func (c *SearchController) Users(ctx *app.UsersSearchContext) error {
 	setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(result), offset, limit, count, "q="+q)
 
 	return ctx.OK(&response)
+}
+
+// Iterate over the WI list and read parent IDs
+// Fetch and load Parent WI in the included list
+func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, res *app.SearchWorkItemList) {
+	// Need a map of string to UUID to remove duplicates in place.
+	visitedIDs := map[string]uuid.UUID{}
+	for _, wi := range res.Data {
+		it := wi.Relationships != nil && wi.Relationships.Parent != nil && wi.Relationships.Parent.Data != nil
+		if it {
+			parentIDStr := *wi.Relationships.Parent.Data.ID
+			if _, exist := visitedIDs[parentIDStr]; exist == false {
+				id, err := uuid.FromString(parentIDStr)
+				if err != nil {
+					fmt.Println("log the error and continue")
+				}
+				visitedIDs[parentIDStr] = id
+			}
+		}
+	}
+	for _, parentID := range visitedIDs {
+		err := application.Transactional(c.db, func(appl application.Application) error {
+			wi, err := appl.WorkItems().LoadByID(ctx, parentID)
+			if err != nil {
+				return err
+			}
+			convertedWI := ConvertWorkItem(ctx.RequestData, *wi)
+			res.Included = append(res.Included, *convertedWI)
+			return nil
+		})
+		if err != nil {
+			fmt.Println("log the error and continue")
+		}
+	}
 }

@@ -29,6 +29,8 @@ import (
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
+
+	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	uuid "github.com/satori/go.uuid"
 
 	"context"
@@ -909,4 +911,78 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 		compareWithGolden(t, filepath.Join(s.testDir, "show", "bad_expression_missing_curly_brace.error.golden.json"), jerrs)
 		compareWithGolden(t, filepath.Join(s.testDir, "show", "bad_expression_missing_curly_brace.headers.golden.json"), res.Header())
 	})
+}
+
+// TestIncludedParents verifies the Included list of parents
+// create a space1
+// create wi1, wi2, wi3
+// wi2 is child of wi1
+// wi3 is child of wi2
+func (s *searchBlackBoxTest) TestIncludedParents() {
+	spaceOwner, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestSearchQueryScenarioDriven-"), "TestWISearch")
+	require.Nil(s.T(), err)
+	spaceInstance := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, *spaceOwner)
+	spaceIDStr := spaceInstance.ID.String()
+	wirepo := workitem.NewWorkItemRepository(s.DB)
+	workItemLinkCtrl := NewWorkItemLinkController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	require.NotNil(s.T(), workItemLinkCtrl)
+
+	parentWI0, err := wirepo.Create(
+		s.ctx, *spaceInstance.ID, workitem.SystemFeature,
+		map[string]interface{}{
+			workitem.SystemTitle: "Parent WI",
+			workitem.SystemState: workitem.SystemStateResolved,
+		}, spaceOwner.ID)
+	require.Nil(s.T(), err)
+
+	parentWI1, err := wirepo.Create(
+		s.ctx, *spaceInstance.ID, workitem.SystemTask,
+		map[string]interface{}{
+			workitem.SystemTitle: "Parent WI",
+			workitem.SystemState: workitem.SystemStateResolved,
+		}, spaceOwner.ID)
+	require.Nil(s.T(), err)
+
+	childWI, err := wirepo.Create(
+		s.ctx, *spaceInstance.ID, workitem.SystemBug,
+		map[string]interface{}{
+			workitem.SystemTitle: "Child WI",
+			workitem.SystemState: workitem.SystemStateResolved,
+		}, spaceOwner.ID)
+	require.Nil(s.T(), err)
+	// create parent links
+	createPayload := newCreateWorkItemLinkPayload(parentWI0.ID, parentWI1.ID, link.SystemWorkItemLinkTypeParentChildID)
+	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, workItemLinkCtrl, createPayload)
+	require.NotNil(s.T(), workItemLink)
+	require.Equal(s.T(), parentWI0.ID, workItemLink.Data.Relationships.Source.Data.ID)
+	require.Equal(s.T(), parentWI1.ID, workItemLink.Data.Relationships.Target.Data.ID)
+	require.Equal(s.T(), link.SystemWorkItemLinkTypeParentChildID, workItemLink.Data.Relationships.LinkType.Data.ID)
+
+	createPayload = newCreateWorkItemLinkPayload(parentWI1.ID, childWI.ID, link.SystemWorkItemLinkTypeParentChildID)
+	_, workItemLink = test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, workItemLinkCtrl, createPayload)
+	require.NotNil(s.T(), workItemLink)
+	require.Equal(s.T(), parentWI1.ID, workItemLink.Data.Relationships.Source.Data.ID)
+	require.Equal(s.T(), childWI.ID, workItemLink.Data.Relationships.Target.Data.ID)
+	require.Equal(s.T(), link.SystemWorkItemLinkTypeParentChildID, workItemLink.Data.Relationships.LinkType.Data.ID)
+
+	filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, spaceIDStr)
+	_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+	require.NotEmpty(s.T(), result.Data)
+	require.Len(s.T(), result.Data, 3)
+	require.Len(s.T(), result.Included, 2)
+
+	// verify included objects
+	includedMustHave := []string{parentWI0.ID.String(), parentWI1.ID.String()}
+	for _, ele := range result.Included {
+		if appWI, ok := ele.(app.WorkItem); ok == true {
+			if appWI.Type == APIStringTypeWorkItem {
+				for i, id := range includedMustHave {
+					if appWI.ID.String() == id {
+						includedMustHave = append(includedMustHave[:i], includedMustHave[i+1:]...)
+					}
+				}
+			}
+		}
+	}
+	assert.Empty(s.T(), includedMustHave)
 }
