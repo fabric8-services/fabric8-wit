@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/fabric8-services/fabric8-wit/application/repository"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
@@ -59,7 +58,6 @@ func (m Iteration) GetLastModified() time.Time {
 	if m.RelationShipsChangedAt != nil && m.RelationShipsChangedAt.After(lastModified) {
 		lastModified = *m.RelationShipsChangedAt
 	}
-	logrus.Warnf("Last modification for iteration with id='%s': %s (updated at '%s' / relationships changed at '%s')", m.ID.String(), lastModified.String(), m.UpdatedAt.String(), m.RelationShipsChangedAt.String())
 	return lastModified
 
 }
