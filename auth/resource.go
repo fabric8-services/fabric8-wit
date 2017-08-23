@@ -2,37 +2,28 @@ package auth
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"net/http"
+	"net/url"
 
-	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/auth/authservice"
+	"github.com/fabric8-services/fabric8-wit/goasupport"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/goadesign/goa"
-	goajwt "github.com/goadesign/goa/middleware/security/jwt"
+	goaclient "github.com/goadesign/goa/client"
+	goauuid "github.com/goadesign/goa/uuid"
 	errs "github.com/pkg/errors"
 )
 
 // ResourceManager represents a space resource manager
 type ResourceManager interface {
-	CreateSpace(ctx context.Context, request *goa.RequestData, spaceID string) (*SpaceResource, error)
+	CreateSpace(ctx context.Context, request *goa.RequestData, spaceID string) (*authservice.SpaceResource, error)
 	DeleteSpace(ctx context.Context, request *goa.RequestData, spaceID string) error
 }
 
 // AuthzResourceManager implements ResourceManager interface
 type AuthzResourceManager struct {
 	configuration AuthServiceConfiguration
-}
-
-type SpaceResource struct {
-	Data SpaceResourceData `form:"data" json:"data" xml:"data"`
-}
-
-type SpaceResourceData struct {
-	PermissionID string `form:"permissionID" json:"permissionID" xml:"permissionID"`
-	PolicyID     string `form:"policyID" json:"policyID" xml:"policyID"`
-	ResourceID   string `form:"resourceID" json:"resourceID" xml:"resourceID"`
 }
 
 // AuthServiceConfiguration represents auth service configuration
@@ -46,24 +37,16 @@ func NewAuthzResourceManager(config AuthServiceConfiguration) *AuthzResourceMana
 }
 
 // CreateSpace calls auth service to create a keycloak resource associated with the space
-func (m *AuthzResourceManager) CreateSpace(ctx context.Context, request *goa.RequestData, spaceID string) (*SpaceResource, error) {
-	authSpacesEndpoint, err := m.configuration.GetAuthEndpointSpaces(request)
+func (m *AuthzResourceManager) CreateSpace(ctx context.Context, request *goa.RequestData, spaceID string) (*authservice.SpaceResource, error) {
+	c, err := m.createClient(ctx, request)
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/%s", authSpacesEndpoint, spaceID), nil)
+	sUD, err := goauuid.FromString(spaceID)
 	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"err": err.Error(),
-		}, "unable to create http request")
-		return nil, errs.Wrap(err, "unable to create http request")
+		return nil, err
 	}
-	jwttoken := goajwt.ContextJWT(ctx)
-	if jwttoken == nil {
-		return nil, errors.NewUnauthorizedError("missing token")
-	}
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", jwttoken.Raw))
-	res, err := http.DefaultClient.Do(req)
+	res, err := c.CreateSpace(goasupport.ForwardContextRequestID(ctx), authservice.CreateSpacePath(sUD))
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"space_id": spaceID,
@@ -80,17 +63,15 @@ func (m *AuthzResourceManager) CreateSpace(ctx context.Context, request *goa.Req
 		}, "unable to create a sapace resource via auth service")
 		return nil, errs.Errorf("unable to create a sapace resource via auth service. Response status: %s. Responce body: %s", res.Status, rest.ReadBody(res.Body))
 	}
-	jsonString := rest.ReadBody(res.Body)
 
-	var resource SpaceResource
-	err = json.Unmarshal([]byte(jsonString), &resource)
+	resource, err := c.DecodeSpaceResource(res)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"space_id":    spaceID,
-			"json_string": jsonString,
-		}, "unable to unmarshal json with the create space resource request result")
+			"space_id":      spaceID,
+			"response_body": rest.ReadBody(res.Body),
+		}, "unable to decode the create space resource request result")
 
-		return nil, errs.Wrapf(err, "unable to unmarshal json with the create space resource request result %s ", jsonString)
+		return nil, errs.Wrapf(err, "unable to decode the create space resource request result %s ", rest.ReadBody(res.Body))
 	}
 
 	log.Debug(ctx, map[string]interface{}{
@@ -98,28 +79,20 @@ func (m *AuthzResourceManager) CreateSpace(ctx context.Context, request *goa.Req
 		"resource_id": resource.Data.ResourceID,
 	}, "Space resource created")
 
-	return &resource, nil
+	return resource, nil
 }
 
 // DeleteSpace calls auth service to delete the keycloak resource associated with the space
 func (m *AuthzResourceManager) DeleteSpace(ctx context.Context, request *goa.RequestData, spaceID string) error {
-	authSpacesEndpoint, err := m.configuration.GetAuthEndpointSpaces(request)
+	c, err := m.createClient(ctx, request)
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/%s", authSpacesEndpoint, spaceID), nil)
+	sUD, err := goauuid.FromString(spaceID)
 	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"err": err.Error(),
-		}, "unable to create http request")
-		return errs.Wrap(err, "unable to create http request")
+		return err
 	}
-	jwttoken := goajwt.ContextJWT(ctx)
-	if jwttoken == nil {
-		return errors.NewUnauthorizedError("missing token")
-	}
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", jwttoken.Raw))
-	res, err := http.DefaultClient.Do(req)
+	res, err := c.DeleteSpace(goasupport.ForwardContextRequestID(ctx), authservice.CreateSpacePath(sUD))
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"space_id": spaceID,
@@ -142,4 +115,21 @@ func (m *AuthzResourceManager) DeleteSpace(ctx context.Context, request *goa.Req
 	}, "Space resource deleted")
 
 	return nil
+}
+
+func (m *AuthzResourceManager) createClient(ctx context.Context, request *goa.RequestData) (*authservice.Client, error) {
+	authSpacesEndpoint, err := m.configuration.GetAuthEndpointSpaces(request)
+	if err != nil {
+		return nil, err
+	}
+
+	u, err := url.Parse(authSpacesEndpoint)
+	if err != nil {
+		return nil, err
+	}
+	c := authservice.New(goaclient.HTTPClientDoer(http.DefaultClient))
+	c.Host = u.Host
+	c.Scheme = u.Scheme
+	c.SetJWTSigner(goasupport.NewForwardSigner(ctx))
+	return c, nil
 }

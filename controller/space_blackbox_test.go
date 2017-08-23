@@ -10,7 +10,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
-	"github.com/fabric8-services/fabric8-wit/auth"
+	"github.com/fabric8-services/fabric8-wit/auth/authservice"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
@@ -32,8 +32,8 @@ var spaceConfiguration *configuration.ConfigurationData
 type DummyResourceManager struct {
 }
 
-func (m *DummyResourceManager) CreateSpace(ctx context.Context, request *goa.RequestData, spaceID string) (*auth.SpaceResource, error) {
-	return &auth.SpaceResource{Data: auth.SpaceResourceData{ResourceID: uuid.NewV4().String(), PermissionID: uuid.NewV4().String(), PolicyID: uuid.NewV4().String()}}, nil
+func (m *DummyResourceManager) CreateSpace(ctx context.Context, request *goa.RequestData, spaceID string) (*authservice.SpaceResource, error) {
+	return &authservice.SpaceResource{Data: &authservice.SpaceResourceData{ResourceID: uuid.NewV4().String(), PermissionID: uuid.NewV4().String(), PolicyID: uuid.NewV4().String()}}, nil
 }
 
 func (m *DummyResourceManager) DeleteSpace(ctx context.Context, request *goa.RequestData, spaceID string) error {
