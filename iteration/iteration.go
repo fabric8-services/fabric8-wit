@@ -272,19 +272,17 @@ func (i *Iteration) IsActive() bool {
 	if i.StartAt == nil {
 		return false
 	}
-	if i.EndAt != nil {
-		if inTimeframe(*i.StartAt, *i.EndAt) {
-			return true
-		} else {
-			return false
-		}
-
-	} else {
+	if i.EndAt == nil {
 		if time.Now().UTC().After(*i.StartAt) {
 			return true
 		} else {
 			return false
 		}
+	}
+	if inTimeframe(*i.StartAt, *i.EndAt) {
+		return true
+	} else {
+		return false
 	}
 
 }
