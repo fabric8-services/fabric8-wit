@@ -253,6 +253,133 @@ func (rest *TestIterationREST) TestShowIterationNotModifiedUsingIfNoneMatchHeade
 	test.ShowIterationNotModified(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), nil, &ifNoneMatch)
 }
 
+func (rest *TestIterationREST) createWorkItem(parentSpace space.Space) workitem.WorkItem {
+	var wi *workitem.WorkItem
+	err := application.Transactional(gormapplication.NewGormDB(rest.DB), func(app application.Application) error {
+		fields := map[string]interface{}{
+			workitem.SystemTitle: "Test Item",
+			workitem.SystemState: "new",
+		}
+		w, err := app.WorkItems().Create(context.Background(), parentSpace.ID, workitem.SystemBug, fields, parentSpace.OwnerId)
+		wi = w
+		return err
+	})
+	require.Nil(rest.T(), err)
+	return *wi
+}
+
+func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHeaderAfterWorkItemLinking() {
+	// given
+	parentSpace, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	svc, ctrl := rest.SecuredController()
+	rest.T().Logf("Iteration: %s: updatedAt: %s", itr.ID.String(), itr.UpdatedAt.String())
+	ifModifiedSinceHeader := app.ToHTTPTime(itr.UpdatedAt)
+	testWI := rest.createWorkItem(parentSpace)
+	testWI.Fields[workitem.SystemIteration] = itr.ID.String()
+	// need to wait at least 1s because HTTP date time does not include microseconds, hence `Last-Modified` vs `If-Modified-Since` comparison may fail
+	time.Sleep(1 * time.Second)
+	err := application.Transactional(rest.db, func(app application.Application) error {
+		_, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerId)
+		return err
+	})
+	require.Nil(rest.T(), err)
+	// when/then
+	test.ShowIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &ifModifiedSinceHeader, nil)
+}
+
+func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHeaderAfterWorkItemUnlinking() {
+	// given
+	parentSpace, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	svc, ctrl := rest.SecuredController()
+	rest.T().Logf("Iteration: %s: updatedAt: %s", itr.ID.String(), itr.UpdatedAt.String())
+	testWI := rest.createWorkItem(parentSpace)
+	testWI.Fields[workitem.SystemIteration] = itr.ID.String()
+	// need to wait at least 1s because HTTP date time does not include microseconds, hence `Last-Modified` vs `If-Modified-Since` comparison may fail
+	time.Sleep(1 * time.Second)
+	var updatedWI *workitem.WorkItem
+	err := application.Transactional(rest.db, func(app application.Application) error {
+		w, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerId)
+		updatedWI = w
+		return err
+	})
+	require.Nil(rest.T(), err)
+	testWI = *updatedWI
+	// read the iteration to compute its current `If-Modified-Since` value
+	var updatedItr *iteration.Iteration
+	err = application.Transactional(rest.db, func(app application.Application) error {
+		i, err := app.Iterations().Load(context.Background(), itr.ID)
+		updatedItr = i
+		return err
+	})
+	ifModifiedSinceHeader := app.ToHTTPTime(updatedItr.GetLastModified())
+	// now, unlink the work item from the iteration
+	// need to wait at least 1s because HTTP date time does not include microseconds, hence `Last-Modified` vs `If-Modified-Since` comparison may fail
+	delete(testWI.Fields, workitem.SystemIteration)
+	time.Sleep(1 * time.Second)
+	err = application.Transactional(rest.db, func(app application.Application) error {
+		_, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerId)
+		return err
+	})
+	require.Nil(rest.T(), err)
+	// when/then
+	test.ShowIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &ifModifiedSinceHeader, nil)
+}
+
+func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAfterWorkItemLinking() {
+	// given
+	parentSpace, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	svc, ctrl := rest.SecuredController()
+	ifNoneMatch := app.GenerateEntityTag(itr)
+	// now, create and attach a work item to the iteration
+	testWI := rest.createWorkItem(parentSpace)
+	testWI.Fields[workitem.SystemIteration] = itr.ID.String()
+	err := application.Transactional(rest.db, func(app application.Application) error {
+		_, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerId)
+		return err
+	})
+	require.Nil(rest.T(), err)
+	// when/then
+	test.ShowIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), nil, &ifNoneMatch)
+}
+
+func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAfterWorkItemUnlinking() {
+	// given
+	parentSpace, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	svc, ctrl := rest.SecuredController()
+	rest.T().Logf("Iteration: %s: updatedAt: %s", itr.ID.String(), itr.UpdatedAt.String())
+	testWI := rest.createWorkItem(parentSpace)
+	testWI.Fields[workitem.SystemIteration] = itr.ID.String()
+	// need to wait at least 1s because HTTP date time does not include microseconds, hence `Last-Modified` vs `If-Modified-Since` comparison may fail
+	time.Sleep(1 * time.Second)
+	var updatedWI *workitem.WorkItem
+	err := application.Transactional(rest.db, func(app application.Application) error {
+		w, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerId)
+		updatedWI = w
+		return err
+	})
+	require.Nil(rest.T(), err)
+	testWI = *updatedWI
+	// read the iteration to compute its current `If-None-Match` value
+	var updatedItr *iteration.Iteration
+	err = application.Transactional(rest.db, func(app application.Application) error {
+		i, err := app.Iterations().Load(context.Background(), itr.ID)
+		updatedItr = i
+		return err
+	})
+	ifNoneMatch := app.GenerateEntityTag(*updatedItr)
+	// now, unlink the work item from the iteration
+	// need to wait at least 1s because HTTP date time does not include microseconds, hence `Last-Modified` vs `If-Modified-Since` comparison may fail
+	delete(testWI.Fields, workitem.SystemIteration)
+	time.Sleep(1 * time.Second)
+	err = application.Transactional(rest.db, func(app application.Application) error {
+		_, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerId)
+		return err
+	})
+	require.Nil(rest.T(), err)
+	// when/then
+	test.ShowIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), nil, &ifNoneMatch)
+}
+
 func (rest *TestIterationREST) TestFailShowIterationMissing() {
 	// given
 	svc, ctrl := rest.SecuredController()
