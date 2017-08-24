@@ -356,11 +356,16 @@ func (q Query) determineLiteralType(key string, val string) criteria.Expression 
 	}
 }
 
-func (q Query) generateExpression() criteria.Expression {
+func (q Query) generateExpression() (criteria.Expression, error) {
 	var myexpr []criteria.Expression
 	currentOperator := q.Name
 	if !isOperator(currentOperator) {
-		key := q.getAttributeKey(q.Name)
+		var key string
+		if val, ok := searchKeyMap[q.Name]; ok {
+			key = val
+		} else {
+			return nil, errors.NewBadParameterError("key not found", q.Name)
+		}
 		left := criteria.Field(key)
 		right := q.determineLiteralType(key, *q.Value)
 		if q.Negate {
@@ -371,9 +376,18 @@ func (q Query) generateExpression() criteria.Expression {
 	}
 	for _, child := range q.Children {
 		if isOperator(child.Name) {
-			myexpr = append(myexpr, child.generateExpression())
+			exp, err := child.generateExpression()
+			if err != nil {
+				return nil, err
+			}
+			myexpr = append(myexpr, exp)
 		} else {
-			key := q.getAttributeKey(child.Name)
+			var key string
+			if val, ok := searchKeyMap[child.Name]; ok {
+				key = val
+			} else {
+				return nil, errors.NewBadParameterError("key not found", child.Name)
+			}
 			left := criteria.Field(key)
 			if child.Value != nil {
 				right := q.determineLiteralType(key, *child.Value)
@@ -410,7 +424,7 @@ func (q Query) generateExpression() criteria.Expression {
 			}
 		}
 	}
-	return res
+	return res, nil
 }
 
 // parseFilterString accepts a raw string and generates a criteria expression
@@ -430,8 +444,7 @@ func parseFilterString(ctx context.Context, rawSearchString string) (criteria.Ex
 	q := Query{}
 	parseMap(fm, &q)
 
-	result := q.generateExpression()
-	return result, nil
+	return q.generateExpression()
 }
 
 // generateSQLSearchInfo accepts searchKeyword and join them in a way that can be used in sql
