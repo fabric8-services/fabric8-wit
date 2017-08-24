@@ -74,7 +74,13 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 
 		childPath := append(parent.Path, parent.ID)
 
-		reqIter.Attributes.UserActive = ctx.Payload.Data.Attributes.UserActive
+		if ctx.Payload.Data.Attributes.UserActive != nil {
+			reqIter.Attributes.UserActive = ctx.Payload.Data.Attributes.UserActive
+		} else {
+			userActive := false
+			reqIter.Attributes.UserActive = &userActive
+
+		}
 
 		newItr := iteration.Iteration{
 			SpaceID:    parent.SpaceID,
@@ -196,11 +202,9 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 			}
 			itr.State = *ctx.Payload.Data.Attributes.State
 		}
-
 		if ctx.Payload.Data.Attributes.UserActive != nil {
 			itr.UserActive = ctx.Payload.Data.Attributes.UserActive
 		}
-
 		itr, err = appl.Iterations().Save(ctx.Context, *itr)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
@@ -248,6 +252,7 @@ func ConvertIteration(request *goa.RequestData, itr iteration.Iteration, additio
 	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
 	workitemsRelatedURL := rest.AbsoluteURL(request, app.WorkitemHref("?filter[iteration]="+itr.ID.String()))
 	pathToTopMostParent := itr.Path.String()
+	activeStatus := itr.IsActive()
 	i := &app.Iteration{
 		Type: iterationType,
 		ID:   &itr.ID,
@@ -261,7 +266,7 @@ func ConvertIteration(request *goa.RequestData, itr iteration.Iteration, additio
 			State:        &itr.State,
 			ParentPath:   &pathToTopMostParent,
 			UserActive:   itr.UserActive,
-			ActiveStatus: &itr.ActiveStatus,
+			ActiveStatus: &activeStatus,
 		},
 		Relationships: &app.IterationRelations{
 			Space: &app.RelationGeneric{
