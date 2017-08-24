@@ -40,7 +40,7 @@ type WorkItemLinkRepository interface {
 	Save(ctx context.Context, linkCat WorkItemLink, modifierID uuid.UUID) (*WorkItemLink, error)
 	ListWorkItemChildren(ctx context.Context, parentID uuid.UUID, start *int, limit *int) ([]workitem.WorkItem, uint64, error)
 	WorkItemHasChildren(ctx context.Context, parentID uuid.UUID) (bool, error)
-	GetParent(ctx context.Context, ID uuid.UUID) (*workitem.WorkItem, error)
+	GetParentID(ctx context.Context, ID uuid.UUID) (*uuid.UUID, error)
 }
 
 // NewWorkItemLinkRepository creates a work item link repository based on gorm
@@ -460,9 +460,8 @@ func (r *GormWorkItemLinkRepository) WorkItemHasChildren(ctx context.Context, pa
 	return hasChildren, nil
 }
 
-// WorkItemHasChildren returns true if the given parent work item has children;
-// otherwise false is returned
-func (r *GormWorkItemLinkRepository) GetParent(ctx context.Context, ID uuid.UUID) (*workitem.WorkItem, error) {
+// GetParentID returns paretn ID of the given parent work item if any
+func (r *GormWorkItemLinkRepository) GetParentID(ctx context.Context, ID uuid.UUID) (*uuid.UUID, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "get", "parent"}, time.Now())
 	query := fmt.Sprintf(`
 			SELECT id FROM %[1]s WHERE id in (
@@ -483,11 +482,7 @@ func (r *GormWorkItemLinkRepository) GetParent(ctx context.Context, ID uuid.UUID
 	defer stmt.Close()
 	err = stmt.QueryRow(ID.String()).Scan(&parentID)
 	if err != nil {
-		return nil, errs.Wrapf(err, "failed to find parent work item for %s: %s", ID.String(), query)
+		return nil, errs.Wrapf(err, "parent not found for work item: %s", ID.String(), query)
 	}
-	parentWI, err := r.workItemRepo.LoadByID(ctx, parentID)
-	if err != nil {
-		return nil, errs.Wrapf(err, "failed to load parent work item %s", parentID.String())
-	}
-	return parentWI, nil
+	return &parentID, nil
 }

@@ -252,13 +252,16 @@ func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, res *a
 	// Need a map of string to UUID to remove duplicates in place.
 	visitedIDs := map[string]uuid.UUID{}
 	for _, wi := range res.Data {
-		it := wi.Relationships != nil && wi.Relationships.Parent != nil && wi.Relationships.Parent.Data != nil
-		if it {
+		cond := wi.Relationships != nil && wi.Relationships.Parent != nil && wi.Relationships.Parent.Data != nil
+		if cond {
 			parentIDStr := *wi.Relationships.Parent.Data.ID
 			if _, exist := visitedIDs[parentIDStr]; exist == false {
 				id, err := uuid.FromString(parentIDStr)
 				if err != nil {
-					fmt.Println("log the error and continue")
+					log.Error(ctx, map[string]interface{}{
+						"wi_id": parentIDStr,
+						"err":   err,
+					}, "Parent ID is invalid UUID: %s", parentIDStr)
 				}
 				visitedIDs[parentIDStr] = id
 			}
@@ -275,7 +278,10 @@ func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, res *a
 			return nil
 		})
 		if err != nil {
-			fmt.Println("log the error and continue")
+			log.Error(ctx, map[string]interface{}{
+				"wi_id": parentID,
+				"err":   err,
+			}, "Unable to load parent work item: %s", parentID)
 		}
 	}
 }

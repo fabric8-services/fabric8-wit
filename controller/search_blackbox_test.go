@@ -985,4 +985,20 @@ func (s *searchBlackBoxTest) TestIncludedParents() {
 		}
 	}
 	assert.Empty(s.T(), includedMustHave)
+	var successCnt int
+	for _, wi := range result.Data {
+		if *wi.ID == parentWI0.ID {
+			require.Nil(s.T(), wi.Relationships.Parent.Data)
+			successCnt++
+		}
+		if *wi.ID == parentWI1.ID {
+			require.Equal(s.T(), parentWI0.ID.String(), *wi.Relationships.Parent.Data.ID)
+			successCnt++
+		}
+		if *wi.ID == childWI.ID {
+			require.Equal(s.T(), parentWI1.ID.String(), *wi.Relationships.Parent.Data.ID)
+			successCnt++
+		}
+	}
+	assert.Equal(s.T(), successCnt, 3)
 }
