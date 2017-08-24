@@ -249,7 +249,7 @@ func (c *SearchController) Users(ctx *app.UsersSearchContext) error {
 // Iterate over the WI list and read parent IDs
 // Fetch and load Parent WI in the included list
 func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, res *app.SearchWorkItemList) {
-	// Need a map of string to UUID to remove duplicates in place.
+	// Need a map of string to UUID to prevent duplicates in place.
 	visitedIDs := map[string]uuid.UUID{}
 	for _, wi := range res.Data {
 		cond := wi.Relationships != nil && wi.Relationships.Parent != nil && wi.Relationships.Parent.Data != nil
