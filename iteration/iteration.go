@@ -30,8 +30,6 @@ const (
 	IterationNotActive     = false
 )
 
-var active bool
-
 // Iteration describes a single iteration
 type Iteration struct {
 	gormsupport.Lifecycle
