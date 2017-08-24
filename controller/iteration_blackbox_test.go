@@ -722,16 +722,18 @@ func createSpaceAndRootAreaAndIterations(t *testing.T, db application.DB) (space
 		start := time.Now()
 		end := start.Add(time.Hour * (24 * 8 * 3))
 		iterationName := "Sprint #2"
+		userActive := false
 		otherIterationObj = iteration.Iteration{
 			Lifecycle: gormsupport.Lifecycle{
 				CreatedAt: spaceObj.CreatedAt,
 				UpdatedAt: spaceObj.UpdatedAt,
 			},
-			Name:    iterationName,
-			SpaceID: spaceObj.ID,
-			StartAt: &start,
-			EndAt:   &end,
-			Path:    append(rootIterationObj.Path, rootIterationObj.ID),
+			Name:       iterationName,
+			SpaceID:    spaceObj.ID,
+			StartAt:    &start,
+			EndAt:      &end,
+			UserActive: &userActive,
+			Path:       append(rootIterationObj.Path, rootIterationObj.ID),
 		}
 		err = app.Iterations().Create(context.Background(), &otherIterationObj)
 		require.Nil(t, err)
