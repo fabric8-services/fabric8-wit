@@ -21,6 +21,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/migration"
+	"github.com/fabric8-services/fabric8-wit/models"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/rest"
@@ -29,6 +30,7 @@ import (
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
+	"github.com/jinzhu/gorm"
 
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	uuid "github.com/satori/go.uuid"
@@ -64,6 +66,10 @@ func (s *searchBlackBoxTest) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
 	s.ctx = migration.NewMigrationContext(context.Background())
 	s.DBTestSuite.PopulateDBTestSuite(s.ctx)
+	err := models.Transactional(s.DB, func(tx *gorm.DB) error {
+		return migration.BootstrapWorkItemLinking(s.ctx, link.NewWorkItemLinkCategoryRepository(tx), space.NewRepository(tx), link.NewWorkItemLinkTypeRepository(tx))
+	})
+	require.Nil(s.T(), err)
 	s.testDir = filepath.Join("test-files", "search")
 }
 

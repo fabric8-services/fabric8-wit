@@ -460,7 +460,7 @@ func (r *GormWorkItemLinkRepository) WorkItemHasChildren(ctx context.Context, pa
 	return hasChildren, nil
 }
 
-// GetParentID returns paretn ID of the given work item if any
+// GetParentID returns parent ID of the given work item if any
 func (r *GormWorkItemLinkRepository) GetParentID(ctx context.Context, ID uuid.UUID) (*uuid.UUID, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "get", "parent"}, time.Now())
 	query := fmt.Sprintf(`
