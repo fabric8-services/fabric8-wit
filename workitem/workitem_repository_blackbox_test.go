@@ -255,8 +255,9 @@ func (s *workItemRepoBlackBoxTest) TestGetCountsPerIteration() {
 	assert.NotEqual(s.T(), uuid.UUID{}, iteration1.ID)
 	// given
 	iteration2 := iteration.Iteration{
-		Name:    "Sprint 2",
-		SpaceID: spaceInstance.ID,
+		Name:       "Sprint 2",
+		SpaceID:    spaceInstance.ID,
+		UserActive: &userActive,
 	}
 	// when
 	err = iterationRepo.Create(s.ctx, &iteration2)
