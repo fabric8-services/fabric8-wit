@@ -614,10 +614,10 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 
 	s.T().Run("state=resolved AND iteration=sprint1", func(t *testing.T) {
 		filter := fmt.Sprintf(`
-			{"$AND": [
-				{"state": "%s"},
-				{"iteration": "%s"}
-			]}`,
+				{"$AND": [
+					{"state": "%s"},
+					{"iteration": "%s"}
+				]}`,
 			workitem.SystemStateResolved, sprint1.ID)
 		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotEmpty(s.T(), result.Data)
@@ -626,10 +626,10 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 
 	s.T().Run("state=resolved AND iteration=sprint1 using EQ", func(t *testing.T) {
 		filter := fmt.Sprintf(`
-			{"$AND": [
-				{"state": {"$EQ": "%s"}},
-				{"iteration": {"$EQ": "%s"}}
-			]}`,
+				{"$AND": [
+					{"state": {"$EQ": "%s"}},
+					{"iteration": {"$EQ": "%s"}}
+				]}`,
 			workitem.SystemStateResolved, sprint1.ID)
 		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotEmpty(s.T(), result.Data)
@@ -638,10 +638,10 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 
 	s.T().Run("state=resolved AND iteration=sprint2", func(t *testing.T) {
 		filter := fmt.Sprintf(`
-			{"$AND": [
-				{"state": "%s"},
-				{"iteration": "%s"}
-			]}`,
+				{"$AND": [
+					{"state": "%s"},
+					{"iteration": "%s"}
+				]}`,
 			workitem.SystemStateResolved, sprint2.ID)
 		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.Len(s.T(), result.Data, 0) // No items having state=resolved && sprint2
@@ -652,10 +652,10 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 		// is any work item in the test-DB having state=resolved following count
 		// will fail
 		filter := fmt.Sprintf(`
-			{"$OR": [
-				{"state": "%s"},
-				{"iteration": "%s"}
-			]}`,
+				{"$OR": [
+					{"state": "%s"},
+					{"iteration": "%s"}
+				]}`,
 			workitem.SystemStateResolved, sprint2.ID)
 		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotEmpty(s.T(), result.Data)
@@ -667,7 +667,7 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 		// is any work item in the test-DB having state=resolved following count
 		// will fail
 		filter := fmt.Sprintf(`
-			{"state": {"$IN": ["%s", "%s"]}}`,
+				{"state": {"$IN": ["%s", "%s"]}}`,
 			workitem.SystemStateResolved, workitem.SystemStateClosed)
 		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotEmpty(s.T(), result.Data)
@@ -676,13 +676,13 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 
 	s.T().Run("space=ID AND (state=resolved OR iteration=sprint2)", func(t *testing.T) {
 		filter := fmt.Sprintf(`
-			{"$AND": [
-				{"space":"%s"},
-				{"$OR": [
-					{"state": "%s"},
-					{"iteration": "%s"}
-				]}
-			]}`,
+				{"$AND": [
+					{"space":"%s"},
+					{"$OR": [
+						{"state": "%s"},
+						{"iteration": "%s"}
+					]}
+				]}`,
 			spaceIDStr, workitem.SystemStateResolved, sprint2.ID)
 		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotEmpty(s.T(), result.Data)
@@ -691,13 +691,13 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 
 	s.T().Run("space=ID AND (state=resolved OR iteration=sprint2) using EQ", func(t *testing.T) {
 		filter := fmt.Sprintf(`
-			{"$AND": [
-				{"space": {"EQ": "%s"}},
-				{"$OR": [
-					{"state": {"$EQ": "%s"}},
-					{"iteration": {"$EQ": "%s"}}
-				]}
-			]}`,
+				{"$AND": [
+					{"space": {"EQ": "%s"}},
+					{"$OR": [
+						{"state": {"$EQ": "%s"}},
+						{"iteration": {"$EQ": "%s"}}
+					]}
+				]}`,
 			spaceIDStr, workitem.SystemStateResolved, sprint2.ID)
 		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotEmpty(s.T(), result.Data)
@@ -706,13 +706,13 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 
 	s.T().Run("space=ID AND (state!=resolved AND iteration=sprint1)", func(t *testing.T) {
 		filter := fmt.Sprintf(`
-			{"$AND": [
-				{"space":"%s"},
 				{"$AND": [
-					{"state": "%s", "negate": true},
-					{"iteration": "%s"}
-				]}
-			]}`,
+					{"space":"%s"},
+					{"$AND": [
+						{"state": "%s", "negate": true},
+						{"iteration": "%s"}
+					]}
+				]}`,
 			spaceIDStr, workitem.SystemStateResolved, sprint1.ID)
 		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		assert.Len(s.T(), result.Data, 0)
@@ -721,13 +721,13 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 	s.T().Run("space=ID AND (state!=open AND iteration!=fake-iterationID)", func(t *testing.T) {
 		fakeIterationID1 := uuid.NewV4()
 		filter := fmt.Sprintf(`
-			{"$AND": [
-				{"space": {"$EQ": "%s"}},
 				{"$AND": [
-					{"state": "%s", "negate": true},
-					{"iteration": "%s", "negate": true}
-				]}
-			]}`,
+					{"space": {"$EQ": "%s"}},
+					{"$AND": [
+						{"state": "%s", "negate": true},
+						{"iteration": "%s", "negate": true}
+					]}
+				]}`,
 			spaceIDStr, workitem.SystemStateOpen, fakeIterationID1)
 		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotEmpty(s.T(), result.Data)
@@ -737,13 +737,13 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 	s.T().Run("space!=ID AND (state!=open AND iteration!=fake-iterationID)", func(t *testing.T) {
 		fakeIterationID1 := uuid.NewV4()
 		filter := fmt.Sprintf(`
-			{"$AND": [
-				{"space": {"$NE": "%s"}},
 				{"$AND": [
-					{"state": "%s", "negate": true},
-					{"iteration": "%s", "negate": true}
-				]}
-			]}`,
+					{"space": {"$NE": "%s"}},
+					{"$AND": [
+						{"state": "%s", "negate": true},
+						{"iteration": "%s", "negate": true}
+					]}
+				]}`,
 			spaceIDStr, workitem.SystemStateOpen, fakeIterationID1)
 		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		assert.Empty(s.T(), result.Data) // all items are other than open state & in other thatn fake itr
@@ -753,13 +753,13 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 	s.T().Run("space=ID AND (state!=open AND iteration!=fake-iterationID) using NE", func(t *testing.T) {
 		fakeIterationID1 := uuid.NewV4()
 		filter := fmt.Sprintf(`
-			{"$AND": [
-				{"space":"%s"},
 				{"$AND": [
-					{"state": {"$NE": "%s"}},
-					{"iteration": {"$NE": "%s"}}
-				]}
-			]}`,
+					{"space":"%s"},
+					{"$AND": [
+						{"state": {"$NE": "%s"}},
+						{"iteration": {"$NE": "%s"}}
+					]}
+				]}`,
 			spaceIDStr, workitem.SystemStateOpen, fakeIterationID1)
 		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotEmpty(s.T(), result.Data)
@@ -769,10 +769,10 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 	s.T().Run("space=FakeID AND state=closed", func(t *testing.T) {
 		fakeSpaceID1 := uuid.NewV4().String()
 		filter := fmt.Sprintf(`
-			{"$AND": [
-				{"space":"%s"},
-				{"state": "%s"}
-			]}`,
+				{"$AND": [
+					{"space":"%s"},
+					{"state": "%s"}
+				]}`,
 			fakeSpaceID1, workitem.SystemStateOpen)
 		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &fakeSpaceID1)
 		assert.Len(s.T(), result.Data, 0) // we have 5 closed items but they are in different space
@@ -780,11 +780,11 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 
 	s.T().Run("space=spaceID AND state=closed AND assignee=bob", func(t *testing.T) {
 		filter := fmt.Sprintf(`
-			{"$AND": [
-				{"space":"%s"},
-				{"assignee":"%s"},
-				{"state": "%s"}
-			]}`,
+				{"$AND": [
+					{"space":"%s"},
+					{"assignee":"%s"},
+					{"state": "%s"}
+				]}`,
 			spaceIDStr, bob.ID, workitem.SystemStateClosed)
 		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotEmpty(s.T(), result.Data)
@@ -794,11 +794,11 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 	s.T().Run("space=spaceID AND iteration=sprint1 AND assignee=alice", func(t *testing.T) {
 		// Let's see what alice did in sprint1
 		filter := fmt.Sprintf(`
-			{"$AND": [
-				{"space":"%s"},
-				{"assignee":"%s"},
-				{"iteration": "%s"}
-			]}`,
+				{"$AND": [
+					{"space":"%s"},
+					{"assignee":"%s"},
+					{"iteration": "%s"}
+				]}`,
 			spaceIDStr, alice.ID, sprint1.ID)
 		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotEmpty(s.T(), result.Data)
@@ -808,12 +808,12 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 	s.T().Run("space=spaceID AND state!=closed AND iteration=sprint1 AND assignee=alice", func(t *testing.T) {
 		// Let's see non-closed issues alice working on from sprint1
 		filter := fmt.Sprintf(`
-			{"$AND": [
-				{"space":"%s"},
-				{"assignee":"%s"},
-				{"state":"%s", "negate": true},
-				{"iteration": "%s"}
-			]}`,
+				{"$AND": [
+					{"space":"%s"},
+					{"assignee":"%s"},
+					{"state":"%s", "negate": true},
+					{"iteration": "%s"}
+				]}`,
 			spaceIDStr, alice.ID, workitem.SystemStateClosed, sprint1.ID)
 		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotEmpty(s.T(), result.Data)
@@ -823,13 +823,13 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 	s.T().Run("space=spaceID AND (state=closed or state=resolved)", func(t *testing.T) {
 		// get me all closed and resolved work items from my space
 		filter := fmt.Sprintf(`
-			{"$AND": [
-				{"space":"%s"},
-				{"$OR": [
-					{"state":"%s"},
-					{"state":"%s"}
-				]}
-			]}`,
+				{"$AND": [
+					{"space":"%s"},
+					{"$OR": [
+						{"state":"%s"},
+						{"state":"%s"}
+					]}
+				]}`,
 			spaceIDStr, workitem.SystemStateClosed, workitem.SystemStateResolved)
 		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotEmpty(s.T(), result.Data)
@@ -839,13 +839,13 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 	s.T().Run("space=spaceID AND (type=bug OR type=feature)", func(t *testing.T) {
 		// get me all bugs or features in myspace
 		filter := fmt.Sprintf(`
-			{"$AND": [
-				{"space":"%s"},
-				{"$OR": [
-					{"type":"%s"},
-					{"type":"%s"}
-				]}
-			]}`,
+				{"$AND": [
+					{"space":"%s"},
+					{"$OR": [
+						{"type":"%s"},
+						{"type":"%s"}
+					]}
+				]}`,
 			spaceIDStr, workitem.SystemBug, workitem.SystemFeature)
 		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotEmpty(s.T(), result.Data)
@@ -855,13 +855,13 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 	s.T().Run("space=spaceID AND (workitemtype=bug OR workitemtype=feature)", func(t *testing.T) {
 		// get me all bugs or features in myspace
 		filter := fmt.Sprintf(`
-			{"$AND": [
-				{"space":"%s"},
-				{"$OR": [
-					{"workitemtype":"%s"},
-					{"workitemtype":"%s"}
-				]}
-			]}`,
+				{"$AND": [
+					{"space":"%s"},
+					{"$OR": [
+						{"workitemtype":"%s"},
+						{"workitemtype":"%s"}
+					]}
+				]}`,
 			spaceIDStr, workitem.SystemBug, workitem.SystemFeature)
 		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotEmpty(s.T(), result.Data)
@@ -871,13 +871,13 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 	s.T().Run("space=spaceID AND (type=bug AND state=resolved AND (assignee=bob OR assignee=alice))", func(t *testing.T) {
 		// get me all Resolved bugs assigned to bob or alice
 		filter := fmt.Sprintf(`
-			{"$AND": [
-				{"space":"%s"},
 				{"$AND": [
-					{"$AND": [{"type":"%s"},{"state":"%s"}]},
-					{"$OR": [{"assignee":"%s"},{"assignee":"%s"}]}
-				]}
-			]}`,
+					{"space":"%s"},
+					{"$AND": [
+						{"$AND": [{"type":"%s"},{"state":"%s"}]},
+						{"$OR": [{"assignee":"%s"},{"assignee":"%s"}]}
+					]}
+				]}`,
 			spaceIDStr, workitem.SystemBug, workitem.SystemStateResolved, bob.ID, alice.ID)
 		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotEmpty(s.T(), result.Data)
@@ -887,13 +887,13 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 	s.T().Run("space=spaceID AND (workitemtype=bug AND state=resolved AND (assignee=bob OR assignee=alice))", func(t *testing.T) {
 		// get me all Resolved bugs assigned to bob or alice
 		filter := fmt.Sprintf(`
-			{"$AND": [
-				{"space":"%s"},
 				{"$AND": [
-					{"$AND": [{"workitemtype":"%s"},{"state":"%s"}]},
-					{"$OR": [{"assignee":"%s"},{"assignee":"%s"}]}
-				]}
-			]}`,
+					{"space":"%s"},
+					{"$AND": [
+						{"$AND": [{"workitemtype":"%s"},{"state":"%s"}]},
+						{"$OR": [{"assignee":"%s"},{"assignee":"%s"}]}
+					]}
+				]}`,
 			spaceIDStr, workitem.SystemBug, workitem.SystemStateResolved, bob.ID, alice.ID)
 		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotEmpty(s.T(), result.Data)
@@ -910,6 +910,17 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 		jerrs.Errors[0].ID = &ignoreString
 		compareWithGolden(t, filepath.Join(s.testDir, "show", "bad_expression_missing_curly_brace.error.golden.json"), jerrs)
 		compareWithGolden(t, filepath.Join(s.testDir, "show", "bad_expression_missing_curly_brace.headers.golden.json"), res.Header())
+	})
+	s.T().Run("non existing key", func(t *testing.T) {
+		filter := fmt.Sprintf(`{"nonexistingkey": "0fe7b23e-c66e-43a9-ab1b-fbad9924fe7c"}`)
+		res, jerrs := test.ShowSearchBadRequest(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.NotNil(t, jerrs)
+		require.Len(t, jerrs.Errors, 1)
+		require.NotNil(t, jerrs.Errors[0].ID)
+		ignoreString := "IGNORE_ME"
+		jerrs.Errors[0].ID = &ignoreString
+		compareWithGolden(t, filepath.Join(s.testDir, "show", "non_existing_key.error.golden.json"), jerrs)
+		compareWithGolden(t, filepath.Join(s.testDir, "show", "non_existing_key.headers.golden.json"), res.Header())
 	})
 }
 
