@@ -50,6 +50,7 @@ const (
 	varDeveloperModeEnabled         = "developer.mode.enabled"
 	varAuthDomainPrefix             = "auth.domain.prefix"
 	varAuthURL                      = "auth.url"
+	varAuthorizationEnabled         = "authz.enabled"
 	varGithubAuthToken              = "github.auth.token"
 	varKeycloakSecret               = "keycloak.secret"
 	varKeycloakClientID             = "keycloak.client.id"
@@ -329,6 +330,16 @@ func (c *ConfigurationData) GetHeaderMaxLength() int64 {
 // e.g. token generation endpoint are enabled
 func (c *ConfigurationData) IsPostgresDeveloperModeEnabled() bool {
 	return c.v.GetBool(varDeveloperModeEnabled)
+}
+
+// IsAuthorizationEnabled returns true if space authorization enabled
+// By default athorization is disabled in Developer Mode only (if F8_AUTHZ_ENABLED us not set)
+// Set F8_AUTHZ_ENABLED env var to explictly disable or enable authorization regardless of Developer Mode settings
+func (c *ConfigurationData) IsAuthorizationEnabled() bool {
+	if c.v.IsSet(varAuthorizationEnabled) {
+		return c.v.GetBool(varAuthorizationEnabled)
+	}
+	return !c.IsPostgresDeveloperModeEnabled()
 }
 
 // GetCacheControlWorkItemTypes returns the value to set in the "Cache-Control" HTTP response header
