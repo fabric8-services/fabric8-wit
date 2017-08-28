@@ -257,11 +257,7 @@ func (m *GormIterationRepository) CanStart(ctx context.Context, i *Iteration) (b
 }
 
 func inTimeframe(startAt time.Time, endAt time.Time) bool {
-	if time.Now().UTC().After(startAt) && time.Now().UTC().Before(endAt) {
-		return true
-	} else {
-		return false
-	}
+	return time.Now().UTC().After(startAt) && time.Now().UTC().Before(endAt)
 }
 
 func (i *Iteration) IsActive() bool {
