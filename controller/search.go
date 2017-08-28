@@ -255,7 +255,7 @@ func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, res *a
 		cond := wi.Relationships != nil && wi.Relationships.Parent != nil && wi.Relationships.Parent.Data != nil
 		if cond {
 			parentIDStr := *wi.Relationships.Parent.Data.ID
-			if _, exist := visitedIDs[parentIDStr]; exist == false {
+			if _, exist := visitedIDs[parentIDStr]; !exist {
 				id, err := uuid.FromString(parentIDStr)
 				if err != nil {
 					log.Error(ctx, map[string]interface{}{
