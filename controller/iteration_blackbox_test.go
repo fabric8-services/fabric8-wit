@@ -253,6 +253,133 @@ func (rest *TestIterationREST) TestShowIterationNotModifiedUsingIfNoneMatchHeade
 	test.ShowIterationNotModified(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), nil, &ifNoneMatch)
 }
 
+func (rest *TestIterationREST) createWorkItem(parentSpace space.Space) workitem.WorkItem {
+	var wi *workitem.WorkItem
+	err := application.Transactional(gormapplication.NewGormDB(rest.DB), func(app application.Application) error {
+		fields := map[string]interface{}{
+			workitem.SystemTitle: "Test Item",
+			workitem.SystemState: "new",
+		}
+		w, err := app.WorkItems().Create(context.Background(), parentSpace.ID, workitem.SystemBug, fields, parentSpace.OwnerId)
+		wi = w
+		return err
+	})
+	require.Nil(rest.T(), err)
+	return *wi
+}
+
+func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHeaderAfterWorkItemLinking() {
+	// given
+	parentSpace, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	svc, ctrl := rest.SecuredController()
+	rest.T().Logf("Iteration: %s: updatedAt: %s", itr.ID.String(), itr.UpdatedAt.String())
+	ifModifiedSinceHeader := app.ToHTTPTime(itr.UpdatedAt)
+	testWI := rest.createWorkItem(parentSpace)
+	testWI.Fields[workitem.SystemIteration] = itr.ID.String()
+	// need to wait at least 1s because HTTP date time does not include microseconds, hence `Last-Modified` vs `If-Modified-Since` comparison may fail
+	time.Sleep(1 * time.Second)
+	err := application.Transactional(rest.db, func(app application.Application) error {
+		_, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerId)
+		return err
+	})
+	require.Nil(rest.T(), err)
+	// when/then
+	test.ShowIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &ifModifiedSinceHeader, nil)
+}
+
+func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHeaderAfterWorkItemUnlinking() {
+	// given
+	parentSpace, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	svc, ctrl := rest.SecuredController()
+	rest.T().Logf("Iteration: %s: updatedAt: %s", itr.ID.String(), itr.UpdatedAt.String())
+	testWI := rest.createWorkItem(parentSpace)
+	testWI.Fields[workitem.SystemIteration] = itr.ID.String()
+	// need to wait at least 1s because HTTP date time does not include microseconds, hence `Last-Modified` vs `If-Modified-Since` comparison may fail
+	time.Sleep(1 * time.Second)
+	var updatedWI *workitem.WorkItem
+	err := application.Transactional(rest.db, func(app application.Application) error {
+		w, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerId)
+		updatedWI = w
+		return err
+	})
+	require.Nil(rest.T(), err)
+	testWI = *updatedWI
+	// read the iteration to compute its current `If-Modified-Since` value
+	var updatedItr *iteration.Iteration
+	err = application.Transactional(rest.db, func(app application.Application) error {
+		i, err := app.Iterations().Load(context.Background(), itr.ID)
+		updatedItr = i
+		return err
+	})
+	ifModifiedSinceHeader := app.ToHTTPTime(updatedItr.GetLastModified())
+	// now, unlink the work item from the iteration
+	// need to wait at least 1s because HTTP date time does not include microseconds, hence `Last-Modified` vs `If-Modified-Since` comparison may fail
+	delete(testWI.Fields, workitem.SystemIteration)
+	time.Sleep(1 * time.Second)
+	err = application.Transactional(rest.db, func(app application.Application) error {
+		_, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerId)
+		return err
+	})
+	require.Nil(rest.T(), err)
+	// when/then
+	test.ShowIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &ifModifiedSinceHeader, nil)
+}
+
+func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAfterWorkItemLinking() {
+	// given
+	parentSpace, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	svc, ctrl := rest.SecuredController()
+	ifNoneMatch := app.GenerateEntityTag(itr)
+	// now, create and attach a work item to the iteration
+	testWI := rest.createWorkItem(parentSpace)
+	testWI.Fields[workitem.SystemIteration] = itr.ID.String()
+	err := application.Transactional(rest.db, func(app application.Application) error {
+		_, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerId)
+		return err
+	})
+	require.Nil(rest.T(), err)
+	// when/then
+	test.ShowIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), nil, &ifNoneMatch)
+}
+
+func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAfterWorkItemUnlinking() {
+	// given
+	parentSpace, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	svc, ctrl := rest.SecuredController()
+	rest.T().Logf("Iteration: %s: updatedAt: %s", itr.ID.String(), itr.UpdatedAt.String())
+	testWI := rest.createWorkItem(parentSpace)
+	testWI.Fields[workitem.SystemIteration] = itr.ID.String()
+	// need to wait at least 1s because HTTP date time does not include microseconds, hence `Last-Modified` vs `If-Modified-Since` comparison may fail
+	time.Sleep(1 * time.Second)
+	var updatedWI *workitem.WorkItem
+	err := application.Transactional(rest.db, func(app application.Application) error {
+		w, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerId)
+		updatedWI = w
+		return err
+	})
+	require.Nil(rest.T(), err)
+	testWI = *updatedWI
+	// read the iteration to compute its current `If-None-Match` value
+	var updatedItr *iteration.Iteration
+	err = application.Transactional(rest.db, func(app application.Application) error {
+		i, err := app.Iterations().Load(context.Background(), itr.ID)
+		updatedItr = i
+		return err
+	})
+	ifNoneMatch := app.GenerateEntityTag(*updatedItr)
+	// now, unlink the work item from the iteration
+	// need to wait at least 1s because HTTP date time does not include microseconds, hence `Last-Modified` vs `If-Modified-Since` comparison may fail
+	delete(testWI.Fields, workitem.SystemIteration)
+	time.Sleep(1 * time.Second)
+	err = application.Transactional(rest.db, func(app application.Application) error {
+		_, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerId)
+		return err
+	})
+	require.Nil(rest.T(), err)
+	// when/then
+	test.ShowIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), nil, &ifNoneMatch)
+}
+
 func (rest *TestIterationREST) TestFailShowIterationMissing() {
 	// given
 	svc, ctrl := rest.SecuredController()
@@ -410,10 +537,12 @@ func (rest *TestIterationREST) TestIterationStateTransitions() {
 	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr1.ID.String(), &payload)
 	assert.Equal(rest.T(), startState, *updated.Data.Attributes.State)
 	// create another iteration in same space and then change State to start
+	userActive := false
 	itr2 := iteration.Iteration{
-		Name:    "Spring 123",
-		SpaceID: itr1.SpaceID,
-		Path:    itr1.Path,
+		Name:       "Spring 123",
+		SpaceID:    itr1.SpaceID,
+		Path:       itr1.Path,
+		UserActive: &userActive,
 	}
 	err := rest.db.Iterations().Create(context.Background(), &itr2)
 	require.Nil(rest.T(), err)
@@ -466,6 +595,77 @@ func (rest *TestIterationREST) TestRootIterationCanNotStart() {
 	test.UpdateIterationBadRequest(rest.T(), svc.Context, svc, ctrl, ri.ID.String(), &payload)
 }
 
+func (rest *TestIterationREST) createIterations() (*app.IterationSingle, *account.Identity) {
+	sp, _, _, _, parent := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	_, err := rest.db.Iterations().Root(context.Background(), parent.SpaceID)
+	require.Nil(rest.T(), err)
+	parentID := parent.ID
+	name := uuid.NewV4().String()
+	ci := getChildIterationPayload(&name)
+	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerId)
+	require.Nil(rest.T(), err)
+	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
+	// when
+	_, created := test.CreateChildIterationCreated(rest.T(), svc.Context, svc, ctrl, parentID.String(), ci)
+	// then
+	require.NotNil(rest.T(), created)
+	return created, owner
+}
+
+// TestIterationActivedByUser tests iteration should always be active when user sets it to active
+func (rest *TestIterationREST) TestIterationActivatedByUser() {
+	itr1, owner := rest.createIterations()
+	assert.Equal(rest.T(), false, *itr1.Data.Attributes.UserActive)
+	assert.Equal(rest.T(), true, *itr1.Data.Attributes.ActiveStatus) // iteration falls in timeframe, so iteration is active
+
+	startDate := time.Date(2017, 5, 17, 00, 00, 00, 00, time.UTC)
+	endDate := time.Date(2017, 6, 17, 00, 00, 00, 00, time.UTC)
+	userActive := true
+	payload := app.UpdateIterationPayload{
+		Data: &app.Iteration{
+			Attributes: &app.IterationAttributes{
+				StartAt:    &startDate,
+				EndAt:      &endDate,
+				UserActive: &userActive,
+			},
+			ID:   itr1.Data.ID,
+			Type: iteration.APIStringTypeIteration,
+		},
+	}
+	owner, errIdn := rest.db.Identities().Load(context.Background(), owner.ID)
+	require.Nil(rest.T(), errIdn)
+	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
+	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr1.Data.ID.String(), &payload)
+	assert.Equal(rest.T(), iteration.IterationActive, *updated.Data.Attributes.ActiveStatus) // iteration doesnot fall in timeframe yet userActive is true so iteration is active
+}
+
+// TestIterationActivatedByTimeframe tests
+// 1. Iteration should be active when it is in timeframe
+// 2. Iteration should not be active when it is outside the timeframe
+func (rest *TestIterationREST) TestIterationActivatedByTimeframe() {
+	itr1, owner := rest.createIterations()
+	assert.Equal(rest.T(), false, *itr1.Data.Attributes.UserActive)
+	assert.Equal(rest.T(), true, *itr1.Data.Attributes.ActiveStatus) // iteration falls in timeframe, so iteration is active
+
+	startDate := time.Date(2017, 5, 17, 00, 00, 00, 00, time.UTC)
+	endDate := time.Date(2017, 6, 17, 00, 00, 00, 00, time.UTC)
+	payload := app.UpdateIterationPayload{
+		Data: &app.Iteration{
+			Attributes: &app.IterationAttributes{
+				StartAt: &startDate,
+				EndAt:   &endDate,
+			},
+			ID:   itr1.Data.ID,
+			Type: iteration.APIStringTypeIteration,
+		},
+	}
+	owner, errIdn := rest.db.Identities().Load(context.Background(), owner.ID)
+	require.Nil(rest.T(), errIdn)
+	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
+	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr1.Data.ID.String(), &payload)
+	assert.Equal(rest.T(), iteration.IterationNotActive, *updated.Data.Attributes.ActiveStatus) // iteration doesnot fall in timeframe, so iteration is not active
+}
+
 func getChildIterationPayload(name *string) *app.CreateChildIterationPayload {
 	start := time.Now()
 	end := start.Add(time.Hour * (24 * 8 * 3))
@@ -494,7 +694,9 @@ func createSpaceAndRootAreaAndIterations(t *testing.T, db application.DB) (space
 		otherIterationObj iteration.Iteration
 		otherAreaObj      area.Area
 	)
+
 	application.Transactional(db, func(app application.Application) error {
+		userActive := false
 		owner := &account.Identity{
 			Username:     "new-space-owner-identity",
 			ProviderType: account.KeycloakIDP,
@@ -516,8 +718,9 @@ func createSpaceAndRootAreaAndIterations(t *testing.T, db application.DB) (space
 		require.Nil(t, err)
 		// above space should have a root iteration for itself
 		rootIterationObj = iteration.Iteration{
-			Name:    spaceObj.Name,
-			SpaceID: spaceObj.ID,
+			Name:       spaceObj.Name,
+			SpaceID:    spaceObj.ID,
+			UserActive: &userActive,
 		}
 		err = app.Iterations().Create(context.Background(), &rootIterationObj)
 		require.Nil(t, err)
@@ -529,11 +732,12 @@ func createSpaceAndRootAreaAndIterations(t *testing.T, db application.DB) (space
 				CreatedAt: spaceObj.CreatedAt,
 				UpdatedAt: spaceObj.UpdatedAt,
 			},
-			Name:    iterationName,
-			SpaceID: spaceObj.ID,
-			StartAt: &start,
-			EndAt:   &end,
-			Path:    append(rootIterationObj.Path, rootIterationObj.ID),
+			Name:       iterationName,
+			SpaceID:    spaceObj.ID,
+			StartAt:    &start,
+			EndAt:      &end,
+			UserActive: &userActive,
+			Path:       append(rootIterationObj.Path, rootIterationObj.ID),
 		}
 		err = app.Iterations().Create(context.Background(), &otherIterationObj)
 		require.Nil(t, err)

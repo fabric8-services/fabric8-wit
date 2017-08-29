@@ -26,6 +26,8 @@ const (
 	IterationStateClose    = "close"
 	PathSepInService       = "/"
 	PathSepInDatabase      = "."
+	IterationActive        = true
+	IterationNotActive     = false
 )
 
 // Iteration describes a single iteration
@@ -39,17 +41,28 @@ type Iteration struct {
 	Name        string
 	Description *string
 	State       string // this tells if iteration is currently running or not
+	UserActive  *bool
+	// optional, private timestamp of the latest addition/removal of a relationship with this iteration
+	// this field is used to generate the `ETag` and `Last-Modified` values in the HTTP responses and conditional requests processing
+	RelationShipsChangedAt *time.Time `sql:"column:relationships_changed_at"`
 }
 
 // GetETagData returns the field values to use to generate the ETag
 func (m Iteration) GetETagData() []interface{} {
 	// using the 'ID' and 'UpdatedAt' (converted to number of seconds since epoch) fields
-	return []interface{}{m.ID, strconv.FormatInt(m.UpdatedAt.Unix(), 10)}
+	values := []interface{}{m.ID, strconv.FormatInt(m.UpdatedAt.Unix(), 10), m.RelationShipsChangedAt}
+	return values
 }
 
 // GetLastModified returns the last modification time
 func (m Iteration) GetLastModified() time.Time {
-	return m.UpdatedAt
+	lastModified := m.UpdatedAt // default value
+	// also check the optional 'RelationShipsChangedAt' field
+	if m.RelationShipsChangedAt != nil && m.RelationShipsChangedAt.After(lastModified) {
+		lastModified = *m.RelationShipsChangedAt
+	}
+	return lastModified
+
 }
 
 // TableName overrides the table name settings in Gorm to force a specific table name
@@ -241,6 +254,33 @@ func (m *GormIterationRepository) CanStart(ctx context.Context, i *Iteration) (b
 		return false, errors.NewBadParameterError("state", "One iteration from given space is already running")
 	}
 	return true, nil
+}
+
+func inTimeframe(startAt time.Time, endAt time.Time) bool {
+	return time.Now().UTC().After(startAt) && time.Now().UTC().Before(endAt)
+}
+
+func (i *Iteration) IsActive() bool {
+	if *i.UserActive == true {
+		return true
+	}
+
+	if i.StartAt == nil {
+		return false
+	}
+	if i.EndAt == nil {
+		if time.Now().UTC().After(*i.StartAt) {
+			return true
+		} else {
+			return false
+		}
+	}
+	if inTimeframe(*i.StartAt, *i.EndAt) {
+		return true
+	} else {
+		return false
+	}
+
 }
 
 // LoadChildren executes - select * from iterations where path <@ 'parent_path.parent_id';
