@@ -690,7 +690,7 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 	s.T().Run("space=ID AND (state=resolved OR iteration=sprint2) using EQ", func(t *testing.T) {
 		filter := fmt.Sprintf(`
 				{"$AND": [
-					{"space": {"EQ": "%s"}},
+					{"space": {"$EQ": "%s"}},
 					{"$OR": [
 						{"state": {"$EQ": "%s"}},
 						{"iteration": {"$EQ": "%s"}}
