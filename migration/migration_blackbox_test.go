@@ -126,6 +126,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration66", testMigration66)
 	t.Run("TestMigration67", testMigration67)
 	t.Run("TestMigration71", testMigration71)
+	t.Run("TestMigration72", testMigration72)
 
 	// Perform the migration
 	if err := migration.Migrate(sqlDB, databaseName); err != nil {
@@ -521,6 +522,11 @@ func testMigration71(t *testing.T) {
 	require.NotNil(t, relationshipsChangedAt)
 	assert.Equal(t, updatedAt.String(), relationshipsChangedAt.String())
 
+}
+
+func testMigration72(t *testing.T) {
+	migrateToVersion(sqlDB, migrations[:73], 73)
+	assert.True(t, dialect.HasColumn("iterations", "user_active"))
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and

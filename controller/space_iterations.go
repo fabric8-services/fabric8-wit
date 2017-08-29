@@ -67,12 +67,14 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
 		childPath := append(rootIteration.Path, rootIteration.ID)
+		userActive := false
 		newItr := iteration.Iteration{
-			SpaceID: ctx.SpaceID,
-			Name:    *reqIter.Attributes.Name,
-			StartAt: reqIter.Attributes.StartAt,
-			EndAt:   reqIter.Attributes.EndAt,
-			Path:    childPath,
+			SpaceID:    ctx.SpaceID,
+			Name:       *reqIter.Attributes.Name,
+			StartAt:    reqIter.Attributes.StartAt,
+			EndAt:      reqIter.Attributes.EndAt,
+			Path:       childPath,
+			UserActive: &userActive,
 		}
 		if reqIter.Attributes.Description != nil {
 			newItr.Description = reqIter.Attributes.Description
