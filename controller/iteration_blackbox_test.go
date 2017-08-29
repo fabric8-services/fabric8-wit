@@ -611,37 +611,11 @@ func (rest *TestIterationREST) createIterations() (*app.IterationSingle, *accoun
 	return created, owner
 }
 
-// TestIterationActivedByUser tests iteration should always be active when user sets it to active
-func (rest *TestIterationREST) TestIterationActivatedByUser() {
-	itr1, owner := rest.createIterations()
-	assert.Equal(rest.T(), false, *itr1.Data.Attributes.UserActive)
-	assert.Equal(rest.T(), true, *itr1.Data.Attributes.ActiveStatus) // iteration falls in timeframe, so iteration is active
-
-	startDate := time.Date(2017, 5, 17, 00, 00, 00, 00, time.UTC)
-	endDate := time.Date(2017, 6, 17, 00, 00, 00, 00, time.UTC)
-	userActive := true
-	payload := app.UpdateIterationPayload{
-		Data: &app.Iteration{
-			Attributes: &app.IterationAttributes{
-				StartAt:    &startDate,
-				EndAt:      &endDate,
-				UserActive: &userActive,
-			},
-			ID:   itr1.Data.ID,
-			Type: iteration.APIStringTypeIteration,
-		},
-	}
-	owner, errIdn := rest.db.Identities().Load(context.Background(), owner.ID)
-	require.Nil(rest.T(), errIdn)
-	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
-	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr1.Data.ID.String(), &payload)
-	assert.Equal(rest.T(), iteration.IterationActive, *updated.Data.Attributes.ActiveStatus) // iteration doesnot fall in timeframe yet userActive is true so iteration is active
-}
-
-// TestIterationActivatedByTimeframe tests
+// TestIterationActivedByUser tests:
 // 1. Iteration should be active when it is in timeframe
 // 2. Iteration should not be active when it is outside the timeframe
-func (rest *TestIterationREST) TestIterationActivatedByTimeframe() {
+// 3. Iteration should always be active when user sets it to active
+func (rest *TestIterationREST) TestIterationActivatedByUser() {
 	itr1, owner := rest.createIterations()
 	assert.Equal(rest.T(), false, *itr1.Data.Attributes.UserActive)
 	assert.Equal(rest.T(), true, *itr1.Data.Attributes.ActiveStatus) // iteration falls in timeframe, so iteration is active
@@ -663,6 +637,26 @@ func (rest *TestIterationREST) TestIterationActivatedByTimeframe() {
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr1.Data.ID.String(), &payload)
 	assert.Equal(rest.T(), iteration.IterationNotActive, *updated.Data.Attributes.ActiveStatus) // iteration doesnot fall in timeframe, so iteration is not active
+
+	startDate := time.Date(2017, 5, 17, 00, 00, 00, 00, time.UTC)
+	endDate := time.Date(2017, 6, 17, 00, 00, 00, 00, time.UTC)
+	userActive := true
+	payload := app.UpdateIterationPayload{
+		Data: &app.Iteration{
+			Attributes: &app.IterationAttributes{
+				StartAt:    &startDate,
+				EndAt:      &endDate,
+				UserActive: &userActive,
+			},
+			ID:   itr1.Data.ID,
+			Type: iteration.APIStringTypeIteration,
+		},
+	}
+	owner, errIdn := rest.db.Identities().Load(context.Background(), owner.ID)
+	require.Nil(rest.T(), errIdn)
+	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
+	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr1.Data.ID.String(), &payload)
+	assert.Equal(rest.T(), iteration.IterationActive, *updated.Data.Attributes.ActiveStatus) // iteration doesnot fall in timeframe yet userActive is true so iteration is active
 }
 
 func getChildIterationPayload(name *string) *app.CreateChildIterationPayload {
