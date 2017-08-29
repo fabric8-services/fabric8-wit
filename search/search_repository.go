@@ -266,6 +266,10 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 		case bool:
 			s := concreteVal
 			q.Negate = s
+		case nil:
+			q.Name = key
+			var s *string
+			q.Value = s
 		case map[string]interface{}:
 			q.Name = key
 			if v, ok := concreteVal["$IN"]; ok {
@@ -396,6 +400,12 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 				} else {
 					myexpr = append(myexpr, criteria.Equals(left, right))
 				}
+			} else {
+				if child.Negate {
+					return nil, errors.NewBadParameterError("negate for null not supported", child.Name)
+				}
+				myexpr = append(myexpr, criteria.IsNull(key))
+
 			}
 		}
 	}
