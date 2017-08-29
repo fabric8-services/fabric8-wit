@@ -450,16 +450,14 @@ func (s *TestIterationRepository) TestExistsIteration() {
 
 func (s *TestIterationRepository) TestIsActive() {
 	t := s.T()
+	newSpace := space.Space{
+		Name:    testsupport.CreateRandomValidTestName("Space Exists"),
+		OwnerId: s.testIdentity.ID,
+	}
+	repoSpace := space.NewRepository(s.DB)
+	space, err := repoSpace.Create(context.Background(), &newSpace)
+	assert.Nil(t, err)
 	t.Run("user active is true", func(t *testing.T) {
-		// given
-		newSpace := space.Space{
-			Name:    testsupport.CreateRandomValidTestName("Space Exists"),
-			OwnerId: s.testIdentity.ID,
-		}
-		repoSpace := space.NewRepository(s.DB)
-		space, err := repoSpace.Create(context.Background(), &newSpace)
-		assert.Nil(t, err)
-
 		level0IterationName := "Top level iteration"
 		i1 := iteration.Iteration{
 			Name:       level0IterationName,
@@ -469,15 +467,6 @@ func (s *TestIterationRepository) TestIsActive() {
 		require.True(t, i1.IsActive())
 	})
 	t.Run("start date is nil", func(t *testing.T) {
-		// given
-		newSpace := space.Space{
-			Name:    testsupport.CreateRandomValidTestName("Space Exists"),
-			OwnerId: s.testIdentity.ID,
-		}
-		repoSpace := space.NewRepository(s.DB)
-		space, err := repoSpace.Create(context.Background(), &newSpace)
-		assert.Nil(t, err)
-
 		level0IterationName := "Top level iteration"
 		i1 := iteration.Iteration{
 			Name:       level0IterationName,
@@ -487,15 +476,6 @@ func (s *TestIterationRepository) TestIsActive() {
 		require.False(t, i1.IsActive())
 	})
 	t.Run("end date is nil and current date is after start date", func(t *testing.T) {
-		// given
-		newSpace := space.Space{
-			Name:    testsupport.CreateRandomValidTestName("Space Exists"),
-			OwnerId: s.testIdentity.ID,
-		}
-		repoSpace := space.NewRepository(s.DB)
-		space, err := repoSpace.Create(context.Background(), &newSpace)
-		assert.Nil(t, err)
-
 		start := time.Now()
 		level0IterationName := "Top level iteration"
 		i1 := iteration.Iteration{
@@ -507,15 +487,6 @@ func (s *TestIterationRepository) TestIsActive() {
 		require.True(t, i1.IsActive())
 	})
 	t.Run("end date is nil and current date is before start date", func(t *testing.T) {
-		// given
-		newSpace := space.Space{
-			Name:    testsupport.CreateRandomValidTestName("Space Exists"),
-			OwnerId: s.testIdentity.ID,
-		}
-		repoSpace := space.NewRepository(s.DB)
-		space, err := repoSpace.Create(context.Background(), &newSpace)
-		assert.Nil(t, err)
-
 		now := time.Now()
 		start := now.Add(time.Hour)
 		level0IterationName := "Top level iteration"
