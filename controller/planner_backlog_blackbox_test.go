@@ -68,7 +68,6 @@ func (rest *TestPlannerBacklogBlackboxREST) UnSecuredController() (*goa.Service,
 
 func (rest *TestPlannerBacklogBlackboxREST) setupPlannerBacklogWorkItems() (testSpace *space.Space, parentIteration *iteration.Iteration, createdWI *workitem.WorkItem) {
 	application.Transactional(gormapplication.NewGormDB(rest.DB), func(app application.Application) error {
-		userActive := false
 		spacesRepo := app.Spaces()
 		testSpace = &space.Space{
 			Name: "PlannerBacklogWorkItems-" + uuid.NewV4().String(),
@@ -87,7 +86,7 @@ func (rest *TestPlannerBacklogBlackboxREST) setupPlannerBacklogWorkItems() (test
 			Name:       "Parent Iteration",
 			SpaceID:    testSpace.ID,
 			State:      iteration.IterationStateNew,
-			UserActive: &userActive,
+			UserActive: false,
 		}
 		iterationsRepo.Create(rest.ctx, parentIteration)
 		log.Info(nil, map[string]interface{}{"parent_iteration_id": parentIteration.ID}, "created parent iteration")
@@ -97,7 +96,7 @@ func (rest *TestPlannerBacklogBlackboxREST) setupPlannerBacklogWorkItems() (test
 			SpaceID:    testSpace.ID,
 			Path:       append(parentIteration.Path, parentIteration.ID),
 			State:      iteration.IterationStateStart,
-			UserActive: &userActive,
+			UserActive: false,
 		}
 		iterationsRepo.Create(rest.ctx, childIteration)
 		log.Info(nil, map[string]interface{}{"child_iteration_id": childIteration.ID}, "created child iteration")
@@ -221,12 +220,11 @@ func (rest *TestPlannerBacklogBlackboxREST) TestSuccessEmptyListPlannerBacklogWo
 			rest.T().Error(err)
 		}
 		spaceID = p.ID
-		userActive := false
 		parentIteration = &iteration.Iteration{
 			Name:       "Parent Iteration",
 			SpaceID:    spaceID,
 			State:      iteration.IterationStateNew,
-			UserActive: &userActive,
+			UserActive: false,
 		}
 		iterationsRepo.Create(rest.ctx, parentIteration)
 

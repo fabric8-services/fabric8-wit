@@ -88,7 +88,7 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 			Name:       *reqIter.Attributes.Name,
 			StartAt:    reqIter.Attributes.StartAt,
 			EndAt:      reqIter.Attributes.EndAt,
-			UserActive: reqIter.Attributes.UserActive,
+			UserActive: *reqIter.Attributes.UserActive,
 		}
 
 		err = appl.Iterations().Create(ctx, &newItr)
@@ -203,7 +203,7 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 			itr.State = *ctx.Payload.Data.Attributes.State
 		}
 		if ctx.Payload.Data.Attributes.UserActive != nil {
-			itr.UserActive = ctx.Payload.Data.Attributes.UserActive
+			itr.UserActive = *ctx.Payload.Data.Attributes.UserActive
 		}
 		itr, err = appl.Iterations().Save(ctx.Context, *itr)
 		if err != nil {
@@ -265,7 +265,7 @@ func ConvertIteration(request *goa.RequestData, itr iteration.Iteration, additio
 			Description:  itr.Description,
 			State:        &itr.State,
 			ParentPath:   &pathToTopMostParent,
-			UserActive:   itr.UserActive,
+			UserActive:   &itr.UserActive,
 			ActiveStatus: &activeStatus,
 		},
 		Relationships: &app.IterationRelations{

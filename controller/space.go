@@ -108,12 +108,11 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 		}
 
 		// Similar to above, we create a root iteration for this new space
-		userActive := false
 		newIteration := iteration.Iteration{
 			ID:         uuid.NewV4(),
 			SpaceID:    rSpace.ID,
 			Name:       rSpace.Name,
-			UserActive: &userActive,
+			UserActive: false,
 		}
 		err = appl.Iterations().Create(ctx, &newIteration)
 		if err != nil {

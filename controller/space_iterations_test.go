@@ -92,7 +92,6 @@ func (rest *TestSpaceIterationREST) UnSecuredController() (*goa.Service, *SpaceI
 
 func (rest *TestSpaceIterationREST) TestSuccessCreateIteration() {
 	// given
-	userActive := false
 	var p *space.Space
 	var rootItr *iteration.Iteration
 	ci := createSpaceIteration("Sprint #21", nil)
@@ -111,7 +110,7 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIteration() {
 		rootItr = &iteration.Iteration{
 			SpaceID:    newSpace.ID,
 			Name:       newSpace.Name,
-			UserActive: &userActive,
+			UserActive: false,
 		}
 		iterationRepo := app.Iterations()
 		err = iterationRepo.Create(rest.ctx, rootItr)
@@ -134,7 +133,6 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIteration() {
 
 func (rest *TestSpaceIterationREST) TestSuccessCreateIterationWithOptionalValues() {
 	// given
-	userActive := false
 	var p *space.Space
 	var rootItr *iteration.Iteration
 	iterationName := "Sprint #22"
@@ -151,7 +149,7 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIterationWithOptionalValues
 		rootItr = &iteration.Iteration{
 			SpaceID:    testSpace.ID,
 			Name:       testSpace.Name,
-			UserActive: &userActive,
+			UserActive: false,
 		}
 		iterationRepo := app.Iterations()
 		err := iterationRepo.Create(rest.ctx, rootItr)
@@ -268,7 +266,6 @@ func (rest *TestSpaceIterationREST) TestFailListIterationsByMissingSpace() {
 // Call List-Iterations API, should return Total & Closed WI count for every itearion
 // Verify updated count values for all 4 iterations retrieved.
 func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
-	userActive := false
 	// given
 	resource.Require(rest.T(), resource.Database)
 	// create seed data
@@ -284,7 +281,7 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 	iteration1 := iteration.Iteration{
 		Name:       "Sprint 1",
 		SpaceID:    spaceInstance.ID,
-		UserActive: &userActive,
+		UserActive: false,
 	}
 	iterationRepo.Create(rest.ctx, &iteration1)
 	assert.NotEqual(rest.T(), uuid.UUID{}, iteration1.ID)
@@ -292,7 +289,7 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 	iteration2 := iteration.Iteration{
 		Name:       "Sprint 2",
 		SpaceID:    spaceInstance.ID,
-		UserActive: &userActive,
+		UserActive: false,
 	}
 	iterationRepo.Create(rest.ctx, &iteration2)
 	assert.NotEqual(rest.T(), uuid.UUID{}, iteration2.ID)
@@ -301,7 +298,7 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 		Name:       "Sprint 2.1",
 		SpaceID:    spaceInstance.ID,
 		Path:       append(iteration2.Path, iteration2.ID),
-		UserActive: &userActive,
+		UserActive: false,
 	}
 	iterationRepo.Create(rest.ctx, &childOfIteration2)
 	require.NotEqual(rest.T(), uuid.Nil, childOfIteration2.ID)
@@ -310,7 +307,7 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 		Name:       "Sprint 2.1.1",
 		SpaceID:    spaceInstance.ID,
 		Path:       append(childOfIteration2.Path, childOfIteration2.ID),
-		UserActive: &userActive,
+		UserActive: false,
 	}
 	iterationRepo.Create(rest.ctx, &grandChildOfIteration2)
 	require.NotEqual(rest.T(), uuid.UUID{}, grandChildOfIteration2.ID)
@@ -443,7 +440,6 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 func (rest *TestSpaceIterationREST) TestOnlySpaceOwnerCreateIteration() {
 	var p *space.Space
 	var rootItr *iteration.Iteration
-	userActive := false
 	identityRepo := account.NewIdentityRepository(rest.DB)
 	spaceOwner := &account.Identity{
 		ID:           uuid.NewV4(),
@@ -468,7 +464,7 @@ func (rest *TestSpaceIterationREST) TestOnlySpaceOwnerCreateIteration() {
 		rootItr = &iteration.Iteration{
 			SpaceID:    newSpace.ID,
 			Name:       newSpace.Name,
-			UserActive: &userActive,
+			UserActive: false,
 		}
 		iterationRepo := app.Iterations()
 		err = iterationRepo.Create(rest.ctx, rootItr)
@@ -522,7 +518,6 @@ func createSpaceIteration(name string, desc *string) *app.CreateSpaceIterationsP
 
 func (rest *TestSpaceIterationREST) createIterations() (spaceID uuid.UUID, fatherIteration, childIteration, grandChildIteration *iteration.Iteration) {
 	err := application.Transactional(rest.db, func(app application.Application) error {
-		userActive := false
 		repo := app.Iterations()
 		newSpace := space.Space{
 			Name: "TestListIterationsBySpace-" + uuid.NewV4().String(),
@@ -541,7 +536,7 @@ func (rest *TestSpaceIterationREST) createIterations() (spaceID uuid.UUID, fathe
 				SpaceID:    spaceID,
 				StartAt:    &start,
 				EndAt:      &end,
-				UserActive: &userActive,
+				UserActive: false,
 			}
 			repo.Create(rest.ctx, &i)
 		}
@@ -549,7 +544,7 @@ func (rest *TestSpaceIterationREST) createIterations() (spaceID uuid.UUID, fathe
 		fatherIteration = &iteration.Iteration{
 			Name:       "Parent Iteration",
 			SpaceID:    spaceID,
-			UserActive: &userActive,
+			UserActive: false,
 		}
 		repo.Create(rest.ctx, fatherIteration)
 		rest.T().Log("fatherIteration:", fatherIteration.ID, fatherIteration.Name, fatherIteration.Path)
@@ -557,7 +552,7 @@ func (rest *TestSpaceIterationREST) createIterations() (spaceID uuid.UUID, fathe
 			Name:       "Child Iteration",
 			SpaceID:    spaceID,
 			Path:       append(fatherIteration.Path, fatherIteration.ID),
-			UserActive: &userActive,
+			UserActive: false,
 		}
 		repo.Create(rest.ctx, childIteration)
 		rest.T().Log("childIteration:", childIteration.ID, childIteration.Name, childIteration.Path)
@@ -565,7 +560,7 @@ func (rest *TestSpaceIterationREST) createIterations() (spaceID uuid.UUID, fathe
 			Name:       "Grand Child Iteration",
 			SpaceID:    spaceID,
 			Path:       append(childIteration.Path, childIteration.ID),
-			UserActive: &userActive,
+			UserActive: false,
 		}
 		repo.Create(rest.ctx, grandChildIteration)
 		rest.T().Log("grandChildIteration:", grandChildIteration.ID, grandChildIteration.Name, grandChildIteration.Path)
@@ -606,7 +601,6 @@ func assertIterations(t *testing.T, data []*app.Iteration, fatherIteration, chil
 }
 
 func generateIterationsTag(iterations app.IterationList) string {
-	userActive := false
 	modelEntities := make([]app.ConditionalRequestEntity, len(iterations.Data))
 	for i, entity := range iterations.Data {
 		modelEntities[i] = iteration.Iteration{
@@ -614,7 +608,7 @@ func generateIterationsTag(iterations app.IterationList) string {
 			Lifecycle: gormsupport.Lifecycle{
 				UpdatedAt: *entity.Attributes.UpdatedAt,
 			},
-			UserActive: &userActive,
+			UserActive: false,
 		}
 	}
 	return app.GenerateEntitiesTag(modelEntities)

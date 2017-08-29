@@ -79,13 +79,12 @@ func (rest *TestPlannerBacklogREST) setupPlannerBacklogWorkItems() (testSpace *s
 		require.Nil(rest.T(), err)
 		log.Info(nil, map[string]interface{}{"wit_id": workitemType.ID}, "created workitem type")
 
-		userActive := false
 		iterationsRepo := app.Iterations()
 		parentIteration = &iteration.Iteration{
 			Name:       "Parent Iteration",
 			SpaceID:    testSpace.ID,
 			State:      iteration.IterationStateNew,
-			UserActive: &userActive,
+			UserActive: false,
 		}
 		iterationsRepo.Create(rest.ctx, parentIteration)
 		log.Info(nil, map[string]interface{}{"parent_iteration_id": parentIteration.ID}, "created parent iteration")
@@ -95,7 +94,7 @@ func (rest *TestPlannerBacklogREST) setupPlannerBacklogWorkItems() (testSpace *s
 			SpaceID:    testSpace.ID,
 			Path:       append(parentIteration.Path, parentIteration.ID),
 			State:      iteration.IterationStateStart,
-			UserActive: &userActive,
+			UserActive: false,
 		}
 		iterationsRepo.Create(rest.ctx, childIteration)
 		log.Info(nil, map[string]interface{}{"child_iteration_id": childIteration.ID}, "created child iteration")

@@ -537,12 +537,11 @@ func (rest *TestIterationREST) TestIterationStateTransitions() {
 	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr1.ID.String(), &payload)
 	assert.Equal(rest.T(), startState, *updated.Data.Attributes.State)
 	// create another iteration in same space and then change State to start
-	userActive := false
 	itr2 := iteration.Iteration{
 		Name:       "Spring 123",
 		SpaceID:    itr1.SpaceID,
 		Path:       itr1.Path,
-		UserActive: &userActive,
+		UserActive: false,
 	}
 	err := rest.db.Iterations().Create(context.Background(), &itr2)
 	require.Nil(rest.T(), err)
@@ -696,7 +695,6 @@ func createSpaceAndRootAreaAndIterations(t *testing.T, db application.DB) (space
 	)
 
 	application.Transactional(db, func(app application.Application) error {
-		userActive := false
 		owner := &account.Identity{
 			Username:     "new-space-owner-identity",
 			ProviderType: account.KeycloakIDP,
@@ -720,7 +718,7 @@ func createSpaceAndRootAreaAndIterations(t *testing.T, db application.DB) (space
 		rootIterationObj = iteration.Iteration{
 			Name:       spaceObj.Name,
 			SpaceID:    spaceObj.ID,
-			UserActive: &userActive,
+			UserActive: false,
 		}
 		err = app.Iterations().Create(context.Background(), &rootIterationObj)
 		require.Nil(t, err)
@@ -736,7 +734,7 @@ func createSpaceAndRootAreaAndIterations(t *testing.T, db application.DB) (space
 			SpaceID:    spaceObj.ID,
 			StartAt:    &start,
 			EndAt:      &end,
-			UserActive: &userActive,
+			UserActive: false,
 			Path:       append(rootIterationObj.Path, rootIterationObj.ID),
 		}
 		err = app.Iterations().Create(context.Background(), &otherIterationObj)
