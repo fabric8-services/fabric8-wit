@@ -13,6 +13,7 @@ import (
 	goaclient "github.com/goadesign/goa/client"
 	goauuid "github.com/goadesign/goa/uuid"
 	errs "github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 )
 
 // ResourceManager represents a space resource manager
@@ -29,6 +30,7 @@ type AuthzResourceManager struct {
 // AuthServiceConfiguration represents auth service configuration
 type AuthServiceConfiguration interface {
 	GetAuthEndpointSpaces(*goa.RequestData) (string, error)
+	IsAuthorizationEnabled() bool
 }
 
 // NewAuthzResourceManager constructs AuthzResourceManager
@@ -38,6 +40,15 @@ func NewAuthzResourceManager(config AuthServiceConfiguration) *AuthzResourceMana
 
 // CreateSpace calls auth service to create a keycloak resource associated with the space
 func (m *AuthzResourceManager) CreateSpace(ctx context.Context, request *goa.RequestData, spaceID string) (*authservice.SpaceResource, error) {
+	if !m.configuration.IsAuthorizationEnabled() {
+		// Keycloak authorization is disabled by default in Developer Mode
+		return &authservice.SpaceResource{Data: &authservice.SpaceResourceData{
+			ResourceID:   uuid.NewV4().String(),
+			PermissionID: uuid.NewV4().String(),
+			PolicyID:     uuid.NewV4().String(),
+		}}, nil
+	}
+
 	c, err := m.createClient(ctx, request)
 	if err != nil {
 		return nil, err
@@ -84,6 +95,10 @@ func (m *AuthzResourceManager) CreateSpace(ctx context.Context, request *goa.Req
 
 // DeleteSpace calls auth service to delete the keycloak resource associated with the space
 func (m *AuthzResourceManager) DeleteSpace(ctx context.Context, request *goa.RequestData, spaceID string) error {
+	if !m.configuration.IsAuthorizationEnabled() {
+		// Keycloak authorization is disabled by default in Developer Mode
+		return nil
+	}
 	c, err := m.createClient(ctx, request)
 	if err != nil {
 		return err
