@@ -261,7 +261,7 @@ func inTimeframe(startAt time.Time, endAt time.Time) bool {
 }
 
 func (i *Iteration) IsActive() bool {
-	if i.UserActive == true {
+	if i.UserActive {
 		return true
 	}
 
@@ -269,17 +269,9 @@ func (i *Iteration) IsActive() bool {
 		return false
 	}
 	if i.EndAt == nil {
-		if time.Now().UTC().After(*i.StartAt) {
-			return true
-		} else {
-			return false
-		}
+		return time.Now().UTC().After(*i.StartAt)
 	}
-	if inTimeframe(*i.StartAt, *i.EndAt) {
-		return true
-	} else {
-		return false
-	}
+	return inTimeframe(*i.StartAt, *i.EndAt)
 
 }
 
