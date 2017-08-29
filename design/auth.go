@@ -16,7 +16,10 @@ var _ = a.Resource("login", func() {
 		a.Params(func() {
 			a.Param("link", d.Boolean, "If true then link all available Identity Providers to the user account after successful login")
 			a.Param("redirect", d.String, "URL to be redirected to after successful login. If not set then will redirect to the referrer instead.")
-
+			a.Param("scope", d.String, func() {
+				a.Enum("offline_access")
+				a.Description("If scope=offline_access then an offline token will be issued instead of a regular refresh token")
+			})
 		})
 		a.Description("Authorize with the WIT")
 		a.Response(d.Unauthorized, JSONAPIErrors)

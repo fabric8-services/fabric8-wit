@@ -85,7 +85,20 @@ func (rest *TestLoginREST) TestAuthorizeLoginOK() {
 	resource.Require(t, resource.UnitTest)
 	svc, ctrl := rest.UnSecuredController()
 
-	test.AuthorizeLoginTemporaryRedirect(t, svc.Context, svc, ctrl, nil, nil)
+	test.AuthorizeLoginTemporaryRedirect(t, svc.Context, svc, ctrl, nil, nil, nil)
+}
+
+func (rest *TestLoginREST) TestOfflineAccessOK() {
+	t := rest.T()
+	resource.Require(t, resource.UnitTest)
+	svc, ctrl := rest.UnSecuredController()
+
+	offline := "offline_access"
+	resp := test.AuthorizeLoginTemporaryRedirect(t, svc.Context, svc, ctrl, nil, nil, &offline)
+	assert.Contains(t, resp.Header().Get("Location"), "scope=offline_access")
+
+	resp = test.AuthorizeLoginTemporaryRedirect(t, svc.Context, svc, ctrl, nil, nil, nil)
+	assert.NotContains(t, resp.Header().Get("Location"), "scope=offline_access")
 }
 
 func (rest *TestLoginREST) TestTestUserTokenObtainedFromKeycloakOK() {
