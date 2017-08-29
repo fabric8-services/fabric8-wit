@@ -488,11 +488,11 @@ func (s *TestIterationRepository) TestIsActive() {
 		assert.Nil(t, err)
 
 		level0IterationName := "Top level iteration"
-		trueUserActive := false
+		falseUserActive := false
 		i1 := iteration.Iteration{
 			Name:       level0IterationName,
 			SpaceID:    space.ID,
-			UserActive: &trueUserActive,
+			UserActive: &falseUserActive,
 		}
 		require.False(t, i1.IsActive())
 	})
@@ -508,12 +508,12 @@ func (s *TestIterationRepository) TestIsActive() {
 
 		start := time.Now()
 		level0IterationName := "Top level iteration"
-		trueUserActive := false
+		falseUserActive := false
 		i1 := iteration.Iteration{
 			Name:       level0IterationName,
 			SpaceID:    space.ID,
 			StartAt:    &start,
-			UserActive: &trueUserActive,
+			UserActive: &falseUserActive,
 		}
 		require.True(t, i1.IsActive())
 	})
@@ -530,12 +530,12 @@ func (s *TestIterationRepository) TestIsActive() {
 		now := time.Now()
 		start := now.Add(time.Hour)
 		level0IterationName := "Top level iteration"
-		trueUserActive := false
+		falseUserActive := false
 		i1 := iteration.Iteration{
 			Name:       level0IterationName,
 			SpaceID:    space.ID,
 			StartAt:    &start,
-			UserActive: &trueUserActive,
+			UserActive: &falseUserActive,
 		}
 		require.False(t, i1.IsActive())
 	})
