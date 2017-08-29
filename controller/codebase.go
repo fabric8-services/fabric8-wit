@@ -375,13 +375,15 @@ func (c *CodebaseController) getCheNamespace(ctx context.Context) (string, error
 		return "", err
 	}
 
-	for _, ns := range t.Data.Attributes.Namespaces {
-		if ns.Type != nil && *ns.Type == "che" && ns.Name != nil {
-			return *ns.Name, nil
+	if t.Data != nil && t.Data.Attributes != nil && t.Data.Attributes.Namespaces != nil {
+		for _, ns := range t.Data.Attributes.Namespaces {
+			if ns.Type != nil && *ns.Type == "che" && ns.Name != nil {
+				return *ns.Name, nil
+			}
 		}
 	}
 	log.Error(ctx, map[string]interface{}{
-		"namespaces": t.Data.Attributes,
+		"data": t.Data,
 	}, "unable to locate che namespace")
 
 	return "", fmt.Errorf("unable to resolve user service che namespace")
