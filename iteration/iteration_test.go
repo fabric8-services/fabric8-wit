@@ -45,6 +45,7 @@ func (s *TestIterationRepository) TearDownTest() {
 }
 
 func (s *TestIterationRepository) TestCreateIteration() {
+	userActive := false
 	t := s.T()
 	resource.Require(t, resource.Database)
 	repo := iteration.NewIterationRepository(s.DB)
@@ -61,10 +62,11 @@ func (s *TestIterationRepository) TestCreateIteration() {
 	assert.Nil(t, err)
 
 	i := iteration.Iteration{
-		Name:    name,
-		SpaceID: space.ID,
-		StartAt: &start,
-		EndAt:   &end,
+		Name:       name,
+		SpaceID:    space.ID,
+		StartAt:    &start,
+		EndAt:      &end,
+		UserActive: &userActive,
 	}
 
 	repo.Create(context.Background(), &i)
@@ -84,6 +86,7 @@ func (s *TestIterationRepository) TestCreateChildIteration() {
 	t := s.T()
 	resource.Require(t, resource.Database)
 
+	userActive := false
 	repo := iteration.NewIterationRepository(s.DB)
 
 	start := time.Now()
@@ -100,21 +103,23 @@ func (s *TestIterationRepository) TestCreateChildIteration() {
 	assert.Nil(t, err)
 
 	i := iteration.Iteration{
-		Name:    name,
-		SpaceID: space.ID,
-		StartAt: &start,
-		EndAt:   &end,
+		Name:       name,
+		SpaceID:    space.ID,
+		StartAt:    &start,
+		EndAt:      &end,
+		UserActive: &userActive,
 	}
 	repo.Create(context.Background(), &i)
 
 	parentPath := append(i.Path, i.ID)
 	require.NotNil(t, parentPath)
 	i2 := iteration.Iteration{
-		Name:    name2,
-		SpaceID: space.ID,
-		StartAt: &start,
-		EndAt:   &end,
-		Path:    parentPath,
+		Name:       name2,
+		SpaceID:    space.ID,
+		StartAt:    &start,
+		EndAt:      &end,
+		Path:       parentPath,
+		UserActive: &userActive,
 	}
 	repo.Create(context.Background(), &i2)
 
@@ -133,6 +138,7 @@ func (s *TestIterationRepository) TestRootIteration() {
 
 	repo := iteration.NewIterationRepository(s.DB)
 
+	userActive := false
 	start := time.Now()
 	end := start.Add(time.Hour * (24 * 8 * 3))
 	name := "Sprint #24"
@@ -147,21 +153,23 @@ func (s *TestIterationRepository) TestRootIteration() {
 	assert.Nil(t, err)
 
 	i := iteration.Iteration{
-		Name:    name,
-		SpaceID: space.ID,
-		StartAt: &start,
-		EndAt:   &end,
+		Name:       name,
+		SpaceID:    space.ID,
+		StartAt:    &start,
+		EndAt:      &end,
+		UserActive: &userActive,
 	}
 	repo.Create(context.Background(), &i)
 
 	parentPath := append(i.Path, i.ID)
 	require.NotNil(t, parentPath)
 	i2 := iteration.Iteration{
-		Name:    name2,
-		SpaceID: space.ID,
-		StartAt: &start,
-		EndAt:   &end,
-		Path:    parentPath,
+		Name:       name2,
+		SpaceID:    space.ID,
+		StartAt:    &start,
+		EndAt:      &end,
+		Path:       parentPath,
+		UserActive: &userActive,
 	}
 	repo.Create(context.Background(), &i2)
 
@@ -178,6 +186,7 @@ func (s *TestIterationRepository) TestListIterationBySpace() {
 	t := s.T()
 	resource.Require(t, resource.Database)
 
+	userActive := false
 	repo := iteration.NewIterationRepository(s.DB)
 
 	newSpace := space.Space{
@@ -194,10 +203,11 @@ func (s *TestIterationRepository) TestListIterationBySpace() {
 		name := "Sprint #2" + strconv.Itoa(i)
 
 		i := iteration.Iteration{
-			Name:    name,
-			SpaceID: spaceInstance.ID,
-			StartAt: &start,
-			EndAt:   &end,
+			Name:       name,
+			SpaceID:    spaceInstance.ID,
+			StartAt:    &start,
+			EndAt:      &end,
+			UserActive: &userActive,
 		}
 		e := repo.Create(context.Background(), &i)
 		require.Nil(t, e)
@@ -210,8 +220,9 @@ func (s *TestIterationRepository) TestListIterationBySpace() {
 	anotherSpaceCreated, err := repoSpace.Create(context.Background(), &anotherSpace)
 	assert.Nil(t, err)
 	e := repo.Create(context.Background(), &iteration.Iteration{
-		Name:    "Other Spring #2",
-		SpaceID: anotherSpaceCreated.ID,
+		Name:       "Other Spring #2",
+		SpaceID:    anotherSpaceCreated.ID,
+		UserActive: &userActive,
 	})
 	require.Nil(t, e)
 
@@ -224,6 +235,7 @@ func (s *TestIterationRepository) TestUpdateIteration() {
 	t := s.T()
 	resource.Require(t, resource.Database)
 
+	userActive := false
 	repo := iteration.NewIterationRepository(s.DB)
 
 	start := time.Now()
@@ -239,10 +251,11 @@ func (s *TestIterationRepository) TestUpdateIteration() {
 	assert.Nil(t, err)
 
 	i := iteration.Iteration{
-		Name:    name,
-		SpaceID: space.ID,
-		StartAt: &start,
-		EndAt:   &end,
+		Name:       name,
+		SpaceID:    space.ID,
+		StartAt:    &start,
+		EndAt:      &end,
+		UserActive: &userActive,
 	}
 	// creates an iteration
 	repo.Create(context.Background(), &i)
@@ -272,6 +285,7 @@ func (s *TestIterationRepository) TestUpdateIteration() {
 func (s *TestIterationRepository) TestCreateIterationSameNameFailsWithinSpace() {
 	t := s.T()
 	resource.Require(t, resource.Database)
+	userActive := false
 	repo := iteration.NewIterationRepository(s.DB)
 
 	sp1 := space.Space{
@@ -291,8 +305,9 @@ func (s *TestIterationRepository) TestCreateIterationSameNameFailsWithinSpace() 
 
 	name := "Iteration name test"
 	i := iteration.Iteration{
-		Name:    name,
-		SpaceID: space1.ID,
+		Name:       name,
+		SpaceID:    space1.ID,
+		UserActive: &userActive,
 	}
 	err = repo.Create(context.Background(), &i)
 	require.Nil(t, err)
@@ -300,8 +315,9 @@ func (s *TestIterationRepository) TestCreateIterationSameNameFailsWithinSpace() 
 
 	// another iteration with same name within same sapce, should fail
 	i2 := iteration.Iteration{
-		Name:    name,
-		SpaceID: space1.ID,
+		Name:       name,
+		SpaceID:    space1.ID,
+		UserActive: &userActive,
 	}
 	err = repo.Create(context.Background(), &i)
 	require.NotNil(t, err)
@@ -310,8 +326,9 @@ func (s *TestIterationRepository) TestCreateIterationSameNameFailsWithinSpace() 
 
 	// create iteration with same name in anothe space, should pass
 	i3 := iteration.Iteration{
-		Name:    name,
-		SpaceID: space2.ID,
+		Name:       name,
+		SpaceID:    space2.ID,
+		UserActive: &userActive,
 	}
 	err = repo.Create(context.Background(), &i3)
 	require.Nil(t, err)
@@ -329,11 +346,13 @@ func (s *TestIterationRepository) TestLoadChildren() {
 	space, err := repoSpace.Create(context.Background(), &newSpace)
 	assert.Nil(t, err)
 
+	userActive := false
 	repo := iteration.NewIterationRepository(s.DB)
 	level0IterationName := "Top level iteration"
 	i1 := iteration.Iteration{
-		Name:    level0IterationName,
-		SpaceID: space.ID,
+		Name:       level0IterationName,
+		SpaceID:    space.ID,
+		UserActive: &userActive,
 	}
 	e := repo.Create(context.Background(), &i1)
 	require.Nil(t, e)
@@ -343,9 +362,10 @@ func (s *TestIterationRepository) TestLoadChildren() {
 	parentPath := append(i1.Path, i1.ID)
 	require.NotNil(t, parentPath)
 	i2 := iteration.Iteration{
-		Name:    level1IterationName,
-		SpaceID: space.ID,
-		Path:    parentPath,
+		Name:       level1IterationName,
+		SpaceID:    space.ID,
+		Path:       parentPath,
+		UserActive: &userActive,
 	}
 	e = repo.Create(context.Background(), &i2)
 	require.Nil(t, e)
@@ -355,9 +375,10 @@ func (s *TestIterationRepository) TestLoadChildren() {
 	parentPath = append(i2.Path, i2.ID)
 	require.NotNil(t, parentPath)
 	i3 := iteration.Iteration{
-		Name:    level2IterationName,
-		SpaceID: space.ID,
-		Path:    parentPath,
+		Name:       level2IterationName,
+		SpaceID:    space.ID,
+		Path:       parentPath,
+		UserActive: &userActive,
 	}
 	e = repo.Create(context.Background(), &i3)
 	require.Nil(t, e)
@@ -412,9 +433,11 @@ func (s *TestIterationRepository) TestExistsIteration() {
 
 		repo := iteration.NewIterationRepository(s.DB)
 		level0IterationName := "Top level iteration"
+		userActive := false
 		i1 := iteration.Iteration{
-			Name:    level0IterationName,
-			SpaceID: space.ID,
+			Name:       level0IterationName,
+			SpaceID:    space.ID,
+			UserActive: &userActive,
 		}
 		e := repo.Create(context.Background(), &i1)
 		require.Nil(t, e)
@@ -431,4 +454,89 @@ func (s *TestIterationRepository) TestExistsIteration() {
 		require.IsType(t, errors.NotFoundError{}, err)
 	})
 
+}
+
+func (s *TestIterationRepository) TestIsActive() {
+	t := s.T()
+	t.Run("user active is true", func(t *testing.T) {
+		// given
+		newSpace := space.Space{
+			Name:    testsupport.CreateRandomValidTestName("Space Exists"),
+			OwnerId: s.testIdentity.ID,
+		}
+		repoSpace := space.NewRepository(s.DB)
+		space, err := repoSpace.Create(context.Background(), &newSpace)
+		assert.Nil(t, err)
+
+		level0IterationName := "Top level iteration"
+		trueUserActive := true
+		i1 := iteration.Iteration{
+			Name:       level0IterationName,
+			SpaceID:    space.ID,
+			UserActive: &trueUserActive,
+		}
+		require.True(t, i1.IsActive())
+	})
+	t.Run("start date is nil", func(t *testing.T) {
+		// given
+		newSpace := space.Space{
+			Name:    testsupport.CreateRandomValidTestName("Space Exists"),
+			OwnerId: s.testIdentity.ID,
+		}
+		repoSpace := space.NewRepository(s.DB)
+		space, err := repoSpace.Create(context.Background(), &newSpace)
+		assert.Nil(t, err)
+
+		level0IterationName := "Top level iteration"
+		falseUserActive := false
+		i1 := iteration.Iteration{
+			Name:       level0IterationName,
+			SpaceID:    space.ID,
+			UserActive: &falseUserActive,
+		}
+		require.False(t, i1.IsActive())
+	})
+	t.Run("end date is nil and current date is after start date", func(t *testing.T) {
+		// given
+		newSpace := space.Space{
+			Name:    testsupport.CreateRandomValidTestName("Space Exists"),
+			OwnerId: s.testIdentity.ID,
+		}
+		repoSpace := space.NewRepository(s.DB)
+		space, err := repoSpace.Create(context.Background(), &newSpace)
+		assert.Nil(t, err)
+
+		start := time.Now()
+		level0IterationName := "Top level iteration"
+		falseUserActive := false
+		i1 := iteration.Iteration{
+			Name:       level0IterationName,
+			SpaceID:    space.ID,
+			StartAt:    &start,
+			UserActive: &falseUserActive,
+		}
+		require.True(t, i1.IsActive())
+	})
+	t.Run("end date is nil and current date is before start date", func(t *testing.T) {
+		// given
+		newSpace := space.Space{
+			Name:    testsupport.CreateRandomValidTestName("Space Exists"),
+			OwnerId: s.testIdentity.ID,
+		}
+		repoSpace := space.NewRepository(s.DB)
+		space, err := repoSpace.Create(context.Background(), &newSpace)
+		assert.Nil(t, err)
+
+		now := time.Now()
+		start := now.Add(time.Hour)
+		level0IterationName := "Top level iteration"
+		falseUserActive := false
+		i1 := iteration.Iteration{
+			Name:       level0IterationName,
+			SpaceID:    space.ID,
+			StartAt:    &start,
+			UserActive: &falseUserActive,
+		}
+		require.False(t, i1.IsActive())
+	})
 }
