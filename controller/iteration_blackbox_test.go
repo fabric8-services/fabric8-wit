@@ -599,7 +599,7 @@ func (rest *TestIterationREST) createIterations() (*app.IterationSingle, *accoun
 	_, err := rest.db.Iterations().Root(context.Background(), parent.SpaceID)
 	require.Nil(rest.T(), err)
 	parentID := parent.ID
-	name := uuid.NewV4().String()
+	name := testsupport.CreateRandomValidTestName("Iteration-")
 	ci := getChildIterationPayload(&name)
 	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerId)
 	require.Nil(rest.T(), err)
