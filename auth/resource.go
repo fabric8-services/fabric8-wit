@@ -62,8 +62,8 @@ func (m *AuthzResourceManager) CreateSpace(ctx context.Context, request *goa.Req
 		log.Error(ctx, map[string]interface{}{
 			"space_id": spaceID,
 			"err":      err.Error(),
-		}, "unable to create a sapace resource via auth service")
-		return nil, errs.Wrap(err, "unable to create a sapace resource via auth service")
+		}, "unable to create a space resource via auth service")
+		return nil, errs.Wrap(err, "unable to create a space resource via auth service")
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
@@ -71,8 +71,8 @@ func (m *AuthzResourceManager) CreateSpace(ctx context.Context, request *goa.Req
 			"space_id":        spaceID,
 			"response_status": res.Status,
 			"response_body":   rest.ReadBody(res.Body),
-		}, "unable to create a sapace resource via auth service")
-		return nil, errs.Errorf("unable to create a sapace resource via auth service. Response status: %s. Responce body: %s", res.Status, rest.ReadBody(res.Body))
+		}, "unable to create a space resource via auth service")
+		return nil, errs.Errorf("unable to create a space resource via auth service. Response status: %s. Responce body: %s", res.Status, rest.ReadBody(res.Body))
 	}
 
 	resource, err := c.DecodeSpaceResource(res)
@@ -112,8 +112,8 @@ func (m *AuthzResourceManager) DeleteSpace(ctx context.Context, request *goa.Req
 		log.Error(ctx, map[string]interface{}{
 			"space_id": spaceID,
 			"err":      err.Error(),
-		}, "unable to delete a sapace resource via auth service")
-		return errs.Wrap(err, "unable to delete a sapace resource via auth service")
+		}, "unable to delete a space resource via auth service")
+		return errs.Wrap(err, "unable to delete a space resource via auth service")
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
@@ -121,8 +121,8 @@ func (m *AuthzResourceManager) DeleteSpace(ctx context.Context, request *goa.Req
 			"space_id":        spaceID,
 			"response_status": res.Status,
 			"response_body":   rest.ReadBody(res.Body),
-		}, "unable to delete a sapace resource via auth service")
-		return errs.Errorf("unable to delete a sapace resource via auth service. Response status: %s. Responce body: %s", res.Status, rest.ReadBody(res.Body))
+		}, "unable to delete a space resource via auth service")
+		return errs.Errorf("unable to delete a space resource via auth service. Response status: %s. Responce body: %s", res.Status, rest.ReadBody(res.Body))
 	}
 
 	log.Debug(ctx, map[string]interface{}{
