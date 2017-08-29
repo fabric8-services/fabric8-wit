@@ -40,6 +40,10 @@ var iterationAttributes = a.Type("IterationAttributes", func() {
 	a.Attribute("state", d.String, "State of an iteration", func() {
 		a.Enum("new", "start", "close")
 	})
+	a.Attribute("user_active", d.Boolean, "Active flag set by user", func() {
+	})
+	a.Attribute("active_status", d.Boolean, "Active status of iteration calculated using user_active, startAt and endAt", func() {
+	})
 	a.Attribute("parent_path", d.String, "Path string separataed by / having UUIDs of all parent iterations", func() {
 		a.Example("/8ab013be-6477-41e2-b206-53593dac6543/300d9835-fcf7-4d2f-a629-1919de091663/42f0dabd-16bf-40a6-a521-888ec2ad7461")
 	})
