@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -103,6 +104,9 @@ func (c *LoginController) Authorize(ctx *app.AuthorizeLoginContext) error {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
 	}
 
+	if ctx.Scope != nil {
+		authEndpoint = fmt.Sprintf("%s?scope=%s", authEndpoint, *ctx.Scope) // Offline token
+	}
 	oauth := &oauth2.Config{
 		ClientID:     c.configuration.GetKeycloakClientID(),
 		ClientSecret: c.configuration.GetKeycloakSecret(),
