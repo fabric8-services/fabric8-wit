@@ -441,7 +441,7 @@ func (s *TestIterationRepository) TestIsActive() {
 	}
 	repoSpace := space.NewRepository(s.DB)
 	space, err := repoSpace.Create(context.Background(), &newSpace)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	t.Run("user active is true", func(t *testing.T) {
 		level0IterationName := "Top level iteration"
 		i1 := iteration.Iteration{
