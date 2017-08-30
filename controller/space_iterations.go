@@ -68,12 +68,11 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 		}
 		childPath := append(rootIteration.Path, rootIteration.ID)
 		newItr := iteration.Iteration{
-			SpaceID:    ctx.SpaceID,
-			Name:       *reqIter.Attributes.Name,
-			StartAt:    reqIter.Attributes.StartAt,
-			EndAt:      reqIter.Attributes.EndAt,
-			Path:       childPath,
-			UserActive: false,
+			SpaceID: ctx.SpaceID,
+			Name:    *reqIter.Attributes.Name,
+			StartAt: reqIter.Attributes.StartAt,
+			EndAt:   reqIter.Attributes.EndAt,
+			Path:    childPath,
 		}
 		if reqIter.Attributes.Description != nil {
 			newItr.Description = reqIter.Attributes.Description

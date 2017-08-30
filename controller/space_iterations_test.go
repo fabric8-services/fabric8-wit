@@ -108,9 +108,8 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIteration() {
 		}
 		// create Root iteration for above space
 		rootItr = &iteration.Iteration{
-			SpaceID:    newSpace.ID,
-			Name:       newSpace.Name,
-			UserActive: false,
+			SpaceID: newSpace.ID,
+			Name:    newSpace.Name,
 		}
 		iterationRepo := app.Iterations()
 		err = iterationRepo.Create(rest.ctx, rootItr)
@@ -147,9 +146,8 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIterationWithOptionalValues
 		p, _ = repo.Create(rest.ctx, &testSpace)
 		// create Root iteration for above space
 		rootItr = &iteration.Iteration{
-			SpaceID:    testSpace.ID,
-			Name:       testSpace.Name,
-			UserActive: false,
+			SpaceID: testSpace.ID,
+			Name:    testSpace.Name,
 		}
 		iterationRepo := app.Iterations()
 		err := iterationRepo.Create(rest.ctx, rootItr)
@@ -279,35 +277,31 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 
 	iterationRepo := iteration.NewIterationRepository(rest.DB)
 	iteration1 := iteration.Iteration{
-		Name:       "Sprint 1",
-		SpaceID:    spaceInstance.ID,
-		UserActive: false,
+		Name:    "Sprint 1",
+		SpaceID: spaceInstance.ID,
 	}
 	iterationRepo.Create(rest.ctx, &iteration1)
 	assert.NotEqual(rest.T(), uuid.UUID{}, iteration1.ID)
 
 	iteration2 := iteration.Iteration{
-		Name:       "Sprint 2",
-		SpaceID:    spaceInstance.ID,
-		UserActive: false,
+		Name:    "Sprint 2",
+		SpaceID: spaceInstance.ID,
 	}
 	iterationRepo.Create(rest.ctx, &iteration2)
 	assert.NotEqual(rest.T(), uuid.UUID{}, iteration2.ID)
 
 	childOfIteration2 := iteration.Iteration{
-		Name:       "Sprint 2.1",
-		SpaceID:    spaceInstance.ID,
-		Path:       append(iteration2.Path, iteration2.ID),
-		UserActive: false,
+		Name:    "Sprint 2.1",
+		SpaceID: spaceInstance.ID,
+		Path:    append(iteration2.Path, iteration2.ID),
 	}
 	iterationRepo.Create(rest.ctx, &childOfIteration2)
 	require.NotEqual(rest.T(), uuid.Nil, childOfIteration2.ID)
 
 	grandChildOfIteration2 := iteration.Iteration{
-		Name:       "Sprint 2.1.1",
-		SpaceID:    spaceInstance.ID,
-		Path:       append(childOfIteration2.Path, childOfIteration2.ID),
-		UserActive: false,
+		Name:    "Sprint 2.1.1",
+		SpaceID: spaceInstance.ID,
+		Path:    append(childOfIteration2.Path, childOfIteration2.ID),
 	}
 	iterationRepo.Create(rest.ctx, &grandChildOfIteration2)
 	require.NotEqual(rest.T(), uuid.UUID{}, grandChildOfIteration2.ID)
@@ -462,9 +456,8 @@ func (rest *TestSpaceIterationREST) TestOnlySpaceOwnerCreateIteration() {
 		}
 		// create Root iteration for above space
 		rootItr = &iteration.Iteration{
-			SpaceID:    newSpace.ID,
-			Name:       newSpace.Name,
-			UserActive: false,
+			SpaceID: newSpace.ID,
+			Name:    newSpace.Name,
 		}
 		iterationRepo := app.Iterations()
 		err = iterationRepo.Create(rest.ctx, rootItr)
@@ -532,35 +525,31 @@ func (rest *TestSpaceIterationREST) createIterations() (spaceID uuid.UUID, fathe
 			end := start.Add(time.Hour * (24 * 8 * 3))
 			name := "Sprint Test #" + strconv.Itoa(i)
 			i := iteration.Iteration{
-				Name:       name,
-				SpaceID:    spaceID,
-				StartAt:    &start,
-				EndAt:      &end,
-				UserActive: false,
+				Name:    name,
+				SpaceID: spaceID,
+				StartAt: &start,
+				EndAt:   &end,
 			}
 			repo.Create(rest.ctx, &i)
 		}
 		// create one child iteration and test for relationships.Parent
 		fatherIteration = &iteration.Iteration{
-			Name:       "Parent Iteration",
-			SpaceID:    spaceID,
-			UserActive: false,
+			Name:    "Parent Iteration",
+			SpaceID: spaceID,
 		}
 		repo.Create(rest.ctx, fatherIteration)
 		rest.T().Log("fatherIteration:", fatherIteration.ID, fatherIteration.Name, fatherIteration.Path)
 		childIteration = &iteration.Iteration{
-			Name:       "Child Iteration",
-			SpaceID:    spaceID,
-			Path:       append(fatherIteration.Path, fatherIteration.ID),
-			UserActive: false,
+			Name:    "Child Iteration",
+			SpaceID: spaceID,
+			Path:    append(fatherIteration.Path, fatherIteration.ID),
 		}
 		repo.Create(rest.ctx, childIteration)
 		rest.T().Log("childIteration:", childIteration.ID, childIteration.Name, childIteration.Path)
 		grandChildIteration = &iteration.Iteration{
-			Name:       "Grand Child Iteration",
-			SpaceID:    spaceID,
-			Path:       append(childIteration.Path, childIteration.ID),
-			UserActive: false,
+			Name:    "Grand Child Iteration",
+			SpaceID: spaceID,
+			Path:    append(childIteration.Path, childIteration.ID),
 		}
 		repo.Create(rest.ctx, grandChildIteration)
 		rest.T().Log("grandChildIteration:", grandChildIteration.ID, grandChildIteration.Name, grandChildIteration.Path)
@@ -608,7 +597,6 @@ func generateIterationsTag(iterations app.IterationList) string {
 			Lifecycle: gormsupport.Lifecycle{
 				UpdatedAt: *entity.Attributes.UpdatedAt,
 			},
-			UserActive: false,
 		}
 	}
 	return app.GenerateEntitiesTag(modelEntities)

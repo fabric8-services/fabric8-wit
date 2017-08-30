@@ -538,10 +538,9 @@ func (rest *TestIterationREST) TestIterationStateTransitions() {
 	assert.Equal(rest.T(), startState, *updated.Data.Attributes.State)
 	// create another iteration in same space and then change State to start
 	itr2 := iteration.Iteration{
-		Name:       "Spring 123",
-		SpaceID:    itr1.SpaceID,
-		Path:       itr1.Path,
-		UserActive: false,
+		Name:    "Spring 123",
+		SpaceID: itr1.SpaceID,
+		Path:    itr1.Path,
 	}
 	err := rest.db.Iterations().Create(context.Background(), &itr2)
 	require.Nil(rest.T(), err)
@@ -708,9 +707,8 @@ func createSpaceAndRootAreaAndIterations(t *testing.T, db application.DB) (space
 		require.Nil(t, err)
 		// above space should have a root iteration for itself
 		rootIterationObj = iteration.Iteration{
-			Name:       spaceObj.Name,
-			SpaceID:    spaceObj.ID,
-			UserActive: false,
+			Name:    spaceObj.Name,
+			SpaceID: spaceObj.ID,
 		}
 		err = app.Iterations().Create(context.Background(), &rootIterationObj)
 		require.Nil(t, err)
@@ -722,12 +720,11 @@ func createSpaceAndRootAreaAndIterations(t *testing.T, db application.DB) (space
 				CreatedAt: spaceObj.CreatedAt,
 				UpdatedAt: spaceObj.UpdatedAt,
 			},
-			Name:       iterationName,
-			SpaceID:    spaceObj.ID,
-			StartAt:    &start,
-			EndAt:      &end,
-			UserActive: false,
-			Path:       append(rootIterationObj.Path, rootIterationObj.ID),
+			Name:    iterationName,
+			SpaceID: spaceObj.ID,
+			StartAt: &start,
+			EndAt:   &end,
+			Path:    append(rootIterationObj.Path, rootIterationObj.ID),
 		}
 		err = app.Iterations().Create(context.Background(), &otherIterationObj)
 		require.Nil(t, err)

@@ -802,9 +802,8 @@ func createOneRandomIteration(ctx context.Context, db *gorm.DB) *iteration.Itera
 	}
 
 	itr := iteration.Iteration{
-		Name:       "Sprint 101",
-		SpaceID:    space.ID,
-		UserActive: false,
+		Name:    "Sprint 101",
+		SpaceID: space.ID,
 	}
 	err = iterationRepo.Create(ctx, &itr)
 	if err != nil {
@@ -843,10 +842,9 @@ func newChildIteration(ctx context.Context, db *gorm.DB, parentIteration *iterat
 
 	parentPath := append(parentIteration.Path, parentIteration.ID)
 	itr := iteration.Iteration{
-		Name:       "Sprint 101",
-		SpaceID:    parentIteration.SpaceID,
-		Path:       parentPath,
-		UserActive: false,
+		Name:    "Sprint 101",
+		SpaceID: parentIteration.SpaceID,
+		Path:    parentPath,
 	}
 	err := iterationRepo.Create(ctx, &itr)
 	if err != nil {
@@ -2894,9 +2892,8 @@ func createSpaceWithDefaults(ctx context.Context, db *gorm.DB) (*space.Space, *i
 	}
 
 	itr := &iteration.Iteration{
-		Name:       sp.Name,
-		SpaceID:    sp.ID,
-		UserActive: false,
+		Name:    sp.Name,
+		SpaceID: sp.ID,
 	}
 	err = iterationRepo.Create(ctx, itr)
 	if err != nil {
