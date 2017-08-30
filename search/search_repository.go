@@ -268,8 +268,7 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 			q.Negate = s
 		case nil:
 			q.Name = key
-			var s *string
-			q.Value = s
+			q.Value = nil
 		case map[string]interface{}:
 			q.Name = key
 			if v, ok := concreteVal["$IN"]; ok {
