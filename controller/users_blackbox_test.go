@@ -123,6 +123,7 @@ func (s *TestUsersSuite) TestUpdateUserOK() {
 	assert.Equal(s.T(), contextInformation["rate"], updatedContextInformation["rate"])
 }
 
+/*
 func (s *TestUsersSuite) TestUpdateUserNameMulitpleTimesForbidden() {
 
 	user := s.createRandomUser("OK")
@@ -151,6 +152,7 @@ func (s *TestUsersSuite) TestUpdateUserNameMulitpleTimesForbidden() {
 	updateUsersPayload = createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, &newUserName, nil, contextInformation)
 	test.UpdateUsersForbidden(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 }
+
 
 func (s *TestUsersSuite) TestUpdateUserNameMulitpleTimesOK() {
 
@@ -221,6 +223,7 @@ func (s *TestUsersSuite) TestUpdateRegistrationCompletedBadRequest() {
 
 }
 
+/*
 func (s *TestUsersSuite) TestUpdateRegistrationCompletedAndUsernameOK() {
 
 	// In this test case, we send both registrationCompleted=True and an updated username
@@ -247,6 +250,8 @@ func (s *TestUsersSuite) TestUpdateRegistrationCompletedAndUsernameOK() {
 	test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 
 }
+
+
 
 func (s *TestUsersSuite) TestUpdateExistingUsernameForbidden() {
 	// create 2 users.
@@ -295,6 +300,7 @@ func (s *TestUsersSuite) TestUpdateExistingEmailForbidden() {
 	updateUsersPayload := createUpdateUsersPayload(&newEmail, nil, nil, nil, nil, nil, nil, nil, contextInformation)
 	test.UpdateUsersConflict(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 }
+*/
 
 func (s *TestUsersSuite) TestUpdateUserVariableSpacesInNameOK() {
 
@@ -446,8 +452,10 @@ func (s *TestUsersSuite) TestUpdateUserOKWithoutContextInfo() {
 }
 
 /*
-	Pass " " as email in HTTP PATCH  /api/Users
-*/
+
+
+//Pass " " as email in HTTP PATCH  /api/Users
+
 
 func (s *TestUsersSuite) TestUpdateUserWithInvalidEmail() {
 	// given
@@ -467,10 +475,11 @@ func (s *TestUsersSuite) TestUpdateUserWithInvalidEmail() {
 	updateUsersPayload := createUpdateUsersPayloadWithoutContextInformation(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL)
 	test.UpdateUsersBadRequest(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 }
+*/
 
 /*
-	Pass " " as username in HTTP PATCH  /api/Users
-*/
+	//Pass " " as username in HTTP PATCH  /api/Users
+
 
 func (s *TestUsersSuite) TestUpdateUserWithInvalidUsername() {
 	// given
@@ -490,6 +499,7 @@ func (s *TestUsersSuite) TestUpdateUserWithInvalidUsername() {
 	//then
 	test.UpdateUsersBadRequest(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 }
+*/
 
 func (s *TestUsersSuite) TestPatchUserContextInformation() {
 
@@ -918,14 +928,14 @@ func createUpdateUsersPayload(email, fullName, bio, imageURL, profileURL, compan
 		Data: &app.UpdateUserData{
 			Type: "identities",
 			Attributes: &app.UpdateIdentityDataAttributes{
-				Email:                 email,
-				FullName:              fullName,
-				Bio:                   bio,
-				ImageURL:              imageURL,
-				URL:                   profileURL,
-				Company:               company,
-				ContextInformation:    contextInformation,
-				Username:              username,
+				//Email:                 email,
+				FullName:           fullName,
+				Bio:                bio,
+				ImageURL:           imageURL,
+				URL:                profileURL,
+				Company:            company,
+				ContextInformation: contextInformation,
+				//Username:              username,
 				RegistrationCompleted: registrationCompleted,
 			},
 		},
@@ -937,7 +947,7 @@ func createUpdateUsersPayloadWithoutContextInformation(email, fullName, bio, ima
 		Data: &app.UpdateUserData{
 			Type: "identities",
 			Attributes: &app.UpdateIdentityDataAttributes{
-				Email:    email,
+				//Email:    email,
 				FullName: fullName,
 				Bio:      bio,
 				ImageURL: imageURL,

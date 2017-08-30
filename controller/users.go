@@ -189,49 +189,54 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 			}
 		}
 
-		updatedEmail := ctx.Payload.Data.Attributes.Email
-		if updatedEmail != nil && *updatedEmail != user.Email {
-			isValid := isEmailValid(*updatedEmail)
-			if !isValid {
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInvalidRequest(fmt.Sprintf("invalid value assigned to email for identity with id %s and user with id %s", identity.ID, identity.UserID.UUID)))
-				return ctx.BadRequest(jerrors)
-			}
-			isUnique, err := isEmailUnique(appl, *updatedEmail, *user)
-			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("error updating identitity with id %s and user with id %s", identity.ID, identity.UserID.UUID)))
-			}
-			if !isUnique {
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInvalidRequest(fmt.Sprintf("email address: %s is already in use", *updatedEmail)))
-				return ctx.Conflict(jerrors)
-			}
-			user.Email = *updatedEmail
-			isKeycloakUserProfileUpdateNeeded = true
-			keycloakUserProfile.Email = updatedEmail
-		}
+		/* Temporarily disallow updating of username & email address */
 
-		updatedUserName := ctx.Payload.Data.Attributes.Username
-		if updatedUserName != nil && *updatedUserName != identity.Username {
-			isValid := isUsernameValid(*updatedUserName)
-			if !isValid {
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInvalidRequest(fmt.Sprintf("invalid value assigned to username for identity with id %s and user with id %s", identity.ID, identity.UserID.UUID)))
-				return ctx.BadRequest(jerrors)
+		/*
+
+			updatedEmail := ctx.Payload.Data.Attributes.Email
+			if updatedEmail != nil && *updatedEmail != user.Email {
+				isValid := isEmailValid(*updatedEmail)
+				if !isValid {
+					jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInvalidRequest(fmt.Sprintf("invalid value assigned to email for identity with id %s and user with id %s", identity.ID, identity.UserID.UUID)))
+					return ctx.BadRequest(jerrors)
+				}
+				isUnique, err := isEmailUnique(appl, *updatedEmail, *user)
+				if err != nil {
+					return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("error updating identitity with id %s and user with id %s", identity.ID, identity.UserID.UUID)))
+				}
+				if !isUnique {
+					jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInvalidRequest(fmt.Sprintf("email address: %s is already in use", *updatedEmail)))
+					return ctx.Conflict(jerrors)
+				}
+				user.Email = *updatedEmail
+				isKeycloakUserProfileUpdateNeeded = true
+				keycloakUserProfile.Email = updatedEmail
 			}
-			if identity.RegistrationCompleted {
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInvalidRequest(fmt.Sprintf("username cannot be updated more than once for identity id %s ", *id)))
-				return ctx.Forbidden(jerrors)
+
+			updatedUserName := ctx.Payload.Data.Attributes.Username
+			if updatedUserName != nil && *updatedUserName != identity.Username {
+				isValid := isUsernameValid(*updatedUserName)
+				if !isValid {
+					jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInvalidRequest(fmt.Sprintf("invalid value assigned to username for identity with id %s and user with id %s", identity.ID, identity.UserID.UUID)))
+					return ctx.BadRequest(jerrors)
+				}
+				if identity.RegistrationCompleted {
+					jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInvalidRequest(fmt.Sprintf("username cannot be updated more than once for identity id %s ", *id)))
+					return ctx.Forbidden(jerrors)
+				}
+				isUnique, err := isUsernameUnique(appl, *updatedUserName, *identity)
+				if err != nil {
+					return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("error updating identitity with id %s and user with id %s", identity.ID, identity.UserID.UUID)))
+				}
+				if !isUnique {
+					jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInvalidRequest(fmt.Sprintf("username : %s is already in use", *updatedUserName)))
+					return ctx.Conflict(jerrors)
+				}
+				identity.Username = *updatedUserName
+				isKeycloakUserProfileUpdateNeeded = true
+				keycloakUserProfile.Username = updatedUserName
 			}
-			isUnique, err := isUsernameUnique(appl, *updatedUserName, *identity)
-			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("error updating identitity with id %s and user with id %s", identity.ID, identity.UserID.UUID)))
-			}
-			if !isUnique {
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInvalidRequest(fmt.Sprintf("username : %s is already in use", *updatedUserName)))
-				return ctx.Conflict(jerrors)
-			}
-			identity.Username = *updatedUserName
-			isKeycloakUserProfileUpdateNeeded = true
-			keycloakUserProfile.Username = updatedUserName
-		}
+		*/
 
 		updatedRegistratedCompleted := ctx.Payload.Data.Attributes.RegistrationCompleted
 		if updatedRegistratedCompleted != nil {
