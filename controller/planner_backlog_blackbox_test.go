@@ -83,10 +83,9 @@ func (rest *TestPlannerBacklogBlackboxREST) setupPlannerBacklogWorkItems() (test
 
 		iterationsRepo := app.Iterations()
 		parentIteration = &iteration.Iteration{
-			Name:       "Parent Iteration",
-			SpaceID:    testSpace.ID,
-			State:      iteration.IterationStateNew,
-			UserActive: false,
+			Name:    "Parent Iteration",
+			SpaceID: testSpace.ID,
+			State:   iteration.IterationStateNew,
 		}
 		iterationsRepo.Create(rest.ctx, parentIteration)
 		log.Info(nil, map[string]interface{}{"parent_iteration_id": parentIteration.ID}, "created parent iteration")
