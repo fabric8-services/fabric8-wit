@@ -1,0 +1,11 @@
+{
+  "errors": [
+    {
+      "code": "bad_request",
+      "detail": "error listing work items for expression '\n\t\t\t\t\t{\"$AND\": [\n\t\t\t\t\t{\"assignee\":null, \"negate\": true}\n\t\t\t\t\t]}': Bad value for parameter 'negate for null not supported': 'assignee'",
+      "id": "IGNORE_ME",
+      "status": "400",
+      "title": "Bad Request"
+    }
+  ]
+}

@@ -920,4 +920,49 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 		compareWithGolden(t, filepath.Join(s.testDir, "show", "non_existing_key.error.golden.json"), jerrs)
 		compareWithGolden(t, filepath.Join(s.testDir, "show", "non_existing_key.headers.golden.json"), res.Header())
 	})
+	s.T().Run("assignee=null after", func(t *testing.T) {
+		filter := fmt.Sprintf(`
+					{"$AND": [
+						{"assignee":null}
+					]}`,
+		)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.Empty(s.T(), result.Data)
+		assert.Len(s.T(), result.Data, 0) //resolved bugs
+	})
+	_, err = wirepo.Create(
+		s.ctx, sprint2.SpaceID, workitem.SystemFeature,
+		map[string]interface{}{
+			workitem.SystemTitle:     fmt.Sprintf("Unassigned issue"),
+			workitem.SystemState:     workitem.SystemStateClosed,
+			workitem.SystemIteration: sprint2.ID.String(),
+		}, s.testIdentity.ID)
+	require.Nil(s.T(), err)
+	s.T().Run("assignee=null after", func(t *testing.T) {
+		filter := fmt.Sprintf(`
+					{"$AND": [
+						{"assignee":null}
+					]}`,
+		)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(s.T(), result.Data)
+		assert.Len(s.T(), result.Data, 1) //resolved bugs
+	})
+	s.T().Run("assignee=null with negate", func(t *testing.T) {
+		filter := fmt.Sprintf(`
+					{"$AND": [
+					{"assignee":null, "negate": true}
+					]}`,
+		)
+
+		res, jerrs := test.ShowSearchBadRequest(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.NotNil(t, jerrs)
+		require.Len(t, jerrs.Errors, 1)
+		require.NotNil(t, jerrs.Errors[0].ID)
+		ignoreString := "IGNORE_ME"
+		jerrs.Errors[0].ID = &ignoreString
+		compareWithGolden(t, filepath.Join(s.testDir, "show", "assignee_null_negate.error.golden.json"), jerrs)
+		compareWithGolden(t, filepath.Join(s.testDir, "show", "non_existing_key.headers.golden.json"), res.Header())
+	})
+
 }
