@@ -494,6 +494,16 @@ func (c *ConfigurationData) GetAuthEndpointSpaces(req *goa.RequestData) (string,
 	return c.getAuthEndpoint(req, "api/spaces")
 }
 
+// GetAuthEndpointLogin returns the <auth>/api/login endpoint
+func (c *ConfigurationData) GetAuthEndpointLogin(req *goa.RequestData) (string, error) {
+	return c.getAuthEndpoint(req, "api/login")
+}
+
+// GetAuthEndpointLogout returns the <auth>/api/logout endpoint
+func (c *ConfigurationData) GetAuthEndpointLogout(req *goa.RequestData) (string, error) {
+	return c.getAuthEndpoint(req, "api/logout")
+}
+
 func (c *ConfigurationData) getAuthEndpoint(req *goa.RequestData, pathSufix string) (string, error) {
 	return c.getServiceEndpoint(req, varAuthURL, devModeAuthURL, c.GetAuthDomainPrefix(), pathSufix)
 }

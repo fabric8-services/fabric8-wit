@@ -7,12 +7,10 @@ import (
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/goadesign/goa"
-	errs "github.com/pkg/errors"
 )
 
 type logoutConfiguration interface {
-	GetKeycloakEndpointLogout(*goa.RequestData) (string, error)
-	GetValidRedirectURLs(*goa.RequestData) (string, error)
+	GetAuthEndpointLogout(req *goa.RequestData) (string, error)
 }
 
 // LogoutController implements the logout resource.
@@ -29,18 +27,24 @@ func NewLogoutController(service *goa.Service, logoutService *login.KeycloakLogo
 
 // Logout runs the logout action.
 func (c *LogoutController) Logout(ctx *app.LogoutLogoutContext) error {
-	logoutEndpoint, err := c.configuration.GetKeycloakEndpointLogout(ctx.RequestData)
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"err": err,
-		}, "Unable to get Keycloak logout endpoint URL")
-		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.Wrap(err, "unable to get Keycloak logout endpoint URL")))
-	}
-	whitelist, err := c.configuration.GetValidRedirectURLs(ctx.RequestData)
+	logoutEndpoint, err := c.configuration.GetAuthEndpointLogout(ctx.RequestData)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
 	}
+	redirect := ctx.Redirect
+	referrer := ctx.RequestData.Header.Get("Referer")
+	if redirect == nil {
+		if referrer == "" {
+			log.Error(ctx, nil, "Failed to logout. Referer Header and redirect param are both empty.")
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest("referer Header and redirect param are both empty (at least one should be specified)"))
+		}
+		redirect = &referrer
+	}
+	log.Info(ctx, map[string]interface{}{
+		"referrer": referrer,
+		"redirect": redirect,
+	}, "Got Request to logout!")
 
-	ctx.ResponseData.Header().Set("Cache-Control", "no-cache")
-	return c.logoutService.Logout(ctx, logoutEndpoint, whitelist)
+	ctx.ResponseData.Header().Set("Location", logoutEndpoint+"?redirect="+*redirect)
+	return ctx.TemporaryRedirect()
 }
