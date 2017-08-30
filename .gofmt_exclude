@@ -1,0 +1,7 @@
+bindata_assetfs\.go
+sqlbindata
+design/.*
+vendor/.*
+app/.*
+client/.*
+tool/cli/.*

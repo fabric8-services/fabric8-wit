@@ -2,10 +2,12 @@ package link
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/application/repository"
 	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
 
 	"github.com/goadesign/goa"
@@ -42,6 +44,13 @@ func (r *GormWorkItemLinkCategoryRepository) Create(ctx context.Context, linkCat
 	}
 	db := r.db.Create(linkCat)
 	if db.Error != nil {
+		if gormsupport.IsUniqueViolation(db.Error, "work_item_link_categories_name_idx") {
+			log.Error(ctx, map[string]interface{}{
+				"err":       db.Error,
+				"wilc_name": linkCat.Name,
+			}, "unable to create work item link category because a category already exists with the same name")
+			return nil, errors.NewDataConflictError(fmt.Sprintf("work item link category already exists with the same name: %s ", linkCat.Name))
+		}
 		return nil, errors.NewInternalError(ctx, db.Error)
 	}
 	log.Info(ctx, map[string]interface{}{

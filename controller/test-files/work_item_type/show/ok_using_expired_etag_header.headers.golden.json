@@ -1,6 +1,6 @@
 {
   "Cache-Control": [
-    "max-age=2"
+    "private,max-age=120"
   ],
   "Content-Type": [
     "application/vnd.api+json"

@@ -283,6 +283,8 @@ func main() {
 
 	userServiceCtrl := controller.NewUserServiceController(service)
 	userServiceCtrl.UpdateTenant = account.NewUpdateTenant(configuration)
+	userServiceCtrl.CleanTenant = account.NewCleanTenant(configuration)
+	userServiceCtrl.ShowTenant = account.NewShowTenant(configuration)
 	app.MountUserServiceController(service, userServiceCtrl)
 
 	// Mount "search" controller
@@ -330,6 +332,7 @@ func main() {
 
 	// Mount "codebase" controller
 	codebaseCtrl := controller.NewCodebaseController(service, appDB, configuration)
+	codebaseCtrl.ShowTenant = account.NewShowTenant(configuration)
 	app.MountCodebaseController(service, codebaseCtrl)
 
 	// Mount "spacecodebases" controller

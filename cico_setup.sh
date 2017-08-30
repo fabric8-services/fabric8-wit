@@ -11,7 +11,7 @@ set -e
 function load_jenkins_vars() {
   if [ -e "jenkins-env" ]; then
     cat jenkins-env \
-      | grep -E "(JENKINS_URL|GIT_BRANCH|GIT_COMMIT|BUILD_NUMBER|ghprbSourceBranch|ghprbActualCommit|BUILD_URL|ghprbPullId)=" \
+      | grep -E "(DEVSHIFT_TAG_LEN|DEVSHIFT_USERNAME|DEVSHIFT_PASSWORD|JENKINS_URL|GIT_BRANCH|GIT_COMMIT|BUILD_NUMBER|ghprbSourceBranch|ghprbActualCommit|BUILD_URL|ghprbPullId)=" \
       | sed 's/^/export /g' \
       > ~/.jenkins-env
     source ~/.jenkins-env
@@ -123,10 +123,17 @@ function deploy() {
   # Let's deploy
   make docker-image-deploy
 
-  TAG=$(echo $GIT_COMMIT | cut -c1-6)
+  TAG=$(echo $GIT_COMMIT | cut -c1-${DEVSHIFT_TAG_LEN})
+  REGISTRY="push.registry.devshift.net"
 
-  tag_push registry.devshift.net/fabric8-services/fabric8-wit:$TAG
-  tag_push registry.devshift.net/fabric8-services/fabric8-wit:latest
+  if [ -n "${DEVSHIFT_USERNAME}" -a -n "${DEVSHIFT_PASSWORD}" ]; then
+    docker login -u ${DEVSHIFT_USERNAME} -p ${DEVSHIFT_PASSWORD} ${REGISTRY}
+  else
+    echo "Could not login, missing credentials for the registry"
+  fi
+
+  tag_push ${REGISTRY}/fabric8-services/fabric8-wit:$TAG
+  tag_push ${REGISTRY}/fabric8-services/fabric8-wit:latest
   echo 'CICO: Image pushed, ready to update deployed app'
 }
 

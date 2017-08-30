@@ -46,6 +46,7 @@ type WorkitemController struct {
 // WorkItemControllerConfig the config interface for the WorkitemController
 type WorkItemControllerConfig interface {
 	GetCacheControlWorkItems() string
+	GetCacheControlWorkItem() string
 }
 
 // NewWorkitemController creates a workitem controller.
@@ -148,7 +149,7 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Fail to load work item with id %v", ctx.WiID)))
 		}
-		return ctx.ConditionalRequest(*wi, c.config.GetCacheControlWorkItems, func() error {
+		return ctx.ConditionalRequest(*wi, c.config.GetCacheControlWorkItem, func() error {
 			comments := workItemIncludeCommentsAndTotal(ctx, c.db, ctx.WiID)
 			hasChildren := workItemIncludeHasChildren(appl, ctx)
 			wi2 := ConvertWorkItem(ctx.RequestData, *wi, comments, hasChildren)

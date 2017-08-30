@@ -339,12 +339,12 @@ func (s *workItemLinkSuite) TestCreateAndDeleteWorkItemLink() {
 }
 
 // Check if #586 is fixed.
-func (s *workItemLinkSuite) TestCreateAndDeleteWorkItemLinkBadRequestDueToUniqueViolation() {
+func (s *workItemLinkSuite) TestCreateAndDeleteWorkItemLinkConflictDueToUniqueViolation() {
 	createPayload1 := newCreateWorkItemLinkPayload(s.bug1ID, s.bug2ID, s.bugBlockerLinkTypeID)
 	_, workItemLink1 := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload1)
 	require.NotNil(s.T(), workItemLink1)
 	createPayload2 := newCreateWorkItemLinkPayload(s.bug1ID, s.bug2ID, s.bugBlockerLinkTypeID)
-	_, _ = test.CreateWorkItemLinkBadRequest(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload2)
+	_, _ = test.CreateWorkItemLinkConflict(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload2)
 }
 
 // Same for /api/workitems/:id/relationships/links

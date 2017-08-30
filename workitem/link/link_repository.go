@@ -150,8 +150,11 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 	db := r.db.Create(link)
 	if db.Error != nil {
 		if gormsupport.IsUniqueViolation(db.Error, "work_item_links_unique_idx") {
-			// TODO(kwk): Make NewBadParameterError a variadic function to avoid this ugliness ;)
-			return nil, errors.NewBadParameterError("data.relationships.source_id + data.relationships.target_id + data.relationships.link_type_id", sourceID).Expected("unique")
+			log.Error(ctx, map[string]interface{}{
+				"err":       db.Error,
+				"source_id": sourceID,
+			}, "unable to create work item link because a link already exists with the same source_id, target_id and type_id")
+			return nil, errors.NewDataConflictError(fmt.Sprintf("work item link already exists with data.relationships.source_id: %s; data.relationships.target_id: %s; data.relationships.link_type_id: %s ", sourceID, targetID, linkTypeID))
 		}
 		if gormsupport.IsForeignKeyViolation(db.Error, "work_item_links_source_id_fkey") {
 			return nil, errors.NewNotFoundError("source", sourceID.String())

@@ -68,6 +68,7 @@ func (rest *TestPlannerBacklogBlackboxREST) UnSecuredController() (*goa.Service,
 
 func (rest *TestPlannerBacklogBlackboxREST) setupPlannerBacklogWorkItems() (testSpace *space.Space, parentIteration *iteration.Iteration, createdWI *workitem.WorkItem) {
 	application.Transactional(gormapplication.NewGormDB(rest.DB), func(app application.Application) error {
+		userActive := false
 		spacesRepo := app.Spaces()
 		testSpace = &space.Space{
 			Name: "PlannerBacklogWorkItems-" + uuid.NewV4().String(),
@@ -83,18 +84,20 @@ func (rest *TestPlannerBacklogBlackboxREST) setupPlannerBacklogWorkItems() (test
 
 		iterationsRepo := app.Iterations()
 		parentIteration = &iteration.Iteration{
-			Name:    "Parent Iteration",
-			SpaceID: testSpace.ID,
-			State:   iteration.IterationStateNew,
+			Name:       "Parent Iteration",
+			SpaceID:    testSpace.ID,
+			State:      iteration.IterationStateNew,
+			UserActive: &userActive,
 		}
 		iterationsRepo.Create(rest.ctx, parentIteration)
 		log.Info(nil, map[string]interface{}{"parent_iteration_id": parentIteration.ID}, "created parent iteration")
 
 		childIteration := &iteration.Iteration{
-			Name:    "Child Iteration",
-			SpaceID: testSpace.ID,
-			Path:    append(parentIteration.Path, parentIteration.ID),
-			State:   iteration.IterationStateStart,
+			Name:       "Child Iteration",
+			SpaceID:    testSpace.ID,
+			Path:       append(parentIteration.Path, parentIteration.ID),
+			State:      iteration.IterationStateStart,
+			UserActive: &userActive,
 		}
 		iterationsRepo.Create(rest.ctx, childIteration)
 		log.Info(nil, map[string]interface{}{"child_iteration_id": childIteration.ID}, "created child iteration")
@@ -218,10 +221,12 @@ func (rest *TestPlannerBacklogBlackboxREST) TestSuccessEmptyListPlannerBacklogWo
 			rest.T().Error(err)
 		}
 		spaceID = p.ID
+		userActive := false
 		parentIteration = &iteration.Iteration{
-			Name:    "Parent Iteration",
-			SpaceID: spaceID,
-			State:   iteration.IterationStateNew,
+			Name:       "Parent Iteration",
+			SpaceID:    spaceID,
+			State:      iteration.IterationStateNew,
+			UserActive: &userActive,
 		}
 		iterationsRepo.Create(rest.ctx, parentIteration)
 

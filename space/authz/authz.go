@@ -137,7 +137,8 @@ func (s *KeycloakAuthzService) Authorize(ctx context.Context, entitlementEndpoin
 
 func (s *KeycloakAuthzService) checkEntitlementForSpace(ctx context.Context, token jwt.Token, entitlementEndpoint string, spaceID string) (bool, error) {
 	resource := auth.EntitlementResource{
-		Permissions: []auth.ResourceSet{{Name: spaceID}},
+		Permissions:     []auth.ResourceSet{{Name: spaceID}},
+		MetaInformation: auth.EntitlementMeta{Limit: auth.EntitlementLimit},
 	}
 	ent, err := auth.GetEntitlement(ctx, entitlementEndpoint, &resource, token.Raw)
 	if err != nil {

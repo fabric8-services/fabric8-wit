@@ -334,6 +334,12 @@ func GetMigrations() Migrations {
 	// Version 70
 	m = append(m, steps{ExecuteSQLFile("070-rename-comment-createdby-to-creator.sql")})
 
+	// Version 71
+	m = append(m, steps{ExecuteSQLFile("071-iteration-related-changes.sql")})
+
+	// Version 72
+	m = append(m, steps{ExecuteSQLFile("072-adds-active-flag-in-iteration.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the

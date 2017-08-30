@@ -64,8 +64,11 @@ func getFieldName(fieldName string) (mappedFieldName string, isJSONField bool) {
 	if isColumnField {
 		return mappedFieldName, false
 	}
-	// leave field untouched
-	return fieldName, true
+	if strings.Contains(fieldName, ".") {
+		// leave field untouched
+		return fieldName, true
+	}
+	return fieldName, false
 }
 
 func newExpressionCompiler() expressionCompiler {

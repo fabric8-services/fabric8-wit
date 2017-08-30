@@ -125,6 +125,8 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration65", testMigration65)
 	t.Run("TestMigration66", testMigration66)
 	t.Run("TestMigration67", testMigration67)
+	t.Run("TestMigration71", testMigration71)
+	t.Run("TestMigration72", testMigration72)
 
 	// Perform the migration
 	if err := migration.Migrate(sqlDB, databaseName); err != nil {
@@ -452,6 +454,79 @@ func testMigration67(t *testing.T) {
 	err = stmt.QueryRow("00000067-0000-0000-0000-000000000000").Scan(&parentID)
 	require.Nil(t, err)
 	assert.NotNil(t, parentID)
+}
+
+func testMigration71(t *testing.T) {
+	// migrate to version
+	migrateToVersion(sqlDB, migrations[:72], 72)
+	// fill DB with data
+	assert.Nil(t, runSQLscript(sqlDB, "071-iteration-related-changes.sql"))
+	// verify the data
+	var updatedAt *time.Time
+	var deletedAt *time.Time
+	var relationshipsChangedAt *time.Time
+
+	// verify work item 1 linked to iteration 1
+	stmt, err := sqlDB.Prepare("select updated_at from work_items where id = $1")
+	require.Nil(t, err)
+	err = stmt.QueryRow("11111111-7171-0000-0000-000000000000").Scan(&updatedAt)
+	require.Nil(t, err)
+	require.NotNil(t, updatedAt)
+	stmt, err = sqlDB.Prepare("select relationships_changed_at from iterations where id = $1")
+	require.Nil(t, err)
+	err = stmt.QueryRow("11111111-7171-0000-0000-000000000000").Scan(&relationshipsChangedAt)
+	require.Nil(t, err)
+	require.NotNil(t, relationshipsChangedAt)
+	assert.Equal(t, *updatedAt, *relationshipsChangedAt)
+	// verify work item 2 linked to iteration 2 then iteration 3
+	stmt, err = sqlDB.Prepare("select updated_at from work_items where id = $1")
+	require.Nil(t, err)
+	err = stmt.QueryRow("22222222-7171-0000-0000-000000000000").Scan(&updatedAt)
+	require.Nil(t, err)
+	require.NotNil(t, updatedAt)
+	stmt, err = sqlDB.Prepare("select relationships_changed_at from iterations where id = $1")
+	require.Nil(t, err)
+	err = stmt.QueryRow("22222222-7171-0000-0000-000000000000").Scan(&relationshipsChangedAt)
+	require.Nil(t, err)
+	require.NotNil(t, relationshipsChangedAt)
+	assert.Equal(t, *updatedAt, *relationshipsChangedAt)
+	stmt, err = sqlDB.Prepare("select relationships_changed_at from iterations where id = $1")
+	require.Nil(t, err)
+	err = stmt.QueryRow("33333333-7171-0000-0000-000000000000").Scan(&relationshipsChangedAt)
+	require.Nil(t, err)
+	require.NotNil(t, relationshipsChangedAt)
+	assert.Equal(t, *updatedAt, *relationshipsChangedAt)
+	// verify work item 3 linked to iteration 4
+	stmt, err = sqlDB.Prepare("select deleted_at from work_items where id = $1")
+	require.Nil(t, err)
+	err = stmt.QueryRow("33333333-7171-0000-0000-000000000000").Scan(&deletedAt)
+	require.Nil(t, err)
+	require.NotNil(t, deletedAt)
+	stmt, err = sqlDB.Prepare("select relationships_changed_at from iterations where id = $1")
+	require.Nil(t, err)
+	err = stmt.QueryRow("44444444-7171-0000-0000-000000000000").Scan(&relationshipsChangedAt)
+	require.Nil(t, err)
+	require.NotNil(t, relationshipsChangedAt)
+	assert.Equal(t, *deletedAt, *relationshipsChangedAt)
+	// verify work item 4 linked to iteration 5
+	// we will expect 1hr earlier for the last relationship change
+	stmt, err = sqlDB.Prepare("select (updated_at - interval '1 hour') from work_items where id = $1")
+	require.Nil(t, err)
+	err = stmt.QueryRow("44444444-7171-0000-0000-000000000000").Scan(&updatedAt)
+	require.Nil(t, err)
+	require.NotNil(t, updatedAt)
+	stmt, err = sqlDB.Prepare("select relationships_changed_at from iterations where id = $1")
+	require.Nil(t, err)
+	err = stmt.QueryRow("55555555-7171-0000-0000-000000000000").Scan(&relationshipsChangedAt)
+	require.Nil(t, err)
+	require.NotNil(t, relationshipsChangedAt)
+	assert.Equal(t, updatedAt.String(), relationshipsChangedAt.String())
+
+}
+
+func testMigration72(t *testing.T) {
+	migrateToVersion(sqlDB, migrations[:73], 73)
+	assert.True(t, dialect.HasColumn("iterations", "user_active"))
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and

@@ -37,6 +37,7 @@ type SpaceConfiguration interface {
 	GetKeycloakClientID() string
 	GetKeycloakSecret() string
 	GetCacheControlSpaces() string
+	GetCacheControlSpace() string
 }
 
 // SpaceController implements the space resource.
@@ -107,10 +108,12 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 		}
 
 		// Similar to above, we create a root iteration for this new space
+		userActive := false
 		newIteration := iteration.Iteration{
-			ID:      uuid.NewV4(),
-			SpaceID: rSpace.ID,
-			Name:    rSpace.Name,
+			ID:         uuid.NewV4(),
+			SpaceID:    rSpace.ID,
+			Name:       rSpace.Name,
+			UserActive: &userActive,
 		}
 		err = appl.Iterations().Create(ctx, &newIteration)
 		if err != nil {
@@ -255,7 +258,7 @@ func (c *SpaceController) Show(ctx *app.ShowSpaceContext) error {
 			}, "unable to load the space by ID")
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		return ctx.ConditionalRequest(*s, c.config.GetCacheControlSpaces, func() error {
+		return ctx.ConditionalRequest(*s, c.config.GetCacheControlSpace, func() error {
 			spaceData, err := ConvertSpaceFromModel(ctx.Context, c.db, ctx.RequestData, *s)
 			if err != nil {
 				log.Error(ctx, map[string]interface{}{
@@ -416,6 +419,7 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *goa.
 	relatedOwnerByLink := rest.AbsoluteURL(request, fmt.Sprintf("%s/%s", usersEndpoint, sp.OwnerId.String()))
 	relatedCollaboratorList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/collaborators", spaceIDStr))
 	relatedFilterList := rest.AbsoluteURL(request, "/api/filters")
+	workitemTypeGroupsLink := rest.AbsoluteURL(request, app.SpaceTemplateHref(spaceIDStr)+"/workitemtypegroups/")
 
 	count, err := countBacklogItems(ctx, db, sp.ID)
 	if err != nil {
@@ -438,9 +442,10 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *goa.
 				Self: &relatedBacklogList,
 				Meta: &app.BacklogLinkMeta{TotalCount: count},
 			},
-			Workitemtypes:     &relatedWorkItemTypeList,
-			Workitemlinktypes: &relatedWorkItemLinkTypeList,
-			Filters:           &relatedFilterList,
+			Workitemtypes:      &relatedWorkItemTypeList,
+			Workitemlinktypes:  &relatedWorkItemLinkTypeList,
+			Filters:            &relatedFilterList,
+			Workitemtypegroups: &workitemTypeGroupsLink,
 		},
 		Relationships: &app.SpaceRelationships{
 			OwnedBy: &app.SpaceOwnedBy{

@@ -38,6 +38,7 @@ type UsersController struct {
 // UsersControllerConfiguration the configuration for the UsersController
 type UsersControllerConfiguration interface {
 	GetCacheControlUsers() string
+	GetCacheControlUser() string
 	GetKeycloakAccountEndpoint(*goa.RequestData) (string, error)
 }
 
@@ -71,7 +72,7 @@ func (c *UsersController) Show(ctx *app.ShowUsersContext) error {
 				return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError(fmt.Sprintf("User ID %s not valid", userID.UUID), err))
 			}
 		}
-		return ctx.ConditionalRequest(*user, c.config.GetCacheControlUsers, func() error {
+		return ctx.ConditionalRequest(*user, c.config.GetCacheControlUser, func() error {
 			return ctx.OK(ConvertToAppUser(ctx.RequestData, user, identity))
 		})
 	})

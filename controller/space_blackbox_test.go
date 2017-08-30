@@ -506,6 +506,11 @@ func (rest *TestSpaceREST) TestShowSpaceNotModifiedUsingIfNoneMatchHeader() {
 	require.NotNil(t, fetched.Data.Relationships.Collaborators.Links.Related)
 	subStringCollaborators := fmt.Sprintf("/%s/collaborators", created.Data.ID.String())
 	assert.Contains(t, *fetched.Data.Relationships.Collaborators.Links.Related, subStringCollaborators)
+
+	// verify list-WITG URL exists in Relationships.Links
+	require.NotNil(t, fetched.Data.Links.Workitemtypegroups)
+	subStringWITG := fmt.Sprintf("/%s/workitemtypegroups", created.Data.ID.String())
+	assert.Contains(t, *fetched.Data.Links.Workitemtypegroups, subStringWITG)
 }
 
 func (rest *TestSpaceREST) TestFailShowSpaceNotFound() {
