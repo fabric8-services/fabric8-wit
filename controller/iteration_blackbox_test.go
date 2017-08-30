@@ -610,14 +610,14 @@ func (rest *TestIterationREST) createIterations() (*app.IterationSingle, *accoun
 	return created, owner
 }
 
-// TestIterationActivedByUser tests:
+// TestActiveIteration tests:
 // 1. Iteration should be active when it is in timeframe
 // 2. Iteration should not be active when it is outside the timeframe
 // 3. Iteration should always be active when user sets it to active
-func (rest *TestIterationREST) TestIterationActivatedByUser() {
+func (rest *TestIterationREST) TestActiveIteration() {
 	itr1, owner := rest.createIterations()
-	assert.Equal(rest.T(), false, *itr1.Data.Attributes.UserActive)
-	assert.Equal(rest.T(), true, *itr1.Data.Attributes.ActiveStatus) // iteration falls in timeframe, so iteration is active
+	assert.Equal(rest.T(), iteration.IterationNotActive, *itr1.Data.Attributes.UserActive)
+	assert.Equal(rest.T(), iteration.IterationActive, *itr1.Data.Attributes.ActiveStatus) // iteration falls in timeframe, so iteration is active
 
 	startDate := time.Date(2017, 5, 17, 00, 00, 00, 00, time.UTC)
 	endDate := time.Date(2017, 6, 17, 00, 00, 00, 00, time.UTC)
@@ -638,17 +638,7 @@ func (rest *TestIterationREST) TestIterationActivatedByUser() {
 	assert.Equal(rest.T(), iteration.IterationNotActive, *updated.Data.Attributes.ActiveStatus) // iteration doesnot fall in timeframe, so iteration is not active
 
 	userActive := true
-	payload = app.UpdateIterationPayload{
-		Data: &app.Iteration{
-			Attributes: &app.IterationAttributes{
-				StartAt:    &startDate,
-				EndAt:      &endDate,
-				UserActive: &userActive,
-			},
-			ID:   itr1.Data.ID,
-			Type: iteration.APIStringTypeIteration,
-		},
-	}
+	payload.Data.Attributes.UserActive = &userActive
 	owner, errIdn = rest.db.Identities().Load(context.Background(), owner.ID)
 	require.Nil(rest.T(), errIdn)
 	svc, ctrl = rest.SecuredControllerWithIdentity(owner)
