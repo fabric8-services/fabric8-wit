@@ -42,6 +42,9 @@ func NewAuthzResourceManager(config AuthServiceConfiguration) *AuthzResourceMana
 func (m *AuthzResourceManager) CreateSpace(ctx context.Context, request *goa.RequestData, spaceID string) (*authservice.SpaceResource, error) {
 	if !m.configuration.IsAuthorizationEnabled() {
 		// Keycloak authorization is disabled by default in Developer Mode
+		log.Warn(ctx, map[string]interface{}{
+			"space_id": spaceID,
+		}, "Authorization is disabled. Keycloak space resource won't be created")
 		return &authservice.SpaceResource{Data: &authservice.SpaceResourceData{
 			ResourceID:   uuid.NewV4().String(),
 			PermissionID: uuid.NewV4().String(),
@@ -97,6 +100,9 @@ func (m *AuthzResourceManager) CreateSpace(ctx context.Context, request *goa.Req
 func (m *AuthzResourceManager) DeleteSpace(ctx context.Context, request *goa.RequestData, spaceID string) error {
 	if !m.configuration.IsAuthorizationEnabled() {
 		// Keycloak authorization is disabled by default in Developer Mode
+		log.Warn(ctx, map[string]interface{}{
+			"space_id": spaceID,
+		}, "Authorization is disabled. Keycloak space resource won't be deleted")
 		return nil
 	}
 	c, err := m.createClient(ctx, request)

@@ -64,6 +64,10 @@ func (c *CollaboratorsController) List(ctx *app.ListCollaboratorsContext) error 
 			return jsonapi.JSONErrorResponse(ctx, errs.NewInternalError(ctx.Context, err))
 		}
 		userIDs = fmt.Sprintf("[\"%s\"]", ownerID)
+		log.Warn(ctx, map[string]interface{}{
+			"space_id": ctx.SpaceID,
+			"owner_id": ownerID,
+		}, "Authorization is disabled. Space owner is the only collaborator")
 	} else {
 		policy, _, err := c.getPolicy(ctx, ctx.RequestData, ctx.SpaceID)
 		if err != nil {
@@ -143,6 +147,9 @@ func (c *CollaboratorsController) List(ctx *app.ListCollaboratorsContext) error 
 func (c *CollaboratorsController) Add(ctx *app.AddCollaboratorsContext) error {
 	if !c.config.IsAuthorizationEnabled() {
 		// Ignore if authZ is disabled (by default in Dev Mode)
+		log.Warn(ctx, map[string]interface{}{
+			"space_id": ctx.SpaceID,
+		}, "Authorization is disabled. No space collaborators added")
 		return ctx.OK([]byte{})
 	}
 	identityIDs := []*app.UpdateUserID{{ID: ctx.IdentityID}}
@@ -157,6 +164,9 @@ func (c *CollaboratorsController) Add(ctx *app.AddCollaboratorsContext) error {
 func (c *CollaboratorsController) AddMany(ctx *app.AddManyCollaboratorsContext) error {
 	if !c.config.IsAuthorizationEnabled() {
 		// Ignore if authZ is disabled (by default in Dev Mode)
+		log.Warn(ctx, map[string]interface{}{
+			"space_id": ctx.SpaceID,
+		}, "Authorization is disabled. No space collaborators added")
 		return ctx.OK([]byte{})
 	}
 	if ctx.Payload != nil && ctx.Payload.Data != nil {
@@ -172,6 +182,9 @@ func (c *CollaboratorsController) AddMany(ctx *app.AddManyCollaboratorsContext) 
 func (c *CollaboratorsController) Remove(ctx *app.RemoveCollaboratorsContext) error {
 	if !c.config.IsAuthorizationEnabled() {
 		// Ignore if authZ is disabled (by default in Dev Mode)
+		log.Warn(ctx, map[string]interface{}{
+			"space_id": ctx.SpaceID,
+		}, "Authorization is disabled. No space collaborators removed")
 		return ctx.OK([]byte{})
 	}
 	// Don't remove the space owner
@@ -192,6 +205,9 @@ func (c *CollaboratorsController) Remove(ctx *app.RemoveCollaboratorsContext) er
 func (c *CollaboratorsController) RemoveMany(ctx *app.RemoveManyCollaboratorsContext) error {
 	if !c.config.IsAuthorizationEnabled() {
 		// Ignore if authZ is disabled (by default in Dev Mode)
+		log.Warn(ctx, map[string]interface{}{
+			"space_id": ctx.SpaceID,
+		}, "Authorization is disabled. No space collaborators removed")
 		return ctx.OK([]byte{})
 	}
 	if ctx.Payload != nil && ctx.Payload.Data != nil {

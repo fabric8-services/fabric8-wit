@@ -139,6 +139,9 @@ func (s *KeycloakAuthzService) Authorize(ctx context.Context, entitlementEndpoin
 func (s *KeycloakAuthzService) checkEntitlementForSpace(ctx context.Context, token jwt.Token, entitlementEndpoint string, spaceID string) (bool, error) {
 	if !s.config.IsAuthorizationEnabled() {
 		// Keycloak authorization is disabled by default in Developer Mode
+		log.Warn(ctx, map[string]interface{}{
+			"space_id": spaceID,
+		}, "Authorization is disabled. All users are allowed to operate the space")
 		return true, nil
 	}
 	resource := auth.EntitlementResource{
