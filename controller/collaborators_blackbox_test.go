@@ -13,6 +13,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/auth"
+	config "github.com/fabric8-services/fabric8-wit/configuration"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
@@ -71,6 +72,22 @@ func (m *DummyPolicyManager) RemoveUserFromPolicy(p *auth.KeycloakPolicy, userID
 	return p.RemoveUserFromPolicy(userID)
 }
 
+type dummyCollaboratorsConfiguration struct {
+	configuration *config.ConfigurationData
+}
+
+func (c *dummyCollaboratorsConfiguration) GetKeycloakEndpointEntitlement(*goa.RequestData) (string, error) {
+	return "", nil
+}
+
+func (c *dummyCollaboratorsConfiguration) GetCacheControlCollaborators() string {
+	return c.configuration.GetCacheControlCollaborators()
+}
+
+func (c *dummyCollaboratorsConfiguration) IsAuthorizationEnabled() bool {
+	return true
+}
+
 type TestCollaboratorsREST struct {
 	gormtestsupport.DBTestSuite
 
@@ -81,6 +98,7 @@ type TestCollaboratorsREST struct {
 	testIdentity2 account.Identity
 	testIdentity3 account.Identity
 	spaceID       uuid.UUID
+	authzConfig   CollaboratorsConfiguration
 }
 
 func TestRunCollaboratorsREST(t *testing.T) {
@@ -91,6 +109,7 @@ func TestRunCollaboratorsREST(t *testing.T) {
 func (rest *TestCollaboratorsREST) SetupTest() {
 	rest.db = gormapplication.NewGormDB(rest.DB)
 	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
+	rest.authzConfig = &dummyCollaboratorsConfiguration{rest.Configuration}
 
 	rest.policy = &auth.KeycloakPolicy{
 		Name:             "TestCollaborators-" + uuid.NewV4().String(),
@@ -118,12 +137,12 @@ func (rest *TestCollaboratorsREST) TearDownTest() {
 func (rest *TestCollaboratorsREST) SecuredController() (*goa.Service, *CollaboratorsController) {
 	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
 	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", wittoken.NewManagerWithPrivateKey(priv), rest.testIdentity1, &DummySpaceAuthzService{rest})
-	return svc, NewCollaboratorsController(svc, rest.db, rest.Configuration, &DummyPolicyManager{rest: rest})
+	return svc, NewCollaboratorsController(svc, rest.db, rest.authzConfig, &DummyPolicyManager{rest: rest})
 }
 
 func (rest *TestCollaboratorsREST) UnSecuredController() (*goa.Service, *CollaboratorsController) {
 	svc := goa.New("Collaborators-Service")
-	return svc, NewCollaboratorsController(svc, rest.db, rest.Configuration, &DummyPolicyManager{rest: rest})
+	return svc, NewCollaboratorsController(svc, rest.db, rest.authzConfig, &DummyPolicyManager{rest: rest})
 }
 
 func (rest *TestCollaboratorsREST) TestListCollaboratorsWithRandomSpaceIDNotFound() {
@@ -404,7 +423,7 @@ func (rest *TestCollaboratorsREST) TestRemoveCollaboratorsUnauthorizedIfCurrentU
 	// given
 	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
 	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", wittoken.NewManagerWithPrivateKey(priv), rest.testIdentity2, &DummySpaceAuthzService{rest})
-	ctrl := NewCollaboratorsController(svc, rest.db, rest.Configuration, &DummyPolicyManager{rest: rest})
+	ctrl := NewCollaboratorsController(svc, rest.db, rest.authzConfig, &DummyPolicyManager{rest: rest})
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
 	_, actualUsers := test.ListCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, nil, nil, nil, nil)
 	rest.checkCollaborators([]uuid.UUID{rest.testIdentity1.ID}, actualUsers)
@@ -416,7 +435,7 @@ func (rest *TestCollaboratorsREST) TestRemoveManyCollaboratorsUnauthorizedIfCurr
 	// given
 	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
 	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", wittoken.NewManagerWithPrivateKey(priv), rest.testIdentity2, &DummySpaceAuthzService{rest})
-	ctrl := NewCollaboratorsController(svc, rest.db, rest.Configuration, &DummyPolicyManager{rest: rest})
+	ctrl := NewCollaboratorsController(svc, rest.db, rest.authzConfig, &DummyPolicyManager{rest: rest})
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
 	_, actualUsers := test.ListCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, nil, nil, nil, nil)
 	rest.checkCollaborators([]uuid.UUID{rest.testIdentity1.ID}, actualUsers)

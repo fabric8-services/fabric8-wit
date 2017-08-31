@@ -33,45 +33,38 @@ const (
 	// Constants for viper variable names. Will be used to set
 	// default values as well as to get each value
 
-	varPostgresHost                     = "postgres.host"
-	varPostgresPort                     = "postgres.port"
-	varPostgresUser                     = "postgres.user"
-	varPostgresDatabase                 = "postgres.database"
-	varPostgresPassword                 = "postgres.password"
-	varPostgresSSLMode                  = "postgres.sslmode"
-	varPostgresConnectionTimeout        = "postgres.connection.timeout"
-	varPostgresTransactionTimeout       = "postgres.transaction.timeout"
-	varPostgresConnectionRetrySleep     = "postgres.connection.retrysleep"
-	varPostgresConnectionMaxIdle        = "postgres.connection.maxidle"
-	varPostgresConnectionMaxOpen        = "postgres.connection.maxopen"
-	varFeatureWorkitemRemote            = "feature.workitem.remote"
-	varPopulateCommonTypes              = "populate.commontypes"
-	varHTTPAddress                      = "http.address"
-	varDeveloperModeEnabled             = "developer.mode.enabled"
-	varGithubAuthToken                  = "github.auth.token"
-	varKeycloakSecret                   = "keycloak.secret"
-	varKeycloakClientID                 = "keycloak.client.id"
-	varKeycloakDomainPrefix             = "keycloak.domain.prefix"
-	varKeycloakRealm                    = "keycloak.realm"
-	varKeycloakTesUserName              = "keycloak.testuser.name"
-	varKeycloakTesUserSecret            = "keycloak.testuser.secret"
-	varKeycloakTesUser2Name             = "keycloak.testuser2.name"
-	varKeycloakTesUser2Secret           = "keycloak.testuser2.secret"
-	varKeycloakURL                      = "keycloak.url"
-	varKeycloakEndpointAdmin            = "keycloak.endpoint.admin"
-	varKeycloakEndpointAuth             = "keycloak.endpoint.auth"
-	varKeycloakEndpointToken            = "keycloak.endpoint.token"
-	varKeycloakEndpointUserinfo         = "keycloak.endpoint.userinfo"
-	varKeycloakEndpointAuthzResourceset = "keycloak.endpoint.authz.resourceset"
-	varKeycloakEndpointClients          = "keycloak.endpoint.clients"
-	varKeycloakEndpointEntitlement      = "keycloak.endpoint.entitlement"
-	varKeycloakEndpointBroker           = "keycloak.endpoint.broker"
-	varKeycloakEndpointAccount          = "keycloak.endpoint.account"
-	varKeycloakEndpointLogout           = "keycloak.endpoint.logout"
-	varTokenPublicKey                   = "token.publickey"
-	varTokenPrivateKey                  = "token.privatekey"
-	varAuthNotApprovedRedirect          = "auth.notapproved.redirect"
-	varHeaderMaxLength                  = "header.maxlength"
+	varPostgresHost                 = "postgres.host"
+	varPostgresPort                 = "postgres.port"
+	varPostgresUser                 = "postgres.user"
+	varPostgresDatabase             = "postgres.database"
+	varPostgresPassword             = "postgres.password"
+	varPostgresSSLMode              = "postgres.sslmode"
+	varPostgresConnectionTimeout    = "postgres.connection.timeout"
+	varPostgresTransactionTimeout   = "postgres.transaction.timeout"
+	varPostgresConnectionRetrySleep = "postgres.connection.retrysleep"
+	varPostgresConnectionMaxIdle    = "postgres.connection.maxidle"
+	varPostgresConnectionMaxOpen    = "postgres.connection.maxopen"
+	varFeatureWorkitemRemote        = "feature.workitem.remote"
+	varPopulateCommonTypes          = "populate.commontypes"
+	varHTTPAddress                  = "http.address"
+	varDeveloperModeEnabled         = "developer.mode.enabled"
+	varAuthDomainPrefix             = "auth.domain.prefix"
+	varAuthURL                      = "auth.url"
+	varAuthorizationEnabled         = "authz.enabled"
+	varGithubAuthToken              = "github.auth.token"
+	varKeycloakSecret               = "keycloak.secret"
+	varKeycloakClientID             = "keycloak.client.id"
+	varKeycloakDomainPrefix         = "keycloak.domain.prefix"
+	varKeycloakRealm                = "keycloak.realm"
+	varKeycloakTesUserName          = "keycloak.testuser.name"
+	varKeycloakTesUserSecret        = "keycloak.testuser.secret"
+	varKeycloakTesUser2Name         = "keycloak.testuser2.name"
+	varKeycloakTesUser2Secret       = "keycloak.testuser2.secret"
+	varKeycloakURL                  = "keycloak.url"
+	varTokenPublicKey               = "token.publickey"
+	varTokenPrivateKey              = "token.privatekey"
+	varAuthNotApprovedRedirect      = "auth.notapproved.redirect"
+	varHeaderMaxLength              = "header.maxlength"
 
 	// cache control settings for a list of resources
 	varCacheControlWorkItems         = "cachecontrol.workitems"
@@ -194,6 +187,7 @@ func (c *ConfigurationData) setConfigDefaults() {
 	c.v.SetDefault(varPopulateCommonTypes, true)
 
 	// Auth-related defaults
+	c.v.SetDefault(varAuthDomainPrefix, "auth")
 	c.v.SetDefault(varTokenPublicKey, defaultTokenPublicKey)
 	c.v.SetDefault(varTokenPrivateKey, defaultTokenPrivateKey)
 	c.v.SetDefault(varKeycloakClientID, defaultKeycloakClientID)
@@ -338,6 +332,16 @@ func (c *ConfigurationData) IsPostgresDeveloperModeEnabled() bool {
 	return c.v.GetBool(varDeveloperModeEnabled)
 }
 
+// IsAuthorizationEnabled returns true if space authorization enabled
+// By default athorization is disabled in Developer Mode only (if F8_AUTHZ_ENABLED us not set)
+// Set F8_AUTHZ_ENABLED env var to explictly disable or enable authorization regardless of Developer Mode settings
+func (c *ConfigurationData) IsAuthorizationEnabled() bool {
+	if c.v.IsSet(varAuthorizationEnabled) {
+		return c.v.GetBool(varAuthorizationEnabled)
+	}
+	return !c.IsPostgresDeveloperModeEnabled()
+}
+
 // GetCacheControlWorkItemTypes returns the value to set in the "Cache-Control" HTTP response header
 // when returning a list of work item types.
 func (c *ConfigurationData) GetCacheControlWorkItemTypes() string {
@@ -470,6 +474,51 @@ func (c *ConfigurationData) GetTokenPublicKey() []byte {
 	return []byte(c.v.GetString(varTokenPublicKey))
 }
 
+// GetAuthDevModeURL returns Auth Service URL used by default in Dev mode
+func (c *ConfigurationData) GetAuthDevModeURL() string {
+	return devModeAuthURL
+}
+
+// GetAuthDomainPrefix returns the domain prefix which should be used in requests to the auth service
+func (c *ConfigurationData) GetAuthDomainPrefix() string {
+	return c.v.GetString(varAuthDomainPrefix)
+}
+
+// GetAuthEndpointSpaces returns the <auth>/api/spaces endpoint
+// set via config file or environment variable.
+// If nothing set then in Dev environment the defualt endopoint will be returned.
+// In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
+// Example: api.service.domain.org -> auth.service.domain.org
+// or api.domain.org -> auth.domain.org
+func (c *ConfigurationData) GetAuthEndpointSpaces(req *goa.RequestData) (string, error) {
+	return c.getAuthEndpoint(req, "api/spaces")
+}
+
+func (c *ConfigurationData) getAuthEndpoint(req *goa.RequestData, pathSufix string) (string, error) {
+	return c.getServiceEndpoint(req, varAuthURL, devModeAuthURL, c.GetAuthDomainPrefix(), pathSufix)
+}
+
+func (c *ConfigurationData) getServiceEndpoint(req *goa.RequestData, varServiceURL string, devModeURL string, serviceDomainPrefix string, pathSufix string) (string, error) {
+	var endpoint string
+	var err error
+	if c.v.IsSet(varServiceURL) {
+		// Service URL is set. Calculate the URL endpoint
+		endpoint = fmt.Sprintf("%s/%s", c.v.GetString(varServiceURL), pathSufix)
+	} else {
+		if c.IsPostgresDeveloperModeEnabled() {
+			// Devmode is enabled. Calculate the URL endopoint using the devmode Service URL
+			endpoint = fmt.Sprintf("%s/%s", devModeURL, pathSufix)
+		} else {
+			// Calculate relative URL based on request
+			endpoint, err = c.getServiceURL(req, serviceDomainPrefix, pathSufix)
+			if err != nil {
+				return "", err
+			}
+		}
+	}
+	return endpoint, nil
+}
+
 // GetAuthNotApprovedRedirect returns the URL to redirect to if the user is not approved
 // May return empty string which means an unauthorized error should be returned instead of redirecting the user
 func (c *ConfigurationData) GetAuthNotApprovedRedirect() string {
@@ -535,7 +584,7 @@ func (c *ConfigurationData) GetKeycloakTestUser2Secret() string {
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
 func (c *ConfigurationData) GetKeycloakEndpointAuth(req *goa.RequestData) (string, error) {
-	return c.getKeycloakOpenIDConnectEndpoint(req, varKeycloakEndpointAuth, "auth")
+	return c.getKeycloakOpenIDConnectEndpoint(req, "auth")
 }
 
 // GetKeycloakEndpointToken returns the keycloak token endpoint set via config file or environment variable.
@@ -544,7 +593,7 @@ func (c *ConfigurationData) GetKeycloakEndpointAuth(req *goa.RequestData) (strin
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
 func (c *ConfigurationData) GetKeycloakEndpointToken(req *goa.RequestData) (string, error) {
-	return c.getKeycloakOpenIDConnectEndpoint(req, varKeycloakEndpointToken, "token")
+	return c.getKeycloakOpenIDConnectEndpoint(req, "token")
 }
 
 // GetKeycloakEndpointUserInfo returns the keycloak userinfo endpoint set via config file or environment variable.
@@ -553,7 +602,7 @@ func (c *ConfigurationData) GetKeycloakEndpointToken(req *goa.RequestData) (stri
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
 func (c *ConfigurationData) GetKeycloakEndpointUserInfo(req *goa.RequestData) (string, error) {
-	return c.getKeycloakOpenIDConnectEndpoint(req, varKeycloakEndpointUserinfo, "userinfo")
+	return c.getKeycloakOpenIDConnectEndpoint(req, "userinfo")
 }
 
 // GetKeycloakEndpointAdmin returns the <keycloak>/realms/admin/<realm> endpoint
@@ -563,7 +612,7 @@ func (c *ConfigurationData) GetKeycloakEndpointUserInfo(req *goa.RequestData) (s
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
 func (c *ConfigurationData) GetKeycloakEndpointAdmin(req *goa.RequestData) (string, error) {
-	return c.getKeycloakEndpoint(req, varKeycloakEndpointAdmin, "auth/admin/realms/"+c.GetKeycloakRealm())
+	return c.getKeycloakEndpoint(req, "auth/admin/realms/"+c.GetKeycloakRealm())
 }
 
 // GetKeycloakEndpointAuthzResourceset returns the <keycloak>/realms/<realm>/authz/protection/resource_set endpoint
@@ -573,7 +622,7 @@ func (c *ConfigurationData) GetKeycloakEndpointAdmin(req *goa.RequestData) (stri
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
 func (c *ConfigurationData) GetKeycloakEndpointAuthzResourceset(req *goa.RequestData) (string, error) {
-	return c.getKeycloakEndpoint(req, varKeycloakEndpointAuthzResourceset, "auth/realms/"+c.GetKeycloakRealm()+"/authz/protection/resource_set")
+	return c.getKeycloakEndpoint(req, "auth/realms/"+c.GetKeycloakRealm()+"/authz/protection/resource_set")
 }
 
 // GetKeycloakEndpointClients returns the <keycloak>/admin/realms/<realm>/clients endpoint
@@ -583,7 +632,7 @@ func (c *ConfigurationData) GetKeycloakEndpointAuthzResourceset(req *goa.Request
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
 func (c *ConfigurationData) GetKeycloakEndpointClients(req *goa.RequestData) (string, error) {
-	return c.getKeycloakEndpoint(req, varKeycloakEndpointClients, "auth/admin/realms/"+c.GetKeycloakRealm()+"/clients")
+	return c.getKeycloakEndpoint(req, "auth/admin/realms/"+c.GetKeycloakRealm()+"/clients")
 }
 
 // GetKeycloakEndpointEntitlement returns the <keycloak>/realms/<realm>/authz/entitlement/<clientID> endpoint
@@ -593,7 +642,7 @@ func (c *ConfigurationData) GetKeycloakEndpointClients(req *goa.RequestData) (st
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
 func (c *ConfigurationData) GetKeycloakEndpointEntitlement(req *goa.RequestData) (string, error) {
-	return c.getKeycloakEndpoint(req, varKeycloakEndpointEntitlement, "auth/realms/"+c.GetKeycloakRealm()+"/authz/entitlement/"+c.GetKeycloakClientID())
+	return c.getKeycloakEndpoint(req, "auth/realms/"+c.GetKeycloakRealm()+"/authz/entitlement/"+c.GetKeycloakClientID())
 }
 
 // GetKeycloakEndpointBroker returns the <keycloak>/realms/<realm>/authz/entitlement/<clientID> endpoint
@@ -603,12 +652,12 @@ func (c *ConfigurationData) GetKeycloakEndpointEntitlement(req *goa.RequestData)
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
 func (c *ConfigurationData) GetKeycloakEndpointBroker(req *goa.RequestData) (string, error) {
-	return c.getKeycloakEndpoint(req, varKeycloakEndpointBroker, "auth/realms/"+c.GetKeycloakRealm()+"/broker")
+	return c.getKeycloakEndpoint(req, "auth/realms/"+c.GetKeycloakRealm()+"/broker")
 }
 
 // GetKeycloakAccountEndpoint returns the API URL for Read and Update on Keycloak User Accounts.
 func (c *ConfigurationData) GetKeycloakAccountEndpoint(req *goa.RequestData) (string, error) {
-	return c.getKeycloakEndpoint(req, varKeycloakEndpointAccount, "auth/realms/"+c.GetKeycloakRealm()+"/account")
+	return c.getKeycloakEndpoint(req, "auth/realms/"+c.GetKeycloakRealm()+"/account")
 }
 
 // GetKeycloakEndpointLogout returns the keycloak logout endpoint set via config file or environment variable.
@@ -617,7 +666,7 @@ func (c *ConfigurationData) GetKeycloakAccountEndpoint(req *goa.RequestData) (st
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
 func (c *ConfigurationData) GetKeycloakEndpointLogout(req *goa.RequestData) (string, error) {
-	return c.getKeycloakOpenIDConnectEndpoint(req, varKeycloakEndpointLogout, "logout")
+	return c.getKeycloakOpenIDConnectEndpoint(req, "logout")
 }
 
 // GetKeycloakDevModeURL returns Keycloak URL used by default in Dev mode
@@ -625,42 +674,19 @@ func (c *ConfigurationData) GetKeycloakDevModeURL() string {
 	return devModeKeycloakURL
 }
 
-func (c *ConfigurationData) getKeycloakOpenIDConnectEndpoint(req *goa.RequestData, endpointVarName string, pathSufix string) (string, error) {
-	return c.getKeycloakEndpoint(req, endpointVarName, c.openIDConnectPath(pathSufix))
+func (c *ConfigurationData) getKeycloakOpenIDConnectEndpoint(req *goa.RequestData, pathSufix string) (string, error) {
+	return c.getKeycloakEndpoint(req, c.openIDConnectPath(pathSufix))
 }
 
-func (c *ConfigurationData) getKeycloakEndpoint(req *goa.RequestData, endpointVarName string, pathSufix string) (string, error) {
-	if c.v.IsSet(endpointVarName) {
-		return c.v.GetString(endpointVarName), nil
-	}
-	var endpoint string
-	var err error
-	if c.v.IsSet(varKeycloakURL) {
-		// Keycloak URL is set. Calculate the URL endpoint
-		endpoint = fmt.Sprintf("%s/%s", c.v.GetString(varKeycloakURL), pathSufix)
-	} else {
-		if c.IsPostgresDeveloperModeEnabled() {
-			// Devmode is enabled. Calculate the URL endopoint using the devmode Keycloak URL
-			endpoint = fmt.Sprintf("%s/%s", devModeKeycloakURL, pathSufix)
-		} else {
-			// Calculate relative URL based on request
-			endpoint, err = c.getKeycloakURL(req, pathSufix)
-			if err != nil {
-				return "", err
-			}
-		}
-	}
-
-	// Can't set this variable because viper is not thread-safe. See https://github.com/spf13/viper/issues/268
-	// c.v.Set(endpointVarName, endpoint) // Set the variable, so, we don't have to recalculate it again the next time
-	return endpoint, nil
+func (c *ConfigurationData) getKeycloakEndpoint(req *goa.RequestData, pathSufix string) (string, error) {
+	return c.getServiceEndpoint(req, varKeycloakURL, devModeKeycloakURL, c.GetKeycloakDomainPrefix(), pathSufix)
 }
 
 func (c *ConfigurationData) openIDConnectPath(suffix string) string {
 	return "auth/realms/" + c.GetKeycloakRealm() + "/protocol/openid-connect/" + suffix
 }
 
-func (c *ConfigurationData) getKeycloakURL(req *goa.RequestData, path string) (string, error) {
+func (c *ConfigurationData) getServiceURL(req *goa.RequestData, serviceDomainPrefix string, path string) (string, error) {
 	scheme := "http"
 	if req.URL != nil && req.URL.Scheme == "https" { // isHTTPS
 		scheme = "https"
@@ -670,7 +696,7 @@ func (c *ConfigurationData) getKeycloakURL(req *goa.RequestData, path string) (s
 		scheme = xForwardProto
 	}
 
-	newHost, err := rest.ReplaceDomainPrefix(req.Host, c.GetKeycloakDomainPrefix())
+	newHost, err := rest.ReplaceDomainPrefix(req.Host, serviceDomainPrefix)
 	if err != nil {
 		return "", err
 	}
@@ -790,6 +816,9 @@ vwIDAQAB
 -----END PUBLIC KEY-----`
 
 	defaultLogLevel = "info"
+
+	// Auth service URL to be used in dev mode. Can be overridden by setting up auth.url
+	devModeAuthURL = "https://auth.prod-preview.openshift.io"
 
 	defaultKeycloakClientID = "fabric8-online-platform"
 	defaultKeycloakSecret   = "7a3d5a00-7f80-40cf-8781-b5b6f2dfd1bd"

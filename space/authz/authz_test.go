@@ -70,6 +70,7 @@ func (s *TestAuthzSuite) TestUserAmongSpaceCollaboratorsOK() {
 }
 
 func (s *TestAuthzSuite) TestUserIsNotAmongSpaceCollaboratorsFails() {
+	s.T().Skip("skipped because Keycloak Authorization is disabled in Dev Mode")
 	spaceID1 := uuid.NewV4().String()
 	spaceID2 := uuid.NewV4().String()
 	authzPayload := auth.AuthorizationPayload{Permissions: []auth.Permissions{{ResourceSetName: &spaceID1}}}
@@ -79,7 +80,7 @@ func (s *TestAuthzSuite) TestUserIsNotAmongSpaceCollaboratorsFails() {
 
 func (s *TestAuthzSuite) checkPermissions(authzPayload auth.AuthorizationPayload, spaceID string) bool {
 	resource := &space.Resource{}
-	authzService := authz.NewAuthzService(nil, &db{app{resource: resource}})
+	authzService := authz.NewAuthzService(s.configuration, &db{app{resource: resource}})
 	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
 	testIdentity := testsupport.TestIdentity
 	svc := testsupport.ServiceAsUserWithAuthz("SpaceAuthz-Service", wittoken.NewManagerWithPrivateKey(priv), priv, testIdentity, authzPayload)

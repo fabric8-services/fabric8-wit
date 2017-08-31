@@ -3,12 +3,14 @@ package controller
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/auth"
+	errs "github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/space/authz"
@@ -20,13 +22,14 @@ import (
 type CollaboratorsController struct {
 	*goa.Controller
 	db            application.DB
-	config        collaboratorsConfiguration
+	config        CollaboratorsConfiguration
 	policyManager auth.AuthzPolicyManager
 }
 
-type collaboratorsConfiguration interface {
+type CollaboratorsConfiguration interface {
 	GetKeycloakEndpointEntitlement(*goa.RequestData) (string, error)
 	GetCacheControlCollaborators() string
+	IsAuthorizationEnabled() bool
 }
 
 type collaboratorContext interface {
@@ -35,17 +38,44 @@ type collaboratorContext interface {
 }
 
 // NewCollaboratorsController creates a collaborators controller.
-func NewCollaboratorsController(service *goa.Service, db application.DB, config collaboratorsConfiguration, policyManager auth.AuthzPolicyManager) *CollaboratorsController {
+func NewCollaboratorsController(service *goa.Service, db application.DB, config CollaboratorsConfiguration, policyManager auth.AuthzPolicyManager) *CollaboratorsController {
 	return &CollaboratorsController{Controller: service.NewController("CollaboratorsController"), db: db, config: config, policyManager: policyManager}
 }
 
 // List collaborators for the given space ID.
 func (c *CollaboratorsController) List(ctx *app.ListCollaboratorsContext) error {
-	policy, _, err := c.getPolicy(ctx, ctx.RequestData, ctx.SpaceID)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
+	var userIDs string
+	if !c.config.IsAuthorizationEnabled() {
+		// Return the space owner if authZ is disabled (by default in Dev Mode)
+		var ownerID string
+		err := application.Transactional(c.db, func(appl application.Application) error {
+			space, err := appl.Spaces().Load(ctx, ctx.SpaceID)
+			if err != nil {
+				log.Error(ctx, map[string]interface{}{
+					"space_id": ctx.SpaceID,
+					"err":      err,
+				}, "unable to find the space")
+				return err
+			}
+			ownerID = space.OwnerId.String()
+			return nil
+		})
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, errs.NewInternalError(ctx.Context, err))
+		}
+		userIDs = fmt.Sprintf("[\"%s\"]", ownerID)
+		log.Warn(ctx, map[string]interface{}{
+			"space_id": ctx.SpaceID,
+			"owner_id": ownerID,
+		}, "Authorization is disabled. Space owner is the only collaborator")
+	} else {
+		policy, _, err := c.getPolicy(ctx, ctx.RequestData, ctx.SpaceID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		userIDs = policy.Config.UserIDs
 	}
-	userIDs := policy.Config.UserIDs
+
 	//UsersIDs format : "[\"<ID>\",\"<ID>\"]"
 	s := strings.Split(userIDs, ",")
 	count := len(s)
@@ -115,6 +145,13 @@ func (c *CollaboratorsController) List(ctx *app.ListCollaboratorsContext) error 
 
 // Add user's identity to the list of space collaborators.
 func (c *CollaboratorsController) Add(ctx *app.AddCollaboratorsContext) error {
+	if !c.config.IsAuthorizationEnabled() {
+		// Ignore if authZ is disabled (by default in Dev Mode)
+		log.Warn(ctx, map[string]interface{}{
+			"space_id": ctx.SpaceID,
+		}, "Authorization is disabled. No space collaborators added")
+		return ctx.OK([]byte{})
+	}
 	identityIDs := []*app.UpdateUserID{{ID: ctx.IdentityID}}
 	err := c.updatePolicy(ctx, ctx.RequestData, ctx.SpaceID, identityIDs, c.policyManager.AddUserToPolicy)
 	if err != nil {
@@ -125,6 +162,13 @@ func (c *CollaboratorsController) Add(ctx *app.AddCollaboratorsContext) error {
 
 // AddMany adds user's identities to the list of space collaborators.
 func (c *CollaboratorsController) AddMany(ctx *app.AddManyCollaboratorsContext) error {
+	if !c.config.IsAuthorizationEnabled() {
+		// Ignore if authZ is disabled (by default in Dev Mode)
+		log.Warn(ctx, map[string]interface{}{
+			"space_id": ctx.SpaceID,
+		}, "Authorization is disabled. No space collaborators added")
+		return ctx.OK([]byte{})
+	}
 	if ctx.Payload != nil && ctx.Payload.Data != nil {
 		err := c.updatePolicy(ctx, ctx.RequestData, ctx.SpaceID, ctx.Payload.Data, c.policyManager.AddUserToPolicy)
 		if err != nil {
@@ -136,6 +180,13 @@ func (c *CollaboratorsController) AddMany(ctx *app.AddManyCollaboratorsContext) 
 
 // Remove user from the list of space collaborators.
 func (c *CollaboratorsController) Remove(ctx *app.RemoveCollaboratorsContext) error {
+	if !c.config.IsAuthorizationEnabled() {
+		// Ignore if authZ is disabled (by default in Dev Mode)
+		log.Warn(ctx, map[string]interface{}{
+			"space_id": ctx.SpaceID,
+		}, "Authorization is disabled. No space collaborators removed")
+		return ctx.OK([]byte{})
+	}
 	// Don't remove the space owner
 	err := c.checkSpaceOwner(ctx, ctx.SpaceID, ctx.IdentityID)
 	if err != nil {
@@ -152,6 +203,13 @@ func (c *CollaboratorsController) Remove(ctx *app.RemoveCollaboratorsContext) er
 
 // RemoveMany removes users from the list of space collaborators.
 func (c *CollaboratorsController) RemoveMany(ctx *app.RemoveManyCollaboratorsContext) error {
+	if !c.config.IsAuthorizationEnabled() {
+		// Ignore if authZ is disabled (by default in Dev Mode)
+		log.Warn(ctx, map[string]interface{}{
+			"space_id": ctx.SpaceID,
+		}, "Authorization is disabled. No space collaborators removed")
+		return ctx.OK([]byte{})
+	}
 	if ctx.Payload != nil && ctx.Payload.Data != nil {
 		// Don't remove the space owner
 		for _, idn := range ctx.Payload.Data {
