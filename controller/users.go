@@ -368,7 +368,11 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 			}
 		}
 	}
-	c.notifyAuthService(ctx, ctx.RequestData) // TODO: Dont ignore error
+	if !isDelegated(ctx) {
+		// if the control entered here because of delegation from auth service,
+		// then we ensure there is no loop.
+		c.notifyAuthService(ctx, ctx.RequestData) // TODO: Dont ignore error
+	}
 	return returnResponse
 }
 
@@ -400,6 +404,17 @@ func (c *UsersController) notifyAuthService(ctx *app.UpdateUsersContext, request
 	}
 	_, err = remoteAuthClient.UpdateUsers(goasupport.ForwardContextRequestID(ctx), "", updateUserPayload)
 	return err
+}
+
+func isDelegated(ctx context.Context) bool {
+	ctxValue := ctx.Value("isRequestDelegated")
+	if ctxValue != nil {
+		isDelegated := ctxValue.(bool)
+		if isDelegated {
+			return true
+		}
+	}
+	return false
 }
 
 func (c *UsersController) createRemoteAuthClient(ctx context.Context, request *goa.RequestData) (*authservice.Client, error) {
