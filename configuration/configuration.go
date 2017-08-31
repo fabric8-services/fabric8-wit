@@ -74,6 +74,7 @@ const (
 	varCacheControlSpaces            = "cachecontrol.spaces"
 	varCacheControlIterations        = "cachecontrol.iterations"
 	varCacheControlAreas             = "cachecontrol.areas"
+	varCacheControlLabels            = "cachecontrol.labels"
 	varCacheControlComments          = "cachecontrol.comments"
 	varCacheControlFilters           = "cachecontrol.filters"
 	varCacheControlUsers             = "cachecontrol.users"
@@ -88,6 +89,7 @@ const (
 	varCacheControlSpace            = "cachecontrol.space"
 	varCacheControlIteration        = "cachecontrol.iteration"
 	varCacheControlArea             = "cachecontrol.area"
+	varCacheControlLabel            = "cachecontrol.label"
 	varCacheControlComment          = "cachecontrol.comment"
 
 	defaultConfigFile           = "config.yaml"
@@ -400,6 +402,18 @@ func (c *ConfigurationData) GetCacheControlAreas() string {
 // when returning a work item (or a list of).
 func (c *ConfigurationData) GetCacheControlArea() string {
 	return c.v.GetString(varCacheControlArea)
+}
+
+// GetCacheControlLabels returns the value to set in the "Cache-Control" HTTP response header
+// when returning a list of labels.
+func (c *ConfigurationData) GetCacheControlLabels() string {
+	return c.v.GetString(varCacheControlLabels)
+}
+
+// GetCacheControlLabel returns the value to set in the "Cache-Control" HTTP response header
+// when returning a label.
+func (c *ConfigurationData) GetCacheControlLabel() string {
+	return c.v.GetString(varCacheControlLabel)
 }
 
 // GetCacheControlSpaces returns the value to set in the "Cache-Control" HTTP response header

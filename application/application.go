@@ -5,6 +5,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/area"
 	"github.com/fabric8-services/fabric8-wit/auth"
 	"github.com/fabric8-services/fabric8-wit/codebase"
+	"github.com/fabric8-services/fabric8-wit/label"
 
 	"github.com/fabric8-services/fabric8-wit/comment"
 	"github.com/fabric8-services/fabric8-wit/iteration"
@@ -32,6 +33,7 @@ type Application interface {
 	Areas() area.Repository
 	OauthStates() auth.OauthStateReferenceRepository
 	Codebases() codebase.Repository
+	Labels() label.Repository
 }
 
 // A Transaction abstracts a database transaction. The repositories created for the transaction object make changes inside the the transaction

@@ -296,6 +296,10 @@ func main() {
 	usersCtrl := controller.NewUsersController(service, appDB, configuration, keycloakProfileService)
 	app.MountUsersController(service, usersCtrl)
 
+	// Mount "labels" controller
+	labelCtrl := controller.NewLabelController(service, appDB, configuration)
+	app.MountLabelController(service, labelCtrl)
+
 	// Mount "iterations" controller
 	iterationCtrl := controller.NewIterationController(service, appDB, configuration)
 	app.MountIterationController(service, iterationCtrl)
