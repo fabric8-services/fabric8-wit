@@ -6,6 +6,7 @@ CREATE TABLE labels (
     name text NOT NULL CHECK(name <> ''),
     color text NOT NULL,
     space_id uuid NOT NULL REFERENCES spaces (id) ON DELETE CASCADE,
+    version integer DEFAULT 0 NOT NULL,
     CONSTRAINT labels_name_space_id_unique UNIQUE(space_id, name)
 );
 
