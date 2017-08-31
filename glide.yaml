@@ -8,6 +8,9 @@ import:
 - package: github.com/fabric8-services/fabric8-notification
   subpackages:
   - design
+- package: github.com/fabric8-services/fabric8-auth
+  subpackages:
+  - design
 - package: github.com/dgrijalva/jwt-go
   version: ^3.0.0
 - package: github.com/goadesign/goa

@@ -38,6 +38,10 @@ imports:
   version: 5ce38dea6287d9bac7789a8bc24556867a4fcee6
   subpackages:
   - design
+- name: github.com/fabric8-services/fabric8-auth
+  version: 79178462b48b9365b3b30ed829b4b5f59826a72a
+  subpackages:
+  - design
 - name: github.com/fatih/structs
   version: dc3312cb1a4513a366c4c9e622ad55c32df12ed3
 - name: github.com/fsnotify/fsnotify
