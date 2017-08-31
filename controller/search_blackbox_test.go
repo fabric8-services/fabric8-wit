@@ -928,7 +928,7 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 		)
 		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.Empty(s.T(), result.Data)
-		assert.Len(s.T(), result.Data, 0) //resolved bugs
+		assert.Len(s.T(), result.Data, 0)
 	})
 	_, err = wirepo.Create(
 		s.ctx, sprint2.SpaceID, workitem.SystemFeature,
@@ -946,7 +946,7 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 		)
 		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotEmpty(s.T(), result.Data)
-		assert.Len(s.T(), result.Data, 1) //resolved bugs
+		assert.Len(s.T(), result.Data, 1)
 	})
 	s.T().Run("assignee=null with negate", func(t *testing.T) {
 		filter := fmt.Sprintf(`
@@ -962,7 +962,7 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 		ignoreString := "IGNORE_ME"
 		jerrs.Errors[0].ID = &ignoreString
 		compareWithGolden(t, filepath.Join(s.testDir, "show", "assignee_null_negate.error.golden.json"), jerrs)
-		compareWithGolden(t, filepath.Join(s.testDir, "show", "non_existing_key.headers.golden.json"), res.Header())
+		compareWithGolden(t, filepath.Join(s.testDir, "show", "assignee_null_negate.headers.golden.json"), res.Header())
 	})
 
 }
