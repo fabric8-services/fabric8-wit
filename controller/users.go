@@ -3,19 +3,24 @@ package controller
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/auth/authservice"
 	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/goasupport"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/goadesign/goa"
+	goaclient "github.com/goadesign/goa/client"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
@@ -40,6 +45,7 @@ type UsersControllerConfiguration interface {
 	GetCacheControlUsers() string
 	GetCacheControlUser() string
 	GetKeycloakAccountEndpoint(*goa.RequestData) (string, error)
+	GetAuthEndpointUserProfile(req *goa.RequestData) (string, error)
 }
 
 // NewUsersController creates a users controller.
@@ -362,7 +368,55 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 			}
 		}
 	}
+	c.notifyAuthService(ctx, ctx.RequestData) // TODO: Dont ignore error
 	return returnResponse
+}
+
+func (c *UsersController) notifyAuthService(ctx *app.UpdateUsersContext, request *goa.RequestData) error {
+	remoteAuthClient, err := c.createRemoteAuthClient(ctx.Context, request)
+	if err != nil {
+		return err
+	}
+	updateUserPayload := &authservice.UpdateUsersPayload{
+		Data: &authservice.UpdateUserData{
+			Attributes: &authservice.UpdateIdentityDataAttributes{
+				Bio:                   ctx.Payload.Data.Attributes.Bio,
+				Company:               ctx.Payload.Data.Attributes.Company,
+				ContextInformation:    ctx.Payload.Data.Attributes.ContextInformation,
+				Email:                 ctx.Payload.Data.Attributes.Email,
+				FullName:              ctx.Payload.Data.Attributes.FullName,
+				ImageURL:              ctx.Payload.Data.Attributes.ImageURL,
+				RegistrationCompleted: ctx.Payload.Data.Attributes.RegistrationCompleted,
+				URL:      ctx.Payload.Data.Attributes.URL,
+				Username: ctx.Payload.Data.Attributes.Username,
+			},
+			Type: ctx.Payload.Data.Type,
+			Links: &authservice.GenericLinks{
+				Self:    ctx.Payload.Data.Links.Self,
+				Related: ctx.Payload.Data.Links.Related,
+				Meta:    ctx.Payload.Data.Links.Meta,
+			},
+		},
+	}
+	_, err = remoteAuthClient.UpdateUsers(goasupport.ForwardContextRequestID(ctx), "", updateUserPayload)
+	return err
+}
+
+func (c *UsersController) createRemoteAuthClient(ctx context.Context, request *goa.RequestData) (*authservice.Client, error) {
+	authUserProfileEndpoint, err := c.config.GetAuthEndpointUserProfile(request)
+	if err != nil {
+		return nil, err
+	}
+
+	u, err := url.Parse(authUserProfileEndpoint)
+	if err != nil {
+		return nil, err
+	}
+	authClient := authservice.New(goaclient.HTTPClientDoer(http.DefaultClient))
+	authClient.Host = u.Host
+	authClient.Scheme = u.Scheme
+	authClient.SetJWTSigner(goasupport.NewForwardSigner(ctx))
+	return authClient, nil
 }
 
 func isEmailValid(email string) bool {
