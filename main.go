@@ -293,7 +293,7 @@ func main() {
 
 	// Mount "users" controller
 	keycloakProfileService := login.NewKeycloakUserProfileClient()
-	usersCtrl := controller.NewUsersController(service, appDB, configuration, keycloakProfileService)
+	usersCtrl := controller.NewUsersController(service, appDB, configuration, keycloakProfileService, loginService)
 	app.MountUsersController(service, usersCtrl)
 
 	// Mount "iterations" controller
