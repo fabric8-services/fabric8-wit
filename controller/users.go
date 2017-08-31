@@ -29,7 +29,8 @@ import (
 )
 
 const (
-	usersEndpoint = "/api/users"
+	usersEndpoint  = "/api/users"
+	DelegationFlag = "isRequestDelegated"
 )
 
 // UsersController implements the users resource.
@@ -406,8 +407,16 @@ func (c *UsersController) notifyAuthService(ctx *app.UpdateUsersContext, request
 	return err
 }
 
+// addDelegationFlag adds information for Auth service to know that
+// this was forwarded from WIT
+func addDelegationFlag(ctx context.Context) context.Context {
+	ctx = context.WithValue(ctx, DelegationFlag, true)
+	return ctx
+}
+
+// isDelegated checks if the request is coming from Auth.
 func isDelegated(ctx context.Context) bool {
-	ctxValue := ctx.Value("isRequestDelegated")
+	ctxValue := ctx.Value(DelegationFlag)
 	if ctxValue != nil {
 		isDelegated := ctxValue.(bool)
 		if isDelegated {
