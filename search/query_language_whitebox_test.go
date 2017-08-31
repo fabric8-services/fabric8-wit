@@ -315,6 +315,51 @@ func TestGenerateExpression(t *testing.T) {
 		)
 		expectEqualExpr(t, expectedExpr, actualExpr)
 	})
+
+	t.Run("NULL value", func(t *testing.T) {
+		t.Parallel()
+		// given
+		spaceName := "openshiftio"
+		q := Query{
+			Name: Q_AND,
+			Children: []Query{
+				{Name: "space", Value: &spaceName},
+				{Name: "assignee", Value: nil},
+			},
+		}
+		// when
+		actualExpr, _ := q.generateExpression()
+		// then
+		expectedExpr := c.And(
+			c.Equals(
+				c.Field("SpaceID"),
+				c.Literal(spaceName),
+			),
+
+			c.IsNull("system.assignees"),
+		)
+		expectEqualExpr(t, expectedExpr, actualExpr)
+	})
+
+	t.Run("NULL value with Negate", func(t *testing.T) {
+		t.Parallel()
+		// given
+		spaceName := "openshiftio"
+		q := Query{
+			Name: Q_AND,
+			Children: []Query{
+				{Name: "space", Value: &spaceName},
+				{Name: "assignee", Value: nil, Negate: true},
+			},
+		}
+		// when
+		actualExpr, err := q.generateExpression()
+		// then
+		require.NotNil(t, err)
+		require.Nil(t, actualExpr)
+		assert.Contains(t, err.Error(), "negate for null not supported")
+	})
+
 }
 
 func expectEqualExpr(t *testing.T, expectedExpr, actualExpr c.Expression) {
