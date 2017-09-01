@@ -24,15 +24,17 @@ import (
 )
 
 const (
-	usersEndpoint = "/api/users"
+	usersEndpoint  = "/api/users"
+	DelegationFlag = "isRequestDelegated"
 )
 
 // UsersController implements the users resource.
 type UsersController struct {
 	*goa.Controller
-	db                 application.DB
-	config             UsersControllerConfiguration
-	userProfileService login.UserProfileService
+	db                   application.DB
+	config               UsersControllerConfiguration
+	userProfileService   login.UserProfileService
+	KeycloakOAuthService login.KeycloakOAuthService
 }
 
 // UsersControllerConfiguration the configuration for the UsersController
@@ -40,15 +42,17 @@ type UsersControllerConfiguration interface {
 	GetCacheControlUsers() string
 	GetCacheControlUser() string
 	GetKeycloakAccountEndpoint(*goa.RequestData) (string, error)
+	GetAuthEndpointUserProfile(req *goa.RequestData) (string, error)
 }
 
 // NewUsersController creates a users controller.
-func NewUsersController(service *goa.Service, db application.DB, config UsersControllerConfiguration, userProfileService login.UserProfileService) *UsersController {
+func NewUsersController(service *goa.Service, db application.DB, config UsersControllerConfiguration, userProfileService login.UserProfileService, loginService login.KeycloakOAuthService) *UsersController {
 	return &UsersController{
-		Controller:         service.NewController("UsersController"),
-		db:                 db,
-		config:             config,
-		userProfileService: userProfileService,
+		Controller:           service.NewController("UsersController"),
+		db:                   db,
+		config:               config,
+		userProfileService:   userProfileService,
+		KeycloakOAuthService: loginService,
 	}
 }
 
@@ -174,16 +178,27 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 
 	returnResponse := application.Transactional(c.db, func(appl application.Application) error {
 		identity, err := appl.Identities().Load(ctx, *id)
+		var user *account.User
+
 		if err != nil || identity == nil {
 			log.Error(ctx, map[string]interface{}{
 				"identity_id": id,
 			}, "auth token contains id %s of unknown Identity", *id)
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrUnauthorized(fmt.Sprintf("Auth token contains id %s of unknown Identity\n", *id)))
-			return ctx.Unauthorized(jerrors)
+
+			// If the request was delegated, then we shall allow addition of the identity/user.
+			// This use case is for post-login where AUTH informs WIT about the new/existing user/identity.
+			if isDelegated(ctx) {
+				identity, user, err = c.KeycloakOAuthService.CreateOrUpdateKeycloakUser(tokenString, ctx, accountAPIEndpoint)
+				if err != nil {
+					return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("error adding new user/identity while calling user profile update endpoint")))
+				}
+			} else {
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrUnauthorized(fmt.Sprintf("Auth token contains id %s of unknown Identity\n", *id)))
+				return ctx.Unauthorized(jerrors)
+			}
 		}
 
-		var user *account.User
-		if identity.UserID.Valid {
+		if identity.UserID.Valid && user == nil {
 			user, err = appl.Users().Load(ctx.Context, identity.UserID.UUID)
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Can't load user with id %s", identity.UserID.UUID)))
@@ -363,6 +378,19 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		}
 	}
 	return returnResponse
+}
+
+// isDelegated checks if the request is coming from Auth.
+func isDelegated(ctx context.Context) bool {
+	// TODO: Add validation of source ( from whom is the request coming ? )
+	ctxValue := ctx.Value(DelegationFlag)
+	if ctxValue != nil {
+		isDelegated := ctxValue.(bool)
+		if isDelegated {
+			return true
+		}
+	}
+	return false
 }
 
 func isEmailValid(email string) bool {

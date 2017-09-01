@@ -494,6 +494,12 @@ func (c *ConfigurationData) GetAuthEndpointSpaces(req *goa.RequestData) (string,
 	return c.getAuthEndpoint(req, "api/spaces")
 }
 
+// GetAuthEndpointUserProfile returns the endpoint of the remote auth service responsible for user profile
+// updation.
+func (c *ConfigurationData) GetAuthEndpointUserProfile(req *goa.RequestData) (string, error) {
+	return c.getAuthEndpoint(req, "api/users")
+}
+
 func (c *ConfigurationData) getAuthEndpoint(req *goa.RequestData, pathSufix string) (string, error) {
 	return c.getServiceEndpoint(req, varAuthURL, devModeAuthURL, c.GetAuthDomainPrefix(), pathSufix)
 }
