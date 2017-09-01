@@ -3,6 +3,8 @@ package controller
 import (
 	"fmt"
 
+	"github.com/fabric8-services/fabric8-wit/workitem"
+
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
@@ -251,6 +253,7 @@ func (c *SearchController) Users(ctx *app.UsersSearchContext) error {
 func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, res *app.SearchWorkItemList) {
 	// Need a map of string to UUID to prevent duplicates in place.
 	visitedIDs := map[string]uuid.UUID{}
+	fetchInBatch := []uuid.UUID{}
 	for _, wi := range res.Data {
 		cond := wi.Relationships != nil && wi.Relationships.Parent != nil && wi.Relationships.Parent.Data != nil
 		if cond {
@@ -263,25 +266,28 @@ func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, res *a
 						"err":   err,
 					}, "Parent ID is invalid UUID: %s", parentIDStr)
 				}
-				visitedIDs[parentIDStr] = id
+				visitedIDs[parentIDStr] = id            // this helps to keep elemtns distinct
+				fetchInBatch = append(fetchInBatch, id) // this helps to fetch WI in batch
 			}
 		}
 	}
-	for _, parentID := range visitedIDs {
-		err := application.Transactional(c.db, func(appl application.Application) error {
-			wi, err := appl.WorkItems().LoadByID(ctx, parentID)
-			if err != nil {
-				return err
-			}
-			convertedWI := ConvertWorkItem(ctx.RequestData, *wi)
-			res.Included = append(res.Included, *convertedWI)
-			return nil
-		})
+	wis := []*workitem.WorkItem{}
+	err := application.Transactional(c.db, func(appl application.Application) error {
+		var err error
+		wis, err = appl.WorkItems().LoadBatchByID(ctx, fetchInBatch)
 		if err != nil {
-			log.Error(ctx, map[string]interface{}{
-				"wi_id": parentID,
-				"err":   err,
-			}, "Unable to load parent work item: %s", parentID)
+			return err
 		}
+		return nil
+	})
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"wis": wis,
+			"err": err,
+		}, "Unable to load parent work items in batch: %s", fetchInBatch)
+	}
+	for _, ele := range wis {
+		convertedWI := ConvertWorkItem(ctx.RequestData, *ele)
+		res.Included = append(res.Included, *convertedWI)
 	}
 }
