@@ -29,7 +29,7 @@ func NewWorkItemLinkCategoryController(service *goa.Service, db application.DB) 
 // enrichLinkCategorySingle includes related resources in the single's "included" array
 func enrichLinkCategorySingle(ctx *workItemLinkContext, single app.WorkItemLinkCategorySingle) error {
 	// Add "links" element
-	relatedURL := rest.AbsoluteURL(ctx.RequestData, ctx.LinkFunc(single.Data.ID))
+	relatedURL := rest.AbsoluteURL(ctx.RequestData.Request, ctx.LinkFunc(single.Data.ID))
 	single.Data.Links = &app.GenericLinks{
 		Self:    &relatedURL,
 		Related: &relatedURL,
@@ -41,7 +41,7 @@ func enrichLinkCategorySingle(ctx *workItemLinkContext, single app.WorkItemLinkC
 func enrichLinkCategoryList(ctx *workItemLinkContext, list *app.WorkItemLinkCategoryList) error {
 	// Add "links" element
 	for _, data := range list.Data {
-		relatedURL := rest.AbsoluteURL(ctx.RequestData, ctx.LinkFunc(*data.ID))
+		relatedURL := rest.AbsoluteURL(ctx.RequestData.Request, ctx.LinkFunc(*data.ID))
 		data.Links = &app.GenericLinks{
 			Self:    &relatedURL,
 			Related: &relatedURL,
@@ -168,8 +168,7 @@ func (c *WorkItemLinkCategoryController) Update(ctx *app.UpdateWorkItemLinkCateg
 	return application.Transactional(c.db, func(appl application.Application) error {
 		savedModelCategory, err := appl.WorkItemLinkCategories().Save(ctx.Context, modelCategory)
 		if err != nil {
-			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(ctx, err)
-			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		// convert to app representation
 		savedAppCategory := ConvertLinkCategoryFromModel(*savedModelCategory)

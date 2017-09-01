@@ -41,7 +41,7 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 	offset, limit = computePagingLimits(ctx.PageOffset, ctx.PageLimit)
 
 	// TODO: Keep URL registeration central somehow.
-	hostString := ctx.RequestData.Host
+	hostString := ctx.Request.Host
 	if hostString == "" {
 		hostString = c.configuration.GetHTTPAddress()
 	}
@@ -75,10 +75,10 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 			response := app.SearchWorkItemList{
 				Links: &app.PagingLinks{},
 				Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
-				Data:  ConvertWorkItems(ctx.RequestData, result, hasChildren),
+				Data:  ConvertWorkItems(ctx.Request, result, hasChildren),
 			}
 
-			setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(result), offset, limit, count, "filter[expression]="+*ctx.FilterExpression)
+			setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(result), offset, limit, count, "filter[expression]="+*ctx.FilterExpression)
 			return ctx.OK(&response)
 		})
 
@@ -115,10 +115,10 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 		response := app.SearchWorkItemList{
 			Links: &app.PagingLinks{},
 			Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
-			Data:  ConvertWorkItems(ctx.RequestData, result),
+			Data:  ConvertWorkItems(ctx.Request, result),
 		}
 
-		setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(result), offset, limit, count, "q="+*ctx.Q)
+		setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(result), offset, limit, count, "q="+*ctx.Q)
 		return ctx.OK(&response)
 	})
 }
@@ -164,7 +164,7 @@ func (c *SearchController) Spaces(ctx *app.SpacesSearchContext) error {
 			}
 		}
 
-		spaceData, err := ConvertSpacesFromModel(ctx.Context, c.db, ctx.RequestData, result)
+		spaceData, err := ConvertSpacesFromModel(ctx.Context, c.db, ctx.Request, result)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -173,7 +173,7 @@ func (c *SearchController) Spaces(ctx *app.SpacesSearchContext) error {
 			Meta:  &app.SpaceListMeta{TotalCount: count},
 			Data:  spaceData,
 		}
-		setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(result), offset, limit, count, "q="+q)
+		setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(result), offset, limit, count, "q="+q)
 
 		return ctx.OK(&response)
 	})
@@ -239,7 +239,7 @@ func (c *SearchController) Users(ctx *app.UsersSearchContext) error {
 		Links: &app.PagingLinks{},
 		Meta:  &app.UserListMeta{TotalCount: count},
 	}
-	setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(result), offset, limit, count, "q="+q)
+	setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(result), offset, limit, count, "q="+q)
 
 	return ctx.OK(&response)
 }

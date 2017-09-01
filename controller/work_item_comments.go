@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
@@ -77,7 +78,7 @@ func (c *WorkItemCommentsController) Create(ctx *app.CreateWorkItemCommentsConte
 		}
 
 		res := &app.CommentSingle{
-			Data: ConvertComment(ctx.RequestData, newComment),
+			Data: ConvertComment(ctx.Request, newComment),
 		}
 		return ctx.OK(res)
 	})
@@ -104,9 +105,9 @@ func (c *WorkItemCommentsController) List(ctx *app.ListWorkItemCommentsContext) 
 			res := &app.CommentList{}
 			res.Data = []*app.Comment{}
 			res.Meta = &app.CommentListMeta{TotalCount: count}
-			res.Data = ConvertComments(ctx.RequestData, comments)
+			res.Data = ConvertComments(ctx.Request, comments)
 			res.Links = &app.PagingLinks{}
-			setPagingLinks(res.Links, buildAbsoluteURL(ctx.RequestData), len(comments), offset, limit, count)
+			setPagingLinks(res.Links, buildAbsoluteURL(ctx.Request), len(comments), offset, limit, count)
 			return ctx.OK(res)
 		})
 	})
@@ -130,8 +131,8 @@ func (c *WorkItemCommentsController) Relations(ctx *app.RelationsWorkItemComment
 		_ = comments
 		res := &app.CommentRelationshipList{}
 		res.Meta = &app.CommentListMeta{TotalCount: count}
-		res.Data = ConvertCommentsResourceID(ctx.RequestData, comments)
-		res.Links = CreateCommentsRelationLinks(ctx.RequestData, wi)
+		res.Data = ConvertCommentsResourceID(ctx.Request, comments)
+		res.Links = CreateCommentsRelationLinks(ctx.Request, wi)
 		return ctx.OK(res)
 	})
 }
@@ -152,7 +153,7 @@ func workItemIncludeCommentsAndTotal(ctx context.Context, db application.DB, par
 			return nil
 		})
 	}()
-	return func(request *goa.RequestData, wi *workitem.WorkItem, wi2 *app.WorkItem) {
+	return func(request *http.Request, wi *workitem.WorkItem, wi2 *app.WorkItem) {
 		wi2.Relationships.Comments = CreateCommentsRelation(request, wi)
 		wi2.Relationships.Comments.Meta = map[string]interface{}{
 			"totalCount": <-count,
@@ -161,19 +162,19 @@ func workItemIncludeCommentsAndTotal(ctx context.Context, db application.DB, par
 }
 
 // workItemIncludeComments adds relationship about comments to workitem (include totalCount)
-func workItemIncludeComments(request *goa.RequestData, wi *workitem.WorkItem, wi2 *app.WorkItem) {
+func workItemIncludeComments(request *http.Request, wi *workitem.WorkItem, wi2 *app.WorkItem) {
 	wi2.Relationships.Comments = CreateCommentsRelation(request, wi)
 }
 
 // CreateCommentsRelation returns a RelationGeneric object representing the relation for a workitem to comment relation
-func CreateCommentsRelation(request *goa.RequestData, wi *workitem.WorkItem) *app.RelationGeneric {
+func CreateCommentsRelation(request *http.Request, wi *workitem.WorkItem) *app.RelationGeneric {
 	return &app.RelationGeneric{
 		Links: CreateCommentsRelationLinks(request, wi),
 	}
 }
 
 // CreateCommentsRelationLinks returns a RelationGeneric object representing the links for a workitem to comment relation
-func CreateCommentsRelationLinks(request *goa.RequestData, wi *workitem.WorkItem) *app.GenericLinks {
+func CreateCommentsRelationLinks(request *http.Request, wi *workitem.WorkItem) *app.GenericLinks {
 	commentsSelf := rest.AbsoluteURL(request, app.WorkitemHref(wi.ID)) + "/relationships/comments"
 	commentsRelated := rest.AbsoluteURL(request, app.WorkitemHref(wi.ID)) + "/comments"
 	return &app.GenericLinks{

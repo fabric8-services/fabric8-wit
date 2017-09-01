@@ -4,15 +4,14 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"net/http"
 	"strings"
 
 	"github.com/fabric8-services/fabric8-wit/errors"
-
-	"github.com/goadesign/goa"
 )
 
 // AbsoluteURL prefixes a relative URL with absolute address
-func AbsoluteURL(req *goa.RequestData, relative string) string {
+func AbsoluteURL(req *http.Request, relative string) string {
 	scheme := "http"
 	if req.URL != nil && req.URL.Scheme == "https" { // isHTTPS
 		scheme = "https"

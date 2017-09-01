@@ -67,9 +67,7 @@ func (s *TestLogoutSuite) checkRedirects(redirectParam string, referrerURL strin
 	logoutCtx, err := app.NewLogoutLogoutContext(goaCtx, req, goa.New("LogoutService"))
 	require.Nil(s.T(), err)
 
-	r := &goa.RequestData{
-		Request: &http.Request{Host: "api.domain.io"},
-	}
+	r := &http.Request{Host: "api.domain.io"}
 	logoutEndpoint, err := s.configuration.GetKeycloakEndpointLogout(r)
 	require.Nil(s.T(), err)
 	validURLs, err := s.configuration.GetValidRedirectURLs(r)

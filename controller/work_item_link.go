@@ -86,7 +86,7 @@ func getTypesOfLinks(ctx *workItemLinkContext, linksDataArr []*app.WorkItemLinkD
 		}
 		linkTypeModels = append(linkTypeModels, *linkTypeModel)
 	}
-	appLinkTypes, err := ConvertLinkTypesFromModels(ctx.RequestData, linkTypeModels)
+	appLinkTypes, err := ConvertLinkTypesFromModels(ctx.RequestData.Request, linkTypeModels)
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
@@ -109,7 +109,7 @@ func getWorkItemsOfLinks(ctx *workItemLinkContext, linksDataArr []*app.WorkItemL
 		if err != nil {
 			return nil, errs.WithStack(err)
 		}
-		workItemArr = append(workItemArr, ConvertWorkItem(ctx.RequestData, *wi))
+		workItemArr = append(workItemArr, ConvertWorkItem(ctx.RequestData.Request, *wi))
 	}
 	return workItemArr, nil
 }
@@ -142,7 +142,7 @@ func enrichLinkSingle(ctx *workItemLinkContext, appLinks *app.WorkItemLinkSingle
 	if err != nil {
 		return errs.WithStack(err)
 	}
-	appLinkType := ConvertWorkItemLinkTypeFromModel(ctx.RequestData, *modelLinkType)
+	appLinkType := ConvertWorkItemLinkTypeFromModel(ctx.RequestData.Request, *modelLinkType)
 	appLinks.Included = append(appLinks.Included, appLinkType.Data)
 
 	// include link category
@@ -172,17 +172,17 @@ func enrichLinkSingle(ctx *workItemLinkContext, appLinks *app.WorkItemLinkSingle
 	if err != nil {
 		return errs.WithStack(err)
 	}
-	appLinks.Included = append(appLinks.Included, ConvertWorkItem(ctx.RequestData, *sourceWi))
+	appLinks.Included = append(appLinks.Included, ConvertWorkItem(ctx.RequestData.Request, *sourceWi))
 
 	// TODO(kwk): include target work item
 	targetWi, err := ctx.Application.WorkItems().LoadByID(ctx.Context, appLinks.Data.Relationships.Target.Data.ID)
 	if err != nil {
 		return errs.WithStack(err)
 	}
-	appLinks.Included = append(appLinks.Included, ConvertWorkItem(ctx.RequestData, *targetWi))
+	appLinks.Included = append(appLinks.Included, ConvertWorkItem(ctx.RequestData.Request, *targetWi))
 
 	// Add links to individual link data element
-	relatedURL := rest.AbsoluteURL(ctx.RequestData, ctx.LinkFunc(*appLinks.Data.ID))
+	relatedURL := rest.AbsoluteURL(ctx.RequestData.Request, ctx.LinkFunc(*appLinks.Data.ID))
 	appLinks.Data.Links = &app.GenericLinks{
 		Self:    &relatedURL,
 		Related: &relatedURL,
@@ -234,7 +234,7 @@ func enrichLinkList(ctx *workItemLinkContext, linkArr *app.WorkItemLinkList) err
 
 	// Add links to individual link data element
 	for _, link := range linkArr.Data {
-		relatedURL := rest.AbsoluteURL(ctx.RequestData, ctx.LinkFunc(*link.ID))
+		relatedURL := rest.AbsoluteURL(ctx.RequestData.Request, ctx.LinkFunc(*link.ID))
 		link.Links = &app.GenericLinks{
 			Self:    &relatedURL,
 			Related: &relatedURL,

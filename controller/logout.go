@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"net/http"
+
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
@@ -11,8 +13,8 @@ import (
 )
 
 type logoutConfiguration interface {
-	GetKeycloakEndpointLogout(*goa.RequestData) (string, error)
-	GetValidRedirectURLs(*goa.RequestData) (string, error)
+	GetKeycloakEndpointLogout(*http.Request) (string, error)
+	GetValidRedirectURLs(*http.Request) (string, error)
 }
 
 // LogoutController implements the logout resource.
@@ -29,14 +31,14 @@ func NewLogoutController(service *goa.Service, logoutService *login.KeycloakLogo
 
 // Logout runs the logout action.
 func (c *LogoutController) Logout(ctx *app.LogoutLogoutContext) error {
-	logoutEndpoint, err := c.configuration.GetKeycloakEndpointLogout(ctx.RequestData)
+	logoutEndpoint, err := c.configuration.GetKeycloakEndpointLogout(ctx.Request)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
 		}, "Unable to get Keycloak logout endpoint URL")
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.Wrap(err, "unable to get Keycloak logout endpoint URL")))
 	}
-	whitelist, err := c.configuration.GetValidRedirectURLs(ctx.RequestData)
+	whitelist, err := c.configuration.GetValidRedirectURLs(ctx.Request)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
 	}

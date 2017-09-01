@@ -125,11 +125,11 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error updating work item"))
 		}
 		hasChildren := workItemIncludeHasChildren(appl, ctx)
-		wi2 := ConvertWorkItem(ctx.RequestData, *wi, hasChildren)
+		wi2 := ConvertWorkItem(ctx.Request, *wi, hasChildren)
 		resp := &app.WorkItemSingle{
 			Data: wi2,
 			Links: &app.WorkItemLinks{
-				Self: buildAbsoluteURL(ctx.RequestData),
+				Self: buildAbsoluteURL(ctx.Request),
 			},
 		}
 
@@ -152,7 +152,7 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 		return ctx.ConditionalRequest(*wi, c.config.GetCacheControlWorkItem, func() error {
 			comments := workItemIncludeCommentsAndTotal(ctx, c.db, ctx.WiID)
 			hasChildren := workItemIncludeHasChildren(appl, ctx)
-			wi2 := ConvertWorkItem(ctx.RequestData, *wi, comments, hasChildren)
+			wi2 := ConvertWorkItem(ctx.Request, *wi, comments, hasChildren)
 			resp := &app.WorkItemSingle{
 				Data: wi2,
 			}
@@ -416,11 +416,11 @@ func getVersion(version interface{}) (int, error) {
 
 // WorkItemConvertFunc is a open ended function to add additional links/data/relations to a Comment during
 // conversion from internal to API
-type WorkItemConvertFunc func(*goa.RequestData, *workitem.WorkItem, *app.WorkItem)
+type WorkItemConvertFunc func(*http.Request, *workitem.WorkItem, *app.WorkItem)
 
 // ConvertWorkItems is responsible for converting given []WorkItem model object into a
 // response resource object by jsonapi.org specifications
-func ConvertWorkItems(request *goa.RequestData, wis []workitem.WorkItem, additional ...WorkItemConvertFunc) []*app.WorkItem {
+func ConvertWorkItems(request *http.Request, wis []workitem.WorkItem, additional ...WorkItemConvertFunc) []*app.WorkItem {
 	ops := []*app.WorkItem{}
 	for _, wi := range wis {
 		ops = append(ops, ConvertWorkItem(request, wi, additional...))
@@ -430,7 +430,7 @@ func ConvertWorkItems(request *goa.RequestData, wis []workitem.WorkItem, additio
 
 // ConvertWorkItem is responsible for converting given WorkItem model object into a
 // response resource object by jsonapi.org specifications
-func ConvertWorkItem(request *goa.RequestData, wi workitem.WorkItem, additional ...WorkItemConvertFunc) *app.WorkItem {
+func ConvertWorkItem(request *http.Request, wi workitem.WorkItem, additional ...WorkItemConvertFunc) *app.WorkItem {
 	// construct default values from input WI
 	relatedURL := rest.AbsoluteURL(request, app.WorkitemHref(wi.ID))
 	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(wi.SpaceID.String()))
@@ -539,7 +539,7 @@ func ConvertWorkItem(request *goa.RequestData, wi workitem.WorkItem, additional 
 // workItemIncludeHasChildren adds meta information about existing children
 func workItemIncludeHasChildren(appl application.Application, ctx context.Context) WorkItemConvertFunc {
 	// TODO: Wrap ctx in a Timeout context?
-	return func(request *goa.RequestData, wi *workitem.WorkItem, wi2 *app.WorkItem) {
+	return func(request *http.Request, wi *workitem.WorkItem, wi2 *app.WorkItem) {
 		var hasChildren bool
 		var err error
 		repo := appl.WorkItemLinks()
@@ -582,16 +582,16 @@ func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) 
 			response := app.WorkItemList{
 				Links: &app.PagingLinks{},
 				Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
-				Data:  ConvertWorkItems(ctx.RequestData, result, hasChildren),
+				Data:  ConvertWorkItems(ctx.Request, result, hasChildren),
 			}
-			setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(result), offset, limit, count, additionalQuery...)
+			setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(result), offset, limit, count, additionalQuery...)
 			return ctx.OK(&response)
 		})
 	})
 }
 
 // workItemIncludeChildren adds relationship about children to workitem (include totalCount)
-func workItemIncludeChildren(request *goa.RequestData, wi *workitem.WorkItem, wi2 *app.WorkItem) {
+func workItemIncludeChildren(request *http.Request, wi *workitem.WorkItem, wi2 *app.WorkItem) {
 	childrenRelated := rest.AbsoluteURL(request, app.WorkitemHref(wi.ID)) + "/children"
 	if wi2.Relationships.Children == nil {
 		wi2.Relationships.Children = &app.RelationGeneric{}

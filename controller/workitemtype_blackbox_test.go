@@ -115,9 +115,7 @@ func (s *workItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *ap
 
 	// Use the goa generated code to create a work item type
 	desc := "Description for 'animal'"
-	reqLong := &goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}
+	reqLong := &http.Request{Host: "api.service.domain.org"}
 	spaceSelfURL := rest.AbsoluteURL(reqLong, app.SpaceHref(space.SystemSpace.String()))
 	payload := app.CreateWorkitemtypePayload{
 		Data: &app.WorkItemTypeData{
@@ -163,9 +161,7 @@ func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 	// Use the goa generated code to create a work item type
 	desc := "Description for 'person'"
 	id := personID
-	reqLong := &goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}
+	reqLong := &http.Request{Host: "api.service.domain.org"}
 	spaceSelfURL := rest.AbsoluteURL(reqLong, app.SpaceHref(space.SystemSpace.String()))
 	payload := app.CreateWorkitemtypePayload{
 		Data: &app.WorkItemTypeData{
@@ -198,9 +194,7 @@ func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 func newCreateWorkItemTypePayload(id uuid.UUID, spaceID uuid.UUID) app.CreateWorkitemtypePayload {
 	// Use the goa generated code to create a work item type
 	desc := "Description for 'person'"
-	reqLong := &goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}
+	reqLong := &http.Request{Host: "api.service.domain.org"}
 	spaceSelfURL := rest.AbsoluteURL(reqLong, app.SpaceHref(spaceID.String()))
 	payload := app.CreateWorkitemtypePayload{
 		Data: &app.WorkItemTypeData{
@@ -288,9 +282,7 @@ func (s *workItemTypeSuite) TestValidate() {
 	// given
 	desc := "Description for 'person'"
 	id := personID
-	reqLong := &goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}
+	reqLong := &http.Request{Host: "api.service.domain.org"}
 	spaceSelfURL := rest.AbsoluteURL(reqLong, app.SpaceHref(space.SystemSpace.String()))
 	payload := app.CreateWorkitemtypePayload{
 		Data: &app.WorkItemTypeData{

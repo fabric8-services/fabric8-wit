@@ -94,9 +94,7 @@ func (rest *TestRecentSpacesREST) TestResourceRequestPayload() {
 	service, controller := rest.SecuredController()
 
 	// Generate an access token for a test identity
-	r := &goa.RequestData{
-		Request: &http.Request{Host: "api.example.org"},
-	}
+	r := &http.Request{Host: "api.example.org"}
 	tokenEndpoint, err := rest.configuration.GetKeycloakEndpointToken(r)
 	require.Nil(t, err)
 

@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
@@ -40,7 +41,7 @@ func NewWorkItemLinkTypeController(service *goa.Service, db application.DB, conf
 // enrichLinkTypeSingle includes related resources in the single's "included" array
 func enrichLinkTypeSingle(ctx *workItemLinkContext, single *app.WorkItemLinkTypeSingle) error {
 	// Add "links" element
-	relatedURL := rest.AbsoluteURL(ctx.RequestData, ctx.LinkFunc(*single.Data.ID))
+	relatedURL := rest.AbsoluteURL(ctx.RequestData.Request, ctx.LinkFunc(*single.Data.ID))
 	single.Data.Links = &app.GenericLinks{
 		Self:    &relatedURL,
 		Related: &relatedURL,
@@ -60,7 +61,7 @@ func enrichLinkTypeSingle(ctx *workItemLinkContext, single *app.WorkItemLinkType
 		return err
 	}
 
-	spaceData, err := ConvertSpaceFromModel(ctx.Context, ctx.DB, ctx.RequestData, *space)
+	spaceData, err := ConvertSpaceFromModel(ctx.Context, ctx.DB, ctx.RequestData.Request, *space)
 	if err != nil {
 		return err
 	}
@@ -76,7 +77,7 @@ func enrichLinkTypeSingle(ctx *workItemLinkContext, single *app.WorkItemLinkType
 func enrichLinkTypeList(ctx *workItemLinkContext, list *app.WorkItemLinkTypeList) error {
 	// Add "links" element
 	for _, data := range list.Data {
-		relatedURL := rest.AbsoluteURL(ctx.RequestData, ctx.LinkFunc(*data.ID))
+		relatedURL := rest.AbsoluteURL(ctx.RequestData.Request, ctx.LinkFunc(*data.ID))
 		data.Links = &app.GenericLinks{
 			Self:    &relatedURL,
 			Related: &relatedURL,
@@ -108,7 +109,7 @@ func enrichLinkTypeList(ctx *workItemLinkContext, list *app.WorkItemLinkTypeList
 		if err != nil {
 			return err
 		}
-		spaceData, err := ConvertSpaceFromModel(ctx.Context, ctx.DB, ctx.RequestData, *space)
+		spaceData, err := ConvertSpaceFromModel(ctx.Context, ctx.DB, ctx.RequestData.Request, *space)
 		if err != nil {
 			return err
 		}
@@ -134,7 +135,7 @@ func (c *WorkItemLinkTypeController) Create(ctx *app.CreateWorkItemLinkTypeConte
 	// Set the space to the Payload
 	if ctx.Payload.Data != nil && ctx.Payload.Data.Relationships != nil {
 		// We overwrite or use the space ID in the URL to set the space of this WI
-		spaceSelfURL := rest.AbsoluteURL(ctx.RequestData, app.SpaceHref(ctx.SpaceID.String()))
+		spaceSelfURL := rest.AbsoluteURL(ctx.RequestData.Request, app.SpaceHref(ctx.SpaceID.String()))
 		ctx.Payload.Data.Relationships.Space = app.NewSpaceRelation(ctx.SpaceID, spaceSelfURL)
 	}
 	modelLinkType, err := ConvertWorkItemLinkTypeToModel(appLinkType)
@@ -151,7 +152,7 @@ func (c *WorkItemLinkTypeController) Create(ctx *app.CreateWorkItemLinkTypeConte
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		appLinkType := ConvertWorkItemLinkTypeFromModel(ctx.RequestData, *createdModelLinkType)
+		appLinkType := ConvertWorkItemLinkTypeFromModel(ctx.Request, *createdModelLinkType)
 		// Enrich
 		hrefFunc := func(obj interface{}) string {
 			return fmt.Sprintf(app.WorkItemLinkTypeHref(createdModelLinkType.SpaceID, "%v"), obj)
@@ -196,7 +197,7 @@ func (c *WorkItemLinkTypeController) List(ctx *app.ListWorkItemLinkTypeContext) 
 			appLinkTypes := app.WorkItemLinkTypeList{}
 			appLinkTypes.Data = make([]*app.WorkItemLinkTypeData, len(modelLinkTypes))
 			for index, modelLinkType := range modelLinkTypes {
-				appLinkType := ConvertWorkItemLinkTypeFromModel(ctx.RequestData, modelLinkType)
+				appLinkType := ConvertWorkItemLinkTypeFromModel(ctx.Request, modelLinkType)
 				appLinkTypes.Data[index] = appLinkType.Data
 			}
 			// TODO: When adding pagination, this must not be len(rows) but
@@ -228,7 +229,7 @@ func (c *WorkItemLinkTypeController) Show(ctx *app.ShowWorkItemLinkTypeContext) 
 		}
 		return ctx.ConditionalRequest(*modelLinkType, c.config.GetCacheControlWorkItemLinkType, func() error {
 			// Convert the created link type entry into a rest representation
-			appLinkType := ConvertWorkItemLinkTypeFromModel(ctx.RequestData, *modelLinkType)
+			appLinkType := ConvertWorkItemLinkTypeFromModel(ctx.Request, *modelLinkType)
 
 			// Enrich
 			hrefFunc := func(obj interface{}) string {
@@ -271,7 +272,7 @@ func (c *WorkItemLinkTypeController) Update(ctx *app.UpdateWorkItemLinkTypeConte
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		appLinkType := ConvertWorkItemLinkTypeFromModel(ctx.RequestData, *modelLinkTypeSaved)
+		appLinkType := ConvertWorkItemLinkTypeFromModel(ctx.Request, *modelLinkTypeSaved)
 
 		// Enrich
 		hrefFunc := func(obj interface{}) string {
@@ -288,7 +289,7 @@ func (c *WorkItemLinkTypeController) Update(ctx *app.UpdateWorkItemLinkTypeConte
 }
 
 // ConvertWorkItemLinkTypeFromModel converts a work item link type from model to REST representation
-func ConvertWorkItemLinkTypeFromModel(request *goa.RequestData, modelLinkType link.WorkItemLinkType) app.WorkItemLinkTypeSingle {
+func ConvertWorkItemLinkTypeFromModel(request *http.Request, modelLinkType link.WorkItemLinkType) app.WorkItemLinkTypeSingle {
 	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(modelLinkType.SpaceID.String()))
 	linkCategoryRelatedURL := rest.AbsoluteURL(request, app.WorkItemLinkCategoryHref(modelLinkType.LinkCategoryID.String()))
 
@@ -396,7 +397,7 @@ func ConvertWorkItemLinkTypeToModel(appLinkType app.WorkItemLinkTypeSingle) (*li
 	return &modelLinkType, nil
 }
 
-func ConvertLinkTypesFromModels(request *goa.RequestData, modelLinkTypes []link.WorkItemLinkType) (*app.WorkItemLinkTypeList, error) {
+func ConvertLinkTypesFromModels(request *http.Request, modelLinkTypes []link.WorkItemLinkType) (*app.WorkItemLinkTypeList, error) {
 	appLinkTypes := app.WorkItemLinkTypeList{}
 	appLinkTypes.Data = make([]*app.WorkItemLinkTypeData, len(modelLinkTypes))
 	for index, modelLinkType := range modelLinkTypes {
