@@ -370,11 +370,18 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 			return nil, errors.NewBadParameterError("key not found", q.Name)
 		}
 		left := criteria.Field(key)
-		right := q.determineLiteralType(key, *q.Value)
-		if q.Negate {
-			myexpr = append(myexpr, criteria.Not(left, right))
+		if q.Value != nil {
+			right := q.determineLiteralType(key, *q.Value)
+			if q.Negate {
+				myexpr = append(myexpr, criteria.Not(left, right))
+			} else {
+				myexpr = append(myexpr, criteria.Equals(left, right))
+			}
 		} else {
-			myexpr = append(myexpr, criteria.Equals(left, right))
+			if q.Negate {
+				return nil, errors.NewBadParameterError("negate for null not supported", q.Name)
+			}
+			myexpr = append(myexpr, criteria.IsNull(key))
 		}
 	}
 	for _, child := range q.Children {
