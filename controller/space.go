@@ -209,6 +209,17 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 		// Delete associated space resource
 		resource, err := appl.SpaceResources().LoadBySpace(ctx, &ctx.SpaceID)
 		if err != nil {
+			if notFound, _ := errors.IsNotFoundError(err); notFound {
+				// Space resource is not found.
+				// It can happen to old spaces if Keycloak failed to create a space resource for some reason during space creation.
+				// New spaces won't be created if the space resource creation failed but we have to ignore this errors for old spaces.
+				log.Error(ctx, map[string]interface{}{
+					"space_id":     ctx.SpaceID,
+					"current_user": *currentUser,
+					"err":          err,
+				}, "Can't delete the space resource because it's not found. May happen to old spaces. Space will be deleted anyway.")
+				return nil
+			}
 			return err
 		}
 		resourceID = resource.ResourceID
