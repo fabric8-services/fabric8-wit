@@ -41,7 +41,7 @@ func NewWorkItemLinkTypeController(service *goa.Service, db application.DB, conf
 // enrichLinkTypeSingle includes related resources in the single's "included" array
 func enrichLinkTypeSingle(ctx *workItemLinkContext, single *app.WorkItemLinkTypeSingle) error {
 	// Add "links" element
-	relatedURL := rest.AbsoluteURL(ctx.RequestData.Request, ctx.LinkFunc(*single.Data.ID))
+	relatedURL := rest.AbsoluteURL(ctx.Request, ctx.LinkFunc(*single.Data.ID))
 	single.Data.Links = &app.GenericLinks{
 		Self:    &relatedURL,
 		Related: &relatedURL,
@@ -61,7 +61,7 @@ func enrichLinkTypeSingle(ctx *workItemLinkContext, single *app.WorkItemLinkType
 		return err
 	}
 
-	spaceData, err := ConvertSpaceFromModel(ctx.Context, ctx.DB, ctx.RequestData.Request, *space)
+	spaceData, err := ConvertSpaceFromModel(ctx.Context, ctx.DB, ctx.Request, *space)
 	if err != nil {
 		return err
 	}
@@ -77,7 +77,7 @@ func enrichLinkTypeSingle(ctx *workItemLinkContext, single *app.WorkItemLinkType
 func enrichLinkTypeList(ctx *workItemLinkContext, list *app.WorkItemLinkTypeList) error {
 	// Add "links" element
 	for _, data := range list.Data {
-		relatedURL := rest.AbsoluteURL(ctx.RequestData.Request, ctx.LinkFunc(*data.ID))
+		relatedURL := rest.AbsoluteURL(ctx.Request, ctx.LinkFunc(*data.ID))
 		data.Links = &app.GenericLinks{
 			Self:    &relatedURL,
 			Related: &relatedURL,
@@ -109,7 +109,7 @@ func enrichLinkTypeList(ctx *workItemLinkContext, list *app.WorkItemLinkTypeList
 		if err != nil {
 			return err
 		}
-		spaceData, err := ConvertSpaceFromModel(ctx.Context, ctx.DB, ctx.RequestData.Request, *space)
+		spaceData, err := ConvertSpaceFromModel(ctx.Context, ctx.DB, ctx.Request, *space)
 		if err != nil {
 			return err
 		}
@@ -135,7 +135,7 @@ func (c *WorkItemLinkTypeController) Create(ctx *app.CreateWorkItemLinkTypeConte
 	// Set the space to the Payload
 	if ctx.Payload.Data != nil && ctx.Payload.Data.Relationships != nil {
 		// We overwrite or use the space ID in the URL to set the space of this WI
-		spaceSelfURL := rest.AbsoluteURL(ctx.RequestData.Request, app.SpaceHref(ctx.SpaceID.String()))
+		spaceSelfURL := rest.AbsoluteURL(ctx.Request, app.SpaceHref(ctx.SpaceID.String()))
 		ctx.Payload.Data.Relationships.Space = app.NewSpaceRelation(ctx.SpaceID, spaceSelfURL)
 	}
 	modelLinkType, err := ConvertWorkItemLinkTypeToModel(appLinkType)
@@ -157,7 +157,7 @@ func (c *WorkItemLinkTypeController) Create(ctx *app.CreateWorkItemLinkTypeConte
 		hrefFunc := func(obj interface{}) string {
 			return fmt.Sprintf(app.WorkItemLinkTypeHref(createdModelLinkType.SpaceID, "%v"), obj)
 		}
-		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, hrefFunc, currentUserIdentityID)
+		linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, hrefFunc, currentUserIdentityID)
 		err = enrichLinkTypeSingle(linkCtx, &appLinkType)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal("Failed to enrich link type: %s", err.Error()))
@@ -209,7 +209,7 @@ func (c *WorkItemLinkTypeController) List(ctx *app.ListWorkItemLinkTypeContext) 
 			hrefFunc := func(obj interface{}) string {
 				return fmt.Sprintf(app.WorkItemLinkTypeHref(ctx.SpaceID, "%v"), obj)
 			}
-			linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, hrefFunc, nil)
+			linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, hrefFunc, nil)
 			err = enrichLinkTypeList(linkCtx, &appLinkTypes)
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal("Failed to enrich link types: %s", err.Error()))
@@ -235,7 +235,7 @@ func (c *WorkItemLinkTypeController) Show(ctx *app.ShowWorkItemLinkTypeContext) 
 			hrefFunc := func(obj interface{}) string {
 				return fmt.Sprintf(app.WorkItemLinkTypeHref(ctx.SpaceID, "%v"), obj)
 			}
-			linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, hrefFunc, nil)
+			linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, hrefFunc, nil)
 			err = enrichLinkTypeSingle(linkCtx, &appLinkType)
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal("Failed to enrich link type: %s", err.Error()))
@@ -278,7 +278,7 @@ func (c *WorkItemLinkTypeController) Update(ctx *app.UpdateWorkItemLinkTypeConte
 		hrefFunc := func(obj interface{}) string {
 			return fmt.Sprintf(app.WorkItemLinkTypeHref(ctx.SpaceID, "%v"), obj)
 		}
-		linkTypeCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, hrefFunc, currentUserIdentityID)
+		linkTypeCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, hrefFunc, currentUserIdentityID)
 		err = enrichLinkTypeSingle(linkTypeCtx, &appLinkType)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal("Failed to enrich link type: %s", err.Error()))

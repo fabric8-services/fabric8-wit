@@ -113,7 +113,7 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 		res := &app.IterationSingle{
 			Data: responseData,
 		}
-		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.RequestData.Request, app.IterationHref(res.Data.ID)))
+		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.IterationHref(res.Data.ID)))
 		return ctx.Created(res)
 	})
 }

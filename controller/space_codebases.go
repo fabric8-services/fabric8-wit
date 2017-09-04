@@ -64,7 +64,7 @@ func (c *SpaceCodebasesController) Create(ctx *app.CreateSpaceCodebasesContext) 
 		res := &app.CodebaseSingle{
 			Data: ConvertCodebase(ctx.Request, &newCodeBase),
 		}
-		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.RequestData.Request, app.CodebaseHref(res.Data.ID)))
+		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.CodebaseHref(res.Data.ID)))
 		return ctx.Created(res)
 	})
 }

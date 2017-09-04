@@ -94,7 +94,7 @@ func (c *CodebaseController) Edit(ctx *app.EditCodebaseContext) error {
 
 	var existingWorkspaces []*app.Workspace
 	for _, workspace := range workspaces {
-		openLink := rest.AbsoluteURL(ctx.RequestData.Request, fmt.Sprintf(app.CodebaseHref(cb.ID)+"/open/%v", workspace.Config.Name))
+		openLink := rest.AbsoluteURL(ctx.Request, fmt.Sprintf(app.CodebaseHref(cb.ID)+"/open/%v", workspace.Config.Name))
 		existingWorkspaces = append(existingWorkspaces, &app.Workspace{
 			Attributes: &app.WorkspaceAttributes{
 				Name:        &workspace.Config.Name,
@@ -107,7 +107,7 @@ func (c *CodebaseController) Edit(ctx *app.EditCodebaseContext) error {
 		})
 	}
 
-	createLink := rest.AbsoluteURL(ctx.RequestData.Request, app.CodebaseHref(cb.ID)+"/create")
+	createLink := rest.AbsoluteURL(ctx.Request, app.CodebaseHref(cb.ID)+"/create")
 	resp := &app.WorkspaceList{
 		Data: existingWorkspaces,
 		Links: &app.WorkspaceEditLinks{

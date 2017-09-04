@@ -29,7 +29,7 @@ func NewWorkItemLinkCategoryController(service *goa.Service, db application.DB) 
 // enrichLinkCategorySingle includes related resources in the single's "included" array
 func enrichLinkCategorySingle(ctx *workItemLinkContext, single app.WorkItemLinkCategorySingle) error {
 	// Add "links" element
-	relatedURL := rest.AbsoluteURL(ctx.RequestData.Request, ctx.LinkFunc(single.Data.ID))
+	relatedURL := rest.AbsoluteURL(ctx.Request, ctx.LinkFunc(single.Data.ID))
 	single.Data.Links = &app.GenericLinks{
 		Self:    &relatedURL,
 		Related: &relatedURL,
@@ -41,7 +41,7 @@ func enrichLinkCategorySingle(ctx *workItemLinkContext, single app.WorkItemLinkC
 func enrichLinkCategoryList(ctx *workItemLinkContext, list *app.WorkItemLinkCategoryList) error {
 	// Add "links" element
 	for _, data := range list.Data {
-		relatedURL := rest.AbsoluteURL(ctx.RequestData.Request, ctx.LinkFunc(*data.ID))
+		relatedURL := rest.AbsoluteURL(ctx.Request, ctx.LinkFunc(*data.ID))
 		data.Links = &app.GenericLinks{
 			Self:    &relatedURL,
 			Related: &relatedURL,
@@ -68,7 +68,7 @@ func (c *WorkItemLinkCategoryController) Create(ctx *app.CreateWorkItemLinkCateg
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
 		appCategory := ConvertLinkCategoryFromModel(modelCategory)
-		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkCategoryHref, currentUserIdentityID)
+		linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, app.WorkItemLinkCategoryHref, currentUserIdentityID)
 		err = enrichLinkCategorySingle(linkCtx, appCategory)
 		if err != nil {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInternal("Failed to enrich link category: %s", err.Error()))
@@ -88,7 +88,7 @@ func (c *WorkItemLinkCategoryController) Show(ctx *app.ShowWorkItemLinkCategoryC
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
 		appCategory := ConvertLinkCategoryFromModel(*modelCategory)
-		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkCategoryHref, nil)
+		linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, app.WorkItemLinkCategoryHref, nil)
 		err = enrichLinkCategorySingle(linkCtx, appCategory)
 		if err != nil {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInternal("Failed to enrich link category: %s", err.Error()))
@@ -119,7 +119,7 @@ func (c *WorkItemLinkCategoryController) List(ctx *app.ListWorkItemLinkCategoryC
 			TotalCount: len(modelCategories),
 		}
 		// Enrich
-		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkCategoryHref, nil)
+		linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, app.WorkItemLinkCategoryHref, nil)
 		err = enrichLinkCategoryList(linkCtx, &appCategories)
 		if err != nil {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInternal("Failed to enrich link categories: %s", err.Error()))
@@ -173,7 +173,7 @@ func (c *WorkItemLinkCategoryController) Update(ctx *app.UpdateWorkItemLinkCateg
 		// convert to app representation
 		savedAppCategory := ConvertLinkCategoryFromModel(*savedModelCategory)
 		// Enrich
-		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkCategoryHref, currentUserIdentityID)
+		linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, app.WorkItemLinkCategoryHref, currentUserIdentityID)
 		err = enrichLinkCategorySingle(linkCtx, savedAppCategory)
 		if err != nil {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInternal("Failed to enrich link category: %s", err.Error()))

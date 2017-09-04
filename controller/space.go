@@ -166,7 +166,7 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 	res := &app.SpaceSingle{
 		Data: spaceData,
 	}
-	ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.RequestData.Request, app.SpaceHref(res.Data.ID)))
+	ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.SpaceHref(res.Data.ID)))
 	return ctx.Created(res)
 }
 

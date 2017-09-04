@@ -112,7 +112,7 @@ func (c *LoginController) Authorize(ctx *app.AuthorizeLoginContext) error {
 		ClientSecret: c.configuration.GetKeycloakSecret(),
 		Scopes:       []string{"user:email"},
 		Endpoint:     oauth2.Endpoint{AuthURL: authEndpoint, TokenURL: tokenEndpoint},
-		RedirectURL:  rest.AbsoluteURL(ctx.RequestData.Request, "/api/login/authorize"),
+		RedirectURL:  rest.AbsoluteURL(ctx.Request, "/api/login/authorize"),
 	}
 
 	ctx.ResponseData.Header().Set("Cache-Control", "no-cache")

@@ -114,7 +114,7 @@ func (c *AreaController) CreateChild(ctx *app.CreateChildAreaContext) error {
 		res := &app.AreaSingle{
 			Data: ConvertArea(appl, ctx.Request, newArea, addResolvedPath),
 		}
-		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.RequestData.Request, app.AreaHref(res.Data.ID)))
+		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.AreaHref(res.Data.ID)))
 		return ctx.Created(res)
 	})
 }
