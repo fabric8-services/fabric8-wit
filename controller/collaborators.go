@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/fabric8-services/fabric8-wit/account"
@@ -27,7 +28,7 @@ type CollaboratorsController struct {
 }
 
 type CollaboratorsConfiguration interface {
-	GetKeycloakEndpointEntitlement(*goa.RequestData) (string, error)
+	GetKeycloakEndpointEntitlement(*http.Request) (string, error)
 	GetCacheControlCollaborators() string
 	IsAuthorizationEnabled() bool
 }
@@ -69,7 +70,7 @@ func (c *CollaboratorsController) List(ctx *app.ListCollaboratorsContext) error 
 			"owner_id": ownerID,
 		}, "Authorization is disabled. Space owner is the only collaborator")
 	} else {
-		policy, _, err := c.getPolicy(ctx, ctx.RequestData, ctx.SpaceID)
+		policy, _, err := c.getPolicy(ctx, ctx.Request, ctx.SpaceID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -130,7 +131,7 @@ func (c *CollaboratorsController) List(ctx *app.ListCollaboratorsContext) error 
 	return ctx.ConditionalEntities(resultUsers, c.config.GetCacheControlCollaborators, func() error {
 		data := make([]*app.UserData, len(page))
 		for i := range resultUsers {
-			appUser := ConvertToAppUser(ctx.RequestData, &resultUsers[i], &resultIdentities[i])
+			appUser := ConvertToAppUser(ctx.Request, &resultUsers[i], &resultIdentities[i])
 			data[i] = appUser.Data
 		}
 		response := app.UserList{
@@ -138,7 +139,7 @@ func (c *CollaboratorsController) List(ctx *app.ListCollaboratorsContext) error 
 			Meta:  &app.UserListMeta{TotalCount: count},
 			Data:  data,
 		}
-		setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(page), offset, limit, count)
+		setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(page), offset, limit, count)
 		return ctx.OK(&response)
 	})
 }
@@ -153,7 +154,7 @@ func (c *CollaboratorsController) Add(ctx *app.AddCollaboratorsContext) error {
 		return ctx.OK([]byte{})
 	}
 	identityIDs := []*app.UpdateUserID{{ID: ctx.IdentityID}}
-	err := c.updatePolicy(ctx, ctx.RequestData, ctx.SpaceID, identityIDs, c.policyManager.AddUserToPolicy)
+	err := c.updatePolicy(ctx, ctx.Request, ctx.SpaceID, identityIDs, c.policyManager.AddUserToPolicy)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
@@ -170,7 +171,7 @@ func (c *CollaboratorsController) AddMany(ctx *app.AddManyCollaboratorsContext) 
 		return ctx.OK([]byte{})
 	}
 	if ctx.Payload != nil && ctx.Payload.Data != nil {
-		err := c.updatePolicy(ctx, ctx.RequestData, ctx.SpaceID, ctx.Payload.Data, c.policyManager.AddUserToPolicy)
+		err := c.updatePolicy(ctx, ctx.Request, ctx.SpaceID, ctx.Payload.Data, c.policyManager.AddUserToPolicy)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -194,7 +195,7 @@ func (c *CollaboratorsController) Remove(ctx *app.RemoveCollaboratorsContext) er
 	}
 
 	identityIDs := []*app.UpdateUserID{{ID: ctx.IdentityID}}
-	err = c.updatePolicy(ctx, ctx.RequestData, ctx.SpaceID, identityIDs, c.policyManager.RemoveUserFromPolicy)
+	err = c.updatePolicy(ctx, ctx.Request, ctx.SpaceID, identityIDs, c.policyManager.RemoveUserFromPolicy)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
@@ -220,7 +221,7 @@ func (c *CollaboratorsController) RemoveMany(ctx *app.RemoveManyCollaboratorsCon
 				}
 			}
 		}
-		err := c.updatePolicy(ctx, ctx.RequestData, ctx.SpaceID, ctx.Payload.Data, c.policyManager.RemoveUserFromPolicy)
+		err := c.updatePolicy(ctx, ctx.Request, ctx.SpaceID, ctx.Payload.Data, c.policyManager.RemoveUserFromPolicy)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -252,7 +253,7 @@ func (c *CollaboratorsController) checkSpaceOwner(ctx context.Context, spaceID u
 	return nil
 }
 
-func (c *CollaboratorsController) updatePolicy(ctx collaboratorContext, req *goa.RequestData, spaceID uuid.UUID, identityIDs []*app.UpdateUserID, update func(policy *auth.KeycloakPolicy, identityID string) bool) error {
+func (c *CollaboratorsController) updatePolicy(ctx collaboratorContext, req *http.Request, spaceID uuid.UUID, identityIDs []*app.UpdateUserID, update func(policy *auth.KeycloakPolicy, identityID string) bool) error {
 	// Authorize current user
 	authorized, err := authz.Authorize(ctx, spaceID.String())
 	if err != nil {
@@ -332,7 +333,7 @@ func (c *CollaboratorsController) updatePolicy(ctx collaboratorContext, req *goa
 	return nil
 }
 
-func (c *CollaboratorsController) getPolicy(ctx collaboratorContext, req *goa.RequestData, spaceID uuid.UUID) (*auth.KeycloakPolicy, *string, error) {
+func (c *CollaboratorsController) getPolicy(ctx collaboratorContext, req *http.Request, spaceID uuid.UUID) (*auth.KeycloakPolicy, *string, error) {
 	var policyID string
 	err := application.Transactional(c.db, func(appl application.Application) error {
 		// Load associated space resource
