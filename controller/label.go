@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
@@ -9,6 +10,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/label"
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/goadesign/goa"
 )
 
@@ -50,10 +52,49 @@ func (c *LabelController) Create(ctx *app.CreateLabelContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		res := ConvertLabel(ctx.RequestData, &lbl)
-		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.RequestData, app.LabelHref(ctx.SpaceID, res.Data.ID)))
+		res := &app.LabelSingle{
+			Data: ConvertLabel(appl, ctx.RequestData, lbl),
+		}
+		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.LabelHref(ctx.SpaceID, res.Data.ID)))
 		return ctx.Created(res)
 	})
+}
+
+// ConvertLabel converts from internal to external REST representation
+func ConvertLabel(appl application.Application, request *goa.RequestData, lbl label.Label) *app.Label {
+	labelType := label.APIStringTypeLabels
+	spaceID := lbl.SpaceID.String()
+	relatedURL := rest.AbsoluteURL(request.Request, app.LabelHref(spaceID, lbl.ID))
+	spaceRelatedURL := rest.AbsoluteURL(request.Request, app.SpaceHref(spaceID))
+	l := &app.Label{
+		Type: labelType,
+		ID:   &lbl.ID,
+		Attributes: &app.LabelAttributes{
+			Color:     &lbl.Color,
+			Name:      &lbl.Name,
+			CreatedAt: &lbl.CreatedAt,
+			UpdatedAt: &lbl.UpdatedAt,
+			Version:   &lbl.Version,
+		},
+		Relationships: &app.LabelRelations{
+			Space: &app.RelationGeneric{
+				Data: &app.GenericData{
+					Type: &space.SpaceType,
+					ID:   &spaceID,
+				},
+				Links: &app.GenericLinks{
+					Self:    &spaceRelatedURL,
+					Related: &spaceRelatedURL,
+				},
+			},
+		},
+
+		Links: &app.GenericLinks{
+			Self:    &relatedURL,
+			Related: &relatedURL,
+		},
+	}
+	return l
 }
 
 // List runs the list action.
@@ -67,33 +108,8 @@ func (c *LabelController) List(ctx *app.ListLabelContext) error {
 	return ctx.OK(res)
 }
 
-// ConvertLabel converts a Label object into it's REST representation
-func ConvertLabel(request *goa.RequestData, lbl *label.Label) *app.LabelSingle {
-	labelID := lbl.ID
-	color := lbl.Color
-	createdAt := lbl.CreatedAt
-	updatedAt := lbl.UpdatedAt
-	name := lbl.Name
-	version := lbl.Version
-
-	converted := app.LabelSingle{
-		Data: &app.Label{
-			ID:   &labelID,
-			Type: "identities",
-			Attributes: &app.LabelAttributes{
-				CreatedAt: &createdAt,
-				UpdatedAt: &updatedAt,
-				Name:      &name,
-				Color:     &color,
-				Version:   &version,
-			},
-		},
-	}
-	return &converted
-}
-
 // ConvertLabelsSimple converts a array of Label IDs into a Generic Reletionship List
-func ConvertLabelsSimple(request *goa.RequestData, labelIDs []interface{}) []*app.GenericData {
+func ConvertLabelsSimple(request *http.Request, labelIDs []interface{}) []*app.GenericData {
 	ops := []*app.GenericData{}
 	for _, labelID := range labelIDs {
 		ops = append(ops, ConvertLabelSimple(request, labelID))
@@ -102,7 +118,7 @@ func ConvertLabelsSimple(request *goa.RequestData, labelIDs []interface{}) []*ap
 }
 
 // ConvertLabelSimple converts a Label ID into a Generic Reletionship
-func ConvertLabelSimple(request *goa.RequestData, labelID interface{}) *app.GenericData {
+func ConvertLabelSimple(request *http.Request, labelID interface{}) *app.GenericData {
 	t := label.APIStringTypeLabels
 	i := fmt.Sprint(labelID)
 	return &app.GenericData{

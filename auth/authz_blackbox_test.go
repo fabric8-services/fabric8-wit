@@ -17,7 +17,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	wittoken "github.com/fabric8-services/fabric8-wit/token"
-	"github.com/goadesign/goa"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -63,9 +62,7 @@ func (s *TestAuthSuite) TearDownSuite() {
 }
 
 func (s *TestAuthSuite) TestCreateAndDeleteResourceOK() {
-	r := &goa.RequestData{
-		Request: &http.Request{Host: "domain.io"},
-	}
+	r := &http.Request{Host: "domain.io"}
 	ctx := context.Background()
 	authzEndpoint, err := configuration.GetKeycloakEndpointAuthzResourceset(r)
 	require.Nil(s.T(), err)
@@ -76,12 +73,8 @@ func (s *TestAuthSuite) TestCreateAndDeleteResourceOK() {
 }
 
 func (s *TestAuthSuite) TestDeleteNonexistingResourceFails() {
-	r := &goa.RequestData{
-		Request: &http.Request{Host: "domain.io"},
-	}
-
+	r := &http.Request{Host: "domain.io"}
 	ctx := context.Background()
-
 	authzEndpoint, err := configuration.GetKeycloakEndpointAuthzResourceset(r)
 	require.Nil(s.T(), err)
 	pat := getProtectedAPITokenOK(s.T())
@@ -122,9 +115,7 @@ func (s *TestAuthSuite) TestDeletePolicyOK() {
 }
 
 func (s *TestAuthSuite) TestCreateAndDeletePermissionOK() {
-	r := &goa.RequestData{
-		Request: &http.Request{Host: "domain.io"},
-	}
+	r := &http.Request{Host: "domain.io"}
 	authzEndpoint, err := configuration.GetKeycloakEndpointAuthzResourceset(r)
 	require.Nil(s.T(), err)
 
@@ -156,12 +147,8 @@ func (s *TestAuthSuite) TestCreateAndDeletePermissionOK() {
 }
 
 func (s *TestAuthSuite) TestDeleteNonexistingPolicyAndPermissionFails() {
-	r := &goa.RequestData{
-		Request: &http.Request{Host: "domain.io"},
-	}
-
+	r := &http.Request{Host: "domain.io"}
 	ctx := context.Background()
-
 	clientsEndpoint, err := configuration.GetKeycloakEndpointClients(r)
 	require.Nil(s.T(), err)
 	pat := getProtectedAPITokenOK(s.T())
@@ -174,9 +161,7 @@ func (s *TestAuthSuite) TestDeleteNonexistingPolicyAndPermissionFails() {
 }
 
 func (s *TestAuthSuite) TestGetEntitlement() {
-	r := &goa.RequestData{
-		Request: &http.Request{Host: "domain.io"},
-	}
+	r := &http.Request{Host: "domain.io"}
 	authzEndpoint, err := configuration.GetKeycloakEndpointAuthzResourceset(r)
 	require.Nil(s.T(), err)
 
@@ -369,9 +354,7 @@ type policyRequestResultPayload struct {
 }
 
 func cleanKeycloakResources(t *testing.T) {
-	r := &goa.RequestData{
-		Request: &http.Request{Host: "domain.io"},
-	}
+	r := &http.Request{Host: "domain.io"}
 	ctx := context.Background()
 	authzEndpoint, err := configuration.GetKeycloakEndpointAuthzResourceset(r)
 	require.Nil(t, err)
@@ -414,9 +397,7 @@ func cleanKeycloakResources(t *testing.T) {
 }
 
 func createResource(t *testing.T, ctx context.Context, pat string) (string, string) {
-	r := &goa.RequestData{
-		Request: &http.Request{Host: "domain.io"},
-	}
+	r := &http.Request{Host: "domain.io"}
 	uri := "testResourceURI"
 	kcResource := auth.KeycloakResource{
 		Name:   "test-" + uuid.NewV4().String(),
@@ -476,10 +457,7 @@ func validatePolicy(t *testing.T, ctx context.Context, clientsEndpoint string, c
 }
 
 func getUserID(t *testing.T, username string, usersecret string) string {
-	r := &goa.RequestData{
-		Request: &http.Request{Host: "domain.io"},
-	}
-
+	r := &http.Request{Host: "domain.io"}
 	tokenEndpoint, err := configuration.GetKeycloakEndpointToken(r)
 	require.Nil(t, err)
 	userinfoEndpoint, err := configuration.GetKeycloakEndpointUserInfo(r)
@@ -503,9 +481,7 @@ func getUserID(t *testing.T, username string, usersecret string) string {
 }
 
 func getClientIDAndEndpoint(t *testing.T) (string, string) {
-	r := &goa.RequestData{
-		Request: &http.Request{Host: "domain.io"},
-	}
+	r := &http.Request{Host: "domain.io"}
 	clientsEndpoint, err := configuration.GetKeycloakEndpointClients(r)
 	require.Nil(t, err)
 	publicClientID := configuration.GetKeycloakClientID()
@@ -518,10 +494,7 @@ func getClientIDAndEndpoint(t *testing.T) (string, string) {
 }
 
 func getProtectedAPITokenOK(t *testing.T) string {
-	r := &goa.RequestData{
-		Request: &http.Request{Host: "demo.api.openshift.io"},
-	}
-
+	r := &http.Request{Host: "demo.api.openshift.io"}
 	endpoint, err := configuration.GetKeycloakEndpointToken(r)
 	require.Nil(t, err)
 	token, err := auth.GetProtectedAPIToken(context.Background(), endpoint, configuration.GetKeycloakClientID(), configuration.GetKeycloakSecret())

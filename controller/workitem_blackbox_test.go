@@ -703,9 +703,7 @@ func getMinimumRequiredUpdatePayload(wi *app.WorkItem) *app.UpdateWorkitemPayloa
 }
 
 func minimumRequiredUpdatePayload() app.UpdateWorkitemPayload {
-	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}, app.SpaceHref(space.SystemSpace.String()))
+	spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(space.SystemSpace.String()))
 	return app.UpdateWorkitemPayload{
 		Data: &app.WorkItem{
 			Type:       APIStringTypeWorkItem,
@@ -739,10 +737,7 @@ func minimumRequiredCreateWithTypeAndSpace(witID uuid.UUID, spaceID uuid.UUID) a
 }
 
 func newRelationBaseType(spaceID, wit uuid.UUID) *app.RelationBaseType {
-	witRelatedURL := rest.AbsoluteURL(&goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}, app.WorkitemtypeHref(spaceID.String(), wit.String()))
-
+	witRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.WorkitemtypeHref(spaceID.String(), wit.String()))
 	return &app.RelationBaseType{
 		Data: &app.BaseTypeData{
 			Type: "workitemtypes",
@@ -756,10 +751,7 @@ func newRelationBaseType(spaceID, wit uuid.UUID) *app.RelationBaseType {
 }
 
 func minimumRequiredCreatePayload() app.CreateWorkitemsPayload {
-	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}, app.SpaceHref(space.SystemSpace.String()))
-
+	spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(space.SystemSpace.String()))
 	return app.CreateWorkitemsPayload{
 		Data: &app.WorkItem{
 			Type:       APIStringTypeWorkItem,
@@ -1908,9 +1900,7 @@ func (s *WorkItem2Suite) TestWI2CreateWithArea() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}, app.SpaceHref(space.SystemSpace.String()))
+	spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(space.SystemSpace.String()))
 	c.Data.Relationships = &app.WorkItemRelationships{
 		BaseType: newRelationBaseType(space.SystemSpace, workitem.SystemBug),
 		Space:    app.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
@@ -1996,9 +1986,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithRootAreaIfMissing() {
 				workitem.SystemState: workitem.SystemStateNew,
 			},
 			Relationships: &app.WorkItemRelationships{
-				Space: app.NewSpaceRelation(testSpace.ID, rest.AbsoluteURL(&goa.RequestData{
-					Request: &http.Request{Host: "api.service.domain.org"},
-				}, app.SpaceHref(testSpace.ID.String()))),
+				Space: app.NewSpaceRelation(testSpace.ID, rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(testSpace.ID.String()))),
 				BaseType: &app.RelationBaseType{
 					Data: &app.BaseTypeData{
 						Type: "workitemtypes",
@@ -2067,9 +2055,7 @@ func (s *WorkItem2Suite) TestWI2CreateWithIteration() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}, app.SpaceHref(space.SystemSpace.String()))
+	spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(space.SystemSpace.String()))
 	c.Data.Relationships = &app.WorkItemRelationships{
 		BaseType: newRelationBaseType(space.SystemSpace, workitem.SystemBug),
 		Space:    app.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
@@ -2136,9 +2122,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithRootIterationIfMissing() {
 				workitem.SystemState: workitem.SystemStateNew,
 			},
 			Relationships: &app.WorkItemRelationships{
-				Space: app.NewSpaceRelation(testSpace.ID, rest.AbsoluteURL(&goa.RequestData{
-					Request: &http.Request{Host: "api.service.domain.org"},
-				}, app.SpaceHref(testSpace.ID.String()))),
+				Space: app.NewSpaceRelation(testSpace.ID, rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(testSpace.ID.String()))),
 				BaseType: &app.RelationBaseType{
 					Data: &app.BaseTypeData{
 						Type: "workitemtypes",
@@ -2747,10 +2731,7 @@ func (s *WorkItem2Suite) TestNotificationSendOnUpdate() {
 }
 
 func minimumRequiredCreatePayloadWithSpace(spaceID uuid.UUID) app.CreateWorkitemsPayload {
-	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}, app.SpaceHref(spaceID.String()))
-
+	spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(spaceID.String()))
 	return app.CreateWorkitemsPayload{
 		Data: &app.WorkItem{
 			Type:       APIStringTypeWorkItem,
@@ -2763,9 +2744,7 @@ func minimumRequiredCreatePayloadWithSpace(spaceID uuid.UUID) app.CreateWorkitem
 }
 
 func minimumRequiredUpdatePayloadWithSpace(spaceID uuid.UUID) app.UpdateWorkitemPayload {
-	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}, app.SpaceHref(spaceID.String()))
+	spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(spaceID.String()))
 	return app.UpdateWorkitemPayload{
 		Data: &app.WorkItem{
 			Type:       APIStringTypeWorkItem,

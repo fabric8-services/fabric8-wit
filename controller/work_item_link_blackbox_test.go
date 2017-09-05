@@ -207,12 +207,8 @@ func newCreateWorkItemLinkCategoryPayload(name string) *app.CreateWorkItemLinkCa
 
 // CreateWorkItem defines a work item link
 func newCreateWorkItemPayload(spaceID uuid.UUID, workItemType uuid.UUID, title string) *app.CreateWorkitemsPayload {
-	spaceRelatedURL := rest.AbsoluteURL(&goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}, app.SpaceHref(spaceID.String()))
-	witRelatedURL := rest.AbsoluteURL(&goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}, app.WorkitemtypeHref(spaceID.String(), workItemType))
+	spaceRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(spaceID.String()))
+	witRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.WorkitemtypeHref(spaceID.String(), workItemType))
 	payload := app.CreateWorkitemsPayload{
 		Data: &app.WorkItem{
 			Attributes: map[string]interface{}{
@@ -250,9 +246,7 @@ func newCreateWorkItemLinkTypePayload(name string, categoryID, spaceID uuid.UUID
 		LinkCategoryID: categoryID,
 		SpaceID:        spaceID,
 	}
-	reqLong := &goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}
+	reqLong := &http.Request{Host: "api.service.domain.org"}
 	payload := ConvertWorkItemLinkTypeFromModel(reqLong, lt)
 	// The create payload is required during creation. Simply copy data over.
 	return &app.CreateWorkItemLinkTypePayload{

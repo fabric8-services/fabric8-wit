@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
@@ -52,7 +53,7 @@ func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		return ctx.ConditionalRequest(*witModel, c.config.GetCacheControlWorkItemType, func() error {
-			witData := ConvertWorkItemTypeFromModel(ctx.RequestData, witModel)
+			witData := ConvertWorkItemTypeFromModel(ctx.Request, witModel)
 			wit := &app.WorkItemTypeSingle{Data: &witData}
 			return ctx.OK(wit)
 		})
@@ -85,7 +86,7 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 		// Set the space to the Payload
 		if ctx.Payload.Data != nil && ctx.Payload.Data.Relationships != nil {
 			// We overwrite or use the space ID in the URL to set the space of this WI
-			spaceSelfURL := rest.AbsoluteURL(ctx.RequestData, app.SpaceHref(ctx.SpaceID.String()))
+			spaceSelfURL := rest.AbsoluteURL(ctx.Request, app.SpaceHref(ctx.SpaceID.String()))
 			ctx.Payload.Data.Relationships.Space = app.NewSpaceRelation(ctx.SpaceID, spaceSelfURL)
 		}
 		modelFields, err := ConvertFieldDefinitionsToModel(fields)
@@ -104,7 +105,7 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		witData := ConvertWorkItemTypeFromModel(ctx.RequestData, witTypeModel)
+		witData := ConvertWorkItemTypeFromModel(ctx.Request, witTypeModel)
 		wit := &app.WorkItemTypeSingle{Data: &witData}
 		ctx.ResponseData.Header().Set("Location", app.WorkitemtypeHref(*ctx.Payload.Data.Relationships.Space.Data.ID, wit.Data.ID))
 		return ctx.Created(wit)
@@ -143,7 +144,7 @@ func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
 			result := &app.WorkItemTypeList{}
 			result.Data = make([]*app.WorkItemTypeData, len(witModels))
 			for index, value := range witModels {
-				wit := ConvertWorkItemTypeFromModel(ctx.RequestData, &value)
+				wit := ConvertWorkItemTypeFromModel(ctx.Request, &value)
 				result.Data[index] = &wit
 			}
 			return ctx.OK(result)
@@ -151,8 +152,8 @@ func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
 	})
 }
 
-// converts from models to app representation
-func ConvertWorkItemTypeFromModel(request *goa.RequestData, t *workitem.WorkItemType) app.WorkItemTypeData {
+// ConvertWorkItemTypeFromModel converts from models to app representation
+func ConvertWorkItemTypeFromModel(request *http.Request, t *workitem.WorkItemType) app.WorkItemTypeData {
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(t.SpaceID.String()))
 	id := t.ID
 	createdAt := t.CreatedAt.UTC()

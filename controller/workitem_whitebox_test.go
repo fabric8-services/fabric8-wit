@@ -18,7 +18,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 
-	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -110,8 +109,7 @@ func TestSetPagingLinks(t *testing.T) {
 }
 
 func TestConvertWorkItemWithDescription(t *testing.T) {
-	request := http.Request{Host: "localhost"}
-	requestData := &goa.RequestData{Request: &request}
+	request := &http.Request{Host: "localhost"}
 	// map[string]interface{}
 	fields := map[string]interface{}{
 		workitem.SystemTitle:       "title",
@@ -122,21 +120,20 @@ func TestConvertWorkItemWithDescription(t *testing.T) {
 		Fields:  fields,
 		SpaceID: space.SystemSpace,
 	}
-	wi2 := ConvertWorkItem(requestData, wi)
+	wi2 := ConvertWorkItem(request, wi)
 	assert.Equal(t, "title", wi2.Attributes[workitem.SystemTitle])
 	assert.Equal(t, "description", wi2.Attributes[workitem.SystemDescription])
 }
 
 func TestConvertWorkItemWithoutDescription(t *testing.T) {
-	request := http.Request{Host: "localhost"}
-	requestData := &goa.RequestData{Request: &request}
+	request := &http.Request{Host: "localhost"}
 	wi := workitem.WorkItem{
 		Fields: map[string]interface{}{
 			workitem.SystemTitle: "title",
 		},
 		SpaceID: space.SystemSpace,
 	}
-	wi2 := ConvertWorkItem(requestData, wi)
+	wi2 := ConvertWorkItem(request, wi)
 	assert.Equal(t, "title", wi2.Attributes[workitem.SystemTitle])
 	assert.Nil(t, wi2.Attributes[workitem.SystemDescription])
 }
@@ -166,12 +163,8 @@ func (rest *TestWorkItemREST) TearDownTest() {
 }
 
 func prepareWI2(attributes map[string]interface{}) app.WorkItem {
-	spaceRelatedURL := rest.AbsoluteURL(&goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}, app.SpaceHref(space.SystemSpace.String()))
-	witRelatedURL := rest.AbsoluteURL(&goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}, app.WorkitemtypeHref(space.SystemSpace.String(), workitem.SystemBug.String()))
+	spaceRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(space.SystemSpace.String()))
+	witRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.WorkitemtypeHref(space.SystemSpace.String(), workitem.SystemBug.String()))
 	return app.WorkItem{
 		Type: "workitems",
 		Relationships: &app.WorkItemRelationships{

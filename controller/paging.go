@@ -4,12 +4,12 @@ package controller
 
 import (
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/rest"
-	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 )
 
@@ -114,7 +114,7 @@ func setPagingLinks(links *app.PagingLinks, path string, resultLen, offset, limi
 	links.Last = &last
 }
 
-func buildAbsoluteURL(req *goa.RequestData) string {
+func buildAbsoluteURL(req *http.Request) string {
 	return rest.AbsoluteURL(req, req.URL.Path)
 }
 

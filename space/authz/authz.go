@@ -31,7 +31,7 @@ type AuthzService interface {
 
 // AuthzConfiguration represents a Keycloak entitlement endpoint configuration
 type AuthzConfiguration interface {
-	GetKeycloakEndpointEntitlement(*goa.RequestData) (string, error)
+	GetKeycloakEndpointEntitlement(*http.Request) (string, error)
 	IsAuthorizationEnabled() bool
 }
 
@@ -183,7 +183,7 @@ func InjectAuthzService(service AuthzService) goa.Middleware {
 			var endpoint string
 			if config != nil {
 				var err error
-				endpoint, err = config.GetKeycloakEndpointEntitlement(&goa.RequestData{Request: req})
+				endpoint, err = config.GetKeycloakEndpointEntitlement(req)
 				if err != nil {
 					log.Error(ctx, map[string]interface{}{
 						"err": err,

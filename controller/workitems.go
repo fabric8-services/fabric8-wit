@@ -104,7 +104,7 @@ func (c *WorkitemsController) Create(ctx *app.CreateWorkitemsContext) error {
 	// Set the space to the Payload
 	if ctx.Payload.Data != nil && ctx.Payload.Data.Relationships != nil {
 		// We overwrite or use the space ID in the URL to set the space of this WI
-		spaceSelfURL := rest.AbsoluteURL(goa.ContextRequest(ctx), app.SpaceHref(ctx.SpaceID.String()))
+		spaceSelfURL := rest.AbsoluteURL(ctx.Request, app.SpaceHref(ctx.SpaceID.String()))
 		ctx.Payload.Data.Relationships.Space = app.NewSpaceRelation(ctx.SpaceID, spaceSelfURL)
 	}
 	wi := &workitem.WorkItem{
@@ -129,11 +129,11 @@ func (c *WorkitemsController) Create(ctx *app.CreateWorkitemsContext) error {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))
 		}
 		hasChildren := workItemIncludeHasChildren(appl, ctx)
-		wi2 := ConvertWorkItem(ctx.RequestData, *wi, hasChildren)
+		wi2 := ConvertWorkItem(ctx.Request, *wi, hasChildren)
 		resp := &app.WorkItemSingle{
 			Data: wi2,
 			Links: &app.WorkItemLinks{
-				Self: buildAbsoluteURL(ctx.RequestData),
+				Self: buildAbsoluteURL(ctx.Request),
 			},
 		}
 		ctx.ResponseData.Header().Set("Last-Modified", lastModified(*wi))
@@ -227,10 +227,10 @@ func (c *WorkitemsController) List(ctx *app.ListWorkitemsContext) error {
 			response := app.WorkItemList{
 				Links: &app.PagingLinks{},
 				Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
-				Data:  ConvertWorkItems(ctx.RequestData, workitems, hasChildren),
+				Data:  ConvertWorkItems(ctx.Request, workitems, hasChildren),
 			}
-			setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(workitems), offset, limit, count, additionalQuery...)
-			addFilterLinks(response.Links, ctx.RequestData)
+			setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(workitems), offset, limit, count, additionalQuery...)
+			addFilterLinks(response.Links, ctx.Request)
 			return ctx.OK(&response)
 		})
 
@@ -282,7 +282,7 @@ func (c *WorkitemsController) Reorder(ctx *app.ReorderWorkitemsContext) error {
 				return jsonapi.JSONErrorResponse(ctx, err)
 			}
 			hasChildren := workItemIncludeHasChildren(appl, ctx)
-			wi2 := ConvertWorkItem(ctx.RequestData, *wi, hasChildren)
+			wi2 := ConvertWorkItem(ctx.Request, *wi, hasChildren)
 			dataArray = append(dataArray, wi2)
 		}
 		log.Debug(ctx, nil, "Reordered items: %d", len(dataArray))

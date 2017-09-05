@@ -8,7 +8,6 @@ import (
 	"time"
 
 	config "github.com/fabric8-services/fabric8-wit/configuration"
-	"github.com/goadesign/goa"
 
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/application"
@@ -85,9 +84,7 @@ func (s *TestAuthzSuite) checkPermissions(authzPayload auth.AuthorizationPayload
 	testIdentity := testsupport.TestIdentity
 	svc := testsupport.ServiceAsUserWithAuthz("SpaceAuthz-Service", wittoken.NewManagerWithPrivateKey(priv), priv, testIdentity, authzPayload)
 	resource.UpdatedAt = time.Now()
-	r := &goa.RequestData{
-		Request: &http.Request{Host: "api.example.org"},
-	}
+	r := &http.Request{Host: "api.example.org"}
 	entitlementEndpoint, err := s.configuration.GetKeycloakEndpointEntitlement(r)
 	require.Nil(s.T(), err)
 	ok, err := authzService.Authorize(svc.Context, entitlementEndpoint, spaceID)
