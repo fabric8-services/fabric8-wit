@@ -7,6 +7,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/label"
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/goadesign/goa"
 )
 
@@ -50,12 +51,49 @@ func (c *LabelController) Create(ctx *app.CreateLabelContext) error {
 		}
 
 		res := &app.LabelSingle{
-		//		Data: ConvertLabel(appl, ctx.RequestData, lbl),
+			Data: ConvertLabel(appl, ctx.RequestData, lbl),
 		}
 		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.RequestData, app.LabelHref(ctx.SpaceID, res.Data.ID)))
 		return ctx.Created(res)
 	})
 
+}
+
+// ConvertLabel converts from internal to external REST representation
+func ConvertLabel(appl application.Application, request *goa.RequestData, lbl label.Label) *app.Label {
+	labelType := label.APIStringTypeLabels
+	spaceID := lbl.SpaceID.String()
+	relatedURL := rest.AbsoluteURL(request, app.LabelHref(spaceID, lbl.ID))
+	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
+	l := &app.Label{
+		Type: labelType,
+		ID:   &lbl.ID,
+		Attributes: &app.LabelAttributes{
+			Color:     &lbl.Color,
+			Name:      &lbl.Name,
+			CreatedAt: &lbl.CreatedAt,
+			UpdatedAt: &lbl.UpdatedAt,
+			Version:   &lbl.Version,
+		},
+		Relationships: &app.LabelRelations{
+			Space: &app.RelationGeneric{
+				Data: &app.GenericData{
+					Type: &space.SpaceType,
+					ID:   &spaceID,
+				},
+				Links: &app.GenericLinks{
+					Self:    &spaceRelatedURL,
+					Related: &spaceRelatedURL,
+				},
+			},
+		},
+
+		Links: &app.GenericLinks{
+			Self:    &relatedURL,
+			Related: &relatedURL,
+		},
+	}
+	return l
 }
 
 // List runs the list action.
