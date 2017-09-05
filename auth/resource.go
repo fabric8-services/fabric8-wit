@@ -9,7 +9,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/goasupport"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/rest"
-	"github.com/goadesign/goa"
 	goaclient "github.com/goadesign/goa/client"
 	goauuid "github.com/goadesign/goa/uuid"
 	errs "github.com/pkg/errors"
@@ -18,8 +17,8 @@ import (
 
 // ResourceManager represents a space resource manager
 type ResourceManager interface {
-	CreateSpace(ctx context.Context, request *goa.RequestData, spaceID string) (*authservice.SpaceResource, error)
-	DeleteSpace(ctx context.Context, request *goa.RequestData, spaceID string) error
+	CreateSpace(ctx context.Context, request *http.Request, spaceID string) (*authservice.SpaceResource, error)
+	DeleteSpace(ctx context.Context, request *http.Request, spaceID string) error
 }
 
 // AuthzResourceManager implements ResourceManager interface
@@ -29,7 +28,7 @@ type AuthzResourceManager struct {
 
 // AuthServiceConfiguration represents auth service configuration
 type AuthServiceConfiguration interface {
-	GetAuthEndpointSpaces(*goa.RequestData) (string, error)
+	GetAuthEndpointSpaces(*http.Request) (string, error)
 	IsAuthorizationEnabled() bool
 }
 
@@ -39,7 +38,7 @@ func NewAuthzResourceManager(config AuthServiceConfiguration) *AuthzResourceMana
 }
 
 // CreateSpace calls auth service to create a keycloak resource associated with the space
-func (m *AuthzResourceManager) CreateSpace(ctx context.Context, request *goa.RequestData, spaceID string) (*authservice.SpaceResource, error) {
+func (m *AuthzResourceManager) CreateSpace(ctx context.Context, request *http.Request, spaceID string) (*authservice.SpaceResource, error) {
 	if !m.configuration.IsAuthorizationEnabled() {
 		// Keycloak authorization is disabled by default in Developer Mode
 		log.Warn(ctx, map[string]interface{}{
@@ -97,7 +96,7 @@ func (m *AuthzResourceManager) CreateSpace(ctx context.Context, request *goa.Req
 }
 
 // DeleteSpace calls auth service to delete the keycloak resource associated with the space
-func (m *AuthzResourceManager) DeleteSpace(ctx context.Context, request *goa.RequestData, spaceID string) error {
+func (m *AuthzResourceManager) DeleteSpace(ctx context.Context, request *http.Request, spaceID string) error {
 	if !m.configuration.IsAuthorizationEnabled() {
 		// Keycloak authorization is disabled by default in Developer Mode
 		log.Warn(ctx, map[string]interface{}{
@@ -138,7 +137,7 @@ func (m *AuthzResourceManager) DeleteSpace(ctx context.Context, request *goa.Req
 	return nil
 }
 
-func (m *AuthzResourceManager) createClient(ctx context.Context, request *goa.RequestData) (*authservice.Client, error) {
+func (m *AuthzResourceManager) createClient(ctx context.Context, request *http.Request) (*authservice.Client, error) {
 	authSpacesEndpoint, err := m.configuration.GetAuthEndpointSpaces(request)
 	if err != nil {
 		return nil, err

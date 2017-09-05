@@ -62,9 +62,9 @@ func (c *SpaceCodebasesController) Create(ctx *app.CreateSpaceCodebasesContext) 
 		}
 
 		res := &app.CodebaseSingle{
-			Data: ConvertCodebase(ctx.RequestData, &newCodeBase),
+			Data: ConvertCodebase(ctx.Request, &newCodeBase),
 		}
-		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.RequestData, app.CodebaseHref(res.Data.ID)))
+		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.CodebaseHref(res.Data.ID)))
 		return ctx.Created(res)
 	})
 }
@@ -87,9 +87,9 @@ func (c *SpaceCodebasesController) List(ctx *app.ListSpaceCodebasesContext) erro
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 		}
 		res.Meta = &app.CodebaseListMeta{TotalCount: count}
-		res.Data = ConvertCodebases(ctx.RequestData, codebases)
+		res.Data = ConvertCodebases(ctx.Request, codebases)
 		res.Links = &app.PagingLinks{}
-		setPagingLinks(res.Links, buildAbsoluteURL(ctx.RequestData), len(codebases), offset, limit, count)
+		setPagingLinks(res.Links, buildAbsoluteURL(ctx.Request), len(codebases), offset, limit, count)
 
 		return ctx.OK(res)
 	})
