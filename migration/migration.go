@@ -747,6 +747,15 @@ func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.Gor
 			Label:       "Assignees",
 			Description: "The users that are assigned to the work item",
 		},
+		workitem.SystemLabels: {
+			Type: &workitem.ListType{
+				SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
+				ComponentType: workitem.SimpleType{Kind: workitem.KindLabel},
+			},
+			Required:    false,
+			Label:       "Labels",
+			Description: "List of labels attached to the work item",
+		},
 		workitem.SystemState: {
 			Type: &workitem.EnumType{
 				SimpleType: workitem.SimpleType{Kind: workitem.KindEnum},

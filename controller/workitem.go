@@ -259,6 +259,24 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 			target.Fields[workitem.SystemAssignees] = ids
 		}
 	}
+	if source.Relationships != nil && source.Relationships.Labels != nil {
+		if source.Relationships.Labels.Data == nil {
+			delete(target.Fields, workitem.SystemLabels)
+		} else {
+			var ids []string
+			for _, d := range source.Relationships.Labels.Data {
+				labelUUID, err := uuid.FromString(*d.ID)
+				if err != nil {
+					return errors.NewBadParameterError("data.relationships.assignees.data.id", *d.ID)
+				}
+				if ok := appl.Labels().IsValid(ctx, labelUUID); !ok {
+					return errors.NewBadParameterError("data.relationships.assignees.data.id", *d.ID)
+				}
+				ids = append(ids, labelUUID.String())
+			}
+			target.Fields[workitem.SystemLabels] = ids
+		}
+	}
 	if source.Relationships != nil {
 		if source.Relationships.Iteration == nil || (source.Relationships.Iteration != nil && source.Relationships.Iteration.Data == nil) {
 			log.Debug(ctx, map[string]interface{}{
@@ -472,6 +490,13 @@ func ConvertWorkItem(request *goa.RequestData, wi workitem.WorkItem, additional 
 					Data: ConvertUsersSimple(request, userID),
 				}
 			}
+		case workitem.SystemLabels:
+			if val != nil {
+				labelIDs := val.([]interface{})
+				op.Relationships.Labels = &app.RelationGenericList{
+					Data: ConvertLabelsSimple(request, labelIDs),
+				}
+			}
 		case workitem.SystemCreator:
 			if val != nil {
 				userID := val.(string)
@@ -520,6 +545,9 @@ func ConvertWorkItem(request *goa.RequestData, wi workitem.WorkItem, additional 
 	}
 	if op.Relationships.Assignees == nil {
 		op.Relationships.Assignees = &app.RelationGenericList{Data: nil}
+	}
+	if op.Relationships.Labels == nil {
+		op.Relationships.Labels = &app.RelationGenericList{Data: nil}
 	}
 	if op.Relationships.Iteration == nil {
 		op.Relationships.Iteration = &app.RelationGeneric{Data: nil}

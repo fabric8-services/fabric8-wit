@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/fabric8-services/fabric8-wit/application/repository"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
@@ -48,6 +49,7 @@ func (m Label) TableName() string {
 type Repository interface {
 	Create(ctx context.Context, u *Label) error
 	List(ctx context.Context, spaceID uuid.UUID) ([]Label, error)
+	IsValid(ctx context.Context, id uuid.UUID) bool
 }
 
 // NewLabelRepository creates a new storage type.
@@ -58,6 +60,12 @@ func NewLabelRepository(db *gorm.DB) Repository {
 // GormLabelRepository is the implementation of the storage interface for Labels.
 type GormLabelRepository struct {
 	db *gorm.DB
+}
+
+// TableName overrides the table name settings in Gorm to force a specific table name
+// in the database.
+func (m *GormLabelRepository) TableName() string {
+	return "labels"
 }
 
 // Create a new label
@@ -90,4 +98,15 @@ func (m *GormLabelRepository) List(ctx context.Context, spaceID uuid.UUID) ([]La
 		return nil, err
 	}
 	return objs, nil
+}
+
+// CheckExists returns nil if the given ID exists otherwise returns an error
+func (m *GormLabelRepository) CheckExists(ctx context.Context, id string) error {
+	defer goa.MeasureSince([]string{"goa", "db", "identity", "exists"}, time.Now())
+	return repository.CheckExists(ctx, m.db, m.TableName(), id)
+}
+
+// IsValid returns true if the identity exists
+func (m *GormLabelRepository) IsValid(ctx context.Context, id uuid.UUID) bool {
+	return m.CheckExists(ctx, id.String()) == nil
 }
