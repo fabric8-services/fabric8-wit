@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"net/http"
+
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
@@ -51,16 +53,16 @@ func (c *LabelController) Create(ctx *app.CreateLabelContext) error {
 		}
 
 		res := &app.LabelSingle{
-			Data: ConvertLabel(appl, ctx.RequestData, lbl),
+			Data: ConvertLabel(appl, ctx.Request, lbl),
 		}
-		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.RequestData, app.LabelHref(ctx.SpaceID, res.Data.ID)))
+		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.LabelHref(ctx.SpaceID, res.Data.ID)))
 		return ctx.Created(res)
 	})
 
 }
 
 // ConvertLabel converts from internal to external REST representation
-func ConvertLabel(appl application.Application, request *goa.RequestData, lbl label.Label) *app.Label {
+func ConvertLabel(appl application.Application, request *http.Request, lbl label.Label) *app.Label {
 	labelType := label.APIStringTypeLabels
 	spaceID := lbl.SpaceID.String()
 	relatedURL := rest.AbsoluteURL(request, app.LabelHref(spaceID, lbl.ID))
@@ -98,11 +100,22 @@ func ConvertLabel(appl application.Application, request *goa.RequestData, lbl la
 
 // List runs the list action.
 func (c *LabelController) List(ctx *app.ListLabelContext) error {
-	// LabelController_List: start_implement
+	return application.Transactional(c.db, func(appl application.Application) error {
+		labels, err := appl.Labels().List(ctx, ctx.SpaceID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		res := &app.LabelList{}
+		res.Data = ConvertLabels(appl, ctx.Request, labels)
+		return ctx.OK(res)
+	})
+}
 
-	// Put your logic here
-
-	// LabelController_List: end_implement
-	res := &app.LabelList{}
-	return ctx.OK(res)
+// ConvertLabels from internal to external REST representation
+func ConvertLabels(appl application.Application, request *http.Request, labels []label.Label) []*app.Label {
+	var ls = []*app.Label{}
+	for _, i := range labels {
+		ls = append(ls, ConvertLabel(appl, request, i))
+	}
+	return ls
 }
