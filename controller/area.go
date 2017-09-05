@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"net/http"
 
 	"context"
 
@@ -59,7 +60,7 @@ func (c *AreaController) ShowChildren(ctx *app.ShowChildrenAreaContext) error {
 		}
 		return ctx.ConditionalEntities(children, c.config.GetCacheControlAreas, func() error {
 			res := &app.AreaList{}
-			res.Data = ConvertAreas(appl, ctx.RequestData, children, addResolvedPath)
+			res.Data = ConvertAreas(appl, ctx.Request, children, addResolvedPath)
 			return ctx.OK(res)
 		})
 	})
@@ -111,9 +112,9 @@ func (c *AreaController) CreateChild(ctx *app.CreateChildAreaContext) error {
 		}
 
 		res := &app.AreaSingle{
-			Data: ConvertArea(appl, ctx.RequestData, newArea, addResolvedPath),
+			Data: ConvertArea(appl, ctx.Request, newArea, addResolvedPath),
 		}
-		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.RequestData, app.AreaHref(res.Data.ID)))
+		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.AreaHref(res.Data.ID)))
 		return ctx.Created(res)
 	})
 }
@@ -132,14 +133,14 @@ func (c *AreaController) Show(ctx *app.ShowAreaContext) error {
 		}
 		return ctx.ConditionalRequest(*a, c.config.GetCacheControlArea, func() error {
 			res := &app.AreaSingle{}
-			res.Data = ConvertArea(appl, ctx.RequestData, *a, addResolvedPath)
+			res.Data = ConvertArea(appl, ctx.Request, *a, addResolvedPath)
 			return ctx.OK(res)
 		})
 	})
 }
 
 // addResolvedPath resolves the path in the form of /area1/area2/area3
-func addResolvedPath(appl application.Application, req *goa.RequestData, mArea *area.Area, sArea *app.Area) error {
+func addResolvedPath(appl application.Application, req *http.Request, mArea *area.Area, sArea *app.Area) error {
 	pathResolved, error := getResolvePath(appl, mArea)
 	sArea.Attributes.ParentPathResolved = pathResolved
 	return error
@@ -178,10 +179,10 @@ func getAreaByID(id uuid.UUID, areas []area.Area) *area.Area {
 
 // AreaConvertFunc is a open ended function to add additional links/data/relations to a area during
 // convertion from internal to API
-type AreaConvertFunc func(application.Application, *goa.RequestData, *area.Area, *app.Area) error
+type AreaConvertFunc func(application.Application, *http.Request, *area.Area, *app.Area) error
 
 // ConvertAreas converts between internal and external REST representation
-func ConvertAreas(appl application.Application, request *goa.RequestData, areas []area.Area, additional ...AreaConvertFunc) []*app.Area {
+func ConvertAreas(appl application.Application, request *http.Request, areas []area.Area, additional ...AreaConvertFunc) []*app.Area {
 	var is = []*app.Area{}
 	for _, i := range areas {
 		is = append(is, ConvertArea(appl, request, i, additional...))
@@ -190,7 +191,7 @@ func ConvertAreas(appl application.Application, request *goa.RequestData, areas 
 }
 
 // ConvertArea converts between internal and external REST representation
-func ConvertArea(appl application.Application, request *goa.RequestData, ar area.Area, additional ...AreaConvertFunc) *app.Area {
+func ConvertArea(appl application.Application, request *http.Request, ar area.Area, additional ...AreaConvertFunc) *app.Area {
 	areaType := area.APIStringTypeAreas
 	spaceID := ar.SpaceID.String()
 	relatedURL := rest.AbsoluteURL(request, app.AreaHref(ar.ID))
@@ -255,7 +256,7 @@ func ConvertArea(appl application.Application, request *goa.RequestData, ar area
 }
 
 // ConvertAreaSimple converts a simple area ID into a Generic Reletionship
-func ConvertAreaSimple(request *goa.RequestData, id interface{}) *app.GenericData {
+func ConvertAreaSimple(request *http.Request, id interface{}) *app.GenericData {
 	t := area.APIStringTypeAreas
 	i := fmt.Sprint(id)
 	return &app.GenericData{
@@ -265,7 +266,7 @@ func ConvertAreaSimple(request *goa.RequestData, id interface{}) *app.GenericDat
 	}
 }
 
-func createAreaLinks(request *goa.RequestData, id interface{}) *app.GenericLinks {
+func createAreaLinks(request *http.Request, id interface{}) *app.GenericLinks {
 	relatedURL := rest.AbsoluteURL(request, app.AreaHref(id))
 	return &app.GenericLinks{
 		Self:    &relatedURL,

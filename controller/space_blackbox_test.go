@@ -3,6 +3,7 @@ package controller_test
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"testing"
 
 	"time"
@@ -32,11 +33,11 @@ var spaceConfiguration *configuration.ConfigurationData
 type DummyResourceManager struct {
 }
 
-func (m *DummyResourceManager) CreateSpace(ctx context.Context, request *goa.RequestData, spaceID string) (*authservice.SpaceResource, error) {
+func (m *DummyResourceManager) CreateSpace(ctx context.Context, request *http.Request, spaceID string) (*authservice.SpaceResource, error) {
 	return &authservice.SpaceResource{Data: &authservice.SpaceResourceData{ResourceID: uuid.NewV4().String(), PermissionID: uuid.NewV4().String(), PolicyID: uuid.NewV4().String()}}, nil
 }
 
-func (m *DummyResourceManager) DeleteSpace(ctx context.Context, request *goa.RequestData, spaceID string) error {
+func (m *DummyResourceManager) DeleteSpace(ctx context.Context, request *http.Request, spaceID string) error {
 	return nil
 }
 

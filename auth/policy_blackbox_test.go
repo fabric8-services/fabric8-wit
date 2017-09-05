@@ -8,7 +8,6 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/auth"
 	"github.com/fabric8-services/fabric8-wit/resource"
-	"github.com/goadesign/goa"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -39,9 +38,7 @@ func (s *TestPolicySuite) TearDownSuite() {
 func (s *TestPolicySuite) TestGetPolicyOK() {
 	policy, policyID := createPermissionWithPolicy(s)
 
-	r := &goa.RequestData{
-		Request: &http.Request{Host: "domain.io"},
-	}
+	r := &http.Request{Host: "domain.io"}
 	obtainedPolicy, newPat, err := s.policyManager.GetPolicy(context.Background(), r, policyID)
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), obtainedPolicy)
@@ -58,9 +55,7 @@ func (s *TestPolicySuite) TestUpdatePolicyOK() {
 	secondTestUserID := getUserID(s.T(), configuration.GetKeycloakTestUser2Name(), configuration.GetKeycloakTestUser2Secret())
 	policy.RemoveUserFromPolicy(secondTestUserID)
 	policy.ID = &policyID
-	r := &goa.RequestData{
-		Request: &http.Request{Host: "domain.io"},
-	}
+	r := &http.Request{Host: "domain.io"}
 	pat := getProtectedAPITokenOK(s.T())
 	err := s.policyManager.UpdatePolicy(context.Background(), r, *policy, pat)
 	require.Nil(s.T(), err)

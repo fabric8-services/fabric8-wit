@@ -56,7 +56,7 @@ func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, s
 		return nil, InternalError{simpleError{err.Error()}}
 	}
 
-	spaceSelfURL := rest.AbsoluteURL(goa.ContextRequest(ctx), app.SpaceHref(spaceID.String()))
+	spaceSelfURL := rest.AbsoluteURL(goa.ContextRequest(ctx).Request, app.SpaceHref(spaceID.String()))
 	tq2 := app.TrackerQuery{
 		ID:        strconv.FormatUint(tq.ID, 10),
 		Query:     query,
@@ -96,7 +96,7 @@ func (r *GormTrackerQueryRepository) Load(ctx context.Context, ID string) (*app.
 		return nil, NotFoundError{"tracker query", ID}
 	}
 
-	spaceSelfURL := rest.AbsoluteURL(goa.ContextRequest(ctx), app.SpaceHref(res.SpaceID.String()))
+	spaceSelfURL := rest.AbsoluteURL(goa.ContextRequest(ctx).Request, app.SpaceHref(res.SpaceID.String()))
 	tq := app.TrackerQuery{
 		ID:        strconv.FormatUint(res.ID, 10),
 		Query:     res.Query,
@@ -178,7 +178,7 @@ func (r *GormTrackerQueryRepository) Save(ctx context.Context, tq app.TrackerQue
 		"tracker_query": newTq,
 	}, "Updated tracker query")
 
-	spaceSelfURL := rest.AbsoluteURL(goa.ContextRequest(ctx), app.SpaceHref(tq.Relationships.Space.Data.ID.String()))
+	spaceSelfURL := rest.AbsoluteURL(goa.ContextRequest(ctx).Request, app.SpaceHref(tq.Relationships.Space.Data.ID.String()))
 	t2 := app.TrackerQuery{
 		ID:        tq.ID,
 		Schedule:  tq.Schedule,
@@ -222,7 +222,7 @@ func (r *GormTrackerQueryRepository) List(ctx context.Context) ([]*app.TrackerQu
 	result := make([]*app.TrackerQuery, len(rows))
 
 	for i, tq := range rows {
-		spaceSelfURL := rest.AbsoluteURL(goa.ContextRequest(ctx), app.SpaceHref(tq.SpaceID.String()))
+		spaceSelfURL := rest.AbsoluteURL(goa.ContextRequest(ctx).Request, app.SpaceHref(tq.SpaceID.String()))
 		t := app.TrackerQuery{
 			ID:        strconv.FormatUint(tq.ID, 10),
 			Schedule:  tq.Schedule,
