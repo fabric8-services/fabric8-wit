@@ -76,7 +76,7 @@ func (s *serviceBlackBoxTest) SetupSuite() {
 			TokenURL: tokenEndpoint,
 		},
 	}
-	privateKey, err := token.ParsePrivateKey([]byte(token.RSAPrivateKey))
+	privateKey, err := token.RSAPrivateKey()
 	if err != nil {
 		panic(err)
 	}

@@ -51,7 +51,7 @@ func (rest *TestTrackerQueryREST) TearDownTest() {
 }
 
 func (rest *TestTrackerQueryREST) SecuredController() (*goa.Service, *TrackerController, *TrackerqueryController) {
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, _ := wittoken.RSAPrivateKey()
 
 	svc := testsupport.ServiceAsUser("Tracker-Service", wittoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
 	return svc, NewTrackerController(svc, rest.db, rest.RwiScheduler, rest.Configuration), NewTrackerqueryController(svc, rest.db, rest.RwiScheduler, rest.Configuration)
@@ -63,7 +63,7 @@ func (rest *TestTrackerQueryREST) UnSecuredController() (*goa.Service, *TrackerC
 }
 
 func getTrackerQueryTestData(t *testing.T) []testSecureAPI {
-	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(wittoken.RSAPrivateKey))
+	privatekey, err := wittoken.RSAPrivateKey()
 	if err != nil {
 		t.Fatal("Could not parse Key ", err)
 	}

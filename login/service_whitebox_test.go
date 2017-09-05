@@ -35,7 +35,7 @@ func init() {
 	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
-	privateKey, err = token.ParsePrivateKey([]byte(configuration.GetTokenPrivateKey()))
+	privateKey, err = configuration.GetTokenPrivateKey()
 	if err != nil {
 		panic(err)
 	}

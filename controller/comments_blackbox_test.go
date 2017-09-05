@@ -85,7 +85,7 @@ func (s *CommentsSuite) unsecuredController() (*goa.Service, *CommentsController
 }
 
 func (s *CommentsSuite) securedControllers(identity account.Identity) (*goa.Service, *WorkitemController, *WorkitemsController, *WorkItemCommentsController, *CommentsController) {
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, _ := wittoken.RSAPrivateKey()
 	svc := testsupport.ServiceAsUser("Comment-Service", wittoken.NewManagerWithPrivateKey(priv), identity)
 	workitemCtrl := NewWorkitemController(svc, s.db, s.Configuration)
 	workitemsCtrl := NewWorkitemsController(svc, s.db, s.Configuration)
@@ -382,7 +382,7 @@ func (s *CommentsSuite) TestNonCollaboraterCanNotDelete() {
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, _ := wittoken.RSAPrivateKey()
 	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", wittoken.NewManagerWithPrivateKey(priv), *testIdentity, &TestSpaceAuthzService{*testIdentity})
 	workitemsCtrl := NewWorkitemsController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 
@@ -406,7 +406,7 @@ func (s *CommentsSuite) TestCollaboratorCanDelete() {
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 
 	svc, _, workitemsCtrl, _, _ := s.securedControllers(*testIdentity)
-	// priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	// priv, _ := wittoken.RSAPrivateKey()
 	// svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", wittoken.NewManagerWithPrivateKey(priv), testIdentity, &TestSpaceAuthzService{testIdentity})
 	// ctrl := NewWorkitemsController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 
@@ -437,7 +437,7 @@ func (s *CommentsSuite) TestOtherCollaboratorCanDelete() {
 
 	// Add 2 identities as Collaborators
 	space := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, *spaceOwner)
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, _ := wittoken.RSAPrivateKey()
 	svcWithSpaceOwner := testsupport.ServiceAsSpaceUser("Comments-Service", wittoken.NewManagerWithPrivateKey(priv), *spaceOwner, &TestSpaceAuthzService{*spaceOwner})
 	collaboratorRESTInstance := &TestCollaboratorsREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")}
 	collaboratorRESTInstance.policy = &auth.KeycloakPolicy{
@@ -480,7 +480,7 @@ func (s *CommentsSuite) TestNonCollaboraterCanNotUpdate() {
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI 2"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, _ := wittoken.RSAPrivateKey()
 	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", wittoken.NewManagerWithPrivateKey(priv), *testIdentity, &TestSpaceAuthzService{*testIdentity})
 	workitemsCtrl := NewWorkitemsController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 
@@ -504,7 +504,7 @@ func (s *CommentsSuite) TestCollaboratorCanUpdate() {
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 
-	// priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	// priv, _ := wittoken.RSAPrivateKey()
 	// svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", wittoken.NewManagerWithPrivateKey(priv), testIdentity, &TestSpaceAuthzService{testIdentity})
 	// ctrl := NewWorkitemController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	svc, _, workitemsCtrl, _, _ := s.securedControllers(*testIdentity)
@@ -544,7 +544,7 @@ func (s *CommentsSuite) TestOtherCollaboratorCanUpdate() {
 
 	// Add 2 Collaborators in space
 	space := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, *spaceOwner)
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, _ := wittoken.RSAPrivateKey()
 	svcWithSpaceOwner := testsupport.ServiceAsSpaceUser("Comments-Service", wittoken.NewManagerWithPrivateKey(priv), *spaceOwner, &TestSpaceAuthzService{*spaceOwner})
 
 	collaboratorRESTInstance := &TestCollaboratorsREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")}
