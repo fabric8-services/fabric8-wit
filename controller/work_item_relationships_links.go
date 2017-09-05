@@ -78,7 +78,7 @@ func (c *WorkItemRelationshipsLinksController) Create(ctx *app.CreateWorkItemRel
 			ctx.Payload.Data.Relationships.Source.Data.ID = wi.ID
 			ctx.Payload.Data.Relationships.Source.Data.Type = link.EndpointWorkItems
 		}
-		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkHref, currentUserIdentityID)
+		linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, app.WorkItemLinkHref, currentUserIdentityID)
 		return createWorkItemLink(linkCtx, ctx, ctx.Payload)
 	})
 }
@@ -102,7 +102,7 @@ func (c *WorkItemRelationshipsLinksController) List(ctx *app.ListWorkItemRelatio
 			appLinks.Meta = &app.WorkItemLinkListMeta{
 				TotalCount: len(modelLinks),
 			}
-			linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkHref, nil)
+			linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, app.WorkItemLinkHref, nil)
 			if err := enrichLinkList(linkCtx, &appLinks); err != nil {
 				return jsonapi.JSONErrorResponse(ctx, err)
 			}

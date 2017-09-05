@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"net/http"
+
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
@@ -36,10 +38,10 @@ func (c *WorkItemTypeGroupController) List(ctx *app.ListWorkItemTypeGroupContext
 	res.Data = &app.WorkItemTypeGroupData{
 		Attributes: &app.WorkItemTypeGroupAttributes{
 			Hierarchy: []*app.WorkItemTypeGroup{
-				ConvertTypeGroup(ctx.RequestData, typegroup.Portfolio0),
-				ConvertTypeGroup(ctx.RequestData, typegroup.Portfolio1),
-				ConvertTypeGroup(ctx.RequestData, typegroup.Requirements0),
-				ConvertTypeGroup(ctx.RequestData, typegroup.Execution0),
+				ConvertTypeGroup(ctx.Request, typegroup.Portfolio0),
+				ConvertTypeGroup(ctx.Request, typegroup.Portfolio1),
+				ConvertTypeGroup(ctx.Request, typegroup.Requirements0),
+				ConvertTypeGroup(ctx.Request, typegroup.Execution0),
 			},
 		},
 		Type: APIWorkItemTypeGroups,
@@ -49,7 +51,7 @@ func (c *WorkItemTypeGroupController) List(ctx *app.ListWorkItemTypeGroupContext
 
 // ConvertTypeGroup converts WorkitemTypeGroup model to a response resource
 // object for jsonapi.org specification
-func ConvertTypeGroup(request *goa.RequestData, tg typegroup.WorkItemTypeGroup) *app.WorkItemTypeGroup {
+func ConvertTypeGroup(request *http.Request, tg typegroup.WorkItemTypeGroup) *app.WorkItemTypeGroup {
 	return &app.WorkItemTypeGroup{
 		Group:         tg.Group,
 		Level:         tg.Level,

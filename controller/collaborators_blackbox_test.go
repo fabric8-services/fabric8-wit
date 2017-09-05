@@ -1,6 +1,7 @@
 package controller_test
 
 import (
+	"net/http"
 	"strings"
 	"testing"
 	"time"
@@ -55,12 +56,12 @@ func (s *DummySpaceAuthzService) Configuration() authz.AuthzConfiguration {
 	return nil
 }
 
-func (m *DummyPolicyManager) GetPolicy(ctx context.Context, request *goa.RequestData, policyID string) (*auth.KeycloakPolicy, *string, error) {
+func (m *DummyPolicyManager) GetPolicy(ctx context.Context, request *http.Request, policyID string) (*auth.KeycloakPolicy, *string, error) {
 	pat := ""
 	return m.rest.policy, &pat, nil
 }
 
-func (m *DummyPolicyManager) UpdatePolicy(ctx context.Context, request *goa.RequestData, policy auth.KeycloakPolicy, pat string) error {
+func (m *DummyPolicyManager) UpdatePolicy(ctx context.Context, request *http.Request, policy auth.KeycloakPolicy, pat string) error {
 	return nil
 }
 
@@ -76,7 +77,7 @@ type dummyCollaboratorsConfiguration struct {
 	configuration *config.ConfigurationData
 }
 
-func (c *dummyCollaboratorsConfiguration) GetKeycloakEndpointEntitlement(*goa.RequestData) (string, error) {
+func (c *dummyCollaboratorsConfiguration) GetKeycloakEndpointEntitlement(*http.Request) (string, error) {
 	return "", nil
 }
 

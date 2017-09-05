@@ -13,7 +13,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem"
-	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -71,9 +70,7 @@ func TestConvertTypeFromModel(t *testing.T) {
 
 	// Create the type for "animal-type" field based on the enum above
 	stString := "string"
-	reqLong := &goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}
+	reqLong := &http.Request{Host: "api.service.domain.org"}
 	spaceSelfURL := rest.AbsoluteURL(reqLong, app.SpaceHref(space.SystemSpace.String()))
 	version := 42
 	expected := app.WorkItemTypeSingle{
