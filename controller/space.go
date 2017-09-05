@@ -219,7 +219,7 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 					"current_user": *currentUser,
 					"err":          err,
 				}, "Can't delete the space resource because it's not found. May happen to old spaces. Space will be deleted anyway.")
-				return nil
+				return appl.Spaces().Delete(ctx.Context, ctx.SpaceID)
 			}
 			return err
 		}
