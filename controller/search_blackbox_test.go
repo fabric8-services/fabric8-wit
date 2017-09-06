@@ -270,12 +270,8 @@ func (s *searchBlackBoxTest) TestUnwantedCharactersRelatedToSearchLogic() {
 }
 
 func (s *searchBlackBoxTest) getWICreatePayload() *app.CreateWorkitemsPayload {
-	spaceRelatedURL := rest.AbsoluteURL(&goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}, app.SpaceHref(space.SystemSpace.String()))
-	witRelatedURL := rest.AbsoluteURL(&goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}, app.WorkitemtypeHref(space.SystemSpace.String(), workitem.SystemTask.String()))
+	spaceRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(space.SystemSpace.String()))
+	witRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.WorkitemtypeHref(space.SystemSpace.String(), workitem.SystemTask.String()))
 	c := app.CreateWorkitemsPayload{
 		Data: &app.WorkItem{
 			Type:       APIStringTypeWorkItem,

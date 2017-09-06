@@ -43,7 +43,7 @@ func (c *NamedspacesController) Show(ctx *app.ShowNamedspacesContext) error {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
-		spaceData, err := ConvertSpaceFromModel(ctx.Context, c.db, ctx.RequestData, *s)
+		spaceData, err := ConvertSpaceFromModel(ctx.Context, c.db, ctx.Request, *s)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -72,7 +72,7 @@ func (c *NamedspacesController) List(ctx *app.ListNamedspacesContext) error {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
-		spaceData, err := ConvertSpacesFromModel(ctx.Context, c.db, ctx.RequestData, spaces)
+		spaceData, err := ConvertSpacesFromModel(ctx.Context, c.db, ctx.Request, spaces)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -81,7 +81,7 @@ func (c *NamedspacesController) List(ctx *app.ListNamedspacesContext) error {
 			Meta:  &app.SpaceListMeta{TotalCount: count},
 			Data:  spaceData,
 		}
-		setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(spaces), offset, limit, count)
+		setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(spaces), offset, limit, count)
 
 		return ctx.OK(&response)
 	})

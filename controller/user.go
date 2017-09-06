@@ -70,7 +70,7 @@ func (c *UserController) Show(ctx *app.ShowUserContext) error {
 					c.InitTenant(ctx)
 				}(ctx)
 			}
-			return ctx.OK(ConvertToAppUser(ctx.RequestData, user, identity))
+			return ctx.OK(ConvertToAppUser(ctx.Request, user, identity))
 		})
 	})
 }

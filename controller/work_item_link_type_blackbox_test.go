@@ -326,9 +326,7 @@ func createWorkItemLinkTypeInRepo(t *testing.T, db application.DB, ctx context.C
 		if err != nil {
 			return err
 		}
-		r := &goa.RequestData{
-			Request: &http.Request{Host: "domain.io"},
-		}
+		r := &http.Request{Host: "domain.io"}
 		appLinkTypeResult = ConvertWorkItemLinkTypeFromModel(r, *createdModelLinkType)
 		return nil
 	})

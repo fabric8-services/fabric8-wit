@@ -58,10 +58,7 @@ func (s *serviceBlackBoxTest) SetupSuite() {
 	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
-
-	req := &goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}
+	req := &http.Request{Host: "api.service.domain.org"}
 	authEndpoint, err := s.configuration.GetKeycloakEndpointAuth(req)
 	if err != nil {
 		panic(err)
@@ -122,9 +119,7 @@ func (s *serviceBlackBoxTest) TestKeycloakAuthorizationRedirect() {
 		panic("invalid test data " + err.Error()) // bug
 	}
 
-	r := &goa.RequestData{
-		Request: &http.Request{Host: "demo.api.openshift.io"},
-	}
+	r := &http.Request{Host: "demo.api.openshift.io"}
 	brokerEndpoint, err := s.configuration.GetKeycloakEndpointBroker(r)
 	require.Nil(s.T(), err)
 
@@ -136,9 +131,7 @@ func (s *serviceBlackBoxTest) TestKeycloakAuthorizationRedirect() {
 }
 
 func (s *serviceBlackBoxTest) getValidRedirectURLs() string {
-	r := &goa.RequestData{
-		Request: &http.Request{Host: "domain.com"},
-	}
+	r := &http.Request{Host: "domain.com"}
 	whitelist, err := s.configuration.GetValidRedirectURLs(r)
 	require.Nil(s.T(), err)
 	return whitelist
@@ -167,9 +160,7 @@ func (s *serviceBlackBoxTest) TestKeycloakAuthorizationRedirectsToRedirectParam(
 		panic("invalid test data " + err.Error()) // bug
 	}
 
-	r := &goa.RequestData{
-		Request: &http.Request{Host: "api.domain.io"},
-	}
+	r := &http.Request{Host: "api.domain.io"}
 	brokerEndpoint, err := s.configuration.GetKeycloakEndpointBroker(r)
 	require.Nil(s.T(), err)
 
@@ -198,9 +189,7 @@ func (s *serviceBlackBoxTest) TestKeycloakAuthorizationWithNoRefererAndRedirectP
 		panic("invalid test data " + err.Error()) // bug
 	}
 
-	r := &goa.RequestData{
-		Request: &http.Request{Host: "api.domain.io"},
-	}
+	r := &http.Request{Host: "api.domain.io"}
 	brokerEndpoint, err := s.configuration.GetKeycloakEndpointBroker(r)
 	require.Nil(s.T(), err)
 
@@ -229,9 +218,7 @@ func (s *serviceBlackBoxTest) TestKeycloakAuthorizationWithNoValidRefererFails()
 		panic("invalid test data " + err.Error()) // bug
 	}
 
-	r := &goa.RequestData{
-		Request: &http.Request{Host: "api.domain.io"},
-	}
+	r := &http.Request{Host: "api.domain.io"}
 	brokerEndpoint, err := s.configuration.GetKeycloakEndpointBroker(r)
 	require.Nil(s.T(), err)
 
@@ -308,9 +295,7 @@ func keycloakLinkRedirect(s *serviceBlackBoxTest, provider string, redirect stri
 	linkCtx, err := app.NewLinkLoginContext(goaCtx, req, goa.New("LoginService"))
 	require.Nil(s.T(), err)
 
-	r := &goa.RequestData{
-		Request: &http.Request{Host: "api.example.org"},
-	}
+	r := &http.Request{Host: "api.example.org"}
 	brokerEndpoint, err := s.configuration.GetKeycloakEndpointBroker(r)
 	require.Nil(s.T(), err)
 	clientID := s.configuration.GetKeycloakClientID()
@@ -351,9 +336,7 @@ func keycloakLinkCallbackRedirect(s *serviceBlackBoxTest, next string) {
 	linkCtx, err := app.NewLinkcallbackLoginContext(goaCtx, req, goa.New("LoginService"))
 	require.Nil(s.T(), err)
 
-	r := &goa.RequestData{
-		Request: &http.Request{Host: "api.example.org"},
-	}
+	r := &http.Request{Host: "api.example.org"}
 	brokerEndpoint, err := s.configuration.GetKeycloakEndpointBroker(r)
 	require.Nil(s.T(), err)
 	clientID := s.configuration.GetKeycloakClientID()
@@ -397,9 +380,7 @@ func (s *serviceBlackBoxTest) TestInvalidState() {
 	authorizeCtx, err := app.NewAuthorizeLoginContext(goaCtx, req, goa.New("LoginService"))
 	require.Nil(s.T(), err)
 
-	r := &goa.RequestData{
-		Request: &http.Request{Host: "demo.api.openshift.io"},
-	}
+	r := &http.Request{Host: "demo.api.openshift.io"}
 	brokerEndpoint, err := s.configuration.GetKeycloakEndpointBroker(r)
 	require.Nil(s.T(), err)
 
@@ -438,9 +419,7 @@ func (s *serviceBlackBoxTest) TestInvalidOAuthAuthorizationCode() {
 	authorizeCtx, err := app.NewAuthorizeLoginContext(goaCtx, req, goa.New("LoginService"))
 	require.Nil(s.T(), err)
 
-	r := &goa.RequestData{
-		Request: &http.Request{Host: "demo.api.openshift.io"},
-	}
+	r := &http.Request{Host: "demo.api.openshift.io"}
 	brokerEndpoint, err := s.configuration.GetKeycloakEndpointBroker(r)
 	require.Nil(s.T(), err)
 

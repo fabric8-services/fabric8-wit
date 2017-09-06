@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"html"
+	"net/http"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
@@ -69,7 +70,7 @@ func (c *CommentsController) Show(ctx *app.ShowCommentsContext) error {
 				return errors.NewNotFoundError("comment parentID", cmt.ParentID.String())
 			}
 			res.Data = ConvertComment(
-				ctx.RequestData,
+				ctx.Request,
 				*cmt,
 				includeParentWorkItem)
 			return ctx.OK(res)
@@ -138,7 +139,7 @@ func (c *CommentsController) performUpdate(ctx *app.UpdateCommentsContext, cm *c
 		}
 
 		res := &app.CommentSingle{
-			Data: ConvertComment(ctx.RequestData, *cm, includeParentWorkItem),
+			Data: ConvertComment(ctx.Request, *cm, includeParentWorkItem),
 		}
 		return ctx.OK(res)
 	})
@@ -199,10 +200,10 @@ func (c *CommentsController) performDelete(ctx *app.DeleteCommentsContext, cm *c
 
 // CommentConvertFunc is a open ended function to add additional links/data/relations to a Comment during
 // conversion from internal to API
-type CommentConvertFunc func(*goa.RequestData, *comment.Comment, *app.Comment)
+type CommentConvertFunc func(*http.Request, *comment.Comment, *app.Comment)
 
 // ConvertComments converts between internal and external REST representation
-func ConvertComments(request *goa.RequestData, comments []comment.Comment, additional ...CommentConvertFunc) []*app.Comment {
+func ConvertComments(request *http.Request, comments []comment.Comment, additional ...CommentConvertFunc) []*app.Comment {
 	var cs = []*app.Comment{}
 	for _, c := range comments {
 		cs = append(cs, ConvertComment(request, c, additional...))
@@ -211,7 +212,7 @@ func ConvertComments(request *goa.RequestData, comments []comment.Comment, addit
 }
 
 // ConvertCommentsResourceID converts between internal and external REST representation, ResourceIdentificationObject only
-func ConvertCommentsResourceID(request *goa.RequestData, comments []comment.Comment, additional ...CommentConvertFunc) []*app.Comment {
+func ConvertCommentsResourceID(request *http.Request, comments []comment.Comment, additional ...CommentConvertFunc) []*app.Comment {
 	var cs = []*app.Comment{}
 	for _, c := range comments {
 		cs = append(cs, ConvertCommentResourceID(request, c, additional...))
@@ -220,7 +221,7 @@ func ConvertCommentsResourceID(request *goa.RequestData, comments []comment.Comm
 }
 
 // ConvertCommentResourceID converts between internal and external REST representation, ResourceIdentificationObject only
-func ConvertCommentResourceID(request *goa.RequestData, comment comment.Comment, additional ...CommentConvertFunc) *app.Comment {
+func ConvertCommentResourceID(request *http.Request, comment comment.Comment, additional ...CommentConvertFunc) *app.Comment {
 	c := &app.Comment{
 		Type: "comments",
 		ID:   &comment.ID,
@@ -232,7 +233,7 @@ func ConvertCommentResourceID(request *goa.RequestData, comment comment.Comment,
 }
 
 // ConvertComment converts between internal and external REST representation
-func ConvertComment(request *goa.RequestData, comment comment.Comment, additional ...CommentConvertFunc) *app.Comment {
+func ConvertComment(request *http.Request, comment comment.Comment, additional ...CommentConvertFunc) *app.Comment {
 	userType := APIStringTypeUser
 	creatorID := comment.Creator.String()
 	relatedURL := rest.AbsoluteURL(request, app.CommentsHref(comment.ID))
@@ -285,7 +286,7 @@ type HrefFunc func(id interface{}) string
 
 // CommentIncludeParentWorkItem includes a "parent" relation to a WorkItem
 func CommentIncludeParentWorkItem(ctx context.Context, appl application.Application, c *comment.Comment) (CommentConvertFunc, error) {
-	return func(request *goa.RequestData, comment *comment.Comment, data *app.Comment) {
+	return func(request *http.Request, comment *comment.Comment, data *app.Comment) {
 		hrefFunc := func(obj interface{}) string {
 			return fmt.Sprintf(app.WorkitemHref("%v"), obj)
 		}
@@ -294,7 +295,7 @@ func CommentIncludeParentWorkItem(ctx context.Context, appl application.Applicat
 }
 
 // CommentIncludeParent adds the "parent" relationship to this Comment
-func CommentIncludeParent(request *goa.RequestData, comment *comment.Comment, data *app.Comment, ref HrefFunc, parentType string) {
+func CommentIncludeParent(request *http.Request, comment *comment.Comment, data *app.Comment, ref HrefFunc, parentType string) {
 	parentSelf := rest.AbsoluteURL(request, ref(comment.ParentID))
 	parentID := comment.ParentID.String()
 	data.Relationships.Parent = &app.RelationGeneric{
