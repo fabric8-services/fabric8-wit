@@ -538,6 +538,8 @@ func testMigration73(t *testing.T) {
 	// These script execution has to fail
 	assert.NotNil(t, runSQLscript(sqlDB, "073-label-empty-name.sql"))
 	assert.NotNil(t, runSQLscript(sqlDB, "073-label-same-name.sql"))
+	assert.NotNil(t, runSQLscript(sqlDB, "073-label-color-code.sql"))
+	assert.NotNil(t, runSQLscript(sqlDB, "073-label-color-code2.sql"))
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and
