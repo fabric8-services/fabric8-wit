@@ -110,17 +110,17 @@ func NewContextIsolated(t *testing.T, db *gorm.DB, setupFuncs ...RecipeFunction)
 type kind string
 
 const (
-	kindIdentities             kind = "identities"
-	kindIterations             kind = "iterations"
-	kindAreas                  kind = "areas"
-	kindSpaces                 kind = "spaces"
-	kindCodebases              kind = "codebases"
-	kindWorkItems              kind = "work_items"
-	kindComments               kind = "comments"
-	kindWorkItemTypes          kind = "work_item_types"
-	kindWorkItemLinkTypes      kind = "work_item_link_types"
-	kindWorkItemLinkCategories kind = "work_item_link_categories"
-	kindWorkItemLinks          kind = "work_item_links"
+	kindIdentities             kind = "identity"
+	kindIterations             kind = "iteration"
+	kindAreas                  kind = "area"
+	kindSpaces                 kind = "space"
+	kindCodebases              kind = "codebase"
+	kindWorkItems              kind = "work_item"
+	kindComments               kind = "comment"
+	kindWorkItemTypes          kind = "work_item_type"
+	kindWorkItemLinkTypes      kind = "work_item_link_type"
+	kindWorkItemLinkCategories kind = "work_item_link_categorie"
+	kindWorkItemLinks          kind = "work_item_link"
 )
 
 type createInfo struct {
@@ -273,9 +273,11 @@ func makeIterations(ctx *TestContext) {
 	ctx.Iterations = make([]*iteration.Iteration, ctx.info[kindIterations].numInstances)
 	for i := range ctx.Iterations {
 		desc := "Some description"
+		f := false
 		ctx.Iterations[i] = &iteration.Iteration{
 			Name:        testsupport.CreateRandomValidTestName("iteration "),
 			Description: &desc,
+			UserActive:  &f,
 		}
 		if !ctx.isolatedCreation {
 			ctx.Iterations[i].SpaceID = ctx.Spaces[0].ID

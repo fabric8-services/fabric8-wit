@@ -1,7 +1,11 @@
 package testcontext
 
+import "github.com/stretchr/testify/require"
+
 // A RecipeFunction ... TODO(kwk): document me
 type RecipeFunction func(ctx *TestContext)
+
+const checkStr = "expected at least %d \"%s\" objects but found only %d"
 
 // Identities tells the test context to create at least n identity objects.
 //
@@ -26,6 +30,15 @@ func Identities(n int, fns ...CustomizeEntityCallback) RecipeFunction {
 	})
 }
 
+// CheckIdentities checks that the number of identities is at least as big as
+// the given expected minumum length. If the context was not created with
+// NewContextIsolated, this function also checks the minimum required number of
+// depending objects. The context's tests fails if these checks fail. If
+func (ctx *TestContext) CheckIdentities(expectedMinLen int) {
+	l := len(ctx.Identities)
+	require.True(ctx.T, l >= expectedMinLen, checkStr, expectedMinLen, kindIdentities, l)
+}
+
 // Spaces tells the test context to create at least n space objects. See also
 // the Identities() function for more general information on n and fns.
 //
@@ -39,6 +52,18 @@ func Spaces(n int, fns ...CustomizeEntityCallback) RecipeFunction {
 			Identities(1)(ctx)
 		}
 	})
+}
+
+// CheckSpaces checks that the number of spaces is at least as big as the given
+// expected minumum length. If the context was not created with
+// NewContextIsolated, this function also checks the minimum required number of
+// depending objects. The context's tests fails if these checks fail. If
+func (ctx *TestContext) CheckSpaces(expectedMinLen int) {
+	l := len(ctx.Spaces)
+	require.True(ctx.T, l >= expectedMinLen, checkStr, expectedMinLen, kindSpaces, l)
+	if !ctx.isolatedCreation {
+		ctx.CheckIdentities(1)
+	}
 }
 
 // Iterations tells the test context to create at least n iteration objects. See
@@ -56,6 +81,18 @@ func Iterations(n int, fns ...CustomizeEntityCallback) RecipeFunction {
 	})
 }
 
+// CheckIterations checks that the number of iterations is at least as big as
+// the given expected minumum length. If the context was not created with
+// NewContextIsolated, this function also checks the minimum required number of
+// depending objects. The context's tests fails if these checks fail. If
+func (ctx *TestContext) CheckIterations(expectedMinLen int) {
+	l := len(ctx.Iterations)
+	require.True(ctx.T, l >= expectedMinLen, checkStr, expectedMinLen, kindIterations, l)
+	if !ctx.isolatedCreation {
+		ctx.CheckSpaces(1)
+	}
+}
+
 // Areas tells the test context to create at least n area objects. See
 // also the Identities() function for more general information on n and fns.
 //
@@ -71,6 +108,18 @@ func Areas(n int, fns ...CustomizeEntityCallback) RecipeFunction {
 	})
 }
 
+// CheckAreas checks that the number of areas is at least as big as the given
+// expected minumum length. If the context was not created with
+// NewContextIsolated, this function also checks the minimum required number of
+// depending objects. The context's tests fails if these checks fail. If
+func (ctx *TestContext) CheckAreas(expectedMinLen int) {
+	l := len(ctx.Areas)
+	require.True(ctx.T, l >= expectedMinLen, checkStr, expectedMinLen, kindAreas, l)
+	if !ctx.isolatedCreation {
+		ctx.CheckSpaces(1)
+	}
+}
+
 // Codebases tells the test context to create at least n codebase objects. See
 // also the Identities() function for more general information on n and fns.
 //
@@ -84,6 +133,18 @@ func Codebases(n int, fns ...CustomizeEntityCallback) RecipeFunction {
 			Spaces(1)(ctx)
 		}
 	})
+}
+
+// CheckCodebases checks that the number of codebases is at least as big as the
+// given expected minumum length. If the context was not created with
+// NewContextIsolated, this function also checks the minimum required number of
+// depending objects. The context's tests fails if these checks fail. If
+func (ctx *TestContext) CheckCodebases(expectedMinLen int) {
+	l := len(ctx.Codebases)
+	require.True(ctx.T, l >= expectedMinLen, checkStr, expectedMinLen, kindCodebases, l)
+	if !ctx.isolatedCreation {
+		ctx.CheckSpaces(1)
+	}
 }
 
 // WorkItems tells the test context to create at least n work item objects. See
@@ -110,6 +171,20 @@ func WorkItems(n int, fns ...CustomizeEntityCallback) RecipeFunction {
 	})
 }
 
+// CheckWorkItems checks that the number of work items is at least as big as the
+// given expected minumum length. If the context was not created with
+// NewContextIsolated, this function also checks the minimum required number of
+// depending objects. The context's tests fails if these checks fail. If
+func (ctx *TestContext) CheckWorkItems(expectedMinLen int) {
+	l := len(ctx.WorkItems)
+	require.True(ctx.T, l >= expectedMinLen, checkStr, expectedMinLen, kindWorkItems, l)
+	if !ctx.isolatedCreation {
+		ctx.CheckSpaces(1)
+		ctx.CheckWorkItemTypes(1)
+		ctx.CheckIdentities(1)
+	}
+}
+
 // Comments tells the test context to create at least n comment objects. See
 // also the Identities() function for more general information on n and fns.
 //
@@ -125,6 +200,19 @@ func Comments(n int, fns ...CustomizeEntityCallback) RecipeFunction {
 			WorkItems(1)(ctx)
 		}
 	})
+}
+
+// CheckComments checks that the number of comments is at least as big as the
+// given expected minumum length. If the context was not created with
+// NewContextIsolated, this function also checks the minimum required number of
+// depending objects. The context's tests fails if these checks fail. If
+func (ctx *TestContext) CheckComments(expectedMinLen int) {
+	l := len(ctx.Comments)
+	require.True(ctx.T, l >= expectedMinLen, checkStr, expectedMinLen, kindComments, l)
+	if !ctx.isolatedCreation {
+		ctx.CheckWorkItems(1)
+		ctx.CheckIdentities(1)
+	}
 }
 
 // WorkItemTypes tells the test context to create at least n work item type
@@ -145,6 +233,18 @@ func WorkItemTypes(n int, fns ...CustomizeEntityCallback) RecipeFunction {
 			Spaces(1)(ctx)
 		}
 	})
+}
+
+// CheckWorkItemTypes checks that the number of work item types is at least as
+// big as the given expected minumum length. If the context was not created with
+// NewContextIsolated, this function also checks the minimum required number of
+// depending objects. The context's tests fails if these checks fail. If
+func (ctx *TestContext) CheckWorkItemTypes(expectedMinLen int) {
+	l := len(ctx.WorkItemTypes)
+	require.True(ctx.T, l >= expectedMinLen, checkStr, expectedMinLen, kindWorkItemTypes, l)
+	if !ctx.isolatedCreation {
+		ctx.CheckSpaces(1)
+	}
 }
 
 // WorkItemLinkTypes tells the test context to create at least n work item link
@@ -181,6 +281,20 @@ func WorkItemLinkTypes(n int, fns ...CustomizeEntityCallback) RecipeFunction {
 	})
 }
 
+// CheckWorkItemLinkTypes checks that the number of work item link types is at
+// least as big as the given expected minumum length. If the context was not
+// created with NewContextIsolated, this function also checks the minimum
+// required number of depending objects. The context's tests fails if these
+// checks fail. If
+func (ctx *TestContext) CheckWorkItemLinkTypes(expectedMinLen int) {
+	l := len(ctx.WorkItemLinkTypes)
+	require.True(ctx.T, l >= expectedMinLen, checkStr, expectedMinLen, kindWorkItemLinkTypes, l)
+	if !ctx.isolatedCreation {
+		ctx.CheckSpaces(1)
+		ctx.CheckWorkItemLinkCategories(1)
+	}
+}
+
 // WorkItemLinkCategories tells the test context to create at least n work item
 // link category objects. See also the Identities() function for more general
 // information on n and fns.
@@ -190,6 +304,16 @@ func WorkItemLinkCategories(n int, fns ...CustomizeEntityCallback) RecipeFunctio
 	return RecipeFunction(func(ctx *TestContext) {
 		ctx.setupInfo(n, kindWorkItemLinkCategories, fns...)
 	})
+}
+
+// CheckWorkItemLinkCategories checks that the number of work item link
+// categories is at least as big as the given expected minumum length. If the
+// context was not created with NewContextIsolated, this function also checks
+// the minimum required number of depending objects. The context's tests fails
+// if these checks fail. If
+func (ctx *TestContext) CheckWorkItemLinkCategories(expectedMinLen int) {
+	l := len(ctx.WorkItemLinkCategories)
+	require.True(ctx.T, l >= expectedMinLen, checkStr, expectedMinLen, kindWorkItemLinkCategories, l)
 }
 
 // WorkItemLinks tells the test context to create at least n work item link
@@ -214,4 +338,17 @@ func WorkItemLinks(n int, fns ...CustomizeEntityCallback) RecipeFunction {
 			WorkItems(2 * n)(ctx)
 		}
 	})
+}
+
+// CheckWorkItemLinks checks that the number of work item links is at least as
+// big as the given expected minumum length. If the context was not created with
+// NewContextIsolated, this function also checks the minimum required number of
+// depending objects. The context's tests fails if these checks fail. If
+func (ctx *TestContext) CheckWorkItemLinks(expectedMinLen int) {
+	l := len(ctx.WorkItemLinks)
+	require.True(ctx.T, l >= expectedMinLen, checkStr, expectedMinLen, kindWorkItemLinks, l)
+	if !ctx.isolatedCreation {
+		ctx.CheckWorkItems(expectedMinLen * 2)
+		ctx.CheckWorkItemLinkTypes(1)
+	}
 }
