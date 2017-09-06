@@ -572,7 +572,7 @@ func includeParentWorkItem(ctx context.Context, appl application.Application) Wo
 		var err error
 		repo := appl.WorkItemLinks()
 		if repo != nil {
-			parentID, err = appl.WorkItemLinks().GetParentID(ctx, wi.ID)
+			parentID, err = repo.GetParentID(ctx, wi.ID)
 			if err != nil {
 				log.Error(ctx, map[string]interface{}{
 					"wi_id": wi.ID,

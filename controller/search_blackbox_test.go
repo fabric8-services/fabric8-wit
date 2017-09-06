@@ -1008,6 +1008,14 @@ func (s *searchBlackBoxTest) TestIncludedParents() {
 			workitem.SystemState: workitem.SystemStateResolved,
 		}, spaceOwner.ID)
 	require.Nil(s.T(), err)
+
+	childWI2, err := wirepo.Create(
+		s.ctx, *spaceInstance.ID, workitem.SystemBug,
+		map[string]interface{}{
+			workitem.SystemTitle: "Child WI",
+			workitem.SystemState: workitem.SystemStateResolved,
+		}, spaceOwner.ID)
+	require.Nil(s.T(), err)
 	// create parent links
 	createPayload := newCreateWorkItemLinkPayload(parentWI0.ID, parentWI1.ID, link.SystemWorkItemLinkTypeParentChildID)
 	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, workItemLinkCtrl, createPayload)
@@ -1023,23 +1031,29 @@ func (s *searchBlackBoxTest) TestIncludedParents() {
 	require.Equal(s.T(), childWI.ID, workItemLink.Data.Relationships.Target.Data.ID)
 	require.Equal(s.T(), link.SystemWorkItemLinkTypeParentChildID, workItemLink.Data.Relationships.LinkType.Data.ID)
 
+	// in the link below, we keep parentWI0 as parent so that we can verify "included" list is not having duplicates
+	createPayload = newCreateWorkItemLinkPayload(parentWI0.ID, childWI2.ID, link.SystemWorkItemLinkTypeParentChildID)
+	_, workItemLink = test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, workItemLinkCtrl, createPayload)
+	require.NotNil(s.T(), workItemLink)
+	require.Equal(s.T(), parentWI0.ID, workItemLink.Data.Relationships.Source.Data.ID)
+	require.Equal(s.T(), childWI2.ID, workItemLink.Data.Relationships.Target.Data.ID)
+	require.Equal(s.T(), link.SystemWorkItemLinkTypeParentChildID, workItemLink.Data.Relationships.LinkType.Data.ID)
+
 	filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, spaceIDStr)
 	_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 	require.NotEmpty(s.T(), result.Data)
-	require.Len(s.T(), result.Data, 3)
+	require.Len(s.T(), result.Data, 4)
 	require.Len(s.T(), result.Included, 2)
 
 	// verify included objects
-	includedMustHave := []string{parentWI0.ID.String(), parentWI1.ID.String()}
+	includedMustHave := map[uuid.UUID]struct{}{
+		parentWI0.ID: struct{}{},
+		parentWI1.ID: struct{}{},
+	}
 	for _, ele := range result.Included {
-		if appWI, ok := ele.(app.WorkItem); ok == true {
-			if appWI.Type == APIStringTypeWorkItem {
-				for i, id := range includedMustHave {
-					if appWI.ID.String() == id {
-						includedMustHave = append(includedMustHave[:i], includedMustHave[i+1:]...)
-					}
-				}
-			}
+		appWI, ok := ele.(app.WorkItem)
+		if ok && appWI.Type == APIStringTypeWorkItem {
+			delete(includedMustHave, *appWI.ID)
 		}
 	}
 	assert.Empty(s.T(), includedMustHave)
@@ -1057,6 +1071,10 @@ func (s *searchBlackBoxTest) TestIncludedParents() {
 			require.Equal(s.T(), parentWI1.ID.String(), *wi.Relationships.Parent.Data.ID)
 			successCnt++
 		}
+		if *wi.ID == childWI2.ID {
+			require.Equal(s.T(), parentWI0.ID.String(), *wi.Relationships.Parent.Data.ID)
+			successCnt++
+		}
 	}
-	assert.Equal(s.T(), successCnt, 3)
+	assert.Equal(s.T(), successCnt, 4)
 }
