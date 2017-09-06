@@ -8,6 +8,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/resource"
 	p "github.com/fabric8-services/fabric8-wit/test/testcontext"
 	"github.com/fabric8-services/fabric8-wit/workitem"
+	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -31,150 +32,214 @@ func (s *testContextSuite) TearDownTest() {
 
 func (s *testContextSuite) TestNewContext_Advanced() {
 	s.T().Run("implicitly created entities", func(t *testing.T) {
-		c := p.NewContext(t, s.DB, p.WorkItems(2))
-		c.CheckWorkItems(2)
+		c, err := p.NewContext(s.DB, p.WorkItems(2))
+		require.Nil(t, err)
+		require.Nil(t, c.Check())
 	})
 	s.T().Run("explicitly create entities", func(t *testing.T) {
 		// given
-		c := p.NewContext(t, s.DB, p.WorkItems(2))
-		c.CheckWorkItems(2)
+		c, err := p.NewContext(s.DB, p.WorkItems(2))
+		require.Nil(t, err)
+		require.Nil(t, c.Check())
 
 		// manually use values from previous context over fields from first context
-		c1 := p.NewContextIsolated(t, s.DB, p.WorkItems(3, func(ctx *p.TestContext, idx int) {
+		c1, err := p.NewContextIsolated(s.DB, p.WorkItems(3, func(ctx *p.TestContext, idx int) error {
 			ctx.WorkItems[idx].SpaceID = c.Spaces[0].ID
 			ctx.WorkItems[idx].Type = c.WorkItemTypes[0].ID
 			ctx.WorkItems[idx].Fields[workitem.SystemCreator] = c.Identities[0].ID.String()
+			return nil
 		}))
-		c1.CheckWorkItems(3)
+		require.Nil(t, err)
+		require.Nil(t, c1.Check())
 	})
 	s.T().Run("create 100 comments by 100 authors on 1 workitem", func(t *testing.T) {
-		c := p.NewContext(t, s.DB, p.Identities(100), p.Comments(100, func(ctx *p.TestContext, idx int) {
+		c, err := p.NewContext(s.DB, p.Identities(100), p.Comments(100, func(ctx *p.TestContext, idx int) error {
 			ctx.Comments[idx].Creator = ctx.Identities[idx].ID
+			return nil
 		}))
-		c.CheckComments(100)
-		c.CheckIdentities(100)
+		require.Nil(t, err)
+		require.Nil(t, c.Check())
 	})
 	s.T().Run("create 10 links between 20 work items with a network topology link type", func(t *testing.T) {
-		c := p.NewContext(t, s.DB, p.WorkItemLinks(10), p.WorkItemLinkTypes(1, p.TopologyNetwork()))
-		c.CheckWorkItemLinks(10)
-		c.CheckWorkItemLinkTypes(1)
-		c.CheckWorkItems(20)
+		c, err := p.NewContext(s.DB, p.WorkItemLinks(10), p.WorkItemLinkTypes(1, p.TopologyNetwork()))
+		require.Nil(t, err)
+		require.Nil(t, c.Check())
 	})
 }
 
 func (s *testContextSuite) TestNewContext() {
-	// Number of objects to create of each type
-	n := 3
+	checkNewContext(s.T(), s.DB, 3, false)
+}
 
-	s.T().Run("identities", func(t *testing.T) {
+func (s *testContextSuite) TestNewContextIsolated() {
+	checkNewContext(s.T(), s.DB, 3, true)
+}
+
+func checkNewContext(t *testing.T, db *gorm.DB, n int, isolated bool) {
+	// when not creating in isolation we want tests to check for created items
+	// and a valid context
+	ctxCtor := p.NewContext
+	checkCtorErrFunc := func(t *testing.T, err error) {
+		require.Nil(t, err)
+	}
+	checkFunc := func(t *testing.T, ctx *p.TestContext) {
+		require.NotNil(t, ctx)
+		require.Nil(t, ctx.Check())
+	}
+
+	// when creating in isolation we want tests to check for not existing items
+	// and an invalid context
+	if isolated {
+		ctxCtor = p.NewContextIsolated
+		checkCtorErrFunc = func(t *testing.T, err error) {
+			require.NotNil(t, err)
+		}
+		checkFunc = func(t *testing.T, ctx *p.TestContext) {
+			require.Nil(t, ctx)
+		}
+	}
+
+	// identity and work item link categories will always work
+
+	t.Run("identities", func(t *testing.T) {
 		// given
-		c := p.NewContext(t, s.DB, p.Identities(n))
+		c, err := ctxCtor(db, p.Identities(n))
 		// then
-		c.CheckIdentities(n)
+		require.Nil(t, err)
+		require.Nil(t, c.Check())
 		// manual checking
 		require.Len(t, c.Identities, n)
 	})
-	s.T().Run("work item link categories", func(t *testing.T) {
+	t.Run("work item link categories", func(t *testing.T) {
 		// given
-		c := p.NewContext(t, s.DB, p.WorkItemLinkCategories(n))
+		c, err := ctxCtor(db, p.WorkItemLinkCategories(n))
 		// then
-		c.CheckWorkItemLinkCategories(n)
+		require.Nil(t, err)
+		require.Nil(t, c.Check())
 		// manual checking
 		require.Len(t, c.WorkItemLinkCategories, n)
 	})
-	s.T().Run("spaces", func(t *testing.T) {
+
+	t.Run("spaces", func(t *testing.T) {
 		// given
-		c := p.NewContext(t, s.DB, p.Spaces(n))
+		c, err := ctxCtor(db, p.Spaces(n))
 		// then
-		c.CheckSpaces(n)
-		// manual checking
-		require.Len(t, c.Spaces, n)
-		require.Len(t, c.Identities, 1)
+		checkCtorErrFunc(t, err)
+		checkFunc(t, c)
+		if !isolated {
+			// manual checking
+			require.Len(t, c.Spaces, n)
+			require.Len(t, c.Identities, 1)
+		}
 	})
-	s.T().Run("work item link types", func(t *testing.T) {
+	t.Run("work item link types", func(t *testing.T) {
 		// given
-		c := p.NewContext(t, s.DB, p.WorkItemLinkTypes(n))
+		c, err := ctxCtor(db, p.WorkItemLinkTypes(n))
 		// then
-		c.CheckWorkItemLinkTypes(n)
+		checkCtorErrFunc(t, err)
+		checkFunc(t, c)
 		// manual checking
-		require.Len(t, c.WorkItemLinkTypes, n)
-		require.Len(t, c.WorkItemLinkCategories, 1)
-		require.Len(t, c.Identities, 1)
+		if !isolated {
+			require.Len(t, c.WorkItemLinkTypes, n)
+			require.Len(t, c.WorkItemLinkCategories, 1)
+			require.Len(t, c.Identities, 1)
+		}
 	})
-	s.T().Run("codebases", func(t *testing.T) {
+	t.Run("codebases", func(t *testing.T) {
 		// given
-		c := p.NewContext(t, s.DB, p.Codebases(n))
+		c, err := ctxCtor(db, p.Codebases(n))
 		// then
-		c.CheckCodebases(n)
+		checkCtorErrFunc(t, err)
+		checkFunc(t, c)
 		// manual checking
-		require.Len(t, c.Codebases, n)
-		require.Len(t, c.Spaces, 1)
-		require.Len(t, c.Identities, 1)
+		if !isolated {
+			require.Len(t, c.Codebases, n)
+			require.Len(t, c.Spaces, 1)
+			require.Len(t, c.Identities, 1)
+		}
 	})
-	s.T().Run("work item types", func(t *testing.T) {
+	t.Run("work item types", func(t *testing.T) {
 		// given
-		c := p.NewContext(t, s.DB, p.WorkItemTypes(n))
+		c, err := ctxCtor(db, p.WorkItemTypes(n))
 		// then
-		c.CheckWorkItemTypes(n)
+		checkCtorErrFunc(t, err)
+		checkFunc(t, c)
 		// manual checking
-		require.Len(t, c.WorkItemTypes, n)
-		require.Len(t, c.Spaces, 1)
-		require.Len(t, c.Identities, 1)
+		if !isolated {
+			require.Len(t, c.WorkItemTypes, n)
+			require.Len(t, c.Spaces, 1)
+			require.Len(t, c.Identities, 1)
+		}
 	})
-	s.T().Run("iterations", func(t *testing.T) {
+	t.Run("iterations", func(t *testing.T) {
 		// given
-		c := p.NewContext(t, s.DB, p.Iterations(n))
+		c, err := ctxCtor(db, p.Iterations(n))
 		// then
-		c.CheckIterations(n)
+		checkCtorErrFunc(t, err)
+		checkFunc(t, c)
 		// manual checking
-		require.Len(t, c.Iterations, n)
-		require.Len(t, c.Spaces, 1)
-		require.Len(t, c.Identities, 1)
+		if !isolated {
+			require.Len(t, c.Iterations, n)
+			require.Len(t, c.Spaces, 1)
+			require.Len(t, c.Identities, 1)
+		}
 	})
-	s.T().Run("areas", func(t *testing.T) {
+	t.Run("areas", func(t *testing.T) {
 		// given
-		c := p.NewContext(t, s.DB, p.Areas(n))
+		c, err := ctxCtor(db, p.Areas(n))
 		// then
-		c.CheckAreas(n)
+		checkCtorErrFunc(t, err)
+		checkFunc(t, c)
 		// manual checking
-		require.Len(t, c.Areas, n)
-		require.Len(t, c.Spaces, 1)
-		require.Len(t, c.Identities, 1)
+		if !isolated {
+			require.Len(t, c.Areas, n)
+			require.Len(t, c.Spaces, 1)
+			require.Len(t, c.Identities, 1)
+		}
 	})
-	s.T().Run("work items", func(t *testing.T) {
+	t.Run("work items", func(t *testing.T) {
 		// given
-		c := p.NewContext(t, s.DB, p.WorkItems(n))
+		c, err := ctxCtor(db, p.WorkItems(n))
 		// then
-		c.CheckWorkItems(n)
+		checkCtorErrFunc(t, err)
+		checkFunc(t, c)
 		// manual checking
-		require.Len(t, c.WorkItems, n)
-		require.Len(t, c.Identities, 1)
-		require.Len(t, c.WorkItemTypes, 1)
-		require.Len(t, c.Spaces, 1)
+		if !isolated {
+			require.Len(t, c.WorkItems, n)
+			require.Len(t, c.Identities, 1)
+			require.Len(t, c.WorkItemTypes, 1)
+			require.Len(t, c.Spaces, 1)
+		}
 	})
-	s.T().Run("comments", func(t *testing.T) {
+	t.Run("comments", func(t *testing.T) {
 		// given
-		c := p.NewContext(t, s.DB, p.Comments(n))
+		c, err := ctxCtor(db, p.Comments(n))
 		// then
-		c.CheckComments(n)
+		checkCtorErrFunc(t, err)
+		checkFunc(t, c)
 		// manual checking
-		require.Len(t, c.Comments, n)
-		require.Len(t, c.WorkItems, 1)
-		require.Len(t, c.Identities, 1)
-		require.Len(t, c.WorkItemTypes, 1)
-		require.Len(t, c.Spaces, 1)
+		if !isolated {
+			require.Len(t, c.Comments, n)
+			require.Len(t, c.WorkItems, 1)
+			require.Len(t, c.Identities, 1)
+			require.Len(t, c.WorkItemTypes, 1)
+			require.Len(t, c.Spaces, 1)
+		}
 	})
-	s.T().Run("work item links", func(t *testing.T) {
+	t.Run("work item links", func(t *testing.T) {
 		// given
-		c := p.NewContext(t, s.DB, p.WorkItemLinks(n))
+		c, err := ctxCtor(db, p.WorkItemLinks(n))
 		// then
-		c.CheckWorkItemLinks(n)
+		checkCtorErrFunc(t, err)
+		checkFunc(t, c)
 		// manual checking
-		require.Len(t, c.WorkItemLinks, n)
-		require.Len(t, c.WorkItems, 2*n)
-		require.Len(t, c.WorkItemTypes, 1)
-		require.Len(t, c.WorkItemLinkTypes, 1)
-		require.Len(t, c.Spaces, 1)
-		require.Len(t, c.Identities, 1)
+		if !isolated {
+			require.Len(t, c.WorkItemLinks, n)
+			require.Len(t, c.WorkItems, 2*n)
+			require.Len(t, c.WorkItemTypes, 1)
+			require.Len(t, c.WorkItemLinkTypes, 1)
+			require.Len(t, c.Spaces, 1)
+			require.Len(t, c.Identities, 1)
+		}
 	})
 }

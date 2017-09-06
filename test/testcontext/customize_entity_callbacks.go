@@ -15,12 +15,12 @@ import "github.com/fabric8-services/fabric8-wit/workitem/link"
 // access those object on which the entity depends, because those are guaranteed
 // to be already created. For example when you try to access a work item type
 // from a customize-entity-callback, it will not be very useful:
-//     NewContext(t, db, WorkItemTypes(1), Spaces(1, func(ctx *TestContext, idx int){
+//     NewContext(db, WorkItemTypes(1), Spaces(1, func(ctx *TestContext, idx int) error{
 //         witID := ctx.WorkItems[0].ID // this will not give you a uuid.Nil
 //     }))
 // On the other hand, you can safely lookup the space ID when you're in the
 // customize-entity-callback for a work item:
-//     NewContext(t, db, WorkItemTypes(1), Spaces(1, func(ctx *TestContext, idx int){
+//     NewContext(db, WorkItemTypes(1), Spaces(1, func(ctx *TestContext, idx int) error{
 //         witID := ctx.WorkItems[0].ID // this will not give you a uuid.Nil
 //     }))
 //
@@ -38,16 +38,17 @@ import "github.com/fabric8-services/fabric8-wit/workitem/link"
 //
 // If you for some error reason you want your test context creation to fail you
 // can use the ctx.T test instance:
-//      NewContext(t, db, Identities(100, func(ctx *TestContext, idx int){
-//          ctx.T.Fatal("some test failure reason")
+//      NewContext(db, Identities(100, func(ctx *TestContext, idx int) error{
+//          return errors.New("some test failure reason")
 //      }))
-type CustomizeEntityCallback func(ctx *TestContext, idx int)
+type CustomizeEntityCallback func(ctx *TestContext, idx int) error
 
 // Topology ensures that all created link types will have the given topology
 // type.
 func Topology(topology string) CustomizeEntityCallback {
-	return CustomizeEntityCallback(func(ctx *TestContext, idx int) {
+	return CustomizeEntityCallback(func(ctx *TestContext, idx int) error {
 		ctx.WorkItemLinkTypes[idx].Topology = topology
+		return nil
 	})
 }
 
