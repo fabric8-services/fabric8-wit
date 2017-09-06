@@ -304,7 +304,7 @@ func makeWorkItems(ctx *TestContext) error {
 		}
 		creatorIDStr, ok := ctx.WorkItems[i].Fields[workitem.SystemCreator].(string)
 		if !ok {
-			return errs.Errorf("failed to convert \"%s\" field to string", workitem.SystemCreator)
+			return errs.Errorf("failed to convert \"%s\" field to string in %+v", workitem.SystemCreator, ctx.WorkItems[i].Fields)
 		}
 		creatorID, err := uuid.FromString(creatorIDStr)
 		if err != nil {

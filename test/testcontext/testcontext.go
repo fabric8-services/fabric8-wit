@@ -2,6 +2,7 @@ package testcontext
 
 import (
 	"context"
+	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/area"
@@ -13,6 +14,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
+	"github.com/stretchr/testify/require"
 )
 
 // A TestContext object is the result of a call to
@@ -79,6 +81,15 @@ func NewContext(db *gorm.DB, recipeFuncs ...RecipeFunction) (*TestContext, error
 	return newContext(db, false, recipeFuncs...)
 }
 
+// NewTestContext does the same as NewTestContext except that it automatically
+// fails the given test if the context could not be created correctly.
+func NewTestContext(t *testing.T, db *gorm.DB, recipeFuncs ...RecipeFunction) *TestContext {
+	tc, err := NewContext(db, recipeFuncs...)
+	require.Nil(t, err)
+	require.NotNil(t, tc)
+	return tc
+}
+
 // NewContextIsolated will create a test context by executing the recipies from
 // the given recipe functions. If recipeFuncs is empty, nothing will happen.
 //
@@ -111,6 +122,10 @@ func NewContextIsolated(db *gorm.DB, setupFuncs ...RecipeFunction) (*TestContext
 // err will only be nil if at least two work items have been created and all of
 // the dependencies that a work item requires. Look into the documentation of
 // each recipe-function to find out what dependencies each entity has.
+//
+// Notice, that check is called at the end of NewContext() and its derivatives,
+// so if you don't mess with the context after it was created, there's no need
+// to call Check() again.
 func (ctx *TestContext) Check() error {
 	for _, fn := range ctx.checkCallbacks {
 		if err := fn(); err != nil {
@@ -185,10 +200,10 @@ func newContext(db *gorm.DB, isolatedCreation bool, recipeFuncs ...RecipeFunctio
 	}
 
 	makeFuncs := []func(ctx *TestContext) error{
-		// actually make the objects that DON'T have any dependencies
+		// make the objects that DON'T have any dependency
 		makeIdentities,
 		makeWorkItemLinkCategories,
-		// actually make the objects that DO have any dependencies
+		// actually make the objects that DO have dependencies
 		makeSpaces,
 		makeWorkItemLinkTypes,
 		makeCodebases,
@@ -203,6 +218,10 @@ func newContext(db *gorm.DB, isolatedCreation bool, recipeFuncs ...RecipeFunctio
 		if err := fn(&ctx); err != nil {
 			return nil, errs.Wrap(err, "failed to make objects")
 		}
+	}
+
+	if err := ctx.Check(); err != nil {
+		return nil, errs.Wrap(err, "test context did not pass checks")
 	}
 
 	return &ctx, nil

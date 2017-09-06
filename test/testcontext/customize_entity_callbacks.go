@@ -17,11 +17,13 @@ import "github.com/fabric8-services/fabric8-wit/workitem/link"
 // from a customize-entity-callback, it will not be very useful:
 //     NewContext(db, WorkItemTypes(1), Spaces(1, func(ctx *TestContext, idx int) error{
 //         witID := ctx.WorkItems[0].ID // this will not give you a uuid.Nil
+//         return nil
 //     }))
 // On the other hand, you can safely lookup the space ID when you're in the
 // customize-entity-callback for a work item:
 //     NewContext(db, WorkItemTypes(1), Spaces(1, func(ctx *TestContext, idx int) error{
 //         witID := ctx.WorkItems[0].ID // this will not give you a uuid.Nil
+//         return nil
 //     }))
 //
 // Notice that you can do all kinds of distribution related functions in a
