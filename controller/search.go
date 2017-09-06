@@ -255,8 +255,7 @@ func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, res *a
 	visitedIDs := map[string]uuid.UUID{}
 	fetchInBatch := []uuid.UUID{}
 	for _, wi := range res.Data {
-		cond := wi.Relationships != nil && wi.Relationships.Parent != nil && wi.Relationships.Parent.Data != nil
-		if cond {
+		if wi.Relationships != nil && wi.Relationships.Parent != nil && wi.Relationships.Parent.Data != nil {
 			parentIDStr := *wi.Relationships.Parent.Data.ID
 			if _, exist := visitedIDs[parentIDStr]; !exist {
 				id, err := uuid.FromString(parentIDStr)
@@ -264,7 +263,7 @@ func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, res *a
 					log.Error(ctx, map[string]interface{}{
 						"wi_id": parentIDStr,
 						"err":   err,
-					}, "Parent ID is invalid UUID: %s", parentIDStr)
+					}, "parent ID is invalid UUID: %s", parentIDStr)
 				}
 				visitedIDs[parentIDStr] = id            // this helps to keep elemtns distinct
 				fetchInBatch = append(fetchInBatch, id) // this helps to fetch WI in batch
@@ -284,7 +283,7 @@ func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, res *a
 		log.Error(ctx, map[string]interface{}{
 			"wis": wis,
 			"err": err,
-		}, "Unable to load parent work items in batch: %s", fetchInBatch)
+		}, "unable to load parent work items in batch: %s", fetchInBatch)
 	}
 	for _, ele := range wis {
 		convertedWI := ConvertWorkItem(ctx.Request, *ele)
