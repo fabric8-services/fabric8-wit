@@ -252,6 +252,10 @@ func main() {
 	commentsCtrl := controller.NewNotifyingCommentsController(service, appDB, notificationChannel, configuration)
 	app.MountCommentsController(service, commentsCtrl)
 
+	// Mount "work item labels relationships" controller
+	workItemLabelCtrl := controller.NewWorkItemLabelsController(service, appDB, configuration)
+	app.MountWorkItemLabelsController(service, workItemLabelCtrl)
+
 	if configuration.GetFeatureWorkitemRemote() {
 		// Scheduler to fetch and import remote tracker items
 		scheduler = remoteworkitem.NewScheduler(db)
