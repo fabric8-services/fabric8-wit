@@ -128,13 +128,18 @@ func (r *GormWorkItemRepository) LoadBatchByID(ctx context.Context, ids []uuid.U
 	for _, ele := range res {
 		wiType, err := r.witr.LoadTypeFromDB(ctx, ele.Type)
 		if err != nil {
+			log.Error(nil, map[string]interface{}{
+				"wit_id": ele.ID,
+				"err":    err,
+			}, "error in loading type from DB")
 			return nil, errors.NewInternalError(ctx, err)
 		}
 		convertedWI, err := ConvertWorkItemStorageToModel(wiType, &ele)
 		if err != nil {
 			log.Error(nil, map[string]interface{}{
 				"wi_id": ele.ID,
-			}, "Error in converting WI")
+				"err":   err,
+			}, "error in converting WI")
 		}
 		workitems = append(workitems, convertedWI)
 	}
