@@ -62,10 +62,14 @@ func (c *LabelController) Create(ctx *app.CreateLabelContext) error {
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		lbl := label.Label{
-			SpaceID:         ctx.SpaceID,
-			Name:            ctx.Payload.Data.Attributes.Name,
-			TextColor:       *ctx.Payload.Data.Attributes.TextColor,
-			BackgroundColor: *ctx.Payload.Data.Attributes.BackgroundColor,
+			SpaceID: ctx.SpaceID,
+			Name:    ctx.Payload.Data.Attributes.Name,
+		}
+		if ctx.Payload.Data.Attributes.TextColor != nil {
+			lbl.TextColor = *ctx.Payload.Data.Attributes.TextColor
+		}
+		if ctx.Payload.Data.Attributes.BackgroundColor != nil {
+			lbl.BackgroundColor = *ctx.Payload.Data.Attributes.BackgroundColor
 		}
 		err = appl.Labels().Create(ctx, &lbl)
 		if err != nil {
