@@ -12,7 +12,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/search"
-	tc "github.com/fabric8-services/fabric8-wit/test/testcontext"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
@@ -48,10 +48,10 @@ func (s *searchRepositoryBlackboxTest) TearDownTest() {
 	s.clean()
 }
 
-func (s *searchRepositoryBlackboxTest) getTestContext() *tc.TestContext {
-	testCtx := tc.NewTestContext(s.T(), s.DB,
-		tc.WorkItemTypes(3, func(ctx *tc.TestContext, idx int) error {
-			wit := ctx.WorkItemTypes[idx]
+func (s *searchRepositoryBlackboxTest) getTestFixture() *tf.TestFixture {
+	return tf.NewTestFixture(s.T(), s.DB,
+		tf.WorkItemTypes(3, func(fxt *tf.TestFixture, idx int) error {
+			wit := fxt.WorkItemTypes[idx]
 			wit.ID = uuid.NewV4()
 			switch idx {
 			case 0:
@@ -59,29 +59,28 @@ func (s *searchRepositoryBlackboxTest) getTestContext() *tc.TestContext {
 				wit.Path = workitem.LtreeSafeID(wit.ID)
 			case 1:
 				wit.Name = "sub1"
-				wit.Path = ctx.WorkItemTypes[0].Path + workitem.GetTypePathSeparator() + workitem.LtreeSafeID(wit.ID)
+				wit.Path = fxt.WorkItemTypes[0].Path + workitem.GetTypePathSeparator() + workitem.LtreeSafeID(wit.ID)
 			case 2:
 				wit.Name = "sub2"
-				wit.Path = ctx.WorkItemTypes[0].Path + workitem.GetTypePathSeparator() + workitem.LtreeSafeID(wit.ID)
+				wit.Path = fxt.WorkItemTypes[0].Path + workitem.GetTypePathSeparator() + workitem.LtreeSafeID(wit.ID)
 			}
 			return nil
 		}),
-		tc.WorkItems(2, func(ctx *tc.TestContext, idx int) error {
-			wi := ctx.WorkItems[idx]
+		tf.WorkItems(2, func(fxt *tf.TestFixture, idx int) error {
+			wi := fxt.WorkItems[idx]
 			switch idx {
 			case 0:
-				wi.Type = ctx.WorkItemTypes[1].ID
+				wi.Type = fxt.WorkItemTypes[1].ID
 				wi.Fields[workitem.SystemTitle] = "Test TestRestrictByType"
 				wi.Fields[workitem.SystemState] = "closed"
 			case 1:
-				wi.Type = ctx.WorkItemTypes[2].ID
+				wi.Type = fxt.WorkItemTypes[2].ID
 				wi.Fields[workitem.SystemTitle] = "Test TestRestrictByType 2"
 				wi.Fields[workitem.SystemState] = "closed"
 			}
 			return nil
 		}),
 	)
-	return testCtx
 }
 
 func (s *searchRepositoryBlackboxTest) TestRestrictByType() {
@@ -95,13 +94,13 @@ func (s *searchRepositoryBlackboxTest) TestRestrictByType() {
 	require.True(s.T(), count == uint64(len(res))) // safety check for many, many instances of bogus search results.
 
 	// when
-	testCtx := s.getTestContext()
+	testFxt := s.getTestFixture()
 
-	base := testCtx.WorkItemTypes[0]
-	sub1 := testCtx.WorkItemTypes[1]
-	sub2 := testCtx.WorkItemTypes[2]
-	wi1 := testCtx.WorkItems[0]
-	wi2 := testCtx.WorkItems[1]
+	base := testFxt.WorkItemTypes[0]
+	sub1 := testFxt.WorkItemTypes[1]
+	sub2 := testFxt.WorkItemTypes[2]
+	wi1 := testFxt.WorkItems[0]
+	wi2 := testFxt.WorkItems[1]
 
 	res, count, err = s.searchRepo.SearchFullText(ctx, "TestRestrictByType", nil, nil, nil)
 	assert.Nil(s.T(), err)
@@ -160,10 +159,10 @@ func (s *searchRepositoryBlackboxTest) TestFilterCount() {
 	require.True(s.T(), count == uint64(len(res))) // safety check for many, many instances of bogus search results.
 
 	// when
-	testCtx := s.getTestContext()
+	testFxt := s.getTestFixture()
 
 	// then
-	fs2 := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, testCtx.Spaces[0].ID)
+	fs2 := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, testFxt.Spaces[0].ID)
 	start := 3
 	res, count, err = s.searchRepo.Filter(ctx, fs2, nil, &start, nil)
 	assert.Nil(s.T(), err)

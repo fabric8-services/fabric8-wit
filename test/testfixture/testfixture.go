@@ -1,4 +1,4 @@
-package testcontext
+package testfixture
 
 import (
 	"context"
@@ -17,99 +17,99 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// A TestContext object is the result of a call to
-//  NewContext()
+// A TestFixture object is the result of a call to
+//  NewFixture()
 // or
-//  NewContextIsolated()
+//  NewFixtureIsolated()
 //
 // Don't create one on your own!
-type TestContext struct {
+type TestFixture struct {
 	info             map[kind]*createInfo
 	db               *gorm.DB
 	isolatedCreation bool
 	ctx              context.Context
 	checkCallbacks   []func() error
 
-	Identities             []*account.Identity          // Itentities (if any) that were created for this test context.
-	Iterations             []*iteration.Iteration       // Iterations (if any) that were created for this test context.
-	Areas                  []*area.Area                 // Areas (if any) that were created for this test context.
-	Spaces                 []*space.Space               // Spaces (if any) that were created for this test context.
-	Codebases              []*codebase.Codebase         // Codebases (if any) that were created for this test context.
-	WorkItems              []*workitem.WorkItem         // Work items (if any) that were created for this test context.
-	Comments               []*comment.Comment           // Comments (if any) that were created for this test context.
-	WorkItemTypes          []*workitem.WorkItemType     // Work item types (if any) that were created for this test context.
-	WorkItemLinkTypes      []*link.WorkItemLinkType     // Work item link types (if any) that were created for this test context.
-	WorkItemLinkCategories []*link.WorkItemLinkCategory // Work item link categories (if any) that were created for this test context.
-	WorkItemLinks          []*link.WorkItemLink         // Work item links (if any) that were created for this test context.
+	Identities             []*account.Identity          // Itentities (if any) that were created for this test fixture.
+	Iterations             []*iteration.Iteration       // Iterations (if any) that were created for this test fixture.
+	Areas                  []*area.Area                 // Areas (if any) that were created for this test fixture.
+	Spaces                 []*space.Space               // Spaces (if any) that were created for this test fixture.
+	Codebases              []*codebase.Codebase         // Codebases (if any) that were created for this test fixture.
+	WorkItems              []*workitem.WorkItem         // Work items (if any) that were created for this test fixture.
+	Comments               []*comment.Comment           // Comments (if any) that were created for this test fixture.
+	WorkItemTypes          []*workitem.WorkItemType     // Work item types (if any) that were created for this test fixture.
+	WorkItemLinkTypes      []*link.WorkItemLinkType     // Work item link types (if any) that were created for this test fixture.
+	WorkItemLinkCategories []*link.WorkItemLinkCategory // Work item link categories (if any) that were created for this test fixture.
+	WorkItemLinks          []*link.WorkItemLink         // Work item links (if any) that were created for this test fixture.
 }
 
-// NewContext will create a test context by executing the recipies from the
+// NewFixture will create a test fixture by executing the recipies from the
 // given recipe functions. If recipeFuncs is empty, nothing will happen.
 //
 // For example
-//     NewContext(db, Comments(100))
+//     NewFixture(db, Comments(100))
 // will create a work item (and everything required in order to create it) and
 // author 100 comments for it. They will all be created by the same user if you
 // don't tell the system to do it differently. For example, to create 100
 // comments from 100 different users we can do the following:
-//      NewContext(db, Identities(100), Comments(100, func(ctx *TestContext, idx int) error{
-//          ctx.Comments[idx].Creator = ctx.Identities[idx].ID
+//      NewFixture(db, Identities(100), Comments(100, func(fxt *TestFixture, idx int) error{
+//          fxt.Comments[idx].Creator = fxt.Identities[idx].ID
 //          return nil
 //      }))
 // That will create 100 identities and 100 comments and for each comment we're
 // using the ID of one of the identities that have been created earlier. There's
 // one important observation to make with this example: there's an order to how
-// entities get created in the test context. That order is basically defined by
+// entities get created in the test fixture. That order is basically defined by
 // the number of dependencies that each entity has. For example an identity has
 // no dependency, so it will be created first and then can be accessed safely by
 // any of the other entity creation functions. A comment for example depends on
-// a work item which itself depends on a work item type and a space. The NewContext
+// a work item which itself depends on a work item type and a space. The NewFixture
 // function does take care of recursively resolving those dependcies first.
 //
 // If you just want to create 100 identities and 100 work items but don't care
 // about resolving the dependencies automatically you can create the entities in
 // isolation:
-//      NewContextIsolated(db, Identities(100), Comments(100, func(ctx *TestContext, idx int) error{
-//          ctx.Comments[idx].Creator = ctx.Identities[idx].ID
-//          ctx.Comments[idx].ParentID = someExistingWorkItemID
+//      NewFixtureIsolated(db, Identities(100), Comments(100, func(fxt *TestFixture, idx int) error{
+//          fxt.Comments[idx].Creator = fxt.Identities[idx].ID
+//          fxt.Comments[idx].ParentID = someExistingWorkItemID
 //          return nil
 //      }))
 // Notice that I manually have to specify the ParentID of the work comment then
 // because we cannot automatically resolve to which work item we will attach the
 // comment.
-func NewContext(db *gorm.DB, recipeFuncs ...RecipeFunction) (*TestContext, error) {
-	return newContext(db, false, recipeFuncs...)
+func NewFixture(db *gorm.DB, recipeFuncs ...RecipeFunction) (*TestFixture, error) {
+	return newFixture(db, false, recipeFuncs...)
 }
 
-// NewTestContext does the same as NewTestContext except that it automatically
-// fails the given test if the context could not be created correctly.
-func NewTestContext(t *testing.T, db *gorm.DB, recipeFuncs ...RecipeFunction) *TestContext {
-	tc, err := NewContext(db, recipeFuncs...)
+// NewTestFixture does the same as NewTestFixture except that it automatically
+// fails the given test if the fixture could not be created correctly.
+func NewTestFixture(t *testing.T, db *gorm.DB, recipeFuncs ...RecipeFunction) *TestFixture {
+	tc, err := NewFixture(db, recipeFuncs...)
 	require.Nil(t, err)
 	require.NotNil(t, tc)
 	return tc
 }
 
-// NewContextIsolated will create a test context by executing the recipies from
+// NewFixtureIsolated will create a test fixture by executing the recipies from
 // the given recipe functions. If recipeFuncs is empty, nothing will happen.
 //
-// The difference to the normal NewContext function is that we will only create
+// The difference to the normal NewFixture function is that we will only create
 // those object that where specified in the recipeFuncs. We will not create any
 // object that is normally demanded by an object. For example, if you call
-//     NewContext(t, db, WorkItems(1))
+//     NewFixture(t, db, WorkItems(1))
 // you would (apart from other objects) get at least one work item AND a work
 // item type because that is needed to create a work item. With
-//     NewContextIsolated(t, db, Comments(2), WorkItems(1))
+//     NewFixtureIsolated(t, db, Comments(2), WorkItems(1))
 // on the other hand, we will only create a work item, two comments for it, and
 // nothing more. And for sure your test will fail if you do that because you
 // need to specify a space ID and a work item type ID for the created work item:
-//     NewContextIsolated(db, Comments(2), WorkItems(1, func(ctx *TestContext, idx int) error{
-//       ctx.WorkItems[idx].SpaceID = someExistingSpaceID
-//       ctx.WorkItems[idx].WorkItemType = someExistingWorkItemTypeID
+//     NewFixtureIsolated(db, Comments(2), WorkItems(1, func(fxt *TestFixture, idx int) error{
+//       fxt.WorkItems[idx].SpaceID = someExistingSpaceID
+//       fxt.WorkItems[idx].WorkItemType = someExistingWorkItemTypeID
 //       return nil
 //     }))
-func NewContextIsolated(db *gorm.DB, setupFuncs ...RecipeFunction) (*TestContext, error) {
-	return newContext(db, true, setupFuncs...)
+func NewFixtureIsolated(db *gorm.DB, setupFuncs ...RecipeFunction) (*TestFixture, error) {
+	return newFixture(db, true, setupFuncs...)
 }
 
 // Check runs all check functions that each recipe-function has registered to
@@ -117,17 +117,17 @@ func NewContextIsolated(db *gorm.DB, setupFuncs ...RecipeFunction) (*TestContext
 // recipe function.
 //
 // In this example
-//     ctx, _:= NewContext(db, WorkItems(2))
-//     err = ctx.Check()
+//     fxt, _:= NewFixture(db, WorkItems(2))
+//     err = fxt.Check()
 // err will only be nil if at least two work items have been created and all of
 // the dependencies that a work item requires. Look into the documentation of
 // each recipe-function to find out what dependencies each entity has.
 //
-// Notice, that check is called at the end of NewContext() and its derivatives,
-// so if you don't mess with the context after it was created, there's no need
+// Notice, that check is called at the end of NewFixture() and its derivatives,
+// so if you don't mess with the fixture after it was created, there's no need
 // to call Check() again.
-func (ctx *TestContext) Check() error {
-	for _, fn := range ctx.checkCallbacks {
+func (fxt *TestFixture) Check() error {
+	for _, fn := range fxt.checkCallbacks {
 		if err := fn(); err != nil {
 			return errs.Wrap(err, "check function failed")
 		}
@@ -156,50 +156,48 @@ type createInfo struct {
 	customizeEntityCallbacks []CustomizeEntityCallback
 }
 
-func (ctx *TestContext) runCustomizeEntityCallbacks(idx int, k kind) error {
-	if ctx.info[k] == nil {
+func (fxt *TestFixture) runCustomizeEntityCallbacks(idx int, k kind) error {
+	if fxt.info[k] == nil {
 		return errs.Errorf("the creation info for kind %s is nil (this should not happen)", k)
 	}
-	for _, dfn := range ctx.info[k].customizeEntityCallbacks {
-		if err := dfn(ctx, idx); err != nil {
+	for _, dfn := range fxt.info[k].customizeEntityCallbacks {
+		if err := dfn(fxt, idx); err != nil {
 			return errs.Wrapf(err, "failed to run customize-entity-callbacks for kind %s", k)
 		}
 	}
 	return nil
 }
 
-func (ctx *TestContext) setupInfo(n int, k kind, fns ...CustomizeEntityCallback) error {
+func (fxt *TestFixture) setupInfo(n int, k kind, fns ...CustomizeEntityCallback) error {
 	if n <= 0 {
 		return errs.Errorf("the number of objects to create must always be greater than zero: %d", n)
 	}
-	if _, ok := ctx.info[k]; !ok {
-		ctx.info[k] = &createInfo{}
+	if _, ok := fxt.info[k]; !ok {
+		fxt.info[k] = &createInfo{}
 	}
 	maxN := n
-	if maxN < ctx.info[k].numInstances {
-		maxN = ctx.info[k].numInstances
+	if maxN < fxt.info[k].numInstances {
+		maxN = fxt.info[k].numInstances
 	}
-	ctx.info[k].numInstances = maxN
-	ctx.info[k].customizeEntityCallbacks = append(ctx.info[k].customizeEntityCallbacks, fns...)
+	fxt.info[k].numInstances = maxN
+	fxt.info[k].customizeEntityCallbacks = append(fxt.info[k].customizeEntityCallbacks, fns...)
 	return nil
 }
 
-func newContext(db *gorm.DB, isolatedCreation bool, recipeFuncs ...RecipeFunction) (*TestContext, error) {
-	ctx := TestContext{
+func newFixture(db *gorm.DB, isolatedCreation bool, recipeFuncs ...RecipeFunction) (*TestFixture, error) {
+	fxt := TestFixture{
 		checkCallbacks:   []func() error{},
 		info:             map[kind]*createInfo{},
 		db:               db,
 		isolatedCreation: isolatedCreation,
 		ctx:              context.Background(),
 	}
-
 	for _, fn := range recipeFuncs {
-		if err := fn(&ctx); err != nil {
+		if err := fn(&fxt); err != nil {
 			return nil, errs.Wrap(err, "failed to execute recipe function")
 		}
 	}
-
-	makeFuncs := []func(ctx *TestContext) error{
+	makeFuncs := []func(fxt *TestFixture) error{
 		// make the objects that DON'T have any dependency
 		makeIdentities,
 		makeWorkItemLinkCategories,
@@ -215,14 +213,12 @@ func newContext(db *gorm.DB, isolatedCreation bool, recipeFuncs ...RecipeFunctio
 		makeWorkItemLinks,
 	}
 	for _, fn := range makeFuncs {
-		if err := fn(&ctx); err != nil {
+		if err := fn(&fxt); err != nil {
 			return nil, errs.Wrap(err, "failed to make objects")
 		}
 	}
-
-	if err := ctx.Check(); err != nil {
-		return nil, errs.Wrap(err, "test context did not pass checks")
+	if err := fxt.Check(); err != nil {
+		return nil, errs.Wrap(err, "test fixture did not pass checks")
 	}
-
-	return &ctx, nil
+	return &fxt, nil
 }

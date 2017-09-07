@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	"context"
+
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/codebase"
 	"github.com/fabric8-services/fabric8-wit/errors"
@@ -13,11 +15,8 @@ import (
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
-	tc "github.com/fabric8-services/fabric8-wit/test/testcontext"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
-
-	"context"
-
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -52,9 +51,9 @@ func (s *workItemRepoBlackBoxTest) SetupTest() {
 	s.repo = workitem.NewWorkItemRepository(s.DB)
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 
-	testCtx := tc.NewTestContext(s.T(), s.DB, tc.Spaces(1))
-	s.space = *testCtx.Spaces[0]
-	s.creator = *testCtx.Identities[0]
+	testFxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1))
+	s.space = *testFxt.Spaces[0]
+	s.creator = *testFxt.Identities[0]
 }
 
 func (s *workItemRepoBlackBoxTest) TearDownTest() {
@@ -224,9 +223,9 @@ func (s *workItemRepoBlackBoxTest) TestTypeChangeIsNotProhibitedOnDBLayer() {
 // the counts of work items
 func (s *workItemRepoBlackBoxTest) TestGetCountsPerIteration() {
 	// given
-	testCtx := tc.NewTestContext(s.T(), s.DB, tc.Iterations(2), tc.WorkItems(5, func(ctx *tc.TestContext, idx int) error {
-		wi := ctx.WorkItems[idx]
-		wi.Fields[workitem.SystemIteration] = ctx.Iterations[0].ID.String()
+	testFxt := tf.NewTestFixture(s.T(), s.DB, tf.Iterations(2), tf.WorkItems(5, func(fxt *tf.TestFixture, idx int) error {
+		wi := fxt.WorkItems[idx]
+		wi.Fields[workitem.SystemIteration] = fxt.Iterations[0].ID.String()
 		if idx < 3 {
 			wi.Fields[workitem.SystemTitle] = fmt.Sprintf("New issue #%d", idx)
 			wi.Fields[workitem.SystemState] = workitem.SystemStateNew
@@ -238,15 +237,15 @@ func (s *workItemRepoBlackBoxTest) TestGetCountsPerIteration() {
 	}))
 
 	// when
-	countsMap, _ := s.repo.GetCountsPerIteration(s.ctx, testCtx.Spaces[0].ID)
+	countsMap, _ := s.repo.GetCountsPerIteration(s.ctx, testFxt.Spaces[0].ID)
 	// then
 	require.Len(s.T(), countsMap, 2)
-	require.Contains(s.T(), countsMap, testCtx.Iterations[0].ID.String())
-	assert.Equal(s.T(), 5, countsMap[testCtx.Iterations[0].ID.String()].Total)
-	assert.Equal(s.T(), 2, countsMap[testCtx.Iterations[0].ID.String()].Closed)
-	require.Contains(s.T(), countsMap, testCtx.Iterations[1].ID.String())
-	assert.Equal(s.T(), 0, countsMap[testCtx.Iterations[1].ID.String()].Total)
-	assert.Equal(s.T(), 0, countsMap[testCtx.Iterations[1].ID.String()].Closed)
+	require.Contains(s.T(), countsMap, testFxt.Iterations[0].ID.String())
+	assert.Equal(s.T(), 5, countsMap[testFxt.Iterations[0].ID.String()].Total)
+	assert.Equal(s.T(), 2, countsMap[testFxt.Iterations[0].ID.String()].Closed)
+	require.Contains(s.T(), countsMap, testFxt.Iterations[1].ID.String())
+	assert.Equal(s.T(), 0, countsMap[testFxt.Iterations[1].ID.String()].Total)
+	assert.Equal(s.T(), 0, countsMap[testFxt.Iterations[1].ID.String()].Closed)
 }
 
 func (s *workItemRepoBlackBoxTest) TestCodebaseAttributes() {
