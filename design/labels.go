@@ -67,7 +67,7 @@ var _ = a.Resource("label", func() {
 		a.Params(func() {
 			a.Param("id", d.String, "id")
 		})
-		//a.UseTrait("conditional")
+		a.UseTrait("conditional")
 		a.Response(d.OK, labelSingle)
 		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
@@ -80,7 +80,7 @@ var _ = a.Resource("label", func() {
 			a.GET(""),
 		)
 		a.Description("List Labels.")
-		// a.UseTrait("conditional")
+		a.UseTrait("conditional")
 		a.Response(d.OK, labelList)
 		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)

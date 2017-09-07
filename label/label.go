@@ -51,6 +51,7 @@ type Repository interface {
 	Create(ctx context.Context, u *Label) error
 	List(ctx context.Context, spaceID uuid.UUID) ([]Label, error)
 	IsValid(ctx context.Context, id uuid.UUID) bool
+	Load(ctx context.Context, spaceID uuid.UUID, labelID uuid.UUID) (*Label, error)
 }
 
 // NewLabelRepository creates a new storage type.
@@ -110,4 +111,15 @@ func (m *GormLabelRepository) CheckExists(ctx context.Context, id string) error 
 // IsValid returns true if the identity exists
 func (m *GormLabelRepository) IsValid(ctx context.Context, id uuid.UUID) bool {
 	return m.CheckExists(ctx, id.String()) == nil
+}
+
+// Load label in a space
+func (m *GormLabelRepository) Load(ctx context.Context, spaceID uuid.UUID, labelID uuid.UUID) (*Label, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "label", "show"}, time.Now())
+	var lbl Label
+	err := m.db.Where("space_id = ? and id = ?", spaceID, labelID).Find(&lbl).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, err
+	}
+	return &lbl, nil
 }
