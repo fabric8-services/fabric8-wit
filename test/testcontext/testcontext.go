@@ -64,7 +64,7 @@ type TestContext struct {
 // no dependency, so it will be created first and then can be accessed safely by
 // any of the other entity creation functions. A comment for example depends on
 // a work item which itself depends on a work item type and a space. The NewContext
-// function does take of recursively resolving those dependcies first.
+// function does take care of recursively resolving those dependcies first.
 //
 // If you just want to create 100 identities and 100 work items but don't care
 // about resolving the dependencies automatically you can create the entities in
