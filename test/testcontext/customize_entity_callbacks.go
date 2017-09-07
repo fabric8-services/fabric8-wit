@@ -31,7 +31,7 @@ import "github.com/fabric8-services/fabric8-wit/workitem/link"
 // a space or define what work item type each work item shall have. If not
 // otherwise specified (e.g. as for WorkItemLinks()) we use a straight forward
 // approach. So for example if you write
-//     NewContext(t, db, Identities(7), Spaces(100))
+//     NewContext(t, db, Identities(10), Spaces(100))
 // then we will create 10 identites and 100 spaces and the owner of all spaces
 // will be identified with the ID of the first identity:
 //     ctx.Identities[0].ID
