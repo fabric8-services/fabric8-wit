@@ -2,6 +2,7 @@ package label_test
 
 import (
 	"context"
+	"strconv"
 	"testing"
 	"time"
 
@@ -116,4 +117,44 @@ func (s *TestLabelRepository) TestCreateLabelWithWrongColorCode() {
 	err = repo.Create(context.Background(), &l2)
 	require.NotNil(s.T(), err)
 	assert.Contains(s.T(), err.Error(), "labels_background_color_check")
+}
+
+func (s *TestLabelRepository) TestListLabelBySpace() {
+	repo := label.NewLabelRepository(s.DB)
+	newSpace := space.Space{
+		Name:    "Space 1 " + uuid.NewV4().String(),
+		OwnerId: s.testIdentity.ID,
+	}
+	repoSpace := space.NewRepository(s.DB)
+	space, err := repoSpace.Create(context.Background(), &newSpace)
+	require.Nil(s.T(), err)
+
+	var labelIDs []uuid.UUID
+	for i := 0; i < 3; i++ {
+		name := "Test Label #" + strconv.Itoa(i)
+		l := label.Label{
+			SpaceID: space.ID,
+			Name:    name,
+		}
+		err := repo.Create(context.Background(), &l)
+		require.Nil(s.T(), err)
+		require.NotEqual(s.T(), uuid.Nil, l.ID)
+		labelIDs = append(labelIDs, l.ID)
+	}
+
+	lbls, err := repo.List(context.Background(), space.ID)
+	require.Nil(s.T(), err)
+	require.Len(s.T(), lbls, 3)
+	for i := 0; i < 3; i++ {
+		assert.NotNil(s.T(), searchInLabelSlice(labelIDs[i], lbls))
+	}
+}
+
+func searchInLabelSlice(searchKey uuid.UUID, labelList []label.Label) *label.Label {
+	for i := 0; i < len(labelList); i++ {
+		if searchKey == labelList[i].ID {
+			return &labelList[i]
+		}
+	}
+	return nil
 }
