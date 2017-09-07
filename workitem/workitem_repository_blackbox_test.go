@@ -4,21 +4,19 @@ import (
 	"fmt"
 	"testing"
 
+	"context"
+
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/codebase"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
-	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
-	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
-
-	"context"
-
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -52,17 +50,10 @@ func (s *workItemRepoBlackBoxTest) SetupSuite() {
 func (s *workItemRepoBlackBoxTest) SetupTest() {
 	s.repo = workitem.NewWorkItemRepository(s.DB)
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
-	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "jdoe", "test")
-	require.Nil(s.T(), err)
-	s.creator = *testIdentity
-	spaceRepo := space.NewRepository(s.DB)
-	testSpace, err := spaceRepo.Create(context.Background(), &space.Space{
-		Name:        "test-" + uuid.NewV4().String(),
-		Description: "Test space",
-		OwnerId:     testIdentity.ID,
-	})
-	require.Nil(s.T(), err)
-	s.space = *testSpace
+
+	testFxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1))
+	s.space = *testFxt.Spaces[0]
+	s.creator = *testFxt.Identities[0]
 }
 
 func (s *workItemRepoBlackBoxTest) TearDownTest() {
@@ -231,71 +222,30 @@ func (s *workItemRepoBlackBoxTest) TestTypeChangeIsNotProhibitedOnDBLayer() {
 // TestGetCountsPerIteration makes sure that the query being executed is correctly returning
 // the counts of work items
 func (s *workItemRepoBlackBoxTest) TestGetCountsPerIteration() {
-	// create seed data
 	// given
-	spaceRepo := space.NewRepository(s.DB)
-	spaceInstance := space.Space{
-		Name:    testsupport.CreateRandomValidTestName("Testing space"),
-		OwnerId: s.creator.ID,
-	}
-	spaceRepo.Create(s.ctx, &spaceInstance)
-	assert.NotEqual(s.T(), uuid.UUID{}, spaceInstance.ID)
+	testFxt := tf.NewTestFixture(s.T(), s.DB, tf.Iterations(2), tf.WorkItems(5, func(fxt *tf.TestFixture, idx int) error {
+		wi := fxt.WorkItems[idx]
+		wi.Fields[workitem.SystemIteration] = fxt.Iterations[0].ID.String()
+		if idx < 3 {
+			wi.Fields[workitem.SystemTitle] = fmt.Sprintf("New issue #%d", idx)
+			wi.Fields[workitem.SystemState] = workitem.SystemStateNew
+		} else if idx >= 3 {
+			wi.Fields[workitem.SystemTitle] = fmt.Sprintf("Closed issue #%d", idx-3)
+			wi.Fields[workitem.SystemState] = workitem.SystemStateClosed
+		}
+		return nil
+	}))
+
 	// when
-	userActive := false
-	iterationRepo := iteration.NewIterationRepository(s.DB)
-	iteration1 := iteration.Iteration{
-		Name:       "Sprint 1",
-		SpaceID:    spaceInstance.ID,
-		UserActive: &userActive,
-	}
-	err := iterationRepo.Create(s.ctx, &iteration1)
-	// then
-	require.Nil(s.T(), err)
-	s.T().Log("iteration1 id = ", iteration1.ID)
-	assert.NotEqual(s.T(), uuid.UUID{}, iteration1.ID)
-	// given
-	iteration2 := iteration.Iteration{
-		Name:       "Sprint 2",
-		SpaceID:    spaceInstance.ID,
-		UserActive: &userActive,
-	}
-	// when
-	err = iterationRepo.Create(s.ctx, &iteration2)
-	// then
-	require.Nil(s.T(), err)
-	s.T().Log("iteration2 id = ", iteration2.ID)
-	assert.NotEqual(s.T(), uuid.UUID{}, iteration2.ID)
-	// given
-	for i := 0; i < 3; i++ {
-		_, err = s.repo.Create(
-			s.ctx, spaceInstance.ID, workitem.SystemBug,
-			map[string]interface{}{
-				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
-				workitem.SystemState:     workitem.SystemStateNew,
-				workitem.SystemIteration: iteration1.ID.String(),
-			}, s.creator.ID)
-		require.Nil(s.T(), err)
-	}
-	for i := 0; i < 2; i++ {
-		_, err = s.repo.Create(
-			s.ctx, spaceInstance.ID, workitem.SystemBug,
-			map[string]interface{}{
-				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
-				workitem.SystemState:     workitem.SystemStateClosed,
-				workitem.SystemIteration: iteration1.ID.String(),
-			}, s.creator.ID)
-		require.Nil(s.T(), err)
-	}
-	// when
-	countsMap, _ := s.repo.GetCountsPerIteration(s.ctx, spaceInstance.ID)
+	countsMap, _ := s.repo.GetCountsPerIteration(s.ctx, testFxt.Spaces[0].ID)
 	// then
 	require.Len(s.T(), countsMap, 2)
-	require.Contains(s.T(), countsMap, iteration1.ID.String())
-	assert.Equal(s.T(), 5, countsMap[iteration1.ID.String()].Total)
-	assert.Equal(s.T(), 2, countsMap[iteration1.ID.String()].Closed)
-	require.Contains(s.T(), countsMap, iteration2.ID.String())
-	assert.Equal(s.T(), 0, countsMap[iteration2.ID.String()].Total)
-	assert.Equal(s.T(), 0, countsMap[iteration2.ID.String()].Closed)
+	require.Contains(s.T(), countsMap, testFxt.Iterations[0].ID.String())
+	assert.Equal(s.T(), 5, countsMap[testFxt.Iterations[0].ID.String()].Total)
+	assert.Equal(s.T(), 2, countsMap[testFxt.Iterations[0].ID.String()].Closed)
+	require.Contains(s.T(), countsMap, testFxt.Iterations[1].ID.String())
+	assert.Equal(s.T(), 0, countsMap[testFxt.Iterations[1].ID.String()].Total)
+	assert.Equal(s.T(), 0, countsMap[testFxt.Iterations[1].ID.String()].Closed)
 }
 
 func (s *workItemRepoBlackBoxTest) TestCodebaseAttributes() {
