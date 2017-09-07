@@ -307,3 +307,25 @@ func WorkItemLinks(n int, fns ...CustomizeEntityCallback) RecipeFunction {
 		return fxt.deps(WorkItemLinkTypes(1), WorkItems(2*n))
 	})
 }
+
+// Labels tells the test fixture to create at least n label objects. See
+// also the Identities() function for more general information on n and fns.
+//
+// When called in NewFixture() this function will call also call
+//     Spaces(1)
+// but with NewFixtureIsolated(), no other objects will be created.
+func Labels(n int, fns ...CustomizeEntityCallback) RecipeFunction {
+	return RecipeFunction(func(fxt *TestFixture) error {
+		fxt.checkCallbacks = append(fxt.checkCallbacks, func() error {
+			l := len(fxt.Labels)
+			if l < n {
+				return errs.Errorf(checkStr, n, kindLabels, l)
+			}
+			return nil
+		})
+		if err := fxt.setupInfo(n, kindLabels, fns...); err != nil {
+			return err
+		}
+		return fxt.deps(Spaces(1))
+	})
+}
