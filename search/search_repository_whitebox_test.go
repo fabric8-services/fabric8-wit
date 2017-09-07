@@ -238,7 +238,6 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 						s.T().Errorf("'%s' neither found in title '%s' nor in the description: '%s' for workitem number %d", keyWord, workItemTitle, workItemDescription, workItemNumber)
 					}
 				}
-				//defer wir.Delete(context.Background(), workItemValue.ID)
 			}
 
 		}
@@ -279,7 +278,6 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByID() {
 		if err != nil {
 			s.T().Fatalf("Couldn't create test data: %+v", err)
 		}
-		defer wir.Delete(ctx, createdWorkItem.ID, s.modifierID)
 
 		// Create a new workitem to have the ID in it's title. This should not come
 		// up in search results
