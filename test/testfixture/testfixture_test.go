@@ -3,6 +3,8 @@ package testfixture_test
 import (
 	"testing"
 
+	"github.com/fabric8-services/fabric8-wit/workitem/link"
+
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
@@ -61,7 +63,13 @@ func (s *testFixtureSuite) TestNewFixture_Advanced() {
 		require.Nil(t, c.Check())
 	})
 	s.T().Run("create 10 links between 20 work items with a network topology link type", func(t *testing.T) {
-		c, err := tf.NewFixture(s.DB, tf.WorkItemLinks(10), tf.WorkItemLinkTypes(1, tf.TopologyNetwork()))
+		c, err := tf.NewFixture(s.DB,
+			tf.WorkItemLinks(10),
+			tf.WorkItemLinkTypes(1, func(fxt *tf.TestFixture, idx int) error {
+				fxt.WorkItemLinkTypes[idx].Topology = link.TopologyNetwork
+				return nil
+			}),
+		)
 		require.Nil(t, err)
 		require.Nil(t, c.Check())
 	})
