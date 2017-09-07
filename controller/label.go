@@ -47,13 +47,18 @@ func (c *LabelController) Create(ctx *app.CreateLabelContext) error {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-		lbl := label.Label{SpaceID: ctx.SpaceID, Name: *ctx.Payload.Data.Attributes.Name, Color: *ctx.Payload.Data.Attributes.Color}
+		lbl := label.Label{
+			SpaceID:         ctx.SpaceID,
+			Name:            ctx.Payload.Data.Attributes.Name,
+			TextColor:       *ctx.Payload.Data.Attributes.TextColor,
+			BackgroundColor: *ctx.Payload.Data.Attributes.BackgroundColor,
+		}
 		err = appl.Labels().Create(ctx, &lbl)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		res := &app.LabelSingle{
-			Data: ConvertLabel(appl, ctx.RequestData, lbl),
+			Data: ConvertLabel(appl, ctx.Request, lbl),
 		}
 		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.LabelHref(ctx.SpaceID, res.Data.ID)))
 		return ctx.Created(res)
@@ -61,20 +66,21 @@ func (c *LabelController) Create(ctx *app.CreateLabelContext) error {
 }
 
 // ConvertLabel converts from internal to external REST representation
-func ConvertLabel(appl application.Application, request *goa.RequestData, lbl label.Label) *app.Label {
+func ConvertLabel(appl application.Application, request *http.Request, lbl label.Label) *app.Label {
 	labelType := label.APIStringTypeLabels
 	spaceID := lbl.SpaceID.String()
-	relatedURL := rest.AbsoluteURL(request.Request, app.LabelHref(spaceID, lbl.ID))
-	spaceRelatedURL := rest.AbsoluteURL(request.Request, app.SpaceHref(spaceID))
+	relatedURL := rest.AbsoluteURL(request, app.LabelHref(spaceID, lbl.ID))
+	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
 	l := &app.Label{
 		Type: labelType,
 		ID:   &lbl.ID,
 		Attributes: &app.LabelAttributes{
-			Color:     &lbl.Color,
-			Name:      &lbl.Name,
-			CreatedAt: &lbl.CreatedAt,
-			UpdatedAt: &lbl.UpdatedAt,
-			Version:   &lbl.Version,
+			TextColor:       &lbl.TextColor,
+			BackgroundColor: &lbl.BackgroundColor,
+			Name:            lbl.Name,
+			CreatedAt:       &lbl.CreatedAt,
+			UpdatedAt:       &lbl.UpdatedAt,
+			Version:         &lbl.Version,
 		},
 		Relationships: &app.LabelRelations{
 			Space: &app.RelationGeneric{
@@ -99,13 +105,24 @@ func ConvertLabel(appl application.Application, request *goa.RequestData, lbl la
 
 // List runs the list action.
 func (c *LabelController) List(ctx *app.ListLabelContext) error {
-	// LabelController_List: start_implement
+	return application.Transactional(c.db, func(appl application.Application) error {
+		labels, err := appl.Labels().List(ctx, ctx.SpaceID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		res := &app.LabelList{}
+		res.Data = ConvertLabels(appl, ctx.Request, labels)
+		return ctx.OK(res)
+	})
+}
 
-	// Put your logic here
-
-	// LabelController_List: end_implement
-	res := &app.LabelList{}
-	return ctx.OK(res)
+// ConvertLabels from internal to external REST representation
+func ConvertLabels(appl application.Application, request *http.Request, labels []label.Label) []*app.Label {
+	var ls = []*app.Label{}
+	for _, i := range labels {
+		ls = append(ls, ConvertLabel(appl, request, i))
+	}
+	return ls
 }
 
 // ConvertLabelsSimple converts a array of Label IDs into a Generic Reletionship List
