@@ -81,7 +81,7 @@ func NewFixture(db *gorm.DB, recipeFuncs ...RecipeFunction) (*TestFixture, error
 	return newFixture(db, false, recipeFuncs...)
 }
 
-// NewTestFixture does the same as NewTestFixture except that it automatically
+// NewTestFixture does the same as NewFixture except that it automatically
 // fails the given test if the fixture could not be created correctly.
 func NewTestFixture(t *testing.T, db *gorm.DB, recipeFuncs ...RecipeFunction) *TestFixture {
 	tc, err := NewFixture(db, recipeFuncs...)
