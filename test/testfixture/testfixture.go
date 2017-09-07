@@ -9,6 +9,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/codebase"
 	"github.com/fabric8-services/fabric8-wit/comment"
 	"github.com/fabric8-services/fabric8-wit/iteration"
+	"github.com/fabric8-services/fabric8-wit/label"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
@@ -41,6 +42,7 @@ type TestFixture struct {
 	WorkItemLinkTypes      []*link.WorkItemLinkType     // Work item link types (if any) that were created for this test fixture.
 	WorkItemLinkCategories []*link.WorkItemLinkCategory // Work item link categories (if any) that were created for this test fixture.
 	WorkItemLinks          []*link.WorkItemLink         // Work item links (if any) that were created for this test fixture.
+	Labels                 []*label.Label
 }
 
 // NewFixture will create a test fixture by executing the recipies from the
@@ -149,6 +151,7 @@ const (
 	kindWorkItemLinkTypes      kind = "work_item_link_type"
 	kindWorkItemLinkCategories kind = "work_item_link_categorie"
 	kindWorkItemLinks          kind = "work_item_link"
+	kindLabels                 kind = "labels"
 )
 
 type createInfo struct {
@@ -203,6 +206,7 @@ func newFixture(db *gorm.DB, isolatedCreation bool, recipeFuncs ...RecipeFunctio
 		makeWorkItemLinkCategories,
 		// actually make the objects that DO have dependencies
 		makeSpaces,
+		makeLabels,
 		makeWorkItemLinkTypes,
 		makeCodebases,
 		makeWorkItemTypes,
