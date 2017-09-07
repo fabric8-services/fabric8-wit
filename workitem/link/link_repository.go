@@ -475,12 +475,7 @@ func (r *GormWorkItemLinkRepository) GetParentID(ctx context.Context, ID uuid.UU
 		WorkItemLinkType{}.TableName())
 	var parentID uuid.UUID
 	db := r.db.CommonDB()
-	stmt, err := db.Prepare(query)
-	if err != nil {
-		return nil, errs.Wrapf(err, "failed prepare statement: %s", query)
-	}
-	defer stmt.Close()
-	err = stmt.QueryRow(ID.String()).Scan(&parentID)
+	err := db.QueryRow(query, ID.String()).Scan(&parentID)
 	if err != nil {
 		return nil, errs.Wrapf(err, "parent not found for work item: %s", ID.String(), query)
 	}
