@@ -4,7 +4,11 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
+	"github.com/fabric8-services/fabric8-wit/label"
+	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/goadesign/goa"
+	uuid "github.com/satori/go.uuid"
 )
 
 // WorkItemLabelsController implements the work_item_labels resource.
@@ -31,27 +35,40 @@ func NewWorkItemLabelsController(service *goa.Service, db application.DB, config
 // List runs the list action.
 func (c *WorkItemLabelsController) List(ctx *app.ListWorkItemLabelsContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		_, err := appl.WorkItems().LoadByID(ctx, ctx.WiID)
+		wi, err := appl.WorkItems().LoadByID(ctx, ctx.WiID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
-		// var ls []*label.Label
-		// labelIDs := wi.Fields[workitem.SystemLabels].([]uuid.UUID)
-		// for _, lbl := range labelIDs {
-		// 	// l, err := appl.Labels().Load(ctx, lbl)
-		// 	// ls := append(ls, l)
-		// }
-		res := &app.LabelList{}
-		res.Data = []*app.Label{}
-		// res.Meta = &app.CommentListMeta{TotalCount: count}
-		// res.Data = ConvertLabels(ctx.Request, ls)
-		return ctx.OK(res)
-		// return ctx.ConditionalEntities(ls, c.config.GetCacheControlLabels, func() error {
-		// res := &app.LabelList{}
-		// res.Data = []*app.Label{}
-		// res.Meta = &app.CommentListMeta{TotalCount: count}
-		// res.Data = ConvertLabels(ctx.Request, comments)
-		// return ctx.OK(res)
-		// })
+		var ls []label.Label
+		labelIDs := wi.Fields[workitem.SystemLabels].([]interface{})
+		for _, lbl := range labelIDs {
+			lblStr := lbl.(string)
+			id, err := uuid.FromString(lblStr)
+			if err != nil {
+				log.Error(nil, map[string]interface{}{
+					"label_id": lblStr,
+					"err":      err,
+				}, "error in converting string to uuid")
+				return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+			}
+			l, err := appl.Labels().Load(ctx, wi.SpaceID, id)
+			if err != nil {
+				log.Error(nil, map[string]interface{}{
+					"label_id": id,
+					"err":      err,
+				}, "error in loading label")
+				return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+			}
+			ls = append(ls, *l)
+		}
+
+		return ctx.ConditionalEntities(ls, c.config.GetCacheControlLabels, func() error {
+			res := &app.LabelList{}
+			res.Data = ConvertLabels(appl, ctx.Request, ls)
+			res.Meta = &app.WorkItemListResponseMeta{
+				TotalCount: len(res.Data),
+			}
+			return ctx.OK(res)
+		})
 	})
 }

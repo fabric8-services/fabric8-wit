@@ -119,7 +119,7 @@ var _ = a.Resource("work_item_labels", func() {
 			the beginning of pagination.  The value starts from 0 onwards.`)
 			a.Param("page[limit]", d.Integer, `Paging size is the number of items in a page`)
 		})
-		// a.UseTrait("conditional")
+		a.UseTrait("conditional")
 		a.Response(d.OK, labelList)
 		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
