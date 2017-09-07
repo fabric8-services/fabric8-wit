@@ -1,6 +1,7 @@
 package search_test
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -11,12 +12,8 @@ import (
 	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/search"
-	"github.com/fabric8-services/fabric8-wit/space"
-	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
-
-	"context"
-
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -31,11 +28,8 @@ func TestRunSearchRepositoryBlackboxTest(t *testing.T) {
 
 type searchRepositoryBlackboxTest struct {
 	gormtestsupport.DBTestSuite
-	modifierID uuid.UUID
 	clean      func()
 	searchRepo *search.GormSearchRepository
-	wiRepo     *workitem.GormWorkItemRepository
-	witRepo    *workitem.GormWorkItemTypeRepository
 }
 
 // SetupSuite overrides the DBTestSuite's function but calls it before doing anything else
@@ -47,16 +41,46 @@ func (s *searchRepositoryBlackboxTest) SetupSuite() {
 
 func (s *searchRepositoryBlackboxTest) SetupTest() {
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
-	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "jdoe", "test")
-	require.Nil(s.T(), err)
-	s.modifierID = testIdentity.ID
-	s.witRepo = workitem.NewWorkItemTypeRepository(s.DB)
-	s.wiRepo = workitem.NewWorkItemRepository(s.DB)
 	s.searchRepo = search.NewGormSearchRepository(s.DB)
 }
 
 func (s *searchRepositoryBlackboxTest) TearDownTest() {
 	s.clean()
+}
+
+func (s *searchRepositoryBlackboxTest) getTestFixture() *tf.TestFixture {
+	return tf.NewTestFixture(s.T(), s.DB,
+		tf.WorkItemTypes(3, func(fxt *tf.TestFixture, idx int) error {
+			wit := fxt.WorkItemTypes[idx]
+			wit.ID = uuid.NewV4()
+			switch idx {
+			case 0:
+				wit.Name = "base"
+				wit.Path = workitem.LtreeSafeID(wit.ID)
+			case 1:
+				wit.Name = "sub1"
+				wit.Path = fxt.WorkItemTypes[0].Path + workitem.GetTypePathSeparator() + workitem.LtreeSafeID(wit.ID)
+			case 2:
+				wit.Name = "sub2"
+				wit.Path = fxt.WorkItemTypes[0].Path + workitem.GetTypePathSeparator() + workitem.LtreeSafeID(wit.ID)
+			}
+			return nil
+		}),
+		tf.WorkItems(2, func(fxt *tf.TestFixture, idx int) error {
+			wi := fxt.WorkItems[idx]
+			switch idx {
+			case 0:
+				wi.Type = fxt.WorkItemTypes[1].ID
+				wi.Fields[workitem.SystemTitle] = "Test TestRestrictByType"
+				wi.Fields[workitem.SystemState] = "closed"
+			case 1:
+				wi.Type = fxt.WorkItemTypes[2].ID
+				wi.Fields[workitem.SystemTitle] = "Test TestRestrictByType 2"
+				wi.Fields[workitem.SystemState] = "closed"
+			}
+			return nil
+		}),
+	)
 }
 
 func (s *searchRepositoryBlackboxTest) TestRestrictByType() {
@@ -68,39 +92,15 @@ func (s *searchRepositoryBlackboxTest) TestRestrictByType() {
 	res, count, err := s.searchRepo.SearchFullText(ctx, "TestRestrictByType", nil, nil, nil)
 	require.Nil(s.T(), err)
 	require.True(s.T(), count == uint64(len(res))) // safety check for many, many instances of bogus search results.
-	for _, wi := range res {
-		s.wiRepo.Delete(ctx, wi.ID, s.modifierID)
-	}
 
-	extended := workitem.SystemBug
-	base, err := s.witRepo.Create(ctx, space.SystemSpace, nil, &extended, "base", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
-	require.Nil(s.T(), err)
-	require.NotNil(s.T(), base)
-	require.NotNil(s.T(), base.ID)
+	// when
+	testFxt := s.getTestFixture()
 
-	sub1, err := s.witRepo.Create(ctx, space.SystemSpace, nil, &base.ID, "sub1", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
-	require.Nil(s.T(), err)
-	require.NotNil(s.T(), sub1)
-	require.NotNil(s.T(), sub1.ID)
-
-	sub2, err := s.witRepo.Create(ctx, space.SystemSpace, nil, &base.ID, "subtwo", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
-	require.Nil(s.T(), err)
-	require.NotNil(s.T(), sub2)
-	require.NotNil(s.T(), sub2.ID)
-
-	wi1, err := s.wiRepo.Create(ctx, space.SystemSpace, sub1.ID, map[string]interface{}{
-		workitem.SystemTitle: "Test TestRestrictByType",
-		workitem.SystemState: "closed",
-	}, s.modifierID)
-	require.Nil(s.T(), err)
-	require.NotNil(s.T(), wi1)
-
-	wi2, err := s.wiRepo.Create(ctx, space.SystemSpace, sub2.ID, map[string]interface{}{
-		workitem.SystemTitle: "Test TestRestrictByType 2",
-		workitem.SystemState: "closed",
-	}, s.modifierID)
-	require.Nil(s.T(), err)
-	require.NotNil(s.T(), wi2)
+	base := testFxt.WorkItemTypes[0]
+	sub1 := testFxt.WorkItemTypes[1]
+	sub2 := testFxt.WorkItemTypes[2]
+	wi1 := testFxt.WorkItems[0]
+	wi2 := testFxt.WorkItems[1]
 
 	res, count, err = s.searchRepo.SearchFullText(ctx, "TestRestrictByType", nil, nil, nil)
 	assert.Nil(s.T(), err)
@@ -157,42 +157,12 @@ func (s *searchRepositoryBlackboxTest) TestFilterCount() {
 	res, count, err := s.searchRepo.Filter(ctx, fs1, nil, nil, nil)
 	require.Nil(s.T(), err)
 	require.True(s.T(), count == uint64(len(res))) // safety check for many, many instances of bogus search results.
-	for _, wi := range res {
-		s.wiRepo.Delete(ctx, wi.ID, s.modifierID)
-	}
+
 	// when
-	extended := workitem.SystemBug
-	base, err := s.witRepo.Create(ctx, space.SystemSpace, nil, &extended, "base", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
-	require.Nil(s.T(), err)
-	require.NotNil(s.T(), base)
-	require.NotNil(s.T(), base.ID)
-
-	sub1, err := s.witRepo.Create(ctx, space.SystemSpace, nil, &base.ID, "sub1", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
-	require.Nil(s.T(), err)
-	require.NotNil(s.T(), sub1)
-	require.NotNil(s.T(), sub1.ID)
-
-	sub2, err := s.witRepo.Create(ctx, space.SystemSpace, nil, &base.ID, "subtwo", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
-	require.Nil(s.T(), err)
-	require.NotNil(s.T(), sub2)
-	require.NotNil(s.T(), sub2.ID)
-
-	wi1, err := s.wiRepo.Create(ctx, space.SystemSpace, sub1.ID, map[string]interface{}{
-		workitem.SystemTitle: "Test TestRestrictByType",
-		workitem.SystemState: "closed",
-	}, s.modifierID)
-	require.Nil(s.T(), err)
-	require.NotNil(s.T(), wi1)
-
-	wi2, err := s.wiRepo.Create(ctx, space.SystemSpace, sub2.ID, map[string]interface{}{
-		workitem.SystemTitle: "Test TestRestrictByType 2",
-		workitem.SystemState: "closed",
-	}, s.modifierID)
-	require.Nil(s.T(), err)
-	require.NotNil(s.T(), wi2)
+	testFxt := s.getTestFixture()
 
 	// then
-	fs2 := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, space.SystemSpace)
+	fs2 := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, testFxt.Spaces[0].ID)
 	start := 3
 	res, count, err = s.searchRepo.Filter(ctx, fs2, nil, &start, nil)
 	assert.Nil(s.T(), err)
