@@ -31,9 +31,13 @@ var labelAttributes = a.Type("LabelAttributes", func() {
 	a.Attribute("version", d.Integer, "Version for optimistic concurrency control (optional during creating)", func() {
 		a.Example(23)
 	})
-	a.Attribute("color", d.String, "Color in hex code format. See also http://www.color-hex.com", func() {
+	a.Attribute("text-color", d.String, "Text color in hex code format. See also http://www.color-hex.com", func() {
 		a.Example("#ffa7cb")
 	})
+	a.Attribute("background-color", d.String, "Background color in hex code format. See also http://www.color-hex.com", func() {
+		a.Example("#ffa7cb")
+	})
+	a.Required("name")
 })
 
 var labelRelationships = a.Type("LabelRelations", func() {

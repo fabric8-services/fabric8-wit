@@ -21,11 +21,12 @@ const APIStringTypeLabels = "labels"
 // Label describes a single Label
 type Label struct {
 	gormsupport.Lifecycle
-	ID      uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
-	SpaceID uuid.UUID `sql:"type:uuid"`
-	Name    string
-	Color   string
-	Version int
+	ID              uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
+	SpaceID         uuid.UUID `sql:"type:uuid"`
+	Name            string
+	TextColor       string `sql:"DEFAULT:#000000"`
+	BackgroundColor string `sql:"DEFAULT:#FFFFFF"`
+	Version         int
 }
 
 // GetETagData returns the field values to use to generate the ETag

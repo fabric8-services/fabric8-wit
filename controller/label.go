@@ -46,7 +46,12 @@ func (c *LabelController) Create(ctx *app.CreateLabelContext) error {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-		lbl := label.Label{SpaceID: ctx.SpaceID, Name: *ctx.Payload.Data.Attributes.Name, Color: *ctx.Payload.Data.Attributes.Color}
+		lbl := label.Label{
+			SpaceID:         ctx.SpaceID,
+			Name:            ctx.Payload.Data.Attributes.Name,
+			TextColor:       *ctx.Payload.Data.Attributes.TextColor,
+			BackgroundColor: *ctx.Payload.Data.Attributes.BackgroundColor,
+		}
 		err = appl.Labels().Create(ctx, &lbl)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
@@ -71,11 +76,12 @@ func ConvertLabel(appl application.Application, request *http.Request, lbl label
 		Type: labelType,
 		ID:   &lbl.ID,
 		Attributes: &app.LabelAttributes{
-			Color:     &lbl.Color,
-			Name:      &lbl.Name,
-			CreatedAt: &lbl.CreatedAt,
-			UpdatedAt: &lbl.UpdatedAt,
-			Version:   &lbl.Version,
+			TextColor:       &lbl.TextColor,
+			BackgroundColor: &lbl.BackgroundColor,
+			Name:            lbl.Name,
+			CreatedAt:       &lbl.CreatedAt,
+			UpdatedAt:       &lbl.UpdatedAt,
+			Version:         &lbl.Version,
 		},
 		Relationships: &app.LabelRelations{
 			Space: &app.RelationGeneric{
