@@ -2,7 +2,6 @@ package label_test
 
 import (
 	"context"
-	"strconv"
 	"testing"
 	"time"
 
@@ -97,12 +96,7 @@ func (s *TestLabelRepository) TestCreateLabelWithWrongColorCode() {
 
 func (s *TestLabelRepository) TestListLabelBySpace() {
 	n := 3
-	testFxt := tf.NewTestFixture(s.T(), s.DB,
-		tf.Labels(n, func(fxt *tf.TestFixture, idx int) error {
-			fxt.Labels[idx].Name = "Test Label #" + strconv.Itoa(idx)
-			return nil
-		}),
-	)
+	testFxt := tf.NewTestFixture(s.T(), s.DB, tf.Labels(n))
 
 	labelList, err := label.NewLabelRepository(s.DB).List(context.Background(), testFxt.Spaces[0].ID)
 	require.Nil(s.T(), err)
