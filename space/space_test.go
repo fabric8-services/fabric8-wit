@@ -13,7 +13,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 
-	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	tc "github.com/fabric8-services/fabric8-wit/test/testcontext"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -38,9 +38,8 @@ type repoBBTest struct {
 func (test *repoBBTest) SetupTest() {
 	test.repo = space.NewRepository(test.DB)
 	test.clean = cleaner.DeleteCreatedEntities(test.DB)
-	testIdentity, err := testsupport.CreateTestIdentity(test.DB, "WorkItemSuite setup user", "test provider")
-	require.Nil(test.T(), err)
-	test.testIdentity = *testIdentity
+	testCtx := tc.NewTestContext(test.T(), test.DB, tc.Identities(1))
+	test.testIdentity = *testCtx.Identities[0]
 }
 
 func (test *repoBBTest) TearDownTest() {
