@@ -205,10 +205,9 @@ func (s *TestIterationRepository) TestUpdateIteration() {
 
 	fxt := tf.NewTestFixture(s.T(), s.DB,
 		tf.Iterations(1,
+			tf.UserActive(false),
 			func(fxt *tf.TestFixture, idx int) error {
-				f := false
 				i := fxt.Iterations[idx]
-				i.UserActive = &f
 				i.Name = "Sprint #24"
 				i.StartAt = &start
 				i.EndAt = &end

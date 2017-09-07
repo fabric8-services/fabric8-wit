@@ -229,7 +229,21 @@ func WorkItemTypes(n int, fns ...CustomizeEntityCallback) RecipeFunction {
 //     WorkItemLinkCategories(1)
 // but with NewFixtureIsolated(), no other objects will be created.
 //
-// We automatically set the topology for each link type to be "tree".
+// We've created these helper functions that you should have a look at if you
+// want to implement your own re-usable customize-entity-callbacks:
+//     TopologyNetwork()
+//     TopologyDirectedNetwork()
+//     TopologyDependency()
+//     TopologyTree()
+//     Topology(topology string) // programmatically set the topology
+// The topology functions above are neat because you don't have to write a full
+// callback function yourself.
+//
+// By default a call to
+//     WorkItemLinkTypes(1)
+// equals
+//     WorkItemLinkTypes(1, TopologyTree())
+// because we automatically set the topology for each link type to be "tree".
 func WorkItemLinkTypes(n int, fns ...CustomizeEntityCallback) RecipeFunction {
 	return RecipeFunction(func(fxt *TestFixture) error {
 		fxt.checkCallbacks = append(fxt.checkCallbacks, func() error {

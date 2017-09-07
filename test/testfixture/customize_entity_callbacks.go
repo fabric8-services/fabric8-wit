@@ -1,5 +1,7 @@
 package testfixture
 
+import "github.com/fabric8-services/fabric8-wit/workitem/link"
+
 // A CustomizeEntityCallback acts as a generic callback to the various
 // recipe-functions (e.g. Identities(), Spaces(), etc.). The current test
 // fixture is given with the fxt argument and the position of the object that
@@ -42,6 +44,39 @@ package testfixture
 //          return errors.New("some test failure reason")
 //      }))
 type CustomizeEntityCallback func(fxt *TestFixture, idx int) error
+
+// Topology ensures that all created link types will have the given topology
+// type.
+func Topology(topology string) CustomizeEntityCallback {
+	return CustomizeEntityCallback(func(fxt *TestFixture, idx int) error {
+		fxt.WorkItemLinkTypes[idx].Topology = topology
+		return nil
+	})
+}
+
+// TopologyNetwork ensures that all created link types will have the "network"
+// topology type.
+func TopologyNetwork() CustomizeEntityCallback {
+	return Topology(link.TopologyNetwork)
+}
+
+// TopologyDirectedNetwork ensures that all created link types will have the
+// "directed network" topology type.
+func TopologyDirectedNetwork() CustomizeEntityCallback {
+	return Topology(link.TopologyDirectedNetwork)
+}
+
+// TopologyDependency ensures that all created link types will have the
+// "dependency" topology type.
+func TopologyDependency() CustomizeEntityCallback {
+	return Topology(link.TopologyDependency)
+}
+
+// TopologyTree ensures that all created link types will have the "tree"
+// topology type.
+func TopologyTree() CustomizeEntityCallback {
+	return Topology(link.TopologyTree)
+}
 
 // UserActive ensures that all created iterations have the given user activation
 // state
