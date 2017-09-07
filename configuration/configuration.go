@@ -7,6 +7,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -466,6 +467,9 @@ func (c *ConfigurationData) GetCacheControlUser() string {
 	return c.v.GetString(varCacheControlUser)
 }
 
+// use a mutex to prevent concurrent parsing
+var privateKeyParsingMutex sync.Mutex
+
 // GetTokenPrivateKey returns the private key (as set via config file or environment variable)
 // that is used to sign the authentication token.
 func (c *ConfigurationData) GetTokenPrivateKey() (*rsa.PrivateKey, error) {
@@ -473,24 +477,41 @@ func (c *ConfigurationData) GetTokenPrivateKey() (*rsa.PrivateKey, error) {
 		if !c.v.IsSet(varTokenPrivateKey) {
 			return nil, errors.Errorf("'token.privatekey' variable is not defined")
 		}
-		var err error
-		c.tokenPrivateKey, err = jwt.ParseRSAPrivateKeyFromPEM([]byte(c.v.GetString(varTokenPrivateKey)))
-		return c.tokenPrivateKey, err
+
+		// lock the mutex before parsing the key, so if another rountine is already parsing the key, then this one waits
+		privateKeyParsingMutex.Lock()
+		defer privateKeyParsingMutex.Unlock()
+		// at this point, we can avoid parsing *again* the key if it's not nil anymore
+		if c.tokenPrivateKey == nil {
+			var err error
+			c.tokenPrivateKey, err = jwt.ParseRSAPrivateKeyFromPEM([]byte(c.v.GetString(varTokenPrivateKey)))
+			return c.tokenPrivateKey, err
+		}
 	}
 	return c.tokenPrivateKey, nil
 
 }
 
+// use a mutex to prevent concurrent parsing
+var publicKeyParsingMutex sync.Mutex
+
 // GetTokenPublicKey returns the public key (as set via config file or environment variable)
 // that is used to decrypt the authentication token.
 func (c *ConfigurationData) GetTokenPublicKey() (*rsa.PublicKey, error) {
+	// lock before entering the block where key parsing will happen
 	if c.tokenPublicKey == nil {
 		if !c.v.IsSet(varTokenPublicKey) {
 			return nil, errors.Errorf("'token.publickey' variable is not defined")
 		}
-		var err error
-		c.tokenPublicKey, err = jwt.ParseRSAPublicKeyFromPEM([]byte(c.v.GetString(varTokenPublicKey)))
-		return c.tokenPublicKey, err
+		// lock the mutex before parsing the key, so if another rountine is already parsing the key, then this one waits
+		publicKeyParsingMutex.Lock()
+		defer publicKeyParsingMutex.Unlock()
+		// at this point, we can avoid parsing *again* the key if it's not nil anymore
+		if c.tokenPrivateKey == nil {
+			var err error
+			c.tokenPublicKey, err = jwt.ParseRSAPublicKeyFromPEM([]byte(c.v.GetString(varTokenPublicKey)))
+			return c.tokenPublicKey, err
+		}
 	}
 	return c.tokenPublicKey, nil
 }
