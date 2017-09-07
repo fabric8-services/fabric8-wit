@@ -3,15 +3,19 @@ package label_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/fabric8-services/fabric8-wit/account"
+	errs "github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/label"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -56,4 +60,60 @@ func (s *TestLabelRepository) TestCreateLabel() {
 	require.NotEqual(s.T(), uuid.Nil, l.ID)
 	require.Equal(s.T(), "#000000", l.TextColor)
 	require.Equal(s.T(), "#FFFFFF", l.BackgroundColor)
+	require.False(s.T(), l.CreatedAt.After(time.Now()), "Label was not created, CreatedAt after Now()")
+}
+
+func (s *TestLabelRepository) TestCreateLabelWithSameName() {
+	repo := label.NewLabelRepository(s.DB)
+	newSpace := space.Space{
+		Name:    "Space 1 " + uuid.NewV4().String(),
+		OwnerId: s.testIdentity.ID,
+	}
+	repoSpace := space.NewRepository(s.DB)
+	space, err := repoSpace.Create(context.Background(), &newSpace)
+	require.Nil(s.T(), err)
+	name := "TestCreateLabel"
+	l := label.Label{
+		SpaceID: space.ID,
+		Name:    name,
+	}
+	repo.Create(context.Background(), &l)
+	require.NotEqual(s.T(), uuid.Nil, l.ID)
+	require.Equal(s.T(), "#000000", l.TextColor)
+	require.Equal(s.T(), "#FFFFFF", l.BackgroundColor)
+	require.False(s.T(), l.CreatedAt.After(time.Now()), "Label was not created, CreatedAt after Now()")
+
+	err = repo.Create(context.Background(), &l)
+	require.NotNil(s.T(), err)
+	_, ok := errors.Cause(err).(errs.DataConflictError)
+	assert.True(s.T(), ok)
+}
+
+func (s *TestLabelRepository) TestCreateLabelWithWrongColorCode() {
+	repo := label.NewLabelRepository(s.DB)
+	newSpace := space.Space{
+		Name:    "Space 1 " + uuid.NewV4().String(),
+		OwnerId: s.testIdentity.ID,
+	}
+	repoSpace := space.NewRepository(s.DB)
+	space, err := repoSpace.Create(context.Background(), &newSpace)
+	require.Nil(s.T(), err)
+	name := "TestCreateLabel"
+	l := label.Label{
+		SpaceID:   space.ID,
+		Name:      name,
+		TextColor: "#yyppww",
+	}
+	err = repo.Create(context.Background(), &l)
+	require.NotNil(s.T(), err)
+	assert.Contains(s.T(), err.Error(), "labels_text_color_check")
+
+	l2 := label.Label{
+		SpaceID:         space.ID,
+		Name:            name,
+		BackgroundColor: "#yyppww",
+	}
+	err = repo.Create(context.Background(), &l2)
+	require.NotNil(s.T(), err)
+	assert.Contains(s.T(), err.Error(), "labels_background_color_check")
 }
