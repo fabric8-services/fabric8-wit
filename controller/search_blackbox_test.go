@@ -1064,15 +1064,15 @@ func (s *searchBlackBoxTest) TestIncludedParents() {
 			successCnt++
 		}
 		if *wi.ID == parentWI1.ID {
-			require.Equal(s.T(), parentWI0.ID.String(), *wi.Relationships.Parent.Data.ID)
+			require.Equal(s.T(), parentWI0.ID, wi.Relationships.Parent.Data.ID)
 			successCnt++
 		}
 		if *wi.ID == childWI.ID {
-			require.Equal(s.T(), parentWI1.ID.String(), *wi.Relationships.Parent.Data.ID)
+			require.Equal(s.T(), parentWI1.ID, wi.Relationships.Parent.Data.ID)
 			successCnt++
 		}
 		if *wi.ID == childWI2.ID {
-			require.Equal(s.T(), parentWI0.ID.String(), *wi.Relationships.Parent.Data.ID)
+			require.Equal(s.T(), parentWI0.ID, wi.Relationships.Parent.Data.ID)
 			successCnt++
 		}
 	}

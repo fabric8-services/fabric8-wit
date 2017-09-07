@@ -581,16 +581,14 @@ func includeParentWorkItem(ctx context.Context, appl application.Application) Wo
 			}
 		}
 		if wi2.Relationships.Parent == nil {
-			wi2.Relationships.Parent = &app.RelationGeneric{}
+			wi2.Relationships.Parent = &app.RelationKindUUID{}
 		}
 		if parentID != nil {
 			if wi2.Relationships.Parent.Data == nil {
-				wi2.Relationships.Parent.Data = &app.GenericData{}
+				wi2.Relationships.Parent.Data = &app.DataKindUUID{}
 			}
-			parentIDStr := parentID.String()
-			wi2.Relationships.Parent.Data.ID = &parentIDStr
-			typeStr := APIStringTypeWorkItem
-			wi2.Relationships.Parent.Data.Type = &typeStr
+			wi2.Relationships.Parent.Data.ID = *parentID
+			wi2.Relationships.Parent.Data.Type = APIStringTypeWorkItem
 		}
 	}
 }

@@ -252,21 +252,14 @@ func (c *SearchController) Users(ctx *app.UsersSearchContext) error {
 // Fetch and load Parent WI in the included list
 func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, res *app.SearchWorkItemList) {
 	// Need a map of string to UUID to prevent duplicates in place.
-	visitedIDs := map[string]uuid.UUID{}
+	visitedIDs := map[uuid.UUID]struct{}{}
 	fetchInBatch := []uuid.UUID{}
 	for _, wi := range res.Data {
 		if wi.Relationships != nil && wi.Relationships.Parent != nil && wi.Relationships.Parent.Data != nil {
-			parentIDStr := *wi.Relationships.Parent.Data.ID
-			if _, exist := visitedIDs[parentIDStr]; !exist {
-				id, err := uuid.FromString(parentIDStr)
-				if err != nil {
-					log.Error(ctx, map[string]interface{}{
-						"wi_id": parentIDStr,
-						"err":   err,
-					}, "parent ID is invalid UUID: %s", parentIDStr)
-				}
-				visitedIDs[parentIDStr] = id            // this helps to keep elemtns distinct
-				fetchInBatch = append(fetchInBatch, id) // this helps to fetch WI in batch
+			parentID := wi.Relationships.Parent.Data.ID
+			if _, exist := visitedIDs[parentID]; !exist {
+				visitedIDs[parentID] = struct{}{}             // this helps to keep elemtns distinct
+				fetchInBatch = append(fetchInBatch, parentID) // this helps to fetch WI in batch
 			}
 		}
 	}
