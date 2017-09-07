@@ -11,6 +11,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/goadesign/goa"
+	uuid "github.com/satori/go.uuid"
 )
 
 // LabelController implements the label resource.
@@ -36,7 +37,21 @@ func NewLabelController(service *goa.Service, db application.DB, config LabelCon
 
 // Show retrieve a single label
 func (c *LabelController) Show(ctx *app.ShowLabelContext) error {
-	return nil
+	id, err := uuid.FromString(ctx.ID)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+	}
+
+	return application.Transactional(c.db, func(appl application.Application) error {
+		lbl, err := appl.Labels().Load(ctx, ctx.SpaceID, id)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		res := &app.LabelSingle{
+			Data: ConvertLabel(appl, ctx.Request, *lbl),
+		}
+		return ctx.OK(res)
+	})
 }
 
 // Create runs the create action.
