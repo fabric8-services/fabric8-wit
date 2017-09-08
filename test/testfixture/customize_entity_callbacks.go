@@ -47,34 +47,34 @@ type CustomizeEntityCallback func(fxt *TestFixture, idx int) error
 
 // Topology ensures that all created link types will have the given topology
 // type.
-func Topology(topology string) CustomizeEntityCallback {
-	return CustomizeEntityCallback(func(fxt *TestFixture, idx int) error {
+func Topology(topology string) CustomizeWorkItemLinkTypeCallback {
+	return func(fxt *TestFixture, idx int) error {
 		fxt.WorkItemLinkTypes[idx].Topology = topology
 		return nil
-	})
+	}
 }
 
 // TopologyNetwork ensures that all created link types will have the "network"
 // topology type.
-func TopologyNetwork() CustomizeEntityCallback {
+func TopologyNetwork() CustomizeWorkItemLinkTypeCallback {
 	return Topology(link.TopologyNetwork)
 }
 
 // TopologyDirectedNetwork ensures that all created link types will have the
 // "directed network" topology type.
-func TopologyDirectedNetwork() CustomizeEntityCallback {
+func TopologyDirectedNetwork() CustomizeWorkItemLinkTypeCallback {
 	return Topology(link.TopologyDirectedNetwork)
 }
 
 // TopologyDependency ensures that all created link types will have the
 // "dependency" topology type.
-func TopologyDependency() CustomizeEntityCallback {
+func TopologyDependency() CustomizeWorkItemLinkTypeCallback {
 	return Topology(link.TopologyDependency)
 }
 
 // TopologyTree ensures that all created link types will have the "tree"
 // topology type.
-func TopologyTree() CustomizeEntityCallback {
+func TopologyTree() CustomizeWorkItemLinkTypeCallback {
 	return Topology(link.TopologyTree)
 }
 
