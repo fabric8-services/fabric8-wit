@@ -90,18 +90,16 @@ func (mgm tokenManager) PublicKey() *rsa.PublicKey {
 }
 
 // ParsePublicKey parses a []byte representation of a public key into a rsa.PublicKey instance
-func ParsePublicKey(key []byte) (*rsa.PublicKey, error) {
+func parsePublicKey(key []byte) (*rsa.PublicKey, error) {
 	return jwt.ParseRSAPublicKeyFromPEM(key)
 }
 
 // ParsePrivateKey parses a []byte representation of a private key into a rsa.PrivateKey instance
-func ParsePrivateKey(key []byte) (*rsa.PrivateKey, error) {
+func parsePrivateKey(key []byte) (*rsa.PrivateKey, error) {
 	return jwt.ParseRSAPrivateKeyFromPEM(key)
 }
 
-// RSAPrivateKey for signing JWT Tokens
-// ssh-keygen -f wit_rsa
-var RSAPrivateKey = `-----BEGIN RSA PRIVATE KEY-----
+var privateKey = `-----BEGIN RSA PRIVATE KEY-----
 MIIEpQIBAAKCAQEAnwrjH5iTSErw9xUptp6QSFoUfpHUXZ+PaslYSUrpLjw1q27O
 DSFwmhV4+dAaTMO5chFv/kM36H3ZOyA146nwxBobS723okFaIkshRrf6qgtD6coT
 HlVUSBTAcwKEjNn4C9jtEpyOl+eSgxhMzRH3bwTIFlLlVMiZf7XVE7P3yuOCpqkk
@@ -129,9 +127,13 @@ BA/cKaLPqUF+08Tz/9MPBw51UH4GYfppA/x0ktc8998984FeIpfIFX6I2U9yUnoQ
 OCCAgsB8g8yTB4qntAYyfofEoDiseKrngQT5DSdxd51A/jw7B8WyBK8=
 -----END RSA PRIVATE KEY-----`
 
-// RSAPublicKey for verifying JWT Tokens
-// openssl rsa -in wit_rsa -pubout -out wit_rsa.pub
-var RSAPublicKey = `-----BEGIN PUBLIC KEY-----
+// RSAPrivateKey returns the key used to sign JWT Tokens
+// ssh-keygen -f wit_rsa
+func RSAPrivateKey() (*rsa.PrivateKey, error) {
+	return parsePrivateKey([]byte(privateKey))
+}
+
+var publicKey = `-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAiRd6pdNjiwQFH2xmNugn
 TkVhkF+TdJw19Kpj3nRtsoUe4/6gIureVi7FWqcb+2t/E0dv8rAAs6vl+d7roz3R
 SkAzBjPxVW5+hi5AJjUbAxtFX/aYJpZePVhK0Dv8StCPSv9GC3T6bUSF3q3E9R9n
@@ -140,3 +142,9 @@ G1SZFkN9m2DhL+45us4THzX2eau6s0bISjAUqEGNifPyYYUzKVmXmHS9fiZJR61h
 JXdQ7zylRlpaLopock0FGiZrJhEaAh6BGuaoUWLiMEvqrLuyZnJYEg9f/vyxUJSD
 JwIDAQAB
 -----END PUBLIC KEY-----`
+
+// RSAPublicKey returns the key used to verify JWT Tokens
+// openssl rsa -in wit_rsa -pubout -out wit_rsa.pub
+func RSAPublicKey() (*rsa.PublicKey, error) {
+	return parsePublicKey([]byte(publicKey))
+}

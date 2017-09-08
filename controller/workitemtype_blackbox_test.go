@@ -72,7 +72,7 @@ func (s *workItemTypeSuite) SetupSuite() {
 // The SetupTest method will be run before every test in the suite.
 func (s *workItemTypeSuite) SetupTest() {
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, _ := wittoken.RSAPrivateKey()
 	idn := &account.Identity{
 		ID:           uuid.Nil,
 		Username:     "TestDeveloper",
@@ -264,7 +264,7 @@ func (s *workItemTypeSuite) TestCreateByNotOwnerForbidden() {
 	defer resetFn()
 
 	s.T().Run("forbidden", func(t *testing.T) {
-		priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+		priv, _ := wittoken.RSAPrivateKey()
 		idn := &account.Identity{
 			ID:           uuid.NewV4(),
 			Username:     "TestDeveloper",
@@ -590,7 +590,7 @@ func (s *workItemTypeSuite) TestUnauthorizeWorkItemTypeCreate() {
 }
 
 func (s *workItemTypeSuite) getWorkItemTypeTestDataFunc() func(*testing.T) []testSecureAPI {
-	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((s.Configuration.GetTokenPrivateKey()))
+	privatekey, err := s.Configuration.GetTokenPrivateKey()
 	return func(t *testing.T) []testSecureAPI {
 		if err != nil {
 			t.Fatal("Could not parse Key ", err)
