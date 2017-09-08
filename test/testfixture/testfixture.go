@@ -28,7 +28,7 @@ type TestFixture struct {
 	db               *gorm.DB
 	isolatedCreation bool
 	ctx              context.Context
-	checkCallbacks   []func() error
+	checkFuncs       []func() error
 
 	Identities             []*account.Identity          // Itentities (if any) that were created for this test fixture.
 	Iterations             []*iteration.Iteration       // Iterations (if any) that were created for this test fixture.
@@ -127,7 +127,7 @@ func NewFixtureIsolated(db *gorm.DB, setupFuncs ...RecipeFunction) (*TestFixture
 // so if you don't mess with the fixture after it was created, there's no need
 // to call Check() again.
 func (fxt *TestFixture) Check() error {
-	for _, fn := range fxt.checkCallbacks {
+	for _, fn := range fxt.checkFuncs {
 		if err := fn(); err != nil {
 			return errs.Wrap(err, "check function failed")
 		}
@@ -152,15 +152,15 @@ const (
 )
 
 type createInfo struct {
-	numInstances             int
-	customizeEntityCallbacks []CustomizeEntityCallback
+	numInstances         int
+	customizeEntityFuncs []CustomizeEntityFunc
 }
 
-func (fxt *TestFixture) runCustomizeEntityCallbacks(idx int, k kind) error {
+func (fxt *TestFixture) runCustomizeEntityFuncs(idx int, k kind) error {
 	if fxt.info[k] == nil {
 		return errs.Errorf("the creation info for kind %s is nil (this should not happen)", k)
 	}
-	for _, dfn := range fxt.info[k].customizeEntityCallbacks {
+	for _, dfn := range fxt.info[k].customizeEntityFuncs {
 		if err := dfn(fxt, idx); err != nil {
 			return errs.Wrapf(err, "failed to run customize-entity-callbacks for kind %s", k)
 		}
@@ -168,7 +168,7 @@ func (fxt *TestFixture) runCustomizeEntityCallbacks(idx int, k kind) error {
 	return nil
 }
 
-func (fxt *TestFixture) setupInfo(n int, k kind, fns ...CustomizeEntityCallback) error {
+func (fxt *TestFixture) setupInfo(n int, k kind, fns ...CustomizeEntityFunc) error {
 	if n <= 0 {
 		return errs.Errorf("the number of objects to create must always be greater than zero: %d", n)
 	}
@@ -180,13 +180,13 @@ func (fxt *TestFixture) setupInfo(n int, k kind, fns ...CustomizeEntityCallback)
 		maxN = fxt.info[k].numInstances
 	}
 	fxt.info[k].numInstances = maxN
-	fxt.info[k].customizeEntityCallbacks = append(fxt.info[k].customizeEntityCallbacks, fns...)
+	fxt.info[k].customizeEntityFuncs = append(fxt.info[k].customizeEntityFuncs, fns...)
 	return nil
 }
 
 func newFixture(db *gorm.DB, isolatedCreation bool, recipeFuncs ...RecipeFunction) (*TestFixture, error) {
 	fxt := TestFixture{
-		checkCallbacks:   []func() error{},
+		checkFuncs:       []func() error{},
 		info:             map[kind]*createInfo{},
 		db:               db,
 		isolatedCreation: isolatedCreation,
