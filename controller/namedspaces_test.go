@@ -38,7 +38,7 @@ func (rest *TestNamedSpaceREST) TearDownTest() {
 }
 
 func (rest *TestNamedSpaceREST) SecuredNamedSpaceController(identity account.Identity) (*goa.Service, *NamedspacesController) {
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, _ := wittoken.RSAPrivateKey()
 
 	svc := testsupport.ServiceAsUser("NamedSpace-Service", wittoken.NewManagerWithPrivateKey(priv), identity)
 	return svc, NewNamedspacesController(svc, rest.db)
@@ -50,7 +50,7 @@ func (rest *TestNamedSpaceREST) UnSecuredNamedSpaceController() (*goa.Service, *
 }
 
 func (rest *TestNamedSpaceREST) SecuredSpaceController() (*goa.Service, *SpaceController) {
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, _ := wittoken.RSAPrivateKey()
 
 	svc := testsupport.ServiceAsUser("Space-Service", wittoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
 	return svc, NewSpaceController(svc, rest.db, rest.Configuration, &DummyResourceManager{})

@@ -58,14 +58,14 @@ func (rest *TestLoginREST) TearDownTest() {
 }
 
 func (rest *TestLoginREST) UnSecuredController() (*goa.Service, *LoginController) {
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, _ := wittoken.RSAPrivateKey()
 	identityRepository := account.NewIdentityRepository(rest.DB)
 	svc := testsupport.ServiceAsUser("Login-Service", wittoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
 	return svc, &LoginController{Controller: svc.NewController("login"), auth: TestLoginService{}, configuration: rest.Configuration, identityRepository: identityRepository}
 }
 
 func (rest *TestLoginREST) SecuredController() (*goa.Service, *LoginController) {
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, _ := wittoken.RSAPrivateKey()
 
 	identityRepository := account.NewIdentityRepository(rest.DB)
 
@@ -74,7 +74,7 @@ func (rest *TestLoginREST) SecuredController() (*goa.Service, *LoginController) 
 }
 
 func (rest *TestLoginREST) newTestKeycloakOAuthProvider(db application.DB) *login.KeycloakOAuthProvider {
-	publicKey, err := token.ParsePublicKey([]byte(rest.configuration.GetTokenPublicKey()))
+	publicKey, err := rest.configuration.GetTokenPublicKey()
 	require.Nil(rest.T(), err)
 	tokenManager := token.NewManager(publicKey)
 	return login.NewKeycloakOAuthProvider(db.Identities(), db.Users(), tokenManager, db)
