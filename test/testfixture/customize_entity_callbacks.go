@@ -77,3 +77,12 @@ func TopologyDependency() CustomizeEntityCallback {
 func TopologyTree() CustomizeEntityCallback {
 	return Topology(link.TopologyTree)
 }
+
+// UserActive ensures that all created iterations have the given user activation
+// state
+func UserActive(active bool) CustomizeEntityCallback {
+	return CustomizeEntityCallback(func(fxt *TestFixture, idx int) error {
+		fxt.Iterations[idx].UserActive = &active
+		return nil
+	})
+}
