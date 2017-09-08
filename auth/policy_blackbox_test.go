@@ -28,7 +28,7 @@ type TestPolicySuite struct {
 }
 
 func (s *TestPolicySuite) SetupSuite() {
-	s.policyManager = auth.NewKeycloakPolicyManager(configuration)
+	s.policyManager = auth.NewKeycloakPolicyManager(config)
 }
 
 func (s *TestPolicySuite) TearDownSuite() {
@@ -52,7 +52,7 @@ func (s *TestPolicySuite) TestGetPolicyOK() {
 
 func (s *TestPolicySuite) TestUpdatePolicyOK() {
 	policy, policyID := createPermissionWithPolicy(s)
-	secondTestUserID := getUserID(s.T(), configuration.GetKeycloakTestUser2Name(), configuration.GetKeycloakTestUser2Secret())
+	secondTestUserID := getUserID(s.T(), config.GetKeycloakTestUser2Name(), config.GetKeycloakTestUser2Secret())
 	policy.RemoveUserFromPolicy(secondTestUserID)
 	policy.ID = &policyID
 	r := &http.Request{Host: "domain.io"}

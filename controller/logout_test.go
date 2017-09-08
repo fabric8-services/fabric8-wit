@@ -36,7 +36,7 @@ func (rest *TestLogoutREST) TearDownTest() {
 }
 
 func (rest *TestLogoutREST) UnSecuredController() (*goa.Service, *LogoutController) {
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, _ := wittoken.RSAPrivateKey()
 
 	svc := testsupport.ServiceAsUser("Logout-Service", wittoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
 	return svc, &LogoutController{Controller: svc.NewController("logout"), logoutService: &login.KeycloakLogoutService{}, configuration: rest.configuration}

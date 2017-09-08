@@ -80,7 +80,7 @@ func (s *TestAuthzSuite) TestUserIsNotAmongSpaceCollaboratorsFails() {
 func (s *TestAuthzSuite) checkPermissions(authzPayload auth.AuthorizationPayload, spaceID string) bool {
 	resource := &space.Resource{}
 	authzService := authz.NewAuthzService(s.configuration, &db{app{resource: resource}})
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, _ := wittoken.RSAPrivateKey()
 	testIdentity := testsupport.TestIdentity
 	svc := testsupport.ServiceAsUserWithAuthz("SpaceAuthz-Service", wittoken.NewManagerWithPrivateKey(priv), priv, testIdentity, authzPayload)
 	resource.UpdatedAt = time.Now()

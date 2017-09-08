@@ -11,7 +11,6 @@ import (
 
 	"time"
 
-	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/satori/go.uuid"
@@ -195,11 +194,7 @@ func TestGetTokenPrivateKeyFromConfigFile(t *testing.T) {
 
 	resetConfiguration(defaultConfigFilePath)
 	// env variable NOT set, so we check with config.yaml's value
-
-	viperValue := config.GetTokenPrivateKey()
-	assert.NotNil(t, viperValue)
-
-	parsedKey, err := jwt.ParseRSAPrivateKeyFromPEM(viperValue)
+	parsedKey, err := config.GetTokenPrivateKey()
 	require.Nil(t, err)
 	assert.NotNil(t, parsedKey)
 }
@@ -219,10 +214,7 @@ func TestGetTokenPublicKeyFromConfigFile(t *testing.T) {
 
 	// env variable is now unset for sure, this will lead to the test looking up for
 	// value in config.yaml
-	viperValue := config.GetTokenPublicKey()
-	assert.NotNil(t, viperValue)
-
-	parsedKey, err := jwt.ParseRSAPublicKeyFromPEM(viperValue)
+	parsedKey, err := config.GetTokenPublicKey()
 	require.Nil(t, err)
 	assert.NotNil(t, parsedKey)
 }
