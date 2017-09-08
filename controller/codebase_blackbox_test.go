@@ -56,7 +56,7 @@ func (s *TestCodebaseREST) UnsecuredController() (*goa.Service, *CodebaseControl
 }
 
 func (s *TestCodebaseREST) SecuredControllers(identity account.Identity) (*goa.Service, *CodebaseController) {
-	pub, _ := wittoken.ParsePublicKey([]byte(wittoken.RSAPublicKey))
+	pub, _ := wittoken.RSAPublicKey()
 
 	svc := testsupport.ServiceAsUser("Codebase-Service", wittoken.NewManager(pub), identity)
 	return svc, controller.NewCodebaseController(svc, s.db, s.Configuration)

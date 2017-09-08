@@ -52,8 +52,8 @@ func (rest *TestSpaceCodebaseREST) TearDownTest() {
 }
 
 func (rest *TestSpaceCodebaseREST) SecuredController() (*goa.Service, *SpaceCodebasesController) {
-	pub, _ := wittoken.ParsePublicKey([]byte(wittoken.RSAPublicKey))
-	//priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	pub, _ := wittoken.RSAPublicKey()
+	//priv, _ := wittoken.RSAPrivateKey()
 
 	svc := testsupport.ServiceAsUser("SpaceCodebase-Service", wittoken.NewManager(pub), testsupport.TestIdentity)
 	return svc, NewSpaceCodebasesController(svc, rest.db)

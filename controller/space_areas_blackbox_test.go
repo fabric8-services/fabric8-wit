@@ -53,19 +53,19 @@ func (rest *TestSpaceAreaREST) TearDownTest() {
 }
 
 func (rest *TestSpaceAreaREST) SecuredController() (*goa.Service, *SpaceAreasController) {
-	pub, _ := wittoken.ParsePublicKey([]byte(wittoken.RSAPublicKey))
+	pub, _ := wittoken.RSAPublicKey()
 	svc := testsupport.ServiceAsUser("Space-Area-Service", wittoken.NewManager(pub), testsupport.TestIdentity)
 	return svc, NewSpaceAreasController(svc, rest.db, rest.Configuration)
 }
 
 func (rest *TestSpaceAreaREST) SecuredAreasController() (*goa.Service, *AreaController) {
-	pub, _ := wittoken.ParsePublicKey([]byte(wittoken.RSAPublicKey))
+	pub, _ := wittoken.RSAPublicKey()
 	svc := testsupport.ServiceAsUser("Area-Service", wittoken.NewManager(pub), testsupport.TestIdentity)
 	return svc, NewAreaController(svc, rest.db, rest.Configuration)
 }
 
 func (rest *TestSpaceAreaREST) SecuredAreasControllerWithIdentity(idn *account.Identity) (*goa.Service, *AreaController) {
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, _ := wittoken.RSAPrivateKey()
 	svc := testsupport.ServiceAsUser("Area-Service-With-Identity", wittoken.NewManagerWithPrivateKey(priv), *idn)
 	return svc, NewAreaController(svc, rest.db, rest.Configuration)
 }
