@@ -5,7 +5,7 @@ import (
 )
 
 // A RecipeFunction tells the test fixture to create n objects of a given kind.
-// You can pass in customize-entity-callbacks in order to manipulate the objects
+// You can pass in customize-entity-functions in order to manipulate the objects
 // before they get created.
 type RecipeFunction func(fxt *TestFixture) error
 
@@ -29,7 +29,7 @@ type CustomizeIdentityFunc func(fxt *TestFixture, idx int) error
 // Identities tells the test fixture to create at least n identity objects.
 //
 // If called multiple times with differently n's, the biggest n wins. All
-// customize-entitiy-callbacks fns from all calls will be respected when
+// customize-entitiy-functions fns from all calls will be respected when
 // creating the test fixture.
 //
 // Here's an example how you can create 42 identites and give them a numbered
@@ -309,14 +309,14 @@ type CustomizeWorkItemLinkTypeFunc func(fxt *TestFixture, idx int) error
 // but with NewFixtureIsolated(), no other objects will be created.
 //
 // We've created these helper functions that you should have a look at if you
-// want to implement your own re-usable customize-entity-callbacks:
+// want to implement your own re-usable customize-entity-functions:
 //     TopologyNetwork()
 //     TopologyDirectedNetwork()
 //     TopologyDependency()
 //     TopologyTree()
 //     Topology(topology string) // programmatically set the topology
 // The topology functions above are neat because you don't have to write a full
-// callback function yourself.
+// function function yourself.
 //
 // By default a call to
 //     WorkItemLinkTypes(1)
@@ -388,7 +388,7 @@ type CustomizeWorkItemLinkFunc func(fxt *TestFixture, idx int) error
 //
 // Notice, that we will create two times the number of work items of your
 // requested links. The way those links will be created can for sure be
-// influenced using a customize-entity-callback; but by default we create each
+// influenced using a customize-entity-function; but by default we create each
 // link between two distinct work items. That means, no link will include the
 // same work item.
 func WorkItemLinks(n int, fns ...CustomizeWorkItemLinkFunc) RecipeFunction {
