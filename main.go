@@ -297,7 +297,7 @@ func main() {
 	app.MountUsersController(service, usersCtrl)
 
 	// Mount "labels" controller
-	labelCtrl := controller.NewLabelController(service, appDB, configuration)
+	labelCtrl := controller.NewLabelController(service, appDB, config)
 	app.MountLabelController(service, labelCtrl)
 
 	// Mount "iterations" controller

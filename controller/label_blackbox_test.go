@@ -50,7 +50,7 @@ func (rest *TestLabelREST) TestCreateLabel() {
 	i, err := tf.NewFixture(rest.DB, tf.Identities(1))
 	require.Nil(rest.T(), err)
 	require.Nil(rest.T(), c.Check())
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, _ := wittoken.RSAPrivateKey()
 	svc := testsupport.ServiceAsUser("Label-Service", wittoken.NewManagerWithPrivateKey(priv), *i.Identities[0])
 
 	ctrl := NewLabelController(svc, rest.db, rest.Configuration)
@@ -74,7 +74,7 @@ func (rest *TestLabelREST) TestListLabel() {
 	i, err := tf.NewFixture(rest.DB, tf.Identities(1))
 	require.Nil(rest.T(), err)
 	require.Nil(rest.T(), c.Check())
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, _ := wittoken.RSAPrivateKey()
 	svc := testsupport.ServiceAsUser("Label-Service", wittoken.NewManagerWithPrivateKey(priv), *i.Identities[0])
 
 	ctrl := NewLabelController(svc, rest.db, rest.Configuration)
