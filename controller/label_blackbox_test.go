@@ -117,3 +117,17 @@ func (rest *TestLabelREST) TestListLabel() {
 	require.NotEmpty(rest.T(), labels2.Data, "labels found")
 	require.Len(rest.T(), labels2.Data, 1)
 }
+
+func (rest *TestLabelREST) TestShowLabel() {
+	testFxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Labels(1))
+	i, err := tf.NewFixture(rest.DB, tf.Identities(1))
+	require.Nil(rest.T(), err)
+	priv, _ := wittoken.RSAPrivateKey()
+	svc := testsupport.ServiceAsUser("Label-Service", wittoken.NewManagerWithPrivateKey(priv), *i.Identities[0])
+
+	ctrl := NewLabelController(svc, rest.db, rest.Configuration)
+
+	_, labels2 := test.ShowLabelOK(rest.T(), svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Labels[0].ID.String(), nil, nil)
+	require.NotEmpty(rest.T(), labels2.Data, "labels found")
+	assert.Equal(rest.T(), testFxt.Labels[0].Name, labels2.Data.Attributes.Name)
+}
