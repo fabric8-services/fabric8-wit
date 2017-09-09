@@ -29,7 +29,7 @@ func makeIdentities(fxt *TestFixture) error {
 			Username:     testsupport.CreateRandomValidTestName("John Doe "),
 			ProviderType: "test provider",
 		}
-		if err := fxt.runCustomizeEntityCallbacks(i, kindIdentities); err != nil {
+		if err := fxt.runCustomizeEntityFuncs(i, kindIdentities); err != nil {
 			return err
 		}
 		err := testsupport.CreateTestIdentityForAccountIdentity(fxt.db, fxt.Identities[i])
@@ -52,7 +52,7 @@ func makeWorkItemLinkCategories(fxt *TestFixture) error {
 			Name:        testsupport.CreateRandomValidTestName("link category "),
 			Description: &desc,
 		}
-		fxt.runCustomizeEntityCallbacks(i, kindWorkItemLinkCategories)
+		fxt.runCustomizeEntityFuncs(i, kindWorkItemLinkCategories)
 		_, err := wilcRepo.Create(fxt.ctx, fxt.WorkItemLinkCategories[i])
 		if err != nil {
 			return errs.Wrapf(err, "failed to create work item link category: %+v", fxt.WorkItemLinkCategories[i])
@@ -75,7 +75,7 @@ func makeSpaces(fxt *TestFixture) error {
 		if !fxt.isolatedCreation {
 			fxt.Spaces[i].OwnerId = fxt.Identities[0].ID
 		}
-		fxt.runCustomizeEntityCallbacks(i, kindSpaces)
+		fxt.runCustomizeEntityFuncs(i, kindSpaces)
 		if fxt.isolatedCreation {
 			if fxt.Spaces[i].OwnerId == uuid.Nil {
 				return errs.New("you must specify an owner ID for each space")
@@ -108,7 +108,7 @@ func makeWorkItemLinkTypes(fxt *TestFixture) error {
 			fxt.WorkItemLinkTypes[i].SpaceID = fxt.Spaces[0].ID
 			fxt.WorkItemLinkTypes[i].LinkCategoryID = fxt.WorkItemLinkCategories[0].ID
 		}
-		fxt.runCustomizeEntityCallbacks(i, kindWorkItemLinkTypes)
+		fxt.runCustomizeEntityFuncs(i, kindWorkItemLinkTypes)
 		if fxt.isolatedCreation {
 			if fxt.WorkItemLinkTypes[i].SpaceID == uuid.Nil {
 				return errs.New("you must specify a space for each work item link type")
@@ -142,7 +142,7 @@ func makeIterations(fxt *TestFixture) error {
 		if !fxt.isolatedCreation {
 			fxt.Iterations[i].SpaceID = fxt.Spaces[0].ID
 		}
-		fxt.runCustomizeEntityCallbacks(i, kindIterations)
+		fxt.runCustomizeEntityFuncs(i, kindIterations)
 		if fxt.isolatedCreation {
 			if fxt.Iterations[i].SpaceID == uuid.Nil {
 				return errs.New("you must specify a space ID for each iteration")
@@ -171,7 +171,7 @@ func makeAreas(fxt *TestFixture) error {
 		if !fxt.isolatedCreation {
 			fxt.Areas[i].SpaceID = fxt.Spaces[0].ID
 		}
-		fxt.runCustomizeEntityCallbacks(i, kindAreas)
+		fxt.runCustomizeEntityFuncs(i, kindAreas)
 		if fxt.isolatedCreation {
 			if fxt.Areas[i].SpaceID == uuid.Nil {
 				return errs.New("you must specify a space ID for each area")
@@ -202,7 +202,7 @@ func makeCodebases(fxt *TestFixture) error {
 		if !fxt.isolatedCreation {
 			fxt.Codebases[i].SpaceID = fxt.Spaces[0].ID
 		}
-		fxt.runCustomizeEntityCallbacks(i, kindCodebases)
+		fxt.runCustomizeEntityFuncs(i, kindCodebases)
 		if fxt.isolatedCreation {
 			if fxt.Codebases[i].SpaceID == uuid.Nil {
 				return errs.New("you must specify a space ID for each codebase")
@@ -269,7 +269,7 @@ func makeWorkItemTypes(fxt *TestFixture) error {
 		if !fxt.isolatedCreation {
 			fxt.WorkItemTypes[i].SpaceID = fxt.Spaces[0].ID
 		}
-		fxt.runCustomizeEntityCallbacks(i, kindWorkItemTypes)
+		fxt.runCustomizeEntityFuncs(i, kindWorkItemTypes)
 		if fxt.isolatedCreation {
 			if fxt.WorkItemTypes[i].SpaceID == uuid.Nil {
 				return errs.New("you must specify a space ID for each work item type")
@@ -301,7 +301,7 @@ func makeWorkItems(fxt *TestFixture) error {
 			fxt.WorkItems[i].Type = fxt.WorkItemTypes[0].ID
 			fxt.WorkItems[i].Fields[workitem.SystemCreator] = fxt.Identities[0].ID.String()
 		}
-		fxt.runCustomizeEntityCallbacks(i, kindWorkItems)
+		fxt.runCustomizeEntityFuncs(i, kindWorkItems)
 		if fxt.isolatedCreation {
 			if fxt.WorkItems[i].SpaceID == uuid.Nil {
 				return errs.New("you must specify a space ID for each work item")
@@ -347,7 +347,7 @@ func makeWorkItemLinks(fxt *TestFixture) error {
 			fxt.WorkItemLinks[i].SourceID = fxt.WorkItems[2*i].ID
 			fxt.WorkItemLinks[i].TargetID = fxt.WorkItems[2*i+1].ID
 		}
-		fxt.runCustomizeEntityCallbacks(i, kindWorkItemLinks)
+		fxt.runCustomizeEntityFuncs(i, kindWorkItemLinks)
 		if fxt.isolatedCreation {
 			if fxt.WorkItemLinks[i].LinkTypeID == uuid.Nil {
 				return errs.New("you must specify a work item link type for each work item link")
@@ -403,7 +403,7 @@ func makeComments(fxt *TestFixture) error {
 			fxt.Comments[i].ParentID = fxt.WorkItems[0].ID
 			fxt.Comments[i].Creator = fxt.Identities[0].ID
 		}
-		fxt.runCustomizeEntityCallbacks(i, kindComments)
+		fxt.runCustomizeEntityFuncs(i, kindComments)
 		if fxt.isolatedCreation {
 			if fxt.Comments[i].ParentID == uuid.Nil {
 				return errs.New("you must specify a parent work item ID for each comment")
