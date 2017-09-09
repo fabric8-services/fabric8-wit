@@ -2,6 +2,7 @@ package controller_test
 
 import (
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -62,6 +63,30 @@ func (rest *TestLabelREST) TestCreateLabel() {
 	}
 	_, created := test.CreateLabelCreated(rest.T(), svc.Context, svc, ctrl, c.Spaces[0].ID, &pl)
 	assert.Equal(rest.T(), pl.Data.Attributes.Name, created.Data.Attributes.Name)
+	assert.Equal(rest.T(), "#000000", *created.Data.Attributes.TextColor)
+	assert.Equal(rest.T(), "#FFFFFF", *created.Data.Attributes.BackgroundColor)
+	assert.False(rest.T(), created.Data.Attributes.CreatedAt.After(time.Now()), "Label was not created, CreatedAt after Now()")
+}
+
+func (rest *TestLabelREST) TestCreateLabelWithWhiteSpace() {
+	c, err := tf.NewFixture(rest.DB, tf.Spaces(1))
+	require.Nil(rest.T(), err)
+	require.Nil(rest.T(), c.Check())
+	i, err := tf.NewFixture(rest.DB, tf.Identities(1))
+	require.Nil(rest.T(), err)
+	require.Nil(rest.T(), c.Check())
+	priv, _ := wittoken.RSAPrivateKey()
+	svc := testsupport.ServiceAsUser("Label-Service", wittoken.NewManagerWithPrivateKey(priv), *i.Identities[0])
+
+	ctrl := NewLabelController(svc, rest.db, rest.Configuration)
+	pl := app.CreateLabelPayload{
+		Data: &app.Label{
+			Attributes: &app.LabelAttributes{Name: "	  some color  "},
+			Type: label.APIStringTypeLabels,
+		},
+	}
+	_, created := test.CreateLabelCreated(rest.T(), svc.Context, svc, ctrl, c.Spaces[0].ID, &pl)
+	assert.Equal(rest.T(), strings.TrimSpace(pl.Data.Attributes.Name), created.Data.Attributes.Name)
 	assert.Equal(rest.T(), "#000000", *created.Data.Attributes.TextColor)
 	assert.Equal(rest.T(), "#FFFFFF", *created.Data.Attributes.BackgroundColor)
 	assert.False(rest.T(), created.Data.Attributes.CreatedAt.After(time.Now()), "Label was not created, CreatedAt after Now()")
