@@ -111,3 +111,11 @@ func (s *TestLabelRepository) TestListLabelBySpace() {
 	}
 	require.Empty(s.T(), labelIDs, "not all labels were found")
 }
+
+func (s *TestLabelRepository) TestLoadLabel() {
+	testFxt := tf.NewTestFixture(s.T(), s.DB, tf.Labels(1))
+	lbl, err := label.NewLabelRepository(s.DB).Load(context.Background(), testFxt.Spaces[0].ID, testFxt.Labels[0].ID)
+	require.Nil(s.T(), err)
+	require.NotNil(s.T(), lbl)
+	assert.Equal(s.T(), testFxt.Labels[0].Name, lbl.Name)
+}
