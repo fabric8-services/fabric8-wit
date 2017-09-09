@@ -2,7 +2,6 @@ package login
 
 import (
 	"context"
-	"crypto/rsa"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -16,7 +15,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/token"
 
 	_ "github.com/lib/pq"
-	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/oauth2"
@@ -26,7 +24,6 @@ var (
 	oauth         *oauth2.Config
 	configuration *config.ConfigurationData
 	loginService  *KeycloakOAuthProvider
-	privateKey    *rsa.PrivateKey
 )
 
 func init() {
@@ -34,10 +31,6 @@ func init() {
 	configuration, err = config.GetConfigurationData()
 	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
-	}
-	privateKey, err = configuration.GetTokenPrivateKey()
-	if err != nil {
-		panic(err)
 	}
 
 	oauth = &oauth2.Config{
@@ -49,94 +42,17 @@ func init() {
 }
 
 func setup() {
-
-	tokenManager := token.NewManagerWithPrivateKey(privateKey)
 	userRepository := account.NewUserRepository(nil)
 	identityRepository := account.NewIdentityRepository(nil)
 	loginService = &KeycloakOAuthProvider{
 		Identities:   identityRepository,
 		Users:        userRepository,
-		TokenManager: tokenManager,
+		TokenManager: testtoken.TokenManager,
 	}
 }
 
 func tearDown() {
 	loginService = nil
-}
-
-func TestValidOAuthAccessToken(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
-
-	setup()
-	defer tearDown()
-
-	identity := account.Identity{
-		ID:       uuid.NewV4(),
-		Username: "testuser",
-	}
-	token, err := testtoken.GenerateToken(identity.ID.String(), identity.Username, privateKey)
-	assert.Nil(t, err)
-	accessToken := &oauth2.Token{
-		AccessToken: token,
-		TokenType:   "Bearer",
-	}
-
-	claims, err := parseToken(accessToken.AccessToken, loginService.TokenManager.PublicKey())
-	assert.Nil(t, err)
-	assert.Equal(t, identity.ID.String(), claims.Subject)
-	assert.Equal(t, identity.Username, claims.Username)
-}
-
-func TestInvalidOAuthAccessToken(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
-	setup()
-	defer tearDown()
-
-	invalidAccessToken := "7423742yuuiy-INVALID-73842342389h"
-
-	accessToken := &oauth2.Token{
-		AccessToken: invalidAccessToken,
-		TokenType:   "Bearer",
-	}
-
-	_, err := parseToken(accessToken.AccessToken, loginService.TokenManager.PublicKey())
-	assert.NotNil(t, err)
-}
-
-func TestCheckClaimsOK(t *testing.T) {
-	t.Parallel()
-	resource.Require(t, resource.UnitTest)
-
-	claims := &keycloakTokenClaims{
-		Email:    "somemail@domain.com",
-		Username: "testuser",
-	}
-	claims.Subject = uuid.NewV4().String()
-
-	assert.Nil(t, checkClaims(claims))
-}
-
-func TestCheckClaimsFails(t *testing.T) {
-	t.Parallel()
-	resource.Require(t, resource.UnitTest)
-
-	claimsNoEmail := &keycloakTokenClaims{
-		Username: "testuser",
-	}
-	claimsNoEmail.Subject = uuid.NewV4().String()
-	assert.NotNil(t, checkClaims(claimsNoEmail))
-
-	claimsNoUsername := &keycloakTokenClaims{
-		Email: "somemail@domain.com",
-	}
-	claimsNoUsername.Subject = uuid.NewV4().String()
-	assert.NotNil(t, checkClaims(claimsNoUsername))
-
-	claimsNoSubject := &keycloakTokenClaims{
-		Email:    "somemail@domain.com",
-		Username: "testuser",
-	}
-	assert.NotNil(t, checkClaims(claimsNoSubject))
 }
 
 func TestGravatarURLGeneration(t *testing.T) {
@@ -272,7 +188,7 @@ func TestFillUserDoesntOverwriteExistingImageURL(t *testing.T) {
 
 	user := &account.User{FullName: "Vasya Pupkin", Company: "Red Hat", Email: "vpupkin@mail.io", ImageURL: "http://vpupkin.io/image.jpg"}
 	identity := &account.Identity{Username: "vaysa"}
-	claims := &keycloakTokenClaims{Username: "new username", Name: "new name", Company: "new company", Email: "new email"}
+	claims := &token.TokenClaims{Username: "new username", Name: "new name", Company: "new company", Email: "new email"}
 	isChanged, err := fillUser(claims, user, identity)
 	require.Nil(t, err)
 	require.True(t, isChanged)

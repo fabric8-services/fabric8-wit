@@ -20,7 +20,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -72,9 +71,7 @@ func (rest *TestSpaceREST) TearDownTest() {
 }
 
 func (rest *TestSpaceREST) SecuredController(identity account.Identity) (*goa.Service, *SpaceController) {
-	priv, _ := wittoken.RSAPrivateKey()
-
-	svc := testsupport.ServiceAsUser("Space-Service", wittoken.NewManagerWithPrivateKey(priv), identity)
+	svc := testsupport.ServiceAsUser("Space-Service", identity)
 	return svc, NewSpaceController(svc, rest.db, spaceConfiguration, &DummyResourceManager{})
 }
 
@@ -134,14 +131,12 @@ func (rest *TestSpaceREST) TestSuccessCreateSpace() {
 }
 
 func (rest *TestSpaceREST) SecuredSpaceAreaController(identity account.Identity) (*goa.Service, *SpaceAreasController) {
-	pub, _ := wittoken.RSAPublicKey()
-	svc := testsupport.ServiceAsUser("Area-Service", wittoken.NewManager(pub), identity)
+	svc := testsupport.ServiceAsUser("Area-Service", identity)
 	return svc, NewSpaceAreasController(svc, rest.db, rest.Configuration)
 }
 
 func (rest *TestSpaceREST) SecuredSpaceIterationController(identity account.Identity) (*goa.Service, *SpaceIterationsController) {
-	pub, _ := wittoken.RSAPublicKey()
-	svc := testsupport.ServiceAsUser("Iteration-Service", wittoken.NewManager(pub), identity)
+	svc := testsupport.ServiceAsUser("Iteration-Service", identity)
 	return svc, NewSpaceIterationsController(svc, rest.db, rest.Configuration)
 }
 

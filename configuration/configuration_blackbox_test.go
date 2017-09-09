@@ -181,44 +181,6 @@ func checkGetServiceEndpointOK(t *testing.T, expectedEndpoint string, getEndpoin
 	assert.Equal(t, expectedEndpoint, url)
 }
 
-func TestGetTokenPrivateKeyFromConfigFile(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
-	envKey := generateEnvKey(varTokenPrivateKey)
-	realEnvValue := os.Getenv(envKey) // could be "" as well.
-
-	os.Unsetenv(envKey)
-	defer func() {
-		os.Setenv(envKey, realEnvValue)
-		resetConfiguration(defaultValuesConfigFilePath)
-	}()
-
-	resetConfiguration(defaultConfigFilePath)
-	// env variable NOT set, so we check with config.yaml's value
-	parsedKey, err := config.GetTokenPrivateKey()
-	require.Nil(t, err)
-	assert.NotNil(t, parsedKey)
-}
-
-func TestGetTokenPublicKeyFromConfigFile(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
-	envKey := generateEnvKey(varTokenPublicKey)
-	realEnvValue := os.Getenv(envKey) // could be "" as well.
-
-	os.Unsetenv(envKey)
-	defer func() {
-		os.Setenv(envKey, realEnvValue)
-		resetConfiguration(defaultValuesConfigFilePath)
-	}()
-
-	resetConfiguration(defaultConfigFilePath)
-
-	// env variable is now unset for sure, this will lead to the test looking up for
-	// value in config.yaml
-	parsedKey, err := config.GetTokenPublicKey()
-	require.Nil(t, err)
-	assert.NotNil(t, parsedKey)
-}
-
 func TestGetMaxHeaderSizeUsingDefaults(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	viperValue := config.GetHeaderMaxLength()
