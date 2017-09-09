@@ -5,7 +5,7 @@ import (
 )
 
 // A RecipeFunction tells the test fixture to create n objects of a given kind.
-// You can pass in customize-entity-callbacks in order to manipulate the objects
+// You can pass in customize-entity-functions in order to manipulate the objects
 // before they get created.
 type RecipeFunction func(fxt *TestFixture) error
 
@@ -22,10 +22,14 @@ func (fxt *TestFixture) deps(fns ...RecipeFunction) error {
 	return nil
 }
 
+// CustomizeIdentityFunc is directly compatible with CustomizeEntityFunc
+// but it can only be used for the Identites() recipe-function.
+type CustomizeIdentityFunc func(fxt *TestFixture, idx int) error
+
 // Identities tells the test fixture to create at least n identity objects.
 //
 // If called multiple times with differently n's, the biggest n wins. All
-// customize-entitiy-callbacks fns from all calls will be respected when
+// customize-entitiy-functions fns from all calls will be respected when
 // creating the test fixture.
 //
 // Here's an example how you can create 42 identites and give them a numbered
@@ -40,18 +44,27 @@ func (fxt *TestFixture) deps(fns ...RecipeFunction) error {
 // is guaranteed to be ready to be used for creation. That means, you don't
 // necessarily have to touch it to avoid unique key violation for example. This
 // is totally optional.
-func Identities(n int, fns ...CustomizeEntityCallback) RecipeFunction {
+func Identities(n int, fns ...CustomizeIdentityFunc) RecipeFunction {
 	return RecipeFunction(func(fxt *TestFixture) error {
-		fxt.checkCallbacks = append(fxt.checkCallbacks, func() error {
+		fxt.checkFuncs = append(fxt.checkFuncs, func() error {
 			l := len(fxt.Identities)
 			if l < n {
 				return errs.Errorf(checkStr, n, kindIdentities, l)
 			}
 			return nil
 		})
-		return fxt.setupInfo(n, kindIdentities, fns...)
+		// Convert fns to []CustomizeEntityFunc
+		customFuncs := make([]CustomizeEntityFunc, len(fns))
+		for idx := range fns {
+			customFuncs[idx] = CustomizeEntityFunc(fns[idx])
+		}
+		return fxt.setupInfo(n, kindIdentities, customFuncs...)
 	})
 }
+
+// CustomizeSpacesFunc is directly compatible with CustomizeEntityFunc
+// but it can only be used for the Spaces() recipe-function.
+type CustomizeSpaceFunc func(fxt *TestFixture, idx int) error
 
 // Spaces tells the test fixture to create at least n space objects. See also
 // the Identities() function for more general information on n and fns.
@@ -59,21 +72,31 @@ func Identities(n int, fns ...CustomizeEntityCallback) RecipeFunction {
 // When called in NewFixture() this function will call also call
 //     Identities(1)
 // but with NewFixtureIsolated(), no other objects will be created.
-func Spaces(n int, fns ...CustomizeEntityCallback) RecipeFunction {
+func Spaces(n int, fns ...CustomizeSpaceFunc) RecipeFunction {
 	return RecipeFunction(func(fxt *TestFixture) error {
-		fxt.checkCallbacks = append(fxt.checkCallbacks, func() error {
+		fxt.checkFuncs = append(fxt.checkFuncs, func() error {
 			l := len(fxt.Spaces)
 			if l < n {
 				return errs.Errorf(checkStr, n, kindSpaces, l)
 			}
 			return nil
 		})
-		if err := fxt.setupInfo(n, kindSpaces, fns...); err != nil {
+		// Convert fns to []CustomizeEntityFunc
+		customFuncs := make([]CustomizeEntityFunc, len(fns))
+		for idx := range fns {
+			customFuncs[idx] = CustomizeEntityFunc(fns[idx])
+		}
+		if err := fxt.setupInfo(n, kindSpaces, customFuncs...); err != nil {
 			return err
 		}
 		return fxt.deps(Identities(1))
 	})
 }
+
+// CustomizeIterationFunc is directly compatible with
+// CustomizeEntityFunc but it can only be used for the Iterations()
+// recipe-function.
+type CustomizeIterationFunc func(fxt *TestFixture, idx int) error
 
 // Iterations tells the test fixture to create at least n iteration objects. See
 // also the Identities() function for more general information on n and fns.
@@ -81,21 +104,30 @@ func Spaces(n int, fns ...CustomizeEntityCallback) RecipeFunction {
 // When called in NewFixture() this function will call also call
 //     Spaces(1)
 // but with NewFixtureIsolated(), no other objects will be created.
-func Iterations(n int, fns ...CustomizeEntityCallback) RecipeFunction {
+func Iterations(n int, fns ...CustomizeIterationFunc) RecipeFunction {
 	return RecipeFunction(func(fxt *TestFixture) error {
-		fxt.checkCallbacks = append(fxt.checkCallbacks, func() error {
+		fxt.checkFuncs = append(fxt.checkFuncs, func() error {
 			l := len(fxt.Iterations)
 			if l < n {
 				return errs.Errorf(checkStr, n, kindIterations, l)
 			}
 			return nil
 		})
-		if err := fxt.setupInfo(n, kindIterations, fns...); err != nil {
+		// Convert fns to []CustomizeEntityFunc
+		customFuncs := make([]CustomizeEntityFunc, len(fns))
+		for idx := range fns {
+			customFuncs[idx] = CustomizeEntityFunc(fns[idx])
+		}
+		if err := fxt.setupInfo(n, kindIterations, customFuncs...); err != nil {
 			return err
 		}
 		return fxt.deps(Spaces(1))
 	})
 }
+
+// CustomizeAreaFunc is directly compatible with CustomizeEntityFunc but
+// it can only be used for the Areas() recipe-function.
+type CustomizeAreaFunc func(fxt *TestFixture, idx int) error
 
 // Areas tells the test fixture to create at least n area objects. See
 // also the Identities() function for more general information on n and fns.
@@ -103,21 +135,30 @@ func Iterations(n int, fns ...CustomizeEntityCallback) RecipeFunction {
 // When called in NewFixture() this function will call also call
 //     Spaces(1)
 // but with NewFixtureIsolated(), no other objects will be created.
-func Areas(n int, fns ...CustomizeEntityCallback) RecipeFunction {
+func Areas(n int, fns ...CustomizeAreaFunc) RecipeFunction {
 	return RecipeFunction(func(fxt *TestFixture) error {
-		fxt.checkCallbacks = append(fxt.checkCallbacks, func() error {
+		fxt.checkFuncs = append(fxt.checkFuncs, func() error {
 			l := len(fxt.Areas)
 			if l < n {
 				return errs.Errorf(checkStr, n, kindAreas, l)
 			}
 			return nil
 		})
-		if err := fxt.setupInfo(n, kindAreas, fns...); err != nil {
+		// Convert fns to []CustomizeEntityFunc
+		customFuncs := make([]CustomizeEntityFunc, len(fns))
+		for idx := range fns {
+			customFuncs[idx] = CustomizeEntityFunc(fns[idx])
+		}
+		if err := fxt.setupInfo(n, kindAreas, customFuncs...); err != nil {
 			return err
 		}
 		return fxt.deps(Spaces(1))
 	})
 }
+
+// CustomizeCodebaseFunc is directly compatible with CustomizeEntityFunc
+// but it can only be used for the Codebases() recipe-function.
+type CustomizeCodebaseFunc func(fxt *TestFixture, idx int) error
 
 // Codebases tells the test fixture to create at least n codebase objects. See
 // also the Identities() function for more general information on n and fns.
@@ -125,21 +166,30 @@ func Areas(n int, fns ...CustomizeEntityCallback) RecipeFunction {
 // When called in NewFixture() this function will call also call
 //     Spaces(1)
 // but with NewFixtureIsolated(), no other objects will be created.
-func Codebases(n int, fns ...CustomizeEntityCallback) RecipeFunction {
+func Codebases(n int, fns ...CustomizeCodebaseFunc) RecipeFunction {
 	return RecipeFunction(func(fxt *TestFixture) error {
-		fxt.checkCallbacks = append(fxt.checkCallbacks, func() error {
+		fxt.checkFuncs = append(fxt.checkFuncs, func() error {
 			l := len(fxt.Codebases)
 			if l < n {
 				return errs.Errorf(checkStr, n, kindCodebases, l)
 			}
 			return nil
 		})
-		if err := fxt.setupInfo(n, kindCodebases, fns...); err != nil {
+		// Convert fns to []CustomizeEntityFunc
+		customFuncs := make([]CustomizeEntityFunc, len(fns))
+		for idx := range fns {
+			customFuncs[idx] = CustomizeEntityFunc(fns[idx])
+		}
+		if err := fxt.setupInfo(n, kindCodebases, customFuncs...); err != nil {
 			return err
 		}
 		return fxt.deps(Spaces(1))
 	})
 }
+
+// CustomizeWorkItemFunc is directly compatible with CustomizeEntityFunc
+// but it can only be used for the WorkItems() recipe-function.
+type CustomizeWorkItemFunc func(fxt *TestFixture, idx int) error
 
 // WorkItems tells the test fixture to create at least n work item objects. See
 // also the Identities() function for more general information on n and fns.
@@ -154,21 +204,30 @@ func Codebases(n int, fns ...CustomizeEntityCallback) RecipeFunction {
 // has been created, so any changes you make to
 //     fxt.WorkItems[idx].Number
 // will have no effect.
-func WorkItems(n int, fns ...CustomizeEntityCallback) RecipeFunction {
+func WorkItems(n int, fns ...CustomizeWorkItemFunc) RecipeFunction {
 	return RecipeFunction(func(fxt *TestFixture) error {
-		fxt.checkCallbacks = append(fxt.checkCallbacks, func() error {
+		fxt.checkFuncs = append(fxt.checkFuncs, func() error {
 			l := len(fxt.WorkItems)
 			if l < n {
 				return errs.Errorf(checkStr, n, kindWorkItems, l)
 			}
 			return nil
 		})
-		if err := fxt.setupInfo(n, kindWorkItems, fns...); err != nil {
+		// Convert fns to []CustomizeEntityFunc
+		customFuncs := make([]CustomizeEntityFunc, len(fns))
+		for idx := range fns {
+			customFuncs[idx] = CustomizeEntityFunc(fns[idx])
+		}
+		if err := fxt.setupInfo(n, kindWorkItems, customFuncs...); err != nil {
 			return err
 		}
 		return fxt.deps(Spaces(1), WorkItemTypes(1), Identities(1))
 	})
 }
+
+// CustomizeCommentFunc is directly compatible with CustomizeEntityFunc
+// but it can only be used for the Comments() recipe-function.
+type CustomizeCommentFunc func(fxt *TestFixture, idx int) error
 
 // Comments tells the test fixture to create at least n comment objects. See
 // also the Identities() function for more general information on n and fns.
@@ -177,21 +236,31 @@ func WorkItems(n int, fns ...CustomizeEntityCallback) RecipeFunction {
 //     Identities(1)
 //     WorkItems(1)
 // but with NewFixtureIsolated(), no other objects will be created.
-func Comments(n int, fns ...CustomizeEntityCallback) RecipeFunction {
+func Comments(n int, fns ...CustomizeWorkItemFunc) RecipeFunction {
 	return RecipeFunction(func(fxt *TestFixture) error {
-		fxt.checkCallbacks = append(fxt.checkCallbacks, func() error {
+		fxt.checkFuncs = append(fxt.checkFuncs, func() error {
 			l := len(fxt.Comments)
 			if l < n {
 				return errs.Errorf(checkStr, n, kindComments, l)
 			}
 			return nil
 		})
-		if err := fxt.setupInfo(n, kindComments, fns...); err != nil {
+		// Convert fns to []CustomizeEntityFunc
+		customFuncs := make([]CustomizeEntityFunc, len(fns))
+		for idx := range fns {
+			customFuncs[idx] = CustomizeEntityFunc(fns[idx])
+		}
+		if err := fxt.setupInfo(n, kindComments, customFuncs...); err != nil {
 			return err
 		}
 		return fxt.deps(WorkItems(1), Identities(1))
 	})
 }
+
+// CustomizeWorkItemTypeFunc is directly compatible with
+// CustomizeEntityFunc but it can only be used for the WorkItemTypes()
+// recipe-function.
+type CustomizeWorkItemTypeFunc func(fxt *TestFixture, idx int) error
 
 // WorkItemTypes tells the test fixture to create at least n work item type
 // objects. See also the Identities() function for more general information on n
@@ -204,21 +273,31 @@ func Comments(n int, fns ...CustomizeEntityCallback) RecipeFunction {
 // The work item type that we create for each of the n instances is always the
 // same and it tries to be compatible with the planner item work item type by
 // specifying the same fields.
-func WorkItemTypes(n int, fns ...CustomizeEntityCallback) RecipeFunction {
+func WorkItemTypes(n int, fns ...CustomizeWorkItemTypeFunc) RecipeFunction {
 	return RecipeFunction(func(fxt *TestFixture) error {
-		fxt.checkCallbacks = append(fxt.checkCallbacks, func() error {
+		fxt.checkFuncs = append(fxt.checkFuncs, func() error {
 			l := len(fxt.WorkItemTypes)
 			if l < n {
 				return errs.Errorf(checkStr, n, kindWorkItemTypes, l)
 			}
 			return nil
 		})
-		if err := fxt.setupInfo(n, kindWorkItemTypes, fns...); err != nil {
+		// Convert fns to []CustomizeEntityFunc
+		customFuncs := make([]CustomizeEntityFunc, len(fns))
+		for idx := range fns {
+			customFuncs[idx] = CustomizeEntityFunc(fns[idx])
+		}
+		if err := fxt.setupInfo(n, kindWorkItemTypes, customFuncs...); err != nil {
 			return err
 		}
 		return fxt.deps(Spaces(1))
 	})
 }
+
+// CustomizeWorkItemLinkTypeFunc is directly compatible with
+// CustomizeEntityFunc but it can only be used for the WorkItemLinkTypes()
+// recipe-function.
+type CustomizeWorkItemLinkTypeFunc func(fxt *TestFixture, idx int) error
 
 // WorkItemLinkTypes tells the test fixture to create at least n work item link
 // type objects. See also the Identities() function for more general information
@@ -230,53 +309,73 @@ func WorkItemTypes(n int, fns ...CustomizeEntityCallback) RecipeFunction {
 // but with NewFixtureIsolated(), no other objects will be created.
 //
 // We've created these helper functions that you should have a look at if you
-// want to implement your own re-usable customize-entity-callbacks:
+// want to implement your own re-usable customize-entity-functions:
 //     TopologyNetwork()
 //     TopologyDirectedNetwork()
 //     TopologyDependency()
 //     TopologyTree()
 //     Topology(topology string) // programmatically set the topology
 // The topology functions above are neat because you don't have to write a full
-// callback function yourself.
+// function function yourself.
 //
 // By default a call to
 //     WorkItemLinkTypes(1)
 // equals
 //     WorkItemLinkTypes(1, TopologyTree())
 // because we automatically set the topology for each link type to be "tree".
-func WorkItemLinkTypes(n int, fns ...CustomizeEntityCallback) RecipeFunction {
+func WorkItemLinkTypes(n int, fns ...CustomizeWorkItemLinkTypeFunc) RecipeFunction {
 	return RecipeFunction(func(fxt *TestFixture) error {
-		fxt.checkCallbacks = append(fxt.checkCallbacks, func() error {
+		fxt.checkFuncs = append(fxt.checkFuncs, func() error {
 			l := len(fxt.WorkItemLinkTypes)
 			if l < n {
 				return errs.Errorf(checkStr, n, kindWorkItemLinkTypes, l)
 			}
 			return nil
 		})
-		if err := fxt.setupInfo(n, kindWorkItemLinkTypes, fns...); err != nil {
+		// Convert fns to []CustomizeEntityFunc
+		customFuncs := make([]CustomizeEntityFunc, len(fns))
+		for idx := range fns {
+			customFuncs[idx] = CustomizeEntityFunc(fns[idx])
+		}
+		if err := fxt.setupInfo(n, kindWorkItemLinkTypes, customFuncs...); err != nil {
 			return err
 		}
 		return fxt.deps(Spaces(1), WorkItemLinkCategories(1))
 	})
 }
 
+// CustomizeWorkItemCategoryFunc is directly compatible with
+// CustomizeEntityFunc but it can only be used for the
+// WorkItemLinkCategories() recipe-function.
+type CustomizeWorkItemLinkCategoryFunc func(fxt *TestFixture, idx int) error
+
 // WorkItemLinkCategories tells the test fixture to create at least n work item
 // link category objects. See also the Identities() function for more general
 // information on n and fns.
 //
 // No other objects will be created.
-func WorkItemLinkCategories(n int, fns ...CustomizeEntityCallback) RecipeFunction {
+func WorkItemLinkCategories(n int, fns ...CustomizeWorkItemLinkCategoryFunc) RecipeFunction {
 	return RecipeFunction(func(fxt *TestFixture) error {
-		fxt.checkCallbacks = append(fxt.checkCallbacks, func() error {
+		fxt.checkFuncs = append(fxt.checkFuncs, func() error {
 			l := len(fxt.WorkItemLinkCategories)
 			if l < n {
 				return errs.Errorf(checkStr, n, kindWorkItemLinkCategories, l)
 			}
 			return nil
 		})
-		return fxt.setupInfo(n, kindWorkItemLinkCategories, fns...)
+		// Convert fns to []CustomizeEntityFunc
+		customFuncs := make([]CustomizeEntityFunc, len(fns))
+		for idx := range fns {
+			customFuncs[idx] = CustomizeEntityFunc(fns[idx])
+		}
+		return fxt.setupInfo(n, kindWorkItemLinkCategories, customFuncs...)
 	})
 }
+
+// CustomizeWorkItemLinkCllback is directly compatible with
+// CustomizeEntityFunc but it can only be used for the WorkItemLinks()
+// recipe-function.
+type CustomizeWorkItemLinkFunc func(fxt *TestFixture, idx int) error
 
 // WorkItemLinks tells the test fixture to create at least n work item link
 // objects. See also the Identities() function for more general information
@@ -289,19 +388,24 @@ func WorkItemLinkCategories(n int, fns ...CustomizeEntityCallback) RecipeFunctio
 //
 // Notice, that we will create two times the number of work items of your
 // requested links. The way those links will be created can for sure be
-// influenced using a customize-entity-callback; but by default we create each
+// influenced using a customize-entity-function; but by default we create each
 // link between two distinct work items. That means, no link will include the
 // same work item.
-func WorkItemLinks(n int, fns ...CustomizeEntityCallback) RecipeFunction {
+func WorkItemLinks(n int, fns ...CustomizeWorkItemLinkFunc) RecipeFunction {
 	return RecipeFunction(func(fxt *TestFixture) error {
-		fxt.checkCallbacks = append(fxt.checkCallbacks, func() error {
+		fxt.checkFuncs = append(fxt.checkFuncs, func() error {
 			l := len(fxt.WorkItemLinks)
 			if l < n {
 				return errs.Errorf(checkStr, n, kindWorkItemLinks, l)
 			}
 			return nil
 		})
-		if err := fxt.setupInfo(n, kindWorkItemLinks, fns...); err != nil {
+		// Convert fns to []CustomizeEntityFunc
+		customFuncs := make([]CustomizeEntityFunc, len(fns))
+		for idx := range fns {
+			customFuncs[idx] = CustomizeEntityFunc(fns[idx])
+		}
+		if err := fxt.setupInfo(n, kindWorkItemLinks, customFuncs...); err != nil {
 			return err
 		}
 		return fxt.deps(WorkItemLinkTypes(1), WorkItems(2*n))
