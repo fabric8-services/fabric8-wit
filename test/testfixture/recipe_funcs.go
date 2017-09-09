@@ -418,9 +418,9 @@ func WorkItemLinks(n int, fns ...CustomizeWorkItemLinkFunc) RecipeFunction {
 // When called in NewFixture() this function will call also call
 //     Spaces(1)
 // but with NewFixtureIsolated(), no other objects will be created.
-func Labels(n int, fns ...CustomizeEntityCallback) RecipeFunction {
+func Labels(n int, fns ...CustomizeEntityFunc) RecipeFunction {
 	return RecipeFunction(func(fxt *TestFixture) error {
-		fxt.checkCallbacks = append(fxt.checkCallbacks, func() error {
+		fxt.checkFuncs = append(fxt.checkFuncs, func() error {
 			l := len(fxt.Labels)
 			if l < n {
 				return errs.Errorf(checkStr, n, kindLabels, l)

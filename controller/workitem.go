@@ -86,7 +86,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	}
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
-		jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
 
 	var wi *workitem.WorkItem
@@ -263,7 +263,7 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 		if source.Relationships.Labels.Data == nil {
 			delete(target.Fields, workitem.SystemLabels)
 		} else {
-			var ids []string
+			distinctIDs := make(map[string]struct{})
 			for _, d := range source.Relationships.Labels.Data {
 				labelUUID, err := uuid.FromString(*d.ID)
 				if err != nil {
@@ -272,7 +272,13 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 				if ok := appl.Labels().IsValid(ctx, labelUUID); !ok {
 					return errors.NewBadParameterError("data.relationships.assignees.data.id", *d.ID)
 				}
-				ids = append(ids, labelUUID.String())
+				if _, ok := distinctIDs[labelUUID.String()]; !ok {
+					distinctIDs[labelUUID.String()] = struct{}{}
+				}
+			}
+			ids := make([]string, 0, len(distinctIDs))
+			for k := range distinctIDs {
+				ids = append(ids, k)
 			}
 			target.Fields[workitem.SystemLabels] = ids
 		}

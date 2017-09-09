@@ -453,7 +453,7 @@ func makeLabels(fxt *TestFixture) error {
 		if !fxt.isolatedCreation {
 			fxt.Labels[i].SpaceID = fxt.Spaces[0].ID
 		}
-		fxt.runCustomizeEntityCallbacks(i, kindLabels)
+		fxt.runCustomizeEntityFuncs(i, kindLabels)
 		if fxt.isolatedCreation {
 			if fxt.Labels[i].SpaceID == uuid.Nil {
 				return errs.New("you must specify a space ID for each label")

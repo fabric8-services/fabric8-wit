@@ -55,8 +55,8 @@ func (l *TestWorkItemLabelREST) TearDownTest() {
 }
 
 func (l *TestWorkItemLabelREST) SecuredController() (*goa.Service, app.WorkitemController) {
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsUser("WorkItemLabel-Service", wittoken.NewManagerWithPrivateKey(priv), l.testIdentity)
+	pub, _ := wittoken.RSAPublicKey()
+	svc := testsupport.ServiceAsUser("WorkItemLabel-Service", wittoken.NewManager(pub), l.testIdentity)
 	return svc, NewWorkitemController(svc, l.db, l.Configuration)
 }
 
@@ -154,6 +154,44 @@ func (l *TestWorkItemLabelREST) TestAttachDetachLabelToWI() {
 	require.NotNil(l.T(), updatedWI.Data.Relationships.Labels.Links)
 	assert.Contains(l.T(), *updatedWI.Data.Relationships.Labels.Links.Related, relatedLink)
 
+	// verify distinct labels are attached
+	lbl1 = fixtures.Labels[1].ID.String()
+	lbl2 = fixtures.Labels[2].ID.String()
+	u.Data.Attributes["version"] = updatedWI.Data.Attributes["version"]
+	u.Data.Relationships.Labels = &app.RelationGenericList{
+		Data: []*app.GenericData{
+			{
+				ID:   &lbl1,
+				Type: &apiLabelType,
+			}, {
+				ID:   &lbl2,
+				Type: &apiLabelType,
+			}, {
+				ID:   &lbl2,
+				Type: &apiLabelType,
+			},
+		},
+	}
+	_, updatedWI = test.UpdateWorkitemOK(l.T(), svc.Context, svc, ctrl, fixtures.WorkItems[0].ID, &u)
+	assert.NotNil(l.T(), updatedWI)
+	require.NotNil(l.T(), updatedWI.Data.Relationships.Labels.Links)
+	assert.Contains(l.T(), *updatedWI.Data.Relationships.Labels.Links.Related, relatedLink)
+	assert.Len(l.T(), updatedWI.Data.Relationships.Labels.Data, 2)
+	mustHave = map[string]struct{}{
+		lbl1: struct{}{},
+		lbl2: struct{}{},
+	}
+	for _, lblData := range updatedWI.Data.Relationships.Labels.Data {
+		switch *lblData.ID {
+		case lbl2:
+			delete(mustHave, lbl2)
+		case lbl1:
+			delete(mustHave, lbl1)
+		}
+	}
+	require.Empty(l.T(), mustHave)
+
+	// verify Unauthorized access
 	svc2, ctrl2 := l.UnSecuredController()
 	test.UpdateWorkitemUnauthorized(l.T(), svc2.Context, svc2, ctrl2, fixtures.WorkItems[0].ID, &u)
 }
