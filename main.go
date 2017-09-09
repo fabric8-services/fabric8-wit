@@ -179,20 +179,20 @@ func main() {
 
 	appDB := gormapplication.NewGormDB(db)
 
-	publicKey, err := config.GetTokenPublicKey()
+	publicKeys, err := token.PublicKeys()
 	if err != nil {
 		log.Panic(nil, map[string]interface{}{
 			"err": err,
 		}, "failed to parse public token")
 	}
-	tokenManager := token.NewManager(publicKey)
+	tokenManager := token.NewManager(publicKeys[0])
 	// Middleware that extracts and stores the token in the context
-	jwtMiddlewareTokenContext := witmiddleware.TokenContext(publicKey, nil, app.NewJWTSecurity())
+	jwtMiddlewareTokenContext := witmiddleware.TokenContext(publicKeys, nil, app.NewJWTSecurity())
 	service.Use(jwtMiddlewareTokenContext)
 
 	service.Use(login.InjectTokenManager(tokenManager))
 	service.Use(log.LogRequest(config.IsPostgresDeveloperModeEnabled()))
-	app.UseJWTMiddleware(service, goajwt.New(publicKey, nil, app.NewJWTSecurity()))
+	app.UseJWTMiddleware(service, goajwt.New(publicKeys, nil, app.NewJWTSecurity()))
 
 	spaceAuthzService := authz.NewAuthzService(config, appDB)
 	service.Use(authz.InjectAuthzService(spaceAuthzService))

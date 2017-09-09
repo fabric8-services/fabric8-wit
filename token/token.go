@@ -5,6 +5,7 @@ import (
 
 	"context"
 
+	authtoken "github.com/alexeykazakov/fabric8-auth/token"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/fabric8-services/fabric8-wit/account"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
@@ -87,6 +88,18 @@ func (mgm tokenManager) Locate(ctx context.Context) (uuid.UUID, error) {
 
 func (mgm tokenManager) PublicKey() *rsa.PublicKey {
 	return mgm.publicKey
+}
+
+func PublicKeys() ([]*rsa.PublicKey, error) {
+	keys, err := authtoken.FetchKeys("http://localhost:8089/api/token/keys")
+	if err != nil {
+		return nil, err
+	}
+	var rsaKeys []*rsa.PublicKey
+	for _, key := range keys {
+		rsaKeys = append(rsaKeys, key.Key)
+	}
+	return rsaKeys, nil
 }
 
 // ParsePublicKey parses a []byte representation of a public key into a rsa.PublicKey instance

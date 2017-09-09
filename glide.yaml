@@ -8,7 +8,7 @@ import:
 - package: github.com/fabric8-services/fabric8-notification
   subpackages:
   - design
-- package: github.com/fabric8-services/fabric8-auth
+- package: github.com/alexeykazakov/fabric8-auth
   subpackages:
   - design
 - package: github.com/dgrijalva/jwt-go
@@ -29,6 +29,8 @@ import:
   - goatest
   - middleware
   - middleware/security/jwt
+- package: gopkg.in/square/go-jose.v2
+  version: ^2.1.2
 - package: github.com/dimfeld/httptreemux
   version: ^3.1.0
 - package: github.com/lsegal/gucumber
