@@ -68,7 +68,7 @@ func (m *GormLabelRepository) Create(ctx context.Context, u *Label) error {
 	u.ID = uuid.NewV4()
 	err := m.db.Create(u).Error
 	if err != nil {
-		// ( name, spaceID ,path ) needs to be unique
+		// combination of name and space ID should be unique
 		if gormsupport.IsUniqueViolation(err, "labels_name_space_id_unique") {
 			log.Error(ctx, map[string]interface{}{
 				"err":      err,
