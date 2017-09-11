@@ -103,8 +103,8 @@ func (l *TestWorkItemLabelREST) TestAttachDetachLabelToWI() {
 	assert.Contains(l.T(), *updatedWI.Data.Relationships.Labels.Links.Related, relatedLink)
 	assert.Len(l.T(), updatedWI.Data.Relationships.Labels.Data, 2)
 	mustHave := map[string]struct{}{
-		lbl0: struct{}{},
-		lbl1: struct{}{},
+		lbl0: {},
+		lbl1: {},
 	}
 	for _, lblData := range updatedWI.Data.Relationships.Labels.Data {
 		delete(mustHave, *lblData.ID)
@@ -128,7 +128,7 @@ func (l *TestWorkItemLabelREST) TestAttachDetachLabelToWI() {
 	assert.Contains(l.T(), *updatedWI.Data.Relationships.Labels.Links.Related, relatedLink)
 	assert.Len(l.T(), updatedWI.Data.Relationships.Labels.Data, 1)
 	mustHave = map[string]struct{}{
-		lbl2: struct{}{},
+		lbl2: {},
 	}
 	for _, lblData := range updatedWI.Data.Relationships.Labels.Data {
 		delete(mustHave, *lblData.ID)
@@ -170,8 +170,8 @@ func (l *TestWorkItemLabelREST) TestAttachDetachLabelToWI() {
 	assert.Contains(l.T(), *updatedWI.Data.Relationships.Labels.Links.Related, relatedLink)
 	assert.Len(l.T(), updatedWI.Data.Relationships.Labels.Data, 2)
 	mustHave = map[string]struct{}{
-		lbl1: struct{}{},
-		lbl2: struct{}{},
+		lbl1: {},
+		lbl2: {},
 	}
 	for _, lblData := range updatedWI.Data.Relationships.Labels.Data {
 		delete(mustHave, *lblData.ID)
