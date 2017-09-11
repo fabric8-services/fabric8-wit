@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
@@ -64,7 +65,7 @@ func (c *LabelController) Create(ctx *app.CreateLabelContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		lbl := label.Label{
 			SpaceID: ctx.SpaceID,
-			Name:    ctx.Payload.Data.Attributes.Name,
+			Name:    strings.TrimSpace(ctx.Payload.Data.Attributes.Name),
 		}
 		if ctx.Payload.Data.Attributes.TextColor != nil {
 			lbl.TextColor = *ctx.Payload.Data.Attributes.TextColor

@@ -49,6 +49,21 @@ func (s *TestLabelRepository) TestCreateLabel() {
 	require.Equal(s.T(), "#000000", l.TextColor)
 	require.Equal(s.T(), "#FFFFFF", l.BackgroundColor)
 	require.False(s.T(), l.CreatedAt.After(time.Now()), "Label was not created, CreatedAt after Now()")
+	require.False(s.T(), l.UpdatedAt.After(time.Now()), "Label was not created, UpdatedAt after Now()")
+	require.Nil(s.T(), l.DeletedAt)
+}
+
+func (s *TestLabelRepository) TestCreateLabelWithEmptyName() {
+	testFxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1))
+	repo := label.NewLabelRepository(s.DB)
+	name := ""
+	l := label.Label{
+		SpaceID: testFxt.Spaces[0].ID,
+		Name:    name,
+	}
+	err := repo.Create(context.Background(), &l)
+	require.NotNil(s.T(), err)
+	assert.Contains(s.T(), err.Error(), "labels_name_check")
 }
 
 func (s *TestLabelRepository) TestCreateLabelWithSameName() {
@@ -64,6 +79,8 @@ func (s *TestLabelRepository) TestCreateLabelWithSameName() {
 	require.Equal(s.T(), "#000000", l.TextColor)
 	require.Equal(s.T(), "#FFFFFF", l.BackgroundColor)
 	require.False(s.T(), l.CreatedAt.After(time.Now()), "Label was not created, CreatedAt after Now()")
+	require.False(s.T(), l.UpdatedAt.After(time.Now()), "Label was not created, UpdatedAt after Now()")
+	require.Nil(s.T(), l.DeletedAt)
 
 	err := repo.Create(context.Background(), &l)
 	require.NotNil(s.T(), err)
@@ -110,4 +127,12 @@ func (s *TestLabelRepository) TestListLabelBySpace() {
 		delete(labelIDs, l.ID)
 	}
 	require.Empty(s.T(), labelIDs, "not all labels were found")
+}
+
+func (s *TestLabelRepository) TestLoadLabel() {
+	testFxt := tf.NewTestFixture(s.T(), s.DB, tf.Labels(1))
+	lbl, err := label.NewLabelRepository(s.DB).Load(context.Background(), testFxt.Spaces[0].ID, testFxt.Labels[0].ID)
+	require.Nil(s.T(), err)
+	require.NotNil(s.T(), lbl)
+	assert.Equal(s.T(), testFxt.Labels[0].Name, lbl.Name)
 }
