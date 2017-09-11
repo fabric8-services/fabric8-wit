@@ -1055,8 +1055,8 @@ func (s *searchBlackBoxTest) TestIncludedParents() {
 
 	// verify included objects
 	includedMustHave := map[uuid.UUID]struct{}{
-		parentWI0.ID: struct{}{},
-		parentWI1.ID: struct{}{},
+		parentWI0.ID: {},
+		parentWI1.ID: {},
 	}
 	for _, ele := range result.Included {
 		appWI, ok := ele.(app.WorkItem)
