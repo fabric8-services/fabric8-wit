@@ -87,7 +87,7 @@ func (s *searchBlackBoxTest) SetupTest() {
 	spaceBlackBoxTestConfiguration, err := config.GetConfigurationData()
 	require.Nil(s.T(), err)
 	s.spaceBlackBoxTestConfiguration = spaceBlackBoxTestConfiguration
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, _ := wittoken.RSAPrivateKey()
 	s.svc = testsupport.ServiceAsUser("WorkItemComment-Service", wittoken.NewManagerWithPrivateKey(priv), s.testIdentity)
 	s.controller = NewSearchController(s.svc, gormapplication.NewGormDB(s.DB), spaceBlackBoxTestConfiguration)
 }
@@ -297,7 +297,7 @@ func (s *searchBlackBoxTest) getWICreatePayload() *app.CreateWorkitemsPayload {
 }
 
 func getServiceAsUser(testIdentity account.Identity) *goa.Service {
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, _ := wittoken.RSAPrivateKey()
 	service := testsupport.ServiceAsUser("TestSearch-Service", wittoken.NewManagerWithPrivateKey(priv), testIdentity)
 	return service
 }
@@ -558,7 +558,7 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 	spaceInstance := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, *spaceOwner)
 	spaceIDStr := spaceInstance.ID.String()
 
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, _ := wittoken.RSAPrivateKey()
 	svcWithSpaceOwner := testsupport.ServiceAsSpaceUser("Search-Service", wittoken.NewManagerWithPrivateKey(priv), *spaceOwner, &TestSpaceAuthzService{*spaceOwner})
 	collaboratorRESTInstance := &TestCollaboratorsREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")}
 	collaboratorRESTInstance.policy = &auth.KeycloakPolicy{
@@ -924,7 +924,7 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 		compareWithGolden(t, filepath.Join(s.testDir, "show", "non_existing_key.error.golden.json"), jerrs)
 		compareWithGolden(t, filepath.Join(s.testDir, "show", "non_existing_key.headers.golden.json"), res.Header())
 	})
-	s.T().Run("assignee=null after", func(t *testing.T) {
+	s.T().Run("assignee=null before WI creation", func(t *testing.T) {
 		filter := fmt.Sprintf(`
 					{"$AND": [
 						{"assignee":null}
@@ -942,7 +942,7 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 			workitem.SystemIteration: sprint2.ID.String(),
 		}, s.testIdentity.ID)
 	require.Nil(s.T(), err)
-	s.T().Run("assignee=null after", func(t *testing.T) {
+	s.T().Run("assignee=null after WI creation", func(t *testing.T) {
 		filter := fmt.Sprintf(`
 					{"$AND": [
 						{"assignee":null}
@@ -952,6 +952,15 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 		require.NotEmpty(s.T(), result.Data)
 		assert.Len(s.T(), result.Data, 1)
 	})
+	s.T().Run("assignee=null after WI creation (top-level)", func(t *testing.T) {
+		filter := fmt.Sprintf(`
+					{"assignee":null}`,
+		)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(s.T(), result.Data)
+		assert.Len(s.T(), result.Data, 1)
+	})
+
 	s.T().Run("assignee=null with negate", func(t *testing.T) {
 		filter := fmt.Sprintf(`
 					{"$AND": [
@@ -968,7 +977,6 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 		compareWithGolden(t, filepath.Join(s.testDir, "show", "assignee_null_negate.error.golden.json"), jerrs)
 		compareWithGolden(t, filepath.Join(s.testDir, "show", "assignee_null_negate.headers.golden.json"), res.Header())
 	})
-
 }
 
 // TestIncludedParents verifies the Included list of parents

@@ -66,7 +66,7 @@ func (s *workItemLinkCategorySuite) SetupSuite() {
 	s.db, err = gorm.Open("postgres", wilCatConfiguration.GetPostgresConfigString())
 	require.Nil(s.T(), err)
 	s.appDB = gormapplication.NewGormDB(s.db)
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, _ := wittoken.RSAPrivateKey()
 	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", wittoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
 	require.NotNil(s.T(), s.svc)
 	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(s.db))
@@ -467,7 +467,7 @@ func (s *workItemLinkCategorySuite) TestListWorkItemLinkCategoryOK() {
 }
 
 func getWorkItemLinkCategoryTestData(t *testing.T) []testSecureAPI {
-	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((wilCatConfiguration.GetTokenPrivateKey()))
+	privatekey, err := wilCatConfiguration.GetTokenPrivateKey()
 	if err != nil {
 		t.Fatal("Could not parse Key ", err)
 	}

@@ -25,7 +25,7 @@ func TestExtractToken(t *testing.T) {
 		ID:       uuid.NewV4(),
 		Username: "testuser",
 	}
-	privateKey, err := token.ParsePrivateKey([]byte(token.RSAPrivateKey))
+	privateKey, err := token.RSAPrivateKey()
 	if err != nil {
 		t.Fatal("Could not parse private key", err)
 	}
@@ -48,7 +48,7 @@ func TestExtractWithInvalidToken(t *testing.T) {
 	// all above cases are invalid
 	// hence manager.Extract should fail in all above cases
 	manager := createManager(t)
-	privateKey, err := token.ParsePrivateKey([]byte(token.RSAPrivateKey))
+	privateKey, err := token.RSAPrivateKey()
 
 	tok := jwt.New(jwt.SigningMethodRS256)
 	// add already expired time to "exp" claim"
@@ -141,7 +141,7 @@ func TestLocateInvalidUUIDInTokenInContext(t *testing.T) {
 }
 
 func createManager(t *testing.T) token.Manager {
-	privateKey, err := token.ParsePrivateKey([]byte(token.RSAPrivateKey))
+	privateKey, err := token.RSAPrivateKey()
 	if err != nil {
 		t.Fatal("Could not parse private key")
 	}

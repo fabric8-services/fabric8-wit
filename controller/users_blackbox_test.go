@@ -66,7 +66,7 @@ func (s *TestUsersSuite) TearDownTest() {
 }
 
 func (s *TestUsersSuite) SecuredController(identity account.Identity) (*goa.Service, *UsersController) {
-	pub, _ := wittoken.ParsePublicKey([]byte(wittoken.RSAPublicKey))
+	pub, _ := wittoken.RSAPublicKey()
 	svc := testsupport.ServiceAsUser("Users-Service", wittoken.NewManager(pub), identity)
 	return svc, NewUsersController(svc, s.db, s.Configuration, s.profileService)
 }

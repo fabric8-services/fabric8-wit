@@ -341,6 +341,34 @@ func TestGenerateExpression(t *testing.T) {
 		expectEqualExpr(t, expectedExpr, actualExpr)
 	})
 
+	t.Run("NULL value at top-level", func(t *testing.T) {
+		t.Parallel()
+		// given
+		q := Query{
+			Name: "assignee", Value: nil,
+		}
+		// when
+		actualExpr, _ := q.generateExpression()
+		// then
+		expectedExpr := c.IsNull("system.assignees")
+
+		expectEqualExpr(t, expectedExpr, actualExpr)
+	})
+
+	t.Run("NULL value at top-level with Negate", func(t *testing.T) {
+		t.Parallel()
+		// given
+		q := Query{
+			Name: "assignee", Value: nil, Negate: true,
+		}
+		// when
+		actualExpr, err := q.generateExpression()
+		// then
+		require.NotNil(t, err)
+		require.Nil(t, actualExpr)
+		assert.Contains(t, err.Error(), "negate for null not supported")
+	})
+
 	t.Run("NULL value with Negate", func(t *testing.T) {
 		t.Parallel()
 		// given

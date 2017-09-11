@@ -1,14 +1,17 @@
 package configuration
 
 import (
+	"crypto/rsa"
 	"fmt"
 	"net/http"
 	"os"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/pkg/errors"
 	yaml "gopkg.in/yaml.v2"
 
@@ -74,6 +77,7 @@ const (
 	varCacheControlSpaces            = "cachecontrol.spaces"
 	varCacheControlIterations        = "cachecontrol.iterations"
 	varCacheControlAreas             = "cachecontrol.areas"
+	varCacheControlLabels            = "cachecontrol.labels"
 	varCacheControlComments          = "cachecontrol.comments"
 	varCacheControlFilters           = "cachecontrol.filters"
 	varCacheControlUsers             = "cachecontrol.users"
@@ -88,6 +92,7 @@ const (
 	varCacheControlSpace            = "cachecontrol.space"
 	varCacheControlIteration        = "cachecontrol.iteration"
 	varCacheControlArea             = "cachecontrol.area"
+	varCacheControlLabel            = "cachecontrol.label"
 	varCacheControlComment          = "cachecontrol.comment"
 
 	defaultConfigFile           = "config.yaml"
@@ -102,7 +107,9 @@ const (
 
 // ConfigurationData encapsulates the Viper configuration object which stores the configuration data in-memory.
 type ConfigurationData struct {
-	v *viper.Viper
+	v               *viper.Viper
+	tokenPublicKey  *rsa.PublicKey
+	tokenPrivateKey *rsa.PrivateKey
 }
 
 // NewConfigurationData creates a configuration reader object using a configurable configuration file path
@@ -402,6 +409,18 @@ func (c *ConfigurationData) GetCacheControlArea() string {
 	return c.v.GetString(varCacheControlArea)
 }
 
+// GetCacheControlLabels returns the value to set in the "Cache-Control" HTTP response header
+// when returning a list of labels.
+func (c *ConfigurationData) GetCacheControlLabels() string {
+	return c.v.GetString(varCacheControlLabels)
+}
+
+// GetCacheControlLabel returns the value to set in the "Cache-Control" HTTP response header
+// when returning a label.
+func (c *ConfigurationData) GetCacheControlLabel() string {
+	return c.v.GetString(varCacheControlLabel)
+}
+
 // GetCacheControlSpaces returns the value to set in the "Cache-Control" HTTP response header
 // when returning a list of spaces.
 func (c *ConfigurationData) GetCacheControlSpaces() string {
@@ -462,16 +481,53 @@ func (c *ConfigurationData) GetCacheControlUser() string {
 	return c.v.GetString(varCacheControlUser)
 }
 
+// use a mutex to prevent concurrent parsing
+var privateKeyParsingMutex sync.Mutex
+
 // GetTokenPrivateKey returns the private key (as set via config file or environment variable)
 // that is used to sign the authentication token.
-func (c *ConfigurationData) GetTokenPrivateKey() []byte {
-	return []byte(c.v.GetString(varTokenPrivateKey))
+func (c *ConfigurationData) GetTokenPrivateKey() (*rsa.PrivateKey, error) {
+	if c.tokenPrivateKey == nil {
+		if !c.v.IsSet(varTokenPrivateKey) {
+			return nil, errors.Errorf("'token.privatekey' variable is not defined")
+		}
+
+		// lock the mutex before parsing the key, so if another rountine is already parsing the key, then this one waits
+		privateKeyParsingMutex.Lock()
+		defer privateKeyParsingMutex.Unlock()
+		// at this point, we can avoid parsing *again* the key if it's not nil anymore
+		if c.tokenPrivateKey == nil {
+			var err error
+			c.tokenPrivateKey, err = jwt.ParseRSAPrivateKeyFromPEM([]byte(c.v.GetString(varTokenPrivateKey)))
+			return c.tokenPrivateKey, err
+		}
+	}
+	return c.tokenPrivateKey, nil
+
 }
+
+// use a mutex to prevent concurrent parsing
+var publicKeyParsingMutex sync.Mutex
 
 // GetTokenPublicKey returns the public key (as set via config file or environment variable)
 // that is used to decrypt the authentication token.
-func (c *ConfigurationData) GetTokenPublicKey() []byte {
-	return []byte(c.v.GetString(varTokenPublicKey))
+func (c *ConfigurationData) GetTokenPublicKey() (*rsa.PublicKey, error) {
+	// lock before entering the block where key parsing will happen
+	if c.tokenPublicKey == nil {
+		if !c.v.IsSet(varTokenPublicKey) {
+			return nil, errors.Errorf("'token.publickey' variable is not defined")
+		}
+		// lock the mutex before parsing the key, so if another rountine is already parsing the key, then this one waits
+		publicKeyParsingMutex.Lock()
+		defer publicKeyParsingMutex.Unlock()
+		// at this point, we can avoid parsing *again* the key if it's not nil anymore
+		if c.tokenPrivateKey == nil {
+			var err error
+			c.tokenPublicKey, err = jwt.ParseRSAPublicKeyFromPEM([]byte(c.v.GetString(varTokenPublicKey)))
+			return c.tokenPublicKey, err
+		}
+	}
+	return c.tokenPublicKey, nil
 }
 
 // GetAuthDevModeURL returns Auth Service URL used by default in Dev mode
