@@ -107,12 +107,7 @@ func (l *TestWorkItemLabelREST) TestAttachDetachLabelToWI() {
 		lbl1: struct{}{},
 	}
 	for _, lblData := range updatedWI.Data.Relationships.Labels.Data {
-		switch *lblData.ID {
-		case lbl0:
-			delete(mustHave, lbl0)
-		case lbl1:
-			delete(mustHave, lbl1)
-		}
+		delete(mustHave, *lblData.ID)
 	}
 	require.Empty(l.T(), mustHave)
 
@@ -136,10 +131,7 @@ func (l *TestWorkItemLabelREST) TestAttachDetachLabelToWI() {
 		lbl2: struct{}{},
 	}
 	for _, lblData := range updatedWI.Data.Relationships.Labels.Data {
-		switch *lblData.ID {
-		case lbl2:
-			delete(mustHave, lbl2)
-		}
+		delete(mustHave, *lblData.ID)
 	}
 	require.Empty(l.T(), mustHave)
 
@@ -182,12 +174,7 @@ func (l *TestWorkItemLabelREST) TestAttachDetachLabelToWI() {
 		lbl2: struct{}{},
 	}
 	for _, lblData := range updatedWI.Data.Relationships.Labels.Data {
-		switch *lblData.ID {
-		case lbl2:
-			delete(mustHave, lbl2)
-		case lbl1:
-			delete(mustHave, lbl1)
-		}
+		delete(mustHave, *lblData.ID)
 	}
 	require.Empty(l.T(), mustHave)
 
