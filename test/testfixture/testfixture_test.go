@@ -242,4 +242,16 @@ func checkNewFixture(t *testing.T, db *gorm.DB, n int, isolated bool) {
 			require.Len(t, c.Identities, 1)
 		}
 	})
+	t.Run("labels", func(t *testing.T) {
+		// given
+		c, err := fxtCtor(db, tf.Labels(n))
+		// then
+		checkCtorErrFunc(t, err)
+		checkFunc(t, c)
+		// manual checking
+		if !isolated {
+			require.Len(t, c.Labels, n)
+			require.Len(t, c.Spaces, 1)
+		}
+	})
 }

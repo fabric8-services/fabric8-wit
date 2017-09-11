@@ -1,11 +1,15 @@
 package testfixture
 
 import (
+	"math/rand"
+	"strings"
+
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/area"
 	"github.com/fabric8-services/fabric8-wit/codebase"
 	"github.com/fabric8-services/fabric8-wit/comment"
 	"github.com/fabric8-services/fabric8-wit/iteration"
+	"github.com/fabric8-services/fabric8-wit/label"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
@@ -411,6 +415,44 @@ func makeComments(fxt *TestFixture) error {
 		err := commentRepo.Create(fxt.ctx, fxt.Comments[i], fxt.Comments[i].Creator)
 		if err != nil {
 			return errs.Wrapf(err, "failed to create comment: %+v", fxt.Comments[i])
+		}
+	}
+	return nil
+}
+
+func makeLabels(fxt *TestFixture) error {
+	if fxt.info[kindLabels] == nil {
+		return nil
+	}
+	fxt.Labels = make([]*label.Label, fxt.info[kindLabels].numInstances)
+	labelRrepo := label.NewLabelRepository(fxt.db)
+
+	randColor := func() string {
+		colorBits := []string{"0", "1", "2", "3", "4", "5", "6", "a", "b", "c", "d", "e", "f"}
+		strArr := make([]string, 6)
+		for i := range strArr {
+			strArr[i] = colorBits[rand.Intn(len(colorBits))]
+		}
+		return "#" + strings.Join(strArr, "")
+	}
+	for i := range fxt.Labels {
+		fxt.Labels[i] = &label.Label{
+			Name:            testsupport.CreateRandomValidTestName("label "),
+			TextColor:       randColor(),
+			BackgroundColor: randColor(),
+		}
+		if !fxt.isolatedCreation {
+			fxt.Labels[i].SpaceID = fxt.Spaces[0].ID
+		}
+		fxt.runCustomizeEntityFuncs(i, kindLabels)
+		if fxt.isolatedCreation {
+			if fxt.Labels[i].SpaceID == uuid.Nil {
+				return errs.New("you must specify a space ID for each label")
+			}
+		}
+		err := labelRrepo.Create(fxt.ctx, fxt.Labels[i])
+		if err != nil {
+			return errs.Wrapf(err, "failed to create label: %+v", fxt.Labels[i])
 		}
 	}
 	return nil
