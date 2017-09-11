@@ -86,6 +86,7 @@ func (rest *TestLabelREST) TestCreateLabelWithWhiteSpace() {
 		},
 	}
 	_, created := test.CreateLabelCreated(rest.T(), svc.Context, svc, ctrl, c.Spaces[0].ID, &pl)
+	assertLabelLinking(rest.T(), created.Data)
 	assert.Equal(rest.T(), strings.TrimSpace(pl.Data.Attributes.Name), created.Data.Attributes.Name)
 	assert.Equal(rest.T(), "#000000", *created.Data.Attributes.TextColor)
 	assert.Equal(rest.T(), "#FFFFFF", *created.Data.Attributes.BackgroundColor)
@@ -114,6 +115,7 @@ func (rest *TestLabelREST) TestListLabel() {
 	}
 	test.CreateLabelCreated(rest.T(), svc.Context, svc, ctrl, c.Spaces[0].ID, &pl)
 	_, labels2 := test.ListLabelOK(rest.T(), svc.Context, svc, ctrl, c.Spaces[0].ID, nil, nil)
+	assertLabelLinking(rest.T(), labels2.Data[0])
 	require.NotEmpty(rest.T(), labels2.Data, "labels found")
 	require.Len(rest.T(), labels2.Data, 1)
 }
@@ -128,6 +130,18 @@ func (rest *TestLabelREST) TestShowLabel() {
 	ctrl := NewLabelController(svc, rest.db, rest.Configuration)
 
 	_, labels2 := test.ShowLabelOK(rest.T(), svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Labels[0].ID.String(), nil, nil)
+	assertLabelLinking(rest.T(), labels2.Data)
 	require.NotEmpty(rest.T(), labels2.Data, "labels found")
 	assert.Equal(rest.T(), testFxt.Labels[0].Name, labels2.Data.Attributes.Name)
+}
+
+func assertLabelLinking(t *testing.T, target *app.Label) {
+	assert.NotNil(t, target.ID)
+	assert.Equal(t, label.APIStringTypeLabels, target.Type)
+	assert.NotNil(t, target.Links.Self)
+	require.NotNil(t, target.Relationships)
+	require.NotNil(t, target.Relationships.Space)
+	require.NotNil(t, target.Relationships.Space.Links)
+	require.NotNil(t, target.Relationships.Space.Links.Self)
+	assert.True(t, strings.Contains(*target.Relationships.Space.Links.Self, "/api/spaces/"))
 }
