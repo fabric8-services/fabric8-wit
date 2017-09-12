@@ -411,3 +411,34 @@ func WorkItemLinks(n int, fns ...CustomizeWorkItemLinkFunc) RecipeFunction {
 		return fxt.deps(WorkItemLinkTypes(1), WorkItems(2*n))
 	})
 }
+
+// CustomizeLabelFunc is directly compatible with CustomizeEntityFunc
+// but it can only be used for the Labels() recipe-function.
+type CustomizeLabelFunc func(fxt *TestFixture, idx int) error
+
+// Labels tells the test fixture to create at least n label objects. See
+// also the Identities() function for more general information on n and fns.
+//
+// When called in NewFixture() this function will call also call
+//     Spaces(1)
+// but with NewFixtureIsolated(), no other objects will be created.
+func Labels(n int, fns ...CustomizeLabelFunc) RecipeFunction {
+	return RecipeFunction(func(fxt *TestFixture) error {
+		fxt.checkFuncs = append(fxt.checkFuncs, func() error {
+			l := len(fxt.Labels)
+			if l < n {
+				return errs.Errorf(checkStr, n, kindLabels, l)
+			}
+			return nil
+		})
+		// Convert fns to []CustomizeEntityFunc
+		customFuncs := make([]CustomizeEntityFunc, len(fns))
+		for idx := range fns {
+			customFuncs[idx] = CustomizeEntityFunc(fns[idx])
+		}
+		if err := fxt.setupInfo(n, kindLabels, customFuncs...); err != nil {
+			return err
+		}
+		return fxt.deps(Spaces(1))
+	})
+}

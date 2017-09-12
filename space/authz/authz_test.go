@@ -8,6 +8,7 @@ import (
 	"time"
 
 	config "github.com/fabric8-services/fabric8-wit/configuration"
+	"github.com/fabric8-services/fabric8-wit/label"
 
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/application"
@@ -161,6 +162,10 @@ func (a *app) Comments() comment.Repository {
 }
 
 func (a *app) Spaces() space.Repository {
+	return nil
+}
+
+func (a *app) Labels() label.Repository {
 	return nil
 }
 
