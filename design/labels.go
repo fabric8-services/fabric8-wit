@@ -37,6 +37,9 @@ var labelAttributes = a.Type("LabelAttributes", func() {
 	a.Attribute("background-color", d.String, "Background color in hex code format. See also http://www.color-hex.com", func() {
 		a.Example("#ffa7cb")
 	})
+	a.Attribute("border-color", d.String, "Border color in hex code format. See also http://www.color-hex.com", func() {
+		a.Example("#ffa7cb")
+	})
 	a.Required("name")
 })
 

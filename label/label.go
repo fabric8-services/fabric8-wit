@@ -26,6 +26,7 @@ type Label struct {
 	Name            string
 	TextColor       string `sql:"DEFAULT:#000000"`
 	BackgroundColor string `sql:"DEFAULT:#FFFFFF"`
+	BorderColor     string `sql:"DEFAULT:#FFFFFF"`
 	Version         int
 }
 
