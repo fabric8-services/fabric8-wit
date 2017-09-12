@@ -63,6 +63,7 @@ func (rest *TestLabelREST) TestCreateLabel() {
 	assert.Equal(rest.T(), pl.Data.Attributes.Name, created.Data.Attributes.Name)
 	assert.Equal(rest.T(), "#000000", *created.Data.Attributes.TextColor)
 	assert.Equal(rest.T(), "#FFFFFF", *created.Data.Attributes.BackgroundColor)
+	assert.Equal(rest.T(), "#000000", *created.Data.Attributes.BorderColor)
 	assert.False(rest.T(), created.Data.Attributes.CreatedAt.After(time.Now()), "Label was not created, CreatedAt after Now()")
 }
 
@@ -87,6 +88,7 @@ func (rest *TestLabelREST) TestCreateLabelWithWhiteSpace() {
 	assert.Equal(rest.T(), strings.TrimSpace(pl.Data.Attributes.Name), created.Data.Attributes.Name)
 	assert.Equal(rest.T(), "#000000", *created.Data.Attributes.TextColor)
 	assert.Equal(rest.T(), "#FFFFFF", *created.Data.Attributes.BackgroundColor)
+	assert.Equal(rest.T(), "#000000", *created.Data.Attributes.BorderColor)
 	assert.False(rest.T(), created.Data.Attributes.CreatedAt.After(time.Now()), "Label was not created, CreatedAt after Now()")
 }
 

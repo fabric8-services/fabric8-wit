@@ -128,6 +128,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration71", testMigration71)
 	t.Run("TestMigration72", testMigration72)
 	t.Run("TestMigration73", testMigration73)
+	t.Run("TestMigration74", testMigration74)
 
 	// Perform the migration
 	if err := migration.Migrate(sqlDB, databaseName); err != nil {
@@ -540,6 +541,11 @@ func testMigration73(t *testing.T) {
 	assert.NotNil(t, runSQLscript(sqlDB, "073-label-same-name.sql"))
 	assert.NotNil(t, runSQLscript(sqlDB, "073-label-color-code.sql"))
 	assert.NotNil(t, runSQLscript(sqlDB, "073-label-color-code2.sql"))
+}
+
+func testMigration74(t *testing.T) {
+	migrateToVersion(sqlDB, migrations[:75], 75)
+	assert.True(t, dialect.HasColumn("labels", "border_color"))
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and

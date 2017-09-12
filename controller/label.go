@@ -72,6 +72,9 @@ func (c *LabelController) Create(ctx *app.CreateLabelContext) error {
 		if ctx.Payload.Data.Attributes.BackgroundColor != nil {
 			lbl.BackgroundColor = *ctx.Payload.Data.Attributes.BackgroundColor
 		}
+		if ctx.Payload.Data.Attributes.BorderColor != nil {
+			lbl.BorderColor = *ctx.Payload.Data.Attributes.BorderColor
+		}
 		err = appl.Labels().Create(ctx, &lbl)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
@@ -98,6 +101,7 @@ func ConvertLabel(appl application.Application, request *http.Request, lbl label
 		Attributes: &app.LabelAttributes{
 			TextColor:       &lbl.TextColor,
 			BackgroundColor: &lbl.BackgroundColor,
+			BorderColor:     &lbl.BorderColor,
 			Name:            lbl.Name,
 			CreatedAt:       &lbl.CreatedAt,
 			UpdatedAt:       &lbl.UpdatedAt,
