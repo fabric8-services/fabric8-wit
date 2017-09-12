@@ -48,7 +48,7 @@ func (c *WorkItemLabelsController) List(ctx *app.ListWorkItemLabelsContext) erro
 				log.Error(nil, map[string]interface{}{
 					"label_id": lblStr,
 					"err":      err,
-				}, "error in converting string to uuid")
+				}, "error in converting string to UUID")
 				return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 			}
 			l, err := appl.Labels().Load(ctx, wi.SpaceID, id)
