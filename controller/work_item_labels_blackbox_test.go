@@ -20,6 +20,7 @@ import (
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/goadesign/goa"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -181,4 +182,31 @@ func (l *TestWorkItemLabelREST) TestAttachDetachLabelToWI() {
 	// verify Unauthorized access
 	svc2, ctrl2 := l.UnSecuredController()
 	test.UpdateWorkitemUnauthorized(l.T(), svc2.Context, svc2, ctrl2, fixtures.WorkItems[0].ID, &u)
+}
+
+func (l *TestWorkItemLabelREST) TestFailInvalidLabel() {
+	fixtures := tf.NewTestFixture(l.T(), l.DB, tf.Spaces(1), tf.Iterations(1), tf.Areas(1), tf.WorkItems(1))
+	svc, ctrl := l.SecuredController()
+	apiLabelType := label.APIStringTypeLabels
+	invalidLabelID := uuid.NewV4().String()
+	u := app.UpdateWorkitemPayload{
+		Data: &app.WorkItem{
+			ID:   &fixtures.WorkItems[0].ID,
+			Type: APIStringTypeWorkItem,
+			Attributes: map[string]interface{}{
+				"version": fixtures.WorkItems[0].Version,
+			},
+			Relationships: &app.WorkItemRelationships{
+				Labels: &app.RelationGenericList{
+					Data: []*app.GenericData{
+						{
+							ID:   &invalidLabelID,
+							Type: &apiLabelType,
+						},
+					},
+				},
+			},
+		},
+	}
+	test.UpdateWorkitemBadRequest(l.T(), svc.Context, svc, ctrl, fixtures.Spaces[0].ID, &u)
 }
