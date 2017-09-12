@@ -103,15 +103,9 @@ func (m *GormLabelRepository) List(ctx context.Context, spaceID uuid.UUID) ([]La
 	return objs, nil
 }
 
-// CheckExists returns nil if the given ID exists otherwise returns an error
-func (m *GormLabelRepository) CheckExists(ctx context.Context, id string) error {
-	defer goa.MeasureSince([]string{"goa", "db", "identity", "exists"}, time.Now())
-	return repository.CheckExists(ctx, m.db, m.TableName(), id)
-}
-
 // IsValid returns true if the identity exists
 func (m *GormLabelRepository) IsValid(ctx context.Context, id uuid.UUID) bool {
-	return m.CheckExists(ctx, id.String()) == nil
+	return repository.CheckExists(ctx, m.db, m.TableName(), id.String()) == nil
 }
 
 // Load label in a space
