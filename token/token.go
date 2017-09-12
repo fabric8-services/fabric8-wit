@@ -5,7 +5,7 @@ import (
 	"crypto/rsa"
 	"fmt"
 
-	authtoken "github.com/alexeykazakov/fabric8-auth/token"
+	authtoken "github.com/fabric8-services/fabric8-auth/token"
 	"github.com/fabric8-services/fabric8-wit/log"
 
 	jwt "github.com/dgrijalva/jwt-go"
@@ -44,8 +44,8 @@ type Permissions struct {
 }
 
 type PublicKey struct {
-	KID string
-	Key *rsa.PublicKey
+	KeyID string
+	Key   *rsa.PublicKey
 }
 
 // Manager generate and find auth token information
@@ -76,10 +76,10 @@ func NewManager(config configuration) (Manager, error) {
 		return nil, errors.New("unable to load public keys from remote service")
 	}
 	for _, remoteKey := range remoteKeys {
-		tm.publicKeysMap[remoteKey.KID] = remoteKey.Key
-		tm.publicKeys = append(tm.publicKeys, &PublicKey{KID: remoteKey.KID, Key: remoteKey.Key})
+		tm.publicKeysMap[remoteKey.KeyID] = remoteKey.Key
+		tm.publicKeys = append(tm.publicKeys, &PublicKey{KeyID: remoteKey.KeyID, Key: remoteKey.Key})
 		log.Info(nil, map[string]interface{}{
-			"kid": remoteKey.KID,
+			"kid": remoteKey.KeyID,
 		}, "Public key added")
 	}
 
@@ -90,7 +90,7 @@ func NewManager(config configuration) (Manager, error) {
 func NewManagerWithPublicKey(id string, key *rsa.PublicKey) Manager {
 	return &tokenManager{
 		publicKeysMap: map[string]*rsa.PublicKey{id: key},
-		publicKeys:    []*PublicKey{{KID: id, Key: key}},
+		publicKeys:    []*PublicKey{{KeyID: id, Key: key}},
 	}
 }
 

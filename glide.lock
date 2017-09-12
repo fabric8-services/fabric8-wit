@@ -38,8 +38,8 @@ imports:
   version: 5ce38dea6287d9bac7789a8bc24556867a4fcee6
   subpackages:
   - design
-- name: github.com/alexeykazakov/fabric8-auth
-  version: a98e3496bb020d7d4693a2b86d846945cf68192d
+- name: github.com/fabric8-services/fabric8-auth
+  version: c1a62b994f63d11723829794ac63206ecdac8d01
   subpackages:
   - design
 - name: gopkg.in/square/go-jose.v2
