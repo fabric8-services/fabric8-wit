@@ -71,6 +71,15 @@ func (l *TestWorkItemLabelREST) TestAttachDetachLabelToWI() {
 	lblCnt := 3
 	fixtures := tf.NewTestFixture(l.T(), l.DB, tf.Spaces(1), tf.Iterations(1), tf.Areas(1), tf.WorkItems(wiCnt), tf.Labels(lblCnt))
 	svc, ctrl := l.SecuredController()
+	relatedLink := fmt.Sprintf("/%s/labels", fixtures.WorkItems[0].ID)
+
+	// Fetch WI and verify Labels Relationship
+	_, fetchedWI := test.ShowWorkitemOK(l.T(), svc.Context, svc, ctrl, fixtures.WorkItems[0].ID, nil, nil)
+	require.NotNil(l.T(), fetchedWI.Data.Relationships.Labels)
+	require.NotNil(l.T(), fetchedWI.Data.Relationships.Labels.Links)
+	assert.Contains(l.T(), *fetchedWI.Data.Relationships.Labels.Links.Related, relatedLink)
+	assert.Empty(l.T(), fetchedWI.Data.Relationships.Labels.Data)
+
 	u := app.UpdateWorkitemPayload{
 		Data: &app.WorkItem{
 			ID:   &fixtures.WorkItems[0].ID,
@@ -99,7 +108,6 @@ func (l *TestWorkItemLabelREST) TestAttachDetachLabelToWI() {
 	}
 	_, updatedWI := test.UpdateWorkitemOK(l.T(), svc.Context, svc, ctrl, fixtures.WorkItems[0].ID, &u)
 	assert.NotNil(l.T(), updatedWI)
-	relatedLink := fmt.Sprintf("/%s/labels", fixtures.WorkItems[0].ID)
 	require.NotNil(l.T(), updatedWI.Data.Relationships.Labels.Links)
 	assert.Contains(l.T(), *updatedWI.Data.Relationships.Labels.Links.Related, relatedLink)
 	assert.Len(l.T(), updatedWI.Data.Relationships.Labels.Data, 2)

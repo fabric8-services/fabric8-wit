@@ -557,13 +557,6 @@ func ConvertWorkItem(request *http.Request, wi workitem.WorkItem, additional ...
 	if op.Relationships.Assignees == nil {
 		op.Relationships.Assignees = &app.RelationGenericList{Data: nil}
 	}
-	if op.Relationships.Labels == nil {
-		op.Relationships.Labels = &app.RelationGenericList{
-			Data: nil,
-			Links: &app.GenericLinks{
-				Related: &labelsRelated,
-			}}
-	}
 	if op.Relationships.Iteration == nil {
 		op.Relationships.Iteration = &app.RelationGeneric{Data: nil}
 	}
