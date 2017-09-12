@@ -260,28 +260,29 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 		}
 	}
 	if source.Relationships != nil && source.Relationships.Labels != nil {
+		// Pass empty array to remove all lables
+		// null is treated as bad param
 		if source.Relationships.Labels.Data == nil {
-			delete(target.Fields, workitem.SystemLabels)
-		} else {
-			distinctIDs := make(map[string]struct{})
-			for _, d := range source.Relationships.Labels.Data {
-				labelUUID, err := uuid.FromString(*d.ID)
-				if err != nil {
-					return errors.NewBadParameterError("data.relationships.assignees.data.id", *d.ID)
-				}
-				if ok := appl.Labels().IsValid(ctx, labelUUID); !ok {
-					return errors.NewBadParameterError("data.relationships.assignees.data.id", *d.ID)
-				}
-				if _, ok := distinctIDs[labelUUID.String()]; !ok {
-					distinctIDs[labelUUID.String()] = struct{}{}
-				}
-			}
-			ids := make([]string, 0, len(distinctIDs))
-			for k := range distinctIDs {
-				ids = append(ids, k)
-			}
-			target.Fields[workitem.SystemLabels] = ids
+			return errors.NewBadParameterError("data.relationships.labels.data", nil)
 		}
+		distinctIDs := make(map[string]struct{})
+		for _, d := range source.Relationships.Labels.Data {
+			labelUUID, err := uuid.FromString(*d.ID)
+			if err != nil {
+				return errors.NewBadParameterError("data.relationships.labels.data.id", *d.ID)
+			}
+			if ok := appl.Labels().IsValid(ctx, labelUUID); !ok {
+				return errors.NewBadParameterError("data.relationships.labels.data.id", *d.ID)
+			}
+			if _, ok := distinctIDs[labelUUID.String()]; !ok {
+				distinctIDs[labelUUID.String()] = struct{}{}
+			}
+		}
+		ids := make([]string, 0, len(distinctIDs))
+		for k := range distinctIDs {
+			ids = append(ids, k)
+		}
+		target.Fields[workitem.SystemLabels] = ids
 	}
 	if source.Relationships != nil {
 		if source.Relationships.Iteration == nil || (source.Relationships.Iteration != nil && source.Relationships.Iteration.Data == nil) {
@@ -557,7 +558,11 @@ func ConvertWorkItem(request *http.Request, wi workitem.WorkItem, additional ...
 		op.Relationships.Assignees = &app.RelationGenericList{Data: nil}
 	}
 	if op.Relationships.Labels == nil {
-		op.Relationships.Labels = &app.RelationGenericList{Data: nil}
+		op.Relationships.Labels = &app.RelationGenericList{
+			Data: nil,
+			Links: &app.GenericLinks{
+				Related: &labelsRelated,
+			}}
 	}
 	if op.Relationships.Iteration == nil {
 		op.Relationships.Iteration = &app.RelationGeneric{Data: nil}

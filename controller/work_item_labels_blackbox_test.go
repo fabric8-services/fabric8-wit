@@ -139,7 +139,7 @@ func (l *TestWorkItemLabelREST) TestAttachDetachLabelToWI() {
 	// detach all labels
 	u.Data.Attributes["version"] = updatedWI.Data.Attributes["version"]
 	u.Data.Relationships.Labels = &app.RelationGenericList{
-		Data: nil,
+		Data: []*app.GenericData{},
 	}
 	_, updatedWI = test.UpdateWorkitemOK(l.T(), svc.Context, svc, ctrl, fixtures.WorkItems[0].ID, &u)
 	assert.NotNil(l.T(), updatedWI)
@@ -178,6 +178,13 @@ func (l *TestWorkItemLabelREST) TestAttachDetachLabelToWI() {
 		delete(mustHave, *lblData.ID)
 	}
 	require.Empty(l.T(), mustHave)
+
+	// Bad Request using nil
+	u.Data.Attributes["version"] = updatedWI.Data.Attributes["version"]
+	u.Data.Relationships.Labels = &app.RelationGenericList{
+		Data: nil,
+	}
+	test.UpdateWorkitemBadRequest(l.T(), svc.Context, svc, ctrl, fixtures.Spaces[0].ID, &u)
 
 	// verify Unauthorized access
 	svc2, ctrl2 := l.UnSecuredController()
