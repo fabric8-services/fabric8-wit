@@ -53,9 +53,10 @@ func (rest *TestLabelREST) TestCreateLabel() {
 	svc := testsupport.ServiceAsUser("Label-Service", *i.Identities[0])
 
 	ctrl := NewLabelController(svc, rest.db, rest.Configuration)
+	color := "some color"
 	pl := app.CreateLabelPayload{
 		Data: &app.Label{
-			Attributes: &app.LabelAttributes{Name: "some color"},
+			Attributes: &app.LabelAttributes{Name: &color},
 			Type:       label.APIStringTypeLabels,
 		},
 	}
@@ -77,15 +78,16 @@ func (rest *TestLabelREST) TestCreateLabelWithWhiteSpace() {
 	svc := testsupport.ServiceAsUser("Label-Service", *i.Identities[0])
 
 	ctrl := NewLabelController(svc, rest.db, rest.Configuration)
+	color := "	  some color  "
 	pl := app.CreateLabelPayload{
 		Data: &app.Label{
-			Attributes: &app.LabelAttributes{Name: "	  some color  "},
-			Type: label.APIStringTypeLabels,
+			Attributes: &app.LabelAttributes{Name: &color},
+			Type:       label.APIStringTypeLabels,
 		},
 	}
 	_, created := test.CreateLabelCreated(rest.T(), svc.Context, svc, ctrl, c.Spaces[0].ID, &pl)
 	assertLabelLinking(rest.T(), created.Data)
-	assert.Equal(rest.T(), strings.TrimSpace(pl.Data.Attributes.Name), created.Data.Attributes.Name)
+	assert.Equal(rest.T(), strings.TrimSpace(*pl.Data.Attributes.Name), *created.Data.Attributes.Name)
 	assert.Equal(rest.T(), "#000000", *created.Data.Attributes.TextColor)
 	assert.Equal(rest.T(), "#FFFFFF", *created.Data.Attributes.BackgroundColor)
 	assert.Equal(rest.T(), "#000000", *created.Data.Attributes.BorderColor)
@@ -105,9 +107,10 @@ func (rest *TestLabelREST) TestListLabel() {
 
 	_, labels := test.ListLabelOK(rest.T(), svc.Context, svc, ctrl, c.Spaces[0].ID, nil, nil)
 	require.Empty(rest.T(), labels.Data, "labels found")
+	color := "some color"
 	pl := app.CreateLabelPayload{
 		Data: &app.Label{
-			Attributes: &app.LabelAttributes{Name: "some color"},
+			Attributes: &app.LabelAttributes{Name: &color},
 			Type:       label.APIStringTypeLabels,
 		},
 	}
@@ -126,10 +129,10 @@ func (rest *TestLabelREST) TestShowLabel() {
 
 	ctrl := NewLabelController(svc, rest.db, rest.Configuration)
 
-	_, labels2 := test.ShowLabelOK(rest.T(), svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Labels[0].ID.String(), nil, nil)
+	_, labels2 := test.ShowLabelOK(rest.T(), svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Labels[0].ID, nil, nil)
 	assertLabelLinking(rest.T(), labels2.Data)
 	require.NotEmpty(rest.T(), labels2.Data, "labels found")
-	assert.Equal(rest.T(), testFxt.Labels[0].Name, labels2.Data.Attributes.Name)
+	assert.Equal(rest.T(), testFxt.Labels[0].Name, *labels2.Data.Attributes.Name)
 }
 
 func assertLabelLinking(t *testing.T, target *app.Label) {

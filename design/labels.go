@@ -40,7 +40,6 @@ var labelAttributes = a.Type("LabelAttributes", func() {
 	a.Attribute("border-color", d.String, "Border color in hex code format. See also http://www.color-hex.com", func() {
 		a.Example("#ffa7cb")
 	})
-	a.Required("name")
 })
 
 var labelRelationships = a.Type("LabelRelations", func() {
@@ -68,7 +67,7 @@ var _ = a.Resource("label", func() {
 		)
 		a.Description("Retrieve label for the given id.")
 		a.Params(func() {
-			a.Param("id", d.String, "id")
+			a.Param("id", d.UUID, "id")
 		})
 		a.UseTrait("conditional")
 		a.Response(d.OK, labelSingle)
@@ -106,6 +105,27 @@ var _ = a.Resource("label", func() {
 		a.Response(d.Forbidden, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.Conflict, JSONAPIErrors)
+	})
+
+	a.Action("update", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.PATCH("/:id"),
+		)
+		a.Description("update the label for the given id.")
+		a.Params(func() {
+			a.Param("id", d.UUID, "ID of the label to update")
+		})
+		a.Payload(labelSingle)
+		a.Response(d.OK, func() {
+			a.Media(labelSingle)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.Conflict, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.Forbidden, JSONAPIErrors)
 	})
 })
 

@@ -2,6 +2,7 @@ package label_test
 
 import (
 	"context"
+	"reflect"
 	"testing"
 	"time"
 
@@ -113,6 +114,34 @@ func (s *TestLabelRepository) TestCreateLabelWithWrongColorCode() {
 	assert.Contains(s.T(), err.Error(), "labels_background_color_check")
 }
 
+func (s *TestLabelRepository) TestSaveLabel() {
+	testFxt := tf.NewTestFixture(s.T(), s.DB, tf.Labels(1))
+	repo := label.NewLabelRepository(s.DB)
+	l := testFxt.Labels[0]
+	l.Name = "severity/p5"
+	l.TextColor = "#778899"
+	l.BackgroundColor = "#445566"
+	l.BorderColor = "#112233"
+
+	lbl, err := repo.Save(context.Background(), *l)
+	require.Nil(s.T(), err)
+	assert.Equal(s.T(), l.Name, lbl.Name)
+	assert.Equal(s.T(), l.TextColor, lbl.TextColor)
+	assert.Equal(s.T(), l.BackgroundColor, lbl.BackgroundColor)
+	assert.Equal(s.T(), l.BorderColor, lbl.BorderColor)
+}
+
+func (s *TestLabelRepository) TestSaveLabelNonExisting() {
+	fakeID := uuid.NewV4()
+	fakeLabel := label.Label{
+		ID: fakeID,
+	}
+	repo := label.NewLabelRepository(s.DB)
+	_, err := repo.Save(context.Background(), fakeLabel)
+	require.NotNil(s.T(), err)
+	assert.Equal(s.T(), reflect.TypeOf(errs.NotFoundError{}), reflect.TypeOf(err))
+}
+
 func (s *TestLabelRepository) TestListLabelBySpace() {
 	n := 3
 	testFxt := tf.NewTestFixture(s.T(), s.DB, tf.Labels(n))
@@ -133,7 +162,7 @@ func (s *TestLabelRepository) TestListLabelBySpace() {
 
 func (s *TestLabelRepository) TestLoadLabel() {
 	testFxt := tf.NewTestFixture(s.T(), s.DB, tf.Labels(1))
-	lbl, err := label.NewLabelRepository(s.DB).Load(context.Background(), testFxt.Spaces[0].ID, testFxt.Labels[0].ID)
+	lbl, err := label.NewLabelRepository(s.DB).Load(context.Background(), testFxt.Labels[0].ID)
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), lbl)
 	assert.Equal(s.T(), testFxt.Labels[0].Name, lbl.Name)
