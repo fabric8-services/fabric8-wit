@@ -456,6 +456,7 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *http
 	relatedOwnerByLink := rest.AbsoluteURL(request, fmt.Sprintf("%s/%s", usersEndpoint, sp.OwnerId.String()))
 	relatedCollaboratorList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/collaborators", spaceIDStr))
 	relatedFilterList := rest.AbsoluteURL(request, "/api/filters")
+	relatedLabelList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/labels", spaceIDStr))
 	workitemTypeGroupsLink := rest.AbsoluteURL(request, app.SpaceTemplateHref(spaceIDStr)+"/workitemtypegroups/")
 
 	count, err := countBacklogItems(ctx, db, sp.ID)
@@ -517,6 +518,11 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *http
 			Collaborators: &app.RelationGeneric{
 				Links: &app.GenericLinks{
 					Related: &relatedCollaboratorList,
+				},
+			},
+			Labels: &app.RelationGeneric{
+				Links: &app.GenericLinks{
+					Related: &relatedLabelList,
 				},
 			},
 		},
