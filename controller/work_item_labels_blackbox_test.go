@@ -132,7 +132,7 @@ func (l *TestWorkItemLabelREST) TestAttachDetachLabelToWI() {
 		},
 	}
 	_, updatedWI = test.UpdateWorkitemOK(l.T(), svc.Context, svc, ctrl, fixtures.WorkItems[0].ID, &u)
-	assert.NotNil(l.T(), updatedWI)
+	require.NotNil(l.T(), updatedWI)
 	require.NotNil(l.T(), updatedWI.Data.Relationships.Labels.Links)
 	assert.Contains(l.T(), *updatedWI.Data.Relationships.Labels.Links.Related, relatedLink)
 	assert.Len(l.T(), updatedWI.Data.Relationships.Labels.Data, 1)
@@ -174,7 +174,7 @@ func (l *TestWorkItemLabelREST) TestAttachDetachLabelToWI() {
 		},
 	}
 	_, updatedWI = test.UpdateWorkitemOK(l.T(), svc.Context, svc, ctrl, fixtures.WorkItems[0].ID, &u)
-	assert.NotNil(l.T(), updatedWI)
+	require.NotNil(l.T(), updatedWI)
 	require.NotNil(l.T(), updatedWI.Data.Relationships.Labels.Links)
 	assert.Contains(l.T(), *updatedWI.Data.Relationships.Labels.Links.Related, relatedLink)
 	assert.Len(l.T(), updatedWI.Data.Relationships.Labels.Data, 2)

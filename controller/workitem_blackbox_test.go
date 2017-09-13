@@ -1807,8 +1807,8 @@ func assertSingleWorkItem(t *testing.T, createdWI app.WorkItemSingle, fetchedWI 
 	assert.NotNil(t, fetchedWI.Data.Relationships.Creator.Data.ID)
 	assert.NotNil(t, fetchedWI.Data.Relationships.BaseType.Data.ID)
 	relatedLink := fmt.Sprintf("/%s/labels", fetchedWI.Data.ID)
-	assert.NotNil(t, fetchedWI.Data.Relationships.Labels)
-	assert.NotNil(t, fetchedWI.Data.Relationships.Labels.Links)
+	require.NotNil(t, fetchedWI.Data.Relationships.Labels)
+	require.NotNil(t, fetchedWI.Data.Relationships.Labels.Links)
 	assert.Contains(t, *fetchedWI.Data.Relationships.Labels.Links.Related, relatedLink)
 	assert.Empty(t, fetchedWI.Data.Relationships.Labels.Data)
 }

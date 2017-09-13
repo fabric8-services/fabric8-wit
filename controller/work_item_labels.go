@@ -57,7 +57,7 @@ func (c *WorkItemLabelsController) List(ctx *app.ListWorkItemLabelsContext) erro
 					"label_id": id,
 					"err":      err,
 				}, "error in loading label")
-				return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+				return jsonapi.JSONErrorResponse(ctx, err)
 			}
 			ls = append(ls, *l)
 		}
