@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -161,7 +160,7 @@ func ConvertLabelsSimple(request *http.Request, labelIDs []interface{}) []*app.G
 // ConvertLabelSimple converts a Label ID into a Generic Reletionship
 func ConvertLabelSimple(request *http.Request, labelID interface{}) *app.GenericData {
 	t := label.APIStringTypeLabels
-	i := fmt.Sprint(labelID)
+	i := labelID.(string)
 	return &app.GenericData{
 		Type: &t,
 		ID:   &i,
