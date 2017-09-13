@@ -5,7 +5,7 @@ import (
 	"crypto/rsa"
 	"fmt"
 
-	authtoken "github.com/fabric8-services/fabric8-auth/token"
+	authclient "github.com/fabric8-services/fabric8-auth/token"
 	"github.com/fabric8-services/fabric8-wit/log"
 
 	jwt "github.com/dgrijalva/jwt-go"
@@ -69,7 +69,7 @@ func NewManager(config configuration) (Manager, error) {
 		publicKeysMap: map[string]*rsa.PublicKey{},
 	}
 
-	remoteKeys, err := authtoken.FetchKeys(config.GetKeysEndpoint())
+	remoteKeys, err := authclient.FetchKeys(config.GetKeysEndpoint())
 	if err != nil {
 		log.Error(nil, map[string]interface{}{
 			"keys_url": config.GetKeysEndpoint(),
@@ -86,7 +86,7 @@ func NewManager(config configuration) (Manager, error) {
 
 	devModeURL := config.GetKeycloakDevModeURL()
 	if devModeURL != "" {
-		remoteKeys, err = authtoken.FetchKeys(fmt.Sprintf("%s/protocol/openid-connect/certs", devModeURL))
+		remoteKeys, err = authclient.FetchKeys(fmt.Sprintf("%s/protocol/openid-connect/certs", devModeURL))
 		if err != nil {
 			log.Error(nil, map[string]interface{}{
 				"keys_url": devModeURL,
@@ -116,17 +116,17 @@ func NewManagerWithPublicKey(id string, key *rsa.PublicKey) Manager {
 // ParseToken parses token claims
 func (mgm *tokenManager) ParseToken(ctx context.Context, tokenString string) (*TokenClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &TokenClaims{}, func(token *jwt.Token) (interface{}, error) {
-		kid := token.Header["kid"]
-		if kid == nil {
+		kid, ok := token.Header["kid"]
+		if !ok {
 			log.Error(ctx, map[string]interface{}{}, "There is no 'kid' header in the token")
-			return nil, errors.New("There is no 'kid' header in the token")
+			return nil, errors.New("there is no 'kid' header in the token")
 		}
 		key := mgm.PublicKey(fmt.Sprintf("%s", kid))
 		if key == nil {
 			log.Error(ctx, map[string]interface{}{
 				"kid": kid,
 			}, "There is no public key with such ID")
-			return nil, errors.New(fmt.Sprintf("There is no public key with such ID: %s", kid))
+			return nil, errors.New(fmt.Sprintf("there is no public key with such ID: %s", kid))
 		}
 		return key, nil
 	})
