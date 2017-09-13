@@ -2,7 +2,6 @@ package login
 
 import (
 	"crypto/md5"
-	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
@@ -68,18 +67,6 @@ type linkInterface interface {
 	jsonapi.InternalServerError
 	TemporaryRedirect() error
 	BadRequest(r *app.JSONAPIErrors) error
-}
-
-// keycloakTokenClaims represents standard Keycloak token claims
-type keycloakTokenClaims struct {
-	Name         string `json:"name"`
-	Username     string `json:"preferred_username"`
-	GivenName    string `json:"given_name"`
-	FamilyName   string `json:"family_name"`
-	Email        string `json:"email"`
-	Company      string `json:"company"`
-	SessionState string `json:"session_state"`
-	jwt.StandardClaims
 }
 
 var allProvidersToLink = []string{"github", "openshift-v3"}
@@ -303,7 +290,7 @@ func (keycloak *KeycloakOAuthProvider) autoLinkProvidersDuringLogin(ctx *app.Aut
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 	}
-	claims, err := parseToken(token, keycloak.TokenManager.PublicKey())
+	claims, err := keycloak.TokenManager.ParseToken(ctx, token)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
@@ -625,7 +612,7 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 	var identity *account.Identity
 	var user *account.User
 
-	claims, err := parseToken(accessToken, keycloak.TokenManager.PublicKey())
+	claims, err := keycloak.TokenManager.ParseToken(ctx, accessToken)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"token": accessToken,
@@ -634,7 +621,7 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 		return nil, nil, errors.New("unable to parse the token " + err.Error())
 	}
 
-	if err := checkClaims(claims); err != nil {
+	if err := token.CheckClaims(claims); err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"token": accessToken,
 			"err":   err,
@@ -786,20 +773,6 @@ func redirectWithError(ctx *app.AuthorizeLoginContext, knownReferrer string, err
 	return ctx.TemporaryRedirect()
 }
 
-func parseToken(tokenString string, publicKey *rsa.PublicKey) (*keycloakTokenClaims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &keycloakTokenClaims{}, func(t *jwt.Token) (interface{}, error) {
-		return publicKey, nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	claims := token.Claims.(*keycloakTokenClaims)
-	if token.Valid {
-		return claims, nil
-	}
-	return nil, errs.WithStack(errors.New("token is not valid"))
-}
-
 func generateGravatarURL(email string) (string, error) {
 	if email == "" {
 		return "", nil
@@ -822,24 +795,7 @@ func generateGravatarURL(email string) (string, error) {
 	return urlStr, nil
 }
 
-func checkClaims(claims *keycloakTokenClaims) error {
-	if claims.Subject == "" {
-		return errors.New("subject claim not found in token")
-	}
-	_, err := uuid.FromString(claims.Subject)
-	if err != nil {
-		return errors.New("subject claim from token is not UUID " + err.Error())
-	}
-	if claims.Username == "" {
-		return errors.New("username claim not found in token")
-	}
-	if claims.Email == "" {
-		return errors.New("email claim not found in token")
-	}
-	return nil
-}
-
-func fillUser(claims *keycloakTokenClaims, user *account.User, identity *account.Identity) (bool, error) {
+func fillUser(claims *token.TokenClaims, user *account.User, identity *account.Identity) (bool, error) {
 	isChanged := false
 	if user.FullName != claims.Name || user.Email != claims.Email || user.Company != claims.Company || identity.Username != claims.Username || user.ImageURL == "" {
 		isChanged = true

@@ -97,6 +97,11 @@ objects:
               configMapKeyRef:
                 name: core
                 key: chestarter.url
+          - name: F8_AUTH_URL
+            valueFrom:
+              configMapKeyRef:
+                name: core
+                key: auth.serviceurl
           - name: F8_REDIRECT_VALID
             valueFrom:
               configMapKeyRef:

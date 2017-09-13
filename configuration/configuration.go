@@ -7,11 +7,9 @@ import (
 	"os"
 	"regexp"
 	"strings"
-	"sync"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/pkg/errors"
 	yaml "gopkg.in/yaml.v2"
 
@@ -64,8 +62,6 @@ const (
 	varKeycloakTesUser2Name         = "keycloak.testuser2.name"
 	varKeycloakTesUser2Secret       = "keycloak.testuser2.secret"
 	varKeycloakURL                  = "keycloak.url"
-	varTokenPublicKey               = "token.publickey"
-	varTokenPrivateKey              = "token.privatekey"
 	varAuthNotApprovedRedirect      = "auth.notapproved.redirect"
 	varHeaderMaxLength              = "header.maxlength"
 
@@ -194,9 +190,8 @@ func (c *ConfigurationData) setConfigDefaults() {
 	c.v.SetDefault(varPopulateCommonTypes, true)
 
 	// Auth-related defaults
+	c.v.SetDefault(varAuthURL, devModeAuthURL)
 	c.v.SetDefault(varAuthDomainPrefix, "auth")
-	c.v.SetDefault(varTokenPublicKey, defaultTokenPublicKey)
-	c.v.SetDefault(varTokenPrivateKey, defaultTokenPrivateKey)
 	c.v.SetDefault(varKeycloakClientID, defaultKeycloakClientID)
 	c.v.SetDefault(varKeycloakSecret, defaultKeycloakSecret)
 	c.v.SetDefault(varGithubAuthToken, defaultActualToken)
@@ -481,53 +476,8 @@ func (c *ConfigurationData) GetCacheControlUser() string {
 	return c.v.GetString(varCacheControlUser)
 }
 
-// use a mutex to prevent concurrent parsing
-var privateKeyParsingMutex sync.Mutex
-
-// GetTokenPrivateKey returns the private key (as set via config file or environment variable)
-// that is used to sign the authentication token.
-func (c *ConfigurationData) GetTokenPrivateKey() (*rsa.PrivateKey, error) {
-	if c.tokenPrivateKey == nil {
-		if !c.v.IsSet(varTokenPrivateKey) {
-			return nil, errors.Errorf("'token.privatekey' variable is not defined")
-		}
-
-		// lock the mutex before parsing the key, so if another rountine is already parsing the key, then this one waits
-		privateKeyParsingMutex.Lock()
-		defer privateKeyParsingMutex.Unlock()
-		// at this point, we can avoid parsing *again* the key if it's not nil anymore
-		if c.tokenPrivateKey == nil {
-			var err error
-			c.tokenPrivateKey, err = jwt.ParseRSAPrivateKeyFromPEM([]byte(c.v.GetString(varTokenPrivateKey)))
-			return c.tokenPrivateKey, err
-		}
-	}
-	return c.tokenPrivateKey, nil
-
-}
-
-// use a mutex to prevent concurrent parsing
-var publicKeyParsingMutex sync.Mutex
-
-// GetTokenPublicKey returns the public key (as set via config file or environment variable)
-// that is used to decrypt the authentication token.
-func (c *ConfigurationData) GetTokenPublicKey() (*rsa.PublicKey, error) {
-	// lock before entering the block where key parsing will happen
-	if c.tokenPublicKey == nil {
-		if !c.v.IsSet(varTokenPublicKey) {
-			return nil, errors.Errorf("'token.publickey' variable is not defined")
-		}
-		// lock the mutex before parsing the key, so if another rountine is already parsing the key, then this one waits
-		publicKeyParsingMutex.Lock()
-		defer publicKeyParsingMutex.Unlock()
-		// at this point, we can avoid parsing *again* the key if it's not nil anymore
-		if c.tokenPrivateKey == nil {
-			var err error
-			c.tokenPublicKey, err = jwt.ParseRSAPublicKeyFromPEM([]byte(c.v.GetString(varTokenPublicKey)))
-			return c.tokenPublicKey, err
-		}
-	}
-	return c.tokenPublicKey, nil
+func (c *ConfigurationData) GetKeysEndpoint() string {
+	return fmt.Sprintf("%s/api/token/keys", c.v.GetString(varAuthURL))
 }
 
 // GetAuthDevModeURL returns Auth Service URL used by default in Dev mode
@@ -725,9 +675,13 @@ func (c *ConfigurationData) GetKeycloakEndpointLogout(req *http.Request) (string
 	return c.getKeycloakOpenIDConnectEndpoint(req, "logout")
 }
 
-// GetKeycloakDevModeURL returns Keycloak URL used by default in Dev mode
+// GetKeycloakDevModeURL returns Keycloak URL (including realm name) used by default in Dev mode
+// Returns "" if DevMode is not enabled
 func (c *ConfigurationData) GetKeycloakDevModeURL() string {
-	return devModeKeycloakURL
+	if c.IsPostgresDeveloperModeEnabled() {
+		return fmt.Sprintf("%s/auth/realms/%s", devModeKeycloakURL, c.GetKeycloakRealm())
+	}
+	return ""
 }
 
 func (c *ConfigurationData) getKeycloakOpenIDConnectEndpoint(req *http.Request, pathSufix string) (string, error) {
@@ -826,50 +780,6 @@ func (c *ConfigurationData) GetNotificationServiceURL() string {
 
 const (
 	defaultHeaderMaxLength = 5000 // bytes
-
-	// Auth-related defaults
-
-	// RSAPrivateKey for signing JWT Tokens
-	// ssh-keygen -f wit_rsa
-	defaultTokenPrivateKey = `-----BEGIN RSA PRIVATE KEY-----
-MIIEpQIBAAKCAQEAnwrjH5iTSErw9xUptp6QSFoUfpHUXZ+PaslYSUrpLjw1q27O
-DSFwmhV4+dAaTMO5chFv/kM36H3ZOyA146nwxBobS723okFaIkshRrf6qgtD6coT
-HlVUSBTAcwKEjNn4C9jtEpyOl+eSgxhMzRH3bwTIFlLlVMiZf7XVE7P3yuOCpqkk
-2rdYVSpQWQWKU+ZRywJkYcLwjEYjc70AoNpjO5QnY+Exx98E30iEdPHZpsfNhsjh
-9Z7IX5TrMYgz7zBTw8+niO/uq3RBaHyIhDbvenbR9Q59d88lbnEeHKgSMe2RQpFR
-3rxFRkc/64Rn/bMuL/ptNowPqh1P+9GjYzWmPwIDAQABAoIBAQCBCl5ZpnvprhRx
-BVTA/Upnyd7TCxNZmzrME+10Gjmz79pD7DV25ejsu/taBYUxP6TZbliF3pggJOv6
-UxomTB4znlMDUz0JgyjUpkyril7xVQ6XRAPbGrS1f1Def+54MepWAn3oGeqASb3Q
-bAj0Yl12UFTf+AZmkhQpUKk/wUeN718EIY4GRHHQ6ykMSqCKvdnVbMyb9sIzbSTl
-v+l1nQFnB/neyJq6P0Q7cxlhVj03IhYj/AxveNlKqZd2Ih3m/CJo0Abtwhx+qHZp
-cCBrYj7VelEaGARTmfoIVoGxFGKZNCcNzn7R2ic7safxXqeEnxugsAYX/UmMoq1b
-vMYLcaLRAoGBAMqMbbgejbD8Cy6wa5yg7XquqOP5gPdIYYS88TkQTp+razDqKPIU
-hPKetnTDJ7PZleOLE6eJ+dQJ8gl6D/dtOsl4lVRy/BU74dk0fYMiEfiJMYEYuAU0
-MCramo3HAeySTP8pxSLFYqJVhcTpL9+NQgbpJBUlx5bLDlJPl7auY077AoGBAMkD
-UpJRIv/0gYSz5btVheEyDzcqzOMZUVsngabH7aoQ49VjKrfLzJ9WznzJS5gZF58P
-vB7RLuIA8m8Y4FUwxOr4w9WOevzlFh0gyzgNY4gCwrzEryOZqYYqCN+8QLWfq/hL
-+gYFYpEW5pJ/lAy2i8kPanC3DyoqiZCsUmlg6JKNAoGBAIdCkf6zgKGhHwKV07cs
-DIqx2p0rQEFid6UB3ADkb+zWt2VZ6fAHXeT7shJ1RK0o75ydgomObWR5I8XKWqE7
-s1dZjDdx9f9kFuVK1Upd1SxoycNRM4peGJB1nWJydEl8RajcRwZ6U+zeOc+OfWbH
-WUFuLadlrEx5212CQ2k+OZlDAoGAdsH2w6kZ83xCFOOv41ioqx5HLQGlYLpxfVg+
-2gkeWa523HglIcdPEghYIBNRDQAuG3RRYSeW+kEy+f4Jc2tHu8bS9FWkRcsWoIji
-ZzBJ0G5JHPtaub6sEC6/ZWe0F1nJYP2KLop57FxKRt0G2+fxeA0ahpMwa2oMMiQM
-4GM3pHUCgYEAj2ZjjsF2MXYA6kuPUG1vyY9pvj1n4fyEEoV/zxY1k56UKboVOtYr
-BA/cKaLPqUF+08Tz/9MPBw51UH4GYfppA/x0ktc8998984FeIpfIFX6I2U9yUnoQ
-OCCAgsB8g8yTB4qntAYyfofEoDiseKrngQT5DSdxd51A/jw7B8WyBK8=
------END RSA PRIVATE KEY-----`
-
-	// RSAPublicKey for verifying JWT Tokens
-	// openssl rsa -in wit_rsa -pubout -out wit_rsa.pub
-	defaultTokenPublicKey = `-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvQ8p+HsTMrgcsuIMoOR1
-LXRhynL9YAU0qoDON6PLKCpdBv0Xy/jnsPjo5DrtUOijuJcID8CR7E0hYpY9MgK5
-H5pDFwC4lbUVENquHEVS/E0pQSKCIzSmORcIhjYW2+wKfDOVjeudZwdFBIxJ6KpI
-ty/aF78hlUJZuvghFVqoHQYTq/DZOmKjS+PAVLw8FKE3wa/3WU0EkpP+iovRMCkl
-lzxqrcLPIvx+T2gkwe0bn0kTvdMOhTLTN2tuvKrFpVUxVi8RM/V8PtgdKroxnES7
-SyUqK8rLO830jKJzAYrByQL+sdGuSqInIY/geahQHEGTwMI0CLj6zfhpjSgCflst
-vwIDAQAB
------END PUBLIC KEY-----`
 
 	defaultLogLevel = "info"
 

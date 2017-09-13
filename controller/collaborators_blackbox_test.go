@@ -23,7 +23,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space/authz"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/satori/go.uuid"
@@ -136,8 +135,7 @@ func (rest *TestCollaboratorsREST) TearDownTest() {
 }
 
 func (rest *TestCollaboratorsREST) SecuredController() (*goa.Service, *CollaboratorsController) {
-	priv, _ := wittoken.RSAPrivateKey()
-	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", wittoken.NewManagerWithPrivateKey(priv), rest.testIdentity1, &DummySpaceAuthzService{rest})
+	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", rest.testIdentity1, &DummySpaceAuthzService{rest})
 	return svc, NewCollaboratorsController(svc, rest.db, rest.authzConfig, &DummyPolicyManager{rest: rest})
 }
 
@@ -422,8 +420,7 @@ func (rest *TestCollaboratorsREST) TestRemoveManyCollaboratorsUnauthorizedIfNoTo
 
 func (rest *TestCollaboratorsREST) TestRemoveCollaboratorsUnauthorizedIfCurrentUserIsNotCollaborator() {
 	// given
-	priv, _ := wittoken.RSAPrivateKey()
-	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", wittoken.NewManagerWithPrivateKey(priv), rest.testIdentity2, &DummySpaceAuthzService{rest})
+	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", rest.testIdentity2, &DummySpaceAuthzService{rest})
 	ctrl := NewCollaboratorsController(svc, rest.db, rest.authzConfig, &DummyPolicyManager{rest: rest})
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
 	_, actualUsers := test.ListCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, nil, nil, nil, nil)
@@ -434,8 +431,7 @@ func (rest *TestCollaboratorsREST) TestRemoveCollaboratorsUnauthorizedIfCurrentU
 
 func (rest *TestCollaboratorsREST) TestRemoveManyCollaboratorsUnauthorizedIfCurrentUserIsNotCollaborator() {
 	// given
-	priv, _ := wittoken.RSAPrivateKey()
-	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", wittoken.NewManagerWithPrivateKey(priv), rest.testIdentity2, &DummySpaceAuthzService{rest})
+	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", rest.testIdentity2, &DummySpaceAuthzService{rest})
 	ctrl := NewCollaboratorsController(svc, rest.db, rest.authzConfig, &DummyPolicyManager{rest: rest})
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
 	_, actualUsers := test.ListCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, nil, nil, nil, nil)
@@ -599,8 +595,7 @@ func (s *TestSpaceAuthzService) Configuration() authz.AuthzConfiguration {
 }
 
 func CreateSecuredSpace(t *testing.T, db application.DB, config SpaceConfiguration, owner account.Identity) app.Space {
-	priv, _ := wittoken.RSAPrivateKey()
-	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", wittoken.NewManagerWithPrivateKey(priv), owner, &TestSpaceAuthzService{owner})
+	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", owner, &TestSpaceAuthzService{owner})
 	spaceCtrl := NewSpaceController(svc, db, config, &DummyResourceManager{})
 	require.NotNil(t, spaceCtrl)
 	name := "TestCollaborators-space-" + uuid.NewV4().String()
