@@ -17,6 +17,7 @@ import (
 // configuration represents configuration needed to construct a token manager
 type configuration interface {
 	GetKeysEndpoint() string
+	GetKeycloakDevModeURL() string
 }
 
 // TokenClaims represents access token claims
@@ -81,6 +82,24 @@ func NewManager(config configuration) (Manager, error) {
 		log.Info(nil, map[string]interface{}{
 			"kid": remoteKey.KeyID,
 		}, "Public key added")
+	}
+
+	devModeURL := config.GetKeycloakDevModeURL()
+	if devModeURL != "" {
+		remoteKeys, err = authtoken.FetchKeys(fmt.Sprintf("%s/protocol/openid-connect/certs", devModeURL))
+		if err != nil {
+			log.Error(nil, map[string]interface{}{
+				"keys_url": devModeURL,
+			}, "unable to load public keys from remote service in Dev Mode")
+			return nil, errors.New("unable to load public keys from remote service  in Dev Mode")
+		}
+		for _, remoteKey := range remoteKeys {
+			tm.publicKeysMap[remoteKey.KeyID] = remoteKey.Key
+			tm.publicKeys = append(tm.publicKeys, &PublicKey{KeyID: remoteKey.KeyID, Key: remoteKey.Key})
+			log.Info(nil, map[string]interface{}{
+				"kid": remoteKey.KeyID,
+			}, "Public key added")
+		}
 	}
 
 	return tm, nil

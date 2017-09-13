@@ -675,9 +675,13 @@ func (c *ConfigurationData) GetKeycloakEndpointLogout(req *http.Request) (string
 	return c.getKeycloakOpenIDConnectEndpoint(req, "logout")
 }
 
-// GetKeycloakDevModeURL returns Keycloak URL used by default in Dev mode
+// GetKeycloakDevModeURL returns Keycloak URL (including realm name) used by default in Dev mode
+// Returns "" if DevMode is not enabled
 func (c *ConfigurationData) GetKeycloakDevModeURL() string {
-	return devModeKeycloakURL
+	if c.IsPostgresDeveloperModeEnabled() {
+		return fmt.Sprintf("%s/auth/realms/%s", devModeKeycloakURL, c.GetKeycloakRealm())
+	}
+	return ""
 }
 
 func (c *ConfigurationData) getKeycloakOpenIDConnectEndpoint(req *http.Request, pathSufix string) (string, error) {
