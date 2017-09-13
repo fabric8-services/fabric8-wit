@@ -107,6 +107,41 @@ func TestLocateTokenInContex(t *testing.T) {
 	assert.Equal(t, id, foundId, "ID in created context not equal")
 }
 
+func TestIsServiceAccountTokenInContextClaimPresent(t *testing.T) {
+	tk := jwt.New(jwt.SigningMethodRS256)
+	tk.Claims.(jwt.MapClaims)["service_accountname"] = "auth"
+	ctx := goajwt.WithJWT(context.Background(), tk)
+
+	isServiceAccount := tokenManager.IsServiceAccount(ctx)
+	require.True(t, isServiceAccount)
+}
+
+func TestIsServiceAccountTokenInContextClaimAbsent(t *testing.T) {
+	tk := jwt.New(jwt.SigningMethodRS256)
+	ctx := goajwt.WithJWT(context.Background(), tk)
+
+	isServiceAccount := tokenManager.IsServiceAccount(ctx)
+	require.False(t, isServiceAccount)
+}
+
+func TestIsServiceAccountTokenInContextClaimIncorrect(t *testing.T) {
+	tk := jwt.New(jwt.SigningMethodRS256)
+	tk.Claims.(jwt.MapClaims)["service_accountname"] = "Not-auth"
+	ctx := goajwt.WithJWT(context.Background(), tk)
+
+	isServiceAccount := tokenManager.IsServiceAccount(ctx)
+	require.False(t, isServiceAccount)
+}
+
+func TestIsServiceAccountTokenInContextClaimIncorrectType(t *testing.T) {
+	tk := jwt.New(jwt.SigningMethodRS256)
+	tk.Claims.(jwt.MapClaims)["service_accountname"] = 1
+	ctx := goajwt.WithJWT(context.Background(), tk)
+
+	isServiceAccount := tokenManager.IsServiceAccount(ctx)
+	require.False(t, isServiceAccount)
+}
+
 func TestLocateMissingTokenInContext(t *testing.T) {
 	ctx := context.Background()
 
