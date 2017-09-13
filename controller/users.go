@@ -195,7 +195,13 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 						return Error!!
 					}
 
-					AddNewUser(..)
+					// check if exists.
+					identity, err := appl.Identities().Load(ctx, *id)
+
+					if !identity {
+						// create if it doesn't
+						AddNewUser(..)
+					}
 				}
 
 			*/
