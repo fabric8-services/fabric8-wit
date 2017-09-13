@@ -66,11 +66,8 @@ type GormLabelRepository struct {
 	db *gorm.DB
 }
 
-// TableName overrides the table name settings in Gorm to force a specific table name
-// in the database.
-func (m *GormLabelRepository) TableName() string {
-	return "labels"
-}
+// LabelTableName constant that holds table name of Labels
+const LabelTableName = "labels"
 
 // Create a new label
 func (m *GormLabelRepository) Create(ctx context.Context, u *Label) error {
@@ -106,7 +103,7 @@ func (m *GormLabelRepository) List(ctx context.Context, spaceID uuid.UUID) ([]La
 
 // IsValid returns true if the identity exists
 func (m *GormLabelRepository) IsValid(ctx context.Context, id uuid.UUID) bool {
-	return repository.CheckExists(ctx, m.db, m.TableName(), id.String()) == nil
+	return repository.CheckExists(ctx, m.db, LabelTableName, id.String()) == nil
 }
 
 // Load label in a space
