@@ -521,7 +521,7 @@ func (c *ConfigurationData) GetTokenPublicKey() (*rsa.PublicKey, error) {
 		publicKeyParsingMutex.Lock()
 		defer publicKeyParsingMutex.Unlock()
 		// at this point, we can avoid parsing *again* the key if it's not nil anymore
-		if c.tokenPrivateKey == nil {
+		if c.tokenPublicKey == nil {
 			var err error
 			c.tokenPublicKey, err = jwt.ParseRSAPublicKeyFromPEM([]byte(c.v.GetString(varTokenPublicKey)))
 			return c.tokenPublicKey, err
