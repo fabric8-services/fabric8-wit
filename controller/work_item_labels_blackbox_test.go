@@ -66,7 +66,7 @@ func (l *TestWorkItemLabelREST) UnSecuredController() (*goa.Service, app.Workite
 	return svc, NewWorkitemController(svc, l.db, l.Configuration)
 }
 
-func (l *TestWorkItemLabelREST) TestAttachDetachLabelToWI() {
+func (l *TestWorkItemLabelREST) TestAttachLabelToWI() {
 	wiCnt := 2
 	lblCnt := 3
 	fixtures := tf.NewTestFixture(l.T(), l.DB, tf.Spaces(1), tf.Iterations(1), tf.Areas(1), tf.WorkItems(wiCnt), tf.Labels(lblCnt))
@@ -143,25 +143,44 @@ func (l *TestWorkItemLabelREST) TestAttachDetachLabelToWI() {
 		delete(mustHave, *lblData.ID)
 	}
 	require.Empty(l.T(), mustHave)
+}
 
-	// detach all labels
-	u.Data.Attributes["version"] = updatedWI.Data.Attributes["version"]
-	u.Data.Relationships.Labels = &app.RelationGenericList{
-		Data: []*app.GenericData{},
+func (l *TestWorkItemLabelREST) TestAttachDistinctLabels() {
+	wiCnt := 2
+	lblCnt := 3
+	fixtures := tf.NewTestFixture(l.T(), l.DB, tf.Spaces(1), tf.Iterations(1), tf.Areas(1), tf.WorkItems(wiCnt), tf.Labels(lblCnt))
+	svc, ctrl := l.SecuredController()
+	relatedLink := fmt.Sprintf("/%s/labels", fixtures.WorkItems[0].ID)
+	u := app.UpdateWorkitemPayload{
+		Data: &app.WorkItem{
+			ID:   &fixtures.WorkItems[0].ID,
+			Type: APIStringTypeWorkItem,
+			Attributes: map[string]interface{}{
+				"version": fixtures.WorkItems[0].Version,
+			},
+			Relationships: &app.WorkItemRelationships{},
+		},
 	}
-	_, updatedWI = test.UpdateWorkitemOK(l.T(), svc.Context, svc, ctrl, fixtures.WorkItems[0].ID, &u)
-	assert.NotNil(l.T(), updatedWI)
-	assert.Empty(l.T(), updatedWI.Data.Relationships.Labels.Data)
-	require.NotNil(l.T(), updatedWI.Data.Relationships.Labels.Links)
-	assert.Contains(l.T(), *updatedWI.Data.Relationships.Labels.Links.Related, relatedLink)
-
-	// verify distinct labels are attached
-	lbl1 = fixtures.Labels[1].ID.String()
-	lbl2 = fixtures.Labels[2].ID.String()
-	u.Data.Attributes["version"] = updatedWI.Data.Attributes["version"]
+	// attach multiple labels with duplicates
+	apiLabelType := label.APIStringTypeLabels
+	lbl0 := fixtures.Labels[0].ID.String()
+	lbl1 := fixtures.Labels[1].ID.String()
+	lbl2 := fixtures.Labels[2].ID.String()
 	u.Data.Relationships.Labels = &app.RelationGenericList{
 		Data: []*app.GenericData{
 			{
+				ID:   &lbl0,
+				Type: &apiLabelType,
+			}, {
+				ID:   &lbl0,
+				Type: &apiLabelType,
+			}, {
+				ID:   &lbl0,
+				Type: &apiLabelType,
+			}, {
+				ID:   &lbl1,
+				Type: &apiLabelType,
+			}, {
 				ID:   &lbl1,
 				Type: &apiLabelType,
 			}, {
@@ -173,12 +192,13 @@ func (l *TestWorkItemLabelREST) TestAttachDetachLabelToWI() {
 			},
 		},
 	}
-	_, updatedWI = test.UpdateWorkitemOK(l.T(), svc.Context, svc, ctrl, fixtures.WorkItems[0].ID, &u)
+	_, updatedWI := test.UpdateWorkitemOK(l.T(), svc.Context, svc, ctrl, fixtures.WorkItems[0].ID, &u)
 	require.NotNil(l.T(), updatedWI)
 	require.NotNil(l.T(), updatedWI.Data.Relationships.Labels.Links)
 	assert.Contains(l.T(), *updatedWI.Data.Relationships.Labels.Links.Related, relatedLink)
-	assert.Len(l.T(), updatedWI.Data.Relationships.Labels.Data, 2)
-	mustHave = map[string]struct{}{
+	assert.Len(l.T(), updatedWI.Data.Relationships.Labels.Data, 3)
+	mustHave := map[string]struct{}{
+		lbl0: {},
 		lbl1: {},
 		lbl2: {},
 	}
@@ -186,17 +206,95 @@ func (l *TestWorkItemLabelREST) TestAttachDetachLabelToWI() {
 		delete(mustHave, *lblData.ID)
 	}
 	require.Empty(l.T(), mustHave)
+}
 
-	// Bad Request using nil
+func (l *TestWorkItemLabelREST) TestAttachLabelUnauthorized() {
+	fixtures := tf.NewTestFixture(l.T(), l.DB, tf.Spaces(1), tf.WorkItems(1))
+	u := app.UpdateWorkitemPayload{
+		Data: &app.WorkItem{
+			ID:   &fixtures.WorkItems[0].ID,
+			Type: APIStringTypeWorkItem,
+			Attributes: map[string]interface{}{
+				"version": fixtures.WorkItems[0].Version,
+			},
+			Relationships: &app.WorkItemRelationships{},
+		},
+	}
+	// verify Unauthorized access
+	svc, ctrl := l.UnSecuredController()
+	test.UpdateWorkitemUnauthorized(l.T(), svc.Context, svc, ctrl, fixtures.WorkItems[0].ID, &u)
+}
+
+func (l *TestWorkItemLabelREST) TestDetachAllLabels() {
+	wiCnt := 2
+	lblCnt := 3
+	fixtures := tf.NewTestFixture(l.T(), l.DB, tf.Spaces(1), tf.Iterations(1), tf.Areas(1), tf.WorkItems(wiCnt), tf.Labels(lblCnt))
+	svc, ctrl := l.SecuredController()
+	relatedLink := fmt.Sprintf("/%s/labels", fixtures.WorkItems[0].ID)
+	u := app.UpdateWorkitemPayload{
+		Data: &app.WorkItem{
+			ID:   &fixtures.WorkItems[0].ID,
+			Type: APIStringTypeWorkItem,
+			Attributes: map[string]interface{}{
+				"version": fixtures.WorkItems[0].Version,
+			},
+			Relationships: &app.WorkItemRelationships{},
+		},
+	}
+	// First attach some labels
+	lbl := fixtures.Labels[2].ID.String()
+	apiLabelType := label.APIStringTypeLabels
+	u.Data.Relationships.Labels = &app.RelationGenericList{
+		Data: []*app.GenericData{
+			{
+				ID:   &lbl,
+				Type: &apiLabelType,
+			},
+		},
+	}
+	_, updatedWI := test.UpdateWorkitemOK(l.T(), svc.Context, svc, ctrl, fixtures.WorkItems[0].ID, &u)
+	require.NotNil(l.T(), updatedWI)
+	require.NotNil(l.T(), updatedWI.Data.Relationships.Labels.Links)
+	assert.Contains(l.T(), *updatedWI.Data.Relationships.Labels.Links.Related, relatedLink)
+	assert.Len(l.T(), updatedWI.Data.Relationships.Labels.Data, 1)
+	mustHave := map[string]struct{}{
+		lbl: {},
+	}
+	for _, lblData := range updatedWI.Data.Relationships.Labels.Data {
+		delete(mustHave, *lblData.ID)
+	}
+	require.Empty(l.T(), mustHave)
+
+	// now detach all labels
 	u.Data.Attributes["version"] = updatedWI.Data.Attributes["version"]
+	u.Data.Relationships.Labels = &app.RelationGenericList{
+		Data: []*app.GenericData{},
+	}
+	_, updatedWI = test.UpdateWorkitemOK(l.T(), svc.Context, svc, ctrl, fixtures.WorkItems[0].ID, &u)
+	assert.NotNil(l.T(), updatedWI)
+	assert.Empty(l.T(), updatedWI.Data.Relationships.Labels.Data)
+	require.NotNil(l.T(), updatedWI.Data.Relationships.Labels.Links)
+	assert.Contains(l.T(), *updatedWI.Data.Relationships.Labels.Links.Related, relatedLink)
+}
+
+func (l *TestWorkItemLabelREST) TestAttachLabelBadRequest() {
+	fixtures := tf.NewTestFixture(l.T(), l.DB, tf.Spaces(1), tf.WorkItems(1))
+	svc, ctrl := l.SecuredController()
+	u := app.UpdateWorkitemPayload{
+		Data: &app.WorkItem{
+			ID:   &fixtures.WorkItems[0].ID,
+			Type: APIStringTypeWorkItem,
+			Attributes: map[string]interface{}{
+				"version": fixtures.WorkItems[0].Version,
+			},
+			Relationships: &app.WorkItemRelationships{},
+		},
+	}
+	// Bad Request using nil
 	u.Data.Relationships.Labels = &app.RelationGenericList{
 		Data: nil,
 	}
 	test.UpdateWorkitemBadRequest(l.T(), svc.Context, svc, ctrl, fixtures.Spaces[0].ID, &u)
-
-	// verify Unauthorized access
-	svc2, ctrl2 := l.UnSecuredController()
-	test.UpdateWorkitemUnauthorized(l.T(), svc2.Context, svc2, ctrl2, fixtures.WorkItems[0].ID, &u)
 }
 
 func (l *TestWorkItemLabelREST) TestFailInvalidLabel() {

@@ -39,8 +39,8 @@ func (c *WorkItemLabelsController) List(ctx *app.ListWorkItemLabelsContext) erro
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
-		var ls []label.Label
 		labelIDs := wi.Fields[workitem.SystemLabels].([]interface{})
+		ls := make([]label.Label, 0, len(labelIDs))
 		for _, lbl := range labelIDs {
 			lblStr := lbl.(string)
 			id, err := uuid.FromString(lblStr)
