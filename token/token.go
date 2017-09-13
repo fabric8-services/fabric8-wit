@@ -124,14 +124,9 @@ func (mgm *tokenManager) IsServiceAccount(ctx context.Context) bool {
 		return false
 	}
 	accountNameTyped, isString := accountName.(string)
-	if !isString {
-		return false
-	}
+
 	// https://github.com/fabric8-services/fabric8-auth/commit/8d7f5a3646974ae8820893d75c29f3f5e9b1ff66#diff-6b1a7621961d1f6fe7463db59c5afef5R379
-	if accountNameTyped != "auth" {
-		return false
-	}
-	return true
+	return isString && accountNameTyped == "auth"
 }
 
 // ParseToken parses token claims
