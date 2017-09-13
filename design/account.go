@@ -178,6 +178,7 @@ var userDataAttributes = a.Type("UserDataAttributes", func() {
 
 // updateidentityDataAttributes represents an identified user object attributes used for updating a user.
 var updateUserDataAttributes = a.Type("UpdateIdentityDataAttributes", func() {
+	a.Attribute("identityID", d.String, "The id of the corresponding Identity")
 	a.Attribute("fullName", d.String, "The users full name")
 	a.Attribute("imageURL", d.String, "The avatar image for the user")
 	a.Attribute("username", d.String, "The username")

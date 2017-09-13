@@ -186,6 +186,19 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		var user *account.User
 		if identity.UserID.Valid {
 			user, err = appl.Users().Load(ctx.Context, identity.UserID.UUID)
+			/*
+
+				if tokenManager.IsServiceAccount(ctx){
+
+					id = ctx.Payload.Data.Attributes.IdentityID
+					if !id {
+						return Error!!
+					}
+
+					AddNewUser(..)
+				}
+
+			*/
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Can't load user with id %s", identity.UserID.UUID)))
 			}
