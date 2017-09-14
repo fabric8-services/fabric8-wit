@@ -202,9 +202,9 @@ func (c *UsersController) updateUserInDB(id *uuid.UUID, ctx *app.UpdateUserAsSer
 		if err != nil || identity == nil {
 			log.Error(ctx, map[string]interface{}{
 				"identity_id": id,
-			}, "id is unknown", *id)
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrBadRequest(fmt.Sprintf("identity id %s is unknown", *id)))
-			return ctx.Unauthorized(jerrors)
+				"err":         err,
+			}, "id %s is unknown or error running query", *id)
+			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
 		var user *account.User
