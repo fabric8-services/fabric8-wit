@@ -69,6 +69,36 @@ func (s *TestUsersSuite) SecuredController(identity account.Identity) (*goa.Serv
 	return svc, NewUsersController(svc, s.db, s.Configuration, s.profileService)
 }
 
+func (s *TestUsersSuite) TestUpdateUserAsServiceAccountUnauthorized() {
+	// given
+	user := s.createRandomUser("TestUpdateUserAsSvcAcUnauthorized")
+	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), nil, nil)
+	assertUser(s.T(), result.Data, user, identity)
+
+	// when
+	newEmail := "TestUpdateUserOK-" + uuid.NewV4().String() + "@email.com"
+	newFullName := "TestUpdateUserOK"
+	newImageURL := "http://new.image.io/imageurl"
+	newBio := "new bio"
+	newProfileURL := "http://new.profile.url/url"
+	newCompany := "updateCompany " + uuid.NewV4().String()
+	secureService, secureController := s.SecuredController(identity)
+
+	contextInformation := map[string]interface{}{
+		"last_visited": "yesterday",
+		"space":        "3d6dab8d-f204-42e8-ab29-cdb1c93130ad",
+		"rate":         100.00,
+		"count":        3,
+	}
+	//secureController, secureService := createSecureController(t, identity)
+	updateUsersPayload := createUpdateUsersAsServiceAccountPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, &newCompany, nil, nil, contextInformation)
+
+	idAsString := (identity.ID).String()
+	test.UpdateUserAsServiceAccountUsersUnauthorized(s.T(), secureService.Context, secureService, secureController, idAsString, updateUsersPayload)
+
+}
+
 func (s *TestUsersSuite) TestUpdateUserOK() {
 	// given
 	user := s.createRandomUser("TestUpdateUserOK")
@@ -913,6 +943,25 @@ func assertMultiUsersResponseHeaders(t *testing.T, res http.ResponseWriter, last
 
 func createUpdateUsersPayload(email, fullName, bio, imageURL, profileURL, company, username *string, registrationCompleted *bool, contextInformation map[string]interface{}) *app.UpdateUsersPayload {
 	return &app.UpdateUsersPayload{
+		Data: &app.UpdateUserData{
+			Type: "identities",
+			Attributes: &app.UpdateIdentityDataAttributes{
+				Email:                 email,
+				FullName:              fullName,
+				Bio:                   bio,
+				ImageURL:              imageURL,
+				URL:                   profileURL,
+				Company:               company,
+				ContextInformation:    contextInformation,
+				Username:              username,
+				RegistrationCompleted: registrationCompleted,
+			},
+		},
+	}
+}
+
+func createUpdateUsersAsServiceAccountPayload(email, fullName, bio, imageURL, profileURL, company, username *string, registrationCompleted *bool, contextInformation map[string]interface{}) *app.UpdateUserAsServiceAccountUsersPayload {
+	return &app.UpdateUserAsServiceAccountUsersPayload{
 		Data: &app.UpdateUserData{
 			Type: "identities",
 			Attributes: &app.UpdateIdentityDataAttributes{
