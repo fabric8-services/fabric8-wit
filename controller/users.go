@@ -103,11 +103,7 @@ func (c *UsersController) UpdateUserAsServiceAccount(ctx *app.UpdateUserAsServic
 	if err != nil {
 		jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(err))
 	}
-	err = c.updateUserInDB(&id, ctx)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
-	}
-	return nil
+	return c.updateUserInDB(&id, ctx)
 }
 
 func isServiceAccount(ctx context.Context) (bool, error) {
@@ -321,7 +317,7 @@ func (c *UsersController) updateUserInDB(id *uuid.UUID, ctx *app.UpdateUserAsSer
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		return nil
+		return ctx.OK(ConvertToAppUser(ctx.Request, user, identity))
 	})
 
 	return returnResponse

@@ -96,7 +96,6 @@ func (s *TestUsersSuite) TestUpdateUserAsServiceAccountUnauthorized() {
 		"rate":         100.00,
 		"count":        3,
 	}
-	//secureController, secureService := createSecureController(t, identity)
 	updateUsersPayload := createUpdateUsersAsServiceAccountPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, &newCompany, nil, nil, contextInformation)
 
 	idAsString := (identity.ID).String()
@@ -112,12 +111,13 @@ func (s *TestUsersSuite) TestUpdateUserAsServiceAccountOK() {
 	assertUser(s.T(), result.Data, user, identity)
 
 	// when
-	newEmail := "TestUpdateUserOK-" + uuid.NewV4().String() + "@email.com"
-	newFullName := "TestUpdateUserOK"
-	newImageURL := "http://new.image.io/imageurl"
-	newBio := "new bio"
-	newProfileURL := "http://new.profile.url/url"
-	newCompany := "updateCompany " + uuid.NewV4().String()
+
+	user.Email = "TestUpdateUserOK-" + uuid.NewV4().String() + "@email.com"
+	user.FullName = "TestUpdateUserOK"
+	user.ImageURL = "http://new.image.io/imageurl"
+	user.Bio = "new bio"
+	user.URL = "http://new.profile.url/url"
+	user.Company = "updateCompany " + uuid.NewV4().String()
 	secureService, secureController := s.SecuredServiceAccountController(identity)
 
 	contextInformation := map[string]interface{}{
@@ -126,9 +126,9 @@ func (s *TestUsersSuite) TestUpdateUserAsServiceAccountOK() {
 		"rate":         100.00,
 		"count":        3,
 	}
-	//secureController, secureService := createSecureController(t, identity)
-	updateUsersPayload := createUpdateUsersAsServiceAccountPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, &newCompany, nil, nil, contextInformation)
-	test.UpdateUserAsServiceAccountUsersOK(s.T(), secureService.Context, secureService, secureController, (identity.ID).String(), updateUsersPayload)
+	updateUsersPayload := createUpdateUsersAsServiceAccountPayload(&user.Email, &user.FullName, &user.Bio, &user.ImageURL, &user.URL, &user.Company, nil, nil, contextInformation)
+	_, result = test.UpdateUserAsServiceAccountUsersOK(s.T(), secureService.Context, secureService, secureController, (identity.ID).String(), updateUsersPayload)
+	assertUser(s.T(), result.Data, user, identity)
 
 }
 
