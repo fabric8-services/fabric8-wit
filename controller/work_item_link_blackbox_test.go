@@ -21,13 +21,13 @@ import (
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	wittoken "github.com/fabric8-services/fabric8-wit/token"
+	testtoken "github.com/fabric8-services/fabric8-wit/test/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
-	uuid "github.com/satori/go.uuid"
+	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -97,8 +97,6 @@ func (s *workItemLinkSuite) SetupSuite() {
 // It will also make sure that some resources that we rely on do exists.
 func (s *workItemLinkSuite) SetupTest() {
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
-	priv, err := wittoken.RSAPrivateKey()
-	require.Nil(s.T(), err)
 	svc := goa.New("TestWorkItemLinkType-Service")
 	require.NotNil(s.T(), svc)
 	s.workItemLinkTypeCtrl = NewWorkItemLinkTypeController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
@@ -131,7 +129,7 @@ func (s *workItemLinkSuite) SetupTest() {
 	// create a test identity
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "test user", "test provider")
 	require.Nil(s.T(), err)
-	s.svc = testsupport.ServiceAsUser("TestWorkItem-Service", wittoken.NewManagerWithPrivateKey(priv), *testIdentity)
+	s.svc = testsupport.ServiceAsUser("TestWorkItem-Service", *testIdentity)
 	require.NotNil(s.T(), s.svc)
 	s.workItemCtrl = NewWorkitemController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	require.NotNil(s.T(), s.workItemCtrl)
@@ -635,8 +633,7 @@ func (s *workItemLinkSuite) TestListWorkItemRelationshipsLinksNotFound() {
 
 func (s *workItemLinkSuite) getWorkItemLinkTestDataFunc() func(t *testing.T) []testSecureAPI {
 	return func(t *testing.T) []testSecureAPI {
-		privatekey, err := s.Configuration.GetTokenPrivateKey()
-		require.Nil(t, err, "Could not parse private key")
+		privatekey := testtoken.PrivateKey()
 		differentPrivatekey, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSADifferentPrivateKeyTest)))
 		require.Nil(t, err, "Could not parse private key")
 		createWorkItemLinkPayloadString := bytes.NewBuffer([]byte(`
@@ -791,10 +788,7 @@ func (s *workItemLinkSuite) TestUnauthorizeWorkItemLinkCUD() {
 // The work item ID will be used to construct /api/workitems/:id/relationships/links endpoints
 func (s *workItemLinkSuite) getWorkItemRelationshipLinksTestData(spaceID, wiID uuid.UUID) func(t *testing.T) []testSecureAPI {
 	return func(t *testing.T) []testSecureAPI {
-		privatekey, err := s.Configuration.GetTokenPrivateKey()
-		if err != nil {
-			t.Fatal("Could not parse Key ", err)
-		}
+		privatekey := testtoken.PrivateKey()
 		differentPrivatekey, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSADifferentPrivateKeyTest)))
 		if err != nil {
 			t.Fatal("Could not parse different private key ", err)

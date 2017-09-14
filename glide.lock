@@ -39,9 +39,15 @@ imports:
   subpackages:
   - design
 - name: github.com/fabric8-services/fabric8-auth
-  version: 79178462b48b9365b3b30ed829b4b5f59826a72a
+  version: c1a62b994f63d11723829794ac63206ecdac8d01
   subpackages:
   - design
+- name: gopkg.in/square/go-jose.v2
+  version: b25e6cab129e4a54675b42ea49d38e9c33ade9e6
+- name: golang.org/x/crypto
+  version: 81e90905daefcd6fd217b62423c0908922eadb30
+  subpackages:
+  - ssh/terminal
 - name: github.com/fatih/structs
   version: dc3312cb1a4513a366c4c9e622ad55c32df12ed3
 - name: github.com/fsnotify/fsnotify

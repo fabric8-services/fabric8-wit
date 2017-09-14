@@ -1,75 +1,162 @@
 package token
 
 import (
-	"crypto/rsa"
-
 	"context"
+	"crypto/rsa"
+	"fmt"
+
+	authclient "github.com/fabric8-services/fabric8-auth/token"
+	"github.com/fabric8-services/fabric8-wit/log"
 
 	jwt "github.com/dgrijalva/jwt-go"
-	"github.com/fabric8-services/fabric8-wit/account"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
 
+// configuration represents configuration needed to construct a token manager
+type configuration interface {
+	GetKeysEndpoint() string
+	GetKeycloakDevModeURL() string
+}
+
+// TokenClaims represents access token claims
+type TokenClaims struct {
+	Name          string                `json:"name"`
+	Username      string                `json:"preferred_username"`
+	GivenName     string                `json:"given_name"`
+	FamilyName    string                `json:"family_name"`
+	Email         string                `json:"email"`
+	Company       string                `json:"company"`
+	SessionState  string                `json:"session_state"`
+	Authorization *AuthorizationPayload `json:"authorization"`
+	jwt.StandardClaims
+}
+
+// AuthorizationPayload represents an authz payload in the rpt token
+type AuthorizationPayload struct {
+	Permissions []Permissions `json:"permissions"`
+}
+
+// Permissions represents a "permissions" in the AuthorizationPayload
+type Permissions struct {
+	ResourceSetName *string `json:"resource_set_name"`
+	ResourceSetID   *string `json:"resource_set_id"`
+}
+
+type PublicKey struct {
+	KeyID string
+	Key   *rsa.PublicKey
+}
+
 // Manager generate and find auth token information
 type Manager interface {
-	Extract(string) (*account.Identity, error)
 	Locate(ctx context.Context) (uuid.UUID, error)
-	PublicKey() *rsa.PublicKey
+	ParseToken(ctx context.Context, tokenString string) (*TokenClaims, error)
+	PublicKey(kid string) *rsa.PublicKey
+	PublicKeys() []*rsa.PublicKey
+	IsServiceAccount(ctx context.Context) bool
 }
 
 type tokenManager struct {
-	publicKey  *rsa.PublicKey
-	privateKey *rsa.PrivateKey
+	publicKeysMap map[string]*rsa.PublicKey
+	publicKeys    []*PublicKey
 }
 
 // NewManager returns a new token Manager for handling tokens
-func NewManager(publicKey *rsa.PublicKey) Manager {
+func NewManager(config configuration) (Manager, error) {
+	// Load public keys from Auth service and add them to the manager
+	tm := &tokenManager{
+		publicKeysMap: map[string]*rsa.PublicKey{},
+	}
+
+	remoteKeys, err := authclient.FetchKeys(config.GetKeysEndpoint())
+	if err != nil {
+		log.Error(nil, map[string]interface{}{
+			"keys_url": config.GetKeysEndpoint(),
+		}, "unable to load public keys from remote service")
+		return nil, errors.New("unable to load public keys from remote service")
+	}
+	for _, remoteKey := range remoteKeys {
+		tm.publicKeysMap[remoteKey.KeyID] = remoteKey.Key
+		tm.publicKeys = append(tm.publicKeys, &PublicKey{KeyID: remoteKey.KeyID, Key: remoteKey.Key})
+		log.Info(nil, map[string]interface{}{
+			"kid": remoteKey.KeyID,
+		}, "Public key added")
+	}
+
+	devModeURL := config.GetKeycloakDevModeURL()
+	if devModeURL != "" {
+		remoteKeys, err = authclient.FetchKeys(fmt.Sprintf("%s/protocol/openid-connect/certs", devModeURL))
+		if err != nil {
+			log.Error(nil, map[string]interface{}{
+				"keys_url": devModeURL,
+			}, "unable to load public keys from remote service in Dev Mode")
+			return nil, errors.New("unable to load public keys from remote service  in Dev Mode")
+		}
+		for _, remoteKey := range remoteKeys {
+			tm.publicKeysMap[remoteKey.KeyID] = remoteKey.Key
+			tm.publicKeys = append(tm.publicKeys, &PublicKey{KeyID: remoteKey.KeyID, Key: remoteKey.Key})
+			log.Info(nil, map[string]interface{}{
+				"kid": remoteKey.KeyID,
+			}, "Public key added")
+		}
+	}
+
+	return tm, nil
+}
+
+// NewManagerWithPublicKey returns a new token Manager for handling tokens with the only public key
+func NewManagerWithPublicKey(id string, key *rsa.PublicKey) Manager {
 	return &tokenManager{
-		publicKey: publicKey,
+		publicKeysMap: map[string]*rsa.PublicKey{id: key},
+		publicKeys:    []*PublicKey{{KeyID: id, Key: key}},
 	}
 }
 
-// NewManagerWithPrivateKey returns a new token Manager for handling creation of tokens with both private and pulic keys
-func NewManagerWithPrivateKey(privateKey *rsa.PrivateKey) Manager {
-	return &tokenManager{
-		publicKey:  &privateKey.PublicKey,
-		privateKey: privateKey,
+func (mgm *tokenManager) IsServiceAccount(ctx context.Context) bool {
+	token := goajwt.ContextJWT(ctx)
+	if token == nil {
+		return false
 	}
+	accountName := token.Claims.(jwt.MapClaims)["service_accountname"]
+	if accountName == nil {
+		return false
+	}
+	accountNameTyped, isString := accountName.(string)
+
+	// https://github.com/fabric8-services/fabric8-auth/commit/8d7f5a3646974ae8820893d75c29f3f5e9b1ff66#diff-6b1a7621961d1f6fe7463db59c5afef5R379
+	return isString && accountNameTyped == "auth"
 }
 
-func (mgm tokenManager) Extract(tokenString string) (*account.Identity, error) {
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		return mgm.publicKey, nil
+// ParseToken parses token claims
+func (mgm *tokenManager) ParseToken(ctx context.Context, tokenString string) (*TokenClaims, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &TokenClaims{}, func(token *jwt.Token) (interface{}, error) {
+		kid, ok := token.Header["kid"]
+		if !ok {
+			log.Error(ctx, map[string]interface{}{}, "There is no 'kid' header in the token")
+			return nil, errors.New("there is no 'kid' header in the token")
+		}
+		key := mgm.PublicKey(fmt.Sprintf("%s", kid))
+		if key == nil {
+			log.Error(ctx, map[string]interface{}{
+				"kid": kid,
+			}, "There is no public key with such ID")
+			return nil, errors.New(fmt.Sprintf("there is no public key with such ID: %s", kid))
+		}
+		return key, nil
 	})
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
-
-	if !token.Valid {
-		return nil, errors.New("Token not valid")
+	claims := token.Claims.(*TokenClaims)
+	if token.Valid {
+		return claims, nil
 	}
-
-	claimedUUID := token.Claims.(jwt.MapClaims)["sub"]
-	if claimedUUID == nil {
-		return nil, errors.New("Subject can not be nil")
-	}
-	// in case of nil UUID, below type casting will fail hence we need above check
-	id, err := uuid.FromString(token.Claims.(jwt.MapClaims)["sub"].(string))
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	ident := account.Identity{
-		ID:       id,
-		Username: token.Claims.(jwt.MapClaims)["preferred_username"].(string),
-	}
-
-	return &ident, nil
+	return nil, errors.WithStack(errors.New("token is not valid"))
 }
 
-func (mgm tokenManager) Locate(ctx context.Context) (uuid.UUID, error) {
+func (mgm *tokenManager) Locate(ctx context.Context) (uuid.UUID, error) {
 	token := goajwt.ContextJWT(ctx)
 	if token == nil {
 		return uuid.UUID{}, errors.New("Missing token") // TODO, make specific tokenErrors
@@ -85,66 +172,34 @@ func (mgm tokenManager) Locate(ctx context.Context) (uuid.UUID, error) {
 	return idTyped, nil
 }
 
-func (mgm tokenManager) PublicKey() *rsa.PublicKey {
-	return mgm.publicKey
+// PublicKey returns the public key by the ID
+func (mgm *tokenManager) PublicKey(kid string) *rsa.PublicKey {
+	return mgm.publicKeysMap[kid]
 }
 
-// ParsePublicKey parses a []byte representation of a public key into a rsa.PublicKey instance
-func parsePublicKey(key []byte) (*rsa.PublicKey, error) {
-	return jwt.ParseRSAPublicKeyFromPEM(key)
+// PublicKeys returns all the public keys
+func (mgm *tokenManager) PublicKeys() []*rsa.PublicKey {
+	keys := make([]*rsa.PublicKey, 0, len(mgm.publicKeysMap))
+	for _, key := range mgm.publicKeys {
+		keys = append(keys, key.Key)
+	}
+	return keys
 }
 
-// ParsePrivateKey parses a []byte representation of a private key into a rsa.PrivateKey instance
-func parsePrivateKey(key []byte) (*rsa.PrivateKey, error) {
-	return jwt.ParseRSAPrivateKeyFromPEM(key)
-}
-
-var privateKey = `-----BEGIN RSA PRIVATE KEY-----
-MIIEpQIBAAKCAQEAnwrjH5iTSErw9xUptp6QSFoUfpHUXZ+PaslYSUrpLjw1q27O
-DSFwmhV4+dAaTMO5chFv/kM36H3ZOyA146nwxBobS723okFaIkshRrf6qgtD6coT
-HlVUSBTAcwKEjNn4C9jtEpyOl+eSgxhMzRH3bwTIFlLlVMiZf7XVE7P3yuOCpqkk
-2rdYVSpQWQWKU+ZRywJkYcLwjEYjc70AoNpjO5QnY+Exx98E30iEdPHZpsfNhsjh
-9Z7IX5TrMYgz7zBTw8+niO/uq3RBaHyIhDbvenbR9Q59d88lbnEeHKgSMe2RQpFR
-3rxFRkc/64Rn/bMuL/ptNowPqh1P+9GjYzWmPwIDAQABAoIBAQCBCl5ZpnvprhRx
-BVTA/Upnyd7TCxNZmzrME+10Gjmz79pD7DV25ejsu/taBYUxP6TZbliF3pggJOv6
-UxomTB4znlMDUz0JgyjUpkyril7xVQ6XRAPbGrS1f1Def+54MepWAn3oGeqASb3Q
-bAj0Yl12UFTf+AZmkhQpUKk/wUeN718EIY4GRHHQ6ykMSqCKvdnVbMyb9sIzbSTl
-v+l1nQFnB/neyJq6P0Q7cxlhVj03IhYj/AxveNlKqZd2Ih3m/CJo0Abtwhx+qHZp
-cCBrYj7VelEaGARTmfoIVoGxFGKZNCcNzn7R2ic7safxXqeEnxugsAYX/UmMoq1b
-vMYLcaLRAoGBAMqMbbgejbD8Cy6wa5yg7XquqOP5gPdIYYS88TkQTp+razDqKPIU
-hPKetnTDJ7PZleOLE6eJ+dQJ8gl6D/dtOsl4lVRy/BU74dk0fYMiEfiJMYEYuAU0
-MCramo3HAeySTP8pxSLFYqJVhcTpL9+NQgbpJBUlx5bLDlJPl7auY077AoGBAMkD
-UpJRIv/0gYSz5btVheEyDzcqzOMZUVsngabH7aoQ49VjKrfLzJ9WznzJS5gZF58P
-vB7RLuIA8m8Y4FUwxOr4w9WOevzlFh0gyzgNY4gCwrzEryOZqYYqCN+8QLWfq/hL
-+gYFYpEW5pJ/lAy2i8kPanC3DyoqiZCsUmlg6JKNAoGBAIdCkf6zgKGhHwKV07cs
-DIqx2p0rQEFid6UB3ADkb+zWt2VZ6fAHXeT7shJ1RK0o75ydgomObWR5I8XKWqE7
-s1dZjDdx9f9kFuVK1Upd1SxoycNRM4peGJB1nWJydEl8RajcRwZ6U+zeOc+OfWbH
-WUFuLadlrEx5212CQ2k+OZlDAoGAdsH2w6kZ83xCFOOv41ioqx5HLQGlYLpxfVg+
-2gkeWa523HglIcdPEghYIBNRDQAuG3RRYSeW+kEy+f4Jc2tHu8bS9FWkRcsWoIji
-ZzBJ0G5JHPtaub6sEC6/ZWe0F1nJYP2KLop57FxKRt0G2+fxeA0ahpMwa2oMMiQM
-4GM3pHUCgYEAj2ZjjsF2MXYA6kuPUG1vyY9pvj1n4fyEEoV/zxY1k56UKboVOtYr
-BA/cKaLPqUF+08Tz/9MPBw51UH4GYfppA/x0ktc8998984FeIpfIFX6I2U9yUnoQ
-OCCAgsB8g8yTB4qntAYyfofEoDiseKrngQT5DSdxd51A/jw7B8WyBK8=
------END RSA PRIVATE KEY-----`
-
-// RSAPrivateKey returns the key used to sign JWT Tokens
-// ssh-keygen -f wit_rsa
-func RSAPrivateKey() (*rsa.PrivateKey, error) {
-	return parsePrivateKey([]byte(privateKey))
-}
-
-var publicKey = `-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAiRd6pdNjiwQFH2xmNugn
-TkVhkF+TdJw19Kpj3nRtsoUe4/6gIureVi7FWqcb+2t/E0dv8rAAs6vl+d7roz3R
-SkAzBjPxVW5+hi5AJjUbAxtFX/aYJpZePVhK0Dv8StCPSv9GC3T6bUSF3q3E9R9n
-G1SZFkN9m2DhL+45us4THzX2eau6s0bISjAUqEGNifPyYYUzKVmXmHS9fiZJR61h
-6TulPwxv68DUSk+7iIJvJfQ3lH/XNWlxWNMMehetcmdy8EDR2IkJCCAbjx9yxgKV
-JXdQ7zylRlpaLopock0FGiZrJhEaAh6BGuaoUWLiMEvqrLuyZnJYEg9f/vyxUJSD
-JwIDAQAB
------END PUBLIC KEY-----`
-
-// RSAPublicKey returns the key used to verify JWT Tokens
-// openssl rsa -in wit_rsa -pubout -out wit_rsa.pub
-func RSAPublicKey() (*rsa.PublicKey, error) {
-	return parsePublicKey([]byte(publicKey))
+// CheckClaims checks if all the required claims are present in the access token
+func CheckClaims(claims *TokenClaims) error {
+	if claims.Subject == "" {
+		return errors.New("subject claim not found in token")
+	}
+	_, err := uuid.FromString(claims.Subject)
+	if err != nil {
+		return errors.New("subject claim from token is not UUID " + err.Error())
+	}
+	if claims.Username == "" {
+		return errors.New("username claim not found in token")
+	}
+	if claims.Email == "" {
+		return errors.New("email claim not found in token")
+	}
+	return nil
 }

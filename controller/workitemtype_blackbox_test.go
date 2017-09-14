@@ -21,14 +21,14 @@ import (
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	wittoken "github.com/fabric8-services/fabric8-wit/token"
+	testtoken "github.com/fabric8-services/fabric8-wit/test/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	"time"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
-	uuid "github.com/satori/go.uuid"
+	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -72,13 +72,12 @@ func (s *workItemTypeSuite) SetupSuite() {
 // The SetupTest method will be run before every test in the suite.
 func (s *workItemTypeSuite) SetupTest() {
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
-	priv, _ := wittoken.RSAPrivateKey()
 	idn := &account.Identity{
 		ID:           uuid.Nil,
 		Username:     "TestDeveloper",
 		ProviderType: "test provider",
 	}
-	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", wittoken.NewManagerWithPrivateKey(priv), *idn)
+	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", *idn)
 	s.spaceCtrl = NewSpaceController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration, &DummyResourceManager{})
 	require.NotNil(s.T(), s.spaceCtrl)
 	s.typeCtrl = NewWorkitemtypeController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
@@ -264,13 +263,12 @@ func (s *workItemTypeSuite) TestCreateByNotOwnerForbidden() {
 	defer resetFn()
 
 	s.T().Run("forbidden", func(t *testing.T) {
-		priv, _ := wittoken.RSAPrivateKey()
 		idn := &account.Identity{
 			ID:           uuid.NewV4(),
 			Username:     "TestDeveloper",
 			ProviderType: "test provider",
 		}
-		svc := testsupport.ServiceAsUser("TestCreateByNotOwnerForbidden-WorItemType-Service", wittoken.NewManagerWithPrivateKey(priv), *idn)
+		svc := testsupport.ServiceAsUser("TestCreateByNotOwnerForbidden-WorItemType-Service", *idn)
 		typeCtrl := NewWorkitemtypeController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 
 		payload := newCreateWorkItemTypePayload(uuid.NewV4(), space.SystemSpace)
@@ -590,11 +588,8 @@ func (s *workItemTypeSuite) TestUnauthorizeWorkItemTypeCreate() {
 }
 
 func (s *workItemTypeSuite) getWorkItemTypeTestDataFunc() func(*testing.T) []testSecureAPI {
-	privatekey, err := s.Configuration.GetTokenPrivateKey()
+	privatekey := testtoken.PrivateKey()
 	return func(t *testing.T) []testSecureAPI {
-		if err != nil {
-			t.Fatal("Could not parse Key ", err)
-		}
 		differentPrivatekey, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSADifferentPrivateKeyTest)))
 		require.Nil(t, err)
 
