@@ -69,6 +69,11 @@ func (s *TestUsersSuite) SecuredController(identity account.Identity) (*goa.Serv
 	return svc, NewUsersController(svc, s.db, s.Configuration, s.profileService)
 }
 
+func (s *TestUsersSuite) SecuredServiceAccountController(identity account.Identity) (*goa.Service, *UsersController) {
+	svc := testsupport.ServiceAsServiceAccountUser("Users-ServiceAccount-Service", identity)
+	return svc, NewUsersController(svc, s.db, s.Configuration, s.profileService)
+}
+
 func (s *TestUsersSuite) TestUpdateUserAsServiceAccountUnauthorized() {
 	// given
 	user := s.createRandomUser("TestUpdateUserAsSvcAcUnauthorized")
@@ -96,6 +101,34 @@ func (s *TestUsersSuite) TestUpdateUserAsServiceAccountUnauthorized() {
 
 	idAsString := (identity.ID).String()
 	test.UpdateUserAsServiceAccountUsersUnauthorized(s.T(), secureService.Context, secureService, secureController, idAsString, updateUsersPayload)
+
+}
+
+func (s *TestUsersSuite) TestUpdateUserAsServiceAccountOK() {
+	// given
+	user := s.createRandomUser("TestUpdateUserAsServiceAccountOK")
+	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), nil, nil)
+	assertUser(s.T(), result.Data, user, identity)
+
+	// when
+	newEmail := "TestUpdateUserOK-" + uuid.NewV4().String() + "@email.com"
+	newFullName := "TestUpdateUserOK"
+	newImageURL := "http://new.image.io/imageurl"
+	newBio := "new bio"
+	newProfileURL := "http://new.profile.url/url"
+	newCompany := "updateCompany " + uuid.NewV4().String()
+	secureService, secureController := s.SecuredServiceAccountController(identity)
+
+	contextInformation := map[string]interface{}{
+		"last_visited": "yesterday",
+		"space":        "3d6dab8d-f204-42e8-ab29-cdb1c93130ad",
+		"rate":         100.00,
+		"count":        3,
+	}
+	//secureController, secureService := createSecureController(t, identity)
+	updateUsersPayload := createUpdateUsersAsServiceAccountPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, &newCompany, nil, nil, contextInformation)
+	test.UpdateUserAsServiceAccountUsersOK(s.T(), secureService.Context, secureService, secureController, (identity.ID).String(), updateUsersPayload)
 
 }
 
