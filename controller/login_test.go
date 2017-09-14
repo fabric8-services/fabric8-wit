@@ -20,13 +20,10 @@ import (
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	"github.com/fabric8-services/fabric8-wit/token"
-	wittoken "github.com/fabric8-services/fabric8-wit/token"
+	testtoken "github.com/fabric8-services/fabric8-wit/test/token"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -58,26 +55,20 @@ func (rest *TestLoginREST) TearDownTest() {
 }
 
 func (rest *TestLoginREST) UnSecuredController() (*goa.Service, *LoginController) {
-	priv, _ := wittoken.RSAPrivateKey()
 	identityRepository := account.NewIdentityRepository(rest.DB)
-	svc := testsupport.ServiceAsUser("Login-Service", wittoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
+	svc := testsupport.ServiceAsUser("Login-Service", testsupport.TestIdentity)
 	return svc, &LoginController{Controller: svc.NewController("login"), auth: TestLoginService{}, configuration: rest.Configuration, identityRepository: identityRepository}
 }
 
 func (rest *TestLoginREST) SecuredController() (*goa.Service, *LoginController) {
-	priv, _ := wittoken.RSAPrivateKey()
-
 	identityRepository := account.NewIdentityRepository(rest.DB)
 
-	svc := testsupport.ServiceAsUser("Login-Service", wittoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
+	svc := testsupport.ServiceAsUser("Login-Service", testsupport.TestIdentity)
 	return svc, NewLoginController(svc, rest.loginService, rest.loginService.TokenManager, rest.Configuration, identityRepository)
 }
 
 func (rest *TestLoginREST) newTestKeycloakOAuthProvider(db application.DB) *login.KeycloakOAuthProvider {
-	publicKey, err := rest.configuration.GetTokenPublicKey()
-	require.Nil(rest.T(), err)
-	tokenManager := token.NewManager(publicKey)
-	return login.NewKeycloakOAuthProvider(db.Identities(), db.Users(), tokenManager, db)
+	return login.NewKeycloakOAuthProvider(db.Identities(), db.Users(), testtoken.TokenManager, db)
 }
 
 func (rest *TestLoginREST) TestAuthorizeLoginOK() {
@@ -178,13 +169,6 @@ func validateToken(t *testing.T, token *app.AuthToken, controler *LoginControlle
 	assert.NotNil(t, token.Token.ExpiresIn, "Expires-in is nil")
 	assert.NotNil(t, token.Token.RefreshExpiresIn, "Refresh-expires-in is nil")
 	assert.NotNil(t, token.Token.NotBeforePolicy, "Not-before-policy is nil")
-	keyFunc := func(t *jwt.Token) (interface{}, error) {
-		return controler.tokenManager.PublicKey(), nil
-	}
-	_, err := jwt.Parse(*token.Token.AccessToken, keyFunc)
-	assert.Nil(t, err, "Invalid access token")
-	_, err = jwt.Parse(*token.Token.RefreshToken, keyFunc)
-	assert.Nil(t, err, "Invalid refresh token")
 }
 
 type TestLoginService struct{}

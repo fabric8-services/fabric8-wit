@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"testing"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
@@ -16,12 +16,11 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	wittoken "github.com/fabric8-services/fabric8-wit/token"
-
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/resource"
+	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	testtoken "github.com/fabric8-services/fabric8-wit/test/token"
 )
 
 type TestTrackerREST struct {
@@ -48,9 +47,7 @@ func (rest *TestTrackerREST) TearDownTest() {
 }
 
 func (rest *TestTrackerREST) SecuredController() (*goa.Service, *TrackerController) {
-	priv, _ := wittoken.RSAPrivateKey()
-
-	svc := testsupport.ServiceAsUser("Tracker-Service", wittoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
+	svc := testsupport.ServiceAsUser("Tracker-Service", testsupport.TestIdentity)
 	return svc, NewTrackerController(svc, rest.db, rest.RwiScheduler, rest.Configuration)
 }
 
@@ -71,10 +68,7 @@ func (rest *TestTrackerREST) TestUnauthorizeTrackerCUD() {
 }
 
 func getTrackerTestData(t *testing.T) []testSecureAPI {
-	privatekey, err := wittoken.RSAPrivateKey()
-	if err != nil {
-		t.Fatal("Could not parse Key ", err)
-	}
+	privatekey := testtoken.PrivateKey()
 	differentPrivatekey, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSADifferentPrivateKeyTest)))
 	require.Nil(t, err)
 

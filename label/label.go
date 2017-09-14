@@ -26,6 +26,7 @@ type Label struct {
 	Name            string
 	TextColor       string `sql:"DEFAULT:#000000"`
 	BackgroundColor string `sql:"DEFAULT:#FFFFFF"`
+	BorderColor     string `sql:"DEFAULT:#000000"`
 	Version         int
 }
 
@@ -69,7 +70,7 @@ func (m *GormLabelRepository) Create(ctx context.Context, u *Label) error {
 	err := m.db.Create(u).Error
 	if err != nil {
 		// combination of name and space ID should be unique
-		if gormsupport.IsUniqueViolation(err, "labels_name_space_id_unique") {
+		if gormsupport.IsUniqueViolation(err, "labels_name_space_id_unique_idx") {
 			log.Error(ctx, map[string]interface{}{
 				"err":      err,
 				"name":     u.Name,

@@ -342,6 +342,13 @@ func GetMigrations() Migrations {
 
 	// Version 73
 	m = append(m, steps{ExecuteSQLFile("073-labels.sql")})
+
+	// Version 74
+	m = append(m, steps{ExecuteSQLFile("074-label-border-color.sql")})
+
+	// Version 75
+	m = append(m, steps{ExecuteSQLFile("075-label-unique-name.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the

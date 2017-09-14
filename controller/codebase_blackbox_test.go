@@ -18,7 +18,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
@@ -56,9 +55,7 @@ func (s *TestCodebaseREST) UnsecuredController() (*goa.Service, *CodebaseControl
 }
 
 func (s *TestCodebaseREST) SecuredControllers(identity account.Identity) (*goa.Service, *CodebaseController) {
-	pub, _ := wittoken.RSAPublicKey()
-
-	svc := testsupport.ServiceAsUser("Codebase-Service", wittoken.NewManager(pub), identity)
+	svc := testsupport.ServiceAsUser("Codebase-Service", identity)
 	return svc, controller.NewCodebaseController(svc, s.db, s.Configuration)
 }
 

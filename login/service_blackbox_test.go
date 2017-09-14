@@ -19,11 +19,11 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	. "github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/migration"
+	"github.com/fabric8-services/fabric8-wit/test/token"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/fabric8-services/fabric8-wit/resource"
-	"github.com/fabric8-services/fabric8-wit/token"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/uuid"
 	_ "github.com/lib/pq"
@@ -76,16 +76,11 @@ func (s *serviceBlackBoxTest) SetupSuite() {
 			TokenURL: tokenEndpoint,
 		},
 	}
-	privateKey, err := token.RSAPrivateKey()
-	if err != nil {
-		panic(err)
-	}
 
-	tokenManager := token.NewManagerWithPrivateKey(privateKey)
 	userRepository := account.NewUserRepository(s.DB)
 	identityRepository := account.NewIdentityRepository(s.DB)
 	app := gormapplication.NewGormDB(s.DB)
-	s.loginService = NewKeycloakOAuthProvider(identityRepository, userRepository, tokenManager, app)
+	s.loginService = NewKeycloakOAuthProvider(identityRepository, userRepository, token.TokenManager, app)
 }
 
 func (s *serviceBlackBoxTest) SetupTest() {

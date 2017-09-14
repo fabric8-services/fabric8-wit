@@ -14,7 +14,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/resource"
-	wittoken "github.com/fabric8-services/fabric8-wit/token"
+	"github.com/fabric8-services/fabric8-wit/test/token"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/stretchr/testify/require"
@@ -85,11 +85,6 @@ func getValidAuthHeader(t *testing.T, key interface{}) string {
 func UnauthorizeCreateUpdateDeleteTest(t *testing.T, getDataFunc func(t *testing.T) []testSecureAPI, createServiceFunc func() *goa.Service, mountCtrlFunc func(service *goa.Service) error) {
 	resource.Require(t, resource.Database)
 
-	// This will be modified after merge PR for "Viper Environment configurations"
-	publickey, err := wittoken.RSAPublicKey()
-	if err != nil {
-		t.Fatal("Could not parse Key ", err)
-	}
 	tokenTests := getDataFunc(t)
 
 	for _, testObject := range tokenTests {
@@ -106,6 +101,7 @@ func UnauthorizeCreateUpdateDeleteTest(t *testing.T, getDataFunc func(t *testing
 			t.Fatal("could not create a HTTP request")
 		}
 		// Add Authorization Header
+
 		req.Header.Add("Authorization", testObject.jwtToken)
 
 		rr := httptest.NewRecorder()
@@ -121,7 +117,7 @@ func UnauthorizeCreateUpdateDeleteTest(t *testing.T, getDataFunc func(t *testing
 		service.Use(jsonapi.ErrorHandler(service, true))
 
 		// append a middleware to service. Use appropriate RSA keys
-		jwtMiddleware := goajwt.New(publickey, nil, app.NewJWTSecurity())
+		jwtMiddleware := goajwt.New(&token.PrivateKey().PublicKey, nil, app.NewJWTSecurity())
 		// Adding middleware via "app" is important
 		// Because it will check the design and accordingly apply the middleware if mentioned in design
 		// But if I use `service.Use(jwtMiddleware)` then middleware is applied for all the requests (without checking design)

@@ -19,7 +19,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	wittoken "github.com/fabric8-services/fabric8-wit/token"
+	testtoken "github.com/fabric8-services/fabric8-wit/test/token"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 
 	jwt "github.com/dgrijalva/jwt-go"
@@ -65,8 +65,7 @@ func (s *workItemLinkTypeSuite) SetupSuite() {
 	require.NotNil(s.T(), s.linkCatCtrl)
 	s.typeCtrl = NewWorkitemtypeController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	require.NotNil(s.T(), s.typeCtrl)
-	priv, _ := wittoken.RSAPrivateKey()
-	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", wittoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
+	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", testsupport.TestIdentity)
 	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(s.DB), s.Configuration, &DummyResourceManager{})
 	require.NotNil(s.T(), s.spaceCtrl)
 	s.spaceName = "test-space" + uuid.NewV4().String()
@@ -115,8 +114,7 @@ func (s *workItemLinkTypeSuite) SetupTest() {
 	require.NotNil(s.T(), s.linkCatCtrl)
 	s.typeCtrl = NewWorkitemtypeController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	require.NotNil(s.T(), s.typeCtrl)
-	priv, _ := wittoken.RSAPrivateKey()
-	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", wittoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
+	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", testsupport.TestIdentity)
 	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(s.DB), s.Configuration, &DummyResourceManager{})
 	require.NotNil(s.T(), s.spaceCtrl)
 	s.spaceName = testsupport.CreateRandomValidTestName("test-space")
@@ -526,10 +524,7 @@ func (s *workItemLinkTypeSuite) TestListWorkItemLinkTypeNotModifiedUsingIfNoneMa
 func (s *workItemLinkTypeSuite) getWorkItemLinkTypeTestDataFunc() func(t *testing.T) []testSecureAPI {
 	return func(t *testing.T) []testSecureAPI {
 
-		privatekey, err := s.Configuration.GetTokenPrivateKey()
-		if err != nil {
-			t.Fatal("Could not parse Key ", err)
-		}
+		privatekey := testtoken.PrivateKey()
 		differentPrivatekey, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSADifferentPrivateKeyTest)))
 		if err != nil {
 			t.Fatal("Could not parse different private key ", err)

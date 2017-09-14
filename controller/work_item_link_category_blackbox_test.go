@@ -16,7 +16,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	wittoken "github.com/fabric8-services/fabric8-wit/token"
+	testtoken "github.com/fabric8-services/fabric8-wit/test/token"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 
 	jwt "github.com/dgrijalva/jwt-go"
@@ -66,8 +66,7 @@ func (s *workItemLinkCategorySuite) SetupSuite() {
 	s.db, err = gorm.Open("postgres", wilCatConfiguration.GetPostgresConfigString())
 	require.Nil(s.T(), err)
 	s.appDB = gormapplication.NewGormDB(s.db)
-	priv, _ := wittoken.RSAPrivateKey()
-	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", wittoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
+	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", testsupport.TestIdentity)
 	require.NotNil(s.T(), s.svc)
 	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(s.db))
 	require.NotNil(s.T(), s.linkCatCtrl)
@@ -467,10 +466,7 @@ func (s *workItemLinkCategorySuite) TestListWorkItemLinkCategoryOK() {
 }
 
 func getWorkItemLinkCategoryTestData(t *testing.T) []testSecureAPI {
-	privatekey, err := wilCatConfiguration.GetTokenPrivateKey()
-	if err != nil {
-		t.Fatal("Could not parse Key ", err)
-	}
+	privatekey := testtoken.PrivateKey()
 	differentPrivatekey, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSADifferentPrivateKeyTest)))
 	if err != nil {
 		t.Fatal("Could not parse different private key ", err)

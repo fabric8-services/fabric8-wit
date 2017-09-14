@@ -16,7 +16,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
-	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -51,8 +50,7 @@ func (rest *TestLabelREST) TestCreateLabel() {
 	i, err := tf.NewFixture(rest.DB, tf.Identities(1))
 	require.Nil(rest.T(), err)
 	require.Nil(rest.T(), c.Check())
-	priv, _ := wittoken.RSAPrivateKey()
-	svc := testsupport.ServiceAsUser("Label-Service", wittoken.NewManagerWithPrivateKey(priv), *i.Identities[0])
+	svc := testsupport.ServiceAsUser("Label-Service", *i.Identities[0])
 
 	ctrl := NewLabelController(svc, rest.db, rest.Configuration)
 	pl := app.CreateLabelPayload{
@@ -65,6 +63,7 @@ func (rest *TestLabelREST) TestCreateLabel() {
 	assert.Equal(rest.T(), pl.Data.Attributes.Name, created.Data.Attributes.Name)
 	assert.Equal(rest.T(), "#000000", *created.Data.Attributes.TextColor)
 	assert.Equal(rest.T(), "#FFFFFF", *created.Data.Attributes.BackgroundColor)
+	assert.Equal(rest.T(), "#000000", *created.Data.Attributes.BorderColor)
 	assert.False(rest.T(), created.Data.Attributes.CreatedAt.After(time.Now()), "Label was not created, CreatedAt after Now()")
 }
 
@@ -75,8 +74,7 @@ func (rest *TestLabelREST) TestCreateLabelWithWhiteSpace() {
 	i, err := tf.NewFixture(rest.DB, tf.Identities(1))
 	require.Nil(rest.T(), err)
 	require.Nil(rest.T(), c.Check())
-	priv, _ := wittoken.RSAPrivateKey()
-	svc := testsupport.ServiceAsUser("Label-Service", wittoken.NewManagerWithPrivateKey(priv), *i.Identities[0])
+	svc := testsupport.ServiceAsUser("Label-Service", *i.Identities[0])
 
 	ctrl := NewLabelController(svc, rest.db, rest.Configuration)
 	pl := app.CreateLabelPayload{
@@ -90,6 +88,7 @@ func (rest *TestLabelREST) TestCreateLabelWithWhiteSpace() {
 	assert.Equal(rest.T(), strings.TrimSpace(pl.Data.Attributes.Name), created.Data.Attributes.Name)
 	assert.Equal(rest.T(), "#000000", *created.Data.Attributes.TextColor)
 	assert.Equal(rest.T(), "#FFFFFF", *created.Data.Attributes.BackgroundColor)
+	assert.Equal(rest.T(), "#000000", *created.Data.Attributes.BorderColor)
 	assert.False(rest.T(), created.Data.Attributes.CreatedAt.After(time.Now()), "Label was not created, CreatedAt after Now()")
 }
 
@@ -100,8 +99,7 @@ func (rest *TestLabelREST) TestListLabel() {
 	i, err := tf.NewFixture(rest.DB, tf.Identities(1))
 	require.Nil(rest.T(), err)
 	require.Nil(rest.T(), c.Check())
-	priv, _ := wittoken.RSAPrivateKey()
-	svc := testsupport.ServiceAsUser("Label-Service", wittoken.NewManagerWithPrivateKey(priv), *i.Identities[0])
+	svc := testsupport.ServiceAsUser("Label-Service", *i.Identities[0])
 
 	ctrl := NewLabelController(svc, rest.db, rest.Configuration)
 
@@ -124,8 +122,7 @@ func (rest *TestLabelREST) TestShowLabel() {
 	testFxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Labels(1))
 	i, err := tf.NewFixture(rest.DB, tf.Identities(1))
 	require.Nil(rest.T(), err)
-	priv, _ := wittoken.RSAPrivateKey()
-	svc := testsupport.ServiceAsUser("Label-Service", wittoken.NewManagerWithPrivateKey(priv), *i.Identities[0])
+	svc := testsupport.ServiceAsUser("Label-Service", *i.Identities[0])
 
 	ctrl := NewLabelController(svc, rest.db, rest.Configuration)
 

@@ -28,7 +28,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/search"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/jinzhu/gorm"
 
@@ -87,8 +86,7 @@ func (s *searchBlackBoxTest) SetupTest() {
 	spaceBlackBoxTestConfiguration, err := config.GetConfigurationData()
 	require.Nil(s.T(), err)
 	s.spaceBlackBoxTestConfiguration = spaceBlackBoxTestConfiguration
-	priv, _ := wittoken.RSAPrivateKey()
-	s.svc = testsupport.ServiceAsUser("WorkItemComment-Service", wittoken.NewManagerWithPrivateKey(priv), s.testIdentity)
+	s.svc = testsupport.ServiceAsUser("WorkItemComment-Service", s.testIdentity)
 	s.controller = NewSearchController(s.svc, gormapplication.NewGormDB(s.DB), spaceBlackBoxTestConfiguration)
 }
 
@@ -297,9 +295,7 @@ func (s *searchBlackBoxTest) getWICreatePayload() *app.CreateWorkitemsPayload {
 }
 
 func getServiceAsUser(testIdentity account.Identity) *goa.Service {
-	priv, _ := wittoken.RSAPrivateKey()
-	service := testsupport.ServiceAsUser("TestSearch-Service", wittoken.NewManagerWithPrivateKey(priv), testIdentity)
-	return service
+	return testsupport.ServiceAsUser("TestSearch-Service", testIdentity)
 }
 
 // searchByURL copies much of the codebase from search_testing.go->ShowSearchOK
@@ -558,8 +554,7 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 	spaceInstance := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, *spaceOwner)
 	spaceIDStr := spaceInstance.ID.String()
 
-	priv, _ := wittoken.RSAPrivateKey()
-	svcWithSpaceOwner := testsupport.ServiceAsSpaceUser("Search-Service", wittoken.NewManagerWithPrivateKey(priv), *spaceOwner, &TestSpaceAuthzService{*spaceOwner})
+	svcWithSpaceOwner := testsupport.ServiceAsSpaceUser("Search-Service", *spaceOwner, &TestSpaceAuthzService{*spaceOwner})
 	collaboratorRESTInstance := &TestCollaboratorsREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")}
 	collaboratorRESTInstance.policy = &auth.KeycloakPolicy{
 		Name:             "TestCollaborators-" + uuid.NewV4().String(),
