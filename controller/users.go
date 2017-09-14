@@ -101,7 +101,7 @@ func (c *UsersController) UpdateUserAsServiceAccount(ctx *app.UpdateUserAsServic
 	idString := ctx.ID
 	id, err := uuid.FromString(idString)
 	if err != nil {
-		jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(errs.New("incorrect identity")))
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(errs.New("incorrect identity")))
 	}
 	return c.updateUserInDB(&id, ctx)
 }
