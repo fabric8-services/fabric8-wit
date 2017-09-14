@@ -19,7 +19,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -52,10 +51,7 @@ func (rest *TestSpaceCodebaseREST) TearDownTest() {
 }
 
 func (rest *TestSpaceCodebaseREST) SecuredController() (*goa.Service, *SpaceCodebasesController) {
-	pub, _ := wittoken.RSAPublicKey()
-	//priv, _ := wittoken.RSAPrivateKey()
-
-	svc := testsupport.ServiceAsUser("SpaceCodebase-Service", wittoken.NewManager(pub), testsupport.TestIdentity)
+	svc := testsupport.ServiceAsUser("SpaceCodebase-Service", testsupport.TestIdentity)
 	return svc, NewSpaceCodebasesController(svc, rest.db)
 }
 

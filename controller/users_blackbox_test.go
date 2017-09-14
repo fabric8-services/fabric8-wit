@@ -19,7 +19,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	wittoken "github.com/fabric8-services/fabric8-wit/token"
 
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
@@ -66,8 +65,7 @@ func (s *TestUsersSuite) TearDownTest() {
 }
 
 func (s *TestUsersSuite) SecuredController(identity account.Identity) (*goa.Service, *UsersController) {
-	pub, _ := wittoken.RSAPublicKey()
-	svc := testsupport.ServiceAsUser("Users-Service", wittoken.NewManager(pub), identity)
+	svc := testsupport.ServiceAsUser("Users-Service", identity)
 	return svc, NewUsersController(svc, s.db, s.Configuration, s.profileService)
 }
 

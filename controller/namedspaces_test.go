@@ -12,7 +12,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -38,9 +37,7 @@ func (rest *TestNamedSpaceREST) TearDownTest() {
 }
 
 func (rest *TestNamedSpaceREST) SecuredNamedSpaceController(identity account.Identity) (*goa.Service, *NamedspacesController) {
-	priv, _ := wittoken.RSAPrivateKey()
-
-	svc := testsupport.ServiceAsUser("NamedSpace-Service", wittoken.NewManagerWithPrivateKey(priv), identity)
+	svc := testsupport.ServiceAsUser("NamedSpace-Service", identity)
 	return svc, NewNamedspacesController(svc, rest.db)
 }
 
@@ -50,9 +47,7 @@ func (rest *TestNamedSpaceREST) UnSecuredNamedSpaceController() (*goa.Service, *
 }
 
 func (rest *TestNamedSpaceREST) SecuredSpaceController() (*goa.Service, *SpaceController) {
-	priv, _ := wittoken.RSAPrivateKey()
-
-	svc := testsupport.ServiceAsUser("Space-Service", wittoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
+	svc := testsupport.ServiceAsUser("Space-Service", testsupport.TestIdentity)
 	return svc, NewSpaceController(svc, rest.db, rest.Configuration, &DummyResourceManager{})
 }
 
