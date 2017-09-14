@@ -3,15 +3,14 @@ package controller
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"testing"
 
+	"github.com/fabric8-services/fabric8-wit/configuration"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/application"
-	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/resource"
@@ -28,7 +27,7 @@ import (
 
 type TestRecentSpacesREST struct {
 	gormtestsupport.RemoteTestSuite
-	configuration      *configuration.ConfigurationData
+	config             *configuration.ConfigurationData
 	tokenManager       token.Manager
 	identityRepository *MockIdentityRepository
 	userRepository     *MockUserRepository
@@ -42,7 +41,7 @@ func TestRunRecentSpacesREST(t *testing.T) {
 }
 
 func (rest *TestRecentSpacesREST) newTestKeycloakOAuthProvider(db application.DB) *login.KeycloakOAuthProvider {
-	publicKey, err := token.ParsePublicKey([]byte(rest.configuration.GetTokenPublicKey()))
+	publicKey, err := rest.config.GetTokenPublicKey()
 	require.Nil(rest.T(), err)
 	tokenManager := token.NewManager(publicKey)
 
@@ -50,12 +49,10 @@ func (rest *TestRecentSpacesREST) newTestKeycloakOAuthProvider(db application.DB
 }
 
 func (rest *TestRecentSpacesREST) SetupTest() {
-	c, err := configuration.GetConfigurationData()
-	if err != nil {
-		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
-	}
-	rest.configuration = c
-	publicKey, err := token.ParsePublicKey([]byte(rest.configuration.GetTokenPublicKey()))
+	var err error
+	rest.config, err = configuration.GetConfigurationData()
+	require.Nil(rest.T(), err, "failed to setup configuration")
+	publicKey, err := rest.config.GetTokenPublicKey()
 	require.Nil(rest.T(), err)
 	rest.tokenManager = token.NewManager(publicKey)
 
@@ -82,7 +79,7 @@ func (rest *TestRecentSpacesREST) SecuredController() (*goa.Service, *LoginContr
 		Controller:         svc.NewController("login"),
 		auth:               rest.loginService,
 		tokenManager:       rest.tokenManager,
-		configuration:      rest.configuration,
+		configuration:      rest.config,
 		identityRepository: rest.identityRepository,
 	}
 	return svc, loginController
@@ -94,13 +91,11 @@ func (rest *TestRecentSpacesREST) TestResourceRequestPayload() {
 	service, controller := rest.SecuredController()
 
 	// Generate an access token for a test identity
-	r := &goa.RequestData{
-		Request: &http.Request{Host: "api.example.org"},
-	}
-	tokenEndpoint, err := rest.configuration.GetKeycloakEndpointToken(r)
+	r := &http.Request{Host: "api.example.org"}
+	tokenEndpoint, err := rest.config.GetKeycloakEndpointToken(r)
 	require.Nil(t, err)
 
-	accessToken, err := GenerateUserToken(service.Context, tokenEndpoint, rest.configuration, rest.configuration.GetKeycloakTestUserName(), rest.configuration.GetKeycloakTestUserSecret())
+	accessToken, err := GenerateUserToken(service.Context, tokenEndpoint, rest.config, rest.config.GetKeycloakTestUserName(), rest.config.GetKeycloakTestUserSecret())
 	require.Nil(t, err)
 
 	accessTokenString := accessToken.Token.AccessToken

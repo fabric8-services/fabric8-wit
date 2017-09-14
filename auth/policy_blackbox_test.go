@@ -8,7 +8,6 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/auth"
 	"github.com/fabric8-services/fabric8-wit/resource"
-	"github.com/goadesign/goa"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -29,7 +28,7 @@ type TestPolicySuite struct {
 }
 
 func (s *TestPolicySuite) SetupSuite() {
-	s.policyManager = auth.NewKeycloakPolicyManager(configuration)
+	s.policyManager = auth.NewKeycloakPolicyManager(config)
 }
 
 func (s *TestPolicySuite) TearDownSuite() {
@@ -39,9 +38,7 @@ func (s *TestPolicySuite) TearDownSuite() {
 func (s *TestPolicySuite) TestGetPolicyOK() {
 	policy, policyID := createPermissionWithPolicy(s)
 
-	r := &goa.RequestData{
-		Request: &http.Request{Host: "domain.io"},
-	}
+	r := &http.Request{Host: "domain.io"}
 	obtainedPolicy, newPat, err := s.policyManager.GetPolicy(context.Background(), r, policyID)
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), obtainedPolicy)
@@ -55,12 +52,10 @@ func (s *TestPolicySuite) TestGetPolicyOK() {
 
 func (s *TestPolicySuite) TestUpdatePolicyOK() {
 	policy, policyID := createPermissionWithPolicy(s)
-	secondTestUserID := getUserID(s.T(), configuration.GetKeycloakTestUser2Name(), configuration.GetKeycloakTestUser2Secret())
+	secondTestUserID := getUserID(s.T(), config.GetKeycloakTestUser2Name(), config.GetKeycloakTestUser2Secret())
 	policy.RemoveUserFromPolicy(secondTestUserID)
 	policy.ID = &policyID
-	r := &goa.RequestData{
-		Request: &http.Request{Host: "domain.io"},
-	}
+	r := &http.Request{Host: "domain.io"}
 	pat := getProtectedAPITokenOK(s.T())
 	err := s.policyManager.UpdatePolicy(context.Background(), r, *policy, pat)
 	require.Nil(s.T(), err)

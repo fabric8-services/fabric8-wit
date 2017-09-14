@@ -35,7 +35,7 @@ func (rest *TestStatusREST) TearDownTest() {
 }
 
 func (rest *TestStatusREST) SecuredController() (*goa.Service, *StatusController) {
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, _ := wittoken.RSAPrivateKey()
 
 	svc := testsupport.ServiceAsUser("Status-Service", wittoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
 	return svc, NewStatusController(svc, rest.DB)

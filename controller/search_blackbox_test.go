@@ -79,7 +79,7 @@ func (s *searchBlackBoxTest) SetupTest() {
 	spaceBlackBoxTestConfiguration, err := config.GetConfigurationData()
 	require.Nil(s.T(), err)
 	s.spaceBlackBoxTestConfiguration = spaceBlackBoxTestConfiguration
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, _ := wittoken.RSAPrivateKey()
 	s.svc = testsupport.ServiceAsUser("WorkItemComment-Service", wittoken.NewManagerWithPrivateKey(priv), s.testIdentity)
 	s.controller = NewSearchController(s.svc, gormapplication.NewGormDB(s.DB), spaceBlackBoxTestConfiguration)
 }
@@ -262,12 +262,8 @@ func (s *searchBlackBoxTest) TestUnwantedCharactersRelatedToSearchLogic() {
 }
 
 func (s *searchBlackBoxTest) getWICreatePayload() *app.CreateWorkitemsPayload {
-	spaceRelatedURL := rest.AbsoluteURL(&goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}, app.SpaceHref(space.SystemSpace.String()))
-	witRelatedURL := rest.AbsoluteURL(&goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}, app.WorkitemtypeHref(space.SystemSpace.String(), workitem.SystemTask.String()))
+	spaceRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(space.SystemSpace.String()))
+	witRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.WorkitemtypeHref(space.SystemSpace.String(), workitem.SystemTask.String()))
 	c := app.CreateWorkitemsPayload{
 		Data: &app.WorkItem{
 			Type:       APIStringTypeWorkItem,
@@ -293,7 +289,7 @@ func (s *searchBlackBoxTest) getWICreatePayload() *app.CreateWorkitemsPayload {
 }
 
 func getServiceAsUser(testIdentity account.Identity) *goa.Service {
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, _ := wittoken.RSAPrivateKey()
 	service := testsupport.ServiceAsUser("TestSearch-Service", wittoken.NewManagerWithPrivateKey(priv), testIdentity)
 	return service
 }
@@ -554,7 +550,7 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 	spaceInstance := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, *spaceOwner)
 	spaceIDStr := spaceInstance.ID.String()
 
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, _ := wittoken.RSAPrivateKey()
 	svcWithSpaceOwner := testsupport.ServiceAsSpaceUser("Search-Service", wittoken.NewManagerWithPrivateKey(priv), *spaceOwner, &TestSpaceAuthzService{*spaceOwner})
 	collaboratorRESTInstance := &TestCollaboratorsREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")}
 	collaboratorRESTInstance.policy = &auth.KeycloakPolicy{
@@ -690,7 +686,7 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 	s.T().Run("space=ID AND (state=resolved OR iteration=sprint2) using EQ", func(t *testing.T) {
 		filter := fmt.Sprintf(`
 				{"$AND": [
-					{"space": {"EQ": "%s"}},
+					{"space": {"$EQ": "%s"}},
 					{"$OR": [
 						{"state": {"$EQ": "%s"}},
 						{"iteration": {"$EQ": "%s"}}
@@ -919,5 +915,58 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 		jerrs.Errors[0].ID = &ignoreString
 		compareWithGolden(t, filepath.Join(s.testDir, "show", "non_existing_key.error.golden.json"), jerrs)
 		compareWithGolden(t, filepath.Join(s.testDir, "show", "non_existing_key.headers.golden.json"), res.Header())
+	})
+	s.T().Run("assignee=null before WI creation", func(t *testing.T) {
+		filter := fmt.Sprintf(`
+					{"$AND": [
+						{"assignee":null}
+					]}`,
+		)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.Empty(s.T(), result.Data)
+		assert.Len(s.T(), result.Data, 0)
+	})
+	_, err = wirepo.Create(
+		s.ctx, sprint2.SpaceID, workitem.SystemFeature,
+		map[string]interface{}{
+			workitem.SystemTitle:     fmt.Sprintf("Unassigned issue"),
+			workitem.SystemState:     workitem.SystemStateClosed,
+			workitem.SystemIteration: sprint2.ID.String(),
+		}, s.testIdentity.ID)
+	require.Nil(s.T(), err)
+	s.T().Run("assignee=null after WI creation", func(t *testing.T) {
+		filter := fmt.Sprintf(`
+					{"$AND": [
+						{"assignee":null}
+					]}`,
+		)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(s.T(), result.Data)
+		assert.Len(s.T(), result.Data, 1)
+	})
+	s.T().Run("assignee=null after WI creation (top-level)", func(t *testing.T) {
+		filter := fmt.Sprintf(`
+					{"assignee":null}`,
+		)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(s.T(), result.Data)
+		assert.Len(s.T(), result.Data, 1)
+	})
+
+	s.T().Run("assignee=null with negate", func(t *testing.T) {
+		filter := fmt.Sprintf(`
+					{"$AND": [
+					{"assignee":null, "negate": true}
+					]}`,
+		)
+
+		res, jerrs := test.ShowSearchBadRequest(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.NotNil(t, jerrs)
+		require.Len(t, jerrs.Errors, 1)
+		require.NotNil(t, jerrs.Errors[0].ID)
+		ignoreString := "IGNORE_ME"
+		jerrs.Errors[0].ID = &ignoreString
+		compareWithGolden(t, filepath.Join(s.testDir, "show", "assignee_null_negate.error.golden.json"), jerrs)
+		compareWithGolden(t, filepath.Join(s.testDir, "show", "assignee_null_negate.headers.golden.json"), res.Header())
 	})
 }

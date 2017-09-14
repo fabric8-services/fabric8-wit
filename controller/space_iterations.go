@@ -100,14 +100,14 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 			for _, itr := range iterations {
 				itrMap[itr.ID] = itr
 			}
-			responseData = ConvertIteration(ctx.RequestData, newItr, parentPathResolver(itrMap), updateIterationsWithCounts(wiCounts))
+			responseData = ConvertIteration(ctx.Request, newItr, parentPathResolver(itrMap), updateIterationsWithCounts(wiCounts))
 		} else {
-			responseData = ConvertIteration(ctx.RequestData, newItr, updateIterationsWithCounts(wiCounts))
+			responseData = ConvertIteration(ctx.Request, newItr, updateIterationsWithCounts(wiCounts))
 		}
 		res := &app.IterationSingle{
 			Data: responseData,
 		}
-		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.RequestData, app.IterationHref(res.Data.ID)))
+		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.IterationHref(res.Data.ID)))
 		return ctx.Created(res)
 	})
 }
@@ -139,7 +139,7 @@ func (c *SpaceIterationsController) List(ctx *app.ListSpaceIterationsContext) er
 				return jsonapi.JSONErrorResponse(ctx, err)
 			}
 			res := &app.IterationList{}
-			res.Data = ConvertIterations(ctx.RequestData, iterations, updateIterationsWithCounts(wiCounts), parentPathResolver(itrMap))
+			res.Data = ConvertIterations(ctx.Request, iterations, updateIterationsWithCounts(wiCounts), parentPathResolver(itrMap))
 			return ctx.OK(res)
 		})
 	})

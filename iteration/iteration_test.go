@@ -7,14 +7,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
-	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -24,7 +23,6 @@ import (
 
 type TestIterationRepository struct {
 	gormtestsupport.DBTestSuite
-	testIdentity account.Identity
 
 	clean func()
 }
@@ -35,9 +33,6 @@ func TestRunIterationRepository(t *testing.T) {
 
 func (s *TestIterationRepository) SetupTest() {
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
-	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "WorkItemSuite setup user", "test provider")
-	require.Nil(s.T(), err)
-	s.testIdentity = *testIdentity
 }
 
 func (s *TestIterationRepository) TearDownTest() {
@@ -52,19 +47,14 @@ func (s *TestIterationRepository) TestCreateIteration() {
 	end := start.Add(time.Hour * (24 * 8 * 3))
 	name := "Sprint #24"
 
-	newSpace := space.Space{
-		Name:    "Space 1",
-		OwnerId: s.testIdentity.ID,
-	}
-	repoSpace := space.NewRepository(s.DB)
-	space, err := repoSpace.Create(context.Background(), &newSpace)
-	assert.Nil(t, err)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1))
 
 	i := iteration.Iteration{
-		Name:    name,
-		SpaceID: space.ID,
-		StartAt: &start,
-		EndAt:   &end,
+		Name:       name,
+		SpaceID:    fxt.Spaces[0].ID,
+		StartAt:    &start,
+		EndAt:      &end,
+		UserActive: &userActive,
 	}
 
 	repo.Create(context.Background(), &i)
@@ -91,30 +81,26 @@ func (s *TestIterationRepository) TestCreateChildIteration() {
 	name := "Sprint #24"
 	name2 := "Sprint #24.1"
 
-	newSpace := space.Space{
-		Name:    "Space 1",
-		OwnerId: s.testIdentity.ID,
-	}
-	repoSpace := space.NewRepository(s.DB)
-	space, err := repoSpace.Create(context.Background(), &newSpace)
-	assert.Nil(t, err)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1))
 
 	i := iteration.Iteration{
-		Name:    name,
-		SpaceID: space.ID,
-		StartAt: &start,
-		EndAt:   &end,
+		Name:       name,
+		SpaceID:    fxt.Spaces[0].ID,
+		StartAt:    &start,
+		EndAt:      &end,
+		UserActive: &userActive,
 	}
 	repo.Create(context.Background(), &i)
 
 	parentPath := append(i.Path, i.ID)
 	require.NotNil(t, parentPath)
 	i2 := iteration.Iteration{
-		Name:    name2,
-		SpaceID: space.ID,
-		StartAt: &start,
-		EndAt:   &end,
-		Path:    parentPath,
+		Name:       name2,
+		SpaceID:    fxt.Spaces[0].ID,
+		StartAt:    &start,
+		EndAt:      &end,
+		Path:       parentPath,
+		UserActive: &userActive,
 	}
 	repo.Create(context.Background(), &i2)
 
@@ -138,34 +124,30 @@ func (s *TestIterationRepository) TestRootIteration() {
 	name := "Sprint #24"
 	name2 := "Sprint #24.1"
 
-	newSpace := space.Space{
-		Name:    "Space 1",
-		OwnerId: s.testIdentity.ID,
-	}
-	repoSpace := space.NewRepository(s.DB)
-	space, err := repoSpace.Create(context.Background(), &newSpace)
-	assert.Nil(t, err)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1))
 
 	i := iteration.Iteration{
-		Name:    name,
-		SpaceID: space.ID,
-		StartAt: &start,
-		EndAt:   &end,
+		Name:       name,
+		SpaceID:    fxt.Spaces[0].ID,
+		StartAt:    &start,
+		EndAt:      &end,
+		UserActive: &userActive,
 	}
 	repo.Create(context.Background(), &i)
 
 	parentPath := append(i.Path, i.ID)
 	require.NotNil(t, parentPath)
 	i2 := iteration.Iteration{
-		Name:    name2,
-		SpaceID: space.ID,
-		StartAt: &start,
-		EndAt:   &end,
-		Path:    parentPath,
+		Name:       name2,
+		SpaceID:    fxt.Spaces[0].ID,
+		StartAt:    &start,
+		EndAt:      &end,
+		Path:       parentPath,
+		UserActive: &userActive,
 	}
 	repo.Create(context.Background(), &i2)
 
-	res, err := repo.Root(context.Background(), space.ID)
+	res, err := repo.Root(context.Background(), fxt.Spaces[0].ID)
 	require.Nil(t, err)
 	assert.Equal(t, i.Name, res.Name)
 	assert.Equal(t, i.ID, res.ID)
@@ -180,13 +162,7 @@ func (s *TestIterationRepository) TestListIterationBySpace() {
 
 	repo := iteration.NewIterationRepository(s.DB)
 
-	newSpace := space.Space{
-		Name:    "Space 1",
-		OwnerId: s.testIdentity.ID,
-	}
-	repoSpace := space.NewRepository(s.DB)
-	spaceInstance, err := repoSpace.Create(context.Background(), &newSpace)
-	assert.Nil(t, err)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(2))
 
 	for i := 0; i < 3; i++ {
 		start := time.Now()
@@ -194,28 +170,24 @@ func (s *TestIterationRepository) TestListIterationBySpace() {
 		name := "Sprint #2" + strconv.Itoa(i)
 
 		i := iteration.Iteration{
-			Name:    name,
-			SpaceID: spaceInstance.ID,
-			StartAt: &start,
-			EndAt:   &end,
+			Name:       name,
+			SpaceID:    fxt.Spaces[0].ID,
+			StartAt:    &start,
+			EndAt:      &end,
+			UserActive: &userActive,
 		}
 		e := repo.Create(context.Background(), &i)
 		require.Nil(t, e)
 	}
-	// create another space and add iteration to another space
-	anotherSpace := space.Space{
-		Name:    "Space 2",
-		OwnerId: s.testIdentity.ID,
-	}
-	anotherSpaceCreated, err := repoSpace.Create(context.Background(), &anotherSpace)
-	assert.Nil(t, err)
+	// add iteration to the second space from our fixture
 	e := repo.Create(context.Background(), &iteration.Iteration{
-		Name:    "Other Spring #2",
-		SpaceID: anotherSpaceCreated.ID,
+		Name:       "Other Spring #2",
+		SpaceID:    fxt.Spaces[1].ID,
+		UserActive: &userActive,
 	})
 	require.Nil(t, e)
 
-	its, err := repo.List(context.Background(), spaceInstance.ID)
+	its, err := repo.List(context.Background(), fxt.Spaces[0].ID)
 	assert.Nil(t, err)
 	assert.Len(t, its, 3)
 }
@@ -223,30 +195,25 @@ func (s *TestIterationRepository) TestListIterationBySpace() {
 func (s *TestIterationRepository) TestUpdateIteration() {
 	t := s.T()
 	resource.Require(t, resource.Database)
-
 	repo := iteration.NewIterationRepository(s.DB)
 
 	start := time.Now()
 	end := start.Add(time.Hour * (24 * 8 * 3))
-	name := "Sprint #24"
 
-	newSpace := space.Space{
-		Name:    "Space 1",
-		OwnerId: s.testIdentity.ID,
-	}
-	repoSpace := space.NewRepository(s.DB)
-	space, err := repoSpace.Create(context.Background(), &newSpace)
-	assert.Nil(t, err)
+	fxt := tf.NewTestFixture(s.T(), s.DB,
+		tf.Iterations(1,
+			tf.UserActive(false),
+			func(fxt *tf.TestFixture, idx int) error {
+				i := fxt.Iterations[idx]
+				i.Name = "Sprint #24"
+				i.StartAt = &start
+				i.EndAt = &end
+				return nil
+			},
+		),
+	)
 
-	i := iteration.Iteration{
-		Name:    name,
-		SpaceID: space.ID,
-		StartAt: &start,
-		EndAt:   &end,
-	}
-	// creates an iteration
-	repo.Create(context.Background(), &i)
-	require.NotEqual(t, uuid.Nil, i.ID, "Iteration was not created, ID nil")
+	i := *fxt.Iterations[0]
 
 	desc := "Updated item"
 	i.Description = &desc
@@ -273,42 +240,31 @@ func (s *TestIterationRepository) TestCreateIterationSameNameFailsWithinSpace() 
 	t := s.T()
 	resource.Require(t, resource.Database)
 	repo := iteration.NewIterationRepository(s.DB)
-
-	sp1 := space.Space{
-		Name:    "Space 1",
-		OwnerId: s.testIdentity.ID,
-	}
-	repoSpace := space.NewRepository(s.DB)
-	space1, err := repoSpace.Create(context.Background(), &sp1)
-	assert.Nil(t, err)
-
-	sp2 := space.Space{
-		Name:    "Space 2",
-		OwnerId: s.testIdentity.ID,
-	}
-	space2, err := repoSpace.Create(context.Background(), &sp2)
-	assert.Nil(t, err)
-
 	name := "Iteration name test"
-	i := iteration.Iteration{
-		Name:    name,
-		SpaceID: space1.ID,
-	}
-	err = repo.Create(context.Background(), &i)
-	require.Nil(t, err)
-	require.NotEqual(t, uuid.Nil, i.ID)
+
+	fxt := tf.NewTestFixture(s.T(), s.DB,
+		tf.Spaces(2),
+		tf.Iterations(1, func(fxt *tf.TestFixture, idx int) error {
+			fxt.Iterations[idx].Name = name
+			return nil
+		}),
+	)
+
+	i := *fxt.Iterations[0]
+	space1 := *fxt.Spaces[0]
+	space2 := *fxt.Spaces[1]
 
 	// another iteration with same name within same sapce, should fail
 	i2 := iteration.Iteration{
 		Name:    name,
 		SpaceID: space1.ID,
 	}
-	err = repo.Create(context.Background(), &i)
+	err := repo.Create(context.Background(), &i)
 	require.NotNil(t, err)
 	require.Equal(t, uuid.Nil, i2.ID)
 	assert.Equal(t, reflect.TypeOf(errors.DataConflictError{}), reflect.TypeOf(err))
 
-	// create iteration with same name in anothe space, should pass
+	// create iteration with same name in another space, should pass
 	i3 := iteration.Iteration{
 		Name:    name,
 		SpaceID: space2.ID,
@@ -321,46 +277,27 @@ func (s *TestIterationRepository) TestCreateIterationSameNameFailsWithinSpace() 
 func (s *TestIterationRepository) TestLoadChildren() {
 	t := s.T()
 	resource.Require(t, resource.Database)
-	newSpace := space.Space{
-		Name:    testsupport.CreateRandomValidTestName("Space Test Load Children"),
-		OwnerId: s.testIdentity.ID,
-	}
-	repoSpace := space.NewRepository(s.DB)
-	space, err := repoSpace.Create(context.Background(), &newSpace)
-	assert.Nil(t, err)
-
 	repo := iteration.NewIterationRepository(s.DB)
-	level0IterationName := "Top level iteration"
-	i1 := iteration.Iteration{
-		Name:    level0IterationName,
-		SpaceID: space.ID,
-	}
-	e := repo.Create(context.Background(), &i1)
-	require.Nil(t, e)
 
-	// create child iteration
-	level1IterationName := "Level 1 iteration"
-	parentPath := append(i1.Path, i1.ID)
-	require.NotNil(t, parentPath)
-	i2 := iteration.Iteration{
-		Name:    level1IterationName,
-		SpaceID: space.ID,
-		Path:    parentPath,
-	}
-	e = repo.Create(context.Background(), &i2)
-	require.Nil(t, e)
-
-	// create child iteration for above child
-	level2IterationName := "Level 2 iteration"
-	parentPath = append(i2.Path, i2.ID)
-	require.NotNil(t, parentPath)
-	i3 := iteration.Iteration{
-		Name:    level2IterationName,
-		SpaceID: space.ID,
-		Path:    parentPath,
-	}
-	e = repo.Create(context.Background(), &i3)
-	require.Nil(t, e)
+	fxt := tf.NewTestFixture(s.T(), s.DB,
+		tf.Iterations(3, func(fxt *tf.TestFixture, idx int) error {
+			i := fxt.Iterations[idx]
+			switch idx {
+			case 0:
+				i.Name = "Top level iteration"
+			case 1:
+				i.Name = "Level 1 iteration"
+				i.Path = append(fxt.Iterations[idx-1].Path, fxt.Iterations[idx-1].ID)
+			case 2:
+				i.Name = "Level 2 iteration"
+				i.Path = append(fxt.Iterations[idx-1].Path, fxt.Iterations[idx-1].ID)
+			}
+			return nil
+		}),
+	)
+	i1 := *fxt.Iterations[0]
+	i2 := *fxt.Iterations[1]
+	i3 := *fxt.Iterations[2]
 
 	// fetch all children of top level iteraiton
 	childIterations1, err := repo.LoadChildren(context.Background(), i1.ID)
@@ -399,38 +336,15 @@ func (s *TestIterationRepository) TestLoadChildren() {
 func (s *TestIterationRepository) TestExistsIteration() {
 	t := s.T()
 	resource.Require(t, resource.Database)
-
+	repo := iteration.NewIterationRepository(s.DB)
 	t.Run("iteration exists", func(t *testing.T) {
-		// given
-		newSpace := space.Space{
-			Name:    testsupport.CreateRandomValidTestName("Space Exists"),
-			OwnerId: s.testIdentity.ID,
-		}
-		repoSpace := space.NewRepository(s.DB)
-		space, err := repoSpace.Create(context.Background(), &newSpace)
-		assert.Nil(t, err)
-
-		repo := iteration.NewIterationRepository(s.DB)
-		level0IterationName := "Top level iteration"
-		i1 := iteration.Iteration{
-			Name:    level0IterationName,
-			SpaceID: space.ID,
-		}
-		e := repo.Create(context.Background(), &i1)
-		require.Nil(t, e)
-
-		err = repo.CheckExists(context.Background(), i1.ID.String())
-		require.Nil(t, err)
+		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Iterations(1))
+		require.Nil(t, repo.CheckExists(context.Background(), fxt.Iterations[0].ID.String()))
 	})
-
 	t.Run("iteration doesn't exist", func(t *testing.T) {
-		repo := iteration.NewIterationRepository(s.DB)
-
 		err := repo.CheckExists(context.Background(), uuid.NewV4().String())
-
 		require.IsType(t, errors.NotFoundError{}, err)
 	})
-
 }
 
 func (s *TestIterationRepository) TestIsActive() {
@@ -443,41 +357,37 @@ func (s *TestIterationRepository) TestIsActive() {
 	space, err := repoSpace.Create(context.Background(), &newSpace)
 	require.Nil(t, err)
 	t.Run("user active is true", func(t *testing.T) {
-		level0IterationName := "Top level iteration"
-		i1 := iteration.Iteration{
-			Name:       level0IterationName,
-			SpaceID:    space.ID,
-			UserActive: true,
-		}
-		require.True(t, i1.IsActive())
+		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Iterations(1, tf.UserActive(true)))
+		require.True(t, fxt.Iterations[0].IsActive())
 	})
 	t.Run("start date is nil", func(t *testing.T) {
-		level0IterationName := "Top level iteration"
-		i1 := iteration.Iteration{
-			Name:    level0IterationName,
-			SpaceID: space.ID,
-		}
-		require.False(t, i1.IsActive())
+		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Iterations(1, tf.UserActive(false)))
+		require.False(t, fxt.Iterations[0].IsActive())
 	})
 	t.Run("end date is nil and current date is after start date", func(t *testing.T) {
-		start := time.Now()
-		level0IterationName := "Top level iteration"
-		i1 := iteration.Iteration{
-			Name:    level0IterationName,
-			SpaceID: space.ID,
-			StartAt: &start,
-		}
-		require.True(t, i1.IsActive())
+		fxt := tf.NewTestFixture(s.T(), s.DB,
+			tf.Iterations(1,
+				tf.UserActive(false),
+				func(fxt *tf.TestFixture, idx int) error {
+					start := time.Now().Add(-1 * time.Hour) // start date was one hour ago
+					fxt.Iterations[idx].StartAt = &start
+					return nil
+				},
+			),
+		)
+		require.True(t, fxt.Iterations[0].IsActive())
 	})
 	t.Run("end date is nil and current date is before start date", func(t *testing.T) {
-		now := time.Now()
-		start := now.Add(time.Hour)
-		level0IterationName := "Top level iteration"
-		i1 := iteration.Iteration{
-			Name:    level0IterationName,
-			SpaceID: space.ID,
-			StartAt: &start,
-		}
-		require.False(t, i1.IsActive())
+		fxt := tf.NewTestFixture(s.T(), s.DB,
+			tf.Iterations(1,
+				tf.UserActive(false),
+				func(fxt *tf.TestFixture, idx int) error {
+					start := time.Now().Add(1 * time.Hour) // start date is one hour ahead
+					fxt.Iterations[idx].StartAt = &start
+					return nil
+				},
+			),
+		)
+		require.False(t, fxt.Iterations[0].IsActive())
 	})
 }

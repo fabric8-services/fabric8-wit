@@ -11,10 +11,8 @@ import (
 
 	"time"
 
-	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/resource"
-	"github.com/goadesign/goa"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,19 +25,15 @@ const (
 	defaultValuesConfigFilePath = "" // when the code defaults are to be used, the path to config file is ""
 )
 
-var reqLong *goa.RequestData
-var reqShort *goa.RequestData
+var reqLong *http.Request
+var reqShort *http.Request
 var config *configuration.ConfigurationData
 
 func TestMain(m *testing.M) {
 	resetConfiguration(defaultConfigFilePath)
 
-	reqLong = &goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}
-	reqShort = &goa.RequestData{
-		Request: &http.Request{Host: "api.domain.org"},
-	}
+	reqLong = &http.Request{Host: "api.service.domain.org"}
+	reqShort = &http.Request{Host: "api.domain.org"}
 	os.Exit(m.Run())
 }
 
@@ -175,7 +169,7 @@ func TestGetKeycloakUserInfoEndpointOK(t *testing.T) {
 	checkGetServiceEndpointOK(t, config.GetKeycloakDevModeURL()+"/auth/realms/"+config.GetKeycloakRealm()+"/account", config.GetKeycloakAccountEndpoint)
 }
 
-func checkGetServiceEndpointOK(t *testing.T, expectedEndpoint string, getEndpoint func(req *goa.RequestData) (string, error)) {
+func checkGetServiceEndpointOK(t *testing.T, expectedEndpoint string, getEndpoint func(req *http.Request) (string, error)) {
 	url, err := getEndpoint(reqLong)
 	assert.Nil(t, err)
 	// In dev mode it's always the defualt value regardless of the request
@@ -200,11 +194,7 @@ func TestGetTokenPrivateKeyFromConfigFile(t *testing.T) {
 
 	resetConfiguration(defaultConfigFilePath)
 	// env variable NOT set, so we check with config.yaml's value
-
-	viperValue := config.GetTokenPrivateKey()
-	assert.NotNil(t, viperValue)
-
-	parsedKey, err := jwt.ParseRSAPrivateKeyFromPEM(viperValue)
+	parsedKey, err := config.GetTokenPrivateKey()
 	require.Nil(t, err)
 	assert.NotNil(t, parsedKey)
 }
@@ -224,10 +214,7 @@ func TestGetTokenPublicKeyFromConfigFile(t *testing.T) {
 
 	// env variable is now unset for sure, this will lead to the test looking up for
 	// value in config.yaml
-	viperValue := config.GetTokenPublicKey()
-	assert.NotNil(t, viperValue)
-
-	parsedKey, err := jwt.ParseRSAPublicKeyFromPEM(viperValue)
+	parsedKey, err := config.GetTokenPublicKey()
 	require.Nil(t, err)
 	assert.NotNil(t, parsedKey)
 }
@@ -261,7 +248,7 @@ func generateEnvKey(yamlKey string) string {
 	return "F8_" + strings.ToUpper(strings.Replace(yamlKey, ".", "_", -1))
 }
 
-func checkGetKeycloakEndpointSetByEnvVaribaleOK(t *testing.T, envName string, getEndpoint func(req *goa.RequestData) (string, error)) {
+func checkGetKeycloakEndpointSetByEnvVaribaleOK(t *testing.T, envName string, getEndpoint func(req *http.Request) (string, error)) {
 	envValue := uuid.NewV4().String()
 	env := os.Getenv(envName)
 	defer func() {

@@ -73,7 +73,7 @@ func (s *WorkItemSuite) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
 	s.ctx = migration.NewMigrationContext(context.Background())
 	s.DBTestSuite.PopulateDBTestSuite(s.ctx)
-	s.priKey, _ = wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	s.priKey, _ = wittoken.RSAPrivateKey()
 	s.repoWit = workitem.NewWorkItemRepository(s.DB)
 }
 
@@ -521,7 +521,7 @@ func (s *WorkItemSuite) TestListByFields() {
 }
 func getWorkItemTestDataFunc(config configuration.ConfigurationData) func(t *testing.T) []testSecureAPI {
 	return func(t *testing.T) []testSecureAPI {
-		privatekey, err := jwt.ParseRSAPrivateKeyFromPEM(config.GetTokenPrivateKey())
+		privatekey, err := config.GetTokenPrivateKey()
 		if err != nil {
 			t.Fatal("Could not parse Key ", err)
 		}
@@ -703,9 +703,7 @@ func getMinimumRequiredUpdatePayload(wi *app.WorkItem) *app.UpdateWorkitemPayloa
 }
 
 func minimumRequiredUpdatePayload() app.UpdateWorkitemPayload {
-	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}, app.SpaceHref(space.SystemSpace.String()))
+	spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(space.SystemSpace.String()))
 	return app.UpdateWorkitemPayload{
 		Data: &app.WorkItem{
 			Type:       APIStringTypeWorkItem,
@@ -739,10 +737,7 @@ func minimumRequiredCreateWithTypeAndSpace(witID uuid.UUID, spaceID uuid.UUID) a
 }
 
 func newRelationBaseType(spaceID, wit uuid.UUID) *app.RelationBaseType {
-	witRelatedURL := rest.AbsoluteURL(&goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}, app.WorkitemtypeHref(spaceID.String(), wit.String()))
-
+	witRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.WorkitemtypeHref(spaceID.String(), wit.String()))
 	return &app.RelationBaseType{
 		Data: &app.BaseTypeData{
 			Type: "workitemtypes",
@@ -756,10 +751,7 @@ func newRelationBaseType(spaceID, wit uuid.UUID) *app.RelationBaseType {
 }
 
 func minimumRequiredCreatePayload() app.CreateWorkitemsPayload {
-	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}, app.SpaceHref(space.SystemSpace.String()))
-
+	spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(space.SystemSpace.String()))
 	return app.CreateWorkitemsPayload{
 		Data: &app.WorkItem{
 			Type:       APIStringTypeWorkItem,
@@ -900,7 +892,7 @@ func (s *WorkItem2Suite) SetupTest() {
 	// create identity
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "WorkItem2Suite setup user", "test provider")
 	require.Nil(s.T(), err)
-	s.priKey, _ = wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	s.priKey, _ = wittoken.RSAPrivateKey()
 	s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", wittoken.NewManagerWithPrivateKey(s.priKey), *testIdentity)
 	s.workitemCtrl = NewNotifyingWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), &s.notification, s.Configuration)
 	s.workitemsCtrl = NewNotifyingWorkitemsController(s.svc, gormapplication.NewGormDB(s.DB), &s.notification, s.Configuration)
@@ -1904,9 +1896,7 @@ func (s *WorkItem2Suite) TestWI2CreateWithArea() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}, app.SpaceHref(space.SystemSpace.String()))
+	spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(space.SystemSpace.String()))
 	c.Data.Relationships = &app.WorkItemRelationships{
 		BaseType: newRelationBaseType(space.SystemSpace, workitem.SystemBug),
 		Space:    app.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
@@ -1992,9 +1982,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithRootAreaIfMissing() {
 				workitem.SystemState: workitem.SystemStateNew,
 			},
 			Relationships: &app.WorkItemRelationships{
-				Space: app.NewSpaceRelation(testSpace.ID, rest.AbsoluteURL(&goa.RequestData{
-					Request: &http.Request{Host: "api.service.domain.org"},
-				}, app.SpaceHref(testSpace.ID.String()))),
+				Space: app.NewSpaceRelation(testSpace.ID, rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(testSpace.ID.String()))),
 				BaseType: &app.RelationBaseType{
 					Data: &app.BaseTypeData{
 						Type: "workitemtypes",
@@ -2063,9 +2051,7 @@ func (s *WorkItem2Suite) TestWI2CreateWithIteration() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}, app.SpaceHref(space.SystemSpace.String()))
+	spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(space.SystemSpace.String()))
 	c.Data.Relationships = &app.WorkItemRelationships{
 		BaseType: newRelationBaseType(space.SystemSpace, workitem.SystemBug),
 		Space:    app.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
@@ -2132,9 +2118,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithRootIterationIfMissing() {
 				workitem.SystemState: workitem.SystemStateNew,
 			},
 			Relationships: &app.WorkItemRelationships{
-				Space: app.NewSpaceRelation(testSpace.ID, rest.AbsoluteURL(&goa.RequestData{
-					Request: &http.Request{Host: "api.service.domain.org"},
-				}, app.SpaceHref(testSpace.ID.String()))),
+				Space: app.NewSpaceRelation(testSpace.ID, rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(testSpace.ID.String()))),
 				BaseType: &app.RelationBaseType{
 					Data: &app.BaseTypeData{
 						Type: "workitemtypes",
@@ -2743,10 +2727,7 @@ func (s *WorkItem2Suite) TestNotificationSendOnUpdate() {
 }
 
 func minimumRequiredCreatePayloadWithSpace(spaceID uuid.UUID) app.CreateWorkitemsPayload {
-	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}, app.SpaceHref(spaceID.String()))
-
+	spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(spaceID.String()))
 	return app.CreateWorkitemsPayload{
 		Data: &app.WorkItem{
 			Type:       APIStringTypeWorkItem,
@@ -2759,9 +2740,7 @@ func minimumRequiredCreatePayloadWithSpace(spaceID uuid.UUID) app.CreateWorkitem
 }
 
 func minimumRequiredUpdatePayloadWithSpace(spaceID uuid.UUID) app.UpdateWorkitemPayload {
-	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}, app.SpaceHref(spaceID.String()))
+	spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(spaceID.String()))
 	return app.UpdateWorkitemPayload{
 		Data: &app.WorkItem{
 			Type:       APIStringTypeWorkItem,
@@ -2782,7 +2761,7 @@ func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, _ := wittoken.RSAPrivateKey()
 	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", wittoken.NewManagerWithPrivateKey(priv), *testIdentity, &TestSpaceAuthzService{*testIdentity})
 	workitemCtrl := NewWorkitemController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	workitemsCtrl := NewWorkitemsController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)

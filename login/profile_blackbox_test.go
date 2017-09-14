@@ -16,7 +16,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/test"
-	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 
@@ -58,9 +57,7 @@ func (s *ProfileBlackBoxTest) SetupSuite() {
 	s.profileService = keycloakUserProfileService
 
 	// Get the API endpoint - avoid repition in every test.
-	r := &goa.RequestData{
-		Request: &http.Request{Host: "api.example.org"},
-	}
+	r := &http.Request{Host: "api.example.org"}
 	profileAPIURL, err := s.configuration.GetKeycloakAccountEndpoint(r)
 	s.profileAPIURL = &profileAPIURL
 
@@ -98,9 +95,7 @@ func (s *ProfileBlackBoxTest) generateAccessToken() (*string, error) {
 	scopes = append(scopes, test.TestObserverIdentity)
 
 	client := &http.Client{Timeout: 10 * time.Second}
-	r := &goa.RequestData{
-		Request: &http.Request{Host: "api.example.org"},
-	}
+	r := &http.Request{Host: "api.example.org"}
 	tokenEndpoint, err := s.configuration.GetKeycloakEndpointToken(r)
 
 	res, err := client.PostForm(tokenEndpoint, url.Values{

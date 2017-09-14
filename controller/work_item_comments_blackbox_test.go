@@ -63,7 +63,7 @@ func (rest *TestCommentREST) TearDownTest() {
 }
 
 func (rest *TestCommentREST) SecuredController() (*goa.Service, *WorkItemCommentsController) {
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, _ := wittoken.RSAPrivateKey()
 	svc := testsupport.ServiceAsUser("WorkItemComment-Service", wittoken.NewManagerWithPrivateKey(priv), rest.testIdentity)
 	return svc, NewNotifyingWorkItemCommentsController(svc, rest.db, &rest.notification, rest.Configuration)
 }

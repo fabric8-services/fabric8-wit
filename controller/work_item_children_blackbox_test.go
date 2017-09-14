@@ -82,7 +82,7 @@ func (s *workItemChildSuite) SetupTest() {
 	require.Nil(s.T(), err)
 	s.testIdentity = *testIdentity
 
-	priv, err := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, err := wittoken.RSAPrivateKey()
 	require.Nil(s.T(), err)
 
 	svc := testsupport.ServiceAsUser("WorkItemLink-Service", wittoken.NewManagerWithPrivateKey(priv), s.testIdentity)
@@ -213,9 +213,7 @@ func createParentChildWorkItemLinkType(name string, categoryID, spaceID uuid.UUI
 		LinkCategoryID: categoryID,
 		SpaceID:        spaceID,
 	}
-	reqLong := &goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}
+	reqLong := &http.Request{Host: "api.service.domain.org"}
 	payload := ConvertWorkItemLinkTypeFromModel(reqLong, lt)
 	// The create payload is required during creation. Simply copy data over.
 	return &app.CreateWorkItemLinkTypePayload{
@@ -841,7 +839,7 @@ func (s *searchParentExistsSuite) SetupSuite() {
 func (s *searchParentExistsSuite) SetupTest() {
 	s.workItemChildSuite.SetupTest()
 
-	priv, err := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, err := wittoken.RSAPrivateKey()
 	require.Nil(s.T(), err)
 
 	s.svc = testsupport.ServiceAsUser("Search-Service", wittoken.NewManagerWithPrivateKey(priv), s.testIdentity)
