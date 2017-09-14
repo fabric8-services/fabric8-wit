@@ -18,7 +18,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
-	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -56,8 +55,7 @@ func (l *TestWorkItemLabelREST) TearDownTest() {
 }
 
 func (l *TestWorkItemLabelREST) SecuredController() (*goa.Service, app.WorkitemController) {
-	pub, _ := wittoken.RSAPublicKey()
-	svc := testsupport.ServiceAsUser("WorkItemLabel-Service", wittoken.NewManager(pub), l.testIdentity)
+	svc := testsupport.ServiceAsUser("WorkItemLabel-Service", l.testIdentity)
 	return svc, NewWorkitemController(svc, l.db, l.Configuration)
 }
 
