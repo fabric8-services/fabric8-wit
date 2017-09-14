@@ -101,7 +101,8 @@ func (c *UsersController) UpdateUserAsServiceAccount(ctx *app.UpdateUserAsServic
 	idString := ctx.ID
 	id, err := uuid.FromString(idString)
 	if err != nil {
-		jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(err))
+		// hide the implement details and return a NotFound code.
+		jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(errs.New("identity not found")))
 	}
 	return c.updateUserInDB(&id, ctx)
 }
