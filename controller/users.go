@@ -203,7 +203,7 @@ func (c *UsersController) updateUserInDB(id *uuid.UUID, ctx *app.UpdateUserAsSer
 			log.Error(ctx, map[string]interface{}{
 				"identity_id": id,
 			}, "id is unknown", *id)
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrUnauthorized(fmt.Sprintf("identity id %s is unknown", *id)))
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrBadRequest(fmt.Sprintf("identity id %s is unknown", *id)))
 			return ctx.Unauthorized(jerrors)
 		}
 
