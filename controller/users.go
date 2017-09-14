@@ -101,8 +101,7 @@ func (c *UsersController) UpdateUserAsServiceAccount(ctx *app.UpdateUserAsServic
 	idString := ctx.ID
 	id, err := uuid.FromString(idString)
 	if err != nil {
-		// hide the implement details and return a NotFound code.
-		jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(errs.New("identity not found")))
+		jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(errs.New("incorrect identity")))
 	}
 	return c.updateUserInDB(&id, ctx)
 }
@@ -203,8 +202,8 @@ func (c *UsersController) updateUserInDB(id *uuid.UUID, ctx *app.UpdateUserAsSer
 		if err != nil || identity == nil {
 			log.Error(ctx, map[string]interface{}{
 				"identity_id": id,
-			}, "auth token contains id %s of unknown Identity", *id)
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrUnauthorized(fmt.Sprintf("Auth token contains id %s of unknown Identity\n", *id)))
+			}, "id is unknown", *id)
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrUnauthorized(fmt.Sprintf("identity id %s is unknown", *id)))
 			return ctx.Unauthorized(jerrors)
 		}
 
@@ -218,80 +217,38 @@ func (c *UsersController) updateUserInDB(id *uuid.UUID, ctx *app.UpdateUserAsSer
 
 		updatedEmail := ctx.Payload.Data.Attributes.Email
 		if updatedEmail != nil && *updatedEmail != user.Email {
-			isValid := isEmailValid(*updatedEmail)
-			if !isValid {
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInvalidRequest(fmt.Sprintf("invalid value assigned to email for identity with id %s and user with id %s", identity.ID, identity.UserID.UUID)))
-				return ctx.BadRequest(jerrors)
-			}
-			isUnique, err := isEmailUnique(appl, *updatedEmail, *user)
-			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("error updating identitity with id %s and user with id %s", identity.ID, identity.UserID.UUID)))
-			}
-			if !isUnique {
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInvalidRequest(fmt.Sprintf("email address: %s is already in use", *updatedEmail)))
-				return ctx.Conflict(jerrors)
-			}
 			user.Email = *updatedEmail
 		}
 
 		updatedUserName := ctx.Payload.Data.Attributes.Username
-		if updatedUserName != nil && *updatedUserName != identity.Username {
-			isValid := isUsernameValid(*updatedUserName)
-			if !isValid {
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInvalidRequest(fmt.Sprintf("invalid value assigned to username for identity with id %s and user with id %s", identity.ID, identity.UserID.UUID)))
-				return ctx.BadRequest(jerrors)
-			}
-			if identity.RegistrationCompleted {
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInvalidRequest(fmt.Sprintf("username cannot be updated more than once for identity id %s ", *id)))
-				return ctx.Forbidden(jerrors)
-			}
-			isUnique, err := isUsernameUnique(appl, *updatedUserName, *identity)
-			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("error updating identitity with id %s and user with id %s", identity.ID, identity.UserID.UUID)))
-			}
-			if !isUnique {
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInvalidRequest(fmt.Sprintf("username : %s is already in use", *updatedUserName)))
-				return ctx.Conflict(jerrors)
-			}
+		if updatedUserName != nil {
 			identity.Username = *updatedUserName
-
 		}
 
 		updatedRegistratedCompleted := ctx.Payload.Data.Attributes.RegistrationCompleted
 		if updatedRegistratedCompleted != nil {
-			if !*updatedRegistratedCompleted {
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInvalidRequest(fmt.Sprintf("invalid value assigned to registration_completed for identity with id %s and user with id %s", identity.ID, identity.UserID.UUID)))
-				log.Error(ctx, map[string]interface{}{
-					"registration_completed": *updatedRegistratedCompleted,
-					"user_id":                identity.UserID.UUID,
-					"identity_id":            identity.ID,
-				}, "invalid parameter assignment")
-
-				return ctx.BadRequest(jerrors)
-			}
 			identity.RegistrationCompleted = true
 		}
 
 		updatedBio := ctx.Payload.Data.Attributes.Bio
-		if updatedBio != nil && *updatedBio != user.Bio {
+		if updatedBio != nil {
 			user.Bio = *updatedBio
 		}
 		updatedFullName := ctx.Payload.Data.Attributes.FullName
-		if updatedFullName != nil && *updatedFullName != user.FullName {
-			*updatedFullName = standardizeSpaces(*updatedFullName)
+		if updatedFullName != nil {
 			user.FullName = *updatedFullName
 		}
 		updatedImageURL := ctx.Payload.Data.Attributes.ImageURL
-		if updatedImageURL != nil && *updatedImageURL != user.ImageURL {
+		if updatedImageURL != nil {
 			user.ImageURL = *updatedImageURL
 		}
 		updateURL := ctx.Payload.Data.Attributes.URL
-		if updateURL != nil && *updateURL != user.URL {
+		if updateURL != nil {
 			user.URL = *updateURL
 		}
 
 		updatedCompany := ctx.Payload.Data.Attributes.Company
-		if updatedCompany != nil && *updatedCompany != user.Company {
+		if updatedCompany != nil {
 			user.Company = *updatedCompany
 		}
 

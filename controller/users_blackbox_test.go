@@ -103,9 +103,9 @@ func (s *TestUsersSuite) TestUpdateUserAsServiceAccountUnauthorized() {
 
 }
 
-func (s *TestUsersSuite) TestUpdateUserAsServiceAccountNotFound() {
+func (s *TestUsersSuite) TestUpdateUserAsServiceAccountBadRequest() {
 	// given
-	user := s.createRandomUser("TestUpdateUserAsServiceAccountNotFound")
+	user := s.createRandomUser("TestUpdateUserAsServiceAccountBadRequest")
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
 	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), nil, nil)
 	assertUser(s.T(), result.Data, user, identity)
@@ -127,8 +127,8 @@ func (s *TestUsersSuite) TestUpdateUserAsServiceAccountNotFound() {
 	}
 	updateUsersPayload := createUpdateUsersAsServiceAccountPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, &newCompany, nil, nil, contextInformation)
 
-	idAsString := "not-found"
-	test.UpdateUserAsServiceAccountUsersNotFound(s.T(), secureService.Context, secureService, secureController, idAsString, updateUsersPayload)
+	idAsString := "bad-uuid"
+	test.UpdateUserAsServiceAccountUsersBadRequest(s.T(), secureService.Context, secureService, secureController, idAsString, updateUsersPayload)
 
 }
 
