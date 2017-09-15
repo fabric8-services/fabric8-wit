@@ -46,7 +46,7 @@ type TestUsersSuite struct {
 func (s *TestUsersSuite) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
 	s.svc = goa.New("test")
-	s.db = gormapplication.NewGormDB(s.DB())
+	s.db = gormapplication.NewGormDB(s.DB)
 	testAttributeValue := "a"
 	dummyProfileResponse := createDummyUserProfileResponse(&testAttributeValue, &testAttributeValue, &testAttributeValue)
 	keycloakUserProfileService := newDummyUserProfileService(dummyProfileResponse)
