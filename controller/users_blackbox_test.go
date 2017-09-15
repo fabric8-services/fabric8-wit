@@ -19,7 +19,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	wittoken "github.com/fabric8-services/fabric8-wit/token"
 
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
@@ -66,9 +65,129 @@ func (s *TestUsersSuite) TearDownTest() {
 }
 
 func (s *TestUsersSuite) SecuredController(identity account.Identity) (*goa.Service, *UsersController) {
-	pub, _ := wittoken.RSAPublicKey()
-	svc := testsupport.ServiceAsUser("Users-Service", wittoken.NewManager(pub), identity)
+	svc := testsupport.ServiceAsUser("Users-Service", identity)
 	return svc, NewUsersController(svc, s.db, s.Configuration, s.profileService)
+}
+
+func (s *TestUsersSuite) SecuredServiceAccountController(identity account.Identity) (*goa.Service, *UsersController) {
+	svc := testsupport.ServiceAsServiceAccountUser("Users-ServiceAccount-Service", identity)
+	return svc, NewUsersController(svc, s.db, s.Configuration, s.profileService)
+}
+
+func (s *TestUsersSuite) TestUpdateUserAsServiceAccountUnauthorized() {
+	// given
+	user := s.createRandomUser("TestUpdateUserAsSvcAcUnauthorized")
+	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), nil, nil)
+	assertUser(s.T(), result.Data, user, identity)
+
+	// when
+	newEmail := "TestUpdateUserOK-" + uuid.NewV4().String() + "@email.com"
+	newFullName := "TestUpdateUserOK"
+	newImageURL := "http://new.image.io/imageurl"
+	newBio := "new bio"
+	newProfileURL := "http://new.profile.url/url"
+	newCompany := "updateCompany " + uuid.NewV4().String()
+	secureService, secureController := s.SecuredController(identity)
+
+	contextInformation := map[string]interface{}{
+		"last_visited": "yesterday",
+		"space":        "3d6dab8d-f204-42e8-ab29-cdb1c93130ad",
+		"rate":         100.00,
+		"count":        3,
+	}
+	updateUsersPayload := createUpdateUsersAsServiceAccountPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, &newCompany, nil, nil, contextInformation)
+
+	idAsString := (identity.ID).String()
+	test.UpdateUserAsServiceAccountUsersUnauthorized(s.T(), secureService.Context, secureService, secureController, idAsString, updateUsersPayload)
+
+}
+
+func (s *TestUsersSuite) TestUpdateUserAsServiceAccountBadRequest() {
+	// given
+	user := s.createRandomUser("TestUpdateUserAsServiceAccountBadRequest")
+	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), nil, nil)
+	assertUser(s.T(), result.Data, user, identity)
+
+	// when
+	newEmail := "TestUpdateUserOK-" + uuid.NewV4().String() + "@email.com"
+	newFullName := "TestUpdateUserOK"
+	newImageURL := "http://new.image.io/imageurl"
+	newBio := "new bio"
+	newProfileURL := "http://new.profile.url/url"
+	newCompany := "updateCompany " + uuid.NewV4().String()
+	secureService, secureController := s.SecuredServiceAccountController(identity)
+
+	contextInformation := map[string]interface{}{
+		"last_visited": "yesterday",
+		"space":        "3d6dab8d-f204-42e8-ab29-cdb1c93130ad",
+		"rate":         100.00,
+		"count":        3,
+	}
+	updateUsersPayload := createUpdateUsersAsServiceAccountPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, &newCompany, nil, nil, contextInformation)
+
+	idAsString := "bad-uuid"
+	test.UpdateUserAsServiceAccountUsersBadRequest(s.T(), secureService.Context, secureService, secureController, idAsString, updateUsersPayload)
+
+}
+
+func (s *TestUsersSuite) TestUpdateUserAsServiceAccountOK() {
+	// given
+	user := s.createRandomUser("TestUpdateUserAsServiceAccountOK")
+	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), nil, nil)
+	assertUser(s.T(), result.Data, user, identity)
+
+	// when
+
+	user.Email = "TestUpdateUserOK-" + uuid.NewV4().String() + "@email.com"
+	user.FullName = "TestUpdateUserOK"
+	user.ImageURL = "http://new.image.io/imageurl"
+	user.Bio = "new bio"
+	user.URL = "http://new.profile.url/url"
+	user.Company = "updateCompany " + uuid.NewV4().String()
+	secureService, secureController := s.SecuredServiceAccountController(identity)
+
+	contextInformation := map[string]interface{}{
+		"last_visited": "yesterday",
+		"space":        "3d6dab8d-f204-42e8-ab29-cdb1c93130ad",
+		"rate":         100.00,
+		"count":        3,
+	}
+	updateUsersPayload := createUpdateUsersAsServiceAccountPayload(&user.Email, &user.FullName, &user.Bio, &user.ImageURL, &user.URL, &user.Company, nil, nil, contextInformation)
+	_, result = test.UpdateUserAsServiceAccountUsersOK(s.T(), secureService.Context, secureService, secureController, (identity.ID).String(), updateUsersPayload)
+	assertUser(s.T(), result.Data, user, identity)
+
+}
+
+func (s *TestUsersSuite) TestUpdateUserAsServiceAccountNotFound() {
+	// given
+	user := s.createRandomUser("TestUpdateUserAsServiceAccountNotFound")
+	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), nil, nil)
+	assertUser(s.T(), result.Data, user, identity)
+
+	// when
+	newEmail := "TestUpdateUserOK-" + uuid.NewV4().String() + "@email.com"
+	newFullName := "TestUpdateUserOK"
+	newImageURL := "http://new.image.io/imageurl"
+	newBio := "new bio"
+	newProfileURL := "http://new.profile.url/url"
+	newCompany := "updateCompany " + uuid.NewV4().String()
+	secureService, secureController := s.SecuredServiceAccountController(identity)
+
+	contextInformation := map[string]interface{}{
+		"last_visited": "yesterday",
+		"space":        "3d6dab8d-f204-42e8-ab29-cdb1c93130ad",
+		"rate":         100.00,
+		"count":        3,
+	}
+	updateUsersPayload := createUpdateUsersAsServiceAccountPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, &newCompany, nil, nil, contextInformation)
+
+	idAsString := uuid.NewV4().String() // will never be found.
+	test.UpdateUserAsServiceAccountUsersNotFound(s.T(), secureService.Context, secureService, secureController, idAsString, updateUsersPayload)
+
 }
 
 func (s *TestUsersSuite) TestUpdateUserOK() {
@@ -915,6 +1034,25 @@ func assertMultiUsersResponseHeaders(t *testing.T, res http.ResponseWriter, last
 
 func createUpdateUsersPayload(email, fullName, bio, imageURL, profileURL, company, username *string, registrationCompleted *bool, contextInformation map[string]interface{}) *app.UpdateUsersPayload {
 	return &app.UpdateUsersPayload{
+		Data: &app.UpdateUserData{
+			Type: "identities",
+			Attributes: &app.UpdateIdentityDataAttributes{
+				Email:                 email,
+				FullName:              fullName,
+				Bio:                   bio,
+				ImageURL:              imageURL,
+				URL:                   profileURL,
+				Company:               company,
+				ContextInformation:    contextInformation,
+				Username:              username,
+				RegistrationCompleted: registrationCompleted,
+			},
+		},
+	}
+}
+
+func createUpdateUsersAsServiceAccountPayload(email, fullName, bio, imageURL, profileURL, company, username *string, registrationCompleted *bool, contextInformation map[string]interface{}) *app.UpdateUserAsServiceAccountUsersPayload {
+	return &app.UpdateUserAsServiceAccountUsersPayload{
 		Data: &app.UpdateUserData{
 			Type: "identities",
 			Attributes: &app.UpdateIdentityDataAttributes{

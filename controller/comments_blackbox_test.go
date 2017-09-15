@@ -25,7 +25,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
@@ -85,8 +84,7 @@ func (s *CommentsSuite) unsecuredController() (*goa.Service, *CommentsController
 }
 
 func (s *CommentsSuite) securedControllers(identity account.Identity) (*goa.Service, *WorkitemController, *WorkitemsController, *WorkItemCommentsController, *CommentsController) {
-	priv, _ := wittoken.RSAPrivateKey()
-	svc := testsupport.ServiceAsUser("Comment-Service", wittoken.NewManagerWithPrivateKey(priv), identity)
+	svc := testsupport.ServiceAsUser("Comment-Service", identity)
 	workitemCtrl := NewWorkitemController(svc, s.db, s.Configuration)
 	workitemsCtrl := NewWorkitemsController(svc, s.db, s.Configuration)
 	workitemCommentsCtrl := NewWorkItemCommentsController(svc, s.db, s.Configuration)
@@ -382,15 +380,14 @@ func (s *CommentsSuite) TestNonCollaboraterCanNotDelete() {
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 
-	priv, _ := wittoken.RSAPrivateKey()
-	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", wittoken.NewManagerWithPrivateKey(priv), *testIdentity, &TestSpaceAuthzService{*testIdentity})
+	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *testIdentity, &TestSpaceAuthzService{*testIdentity})
 	workitemsCtrl := NewWorkitemsController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 
 	_, wi := test.CreateWorkitemsCreated(s.T(), svc.Context, svc, workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	c := s.createWorkItemComment(*testIdentity, *wi.Data.ID, "body", &plaintextMarkup)
 
 	testIdentity2, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestNonCollaboraterCanNotDelete-"), "TestWI")
-	svcNotAuthorized := testsupport.ServiceAsSpaceUser("Collaborators-Service", wittoken.NewManagerWithPrivateKey(priv), *testIdentity2, &TestSpaceAuthzService{*testIdentity})
+	svcNotAuthorized := testsupport.ServiceAsSpaceUser("Collaborators-Service", *testIdentity2, &TestSpaceAuthzService{*testIdentity})
 	commentsCtrlNotAuthorized := NewCommentsController(svcNotAuthorized, gormapplication.NewGormDB(s.DB), s.Configuration)
 
 	test.DeleteCommentsForbidden(s.T(), svcNotAuthorized.Context, svcNotAuthorized, commentsCtrlNotAuthorized, *c.Data.ID)
@@ -406,8 +403,7 @@ func (s *CommentsSuite) TestCollaboratorCanDelete() {
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 
 	svc, _, workitemsCtrl, _, _ := s.securedControllers(*testIdentity)
-	// priv, _ := wittoken.RSAPrivateKey()
-	// svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", wittoken.NewManagerWithPrivateKey(priv), testIdentity, &TestSpaceAuthzService{testIdentity})
+	// svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", testIdentity, &TestSpaceAuthzService{testIdentity})
 	// ctrl := NewWorkitemsController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 
 	_, wi := test.CreateWorkitemsCreated(s.T(), svc.Context, svc, workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
@@ -437,8 +433,7 @@ func (s *CommentsSuite) TestOtherCollaboratorCanDelete() {
 
 	// Add 2 identities as Collaborators
 	space := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, *spaceOwner)
-	priv, _ := wittoken.RSAPrivateKey()
-	svcWithSpaceOwner := testsupport.ServiceAsSpaceUser("Comments-Service", wittoken.NewManagerWithPrivateKey(priv), *spaceOwner, &TestSpaceAuthzService{*spaceOwner})
+	svcWithSpaceOwner := testsupport.ServiceAsSpaceUser("Comments-Service", *spaceOwner, &TestSpaceAuthzService{*spaceOwner})
 	collaboratorRESTInstance := &TestCollaboratorsREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")}
 	collaboratorRESTInstance.policy = &auth.KeycloakPolicy{
 		Name:             "TestCollaborators-" + uuid.NewV4().String(),
@@ -462,7 +457,7 @@ func (s *CommentsSuite) TestOtherCollaboratorCanDelete() {
 	c := s.createWorkItemComment(*collaborator1, *wi.Data.ID, "Hello woody", &plaintextMarkup)
 
 	// Collaborator2 deletes the comment
-	svcWithCollaborator2 := testsupport.ServiceAsSpaceUser("Comments-Service", wittoken.NewManagerWithPrivateKey(priv), *collaborator2, &TestSpaceAuthzService{*collaborator2})
+	svcWithCollaborator2 := testsupport.ServiceAsSpaceUser("Comments-Service", *collaborator2, &TestSpaceAuthzService{*collaborator2})
 	commentCtrl := NewCommentsController(svcWithCollaborator2, gormapplication.NewGormDB(s.DB), s.Configuration)
 	test.DeleteCommentsOK(s.T(), svcWithCollaborator2.Context, svcWithCollaborator2, commentCtrl, *c.Data.ID)
 }
@@ -480,15 +475,14 @@ func (s *CommentsSuite) TestNonCollaboraterCanNotUpdate() {
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI 2"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 
-	priv, _ := wittoken.RSAPrivateKey()
-	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", wittoken.NewManagerWithPrivateKey(priv), *testIdentity, &TestSpaceAuthzService{*testIdentity})
+	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *testIdentity, &TestSpaceAuthzService{*testIdentity})
 	workitemsCtrl := NewWorkitemsController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 
 	_, wi := test.CreateWorkitemsCreated(s.T(), svc.Context, svc, workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	c := s.createWorkItemComment(*testIdentity, *wi.Data.ID, "body", &plaintextMarkup)
 
 	testIdentity2, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestNonCollaboraterCanNotUpdate-"), "TestWI")
-	svcNotAuthorized := testsupport.ServiceAsSpaceUser("Collaborators-Service", wittoken.NewManagerWithPrivateKey(priv), *testIdentity2, &TestSpaceAuthzService{*testIdentity})
+	svcNotAuthorized := testsupport.ServiceAsSpaceUser("Collaborators-Service", *testIdentity2, &TestSpaceAuthzService{*testIdentity})
 	commentCtrlNotAuthorized := NewCommentsController(svcNotAuthorized, gormapplication.NewGormDB(s.DB), s.Configuration)
 
 	updateCommentPayload := newUpdateCommentsPayload("updated body", &markdownMarkup)
@@ -504,8 +498,7 @@ func (s *CommentsSuite) TestCollaboratorCanUpdate() {
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 
-	// priv, _ := wittoken.RSAPrivateKey()
-	// svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", wittoken.NewManagerWithPrivateKey(priv), testIdentity, &TestSpaceAuthzService{testIdentity})
+	// svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", testIdentity, &TestSpaceAuthzService{testIdentity})
 	// ctrl := NewWorkitemController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	svc, _, workitemsCtrl, _, _ := s.securedControllers(*testIdentity)
 
@@ -544,8 +537,7 @@ func (s *CommentsSuite) TestOtherCollaboratorCanUpdate() {
 
 	// Add 2 Collaborators in space
 	space := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, *spaceOwner)
-	priv, _ := wittoken.RSAPrivateKey()
-	svcWithSpaceOwner := testsupport.ServiceAsSpaceUser("Comments-Service", wittoken.NewManagerWithPrivateKey(priv), *spaceOwner, &TestSpaceAuthzService{*spaceOwner})
+	svcWithSpaceOwner := testsupport.ServiceAsSpaceUser("Comments-Service", *spaceOwner, &TestSpaceAuthzService{*spaceOwner})
 
 	collaboratorRESTInstance := &TestCollaboratorsREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")}
 	collaboratorRESTInstance.policy = &auth.KeycloakPolicy{
@@ -572,7 +564,7 @@ func (s *CommentsSuite) TestOtherCollaboratorCanUpdate() {
 	// update comment by collaborator 1
 	updatedBody := "Another update on same comment"
 	updateCommentPayload := newUpdateCommentsPayload(updatedBody, &markdownMarkup)
-	svcWithCollaborator1 := testsupport.ServiceAsSpaceUser("Comments-Service", wittoken.NewManagerWithPrivateKey(priv), *collaborator1, &TestSpaceAuthzService{*collaborator1})
+	svcWithCollaborator1 := testsupport.ServiceAsSpaceUser("Comments-Service", *collaborator1, &TestSpaceAuthzService{*collaborator1})
 	commentCtrl := NewCommentsController(svcWithCollaborator1, gormapplication.NewGormDB(s.DB), s.Configuration)
 	_, result := test.UpdateCommentsOK(s.T(), svcWithCollaborator1.Context, svcWithCollaborator1, commentCtrl, *c.Data.ID, updateCommentPayload)
 	assertComment(s.T(), result.Data, *collaborator1, updatedBody, markdownMarkup)
@@ -580,7 +572,7 @@ func (s *CommentsSuite) TestOtherCollaboratorCanUpdate() {
 	// update comment by collaborator2
 	updatedBody = "Modified body of comment"
 	updateCommentPayload = newUpdateCommentsPayload(updatedBody, &markdownMarkup)
-	svcWithCollaborator2 := testsupport.ServiceAsSpaceUser("Comments-Service", wittoken.NewManagerWithPrivateKey(priv), *collaborator2, &TestSpaceAuthzService{*collaborator2})
+	svcWithCollaborator2 := testsupport.ServiceAsSpaceUser("Comments-Service", *collaborator2, &TestSpaceAuthzService{*collaborator2})
 	commentCtrl = NewCommentsController(svcWithCollaborator2, gormapplication.NewGormDB(s.DB), s.Configuration)
 	_, result = test.UpdateCommentsOK(s.T(), svcWithCollaborator2.Context, svcWithCollaborator2, commentCtrl, *c.Data.ID, updateCommentPayload)
 	assertComment(s.T(), result.Data, *collaborator1, updatedBody, markdownMarkup)

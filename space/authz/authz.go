@@ -86,9 +86,7 @@ func (s *KeycloakAuthzService) Authorize(ctx context.Context, entitlementEndpoin
 		}, "missing token manager")
 		return false, errors.NewInternalError(ctx, errs.New("missing token manager"))
 	}
-	tokenWithClaims, err := jwt.ParseWithClaims(jwttoken.Raw, &auth.TokenPayload{}, func(t *jwt.Token) (interface{}, error) {
-		return tm.(token.Manager).PublicKey(), nil
-	})
+	tokenWithClaims, err := tm.(token.Manager).ParseToken(ctx, jwttoken.Raw)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"space_id": spaceID,
@@ -96,9 +94,8 @@ func (s *KeycloakAuthzService) Authorize(ctx context.Context, entitlementEndpoin
 		}, "unable to parse the rpt token")
 		return false, errors.NewInternalError(ctx, errs.Wrap(err, "unable to parse the rpt token"))
 	}
-	claims := tokenWithClaims.Claims.(*auth.TokenPayload)
 
-	if claims.Authorization == nil {
+	if tokenWithClaims.Authorization == nil {
 		// No authorization in the token. This is not a RPT token. This is an access token.
 		// We need to obtain an PRT token.
 		log.Warn(ctx, map[string]interface{}{
@@ -109,7 +106,7 @@ func (s *KeycloakAuthzService) Authorize(ctx context.Context, entitlementEndpoin
 
 	// Check if the token was issued before the space resouces changed the last time.
 	// If so, we need to re-fetch the rpt token for that space/resource and check permissions.
-	outdated, err := s.isTokenOutdated(ctx, *claims, entitlementEndpoint, spaceID)
+	outdated, err := s.isTokenOutdated(ctx, *tokenWithClaims, entitlementEndpoint, spaceID)
 	if err != nil {
 		return false, err
 	}
@@ -117,7 +114,7 @@ func (s *KeycloakAuthzService) Authorize(ctx context.Context, entitlementEndpoin
 		return s.checkEntitlementForSpace(ctx, *jwttoken, entitlementEndpoint, spaceID)
 	}
 
-	permissions := claims.Authorization.Permissions
+	permissions := tokenWithClaims.Authorization.Permissions
 	if permissions == nil {
 		// if the RPT doesn't contain the resource info, it could be probably
 		// because the entitlement was never fetched in the first place. Hence we consider
@@ -155,7 +152,7 @@ func (s *KeycloakAuthzService) checkEntitlementForSpace(ctx context.Context, tok
 	return ent != nil, nil
 }
 
-func (s *KeycloakAuthzService) isTokenOutdated(ctx context.Context, token auth.TokenPayload, entitlementEndpoint string, spaceID string) (bool, error) {
+func (s *KeycloakAuthzService) isTokenOutdated(ctx context.Context, token token.TokenClaims, entitlementEndpoint string, spaceID string) (bool, error) {
 	spaceUUID, err := uuid.FromString(spaceID)
 	if err != nil {
 		return false, errors.NewInternalError(ctx, err)

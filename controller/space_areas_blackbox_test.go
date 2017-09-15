@@ -17,7 +17,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/resource"
 
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -53,20 +52,17 @@ func (rest *TestSpaceAreaREST) TearDownTest() {
 }
 
 func (rest *TestSpaceAreaREST) SecuredController() (*goa.Service, *SpaceAreasController) {
-	pub, _ := wittoken.RSAPublicKey()
-	svc := testsupport.ServiceAsUser("Space-Area-Service", wittoken.NewManager(pub), testsupport.TestIdentity)
+	svc := testsupport.ServiceAsUser("Space-Area-Service", testsupport.TestIdentity)
 	return svc, NewSpaceAreasController(svc, rest.db, rest.Configuration)
 }
 
 func (rest *TestSpaceAreaREST) SecuredAreasController() (*goa.Service, *AreaController) {
-	pub, _ := wittoken.RSAPublicKey()
-	svc := testsupport.ServiceAsUser("Area-Service", wittoken.NewManager(pub), testsupport.TestIdentity)
+	svc := testsupport.ServiceAsUser("Area-Service", testsupport.TestIdentity)
 	return svc, NewAreaController(svc, rest.db, rest.Configuration)
 }
 
 func (rest *TestSpaceAreaREST) SecuredAreasControllerWithIdentity(idn *account.Identity) (*goa.Service, *AreaController) {
-	priv, _ := wittoken.RSAPrivateKey()
-	svc := testsupport.ServiceAsUser("Area-Service-With-Identity", wittoken.NewManagerWithPrivateKey(priv), *idn)
+	svc := testsupport.ServiceAsUser("Area-Service-With-Identity", *idn)
 	return svc, NewAreaController(svc, rest.db, rest.Configuration)
 }
 

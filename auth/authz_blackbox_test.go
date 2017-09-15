@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"testing"
 
-	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/fabric8-services/fabric8-wit/auth"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/controller"
@@ -21,15 +20,12 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	"crypto/rsa"
-
 	_ "github.com/lib/pq"
 )
 
 var (
-	config    *configuration.ConfigurationData
-	scopes    = []string{"read:test", "admin:test"}
-	publicKey *rsa.PublicKey
+	config *configuration.ConfigurationData
+	scopes = []string{"read:test", "admin:test"}
 )
 
 func init() {
@@ -37,10 +33,6 @@ func init() {
 	config, err = configuration.GetConfigurationData()
 	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
-	}
-	publicKey, err = config.GetTokenPublicKey()
-	if err != nil {
-		panic(fmt.Errorf("Failed to parse the public key: %s", err.Error()))
 	}
 }
 
@@ -223,63 +215,6 @@ func (s *TestAuthSuite) TestGetEntitlement() {
 	ok, err = auth.VerifyResourceUser(ctx, *testUserToken.Token.AccessToken, resourceName, entitlementEndpoint)
 	require.False(s.T(), ok)
 	require.Nil(s.T(), err)
-
-	ent, err = auth.GetEntitlement(ctx, entitlementEndpoint, nil, *testUserToken.Token.AccessToken)
-	require.Nil(s.T(), err)
-	require.NotNil(s.T(), ent)
-	require.NotEqual(s.T(), "", ent)
-
-	if int64(len(*ent)) > config.GetHeaderMaxLength() {
-		// The RPT token is too long. Remove existing resources and re-obtain the entitlement
-		require.Nil(s.T(), CleanupResources(s.T(), ctx, *ent, authzEndpoint, pat, resourceID))
-
-		ent, err = auth.GetEntitlement(ctx, entitlementEndpoint, nil, *testUserToken.Token.AccessToken)
-		require.Nil(s.T(), err)
-		require.NotNil(s.T(), ent)
-		require.NotEqual(s.T(), "", ent)
-	}
-
-	ent, err = auth.GetEntitlement(ctx, entitlementEndpoint, nil, *ent)
-	require.Nil(s.T(), err)
-	require.NotNil(s.T(), ent)
-	require.NotEqual(s.T(), "", ent)
-}
-
-func CleanupResources(t *testing.T, ctx context.Context, rpt string, authzEndpoint string, pat string, excludeResourceID string) error {
-	tokenWithClaims, err := jwt.ParseWithClaims(rpt, &auth.TokenPayload{}, func(t *jwt.Token) (interface{}, error) {
-		return publicKey, nil
-	})
-	if err != nil {
-		return err
-	}
-	claims := tokenWithClaims.Claims.(*auth.TokenPayload)
-	permissions := claims.Authorization.Permissions
-	if permissions == nil {
-		return nil
-	}
-	clientId, clientsEndpoint := getClientIDAndEndpoint(t)
-	for _, permission := range permissions {
-		if excludeResourceID != *permission.ResourceSetID {
-			policyEndpoint := fmt.Sprintf("%s/%s/authz/resource-server/policy?first=0&max=100&resource=%s", clientsEndpoint, clientId, *permission.ResourceSetID)
-			req, err := http.NewRequest("GET", policyEndpoint, nil)
-			require.Nil(t, err)
-			req.Header.Add("Authorization", "Bearer "+pat)
-			res, err := http.DefaultClient.Do(req)
-			require.Nil(t, err)
-			require.Equal(t, 200, res.StatusCode)
-
-			jsonString := rest.ReadBody(res.Body)
-			var policyResult []policyRequestResultPayload
-			err = json.Unmarshal([]byte(jsonString), &policyResult)
-			require.Nil(t, err)
-			for _, policy := range policyResult {
-				deletePolicy(t, ctx, clientsEndpoint, clientId, policy.ID, pat)
-			}
-
-			deleteResource(t, ctx, *permission.ResourceSetID, authzEndpoint, pat)
-		}
-	}
-	return nil
 }
 
 func (s *TestAuthSuite) TestGetClientIDOK() {

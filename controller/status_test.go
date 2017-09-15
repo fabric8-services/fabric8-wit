@@ -11,7 +11,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/suite"
 )
@@ -35,9 +34,7 @@ func (rest *TestStatusREST) TearDownTest() {
 }
 
 func (rest *TestStatusREST) SecuredController() (*goa.Service, *StatusController) {
-	priv, _ := wittoken.RSAPrivateKey()
-
-	svc := testsupport.ServiceAsUser("Status-Service", wittoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
+	svc := testsupport.ServiceAsUser("Status-Service", testsupport.TestIdentity)
 	return svc, NewStatusController(svc, rest.DB)
 }
 
