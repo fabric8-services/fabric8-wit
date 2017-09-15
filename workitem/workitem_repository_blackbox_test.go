@@ -357,24 +357,15 @@ func (s *workItemRepoBlackBoxTest) TestLookupIDByNamedSpaceAndNumberStaleSpace()
 	wiID, spaceID, err := s.repo.LookupIDByNamedSpaceAndNumber(s.ctx, in.Username, sp.Name, wi.Number)
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), wiID)
-	fmt.Println("Fetched 1 +++++++++++++++++++++++++++++++++++++++++ ", *wiID)
 	assert.Equal(s.T(), wi.ID, *wiID)
 	require.NotNil(s.T(), spaceID)
 	assert.Equal(s.T(), wi.SpaceID, *spaceID)
-	fmt.Println("----------------------------------------------------------------")
-	fmt.Println("Space name", sp.Name)
-	fmt.Println("User name", in.Username)
-	fmt.Println("WI ID", wi.ID)
-	fmt.Println("WI number", wi.Number)
-	fmt.Println("----------------------------------------------------------------")
 
 	// delete above space
 	spaceRepo := space.NewRepository(s.DB)
 	err = spaceRepo.Delete(s.ctx, sp.ID)
 	require.Nil(s.T(), err)
-	// err = s.repo.Delete(s.ctx, wi.ID, in.ID)
-	// require.Nil(s.T(), err)
-	// now create a space with same name
+
 	testFxt2 := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1, func(testf *tf.TestFixture, idx int) error {
 		testf.Spaces[0].Name = sp.Name
 		testf.Spaces[0].OwnerId = in.ID
@@ -388,17 +379,9 @@ func (s *workItemRepoBlackBoxTest) TestLookupIDByNamedSpaceAndNumberStaleSpace()
 	}))
 	sp2 := *testFxt2.Spaces[0]
 	wi2 := *testFxt2.WorkItems[0]
-	// in2 := *testFxt.Identities[0]
-	fmt.Println("----------------------------------------------------------------")
-	fmt.Println("Space name", sp2.Name)
-	// fmt.Println("User name", in2.Username)
-	fmt.Println("WI ID", wi2.ID)
-	fmt.Println("WI number", wi2.Number)
-	fmt.Println("----------------------------------------------------------------")
 	wiID2, spaceID2, err := s.repo.LookupIDByNamedSpaceAndNumber(s.ctx, in.Username, sp2.Name, wi2.Number)
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), wiID2)
-	fmt.Println("Fetched 2 +++++++++++++++++++++++++++++++++++++++++ ", *wiID2)
 	assert.Equal(s.T(), wi2.ID, *wiID2)
 	require.NotNil(s.T(), spaceID2)
 	assert.Equal(s.T(), wi2.SpaceID, *spaceID2)
