@@ -94,6 +94,32 @@ func (rest *TestLabelREST) TestCreateLabelWithWhiteSpace() {
 	assert.False(rest.T(), created.Data.Attributes.CreatedAt.After(time.Now()), "Label was not created, CreatedAt after Now()")
 }
 
+func (rest *TestLabelREST) TestUpdateLabel() {
+	testFxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Labels(1))
+	i, err := tf.NewFixture(rest.DB, tf.Identities(1))
+	require.Nil(rest.T(), err)
+	svc := testsupport.ServiceAsUser("Label-Service", *i.Identities[0])
+
+	ctrl := NewLabelController(svc, rest.db, rest.Configuration)
+
+	newName := "Label New 1001"
+	payload := app.UpdateLabelPayload{
+		Data: &app.Label{
+			Attributes: &app.LabelAttributes{
+				Name: &newName,
+			},
+			ID:   &testFxt.Labels[0].ID,
+			Type: label.APIStringTypeLabels,
+		},
+	}
+	_, created := test.UpdateLabelOK(rest.T(), svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Labels[0].ID, &payload)
+	assert.Equal(rest.T(), newName, *created.Data.Attributes.Name)
+	assert.Equal(rest.T(), testFxt.Labels[0].TextColor, *created.Data.Attributes.TextColor)
+	assert.Equal(rest.T(), testFxt.Labels[0].BackgroundColor, *created.Data.Attributes.BackgroundColor)
+	assert.Equal(rest.T(), testFxt.Labels[0].BorderColor, *created.Data.Attributes.BorderColor)
+	assert.False(rest.T(), created.Data.Attributes.UpdatedAt.After(time.Now()), "Label was not updated, UpdatedAt after Now()")
+}
+
 func (rest *TestLabelREST) TestListLabel() {
 	c, err := tf.NewFixture(rest.DB, tf.Spaces(1))
 	require.Nil(rest.T(), err)
