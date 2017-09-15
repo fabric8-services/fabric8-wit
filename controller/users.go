@@ -15,6 +15,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
@@ -77,6 +78,40 @@ func (c *UsersController) Show(ctx *app.ShowUsersContext) error {
 			return ctx.OK(ConvertToAppUser(ctx.Request, user, identity))
 		})
 	})
+}
+
+// UpdateUserAsServiceAccount updates a user when requested using a service account token
+func (c *UsersController) UpdateUserAsServiceAccount(ctx *app.UpdateUserAsServiceAccountUsersContext) error {
+
+	isSvcAccount, err := isServiceAccount(ctx)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "failed to determine if account is a service account")
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err))
+
+	}
+	if !isSvcAccount {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "")
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(errs.New("a non-service account tried to updated a user.")))
+	}
+
+	idString := ctx.ID
+	id, err := uuid.FromString(idString)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(errs.New("incorrect identity")))
+	}
+	return c.updateUserInDB(&id, ctx)
+}
+
+func isServiceAccount(ctx context.Context) (bool, error) {
+	tokenManager, err := token.ReadManagerFromContext(ctx)
+	if err != nil {
+		return false, err
+	}
+	return (*tokenManager).IsServiceAccount(ctx), nil
 }
 
 func mergeKeycloakUserProfileInfo(keycloakUserProfile *login.KeycloakUserProfile, existingProfile *login.KeycloakUserProfileResponse) *login.KeycloakUserProfile {
@@ -155,6 +190,95 @@ func (c *UsersController) getKeycloakProfileInformation(ctx context.Context, tok
 		}, "failed to fetch keycloak account information")
 	}
 	return response, err
+}
+
+func (c *UsersController) updateUserInDB(id *uuid.UUID, ctx *app.UpdateUserAsServiceAccountUsersContext) error {
+
+	// We'll refactor the old Users update API to be redirected to Auth service in the near future.
+	// Hence, not spending time in refactoring that to consume this function.
+
+	returnResponse := application.Transactional(c.db, func(appl application.Application) error {
+		identity, err := appl.Identities().Load(ctx, *id)
+		if err != nil || identity == nil {
+			log.Error(ctx, map[string]interface{}{
+				"identity_id": id,
+				"err":         err,
+			}, "id %s is unknown or error running query", *id)
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+
+		var user *account.User
+		if identity.UserID.Valid {
+			user, err = appl.Users().Load(ctx.Context, identity.UserID.UUID)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Can't load user with id %s", identity.UserID.UUID)))
+			}
+		}
+
+		updatedEmail := ctx.Payload.Data.Attributes.Email
+		if updatedEmail != nil && *updatedEmail != user.Email {
+			user.Email = *updatedEmail
+		}
+
+		updatedUserName := ctx.Payload.Data.Attributes.Username
+		if updatedUserName != nil {
+			identity.Username = *updatedUserName
+		}
+
+		updatedRegistratedCompleted := ctx.Payload.Data.Attributes.RegistrationCompleted
+		if updatedRegistratedCompleted != nil {
+			identity.RegistrationCompleted = true
+		}
+
+		updatedBio := ctx.Payload.Data.Attributes.Bio
+		if updatedBio != nil {
+			user.Bio = *updatedBio
+		}
+		updatedFullName := ctx.Payload.Data.Attributes.FullName
+		if updatedFullName != nil {
+			user.FullName = *updatedFullName
+		}
+		updatedImageURL := ctx.Payload.Data.Attributes.ImageURL
+		if updatedImageURL != nil {
+			user.ImageURL = *updatedImageURL
+		}
+		updateURL := ctx.Payload.Data.Attributes.URL
+		if updateURL != nil {
+			user.URL = *updateURL
+		}
+
+		updatedCompany := ctx.Payload.Data.Attributes.Company
+		if updatedCompany != nil {
+			user.Company = *updatedCompany
+		}
+
+		updatedContextInformation := ctx.Payload.Data.Attributes.ContextInformation
+		if updatedContextInformation != nil {
+			// if user.ContextInformation , we get to PATCH the ContextInformation field,
+			// instead of over-writing it altogether. Note: The PATCH-ing is only for the
+			// 1st level of JSON.
+			if user.ContextInformation == nil {
+				user.ContextInformation = account.ContextInformation{}
+			}
+			for fieldName, fieldValue := range updatedContextInformation {
+				// Save it as is, for short-term.
+				user.ContextInformation[fieldName] = fieldValue
+			}
+		}
+
+		err = appl.Users().Save(ctx, user)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+
+		err = appl.Identities().Save(ctx, identity)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		return ctx.OK(ConvertToAppUser(ctx.Request, user, identity))
+	})
+
+	return returnResponse
 }
 
 // Update updates the authorized user based on the provided Token
