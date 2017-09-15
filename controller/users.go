@@ -103,12 +103,12 @@ func (c *UsersController) CreateUserAsServiceAccount(ctx *app.CreateUserAsServic
 
 func (c *UsersController) createUserInDB(ctx *app.CreateUserAsServiceAccountUsersContext) error {
 
-	userID, err := uuid.FromString(*ctx.Payload.Data.Attributes.UserID)
+	userID, err := uuid.FromString(ctx.Payload.Data.Attributes.UserID)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(errs.New("invalid user id")))
 	}
 
-	//id, err := uuid.FromString(ctx.ID)
+	id, err := uuid.FromString(ctx.ID)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(errs.New("incorrect identity id")))
 	}
@@ -118,23 +118,58 @@ func (c *UsersController) createUserInDB(ctx *app.CreateUserAsServiceAccountUser
 		var user *account.User
 		var identity *account.Identity
 
+		// Mandatory attributes
+
 		user = &account.User{
-			ID:       userID,
-			Email:    *ctx.Payload.Data.Attributes.Email,
-			Bio:      *ctx.Payload.Data.Attributes.Bio,
-			FullName: *ctx.Payload.Data.Attributes.FullName,
-			URL:      *ctx.Payload.Data.Attributes.URL,
-			ImageURL: *ctx.Payload.Data.Attributes.ImageURL,
-			Company:  *ctx.Payload.Data.Attributes.Company,
+			ID:    userID,
+			Email: ctx.Payload.Data.Attributes.Email,
+		}
+		identity = &account.Identity{
+			ID:                    id,
+			Username:              ctx.Payload.Data.Attributes.Username,
+			RegistrationCompleted: *ctx.Payload.Data.Attributes.RegistrationCompleted,
+		}
+		// associate foreign key
+		identity.UserID = account.NullUUID{UUID: user.ID, Valid: true}
+
+		// Optional Attributes
+
+		updatedRegistratedCompleted := ctx.Payload.Data.Attributes.RegistrationCompleted
+		if updatedRegistratedCompleted != nil {
+			identity.RegistrationCompleted = true
 		}
 
-		contextInformation := ctx.Payload.Data.Attributes.ContextInformation
-		if contextInformation != nil {
+		updatedBio := ctx.Payload.Data.Attributes.Bio
+		if updatedBio != nil {
+			user.Bio = *updatedBio
+		}
+
+		updatedFullName := ctx.Payload.Data.Attributes.FullName
+		if updatedFullName != nil {
+			user.FullName = *updatedFullName
+		}
+
+		updatedImageURL := ctx.Payload.Data.Attributes.ImageURL
+		if updatedImageURL != nil {
+			user.ImageURL = *updatedImageURL
+		}
+
+		updateURL := ctx.Payload.Data.Attributes.URL
+		if updateURL != nil {
+			user.URL = *updateURL
+		}
+
+		updatedCompany := ctx.Payload.Data.Attributes.Company
+		if updatedCompany != nil {
+			user.Company = *updatedCompany
+		}
+
+		updatedContextInformation := ctx.Payload.Data.Attributes.ContextInformation
+		if updatedContextInformation != nil {
 			if user.ContextInformation == nil {
 				user.ContextInformation = account.ContextInformation{}
 			}
-			for fieldName, fieldValue := range contextInformation {
-				// Save it as is, for short-term.
+			for fieldName, fieldValue := range updatedContextInformation {
 				user.ContextInformation[fieldName] = fieldValue
 			}
 		}
@@ -143,21 +178,12 @@ func (c *UsersController) createUserInDB(ctx *app.CreateUserAsServiceAccountUser
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		/*
-			identity = &account.Identity{
-				ID:                    id,
-				Username:              *ctx.Payload.Data.Attributes.Username,
-				RegistrationCompleted: *ctx.Payload.Data.Attributes.RegistrationCompleted,
-				ProviderType:          *ctx.Payload.Data.Attributes.ProviderType,
-			}
 
-			// associate foreign key
-			identity.UserID = account.NullUUID{UUID: user.ID, Valid: true}
+		err = appl.Identities().Create(ctx, identity)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
 
-			err = appl.Identities().Create(ctx, identity)
-			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, err)
-			} */
 		return ctx.OK(ConvertToAppUser(ctx.Request, user, identity))
 	})
 

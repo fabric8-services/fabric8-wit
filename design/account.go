@@ -170,7 +170,7 @@ var _ = a.Resource("users", func() {
 	a.Action("createUserAsServiceAccount", func() {
 		a.Security("jwt")
 		a.Routing(
-			a.PATCH("/:id"),
+			a.POST("/:id"),
 		)
 		a.Description("create a user using an auth service's service account")
 		a.Payload(createUser)
@@ -247,6 +247,7 @@ var createUserDataAttributes = a.Type("CreateIdentityDataAttributes", func() {
 	a.Attribute("contextInformation", a.HashOf(d.String, d.Any), "User context information of any type as a json", func() {
 		a.Example(map[string]interface{}{"last_visited_url": "https://a.openshift.io", "space": "3d6dab8d-f204-42e8-ab29-cdb1c93130ad"})
 	})
+	a.Required("userID", "username", "email", "providerType")
 })
 
 // updateidentityDataAttributes represents an identified user object attributes used for updating a user.

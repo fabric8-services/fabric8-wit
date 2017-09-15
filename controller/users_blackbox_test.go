@@ -46,7 +46,7 @@ type TestUsersSuite struct {
 func (s *TestUsersSuite) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
 	s.svc = goa.New("test")
-	s.db = gormapplication.NewGormDB(s.DB)
+	s.db = gormapplication.NewGormDB(s.DB.Debug())
 	testAttributeValue := "a"
 	dummyProfileResponse := createDummyUserProfileResponse(&testAttributeValue, &testAttributeValue, &testAttributeValue)
 	keycloakUserProfileService := newDummyUserProfileService(dummyProfileResponse)
@@ -190,17 +190,19 @@ func (s *TestUsersSuite) TestUpdateUserAsServiceAccountNotFound() {
 
 }
 
-func (s *TestUsersSuite) TestCreateUserAsServiceAccount() {
+func (s *TestUsersSuite) TestCreateUserAsServiceAccountOK() {
+
 	// given
 
-	newEmail := "TestUpdateUserOK-" + uuid.NewV4().String() + "@email.com"
-	newFullName := "TestUpdateUserOK"
+	newEmail := "T" + uuid.NewV4().String() + "@email.com"
+	newFullName := "TesTCreateUserOK"
 	newImageURL := "http://new.image.io/imageurl"
 	newBio := "new bio"
 	newProfileURL := "http://new.profile.url/url"
-	newCompany := "updateCompany " + uuid.NewV4().String()
-	username := "TestCreateUser" + uuid.NewV4().String()
+	newCompany := "u" + uuid.NewV4().String()
+	username := "T" + uuid.NewV4().String()
 	secureService, secureController := s.SecuredServiceAccountController(testsupport.TestIdentity)
+	registrationCompleted := false
 
 	contextInformation := map[string]interface{}{
 		"last_visited": "yesterday",
@@ -212,9 +214,64 @@ func (s *TestUsersSuite) TestCreateUserAsServiceAccount() {
 	userID := uuid.NewV4()
 
 	// when
-	createUserPayload := createCreateUsersAsServiceAccountPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, &newCompany, &username, nil, contextInformation, userID)
+	createUserPayload := createCreateUsersAsServiceAccountPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, &newCompany, &username, &registrationCompleted, contextInformation, userID.String())
 	test.CreateUserAsServiceAccountUsersOK(s.T(), secureService.Context, secureService, secureController, identityId.String(), createUserPayload)
+}
 
+func (s *TestUsersSuite) TestCreateUserAsServiceAccountUnAuthorized() {
+
+	// given
+
+	newEmail := "T" + uuid.NewV4().String() + "@email.com"
+	newFullName := "TesTCreateUserOK"
+	newImageURL := "http://new.image.io/imageurl"
+	newBio := "new bio"
+	newProfileURL := "http://new.profile.url/url"
+	newCompany := "u" + uuid.NewV4().String()
+	username := "T" + uuid.NewV4().String()
+	secureService, secureController := s.SecuredController(testsupport.TestIdentity)
+	registrationCompleted := false
+	identityId := uuid.NewV4()
+	userID := uuid.NewV4()
+
+	contextInformation := map[string]interface{}{
+		"last_visited": "yesterday",
+		"space":        "3d6dab8d-f204-42e8-ab29-cdb1c93130ad",
+		"rate":         100.00,
+		"count":        3,
+	}
+
+	// then
+	createUserPayload := createCreateUsersAsServiceAccountPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, &newCompany, &username, &registrationCompleted, contextInformation, userID.String())
+	test.CreateUserAsServiceAccountUsersUnauthorized(s.T(), secureService.Context, secureService, secureController, identityId.String(), createUserPayload)
+}
+
+func (s *TestUsersSuite) TestCreateUserAsServiceAccountBadRequest() {
+
+	// given
+
+	newEmail := "T" + uuid.NewV4().String() + "@email.com"
+	newFullName := "TesTCreateUserOK"
+	newImageURL := "http://new.image.io/imageurl"
+	newBio := "new bio"
+	newProfileURL := "http://new.profile.url/url"
+	newCompany := "u" + uuid.NewV4().String()
+	username := "T" + uuid.NewV4().String()
+	secureService, secureController := s.SecuredServiceAccountController(testsupport.TestIdentity)
+	registrationCompleted := false
+	userID := uuid.NewV4()
+
+	contextInformation := map[string]interface{}{
+		"last_visited": "yesterday",
+		"space":        "3d6dab8d-f204-42e8-ab29-cdb1c93130ad",
+		"rate":         100.00,
+		"count":        3,
+	}
+
+	createUserPayload := createCreateUsersAsServiceAccountPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, &newCompany, &username, &registrationCompleted, contextInformation, userID.String())
+
+	// then
+	test.CreateUserAsServiceAccountUsersBadRequest(s.T(), secureService.Context, secureService, secureController, "invalid-uuid", createUserPayload)
 }
 
 func (s *TestUsersSuite) TestUpdateUserOK() {
@@ -1097,22 +1154,23 @@ func createUpdateUsersAsServiceAccountPayload(email, fullName, bio, imageURL, pr
 	}
 }
 
-func createCreateUsersAsServiceAccountPayload(email, fullName, bio, imageURL, profileURL, company, username *string, registrationCompleted *bool, contextInformation map[string]interface{}, userID uuid.UUID) *app.CreateUserAsServiceAccountUsersPayload {
-	userIDAsString := userID.String()
+func createCreateUsersAsServiceAccountPayload(email, fullName, bio, imageURL, profileURL, company, username *string, registrationCompleted *bool, contextInformation map[string]interface{}, userID string) *app.CreateUserAsServiceAccountUsersPayload {
+
 	return &app.CreateUserAsServiceAccountUsersPayload{
 		Data: &app.CreateUserData{
 			Type: "identities",
 			Attributes: &app.CreateIdentityDataAttributes{
-				UserID:                &userIDAsString,
-				Email:                 email,
+				UserID:                userID,
+				Email:                 *email,
 				FullName:              fullName,
 				Bio:                   bio,
 				ImageURL:              imageURL,
 				URL:                   profileURL,
 				Company:               company,
-				ContextInformation:    contextInformation,
-				Username:              username,
+				ContextInformation:    nil,
+				Username:              *username,
 				RegistrationCompleted: registrationCompleted,
+				ProviderType:          "KC",
 			},
 		},
 	}
