@@ -137,7 +137,7 @@ func makeIterations(fxt *TestFixture) error {
 		fxt.Iterations[i] = &iteration.Iteration{
 			Name:        testsupport.CreateRandomValidTestName("iteration "),
 			Description: &desc,
-			UserActive:  &f,
+			UserActive:  f,
 		}
 		if !fxt.isolatedCreation {
 			fxt.Iterations[i].SpaceID = fxt.Spaces[0].ID

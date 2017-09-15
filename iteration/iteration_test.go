@@ -12,7 +12,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/resource"
-	"github.com/fabric8-services/fabric8-wit/space"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 
 	uuid "github.com/satori/go.uuid"
@@ -54,7 +53,7 @@ func (s *TestIterationRepository) TestCreateIteration() {
 		SpaceID:    fxt.Spaces[0].ID,
 		StartAt:    &start,
 		EndAt:      &end,
-		UserActive: &userActive,
+		UserActive: false,
 	}
 
 	repo.Create(context.Background(), &i)
@@ -88,7 +87,7 @@ func (s *TestIterationRepository) TestCreateChildIteration() {
 		SpaceID:    fxt.Spaces[0].ID,
 		StartAt:    &start,
 		EndAt:      &end,
-		UserActive: &userActive,
+		UserActive: false,
 	}
 	repo.Create(context.Background(), &i)
 
@@ -100,7 +99,7 @@ func (s *TestIterationRepository) TestCreateChildIteration() {
 		StartAt:    &start,
 		EndAt:      &end,
 		Path:       parentPath,
-		UserActive: &userActive,
+		UserActive: false,
 	}
 	repo.Create(context.Background(), &i2)
 
@@ -131,7 +130,7 @@ func (s *TestIterationRepository) TestRootIteration() {
 		SpaceID:    fxt.Spaces[0].ID,
 		StartAt:    &start,
 		EndAt:      &end,
-		UserActive: &userActive,
+		UserActive: false,
 	}
 	repo.Create(context.Background(), &i)
 
@@ -143,7 +142,7 @@ func (s *TestIterationRepository) TestRootIteration() {
 		StartAt:    &start,
 		EndAt:      &end,
 		Path:       parentPath,
-		UserActive: &userActive,
+		UserActive: false,
 	}
 	repo.Create(context.Background(), &i2)
 
@@ -174,7 +173,7 @@ func (s *TestIterationRepository) TestListIterationBySpace() {
 			SpaceID:    fxt.Spaces[0].ID,
 			StartAt:    &start,
 			EndAt:      &end,
-			UserActive: &userActive,
+			UserActive: false,
 		}
 		e := repo.Create(context.Background(), &i)
 		require.Nil(t, e)
@@ -183,7 +182,7 @@ func (s *TestIterationRepository) TestListIterationBySpace() {
 	e := repo.Create(context.Background(), &iteration.Iteration{
 		Name:       "Other Spring #2",
 		SpaceID:    fxt.Spaces[1].ID,
-		UserActive: &userActive,
+		UserActive: false,
 	})
 	require.Nil(t, e)
 
@@ -349,13 +348,6 @@ func (s *TestIterationRepository) TestExistsIteration() {
 
 func (s *TestIterationRepository) TestIsActive() {
 	t := s.T()
-	newSpace := space.Space{
-		Name:    testsupport.CreateRandomValidTestName("Space Exists"),
-		OwnerId: s.testIdentity.ID,
-	}
-	repoSpace := space.NewRepository(s.DB)
-	space, err := repoSpace.Create(context.Background(), &newSpace)
-	require.Nil(t, err)
 	t.Run("user active is true", func(t *testing.T) {
 		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Iterations(1, tf.UserActive(true)))
 		require.True(t, fxt.Iterations[0].IsActive())
