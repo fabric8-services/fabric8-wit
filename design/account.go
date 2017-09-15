@@ -128,6 +128,24 @@ var _ = a.Resource("users", func() {
 
 	})
 
+	a.Action("updateUserAsServiceAccount", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.PATCH("/:id"),
+		)
+		a.Description("update the authenticated user")
+		a.Payload(updateUser)
+		a.Response(d.OK, func() {
+			a.Media(user)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.Forbidden, JSONAPIErrors)
+		a.Response(d.Conflict, JSONAPIErrors)
+	})
+
 	a.Action("list", func() {
 		a.Routing(
 			a.GET(""),

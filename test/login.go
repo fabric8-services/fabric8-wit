@@ -48,6 +48,20 @@ func WithAuthz(ctx context.Context, key interface{}, ident account.Identity, aut
 	return goajwt.WithJWT(ctx, token)
 }
 
+// WithServiceAccountAuthz fills the context with token
+// Token is filled using input Identity object and resource authorization information
+func WithServiceAccountAuthz(ctx context.Context, key interface{}, ident account.Identity) context.Context {
+	token := fillClaimsWithIdentity(ident) // irrelavant for service account , but keeping it anyway.
+	token.Claims.(jwt.MapClaims)["service_accountname"] = "auth"
+	token.Header["kid"] = "test-key"
+	t, err := token.SignedString(key)
+	if err != nil {
+		panic(err.Error())
+	}
+	token.Raw = t
+	return goajwt.WithJWT(ctx, token)
+}
+
 func fillClaimsWithIdentity(ident account.Identity) *jwt.Token {
 	token := jwt.New(jwt.SigningMethodRS256)
 	token.Claims.(jwt.MapClaims)["sub"] = ident.ID.String()
@@ -73,6 +87,14 @@ func service(serviceName string, key interface{}, u account.Identity, authz *tok
 func ServiceAsUserWithAuthz(serviceName string, key interface{}, u account.Identity, authorizationPayload token.AuthorizationPayload) *goa.Service {
 	svc := service(serviceName, key, u, &authorizationPayload)
 	svc.Context = tokencontext.ContextWithSpaceAuthzService(svc.Context, &authz.KeycloakAuthzServiceManager{Service: &dummySpaceAuthzService{}})
+	return svc
+}
+
+// ServiceAsServiceAccountUser generates the minimal service needed to satisfy the condition of being a service account.
+func ServiceAsServiceAccountUser(serviceName string, u account.Identity) *goa.Service {
+	svc := goa.New(serviceName)
+	svc.Context = WithServiceAccountAuthz(svc.Context, testtoken.PrivateKey(), u)
+	svc.Context = tokencontext.ContextWithTokenManager(svc.Context, testtoken.TokenManager)
 	return svc
 }
 
