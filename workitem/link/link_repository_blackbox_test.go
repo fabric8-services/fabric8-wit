@@ -16,6 +16,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -351,4 +352,26 @@ func (s *linkRepoBlackBoxTest) TestExistsLink() {
 		require.IsType(t, errors.NotFoundError{}, err)
 	})
 
+}
+
+func (s *linkRepoBlackBoxTest) TestGetParentID() {
+	// create 1 links between 2 work items having TopologyNetwork with ForwardName = "parent of"
+	fixtures := tf.NewTestFixture(s.T(), s.DB, tf.WorkItemLinks(1), tf.WorkItemLinkTypes(1, tf.TopologyNetwork(), func(fxt *tf.TestFixture, idx int) error {
+		fxt.WorkItemLinkTypes[idx].ForwardName = "parent of"
+		return nil
+	}))
+	parentID, err := s.workitemLinkRepo.GetParentID(s.ctx, fixtures.WorkItems[1].ID)
+	require.Nil(s.T(), err)
+	assert.Equal(s.T(), fixtures.WorkItems[0].ID, *parentID)
+}
+
+func (s *linkRepoBlackBoxTest) TestGetParentIDNotExist() {
+	// create 1 links between 2 work items having TopologyNetwork with ForwardName = "parent of"
+	fixtures := tf.NewTestFixture(s.T(), s.DB, tf.WorkItemLinks(1), tf.WorkItemLinkTypes(1, tf.TopologyNetwork(), func(fxt *tf.TestFixture, idx int) error {
+		fxt.WorkItemLinkTypes[idx].ForwardName = "parent of"
+		return nil
+	}))
+	parentID, err := s.workitemLinkRepo.GetParentID(s.ctx, fixtures.WorkItems[0].ID)
+	require.NotNil(s.T(), err)
+	assert.Nil(s.T(), parentID)
 }
