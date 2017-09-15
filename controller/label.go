@@ -148,7 +148,7 @@ func ConvertLabels(appl application.Application, request *http.Request, labels [
 	return ls
 }
 
-// ConvertLabelsSimple converts a array of Label IDs into a Generic Reletionship List
+// ConvertLabelsSimple converts an array of Label IDs into a Generic Reletionship List
 func ConvertLabelsSimple(request *http.Request, labelIDs []interface{}) []*app.GenericData {
 	ops := make([]*app.GenericData, 0, len(labelIDs))
 	for _, labelID := range labelIDs {
