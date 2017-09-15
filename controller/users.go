@@ -125,9 +125,8 @@ func (c *UsersController) createUserInDB(ctx *app.CreateUserAsServiceAccountUser
 			Email: ctx.Payload.Data.Attributes.Email,
 		}
 		identity = &account.Identity{
-			ID:                    id,
-			Username:              ctx.Payload.Data.Attributes.Username,
-			RegistrationCompleted: *ctx.Payload.Data.Attributes.RegistrationCompleted,
+			ID:       id,
+			Username: ctx.Payload.Data.Attributes.Username,
 		}
 		// associate foreign key
 		identity.UserID = account.NullUUID{UUID: user.ID, Valid: true}

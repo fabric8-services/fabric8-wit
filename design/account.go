@@ -154,7 +154,7 @@ var _ = a.Resource("users", func() {
 		a.Routing(
 			a.PATCH("/:id"),
 		)
-		a.Description("update a user using an auth service's service account")
+		a.Description("update a user using a service account")
 		a.Payload(updateUser)
 		a.Response(d.OK, func() {
 			a.Media(user)
@@ -172,7 +172,7 @@ var _ = a.Resource("users", func() {
 		a.Routing(
 			a.POST("/:id"),
 		)
-		a.Description("create a user using an auth service's service account")
+		a.Description("create a user using a service account")
 		a.Payload(createUser)
 		a.Response(d.OK, func() {
 			a.Media(user)
