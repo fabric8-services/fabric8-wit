@@ -671,7 +671,7 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 		assert.Len(s.T(), result.Data, 8)
 	})
 
-	s.T().Run("space=ID AND label=REST", func(t *testing.T) {
+	s.T().Run("space=ID AND label=REST : expect 0 itmes", func(t *testing.T) {
 		filter := fmt.Sprintf(`
 				{"$AND": [
 					{"space":"%s"},
