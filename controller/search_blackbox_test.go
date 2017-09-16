@@ -27,6 +27,8 @@ import (
 	"github.com/fabric8-services/fabric8-wit/search"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
+
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	uuid "github.com/satori/go.uuid"
 
@@ -575,6 +577,19 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 
 	wirepo := workitem.NewWorkItemRepository(s.DB)
 
+	labelNames := []string{"IMPORTANT", "backend", "UI", "REST"}
+	testFixtures, err := tf.NewFixture(s.DB, tf.Labels(4, func(f *tf.TestFixture, idx int) error {
+		f.Labels[idx].Name = labelNames[idx]
+		return nil
+	}))
+	require.Nil(s.T(), err)
+	require.Len(s.T(), testFixtures.Labels, 4) // not required but being explicit
+	// following assigment makes the test more readable
+	lblImportant := testFixtures.Labels[0]
+	lblBackend := testFixtures.Labels[1]
+	lblUI := testFixtures.Labels[2]
+	lblREST := testFixtures.Labels[3]
+
 	// create 3 WI with state "resolved" and iteration 1
 	for i := 0; i < 3; i++ {
 		_, err := wirepo.Create(
@@ -584,6 +599,7 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 				workitem.SystemState:     workitem.SystemStateResolved,
 				workitem.SystemIteration: sprint1.ID.String(),
 				workitem.SystemAssignees: []string{alice.ID.String()},
+				workitem.SystemLabels:    []string{lblImportant.ID.String(), lblBackend.ID.String()},
 			}, s.testIdentity.ID)
 		require.Nil(s.T(), err)
 	}
@@ -597,9 +613,86 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 				workitem.SystemState:     workitem.SystemStateClosed,
 				workitem.SystemIteration: sprint2.ID.String(),
 				workitem.SystemAssignees: []string{bob.ID.String()},
+				workitem.SystemLabels:    []string{lblUI.ID.String()},
 			}, s.testIdentity.ID)
 		require.Nil(s.T(), err)
 	}
+
+	s.T().Run("label IN IMPORTAND, UI", func(t *testing.T) {
+		// following test does not include any "space" deliberately, hence if there
+		// is any work item in the test-DB having state=resolved following count
+		// will fail
+		filter := fmt.Sprintf(`
+				{"label": {"$IN": ["%s", "%s"]}}`,
+			lblImportant.ID, lblUI.ID)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.NotNil(s.T(), result)
+		fmt.Println(result.Data)
+		require.NotEmpty(s.T(), result.Data)
+		assert.Len(s.T(), result.Data, 8) // 3 important + 5 UI
+	})
+
+	s.T().Run("space=ID AND (label=Backend OR iteration=sprint2)", func(t *testing.T) {
+		filter := fmt.Sprintf(`
+				{"$AND": [
+					{"space":"%s"},
+					{"$OR": [
+						{"label": "%s"},
+						{"iteration": "%s"}
+					]}
+				]}`,
+			spaceIDStr, lblBackend.ID, sprint2.ID)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(s.T(), result.Data)
+		assert.Len(s.T(), result.Data, 3+5) // 3 items with Backend label & 5 items with iteration2
+	})
+
+	s.T().Run("space=ID AND label=UI", func(t *testing.T) {
+		filter := fmt.Sprintf(`
+				{"$AND": [
+					{"space":"%s"},
+					{"label": "%s"}
+				]}`,
+			spaceIDStr, lblUI.ID)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(s.T(), result.Data)
+		assert.Len(s.T(), result.Data, 5) // 5 items having UI label
+	})
+
+	s.T().Run("label=UI OR label=Backend", func(t *testing.T) {
+		filter := fmt.Sprintf(`
+				{"$OR": [
+					{"label":"%s"},
+					{"label": "%s"}
+				]}`,
+			lblUI.ID, lblBackend.ID)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(s.T(), result.Data)
+		assert.Len(s.T(), result.Data, 8)
+	})
+
+	s.T().Run("space=ID AND label=REST", func(t *testing.T) {
+		filter := fmt.Sprintf(`
+				{"$AND": [
+					{"space":"%s"},
+					{"label": "%s"}
+				]}`,
+			spaceIDStr, lblREST.ID)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		assert.Len(s.T(), result.Data, 0) // no items having REST label
+	})
+
+	s.T().Run("space=ID AND label != Backend", func(t *testing.T) {
+		filter := fmt.Sprintf(`
+				{"$AND": [
+					{"space":"%s"},
+					{"label": "%s", "negate": true}
+				]}`,
+			spaceIDStr, lblBackend.ID)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(s.T(), result.Data)
+		assert.Len(s.T(), result.Data, 5) // 5 items are not having Bakcned label
+	})
 
 	s.T().Run("state=resolved AND iteration=sprint1", func(t *testing.T) {
 		filter := fmt.Sprintf(`
