@@ -11,6 +11,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	uuid "github.com/satori/go.uuid"
 )
 
 type BenchCodebaseRepository struct {
@@ -40,6 +41,16 @@ func (s *BenchCodebaseRepository) SetupBenchmark() {
 
 func (s *BenchCodebaseRepository) TearDownBenchmark() {
 	s.clean()
+}
+
+func newCodebase(spaceID uuid.UUID, stackID, lastUsedWorkspace, repotype, url string) *codebase.Codebase {
+	return &codebase.Codebase{
+		SpaceID:           spaceID,
+		Type:              repotype,
+		URL:               url,
+		StackID:           &stackID,
+		LastUsedWorkspace: lastUsedWorkspace,
+	}
 }
 
 func (s *BenchCodebaseRepository) createCodebase(c *codebase.Codebase) {
