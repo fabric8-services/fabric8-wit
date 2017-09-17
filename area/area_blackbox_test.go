@@ -220,8 +220,8 @@ func (s *TestAreaRepository) TestListChildrenOfParents() {
 	s.T().Run("check that we have two child areas", func(t *testing.T) {
 		// given
 		childIDs := map[uuid.UUID]struct{}{
-			fxt.Areas[1].ID: struct{}{},
-			fxt.Areas[2].ID: struct{}{},
+			fxt.Areas[1].ID: {},
+			fxt.Areas[2].ID: {},
 		}
 		// when
 		childAreaList, err := repo.ListChildren(context.Background(), fxt.Areas[0])
