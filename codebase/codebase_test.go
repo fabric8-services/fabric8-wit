@@ -220,6 +220,7 @@ func (test *TestCodebaseRepository) TestLoadCodebase() {
 	loadedCodebase, err := repo.Load(context.Background(), fxt.Codebases[0].ID)
 	require.Nil(test.T(), err)
 	assert.Equal(test.T(), fxt.Codebases[0].ID, loadedCodebase.ID)
-	assert.Equal(test.T(), fxt.Codebases[0].StackID, *loadedCodebase.StackID)
+	require.NotNil(test.T(), fxt.Codebases[0].StackID)
+	assert.Equal(test.T(), *fxt.Codebases[0].StackID, *loadedCodebase.StackID)
 	assert.Equal(test.T(), fxt.Codebases[0].LastUsedWorkspace, loadedCodebase.LastUsedWorkspace)
 }
