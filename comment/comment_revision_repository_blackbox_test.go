@@ -6,14 +6,11 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/comment"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
-	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	uuid "github.com/satori/go.uuid"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -28,25 +25,15 @@ type revisionRepositoryBlackBoxTest struct {
 	gormtestsupport.DBTestSuite
 	repository         comment.Repository
 	revisionRepository comment.RevisionRepository
-	clean              func()
 	testIdentity1      account.Identity
 	testIdentity2      account.Identity
 	testIdentity3      account.Identity
 }
 
-// SetupSuite overrides the DBTestSuite's function but calls it before doing anything else
-// The SetupSuite method will run before the tests in the suite are run.
-// It sets up a database connection for all the tests in this suite without polluting global space.
-func (s *revisionRepositoryBlackBoxTest) SetupSuite() {
-	s.DBTestSuite.SetupSuite()
-	ctx := migration.NewMigrationContext(context.Background())
-	s.DBTestSuite.PopulateDBTestSuite(ctx)
-}
-
 func (s *revisionRepositoryBlackBoxTest) SetupTest() {
+	s.DBTestSuite.SetupTest()
 	s.repository = comment.NewRepository(s.DB)
 	s.revisionRepository = comment.NewRevisionRepository(s.DB)
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 	testIdentity1, err := testsupport.CreateTestIdentity(s.DB, "jdoe1", "test")
 	require.Nil(s.T(), err)
 	s.testIdentity1 = *testIdentity1
@@ -56,10 +43,6 @@ func (s *revisionRepositoryBlackBoxTest) SetupTest() {
 	testIdentity3, err := testsupport.CreateTestIdentity(s.DB, "jdoe3", "test")
 	require.Nil(s.T(), err)
 	s.testIdentity3 = *testIdentity3
-}
-
-func (s *revisionRepositoryBlackBoxTest) TearDownTest() {
-	s.clean()
 }
 
 func (s *revisionRepositoryBlackBoxTest) TestStoreCommentRevisions() {
