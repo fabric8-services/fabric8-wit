@@ -49,11 +49,10 @@ func (s *TestIterationRepository) TestCreateIteration() {
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1))
 
 	i := iteration.Iteration{
-		Name:       name,
-		SpaceID:    fxt.Spaces[0].ID,
-		StartAt:    &start,
-		EndAt:      &end,
-		UserActive: false,
+		Name:    name,
+		SpaceID: fxt.Spaces[0].ID,
+		StartAt: &start,
+		EndAt:   &end,
 	}
 
 	repo.Create(context.Background(), &i)
@@ -83,23 +82,21 @@ func (s *TestIterationRepository) TestCreateChildIteration() {
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1))
 
 	i := iteration.Iteration{
-		Name:       name,
-		SpaceID:    fxt.Spaces[0].ID,
-		StartAt:    &start,
-		EndAt:      &end,
-		UserActive: false,
+		Name:    name,
+		SpaceID: fxt.Spaces[0].ID,
+		StartAt: &start,
+		EndAt:   &end,
 	}
 	repo.Create(context.Background(), &i)
 
 	parentPath := append(i.Path, i.ID)
 	require.NotNil(t, parentPath)
 	i2 := iteration.Iteration{
-		Name:       name2,
-		SpaceID:    fxt.Spaces[0].ID,
-		StartAt:    &start,
-		EndAt:      &end,
-		Path:       parentPath,
-		UserActive: false,
+		Name:    name2,
+		SpaceID: fxt.Spaces[0].ID,
+		StartAt: &start,
+		EndAt:   &end,
+		Path:    parentPath,
 	}
 	repo.Create(context.Background(), &i2)
 
@@ -126,23 +123,21 @@ func (s *TestIterationRepository) TestRootIteration() {
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1))
 
 	i := iteration.Iteration{
-		Name:       name,
-		SpaceID:    fxt.Spaces[0].ID,
-		StartAt:    &start,
-		EndAt:      &end,
-		UserActive: false,
+		Name:    name,
+		SpaceID: fxt.Spaces[0].ID,
+		StartAt: &start,
+		EndAt:   &end,
 	}
 	repo.Create(context.Background(), &i)
 
 	parentPath := append(i.Path, i.ID)
 	require.NotNil(t, parentPath)
 	i2 := iteration.Iteration{
-		Name:       name2,
-		SpaceID:    fxt.Spaces[0].ID,
-		StartAt:    &start,
-		EndAt:      &end,
-		Path:       parentPath,
-		UserActive: false,
+		Name:    name2,
+		SpaceID: fxt.Spaces[0].ID,
+		StartAt: &start,
+		EndAt:   &end,
+		Path:    parentPath,
 	}
 	repo.Create(context.Background(), &i2)
 
@@ -169,20 +164,18 @@ func (s *TestIterationRepository) TestListIterationBySpace() {
 		name := "Sprint #2" + strconv.Itoa(i)
 
 		i := iteration.Iteration{
-			Name:       name,
-			SpaceID:    fxt.Spaces[0].ID,
-			StartAt:    &start,
-			EndAt:      &end,
-			UserActive: false,
+			Name:    name,
+			SpaceID: fxt.Spaces[0].ID,
+			StartAt: &start,
+			EndAt:   &end,
 		}
 		e := repo.Create(context.Background(), &i)
 		require.Nil(t, e)
 	}
 	// add iteration to the second space from our fixture
 	e := repo.Create(context.Background(), &iteration.Iteration{
-		Name:       "Other Spring #2",
-		SpaceID:    fxt.Spaces[1].ID,
-		UserActive: false,
+		Name:    "Other Spring #2",
+		SpaceID: fxt.Spaces[1].ID,
 	})
 	require.Nil(t, e)
 
