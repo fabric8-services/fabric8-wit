@@ -41,7 +41,7 @@ type Iteration struct {
 	Name        string
 	Description *string
 	State       string // this tells if iteration is currently running or not
-	UserActive  *bool
+	UserActive  bool
 	// optional, private timestamp of the latest addition/removal of a relationship with this iteration
 	// this field is used to generate the `ETag` and `Last-Modified` values in the HTTP responses and conditional requests processing
 	RelationShipsChangedAt *time.Time `sql:"column:relationships_changed_at"`
@@ -261,7 +261,7 @@ func inTimeframe(startAt time.Time, endAt time.Time) bool {
 }
 
 func (i *Iteration) IsActive() bool {
-	if *i.UserActive == true {
+	if i.UserActive {
 		return true
 	}
 
@@ -269,17 +269,9 @@ func (i *Iteration) IsActive() bool {
 		return false
 	}
 	if i.EndAt == nil {
-		if time.Now().UTC().After(*i.StartAt) {
-			return true
-		} else {
-			return false
-		}
+		return time.Now().UTC().After(*i.StartAt)
 	}
-	if inTimeframe(*i.StartAt, *i.EndAt) {
-		return true
-	} else {
-		return false
-	}
+	return inTimeframe(*i.StartAt, *i.EndAt)
 
 }
 
