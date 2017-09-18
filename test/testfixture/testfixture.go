@@ -10,6 +10,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/comment"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/label"
+	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
@@ -86,6 +87,8 @@ func NewFixture(db *gorm.DB, recipeFuncs ...RecipeFunction) (*TestFixture, error
 // NewTestFixture does the same as NewFixture except that it automatically
 // fails the given test if the fixture could not be created correctly.
 func NewTestFixture(t *testing.T, db *gorm.DB, recipeFuncs ...RecipeFunction) *TestFixture {
+	resource.Require(t, resource.Database)
+
 	tc, err := NewFixture(db, recipeFuncs...)
 	require.Nil(t, err)
 	require.NotNil(t, tc)

@@ -79,14 +79,12 @@ func (c *LabelController) Create(ctx *app.CreateLabelContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-
 		res := &app.LabelSingle{
 			Data: ConvertLabel(appl, ctx.Request, lbl),
 		}
 		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.LabelHref(ctx.SpaceID, res.Data.ID)))
 		return ctx.Created(res)
 	})
-
 }
 
 // ConvertLabel converts from internal to external REST representation
@@ -148,4 +146,23 @@ func ConvertLabels(appl application.Application, request *http.Request, labels [
 		ls = append(ls, ConvertLabel(appl, request, i))
 	}
 	return ls
+}
+
+// ConvertLabelsSimple converts an array of Label IDs into a Generic Reletionship List
+func ConvertLabelsSimple(request *http.Request, labelIDs []interface{}) []*app.GenericData {
+	ops := make([]*app.GenericData, 0, len(labelIDs))
+	for _, labelID := range labelIDs {
+		ops = append(ops, ConvertLabelSimple(request, labelID))
+	}
+	return ops
+}
+
+// ConvertLabelSimple converts a Label ID into a Generic Reletionship
+func ConvertLabelSimple(request *http.Request, labelID interface{}) *app.GenericData {
+	t := label.APIStringTypeLabels
+	i := labelID.(string)
+	return &app.GenericData{
+		Type: &t,
+		ID:   &i,
+	}
 }

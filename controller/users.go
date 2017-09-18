@@ -80,8 +80,8 @@ func (c *UsersController) Show(ctx *app.ShowUsersContext) error {
 	})
 }
 
-// UpdateUserAsServiceAccount updates a user when requested using a service account token
-func (c *UsersController) UpdateUserAsServiceAccount(ctx *app.UpdateUserAsServiceAccountUsersContext) error {
+// CreateUserAsServiceAccount updates a user when requested using a service account token
+func (c *UsersController) CreateUserAsServiceAccount(ctx *app.CreateUserAsServiceAccountUsersContext) error {
 
 	isSvcAccount, err := isServiceAccount(ctx)
 	if err != nil {
@@ -93,8 +93,118 @@ func (c *UsersController) UpdateUserAsServiceAccount(ctx *app.UpdateUserAsServic
 	}
 	if !isSvcAccount {
 		log.Error(ctx, map[string]interface{}{
-			"err": err,
-		}, "")
+			"identity_id": ctx.ID,
+		}, "account used to call create api is not a service account")
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(errs.New("a non-service account tried to create a user.")))
+	}
+
+	return c.createUserInDB(ctx)
+}
+
+func (c *UsersController) createUserInDB(ctx *app.CreateUserAsServiceAccountUsersContext) error {
+
+	userID, err := uuid.FromString(ctx.Payload.Data.Attributes.UserID)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(errs.New("invalid user id")))
+	}
+
+	id, err := uuid.FromString(ctx.ID)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(errs.New("incorrect identity id")))
+	}
+
+	returnResponse := application.Transactional(c.db, func(appl application.Application) error {
+
+		var user *account.User
+		var identity *account.Identity
+
+		// Mandatory attributes
+
+		user = &account.User{
+			ID:    userID,
+			Email: ctx.Payload.Data.Attributes.Email,
+		}
+		identity = &account.Identity{
+			ID:           id,
+			Username:     ctx.Payload.Data.Attributes.Username,
+			ProviderType: ctx.Payload.Data.Attributes.ProviderType,
+		}
+		// associate foreign key
+		identity.UserID = account.NullUUID{UUID: user.ID, Valid: true}
+
+		// Optional Attributes
+
+		updatedRegistratedCompleted := ctx.Payload.Data.Attributes.RegistrationCompleted
+		if updatedRegistratedCompleted != nil {
+			identity.RegistrationCompleted = true
+		}
+
+		updatedBio := ctx.Payload.Data.Attributes.Bio
+		if updatedBio != nil {
+			user.Bio = *updatedBio
+		}
+
+		updatedFullName := ctx.Payload.Data.Attributes.FullName
+		if updatedFullName != nil {
+			user.FullName = *updatedFullName
+		}
+
+		updatedImageURL := ctx.Payload.Data.Attributes.ImageURL
+		if updatedImageURL != nil {
+			user.ImageURL = *updatedImageURL
+		}
+
+		updateURL := ctx.Payload.Data.Attributes.URL
+		if updateURL != nil {
+			user.URL = *updateURL
+		}
+
+		updatedCompany := ctx.Payload.Data.Attributes.Company
+		if updatedCompany != nil {
+			user.Company = *updatedCompany
+		}
+
+		updatedContextInformation := ctx.Payload.Data.Attributes.ContextInformation
+		if updatedContextInformation != nil {
+			if user.ContextInformation == nil {
+				user.ContextInformation = account.ContextInformation{}
+			}
+			for fieldName, fieldValue := range updatedContextInformation {
+				user.ContextInformation[fieldName] = fieldValue
+			}
+		}
+
+		err = appl.Users().Create(ctx, user)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+
+		err = appl.Identities().Create(ctx, identity)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+
+		return ctx.OK(ConvertToAppUser(ctx.Request, user, identity))
+	})
+
+	return returnResponse
+}
+
+// UpdateUserAsServiceAccount updates a user when requested using a service account token
+func (c *UsersController) UpdateUserAsServiceAccount(ctx *app.UpdateUserAsServiceAccountUsersContext) error {
+
+	isSvcAccount, err := isServiceAccount(ctx)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err":         err,
+			"identity_id": ctx.ID,
+		}, "failed to determine if account is a service account")
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err))
+	}
+	if !isSvcAccount {
+		log.Error(ctx, map[string]interface{}{
+			"identity_id": ctx.ID,
+		}, "failed to determine if account is a service account")
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(errs.New("a non-service account tried to updated a user.")))
 	}
 
