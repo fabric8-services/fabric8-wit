@@ -39,7 +39,6 @@ func (s *TestIterationRepository) TearDownTest() {
 }
 
 func (s *TestIterationRepository) TestCreateIteration() {
-	userActive := false
 	t := s.T()
 	resource.Require(t, resource.Database)
 	repo := iteration.NewIterationRepository(s.DB)
@@ -54,7 +53,7 @@ func (s *TestIterationRepository) TestCreateIteration() {
 		SpaceID:    fxt.Spaces[0].ID,
 		StartAt:    &start,
 		EndAt:      &end,
-		UserActive: &userActive,
+		UserActive: false,
 	}
 
 	repo.Create(context.Background(), &i)
@@ -74,7 +73,6 @@ func (s *TestIterationRepository) TestCreateChildIteration() {
 	t := s.T()
 	resource.Require(t, resource.Database)
 
-	userActive := false
 	repo := iteration.NewIterationRepository(s.DB)
 
 	start := time.Now()
@@ -89,7 +87,7 @@ func (s *TestIterationRepository) TestCreateChildIteration() {
 		SpaceID:    fxt.Spaces[0].ID,
 		StartAt:    &start,
 		EndAt:      &end,
-		UserActive: &userActive,
+		UserActive: false,
 	}
 	repo.Create(context.Background(), &i)
 
@@ -101,7 +99,7 @@ func (s *TestIterationRepository) TestCreateChildIteration() {
 		StartAt:    &start,
 		EndAt:      &end,
 		Path:       parentPath,
-		UserActive: &userActive,
+		UserActive: false,
 	}
 	repo.Create(context.Background(), &i2)
 
@@ -120,7 +118,6 @@ func (s *TestIterationRepository) TestRootIteration() {
 
 	repo := iteration.NewIterationRepository(s.DB)
 
-	userActive := false
 	start := time.Now()
 	end := start.Add(time.Hour * (24 * 8 * 3))
 	name := "Sprint #24"
@@ -133,7 +130,7 @@ func (s *TestIterationRepository) TestRootIteration() {
 		SpaceID:    fxt.Spaces[0].ID,
 		StartAt:    &start,
 		EndAt:      &end,
-		UserActive: &userActive,
+		UserActive: false,
 	}
 	repo.Create(context.Background(), &i)
 
@@ -145,7 +142,7 @@ func (s *TestIterationRepository) TestRootIteration() {
 		StartAt:    &start,
 		EndAt:      &end,
 		Path:       parentPath,
-		UserActive: &userActive,
+		UserActive: false,
 	}
 	repo.Create(context.Background(), &i2)
 
@@ -162,7 +159,6 @@ func (s *TestIterationRepository) TestListIterationBySpace() {
 	t := s.T()
 	resource.Require(t, resource.Database)
 
-	userActive := false
 	repo := iteration.NewIterationRepository(s.DB)
 
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(2))
@@ -177,7 +173,7 @@ func (s *TestIterationRepository) TestListIterationBySpace() {
 			SpaceID:    fxt.Spaces[0].ID,
 			StartAt:    &start,
 			EndAt:      &end,
-			UserActive: &userActive,
+			UserActive: false,
 		}
 		e := repo.Create(context.Background(), &i)
 		require.Nil(t, e)
@@ -186,7 +182,7 @@ func (s *TestIterationRepository) TestListIterationBySpace() {
 	e := repo.Create(context.Background(), &iteration.Iteration{
 		Name:       "Other Spring #2",
 		SpaceID:    fxt.Spaces[1].ID,
-		UserActive: &userActive,
+		UserActive: false,
 	})
 	require.Nil(t, e)
 
@@ -242,7 +238,6 @@ func (s *TestIterationRepository) TestUpdateIteration() {
 func (s *TestIterationRepository) TestCreateIterationSameNameFailsWithinSpace() {
 	t := s.T()
 	resource.Require(t, resource.Database)
-	userActive := false
 	repo := iteration.NewIterationRepository(s.DB)
 	name := "Iteration name test"
 
@@ -260,9 +255,8 @@ func (s *TestIterationRepository) TestCreateIterationSameNameFailsWithinSpace() 
 
 	// another iteration with same name within same sapce, should fail
 	i2 := iteration.Iteration{
-		Name:       name,
-		SpaceID:    space1.ID,
-		UserActive: &userActive,
+		Name:    name,
+		SpaceID: space1.ID,
 	}
 	err := repo.Create(context.Background(), &i)
 	require.NotNil(t, err)
@@ -271,9 +265,8 @@ func (s *TestIterationRepository) TestCreateIterationSameNameFailsWithinSpace() 
 
 	// create iteration with same name in another space, should pass
 	i3 := iteration.Iteration{
-		Name:       name,
-		SpaceID:    space2.ID,
-		UserActive: &userActive,
+		Name:    name,
+		SpaceID: space2.ID,
 	}
 	err = repo.Create(context.Background(), &i3)
 	require.Nil(t, err)
