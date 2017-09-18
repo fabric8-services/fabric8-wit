@@ -133,11 +133,9 @@ func makeIterations(fxt *TestFixture) error {
 	iterationRepo := iteration.NewIterationRepository(fxt.db)
 	for i := range fxt.Iterations {
 		desc := "Some description"
-		f := false
 		fxt.Iterations[i] = &iteration.Iteration{
 			Name:        testsupport.CreateRandomValidTestName("iteration "),
 			Description: &desc,
-			UserActive:  f,
 		}
 		if !fxt.isolatedCreation {
 			fxt.Iterations[i].SpaceID = fxt.Spaces[0].ID
