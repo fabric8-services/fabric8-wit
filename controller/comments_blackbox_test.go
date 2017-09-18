@@ -1,7 +1,6 @@
 package controller_test
 
 import (
-	"context"
 	"fmt"
 	"html"
 	"net/http"
@@ -17,9 +16,7 @@ import (
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
-	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/rest"
@@ -43,21 +40,14 @@ func TestSuiteComments(t *testing.T) {
 type CommentsSuite struct {
 	gormtestsupport.DBTestSuite
 	db            *gormapplication.GormDB
-	clean         func()
 	testIdentity  account.Identity
 	testIdentity2 account.Identity
 	notification  testsupport.NotificationChannel
 }
 
-func (s *CommentsSuite) SetupSuite() {
-	s.DBTestSuite.SetupSuite()
-	ctx := migration.NewMigrationContext(context.Background())
-	s.DBTestSuite.PopulateDBTestSuite(ctx)
-}
-
 func (s *CommentsSuite) SetupTest() {
+	s.DBTestSuite.SetupTest()
 	s.db = gormapplication.NewGormDB(s.DB)
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "CommentsSuite user", "test provider")
 	require.Nil(s.T(), err)
 	s.testIdentity = *testIdentity
@@ -65,10 +55,6 @@ func (s *CommentsSuite) SetupTest() {
 	require.Nil(s.T(), err)
 	s.testIdentity2 = *testIdentity2
 	s.notification = testsupport.NotificationChannel{}
-}
-
-func (s *CommentsSuite) TearDownTest() {
-	s.clean()
 }
 
 var (

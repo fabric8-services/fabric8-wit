@@ -5,9 +5,7 @@ import (
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/comment"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
-	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
@@ -23,50 +21,29 @@ func TestRunCommentRevisionRepositoryBlackBoxTest(t *testing.T) {
 
 type revisionRepositoryBlackBoxTest struct {
 	gormtestsupport.DBTestSuite
-	repository         comment.Repository
-	revisionRepository comment.RevisionRepository
-	clean              func()
-}
-
-// SetupSuite overrides the DBTestSuite's function but calls it before doing anything else
-// The SetupSuite method will run before the tests in the suite are run.
-// It sets up a database connection for all the tests in this suite without polluting global space.
-func (s *revisionRepositoryBlackBoxTest) SetupSuite() {
-	s.DBTestSuite.SetupSuite()
-	ctx := migration.NewMigrationContext(context.Background())
-	s.DBTestSuite.PopulateDBTestSuite(ctx)
-}
-
-func (s *revisionRepositoryBlackBoxTest) SetupTest() {
-	s.repository = comment.NewRepository(s.DB)
-	s.revisionRepository = comment.NewRevisionRepository(s.DB)
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
-}
-
-func (s *revisionRepositoryBlackBoxTest) TearDownTest() {
-	s.clean()
 }
 
 func (s *revisionRepositoryBlackBoxTest) TestStoreCommentRevisions() {
-	// given
-	// create a comment
+	// given a comment
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(3), tf.Comments(1))
 	c := *fxt.Comments[0]
 	// modify the comment
+	repository := comment.NewRepository(s.DB)
+	revisionRepository := comment.NewRevisionRepository(s.DB)
 	c.Body = "Updated body"
 	c.Markup = rendering.SystemMarkupPlainText
-	err := s.repository.Save(context.Background(), &c, fxt.Identities[1].ID)
+	err := repository.Save(context.Background(), &c, fxt.Identities[1].ID)
 	require.Nil(s.T(), err)
 	// modify again the comment
 	c.Body = "Updated body2"
 	c.Markup = rendering.SystemMarkupMarkdown
-	err = s.repository.Save(context.Background(), &c, fxt.Identities[1].ID)
+	err = repository.Save(context.Background(), &c, fxt.Identities[1].ID)
 	require.Nil(s.T(), err)
 	// delete the comment
-	err = s.repository.Delete(context.Background(), c.ID, fxt.Identities[2].ID)
+	err = repository.Delete(context.Background(), c.ID, fxt.Identities[2].ID)
 	require.Nil(s.T(), err)
 	// when
-	commentRevisions, err := s.revisionRepository.List(context.Background(), c.ID)
+	commentRevisions, err := revisionRepository.List(context.Background(), c.ID)
 	// then
 	require.Nil(s.T(), err)
 	require.Len(s.T(), commentRevisions, 4)

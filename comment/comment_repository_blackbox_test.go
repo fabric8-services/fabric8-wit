@@ -1,15 +1,12 @@
 package comment_test
 
 import (
-	"context"
 	"testing"
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/comment"
 	"github.com/fabric8-services/fabric8-wit/errors"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
-	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
@@ -21,9 +18,7 @@ import (
 
 type TestCommentRepository struct {
 	gormtestsupport.DBTestSuite
-	clean func()
-	repo  comment.Repository
-	ctx   context.Context
+	repo comment.Repository
 }
 
 func TestRunCommentRepository(t *testing.T) {
@@ -31,22 +26,9 @@ func TestRunCommentRepository(t *testing.T) {
 	suite.Run(t, &TestCommentRepository{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
-// SetupSuite overrides the DBTestSuite's function but calls it before doing anything else
-// The SetupSuite method will run before the tests in the suite are run.
-// It sets up a database connection for all the tests in this suite without polluting global space.
-func (s *TestCommentRepository) SetupSuite() {
-	s.DBTestSuite.SetupSuite()
-	s.ctx = migration.NewMigrationContext(context.Background())
-	s.DBTestSuite.PopulateDBTestSuite(s.ctx)
-}
-
 func (s *TestCommentRepository) SetupTest() {
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+	s.DBTestSuite.SetupTest()
 	s.repo = comment.NewRepository(s.DB)
-}
-
-func (s *TestCommentRepository) TearDownTest() {
-	s.clean()
 }
 
 func newComment(parentID uuid.UUID, body, markup string) *comment.Comment {
@@ -58,12 +40,23 @@ func newComment(parentID uuid.UUID, body, markup string) *comment.Comment {
 	}
 }
 
+func (s *TestCommentRepository) createComment(c *comment.Comment, creator uuid.UUID) {
+	err := s.repo.Create(s.Ctx, c, creator)
+	require.Nil(s.T(), err)
+}
+
+func (s *TestCommentRepository) createComments(comments []*comment.Comment, creator uuid.UUID) {
+	for _, c := range comments {
+		s.createComment(c, creator)
+	}
+}
+
 func (s *TestCommentRepository) TestCreateCommentWithMarkup() {
 	// given
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(1))
 	comment := newComment(uuid.NewV4(), "Test A", rendering.SystemMarkupMarkdown)
 	// when
-	s.repo.Create(s.ctx, comment, fxt.Identities[0].ID)
+	s.repo.Create(s.Ctx, comment, fxt.Identities[0].ID)
 	// then
 	assert.NotNil(s.T(), comment.ID, "Comment was not created, ID nil")
 	require.NotNil(s.T(), comment.CreatedAt, "Comment was not created?")
@@ -75,7 +68,7 @@ func (s *TestCommentRepository) TestCreateCommentWithoutMarkup() {
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(1))
 	comment := newComment(uuid.NewV4(), "Test A", "")
 	// when
-	s.repo.Create(s.ctx, comment, fxt.Identities[0].ID)
+	s.repo.Create(s.Ctx, comment, fxt.Identities[0].ID)
 	// then
 	assert.NotNil(s.T(), comment.ID, "Comment was not created, ID nil")
 	require.NotNil(s.T(), comment.CreatedAt, "Comment was not created?")
@@ -93,10 +86,10 @@ func (s *TestCommentRepository) TestSaveCommentWithMarkup() {
 	// when
 	comment.Body = "Test AB"
 	comment.Markup = rendering.SystemMarkupMarkdown
-	s.repo.Save(s.ctx, comment, comment.Creator)
+	s.repo.Save(s.Ctx, comment, comment.Creator)
 	offset := 0
 	limit := 1
-	comments, _, err := s.repo.List(s.ctx, comment.ParentID, &offset, &limit)
+	comments, _, err := s.repo.List(s.Ctx, comment.ParentID, &offset, &limit)
 	// then
 	require.Nil(s.T(), err)
 	require.Len(s.T(), comments, 1)
@@ -114,10 +107,10 @@ func (s *TestCommentRepository) TestSaveCommentWithoutMarkup() {
 	// when
 	comment.Body = "Test AB"
 	comment.Markup = ""
-	s.repo.Save(s.ctx, comment, comment.Creator)
+	s.repo.Save(s.Ctx, comment, comment.Creator)
 	offset := 0
 	limit := 1
-	comments, _, err := s.repo.List(s.ctx, comment.ParentID, &offset, &limit)
+	comments, _, err := s.repo.List(s.Ctx, comment.ParentID, &offset, &limit)
 	// then
 	require.Nil(s.T(), err)
 	require.Len(s.T(), comments, 1)
@@ -133,7 +126,7 @@ func (s *TestCommentRepository) TestDeleteComment() {
 	}))
 	c := fxt.Comments[0]
 	// when
-	err := s.repo.Delete(s.ctx, c.ID, c.Creator)
+	err := s.repo.Delete(s.Ctx, c.ID, c.Creator)
 	// then
 	assert.Nil(s.T(), err)
 }
@@ -150,7 +143,7 @@ func (s *TestCommentRepository) TestCountComments() {
 		return nil
 	}))
 	// when
-	count, err := s.repo.Count(s.ctx, fxt.WorkItems[0].ID)
+	count, err := s.repo.Count(s.Ctx, fxt.WorkItems[0].ID)
 	// then
 	require.Nil(s.T(), err)
 	assert.Equal(s.T(), 1, count)
@@ -162,7 +155,7 @@ func (s *TestCommentRepository) TestListComments() {
 	// when
 	offset := 0
 	limit := 1
-	resultComments, _, err := s.repo.List(s.ctx, fxt.Comments[0].ParentID, &offset, &limit)
+	resultComments, _, err := s.repo.List(s.Ctx, fxt.Comments[0].ParentID, &offset, &limit)
 	// then
 	require.Nil(s.T(), err)
 	require.Len(s.T(), resultComments, 1)
@@ -175,7 +168,7 @@ func (s *TestCommentRepository) TestListCommentsWrongOffset() {
 	// when
 	offset := -1
 	limit := 1
-	_, _, err := s.repo.List(s.ctx, fxt.Comments[0].ParentID, &offset, &limit)
+	_, _, err := s.repo.List(s.Ctx, fxt.Comments[0].ParentID, &offset, &limit)
 	// then
 	require.NotNil(s.T(), err)
 }
@@ -186,7 +179,7 @@ func (s *TestCommentRepository) TestListCommentsWrongLimit() {
 	// when
 	offset := 0
 	limit := -1
-	_, _, err := s.repo.List(s.ctx, fxt.Comments[0].ParentID, &offset, &limit)
+	_, _, err := s.repo.List(s.Ctx, fxt.Comments[0].ParentID, &offset, &limit)
 	// then
 	require.NotNil(s.T(), err)
 }
@@ -195,7 +188,7 @@ func (s *TestCommentRepository) TestLoadComment() {
 	// given
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Comments(1))
 	// when
-	loadedComment, err := s.repo.Load(s.ctx, fxt.Comments[0].ID)
+	loadedComment, err := s.repo.Load(s.Ctx, fxt.Comments[0].ID)
 	// then
 	require.Nil(s.T(), err)
 	assert.Equal(s.T(), fxt.Comments[0].ID, loadedComment.ID)
@@ -207,14 +200,14 @@ func (s *TestCommentRepository) TestExistsComment() {
 		// given
 		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Comments(1))
 		// when
-		err := s.repo.CheckExists(s.ctx, fxt.Comments[0].ID.String())
+		err := s.repo.CheckExists(s.Ctx, fxt.Comments[0].ID.String())
 		// then
 		require.Nil(t, err)
 	})
 
 	s.T().Run("comment doesn't exist", func(t *testing.T) {
 		// when
-		err := s.repo.CheckExists(s.ctx, uuid.NewV4().String())
+		err := s.repo.CheckExists(s.Ctx, uuid.NewV4().String())
 		// then
 		require.IsType(t, errors.NotFoundError{}, err)
 	})

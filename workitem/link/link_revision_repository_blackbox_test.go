@@ -1,14 +1,11 @@
 package link_test
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/account"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
-	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
@@ -30,8 +27,6 @@ type revisionRepositoryBlackBoxTest struct {
 	gormtestsupport.DBTestSuite
 	repository         link.WorkItemLinkRepository
 	revisionRepository link.RevisionRepository
-	clean              func()
-	ctx                context.Context
 	testIdentity1      account.Identity
 	testIdentity2      account.Identity
 	testIdentity3      account.Identity
@@ -41,19 +36,10 @@ type revisionRepositoryBlackBoxTest struct {
 	testLinkType2ID    uuid.UUID
 }
 
-// SetupSuite overrides the DBTestSuite's function but calls it before doing anything else
-// The SetupSuite method will run before the tests in the suite are run.
-// It sets up a database connection for all the tests in this suite without polluting global space.
-func (s *revisionRepositoryBlackBoxTest) SetupSuite() {
-	s.DBTestSuite.SetupSuite()
-	s.ctx = migration.NewMigrationContext(context.Background())
-	s.DBTestSuite.PopulateDBTestSuite(s.ctx)
-}
-
 func (s *revisionRepositoryBlackBoxTest) SetupTest() {
+	s.DBTestSuite.SetupTest()
 	s.repository = link.NewWorkItemLinkRepository(s.DB)
 	s.revisionRepository = link.NewRevisionRepository(s.DB)
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 	testIdentity1, err := testsupport.CreateTestIdentity(s.DB, "jdoe1", "test")
 	require.Nil(s.T(), err)
 	s.testIdentity1 = *testIdentity1
@@ -66,7 +52,7 @@ func (s *revisionRepositoryBlackBoxTest) SetupTest() {
 	// create a space
 	spaceRepository := space.NewRepository(s.DB)
 	spaceName := testsupport.CreateRandomValidTestName("test-space")
-	testSpace, err := spaceRepository.Create(s.ctx, &space.Space{
+	testSpace, err := spaceRepository.Create(s.Ctx, &space.Space{
 		Name:    spaceName,
 		OwnerId: s.testIdentity1.ID,
 	})
@@ -74,7 +60,7 @@ func (s *revisionRepositoryBlackBoxTest) SetupTest() {
 	// create source and target work items before linking them
 	workitemRepository := workitem.NewWorkItemRepository(s.DB)
 	wi, err := workitemRepository.Create(
-		s.ctx, testSpace.ID, workitem.SystemBug,
+		s.Ctx, testSpace.ID, workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle: "Source",
 			workitem.SystemState: workitem.SystemStateNew,
@@ -82,7 +68,7 @@ func (s *revisionRepositoryBlackBoxTest) SetupTest() {
 	require.Nil(s.T(), err)
 	s.sourceWorkItemID = wi.ID
 	wi, err = workitemRepository.Create(
-		s.ctx, testSpace.ID, workitem.SystemBug,
+		s.Ctx, testSpace.ID, workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle: "Target",
 			workitem.SystemState: workitem.SystemStateNew,
@@ -98,7 +84,7 @@ func (s *revisionRepositoryBlackBoxTest) SetupTest() {
 		Name:        categoryName,
 		Description: &categoryDescription,
 	}
-	_, err = linkCategoryRepository.Create(s.ctx, &linkCategory)
+	_, err = linkCategoryRepository.Create(s.Ctx, &linkCategory)
 	require.Nil(s.T(), err)
 	// create link types
 	linkTypeRepository := link.NewWorkItemLinkTypeRepository(s.DB)
@@ -110,7 +96,7 @@ func (s *revisionRepositoryBlackBoxTest) SetupTest() {
 		LinkCategoryID: linkCategory.ID,
 		SpaceID:        testSpace.ID,
 	}
-	linkType1, err := linkTypeRepository.Create(s.ctx, &linkTypeModel1)
+	linkType1, err := linkTypeRepository.Create(s.Ctx, &linkTypeModel1)
 	require.Nil(s.T(), err)
 	s.testLinkType1ID = linkType1.ID
 	linkTypeModel2 := link.WorkItemLinkType{
@@ -121,31 +107,27 @@ func (s *revisionRepositoryBlackBoxTest) SetupTest() {
 		LinkCategoryID: linkCategory.ID,
 		SpaceID:        testSpace.ID,
 	}
-	linkType2, err := linkTypeRepository.Create(s.ctx, &linkTypeModel2)
+	linkType2, err := linkTypeRepository.Create(s.Ctx, &linkTypeModel2)
 	require.Nil(s.T(), err)
 	s.testLinkType2ID = linkType2.ID
-}
-
-func (s *revisionRepositoryBlackBoxTest) TearDownTest() {
-	s.clean()
 }
 
 func (s *revisionRepositoryBlackBoxTest) TestStoreWorkItemLinkRevisions() {
 	// given
 	linkRepository := link.NewWorkItemLinkRepository(s.DB)
 	// create a work item link
-	workitemLink, err := linkRepository.Create(s.ctx, s.sourceWorkItemID, s.targetWorkItemID, s.testLinkType1ID, s.testIdentity1.ID)
+	workitemLink, err := linkRepository.Create(s.Ctx, s.sourceWorkItemID, s.targetWorkItemID, s.testLinkType1ID, s.testIdentity1.ID)
 	require.Nil(s.T(), err)
 	// modify the work item link
 	s.T().Log(fmt.Sprintf("setting workitem link type from %s to %s", workitemLink.LinkTypeID, s.testLinkType2ID))
 	workitemLink.LinkTypeID = s.testLinkType2ID
-	workitemLink, err = linkRepository.Save(s.ctx, *workitemLink, s.testIdentity2.ID)
+	workitemLink, err = linkRepository.Save(s.Ctx, *workitemLink, s.testIdentity2.ID)
 	require.Nil(s.T(), err)
 	// delete the work item link
-	err = linkRepository.Delete(s.ctx, workitemLink.ID, s.testIdentity3.ID)
+	err = linkRepository.Delete(s.Ctx, workitemLink.ID, s.testIdentity3.ID)
 	require.Nil(s.T(), err)
 	// when
-	workitemLinkRevisions, err := s.revisionRepository.List(s.ctx, workitemLink.ID)
+	workitemLinkRevisions, err := s.revisionRepository.List(s.Ctx, workitemLink.ID)
 	// then
 	require.Nil(s.T(), err)
 	require.Len(s.T(), workitemLinkRevisions, 3)
@@ -179,13 +161,13 @@ func (s *revisionRepositoryBlackBoxTest) TestStoreWorkItemLinkRevisionsWhenDelet
 	// given
 	linkRepository := link.NewWorkItemLinkRepository(s.DB)
 	// create a work item link
-	workitemLink, err := linkRepository.Create(s.ctx, s.sourceWorkItemID, s.targetWorkItemID, s.testLinkType1ID, s.testIdentity1.ID)
+	workitemLink, err := linkRepository.Create(s.Ctx, s.sourceWorkItemID, s.targetWorkItemID, s.testLinkType1ID, s.testIdentity1.ID)
 	require.Nil(s.T(), err)
 	// delete the source work item
-	err = linkRepository.DeleteRelatedLinks(s.ctx, s.sourceWorkItemID, s.testIdentity3.ID)
+	err = linkRepository.DeleteRelatedLinks(s.Ctx, s.sourceWorkItemID, s.testIdentity3.ID)
 	require.Nil(s.T(), err)
 	// when
-	workitemLinkRevisions, err := s.revisionRepository.List(s.ctx, workitemLink.ID)
+	workitemLinkRevisions, err := s.revisionRepository.List(s.Ctx, workitemLink.ID)
 	// then
 	require.Nil(s.T(), err)
 	require.Len(s.T(), workitemLinkRevisions, 2)
