@@ -4,19 +4,15 @@ import (
 	"testing"
 	"time"
 
-	"context"
-
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	"github.com/fabric8-services/fabric8-wit/application"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/log"
-	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
@@ -31,9 +27,7 @@ import (
 
 type TestPlannerBacklogBlackboxREST struct {
 	gormtestsupport.DBTestSuite
-	clean        func()
 	testIdentity account.Identity
-	ctx          context.Context
 }
 
 func TestRunPlannerBacklogBlackboxREST(t *testing.T) {
@@ -41,24 +35,12 @@ func TestRunPlannerBacklogBlackboxREST(t *testing.T) {
 	suite.Run(t, new(TestPlannerBacklogBlackboxREST))
 }
 
-// The SetupSuite method will run before the tests in the suite are run.
-// It sets up a database connection for all the tests in this suite without polluting global space.
-func (rest *TestPlannerBacklogBlackboxREST) SetupSuite() {
-	rest.DBTestSuite.SetupSuite()
-	rest.ctx = migration.NewMigrationContext(context.Background())
-	rest.DBTestSuite.PopulateDBTestSuite(rest.ctx)
-}
-
 func (rest *TestPlannerBacklogBlackboxREST) SetupTest() {
-	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
+	rest.DBTestSuite.SetupTest()
 	// create a test identity
 	testIdentity, err := testsupport.CreateTestIdentity(rest.DB, "TestPlannerBacklogBlackboxREST user", "test provider")
 	require.Nil(rest.T(), err)
 	rest.testIdentity = *testIdentity
-}
-
-func (rest *TestPlannerBacklogBlackboxREST) TearDownTest() {
-	rest.clean()
 }
 
 func (rest *TestPlannerBacklogBlackboxREST) UnSecuredController() (*goa.Service, *PlannerBacklogController) {
@@ -72,12 +54,12 @@ func (rest *TestPlannerBacklogBlackboxREST) setupPlannerBacklogWorkItems() (test
 		testSpace = &space.Space{
 			Name: "PlannerBacklogWorkItems-" + uuid.NewV4().String(),
 		}
-		_, err := spacesRepo.Create(rest.ctx, testSpace)
+		_, err := spacesRepo.Create(rest.Ctx, testSpace)
 		require.Nil(rest.T(), err)
 		require.NotNil(rest.T(), testSpace.ID)
 		log.Info(nil, map[string]interface{}{"space_id": testSpace.ID}, "created space")
 		workitemTypesRepo := app.WorkItemTypes()
-		workitemType, err := workitemTypesRepo.Create(rest.ctx, testSpace.ID, nil, &workitem.SystemPlannerItem, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
+		workitemType, err := workitemTypesRepo.Create(rest.Ctx, testSpace.ID, nil, &workitem.SystemPlannerItem, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
 		require.Nil(rest.T(), err)
 		log.Info(nil, map[string]interface{}{"wit_id": workitemType.ID}, "created workitem type")
 
@@ -87,7 +69,7 @@ func (rest *TestPlannerBacklogBlackboxREST) setupPlannerBacklogWorkItems() (test
 			SpaceID: testSpace.ID,
 			State:   iteration.IterationStateNew,
 		}
-		iterationsRepo.Create(rest.ctx, parentIteration)
+		iterationsRepo.Create(rest.Ctx, parentIteration)
 		log.Info(nil, map[string]interface{}{"parent_iteration_id": parentIteration.ID}, "created parent iteration")
 
 		childIteration := &iteration.Iteration{
@@ -96,7 +78,7 @@ func (rest *TestPlannerBacklogBlackboxREST) setupPlannerBacklogWorkItems() (test
 			Path:    append(parentIteration.Path, parentIteration.ID),
 			State:   iteration.IterationStateStart,
 		}
-		iterationsRepo.Create(rest.ctx, childIteration)
+		iterationsRepo.Create(rest.Ctx, childIteration)
 		log.Info(nil, map[string]interface{}{"child_iteration_id": childIteration.ID}, "created child iteration")
 
 		fields := map[string]interface{}{
@@ -104,14 +86,14 @@ func (rest *TestPlannerBacklogBlackboxREST) setupPlannerBacklogWorkItems() (test
 			workitem.SystemState:     "new",
 			workitem.SystemIteration: parentIteration.ID.String(),
 		}
-		app.WorkItems().Create(rest.ctx, testSpace.ID, workitemType.ID, fields, rest.testIdentity.ID)
+		app.WorkItems().Create(rest.Ctx, testSpace.ID, workitemType.ID, fields, rest.testIdentity.ID)
 
 		fields2 := map[string]interface{}{
 			workitem.SystemTitle:     "childIteration Test",
 			workitem.SystemState:     "closed",
 			workitem.SystemIteration: childIteration.ID.String(),
 		}
-		createdWI, err = app.WorkItems().Create(rest.ctx, testSpace.ID, workitemType.ID, fields2, rest.testIdentity.ID)
+		createdWI, err = app.WorkItems().Create(rest.Ctx, testSpace.ID, workitemType.ID, fields2, rest.testIdentity.ID)
 		require.Nil(rest.T(), err)
 		return nil
 	})
@@ -213,7 +195,7 @@ func (rest *TestPlannerBacklogBlackboxREST) TestSuccessEmptyListPlannerBacklogWo
 		newSpace := space.Space{
 			Name: "TestSuccessEmptyListPlannerBacklogWorkItems" + uuid.NewV4().String(),
 		}
-		p, err := app.Spaces().Create(rest.ctx, &newSpace)
+		p, err := app.Spaces().Create(rest.Ctx, &newSpace)
 		if err != nil {
 			rest.T().Error(err)
 		}
@@ -223,14 +205,14 @@ func (rest *TestPlannerBacklogBlackboxREST) TestSuccessEmptyListPlannerBacklogWo
 			SpaceID: spaceID,
 			State:   iteration.IterationStateNew,
 		}
-		iterationsRepo.Create(rest.ctx, parentIteration)
+		iterationsRepo.Create(rest.Ctx, parentIteration)
 
 		fields := map[string]interface{}{
 			workitem.SystemTitle:     "parentIteration Test",
 			workitem.SystemState:     "new",
 			workitem.SystemIteration: parentIteration.ID.String(),
 		}
-		app.WorkItems().Create(rest.ctx, spaceID, workitem.SystemPlannerItem, fields, rest.testIdentity.ID)
+		app.WorkItems().Create(rest.Ctx, spaceID, workitem.SystemPlannerItem, fields, rest.testIdentity.ID)
 
 		return nil
 	})
