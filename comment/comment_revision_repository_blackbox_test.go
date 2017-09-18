@@ -51,16 +51,16 @@ func (s *revisionRepositoryBlackBoxTest) TestStoreCommentRevisions() {
 	// given
 	// create a comment
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(3), tf.Comments(1))
-	c := fxt.Comments[0]
+	c := *fxt.Comments[0]
 	// modify the comment
 	c.Body = "Updated body"
 	c.Markup = rendering.SystemMarkupPlainText
-	err := s.repository.Save(context.Background(), c, fxt.Identities[1].ID)
+	err := s.repository.Save(context.Background(), &c, fxt.Identities[1].ID)
 	require.Nil(s.T(), err)
 	// modify again the comment
 	c.Body = "Updated body2"
 	c.Markup = rendering.SystemMarkupMarkdown
-	err = s.repository.Save(context.Background(), c, fxt.Identities[1].ID)
+	err = s.repository.Save(context.Background(), &c, fxt.Identities[1].ID)
 	require.Nil(s.T(), err)
 	// delete the comment
 	err = s.repository.Delete(context.Background(), c.ID, fxt.Identities[2].ID)
@@ -75,7 +75,7 @@ func (s *revisionRepositoryBlackBoxTest) TestStoreCommentRevisions() {
 	assert.Equal(s.T(), c.ID, revision1.CommentID)
 	assert.Equal(s.T(), c.ParentID, revision1.CommentParentID)
 	assert.Equal(s.T(), comment.RevisionTypeCreate, revision1.Type)
-	assert.Equal(s.T(), "Body", *revision1.CommentBody)
+	assert.Equal(s.T(), fxt.Comments[0].Body, *revision1.CommentBody)
 	assert.Equal(s.T(), rendering.SystemMarkupMarkdown, *revision1.CommentMarkup)
 	assert.Equal(s.T(), fxt.Identities[0].ID, revision1.ModifierIdentity)
 	// revision 2
