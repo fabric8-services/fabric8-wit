@@ -447,6 +447,7 @@ func makeLabels(fxt *TestFixture) error {
 			Name:            testsupport.CreateRandomValidTestName("label "),
 			TextColor:       randColor(),
 			BackgroundColor: randColor(),
+			BorderColor:     randColor(),
 		}
 		if !fxt.isolatedCreation {
 			fxt.Labels[i].SpaceID = fxt.Spaces[0].ID
