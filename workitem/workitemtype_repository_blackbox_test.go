@@ -24,16 +24,6 @@ func TestRunWorkItemTypeRepoBlackBoxTest(t *testing.T) {
 	suite.Run(t, &workItemTypeRepoBlackBoxTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
-// // SetupSuite overrides the DBTestSuite's function but calls it before doing anything else
-// // The SetupSuite method will run before the tests in the suite are run.
-// // It sets up a database connection for all the tests in this suite without polluting global space.
-// func (s *workItemTypeRepoBlackBoxTest) SetupSuite() {
-// 	s.DBTestSuite.SetupSuite()
-// 	req := &http.Request{Host: "localhost"}
-// 	params := url.Values{}
-// 	s.Ctx = goa.NewContext(context.Background(), nil, req, params)
-// }
-
 func (s *workItemTypeRepoBlackBoxTest) SetupTest() {
 	s.DBTestSuite.SetupTest()
 	s.repo = workitem.NewWorkItemTypeRepository(s.DB)
