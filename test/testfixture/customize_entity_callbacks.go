@@ -82,7 +82,7 @@ func TopologyTree() CustomizeWorkItemLinkTypeFunc {
 // state
 func UserActive(active bool) CustomizeIterationFunc {
 	return func(fxt *TestFixture, idx int) error {
-		fxt.Iterations[idx].UserActive = &active
+		fxt.Iterations[idx].UserActive = active
 		return nil
 	}
 }

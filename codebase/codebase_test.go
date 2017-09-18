@@ -9,8 +9,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
-	"github.com/fabric8-services/fabric8-wit/space"
-
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -126,7 +125,7 @@ func TestRepoValidURL(t *testing.T) {
 		cb := codebase.Content{
 			Repository: url,
 		}
-		assert.True(t, cb.IsRepoValidURL())
+		assert.True(t, cb.IsRepoValidURL(), "valid URL %s detected as invalid", url)
 	}
 
 	invalidURLs := []string{
@@ -150,13 +149,12 @@ func TestRepoValidURL(t *testing.T) {
 		cb := codebase.Content{
 			Repository: url,
 		}
-		assert.False(t, cb.IsRepoValidURL())
+		assert.False(t, cb.IsRepoValidURL(), "invalid URL %s not detected as valid", url)
 	}
 }
 
 type TestCodebaseRepository struct {
 	gormtestsupport.DBTestSuite
-
 	clean func()
 }
 
@@ -173,64 +171,42 @@ func (test *TestCodebaseRepository) TearDownTest() {
 	test.clean()
 }
 
-func newCodebase(spaceID uuid.UUID, stackID, lastUsedWorkspace, repotype, url string) *codebase.Codebase {
-	return &codebase.Codebase{
-		SpaceID:           spaceID,
-		Type:              repotype,
-		URL:               url,
-		StackID:           &stackID,
-		LastUsedWorkspace: lastUsedWorkspace,
-	}
-}
-
-func (test *TestCodebaseRepository) createCodebase(c *codebase.Codebase) {
-	repo := codebase.NewCodebaseRepository(test.DB)
-	err := repo.Create(context.Background(), c)
-	require.Nil(test.T(), err)
-}
-
 func (test *TestCodebaseRepository) TestListCodebases() {
 	// given
-	spaceID := space.SystemSpace
-	repo := codebase.NewCodebaseRepository(test.DB)
-	codebase1 := newCodebase(spaceID, "golang-default", "my-used-last-workspace", "git", "git@github.com:fabric8-services/fabric8-wit.git")
-	codebase2 := newCodebase(spaceID, "python-default", "my-used-last-workspace", "git", "git@github.com:aslakknutsen/fabric8-wit.git")
-
-	test.createCodebase(codebase1)
-	test.createCodebase(codebase2)
+	fxt := tf.NewTestFixture(test.T(), test.DB,
+		tf.Codebases(2, func(fxt *tf.TestFixture, idx int) error {
+			fxt.Codebases[idx].URL = "git@github.com:fabric8-services/fabric8-wit.git"
+			if idx == 1 {
+				fxt.Codebases[idx].URL = "git@github.com:aslakknutsen/fabric8-wit.git"
+			}
+			return nil
+		}),
+	)
 	// when
 	offset := 0
 	limit := 1
-	codebases, _, err := repo.List(context.Background(), spaceID, &offset, &limit)
+	codebases, _, err := codebase.NewCodebaseRepository(test.DB).List(context.Background(), fxt.Codebases[0].SpaceID, &offset, &limit)
 	// then
 	require.Nil(test.T(), err)
-	require.Equal(test.T(), 1, len(codebases))
-	assert.Equal(test.T(), codebase1.URL, codebases[0].URL)
+	require.Len(test.T(), codebases, 1)
+	require.Equal(test.T(), fxt.Codebases[0].URL, codebases[0].URL)
 }
 
 func (test *TestCodebaseRepository) TestExistsCodebase() {
-	t := test.T()
-	resource.Require(t, resource.Database)
-
-	t.Run("codebase exists", func(t *testing.T) {
+	repo := codebase.NewCodebaseRepository(test.DB)
+	test.T().Run("codebase exists", func(t *testing.T) {
 		// given
-		spaceID := space.SystemSpace
-		repo := codebase.NewCodebaseRepository(test.DB)
-		codebase := newCodebase(spaceID, "lisp-default", "my-used-lisp-workspace", "git", "git@github.com:hectorj2f/fabric8-wit.git")
-		test.createCodebase(codebase)
+		fxt := tf.NewTestFixture(t, test.DB, tf.Codebases(1))
 		// when
-		err := repo.CheckExists(context.Background(), codebase.ID.String())
+		err := repo.CheckExists(context.Background(), fxt.Codebases[0].ID.String())
 		// then
 		require.Nil(t, err)
 	})
 
-	t.Run("codebase doesn't exist", func(t *testing.T) {
-		// given
-		repo := codebase.NewCodebaseRepository(test.DB)
+	test.T().Run("codebase doesn't exist", func(t *testing.T) {
 		// when
 		err := repo.CheckExists(context.Background(), uuid.NewV4().String())
 		// then
-
 		require.IsType(t, errors.NotFoundError{}, err)
 	})
 
@@ -238,14 +214,13 @@ func (test *TestCodebaseRepository) TestExistsCodebase() {
 
 func (test *TestCodebaseRepository) TestLoadCodebase() {
 	// given
-	spaceID := space.SystemSpace
+	fxt := tf.NewTestFixture(test.T(), test.DB, tf.Codebases(1))
 	repo := codebase.NewCodebaseRepository(test.DB)
-	codebase := newCodebase(spaceID, "golang-default", "my-used-last-workspace", "git", "git@github.com:aslakknutsen/fabric8-wit.git")
-	test.createCodebase(codebase)
 	// when
-	loadedCodebase, err := repo.Load(context.Background(), codebase.ID)
+	loadedCodebase, err := repo.Load(context.Background(), fxt.Codebases[0].ID)
 	require.Nil(test.T(), err)
-	assert.Equal(test.T(), codebase.ID, loadedCodebase.ID)
-	assert.Equal(test.T(), "golang-default", *loadedCodebase.StackID)
-	assert.Equal(test.T(), "my-used-last-workspace", loadedCodebase.LastUsedWorkspace)
+	assert.Equal(test.T(), fxt.Codebases[0].ID, loadedCodebase.ID)
+	require.NotNil(test.T(), fxt.Codebases[0].StackID)
+	assert.Equal(test.T(), *fxt.Codebases[0].StackID, *loadedCodebase.StackID)
+	assert.Equal(test.T(), fxt.Codebases[0].LastUsedWorkspace, loadedCodebase.LastUsedWorkspace)
 }

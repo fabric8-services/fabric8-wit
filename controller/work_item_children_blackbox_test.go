@@ -1,7 +1,6 @@
 package controller_test
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"testing"
@@ -12,10 +11,8 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
-	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
@@ -53,17 +50,6 @@ type workItemChildSuite struct {
 	// Store IDs of resources that need to be removed at the beginning or end of a test
 	testIdentity account.Identity
 	db           *gormapplication.GormDB
-	clean        func()
-}
-
-// The SetupSuite method will run before the tests in the suite are run.
-// It sets up a database connection for all the tests in this suite without polluting global space.
-func (s *workItemChildSuite) SetupSuite() {
-	s.DBTestSuite.SetupSuite()
-	ctx := migration.NewMigrationContext(context.Background())
-	s.DBTestSuite.PopulateDBTestSuite(ctx)
-
-	s.db = gormapplication.NewGormDB(s.DB)
 }
 
 const (
@@ -75,7 +61,8 @@ const (
 // SetupTest ensures that none of the work item links that we will create already exist.
 // It will also make sure that some resources that we rely on do exists.
 func (s *workItemChildSuite) SetupTest() {
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+	s.DBTestSuite.SetupTest()
+	s.db = gormapplication.NewGormDB(s.DB)
 
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "workItemChildSuite user", "test provider")
 	require.Nil(s.T(), err)
@@ -186,11 +173,6 @@ func (s *workItemChildSuite) updateWorkItemLink(workitemLinkID uuid.UUID, source
 	_, workitemLink := test.UpdateWorkItemLinkOK(s.T(), s.svc.Context, s.svc, s.workitemLinkCtrl, workitemLinkID, updatePayload)
 	require.NotNil(s.T(), workitemLink)
 	return *workitemLink
-}
-
-// The TearDownTest method will be run after every test in the suite.
-func (s *workItemChildSuite) TearDownTest() {
-	s.clean()
 }
 
 //-----------------------------------------------------------------------------
@@ -837,10 +819,6 @@ func (s *searchParentExistsSuite) SetupTest() {
 
 	s.svc = testsupport.ServiceAsUser("Search-Service", s.testIdentity)
 	s.searchCtrl = NewSearchController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-}
-
-func (s *searchParentExistsSuite) TearDownTest() {
-	s.clean()
 }
 
 func TestSearchParentExists(t *testing.T) {
