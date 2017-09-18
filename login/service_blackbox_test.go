@@ -1,41 +1,34 @@
 package login_test
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
 
-	"context"
-
-	"golang.org/x/oauth2"
-
+	"github.com/dgrijalva/jwt-go"
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	config "github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	. "github.com/fabric8-services/fabric8-wit/login"
-	"github.com/fabric8-services/fabric8-wit/migration"
-	"github.com/fabric8-services/fabric8-wit/test/token"
-	goajwt "github.com/goadesign/goa/middleware/security/jwt"
-
-	"github.com/dgrijalva/jwt-go"
 	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/test/token"
 	"github.com/goadesign/goa"
+	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/goadesign/goa/uuid"
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"golang.org/x/oauth2"
 )
 
 type serviceBlackBoxTest struct {
 	gormtestsupport.DBTestSuite
-	clean         func()
-	ctx           context.Context
 	loginService  KeycloakOAuthService
 	oauth         *oauth2.Config
 	configuration *config.ConfigurationData
@@ -50,8 +43,6 @@ func TestRunServiceBlackBoxTest(t *testing.T) {
 // It sets up a database connection for all the tests in this suite without polluting global space.
 func (s *serviceBlackBoxTest) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
-	s.ctx = migration.NewMigrationContext(context.Background())
-	s.DBTestSuite.PopulateDBTestSuite(s.ctx)
 
 	var err error
 	s.configuration, err = config.GetConfigurationData()
@@ -81,14 +72,6 @@ func (s *serviceBlackBoxTest) SetupSuite() {
 	identityRepository := account.NewIdentityRepository(s.DB)
 	app := gormapplication.NewGormDB(s.DB)
 	s.loginService = NewKeycloakOAuthProvider(identityRepository, userRepository, token.TokenManager, app)
-}
-
-func (s *serviceBlackBoxTest) SetupTest() {
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
-}
-
-func (s *serviceBlackBoxTest) TearDownTest() {
-	s.clean()
 }
 
 func (s *serviceBlackBoxTest) TestKeycloakAuthorizationRedirect() {

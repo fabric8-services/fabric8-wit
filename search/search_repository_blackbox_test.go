@@ -7,9 +7,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
-	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/search"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
@@ -28,24 +26,12 @@ func TestRunSearchRepositoryBlackboxTest(t *testing.T) {
 
 type searchRepositoryBlackboxTest struct {
 	gormtestsupport.DBTestSuite
-	clean      func()
 	searchRepo *search.GormSearchRepository
 }
 
-// SetupSuite overrides the DBTestSuite's function but calls it before doing anything else
-func (s *searchRepositoryBlackboxTest) SetupSuite() {
-	s.DBTestSuite.SetupSuite()
-	ctx := migration.NewMigrationContext(context.Background())
-	s.DBTestSuite.PopulateDBTestSuite(ctx)
-}
-
 func (s *searchRepositoryBlackboxTest) SetupTest() {
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+	s.DBTestSuite.SetupTest()
 	s.searchRepo = search.NewGormSearchRepository(s.DB)
-}
-
-func (s *searchRepositoryBlackboxTest) TearDownTest() {
-	s.clean()
 }
 
 func (s *searchRepositoryBlackboxTest) getTestFixture() *tf.TestFixture {

@@ -1,6 +1,7 @@
 package search
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -9,18 +10,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
-	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/models"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	"github.com/fabric8-services/fabric8-wit/workitem"
-
-	"context"
-
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
@@ -38,26 +34,14 @@ func TestRunSearchRepositoryWhiteboxTest(t *testing.T) {
 
 type searchRepositoryWhiteboxTest struct {
 	gormtestsupport.DBTestSuite
-	clean      func()
 	modifierID uuid.UUID
 }
 
-// SetupSuite overrides the DBTestSuite's function but calls it before doing anything else
-func (s *searchRepositoryWhiteboxTest) SetupSuite() {
-	s.DBTestSuite.SetupSuite()
-	ctx := migration.NewMigrationContext(context.Background())
-	s.DBTestSuite.PopulateDBTestSuite(ctx)
-}
-
 func (s *searchRepositoryWhiteboxTest) SetupTest() {
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+	s.DBTestSuite.SetupTest()
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "jdoe", "test")
 	require.Nil(s.T(), err)
 	s.modifierID = testIdentity.ID
-}
-
-func (s *searchRepositoryWhiteboxTest) TearDownTest() {
-	s.clean()
 }
 
 type SearchTestDescriptor struct {

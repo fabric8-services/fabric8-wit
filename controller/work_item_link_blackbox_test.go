@@ -2,7 +2,6 @@ package controller_test
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"net/http"
 	"testing"
@@ -13,10 +12,8 @@ import (
 	"github.com/fabric8-services/fabric8-wit/application"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
-	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space"
@@ -41,7 +38,6 @@ import (
 // It implements these interfaces from the suite package: SetupAllSuite, SetupTestSuite, TearDownAllSuite, TearDownTestSuite
 type workItemLinkSuite struct {
 	gormtestsupport.DBTestSuite
-	clean                    func()
 	svc                      *goa.Service
 	workItemLinkTypeCtrl     *WorkItemLinkTypeController
 	workItemLinkCategoryCtrl *WorkItemLinkCategoryController
@@ -87,8 +83,6 @@ func (s *workItemLinkSuite) cleanup() {
 // It sets up a database connection for all the tests in this suite without polluting global space.
 func (s *workItemLinkSuite) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
-	ctx := migration.NewMigrationContext(context.Background())
-	s.DBTestSuite.PopulateDBTestSuite(ctx)
 	s.appDB = gormapplication.NewGormDB(s.DB)
 }
 
@@ -96,7 +90,7 @@ func (s *workItemLinkSuite) SetupSuite() {
 // SetupTest ensures that none of the work item links that we will create already exist.
 // It will also make sure that some resources that we rely on do exists.
 func (s *workItemLinkSuite) SetupTest() {
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+	s.DBTestSuite.SetupTest()
 	svc := goa.New("TestWorkItemLinkType-Service")
 	require.NotNil(s.T(), svc)
 	s.workItemLinkTypeCtrl = NewWorkItemLinkTypeController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
@@ -177,11 +171,6 @@ func (s *workItemLinkSuite) createWorkItem(typeID uuid.UUID, name string) uuid.U
 	require.NotNil(s.T(), wi)
 	s.T().Logf("Created bug with ID: %d\n", *wi.Data.ID)
 	return *wi.Data.ID
-}
-
-// The TearDownTest method will be run after every test in the suite.
-func (s *workItemLinkSuite) TearDownTest() {
-	s.clean()
 }
 
 //-----------------------------------------------------------------------------

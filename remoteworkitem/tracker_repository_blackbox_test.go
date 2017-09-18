@@ -8,7 +8,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
-	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -17,15 +16,6 @@ import (
 type trackerRepoBlackBoxTest struct {
 	gormtestsupport.DBTestSuite
 	repo application.TrackerRepository
-
-	clean func()
-}
-
-// SetupSuite overrides the DBTestSuite's function but calls it before doing anything else
-func (s *trackerRepoBlackBoxTest) SetupSuite() {
-	s.DBTestSuite.SetupSuite()
-	ctx := migration.NewMigrationContext(context.Background())
-	s.DBTestSuite.PopulateDBTestSuite(ctx)
 }
 
 func TestRunTrackerRepoBlackBoxTest(t *testing.T) {
@@ -33,12 +23,8 @@ func TestRunTrackerRepoBlackBoxTest(t *testing.T) {
 }
 
 func (s *trackerRepoBlackBoxTest) SetupTest() {
+	s.DBTestSuite.SetupTest()
 	s.repo = remoteworkitem.NewTrackerRepository(s.DB)
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
-}
-
-func (test *trackerRepoBlackBoxTest) TearDownTest() {
-	test.clean()
 }
 
 func (s *trackerRepoBlackBoxTest) TestFailDeleteZeroID() {
