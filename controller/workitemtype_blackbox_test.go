@@ -86,6 +86,7 @@ func (s *workItemTypeSuite) SetupTest() {
 }
 
 func (s *workItemTypeSuite) TearDownTest() {
+	s.WaitForParallelTests()
 	s.clean()
 }
 
@@ -248,7 +249,7 @@ func (s *workItemTypeSuite) TestCreate() {
 	resetFn := s.DisableGormCallbacks()
 	defer resetFn()
 
-	s.T().Run("ok", func(t *testing.T) {
+	s.RunParallel("ok", func(t *testing.T) {
 		res, animal := s.createWorkItemTypeAnimal()
 		compareWithGolden(t, filepath.Join(s.testDir, "create", "animal.wit.golden.json"), animal)
 		compareWithGolden(t, filepath.Join(s.testDir, "create", "animal.headers.golden.json"), res.Header())
@@ -305,7 +306,7 @@ func (s *workItemTypeSuite) TestValidate() {
 		},
 	}
 
-	s.T().Run("valid", func(t *testing.T) {
+	s.RunParallel("valid", func(t *testing.T) {
 		// given
 		p := payload
 		p.Data.Attributes.Name = "Valid Name 0baa42b5-fa52-4ee2-847d-ef26b23fbb6e"
@@ -315,7 +316,7 @@ func (s *workItemTypeSuite) TestValidate() {
 		require.Nil(t, err)
 	})
 
-	s.T().Run("invalid - oversized name", func(t *testing.T) {
+	s.RunParallel("invalid - oversized name", func(t *testing.T) {
 		// given
 		p := payload
 		p.Data.Attributes.Name = testsupport.TestOversizedNameObj
@@ -329,7 +330,7 @@ func (s *workItemTypeSuite) TestValidate() {
 		compareWithGolden(t, filepath.Join(s.testDir, "validate", "invalid_oversized_name.golden.json"), gerr)
 	})
 
-	s.T().Run("invalid - name starts with underscore", func(t *testing.T) {
+	s.RunParallel("invalid - name starts with underscore", func(t *testing.T) {
 		// given
 		p := payload
 		p.Data.Attributes.Name = "_person"
@@ -354,7 +355,7 @@ func (s *workItemTypeSuite) TestShow() {
 	require.NotNil(s.T(), wit.Data)
 	require.NotNil(s.T(), wit.Data.ID)
 
-	s.T().Run("ok", func(t *testing.T) {
+	s.RunParallel("ok", func(t *testing.T) {
 		// when
 		res, actual := test.ShowWorkitemtypeOK(t, nil, nil, s.typeCtrl, *wit.Data.Relationships.Space.Data.ID, *wit.Data.ID, nil, nil)
 		// then
@@ -363,7 +364,7 @@ func (s *workItemTypeSuite) TestShow() {
 		compareWithGolden(t, filepath.Join(s.testDir, "show", "ok.headers.golden.json"), res.Header())
 	})
 
-	s.T().Run("ok - using expired IfModifiedSince header", func(t *testing.T) {
+	s.RunParallel("ok - using expired IfModifiedSince header", func(t *testing.T) {
 		// when
 		lastModified := app.ToHTTPTime(wit.Data.Attributes.CreatedAt.Add(-1 * time.Hour))
 		res, actual := test.ShowWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, *wit.Data.ID, &lastModified, nil)
@@ -373,7 +374,7 @@ func (s *workItemTypeSuite) TestShow() {
 		compareWithGolden(t, filepath.Join(s.testDir, "show", "ok_using_expired_lastmodified_header.headers.golden.json"), res.Header())
 	})
 
-	s.T().Run("ok - using IfNoneMatch header", func(t *testing.T) {
+	s.RunParallel("ok - using IfNoneMatch header", func(t *testing.T) {
 		// when
 		ifNoneMatch := "foo"
 		res, actual := test.ShowWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, *wit.Data.Relationships.Space.Data.ID, *wit.Data.ID, nil, &ifNoneMatch)
@@ -383,7 +384,7 @@ func (s *workItemTypeSuite) TestShow() {
 		compareWithGolden(t, filepath.Join(s.testDir, "show", "ok_using_expired_etag_header.headers.golden.json"), res.Header())
 	})
 
-	s.T().Run("not modified - using IfModifiedSince header", func(t *testing.T) {
+	s.RunParallel("not modified - using IfModifiedSince header", func(t *testing.T) {
 		// when
 		lastModified := app.ToHTTPTime(time.Now().Add(119 * time.Second))
 		res := test.ShowWorkitemtypeNotModified(s.T(), nil, nil, s.typeCtrl, *wit.Data.Relationships.Space.Data.ID, *wit.Data.ID, &lastModified, nil)
@@ -391,7 +392,7 @@ func (s *workItemTypeSuite) TestShow() {
 		compareWithGolden(t, filepath.Join(s.testDir, "show", "not_modified_using_if_modified_since_header.headers.golden.json"), res.Header())
 	})
 
-	s.T().Run("not modified - using IfNoneMatch header", func(t *testing.T) {
+	s.RunParallel("not modified - using IfNoneMatch header", func(t *testing.T) {
 		// when
 		etag := generateWorkItemTypeTag(*wit)
 		res := test.ShowWorkitemtypeNotModified(s.T(), nil, nil, s.typeCtrl, *wit.Data.Relationships.Space.Data.ID, *wit.Data.ID, nil, &etag)
@@ -407,7 +408,7 @@ func (s *workItemTypeSuite) TestList() {
 	_, witPerson := s.createWorkItemTypePerson()
 	require.NotNil(s.T(), witPerson)
 
-	s.T().Run("ok", func(t *testing.T) {
+	s.RunParallel("ok", func(t *testing.T) {
 		// when
 		// Paging in the format <start>,<limit>"
 		page := "0,-1"
@@ -426,7 +427,7 @@ func (s *workItemTypeSuite) TestList() {
 		assert.Equal(s.T(), generateWorkItemTypesTag(*witCollection), res.Header()[app.ETag][0])
 	})
 
-	s.T().Run("ok - using expired IfModifiedSince header", func(t *testing.T) {
+	s.RunParallel("ok - using expired IfModifiedSince header", func(t *testing.T) {
 		// when
 		// Paging in the format <start>,<limit>"
 		lastModified := app.ToHTTPTime(time.Now().Add(-1 * time.Hour))
@@ -445,7 +446,7 @@ func (s *workItemTypeSuite) TestList() {
 		assert.Equal(s.T(), generateWorkItemTypesTag(*witCollection), res.Header()[app.ETag][0])
 	})
 
-	s.T().Run("ok - using IfNoneMatch header", func(t *testing.T) {
+	s.RunParallel("ok - using IfNoneMatch header", func(t *testing.T) {
 		// when
 		// Paging in the format <start>,<limit>"
 		etag := "foo"
@@ -464,7 +465,7 @@ func (s *workItemTypeSuite) TestList() {
 		assert.Equal(s.T(), generateWorkItemTypesTag(*witCollection), res.Header()[app.ETag][0])
 	})
 
-	s.T().Run("not modified - using IfModifiedSince header", func(t *testing.T) {
+	s.RunParallel("not modified - using IfModifiedSince header", func(t *testing.T) {
 		// when/then
 		// Paging in the format <start>,<limit>"
 		lastModified := app.ToHTTPTime(getWorkItemTypeUpdatedAt(*witPerson))
@@ -472,7 +473,7 @@ func (s *workItemTypeSuite) TestList() {
 		test.ListWorkitemtypeNotModified(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, &page, &lastModified, nil)
 	})
 
-	s.T().Run("not modified - using IfNoneMatch header", func(t *testing.T) {
+	s.RunParallel("not modified - using IfNoneMatch header", func(t *testing.T) {
 		// given
 		// Paging in the format <start>,<limit>"
 		page := "0,-1"

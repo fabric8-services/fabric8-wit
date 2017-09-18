@@ -1,7 +1,12 @@
 package gormtestsupport
 
 import (
+	"context"
+	"flag"
 	"os"
+	"sync/atomic"
+	"testing"
+	"unsafe"
 
 	config "github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/log"
@@ -9,9 +14,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/models"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/workitem"
-
-	"context"
-
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq" // need to import postgres driver
 	"github.com/stretchr/testify/suite"
@@ -31,11 +33,13 @@ type DBTestSuite struct {
 	configFile    string
 	Configuration *config.ConfigurationData
 	DB            *gorm.DB
+	numSubTests   map[*testing.T]*int32
 }
 
 // SetupSuite implements suite.SetupAllSuite
 func (s *DBTestSuite) SetupSuite() {
 	resource.Require(s.T(), resource.Database)
+	s.numSubTests = make(map[*testing.T]*int32)
 	configuration, err := config.NewConfigurationData(s.configFile)
 	if err != nil {
 		log.Panic(nil, map[string]interface{}{
@@ -50,6 +54,38 @@ func (s *DBTestSuite) SetupSuite() {
 				"err":             err,
 				"postgres_config": configuration.GetPostgresConfigString(),
 			}, "failed to connect to the database")
+		}
+	}
+}
+
+var allowParallelSubTests = flag.Bool("allowParallelSubTests", true, "when set, parallel tests are enabled")
+
+// RunParallel does all the setup for running the function t as a parallel
+// subtest that takes care of setting up synchronization primitives. See the
+// description of waitGroup as well to find out about freeing of resources.
+func (s *DBTestSuite) RunParallel(name string, f func(subtest *testing.T)) bool {
+	if *allowParallelSubTests {
+		var newInt64 int32
+		unsafePtr := unsafe.Pointer(s.numSubTests[s.T()])
+		atomic.CompareAndSwapPointer(&unsafePtr, unsafe.Pointer(nil), unsafe.Pointer(&newInt64))
+		atomic.AddInt32(s.numSubTests[s.T()], 1)
+	}
+	return s.T().Run(name, func(t *testing.T) {
+		if *allowParallelSubTests {
+			t.Parallel()
+		}
+		f(t)
+		if *allowParallelSubTests {
+			atomic.AddInt32(s.numSubTests[s.T()], -1)
+		}
+	})
+}
+
+// WaitForTests waits for parallel subtests to finish.
+func (s *DBTestSuite) WaitForParallelTests() {
+	if *allowParallelSubTests {
+		numSubTestsPtr := s.numSubTests[s.T()]
+		for numSubTestsPtr != nil && *numSubTestsPtr > 0 {
 		}
 	}
 }
