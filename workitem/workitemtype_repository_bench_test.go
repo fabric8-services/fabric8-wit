@@ -4,12 +4,9 @@ import (
 	"testing"
 
 	"golang.org/x/net/context"
-
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	gormbench "github.com/fabric8-services/fabric8-wit/gormtestsupport/benchmark"
-	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/path"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
@@ -18,28 +15,16 @@ import (
 
 type BenchWorkItemTypeRepository struct {
 	gormbench.DBBenchSuite
-	clean func()
-	repo  workitem.WorkItemTypeRepository
-	ctx   context.Context
+	repo workitem.WorkItemTypeRepository
 }
 
 func BenchmarkRunWorkItemTypeRepository(b *testing.B) {
 	testsupport.Run(b, &BenchWorkItemTypeRepository{DBBenchSuite: gormbench.NewDBBenchSuite("../config.yaml")})
 }
 
-func (s *BenchWorkItemTypeRepository) SetupSuite() {
-	s.DBBenchSuite.SetupSuite()
-	s.ctx = migration.NewMigrationContext(context.Background())
-	s.DBBenchSuite.PopulateDBBenchSuite(s.ctx)
-}
-
 func (s *BenchWorkItemTypeRepository) SetupBenchmark() {
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+	s.DBBenchSuite.SetupBenchmark()
 	s.repo = workitem.NewWorkItemTypeRepository(s.DB)
-}
-
-func (s *BenchWorkItemTypeRepository) TearDownBenchmark() {
-	s.clean()
 }
 
 func (r *BenchWorkItemTypeRepository) BenchmarkLoad() {
