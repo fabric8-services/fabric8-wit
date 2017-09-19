@@ -24,7 +24,7 @@ func (fxt *TestFixture) deps(fns ...RecipeFunction) error {
 
 // CustomizeIdentityFunc is directly compatible with CustomizeEntityFunc
 // but it can only be used for the Identites() recipe-function.
-type CustomizeIdentityFunc func(fxt *TestFixture, idx int) error
+type CustomizeIdentityFunc CustomizeEntityFunc
 
 // Identities tells the test fixture to create at least n identity objects.
 //
@@ -64,7 +64,7 @@ func Identities(n int, fns ...CustomizeIdentityFunc) RecipeFunction {
 
 // CustomizeSpacesFunc is directly compatible with CustomizeEntityFunc
 // but it can only be used for the Spaces() recipe-function.
-type CustomizeSpaceFunc func(fxt *TestFixture, idx int) error
+type CustomizeSpaceFunc CustomizeEntityFunc
 
 // Spaces tells the test fixture to create at least n space objects. See also
 // the Identities() function for more general information on n and fns.
@@ -96,7 +96,7 @@ func Spaces(n int, fns ...CustomizeSpaceFunc) RecipeFunction {
 // CustomizeIterationFunc is directly compatible with
 // CustomizeEntityFunc but it can only be used for the Iterations()
 // recipe-function.
-type CustomizeIterationFunc func(fxt *TestFixture, idx int) error
+type CustomizeIterationFunc CustomizeEntityFunc
 
 // Iterations tells the test fixture to create at least n iteration objects. See
 // also the Identities() function for more general information on n and fns.
@@ -127,7 +127,7 @@ func Iterations(n int, fns ...CustomizeIterationFunc) RecipeFunction {
 
 // CustomizeAreaFunc is directly compatible with CustomizeEntityFunc but
 // it can only be used for the Areas() recipe-function.
-type CustomizeAreaFunc func(fxt *TestFixture, idx int) error
+type CustomizeAreaFunc CustomizeEntityFunc
 
 // Areas tells the test fixture to create at least n area objects. See
 // also the Identities() function for more general information on n and fns.
@@ -158,7 +158,7 @@ func Areas(n int, fns ...CustomizeAreaFunc) RecipeFunction {
 
 // CustomizeCodebaseFunc is directly compatible with CustomizeEntityFunc
 // but it can only be used for the Codebases() recipe-function.
-type CustomizeCodebaseFunc func(fxt *TestFixture, idx int) error
+type CustomizeCodebaseFunc CustomizeEntityFunc
 
 // Codebases tells the test fixture to create at least n codebase objects. See
 // also the Identities() function for more general information on n and fns.
@@ -189,7 +189,7 @@ func Codebases(n int, fns ...CustomizeCodebaseFunc) RecipeFunction {
 
 // CustomizeWorkItemFunc is directly compatible with CustomizeEntityFunc
 // but it can only be used for the WorkItems() recipe-function.
-type CustomizeWorkItemFunc func(fxt *TestFixture, idx int) error
+type CustomizeWorkItemFunc CustomizeEntityFunc
 
 // WorkItems tells the test fixture to create at least n work item objects. See
 // also the Identities() function for more general information on n and fns.
@@ -227,7 +227,7 @@ func WorkItems(n int, fns ...CustomizeWorkItemFunc) RecipeFunction {
 
 // CustomizeCommentFunc is directly compatible with CustomizeEntityFunc
 // but it can only be used for the Comments() recipe-function.
-type CustomizeCommentFunc func(fxt *TestFixture, idx int) error
+type CustomizeCommentFunc CustomizeEntityFunc
 
 // Comments tells the test fixture to create at least n comment objects. See
 // also the Identities() function for more general information on n and fns.
@@ -260,7 +260,7 @@ func Comments(n int, fns ...CustomizeWorkItemFunc) RecipeFunction {
 // CustomizeWorkItemTypeFunc is directly compatible with
 // CustomizeEntityFunc but it can only be used for the WorkItemTypes()
 // recipe-function.
-type CustomizeWorkItemTypeFunc func(fxt *TestFixture, idx int) error
+type CustomizeWorkItemTypeFunc CustomizeEntityFunc
 
 // WorkItemTypes tells the test fixture to create at least n work item type
 // objects. See also the Identities() function for more general information on n
@@ -297,7 +297,7 @@ func WorkItemTypes(n int, fns ...CustomizeWorkItemTypeFunc) RecipeFunction {
 // CustomizeWorkItemLinkTypeFunc is directly compatible with
 // CustomizeEntityFunc but it can only be used for the WorkItemLinkTypes()
 // recipe-function.
-type CustomizeWorkItemLinkTypeFunc func(fxt *TestFixture, idx int) error
+type CustomizeWorkItemLinkTypeFunc CustomizeEntityFunc
 
 // WorkItemLinkTypes tells the test fixture to create at least n work item link
 // type objects. See also the Identities() function for more general information
@@ -347,7 +347,7 @@ func WorkItemLinkTypes(n int, fns ...CustomizeWorkItemLinkTypeFunc) RecipeFuncti
 // CustomizeWorkItemCategoryFunc is directly compatible with
 // CustomizeEntityFunc but it can only be used for the
 // WorkItemLinkCategories() recipe-function.
-type CustomizeWorkItemLinkCategoryFunc func(fxt *TestFixture, idx int) error
+type CustomizeWorkItemLinkCategoryFunc CustomizeEntityFunc
 
 // WorkItemLinkCategories tells the test fixture to create at least n work item
 // link category objects. See also the Identities() function for more general
@@ -375,7 +375,7 @@ func WorkItemLinkCategories(n int, fns ...CustomizeWorkItemLinkCategoryFunc) Rec
 // CustomizeWorkItemLinkCllback is directly compatible with
 // CustomizeEntityFunc but it can only be used for the WorkItemLinks()
 // recipe-function.
-type CustomizeWorkItemLinkFunc func(fxt *TestFixture, idx int) error
+type CustomizeWorkItemLinkFunc CustomizeEntityFunc
 
 // WorkItemLinks tells the test fixture to create at least n work item link
 // objects. See also the Identities() function for more general information

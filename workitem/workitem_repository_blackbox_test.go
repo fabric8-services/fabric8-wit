@@ -4,14 +4,10 @@ import (
 	"fmt"
 	"testing"
 
-	"context"
-
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/codebase"
 	"github.com/fabric8-services/fabric8-wit/errors"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
-	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
@@ -27,10 +23,8 @@ import (
 type workItemRepoBlackBoxTest struct {
 	gormtestsupport.DBTestSuite
 	repo    workitem.WorkItemRepository
-	clean   func()
 	creator account.Identity
 	space   space.Space
-	ctx     context.Context
 }
 
 func TestRunWorkItemRepoBlackBoxTest(t *testing.T) {
@@ -38,33 +32,19 @@ func TestRunWorkItemRepoBlackBoxTest(t *testing.T) {
 	suite.Run(t, &workItemRepoBlackBoxTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
-// SetupSuite overrides the DBTestSuite's function but calls it before doing anything else
-// The SetupSuite method will run before the tests in the suite are run.
-// It sets up a database connection for all the tests in this suite without polluting global space.
-func (s *workItemRepoBlackBoxTest) SetupSuite() {
-	s.DBTestSuite.SetupSuite()
-	s.ctx = migration.NewMigrationContext(context.Background())
-	s.DBTestSuite.PopulateDBTestSuite(s.ctx)
-}
-
 func (s *workItemRepoBlackBoxTest) SetupTest() {
+	s.DBTestSuite.SetupTest()
 	s.repo = workitem.NewWorkItemRepository(s.DB)
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
-
 	testFxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1))
 	s.space = *testFxt.Spaces[0]
 	s.creator = *testFxt.Identities[0]
-}
-
-func (s *workItemRepoBlackBoxTest) TearDownTest() {
-	s.clean()
 }
 
 func (s *workItemRepoBlackBoxTest) TestFailSaveNilNumber() {
 	// Create at least 1 item to avoid RowsEffectedCheck
 	// given
 	wi, err := s.repo.Create(
-		s.ctx, s.space.ID, workitem.SystemBug,
+		s.Ctx, s.space.ID, workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle: "Title",
 			workitem.SystemState: workitem.SystemStateNew,
@@ -72,7 +52,7 @@ func (s *workItemRepoBlackBoxTest) TestFailSaveNilNumber() {
 	require.Nil(s.T(), err, "Could not create workitem")
 	// when
 	wi.Number = 0
-	_, err = s.repo.Save(s.ctx, s.space.ID, *wi, s.creator.ID)
+	_, err = s.repo.Save(s.Ctx, s.space.ID, *wi, s.creator.ID)
 	// then
 	assert.IsType(s.T(), errors.NotFoundError{}, errs.Cause(err))
 }
@@ -81,14 +61,14 @@ func (s *workItemRepoBlackBoxTest) TestFailLoadNilID() {
 	// Create at least 1 item to avoid RowsEffectedCheck
 	// given
 	_, err := s.repo.Create(
-		s.ctx, s.space.ID, workitem.SystemBug,
+		s.Ctx, s.space.ID, workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle: "Title",
 			workitem.SystemState: workitem.SystemStateNew,
 		}, s.creator.ID)
 	require.Nil(s.T(), err, "Could not create workitem")
 	// when
-	_, err = s.repo.LoadByID(s.ctx, uuid.Nil)
+	_, err = s.repo.LoadByID(s.Ctx, uuid.Nil)
 	// then
 	assert.IsType(s.T(), errors.NotFoundError{}, errs.Cause(err))
 }
@@ -96,7 +76,7 @@ func (s *workItemRepoBlackBoxTest) TestFailLoadNilID() {
 func (s *workItemRepoBlackBoxTest) TestSaveAssignees() {
 	// given
 	wi, err := s.repo.Create(
-		s.ctx, s.space.ID, workitem.SystemBug,
+		s.Ctx, s.space.ID, workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle:     "Title",
 			workitem.SystemState:     workitem.SystemStateNew,
@@ -104,7 +84,7 @@ func (s *workItemRepoBlackBoxTest) TestSaveAssignees() {
 		}, s.creator.ID)
 	require.Nil(s.T(), err, "Could not create workitem")
 	// when
-	wi, err = s.repo.LoadByID(s.ctx, wi.ID)
+	wi, err = s.repo.LoadByID(s.Ctx, wi.ID)
 	// then
 	require.Nil(s.T(), err)
 	assert.Equal(s.T(), "A", wi.Fields[workitem.SystemAssignees].([]interface{})[0])
@@ -113,16 +93,16 @@ func (s *workItemRepoBlackBoxTest) TestSaveAssignees() {
 func (s *workItemRepoBlackBoxTest) TestSaveForUnchangedCreatedDate() {
 	// given
 	wi, err := s.repo.Create(
-		s.ctx, s.space.ID, workitem.SystemBug,
+		s.Ctx, s.space.ID, workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle: "Title",
 			workitem.SystemState: workitem.SystemStateNew,
 		}, s.creator.ID)
 	require.Nil(s.T(), err, "Could not create workitem")
 	// when
-	wi, err = s.repo.LoadByID(s.ctx, wi.ID)
+	wi, err = s.repo.LoadByID(s.Ctx, wi.ID)
 	require.Nil(s.T(), err)
-	wiNew, err := s.repo.Save(s.ctx, s.space.ID, *wi, s.creator.ID)
+	wiNew, err := s.repo.Save(s.Ctx, s.space.ID, *wi, s.creator.ID)
 	// then
 	require.Nil(s.T(), err)
 	assert.Equal(s.T(), wi.Fields[workitem.SystemCreatedAt], wiNew.Fields[workitem.SystemCreatedAt])
@@ -131,7 +111,7 @@ func (s *workItemRepoBlackBoxTest) TestSaveForUnchangedCreatedDate() {
 func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionNoMarkup() {
 	// given
 	wi, err := s.repo.Create(
-		s.ctx, s.space.ID, workitem.SystemBug,
+		s.Ctx, s.space.ID, workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle:       "Title",
 			workitem.SystemDescription: rendering.NewMarkupContentFromLegacy("Description"),
@@ -139,7 +119,7 @@ func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionNoMarkup() {
 		}, s.creator.ID)
 	require.Nil(s.T(), err, "Could not create workitem")
 	// when
-	wi, err = s.repo.LoadByID(s.ctx, wi.ID)
+	wi, err = s.repo.LoadByID(s.Ctx, wi.ID)
 	// then
 	require.Nil(s.T(), err)
 	// workitem.WorkItem does not contain the markup associated with the description (yet)
@@ -153,7 +133,7 @@ func (s *workItemRepoBlackBoxTest) TestExistsWorkItem() {
 	t.Run("work item exists", func(t *testing.T) {
 		// given
 		wi, err := s.repo.Create(
-			s.ctx, s.space.ID, workitem.SystemBug,
+			s.Ctx, s.space.ID, workitem.SystemBug,
 			map[string]interface{}{
 				workitem.SystemTitle:       "Title",
 				workitem.SystemDescription: rendering.NewMarkupContentFromLegacy("Description"),
@@ -161,7 +141,7 @@ func (s *workItemRepoBlackBoxTest) TestExistsWorkItem() {
 			}, s.creator.ID)
 		require.Nil(s.T(), err, "Could not create workitem")
 		// when
-		err = s.repo.CheckExists(s.ctx, wi.ID.String())
+		err = s.repo.CheckExists(s.Ctx, wi.ID.String())
 		// then
 		require.Nil(t, err)
 	})
@@ -169,7 +149,7 @@ func (s *workItemRepoBlackBoxTest) TestExistsWorkItem() {
 	t.Run("work item doesn't exist", func(t *testing.T) {
 		t.Parallel()
 		// when
-		err := s.repo.CheckExists(s.ctx, "00000000-0000-0000-0000-000000000000")
+		err := s.repo.CheckExists(s.Ctx, "00000000-0000-0000-0000-000000000000")
 		// then
 
 		require.IsType(t, errors.NotFoundError{}, err)
@@ -180,7 +160,7 @@ func (s *workItemRepoBlackBoxTest) TestExistsWorkItem() {
 func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionMarkup() {
 	// given
 	wi, err := s.repo.Create(
-		s.ctx,
+		s.Ctx,
 		s.space.ID,
 		workitem.SystemBug,
 		map[string]interface{}{
@@ -191,7 +171,7 @@ func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionMarkup() {
 		s.creator.ID)
 	require.Nil(s.T(), err, "Could not create workitem")
 	// when
-	wi, err = s.repo.LoadByID(s.ctx, wi.ID)
+	wi, err = s.repo.LoadByID(s.Ctx, wi.ID)
 	// then
 	require.Nil(s.T(), err)
 	// workitem.WorkItem does not contain the markup associated with the description (yet)
@@ -205,7 +185,7 @@ func (s *workItemRepoBlackBoxTest) TestTypeChangeIsNotProhibitedOnDBLayer() {
 	// Create at least 1 item to avoid RowsAffectedCheck
 	// given
 	wi, err := s.repo.Create(
-		s.ctx, s.space.ID, workitem.SystemBug,
+		s.Ctx, s.space.ID, workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle: "Title",
 			workitem.SystemState: workitem.SystemStateNew,
@@ -213,7 +193,7 @@ func (s *workItemRepoBlackBoxTest) TestTypeChangeIsNotProhibitedOnDBLayer() {
 	require.Nil(s.T(), err)
 	// when
 	wi.Type = workitem.SystemFeature
-	newWi, err := s.repo.Save(s.ctx, s.space.ID, *wi, s.creator.ID)
+	newWi, err := s.repo.Save(s.Ctx, s.space.ID, *wi, s.creator.ID)
 	// then
 	require.Nil(s.T(), err)
 	assert.True(s.T(), uuid.Equal(workitem.SystemFeature, newWi.Type))
@@ -237,7 +217,7 @@ func (s *workItemRepoBlackBoxTest) TestGetCountsPerIteration() {
 	}))
 
 	// when
-	countsMap, _ := s.repo.GetCountsPerIteration(s.ctx, testFxt.Spaces[0].ID)
+	countsMap, _ := s.repo.GetCountsPerIteration(s.Ctx, testFxt.Spaces[0].ID)
 	// then
 	require.Len(s.T(), countsMap, 2)
 	require.Contains(s.T(), countsMap, testFxt.Iterations[0].ID.String())
@@ -263,7 +243,7 @@ func (s *workItemRepoBlackBoxTest) TestCodebaseAttributes() {
 	}
 
 	wi, err := s.repo.Create(
-		s.ctx, space.SystemSpace, workitem.SystemPlannerItem,
+		s.Ctx, space.SystemSpace, workitem.SystemPlannerItem,
 		map[string]interface{}{
 			workitem.SystemTitle:    title,
 			workitem.SystemState:    workitem.SystemStateNew,
@@ -271,7 +251,7 @@ func (s *workItemRepoBlackBoxTest) TestCodebaseAttributes() {
 		}, s.creator.ID)
 	require.Nil(s.T(), err, "Could not create workitem")
 	// when
-	wi, err = s.repo.LoadByID(s.ctx, wi.ID)
+	wi, err = s.repo.LoadByID(s.Ctx, wi.ID)
 	// then
 	require.Nil(s.T(), err)
 	assert.Equal(s.T(), title, wi.Fields[workitem.SystemTitle].(string))
@@ -298,7 +278,7 @@ func (s *workItemRepoBlackBoxTest) TestCodebaseInvalidRepo() {
 	}
 
 	_, err := s.repo.Create(
-		s.ctx, space.SystemSpace, workitem.SystemPlannerItem,
+		s.Ctx, space.SystemSpace, workitem.SystemPlannerItem,
 		map[string]interface{}{
 			workitem.SystemTitle:    title,
 			workitem.SystemState:    workitem.SystemStateNew,
@@ -310,14 +290,14 @@ func (s *workItemRepoBlackBoxTest) TestCodebaseInvalidRepo() {
 func (s *workItemRepoBlackBoxTest) TestLookupIDByNamedSpaceAndNumberOK() {
 	// given
 	wi, err := s.repo.Create(
-		s.ctx, s.space.ID, workitem.SystemBug,
+		s.Ctx, s.space.ID, workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle: "Title",
 			workitem.SystemState: workitem.SystemStateNew,
 		}, s.creator.ID)
 	require.Nil(s.T(), err, "Could not create workitem")
 	// when
-	wiID, spaceID, err := s.repo.LookupIDByNamedSpaceAndNumber(s.ctx, s.creator.Username, s.space.Name, wi.Number)
+	wiID, spaceID, err := s.repo.LookupIDByNamedSpaceAndNumber(s.Ctx, s.creator.Username, s.space.Name, wi.Number)
 	// then
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), wiID)
@@ -330,14 +310,14 @@ func (s *workItemRepoBlackBoxTest) TestLookupIDByNamedSpaceAndNumberOK() {
 func (s *workItemRepoBlackBoxTest) TestLookupIDByNamedSpaceAndNumberNotFound() {
 	// given
 	wi, err := s.repo.Create(
-		s.ctx, s.space.ID, workitem.SystemBug,
+		s.Ctx, s.space.ID, workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle: "Title",
 			workitem.SystemState: workitem.SystemStateNew,
 		}, s.creator.ID)
 	require.Nil(s.T(), err, "Could not create workitem")
 	// when
-	_, _, err = s.repo.LookupIDByNamedSpaceAndNumber(s.ctx, "foo", s.space.Name, wi.Number)
+	_, _, err = s.repo.LookupIDByNamedSpaceAndNumber(s.Ctx, "foo", s.space.Name, wi.Number)
 	// then
 	require.NotNil(s.T(), err)
 	assert.IsType(s.T(), errors.NotFoundError{}, errs.Cause(err))

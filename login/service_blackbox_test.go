@@ -1,41 +1,34 @@
 package login_test
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
 
-	"context"
-
-	"golang.org/x/oauth2"
-
+	"github.com/dgrijalva/jwt-go"
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	config "github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	. "github.com/fabric8-services/fabric8-wit/login"
-	"github.com/fabric8-services/fabric8-wit/migration"
-	"github.com/fabric8-services/fabric8-wit/test/token"
-	goajwt "github.com/goadesign/goa/middleware/security/jwt"
-
-	"github.com/dgrijalva/jwt-go"
 	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/test/token"
 	"github.com/goadesign/goa"
+	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/goadesign/goa/uuid"
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"golang.org/x/oauth2"
 )
 
 type serviceBlackBoxTest struct {
 	gormtestsupport.DBTestSuite
-	clean         func()
-	ctx           context.Context
 	loginService  KeycloakOAuthService
 	oauth         *oauth2.Config
 	configuration *config.ConfigurationData
@@ -50,26 +43,19 @@ func TestRunServiceBlackBoxTest(t *testing.T) {
 // It sets up a database connection for all the tests in this suite without polluting global space.
 func (s *serviceBlackBoxTest) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
-	s.ctx = migration.NewMigrationContext(context.Background())
-	s.DBTestSuite.PopulateDBTestSuite(s.ctx)
 
-	var err error
-	s.configuration, err = config.GetConfigurationData()
-	if err != nil {
-		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
-	}
 	req := &http.Request{Host: "api.service.domain.org"}
-	authEndpoint, err := s.configuration.GetKeycloakEndpointAuth(req)
+	authEndpoint, err := s.Configuration.GetKeycloakEndpointAuth(req)
 	if err != nil {
 		panic(err)
 	}
-	tokenEndpoint, err := s.configuration.GetKeycloakEndpointToken(req)
+	tokenEndpoint, err := s.Configuration.GetKeycloakEndpointToken(req)
 	if err != nil {
 		panic(err)
 	}
 	s.oauth = &oauth2.Config{
-		ClientID:     s.configuration.GetKeycloakClientID(),
-		ClientSecret: s.configuration.GetKeycloakSecret(),
+		ClientID:     s.Configuration.GetKeycloakClientID(),
+		ClientSecret: s.Configuration.GetKeycloakSecret(),
 		Scopes:       []string{"user:email"},
 		Endpoint: oauth2.Endpoint{
 			AuthURL:  authEndpoint,
@@ -81,14 +67,6 @@ func (s *serviceBlackBoxTest) SetupSuite() {
 	identityRepository := account.NewIdentityRepository(s.DB)
 	app := gormapplication.NewGormDB(s.DB)
 	s.loginService = NewKeycloakOAuthProvider(identityRepository, userRepository, token.TokenManager, app)
-}
-
-func (s *serviceBlackBoxTest) SetupTest() {
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
-}
-
-func (s *serviceBlackBoxTest) TearDownTest() {
-	s.clean()
 }
 
 func (s *serviceBlackBoxTest) TestKeycloakAuthorizationRedirect() {
@@ -115,7 +93,7 @@ func (s *serviceBlackBoxTest) TestKeycloakAuthorizationRedirect() {
 	}
 
 	r := &http.Request{Host: "demo.api.openshift.io"}
-	brokerEndpoint, err := s.configuration.GetKeycloakEndpointBroker(r)
+	brokerEndpoint, err := s.Configuration.GetKeycloakEndpointBroker(r)
 	require.Nil(s.T(), err)
 
 	err = s.loginService.Perform(authorizeCtx, s.oauth, brokerEndpoint, "", "", s.getValidRedirectURLs(), "")
@@ -127,7 +105,7 @@ func (s *serviceBlackBoxTest) TestKeycloakAuthorizationRedirect() {
 
 func (s *serviceBlackBoxTest) getValidRedirectURLs() string {
 	r := &http.Request{Host: "domain.com"}
-	whitelist, err := s.configuration.GetValidRedirectURLs(r)
+	whitelist, err := s.Configuration.GetValidRedirectURLs(r)
 	require.Nil(s.T(), err)
 	return whitelist
 }
@@ -156,7 +134,7 @@ func (s *serviceBlackBoxTest) TestKeycloakAuthorizationRedirectsToRedirectParam(
 	}
 
 	r := &http.Request{Host: "api.domain.io"}
-	brokerEndpoint, err := s.configuration.GetKeycloakEndpointBroker(r)
+	brokerEndpoint, err := s.Configuration.GetKeycloakEndpointBroker(r)
 	require.Nil(s.T(), err)
 
 	err = s.loginService.Perform(authorizeCtx, s.oauth, brokerEndpoint, "", "", s.getValidRedirectURLs(), "")
@@ -185,7 +163,7 @@ func (s *serviceBlackBoxTest) TestKeycloakAuthorizationWithNoRefererAndRedirectP
 	}
 
 	r := &http.Request{Host: "api.domain.io"}
-	brokerEndpoint, err := s.configuration.GetKeycloakEndpointBroker(r)
+	brokerEndpoint, err := s.Configuration.GetKeycloakEndpointBroker(r)
 	require.Nil(s.T(), err)
 
 	err = s.loginService.Perform(authorizeCtx, s.oauth, brokerEndpoint, "", "", s.getValidRedirectURLs(), "")
@@ -214,7 +192,7 @@ func (s *serviceBlackBoxTest) TestKeycloakAuthorizationWithNoValidRefererFails()
 	}
 
 	r := &http.Request{Host: "api.domain.io"}
-	brokerEndpoint, err := s.configuration.GetKeycloakEndpointBroker(r)
+	brokerEndpoint, err := s.Configuration.GetKeycloakEndpointBroker(r)
 	require.Nil(s.T(), err)
 
 	err = s.loginService.Perform(authorizeCtx, s.oauth, brokerEndpoint, "", "", config.DefaultValidRedirectURLs, "")
@@ -291,9 +269,9 @@ func keycloakLinkRedirect(s *serviceBlackBoxTest, provider string, redirect stri
 	require.Nil(s.T(), err)
 
 	r := &http.Request{Host: "api.example.org"}
-	brokerEndpoint, err := s.configuration.GetKeycloakEndpointBroker(r)
+	brokerEndpoint, err := s.Configuration.GetKeycloakEndpointBroker(r)
 	require.Nil(s.T(), err)
-	clientID := s.configuration.GetKeycloakClientID()
+	clientID := s.Configuration.GetKeycloakClientID()
 
 	err = s.loginService.Link(linkCtx, brokerEndpoint, clientID, s.getValidRedirectURLs())
 	require.Nil(s.T(), err)
@@ -332,9 +310,9 @@ func keycloakLinkCallbackRedirect(s *serviceBlackBoxTest, next string) {
 	require.Nil(s.T(), err)
 
 	r := &http.Request{Host: "api.example.org"}
-	brokerEndpoint, err := s.configuration.GetKeycloakEndpointBroker(r)
+	brokerEndpoint, err := s.Configuration.GetKeycloakEndpointBroker(r)
 	require.Nil(s.T(), err)
-	clientID := s.configuration.GetKeycloakClientID()
+	clientID := s.Configuration.GetKeycloakClientID()
 
 	err = s.loginService.LinkCallback(linkCtx, brokerEndpoint, clientID)
 	if next != "" {
@@ -376,7 +354,7 @@ func (s *serviceBlackBoxTest) TestInvalidState() {
 	require.Nil(s.T(), err)
 
 	r := &http.Request{Host: "demo.api.openshift.io"}
-	brokerEndpoint, err := s.configuration.GetKeycloakEndpointBroker(r)
+	brokerEndpoint, err := s.Configuration.GetKeycloakEndpointBroker(r)
 	require.Nil(s.T(), err)
 
 	err = s.loginService.Perform(authorizeCtx, s.oauth, brokerEndpoint, "", "", s.getValidRedirectURLs(), "")
@@ -415,7 +393,7 @@ func (s *serviceBlackBoxTest) TestInvalidOAuthAuthorizationCode() {
 	require.Nil(s.T(), err)
 
 	r := &http.Request{Host: "demo.api.openshift.io"}
-	brokerEndpoint, err := s.configuration.GetKeycloakEndpointBroker(r)
+	brokerEndpoint, err := s.Configuration.GetKeycloakEndpointBroker(r)
 	require.Nil(s.T(), err)
 
 	err = s.loginService.Perform(authorizeCtx, s.oauth, brokerEndpoint, "", "", s.getValidRedirectURLs(), "")
