@@ -20,12 +20,10 @@ import (
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
-	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/path"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
@@ -54,7 +52,6 @@ func TestSuiteWorkItem1(t *testing.T) {
 
 type WorkItemSuite struct {
 	gormtestsupport.DBTestSuite
-	clean          func()
 	workitemCtrl   app.WorkitemController
 	workitemsCtrl  app.WorkitemsController
 	spaceCtrl      app.SpaceController
@@ -62,29 +59,16 @@ type WorkItemSuite struct {
 	wi             *app.WorkItem
 	minimumPayload *app.UpdateWorkitemPayload
 	testIdentity   account.Identity
-	ctx            context.Context
 	repoWit        workitem.WorkItemRepository
 }
 
 func (s *WorkItemSuite) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
-	s.ctx = migration.NewMigrationContext(context.Background())
-	s.DBTestSuite.PopulateDBTestSuite(s.ctx)
 	s.repoWit = workitem.NewWorkItemRepository(s.DB)
 }
 
-func (s *WorkItemSuite) TearDownSuite() {
-	if s.DB != nil {
-		s.DB.Close()
-	}
-}
-
-func (s *WorkItemSuite) TearDownTest() {
-	s.clean()
-}
-
 func (s *WorkItemSuite) SetupTest() {
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+	s.DBTestSuite.SetupTest()
 	// create a test identity
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "WorkItemSuite setup user", "test provider")
 	require.Nil(s.T(), err)
@@ -786,11 +770,9 @@ func createOneRandomIteration(ctx context.Context, db *gorm.DB) *iteration.Itera
 		return nil
 	}
 
-	userActive := false
 	itr := iteration.Iteration{
-		Name:       "Sprint 101",
-		SpaceID:    space.ID,
-		UserActive: &userActive,
+		Name:    "Sprint 101",
+		SpaceID: space.ID,
 	}
 	err = iterationRepo.Create(ctx, &itr)
 	if err != nil {
@@ -828,12 +810,10 @@ func newChildIteration(ctx context.Context, db *gorm.DB, parentIteration *iterat
 	iterationRepo := iteration.NewIterationRepository(db)
 
 	parentPath := append(parentIteration.Path, parentIteration.ID)
-	userActive := false
 	itr := iteration.Iteration{
-		Name:       "Sprint 101",
-		SpaceID:    parentIteration.SpaceID,
-		Path:       parentPath,
-		UserActive: &userActive,
+		Name:    "Sprint 101",
+		SpaceID: parentIteration.SpaceID,
+		Path:    parentPath,
 	}
 	err := iterationRepo.Create(ctx, &itr)
 	if err != nil {
@@ -861,7 +841,6 @@ func ident(id uuid.UUID) *app.GenericData {
 
 type WorkItem2Suite struct {
 	gormtestsupport.DBTestSuite
-	clean          func()
 	workitemCtrl   app.WorkitemController
 	workitemsCtrl  app.WorkitemsController
 	linkCtrl       app.WorkItemLinkController
@@ -871,18 +850,11 @@ type WorkItem2Suite struct {
 	svc            *goa.Service
 	wi             *app.WorkItem
 	minimumPayload *app.UpdateWorkitemPayload
-	ctx            context.Context
 	notification   testsupport.NotificationChannel
 }
 
-func (s *WorkItem2Suite) SetupSuite() {
-	s.DBTestSuite.SetupSuite()
-	s.DBTestSuite.PopulateDBTestSuite(s.ctx)
-}
-
 func (s *WorkItem2Suite) SetupTest() {
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
-
+	s.DBTestSuite.SetupTest()
 	s.notification = testsupport.NotificationChannel{}
 	// create identity
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "WorkItem2Suite setup user", "test provider")
@@ -902,10 +874,6 @@ func (s *WorkItem2Suite) SetupTest() {
 	s.wi = wi.Data
 	s.minimumPayload = getMinimumRequiredUpdatePayload(s.wi)
 	//s.minimumReorderPayload = getMinimumRequiredReorderPayload(s.wi)
-}
-
-func (s *WorkItem2Suite) TearDownTest() {
-	s.clean()
 }
 
 // ========== Actual Test functions ==========
@@ -1796,6 +1764,11 @@ func assertSingleWorkItem(t *testing.T, createdWI app.WorkItemSingle, fetchedWI 
 	assert.NotNil(t, fetchedWI.Data.Links.Self)
 	assert.NotNil(t, fetchedWI.Data.Relationships.Creator.Data.ID)
 	assert.NotNil(t, fetchedWI.Data.Relationships.BaseType.Data.ID)
+	relatedLink := fmt.Sprintf("/%s/labels", fetchedWI.Data.ID)
+	require.NotNil(t, fetchedWI.Data.Relationships.Labels)
+	require.NotNil(t, fetchedWI.Data.Relationships.Labels.Links)
+	assert.Contains(t, *fetchedWI.Data.Relationships.Labels.Links.Related, relatedLink)
+	assert.Empty(t, fetchedWI.Data.Relationships.Labels.Data)
 }
 
 func assertResponseHeaders(t *testing.T, res http.ResponseWriter) (string, string, string) {
@@ -1963,7 +1936,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithRootAreaIfMissing() {
 		Path:    path.Path{rootArea.ID},
 	}
 	areaRepo := area.NewAreaRepository(s.DB)
-	err := areaRepo.Create(s.ctx, &childArea)
+	err := areaRepo.Create(s.Ctx, &childArea)
 	require.Nil(s.T(), err)
 	log.Info(nil, nil, "child area created")
 	childAreaID := childArea.ID.String()
@@ -2863,11 +2836,9 @@ func createSpaceWithDefaults(ctx context.Context, db *gorm.DB) (*space.Space, *i
 		return nil, nil, nil
 	}
 
-	userActive := false
 	itr := &iteration.Iteration{
-		Name:       sp.Name,
-		SpaceID:    sp.ID,
-		UserActive: &userActive,
+		Name:    sp.Name,
+		SpaceID: sp.ID,
 	}
 	err = iterationRepo.Create(ctx, itr)
 	if err != nil {

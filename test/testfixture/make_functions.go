@@ -133,11 +133,9 @@ func makeIterations(fxt *TestFixture) error {
 	iterationRepo := iteration.NewIterationRepository(fxt.db)
 	for i := range fxt.Iterations {
 		desc := "Some description"
-		f := false
 		fxt.Iterations[i] = &iteration.Iteration{
 			Name:        testsupport.CreateRandomValidTestName("iteration "),
 			Description: &desc,
-			UserActive:  &f,
 		}
 		if !fxt.isolatedCreation {
 			fxt.Iterations[i].SpaceID = fxt.Spaces[0].ID
@@ -246,6 +244,15 @@ func makeWorkItemTypes(fxt *TestFixture) error {
 					Required:    false,
 					Label:       "Assignees",
 					Description: "The users that are assigned to the work item",
+				},
+				workitem.SystemLabels: {
+					Type: &workitem.ListType{
+						SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
+						ComponentType: workitem.SimpleType{Kind: workitem.KindLabel},
+					},
+					Required:    false,
+					Label:       "Labels",
+					Description: "List of labels attached to the work item",
 				},
 				workitem.SystemState: {
 					Type: &workitem.EnumType{
@@ -440,6 +447,7 @@ func makeLabels(fxt *TestFixture) error {
 			Name:            testsupport.CreateRandomValidTestName("label "),
 			TextColor:       randColor(),
 			BackgroundColor: randColor(),
+			BorderColor:     randColor(),
 		}
 		if !fxt.isolatedCreation {
 			fxt.Labels[i].SpaceID = fxt.Spaces[0].ID

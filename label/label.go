@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/fabric8-services/fabric8-wit/application/repository"
+
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
@@ -50,6 +52,7 @@ func (m Label) TableName() string {
 type Repository interface {
 	Create(ctx context.Context, u *Label) error
 	List(ctx context.Context, spaceID uuid.UUID) ([]Label, error)
+	IsValid(ctx context.Context, id uuid.UUID) bool
 	Load(ctx context.Context, spaceID uuid.UUID, labelID uuid.UUID) (*Label, error)
 }
 
@@ -62,6 +65,9 @@ func NewLabelRepository(db *gorm.DB) Repository {
 type GormLabelRepository struct {
 	db *gorm.DB
 }
+
+// LabelTableName constant that holds table name of Labels
+const LabelTableName = "labels"
 
 // Create a new label
 func (m *GormLabelRepository) Create(ctx context.Context, u *Label) error {
@@ -93,6 +99,11 @@ func (m *GormLabelRepository) List(ctx context.Context, spaceID uuid.UUID) ([]La
 		return nil, err
 	}
 	return objs, nil
+}
+
+// IsValid returns true if the identity exists
+func (m *GormLabelRepository) IsValid(ctx context.Context, id uuid.UUID) bool {
+	return repository.CheckExists(ctx, m.db, LabelTableName, id.String()) == nil
 }
 
 // Load label in a space

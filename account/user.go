@@ -112,7 +112,7 @@ func (m *GormUserRepository) Create(ctx context.Context, u *User) error {
 		}, "unable to create the user")
 		return errs.WithStack(err)
 	}
-	log.Debug(ctx, map[string]interface{}{
+	log.Info(ctx, map[string]interface{}{
 		"user_id": u.ID,
 	}, "User created!")
 	return nil

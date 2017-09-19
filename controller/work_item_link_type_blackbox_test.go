@@ -15,7 +15,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
-	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
@@ -54,8 +53,6 @@ type workItemLinkTypeSuite struct {
 // It sets up a database connection for all the tests in this suite without polluting global space.
 func (s *workItemLinkTypeSuite) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
-	ctx := migration.NewMigrationContext(context.Background())
-	s.DBTestSuite.PopulateDBTestSuite(ctx)
 
 	svc := goa.New("workItemLinkTypeSuite-Service")
 	require.NotNil(s.T(), svc)
@@ -75,37 +72,10 @@ func (s *workItemLinkTypeSuite) SetupSuite() {
 	s.appDB = gormapplication.NewGormDB(s.DB)
 }
 
-// The TearDownSuite method will run after all the tests in the suite have been run
-// It tears down the database connection for all the tests in this suite.
-func (s *workItemLinkTypeSuite) TearDownSuite() {
-	if s.DB != nil {
-		s.DB.Close()
-	}
-}
-
-// cleanup removes all DB entries that will be created or have been created
-// with this test suite. We need to remove them completely and not only set the
-// "deleted_at" field, which is why we need the Unscoped() function.
-func (s *workItemLinkTypeSuite) cleanup() {
-	db := s.DB.Unscoped().Delete(&link.WorkItemLinkType{Name: s.linkTypeName})
-	require.Nil(s.T(), db.Error)
-	db = s.DB.Unscoped().Delete(&link.WorkItemLinkType{Name: s.linkName})
-	require.Nil(s.T(), db.Error)
-	db = db.Unscoped().Delete(&link.WorkItemLinkCategory{Name: s.categoryName})
-	require.Nil(s.T(), db.Error)
-
-	if s.spaceID != nil {
-		db = db.Unscoped().Delete(&space.Space{ID: *s.spaceID})
-	}
-	require.Nil(s.T(), db.Error)
-	//db = db.Unscoped().Delete(&link.WorkItemType{Name: "foo.bug"})
-
-}
-
 // The SetupTest method will be run before every test in the suite.
 // SetupTest ensures that none of the work item link types that we will create already exist.
 func (s *workItemLinkTypeSuite) SetupTest() {
-	s.cleanup()
+	s.DBTestSuite.SetupTest()
 	svc := goa.New("workItemLinkTypeSuite-Service")
 	require.NotNil(s.T(), svc)
 	s.linkTypeCtrl = NewWorkItemLinkTypeController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
@@ -121,11 +91,6 @@ func (s *workItemLinkTypeSuite) SetupTest() {
 	s.categoryName = "test-workitem-category" + uuid.NewV4().String()
 	s.linkTypeName = "test-workitem-link-type" + uuid.NewV4().String()
 	s.linkName = "test-workitem-link" + uuid.NewV4().String()
-}
-
-// The TearDownTest method will be run after every test in the suite.
-func (s *workItemLinkTypeSuite) TearDownTest() {
-	s.cleanup()
 }
 
 //-----------------------------------------------------------------------------

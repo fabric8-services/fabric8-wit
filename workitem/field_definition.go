@@ -23,6 +23,7 @@ const (
 	KindIteration         Kind = "iteration"
 	KindWorkitemReference Kind = "workitem"
 	KindUser              Kind = "user"
+	KindLabel             Kind = "label"
 	KindEnum              Kind = "enum"
 	KindList              Kind = "list"
 	KindMarkup            Kind = "markup"
@@ -182,7 +183,7 @@ func ConvertAnyToKind(any interface{}) (*Kind, error) {
 func ConvertStringToKind(k string) (*Kind, error) {
 	kind := Kind(k)
 	switch kind {
-	case KindString, KindInteger, KindFloat, KindInstant, KindDuration, KindURL, KindWorkitemReference, KindUser, KindEnum, KindList, KindIteration, KindMarkup, KindArea, KindCodebase:
+	case KindString, KindInteger, KindFloat, KindInstant, KindDuration, KindURL, KindWorkitemReference, KindUser, KindEnum, KindList, KindIteration, KindMarkup, KindArea, KindCodebase, KindLabel:
 		return &kind, nil
 	}
 	return nil, fmt.Errorf("kind '%s' is not a simple type", k)

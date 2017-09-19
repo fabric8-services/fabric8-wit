@@ -108,3 +108,20 @@ var _ = a.Resource("label", func() {
 		a.Response(d.Conflict, JSONAPIErrors)
 	})
 })
+
+var _ = a.Resource("work_item_labels", func() {
+	a.Parent("workitem")
+
+	a.Action("list", func() {
+		a.Routing(
+			a.GET("labels"),
+		)
+		a.Description("List labels associated with the given work item")
+		a.UseTrait("conditional")
+		a.Response(d.OK, labelList)
+		a.Response(d.NotModified)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+	})
+})

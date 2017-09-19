@@ -17,7 +17,6 @@ import (
 	config "github.com/fabric8-services/fabric8-wit/configuration"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/migration"
@@ -52,12 +51,10 @@ type searchBlackBoxTest struct {
 	gormtestsupport.DBTestSuite
 	db                             *gormapplication.GormDB
 	svc                            *goa.Service
-	clean                          func()
 	testIdentity                   account.Identity
 	wiRepo                         *workitem.GormWorkItemRepository
 	controller                     *SearchController
 	spaceBlackBoxTestConfiguration *config.ConfigurationData
-	ctx                            context.Context
 	testDir                        string
 }
 
@@ -73,9 +70,9 @@ func (s *searchBlackBoxTest) SetupSuite() {
 }
 
 func (s *searchBlackBoxTest) SetupTest() {
+	s.DBTestSuite.SetupTest()
+	s.testDir = filepath.Join("test-files", "search")
 	s.db = gormapplication.NewGormDB(s.DB)
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
-
 	var err error
 	// create a test identity
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "SearchBlackBoxTest user", "test provider")
@@ -90,14 +87,10 @@ func (s *searchBlackBoxTest) SetupTest() {
 	s.controller = NewSearchController(s.svc, gormapplication.NewGormDB(s.DB), spaceBlackBoxTestConfiguration)
 }
 
-func (s *searchBlackBoxTest) TearDownTest() {
-	s.clean()
-}
-
 func (s *searchBlackBoxTest) TestSearchWorkItems() {
 	// given
 	_, err := s.wiRepo.Create(
-		s.ctx,
+		s.Ctx,
 		space.SystemSpace,
 		workitem.SystemBug,
 		map[string]interface{}{
@@ -121,7 +114,7 @@ func (s *searchBlackBoxTest) TestSearchWorkItems() {
 func (s *searchBlackBoxTest) TestSearchPagination() {
 	// given
 	_, err := s.wiRepo.Create(
-		s.ctx,
+		s.Ctx,
 		space.SystemSpace,
 		workitem.SystemBug,
 		map[string]interface{}{
@@ -147,7 +140,7 @@ func (s *searchBlackBoxTest) TestSearchPagination() {
 
 func (s *searchBlackBoxTest) TestSearchWithEmptyValue() {
 	_, err := s.wiRepo.Create(
-		s.ctx,
+		s.Ctx,
 		space.SystemSpace,
 		workitem.SystemBug,
 		map[string]interface{}{
@@ -172,7 +165,7 @@ func (s *searchBlackBoxTest) TestSearchWithDomainPortCombination() {
 	description := "http://localhost:8080/detail/154687364529310 is related issue"
 	expectedDescription := rendering.NewMarkupContentFromLegacy(description)
 	_, err := s.wiRepo.Create(
-		s.ctx,
+		s.Ctx,
 		space.SystemSpace,
 		workitem.SystemBug,
 		map[string]interface{}{
@@ -196,7 +189,7 @@ func (s *searchBlackBoxTest) TestSearchURLWithoutPort() {
 	description := "This issue is related to http://localhost/detail/876394"
 	expectedDescription := rendering.NewMarkupContentFromLegacy(description)
 	_, err := s.wiRepo.Create(
-		s.ctx,
+		s.Ctx,
 		space.SystemSpace,
 		workitem.SystemBug,
 		map[string]interface{}{
@@ -221,7 +214,7 @@ func (s *searchBlackBoxTest) TestUnregisteredURLWithPort() {
 	description := "Related to http://some-other-domain:8080/different-path/154687364529310/ok issue"
 	expectedDescription := rendering.NewMarkupContentFromLegacy(description)
 	_, err := s.wiRepo.Create(
-		s.ctx,
+		s.Ctx,
 		space.SystemSpace,
 		workitem.SystemBug,
 		map[string]interface{}{
@@ -246,7 +239,7 @@ func (s *searchBlackBoxTest) TestUnwantedCharactersRelatedToSearchLogic() {
 	expectedDescription := rendering.NewMarkupContentFromLegacy("Related to http://example-domain:8080/different-path/ok issue")
 
 	_, err := s.wiRepo.Create(
-		s.ctx,
+		s.Ctx,
 		space.SystemSpace,
 		workitem.SystemBug,
 		map[string]interface{}{
@@ -390,7 +383,7 @@ func (s *searchBlackBoxTest) TestSearchWorkItemsSpaceContext() {
 	// WI for space 1
 	for i := 0; i < 3; i++ {
 		wi, err := s.wiRepo.Create(
-			s.ctx,
+			s.Ctx,
 			space1.ID,
 			workitem.SystemBug,
 			map[string]interface{}{
@@ -406,7 +399,7 @@ func (s *searchBlackBoxTest) TestSearchWorkItemsSpaceContext() {
 	// WI for space 2
 	for i := 0; i < 5; i++ {
 		wi, err := s.wiRepo.Create(
-			s.ctx,
+			s.Ctx,
 			space2.ID,
 			workitem.SystemBug,
 			map[string]interface{}{
@@ -475,7 +468,7 @@ func (s *searchBlackBoxTest) TestSearchWorkItemsWithoutSpaceContext() {
 	// 10 WI for space 1
 	for i := 0; i < 10; i++ {
 		wi, err := s.wiRepo.Create(
-			s.ctx,
+			s.Ctx,
 			space1.ID,
 			workitem.SystemBug,
 			map[string]interface{}{
@@ -491,7 +484,7 @@ func (s *searchBlackBoxTest) TestSearchWorkItemsWithoutSpaceContext() {
 	// 5 WI for space 2
 	for i := 0; i < 5; i++ {
 		wi, err := s.wiRepo.Create(
-			s.ctx,
+			s.Ctx,
 			space2.ID,
 			workitem.SystemBug,
 			map[string]interface{}{
@@ -514,7 +507,7 @@ func (s *searchBlackBoxTest) TestSearchWorkItemsWithoutSpaceContext() {
 func (s *searchBlackBoxTest) TestSearchFilter() {
 	// given
 	_, err := s.wiRepo.Create(
-		s.ctx,
+		s.Ctx,
 		space.SystemSpace,
 		workitem.SystemBug,
 		map[string]interface{}{
@@ -571,14 +564,14 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 		Name:    "Sprint 1",
 		SpaceID: *spaceInstance.ID,
 	}
-	iterationRepo.Create(s.ctx, &sprint1)
+	iterationRepo.Create(s.Ctx, &sprint1)
 	assert.NotEqual(s.T(), uuid.UUID{}, sprint1.ID)
 
 	sprint2 := iteration.Iteration{
 		Name:    "Sprint 2",
 		SpaceID: *spaceInstance.ID,
 	}
-	iterationRepo.Create(s.ctx, &sprint2)
+	iterationRepo.Create(s.Ctx, &sprint2)
 	assert.NotEqual(s.T(), uuid.UUID{}, sprint2.ID)
 
 	wirepo := workitem.NewWorkItemRepository(s.DB)
@@ -586,7 +579,7 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 	// create 3 WI with state "resolved" and iteration 1
 	for i := 0; i < 3; i++ {
 		_, err := wirepo.Create(
-			s.ctx, sprint1.SpaceID, workitem.SystemBug,
+			s.Ctx, sprint1.SpaceID, workitem.SystemBug,
 			map[string]interface{}{
 				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
 				workitem.SystemState:     workitem.SystemStateResolved,
@@ -599,7 +592,7 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 	// create 5 WI with state "closed" and iteration 2
 	for i := 0; i < 5; i++ {
 		_, err := wirepo.Create(
-			s.ctx, sprint2.SpaceID, workitem.SystemFeature,
+			s.Ctx, sprint2.SpaceID, workitem.SystemFeature,
 			map[string]interface{}{
 				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
 				workitem.SystemState:     workitem.SystemStateClosed,
@@ -930,7 +923,7 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 		assert.Len(s.T(), result.Data, 0)
 	})
 	_, err = wirepo.Create(
-		s.ctx, sprint2.SpaceID, workitem.SystemFeature,
+		s.Ctx, sprint2.SpaceID, workitem.SystemFeature,
 		map[string]interface{}{
 			workitem.SystemTitle:     fmt.Sprintf("Unassigned issue"),
 			workitem.SystemState:     workitem.SystemStateClosed,
