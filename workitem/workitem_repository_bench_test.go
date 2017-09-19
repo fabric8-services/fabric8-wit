@@ -8,9 +8,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/criteria"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	gormbench "github.com/fabric8-services/fabric8-wit/gormtestsupport/benchmark"
-	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	"github.com/fabric8-services/fabric8-wit/workitem"
@@ -20,9 +18,7 @@ import (
 
 type BenchWorkItemRepository struct {
 	gormbench.DBBenchSuite
-	clean     func()
 	repo      workitem.WorkItemRepository
-	ctx       context.Context
 	creatorID uuid.UUID
 }
 
@@ -30,14 +26,8 @@ func BenchmarkRunWorkItemRepository(b *testing.B) {
 	testsupport.Run(b, &BenchWorkItemRepository{DBBenchSuite: gormbench.NewDBBenchSuite("../config.yaml")})
 }
 
-func (s *BenchWorkItemRepository) SetupSuite() {
-	s.DBBenchSuite.SetupSuite()
-	s.ctx = migration.NewMigrationContext(context.Background())
-	s.DBBenchSuite.PopulateDBBenchSuite(s.ctx)
-}
-
 func (s *BenchWorkItemRepository) SetupBenchmark() {
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+	s.DBBenchSuite.SetupBenchmark()
 	s.repo = workitem.NewWorkItemRepository(s.DB)
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "jdoe", "test")
 	if err != nil {
@@ -46,13 +36,9 @@ func (s *BenchWorkItemRepository) SetupBenchmark() {
 	s.creatorID = testIdentity.ID
 }
 
-func (s *BenchWorkItemRepository) TearDownBenchmark() {
-	s.clean()
-}
-
 func (r *BenchWorkItemRepository) BenchmarkLoadWorkItem() {
 	wi, err := r.repo.Create(
-		r.ctx, space.SystemSpace, workitem.SystemBug,
+		r.Ctx, space.SystemSpace, workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle: "Title",
 			workitem.SystemState: workitem.SystemStateNew,

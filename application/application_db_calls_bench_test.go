@@ -5,14 +5,11 @@ import (
 	"testing"
 
 	_ "github.com/lib/pq"
-	"golang.org/x/net/context"
 
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	gormbench "github.com/fabric8-services/fabric8-wit/gormtestsupport/benchmark"
-	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 
@@ -32,9 +29,7 @@ type Space struct {
 
 type BenchDbOperations struct {
 	gormbench.DBBenchSuite
-	clean func()
 	repo  space.Repository
-	ctx   context.Context
 	appDB application.DB
 	dbPq  *sql.DB
 }
@@ -48,8 +43,6 @@ func BenchmarkRunDbOperations(b *testing.B) {
 // It sets up a database connection for all the tests in this suite without polluting global space.
 func (s *BenchDbOperations) SetupSuite() {
 	s.DBBenchSuite.SetupSuite()
-	s.ctx = migration.NewMigrationContext(context.Background())
-	s.DBBenchSuite.PopulateDBBenchSuite(s.ctx)
 	var err error
 	s.dbPq, err = sql.Open("postgres", "host=localhost port=5432 user=postgres password=mysecretpassword dbname=postgres sslmode=disable connect_timeout=5")
 	if err != nil {
@@ -61,13 +54,9 @@ func (s *BenchDbOperations) SetupSuite() {
 }
 
 func (s *BenchDbOperations) SetupBenchmark() {
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+	s.DBBenchSuite.SetupBenchmark()
 	s.repo = space.NewRepository(s.DB)
 	s.appDB = gormapplication.NewGormDB(s.DB)
-}
-
-func (s *BenchDbOperations) TearDownBenchmark() {
-	s.clean()
 }
 
 func (s *BenchDbOperations) BenchmarkPqSelectOneQuery() {

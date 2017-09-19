@@ -4,6 +4,7 @@ import (
 	"os"
 
 	config "github.com/fabric8-services/fabric8-wit/configuration"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/models"
@@ -12,7 +13,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq" // need to import postgres driver
-
 	"golang.org/x/net/context"
 )
 
@@ -30,6 +30,8 @@ type DBBenchSuite struct {
 	configFile    string
 	Configuration *config.ConfigurationData
 	DB            *gorm.DB
+	Ctx           context.Context
+	clean         func()
 }
 
 // SetupSuite implements suite.SetupAllSuite
@@ -51,10 +53,12 @@ func (s *DBBenchSuite) SetupSuite() {
 			}, "failed to connect to the database")
 		}
 	}
+	s.Ctx = migration.NewMigrationContext(context.Background())
+	s.populateDBBenchSuite(s.Ctx)
 }
 
-// PopulateDBBenchSuite populates the DB with common values
-func (s *DBBenchSuite) PopulateDBBenchSuite(ctx context.Context) {
+// populateDBBenchSuite populates the DB with common values
+func (s *DBBenchSuite) populateDBBenchSuite(ctx context.Context) {
 	if _, c := os.LookupEnv(resource.Database); c != false {
 		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
 			return migration.PopulateCommonTypes(ctx, tx, workitem.NewWorkItemTypeRepository(tx))
@@ -70,4 +74,12 @@ func (s *DBBenchSuite) PopulateDBBenchSuite(ctx context.Context) {
 // TearDownSuite implements suite.TearDownAllSuite
 func (s *DBBenchSuite) TearDownSuite() {
 	s.DB.Close()
+}
+
+func (s *DBBenchSuite) SetupBenchmark() {
+	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+}
+
+func (s *DBBenchSuite) TearDownBenchmark() {
+	s.clean()
 }
