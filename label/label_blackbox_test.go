@@ -88,6 +88,7 @@ func (s *TestLabelRepository) TestCreateLabelWithSameName() {
 	err := repo.Create(context.Background(), &l)
 	require.NotNil(s.T(), err)
 	_, ok := errors.Cause(err).(errs.DataConflictError)
+	assert.Contains(s.T(), err.Error(), "label already exists with name = TestCreateLabel")
 	assert.True(s.T(), ok)
 }
 
@@ -140,6 +141,31 @@ func (s *TestLabelRepository) TestSaveLabelNonExisting() {
 	_, err := repo.Save(context.Background(), fakeLabel)
 	require.NotNil(s.T(), err)
 	assert.Equal(s.T(), reflect.TypeOf(errs.NotFoundError{}), reflect.TypeOf(err))
+}
+
+func (s *TestLabelRepository) TestUpdateLabelWithSameName() {
+	testFxt := tf.NewTestFixture(s.T(), s.DB, tf.Labels(1))
+	repo := label.NewLabelRepository(s.DB)
+	name := "TestUpdateLabel"
+	l := label.Label{
+		SpaceID: testFxt.Spaces[0].ID,
+		Name:    name,
+	}
+	repo.Create(context.Background(), &l)
+	require.NotEqual(s.T(), uuid.Nil, l.ID)
+	require.Equal(s.T(), "#000000", l.TextColor)
+	require.Equal(s.T(), "#FFFFFF", l.BackgroundColor)
+	require.Equal(s.T(), "#000000", l.BorderColor)
+	require.False(s.T(), l.CreatedAt.After(time.Now()), "Label was not created, CreatedAt after Now()")
+	require.False(s.T(), l.UpdatedAt.After(time.Now()), "Label was not created, UpdatedAt after Now()")
+	require.Nil(s.T(), l.DeletedAt)
+
+	l.Name = testFxt.Labels[0].Name
+	_, err := repo.Save(context.Background(), l)
+	require.NotNil(s.T(), err)
+	_, ok := errors.Cause(err).(errs.DataConflictError)
+	assert.Contains(s.T(), err.Error(), "label already exists with name = label")
+	assert.True(s.T(), ok)
 }
 
 func (s *TestLabelRepository) TestListLabelBySpace() {

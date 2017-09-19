@@ -91,9 +91,11 @@ func (m *GormLabelRepository) Create(ctx context.Context, u *Label) error {
 
 // Save update the given label
 func (m *GormLabelRepository) Save(ctx context.Context, l Label) (*Label, error) {
-	defer goa.MeasureSince([]string{"goa", "db", "label", "update"}, time.Now())
+	defer goa.MeasureSince([]string{"goa", "db", "label", "save"}, time.Now())
 	lbl := Label{}
 	tx := m.db.Where("id = ?", l.ID).First(&lbl)
+	oldVersion := l.Version
+	l.Version = lbl.Version + 1
 	if tx.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
 			"label_id": l.ID,
@@ -107,14 +109,30 @@ func (m *GormLabelRepository) Save(ctx context.Context, l Label) (*Label, error)
 		}, "unknown error happened when searching the label")
 		return nil, errors.NewInternalError(ctx, err)
 	}
-	tx = tx.Save(&l)
+	tx = tx.Where("Version = ?", oldVersion).Save(&l)
 	if err := tx.Error; err != nil {
+		// combination of name and space ID should be unique
+		if gormsupport.IsUniqueViolation(err, "labels_name_space_id_unique_idx") {
+			log.Error(ctx, map[string]interface{}{
+				"err":      err,
+				"name":     l.Name,
+				"space_id": l.SpaceID,
+			}, "unable to create label because a label with same already exists in the space")
+			return nil, errors.NewDataConflictError(fmt.Sprintf("label already exists with name = %s , space_id = %s", l.Name, l.SpaceID.String()))
+		}
 		log.Error(ctx, map[string]interface{}{
 			"label_id": l.ID,
 			"err":      err,
 		}, "unable to save the label")
 		return nil, errors.NewInternalError(ctx, err)
 	}
+	if tx.RowsAffected == 0 {
+		return nil, errors.NewVersionConflictError("version conflict")
+	}
+	log.Info(ctx, map[string]interface{}{
+		"label_id": l.ID,
+	}, "label updated successfully")
+
 	return &l, nil
 }
 
@@ -135,12 +153,22 @@ func (m *GormLabelRepository) IsValid(ctx context.Context, id uuid.UUID) bool {
 }
 
 // Load label in a space
-func (m *GormLabelRepository) Load(ctx context.Context, labelID uuid.UUID) (*Label, error) {
+func (m *GormLabelRepository) Load(ctx context.Context, ID uuid.UUID) (*Label, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "label", "show"}, time.Now())
-	var lbl Label
-	err := m.db.Where("id = ?", labelID).Find(&lbl).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
-		return nil, err
+	lbl := Label{}
+	tx := m.db.Where("id = ?", ID).First(&lbl)
+	if tx.RecordNotFound() {
+		log.Error(ctx, map[string]interface{}{
+			"label_id": ID.String(),
+		}, "state or known referer was empty")
+		return nil, errors.NewNotFoundError("label", ID.String())
+	}
+	if tx.Error != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err":      tx.Error,
+			"label_id": ID.String(),
+		}, "unable to load the label by ID")
+		return nil, errors.NewInternalError(ctx, tx.Error)
 	}
 	return &lbl, nil
 }

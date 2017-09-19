@@ -6,6 +6,7 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/label"
 	"github.com/fabric8-services/fabric8-wit/login"
@@ -161,16 +162,36 @@ func ConvertLabelSimple(request *http.Request, labelID interface{}) *app.Generic
 	}
 }
 
+func validateUpdateLabel(ctx *app.UpdateLabelContext) error {
+	if ctx.Payload.Data == nil {
+		return errors.NewBadParameterError("data", nil).Expected("not nil")
+	}
+	if ctx.Payload.Data.Attributes == nil {
+		return errors.NewBadParameterError("data.attributes", nil).Expected("not nil")
+	}
+	if ctx.Payload.Data.Attributes.Version == nil {
+		return errors.NewBadParameterError("data.attributes.version", nil).Expected("not nil")
+	}
+	return nil
+}
+
 // Update runs the update action.
 func (c *LabelController) Update(ctx *app.UpdateLabelContext) error {
 	_, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
+	err = validateUpdateLabel(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		lbl, err := appl.Labels().Load(ctx.Context, ctx.ID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		if lbl.Version != *ctx.Payload.Data.Attributes.Version {
+			return jsonapi.JSONErrorResponse(ctx, errors.NewVersionConflictError("version conflict"))
 		}
 		if ctx.Payload.Data.Attributes.Name != nil {
 			lbl.Name = strings.TrimSpace(*ctx.Payload.Data.Attributes.Name)

@@ -16,6 +16,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
+	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -106,18 +107,60 @@ func (rest *TestLabelREST) TestUpdateLabel() {
 	payload := app.UpdateLabelPayload{
 		Data: &app.Label{
 			Attributes: &app.LabelAttributes{
-				Name: &newName,
+				Name:    &newName,
+				Version: &testFxt.Labels[0].Version,
 			},
 			ID:   &testFxt.Labels[0].ID,
 			Type: label.APIStringTypeLabels,
 		},
 	}
-	_, created := test.UpdateLabelOK(rest.T(), svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Labels[0].ID, &payload)
-	assert.Equal(rest.T(), newName, *created.Data.Attributes.Name)
-	assert.Equal(rest.T(), testFxt.Labels[0].TextColor, *created.Data.Attributes.TextColor)
-	assert.Equal(rest.T(), testFxt.Labels[0].BackgroundColor, *created.Data.Attributes.BackgroundColor)
-	assert.Equal(rest.T(), testFxt.Labels[0].BorderColor, *created.Data.Attributes.BorderColor)
-	assert.False(rest.T(), created.Data.Attributes.UpdatedAt.After(time.Now()), "Label was not updated, UpdatedAt after Now()")
+	_, updated := test.UpdateLabelOK(rest.T(), svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Labels[0].ID, &payload)
+	assert.Equal(rest.T(), newName, *updated.Data.Attributes.Name)
+	assert.Equal(rest.T(), testFxt.Labels[0].TextColor, *updated.Data.Attributes.TextColor)
+	assert.Equal(rest.T(), testFxt.Labels[0].BackgroundColor, *updated.Data.Attributes.BackgroundColor)
+	assert.Equal(rest.T(), testFxt.Labels[0].BorderColor, *updated.Data.Attributes.BorderColor)
+	assert.False(rest.T(), updated.Data.Attributes.UpdatedAt.After(time.Now()), "Label was not updated, UpdatedAt after Now()")
+}
+
+func (rest *TestLabelREST) TestUpdateLabelWithBadParameter() {
+	testFxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Labels(1))
+	i, err := tf.NewFixture(rest.DB, tf.Identities(1))
+	require.Nil(rest.T(), err)
+	svc := testsupport.ServiceAsUser("Label-Service", *i.Identities[0])
+
+	ctrl := NewLabelController(svc, rest.db, rest.Configuration)
+
+	payload := app.UpdateLabelPayload{
+		Data: &app.Label{
+			Attributes: &app.LabelAttributes{},
+			Type:       label.APIStringTypeLabels,
+		},
+	}
+
+	_, jerrs := test.UpdateLabelBadRequest(rest.T(), svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Labels[0].ID, &payload)
+	require.NotNil(rest.T(), jerrs)
+	require.Len(rest.T(), jerrs.Errors, 1)
+	require.Contains(rest.T(), jerrs.Errors[0].Detail, "Bad value for parameter 'data.attributes.version'")
+}
+
+func (rest *TestLabelREST) TestUpdateLabelWithUnauthorized() {
+	testFxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Labels(1))
+	svc := goa.New("Label-Service")
+	ctrl := NewLabelController(svc, rest.db, rest.Configuration)
+
+	payload := app.UpdateLabelPayload{
+		Data: &app.Label{
+			Attributes: &app.LabelAttributes{
+				Version: &testFxt.Labels[0].Version,
+			},
+			Type: label.APIStringTypeLabels,
+		},
+	}
+
+	_, jerrs := test.UpdateLabelUnauthorized(rest.T(), svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Labels[0].ID, &payload)
+	require.NotNil(rest.T(), jerrs)
+	require.Len(rest.T(), jerrs.Errors, 1)
+	require.Contains(rest.T(), jerrs.Errors[0].Detail, "Missing token manager")
 }
 
 func (rest *TestLabelREST) TestListLabel() {
