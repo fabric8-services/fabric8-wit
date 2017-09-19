@@ -3,7 +3,6 @@ package workitem_test
 import (
 	"testing"
 
-	"golang.org/x/net/context"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	gormbench "github.com/fabric8-services/fabric8-wit/gormtestsupport/benchmark"
@@ -11,6 +10,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	"github.com/fabric8-services/fabric8-wit/workitem"
+	"golang.org/x/net/context"
 )
 
 type BenchWorkItemTypeRepository struct {
