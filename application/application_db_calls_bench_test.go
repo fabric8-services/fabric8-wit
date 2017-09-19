@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	_ "github.com/lib/pq"
-	"golang.org/x/net/context"
 
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
@@ -30,9 +29,7 @@ type Space struct {
 
 type BenchDbOperations struct {
 	gormbench.DBBenchSuite
-	clean func()
 	repo  space.Repository
-	ctx   context.Context
 	appDB application.DB
 	dbPq  *sql.DB
 }
