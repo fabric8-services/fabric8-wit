@@ -9,24 +9,18 @@ import (
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/resource"
-	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-var reqLong *goa.RequestData
-var reqShort *goa.RequestData
+var reqLong *http.Request
+var reqShort *http.Request
 var config *ConfigurationData
 
 func init() {
-
 	// ensure that the content here is executed only once.
-	reqLong = &goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}
-	reqShort = &goa.RequestData{
-		Request: &http.Request{Host: "api.domain.org"},
-	}
+	reqLong = &http.Request{Host: "api.service.domain.org"}
+	reqShort = &http.Request{Host: "api.domain.org"}
 	resetConfiguration()
 }
 
@@ -65,11 +59,7 @@ func TestGetKeycloakHttpsURLOK(t *testing.T) {
 
 	r, err := http.NewRequest("", "https://sso.domain.org", nil)
 	require.Nil(t, err)
-	req := &goa.RequestData{
-		Request: r,
-	}
-
-	url, err := config.getServiceURL(req, config.GetKeycloakDomainPrefix(), "somepath")
+	url, err := config.getServiceURL(r, config.GetKeycloakDomainPrefix(), "somepath")
 	assert.Nil(t, err)
 	assert.Equal(t, "https://sso.domain.org/somepath", url)
 }
@@ -77,10 +67,7 @@ func TestGetKeycloakHttpsURLOK(t *testing.T) {
 func TestGetKeycloakURLForTooShortHostFails(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
-
-	r := &goa.RequestData{
-		Request: &http.Request{Host: "org"},
-	}
+	r := &http.Request{Host: "org"}
 	_, err := config.getServiceURL(r, config.GetKeycloakDomainPrefix(), "somepath")
 	assert.NotNil(t, err)
 }
@@ -186,11 +173,7 @@ func TestRedirectURLsForLocalhostRequestAreExcepted(t *testing.T) {
 func validateRedirectURL(t *testing.T, request string, redirect string) bool {
 	r, err := http.NewRequest("", request, nil)
 	require.Nil(t, err)
-	req := &goa.RequestData{
-		Request: r,
-	}
-
-	whitelist, err := config.checkLocalhostRedirectException(req)
+	whitelist, err := config.checkLocalhostRedirectException(r)
 	require.Nil(t, err)
 
 	matched, err := regexp.MatchString(whitelist, redirect)

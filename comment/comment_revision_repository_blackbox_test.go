@@ -4,16 +4,11 @@ import (
 	"context"
 	"testing"
 
-	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/comment"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
-	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
-	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	uuid "github.com/satori/go.uuid"
-
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -26,65 +21,29 @@ func TestRunCommentRevisionRepositoryBlackBoxTest(t *testing.T) {
 
 type revisionRepositoryBlackBoxTest struct {
 	gormtestsupport.DBTestSuite
-	repository         comment.Repository
-	revisionRepository comment.RevisionRepository
-	clean              func()
-	testIdentity1      account.Identity
-	testIdentity2      account.Identity
-	testIdentity3      account.Identity
-}
-
-// SetupSuite overrides the DBTestSuite's function but calls it before doing anything else
-// The SetupSuite method will run before the tests in the suite are run.
-// It sets up a database connection for all the tests in this suite without polluting global space.
-func (s *revisionRepositoryBlackBoxTest) SetupSuite() {
-	s.DBTestSuite.SetupSuite()
-	ctx := migration.NewMigrationContext(context.Background())
-	s.DBTestSuite.PopulateDBTestSuite(ctx)
-}
-
-func (s *revisionRepositoryBlackBoxTest) SetupTest() {
-	s.repository = comment.NewRepository(s.DB)
-	s.revisionRepository = comment.NewRevisionRepository(s.DB)
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
-	testIdentity1, err := testsupport.CreateTestIdentity(s.DB, "jdoe1", "test")
-	require.Nil(s.T(), err)
-	s.testIdentity1 = *testIdentity1
-	testIdentity2, err := testsupport.CreateTestIdentity(s.DB, "jdoe2", "test")
-	require.Nil(s.T(), err)
-	s.testIdentity2 = *testIdentity2
-	testIdentity3, err := testsupport.CreateTestIdentity(s.DB, "jdoe3", "test")
-	require.Nil(s.T(), err)
-	s.testIdentity3 = *testIdentity3
-}
-
-func (s *revisionRepositoryBlackBoxTest) TearDownTest() {
-	s.clean()
 }
 
 func (s *revisionRepositoryBlackBoxTest) TestStoreCommentRevisions() {
-	// given
-	// create a comment
-	c := newComment(uuid.NewV4(), "Body", rendering.SystemMarkupMarkdown)
-	err := s.repository.Create(context.Background(), c, s.testIdentity1.ID)
-	require.Nil(s.T(), err)
+	// given a comment
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(3), tf.Comments(1))
+	c := *fxt.Comments[0]
 	// modify the comment
+	repository := comment.NewRepository(s.DB)
+	revisionRepository := comment.NewRevisionRepository(s.DB)
 	c.Body = "Updated body"
 	c.Markup = rendering.SystemMarkupPlainText
-	err = s.repository.Save(
-		context.Background(), c, s.testIdentity2.ID)
+	err := repository.Save(context.Background(), &c, fxt.Identities[1].ID)
 	require.Nil(s.T(), err)
 	// modify again the comment
 	c.Body = "Updated body2"
 	c.Markup = rendering.SystemMarkupMarkdown
-	err = s.repository.Save(context.Background(), c, s.testIdentity2.ID)
+	err = repository.Save(context.Background(), &c, fxt.Identities[1].ID)
 	require.Nil(s.T(), err)
 	// delete the comment
-	err = s.repository.Delete(
-		context.Background(), c.ID, s.testIdentity3.ID)
+	err = repository.Delete(context.Background(), c.ID, fxt.Identities[2].ID)
 	require.Nil(s.T(), err)
 	// when
-	commentRevisions, err := s.revisionRepository.List(context.Background(), c.ID)
+	commentRevisions, err := revisionRepository.List(context.Background(), c.ID)
 	// then
 	require.Nil(s.T(), err)
 	require.Len(s.T(), commentRevisions, 4)
@@ -93,9 +52,9 @@ func (s *revisionRepositoryBlackBoxTest) TestStoreCommentRevisions() {
 	assert.Equal(s.T(), c.ID, revision1.CommentID)
 	assert.Equal(s.T(), c.ParentID, revision1.CommentParentID)
 	assert.Equal(s.T(), comment.RevisionTypeCreate, revision1.Type)
-	assert.Equal(s.T(), "Body", *revision1.CommentBody)
+	assert.Equal(s.T(), fxt.Comments[0].Body, *revision1.CommentBody)
 	assert.Equal(s.T(), rendering.SystemMarkupMarkdown, *revision1.CommentMarkup)
-	assert.Equal(s.T(), s.testIdentity1.ID, revision1.ModifierIdentity)
+	assert.Equal(s.T(), fxt.Identities[0].ID, revision1.ModifierIdentity)
 	// revision 2
 	revision2 := commentRevisions[1]
 	assert.Equal(s.T(), c.ID, revision2.CommentID)
@@ -103,7 +62,7 @@ func (s *revisionRepositoryBlackBoxTest) TestStoreCommentRevisions() {
 	assert.Equal(s.T(), comment.RevisionTypeUpdate, revision2.Type)
 	assert.Equal(s.T(), "Updated body", *revision2.CommentBody)
 	assert.Equal(s.T(), rendering.SystemMarkupPlainText, *revision2.CommentMarkup)
-	assert.Equal(s.T(), s.testIdentity2.ID, revision2.ModifierIdentity)
+	assert.Equal(s.T(), fxt.Identities[1].ID, revision2.ModifierIdentity)
 	// revision 3
 	revision3 := commentRevisions[2]
 	assert.Equal(s.T(), c.ID, revision3.CommentID)
@@ -111,7 +70,7 @@ func (s *revisionRepositoryBlackBoxTest) TestStoreCommentRevisions() {
 	assert.Equal(s.T(), comment.RevisionTypeUpdate, revision3.Type)
 	assert.Equal(s.T(), "Updated body2", *revision3.CommentBody)
 	assert.Equal(s.T(), rendering.SystemMarkupMarkdown, *revision3.CommentMarkup)
-	assert.Equal(s.T(), s.testIdentity2.ID, revision3.ModifierIdentity)
+	assert.Equal(s.T(), fxt.Identities[1].ID, revision3.ModifierIdentity)
 	// revision 4
 	revision4 := commentRevisions[3]
 	assert.Equal(s.T(), c.ID, revision4.CommentID)
@@ -119,5 +78,5 @@ func (s *revisionRepositoryBlackBoxTest) TestStoreCommentRevisions() {
 	assert.Equal(s.T(), comment.RevisionTypeDelete, revision4.Type)
 	assert.Nil(s.T(), revision4.CommentBody)
 	assert.Nil(s.T(), revision4.CommentMarkup)
-	assert.Equal(s.T(), s.testIdentity3.ID, revision4.ModifierIdentity)
+	assert.Equal(s.T(), fxt.Identities[2].ID, revision4.ModifierIdentity)
 }

@@ -340,6 +340,15 @@ func GetMigrations() Migrations {
 	// Version 72
 	m = append(m, steps{ExecuteSQLFile("072-adds-active-flag-in-iteration.sql")})
 
+	// Version 73
+	m = append(m, steps{ExecuteSQLFile("073-labels.sql")})
+
+	// Version 74
+	m = append(m, steps{ExecuteSQLFile("074-label-border-color.sql")})
+
+	// Version 75
+	m = append(m, steps{ExecuteSQLFile("075-label-unique-name.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -744,6 +753,15 @@ func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.Gor
 			Required:    false,
 			Label:       "Assignees",
 			Description: "The users that are assigned to the work item",
+		},
+		workitem.SystemLabels: {
+			Type: &workitem.ListType{
+				SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
+				ComponentType: workitem.SimpleType{Kind: workitem.KindLabel},
+			},
+			Required:    false,
+			Label:       "Labels",
+			Description: "List of labels attached to the work item",
 		},
 		workitem.SystemState: {
 			Type: &workitem.EnumType{

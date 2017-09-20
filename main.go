@@ -17,7 +17,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/auth"
-	config "github.com/fabric8-services/fabric8-wit/configuration"
+	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/controller"
 	witmiddleware "github.com/fabric8-services/fabric8-wit/goamiddleware"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
@@ -68,7 +68,7 @@ func main() {
 		}
 	}
 
-	configuration, err := config.NewConfigurationData(configFilePath)
+	config, err := configuration.NewConfigurationData(configFilePath)
 	if err != nil {
 		log.Panic(nil, map[string]interface{}{
 			"config_file_path": configFilePath,
@@ -81,42 +81,42 @@ func main() {
 	}
 
 	// Initialized developer mode flag and log level for the logger
-	log.InitializeLogger(configuration.IsLogJSON(), configuration.GetLogLevel())
+	log.InitializeLogger(config.IsLogJSON(), config.GetLogLevel())
 
 	printUserInfo()
 
 	var db *gorm.DB
 	for {
-		db, err = gorm.Open("postgres", configuration.GetPostgresConfigString())
+		db, err = gorm.Open("postgres", config.GetPostgresConfigString())
 		if err != nil {
 			db.Close()
 			log.Logger().Errorf("ERROR: Unable to open connection to database %v", err)
-			log.Logger().Infof("Retrying to connect in %v...", configuration.GetPostgresConnectionRetrySleep())
-			time.Sleep(configuration.GetPostgresConnectionRetrySleep())
+			log.Logger().Infof("Retrying to connect in %v...", config.GetPostgresConnectionRetrySleep())
+			time.Sleep(config.GetPostgresConnectionRetrySleep())
 		} else {
 			defer db.Close()
 			break
 		}
 	}
 
-	if configuration.IsPostgresDeveloperModeEnabled() && log.IsDebug() {
+	if config.IsPostgresDeveloperModeEnabled() && log.IsDebug() {
 		db = db.Debug()
 	}
 
-	if configuration.GetPostgresConnectionMaxIdle() > 0 {
-		log.Logger().Infof("Configured connection pool max idle %v", configuration.GetPostgresConnectionMaxIdle())
-		db.DB().SetMaxIdleConns(configuration.GetPostgresConnectionMaxIdle())
+	if config.GetPostgresConnectionMaxIdle() > 0 {
+		log.Logger().Infof("Configured connection pool max idle %v", config.GetPostgresConnectionMaxIdle())
+		db.DB().SetMaxIdleConns(config.GetPostgresConnectionMaxIdle())
 	}
-	if configuration.GetPostgresConnectionMaxOpen() > 0 {
-		log.Logger().Infof("Configured connection pool max open %v", configuration.GetPostgresConnectionMaxOpen())
-		db.DB().SetMaxOpenConns(configuration.GetPostgresConnectionMaxOpen())
+	if config.GetPostgresConnectionMaxOpen() > 0 {
+		log.Logger().Infof("Configured connection pool max open %v", config.GetPostgresConnectionMaxOpen())
+		db.DB().SetMaxOpenConns(config.GetPostgresConnectionMaxOpen())
 	}
 
 	// Set the database transaction timeout
-	application.SetDatabaseTransactionTimeout(configuration.GetPostgresTransactionTimeout())
+	application.SetDatabaseTransactionTimeout(config.GetPostgresTransactionTimeout())
 
 	// Migrate the schema
-	err = migration.Migrate(db.DB(), configuration.GetPostgresDatabase())
+	err = migration.Migrate(db.DB(), config.GetPostgresDatabase())
 	if err != nil {
 		log.Panic(nil, map[string]interface{}{
 			"err": err,
@@ -129,7 +129,7 @@ func main() {
 	}
 
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
-	if configuration.GetPopulateCommonTypes() {
+	if config.GetPopulateCommonTypes() {
 		ctx := migration.NewMigrationContext(context.Background())
 
 		if err := models.Transactional(db, func(tx *gorm.DB) error {
@@ -165,13 +165,13 @@ func main() {
 	userRepository := account.NewUserRepository(db)
 
 	var notificationChannel notification.Channel = &notification.DevNullChannel{}
-	if configuration.GetNotificationServiceURL() != "" {
-		log.Logger().Infof("Enabling Notification service %v", configuration.GetNotificationServiceURL())
-		channel, err := notification.NewServiceChannel(configuration)
+	if config.GetNotificationServiceURL() != "" {
+		log.Logger().Infof("Enabling Notification service %v", config.GetNotificationServiceURL())
+		channel, err := notification.NewServiceChannel(config)
 		if err != nil {
 			log.Panic(nil, map[string]interface{}{
 				"err": err,
-				"url": configuration.GetNotificationServiceURL(),
+				"url": config.GetNotificationServiceURL(),
 			}, "failed to parse notification service url")
 		}
 		notificationChannel = channel
@@ -179,29 +179,28 @@ func main() {
 
 	appDB := gormapplication.NewGormDB(db)
 
-	publicKey, err := token.ParsePublicKey(configuration.GetTokenPublicKey())
+	tokenManager, err := token.NewManager(config)
 	if err != nil {
 		log.Panic(nil, map[string]interface{}{
 			"err": err,
-		}, "failed to parse public token")
+		}, "failed to create token manager")
 	}
-	tokenManager := token.NewManager(publicKey)
 	// Middleware that extracts and stores the token in the context
-	jwtMiddlewareTokenContext := witmiddleware.TokenContext(publicKey, nil, app.NewJWTSecurity())
+	jwtMiddlewareTokenContext := witmiddleware.TokenContext(tokenManager.PublicKeys(), nil, app.NewJWTSecurity())
 	service.Use(jwtMiddlewareTokenContext)
 
 	service.Use(login.InjectTokenManager(tokenManager))
-	service.Use(log.LogRequest(configuration.IsPostgresDeveloperModeEnabled()))
-	app.UseJWTMiddleware(service, goajwt.New(publicKey, nil, app.NewJWTSecurity()))
+	service.Use(log.LogRequest(config.IsPostgresDeveloperModeEnabled()))
+	app.UseJWTMiddleware(service, goajwt.New(tokenManager.PublicKeys(), nil, app.NewJWTSecurity()))
 
-	spaceAuthzService := authz.NewAuthzService(configuration, appDB)
+	spaceAuthzService := authz.NewAuthzService(config, appDB)
 	service.Use(authz.InjectAuthzService(spaceAuthzService))
 
 	loginService := login.NewKeycloakOAuthProvider(identityRepository, userRepository, tokenManager, appDB)
-	loginCtrl := controller.NewLoginController(service, loginService, tokenManager, configuration, identityRepository)
+	loginCtrl := controller.NewLoginController(service, loginService, tokenManager, config, identityRepository)
 	app.MountLoginController(service, loginCtrl)
 
-	logoutCtrl := controller.NewLogoutController(service, &login.KeycloakLogoutService{}, configuration)
+	logoutCtrl := controller.NewLogoutController(service, &login.KeycloakLogoutService{}, config)
 	app.MountLogoutController(service, logoutCtrl)
 
 	// Mount "status" controller
@@ -209,8 +208,8 @@ func main() {
 	app.MountStatusController(service, statusCtrl)
 
 	// Mount "workitem" controller
-	//workitemCtrl := controller.NewWorkitemController(service, appDB, configuration)
-	workitemCtrl := controller.NewNotifyingWorkitemController(service, appDB, notificationChannel, configuration)
+	//workitemCtrl := controller.NewWorkitemController(service, appDB, config)
+	workitemCtrl := controller.NewNotifyingWorkitemController(service, appDB, notificationChannel, config)
 	app.MountWorkitemController(service, workitemCtrl)
 
 	// Mount "named workitem" controller
@@ -218,12 +217,12 @@ func main() {
 	app.MountNamedWorkItemsController(service, namedWorkitemsCtrl)
 
 	// Mount "workitems" controller
-	//workitemsCtrl := controller.NewWorkitemsController(service, appDB, configuration)
-	workitemsCtrl := controller.NewNotifyingWorkitemsController(service, appDB, notificationChannel, configuration)
+	//workitemsCtrl := controller.NewWorkitemsController(service, appDB, config)
+	workitemsCtrl := controller.NewNotifyingWorkitemsController(service, appDB, notificationChannel, config)
 	app.MountWorkitemsController(service, workitemsCtrl)
 
 	// Mount "workitemtype" controller
-	workitemtypeCtrl := controller.NewWorkitemtypeController(service, appDB, configuration)
+	workitemtypeCtrl := controller.NewWorkitemtypeController(service, appDB, config)
 	app.MountWorkitemtypeController(service, workitemtypeCtrl)
 
 	// Mount "work item link category" controller
@@ -231,77 +230,85 @@ func main() {
 	app.MountWorkItemLinkCategoryController(service, workItemLinkCategoryCtrl)
 
 	// Mount "work item link type" controller
-	workItemLinkTypeCtrl := controller.NewWorkItemLinkTypeController(service, appDB, configuration)
+	workItemLinkTypeCtrl := controller.NewWorkItemLinkTypeController(service, appDB, config)
 	app.MountWorkItemLinkTypeController(service, workItemLinkTypeCtrl)
 
 	// Mount "work item link" controller
-	workItemLinkCtrl := controller.NewWorkItemLinkController(service, appDB, configuration)
+	workItemLinkCtrl := controller.NewWorkItemLinkController(service, appDB, config)
 	app.MountWorkItemLinkController(service, workItemLinkCtrl)
 
 	// Mount "work item comments" controller
-	//workItemCommentsCtrl := controller.NewWorkItemCommentsController(service, appDB, configuration)
-	workItemCommentsCtrl := controller.NewNotifyingWorkItemCommentsController(service, appDB, notificationChannel, configuration)
+	//workItemCommentsCtrl := controller.NewWorkItemCommentsController(service, appDB, config)
+	workItemCommentsCtrl := controller.NewNotifyingWorkItemCommentsController(service, appDB, notificationChannel, config)
 	app.MountWorkItemCommentsController(service, workItemCommentsCtrl)
 
 	// Mount "work item relationships links" controller
-	workItemRelationshipsLinksCtrl := controller.NewWorkItemRelationshipsLinksController(service, appDB, configuration)
+	workItemRelationshipsLinksCtrl := controller.NewWorkItemRelationshipsLinksController(service, appDB, config)
 	app.MountWorkItemRelationshipsLinksController(service, workItemRelationshipsLinksCtrl)
 
 	// Mount "comments" controller
-	//commentsCtrl := controller.NewCommentsController(service, appDB, configuration)
-	commentsCtrl := controller.NewNotifyingCommentsController(service, appDB, notificationChannel, configuration)
+	//commentsCtrl := controller.NewCommentsController(service, appDB, config)
+	commentsCtrl := controller.NewNotifyingCommentsController(service, appDB, notificationChannel, config)
 	app.MountCommentsController(service, commentsCtrl)
 
-	if configuration.GetFeatureWorkitemRemote() {
+	// Mount "work item labels relationships" controller
+	workItemLabelCtrl := controller.NewWorkItemLabelsController(service, appDB, config)
+	app.MountWorkItemLabelsController(service, workItemLabelCtrl)
+
+	if config.GetFeatureWorkitemRemote() {
 		// Scheduler to fetch and import remote tracker items
 		scheduler = remoteworkitem.NewScheduler(db)
 		defer scheduler.Stop()
 
-		accessTokens := controller.GetAccessTokens(configuration)
+		accessTokens := controller.GetAccessTokens(config)
 		scheduler.ScheduleAllQueries(service.Context, accessTokens)
 
 		// Mount "tracker" controller
-		c5 := controller.NewTrackerController(service, appDB, scheduler, configuration)
+		c5 := controller.NewTrackerController(service, appDB, scheduler, config)
 		app.MountTrackerController(service, c5)
 
 		// Mount "trackerquery" controller
-		c6 := controller.NewTrackerqueryController(service, appDB, scheduler, configuration)
+		c6 := controller.NewTrackerqueryController(service, appDB, scheduler, config)
 		app.MountTrackerqueryController(service, c6)
 	}
 
 	// Mount "space" controller
-	spaceCtrl := controller.NewSpaceController(service, appDB, configuration, auth.NewAuthzResourceManager(configuration))
+	spaceCtrl := controller.NewSpaceController(service, appDB, config, auth.NewAuthzResourceManager(config))
 	app.MountSpaceController(service, spaceCtrl)
 
 	// Mount "user" controller
-	userCtrl := controller.NewUserController(service, appDB, tokenManager, configuration)
-	if configuration.GetTenantServiceURL() != "" {
-		log.Logger().Infof("Enabling Init Tenant service %v", configuration.GetTenantServiceURL())
-		userCtrl.InitTenant = account.NewInitTenant(configuration)
+	userCtrl := controller.NewUserController(service, appDB, tokenManager, config)
+	if config.GetTenantServiceURL() != "" {
+		log.Logger().Infof("Enabling Init Tenant service %v", config.GetTenantServiceURL())
+		userCtrl.InitTenant = account.NewInitTenant(config)
 	}
 	app.MountUserController(service, userCtrl)
 
 	userServiceCtrl := controller.NewUserServiceController(service)
-	userServiceCtrl.UpdateTenant = account.NewUpdateTenant(configuration)
-	userServiceCtrl.CleanTenant = account.NewCleanTenant(configuration)
-	userServiceCtrl.ShowTenant = account.NewShowTenant(configuration)
+	userServiceCtrl.UpdateTenant = account.NewUpdateTenant(config)
+	userServiceCtrl.CleanTenant = account.NewCleanTenant(config)
+	userServiceCtrl.ShowTenant = account.NewShowTenant(config)
 	app.MountUserServiceController(service, userServiceCtrl)
 
 	// Mount "search" controller
-	searchCtrl := controller.NewSearchController(service, appDB, configuration)
+	searchCtrl := controller.NewSearchController(service, appDB, config)
 	app.MountSearchController(service, searchCtrl)
 
 	// Mount "users" controller
 	keycloakProfileService := login.NewKeycloakUserProfileClient()
-	usersCtrl := controller.NewUsersController(service, appDB, configuration, keycloakProfileService)
+	usersCtrl := controller.NewUsersController(service, appDB, config, keycloakProfileService)
 	app.MountUsersController(service, usersCtrl)
 
+	// Mount "labels" controller
+	labelCtrl := controller.NewLabelController(service, appDB, config)
+	app.MountLabelController(service, labelCtrl)
+
 	// Mount "iterations" controller
-	iterationCtrl := controller.NewIterationController(service, appDB, configuration)
+	iterationCtrl := controller.NewIterationController(service, appDB, config)
 	app.MountIterationController(service, iterationCtrl)
 
 	// Mount "spaceiterations" controller
-	spaceIterationCtrl := controller.NewSpaceIterationsController(service, appDB, configuration)
+	spaceIterationCtrl := controller.NewSpaceIterationsController(service, appDB, config)
 	app.MountSpaceIterationsController(service, spaceIterationCtrl)
 
 	// Mount "userspace" controller
@@ -313,13 +320,13 @@ func main() {
 	app.MountRenderController(service, renderCtrl)
 
 	// Mount "areas" controller
-	areaCtrl := controller.NewAreaController(service, appDB, configuration)
+	areaCtrl := controller.NewAreaController(service, appDB, config)
 	app.MountAreaController(service, areaCtrl)
 
-	spaceAreaCtrl := controller.NewSpaceAreasController(service, appDB, configuration)
+	spaceAreaCtrl := controller.NewSpaceAreasController(service, appDB, config)
 	app.MountSpaceAreasController(service, spaceAreaCtrl)
 
-	filterCtrl := controller.NewFilterController(service, configuration)
+	filterCtrl := controller.NewFilterController(service, config)
 	app.MountFilterController(service, filterCtrl)
 
 	// Mount "namedspaces" controller
@@ -327,12 +334,12 @@ func main() {
 	app.MountNamedspacesController(service, namedSpacesCtrl)
 
 	// Mount "plannerBacklog" controller
-	plannerBacklogCtrl := controller.NewPlannerBacklogController(service, appDB, configuration)
+	plannerBacklogCtrl := controller.NewPlannerBacklogController(service, appDB, config)
 	app.MountPlannerBacklogController(service, plannerBacklogCtrl)
 
 	// Mount "codebase" controller
-	codebaseCtrl := controller.NewCodebaseController(service, appDB, configuration)
-	codebaseCtrl.ShowTenant = account.NewShowTenant(configuration)
+	codebaseCtrl := controller.NewCodebaseController(service, appDB, config)
+	codebaseCtrl.ShowTenant = account.NewShowTenant(config)
 	app.MountCodebaseController(service, codebaseCtrl)
 
 	// Mount "spacecodebases" controller
@@ -340,7 +347,7 @@ func main() {
 	app.MountSpaceCodebasesController(service, spaceCodebaseCtrl)
 
 	// Mount "collaborators" controller
-	collaboratorsCtrl := controller.NewCollaboratorsController(service, appDB, configuration, auth.NewKeycloakPolicyManager(configuration))
+	collaboratorsCtrl := controller.NewCollaboratorsController(service, appDB, config, auth.NewKeycloakPolicyManager(config))
 	app.MountCollaboratorsController(service, collaboratorsCtrl)
 
 	// Mount "space template" controller
@@ -354,7 +361,7 @@ func main() {
 	log.Logger().Infoln("Git Commit SHA: ", controller.Commit)
 	log.Logger().Infoln("UTC Build Time: ", controller.BuildTime)
 	log.Logger().Infoln("UTC Start Time: ", controller.StartTime)
-	log.Logger().Infoln("Dev mode:       ", configuration.IsPostgresDeveloperModeEnabled())
+	log.Logger().Infoln("Dev mode:       ", config.IsPostgresDeveloperModeEnabled())
 	log.Logger().Infoln("GOMAXPROCS:     ", runtime.GOMAXPROCS(-1))
 	log.Logger().Infoln("NumCPU:         ", runtime.NumCPU())
 
@@ -363,9 +370,9 @@ func main() {
 	http.Handle("/favicon.ico", http.NotFoundHandler())
 
 	// Start http
-	if err := http.ListenAndServe(configuration.GetHTTPAddress(), nil); err != nil {
+	if err := http.ListenAndServe(config.GetHTTPAddress(), nil); err != nil {
 		log.Error(nil, map[string]interface{}{
-			"addr": configuration.GetHTTPAddress(),
+			"addr": config.GetHTTPAddress(),
 			"err":  err,
 		}, "unable to connect to server")
 		service.LogError("startup", "err", err)

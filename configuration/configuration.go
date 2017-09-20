@@ -1,7 +1,9 @@
 package configuration
 
 import (
+	"crypto/rsa"
 	"fmt"
+	"net/http"
 	"os"
 	"regexp"
 	"strings"
@@ -12,7 +14,6 @@ import (
 	yaml "gopkg.in/yaml.v2"
 
 	"github.com/fabric8-services/fabric8-wit/rest"
-	"github.com/goadesign/goa"
 	"github.com/spf13/viper"
 )
 
@@ -61,8 +62,6 @@ const (
 	varKeycloakTesUser2Name         = "keycloak.testuser2.name"
 	varKeycloakTesUser2Secret       = "keycloak.testuser2.secret"
 	varKeycloakURL                  = "keycloak.url"
-	varTokenPublicKey               = "token.publickey"
-	varTokenPrivateKey              = "token.privatekey"
 	varAuthNotApprovedRedirect      = "auth.notapproved.redirect"
 	varHeaderMaxLength              = "header.maxlength"
 
@@ -74,6 +73,7 @@ const (
 	varCacheControlSpaces            = "cachecontrol.spaces"
 	varCacheControlIterations        = "cachecontrol.iterations"
 	varCacheControlAreas             = "cachecontrol.areas"
+	varCacheControlLabels            = "cachecontrol.labels"
 	varCacheControlComments          = "cachecontrol.comments"
 	varCacheControlFilters           = "cachecontrol.filters"
 	varCacheControlUsers             = "cachecontrol.users"
@@ -88,6 +88,7 @@ const (
 	varCacheControlSpace            = "cachecontrol.space"
 	varCacheControlIteration        = "cachecontrol.iteration"
 	varCacheControlArea             = "cachecontrol.area"
+	varCacheControlLabel            = "cachecontrol.label"
 	varCacheControlComment          = "cachecontrol.comment"
 
 	defaultConfigFile           = "config.yaml"
@@ -102,7 +103,9 @@ const (
 
 // ConfigurationData encapsulates the Viper configuration object which stores the configuration data in-memory.
 type ConfigurationData struct {
-	v *viper.Viper
+	v               *viper.Viper
+	tokenPublicKey  *rsa.PublicKey
+	tokenPrivateKey *rsa.PrivateKey
 }
 
 // NewConfigurationData creates a configuration reader object using a configurable configuration file path
@@ -187,9 +190,8 @@ func (c *ConfigurationData) setConfigDefaults() {
 	c.v.SetDefault(varPopulateCommonTypes, true)
 
 	// Auth-related defaults
+	c.v.SetDefault(varAuthURL, devModeAuthURL)
 	c.v.SetDefault(varAuthDomainPrefix, "auth")
-	c.v.SetDefault(varTokenPublicKey, defaultTokenPublicKey)
-	c.v.SetDefault(varTokenPrivateKey, defaultTokenPrivateKey)
 	c.v.SetDefault(varKeycloakClientID, defaultKeycloakClientID)
 	c.v.SetDefault(varKeycloakSecret, defaultKeycloakSecret)
 	c.v.SetDefault(varGithubAuthToken, defaultActualToken)
@@ -402,6 +404,18 @@ func (c *ConfigurationData) GetCacheControlArea() string {
 	return c.v.GetString(varCacheControlArea)
 }
 
+// GetCacheControlLabels returns the value to set in the "Cache-Control" HTTP response header
+// when returning a list of labels.
+func (c *ConfigurationData) GetCacheControlLabels() string {
+	return c.v.GetString(varCacheControlLabels)
+}
+
+// GetCacheControlLabel returns the value to set in the "Cache-Control" HTTP response header
+// when returning a label.
+func (c *ConfigurationData) GetCacheControlLabel() string {
+	return c.v.GetString(varCacheControlLabel)
+}
+
 // GetCacheControlSpaces returns the value to set in the "Cache-Control" HTTP response header
 // when returning a list of spaces.
 func (c *ConfigurationData) GetCacheControlSpaces() string {
@@ -462,16 +476,8 @@ func (c *ConfigurationData) GetCacheControlUser() string {
 	return c.v.GetString(varCacheControlUser)
 }
 
-// GetTokenPrivateKey returns the private key (as set via config file or environment variable)
-// that is used to sign the authentication token.
-func (c *ConfigurationData) GetTokenPrivateKey() []byte {
-	return []byte(c.v.GetString(varTokenPrivateKey))
-}
-
-// GetTokenPublicKey returns the public key (as set via config file or environment variable)
-// that is used to decrypt the authentication token.
-func (c *ConfigurationData) GetTokenPublicKey() []byte {
-	return []byte(c.v.GetString(varTokenPublicKey))
+func (c *ConfigurationData) GetKeysEndpoint() string {
+	return fmt.Sprintf("%s/api/token/keys", c.v.GetString(varAuthURL))
 }
 
 // GetAuthDevModeURL returns Auth Service URL used by default in Dev mode
@@ -490,25 +496,25 @@ func (c *ConfigurationData) GetAuthDomainPrefix() string {
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
 // Example: api.service.domain.org -> auth.service.domain.org
 // or api.domain.org -> auth.domain.org
-func (c *ConfigurationData) GetAuthEndpointSpaces(req *goa.RequestData) (string, error) {
+func (c *ConfigurationData) GetAuthEndpointSpaces(req *http.Request) (string, error) {
 	return c.getAuthEndpoint(req, "api/spaces")
 }
 
 // GetAuthEndpointLogin returns the <auth>/api/login endpoint
-func (c *ConfigurationData) GetAuthEndpointLogin(req *goa.RequestData) (string, error) {
+func (c *ConfigurationData) GetAuthEndpointLogin(req *http.Request) (string, error) {
 	return c.getAuthEndpoint(req, "api/login")
 }
 
 // GetAuthEndpointLogout returns the <auth>/api/logout endpoint
-func (c *ConfigurationData) GetAuthEndpointLogout(req *goa.RequestData) (string, error) {
+func (c *ConfigurationData) GetAuthEndpointLogout(req *http.Request) (string, error) {
 	return c.getAuthEndpoint(req, "api/logout")
 }
 
-func (c *ConfigurationData) getAuthEndpoint(req *goa.RequestData, pathSufix string) (string, error) {
+func (c *ConfigurationData) getAuthEndpoint(req *http.Request, pathSufix string) (string, error) {
 	return c.getServiceEndpoint(req, varAuthURL, devModeAuthURL, c.GetAuthDomainPrefix(), pathSufix)
 }
 
-func (c *ConfigurationData) getServiceEndpoint(req *goa.RequestData, varServiceURL string, devModeURL string, serviceDomainPrefix string, pathSufix string) (string, error) {
+func (c *ConfigurationData) getServiceEndpoint(req *http.Request, varServiceURL string, devModeURL string, serviceDomainPrefix string, pathSufix string) (string, error) {
 	var endpoint string
 	var err error
 	if c.v.IsSet(varServiceURL) {
@@ -593,7 +599,7 @@ func (c *ConfigurationData) GetKeycloakTestUser2Secret() string {
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
-func (c *ConfigurationData) GetKeycloakEndpointAuth(req *goa.RequestData) (string, error) {
+func (c *ConfigurationData) GetKeycloakEndpointAuth(req *http.Request) (string, error) {
 	return c.getKeycloakOpenIDConnectEndpoint(req, "auth")
 }
 
@@ -602,7 +608,7 @@ func (c *ConfigurationData) GetKeycloakEndpointAuth(req *goa.RequestData) (strin
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
-func (c *ConfigurationData) GetKeycloakEndpointToken(req *goa.RequestData) (string, error) {
+func (c *ConfigurationData) GetKeycloakEndpointToken(req *http.Request) (string, error) {
 	return c.getKeycloakOpenIDConnectEndpoint(req, "token")
 }
 
@@ -611,7 +617,7 @@ func (c *ConfigurationData) GetKeycloakEndpointToken(req *goa.RequestData) (stri
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
-func (c *ConfigurationData) GetKeycloakEndpointUserInfo(req *goa.RequestData) (string, error) {
+func (c *ConfigurationData) GetKeycloakEndpointUserInfo(req *http.Request) (string, error) {
 	return c.getKeycloakOpenIDConnectEndpoint(req, "userinfo")
 }
 
@@ -621,7 +627,7 @@ func (c *ConfigurationData) GetKeycloakEndpointUserInfo(req *goa.RequestData) (s
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
-func (c *ConfigurationData) GetKeycloakEndpointAdmin(req *goa.RequestData) (string, error) {
+func (c *ConfigurationData) GetKeycloakEndpointAdmin(req *http.Request) (string, error) {
 	return c.getKeycloakEndpoint(req, "auth/admin/realms/"+c.GetKeycloakRealm())
 }
 
@@ -631,7 +637,7 @@ func (c *ConfigurationData) GetKeycloakEndpointAdmin(req *goa.RequestData) (stri
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
-func (c *ConfigurationData) GetKeycloakEndpointAuthzResourceset(req *goa.RequestData) (string, error) {
+func (c *ConfigurationData) GetKeycloakEndpointAuthzResourceset(req *http.Request) (string, error) {
 	return c.getKeycloakEndpoint(req, "auth/realms/"+c.GetKeycloakRealm()+"/authz/protection/resource_set")
 }
 
@@ -641,7 +647,7 @@ func (c *ConfigurationData) GetKeycloakEndpointAuthzResourceset(req *goa.Request
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
-func (c *ConfigurationData) GetKeycloakEndpointClients(req *goa.RequestData) (string, error) {
+func (c *ConfigurationData) GetKeycloakEndpointClients(req *http.Request) (string, error) {
 	return c.getKeycloakEndpoint(req, "auth/admin/realms/"+c.GetKeycloakRealm()+"/clients")
 }
 
@@ -651,7 +657,7 @@ func (c *ConfigurationData) GetKeycloakEndpointClients(req *goa.RequestData) (st
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
-func (c *ConfigurationData) GetKeycloakEndpointEntitlement(req *goa.RequestData) (string, error) {
+func (c *ConfigurationData) GetKeycloakEndpointEntitlement(req *http.Request) (string, error) {
 	return c.getKeycloakEndpoint(req, "auth/realms/"+c.GetKeycloakRealm()+"/authz/entitlement/"+c.GetKeycloakClientID())
 }
 
@@ -661,12 +667,12 @@ func (c *ConfigurationData) GetKeycloakEndpointEntitlement(req *goa.RequestData)
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
-func (c *ConfigurationData) GetKeycloakEndpointBroker(req *goa.RequestData) (string, error) {
+func (c *ConfigurationData) GetKeycloakEndpointBroker(req *http.Request) (string, error) {
 	return c.getKeycloakEndpoint(req, "auth/realms/"+c.GetKeycloakRealm()+"/broker")
 }
 
 // GetKeycloakAccountEndpoint returns the API URL for Read and Update on Keycloak User Accounts.
-func (c *ConfigurationData) GetKeycloakAccountEndpoint(req *goa.RequestData) (string, error) {
+func (c *ConfigurationData) GetKeycloakAccountEndpoint(req *http.Request) (string, error) {
 	return c.getKeycloakEndpoint(req, "auth/realms/"+c.GetKeycloakRealm()+"/account")
 }
 
@@ -675,20 +681,24 @@ func (c *ConfigurationData) GetKeycloakAccountEndpoint(req *goa.RequestData) (st
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
-func (c *ConfigurationData) GetKeycloakEndpointLogout(req *goa.RequestData) (string, error) {
+func (c *ConfigurationData) GetKeycloakEndpointLogout(req *http.Request) (string, error) {
 	return c.getKeycloakOpenIDConnectEndpoint(req, "logout")
 }
 
-// GetKeycloakDevModeURL returns Keycloak URL used by default in Dev mode
+// GetKeycloakDevModeURL returns Keycloak URL (including realm name) used by default in Dev mode
+// Returns "" if DevMode is not enabled
 func (c *ConfigurationData) GetKeycloakDevModeURL() string {
-	return devModeKeycloakURL
+	if c.IsPostgresDeveloperModeEnabled() {
+		return fmt.Sprintf("%s/auth/realms/%s", devModeKeycloakURL, c.GetKeycloakRealm())
+	}
+	return ""
 }
 
-func (c *ConfigurationData) getKeycloakOpenIDConnectEndpoint(req *goa.RequestData, pathSufix string) (string, error) {
+func (c *ConfigurationData) getKeycloakOpenIDConnectEndpoint(req *http.Request, pathSufix string) (string, error) {
 	return c.getKeycloakEndpoint(req, c.openIDConnectPath(pathSufix))
 }
 
-func (c *ConfigurationData) getKeycloakEndpoint(req *goa.RequestData, pathSufix string) (string, error) {
+func (c *ConfigurationData) getKeycloakEndpoint(req *http.Request, pathSufix string) (string, error) {
 	return c.getServiceEndpoint(req, varKeycloakURL, devModeKeycloakURL, c.GetKeycloakDomainPrefix(), pathSufix)
 }
 
@@ -696,7 +706,7 @@ func (c *ConfigurationData) openIDConnectPath(suffix string) string {
 	return "auth/realms/" + c.GetKeycloakRealm() + "/protocol/openid-connect/" + suffix
 }
 
-func (c *ConfigurationData) getServiceURL(req *goa.RequestData, serviceDomainPrefix string, path string) (string, error) {
+func (c *ConfigurationData) getServiceURL(req *http.Request, serviceDomainPrefix string, path string) (string, error) {
 	scheme := "http"
 	if req.URL != nil && req.URL.Scheme == "https" { // isHTTPS
 		scheme = "https"
@@ -744,7 +754,7 @@ func (c *ConfigurationData) IsLogJSON() bool {
 // GetValidRedirectURLs returns the RegEx of valid redirect URLs for auth requests
 // If the F8_REDIRECT_VALID env var is not set then in Dev Mode all redirects allowed - *
 // In prod mode the default regex will be returned
-func (c *ConfigurationData) GetValidRedirectURLs(req *goa.RequestData) (string, error) {
+func (c *ConfigurationData) GetValidRedirectURLs(req *http.Request) (string, error) {
 	if c.v.IsSet(varValidRedirectURLs) {
 		return c.v.GetString(varValidRedirectURLs), nil
 	}
@@ -754,11 +764,11 @@ func (c *ConfigurationData) GetValidRedirectURLs(req *goa.RequestData) (string, 
 	return c.checkLocalhostRedirectException(req)
 }
 
-func (c *ConfigurationData) checkLocalhostRedirectException(req *goa.RequestData) (string, error) {
-	if req.Request == nil || req.Request.URL == nil {
+func (c *ConfigurationData) checkLocalhostRedirectException(req *http.Request) (string, error) {
+	if req.URL == nil {
 		return DefaultValidRedirectURLs, nil
 	}
-	matched, err := regexp.MatchString(localhostRedirectException, req.Request.URL.String())
+	matched, err := regexp.MatchString(localhostRedirectException, req.URL.String())
 	if err != nil {
 		return "", err
 	}
@@ -780,50 +790,6 @@ func (c *ConfigurationData) GetNotificationServiceURL() string {
 
 const (
 	defaultHeaderMaxLength = 5000 // bytes
-
-	// Auth-related defaults
-
-	// RSAPrivateKey for signing JWT Tokens
-	// ssh-keygen -f wit_rsa
-	defaultTokenPrivateKey = `-----BEGIN RSA PRIVATE KEY-----
-MIIEpQIBAAKCAQEAnwrjH5iTSErw9xUptp6QSFoUfpHUXZ+PaslYSUrpLjw1q27O
-DSFwmhV4+dAaTMO5chFv/kM36H3ZOyA146nwxBobS723okFaIkshRrf6qgtD6coT
-HlVUSBTAcwKEjNn4C9jtEpyOl+eSgxhMzRH3bwTIFlLlVMiZf7XVE7P3yuOCpqkk
-2rdYVSpQWQWKU+ZRywJkYcLwjEYjc70AoNpjO5QnY+Exx98E30iEdPHZpsfNhsjh
-9Z7IX5TrMYgz7zBTw8+niO/uq3RBaHyIhDbvenbR9Q59d88lbnEeHKgSMe2RQpFR
-3rxFRkc/64Rn/bMuL/ptNowPqh1P+9GjYzWmPwIDAQABAoIBAQCBCl5ZpnvprhRx
-BVTA/Upnyd7TCxNZmzrME+10Gjmz79pD7DV25ejsu/taBYUxP6TZbliF3pggJOv6
-UxomTB4znlMDUz0JgyjUpkyril7xVQ6XRAPbGrS1f1Def+54MepWAn3oGeqASb3Q
-bAj0Yl12UFTf+AZmkhQpUKk/wUeN718EIY4GRHHQ6ykMSqCKvdnVbMyb9sIzbSTl
-v+l1nQFnB/neyJq6P0Q7cxlhVj03IhYj/AxveNlKqZd2Ih3m/CJo0Abtwhx+qHZp
-cCBrYj7VelEaGARTmfoIVoGxFGKZNCcNzn7R2ic7safxXqeEnxugsAYX/UmMoq1b
-vMYLcaLRAoGBAMqMbbgejbD8Cy6wa5yg7XquqOP5gPdIYYS88TkQTp+razDqKPIU
-hPKetnTDJ7PZleOLE6eJ+dQJ8gl6D/dtOsl4lVRy/BU74dk0fYMiEfiJMYEYuAU0
-MCramo3HAeySTP8pxSLFYqJVhcTpL9+NQgbpJBUlx5bLDlJPl7auY077AoGBAMkD
-UpJRIv/0gYSz5btVheEyDzcqzOMZUVsngabH7aoQ49VjKrfLzJ9WznzJS5gZF58P
-vB7RLuIA8m8Y4FUwxOr4w9WOevzlFh0gyzgNY4gCwrzEryOZqYYqCN+8QLWfq/hL
-+gYFYpEW5pJ/lAy2i8kPanC3DyoqiZCsUmlg6JKNAoGBAIdCkf6zgKGhHwKV07cs
-DIqx2p0rQEFid6UB3ADkb+zWt2VZ6fAHXeT7shJ1RK0o75ydgomObWR5I8XKWqE7
-s1dZjDdx9f9kFuVK1Upd1SxoycNRM4peGJB1nWJydEl8RajcRwZ6U+zeOc+OfWbH
-WUFuLadlrEx5212CQ2k+OZlDAoGAdsH2w6kZ83xCFOOv41ioqx5HLQGlYLpxfVg+
-2gkeWa523HglIcdPEghYIBNRDQAuG3RRYSeW+kEy+f4Jc2tHu8bS9FWkRcsWoIji
-ZzBJ0G5JHPtaub6sEC6/ZWe0F1nJYP2KLop57FxKRt0G2+fxeA0ahpMwa2oMMiQM
-4GM3pHUCgYEAj2ZjjsF2MXYA6kuPUG1vyY9pvj1n4fyEEoV/zxY1k56UKboVOtYr
-BA/cKaLPqUF+08Tz/9MPBw51UH4GYfppA/x0ktc8998984FeIpfIFX6I2U9yUnoQ
-OCCAgsB8g8yTB4qntAYyfofEoDiseKrngQT5DSdxd51A/jw7B8WyBK8=
------END RSA PRIVATE KEY-----`
-
-	// RSAPublicKey for verifying JWT Tokens
-	// openssl rsa -in wit_rsa -pubout -out wit_rsa.pub
-	defaultTokenPublicKey = `-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvQ8p+HsTMrgcsuIMoOR1
-LXRhynL9YAU0qoDON6PLKCpdBv0Xy/jnsPjo5DrtUOijuJcID8CR7E0hYpY9MgK5
-H5pDFwC4lbUVENquHEVS/E0pQSKCIzSmORcIhjYW2+wKfDOVjeudZwdFBIxJ6KpI
-ty/aF78hlUJZuvghFVqoHQYTq/DZOmKjS+PAVLw8FKE3wa/3WU0EkpP+iovRMCkl
-lzxqrcLPIvx+T2gkwe0bn0kTvdMOhTLTN2tuvKrFpVUxVi8RM/V8PtgdKroxnES7
-SyUqK8rLO830jKJzAYrByQL+sdGuSqInIY/geahQHEGTwMI0CLj6zfhpjSgCflst
-vwIDAQAB
------END PUBLIC KEY-----`
 
 	defaultLogLevel = "info"
 

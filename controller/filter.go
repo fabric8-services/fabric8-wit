@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"net/http"
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/app"
@@ -95,7 +96,7 @@ func (c *FilterController) List(ctx *app.ListFilterContext) error {
 	return ctx.OK(result)
 }
 
-func addFilterLinks(links *app.PagingLinks, request *goa.RequestData) {
+func addFilterLinks(links *app.PagingLinks, request *http.Request) {
 	filter := rest.AbsoluteURL(request, app.FilterHref())
 	links.Filters = &filter
 }

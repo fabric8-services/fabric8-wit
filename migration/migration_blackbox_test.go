@@ -127,6 +127,8 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration67", testMigration67)
 	t.Run("TestMigration71", testMigration71)
 	t.Run("TestMigration72", testMigration72)
+	t.Run("TestMigration73", testMigration73)
+	t.Run("TestMigration74", testMigration74)
 
 	// Perform the migration
 	if err := migration.Migrate(sqlDB, databaseName); err != nil {
@@ -527,6 +529,28 @@ func testMigration71(t *testing.T) {
 func testMigration72(t *testing.T) {
 	migrateToVersion(sqlDB, migrations[:73], 73)
 	assert.True(t, dialect.HasColumn("iterations", "user_active"))
+}
+
+func testMigration73(t *testing.T) {
+	migrateToVersion(sqlDB, migrations[:74], 74)
+	assert.True(t, dialect.HasTable("labels"))
+	assert.True(t, dialect.HasIndex("labels", "label_name_idx"))
+
+	// These script execution has to fail
+	assert.NotNil(t, runSQLscript(sqlDB, "073-label-empty-name.sql"))
+	assert.NotNil(t, runSQLscript(sqlDB, "073-label-same-name.sql"))
+	assert.NotNil(t, runSQLscript(sqlDB, "073-label-color-code.sql"))
+	assert.NotNil(t, runSQLscript(sqlDB, "073-label-color-code2.sql"))
+}
+
+func testMigration74(t *testing.T) {
+	migrateToVersion(sqlDB, migrations[:75], 75)
+	assert.True(t, dialect.HasColumn("labels", "border_color"))
+}
+
+func testMigration75(t *testing.T) {
+	migrateToVersion(sqlDB, migrations[:76], 76)
+	assert.True(t, dialect.HasIndex("labels", "labels_name_space_id_unique_idx"))
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and

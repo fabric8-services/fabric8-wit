@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
@@ -30,10 +31,10 @@ var scopes = []string{"read:space", "admin:space"}
 
 // SpaceConfiguration represents space configuratoin
 type SpaceConfiguration interface {
-	GetKeycloakEndpointAuthzResourceset(*goa.RequestData) (string, error)
-	GetKeycloakEndpointToken(*goa.RequestData) (string, error)
-	GetKeycloakEndpointClients(*goa.RequestData) (string, error)
-	GetKeycloakEndpointAdmin(*goa.RequestData) (string, error)
+	GetKeycloakEndpointAuthzResourceset(*http.Request) (string, error)
+	GetKeycloakEndpointToken(*http.Request) (string, error)
+	GetKeycloakEndpointClients(*http.Request) (string, error)
+	GetKeycloakEndpointAdmin(*http.Request) (string, error)
 	GetKeycloakClientID() string
 	GetKeycloakSecret() string
 	GetCacheControlSpaces() string
@@ -108,12 +109,10 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 		}
 
 		// Similar to above, we create a root iteration for this new space
-		userActive := false
 		newIteration := iteration.Iteration{
-			ID:         uuid.NewV4(),
-			SpaceID:    rSpace.ID,
-			Name:       rSpace.Name,
-			UserActive: &userActive,
+			ID:      uuid.NewV4(),
+			SpaceID: rSpace.ID,
+			Name:    rSpace.Name,
 		}
 		err = appl.Iterations().Create(ctx, &newIteration)
 		if err != nil {
@@ -127,7 +126,7 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 
 	// Create keycloak resource for this space
 
-	resource, err := c.resourceManager.CreateSpace(ctx, ctx.RequestData, spaceID.String())
+	resource, err := c.resourceManager.CreateSpace(ctx, ctx.Request, spaceID.String())
 	if err != nil {
 		// Unable to create a space resource. Can't proceed. Rool back space creation and return an error.
 		c.rollBackSpaceCreation(ctx, spaceID)
@@ -148,7 +147,7 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 	if err != nil {
 		// Rool back space and space resource creation
 		c.rollBackSpaceCreation(ctx, spaceID)
-		remoteErr := c.resourceManager.DeleteSpace(ctx, ctx.RequestData, spaceID.String())
+		remoteErr := c.resourceManager.DeleteSpace(ctx, ctx.Request, spaceID.String())
 		if remoteErr != nil {
 			log.Error(ctx, map[string]interface{}{
 				"err":      remoteErr,
@@ -158,14 +157,14 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
-	spaceData, err := ConvertSpaceFromModel(ctx.Context, c.db, ctx.RequestData, *rSpace)
+	spaceData, err := ConvertSpaceFromModel(ctx.Context, c.db, ctx.Request, *rSpace)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	res := &app.SpaceSingle{
 		Data: spaceData,
 	}
-	ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.RequestData, app.SpaceHref(res.Data.ID)))
+	ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.SpaceHref(res.Data.ID)))
 	return ctx.Created(res)
 }
 
@@ -209,6 +208,17 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 		// Delete associated space resource
 		resource, err := appl.SpaceResources().LoadBySpace(ctx, &ctx.SpaceID)
 		if err != nil {
+			if notFound, _ := errors.IsNotFoundError(err); notFound {
+				// Space resource is not found.
+				// It can happen to old spaces if Keycloak failed to create a space resource for some reason during space creation.
+				// New spaces won't be created if the space resource creation failed but we have to ignore this errors for old spaces.
+				log.Error(ctx, map[string]interface{}{
+					"space_id":     ctx.SpaceID,
+					"current_user": *currentUser,
+					"err":          err,
+				}, "Can't delete the space resource because it's not found. May happen to old spaces. Space will be deleted anyway.")
+				return appl.Spaces().Delete(ctx.Context, ctx.SpaceID)
+			}
 			return err
 		}
 		resourceID = resource.ResourceID
@@ -225,7 +235,7 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	err = c.resourceManager.DeleteSpace(ctx, ctx.RequestData, ctx.SpaceID.String())
+	err = c.resourceManager.DeleteSpace(ctx, ctx.Request, ctx.SpaceID.String())
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
@@ -248,7 +258,7 @@ func (c *SpaceController) List(ctx *app.ListSpaceContext) error {
 		}
 		entityErr := ctx.ConditionalEntities(spaces, c.config.GetCacheControlSpaces, func() error {
 			count := int(cnt)
-			spaceData, err := ConvertSpacesFromModel(ctx.Context, c.db, ctx.RequestData, spaces)
+			spaceData, err := ConvertSpacesFromModel(ctx.Context, c.db, ctx.Request, spaces)
 			if err != nil {
 				return err
 			}
@@ -257,7 +267,7 @@ func (c *SpaceController) List(ctx *app.ListSpaceContext) error {
 				Meta:  &app.SpaceListMeta{TotalCount: count},
 				Data:  spaceData,
 			}
-			setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(spaces), offset, limit, count)
+			setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(spaces), offset, limit, count)
 			return nil
 		})
 		if entityErr != nil {
@@ -284,7 +294,7 @@ func (c *SpaceController) Show(ctx *app.ShowSpaceContext) error {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		return ctx.ConditionalRequest(*s, c.config.GetCacheControlSpace, func() error {
-			spaceData, err := ConvertSpaceFromModel(ctx.Context, c.db, ctx.RequestData, *s)
+			spaceData, err := ConvertSpaceFromModel(ctx.Context, c.db, ctx.Request, *s)
 			if err != nil {
 				log.Error(ctx, map[string]interface{}{
 					"err":      err,
@@ -336,7 +346,7 @@ func (c *SpaceController) Update(ctx *app.UpdateSpaceContext) error {
 			return err
 		}
 
-		spaceData, err := ConvertSpaceFromModel(ctx.Context, c.db, ctx.RequestData, *s)
+		spaceData, err := ConvertSpaceFromModel(ctx.Context, c.db, ctx.Request, *s)
 		if err != nil {
 			return err
 		}
@@ -414,10 +424,10 @@ func ConvertSpaceToModel(appSpace app.Space) space.Space {
 
 // SpaceConvertFunc is a open ended function to add additional links/data/relations to a Space during
 // conversion from internal to API
-type SpaceConvertFunc func(*goa.RequestData, *space.Space, *app.Space)
+type SpaceConvertFunc func(*http.Request, *space.Space, *app.Space)
 
 // ConvertSpacesFromModel converts between internal and external REST representation
-func ConvertSpacesFromModel(ctx context.Context, db application.DB, request *goa.RequestData, spaces []space.Space, additional ...SpaceConvertFunc) ([]*app.Space, error) {
+func ConvertSpacesFromModel(ctx context.Context, db application.DB, request *http.Request, spaces []space.Space, additional ...SpaceConvertFunc) ([]*app.Space, error) {
 	var ps = []*app.Space{}
 	for _, p := range spaces {
 		spaceData, err := ConvertSpaceFromModel(ctx, db, request, p, additional...)
@@ -431,7 +441,7 @@ func ConvertSpacesFromModel(ctx context.Context, db application.DB, request *goa
 }
 
 // ConvertSpaceFromModel converts between internal and external REST representation
-func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *goa.RequestData, sp space.Space, additional ...SpaceConvertFunc) (*app.Space, error) {
+func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *http.Request, sp space.Space, additional ...SpaceConvertFunc) (*app.Space, error) {
 	relatedURL := rest.AbsoluteURL(request, app.SpaceHref(sp.ID))
 	spaceIDStr := sp.ID.String()
 	relatedIterationList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/iterations", spaceIDStr))
@@ -444,6 +454,7 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *goa.
 	relatedOwnerByLink := rest.AbsoluteURL(request, fmt.Sprintf("%s/%s", usersEndpoint, sp.OwnerId.String()))
 	relatedCollaboratorList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/collaborators", spaceIDStr))
 	relatedFilterList := rest.AbsoluteURL(request, "/api/filters")
+	relatedLabelList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/labels", spaceIDStr))
 	workitemTypeGroupsLink := rest.AbsoluteURL(request, app.SpaceTemplateHref(spaceIDStr)+"/workitemtypegroups/")
 
 	count, err := countBacklogItems(ctx, db, sp.ID)
@@ -505,6 +516,11 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *goa.
 			Collaborators: &app.RelationGeneric{
 				Links: &app.GenericLinks{
 					Related: &relatedCollaboratorList,
+				},
+			},
+			Labels: &app.RelationGeneric{
+				Links: &app.GenericLinks{
+					Related: &relatedLabelList,
 				},
 			},
 		},

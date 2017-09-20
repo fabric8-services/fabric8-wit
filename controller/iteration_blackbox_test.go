@@ -21,7 +21,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	"context"
@@ -55,16 +54,12 @@ func (rest *TestIterationREST) TearDownTest() {
 }
 
 func (rest *TestIterationREST) SecuredController() (*goa.Service, *IterationController) {
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
-
-	svc := testsupport.ServiceAsUser("Iteration-Service", wittoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
+	svc := testsupport.ServiceAsUser("Iteration-Service", testsupport.TestIdentity)
 	return svc, NewIterationController(svc, rest.db, rest.Configuration)
 }
 
 func (rest *TestIterationREST) SecuredControllerWithIdentity(idn *account.Identity) (*goa.Service, *IterationController) {
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
-
-	svc := testsupport.ServiceAsUser("Iteration-Service", wittoken.NewManagerWithPrivateKey(priv), *idn)
+	svc := testsupport.ServiceAsUser("Iteration-Service", *idn)
 	return svc, NewIterationController(svc, rest.db, rest.Configuration)
 }
 
@@ -537,12 +532,10 @@ func (rest *TestIterationREST) TestIterationStateTransitions() {
 	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr1.ID.String(), &payload)
 	assert.Equal(rest.T(), startState, *updated.Data.Attributes.State)
 	// create another iteration in same space and then change State to start
-	userActive := false
 	itr2 := iteration.Iteration{
-		Name:       "Spring 123",
-		SpaceID:    itr1.SpaceID,
-		Path:       itr1.Path,
-		UserActive: &userActive,
+		Name:    "Spring 123",
+		SpaceID: itr1.SpaceID,
+		Path:    itr1.Path,
 	}
 	err := rest.db.Iterations().Create(context.Background(), &itr2)
 	require.Nil(rest.T(), err)
@@ -600,7 +593,7 @@ func (rest *TestIterationREST) createIterations() (*app.IterationSingle, *accoun
 	_, err := rest.db.Iterations().Root(context.Background(), parent.SpaceID)
 	require.Nil(rest.T(), err)
 	parentID := parent.ID
-	name := uuid.NewV4().String()
+	name := testsupport.CreateRandomValidTestName("Iteration-")
 	ci := getChildIterationPayload(&name)
 	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerId)
 	require.Nil(rest.T(), err)
@@ -612,41 +605,16 @@ func (rest *TestIterationREST) createIterations() (*app.IterationSingle, *accoun
 	return created, owner
 }
 
-// TestIterationActivedByUser tests iteration should always be active when user sets it to active
-func (rest *TestIterationREST) TestIterationActivatedByUser() {
-	itr1, owner := rest.createIterations()
-	assert.Equal(rest.T(), false, *itr1.Data.Attributes.UserActive)
-	assert.Equal(rest.T(), true, *itr1.Data.Attributes.ActiveStatus) // iteration falls in timeframe, so iteration is active
-
-	startDate := time.Date(2017, 5, 17, 00, 00, 00, 00, time.UTC)
-	endDate := time.Date(2017, 6, 17, 00, 00, 00, 00, time.UTC)
-	userActive := true
-	payload := app.UpdateIterationPayload{
-		Data: &app.Iteration{
-			Attributes: &app.IterationAttributes{
-				StartAt:    &startDate,
-				EndAt:      &endDate,
-				UserActive: &userActive,
-			},
-			ID:   itr1.Data.ID,
-			Type: iteration.APIStringTypeIteration,
-		},
-	}
-	owner, errIdn := rest.db.Identities().Load(context.Background(), owner.ID)
-	require.Nil(rest.T(), errIdn)
-	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
-	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr1.Data.ID.String(), &payload)
-	assert.Equal(rest.T(), iteration.IterationActive, *updated.Data.Attributes.ActiveStatus) // iteration doesnot fall in timeframe yet userActive is true so iteration is active
+// TestIterationActiveInTimeframe tests iteration should be active when it is in timeframe
+func (rest *TestIterationREST) TestIterationActiveInTimeframe() {
+	itr1, _ := rest.createIterations()
+	assert.Equal(rest.T(), iteration.IterationNotActive, *itr1.Data.Attributes.UserActive)
+	assert.Equal(rest.T(), iteration.IterationActive, *itr1.Data.Attributes.ActiveStatus) // iteration falls in timeframe, so iteration is active
 }
 
-// TestIterationActivatedByTimeframe tests
-// 1. Iteration should be active when it is in timeframe
-// 2. Iteration should not be active when it is outside the timeframe
-func (rest *TestIterationREST) TestIterationActivatedByTimeframe() {
+// TestIterationNotActiveInTimeframe tests iteration should not be active when it is outside the timeframe
+func (rest *TestIterationREST) TestIterationNotActiveInTimeframe() {
 	itr1, owner := rest.createIterations()
-	assert.Equal(rest.T(), false, *itr1.Data.Attributes.UserActive)
-	assert.Equal(rest.T(), true, *itr1.Data.Attributes.ActiveStatus) // iteration falls in timeframe, so iteration is active
-
 	startDate := time.Date(2017, 5, 17, 00, 00, 00, 00, time.UTC)
 	endDate := time.Date(2017, 6, 17, 00, 00, 00, 00, time.UTC)
 	payload := app.UpdateIterationPayload{
@@ -664,6 +632,26 @@ func (rest *TestIterationREST) TestIterationActivatedByTimeframe() {
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr1.Data.ID.String(), &payload)
 	assert.Equal(rest.T(), iteration.IterationNotActive, *updated.Data.Attributes.ActiveStatus) // iteration doesnot fall in timeframe, so iteration is not active
+}
+
+// TestIterationActivatedByUser tests iteration should always be active when user sets it to active
+func (rest *TestIterationREST) TestIterationActivatedByUser() {
+	itr1, owner := rest.createIterations()
+	userActive := true
+	payload := app.UpdateIterationPayload{
+		Data: &app.Iteration{
+			Attributes: &app.IterationAttributes{
+				UserActive: &userActive,
+			},
+			ID:   itr1.Data.ID,
+			Type: iteration.APIStringTypeIteration,
+		},
+	}
+	owner, errIdn := rest.db.Identities().Load(context.Background(), owner.ID)
+	require.Nil(rest.T(), errIdn)
+	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
+	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr1.Data.ID.String(), &payload)
+	assert.Equal(rest.T(), iteration.IterationActive, *updated.Data.Attributes.ActiveStatus) // iteration doesnot fall in timeframe yet userActive is true so iteration is active
 }
 
 func getChildIterationPayload(name *string) *app.CreateChildIterationPayload {
@@ -696,7 +684,6 @@ func createSpaceAndRootAreaAndIterations(t *testing.T, db application.DB) (space
 	)
 
 	application.Transactional(db, func(app application.Application) error {
-		userActive := false
 		owner := &account.Identity{
 			Username:     "new-space-owner-identity",
 			ProviderType: account.KeycloakIDP,
@@ -718,9 +705,8 @@ func createSpaceAndRootAreaAndIterations(t *testing.T, db application.DB) (space
 		require.Nil(t, err)
 		// above space should have a root iteration for itself
 		rootIterationObj = iteration.Iteration{
-			Name:       spaceObj.Name,
-			SpaceID:    spaceObj.ID,
-			UserActive: &userActive,
+			Name:    spaceObj.Name,
+			SpaceID: spaceObj.ID,
 		}
 		err = app.Iterations().Create(context.Background(), &rootIterationObj)
 		require.Nil(t, err)
@@ -732,12 +718,11 @@ func createSpaceAndRootAreaAndIterations(t *testing.T, db application.DB) (space
 				CreatedAt: spaceObj.CreatedAt,
 				UpdatedAt: spaceObj.UpdatedAt,
 			},
-			Name:       iterationName,
-			SpaceID:    spaceObj.ID,
-			StartAt:    &start,
-			EndAt:      &end,
-			UserActive: &userActive,
-			Path:       append(rootIterationObj.Path, rootIterationObj.ID),
+			Name:    iterationName,
+			SpaceID: spaceObj.ID,
+			StartAt: &start,
+			EndAt:   &end,
+			Path:    append(rootIterationObj.Path, rootIterationObj.ID),
 		}
 		err = app.Iterations().Create(context.Background(), &otherIterationObj)
 		require.Nil(t, err)

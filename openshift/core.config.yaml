@@ -28,6 +28,7 @@ objects:
     postgres.connection.maxopen: "90"
     chestarter.url: http://che-starter:10000
     notification.serviceurl: ""
+    auth.serviceurl: https://auth.openshift.io
     redirect.valid: ".*"
     openshift.tenant.masterurl: https://openshift.local/
     auth_notapproved_redirect: ""

@@ -8,7 +8,7 @@ import (
 	"time"
 
 	config "github.com/fabric8-services/fabric8-wit/configuration"
-	"github.com/goadesign/goa"
+	"github.com/fabric8-services/fabric8-wit/label"
 
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/application"
@@ -21,7 +21,8 @@ import (
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/space/authz"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	wittoken "github.com/fabric8-services/fabric8-wit/token"
+	testtoken "github.com/fabric8-services/fabric8-wit/test/token"
+	"github.com/fabric8-services/fabric8-wit/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 
@@ -64,7 +65,7 @@ func (s *TestAuthzSuite) TestFailsIfNoTokenInContext() {
 
 func (s *TestAuthzSuite) TestUserAmongSpaceCollaboratorsOK() {
 	spaceID := uuid.NewV4().String()
-	authzPayload := auth.AuthorizationPayload{Permissions: []auth.Permissions{{ResourceSetName: &spaceID}}}
+	authzPayload := token.AuthorizationPayload{Permissions: []token.Permissions{{ResourceSetName: &spaceID}}}
 	ok := s.checkPermissions(authzPayload, spaceID)
 	require.True(s.T(), ok)
 }
@@ -73,21 +74,18 @@ func (s *TestAuthzSuite) TestUserIsNotAmongSpaceCollaboratorsFails() {
 	s.T().Skip("skipped because Keycloak Authorization is disabled in Dev Mode")
 	spaceID1 := uuid.NewV4().String()
 	spaceID2 := uuid.NewV4().String()
-	authzPayload := auth.AuthorizationPayload{Permissions: []auth.Permissions{{ResourceSetName: &spaceID1}}}
+	authzPayload := token.AuthorizationPayload{Permissions: []token.Permissions{{ResourceSetName: &spaceID1}}}
 	ok := s.checkPermissions(authzPayload, spaceID2)
 	require.False(s.T(), ok)
 }
 
-func (s *TestAuthzSuite) checkPermissions(authzPayload auth.AuthorizationPayload, spaceID string) bool {
+func (s *TestAuthzSuite) checkPermissions(authzPayload token.AuthorizationPayload, spaceID string) bool {
 	resource := &space.Resource{}
 	authzService := authz.NewAuthzService(s.configuration, &db{app{resource: resource}})
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
 	testIdentity := testsupport.TestIdentity
-	svc := testsupport.ServiceAsUserWithAuthz("SpaceAuthz-Service", wittoken.NewManagerWithPrivateKey(priv), priv, testIdentity, authzPayload)
+	svc := testsupport.ServiceAsUserWithAuthz("SpaceAuthz-Service", testtoken.PrivateKey(), testIdentity, authzPayload)
 	resource.UpdatedAt = time.Now()
-	r := &goa.RequestData{
-		Request: &http.Request{Host: "api.example.org"},
-	}
+	r := &http.Request{Host: "api.example.org"}
 	entitlementEndpoint, err := s.configuration.GetKeycloakEndpointEntitlement(r)
 	require.Nil(s.T(), err)
 	ok, err := authzService.Authorize(svc.Context, entitlementEndpoint, spaceID)
@@ -164,6 +162,10 @@ func (a *app) Comments() comment.Repository {
 }
 
 func (a *app) Spaces() space.Repository {
+	return nil
+}
+
+func (a *app) Labels() label.Repository {
 	return nil
 }
 

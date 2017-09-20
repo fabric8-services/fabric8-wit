@@ -336,6 +336,7 @@ var searchKeyMap = map[string]string{
 	"area":         workitem.SystemArea,
 	"iteration":    workitem.SystemIteration,
 	"assignee":     workitem.SystemAssignees,
+	"label":        workitem.SystemLabels,
 	"state":        workitem.SystemState,
 	"type":         "Type",
 	"workitemtype": "Type", // same as 'type' - added for compatibility. (Ref. #1564)
@@ -352,7 +353,7 @@ func (q Query) getAttributeKey(key string) string {
 
 func (q Query) determineLiteralType(key string, val string) criteria.Expression {
 	switch key {
-	case workitem.SystemAssignees:
+	case workitem.SystemAssignees, workitem.SystemLabels:
 		return criteria.Literal([]string{val})
 	default:
 		return criteria.Literal(val)
@@ -370,11 +371,18 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 			return nil, errors.NewBadParameterError("key not found", q.Name)
 		}
 		left := criteria.Field(key)
-		right := q.determineLiteralType(key, *q.Value)
-		if q.Negate {
-			myexpr = append(myexpr, criteria.Not(left, right))
+		if q.Value != nil {
+			right := q.determineLiteralType(key, *q.Value)
+			if q.Negate {
+				myexpr = append(myexpr, criteria.Not(left, right))
+			} else {
+				myexpr = append(myexpr, criteria.Equals(left, right))
+			}
 		} else {
-			myexpr = append(myexpr, criteria.Equals(left, right))
+			if q.Negate {
+				return nil, errors.NewBadParameterError("negate for null not supported", q.Name)
+			}
+			myexpr = append(myexpr, criteria.IsNull(key))
 		}
 	}
 	for _, child := range q.Children {

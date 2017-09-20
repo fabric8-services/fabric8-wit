@@ -23,11 +23,11 @@ import (
 )
 
 type loginConfiguration interface {
-	GetKeycloakEndpointAuth(*goa.RequestData) (string, error)
-	GetKeycloakEndpointToken(*goa.RequestData) (string, error)
-	GetKeycloakAccountEndpoint(req *goa.RequestData) (string, error)
-	GetKeycloakEndpointBroker(*goa.RequestData) (string, error)
-	GetKeycloakEndpointEntitlement(*goa.RequestData) (string, error)
+	GetKeycloakEndpointAuth(*http.Request) (string, error)
+	GetKeycloakEndpointToken(*http.Request) (string, error)
+	GetKeycloakAccountEndpoint(req *http.Request) (string, error)
+	GetKeycloakEndpointBroker(*http.Request) (string, error)
+	GetKeycloakEndpointEntitlement(*http.Request) (string, error)
 	GetKeycloakClientID() string
 	GetKeycloakSecret() string
 	IsPostgresDeveloperModeEnabled() bool
@@ -35,7 +35,7 @@ type loginConfiguration interface {
 	GetKeycloakTestUserSecret() string
 	GetKeycloakTestUser2Name() string
 	GetKeycloakTestUser2Secret() string
-	GetValidRedirectURLs(*goa.RequestData) (string, error)
+	GetValidRedirectURLs(*http.Request) (string, error)
 	GetHeaderMaxLength() int64
 	GetAuthNotApprovedRedirect() string
 	GetAuthEndpointLogin(req *goa.RequestData) (string, error)
@@ -79,72 +79,6 @@ func (c *LoginController) Authorize(ctx *app.AuthorizeLoginContext) error {
 
 }
 
-// getEntitlementResourceRequestPayload creates the object which would have the information about which spaces/resources
-// the entitlements' info would need to be fetched for.
-
-func (c *LoginController) getEntitlementResourceRequestPayload(ctx context.Context, token *string) (*auth.EntitlementResource, error) {
-	loggedInIdentityID, err := c.tokenManager.Extract(*token)
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"err": err,
-		}, "unable to get ID from access token")
-		return nil, errors.NewInternalError(ctx, errs.Wrap(err, "unable to get ID from access token"))
-	}
-
-	// get the user object as well for this identity
-	queryResult, err := c.identityRepository.Query(account.IdentityFilterByID(loggedInIdentityID.ID), account.IdentityWithUser())
-	if err != nil || len(queryResult) == 0 {
-		log.Error(ctx, map[string]interface{}{
-			"err":         err,
-			"identity_id": *loggedInIdentityID,
-		}, "unable to query Identity")
-		return nil, errors.NewInternalError(ctx, errs.Wrap(err, "unable to query Identity"))
-	}
-	loggedInIdentity := queryResult[0]
-	contextInfoLoggedInIdentity := loggedInIdentity.User.ContextInformation
-	_, recentSpacesPresent := contextInfoLoggedInIdentity["recentSpaces"]
-	if contextInfoLoggedInIdentity == nil || !recentSpacesPresent {
-		log.Warn(ctx, map[string]interface{}{
-			"identity_id": *loggedInIdentityID,
-		}, "unable to find recentSpaces in ContextInformation")
-		return nil, nil
-	}
-
-	var spacesToGetEntitlementsFor []auth.ResourceSet
-	recentSpaces := contextInfoLoggedInIdentity["recentSpaces"].([]interface{})
-	for i, v := range recentSpaces {
-		if i == maxRecentSpacesForRPT {
-			log.Info(ctx, map[string]interface{}{
-				"identity_id":                   *loggedInIdentityID,
-				"max_recent_spaces_for_rpt":     maxRecentSpacesForRPT,
-				"total_number_of_recent_spaces": len(recentSpaces),
-			}, "more than the allowed maximum number of recent spaces found")
-			break
-		}
-		recentSpaceID, ok := v.(string)
-		if !ok {
-			log.Warn(ctx, map[string]interface{}{
-				"identity_id": *loggedInIdentityID,
-			}, "unable to find a string uuid in recentSpaces in contextInformation")
-			return nil, nil
-		}
-		spacesToGetEntitlementsFor = append(spacesToGetEntitlementsFor, auth.ResourceSet{Name: recentSpaceID}) // pass by reference?
-	}
-	if len(spacesToGetEntitlementsFor) == 0 {
-		log.Info(ctx, map[string]interface{}{
-			"identity_id": *loggedInIdentityID,
-		}, "no recent spaces found for optimizing fetching of rpt")
-		return nil, nil
-	}
-	resource := &auth.EntitlementResource{
-		Permissions: spacesToGetEntitlementsFor,
-	}
-	log.Info(ctx, map[string]interface{}{
-		"identity_id": *loggedInIdentityID,
-	}, "recent spaces will be used for fetching rpt")
-	return resource, nil
-}
-
 // Refresh obtain a new access token using the refresh token.
 func (c *LoginController) Refresh(ctx *app.RefreshLoginContext) error {
 	refreshToken := ctx.Payload.RefreshToken
@@ -153,7 +87,7 @@ func (c *LoginController) Refresh(ctx *app.RefreshLoginContext) error {
 	}
 
 	client := &http.Client{Timeout: 10 * time.Second}
-	endpoint, err := c.configuration.GetKeycloakEndpointToken(ctx.RequestData)
+	endpoint, err := c.configuration.GetKeycloakEndpointToken(ctx.Request)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
@@ -186,38 +120,6 @@ func (c *LoginController) Refresh(ctx *app.RefreshLoginContext) error {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
-	entitlementEndpoint, err := c.configuration.GetKeycloakEndpointEntitlement(ctx.RequestData)
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"err": err,
-		}, "unable to get Keycloak token endpoint URL")
-		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.Wrap(err, "unable to get Keycloak token endpoint URL")))
-	}
-
-	resources, err := c.getEntitlementResourceRequestPayload(ctx, token.AccessToken)
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"err": err,
-		}, "failed to obtain create entitlement resource request ")
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
-	}
-
-	// Disallow fetching of all entitlements if no resources are specified
-	if resources != nil {
-		rpt, err := auth.GetEntitlement(ctx, entitlementEndpoint, resources, *token.AccessToken)
-		if err != nil {
-			log.Error(ctx, map[string]interface{}{
-				"err": err,
-			}, "failed to obtain entitlement during login")
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
-		}
-		if rpt != nil && int64(len(*rpt)) <= c.configuration.GetHeaderMaxLength() {
-			// If the rpt token is not too long for using it as a Bearer in http requests because of header size limit
-			// the swap access token for the rpt token which contains all resources available to the user
-			token.AccessToken = rpt
-		}
-	}
-
 	ctx.ResponseData.Header().Set("Cache-Control", "no-cache")
 	return ctx.OK(convertToken(*token))
 }
@@ -235,7 +137,7 @@ func convertToken(token auth.Token) *app.AuthToken {
 
 // Link links identity provider(s) to the user's account
 func (c *LoginController) Link(ctx *app.LinkLoginContext) error {
-	brokerEndpoint, err := c.configuration.GetKeycloakEndpointBroker(ctx.RequestData)
+	brokerEndpoint, err := c.configuration.GetKeycloakEndpointBroker(ctx.Request)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
@@ -243,7 +145,7 @@ func (c *LoginController) Link(ctx *app.LinkLoginContext) error {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.Wrap(err, "unable to get Keycloak broker endpoint URL")))
 	}
 	clientID := c.configuration.GetKeycloakClientID()
-	whitelist, err := c.configuration.GetValidRedirectURLs(ctx.RequestData)
+	whitelist, err := c.configuration.GetValidRedirectURLs(ctx.Request)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
 	}
@@ -254,7 +156,7 @@ func (c *LoginController) Link(ctx *app.LinkLoginContext) error {
 
 // Linksession links identity provider(s) to the user's account
 func (c *LoginController) Linksession(ctx *app.LinksessionLoginContext) error {
-	brokerEndpoint, err := c.configuration.GetKeycloakEndpointBroker(ctx.RequestData)
+	brokerEndpoint, err := c.configuration.GetKeycloakEndpointBroker(ctx.Request)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
@@ -262,7 +164,7 @@ func (c *LoginController) Linksession(ctx *app.LinksessionLoginContext) error {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.Wrap(err, "unable to get Keycloak broker endpoint URL")))
 	}
 	clientID := c.configuration.GetKeycloakClientID()
-	whitelist, err := c.configuration.GetValidRedirectURLs(ctx.RequestData)
+	whitelist, err := c.configuration.GetValidRedirectURLs(ctx.Request)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
 	}
@@ -273,7 +175,7 @@ func (c *LoginController) Linksession(ctx *app.LinksessionLoginContext) error {
 
 // Linkcallback redirects to original referel when Identity Provider account are linked to the user account
 func (c *LoginController) Linkcallback(ctx *app.LinkcallbackLoginContext) error {
-	brokerEndpoint, err := c.configuration.GetKeycloakEndpointBroker(ctx.RequestData)
+	brokerEndpoint, err := c.configuration.GetKeycloakEndpointBroker(ctx.Request)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
@@ -290,7 +192,7 @@ func (c *LoginController) Linkcallback(ctx *app.LinkcallbackLoginContext) error 
 func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 	var tokens app.AuthTokenCollection
 
-	tokenEndpoint, err := c.configuration.GetKeycloakEndpointToken(ctx.RequestData)
+	tokenEndpoint, err := c.configuration.GetKeycloakEndpointToken(ctx.Request)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
@@ -307,7 +209,7 @@ func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.Wrap(err, "unable to generate test token ")))
 	}
 	// Creates the testuser user and identity if they don't yet exist
-	profileEndpoint, err := c.configuration.GetKeycloakAccountEndpoint(ctx.RequestData)
+	profileEndpoint, err := c.configuration.GetKeycloakAccountEndpoint(ctx.Request)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err,

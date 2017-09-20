@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
@@ -39,7 +41,7 @@ type UsersController struct {
 type UsersControllerConfiguration interface {
 	GetCacheControlUsers() string
 	GetCacheControlUser() string
-	GetKeycloakAccountEndpoint(*goa.RequestData) (string, error)
+	GetKeycloakAccountEndpoint(*http.Request) (string, error)
 }
 
 // NewUsersController creates a users controller.
@@ -73,9 +75,153 @@ func (c *UsersController) Show(ctx *app.ShowUsersContext) error {
 			}
 		}
 		return ctx.ConditionalRequest(*user, c.config.GetCacheControlUser, func() error {
-			return ctx.OK(ConvertToAppUser(ctx.RequestData, user, identity))
+			return ctx.OK(ConvertToAppUser(ctx.Request, user, identity))
 		})
 	})
+}
+
+// CreateUserAsServiceAccount updates a user when requested using a service account token
+func (c *UsersController) CreateUserAsServiceAccount(ctx *app.CreateUserAsServiceAccountUsersContext) error {
+
+	isSvcAccount, err := isServiceAccount(ctx)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "failed to determine if account is a service account")
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err))
+
+	}
+	if !isSvcAccount {
+		log.Error(ctx, map[string]interface{}{
+			"identity_id": ctx.ID,
+		}, "account used to call create api is not a service account")
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(errs.New("a non-service account tried to create a user.")))
+	}
+
+	return c.createUserInDB(ctx)
+}
+
+func (c *UsersController) createUserInDB(ctx *app.CreateUserAsServiceAccountUsersContext) error {
+
+	userID, err := uuid.FromString(ctx.Payload.Data.Attributes.UserID)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(errs.New("invalid user id")))
+	}
+
+	id, err := uuid.FromString(ctx.ID)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(errs.New("incorrect identity id")))
+	}
+
+	returnResponse := application.Transactional(c.db, func(appl application.Application) error {
+
+		var user *account.User
+		var identity *account.Identity
+
+		// Mandatory attributes
+
+		user = &account.User{
+			ID:    userID,
+			Email: ctx.Payload.Data.Attributes.Email,
+		}
+		identity = &account.Identity{
+			ID:           id,
+			Username:     ctx.Payload.Data.Attributes.Username,
+			ProviderType: ctx.Payload.Data.Attributes.ProviderType,
+		}
+		// associate foreign key
+		identity.UserID = account.NullUUID{UUID: user.ID, Valid: true}
+
+		// Optional Attributes
+
+		updatedRegistratedCompleted := ctx.Payload.Data.Attributes.RegistrationCompleted
+		if updatedRegistratedCompleted != nil {
+			identity.RegistrationCompleted = true
+		}
+
+		updatedBio := ctx.Payload.Data.Attributes.Bio
+		if updatedBio != nil {
+			user.Bio = *updatedBio
+		}
+
+		updatedFullName := ctx.Payload.Data.Attributes.FullName
+		if updatedFullName != nil {
+			user.FullName = *updatedFullName
+		}
+
+		updatedImageURL := ctx.Payload.Data.Attributes.ImageURL
+		if updatedImageURL != nil {
+			user.ImageURL = *updatedImageURL
+		}
+
+		updateURL := ctx.Payload.Data.Attributes.URL
+		if updateURL != nil {
+			user.URL = *updateURL
+		}
+
+		updatedCompany := ctx.Payload.Data.Attributes.Company
+		if updatedCompany != nil {
+			user.Company = *updatedCompany
+		}
+
+		updatedContextInformation := ctx.Payload.Data.Attributes.ContextInformation
+		if updatedContextInformation != nil {
+			if user.ContextInformation == nil {
+				user.ContextInformation = account.ContextInformation{}
+			}
+			for fieldName, fieldValue := range updatedContextInformation {
+				user.ContextInformation[fieldName] = fieldValue
+			}
+		}
+
+		err = appl.Users().Create(ctx, user)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+
+		err = appl.Identities().Create(ctx, identity)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+
+		return ctx.OK(ConvertToAppUser(ctx.Request, user, identity))
+	})
+
+	return returnResponse
+}
+
+// UpdateUserAsServiceAccount updates a user when requested using a service account token
+func (c *UsersController) UpdateUserAsServiceAccount(ctx *app.UpdateUserAsServiceAccountUsersContext) error {
+
+	isSvcAccount, err := isServiceAccount(ctx)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err":         err,
+			"identity_id": ctx.ID,
+		}, "failed to determine if account is a service account")
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err))
+	}
+	if !isSvcAccount {
+		log.Error(ctx, map[string]interface{}{
+			"identity_id": ctx.ID,
+		}, "failed to determine if account is a service account")
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(errs.New("a non-service account tried to updated a user.")))
+	}
+
+	idString := ctx.ID
+	id, err := uuid.FromString(idString)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(errs.New("incorrect identity")))
+	}
+	return c.updateUserInDB(&id, ctx)
+}
+
+func isServiceAccount(ctx context.Context) (bool, error) {
+	tokenManager, err := token.ReadManagerFromContext(ctx)
+	if err != nil {
+		return false, err
+	}
+	return (*tokenManager).IsServiceAccount(ctx), nil
 }
 
 func mergeKeycloakUserProfileInfo(keycloakUserProfile *login.KeycloakUserProfile, existingProfile *login.KeycloakUserProfileResponse) *login.KeycloakUserProfile {
@@ -156,6 +302,95 @@ func (c *UsersController) getKeycloakProfileInformation(ctx context.Context, tok
 	return response, err
 }
 
+func (c *UsersController) updateUserInDB(id *uuid.UUID, ctx *app.UpdateUserAsServiceAccountUsersContext) error {
+
+	// We'll refactor the old Users update API to be redirected to Auth service in the near future.
+	// Hence, not spending time in refactoring that to consume this function.
+
+	returnResponse := application.Transactional(c.db, func(appl application.Application) error {
+		identity, err := appl.Identities().Load(ctx, *id)
+		if err != nil || identity == nil {
+			log.Error(ctx, map[string]interface{}{
+				"identity_id": id,
+				"err":         err,
+			}, "id %s is unknown or error running query", *id)
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+
+		var user *account.User
+		if identity.UserID.Valid {
+			user, err = appl.Users().Load(ctx.Context, identity.UserID.UUID)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Can't load user with id %s", identity.UserID.UUID)))
+			}
+		}
+
+		updatedEmail := ctx.Payload.Data.Attributes.Email
+		if updatedEmail != nil && *updatedEmail != user.Email {
+			user.Email = *updatedEmail
+		}
+
+		updatedUserName := ctx.Payload.Data.Attributes.Username
+		if updatedUserName != nil {
+			identity.Username = *updatedUserName
+		}
+
+		updatedRegistratedCompleted := ctx.Payload.Data.Attributes.RegistrationCompleted
+		if updatedRegistratedCompleted != nil {
+			identity.RegistrationCompleted = true
+		}
+
+		updatedBio := ctx.Payload.Data.Attributes.Bio
+		if updatedBio != nil {
+			user.Bio = *updatedBio
+		}
+		updatedFullName := ctx.Payload.Data.Attributes.FullName
+		if updatedFullName != nil {
+			user.FullName = *updatedFullName
+		}
+		updatedImageURL := ctx.Payload.Data.Attributes.ImageURL
+		if updatedImageURL != nil {
+			user.ImageURL = *updatedImageURL
+		}
+		updateURL := ctx.Payload.Data.Attributes.URL
+		if updateURL != nil {
+			user.URL = *updateURL
+		}
+
+		updatedCompany := ctx.Payload.Data.Attributes.Company
+		if updatedCompany != nil {
+			user.Company = *updatedCompany
+		}
+
+		updatedContextInformation := ctx.Payload.Data.Attributes.ContextInformation
+		if updatedContextInformation != nil {
+			// if user.ContextInformation , we get to PATCH the ContextInformation field,
+			// instead of over-writing it altogether. Note: The PATCH-ing is only for the
+			// 1st level of JSON.
+			if user.ContextInformation == nil {
+				user.ContextInformation = account.ContextInformation{}
+			}
+			for fieldName, fieldValue := range updatedContextInformation {
+				// Save it as is, for short-term.
+				user.ContextInformation[fieldName] = fieldValue
+			}
+		}
+
+		err = appl.Users().Save(ctx, user)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+
+		err = appl.Identities().Save(ctx, identity)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		return ctx.OK(ConvertToAppUser(ctx.Request, user, identity))
+	})
+
+	return returnResponse
+}
+
 // Update updates the authorized user based on the provided Token
 func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 
@@ -170,7 +405,7 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 	var isKeycloakUserProfileUpdateNeeded bool
 	// prepare for updating keycloak user profile
 	tokenString := goajwt.ContextJWT(ctx).Raw
-	accountAPIEndpoint, err := c.config.GetKeycloakAccountEndpoint(ctx.RequestData)
+	accountAPIEndpoint, err := c.config.GetKeycloakAccountEndpoint(ctx.Request)
 
 	returnResponse := application.Transactional(c.db, func(appl application.Application) error {
 		identity, err := appl.Identities().Load(ctx, *id)
@@ -329,7 +564,7 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
-		return ctx.OK(ConvertToAppUser(ctx.RequestData, user, identity))
+		return ctx.OK(ConvertToAppUser(ctx.Request, user, identity))
 	})
 
 	if isKeycloakUserProfileUpdateNeeded {
@@ -424,7 +659,7 @@ func (c *UsersController) List(ctx *app.ListUsersContext) error {
 		return ctx.ConditionalEntities(users, c.config.GetCacheControlUsers, func() error {
 			appUsers := make([]*app.UserData, len(users))
 			for i := range users {
-				appUser := ConvertToAppUser(ctx.RequestData, &users[i], &identities[i])
+				appUser := ConvertToAppUser(ctx.Request, &users[i], &identities[i])
 				appUsers[i] = appUser.Data
 			}
 			return ctx.OK(&app.UserArray{Data: appUsers})
@@ -525,7 +760,7 @@ func loadKeyCloakIdentity(appl application.Application, user account.User) (*acc
 }
 
 // ConvertToAppUser converts a complete Identity object into REST representation
-func ConvertToAppUser(request *goa.RequestData, user *account.User, identity *account.Identity) *app.User {
+func ConvertToAppUser(request *http.Request, user *account.User, identity *account.Identity) *app.User {
 	userID := user.ID.String()
 	identityID := identity.ID.String()
 	fullName := user.FullName
@@ -604,7 +839,7 @@ func ConvertToAppUser(request *goa.RequestData, user *account.User, identity *ac
 }
 
 // ConvertUsersSimple converts a array of simple Identity IDs into a Generic Reletionship List
-func ConvertUsersSimple(request *goa.RequestData, identityIDs []interface{}) []*app.GenericData {
+func ConvertUsersSimple(request *http.Request, identityIDs []interface{}) []*app.GenericData {
 	ops := []*app.GenericData{}
 	for _, identityID := range identityIDs {
 		ops = append(ops, ConvertUserSimple(request, identityID))
@@ -613,7 +848,7 @@ func ConvertUsersSimple(request *goa.RequestData, identityIDs []interface{}) []*
 }
 
 // ConvertUserSimple converts a simple Identity ID into a Generic Reletionship
-func ConvertUserSimple(request *goa.RequestData, identityID interface{}) *app.GenericData {
+func ConvertUserSimple(request *http.Request, identityID interface{}) *app.GenericData {
 	t := "users"
 	i := fmt.Sprint(identityID)
 	return &app.GenericData{
@@ -623,7 +858,7 @@ func ConvertUserSimple(request *goa.RequestData, identityID interface{}) *app.Ge
 	}
 }
 
-func createUserLinks(request *goa.RequestData, identityID interface{}) *app.GenericLinks {
+func createUserLinks(request *http.Request, identityID interface{}) *app.GenericLinks {
 	relatedURL := rest.AbsoluteURL(request, app.UsersHref(identityID))
 	return &app.GenericLinks{
 		Self:    &relatedURL,

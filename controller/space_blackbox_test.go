@@ -3,6 +3,7 @@ package controller_test
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"testing"
 
 	"time"
@@ -19,7 +20,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -32,11 +32,11 @@ var spaceConfiguration *configuration.ConfigurationData
 type DummyResourceManager struct {
 }
 
-func (m *DummyResourceManager) CreateSpace(ctx context.Context, request *goa.RequestData, spaceID string) (*authservice.SpaceResource, error) {
+func (m *DummyResourceManager) CreateSpace(ctx context.Context, request *http.Request, spaceID string) (*authservice.SpaceResource, error) {
 	return &authservice.SpaceResource{Data: &authservice.SpaceResourceData{ResourceID: uuid.NewV4().String(), PermissionID: uuid.NewV4().String(), PolicyID: uuid.NewV4().String()}}, nil
 }
 
-func (m *DummyResourceManager) DeleteSpace(ctx context.Context, request *goa.RequestData, spaceID string) error {
+func (m *DummyResourceManager) DeleteSpace(ctx context.Context, request *http.Request, spaceID string) error {
 	return nil
 }
 
@@ -71,9 +71,7 @@ func (rest *TestSpaceREST) TearDownTest() {
 }
 
 func (rest *TestSpaceREST) SecuredController(identity account.Identity) (*goa.Service, *SpaceController) {
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
-
-	svc := testsupport.ServiceAsUser("Space-Service", wittoken.NewManagerWithPrivateKey(priv), identity)
+	svc := testsupport.ServiceAsUser("Space-Service", identity)
 	return svc, NewSpaceController(svc, rest.db, spaceConfiguration, &DummyResourceManager{})
 }
 
@@ -133,14 +131,12 @@ func (rest *TestSpaceREST) TestSuccessCreateSpace() {
 }
 
 func (rest *TestSpaceREST) SecuredSpaceAreaController(identity account.Identity) (*goa.Service, *SpaceAreasController) {
-	pub, _ := wittoken.ParsePublicKey([]byte(wittoken.RSAPublicKey))
-	svc := testsupport.ServiceAsUser("Area-Service", wittoken.NewManager(pub), identity)
+	svc := testsupport.ServiceAsUser("Area-Service", identity)
 	return svc, NewSpaceAreasController(svc, rest.db, rest.Configuration)
 }
 
 func (rest *TestSpaceREST) SecuredSpaceIterationController(identity account.Identity) (*goa.Service, *SpaceIterationsController) {
-	pub, _ := wittoken.ParsePublicKey([]byte(wittoken.RSAPublicKey))
-	svc := testsupport.ServiceAsUser("Iteration-Service", wittoken.NewManager(pub), identity)
+	svc := testsupport.ServiceAsUser("Iteration-Service", identity)
 	return svc, NewSpaceIterationsController(svc, rest.db, rest.Configuration)
 }
 
@@ -511,6 +507,13 @@ func (rest *TestSpaceREST) TestShowSpaceNotModifiedUsingIfNoneMatchHeader() {
 	require.NotNil(t, fetched.Data.Links.Workitemtypegroups)
 	subStringWITG := fmt.Sprintf("/%s/workitemtypegroups", created.Data.ID.String())
 	assert.Contains(t, *fetched.Data.Links.Workitemtypegroups, subStringWITG)
+
+	// verify list-Label URL exists in Relationships.Links
+	require.NotNil(t, fetched.Data.Relationships.Labels)
+	require.NotNil(t, fetched.Data.Relationships.Labels.Links)
+	require.NotNil(t, fetched.Data.Relationships.Labels.Links.Related)
+	subStringLabels := fmt.Sprintf("/%s/labels", created.Data.ID.String())
+	assert.Contains(t, *fetched.Data.Relationships.Labels.Links.Related, subStringLabels)
 }
 
 func (rest *TestSpaceREST) TestFailShowSpaceNotFound() {
