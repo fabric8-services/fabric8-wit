@@ -504,6 +504,26 @@ func (c *ConfigurationData) getAuthEndpoint(req *http.Request, pathSufix string)
 	return c.getServiceEndpoint(req, varAuthURL, devModeAuthURL, c.GetAuthDomainPrefix(), pathSufix)
 }
 
+// GetAuthEndpointLogin returns the <auth>/api/login endpoint
+func (c *ConfigurationData) GetAuthEndpointLogin(req *http.Request) (string, error) {
+	return c.getAuthEndpoint(req, "api/login")
+}
+
+// GetAuthEndpointLogout returns the <auth>/api/logout endpoint
+func (c *ConfigurationData) GetAuthEndpointLogout(req *http.Request) (string, error) {
+	return c.getAuthEndpoint(req, "api/logout")
+}
+
+// GetAuthEndpointLinksession returns the <auth>/api/link/session endpoint
+func (c *ConfigurationData) GetAuthEndpointLinksession(req *http.Request) (string, error) {
+	return c.getAuthEndpoint(req, "api/link/session")
+}
+
+// GetAuthEndpointLink returns the <auth>/api/link endpoint
+func (c *ConfigurationData) GetAuthEndpointLink(req *http.Request) (string, error) {
+	return c.getAuthEndpoint(req, "api/link")
+}
+
 func (c *ConfigurationData) getServiceEndpoint(req *http.Request, varServiceURL string, devModeURL string, serviceDomainPrefix string, pathSufix string) (string, error) {
 	var endpoint string
 	var err error

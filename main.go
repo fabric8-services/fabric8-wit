@@ -35,7 +35,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 
 	"github.com/goadesign/goa"
-	goalogrus "github.com/goadesign/goa/logging/logrus"
+	"github.com/goadesign/goa/logging/logrus"
 	"github.com/goadesign/goa/middleware"
 	"github.com/goadesign/goa/middleware/gzip"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
@@ -200,7 +200,7 @@ func main() {
 	loginCtrl := controller.NewLoginController(service, loginService, tokenManager, config, identityRepository)
 	app.MountLoginController(service, loginCtrl)
 
-	logoutCtrl := controller.NewLogoutController(service, &login.KeycloakLogoutService{}, config)
+	logoutCtrl := controller.NewLogoutController(service, config)
 	app.MountLogoutController(service, logoutCtrl)
 
 	// Mount "status" controller
