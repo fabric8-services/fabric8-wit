@@ -59,8 +59,8 @@ Try to use at least version `0.11.0` as we haven't tested another version.
 
 === Get the code [[get-the-code]]
 
-Assuming you have Go installed and configured (have `$GOPATH` setup) here is
-how to build.
+Assuming you have Go installed and configured (have `$GOPATH` setup and
+pointing to a single directory) here is how to build.
 
 Check out the code
 
