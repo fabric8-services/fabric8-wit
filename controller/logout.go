@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"net/http"
+
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
@@ -10,7 +12,7 @@ import (
 )
 
 type logoutConfiguration interface {
-	GetAuthEndpointLogout(req *goa.RequestData) (string, error)
+	GetAuthEndpointLogout(*http.Request) (string, error)
 }
 
 // LogoutController implements the logout resource.
@@ -27,7 +29,7 @@ func NewLogoutController(service *goa.Service, logoutService *login.KeycloakLogo
 
 // Logout runs the logout action.
 func (c *LogoutController) Logout(ctx *app.LogoutLogoutContext) error {
-	logoutEndpoint, err := c.configuration.GetAuthEndpointLogout(ctx.RequestData)
+	logoutEndpoint, err := c.configuration.GetAuthEndpointLogout(ctx.RequestData.Request)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
 	}

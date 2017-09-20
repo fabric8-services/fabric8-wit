@@ -38,7 +38,7 @@ type loginConfiguration interface {
 	GetValidRedirectURLs(*http.Request) (string, error)
 	GetHeaderMaxLength() int64
 	GetAuthNotApprovedRedirect() string
-	GetAuthEndpointLogin(req *goa.RequestData) (string, error)
+	GetAuthEndpointLogin(*http.Request) (string, error)
 }
 
 const maxRecentSpacesForRPT = 10
@@ -59,7 +59,7 @@ func NewLoginController(service *goa.Service, auth *login.KeycloakOAuthProvider,
 
 // Authorize runs the authorize action.
 func (c *LoginController) Authorize(ctx *app.AuthorizeLoginContext) error {
-	loginEndpoint, err := c.configuration.GetAuthEndpointLogin(ctx.RequestData)
+	loginEndpoint, err := c.configuration.GetAuthEndpointLogin(ctx.RequestData.Request)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
 	}
