@@ -18,7 +18,6 @@ import (
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
-	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/models"
 	"github.com/fabric8-services/fabric8-wit/rendering"
@@ -27,6 +26,8 @@ import (
 	"github.com/fabric8-services/fabric8-wit/search"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
+
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/jinzhu/gorm"
 
@@ -526,16 +527,13 @@ func (s *searchBlackBoxTest) TestSearchFilter() {
 // 8 work items with different states & iterations & assignees & types
 // and tests multiple combinations of space, state, iteration, assignee, type
 func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
-	spaceOwner, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestSearchQueryScenarioDriven-"), "TestWISearch")
-	require.Nil(s.T(), err)
+	// create 1 space owner + 2 space collaborators' identities
+	identitiesTestFixtures := tf.NewTestFixture(s.T(), s.DB, tf.Identities(3))
+	spaceOwner := identitiesTestFixtures.Identities[0]
+	alice := identitiesTestFixtures.Identities[1]
+	bob := identitiesTestFixtures.Identities[2]
 
-	// create 2 space collaborators' identity
-	alice, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestSearchQueryScenarioDriven-"), "TestWISearch")
-	require.Nil(s.T(), err)
-
-	bob, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestSearchQueryScenarioDriven-"), "TestWISearch")
-	require.Nil(s.T(), err)
-
+	// Following Secured Space returns app.Space but TestFixtures currently returns space.Space Hence not used
 	spaceInstance := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, *spaceOwner)
 	spaceIDStr := spaceInstance.ID.String()
 
@@ -551,48 +549,122 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 	test.AddCollaboratorsOK(s.T(), svcWithSpaceOwner.Context, svcWithSpaceOwner, collaboratorCtrl, *spaceInstance.ID, alice.ID.String())
 	test.AddCollaboratorsOK(s.T(), svcWithSpaceOwner.Context, svcWithSpaceOwner, collaboratorCtrl, *spaceInstance.ID, bob.ID.String())
 
-	iterationRepo := iteration.NewIterationRepository(s.DB)
-	sprint1 := iteration.Iteration{
-		Name:    "Sprint 1",
-		SpaceID: *spaceInstance.ID,
-	}
-	iterationRepo.Create(s.Ctx, &sprint1)
-	assert.NotEqual(s.T(), uuid.UUID{}, sprint1.ID)
+	labelNames := []string{"IMPORTANT", "backend", "UI", "REST"}
+	multiTestFixtures := tf.NewTestFixture(s.T(), s.DB, tf.Iterations(3, func(fxt *tf.TestFixture, idx int) error {
+		fxt.Iterations[idx].Name = fmt.Sprintf("Sprint %d", idx+1)
+		fxt.Iterations[idx].SpaceID = *spaceInstance.ID
+		return nil
+	}), tf.Labels(4, func(fxt *tf.TestFixture, idx int) error {
+		fxt.Labels[idx].Name = labelNames[idx]
+		return nil
+	}))
+	// following assigment makes the test more readable
+	sprint1 := multiTestFixtures.Iterations[0]
+	sprint2 := multiTestFixtures.Iterations[1]
+	lblImportant := multiTestFixtures.Labels[0]
+	lblBackend := multiTestFixtures.Labels[1]
+	lblUI := multiTestFixtures.Labels[2]
+	lblREST := multiTestFixtures.Labels[3]
 
-	sprint2 := iteration.Iteration{
-		Name:    "Sprint 2",
-		SpaceID: *spaceInstance.ID,
-	}
-	iterationRepo.Create(s.Ctx, &sprint2)
-	assert.NotEqual(s.T(), uuid.UUID{}, sprint2.ID)
+	tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(3, func(fxt *tf.TestFixture, idx int) error {
+		fxt.WorkItems[idx].Fields[workitem.SystemTitle] = fmt.Sprintf("New issue #%d", idx)
+		fxt.WorkItems[idx].Fields[workitem.SystemState] = workitem.SystemStateResolved
+		fxt.WorkItems[idx].Fields[workitem.SystemIteration] = sprint1.ID.String()
+		fxt.WorkItems[idx].Fields[workitem.SystemLabels] = []string{lblImportant.ID.String(), lblBackend.ID.String()}
+		fxt.WorkItems[idx].Fields[workitem.SystemAssignees] = []string{alice.ID.String()}
+		fxt.WorkItems[idx].Fields[workitem.SystemCreator] = s.testIdentity.ID.String()
+		fxt.WorkItems[idx].SpaceID = sprint1.SpaceID
+		fxt.WorkItems[idx].Type = workitem.SystemBug
+		return nil
+	}))
 
-	wirepo := workitem.NewWorkItemRepository(s.DB)
+	tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(5, func(fxt *tf.TestFixture, idx int) error {
+		fxt.WorkItems[idx].Fields[workitem.SystemTitle] = fmt.Sprintf("Closed issue #%d", idx)
+		fxt.WorkItems[idx].Fields[workitem.SystemState] = workitem.SystemStateClosed
+		fxt.WorkItems[idx].Fields[workitem.SystemIteration] = sprint2.ID.String()
+		fxt.WorkItems[idx].Fields[workitem.SystemLabels] = []string{lblUI.ID.String()}
+		fxt.WorkItems[idx].Fields[workitem.SystemAssignees] = []string{bob.ID.String()}
+		fxt.WorkItems[idx].Fields[workitem.SystemCreator] = s.testIdentity.ID.String()
+		fxt.WorkItems[idx].SpaceID = sprint2.SpaceID
+		fxt.WorkItems[idx].Type = workitem.SystemFeature
+		return nil
+	}))
 
-	// create 3 WI with state "resolved" and iteration 1
-	for i := 0; i < 3; i++ {
-		_, err := wirepo.Create(
-			s.Ctx, sprint1.SpaceID, workitem.SystemBug,
-			map[string]interface{}{
-				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
-				workitem.SystemState:     workitem.SystemStateResolved,
-				workitem.SystemIteration: sprint1.ID.String(),
-				workitem.SystemAssignees: []string{alice.ID.String()},
-			}, s.testIdentity.ID)
-		require.Nil(s.T(), err)
-	}
+	s.T().Run("label IN IMPORTAND, UI", func(t *testing.T) {
+		// following test does not include any "space" deliberately, hence if there
+		// is any work item in the test-DB having state=resolved following count
+		// will fail
+		filter := fmt.Sprintf(`
+				{"label": {"$IN": ["%s", "%s"]}}`,
+			lblImportant.ID, lblUI.ID)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.NotNil(s.T(), result)
+		fmt.Println(result.Data)
+		require.NotEmpty(s.T(), result.Data)
+		assert.Len(s.T(), result.Data, 8) // 3 important + 5 UI
+	})
 
-	// create 5 WI with state "closed" and iteration 2
-	for i := 0; i < 5; i++ {
-		_, err := wirepo.Create(
-			s.Ctx, sprint2.SpaceID, workitem.SystemFeature,
-			map[string]interface{}{
-				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
-				workitem.SystemState:     workitem.SystemStateClosed,
-				workitem.SystemIteration: sprint2.ID.String(),
-				workitem.SystemAssignees: []string{bob.ID.String()},
-			}, s.testIdentity.ID)
-		require.Nil(s.T(), err)
-	}
+	s.T().Run("space=ID AND (label=Backend OR iteration=sprint2)", func(t *testing.T) {
+		filter := fmt.Sprintf(`
+				{"$AND": [
+					{"space":"%s"},
+					{"$OR": [
+						{"label": "%s"},
+						{"iteration": "%s"}
+					]}
+				]}`,
+			spaceIDStr, lblBackend.ID, sprint2.ID)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(s.T(), result.Data)
+		assert.Len(s.T(), result.Data, 3+5) // 3 items with Backend label & 5 items with iteration2
+	})
+
+	s.T().Run("space=ID AND label=UI", func(t *testing.T) {
+		filter := fmt.Sprintf(`
+				{"$AND": [
+					{"space":"%s"},
+					{"label": "%s"}
+				]}`,
+			spaceIDStr, lblUI.ID)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(s.T(), result.Data)
+		assert.Len(s.T(), result.Data, 5) // 5 items having UI label
+	})
+
+	s.T().Run("label=UI OR label=Backend", func(t *testing.T) {
+		filter := fmt.Sprintf(`
+				{"$OR": [
+					{"label":"%s"},
+					{"label": "%s"}
+				]}`,
+			lblUI.ID, lblBackend.ID)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(s.T(), result.Data)
+		assert.Len(s.T(), result.Data, 8)
+	})
+
+	s.T().Run("space=ID AND label=REST : expect 0 itmes", func(t *testing.T) {
+		filter := fmt.Sprintf(`
+				{"$AND": [
+					{"space":"%s"},
+					{"label": "%s"}
+				]}`,
+			spaceIDStr, lblREST.ID)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		assert.Len(s.T(), result.Data, 0) // no items having REST label
+	})
+
+	s.T().Run("space=ID AND label != Backend", func(t *testing.T) {
+		filter := fmt.Sprintf(`
+				{"$AND": [
+					{"space":"%s"},
+					{"label": "%s", "negate": true}
+				]}`,
+			spaceIDStr, lblBackend.ID)
+		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(s.T(), result.Data)
+		assert.Len(s.T(), result.Data, 5) // 5 items are not having Bakcned label
+	})
 
 	s.T().Run("state=resolved AND iteration=sprint1", func(t *testing.T) {
 		filter := fmt.Sprintf(`
@@ -914,14 +986,17 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 		require.Empty(s.T(), result.Data)
 		assert.Len(s.T(), result.Data, 0)
 	})
-	_, err = wirepo.Create(
-		s.Ctx, sprint2.SpaceID, workitem.SystemFeature,
-		map[string]interface{}{
-			workitem.SystemTitle:     fmt.Sprintf("Unassigned issue"),
-			workitem.SystemState:     workitem.SystemStateClosed,
-			workitem.SystemIteration: sprint2.ID.String(),
-		}, s.testIdentity.ID)
-	require.Nil(s.T(), err)
+
+	tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
+		fxt.WorkItems[idx].Fields[workitem.SystemTitle] = fmt.Sprintf("Unassigned issue")
+		fxt.WorkItems[idx].Fields[workitem.SystemState] = workitem.SystemStateClosed
+		fxt.WorkItems[idx].Fields[workitem.SystemIteration] = sprint2.ID.String()
+		fxt.WorkItems[idx].Fields[workitem.SystemCreator] = s.testIdentity.ID.String()
+		fxt.WorkItems[idx].SpaceID = sprint2.SpaceID
+		fxt.WorkItems[idx].Type = workitem.SystemFeature
+		return nil
+	}))
+
 	s.T().Run("assignee=null after WI creation", func(t *testing.T) {
 		filter := fmt.Sprintf(`
 					{"$AND": [
