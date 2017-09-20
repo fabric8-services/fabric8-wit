@@ -342,7 +342,7 @@ func (s *linkRepoBlackBoxTest) TestGetParentID() {
 		fxt.WorkItemLinkTypes[idx].ForwardName = "parent of"
 		return nil
 	}))
-	parentID, err := s.workitemLinkRepo.GetParentID(s.ctx, fixtures.WorkItems[1].ID)
+	parentID, err := s.workitemLinkRepo.GetParentID(s.Ctx, fixtures.WorkItems[1].ID)
 	require.Nil(s.T(), err)
 	assert.Equal(s.T(), fixtures.WorkItems[0].ID, *parentID)
 }
@@ -353,7 +353,7 @@ func (s *linkRepoBlackBoxTest) TestGetParentIDNotExist() {
 		fxt.WorkItemLinkTypes[idx].ForwardName = "parent of"
 		return nil
 	}))
-	parentID, err := s.workitemLinkRepo.GetParentID(s.ctx, fixtures.WorkItems[0].ID)
+	parentID, err := s.workitemLinkRepo.GetParentID(s.Ctx, fixtures.WorkItems[0].ID)
 	require.NotNil(s.T(), err)
 	assert.Nil(s.T(), parentID)
 }

@@ -58,22 +58,14 @@ type searchBlackBoxTest struct {
 	testDir                        string
 }
 
-func (s *searchBlackBoxTest) SetupSuite() {
-	s.DBTestSuite.SetupSuite()
-	s.ctx = migration.NewMigrationContext(context.Background())
-	s.DBTestSuite.PopulateDBTestSuite(s.ctx)
+func (s *searchBlackBoxTest) SetupTest() {
+	s.DBTestSuite.SetupTest()
 	err := models.Transactional(s.DB, func(tx *gorm.DB) error {
-		return migration.BootstrapWorkItemLinking(s.ctx, link.NewWorkItemLinkCategoryRepository(tx), space.NewRepository(tx), link.NewWorkItemLinkTypeRepository(tx))
+		return migration.BootstrapWorkItemLinking(s.Ctx, link.NewWorkItemLinkCategoryRepository(tx), space.NewRepository(tx), link.NewWorkItemLinkTypeRepository(tx))
 	})
 	require.Nil(s.T(), err)
 	s.testDir = filepath.Join("test-files", "search")
-}
-
-func (s *searchBlackBoxTest) SetupTest() {
-	s.DBTestSuite.SetupTest()
-	s.testDir = filepath.Join("test-files", "search")
 	s.db = gormapplication.NewGormDB(s.DB)
-	var err error
 	// create a test identity
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "SearchBlackBoxTest user", "test provider")
 	require.Nil(s.T(), err)
@@ -982,7 +974,7 @@ func (s *searchBlackBoxTest) TestIncludedParents() {
 	require.NotNil(s.T(), workItemLinkCtrl)
 
 	parentWI0, err := wirepo.Create(
-		s.ctx, *spaceInstance.ID, workitem.SystemFeature,
+		s.Ctx, *spaceInstance.ID, workitem.SystemFeature,
 		map[string]interface{}{
 			workitem.SystemTitle: "Parent WI",
 			workitem.SystemState: workitem.SystemStateResolved,
@@ -990,7 +982,7 @@ func (s *searchBlackBoxTest) TestIncludedParents() {
 	require.Nil(s.T(), err)
 
 	parentWI1, err := wirepo.Create(
-		s.ctx, *spaceInstance.ID, workitem.SystemTask,
+		s.Ctx, *spaceInstance.ID, workitem.SystemTask,
 		map[string]interface{}{
 			workitem.SystemTitle: "Parent WI",
 			workitem.SystemState: workitem.SystemStateResolved,
@@ -998,7 +990,7 @@ func (s *searchBlackBoxTest) TestIncludedParents() {
 	require.Nil(s.T(), err)
 
 	childWI, err := wirepo.Create(
-		s.ctx, *spaceInstance.ID, workitem.SystemBug,
+		s.Ctx, *spaceInstance.ID, workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle: "Child WI",
 			workitem.SystemState: workitem.SystemStateResolved,
@@ -1006,7 +998,7 @@ func (s *searchBlackBoxTest) TestIncludedParents() {
 	require.Nil(s.T(), err)
 
 	childWI2, err := wirepo.Create(
-		s.ctx, *spaceInstance.ID, workitem.SystemBug,
+		s.Ctx, *spaceInstance.ID, workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle: "Child WI",
 			workitem.SystemState: workitem.SystemStateResolved,
