@@ -500,6 +500,16 @@ func (c *ConfigurationData) GetAuthEndpointSpaces(req *http.Request) (string, er
 	return c.getAuthEndpoint(req, "api/spaces")
 }
 
+// GetAuthEndpointLogin returns the <auth>/api/login endpoint
+func (c *ConfigurationData) GetAuthEndpointLogin(req *http.Request) (string, error) {
+	return c.getAuthEndpoint(req, "api/login")
+}
+
+// GetAuthEndpointLogout returns the <auth>/api/logout endpoint
+func (c *ConfigurationData) GetAuthEndpointLogout(req *http.Request) (string, error) {
+	return c.getAuthEndpoint(req, "api/logout")
+}
+
 func (c *ConfigurationData) getAuthEndpoint(req *http.Request, pathSufix string) (string, error) {
 	return c.getServiceEndpoint(req, varAuthURL, devModeAuthURL, c.GetAuthDomainPrefix(), pathSufix)
 }
