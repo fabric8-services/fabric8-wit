@@ -76,7 +76,7 @@ func RedirectLocation(params url.Values, location string) (string, error) {
 		return "", err
 	}
 	parameters := locationURL.Query()
-	for name, _ := range params {
+	for name := range params {
 		parameters.Add(name, params.Get(name))
 	}
 	locationURL.RawQuery = parameters.Encode()
