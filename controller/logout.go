@@ -30,7 +30,7 @@ func (c *LogoutController) Logout(ctx *app.LogoutLogoutContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
 	}
-	locationURL, err := RedirectLocation(ctx.Params, authEndpoint)
+	locationURL, err := redirectLocation(ctx.Params, authEndpoint)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
 	}

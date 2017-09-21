@@ -62,7 +62,7 @@ func (c *LoginController) Authorize(ctx *app.AuthorizeLoginContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
 	}
-	locationURL, err := RedirectLocation(ctx.Params, authEndpoint)
+	locationURL, err := redirectLocation(ctx.Params, authEndpoint)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
 	}
@@ -70,7 +70,7 @@ func (c *LoginController) Authorize(ctx *app.AuthorizeLoginContext) error {
 	return ctx.TemporaryRedirect()
 }
 
-func RedirectLocation(params url.Values, location string) (string, error) {
+func redirectLocation(params url.Values, location string) (string, error) {
 	locationURL, err := url.Parse(location)
 	if err != nil {
 		return "", err
@@ -170,7 +170,7 @@ func (c *LoginController) Link(ctx *app.LinkLoginContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
 	}
-	locationURL, err := RedirectLocation(ctx.Params, authEndpoint)
+	locationURL, err := redirectLocation(ctx.Params, authEndpoint)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
 	}
@@ -184,7 +184,7 @@ func (c *LoginController) Linksession(ctx *app.LinksessionLoginContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
 	}
-	locationURL, err := RedirectLocation(ctx.Params, authEndpoint)
+	locationURL, err := redirectLocation(ctx.Params, authEndpoint)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
 	}
