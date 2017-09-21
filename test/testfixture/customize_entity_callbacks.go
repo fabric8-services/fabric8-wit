@@ -115,3 +115,16 @@ func SetIterationNames(names []string) CustomizeIterationFunc {
 		return nil
 	}
 }
+
+// SetWorkItemTypeNames takes the given names and uses them during creation of
+// work item types. The length of requested work item types and the number of
+// names must match or the NewFixture call will return an error.
+func SetWorkItemTypeNames(names []string) CustomizeWorkItemTypeFunc {
+	return func(fxt *TestFixture, idx int) error {
+		if len(fxt.WorkItemTypes) != len(names) {
+			return errs.Errorf("number of names (%d) must match number of work item types to create (%d)", len(names), len(fxt.WorkItemTypes))
+		}
+		fxt.WorkItemTypes[idx].Name = names[idx]
+		return nil
+	}
+}

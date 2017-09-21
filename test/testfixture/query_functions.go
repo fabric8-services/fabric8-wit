@@ -3,6 +3,7 @@ package testfixture
 import (
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/label"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -29,6 +30,20 @@ func (fxt *TestFixture) IterationByName(name string, spaceID ...uuid.UUID) *iter
 			return i
 		} else if i.Name == name && len(spaceID) == 0 {
 			return i
+		}
+	}
+	return nil
+}
+
+// WorkItemTypeByName returns the first work item type that has the given name
+// (if any). If you have work item type with the same name in different spaces
+// you can also pass in one space ID to filter by space as well.
+func (fxt *TestFixture) WorkItemTypeByName(name string, spaceID ...uuid.UUID) *workitem.WorkItemType {
+	for _, wit := range fxt.WorkItemTypes {
+		if wit.Name == name && len(spaceID) > 0 && wit.SpaceID == spaceID[0] {
+			return wit
+		} else if wit.Name == name && len(spaceID) == 0 {
+			return wit
 		}
 	}
 	return nil
