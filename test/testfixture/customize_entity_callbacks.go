@@ -128,3 +128,16 @@ func SetWorkItemTypeNames(names []string) CustomizeWorkItemTypeFunc {
 		return nil
 	}
 }
+
+// SetIdentityUsernames takes the given usernames and uses them during creation of
+// work item types. The length of requested work item types and the number of
+// usernames must match or the NewFixture call will return an error.
+func SetIdentityUsernames(usernames []string) CustomizeIdentityFunc {
+	return func(fxt *TestFixture, idx int) error {
+		if len(fxt.Identities) != len(usernames) {
+			return errs.Errorf("number of usernames (%d) must match number of identites to create (%d)", len(usernames), len(fxt.Identities))
+		}
+		fxt.Identities[idx].Username = usernames[idx]
+		return nil
+	}
+}

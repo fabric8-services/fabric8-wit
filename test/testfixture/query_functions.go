@@ -1,6 +1,7 @@
 package testfixture
 
 import (
+	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/label"
 	"github.com/fabric8-services/fabric8-wit/workitem"
@@ -44,6 +45,17 @@ func (fxt *TestFixture) WorkItemTypeByName(name string, spaceID ...uuid.UUID) *w
 			return wit
 		} else if wit.Name == name && len(spaceID) == 0 {
 			return wit
+		}
+	}
+	return nil
+}
+
+// IdentityByUsername returns the first identity that has the given username (if
+// any).
+func (fxt *TestFixture) IdentityByUsername(username string) *account.Identity {
+	for _, i := range fxt.Identities {
+		if i.Username == username {
+			return i
 		}
 	}
 	return nil
