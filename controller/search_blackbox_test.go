@@ -12,8 +12,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
-	"github.com/fabric8-services/fabric8-wit/application"
-	"github.com/fabric8-services/fabric8-wit/auth"
 	config "github.com/fabric8-services/fabric8-wit/configuration"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
@@ -27,9 +25,6 @@ import (
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 
 	"github.com/fabric8-services/fabric8-wit/workitem"
-	uuid "github.com/satori/go.uuid"
-
-	"context"
 
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/goatest"
@@ -74,45 +69,33 @@ func (s *searchBlackBoxTest) SetupTest() {
 
 func (s *searchBlackBoxTest) TestSearchWorkItems() {
 	// given
-	_, err := s.wiRepo.Create(
-		s.Ctx,
-		space.SystemSpace,
-		workitem.SystemBug,
-		map[string]interface{}{
-			workitem.SystemTitle:       "specialwordforsearch",
-			workitem.SystemDescription: nil,
-			workitem.SystemCreator:     "baijum",
-			workitem.SystemState:       workitem.SystemStateClosed,
-		},
-		s.testIdentity.ID)
-	require.Nil(s.T(), err)
-	// when
 	q := "specialwordforsearch"
-	spaceIDStr := space.SystemSpace.String()
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
+		wi := fxt.WorkItems[idx]
+		wi.Fields[workitem.SystemTitle] = q
+		wi.Fields[workitem.SystemState] = workitem.SystemStateClosed
+		return nil
+	}))
+	// when
+	spaceIDStr := fxt.WorkItems[0].SpaceID.String()
 	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, nil, nil, &q, &spaceIDStr)
 	// then
 	require.NotEmpty(s.T(), sr.Data)
 	r := sr.Data[0]
-	assert.Equal(s.T(), "specialwordforsearch", r.Attributes[workitem.SystemTitle])
+	assert.Equal(s.T(), q, r.Attributes[workitem.SystemTitle])
 }
 
 func (s *searchBlackBoxTest) TestSearchPagination() {
 	// given
-	_, err := s.wiRepo.Create(
-		s.Ctx,
-		space.SystemSpace,
-		workitem.SystemBug,
-		map[string]interface{}{
-			workitem.SystemTitle:       "specialwordforsearch2",
-			workitem.SystemDescription: nil,
-			workitem.SystemCreator:     "baijum",
-			workitem.SystemState:       workitem.SystemStateClosed,
-		},
-		s.testIdentity.ID)
-	require.Nil(s.T(), err)
-	// when
 	q := "specialwordforsearch2"
-	spaceIDStr := space.SystemSpace.String()
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
+		wi := fxt.WorkItems[idx]
+		wi.Fields[workitem.SystemTitle] = q
+		wi.Fields[workitem.SystemState] = workitem.SystemStateClosed
+		return nil
+	}))
+	// when
+	spaceIDStr := fxt.WorkItems[0].SpaceID.String()
 	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, nil, nil, &q, &spaceIDStr)
 	// then
 	// defaults in paging.go is 'pageSizeDefault = 20'
@@ -120,25 +103,19 @@ func (s *searchBlackBoxTest) TestSearchPagination() {
 	assert.Equal(s.T(), "http:///api/search?page[offset]=0&page[limit]=20&q=specialwordforsearch2", *sr.Links.Last)
 	require.NotEmpty(s.T(), sr.Data)
 	r := sr.Data[0]
-	assert.Equal(s.T(), "specialwordforsearch2", r.Attributes[workitem.SystemTitle])
+	assert.Equal(s.T(), q, r.Attributes[workitem.SystemTitle])
 }
 
 func (s *searchBlackBoxTest) TestSearchWithEmptyValue() {
-	_, err := s.wiRepo.Create(
-		s.Ctx,
-		space.SystemSpace,
-		workitem.SystemBug,
-		map[string]interface{}{
-			workitem.SystemTitle:       "specialwordforsearch",
-			workitem.SystemDescription: nil,
-			workitem.SystemCreator:     "baijum",
-			workitem.SystemState:       workitem.SystemStateClosed,
-		},
-		s.testIdentity.ID)
-	require.Nil(s.T(), err)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
+		wi := fxt.WorkItems[idx]
+		wi.Fields[workitem.SystemTitle] = "specialwordforsearch"
+		wi.Fields[workitem.SystemState] = workitem.SystemStateClosed
+		return nil
+	}))
 	// when
 	q := ""
-	spaceIDStr := space.SystemSpace.String()
+	spaceIDStr := fxt.WorkItems[0].SpaceID.String()
 	_, jerrs := test.ShowSearchBadRequest(s.T(), nil, nil, s.controller, nil, nil, nil, nil, &q, &spaceIDStr)
 	// then
 	require.NotNil(s.T(), jerrs)
@@ -149,20 +126,16 @@ func (s *searchBlackBoxTest) TestSearchWithEmptyValue() {
 func (s *searchBlackBoxTest) TestSearchWithDomainPortCombination() {
 	description := "http://localhost:8080/detail/154687364529310 is related issue"
 	expectedDescription := rendering.NewMarkupContentFromLegacy(description)
-	_, err := s.wiRepo.Create(
-		s.Ctx,
-		space.SystemSpace,
-		workitem.SystemBug,
-		map[string]interface{}{
-			workitem.SystemTitle:       "specialwordforsearch_new",
-			workitem.SystemDescription: expectedDescription,
-			workitem.SystemCreator:     "baijum", workitem.SystemState: workitem.SystemStateClosed,
-		},
-		s.testIdentity.ID)
-	require.Nil(s.T(), err)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
+		wi := fxt.WorkItems[idx]
+		wi.Fields[workitem.SystemTitle] = "specialwordforsearch_new"
+		wi.Fields[workitem.SystemDescription] = expectedDescription
+		wi.Fields[workitem.SystemState] = workitem.SystemStateClosed
+		return nil
+	}))
 	// when
 	q := `"http://localhost:8080/detail/154687364529310"`
-	spaceIDStr := space.SystemSpace.String()
+	spaceIDStr := fxt.WorkItems[0].SpaceID.String()
 	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, nil, nil, &q, &spaceIDStr)
 	// then
 	require.NotEmpty(s.T(), sr.Data)
@@ -173,21 +146,16 @@ func (s *searchBlackBoxTest) TestSearchWithDomainPortCombination() {
 func (s *searchBlackBoxTest) TestSearchURLWithoutPort() {
 	description := "This issue is related to http://localhost/detail/876394"
 	expectedDescription := rendering.NewMarkupContentFromLegacy(description)
-	_, err := s.wiRepo.Create(
-		s.Ctx,
-		space.SystemSpace,
-		workitem.SystemBug,
-		map[string]interface{}{
-			workitem.SystemTitle:       "specialwordforsearch_without_port",
-			workitem.SystemDescription: expectedDescription,
-			workitem.SystemCreator:     "baijum",
-			workitem.SystemState:       workitem.SystemStateClosed,
-		},
-		s.testIdentity.ID)
-	require.Nil(s.T(), err)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
+		wi := fxt.WorkItems[idx]
+		wi.Fields[workitem.SystemTitle] = "specialwordforsearch_without_port"
+		wi.Fields[workitem.SystemDescription] = expectedDescription
+		wi.Fields[workitem.SystemState] = workitem.SystemStateClosed
+		return nil
+	}))
 	// when
 	q := `"http://localhost/detail/876394"`
-	spaceIDStr := space.SystemSpace.String()
+	spaceIDStr := fxt.WorkItems[0].SpaceID.String()
 	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, nil, nil, &q, &spaceIDStr)
 	// then
 	require.NotEmpty(s.T(), sr.Data)
@@ -198,21 +166,16 @@ func (s *searchBlackBoxTest) TestSearchURLWithoutPort() {
 func (s *searchBlackBoxTest) TestUnregisteredURLWithPort() {
 	description := "Related to http://some-other-domain:8080/different-path/154687364529310/ok issue"
 	expectedDescription := rendering.NewMarkupContentFromLegacy(description)
-	_, err := s.wiRepo.Create(
-		s.Ctx,
-		space.SystemSpace,
-		workitem.SystemBug,
-		map[string]interface{}{
-			workitem.SystemTitle:       "specialwordforsearch_new",
-			workitem.SystemDescription: expectedDescription,
-			workitem.SystemCreator:     "baijum",
-			workitem.SystemState:       workitem.SystemStateClosed,
-		},
-		s.testIdentity.ID)
-	require.Nil(s.T(), err)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
+		wi := fxt.WorkItems[idx]
+		wi.Fields[workitem.SystemTitle] = "specialwordforsearch_new"
+		wi.Fields[workitem.SystemDescription] = expectedDescription
+		wi.Fields[workitem.SystemState] = workitem.SystemStateClosed
+		return nil
+	}))
 	// when
 	q := `http://some-other-domain:8080/different-path/`
-	spaceIDStr := space.SystemSpace.String()
+	spaceIDStr := fxt.WorkItems[0].SpaceID.String()
 	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, nil, nil, &q, &spaceIDStr)
 	// then
 	require.NotEmpty(s.T(), sr.Data)
@@ -222,23 +185,17 @@ func (s *searchBlackBoxTest) TestUnregisteredURLWithPort() {
 
 func (s *searchBlackBoxTest) TestUnwantedCharactersRelatedToSearchLogic() {
 	expectedDescription := rendering.NewMarkupContentFromLegacy("Related to http://example-domain:8080/different-path/ok issue")
-
-	_, err := s.wiRepo.Create(
-		s.Ctx,
-		space.SystemSpace,
-		workitem.SystemBug,
-		map[string]interface{}{
-			workitem.SystemTitle:       "specialwordforsearch_new",
-			workitem.SystemDescription: expectedDescription,
-			workitem.SystemCreator:     "baijum",
-			workitem.SystemState:       workitem.SystemStateClosed,
-		},
-		s.testIdentity.ID)
-	require.Nil(s.T(), err)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
+		wi := fxt.WorkItems[idx]
+		wi.Fields[workitem.SystemTitle] = "specialwordforsearch_new"
+		wi.Fields[workitem.SystemDescription] = expectedDescription
+		wi.Fields[workitem.SystemState] = workitem.SystemStateClosed
+		return nil
+	}))
 	// when
 	// add url: in the query, that is not expected by the code hence need to make sure it gives expected result.
 	q := `http://url:some-random-other-domain:8080/different-path/`
-	spaceIDStr := space.SystemSpace.String()
+	spaceIDStr := fxt.WorkItems[0].SpaceID.String()
 	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, nil, nil, &q, &spaceIDStr)
 	// then
 	require.NotNil(s.T(), sr.Data)
@@ -246,8 +203,9 @@ func (s *searchBlackBoxTest) TestUnwantedCharactersRelatedToSearchLogic() {
 }
 
 func (s *searchBlackBoxTest) getWICreatePayload() *app.CreateWorkitemsPayload {
-	spaceRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(space.SystemSpace.String()))
-	witRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.WorkitemtypeHref(space.SystemSpace.String(), workitem.SystemTask.String()))
+	spaceID := space.SystemSpace
+	spaceRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(spaceID.String()))
+	witRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.WorkitemtypeHref(spaceID.String(), workitem.SystemTask.String()))
 	c := app.CreateWorkitemsPayload{
 		Data: &app.WorkItem{
 			Type:       APIStringTypeWorkItem,
@@ -263,7 +221,7 @@ func (s *searchBlackBoxTest) getWICreatePayload() *app.CreateWorkitemsPayload {
 						Related: &witRelatedURL,
 					},
 				},
-				Space: app.NewSpaceRelation(space.SystemSpace, spaceRelatedURL),
+				Space: app.NewSpaceRelation(spaceID, spaceRelatedURL),
 			},
 		},
 	}
@@ -324,11 +282,11 @@ func (s *searchBlackBoxTest) verifySearchByKnownURLs(wi *app.WorkItemSingle, hos
 // TestAutoRegisterHostURL checks if client's host is neatly registered as a KnwonURL or not
 // Uses helper functions verifySearchByKnownURLs, searchByURL, getWICreatePayload
 func (s *searchBlackBoxTest) TestAutoRegisterHostURL() {
-	// service := getServiceAsUser(s.testIdentity)
 	wiCtrl := NewWorkitemsController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	// create a WI, search by `list view URL` of newly created item
+	//fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1))
 	newWI := s.getWICreatePayload()
-	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, wiCtrl, *newWI.Data.Relationships.Space.Data.ID, newWI)
+	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, wiCtrl, space.SystemSpace, newWI)
 	require.NotNil(s.T(), wi)
 	customHost := "own.domain.one"
 	queryString := fmt.Sprintf("http://%s/work-item/list/detail/%d", customHost, wi.Data.Attributes[workitem.SystemNumber])
@@ -341,65 +299,26 @@ func (s *searchBlackBoxTest) TestAutoRegisterHostURL() {
 }
 
 func (s *searchBlackBoxTest) TestSearchWorkItemsSpaceContext() {
-	name1 := "Ultimate Space 1" + uuid.NewV4().String()
-	var space1 *space.Space
-	application.Transactional(s.db, func(app application.Application) error {
-		sp := space.Space{
-			Name: name1,
-		}
-		var err error
-		space1, err = app.Spaces().Create(context.Background(), &sp)
-		require.Nil(s.T(), err)
-		return nil
-	})
+	fxt := tf.NewTestFixture(s.T(), s.DB,
+		tf.Spaces(2),
+		tf.WorkItems(3+5, func(fxt *tf.TestFixture, idx int) error {
+			wi := fxt.WorkItems[idx]
+			wi.Fields[workitem.SystemCreator] = "pranav"
+			wi.Fields[workitem.SystemState] = workitem.SystemStateClosed
+			if idx < 3 {
+				wi.SpaceID = fxt.Spaces[0].ID
+				wi.Fields[workitem.SystemTitle] = testsupport.CreateRandomValidTestName("shutter_island common_word random - ")
+			} else {
+				wi.SpaceID = fxt.Spaces[1].ID
+				wi.Fields[workitem.SystemTitle] = testsupport.CreateRandomValidTestName("inception common_word random - ")
+			}
+			return nil
+		}),
+	)
 
-	name2 := "Ultimate Space 2" + uuid.NewV4().String()
-	var space2 *space.Space
-	application.Transactional(s.db, func(app application.Application) error {
-		sp := space.Space{
-			Name: name2,
-		}
-		var err error
-		space2, err = app.Spaces().Create(context.Background(), &sp)
-		require.Nil(s.T(), err)
-		return nil
-	})
-
-	// WI for space 1
-	for i := 0; i < 3; i++ {
-		wi, err := s.wiRepo.Create(
-			s.Ctx,
-			space1.ID,
-			workitem.SystemBug,
-			map[string]interface{}{
-				workitem.SystemTitle:       "shutter_island common_word random - " + uuid.NewV4().String(),
-				workitem.SystemDescription: nil,
-				workitem.SystemCreator:     "pranav",
-				workitem.SystemState:       workitem.SystemStateClosed,
-			},
-			s.testIdentity.ID)
-		require.Nil(s.T(), err)
-		require.NotNil(s.T(), wi)
-	}
-	// WI for space 2
-	for i := 0; i < 5; i++ {
-		wi, err := s.wiRepo.Create(
-			s.Ctx,
-			space2.ID,
-			workitem.SystemBug,
-			map[string]interface{}{
-				workitem.SystemTitle:       "inception common_word random - " + uuid.NewV4().String(),
-				workitem.SystemDescription: nil,
-				workitem.SystemCreator:     "pranav",
-				workitem.SystemState:       workitem.SystemStateClosed,
-			},
-			s.testIdentity.ID)
-		require.Nil(s.T(), err)
-		require.NotNil(s.T(), wi)
-	}
 	// when
 	q := "common_word"
-	space1IDStr := space1.ID.String()
+	space1IDStr := fxt.Spaces[0].ID.String()
 	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, nil, nil, &q, &space1IDStr)
 	// then
 	require.NotEmpty(s.T(), sr.Data)
@@ -408,7 +327,7 @@ func (s *searchBlackBoxTest) TestSearchWorkItemsSpaceContext() {
 		// make sure that retrived items are from space 1 only
 		assert.Contains(s.T(), item.Attributes[workitem.SystemTitle], "shutter_island common_word")
 	}
-	space2IDStr := space2.ID.String()
+	space2IDStr := fxt.Spaces[1].ID.String()
 	_, sr = test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, nil, nil, &q, &space2IDStr)
 	// then
 	require.NotEmpty(s.T(), sr.Data)
@@ -426,62 +345,24 @@ func (s *searchBlackBoxTest) TestSearchWorkItemsSpaceContext() {
 }
 
 func (s *searchBlackBoxTest) TestSearchWorkItemsWithoutSpaceContext() {
-	name1 := "Test Space 1.1" + uuid.NewV4().String()
-	var space1 *space.Space
-	application.Transactional(s.db, func(app application.Application) error {
-		sp := space.Space{
-			Name: name1,
-		}
-		var err error
-		space1, err = app.Spaces().Create(context.Background(), &sp)
-		require.Nil(s.T(), err)
-		return nil
-	})
+	// given 2 spaces with 10 workitems in the first and 5 in the second space
+	_ = tf.NewTestFixture(s.T(), s.DB,
+		tf.Spaces(2),
+		tf.WorkItems(10+5, func(fxt *tf.TestFixture, idx int) error {
+			wi := fxt.WorkItems[idx]
+			wi.Fields[workitem.SystemCreator] = "pranav"
+			wi.Fields[workitem.SystemState] = workitem.SystemStateClosed
+			if idx < 10 {
+				wi.SpaceID = fxt.Spaces[0].ID
+				wi.Fields[workitem.SystemTitle] = testsupport.CreateRandomValidTestName("search_by_me common_word random - ")
+			} else {
+				wi.SpaceID = fxt.Spaces[1].ID
+				wi.Fields[workitem.SystemTitle] = testsupport.CreateRandomValidTestName("search_by_me common_word random - ")
+			}
+			return nil
+		}),
+	)
 
-	name2 := "Test Space 2.2" + uuid.NewV4().String()
-	var space2 *space.Space
-	application.Transactional(s.db, func(app application.Application) error {
-		sp := space.Space{
-			Name: name2,
-		}
-		var err error
-		space2, err = app.Spaces().Create(context.Background(), &sp)
-		require.Nil(s.T(), err)
-		return nil
-	})
-
-	// 10 WI for space 1
-	for i := 0; i < 10; i++ {
-		wi, err := s.wiRepo.Create(
-			s.Ctx,
-			space1.ID,
-			workitem.SystemBug,
-			map[string]interface{}{
-				workitem.SystemTitle:       "search_by_me random - " + uuid.NewV4().String(),
-				workitem.SystemDescription: nil,
-				workitem.SystemCreator:     "pranav",
-				workitem.SystemState:       workitem.SystemStateClosed,
-			},
-			s.testIdentity.ID)
-		require.Nil(s.T(), err)
-		require.NotNil(s.T(), wi)
-	}
-	// 5 WI for space 2
-	for i := 0; i < 5; i++ {
-		wi, err := s.wiRepo.Create(
-			s.Ctx,
-			space2.ID,
-			workitem.SystemBug,
-			map[string]interface{}{
-				workitem.SystemTitle:       "search_by_me random - " + uuid.NewV4().String(),
-				workitem.SystemDescription: nil,
-				workitem.SystemCreator:     "pranav",
-				workitem.SystemState:       workitem.SystemStateClosed,
-			},
-			s.testIdentity.ID)
-		require.Nil(s.T(), err)
-		require.NotNil(s.T(), wi)
-	}
 	q := "search_by_me"
 	// search without space context
 	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, nil, nil, &q, nil)
@@ -491,21 +372,15 @@ func (s *searchBlackBoxTest) TestSearchWorkItemsWithoutSpaceContext() {
 
 func (s *searchBlackBoxTest) TestSearchFilter() {
 	// given
-	_, err := s.wiRepo.Create(
-		s.Ctx,
-		space.SystemSpace,
-		workitem.SystemBug,
-		map[string]interface{}{
-			workitem.SystemTitle:       "specialwordforsearch",
-			workitem.SystemDescription: nil,
-			workitem.SystemCreator:     "baijum",
-			workitem.SystemState:       workitem.SystemStateClosed,
-		},
-		s.testIdentity.ID)
-	require.Nil(s.T(), err)
+	fxt := tf.NewTestFixture(s.T(), s.DB,
+		tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
+			fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "specialwordforsearch"
+			return nil
+		}),
+	)
 	// when
 	filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, space.SystemSpace)
-	spaceIDStr := space.SystemSpace.String()
+	spaceIDStr := fxt.WorkItems[0].SpaceID.String()
 	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 	// then
 	require.NotEmpty(s.T(), sr.Data)
