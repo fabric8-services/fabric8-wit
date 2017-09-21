@@ -4,25 +4,29 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/auth/authservice"
 	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/goasupport"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
+
 	"github.com/goadesign/goa"
+	goaclient "github.com/goadesign/goa/client"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
-
-	uuid "github.com/satori/go.uuid"
+	"github.com/satori/go.uuid"
 )
 
 const (
@@ -42,6 +46,7 @@ type UsersControllerConfiguration interface {
 	GetCacheControlUsers() string
 	GetCacheControlUser() string
 	GetKeycloakAccountEndpoint(*http.Request) (string, error)
+	GetAuthEndpointUsers(*http.Request) (string, error)
 }
 
 // NewUsersController creates a users controller.
@@ -393,11 +398,31 @@ func (c *UsersController) updateUserInDB(id *uuid.UUID, ctx *app.UpdateUserAsSer
 
 // Update updates the authorized user based on the provided Token
 func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
-
 	id, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
+
+	result, err := c.updateInAuth(ctx)
+	if err == nil {
+		log.Info(ctx, map[string]interface{}{
+			"identity_id": id,
+		}, "updated user in Auth")
+		ctx.ResponseData.Header().Set("Cache-Control", "no-cache")
+		return ctx.OK(result)
+	}
+	// Failed to update user in Auth. If status 400 then the user may not exist in Auth yet.
+	// Try to update in WIT only.
+	if unauthorized, _ := errors.IsUnauthorizedError(err); !unauthorized {
+		log.Error(ctx, map[string]interface{}{
+			"err":         err,
+			"identity_id": id,
+		}, "updated user in Auth failed; returning an error")
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	log.Info(ctx, map[string]interface{}{
+		"identity_id": id,
+	}, "updated user in Auth is unauthorized; updating in WIT only")
 
 	keycloakUserProfile := &login.KeycloakUserProfile{}
 	keycloakUserProfile.Attributes = &login.KeycloakUserProfileAttributes{}
@@ -600,6 +625,104 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 	return returnResponse
 }
 
+func (c *UsersController) createAuthUpdateClient(ctx *app.UpdateUsersContext) (*authservice.Client, error) {
+	authEndpoint, err := c.config.GetAuthEndpointUsers(ctx.Request)
+	if err != nil {
+		return nil, err
+	}
+
+	u, err := url.Parse(authEndpoint)
+	if err != nil {
+		return nil, err
+	}
+	client := authservice.New(goaclient.HTTPClientDoer(http.DefaultClient))
+	client.Host = u.Host
+	client.Scheme = u.Scheme
+	client.SetJWTSigner(goasupport.NewForwardSigner(ctx))
+	return client, nil
+}
+
+func (c *UsersController) updateInAuth(ctx *app.UpdateUsersContext) (*app.User, error) {
+	payload := ctx.Payload
+	if payload == nil && payload.Data == nil {
+		return nil, errors.NewBadParameterError("user payload", nil).Expected("not nil")
+	}
+	authPayload := &authservice.UpdateUsersPayload{
+		Data: &authservice.UpdateUserData{Type: payload.Data.Type},
+	}
+	if payload.Data.Attributes != nil {
+		authPayload.Data.Attributes = &authservice.UpdateIdentityDataAttributes{}
+		authPayload.Data.Attributes.Company = payload.Data.Attributes.Company
+		authPayload.Data.Attributes.URL = payload.Data.Attributes.URL
+		authPayload.Data.Attributes.Bio = payload.Data.Attributes.Bio
+		authPayload.Data.Attributes.FullName = payload.Data.Attributes.FullName
+		authPayload.Data.Attributes.ImageURL = payload.Data.Attributes.ImageURL
+		authPayload.Data.Attributes.RegistrationCompleted = payload.Data.Attributes.RegistrationCompleted
+		authPayload.Data.Attributes.ContextInformation = payload.Data.Attributes.ContextInformation
+	}
+	client, err := c.createAuthUpdateClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	res, err := client.UpdateUsers(goasupport.ForwardContextRequestID(ctx), authservice.UpdateUsersPath(), authPayload)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err.Error(),
+		}, "unable to update user via auth service")
+		return nil, errs.Wrap(err, "unable to update user via auth service")
+	}
+	defer res.Body.Close()
+
+	switch res.StatusCode {
+	case 200:
+		// OK
+	case 401:
+		return nil, errors.NewUnauthorizedError(res.Status + " " + rest.ReadBody(res.Body))
+	default:
+		return nil, errors.NewInternalError(ctx, errs.New(res.Status+" "+rest.ReadBody(res.Body)))
+	}
+
+	user, err := client.DecodeUser(res)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err":           err,
+			"response_body": rest.ReadBody(res.Body),
+		}, "unable to decode update user request result")
+
+		return nil, errs.Wrapf(err, "unable to decode update user request result %s ", rest.ReadBody(res.Body))
+	}
+
+	resultUser := &app.User{
+		Data: &app.UserData{
+			Type: user.Data.Type,
+			ID:   user.Data.ID,
+			Attributes: &app.UserDataAttributes{
+				ContextInformation:    user.Data.Attributes.ContextInformation,
+				RegistrationCompleted: user.Data.Attributes.RegistrationCompleted,
+				ImageURL:              user.Data.Attributes.ImageURL,
+				FullName:              user.Data.Attributes.FullName,
+				Bio:                   user.Data.Attributes.Bio,
+				URL:                   user.Data.Attributes.URL,
+				Email:                 user.Data.Attributes.Email,
+				Username:              user.Data.Attributes.Username,
+				Company:               user.Data.Attributes.Company,
+				CreatedAt:             user.Data.Attributes.CreatedAt,
+				IdentityID:            user.Data.Attributes.IdentityID,
+				ProviderType:          user.Data.Attributes.ProviderType,
+				UpdatedAt:             user.Data.Attributes.UpdatedAt,
+				UserID:                user.Data.Attributes.UserID,
+			},
+			Links: &app.GenericLinks{
+				Meta:    user.Data.Links.Meta,
+				Related: user.Data.Links.Related,
+				Self:    user.Data.Links.Self,
+			},
+		},
+	}
+
+	return resultUser, nil
+}
+
 func isEmailValid(email string) bool {
 	// TODO: Add regex to verify email format, later
 	if len(strings.TrimSpace(email)) > 0 {
@@ -681,9 +804,6 @@ func filterUsers(appl application.Application, ctx *app.ListUsersContext) ([]acc
 	/*** Start filtering on Identities table ****/
 	if ctx.FilterUsername != nil {
 		identityFilters = append(identityFilters, account.IdentityFilterByUsername(*ctx.FilterUsername))
-	}
-	if ctx.FilterRegistrationCompleted != nil {
-		identityFilters = append(identityFilters, account.IdentityFilterByRegistrationCompleted(*ctx.FilterRegistrationCompleted))
 	}
 	// Add more filters when needed , here. ..
 	if len(identityFilters) != 0 {
