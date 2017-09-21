@@ -6,8 +6,6 @@ import (
 
 	"context"
 
-	"golang.org/x/oauth2"
-
 	"github.com/fabric8-services/fabric8-wit/account"
 
 	"github.com/fabric8-services/fabric8-wit/app"
@@ -71,25 +69,12 @@ func (rest *TestLoginREST) newTestKeycloakOAuthProvider(db application.DB) *logi
 	return login.NewKeycloakOAuthProvider(db.Identities(), db.Users(), testtoken.TokenManager, db)
 }
 
-func (rest *TestLoginREST) TestAuthorizeLoginOK() {
+func (rest *TestLoginREST) TestAuthorizeLoginRedirected() {
 	t := rest.T()
 	resource.Require(t, resource.UnitTest)
 	svc, ctrl := rest.UnSecuredController()
 
-	test.AuthorizeLoginTemporaryRedirect(t, svc.Context, svc, ctrl, nil, nil, nil)
-}
-
-func (rest *TestLoginREST) TestOfflineAccessOK() {
-	t := rest.T()
-	resource.Require(t, resource.UnitTest)
-	svc, ctrl := rest.UnSecuredController()
-
-	offline := "offline_access"
-	resp := test.AuthorizeLoginTemporaryRedirect(t, svc.Context, svc, ctrl, nil, nil, &offline)
-	assert.Contains(t, resp.Header().Get("Location"), "scope=offline_access")
-
-	resp = test.AuthorizeLoginTemporaryRedirect(t, svc.Context, svc, ctrl, nil, nil, nil)
-	assert.NotContains(t, resp.Header().Get("Location"), "scope=offline_access")
+	test.AuthorizeLoginTemporaryRedirect(t, svc.Context, svc, ctrl)
 }
 
 func (rest *TestLoginREST) TestTestUserTokenObtainedFromKeycloakOK() {
@@ -105,60 +90,12 @@ func (rest *TestLoginREST) TestTestUserTokenObtainedFromKeycloakOK() {
 	}
 }
 
-func (rest *TestLoginREST) TestRefreshTokenUsingValidRefreshTokenOK() {
-	t := rest.T()
-	resource.Require(t, resource.UnitTest)
-	service, controller := rest.SecuredController()
-	_, result := test.GenerateLoginOK(t, service.Context, service, controller)
-	if len(result) != 2 || result[0].Token.RefreshToken == nil {
-		t.Fatal("Can't get the test user token")
-	}
-	refreshToken := result[0].Token.RefreshToken
-
-	payload := &app.RefreshToken{RefreshToken: refreshToken}
-	resp, newToken := test.RefreshLoginOK(t, service.Context, service, controller, payload)
-
-	assert.Equal(t, resp.Header().Get("Cache-Control"), "no-cache")
-	validateToken(t, newToken, controller)
-}
-
-func (rest *TestLoginREST) TestRefreshTokenUsingNilTokenFails() {
-	t := rest.T()
-	resource.Require(t, resource.UnitTest)
-	service, controller := rest.SecuredController()
-
-	payload := &app.RefreshToken{}
-	_, err := test.RefreshLoginBadRequest(t, service.Context, service, controller, payload)
-	assert.NotNil(t, err)
-}
-
-func (rest *TestLoginREST) TestRefreshTokenUsingInvalidTokenFails() {
-	t := rest.T()
-	resource.Require(t, resource.UnitTest)
-	service, controller := rest.SecuredController()
-
-	refreshToken := "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9.S-vR8LZTQ92iqGCR3rNUG0MiGx2N5EBVq0frCHP_bJ8"
-	payload := &app.RefreshToken{RefreshToken: &refreshToken}
-	_, err := test.RefreshLoginBadRequest(t, service.Context, service, controller, payload)
-	assert.NotNil(t, err)
-}
-
-func (rest *TestLoginREST) TestLinkIdPWithoutTokenFails() {
-	t := rest.T()
-	resource.Require(t, resource.UnitTest)
-	service, controller := rest.SecuredController()
-
-	resp, err := test.LinkLoginUnauthorized(t, service.Context, service, controller, nil, nil)
-	assert.NotNil(t, err)
-	assert.Equal(t, resp.Header().Get("Cache-Control"), "no-cache")
-}
-
-func (rest *TestLoginREST) TestLinkIdPWithTokenRedirects() {
+func (rest *TestLoginREST) TestLinkRedirected() {
 	t := rest.T()
 	resource.Require(t, resource.UnitTest)
 	svc, ctrl := rest.UnSecuredController()
 
-	test.LinkLoginTemporaryRedirect(t, svc.Context, svc, ctrl, nil, nil)
+	test.LinkLoginTemporaryRedirect(t, svc.Context, svc, ctrl)
 }
 
 func validateToken(t *testing.T, token *app.AuthToken, controler *LoginController) {
@@ -173,22 +110,6 @@ func validateToken(t *testing.T, token *app.AuthToken, controler *LoginControlle
 
 type TestLoginService struct{}
 
-func (t TestLoginService) Perform(ctx *app.AuthorizeLoginContext, oauth *oauth2.Config, brokerEndpoint string, entitlementEndpoint string, profileEndpoint string, validRedirectURL string, userNotApprovedRedirectURL string) error {
-	return ctx.TemporaryRedirect()
-}
-
 func (t TestLoginService) CreateOrUpdateKeycloakUser(accessToken string, ctx context.Context, profileEndpoint string) (*account.Identity, *account.User, error) {
 	return nil, nil, nil
-}
-
-func (t TestLoginService) Link(ctx *app.LinkLoginContext, brokerEndpoint string, clientID string, validRedirectURL string) error {
-	return ctx.TemporaryRedirect()
-}
-
-func (t TestLoginService) LinkSession(ctx *app.LinksessionLoginContext, brokerEndpoint string, clientID string, validRedirectURL string) error {
-	return ctx.TemporaryRedirect()
-}
-
-func (t TestLoginService) LinkCallback(ctx *app.LinkcallbackLoginContext, brokerEndpoint string, clientID string) error {
-	return ctx.TemporaryRedirect()
 }
