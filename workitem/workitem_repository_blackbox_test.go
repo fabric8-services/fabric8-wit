@@ -322,3 +322,11 @@ func (s *workItemRepoBlackBoxTest) TestLookupIDByNamedSpaceAndNumberNotFound() {
 	require.NotNil(s.T(), err)
 	assert.IsType(s.T(), errors.NotFoundError{}, errs.Cause(err))
 }
+
+func (s *workItemRepoBlackBoxTest) TestLoadBatchByID() {
+	fixtures := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(5))
+	wis := []uuid.UUID{fixtures.WorkItems[1].ID, fixtures.WorkItems[1].ID, fixtures.WorkItems[2].ID, fixtures.WorkItems[2].ID}
+	res, err := s.repo.LoadBatchByID(s.Ctx, wis)
+	require.Nil(s.T(), err)
+	assert.Len(s.T(), res, 2)
+}
