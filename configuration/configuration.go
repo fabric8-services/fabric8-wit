@@ -529,6 +529,11 @@ func (c *ConfigurationData) GetAuthEndpointTokenRefresh(req *http.Request) (stri
 	return c.getAuthEndpoint(req, "api/token/refresh")
 }
 
+// GetAuthEndpointUsers returns the <auth>/api/users endpoint
+func (c *ConfigurationData) GetAuthEndpointUsers(req *http.Request) (string, error) {
+	return c.getAuthEndpoint(req, "api/users")
+}
+
 func (c *ConfigurationData) getServiceEndpoint(req *http.Request, varServiceURL string, devModeURL string, serviceDomainPrefix string, pathSufix string) (string, error) {
 	var endpoint string
 	var err error
