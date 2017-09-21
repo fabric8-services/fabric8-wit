@@ -301,10 +301,11 @@ func (s *searchBlackBoxTest) TestAutoRegisterHostURL() {
 
 func (s *searchBlackBoxTest) TestSearchWorkItemsSpaceContext() {
 	fxt := tf.NewTestFixture(s.T(), s.DB,
+		tf.Identities(1, tf.SetIdentityUsernames([]string{"pranav"})),
 		tf.Spaces(2),
 		tf.WorkItems(3+5, func(fxt *tf.TestFixture, idx int) error {
 			wi := fxt.WorkItems[idx]
-			wi.Fields[workitem.SystemCreator] = "pranav"
+			wi.Fields[workitem.SystemCreator] = fxt.IdentityByUsername("pranav").ID.String()
 			wi.Fields[workitem.SystemState] = workitem.SystemStateClosed
 			if idx < 3 {
 				wi.SpaceID = fxt.Spaces[0].ID
@@ -348,10 +349,11 @@ func (s *searchBlackBoxTest) TestSearchWorkItemsSpaceContext() {
 func (s *searchBlackBoxTest) TestSearchWorkItemsWithoutSpaceContext() {
 	// given 2 spaces with 10 workitems in the first and 5 in the second space
 	_ = tf.NewTestFixture(s.T(), s.DB,
+		tf.Identities(1, tf.SetIdentityUsernames([]string{"pranav"})),
 		tf.Spaces(2),
 		tf.WorkItems(10+5, func(fxt *tf.TestFixture, idx int) error {
 			wi := fxt.WorkItems[idx]
-			wi.Fields[workitem.SystemCreator] = "pranav"
+			wi.Fields[workitem.SystemCreator] = fxt.IdentityByUsername("pranav").ID.String()
 			wi.Fields[workitem.SystemState] = workitem.SystemStateClosed
 			if idx < 10 {
 				wi.SpaceID = fxt.Spaces[0].ID
@@ -380,7 +382,7 @@ func (s *searchBlackBoxTest) TestSearchFilter() {
 		}),
 	)
 	// when
-	filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, space.SystemSpace)
+	filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, fxt.WorkItems[0].SpaceID)
 	spaceIDStr := fxt.WorkItems[0].SpaceID.String()
 	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 	// then
