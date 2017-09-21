@@ -90,44 +90,6 @@ func (rest *TestLoginREST) TestTestUserTokenObtainedFromKeycloakOK() {
 	}
 }
 
-func (rest *TestLoginREST) TestRefreshTokenUsingValidRefreshTokenOK() {
-	t := rest.T()
-	resource.Require(t, resource.UnitTest)
-	service, controller := rest.SecuredController()
-	_, result := test.GenerateLoginOK(t, service.Context, service, controller)
-	if len(result) != 2 || result[0].Token.RefreshToken == nil {
-		t.Fatal("Can't get the test user token")
-	}
-	refreshToken := result[0].Token.RefreshToken
-
-	payload := &app.RefreshToken{RefreshToken: refreshToken}
-	resp, newToken := test.RefreshLoginOK(t, service.Context, service, controller, payload)
-
-	assert.Equal(t, resp.Header().Get("Cache-Control"), "no-cache")
-	validateToken(t, newToken, controller)
-}
-
-func (rest *TestLoginREST) TestRefreshTokenUsingNilTokenFails() {
-	t := rest.T()
-	resource.Require(t, resource.UnitTest)
-	service, controller := rest.SecuredController()
-
-	payload := &app.RefreshToken{}
-	_, err := test.RefreshLoginBadRequest(t, service.Context, service, controller, payload)
-	assert.NotNil(t, err)
-}
-
-func (rest *TestLoginREST) TestRefreshTokenUsingInvalidTokenFails() {
-	t := rest.T()
-	resource.Require(t, resource.UnitTest)
-	service, controller := rest.SecuredController()
-
-	refreshToken := "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9.S-vR8LZTQ92iqGCR3rNUG0MiGx2N5EBVq0frCHP_bJ8"
-	payload := &app.RefreshToken{RefreshToken: &refreshToken}
-	_, err := test.RefreshLoginBadRequest(t, service.Context, service, controller, payload)
-	assert.NotNil(t, err)
-}
-
 func (rest *TestLoginREST) TestLinkRedirected() {
 	t := rest.T()
 	resource.Require(t, resource.UnitTest)
