@@ -1,6 +1,9 @@
 package testfixture
 
-import "github.com/fabric8-services/fabric8-wit/workitem/link"
+import (
+	"github.com/fabric8-services/fabric8-wit/workitem/link"
+	errs "github.com/pkg/errors"
+)
 
 // A CustomizeEntityFunc acts as a generic function to the various
 // recipe-functions (e.g. Identities(), Spaces(), etc.). The current test
@@ -83,6 +86,32 @@ func TopologyTree() CustomizeWorkItemLinkTypeFunc {
 func UserActive(active bool) CustomizeIterationFunc {
 	return func(fxt *TestFixture, idx int) error {
 		fxt.Iterations[idx].UserActive = active
+		return nil
+	}
+}
+
+// SetLabelNames takes the given names and uses them during creation of labels.
+// The length of requested labels and the number of names must match or the
+// NewFixture call will return an error.
+func SetLabelNames(names []string) CustomizeLabelFunc {
+	return func(fxt *TestFixture, idx int) error {
+		if len(fxt.Labels) != len(names) {
+			return errs.Errorf("number of names (%d) must match number of labels to create (%d)", len(names), len(fxt.Labels))
+		}
+		fxt.Labels[idx].Name = names[idx]
+		return nil
+	}
+}
+
+// SetIterationNames takes the given names and uses them during creation of
+// iterations. The length of requested iterations and the number of names must
+// match or the NewFixture call will return an error.
+func SetIterationNames(names []string) CustomizeIterationFunc {
+	return func(fxt *TestFixture, idx int) error {
+		if len(fxt.Iterations) != len(names) {
+			return errs.Errorf("number of names (%d) must match number of iterations to create (%d)", len(names), len(fxt.Iterations))
+		}
+		fxt.Iterations[idx].Name = names[idx]
 		return nil
 	}
 }
