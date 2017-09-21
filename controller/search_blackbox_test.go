@@ -433,7 +433,7 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 	)
 	spaceIDStr := fxt.WorkItems[0].SpaceID.String()
 
-	s.T().Run("label IN IMPORTAND, UI", func(t *testing.T) {
+	s.T().Run("label IN IMPORTANT, UI", func(t *testing.T) {
 		// following test does not include any "space" deliberately, hence if there
 		// is any work item in the test-DB having state=resolved following count
 		// will fail
