@@ -23,6 +23,7 @@ var _ = a.Resource("collaborators", func() {
 		a.Response(d.NotModified)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.TemporaryRedirect)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 

@@ -23,12 +23,11 @@ import (
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
-	uuid "github.com/satori/go.uuid"
-
 	"github.com/fabric8-services/fabric8-wit/workitem"
-
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/goatest"
+	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -406,7 +405,6 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 		tf.WorkItems(3+5+1, func(fxt *tf.TestFixture, idx int) error {
 			wi := fxt.WorkItems[idx]
 			if idx < 3 {
-				//wi.Fields[workitem.SystemTitle] = fmt.Sprintf("New issue #%d", idx)
 				wi.Fields[workitem.SystemState] = workitem.SystemStateResolved
 				wi.Fields[workitem.SystemIteration] = fxt.IterationByName("sprint1").ID.String()
 				wi.Fields[workitem.SystemLabels] = []string{fxt.LabelByName("important").ID.String(), fxt.LabelByName("backend").ID.String()}
@@ -414,7 +412,6 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 				wi.Fields[workitem.SystemCreator] = fxt.IdentityByUsername("spaceowner").ID.String()
 				wi.Type = fxt.WorkItemTypeByName("bug").ID
 			} else if idx < 3+5 {
-				//wi.Fields[workitem.SystemTitle] = fmt.Sprintf("Closed issue #%d", idx)
 				wi.Fields[workitem.SystemState] = workitem.SystemStateClosed
 				wi.Fields[workitem.SystemIteration] = fxt.IterationByName("sprint2").ID.String()
 				wi.Fields[workitem.SystemLabels] = []string{fxt.LabelByName("ui").ID.String()}
@@ -422,7 +419,6 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 				wi.Fields[workitem.SystemCreator] = fxt.IdentityByUsername("spaceowner").ID.String()
 				wi.Type = fxt.WorkItemTypeByName("feature").ID
 			} else {
-				// wi.Fields[workitem.SystemTitle] = fmt.Sprintf("Unassigned issue")
 				wi.Fields[workitem.SystemState] = workitem.SystemStateClosed
 				wi.Fields[workitem.SystemIteration] = fxt.IterationByName("sprint2").ID.String()
 				wi.Fields[workitem.SystemCreator] = fxt.IdentityByUsername("spaceowner").ID.String()

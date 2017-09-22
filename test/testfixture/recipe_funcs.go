@@ -414,7 +414,7 @@ func WorkItemLinks(n int, fns ...CustomizeWorkItemLinkFunc) RecipeFunction {
 
 // CustomizeLabelFunc is directly compatible with CustomizeEntityFunc
 // but it can only be used for the Labels() recipe-function.
-type CustomizeLabelFunc func(fxt *TestFixture, idx int) error
+type CustomizeLabelFunc CustomizeEntityFunc
 
 // Labels tells the test fixture to create at least n label objects. See
 // also the Identities() function for more general information on n and fns.
