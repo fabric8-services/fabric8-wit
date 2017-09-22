@@ -1035,77 +1035,40 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 }
 
 // TestIncludedParents verifies the Included list of parents
-// create a space1
-// create wi1, wi2, wi3
-// wi2 is child of wi1
-// wi3 is child of wi2
 func (s *searchBlackBoxTest) TestIncludedParents() {
-	spaceOwner, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestSearchQueryScenarioDriven-"), "TestWISearch")
-	require.Nil(s.T(), err)
-	spaceInstance := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, *spaceOwner)
-	spaceIDStr := spaceInstance.ID.String()
-	wirepo := workitem.NewWorkItemRepository(s.DB)
-	workItemLinkCtrl := NewWorkItemLinkController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-	require.NotNil(s.T(), workItemLinkCtrl)
+	// keep in mind that TestFixture is going to create 6 items becasue we asked for 3 links
+	// we will ignore extra 2 items and we will use only 4
+	fixtures := tf.NewTestFixture(s.T(), s.DB,
+		tf.WorkItemLinkTypes(1, tf.TopologyNetwork(), func(fxt *tf.TestFixture, idx int) error {
+			fxt.WorkItemLinkTypes[idx].ForwardName = "parent of"
+			return nil
+		}),
+		tf.WorkItemLinks(3, func(fxt *tf.TestFixture, idx int) error {
+			switch idx {
+			case 0:
+				fxt.WorkItemLinks[idx].SourceID = fxt.WorkItems[0].ID
+				fxt.WorkItemLinks[idx].TargetID = fxt.WorkItems[1].ID
+			case 1:
+				fxt.WorkItemLinks[idx].SourceID = fxt.WorkItems[1].ID
+				fxt.WorkItemLinks[idx].TargetID = fxt.WorkItems[2].ID
+			case 2:
+				fxt.WorkItemLinks[idx].SourceID = fxt.WorkItems[0].ID
+				fxt.WorkItemLinks[idx].TargetID = fxt.WorkItems[3].ID
+			}
+			return nil
+		}),
+	)
 
-	parentWI0, err := wirepo.Create(
-		s.Ctx, *spaceInstance.ID, workitem.SystemFeature,
-		map[string]interface{}{
-			workitem.SystemTitle: "Parent WI",
-			workitem.SystemState: workitem.SystemStateResolved,
-		}, spaceOwner.ID)
-	require.Nil(s.T(), err)
-
-	parentWI1, err := wirepo.Create(
-		s.Ctx, *spaceInstance.ID, workitem.SystemTask,
-		map[string]interface{}{
-			workitem.SystemTitle: "Parent WI",
-			workitem.SystemState: workitem.SystemStateResolved,
-		}, spaceOwner.ID)
-	require.Nil(s.T(), err)
-
-	childWI, err := wirepo.Create(
-		s.Ctx, *spaceInstance.ID, workitem.SystemBug,
-		map[string]interface{}{
-			workitem.SystemTitle: "Child WI",
-			workitem.SystemState: workitem.SystemStateResolved,
-		}, spaceOwner.ID)
-	require.Nil(s.T(), err)
-
-	childWI2, err := wirepo.Create(
-		s.Ctx, *spaceInstance.ID, workitem.SystemBug,
-		map[string]interface{}{
-			workitem.SystemTitle: "Child WI",
-			workitem.SystemState: workitem.SystemStateResolved,
-		}, spaceOwner.ID)
-	require.Nil(s.T(), err)
-	// create parent links
-	createPayload := newCreateWorkItemLinkPayload(parentWI0.ID, parentWI1.ID, link.SystemWorkItemLinkTypeParentChildID)
-	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, workItemLinkCtrl, createPayload)
-	require.NotNil(s.T(), workItemLink)
-	require.Equal(s.T(), parentWI0.ID, workItemLink.Data.Relationships.Source.Data.ID)
-	require.Equal(s.T(), parentWI1.ID, workItemLink.Data.Relationships.Target.Data.ID)
-	require.Equal(s.T(), link.SystemWorkItemLinkTypeParentChildID, workItemLink.Data.Relationships.LinkType.Data.ID)
-
-	createPayload = newCreateWorkItemLinkPayload(parentWI1.ID, childWI.ID, link.SystemWorkItemLinkTypeParentChildID)
-	_, workItemLink = test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, workItemLinkCtrl, createPayload)
-	require.NotNil(s.T(), workItemLink)
-	require.Equal(s.T(), parentWI1.ID, workItemLink.Data.Relationships.Source.Data.ID)
-	require.Equal(s.T(), childWI.ID, workItemLink.Data.Relationships.Target.Data.ID)
-	require.Equal(s.T(), link.SystemWorkItemLinkTypeParentChildID, workItemLink.Data.Relationships.LinkType.Data.ID)
-
-	// in the link below, we keep parentWI0 as parent so that we can verify "included" list is not having duplicates
-	createPayload = newCreateWorkItemLinkPayload(parentWI0.ID, childWI2.ID, link.SystemWorkItemLinkTypeParentChildID)
-	_, workItemLink = test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, workItemLinkCtrl, createPayload)
-	require.NotNil(s.T(), workItemLink)
-	require.Equal(s.T(), parentWI0.ID, workItemLink.Data.Relationships.Source.Data.ID)
-	require.Equal(s.T(), childWI2.ID, workItemLink.Data.Relationships.Target.Data.ID)
-	require.Equal(s.T(), link.SystemWorkItemLinkTypeParentChildID, workItemLink.Data.Relationships.LinkType.Data.ID)
+	spaceIDStr := fixtures.Spaces[0].ID.String()
+	parentWI0 := fixtures.WorkItems[0]
+	parentWI1 := fixtures.WorkItems[1]
+	childWI := fixtures.WorkItems[2]
+	childWI2 := fixtures.WorkItems[3]
 
 	filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, spaceIDStr)
 	_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 	require.NotEmpty(s.T(), result.Data)
-	require.Len(s.T(), result.Data, 4)
+	require.Len(s.T(), result.Data, 6)
 	require.Len(s.T(), result.Included, 2)
 
 	// verify included objects
