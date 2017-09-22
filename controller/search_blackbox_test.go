@@ -13,7 +13,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	"github.com/fabric8-services/fabric8-wit/application"
-	"github.com/fabric8-services/fabric8-wit/auth"
 	config "github.com/fabric8-services/fabric8-wit/configuration"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
@@ -27,7 +26,7 @@ import (
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 
 	"github.com/fabric8-services/fabric8-wit/workitem"
-	uuid "github.com/satori/go.uuid"
+	"github.com/satori/go.uuid"
 
 	"context"
 
@@ -526,20 +525,8 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 	bob := identitiesTestFixtures.Identities[2]
 
 	// Following Secured Space returns app.Space but TestFixtures currently returns space.Space Hence not used
-	spaceInstance := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, *spaceOwner)
+	spaceInstance := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, *spaceOwner, "")
 	spaceIDStr := spaceInstance.ID.String()
-
-	svcWithSpaceOwner := testsupport.ServiceAsSpaceUser("Search-Service", *spaceOwner, &TestSpaceAuthzService{*spaceOwner})
-	collaboratorRESTInstance := &TestCollaboratorsREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")}
-	collaboratorRESTInstance.policy = &auth.KeycloakPolicy{
-		Name:             "TestCollaborators-" + uuid.NewV4().String(),
-		Type:             auth.PolicyTypeUser,
-		Logic:            auth.PolicyLogicPossitive,
-		DecisionStrategy: auth.PolicyDecisionStrategyUnanimous,
-	}
-	collaboratorCtrl := NewCollaboratorsController(svcWithSpaceOwner, s.db, s.Configuration, &DummyPolicyManager{rest: collaboratorRESTInstance})
-	test.AddCollaboratorsOK(s.T(), svcWithSpaceOwner.Context, svcWithSpaceOwner, collaboratorCtrl, *spaceInstance.ID, alice.ID.String())
-	test.AddCollaboratorsOK(s.T(), svcWithSpaceOwner.Context, svcWithSpaceOwner, collaboratorCtrl, *spaceInstance.ID, bob.ID.String())
 
 	labelNames := []string{"IMPORTANT", "backend", "UI", "REST"}
 	multiTestFixtures := tf.NewTestFixture(s.T(), s.DB, tf.Iterations(3, func(fxt *tf.TestFixture, idx int) error {
