@@ -42,10 +42,10 @@ func (s *TestNamedWorkItemsSuite) SetupTest() {
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "TestUpdateWorkitemForSpaceCollaborator-"+uuid.NewV4().String(), "TestWI")
 	require.Nil(s.T(), err)
 	s.testIdentity = *testIdentity
-	s.svc = testsupport.ServiceAsSpaceUser("Collaborators-Service", s.testIdentity, &TestSpaceAuthzService{s.testIdentity})
+	s.svc = testsupport.ServiceAsSpaceUser("Collaborators-Service", s.testIdentity, &TestSpaceAuthzService{s.testIdentity, ""})
 	s.workitemsCtrl = NewWorkitemsController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.namedWorkItemsCtrl = NewNamedWorkItemsController(s.svc, gormapplication.NewGormDB(s.DB))
-	s.testSpace = CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, s.testIdentity)
+	s.testSpace = CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, s.testIdentity, "")
 }
 
 func (s *TestNamedWorkItemsSuite) TearDownTest() {
