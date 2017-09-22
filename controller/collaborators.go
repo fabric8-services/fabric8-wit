@@ -15,8 +15,9 @@ import (
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/space/authz"
+
 	"github.com/goadesign/goa"
-	uuid "github.com/satori/go.uuid"
+	"github.com/satori/go.uuid"
 )
 
 // CollaboratorsController implements the collaborators resource.
@@ -31,6 +32,7 @@ type CollaboratorsConfiguration interface {
 	GetKeycloakEndpointEntitlement(*http.Request) (string, error)
 	GetCacheControlCollaborators() string
 	IsAuthorizationEnabled() bool
+	GetAuthEndpointSpaces(req *http.Request) (string, error)
 }
 
 type collaboratorContext interface {
@@ -45,38 +47,43 @@ func NewCollaboratorsController(service *goa.Service, db application.DB, config 
 
 // List collaborators for the given space ID.
 func (c *CollaboratorsController) List(ctx *app.ListCollaboratorsContext) error {
-	var userIDs string
-	if !c.config.IsAuthorizationEnabled() {
-		// Return the space owner if authZ is disabled (by default in Dev Mode)
-		var ownerID string
-		err := application.Transactional(c.db, func(appl application.Application) error {
-			space, err := appl.Spaces().Load(ctx, ctx.SpaceID)
-			if err != nil {
-				log.Error(ctx, map[string]interface{}{
-					"space_id": ctx.SpaceID,
-					"err":      err,
-				}, "unable to find the space")
-				return err
-			}
-			ownerID = space.OwnerId.String()
-			return nil
-		})
+	if c.config.IsAuthorizationEnabled() {
+		authEndpoint, err := c.config.GetAuthEndpointSpaces(ctx.RequestData.Request)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.NewInternalError(ctx.Context, err))
+			return jsonapi.JSONErrorResponse(ctx, errs.NewInternalError(ctx, err))
 		}
-		userIDs = fmt.Sprintf("[\"%s\"]", ownerID)
-		log.Warn(ctx, map[string]interface{}{
-			"space_id": ctx.SpaceID,
-			"owner_id": ownerID,
-		}, "Authorization is disabled. Space owner is the only collaborator")
-	} else {
-		policy, _, err := c.getPolicy(ctx, ctx.Request, ctx.SpaceID)
+		spaceID := ctx.SpaceID.String()
+		locationURL, err := redirectLocation(ctx.Params, fmt.Sprintf("%s/%s/collaborators", authEndpoint, spaceID))
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return jsonapi.JSONErrorResponse(ctx, errs.NewInternalError(ctx, err))
 		}
-		userIDs = policy.Config.UserIDs
+		ctx.ResponseData.Header().Set("Location", locationURL)
+		return ctx.TemporaryRedirect()
 	}
 
+	// Return the space owner if authZ is disabled (by default in Dev Mode)
+	var userIDs string
+	var ownerID string
+	err := application.Transactional(c.db, func(appl application.Application) error {
+		space, err := appl.Spaces().Load(ctx, ctx.SpaceID)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"space_id": ctx.SpaceID,
+				"err":      err,
+			}, "unable to find the space")
+			return err
+		}
+		ownerID = space.OwnerId.String()
+		return nil
+	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errs.NewInternalError(ctx.Context, err))
+	}
+	userIDs = fmt.Sprintf("[\"%s\"]", ownerID)
+	log.Warn(ctx, map[string]interface{}{
+		"space_id": ctx.SpaceID,
+		"owner_id": ownerID,
+	}, "Authorization is disabled. Space owner is the only collaborator")
 	//UsersIDs format : "[\"<ID>\",\"<ID>\"]"
 	s := strings.Split(userIDs, ",")
 	count := len(s)
@@ -117,7 +124,7 @@ func (c *CollaboratorsController) List(ctx *app.ListCollaboratorsContext) error 
 				log.Error(ctx, map[string]interface{}{
 					"identity_id": id,
 				}, "unable to find the identity listed in the space policy")
-				return errors.New("Identity listed in the space policy not found")
+				return errors.New("identity listed in the space policy not found")
 			}
 			resultIdentities[i] = identities[0]
 			resultUsers[i] = identities[0].User
