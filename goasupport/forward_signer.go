@@ -19,7 +19,7 @@ func (f forwardSigner) Sign(request *http.Request) error {
 	return nil
 }
 
-// NewForwardSigner return a new signer based on curret context
+// NewForwardSigner return a new signer based on current context
 func NewForwardSigner(ctx context.Context) goaclient.Signer {
 	return &forwardSigner{token: goajwt.ContextJWT(ctx).Raw}
 }

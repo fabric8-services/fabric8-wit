@@ -8,9 +8,7 @@ import (
 	"context"
 
 	"github.com/fabric8-services/fabric8-wit/account"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
-	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
@@ -33,28 +31,18 @@ func TestSuiteTrackerItemRepository(t *testing.T) {
 // ========== TrackeItemRepositorySuite struct that implements SetupSuite, TearDownSuite, SetupTest, TearDownTest ==========
 type TrackerItemRepositorySuite struct {
 	gormtestsupport.DBTestSuite
-	clean        func()
 	trackerQuery TrackerQuery
-	ctx          context.Context
-}
-
-// The SetupSuite method will run before the tests in the suite are run.
-// It sets up a database connection for all the tests in this suite without polluting global space.
-func (s *TrackerItemRepositorySuite) SetupSuite() {
-	s.DBTestSuite.SetupSuite()
-	ctx := migration.NewMigrationContext(context.Background())
-	s.DBTestSuite.PopulateDBTestSuite(ctx)
 }
 
 func (s *TrackerItemRepositorySuite) SetupTest() {
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+	s.DBTestSuite.SetupTest()
 	// Setting up the dependent tracker query and tracker data in the Database
 	tracker := Tracker{URL: "https://api.github.com/", Type: ProviderGithub}
 	s.trackerQuery = TrackerQuery{Query: "some random query", Schedule: "0 0 0 * * *", TrackerID: tracker.ID, SpaceID: space.SystemSpace}
 
 	req := &http.Request{Host: "localhost"}
 	params := url.Values{}
-	s.ctx = goa.NewContext(context.Background(), nil, req, params)
+	s.Ctx = goa.NewContext(context.Background(), nil, req, params)
 }
 
 func (s *TrackerItemRepositorySuite) createIdentity(username string) account.Identity {
@@ -65,7 +53,7 @@ func (s *TrackerItemRepositorySuite) createIdentity(username string) account.Ide
 		ProfileURL:   &profile,
 		ProviderType: ProviderGithub,
 	}
-	err := identityRepo.Create(s.ctx, &identity)
+	err := identityRepo.Create(s.Ctx, &identity)
 	require.Nil(s.T(), err)
 	return identity
 }
@@ -77,10 +65,6 @@ func (s *TrackerItemRepositorySuite) lookupIdentityByID(id string) account.Ident
 	identity, err := identityRepo.First(account.IdentityFilterByID(identityID))
 	require.Nil(s.T(), err)
 	return *identity
-}
-
-func (s *TrackerItemRepositorySuite) TearDownTest() {
-	s.clean()
 }
 
 var GitIssueWithAssignee = "http://api.github.com/repos/fabric8-wit-test/fabric8-wit-test-unit/issues/2"
@@ -115,7 +99,7 @@ func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithExistingIdentitie
 	}
 
 	// when
-	workItem, err := convertToWorkItemModel(s.ctx, s.DB, int(s.trackerQuery.ID), remoteItemData, ProviderGithub, s.trackerQuery.SpaceID)
+	workItem, err := convertToWorkItemModel(s.Ctx, s.DB, int(s.trackerQuery.ID), remoteItemData, ProviderGithub, s.trackerQuery.SpaceID)
 	// then
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), workItem.Fields)
@@ -158,7 +142,7 @@ func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithUnknownIdentities
 	}
 
 	// when
-	workItem, err := convertToWorkItemModel(s.ctx, s.DB, int(s.trackerQuery.ID), remoteItemData, ProviderGithub, s.trackerQuery.SpaceID)
+	workItem, err := convertToWorkItemModel(s.Ctx, s.DB, int(s.trackerQuery.ID), remoteItemData, ProviderGithub, s.trackerQuery.SpaceID)
 	// then
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), workItem.Fields)
@@ -204,7 +188,7 @@ func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithNoAssignee() {
 		ID: "http://github.com/sbose/api/testonly/1",
 	}
 	// when
-	workItem, err := convertToWorkItemModel(s.ctx, s.DB, int(s.trackerQuery.ID), remoteItemData, ProviderGithub, s.trackerQuery.SpaceID)
+	workItem, err := convertToWorkItemModel(s.Ctx, s.DB, int(s.trackerQuery.ID), remoteItemData, ProviderGithub, s.trackerQuery.SpaceID)
 	// then
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), workItem.Fields)
@@ -244,7 +228,7 @@ func (s *TrackerItemRepositorySuite) TestConvertExistingWorkItem() {
 		ID: "http://github.com/sbose/api/testonly/1",
 	}
 	// when
-	workItem, err := convertToWorkItemModel(s.ctx, s.DB, int(s.trackerQuery.ID), remoteItemData, ProviderGithub, s.trackerQuery.SpaceID)
+	workItem, err := convertToWorkItemModel(s.Ctx, s.DB, int(s.trackerQuery.ID), remoteItemData, ProviderGithub, s.trackerQuery.SpaceID)
 	// then
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), "linking", workItem.Fields[workitem.SystemTitle])
@@ -273,7 +257,7 @@ func (s *TrackerItemRepositorySuite) TestConvertExistingWorkItem() {
 		ID: "http://github.com/sbose/api/testonly/1",
 	}
 	// when
-	workItemUpdated, err := convertToWorkItemModel(s.ctx, s.DB, int(s.trackerQuery.ID), remoteItemDataUpdated, ProviderGithub, s.trackerQuery.SpaceID)
+	workItemUpdated, err := convertToWorkItemModel(s.Ctx, s.DB, int(s.trackerQuery.ID), remoteItemDataUpdated, ProviderGithub, s.trackerQuery.SpaceID)
 	// then
 	assert.Nil(s.T(), err)
 	require.NotNil(s.T(), workItemUpdated)
@@ -297,7 +281,7 @@ func (s *TrackerItemRepositorySuite) TestConvertGithubIssue() {
 		ID:      GitIssueWithAssignee, // GH issue url
 	}
 	// when
-	workItemGithub, err := convertToWorkItemModel(s.ctx, s.DB, int(s.trackerQuery.ID), remoteItemDataGithub, ProviderGithub, s.trackerQuery.SpaceID)
+	workItemGithub, err := convertToWorkItemModel(s.Ctx, s.DB, int(s.trackerQuery.ID), remoteItemDataGithub, ProviderGithub, s.trackerQuery.SpaceID)
 	// then
 	require.Nil(s.T(), err)
 	assert.Equal(s.T(), "map flatten : test case : with assignee", workItemGithub.Fields[workitem.SystemTitle])

@@ -336,6 +336,7 @@ var searchKeyMap = map[string]string{
 	"area":         workitem.SystemArea,
 	"iteration":    workitem.SystemIteration,
 	"assignee":     workitem.SystemAssignees,
+	"label":        workitem.SystemLabels,
 	"state":        workitem.SystemState,
 	"type":         "Type",
 	"workitemtype": "Type", // same as 'type' - added for compatibility. (Ref. #1564)
@@ -352,7 +353,7 @@ func (q Query) getAttributeKey(key string) string {
 
 func (q Query) determineLiteralType(key string, val string) criteria.Expression {
 	switch key {
-	case workitem.SystemAssignees:
+	case workitem.SystemAssignees, workitem.SystemLabels:
 		return criteria.Literal([]string{val})
 	default:
 		return criteria.Literal(val)
