@@ -193,7 +193,7 @@ func main() {
 	service.Use(log.LogRequest(config.IsPostgresDeveloperModeEnabled()))
 	app.UseJWTMiddleware(service, goajwt.New(tokenManager.PublicKeys(), nil, app.NewJWTSecurity()))
 
-	spaceAuthzService := authz.NewAuthzService(config, appDB)
+	spaceAuthzService := authz.NewAuthzService(config)
 	service.Use(authz.InjectAuthzService(spaceAuthzService))
 
 	loginService := login.NewKeycloakOAuthProvider(identityRepository, userRepository, tokenManager, appDB)

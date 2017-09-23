@@ -18,7 +18,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
-	uuid "github.com/satori/go.uuid"
+	"github.com/satori/go.uuid"
 )
 
 const (
@@ -125,35 +125,10 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 	}
 
 	// Create keycloak resource for this space
-
-	resource, err := c.resourceManager.CreateSpace(ctx, ctx.Request, spaceID.String())
+	_, err = c.resourceManager.CreateSpace(ctx, ctx.Request, spaceID.String())
 	if err != nil {
-		// Unable to create a space resource. Can't proceed. Rool back space creation and return an error.
+		// Unable to create a space resource. Can't proceed. Roll back space creation and return an error.
 		c.rollBackSpaceCreation(ctx, spaceID)
-		return jsonapi.JSONErrorResponse(ctx, err)
-	}
-	spaceResource := &space.Resource{
-		ResourceID:   resource.Data.ResourceID,
-		PolicyID:     resource.Data.PolicyID,
-		PermissionID: resource.Data.PermissionID,
-		SpaceID:      spaceID,
-	}
-
-	err = application.Transactional(c.db, func(appl application.Application) error {
-		// Create space resource which will represent the keyclok resource associated with this space
-		_, err = appl.SpaceResources().Create(ctx, spaceResource)
-		return err
-	})
-	if err != nil {
-		// Rool back space and space resource creation
-		c.rollBackSpaceCreation(ctx, spaceID)
-		remoteErr := c.resourceManager.DeleteSpace(ctx, ctx.Request, spaceID.String())
-		if remoteErr != nil {
-			log.Error(ctx, map[string]interface{}{
-				"err":      remoteErr,
-				"space_id": spaceID,
-			}, "unable to roll back space resource creation")
-		}
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
@@ -187,9 +162,6 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
-	var resourceID string
-	var permissionID string
-	var policyID string
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		s, err := appl.Spaces().Load(ctx.Context, ctx.SpaceID)
 		if err != nil {
@@ -202,32 +174,6 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 				"current_user": *currentUser,
 			}, "user is not the space owner")
 			return errors.NewForbiddenError("user is not the space owner")
-		}
-
-		// FIXME: what about relying on CASCADE DELETE in the DB instead of doing this ?
-		// Delete associated space resource
-		resource, err := appl.SpaceResources().LoadBySpace(ctx, &ctx.SpaceID)
-		if err != nil {
-			if notFound, _ := errors.IsNotFoundError(err); notFound {
-				// Space resource is not found.
-				// It can happen to old spaces if Keycloak failed to create a space resource for some reason during space creation.
-				// New spaces won't be created if the space resource creation failed but we have to ignore this errors for old spaces.
-				log.Error(ctx, map[string]interface{}{
-					"space_id":     ctx.SpaceID,
-					"current_user": *currentUser,
-					"err":          err,
-				}, "Can't delete the space resource because it's not found. May happen to old spaces. Space will be deleted anyway.")
-				return appl.Spaces().Delete(ctx.Context, ctx.SpaceID)
-			}
-			return err
-		}
-		resourceID = resource.ResourceID
-		permissionID = resource.PermissionID
-		policyID = resource.PolicyID
-
-		appl.SpaceResources().Delete(ctx, resource.ID)
-		if err != nil {
-			return err
 		}
 		return appl.Spaces().Delete(ctx.Context, ctx.SpaceID)
 	})

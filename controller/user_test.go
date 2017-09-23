@@ -307,10 +307,6 @@ func (g *GormTestBase) Spaces() space.Repository {
 	return nil
 }
 
-func (g *GormTestBase) SpaceResources() space.ResourceRepository {
-	return nil
-}
-
 func (g *GormTestBase) Trackers() application.TrackerRepository {
 	return nil
 }
