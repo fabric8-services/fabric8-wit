@@ -2722,17 +2722,17 @@ func minimumRequiredUpdatePayloadWithSpace(spaceID uuid.UUID) app.UpdateWorkitem
 func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "TestUpdateWorkitemForSpaceCollaborator-"+uuid.NewV4().String(), "TestWI")
 	require.Nil(s.T(), err)
-	space := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, *testIdentity)
+	space := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, *testIdentity, "")
 	// Create new workitem
 	payload := minimumRequiredCreateWithTypeAndSpace(workitem.SystemBug, *space.ID)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 
-	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *testIdentity, &TestSpaceAuthzService{*testIdentity})
+	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *testIdentity, &TestSpaceAuthzService{*testIdentity, ""})
 	workitemCtrl := NewWorkitemController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	workitemsCtrl := NewWorkitemsController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	testIdentity2, err := testsupport.CreateTestIdentity(s.DB, "TestUpdateWorkitemForSpaceCollaborator-"+uuid.NewV4().String(), "TestWI")
-	svcNotAuthorized := testsupport.ServiceAsSpaceUser("Collaborators-Service", *testIdentity2, &TestSpaceAuthzService{*testIdentity})
+	svcNotAuthorized := testsupport.ServiceAsSpaceUser("Collaborators-Service", *testIdentity2, &TestSpaceAuthzService{*testIdentity, ""})
 	workitemCtrlNotAuthorized := NewWorkitemController(svcNotAuthorized, gormapplication.NewGormDB(s.DB), s.Configuration)
 	workitemsCtrlNotAuthorized := NewWorkitemsController(svcNotAuthorized, gormapplication.NewGormDB(s.DB), s.Configuration)
 
@@ -2761,7 +2761,7 @@ func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	}
 	err = testsupport.CreateTestIdentityForAccountIdentity(s.DB, &openshiftioTestIdentity)
 	require.Nil(s.T(), err)
-	openshiftioTestIdentitySpace := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, openshiftioTestIdentity)
+	openshiftioTestIdentitySpace := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, openshiftioTestIdentity, "")
 	payload3 := minimumRequiredCreateWithTypeAndSpace(workitem.SystemBug, *openshiftioTestIdentitySpace.ID)
 	payload3.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload3.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
