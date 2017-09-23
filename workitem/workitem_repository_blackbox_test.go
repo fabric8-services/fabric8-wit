@@ -334,7 +334,7 @@ func (s *workItemRepoBlackBoxTest) TestLookupIDByNamedSpaceAndNumberStaleSpace()
 	sp := *testFxt.Spaces[0]
 	wi := *testFxt.WorkItems[0]
 	in := *testFxt.Identities[0]
-	wiID, spaceID, err := s.repo.LookupIDByNamedSpaceAndNumber(s.ctx, in.Username, sp.Name, wi.Number)
+	wiID, spaceID, err := s.repo.LookupIDByNamedSpaceAndNumber(s.Ctx, in.Username, sp.Name, wi.Number)
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), wiID)
 	assert.Equal(s.T(), wi.ID, *wiID)
@@ -343,7 +343,7 @@ func (s *workItemRepoBlackBoxTest) TestLookupIDByNamedSpaceAndNumberStaleSpace()
 
 	// delete above space
 	spaceRepo := space.NewRepository(s.DB)
-	err = spaceRepo.Delete(s.ctx, sp.ID)
+	err = spaceRepo.Delete(s.Ctx, sp.ID)
 	require.Nil(s.T(), err)
 
 	testFxt2 := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1, func(testf *tf.TestFixture, idx int) error {
@@ -359,7 +359,7 @@ func (s *workItemRepoBlackBoxTest) TestLookupIDByNamedSpaceAndNumberStaleSpace()
 	}))
 	sp2 := *testFxt2.Spaces[0]
 	wi2 := *testFxt2.WorkItems[0]
-	wiID2, spaceID2, err := s.repo.LookupIDByNamedSpaceAndNumber(s.ctx, in.Username, sp2.Name, wi2.Number)
+	wiID2, spaceID2, err := s.repo.LookupIDByNamedSpaceAndNumber(s.Ctx, in.Username, sp2.Name, wi2.Number)
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), wiID2)
 	assert.Equal(s.T(), wi2.ID, *wiID2)
