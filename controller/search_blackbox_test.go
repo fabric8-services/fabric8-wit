@@ -1026,8 +1026,10 @@ func (s *searchBlackBoxTest) TestIncludedParents() {
 	// keep in mind that TestFixture is going to create 6 items becasue we asked for 3 links
 	// we will ignore extra 2 items and we will use only 4
 	fixtures := tf.NewTestFixture(s.T(), s.DB,
-		tf.WorkItemLinkTypes(1, tf.TopologyNetwork(), func(fxt *tf.TestFixture, idx int) error {
-			fxt.WorkItemLinkTypes[idx].ForwardName = "parent of"
+		tf.WorkItemLinkTypes(1, func(fxt *tf.TestFixture, idx int) error {
+			wilt := fxt.WorkItemLinkTypes[idx]
+			wilt.ForwardName = "parent of"
+			wilt.Topology = link.TopologyNetwork
 			return nil
 		}),
 		tf.WorkItemLinks(3, func(fxt *tf.TestFixture, idx int) error {
