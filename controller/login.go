@@ -9,9 +9,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/auth"
-	"github.com/fabric8-services/fabric8-wit/auth/authservice"
 	"github.com/fabric8-services/fabric8-wit/errors"
-	"github.com/fabric8-services/fabric8-wit/goasupport"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/login"
@@ -20,7 +18,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/token"
 
 	"github.com/goadesign/goa"
-	goaclient "github.com/goadesign/goa/client"
 	errs "github.com/pkg/errors"
 )
 
@@ -40,8 +37,6 @@ type loginConfiguration interface {
 	GetAuthEndpointTokenRefresh(req *http.Request) (string, error)
 }
 
-const maxRecentSpacesForRPT = 10
-
 // LoginController implements the login resource.
 type LoginController struct {
 	*goa.Controller
@@ -58,7 +53,7 @@ func NewLoginController(service *goa.Service, auth *login.KeycloakOAuthProvider,
 
 // Authorize runs the authorize action.
 func (c *LoginController) Authorize(ctx *app.AuthorizeLoginContext) error {
-	authEndpoint, err := c.configuration.GetAuthEndpointLogin(ctx.RequestData.Request)
+	authEndpoint, err := c.configuration.GetAuthEndpointLogin(ctx.Request)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
 	}
@@ -83,74 +78,14 @@ func redirectLocation(params url.Values, location string) (string, error) {
 	return locationURL.String(), nil
 }
 
-func (c *LoginController) createRefreshClient(ctx *app.RefreshLoginContext) (*authservice.Client, error) {
-	authEndpoint, err := c.configuration.GetAuthEndpointTokenRefresh(ctx.Request)
-	if err != nil {
-		return nil, err
-	}
-
-	u, err := url.Parse(authEndpoint)
-	if err != nil {
-		return nil, err
-	}
-	client := authservice.New(goaclient.HTTPClientDoer(http.DefaultClient))
-	client.Host = u.Host
-	client.Scheme = u.Scheme
-	return client, nil
-}
-
 // Refresh obtain a new access token using the refresh token.
 func (c *LoginController) Refresh(ctx *app.RefreshLoginContext) error {
-	refreshToken := ctx.Payload.RefreshToken
-	if refreshToken == nil {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("refresh_token", nil).Expected("not nil"))
-	}
-	refreshTokenPayload := &authservice.RefreshToken{
-		RefreshToken: refreshToken,
-	}
-	client, err := c.createRefreshClient(ctx)
+	authEndpoint, err := c.configuration.GetAuthEndpointTokenRefresh(ctx.Request)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	res, err := client.RefreshToken(goasupport.ForwardContextRequestID(ctx), authservice.RefreshTokenPath(), refreshTokenPayload)
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"err": err.Error(),
-		}, "unable to refresh token via auth service")
-		return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "unable to refresh token via auth service"))
-	}
-	defer res.Body.Close()
-	switch res.StatusCode {
-	case 200:
-		// OK
-	case 401:
-		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(res.Status+" "+rest.ReadBody(res.Body)))
-	default:
-		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.New(res.Status+" "+rest.ReadBody(res.Body))))
-	}
-
-	token, err := client.DecodeAuthToken(res)
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"err":           err,
-			"response_body": rest.ReadBody(res.Body),
-		}, "unable to decode refresh token request result")
-
-		return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "unable to decode refresh token request result %s ", rest.ReadBody(res.Body)))
-	}
-
-	resultToken := &app.AuthToken{
-		Token: &app.TokenData{
-			AccessToken:      token.Token.AccessToken,
-			ExpiresIn:        token.Token.ExpiresIn,
-			RefreshToken:     token.Token.RefreshToken,
-			RefreshExpiresIn: token.Token.RefreshExpiresIn,
-			NotBeforePolicy:  token.Token.NotBeforePolicy,
-			TokenType:        token.Token.TokenType,
-		},
-	}
-	ctx.ResponseData.Header().Set("Cache-Control", "no-cache")
-	return ctx.OK(resultToken)
+	ctx.ResponseData.Header().Set("Location", authEndpoint)
+	return ctx.TemporaryRedirect()
 }
 
 func convertToken(token auth.Token) *app.AuthToken {
