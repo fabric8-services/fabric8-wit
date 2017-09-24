@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
@@ -21,8 +20,8 @@ import (
 	"github.com/fabric8-services/fabric8-wit/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 
+	"github.com/fabric8-services/fabric8-wit/auth"
 	"github.com/goadesign/goa"
-	goaclient "github.com/goadesign/goa/client"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
@@ -43,10 +42,10 @@ type UsersController struct {
 
 // UsersControllerConfiguration the configuration for the UsersController
 type UsersControllerConfiguration interface {
+	auth.AuthServiceConfiguration
 	GetCacheControlUsers() string
 	GetCacheControlUser() string
 	GetKeycloakAccountEndpoint(*http.Request) (string, error)
-	GetAuthEndpointUsers(*http.Request) (string, error)
 }
 
 // NewUsersController creates a users controller.
@@ -625,23 +624,6 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 	return returnResponse
 }
 
-func (c *UsersController) createAuthUpdateClient(ctx *app.UpdateUsersContext) (*authservice.Client, error) {
-	authEndpoint, err := c.config.GetAuthEndpointUsers(ctx.Request)
-	if err != nil {
-		return nil, err
-	}
-
-	u, err := url.Parse(authEndpoint)
-	if err != nil {
-		return nil, err
-	}
-	client := authservice.New(goaclient.HTTPClientDoer(http.DefaultClient))
-	client.Host = u.Host
-	client.Scheme = u.Scheme
-	client.SetJWTSigner(goasupport.NewForwardSigner(ctx))
-	return client, nil
-}
-
 func (c *UsersController) updateInAuth(ctx *app.UpdateUsersContext) (*app.User, error) {
 	payload := ctx.Payload
 	if payload == nil && payload.Data == nil {
@@ -660,7 +642,7 @@ func (c *UsersController) updateInAuth(ctx *app.UpdateUsersContext) (*app.User, 
 		authPayload.Data.Attributes.RegistrationCompleted = payload.Data.Attributes.RegistrationCompleted
 		authPayload.Data.Attributes.ContextInformation = payload.Data.Attributes.ContextInformation
 	}
-	client, err := c.createAuthUpdateClient(ctx)
+	client, err := auth.CreateClient(ctx, c.config)
 	if err != nil {
 		return nil, err
 	}

@@ -31,7 +31,7 @@ func (rest *TestCollaboratorsREST) TearDownTest() {
 
 func (rest *TestCollaboratorsREST) UnSecuredController() (*goa.Service, *CollaboratorsController) {
 	svc := testsupport.ServiceAsUser("Logout-Service", testsupport.TestIdentity)
-	return svc, NewCollaboratorsController(svc, nil, rest.config, nil)
+	return svc, NewCollaboratorsController(svc, nil, rest.config)
 }
 
 func (rest *TestCollaboratorsREST) TestListRedirect() {
@@ -56,6 +56,6 @@ func (c *dummyCollaboratorsConfiguration) IsAuthorizationEnabled() bool {
 	return true
 }
 
-func (c *dummyCollaboratorsConfiguration) GetAuthEndpointSpaces(req *http.Request) (string, error) {
-	return "localhost", nil
+func (c *dummyCollaboratorsConfiguration) GetAuthServiceURL() string {
+	return "localhost"
 }

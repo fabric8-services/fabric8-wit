@@ -17,11 +17,15 @@ import (
 	"github.com/fabric8-services/fabric8-wit/test"
 	"github.com/fabric8-services/fabric8-wit/token"
 
+	"fmt"
+
+	"github.com/fabric8-services/fabric8-wit/auth/authservice"
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 )
 
 type loginConfiguration interface {
+	auth.AuthServiceConfiguration
 	GetKeycloakEndpointToken(*http.Request) (string, error)
 	GetKeycloakAccountEndpoint(req *http.Request) (string, error)
 	GetKeycloakClientID() string
@@ -31,10 +35,6 @@ type loginConfiguration interface {
 	GetKeycloakTestUserSecret() string
 	GetKeycloakTestUser2Name() string
 	GetKeycloakTestUser2Secret() string
-	GetAuthEndpointLogin(*http.Request) (string, error)
-	GetAuthEndpointLink(req *http.Request) (string, error)
-	GetAuthEndpointLinksession(req *http.Request) (string, error)
-	GetAuthEndpointTokenRefresh(req *http.Request) (string, error)
 }
 
 // LoginController implements the login resource.
@@ -53,16 +53,7 @@ func NewLoginController(service *goa.Service, auth *login.KeycloakOAuthProvider,
 
 // Authorize runs the authorize action.
 func (c *LoginController) Authorize(ctx *app.AuthorizeLoginContext) error {
-	authEndpoint, err := c.configuration.GetAuthEndpointLogin(ctx.Request)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
-	}
-	locationURL, err := redirectLocation(ctx.Params, authEndpoint)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
-	}
-	ctx.ResponseData.Header().Set("Location", locationURL)
-	return ctx.TemporaryRedirect()
+	return redirectWithParams(ctx, c.configuration, ctx.ResponseData.Header(), ctx.Params, authservice.LoginLoginPath())
 }
 
 func redirectLocation(params url.Values, location string) (string, error) {
@@ -78,13 +69,19 @@ func redirectLocation(params url.Values, location string) (string, error) {
 	return locationURL.String(), nil
 }
 
+func redirectWithParams(ctx redirectContext, config auth.AuthServiceConfiguration, header http.Header, params url.Values, path string) error {
+	locationURL := fmt.Sprintf("%s%s", config.GetAuthServiceURL(), path)
+	locationURLWithParams, err := redirectLocation(params, locationURL)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
+	}
+	header.Set("Location", locationURLWithParams)
+	return ctx.TemporaryRedirect()
+}
+
 // Refresh obtain a new access token using the refresh token.
 func (c *LoginController) Refresh(ctx *app.RefreshLoginContext) error {
-	authEndpoint, err := c.configuration.GetAuthEndpointTokenRefresh(ctx.Request)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
-	}
-	ctx.ResponseData.Header().Set("Location", authEndpoint)
+	ctx.ResponseData.Header().Set("Location", fmt.Sprintf("%s%s", c.configuration.GetAuthServiceURL(), authservice.RefreshTokenPath()))
 	return ctx.TemporaryRedirect()
 }
 
@@ -101,30 +98,12 @@ func convertToken(token auth.Token) *app.AuthToken {
 
 // Link links identity provider(s) to the user's account
 func (c *LoginController) Link(ctx *app.LinkLoginContext) error {
-	authEndpoint, err := c.configuration.GetAuthEndpointLink(ctx.RequestData.Request)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
-	}
-	locationURL, err := redirectLocation(ctx.Params, authEndpoint)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
-	}
-	ctx.ResponseData.Header().Set("Location", locationURL)
-	return ctx.TemporaryRedirect()
+	return redirectWithParams(ctx, c.configuration, ctx.ResponseData.Header(), ctx.Params, authservice.LinkLinkPath())
 }
 
 // Linksession links identity provider(s) to the user's account
 func (c *LoginController) Linksession(ctx *app.LinksessionLoginContext) error {
-	authEndpoint, err := c.configuration.GetAuthEndpointLinksession(ctx.RequestData.Request)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
-	}
-	locationURL, err := redirectLocation(ctx.Params, authEndpoint)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
-	}
-	ctx.ResponseData.Header().Set("Location", locationURL)
-	return ctx.TemporaryRedirect()
+	return redirectWithParams(ctx, c.configuration, ctx.ResponseData.Header(), ctx.Params, authservice.SessionLinkPath())
 }
 
 // Generate obtain the access token from Keycloak for the test user

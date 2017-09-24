@@ -962,6 +962,7 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 					]}`,
 		)
 		_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.NotNil(s.T(), result)
 		require.Empty(s.T(), result.Data)
 		assert.Len(s.T(), result.Data, 0)
 	})

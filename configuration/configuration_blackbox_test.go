@@ -45,13 +45,7 @@ func resetConfiguration(configPath string) {
 	}
 }
 
-func TestGetAuthEndpointSpacesDevModeOK(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
-	t.Parallel()
-	checkGetServiceEndpointOK(t, config.GetAuthDevModeURL()+"/api/spaces", config.GetAuthEndpointSpaces)
-}
-
-func TestGetAuthEndpointSetByUrlEnvVaribaleOK(t *testing.T) {
+func TestGetAuthURLSetByEnvVaribaleOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	env := os.Getenv("F8_AUTH_URL")
 	defer func() {
@@ -62,9 +56,8 @@ func TestGetAuthEndpointSetByUrlEnvVaribaleOK(t *testing.T) {
 	os.Setenv("F8_AUTH_URL", "https://auth.xyz.io")
 	resetConfiguration(defaultValuesConfigFilePath)
 
-	url, err := config.GetAuthEndpointSpaces(reqLong)
-	require.Nil(t, err)
-	require.Equal(t, "https://auth.xyz.io/api/spaces", url)
+	url := config.GetAuthServiceURL()
+	require.Equal(t, "https://auth.xyz.io", url)
 }
 
 func TestGetKeycloakEndpointSetByUrlEnvVaribaleOK(t *testing.T) {

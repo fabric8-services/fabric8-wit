@@ -347,7 +347,7 @@ func main() {
 	app.MountSpaceCodebasesController(service, spaceCodebaseCtrl)
 
 	// Mount "collaborators" controller
-	collaboratorsCtrl := controller.NewCollaboratorsController(service, appDB, config, auth.NewKeycloakPolicyManager(config))
+	collaboratorsCtrl := controller.NewCollaboratorsController(service, appDB, config)
 	app.MountCollaboratorsController(service, collaboratorsCtrl)
 
 	// Mount "space template" controller

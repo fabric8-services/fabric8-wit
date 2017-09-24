@@ -9,15 +9,16 @@ import (
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/login/tokencontext"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/dgrijalva/jwt-go"
+	"github.com/fabric8-services/fabric8-wit/auth/authservice"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/pkg/errors"
-	uuid "github.com/satori/go.uuid"
+	"github.com/satori/go.uuid"
 )
 
 // configuration represents configuration needed to construct a token manager
 type configuration interface {
-	GetKeysEndpoint() string
+	GetAuthServiceURL() string
 	GetKeycloakDevModeURL() string
 }
 
@@ -71,10 +72,12 @@ func NewManager(config configuration) (Manager, error) {
 		publicKeysMap: map[string]*rsa.PublicKey{},
 	}
 
-	remoteKeys, err := authclient.FetchKeys(config.GetKeysEndpoint())
+	keysEndpoint := fmt.Sprintf("%s%s", config.GetAuthServiceURL(), authservice.KeysTokenPath())
+	remoteKeys, err := authclient.FetchKeys(keysEndpoint)
 	if err != nil {
 		log.Error(nil, map[string]interface{}{
-			"keys_url": config.GetKeysEndpoint(),
+			"err":      err,
+			"keys_url": keysEndpoint,
 		}, "unable to load public keys from remote service")
 		return nil, errors.New("unable to load public keys from remote service")
 	}
@@ -91,6 +94,7 @@ func NewManager(config configuration) (Manager, error) {
 		remoteKeys, err = authclient.FetchKeys(fmt.Sprintf("%s/protocol/openid-connect/certs", devModeURL))
 		if err != nil {
 			log.Error(nil, map[string]interface{}{
+				"err":      err,
 				"keys_url": devModeURL,
 			}, "unable to load public keys from remote service in Dev Mode")
 			return nil, errors.New("unable to load public keys from remote service  in Dev Mode")
