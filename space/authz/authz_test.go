@@ -88,11 +88,6 @@ func (s *TestAuthzSuite) TestUserAmongSpaceCollaboratorsOK() {
 	require.True(s.T(), ok)
 }
 
-func (s *TestAuthzSuite) TestUserIsNotAmongSpaceCollaboratorsFails() {
-	ok := s.checkPermissions(s.test2Token, testSpaceID)
-	require.False(s.T(), ok)
-}
-
 func (s *TestAuthzSuite) checkPermissions(token string, spaceID string) bool {
 	tk := jwt.New(jwt.SigningMethodRS256)
 	tk.Raw = token
