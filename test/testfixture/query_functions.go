@@ -37,7 +37,7 @@ func (fxt *TestFixture) IterationByName(name string, spaceID ...uuid.UUID) *iter
 }
 
 // WorkItemTypeByName returns the first work item type that has the given name
-// (if any). If you have work item type with the same name in different spaces
+// (if any). If you have work item types with the same name in different spaces
 // you can also pass in one space ID to filter by space as well.
 func (fxt *TestFixture) WorkItemTypeByName(name string, spaceID ...uuid.UUID) *workitem.WorkItemType {
 	for _, wit := range fxt.WorkItemTypes {
@@ -56,6 +56,20 @@ func (fxt *TestFixture) IdentityByUsername(username string) *account.Identity {
 	for _, i := range fxt.Identities {
 		if i.Username == username {
 			return i
+		}
+	}
+	return nil
+}
+
+// WorkItemByTitle returns the first work item that has the given title (if
+// any). If you have work items with the same title in different spaces you can
+// also pass in one space ID to filter by space as well.
+func (fxt *TestFixture) WorkItemByTitle(title string, spaceID ...uuid.UUID) *workitem.WorkItem {
+	for _, wi := range fxt.WorkItems {
+		if wi.Fields[workitem.SystemTitle] == title && len(spaceID) > 0 && wi.SpaceID == spaceID[0] {
+			return wi
+		} else if wi.Fields[workitem.SystemTitle] == title && len(spaceID) == 0 {
+			return wi
 		}
 	}
 	return nil
