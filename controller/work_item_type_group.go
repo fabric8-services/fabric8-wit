@@ -57,5 +57,6 @@ func ConvertTypeGroup(request *http.Request, tg typegroup.WorkItemTypeGroup) *ap
 		Level:         tg.Level,
 		Name:          tg.Name,
 		WitCollection: tg.WorkItemTypeCollection,
+		Icon:          tg.Icon,
 	}
 }

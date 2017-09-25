@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	gormbench "github.com/fabric8-services/fabric8-wit/gormtestsupport/benchmark"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/test"
@@ -17,17 +16,11 @@ func BenchmarkRunRepoBBBench(b *testing.B) {
 
 type repoSpaceBench struct {
 	gormbench.DBBenchSuite
-	repo  space.Repository
-	clean func()
+	repo space.Repository
 }
 
 func (bench *repoSpaceBench) SetupBenchmark() {
 	bench.repo = space.NewRepository(bench.DB)
-	bench.clean = cleaner.DeleteCreatedEntities(bench.DB)
-}
-
-func (bench *repoSpaceBench) TearDownBenchmark() {
-	bench.clean()
 }
 
 func (bench *repoSpaceBench) BenchmarkCreate() {

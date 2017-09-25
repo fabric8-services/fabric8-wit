@@ -80,13 +80,9 @@ func (s *searchRepositoryBlackboxTest) TestRestrictByType() {
 	require.True(s.T(), count == uint64(len(res))) // safety check for many, many instances of bogus search results.
 
 	// when
-	testFxt := s.getTestFixture()
-
-	base := testFxt.WorkItemTypes[0]
-	sub1 := testFxt.WorkItemTypes[1]
-	sub2 := testFxt.WorkItemTypes[2]
-	wi1 := testFxt.WorkItems[0]
-	wi2 := testFxt.WorkItems[1]
+	fxt := s.getTestFixture()
+	wi1 := fxt.WorkItems[0]
+	wi2 := fxt.WorkItems[1]
 
 	res, count, err = s.searchRepo.SearchFullText(ctx, "TestRestrictByType", nil, nil, nil)
 	assert.Nil(s.T(), err)
@@ -94,7 +90,7 @@ func (s *searchRepositoryBlackboxTest) TestRestrictByType() {
 	assert.Equal(s.T(), res[0].Fields["system.order"], wi2.Fields["system.order"])
 	assert.Equal(s.T(), res[1].Fields["system.order"], wi1.Fields["system.order"])
 
-	res, count, err = s.searchRepo.SearchFullText(ctx, "TestRestrictByType type:"+sub1.ID.String(), nil, nil, nil)
+	res, count, err = s.searchRepo.SearchFullText(ctx, "TestRestrictByType type:"+fxt.WorkItemTypeByName("sub1").ID.String(), nil, nil, nil)
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), uint64(1), count)
 	if count == 1 {
@@ -102,7 +98,7 @@ func (s *searchRepositoryBlackboxTest) TestRestrictByType() {
 		assert.Equal(s.T(), res[0].Fields["system.order"], wi1.Fields["system.order"])
 	}
 
-	res, count, err = s.searchRepo.SearchFullText(ctx, "TestRestrictByType type:"+sub2.ID.String(), nil, nil, nil)
+	res, count, err = s.searchRepo.SearchFullText(ctx, "TestRestrictByType type:"+fxt.WorkItemTypeByName("sub2").ID.String(), nil, nil, nil)
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), uint64(1), count)
 	if count == 1 {
@@ -110,25 +106,25 @@ func (s *searchRepositoryBlackboxTest) TestRestrictByType() {
 		assert.Equal(s.T(), res[0].Fields["system.order"], wi2.Fields["system.order"])
 	}
 
-	res, count, err = s.searchRepo.SearchFullText(ctx, "TestRestrictByType type:"+base.ID.String(), nil, nil, nil)
+	res, count, err = s.searchRepo.SearchFullText(ctx, "TestRestrictByType type:"+fxt.WorkItemTypeByName("base").ID.String(), nil, nil, nil)
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), uint64(2), count)
 	assert.Equal(s.T(), res[0].Fields["system.order"], wi2.Fields["system.order"])
 	assert.Equal(s.T(), res[1].Fields["system.order"], wi1.Fields["system.order"])
 
-	res, count, err = s.searchRepo.SearchFullText(ctx, "TestRestrictByType type:"+sub2.ID.String()+" type:"+sub1.ID.String(), nil, nil, nil)
+	res, count, err = s.searchRepo.SearchFullText(ctx, "TestRestrictByType type:"+fxt.WorkItemTypeByName("sub2").ID.String()+" type:"+fxt.WorkItemTypeByName("sub1").ID.String(), nil, nil, nil)
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), uint64(2), count)
 	assert.Equal(s.T(), res[0].Fields["system.order"], wi2.Fields["system.order"])
 	assert.Equal(s.T(), res[1].Fields["system.order"], wi1.Fields["system.order"])
 
-	res, count, err = s.searchRepo.SearchFullText(ctx, "TestRestrictByType type:"+base.ID.String()+" type:"+sub1.ID.String(), nil, nil, nil)
+	res, count, err = s.searchRepo.SearchFullText(ctx, "TestRestrictByType type:"+fxt.WorkItemTypeByName("base").ID.String()+" type:"+fxt.WorkItemTypeByName("sub1").ID.String(), nil, nil, nil)
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), uint64(2), count)
 	assert.Equal(s.T(), res[0].Fields["system.order"], wi2.Fields["system.order"])
 	assert.Equal(s.T(), res[1].Fields["system.order"], wi1.Fields["system.order"])
 
-	_, count, err = s.searchRepo.SearchFullText(ctx, "TRBTgorxi type:"+base.ID.String(), nil, nil, nil)
+	_, count, err = s.searchRepo.SearchFullText(ctx, "TRBTgorxi type:"+fxt.WorkItemTypeByName("base").ID.String(), nil, nil, nil)
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), uint64(0), count)
 }
@@ -145,10 +141,10 @@ func (s *searchRepositoryBlackboxTest) TestFilterCount() {
 	require.True(s.T(), count == uint64(len(res))) // safety check for many, many instances of bogus search results.
 
 	// when
-	testFxt := s.getTestFixture()
+	fxt := s.getTestFixture()
 
 	// then
-	fs2 := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, testFxt.Spaces[0].ID)
+	fs2 := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, fxt.Spaces[0].ID)
 	start := 3
 	res, count, err = s.searchRepo.Filter(ctx, fs2, nil, &start, nil)
 	assert.Nil(s.T(), err)
