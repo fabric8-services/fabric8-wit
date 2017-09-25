@@ -3,7 +3,6 @@ package link_test
 import (
 	"testing"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
@@ -79,7 +78,6 @@ func (s *revisionRepositoryBlackBoxTest) TestList() {
 		workitemLinkRevisions, err := revRepo.List(s.Ctx, fxt.WorkItemLinks[0].ID)
 		// then
 		require.Nil(t, err)
-		spew.Dump(workitemLinkRevisions)
 		require.Len(t, workitemLinkRevisions, 2)
 		// revision 1
 		revision1 := workitemLinkRevisions[0]
