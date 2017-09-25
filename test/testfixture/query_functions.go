@@ -5,6 +5,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/label"
 	"github.com/fabric8-services/fabric8-wit/workitem"
+	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -70,6 +71,21 @@ func (fxt *TestFixture) WorkItemByTitle(title string, spaceID ...uuid.UUID) *wor
 			return wi
 		} else if wi.Fields[workitem.SystemTitle] == title && len(spaceID) == 0 {
 			return wi
+		}
+	}
+	return nil
+}
+
+// WorkItemLinkTypeByName returns the first work item link type that has the
+// given name (if any). If you have work item link types with the same name in
+// different spaces you can also pass in one space ID to filter by space as
+// well.
+func (fxt *TestFixture) WorkItemLinkTypeByName(name string, spaceID ...uuid.UUID) *link.WorkItemLinkType {
+	for _, wilt := range fxt.WorkItemLinkTypes {
+		if wilt.Name == name && len(spaceID) > 0 && wilt.SpaceID == spaceID[0] {
+			return wilt
+		} else if wilt.Name == name && len(spaceID) == 0 {
+			return wilt
 		}
 	}
 	return nil
