@@ -1,6 +1,10 @@
 package testfixture
 
-import "github.com/fabric8-services/fabric8-wit/workitem/link"
+import (
+	"github.com/fabric8-services/fabric8-wit/workitem"
+	"github.com/fabric8-services/fabric8-wit/workitem/link"
+	errs "github.com/pkg/errors"
+)
 
 // A CustomizeEntityFunc acts as a generic function to the various
 // recipe-functions (e.g. Identities(), Spaces(), etc.). The current test
@@ -83,6 +87,84 @@ func TopologyTree() CustomizeWorkItemLinkTypeFunc {
 func UserActive(active bool) CustomizeIterationFunc {
 	return func(fxt *TestFixture, idx int) error {
 		fxt.Iterations[idx].UserActive = active
+		return nil
+	}
+}
+
+// SetLabelNames takes the given names and uses them during creation of labels.
+// The length of requested labels and the number of names must match or the
+// NewFixture call will return an error.
+func SetLabelNames(names []string) CustomizeLabelFunc {
+	return func(fxt *TestFixture, idx int) error {
+		if len(fxt.Labels) != len(names) {
+			return errs.Errorf("number of names (%d) must match number of labels to create (%d)", len(names), len(fxt.Labels))
+		}
+		fxt.Labels[idx].Name = names[idx]
+		return nil
+	}
+}
+
+// SetIterationNames takes the given names and uses them during creation of
+// iterations. The length of requested iterations and the number of names must
+// match or the NewFixture call will return an error.
+func SetIterationNames(names []string) CustomizeIterationFunc {
+	return func(fxt *TestFixture, idx int) error {
+		if len(fxt.Iterations) != len(names) {
+			return errs.Errorf("number of names (%d) must match number of iterations to create (%d)", len(names), len(fxt.Iterations))
+		}
+		fxt.Iterations[idx].Name = names[idx]
+		return nil
+	}
+}
+
+// SetWorkItemTypeNames takes the given names and uses them during creation of
+// work item types. The length of requested work item types and the number of
+// names must match or the NewFixture call will return an error.
+func SetWorkItemTypeNames(names []string) CustomizeWorkItemTypeFunc {
+	return func(fxt *TestFixture, idx int) error {
+		if len(fxt.WorkItemTypes) != len(names) {
+			return errs.Errorf("number of names (%d) must match number of work item types to create (%d)", len(names), len(fxt.WorkItemTypes))
+		}
+		fxt.WorkItemTypes[idx].Name = names[idx]
+		return nil
+	}
+}
+
+// SetIdentityUsernames takes the given usernames and uses them during creation
+// of identities. The length of requested work item types and the number of
+// usernames must match or the NewFixture call will return an error.
+func SetIdentityUsernames(usernames []string) CustomizeIdentityFunc {
+	return func(fxt *TestFixture, idx int) error {
+		if len(fxt.Identities) != len(usernames) {
+			return errs.Errorf("number of usernames (%d) must match number of identites to create (%d)", len(usernames), len(fxt.Identities))
+		}
+		fxt.Identities[idx].Username = usernames[idx]
+		return nil
+	}
+}
+
+// SetWorkItemTitles takes the given titles and uses them during creation of
+// work items. The length of requested work items and the number of titles must
+// match or the NewFixture call will return an error.
+func SetWorkItemTitles(titles []string) CustomizeWorkItemFunc {
+	return func(fxt *TestFixture, idx int) error {
+		if len(fxt.WorkItems) != len(titles) {
+			return errs.Errorf("number of titles (%d) must match number of work items to create (%d)", len(titles), len(fxt.WorkItems))
+		}
+		fxt.WorkItems[idx].Fields[workitem.SystemTitle] = titles[idx]
+		return nil
+	}
+}
+
+// SetWorkItemLinkTypeNames takes the given names and uses them during creation
+// of work item link types. The length of requested work item link types and the
+// number of names must match or the NewFixture call will return an error.
+func SetWorkItemLinkTypeNames(names []string) CustomizeWorkItemLinkTypeFunc {
+	return func(fxt *TestFixture, idx int) error {
+		if len(fxt.WorkItemLinkTypes) != len(names) {
+			return errs.Errorf("number of names (%d) must match number of work item link types to create (%d)", len(names), len(fxt.WorkItemLinkTypes))
+		}
+		fxt.WorkItemLinkTypes[idx].Name = names[idx]
 		return nil
 	}
 }

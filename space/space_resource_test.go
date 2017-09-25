@@ -5,14 +5,11 @@ import (
 
 	"context"
 
-	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/errors"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
-	testsupport "github.com/fabric8-services/fabric8-wit/test"
-
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -33,23 +30,14 @@ func TestRunResourceRepoBBTest(t *testing.T) {
 
 type resourceRepoBBTest struct {
 	gormtestsupport.DBTestSuite
-	repo         space.ResourceRepository
-	sRepo        space.Repository
-	testIdentity account.Identity
-	clean        func()
+	repo  space.ResourceRepository
+	sRepo space.Repository
 }
 
 func (test *resourceRepoBBTest) SetupTest() {
+	test.DBTestSuite.SetupTest()
 	test.repo = space.NewResourceRepository(test.DB)
 	test.sRepo = space.NewRepository(test.DB)
-	test.clean = cleaner.DeleteCreatedEntities(test.DB)
-	testIdentity, err := testsupport.CreateTestIdentity(test.DB, "WorkItemSuite setup user", "test provider")
-	require.Nil(test.T(), err)
-	test.testIdentity = *testIdentity
-}
-
-func (test *resourceRepoBBTest) TearDownTest() {
-	test.clean()
 }
 
 func (test *resourceRepoBBTest) TestCreate() {
@@ -171,22 +159,16 @@ func (test *resourceRepoBBTest) requireErrorType(e error) func(p *space.Resource
 }
 
 func (test *resourceRepoBBTest) create(resourceID string, policyID string, permissionID string) func() (*space.Resource, *space.Space, error) {
-	newSpace := space.Space{
-		Name:    uuid.NewV4().String(),
-		OwnerId: test.testIdentity.ID,
-	}
-
 	newResource := space.Resource{
 		ResourceID:   resourceID,
 		PolicyID:     policyID,
 		PermissionID: permissionID,
 	}
 	return func() (*space.Resource, *space.Space, error) {
-		s, err := test.sRepo.Create(context.Background(), &newSpace)
-		require.Nil(test.T(), err)
-		newResource.SpaceID = s.ID
+		fxt := tf.NewTestFixture(test.T(), test.DB, tf.Spaces(1))
+		newResource.SpaceID = fxt.Spaces[0].ID
 		r, err := test.repo.Create(context.Background(), &newResource)
-		return r, s, err
+		return r, fxt.Spaces[0], err
 	}
 }
 

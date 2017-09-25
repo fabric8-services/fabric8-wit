@@ -23,8 +23,9 @@ var workItemTypeGroup = a.Type("WorkItemTypeGroup", func() {
 	a.Attribute("level", a.ArrayOf(d.Integer), "Hierarchical position within the group")
 	a.Attribute("group", d.String, "Name of the group this node belongs to")
 	a.Attribute("name", d.String)
+	a.Attribute("icon", d.String, "CSS property value for icon of the group")
 	a.Attribute("wit_collection", a.ArrayOf(d.UUID), "Slice of UUIDs of work item type")
-	a.Required("level", "group", "name", "wit_collection")
+	a.Required("level", "group", "name", "wit_collection", "icon")
 })
 
 var workItemTypeGroupAttributes = a.Type("WorkItemTypeGroupAttributes", func() {

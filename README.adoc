@@ -59,8 +59,8 @@ Try to use at least version `0.11.0` as we haven't tested another version.
 
 === Get the code [[get-the-code]]
 
-Assuming you have Go installed and configured (have `$GOPATH` setup) here is
-how to build.
+Assuming you have Go installed and configured (have `$GOPATH` setup and
+pointing to a single directory) here is how to build.
 
 Check out the code
 
@@ -406,10 +406,10 @@ The database are kept in a docker container that gets reused between restarts. T
 To clear out the database kill the database like this:
 
 ----
-$ docker kill almightycore_db_1 && docker rm almightycore_db_1
+$ docker kill fabric8wit_db_1 && docker rm fabric8wit_db_1
 ----
 
-In case you have mulitple almighty running use `docker ps` to locate the container name.
+In case you have mulitple `fabric8*` running use `docker ps` to locate the container name.
 
 == Debugging [[debug]]
 

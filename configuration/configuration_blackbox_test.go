@@ -19,8 +19,6 @@ import (
 )
 
 const (
-	varTokenPublicKey           = "token.publickey"
-	varTokenPrivateKey          = "token.privatekey"
 	defaultConfigFilePath       = "../config.yaml"
 	defaultValuesConfigFilePath = "" // when the code defaults are to be used, the path to config file is ""
 )

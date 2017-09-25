@@ -80,6 +80,7 @@ func (m *AuthzResourceManager) CreateSpace(ctx context.Context, request *http.Re
 	resource, err := c.DecodeSpaceResource(res)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
+			"err":           err,
 			"space_id":      spaceID,
 			"response_body": rest.ReadBody(res.Body),
 		}, "unable to decode the create space resource request result")
