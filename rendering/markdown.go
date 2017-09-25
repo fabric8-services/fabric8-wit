@@ -14,7 +14,8 @@ const (
 		blackfriday.HTML_USE_SMARTYPANTS |
 		blackfriday.HTML_SMARTYPANTS_FRACTIONS |
 		blackfriday.HTML_SMARTYPANTS_DASHES |
-		blackfriday.HTML_SMARTYPANTS_LATEX_DASHES
+		blackfriday.HTML_SMARTYPANTS_LATEX_DASHES |
+		blackfriday.HTML_HREF_TARGET_BLANK
 
 	commonExtensions = 0 |
 		blackfriday.EXTENSION_NO_INTRA_EMPHASIS |
