@@ -37,6 +37,6 @@ func (rest *TestFiltersREST) TestListFiltersOK() {
 	// when
 	res, filters := test.ListFilterOK(rest.T(), svc.Context, svc, ctrl)
 	// then
-	assert.Equal(rest.T(), 5, len(filters.Data))
+	assert.Equal(rest.T(), 6, len(filters.Data))
 	assertResponseHeaders(rest.T(), res)
 }
