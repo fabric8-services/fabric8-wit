@@ -9,7 +9,6 @@ import (
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	uuid "github.com/satori/go.uuid"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -79,8 +78,8 @@ func (s *linkRepoBlackBoxTest) TestWorkItemHasChildren() {
 		// then it must not have any child
 		hasChildren, err := s.workitemLinkRepo.WorkItemHasChildren(s.Ctx, fxt.WorkItems[0].ID)
 		// then
-		assert.Nil(t, err)
-		assert.False(t, hasChildren)
+		require.Nil(t, err)
+		require.False(t, hasChildren)
 	})
 }
 
