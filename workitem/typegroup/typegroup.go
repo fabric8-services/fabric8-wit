@@ -19,6 +19,7 @@ type WorkItemTypeGroup struct {
 	Group                  string
 	Name                   string // the name to be displayed to user
 	WorkItemTypeCollection []uuid.UUID
+	Icon                   string
 }
 
 // Use following group constants while defining static groups
@@ -33,6 +34,7 @@ var Portfolio0 = WorkItemTypeGroup{
 	Group: GroupPortfolio,
 	Level: []int{0, 0},
 	Name:  "Portfolio",
+	Icon:  "fa fa-suitcase",
 	WorkItemTypeCollection: []uuid.UUID{
 		workitem.SystemScenario,
 		workitem.SystemFundamental,
@@ -45,6 +47,7 @@ var Portfolio1 = WorkItemTypeGroup{
 	Group: GroupPortfolio,
 	Level: []int{0, 1},
 	Name:  "Portfolio",
+	Icon:  "fa fa-suitcase",
 	WorkItemTypeCollection: []uuid.UUID{
 		workitem.SystemExperience,
 		workitem.SystemValueProposition,
@@ -57,6 +60,7 @@ var Requirements0 = WorkItemTypeGroup{
 	Group: GroupRequirements,
 	Level: []int{1, 0},
 	Name:  "Requirements",
+	Icon:  "fa fa-list-ul",
 	WorkItemTypeCollection: []uuid.UUID{
 		workitem.SystemFeature,
 		workitem.SystemBug,
@@ -69,6 +73,7 @@ var Execution0 = WorkItemTypeGroup{
 	Group: GroupExecution,
 	Level: []int{2, 0},
 	Name:  "Iterations",
+	Icon:  "fa fa-repeat",
 	WorkItemTypeCollection: []uuid.UUID{
 		workitem.SystemTask,
 	},
