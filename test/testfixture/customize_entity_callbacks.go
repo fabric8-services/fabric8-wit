@@ -155,3 +155,16 @@ func SetWorkItemTitles(titles []string) CustomizeWorkItemFunc {
 		return nil
 	}
 }
+
+// SetWorkItemLinkTypeNames takes the given names and uses them during creation
+// of work item link types. The length of requested work item link types and the
+// number of names must match or the NewFixture call will return an error.
+func SetWorkItemLinkTypeNames(names []string) CustomizeWorkItemLinkTypeFunc {
+	return func(fxt *TestFixture, idx int) error {
+		if len(fxt.WorkItemLinkTypes) != len(names) {
+			return errs.Errorf("number of names (%d) must match number of work item link types to create (%d)", len(names), len(fxt.WorkItemLinkTypes))
+		}
+		fxt.WorkItemLinkTypes[idx].Name = names[idx]
+		return nil
+	}
+}
