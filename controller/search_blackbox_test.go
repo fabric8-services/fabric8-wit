@@ -881,6 +881,7 @@ func (s *searchBlackBoxTest) TestFilterAssigneeNullAfterWIUpdate() {
 	assert.Equal(s.T(), (wi.Attributes["version"].(int) + 1), updated.Data.Attributes["version"])
 	assert.Equal(s.T(), *wi.ID, *updated.Data.ID)
 	assert.Equal(s.T(), wi.Attributes[workitem.SystemTitle], updated.Data.Attributes[workitem.SystemTitle])
+	assert.Nil(s.T(), wi.Attributes[workitem.SystemAssignees])
 	assert.Equal(s.T(), updatedDescription, updated.Data.Attributes[workitem.SystemDescription])
 
 	_, result = test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
@@ -921,6 +922,7 @@ func (s *searchBlackBoxTest) TestFilterLabelNullAfterWIUpdate() {
 	assert.Equal(s.T(), (wi.Attributes["version"].(int) + 1), updated.Data.Attributes["version"])
 	assert.Equal(s.T(), *wi.ID, *updated.Data.ID)
 	assert.Equal(s.T(), wi.Attributes[workitem.SystemTitle], updated.Data.Attributes[workitem.SystemTitle])
+	assert.Nil(s.T(), wi.Attributes[workitem.SystemLabels])
 	assert.Equal(s.T(), updatedDescription, updated.Data.Attributes[workitem.SystemDescription])
 
 	_, result = test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
