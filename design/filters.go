@@ -28,7 +28,10 @@ var filterAttributes = a.Type("filterAttributes", func() {
 	a.Attribute("type", d.String, "Path to the topmost parent", func() {
 		a.Example("users")
 	})
-	a.Required("type", "title", "description", "query")
+	a.Attribute("key", d.String, "Filter key to be used in the search query language", func() {
+		a.Example("label")
+	})
+	a.Required("type", "title", "description", "query", "key")
 })
 
 var filterList = JSONList(
