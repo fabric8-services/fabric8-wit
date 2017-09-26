@@ -9,6 +9,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/space"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	errs "github.com/pkg/errors"
@@ -260,4 +261,44 @@ func (s *workItemRepoBlackBoxTest) TestLoadBatchByID() {
 	res, err := s.repo.LoadBatchByID(s.Ctx, wis) // pass duplicate IDs to fetch
 	require.Nil(s.T(), err)
 	assert.Len(s.T(), res, 2) // Only 2 distinct IDs should be returned
+}
+
+func (s *workItemRepoBlackBoxTest) TestLookupIDByNamedSpaceAndNumberStaleSpace() {
+	testFxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(20, func(testf *tf.TestFixture, idx int) error {
+		testf.WorkItems[idx].Fields[workitem.SystemState] = workitem.SystemStateNew
+		testf.WorkItems[idx].Fields[workitem.SystemCreator] = testf.Identities[0].ID.String()
+		return nil
+	}))
+	sp := *testFxt.Spaces[0]
+	wi := *testFxt.WorkItems[0]
+	in := *testFxt.Identities[0]
+	wiID, spaceID, err := s.repo.LookupIDByNamedSpaceAndNumber(s.Ctx, in.Username, sp.Name, wi.Number)
+	require.Nil(s.T(), err)
+	require.NotNil(s.T(), wiID)
+	assert.Equal(s.T(), wi.ID, *wiID)
+	require.NotNil(s.T(), spaceID)
+	assert.Equal(s.T(), wi.SpaceID, *spaceID)
+
+	// delete above space
+	spaceRepo := space.NewRepository(s.DB)
+	err = spaceRepo.Delete(s.Ctx, sp.ID)
+	require.Nil(s.T(), err)
+
+	testFxt2 := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1, func(testf *tf.TestFixture, idx int) error {
+		testf.Spaces[0].Name = sp.Name
+		testf.Spaces[0].OwnerId = in.ID
+		return nil
+	}), tf.WorkItems(20, func(testf *tf.TestFixture, idx int) error {
+		testf.WorkItems[idx].Fields[workitem.SystemState] = workitem.SystemStateNew
+		testf.WorkItems[idx].Fields[workitem.SystemCreator] = testf.Identities[0].ID.String()
+		return nil
+	}))
+	sp2 := *testFxt2.Spaces[0]
+	wi2 := *testFxt2.WorkItems[0]
+	wiID2, spaceID2, err := s.repo.LookupIDByNamedSpaceAndNumber(s.Ctx, in.Username, sp2.Name, wi2.Number)
+	require.Nil(s.T(), err)
+	require.NotNil(s.T(), wiID2)
+	assert.Equal(s.T(), wi2.ID, *wiID2)
+	require.NotNil(s.T(), spaceID2)
+	assert.Equal(s.T(), wi2.SpaceID, *spaceID2)
 }

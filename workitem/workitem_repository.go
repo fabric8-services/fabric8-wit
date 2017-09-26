@@ -166,10 +166,14 @@ func (r *GormWorkItemRepository) LookupIDByNamedSpaceAndNumber(ctx context.Conte
 		"space_name": spaceName,
 		"owner_name": ownerName,
 	}, "Loading work item")
-	query := fmt.Sprintf("select wi.id, wi.space_id from %[1]s wi "+
-		"join %[2]s s on wi.space_id = s.id "+
-		"join %[3]s i on s.owner_id = i.id "+
-		"where lower(i.username) = lower(?) and lower(s.name) = lower(?) and wi.number = ?",
+	query := fmt.Sprintf(`select wi.id, wi.space_id from %[1]s wi
+		join %[2]s s on wi.space_id = s.id
+		join %[3]s i on s.owner_id = i.id
+		where lower(i.username) = lower(?) and
+		lower(s.name) = lower(?) and
+		wi.number = ? and
+		s.deleted_at IS NULL
+		and i.deleted_at IS NULL`,
 		WorkItemStorage{}.TableName(), space.Space{}.TableName(), account.Identity{}.TableName())
 	// 'scan' destination must be slice or struct
 	type Result struct {
