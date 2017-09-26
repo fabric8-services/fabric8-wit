@@ -24,19 +24,10 @@ import (
 const (
 	// APIStringTypeCodebase contains the JSON API type for codebases
 	APIStringTypeSpace = "spaces"
-	spaceResourceType  = "space"
 )
-
-var scopes = []string{"read:space", "admin:space"}
 
 // SpaceConfiguration represents space configuratoin
 type SpaceConfiguration interface {
-	GetKeycloakEndpointAuthzResourceset(*http.Request) (string, error)
-	GetKeycloakEndpointToken(*http.Request) (string, error)
-	GetKeycloakEndpointClients(*http.Request) (string, error)
-	GetKeycloakEndpointAdmin(*http.Request) (string, error)
-	GetKeycloakClientID() string
-	GetKeycloakSecret() string
 	GetCacheControlSpaces() string
 	GetCacheControlSpace() string
 }

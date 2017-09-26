@@ -2,10 +2,12 @@ package token
 
 import (
 	"crypto/rsa"
+	"time"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/fabric8-services/fabric8-wit/token"
 	"github.com/pkg/errors"
+	"github.com/satori/go.uuid"
 )
 
 var (
@@ -22,6 +24,21 @@ func GenerateToken(identityID string, identityUsername string, privateKey *rsa.P
 	token.Claims.(jwt.MapClaims)["uuid"] = identityID
 	token.Claims.(jwt.MapClaims)["preferred_username"] = identityUsername
 	token.Claims.(jwt.MapClaims)["sub"] = identityID
+
+	token.Claims.(jwt.MapClaims)["jti"] = uuid.NewV4().String()
+	token.Claims.(jwt.MapClaims)["session_state"] = uuid.NewV4().String()
+	token.Claims.(jwt.MapClaims)["iat"] = time.Now().Unix()
+	token.Claims.(jwt.MapClaims)["exp"] = time.Now().Unix() + 60*60*24*30
+	token.Claims.(jwt.MapClaims)["nbf"] = 0
+	token.Claims.(jwt.MapClaims)["iss"] = "wit"
+	token.Claims.(jwt.MapClaims)["typ"] = "Bearer"
+
+	token.Claims.(jwt.MapClaims)["approved"] = true
+	token.Claims.(jwt.MapClaims)["name"] = identityUsername
+	token.Claims.(jwt.MapClaims)["company"] = "Company Inc."
+	token.Claims.(jwt.MapClaims)["given_name"] = identityUsername
+	token.Claims.(jwt.MapClaims)["family_name"] = identityUsername
+	token.Claims.(jwt.MapClaims)["email"] = "test@email.com"
 
 	token.Header["kid"] = "test-key"
 	tokenStr, err := token.SignedString(privateKey)
