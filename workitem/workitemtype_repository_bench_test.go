@@ -7,8 +7,8 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	gormbench "github.com/fabric8-services/fabric8-wit/gormtestsupport/benchmark"
 	"github.com/fabric8-services/fabric8-wit/path"
-	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"golang.org/x/net/context"
 )
@@ -28,11 +28,14 @@ func (s *BenchWorkItemTypeRepository) SetupBenchmark() {
 }
 
 func (r *BenchWorkItemTypeRepository) BenchmarkLoad() {
+	// given
+	fxt := tf.NewTestFixture(r.B(), r.DB, tf.WorkItemTypes(1))
+
 	r.B().ResetTimer()
 	r.B().ReportAllocs()
 	for n := 0; n < r.B().N; n++ {
 		res := workitem.WorkItemType{}
-		db := r.DB.Model(&res).Where("id=? AND space_id=?", workitem.SystemExperience, space.SystemSpace).First(&res)
+		db := r.DB.Model(&res).Where("id=? AND space_id=?", fxt.WorkItemTypes[0].ID, fxt.WorkItemTypes[0].SpaceID).First(&res)
 		if db.RecordNotFound() {
 			r.B().Fail()
 		}
@@ -43,11 +46,14 @@ func (r *BenchWorkItemTypeRepository) BenchmarkLoad() {
 }
 
 func (r *BenchWorkItemTypeRepository) BenchmarkLoadTypeFromDB() {
+	// given
+	fxt := tf.NewTestFixture(r.B(), r.DB, tf.WorkItemTypes(1))
+
 	r.B().ResetTimer()
 	r.B().ReportAllocs()
 	for n := 0; n < r.B().N; n++ {
 		res := workitem.WorkItemType{}
-		db := r.DB.Model(&res).Where("id=?", workitem.SystemExperience).First(&res)
+		db := r.DB.Model(&res).Where("id=?", fxt.WorkItemTypes[0].ID).First(&res)
 		if db.RecordNotFound() {
 			r.B().Fail()
 		}
@@ -58,31 +64,40 @@ func (r *BenchWorkItemTypeRepository) BenchmarkLoadTypeFromDB() {
 }
 
 func (r *BenchWorkItemTypeRepository) BenchmarkLoadWorkItemType() {
+	// given
+	fxt := tf.NewTestFixture(r.B(), r.DB, tf.WorkItemTypes(1))
+
 	r.B().ResetTimer()
 	r.B().ReportAllocs()
 	for n := 0; n < r.B().N; n++ {
-		if s, err := r.repo.Load(context.Background(), space.SystemSpace, workitem.SystemExperience); err != nil || (err == nil && s == nil) {
+		if s, err := r.repo.Load(context.Background(), fxt.WorkItemTypes[0].SpaceID, fxt.WorkItemTypes[0].ID); err != nil || (err == nil && s == nil) {
 			r.B().Fail()
 		}
 	}
 }
 
 func (r *BenchWorkItemTypeRepository) BenchmarkListWorkItemTypes() {
+	// given
+	fxt := tf.NewTestFixture(r.B(), r.DB, tf.WorkItemTypes(1))
+
 	r.B().ResetTimer()
 	r.B().ReportAllocs()
 	for n := 0; n < r.B().N; n++ {
-		if s, err := r.repo.List(context.Background(), space.SystemSpace, nil, nil); err != nil || (err == nil && s == nil) {
+		if s, err := r.repo.List(context.Background(), fxt.WorkItemTypes[0].SpaceID, nil, nil); err != nil || (err == nil && s == nil) {
 			r.B().Fail()
 		}
 	}
 }
 
 func (r *BenchWorkItemTypeRepository) BenchmarkListWorkItemTypesTransaction() {
+	// given
+	fxt := tf.NewTestFixture(r.B(), r.DB, tf.WorkItemTypes(1))
+
 	r.B().ResetTimer()
 	r.B().ReportAllocs()
 	for n := 0; n < r.B().N; n++ {
 		if err := application.Transactional(gormapplication.NewGormDB(r.DB), func(app application.Application) error {
-			_, err := r.repo.List(context.Background(), space.SystemSpace, nil, nil)
+			_, err := r.repo.List(context.Background(), fxt.WorkItemTypes[0].SpaceID, nil, nil)
 			return err
 		}); err != nil {
 			r.B().Fail()
@@ -91,12 +106,15 @@ func (r *BenchWorkItemTypeRepository) BenchmarkListWorkItemTypesTransaction() {
 }
 
 func (r *BenchWorkItemTypeRepository) BenchmarkListPlannerItems() {
+	// given
+	fxt := tf.NewTestFixture(r.B(), r.DB, tf.WorkItemTypes(1))
+
 	r.B().ResetTimer()
 	r.B().ReportAllocs()
 	for n := 0; n < r.B().N; n++ {
 		var rows []workitem.WorkItemType
 		path := path.Path{}
-		db := r.DB.Select("id").Where("space_id = ? AND path::text LIKE '"+path.ConvertToLtree(workitem.SystemPlannerItem)+".%'", space.SystemSpace.String())
+		db := r.DB.Select("id").Where("space_id = ? AND path::text LIKE '"+path.ConvertToLtree(fxt.WorkItemTypes[0].ID)+".%'", fxt.WorkItemTypes[0].SpaceID.String())
 
 		if err := db.Find(&rows).Error; err != nil {
 			r.B().Fail()
@@ -105,11 +123,14 @@ func (r *BenchWorkItemTypeRepository) BenchmarkListPlannerItems() {
 }
 
 func (r *BenchWorkItemTypeRepository) BenchmarkListFind() {
+	// given
+	fxt := tf.NewTestFixture(r.B(), r.DB, tf.WorkItemTypes(1))
+
 	r.B().ResetTimer()
 	r.B().ReportAllocs()
 	for n := 0; n < r.B().N; n++ {
 		var rows []workitem.WorkItemType
-		db := r.DB.Where("space_id = ?", space.SystemSpace)
+		db := r.DB.Where("space_id = ?", fxt.WorkItemTypes[0].SpaceID)
 		if err := db.Find(&rows).Error; err != nil {
 			r.B().Fail()
 		}
@@ -117,11 +138,14 @@ func (r *BenchWorkItemTypeRepository) BenchmarkListFind() {
 }
 
 func (r *BenchWorkItemTypeRepository) BenchmarkListRawScan() {
+	// given
+	fxt := tf.NewTestFixture(r.B(), r.DB, tf.WorkItemTypes(1))
+
 	r.B().ResetTimer()
 	r.B().ReportAllocs()
 	for n := 0; n < r.B().N; n++ {
 		var rows []workitem.WorkItemType
-		result, err := r.DB.Raw("select  from work_item_types where space_id = ?", space.SystemSpace).Rows()
+		result, err := r.DB.Raw("select  from work_item_types where space_id = ?", fxt.WorkItemTypes[0].SpaceID).Rows()
 		if err != nil {
 			r.B().Fail()
 		}
@@ -135,11 +159,14 @@ func (r *BenchWorkItemTypeRepository) BenchmarkListRawScan() {
 }
 
 func (r *BenchWorkItemTypeRepository) BenchmarkListRawScanAll() {
+	// given
+	fxt := tf.NewTestFixture(r.B(), r.DB, tf.WorkItemTypes(1))
+
 	r.B().ResetTimer()
 	r.B().ReportAllocs()
 	for n := 0; n < r.B().N; n++ {
 		var rows []workitem.WorkItemType
-		result, err := r.DB.Raw("select * from work_item_types where space_id = ?", space.SystemSpace).Rows()
+		result, err := r.DB.Raw("select * from work_item_types where space_id = ?", fxt.WorkItemTypes[0].SpaceID).Rows()
 		if err != nil {
 			r.B().Fail()
 		}
@@ -153,11 +180,14 @@ func (r *BenchWorkItemTypeRepository) BenchmarkListRawScanAll() {
 }
 
 func (r *BenchWorkItemTypeRepository) BenchmarkListRawScanName() {
+	// given
+	fxt := tf.NewTestFixture(r.B(), r.DB, tf.WorkItemTypes(1))
+
 	r.B().ResetTimer()
 	r.B().ReportAllocs()
 	for n := 0; n < r.B().N; n++ {
 		var rows []string
-		result, err := r.DB.Raw("select name from work_item_types where space_id = ?", space.SystemSpace).Rows()
+		result, err := r.DB.Raw("select name from work_item_types where space_id = ?", fxt.WorkItemTypes[0].SpaceID).Rows()
 		if err != nil {
 			r.B().Fail()
 		}
@@ -171,11 +201,14 @@ func (r *BenchWorkItemTypeRepository) BenchmarkListRawScanName() {
 }
 
 func (r *BenchWorkItemTypeRepository) BenchmarkListRawScanFields() {
+	// given
+	fxt := tf.NewTestFixture(r.B(), r.DB, tf.WorkItemTypes(1))
+
 	r.B().ResetTimer()
 	r.B().ReportAllocs()
 	for n := 0; n < r.B().N; n++ {
 		var rows []workitem.FieldDefinition
-		result, err := r.DB.Raw("select fields from work_item_types where space_id = ?", space.SystemSpace).Rows()
+		result, err := r.DB.Raw("select fields from work_item_types where space_id = ?", fxt.WorkItemTypes[0].SpaceID).Rows()
 		if err != nil {
 			r.B().Fail()
 		}
