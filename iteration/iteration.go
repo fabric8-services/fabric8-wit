@@ -47,6 +47,12 @@ type Iteration struct {
 	RelationShipsChangedAt *time.Time `sql:"column:relationships_changed_at"`
 }
 
+// MakeChildOf does all the path magic to make the current iteration a child of
+// the given parent iteration.
+func (m *Iteration) MakeChildOf(parent Iteration) {
+	m.Path = append(parent.Path, parent.ID)
+}
+
 // GetETagData returns the field values to use to generate the ETag
 func (m Iteration) GetETagData() []interface{} {
 	// using the 'ID' and 'UpdatedAt' (converted to number of seconds since epoch) fields

@@ -38,6 +38,7 @@ func init() {
 
 func TestAuth(t *testing.T) {
 	resource.Require(t, resource.Remote)
+	t.Skip("Skipping until being fixed or removed by akazakov")
 	suite.Run(t, new(TestAuthSuite))
 }
 

@@ -279,10 +279,10 @@ func (s *TestIterationRepository) TestLoadChildren() {
 				i.Name = "Top level iteration"
 			case 1:
 				i.Name = "Level 1 iteration"
-				i.Path = append(fxt.Iterations[idx-1].Path, fxt.Iterations[idx-1].ID)
+				i.MakeChildOf(*fxt.Iterations[idx-1])
 			case 2:
 				i.Name = "Level 2 iteration"
-				i.Path = append(fxt.Iterations[idx-1].Path, fxt.Iterations[idx-1].ID)
+				i.MakeChildOf(*fxt.Iterations[idx-1])
 			}
 			return nil
 		}),
