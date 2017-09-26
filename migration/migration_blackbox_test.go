@@ -129,6 +129,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration72", testMigration72)
 	t.Run("TestMigration73", testMigration73)
 	t.Run("TestMigration74", testMigration74)
+	t.Run("TestMigration76", testMigration76)
 
 	// Perform the migration
 	if err := migration.Migrate(sqlDB, databaseName); err != nil {
@@ -551,6 +552,13 @@ func testMigration74(t *testing.T) {
 func testMigration75(t *testing.T) {
 	migrateToVersion(sqlDB, migrations[:76], 76)
 	assert.True(t, dialect.HasIndex("labels", "labels_name_space_id_unique_idx"))
+}
+
+func testMigration76(t *testing.T) {
+	migrateToVersion(sqlDB, migrations[:77], 77)
+	count := -1
+	gormDB.Table("work_items").Where("Fields->>'system.labels'='[]'").Count(&count)
+	assert.Equal(t, 0, count)
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and
