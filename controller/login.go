@@ -18,8 +18,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/login"
-	generate "github.com/fabric8-services/fabric8-wit/test/token"
-	"github.com/fabric8-services/fabric8-wit/token"
+	"github.com/fabric8-services/fabric8-wit/test/token"
 
 	"github.com/goadesign/goa"
 	goaclient "github.com/goadesign/goa/client"
@@ -38,14 +37,13 @@ type loginConfiguration interface {
 type LoginController struct {
 	*goa.Controller
 	auth               login.KeycloakOAuthService
-	tokenManager       token.Manager
 	configuration      loginConfiguration
 	identityRepository account.IdentityRepository
 }
 
 // NewLoginController creates a login controller.
-func NewLoginController(service *goa.Service, auth *login.KeycloakOAuthProvider, tokenManager token.Manager, configuration loginConfiguration, identityRepository account.IdentityRepository) *LoginController {
-	return &LoginController{Controller: service.NewController("login"), auth: auth, tokenManager: tokenManager, configuration: configuration, identityRepository: identityRepository}
+func NewLoginController(service *goa.Service, auth *login.KeycloakOAuthProvider, configuration loginConfiguration, identityRepository account.IdentityRepository) *LoginController {
+	return &LoginController{Controller: service.NewController("login"), auth: auth, configuration: configuration, identityRepository: identityRepository}
 }
 
 // Authorize runs the authorize action.
@@ -137,17 +135,6 @@ func (c *LoginController) Refresh(ctx *app.RefreshLoginContext) error {
 	return ctx.TemporaryRedirect()
 }
 
-func convertToken(token auth.Token) *app.AuthToken {
-	return &app.AuthToken{Token: &app.TokenData{
-		AccessToken:      token.AccessToken,
-		ExpiresIn:        token.ExpiresIn,
-		NotBeforePolicy:  token.NotBeforePolicy,
-		RefreshExpiresIn: token.RefreshExpiresIn,
-		RefreshToken:     token.RefreshToken,
-		TokenType:        token.TokenType,
-	}}
-}
-
 // Link links identity provider(s) to the user's account
 func (c *LoginController) Link(ctx *app.LinkLoginContext) error {
 	return redirectWithParams(ctx, c.configuration, ctx.ResponseData.Header(), ctx.Params, authservice.LinkLinkPath())
@@ -158,11 +145,11 @@ func (c *LoginController) Linksession(ctx *app.LinksessionLoginContext) error {
 	return redirectWithParams(ctx, c.configuration, ctx.ResponseData.Header(), ctx.Params, authservice.SessionLinkPath())
 }
 
-// Generate obtain the access token from Keycloak for the test user
+// Generate generates access tokens in Dev Mode
 func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 	var tokens app.AuthTokenCollection
 
-	testuser, err := GenerateUserToken(ctx, c.configuration, c.configuration.GetKeycloakTestUserName())
+	testuser, err := generateUserToken(ctx, c.configuration, c.configuration.GetKeycloakTestUserName())
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err":      err,
@@ -174,7 +161,7 @@ func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 	c.auth.CreateOrUpdateKeycloakUser(*testuser.Token.AccessToken, ctx)
 	tokens = append(tokens, testuser)
 
-	testuser, err = GenerateUserToken(ctx, c.configuration, c.configuration.GetKeycloakTestUser2Name())
+	testuser, err = generateUserToken(ctx, c.configuration, c.configuration.GetKeycloakTestUser2Name())
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err":      err,
@@ -190,28 +177,24 @@ func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 	return ctx.OK(tokens)
 }
 
-// GenerateUserToken obtains the access token from Keycloak for the user
-func GenerateUserToken(ctx context.Context, configuration loginConfiguration, username string) (*app.AuthToken, error) {
+func generateUserToken(ctx context.Context, configuration loginConfiguration, username string) (*app.AuthToken, error) {
 	if !configuration.IsPostgresDeveloperModeEnabled() {
 		log.Error(ctx, map[string]interface{}{
 			"method": "Generate",
 		}, "Developer mode not enabled")
 		return nil, errors.NewInternalError(ctx, errs.New("postgres developer mode is not enabled"))
 	}
-
-	key := generate.PrivateKey()
-	token, err := generate.GenerateToken(uuid.NewV4().String(), username, key)
+	t, err := token.GenerateToken(uuid.NewV4().String(), username, token.PrivateKey())
 	if err != nil {
 		return nil, err
 	}
-
 	bearer := "Bearer"
 	return &app.AuthToken{Token: &app.TokenData{
-		AccessToken:      &token,
+		AccessToken:      &t,
 		ExpiresIn:        60 * 60 * 24 * 30,
 		NotBeforePolicy:  0,
 		RefreshExpiresIn: 60 * 60 * 24 * 30,
-		RefreshToken:     &token,
+		RefreshToken:     &t,
 		TokenType:        &bearer,
 	}}, nil
 }

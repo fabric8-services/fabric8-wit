@@ -197,7 +197,7 @@ func main() {
 	service.Use(authz.InjectAuthzService(spaceAuthzService))
 
 	loginService := login.NewKeycloakOAuthProvider(identityRepository, userRepository, tokenManager, appDB)
-	loginCtrl := controller.NewLoginController(service, loginService, tokenManager, config, identityRepository)
+	loginCtrl := controller.NewLoginController(service, loginService, config, identityRepository)
 	app.MountLoginController(service, loginCtrl)
 
 	logoutCtrl := controller.NewLogoutController(service, config)
@@ -295,8 +295,7 @@ func main() {
 	app.MountSearchController(service, searchCtrl)
 
 	// Mount "users" controller
-	keycloakProfileService := login.NewKeycloakUserProfileClient()
-	usersCtrl := controller.NewUsersController(service, appDB, config, keycloakProfileService)
+	usersCtrl := controller.NewUsersController(service, appDB, config)
 	app.MountUsersController(service, usersCtrl)
 
 	// Mount "labels" controller
