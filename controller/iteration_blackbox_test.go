@@ -21,6 +21,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	"context"
@@ -68,69 +69,81 @@ func (rest *TestIterationREST) UnSecuredController() (*goa.Service, *IterationCo
 	return svc, NewIterationController(svc, rest.db, rest.Configuration)
 }
 
-func (rest *TestIterationREST) TestSuccessCreateChildIteration() {
+func (rest *TestIterationREST) TestCreateChildIteration() {
 	// given
-	sp, _, _, _, parent := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
-	ri, err := rest.db.Iterations().Root(context.Background(), parent.SpaceID)
-	require.Nil(rest.T(), err)
-	parentID := parent.ID
-	name := "Sprint #21"
-	ci := getChildIterationPayload(&name)
-	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerId)
-	require.Nil(rest.T(), err)
-	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
-	// when
-	_, created := test.CreateChildIterationCreated(rest.T(), svc.Context, svc, ctrl, parentID.String(), ci)
-	// then
-	require.NotNil(rest.T(), created)
-	assertChildIterationLinking(rest.T(), created.Data)
-	assert.Equal(rest.T(), *ci.Data.Attributes.Name, *created.Data.Attributes.Name)
-	expectedParentPath := parent.Path.String() + path.SepInService + parentID.String()
-	expectedResolvedParentPath := path.SepInService + ri.Name + path.SepInService + parent.Name
-	assert.Equal(rest.T(), expectedParentPath, *created.Data.Attributes.ParentPath)
-	assert.Equal(rest.T(), expectedResolvedParentPath, *created.Data.Attributes.ResolvedParentPath)
-	require.NotNil(rest.T(), created.Data.Relationships.Workitems.Meta)
-	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta["total"])
-	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta["closed"])
+	rest.T().Run("success - create child iteration", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, rest.DB,
+			tf.Identities(2),
+			tf.Areas(1),
+			tf.Iterations(2, func(fxt *tf.TestFixture, idx int) error {
+				if idx == 1 {
+					fxt.Iterations[idx].MakeChildOf(*fxt.Iterations[0])
+				}
+				return nil
+			}))
+		name := "Sprint #21"
+		ci := getChildIterationPayload(&name)
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+		// when
+		_, created := test.CreateChildIterationCreated(t, svc.Context, svc, ctrl, fxt.Iterations[1].ID.String(), ci)
+		// then
+		require.NotNil(t, created)
+		assertChildIterationLinking(t, created.Data)
+		assert.Equal(t, *ci.Data.Attributes.Name, *created.Data.Attributes.Name)
+		expectedParentPath := fxt.Iterations[1].Path.String() + path.SepInService + fxt.Iterations[1].ID.String()
+		expectedResolvedParentPath := path.SepInService + fxt.Iterations[0].Name + path.SepInService + fxt.Iterations[1].Name
+		assert.Equal(t, expectedParentPath, *created.Data.Attributes.ParentPath)
+		assert.Equal(t, expectedResolvedParentPath, *created.Data.Attributes.ResolvedParentPath)
+		require.NotNil(t, created.Data.Relationships.Workitems.Meta)
+		assert.Equal(t, 0, created.Data.Relationships.Workitems.Meta["total"])
+		assert.Equal(t, 0, created.Data.Relationships.Workitems.Meta["closed"])
+	})
 
-	// try to create child iteration with some other user
-	otherIdentity := &account.Identity{
-		Username:     "non-space-owner-identity",
-		ProviderType: account.KeycloakIDP,
-	}
-	errInCreateOther := rest.db.Identities().Create(context.Background(), otherIdentity)
-	require.Nil(rest.T(), errInCreateOther)
-	svc, ctrl = rest.SecuredControllerWithIdentity(otherIdentity)
-	test.CreateChildIterationForbidden(rest.T(), svc.Context, svc, ctrl, parentID.String(), ci)
-}
+	rest.T().Run("forbidden - only space owener can create child iteration", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, rest.DB, tf.Identities(2), tf.Areas(1), tf.Iterations(1))
+		name := "Sprint #21"
+		ci := getChildIterationPayload(&name)
+		otherIdentity := fxt.Identities[1]
+		svc, ctrl := rest.SecuredControllerWithIdentity(otherIdentity)
+		test.CreateChildIterationForbidden(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
+	})
 
-func (rest *TestIterationREST) TestFailCreateSameChildIterationConflict() {
-	// given
-	sp, _, _, _, parent := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
-	ri, err := rest.db.Iterations().Root(context.Background(), parent.SpaceID)
-	require.Nil(rest.T(), err)
-	parentID := parent.ID
-	name := uuid.NewV4().String()
-	ci := getChildIterationPayload(&name)
-	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerId)
-	require.Nil(rest.T(), err)
-	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
-	// when
-	_, created := test.CreateChildIterationCreated(rest.T(), svc.Context, svc, ctrl, parentID.String(), ci)
-	// then
-	require.NotNil(rest.T(), created)
-	assertChildIterationLinking(rest.T(), created.Data)
-	assert.Equal(rest.T(), *ci.Data.Attributes.Name, *created.Data.Attributes.Name)
-	expectedParentPath := parent.Path.String() + path.SepInService + parentID.String()
-	expectedResolvedParentPath := path.SepInService + ri.Name + path.SepInService + parent.Name
-	assert.Equal(rest.T(), expectedParentPath, *created.Data.Attributes.ParentPath)
-	assert.Equal(rest.T(), expectedResolvedParentPath, *created.Data.Attributes.ResolvedParentPath)
-	require.NotNil(rest.T(), created.Data.Relationships.Workitems.Meta)
-	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta["total"])
-	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta["closed"])
+	rest.T().Run("fail - create same child iteration conflict", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, rest.DB, tf.Identities(1), tf.Areas(1),
+			tf.Iterations(2, func(fxt *tf.TestFixture, idx int) error {
+				if idx == 1 {
+					fxt.Iterations[idx].MakeChildOf(*fxt.Iterations[0])
+				}
+				return nil
+			}))
+		name := fxt.Iterations[1].Name
+		ci := getChildIterationPayload(&name)
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+		test.CreateChildIterationConflict(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
+	})
 
-	// try creating again with same name + hierarchy
-	test.CreateChildIterationConflict(rest.T(), svc.Context, svc, ctrl, parentID.String(), ci)
+	rest.T().Run("fail - create child iteration missing name", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, rest.DB, tf.Identities(1), tf.Areas(1), tf.Iterations(1))
+		ci := getChildIterationPayload(nil)
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+		test.CreateChildIterationBadRequest(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
+	})
+
+	rest.T().Run("fail - create child missing parent", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, rest.DB, tf.Identities(1), tf.Areas(1), tf.Iterations(1))
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+		name := "Sprint #21"
+		ci := getChildIterationPayload(&name)
+		test.CreateChildIterationNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String(), ci)
+	})
+
+	rest.T().Run("unauthorized - create child iteration with unauthorized user", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, rest.DB, tf.Identities(1), tf.Iterations(1))
+		name := "Sprint #21"
+		ci := getChildIterationPayload(&name)
+		svc, ctrl := rest.UnSecuredController()
+		test.CreateChildIterationUnauthorized(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
+	})
 }
 
 func (rest *TestIterationREST) TestFailValidationIterationNameLength() {
@@ -158,34 +171,6 @@ func (rest *TestIterationREST) TestFailValidationIterationNameStartWith() {
 	// Validate payload function returns an error
 	assert.NotNil(rest.T(), err)
 	assert.Contains(rest.T(), err.Error(), "response.name must match the regexp")
-}
-
-func (rest *TestIterationREST) TestFailCreateChildIterationMissingName() {
-	sp, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
-	ci := getChildIterationPayload(nil)
-	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerId)
-	require.Nil(rest.T(), err)
-	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
-	test.CreateChildIterationBadRequest(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), ci)
-}
-
-func (rest *TestIterationREST) TestFailCreateChildIterationMissingParent() {
-	// given
-	name := "Sprint #21"
-	ci := getChildIterationPayload(&name)
-	svc, ctrl := rest.SecuredController()
-	// when/then
-	test.CreateChildIterationNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4().String(), ci)
-}
-
-func (rest *TestIterationREST) TestFailCreateChildIterationNotAuthorized() {
-	// when
-	_, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
-	name := "Sprint #21"
-	ci := getChildIterationPayload(&name)
-	svc, ctrl := rest.UnSecuredController()
-	// when/then
-	test.CreateChildIterationUnauthorized(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), ci)
 }
 
 func (rest *TestIterationREST) TestShowIterationOK() {
