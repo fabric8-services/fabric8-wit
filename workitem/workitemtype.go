@@ -178,6 +178,12 @@ func (wit WorkItemType) ConvertWorkItemStorageToModel(workItem WorkItemStorage) 
 		if name == SystemCreatedAt {
 			continue
 		}
+		if name == SystemAssignees && workItem.Fields[name] == nil {
+			continue
+		}
+		if name == SystemLabels && workItem.Fields[name] == nil {
+			continue
+		}
 		result.Fields[name], err = field.ConvertFromModel(name, workItem.Fields[name])
 		if err != nil {
 			return nil, errors.WithStack(err)
