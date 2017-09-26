@@ -324,9 +324,7 @@ func (s *workItemRepoBlackBoxTest) TestLookupIDByNamedSpaceAndNumberNotFound() {
 }
 
 func (s *workItemRepoBlackBoxTest) TestLookupIDByNamedSpaceAndNumberStaleSpace() {
-	testFxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1), tf.WorkItems(20, func(testf *tf.TestFixture, idx int) error {
-		testf.WorkItems[idx].Type = workitem.SystemBug
-		testf.WorkItems[idx].Fields[workitem.SystemTitle] = fmt.Sprintf("title %d", idx)
+	testFxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(20, func(testf *tf.TestFixture, idx int) error {
 		testf.WorkItems[idx].Fields[workitem.SystemState] = workitem.SystemStateNew
 		testf.WorkItems[idx].Fields[workitem.SystemCreator] = testf.Identities[0].ID.String()
 		return nil
@@ -351,8 +349,6 @@ func (s *workItemRepoBlackBoxTest) TestLookupIDByNamedSpaceAndNumberStaleSpace()
 		testf.Spaces[0].OwnerId = in.ID
 		return nil
 	}), tf.WorkItems(20, func(testf *tf.TestFixture, idx int) error {
-		testf.WorkItems[idx].Type = workitem.SystemBug
-		testf.WorkItems[idx].Fields[workitem.SystemTitle] = fmt.Sprintf("title %d", idx)
 		testf.WorkItems[idx].Fields[workitem.SystemState] = workitem.SystemStateNew
 		testf.WorkItems[idx].Fields[workitem.SystemCreator] = testf.Identities[0].ID.String()
 		return nil
