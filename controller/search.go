@@ -262,10 +262,7 @@ func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, res *a
 	err := application.Transactional(c.db, func(appl application.Application) error {
 		var err error
 		wis, err = appl.WorkItems().LoadBatchByID(ctx, fetchInBatch)
-		if err != nil {
-			return err
-		}
-		return nil
+		return err
 	})
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{

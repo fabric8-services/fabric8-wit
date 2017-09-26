@@ -610,9 +610,9 @@ func includeParentWorkItem(ctx context.Context, appl application.Application) Wo
 		if repo != nil {
 			parentID, err = repo.GetParentID(ctx, wi.ID)
 			if err != nil {
-				log.Error(ctx, map[string]interface{}{
-					"wi_id": wi.ID,
-					"err":   err,
+				log.Info(ctx, map[string]interface{}{
+					"wi_id":  wi.ID,
+					"detail": err,
 				}, "work item has no parent: %s", wi.ID)
 			}
 		}
