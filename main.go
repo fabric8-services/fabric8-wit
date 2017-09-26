@@ -193,7 +193,7 @@ func main() {
 	service.Use(log.LogRequest(config.IsPostgresDeveloperModeEnabled()))
 	app.UseJWTMiddleware(service, goajwt.New(tokenManager.PublicKeys(), nil, app.NewJWTSecurity()))
 
-	spaceAuthzService := authz.NewAuthzService(config, appDB)
+	spaceAuthzService := authz.NewAuthzService(config)
 	service.Use(authz.InjectAuthzService(spaceAuthzService))
 
 	loginService := login.NewKeycloakOAuthProvider(identityRepository, userRepository, tokenManager, appDB)
@@ -347,7 +347,7 @@ func main() {
 	app.MountSpaceCodebasesController(service, spaceCodebaseCtrl)
 
 	// Mount "collaborators" controller
-	collaboratorsCtrl := controller.NewCollaboratorsController(service, appDB, config, auth.NewKeycloakPolicyManager(config))
+	collaboratorsCtrl := controller.NewCollaboratorsController(service, appDB, config)
 	app.MountCollaboratorsController(service, collaboratorsCtrl)
 
 	// Mount "space template" controller

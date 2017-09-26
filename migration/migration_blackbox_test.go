@@ -553,6 +553,11 @@ func testMigration75(t *testing.T) {
 	assert.True(t, dialect.HasIndex("labels", "labels_name_space_id_unique_idx"))
 }
 
+func testMigration76(t *testing.T) {
+	migrateToVersion(sqlDB, migrations[:77], 77)
+	assert.False(t, dialect.HasTable("space_resources"))
+}
+
 // runSQLscript loads the given filename from the packaged SQL test files and
 // executes it on the given database. Golang text/template module is used
 // to handle all the optional arguments passed to the sql test files

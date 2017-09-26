@@ -4,23 +4,16 @@ package authz
 import (
 	"context"
 	"net/http"
-	"time"
 
-	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/auth"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/log"
-	tokencontext "github.com/fabric8-services/fabric8-wit/login/tokencontext"
-	"github.com/fabric8-services/fabric8-wit/space"
-	"github.com/fabric8-services/fabric8-wit/token"
-	errs "github.com/pkg/errors"
-
-	contx "context"
+	"github.com/fabric8-services/fabric8-wit/login/tokencontext"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
-	uuid "github.com/satori/go.uuid"
+	errs "github.com/pkg/errors"
 )
 
 // AuthzService represents a space authorization service
@@ -60,12 +53,11 @@ func (m *KeycloakAuthzServiceManager) EntitlementEndpoint() string {
 // KeycloakAuthzService implements AuthzService interface
 type KeycloakAuthzService struct {
 	config AuthzConfiguration
-	db     application.DB
 }
 
 // NewAuthzService constructs a new KeycloakAuthzService
-func NewAuthzService(config AuthzConfiguration, db application.DB) *KeycloakAuthzService {
-	return &KeycloakAuthzService{config: config, db: db}
+func NewAuthzService(config AuthzConfiguration) *KeycloakAuthzService {
+	return &KeycloakAuthzService{config: config}
 }
 
 // Configuration returns authz service configuration
@@ -79,57 +71,6 @@ func (s *KeycloakAuthzService) Authorize(ctx context.Context, entitlementEndpoin
 	if jwttoken == nil {
 		return false, errors.NewUnauthorizedError("missing token")
 	}
-	tm := tokencontext.ReadTokenManagerFromContext(ctx)
-	if tm == nil {
-		log.Error(ctx, map[string]interface{}{
-			"token": tm,
-		}, "missing token manager")
-		return false, errors.NewInternalError(ctx, errs.New("missing token manager"))
-	}
-	tokenWithClaims, err := tm.(token.Manager).ParseToken(ctx, jwttoken.Raw)
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"space_id": spaceID,
-			"err":      err,
-		}, "unable to parse the rpt token")
-		return false, errors.NewInternalError(ctx, errs.Wrap(err, "unable to parse the rpt token"))
-	}
-
-	if tokenWithClaims.Authorization == nil {
-		// No authorization in the token. This is not a RPT token. This is an access token.
-		// We need to obtain an PRT token.
-		log.Warn(ctx, map[string]interface{}{
-			"space_id": spaceID,
-		}, "no authorization found in the token; this is an access token (not a RPT token)")
-		return s.checkEntitlementForSpace(ctx, *jwttoken, entitlementEndpoint, spaceID)
-	}
-
-	// Check if the token was issued before the space resouces changed the last time.
-	// If so, we need to re-fetch the rpt token for that space/resource and check permissions.
-	outdated, err := s.isTokenOutdated(ctx, *tokenWithClaims, entitlementEndpoint, spaceID)
-	if err != nil {
-		return false, err
-	}
-	if outdated {
-		return s.checkEntitlementForSpace(ctx, *jwttoken, entitlementEndpoint, spaceID)
-	}
-
-	permissions := tokenWithClaims.Authorization.Permissions
-	if permissions == nil {
-		// if the RPT doesn't contain the resource info, it could be probably
-		// because the entitlement was never fetched in the first place. Hence we consider
-		// the token to be 'outdated' and hence re-fetch the entitlements from keycloak.
-		return s.checkEntitlementForSpace(ctx, *jwttoken, entitlementEndpoint, spaceID)
-	}
-	for _, permission := range permissions {
-		name := permission.ResourceSetName
-		if name != nil && spaceID == *name {
-			return true, nil
-		}
-	}
-	// if the RPT doesn't contain the resource info, it could be probably
-	// because the entitlement was never fetched in the first place. Hence we consider
-	// the token to be 'outdated' and hence re-fetch the entitlements from keycloak.
 	return s.checkEntitlementForSpace(ctx, *jwttoken, entitlementEndpoint, spaceID)
 }
 
@@ -152,30 +93,10 @@ func (s *KeycloakAuthzService) checkEntitlementForSpace(ctx context.Context, tok
 	return ent != nil, nil
 }
 
-func (s *KeycloakAuthzService) isTokenOutdated(ctx context.Context, token token.TokenClaims, entitlementEndpoint string, spaceID string) (bool, error) {
-	spaceUUID, err := uuid.FromString(spaceID)
-	if err != nil {
-		return false, errors.NewInternalError(ctx, err)
-	}
-	var spaceResource *space.Resource
-	err = application.Transactional(s.db, func(appl application.Application) error {
-		spaceResource, err = appl.SpaceResources().LoadBySpace(ctx, &spaceUUID)
-		return err
-	})
-	if err != nil {
-		return false, err
-	}
-	if token.IssuedAt == 0 {
-		return false, errors.NewInternalError(ctx, errs.New("iat claim is not found in the token"))
-	}
-	tokenIssued := time.Unix(token.IssuedAt, 0)
-	return tokenIssued.Before(spaceResource.UpdatedAt), nil
-}
-
 // InjectAuthzService is a middleware responsible for setting up AuthzService in the context for every request.
 func InjectAuthzService(service AuthzService) goa.Middleware {
 	return func(h goa.Handler) goa.Handler {
-		return func(ctx contx.Context, rw http.ResponseWriter, req *http.Request) error {
+		return func(ctx context.Context, rw http.ResponseWriter, req *http.Request) error {
 			config := service.Configuration()
 			var endpoint string
 			if config != nil {
