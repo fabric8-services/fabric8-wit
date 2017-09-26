@@ -350,10 +350,7 @@ func GetMigrations() Migrations {
 	m = append(m, steps{ExecuteSQLFile("075-label-unique-name.sql")})
 
 	// Version 76
-	m = append(m, steps{ExecuteSQLFile("076-drop-space-resources.sql")})
-
-	// Version 77
-	m = append(m, steps{ExecuteSQLFile("077-drop-oauth-state.sql")})
+	m = append(m, steps{ExecuteSQLFile("076-drop-space-resources-and-oauth-state.sql")})
 
 	// Version N
 	//
