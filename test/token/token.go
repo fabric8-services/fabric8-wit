@@ -4,6 +4,7 @@ import (
 	"crypto/rsa"
 	"time"
 
+	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/token"
@@ -39,7 +40,7 @@ func GenerateToken(identityID string, identityUsername string, privateKey *rsa.P
 	token.Claims.(jwt.MapClaims)["company"] = "Company Inc."
 	token.Claims.(jwt.MapClaims)["given_name"] = identityUsername
 	token.Claims.(jwt.MapClaims)["family_name"] = identityUsername
-	token.Claims.(jwt.MapClaims)["email"] = "test@email.com"
+	token.Claims.(jwt.MapClaims)["email"] = fmt.Sprintf("%s@email.com", identityUsername)
 
 	token.Header["kid"] = "test-key"
 	tokenStr, err := token.SignedString(privateKey)

@@ -183,6 +183,5 @@ func (c *SearchController) Spaces(ctx *app.SpacesSearchContext) error {
 
 // Users runs the user search action.
 func (c *SearchController) Users(ctx *app.UsersSearchContext) error {
-	ctx.ResponseData.Header().Set("Location", fmt.Sprintf("%s%s", c.configuration.GetAuthServiceURL(), authservice.UsersSearchPath()))
-	return ctx.TemporaryRedirect()
+	return redirectWithParams(ctx, c.configuration, ctx.ResponseData.Header(), ctx.Params, authservice.UsersSearchPath())
 }

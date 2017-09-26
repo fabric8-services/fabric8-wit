@@ -50,8 +50,7 @@ func NewUsersController(service *goa.Service, db application.DB, config UsersCon
 
 // Show runs the show action.
 func (c *UsersController) Show(ctx *app.ShowUsersContext) error {
-	ctx.ResponseData.Header().Set("Location", fmt.Sprintf("%s%s", c.config.GetAuthServiceURL(), authservice.ShowUsersPath(ctx.ID)))
-	return ctx.TemporaryRedirect()
+	return redirectWithParams(ctx, c.config, ctx.ResponseData.Header(), ctx.Params, authservice.ShowUsersPath(ctx.ID))
 }
 
 // CreateUserAsServiceAccount updates a user when requested using a service account token
@@ -295,8 +294,7 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 
 // List runs the list action.
 func (c *UsersController) List(ctx *app.ListUsersContext) error {
-	ctx.ResponseData.Header().Set("Location", fmt.Sprintf("%s%s", c.config.GetAuthServiceURL(), authservice.ListUsersPath()))
-	return ctx.TemporaryRedirect()
+	return redirectWithParams(ctx, c.config, ctx.ResponseData.Header(), ctx.Params, authservice.ListUsersPath())
 }
 
 // ConvertUsersSimple converts a array of simple Identity IDs into a Generic Reletionship List
