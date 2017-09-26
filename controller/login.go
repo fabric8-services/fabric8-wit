@@ -2,8 +2,6 @@ package controller
 
 import (
 	"context"
-	"encoding/json"
-	er "errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -12,16 +10,13 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/auth"
 	"github.com/fabric8-services/fabric8-wit/auth/authservice"
-	"github.com/fabric8-services/fabric8-wit/client"
 	"github.com/fabric8-services/fabric8-wit/errors"
-	"github.com/fabric8-services/fabric8-wit/goasupport"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/test/token"
 
 	"github.com/goadesign/goa"
-	goaclient "github.com/goadesign/goa/client"
 	errs "github.com/pkg/errors"
 	"github.com/satori/go.uuid"
 )
@@ -48,58 +43,6 @@ func NewLoginController(service *goa.Service, auth *login.KeycloakOAuthProvider,
 
 // Authorize runs the authorize action.
 func (c *LoginController) Authorize(ctx *app.AuthorizeLoginContext) error {
-	if !c.configuration.IsAuthorizationEnabled() {
-		// Login as test user
-		redirects := ctx.Params["redirect"]
-		var redirect string
-		referrer := ctx.Request.Header.Get("Referer")
-		if redirects == nil {
-			if referrer == "" {
-				return jsonapi.JSONErrorResponse(ctx, er.New("referrer header and redirect param are both empty; at least one should be specified"))
-			}
-			redirect = referrer
-		} else if len(redirects) > 0 {
-			redirect = redirects[0]
-		}
-
-		cln := client.New(goaclient.HTTPClientDoer(http.DefaultClient))
-		cln.Host = ctx.Request.Host
-		cln.Scheme = ctx.URL.Scheme
-		res, err := cln.GenerateLogin(goasupport.ForwardContextRequestID(ctx), client.GenerateLoginPath())
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
-		defer res.Body.Close()
-		if res.StatusCode != 200 {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
-		tokens, err := cln.DecodeAuthTokenCollection(res)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
-		tokenData := &app.TokenData{
-			AccessToken:      tokens[0].Token.AccessToken,
-			ExpiresIn:        tokens[0].Token.ExpiresIn,
-			RefreshToken:     tokens[0].Token.RefreshToken,
-			RefreshExpiresIn: tokens[0].Token.RefreshExpiresIn,
-			NotBeforePolicy:  tokens[0].Token.NotBeforePolicy,
-			TokenType:        tokens[0].Token.TokenType,
-		}
-		b, err := json.Marshal(tokenData)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
-
-		location, err := url.Parse(redirect)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
-		parameters := location.Query()
-		parameters.Add("token_json", string(b))
-		location.RawQuery = parameters.Encode()
-		ctx.ResponseData.Header().Set("Location", location.String())
-		return ctx.TemporaryRedirect()
-	}
 	return redirectWithParams(ctx, c.configuration, ctx.ResponseData.Header(), ctx.Params, authservice.LoginLoginPath())
 }
 
@@ -128,9 +71,6 @@ func redirectWithParams(ctx redirectContext, config auth.AuthServiceConfiguratio
 
 // Refresh obtain a new access token using the refresh token.
 func (c *LoginController) Refresh(ctx *app.RefreshLoginContext) error {
-	if !c.configuration.IsAuthorizationEnabled() {
-		return jsonapi.JSONErrorResponse(ctx, er.New("token refresh endpoint disabled"))
-	}
 	ctx.ResponseData.Header().Set("Location", fmt.Sprintf("%s%s", c.configuration.GetAuthServiceURL(), authservice.RefreshTokenPath()))
 	return ctx.TemporaryRedirect()
 }

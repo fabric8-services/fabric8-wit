@@ -3,9 +3,10 @@ package controller
 import (
 	"fmt"
 
-	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/auth"
+	"github.com/fabric8-services/fabric8-wit/auth/authservice"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
@@ -18,6 +19,7 @@ import (
 
 type searchConfiguration interface {
 	GetHTTPAddress() string
+	auth.AuthServiceConfiguration
 }
 
 // SearchController implements the search resource.
@@ -181,65 +183,6 @@ func (c *SearchController) Spaces(ctx *app.SpacesSearchContext) error {
 
 // Users runs the user search action.
 func (c *SearchController) Users(ctx *app.UsersSearchContext) error {
-
-	q := ctx.Q
-	if q == "" {
-		return ctx.BadRequest(goa.ErrBadRequest("empty search query not allowed"))
-	}
-
-	var result []account.Identity
-	var count int
-	var err error
-
-	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
-
-	err = application.Transactional(c.db, func(appl application.Application) error {
-		result, count, err = appl.Identities().Search(ctx, q, offset, limit)
-		return err
-	})
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"err": err,
-		}, "unable to run search query on users.")
-		ctx.InternalServerError()
-	}
-
-	var users []*app.UserData
-	for i := range result {
-		ident := result[i]
-		id := ident.ID.String()
-		userID := ident.User.ID.String()
-		users = append(users, &app.UserData{
-			// FIXME : should be "users" in the long term
-			Type: "identities",
-			ID:   &id,
-			Attributes: &app.UserDataAttributes{
-				CreatedAt:  &ident.User.CreatedAt,
-				UpdatedAt:  &ident.User.UpdatedAt,
-				Username:   &ident.Username,
-				FullName:   &ident.User.FullName,
-				ImageURL:   &ident.User.ImageURL,
-				Bio:        &ident.User.Bio,
-				URL:        &ident.User.URL,
-				UserID:     &userID,
-				IdentityID: &id,
-				Email:      &ident.User.Email,
-				Company:    &ident.User.Company,
-			},
-		})
-	}
-
-	// If there are no search results ensure that the 'data' section of the jsonapi
-	// response is not null, rather [] (empty array)
-	if users == nil {
-		users = []*app.UserData{}
-	}
-	response := app.UserList{
-		Data:  users,
-		Links: &app.PagingLinks{},
-		Meta:  &app.UserListMeta{TotalCount: count},
-	}
-	setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(result), offset, limit, count, "q="+q)
-
-	return ctx.OK(&response)
+	ctx.ResponseData.Header().Set("Location", fmt.Sprintf("%s%s", c.configuration.GetAuthServiceURL(), authservice.UsersSearchPath()))
+	return ctx.TemporaryRedirect()
 }

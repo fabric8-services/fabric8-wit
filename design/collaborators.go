@@ -14,15 +14,6 @@ var _ = a.Resource("collaborators", func() {
 			a.GET(""),
 		)
 		a.Description("List collaborators for the given space ID.")
-		a.Params(func() {
-			a.Param("page[offset]", d.String, "Paging start position")
-			a.Param("page[limit]", d.Integer, "Paging size")
-		})
-		a.UseTrait("conditional")
-		a.Response(d.OK, userList)
-		a.Response(d.NotModified)
-		a.Response(d.NotFound, JSONAPIErrors)
-		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.TemporaryRedirect)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})

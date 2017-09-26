@@ -2,20 +2,14 @@ package controller
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 
-	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
-	"github.com/fabric8-services/fabric8-wit/auth/authservice"
-	errs "github.com/fabric8-services/fabric8-wit/errors"
-	"github.com/fabric8-services/fabric8-wit/jsonapi"
-	"github.com/fabric8-services/fabric8-wit/log"
-
 	"github.com/fabric8-services/fabric8-wit/auth"
+	"github.com/fabric8-services/fabric8-wit/auth/authservice"
+	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/goadesign/goa"
 	goauuid "github.com/goadesign/goa/uuid"
 	"github.com/satori/go.uuid"
@@ -51,98 +45,7 @@ type redirectContext interface {
 
 // List collaborators for the given space ID.
 func (c *CollaboratorsController) List(ctx *app.ListCollaboratorsContext) error {
-	if c.config.IsAuthorizationEnabled() {
-		return c.redirect(ctx, ctx.ResponseData.Header(), ctx.Request, ctx.SpaceID, "")
-	}
-
-	// Return the space owner if authZ is disabled (by default in Dev Mode)
-	var userIDs string
-	var ownerID string
-	err := application.Transactional(c.db, func(appl application.Application) error {
-		space, err := appl.Spaces().Load(ctx, ctx.SpaceID)
-		if err != nil {
-			log.Error(ctx, map[string]interface{}{
-				"space_id": ctx.SpaceID,
-				"err":      err,
-			}, "unable to find the space")
-			return err
-		}
-		ownerID = space.OwnerId.String()
-		return nil
-	})
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, errs.NewInternalError(ctx.Context, err))
-	}
-	userIDs = fmt.Sprintf("[\"%s\"]", ownerID)
-	log.Warn(ctx, map[string]interface{}{
-		"space_id": ctx.SpaceID,
-		"owner_id": ownerID,
-	}, "Authorization is disabled. Space owner is the only collaborator")
-	//UsersIDs format : "[\"<ID>\",\"<ID>\"]"
-	s := strings.Split(userIDs, ",")
-	count := len(s)
-
-	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
-
-	pageOffset := offset
-	pageLimit := offset + limit
-	if offset > len(s) {
-		pageOffset = len(s)
-	}
-	if offset+limit > len(s) {
-		pageLimit = len(s)
-	}
-	page := s[pageOffset:pageLimit]
-	resultIdentities := make([]account.Identity, len(page))
-	resultUsers := make([]account.User, len(page))
-	for i, id := range page {
-		id = strings.Trim(id, "[]\"")
-		uID, err := uuid.FromString(id)
-		if err != nil {
-			log.Error(ctx, map[string]interface{}{
-				"identity_id": id,
-				"users-ids":   userIDs,
-			}, "unable to convert the identity ID to uuid v4")
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
-		}
-		err = application.Transactional(c.db, func(appl application.Application) error {
-			identities, err := appl.Identities().Query(account.IdentityFilterByID(uID), account.IdentityWithUser())
-			if err != nil {
-				log.Error(ctx, map[string]interface{}{
-					"identity_id": id,
-					"err":         err,
-				}, "unable to find the identity listed in the space policy")
-				return err
-			}
-			if len(identities) == 0 {
-				log.Error(ctx, map[string]interface{}{
-					"identity_id": id,
-				}, "unable to find the identity listed in the space policy")
-				return errors.New("identity listed in the space policy not found")
-			}
-			resultIdentities[i] = identities[0]
-			resultUsers[i] = identities[0].User
-			return nil
-		})
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
-		}
-	}
-
-	return ctx.ConditionalEntities(resultUsers, c.config.GetCacheControlCollaborators, func() error {
-		data := make([]*app.UserData, len(page))
-		for i := range resultUsers {
-			appUser := ConvertToAppUser(ctx.Request, &resultUsers[i], &resultIdentities[i])
-			data[i] = appUser.Data
-		}
-		response := app.UserList{
-			Links: &app.PagingLinks{},
-			Meta:  &app.UserListMeta{TotalCount: count},
-			Data:  data,
-		}
-		setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(page), offset, limit, count)
-		return ctx.OK(&response)
-	})
+	return c.redirect(ctx, ctx.ResponseData.Header(), ctx.Request, ctx.SpaceID, "")
 }
 
 func (c *CollaboratorsController) redirect(ctx redirectContext, header http.Header, request *http.Request, spaceID uuid.UUID, identityID string) error {

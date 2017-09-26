@@ -4,19 +4,17 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strings"
-	"time"
 
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/auth"
+	"github.com/fabric8-services/fabric8-wit/auth/authservice"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/token"
-	"github.com/fabric8-services/fabric8-wit/workitem"
 
-	"github.com/fabric8-services/fabric8-wit/auth"
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 	"github.com/satori/go.uuid"
@@ -52,8 +50,8 @@ func NewUsersController(service *goa.Service, db application.DB, config UsersCon
 
 // Show runs the show action.
 func (c *UsersController) Show(ctx *app.ShowUsersContext) error {
-	// TODO redirect
-	return ctx.OK(ConvertToAppUser(ctx.Request, user, identity))
+	ctx.ResponseData.Header().Set("Location", fmt.Sprintf("%s%s", c.config.GetAuthServiceURL(), authservice.ShowUsersPath(ctx.ID)))
+	return ctx.TemporaryRedirect()
 }
 
 // CreateUserAsServiceAccount updates a user when requested using a service account token
@@ -160,7 +158,7 @@ func (c *UsersController) createUserInDB(ctx *app.CreateUserAsServiceAccountUser
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
-		return ctx.OK(ConvertToAppUser(ctx.Request, user, identity))
+		return ctx.OK([]byte{})
 	})
 
 	return returnResponse
@@ -283,7 +281,7 @@ func (c *UsersController) updateUserInDB(id *uuid.UUID, ctx *app.UpdateUserAsSer
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		return ctx.OK(ConvertToAppUser(ctx.Request, user, identity))
+		return ctx.OK([]byte{})
 	})
 
 	return returnResponse
@@ -291,93 +289,14 @@ func (c *UsersController) updateUserInDB(id *uuid.UUID, ctx *app.UpdateUserAsSer
 
 // Update updates the authorized user based on the provided Token
 func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
-	// TODO redirect
-	return ctx.OK(ConvertToAppUser(ctx.Request, user, identity))
+	ctx.ResponseData.Header().Set("Location", fmt.Sprintf("%s%s", c.config.GetAuthServiceURL(), authservice.UpdateUsersPath()))
+	return ctx.TemporaryRedirect()
 }
 
 // List runs the list action.
 func (c *UsersController) List(ctx *app.ListUsersContext) error {
-	// TODO redirect
-	return ctx.OK(ConvertToAppUser(ctx.Request, user, identity))
-}
-
-// ConvertToAppUser converts a complete Identity object into REST representation
-func ConvertToAppUser(request *http.Request, user *account.User, identity *account.Identity) *app.User {
-	userID := user.ID.String()
-	identityID := identity.ID.String()
-	fullName := user.FullName
-	userName := identity.Username
-	registrationCompleted := identity.RegistrationCompleted
-	providerType := identity.ProviderType
-	var imageURL string
-	var bio string
-	var userURL string
-	var email string
-	var createdAt time.Time
-	var updatedAt time.Time
-	var company string
-	var contextInformation account.ContextInformation
-
-	if user != nil {
-		fullName = user.FullName
-		imageURL = user.ImageURL
-		bio = user.Bio
-		userURL = user.URL
-		email = user.Email
-		company = user.Company
-		contextInformation = user.ContextInformation
-		// CreatedAt and UpdatedAt fields in the resulting app.Identity are based on the 'user' entity
-		createdAt = user.CreatedAt
-		updatedAt = user.UpdatedAt
-	}
-
-	// The following will be used for ContextInformation.
-	// The simplest way to represent is to have all fields
-	// as a SimpleType. During conversion from 'model' to 'app',
-	// the value would be returned 'as is'.
-
-	simpleFieldDefinition := workitem.FieldDefinition{
-		Type: workitem.SimpleType{Kind: workitem.KindString},
-	}
-
-	converted := app.User{
-		Data: &app.UserData{
-			ID:   &identityID,
-			Type: "identities",
-			Attributes: &app.UserDataAttributes{
-				CreatedAt:             &createdAt,
-				UpdatedAt:             &updatedAt,
-				Username:              &userName,
-				FullName:              &fullName,
-				ImageURL:              &imageURL,
-				Bio:                   &bio,
-				URL:                   &userURL,
-				UserID:                &userID,
-				IdentityID:            &identityID,
-				ProviderType:          &providerType,
-				Email:                 &email,
-				Company:               &company,
-				ContextInformation:    workitem.Fields{},
-				RegistrationCompleted: &registrationCompleted,
-			},
-			Links: createUserLinks(request, &identity.ID),
-		},
-	}
-	for name, value := range contextInformation {
-		if value == nil {
-			// this can be used to unset a key in contextInformation
-			continue
-		}
-		convertedValue, err := simpleFieldDefinition.ConvertFromModel(name, value)
-		if err != nil {
-			log.Error(nil, map[string]interface{}{
-				"err": err,
-			}, "Unable to convert user context field %s ", name)
-			converted.Data.Attributes.ContextInformation[name] = nil
-		}
-		converted.Data.Attributes.ContextInformation[name] = convertedValue
-	}
-	return &converted
+	ctx.ResponseData.Header().Set("Location", fmt.Sprintf("%s%s", c.config.GetAuthServiceURL(), authservice.ListUsersPath()))
+	return ctx.TemporaryRedirect()
 }
 
 // ConvertUsersSimple converts a array of simple Identity IDs into a Generic Reletionship List
@@ -406,8 +325,4 @@ func createUserLinks(request *http.Request, identityID interface{}) *app.Generic
 		Self:    &relatedURL,
 		Related: &relatedURL,
 	}
-}
-
-func standardizeSpaces(s string) string {
-	return strings.Join(strings.Fields(s), " ")
 }
