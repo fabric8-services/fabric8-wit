@@ -3,12 +3,10 @@ package application
 import (
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/area"
-	"github.com/fabric8-services/fabric8-wit/auth"
 	"github.com/fabric8-services/fabric8-wit/codebase"
-	"github.com/fabric8-services/fabric8-wit/label"
-
 	"github.com/fabric8-services/fabric8-wit/comment"
 	"github.com/fabric8-services/fabric8-wit/iteration"
+	"github.com/fabric8-services/fabric8-wit/label"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
@@ -30,7 +28,6 @@ type Application interface {
 	Iterations() iteration.Repository
 	Users() account.UserRepository
 	Areas() area.Repository
-	OauthStates() auth.OauthStateReferenceRepository
 	Codebases() codebase.Repository
 	Labels() label.Repository
 }
