@@ -10,6 +10,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/comment"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/label"
+	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
@@ -483,6 +484,29 @@ func makeLabels(fxt *TestFixture) error {
 		err := labelRrepo.Create(fxt.ctx, fxt.Labels[i])
 		if err != nil {
 			return errs.Wrapf(err, "failed to create label: %+v", fxt.Labels[i])
+		}
+	}
+	return nil
+}
+
+func makeTrackers(fxt *TestFixture) error {
+	if fxt.info[kindTrackers] == nil {
+		return nil
+	}
+	fxt.Trackers = make([]*tracker.Tracker, fxt.info[kindTrackers].numInstances)
+	trackerRepo := remoteworkitem.NewTrackerRepository(fxt.db)
+
+	for i := range fxt.Trackers {
+		fxt.Trackers[i] = &remoteworkitem.Tracker{
+			URL:  testsupport.CreateRandomValidTestName("tracker "),
+			Type: remoteworkitem.ProviderJira,
+		}
+		if err := fxt.runCustomizeEntityFuncs(i, kindTrackers); err != nil {
+			return errs.WithStack(err)
+		}
+		err := remoteworkitem.trackerRepo.Create(fxt.ctx, fxt.Trackers[i])
+		if err != nil {
+			return errs.Wrapf(err, "failed to create tracker: %+v", fxt.Trackers[i])
 		}
 	}
 	return nil

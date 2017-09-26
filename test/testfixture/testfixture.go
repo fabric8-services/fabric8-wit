@@ -10,6 +10,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/comment"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/label"
+	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem"
@@ -44,6 +45,7 @@ type TestFixture struct {
 	WorkItemLinkCategories []*link.WorkItemLinkCategory // Work item link categories (if any) that were created for this test fixture.
 	WorkItemLinks          []*link.WorkItemLink         // Work item links (if any) that were created for this test fixture.
 	Labels                 []*label.Label
+	Tracker                []*remoteworkitem.Tracker // Remote work item tracker (if any) that were created for this test fixture.
 }
 
 // NewFixture will create a test fixture by executing the recipies from the
@@ -155,6 +157,7 @@ const (
 	kindWorkItemLinkCategories kind = "work_item_link_categorie"
 	kindWorkItemLinks          kind = "work_item_link"
 	kindLabels                 kind = "labels"
+	kindTrackers               kind = "trackers"
 )
 
 type createInfo struct {
@@ -218,6 +221,7 @@ func newFixture(db *gorm.DB, isolatedCreation bool, recipeFuncs ...RecipeFunctio
 		makeWorkItems,
 		makeComments,
 		makeWorkItemLinks,
+		makeTrackers,
 	}
 	for _, fn := range makeFuncs {
 		if err := fn(&fxt); err != nil {

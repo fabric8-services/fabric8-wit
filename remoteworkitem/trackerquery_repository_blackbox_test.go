@@ -7,6 +7,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/space"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -30,10 +31,7 @@ func (s *trackerQueryRepoBlackBoxTest) SetupTest() {
 
 func (s *trackerQueryRepoBlackBoxTest) TestFailDeleteZeroID() {
 	// Create at least 1 item to avoid RowsEffectedCheck
-	tr, err := s.trRepo.Create(
-		s.Ctx,
-		"http://api.github.com",
-		remoteworkitem.ProviderGithub)
+	testFxt := tf.NewTestFixture(s.T(), s.DB, tf.Trackers(1))
 	if err != nil {
 		s.T().Error("Could not create tracker", err)
 	}
@@ -42,7 +40,7 @@ func (s *trackerQueryRepoBlackBoxTest) TestFailDeleteZeroID() {
 		s.Ctx,
 		"project = ARQ AND text ~ 'arquillian'",
 		"15 * * * * *",
-		tr.ID, space.SystemSpace)
+		testFxt.Tracker[0].ID, space.SystemSpace)
 	if err != nil {
 		s.T().Error("Could not create tracker query", err)
 	}
