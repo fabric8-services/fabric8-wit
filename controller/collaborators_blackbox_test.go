@@ -38,7 +38,7 @@ func (rest *TestCollaboratorsREST) TestListRedirect() {
 	t := rest.T()
 	resource.Require(t, resource.UnitTest)
 	svc, ctrl := rest.UnSecuredController()
-	test.ListCollaboratorsTemporaryRedirect(t, svc.Context, svc, ctrl, uuid.NewV4(), nil, nil, nil, nil)
+	test.ListCollaboratorsTemporaryRedirect(t, svc.Context, svc, ctrl, uuid.NewV4())
 }
 
 type dummyCollaboratorsConfiguration struct {

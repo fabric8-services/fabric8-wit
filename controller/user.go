@@ -1,14 +1,13 @@
 package controller
 
 import (
+	"context"
 	"fmt"
 
-	"context"
-
 	"github.com/fabric8-services/fabric8-wit/app"
-	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/auth"
 	"github.com/fabric8-services/fabric8-wit/auth/authservice"
+
 	"github.com/goadesign/goa"
 )
 
@@ -26,7 +25,7 @@ type UserControllerConfiguration interface {
 }
 
 // NewUserController creates a user controller.
-func NewUserController(service *goa.Service, db application.DB, config UserControllerConfiguration) *UserController {
+func NewUserController(service *goa.Service, config UserControllerConfiguration) *UserController {
 	return &UserController{
 		Controller: service.NewController("UserController"),
 		config:     config,
