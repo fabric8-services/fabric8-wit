@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 
+	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/auth"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 )
 
 type searchConfiguration interface {
@@ -54,8 +56,8 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 
 	if ctx.FilterExpression != nil {
 		return application.Transactional(c.db, func(appl application.Application) error {
-			result, c, err := appl.SearchItems().Filter(ctx.Context, *ctx.FilterExpression, ctx.FilterParentexists, &offset, &limit)
-			count := int(c)
+			result, cnt, err := appl.SearchItems().Filter(ctx.Context, *ctx.FilterExpression, ctx.FilterParentexists, &offset, &limit)
+			count := int(cnt)
 			if err != nil {
 				cause := errs.Cause(err)
 				switch cause.(type) {
@@ -73,13 +75,14 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 				}
 			}
 
-			hasChildren := workItemIncludeHasChildren(appl, ctx)
+			hasChildren := workItemIncludeHasChildren(ctx, appl)
+			includeParent := includeParentWorkItem(ctx, appl)
 			response := app.SearchWorkItemList{
 				Links: &app.PagingLinks{},
 				Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
-				Data:  ConvertWorkItems(ctx.Request, result, hasChildren),
+				Data:  ConvertWorkItems(ctx.Request, result, hasChildren, includeParent),
 			}
-
+			c.enrichWorkItemList(ctx, &response) // append parentWI in response
 			setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(result), offset, limit, count, "filter[expression]="+*ctx.FilterExpression)
 			return ctx.OK(&response)
 		})
@@ -184,4 +187,32 @@ func (c *SearchController) Spaces(ctx *app.SpacesSearchContext) error {
 // Users runs the user search action.
 func (c *SearchController) Users(ctx *app.UsersSearchContext) error {
 	return redirectWithParams(ctx, c.configuration, ctx.ResponseData.Header(), ctx.Params, authservice.UsersSearchPath())
+}
+
+// Iterate over the WI list and read parent IDs
+// Fetch and load Parent WI in the included list
+func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, res *app.SearchWorkItemList) {
+	fetchInBatch := []uuid.UUID{}
+	for _, wi := range res.Data {
+		if wi.Relationships != nil && wi.Relationships.Parent != nil && wi.Relationships.Parent.Data != nil {
+			parentID := wi.Relationships.Parent.Data.ID
+			fetchInBatch = append(fetchInBatch, parentID)
+		}
+	}
+	wis := []*workitem.WorkItem{}
+	err := application.Transactional(c.db, func(appl application.Application) error {
+		var err error
+		wis, err = appl.WorkItems().LoadBatchByID(ctx, fetchInBatch)
+		return err
+	})
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"wis": wis,
+			"err": err,
+		}, "unable to load parent work items in batch: %s", fetchInBatch)
+	}
+	for _, ele := range wis {
+		convertedWI := ConvertWorkItem(ctx.Request, *ele)
+		res.Included = append(res.Included, *convertedWI)
+	}
 }

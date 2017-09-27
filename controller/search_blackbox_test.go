@@ -16,6 +16,8 @@ import (
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/migration"
+	"github.com/fabric8-services/fabric8-wit/models"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/rest"
@@ -24,6 +26,10 @@ import (
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
+	"github.com/jinzhu/gorm"
+
+	"github.com/fabric8-services/fabric8-wit/workitem/link"
+
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/goatest"
 	uuid "github.com/satori/go.uuid"
@@ -50,9 +56,12 @@ type searchBlackBoxTest struct {
 
 func (s *searchBlackBoxTest) SetupTest() {
 	s.DBTestSuite.SetupTest()
+	err := models.Transactional(s.DB, func(tx *gorm.DB) error {
+		return migration.BootstrapWorkItemLinking(s.Ctx, link.NewWorkItemLinkCategoryRepository(tx), space.NewRepository(tx), link.NewWorkItemLinkTypeRepository(tx))
+	})
+	require.Nil(s.T(), err)
 	s.testDir = filepath.Join("test-files", "search")
 	s.db = gormapplication.NewGormDB(s.DB)
-	var err error
 	// create a test identity
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "SearchBlackBoxTest user", "test provider")
 	require.Nil(s.T(), err)
@@ -847,4 +856,77 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 		compareWithGolden(t, filepath.Join(s.testDir, "show", "assignee_null_negate.error.golden.json"), jerrs)
 		compareWithGolden(t, filepath.Join(s.testDir, "show", "assignee_null_negate.headers.golden.json"), res.Header())
 	})
+}
+
+// TestIncludedParents verifies the Included list of parents
+func (s *searchBlackBoxTest) TestIncludedParents() {
+	// keep in mind that TestFixture is going to create 6 items becasue we asked for 3 links
+	// we will ignore extra 2 items and we will use only 4
+	fixtures := tf.NewTestFixture(s.T(), s.DB,
+		tf.WorkItemLinkTypes(1, func(fxt *tf.TestFixture, idx int) error {
+			wilt := fxt.WorkItemLinkTypes[idx]
+			wilt.ForwardName = "parent of"
+			wilt.Topology = link.TopologyNetwork
+			return nil
+		}),
+		tf.WorkItemLinks(3, func(fxt *tf.TestFixture, idx int) error {
+			switch idx {
+			case 0:
+				fxt.WorkItemLinks[idx].SourceID = fxt.WorkItems[0].ID
+				fxt.WorkItemLinks[idx].TargetID = fxt.WorkItems[1].ID
+			case 1:
+				fxt.WorkItemLinks[idx].SourceID = fxt.WorkItems[1].ID
+				fxt.WorkItemLinks[idx].TargetID = fxt.WorkItems[2].ID
+			case 2:
+				fxt.WorkItemLinks[idx].SourceID = fxt.WorkItems[0].ID
+				fxt.WorkItemLinks[idx].TargetID = fxt.WorkItems[3].ID
+			}
+			return nil
+		}),
+	)
+
+	spaceIDStr := fixtures.Spaces[0].ID.String()
+	parentWI0 := fixtures.WorkItems[0]
+	parentWI1 := fixtures.WorkItems[1]
+	childWI := fixtures.WorkItems[2]
+	childWI2 := fixtures.WorkItems[3]
+
+	filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, spaceIDStr)
+	_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+	require.NotEmpty(s.T(), result.Data)
+	require.Len(s.T(), result.Data, 6)
+	require.Len(s.T(), result.Included, 2)
+
+	// verify included objects
+	includedMustHave := map[uuid.UUID]struct{}{
+		parentWI0.ID: {},
+		parentWI1.ID: {},
+	}
+	for _, ele := range result.Included {
+		appWI, ok := ele.(app.WorkItem)
+		if ok && appWI.Type == APIStringTypeWorkItem {
+			delete(includedMustHave, *appWI.ID)
+		}
+	}
+	assert.Empty(s.T(), includedMustHave)
+	var successCnt int
+	for _, wi := range result.Data {
+		if *wi.ID == parentWI0.ID {
+			require.Nil(s.T(), wi.Relationships.Parent.Data)
+			successCnt++
+		}
+		if *wi.ID == parentWI1.ID {
+			require.Equal(s.T(), parentWI0.ID, wi.Relationships.Parent.Data.ID)
+			successCnt++
+		}
+		if *wi.ID == childWI.ID {
+			require.Equal(s.T(), parentWI1.ID, wi.Relationships.Parent.Data.ID)
+			successCnt++
+		}
+		if *wi.ID == childWI2.ID {
+			require.Equal(s.T(), parentWI0.ID, wi.Relationships.Parent.Data.ID)
+			successCnt++
+		}
+	}
+	assert.Equal(s.T(), successCnt, 4)
 }

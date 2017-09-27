@@ -763,7 +763,7 @@ const (
 	defaultLogLevel = "info"
 
 	// Auth service URL to be used in dev mode. Can be overridden by setting up auth.url
-	devModeAuthURL = "https://auth.prod-preview.openshift.io"
+	devModeAuthURL = "http://localhost:8089"
 
 	defaultKeycloakClientID = "fabric8-online-platform"
 	defaultKeycloakSecret   = "7a3d5a00-7f80-40cf-8781-b5b6f2dfd1bd"
