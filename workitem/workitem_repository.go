@@ -38,6 +38,7 @@ type WorkItemRepository interface {
 	repository.Exister
 	Load(ctx context.Context, spaceID uuid.UUID, wiNumber int) (*WorkItem, error)
 	LoadByID(ctx context.Context, id uuid.UUID) (*WorkItem, error)
+	LoadBatchByID(ctx context.Context, ids []uuid.UUID) ([]*WorkItem, error)
 	LookupIDByNamedSpaceAndNumber(ctx context.Context, ownerName, spaceName string, wiNumber int) (*uuid.UUID, *uuid.UUID, error)
 	Save(ctx context.Context, spaceID uuid.UUID, wi WorkItem, modifierID uuid.UUID) (*WorkItem, error)
 	Reorder(ctx context.Context, spaceID uuid.UUID, direction DirectionType, targetID *uuid.UUID, wi WorkItem, modifierID uuid.UUID) (*WorkItem, error)
@@ -87,6 +88,20 @@ func (r *GormWorkItemRepository) LoadFromDB(ctx context.Context, id uuid.UUID) (
 	return &res, nil
 }
 
+// LoadBatchFromDB returns the work items using IN query expression.
+func (r *GormWorkItemRepository) LoadBatchFromDB(ctx context.Context, ids []uuid.UUID) ([]WorkItemStorage, error) {
+	log.Info(nil, map[string]interface{}{
+		"wi_ids": ids,
+	}, "Loading work items")
+
+	res := []WorkItemStorage{}
+	tx := r.db.Model(WorkItemStorage{}).Where("id IN (?)", ids).Find(&res)
+	if tx.Error != nil {
+		return nil, errors.NewInternalError(ctx, tx.Error)
+	}
+	return res, nil
+}
+
 // LoadByID returns the work item for the given id
 // returns NotFoundError, ConversionError or InternalError
 func (r *GormWorkItemRepository) LoadByID(ctx context.Context, id uuid.UUID) (*WorkItem, error) {
@@ -100,6 +115,35 @@ func (r *GormWorkItemRepository) LoadByID(ctx context.Context, id uuid.UUID) (*W
 		return nil, errors.NewInternalError(ctx, err)
 	}
 	return ConvertWorkItemStorageToModel(wiType, res)
+}
+
+// LoadBatchByID returns work items for the given ids
+func (r *GormWorkItemRepository) LoadBatchByID(ctx context.Context, ids []uuid.UUID) ([]*WorkItem, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitem", "loadBatchById"}, time.Now())
+	res, err := r.LoadBatchFromDB(ctx, ids)
+	if err != nil {
+		return nil, errs.WithStack(err)
+	}
+	workitems := []*WorkItem{}
+	for _, ele := range res {
+		wiType, err := r.witr.LoadTypeFromDB(ctx, ele.Type)
+		if err != nil {
+			log.Error(nil, map[string]interface{}{
+				"wit_id": ele.Type,
+				"err":    err,
+			}, "error in loading type from DB")
+			return nil, errors.NewInternalError(ctx, err)
+		}
+		convertedWI, err := ConvertWorkItemStorageToModel(wiType, &ele)
+		if err != nil {
+			log.Error(nil, map[string]interface{}{
+				"wi_id": ele.ID,
+				"err":   err,
+			}, "error in converting WI")
+		}
+		workitems = append(workitems, convertedWI)
+	}
+	return workitems, nil
 }
 
 // Load returns the work item for the given spaceID and item id

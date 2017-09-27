@@ -252,6 +252,17 @@ func (s *workItemRepoBlackBoxTest) TestLookupIDByNamedSpaceAndNumber() {
 	})
 }
 
+// TestLoadBatchByID verifies that repo.LoadBatchByID returns distinct items
+func (s *workItemRepoBlackBoxTest) TestLoadBatchByID() {
+	fixtures := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(5))
+	// include same ID multiple times in the list
+	// Added only 2 distinct IDs in following list
+	wis := []uuid.UUID{fixtures.WorkItems[1].ID, fixtures.WorkItems[1].ID, fixtures.WorkItems[2].ID, fixtures.WorkItems[2].ID}
+	res, err := s.repo.LoadBatchByID(s.Ctx, wis) // pass duplicate IDs to fetch
+	require.Nil(s.T(), err)
+	assert.Len(s.T(), res, 2) // Only 2 distinct IDs should be returned
+}
+
 func (s *workItemRepoBlackBoxTest) TestLookupIDByNamedSpaceAndNumberStaleSpace() {
 	testFxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(20, func(testf *tf.TestFixture, idx int) error {
 		testf.WorkItems[idx].Fields[workitem.SystemState] = workitem.SystemStateNew
