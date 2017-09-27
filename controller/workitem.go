@@ -124,7 +124,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error updating work item"))
 		}
-		hasChildren := workItemIncludeHasChildren(appl, ctx)
+		hasChildren := workItemIncludeHasChildren(ctx, appl)
 		wi2 := ConvertWorkItem(ctx.Request, *wi, hasChildren)
 		resp := &app.WorkItemSingle{
 			Data: wi2,
@@ -151,7 +151,7 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 		}
 		return ctx.ConditionalRequest(*wi, c.config.GetCacheControlWorkItem, func() error {
 			comments := workItemIncludeCommentsAndTotal(ctx, c.db, ctx.WiID)
-			hasChildren := workItemIncludeHasChildren(appl, ctx)
+			hasChildren := workItemIncludeHasChildren(ctx, appl)
 			wi2 := ConvertWorkItem(ctx.Request, *wi, comments, hasChildren)
 			resp := &app.WorkItemSingle{
 				Data: wi2,
@@ -573,7 +573,7 @@ func ConvertWorkItem(request *http.Request, wi workitem.WorkItem, additional ...
 }
 
 // workItemIncludeHasChildren adds meta information about existing children
-func workItemIncludeHasChildren(appl application.Application, ctx context.Context) WorkItemConvertFunc {
+func workItemIncludeHasChildren(ctx context.Context, appl application.Application) WorkItemConvertFunc {
 	// TODO: Wrap ctx in a Timeout context?
 	return func(request *http.Request, wi *workitem.WorkItem, wi2 *app.WorkItem) {
 		var hasChildren bool
@@ -601,6 +601,34 @@ func workItemIncludeHasChildren(appl application.Application, ctx context.Contex
 	}
 }
 
+// includeParentWorkItem adds the parent of given WI to relationships & included object
+func includeParentWorkItem(ctx context.Context, appl application.Application) WorkItemConvertFunc {
+	return func(request *http.Request, wi *workitem.WorkItem, wi2 *app.WorkItem) {
+		var parentID *uuid.UUID
+		var err error
+		repo := appl.WorkItemLinks()
+		if repo != nil {
+			parentID, err = repo.GetParentID(ctx, wi.ID)
+			if err != nil {
+				log.Info(ctx, map[string]interface{}{
+					"wi_id":  wi.ID,
+					"detail": err,
+				}, "work item has no parent: %s", wi.ID)
+			}
+		}
+		if wi2.Relationships.Parent == nil {
+			wi2.Relationships.Parent = &app.RelationKindUUID{}
+		}
+		if parentID != nil {
+			if wi2.Relationships.Parent.Data == nil {
+				wi2.Relationships.Parent.Data = &app.DataKindUUID{}
+			}
+			wi2.Relationships.Parent.Data.ID = *parentID
+			wi2.Relationships.Parent.Data.Type = APIStringTypeWorkItem
+		}
+	}
+}
+
 // ListChildren runs the list action.
 func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) error {
 	// WorkItemChildrenController_List: start_implement
@@ -614,7 +642,7 @@ func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) 
 		}
 		count := int(tc)
 		return ctx.ConditionalEntities(result, c.config.GetCacheControlWorkItems, func() error {
-			hasChildren := workItemIncludeHasChildren(appl, ctx)
+			hasChildren := workItemIncludeHasChildren(ctx, appl)
 			response := app.WorkItemList{
 				Links: &app.PagingLinks{},
 				Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
