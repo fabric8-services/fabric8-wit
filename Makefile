@@ -269,7 +269,7 @@ regenerate: clean-generated generate
 
 .PHONY: dev
 dev: prebuild-check deps generate $(FRESH_BIN)
-	docker-compose up -d auth
+	docker-compose up -d db auth
 	F8_DEVELOPER_MODE_ENABLED=true $(FRESH_BIN)
 
 include ./.make/test.mk
