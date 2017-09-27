@@ -5,12 +5,12 @@ import (
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/area"
 	"github.com/fabric8-services/fabric8-wit/codebase"
 	"github.com/fabric8-services/fabric8-wit/comment"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/label"
-	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem"
@@ -45,7 +45,7 @@ type TestFixture struct {
 	WorkItemLinkCategories []*link.WorkItemLinkCategory // Work item link categories (if any) that were created for this test fixture.
 	WorkItemLinks          []*link.WorkItemLink         // Work item links (if any) that were created for this test fixture.
 	Labels                 []*label.Label
-	Tracker                []*remoteworkitem.Tracker // Remote work item tracker (if any) that were created for this test fixture.
+	Trackers               []*app.Tracker // Remote work item tracker (if any) that were created for this test fixture.
 }
 
 // NewFixture will create a test fixture by executing the recipies from the
@@ -209,6 +209,7 @@ func newFixture(db *gorm.DB, isolatedCreation bool, recipeFuncs ...RecipeFunctio
 	makeFuncs := []func(fxt *TestFixture) error{
 		// make the objects that DON'T have any dependency
 		makeIdentities,
+		makeTrackers,
 		makeWorkItemLinkCategories,
 		// actually make the objects that DO have dependencies
 		makeSpaces,
@@ -221,7 +222,6 @@ func newFixture(db *gorm.DB, isolatedCreation bool, recipeFuncs ...RecipeFunctio
 		makeWorkItems,
 		makeComments,
 		makeWorkItemLinks,
-		makeTrackers,
 	}
 	for _, fn := range makeFuncs {
 		if err := fn(&fxt); err != nil {

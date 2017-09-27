@@ -449,10 +449,6 @@ type CustomizeTrackerFunc CustomizeEntityFunc
 
 // Trackers tells the test fixture to create at least n tracker objects. See
 // also the Identities() function for more general information on n and fns.
-//
-// When called in NewFixture() this function will call also call
-//     Spaces(1)
-// but with NewFixtureIsolated(), no other objects will be created.
 func Trackers(n int, fns ...CustomizeTrackerFunc) RecipeFunction {
 	return RecipeFunction(func(fxt *TestFixture) error {
 		fxt.checkFuncs = append(fxt.checkFuncs, func() error {
@@ -470,6 +466,6 @@ func Trackers(n int, fns ...CustomizeTrackerFunc) RecipeFunction {
 		if err := fxt.setupInfo(n, kindTrackers, customFuncs...); err != nil {
 			return err
 		}
-		return fxt.deps(Spaces(1))
+		return fxt.deps()
 	})
 }
