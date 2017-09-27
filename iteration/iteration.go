@@ -77,12 +77,6 @@ func (m Iteration) TableName() string {
 	return "iterations"
 }
 
-// MakeChildOf does all the path magic to make the current iteration a child of
-// the given parent iteration.
-func (m *Iteration) MakeChildOf(parent Iteration) {
-	m.Path = append(parent.Path, parent.ID)
-}
-
 // Repository describes interactions with Iterations
 type Repository interface {
 	repository.Exister
