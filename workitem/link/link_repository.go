@@ -40,6 +40,7 @@ type WorkItemLinkRepository interface {
 	Save(ctx context.Context, linkCat WorkItemLink, modifierID uuid.UUID) (*WorkItemLink, error)
 	ListWorkItemChildren(ctx context.Context, parentID uuid.UUID, start *int, limit *int) ([]workitem.WorkItem, uint64, error)
 	WorkItemHasChildren(ctx context.Context, parentID uuid.UUID) (bool, error)
+	GetParentID(ctx context.Context, ID uuid.UUID) (*uuid.UUID, error) // GetParentID returns parent ID of the given work item if any
 }
 
 // NewWorkItemLinkRepository creates a work item link repository based on gorm
@@ -193,9 +194,9 @@ func (r *GormWorkItemLinkRepository) Load(ctx context.Context, ID uuid.UUID) (*W
 }
 
 // CheckExists returns nil if the given ID exists otherwise returns an error
-func (m *GormWorkItemLinkRepository) CheckExists(ctx context.Context, id string) error {
+func (r *GormWorkItemLinkRepository) CheckExists(ctx context.Context, id string) error {
 	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "exists"}, time.Now())
-	return repository.CheckExists(ctx, m.db, WorkItemLink{}.TableName(), id)
+	return repository.CheckExists(ctx, r.db, WorkItemLink{}.TableName(), id)
 }
 
 // ListByWorkItem returns the work item links that have wiID as source or target.
@@ -457,4 +458,27 @@ func (r *GormWorkItemLinkRepository) WorkItemHasChildren(ctx context.Context, pa
 		return false, errs.Wrapf(err, "failed to check if work item %s has children: %s", parentID.String(), query)
 	}
 	return hasChildren, nil
+}
+
+// GetParentID returns parent ID of the given work item if any
+func (r *GormWorkItemLinkRepository) GetParentID(ctx context.Context, ID uuid.UUID) (*uuid.UUID, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "get", "parent"}, time.Now())
+	query := fmt.Sprintf(`
+			SELECT id FROM %[1]s WHERE id in (
+				SELECT source_id FROM %[2]s
+				WHERE target_id = $1 AND deleted_at IS NULL AND link_type_id IN (
+					SELECT id FROM %[3]s WHERE forward_name = 'parent of' and topology = '%[4]s'
+				)
+			)`,
+		workitem.WorkItemStorage{}.TableName(),
+		WorkItemLink{}.TableName(),
+		WorkItemLinkType{}.TableName(),
+		TopologyNetwork)
+	var parentID uuid.UUID
+	db := r.db.CommonDB()
+	err := db.QueryRow(query, ID.String()).Scan(&parentID)
+	if err != nil {
+		return nil, errs.Wrapf(err, "parent not found for work item: %s", ID.String(), query)
+	}
+	return &parentID, nil
 }
