@@ -335,8 +335,7 @@ func TestGenerateExpression(t *testing.T) {
 				c.Field("SpaceID"),
 				c.Literal(spaceName),
 			),
-
-			c.IsNull("system.assignees"),
+			c.Literal("Fields->'system.assignees'='[]'"),
 		)
 		expectEqualExpr(t, expectedExpr, actualExpr)
 	})
@@ -350,7 +349,7 @@ func TestGenerateExpression(t *testing.T) {
 		// when
 		actualExpr, _ := q.generateExpression()
 		// then
-		expectedExpr := c.IsNull("system.assignees")
+		expectedExpr := c.Literal("Fields->'system.assignees'='[]'")
 
 		expectEqualExpr(t, expectedExpr, actualExpr)
 	})
@@ -367,8 +366,8 @@ func TestGenerateExpression(t *testing.T) {
 		require.NotNil(t, err)
 		require.Nil(t, actualExpr)
 		assert.Contains(t, err.Error(), "negate for null not supported")
-	})
 
+	})
 	t.Run("NULL value with Negate", func(t *testing.T) {
 		t.Parallel()
 		// given
@@ -386,6 +385,7 @@ func TestGenerateExpression(t *testing.T) {
 		require.NotNil(t, err)
 		require.Nil(t, actualExpr)
 		assert.Contains(t, err.Error(), "negate for null not supported")
+
 	})
 
 }

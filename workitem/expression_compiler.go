@@ -166,6 +166,11 @@ func isInJSONContext(exp criteria.Expression) bool {
 // you can write "a->'foo' < '5'" and it will return true for the json object { "a": 40 }.
 func (c *expressionCompiler) Literal(v *criteria.LiteralExpression) interface{} {
 	json := isInJSONContext(v)
+	if _, ok := v.Value.(string); ok {
+		if strings.Contains(v.Value.(string), "Fields->") {
+			return v.Value.(string)
+		}
+	}
 	if json {
 		stringVal, err := c.convertToString(v.Value)
 		if err == nil {
