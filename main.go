@@ -193,11 +193,11 @@ func main() {
 	service.Use(log.LogRequest(config.IsPostgresDeveloperModeEnabled()))
 	app.UseJWTMiddleware(service, goajwt.New(tokenManager.PublicKeys(), nil, app.NewJWTSecurity()))
 
-	spaceAuthzService := authz.NewAuthzService(config, appDB)
+	spaceAuthzService := authz.NewAuthzService(config)
 	service.Use(authz.InjectAuthzService(spaceAuthzService))
 
 	loginService := login.NewKeycloakOAuthProvider(identityRepository, userRepository, tokenManager, appDB)
-	loginCtrl := controller.NewLoginController(service, loginService, tokenManager, config, identityRepository)
+	loginCtrl := controller.NewLoginController(service, loginService, config, identityRepository)
 	app.MountLoginController(service, loginCtrl)
 
 	logoutCtrl := controller.NewLogoutController(service, config)
@@ -277,7 +277,7 @@ func main() {
 	app.MountSpaceController(service, spaceCtrl)
 
 	// Mount "user" controller
-	userCtrl := controller.NewUserController(service, appDB, tokenManager, config)
+	userCtrl := controller.NewUserController(service, config)
 	if config.GetTenantServiceURL() != "" {
 		log.Logger().Infof("Enabling Init Tenant service %v", config.GetTenantServiceURL())
 		userCtrl.InitTenant = account.NewInitTenant(config)
@@ -295,8 +295,7 @@ func main() {
 	app.MountSearchController(service, searchCtrl)
 
 	// Mount "users" controller
-	keycloakProfileService := login.NewKeycloakUserProfileClient()
-	usersCtrl := controller.NewUsersController(service, appDB, config, keycloakProfileService)
+	usersCtrl := controller.NewUsersController(service, appDB, config)
 	app.MountUsersController(service, usersCtrl)
 
 	// Mount "labels" controller
@@ -347,7 +346,7 @@ func main() {
 	app.MountSpaceCodebasesController(service, spaceCodebaseCtrl)
 
 	// Mount "collaborators" controller
-	collaboratorsCtrl := controller.NewCollaboratorsController(service, appDB, config, auth.NewKeycloakPolicyManager(config))
+	collaboratorsCtrl := controller.NewCollaboratorsController(service, appDB, config)
 	app.MountCollaboratorsController(service, collaboratorsCtrl)
 
 	// Mount "space template" controller
