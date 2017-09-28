@@ -154,10 +154,10 @@ const (
 	kindComments               kind = "comment"
 	kindWorkItemTypes          kind = "work_item_type"
 	kindWorkItemLinkTypes      kind = "work_item_link_type"
-	kindWorkItemLinkCategories kind = "work_item_link_categorie"
+	kindWorkItemLinkCategories kind = "work_item_link_category"
 	kindWorkItemLinks          kind = "work_item_link"
-	kindLabels                 kind = "labels"
-	kindTrackers               kind = "trackers"
+	kindLabels                 kind = "label"
+	kindTrackers               kind = "tracker"
 )
 
 type createInfo struct {
