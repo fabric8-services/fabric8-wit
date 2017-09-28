@@ -31,13 +31,13 @@ func (s *trackerQueryRepoBlackBoxTest) SetupTest() {
 
 func (s *trackerQueryRepoBlackBoxTest) TestFailDeleteZeroID() {
 	// Create at least 1 item to avoid RowsEffectedCheck
-	testFxt := tf.NewTestFixture(s.T(), s.DB, tf.Trackers(1), tf.Spaces(1))
-	trackerID := fmt.Sprintf("%s", testFxt.Trackers[0].ID)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Trackers(1), tf.Spaces(1))
+	trackerID := fmt.Sprintf("%s", fxt.Trackers[0].ID)
 	_, err := s.repo.Create(
 		s.Ctx,
 		"project = ARQ AND text ~ 'arquillian'",
 		"15 * * * * *",
-		trackerID, testFxt.Spaces[0].ID)
+		trackerID, fxt.Spaces[0].ID)
 	if err != nil {
 		s.T().Error("Could not create tracker query", err)
 	}
@@ -48,14 +48,14 @@ func (s *trackerQueryRepoBlackBoxTest) TestFailDeleteZeroID() {
 
 func (s *trackerQueryRepoBlackBoxTest) TestFailSaveZeroID() {
 	// Create at least 1 item to avoid RowsEffectedCheck
-	testFxt := tf.NewTestFixture(s.T(), s.DB, tf.Trackers(1), tf.Spaces(1))
-	trackerID := fmt.Sprintf("%s", testFxt.Trackers[0].ID)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Trackers(1), tf.Spaces(1))
+	trackerID := fmt.Sprintf("%s", fxt.Trackers[0].ID)
 
 	tq, err := s.repo.Create(
 		s.Ctx,
 		"project = ARQ AND text ~ 'arquillian'",
 		"15 * * * * *",
-		trackerID, testFxt.Spaces[0].ID)
+		trackerID, fxt.Spaces[0].ID)
 	if err != nil {
 		s.T().Error("Could not create tracker query", err)
 	}
@@ -67,14 +67,14 @@ func (s *trackerQueryRepoBlackBoxTest) TestFailSaveZeroID() {
 
 func (s *trackerQueryRepoBlackBoxTest) TestFaiLoadZeroID() {
 	// Create at least 1 item to avoid RowsEffectedCheck
-	testFxt := tf.NewTestFixture(s.T(), s.DB, tf.Trackers(1), tf.Spaces(1))
-	trackerID := fmt.Sprintf("%s", testFxt.Trackers[0].ID)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Trackers(1), tf.Spaces(1))
+	trackerID := fmt.Sprintf("%s", fxt.Trackers[0].ID)
 
 	_, err := s.repo.Create(
 		s.Ctx,
 		"project = ARQ AND text ~ 'arquillian'",
 		"15 * * * * *",
-		trackerID, testFxt.Spaces[0].ID)
+		trackerID, fxt.Spaces[0].ID)
 	if err != nil {
 		s.T().Error("Could not create tracker query", err)
 	}
