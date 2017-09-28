@@ -19,6 +19,12 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+// Following const are keys to be used in Meta Relationship for counters of Work Item
+const (
+	KeyTotalWorkItems  = "total"
+	KeyClosedWorkItems = "closed"
+)
+
 // IterationController implements the iteration resource.
 type IterationController struct {
 	*goa.Controller

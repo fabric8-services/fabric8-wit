@@ -53,6 +53,11 @@ func (m *Iteration) MakeChildOf(parent Iteration) {
 	m.Path = append(parent.Path, parent.ID)
 }
 
+// FullPath returns the Path by appending self ID to it.
+func (m *Iteration) FullPath() string {
+	return m.Path.String() + path.SepInService + m.ID.String()
+}
+
 // GetETagData returns the field values to use to generate the ETag
 func (m Iteration) GetETagData() []interface{} {
 	// using the 'ID' and 'UpdatedAt' (converted to number of seconds since epoch) fields

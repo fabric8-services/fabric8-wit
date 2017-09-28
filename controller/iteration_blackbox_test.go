@@ -75,36 +75,39 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 		fxt := tf.NewTestFixture(t, rest.DB,
 			tf.Identities(2),
 			tf.Areas(1),
-			tf.Iterations(2, func(fxt *tf.TestFixture, idx int) error {
+			tf.Iterations(2, tf.SetIterationNames([]string{"root iteration", "child iteration"}), func(fxt *tf.TestFixture, idx int) error {
 				if idx == 1 {
 					fxt.Iterations[idx].MakeChildOf(*fxt.Iterations[0])
 				}
 				return nil
 			}))
 		name := "Sprint #21"
+		ri := fxt.IterationByName("root iteration")
+		childItr := fxt.IterationByName("child iteration")
 		ci := getChildIterationPayload(&name)
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 		// when
-		_, created := test.CreateChildIterationCreated(t, svc.Context, svc, ctrl, fxt.Iterations[1].ID.String(), ci)
+		_, created := test.CreateChildIterationCreated(t, svc.Context, svc, ctrl, childItr.ID.String(), ci)
 		// then
 		require.NotNil(t, created)
 		assertChildIterationLinking(t, created.Data)
 		assert.Equal(t, *ci.Data.Attributes.Name, *created.Data.Attributes.Name)
-		expectedParentPath := fxt.Iterations[1].Path.String() + path.SepInService + fxt.Iterations[1].ID.String()
-		expectedResolvedParentPath := path.SepInService + fxt.Iterations[0].Name + path.SepInService + fxt.Iterations[1].Name
+		expectedParentPath := childItr.FullPath()
+		expectedResolvedParentPath := path.SepInService + ri.Name + path.SepInService + childItr.Name
 		assert.Equal(t, expectedParentPath, *created.Data.Attributes.ParentPath)
 		assert.Equal(t, expectedResolvedParentPath, *created.Data.Attributes.ResolvedParentPath)
 		require.NotNil(t, created.Data.Relationships.Workitems.Meta)
-		assert.Equal(t, 0, created.Data.Relationships.Workitems.Meta["total"])
-		assert.Equal(t, 0, created.Data.Relationships.Workitems.Meta["closed"])
+		assert.Equal(t, 0, created.Data.Relationships.Workitems.Meta[KeyTotalWorkItems])
+		assert.Equal(t, 0, created.Data.Relationships.Workitems.Meta[KeyClosedWorkItems])
 	})
 
 	rest.T().Run("forbidden - only space owener can create child iteration", func(t *testing.T) {
-		fxt := tf.NewTestFixture(t, rest.DB, tf.Identities(2), tf.Areas(1), tf.Iterations(1))
+		fxt := tf.NewTestFixture(t, rest.DB,
+			tf.Identities(2, tf.SetIdentityUsernames([]string{"space owner", "other user"})),
+			tf.Areas(1), tf.Iterations(1))
 		name := "Sprint #21"
 		ci := getChildIterationPayload(&name)
-		otherIdentity := fxt.Identities[1]
-		svc, ctrl := rest.SecuredControllerWithIdentity(otherIdentity)
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.IdentityByUsername("other user"))
 		test.CreateChildIterationForbidden(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
 	})
 
@@ -182,8 +185,8 @@ func (rest *TestIterationREST) TestShowIterationOK() {
 	// then
 	assertIterationLinking(rest.T(), created.Data)
 	require.NotNil(rest.T(), created.Data.Relationships.Workitems.Meta)
-	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta["total"])
-	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta["closed"])
+	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta[KeyTotalWorkItems])
+	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta[KeyClosedWorkItems])
 }
 
 func (rest *TestIterationREST) TestShowIterationOKUsingExpiredIfModifiedSinceHeader() {
@@ -196,8 +199,8 @@ func (rest *TestIterationREST) TestShowIterationOKUsingExpiredIfModifiedSinceHea
 	// then
 	assertIterationLinking(rest.T(), created.Data)
 	require.NotNil(rest.T(), created.Data.Relationships.Workitems.Meta)
-	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta["total"])
-	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta["closed"])
+	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta[KeyTotalWorkItems])
+	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta[KeyClosedWorkItems])
 }
 
 func (rest *TestIterationREST) TestShowIterationOKUsingExpiredIfNoneMatchHeader() {
@@ -210,8 +213,8 @@ func (rest *TestIterationREST) TestShowIterationOKUsingExpiredIfNoneMatchHeader(
 	// then
 	assertIterationLinking(rest.T(), created.Data)
 	require.NotNil(rest.T(), created.Data.Relationships.Workitems.Meta)
-	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta["total"])
-	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta["closed"])
+	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta[KeyTotalWorkItems])
+	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta[KeyClosedWorkItems])
 }
 
 func (rest *TestIterationREST) TestShowIterationNotModifiedUsingIfModifiedSinceHeader() {
@@ -391,8 +394,8 @@ func (rest *TestIterationREST) TestSuccessUpdateIteration() {
 	assert.Equal(rest.T(), newName, *updated.Data.Attributes.Name)
 	assert.Equal(rest.T(), newDesc, *updated.Data.Attributes.Description)
 	require.NotNil(rest.T(), updated.Data.Relationships.Workitems.Meta)
-	assert.Equal(rest.T(), 0, updated.Data.Relationships.Workitems.Meta["total"])
-	assert.Equal(rest.T(), 0, updated.Data.Relationships.Workitems.Meta["closed"])
+	assert.Equal(rest.T(), 0, updated.Data.Relationships.Workitems.Meta[KeyTotalWorkItems])
+	assert.Equal(rest.T(), 0, updated.Data.Relationships.Workitems.Meta[KeyClosedWorkItems])
 
 	// try update using some other user
 	otherIdentity := &account.Identity{
@@ -462,8 +465,8 @@ func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 	assert.Equal(rest.T(), newName, *updated.Data.Attributes.Name)
 	assert.Equal(rest.T(), newDesc, *updated.Data.Attributes.Description)
 	require.NotNil(rest.T(), updated.Data.Relationships.Workitems.Meta)
-	assert.Equal(rest.T(), 9, updated.Data.Relationships.Workitems.Meta["total"])
-	assert.Equal(rest.T(), 5, updated.Data.Relationships.Workitems.Meta["closed"])
+	assert.Equal(rest.T(), 9, updated.Data.Relationships.Workitems.Meta[KeyTotalWorkItems])
+	assert.Equal(rest.T(), 5, updated.Data.Relationships.Workitems.Meta[KeyClosedWorkItems])
 }
 
 func (rest *TestIterationREST) TestFailUpdateIterationNotFound() {
