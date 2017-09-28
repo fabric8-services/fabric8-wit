@@ -34,7 +34,6 @@ func TestRunTrackerQueryRepository(t *testing.T) {
 }
 
 func (test *TestTrackerQueryRepository) SetupTest() {
-
 	test.trackerRepo = NewTrackerRepository(test.DB)
 	test.queryRepo = NewTrackerQueryRepository(test.DB)
 
