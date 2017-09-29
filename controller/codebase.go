@@ -118,6 +118,24 @@ func (c *CodebaseController) Edit(ctx *app.EditCodebaseContext) error {
 	return ctx.OK(resp)
 }
 
+func (c *CodebaseController) Delete(ctx *app.DeleteCodebaseContext) error {
+	_, err := login.ContextIdentity(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
+	}
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		_, err := appl.Codebases().Load(ctx.Context, ctx.CodebaseID)
+		if err != nil {
+			return err
+		}
+		return appl.Codebases().Delete(ctx, ctx.CodebaseID)
+	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return ctx.OK([]byte{})
+}
+
 // Create runs the create action.
 func (c *CodebaseController) Create(ctx *app.CreateCodebaseContext) error {
 	_, err := login.ContextIdentity(ctx)
