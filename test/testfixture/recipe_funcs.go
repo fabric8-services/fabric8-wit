@@ -442,3 +442,30 @@ func Labels(n int, fns ...CustomizeLabelFunc) RecipeFunction {
 		return fxt.deps(Spaces(1))
 	})
 }
+
+// CustomizeTrackerFunc is directly compatible with CustomizeEntityFunc
+// but it can only be used for the Trackers() recipe-function.
+type CustomizeTrackerFunc CustomizeEntityFunc
+
+// Trackers tells the test fixture to create at least n tracker objects. See
+// also the Identities() function for more general information on n and fns.
+func Trackers(n int, fns ...CustomizeTrackerFunc) RecipeFunction {
+	return RecipeFunction(func(fxt *TestFixture) error {
+		fxt.checkFuncs = append(fxt.checkFuncs, func() error {
+			l := len(fxt.Trackers)
+			if l < n {
+				return errs.Errorf(checkStr, n, kindTrackers, l)
+			}
+			return nil
+		})
+		// Convert fns to []CustomizeEntityFunc
+		customFuncs := make([]CustomizeEntityFunc, len(fns))
+		for idx := range fns {
+			customFuncs[idx] = CustomizeEntityFunc(fns[idx])
+		}
+		if err := fxt.setupInfo(n, kindTrackers, customFuncs...); err != nil {
+			return err
+		}
+		return fxt.deps()
+	})
+}
