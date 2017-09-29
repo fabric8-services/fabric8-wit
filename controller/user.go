@@ -46,6 +46,7 @@ func (c *UserController) Show(ctx *app.ShowUserContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
+	client.SetJWTSigner(goasupport.NewForwardSigner(ctx))
 	res, err := client.ShowUser(goasupport.ForwardContextRequestID(ctx), authservice.ShowUserPath(), ctx.IfModifiedSince, ctx.IfNoneMatch)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
