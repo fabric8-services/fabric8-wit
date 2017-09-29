@@ -88,6 +88,7 @@ type Repository interface {
 	CanStart(ctx context.Context, i *Iteration) (bool, error)
 	LoadMultiple(ctx context.Context, ids []uuid.UUID) ([]Iteration, error)
 	LoadChildren(ctx context.Context, parentIterationID uuid.UUID) ([]Iteration, error)
+	Delete(ctx context.Context, ID uuid.UUID) error
 }
 
 // NewIterationRepository creates a new storage type.
@@ -301,4 +302,32 @@ func (m *GormIterationRepository) LoadChildren(ctx context.Context, parentIterat
 		return nil, err
 	}
 	return objs, nil
+}
+
+// Delete deletes the itertion with the given id
+// returns NotFoundError or InternalError
+func (m *GormIterationRepository) Delete(ctx context.Context, ID uuid.UUID) error {
+	defer goa.MeasureSince([]string{"goa", "db", "iteration", "delete"}, time.Now())
+	if ID == uuid.Nil {
+		log.Error(ctx, map[string]interface{}{
+			"iteration_id": ID.String(),
+		}, "unable to find the iteration by ID")
+		return errors.NewNotFoundError("iteration", ID.String())
+	}
+	itr := Iteration{ID: ID}
+	tx := m.db.Delete(itr)
+
+	if err := tx.Error; err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"iteration_id": ID.String(),
+		}, "unable to delete the iteration")
+		return errors.NewInternalError(ctx, err)
+	}
+	if tx.RowsAffected == 0 {
+		log.Error(ctx, map[string]interface{}{
+			"iteration_id": ID.String(),
+		}, "none row was affected by the deletion operation")
+		return errors.NewNotFoundError("iteration", ID.String())
+	}
+	return nil
 }

@@ -232,6 +232,55 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 	})
 }
 
+// Delete runs the delete action.
+func (c *IterationController) Delete(ctx *app.DeleteIterationContext) error {
+	currentUser, err := login.ContextIdentity(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
+	}
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		itr, err := appl.Iterations().Load(ctx.Context, ctx.IterationID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		s, err := appl.Spaces().Load(ctx, itr.SpaceID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+		}
+		if !uuid.Equal(*currentUser, s.OwnerId) {
+			log.Warn(ctx, map[string]interface{}{
+				"space_id":     s.ID,
+				"space_owner":  s.OwnerId,
+				"current_user": *currentUser,
+			}, "user is not the space owner")
+			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the space owner"))
+		}
+
+		subtree, err := appl.Iterations().LoadChildren(ctx, ctx.IterationID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+		}
+		// delete all children along with given iteration
+		subtree = append(subtree, *itr)
+		for _, child := range subtree {
+			err = appl.Iterations().Delete(ctx.Context, child.ID)
+			if err != nil {
+				log.Warn(ctx, map[string]interface{}{
+					"iteration_id": child.ID,
+					"err":          err.Error(),
+				}, "unable to delete iteration")
+				return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
+			}
+		}
+		// update related WIs
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return ctx.OK([]byte{})
+}
+
 // IterationConvertFunc is a open ended function to add additional links/data/relations to a Iteration during
 // conversion from internal to API
 type IterationConvertFunc func(*http.Request, *iteration.Iteration, *app.Iteration)
