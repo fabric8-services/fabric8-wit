@@ -49,6 +49,51 @@ var createUserData = a.Type("CreateUserData", func() {
 	a.Required("type", "attributes")
 })
 
+// user represents an identified user object
+var user = a.MediaType("application/vnd.user+json", func() {
+	a.UseTrait("jsonapi-media-type")
+	a.TypeName("User")
+	a.Description("WIT User Identity")
+	a.Attributes(func() {
+		a.Attribute("data", userData)
+		a.Required("data")
+
+	})
+	a.View("default", func() {
+		a.Attribute("data")
+		a.Required("data")
+	})
+})
+
+// userData represents an identified user object
+var userData = a.Type("UserData", func() {
+	a.Attribute("id", d.String, "unique id for the user")
+	a.Attribute("type", d.String, "type of the user")
+	a.Attribute("attributes", userDataAttributes, "Attributes of the user")
+	a.Attribute("links", genericLinks)
+	a.Required("type", "attributes")
+})
+
+// userDataAttributes represents an identified user object attributes
+var userDataAttributes = a.Type("UserDataAttributes", func() {
+	a.Attribute("userID", d.String, "The id of the corresponding User")
+	a.Attribute("identityID", d.String, "The id of the corresponding Identity")
+	a.Attribute("created-at", d.DateTime, "The date of creation of the user")
+	a.Attribute("updated-at", d.DateTime, "The date of update of the user")
+	a.Attribute("fullName", d.String, "The user's full name")
+	a.Attribute("imageURL", d.String, "The avatar image for the user")
+	a.Attribute("username", d.String, "The username")
+	a.Attribute("registrationCompleted", d.Boolean, "Whether the registration has been completed")
+	a.Attribute("email", d.String, "The email")
+	a.Attribute("bio", d.String, "The bio")
+	a.Attribute("url", d.String, "The url")
+	a.Attribute("company", d.String, "The company")
+	a.Attribute("providerType", d.String, "The IDP provided this identity")
+	a.Attribute("contextInformation", a.HashOf(d.String, d.Any), "User context information of any type as a json", func() {
+		a.Example(map[string]interface{}{"last_visited_url": "https://a.openshift.io", "space": "3d6dab8d-f204-42e8-ab29-cdb1c93130ad"})
+	})
+})
+
 var _ = a.Resource("user", func() {
 	a.BasePath("/user")
 
@@ -58,8 +103,12 @@ var _ = a.Resource("user", func() {
 			a.GET(""),
 		)
 		a.Description("Get the authenticated user")
+		a.UseTrait("conditional")
+		a.Response(d.OK, user)
+		a.Response(d.NotModified)
+		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
-		a.Response(d.TemporaryRedirect)
+		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 })
 
