@@ -4,11 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/fabric8-services/fabric8-wit/app/test"
 	"github.com/fabric8-services/fabric8-wit/configuration"
-	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/resource"
-	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -31,8 +28,9 @@ func (rest *TestUserREST) SetupSuite() {
 	rest.config = config
 }
 
-func (rest *TestUserREST) TestCurrentAuthorizedMissingUUID() {
-	svc := testsupport.ServiceAsServiceAccountUser("Users-ServiceAccount-Service", testsupport.TestIdentity)
-	ctr := NewUserController(svc, rest.config)
-	test.ShowUserTemporaryRedirect(rest.T(), svc.Context, svc, ctr)
-}
+// TODO Add tests
+//func (rest *TestUserREST) TestCurrentAuthorizedMissingUUID() {
+//	svc := testsupport.ServiceAsServiceAccountUser("Users-ServiceAccount-Service", testsupport.TestIdentity)
+//	ctr := NewUserController(svc, rest.config)
+//	test.ShowUserTemporaryRedirect(rest.T(), svc.Context, svc, ctr)
+//}
