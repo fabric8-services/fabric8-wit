@@ -229,22 +229,24 @@ func stringInSlice(str string, list []string) bool {
 }
 
 func (s *searchRepositoryWhiteboxTest) TestSearchByID() {
+	// given
 	req := &http.Request{Host: "localhost"}
 	params := url.Values{}
 	ctx := goa.NewContext(context.Background(), nil, req, params)
-
-	wir := workitem.NewWorkItemRepository(s.DB)
-
 	workItem := workitem.WorkItem{Fields: make(map[string]interface{})}
 
-	workItem.Fields = map[string]interface{}{
-		workitem.SystemTitle:       "Search Test Sbose",
-		workitem.SystemDescription: rendering.NewMarkupContentFromLegacy("Description"),
-		workitem.SystemCreator:     "sbose78",
-		workitem.SystemAssignees:   []string{"pranav"},
-		workitem.SystemState:       "closed",
-	}
+	fxt, error := tf.NewFixture(s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
+		// fxt.WorkItems[idx]
+		workItem.Fields = map[string]interface{}{
+			workitem.SystemTitle:       "Search Test Sbose",
+			workitem.SystemDescription: rendering.NewMarkupContentFromLegacy("Description"),
+			workitem.SystemCreator:     "sbose78",
+			workitem.SystemAssignees:   []string{"pranav"},
+			workitem.SystemState:       "closed",
+		}
 
+		return nil
+	}))
 	createdWorkItem, err := wir.Create(ctx, space.SystemSpace, workitem.SystemBug, workItem.Fields, s.modifierID)
 	if err != nil {
 		s.T().Fatalf("Couldn't create test data: %+v", err)

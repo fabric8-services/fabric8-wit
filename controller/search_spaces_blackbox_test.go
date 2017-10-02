@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
@@ -18,6 +17,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -73,7 +73,7 @@ func (rest *TestSearchSpacesREST) UnSecuredController() (*goa.Service, *SearchCo
 
 func (rest *TestSearchSpacesREST) TestSpacesSearchOK() {
 	// given
-	prefix := time.Now().Format("2006_Jan_2_15_04_05_") // using a unique prefix to make sure the test data will not collide with existing, older spaces.
+	prefix := uuid.NewV4().String() // using a unique prefix to make sure the test data will not collide with existing, older spaces.
 	idents, err := createTestData(rest.db, prefix)
 	require.Nil(rest.T(), err)
 	tests := []okScenario{
