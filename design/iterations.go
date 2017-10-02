@@ -129,7 +129,7 @@ var _ = a.Resource("iteration", func() {
 	a.Action("delete", func() {
 		a.Security("jwt")
 		a.Routing(
-			a.PATCH("/:iterationID"),
+			a.DELETE("/:iterationID"),
 		)
 		a.Description("delete the iteration for the given id.")
 		a.Params(func() {
