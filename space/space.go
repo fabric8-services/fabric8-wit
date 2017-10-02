@@ -11,6 +11,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
+	numbersequence "github.com/fabric8-services/fabric8-wit/workitem/number_sequence"
 
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -93,12 +94,16 @@ type Repository interface {
 
 // NewRepository creates a new space repo
 func NewRepository(db *gorm.DB) *GormRepository {
-	return &GormRepository{db}
+	return &GormRepository{
+		db:   db,
+		winr: numbersequence.NewWorkItemNumberSequenceRepository(db),
+	}
 }
 
 // GormRepository implements SpaceRepository using gorm
 type GormRepository struct {
-	db *gorm.DB
+	db   *gorm.DB
+	winr numbersequence.WorkItemNumberSequenceRepository
 }
 
 // Load returns the space for the given id
@@ -225,7 +230,11 @@ func (r *GormRepository) Create(ctx context.Context, space *Space) (*Space, erro
 		}
 		return nil, errors.NewInternalError(ctx, err)
 	}
-
+	// also, initialize the work_item_number_sequence table for this space
+	_, err := r.winr.Create(ctx, space.ID)
+	if err != nil {
+		return nil, errors.NewInternalError(ctx, err)
+	}
 	log.Info(ctx, map[string]interface{}{
 		"space_id": space.ID,
 	}, "Space created successfully")

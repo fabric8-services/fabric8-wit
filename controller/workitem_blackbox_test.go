@@ -782,12 +782,12 @@ func createOneRandomIteration(ctx context.Context, db *gorm.DB) *iteration.Itera
 	return &itr
 }
 
-func createOneRandomArea(ctx context.Context, db *gorm.DB, testName string) *area.Area {
+func createOneRandomArea(ctx context.Context, db *gorm.DB) *area.Area {
 	areaRepo := area.NewAreaRepository(db)
 	spaceRepo := space.NewRepository(db)
 
 	newSpace := space.Space{
-		Name: fmt.Sprintf("Space area %v %v", testName, uuid.NewV4()),
+		Name: fmt.Sprintf("Space area %v", uuid.NewV4()),
 	}
 	space, err := spaceRepo.Create(ctx, &newSpace)
 	if err != nil {
@@ -1491,7 +1491,7 @@ func (s *WorkItem2Suite) TestWI2ListByStateFilterOKModifiedUsingIfNoneMatchIfMod
 }
 
 func (s *WorkItem2Suite) setupAreaWorkItem(createWorkItem bool) (uuid.UUID, string, *app.WorkItemSingle) {
-	tempArea := createOneRandomArea(s.svc.Context, s.DB, "TestWI2ListByAreaFilter")
+	tempArea := createOneRandomArea(s.svc.Context, s.DB)
 	require.NotNil(s.T(), tempArea)
 	areaID := tempArea.ID.String()
 	c := minimumRequiredCreatePayload()
