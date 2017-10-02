@@ -550,9 +550,11 @@ func (rest *TestSpaceREST) TestListSpacesOKUsingExpiredIfModifiedSinceHeader() {
 	p := minimumRequiredCreateSpace()
 	p.Data.Attributes.Name = &name
 	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
-	test.CreateSpaceCreated(rest.T(), svc.Context, svc, ctrl, p)
+	_, createdSpace := test.CreateSpaceCreated(rest.T(), svc.Context, svc, ctrl, p)
 	// when
 	ifModifiedSince := app.ToHTTPTime(time.Now().Add(-1 * time.Hour))
+	rest.T().Logf("space created at=%s", createdSpace.Data.Attributes.CreatedAt.UTC().String())
+	rest.T().Logf("requesting with `If-Modified-Since`=%s", ifModifiedSince)
 	_, list := test.ListSpaceOK(rest.T(), svc.Context, svc, ctrl, nil, nil, &ifModifiedSince, nil)
 	// then
 	require.NotNil(rest.T(), list)
