@@ -888,9 +888,43 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		wis, err := rest.db.WorkItems().LoadByIteration(svc.Context, iterationToDelete.ID)
 		require.Nil(t, err)
 		assert.Empty(t, wis)
+	})
 
+	rest.T().Run("success - verify that workitems are updated correctly", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, rest.DB,
+			tf.Iterations(4, func(fxt *tf.TestFixture, idx int) error {
+				i := fxt.Iterations[idx]
+				switch idx {
+				case 1:
+					i.MakeChildOf(*fxt.Iterations[0])
+				case 2:
+					i.MakeChildOf(*fxt.Iterations[1])
+				case 3:
+					i.MakeChildOf(*fxt.Iterations[2])
+				}
+				return nil
+			}),
+			tf.WorkItems(10, func(fxt *tf.TestFixture, idx int) error {
+				wi := fxt.WorkItems[idx]
+				if idx < 3 { // 0, 1, 2
+					wi.Fields[workitem.SystemIteration] = fxt.Iterations[1].ID.String()
+				} else if idx < 7 { // 3, 4, 5, 6
+					wi.Fields[workitem.SystemIteration] = fxt.Iterations[2].ID.String()
+				} else { // 7,8,9
+					wi.Fields[workitem.SystemIteration] = fxt.Iterations[3].ID.String()
+				}
+				return nil
+			}))
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+		iterationToDelete := fxt.Iterations[1]
+		test.DeleteIterationOK(t, svc.Context, svc, ctrl, iterationToDelete.ID)
+		wis, err := rest.db.WorkItems().LoadByIteration(svc.Context, iterationToDelete.ID)
+		require.Nil(t, err)
+		assert.Empty(t, wis)
+
+		// Verify that WIs are moved to Root iteration
 		wis, err = rest.db.WorkItems().LoadByIteration(svc.Context, fxt.Iterations[0].ID)
 		require.Nil(t, err)
-		assert.Len(t, wis, 5)
+		assert.Len(t, wis, 10)
 	})
 }
