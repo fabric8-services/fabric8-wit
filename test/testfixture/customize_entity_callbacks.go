@@ -117,6 +117,29 @@ func SetIterationNames(names []string) CustomizeIterationFunc {
 	}
 }
 
+// PlaceIterationUnderRootIteration when asking for more than one iteration, all
+// but the first one will be placed under the first iteration (aka root
+// iteration).
+func PlaceIterationUnderRootIteration() CustomizeIterationFunc {
+	return func(fxt *TestFixture, idx int) error {
+		if idx > 0 {
+			fxt.Iterations[idx].MakeChildOf(*fxt.Iterations[0])
+		}
+		return nil
+	}
+}
+
+// PlaceAreaUnderRootArea when asking for more than one area, all but the first
+// one will be placed under the first area (aka root area).
+func PlaceAreaUnderRootArea() CustomizeAreaFunc {
+	return func(fxt *TestFixture, idx int) error {
+		if idx > 0 {
+			fxt.Areas[idx].MakeChildOf(*fxt.Areas[0])
+		}
+		return nil
+	}
+}
+
 // SetWorkItemTypeNames takes the given names and uses them during creation of
 // work item types. The length of requested work item types and the number of
 // names must match or the NewFixture call will return an error.
