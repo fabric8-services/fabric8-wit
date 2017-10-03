@@ -261,7 +261,7 @@ func (c *IterationController) Delete(ctx *app.DeleteIterationContext) error {
 			log.Warn(ctx, map[string]interface{}{
 				"space_id":     s.ID,
 				"iteration_id": itr.ID,
-			}, "can not delte root iteration")
+			}, "can not delete root iteration")
 			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("can not delete root iteration"))
 		}
 		subtree, err := appl.Iterations().LoadChildren(ctx, ctx.IterationID)
@@ -273,7 +273,7 @@ func (c *IterationController) Delete(ctx *app.DeleteIterationContext) error {
 		for _, child := range subtree {
 			err = appl.Iterations().Delete(ctx.Context, child.ID)
 			if err != nil {
-				log.Warn(ctx, map[string]interface{}{
+				log.Error(ctx, map[string]interface{}{
 					"iteration_id": child.ID,
 					"err":          err.Error(),
 				}, "unable to delete iteration")
