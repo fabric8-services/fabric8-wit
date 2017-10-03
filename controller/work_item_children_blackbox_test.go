@@ -276,9 +276,11 @@ func (s *workItemChildSuite) TestChildren() {
 		assertResponseHeaders(t, res)
 	})
 	s.T().Run("not modified using if modified since header", func(t *testing.T) {
+		// given
+		res, _ := test.ListChildrenWorkitemOK(t, s.svc.Context, s.svc, s.workItemCtrl, *s.bug1.Data.ID, nil, nil, nil, nil)
+		ifModifiedSince := res.Header()[app.LastModified][0]
 		// when
-		ifModifiedSince := app.ToHTTPTime(s.bug3.Data.Attributes[workitem.SystemUpdatedAt].(time.Time))
-		res := test.ListChildrenWorkitemNotModified(t, s.svc.Context, s.svc, s.workItemCtrl, *s.bug1.Data.ID, nil, nil, &ifModifiedSince, nil)
+		res = test.ListChildrenWorkitemNotModified(t, s.svc.Context, s.svc, s.workItemCtrl, *s.bug1.Data.ID, nil, nil, &ifModifiedSince, nil)
 		// then
 		assertResponseHeaders(t, res)
 	})
