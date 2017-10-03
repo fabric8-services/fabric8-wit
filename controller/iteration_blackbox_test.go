@@ -768,9 +768,24 @@ func assertChildIterationLinking(t *testing.T, target *app.Iteration) {
 
 // TestIterationDelete tests iteration delete API
 func (rest *TestIterationREST) TestIterationDelete() {
+	rest.T().Run("success - Can not delete root iteration", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, rest.DB,
+			tf.Iterations(1, tf.SetIterationNames([]string{"root iteration"})))
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+		iterationToDelete := fxt.IterationByName("root iteration")
+		test.DeleteIterationForbidden(t, svc.Context, svc, ctrl, iterationToDelete.ID)
+	})
+
 	rest.T().Run("success - Delete one iteration", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, rest.DB,
-			tf.Iterations(1, tf.SetIterationNames([]string{"first iteration"})))
+			tf.Iterations(2,
+				tf.SetIterationNames([]string{"root iteration", "first iteration"}),
+				func(fxt *tf.TestFixture, idx int) error {
+					if idx == 1 {
+						fxt.Iterations[idx].MakeChildOf(*fxt.Iterations[0])
+					}
+					return nil
+				}))
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 		iterationToDelete := fxt.IterationByName("first iteration")
 		test.DeleteIterationOK(t, svc.Context, svc, ctrl, iterationToDelete.ID)
@@ -779,10 +794,10 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 	})
 
-	rest.T().Run("success - Delete all nested iteration", func(t *testing.T) {
+	rest.T().Run("success - Delete all nested iterations as well", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, rest.DB,
-			tf.Iterations(5,
-				tf.SetIterationNames([]string{"root iteration", "child level 1", "child level 2", "child level 3", "sibling of root iteration"}),
+			tf.Iterations(6,
+				tf.SetIterationNames([]string{"root", "child 1", "child 1.2", "child 1.2.3", "child 1.2.3.4", "child 2"}),
 				func(fxt *tf.TestFixture, idx int) error {
 					i := fxt.Iterations[idx]
 					switch idx {
@@ -792,23 +807,37 @@ func (rest *TestIterationREST) TestIterationDelete() {
 						i.MakeChildOf(*fxt.Iterations[1])
 					case 3:
 						i.MakeChildOf(*fxt.Iterations[2])
+					case 4:
+						i.MakeChildOf(*fxt.Iterations[3])
+					case 5:
+						i.MakeChildOf(*fxt.Iterations[0])
 					}
 					return nil
 				}))
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
-		iterationToDelete := fxt.IterationByName("root iteration")
+		iterationToDelete := fxt.IterationByName("child 1")
 		test.DeleteIterationOK(t, svc.Context, svc, ctrl, iterationToDelete.ID)
 		// make sure all nested iterations are deleted
-		deletedIterations := fxt.Iterations[:3] // last iteration must not be deleted
+		deletedIterations := []*iteration.Iteration{
+			fxt.IterationByName("child 1"),
+			fxt.IterationByName("child 1.2"),
+			fxt.IterationByName("child 1.2.3"),
+			fxt.IterationByName("child 1.2.3.4"),
+		}
 		for _, i := range deletedIterations {
 			_, err := rest.db.Iterations().Load(svc.Context, i.ID)
 			require.NotNil(t, err)
 			require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 		}
 		// make sure other iterations are not touched
-		iterationShouldPresent := fxt.IterationByName("sibling of root iteration")
-		_, err := rest.db.Iterations().Load(svc.Context, iterationShouldPresent.ID)
-		require.Nil(t, err)
+		iterationsShouldPresent := []*iteration.Iteration{
+			fxt.IterationByName("root"),
+			fxt.IterationByName("child 2"),
+		}
+		for _, i := range iterationsShouldPresent {
+			_, err := rest.db.Iterations().Load(svc.Context, i.ID)
+			require.Nil(t, err)
+		}
 	})
 
 	rest.T().Run("forbidden - other user can not delete iteration", func(t *testing.T) {
@@ -820,10 +849,16 @@ func (rest *TestIterationREST) TestIterationDelete() {
 	})
 
 	rest.T().Run("success - space owner can delete iteration", func(t *testing.T) {
-		fxt := tf.NewTestFixture(t, rest.DB, tf.Iterations(1))
-		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
-		test.DeleteIterationOK(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID)
-		_, err := rest.db.Iterations().Load(svc.Context, fxt.Iterations[0].ID)
+		fxt := tf.NewTestFixture(t, rest.DB, tf.Iterations(2, func(fxt *tf.TestFixture, idx int) error {
+			if idx == 1 {
+				fxt.Iterations[idx].MakeChildOf(*fxt.Iterations[0])
+			}
+			return nil
+		}))
+		iterationToDelete := fxt.Iterations[1]                             // non-root iteration
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0]) // get the sapce owner
+		test.DeleteIterationOK(t, svc.Context, svc, ctrl, iterationToDelete.ID)
+		_, err := rest.db.Iterations().Load(svc.Context, iterationToDelete.ID)
 		require.NotNil(t, err)
 		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 	})
@@ -834,7 +869,28 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		test.DeleteIterationUnauthorized(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID)
 	})
 
-	// 	rest.T().Run("fail - Delete iteration by invalid user", func(t *testing.T) {
+	rest.T().Run("success - update workitems for deleted iteration", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, rest.DB,
+			tf.Iterations(2, func(fxt *tf.TestFixture, idx int) error {
+				if idx == 1 {
+					fxt.Iterations[idx].MakeChildOf(*fxt.Iterations[0])
+				}
+				return nil
+			}),
+			tf.WorkItems(5, func(fxt *tf.TestFixture, idx int) error {
+				wi := fxt.WorkItems[idx]
+				wi.Fields[workitem.SystemIteration] = fxt.Iterations[1].ID.String()
+				return nil
+			}))
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+		iterationToDelete := fxt.Iterations[1]
+		test.DeleteIterationOK(t, svc.Context, svc, ctrl, iterationToDelete.ID)
+		wis, err := rest.db.WorkItems().LoadByIteration(svc.Context, iterationToDelete.ID)
+		require.Nil(t, err)
+		assert.Empty(t, wis)
 
-	// }
+		wis, err = rest.db.WorkItems().LoadByIteration(svc.Context, fxt.Iterations[0].ID)
+		require.Nil(t, err)
+		assert.Len(t, wis, 5)
+	})
 }
