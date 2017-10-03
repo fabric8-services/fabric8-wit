@@ -236,19 +236,26 @@ func (s *WorkItemSuite) TestGetWorkItemWithLegacyDescription() {
 
 func (s *WorkItemSuite) TestCreateWI() {
 	s.T().Run("ok", func(t *testing.T) {
-		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment())
 		// given
-		payload := minimumRequiredCreateWithTypeWithSpaceID(fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
+		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment())
+		svc := testsupport.ServiceAsUser("TestUpdateWI-Service", *fxt.Identities[0])
+		workitemsCtrl := NewWorkitemsController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+		// given
+		payload := minimumRequiredCreateWithTypeAndSpace(fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 		payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 		payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 		// when
-		_, created := test.CreateWorkitemsCreated(t, s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, &payload)
+		_, created := test.CreateWorkitemsCreated(t, svc.Context, svc, workitemsCtrl, fxt.Spaces[0].ID, &payload)
 		// then
 		require.NotNil(t, created.Data.ID)
 		assert.NotEmpty(t, *created.Data.ID)
-		assert.NotNil(t, created.Data.Attributes[workitem.SystemCreatedAt])
-		assert.NotNil(t, created.Data.Relationships.Creator.Data)
+		require.NotNil(t, created.Data.Attributes[workitem.SystemCreatedAt])
+		require.NotNil(t, created.Data.Relationships.Creator.Data)
 		assert.Equal(t, *created.Data.Relationships.Creator.Data.ID, fxt.Identities[0].ID.String())
+		require.NotNil(t, created.Data.Relationships.Iteration)
+		assert.Equal(t, fxt.Iterations[0].ID.String(), *created.Data.Relationships.Iteration.Data.ID)
+		require.NotNil(t, created.Data.Relationships.Area)
+		assert.Equal(t, fxt.Areas[0].ID.String(), *created.Data.Relationships.Area.Data.ID)
 	})
 }
 
@@ -711,14 +718,8 @@ func minimumRequiredCreateWithType(witID uuid.UUID) app.CreateWorkitemsPayload {
 	return c
 }
 
-func minimumRequiredCreateWithTypeWithSpaceID(witID, spaceID uuid.UUID) app.CreateWorkitemsPayload {
-	c := minimumRequiredCreatePayload(spaceID)
-	c.Data.Relationships.BaseType = newRelationBaseType(spaceID, witID)
-	return c
-}
-
 func minimumRequiredCreateWithTypeAndSpace(witID uuid.UUID, spaceID uuid.UUID) app.CreateWorkitemsPayload {
-	c := minimumRequiredCreatePayload()
+	c := minimumRequiredCreatePayload(spaceID)
 	c.Data.Relationships.BaseType = newRelationBaseType(spaceID, witID)
 	return c
 }
