@@ -33,7 +33,7 @@ func (r *GormWorkItemNumberSequenceRepository) Create(ctx context.Context, space
 	if err := r.db.Save(&numberSequence).Error; err != nil {
 		return nil, errs.Wrapf(err, "failed to create work item with sequence number: `%s`", numberSequence.String())
 	}
-	log.Warn(nil, map[string]interface{}{"Sequence": numberSequence.String()}, "Creating sequence")
+	log.Debug(nil, map[string]interface{}{"Sequence": numberSequence.String()}, "Creating sequence")
 	return &numberSequence, nil
 }
 
@@ -51,6 +51,6 @@ func (r *GormWorkItemNumberSequenceRepository) NextVal(ctx context.Context, spac
 	if err := r.db.Save(&numberSequence).Error; err != nil {
 		return nil, errs.Wrapf(err, "failed to update work item with sequence number: `%s`", numberSequence.String())
 	}
-	log.Warn(nil, map[string]interface{}{"Sequence": numberSequence.String()}, "computing nextVal")
+	log.Debug(nil, map[string]interface{}{"Sequence": numberSequence.String()}, "computing nextVal")
 	return &numberSequence, nil
 }
