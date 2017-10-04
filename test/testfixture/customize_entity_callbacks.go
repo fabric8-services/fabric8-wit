@@ -4,6 +4,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	errs "github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 )
 
 // A CustomizeEntityFunc acts as a generic function to the various
@@ -113,6 +114,19 @@ func SetIterationNames(names []string) CustomizeIterationFunc {
 			return errs.Errorf("number of names (%d) must match number of iterations to create (%d)", len(names), len(fxt.Iterations))
 		}
 		fxt.Iterations[idx].Name = names[idx]
+		return nil
+	}
+}
+
+// SetIterationIDsFromString takes the given IDs in string and uses them during
+// creation of iterations. The length of requested iterations and the number of
+// Ids must match or the NewFixture call will return an error.
+func SetIterationIDsFromString(IDs []string) CustomizeIterationFunc {
+	return func(fxt *TestFixture, idx int) error {
+		if len(fxt.Iterations) != len(IDs) {
+			return errs.Errorf("number of IDs (%d) must match number of iterations to create (%d)", len(IDs), len(fxt.Iterations))
+		}
+		fxt.Iterations[idx].ID = uuid.FromStringOrNil(IDs[idx])
 		return nil
 	}
 }
