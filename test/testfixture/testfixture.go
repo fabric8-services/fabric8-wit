@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/area"
 	"github.com/fabric8-services/fabric8-wit/codebase"
 	"github.com/fabric8-services/fabric8-wit/comment"
@@ -44,6 +45,7 @@ type TestFixture struct {
 	WorkItemLinkCategories []*link.WorkItemLinkCategory // Work item link categories (if any) that were created for this test fixture.
 	WorkItemLinks          []*link.WorkItemLink         // Work item links (if any) that were created for this test fixture.
 	Labels                 []*label.Label
+	Trackers               []*app.Tracker // Remote work item tracker (if any) that were created for this test fixture.
 }
 
 // NewFixture will create a test fixture by executing the recipies from the
@@ -152,9 +154,10 @@ const (
 	kindComments               kind = "comment"
 	kindWorkItemTypes          kind = "work_item_type"
 	kindWorkItemLinkTypes      kind = "work_item_link_type"
-	kindWorkItemLinkCategories kind = "work_item_link_categorie"
+	kindWorkItemLinkCategories kind = "work_item_link_category"
 	kindWorkItemLinks          kind = "work_item_link"
-	kindLabels                 kind = "labels"
+	kindLabels                 kind = "label"
+	kindTrackers               kind = "tracker"
 )
 
 type createInfo struct {
@@ -206,6 +209,7 @@ func newFixture(db *gorm.DB, isolatedCreation bool, recipeFuncs ...RecipeFunctio
 	makeFuncs := []func(fxt *TestFixture) error{
 		// make the objects that DON'T have any dependency
 		makeIdentities,
+		makeTrackers,
 		makeWorkItemLinkCategories,
 		// actually make the objects that DO have dependencies
 		makeSpaces,

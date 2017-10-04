@@ -1,25 +1,22 @@
 package login
 
 import (
+	"context"
 	"crypto/md5"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
-	"strconv"
-
-	errs "github.com/pkg/errors"
-
-	"context"
 
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/application"
-	coreerrors "github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/login/tokencontext"
 	"github.com/fabric8-services/fabric8-wit/token"
+
 	"github.com/goadesign/goa"
+	errs "github.com/pkg/errors"
 	"github.com/satori/go.uuid"
 )
 
@@ -43,11 +40,11 @@ type KeycloakOAuthProvider struct {
 
 // KeycloakOAuthService represents keycloak OAuth service interface
 type KeycloakOAuthService interface {
-	CreateOrUpdateKeycloakUser(accessToken string, ctx context.Context, profileEndpoint string) (*account.Identity, *account.User, error)
+	CreateOrUpdateKeycloakUser(accessToken string, ctx context.Context) (*account.Identity, *account.User, error)
 }
 
 // CreateOrUpdateKeycloakUser creates a user and a keycloak identity. If the user and identity already exist then update them.
-func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken string, ctx context.Context, profileEndpoint string) (*account.Identity, *account.User, error) {
+func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken string, ctx context.Context) (*account.Identity, *account.User, error) {
 	var identity *account.Identity
 	var user *account.User
 
@@ -80,13 +77,6 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 
 	if len(identities) == 0 {
 		// No Identity found, create a new Identity and User
-		approved, err := checkApproved(ctx, NewKeycloakUserProfileClient(), accessToken, profileEndpoint)
-		if err != nil {
-			return nil, nil, err
-		}
-		if !approved {
-			return nil, nil, coreerrors.NewUnauthorizedError(fmt.Sprintf("user '%s' is not approved", claims.Username))
-		}
 		user = new(account.User)
 		identity = &account.Identity{}
 		_, err = fillUser(claims, user, identity)
@@ -169,42 +159,6 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 		}
 	}
 	return identity, user, nil
-}
-
-func checkApproved(ctx context.Context, profileService UserProfileService, accessToken string, profileEndpoint string) (bool, error) {
-	profile, err := profileService.Get(ctx, accessToken, profileEndpoint)
-	if err != nil {
-		return false, err
-	}
-	if profile.Attributes == nil {
-		log.Warn(ctx, map[string]interface{}{
-			"username": profile.Username,
-		}, "no attributes found in the user's profile")
-		return false, nil
-	}
-	attributes := *profile.Attributes
-	approved := attributes[ApprovedAttributeName]
-	if len(approved) == 0 {
-		log.Warn(ctx, map[string]interface{}{
-			"username": profile.Username,
-		}, "no approved attribute found in the user's profile or the value is empty")
-		return false, nil
-	}
-	b, err := strconv.ParseBool(approved[0])
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"err":      err,
-			"username": profile.Username,
-			"approved": approved[0],
-		}, "unable to parse 'approved' attribute of the user's profile")
-		return false, err
-	}
-	if !b {
-		log.Warn(ctx, map[string]interface{}{
-			"username": profile.Username,
-		}, "approved attribute found but set to false")
-	}
-	return b, nil
 }
 
 func generateGravatarURL(email string) (string, error) {

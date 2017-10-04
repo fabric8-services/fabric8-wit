@@ -258,6 +258,8 @@ func (r *GormRepository) listSpaceFromDB(ctx context.Context, q *string, userID 
 		db = db.Where("spaces.owner_id=?", userID)
 	}
 
+	// ensure that the result list is always ordered in the same manner
+	db = db.Order("spaces.updated_at DESC")
 	rows, err := db.Rows()
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
