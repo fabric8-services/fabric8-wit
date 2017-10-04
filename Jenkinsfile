@@ -37,7 +37,7 @@ goTemplate{
         }
       }
 
-      junit allowEmptyResults: true, '/home/jenkins/go/src/github.com/fabric8-services/fabric8-wit/tmp/junit.xml'
+      junit allowEmptyResults: true, testResults: '/home/jenkins/go/src/github.com/fabric8-services/fabric8-wit/tmp/junit.xml'
     }
   }
 }
