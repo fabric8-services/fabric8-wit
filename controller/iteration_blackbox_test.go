@@ -88,10 +88,12 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 		name := "Sprint #21"
 		childItr := fxt.IterationByName("child iteration")
 		ci := getChildIterationPayload(&name)
-		start, _ := time.Parse("2017-10-04", "2017-10-04")
-		end, _ := time.Parse("2017-10-21", "2017-10-21")
-		ci.Data.Attributes.StartAt = &start
-		ci.Data.Attributes.EndAt = &end
+		startAt, err := time.Parse(time.RFC3339, "2017-11-04T15:08:41+00:00")
+		require.Nil(t, err)
+		endAt, err := time.Parse(time.RFC3339, "2017-11-25T15:08:41+00:00")
+		require.Nil(t, err)
+		ci.Data.Attributes.StartAt = &startAt
+		ci.Data.Attributes.EndAt = &endAt
 		id := uuid.FromStringOrNil("97126bbf-1e04-42d3-b176-d0e58822b108")
 		ci.Data.ID = &id
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])

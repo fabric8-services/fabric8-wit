@@ -3,11 +3,11 @@
     "attributes": {
       "active_status": false,
       "created-at": "0001-01-01T00:00:00Z",
-      "endAt": "0001-01-01T00:00:00Z",
+      "endAt": "2017-11-25T15:08:41Z",
       "name": "Sprint #21",
       "parent_path": "/f9f13258-0b2a-4519-abbc-44d5dc7fbf24/54475218-5442-4708-83a2-7f2cb0201f95",
       "resolved_parent_path": "/root iteration/child iteration",
-      "startAt": "0001-01-01T00:00:00Z",
+      "startAt": "2017-11-04T15:08:41Z",
       "state": "new",
       "updated-at": "0001-01-01T00:00:00Z",
       "user_active": false
