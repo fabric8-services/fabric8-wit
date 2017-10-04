@@ -37,8 +37,7 @@ goTemplate{
         }
       }
 
-      sh('mv /home/jenkins/go/src/github.com/fabric8-services/fabric8-wit/tmp/junit.xml `pwd`')
-      junit 'junit.xml'
+      junit allowEmptyResults: true, testResults: '/home/jenkins/go/src/github.com/fabric8-services/fabric8-wit/tmp/junit.xml'
     }
   }
 }
