@@ -65,6 +65,11 @@ func (s *testFixtureSuite) TestNewFixture_Advanced() {
 		require.Nil(t, err)
 		require.Nil(t, c.Check())
 	})
+	s.T().Run("test CreateWorkItemEnvironment error", func(t *testing.T) {
+		c, err := tf.NewFixture(s.DB, tf.CreateWorkItemEnvironment(), tf.Spaces(2))
+		require.NotNil(t, err)
+		require.Nil(t, c)
+	})
 }
 
 func (s *testFixtureSuite) TestNewFixture() {

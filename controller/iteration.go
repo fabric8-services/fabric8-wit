@@ -86,7 +86,6 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 		} else {
 			userActive := false
 			reqIter.Attributes.UserActive = &userActive
-
 		}
 
 		newItr := iteration.Iteration{
@@ -97,7 +96,9 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 			EndAt:      reqIter.Attributes.EndAt,
 			UserActive: *reqIter.Attributes.UserActive,
 		}
-
+		if reqIter.ID != nil {
+			newItr.ID = *reqIter.ID
+		}
 		err = appl.Iterations().Create(ctx, &newItr)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)

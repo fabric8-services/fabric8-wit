@@ -131,6 +131,68 @@ func SetIterationIDsFromString(IDs []string) CustomizeIterationFunc {
 	}
 }
 
+// SetSpaceIDsFromString takes the given IDs in string and uses them during
+// creation of spaces. The length of requested spaces and the number of Ids must
+// match or the NewFixture call will return an error.
+func SetSpaceIDsFromString(IDs []string) CustomizeSpaceFunc {
+	return func(fxt *TestFixture, idx int) error {
+		if len(fxt.Spaces) != len(IDs) {
+			return errs.Errorf("number of IDs (%d) must match number of spaces to create (%d)", len(IDs), len(fxt.Spaces))
+		}
+		fxt.Spaces[idx].ID = uuid.FromStringOrNil(IDs[idx])
+		return nil
+	}
+}
+
+// SetAreaIDsFromString takes the given IDs in string and uses them during
+// creation of areas. The length of requested spaces and the number of Ids must
+// match or the NewFixture call will return an error.
+func SetAreaIDsFromString(IDs []string) CustomizeAreaFunc {
+	return func(fxt *TestFixture, idx int) error {
+		if len(fxt.Areas) != len(IDs) {
+			return errs.Errorf("number of IDs (%d) must match number of areas to create (%d)", len(IDs), len(fxt.Areas))
+		}
+		fxt.Areas[idx].ID = uuid.FromStringOrNil(IDs[idx])
+		return nil
+	}
+}
+
+// SetIdentityIDsFromString takes the given IDs in string and uses them during
+// creation of identities. The length of requested identities and the number of Ids must
+// match or the NewFixture call will return an error.
+func SetIdentityIDsFromString(IDs []string) CustomizeIdentityFunc {
+	return func(fxt *TestFixture, idx int) error {
+		if len(fxt.Identities) != len(IDs) {
+			return errs.Errorf("number of IDs (%d) must match number of identities to create (%d)", len(IDs), len(fxt.Identities))
+		}
+		fxt.Identities[idx].ID = uuid.FromStringOrNil(IDs[idx])
+		return nil
+	}
+}
+
+// PlaceIterationUnderRootIteration when asking for more than one iteration, all
+// but the first one will be placed under the first iteration (aka root
+// iteration).
+func PlaceIterationUnderRootIteration() CustomizeIterationFunc {
+	return func(fxt *TestFixture, idx int) error {
+		if idx > 0 {
+			fxt.Iterations[idx].MakeChildOf(*fxt.Iterations[0])
+		}
+		return nil
+	}
+}
+
+// PlaceAreaUnderRootArea when asking for more than one area, all but the first
+// one will be placed under the first area (aka root area).
+func PlaceAreaUnderRootArea() CustomizeAreaFunc {
+	return func(fxt *TestFixture, idx int) error {
+		if idx > 0 {
+			fxt.Areas[idx].MakeChildOf(*fxt.Areas[0])
+		}
+		return nil
+	}
+}
+
 // SetWorkItemTypeNames takes the given names and uses them during creation of
 // work item types. The length of requested work item types and the number of
 // names must match or the NewFixture call will return an error.
