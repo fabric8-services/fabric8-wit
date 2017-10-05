@@ -256,8 +256,7 @@ func (c *IterationController) Delete(ctx *app.DeleteIterationContext) error {
 			}, "user is not the space owner")
 			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the space owner"))
 		}
-		is := c.IsRoot(itr, s)
-		if is {
+		if c.IsRoot(itr, s) {
 			log.Warn(ctx, map[string]interface{}{
 				"space_id":     s.ID,
 				"iteration_id": itr.ID,
