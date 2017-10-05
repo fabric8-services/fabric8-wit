@@ -281,7 +281,7 @@ func (c *IterationController) Delete(ctx *app.DeleteIterationContext) error {
 			// fetch associated work items
 			wis, err := appl.WorkItems().LoadByIteration(ctx, child.ID)
 			if err != nil {
-				return err
+				return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
 			}
 			// set root iteration to associated work items
 			for _, wi := range wis {
@@ -309,7 +309,7 @@ func (c *IterationController) Delete(ctx *app.DeleteIterationContext) error {
 		return nil
 	})
 	if err != nil {
-		return err
+		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
 	}
 	return ctx.OK([]byte{})
 }
