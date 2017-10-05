@@ -3,20 +3,17 @@ package controller
 import (
 	"context"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/auth"
 	"github.com/fabric8-services/fabric8-wit/auth/authservice"
-	"github.com/fabric8-services/fabric8-wit/goasupport"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
 
-	"github.com/fabric8-services/fabric8-wit/errors"
-	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/client"
-	errs "github.com/pkg/errors"
 )
 
 // UserController implements the user resource.
@@ -41,6 +38,20 @@ func NewUserController(service *goa.Service, config UserControllerConfiguration)
 }
 
 // Show returns the authorized user based on the provided Token
+func (c *UserController) Show(ctx *app.ShowUserContext) error {
+	authUrl, err := url.Parse(c.config.GetAuthServiceURL())
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	proxy := httputil.NewSingleHostReverseProxy(authUrl)
+	proxy.ServeHTTP(ctx.ResponseData, ctx.Request)
+	log.Info(ctx, map[string]interface{}{
+		"proxy_response": ctx.ResponseData,
+	}, "recieved proxy response for /api/user")
+	return nil
+}
+
+/*
 func (c *UserController) Show(ctx *app.ShowUserContext) error {
 	client, err := c.createClient(ctx)
 	if err != nil {
@@ -73,7 +84,7 @@ func (c *UserController) Show(ctx *app.ShowUserContext) error {
 	}
 	return ctx.OK(convertToAppUser(ctx.RequestData, authUser))
 }
-
+*/
 func convertToAppUser(request *goa.RequestData, user *authservice.User) *app.User {
 	return &app.User{
 		Data: &app.UserData{
