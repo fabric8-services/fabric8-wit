@@ -972,7 +972,7 @@ func (r *GormWorkItemRepository) LoadByIteration(ctx context.Context, iterationI
 
 	res := []WorkItemStorage{}
 	filter := fmt.Sprintf(`fields @> '{"system.iteration":"%s"}'`, iterationID)
-	tx := r.db.Debug().Model(WorkItemStorage{}).Where(filter).Find(&res)
+	tx := r.db.Model(WorkItemStorage{}).Where(filter).Find(&res)
 	if tx.Error != nil {
 		return nil, errors.NewInternalError(ctx, tx.Error)
 	}
