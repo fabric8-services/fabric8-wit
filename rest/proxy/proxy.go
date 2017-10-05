@@ -1,0 +1,118 @@
+package proxy
+
+import (
+	"bytes"
+	"compress/gzip"
+	"context"
+	"io/ioutil"
+	"net/http"
+	"net/http/httputil"
+	"net/url"
+	"strings"
+
+	"github.com/fabric8-services/fabric8-wit/jsonapi"
+	"github.com/fabric8-services/fabric8-wit/log"
+
+	"github.com/goadesign/goa"
+	"github.com/pkg/errors"
+)
+
+// RouteHTTP uses a reverse proxy to route the http request to the scheme, host provided in targetHost
+// and path provided in targetPath.
+func RouteHTTPToPath(ctx context.Context, targetHost string, targetPath string) error {
+	return route(ctx, targetHost, &targetPath)
+}
+
+// RouteHTTP uses a reverse proxy to route the http request to the scheme, host, and base path provided in target.
+// If the target's path is "/base" and the incoming request was for "/dir",
+// the target request will be for /base/dir.
+func RouteHTTP(ctx context.Context, target string) error {
+	return route(ctx, target, nil)
+}
+
+func route(ctx context.Context, targetHost string, targetPath *string) error {
+	rw := goa.ContextResponse(ctx)
+	if rw == nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.New("unable to get response from context"))
+	}
+	req := goa.ContextRequest(ctx)
+	if req == nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.New("unable to get request from context"))
+	}
+
+	targetUrl, err := url.Parse(targetHost)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err":         err,
+			"target_host": targetHost,
+		}, "unable to parse target host")
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	var proxy *httputil.ReverseProxy
+	if targetPath == nil {
+		proxy = httputil.NewSingleHostReverseProxy(targetUrl)
+	} else {
+		targetQuery := targetUrl.RawQuery
+		director := func(req *http.Request) {
+			req.URL.Scheme = targetUrl.Scheme
+			req.URL.Host = targetUrl.Host
+			req.URL.Path = *targetPath
+			if targetQuery == "" || req.URL.RawQuery == "" {
+				req.URL.RawQuery = targetQuery + req.URL.RawQuery
+			} else {
+				req.URL.RawQuery = targetQuery + "&" + req.URL.RawQuery
+			}
+			if _, ok := req.Header["User-Agent"]; !ok {
+				// explicitly disable User-Agent so it's not set to default value
+				req.Header.Set("User-Agent", "")
+			}
+		}
+		proxy = &httputil.ReverseProxy{Director: director}
+	}
+
+	if strings.Contains(req.Header.Get("Accept-Encoding"), "gzip") {
+		gzr := gunzipResponseWriter{ctx: ctx, ResponseWriter: rw}
+		proxy.ServeHTTP(gzr, req.Request)
+	} else {
+		proxy.ServeHTTP(rw, req.Request)
+	}
+
+	return nil
+}
+
+type gunzipResponseWriter struct {
+	http.ResponseWriter
+	ctx context.Context
+}
+
+func (w gunzipResponseWriter) Write(b []byte) (int, error) {
+	// Write gunzipped data to the client
+	gr, err := gzip.NewReader(bytes.NewBuffer(b))
+	if err != nil {
+		return 0, err
+	}
+	defer func() {
+		err := gr.Close()
+		if err != nil {
+			log.Error(w.ctx, map[string]interface{}{
+				"err": err,
+			}, "unable to close gzip writer while serving request in proxy")
+		}
+	}()
+	data, err := ioutil.ReadAll(gr)
+	if err != nil {
+		return 0, err
+	}
+	return w.ResponseWriter.Write(data)
+}
+
+func (w gunzipResponseWriter) WriteHeader(code int) {
+	w.Header().Del("Content-Length")
+	// Remove duplicated headers
+	for key, value := range w.Header() {
+		if len(value) > 0 {
+			w.Header().Set(key, value[0])
+		}
+	}
+	w.ResponseWriter.WriteHeader(code)
+}
