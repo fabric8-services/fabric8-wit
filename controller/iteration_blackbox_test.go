@@ -77,13 +77,10 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 
 	rest.T().Run("success - create child iteration", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, rest.DB,
-			tf.Spaces(1, tf.SetSpaceIDsFromString([]string{"7fa96f9a-1900-47ee-b375-1c2eee31fbbb"})),
-			tf.Identities(1, tf.SetIdentityIDsFromString([]string{"c21f96dd-493e-4555-9d32-9284b3883724"})),
-			tf.Areas(1, tf.SetAreaIDsFromString([]string{"030b0865-4215-487b-a52c-db554fcab865"})),
+			tf.Identities(1),
+			tf.Areas(1),
 			tf.Iterations(2,
 				tf.SetIterationNames([]string{"root iteration", "child iteration"}),
-				tf.SetIterationIDsFromString([]string{"f9f13258-0b2a-4519-abbc-44d5dc7fbf24",
-					"54475218-5442-4708-83a2-7f2cb0201f95"}),
 				tf.PlaceIterationUnderRootIteration()))
 		name := "Sprint #21"
 		childItr := fxt.IterationByName("child iteration")
@@ -94,14 +91,12 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 		require.Nil(t, err)
 		ci.Data.Attributes.StartAt = &startAt
 		ci.Data.Attributes.EndAt = &endAt
-		id := uuid.FromStringOrNil("97126bbf-1e04-42d3-b176-d0e58822b108")
-		ci.Data.ID = &id
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 		// when
 		_, created := test.CreateChildIterationCreated(t, svc.Context, svc, ctrl, childItr.ID.String(), ci)
 		// then
 		require.NotNil(t, created)
-		compareWithGolden(t, filepath.Join(rest.testDir, "create", "ok_create_iteration_child.golden.json"), created)
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child.golden.json"), created)
 	})
 
 	rest.T().Run("forbidden - only space owener can create child iteration", func(t *testing.T) {
