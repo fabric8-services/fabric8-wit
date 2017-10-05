@@ -30,6 +30,12 @@ type Area struct {
 	Version int
 }
 
+// MakeChildOf does all the path magic to make the current area a child of
+// the given parent area.
+func (m *Area) MakeChildOf(parent Area) {
+	m.Path = append(parent.Path, parent.ID)
+}
+
 // GetETagData returns the field values to use to generate the ETag
 func (m Area) GetETagData() []interface{} {
 	return []interface{}{m.ID, m.Version}

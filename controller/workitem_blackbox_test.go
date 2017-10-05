@@ -31,6 +31,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/search"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/test/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 
@@ -234,18 +235,28 @@ func (s *WorkItemSuite) TestGetWorkItemWithLegacyDescription() {
 }
 
 func (s *WorkItemSuite) TestCreateWI() {
-	// given
-	payload := minimumRequiredCreateWithType(workitem.SystemBug)
-	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
-	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	// when
-	_, created := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
-	// then
-	require.NotNil(s.T(), created.Data.ID)
-	assert.NotEmpty(s.T(), *created.Data.ID)
-	assert.NotNil(s.T(), created.Data.Attributes[workitem.SystemCreatedAt])
-	assert.NotNil(s.T(), created.Data.Relationships.Creator.Data)
-	assert.Equal(s.T(), *created.Data.Relationships.Creator.Data.ID, s.testIdentity.ID.String())
+	s.T().Run("ok", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment())
+		svc := testsupport.ServiceAsUser("TestUpdateWI-Service", *fxt.Identities[0])
+		workitemsCtrl := NewWorkitemsController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+		// given
+		payload := minimumRequiredCreateWithTypeAndSpace(fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
+		payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
+		payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+		// when
+		_, created := test.CreateWorkitemsCreated(t, svc.Context, svc, workitemsCtrl, fxt.Spaces[0].ID, &payload)
+		// then
+		require.NotNil(t, created.Data.ID)
+		assert.NotEmpty(t, *created.Data.ID)
+		require.NotNil(t, created.Data.Attributes[workitem.SystemCreatedAt])
+		require.NotNil(t, created.Data.Relationships.Creator.Data)
+		assert.Equal(t, *created.Data.Relationships.Creator.Data.ID, fxt.Identities[0].ID.String())
+		require.NotNil(t, created.Data.Relationships.Iteration)
+		assert.Equal(t, fxt.Iterations[0].ID.String(), *created.Data.Relationships.Iteration.Data.ID)
+		require.NotNil(t, created.Data.Relationships.Area)
+		assert.Equal(t, fxt.Areas[0].ID.String(), *created.Data.Relationships.Area.Data.ID)
+	})
 }
 
 // TestReorderAbove is positive test which tests successful reorder by providing valid input
@@ -708,7 +719,7 @@ func minimumRequiredCreateWithType(witID uuid.UUID) app.CreateWorkitemsPayload {
 }
 
 func minimumRequiredCreateWithTypeAndSpace(witID uuid.UUID, spaceID uuid.UUID) app.CreateWorkitemsPayload {
-	c := minimumRequiredCreatePayload()
+	c := minimumRequiredCreatePayload(spaceID)
 	c.Data.Relationships.BaseType = newRelationBaseType(spaceID, witID)
 	return c
 }
@@ -727,14 +738,18 @@ func newRelationBaseType(spaceID, wit uuid.UUID) *app.RelationBaseType {
 	}
 }
 
-func minimumRequiredCreatePayload() app.CreateWorkitemsPayload {
-	spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(space.SystemSpace.String()))
+func minimumRequiredCreatePayload(spaceIDOptional ...uuid.UUID) app.CreateWorkitemsPayload {
+	spaceID := space.SystemSpace
+	if len(spaceIDOptional) == 1 {
+		spaceID = spaceIDOptional[0]
+	}
+	spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(spaceID.String()))
 	return app.CreateWorkitemsPayload{
 		Data: &app.WorkItem{
 			Type:       APIStringTypeWorkItem,
 			Attributes: map[string]interface{}{},
 			Relationships: &app.WorkItemRelationships{
-				Space: app.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
+				Space: app.NewSpaceRelation(spaceID, spaceSelfURL),
 			},
 		},
 	}
