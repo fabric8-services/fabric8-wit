@@ -58,6 +58,16 @@ func (s *workItemRepoBlackBoxTest) TestSave() {
 		assert.Equal(t, oldDate.UTC(), newTime.UTC())
 	})
 
+	s.T().Run("ok - save empty assignees & labels", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1))
+		wi, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		// then
+		require.Nil(t, err)
+		require.Len(t, wi.Fields[workitem.SystemAssignees].([]interface{}), 0)
+		require.Len(t, wi.Fields[workitem.SystemLabels].([]interface{}), 0)
+	})
+
 	s.T().Run("change is not prohibited", func(t *testing.T) {
 		// tests that you can change the type of a work item. NOTE: This
 		// functionality only works on the DB layer and is not exposed to REST.
@@ -95,6 +105,19 @@ func (s *workItemRepoBlackBoxTest) TestCreate() {
 		require.Len(t, wi.Fields[workitem.SystemAssignees].([]interface{}), 2)
 		assert.Equal(t, "A", wi.Fields[workitem.SystemAssignees].([]interface{})[0])
 		assert.Equal(t, "B", wi.Fields[workitem.SystemAssignees].([]interface{})[1])
+	})
+
+	s.T().Run("ok - save without assignees & labels", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
+			return nil
+		}))
+		// when
+		wi, err := s.repo.LoadByID(s.Ctx, fxt.WorkItems[0].ID)
+		// then
+		require.Nil(t, err)
+		require.Len(t, wi.Fields[workitem.SystemAssignees].([]interface{}), 0)
+		require.Len(t, wi.Fields[workitem.SystemLabels].([]interface{}), 0)
 	})
 
 	s.T().Run("ok - create work item with description no markup", func(t *testing.T) {
