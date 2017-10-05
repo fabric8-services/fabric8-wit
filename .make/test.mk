@@ -98,7 +98,7 @@ GO_TEST_VERBOSITY_FLAG ?=
 F8_POSTGRES_HOST ?= localhost
 
 # By default reduce the amount of log output from tests
-F8_LOG_LEVEL ?= panic
+F8_LOG_LEVEL ?= error
 
 # Output directory for coverage information
 COV_DIR = $(TMP_PATH)/coverage
@@ -168,7 +168,7 @@ test-integration-no-coverage: prebuild-check migrate-database $(SOURCES)
 test-integration-benchmark: prebuild-check migrate-database $(SOURCES)
 	$(call log-info,"Running benchmarks: $@")
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
-	F8_DEVELOPER_MODE_ENABLED=1 F8_LOG_LEVEL=error F8_RESOURCE_DATABASE=1 F8_RESOURCE_UNIT_TEST=0 $(F8_LOG_LEVEL) go test -run=^$$ -bench=. -cpu 1,2,4 -test.benchmem $(GO_TEST_VERBOSITY_FLAG) $(TEST_PACKAGES) | grep -E "Bench|allocs"
+	F8_DEVELOPER_MODE_ENABLED=1 F8_RESOURCE_DATABASE=1 F8_RESOURCE_UNIT_TEST=0 F8_LOG_LEVEL=$(F8_LOG_LEVEL) go test -run=^$$ -bench=. -cpu 1,2,4 -test.benchmem $(GO_TEST_VERBOSITY_FLAG) $(TEST_PACKAGES) | grep -E "Bench|allocs"
 
 .PHONY: test-remote
 ## Runs the remote tests and produces coverage files for each package.
@@ -179,7 +179,7 @@ test-remote: prebuild-check clean-coverage-remote $(COV_PATH_REMOTE)
 test-remote-no-coverage: prebuild-check $(SOURCES)
 	$(call log-info,"Running test: $@")
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
-	F8_DEVELOPER_MODE_ENABLED=1 F8_RESOURCE_REMOTE=1 F8_RESOURCE_UNIT_TEST=0 $(F8_LOG_LEVEL) go test $(GO_TEST_VERBOSITY_FLAG) $(TEST_PACKAGES)
+	F8_DEVELOPER_MODE_ENABLED=1 F8_RESOURCE_REMOTE=1 F8_RESOURCE_UNIT_TEST=0 F8_LOG_LEVEL=$(F8_LOG_LEVEL) go test $(GO_TEST_VERBOSITY_FLAG) $(TEST_PACKAGES)
 
 .PHONY: test-migration
 ## Runs the migration tests and should be executed before running the integration tests

@@ -171,10 +171,8 @@ func makeAreas(fxt *TestFixture) error {
 	fxt.Areas = make([]*area.Area, fxt.info[kindAreas].numInstances)
 	areaRepo := area.NewAreaRepository(fxt.db)
 	for i := range fxt.Areas {
-		//id := uuid.NewV4()
 		fxt.Areas[i] = &area.Area{
-			//ID:   id,
-			Name: testsupport.CreateRandomValidTestName("area "), // + id.String(),
+			Name: testsupport.CreateRandomValidTestName("area "),
 		}
 		if !fxt.isolatedCreation {
 			fxt.Areas[i].SpaceID = fxt.Spaces[0].ID
