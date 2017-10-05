@@ -106,8 +106,8 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 		name := "Sprint #21"
 		ci := getChildIterationPayload(&name)
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.IdentityByUsername("other user"))
-		_, jerr := test.CreateChildIterationForbidden(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "forbidden_other_user.golden.json"), jerr)
+		_, jerrs := test.CreateChildIterationForbidden(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "forbidden_other_user.golden.json"), jerrs)
 	})
 
 	rest.T().Run("fail - create same child iteration conflict", func(t *testing.T) {
@@ -121,16 +121,16 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 		name := fxt.Iterations[1].Name
 		ci := getChildIterationPayload(&name)
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
-		_, jerr := test.CreateChildIterationConflict(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "conflict_for_same_name.golden.json"), jerr)
+		_, jerrs := test.CreateChildIterationConflict(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "conflict_for_same_name.golden.json"), jerrs)
 	})
 
 	rest.T().Run("fail - create child iteration missing name", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, rest.DB, tf.Identities(1), tf.Areas(1), tf.Iterations(1))
 		ci := getChildIterationPayload(nil)
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
-		_, jerr := test.CreateChildIterationBadRequest(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "bad_request_missing_name.golden.json"), jerr)
+		_, jerrs := test.CreateChildIterationBadRequest(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "bad_request_missing_name.golden.json"), jerrs)
 	})
 
 	rest.T().Run("fail - create child missing parent", func(t *testing.T) {
@@ -138,7 +138,10 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 		name := "Sprint #21"
 		ci := getChildIterationPayload(&name)
-		test.CreateChildIterationNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String(), ci)
+		_, jerrs := test.CreateChildIterationNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String(), ci)
+		ignoreString := "IGNORE_ME"
+		jerrs.Errors[0].ID = &ignoreString
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "bad_request_unknown_parent.golden.json"), jerrs)
 	})
 
 	rest.T().Run("unauthorized - create child iteration with unauthorized user", func(t *testing.T) {
@@ -146,7 +149,10 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 		name := "Sprint #21"
 		ci := getChildIterationPayload(&name)
 		svc, ctrl := rest.UnSecuredController()
-		test.CreateChildIterationUnauthorized(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
+		_, jerrs := test.CreateChildIterationUnauthorized(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
+		ignoreString := "IGNORE_ME"
+		jerrs.Errors[0].ID = &ignoreString
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized.golden.json"), jerrs)
 	})
 }
 
