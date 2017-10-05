@@ -14,7 +14,7 @@ import:
 - package: github.com/dgrijalva/jwt-go
   version: ^3.0.0
 - package: github.com/goadesign/goa
-  version: ^1.2.0
+  version: 1.2.0
   vcs: git
   subpackages:
   - client
@@ -106,9 +106,15 @@ import:
   - golint
 - package: github.com/fzipp/gocyclo
 - package: github.com/Sirupsen/logrus
+  version: c078b1e43f58d563c74cebe63c85789e76ddb627
+  repo: https://github.com/sirupsen/logrus
+  vcs: git
 - package: github.com/sourcegraph/syntaxhighlight
 - package: github.com/jstemmer/go-junit-report
 - package: github.com/sourcegraph/annotate
 - package: github.com/sergi/go-diff
   subpackages:
   - diffmatchpatch
+- package: github.com/xeipuuv/gojsonschema
+- package: github.com/xeipuuv/gojsonreference
+- package: github.com/xeipuuv/gojsonpointer

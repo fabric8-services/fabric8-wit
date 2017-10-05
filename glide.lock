@@ -1,5 +1,5 @@
-hash: 3485ba9192d8fa45e0ff6c2f460c338020158011ba2d3a3bce3e0b67d80fe6b2
-updated: 2017-07-31T13:11:16.984432662+02:00
+hash: b66768446fd3d5c605a124cb7bac37abd21421c6804bfabc54b4e02c46b899ca
+updated: 2017-10-04T11:10:23.612734942+02:00
 imports:
 - name: github.com/andygrunwald/go-jira
   version: 9d1f282f93af41553ddb53b0116a8cdb75b4837a
@@ -30,6 +30,16 @@ imports:
   version: 9a6736ed45b44bf3835afeebb3034b57ed329f3e
   subpackages:
   - go-bindata-assetfs
+- name: github.com/fabric8-services/fabric8-auth
+  version: c1a62b994f63d11723829794ac63206ecdac8d01
+  subpackages:
+  - configuration
+  - design
+  - errors
+  - log
+  - resource
+  - rest
+  - token
 - name: github.com/fabric8-services/fabric8-notification
   version: a3c7adb29a8ec1e0aab2af4f9a2d3c852d0daaef
   subpackages:
@@ -38,16 +48,6 @@ imports:
   version: 5ce38dea6287d9bac7789a8bc24556867a4fcee6
   subpackages:
   - design
-- name: github.com/fabric8-services/fabric8-auth
-  version: c1a62b994f63d11723829794ac63206ecdac8d01
-  subpackages:
-  - design
-- name: gopkg.in/square/go-jose.v2
-  version: b25e6cab129e4a54675b42ea49d38e9c33ade9e6
-- name: golang.org/x/crypto
-  version: 81e90905daefcd6fd217b62423c0908922eadb30
-  subpackages:
-  - ssh/terminal
 - name: github.com/fatih/structs
   version: dc3312cb1a4513a366c4c9e622ad55c32df12ed3
 - name: github.com/fsnotify/fsnotify
@@ -110,6 +110,8 @@ imports:
   version: c1b9cf186e4bcd8e5d566ef43f2ae2dfe22dc34e
 - name: github.com/jinzhu/inflection
   version: 74387dc39a75e970e7a3ae6a3386b5bd2e5c5cff
+- name: github.com/jstemmer/go-junit-report
+  version: 15422cf504f9dc030386499a5c68053a38763e58
 - name: github.com/jteeuwen/go-bindata
   version: bbd0c6e271208dce66d8fda4bc536453cd27fc4a
   subpackages:
@@ -131,7 +133,7 @@ imports:
 - name: github.com/mattn/go-colorable
   version: d228849504861217f796da67fae4f6e347643f15
 - name: github.com/mattn/go-isatty
-  version: fc9e8d8ef48496124e79ae0df75490096eccf6fe
+  version: 0360b2af4f38e8d38c7fce2a9f4e702702d73a39
 - name: github.com/microcosm-cc/bluemonday
   version: e79763773ab6222ca1d5a7cbd9d62d83c1f77081
 - name: github.com/mitchellh/mapstructure
@@ -154,8 +156,6 @@ imports:
   version: b024fc5ea0e34bc3f83d9941c8d60b0622bfaca4
 - name: github.com/russross/blackfriday
   version: 5f33e7b7878355cd2b7e6b8eefc48a5472c69f70
-- name: github.com/jstemmer/go-junit-report
-  version: 15422cf504f9dc030386499a5c68053a38763e58
 - name: github.com/satori/go.uuid
   version: b061729afc07e77a8aa4fad0a2fd840958f1942a
 - name: github.com/sergi/go-diff
@@ -166,6 +166,8 @@ imports:
   version: 1dba4b3954bc059efc3991ec364f9f9a35f597d2
 - name: github.com/Sirupsen/logrus
   version: c078b1e43f58d563c74cebe63c85789e76ddb627
+  repo: https://github.com/sirupsen/logrus
+  vcs: git
 - name: github.com/sourcegraph/annotate
   version: f4cad6c6324d3f584e1743d8b3e0e017a5f3a636
 - name: github.com/sourcegraph/syntaxhighlight
@@ -196,8 +198,19 @@ imports:
   - tcontainer
 - name: github.com/wadey/gocovmerge
   version: b5bfa59ec0adc420475f97f89b58045c721d761c
+- name: github.com/xeipuuv/gojsonpointer
+  version: 6fe8760cad3569743d51ddbb243b26f8456742dc
+- name: github.com/xeipuuv/gojsonreference
+  version: e02fc20de94c78484cd5ffb007f8af96be030a45
+- name: github.com/xeipuuv/gojsonschema
+  version: 3f523f4c14b6e925da10475eb0447c2f28614aac
 - name: github.com/zach-klippenstein/goregen
   version: 795b5e3961ea1912fde60af417ad85e86acc0d6a
+- name: golang.org/x/crypto
+  version: 81e90905daefcd6fd217b62423c0908922eadb30
+  subpackages:
+  - ed25519
+  - ed25519/internal/edwards25519
 - name: golang.org/x/net
   version: b1a2d6e8c8b5fc8f601ead62536f02a8e1b6217d
   subpackages:
@@ -234,6 +247,11 @@ imports:
   - urlfetch
 - name: gopkg.in/asaskevich/govalidator.v4
   version: 7664702784775e51966f0885f5cd27435916517b
+- name: gopkg.in/square/go-jose.v2
+  version: f8f38de21b4dcd69d0413faf231983f5fd6634b1
+  subpackages:
+  - cipher
+  - json
 - name: gopkg.in/yaml.v2
   version: a5b47d31c556af34a302ce5d659e6fea44d90de0
 testImports: []
