@@ -446,7 +446,7 @@ type WorkItemConvertFunc func(*http.Request, *workitem.WorkItem, *app.WorkItem)
 // ConvertWorkItems is responsible for converting given []WorkItem model object into a
 // response resource object by jsonapi.org specifications
 func ConvertWorkItems(request *http.Request, wis []workitem.WorkItem, additional ...WorkItemConvertFunc) []*app.WorkItem {
-	ops := []*app.WorkItem{}
+	var ops []*app.WorkItem
 	for _, wi := range wis {
 		ops = append(ops, ConvertWorkItem(request, wi, additional...))
 	}

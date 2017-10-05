@@ -81,7 +81,7 @@ func getTypesOfLinks(ctx *workItemLinkContext, linksDataArr []*app.WorkItemLinkD
 		typeIDMap[linkData.Relationships.LinkType.Data.ID] = true
 	}
 	// Now include the optional link type data in the work item link "included" array
-	linkTypeModels := []link.WorkItemLinkType{}
+	var linkTypeModels []link.WorkItemLinkType
 	for typeID := range typeIDMap {
 		linkTypeModel, err := ctx.Application.WorkItemLinkTypes().Load(ctx.Context, typeID)
 		if err != nil {
@@ -106,7 +106,7 @@ func getWorkItemsOfLinks(ctx *workItemLinkContext, linksDataArr []*app.WorkItemL
 		workItemIDMap[linkData.Relationships.Target.Data.ID] = true
 	}
 	// Now include the optional work item data in the work item link "included" array
-	workItemArr := []*app.WorkItem{}
+	var workItemArr []*app.WorkItem
 	for workItemID := range workItemIDMap {
 		wi, err := ctx.Application.WorkItems().LoadByID(ctx.Context, workItemID)
 		if err != nil {
@@ -126,7 +126,7 @@ func getCategoriesOfLinkTypes(ctx *workItemLinkContext, linkTypeDataArr []*app.W
 		catIDMap[linkTypeData.Relationships.LinkCategory.Data.ID] = true
 	}
 	// Now include the optional link category data in the work item link "included" array
-	catDataArr := []*app.WorkItemLinkCategoryData{}
+	var catDataArr []*app.WorkItemLinkCategoryData
 	for catID := range catIDMap {
 		modelCategory, err := ctx.Application.WorkItemLinkCategories().Load(ctx.Context, catID)
 		if err != nil {

@@ -85,7 +85,7 @@ func (cs *StarterClient) ListWorkspaces(ctx context.Context, repository string) 
 		return nil, &workspaceErr
 	}
 
-	workspaceResp := []*WorkspaceResponse{}
+	var workspaceResp []*WorkspaceResponse
 	err = json.NewDecoder(resp.Body).Decode(&workspaceResp)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{

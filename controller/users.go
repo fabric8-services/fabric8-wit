@@ -299,7 +299,7 @@ func (c *UsersController) List(ctx *app.ListUsersContext) error {
 
 // ConvertUsersSimple converts a array of simple Identity IDs into a Generic Reletionship List
 func ConvertUsersSimple(request *http.Request, identityIDs []interface{}) []*app.GenericData {
-	ops := []*app.GenericData{}
+	var ops []*app.GenericData
 	for _, identityID := range identityIDs {
 		ops = append(ops, ConvertUserSimple(request, identityID))
 	}

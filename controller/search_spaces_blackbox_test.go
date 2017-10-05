@@ -103,7 +103,7 @@ func createTestData(db application.DB, prefix string) ([]space.Space, error) {
 		names = append(names, prefix+"TEST_"+strconv.Itoa(i))
 	}
 
-	spaces := []space.Space{}
+	var spaces []space.Space
 
 	err := application.Transactional(db, func(app application.Application) error {
 		for _, name := range names {

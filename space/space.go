@@ -266,7 +266,7 @@ func (r *GormRepository) listSpaceFromDB(ctx context.Context, q *string, userID 
 	}
 	defer rows.Close()
 
-	result := []Space{}
+	var result []Space
 	columns, err := rows.Columns()
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{

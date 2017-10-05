@@ -5,6 +5,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/models"
 
 	"context"
+
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 	"github.com/robfig/cron"
@@ -76,7 +77,7 @@ func (s *Scheduler) ScheduleAllQueries(ctx context.Context, accessTokens map[str
 }
 
 func fetchTrackerQueries(db *gorm.DB) []trackerSchedule {
-	tsList := []trackerSchedule{}
+	var tsList []trackerSchedule
 	err := db.Table("tracker_queries").Select("trackers.id as tracker_id, trackers.url, trackers.type as tracker_type, tracker_queries.query, tracker_queries.schedule, tracker_queries.space_id").Joins("left join trackers on tracker_queries.tracker_id = trackers.id").Where("trackers.deleted_at is NULL AND tracker_queries.deleted_at is NULL").Scan(&tsList).Error
 	if err != nil {
 		log.Error(nil, map[string]interface{}{

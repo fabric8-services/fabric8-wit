@@ -182,7 +182,7 @@ func (c *expressionCompiler) Literal(v *criteria.LiteralExpression) interface{} 
 }
 
 func (c *expressionCompiler) wrapStrings(value []string) string {
-	wrapped := []string{}
+	var wrapped []string
 	for i := 0; i < len(value); i++ {
 		wrapped = append(wrapped, "\""+value[i]+"\"")
 	}

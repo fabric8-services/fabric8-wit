@@ -94,7 +94,7 @@ func (r *GormWorkItemRepository) LoadBatchFromDB(ctx context.Context, ids []uuid
 		"wi_ids": ids,
 	}, "Loading work items")
 
-	res := []WorkItemStorage{}
+	var res []WorkItemStorage
 	tx := r.db.Model(WorkItemStorage{}).Where("id IN (?)", ids).Find(&res)
 	if tx.Error != nil {
 		return nil, errors.NewInternalError(ctx, tx.Error)
@@ -124,7 +124,7 @@ func (r *GormWorkItemRepository) LoadBatchByID(ctx context.Context, ids []uuid.U
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
-	workitems := []*WorkItem{}
+	var workitems []*WorkItem
 	for _, ele := range res {
 		wiType, err := r.witr.LoadTypeFromDB(ctx, ele.Type)
 		if err != nil {
@@ -674,7 +674,7 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, spaceID uu
 	}
 	defer rows.Close()
 
-	result := []WorkItemStorage{}
+	var result []WorkItemStorage
 	columns, err := rows.Columns()
 	if err != nil {
 		return nil, 0, errors.NewInternalError(ctx, err)
@@ -929,7 +929,7 @@ func (r *GormWorkItemRepository) GetCountsForIteration(ctx context.Context, itr 
 	childIDs = append(childIDs, itr.ID)
 
 	// build where clause usig above ID list
-	idsToLookFor := []string{}
+	var idsToLookFor []string
 	for _, x := range childIDs {
 		partialClause := fmt.Sprintf(`fields @> '{"system.iteration":"%s"}'`, x.String())
 		idsToLookFor = append(idsToLookFor, partialClause)

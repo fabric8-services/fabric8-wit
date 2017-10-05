@@ -192,14 +192,14 @@ func (c *SearchController) Users(ctx *app.UsersSearchContext) error {
 // Iterate over the WI list and read parent IDs
 // Fetch and load Parent WI in the included list
 func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, res *app.SearchWorkItemList) {
-	fetchInBatch := []uuid.UUID{}
+	var fetchInBatch []uuid.UUID
 	for _, wi := range res.Data {
 		if wi.Relationships != nil && wi.Relationships.Parent != nil && wi.Relationships.Parent.Data != nil {
 			parentID := wi.Relationships.Parent.Data.ID
 			fetchInBatch = append(fetchInBatch, parentID)
 		}
 	}
-	wis := []*workitem.WorkItem{}
+	var wis []*workitem.WorkItem
 	err := application.Transactional(c.db, func(appl application.Application) error {
 		var err error
 		wis, err = appl.WorkItems().LoadBatchByID(ctx, fetchInBatch)

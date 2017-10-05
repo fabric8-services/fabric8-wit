@@ -113,7 +113,7 @@ func generateBacklogExpression(ctx context.Context, db application.DB, spaceID u
 }
 
 func getBacklogItems(ctx context.Context, db application.DB, spaceID uuid.UUID, exp criteria.Expression, offset *int, limit *int) ([]workitem.WorkItem, int, error) {
-	result := []workitem.WorkItem{}
+	var result []workitem.WorkItem
 	count := 0
 
 	backlogExp, err := generateBacklogExpression(ctx, db, spaceID, exp)
