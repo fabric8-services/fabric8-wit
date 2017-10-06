@@ -17,6 +17,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/rest"
 
 	"github.com/goadesign/goa"
+	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -45,7 +46,7 @@ func TestProxy(t *testing.T) {
 	assert.Equal(t, 201, rw.Code)
 	assert.Equal(t, "proxyTest", rw.Header().Get("Custom-Test-Header"))
 	body := rest.ReadBody(rw.Result().Body)
-	assert.Equal(t, "Hi there!", body)
+	assert.Equal(t, veryLongBody, body)
 
 	// POST, gzipped, changed target path
 	rw = httptest.NewRecorder()
@@ -64,7 +65,7 @@ func TestProxy(t *testing.T) {
 	assert.Equal(t, 201, rw.Code)
 	assert.Equal(t, "proxyTest", rw.Header().Get("Custom-Test-Header"))
 	body = rest.ReadBody(rw.Result().Body)
-	assert.Equal(t, "Hi there!", body)
+	assert.Equal(t, veryLongBody, body)
 }
 
 func startServer() {
@@ -75,8 +76,7 @@ func startServer() {
 func waitForServer(t *testing.T) {
 	req, err := http.NewRequest("GET", "http://localhost:8889/api", nil)
 	require.Nil(t, err)
-	attempt := 1
-	for ; attempt < 30; attempt++ {
+	for i := 0; i < 30; i++ {
 		time.Sleep(100 * time.Millisecond)
 		client := &http.Client{Timeout: time.Duration(500 * time.Millisecond)}
 		res, err := client.Do(req)
@@ -90,7 +90,7 @@ func waitForServer(t *testing.T) {
 func handler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Custom-Test-Header", "proxyTest")
 	w.WriteHeader(201)
-	fmt.Fprint(w, "Hi there!")
+	fmt.Fprint(w, veryLongBody)
 }
 
 func handlerGzip(w http.ResponseWriter, r *http.Request) {
@@ -117,4 +117,14 @@ func (w gzipResponseWriter) Write(b []byte) (int, error) {
 func (w gzipResponseWriter) WriteHeader(code int) {
 	w.Header().Del("Content-Length")
 	w.ResponseWriter.WriteHeader(code)
+}
+
+var veryLongBody = generateLongBody()
+
+func generateLongBody() string {
+	body := uuid.NewV4().String()
+	for i := 0; i < 100; i++ {
+		body = body + uuid.NewV4().String()
+	}
+	return body
 }
