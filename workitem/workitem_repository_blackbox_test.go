@@ -1,11 +1,15 @@
 package workitem_test
 
 import (
+	"context"
+	"fmt"
 	"testing"
 	"time"
 
+	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/codebase"
 	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
@@ -301,4 +305,64 @@ func (s *workItemRepoBlackBoxTest) TestLookupIDByNamedSpaceAndNumberStaleSpace()
 	assert.Equal(s.T(), wi2.ID, *wiID2)
 	require.NotNil(s.T(), spaceID2)
 	assert.Equal(s.T(), wi2.SpaceID, *spaceID2)
+}
+
+func (s *workItemRepoBlackBoxTest) TestConcurrentWorkItemCreations() {
+	// given
+	fxt := tf.NewTestFixture(s.T(), s.DB,
+		tf.Identities(1, func(fxt *tf.TestFixture, idx int) error {
+			fxt.Identities[idx].Username = "TestConcurrentCreate-" + uuid.NewV4().String()
+			return nil
+		}),
+		tf.Spaces(1, func(fxt *tf.TestFixture, idx int) error {
+			fxt.Spaces[idx].OwnerId = fxt.Identities[idx].ID
+			fxt.Spaces[idx].Name = "TestConcurrentCreate-" + uuid.NewV4().String()
+			return nil
+		}),
+		tf.WorkItemTypes(1, func(fxt *tf.TestFixture, idx int) error {
+			fxt.WorkItemTypes[idx].SpaceID = fxt.Spaces[0].ID
+			return nil
+		}))
+	type Report struct {
+		id       int
+		total    int
+		failures int
+	}
+	done := make(chan Report)
+
+	routines := 10
+	itemsPerRoutine := 50
+	// when running concurrent go routines simultaneously
+	for i := 0; i < routines; i++ {
+		// in each go rountine, run 10 creations
+		go func(rountineID int) {
+			report := Report{id: rountineID}
+			for j := 0; j < itemsPerRoutine; j++ {
+				if err := application.Transactional(gormapplication.NewGormDB(s.DB), func(app application.Application) error {
+
+					fields := map[string]interface{}{
+						workitem.SystemTitle: uuid.NewV4().String(),
+						workitem.SystemState: workitem.SystemStateNew,
+					}
+					_, err := s.repo.Create(context.Background(), fxt.Spaces[0].ID, fxt.WorkItemTypes[0].ID, fields, fxt.Identities[0].ID)
+
+					return err
+				}); err != nil {
+					s.T().Logf("Creation failed: %s", err.Error())
+					report.failures++
+				}
+				report.total++
+			}
+			done <- report
+		}(i)
+	}
+	// wait for all items to be created
+	for i := 0; i < routines; i++ {
+		report := <-done
+		fmt.Printf("Routine #%d done: %d creations, including %d failure(s)\n", report.id, report.total, report.failures)
+		assert.Equal(s.T(), itemsPerRoutine, report.total)
+		assert.Equal(s.T(), 0, report.failures)
+	}
+
+	// then
 }
