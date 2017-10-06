@@ -13,8 +13,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
 
-	"fmt"
-
 	"github.com/goadesign/goa"
 	"github.com/pkg/errors"
 )
@@ -52,12 +50,12 @@ func route(ctx context.Context, targetHost string, targetPath *string) error {
 	}
 
 	var proxy *httputil.ReverseProxy
-	var targetURLInfo string
+	var targetURLInfo url.URL
 	if targetPath == nil {
-		targetURLInfo = targetUrl.String()
+		targetURLInfo = url.URL{Scheme: targetUrl.Scheme, Host: targetUrl.Host, Path: singleJoiningSlash(targetUrl.Path, req.URL.Path)}
 		proxy = httputil.NewSingleHostReverseProxy(targetUrl)
 	} else {
-		targetURLInfo = fmt.Sprintf("%s://%s/%s", targetUrl.Scheme, targetUrl.Host, *targetPath)
+		targetURLInfo = url.URL{Scheme: targetUrl.Scheme, Host: targetUrl.Host, Path: *targetPath}
 		targetQuery := targetUrl.RawQuery
 		director := func(req *http.Request) {
 			req.URL.Scheme = targetUrl.Scheme
@@ -78,7 +76,7 @@ func route(ctx context.Context, targetHost string, targetPath *string) error {
 
 	log.Info(ctx, map[string]interface{}{
 		"target_host": targetHost,
-	}, "Routing %s to %s", targetURLInfo)
+	}, "Routing %s to %s", req.URL.String(), targetURLInfo.String())
 
 	if strings.Contains(req.Header.Get("Accept-Encoding"), "gzip") {
 		gzr := gunzipResponseWriter{ctx: ctx, ResponseWriter: rw, targetURL: targetURLInfo}
@@ -93,7 +91,7 @@ func route(ctx context.Context, targetHost string, targetPath *string) error {
 type gunzipResponseWriter struct {
 	http.ResponseWriter
 	ctx       context.Context
-	targetURL string
+	targetURL url.URL
 }
 
 func (w gunzipResponseWriter) Write(b []byte) (int, error) {
@@ -107,7 +105,7 @@ func (w gunzipResponseWriter) Write(b []byte) (int, error) {
 		if err != nil {
 			log.Error(w.ctx, map[string]interface{}{
 				"err":        err,
-				"target_url": w.targetURL,
+				"target_url": w.targetURL.String(),
 			}, "unable to close gzip writer while serving request in proxy")
 		}
 	}()
@@ -127,4 +125,16 @@ func (w gunzipResponseWriter) WriteHeader(code int) {
 		}
 	}
 	w.ResponseWriter.WriteHeader(code)
+}
+
+func singleJoiningSlash(a, b string) string {
+	aslash := strings.HasSuffix(a, "/")
+	bslash := strings.HasPrefix(b, "/")
+	switch {
+	case aslash && bslash:
+		return a + b[1:]
+	case !aslash && !bslash:
+		return a + "/" + b
+	}
+	return a + b
 }
