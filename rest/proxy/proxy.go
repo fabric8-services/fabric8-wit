@@ -13,6 +13,8 @@ import (
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
 
+	"fmt"
+
 	"github.com/goadesign/goa"
 	"github.com/pkg/errors"
 )
@@ -48,10 +50,14 @@ func route(ctx context.Context, targetHost string, targetPath *string) error {
 		}, "unable to parse target host")
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
+
 	var proxy *httputil.ReverseProxy
+	var targetURLInfo string
 	if targetPath == nil {
+		targetURLInfo = targetUrl.String()
 		proxy = httputil.NewSingleHostReverseProxy(targetUrl)
 	} else {
+		targetURLInfo = fmt.Sprintf("%s://%s/%s", targetUrl.Scheme, targetUrl.Host, *targetPath)
 		targetQuery := targetUrl.RawQuery
 		director := func(req *http.Request) {
 			req.URL.Scheme = targetUrl.Scheme
@@ -70,8 +76,12 @@ func route(ctx context.Context, targetHost string, targetPath *string) error {
 		proxy = &httputil.ReverseProxy{Director: director}
 	}
 
+	log.Info(ctx, map[string]interface{}{
+		"target_host": targetHost,
+	}, "Routing %s to %s", targetURLInfo)
+
 	if strings.Contains(req.Header.Get("Accept-Encoding"), "gzip") {
-		gzr := gunzipResponseWriter{ctx: ctx, ResponseWriter: rw}
+		gzr := gunzipResponseWriter{ctx: ctx, ResponseWriter: rw, targetURL: targetURLInfo}
 		proxy.ServeHTTP(gzr, req.Request)
 	} else {
 		proxy.ServeHTTP(rw, req.Request)
@@ -82,7 +92,8 @@ func route(ctx context.Context, targetHost string, targetPath *string) error {
 
 type gunzipResponseWriter struct {
 	http.ResponseWriter
-	ctx context.Context
+	ctx       context.Context
+	targetURL string
 }
 
 func (w gunzipResponseWriter) Write(b []byte) (int, error) {
@@ -95,7 +106,8 @@ func (w gunzipResponseWriter) Write(b []byte) (int, error) {
 		err := gr.Close()
 		if err != nil {
 			log.Error(w.ctx, map[string]interface{}{
-				"err": err,
+				"err":        err,
+				"target_url": w.targetURL,
 			}, "unable to close gzip writer while serving request in proxy")
 		}
 	}()

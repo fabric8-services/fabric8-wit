@@ -293,7 +293,7 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 
 // List runs the list action.
 func (c *UsersController) List(ctx *app.ListUsersContext) error {
-	return proxy.RouteHTTPToPath(ctx, c.config.GetAuthServiceURL(), "/api/users")
+	return proxy.RouteHTTP(ctx, c.config.GetAuthServiceURL())
 }
 
 // ConvertUsersSimple converts a array of simple Identity IDs into a Generic Reletionship List
