@@ -890,52 +890,83 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		assert.Empty(t, wis)
 	})
 
+	// Following test creates the strucute shown in diagram
+	// root Iteration
+	// |___________Iteration 1 (5 WI)
+	// |                |___________Iteration 2 (5 WI)
+	// |                                |___________Iteration 3 (5 WI)
+	// |___________Iteration 4 (2 WI)
+	//                     |___________Iteration 5 (3 WI)
+	// then deletes iteration1 & iteration5 to verify the effect
 	rest.T().Run("success - verify that workitems are updated correctly", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, rest.DB,
-			tf.Iterations(4, func(fxt *tf.TestFixture, idx int) error {
-				i := fxt.Iterations[idx]
-				switch idx {
-				case 1:
-					i.MakeChildOf(*fxt.Iterations[0])
-				case 2:
-					i.MakeChildOf(*fxt.Iterations[1])
-				case 3:
-					i.MakeChildOf(*fxt.Iterations[2])
-				}
-				return nil
-			}),
-			tf.WorkItems(10, func(fxt *tf.TestFixture, idx int) error {
+			tf.Iterations(6,
+				func(fxt *tf.TestFixture, idx int) error {
+					i := fxt.Iterations[idx]
+					switch idx {
+					case 1:
+						i.MakeChildOf(*fxt.Iterations[0])
+					case 2:
+						i.MakeChildOf(*fxt.Iterations[1])
+					case 3:
+						i.MakeChildOf(*fxt.Iterations[2])
+					case 4:
+						i.MakeChildOf(*fxt.Iterations[0])
+					case 5:
+						i.MakeChildOf(*fxt.Iterations[4])
+					}
+					return nil
+				}),
+			tf.WorkItems(20, func(fxt *tf.TestFixture, idx int) error {
 				wi := fxt.WorkItems[idx]
-				if idx < 3 { // 0, 1, 2 (3 WIs)
+				switch idx {
+				case 0, 1, 2, 3, 4:
 					wi.Fields[workitem.SystemIteration] = fxt.Iterations[1].ID.String()
-				} else if idx < 7 { // 3, 4, 5, 6 (4 WIs)
+				case 5, 6, 7, 8, 9:
 					wi.Fields[workitem.SystemIteration] = fxt.Iterations[2].ID.String()
-				} else { // 7, 8, 9 (3 WIs)
+				case 10, 11, 12, 13, 14:
 					wi.Fields[workitem.SystemIteration] = fxt.Iterations[3].ID.String()
+				case 15, 16:
+					wi.Fields[workitem.SystemIteration] = fxt.Iterations[4].ID.String()
+				case 17, 18, 19:
+					wi.Fields[workitem.SystemIteration] = fxt.Iterations[5].ID.String()
 				}
 				return nil
 			}))
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
-		iterationToDelete := fxt.Iterations[3]
+		iterationToDelete := fxt.Iterations[1]
 		test.DeleteIterationOK(t, svc.Context, svc, ctrl, iterationToDelete.ID)
 		wis, err := rest.db.WorkItems().LoadByIteration(svc.Context, iterationToDelete.ID)
 		require.Nil(t, err)
 		assert.Empty(t, wis)
 
-		// Verify that 3 WIs are moved to Root iteration
+		// Verify that 20 WIs are moved to Root iteration
 		wis, err = rest.db.WorkItems().LoadByIteration(svc.Context, fxt.Iterations[0].ID)
 		require.Nil(t, err)
-		assert.Len(t, wis, 3)
+		assert.Len(t, wis, 15)
 
-		iterationToDelete = fxt.Iterations[1]
+		iterationToDelete = fxt.Iterations[5]
 		test.DeleteIterationOK(t, svc.Context, svc, ctrl, iterationToDelete.ID)
 		wis, err = rest.db.WorkItems().LoadByIteration(svc.Context, iterationToDelete.ID)
 		require.Nil(t, err)
 		assert.Empty(t, wis)
 
-		// Verify that 7 WIs are moved to Root iteration
+		// Verify that more 3 WIs are moved to Root iteration
 		wis, err = rest.db.WorkItems().LoadByIteration(svc.Context, fxt.Iterations[0].ID)
 		require.Nil(t, err)
-		assert.Len(t, wis, 3+7)
+		assert.Len(t, wis, 15+3)
+
+		// verify that child iterations are deleted as well
+		deletedIterations := []*iteration.Iteration{
+			fxt.Iterations[1],
+			fxt.Iterations[2],
+			fxt.Iterations[3],
+			fxt.Iterations[5],
+		}
+		for _, i := range deletedIterations {
+			_, err := rest.db.Iterations().Load(svc.Context, i.ID)
+			require.NotNil(t, err)
+			require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
+		}
 	})
 }
