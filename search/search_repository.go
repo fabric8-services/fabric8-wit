@@ -482,8 +482,6 @@ func generateSQLSearchInfo(keywords searchKeyword) (sqlParameter string) {
 // extracted this function from List() in order to close the rows object with "defer" for more readability
 // workaround for https://github.com/lib/pq/issues/81
 func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParameter string, workItemTypes []uuid.UUID, start *int, limit *int, spaceID *string) ([]workitem.WorkItemStorage, uint64, error) {
-	r.db.LogMode(true)
-	defer r.db.LogMode(false)
 	db := r.db.Model(workitem.WorkItemStorage{}).Where("tsv @@ query")
 	if start != nil {
 		if *start < 0 {

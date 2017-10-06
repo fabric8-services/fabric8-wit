@@ -24,6 +24,11 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
+func init() {
+	RegisterAsKnownURL("test-work-item-list-details", `(?P<domain>demo.openshift.io)(?P<path>/work-item/list/detail/)(?P<id>\d*)`)
+	RegisterAsKnownURL("test-work-item-board-details", `(?P<domain>demo.openshift.io)(?P<path>/work-item/board/detail/)(?P<id>\d*)`)
+}
+
 func TestRunSearchRepositoryWhiteboxTest(t *testing.T) {
 	resource.Require(t, resource.Database)
 	suite.Run(t, &searchRepositoryWhiteboxTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
@@ -38,9 +43,6 @@ func (s *searchRepositoryWhiteboxTest) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
 	// While registering URLs do not include protocol because it will be removed before scanning starts
 	// Please do not include trailing slashes because it will be removed before scanning starts
-	RegisterAsKnownURL("test-work-item-list-details", `(?P<domain>demo.openshift.io)(?P<path>/work-item/list/detail/)(?P<id>\d*)`)
-	RegisterAsKnownURL("test-work-item-board-details", `(?P<domain>demo.openshift.io)(?P<path>/work-item/board/detail/)(?P<id>\d*)`)
-
 }
 
 func (s *searchRepositoryWhiteboxTest) SetupTest() {
@@ -351,22 +353,22 @@ func TestParseSearchStringURL(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	inputSet := []searchTestData{{
-		query: "http://demo.almighty.io/work-item/list/detail/100",
+		query: "http://demo.openshift.io/work-item/list/detail/100",
 		expected: searchKeyword{
 			number: nil,
-			words:  []string{"(100:* | demo.almighty.io/work-item/list/detail/100:*)"},
+			words:  []string{"(100:*A | demo.openshift.io/work-item/list/detail/100:*)"},
 		},
 	}, {
-		query: "http://demo.almighty.io/work-item/board/detail/100",
+		query: "http://demo.openshift.io/work-item/board/detail/100",
 		expected: searchKeyword{
 			number: nil,
-			words:  []string{"(100:* | demo.almighty.io/work-item/board/detail/100:*)"},
+			words:  []string{"(100:*A | demo.openshift.io/work-item/board/detail/100:*)"},
 		},
 	}}
 
 	for _, input := range inputSet {
 		op, _ := parseSearchString(context.Background(), input.query)
-		assert.True(t, assert.ObjectsAreEqualValues(input.expected, op))
+		assert.Equal(t, input.expected, op)
 	}
 }
 
@@ -374,16 +376,16 @@ func TestParseSearchStringURLWithouID(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	inputSet := []searchTestData{{
-		query: "http://demo.almighty.io/work-item/list/detail/",
+		query: "http://demo.openshift.io/work-item/list/detail/",
 		expected: searchKeyword{
 			number: nil,
-			words:  []string{"demo.almighty.io/work-item/list/detail:*"},
+			words:  []string{"demo.openshift.io/work-item/list/detail:*"},
 		},
 	}, {
-		query: "http://demo.almighty.io/work-item/board/detail/",
+		query: "http://demo.openshift.io/work-item/board/detail/",
 		expected: searchKeyword{
 			number: nil,
-			words:  []string{"demo.almighty.io/work-item/board/detail:*"},
+			words:  []string{"demo.openshift.io/work-item/board/detail:*"},
 		},
 	}}
 
@@ -411,11 +413,11 @@ func TestParseSearchStringCombination(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	// do combination of ID, full text and URLs
 	// check if it works as expected.
-	input := "http://general.url.io http://demo.almighty.io/work-item/list/detail/100 number:300 golang book and           number:900 \t \n unwanted"
+	input := "http://general.url.io http://demo.openshift.io/work-item/list/detail/100 number:300 golang book and           number:900 \t \n unwanted"
 	op, _ := parseSearchString(context.Background(), input)
 	expectedSearchRes := searchKeyword{
 		number: []string{"300:*A", "900:*A"},
-		words:  []string{"general.url.io:*", "(100:* | demo.almighty.io/work-item/list/detail/100:*)", "golang:*", "book:*", "and:*", "unwanted:*"},
+		words:  []string{"general.url.io:*", "(100:*A | demo.openshift.io/work-item/list/detail/100:*)", "golang:*", "book:*", "and:*", "unwanted:*"},
 	}
 	assert.True(t, assert.ObjectsAreEqualValues(expectedSearchRes, op))
 }
@@ -468,7 +470,7 @@ func TestGetSearchQueryFromURLPattern(t *testing.T) {
 	RegisterAsKnownURL(routeName, urlRegex)
 
 	searchQuery := getSearchQueryFromURLPattern(routeName, "google.me.io/everything/100")
-	assert.Equal(t, "(100:* | google.me.io/everything/100:*)", searchQuery)
+	assert.Equal(t, "(100:*A | google.me.io/everything/100:*)", searchQuery)
 
 	searchQuery = getSearchQueryFromURLPattern(routeName, "google.me.io/everything/")
 	assert.Equal(t, "google.me.io/everything/:*", searchQuery)
@@ -492,5 +494,5 @@ func TestGetSearchQueryFromURLString(t *testing.T) {
 	assert.Equal(t, "google.me.io/everything/:*", searchQuery)
 
 	searchQuery = getSearchQueryFromURLString("google.me.io/everything/100")
-	assert.Equal(t, "(100:* | google.me.io/everything/100:*)", searchQuery)
+	assert.Equal(t, "(100:*A | google.me.io/everything/100:*)", searchQuery)
 }
