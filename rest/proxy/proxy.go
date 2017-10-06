@@ -93,6 +93,10 @@ func newDirector(ctx context.Context, originalRequestData *goa.RequestData, targ
 			// explicitly disable User-Agent so it's not set to default value
 			req.Header.Set("User-Agent", "")
 		}
+		requestID := log.ExtractRequestID(ctx)
+		if requestID != "" {
+			req.Header.Set("X-Request-ID", requestID)
+		}
 
 		// Log the original and target URLs
 		originalReqString := originalReq.String()
