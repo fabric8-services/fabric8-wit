@@ -106,6 +106,9 @@ import:
   - golint
 - package: github.com/fzipp/gocyclo
 - package: github.com/Sirupsen/logrus
+  version: c078b1e43f58d563c74cebe63c85789e76ddb627
+  repo: https://github.com/sirupsen/logrus
+  vcs: git
 - package: github.com/sourcegraph/syntaxhighlight
 - package: github.com/jstemmer/go-junit-report
 - package: github.com/sourcegraph/annotate

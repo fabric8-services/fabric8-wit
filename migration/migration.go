@@ -352,9 +352,6 @@ func GetMigrations() Migrations {
 	// Version 76
 	m = append(m, steps{ExecuteSQLFile("076-drop-space-resources-and-oauth-state.sql")})
 
-	// Version 77
-	m = append(m, steps{ExecuteSQLFile("077-work_item_number_sequence.sql")})
-
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the

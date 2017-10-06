@@ -34,6 +34,15 @@ type searchRepositoryWhiteboxTest struct {
 	modifierID uuid.UUID
 }
 
+func (s *searchRepositoryWhiteboxTest) SetupSuite() {
+	s.DBTestSuite.SetupSuite()
+	// While registering URLs do not include protocol because it will be removed before scanning starts
+	// Please do not include trailing slashes because it will be removed before scanning starts
+	RegisterAsKnownURL("test-work-item-list-details", `(?P<domain>demo.openshift.io)(?P<path>/work-item/list/detail/)(?P<id>\d*)`)
+	RegisterAsKnownURL("test-work-item-board-details", `(?P<domain>demo.openshift.io)(?P<path>/work-item/board/detail/)(?P<id>\d*)`)
+
+}
+
 func (s *searchRepositoryWhiteboxTest) SetupTest() {
 	s.DBTestSuite.SetupTest()
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "jdoe", "test")
@@ -143,22 +152,22 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 	testDataSet, fxt := s.setupTestDataSet()
 	//
 	for idx, testData := range testDataSet {
-		searchString := testData.searchString
 		minimumResults := testData.minimumResults
 		req := &http.Request{Host: "localhost"}
 		params := url.Values{}
 		ctx := goa.NewContext(context.Background(), nil, req, params)
-
 		// had to dynamically create this since I didn't now the URL/ID of the workitem
 		// till the test data was created.
-		searchString = fmt.Sprintf("\"%s\"", searchString)
+		searchString := testData.searchString
+		workItemURLInSearchString := fmt.Sprintf("%s%d", "http://demo.openshift.io/work-item/list/detail/", fxt.WorkItems[idx].Number)
+		searchString = fmt.Sprintf("\"%s %s\"", searchString, workItemURLInSearchString)
 		sr := NewGormSearchRepository(s.DB)
 		var start, limit int = 0, 100
 		spaceID := fxt.Spaces[0].ID.String()
 		workItemList, _, err := sr.SearchFullText(ctx, searchString, &start, &limit, &spaceID)
 		require.Nil(s.T(), err, "failed to get search result")
 		searchString = strings.Trim(searchString, "\"")
-		s.T().Logf("TestData #%d: using search string: %s -> %d matches", idx, searchString, len(workItemList))
+		s.T().Logf("TestData #%d: using search string: %s -> %d matches", (idx + 1), searchString, len(workItemList))
 		// Since this test adds test data, whether or not other workitems exist
 		// there must be at least 1 search result returned.
 		if len(workItemList) == minimumResults && minimumResults == 0 {
@@ -170,8 +179,8 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 
 		// These keywords need a match in the textual part.
 		allKeywords := strings.Fields(searchString)
-		//[]string{createdWorkItem.ID, `"Sbose"`, `"deScription"`, `'12345678asdfgh'`}
-
+		// These keywords need a match optionally either as URL string or ID		 +				keyWord = strings.ToLower(keyWord)
+		optionalKeywords := []string{workItemURLInSearchString, strconv.Itoa(fxt.WorkItems[idx].Number)}
 		// We will now check the legitimacy of the search results.
 		// Iterate through all search results and see whether they meet the criteria
 		for _, workItemValue := range workItemList {
@@ -189,7 +198,8 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 					workItemDescription = strings.ToLower(descriptionField.Content)
 				}
 				assert.True(s.T(),
-					strings.Contains(workItemTitle, keyWord) || strings.Contains(workItemDescription, keyWord),
+					strings.Contains(workItemTitle, keyWord) || strings.Contains(workItemDescription, keyWord) ||
+						(stringInSlice(keyWord, optionalKeywords) && strings.Contains(keyWord, strconv.Itoa(workItemValue.Number))),
 					"`%s` neither found in title `%s` nor in the description `%s` for workitem #%d", keyWord, workItemTitle, workItemDescription, workItemValue.Number)
 			}
 		}

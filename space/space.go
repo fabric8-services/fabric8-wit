@@ -230,11 +230,6 @@ func (r *GormRepository) Create(ctx context.Context, space *Space) (*Space, erro
 		}
 		return nil, errors.NewInternalError(ctx, err)
 	}
-	// also, initialize the work_item_number_sequence table for this space
-	_, err := r.winr.Create(ctx, space.ID)
-	if err != nil {
-		return nil, errors.NewInternalError(ctx, err)
-	}
 	log.Info(ctx, map[string]interface{}{
 		"space_id": space.ID,
 	}, "Space created successfully")

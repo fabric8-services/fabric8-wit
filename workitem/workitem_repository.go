@@ -15,7 +15,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/space"
-	numbersequence "github.com/fabric8-services/fabric8-wit/workitem/number_sequence"
+	"github.com/fabric8-services/fabric8-wit/workitem/number_sequence"
 
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -565,7 +565,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 		return nil, errors.NewInternalError(ctx, err)
 	}
 	pos = pos + orderValue
-	wiNumberSequence, err := r.winr.NextVal(ctx, spaceID)
+	number, err := r.winr.NextVal(ctx, spaceID)
 	if err != nil {
 		return nil, errors.NewInternalError(ctx, err)
 	}
@@ -574,7 +574,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 		Fields:         Fields{},
 		ExecutionOrder: pos,
 		SpaceID:        spaceID,
-		Number:         wiNumberSequence.CurrentVal,
+		Number:         *number,
 	}
 	fields[SystemCreator] = creatorID.String()
 	for fieldName, fieldDef := range wiType.Fields {

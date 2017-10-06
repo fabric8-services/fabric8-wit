@@ -2,6 +2,7 @@ package numbersequence
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/jinzhu/gorm"
@@ -11,8 +12,7 @@ import (
 
 // WorkItemNumberSequenceRepository the interface for the work item number sequence repository
 type WorkItemNumberSequenceRepository interface {
-	Create(ctx context.Context, spaceID uuid.UUID) (*WorkItemNumberSequence, error)
-	NextVal(ctx context.Context, spaceID uuid.UUID) (*WorkItemNumberSequence, error)
+	NextVal(ctx context.Context, spaceID uuid.UUID) (*int, error)
 }
 
 // NewWorkItemNumberSequenceRepository creates a GormWorkItemNumberSequenceRepository
@@ -26,31 +26,17 @@ type GormWorkItemNumberSequenceRepository struct {
 	db *gorm.DB
 }
 
-// Create returns the next work item sequence number for the given space ID. Creates an entry in the DB if none was found before
-func (r *GormWorkItemNumberSequenceRepository) Create(ctx context.Context, spaceID uuid.UUID) (*WorkItemNumberSequence, error) {
-	// retrieve the current issue number in the given space
-	numberSequence := WorkItemNumberSequence{SpaceID: spaceID, CurrentVal: 0}
-	if err := r.db.Save(&numberSequence).Error; err != nil {
-		return nil, errs.Wrapf(err, "failed to create work item with sequence number: `%s`", numberSequence.String())
-	}
-	log.Debug(nil, map[string]interface{}{"Sequence": numberSequence.String()}, "Creating sequence")
-	return &numberSequence, nil
-}
-
 // NextVal returns the next work item sequence number for the given space ID. Creates an entry in the DB if none was found before
-func (r *GormWorkItemNumberSequenceRepository) NextVal(ctx context.Context, spaceID uuid.UUID) (*WorkItemNumberSequence, error) {
-	// retrieve the current issue number in the given space
-	numberSequence := WorkItemNumberSequence{}
-	tx := r.db.Model(&WorkItemNumberSequence{}).Set("gorm:query_option", "FOR UPDATE").Where("space_id = ?", spaceID).First(&numberSequence)
-	if tx.RecordNotFound() {
-		numberSequence.SpaceID = spaceID
-		numberSequence.CurrentVal = 1
-	} else {
-		numberSequence.CurrentVal++
+func (r *GormWorkItemNumberSequenceRepository) NextVal(ctx context.Context, spaceID uuid.UUID) (*int, error) {
+	// upsert the next val, retrieves full row
+	upsertStmt := fmt.Sprintf(`INSERT INTO %[1]s (space_id, current_val) VALUES ($1,1)
+		ON CONFLICT (space_id) DO UPDATE SET current_val = %[1]s.current_val + EXCLUDED.current_val
+		RETURNING current_val`, WorkItemNumberSequence{}.TableName())
+	var currentVal int
+	err := r.db.CommonDB().QueryRow(upsertStmt, spaceID).Scan(&currentVal)
+	if err != nil {
+		return nil, errs.Wrapf(err, "failed to obtain next val for space with ID=`%s`", spaceID.String())
 	}
-	if err := r.db.Save(&numberSequence).Error; err != nil {
-		return nil, errs.Wrapf(err, "failed to update work item with sequence number: `%s`", numberSequence.String())
-	}
-	log.Debug(nil, map[string]interface{}{"Sequence": numberSequence.String()}, "computing nextVal")
-	return &numberSequence, nil
+	log.Debug(nil, map[string]interface{}{"space_id": spaceID, "next_val": currentVal}, "computed nextVal")
+	return &currentVal, nil
 }

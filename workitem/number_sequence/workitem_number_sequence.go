@@ -8,8 +8,7 @@ import (
 
 // WorkItemNumberSequence the sequence for work item numbers in a space
 type WorkItemNumberSequence struct {
-	ID         uuid.UUID `sql:"type:uuid" gorm:"primary_key"`
-	SpaceID    uuid.UUID `sql:"type:uuid"`
+	SpaceID    uuid.UUID `sql:"type:uuid" gorm:"primary_key"`
 	CurrentVal int
 }
 
