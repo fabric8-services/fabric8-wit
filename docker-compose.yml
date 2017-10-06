@@ -8,7 +8,7 @@ services:
     environment:
       POSTGRESQL_ADMIN_PASSWORD: mysecretpassword
   core:
-    image: fabric8-services/fabric8-wit:latest
+    image: docker.io/fabric8/fabric8-wit:latest
 #    command: -config /usr/local/wit/etc/config.yaml
     environment:
       F8_AUTH_URL: "http://localhost:8089"
