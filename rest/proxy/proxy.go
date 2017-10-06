@@ -45,6 +45,7 @@ func route(ctx context.Context, targetHost string, targetPath *string) error {
 		log.Error(ctx, map[string]interface{}{
 			"err":         err,
 			"target_host": targetHost,
+			"request_uri": req.RequestURI,
 		}, "unable to parse target host")
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
