@@ -49,43 +49,59 @@ func route(ctx context.Context, targetHost string, targetPath *string) error {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
-	var proxy *httputil.ReverseProxy
-	var targetURLInfo url.URL
-	if targetPath == nil {
-		targetURLInfo = url.URL{Scheme: targetUrl.Scheme, Host: targetUrl.Host, Path: singleJoiningSlash(targetUrl.Path, req.URL.Path)}
-		proxy = httputil.NewSingleHostReverseProxy(targetUrl)
-	} else {
-		targetURLInfo = url.URL{Scheme: targetUrl.Scheme, Host: targetUrl.Host, Path: *targetPath}
-		targetQuery := targetUrl.RawQuery
-		director := func(req *http.Request) {
-			req.URL.Scheme = targetUrl.Scheme
-			req.URL.Host = targetUrl.Host
-			req.URL.Path = *targetPath
-			if targetQuery == "" || req.URL.RawQuery == "" {
-				req.URL.RawQuery = targetQuery + req.URL.RawQuery
-			} else {
-				req.URL.RawQuery = targetQuery + "&" + req.URL.RawQuery
-			}
-			if _, ok := req.Header["User-Agent"]; !ok {
-				// explicitly disable User-Agent so it's not set to default value
-				req.Header.Set("User-Agent", "")
-			}
-		}
-		proxy = &httputil.ReverseProxy{Director: director}
-	}
-
-	log.Info(ctx, map[string]interface{}{
-		"target_host": targetHost,
-	}, "Routing %s to %s", req.URL.String(), targetURLInfo.String())
+	director := newDirector(ctx, req, targetUrl, targetPath)
+	proxy := &httputil.ReverseProxy{Director: director}
 
 	if strings.Contains(req.Header.Get("Accept-Encoding"), "gzip") {
-		gzr := gunzipResponseWriter{ctx: ctx, ResponseWriter: rw, targetURL: targetURLInfo}
+		gzr := gunzipResponseWriter{ctx: ctx, ResponseWriter: rw, targetURL: *req.URL}
 		proxy.ServeHTTP(gzr, req.Request)
 	} else {
 		proxy.ServeHTTP(rw, req.Request)
 	}
 
 	return nil
+}
+
+func newDirector(ctx context.Context, originalRequestData *goa.RequestData, target *url.URL, targetPath *string) func(*http.Request) {
+	targetQuery := target.RawQuery
+	return func(req *http.Request) {
+		// Get the original request URL for info log
+		scheme := "http"
+		if req.URL != nil && req.URL.Scheme == "https" { // isHTTPS
+			scheme = "https"
+		}
+		xForwardProto := req.Header.Get("X-Forwarded-Proto")
+		if xForwardProto != "" {
+			scheme = xForwardProto
+		}
+		originalReq := &url.URL{Scheme: scheme, Host: originalRequestData.Host, Path: req.URL.Path, RawQuery: req.URL.RawQuery}
+
+		// Modify the request to route to a new target
+		req.URL.Scheme = target.Scheme
+		req.URL.Host = target.Host
+		if targetPath != nil {
+			req.URL.Path = *targetPath
+		} else {
+			req.URL.Path = singleJoiningSlash(target.Path, req.URL.Path)
+		}
+		if targetQuery == "" || req.URL.RawQuery == "" {
+			req.URL.RawQuery = targetQuery + req.URL.RawQuery
+		} else {
+			req.URL.RawQuery = targetQuery + "&" + req.URL.RawQuery
+		}
+		if _, ok := req.Header["User-Agent"]; !ok {
+			// explicitly disable User-Agent so it's not set to default value
+			req.Header.Set("User-Agent", "")
+		}
+
+		// Log the original and target URLs
+		originalReqString := originalReq.String()
+		targetReqString := req.URL.String()
+		log.Info(ctx, map[string]interface{}{
+			"original_req_url": originalReqString,
+			"target_req_url":   targetReqString,
+		}, "Routing %s to %s", originalReqString, targetReqString)
+	}
 }
 
 type gunzipResponseWriter struct {
