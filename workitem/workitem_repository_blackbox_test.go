@@ -2,6 +2,7 @@ package workitem_test
 
 import (
 	"fmt"
+	"math"
 	"testing"
 	"time"
 
@@ -181,236 +182,8 @@ func (s *workItemRepoBlackBoxTest) TestCreate() {
 		require.NotNil(t, err)
 	})
 
-	s.T().Run("ok - test simply field types", func(t *testing.T) {
-
-		// helper function to convert a string into a duration and handling the
-		// error
-		validDuration := func(s string) time.Duration {
-			d, err := time.ParseDuration(s)
-			if err != nil {
-				require.Nil(t, err, "we expected the duration to be valid: %s", s)
-			}
-			return d
-		}
-
-		// given a bunch of tests with expected error results for each work item
-		// type field kind, a work item type for each kind...
-		type validInvalid struct {
-			Valid   []interface{}
-			Invalid []interface{}
-		}
-		type keyType struct {
-			Kind      workitem.Kind
-			FieldType workitem.FieldType
-		}
-		vals := map[workitem.Kind]validInvalid{
-			workitem.KindString: {
-				Valid: []interface{}{
-					"foo",
-				},
-				Invalid: []interface{}{
-					"", // NOTE: an empty string is not allowed in a required field.
-					nil,
-					0,
-					true,
-					0.1,
-				},
-			},
-			workitem.KindUser: {
-				Valid: []interface{}{
-					"jane doe", // TODO(kwk): do we really allow usernames with spaces?
-					"",         // TODO(kwk): do we really allow empty usernames?
-				},
-				Invalid: []interface{}{
-					nil,
-					0,
-					true,
-					0.1,
-				},
-			},
-			workitem.KindIteration: {
-				Valid: []interface{}{
-					"some iteration name",
-					"", // TODO(kwk): do we really allow empty iteration names?
-				},
-				Invalid: []interface{}{
-					nil,
-					0,
-					true,
-					0.1,
-				},
-			},
-			workitem.KindArea: {
-				Valid: []interface{}{
-					"some are name",
-					"", // TODO(kwk): do we really allow empty area names?
-				},
-				Invalid: []interface{}{
-					nil,
-					0,
-					true,
-					0.1,
-				},
-			},
-			workitem.KindLabel: {
-				Valid: []interface{}{
-					"some label name",
-					"", // TODO(kwk): do we really allow empty label names?
-				},
-				Invalid: []interface{}{
-					nil,
-					0,
-					true,
-					0.1,
-				},
-			},
-			workitem.KindURL: {
-				Valid: []interface{}{
-					"127.0.0.1",
-					"http://www.openshift.io",
-					"openshift.io",
-					"ftp://url.with.port.and.different.protocol.port.and.parameters.com:8080/fooo?arg=bar&key=value",
-				},
-				Invalid: []interface{}{
-					"", // NOTE: An empty URL is not allowed when the field is required (see simple_type.go:53)
-					"http://url with whitespace.com",
-					"http://www.example.com/foo bar",
-					"localhost", // TODO(kwk): shall we disallow localhost?
-					"foo",
-				},
-			},
-			workitem.KindInteger: {
-				Valid: []interface{}{
-					0,
-					333,
-					-100,
-				},
-				Invalid: []interface{}{
-					1e2,
-					nil,
-					"",
-					"foo",
-					0.1,
-					true,
-					false,
-				},
-			},
-			workitem.KindFloat: {
-				Valid: []interface{}{
-					0.1,
-					-1111.0,
-					+555.0,
-				},
-				Invalid: []interface{}{
-					1,
-					0,
-					"string",
-				},
-			},
-			workitem.KindBoolean: {
-				Valid: []interface{}{
-					true,
-					false,
-				},
-				Invalid: []interface{}{
-					nil,
-					0,
-					1,
-					"",
-					"yes",
-					"no",
-					"0",
-					"1",
-					"true",
-					"false",
-				},
-			},
-			workitem.KindDuration: {
-				Valid: []interface{}{
-					validDuration("300ms"),
-					validDuration("-1.5h"),
-				},
-				Invalid: []interface{}{
-					nil,
-					"1e2",
-					"4000",
-				},
-			},
-			workitem.KindInstant: {
-				Valid: []interface{}{
-					time.Now(),
-				},
-				Invalid: []interface{}{
-					time.Now().String(),
-					"2017-09-27 13:40:48.099780356 +0200 CEST", // NOTE: looks like a time.Time but is a string
-					"",
-					0,
-					333,
-					100,
-					1e2,
-					nil,
-					"foo",
-					0.1,
-					true,
-					false,
-				},
-			},
-			workitem.KindMarkup: {
-				Valid: []interface{}{
-					rendering.MarkupContent{Content: "plain text", Markup: rendering.SystemMarkupPlainText},
-					rendering.MarkupContent{Content: "default", Markup: rendering.SystemMarkupDefault},
-					rendering.MarkupContent{Content: "# markdown", Markup: rendering.SystemMarkupMarkdown},
-				},
-				Invalid: []interface{}{
-					rendering.MarkupContent{Content: "jira", Markup: rendering.SystemMarkupJiraWiki}, // TODO(kwk): not supported yet
-					rendering.MarkupContent{Content: "", Markup: ""},                                 // NOTE: We allow allow empty strings
-					rendering.MarkupContent{Content: "foo", Markup: "unknown markup type"},
-					"",
-					"foo",
-				},
-			},
-			workitem.KindCodebase: {
-				Valid: []interface{}{
-					codebase.Content{
-						Repository: "git://github.com/ember-cli/ember-cli.git#ff786f9f",
-						Branch:     "foo",
-						FileName:   "bar.js",
-						LineNumber: 10,
-						CodebaseID: "dunno",
-					},
-				},
-				Invalid: []interface{}{
-					// empty repository (see codebase.Content.IsValid())
-					codebase.Content{
-						Repository: "",
-						Branch:     "foo",
-						FileName:   "bar.js",
-						LineNumber: 10,
-						CodebaseID: "dunno",
-					},
-					// invalid repository URL (see codebase.Content.IsValid())
-					codebase.Content{
-						Repository: "/path/to/repo.git/",
-						Branch:     "foo",
-						FileName:   "bar.js",
-						LineNumber: 10,
-						CodebaseID: "dunno",
-					},
-					"",
-					0,
-					333,
-					100,
-					1e2,
-					nil,
-					"foo",
-					0.1,
-					true,
-					false,
-				},
-			},
-			//workitem.KindEnum:  {}, // TODO(kwk): Add test for workitem.KindEnum
-			//workitem.KindList:  {}, // TODO(kwk): Add test for workitem.KindList
-		}
+	s.T().Run("field types", func(t *testing.T) {
+		vals := getFieldTypeTestData(t)
 		// Get keys from the map above
 		kinds := []workitem.Kind{}
 		for k := range vals {
@@ -437,18 +210,30 @@ func (s *workItemRepoBlackBoxTest) TestCreate() {
 		// when
 		for kind, iv := range vals {
 			witID := fxt.WorkItemTypeByName(kind.String()).ID
-			// Handle valid cases
-			for _, v := range iv.Valid {
-				wi, err := s.repo.Create(s.Ctx, fxt.Spaces[0].ID, witID, map[string]interface{}{fieldName: v}, fxt.Identities[0].ID)
-				assert.Nil(t, err, "expected no error when assigning this value to a '%s' field during work item creation: %#v", kind, spew.Sdump(v))
-				loadedWi, err := s.repo.LoadByID(s.Ctx, wi.ID)
-				require.Nil(t, err)
-				require.Equal(t, v, loadedWi.Fields[fieldName], "expected no error when loading and comparing the workitem with a '%s': %#v", kind, spew.Sdump(v))
-			}
-			for _, v := range iv.Invalid {
-				_, err := s.repo.Create(s.Ctx, fxt.Spaces[0].ID, witID, map[string]interface{}{fieldName: v}, fxt.Identities[0].ID)
-				assert.NotNil(t, err, "expected an error when assigning this value to a '%s' field during work item creation: %#v", kind, spew.Sdump(v))
-			}
+			t.Run(kind.String(), func(t *testing.T) {
+				// Handle cases where the conversion is supposed to work
+				t.Run("legal", func(t *testing.T) {
+					for _, expected := range iv.Valid {
+						wi, err := s.repo.Create(s.Ctx, fxt.Spaces[0].ID, witID, map[string]interface{}{fieldName: expected}, fxt.Identities[0].ID)
+						assert.Nil(t, err, "expected no error when assigning this value to a '%s' field during work item creation: %#v", kind, spew.Sdump(expected))
+						loadedWi, err := s.repo.LoadByID(s.Ctx, wi.ID)
+						require.Nil(t, err)
+						// compensate for errors when interpreting ambigous actual values
+						actual := loadedWi.Fields[fieldName]
+						if iv.Compensate != nil {
+							actual = iv.Compensate(actual)
+						}
+						require.Equal(t, expected, actual, "expected no error when loading and comparing the workitem with a '%s': %#v", kind, spew.Sdump(expected))
+					}
+				})
+				t.Run("illegal", func(t *testing.T) {
+					// Handle cases where the conversion is supposed to NOT work
+					for _, expected := range iv.Invalid {
+						_, err := s.repo.Create(s.Ctx, fxt.Spaces[0].ID, witID, map[string]interface{}{fieldName: expected}, fxt.Identities[0].ID)
+						assert.NotNil(t, err, "expected an error when assigning this value to a '%s' field during work item creation: %#v", kind, spew.Sdump(expected))
+					}
+				})
+			})
 		}
 	})
 
@@ -574,4 +359,271 @@ func (s *workItemRepoBlackBoxTest) TestLookupIDByNamedSpaceAndNumberStaleSpace()
 	assert.Equal(s.T(), wi2.ID, *wiID2)
 	require.NotNil(s.T(), spaceID2)
 	assert.Equal(s.T(), wi2.SpaceID, *spaceID2)
+}
+
+// given a bunch of tests with expected error results for each work item
+// type field kind, a work item type for each kind...
+type validInvalid struct {
+	Valid   []interface{}
+	Invalid []interface{}
+	// When the actual value is a zero (0), it will be interpreted as a
+	// float64 rather than an int. To compensate for that ambiguity, a
+	// kind can opt-in to provide an construction function that returns
+	// the correct value.
+	Compensate func(interface{}) interface{}
+}
+
+// getFieldTypeTestData returns a list of legal and illegal values to be used
+// with a given field type (here: the map key).
+func getFieldTypeTestData(t *testing.T) map[workitem.Kind]validInvalid {
+	// helper function to convert a string into a duration and handling the
+	// error
+	validDuration := func(s string) time.Duration {
+		d, err := time.ParseDuration(s)
+		if err != nil {
+			require.Nil(t, err, "we expected the duration to be valid: %s", s)
+		}
+		return d
+	}
+
+	return map[workitem.Kind]validInvalid{
+		workitem.KindString: {
+			Valid: []interface{}{
+				"foo",
+			},
+			Invalid: []interface{}{
+				"", // NOTE: an empty string is not allowed in a required field.
+				nil,
+				0,
+				true,
+				0.1,
+			},
+		},
+		workitem.KindUser: {
+			Valid: []interface{}{
+				"jane doe", // TODO(kwk): do we really allow usernames with spaces?
+				"",         // TODO(kwk): do we really allow empty usernames?
+			},
+			Invalid: []interface{}{
+				nil,
+				0,
+				true,
+				0.1,
+			},
+		},
+		workitem.KindIteration: {
+			Valid: []interface{}{
+				"some iteration name",
+				"", // TODO(kwk): do we really allow empty iteration names?
+			},
+			Invalid: []interface{}{
+				nil,
+				0,
+				true,
+				0.1,
+			},
+		},
+		workitem.KindArea: {
+			Valid: []interface{}{
+				"some are name",
+				"", // TODO(kwk): do we really allow empty area names?
+			},
+			Invalid: []interface{}{
+				nil,
+				0,
+				true,
+				0.1,
+			},
+		},
+		workitem.KindLabel: {
+			Valid: []interface{}{
+				"some label name",
+				"", // TODO(kwk): do we really allow empty label names?
+			},
+			Invalid: []interface{}{
+				nil,
+				0,
+				true,
+				0.1,
+			},
+		},
+		workitem.KindURL: {
+			Valid: []interface{}{
+				"127.0.0.1",
+				"http://www.openshift.io",
+				"openshift.io",
+				"ftp://url.with.port.and.different.protocol.port.and.parameters.com:8080/fooo?arg=bar&key=value",
+			},
+			Invalid: []interface{}{
+				0,
+				"", // NOTE: An empty URL is not allowed when the field is required (see simple_type.go:53)
+				"http://url with whitespace.com",
+				"http://www.example.com/foo bar",
+				"localhost", // TODO(kwk): shall we disallow localhost?
+				"foo",
+			},
+		},
+		workitem.KindInteger: {
+			// Compensate for wrong interpretation of 0
+			Compensate: func(in interface{}) interface{} {
+				v := in.(float64) // NOTE: float64 is correct here because a 0 will first and foremost be treated as float64
+				if v != math.Trunc(v) {
+					panic(fmt.Sprintf("value is not a whole number %v", v))
+				}
+				return int(v)
+			},
+			Valid: []interface{}{
+				0,
+				333,
+				-100,
+			},
+			Invalid: []interface{}{
+				1e2,
+				nil,
+				"",
+				"foo",
+				0.1,
+				true,
+				false,
+			},
+		},
+		workitem.KindFloat: {
+			Valid: []interface{}{
+				0.1,
+				-1111.0,
+				+555.0,
+			},
+			Invalid: []interface{}{
+				1,
+				0,
+				"string",
+			},
+		},
+		workitem.KindBoolean: {
+			Valid: []interface{}{
+				true,
+				false,
+			},
+			Invalid: []interface{}{
+				nil,
+				0,
+				1,
+				"",
+				"yes",
+				"no",
+				"0",
+				"1",
+				"true",
+				"false",
+			},
+		},
+		workitem.KindDuration: {
+			// Compensate for wrong interpretation of 0
+			Compensate: func(in interface{}) interface{} {
+				i := in.(float64)
+				return time.Duration(int64(i))
+			},
+			Valid: []interface{}{
+				validDuration("0"),
+				validDuration("300ms"),
+				validDuration("-1.5h"),
+				// 0, // TODO(kwk): should work because an untyped integer constant can be converted to time.Duration's underlying type: int64
+			},
+			Invalid: []interface{}{
+				// 0, // TODO(kwk): 0 doesn't fit in legal nor illegal
+				nil,
+				"1e2",
+				"4000",
+			},
+		},
+		workitem.KindInstant: {
+			// Compensate for wrong interpretation of location value and default to UTC
+			Compensate: func(in interface{}) interface{} {
+				v := in.(time.Time)
+				return v.UTC()
+			},
+			Valid: []interface{}{
+				// NOTE: If we don't use UTC(), the unmarshalled JSON will
+				// have a different time zone (read up on JSON an time
+				// location if you don't believe me).
+				func() interface{} {
+					v, err := time.Parse("02 Jan 06 15:04 -0700", "02 Jan 06 15:04 -0700")
+					require.Nil(t, err)
+					return v.UTC()
+				}(),
+				// time.Now().UTC(), // TODO(kwk): Somehow this fails due to different nsec
+			},
+			Invalid: []interface{}{
+				time.Now().String(),
+				time.Now().UTC().String(),
+				"2017-09-27 13:40:48.099780356 +0200 CEST", // NOTE: looks like a time.Time but is a string
+				"",
+				0,
+				333,
+				100,
+				1e2,
+				nil,
+				"foo",
+				0.1,
+				true,
+				false,
+			},
+		},
+		workitem.KindMarkup: {
+			Valid: []interface{}{
+				rendering.MarkupContent{Content: "plain text", Markup: rendering.SystemMarkupPlainText},
+				rendering.MarkupContent{Content: "default", Markup: rendering.SystemMarkupDefault},
+				rendering.MarkupContent{Content: "# markdown", Markup: rendering.SystemMarkupMarkdown},
+			},
+			Invalid: []interface{}{
+				0,
+				rendering.MarkupContent{Content: "jira", Markup: rendering.SystemMarkupJiraWiki}, // TODO(kwk): not supported yet
+				rendering.MarkupContent{Content: "", Markup: ""},                                 // NOTE: We allow allow empty strings
+				rendering.MarkupContent{Content: "foo", Markup: "unknown markup type"},
+				"",
+				"foo",
+			},
+		},
+		workitem.KindCodebase: {
+			Valid: []interface{}{
+				codebase.Content{
+					Repository: "git://github.com/ember-cli/ember-cli.git#ff786f9f",
+					Branch:     "foo",
+					FileName:   "bar.js",
+					LineNumber: 10,
+					CodebaseID: "dunno",
+				},
+			},
+			Invalid: []interface{}{
+				// empty repository (see codebase.Content.IsValid())
+				codebase.Content{
+					Repository: "",
+					Branch:     "foo",
+					FileName:   "bar.js",
+					LineNumber: 10,
+					CodebaseID: "dunno",
+				},
+				// invalid repository URL (see codebase.Content.IsValid())
+				codebase.Content{
+					Repository: "/path/to/repo.git/",
+					Branch:     "foo",
+					FileName:   "bar.js",
+					LineNumber: 10,
+					CodebaseID: "dunno",
+				},
+				"",
+				0,
+				333,
+				100,
+				1e2,
+				nil,
+				"foo",
+				0.1,
+				true,
+				false,
+			},
+		},
+		//workitem.KindEnum:  {}, // TODO(kwk): Add test for workitem.KindEnum
+		//workitem.KindList:  {}, // TODO(kwk): Add test for workitem.KindList
+	}
 }

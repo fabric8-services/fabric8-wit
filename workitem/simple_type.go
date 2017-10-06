@@ -1,6 +1,7 @@
 package workitem
 
 import (
+	"math"
 	"reflect"
 	"time"
 
@@ -122,7 +123,25 @@ func (t SimpleType) ConvertFromModel(value interface{}) (interface{}, error) {
 	case KindString, KindURL, KindUser, KindInteger, KindFloat, KindDuration, KindIteration, KindArea, KindLabel, KindBoolean:
 		return value, nil
 	case KindInstant:
-		return time.Unix(0, value.(int64)), nil
+		switch valueType.Kind() {
+		case reflect.Float64:
+			v, ok := value.(float64)
+			if !ok {
+				return nil, errs.Errorf("value %v could not be converted into an %s", value, reflect.Float64)
+			}
+			if v != math.Trunc(v) {
+				return nil, errs.Errorf("value %v is not a whole number", value)
+			}
+			return time.Unix(0, int64(v)), nil
+		case reflect.Int64:
+			v, ok := value.(int64)
+			if !ok {
+				return nil, errs.Errorf("value %v could not be converted into an %s", value, reflect.Int64)
+			}
+			return time.Unix(0, v), nil
+		default:
+			return nil, errs.Errorf("value %v must be either %s or %s but has an unknown type %s", value, reflect.Int64, reflect.Float64, valueType.Name())
+		}
 	case KindMarkup:
 		if valueType.Kind() != reflect.Map {
 			return nil, errs.Errorf("value %v should be %s, but is %s", value, reflect.Map, valueType.Name())
