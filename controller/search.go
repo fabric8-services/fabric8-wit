@@ -186,7 +186,7 @@ func (c *SearchController) Spaces(ctx *app.SpacesSearchContext) error {
 
 // Users runs the user search action.
 func (c *SearchController) Users(ctx *app.UsersSearchContext) error {
-	return proxy.RouteHTTP(ctx, c.configuration.GetAuthServiceURL())
+	return proxy.RouteHTTP(ctx, c.configuration.GetAuthShortServiceName())
 }
 
 // Iterate over the WI list and read parent IDs

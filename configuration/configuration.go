@@ -50,6 +50,7 @@ const (
 	varHTTPAddress                  = "http.address"
 	varDeveloperModeEnabled         = "developer.mode.enabled"
 	varAuthDomainPrefix             = "auth.domain.prefix"
+	varAuthShortServiceName         = "auth.servicename.short"
 	varAuthURL                      = "auth.url"
 	varAuthorizationEnabled         = "authz.enabled"
 	varGithubAuthToken              = "github.auth.token"
@@ -192,6 +193,7 @@ func (c *ConfigurationData) setConfigDefaults() {
 	// Auth-related defaults
 	c.v.SetDefault(varAuthURL, devModeAuthURL)
 	c.v.SetDefault(varAuthDomainPrefix, "auth")
+	c.v.SetDefault(varAuthShortServiceName, "auth")
 	c.v.SetDefault(varKeycloakClientID, defaultKeycloakClientID)
 	c.v.SetDefault(varKeycloakSecret, defaultKeycloakSecret)
 	c.v.SetDefault(varGithubAuthToken, defaultActualToken)
@@ -486,6 +488,14 @@ func (c *ConfigurationData) GetAuthDevModeURL() string {
 // GetAuthDomainPrefix returns the domain prefix which should be used in requests to the auth service
 func (c *ConfigurationData) GetAuthDomainPrefix() string {
 	return c.v.GetString(varAuthDomainPrefix)
+}
+
+// GetAuthShortServiceName returns the short Auth service name or the full Auth service URL if Dev Mode enabled
+func (c *ConfigurationData) GetAuthShortServiceName() string {
+	if c.IsPostgresDeveloperModeEnabled() {
+		return c.GetAuthServiceURL()
+	}
+	return c.v.GetString(varAuthShortServiceName)
 }
 
 // GetAuthServiceURL returns the Auth Service URL
