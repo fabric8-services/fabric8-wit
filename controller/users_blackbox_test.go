@@ -241,22 +241,6 @@ func (s *TestUsersSuite) TestCreateUserAsServiceAccountBadRequest() {
 	test.CreateUserAsServiceAccountUsersBadRequest(s.T(), secureService.Context, secureService, secureController, "invalid-uuid", createUserPayload)
 }
 
-func (s *TestUsersSuite) TestUpdateUserRedirected() {
-	// given
-	user := s.createRandomUser("TestUpdateUserOK")
-	identity := s.createRandomIdentity(user, account.KeycloakIDP)
-	secureService, secureController := s.SecuredController(identity)
-	test.UpdateUsersTemporaryRedirect(s.T(), secureService.Context, secureService, secureController)
-}
-
-func (s *TestUsersSuite) TestShowUserRedirected() {
-	test.ShowUsersTemporaryRedirect(s.T(), s.svc.Context, s.svc, s.controller, uuid.NewV4().String())
-}
-
-func (s *TestUsersSuite) TestListUsersRedirected() {
-	test.ListUsersTemporaryRedirect(s.T(), s.svc.Context, s.svc, s.controller)
-}
-
 func (s *TestUsersSuite) createRandomUser(fullname string) account.User {
 	user := account.User{
 		Email:    uuid.NewV4().String() + "primaryForUpdat7e@example.com",

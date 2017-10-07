@@ -16,6 +16,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/test/token"
 
+	"github.com/fabric8-services/fabric8-wit/rest/proxy"
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 	"github.com/satori/go.uuid"
@@ -26,6 +27,11 @@ type loginConfiguration interface {
 	IsPostgresDeveloperModeEnabled() bool
 	GetKeycloakTestUserName() string
 	GetKeycloakTestUser2Name() string
+}
+
+type redirectContext interface {
+	context.Context
+	TemporaryRedirect() error
 }
 
 // LoginController implements the login resource.
@@ -44,6 +50,21 @@ func NewLoginController(service *goa.Service, auth *login.KeycloakOAuthProvider,
 // Authorize runs the authorize action.
 func (c *LoginController) Authorize(ctx *app.AuthorizeLoginContext) error {
 	return redirectWithParams(ctx, c.configuration, ctx.ResponseData.Header(), ctx.Params, authservice.LoginLoginPath())
+}
+
+// Refresh obtain a new access token using the refresh token.
+func (c *LoginController) Refresh(ctx *app.RefreshLoginContext) error {
+	return proxy.RouteHTTPToPath(ctx, c.configuration.GetAuthServiceURL(), authservice.RefreshTokenPath())
+}
+
+// Link links identity provider(s) to the user's account
+func (c *LoginController) Link(ctx *app.LinkLoginContext) error {
+	return redirectWithParams(ctx, c.configuration, ctx.ResponseData.Header(), ctx.Params, authservice.LinkLinkPath())
+}
+
+// Linksession links identity provider(s) to the user's account
+func (c *LoginController) Linksession(ctx *app.LinksessionLoginContext) error {
+	return redirectWithParams(ctx, c.configuration, ctx.ResponseData.Header(), ctx.Params, authservice.SessionLinkPath())
 }
 
 func redirectLocation(params url.Values, location string) (string, error) {
@@ -67,22 +88,6 @@ func redirectWithParams(ctx redirectContext, config auth.AuthServiceConfiguratio
 	}
 	header.Set("Location", locationURLWithParams)
 	return ctx.TemporaryRedirect()
-}
-
-// Refresh obtain a new access token using the refresh token.
-func (c *LoginController) Refresh(ctx *app.RefreshLoginContext) error {
-	ctx.ResponseData.Header().Set("Location", fmt.Sprintf("%s%s", c.configuration.GetAuthServiceURL(), authservice.RefreshTokenPath()))
-	return ctx.TemporaryRedirect()
-}
-
-// Link links identity provider(s) to the user's account
-func (c *LoginController) Link(ctx *app.LinkLoginContext) error {
-	return redirectWithParams(ctx, c.configuration, ctx.ResponseData.Header(), ctx.Params, authservice.LinkLinkPath())
-}
-
-// Linksession links identity provider(s) to the user's account
-func (c *LoginController) Linksession(ctx *app.LinksessionLoginContext) error {
-	return redirectWithParams(ctx, c.configuration, ctx.ResponseData.Header(), ctx.Params, authservice.SessionLinkPath())
 }
 
 // Generate generates access tokens in Dev Mode
