@@ -168,7 +168,7 @@ func (c *WorkitemsController) List(ctx *app.ListWorkitemsContext) error {
 	}
 	if ctx.FilterAssignee != nil {
 		if *ctx.FilterAssignee == none {
-			exp = criteria.And(exp, criteria.IsNull("system.assignees"))
+			exp = criteria.And(exp, criteria.Literal("Fields->'system.assignees'='[]'"))
 			additionalQuery = append(additionalQuery, "filter[assignee]=none")
 
 		} else {

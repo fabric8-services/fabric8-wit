@@ -351,12 +351,15 @@ func (q Query) getAttributeKey(key string) string {
 	return key
 }
 
-func (q Query) determineLiteralType(key string, val string) criteria.Expression {
+func (q Query) determineLiteralType(key string, val *string) criteria.Expression {
 	switch key {
 	case workitem.SystemAssignees, workitem.SystemLabels:
-		return criteria.Literal([]string{val})
+		if val == nil {
+			return criteria.Literal([]string{})
+		}
+		return criteria.Literal([]string{*val})
 	default:
-		return criteria.Literal(val)
+		return criteria.Literal(*val)
 	}
 }
 
@@ -370,19 +373,19 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 		} else {
 			return nil, errors.NewBadParameterError("key not found", q.Name)
 		}
-		left := criteria.Field(key)
-		if q.Value != nil {
-			right := q.determineLiteralType(key, *q.Value)
+		if (key == workitem.SystemAssignees || key == workitem.SystemLabels) && q.Value == nil {
+			if q.Negate {
+				return nil, errors.NewBadParameterError("negate for null not supported", q.Name)
+			}
+			myexpr = append(myexpr, criteria.Literal(fmt.Sprintf("Fields->'%s'='[]'", key)))
+		} else {
+			left := criteria.Field(key)
+			right := q.determineLiteralType(key, q.Value)
 			if q.Negate {
 				myexpr = append(myexpr, criteria.Not(left, right))
 			} else {
 				myexpr = append(myexpr, criteria.Equals(left, right))
 			}
-		} else {
-			if q.Negate {
-				return nil, errors.NewBadParameterError("negate for null not supported", q.Name)
-			}
-			myexpr = append(myexpr, criteria.IsNull(key))
 		}
 	}
 	for _, child := range q.Children {
@@ -399,20 +402,20 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 			} else {
 				return nil, errors.NewBadParameterError("key not found", child.Name)
 			}
-			left := criteria.Field(key)
-			if child.Value != nil {
-				right := q.determineLiteralType(key, *child.Value)
+			if (key == workitem.SystemAssignees || key == workitem.SystemLabels) && child.Value == nil {
+				if child.Negate {
+					return nil, errors.NewBadParameterError("negate for null not supported", child.Name)
+				}
+				myexpr = append(myexpr, criteria.Literal(fmt.Sprintf("Fields->'%s'='[]'", key)))
+			} else {
+
+				left := criteria.Field(key)
+				right := q.determineLiteralType(key, child.Value)
 				if child.Negate {
 					myexpr = append(myexpr, criteria.Not(left, right))
 				} else {
 					myexpr = append(myexpr, criteria.Equals(left, right))
 				}
-			} else {
-				if child.Negate {
-					return nil, errors.NewBadParameterError("negate for null not supported", child.Name)
-				}
-				myexpr = append(myexpr, criteria.IsNull(key))
-
 			}
 		}
 	}

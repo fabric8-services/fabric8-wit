@@ -588,6 +588,9 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 		if err != nil {
 			return nil, errors.NewBadParameterError(fieldName, fieldValue)
 		}
+		if (fieldName == SystemAssignees || fieldName == SystemLabels) && fieldValue == nil {
+			wi.Fields[fieldName] = make([]interface{}, 0)
+		}
 		if fieldName == SystemDescription && wi.Fields[fieldName] != nil {
 			description := rendering.NewMarkupContentFromMap(wi.Fields[fieldName].(map[string]interface{}))
 			if !rendering.IsMarkupSupported(description.Markup) {
