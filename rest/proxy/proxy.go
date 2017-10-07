@@ -78,7 +78,11 @@ func newDirector(ctx context.Context, originalRequestData *goa.RequestData, targ
 		originalReq := &url.URL{Scheme: scheme, Host: originalRequestData.Host, Path: req.URL.Path, RawQuery: req.URL.RawQuery}
 
 		// Modify the request to route to a new target
-		req.URL.Scheme = target.Scheme
+		if target.Scheme == "" {
+			req.URL.Scheme = "http"
+		} else {
+			req.URL.Scheme = target.Scheme
+		}
 		req.URL.Host = target.Host
 		if targetPath != nil {
 			req.URL.Path = *targetPath
@@ -98,6 +102,13 @@ func newDirector(ctx context.Context, originalRequestData *goa.RequestData, targ
 		if requestID != "" {
 			req.Header.Set("X-Request-ID", requestID)
 		}
+		// Remove all *Forwarded* headers from the request because they belong to the original request
+		// and we should not pass them along
+		for key := range req.Header {
+			if strings.Contains(key, "Forwarded") {
+				req.Header.Del(key)
+			}
+		}
 
 		// Log the original and target URLs
 		originalReqString := originalReq.String()
@@ -105,6 +116,8 @@ func newDirector(ctx context.Context, originalRequestData *goa.RequestData, targ
 		log.Info(ctx, map[string]interface{}{
 			"original_req_url": originalReqString,
 			"target_req_url":   targetReqString,
+			"target":           target,
+			"target_string":    target.String(),
 		}, "Routing %s to %s", originalReqString, targetReqString)
 	}
 }

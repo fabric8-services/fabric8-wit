@@ -54,7 +54,7 @@ func (c *LoginController) Authorize(ctx *app.AuthorizeLoginContext) error {
 
 // Refresh obtain a new access token using the refresh token.
 func (c *LoginController) Refresh(ctx *app.RefreshLoginContext) error {
-	return proxy.RouteHTTPToPath(ctx, c.configuration.GetAuthServiceURL(), authservice.RefreshTokenPath())
+	return proxy.RouteHTTPToPath(ctx, c.configuration.GetAuthShortServiceHostName(), authservice.RefreshTokenPath())
 }
 
 // Link links identity provider(s) to the user's account
