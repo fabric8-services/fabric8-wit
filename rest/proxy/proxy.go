@@ -118,7 +118,6 @@ func newDirector(ctx context.Context, originalRequestData *goa.RequestData, targ
 			"target_req_url":   targetReqString,
 			"target":           target,
 			"target_string":    target.String(),
-			"headers":          req.Header,
 		}, "Routing %s to %s", originalReqString, targetReqString)
 	}
 }
