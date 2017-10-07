@@ -13,6 +13,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
 
+	"fmt"
 	"github.com/goadesign/goa"
 	"github.com/pkg/errors"
 )
@@ -109,6 +110,8 @@ func newDirector(ctx context.Context, originalRequestData *goa.RequestData, targ
 		log.Info(ctx, map[string]interface{}{
 			"original_req_url": originalReqString,
 			"target_req_url":   targetReqString,
+			"target":           target,
+			"target_string":    target.String(),
 		}, "Routing %s to %s", originalReqString, targetReqString)
 	}
 }
