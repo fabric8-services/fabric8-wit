@@ -50,7 +50,7 @@ const (
 	varHTTPAddress                  = "http.address"
 	varDeveloperModeEnabled         = "developer.mode.enabled"
 	varAuthDomainPrefix             = "auth.domain.prefix"
-	varAuthShortServiceName         = "auth.servicename.short"
+	varAuthShortServiceHostName     = "auth.servicehostname.short"
 	varAuthURL                      = "auth.url"
 	varAuthorizationEnabled         = "authz.enabled"
 	varGithubAuthToken              = "github.auth.token"
@@ -489,16 +489,17 @@ func (c *ConfigurationData) GetAuthDomainPrefix() string {
 	return c.v.GetString(varAuthDomainPrefix)
 }
 
-// GetAuthShortServiceName returns the short Auth service name
-// or the full Auth service URL if not set and Dev Mode enabled
-func (c *ConfigurationData) GetAuthShortServiceName() string {
-	if c.v.IsSet(varAuthShortServiceName) {
-		return c.v.GetString(varAuthShortServiceName)
+// GetAuthShortServiceHostName returns the short Auth service host name
+// or the full Auth service URL if not set and Dev Mode enabled.
+// Otherwise returns the default host - http://auth
+func (c *ConfigurationData) GetAuthShortServiceHostName() string {
+	if c.v.IsSet(varAuthShortServiceHostName) {
+		return c.v.GetString(varAuthShortServiceHostName)
 	}
 	if c.IsPostgresDeveloperModeEnabled() {
 		return c.GetAuthServiceURL()
 	}
-	return defaultAuthShortServiceName
+	return defaultAuthShortServiceHostName
 }
 
 // GetAuthServiceURL returns the Auth Service URL
@@ -778,7 +779,7 @@ const (
 	// Auth service URL to be used in dev mode. Can be overridden by setting up auth.url
 	devModeAuthURL = "http://localhost:8089"
 
-	defaultAuthShortServiceName = "auth"
+	defaultAuthShortServiceHostName = "http://auth"
 
 	defaultKeycloakClientID = "fabric8-online-platform"
 	defaultKeycloakSecret   = "7a3d5a00-7f80-40cf-8781-b5b6f2dfd1bd"
