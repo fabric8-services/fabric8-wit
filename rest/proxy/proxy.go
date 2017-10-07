@@ -78,7 +78,11 @@ func newDirector(ctx context.Context, originalRequestData *goa.RequestData, targ
 		originalReq := &url.URL{Scheme: scheme, Host: originalRequestData.Host, Path: req.URL.Path, RawQuery: req.URL.RawQuery}
 
 		// Modify the request to route to a new target
-		req.URL.Scheme = target.Scheme
+		if target.Scheme == "" {
+			req.URL.Scheme = "http"
+		} else {
+			req.URL.Scheme = target.Scheme
+		}
 		req.URL.Host = target.Host
 		if targetPath != nil {
 			req.URL.Path = *targetPath
