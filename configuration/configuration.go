@@ -193,7 +193,6 @@ func (c *ConfigurationData) setConfigDefaults() {
 	// Auth-related defaults
 	c.v.SetDefault(varAuthURL, devModeAuthURL)
 	c.v.SetDefault(varAuthDomainPrefix, "auth")
-	c.v.SetDefault(varAuthShortServiceName, "auth")
 	c.v.SetDefault(varKeycloakClientID, defaultKeycloakClientID)
 	c.v.SetDefault(varKeycloakSecret, defaultKeycloakSecret)
 	c.v.SetDefault(varGithubAuthToken, defaultActualToken)
@@ -490,12 +489,16 @@ func (c *ConfigurationData) GetAuthDomainPrefix() string {
 	return c.v.GetString(varAuthDomainPrefix)
 }
 
-// GetAuthShortServiceName returns the short Auth service name or the full Auth service URL if Dev Mode enabled
+// GetAuthShortServiceName returns the short Auth service name
+// or the full Auth service URL if not set and Dev Mode enabled
 func (c *ConfigurationData) GetAuthShortServiceName() string {
+	if c.v.IsSet(varAuthShortServiceName) {
+		return c.v.GetString(varAuthShortServiceName)
+	}
 	if c.IsPostgresDeveloperModeEnabled() {
 		return c.GetAuthServiceURL()
 	}
-	return c.v.GetString(varAuthShortServiceName)
+	return defaultAuthShortServiceName
 }
 
 // GetAuthServiceURL returns the Auth Service URL
@@ -774,6 +777,8 @@ const (
 
 	// Auth service URL to be used in dev mode. Can be overridden by setting up auth.url
 	devModeAuthURL = "http://localhost:8089"
+
+	defaultAuthShortServiceName = "auth"
 
 	defaultKeycloakClientID = "fabric8-online-platform"
 	defaultKeycloakSecret   = "7a3d5a00-7f80-40cf-8781-b5b6f2dfd1bd"
