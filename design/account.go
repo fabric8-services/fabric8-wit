@@ -124,7 +124,7 @@ var _ = a.Resource("users", func() {
 			a.Param("id", d.String, "id")
 		})
 		a.Response(d.InternalServerError, JSONAPIErrors)
-		a.Response(d.OK)
+		a.Response(d.TemporaryRedirect)
 	})
 
 	a.Action("update", func() {
@@ -134,7 +134,7 @@ var _ = a.Resource("users", func() {
 		)
 		a.Description("update the authenticated user")
 		a.Response(d.InternalServerError, JSONAPIErrors)
-		a.Response(d.OK)
+		a.Response(d.TemporaryRedirect)
 	})
 
 	a.Action("updateUserAsServiceAccount", func() {
@@ -175,7 +175,7 @@ var _ = a.Resource("users", func() {
 		)
 		a.Description("List all users.")
 		a.Response(d.InternalServerError, JSONAPIErrors)
-		a.Response(d.OK)
+		a.Response(d.TemporaryRedirect)
 	})
 })
 

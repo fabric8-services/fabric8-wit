@@ -68,7 +68,7 @@ var _ = a.Resource("search", func() {
 			a.GET("users"),
 		)
 		a.Description("Search by fullname")
-		a.Response(d.OK)
+		a.Response(d.TemporaryRedirect)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 })

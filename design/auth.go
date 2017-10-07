@@ -35,7 +35,7 @@ var _ = a.Resource("login", func() {
 			a.POST("refresh"),
 		)
 		a.Description("Refresh access token")
-		a.Response(d.OK)
+		a.Response(d.TemporaryRedirect)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 
