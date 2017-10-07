@@ -104,7 +104,7 @@ func newDirector(ctx context.Context, originalRequestData *goa.RequestData, targ
 		}
 		// Remove all *Forwarded* headers from the request because they belong to the original request
 		// and we should not pass them along
-		for key, _ := range req.Header {
+		for key := range req.Header {
 			if strings.Contains(key, "Forwarded") {
 				req.Header.Del(key)
 			}
