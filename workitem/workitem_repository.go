@@ -3,6 +3,7 @@ package workitem
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -520,6 +521,11 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 		}
 		fieldValue := updatedWorkItem.Fields[fieldName]
 		var err error
+		var empty []interface{}
+		if (fieldName == SystemAssignees || fieldName == SystemLabels) && reflect.DeepEqual(fieldValue, empty) {
+			delete(wiStorage.Fields, fieldName)
+			continue
+		}
 		wiStorage.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
 		if err != nil {
 			return nil, errors.NewBadParameterError(fieldName, fieldValue)
@@ -587,6 +593,9 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 		wi.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
 		if err != nil {
 			return nil, errors.NewBadParameterError(fieldName, fieldValue)
+		}
+		if (fieldName == SystemAssignees || fieldName == SystemLabels) && fieldValue == nil {
+			delete(wi.Fields, fieldName)
 		}
 		if fieldName == SystemDescription && wi.Fields[fieldName] != nil {
 			description := rendering.NewMarkupContentFromMap(wi.Fields[fieldName].(map[string]interface{}))

@@ -358,6 +358,9 @@ func GetMigrations() Migrations {
 	// Version 78
 	m = append(m, steps{ExecuteSQLFile("078-tracker-to-use-uuid.sql")})
 
+	// Version 79
+	m = append(m, steps{ExecuteSQLFile("079-assignee-and-label-empty-value.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
