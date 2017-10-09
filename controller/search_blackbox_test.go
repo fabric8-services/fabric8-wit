@@ -944,8 +944,8 @@ func (s *searchBlackBoxTest) TestIncludedParents() {
 }
 
 func (s *searchBlackBoxTest) TestFilterAssigneeNullAfterWIUpdate() {
-	identitiesTestFixtures := tf.NewTestFixture(s.T(), s.DB, tf.Iterations(1), tf.Areas(1), tf.WorkItems(1))
-	spaceInstance := identitiesTestFixtures.Spaces[0]
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Iterations(1), tf.Areas(1), tf.WorkItems(1))
+	spaceInstance := fxt.Spaces[0]
 	spaceIDStr := spaceInstance.ID.String()
 	filter := fmt.Sprintf(`
 							{"assignee":null}`,
@@ -984,8 +984,8 @@ func (s *searchBlackBoxTest) TestFilterAssigneeNullAfterWIUpdate() {
 }
 
 func (s *searchBlackBoxTest) TestFilterLabelNullAfterWIUpdate() {
-	identitiesTestFixtures := tf.NewTestFixture(s.T(), s.DB, tf.Iterations(1), tf.Areas(1), tf.WorkItems(1))
-	spaceInstance := identitiesTestFixtures.Spaces[0]
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Iterations(1), tf.Areas(1), tf.WorkItems(1))
+	spaceInstance := fxt.Spaces[0]
 	spaceIDStr := spaceInstance.ID.String()
 	filter := fmt.Sprintf(`
 							{"label":null}`,
