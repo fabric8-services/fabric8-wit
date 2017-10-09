@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	stBadParameterErrorMsg         = "Bad value for parameter '%s': '%+#v'"
-	stBadParameterErrorExpectedMsg = "Bad value for parameter '%s': '%+#v' (expected: '%+#v')"
+	stBadParameterErrorMsg         = "Bad value for parameter '%s': '%v'"
+	stBadParameterErrorExpectedMsg = "Bad value for parameter '%s': '%v' (expected: '%v')"
 	stNotFoundErrorMsg             = "%s with id '%s' not found"
 )
 
