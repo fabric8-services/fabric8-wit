@@ -75,7 +75,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearch() {
 				fxt.WorkItems[idx].Fields = map[string]interface{}{
 					workitem.SystemTitle:       "test sbose title '12345678asdfgh'",
 					workitem.SystemDescription: rendering.NewMarkupContentFromLegacy(`"description" for search test`),
-					workitem.SystemState:       "closed",
+					workitem.SystemState:       workitem.SystemStateClosed,
 					workitem.SystemCreator:     baseFxt.Identities[0].ID.String(),
 					workitem.SystemAssignees:   []string{baseFxt.Identities[1].ID.String()},
 				}
@@ -97,7 +97,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearch() {
 				fxt.WorkItems[idx].Fields = map[string]interface{}{
 					workitem.SystemTitle:       "add new error types in models/errors.go'",
 					workitem.SystemDescription: rendering.NewMarkupContentFromLegacy(`Make sure remoteworkitem can access..`),
-					workitem.SystemState:       "closed",
+					workitem.SystemState:       workitem.SystemStateClosed,
 					workitem.SystemCreator:     baseFxt.Identities[0].ID.String(),
 					workitem.SystemAssignees:   []string{baseFxt.Identities[1].ID.String()},
 				}
@@ -118,7 +118,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearch() {
 				fxt.WorkItems[idx].Type = baseFxt.WorkItemTypes[0].ID
 				fxt.WorkItems[idx].Fields = map[string]interface{}{
 					workitem.SystemTitle:     "Bug reported by administrator for input = (value)",
-					workitem.SystemState:     "new",
+					workitem.SystemState:     workitem.SystemStateNew,
 					workitem.SystemCreator:   baseFxt.Identities[0].ID.String(),
 					workitem.SystemAssignees: []string{baseFxt.Identities[1].ID.String()},
 				}
@@ -140,7 +140,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearch() {
 				fxt.WorkItems[idx].Type = baseFxt.WorkItemTypes[0].ID
 				fxt.WorkItems[idx].Fields = map[string]interface{}{
 					workitem.SystemTitle:     "trial for braces (pranav) {shoubhik} [aslak]",
-					workitem.SystemState:     "new",
+					workitem.SystemState:     workitem.SystemStateNew,
 					workitem.SystemCreator:   baseFxt.Identities[0].ID.String(),
 					workitem.SystemAssignees: []string{baseFxt.Identities[1].ID.String()},
 				}
@@ -161,7 +161,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearch() {
 				fxt.WorkItems[idx].Type = baseFxt.WorkItemTypes[0].ID
 				fxt.WorkItems[idx].Fields = map[string]interface{}{
 					workitem.SystemTitle:     "test nofield sbose title '12345678asdfgh'",
-					workitem.SystemState:     "closed",
+					workitem.SystemState:     workitem.SystemStateClosed,
 					workitem.SystemCreator:   baseFxt.Identities[0].ID.String(),
 					workitem.SystemAssignees: []string{baseFxt.Identities[1].ID.String()},
 				}
@@ -182,7 +182,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearch() {
 				fxt.WorkItems[idx].Type = baseFxt.WorkItemTypes[0].ID
 				fxt.WorkItems[idx].Fields = map[string]interface{}{
 					workitem.SystemTitle:     "test should return 0 results'",
-					workitem.SystemState:     "closed",
+					workitem.SystemState:     workitem.SystemStateClosed,
 					workitem.SystemCreator:   baseFxt.Identities[0].ID.String(),
 					workitem.SystemAssignees: []string{baseFxt.Identities[1].ID.String()},
 				}
@@ -203,7 +203,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearch() {
 				fxt.WorkItems[idx].Type = baseFxt.WorkItemTypes[0].ID
 				fxt.WorkItems[idx].Fields = map[string]interface{}{
 					workitem.SystemTitle:     "test nofield sbose title '12345678asdfgh'",
-					workitem.SystemState:     "closed",
+					workitem.SystemState:     workitem.SystemStateClosed,
 					workitem.SystemCreator:   baseFxt.Identities[0].ID.String(),
 					workitem.SystemAssignees: []string{baseFxt.Identities[1].ID.String()},
 				}
@@ -225,7 +225,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearch() {
 				fxt.WorkItems[idx].Type = baseFxt.WorkItemTypes[0].ID
 				fxt.WorkItems[idx].Fields = map[string]interface{}{
 					workitem.SystemTitle:     "test nofield sbose title '12345678asdfgh'",
-					workitem.SystemState:     "closed",
+					workitem.SystemState:     workitem.SystemStateClosed,
 					workitem.SystemCreator:   baseFxt.Identities[0].ID.String(),
 					workitem.SystemAssignees: []string{baseFxt.Identities[1].ID.String()},
 				}
