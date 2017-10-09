@@ -930,3 +930,83 @@ func (s *searchBlackBoxTest) TestIncludedParents() {
 	}
 	assert.Equal(s.T(), successCnt, 4)
 }
+
+func (s *searchBlackBoxTest) TestFilterAssigneeNullAfterWIUpdate() {
+	identitiesTestFixtures := tf.NewTestFixture(s.T(), s.DB, tf.Iterations(1), tf.Areas(1), tf.WorkItems(1))
+	spaceInstance := identitiesTestFixtures.Spaces[0]
+	spaceIDStr := spaceInstance.ID.String()
+	filter := fmt.Sprintf(`
+							{"assignee":null}`,
+	)
+	_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+	require.NotEmpty(s.T(), result.Data)
+	assert.Len(s.T(), result.Data, 1)
+	wi := result.Data[0]
+	workitemCtrl := NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+
+	wi.Attributes[workitem.SystemTitle] = "Updated Test WI"
+	updatedDescription := "= Updated Test WI description"
+	wi.Attributes[workitem.SystemDescription] = updatedDescription
+	payload2 := app.UpdateWorkitemPayload{
+		Data: &app.WorkItem{
+			Type:       APIStringTypeWorkItem,
+			Attributes: map[string]interface{}{},
+			Relationships: &app.WorkItemRelationships{
+				Space: app.NewSpaceRelation(spaceInstance.ID, ""),
+			},
+		},
+	}
+	payload2.Data.ID = wi.ID
+	payload2.Data.Attributes = wi.Attributes
+	_, updated := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, workitemCtrl, *wi.ID, &payload2)
+	assert.NotNil(s.T(), updated.Data.Attributes[workitem.SystemCreatedAt])
+	assert.Equal(s.T(), (wi.Attributes["version"].(int) + 1), updated.Data.Attributes["version"])
+	assert.Equal(s.T(), *wi.ID, *updated.Data.ID)
+	assert.Equal(s.T(), wi.Attributes[workitem.SystemTitle], updated.Data.Attributes[workitem.SystemTitle])
+	assert.Nil(s.T(), wi.Attributes[workitem.SystemAssignees])
+	assert.Equal(s.T(), updatedDescription, updated.Data.Attributes[workitem.SystemDescription])
+
+	_, result = test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+	require.NotEmpty(s.T(), result.Data)
+	assert.Len(s.T(), result.Data, 1)
+}
+
+func (s *searchBlackBoxTest) TestFilterLabelNullAfterWIUpdate() {
+	identitiesTestFixtures := tf.NewTestFixture(s.T(), s.DB, tf.Iterations(1), tf.Areas(1), tf.WorkItems(1))
+	spaceInstance := identitiesTestFixtures.Spaces[0]
+	spaceIDStr := spaceInstance.ID.String()
+	filter := fmt.Sprintf(`
+							{"label":null}`,
+	)
+	_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+	require.NotEmpty(s.T(), result.Data)
+	assert.Len(s.T(), result.Data, 1)
+	wi := result.Data[0]
+	workitemCtrl := NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+
+	wi.Attributes[workitem.SystemTitle] = "Updated Test WI"
+	updatedDescription := "= Updated Test WI description"
+	wi.Attributes[workitem.SystemDescription] = updatedDescription
+	payload2 := app.UpdateWorkitemPayload{
+		Data: &app.WorkItem{
+			Type:       APIStringTypeWorkItem,
+			Attributes: map[string]interface{}{},
+			Relationships: &app.WorkItemRelationships{
+				Space: app.NewSpaceRelation(spaceInstance.ID, ""),
+			},
+		},
+	}
+	payload2.Data.ID = wi.ID
+	payload2.Data.Attributes = wi.Attributes
+	_, updated := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, workitemCtrl, *wi.ID, &payload2)
+	assert.NotNil(s.T(), updated.Data.Attributes[workitem.SystemCreatedAt])
+	assert.Equal(s.T(), (wi.Attributes["version"].(int) + 1), updated.Data.Attributes["version"])
+	assert.Equal(s.T(), *wi.ID, *updated.Data.ID)
+	assert.Equal(s.T(), wi.Attributes[workitem.SystemTitle], updated.Data.Attributes[workitem.SystemTitle])
+	assert.Nil(s.T(), wi.Attributes[workitem.SystemLabels])
+	assert.Equal(s.T(), updatedDescription, updated.Data.Attributes[workitem.SystemDescription])
+
+	_, result = test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+	require.NotEmpty(s.T(), result.Data)
+	assert.Len(s.T(), result.Data, 1)
+}
