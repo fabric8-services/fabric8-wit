@@ -103,8 +103,6 @@ func newDirector(ctx context.Context, originalRequestData *goa.RequestData, targ
 			req.Header.Set("X-Request-ID", requestID)
 		}
 
-		req.Header.Set("X-Forwarded-proto", scheme)
-
 		// Log the original and target URLs
 		originalReqString := originalReq.String()
 		targetReqString := req.URL.String()
