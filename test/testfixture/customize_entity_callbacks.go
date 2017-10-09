@@ -191,3 +191,16 @@ func SetWorkItemLinkTypeNames(names []string) CustomizeWorkItemLinkTypeFunc {
 		return nil
 	}
 }
+
+// SetIdentityUsernamesFromString takes the given usernames and uses them during creation
+// of identities. The length of requested identities and the
+// number of usernames must match or the NewFixture call will return an error.
+func SetIdentityUsernamesFromString(usernames []string) CustomizeIdentityFunc {
+	return func(fxt *TestFixture, idx int) error {
+		if len(fxt.Identities) != len(usernames) {
+			return errs.Errorf("number of usernames (%d) must match number of identities to create (%d)", len(usernames), len(fxt.Identities))
+		}
+		fxt.Identities[idx].Username = usernames[idx]
+		return nil
+	}
+}

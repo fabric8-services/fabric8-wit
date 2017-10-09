@@ -25,6 +25,8 @@ import (
 )
 
 func init() {
+	// While registering URLs do not include protocol because it will be removed before scanning starts
+	// Please do not include trailing slashes because it will be removed before scanning starts
 	RegisterAsKnownURL("test-work-item-list-details", `(?P<domain>demo.openshift.io)(?P<path>/work-item/list/detail/)(?P<id>\d*)`)
 	RegisterAsKnownURL("test-work-item-board-details", `(?P<domain>demo.openshift.io)(?P<path>/work-item/board/detail/)(?P<id>\d*)`)
 }
@@ -41,8 +43,6 @@ type searchRepositoryWhiteboxTest struct {
 
 func (s *searchRepositoryWhiteboxTest) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
-	// While registering URLs do not include protocol because it will be removed before scanning starts
-	// Please do not include trailing slashes because it will be removed before scanning starts
 }
 
 func (s *searchRepositoryWhiteboxTest) SetupTest() {
@@ -65,8 +65,6 @@ func (s *searchRepositoryWhiteboxTest) setupTestDataSet() ([]SearchTestDescripto
 			fields: map[string]interface{}{
 				workitem.SystemTitle:       "test sbose title '12345678asdfgh'",
 				workitem.SystemDescription: rendering.NewMarkupContentFromLegacy(`"description" for search test`),
-				workitem.SystemCreator:     "sbose78",
-				workitem.SystemAssignees:   []string{"pranav"},
 				workitem.SystemState:       "closed",
 			},
 			searchString:   `Sbose "deScription" '12345678asdfgh' `,
@@ -76,8 +74,6 @@ func (s *searchRepositoryWhiteboxTest) setupTestDataSet() ([]SearchTestDescripto
 			fields: map[string]interface{}{
 				workitem.SystemTitle:       "add new error types in models/errors.go'",
 				workitem.SystemDescription: rendering.NewMarkupContentFromLegacy(`Make sure remoteworkitem can access..`),
-				workitem.SystemCreator:     "sbose78",
-				workitem.SystemAssignees:   []string{"pranav"},
 				workitem.SystemState:       "closed",
 			},
 			searchString:   `models/errors.go remoteworkitem `,
@@ -87,8 +83,6 @@ func (s *searchRepositoryWhiteboxTest) setupTestDataSet() ([]SearchTestDescripto
 			fields: map[string]interface{}{
 				workitem.SystemTitle:       "test sbose title '12345678asdfgh'",
 				workitem.SystemDescription: rendering.NewMarkupContentFromLegacy(`"description" for search test`),
-				workitem.SystemCreator:     "sbose78",
-				workitem.SystemAssignees:   []string{"pranav"},
 				workitem.SystemState:       "closed",
 			},
 			searchString:   `Sbose "deScription" '12345678asdfgh' `,
@@ -97,10 +91,8 @@ func (s *searchRepositoryWhiteboxTest) setupTestDataSet() ([]SearchTestDescripto
 		{
 			// will test behaviour when null fields are present. In this case, "system.description" is nil
 			fields: map[string]interface{}{
-				workitem.SystemTitle:     "test nofield sbose title '12345678asdfgh'",
-				workitem.SystemCreator:   "sbose78",
-				workitem.SystemAssignees: []string{"pranav"},
-				workitem.SystemState:     "closed",
+				workitem.SystemTitle: "test nofield sbose title '12345678asdfgh'",
+				workitem.SystemState: "closed",
 			},
 			searchString:   `sbose nofield `,
 			minimumResults: 1,
@@ -108,36 +100,30 @@ func (s *searchRepositoryWhiteboxTest) setupTestDataSet() ([]SearchTestDescripto
 		{
 			// will test behaviour when null fields are present. In this case, "system.description" is nil
 			fields: map[string]interface{}{
-				workitem.SystemTitle:     "test should return 0 results'",
-				workitem.SystemCreator:   "sbose78",
-				workitem.SystemAssignees: []string{"pranav"},
-				workitem.SystemState:     "closed",
+				workitem.SystemTitle: "test should return 0 results'",
+				workitem.SystemState: "closed",
 			},
 			searchString:   `negative case `,
 			minimumResults: 0,
 		}, {
 			// search stirng with braces should be acceptable case
 			fields: map[string]interface{}{
-				workitem.SystemTitle:     "Bug reported by administrator for input = (value)",
-				workitem.SystemCreator:   "pgore",
-				workitem.SystemAssignees: []string{"pranav"},
-				workitem.SystemState:     "new",
+				workitem.SystemTitle: "Bug reported by administrator for input = (value)",
+				workitem.SystemState: "new",
 			},
 			searchString:   `(value) `,
 			minimumResults: 1,
 		}, {
 			// search stirng with surrounding braces should be acceptable case
 			fields: map[string]interface{}{
-				workitem.SystemTitle:     "trial for braces (pranav) {shoubhik} [aslak]",
-				workitem.SystemCreator:   "pgore",
-				workitem.SystemAssignees: []string{"pranav"},
-				workitem.SystemState:     "new",
+				workitem.SystemTitle: "trial for braces (pranav) {shoubhik} [aslak]",
+				workitem.SystemState: "new",
 			},
 			searchString:   `(pranav) {shoubhik} [aslak] `,
 			minimumResults: 1,
 		},
 	}
-	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(2), tf.WorkItems(len(testDataSet), func(fxt *tf.TestFixture, idx int) error {
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(2, tf.SetIdentityUsernamesFromString([]string{"creator", "assignee"})), tf.WorkItems(len(testDataSet), func(fxt *tf.TestFixture, idx int) error {
 		fxt.WorkItems[idx].SpaceID = fxt.Spaces[0].ID
 		fxt.WorkItems[idx].Type = fxt.WorkItemTypes[0].ID
 		fxt.WorkItems[idx].Fields = testDataSet[idx].fields
@@ -274,22 +260,24 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByID() {
 	params := url.Values{}
 	ctx := goa.NewContext(context.Background(), nil, req, params)
 	// create 2 work items, the second one having the number of the first one in its title
-	fxt, err := tf.NewFixture(s.DB, tf.WorkItems(2, func(fxt *tf.TestFixture, idx int) error {
-		fxt.WorkItems[idx].Type = workitem.SystemBug
-		fxt.WorkItems[idx].Fields = map[string]interface{}{
-			workitem.SystemTitle:       "Search Test Sbose",
-			workitem.SystemDescription: rendering.NewMarkupContentFromLegacy("Description"),
-			workitem.SystemCreator:     s.modifierID.String(),
-			workitem.SystemAssignees:   []string{"pranav"},
-			workitem.SystemState:       "closed",
-		}
-		fxt.WorkItems[idx].SpaceID = fxt.Spaces[0].ID
-		// for the second work item, use the number of the first work item
-		if idx == 1 {
-			fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "Search Test Sbose" + strconv.Itoa(fxt.WorkItems[0].Number)
-		}
-		return nil
-	}))
+	fxt, err := tf.NewFixture(s.DB,
+		tf.Identities(2, tf.SetIdentityUsernamesFromString([]string{"creator", "assignee"})),
+		tf.WorkItems(2, func(fxt *tf.TestFixture, idx int) error {
+			fxt.WorkItems[idx].Type = workitem.SystemBug
+			fxt.WorkItems[idx].Fields = map[string]interface{}{
+				workitem.SystemTitle:       "Search Test creator",
+				workitem.SystemDescription: rendering.NewMarkupContentFromLegacy("Description"),
+				workitem.SystemCreator:     fxt.Identities[0].ID.String(),
+				workitem.SystemAssignees:   []string{fxt.Identities[1].ID.String()},
+				workitem.SystemState:       "closed",
+			}
+			fxt.WorkItems[idx].SpaceID = fxt.Spaces[0].ID
+			// for the second work item, use the number of the first work item
+			if idx == 1 {
+				fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "Search Test Sbose" + strconv.Itoa(fxt.WorkItems[0].Number)
+			}
+			return nil
+		}))
 	require.Nil(s.T(), err, "Couldn't create test data")
 	sr := NewGormSearchRepository(s.DB)
 	// when

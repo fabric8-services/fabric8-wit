@@ -174,6 +174,8 @@ func getSearchQueryFromURLPattern(patternName, stringToMatch string) string {
 		searchQueryString = fmt.Sprintf("%s:*", searchQueryString)
 		if result["id"] != "" {
 			// Look for pattern's ID field, if exists update searchQueryString
+			// `*A` is used to add sme weight to the work item number in the search results.
+			// See https://www.postgresql.org/docs/9.6/static/textsearch-controls.html
 			searchQueryString = fmt.Sprintf("(%v:*A | %v)", result["id"], searchQueryString)
 			// searchQueryString = "(" + result["id"] + ":*" + " | " + searchQueryString + ")"
 		}
