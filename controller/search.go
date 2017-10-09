@@ -6,7 +6,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/auth"
-	"github.com/fabric8-services/fabric8-wit/auth/authservice"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
@@ -14,9 +13,10 @@ import (
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 
+	"github.com/fabric8-services/fabric8-wit/rest/proxy"
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
-	uuid "github.com/satori/go.uuid"
+	"github.com/satori/go.uuid"
 )
 
 type searchConfiguration interface {
@@ -186,7 +186,7 @@ func (c *SearchController) Spaces(ctx *app.SpacesSearchContext) error {
 
 // Users runs the user search action.
 func (c *SearchController) Users(ctx *app.UsersSearchContext) error {
-	return redirectWithParams(ctx, c.configuration, ctx.ResponseData.Header(), ctx.Params, authservice.UsersSearchPath())
+	return proxy.RouteHTTP(ctx, c.configuration.GetAuthShortServiceHostName())
 }
 
 // Iterate over the WI list and read parent IDs
