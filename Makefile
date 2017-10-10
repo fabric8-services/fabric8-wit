@@ -229,7 +229,7 @@ clean-glide-cache:
 	-rm -rf ./.glide
 
 $(VENDOR_DIR): glide.lock glide.yaml
-	$(GLIDE_BIN) install
+	$(GLIDE_BIN) --quiet install
 	touch $(VENDOR_DIR)
 
 .PHONY: deps
