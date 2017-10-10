@@ -15,7 +15,6 @@ services:
       F8_DEVELOPER_MODE_ENABLED: "true"
     ports:
       - "8080:8080"
-    network_mode: "host"
     depends_on:
       - auth
   db-auth:
@@ -30,8 +29,9 @@ services:
     environment:
       AUTH_WIT_URL: "http://localhost:8080"
       AUTH_DEVELOPER_MODE_ENABLED: "true"
+      AUTH_POSTGRES_HOST: db-auth
+      AUTH_POSTGRES_PORT: 5432
     ports:
       - "8089:8089"
-    network_mode: "host"
     depends_on:
       - db-auth
