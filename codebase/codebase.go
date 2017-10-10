@@ -216,7 +216,7 @@ func (m *GormCodebaseRepository) Save(ctx context.Context, codebase *Codebase) (
 	if err := tx.Error; err != nil {
 		return nil, errors.NewInternalError(ctx, err)
 	}
-	log.Info(nil, nil, "updated codebase to %v\n", codebase)
+	log.Info(ctx, map[string]interface{}{"codebase_id": codebase.ID}, "codebase updated successfully")
 	return codebase, nil
 }
 
