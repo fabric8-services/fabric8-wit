@@ -58,187 +58,123 @@ type SearchTestDescriptor struct {
 }
 
 func (s *searchRepositoryWhiteboxTest) TestSearch() {
-	// create 2 work items, the second one having the number of the first one in its title
-	baseFxt, err := tf.NewFixture(s.DB, tf.Identities(2, tf.SetIdentityUsernames([]string{"creator", "assignee"})),
-		tf.Spaces(1, func(fxt *tf.TestFixture, idx int) error {
-			fxt.Spaces[idx].OwnerId = fxt.Identities[0].ID
+
+	s.T().Run("Search accross title and description", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
+			fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "test sbose title '12345678asdfgh'"
+			fxt.WorkItems[idx].Fields[workitem.SystemDescription] = rendering.NewMarkupContentFromLegacy(`"description" for search test`)
 			return nil
-		}), tf.WorkItemTypes(1))
-	require.Nil(s.T(), err)
-	s.T().Run("Text search", func(t *testing.T) {
+		}))
+		// when
+		searchQuery := `Sbose "deScription" '12345678asdfgh'`
+		searchResults, err := s.searchFor(fxt.Spaces[0].ID, searchQuery)
+		// then
+		require.Nil(t, err)
+		verify(t, searchQuery, searchResults, 1)
+	})
 
-		t.Run("Search accross title and description", func(t *testing.T) {
-			// given
-			tf.NewTestFixture(t, s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
-				fxt.WorkItems[idx].SpaceID = baseFxt.Spaces[0].ID
-				fxt.WorkItems[idx].Type = baseFxt.WorkItemTypes[0].ID
-				fxt.WorkItems[idx].Fields = map[string]interface{}{
-					workitem.SystemTitle:       "test sbose title '12345678asdfgh'",
-					workitem.SystemDescription: rendering.NewMarkupContentFromLegacy(`"description" for search test`),
-					workitem.SystemState:       workitem.SystemStateClosed,
-					workitem.SystemCreator:     baseFxt.Identities[0].ID.String(),
-					workitem.SystemAssignees:   []string{baseFxt.Identities[1].ID.String()},
-				}
-				return nil
-			}))
-			// when
-			searchQuery := `Sbose "deScription" '12345678asdfgh'`
-			searchResults, err := s.searchFor(baseFxt.Spaces[0].ID, searchQuery)
-			// then
-			require.Nil(t, err)
-			verify(t, searchQuery, searchResults, 1)
-		})
+	s.T().Run("Search accross title and description undefined", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
+			fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "test nofield sbose title '12345678asdfgh'"
+			return nil
+		}))
+		// when
+		searchQuery := `sbose nofield`
+		searchResults, err := s.searchFor(fxt.Spaces[0].ID, searchQuery)
+		// then
+		require.Nil(t, err)
+		verify(t, searchQuery, searchResults, 1)
+	})
 
-		t.Run("Search accross title and description with slash", func(t *testing.T) {
-			// given
-			tf.NewTestFixture(t, s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
-				fxt.WorkItems[idx].SpaceID = baseFxt.Spaces[0].ID
-				fxt.WorkItems[idx].Type = baseFxt.WorkItemTypes[0].ID
-				fxt.WorkItems[idx].Fields = map[string]interface{}{
-					workitem.SystemTitle:       "add new error types in models/errors.go'",
-					workitem.SystemDescription: rendering.NewMarkupContentFromLegacy(`Make sure remoteworkitem can access..`),
-					workitem.SystemState:       workitem.SystemStateClosed,
-					workitem.SystemCreator:     baseFxt.Identities[0].ID.String(),
-					workitem.SystemAssignees:   []string{baseFxt.Identities[1].ID.String()},
-				}
-				return nil
-			}))
-			// when
-			searchQuery := `models/errors.go remoteworkitem`
-			searchResults, err := s.searchFor(baseFxt.Spaces[0].ID, searchQuery)
-			// then
-			require.Nil(t, err)
-			verify(t, searchQuery, searchResults, 1)
-		})
+	s.T().Run("Search accross title with slash", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
+			fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "add new error types in models/errors.go'"
+			fxt.WorkItems[idx].Fields[workitem.SystemDescription] = rendering.NewMarkupContentFromLegacy(`Make sure remoteworkitem can access..`)
+			return nil
+		}))
+		// when
+		searchQuery := `models/errors.go remoteworkitem`
+		searchResults, err := s.searchFor(fxt.Spaces[0].ID, searchQuery)
+		// then
+		require.Nil(t, err)
+		verify(t, searchQuery, searchResults, 1)
+	})
 
-		t.Run("Search accross title and description with braces", func(t *testing.T) {
-			// given
-			tf.NewTestFixture(t, s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
-				fxt.WorkItems[idx].SpaceID = baseFxt.Spaces[0].ID
-				fxt.WorkItems[idx].Type = baseFxt.WorkItemTypes[0].ID
-				fxt.WorkItems[idx].Fields = map[string]interface{}{
-					workitem.SystemTitle:     "Bug reported by administrator for input = (value)",
-					workitem.SystemState:     workitem.SystemStateNew,
-					workitem.SystemCreator:   baseFxt.Identities[0].ID.String(),
-					workitem.SystemAssignees: []string{baseFxt.Identities[1].ID.String()},
-				}
-				return nil
-			}))
-			// when
-			searchQuery := `(value)`
-			searchResults, err := s.searchFor(baseFxt.Spaces[0].ID, searchQuery)
-			// then
-			require.Nil(t, err)
-			verify(t, searchQuery, searchResults, 1)
+	s.T().Run("Search accross title with braces", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
+			fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "Bug reported by administrator for input = (value)"
+			return nil
+		}))
+		// when
+		searchQuery := `(value)`
+		searchResults, err := s.searchFor(fxt.Spaces[0].ID, searchQuery)
+		// then
+		require.Nil(t, err)
+		verify(t, searchQuery, searchResults, 1)
 
-		})
+	})
 
-		t.Run("Search accross title and description with braces and brackets", func(t *testing.T) {
-			// given
-			tf.NewTestFixture(t, s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
-				fxt.WorkItems[idx].SpaceID = baseFxt.Spaces[0].ID
-				fxt.WorkItems[idx].Type = baseFxt.WorkItemTypes[0].ID
-				fxt.WorkItems[idx].Fields = map[string]interface{}{
-					workitem.SystemTitle:     "trial for braces (pranav) {shoubhik} [aslak]",
-					workitem.SystemState:     workitem.SystemStateNew,
-					workitem.SystemCreator:   baseFxt.Identities[0].ID.String(),
-					workitem.SystemAssignees: []string{baseFxt.Identities[1].ID.String()},
-				}
-				return nil
-			}))
-			// when
-			searchQuery := `(pranav) {shoubhik} [aslak]`
-			searchResults, err := s.searchFor(baseFxt.Spaces[0].ID, searchQuery)
-			// then
-			require.Nil(t, err)
-			verify(t, searchQuery, searchResults, 1)
+	s.T().Run("Search accross title with braces and brackets", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
+			fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "trial for braces (pranav) {shoubhik} [aslak]"
+			return nil
+		}))
+		// when
+		searchQuery := `(pranav) {shoubhik} [aslak]`
+		searchResults, err := s.searchFor(fxt.Spaces[0].ID, searchQuery)
+		// then
+		require.Nil(t, err)
+		verify(t, searchQuery, searchResults, 1)
 
-		})
-		t.Run("Search accross title and description undefined", func(t *testing.T) {
-			// given
-			tf.NewTestFixture(t, s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
-				fxt.WorkItems[idx].SpaceID = baseFxt.Spaces[0].ID
-				fxt.WorkItems[idx].Type = baseFxt.WorkItemTypes[0].ID
-				fxt.WorkItems[idx].Fields = map[string]interface{}{
-					workitem.SystemTitle:     "test nofield sbose title '12345678asdfgh'",
-					workitem.SystemState:     workitem.SystemStateClosed,
-					workitem.SystemCreator:   baseFxt.Identities[0].ID.String(),
-					workitem.SystemAssignees: []string{baseFxt.Identities[1].ID.String()},
-				}
-				return nil
-			}))
-			// when
-			searchQuery := `sbose nofield`
-			searchResults, err := s.searchFor(baseFxt.Spaces[0].ID, searchQuery)
-			// then
-			require.Nil(t, err)
-			verify(t, searchQuery, searchResults, 1)
-		})
+	})
 
-		t.Run("Search accross title and description undefined and no match", func(t *testing.T) {
-			// given
-			tf.NewTestFixture(t, s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
-				fxt.WorkItems[idx].SpaceID = baseFxt.Spaces[0].ID
-				fxt.WorkItems[idx].Type = baseFxt.WorkItemTypes[0].ID
-				fxt.WorkItems[idx].Fields = map[string]interface{}{
-					workitem.SystemTitle:     "test should return 0 results'",
-					workitem.SystemState:     workitem.SystemStateClosed,
-					workitem.SystemCreator:   baseFxt.Identities[0].ID.String(),
-					workitem.SystemAssignees: []string{baseFxt.Identities[1].ID.String()},
-				}
-				return nil
-			}))
-			// when
-			searchQuery := `negative case`
-			searchResults, err := s.searchFor(baseFxt.Spaces[0].ID, searchQuery)
-			// then
-			require.Nil(t, err)
-			verify(t, searchQuery, searchResults, 0)
-		})
+	s.T().Run("Search accross title and description undefined and no match", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
+			fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "test should return 0 results'"
+			return nil
+		}))
+		// when
+		searchQuery := `negative case`
+		searchResults, err := s.searchFor(fxt.Spaces[0].ID, searchQuery)
+		// then
+		require.Nil(t, err)
+		verify(t, searchQuery, searchResults, 0)
+	})
 
-		t.Run("Search by number", func(t *testing.T) {
-			// given
-			fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
-				fxt.WorkItems[idx].SpaceID = baseFxt.Spaces[0].ID
-				fxt.WorkItems[idx].Type = baseFxt.WorkItemTypes[0].ID
-				fxt.WorkItems[idx].Fields = map[string]interface{}{
-					workitem.SystemTitle:     "test nofield sbose title '12345678asdfgh'",
-					workitem.SystemState:     workitem.SystemStateClosed,
-					workitem.SystemCreator:   baseFxt.Identities[0].ID.String(),
-					workitem.SystemAssignees: []string{baseFxt.Identities[1].ID.String()},
-				}
-				return nil
-			}))
-			// when
-			searchQuery := fmt.Sprintf("number:%d", fxt.WorkItems[0].Number)
-			searchResults, err := s.searchFor(baseFxt.Spaces[0].ID, searchQuery)
-			// then
-			require.Nil(t, err)
-			require.Len(t, searchResults, 1)
-			assert.Equal(t, fxt.WorkItems[0].ID, searchResults[0].ID)
-		})
+	s.T().Run("Search by number", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
+			fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "test nofield sbose title '12345678asdfgh'"
+			return nil
+		}))
+		// when
+		searchQuery := fmt.Sprintf("number:%d", fxt.WorkItems[0].Number)
+		searchResults, err := s.searchFor(fxt.Spaces[0].ID, searchQuery)
+		// then
+		require.Nil(t, err)
+		require.Len(t, searchResults, 1)
+		assert.Equal(t, fxt.WorkItems[0].ID, searchResults[0].ID)
+	})
 
-		t.Run("Search by URL", func(t *testing.T) {
-			// given
-			fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
-				fxt.WorkItems[idx].SpaceID = baseFxt.Spaces[0].ID
-				fxt.WorkItems[idx].Type = baseFxt.WorkItemTypes[0].ID
-				fxt.WorkItems[idx].Fields = map[string]interface{}{
-					workitem.SystemTitle:     "test nofield sbose title '12345678asdfgh'",
-					workitem.SystemState:     workitem.SystemStateClosed,
-					workitem.SystemCreator:   baseFxt.Identities[0].ID.String(),
-					workitem.SystemAssignees: []string{baseFxt.Identities[1].ID.String()},
-				}
-				return nil
-			}))
-			// when
-			searchQuery := fmt.Sprintf("%s%d", "http://demo.openshift.io/work-item/list/detail/", fxt.WorkItems[0].Number)
-			searchResults, err := s.searchFor(baseFxt.Spaces[0].ID, searchQuery)
-			// then
-			require.Nil(t, err)
-			require.Len(t, searchResults, 1)
-			assert.Equal(t, fxt.WorkItems[0].ID, searchResults[0].ID)
-		})
+	s.T().Run("Search by URL", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
+			fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "test nofield sbose title '12345678asdfgh'"
+			return nil
+		}))
+		// when
+		searchQuery := fmt.Sprintf("%s%d", "http://demo.openshift.io/work-item/list/detail/", fxt.WorkItems[0].Number)
+		searchResults, err := s.searchFor(fxt.Spaces[0].ID, searchQuery)
+		// then
+		require.Nil(t, err)
+		require.Len(t, searchResults, 1)
+		assert.Equal(t, fxt.WorkItems[0].ID, searchResults[0].ID)
 	})
 
 }
