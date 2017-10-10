@@ -5,8 +5,8 @@ import (
 
 	"fmt"
 
-	"github.com/fabric8-services/fabric8-auth/resource"
 	config "github.com/fabric8-services/fabric8-wit/configuration"
+	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/stretchr/testify/require"
 )
 
