@@ -29,6 +29,7 @@ type AuthzResourceManager struct {
 // AuthServiceConfiguration represents auth service configuration
 type AuthServiceConfiguration interface {
 	GetAuthServiceURL() string
+	GetAuthShortServiceHostName() string
 	IsAuthorizationEnabled() bool
 }
 
