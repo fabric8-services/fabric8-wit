@@ -3,6 +3,7 @@ package workitem_test
 import (
 	"context"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -309,34 +310,23 @@ func (s *workItemRepoBlackBoxTest) TestLookupIDByNamedSpaceAndNumberStaleSpace()
 
 func (s *workItemRepoBlackBoxTest) TestConcurrentWorkItemCreations() {
 	// given
-	fxt := tf.NewTestFixture(s.T(), s.DB,
-		tf.Identities(1, func(fxt *tf.TestFixture, idx int) error {
-			fxt.Identities[idx].Username = "TestConcurrentCreate-" + uuid.NewV4().String()
-			return nil
-		}),
-		tf.Spaces(1, func(fxt *tf.TestFixture, idx int) error {
-			fxt.Spaces[idx].OwnerId = fxt.Identities[idx].ID
-			fxt.Spaces[idx].Name = "TestConcurrentCreate-" + uuid.NewV4().String()
-			return nil
-		}),
-		tf.WorkItemTypes(1, func(fxt *tf.TestFixture, idx int) error {
-			fxt.WorkItemTypes[idx].SpaceID = fxt.Spaces[0].ID
-			return nil
-		}))
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment())
 	type Report struct {
 		id       int
 		total    int
 		failures int
 	}
-	done := make(chan Report)
-
 	routines := 10
 	itemsPerRoutine := 50
+	reports := make([]Report, routines)
 	// when running concurrent go routines simultaneously
+	var wg sync.WaitGroup
 	for i := 0; i < routines; i++ {
 		// in each go rountine, run 10 creations
-		go func(rountineID int) {
-			report := Report{id: rountineID}
+		go func(routineID int) {
+			wg.Add(1)
+			defer wg.Done()
+			report := Report{id: routineID}
 			for j := 0; j < itemsPerRoutine; j++ {
 				if err := application.Transactional(gormapplication.NewGormDB(s.DB), func(app application.Application) error {
 
@@ -353,16 +343,15 @@ func (s *workItemRepoBlackBoxTest) TestConcurrentWorkItemCreations() {
 				}
 				report.total++
 			}
-			done <- report
+			reports[routineID] = report
 		}(i)
 	}
+	wg.Wait()
+	// then
 	// wait for all items to be created
-	for i := 0; i < routines; i++ {
-		report := <-done
+	for _, report := range reports {
 		fmt.Printf("Routine #%d done: %d creations, including %d failure(s)\n", report.id, report.total, report.failures)
 		assert.Equal(s.T(), itemsPerRoutine, report.total)
 		assert.Equal(s.T(), 0, report.failures)
 	}
-
-	// then
 }

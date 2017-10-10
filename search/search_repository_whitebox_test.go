@@ -3,8 +3,6 @@ package search
 import (
 	"context"
 	"fmt"
-	"net/http"
-	"net/url"
 	"regexp"
 	"strings"
 	"testing"
@@ -12,12 +10,9 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
-	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
-	"github.com/goadesign/goa"
 	_ "github.com/lib/pq"
-	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -37,18 +32,16 @@ func TestRunSearchRepositoryWhiteboxTest(t *testing.T) {
 
 type searchRepositoryWhiteboxTest struct {
 	gormtestsupport.DBTestSuite
-	modifierID uuid.UUID
+	sr *GormSearchRepository
 }
 
 func (s *searchRepositoryWhiteboxTest) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
+	s.sr = NewGormSearchRepository(s.DB)
 }
 
 func (s *searchRepositoryWhiteboxTest) SetupTest() {
 	s.DBTestSuite.SetupTest()
-	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "jdoe", "test")
-	require.Nil(s.T(), err)
-	s.modifierID = testIdentity.ID
 }
 
 type SearchTestDescriptor struct {
@@ -59,6 +52,8 @@ type SearchTestDescriptor struct {
 
 func (s *searchRepositoryWhiteboxTest) TestSearch() {
 
+	var start, limit int = 0, 100
+
 	s.T().Run("Search accross title and description", func(t *testing.T) {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
@@ -68,7 +63,8 @@ func (s *searchRepositoryWhiteboxTest) TestSearch() {
 		}))
 		// when
 		searchQuery := `Sbose "deScription" '12345678asdfgh'`
-		searchResults, err := s.searchFor(fxt.Spaces[0].ID, searchQuery)
+		spaceID := fxt.Spaces[0].ID.String()
+		searchResults, _, err := s.sr.SearchFullText(context.Background(), searchQuery, &start, &limit, &spaceID)
 		// then
 		require.Nil(t, err)
 		verify(t, searchQuery, searchResults, 1)
@@ -82,7 +78,8 @@ func (s *searchRepositoryWhiteboxTest) TestSearch() {
 		}))
 		// when
 		searchQuery := `sbose nofield`
-		searchResults, err := s.searchFor(fxt.Spaces[0].ID, searchQuery)
+		spaceID := fxt.Spaces[0].ID.String()
+		searchResults, _, err := s.sr.SearchFullText(context.Background(), searchQuery, &start, &limit, &spaceID)
 		// then
 		require.Nil(t, err)
 		verify(t, searchQuery, searchResults, 1)
@@ -97,7 +94,8 @@ func (s *searchRepositoryWhiteboxTest) TestSearch() {
 		}))
 		// when
 		searchQuery := `models/errors.go remoteworkitem`
-		searchResults, err := s.searchFor(fxt.Spaces[0].ID, searchQuery)
+		spaceID := fxt.Spaces[0].ID.String()
+		searchResults, _, err := s.sr.SearchFullText(context.Background(), searchQuery, &start, &limit, &spaceID)
 		// then
 		require.Nil(t, err)
 		verify(t, searchQuery, searchResults, 1)
@@ -111,7 +109,8 @@ func (s *searchRepositoryWhiteboxTest) TestSearch() {
 		}))
 		// when
 		searchQuery := `(value)`
-		searchResults, err := s.searchFor(fxt.Spaces[0].ID, searchQuery)
+		spaceID := fxt.Spaces[0].ID.String()
+		searchResults, _, err := s.sr.SearchFullText(context.Background(), searchQuery, &start, &limit, &spaceID)
 		// then
 		require.Nil(t, err)
 		verify(t, searchQuery, searchResults, 1)
@@ -126,7 +125,8 @@ func (s *searchRepositoryWhiteboxTest) TestSearch() {
 		}))
 		// when
 		searchQuery := `(pranav) {shoubhik} [aslak]`
-		searchResults, err := s.searchFor(fxt.Spaces[0].ID, searchQuery)
+		spaceID := fxt.Spaces[0].ID.String()
+		searchResults, _, err := s.sr.SearchFullText(context.Background(), searchQuery, &start, &limit, &spaceID)
 		// then
 		require.Nil(t, err)
 		verify(t, searchQuery, searchResults, 1)
@@ -141,7 +141,8 @@ func (s *searchRepositoryWhiteboxTest) TestSearch() {
 		}))
 		// when
 		searchQuery := `negative case`
-		searchResults, err := s.searchFor(fxt.Spaces[0].ID, searchQuery)
+		spaceID := fxt.Spaces[0].ID.String()
+		searchResults, _, err := s.sr.SearchFullText(context.Background(), searchQuery, &start, &limit, &spaceID)
 		// then
 		require.Nil(t, err)
 		verify(t, searchQuery, searchResults, 0)
@@ -155,7 +156,8 @@ func (s *searchRepositoryWhiteboxTest) TestSearch() {
 		}))
 		// when
 		searchQuery := fmt.Sprintf("number:%d", fxt.WorkItems[0].Number)
-		searchResults, err := s.searchFor(fxt.Spaces[0].ID, searchQuery)
+		spaceID := fxt.Spaces[0].ID.String()
+		searchResults, _, err := s.sr.SearchFullText(context.Background(), searchQuery, &start, &limit, &spaceID)
 		// then
 		require.Nil(t, err)
 		require.Len(t, searchResults, 1)
@@ -170,7 +172,8 @@ func (s *searchRepositoryWhiteboxTest) TestSearch() {
 		}))
 		// when
 		searchQuery := fmt.Sprintf("%s%d", "http://demo.openshift.io/work-item/list/detail/", fxt.WorkItems[0].Number)
-		searchResults, err := s.searchFor(fxt.Spaces[0].ID, searchQuery)
+		spaceID := fxt.Spaces[0].ID.String()
+		searchResults, _, err := s.sr.SearchFullText(context.Background(), searchQuery, &start, &limit, &spaceID)
 		// then
 		require.Nil(t, err)
 		require.Len(t, searchResults, 1)
@@ -179,17 +182,8 @@ func (s *searchRepositoryWhiteboxTest) TestSearch() {
 
 }
 
-func (s *searchRepositoryWhiteboxTest) searchFor(spaceID uuid.UUID, searchQuery string) ([]workitem.WorkItem, error) {
-	req := &http.Request{Host: "localhost"}
-	params := url.Values{}
-	ctx := goa.NewContext(context.Background(), nil, req, params)
-	sr := NewGormSearchRepository(s.DB)
-	var start, limit int = 0, 100
-	spaceIDStr := spaceID.String()
-	workItemList, _, err := sr.SearchFullText(ctx, fmt.Sprintf("\"%s\"", searchQuery), &start, &limit, &spaceIDStr)
-	return workItemList, err
-}
-
+// verify verifies that the search results match with the expected count and that the title or description contain all
+// the terms of the search query
 func verify(t *testing.T, searchQuery string, searchResults []workitem.WorkItem, expectedCount int) {
 	// Since this test adds test data, whether or not other workitems exist
 	// there must be at least 1 search result returned.

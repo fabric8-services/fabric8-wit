@@ -55,10 +55,10 @@ type WorkItemRepository interface {
 // NewWorkItemRepository creates a GormWorkItemRepository
 func NewWorkItemRepository(db *gorm.DB) *GormWorkItemRepository {
 	repository := &GormWorkItemRepository{
-		db,
-		numbersequence.NewWorkItemNumberSequenceRepository(db),
-		&GormWorkItemTypeRepository{db},
-		&GormRevisionRepository{db},
+		db:   db,
+		winr: numbersequence.NewWorkItemNumberSequenceRepository(db),
+		witr: &GormWorkItemTypeRepository{db},
+		wirr: &GormRevisionRepository{db},
 	}
 	return repository
 }

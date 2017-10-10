@@ -22,5 +22,5 @@ func (w WorkItemNumberSequence) TableName() string {
 }
 
 func (w *WorkItemNumberSequence) String() string {
-	return fmt.Sprintf("SpaceId=%s Number=%d", w.SpaceID.String(), w.CurrentVal)
+	return fmt.Sprintf("SpaceID=%s Number=%d", w.SpaceID.String(), w.CurrentVal)
 }
