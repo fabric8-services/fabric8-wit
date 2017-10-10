@@ -204,11 +204,11 @@ endef
 ## If not already available, this target will download docker-compose (on Linux).
 integration-test-env-prepare:
 ifdef DOCKER_COMPOSE_BIN
-	@$(DOCKER_COMPOSE_BIN) -f $(DOCKER_COMPOSE_FILE) up -d
+	@$(DOCKER_COMPOSE_BIN) -f $(DOCKER_COMPOSE_FILE) up -d > $(TMP_PATH)/compose-errors.log 2>&1 && echo "DONE" || (echo "ERROR:" && cat $(TMP_PATH)/compose-errors.log)
 else
 ifneq ($(OS),Windows_NT)
 	$(call download-docker-compose)
-	@$(DOCKER_COMPOSE_BIN_ALT) -f $(DOCKER_COMPOSE_FILE) up -d
+	@$(DOCKER_COMPOSE_BIN_ALT) -f $(DOCKER_COMPOSE_FILE) up -d > $(TMP_PATH)/compose-errors.log 2>&1 && echo "DONE" || (echo "ERROR:" && cat $(TMP_PATH)/compose-errors.log)
 else
 	$(error The "$(DOCKER_COMPOSE_BIN_NAME)" executable could not be found in your PATH)
 endif
