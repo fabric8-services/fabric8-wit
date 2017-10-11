@@ -1,0 +1,83 @@
+{
+  "data": [
+    {
+      "attributes": {
+        "system.created_at": "0001-01-01T00:00:00Z",
+        "system.number": 1,
+        "system.order": 1000,
+        "system.remote_item_id": null,
+        "system.state": "new",
+        "system.title": "work item 64bb1d36-5ba8-45ad-8df8-70b073c6a050",
+        "system.updated_at": "0001-01-01T00:00:00Z",
+        "version": 0
+      },
+      "id": "32b23b06-8ef9-4e64-989b-9a98bd99d29b",
+      "links": {
+        "related": "http:///api/workitems/32b23b06-8ef9-4e64-989b-9a98bd99d29b",
+        "self": "http:///api/workitems/32b23b06-8ef9-4e64-989b-9a98bd99d29b"
+      },
+      "relationships": {
+        "area": {},
+        "assignees": {},
+        "baseType": {
+          "data": {
+            "id": "0acdfb06-68b9-495d-be4f-9efa59952fbc",
+            "type": "workitemtypes"
+          },
+          "links": {
+            "self": "http:///api/spaces/966405b2-fb8d-491e-bca7-78d12785d1fd/workitemtypes/0acdfb06-68b9-495d-be4f-9efa59952fbc"
+          }
+        },
+        "children": {
+          "links": {
+            "related": "http:///api/workitems/32b23b06-8ef9-4e64-989b-9a98bd99d29b/children"
+          },
+          "meta": {
+            "hasChildren": false
+          }
+        },
+        "comments": {
+          "links": {
+            "related": "http:///api/workitems/32b23b06-8ef9-4e64-989b-9a98bd99d29b/comments",
+            "self": "http:///api/workitems/32b23b06-8ef9-4e64-989b-9a98bd99d29b/relationships/comments"
+          }
+        },
+        "creator": {
+          "data": {
+            "id": "3f961891-4246-43a0-a45f-f4d3926e492a",
+            "links": {
+              "related": "http:///api/users/3f961891-4246-43a0-a45f-f4d3926e492a",
+              "self": "http:///api/users/3f961891-4246-43a0-a45f-f4d3926e492a"
+            },
+            "type": "users"
+          }
+        },
+        "iteration": {},
+        "labels": {
+          "links": {
+            "related": "http:///api/workitems/32b23b06-8ef9-4e64-989b-9a98bd99d29b/labels"
+          }
+        },
+        "parent": {},
+        "space": {
+          "data": {
+            "id": "966405b2-fb8d-491e-bca7-78d12785d1fd",
+            "type": "spaces"
+          },
+          "links": {
+            "related": "http:///api/spaces/966405b2-fb8d-491e-bca7-78d12785d1fd",
+            "self": "http:///api/spaces/966405b2-fb8d-491e-bca7-78d12785d1fd"
+          }
+        }
+      },
+      "type": "workitems"
+    }
+  ],
+  "links": {
+    "first": "http:///api/search?page[offset]=0\u0026page[limit]=20\u0026filter[expression]=\n\t\t\t\t\t\t\t{\"assignee\":null}",
+    "last": "http:///api/search?page[offset]=0\u0026page[limit]=20\u0026filter[expression]=\n\t\t\t\t\t\t\t{\"assignee\":null}"
+  },
+  "meta": {
+    "totalCount": 1
+  }
+}
