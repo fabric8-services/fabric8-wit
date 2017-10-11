@@ -3,6 +3,7 @@ package search
 import (
 	"context"
 	"fmt"
+	"math"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -16,11 +17,11 @@ import (
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
-	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -239,55 +240,77 @@ func stringInSlice(str string, list []string) bool {
 	return false
 }
 
-func (s *searchRepositoryWhiteboxTest) TestSearchByID() {
-
-	models.Transactional(s.DB, func(tx *gorm.DB) error {
+func (s *searchRepositoryWhiteboxTest) TestSearch() {
+	s.T().Run("by number", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(s.T(), s.DB,
+			tf.Identities(2, tf.SetIdentityUsernames([]string{"alice", "bob"})),
+			tf.WorkItems(2,
+				func(fxt *tf.TestFixture, idx int) error {
+					f := fxt.WorkItems[idx].Fields
+					switch idx {
+					case 0:
+						f[workitem.SystemTitle] = "first"
+						f[workitem.SystemCreator] = fxt.IdentityByUsername("bob").ID.String()
+						f[workitem.SystemAssignees] = []string{fxt.IdentityByUsername("alice").ID.String()}
+						f[workitem.SystemState] = workitem.SystemStateClosed
+					case 1:
+						// Create a new workitem to have the ID in it's title. This should not come
+						// up in search results
+						f[workitem.SystemTitle] = "Search test bob " + fxt.WorkItemByTitle("first").ID.String()
+					}
+					return nil
+				},
+			),
+		)
 		req := &http.Request{Host: "localhost"}
 		params := url.Values{}
 		ctx := goa.NewContext(context.Background(), nil, req, params)
-
-		wir := workitem.NewWorkItemRepository(tx)
-
-		workItem := workitem.WorkItem{Fields: make(map[string]interface{})}
-
-		workItem.Fields = map[string]interface{}{
-			workitem.SystemTitle:       "Search Test Sbose",
-			workitem.SystemDescription: rendering.NewMarkupContentFromLegacy("Description"),
-			workitem.SystemCreator:     "sbose78",
-			workitem.SystemAssignees:   []string{"pranav"},
-			workitem.SystemState:       "closed",
-		}
-
-		createdWorkItem, err := wir.Create(ctx, space.SystemSpace, workitem.SystemBug, workItem.Fields, s.modifierID)
-		if err != nil {
-			s.T().Fatalf("Couldn't create test data: %+v", err)
-		}
-
-		// Create a new workitem to have the ID in it's title. This should not come
-		// up in search results
-
-		workItem.Fields[workitem.SystemTitle] = "Search test sbose " + createdWorkItem.ID.String()
-		_, err = wir.Create(ctx, space.SystemSpace, workitem.SystemBug, workItem.Fields, s.modifierID)
-		if err != nil {
-			s.T().Fatalf("Couldn't create test data: %+v", err)
-		}
-
-		sr := NewGormSearchRepository(tx)
+		sr := NewGormSearchRepository(s.DB)
 
 		var start, limit int = 0, 100
-		searchString := "number:" + strconv.Itoa(createdWorkItem.Number)
-		workItemList, _, err := sr.SearchFullText(ctx, searchString, &start, &limit, nil)
-		if err != nil {
-			s.T().Fatal("Error gettig search result ", err)
-		}
 
-		// ID is unique, hence search result set's length should be 1
-		assert.Equal(s.T(), len(workItemList), 1)
-		for _, workItemValue := range workItemList {
-			s.T().Log("Found search result for ID Search ", workItemValue.ID)
-			assert.Equal(s.T(), createdWorkItem.ID, workItemValue.ID)
-		}
-		return errors.WithStack(err)
+		t.Run("ok", func(t *testing.T) {
+			searchString := "number:" + strconv.Itoa(fxt.WorkItemByTitle("first").Number)
+			workItemList, _, err := sr.SearchFullText(ctx, searchString, &start, &limit, nil)
+			require.Nil(t, err)
+			require.True(t, len(workItemList) >= 1, "at least one work item should be found for the given work item number")
+			var found bool
+			for _, wi := range workItemList {
+				if wi.ID == fxt.WorkItemByTitle("first").ID {
+					found = true
+				}
+			}
+			require.True(t, found, "WI with ID %s was not among the search results", fxt.WorkItemByTitle("first").ID)
+		})
+		t.Run("not found", func(t *testing.T) {
+			// given
+			notExistingWINumber := math.MaxInt64 - 1 // That ID most likely does not exist at all
+			searchString := "number:" + strconv.Itoa(notExistingWINumber)
+			workItemList, _, err := sr.SearchFullText(ctx, searchString, &start, &limit, nil)
+			require.Nil(t, err)
+			require.Len(t, workItemList, 0)
+		})
+		t.Run("and by space", func(t *testing.T) {
+			spaceIDStr := fxt.WorkItemByTitle("first").SpaceID.String()
+			t.Run("ok", func(t *testing.T) {
+				var start, limit int = 0, 100
+				searchString := "number:" + strconv.Itoa(fxt.WorkItemByTitle("first").Number)
+				workItemList, _, err := sr.SearchFullText(ctx, searchString, &start, &limit, &spaceIDStr)
+				require.Nil(t, err)
+				// Number is unique per space, hence search result sets's length should be 1
+				require.Len(t, workItemList, 1)
+				require.Equal(t, fxt.WorkItemByTitle("first").ID, workItemList[0].ID)
+			})
+			t.Run("not found", func(t *testing.T) {
+				// given
+				notExistingWINumber := 12345 // We only created one work item in that space, so that number should not exist
+				searchString := "number:" + strconv.Itoa(notExistingWINumber)
+				workItemList, _, err := sr.SearchFullText(ctx, searchString, &start, &limit, &spaceIDStr)
+				require.Nil(t, err)
+				require.Len(t, workItemList, 0)
+			})
+		})
 	})
 }
 
