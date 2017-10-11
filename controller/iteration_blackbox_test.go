@@ -157,7 +157,7 @@ func (rest *TestIterationREST) TestFailValidationIterationNameStartWith() {
 	err = ci.Validate()
 	// Validate payload function returns an error
 	assert.NotNil(rest.T(), err)
-	assert.Contains(rest.T(), err.Error(), "response.name must match the regexp")
+	assert.Contains(rest.T(), err.Error(), `type.name must match the regexp "^[^_|-].*" but got value "_Sprint #21"`)
 }
 
 func (rest *TestIterationREST) TestFailCreateChildIterationMissingName() {
