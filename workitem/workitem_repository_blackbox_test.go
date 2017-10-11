@@ -2,7 +2,6 @@ package workitem_test
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -320,9 +319,9 @@ func (s *workItemRepoBlackBoxTest) TestConcurrentWorkItemCreations() {
 	// when running concurrent go routines simultaneously
 	var wg sync.WaitGroup
 	for i := 0; i < routines; i++ {
+		wg.Add(1)
 		// in each go rountine, run 10 creations
 		go func(routineID int) {
-			wg.Add(1)
 			defer wg.Done()
 			report := Report{id: routineID}
 			for j := 0; j < itemsPerRoutine; j++ {
@@ -343,7 +342,7 @@ func (s *workItemRepoBlackBoxTest) TestConcurrentWorkItemCreations() {
 	// then
 	// wait for all items to be created
 	for _, report := range reports {
-		fmt.Printf("Routine #%d done: %d creations, including %d failure(s)\n", report.id, report.total, report.failures)
+		s.T().Logf("Routine #%d done: %d creations, including %d failure(s)\n", report.id, report.total, report.failures)
 		assert.Equal(s.T(), itemsPerRoutine, report.total)
 		assert.Equal(s.T(), 0, report.failures)
 	}
