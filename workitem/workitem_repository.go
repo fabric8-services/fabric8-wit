@@ -3,7 +3,6 @@ package workitem
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -521,8 +520,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 		}
 		fieldValue := updatedWorkItem.Fields[fieldName]
 		var err error
-		var empty []interface{}
-		if (fieldName == SystemAssignees || fieldName == SystemLabels) && reflect.DeepEqual(fieldValue, empty) {
+		if (fieldName == SystemAssignees || fieldName == SystemLabels) && (len(fieldValue.([]interface{})) == 0) {
 			delete(wiStorage.Fields, fieldName)
 			continue
 		}
