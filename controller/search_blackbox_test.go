@@ -953,6 +953,7 @@ func (s *searchBlackBoxTest) TestFilterAssigneeNullAfterWIUpdate() {
 	_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 	require.NotEmpty(s.T(), result.Data)
 	assert.Len(s.T(), result.Data, 1)
+	assert.Nil(s.T(), result.Data[0].Attributes[workitem.SystemAssignees])
 	wi := result.Data[0]
 	workitemCtrl := NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 
@@ -993,6 +994,7 @@ func (s *searchBlackBoxTest) TestFilterLabelNullAfterWIUpdate() {
 	_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 	require.NotEmpty(s.T(), result.Data)
 	assert.Len(s.T(), result.Data, 1)
+	assert.Nil(s.T(), result.Data[0].Attributes[workitem.SystemLabels])
 	wi := result.Data[0]
 	workitemCtrl := NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 
