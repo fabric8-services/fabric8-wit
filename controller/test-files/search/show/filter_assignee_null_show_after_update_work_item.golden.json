@@ -1,0 +1,79 @@
+{
+  "data": {
+    "attributes": {
+      "system.created_at": "0001-01-01T00:00:00Z",
+      "system.description": "= Updated Test WI description",
+      "system.description.markup": "PlainText",
+      "system.description.rendered": "= Updated Test WI description",
+      "system.number": 1,
+      "system.order": 1000,
+      "system.remote_item_id": null,
+      "system.state": "new",
+      "system.title": "Updated Test WI",
+      "system.updated_at": "0001-01-01T00:00:00Z",
+      "version": 1
+    },
+    "id": "32b23b06-8ef9-4e64-989b-9a98bd99d29b",
+    "links": {
+      "related": "http:///api/workitems/32b23b06-8ef9-4e64-989b-9a98bd99d29b",
+      "self": "http:///api/workitems/32b23b06-8ef9-4e64-989b-9a98bd99d29b"
+    },
+    "relationships": {
+      "area": {},
+      "assignees": {},
+      "baseType": {
+        "data": {
+          "id": "0acdfb06-68b9-495d-be4f-9efa59952fbc",
+          "type": "workitemtypes"
+        },
+        "links": {
+          "self": "http:///api/spaces/966405b2-fb8d-491e-bca7-78d12785d1fd/workitemtypes/0acdfb06-68b9-495d-be4f-9efa59952fbc"
+        }
+      },
+      "children": {
+        "links": {
+          "related": "http:///api/workitems/32b23b06-8ef9-4e64-989b-9a98bd99d29b/children"
+        },
+        "meta": {
+          "hasChildren": false
+        }
+      },
+      "comments": {
+        "links": {
+          "related": "http:///api/workitems/32b23b06-8ef9-4e64-989b-9a98bd99d29b/comments",
+          "self": "http:///api/workitems/32b23b06-8ef9-4e64-989b-9a98bd99d29b/relationships/comments"
+        }
+      },
+      "creator": {
+        "data": {
+          "id": "3f961891-4246-43a0-a45f-f4d3926e492a",
+          "links": {
+            "related": "http:///api/users/3f961891-4246-43a0-a45f-f4d3926e492a",
+            "self": "http:///api/users/3f961891-4246-43a0-a45f-f4d3926e492a"
+          },
+          "type": "users"
+        }
+      },
+      "iteration": {},
+      "labels": {
+        "links": {
+          "related": "http:///api/workitems/32b23b06-8ef9-4e64-989b-9a98bd99d29b/labels"
+        }
+      },
+      "space": {
+        "data": {
+          "id": "966405b2-fb8d-491e-bca7-78d12785d1fd",
+          "type": "spaces"
+        },
+        "links": {
+          "related": "http:///api/spaces/966405b2-fb8d-491e-bca7-78d12785d1fd",
+          "self": "http:///api/spaces/966405b2-fb8d-491e-bca7-78d12785d1fd"
+        }
+      }
+    },
+    "type": "workitems"
+  },
+  "links": {
+    "self": "http:///api/workitems/32b23b06-8ef9-4e64-989b-9a98bd99d29b"
+  }
+}
