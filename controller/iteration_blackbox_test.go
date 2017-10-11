@@ -143,7 +143,7 @@ func (rest *TestIterationREST) TestFailValidationIterationNameLength() {
 	err = ci.Validate()
 	// Validate payload function returns an error
 	assert.NotNil(rest.T(), err)
-	assert.Contains(rest.T(), err.Error(), "length of response.name must be less than or equal to than 62")
+	assert.Contains(rest.T(), err.Error(), "length of type.name must be less than or equal to 62")
 }
 
 func (rest *TestIterationREST) TestFailValidationIterationNameStartWith() {
