@@ -6,8 +6,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/fabric8-services/fabric8-wit/application"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
@@ -51,10 +49,7 @@ func (s *workItemNumberSequenceTest) TestConcurrentNextVal() {
 			defer wg.Done()
 			report := Report{id: routineID}
 			for j := 0; j < itemsPerRoutine; j++ {
-				if err := application.Transactional(gormapplication.NewGormDB(s.DB), func(app application.Application) error {
-					_, err := s.repo.NextVal(context.Background(), fxt.Spaces[0].ID)
-					return err
-				}); err != nil {
+				if _, err := s.repo.NextVal(context.Background(), fxt.Spaces[0].ID); err != nil {
 					s.T().Logf("Creation failed: %s", err.Error())
 					report.failures++
 				}

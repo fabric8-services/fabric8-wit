@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -40,10 +41,6 @@ func (s *searchRepositoryWhiteboxTest) SetupSuite() {
 	s.sr = NewGormSearchRepository(s.DB)
 }
 
-func (s *searchRepositoryWhiteboxTest) SetupTest() {
-	s.DBTestSuite.SetupTest()
-}
-
 type SearchTestDescriptor struct {
 	fields         map[string]interface{}
 	searchString   string
@@ -56,9 +53,11 @@ func (s *searchRepositoryWhiteboxTest) TestSearch() {
 
 	s.T().Run("Search accross title and description", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
-			fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "test sbose title '12345678asdfgh'"
-			fxt.WorkItems[idx].Fields[workitem.SystemDescription] = rendering.NewMarkupContentFromLegacy(`"description" for search test`)
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(10, func(fxt *tf.TestFixture, idx int) error {
+			if idx == 0 {
+				fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "test sbose title '12345678asdfgh'"
+				fxt.WorkItems[idx].Fields[workitem.SystemDescription] = rendering.NewMarkupContentFromLegacy(`"description" for search test`)
+			}
 			return nil
 		}))
 		// when
@@ -72,8 +71,10 @@ func (s *searchRepositoryWhiteboxTest) TestSearch() {
 
 	s.T().Run("Search accross title and description undefined", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
-			fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "test nofield sbose title '12345678asdfgh'"
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(10, func(fxt *tf.TestFixture, idx int) error {
+			if idx == 0 {
+				fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "test nofield sbose title '12345678asdfgh'"
+			}
 			return nil
 		}))
 		// when
@@ -87,9 +88,11 @@ func (s *searchRepositoryWhiteboxTest) TestSearch() {
 
 	s.T().Run("Search accross title with slash", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
-			fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "add new error types in models/errors.go'"
-			fxt.WorkItems[idx].Fields[workitem.SystemDescription] = rendering.NewMarkupContentFromLegacy(`Make sure remoteworkitem can access..`)
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(10, func(fxt *tf.TestFixture, idx int) error {
+			if idx == 0 {
+				fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "add new error types in models/errors.go'"
+				fxt.WorkItems[idx].Fields[workitem.SystemDescription] = rendering.NewMarkupContentFromLegacy(`Make sure remoteworkitem can access..`)
+			}
 			return nil
 		}))
 		// when
@@ -103,8 +106,10 @@ func (s *searchRepositoryWhiteboxTest) TestSearch() {
 
 	s.T().Run("Search accross title with braces", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
-			fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "Bug reported by administrator for input = (value)"
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(10, func(fxt *tf.TestFixture, idx int) error {
+			if idx == 0 {
+				fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "Bug reported by administrator for input = (value)"
+			}
 			return nil
 		}))
 		// when
@@ -119,8 +124,10 @@ func (s *searchRepositoryWhiteboxTest) TestSearch() {
 
 	s.T().Run("Search accross title with braces and brackets", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
-			fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "trial for braces (pranav) {shoubhik} [aslak]"
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(10, func(fxt *tf.TestFixture, idx int) error {
+			if idx == 0 {
+				fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "trial for braces (pranav) {shoubhik} [aslak]"
+			}
 			return nil
 		}))
 		// when
@@ -135,8 +142,10 @@ func (s *searchRepositoryWhiteboxTest) TestSearch() {
 
 	s.T().Run("Search accross title and description undefined and no match", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
-			fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "test should return 0 results'"
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(10, func(fxt *tf.TestFixture, idx int) error {
+			if idx == 0 {
+				fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "test should return 0 results'"
+			}
 			return nil
 		}))
 		// when
@@ -148,36 +157,76 @@ func (s *searchRepositoryWhiteboxTest) TestSearch() {
 		verify(t, searchQuery, searchResults, 0)
 	})
 
-	s.T().Run("Search by number", func(t *testing.T) {
+	s.T().Run("Search by number - single match", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
-			fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "test nofield sbose title '12345678asdfgh'"
-			return nil
-		}))
-		// when
-		searchQuery := fmt.Sprintf("number:%d", fxt.WorkItems[0].Number)
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(10))
+		queryNumber := fxt.WorkItems[2].Number
+		// when looking for `number:3`
+		searchQuery := fmt.Sprintf("number:%d", queryNumber)
 		spaceID := fxt.Spaces[0].ID.String()
 		searchResults, _, err := s.sr.SearchFullText(context.Background(), searchQuery, &start, &limit, &spaceID)
-		// then
+		// then there should be a single match
 		require.Nil(t, err)
 		require.Len(t, searchResults, 1)
-		assert.Equal(t, fxt.WorkItems[0].ID, searchResults[0].ID)
+		assert.Equal(t, queryNumber, searchResults[0].Number)
 	})
 
-	s.T().Run("Search by URL", func(t *testing.T) {
+	s.T().Run("Search by number - multiple matches", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
-			fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "test nofield sbose title '12345678asdfgh'"
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(10))
+		queryNumber := fxt.WorkItems[0].Number
+		// when looking for `number:1`
+		searchQuery := fmt.Sprintf("number:%d", queryNumber)
+		spaceID := fxt.Spaces[0].ID.String()
+		searchResults, _, err := s.sr.SearchFullText(context.Background(), searchQuery, &start, &limit, &spaceID)
+		// then there should be 2 matches: `1` and `10`
+		require.Nil(t, err)
+		require.Len(t, searchResults, 2)
+		for _, searchResult := range searchResults {
+			// verifies that the number in the search result contains the query number
+			assert.Contains(t, strconv.Itoa(searchResult.Number), strconv.Itoa(queryNumber))
+		}
+	})
+
+	s.T().Run("Search by URL - single match", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(10, func(fxt *tf.TestFixture, idx int) error {
+			if idx == 0 {
+				fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "test nofield sbose title '12345678asdfgh'"
+			}
 			return nil
 		}))
-		// when
-		searchQuery := fmt.Sprintf("%s%d", "http://demo.openshift.io/work-item/list/detail/", fxt.WorkItems[0].Number)
+		// when looking for `http://.../3` there should be a single match
+		queryNumber := fxt.WorkItems[2].Number
+		searchQuery := fmt.Sprintf("%s%d", "http://demo.openshift.io/work-item/list/detail/", queryNumber)
 		spaceID := fxt.Spaces[0].ID.String()
 		searchResults, _, err := s.sr.SearchFullText(context.Background(), searchQuery, &start, &limit, &spaceID)
 		// then
 		require.Nil(t, err)
 		require.Len(t, searchResults, 1)
-		assert.Equal(t, fxt.WorkItems[0].ID, searchResults[0].ID)
+		assert.Equal(t, queryNumber, searchResults[0].Number)
+	})
+
+	s.T().Run("Search by URL - multiple matches", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(10, func(fxt *tf.TestFixture, idx int) error {
+			if idx == 0 {
+				fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "test nofield sbose title '12345678asdfgh'"
+			}
+			return nil
+		}))
+		// when looking for `http://.../1` there should be a 2 matchs: `http://.../1` and `http://.../10``
+		queryNumber := fxt.WorkItems[0].Number
+		searchQuery := fmt.Sprintf("%s%d", "http://demo.openshift.io/work-item/list/detail/", queryNumber)
+		spaceID := fxt.Spaces[0].ID.String()
+		searchResults, _, err := s.sr.SearchFullText(context.Background(), searchQuery, &start, &limit, &spaceID)
+		// then
+		require.Nil(t, err)
+		require.Len(t, searchResults, 2)
+		for _, searchResult := range searchResults {
+			// verifies that the number in the search result contains the query number
+			assert.Contains(t, strconv.Itoa(searchResult.Number), strconv.Itoa(queryNumber))
+		}
 	})
 
 }

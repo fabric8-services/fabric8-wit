@@ -230,9 +230,9 @@ func (r *GormRepository) Create(ctx context.Context, space *Space) (*Space, erro
 		}
 		return nil, errors.NewInternalError(ctx, err)
 	}
-	log.Info(ctx, map[string]interface{}{
+	log.Debug(ctx, map[string]interface{}{
 		"space_id": space.ID,
-	}, "Space created successfully")
+	}, "Space created")
 	return space, nil
 }
 

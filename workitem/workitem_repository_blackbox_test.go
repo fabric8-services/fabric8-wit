@@ -7,10 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/codebase"
 	"github.com/fabric8-services/fabric8-wit/errors"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
@@ -328,16 +326,11 @@ func (s *workItemRepoBlackBoxTest) TestConcurrentWorkItemCreations() {
 			defer wg.Done()
 			report := Report{id: routineID}
 			for j := 0; j < itemsPerRoutine; j++ {
-				if err := application.Transactional(gormapplication.NewGormDB(s.DB), func(app application.Application) error {
-
-					fields := map[string]interface{}{
-						workitem.SystemTitle: uuid.NewV4().String(),
-						workitem.SystemState: workitem.SystemStateNew,
-					}
-					_, err := s.repo.Create(context.Background(), fxt.Spaces[0].ID, fxt.WorkItemTypes[0].ID, fields, fxt.Identities[0].ID)
-
-					return err
-				}); err != nil {
+				fields := map[string]interface{}{
+					workitem.SystemTitle: uuid.NewV4().String(),
+					workitem.SystemState: workitem.SystemStateNew,
+				}
+				if _, err := s.repo.Create(context.Background(), fxt.Spaces[0].ID, fxt.WorkItemTypes[0].ID, fields, fxt.Identities[0].ID); err != nil {
 					s.T().Logf("Creation failed: %s", err.Error())
 					report.failures++
 				}
