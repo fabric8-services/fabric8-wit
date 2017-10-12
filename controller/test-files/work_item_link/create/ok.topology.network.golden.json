@@ -1,0 +1,218 @@
+{
+  "data": {
+    "attributes": {
+      "created-at": "0001-01-01T00:00:00Z",
+      "updated-at": "0001-01-01T00:00:00Z",
+      "version": 0
+    },
+    "id": "c301e40f-4eb8-4739-876d-684a100facc1",
+    "links": {
+      "related": "http:///api/workitemlinks/c301e40f-4eb8-4739-876d-684a100facc1",
+      "self": "http:///api/workitemlinks/c301e40f-4eb8-4739-876d-684a100facc1"
+    },
+    "relationships": {
+      "link_type": {
+        "data": {
+          "id": "d831df45-c091-4f3e-8309-40f13e8b7a20",
+          "type": "workitemlinktypes"
+        }
+      },
+      "source": {
+        "data": {
+          "id": "f300e58e-5468-4a30-9fd8-33b333440c81",
+          "type": "workitems"
+        }
+      },
+      "target": {
+        "data": {
+          "id": "718a32df-1b2e-4cc0-a528-bdab320f7206",
+          "type": "workitems"
+        }
+      }
+    },
+    "type": "workitemlinks"
+  },
+  "included": [
+    {
+      "attributes": {
+        "created-at": "0001-01-01T00:00:00Z",
+        "description": "some description",
+        "forward_name": "forward name (e.g. blocks)",
+        "name": "work item link type 5bf412b7-18d0-4358-b643-ebd0b07f1a6a",
+        "reverse_name": "reverse name (e.g. blocked by)",
+        "topology": "network",
+        "updated-at": "0001-01-01T00:00:00Z",
+        "version": 0
+      },
+      "id": "d831df45-c091-4f3e-8309-40f13e8b7a20",
+      "relationships": {
+        "link_category": {
+          "data": {
+            "id": "828a3ccd-7358-4650-ab0d-dfe74bbfb68f",
+            "type": "workitemlinkcategories"
+          },
+          "links": {
+            "related": "http:///api/workitemlinkcategories/828a3ccd-7358-4650-ab0d-dfe74bbfb68f",
+            "self": "http:///api/workitemlinkcategories/828a3ccd-7358-4650-ab0d-dfe74bbfb68f"
+          }
+        },
+        "space": {
+          "data": {
+            "id": "4c8c2722-9e35-4b98-bf92-507331d26322",
+            "type": "spaces"
+          },
+          "links": {
+            "related": "http:///api/spaces/4c8c2722-9e35-4b98-bf92-507331d26322",
+            "self": "http:///api/spaces/4c8c2722-9e35-4b98-bf92-507331d26322"
+          }
+        }
+      },
+      "type": "workitemlinktypes"
+    },
+    {
+      "attributes": {
+        "description": "some description",
+        "name": "link category f580882f-4251-4b4e-ae65-465a2d4bd57e",
+        "version": 0
+      },
+      "id": "828a3ccd-7358-4650-ab0d-dfe74bbfb68f",
+      "type": "workitemlinkcategories"
+    },
+    {
+      "attributes": {
+        "system.created_at": "0001-01-01T00:00:00Z",
+        "system.number": 1,
+        "system.order": 1000,
+        "system.remote_item_id": null,
+        "system.state": "new",
+        "system.title": "bug1",
+        "system.updated_at": "0001-01-01T00:00:00Z",
+        "version": 0
+      },
+      "id": "f300e58e-5468-4a30-9fd8-33b333440c81",
+      "links": {
+        "related": "http:///api/workitems/f300e58e-5468-4a30-9fd8-33b333440c81",
+        "self": "http:///api/workitems/f300e58e-5468-4a30-9fd8-33b333440c81"
+      },
+      "relationships": {
+        "area": {},
+        "assignees": {},
+        "baseType": {
+          "data": {
+            "id": "922aaf11-6514-4078-9bb8-408f29e1f4e0",
+            "type": "workitemtypes"
+          },
+          "links": {
+            "self": "http:///api/spaces/4c8c2722-9e35-4b98-bf92-507331d26322/workitemtypes/922aaf11-6514-4078-9bb8-408f29e1f4e0"
+          }
+        },
+        "children": {
+          "links": {
+            "related": "http:///api/workitems/f300e58e-5468-4a30-9fd8-33b333440c81/children"
+          }
+        },
+        "comments": {
+          "links": {
+            "related": "http:///api/workitems/f300e58e-5468-4a30-9fd8-33b333440c81/comments",
+            "self": "http:///api/workitems/f300e58e-5468-4a30-9fd8-33b333440c81/relationships/comments"
+          }
+        },
+        "creator": {
+          "data": {
+            "id": "7103639e-0f60-45df-8105-a258a9289274",
+            "links": {
+              "related": "http:///api/users/7103639e-0f60-45df-8105-a258a9289274",
+              "self": "http:///api/users/7103639e-0f60-45df-8105-a258a9289274"
+            },
+            "type": "users"
+          }
+        },
+        "iteration": {},
+        "labels": {
+          "links": {
+            "related": "http:///api/workitems/f300e58e-5468-4a30-9fd8-33b333440c81/labels"
+          }
+        },
+        "space": {
+          "data": {
+            "id": "4c8c2722-9e35-4b98-bf92-507331d26322",
+            "type": "spaces"
+          },
+          "links": {
+            "related": "http:///api/spaces/4c8c2722-9e35-4b98-bf92-507331d26322",
+            "self": "http:///api/spaces/4c8c2722-9e35-4b98-bf92-507331d26322"
+          }
+        }
+      },
+      "type": "workitems"
+    },
+    {
+      "attributes": {
+        "system.created_at": "0001-01-01T00:00:00Z",
+        "system.number": 2,
+        "system.order": 2000,
+        "system.remote_item_id": null,
+        "system.state": "new",
+        "system.title": "bug2",
+        "system.updated_at": "0001-01-01T00:00:00Z",
+        "version": 0
+      },
+      "id": "718a32df-1b2e-4cc0-a528-bdab320f7206",
+      "links": {
+        "related": "http:///api/workitems/718a32df-1b2e-4cc0-a528-bdab320f7206",
+        "self": "http:///api/workitems/718a32df-1b2e-4cc0-a528-bdab320f7206"
+      },
+      "relationships": {
+        "area": {},
+        "assignees": {},
+        "baseType": {
+          "data": {
+            "id": "922aaf11-6514-4078-9bb8-408f29e1f4e0",
+            "type": "workitemtypes"
+          },
+          "links": {
+            "self": "http:///api/spaces/4c8c2722-9e35-4b98-bf92-507331d26322/workitemtypes/922aaf11-6514-4078-9bb8-408f29e1f4e0"
+          }
+        },
+        "children": {
+          "links": {
+            "related": "http:///api/workitems/718a32df-1b2e-4cc0-a528-bdab320f7206/children"
+          }
+        },
+        "comments": {
+          "links": {
+            "related": "http:///api/workitems/718a32df-1b2e-4cc0-a528-bdab320f7206/comments",
+            "self": "http:///api/workitems/718a32df-1b2e-4cc0-a528-bdab320f7206/relationships/comments"
+          }
+        },
+        "creator": {
+          "data": {
+            "id": "7103639e-0f60-45df-8105-a258a9289274",
+            "links": {
+              "related": "http:///api/users/7103639e-0f60-45df-8105-a258a9289274",
+              "self": "http:///api/users/7103639e-0f60-45df-8105-a258a9289274"
+            },
+            "type": "users"
+          }
+        },
+        "iteration": {},
+        "labels": {
+          "links": {
+            "related": "http:///api/workitems/718a32df-1b2e-4cc0-a528-bdab320f7206/labels"
+          }
+        },
+        "space": {
+          "data": {
+            "id": "4c8c2722-9e35-4b98-bf92-507331d26322",
+            "type": "spaces"
+          },
+          "links": {
+            "related": "http:///api/spaces/4c8c2722-9e35-4b98-bf92-507331d26322",
+            "self": "http:///api/spaces/4c8c2722-9e35-4b98-bf92-507331d26322"
+          }
+        }
+      },
+      "type": "workitems"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "errors": [
+    {
+      "code": "data_conflict_error",
+      "detail": "work item link already exists with data.relationships.source_id: ccc4b874-8949-4ac9-b780-dde224ea8999; data.relationships.target_id: c01c769e-502e-442a-84ee-c32d90d7f706; data.relationships.link_type_id: e87d68f4-6570-467c-8c97-e7fa4b7e88f9 ",
+      "id": "IGNORE_ME",
+      "status": "409",
+      "title": "Data conflict error"
+    }
+  ]
+}

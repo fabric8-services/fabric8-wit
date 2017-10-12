@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	testtoken "github.com/fabric8-services/fabric8-wit/test/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
@@ -38,10 +40,12 @@ import (
 // It implements these interfaces from the suite package: SetupAllSuite, SetupTestSuite, TearDownAllSuite, TearDownTestSuite
 type workItemLinkSuite struct {
 	gormtestsupport.DBTestSuite
+	testDir          string
+	workItemLinkCtrl *WorkItemLinkController
+
 	svc                      *goa.Service
 	workItemLinkTypeCtrl     *WorkItemLinkTypeController
 	workItemLinkCategoryCtrl *WorkItemLinkCategoryController
-	workItemLinkCtrl         *WorkItemLinkController
 	workItemCtrl             *WorkitemController
 	workItemsCtrl            *WorkitemsController
 	workItemRelsLinksCtrl    *WorkItemRelationshipsLinksController
@@ -83,6 +87,7 @@ func (s *workItemLinkSuite) cleanup() {
 // It sets up a database connection for all the tests in this suite without polluting global space.
 func (s *workItemLinkSuite) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
+	s.testDir = filepath.Join("test-files", "work_item_link")
 	s.appDB = gormapplication.NewGormDB(s.DB)
 }
 
@@ -121,47 +126,42 @@ func (s *workItemLinkSuite) SetupTest() {
 	require.NotNil(s.T(), s.workItemRelsLinksCtrl)
 
 	// create a test identity
-	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "test user", "test provider")
-	require.Nil(s.T(), err)
-	s.svc = testsupport.ServiceAsUser("TestWorkItem-Service", *testIdentity)
+	fxt := tf.NewTestFixture(s.T(), s.DB,
+		tf.CreateWorkItemLinkEnvironment(),
+		tf.WorkItemTypes(2, tf.SetWorkItemTypeNames([]string{"bug", "feature"})),
+		tf.WorkItems(4,
+			tf.SetWorkItemTitles([]string{"bug1", "bug2", "bug3", "feature1"}),
+			func(fxt *tf.TestFixture, idx int) error {
+				fxt.WorkItems[idx].Type = fxt.WorkItemTypeByName("bug").ID
+				if idx == 3 {
+					fxt.WorkItems[idx].Type = fxt.WorkItemTypeByName("feature").ID
+				}
+				return nil
+			},
+		),
+	)
+
+	s.svc = testsupport.ServiceAsUser("TestWorkItem-Service", *fxt.Identities[0])
 	require.NotNil(s.T(), s.svc)
 	s.workItemCtrl = NewWorkitemController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	require.NotNil(s.T(), s.workItemCtrl)
 	s.workItemsCtrl = NewWorkitemsController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	require.NotNil(s.T(), s.workItemsCtrl)
-	// Create a work item link space
-	createSpacePayload := CreateSpacePayload("test-space", "description")
-	_, space := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, createSpacePayload)
-	s.userSpaceID = *space.Data.ID
-	s.T().Logf("Created link space with ID: %s\n", *space.Data.ID)
-
-	payload := newCreateWorkItemTypePayload(uuid.NewV4(), *space.Data.ID)
-	_, wit := test.CreateWorkitemtypeCreated(s.T(), s.svc.Context, s.svc, s.typeCtrl, s.userSpaceID, &payload)
-
-	payload2 := newCreateWorkItemTypePayload(uuid.NewV4(), *space.Data.ID)
-	_, wit2 := test.CreateWorkitemtypeCreated(s.T(), s.svc.Context, s.svc, s.typeCtrl, s.userSpaceID, &payload2)
+	s.userSpaceID = fxt.Spaces[0].ID
+	s.T().Logf("Created link space with ID: %s\n", s.userSpaceID)
 
 	// Create 3 work items (bug1, bug2, and feature1)
-	s.bug1ID = s.createWorkItem(*wit.Data.ID, "bug1")
-	s.bug2ID = s.createWorkItem(*wit.Data.ID, "bug2")
-	s.bug3ID = s.createWorkItem(*wit.Data.ID, "bug3")
-	s.feature1ID = s.createWorkItem(*wit2.Data.ID, "feature1")
+	s.bug1ID = fxt.WorkItemByTitle("bug1").ID
+	s.bug2ID = fxt.WorkItemByTitle("bug2").ID
+	s.bug3ID = fxt.WorkItemByTitle("bug3").ID
+	s.feature1ID = fxt.WorkItemByTitle("feature1").ID
 
 	// Create a work item link category
-	description := "This work item link category is managed by an admin user."
-	s.userLinkCategoryID = createWorkItemLinkCategoryInRepo(s.T(), s.appDB, s.svc.Context, link.WorkItemLinkCategory{
-		Name:        "test-user",
-		Description: &description,
-	})
+	s.userLinkCategoryID = fxt.WorkItemLinkCategories[0].ID
 	s.T().Logf("Created link category with ID: %s\n", s.userLinkCategoryID)
 
-	// Create work item link type payload
-	createLinkTypePayload := newCreateWorkItemLinkTypePayload("test-bug-blocker", s.userLinkCategoryID, s.userSpaceID)
-	workItemLinkType := createWorkItemLinkTypeInRepo(s.T(), s.appDB, s.svc.Context, createLinkTypePayload)
-	require.NotNil(s.T(), workItemLinkType)
-	//s.deleteWorkItemLinkTypes = append(s.deleteWorkItemLinkTypes, *workItemLinkType.Data.ID)
-	s.bugBlockerLinkTypeID = *workItemLinkType.Data.ID
-	s.T().Logf("Created link type with ID: %s\n", *workItemLinkType.Data.ID)
+	s.bugBlockerLinkTypeID = fxt.WorkItemLinkTypes[0].ID
+	s.T().Logf("Created link type with ID: %s\n", s.bugBlockerLinkTypeID)
 }
 
 // creates a work item with the given name and type and returns its ID
@@ -281,51 +281,82 @@ func TestSuiteWorkItemLinks(t *testing.T) {
 	suite.Run(t, new(workItemLinkSuite))
 }
 
-func (s *workItemLinkSuite) TestCreateAndDeleteWorkItemLink() {
-	createPayload := newCreateWorkItemLinkPayload(s.bug1ID, s.bug2ID, s.bugBlockerLinkTypeID)
-	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload)
-	require.NotNil(s.T(), workItemLink)
+func (s *workItemLinkSuite) TestCreate() {
+	resetFn := s.DisableGormCallbacks()
+	defer resetFn()
 
-	// Test if related resources are included in the response
-	toBeFound := 2
-	for i := 0; i < len(workItemLink.Included) && toBeFound > 0; i++ {
-		switch v := workItemLink.Included[i].(type) {
-		case *app.WorkItemLinkCategoryData:
-			if *v.ID == s.userLinkCategoryID {
-				s.T().Log("Found work item link category in \"included\" element: ", *v.ID)
-				toBeFound--
-			}
-		case *app.Space:
-			if *v.ID == s.userSpaceID {
-				s.T().Log("Found work item link space in \"included\" element: ", *v.ID)
-				toBeFound--
-			}
-		case *app.WorkItemLinkTypeData:
-			if *v.ID == s.bugBlockerLinkTypeID {
-				s.T().Log("Found work item link type in \"included\" element: ", *v.ID)
-				toBeFound--
-			}
-		// TODO(kwk): Check for source WI (once #559 is merged)
-		// TODO(kwk): Check for target WI (once #559 is merged)
-		// case *app.WorkItemData:
-		// TODO(kwk): Check for WITs (once #559 is merged)
-		// case *app.WorkItemTypeData:
-		default:
-			s.T().Errorf("Object of unknown type included in work item link list response: %T", workItemLink.Included[i])
+	s.T().Run("topology", func(t *testing.T) {
+		topologies := []string{
+			link.TopologyDependency,
+			link.TopologyDirectedNetwork,
+			link.TopologyNetwork,
+			link.TopologyTree,
 		}
-	}
-	require.Exactly(s.T(), 0, toBeFound, "Not all required included elements where found.")
+		for _, topo := range topologies {
+			t.Run(topo, func(t *testing.T) {
+				t.Run("ok", func(t *testing.T) {
+					// given
+					fxt := tf.NewTestFixture(t, s.DB,
+						tf.CreateWorkItemLinkEnvironment(),
+						tf.WorkItems(2, tf.SetWorkItemTitles([]string{"bug1", "bug2"})),
+						tf.WorkItemLinkTypes(1, tf.Topology(topo)),
+					)
+					createPayload := newCreateWorkItemLinkPayload(fxt.WorkItemByTitle("bug1").ID, fxt.WorkItemByTitle("bug2").ID, fxt.WorkItemLinkTypes[0].ID)
+					// when
+					res, workItemLink := test.CreateWorkItemLinkCreated(t, s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload)
+					// then
+					require.NotNil(t, workItemLink)
+					compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "create", "ok.topology."+topo+".golden.json"), workItemLink)
+					compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "delete", "ok.topology."+topo+".headers.golden.json"), res.Header())
+				})
+			})
+		}
+		t.Run("network", func(t *testing.T) {
+			t.Run("disallow creation of the same link", func(t *testing.T) {
+				// Check if #586 is fixed.
+				// given
+				fxt := tf.NewTestFixture(t, s.DB,
+					tf.CreateWorkItemLinkEnvironment(),
+					tf.WorkItems(2, tf.SetWorkItemTitles([]string{"bug1", "bug2"})),
+					tf.WorkItemLinkTypes(1, tf.TopologyNetwork()),
+				)
+				// The create payload is required during creation. Simply copy data over.
+				payload := ConvertLinkFromModel(link.WorkItemLink{
+					SourceID:   fxt.WorkItemByTitle("bug1").ID,
+					TargetID:   fxt.WorkItemByTitle("bug2").ID,
+					LinkTypeID: fxt.WorkItemLinkTypes[0].ID,
+				})
+				payload1 := app.CreateWorkItemLinkPayload{Data: payload.Data}
+				payload2 := app.CreateWorkItemLinkPayload{Data: payload.Data}
 
-	_ = test.DeleteWorkItemLinkOK(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, *workItemLink.Data.ID)
+				//createPayload1 := newCreateWorkItemLinkPayload(fxt.WorkItemByTitle("bug1").ID, fxt.WorkItemByTitle("bug1").ID, fxt.WorkItemLinkTypes[0].ID)
+				_, workItemLink1 := test.CreateWorkItemLinkCreated(t, s.svc.Context, s.svc, s.workItemLinkCtrl, &payload1)
+				require.NotNil(t, workItemLink1)
+				// then
+				res, jerrs := test.CreateWorkItemLinkConflict(t, s.svc.Context, s.svc, s.workItemLinkCtrl, &payload2)
+				require.NotNil(t, jerrs)
+				require.Len(t, jerrs.Errors, 1)
+				ignoreString := "IGNORE_ME"
+				jerrs.Errors[0].ID = &ignoreString
+				compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "create", "disallow_creation_of_the_same_link.error.golden.json"), jerrs)
+				compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "create", "disallow_creation_of_the_same_link.headers.golden.json"), res.Header())
+			})
+		})
+	})
 }
 
-// Check if #586 is fixed.
-func (s *workItemLinkSuite) TestCreateAndDeleteWorkItemLinkConflictDueToUniqueViolation() {
-	createPayload1 := newCreateWorkItemLinkPayload(s.bug1ID, s.bug2ID, s.bugBlockerLinkTypeID)
-	_, workItemLink1 := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload1)
-	require.NotNil(s.T(), workItemLink1)
-	createPayload2 := newCreateWorkItemLinkPayload(s.bug1ID, s.bug2ID, s.bugBlockerLinkTypeID)
-	_, _ = test.CreateWorkItemLinkConflict(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload2)
+func (s *workItemLinkSuite) TestDelete() {
+	resetFn := s.DisableGormCallbacks()
+	defer resetFn()
+
+	s.T().Run("ok", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemLinks(1))
+		// when
+		res := test.DeleteWorkItemLinkOK(t, s.svc.Context, s.svc, s.workItemLinkCtrl, fxt.WorkItemLinks[0].ID)
+		// then
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "delete", "ok.headers.golden.json"), res.Header())
+	})
 }
 
 // Same for /api/workitems/:id/relationships/links
