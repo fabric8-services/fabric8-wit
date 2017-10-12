@@ -116,7 +116,9 @@ func (s *workItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *ap
 				Icon:        "fa-hand-lizard-o",
 				Fields: map[string]*app.FieldDefinition{
 					"animal_type": {
-						Required: true,
+						Required:    true,
+						Description: "Description for animal_type field",
+						Label:       "Animal Type",
 						Type: &app.FieldType{
 							BaseType: &stString,
 							Kind:     "enum",
@@ -124,7 +126,9 @@ func (s *workItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *ap
 						},
 					},
 					"color": {
-						Required: false,
+						Required:    false,
+						Description: "Description for color field",
+						Label:       "Color",
 						Type: &app.FieldType{
 							Kind: "string",
 						},
