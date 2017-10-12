@@ -282,7 +282,7 @@ func (s *workItemLinkCategorySuite) TestFailValidationWorkItemLinkCategoryNameSt
 	err := payload.Validate()
 	// Validate payload function returns an error
 	assert.NotNil(s.T(), err)
-	assert.Contains(s.T(), err.Error(), "response.name must match the regexp")
+	assert.Contains(s.T(), err.Error(), "type.name must match the regexp")
 }
 
 // Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
