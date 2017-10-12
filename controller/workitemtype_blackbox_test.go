@@ -166,7 +166,9 @@ func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 				Icon:        "fa-user",
 				Fields: map[string]*app.FieldDefinition{
 					"name": {
-						Required: true,
+						Required:    true,
+						Description: "Description for Name field",
+						Label:       "Name",
 						Type: &app.FieldType{
 							Kind: "string",
 						},
