@@ -33,7 +33,7 @@ type GormWorkItemLinkRevisionRepository struct {
 
 // Create stores a new revision for the given work item link.
 func (r *GormWorkItemLinkRevisionRepository) Create(ctx context.Context, modifierID uuid.UUID, revisionType RevisionType, l WorkItemLink) error {
-	log.Info(nil, map[string]interface{}{
+	log.Debug(nil, map[string]interface{}{
 		"modifier_id":   modifierID,
 		"revision_type": revisionType,
 	}, "Storing a revision after operation on work item link.")
