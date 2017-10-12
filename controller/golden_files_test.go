@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	errs "github.com/pkg/errors"
@@ -53,6 +54,18 @@ func testableCompareWithGolden(update bool, goldenFile string, actualObj interfa
 	absPath, err := filepath.Abs(goldenFile)
 	if err != nil {
 		return errs.WithStack(err)
+	}
+	// Test if the actual object is a JSON Errors object to which we have to
+	// apply a special treatment (replace a unique ID with a comparable string).
+	if actualObj != nil {
+		jerrs, ok := actualObj.(*app.JSONAPIErrors)
+		if ok {
+			ignoreString := "IGNORE_ME"
+			for idx, _ := range jerrs.Errors {
+				jerrs.Errors[idx].ID = &ignoreString
+			}
+			actualObj = jerrs
+		}
 	}
 	actual, err := json.MarshalIndent(actualObj, "", "  ")
 	if err != nil {

@@ -1,0 +1,11 @@
+{
+  "errors": [
+    {
+      "code": "bad_parameter",
+      "detail": "Bad value for parameter 'link_type_id': '00000000-0000-0000-0000-000000000000'",
+      "id": "IGNORE_ME",
+      "status": "400",
+      "title": "Bad parameter error"
+    }
+  ]
+}
