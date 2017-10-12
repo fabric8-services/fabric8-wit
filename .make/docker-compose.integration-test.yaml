@@ -12,7 +12,7 @@ services:
       interval: 3s
       timeout: 7s
       retries: 5
-  
+      
   db_auth_integration_test:
     # network_mode: "bridge"
     image: registry.centos.org/postgresql/postgresql:9.6
@@ -24,7 +24,7 @@ services:
       test: "bash -c 'pg_isready -h localhost -p 5432 -q -U postgres'"
       interval: 3s
       timeout: 7s
-      retries: 5
+      retries: 5 
   
   auth_integration_test:
     # network_mode: "bridge"
@@ -44,3 +44,4 @@ services:
       interval: 3s
       timeout: 7s
       retries: 5
+
