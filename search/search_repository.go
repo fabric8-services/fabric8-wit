@@ -174,7 +174,9 @@ func getSearchQueryFromURLPattern(patternName, stringToMatch string) string {
 		searchQueryString = fmt.Sprintf("%s:*", searchQueryString)
 		if result["id"] != "" {
 			// Look for pattern's ID field, if exists update searchQueryString
-			searchQueryString = fmt.Sprintf("(%v:* | %v)", result["id"], searchQueryString)
+			// `*A` is used to add sme weight to the work item number in the search results.
+			// See https://www.postgresql.org/docs/9.6/static/textsearch-controls.html
+			searchQueryString = fmt.Sprintf("(%v:*A | %v)", result["id"], searchQueryString)
 			// searchQueryString = "(" + result["id"] + ":*" + " | " + searchQueryString + ")"
 		}
 		return searchQueryString
@@ -239,9 +241,11 @@ func parseSearchString(ctx context.Context, rawSearchString string) (searchKeywo
 			}
 			res.workItemTypes = append(res.workItemTypes, typeID)
 		} else if govalidator.IsURL(part) {
+			log.Debug(ctx, map[string]interface{}{"url": part}, "found a URL in the query string")
 			part := strings.ToLower(part)
 			part = trimProtocolFromURLString(part)
 			searchQueryFromURL := getSearchQueryFromURLString(part)
+			log.Debug(ctx, map[string]interface{}{"url": part, "search_query": searchQueryFromURL}, "found a URL in the query string")
 			res.words = append(res.words, searchQueryFromURL)
 		} else {
 			part := strings.ToLower(part)
@@ -446,7 +450,6 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 
 // parseFilterString accepts a raw string and generates a criteria expression
 func parseFilterString(ctx context.Context, rawSearchString string) (criteria.Expression, error) {
-
 	fm := map[string]interface{}{}
 	// Parsing/Unmarshalling JSON encoding/json
 	err := json.Unmarshal([]byte(rawSearchString), &fm)
@@ -481,7 +484,6 @@ func generateSQLSearchInfo(keywords searchKeyword) (sqlParameter string) {
 // extracted this function from List() in order to close the rows object with "defer" for more readability
 // workaround for https://github.com/lib/pq/issues/81
 func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParameter string, workItemTypes []uuid.UUID, start *int, limit *int, spaceID *string) ([]workitem.WorkItemStorage, uint64, error) {
-	log.Info(ctx, nil, "Searching work items...")
 	db := r.db.Model(workitem.WorkItemStorage{}).Where("tsv @@ query")
 	if start != nil {
 		if *start < 0 {
@@ -573,6 +575,7 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 
 	sqlSearchQueryParameter := generateSQLSearchInfo(parsedSearchDict)
 	var rows []workitem.WorkItemStorage
+	log.Debug(ctx, map[string]interface{}{"search query": sqlSearchQueryParameter}, "searching for work items")
 	rows, count, err := r.search(ctx, sqlSearchQueryParameter, parsedSearchDict.workItemTypes, start, limit, spaceID)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
@@ -740,11 +743,4 @@ func (r *GormSearchRepository) Filter(ctx context.Context, rawFilterString strin
 		res[index] = *modelWI
 	}
 	return res, count, nil
-}
-
-func init() {
-	// While registering URLs do not include protocol because it will be removed before scanning starts
-	// Please do not include trailing slashes because it will be removed before scanning starts
-	RegisterAsKnownURL("test-work-item-list-details", `(?P<domain>demo.almighty.io)(?P<path>/work-item/list/detail/)(?P<id>\d*)`)
-	RegisterAsKnownURL("test-work-item-board-details", `(?P<domain>demo.almighty.io)(?P<path>/work-item/board/detail/)(?P<id>\d*)`)
 }
