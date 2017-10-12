@@ -49,8 +49,8 @@ func CreateWorkItemEnvironment() RecipeFunction {
 // CreateWorkItemLinkEnvironment returns a higher level recipe function that
 // contains a little bit more business logic compared to the plain recipe
 // functions that only set up dependencies according to database needs. In this
-// particular case, we call CreateWorkItemEnvironment() and also adds a work
-// item link type.
+// particular case, we call CreateWorkItemEnvironment() and also add a work item
+// link type.
 func CreateWorkItemLinkEnvironment() RecipeFunction {
 	return func(fxt *TestFixture) error {
 		return fxt.deps(CreateWorkItemEnvironment(), WorkItemLinkTypes(1))
