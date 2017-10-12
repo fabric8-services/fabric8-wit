@@ -108,7 +108,7 @@ func (rest *TestSpaceREST) TestFailValidationSpaceNameStartWith() {
 	err := p.Validate()
 	// Validate payload function returns an error
 	assert.NotNil(rest.T(), err)
-	assert.Contains(rest.T(), err.Error(), `type.name must match the regexp "^[^_|-].*" but got value "_TestSpace"`)
+	assert.Contains(rest.T(), err.Error(), "type.name must match the regexp")
 }
 
 func (rest *TestSpaceREST) TestSuccessCreateSpace() {
