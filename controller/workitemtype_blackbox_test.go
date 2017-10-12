@@ -195,7 +195,9 @@ func newCreateWorkItemTypePayload(id uuid.UUID, spaceID uuid.UUID) app.CreateWor
 				Icon:        "fa-user",
 				Fields: map[string]*app.FieldDefinition{
 					"test": {
-						Required: false,
+						Description: "this is a test field",
+						Label:       "Test Label",
+						Required:    false,
 						Type: &app.FieldType{
 							Kind: "string",
 						},
