@@ -290,7 +290,9 @@ func (s *workItemTypeSuite) TestValidate() {
 				Icon:        "fa-user",
 				Fields: map[string]*app.FieldDefinition{
 					"name": {
-						Required: true,
+						Required:    true,
+						Description: "Description for name field",
+						Label:       "Name",
 						Type: &app.FieldType{
 							Kind: "string",
 						},
