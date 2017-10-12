@@ -16,6 +16,7 @@ const (
 	TopologyDirectedNetwork = "directed_network"
 	TopologyDependency      = "dependency"
 	TopologyTree            = "tree"
+	TypeParentOf            = "parent of"
 )
 
 // Never ever change these UUIDs!!!

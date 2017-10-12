@@ -840,31 +840,38 @@ func (s *searchParentExistsSuite) TestSearchWorkItemListFilterUsingParentExists(
 		test.ShowSearchBadRequest(t, nil, nil, s.searchCtrl, nil, pe, nil, nil, nil, &sid)
 	})
 	s.T().Run("with parentexists value set to false", func(t *testing.T) {
+		s.DB.LogMode(true)
+		defer s.DB.LogMode(false)
 		// given
 		pe := false
 		// when
-		sid := space.SystemSpace.String()
 		filter := fmt.Sprintf(`
 			{"$AND": [
-				{"type":"%s"}
+				{"space":"%[1]s"},
+				{"type":"%[2]s"}
 			]}`,
+			s.userSpaceID.String(),
 			workitem.SystemBug)
 
-		_, result := test.ShowSearchOK(t, nil, nil, s.searchCtrl, &filter, &pe, nil, nil, nil, &sid)
+		_, result := test.ShowSearchOK(t, nil, nil, s.searchCtrl, &filter, &pe, nil, nil, nil, nil)
 		// then
 		assert.Len(t, result.Data, 1)
 		checkChildrenRelationship(t, lookupWorkitemFromSearchList(t, *result, *s.bug1.Data.ID), hasChildren)
 	})
 
 	s.T().Run("with parentexists value set to true", func(t *testing.T) {
+		s.DB.LogMode(true)
+		defer s.DB.LogMode(false)
 		// given
 		pe := true
 		// when
 		sid := space.SystemSpace.String()
 		filter := fmt.Sprintf(`
 			{"$AND": [
-				{"type":"%s"}
+				{"space":"%[1]s"},
+				{"type":"%[2]s"}
 			]}`,
+			s.userSpaceID.String(),
 			workitem.SystemBug)
 
 		_, result := test.ShowSearchOK(t, nil, nil, s.searchCtrl, &filter, &pe, nil, nil, nil, &sid)
