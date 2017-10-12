@@ -496,7 +496,7 @@ $(COV_PATH_REMOTE): $(SOURCES) $(GOCOVMERGE_BIN)
 	@-rm -f $(ERRORS_FILE)
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
 	$(eval ALL_PKGS_COMMA_SEPARATED:=$(shell echo $(TEST_PACKAGES)  | tr ' ' ,))
-	$(foreach package, $(TEST_PACKAGES), $(call test-package,$(TEST_NAME),$(package),$(COV_PATH_REMOTE),$(ERRORS_FILE),,$(ALL_PKGS_COMMA_SEPARATED)))
+	$(foreach package, $(TEST_PACKAGES), $(call test-package,$(TEST_NAME),$(package),$(COV_PATH_REMOTE),$(ERRORS_FILE),F8_RESOURCE_REMOTE=1,$(ALL_PKGS_COMMA_SEPARATED)))
 	$(call check-test-results,$(ERRORS_FILE))
 
 #-------------------------------------------------------------------------------
