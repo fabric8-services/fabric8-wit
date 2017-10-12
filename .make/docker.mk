@@ -110,21 +110,6 @@ endif
 	$(eval F8_POSTGRES_HOST := $(shell docker inspect --format '{{ .NetworkSettings.IPAddress }}' make_postgres_integration_test_1 2>/dev/null))
 	docker exec -t $(DOCKER_RUN_INTERACTIVE_SWITCH) "$(DOCKER_CONTAINER_NAME)" bash -ec 'export F8_POSTGRES_HOST=$(F8_POSTGRES_HOST); make $(makecommand)'
 
-# # The targets in the following list all depend on a running remote servers
-# # Make sure you run "make integration-test-env-prepare" before you run any of these targets.
-# AUTH_DEPENDENT_DOCKER_TARGETS = docker-test-remote docker-test-remote-no-coverage
-
-# $(AUTH_DEPENDENT_DOCKER_TARGETS):
-# 	$(eval makecommand:=$(subst docker-,,$@))
-# ifeq ($(strip $(shell docker ps -qa --filter "name=$(DOCKER_CONTAINER_NAME)" 2>/dev/null)),)
-# 	$(error No container name "$(DOCKER_CONTAINER_NAME)" exists to run the build. Try running "make docker-start")
-# endif
-# ifeq ($(strip $(shell docker inspect --format '{{ .NetworkSettings.Networks.make_default.IPAddress }}' make_auth_integration_test_1 2>/dev/null)),)
-# 	$(error Failed to find Auth container. Try running "make integration-test-env-prepare")
-# endif
-# 	$(eval F8_AUTH_URL := $(shell docker inspect --format '{{ .NetworkSettings.Networks.make_default.IPAddress }}' make_auth_integration_test_1 2>/dev/null))
-# 	docker exec -t $(DOCKER_RUN_INTERACTIVE_SWITCH) "$(DOCKER_CONTAINER_NAME)" bash -ec 'export F8_AUTH_URL=http://$(F8_AUTH_URL):8089; make $(makecommand)'
-
 # This is a wildcard target to let you call any make target from the normal makefile
 # but it will run inside the docker container. This target will only get executed if
 # there's no specialized form available. For example if you call "make docker-start"
