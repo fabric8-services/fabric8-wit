@@ -293,10 +293,10 @@ func stringInSlice(str string, list []string) bool {
 	return false
 }
 
-func (s *searchRepositoryWhiteboxTest) TestSearch() {
+func (s *searchRepositoryWhiteboxTest) TestSearchByNumber() {
 	// given
 	fxt := tf.NewTestFixture(s.T(), s.DB,
-		tf.Identities(2, tf.SetIdentityUsernames([]string{"alice", "bob"})),
+		tf.Identities(2, tf.SetIdentityUsernames("alice", "bob")),
 		tf.WorkItems(2,
 			func(fxt *tf.TestFixture, idx int) error {
 				f := fxt.WorkItems[idx].Fields
