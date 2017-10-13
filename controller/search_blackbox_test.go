@@ -308,7 +308,7 @@ func (s *searchBlackBoxTest) TestAutoRegisterHostURL() {
 
 func (s *searchBlackBoxTest) TestSearchWorkItemsSpaceContext() {
 	fxt := tf.NewTestFixture(s.T(), s.DB,
-		tf.Identities(1, tf.SetIdentityUsernames([]string{"pranav"})),
+		tf.Identities(1, tf.SetIdentityUsernames("pranav")),
 		tf.Spaces(2),
 		tf.WorkItems(3+5, func(fxt *tf.TestFixture, idx int) error {
 			wi := fxt.WorkItems[idx]
@@ -356,7 +356,7 @@ func (s *searchBlackBoxTest) TestSearchWorkItemsSpaceContext() {
 func (s *searchBlackBoxTest) TestSearchWorkItemsWithoutSpaceContext() {
 	// given 2 spaces with 10 workitems in the first and 5 in the second space
 	_ = tf.NewTestFixture(s.T(), s.DB,
-		tf.Identities(1, tf.SetIdentityUsernames([]string{"pranav"})),
+		tf.Identities(1, tf.SetIdentityUsernames("pranav")),
 		tf.Spaces(2),
 		tf.WorkItems(10+5, func(fxt *tf.TestFixture, idx int) error {
 			wi := fxt.WorkItems[idx]
@@ -406,10 +406,10 @@ func (s *searchBlackBoxTest) TestSearchFilter() {
 func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 	// given
 	fxt := tf.NewTestFixture(s.T(), s.DB,
-		tf.Identities(3, tf.SetIdentityUsernames([]string{"spaceowner", "alice", "bob"})),
-		tf.Iterations(2, tf.SetIterationNames([]string{"sprint1", "sprint2"})),
-		tf.Labels(4, tf.SetLabelNames([]string{"important", "backend", "ui", "rest"})),
-		tf.WorkItemTypes(2, tf.SetWorkItemTypeNames([]string{"bug", "feature"})),
+		tf.Identities(3, tf.SetIdentityUsernames("spaceowner", "alice", "bob")),
+		tf.Iterations(2, tf.SetIterationNames("sprint1", "sprint2")),
+		tf.Labels(4, tf.SetLabelNames("important", "backend", "ui", "rest")),
+		tf.WorkItemTypes(2, tf.SetWorkItemTypeNames("bug", "feature")),
 		tf.WorkItems(3+5+1, func(fxt *tf.TestFixture, idx int) error {
 			wi := fxt.WorkItems[idx]
 			if idx < 3 {
