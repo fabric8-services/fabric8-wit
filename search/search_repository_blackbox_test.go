@@ -288,7 +288,6 @@ func containsAllWorkItems(expectedWorkitems []workitem.WorkItem, actualWorkitems
 		for i, expectedWorkitem := range expectedWorkitems {
 			if !uuid.Equal(expectedWorkitem.ID, actualWorkitems[i].ID) {
 				return false
-				break
 			}
 		}
 		return true
