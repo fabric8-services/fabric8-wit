@@ -70,8 +70,6 @@ func CreateTestIdentityForAccountIdentity(db *gorm.DB, identity *account.Identit
 			"err":      err,
 			"identity": identity,
 		}, "unable to create identity")
-	} else {
-		log.Info(nil, map[string]interface{}{"identity_id": identity.ID}, "created identity")
 	}
 	return err
 }

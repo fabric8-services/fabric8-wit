@@ -116,7 +116,9 @@ func (s *workItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *ap
 				Icon:        "fa-hand-lizard-o",
 				Fields: map[string]*app.FieldDefinition{
 					"animal_type": {
-						Required: true,
+						Required:    true,
+						Description: "Description for animal_type field",
+						Label:       "Animal Type",
 						Type: &app.FieldType{
 							BaseType: &stString,
 							Kind:     "enum",
@@ -124,7 +126,9 @@ func (s *workItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *ap
 						},
 					},
 					"color": {
-						Required: false,
+						Required:    false,
+						Description: "Description for color field",
+						Label:       "Color",
 						Type: &app.FieldType{
 							Kind: "string",
 						},
@@ -162,7 +166,9 @@ func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 				Icon:        "fa-user",
 				Fields: map[string]*app.FieldDefinition{
 					"name": {
-						Required: true,
+						Required:    true,
+						Description: "Description for Name field",
+						Label:       "Name",
 						Type: &app.FieldType{
 							Kind: "string",
 						},
@@ -195,7 +201,9 @@ func newCreateWorkItemTypePayload(id uuid.UUID, spaceID uuid.UUID) app.CreateWor
 				Icon:        "fa-user",
 				Fields: map[string]*app.FieldDefinition{
 					"test": {
-						Required: false,
+						Description: "this is a test field",
+						Label:       "Test Label",
+						Required:    false,
 						Type: &app.FieldType{
 							Kind: "string",
 						},
@@ -282,7 +290,9 @@ func (s *workItemTypeSuite) TestValidate() {
 				Icon:        "fa-user",
 				Fields: map[string]*app.FieldDefinition{
 					"name": {
-						Required: true,
+						Required:    true,
+						Description: "Description for name field",
+						Label:       "Name",
 						Type: &app.FieldType{
 							Kind: "string",
 						},

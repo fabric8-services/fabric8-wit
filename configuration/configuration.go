@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/fabric8-services/fabric8-wit/rest"
-	"github.com/pkg/errors"
+	errs "github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
 )
@@ -49,6 +49,7 @@ const (
 	varHTTPAddress                  = "http.address"
 	varDeveloperModeEnabled         = "developer.mode.enabled"
 	varAuthDomainPrefix             = "auth.domain.prefix"
+	varAuthShortServiceHostName     = "auth.servicehostname.short"
 	varAuthURL                      = "auth.url"
 	varAuthorizationEnabled         = "authz.enabled"
 	varGithubAuthToken              = "github.auth.token"
@@ -123,7 +124,7 @@ func NewConfigurationData(configFilePath string) (*ConfigurationData, error) {
 		c.v.SetConfigFile(configFilePath)
 		err := c.v.ReadInConfig() // Find and read the config file
 		if err != nil {           // Handle errors reading the config file
-			return nil, errors.Errorf("Fatal error config file: %s \n", err)
+			return nil, errs.Errorf("Fatal error config file: %s \n", err)
 		}
 	}
 	return &c, nil
@@ -487,6 +488,19 @@ func (c *ConfigurationData) GetAuthDomainPrefix() string {
 	return c.v.GetString(varAuthDomainPrefix)
 }
 
+// GetAuthShortServiceHostName returns the short Auth service host name
+// or the full Auth service URL if not set and Dev Mode enabled.
+// Otherwise returns the default host - http://auth
+func (c *ConfigurationData) GetAuthShortServiceHostName() string {
+	if c.v.IsSet(varAuthShortServiceHostName) {
+		return c.v.GetString(varAuthShortServiceHostName)
+	}
+	if c.IsPostgresDeveloperModeEnabled() {
+		return c.GetAuthServiceURL()
+	}
+	return defaultAuthShortServiceHostName
+}
+
 // GetAuthServiceURL returns the Auth Service URL
 func (c *ConfigurationData) GetAuthServiceURL() string {
 	return c.v.GetString(varAuthURL)
@@ -763,6 +777,8 @@ const (
 
 	// Auth service URL to be used in dev mode. Can be overridden by setting up auth.url
 	devModeAuthURL = "http://localhost:8089"
+
+	defaultAuthShortServiceHostName = "http://auth"
 
 	defaultKeycloakClientID = "fabric8-online-platform"
 	defaultKeycloakSecret   = "7a3d5a00-7f80-40cf-8781-b5b6f2dfd1bd"
