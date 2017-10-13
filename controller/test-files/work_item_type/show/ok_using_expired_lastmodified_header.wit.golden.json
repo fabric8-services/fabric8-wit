@@ -5,8 +5,8 @@
       "description": "Description for 'animal'",
       "fields": {
         "animal_type": {
-          "description": "",
-          "label": "",
+          "description": "Description for animal_type field",
+          "label": "Animal Type",
           "required": true,
           "type": {
             "baseType": "string",
@@ -19,8 +19,8 @@
           }
         },
         "color": {
-          "description": "",
-          "label": "",
+          "description": "Description for color field",
+          "label": "Color",
           "required": false,
           "type": {
             "kind": "string"
