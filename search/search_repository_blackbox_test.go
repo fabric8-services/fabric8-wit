@@ -32,13 +32,8 @@ func (s *searchRepositoryBlackboxTest) SetupTest() {
 	s.searchRepo = search.NewGormSearchRepository(s.DB)
 }
 
-func (s *searchRepositoryBlackboxTest) getTestFixture(extraRecipeFuncs ...tf.RecipeFunction) *tf.TestFixture {
-	baseRecipes := []tf.RecipeFunction{
-		tf.WorkItemLinkTypes(1, func(fxt *tf.TestFixture, idx int) error {
-			wilt := fxt.WorkItemLinkTypes[idx]
-			wilt.ForwardName = link.TypeParentOf
-			return nil
-		}),
+func (s *searchRepositoryBlackboxTest) getTestFixture() *tf.TestFixture {
+	return tf.NewTestFixture(s.T(), s.DB,
 		tf.WorkItemTypes(4, func(fxt *tf.TestFixture, idx int) error {
 			wit := fxt.WorkItemTypes[idx]
 			wit.ID = uuid.NewV4()
@@ -67,10 +62,7 @@ func (s *searchRepositoryBlackboxTest) getTestFixture(extraRecipeFuncs ...tf.Rec
 			}
 			return nil
 		}),
-	}
-	allRecipes := append(baseRecipes, extraRecipeFuncs...)
-	return tf.NewTestFixture(s.T(), s.DB, allRecipes...)
-
+	)
 }
 
 func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
@@ -80,95 +72,93 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 		t.Run("matching title", func(t *testing.T) {
 			// given
 			fxt := s.getTestFixture()
-			wi1 := fxt.WorkItems[0]
-			wi2 := fxt.WorkItems[1]
 			// when
-			res, count, err := s.searchRepo.SearchFullText(context.Background(), "TestRestrictByType", nil, nil, nil)
+			spaceID := fxt.Spaces[0].ID.String()
+			query := "TestRestrictByType"
+			res, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
 			// then
 			assert.Nil(t, err)
 			assert.Equal(t, uint64(2), count)
-			assert.Equal(t, res[0].Fields["system.order"], wi2.Fields["system.order"])
-			assert.Equal(t, res[1].Fields["system.order"], wi1.Fields["system.order"])
+			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[1], *fxt.WorkItems[0]))
 		})
 		s.T().Run("unmatching title", func(t *testing.T) {
 			// given
 			fxt := s.getTestFixture()
 			// when
-			_, count, err := s.searchRepo.SearchFullText(context.Background(), "TRBTgorxi type:"+fxt.WorkItemTypeByName("base").ID.String(), nil, nil, nil)
+			spaceID := fxt.Spaces[0].ID.String()
+			query := "TRBTgorxi type:" + fxt.WorkItemTypeByName("base").ID.String()
+			_, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
 			// then
 			require.Nil(t, err)
 			assert.Equal(t, uint64(0), count)
 		})
 	})
 
-	s.T().Run("Filter by title and types", func(t *testing.T) {
+	s.T().Run("SearchFullText by title and types", func(t *testing.T) {
 
 		t.Run("type sub1", func(t *testing.T) {
 			// given
 			fxt := s.getTestFixture()
-			wi1 := fxt.WorkItems[0]
 			// when
-			res, count, err := s.searchRepo.SearchFullText(context.Background(), "TestRestrictByType type:"+fxt.WorkItemTypeByName("sub1").ID.String(), nil, nil, nil)
+			spaceID := fxt.Spaces[0].ID.String()
+			query := "TestRestrictByType type:" + fxt.WorkItemTypeByName("sub1").ID.String()
+			res, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
 			// then
 			require.Nil(t, err)
 			require.Equal(t, uint64(1), count)
-			assert.Equal(t, wi1.ID, res[0].ID)
-			assert.Equal(t, res[0].Fields["system.order"], wi1.Fields["system.order"])
+			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[0]))
 		})
 
 		t.Run("type sub2", func(t *testing.T) {
 			// given
 			fxt := s.getTestFixture()
-			wi2 := fxt.WorkItems[1]
 			// when
-			res, count, err := s.searchRepo.SearchFullText(context.Background(), "TestRestrictByType type:"+fxt.WorkItemTypeByName("sub2").ID.String(), nil, nil, nil)
+			spaceID := fxt.Spaces[0].ID.String()
+			query := "TestRestrictByType type:" + fxt.WorkItemTypeByName("sub2").ID.String()
+			res, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
 			// then
 			require.Nil(t, err)
 			require.Equal(t, uint64(1), count)
-			assert.Equal(t, wi2.ID, res[0].ID)
-			assert.Equal(t, res[0].Fields["system.order"], wi2.Fields["system.order"])
+			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[1]))
 		})
 
 		t.Run("type base", func(t *testing.T) {
 			// given
 			fxt := s.getTestFixture()
-			wi1 := fxt.WorkItems[0]
-			wi2 := fxt.WorkItems[1]
 			// when
-			res, count, err := s.searchRepo.SearchFullText(context.Background(), "TestRestrictByType type:"+fxt.WorkItemTypeByName("base").ID.String(), nil, nil, nil)
+			spaceID := fxt.Spaces[0].ID.String()
+			query := "TestRestrictByType type:" + fxt.WorkItemTypeByName("base").ID.String()
+			res, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
 			// then
 			require.Nil(t, err)
 			require.Equal(t, uint64(2), count)
-			assert.Equal(t, res[0].Fields["system.order"], wi2.Fields["system.order"])
-			assert.Equal(t, res[1].Fields["system.order"], wi1.Fields["system.order"])
+			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[1], *fxt.WorkItems[0]))
 		})
 
 		t.Run("types sub1+sub2", func(t *testing.T) {
 			// given
 			fxt := s.getTestFixture()
-			wi1 := fxt.WorkItems[0]
-			wi2 := fxt.WorkItems[1]
 			// when
-			res, count, err := s.searchRepo.SearchFullText(context.Background(), "TestRestrictByType type:"+fxt.WorkItemTypeByName("sub2").ID.String()+" type:"+fxt.WorkItemTypeByName("sub1").ID.String(), nil, nil, nil)
+			spaceID := fxt.Spaces[0].ID.String()
+			query := "TestRestrictByType type:" + fxt.WorkItemTypeByName("sub2").ID.String() + " type:" + fxt.WorkItemTypeByName("sub1").ID.String()
+			res, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
 			// then
 			require.Nil(t, err)
 			assert.Equal(t, uint64(2), count)
-			assert.Equal(t, res[0].Fields["system.order"], wi2.Fields["system.order"])
-			assert.Equal(t, res[1].Fields["system.order"], wi1.Fields["system.order"])
+			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[1], *fxt.WorkItems[0]))
 		})
 
 		t.Run("types base+sub1", func(t *testing.T) {
 			// given
 			fxt := s.getTestFixture()
-			wi1 := fxt.WorkItems[0]
-			wi2 := fxt.WorkItems[1]
 			// when
-			res, count, err := s.searchRepo.SearchFullText(context.Background(), "TestRestrictByType type:"+fxt.WorkItemTypeByName("base").ID.String()+" type:"+fxt.WorkItemTypeByName("sub1").ID.String(), nil, nil, nil)
+			spaceID := fxt.Spaces[0].ID.String()
+			query := "TestRestrictByType type:" + fxt.WorkItemTypeByName("base").ID.String() + " type:" + fxt.WorkItemTypeByName("sub1").ID.String()
+			res, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
 			// then
 			require.Nil(t, err)
 			assert.Equal(t, uint64(2), count)
-			assert.Equal(t, res[0].Fields["system.order"], wi2.Fields["system.order"])
-			assert.Equal(t, res[1].Fields["system.order"], wi1.Fields["system.order"])
+			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[1], *fxt.WorkItems[0]))
 		})
 	})
 
@@ -186,7 +176,7 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			assert.Equal(t, 2, len(res))
 		})
 
-		t.Run("Filter with offset", func(t *testing.T) {
+		t.Run("with offset", func(t *testing.T) {
 			// given
 			fxt := s.getTestFixture()
 			// when
@@ -199,7 +189,7 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			assert.Equal(t, 0, len(res))
 		})
 
-		t.Run("Filter with limit", func(t *testing.T) {
+		t.Run("with limit", func(t *testing.T) {
 			// given
 			fxt := s.getTestFixture()
 			// when
@@ -213,48 +203,65 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 		})
 	})
 
-	s.T().Run("Filter with parent-exists filter", func(t *testing.T) {
+	s.T().Run("with parent-exists filter", func(t *testing.T) {
 
 		t.Run("no link created", func(t *testing.T) {
 			// given
-			fxt := s.getTestFixture()
+			fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(3))
 			// when
 			filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, fxt.Spaces[0].ID)
 			parentExists := false
 			res, count, err := s.searchRepo.Filter(context.Background(), filter, &parentExists, nil, nil)
 			// then both work items should be returned
 			require.Nil(t, err)
-			assert.Equal(t, uint64(2), count)
-			assert.Equal(t, 2, len(res))
+			assert.Equal(t, uint64(3), count)
+			assert.Equal(t, 3, len(res))
 		})
 
 		t.Run("link created", func(t *testing.T) {
 			// given
-			fxt := s.getTestFixture(tf.WorkItemLinks(1, func(fxt *tf.TestFixture, idx int) error {
-				fxt.WorkItemLinks[0].LinkTypeID = fxt.WorkItemLinkTypes[0].ID
-				fxt.WorkItemLinks[0].SourceID = fxt.WorkItems[0].ID
-				fxt.WorkItemLinks[0].TargetID = fxt.WorkItems[1].ID
-				return nil
-			}))
+			fxt := tf.NewTestFixture(t, s.DB,
+				tf.WorkItemLinkTypes(1, func(fxt *tf.TestFixture, idx int) error {
+					// need an explicit 'parent-of' type of link
+					fxt.WorkItemLinkTypes[idx].ForwardName = link.TypeParentOf
+					fxt.WorkItemLinkTypes[idx].Topology = link.TopologyTree
+					return nil
+				}),
+				tf.WorkItems(3),
+				tf.WorkItemLinks(1, func(fxt *tf.TestFixture, idx int) error {
+					fxt.WorkItemLinks[0].LinkTypeID = fxt.WorkItemLinkTypes[0].ID
+					fxt.WorkItemLinks[0].SourceID = fxt.WorkItems[0].ID
+					fxt.WorkItemLinks[0].TargetID = fxt.WorkItems[1].ID
+					return nil
+				}))
 			// when
 			filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, fxt.Spaces[0].ID)
 			parentExists := false
 			res, count, err := s.searchRepo.Filter(context.Background(), filter, &parentExists, nil, nil)
 			// then only parent work item should be returned
 			require.Nil(t, err)
-			assert.Equal(t, uint64(1), count)
-			assert.Equal(t, 1, len(res))
-			assert.Equal(t, fxt.WorkItems[0].ID, res[0].ID)
+			assert.Equal(t, uint64(2), count)
+			require.Equal(t, 2, len(res))
+			// item #0 is parent of #1 and item #2 is not linked to any otjer item
+			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[2], *fxt.WorkItems[0]))
 		})
 
 		t.Run("link deleted", func(t *testing.T) {
 			// given
-			fxt := s.getTestFixture(tf.WorkItemLinks(1, func(fxt *tf.TestFixture, idx int) error {
-				fxt.WorkItemLinks[0].LinkTypeID = fxt.WorkItemLinkTypes[0].ID
-				fxt.WorkItemLinks[0].SourceID = fxt.WorkItems[0].ID
-				fxt.WorkItemLinks[0].TargetID = fxt.WorkItems[1].ID
-				return nil
-			}))
+			fxt := tf.NewTestFixture(t, s.DB,
+				tf.WorkItemLinkTypes(1, func(fxt *tf.TestFixture, idx int) error {
+					// need an explicit 'parent-of' type of link
+					fxt.WorkItemLinkTypes[idx].ForwardName = link.TypeParentOf
+					fxt.WorkItemLinkTypes[idx].Topology = link.TopologyTree
+					return nil
+				}),
+				tf.WorkItems(3),
+				tf.WorkItemLinks(1, func(fxt *tf.TestFixture, idx int) error {
+					fxt.WorkItemLinks[0].LinkTypeID = fxt.WorkItemLinkTypes[0].ID
+					fxt.WorkItemLinks[0].SourceID = fxt.WorkItems[0].ID
+					fxt.WorkItemLinks[0].TargetID = fxt.WorkItems[1].ID
+					return nil
+				}))
 			linkRepo := link.NewWorkItemLinkRepository(s.DB)
 			err := linkRepo.Delete(context.Background(), fxt.WorkItemLinks[0].ID, fxt.Identities[0].ID)
 			require.Nil(t, err)
@@ -264,10 +271,26 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			res, count, err := s.searchRepo.Filter(context.Background(), filter, &parentExists, nil, nil)
 			// then both work items should be returned
 			require.Nil(t, err)
-			assert.Equal(t, uint64(2), count)
-			assert.Equal(t, 2, len(res))
+			assert.Equal(t, uint64(3), count)
+			assert.Equal(t, 3, len(res))
 		})
 
 	})
+}
 
+// containsAllWorkItems verifies that the `expectedWorkItems` array contains all `actualWorkitems` in the _given order_,
+// by comparing the lengths and each ID,
+func containsAllWorkItems(expectedWorkitems []workitem.WorkItem, actualWorkitems ...workitem.WorkItem) assert.Comparison {
+	return func() bool {
+		if len(expectedWorkitems) != len(actualWorkitems) {
+			return false
+		}
+		for i, expectedWorkitem := range expectedWorkitems {
+			if !uuid.Equal(expectedWorkitem.ID, actualWorkitems[i].ID) {
+				return false
+				break
+			}
+		}
+		return true
+	}
 }

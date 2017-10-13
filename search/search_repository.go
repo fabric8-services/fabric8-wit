@@ -17,6 +17,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/workitem"
+	"github.com/fabric8-services/fabric8-wit/workitem/link"
 
 	"github.com/asaskevich/govalidator"
 	"github.com/jinzhu/gorm"
@@ -614,14 +615,12 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 	}
 
 	if parentExists != nil && !*parentExists {
-		where += ` AND
+		where += fmt.Sprintf(` AND
 			NOT EXISTS (
 				SELECT wil.target_id FROM work_item_links wil, work_item_link_types wilt
-				WHERE wil.link_type_id = wilt.id AND wilt.forward_name = 'parent of' 
+				WHERE wil.link_type_id = wilt.id AND wilt.forward_name = '%[1]s' 
 				AND wil.target_id = work_items.id
-				AND wil.deleted_at IS NULL
-			)`
-
+				AND wil.deleted_at IS NULL)`, link.TypeParentOf)
 	}
 
 	db := r.db.Model(&workitem.WorkItemStorage{}).Where(where, parameters...)
