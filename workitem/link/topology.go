@@ -28,11 +28,19 @@ const (
 	TopologyTree            Topology = "tree"
 )
 
-// CheckValidTopology returns nil if the given topology is valid;
-// otherwise a BadParameterError is returned.
-func CheckValidTopology(t Topology) error {
-	if t != TopologyNetwork && t != TopologyDirectedNetwork && t != TopologyDependency && t != TopologyTree {
+// CheckValid returns nil if the given topology is valid; otherwise a
+// BadParameterError is returned.
+func (t Topology) CheckValid() error {
+	switch t {
+	case TopologyNetwork:
+		return nil
+	case TopologyDirectedNetwork:
+		return nil
+	case TopologyDependency:
+		return nil
+	case TopologyTree:
+		return nil
+	default:
 		return errors.NewBadParameterError("topolgy", t).Expected(TopologyNetwork + "|" + TopologyDirectedNetwork + "|" + TopologyDependency + "|" + TopologyTree)
 	}
-	return nil
 }

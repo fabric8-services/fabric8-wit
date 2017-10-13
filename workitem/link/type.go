@@ -111,7 +111,7 @@ func (t *WorkItemLinkType) CheckValidForCreation() error {
 	if t.ReverseName == "" {
 		return errors.NewBadParameterError("reverse_name", t.ReverseName)
 	}
-	if err := CheckValidTopology(t.Topology); err != nil {
+	if err := t.Topology.CheckValid(); err != nil {
 		return errs.WithStack(err)
 	}
 	if t.LinkCategoryID == uuid.Nil {

@@ -382,7 +382,7 @@ func ConvertWorkItemLinkTypeToModel(appLinkType app.WorkItemLinkTypeSingle) (*li
 
 		if attrs.Topology != nil {
 			modelLinkType.Topology = link.Topology(*attrs.Topology)
-			if err := link.CheckValidTopology(modelLinkType.Topology); err != nil {
+			if err := modelLinkType.Topology.CheckValid(); err != nil {
 				return nil, err
 			}
 		}
