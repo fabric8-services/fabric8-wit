@@ -94,7 +94,7 @@ func UserActive(active bool) CustomizeIterationFunc {
 // SetLabelNames takes the given names and uses them during creation of labels.
 // The length of requested labels and the number of names must match or the
 // NewFixture call will return an error.
-func SetLabelNames(names []string) CustomizeLabelFunc {
+func SetLabelNames(names ...string) CustomizeLabelFunc {
 	return func(fxt *TestFixture, idx int) error {
 		if len(fxt.Labels) != len(names) {
 			return errs.Errorf("number of names (%d) must match number of labels to create (%d)", len(names), len(fxt.Labels))
@@ -107,7 +107,7 @@ func SetLabelNames(names []string) CustomizeLabelFunc {
 // SetIterationNames takes the given names and uses them during creation of
 // iterations. The length of requested iterations and the number of names must
 // match or the NewFixture call will return an error.
-func SetIterationNames(names []string) CustomizeIterationFunc {
+func SetIterationNames(names ...string) CustomizeIterationFunc {
 	return func(fxt *TestFixture, idx int) error {
 		if len(fxt.Iterations) != len(names) {
 			return errs.Errorf("number of names (%d) must match number of iterations to create (%d)", len(names), len(fxt.Iterations))
@@ -143,7 +143,7 @@ func PlaceAreaUnderRootArea() CustomizeAreaFunc {
 // SetWorkItemTypeNames takes the given names and uses them during creation of
 // work item types. The length of requested work item types and the number of
 // names must match or the NewFixture call will return an error.
-func SetWorkItemTypeNames(names []string) CustomizeWorkItemTypeFunc {
+func SetWorkItemTypeNames(names ...string) CustomizeWorkItemTypeFunc {
 	return func(fxt *TestFixture, idx int) error {
 		if len(fxt.WorkItemTypes) != len(names) {
 			return errs.Errorf("number of names (%d) must match number of work item types to create (%d)", len(names), len(fxt.WorkItemTypes))
@@ -156,7 +156,7 @@ func SetWorkItemTypeNames(names []string) CustomizeWorkItemTypeFunc {
 // SetIdentityUsernames takes the given usernames and uses them during creation
 // of identities. The length of requested work item types and the number of
 // usernames must match or the NewFixture call will return an error.
-func SetIdentityUsernames(usernames []string) CustomizeIdentityFunc {
+func SetIdentityUsernames(usernames ...string) CustomizeIdentityFunc {
 	return func(fxt *TestFixture, idx int) error {
 		if len(fxt.Identities) != len(usernames) {
 			return errs.Errorf("number of usernames (%d) must match number of identites to create (%d)", len(usernames), len(fxt.Identities))
@@ -169,7 +169,7 @@ func SetIdentityUsernames(usernames []string) CustomizeIdentityFunc {
 // SetWorkItemTitles takes the given titles and uses them during creation of
 // work items. The length of requested work items and the number of titles must
 // match or the NewFixture call will return an error.
-func SetWorkItemTitles(titles []string) CustomizeWorkItemFunc {
+func SetWorkItemTitles(titles ...string) CustomizeWorkItemFunc {
 	return func(fxt *TestFixture, idx int) error {
 		if len(fxt.WorkItems) != len(titles) {
 			return errs.Errorf("number of titles (%d) must match number of work items to create (%d)", len(titles), len(fxt.WorkItems))
@@ -182,7 +182,7 @@ func SetWorkItemTitles(titles []string) CustomizeWorkItemFunc {
 // SetWorkItemLinkTypeNames takes the given names and uses them during creation
 // of work item link types. The length of requested work item link types and the
 // number of names must match or the NewFixture call will return an error.
-func SetWorkItemLinkTypeNames(names []string) CustomizeWorkItemLinkTypeFunc {
+func SetWorkItemLinkTypeNames(names ...string) CustomizeWorkItemLinkTypeFunc {
 	return func(fxt *TestFixture, idx int) error {
 		if len(fxt.WorkItemLinkTypes) != len(names) {
 			return errs.Errorf("number of names (%d) must match number of work item link types to create (%d)", len(names), len(fxt.WorkItemLinkTypes))

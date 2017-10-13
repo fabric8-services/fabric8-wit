@@ -88,10 +88,10 @@ func (s *linkRepoBlackBoxTest) TestWorkItemHasChildren() {
 func (s *linkRepoBlackBoxTest) TestValidateTopology() {
 	// given 2 work items linked with one tree-topology link type
 	fxt := tf.NewTestFixture(s.T(), s.DB,
-		tf.WorkItems(3, tf.SetWorkItemTitles([]string{"parent", "child", "another-item"})),
+		tf.WorkItems(3, tf.SetWorkItemTitles("parent", "child", "another-item")),
 		tf.WorkItemLinkTypes(2,
 			tf.TopologyTree(),
-			tf.SetWorkItemLinkTypeNames([]string{"tree-type", "another-type"}),
+			tf.SetWorkItemLinkTypeNames("tree-type", "another-type"),
 		),
 		tf.WorkItemLinks(1, func(fxt *tf.TestFixture, idx int) error {
 			fxt.WorkItemLinks[idx].SourceID = fxt.WorkItemByTitle("parent").ID
@@ -104,8 +104,8 @@ func (s *linkRepoBlackBoxTest) TestValidateTopology() {
 	s.T().Run("ok - no link", func(t *testing.T) {
 		// given link type exists but no link to child item
 		fxt := tf.NewTestFixture(t, s.DB,
-			tf.WorkItems(1, tf.SetWorkItemTitles([]string{"someWorkItem"})),
-			tf.WorkItemLinkTypes(1, tf.TopologyTree(), tf.SetWorkItemLinkTypeNames([]string{"tree-type"})),
+			tf.WorkItems(1, tf.SetWorkItemTitles("someWorkItem")),
+			tf.WorkItemLinkTypes(1, tf.TopologyTree(), tf.SetWorkItemLinkTypeNames("tree-type")),
 		)
 		// when
 		err := s.workitemLinkRepo.ValidateTopology(s.Ctx, nil, fxt.WorkItemByTitle("someWorkItem").ID, *fxt.WorkItemLinkTypeByName("tree-type"))
@@ -143,8 +143,8 @@ func (s *linkRepoBlackBoxTest) TestCreate() {
 	s.T().Run("ok", func(t *testing.T) {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB,
-			tf.WorkItems(2, tf.SetWorkItemTitles([]string{"parent", "child"})),
-			tf.WorkItemLinkTypes(1, tf.TopologyTree(), tf.SetWorkItemLinkTypeNames([]string{"tree-type"})),
+			tf.WorkItems(2, tf.SetWorkItemTitles("parent", "child")),
+			tf.WorkItemLinkTypes(1, tf.TopologyTree(), tf.SetWorkItemLinkTypeNames("tree-type")),
 		)
 		// when
 		_, err := s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("parent").ID, fxt.WorkItemByTitle("child").ID, fxt.WorkItemLinkTypeByName("tree-type").ID, fxt.Identities[0].ID)
@@ -155,10 +155,10 @@ func (s *linkRepoBlackBoxTest) TestCreate() {
 	s.T().Run("fail - other parent-child-link exists", func(t *testing.T) {
 		// given 2 work items linked with one tree-topology link type
 		fxt := tf.NewTestFixture(t, s.DB,
-			tf.WorkItems(3, tf.SetWorkItemTitles([]string{"parent", "child", "another-item"})),
+			tf.WorkItems(3, tf.SetWorkItemTitles("parent", "child", "another-item")),
 			tf.WorkItemLinkTypes(1,
 				tf.TopologyTree(),
-				tf.SetWorkItemLinkTypeNames([]string{"tree-type"}),
+				tf.SetWorkItemLinkTypeNames("tree-type"),
 			),
 			tf.WorkItemLinks(1, func(fxt *tf.TestFixture, idx int) error {
 				fxt.WorkItemLinks[idx].SourceID = fxt.WorkItemByTitle("parent").ID
