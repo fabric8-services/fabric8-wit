@@ -99,7 +99,7 @@ func (f FieldDefinition) ConvertToModel(name string, value interface{}) (interfa
 				return nil, errs.Errorf("failed to convert '%+v' to string", spew.Sdump(value))
 			}
 			if strings.TrimSpace(sVal) == "" {
-				return nil, errs.Errorf("Value '%s' must not be empty: %+v", name, spew.Sdump(value))
+				return nil, errs.Errorf("Value '%s' must not be empty: \"%+v\"", name, value)
 			}
 		}
 	}
