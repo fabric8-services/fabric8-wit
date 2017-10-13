@@ -228,12 +228,7 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 					return nil
 				}),
 				tf.WorkItems(3),
-				tf.WorkItemLinks(1, func(fxt *tf.TestFixture, idx int) error {
-					fxt.WorkItemLinks[0].LinkTypeID = fxt.WorkItemLinkTypes[0].ID
-					fxt.WorkItemLinks[0].SourceID = fxt.WorkItems[0].ID
-					fxt.WorkItemLinks[0].TargetID = fxt.WorkItems[1].ID
-					return nil
-				}))
+				tf.WorkItemLinks(1))
 			// when
 			filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, fxt.Spaces[0].ID)
 			parentExists := false
@@ -256,12 +251,7 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 					return nil
 				}),
 				tf.WorkItems(3),
-				tf.WorkItemLinks(1, func(fxt *tf.TestFixture, idx int) error {
-					fxt.WorkItemLinks[0].LinkTypeID = fxt.WorkItemLinkTypes[0].ID
-					fxt.WorkItemLinks[0].SourceID = fxt.WorkItems[0].ID
-					fxt.WorkItemLinks[0].TargetID = fxt.WorkItems[1].ID
-					return nil
-				}))
+				tf.WorkItemLinks(1))
 			linkRepo := link.NewWorkItemLinkRepository(s.DB)
 			err := linkRepo.Delete(context.Background(), fxt.WorkItemLinks[0].ID, fxt.Identities[0].ID)
 			require.Nil(t, err)
