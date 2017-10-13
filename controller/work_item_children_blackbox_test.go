@@ -840,8 +840,6 @@ func (s *searchParentExistsSuite) TestSearchWorkItemListFilterUsingParentExists(
 		test.ShowSearchBadRequest(t, nil, nil, s.searchCtrl, nil, pe, nil, nil, nil, &sid)
 	})
 	s.T().Run("with parentexists value set to false", func(t *testing.T) {
-		s.DB.LogMode(true)
-		defer s.DB.LogMode(false)
 		// given
 		pe := false
 		// when
@@ -860,8 +858,6 @@ func (s *searchParentExistsSuite) TestSearchWorkItemListFilterUsingParentExists(
 	})
 
 	s.T().Run("with parentexists value set to true", func(t *testing.T) {
-		s.DB.LogMode(true)
-		defer s.DB.LogMode(false)
 		// given
 		pe := true
 		// when

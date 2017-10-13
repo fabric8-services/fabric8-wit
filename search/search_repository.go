@@ -615,10 +615,11 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 
 	if parentExists != nil && !*parentExists {
 		where += ` AND
-			id not in (
+			NOT EXISTS (
 				SELECT wil.target_id FROM work_item_links wil, work_item_link_types wilt
-				WHERE wil.link_type_id = wilt.id and wilt.forward_name = 'parent of' 
-				and wil.deleted_at is null
+				WHERE wil.link_type_id = wilt.id AND wilt.forward_name = 'parent of' 
+				AND wil.target_id = work_items.id
+				AND wil.deleted_at IS NULL
 			)`
 
 	}

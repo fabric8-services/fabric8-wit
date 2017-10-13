@@ -221,8 +221,6 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			// when
 			filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, fxt.Spaces[0].ID)
 			parentExists := false
-			s.DB.LogMode(true)
-			defer s.DB.LogMode(false)
 			res, count, err := s.searchRepo.Filter(context.Background(), filter, &parentExists, nil, nil)
 			// then both work items should be returned
 			require.Nil(t, err)
