@@ -16,7 +16,7 @@ func testFieldDefinitionMarshalUnmarshal(t *testing.T, def workitem.FieldDefinit
 		return
 	}
 
-	t.Log("bytes are ", string(bytes))
+	t.Logf("bytes are %s", string(bytes))
 	unmarshalled := workitem.FieldDefinition{}
 	json.Unmarshal(bytes, &unmarshalled)
 
