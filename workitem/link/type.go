@@ -6,17 +6,14 @@ import (
 	convert "github.com/fabric8-services/fabric8-wit/convert"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
-
 	errs "github.com/pkg/errors"
+
 	uuid "github.com/satori/go.uuid"
 )
 
 const (
-	TopologyNetwork         = "network"
-	TopologyDirectedNetwork = "directed_network"
-	TopologyDependency      = "dependency"
-	TopologyTree            = "tree"
-	TypeParentOf            = "parent of"
+	// the `parent of` type of link
+	TypeParentOf = "parent of"
 )
 
 // Never ever change these UUIDs!!!
@@ -53,7 +50,7 @@ type WorkItemLinkType struct {
 	Description *string
 	// Version for optimistic concurrency control
 	Version  int
-	Topology string // Valid values: network, directed_network, dependency, tree
+	Topology Topology
 
 	ForwardName string
 	ReverseName string
@@ -119,7 +116,7 @@ func (t *WorkItemLinkType) CheckValidForCreation() error {
 	if t.ReverseName == "" {
 		return errors.NewBadParameterError("reverse_name", t.ReverseName)
 	}
-	if err := CheckValidTopology(t.Topology); err != nil {
+	if err := t.Topology.CheckValid(); err != nil {
 		return errs.WithStack(err)
 	}
 	if t.LinkCategoryID == uuid.Nil {
@@ -134,15 +131,6 @@ func (t *WorkItemLinkType) CheckValidForCreation() error {
 // TableName implements gorm.tabler
 func (t WorkItemLinkType) TableName() string {
 	return "work_item_link_types"
-}
-
-// CheckValidTopology returns nil if the given topology is valid;
-// otherwise a BadParameterError is returned.
-func CheckValidTopology(t string) error {
-	if t != TopologyNetwork && t != TopologyDirectedNetwork && t != TopologyDependency && t != TopologyTree {
-		return errors.NewBadParameterError("topolgy", t).Expected(TopologyNetwork + "|" + TopologyDirectedNetwork + "|" + TopologyDependency + "|" + TopologyTree)
-	}
-	return nil
 }
 
 // GetETagData returns the field values to use to generate the ETag

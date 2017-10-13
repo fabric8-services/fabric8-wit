@@ -49,37 +49,17 @@ import (
 //      }))
 type CustomizeEntityFunc func(fxt *TestFixture, idx int) error
 
-// Topology ensures that all created link types will have the given topology
-// type.
-func Topology(topology string) CustomizeWorkItemLinkTypeFunc {
+// SetTopologies takes the given topologies and uses them during creation of
+// work item link types. The length of requested work item link types and the number of topologies must
+// match or the NewFixture call will return an error.
+func SetTopologies(topologies ...link.Topology) CustomizeWorkItemLinkTypeFunc {
 	return func(fxt *TestFixture, idx int) error {
-		fxt.WorkItemLinkTypes[idx].Topology = topology
+		if len(fxt.WorkItemLinkTypes) != len(topologies) {
+			return errs.Errorf("number of topologies (%d) must match number of work item link types to create (%d)", len(topologies), len(fxt.WorkItemLinkTypes))
+		}
+		fxt.WorkItemLinkTypes[idx].Topology = topologies[idx]
 		return nil
 	}
-}
-
-// TopologyNetwork ensures that all created link types will have the "network"
-// topology type.
-func TopologyNetwork() CustomizeWorkItemLinkTypeFunc {
-	return Topology(link.TopologyNetwork)
-}
-
-// TopologyDirectedNetwork ensures that all created link types will have the
-// "directed network" topology type.
-func TopologyDirectedNetwork() CustomizeWorkItemLinkTypeFunc {
-	return Topology(link.TopologyDirectedNetwork)
-}
-
-// TopologyDependency ensures that all created link types will have the
-// "dependency" topology type.
-func TopologyDependency() CustomizeWorkItemLinkTypeFunc {
-	return Topology(link.TopologyDependency)
-}
-
-// TopologyTree ensures that all created link types will have the "tree"
-// topology type.
-func TopologyTree() CustomizeWorkItemLinkTypeFunc {
-	return Topology(link.TopologyTree)
 }
 
 // UserActive ensures that all created iterations have the given user activation

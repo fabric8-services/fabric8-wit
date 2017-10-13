@@ -90,7 +90,7 @@ func (s *linkRepoBlackBoxTest) TestValidateTopology() {
 	fxt := tf.NewTestFixture(s.T(), s.DB,
 		tf.WorkItems(3, tf.SetWorkItemTitles([]string{"parent", "child", "another-item"})),
 		tf.WorkItemLinkTypes(2,
-			tf.TopologyTree(),
+			tf.SetTopologies(link.TopologyTree, link.TopologyTree),
 			tf.SetWorkItemLinkTypeNames([]string{"tree-type", "another-type"}),
 		),
 		tf.WorkItemLinks(1, func(fxt *tf.TestFixture, idx int) error {
@@ -105,7 +105,7 @@ func (s *linkRepoBlackBoxTest) TestValidateTopology() {
 		// given link type exists but no link to child item
 		fxt := tf.NewTestFixture(t, s.DB,
 			tf.WorkItems(1, tf.SetWorkItemTitles([]string{"someWorkItem"})),
-			tf.WorkItemLinkTypes(1, tf.TopologyTree(), tf.SetWorkItemLinkTypeNames([]string{"tree-type"})),
+			tf.WorkItemLinkTypes(1, tf.SetTopologies(link.TopologyTree), tf.SetWorkItemLinkTypeNames([]string{"tree-type"})),
 		)
 		// when
 		err := s.workitemLinkRepo.ValidateTopology(s.Ctx, nil, fxt.WorkItemByTitle("someWorkItem").ID, *fxt.WorkItemLinkTypeByName("tree-type"))
@@ -144,7 +144,7 @@ func (s *linkRepoBlackBoxTest) TestCreate() {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB,
 			tf.WorkItems(2, tf.SetWorkItemTitles([]string{"parent", "child"})),
-			tf.WorkItemLinkTypes(1, tf.TopologyTree(), tf.SetWorkItemLinkTypeNames([]string{"tree-type"})),
+			tf.WorkItemLinkTypes(1, tf.SetTopologies(link.TopologyTree), tf.SetWorkItemLinkTypeNames([]string{"tree-type"})),
 		)
 		// when
 		_, err := s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("parent").ID, fxt.WorkItemByTitle("child").ID, fxt.WorkItemLinkTypeByName("tree-type").ID, fxt.Identities[0].ID)
@@ -157,7 +157,7 @@ func (s *linkRepoBlackBoxTest) TestCreate() {
 		fxt := tf.NewTestFixture(t, s.DB,
 			tf.WorkItems(3, tf.SetWorkItemTitles([]string{"parent", "child", "another-item"})),
 			tf.WorkItemLinkTypes(1,
-				tf.TopologyTree(),
+				tf.SetTopologies(link.TopologyTree),
 				tf.SetWorkItemLinkTypeNames([]string{"tree-type"}),
 			),
 			tf.WorkItemLinks(1, func(fxt *tf.TestFixture, idx int) error {
@@ -196,7 +196,7 @@ func (s *linkRepoBlackBoxTest) TestExistsLink() {
 
 func (s *linkRepoBlackBoxTest) TestGetParentID() {
 	// create 1 links between 2 work items having TopologyNetwork with ForwardName = "parent of"
-	fixtures := tf.NewTestFixture(s.T(), s.DB, tf.WorkItemLinks(1), tf.WorkItemLinkTypes(1, tf.TopologyNetwork(), func(fxt *tf.TestFixture, idx int) error {
+	fixtures := tf.NewTestFixture(s.T(), s.DB, tf.WorkItemLinks(1), tf.WorkItemLinkTypes(1, tf.SetTopologies(link.TopologyNetwork), func(fxt *tf.TestFixture, idx int) error {
 		fxt.WorkItemLinkTypes[idx].ForwardName = "parent of"
 		return nil
 	}))
@@ -207,7 +207,7 @@ func (s *linkRepoBlackBoxTest) TestGetParentID() {
 
 func (s *linkRepoBlackBoxTest) TestGetParentIDNotExist() {
 	// create 1 links between 2 work items having TopologyNetwork with ForwardName = "parent of"
-	fixtures := tf.NewTestFixture(s.T(), s.DB, tf.WorkItemLinks(1), tf.WorkItemLinkTypes(1, tf.TopologyNetwork(), func(fxt *tf.TestFixture, idx int) error {
+	fixtures := tf.NewTestFixture(s.T(), s.DB, tf.WorkItemLinks(1), tf.WorkItemLinkTypes(1, tf.SetTopologies(link.TopologyNetwork), func(fxt *tf.TestFixture, idx int) error {
 		fxt.WorkItemLinkTypes[idx].ForwardName = "parent of"
 		return nil
 	}))

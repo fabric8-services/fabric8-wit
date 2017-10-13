@@ -310,18 +310,14 @@ type CustomizeWorkItemLinkTypeFunc CustomizeEntityFunc
 //
 // We've created these helper functions that you should have a look at if you
 // want to implement your own re-usable customize-entity-functions:
-//     TopologyNetwork()
-//     TopologyDirectedNetwork()
-//     TopologyDependency()
-//     TopologyTree()
-//     Topology(topology string) // programmatically set the topology
+//     SetTopologies(topology ...link.Topology)
 // The topology functions above are neat because you don't have to write a full
 // function function yourself.
 //
 // By default a call to
 //     WorkItemLinkTypes(1)
 // equals
-//     WorkItemLinkTypes(1, TopologyTree())
+//     WorkItemLinkTypes(1, SetTopologies(link.TopologyTree))
 // because we automatically set the topology for each link type to be "tree".
 func WorkItemLinkTypes(n int, fns ...CustomizeWorkItemLinkTypeFunc) RecipeFunction {
 	return func(fxt *TestFixture) error {
@@ -344,7 +340,7 @@ func WorkItemLinkTypes(n int, fns ...CustomizeWorkItemLinkTypeFunc) RecipeFuncti
 	}
 }
 
-// CustomizeWorkItemCategoryFunc is directly compatible with
+// CustomizeWorkItemLinkCategoryFunc is directly compatible with
 // CustomizeEntityFunc but it can only be used for the
 // WorkItemLinkCategories() recipe-function.
 type CustomizeWorkItemLinkCategoryFunc CustomizeEntityFunc
@@ -372,7 +368,7 @@ func WorkItemLinkCategories(n int, fns ...CustomizeWorkItemLinkCategoryFunc) Rec
 	}
 }
 
-// CustomizeWorkItemLinkCllback is directly compatible with
+// CustomizeWorkItemLinkFunc is directly compatible with
 // CustomizeEntityFunc but it can only be used for the WorkItemLinks()
 // recipe-function.
 type CustomizeWorkItemLinkFunc CustomizeEntityFunc
