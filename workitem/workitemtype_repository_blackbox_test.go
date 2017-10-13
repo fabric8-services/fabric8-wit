@@ -53,7 +53,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreate() {
 		// different fields definition
 		fxt := tf.NewTestFixture(t, s.DB,
 			tf.WorkItemTypes(2,
-				tf.SetWorkItemTypeNames([]string{"foo_bar", "foo_bar"}),
+				tf.SetWorkItemTypeNames("foo_bar", "foo_bar"),
 				func(fxt *tf.TestFixture, idx int) error {
 					if idx == 1 {
 						fxt.WorkItemTypes[1].Fields = map[string]workitem.FieldDefinition{
@@ -114,7 +114,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreate() {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB,
 			tf.WorkItemTypes(2,
-				tf.SetWorkItemTypeNames([]string{"foo_bar", "foo_bar"}),
+				tf.SetWorkItemTypeNames("foo_bar", "foo_bar"),
 				func(fxt *tf.TestFixture, idx int) error {
 					switch idx {
 					case 0:
