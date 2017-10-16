@@ -1,0 +1,79 @@
+{
+  "data": {
+    "attributes": {
+      "system.created_at": "2017-10-16T10:21:46.273289Z",
+      "system.description": "= Updated Test WI description",
+      "system.description.markup": "PlainText",
+      "system.description.rendered": "= Updated Test WI description",
+      "system.number": 1,
+      "system.order": 1000,
+      "system.remote_item_id": null,
+      "system.state": "new",
+      "system.title": "Updated Test WI",
+      "system.updated_at": "2017-10-16T15:51:46.297796+05:30",
+      "version": 1
+    },
+    "id": "274913d9-9373-4200-af2f-b598add277d2",
+    "links": {
+      "related": "http:///api/workitems/274913d9-9373-4200-af2f-b598add277d2",
+      "self": "http:///api/workitems/274913d9-9373-4200-af2f-b598add277d2"
+    },
+    "relationships": {
+      "area": {},
+      "assignees": {},
+      "baseType": {
+        "data": {
+          "id": "245836f6-7443-4ead-b48d-bbf30324afdc",
+          "type": "workitemtypes"
+        },
+        "links": {
+          "self": "http:///api/spaces/a08d8a6e-d621-49a8-ac1d-4321dbc302e2/workitemtypes/245836f6-7443-4ead-b48d-bbf30324afdc"
+        }
+      },
+      "children": {
+        "links": {
+          "related": "http:///api/workitems/274913d9-9373-4200-af2f-b598add277d2/children"
+        },
+        "meta": {
+          "hasChildren": false
+        }
+      },
+      "comments": {
+        "links": {
+          "related": "http:///api/workitems/274913d9-9373-4200-af2f-b598add277d2/comments",
+          "self": "http:///api/workitems/274913d9-9373-4200-af2f-b598add277d2/relationships/comments"
+        }
+      },
+      "creator": {
+        "data": {
+          "id": "b21d9bce-7dc7-4509-a59f-2d53c23d9ce1",
+          "links": {
+            "related": "http:///api/users/b21d9bce-7dc7-4509-a59f-2d53c23d9ce1",
+            "self": "http:///api/users/b21d9bce-7dc7-4509-a59f-2d53c23d9ce1"
+          },
+          "type": "users"
+        }
+      },
+      "iteration": {},
+      "labels": {
+        "links": {
+          "related": "http:///api/workitems/274913d9-9373-4200-af2f-b598add277d2/labels"
+        }
+      },
+      "space": {
+        "data": {
+          "id": "a08d8a6e-d621-49a8-ac1d-4321dbc302e2",
+          "type": "spaces"
+        },
+        "links": {
+          "related": "http:///api/spaces/a08d8a6e-d621-49a8-ac1d-4321dbc302e2",
+          "self": "http:///api/spaces/a08d8a6e-d621-49a8-ac1d-4321dbc302e2"
+        }
+      }
+    },
+    "type": "workitems"
+  },
+  "links": {
+    "self": "http:///api/workitems/274913d9-9373-4200-af2f-b598add277d2"
+  }
+}
