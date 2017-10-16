@@ -9,12 +9,12 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/auth"
-	"github.com/fabric8-services/fabric8-wit/auth/authservice"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/token"
 
+	"github.com/fabric8-services/fabric8-wit/rest/proxy"
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 	"github.com/satori/go.uuid"
@@ -50,7 +50,7 @@ func NewUsersController(service *goa.Service, db application.DB, config UsersCon
 
 // Show runs the show action.
 func (c *UsersController) Show(ctx *app.ShowUsersContext) error {
-	return redirectWithParams(ctx, c.config, ctx.ResponseData.Header(), ctx.Params, authservice.ShowUsersPath(ctx.ID))
+	return proxy.RouteHTTP(ctx, c.config.GetAuthShortServiceHostName())
 }
 
 // CreateUserAsServiceAccount updates a user when requested using a service account token
@@ -288,13 +288,12 @@ func (c *UsersController) updateUserInDB(id *uuid.UUID, ctx *app.UpdateUserAsSer
 
 // Update updates the authorized user based on the provided Token
 func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
-	ctx.ResponseData.Header().Set("Location", fmt.Sprintf("%s%s", c.config.GetAuthServiceURL(), authservice.UpdateUsersPath()))
-	return ctx.TemporaryRedirect()
+	return proxy.RouteHTTP(ctx, c.config.GetAuthShortServiceHostName())
 }
 
 // List runs the list action.
 func (c *UsersController) List(ctx *app.ListUsersContext) error {
-	return redirectWithParams(ctx, c.config, ctx.ResponseData.Header(), ctx.Params, authservice.ListUsersPath())
+	return proxy.RouteHTTP(ctx, c.config.GetAuthShortServiceHostName())
 }
 
 // ConvertUsersSimple converts a array of simple Identity IDs into a Generic Reletionship List

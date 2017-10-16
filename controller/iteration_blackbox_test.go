@@ -166,7 +166,7 @@ func (rest *TestIterationREST) TestFailValidationIterationNameLength() {
 	err = ci.Validate()
 	// Validate payload function returns an error
 	assert.NotNil(rest.T(), err)
-	assert.Contains(rest.T(), err.Error(), "length of response.name must be less than or equal to than 62")
+	assert.Contains(rest.T(), err.Error(), "length of type.name must be less than or equal to 62")
 }
 
 func (rest *TestIterationREST) TestFailValidationIterationNameStartWith() {
@@ -180,7 +180,7 @@ func (rest *TestIterationREST) TestFailValidationIterationNameStartWith() {
 	err = ci.Validate()
 	// Validate payload function returns an error
 	assert.NotNil(rest.T(), err)
-	assert.Contains(rest.T(), err.Error(), "response.name must match the regexp")
+	assert.Contains(rest.T(), err.Error(), "type.name must match the regexp")
 }
 
 func (rest *TestIterationREST) TestShowIterationOK() {

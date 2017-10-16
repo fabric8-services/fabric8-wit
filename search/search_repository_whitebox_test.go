@@ -3,29 +3,29 @@ package search
 import (
 	"context"
 	"fmt"
-	"net/http"
-	"net/url"
+	"math"
 	"regexp"
 	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
-	"github.com/fabric8-services/fabric8-wit/models"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
-	"github.com/fabric8-services/fabric8-wit/space"
-	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
-	"github.com/goadesign/goa"
-	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
-	"github.com/pkg/errors"
-	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
+
+func init() {
+	// While registering URLs do not include protocol because it will be removed before scanning starts
+	// Please do not include trailing slashes because it will be removed before scanning starts
+	RegisterAsKnownURL("test-work-item-list-details", `(?P<domain>demo.openshift.io)(?P<path>/work-item/list/detail/)(?P<id>\d*)`)
+	RegisterAsKnownURL("test-work-item-board-details", `(?P<domain>demo.openshift.io)(?P<path>/work-item/board/detail/)(?P<id>\d*)`)
+}
 
 func TestRunSearchRepositoryWhiteboxTest(t *testing.T) {
 	resource.Require(t, resource.Database)
@@ -34,200 +34,289 @@ func TestRunSearchRepositoryWhiteboxTest(t *testing.T) {
 
 type searchRepositoryWhiteboxTest struct {
 	gormtestsupport.DBTestSuite
-	modifierID uuid.UUID
+	sr *GormSearchRepository
+}
+
+func (s *searchRepositoryWhiteboxTest) SetupSuite() {
+	s.DBTestSuite.SetupSuite()
+	s.sr = NewGormSearchRepository(s.DB)
 }
 
 func (s *searchRepositoryWhiteboxTest) SetupTest() {
 	s.DBTestSuite.SetupTest()
-	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "jdoe", "test")
-	require.Nil(s.T(), err)
-	s.modifierID = testIdentity.ID
 }
 
 type SearchTestDescriptor struct {
-	wi             workitem.WorkItem
+	fields         map[string]interface{}
 	searchString   string
 	minimumResults int
 }
 
-func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
-	wir := workitem.NewWorkItemRepository(s.DB)
+func (s *searchRepositoryWhiteboxTest) TestSearch() {
 
-	testDataSet := []SearchTestDescriptor{
-		{
-			wi: workitem.WorkItem{
-				Fields: map[string]interface{}{
-					workitem.SystemTitle:       "test sbose title '12345678asdfgh'",
-					workitem.SystemDescription: rendering.NewMarkupContentFromLegacy(`"description" for search test`),
-					workitem.SystemCreator:     "sbose78",
-					workitem.SystemAssignees:   []string{"pranav"},
-					workitem.SystemState:       "closed",
-				},
-			},
-			searchString:   `Sbose "deScription" '12345678asdfgh' `,
-			minimumResults: 1,
-		},
-		{
-			wi: workitem.WorkItem{
-				Fields: map[string]interface{}{
-					workitem.SystemTitle:       "add new error types in models/errors.go'",
-					workitem.SystemDescription: rendering.NewMarkupContentFromLegacy(`Make sure remoteworkitem can access..`),
-					workitem.SystemCreator:     "sbose78",
-					workitem.SystemAssignees:   []string{"pranav"},
-					workitem.SystemState:       "closed",
-				},
-			},
-			searchString:   `models/errors.go remoteworkitem `,
-			minimumResults: 1,
-		},
-		{
-			wi: workitem.WorkItem{
-				Fields: map[string]interface{}{
-					workitem.SystemTitle:       "test sbose title '12345678asdfgh'",
-					workitem.SystemDescription: rendering.NewMarkupContentFromLegacy(`"description" for search test`),
-					workitem.SystemCreator:     "sbose78",
-					workitem.SystemAssignees:   []string{"pranav"},
-					workitem.SystemState:       "closed",
-				},
-			},
-			searchString:   `Sbose "deScription" '12345678asdfgh' `,
-			minimumResults: 1,
-		},
-		{
-			wi: workitem.WorkItem{
-				// will test behaviour when null fields are present. In this case, "system.description" is nil
-				Fields: map[string]interface{}{
-					workitem.SystemTitle:     "test nofield sbose title '12345678asdfgh'",
-					workitem.SystemCreator:   "sbose78",
-					workitem.SystemAssignees: []string{"pranav"},
-					workitem.SystemState:     "closed",
-				},
-			},
-			searchString:   `sbose nofield `,
-			minimumResults: 1,
-		},
-		{
-			wi: workitem.WorkItem{
-				// will test behaviour when null fields are present. In this case, "system.description" is nil
-				Fields: map[string]interface{}{
-					workitem.SystemTitle:     "test should return 0 results'",
-					workitem.SystemCreator:   "sbose78",
-					workitem.SystemAssignees: []string{"pranav"},
-					workitem.SystemState:     "closed",
-				},
-			},
-			searchString:   `negative case `,
-			minimumResults: 0,
-		}, {
-			wi: workitem.WorkItem{
-				// search stirng with braces should be acceptable case
-				Fields: map[string]interface{}{
-					workitem.SystemTitle:     "Bug reported by administrator for input = (value)",
-					workitem.SystemCreator:   "pgore",
-					workitem.SystemAssignees: []string{"pranav"},
-					workitem.SystemState:     "new",
-				},
-			},
-			searchString:   `(value) `,
-			minimumResults: 1,
-		}, {
-			wi: workitem.WorkItem{
-				// search stirng with surrounding braces should be acceptable case
-				Fields: map[string]interface{}{
-					workitem.SystemTitle:     "trial for braces (pranav) {shoubhik} [aslak]",
-					workitem.SystemCreator:   "pgore",
-					workitem.SystemAssignees: []string{"pranav"},
-					workitem.SystemState:     "new",
-				},
-			},
-			searchString:   `(pranav) {shoubhik} [aslak] `,
-			minimumResults: 1,
-		},
-	}
+	var start, limit int = 0, 100
 
-	models.Transactional(s.DB, func(tx *gorm.DB) error {
+	s.T().Run("Search accross title and description", func(t *testing.T) {
 
-		for _, testData := range testDataSet {
-			workItem := testData.wi
-			searchString := testData.searchString
-			minimumResults := testData.minimumResults
-			workItemURLInSearchString := "http://demo.almighty.io/work-item/list/detail/"
-			req := &http.Request{Host: "localhost"}
-			params := url.Values{}
-			ctx := goa.NewContext(context.Background(), nil, req, params)
+		t.Run("match title and descrition", func(t *testing.T) {
+			// given
+			fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(10, func(fxt *tf.TestFixture, idx int) error {
+				if idx == 0 {
+					fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "test sbose title '12345678asdfgh'"
+					fxt.WorkItems[idx].Fields[workitem.SystemDescription] = rendering.NewMarkupContentFromLegacy(`"description" for search test`)
+				}
+				return nil
+			}))
+			// when
+			searchQuery := `Sbose "deScription" '12345678asdfgh'`
+			spaceID := fxt.Spaces[0].ID.String()
+			searchResults, _, err := s.sr.SearchFullText(context.Background(), searchQuery, &start, &limit, &spaceID)
+			// then
+			require.Nil(t, err)
+			verify(t, searchQuery, searchResults, 1)
+		})
 
-			createdWorkItem, err := wir.Create(ctx, space.SystemSpace, workitem.SystemBug, workItem.Fields, s.modifierID)
-			require.Nil(s.T(), err, "failed to create test data")
+		t.Run("match title with description undefined", func(t *testing.T) {
+			// given
+			fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(10, func(fxt *tf.TestFixture, idx int) error {
+				if idx == 0 {
+					fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "test nofield sbose title '12345678asdfgh'"
+				}
+				return nil
+			}))
+			// when
+			searchQuery := `sbose nofield`
+			spaceID := fxt.Spaces[0].ID.String()
+			searchResults, _, err := s.sr.SearchFullText(context.Background(), searchQuery, &start, &limit, &spaceID)
+			// then
+			require.Nil(t, err)
+			verify(t, searchQuery, searchResults, 1)
+		})
 
-			// create the URL and use it in the search string
-			workItemURLInSearchString = workItemURLInSearchString + strconv.Itoa(createdWorkItem.Number)
+		t.Run("match title with slash", func(t *testing.T) {
+			// given
+			fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(10, func(fxt *tf.TestFixture, idx int) error {
+				if idx == 0 {
+					fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "add new error types in models/errors.go'"
+					fxt.WorkItems[idx].Fields[workitem.SystemDescription] = rendering.NewMarkupContentFromLegacy(`Make sure remoteworkitem can access..`)
+				}
+				return nil
+			}))
+			// when
+			searchQuery := `models/errors.go remoteworkitem`
+			spaceID := fxt.Spaces[0].ID.String()
+			searchResults, _, err := s.sr.SearchFullText(context.Background(), searchQuery, &start, &limit, &spaceID)
+			// then
+			require.Nil(t, err)
+			verify(t, searchQuery, searchResults, 1)
+		})
 
-			// had to dynamically create this since I didn't now the URL/ID of the workitem
-			// till the test data was created.
-			searchString = searchString + workItemURLInSearchString
-			searchString = fmt.Sprintf("\"%s\"", searchString)
-			s.T().Log("using search string: " + searchString)
-			sr := NewGormSearchRepository(tx)
-			var start, limit int = 0, 100
-			workItemList, _, err := sr.SearchFullText(ctx, searchString, &start, &limit, nil)
-			require.Nil(s.T(), err, "failed to get search result")
-			searchString = strings.Trim(searchString, "\"")
-			// Since this test adds test data, whether or not other workitems exist
-			// there must be at least 1 search result returned.
-			if len(workItemList) == minimumResults && minimumResults == 0 {
-				// no point checking further, we got what we wanted.
-				continue
-			} else if len(workItemList) < minimumResults {
-				s.T().Fatalf("At least %d search result(s) was|were expected ", minimumResults)
-			}
+		t.Run("match title with braces", func(t *testing.T) {
+			// given
+			fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(10, func(fxt *tf.TestFixture, idx int) error {
+				if idx == 0 {
+					fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "Bug reported by administrator for input = (value)"
+				}
+				return nil
+			}))
+			// when
+			searchQuery := `(value)`
+			spaceID := fxt.Spaces[0].ID.String()
+			searchResults, _, err := s.sr.SearchFullText(context.Background(), searchQuery, &start, &limit, &spaceID)
+			// then
+			require.Nil(t, err)
+			verify(t, searchQuery, searchResults, 1)
 
-			// These keywords need a match in the textual part.
-			allKeywords := strings.Fields(searchString)
-			allKeywords = append(allKeywords, strconv.Itoa(createdWorkItem.Number))
-			//[]string{workItemURLInSearchString, createdWorkItem.ID, `"Sbose"`, `"deScription"`, `'12345678asdfgh'`}
+		})
 
-			// These keywords need a match optionally either as URL string or ID
-			optionalKeywords := []string{workItemURLInSearchString, strconv.Itoa(createdWorkItem.Number)}
+		t.Run("match title with braces and brackets", func(t *testing.T) {
+			// given
+			fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(10, func(fxt *tf.TestFixture, idx int) error {
+				if idx == 0 {
+					fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "trial for braces (pranav) {shoubhik} [aslak]"
+				}
+				return nil
+			}))
+			// when
+			searchQuery := `(pranav) {shoubhik} [aslak]`
+			spaceID := fxt.Spaces[0].ID.String()
+			searchResults, _, err := s.sr.SearchFullText(context.Background(), searchQuery, &start, &limit, &spaceID)
+			// then
+			require.Nil(t, err)
+			verify(t, searchQuery, searchResults, 1)
 
-			// We will now check the legitimacy of the search results.
-			// Iterate through all search results and see whether they meet the criteria
+		})
 
-			for _, workItemValue := range workItemList {
-				s.T().Log("Found search result  ", workItemValue.ID)
+		t.Run("no match", func(t *testing.T) {
+			// given
+			fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(10, func(fxt *tf.TestFixture, idx int) error {
+				if idx == 0 {
+					fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "test should return 0 results'"
+				}
+				return nil
+			}))
+			// when
+			searchQuery := `negative case`
+			spaceID := fxt.Spaces[0].ID.String()
+			searchResults, _, err := s.sr.SearchFullText(context.Background(), searchQuery, &start, &limit, &spaceID)
+			// then
+			require.Nil(t, err)
+			verify(t, searchQuery, searchResults, 0)
+		})
+	})
 
-				for _, keyWord := range allKeywords {
+	s.T().Run("Search by number", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(10))
+		spaceID := fxt.Spaces[0].ID.String()
 
-					workItemTitle := ""
-					if workItemValue.Fields[workitem.SystemTitle] != nil {
-						workItemTitle = strings.ToLower(workItemValue.Fields[workitem.SystemTitle].(string))
-					}
-					workItemDescription := ""
-					if workItemValue.Fields[workitem.SystemDescription] != nil {
-						descriptionField := workItemValue.Fields[workitem.SystemDescription].(rendering.MarkupContent)
-						workItemDescription = strings.ToLower(descriptionField.Content)
-					}
-					workItemNumber := 0
-					if workItemValue.Fields[workitem.SystemNumber] != nil {
-						workItemNumber = workItemValue.Fields[workitem.SystemNumber].(int)
-					}
-					keyWord = strings.ToLower(keyWord)
+		t.Run("and by space", func(t *testing.T) {
+			t.Run("single match", func(t *testing.T) {
+				// given
+				queryNumber := fxt.WorkItems[2].Number
+				// when looking for `number:3`
+				searchQuery := fmt.Sprintf("number:%d", queryNumber)
+				searchResults, _, err := s.sr.SearchFullText(context.Background(), searchQuery, &start, &limit, &spaceID)
+				// then there should be a single match
+				require.Nil(t, err)
+				require.Len(t, searchResults, 1)
+				assert.Equal(t, queryNumber, searchResults[0].Number)
+			})
 
-					if strings.Contains(workItemTitle, keyWord) || strings.Contains(workItemDescription, keyWord) {
-						// Check if the search keyword is present as text in the title/description
-						s.T().Logf("Found keyword %s in workitem %s", keyWord, workItemValue.ID)
-					} else if stringInSlice(keyWord, optionalKeywords) && strings.Contains(keyWord, strconv.Itoa(workItemValue.Number)) {
-						// If not present in title/description then it should be a URL or ID
-						s.T().Logf("Found keyword '%s' as number '%s' from the URL", keyWord, strconv.Itoa(workItemValue.Number))
-					} else {
-						s.T().Errorf("'%s' neither found in title '%s' nor in the description: '%s' for workitem number %d", keyWord, workItemTitle, workItemDescription, workItemNumber)
+			t.Run("multiple matches", func(t *testing.T) {
+				// given
+				queryNumber := fxt.WorkItems[0].Number
+				// when looking for `number:1`
+				searchQuery := fmt.Sprintf("number:%d", queryNumber)
+				searchResults, _, err := s.sr.SearchFullText(context.Background(), searchQuery, &start, &limit, &spaceID)
+				// then there should be 2 matches: `1` and `10`
+				require.Nil(t, err)
+				require.Len(t, searchResults, 2)
+				for _, searchResult := range searchResults {
+					// verifies that the number in the search result contains the query number
+					assert.Contains(t, strconv.Itoa(searchResult.Number), strconv.Itoa(queryNumber))
+				}
+			})
+			t.Run("not found", func(t *testing.T) {
+				// given
+				notExistingWINumber := 12345 // We only created one work item in that space, so that number should not exist
+				searchString := "number:" + strconv.Itoa(notExistingWINumber)
+				// when
+				workItemList, _, err := s.sr.SearchFullText(context.Background(), searchString, &start, &limit, &spaceID)
+				// then
+				require.Nil(t, err)
+				require.Len(t, workItemList, 0)
+			})
+		})
+		t.Run("not by space", func(t *testing.T) {
+			t.Run("single match", func(t *testing.T) {
+				// given
+				searchString := "number:" + strconv.Itoa(fxt.WorkItems[0].Number)
+				// when
+				workItemList, _, err := s.sr.SearchFullText(context.Background(), searchString, &start, &limit, nil)
+				// then
+				require.Nil(t, err)
+				require.True(t, len(workItemList) >= 1, "at least one work item should be found for the given work item number")
+				var found bool
+				for _, wi := range workItemList {
+					if wi.ID == fxt.WorkItems[0].ID {
+						found = true
 					}
 				}
-			}
-
-		}
-		return nil
-
+				require.True(t, found, "failed to found: %s", fxt.WorkItems[0].ID)
+			})
+			t.Run("not found", func(t *testing.T) {
+				// given
+				notExistingWINumber := math.MaxInt64 - 1 // That ID most likely does not exist at all
+				searchString := "number:" + strconv.Itoa(notExistingWINumber)
+				// when
+				workItemList, _, err := s.sr.SearchFullText(context.Background(), searchString, &start, &limit, nil)
+				// then
+				require.Nil(t, err)
+				require.Len(t, workItemList, 0)
+			})
+		})
 	})
+
+	s.T().Run("Search by URL - single match", func(t *testing.T) {
+		t.Run("single match", func(t *testing.T) {
+			// given
+			fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(10, func(fxt *tf.TestFixture, idx int) error {
+				if idx == 0 {
+					fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "test nofield sbose title '12345678asdfgh'"
+				}
+				return nil
+			}))
+			// when looking for `http://.../3` there should be a single match
+			queryNumber := fxt.WorkItems[2].Number
+			searchQuery := fmt.Sprintf("%s%d", "http://demo.openshift.io/work-item/list/detail/", queryNumber)
+			spaceID := fxt.Spaces[0].ID.String()
+			searchResults, _, err := s.sr.SearchFullText(context.Background(), searchQuery, &start, &limit, &spaceID)
+			// then
+			require.Nil(t, err)
+			require.Len(t, searchResults, 1)
+			assert.Equal(t, queryNumber, searchResults[0].Number)
+		})
+
+		t.Run("multiple matches", func(t *testing.T) {
+			// given
+			fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(10, func(fxt *tf.TestFixture, idx int) error {
+				if idx == 0 {
+					fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "test nofield sbose title '12345678asdfgh'"
+				}
+				return nil
+			}))
+			// when looking for `http://.../1` there should be a 2 matchs: `http://.../1` and `http://.../10``
+			queryNumber := fxt.WorkItems[0].Number
+			searchQuery := fmt.Sprintf("%s%d", "http://demo.openshift.io/work-item/list/detail/", queryNumber)
+			spaceID := fxt.Spaces[0].ID.String()
+			searchResults, _, err := s.sr.SearchFullText(context.Background(), searchQuery, &start, &limit, &spaceID)
+			// then
+			require.Nil(t, err)
+			require.Len(t, searchResults, 2)
+			for _, searchResult := range searchResults {
+				// verifies that the number in the search result contains the query number
+				assert.Contains(t, strconv.Itoa(searchResult.Number), strconv.Itoa(queryNumber))
+			}
+		})
+	})
+}
+
+// verify verifies that the search results match with the expected count and that the title or description contain all
+// the terms of the search query
+func verify(t *testing.T, searchQuery string, searchResults []workitem.WorkItem, expectedCount int) {
+	// Since this test adds test data, whether or not other workitems exist
+	// there must be at least 1 search result returned.
+	if len(searchResults) == expectedCount && expectedCount == 0 {
+		// no point checking further, we got what we wanted.
+		return
+	}
+	require.Equal(t, expectedCount, len(searchResults), "invalid number of results in the search")
+
+	// These keywords need a match in the textual part.
+	allKeywords := strings.Fields(searchQuery)
+	// These keywords need a match optionally either as URL string or ID		 +				keyWord = strings.ToLower(keyWord)
+	// optionalKeywords := []string{workItemURLInSearchString, strconv.Itoa(fxt.WorkItems[idx].Number)}
+	// We will now check the legitimacy of the search results.
+	// Iterate through all search results and see whether they meet the criteria
+	for _, searchResult := range searchResults {
+		t.Logf("Examining workitem id=`%v` number=`%d` using keywords %v", searchResult.ID, searchResult.Number, allKeywords)
+		for _, keyWord := range allKeywords {
+			keyWord = strings.ToLower(keyWord)
+			t.Logf("Verifying workitem id=`%v` number=`%d` for keyword `%s`...", searchResult.ID, searchResult.Number, keyWord)
+			workItemTitle := ""
+			if searchResult.Fields[workitem.SystemTitle] != nil {
+				workItemTitle = strings.ToLower(searchResult.Fields[workitem.SystemTitle].(string))
+			}
+			workItemDescription := ""
+			if searchResult.Fields[workitem.SystemDescription] != nil {
+				descriptionField := searchResult.Fields[workitem.SystemDescription].(rendering.MarkupContent)
+				workItemDescription = strings.ToLower(descriptionField.Content)
+			}
+			assert.True(t,
+				strings.Contains(workItemTitle, keyWord) || strings.Contains(workItemDescription, keyWord),
+				"`%s` neither found in title `%s` nor in the description `%s` for workitem #%d", keyWord, workItemTitle, workItemDescription, searchResult.Number)
+		}
+	}
 }
 
 func stringInSlice(str string, list []string) bool {
@@ -237,58 +326,6 @@ func stringInSlice(str string, list []string) bool {
 		}
 	}
 	return false
-}
-
-func (s *searchRepositoryWhiteboxTest) TestSearchByID() {
-
-	models.Transactional(s.DB, func(tx *gorm.DB) error {
-		req := &http.Request{Host: "localhost"}
-		params := url.Values{}
-		ctx := goa.NewContext(context.Background(), nil, req, params)
-
-		wir := workitem.NewWorkItemRepository(tx)
-
-		workItem := workitem.WorkItem{Fields: make(map[string]interface{})}
-
-		workItem.Fields = map[string]interface{}{
-			workitem.SystemTitle:       "Search Test Sbose",
-			workitem.SystemDescription: rendering.NewMarkupContentFromLegacy("Description"),
-			workitem.SystemCreator:     "sbose78",
-			workitem.SystemAssignees:   []string{"pranav"},
-			workitem.SystemState:       "closed",
-		}
-
-		createdWorkItem, err := wir.Create(ctx, space.SystemSpace, workitem.SystemBug, workItem.Fields, s.modifierID)
-		if err != nil {
-			s.T().Fatalf("Couldn't create test data: %+v", err)
-		}
-
-		// Create a new workitem to have the ID in it's title. This should not come
-		// up in search results
-
-		workItem.Fields[workitem.SystemTitle] = "Search test sbose " + createdWorkItem.ID.String()
-		_, err = wir.Create(ctx, space.SystemSpace, workitem.SystemBug, workItem.Fields, s.modifierID)
-		if err != nil {
-			s.T().Fatalf("Couldn't create test data: %+v", err)
-		}
-
-		sr := NewGormSearchRepository(tx)
-
-		var start, limit int = 0, 100
-		searchString := "number:" + strconv.Itoa(createdWorkItem.Number)
-		workItemList, _, err := sr.SearchFullText(ctx, searchString, &start, &limit, nil)
-		if err != nil {
-			s.T().Fatal("Error gettig search result ", err)
-		}
-
-		// ID is unique, hence search result set's length should be 1
-		assert.Equal(s.T(), len(workItemList), 1)
-		for _, workItemValue := range workItemList {
-			s.T().Log("Found search result for ID Search ", workItemValue.ID)
-			assert.Equal(s.T(), createdWorkItem.ID, workItemValue.ID)
-		}
-		return errors.WithStack(err)
-	})
 }
 
 func TestGenerateSQLSearchStringText(t *testing.T) {
@@ -339,22 +376,22 @@ func TestParseSearchStringURL(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	inputSet := []searchTestData{{
-		query: "http://demo.almighty.io/work-item/list/detail/100",
+		query: "http://demo.openshift.io/work-item/list/detail/100",
 		expected: searchKeyword{
 			number: nil,
-			words:  []string{"(100:* | demo.almighty.io/work-item/list/detail/100:*)"},
+			words:  []string{"(100:*A | demo.openshift.io/work-item/list/detail/100:*)"},
 		},
 	}, {
-		query: "http://demo.almighty.io/work-item/board/detail/100",
+		query: "http://demo.openshift.io/work-item/board/detail/100",
 		expected: searchKeyword{
 			number: nil,
-			words:  []string{"(100:* | demo.almighty.io/work-item/board/detail/100:*)"},
+			words:  []string{"(100:*A | demo.openshift.io/work-item/board/detail/100:*)"},
 		},
 	}}
 
 	for _, input := range inputSet {
 		op, _ := parseSearchString(context.Background(), input.query)
-		assert.True(t, assert.ObjectsAreEqualValues(input.expected, op))
+		assert.Equal(t, input.expected, op)
 	}
 }
 
@@ -362,16 +399,16 @@ func TestParseSearchStringURLWithouID(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	inputSet := []searchTestData{{
-		query: "http://demo.almighty.io/work-item/list/detail/",
+		query: "http://demo.openshift.io/work-item/list/detail/",
 		expected: searchKeyword{
 			number: nil,
-			words:  []string{"demo.almighty.io/work-item/list/detail:*"},
+			words:  []string{"demo.openshift.io/work-item/list/detail:*"},
 		},
 	}, {
-		query: "http://demo.almighty.io/work-item/board/detail/",
+		query: "http://demo.openshift.io/work-item/board/detail/",
 		expected: searchKeyword{
 			number: nil,
-			words:  []string{"demo.almighty.io/work-item/board/detail:*"},
+			words:  []string{"demo.openshift.io/work-item/board/detail:*"},
 		},
 	}}
 
@@ -399,11 +436,11 @@ func TestParseSearchStringCombination(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	// do combination of ID, full text and URLs
 	// check if it works as expected.
-	input := "http://general.url.io http://demo.almighty.io/work-item/list/detail/100 number:300 golang book and           number:900 \t \n unwanted"
+	input := "http://general.url.io http://demo.openshift.io/work-item/list/detail/100 number:300 golang book and           number:900 \t \n unwanted"
 	op, _ := parseSearchString(context.Background(), input)
 	expectedSearchRes := searchKeyword{
 		number: []string{"300:*A", "900:*A"},
-		words:  []string{"general.url.io:*", "(100:* | demo.almighty.io/work-item/list/detail/100:*)", "golang:*", "book:*", "and:*", "unwanted:*"},
+		words:  []string{"general.url.io:*", "(100:*A | demo.openshift.io/work-item/list/detail/100:*)", "golang:*", "book:*", "and:*", "unwanted:*"},
 	}
 	assert.True(t, assert.ObjectsAreEqualValues(expectedSearchRes, op))
 }
@@ -456,7 +493,7 @@ func TestGetSearchQueryFromURLPattern(t *testing.T) {
 	RegisterAsKnownURL(routeName, urlRegex)
 
 	searchQuery := getSearchQueryFromURLPattern(routeName, "google.me.io/everything/100")
-	assert.Equal(t, "(100:* | google.me.io/everything/100:*)", searchQuery)
+	assert.Equal(t, "(100:*A | google.me.io/everything/100:*)", searchQuery)
 
 	searchQuery = getSearchQueryFromURLPattern(routeName, "google.me.io/everything/")
 	assert.Equal(t, "google.me.io/everything/:*", searchQuery)
@@ -480,5 +517,5 @@ func TestGetSearchQueryFromURLString(t *testing.T) {
 	assert.Equal(t, "google.me.io/everything/:*", searchQuery)
 
 	searchQuery = getSearchQueryFromURLString("google.me.io/everything/100")
-	assert.Equal(t, "(100:* | google.me.io/everything/100:*)", searchQuery)
+	assert.Equal(t, "(100:*A | google.me.io/everything/100:*)", searchQuery)
 }

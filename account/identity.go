@@ -161,9 +161,9 @@ func (m *GormIdentityRepository) Create(ctx context.Context, model *Identity) er
 		}, "unable to create the identity")
 		return errs.WithStack(err)
 	}
-	log.Info(ctx, map[string]interface{}{
+	log.Debug(ctx, map[string]interface{}{
 		"identity_id": model.ID,
-	}, "Identity created!")
+	}, "Identity created")
 	return nil
 }
 
