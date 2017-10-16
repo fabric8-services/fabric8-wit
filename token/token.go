@@ -5,16 +5,16 @@ import (
 	"crypto/rsa"
 	"fmt"
 
+	"github.com/dgrijalva/jwt-go"
 	authclient "github.com/fabric8-services/fabric8-auth/token"
 	"github.com/fabric8-services/fabric8-wit/auth/authservice"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/login/tokencontext"
+	"github.com/satori/go.uuid"
 
-	"github.com/dgrijalva/jwt-go"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/pkg/errors"
-	"github.com/satori/go.uuid"
 )
 
 // tokenManagerConfiguration represents configuration needed to construct a token manager

@@ -145,7 +145,7 @@ func (rest *TestIterationREST) TestFailValidationIterationNameLength() {
 	err = ci.Validate()
 	// Validate payload function returns an error
 	assert.NotNil(rest.T(), err)
-	assert.Contains(rest.T(), err.Error(), "length of response.name must be less than or equal to than 62")
+	assert.Contains(rest.T(), err.Error(), "length of type.name must be less than or equal to 62")
 }
 
 func (rest *TestIterationREST) TestFailValidationIterationNameStartWith() {
@@ -159,7 +159,7 @@ func (rest *TestIterationREST) TestFailValidationIterationNameStartWith() {
 	err = ci.Validate()
 	// Validate payload function returns an error
 	assert.NotNil(rest.T(), err)
-	assert.Contains(rest.T(), err.Error(), "response.name must match the regexp")
+	assert.Contains(rest.T(), err.Error(), "type.name must match the regexp")
 }
 
 func (rest *TestIterationREST) TestFailCreateChildIterationMissingName() {
@@ -770,7 +770,7 @@ func assertChildIterationLinking(t *testing.T, target *app.Iteration) {
 func (rest *TestIterationREST) TestIterationDelete() {
 	rest.T().Run("forbidden - delete root iteration", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, rest.DB,
-			tf.Iterations(1, tf.SetIterationNames([]string{"root iteration"})))
+			tf.Iterations(1, tf.SetIterationNames("root iteration")))
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 		iterationToDelete := fxt.IterationByName("root iteration")
 		test.DeleteIterationForbidden(t, svc.Context, svc, ctrl, iterationToDelete.ID)
@@ -779,7 +779,7 @@ func (rest *TestIterationREST) TestIterationDelete() {
 	rest.T().Run("success - delete one iteration", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, rest.DB,
 			tf.Iterations(2,
-				tf.SetIterationNames([]string{"root iteration", "first iteration"}),
+				tf.SetIterationNames("root iteration", "first iteration"),
 				func(fxt *tf.TestFixture, idx int) error {
 					if idx == 1 {
 						fxt.Iterations[idx].MakeChildOf(*fxt.Iterations[0])
@@ -797,7 +797,7 @@ func (rest *TestIterationREST) TestIterationDelete() {
 	rest.T().Run("success - delete iteration subtree", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, rest.DB,
 			tf.Iterations(6,
-				tf.SetIterationNames([]string{"root", "child 1", "child 1.2", "child 1.2.3", "child 1.2.3.4", "child 2"}),
+				tf.SetIterationNames("root", "child 1", "child 1.2", "child 1.2.3", "child 1.2.3.4", "child 2"),
 				func(fxt *tf.TestFixture, idx int) error {
 					i := fxt.Iterations[idx]
 					switch idx {
@@ -842,7 +842,7 @@ func (rest *TestIterationREST) TestIterationDelete() {
 
 	rest.T().Run("forbidden - other user can not delete iteration", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, rest.DB,
-			tf.Identities(2, tf.SetIdentityUsernames([]string{"space owner", "other user"})),
+			tf.Identities(2, tf.SetIdentityUsernames("space owner", "other user")),
 			tf.Iterations(1))
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.IdentityByUsername("other user"))
 		test.DeleteIterationForbidden(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID)

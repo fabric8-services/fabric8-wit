@@ -34,7 +34,7 @@ func (s *workItemRevisionRepositoryBlackBoxTest) SetupTest() {
 func (s *workItemRevisionRepositoryBlackBoxTest) TestStoreRevisions() {
 	s.T().Run("ok", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1, tf.SetWorkItemTitles([]string{"Title"})), tf.Identities(3))
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1, tf.SetWorkItemTitles("Title")), tf.Identities(3))
 		wi := fxt.WorkItems[0]
 		// modify the workitem
 		wi.Fields[workitem.SystemTitle] = "Updated Title"

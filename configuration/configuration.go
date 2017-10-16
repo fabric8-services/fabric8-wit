@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 
 	"github.com/fabric8-services/fabric8-wit/rest"
@@ -50,6 +50,7 @@ const (
 	varHTTPAddress                  = "http.address"
 	varDeveloperModeEnabled         = "developer.mode.enabled"
 	varAuthDomainPrefix             = "auth.domain.prefix"
+	varAuthShortServiceHostName     = "auth.servicehostname.short"
 	varAuthURL                      = "auth.url"
 	varAuthorizationEnabled         = "authz.enabled"
 	varGithubAuthToken              = "github.auth.token"
@@ -488,6 +489,19 @@ func (c *ConfigurationData) GetAuthDomainPrefix() string {
 	return c.v.GetString(varAuthDomainPrefix)
 }
 
+// GetAuthShortServiceHostName returns the short Auth service host name
+// or the full Auth service URL if not set and Dev Mode enabled.
+// Otherwise returns the default host - http://auth
+func (c *ConfigurationData) GetAuthShortServiceHostName() string {
+	if c.v.IsSet(varAuthShortServiceHostName) {
+		return c.v.GetString(varAuthShortServiceHostName)
+	}
+	if c.IsPostgresDeveloperModeEnabled() {
+		return c.GetAuthServiceURL()
+	}
+	return defaultAuthShortServiceHostName
+}
+
 // GetAuthServiceURL returns the Auth Service URL
 func (c *ConfigurationData) GetAuthServiceURL() string {
 	return c.v.GetString(varAuthURL)
@@ -764,6 +778,8 @@ const (
 
 	// Auth service URL to be used in dev mode. Can be overridden by setting up auth.url
 	devModeAuthURL = "http://localhost:8089"
+
+	defaultAuthShortServiceHostName = "http://auth"
 
 	defaultKeycloakClientID = "fabric8-online-platform"
 	defaultKeycloakSecret   = "7a3d5a00-7f80-40cf-8781-b5b6f2dfd1bd"
