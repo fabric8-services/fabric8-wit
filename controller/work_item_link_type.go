@@ -293,6 +293,7 @@ func ConvertWorkItemLinkTypeFromModel(request *http.Request, modelLinkType link.
 	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(modelLinkType.SpaceID.String()))
 	linkCategoryRelatedURL := rest.AbsoluteURL(request, app.WorkItemLinkCategoryHref(modelLinkType.LinkCategoryID.String()))
 
+	topologyStr := modelLinkType.Topology.String()
 	var converted = app.WorkItemLinkTypeSingle{
 		Data: &app.WorkItemLinkTypeData{
 			Type: link.EndpointWorkItemLinkTypes,
@@ -305,7 +306,7 @@ func ConvertWorkItemLinkTypeFromModel(request *http.Request, modelLinkType link.
 				UpdatedAt:   &modelLinkType.UpdatedAt,
 				ForwardName: &modelLinkType.ForwardName,
 				ReverseName: &modelLinkType.ReverseName,
-				Topology:    &modelLinkType.Topology,
+				Topology:    &topologyStr,
 			},
 			Relationships: &app.WorkItemLinkTypeRelationships{
 				LinkCategory: &app.RelationWorkItemLinkCategory{
@@ -380,10 +381,10 @@ func ConvertWorkItemLinkTypeToModel(appLinkType app.WorkItemLinkTypeSingle) (*li
 		}
 
 		if attrs.Topology != nil {
-			if err := link.CheckValidTopology(*attrs.Topology); err != nil {
+			modelLinkType.Topology = link.Topology(*attrs.Topology)
+			if err := modelLinkType.Topology.CheckValid(); err != nil {
 				return nil, err
 			}
-			modelLinkType.Topology = *attrs.Topology
 		}
 	}
 

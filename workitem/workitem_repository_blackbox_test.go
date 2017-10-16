@@ -1,6 +1,8 @@
 package workitem_test
 
 import (
+	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -301,4 +303,47 @@ func (s *workItemRepoBlackBoxTest) TestLookupIDByNamedSpaceAndNumberStaleSpace()
 	assert.Equal(s.T(), wi2.ID, *wiID2)
 	require.NotNil(s.T(), spaceID2)
 	assert.Equal(s.T(), wi2.SpaceID, *spaceID2)
+}
+
+func (s *workItemRepoBlackBoxTest) TestConcurrentWorkItemCreations() {
+	// given
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment())
+	type Report struct {
+		id       int
+		total    int
+		failures int
+	}
+	routines := 10
+	itemsPerRoutine := 50
+	reports := make([]Report, routines)
+	// when running concurrent go routines simultaneously
+	var wg sync.WaitGroup
+	for i := 0; i < routines; i++ {
+		wg.Add(1)
+		// in each go rountine, run 10 creations
+		go func(routineID int) {
+			defer wg.Done()
+			report := Report{id: routineID}
+			for j := 0; j < itemsPerRoutine; j++ {
+				fields := map[string]interface{}{
+					workitem.SystemTitle: uuid.NewV4().String(),
+					workitem.SystemState: workitem.SystemStateNew,
+				}
+				if _, err := s.repo.Create(context.Background(), fxt.Spaces[0].ID, fxt.WorkItemTypes[0].ID, fields, fxt.Identities[0].ID); err != nil {
+					s.T().Logf("Creation failed: %s", err.Error())
+					report.failures++
+				}
+				report.total++
+			}
+			reports[routineID] = report
+		}(i)
+	}
+	wg.Wait()
+	// then
+	// wait for all items to be created
+	for _, report := range reports {
+		s.T().Logf("Routine #%d done: %d creations, including %d failure(s)\n", report.id, report.total, report.failures)
+		assert.Equal(s.T(), itemsPerRoutine, report.total)
+		assert.Equal(s.T(), 0, report.failures)
+	}
 }
