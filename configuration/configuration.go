@@ -9,12 +9,11 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
-	"github.com/pkg/errors"
-	"gopkg.in/yaml.v2"
-
 	"github.com/fabric8-services/fabric8-wit/rest"
+	errs "github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"gopkg.in/yaml.v2"
 )
 
 // String returns the current configuration as a string
@@ -125,7 +124,7 @@ func NewConfigurationData(configFilePath string) (*ConfigurationData, error) {
 		c.v.SetConfigFile(configFilePath)
 		err := c.v.ReadInConfig() // Find and read the config file
 		if err != nil {           // Handle errors reading the config file
-			return nil, errors.Errorf("Fatal error config file: %s \n", err)
+			return nil, errs.Errorf("Fatal error config file: %s \n", err)
 		}
 	}
 	return &c, nil

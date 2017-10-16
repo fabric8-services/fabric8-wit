@@ -1,9 +1,13 @@
 package workitem_test
 
 import (
+	"context"
+	"fmt"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/fabric8-services/fabric8-wit/codebase"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
@@ -179,6 +183,65 @@ func (s *workItemRepoBlackBoxTest) TestCreate() {
 		require.NotNil(t, err)
 	})
 
+	s.T().Run("field types", func(t *testing.T) {
+		vals := workitem.GetFieldTypeTestData(t)
+		// Get keys from the map above
+		kinds := []workitem.Kind{}
+		for k := range vals {
+			kinds = append(kinds, k)
+		}
+		fieldName := "fieldundertest"
+		// Create a work item type for each kind
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.WorkItemTypes(len(kinds), func(fxt *tf.TestFixture, idx int) error {
+				fxt.WorkItemTypes[idx].Name = kinds[idx].String()
+				fxt.WorkItemTypes[idx].Fields = map[string]workitem.FieldDefinition{
+					fieldName: {
+						Required:    true,
+						Label:       kinds[idx].String(),
+						Description: fmt.Sprintf("This field is used for testing values for the field kind '%s'", kinds[idx]),
+						Type: workitem.SimpleType{
+							Kind: kinds[idx],
+						},
+					},
+				}
+				return nil
+			}),
+		)
+		// when
+		for kind, iv := range vals {
+			witID := fxt.WorkItemTypeByName(kind.String()).ID
+			t.Run(kind.String(), func(t *testing.T) {
+				// Handle cases where the conversion is supposed to work
+				t.Run("legal", func(t *testing.T) {
+					for _, expected := range iv.Valid {
+						t.Run(spew.Sdump(expected), func(t *testing.T) {
+							wi, err := s.repo.Create(s.Ctx, fxt.Spaces[0].ID, witID, map[string]interface{}{fieldName: expected}, fxt.Identities[0].ID)
+							assert.Nil(t, err, "expected no error when assigning this value to a '%s' field during work item creation: %#v", kind, spew.Sdump(expected))
+							loadedWi, err := s.repo.LoadByID(s.Ctx, wi.ID)
+							require.Nil(t, err)
+							// compensate for errors when interpreting ambigous actual values
+							actual := loadedWi.Fields[fieldName]
+							if iv.Compensate != nil {
+								actual = iv.Compensate(actual)
+							}
+							require.Equal(t, expected, actual, "expected no error when loading and comparing the workitem with a '%s': %#v", kind, spew.Sdump(expected))
+						})
+					}
+				})
+				t.Run("illegal", func(t *testing.T) {
+					// Handle cases where the conversion is supposed to NOT work
+					for _, expected := range iv.Invalid {
+						t.Run(spew.Sdump(expected), func(t *testing.T) {
+							_, err := s.repo.Create(s.Ctx, fxt.Spaces[0].ID, witID, map[string]interface{}{fieldName: expected}, fxt.Identities[0].ID)
+							assert.NotNil(t, err, "expected an error when assigning this value to a '%s' field during work item creation: %#v", kind, spew.Sdump(expected))
+						})
+					}
+				})
+			})
+		}
+	})
+
 }
 
 func (s *workItemRepoBlackBoxTest) TestCheckExists() {
@@ -301,4 +364,47 @@ func (s *workItemRepoBlackBoxTest) TestLookupIDByNamedSpaceAndNumberStaleSpace()
 	assert.Equal(s.T(), wi2.ID, *wiID2)
 	require.NotNil(s.T(), spaceID2)
 	assert.Equal(s.T(), wi2.SpaceID, *spaceID2)
+}
+
+func (s *workItemRepoBlackBoxTest) TestConcurrentWorkItemCreations() {
+	// given
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment())
+	type Report struct {
+		id       int
+		total    int
+		failures int
+	}
+	routines := 10
+	itemsPerRoutine := 50
+	reports := make([]Report, routines)
+	// when running concurrent go routines simultaneously
+	var wg sync.WaitGroup
+	for i := 0; i < routines; i++ {
+		wg.Add(1)
+		// in each go rountine, run 10 creations
+		go func(routineID int) {
+			defer wg.Done()
+			report := Report{id: routineID}
+			for j := 0; j < itemsPerRoutine; j++ {
+				fields := map[string]interface{}{
+					workitem.SystemTitle: uuid.NewV4().String(),
+					workitem.SystemState: workitem.SystemStateNew,
+				}
+				if _, err := s.repo.Create(context.Background(), fxt.Spaces[0].ID, fxt.WorkItemTypes[0].ID, fields, fxt.Identities[0].ID); err != nil {
+					s.T().Logf("Creation failed: %s", err.Error())
+					report.failures++
+				}
+				report.total++
+			}
+			reports[routineID] = report
+		}(i)
+	}
+	wg.Wait()
+	// then
+	// wait for all items to be created
+	for _, report := range reports {
+		s.T().Logf("Routine #%d done: %d creations, including %d failure(s)\n", report.id, report.total, report.failures)
+		assert.Equal(s.T(), itemsPerRoutine, report.total)
+		assert.Equal(s.T(), 0, report.failures)
+	}
 }
