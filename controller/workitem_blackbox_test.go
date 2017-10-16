@@ -12,6 +12,7 @@ import (
 
 	"context"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
@@ -256,6 +257,82 @@ func (s *WorkItemSuite) TestCreateWI() {
 		assert.Equal(t, fxt.Iterations[0].ID.String(), *created.Data.Relationships.Iteration.Data.ID)
 		require.NotNil(t, created.Data.Relationships.Area)
 		assert.Equal(t, fxt.Areas[0].ID.String(), *created.Data.Relationships.Area.Data.ID)
+	})
+
+	s.T().Run("field types", func(t *testing.T) {
+		vals := workitem.GetFieldTypeTestData(t)
+		// Get keys from the map above
+		kinds := []workitem.Kind{}
+		for k := range vals {
+			kinds = append(kinds, k)
+		}
+		fieldName := "fieldundertest"
+		// Create a work item type for each kind
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.CreateWorkItemEnvironment(),
+			tf.WorkItemTypes(len(kinds), func(fxt *tf.TestFixture, idx int) error {
+				fxt.WorkItemTypes[idx].Name = kinds[idx].String()
+				// Add one field that is used for testing
+				fxt.WorkItemTypes[idx].Fields[fieldName] = workitem.FieldDefinition{
+					Required:    true,
+					Label:       kinds[idx].String(),
+					Description: fmt.Sprintf("This field is used for testing values for the field kind '%s'", kinds[idx]),
+					Type: workitem.SimpleType{
+						Kind: kinds[idx],
+					},
+				}
+				return nil
+			}),
+		)
+		svc := testsupport.ServiceAsUser("TestUpdateWI-Service", *fxt.Identities[0])
+		workitemsCtrl := NewWorkitemsController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+		workitemCtrl := NewWorkitemController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+		_ = workitemCtrl
+
+		// when
+		for kind, iv := range vals {
+			witID := fxt.WorkItemTypeByName(kind.String()).ID
+			t.Run(kind.String(), func(t *testing.T) {
+				// Handle cases where the conversion is supposed to work
+				t.Run("legal", func(t *testing.T) {
+					for _, expected := range iv.Valid {
+						t.Run(spew.Sdump(expected), func(t *testing.T) {
+							payload := minimumRequiredCreateWithTypeAndSpace(witID, fxt.Spaces[0].ID)
+							payload.Data.Attributes[workitem.SystemTitle] = testsupport.CreateRandomValidTestName("Test WI")
+							payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+							payload.Data.Attributes[fieldName] = expected
+							_, created := test.CreateWorkitemsCreated(t, s.svc.Context, svc, workitemsCtrl, fxt.Spaces[0].ID, &payload)
+							_ = created
+							require.NotNil(t, created)
+							require.NotNil(t, created.Data)
+							require.NotNil(t, created.Data.ID)
+
+							_, loadedWi := test.ShowWorkitemOK(t, s.svc.Context, svc, workitemCtrl, *created.Data.ID, nil, nil)
+							require.NotNil(t, loadedWi)
+							// // compensate for errors when interpreting ambigous actual values
+							actual := loadedWi.Data.Attributes[fieldName]
+							if iv.Compensate != nil {
+								actual = iv.Compensate(actual)
+							}
+							require.Equal(t, expected, actual, "expected no error when loading and comparing the workitem with a '%s': %#v", kind, spew.Sdump(expected))
+						})
+					}
+				})
+				t.Run("illegal", func(t *testing.T) {
+					// Handle cases where the conversion is supposed to NOT work
+					for _, expected := range iv.Invalid {
+						t.Run(spew.Sdump(expected), func(t *testing.T) {
+							payload := minimumRequiredCreateWithTypeAndSpace(witID, fxt.Spaces[0].ID)
+							payload.Data.Attributes[workitem.SystemTitle] = testsupport.CreateRandomValidTestName("Test WI")
+							payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+							payload.Data.Attributes[fieldName] = expected
+							_, jerrs := test.CreateWorkitemsBadRequest(t, s.svc.Context, svc, workitemsCtrl, fxt.Spaces[0].ID, &payload)
+							require.NotNil(t, jerrs, "expected an error when assigning this value to a '%s' field during work item creation: %#v", kind, spew.Sdump(expected))
+						})
+					}
+				})
+			})
+		}
 	})
 }
 
