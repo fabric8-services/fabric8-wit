@@ -22,6 +22,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	notificationsupport "github.com/fabric8-services/fabric8-wit/test/notification"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/goadesign/goa"
 	"github.com/pkg/errors"
@@ -37,7 +38,7 @@ type TestCommentREST struct {
 	clean        func()
 	testIdentity account.Identity
 	ctx          context.Context
-	notification testsupport.NotificationChannel
+	notification notificationsupport.FakeNotificationChannel
 }
 
 func TestRunCommentREST(t *testing.T) {
@@ -54,7 +55,7 @@ func (rest *TestCommentREST) SetupTest() {
 	req := &http.Request{Host: "localhost"}
 	params := url.Values{}
 	rest.ctx = goa.NewContext(context.Background(), nil, req, params)
-	rest.notification = testsupport.NotificationChannel{}
+	rest.notification = notificationsupport.FakeNotificationChannel{}
 }
 
 func (rest *TestCommentREST) TearDownTest() {
