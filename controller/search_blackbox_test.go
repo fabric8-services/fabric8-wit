@@ -942,9 +942,6 @@ func (s *searchBlackBoxTest) TestFilterAssigneeNullAfterWIUpdate() {
 							{"assignee":null}`,
 	)
 	_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
-	require.NotEmpty(s.T(), result.Data)
-	assert.Len(s.T(), result.Data, 1)
-	assert.Nil(s.T(), result.Data[0].Attributes[workitem.SystemAssignees])
 	compareWithGoldenUUIDAgnostic(s.T(), filepath.Join(s.testDir, "show", "filter_assignee_null_create_work_item.golden.json"), result)
 	wi := result.Data[0]
 	workitemCtrl := NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
@@ -964,17 +961,9 @@ func (s *searchBlackBoxTest) TestFilterAssigneeNullAfterWIUpdate() {
 	payload2.Data.ID = wi.ID
 	payload2.Data.Attributes = wi.Attributes
 	_, updated := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, workitemCtrl, *wi.ID, &payload2)
-	assert.NotNil(s.T(), updated.Data.Attributes[workitem.SystemCreatedAt])
-	assert.Equal(s.T(), (wi.Attributes["version"].(int) + 1), updated.Data.Attributes["version"])
-	assert.Equal(s.T(), *wi.ID, *updated.Data.ID)
-	assert.Equal(s.T(), wi.Attributes[workitem.SystemTitle], updated.Data.Attributes[workitem.SystemTitle])
-	assert.Nil(s.T(), wi.Attributes[workitem.SystemAssignees])
-	assert.Equal(s.T(), updatedDescription, updated.Data.Attributes[workitem.SystemDescription])
 	compareWithGoldenUUIDAgnostic(s.T(), filepath.Join(s.testDir, "show", "filter_assignee_null_update_work_item.golden.json"), updated)
 
 	_, result = test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
-	require.NotEmpty(s.T(), result.Data)
-	assert.Len(s.T(), result.Data, 1)
 	compareWithGoldenUUIDAgnostic(s.T(), filepath.Join(s.testDir, "show", "filter_assignee_null_show_after_update_work_item.golden.json"), updated)
 }
 
@@ -986,9 +975,6 @@ func (s *searchBlackBoxTest) TestFilterLabelNullAfterWIUpdate() {
 							{"label":null}`,
 	)
 	_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
-	require.NotEmpty(s.T(), result.Data)
-	assert.Len(s.T(), result.Data, 1)
-	assert.Nil(s.T(), result.Data[0].Attributes[workitem.SystemLabels])
 	compareWithGoldenUUIDAgnostic(s.T(), filepath.Join(s.testDir, "show", "filter_label_null_create_work_item.golden.json"), result)
 	wi := result.Data[0]
 	workitemCtrl := NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
@@ -1008,16 +994,8 @@ func (s *searchBlackBoxTest) TestFilterLabelNullAfterWIUpdate() {
 	payload2.Data.ID = wi.ID
 	payload2.Data.Attributes = wi.Attributes
 	_, updated := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, workitemCtrl, *wi.ID, &payload2)
-	assert.NotNil(s.T(), updated.Data.Attributes[workitem.SystemCreatedAt])
-	assert.Equal(s.T(), (wi.Attributes["version"].(int) + 1), updated.Data.Attributes["version"])
-	assert.Equal(s.T(), *wi.ID, *updated.Data.ID)
-	assert.Equal(s.T(), wi.Attributes[workitem.SystemTitle], updated.Data.Attributes[workitem.SystemTitle])
-	assert.Nil(s.T(), wi.Attributes[workitem.SystemLabels])
-	assert.Equal(s.T(), updatedDescription, updated.Data.Attributes[workitem.SystemDescription])
 	compareWithGoldenUUIDAgnostic(s.T(), filepath.Join(s.testDir, "show", "filter_label_null_update_work_item.golden.json"), updated)
 
 	_, result = test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
-	require.NotEmpty(s.T(), result.Data)
-	assert.Len(s.T(), result.Data, 1)
 	compareWithGoldenUUIDAgnostic(s.T(), filepath.Join(s.testDir, "show", "filter_label_null_show_after_update_work_item.golden.json"), updated)
 }
