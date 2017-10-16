@@ -80,7 +80,7 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 			tf.Identities(1),
 			tf.Areas(1),
 			tf.Iterations(2,
-				tf.SetIterationNames([]string{"root iteration", "child iteration"}),
+				tf.SetIterationNames("root iteration", "child iteration"),
 				tf.PlaceIterationUnderRootIteration()))
 		name := "Sprint #21"
 		childItr := fxt.IterationByName("child iteration")
@@ -101,7 +101,7 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 
 	rest.T().Run("forbidden - only space owener can create child iteration", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, rest.DB,
-			tf.Identities(2, tf.SetIdentityUsernames([]string{"space owner", "other user"})),
+			tf.Identities(2, tf.SetIdentityUsernames("space owner", "other user")),
 			tf.Areas(1), tf.Iterations(1))
 		name := "Sprint #21"
 		ci := getChildIterationPayload(&name)
