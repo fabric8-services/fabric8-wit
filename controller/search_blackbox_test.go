@@ -980,6 +980,9 @@ func (s *searchBlackBoxTest) TestFilterAssigneeNullAfterWIUpdate() {
 }
 
 func (s *searchBlackBoxTest) TestFilterLabelNullAfterWIUpdate() {
+	resetFn := s.DisableGormCallbacks()
+	defer resetFn()
+
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
 	spaceInstance := fxt.Spaces[0]
 	spaceIDStr := spaceInstance.ID.String()
