@@ -38,7 +38,7 @@ var _ = a.Resource("search", func() {
 			a.Param("filter[expression]", d.String, "Filter expression in JSON format", func() {
 				a.Example(`{$AND: [{"space": "f73988a2-1916-4572-910b-2df23df4dcc3"}, {"state": "NEW"}]}`)
 			})
-			a.Param("spaceID", d.String, "The optional space ID of the space to be searched in")
+			a.Param("spaceID", d.String, "The optional space ID of the space to be searched in, if the filter[expression] query parameter is not provided")
 		})
 		a.Response(d.OK, func() {
 			a.Media(searchWorkItemList)
@@ -68,20 +68,7 @@ var _ = a.Resource("search", func() {
 			a.GET("users"),
 		)
 		a.Description("Search by fullname")
-		a.Params(func() {
-			a.Param("q", d.String)
-			a.Param("page[offset]", d.String, "Paging start position") // #428
-			a.Param("page[limit]", d.Integer, "Paging size")
-			a.Required("q")
-		})
-		a.Response(d.OK, func() {
-			a.Media(userList)
-		})
-
-		a.Response(d.BadRequest, func() {
-			a.Media(d.ErrorMedia)
-		})
-
-		a.Response(d.InternalServerError)
+		a.Response(d.OK)
+		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 })

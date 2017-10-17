@@ -12,7 +12,7 @@ import (
 	goaclient "github.com/goadesign/goa/client"
 	goauuid "github.com/goadesign/goa/uuid"
 	errs "github.com/pkg/errors"
-	uuid "github.com/satori/go.uuid"
+	"github.com/satori/go.uuid"
 )
 
 // ResourceManager represents a space resource manager
@@ -28,7 +28,8 @@ type AuthzResourceManager struct {
 
 // AuthServiceConfiguration represents auth service configuration
 type AuthServiceConfiguration interface {
-	GetAuthEndpointSpaces(*http.Request) (string, error)
+	GetAuthServiceURL() string
+	GetAuthShortServiceHostName() string
 	IsAuthorizationEnabled() bool
 }
 
@@ -51,7 +52,7 @@ func (m *AuthzResourceManager) CreateSpace(ctx context.Context, request *http.Re
 		}}, nil
 	}
 
-	c, err := m.createClient(ctx, request)
+	c, err := CreateClient(ctx, m.configuration)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +106,7 @@ func (m *AuthzResourceManager) DeleteSpace(ctx context.Context, request *http.Re
 		}, "Authorization is disabled. Keycloak space resource won't be deleted")
 		return nil
 	}
-	c, err := m.createClient(ctx, request)
+	c, err := CreateClient(ctx, m.configuration)
 	if err != nil {
 		return err
 	}
@@ -138,13 +139,8 @@ func (m *AuthzResourceManager) DeleteSpace(ctx context.Context, request *http.Re
 	return nil
 }
 
-func (m *AuthzResourceManager) createClient(ctx context.Context, request *http.Request) (*authservice.Client, error) {
-	authSpacesEndpoint, err := m.configuration.GetAuthEndpointSpaces(request)
-	if err != nil {
-		return nil, err
-	}
-
-	u, err := url.Parse(authSpacesEndpoint)
+func CreateClient(ctx context.Context, config AuthServiceConfiguration) (*authservice.Client, error) {
+	u, err := url.Parse(config.GetAuthServiceURL())
 	if err != nil {
 		return nil, err
 	}

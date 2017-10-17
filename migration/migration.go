@@ -350,7 +350,13 @@ func GetMigrations() Migrations {
 	m = append(m, steps{ExecuteSQLFile("075-label-unique-name.sql")})
 
 	// Version 76
-	m = append(m, steps{ExecuteSQLFile("076-tracker-to-use-uuid.sql")})
+	m = append(m, steps{ExecuteSQLFile("076-drop-space-resources-and-oauth-state.sql")})
+
+	// Version 77
+	m = append(m, steps{ExecuteSQLFile("077-index-work-item-links.sql")})
+
+	// Version 78
+	m = append(m, steps{ExecuteSQLFile("078-tracker-to-use-uuid.sql")})
 
 	// Version N
 	//

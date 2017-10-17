@@ -5,8 +5,8 @@
       "description": "Description for 'person'",
       "fields": {
         "name": {
-          "description": "",
-          "label": "",
+          "description": "Description for Name field",
+          "label": "Name",
           "required": true,
           "type": {
             "kind": "string"

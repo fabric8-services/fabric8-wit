@@ -11,6 +11,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
+	numbersequence "github.com/fabric8-services/fabric8-wit/workitem/number_sequence"
 
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -93,12 +94,16 @@ type Repository interface {
 
 // NewRepository creates a new space repo
 func NewRepository(db *gorm.DB) *GormRepository {
-	return &GormRepository{db}
+	return &GormRepository{
+		db:   db,
+		winr: numbersequence.NewWorkItemNumberSequenceRepository(db),
+	}
 }
 
 // GormRepository implements SpaceRepository using gorm
 type GormRepository struct {
-	db *gorm.DB
+	db   *gorm.DB
+	winr numbersequence.WorkItemNumberSequenceRepository
 }
 
 // Load returns the space for the given id
@@ -225,10 +230,9 @@ func (r *GormRepository) Create(ctx context.Context, space *Space) (*Space, erro
 		}
 		return nil, errors.NewInternalError(ctx, err)
 	}
-
-	log.Info(ctx, map[string]interface{}{
+	log.Debug(ctx, map[string]interface{}{
 		"space_id": space.ID,
-	}, "Space created successfully")
+	}, "Space created")
 	return space, nil
 }
 
@@ -258,6 +262,8 @@ func (r *GormRepository) listSpaceFromDB(ctx context.Context, q *string, userID 
 		db = db.Where("spaces.owner_id=?", userID)
 	}
 
+	// ensure that the result list is always ordered in the same manner
+	db = db.Order("spaces.updated_at DESC")
 	rows, err := db.Rows()
 	if err != nil {
 		return nil, 0, errs.WithStack(err)

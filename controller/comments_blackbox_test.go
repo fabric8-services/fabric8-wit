@@ -26,6 +26,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/space/authz"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	notificationsupport "github.com/fabric8-services/fabric8-wit/test/notification"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
@@ -47,7 +48,7 @@ type CommentsSuite struct {
 	db            *gormapplication.GormDB
 	testIdentity  account.Identity
 	testIdentity2 account.Identity
-	notification  testsupport.NotificationChannel
+	notification  notificationsupport.FakeNotificationChannel
 }
 
 func (s *CommentsSuite) SetupTest() {
@@ -59,7 +60,7 @@ func (s *CommentsSuite) SetupTest() {
 	testIdentity2, err := testsupport.CreateTestIdentity(s.DB, "CommentsSuite user2", "test provider")
 	require.Nil(s.T(), err)
 	s.testIdentity2 = *testIdentity2
-	s.notification = testsupport.NotificationChannel{}
+	s.notification = notificationsupport.FakeNotificationChannel{}
 }
 
 var (
