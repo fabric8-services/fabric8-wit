@@ -52,11 +52,11 @@
     },
     {
       "attributes": {
-        "description": "Filter by workitemstate",
-        "key": "workitemstate",
-        "query": "filter[workitemstate]={id}",
-        "title": "Workitem state",
-        "type": "workitemstate"
+        "description": "Filter by state",
+        "key": "state",
+        "query": "filter[state]={id}",
+        "title": "State",
+        "type": "state"
       },
       "type": "filters"
     },
