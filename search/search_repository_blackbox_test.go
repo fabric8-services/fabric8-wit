@@ -74,8 +74,10 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			fxt := s.getTestFixture()
 			// when
 			spaceID := fxt.Spaces[0].ID.String()
-			query := "TestRestrictByType"
-			res, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
+			searchKeywords := search.Keywords{
+				Words: []string{"TestRestrictByType"},
+			}
+			res, count, err := s.searchRepo.SearchFullText(context.Background(), searchKeywords, nil, nil, &spaceID)
 			// then
 			assert.Nil(t, err)
 			assert.Equal(t, uint64(2), count)
@@ -86,8 +88,11 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			fxt := s.getTestFixture()
 			// when
 			spaceID := fxt.Spaces[0].ID.String()
-			query := "TRBTgorxi type:" + fxt.WorkItemTypeByName("base").ID.String()
-			_, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
+			searchKeywords := search.Keywords{
+				Words:         []string{"TRBTgorxi"},
+				WorkItemTypes: []uuid.UUID{fxt.WorkItemTypeByName("base").ID},
+			}
+			_, count, err := s.searchRepo.SearchFullText(context.Background(), searchKeywords, nil, nil, &spaceID)
 			// then
 			require.Nil(t, err)
 			assert.Equal(t, uint64(0), count)
@@ -101,8 +106,11 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			fxt := s.getTestFixture()
 			// when
 			spaceID := fxt.Spaces[0].ID.String()
-			query := "TestRestrictByType type:" + fxt.WorkItemTypeByName("sub1").ID.String()
-			res, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
+			searchKeywords := search.Keywords{
+				Words:         []string{"TestRestrictByType"},
+				WorkItemTypes: []uuid.UUID{fxt.WorkItemTypeByName("sub1").ID},
+			}
+			res, count, err := s.searchRepo.SearchFullText(context.Background(), searchKeywords, nil, nil, &spaceID)
 			// then
 			require.Nil(t, err)
 			require.Equal(t, uint64(1), count)
@@ -114,8 +122,11 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			fxt := s.getTestFixture()
 			// when
 			spaceID := fxt.Spaces[0].ID.String()
-			query := "TestRestrictByType type:" + fxt.WorkItemTypeByName("sub2").ID.String()
-			res, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
+			searchKeywords := search.Keywords{
+				Words:         []string{"TestRestrictByType"},
+				WorkItemTypes: []uuid.UUID{fxt.WorkItemTypeByName("sub2").ID},
+			}
+			res, count, err := s.searchRepo.SearchFullText(context.Background(), searchKeywords, nil, nil, &spaceID)
 			// then
 			require.Nil(t, err)
 			require.Equal(t, uint64(1), count)
@@ -127,8 +138,11 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			fxt := s.getTestFixture()
 			// when
 			spaceID := fxt.Spaces[0].ID.String()
-			query := "TestRestrictByType type:" + fxt.WorkItemTypeByName("base").ID.String()
-			res, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
+			searchKeywords := search.Keywords{
+				Words:         []string{"TestRestrictByType"},
+				WorkItemTypes: []uuid.UUID{fxt.WorkItemTypeByName("base").ID},
+			}
+			res, count, err := s.searchRepo.SearchFullText(context.Background(), searchKeywords, nil, nil, &spaceID)
 			// then
 			require.Nil(t, err)
 			require.Equal(t, uint64(2), count)
@@ -140,8 +154,11 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			fxt := s.getTestFixture()
 			// when
 			spaceID := fxt.Spaces[0].ID.String()
-			query := "TestRestrictByType type:" + fxt.WorkItemTypeByName("sub2").ID.String() + " type:" + fxt.WorkItemTypeByName("sub1").ID.String()
-			res, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
+			searchKeywords := search.Keywords{
+				Words:         []string{"TestRestrictByType"},
+				WorkItemTypes: []uuid.UUID{fxt.WorkItemTypeByName("sub1").ID, fxt.WorkItemTypeByName("sub2").ID},
+			}
+			res, count, err := s.searchRepo.SearchFullText(context.Background(), searchKeywords, nil, nil, &spaceID)
 			// then
 			require.Nil(t, err)
 			assert.Equal(t, uint64(2), count)
@@ -153,8 +170,11 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			fxt := s.getTestFixture()
 			// when
 			spaceID := fxt.Spaces[0].ID.String()
-			query := "TestRestrictByType type:" + fxt.WorkItemTypeByName("base").ID.String() + " type:" + fxt.WorkItemTypeByName("sub1").ID.String()
-			res, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
+			searchKeywords := search.Keywords{
+				Words:         []string{"TestRestrictByType"},
+				WorkItemTypes: []uuid.UUID{fxt.WorkItemTypeByName("base").ID, fxt.WorkItemTypeByName("sub1").ID},
+			}
+			res, count, err := s.searchRepo.SearchFullText(context.Background(), searchKeywords, nil, nil, &spaceID)
 			// then
 			require.Nil(t, err)
 			assert.Equal(t, uint64(2), count)
