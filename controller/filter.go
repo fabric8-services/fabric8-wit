@@ -30,13 +30,13 @@ func NewFilterController(service *goa.Service, config FilterControllerConfigurat
 }
 
 const (
-	filterKeyAssignee      = "assignee"
-	filterKeyCreator       = "creator"
-	filterKeyArea          = "area"
-	filterKeyIteration     = "iteration"
-	filterKeyWorkItemType  = "workitemtype"
-	filterKeyWorkItemState = "workitemstate"
-	filterKeyLabel         = "label"
+	filterKeyAssignee     = "assignee"
+	filterKeyCreator      = "creator"
+	filterKeyArea         = "area"
+	filterKeyIteration    = "iteration"
+	filterKeyWorkItemType = "workitemtype"
+	filterKeyState        = "state"
+	filterKeyLabel        = "label"
 )
 
 // List runs the list action.
@@ -95,11 +95,11 @@ func (c *FilterController) List(ctx *app.ListFilterContext) error {
 		},
 		&app.Filters{
 			Attributes: &app.FilterAttributes{
-				Title:       "Workitem state",
-				Query:       fmt.Sprintf("filter[%s]={id}", filterKeyWorkItemState),
-				Key:         filterKeyWorkItemState,
-				Description: "Filter by workitemstate",
-				Type:        "workitemstate",
+				Title:       "State",
+				Query:       fmt.Sprintf("filter[%s]={id}", filterKeyState),
+				Key:         filterKeyState,
+				Description: "Filter by state",
+				Type:        "state",
 			},
 			Type: "filters",
 		},
