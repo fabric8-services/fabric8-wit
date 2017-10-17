@@ -843,14 +843,15 @@ func (s *searchParentExistsSuite) TestSearchWorkItemListFilterUsingParentExists(
 		// given
 		pe := false
 		// when
-		sid := space.SystemSpace.String()
 		filter := fmt.Sprintf(`
 			{"$AND": [
-				{"type":"%s"}
+				{"space":"%[1]s"},
+				{"type":"%[2]s"}
 			]}`,
+			s.userSpaceID.String(),
 			workitem.SystemBug)
 
-		_, result := test.ShowSearchOK(t, nil, nil, s.searchCtrl, &filter, &pe, nil, nil, nil, &sid)
+		_, result := test.ShowSearchOK(t, nil, nil, s.searchCtrl, &filter, &pe, nil, nil, nil, nil)
 		// then
 		assert.Len(t, result.Data, 1)
 		checkChildrenRelationship(t, lookupWorkitemFromSearchList(t, *result, *s.bug1.Data.ID), hasChildren)
@@ -863,8 +864,10 @@ func (s *searchParentExistsSuite) TestSearchWorkItemListFilterUsingParentExists(
 		sid := space.SystemSpace.String()
 		filter := fmt.Sprintf(`
 			{"$AND": [
-				{"type":"%s"}
+				{"space":"%[1]s"},
+				{"type":"%[2]s"}
 			]}`,
+			s.userSpaceID.String(),
 			workitem.SystemBug)
 
 		_, result := test.ShowSearchOK(t, nil, nil, s.searchCtrl, &filter, &pe, nil, nil, nil, &sid)

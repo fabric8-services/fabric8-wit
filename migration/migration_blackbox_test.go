@@ -131,7 +131,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration74", testMigration74)
 	t.Run("TestMigration75", testMigration75)
 	t.Run("TestMigration76", testMigration76)
-	t.Run("TestMigration77", testMigration77)
+	t.Run("TestMigration78", testMigration78)
 
 	// Perform the migration
 	if err := migration.Migrate(sqlDB, databaseName); err != nil {
@@ -562,8 +562,8 @@ func testMigration76(t *testing.T) {
 	assert.False(t, dialect.HasTable("oauth_state_references"))
 }
 
-func testMigration77(t *testing.T) {
-	migrateToVersion(sqlDB, migrations[:78], 78)
+func testMigration78(t *testing.T) {
+	migrateToVersion(sqlDB, migrations[:79], 79)
 	count := -1
 	gormDB.Table("work_items").Where(`Fields->>'system.labels'='[]'`).Count(&count)
 	assert.Equal(t, 0, count)
