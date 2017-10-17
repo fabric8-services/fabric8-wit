@@ -229,8 +229,8 @@ func (rest *TestTrackerREST) TestUpdateTracker() {
 	_, updated := test.UpdateTrackerOK(t, svc.Context, svc, ctrl, tr.Data.ID.String(), &payload2)
 	assert.NotNil(rest.T(), updated)
 	assert.Equal(rest.T(), result.Data.ID, updated.Data.ID)
-	assert.Equal(rest.T(), result.Data.URL, updated.Data.URL)
-	assert.Equal(rest.T(), result.Data.Type, updated.Data.Type)
+	assert.Equal(rest.T(), result.Data.Attributes.URL, updated.Data.Attributes.URL)
+	assert.Equal(rest.T(), result.Data.Attributes.Type, updated.Data.Attributes.Type)
 }
 
 // This test ensures that List does not return NIL items.
