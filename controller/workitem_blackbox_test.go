@@ -32,6 +32,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/search"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	notificationsupport "github.com/fabric8-services/fabric8-wit/test/notification"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/test/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
@@ -942,12 +943,12 @@ type WorkItem2Suite struct {
 	svc            *goa.Service
 	wi             *app.WorkItem
 	minimumPayload *app.UpdateWorkitemPayload
-	notification   testsupport.NotificationChannel
+	notification   notificationsupport.FakeNotificationChannel
 }
 
 func (s *WorkItem2Suite) SetupTest() {
 	s.DBTestSuite.SetupTest()
-	s.notification = testsupport.NotificationChannel{}
+	s.notification = notificationsupport.FakeNotificationChannel{}
 	// create identity
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "WorkItem2Suite setup user", "test provider")
 	require.Nil(s.T(), err)
