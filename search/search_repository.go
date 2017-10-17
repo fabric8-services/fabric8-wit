@@ -341,6 +341,7 @@ var searchKeyMap = map[string]string{
 	"area":         workitem.SystemArea,
 	"iteration":    workitem.SystemIteration,
 	"assignee":     workitem.SystemAssignees,
+	"creator":      workitem.SystemCreator,
 	"label":        workitem.SystemLabels,
 	"state":        workitem.SystemState,
 	"type":         "Type",
