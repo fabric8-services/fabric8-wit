@@ -9,6 +9,7 @@ import (
 
 	config "github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/label"
+	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/application"
@@ -129,11 +130,11 @@ func (a *app) WorkItemTypes() workitem.WorkItemTypeRepository {
 	return nil
 }
 
-func (a *app) Trackers() application.TrackerRepository {
+func (a *app) Trackers() remoteworkitem.TrackerRepository {
 	return nil
 }
 
-func (a *app) TrackerQueries() application.TrackerQueryRepository {
+func (a *app) TrackerQueries() remoteworkitem.TrackerQueryRepository {
 	return nil
 }
 

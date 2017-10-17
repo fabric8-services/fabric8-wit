@@ -41,7 +41,7 @@ func (test *TestTrackerItemRepository) TestUpload() {
 	i := TrackerItemContent{Content: []byte("some text"), ID: "https://github.com/golang/go/issues/124"}
 
 	// create
-	err := upload(test.DB, int(tr.ID), i)
+	err := upload(test.DB, tr.ID, i)
 	if err != nil {
 		t.Error("Create error:", err)
 	}
@@ -56,7 +56,7 @@ func (test *TestTrackerItemRepository) TestUpload() {
 
 	i = TrackerItemContent{Content: []byte("some text 2"), ID: "https://github.com/golang/go/issues/124"}
 	// update
-	err = upload(test.DB, int(tr.ID), i)
+	err = upload(test.DB, tr.ID, i)
 	if err != nil {
 		t.Error("Update error:", err)
 	}

@@ -6,6 +6,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/auth"
 	"github.com/fabric8-services/fabric8-wit/codebase"
 	"github.com/fabric8-services/fabric8-wit/label"
+	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 
 	"github.com/fabric8-services/fabric8-wit/comment"
 	"github.com/fabric8-services/fabric8-wit/iteration"
@@ -18,8 +19,8 @@ import (
 type Application interface {
 	WorkItems() workitem.WorkItemRepository
 	WorkItemTypes() workitem.WorkItemTypeRepository
-	Trackers() TrackerRepository
-	TrackerQueries() TrackerQueryRepository
+	Trackers() remoteworkitem.TrackerRepository
+	TrackerQueries() remoteworkitem.TrackerQueryRepository
 	SearchItems() SearchRepository
 	Identities() account.IdentityRepository
 	WorkItemLinkCategories() link.WorkItemLinkCategoryRepository

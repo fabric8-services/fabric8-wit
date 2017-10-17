@@ -28,29 +28,29 @@ func NewTrackerQueryRepository(db *gorm.DB) *GormTrackerQueryRepository {
 	return &GormTrackerQueryRepository{db}
 }
 
+// TrackerQueryRepository encapsulate storage & retrieval of tracker queries
+type TrackerQueryRepository interface {
+	repository.Exister
+	Create(ctx context.Context, query string, schedule string, tracker uuid.UUID, spaceID uuid.UUID) (*app.TrackerQuery, error)
+	Save(ctx context.Context, tq app.TrackerQuery) (*app.TrackerQuery, error)
+	Load(ctx context.Context, ID string) (*app.TrackerQuery, error)
+	Delete(ctx context.Context, ID string) error
+	List(ctx context.Context) ([]*app.TrackerQuery, error)
+}
+
 // Create creates a new tracker query in the repository
 // returns BadParameterError, ConversionError or InternalError
-func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, schedule string, tracker string, spaceID uuid.UUID) (*app.TrackerQuery, error) {
-	tid, err := strconv.ParseUint(tracker, 10, 64)
-	if err != nil || tid == 0 {
-		// treating this as a not found error: the fact that we're using number internal is implementation detail
-		return nil, NotFoundError{"tracker", tracker}
-	}
-
-	log.Info(ctx, map[string]interface{}{
-		"tracker_id": tid,
-	}, "Tracker ID to be created")
-
+func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, schedule string, tracker uuid.UUID, spaceID uuid.UUID) (*app.TrackerQuery, error) {
 	tq := TrackerQuery{
 		Query:     query,
 		Schedule:  schedule,
-		TrackerID: tid,
+		TrackerID: tracker,
 		SpaceID:   spaceID,
 	}
 	tx := r.db
 	if err := tx.Create(&tq).Error; err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"tracker_id":    tid,
+			"tracker_id":    tracker.String(),
 			"tracker_query": query,
 		}, "unable to create the tracker query")
 		return nil, InternalError{simpleError{err.Error()}}
@@ -68,7 +68,7 @@ func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, s
 	}
 
 	log.Info(ctx, map[string]interface{}{
-		"tracker_id":    tid,
+		"tracker_id":    tracker.String(),
 		"tracker_query": tq,
 	}, "Created tracker query")
 
@@ -101,7 +101,7 @@ func (r *GormTrackerQueryRepository) Load(ctx context.Context, ID string) (*app.
 		ID:        strconv.FormatUint(res.ID, 10),
 		Query:     res.Query,
 		Schedule:  res.Schedule,
-		TrackerID: strconv.FormatUint(res.TrackerID, 10),
+		TrackerID: res.TrackerID,
 		Relationships: &app.TrackerQueryRelationships{
 			Space: app.NewSpaceRelation(res.SpaceID, spaceSelfURL),
 		},
@@ -124,12 +124,6 @@ func (r *GormTrackerQueryRepository) Save(ctx context.Context, tq app.TrackerQue
 		return nil, NotFoundError{entity: "trackerquery", ID: tq.ID}
 	}
 
-	tid, err := strconv.ParseUint(tq.TrackerID, 10, 64)
-	if err != nil || tid == 0 {
-		// treating this as a not found error: the fact that we're using number internal is implementation detail
-		return nil, NotFoundError{"tracker", tq.TrackerID}
-	}
-
 	log.Info(ctx, map[string]interface{}{
 		"tracker_id": id,
 	}, "looking tracker query")
@@ -146,12 +140,12 @@ func (r *GormTrackerQueryRepository) Save(ctx context.Context, tq app.TrackerQue
 		return nil, InternalError{simpleError{fmt.Sprintf("could not load tracker query: %s", tx.Error.Error())}}
 	}
 
-	tx = r.db.First(&Tracker{}, tid)
+	tx = r.db.First(&Tracker{}, tq.TrackerID)
 	if tx.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
 			"tracker_id": id,
 		}, "tracker ID not found")
-		return nil, NotFoundError{entity: "tracker", ID: tq.TrackerID}
+		return nil, NotFoundError{entity: "tracker", ID: tq.TrackerID.String()}
 	}
 	if tx.Error != nil {
 		return nil, InternalError{simpleError{fmt.Sprintf("could not load tracker: %s", tx.Error.Error())}}
@@ -161,14 +155,14 @@ func (r *GormTrackerQueryRepository) Save(ctx context.Context, tq app.TrackerQue
 		ID:        id,
 		Schedule:  tq.Schedule,
 		Query:     tq.Query,
-		TrackerID: tid,
+		TrackerID: tq.TrackerID,
 		SpaceID:   *tq.Relationships.Space.Data.ID,
 	}
 
 	if err := tx.Save(&newTq).Error; err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"tracker_query": tq.Query,
-			"tracker_id":    tid,
+			"tracker_id":    tq.TrackerID,
 			"err":           err,
 		}, "unable to save the tracker query")
 		return nil, InternalError{simpleError{err.Error()}}
@@ -227,7 +221,7 @@ func (r *GormTrackerQueryRepository) List(ctx context.Context) ([]*app.TrackerQu
 			ID:        strconv.FormatUint(tq.ID, 10),
 			Schedule:  tq.Schedule,
 			Query:     tq.Query,
-			TrackerID: strconv.FormatUint(tq.TrackerID, 10),
+			TrackerID: tq.TrackerID,
 			Relationships: &app.TrackerQueryRelationships{
 				Space: app.NewSpaceRelation(tq.SpaceID, spaceSelfURL),
 			},

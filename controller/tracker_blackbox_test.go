@@ -13,6 +13,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/goadesign/goa"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -25,11 +26,9 @@ import (
 
 type TestTrackerREST struct {
 	gormtestsupport.DBTestSuite
-
 	RwiScheduler *remoteworkitem.Scheduler
-
-	db    *gormapplication.GormDB
-	clean func()
+	db           *gormapplication.GormDB
+	clean        func()
 }
 
 func TestRunTrackerREST(t *testing.T) {
@@ -183,52 +182,55 @@ func (rest *TestTrackerREST) TestCreateTracker() {
 	resource.Require(t, resource.Database)
 
 	svc, ctrl := rest.SecuredController()
-	payload := app.CreateTrackerAlternatePayload{
-		URL:  "http://issues.jboss.com",
-		Type: "jira",
+	payload := app.CreateTrackerPayload{
+		Data: &app.Tracker{
+			Attributes: &app.TrackerAttributes{
+				URL:  "http://issues.jboss.com",
+				Type: "jira",
+			},
+			Type: remoteworkitem.APIStringTypeTrackers,
+		},
 	}
 
 	_, created := test.CreateTrackerCreated(t, svc.Context, svc, ctrl, &payload)
-	if created.ID == "" {
-		t.Error("no id")
-	}
+	assert.NotNil(rest.T(), created)
 }
 
-func (rest *TestTrackerREST) TestGetTracker() {
+func (rest *TestTrackerREST) TestUpdateTracker() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
 	svc, ctrl := rest.SecuredController()
-	payload := app.CreateTrackerAlternatePayload{
-		URL:  "http://issues.jboss.com",
-		Type: "jira",
+	payload := app.CreateTrackerPayload{
+		Data: &app.Tracker{
+			Attributes: &app.TrackerAttributes{
+				URL:  "http://issues.jboss.com",
+				Type: "jira",
+			},
+			Type: remoteworkitem.APIStringTypeTrackers,
+		},
 	}
 
 	_, result := test.CreateTrackerCreated(t, svc.Context, svc, ctrl, &payload)
-	test.ShowTrackerOK(t, svc.Context, svc, ctrl, result.ID)
-	_, tr := test.ShowTrackerOK(t, svc.Context, svc, ctrl, result.ID)
-	if tr == nil {
-		t.Fatalf("Tracker '%s' not present", result.ID)
-	}
-	if tr.ID != result.ID {
-		t.Errorf("Id should be %s, but is %s", result.ID, tr.ID)
-	}
+	_, tr := test.ShowTrackerOK(t, svc.Context, svc, ctrl, result.Data.ID.String())
+	assert.NotNil(rest.T(), tr)
+	assert.Equal(rest.T(), result.Data.ID, tr.Data.ID)
 
-	payload2 := app.UpdateTrackerAlternatePayload{
-		URL:  tr.URL,
-		Type: tr.Type,
+	payload2 := app.UpdateTrackerPayload{
+		Data: &app.Tracker{
+			ID: result.Data.ID,
+			Attributes: &app.TrackerAttributes{
+				URL:  "http://issues.jboss.com",
+				Type: "jira",
+			},
+			Type: remoteworkitem.APIStringTypeTrackers,
+		},
 	}
-	_, updated := test.UpdateTrackerOK(t, svc.Context, svc, ctrl, tr.ID, &payload2)
-	if updated.ID != result.ID {
-		t.Errorf("Id has changed from %s to %s", result.ID, updated.ID)
-	}
-	if updated.URL != result.URL {
-		t.Errorf("URL has changed from %s to %s", result.URL, updated.URL)
-	}
-	if updated.Type != result.Type {
-		t.Errorf("Type has changed has from %s to %s", result.Type, updated.Type)
-	}
-
+	_, updated := test.UpdateTrackerOK(t, svc.Context, svc, ctrl, tr.Data.ID.String(), &payload2)
+	assert.NotNil(rest.T(), updated)
+	assert.Equal(rest.T(), result.Data.ID, updated.Data.ID)
+	assert.Equal(rest.T(), result.Data.URL, updated.Data.URL)
+	assert.Equal(rest.T(), result.Data.Type, updated.Data.Type)
 }
 
 // This test ensures that List does not return NIL items.
@@ -238,9 +240,14 @@ func (rest *TestTrackerREST) TestTrackerListItemsNotNil() {
 	resource.Require(t, resource.Database)
 
 	svc, ctrl := rest.SecuredController()
-	payload := app.CreateTrackerAlternatePayload{
-		URL:  "http://issues.jboss.com",
-		Type: "jira",
+	payload := app.CreateTrackerPayload{
+		Data: &app.Tracker{
+			Attributes: &app.TrackerAttributes{
+				URL:  "http://issues.jboss.com",
+				Type: "jira",
+			},
+			Type: remoteworkitem.APIStringTypeTrackers,
+		},
 	}
 	test.CreateTrackerCreated(t, svc.Context, svc, ctrl, &payload)
 
@@ -248,7 +255,7 @@ func (rest *TestTrackerREST) TestTrackerListItemsNotNil() {
 
 	_, list := test.ListTrackerOK(t, svc.Context, svc, ctrl, nil, nil)
 
-	for _, tracker := range list {
+	for _, tracker := range list.Data {
 		if tracker == nil {
 			t.Error("Returned Tracker found nil")
 		}
@@ -262,14 +269,17 @@ func (rest *TestTrackerREST) TestCreateTrackerValidId() {
 	resource.Require(t, resource.Database)
 
 	svc, ctrl := rest.SecuredController()
-	payload := app.CreateTrackerAlternatePayload{
-		URL:  "http://issues.jboss.com",
-		Type: "jira",
+	payload := app.CreateTrackerPayload{
+		Data: &app.Tracker{
+			Attributes: &app.TrackerAttributes{
+				URL:  "http://issues.jboss.com",
+				Type: "jira",
+			},
+			Type: remoteworkitem.APIStringTypeTrackers,
+		},
 	}
 	_, tracker := test.CreateTrackerCreated(t, svc.Context, svc, ctrl, &payload)
-
-	_, created := test.ShowTrackerOK(t, svc.Context, svc, ctrl, tracker.ID)
-	if created != nil && created.ID != tracker.ID {
-		t.Error("Failed because fetched Tracker not same as requested. Found: ", tracker.ID, " Expected, ", created.ID)
-	}
+	_, created := test.ShowTrackerOK(t, svc.Context, svc, ctrl, tracker.Data.ID.String())
+	require.NotNil(t, created.Data)
+	require.Equal(t, *tracker.Data.ID, *created.Data.ID)
 }

@@ -1,27 +1,37 @@
 package remoteworkitem
 
 import (
-	"strconv"
-
-	"fmt"
+	"time"
 
 	"context"
 
-	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application/repository"
-	"github.com/fabric8-services/fabric8-wit/criteria"
+	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/log"
-	"github.com/fabric8-services/fabric8-wit/workitem"
+	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
-	"github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 	govalidator "gopkg.in/asaskevich/govalidator.v4"
 )
+
+// APIStringTypeTracker helps to avoid string literal
+const APIStringTypeTrackers = "trackers"
 
 const trackersTableName = "trackers"
 
 // GormTrackerRepository implements TrackerRepository using gorm
 type GormTrackerRepository struct {
 	db *gorm.DB
+}
+
+// TrackerRepository encapsulate storage & retrieval of tracker configuration
+type TrackerRepository interface {
+	repository.Exister
+	Load(ctx context.Context, ID uuid.UUID) (*Tracker, error)
+	Save(ctx context.Context, t *Tracker) (*Tracker, error)
+	Delete(ctx context.Context, ID uuid.UUID) error
+	Create(ctx context.Context, t *Tracker) error
+	List(ctx context.Context) ([]Tracker, error)
 }
 
 // NewTrackerRepository constructs a TrackerRepository
@@ -31,68 +41,49 @@ func NewTrackerRepository(db *gorm.DB) *GormTrackerRepository {
 
 // Create creates a new tracker configuration in the repository
 // returns BadParameterError, ConversionError or InternalError
-func (r *GormTrackerRepository) Create(ctx context.Context, url string, typeID string) (*app.Tracker, error) {
+func (r *GormTrackerRepository) Create(ctx context.Context, t *Tracker) error {
 	//URL Validation
-	isValid := govalidator.IsURL(url)
+	isValid := govalidator.IsURL(t.URL)
 	if isValid != true {
-		return nil, BadParameterError{parameter: "url", value: url}
+		return BadParameterError{parameter: "url", value: t.URL}
 	}
 
-	_, present := RemoteWorkItemImplRegistry[typeID]
+	_, present := RemoteWorkItemImplRegistry[t.Type]
 	// Ensure we support this remote tracker.
 	if present != true {
-		return nil, BadParameterError{parameter: "type", value: typeID}
+		return BadParameterError{parameter: "type", value: t.Type}
 	}
-	t := Tracker{
-		URL:  url,
-		Type: typeID}
-	tx := r.db
-	if err := tx.Create(&t).Error; err != nil {
-		return nil, InternalError{simpleError{err.Error()}}
+	if err := r.db.Create(&t).Error; err != nil {
+		return InternalError{simpleError{err.Error()}}
 	}
 	log.Info(ctx, map[string]interface{}{
 		"tracker": t,
 	}, "Tracker reposity created")
 
-	t2 := app.Tracker{
-		ID:   strconv.FormatUint(t.ID, 10),
-		URL:  url,
-		Type: typeID}
-
-	return &t2, nil
+	return nil
 }
 
 // Load returns the tracker configuration for the given id
 // returns NotFoundError, ConversionError or InternalError
-func (r *GormTrackerRepository) Load(ctx context.Context, ID string) (*app.Tracker, error) {
-	id, err := strconv.ParseUint(ID, 10, 64)
-	if err != nil || id == 0 {
-		// treating this as a not found error: the fact that we're using number internal is implementation detail
-		return nil, NotFoundError{"tracker", ID}
-	}
-
-	log.Info(ctx, map[string]interface{}{
-		"tracker_id": id,
-	}, "Loading tracker repository...")
+func (r *GormTrackerRepository) Load(ctx context.Context, ID uuid.UUID) (*Tracker, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "tracker", "load"}, time.Now())
 
 	res := Tracker{}
-	tx := r.db.First(&res, id)
+	tx := r.db.Where("id = ?", ID).Find(&res)
 	if tx.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
 			"tracker_id": ID,
 		}, "tracker repository not found")
-
-		return nil, NotFoundError{"tracker", ID}
+		return nil, errors.NewNotFoundError("tracker", ID.String())
 	}
 	if tx.Error != nil {
-		return nil, InternalError{simpleError{fmt.Sprintf("error while loading: %s", tx.Error.Error())}}
+		log.Error(ctx, map[string]interface{}{
+			"err":        tx.Error,
+			"tracker_id": ID,
+		}, "unable to load the tracker by ID")
+		return nil, errors.NewInternalError(ctx, tx.Error)
 	}
-	t := app.Tracker{
-		ID:   strconv.FormatUint(res.ID, 10),
-		URL:  res.URL,
-		Type: res.Type}
-
-	return &t, nil
+	return &res, nil
 }
 
 // CheckExists returns nil if the given ID exists otherwise returns an error
@@ -101,107 +92,67 @@ func (r *GormTrackerRepository) CheckExists(ctx context.Context, id string) erro
 }
 
 // List returns tracker selected by the given criteria.Expression, starting with start (zero-based) and returning at most limit items
-func (r *GormTrackerRepository) List(ctx context.Context, criteria criteria.Expression, start *int, limit *int) ([]*app.Tracker, error) {
-	where, parameters, err := workitem.Compile(criteria)
-	if err != nil {
-		return nil, BadParameterError{"expression", criteria}
+func (r *GormTrackerRepository) List(ctx context.Context) ([]Tracker, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "tracker", "query"}, time.Now())
+	var objs []Tracker
+	err := r.db.Find(&objs).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, err
 	}
-
-	log.Info(ctx, map[string]interface{}{
-		"query": where,
-	}, "Executing tracker repository query...")
-
-	var rows []Tracker
-	db := r.db.Where(where, parameters...)
-	if start != nil {
-		db = db.Offset(*start)
-	}
-	if limit != nil {
-		db = db.Limit(*limit)
-	}
-	if err := db.Find(&rows).Error; err != nil {
-		return nil, errors.WithStack(err)
-	}
-	result := make([]*app.Tracker, len(rows))
-
-	for i, tracker := range rows {
-		t := app.Tracker{
-			ID:   strconv.FormatUint(tracker.ID, 10),
-			URL:  tracker.URL,
-			Type: tracker.Type}
-		result[i] = &t
-	}
-	return result, nil
+	return objs, nil
 }
 
 // Save updates the given tracker in storage.
 // returns NotFoundError, ConversionError or InternalError
-func (r *GormTrackerRepository) Save(ctx context.Context, t app.Tracker) (*app.Tracker, error) {
+func (r *GormTrackerRepository) Save(ctx context.Context, t *Tracker) (*Tracker, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "tracker", "save"}, time.Now())
 	res := Tracker{}
-	id, err := strconv.ParseUint(t.ID, 10, 64)
-	if err != nil || id == 0 {
-		return nil, NotFoundError{entity: "tracker", ID: t.ID}
-	}
-
-	log.Info(ctx, map[string]interface{}{
-		"tracker_id": id,
-	}, "Looking for a tracker repository with id ", id)
-
-	tx := r.db.First(&res, id)
+	tx := r.db.Where("id = ?", t.ID).Find(&res)
 	if tx.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
-			"tracker_id": id,
+			"tracker_id": t.ID,
 		}, "tracker repository not found")
-
-		return nil, NotFoundError{entity: "tracker", ID: t.ID}
+		return nil, errors.NewNotFoundError("tracker", t.ID.String())
 	}
 	_, present := RemoteWorkItemImplRegistry[t.Type]
 	// Ensure we support this remote tracker.
 	if present != true {
-		return nil, BadParameterError{parameter: "type", value: t.Type}
+		return nil, errors.NewBadParameterError("type", t.Type)
 	}
 
-	newT := Tracker{
-		ID:   id,
-		URL:  t.URL,
-		Type: t.Type}
-
-	if err := tx.Save(&newT).Error; err != nil {
+	if err := tx.Save(&t).Error; err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"tracker_id": newT.ID,
+			"tracker_id": t.ID,
 			"err":        err,
 		}, "unable to save tracker repository")
-		return nil, InternalError{simpleError{err.Error()}}
+		return nil, errors.NewInternalError(ctx, err)
 	}
-
-	log.Info(ctx, map[string]interface{}{
-		"tracker": newT.ID,
-	}, "Tracker repository successfully updated")
-
-	t2 := app.Tracker{
-		ID:   strconv.FormatUint(id, 10),
-		URL:  t.URL,
-		Type: t.Type}
-
-	return &t2, nil
+	return t, nil
 }
 
 // Delete deletes the tracker with the given id
 // returns NotFoundError or InternalError
-func (r *GormTrackerRepository) Delete(ctx context.Context, ID string) error {
-	var t = Tracker{}
-	id, err := strconv.ParseUint(ID, 10, 64)
-	if err != nil || id == 0 {
-		// treat as not found: clients don't know it must be a number
-		return NotFoundError{entity: "tracker", ID: ID}
+func (r *GormTrackerRepository) Delete(ctx context.Context, ID uuid.UUID) error {
+	defer goa.MeasureSince([]string{"goa", "db", "tracker", "delete"}, time.Now())
+	if ID == uuid.Nil {
+		log.Error(ctx, map[string]interface{}{
+			"tracker_id": ID.String(),
+		}, "unable to find the tracker by ID")
+		return errors.NewNotFoundError("tracker", ID.String())
 	}
-	t.ID = id
+	var t = Tracker{ID: ID}
 	tx := r.db.Delete(t)
-	if err = tx.Error; err != nil {
-		return InternalError{simpleError{err.Error()}}
+	if err := tx.Error; err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"tracker_id": ID.String(),
+		}, "unable to delete the space")
+		return errors.NewInternalError(ctx, err)
 	}
 	if tx.RowsAffected == 0 {
-		return NotFoundError{entity: "tracker", ID: ID}
+		log.Error(ctx, map[string]interface{}{
+			"space_id": ID.String(),
+		}, "none row was affected by the deletion operation")
+		return errors.NewNotFoundError("space", ID.String())
 	}
 	return nil
 }

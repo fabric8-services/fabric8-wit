@@ -23,6 +23,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/label"
+	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testtoken "github.com/fabric8-services/fabric8-wit/test/token"
@@ -311,10 +312,10 @@ func (g *GormTestBase) SpaceResources() space.ResourceRepository {
 	return nil
 }
 
-func (g *GormTestBase) Trackers() application.TrackerRepository {
+func (g *GormTestBase) Trackers() remoteworkitem.TrackerRepository {
 	return nil
 }
-func (g *GormTestBase) TrackerQueries() application.TrackerQueryRepository {
+func (g *GormTestBase) TrackerQueries() remoteworkitem.TrackerQueryRepository {
 	return nil
 }
 

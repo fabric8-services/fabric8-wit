@@ -1,9 +1,9 @@
 package remoteworkitem_test
 
 import (
+	"context"
 	"testing"
 
-	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/space"
@@ -14,8 +14,8 @@ import (
 
 type trackerQueryRepoBlackBoxTest struct {
 	gormtestsupport.DBTestSuite
-	repo   application.TrackerQueryRepository
-	trRepo application.TrackerRepository
+	repo   remoteworkitem.TrackerQueryRepository
+	trRepo remoteworkitem.TrackerRepository
 }
 
 func TestRunTrackerQueryRepoBlackBoxTest(t *testing.T) {
@@ -30,10 +30,11 @@ func (s *trackerQueryRepoBlackBoxTest) SetupTest() {
 
 func (s *trackerQueryRepoBlackBoxTest) TestFailDeleteZeroID() {
 	// Create at least 1 item to avoid RowsEffectedCheck
-	tr, err := s.trRepo.Create(
-		s.Ctx,
-		"http://api.github.com",
-		remoteworkitem.ProviderGithub)
+	tracker := remoteworkitem.Tracker{
+		URL:  "http://api.github.com",
+		Type: remoteworkitem.ProviderGithub}
+	err := s.trRepo.Create(
+		context.Background(), &tracker)
 	if err != nil {
 		s.T().Error("Could not create tracker", err)
 	}
@@ -42,7 +43,7 @@ func (s *trackerQueryRepoBlackBoxTest) TestFailDeleteZeroID() {
 		s.Ctx,
 		"project = ARQ AND text ~ 'arquillian'",
 		"15 * * * * *",
-		tr.ID, space.SystemSpace)
+		tracker.ID, space.SystemSpace)
 	if err != nil {
 		s.T().Error("Could not create tracker query", err)
 	}
@@ -53,10 +54,11 @@ func (s *trackerQueryRepoBlackBoxTest) TestFailDeleteZeroID() {
 
 func (s *trackerQueryRepoBlackBoxTest) TestFailSaveZeroID() {
 	// Create at least 1 item to avoid RowsEffectedCheck
-	tr, err := s.trRepo.Create(
-		s.Ctx,
-		"http://api.github.com",
-		remoteworkitem.ProviderGithub)
+	tracker := remoteworkitem.Tracker{
+		URL:  "http://api.github.com",
+		Type: remoteworkitem.ProviderGithub}
+	err := s.trRepo.Create(
+		context.Background(), &tracker)
 	if err != nil {
 		s.T().Error("Could not create tracker", err)
 	}
@@ -65,7 +67,7 @@ func (s *trackerQueryRepoBlackBoxTest) TestFailSaveZeroID() {
 		s.Ctx,
 		"project = ARQ AND text ~ 'arquillian'",
 		"15 * * * * *",
-		tr.ID, space.SystemSpace)
+		tracker.ID, space.SystemSpace)
 	if err != nil {
 		s.T().Error("Could not create tracker query", err)
 	}
@@ -77,10 +79,11 @@ func (s *trackerQueryRepoBlackBoxTest) TestFailSaveZeroID() {
 
 func (s *trackerQueryRepoBlackBoxTest) TestFaiLoadZeroID() {
 	// Create at least 1 item to avoid RowsEffectedCheck
-	tr, err := s.trRepo.Create(
-		s.Ctx,
-		"http://api.github.com",
-		remoteworkitem.ProviderGithub)
+	tracker := remoteworkitem.Tracker{
+		URL:  "http://api.github.com",
+		Type: remoteworkitem.ProviderGithub}
+	err := s.trRepo.Create(
+		context.Background(), &tracker)
 	if err != nil {
 		s.T().Error("Could not create tracker", err)
 	}
@@ -89,7 +92,7 @@ func (s *trackerQueryRepoBlackBoxTest) TestFaiLoadZeroID() {
 		s.Ctx,
 		"project = ARQ AND text ~ 'arquillian'",
 		"15 * * * * *",
-		tr.ID, space.SystemSpace)
+		tracker.ID, space.SystemSpace)
 	if err != nil {
 		s.T().Error("Could not create tracker query", err)
 	}

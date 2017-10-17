@@ -349,6 +349,9 @@ func GetMigrations() Migrations {
 	// Version 75
 	m = append(m, steps{ExecuteSQLFile("075-label-unique-name.sql")})
 
+	// Version 76
+	m = append(m, steps{ExecuteSQLFile("076-tracker-to-use-uuid.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
