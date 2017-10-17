@@ -11,10 +11,12 @@ import (
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/space/authz"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
-	uuid "github.com/satori/go.uuid"
+	"github.com/satori/go.uuid"
 )
 
 // WorkItemLinkController implements the work-item-link resource.
@@ -290,6 +292,51 @@ func (c *WorkItemLinkController) Create(ctx *app.CreateWorkItemLinkContext) erro
 	return createWorkItemLink(linkCtx, ctx, ctx.Payload)
 }
 
+func (c *WorkItemLinkController) checkIfUserIsSpaceCollaboratorOrWorkItemCreator(ctx context.Context, linkID uuid.UUID, currentIdentityID uuid.UUID) (bool, error) {
+	var authorized bool
+	var sourceSpaceID *uuid.UUID
+	var targetSpaceID *uuid.UUID
+	err := application.Transactional(c.db, func(appl application.Application) error {
+		link, err := appl.WorkItemLinks().Load(ctx, linkID)
+		if err != nil {
+			return err
+		}
+		authorized, sourceSpaceID, err = c.checkWorkItemCreatorOrSpaceOwner(ctx, appl, link.SourceID, currentIdentityID)
+		if err != nil {
+			return err
+		}
+		if !authorized {
+			authorized, targetSpaceID, err = c.checkWorkItemCreatorOrSpaceOwner(ctx, appl, link.TargetID, currentIdentityID)
+		}
+		return err
+	})
+	if err != nil {
+		return false, err
+	}
+	// Check if the user is a space collaborator
+	if !authorized {
+		authorized, err = authz.Authorize(ctx, sourceSpaceID.String())
+		if err != nil {
+			return false, err
+		}
+		return authz.Authorize(ctx, targetSpaceID.String())
+	}
+	return authorized, nil
+}
+
+func (c *WorkItemLinkController) checkWorkItemCreatorOrSpaceOwner(ctx context.Context, appl application.Application, workItemID uuid.UUID, currentIdentityID uuid.UUID) (bool, *uuid.UUID, error) {
+	wi, err := appl.WorkItems().LoadByID(ctx, workItemID)
+	if err != nil {
+		return false, nil, err
+	}
+	creator := wi.Fields[workitem.SystemCreator]
+	if currentIdentityID.String() == creator {
+		return true, nil, nil
+	}
+	space, err := appl.Spaces().Load(ctx, wi.SpaceID)
+	return currentIdentityID == space.OwnerId, &wi.SpaceID, nil
+}
+
 type deleteWorkItemLinkFuncs interface {
 	OK(resp []byte) error
 	BadRequest(r *app.JSONAPIErrors) error
@@ -312,6 +359,13 @@ func (c *WorkItemLinkController) Delete(ctx *app.DeleteWorkItemLinkContext) erro
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
+	}
+	authorized, err := c.checkIfUserIsSpaceCollaboratorOrWorkItemCreator(ctx, ctx.LinkID, *currentUserIdentityID)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	if !authorized {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to delete the link"))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, app.WorkItemLinkHref, currentUserIdentityID)
@@ -373,6 +427,13 @@ func (c *WorkItemLinkController) Update(ctx *app.UpdateWorkItemLinkContext) erro
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
+	}
+	authorized, err := c.checkIfUserIsSpaceCollaboratorOrWorkItemCreator(ctx, ctx.LinkID, *currentUserIdentityID)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	if !authorized {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to delete the link"))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, app.WorkItemLinkHref, currentUserIdentityID)
