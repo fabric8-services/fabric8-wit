@@ -11,6 +11,11 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+const (
+	// the `parent of` type of link
+	TypeParentOf = "parent of"
+)
+
 // Never ever change these UUIDs!!!
 var (
 	SystemWorkItemLinkTypeBugBlockerID     = uuid.FromStringOrNil("2CEA3C79-3B79-423B-90F4-1E59174C8F43")
