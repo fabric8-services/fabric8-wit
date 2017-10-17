@@ -705,7 +705,7 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 		assert.Len(t, result.Data, 3) // alice worked on 3 issues in sprint1
 	})
 
-	s.T().Run("space=spaceID AND creator=bob", func(t *testing.T) {
+	s.T().Run("space=spaceID AND creator=spaceowner", func(t *testing.T) {
 		filter := fmt.Sprintf(`
 				{"$AND": [
 					{"space":"%s"},
@@ -714,7 +714,7 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 			spaceIDStr, fxt.IdentityByUsername("spaceowner").ID.String())
 		_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotEmpty(t, result.Data)
-		assert.Len(t, result.Data, 9) // we have 9 items created by bob
+		assert.Len(t, result.Data, 9) // we have 9 items created by spaceowner
 	})
 
 	s.T().Run("space=spaceID AND state!=closed AND iteration=sprint1 AND assignee=alice", func(t *testing.T) {
