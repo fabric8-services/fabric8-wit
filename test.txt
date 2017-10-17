@@ -1,0 +1,51 @@
+/home/igels/go/src/github.com/fabric8-services/fabric8-wit/bin/wit -migrateDatabase
+{"level":"info","msg":"Running as user name 'igels' with UID 1000.","pkg":"main","time":"2017-10-17 15:41:54","username":"igels","uuid":"1000"}
+{"gid":"1000","groupname":"igels","level":"info","msg":"Running as as group 'igels' with GID 1000.","pkg":"main","time":"2017-10-17 15:41:54"}
+{"current_version":77,"level":"info","msg":"Current version 77. Nothing to update.","next_version":78,"pkg":"migration","time":"2017-10-17 15:41:54"}
+INFO: Running test: test-integration-no-coverage
+F8_DEVELOPER_MODE_ENABLED=1 F8_RESOURCE_DATABASE=1 F8_RESOURCE_UNIT_TEST=0 F8_LOG_LEVEL=error go test  github.com/fabric8-services/fabric8-wit github.com/fabric8-services/fabric8-wit/account github.com/fabric8-services/fabric8-wit/account/tenant github.com/fabric8-services/fabric8-wit/area github.com/fabric8-services/fabric8-wit/auth github.com/fabric8-services/fabric8-wit/auth/authservice github.com/fabric8-services/fabric8-wit/codebase github.com/fabric8-services/fabric8-wit/codebase/che github.com/fabric8-services/fabric8-wit/comment github.com/fabric8-services/fabric8-wit/configuration github.com/fabric8-services/fabric8-wit/controller github.com/fabric8-services/fabric8-wit/convert github.com/fabric8-services/fabric8-wit/criteria github.com/fabric8-services/fabric8-wit/errors github.com/fabric8-services/fabric8-wit/goamiddleware github.com/fabric8-services/fabric8-wit/goasupport github.com/fabric8-services/fabric8-wit/goasupport/conditional_request github.com/fabric8-services/fabric8-wit/goasupport/helper_function github.com/fabric8-services/fabric8-wit/gormsupport github.com/fabric8-services/fabric8-wit/gormsupport/cleaner github.com/fabric8-services/fabric8-wit/iteration github.com/fabric8-services/fabric8-wit/jsonapi github.com/fabric8-services/fabric8-wit/label github.com/fabric8-services/fabric8-wit/log github.com/fabric8-services/fabric8-wit/login github.com/fabric8-services/fabric8-wit/login/tokencontext github.com/fabric8-services/fabric8-wit/migration github.com/fabric8-services/fabric8-wit/models github.com/fabric8-services/fabric8-wit/notification github.com/fabric8-services/fabric8-wit/path github.com/fabric8-services/fabric8-wit/query/simple github.com/fabric8-services/fabric8-wit/remoteworkitem github.com/fabric8-services/fabric8-wit/rendering github.com/fabric8-services/fabric8-wit/resource github.com/fabric8-services/fabric8-wit/rest github.com/fabric8-services/fabric8-wit/rest/proxy github.com/fabric8-services/fabric8-wit/search github.com/fabric8-services/fabric8-wit/space github.com/fabric8-services/fabric8-wit/space/authz github.com/fabric8-services/fabric8-wit/token github.com/fabric8-services/fabric8-wit/tool/wit-cli github.com/fabric8-services/fabric8-wit/workitem github.com/fabric8-services/fabric8-wit/workitem/link github.com/fabric8-services/fabric8-wit/workitem/number_sequence github.com/fabric8-services/fabric8-wit/workitem/typegroup
+?   	github.com/fabric8-services/fabric8-wit	[no test files]
+ok  	github.com/fabric8-services/fabric8-wit/account	0.201s
+?   	github.com/fabric8-services/fabric8-wit/account/tenant	[no test files]
+ok  	github.com/fabric8-services/fabric8-wit/area	0.541s
+?   	github.com/fabric8-services/fabric8-wit/auth	[no test files]
+?   	github.com/fabric8-services/fabric8-wit/auth/authservice	[no test files]
+ok  	github.com/fabric8-services/fabric8-wit/codebase	0.189s
+?   	github.com/fabric8-services/fabric8-wit/codebase/che	[no test files]
+ok  	github.com/fabric8-services/fabric8-wit/comment	1.149s
+ok  	github.com/fabric8-services/fabric8-wit/configuration	0.004s
+ok  	github.com/fabric8-services/fabric8-wit/controller	47.555s
+ok  	github.com/fabric8-services/fabric8-wit/convert	0.006s
+ok  	github.com/fabric8-services/fabric8-wit/criteria	0.028s
+ok  	github.com/fabric8-services/fabric8-wit/errors	0.027s
+?   	github.com/fabric8-services/fabric8-wit/goamiddleware	[no test files]
+ok  	github.com/fabric8-services/fabric8-wit/goasupport	0.019s
+?   	github.com/fabric8-services/fabric8-wit/goasupport/conditional_request	[no test files]
+?   	github.com/fabric8-services/fabric8-wit/goasupport/helper_function	[no test files]
+ok  	github.com/fabric8-services/fabric8-wit/gormsupport	0.030s
+?   	github.com/fabric8-services/fabric8-wit/gormsupport/cleaner	[no test files]
+ok  	github.com/fabric8-services/fabric8-wit/iteration	0.601s
+ok  	github.com/fabric8-services/fabric8-wit/jsonapi	0.017s
+ok  	github.com/fabric8-services/fabric8-wit/label	0.271s
+ok  	github.com/fabric8-services/fabric8-wit/log	0.025s
+?   	github.com/fabric8-services/fabric8-wit/login	[no test files]
+?   	github.com/fabric8-services/fabric8-wit/login/tokencontext	[no test files]
+ok  	github.com/fabric8-services/fabric8-wit/migration	2.559s
+?   	github.com/fabric8-services/fabric8-wit/models	[no test files]
+?   	github.com/fabric8-services/fabric8-wit/notification	[no test files]
+ok  	github.com/fabric8-services/fabric8-wit/path	0.020s
+?   	github.com/fabric8-services/fabric8-wit/query/simple	[no test files]
+ok  	github.com/fabric8-services/fabric8-wit/remoteworkitem	1.293s
+ok  	github.com/fabric8-services/fabric8-wit/rendering	0.061s
+?   	github.com/fabric8-services/fabric8-wit/resource	[no test files]
+ok  	github.com/fabric8-services/fabric8-wit/rest	0.019s
+ok  	github.com/fabric8-services/fabric8-wit/rest/proxy	0.046s
+ok  	github.com/fabric8-services/fabric8-wit/search	3.657s
+ok  	github.com/fabric8-services/fabric8-wit/space	0.411s
+ok  	github.com/fabric8-services/fabric8-wit/space/authz	0.016s
+ok  	github.com/fabric8-services/fabric8-wit/token	0.021s
+?   	github.com/fabric8-services/fabric8-wit/tool/wit-cli	[no test files]
+ok  	github.com/fabric8-services/fabric8-wit/workitem	6.817s
+ok  	github.com/fabric8-services/fabric8-wit/workitem/link	1.619s
+ok  	github.com/fabric8-services/fabric8-wit/workitem/number_sequence	3.601s
+?   	github.com/fabric8-services/fabric8-wit/workitem/typegroup	[no test files]
