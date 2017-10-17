@@ -71,6 +71,11 @@ func (m Iteration) GetLastModified() time.Time {
 
 }
 
+// IsRoot Checks if given iteration is a root iteration or not
+func (m Iteration) IsRoot(spaceID uuid.UUID) bool {
+	return (m.SpaceID == spaceID && m.Path.String() == path.SepInService)
+}
+
 // TableName overrides the table name settings in Gorm to force a specific table name
 // in the database.
 func (m Iteration) TableName() string {

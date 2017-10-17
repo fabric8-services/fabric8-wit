@@ -856,7 +856,7 @@ func (rest *TestIterationREST) TestIterationDelete() {
 			return nil
 		}))
 		iterationToDelete := fxt.Iterations[1]                             // non-root iteration
-		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0]) // get the sapce owner
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0]) // get the space owner
 		test.DeleteIterationOK(t, svc.Context, svc, ctrl, iterationToDelete.ID)
 		_, err := rest.db.Iterations().Load(svc.Context, iterationToDelete.ID)
 		require.NotNil(t, err)
@@ -890,7 +890,7 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		assert.Empty(t, wis)
 	})
 
-	// Following test creates the strucute shown in diagram
+	// Following test creates the structure shown in diagram
 	// root Iteration
 	// |___________Iteration 1 (5 WI)
 	// |                |___________Iteration 2 (5 WI)
@@ -940,7 +940,7 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		require.Nil(t, err)
 		assert.Empty(t, wis)
 
-		// Verify that 20 WIs are moved to Root iteration
+		// Verify that 15 WIs are moved to Root iteration
 		wis, err = rest.db.WorkItems().LoadByIteration(svc.Context, fxt.Iterations[0].ID)
 		require.Nil(t, err)
 		assert.Len(t, wis, 15)

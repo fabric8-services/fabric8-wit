@@ -11,7 +11,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/login"
-	"github.com/fabric8-services/fabric8-wit/path"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem"
@@ -256,7 +255,7 @@ func (c *IterationController) Delete(ctx *app.DeleteIterationContext) error {
 			}, "user is not the space owner")
 			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the space owner"))
 		}
-		if c.IsRoot(itr, s) {
+		if itr.IsRoot(s.ID) {
 			log.Warn(ctx, map[string]interface{}{
 				"space_id":     s.ID,
 				"iteration_id": itr.ID,
@@ -270,30 +269,22 @@ func (c *IterationController) Delete(ctx *app.DeleteIterationContext) error {
 		// delete all children along with given iteration
 		subtree = append(subtree, *itr)
 		for _, child := range subtree {
-			err = appl.Iterations().Delete(ctx.Context, child.ID)
-			if err != nil {
-				log.Error(ctx, map[string]interface{}{
-					"iteration_id": child.ID,
-					"err":          err.Error(),
-				}, "unable to delete iteration")
-				return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
-			}
 			// fetch associated work items
 			wis, err := appl.WorkItems().LoadByIteration(ctx, child.ID)
 			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
+				return jsonapi.JSONErrorResponse(ctx, err)
 			}
 			// set root iteration to associated work items
+			// load root iteration of this iteration
+			ri, err := appl.Iterations().Root(ctx, child.SpaceID)
+			if err != nil {
+				log.Error(ctx, map[string]interface{}{
+					"space_id": child.SpaceID,
+					"err":      err.Error(),
+				}, "unable to get root iteration for space")
+				return jsonapi.JSONErrorResponse(ctx, err)
+			}
 			for _, wi := range wis {
-				// to be safe, load root iteration of this WI and then assign it
-				ri, err := appl.Iterations().Root(ctx, wi.SpaceID)
-				if err != nil {
-					log.Error(ctx, map[string]interface{}{
-						"space_id": wi.SpaceID,
-						"err":      err.Error(),
-					}, "unable to get root iteration for space")
-					return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
-				}
 				// move WI to root iteration
 				wi.Fields[workitem.SystemIteration] = ri.ID.String()
 				_, err = appl.WorkItems().Save(ctx, wi.SpaceID, *wi, *currentUser)
@@ -302,8 +293,17 @@ func (c *IterationController) Delete(ctx *app.DeleteIterationContext) error {
 						"workitem_id": wi.ID,
 						"err":         err.Error(),
 					}, "unable to update iteration for work item")
-					return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
+					return jsonapi.JSONErrorResponse(ctx, err)
 				}
+			}
+			// now, remove the iteration
+			err = appl.Iterations().Delete(ctx.Context, child.ID)
+			if err != nil {
+				log.Error(ctx, map[string]interface{}{
+					"iteration_id": child.ID,
+					"err":          err.Error(),
+				}, "unable to delete iteration")
+				return jsonapi.JSONErrorResponse(ctx, err)
 			}
 		}
 		return nil
@@ -312,11 +312,6 @@ func (c *IterationController) Delete(ctx *app.DeleteIterationContext) error {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
 	}
 	return ctx.OK([]byte{})
-}
-
-// IsRoot Checks if given iteration is a root iteration or not
-func (c *IterationController) IsRoot(itr *iteration.Iteration, sp *space.Space) bool {
-	return (itr.SpaceID == sp.ID && itr.Path.String() == path.SepInService)
 }
 
 // IterationConvertFunc is a open ended function to add additional links/data/relations to a Iteration during
