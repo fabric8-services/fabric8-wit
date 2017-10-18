@@ -520,13 +520,19 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 		}
 		fieldValue := updatedWorkItem.Fields[fieldName]
 		var err error
-		if (fieldName == SystemAssignees) && (len(fieldValue.([]string)) == 0) {
-			delete(wiStorage.Fields, fieldName)
-			continue
-		}
-		if (fieldName == SystemLabels) && (len(fieldValue.([]interface{})) == 0) {
-			delete(wiStorage.Fields, fieldName)
-			continue
+		if fieldName == SystemAssignees || fieldName == SystemLabels {
+			switch fieldValue.(type) {
+			case []string:
+				if len(fieldValue.([]string)) == 0 {
+					delete(wiStorage.Fields, fieldName)
+					continue
+				}
+			case []interface{}:
+				if len(fieldValue.([]interface{})) == 0 {
+					delete(wiStorage.Fields, fieldName)
+					continue
+				}
+			}
 		}
 		wiStorage.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
 		if err != nil {
