@@ -358,7 +358,7 @@ func (s *CommentsSuite) TestDeleteCommentWithoutAuth() {
 // Space owner adds a comment on the created WI
 // Create another user, which is not space collaborator.
 // Test if another user can delete the comment
-func (s *CommentsSuite) TestNonCollaboraterCanNotDelete() {
+func (s *CommentsSuite) TestNonCollaboratorCanNotDelete() {
 	// create space
 	// create user
 	// add user to the space collaborator list
@@ -448,7 +448,7 @@ func (s *CommentsSuite) TestOtherCollaboratorCanDelete() {
 // Space owner adds a comment on the created WI
 // Create another user, which is not space collaborator.
 // Test if another user can edit/update the comment
-func (s *CommentsSuite) TestNonCollaboraterCanNotUpdate() {
+func (s *CommentsSuite) TestNonCollaboratorCanNotUpdate() {
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestNonCollaboraterCanNotUpdate-"), "TestWIComments")
 	require.Nil(s.T(), err)
 	space := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, *testIdentity, "")
