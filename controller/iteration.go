@@ -315,7 +315,7 @@ func (c *IterationController) Delete(ctx *app.DeleteIterationContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
 	}
-	return ctx.OK([]byte{})
+	return ctx.NoContent()
 }
 
 // IterationConvertFunc is a open ended function to add additional links/data/relations to a Iteration during

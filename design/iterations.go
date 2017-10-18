@@ -135,12 +135,12 @@ var _ = a.Resource("iteration", func() {
 		a.Params(func() {
 			a.Param("iterationID", d.UUID, "ID of an iteration to delete")
 		})
-		a.Response(d.OK)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.Forbidden, JSONAPIErrors)
+		a.Response(d.NoContent)
 	})
 })
 

@@ -788,7 +788,7 @@ func (rest *TestIterationREST) TestIterationDelete() {
 				}))
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 		iterationToDelete := fxt.IterationByName("first iteration")
-		test.DeleteIterationOK(t, svc.Context, svc, ctrl, iterationToDelete.ID)
+		test.DeleteIterationNoContent(t, svc.Context, svc, ctrl, iterationToDelete.ID)
 		_, err := rest.db.Iterations().Load(svc.Context, iterationToDelete.ID)
 		require.NotNil(t, err)
 		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
@@ -816,7 +816,7 @@ func (rest *TestIterationREST) TestIterationDelete() {
 				}))
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 		iterationToDelete := fxt.IterationByName("child 1")
-		test.DeleteIterationOK(t, svc.Context, svc, ctrl, iterationToDelete.ID)
+		test.DeleteIterationNoContent(t, svc.Context, svc, ctrl, iterationToDelete.ID)
 		// make sure all nested iterations are deleted
 		deletedIterations := []*iteration.Iteration{
 			fxt.IterationByName("child 1"),
@@ -857,7 +857,7 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		}))
 		iterationToDelete := fxt.Iterations[1]                             // non-root iteration
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0]) // get the space owner
-		test.DeleteIterationOK(t, svc.Context, svc, ctrl, iterationToDelete.ID)
+		test.DeleteIterationNoContent(t, svc.Context, svc, ctrl, iterationToDelete.ID)
 		_, err := rest.db.Iterations().Load(svc.Context, iterationToDelete.ID)
 		require.NotNil(t, err)
 		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
@@ -884,7 +884,7 @@ func (rest *TestIterationREST) TestIterationDelete() {
 			}))
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 		iterationToDelete := fxt.Iterations[1]
-		test.DeleteIterationOK(t, svc.Context, svc, ctrl, iterationToDelete.ID)
+		test.DeleteIterationNoContent(t, svc.Context, svc, ctrl, iterationToDelete.ID)
 		wis, err := rest.db.WorkItems().LoadByIteration(svc.Context, iterationToDelete.ID)
 		require.Nil(t, err)
 		assert.Empty(t, wis)
@@ -917,7 +917,7 @@ func (rest *TestIterationREST) TestIterationDelete() {
 			}))
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 		childIteration := fxt.IterationByName("child")
-		test.DeleteIterationOK(t, svc.Context, svc, ctrl, childIteration.ID)
+		test.DeleteIterationNoContent(t, svc.Context, svc, ctrl, childIteration.ID)
 		wis, err := rest.db.WorkItems().LoadByIteration(svc.Context, childIteration.ID)
 		require.Nil(t, err)
 		assert.Empty(t, wis)
@@ -981,7 +981,7 @@ func (rest *TestIterationREST) TestIterationDelete() {
 			}))
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 		iterationToDelete := fxt.Iterations[1]
-		test.DeleteIterationOK(t, svc.Context, svc, ctrl, iterationToDelete.ID)
+		test.DeleteIterationNoContent(t, svc.Context, svc, ctrl, iterationToDelete.ID)
 		wis, err := rest.db.WorkItems().LoadByIteration(svc.Context, iterationToDelete.ID)
 		require.Nil(t, err)
 		assert.Empty(t, wis)
@@ -992,7 +992,7 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		assert.Len(t, wis, 15)
 
 		iterationToDelete = fxt.Iterations[5]
-		test.DeleteIterationOK(t, svc.Context, svc, ctrl, iterationToDelete.ID)
+		test.DeleteIterationNoContent(t, svc.Context, svc, ctrl, iterationToDelete.ID)
 		wis, err = rest.db.WorkItems().LoadByIteration(svc.Context, iterationToDelete.ID)
 		require.Nil(t, err)
 		assert.Empty(t, wis)
