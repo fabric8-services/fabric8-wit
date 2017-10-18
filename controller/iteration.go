@@ -264,7 +264,20 @@ func (c *IterationController) Delete(ctx *app.DeleteIterationContext) error {
 		}
 		subtree, err := appl.Iterations().LoadChildren(ctx, ctx.IterationID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		// Fetch parent iteration to which work items will get attached
+		parentID := itr.Parent()
+		if parentID == uuid.Nil {
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound("can not find parent iteration"))
+		}
+		parentIteration, err := appl.Iterations().Load(ctx, parentID)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"iteration_id": parentID,
+				"err":          err.Error(),
+			}, "unable to load iteration")
+			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		// delete all children along with given iteration
 		subtree = append(subtree, *itr)
@@ -274,19 +287,10 @@ func (c *IterationController) Delete(ctx *app.DeleteIterationContext) error {
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, err)
 			}
-			// set root iteration to associated work items
-			// load root iteration of this iteration
-			ri, err := appl.Iterations().Root(ctx, child.SpaceID)
-			if err != nil {
-				log.Error(ctx, map[string]interface{}{
-					"space_id": child.SpaceID,
-					"err":      err.Error(),
-				}, "unable to get root iteration for space")
-				return jsonapi.JSONErrorResponse(ctx, err)
-			}
+			// update iteration on all associated work items
 			for _, wi := range wis {
 				// move WI to root iteration
-				wi.Fields[workitem.SystemIteration] = ri.ID.String()
+				wi.Fields[workitem.SystemIteration] = parentIteration.ID.String()
 				_, err = appl.WorkItems().Save(ctx, wi.SpaceID, *wi, *currentUser)
 				if err != nil {
 					log.Error(ctx, map[string]interface{}{

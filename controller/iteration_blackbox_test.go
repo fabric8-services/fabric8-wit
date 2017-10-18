@@ -890,6 +890,52 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		assert.Empty(t, wis)
 	})
 
+	rest.T().Run("success - delete intermediate iteration", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, rest.DB,
+			tf.Iterations(3, func(fxt *tf.TestFixture, idx int) error {
+				itr := fxt.Iterations[idx]
+				switch idx {
+				case 0:
+					itr.Name = "root"
+				case 1:
+					itr.Name = "parent"
+					itr.MakeChildOf(*fxt.Iterations[0])
+				case 2:
+					itr.Name = "child"
+					itr.MakeChildOf(*fxt.Iterations[1])
+				}
+				return nil
+			}),
+			tf.WorkItems(6, func(fxt *tf.TestFixture, idx int) error {
+				wi := fxt.WorkItems[idx]
+				if idx < 3 {
+					wi.Fields[workitem.SystemIteration] = fxt.Iterations[1].ID.String()
+				} else {
+					wi.Fields[workitem.SystemIteration] = fxt.Iterations[2].ID.String()
+				}
+				return nil
+			}))
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+		childIteration := fxt.IterationByName("child")
+		test.DeleteIterationOK(t, svc.Context, svc, ctrl, childIteration.ID)
+		wis, err := rest.db.WorkItems().LoadByIteration(svc.Context, childIteration.ID)
+		require.Nil(t, err)
+		assert.Empty(t, wis)
+
+		// parent should get more 3 WI
+		parentIteration := fxt.IterationByName("parent")
+		wis, err = rest.db.WorkItems().LoadByIteration(svc.Context, parentIteration.ID)
+		require.Nil(t, err)
+		// first iteration already have 3 & 3 more from child iteration
+		assert.Len(t, wis, 3+3)
+
+		// verify that root iteration still does not have any WI
+		rootIteration := fxt.IterationByName("root")
+		wis, err = rest.db.WorkItems().LoadByIteration(svc.Context, rootIteration.ID)
+		require.Nil(t, err)
+		assert.Empty(t, wis)
+	})
+
 	// Following test creates the structure shown in diagram
 	// root Iteration
 	// |___________Iteration 1 (5 WI)
@@ -951,10 +997,15 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		require.Nil(t, err)
 		assert.Empty(t, wis)
 
-		// Verify that more 3 WIs are moved to Root iteration
+		// Verify that 3 WIs are moved to parent of deleted iteration
+		wis, err = rest.db.WorkItems().LoadByIteration(svc.Context, fxt.Iterations[4].ID)
+		require.Nil(t, err)
+		assert.Len(t, wis, 2+3)
+
+		// Verify that no more WIs are moved to Root iteration
 		wis, err = rest.db.WorkItems().LoadByIteration(svc.Context, fxt.Iterations[0].ID)
 		require.Nil(t, err)
-		assert.Len(t, wis, 15+3)
+		assert.Len(t, wis, 15)
 
 		// verify that child iterations are deleted as well
 		deletedIterations := []*iteration.Iteration{

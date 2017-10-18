@@ -76,6 +76,12 @@ func (m Iteration) IsRoot(spaceID uuid.UUID) bool {
 	return (m.SpaceID == spaceID && m.Path.String() == path.SepInService)
 }
 
+// Parent returns UUID of parent iteration or uuid.Nil
+// handle root itearion case, leaf node case, intermediate case
+func (m Iteration) Parent() uuid.UUID {
+	return m.Path.Parent().This()
+}
+
 // TableName overrides the table name settings in Gorm to force a specific table name
 // in the database.
 func (m Iteration) TableName() string {
