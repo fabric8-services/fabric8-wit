@@ -2,6 +2,7 @@ package controller_test
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/app/test"
@@ -10,7 +11,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/goadesign/goa"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -31,12 +31,15 @@ func TestRunFiltersREST(t *testing.T) {
 }
 
 func (rest *TestFiltersREST) TestListFiltersOK() {
+	resetFn := rest.DisableGormCallbacks()
+	defer resetFn()
+
 	// given
 	svc := goa.New("filterService")
 	ctrl := controller.NewFilterController(svc, rest.Configuration)
 	// when
 	res, filters := test.ListFilterOK(rest.T(), svc.Context, svc, ctrl)
 	// then
-	assert.Equal(rest.T(), 6, len(filters.Data))
+	compareWithGolden(rest.T(), filepath.Join("test-files", "filter", "list", "list_available_filters.golden.json"), filters)
 	assertResponseHeaders(rest.T(), res)
 }

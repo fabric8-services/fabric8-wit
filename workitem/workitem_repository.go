@@ -15,6 +15,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/space"
+	"github.com/fabric8-services/fabric8-wit/workitem/number_sequence"
 
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -53,13 +54,19 @@ type WorkItemRepository interface {
 
 // NewWorkItemRepository creates a GormWorkItemRepository
 func NewWorkItemRepository(db *gorm.DB) *GormWorkItemRepository {
-	repository := &GormWorkItemRepository{db, &GormWorkItemTypeRepository{db}, &GormRevisionRepository{db}}
+	repository := &GormWorkItemRepository{
+		db:   db,
+		winr: numbersequence.NewWorkItemNumberSequenceRepository(db),
+		witr: &GormWorkItemTypeRepository{db},
+		wirr: &GormRevisionRepository{db},
+	}
 	return repository
 }
 
 // GormWorkItemRepository implements WorkItemRepository using gorm
 type GormWorkItemRepository struct {
 	db   *gorm.DB
+	winr *numbersequence.GormWorkItemNumberSequenceRepository
 	witr *GormWorkItemTypeRepository
 	wirr *GormRevisionRepository
 }
@@ -551,18 +558,6 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 	if err != nil {
 		return nil, errors.NewBadParameterError("typeID", typeID)
 	}
-	// retrieve the current issue number in the given space
-	numberSequence := WorkItemNumberSequence{}
-	tx := r.db.Model(&WorkItemNumberSequence{}).Set("gorm:query_option", "FOR UPDATE").Where("space_id = ?", spaceID).First(&numberSequence)
-	if tx.RecordNotFound() {
-		numberSequence.SpaceID = spaceID
-		numberSequence.CurrentVal = 1
-	} else {
-		numberSequence.CurrentVal++
-	}
-	if err = r.db.Save(&numberSequence).Error; err != nil {
-		return nil, errs.Wrapf(err, "failed to create work item")
-	}
 
 	// The order of workitems are spaced by a factor of 1000.
 	pos, err := r.LoadHighestOrder(ctx, spaceID)
@@ -570,12 +565,16 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 		return nil, errors.NewInternalError(ctx, err)
 	}
 	pos = pos + orderValue
+	number, err := r.winr.NextVal(ctx, spaceID)
+	if err != nil {
+		return nil, errors.NewInternalError(ctx, err)
+	}
 	wi := WorkItemStorage{
 		Type:           typeID,
 		Fields:         Fields{},
 		ExecutionOrder: pos,
 		SpaceID:        spaceID,
-		Number:         numberSequence.CurrentVal,
+		Number:         *number,
 	}
 	fields[SystemCreator] = creatorID.String()
 	for fieldName, fieldDef := range wiType.Fields {
@@ -608,7 +607,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 	if err != nil {
 		return nil, errs.Wrapf(err, "error while creating work item")
 	}
-	log.Debug(ctx, map[string]interface{}{"pkg": "workitem", "wi_id": wi.ID}, "Work item created successfully!")
+	log.Debug(ctx, map[string]interface{}{"pkg": "workitem", "wi_id": wi.ID, "number": wi.Number}, "Work item created successfully!")
 	return witem, nil
 }
 

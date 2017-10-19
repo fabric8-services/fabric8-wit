@@ -9,12 +9,11 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
-	"github.com/pkg/errors"
-	"gopkg.in/yaml.v2"
-
 	"github.com/fabric8-services/fabric8-wit/rest"
+	errs "github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"gopkg.in/yaml.v2"
 )
 
 // String returns the current configuration as a string
@@ -125,7 +124,7 @@ func NewConfigurationData(configFilePath string) (*ConfigurationData, error) {
 		c.v.SetConfigFile(configFilePath)
 		err := c.v.ReadInConfig() // Find and read the config file
 		if err != nil {           // Handle errors reading the config file
-			return nil, errors.Errorf("Fatal error config file: %s \n", err)
+			return nil, errs.Errorf("Fatal error config file: %s \n", err)
 		}
 	}
 	return &c, nil
@@ -198,6 +197,7 @@ func (c *ConfigurationData) setConfigDefaults() {
 	c.v.SetDefault(varGithubAuthToken, defaultActualToken)
 	c.v.SetDefault(varKeycloakDomainPrefix, defaultKeycloakDomainPrefix)
 	c.v.SetDefault(varKeycloakTesUserName, defaultKeycloakTesUserName)
+	c.v.SetDefault(varAuthorizationEnabled, true)
 
 	// HTTP Cache-Control/max-age default for a list of resources
 	c.v.SetDefault(varCacheControlWorkItems, "max-age=2") // very short life in cache, to allow for quick, repetitive updates.
@@ -334,13 +334,8 @@ func (c *ConfigurationData) IsPostgresDeveloperModeEnabled() bool {
 }
 
 // IsAuthorizationEnabled returns true if space authorization enabled
-// By default athorization is disabled in Developer Mode only (if F8_AUTHZ_ENABLED us not set)
-// Set F8_AUTHZ_ENABLED env var to explictly disable or enable authorization regardless of Developer Mode settings
 func (c *ConfigurationData) IsAuthorizationEnabled() bool {
-	if c.v.IsSet(varAuthorizationEnabled) {
-		return c.v.GetBool(varAuthorizationEnabled)
-	}
-	return !c.IsPostgresDeveloperModeEnabled()
+	return c.v.GetBool(varAuthorizationEnabled)
 }
 
 // GetCacheControlWorkItemTypes returns the value to set in the "Cache-Control" HTTP response header

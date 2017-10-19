@@ -1,10 +1,10 @@
-hash: b66768446fd3d5c605a124cb7bac37abd21421c6804bfabc54b4e02c46b899ca
-updated: 2017-10-04T11:10:23.612734942+02:00
+hash: 327b7815129d65bbfadc1bd5d88c29a13a85a41b0948a32be80be3a56ee477d3
+updated: 2017-10-10T18:09:12.470894517+02:00
 imports:
 - name: github.com/andygrunwald/go-jira
   version: 9d1f282f93af41553ddb53b0116a8cdb75b4837a
 - name: github.com/armon/go-metrics
-  version: 97c69685293dce4c0a2d0b19535179bbc976e4d2
+  version: 9a4b6e10bed6220a1665955aa2b75afc91eb10b3
 - name: github.com/asaskevich/govalidator
   version: 7b3beb6df3c42abd3509abfc3bcacc0fbfb7c877
 - name: github.com/axw/gocov
@@ -31,13 +31,13 @@ imports:
   subpackages:
   - go-bindata-assetfs
 - name: github.com/fabric8-services/fabric8-auth
-  version: c1a62b994f63d11723829794ac63206ecdac8d01
+  version: da575b14ac9ceb113f18f1c1cab75be256460d64
   subpackages:
   - configuration
   - design
   - errors
   - log
-  - resource
+  - login/tokencontext
   - rest
   - token
 - name: github.com/fabric8-services/fabric8-notification
@@ -55,7 +55,7 @@ imports:
 - name: github.com/fzipp/gocyclo
   version: 6acd4345c835499920e8426c7e4e8d7a34f1bb83
 - name: github.com/goadesign/goa
-  version: 58f3177f36f2c50ee6119da92795e48bac6d6243
+  version: 5646a430cdeb66983d5ace3384e0a667c185abc7
   vcs: git
   subpackages:
   - client
@@ -91,6 +91,12 @@ imports:
   version: 9235644dd9e52eeae6fa48efd539fdc351a0af53
   subpackages:
   - query
+- name: github.com/hashicorp/go-immutable-radix
+  version: 8aac2701530899b64bdea735a1de8da899815220
+- name: github.com/hashicorp/golang-lru
+  version: 0a025b7e63adc15a622f29b0b2c4c3848243bbf6
+  subpackages:
+  - simplelru
 - name: github.com/hashicorp/hcl
   version: 37ab263305aaeb501a60eb16863e808d426e37f2
   subpackages:
@@ -107,7 +113,7 @@ imports:
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/jinzhu/gorm
-  version: c1b9cf186e4bcd8e5d566ef43f2ae2dfe22dc34e
+  version: 9c9de896864248929269a7cb2d64ed73b5fdf834
 - name: github.com/jinzhu/inflection
   version: 74387dc39a75e970e7a3ae6a3386b5bd2e5c5cff
 - name: github.com/jstemmer/go-junit-report
@@ -164,10 +170,8 @@ imports:
   - diffmatchpatch
 - name: github.com/shurcooL/sanitized_anchor_name
   version: 1dba4b3954bc059efc3991ec364f9f9a35f597d2
-- name: github.com/Sirupsen/logrus
-  version: c078b1e43f58d563c74cebe63c85789e76ddb627
-  repo: https://github.com/sirupsen/logrus
-  vcs: git
+- name: github.com/sirupsen/logrus
+  version: 89742aefa4b206dcf400792f3bd35b542998eb3b
 - name: github.com/sourcegraph/annotate
   version: f4cad6c6324d3f584e1743d8b3e0e017a5f3a636
 - name: github.com/sourcegraph/syntaxhighlight
@@ -211,6 +215,7 @@ imports:
   subpackages:
   - ed25519
   - ed25519/internal/edwards25519
+  - ssh/terminal
 - name: golang.org/x/net
   version: b1a2d6e8c8b5fc8f601ead62536f02a8e1b6217d
   subpackages:
@@ -226,6 +231,7 @@ imports:
   version: 478fcf54317e52ab69f40bb4c7a1520288d7f7ea
   subpackages:
   - unix
+  - windows
 - name: golang.org/x/text
   version: 47a200a05c8b3fd1b698571caecbb68beb2611ec
   subpackages:
@@ -254,4 +260,6 @@ imports:
   - json
 - name: gopkg.in/yaml.v2
   version: a5b47d31c556af34a302ce5d659e6fea44d90de0
-testImports: []
+testImports:
+- name: github.com/sirupsen/logrus
+  version: 89742aefa4b206dcf400792f3bd35b542998eb3b

@@ -9,12 +9,13 @@ import:
   subpackages:
   - design
 - package: github.com/fabric8-services/fabric8-auth
+  version: da575b14ac9ceb113f18f1c1cab75be256460d64
   subpackages:
   - design
 - package: github.com/dgrijalva/jwt-go
   version: ^3.0.0
 - package: github.com/goadesign/goa
-  version: 1.2.0
+  version: ^1.3.0
   vcs: git
   subpackages:
   - client
@@ -29,6 +30,8 @@ import:
   - goatest
   - middleware
   - middleware/security/jwt
+- package: github.com/armon/go-metrics
+  version: 9a4b6e10bed6220a1665955aa2b75afc91eb10b3
 - package: gopkg.in/square/go-jose.v2
   version: ^2.1.2
 - package: github.com/dimfeld/httptreemux
@@ -56,7 +59,7 @@ import:
 - package: github.com/mattn/go-colorable
 - package: github.com/pilu/config
 - package: github.com/jinzhu/gorm
-  version: c1b9cf186e4bcd8e5d566ef43f2ae2dfe22dc34e
+  version: 9c9de896864248929269a7cb2d64ed73b5fdf834
 - package: github.com/mattn/go-isatty
   version: ^0.0.1
 - package: github.com/axw/gocov
@@ -105,10 +108,7 @@ import:
   subpackages:
   - golint
 - package: github.com/fzipp/gocyclo
-- package: github.com/Sirupsen/logrus
-  version: c078b1e43f58d563c74cebe63c85789e76ddb627
-  repo: https://github.com/sirupsen/logrus
-  vcs: git
+- package: github.com/sirupsen/logrus
 - package: github.com/sourcegraph/syntaxhighlight
 - package: github.com/jstemmer/go-junit-report
 - package: github.com/sourcegraph/annotate
