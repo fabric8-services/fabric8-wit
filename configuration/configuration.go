@@ -197,6 +197,7 @@ func (c *ConfigurationData) setConfigDefaults() {
 	c.v.SetDefault(varGithubAuthToken, defaultActualToken)
 	c.v.SetDefault(varKeycloakDomainPrefix, defaultKeycloakDomainPrefix)
 	c.v.SetDefault(varKeycloakTesUserName, defaultKeycloakTesUserName)
+	c.v.SetDefault(varAuthorizationEnabled, true)
 
 	// HTTP Cache-Control/max-age default for a list of resources
 	c.v.SetDefault(varCacheControlWorkItems, "max-age=2") // very short life in cache, to allow for quick, repetitive updates.
@@ -333,13 +334,8 @@ func (c *ConfigurationData) IsPostgresDeveloperModeEnabled() bool {
 }
 
 // IsAuthorizationEnabled returns true if space authorization enabled
-// By default athorization is disabled in Developer Mode only (if F8_AUTHZ_ENABLED us not set)
-// Set F8_AUTHZ_ENABLED env var to explictly disable or enable authorization regardless of Developer Mode settings
 func (c *ConfigurationData) IsAuthorizationEnabled() bool {
-	if c.v.IsSet(varAuthorizationEnabled) {
-		return c.v.GetBool(varAuthorizationEnabled)
-	}
-	return !c.IsPostgresDeveloperModeEnabled()
+	return c.v.GetBool(varAuthorizationEnabled)
 }
 
 // GetCacheControlWorkItemTypes returns the value to set in the "Cache-Control" HTTP response header
