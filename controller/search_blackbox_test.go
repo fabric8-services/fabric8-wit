@@ -954,7 +954,6 @@ func (s *searchBlackBoxTest) TestFilterAssigneeNullAfterWIUpdate() {
 							{"assignee":null}`,
 	)
 	_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
-	compareWithGoldenUUIDAgnostic(s.T(), filepath.Join(s.testDir, "show", "filter_assignee_null_create_work_item.golden.json"), result)
 	wi := result.Data[0]
 	workitemCtrl := NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 
@@ -990,7 +989,6 @@ func (s *searchBlackBoxTest) TestFilterLabelNullAfterWIUpdate() {
 							{"label":null}`,
 	)
 	_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
-	compareWithGoldenUUIDAgnostic(s.T(), filepath.Join(s.testDir, "show", "filter_label_null_create_work_item.golden.json"), result)
 	wi := result.Data[0]
 	workitemCtrl := NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 
