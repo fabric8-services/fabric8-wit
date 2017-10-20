@@ -1,0 +1,14 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: fabric8-auth-ingress
+  annotations:
+    ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: fabric8-auth-svc
+    http:
+      paths:
+      - backend:
+          serviceName: fabric8-auth-svc
+          servicePort: 80
