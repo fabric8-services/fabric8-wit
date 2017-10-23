@@ -96,7 +96,7 @@ func (c *TrackerController) Delete(ctx *app.DeleteTrackerContext) error {
 	}
 	accessTokens := GetAccessTokens(c.configuration) //configuration.GetGithubAuthToken()
 	c.scheduler.ScheduleAllQueries(ctx, accessTokens)
-	return ctx.OK([]byte{})
+	return ctx.NoContent()
 }
 
 // Show runs the show action.

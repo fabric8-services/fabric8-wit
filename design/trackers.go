@@ -109,7 +109,7 @@ var _ = a.Resource("tracker", func() {
 		a.Params(func() {
 			a.Param("id", d.String, "id")
 		})
-		a.Response(d.OK)
+		a.Response(d.NoContent)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
