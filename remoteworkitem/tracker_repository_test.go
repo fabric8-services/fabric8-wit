@@ -1,4 +1,4 @@
-package remoteworkitem
+package remoteworkitem_test
 
 import (
 	"testing"
@@ -8,7 +8,9 @@ import (
 	errors "github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/resource"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	uuid "github.com/satori/go.uuid"
 
 	"github.com/stretchr/testify/assert"
@@ -19,7 +21,7 @@ import (
 type TestTrackerRepository struct {
 	gormtestsupport.DBTestSuite
 
-	repo TrackerRepository
+	repo remoteworkitem.TrackerRepository
 
 	clean func()
 }
@@ -29,7 +31,7 @@ func TestRunTrackerRepository(t *testing.T) {
 }
 
 func (test *TestTrackerRepository) SetupTest() {
-	test.repo = NewTrackerRepository(test.DB)
+	test.repo = remoteworkitem.NewTrackerRepository(test.DB)
 	test.clean = cleaner.DeleteCreatedEntities(test.DB)
 }
 
@@ -41,17 +43,17 @@ func (test *TestTrackerRepository) TestTrackerCreate() {
 	t := test.T()
 	resource.Require(t, resource.Database)
 
-	tracker := Tracker{
+	tracker := remoteworkitem.Tracker{
 		URL:  "url",
 		Type: "type",
 	}
 
 	err := test.repo.Create(context.Background(), &tracker)
-	assert.IsType(t, BadParameterError{}, err)
+	assert.IsType(t, remoteworkitem.BadParameterError{}, err)
 
-	tracker = Tracker{
+	tracker = remoteworkitem.Tracker{
 		URL:  "http://api.github.com",
-		Type: ProviderGithub,
+		Type: remoteworkitem.ProviderGithub,
 	}
 
 	err = test.repo.Create(context.Background(), &tracker)
@@ -61,26 +63,21 @@ func (test *TestTrackerRepository) TestTrackerCreate() {
 	assert.Nil(t, err)
 	assert.NotNil(t, tracker2)
 	assert.Equal(t, "http://api.github.com", tracker2.URL)
-	assert.Equal(t, ProviderGithub, tracker2.Type)
+	assert.Equal(t, remoteworkitem.ProviderGithub, tracker2.Type)
 }
 
 func (test *TestTrackerRepository) TestExistsTracker() {
 	t := test.T()
 	resource.Require(t, resource.Database)
-
+	githubTrackerURL := "https://api.github.com/"
 	t.Run("tracker exists", func(t *testing.T) {
 		t.Parallel()
-		tracker := Tracker{
-			URL:  "http://api.github.com",
-			Type: ProviderGithub,
-		}
-		err := test.repo.Create(context.Background(), &tracker)
-		assert.Nil(t, err)
-		require.NotNil(t, tracker)
-		assert.Equal(t, "http://api.github.com", tracker.URL)
-		assert.Equal(t, ProviderGithub, tracker.Type)
+		fxt := tf.NewTestFixture(t, test.DB, tf.Trackers(1))
+		require.NotNil(t, fxt.Trackers[0])
+		assert.Equal(t, githubTrackerURL, fxt.Trackers[0].URL)
+		assert.Equal(t, remoteworkitem.ProviderGithub, fxt.Trackers[0].Type)
 
-		err = test.repo.CheckExists(context.Background(), tracker.ID.String())
+		err := test.repo.CheckExists(context.Background(), fxt.Trackers[0].ID.String())
 		assert.Nil(t, err)
 	})
 
@@ -96,37 +93,32 @@ func (test *TestTrackerRepository) TestTrackerSave() {
 	t := test.T()
 	resource.Require(t, resource.Database)
 
-	tracker1, err := test.repo.Save(context.Background(), &Tracker{})
+	tracker1, err := test.repo.Save(context.Background(), &remoteworkitem.Tracker{})
 	assert.IsType(t, errors.NotFoundError{}, err)
 	assert.Nil(t, tracker1)
 
-	tracker2 := &Tracker{
-		URL:  "http://api.github.com",
-		Type: ProviderGithub,
-	}
-
-	err = test.repo.Create(context.Background(), tracker2)
-	tracker2.Type = "blabla"
-	tracker3, err := test.repo.Save(context.Background(), tracker2)
+	fxt := tf.NewTestFixture(t, test.DB, tf.Trackers(1))
+	fxt.Trackers[0].Type = "blabla"
+	tracker3, err := test.repo.Save(context.Background(), fxt.Trackers[0])
 	assert.IsType(t, errors.BadParameterError{}, err)
 	assert.Nil(t, tracker3)
 
-	tracker4 := &Tracker{
+	tracker4 := &remoteworkitem.Tracker{
 		ID:   uuid.NewV4(),
 		URL:  "random1",
-		Type: ProviderJira,
+		Type: remoteworkitem.ProviderJira,
 	}
 	tracker4, err = test.repo.Save(context.Background(), tracker4)
 	assert.IsType(t, errors.NotFoundError{}, err)
 
-	tracker5 := &Tracker{
+	tracker5 := &remoteworkitem.Tracker{
 		ID: uuid.FromStringOrNil("e0022d1-ad23-4f1b-9ee2-93f5d9269d1e"),
 	}
 	tracker5, err = test.repo.Save(context.Background(), tracker5)
 	assert.IsType(t, errors.NotFoundError{}, err)
 	assert.Nil(t, tracker5)
 
-	tracker6 := &Tracker{
+	tracker6 := &remoteworkitem.Tracker{
 		ID: uuid.NewV4(),
 	}
 	tracker7, err := test.repo.Save(context.Background(), tracker6)
@@ -147,15 +139,11 @@ func (test *TestTrackerRepository) TestTrackerDelete() {
 	err = test.repo.Delete(context.Background(), uuid.NewV4())
 	assert.IsType(t, errors.NotFoundError{}, err)
 
-	tracker := Tracker{
-		URL:  "http://api.github.com",
-		Type: ProviderGithub,
-	}
-	err = test.repo.Create(context.Background(), &tracker)
-	err = test.repo.Delete(context.Background(), tracker.ID)
+	fxt := tf.NewTestFixture(t, test.DB, tf.Trackers(1))
+	err = test.repo.Delete(context.Background(), fxt.Trackers[0].ID)
 	assert.Nil(t, err)
 
-	tracker2, err := test.repo.Load(context.Background(), tracker.ID)
+	tracker2, err := test.repo.Load(context.Background(), fxt.Trackers[0].ID)
 	assert.IsType(t, errors.NotFoundError{}, err)
 	assert.Nil(t, tracker2)
 
@@ -170,26 +158,7 @@ func (test *TestTrackerRepository) TestTrackerList() {
 
 	trackers, _ := test.repo.List(context.Background())
 
-	tracker1 := Tracker{
-		URL:  "http://api.github.com",
-		Type: ProviderGithub,
-	}
-	tracker2 := Tracker{
-		URL:  "http://api.github.com",
-		Type: ProviderGithub,
-	}
-	tracker3 := Tracker{
-		URL:  "http://issues.jboss.com",
-		Type: ProviderJira,
-	}
-	tracker4 := Tracker{
-		URL:  "http://issues.jboss.com",
-		Type: ProviderJira,
-	}
-	test.repo.Create(context.Background(), &tracker1)
-	test.repo.Create(context.Background(), &tracker2)
-	test.repo.Create(context.Background(), &tracker3)
-	test.repo.Create(context.Background(), &tracker4)
+	tf.NewTestFixture(t, test.DB, tf.Trackers(4))
 
 	trackers2, _ := test.repo.List(context.Background())
 

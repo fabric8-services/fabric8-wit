@@ -22,6 +22,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	testtoken "github.com/fabric8-services/fabric8-wit/test/token"
 )
 
@@ -182,56 +183,38 @@ func (rest *TestTrackerREST) TestCreateTracker() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
-	svc, ctrl := rest.SecuredController()
-	payload := app.CreateTrackerPayload{
-		Data: &app.Tracker{
-			Attributes: &app.TrackerAttributes{
-				URL:  "http://issues.jboss.com",
-				Type: "jira",
-			},
-			Type: remoteworkitem.APIStringTypeTrackers,
-		},
-	}
-
-	_, created := test.CreateTrackerCreated(t, svc.Context, svc, ctrl, &payload)
-	assert.NotNil(rest.T(), created)
+	fxt := tf.NewTestFixture(t, rest.DB, tf.Trackers(1))
+	assert.NotNil(rest.T(), fxt.Trackers[0])
 }
 
 func (rest *TestTrackerREST) TestUpdateTracker() {
+	jiraTrackerURL := "http://issues.jboss.com"
+
 	t := rest.T()
 	resource.Require(t, resource.Database)
-
 	svc, ctrl := rest.SecuredController()
-	payload := app.CreateTrackerPayload{
-		Data: &app.Tracker{
-			Attributes: &app.TrackerAttributes{
-				URL:  "http://issues.jboss.com",
-				Type: "jira",
-			},
-			Type: remoteworkitem.APIStringTypeTrackers,
-		},
-	}
 
-	_, result := test.CreateTrackerCreated(t, svc.Context, svc, ctrl, &payload)
-	_, tr := test.ShowTrackerOK(t, svc.Context, svc, ctrl, *result.Data.ID)
+	fxt := tf.NewTestFixture(t, rest.DB, tf.Trackers(1))
+
+	_, tr := test.ShowTrackerOK(t, svc.Context, svc, ctrl, fxt.Trackers[0].ID)
 	assert.NotNil(rest.T(), tr)
-	assert.Equal(rest.T(), result.Data.ID, tr.Data.ID)
+	assert.Equal(rest.T(), &fxt.Trackers[0].ID, tr.Data.ID)
 
 	payload2 := app.UpdateTrackerPayload{
 		Data: &app.Tracker{
-			ID: result.Data.ID,
+			ID: &fxt.Trackers[0].ID,
 			Attributes: &app.TrackerAttributes{
 				URL:  "http://issues.jboss.com",
-				Type: "jira",
+				Type: remoteworkitem.ProviderJira,
 			},
 			Type: remoteworkitem.APIStringTypeTrackers,
 		},
 	}
 	_, updated := test.UpdateTrackerOK(t, svc.Context, svc, ctrl, tr.Data.ID.String(), &payload2)
 	assert.NotNil(rest.T(), updated)
-	assert.Equal(rest.T(), result.Data.ID, updated.Data.ID)
-	assert.Equal(rest.T(), result.Data.Attributes.URL, updated.Data.Attributes.URL)
-	assert.Equal(rest.T(), result.Data.Attributes.Type, updated.Data.Attributes.Type)
+	assert.Equal(rest.T(), &fxt.Trackers[0].ID, updated.Data.ID)
+	assert.Equal(rest.T(), jiraTrackerURL, updated.Data.Attributes.URL)
+	assert.Equal(rest.T(), remoteworkitem.ProviderJira, updated.Data.Attributes.Type)
 }
 
 // This test ensures that List does not return NIL items.
@@ -241,26 +224,12 @@ func (rest *TestTrackerREST) TestTrackerListItemsNotNil() {
 	resource.Require(t, resource.Database)
 
 	svc, ctrl := rest.SecuredController()
-	payload := app.CreateTrackerPayload{
-		Data: &app.Tracker{
-			Attributes: &app.TrackerAttributes{
-				URL:  "http://issues.jboss.com",
-				Type: "jira",
-			},
-			Type: remoteworkitem.APIStringTypeTrackers,
-		},
-	}
-	test.CreateTrackerCreated(t, svc.Context, svc, ctrl, &payload)
-
-	test.CreateTrackerCreated(t, svc.Context, svc, ctrl, &payload)
+	tf.NewTestFixture(t, rest.DB, tf.Trackers(2))
 
 	_, list := test.ListTrackerOK(t, svc.Context, svc, ctrl, nil, nil)
 
-	for _, tracker := range list.Data {
-		if tracker == nil {
-			t.Error("Returned Tracker found nil")
-		}
-	}
+	require.NotNil(rest.T(), list)
+	require.NotEmpty(rest.T(), list.Data)
 }
 
 // This test ensures that ID returned by Show is valid.
@@ -270,17 +239,8 @@ func (rest *TestTrackerREST) TestCreateTrackerValidId() {
 	resource.Require(t, resource.Database)
 
 	svc, ctrl := rest.SecuredController()
-	payload := app.CreateTrackerPayload{
-		Data: &app.Tracker{
-			Attributes: &app.TrackerAttributes{
-				URL:  "http://issues.jboss.com",
-				Type: "jira",
-			},
-			Type: remoteworkitem.APIStringTypeTrackers,
-		},
-	}
-	_, tracker := test.CreateTrackerCreated(t, svc.Context, svc, ctrl, &payload)
-	_, created := test.ShowTrackerOK(t, svc.Context, svc, ctrl, *tracker.Data.ID)
+	fxt := tf.NewTestFixture(t, rest.DB, tf.Trackers(1))
+	_, created := test.ShowTrackerOK(t, svc.Context, svc, ctrl, fxt.Trackers[0].ID)
 	require.NotNil(t, created.Data)
-	require.Equal(t, *tracker.Data.ID, *created.Data.ID)
+	require.Equal(t, fxt.Trackers[0].ID, *created.Data.ID)
 }
