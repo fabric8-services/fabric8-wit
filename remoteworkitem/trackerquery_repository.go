@@ -40,17 +40,17 @@ type TrackerQueryRepository interface {
 
 // Create creates a new tracker query in the repository
 // returns BadParameterError, ConversionError or InternalError
-func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, schedule string, tracker uuid.UUID, spaceID uuid.UUID) (*app.TrackerQuery, error) {
+func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, schedule string, trackerID uuid.UUID, spaceID uuid.UUID) (*app.TrackerQuery, error) {
 	tq := TrackerQuery{
 		Query:     query,
 		Schedule:  schedule,
-		TrackerID: tracker,
+		TrackerID: trackerID,
 		SpaceID:   spaceID,
 	}
 	tx := r.db
 	if err := tx.Create(&tq).Error; err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"tracker_id":    tracker.String(),
+			"tracker_id":    trackerID.String(),
 			"tracker_query": query,
 		}, "unable to create the tracker query")
 		return nil, InternalError{simpleError{err.Error()}}
@@ -61,14 +61,14 @@ func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, s
 		ID:        strconv.FormatUint(tq.ID, 10),
 		Query:     query,
 		Schedule:  schedule,
-		TrackerID: tracker,
+		TrackerID: trackerID,
 		Relationships: &app.TrackerQueryRelationships{
 			Space: app.NewSpaceRelation(spaceID, spaceSelfURL),
 		},
 	}
 
 	log.Info(ctx, map[string]interface{}{
-		"tracker_id":    tracker.String(),
+		"tracker_id":    trackerID.String(),
 		"tracker_query": tq,
 	}, "Created tracker query")
 
