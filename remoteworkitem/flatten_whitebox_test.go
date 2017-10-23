@@ -15,7 +15,7 @@ func TestFlattenMap(t *testing.T) {
 	testString := []byte(`
 		{
 			"admins": [
-				{
+				{ 
 					"name": "aslak"
 				}
 			],
