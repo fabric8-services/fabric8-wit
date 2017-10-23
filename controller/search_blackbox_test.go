@@ -943,83 +943,82 @@ func (s *searchBlackBoxTest) TestIncludedParents() {
 	assert.Equal(s.T(), successCnt, 4)
 }
 
-func (s *searchBlackBoxTest) TestFilterAssigneeNullAfterWIUpdate() {
+func (s *searchBlackBoxTest) TestUpdateWorkItem() {
 	resetFn := s.DisableGormCallbacks()
 	defer resetFn()
 
-	s.T().Run("create work item", func(t *testing.T) {
-		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
-		spaceInstance := fxt.Spaces[0]
-		spaceIDStr := spaceInstance.ID.String()
-		filter := fmt.Sprintf(`
+	s.T().Run("assignees", func(t *testing.T) {
+		t.Run("create work item", func(t *testing.T) {
+			fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+			spaceInstance := fxt.Spaces[0]
+			spaceIDStr := spaceInstance.ID.String()
+			filter := fmt.Sprintf(`
 							{"assignee":null}`,
-		)
-		_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
-		wi := result.Data[0]
-		t.Run("update work item", func(t *testing.T) {
-			workitemCtrl := NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+			)
+			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+			wi := result.Data[0]
+			t.Run("update work item", func(t *testing.T) {
+				workitemCtrl := NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 
-			wi.Attributes[workitem.SystemTitle] = "Updated Test WI"
-			updatedDescription := "= Updated Test WI description"
-			wi.Attributes[workitem.SystemDescription] = updatedDescription
-			payload2 := app.UpdateWorkitemPayload{
-				Data: &app.WorkItem{
-					Type:       APIStringTypeWorkItem,
-					Attributes: map[string]interface{}{},
-					Relationships: &app.WorkItemRelationships{
-						Space: app.NewSpaceRelation(spaceInstance.ID, ""),
+				wi.Attributes[workitem.SystemTitle] = "Updated Test WI"
+				updatedDescription := "= Updated Test WI description"
+				wi.Attributes[workitem.SystemDescription] = updatedDescription
+				payload2 := app.UpdateWorkitemPayload{
+					Data: &app.WorkItem{
+						Type:       APIStringTypeWorkItem,
+						Attributes: map[string]interface{}{},
+						Relationships: &app.WorkItemRelationships{
+							Space: app.NewSpaceRelation(spaceInstance.ID, ""),
+						},
 					},
-				},
-			}
-			payload2.Data.ID = wi.ID
-			payload2.Data.Attributes = wi.Attributes
-			_, updated := test.UpdateWorkitemOK(t, s.svc.Context, s.svc, workitemCtrl, *wi.ID, &payload2)
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "filter_assignee_null_update_work_item.golden.json"), updated)
+				}
+				payload2.Data.ID = wi.ID
+				payload2.Data.Attributes = wi.Attributes
+				_, updated := test.UpdateWorkitemOK(t, s.svc.Context, s.svc, workitemCtrl, *wi.ID, &payload2)
+				compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "filter_assignee_null_update_work_item.golden.json"), updated)
 
-			t.Run("search for work item", func(t *testing.T) {
-				_, result = test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
-				compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "filter_assignee_null_show_after_update_work_item.golden.json"), updated)
+				t.Run("search for work item", func(t *testing.T) {
+					_, result = test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+					compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "filter_assignee_null_show_after_update_work_item.golden.json"), updated)
+				})
 			})
 		})
 	})
-}
 
-func (s *searchBlackBoxTest) TestFilterLabelNullAfterWIUpdate() {
-	resetFn := s.DisableGormCallbacks()
-	defer resetFn()
-
-	s.T().Run("create work item", func(t *testing.T) {
-		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
-		spaceInstance := fxt.Spaces[0]
-		spaceIDStr := spaceInstance.ID.String()
-		filter := fmt.Sprintf(`
+	s.T().Run("labels", func(t *testing.T) {
+		t.Run("create work item", func(t *testing.T) {
+			fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+			spaceInstance := fxt.Spaces[0]
+			spaceIDStr := spaceInstance.ID.String()
+			filter := fmt.Sprintf(`
 							{"label":null}`,
-		)
-		_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
-		wi := result.Data[0]
-		t.Run("update work item", func(t *testing.T) {
-			workitemCtrl := NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+			)
+			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+			wi := result.Data[0]
+			t.Run("update work item", func(t *testing.T) {
+				workitemCtrl := NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 
-			wi.Attributes[workitem.SystemTitle] = "Updated Test WI"
-			updatedDescription := "= Updated Test WI description"
-			wi.Attributes[workitem.SystemDescription] = updatedDescription
-			payload2 := app.UpdateWorkitemPayload{
-				Data: &app.WorkItem{
-					Type:       APIStringTypeWorkItem,
-					Attributes: map[string]interface{}{},
-					Relationships: &app.WorkItemRelationships{
-						Space: app.NewSpaceRelation(spaceInstance.ID, ""),
+				wi.Attributes[workitem.SystemTitle] = "Updated Test WI"
+				updatedDescription := "= Updated Test WI description"
+				wi.Attributes[workitem.SystemDescription] = updatedDescription
+				payload2 := app.UpdateWorkitemPayload{
+					Data: &app.WorkItem{
+						Type:       APIStringTypeWorkItem,
+						Attributes: map[string]interface{}{},
+						Relationships: &app.WorkItemRelationships{
+							Space: app.NewSpaceRelation(spaceInstance.ID, ""),
+						},
 					},
-				},
-			}
-			payload2.Data.ID = wi.ID
-			payload2.Data.Attributes = wi.Attributes
-			_, updated := test.UpdateWorkitemOK(t, s.svc.Context, s.svc, workitemCtrl, *wi.ID, &payload2)
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "filter_label_null_update_work_item.golden.json"), updated)
+				}
+				payload2.Data.ID = wi.ID
+				payload2.Data.Attributes = wi.Attributes
+				_, updated := test.UpdateWorkitemOK(t, s.svc.Context, s.svc, workitemCtrl, *wi.ID, &payload2)
+				compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "filter_label_null_update_work_item.golden.json"), updated)
 
-			t.Run("search for work item", func(t *testing.T) {
-				_, result = test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
-				compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "filter_label_null_show_after_update_work_item.golden.json"), updated)
+				t.Run("search for work item", func(t *testing.T) {
+					_, result = test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+					compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "filter_label_null_show_after_update_work_item.golden.json"), updated)
+				})
 			})
 		})
 	})
