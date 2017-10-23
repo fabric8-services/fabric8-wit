@@ -115,3 +115,6 @@ import:
 - package: github.com/sergi/go-diff
   subpackages:
   - diffmatchpatch
+- package: github.com/xeipuuv/gojsonschema
+- package: github.com/xeipuuv/gojsonreference
+- package: github.com/xeipuuv/gojsonpointer

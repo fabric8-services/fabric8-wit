@@ -379,20 +379,20 @@ func ConvertSpacesFromModel(ctx context.Context, db application.DB, request *htt
 
 // ConvertSpaceFromModel converts between internal and external REST representation
 func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *http.Request, sp space.Space, additional ...SpaceConvertFunc) (*app.Space, error) {
-	relatedURL := rest.AbsoluteURL(request, app.SpaceHref(sp.ID))
+	selfURL := rest.AbsoluteURL(request, app.SpaceHref(sp.ID))
 	spaceIDStr := sp.ID.String()
-	relatedIterationList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/iterations", spaceIDStr))
-	relatedAreaList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/areas", spaceIDStr))
-	relatedBacklogList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/backlog", spaceIDStr))
-	relatedCodebasesList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/codebases", spaceIDStr))
-	relatedWorkItemList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitems", spaceIDStr))
-	relatedWorkItemTypeList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitemtypes", spaceIDStr))
-	relatedWorkItemLinkTypeList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitemlinktypes", spaceIDStr))
-	relatedOwnerByLink := rest.AbsoluteURL(request, fmt.Sprintf("%s/%s", usersEndpoint, sp.OwnerId.String()))
-	relatedCollaboratorList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/collaborators", spaceIDStr))
-	relatedFilterList := rest.AbsoluteURL(request, "/api/filters")
-	relatedLabelList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/labels", spaceIDStr))
-	workitemTypeGroupsLink := rest.AbsoluteURL(request, app.SpaceTemplateHref(spaceIDStr)+"/workitemtypegroups/")
+	relatedIterations := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/iterations", spaceIDStr))
+	relatedAreas := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/areas", spaceIDStr))
+	relatedBacklog := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/backlog", spaceIDStr))
+	relatedCodebases := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/codebases", spaceIDStr))
+	relatedWorkItems := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitems", spaceIDStr))
+	relatedWorkItemTypes := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitemtypes", spaceIDStr))
+	relatedWorkItemLinkTypes := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitemlinktypes", spaceIDStr))
+	relatedOwners := rest.AbsoluteURL(request, fmt.Sprintf("%s/%s", usersEndpoint, sp.OwnerId.String()))
+	relatedCollaborators := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/collaborators", spaceIDStr))
+	relatedFilters := rest.AbsoluteURL(request, "/api/filters")
+	relatedLabels := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/labels", spaceIDStr))
+	relatedWorkitemTypeGroups := rest.AbsoluteURL(request, app.SpaceTemplateHref(spaceIDStr)+"/workitemtypegroups/")
 
 	count, err := countBacklogItems(ctx, db, sp.ID)
 	if err != nil {
@@ -409,55 +409,75 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *http
 			Version:     &sp.Version,
 		},
 		Links: &app.GenericLinksForSpace{
-			Self:    &relatedURL,
-			Related: &relatedURL,
-			Backlog: &app.BacklogGenericLink{
-				Self: &relatedBacklogList,
+			Self:    &selfURL,
+			Related: &selfURL, //TODO (xcoulon): remove this link
+			Backlog: &app.BacklogGenericLink{ //TODO (xcoulon): remove this link
+				Self: &relatedBacklog,
 				Meta: &app.BacklogLinkMeta{TotalCount: count},
 			},
-			Workitemtypes:      &relatedWorkItemTypeList,
-			Workitemlinktypes:  &relatedWorkItemLinkTypeList,
-			Filters:            &relatedFilterList,
-			Workitemtypegroups: &workitemTypeGroupsLink,
+			Workitemtypes:      &relatedWorkItemTypes,      //TODO (xcoulon): remove this link
+			Workitemlinktypes:  &relatedWorkItemLinkTypes,  //TODO (xcoulon): remove this link
+			Filters:            &relatedFilters,            //TODO (xcoulon): remove this link
+			Workitemtypegroups: &relatedWorkitemTypeGroups, //TODO (xcoulon): remove this link
 		},
 		Relationships: &app.SpaceRelationships{
+			Areas: &app.RelationGeneric{
+				Links: &app.GenericLinks{
+					Related: &relatedAreas,
+				},
+			},
+			Codebases: &app.RelationGeneric{
+				Links: &app.GenericLinks{
+					Related: &relatedCodebases,
+				},
+			},
+			Collaborators: &app.RelationGeneric{
+				Links: &app.GenericLinks{
+					Related: &relatedCollaborators,
+				},
+			},
+			Filters: &app.RelationGeneric{
+				Links: &app.GenericLinks{
+					Related: &relatedFilters,
+				},
+			},
 			OwnedBy: &app.SpaceOwnedBy{
 				Data: &app.IdentityRelationData{
 					Type: "identities",
 					ID:   &sp.OwnerId,
 				},
 				Links: &app.GenericLinks{
-					Related: &relatedOwnerByLink,
+					Related: &relatedOwners,
 				},
 			},
 			Iterations: &app.RelationGeneric{
 				Links: &app.GenericLinks{
-					Related: &relatedIterationList,
-				},
-			},
-			Areas: &app.RelationGeneric{
-				Links: &app.GenericLinks{
-					Related: &relatedAreaList,
-				},
-			},
-			Codebases: &app.RelationGeneric{
-				Links: &app.GenericLinks{
-					Related: &relatedCodebasesList,
-				},
-			},
-			Workitems: &app.RelationGeneric{
-				Links: &app.GenericLinks{
-					Related: &relatedWorkItemList,
-				},
-			},
-			Collaborators: &app.RelationGeneric{
-				Links: &app.GenericLinks{
-					Related: &relatedCollaboratorList,
+					Related: &relatedIterations,
 				},
 			},
 			Labels: &app.RelationGeneric{
 				Links: &app.GenericLinks{
-					Related: &relatedLabelList,
+					Related: &relatedLabels,
+				},
+			},
+			Workitems: &app.RelationGeneric{
+				Links: &app.GenericLinks{
+					Related: &relatedWorkItems,
+				},
+			},
+			Workitemtypes: &app.RelationGeneric{
+				Links: &app.GenericLinks{
+					Related: &relatedWorkItemTypes,
+				},
+			},
+			Workitemlinktypes: &app.RelationGeneric{
+				Links: &app.GenericLinks{
+					Related: &relatedWorkItemLinkTypes,
+				},
+			},
+			Workitemtypegroups: &app.RelationGeneric{
+				Links: &app.GenericLinks{
+					Related: &relatedWorkitemTypeGroups,
 				},
 			},
 		},
