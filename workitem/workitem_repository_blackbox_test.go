@@ -40,11 +40,18 @@ func (s *workItemRepoBlackBoxTest) SetupTest() {
 
 func (s *workItemRepoBlackBoxTest) TestSave() {
 	s.T().Run("save work item without assignees & labels", func(t *testing.T) {
-		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1))
-		wi, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemTypes(1))
+		wi, err := s.repo.Create(
+			s.Ctx, fxt.Spaces[0].ID, fxt.WorkItemTypes[0].ID,
+			map[string]interface{}{
+				workitem.SystemTitle: "some title",
+				workitem.SystemState: workitem.SystemStateNew,
+			}, fxt.Identities[0].ID)
+
+		wiNew, err := s.repo.Save(s.Ctx, wi.SpaceID, *wi, fxt.Identities[0].ID)
 		require.Nil(t, err)
-		require.Len(t, wi.Fields[workitem.SystemAssignees].([]interface{}), 0)
-		require.Len(t, wi.Fields[workitem.SystemLabels].([]interface{}), 0)
+		require.Len(t, wiNew.Fields[workitem.SystemAssignees].([]interface{}), 0)
+		require.Len(t, wiNew.Fields[workitem.SystemLabels].([]interface{}), 0)
 	})
 
 	s.T().Run("fail - save nil number", func(t *testing.T) {

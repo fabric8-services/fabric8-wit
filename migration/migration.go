@@ -356,7 +356,7 @@ func GetMigrations() Migrations {
 	m = append(m, steps{ExecuteSQLFile("077-index-work-item-links.sql")})
 
 	// Version 78
-	m = append(m, steps{ExecuteSQLFile("078-assignee-and-label-empty-value.sql")})
+	m = append(m, steps{ExecuteSQLFile("078-assignee-and-label-empty-value.sql", "system.assignees", "system.labels")})
 
 	// Version N
 	//
