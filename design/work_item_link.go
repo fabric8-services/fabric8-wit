@@ -188,6 +188,7 @@ func createWorkItemLink() {
 	a.Response(d.Unauthorized, JSONAPIErrors)
 	a.Response(d.NotFound, JSONAPIErrors)
 	a.Response(d.Conflict, JSONAPIErrors)
+	a.Response(d.Forbidden, JSONAPIErrors)
 }
 
 func deleteWorkItemLink() {
@@ -204,6 +205,7 @@ func deleteWorkItemLink() {
 	a.Response(d.InternalServerError, JSONAPIErrors)
 	a.Response(d.NotFound, JSONAPIErrors)
 	a.Response(d.Unauthorized, JSONAPIErrors)
+	a.Response(d.Forbidden, JSONAPIErrors)
 }
 
 func updateWorkItemLink() {
@@ -224,4 +226,5 @@ func updateWorkItemLink() {
 	a.Response(d.InternalServerError, JSONAPIErrors)
 	a.Response(d.NotFound, JSONAPIErrors)
 	a.Response(d.Unauthorized, JSONAPIErrors)
+	a.Response(d.Forbidden, JSONAPIErrors)
 }
