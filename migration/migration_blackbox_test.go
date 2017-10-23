@@ -563,7 +563,7 @@ func testMigration76(t *testing.T) {
 }
 
 func testMigration79(t *testing.T) {
-	migrateToVersion(sqlDB, migrations[:78], 78)
+	migrateToVersion(sqlDB, migrations[:80], 80)
 	count := -1
 	gormDB.Table("work_items").Where(`Fields->>'system.labels'='[]'`).Count(&count)
 	assert.Equal(t, 0, count)

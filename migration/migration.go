@@ -359,7 +359,7 @@ func GetMigrations() Migrations {
 	m = append(m, steps{ExecuteSQLFile("078-tracker-to-use-uuid.sql")})
 
 	// Version 79
-	m = append(m, steps{ExecuteSQLFile("079-assignee-and-label-empty-value.sql")})
+	m = append(m, steps{ExecuteSQLFile("079-assignee-and-label-empty-value.sql", "system.assignees", "system.labels")})
 
 	// Version N
 	//
