@@ -12,7 +12,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/goadesign/goa"
-	uuid "github.com/satori/go.uuid"
 )
 
 type trackerConfiguration interface {
@@ -80,12 +79,8 @@ func (c *TrackerController) Delete(ctx *app.DeleteTrackerContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
-	id, err := uuid.FromString(ctx.ID)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-	}
 	err = application.Transactional(c.db, func(appl application.Application) error {
-		tracker, err := appl.Trackers().Load(ctx.Context, id)
+		tracker, err := appl.Trackers().Load(ctx.Context, ctx.ID)
 		if err != nil {
 			return err
 		}
@@ -101,12 +96,8 @@ func (c *TrackerController) Delete(ctx *app.DeleteTrackerContext) error {
 
 // Show runs the show action.
 func (c *TrackerController) Show(ctx *app.ShowTrackerContext) error {
-	id, err := uuid.FromString(ctx.ID)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-		tracker, err := appl.Trackers().Load(ctx.Context, id)
+		tracker, err := appl.Trackers().Load(ctx.Context, ctx.ID)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"err":        err,
@@ -154,12 +145,8 @@ func (c *TrackerController) Update(ctx *app.UpdateTrackerContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	id, err := uuid.FromString(ctx.ID)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-	}
 	result := application.Transactional(c.db, func(appl application.Application) error {
-		t, err := appl.Trackers().Load(ctx.Context, id)
+		t, err := appl.Trackers().Load(ctx.Context, *ctx.Payload.Data.ID)
 		if err != nil {
 			return err
 		}

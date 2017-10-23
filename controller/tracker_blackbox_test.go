@@ -13,6 +13,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/goadesign/goa"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -107,28 +108,28 @@ func getTrackerTestData(t *testing.T) []testSecureAPI {
 		// Update tracker API with different parameters
 		{
 			method:             http.MethodPut,
-			url:                "/api/trackers/12345",
+			url:                "/api/trackers/" + uuid.NewV4().String(),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createTrackerPayload,
 			jwtToken:           getExpiredAuthHeader(t, privatekey),
 		}, {
 			method:             http.MethodPut,
-			url:                "/api/trackers/12345",
+			url:                "/api/trackers/" + uuid.NewV4().String(),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createTrackerPayload,
 			jwtToken:           getMalformedAuthHeader(t, privatekey),
 		}, {
 			method:             http.MethodPut,
-			url:                "/api/trackers/12345",
+			url:                "/api/trackers/" + uuid.NewV4().String(),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createTrackerPayload,
 			jwtToken:           getValidAuthHeader(t, differentPrivatekey),
 		}, {
 			method:             http.MethodPut,
-			url:                "/api/trackers/12345",
+			url:                "/api/trackers/" + uuid.NewV4().String(),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createTrackerPayload,
@@ -137,28 +138,28 @@ func getTrackerTestData(t *testing.T) []testSecureAPI {
 		// Delete tracker API with different parameters
 		{
 			method:             http.MethodDelete,
-			url:                "/api/trackers/12345",
+			url:                "/api/trackers/" + uuid.NewV4().String(),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createTrackerPayload,
 			jwtToken:           getExpiredAuthHeader(t, privatekey),
 		}, {
 			method:             http.MethodDelete,
-			url:                "/api/trackers/12345",
+			url:                "/api/trackers/" + uuid.NewV4().String(),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createTrackerPayload,
 			jwtToken:           getMalformedAuthHeader(t, privatekey),
 		}, {
 			method:             http.MethodDelete,
-			url:                "/api/trackers/12345",
+			url:                "/api/trackers/" + uuid.NewV4().String(),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createTrackerPayload,
 			jwtToken:           getValidAuthHeader(t, differentPrivatekey),
 		}, {
 			method:             http.MethodDelete,
-			url:                "/api/trackers/12345",
+			url:                "/api/trackers/" + uuid.NewV4().String(),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createTrackerPayload,
@@ -168,7 +169,7 @@ func getTrackerTestData(t *testing.T) []testSecureAPI {
 		// We do not have security on GET hence this should return 404 not found
 		{
 			method:             http.MethodGet,
-			url:                "/api/trackers/088481764871",
+			url:                "/api/trackers/" + uuid.NewV4().String(),
 			expectedStatusCode: http.StatusNotFound,
 			expectedErrorCode:  jsonapi.ErrorCodeNotFound,
 			payload:            nil,
@@ -212,7 +213,7 @@ func (rest *TestTrackerREST) TestUpdateTracker() {
 	}
 
 	_, result := test.CreateTrackerCreated(t, svc.Context, svc, ctrl, &payload)
-	_, tr := test.ShowTrackerOK(t, svc.Context, svc, ctrl, result.Data.ID.String())
+	_, tr := test.ShowTrackerOK(t, svc.Context, svc, ctrl, *result.Data.ID)
 	assert.NotNil(rest.T(), tr)
 	assert.Equal(rest.T(), result.Data.ID, tr.Data.ID)
 
@@ -279,7 +280,7 @@ func (rest *TestTrackerREST) TestCreateTrackerValidId() {
 		},
 	}
 	_, tracker := test.CreateTrackerCreated(t, svc.Context, svc, ctrl, &payload)
-	_, created := test.ShowTrackerOK(t, svc.Context, svc, ctrl, tracker.Data.ID.String())
+	_, created := test.ShowTrackerOK(t, svc.Context, svc, ctrl, *tracker.Data.ID)
 	require.NotNil(t, created.Data)
 	require.Equal(t, *tracker.Data.ID, *created.Data.ID)
 }

@@ -75,7 +75,7 @@ var _ = a.Resource("tracker", func() {
 		)
 		a.Description("Retrieve tracker configuration for the given id.")
 		a.Params(func() {
-			a.Param("id", d.String, "id")
+			a.Param("id", d.UUID, "id")
 		})
 		a.Response(d.OK, trackerSingle)
 		a.Response(d.NotModified)
@@ -107,7 +107,7 @@ var _ = a.Resource("tracker", func() {
 		)
 		a.Description("Delete tracker configuration.")
 		a.Params(func() {
-			a.Param("id", d.String, "id")
+			a.Param("id", d.UUID, "id")
 		})
 		a.Response(d.NoContent)
 		a.Response(d.BadRequest, JSONAPIErrors)
