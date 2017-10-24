@@ -119,9 +119,18 @@ func (c *expressionCompiler) Or(a *criteria.OrExpression) interface{} {
 
 func (c *expressionCompiler) Equals(e *criteria.EqualsExpression) interface{} {
 	if isInJSONContext(e.Left()) {
+		if e.Substring {
+			l := e.Left().(*criteria.FieldExpression).FieldName
+			r := e.Right().(*criteria.LiteralExpression).Value.(string)
+			return "Fields->>'" + l + "' ILIKE '%" + r + "%'"
+		}
 		return c.binary(e, ":")
 	}
-	return c.binary(e, "=")
+	op := "="
+	if e.Substring {
+		op = "ILIKE"
+	}
+	return c.binary(e, op)
 }
 
 func (c *expressionCompiler) IsNull(e *criteria.IsNullExpression) interface{} {

@@ -172,12 +172,12 @@ func (c *WorkitemsController) List(ctx *app.ListWorkitemsContext) error {
 			additionalQuery = append(additionalQuery, "filter[assignee]=none")
 
 		} else {
-			exp = criteria.And(exp, criteria.Equals(criteria.Field("system.assignees"), criteria.Literal([]string{*ctx.FilterAssignee})))
+			exp = criteria.And(exp, criteria.Equals(criteria.Field("system.assignees"), criteria.Literal([]string{*ctx.FilterAssignee}), false))
 			additionalQuery = append(additionalQuery, "filter[assignee]="+*ctx.FilterAssignee)
 		}
 	}
 	if ctx.FilterIteration != nil {
-		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemIteration), criteria.Literal(string(*ctx.FilterIteration))))
+		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemIteration), criteria.Literal(string(*ctx.FilterIteration)), false))
 		additionalQuery = append(additionalQuery, "filter[iteration]="+*ctx.FilterIteration)
 		// Update filter by adding child iterations if any
 		application.Transactional(c.db, func(tx application.Application) error {
@@ -191,22 +191,22 @@ func (c *WorkitemsController) List(ctx *app.ListWorkitemsContext) error {
 			}
 			for _, child := range childrens {
 				childIDStr := child.ID.String()
-				exp = criteria.Or(exp, criteria.Equals(criteria.Field(workitem.SystemIteration), criteria.Literal(childIDStr)))
+				exp = criteria.Or(exp, criteria.Equals(criteria.Field(workitem.SystemIteration), criteria.Literal(childIDStr), false))
 				additionalQuery = append(additionalQuery, "filter[iteration]="+childIDStr)
 			}
 			return nil
 		})
 	}
 	if ctx.FilterWorkitemtype != nil {
-		exp = criteria.And(exp, criteria.Equals(criteria.Field("Type"), criteria.Literal([]uuid.UUID{*ctx.FilterWorkitemtype})))
+		exp = criteria.And(exp, criteria.Equals(criteria.Field("Type"), criteria.Literal([]uuid.UUID{*ctx.FilterWorkitemtype}), false))
 		additionalQuery = append(additionalQuery, "filter[workitemtype]="+ctx.FilterWorkitemtype.String())
 	}
 	if ctx.FilterArea != nil {
-		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemArea), criteria.Literal(string(*ctx.FilterArea))))
+		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemArea), criteria.Literal(string(*ctx.FilterArea)), false))
 		additionalQuery = append(additionalQuery, "filter[area]="+*ctx.FilterArea)
 	}
 	if ctx.FilterWorkitemstate != nil {
-		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemState), criteria.Literal(string(*ctx.FilterWorkitemstate))))
+		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemState), criteria.Literal(string(*ctx.FilterWorkitemstate)), false))
 		additionalQuery = append(additionalQuery, "filter[workitemstate]="+*ctx.FilterWorkitemstate)
 	}
 	if ctx.FilterParentexists != nil {

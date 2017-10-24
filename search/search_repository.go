@@ -270,7 +270,12 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 			q.Value = &s
 		case bool:
 			s := concreteVal
-			q.Negate = s
+			switch strings.ToLower(key) {
+			case "negate":
+				q.Negate = s
+			case "substring":
+				q.Substring = s
+			}
 		case nil:
 			q.Name = key
 			q.Value = nil
@@ -327,6 +332,9 @@ type Query struct {
 	// check for inequality. When Name is an operator, the Negate field has no
 	// effect.
 	Negate bool
+	// If Substring is true, instead of exact match, anything that matches partially
+	// will be considered.
+	Substring bool
 	// A Query is expected to have child queries only if the Name field contains
 	// an operator like "$AND", or "$OR". If the Name is not an operator, the
 	// Children slice MUST be empty.
@@ -341,6 +349,7 @@ var searchKeyMap = map[string]string{
 	"area":         workitem.SystemArea,
 	"iteration":    workitem.SystemIteration,
 	"assignee":     workitem.SystemAssignees,
+	"title":        workitem.SystemTitle,
 	"creator":      workitem.SystemCreator,
 	"label":        workitem.SystemLabels,
 	"state":        workitem.SystemState,
@@ -382,7 +391,7 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 			if q.Negate {
 				myexpr = append(myexpr, criteria.Not(left, right))
 			} else {
-				myexpr = append(myexpr, criteria.Equals(left, right))
+				myexpr = append(myexpr, criteria.Equals(left, right, q.Substring))
 			}
 		} else {
 			if q.Negate {
@@ -411,7 +420,7 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 				if child.Negate {
 					myexpr = append(myexpr, criteria.Not(left, right))
 				} else {
-					myexpr = append(myexpr, criteria.Equals(left, right))
+					myexpr = append(myexpr, criteria.Equals(left, right, child.Substring))
 				}
 			} else {
 				if child.Negate {
@@ -624,7 +633,7 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 				AND wil.deleted_at IS NULL)`, link.TypeParentOf)
 	}
 
-	db := r.db.Model(&workitem.WorkItemStorage{}).Where(where, parameters...)
+	db := r.db.Debug().Model(&workitem.WorkItemStorage{}).Where(where, parameters...)
 	orgDB := db
 	if start != nil {
 		if *start < 0 {

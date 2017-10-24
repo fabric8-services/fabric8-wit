@@ -43,13 +43,13 @@ func (c *PlannerBacklogController) List(ctx *app.ListPlannerBacklogContext) erro
 		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("could not parse filter", err))
 	}
 	if ctx.FilterAssignee != nil {
-		exp = criteria.And(exp, criteria.Equals(criteria.Field("system.assignees"), criteria.Literal([]string{*ctx.FilterAssignee})))
+		exp = criteria.And(exp, criteria.Equals(criteria.Field("system.assignees"), criteria.Literal([]string{*ctx.FilterAssignee}), false))
 	}
 	if ctx.FilterWorkitemtype != nil {
-		exp = criteria.And(exp, criteria.Equals(criteria.Field("Type"), criteria.Literal([]uuid.UUID{*ctx.FilterWorkitemtype})))
+		exp = criteria.And(exp, criteria.Equals(criteria.Field("Type"), criteria.Literal([]uuid.UUID{*ctx.FilterWorkitemtype}), false))
 	}
 	if ctx.FilterArea != nil {
-		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemArea), criteria.Literal(string(*ctx.FilterArea))))
+		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemArea), criteria.Literal(string(*ctx.FilterArea)), false))
 	}
 
 	// Get the list of work items for the following criteria
@@ -83,7 +83,7 @@ func generateBacklogExpression(ctx context.Context, db application.DB, spaceID u
 		if err != nil {
 			return errs.Wrap(err, "unable to fetch root iteration")
 		}
-		exp = criteria.Equals(criteria.Field(workitem.SystemIteration), criteria.Literal(iteration.ID.String()))
+		exp = criteria.Equals(criteria.Field(workitem.SystemIteration), criteria.Literal(iteration.ID.String()), false)
 
 		// Get the list of work item types that derive of PlannerItem in the space
 		var expWits criteria.Expression
@@ -92,10 +92,10 @@ func generateBacklogExpression(ctx context.Context, db application.DB, spaceID u
 			return errs.Wrap(err, "unable to fetch work item types that derive from planner item")
 		}
 		if len(wits) >= 1 {
-			expWits = criteria.Equals(criteria.Field("Type"), criteria.Literal(wits[0].ID.String()))
+			expWits = criteria.Equals(criteria.Field("Type"), criteria.Literal(wits[0].ID.String()), false)
 			for _, wit := range wits[1:] {
 				witIDStr := wit.ID.String()
-				expWits = criteria.Or(expWits, criteria.Equals(criteria.Field("Type"), criteria.Literal(witIDStr)))
+				expWits = criteria.Or(expWits, criteria.Equals(criteria.Field("Type"), criteria.Literal(witIDStr), false))
 			}
 			exp = criteria.And(exp, expWits)
 		}

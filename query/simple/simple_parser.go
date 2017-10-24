@@ -24,7 +24,7 @@ func Parse(exp *string) (Expression, error) {
 	var result *Expression
 	if len(unmarshalled) > 0 {
 		for key, value := range unmarshalled {
-			current := Equals(Field(key), Literal(value))
+			current := Equals(Field(key), Literal(value), false)
 			if result == nil {
 				result = &current
 			} else {
