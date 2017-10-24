@@ -944,6 +944,9 @@ func (rest *TestIterationREST) TestIterationDelete() {
 	// |___________Iteration 4 (2 WI)
 	//                     |___________Iteration 5 (3 WI)
 	// then deletes iteration1 & iteration5 to verify the effect
+	// When iteration1 is deleted, iteration2 & iteration3 should also get deleted
+	// and 15 WIs should be moved to root iteration
+	// when iteration5 is deleted, only 3 WIs should be moved to iteration4
 	rest.T().Run("success - verify that workitems are updated correctly", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, rest.DB,
 			tf.Iterations(6,

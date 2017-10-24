@@ -252,14 +252,15 @@ func (c *IterationController) Delete(ctx *app.DeleteIterationContext) error {
 				"space_id":     s.ID,
 				"space_owner":  s.OwnerId,
 				"current_user": *currentUser,
-			}, "user is not the space owner")
+			}, "only the space owner can delete an iteration and %s is not the space owner of %s",
+				*currentUser, s.ID)
 			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the space owner"))
 		}
 		if itr.IsRoot(s.ID) {
 			log.Warn(ctx, map[string]interface{}{
 				"space_id":     s.ID,
 				"iteration_id": itr.ID,
-			}, "can not delete root iteration")
+			}, "cannot delete root iteration")
 			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("can not delete root iteration"))
 		}
 		subtree, err := appl.Iterations().LoadChildren(ctx, ctx.IterationID)
@@ -276,7 +277,7 @@ func (c *IterationController) Delete(ctx *app.DeleteIterationContext) error {
 			log.Error(ctx, map[string]interface{}{
 				"iteration_id": parentID,
 				"err":          err.Error(),
-			}, "unable to load iteration")
+			}, "unable to load parent iteration of iteration %s", parentID)
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		// delete all children along with given iteration
@@ -289,7 +290,7 @@ func (c *IterationController) Delete(ctx *app.DeleteIterationContext) error {
 			}
 			// update iteration on all associated work items
 			for _, wi := range wis {
-				// move WI to root iteration
+				// move WI to parent iteration
 				wi.Fields[workitem.SystemIteration] = parentIteration.ID.String()
 				_, err = appl.WorkItems().Save(ctx, wi.SpaceID, *wi, *currentUser)
 				if err != nil {
