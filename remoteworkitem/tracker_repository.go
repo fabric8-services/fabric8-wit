@@ -72,6 +72,7 @@ func (r *GormTrackerRepository) Load(ctx context.Context, ID uuid.UUID) (*Tracke
 	tx := r.db.Where("id = ?", ID).Find(&res)
 	if tx.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
+			"err":        tx.Error,
 			"tracker_id": ID,
 		}, "tracker repository not found")
 		return nil, errors.NewNotFoundError("tracker", ID.String())
@@ -110,6 +111,7 @@ func (r *GormTrackerRepository) Save(ctx context.Context, t *Tracker) (*Tracker,
 	tx := r.db.Where("id = ?", t.ID).Find(&res)
 	if tx.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
+			"err":        tx.Error,
 			"tracker_id": t.ID,
 		}, "tracker repository not found")
 		return nil, errors.NewNotFoundError("tracker", t.ID.String())
@@ -136,6 +138,7 @@ func (r *GormTrackerRepository) Delete(ctx context.Context, ID uuid.UUID) error 
 	defer goa.MeasureSince([]string{"goa", "db", "tracker", "delete"}, time.Now())
 	if ID == uuid.Nil {
 		log.Error(ctx, map[string]interface{}{
+			"err":        errors.NewNotFoundError("tracker", ID.String()),
 			"tracker_id": ID.String(),
 		}, "unable to find the tracker by ID")
 		return errors.NewNotFoundError("tracker", ID.String())
@@ -144,12 +147,14 @@ func (r *GormTrackerRepository) Delete(ctx context.Context, ID uuid.UUID) error 
 	tx := r.db.Delete(t)
 	if err := tx.Error; err != nil {
 		log.Error(ctx, map[string]interface{}{
+			"err":        err,
 			"tracker_id": ID.String(),
 		}, "unable to delete the space")
 		return errors.NewInternalError(ctx, err)
 	}
 	if tx.RowsAffected == 0 {
 		log.Error(ctx, map[string]interface{}{
+			"err":      tx.Error,
 			"space_id": ID.String(),
 		}, "none row was affected by the deletion operation")
 		return errors.NewNotFoundError("space", ID.String())

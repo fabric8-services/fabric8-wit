@@ -50,6 +50,7 @@ func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, s
 	tx := r.db
 	if err := tx.Create(&tq).Error; err != nil {
 		log.Error(ctx, map[string]interface{}{
+			"err":           err,
 			"tracker_id":    trackerID.String(),
 			"tracker_query": query,
 		}, "unable to create the tracker query")
@@ -131,6 +132,7 @@ func (r *GormTrackerQueryRepository) Save(ctx context.Context, tq app.TrackerQue
 	tx := r.db.First(&res, id)
 	if tx.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
+			"err":        err,
 			"tracker_id": id,
 		}, "tracker query not found")
 
@@ -143,6 +145,7 @@ func (r *GormTrackerQueryRepository) Save(ctx context.Context, tq app.TrackerQue
 	tx = r.db.First(&Tracker{}, tq.TrackerID)
 	if tx.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
+			"err":        err,
 			"tracker_id": id,
 		}, "tracker ID not found")
 		return nil, NotFoundError{entity: "tracker", ID: tq.TrackerID.String()}
@@ -161,9 +164,9 @@ func (r *GormTrackerQueryRepository) Save(ctx context.Context, tq app.TrackerQue
 
 	if err := tx.Save(&newTq).Error; err != nil {
 		log.Error(ctx, map[string]interface{}{
+			"err":           err,
 			"tracker_query": tq.Query,
 			"tracker_id":    tq.TrackerID,
-			"err":           err,
 		}, "unable to save the tracker query")
 		return nil, InternalError{simpleError{err.Error()}}
 	}
