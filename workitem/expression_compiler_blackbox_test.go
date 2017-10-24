@@ -14,9 +14,9 @@ import (
 func TestField(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
-	expect(t, Equals(Field("foo.bar"), Literal(23)), "(Fields@>'{\"foo.bar\" : 23}')", []interface{}{})
-	expect(t, Equals(Field("foo"), Literal(23)), "(foo = ?)", []interface{}{23})
-	expect(t, Equals(Field("Type"), Literal("abcd")), "(type = ?)", []interface{}{"abcd"})
+	expect(t, Equals(Field("foo.bar"), Literal(23), false), "(Fields@>'{\"foo.bar\" : 23}')", []interface{}{})
+	expect(t, Equals(Field("foo"), Literal(23), false), "(foo = ?)", []interface{}{23})
+	expect(t, Equals(Field("Type"), Literal("abcd"), false), "(type = ?)", []interface{}{"abcd"})
 	expect(t, Not(Field("Type"), Literal("abcd")), "(type != ?)", []interface{}{"abcd"})
 	expect(t, Not(Field("Version"), Literal("abcd")), "(version != ?)", []interface{}{"abcd"})
 	expect(t, Not(Field("Number"), Literal("abcd")), "(number != ?)", []interface{}{"abcd"})
@@ -29,8 +29,8 @@ func TestAndOr(t *testing.T) {
 	expect(t, Or(Literal(true), Literal(false)), "(? or ?)", []interface{}{true, false})
 
 	expect(t, And(Not(Field("foo.bar"), Literal("abcd")), Not(Literal(true), Literal(false))), "(NOT (Fields@>'{\"foo.bar\" : \"abcd\"}') and (? != ?))", []interface{}{true, false})
-	expect(t, And(Equals(Field("foo.bar"), Literal("abcd")), Equals(Literal(true), Literal(false))), "((Fields@>'{\"foo.bar\" : \"abcd\"}') and (? = ?))", []interface{}{true, false})
-	expect(t, Or(Equals(Field("foo.bar"), Literal("abcd")), Equals(Literal(true), Literal(false))), "((Fields@>'{\"foo.bar\" : \"abcd\"}') or (? = ?))", []interface{}{true, false})
+	expect(t, And(Equals(Field("foo.bar"), Literal("abcd"), false), Equals(Literal(true), Literal(false), false)), "((Fields@>'{\"foo.bar\" : \"abcd\"}') and (? = ?))", []interface{}{true, false})
+	expect(t, Or(Equals(Field("foo.bar"), Literal("abcd"), false), Equals(Literal(true), Literal(false), false)), "((Fields@>'{\"foo.bar\" : \"abcd\"}') or (? = ?))", []interface{}{true, false})
 }
 
 func TestIsNull(t *testing.T) {
@@ -64,7 +64,7 @@ func expect(t *testing.T, expr Expression, expectedClause string, expectedParame
 func TestArray(t *testing.T) {
 	assignees := []string{"1", "2", "3"}
 
-	exp := Equals(Field("system.assignees"), Literal(assignees))
+	exp := Equals(Field("system.assignees"), Literal(assignees), false)
 	where, _, _ := Compile(exp)
 
 	assert.Equal(t, "(Fields@>'{\"system.assignees\" : [\"1\",\"2\",\"3\"]}')", where)

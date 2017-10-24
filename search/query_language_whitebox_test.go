@@ -214,6 +214,7 @@ func TestGenerateExpression(t *testing.T) {
 		expectedExpr := c.Equals(
 			c.Field("SpaceID"),
 			c.Literal(spaceName),
+			false,
 		)
 		expectEqualExpr(t, expectedExpr, actualExpr)
 	})
@@ -251,10 +252,12 @@ func TestGenerateExpression(t *testing.T) {
 			c.Equals(
 				c.Field("SpaceID"),
 				c.Literal(spaceName),
+				false,
 			),
 			c.Equals(
 				c.Field("system.state"),
 				c.Literal(statusName),
+				false,
 			),
 		)
 		expectEqualExpr(t, expectedExpr, actualExpr)
@@ -279,10 +282,12 @@ func TestGenerateExpression(t *testing.T) {
 			c.Equals(
 				c.Field("SpaceID"),
 				c.Literal(spaceName),
+				false,
 			),
 			c.Equals(
 				c.Field("system.state"),
 				c.Literal(statusName),
+				false,
 			),
 		)
 		expectEqualExpr(t, expectedExpr, actualExpr)
@@ -311,6 +316,7 @@ func TestGenerateExpression(t *testing.T) {
 			c.Equals(
 				c.Field("system.state"),
 				c.Literal(statusName),
+				false,
 			),
 		)
 		expectEqualExpr(t, expectedExpr, actualExpr)
@@ -334,6 +340,7 @@ func TestGenerateExpression(t *testing.T) {
 			c.Equals(
 				c.Field("SpaceID"),
 				c.Literal(spaceName),
+				false,
 			),
 
 			c.IsNull("system.assignees"),
