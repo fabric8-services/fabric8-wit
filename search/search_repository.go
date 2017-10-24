@@ -633,7 +633,7 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 				AND wil.deleted_at IS NULL)`, link.TypeParentOf)
 	}
 
-	db := r.db.Debug().Model(&workitem.WorkItemStorage{}).Where(where, parameters...)
+	db := r.db.Model(&workitem.WorkItemStorage{}).Where(where, parameters...)
 	orgDB := db
 	if start != nil {
 		if *start < 0 {
