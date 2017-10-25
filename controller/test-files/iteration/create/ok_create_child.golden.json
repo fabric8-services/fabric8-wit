@@ -3,44 +3,45 @@
     "attributes": {
       "active_status": false,
       "created-at": "0001-01-01T00:00:00Z",
+      "description": "Some description",
       "endAt": "2017-11-25T15:08:41Z",
       "name": "Sprint #21",
-      "parent_path": "/21f13a95-bbd7-4e06-b049-cc773543c459/55a663e6-d605-4b3c-aa2a-4b674db7d0bb",
+      "parent_path": "/e6a4dd3b-f086-43e8-9acd-121f3d269c30/3caa683e-7392-4909-a82a-5c04b0f46c69",
       "resolved_parent_path": "/root iteration/child iteration",
       "startAt": "2017-11-04T15:08:41Z",
       "state": "new",
       "updated-at": "0001-01-01T00:00:00Z",
       "user_active": false
     },
-    "id": "cbead8f0-b4ea-440a-b091-7a4bb8093565",
+    "id": "4533dd4e-0c67-4cc6-8dfa-94e6b6c9e26c",
     "links": {
-      "related": "http:///api/iterations/cbead8f0-b4ea-440a-b091-7a4bb8093565",
-      "self": "http:///api/iterations/cbead8f0-b4ea-440a-b091-7a4bb8093565"
+      "related": "http:///api/iterations/4533dd4e-0c67-4cc6-8dfa-94e6b6c9e26c",
+      "self": "http:///api/iterations/4533dd4e-0c67-4cc6-8dfa-94e6b6c9e26c"
     },
     "relationships": {
       "parent": {
         "data": {
-          "id": "55a663e6-d605-4b3c-aa2a-4b674db7d0bb",
+          "id": "3caa683e-7392-4909-a82a-5c04b0f46c69",
           "type": "iterations"
         },
         "links": {
-          "related": "http:///api/iterations/55a663e6-d605-4b3c-aa2a-4b674db7d0bb",
-          "self": "http:///api/iterations/55a663e6-d605-4b3c-aa2a-4b674db7d0bb"
+          "related": "http:///api/iterations/3caa683e-7392-4909-a82a-5c04b0f46c69",
+          "self": "http:///api/iterations/3caa683e-7392-4909-a82a-5c04b0f46c69"
         }
       },
       "space": {
         "data": {
-          "id": "0f41fe7b-f644-4884-b8c7-99f18db64598",
+          "id": "826db44e-142b-4796-8140-54a4aef7759e",
           "type": "spaces"
         },
         "links": {
-          "related": "http:///api/spaces/0f41fe7b-f644-4884-b8c7-99f18db64598",
-          "self": "http:///api/spaces/0f41fe7b-f644-4884-b8c7-99f18db64598"
+          "related": "http:///api/spaces/826db44e-142b-4796-8140-54a4aef7759e",
+          "self": "http:///api/spaces/826db44e-142b-4796-8140-54a4aef7759e"
         }
       },
       "workitems": {
         "links": {
-          "related": "http:///api/workitems/?filter[iteration]=cbead8f0-b4ea-440a-b091-7a4bb8093565"
+          "related": "http:///api/workitems/?filter[iteration]=4533dd4e-0c67-4cc6-8dfa-94e6b6c9e26c"
         },
         "meta": {
           "closed": 0,

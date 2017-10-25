@@ -654,14 +654,15 @@ func getChildIterationPayload(name *string) *app.CreateChildIterationPayload {
 	end := start.Add(time.Hour * (24 * 8 * 3))
 
 	itType := iteration.APIStringTypeIteration
-
+	desc := "Some description"
 	return &app.CreateChildIterationPayload{
 		Data: &app.Iteration{
 			Type: itType,
 			Attributes: &app.IterationAttributes{
-				Name:    name,
-				StartAt: &start,
-				EndAt:   &end,
+				Name:        name,
+				Description: &desc,
+				StartAt:     &start,
+				EndAt:       &end,
 			},
 		},
 	}
