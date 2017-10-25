@@ -15,6 +15,11 @@ UPDATE work_item_links SET link_type_id = current_setting('linktypes.bug_blocker
 UPDATE work_item_links SET link_type_id = current_setting('linktypes.related')::uuid WHERE link_type_id = current_setting('linktypes.unknown_related')::uuid;
 UPDATE work_item_links SET link_type_id = current_setting('linktypes.parenting')::uuid WHERE link_type_id = current_setting('linktypes.unknown_parenting')::uuid;
 
+-- Update link revisions
+UPDATE work_item_link_revisions SET work_item_link_type_id = current_setting('linktypes.bug_blocker')::uuid WHERE work_item_link_type_id = current_setting('linktypes.unknown_bug_blocker')::uuid;
+UPDATE work_item_link_revisions SET work_item_link_type_id = current_setting('linktypes.related')::uuid WHERE work_item_link_type_id = current_setting('linktypes.unknown_related')::uuid;
+UPDATE work_item_link_revisions SET work_item_link_type_id = current_setting('linktypes.parenting')::uuid WHERE work_item_link_type_id = current_setting('linktypes.unknown_parenting')::uuid;
+
 -- Remove unknown link types
 DELETE FROM work_item_link_types WHERE id IN (
     current_setting('linktypes.unknown_bug_blocker')::uuid,
