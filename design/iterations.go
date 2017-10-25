@@ -126,6 +126,22 @@ var _ = a.Resource("iteration", func() {
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.Forbidden, JSONAPIErrors)
 	})
+	a.Action("delete", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.DELETE("/:iterationID"),
+		)
+		a.Description("delete the iteration for the given id.")
+		a.Params(func() {
+			a.Param("iterationID", d.UUID, "ID of an iteration to delete")
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.Forbidden, JSONAPIErrors)
+		a.Response(d.NoContent)
+	})
 })
 
 // new version of "list" for migration

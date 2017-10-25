@@ -473,7 +473,7 @@ func (r *GormWorkItemLinkRepository) GetParentID(ctx context.Context, ID uuid.UU
 		workitem.WorkItemStorage{}.TableName(),
 		WorkItemLink{}.TableName(),
 		WorkItemLinkType{}.TableName(),
-		TopologyNetwork)
+		TopologyTree)
 	var parentID uuid.UUID
 	db := r.db.CommonDB()
 	err := db.QueryRow(query, ID.String()).Scan(&parentID)
