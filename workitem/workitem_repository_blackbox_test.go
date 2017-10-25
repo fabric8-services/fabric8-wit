@@ -366,6 +366,36 @@ func (s *workItemRepoBlackBoxTest) TestLookupIDByNamedSpaceAndNumberStaleSpace()
 	assert.Equal(s.T(), wi2.SpaceID, *spaceID2)
 }
 
+// TestLoadByIteration verifies that repo.LoadByIteration returns only associated items
+func (s *workItemRepoBlackBoxTest) TestLoadByIteration() {
+	fxt := tf.NewTestFixture(s.T(), s.DB,
+		tf.Iterations(3, tf.SetIterationNames("root", "one", "two")),
+		tf.WorkItems(5, func(fxt *tf.TestFixture, idx int) error {
+			wi := fxt.WorkItems[idx]
+			if idx < 3 {
+				wi.Fields[workitem.SystemIteration] = fxt.IterationByName("one").ID.String()
+			} else {
+				// set root iteration to WI
+				wi.Fields[workitem.SystemIteration] = fxt.IterationByName("root").ID.String()
+			}
+			return nil
+		}))
+	// Fetch work items for root iteration - should be 2
+	wiInRootIteration, err := s.repo.LoadByIteration(s.Ctx, fxt.IterationByName("root").ID) // pass duplicate IDs to fetch
+	require.Nil(s.T(), err)
+	assert.Len(s.T(), wiInRootIteration, 2)
+
+	// Fetch work items for "one"" iteration - should be 3
+	wiInOneIteration, err := s.repo.LoadByIteration(s.Ctx, fxt.IterationByName("one").ID) // pass duplicate IDs to fetch
+	require.Nil(s.T(), err)
+	assert.Len(s.T(), wiInOneIteration, 3)
+
+	// Fetch work items for "two" iteration - should be 0
+	wiInTwoIteration, err := s.repo.LoadByIteration(s.Ctx, fxt.IterationByName("two").ID) // pass duplicate IDs to fetch
+	require.Nil(s.T(), err)
+	assert.Empty(s.T(), wiInTwoIteration)
+}
+
 func (s *workItemRepoBlackBoxTest) TestConcurrentWorkItemCreations() {
 	// given
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment())
