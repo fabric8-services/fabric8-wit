@@ -85,6 +85,7 @@ func (rest *TestIterationREST) TestSuccessCreateChildIteration() {
 	require.NotNil(rest.T(), created)
 	assertChildIterationLinking(rest.T(), created.Data)
 	assert.Equal(rest.T(), *ci.Data.Attributes.Name, *created.Data.Attributes.Name)
+	assert.Equal(rest.T(), *ci.Data.Attributes.Description, *created.Data.Attributes.Description)
 	expectedParentPath := parent.Path.String() + path.SepInService + parentID.String()
 	expectedResolvedParentPath := path.SepInService + ri.Name + path.SepInService + parent.Name
 	assert.Equal(rest.T(), expectedParentPath, *created.Data.Attributes.ParentPath)
@@ -659,14 +660,15 @@ func getChildIterationPayload(name *string) *app.CreateChildIterationPayload {
 	end := start.Add(time.Hour * (24 * 8 * 3))
 
 	itType := iteration.APIStringTypeIteration
-
+	desc := "Some description"
 	return &app.CreateChildIterationPayload{
 		Data: &app.Iteration{
 			Type: itType,
 			Attributes: &app.IterationAttributes{
-				Name:    name,
-				StartAt: &start,
-				EndAt:   &end,
+				Name:        name,
+				Description: &desc,
+				StartAt:     &start,
+				EndAt:       &end,
 			},
 		},
 	}
