@@ -778,14 +778,10 @@ func (rest *TestIterationREST) TestIterationDelete() {
 
 	rest.T().Run("success - delete one iteration", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, rest.DB,
+			tf.CreateWorkItemEnvironment(),
 			tf.Iterations(2,
 				tf.SetIterationNames("root iteration", "first iteration"),
-				func(fxt *tf.TestFixture, idx int) error {
-					if idx == 1 {
-						fxt.Iterations[idx].MakeChildOf(*fxt.Iterations[0])
-					}
-					return nil
-				}))
+			))
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 		iterationToDelete := fxt.IterationByName("first iteration")
 		test.DeleteIterationNoContent(t, svc.Context, svc, ctrl, iterationToDelete.ID)
@@ -994,6 +990,21 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		require.Nil(t, err)
 		assert.Len(t, wis, 15)
 
+		// verify included objects
+		var mustHave = make(map[uuid.UUID]struct{}, 15)
+		for i, wi := range fxt.WorkItems {
+			if i < 15 {
+				mustHave[wi.ID] = struct{}{}
+			}
+		}
+		assert.NotEmpty(t, mustHave)
+		for _, itr := range wis {
+			if _, ok := mustHave[itr.ID]; ok {
+				delete(mustHave, itr.ID)
+			}
+		}
+		assert.Empty(t, mustHave)
+
 		iterationToDelete = fxt.Iterations[5]
 		test.DeleteIterationNoContent(t, svc.Context, svc, ctrl, iterationToDelete.ID)
 		wis, err = rest.db.WorkItems().LoadByIteration(svc.Context, iterationToDelete.ID)
@@ -1005,10 +1016,40 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		require.Nil(t, err)
 		assert.Len(t, wis, 2+3)
 
+		// verify included objects
+		mustHave = make(map[uuid.UUID]struct{}, 5)
+		for i, wi := range fxt.WorkItems {
+			if i >= 15 {
+				mustHave[wi.ID] = struct{}{}
+			}
+		}
+		assert.NotEmpty(t, mustHave)
+		for _, itr := range wis {
+			if _, ok := mustHave[itr.ID]; ok {
+				delete(mustHave, itr.ID)
+			}
+		}
+		assert.Empty(t, mustHave)
+
 		// Verify that no more WIs are moved to Root iteration
 		wis, err = rest.db.WorkItems().LoadByIteration(svc.Context, fxt.Iterations[0].ID)
 		require.Nil(t, err)
 		assert.Len(t, wis, 15)
+
+		// verify included objects
+		mustHave = make(map[uuid.UUID]struct{}, 15)
+		for i, wi := range fxt.WorkItems {
+			if i < 15 {
+				mustHave[wi.ID] = struct{}{}
+			}
+		}
+		assert.NotEmpty(t, mustHave)
+		for _, itr := range wis {
+			if _, ok := mustHave[itr.ID]; ok {
+				delete(mustHave, itr.ID)
+			}
+		}
+		assert.Empty(t, mustHave)
 
 		// verify that child iterations are deleted as well
 		deletedIterations := []*iteration.Iteration{
