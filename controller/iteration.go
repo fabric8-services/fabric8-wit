@@ -248,13 +248,14 @@ func (c *IterationController) Delete(ctx *app.DeleteIterationContext) error {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
 		if !uuid.Equal(*currentUser, s.OwnerId) {
+			errorMsg := fmt.Sprintf("only the space owner can delete an iteration and %s is not the space owner of %s",
+				*currentUser, s.ID)
 			log.Warn(ctx, map[string]interface{}{
 				"space_id":     s.ID,
 				"space_owner":  s.OwnerId,
 				"current_user": *currentUser,
-			}, "only the space owner can delete an iteration and %s is not the space owner of %s",
-				*currentUser, s.ID)
-			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the space owner"))
+			}, errorMsg)
+			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError(errorMsg))
 		}
 		if itr.IsRoot(s.ID) {
 			log.Warn(ctx, map[string]interface{}{

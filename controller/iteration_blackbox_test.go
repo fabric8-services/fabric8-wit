@@ -941,10 +941,11 @@ func (rest *TestIterationREST) TestIterationDelete() {
 	// |                                |___________Iteration 3 (5 WI)
 	// |___________Iteration 4 (2 WI)
 	//                     |___________Iteration 5 (3 WI)
-	// then deletes iteration1 & iteration5 to verify the effect
-	// When iteration1 is deleted, iteration2 & iteration3 should also get deleted
-	// and 15 WIs should be moved to root iteration
-	// when iteration5 is deleted, only 3 WIs should be moved to iteration4
+
+	// then deletes iteration1 & iteration5 to verify the effect When iteration1
+	// is deleted, iteration2 & iteration3 should also get deleted and 15 WIs
+	// should be moved to root iteration when iteration5 is deleted, only 3 WIs
+	// should be moved to iteration4
 	rest.T().Run("success - verify that workitems are updated correctly", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, rest.DB,
 			tf.Iterations(6,
@@ -999,13 +1000,13 @@ func (rest *TestIterationREST) TestIterationDelete() {
 				mustHave[wi.ID] = struct{}{}
 			}
 		}
-		assert.NotEmpty(t, mustHave)
+		require.NotEmpty(t, mustHave)
 		for _, itr := range wis {
 			if _, ok := mustHave[itr.ID]; ok {
 				delete(mustHave, itr.ID)
 			}
 		}
-		assert.Empty(t, mustHave)
+		require.Empty(t, mustHave)
 
 		iterationToDelete = fxt.Iterations[5]
 		test.DeleteIterationNoContent(t, svc.Context, svc, ctrl, iterationToDelete.ID)
@@ -1025,13 +1026,13 @@ func (rest *TestIterationREST) TestIterationDelete() {
 				mustHave[wi.ID] = struct{}{}
 			}
 		}
-		assert.NotEmpty(t, mustHave)
+		require.NotEmpty(t, mustHave)
 		for _, itr := range wis {
 			if _, ok := mustHave[itr.ID]; ok {
 				delete(mustHave, itr.ID)
 			}
 		}
-		assert.Empty(t, mustHave)
+		require.Empty(t, mustHave)
 
 		// Verify that no more WIs are moved to Root iteration
 		wis, err = rest.db.WorkItems().LoadByIteration(svc.Context, fxt.Iterations[0].ID)
@@ -1045,13 +1046,13 @@ func (rest *TestIterationREST) TestIterationDelete() {
 				mustHave[wi.ID] = struct{}{}
 			}
 		}
-		assert.NotEmpty(t, mustHave)
+		require.NotEmpty(t, mustHave)
 		for _, itr := range wis {
 			if _, ok := mustHave[itr.ID]; ok {
 				delete(mustHave, itr.ID)
 			}
 		}
-		assert.Empty(t, mustHave)
+		require.Empty(t, mustHave)
 
 		// verify that child iterations are deleted as well
 		deletedIterations := []*iteration.Iteration{

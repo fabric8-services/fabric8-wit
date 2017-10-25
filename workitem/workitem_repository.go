@@ -991,7 +991,7 @@ func (r *GormWorkItemRepository) LoadByIteration(ctx context.Context, iterationI
 				"wi_id": ele.ID,
 				"err":   err,
 			}, "error in converting WI")
-			return nil, err
+			return nil, errs.Wrap(err, "error when converting WI")
 		}
 		workitems = append(workitems, convertedWI)
 	}
