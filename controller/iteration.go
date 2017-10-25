@@ -475,7 +475,7 @@ func updateIterationsWithCounts(wiCounts map[string]workitem.WICountsPerIteratio
 		if appIteration.Relationships.Workitems.Meta == nil {
 			appIteration.Relationships.Workitems.Meta = map[string]interface{}{}
 		}
-		appIteration.Relationships.Workitems.Meta["total"] = counts.Total
-		appIteration.Relationships.Workitems.Meta["closed"] = counts.Closed
+		appIteration.Relationships.Workitems.Meta[KeyTotalWorkItems] = counts.Total
+		appIteration.Relationships.Workitems.Meta[KeyClosedWorkItems] = counts.Closed
 	}
 }
