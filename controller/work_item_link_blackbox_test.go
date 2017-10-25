@@ -319,6 +319,38 @@ func (s *workItemLinkSuite) TestCreateAndDeleteWorkItemLink() {
 	_ = test.DeleteWorkItemLinkOK(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, *workItemLink.Data.ID)
 }
 
+func (s *workItemLinkSuite) TestDeleteOrUpdateWorkItemLinkByNotSpaceCollaboratorForbidden() {
+	collaborator, err := testsupport.CreateTestIdentity(s.DB, "test"+uuid.NewV4().String(), "test provider")
+	require.Nil(s.T(), err)
+	svc := testsupport.ServiceAsUser("TestWorkItem-Service", *collaborator)
+
+	createPayload := newCreateWorkItemLinkPayload(s.bug1ID, s.bug2ID, s.bugBlockerLinkTypeID)
+	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), svc.Context, svc, s.workItemLinkCtrl, createPayload)
+	require.NotNil(s.T(), workItemLink)
+
+	anotherTestIdentity, err := testsupport.CreateTestIdentity(s.DB, "test"+uuid.NewV4().String(), "test provider")
+	require.Nil(s.T(), err)
+	svc = testsupport.ServiceAsSpaceUser("TestWorkItem-Service", *anotherTestIdentity, &TestSpaceAuthzService{*collaborator, ""})
+	test.DeleteWorkItemLinkForbidden(s.T(), svc.Context, svc, s.workItemLinkCtrl, *workItemLink.Data.ID)
+
+	updateLinkPayload := newUpdateWorkItemLinkPayload(*workItemLink.Data.ID, s.bug1ID, s.bug3ID, s.bugBlockerLinkTypeID)
+	test.UpdateWorkItemLinkForbidden(s.T(), svc.Context, svc, s.workItemLinkCtrl, *workItemLink.Data.ID, updateLinkPayload)
+}
+
+func (s *workItemLinkSuite) TestDeleteOrUpdateWorkItemLinkBySpaceCollaboratorOK() {
+	collaborator, err := testsupport.CreateTestIdentity(s.DB, "test"+uuid.NewV4().String(), "test provider")
+	require.Nil(s.T(), err)
+	svc := testsupport.ServiceAsSpaceUser("TestWorkItem-Service", *collaborator, &TestSpaceAuthzService{*collaborator, ""})
+
+	createPayload := newCreateWorkItemLinkPayload(s.bug1ID, s.bug2ID, s.bugBlockerLinkTypeID)
+	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), svc.Context, svc, s.workItemLinkCtrl, createPayload)
+	require.NotNil(s.T(), workItemLink)
+
+	updateLinkPayload := newUpdateWorkItemLinkPayload(*workItemLink.Data.ID, s.bug1ID, s.bug3ID, s.bugBlockerLinkTypeID)
+	test.UpdateWorkItemLinkOK(s.T(), svc.Context, svc, s.workItemLinkCtrl, *workItemLink.Data.ID, updateLinkPayload)
+	test.DeleteWorkItemLinkOK(s.T(), svc.Context, svc, s.workItemLinkCtrl, *workItemLink.Data.ID)
+}
+
 // Check if #586 is fixed.
 func (s *workItemLinkSuite) TestCreateAndDeleteWorkItemLinkConflictDueToUniqueViolation() {
 	createPayload1 := newCreateWorkItemLinkPayload(s.bug1ID, s.bug2ID, s.bugBlockerLinkTypeID)

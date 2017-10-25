@@ -1,8 +1,8 @@
 package workitem
 
 import (
+	"math"
 	"reflect"
-	"strconv"
 	"time"
 
 	"github.com/asaskevich/govalidator"
@@ -59,8 +59,8 @@ func (t SimpleType) ConvertToModel(value interface{}) (interface{}, error) {
 			return nil, errs.Errorf("value %v should be %s, but is %s", value, "float64", valueType.Name())
 		}
 		return value, nil
-	case KindInteger, KindDuration:
-		if valueType.Kind() != reflect.Int {
+	case KindInteger, KindDuration: // NOTE: Duration is a typedef of int64
+		if valueType.Kind() != reflect.Int && valueType.Kind() != reflect.Int64 {
 			return nil, errs.Errorf("value %v should be %s, but is %s", value, "int", valueType.Name())
 		}
 		return value, nil
@@ -71,12 +71,6 @@ func (t SimpleType) ConvertToModel(value interface{}) (interface{}, error) {
 			return nil, errs.Errorf("value %v should be %s, but is %s", value, "time.Time", valueType.Name())
 		}
 		return value.(time.Time).UnixNano(), nil
-	case KindWorkitemReference:
-		if valueType.Kind() != reflect.String {
-			return nil, errs.Errorf("value %v should be %s, but is %s", value, "string", valueType.Name())
-		}
-		idValue, err := strconv.Atoi(value.(string))
-		return idValue, errs.WithStack(err)
 	case KindList:
 		if (valueType.Kind() != reflect.Array) && (valueType.Kind() != reflect.Slice) {
 			return nil, errs.Errorf("value %v should be %s, but is %s,", value, "array/slice", valueType.Kind())
@@ -91,6 +85,9 @@ func (t SimpleType) ConvertToModel(value interface{}) (interface{}, error) {
 		switch value.(type) {
 		case rendering.MarkupContent:
 			markupContent := value.(rendering.MarkupContent)
+			if !rendering.IsMarkupSupported(markupContent.Markup) {
+				return nil, errs.Errorf("value %v (type %s) has no valid markup type %s", value, "MarkupContent", markupContent.Markup)
+			}
 			return markupContent.ToMap(), nil
 		default:
 			return nil, errs.Errorf("value %v should be %s, but is %s", value, "MarkupContent", valueType)
@@ -99,10 +96,18 @@ func (t SimpleType) ConvertToModel(value interface{}) (interface{}, error) {
 		switch value.(type) {
 		case codebase.Content:
 			cb := value.(codebase.Content)
+			if err := cb.IsValid(); err != nil {
+				return nil, errs.Wrapf(err, "value %v (type %s) is invalid %s", value, "Codebase", cb)
+			}
 			return cb.ToMap(), nil
 		default:
 			return nil, errs.Errorf("value %v should be %s, but is %s", value, "CodebaseContent", valueType)
 		}
+	case KindBoolean:
+		if valueType.Kind() != reflect.Bool {
+			return nil, errs.Errorf("value %v should be %s, but is %s", value, "boolean", valueType.Name())
+		}
+		return value, nil
 	default:
 		return nil, errs.Errorf("unexpected type constant: '%s'", t.GetKind())
 	}
@@ -115,15 +120,28 @@ func (t SimpleType) ConvertFromModel(value interface{}) (interface{}, error) {
 	}
 	valueType := reflect.TypeOf(value)
 	switch t.GetKind() {
-	case KindString, KindURL, KindUser, KindInteger, KindFloat, KindDuration, KindIteration, KindArea, KindLabel:
+	case KindString, KindURL, KindUser, KindInteger, KindFloat, KindDuration, KindIteration, KindArea, KindLabel, KindBoolean:
 		return value, nil
 	case KindInstant:
-		return time.Unix(0, value.(int64)), nil
-	case KindWorkitemReference:
-		if valueType.Kind() != reflect.String {
-			return nil, errs.Errorf("value %v should be %s, but is %s", value, "string", valueType.Name())
+		switch valueType.Kind() {
+		case reflect.Float64:
+			v, ok := value.(float64)
+			if !ok {
+				return nil, errs.Errorf("value %v could not be converted into an %s", value, reflect.Float64)
+			}
+			if v != math.Trunc(v) {
+				return nil, errs.Errorf("value %v is not a whole number", value)
+			}
+			return time.Unix(0, int64(v)), nil
+		case reflect.Int64:
+			v, ok := value.(int64)
+			if !ok {
+				return nil, errs.Errorf("value %v could not be converted into an %s", value, reflect.Int64)
+			}
+			return time.Unix(0, v), nil
+		default:
+			return nil, errs.Errorf("value %v must be either %s or %s but has an unknown type %s", value, reflect.Int64, reflect.Float64, valueType.Name())
 		}
-		return strconv.FormatUint(value.(uint64), 10), nil
 	case KindMarkup:
 		if valueType.Kind() != reflect.Map {
 			return nil, errs.Errorf("value %v should be %s, but is %s", value, reflect.Map, valueType.Name())

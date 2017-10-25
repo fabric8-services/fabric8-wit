@@ -705,6 +705,18 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 		assert.Len(t, result.Data, 3) // alice worked on 3 issues in sprint1
 	})
 
+	s.T().Run("space=spaceID AND creator=spaceowner", func(t *testing.T) {
+		filter := fmt.Sprintf(`
+				{"$AND": [
+					{"space":"%s"},
+					{"creator":"%s"}
+				]}`,
+			spaceIDStr, fxt.IdentityByUsername("spaceowner").ID.String())
+		_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(t, result.Data)
+		assert.Len(t, result.Data, 9) // we have 9 items created by spaceowner
+	})
+
 	s.T().Run("space=spaceID AND state!=closed AND iteration=sprint1 AND assignee=alice", func(t *testing.T) {
 		// Let's see non-closed issues alice working on from sprint1
 		filter := fmt.Sprintf(`
@@ -865,7 +877,7 @@ func (s *searchBlackBoxTest) TestIncludedParents() {
 	fixtures := tf.NewTestFixture(s.T(), s.DB,
 		tf.WorkItemLinkTypes(1, func(fxt *tf.TestFixture, idx int) error {
 			wilt := fxt.WorkItemLinkTypes[idx]
-			wilt.ForwardName = "parent of"
+			wilt.ForwardName = link.TypeParentOf
 			wilt.Topology = link.TopologyNetwork
 			return nil
 		}),

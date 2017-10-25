@@ -33,7 +33,6 @@ type IterationController struct {
 }
 
 // IterationControllerConfiguration configuration for the IterationController
-
 type IterationControllerConfiguration interface {
 	GetCacheControlIterations() string
 	GetCacheControlIteration() string
@@ -89,12 +88,13 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 		}
 
 		newItr := iteration.Iteration{
-			SpaceID:    parent.SpaceID,
-			Path:       childPath,
-			Name:       *reqIter.Attributes.Name,
-			StartAt:    reqIter.Attributes.StartAt,
-			EndAt:      reqIter.Attributes.EndAt,
-			UserActive: *reqIter.Attributes.UserActive,
+			SpaceID:     parent.SpaceID,
+			Path:        childPath,
+			Name:        *reqIter.Attributes.Name,
+			Description: reqIter.Attributes.Description,
+			StartAt:     reqIter.Attributes.StartAt,
+			EndAt:       reqIter.Attributes.EndAt,
+			UserActive:  *reqIter.Attributes.UserActive,
 		}
 		if reqIter.ID != nil {
 			newItr.ID = *reqIter.ID
