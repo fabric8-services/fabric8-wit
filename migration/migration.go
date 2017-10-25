@@ -355,6 +355,12 @@ func GetMigrations() Migrations {
 	// Version 77
 	m = append(m, steps{ExecuteSQLFile("077-index-work-item-links.sql")})
 
+	// Version 78
+	m = append(m, steps{ExecuteSQLFile("078-remove-unknown-link-types.sql",
+		link.SystemWorkItemLinkTypeBugBlockerID.String(),
+		link.SystemWorkItemLinkPlannerItemRelatedID.String(),
+		link.SystemWorkItemLinkTypeParentChildID.String())})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
