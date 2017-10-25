@@ -2,9 +2,6 @@
   "data": {
     "attributes": {
       "system.created_at": "0001-01-01T00:00:00Z",
-      "system.description": "= Updated Test WI description",
-      "system.description.markup": "PlainText",
-      "system.description.rendered": "= Updated Test WI description",
       "system.number": 1,
       "system.order": 1000,
       "system.remote_item_id": null,
@@ -13,26 +10,35 @@
       "system.updated_at": "0001-01-01T00:00:00Z",
       "version": 1
     },
-    "id": "663f7ec5-b373-4c1b-9eb1-3e7a1fe6d9f5",
+    "id": "3c0b14df-9205-4cbd-ade0-5feaa1a6f498",
     "links": {
-      "related": "http:///api/workitems/663f7ec5-b373-4c1b-9eb1-3e7a1fe6d9f5",
-      "self": "http:///api/workitems/663f7ec5-b373-4c1b-9eb1-3e7a1fe6d9f5"
+      "related": "http:///api/workitems/3c0b14df-9205-4cbd-ade0-5feaa1a6f498",
+      "self": "http:///api/workitems/3c0b14df-9205-4cbd-ade0-5feaa1a6f498"
     },
     "relationships": {
-      "area": {},
+      "area": {
+        "data": {
+          "id": "e189ad80-5d49-437c-ae4d-3905ff868bee",
+          "links": {
+            "related": "http:///api/areas/e189ad80-5d49-437c-ae4d-3905ff868bee",
+            "self": "http:///api/areas/e189ad80-5d49-437c-ae4d-3905ff868bee"
+          },
+          "type": "areas"
+        }
+      },
       "assignees": {},
       "baseType": {
         "data": {
-          "id": "05a9d4ad-4370-4c21-be18-6ba0db203c58",
+          "id": "f13a0fbf-1c9b-4561-801e-cb2210067d18",
           "type": "workitemtypes"
         },
         "links": {
-          "self": "http:///api/spaces/a4a04ac0-77bd-4a08-9b56-fa5c6524fd09/workitemtypes/05a9d4ad-4370-4c21-be18-6ba0db203c58"
+          "self": "http:///api/spaces/8aa4cb28-05a0-4f7e-b3e4-d4be40c60cba/workitemtypes/f13a0fbf-1c9b-4561-801e-cb2210067d18"
         }
       },
       "children": {
         "links": {
-          "related": "http:///api/workitems/663f7ec5-b373-4c1b-9eb1-3e7a1fe6d9f5/children"
+          "related": "http:///api/workitems/3c0b14df-9205-4cbd-ade0-5feaa1a6f498/children"
         },
         "meta": {
           "hasChildren": false
@@ -40,40 +46,49 @@
       },
       "comments": {
         "links": {
-          "related": "http:///api/workitems/663f7ec5-b373-4c1b-9eb1-3e7a1fe6d9f5/comments",
-          "self": "http:///api/workitems/663f7ec5-b373-4c1b-9eb1-3e7a1fe6d9f5/relationships/comments"
+          "related": "http:///api/workitems/3c0b14df-9205-4cbd-ade0-5feaa1a6f498/comments",
+          "self": "http:///api/workitems/3c0b14df-9205-4cbd-ade0-5feaa1a6f498/relationships/comments"
         }
       },
       "creator": {
         "data": {
-          "id": "9b5a3aae-db62-4fce-8573-512435599b41",
+          "id": "71a1e4e2-0de9-4b47-9365-e600fdce4947",
           "links": {
-            "related": "http:///api/users/9b5a3aae-db62-4fce-8573-512435599b41",
-            "self": "http:///api/users/9b5a3aae-db62-4fce-8573-512435599b41"
+            "related": "http:///api/users/71a1e4e2-0de9-4b47-9365-e600fdce4947",
+            "self": "http:///api/users/71a1e4e2-0de9-4b47-9365-e600fdce4947"
           },
           "type": "users"
         }
       },
-      "iteration": {},
+      "iteration": {
+        "data": {
+          "id": "ccfe5d06-69e4-45b9-b101-5a3d422694d6",
+          "links": {
+            "related": "http:///api/iterations/ccfe5d06-69e4-45b9-b101-5a3d422694d6",
+            "self": "http:///api/iterations/ccfe5d06-69e4-45b9-b101-5a3d422694d6"
+          },
+          "type": "iterations"
+        }
+      },
       "labels": {
         "links": {
-          "related": "http:///api/workitems/663f7ec5-b373-4c1b-9eb1-3e7a1fe6d9f5/labels"
+          "related": "http:///api/workitems/3c0b14df-9205-4cbd-ade0-5feaa1a6f498/labels"
         }
       },
       "space": {
         "data": {
-          "id": "a4a04ac0-77bd-4a08-9b56-fa5c6524fd09",
+          "id": "8aa4cb28-05a0-4f7e-b3e4-d4be40c60cba",
           "type": "spaces"
         },
         "links": {
-          "related": "http:///api/spaces/a4a04ac0-77bd-4a08-9b56-fa5c6524fd09",
-          "self": "http:///api/spaces/a4a04ac0-77bd-4a08-9b56-fa5c6524fd09"
+          "related": "http:///api/spaces/8aa4cb28-05a0-4f7e-b3e4-d4be40c60cba",
+          "self": "http:///api/spaces/8aa4cb28-05a0-4f7e-b3e4-d4be40c60cba"
         }
       }
     },
     "type": "workitems"
   },
   "links": {
-    "self": "http:///api/workitems/663f7ec5-b373-4c1b-9eb1-3e7a1fe6d9f5"
+    "self": "http:///api/workitems/3c0b14df-9205-4cbd-ade0-5feaa1a6f498"
   }
 }
