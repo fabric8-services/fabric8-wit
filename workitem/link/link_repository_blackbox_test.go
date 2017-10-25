@@ -171,6 +171,22 @@ func (s *linkRepoBlackBoxTest) TestCreate() {
 		// then expect an error because a parent/link relation already exists with the child item
 		require.NotNil(t, err)
 	})
+
+	s.T().Run("fail - multiple parents with tree-topology-based link type", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.WorkItems(3, tf.SetWorkItemTitles("parent1", "parent2", "child")),
+			tf.WorkItemLinkTypes(1, tf.SetTopologies(link.TopologyTree), tf.SetWorkItemLinkTypeNames("tree-type")),
+		)
+		// when creating link between "parent1" and "child"
+		_, err := s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("parent1").ID, fxt.WorkItemByTitle("child").ID, fxt.WorkItemLinkTypeByName("tree-type").ID, fxt.Identities[0].ID)
+		// then it works
+		require.Nil(t, err)
+		// when creating link between "parent2" and "child"
+		_, err = s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("parent2").ID, fxt.WorkItemByTitle("child").ID, fxt.WorkItemLinkTypeByName("tree-type").ID, fxt.Identities[0].ID)
+		// then we expect an error because "child" is already a child of "parent1"
+		require.NotNil(t, err)
+	})
 }
 
 func (s *linkRepoBlackBoxTest) TestSave() {
