@@ -948,7 +948,7 @@ func (s *searchBlackBoxTest) TestUpdateWorkItem() {
 	defer resetFn()
 
 	s.T().Run("assignees", func(t *testing.T) {
-		t.Run("create work item", func(t *testing.T) {
+		t.Run("filter null", func(t *testing.T) {
 			fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
 			spaceInstance := fxt.Spaces[0]
 			spaceIDStr := spaceInstance.ID.String()
@@ -957,7 +957,7 @@ func (s *searchBlackBoxTest) TestUpdateWorkItem() {
 			)
 			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 			wi := result.Data[0]
-			t.Run("update work item", func(t *testing.T) {
+			t.Run("update update item", func(t *testing.T) {
 				workitemCtrl := NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 
 				wi.Attributes[workitem.SystemTitle] = "Updated Test WI"
@@ -977,7 +977,7 @@ func (s *searchBlackBoxTest) TestUpdateWorkItem() {
 				_, updated := test.UpdateWorkitemOK(t, s.svc.Context, s.svc, workitemCtrl, *wi.ID, &payload2)
 				compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "filter_assignee_null_update_work_item.golden.json"), updated)
 
-				t.Run("search for work item", func(t *testing.T) {
+				t.Run("filter null again", func(t *testing.T) {
 					_, result = test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 					compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "filter_assignee_null_show_after_update_work_item.golden.json"), updated)
 				})
@@ -986,7 +986,7 @@ func (s *searchBlackBoxTest) TestUpdateWorkItem() {
 	})
 
 	s.T().Run("labels", func(t *testing.T) {
-		t.Run("create work item", func(t *testing.T) {
+		t.Run("filter null", func(t *testing.T) {
 			fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
 			spaceInstance := fxt.Spaces[0]
 			spaceIDStr := spaceInstance.ID.String()
@@ -1015,7 +1015,7 @@ func (s *searchBlackBoxTest) TestUpdateWorkItem() {
 				_, updated := test.UpdateWorkitemOK(t, s.svc.Context, s.svc, workitemCtrl, *wi.ID, &payload2)
 				compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "filter_label_null_update_work_item.golden.json"), updated)
 
-				t.Run("search for work item", func(t *testing.T) {
+				t.Run("filter null again", func(t *testing.T) {
 					_, result = test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 					compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "filter_label_null_show_after_update_work_item.golden.json"), updated)
 				})
