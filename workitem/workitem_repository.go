@@ -40,6 +40,7 @@ type WorkItemRepository interface {
 	Load(ctx context.Context, spaceID uuid.UUID, wiNumber int) (*WorkItem, error)
 	LoadByID(ctx context.Context, id uuid.UUID) (*WorkItem, error)
 	LoadBatchByID(ctx context.Context, ids []uuid.UUID) ([]*WorkItem, error)
+	LoadByIteration(ctx context.Context, id uuid.UUID) ([]*WorkItem, error)
 	LookupIDByNamedSpaceAndNumber(ctx context.Context, ownerName, spaceName string, wiNumber int) (*uuid.UUID, *uuid.UUID, error)
 	Save(ctx context.Context, spaceID uuid.UUID, wi WorkItem, modifierID uuid.UUID) (*WorkItem, error)
 	Reorder(ctx context.Context, spaceID uuid.UUID, direction DirectionType, targetID *uuid.UUID, wi WorkItem, modifierID uuid.UUID) (*WorkItem, error)
@@ -959,4 +960,40 @@ func (r *GormWorkItemRepository) GetCountsForIteration(ctx context.Context, itr 
 		Total:       res.Total,
 	}
 	return countsMap, nil
+}
+
+// LoadByIteration returns the list of work items belongs to given iteration
+func (r *GormWorkItemRepository) LoadByIteration(ctx context.Context, iterationID uuid.UUID) ([]*WorkItem, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitem", "loadByIteration"}, time.Now())
+	log.Info(nil, map[string]interface{}{
+		"itr_id": iterationID,
+	}, "Loading work items for iteration")
+
+	res := []WorkItemStorage{}
+	filter := fmt.Sprintf(`fields @> '{"%s":"%s"}'`, SystemIteration, iterationID)
+	tx := r.db.Model(WorkItemStorage{}).Where(filter).Find(&res)
+	if tx.Error != nil {
+		return nil, errors.NewInternalError(ctx, tx.Error)
+	}
+	workitems := []*WorkItem{}
+	for _, ele := range res {
+		wiType, err := r.witr.LoadTypeFromDB(ctx, ele.Type)
+		if err != nil {
+			log.Error(nil, map[string]interface{}{
+				"wit_id": ele.Type,
+				"err":    err,
+			}, "error in loading type from DB")
+			return nil, errors.NewInternalError(ctx, err)
+		}
+		convertedWI, err := ConvertWorkItemStorageToModel(wiType, &ele)
+		if err != nil {
+			log.Error(nil, map[string]interface{}{
+				"wi_id": ele.ID,
+				"err":   err,
+			}, "error in converting WI")
+			return nil, errs.Wrap(err, "error when converting WI")
+		}
+		workitems = append(workitems, convertedWI)
+	}
+	return workitems, nil
 }
