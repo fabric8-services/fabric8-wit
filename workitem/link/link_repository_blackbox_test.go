@@ -212,7 +212,7 @@ func (s *linkRepoBlackBoxTest) TestExistsLink() {
 
 func (s *linkRepoBlackBoxTest) TestGetParentID() {
 	// create 1 links between 2 work items having TopologyNetwork with ForwardName = "parent of"
-	fixtures := tf.NewTestFixture(s.T(), s.DB, tf.WorkItemLinks(1), tf.WorkItemLinkTypes(1, tf.SetTopologies(link.TopologyNetwork), func(fxt *tf.TestFixture, idx int) error {
+	fixtures := tf.NewTestFixture(s.T(), s.DB, tf.WorkItemLinks(1), tf.WorkItemLinkTypes(1, tf.SetTopologies(link.TopologyTree), func(fxt *tf.TestFixture, idx int) error {
 		fxt.WorkItemLinkTypes[idx].ForwardName = "parent of"
 		return nil
 	}))
@@ -223,7 +223,7 @@ func (s *linkRepoBlackBoxTest) TestGetParentID() {
 
 func (s *linkRepoBlackBoxTest) TestGetParentIDNotExist() {
 	// create 1 links between 2 work items having TopologyNetwork with ForwardName = "parent of"
-	fixtures := tf.NewTestFixture(s.T(), s.DB, tf.WorkItemLinks(1), tf.WorkItemLinkTypes(1, tf.SetTopologies(link.TopologyNetwork), func(fxt *tf.TestFixture, idx int) error {
+	fixtures := tf.NewTestFixture(s.T(), s.DB, tf.WorkItemLinks(1), tf.WorkItemLinkTypes(1, tf.SetTopologies(link.TopologyTree), func(fxt *tf.TestFixture, idx int) error {
 		fxt.WorkItemLinkTypes[idx].ForwardName = "parent of"
 		return nil
 	}))
