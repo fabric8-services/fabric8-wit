@@ -58,10 +58,10 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
-		if !uuid.Equal(*currentUser, s.OwnerId) {
+		if !uuid.Equal(*currentUser, s.OwnerID) {
 			log.Warn(ctx, map[string]interface{}{
 				"space_id":     s.ID,
-				"space_owner":  s.OwnerId,
+				"space_owner":  s.OwnerID,
 				"current_user": *currentUser,
 			}, "user is not the space owner")
 			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the space owner"))
@@ -174,10 +174,10 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
-		if !uuid.Equal(*currentUser, s.OwnerId) {
+		if !uuid.Equal(*currentUser, s.OwnerID) {
 			log.Warn(ctx, map[string]interface{}{
 				"space_id":     s.ID,
-				"space_owner":  s.OwnerId,
+				"space_owner":  s.OwnerID,
 				"current_user": *currentUser,
 			}, "user is not the space owner")
 			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the space owner"))
@@ -247,12 +247,12 @@ func (c *IterationController) Delete(ctx *app.DeleteIterationContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
-		if !uuid.Equal(*currentUser, s.OwnerId) {
+		if !uuid.Equal(*currentUser, s.OwnerID) {
 			errorMsg := fmt.Sprintf("only the space owner can delete an iteration and %s is not the space owner of %s",
 				*currentUser, s.ID)
 			log.Warn(ctx, map[string]interface{}{
 				"space_id":     s.ID,
-				"space_owner":  s.OwnerId,
+				"space_owner":  s.OwnerID,
 				"current_user": *currentUser,
 			}, errorMsg)
 			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError(errorMsg))
