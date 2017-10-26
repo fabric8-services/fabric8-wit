@@ -586,7 +586,7 @@ func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkIte
 		ID:             link.SystemWorkItemLinkTypeParentChildID,
 		Name:           "Parent child item",
 		Description:    &parentingDesc,
-		Topology:       link.TopologyNetwork,
+		Topology:       link.TopologyTree,
 		ForwardName:    "parent of",
 		ReverseName:    "child of",
 		LinkCategoryID: systemCat.ID,
