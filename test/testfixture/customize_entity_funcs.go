@@ -101,7 +101,7 @@ func SetIterationNames(names ...string) CustomizeIterationFunc {
 // SetIterationIDsFromString takes the given IDs in string and uses them during
 // creation of iterations. The length of requested iterations and the number of
 // Ids must match or the NewFixture call will return an error.
-func SetIterationIDsFromString(IDs []string) CustomizeIterationFunc {
+func SetIterationIDsFromString(IDs ...string) CustomizeIterationFunc {
 	return func(fxt *TestFixture, idx int) error {
 		if len(fxt.Iterations) != len(IDs) {
 			return errs.Errorf("number of IDs (%d) must match number of iterations to create (%d)", len(IDs), len(fxt.Iterations))
@@ -114,7 +114,7 @@ func SetIterationIDsFromString(IDs []string) CustomizeIterationFunc {
 // SetSpaceIDsFromString takes the given IDs in string and uses them during
 // creation of spaces. The length of requested spaces and the number of Ids must
 // match or the NewFixture call will return an error.
-func SetSpaceIDsFromString(IDs []string) CustomizeSpaceFunc {
+func SetSpaceIDsFromString(IDs ...string) CustomizeSpaceFunc {
 	return func(fxt *TestFixture, idx int) error {
 		if len(fxt.Spaces) != len(IDs) {
 			return errs.Errorf("number of IDs (%d) must match number of spaces to create (%d)", len(IDs), len(fxt.Spaces))
@@ -127,7 +127,7 @@ func SetSpaceIDsFromString(IDs []string) CustomizeSpaceFunc {
 // SetAreaIDsFromString takes the given IDs in string and uses them during
 // creation of areas. The length of requested spaces and the number of Ids must
 // match or the NewFixture call will return an error.
-func SetAreaIDsFromString(IDs []string) CustomizeAreaFunc {
+func SetAreaIDsFromString(IDs ...string) CustomizeAreaFunc {
 	return func(fxt *TestFixture, idx int) error {
 		if len(fxt.Areas) != len(IDs) {
 			return errs.Errorf("number of IDs (%d) must match number of areas to create (%d)", len(IDs), len(fxt.Areas))
@@ -140,7 +140,7 @@ func SetAreaIDsFromString(IDs []string) CustomizeAreaFunc {
 // SetIdentityIDsFromString takes the given IDs in string and uses them during
 // creation of identities. The length of requested identities and the number of Ids must
 // match or the NewFixture call will return an error.
-func SetIdentityIDsFromString(IDs []string) CustomizeIdentityFunc {
+func SetIdentityIDsFromString(IDs ...string) CustomizeIdentityFunc {
 	return func(fxt *TestFixture, idx int) error {
 		if len(fxt.Identities) != len(IDs) {
 			return errs.Errorf("number of IDs (%d) must match number of identities to create (%d)", len(IDs), len(fxt.Identities))
