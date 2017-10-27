@@ -3,7 +3,6 @@ package remoteworkitem_test
 import (
 	"testing"
 
-	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
@@ -14,8 +13,8 @@ import (
 
 type trackerQueryRepoBlackBoxTest struct {
 	gormtestsupport.DBTestSuite
-	repo   application.TrackerQueryRepository
-	trRepo application.TrackerRepository
+	repo   remoteworkitem.TrackerQueryRepository
+	trRepo remoteworkitem.TrackerRepository
 }
 
 func TestRunTrackerQueryRepoBlackBoxTest(t *testing.T) {

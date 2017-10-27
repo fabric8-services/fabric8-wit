@@ -7,12 +7,12 @@ import (
 
 	"context"
 
-	"github.com/fabric8-services/fabric8-wit/application"
 	errs "github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
+	uuid "github.com/satori/go.uuid"
 
 	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"
@@ -23,8 +23,8 @@ import (
 type TestTrackerQueryRepository struct {
 	gormtestsupport.DBTestSuite
 
-	trackerRepo application.TrackerRepository
-	queryRepo   application.TrackerQueryRepository
+	trackerRepo TrackerRepository
+	queryRepo   TrackerQueryRepository
 
 	clean func()
 }
@@ -52,11 +52,15 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryCreate() {
 	params := url.Values{}
 	ctx := goa.NewContext(context.Background(), nil, req, params)
 
-	query, err := test.queryRepo.Create(ctx, "abc", "xyz", "lmn", space.SystemSpace)
-	assert.IsType(t, NotFoundError{}, err)
+	query, err := test.queryRepo.Create(ctx, "abc", "xyz", uuid.NewV4(), space.SystemSpace)
+	assert.IsType(t, InternalError{}, err)
 	assert.Nil(t, query)
 
-	tracker, err := test.trackerRepo.Create(ctx, "http://issues.jboss.com", ProviderJira)
+	tracker := Tracker{
+		URL:  "http://issues.jboss.com",
+		Type: ProviderJira,
+	}
+	err = test.trackerRepo.Create(ctx, &tracker)
 	query, err = test.queryRepo.Create(ctx, "abc", "xyz", tracker.ID, space.SystemSpace)
 	assert.Nil(t, err)
 	assert.Equal(t, "abc", query.Query)
@@ -78,7 +82,11 @@ func (test *TestTrackerQueryRepository) TestExistsTrackerQuery() {
 		params := url.Values{}
 		ctx := goa.NewContext(context.Background(), nil, req, params)
 
-		tracker, err := test.trackerRepo.Create(ctx, "http://issues.jboss.com", ProviderJira)
+		tracker := Tracker{
+			URL:  "http://issues.jboss.com",
+			Type: ProviderJira,
+		}
+		err := test.trackerRepo.Create(ctx, &tracker)
 		assert.Nil(t, err)
 
 		query, err := test.queryRepo.Create(ctx, "abc", "xyz", tracker.ID, space.SystemSpace)
@@ -112,8 +120,16 @@ func (test *TestTrackerQueryRepository) TestTrackerQuerySave() {
 	assert.IsType(t, NotFoundError{}, err)
 	assert.Nil(t, query)
 
-	tracker, err := test.trackerRepo.Create(ctx, "http://issues.jboss.com", ProviderJira)
-	tracker2, err := test.trackerRepo.Create(ctx, "http://api.github.com", ProviderGithub)
+	tracker := Tracker{
+		URL:  "http://issues.jboss.com",
+		Type: ProviderJira,
+	}
+	err = test.trackerRepo.Create(ctx, &tracker)
+	tracker2 := Tracker{
+		URL:  "http://api.github.com",
+		Type: ProviderGithub,
+	}
+	err = test.trackerRepo.Create(ctx, &tracker2)
 	query, err = test.queryRepo.Create(ctx, "abc", "xyz", tracker.ID, space.SystemSpace)
 	query2, err := test.queryRepo.Load(ctx, query.ID)
 	assert.Nil(t, err)
@@ -130,11 +146,12 @@ func (test *TestTrackerQueryRepository) TestTrackerQuerySave() {
 	assert.Nil(t, err)
 	assert.Equal(t, query, query2)
 
-	test.trackerRepo.Delete(ctx, "10000")
+	err = test.trackerRepo.Delete(ctx, uuid.NewV4())
+	assert.NotNil(t, err)
 
-	query.TrackerID = "10000"
+	query.TrackerID = uuid.NewV4()
 	query2, err = test.queryRepo.Save(ctx, *query)
-	assert.IsType(t, NotFoundError{}, err)
+	assert.IsType(t, InternalError{}, err)
 	assert.Nil(t, query2)
 }
 
@@ -149,7 +166,11 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryDelete() {
 	err := test.queryRepo.Delete(ctx, "asdf")
 	assert.IsType(t, NotFoundError{}, err)
 
-	tracker, _ := test.trackerRepo.Create(ctx, "http://api.github.com", ProviderGithub)
+	tracker := Tracker{
+		URL:  "http://api.github.com",
+		Type: ProviderGithub,
+	}
+	err = test.trackerRepo.Create(ctx, &tracker)
 	tq, _ := test.queryRepo.Create(ctx, "is:open is:issue user:arquillian author:aslakknutsen", "15 * * * * *", tracker.ID, space.SystemSpace)
 	err = test.queryRepo.Delete(ctx, tq.ID)
 	assert.Nil(t, err)
@@ -173,11 +194,21 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryList() {
 
 	trackerqueries1, _ := test.queryRepo.List(ctx)
 
-	tracker1, _ := test.trackerRepo.Create(ctx, "http://api.github.com", ProviderGithub)
+	tracker1 := Tracker{
+		URL:  "http://api.github.com",
+		Type: ProviderGithub,
+	}
+	err := test.trackerRepo.Create(ctx, &tracker1)
+	assert.Nil(t, err)
 	test.queryRepo.Create(ctx, "is:open is:issue user:arquillian author:aslakknutsen", "15 * * * * *", tracker1.ID, space.SystemSpace)
 	test.queryRepo.Create(ctx, "is:close is:issue user:arquillian author:aslakknutsen", "15 * * * * *", tracker1.ID, space.SystemSpace)
 
-	tracker2, _ := test.trackerRepo.Create(ctx, "http://issues.jboss.com", ProviderJira)
+	tracker2 := Tracker{
+		URL:  "http://issues.jboss.com",
+		Type: ProviderJira,
+	}
+	err = test.trackerRepo.Create(ctx, &tracker2)
+	assert.Nil(t, err)
 	test.queryRepo.Create(ctx, "project = ARQ AND text ~ 'arquillian'", "15 * * * * *", tracker2.ID, space.SystemSpace)
 	test.queryRepo.Create(ctx, "project = ARQ AND text ~ 'javadoc'", "15 * * * * *", tracker2.ID, space.SystemSpace)
 

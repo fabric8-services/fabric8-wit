@@ -14,6 +14,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/area"
 	. "github.com/fabric8-services/fabric8-wit/controller"
+	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
@@ -21,6 +22,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	"context"
@@ -764,4 +766,305 @@ func assertChildIterationLinking(t *testing.T, target *app.Iteration) {
 	require.NotNil(t, target.Relationships.Parent)
 	require.NotNil(t, target.Relationships.Parent.Links)
 	require.NotNil(t, target.Relationships.Parent.Links.Self)
+}
+
+// TestIterationDelete tests iteration delete API
+func (rest *TestIterationREST) TestIterationDelete() {
+	rest.T().Run("forbidden - delete root iteration", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, rest.DB,
+			tf.Iterations(1, tf.SetIterationNames("root iteration")))
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+		iterationToDelete := fxt.IterationByName("root iteration")
+		test.DeleteIterationForbidden(t, svc.Context, svc, ctrl, iterationToDelete.ID)
+	})
+
+	rest.T().Run("success - delete one iteration", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, rest.DB,
+			tf.CreateWorkItemEnvironment(),
+			tf.Iterations(2,
+				tf.SetIterationNames("root iteration", "first iteration"),
+			))
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+		iterationToDelete := fxt.IterationByName("first iteration")
+		test.DeleteIterationNoContent(t, svc.Context, svc, ctrl, iterationToDelete.ID)
+		_, err := rest.db.Iterations().Load(svc.Context, iterationToDelete.ID)
+		require.NotNil(t, err)
+		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
+	})
+
+	rest.T().Run("success - delete iteration subtree", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, rest.DB,
+			tf.Iterations(6,
+				tf.SetIterationNames("root", "child 1", "child 1.2", "child 1.2.3", "child 1.2.3.4", "child 2"),
+				func(fxt *tf.TestFixture, idx int) error {
+					i := fxt.Iterations[idx]
+					switch idx {
+					case 1:
+						i.MakeChildOf(*fxt.Iterations[0])
+					case 2:
+						i.MakeChildOf(*fxt.Iterations[1])
+					case 3:
+						i.MakeChildOf(*fxt.Iterations[2])
+					case 4:
+						i.MakeChildOf(*fxt.Iterations[3])
+					case 5:
+						i.MakeChildOf(*fxt.Iterations[0])
+					}
+					return nil
+				}))
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+		iterationToDelete := fxt.IterationByName("child 1")
+		test.DeleteIterationNoContent(t, svc.Context, svc, ctrl, iterationToDelete.ID)
+		// make sure all nested iterations are deleted
+		deletedIterations := []*iteration.Iteration{
+			fxt.IterationByName("child 1"),
+			fxt.IterationByName("child 1.2"),
+			fxt.IterationByName("child 1.2.3"),
+			fxt.IterationByName("child 1.2.3.4"),
+		}
+		for _, i := range deletedIterations {
+			_, err := rest.db.Iterations().Load(svc.Context, i.ID)
+			require.NotNil(t, err)
+			require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
+		}
+		// make sure other iterations are not touched
+		iterationsShouldPresent := []*iteration.Iteration{
+			fxt.IterationByName("root"),
+			fxt.IterationByName("child 2"),
+		}
+		for _, i := range iterationsShouldPresent {
+			_, err := rest.db.Iterations().Load(svc.Context, i.ID)
+			require.Nil(t, err)
+		}
+	})
+
+	rest.T().Run("forbidden - other user can not delete iteration", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, rest.DB,
+			tf.Identities(2, tf.SetIdentityUsernames("space owner", "other user")),
+			tf.Iterations(1))
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.IdentityByUsername("other user"))
+		test.DeleteIterationForbidden(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID)
+	})
+
+	rest.T().Run("success - space owner can delete iteration", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, rest.DB, tf.Iterations(2, func(fxt *tf.TestFixture, idx int) error {
+			if idx == 1 {
+				fxt.Iterations[idx].MakeChildOf(*fxt.Iterations[0])
+			}
+			return nil
+		}))
+		iterationToDelete := fxt.Iterations[1]                             // non-root iteration
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0]) // get the space owner
+		test.DeleteIterationNoContent(t, svc.Context, svc, ctrl, iterationToDelete.ID)
+		_, err := rest.db.Iterations().Load(svc.Context, iterationToDelete.ID)
+		require.NotNil(t, err)
+		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
+	})
+
+	rest.T().Run("unauthorized - invalid user can not delete iteration", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, rest.DB, tf.Iterations(1))
+		svc, ctrl := rest.UnSecuredController()
+		test.DeleteIterationUnauthorized(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID)
+	})
+
+	rest.T().Run("success - update workitems for deleted iteration", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, rest.DB,
+			tf.Iterations(2, func(fxt *tf.TestFixture, idx int) error {
+				if idx == 1 {
+					fxt.Iterations[idx].MakeChildOf(*fxt.Iterations[0])
+				}
+				return nil
+			}),
+			tf.WorkItems(5, func(fxt *tf.TestFixture, idx int) error {
+				wi := fxt.WorkItems[idx]
+				wi.Fields[workitem.SystemIteration] = fxt.Iterations[1].ID.String()
+				return nil
+			}))
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+		iterationToDelete := fxt.Iterations[1]
+		test.DeleteIterationNoContent(t, svc.Context, svc, ctrl, iterationToDelete.ID)
+		wis, err := rest.db.WorkItems().LoadByIteration(svc.Context, iterationToDelete.ID)
+		require.Nil(t, err)
+		assert.Empty(t, wis)
+	})
+
+	rest.T().Run("success - delete intermediate iteration", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, rest.DB,
+			tf.Iterations(3, func(fxt *tf.TestFixture, idx int) error {
+				itr := fxt.Iterations[idx]
+				switch idx {
+				case 0:
+					itr.Name = "root"
+				case 1:
+					itr.Name = "parent"
+					itr.MakeChildOf(*fxt.Iterations[0])
+				case 2:
+					itr.Name = "child"
+					itr.MakeChildOf(*fxt.Iterations[1])
+				}
+				return nil
+			}),
+			tf.WorkItems(6, func(fxt *tf.TestFixture, idx int) error {
+				wi := fxt.WorkItems[idx]
+				if idx < 3 {
+					wi.Fields[workitem.SystemIteration] = fxt.Iterations[1].ID.String()
+				} else {
+					wi.Fields[workitem.SystemIteration] = fxt.Iterations[2].ID.String()
+				}
+				return nil
+			}))
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+		childIteration := fxt.IterationByName("child")
+		test.DeleteIterationNoContent(t, svc.Context, svc, ctrl, childIteration.ID)
+		wis, err := rest.db.WorkItems().LoadByIteration(svc.Context, childIteration.ID)
+		require.Nil(t, err)
+		assert.Empty(t, wis)
+
+		// parent should get more 3 WI
+		parentIteration := fxt.IterationByName("parent")
+		wis, err = rest.db.WorkItems().LoadByIteration(svc.Context, parentIteration.ID)
+		require.Nil(t, err)
+		// first iteration already have 3 & 3 more from child iteration
+		assert.Len(t, wis, 3+3)
+
+		// verify that root iteration still does not have any WI
+		rootIteration := fxt.IterationByName("root")
+		wis, err = rest.db.WorkItems().LoadByIteration(svc.Context, rootIteration.ID)
+		require.Nil(t, err)
+		assert.Empty(t, wis)
+	})
+
+	// Following test creates the structure shown in diagram
+	// root Iteration
+	// |___________Iteration 1 (5 WI)
+	// |                |___________Iteration 2 (5 WI)
+	// |                                |___________Iteration 3 (5 WI)
+	// |___________Iteration 4 (2 WI)
+	//                     |___________Iteration 5 (3 WI)
+
+	// then deletes iteration1 & iteration5 to verify the effect When iteration1
+	// is deleted, iteration2 & iteration3 should also get deleted and 15 WIs
+	// should be moved to root iteration when iteration5 is deleted, only 3 WIs
+	// should be moved to iteration4
+	rest.T().Run("success - verify that workitems are updated correctly", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, rest.DB,
+			tf.Iterations(6,
+				func(fxt *tf.TestFixture, idx int) error {
+					i := fxt.Iterations[idx]
+					switch idx {
+					case 1:
+						i.MakeChildOf(*fxt.Iterations[0])
+					case 2:
+						i.MakeChildOf(*fxt.Iterations[1])
+					case 3:
+						i.MakeChildOf(*fxt.Iterations[2])
+					case 4:
+						i.MakeChildOf(*fxt.Iterations[0])
+					case 5:
+						i.MakeChildOf(*fxt.Iterations[4])
+					}
+					return nil
+				}),
+			tf.WorkItems(20, func(fxt *tf.TestFixture, idx int) error {
+				wi := fxt.WorkItems[idx]
+				switch idx {
+				case 0, 1, 2, 3, 4:
+					wi.Fields[workitem.SystemIteration] = fxt.Iterations[1].ID.String()
+				case 5, 6, 7, 8, 9:
+					wi.Fields[workitem.SystemIteration] = fxt.Iterations[2].ID.String()
+				case 10, 11, 12, 13, 14:
+					wi.Fields[workitem.SystemIteration] = fxt.Iterations[3].ID.String()
+				case 15, 16:
+					wi.Fields[workitem.SystemIteration] = fxt.Iterations[4].ID.String()
+				case 17, 18, 19:
+					wi.Fields[workitem.SystemIteration] = fxt.Iterations[5].ID.String()
+				}
+				return nil
+			}))
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+		iterationToDelete := fxt.Iterations[1]
+		test.DeleteIterationNoContent(t, svc.Context, svc, ctrl, iterationToDelete.ID)
+		wis, err := rest.db.WorkItems().LoadByIteration(svc.Context, iterationToDelete.ID)
+		require.Nil(t, err)
+		assert.Empty(t, wis)
+
+		// Verify that 15 WIs are moved to Root iteration
+		wis, err = rest.db.WorkItems().LoadByIteration(svc.Context, fxt.Iterations[0].ID)
+		require.Nil(t, err)
+		assert.Len(t, wis, 15)
+
+		// verify included objects
+		var mustHave = make(map[uuid.UUID]struct{}, 15)
+		for i, wi := range fxt.WorkItems {
+			if i < 15 {
+				mustHave[wi.ID] = struct{}{}
+			}
+		}
+		require.NotEmpty(t, mustHave)
+		for _, itr := range wis {
+			if _, ok := mustHave[itr.ID]; ok {
+				delete(mustHave, itr.ID)
+			}
+		}
+		require.Empty(t, mustHave)
+
+		iterationToDelete = fxt.Iterations[5]
+		test.DeleteIterationNoContent(t, svc.Context, svc, ctrl, iterationToDelete.ID)
+		wis, err = rest.db.WorkItems().LoadByIteration(svc.Context, iterationToDelete.ID)
+		require.Nil(t, err)
+		assert.Empty(t, wis)
+
+		// Verify that 3 WIs are moved to parent of deleted iteration
+		wis, err = rest.db.WorkItems().LoadByIteration(svc.Context, fxt.Iterations[4].ID)
+		require.Nil(t, err)
+		assert.Len(t, wis, 2+3)
+
+		// verify included objects
+		mustHave = make(map[uuid.UUID]struct{}, 5)
+		for i, wi := range fxt.WorkItems {
+			if i >= 15 {
+				mustHave[wi.ID] = struct{}{}
+			}
+		}
+		require.NotEmpty(t, mustHave)
+		for _, itr := range wis {
+			if _, ok := mustHave[itr.ID]; ok {
+				delete(mustHave, itr.ID)
+			}
+		}
+		require.Empty(t, mustHave)
+
+		// Verify that no more WIs are moved to Root iteration
+		wis, err = rest.db.WorkItems().LoadByIteration(svc.Context, fxt.Iterations[0].ID)
+		require.Nil(t, err)
+		assert.Len(t, wis, 15)
+
+		// verify included objects
+		mustHave = make(map[uuid.UUID]struct{}, 15)
+		for i, wi := range fxt.WorkItems {
+			if i < 15 {
+				mustHave[wi.ID] = struct{}{}
+			}
+		}
+		require.NotEmpty(t, mustHave)
+		for _, itr := range wis {
+			if _, ok := mustHave[itr.ID]; ok {
+				delete(mustHave, itr.ID)
+			}
+		}
+		require.Empty(t, mustHave)
+
+		// verify that child iterations are deleted as well
+		deletedIterations := []*iteration.Iteration{
+			fxt.Iterations[1],
+			fxt.Iterations[2],
+			fxt.Iterations[3],
+			fxt.Iterations[5],
+		}
+		for _, i := range deletedIterations {
+			_, err := rest.db.Iterations().Load(svc.Context, i.ID)
+			require.NotNil(t, err)
+			require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
+		}
+	})
 }

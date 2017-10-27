@@ -362,3 +362,59 @@ func (s *TestIterationRepository) TestIsActive() {
 		require.False(t, fxt.Iterations[0].IsActive())
 	})
 }
+
+func (s *TestIterationRepository) TestIsRoot() {
+	t := s.T()
+	resource.Require(t, resource.Database)
+	t.Run("check IsRoot on root & other iterations", func(t *testing.T) {
+		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Iterations(2, tf.PlaceIterationUnderRootIteration()))
+		spaceID := fxt.Spaces[0].ID
+		require.True(t, fxt.Iterations[0].IsRoot(spaceID))
+		require.False(t, fxt.Iterations[1].IsRoot(spaceID))
+		fakeSpaceID := uuid.NewV4()
+		require.False(t, fxt.Iterations[0].IsRoot(fakeSpaceID))
+		require.False(t, fxt.Iterations[1].IsRoot(fakeSpaceID))
+	})
+}
+
+func (s *TestIterationRepository) TestParent() {
+	t := s.T()
+	resource.Require(t, resource.Database)
+	t.Run("check Parent() for root & intermediate & leaf iterations", func(t *testing.T) {
+		// Fixture is now creating following hierarchy of iterations
+		// root Iteration
+		// |___________Iteration 1
+		// |                |___________Iteration 2
+		// |                                |___________Iteration 3
+		// |___________Iteration 4
+		//                     |___________Iteration 5
+		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Iterations(6,
+			func(fxt *tf.TestFixture, idx int) error {
+				i := fxt.Iterations[idx]
+				switch idx {
+				case 1:
+					i.MakeChildOf(*fxt.Iterations[0])
+				case 2:
+					i.MakeChildOf(*fxt.Iterations[1])
+				case 3:
+					i.MakeChildOf(*fxt.Iterations[2])
+				case 4:
+					i.MakeChildOf(*fxt.Iterations[0])
+				case 5:
+					i.MakeChildOf(*fxt.Iterations[4])
+				}
+				return nil
+			}))
+		rootID := fxt.Iterations[0].ID
+		iteration1ID := fxt.Iterations[1].ID
+		iteration2ID := fxt.Iterations[2].ID
+		iteration4ID := fxt.Iterations[4].ID
+
+		require.Equal(t, uuid.Nil, fxt.Iterations[0].Parent())
+		require.Equal(t, rootID, fxt.Iterations[1].Parent())
+		require.Equal(t, iteration1ID, fxt.Iterations[2].Parent())
+		require.Equal(t, iteration2ID, fxt.Iterations[3].Parent())
+		require.Equal(t, rootID, fxt.Iterations[4].Parent())
+		require.Equal(t, iteration4ID, fxt.Iterations[5].Parent())
+	})
+}

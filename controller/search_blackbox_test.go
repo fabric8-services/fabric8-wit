@@ -878,7 +878,7 @@ func (s *searchBlackBoxTest) TestIncludedParents() {
 		tf.WorkItemLinkTypes(1, func(fxt *tf.TestFixture, idx int) error {
 			wilt := fxt.WorkItemLinkTypes[idx]
 			wilt.ForwardName = link.TypeParentOf
-			wilt.Topology = link.TopologyNetwork
+			wilt.Topology = link.TopologyTree
 			return nil
 		}),
 		tf.WorkItemLinks(3, func(fxt *tf.TestFixture, idx int) error {
