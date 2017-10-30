@@ -552,7 +552,7 @@ func testMigration79(t *testing.T) {
 }
 
 func testMigration80(t *testing.T) {
-	migrateToVersion(t, sqlDB, migrations, 80)
+	migrateToVersion(t, sqlDB, migrations[:80], 80)
 	assert.Nil(t, runSQLscript(sqlDB, "080-old-link-type-relics.sql",
 		space.SystemSpace.String(),
 		link.SystemWorkItemLinkTypeBugBlockerID.String(),
@@ -564,7 +564,7 @@ func testMigration80(t *testing.T) {
 
 	// When we migrate the DB to version 80 all but the known link types and
 	// categories should be gone, which is what we test below.
-	migrateToVersion(t, sqlDB, migrations, 81)
+	migrateToVersion(t, sqlDB, migrations[:81], 81)
 
 	t.Run("only known link types exist", func(t *testing.T) {
 		// Make sure no other link type other than the known ones are present
