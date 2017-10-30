@@ -76,13 +76,13 @@ DELETE FROM work_item_links WHERE link_type_id NOT IN (
     current_setting('linktypes.parenting')::uuid
 );
 
--- Remove unknown link categories and link types (by cascading delete)
+-- Remove unknown link categories
 DELETE FROM work_item_link_categories WHERE id NOT IN (
      current_setting('linkcats.systemcat')::uuid,
      current_setting('linkcats.usercat')::uuid
 );
 
--- Finally, delete links using old link types
+-- Finally, delete old link types
 DELETE FROM work_item_link_types WHERE id NOT IN (
     current_setting('linktypes.bug_blocker')::uuid,
     current_setting('linktypes.related')::uuid,
