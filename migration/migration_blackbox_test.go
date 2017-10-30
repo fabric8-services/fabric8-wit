@@ -98,7 +98,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration44", testMigration44)
 
 	// Insert dummy test data to our database
-	runSQLscript(sqlDB, "044-insert-test-data.sql")
+	assert.Nil(t, runSQLscript(sqlDB, "044-insert-test-data.sql"))
 
 	t.Run("TestMigration45", testMigration45)
 	t.Run("TestMigration46", testMigration46)
