@@ -69,7 +69,7 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 		newSpace := space.Space{
 			ID:      spaceID,
 			Name:    spaceName,
-			OwnerId: *currentUser,
+			OwnerID: *currentUser,
 		}
 		if reqSpace.Attributes.Description != nil {
 			newSpace.Description = *reqSpace.Attributes.Description
@@ -158,10 +158,10 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 		if err != nil {
 			return err
 		}
-		if !uuid.Equal(*currentUser, s.OwnerId) {
+		if !uuid.Equal(*currentUser, s.OwnerID) {
 			log.Warn(ctx, map[string]interface{}{
 				"space_id":     ctx.SpaceID,
-				"space_owner":  s.OwnerId,
+				"space_owner":  s.OwnerID,
 				"current_user": *currentUser,
 			}, "user is not the space owner")
 			return errors.NewForbiddenError("user is not the space owner")
@@ -265,8 +265,8 @@ func (c *SpaceController) Update(ctx *app.UpdateSpaceContext) error {
 			return err
 		}
 
-		if !uuid.Equal(*currentUser, s.OwnerId) {
-			log.Error(ctx, map[string]interface{}{"currentUser": *currentUser, "owner": s.OwnerId}, "Current user is not owner")
+		if !uuid.Equal(*currentUser, s.OwnerID) {
+			log.Error(ctx, map[string]interface{}{"currentUser": *currentUser, "owner": s.OwnerID}, "Current user is not owner")
 			return goa.NewErrorClass("forbidden", 403)("User is not the space owner")
 		}
 
@@ -354,7 +354,7 @@ func ConvertSpaceToModel(appSpace app.Space) space.Space {
 	}
 	if appSpace.Relationships != nil && appSpace.Relationships.OwnedBy != nil &&
 		appSpace.Relationships.OwnedBy.Data != nil && appSpace.Relationships.OwnedBy.Data.ID != nil {
-		modelSpace.OwnerId = *appSpace.Relationships.OwnedBy.Data.ID
+		modelSpace.OwnerID = *appSpace.Relationships.OwnedBy.Data.ID
 	}
 	return modelSpace
 }
@@ -388,7 +388,7 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *http
 	relatedWorkItems := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitems", spaceIDStr))
 	relatedWorkItemTypes := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitemtypes", spaceIDStr))
 	relatedWorkItemLinkTypes := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitemlinktypes", spaceIDStr))
-	relatedOwners := rest.AbsoluteURL(request, fmt.Sprintf("%s/%s", usersEndpoint, sp.OwnerId.String()))
+	relatedOwners := rest.AbsoluteURL(request, fmt.Sprintf("%s/%s", usersEndpoint, sp.OwnerID.String()))
 	relatedCollaborators := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/collaborators", spaceIDStr))
 	relatedFilters := rest.AbsoluteURL(request, "/api/filters")
 	relatedLabels := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/labels", spaceIDStr))
@@ -444,7 +444,7 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *http
 			OwnedBy: &app.SpaceOwnedBy{
 				Data: &app.IdentityRelationData{
 					Type: "identities",
-					ID:   &sp.OwnerId,
+					ID:   &sp.OwnerID,
 				},
 				Links: &app.GenericLinks{
 					Related: &relatedOwners,

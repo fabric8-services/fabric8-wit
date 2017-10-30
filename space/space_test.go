@@ -41,14 +41,14 @@ func (s *repoBBTest) TestCreate() {
 		newSpace := space.Space{
 			ID:      id,
 			Name:    name,
-			OwnerId: fxt.Identities[0].ID,
+			OwnerID: fxt.Identities[0].ID,
 		}
 		sp, err := s.repo.Create(context.Background(), &newSpace)
 		require.Nil(t, err)
 		require.NotNil(t, sp)
 		require.Equal(t, id, sp.ID)
 		require.Equal(t, name, sp.Name)
-		require.Equal(t, fxt.Identities[0].ID, sp.OwnerId)
+		require.Equal(t, fxt.Identities[0].ID, sp.OwnerID)
 	})
 	s.T().Run("fail - empty space name", func(t *testing.T) {
 		// given an identity
@@ -56,7 +56,7 @@ func (s *repoBBTest) TestCreate() {
 		// when creating space
 		newSpace := space.Space{
 			Name:    "",
-			OwnerId: fxt.Identities[0].ID,
+			OwnerID: fxt.Identities[0].ID,
 		}
 		sp, err := s.repo.Create(context.Background(), &newSpace)
 		require.NotNil(t, err)
@@ -235,7 +235,7 @@ func (s *repoBBTest) TestLoadByOwnerAndName() {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1))
 		// when
-		sp, err := s.repo.LoadByOwnerAndName(context.Background(), &fxt.Spaces[0].OwnerId, &fxt.Spaces[0].Name)
+		sp, err := s.repo.LoadByOwnerAndName(context.Background(), &fxt.Spaces[0].OwnerID, &fxt.Spaces[0].Name)
 		// then
 		require.Nil(t, err)
 		require.NotNil(t, sp)
@@ -256,7 +256,7 @@ func (s *repoBBTest) TestLoadByOwnerAndName() {
 		fxt := tf.NewTestFixture(t, s.DB, tf.Identities(2), tf.Spaces(1))
 		// when loading an existing space by name but with a different owner
 		nonExistingSpaceName := testsupport.CreateRandomValidTestName("non existing space name")
-		sp, err := s.repo.LoadByOwnerAndName(context.Background(), &fxt.Spaces[0].OwnerId, &nonExistingSpaceName)
+		sp, err := s.repo.LoadByOwnerAndName(context.Background(), &fxt.Spaces[0].OwnerID, &nonExistingSpaceName)
 		// then
 		require.NotNil(t, err)
 		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
