@@ -19,7 +19,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/rest/proxy"
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
-	"github.com/satori/go.uuid"
 )
 
 type loginConfiguration interface {
@@ -92,9 +91,17 @@ func redirectWithParams(ctx redirectContext, config auth.AuthServiceConfiguratio
 
 // Generate generates access tokens in Dev Mode
 func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
+
+	// Generate local tokens and persist the user info in the database.
+	// After that, talk to AUTH and trigger token generation there.
+	// This ensures that tests users are created on the Auth DB too.
+
 	var tokens app.AuthTokenCollection
 
-	testuser, err := generateUserToken(ctx, c.configuration, c.configuration.GetKeycloakTestUserName())
+	// This ensures that keycloak ID and local ID is in sync.
+	// We are hardcoding the test user IDs since this is a DEV MODE only workflow.
+	identityID := "ae68a343-c866-430c-b6ce-a36f0b38d8e5"
+	testuser, err := generateUserToken(ctx, c.configuration, c.configuration.GetKeycloakTestUserName(), identityID)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err":      err,
@@ -106,7 +113,10 @@ func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 	c.auth.CreateOrUpdateKeycloakUser(*testuser.Token.AccessToken, ctx)
 	tokens = append(tokens, testuser)
 
-	testuser, err = generateUserToken(ctx, c.configuration, c.configuration.GetKeycloakTestUser2Name())
+	// This ensures that keycloak ID and local ID is in sync.
+	// We are hardcoding the test user ID since this is a DEV MODE only workflow.
+	identityID = "c5bcf50d-5ed6-469c-9163-b000b3917684"
+	testuser, err = generateUserToken(ctx, c.configuration, c.configuration.GetKeycloakTestUser2Name(), identityID)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err":      err,
@@ -118,18 +128,21 @@ func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 	c.auth.CreateOrUpdateKeycloakUser(*testuser.Token.AccessToken, ctx)
 	tokens = append(tokens, testuser)
 
-	ctx.ResponseData.Header().Set("Cache-Control", "no-cache")
-	return ctx.OK(tokens)
+	return proxy.RouteHTTPToPath(ctx, c.configuration.GetAuthShortServiceHostName(), authservice.GenerateTokenPath())
+
+	//ctx.ResponseData.Header().Set("Cache-Control", "no-cache")
+	//return ctx.OK(tokens)
+
 }
 
-func generateUserToken(ctx context.Context, configuration loginConfiguration, username string) (*app.AuthToken, error) {
+func generateUserToken(ctx context.Context, configuration loginConfiguration, username string, identityID string) (*app.AuthToken, error) {
 	if !configuration.IsPostgresDeveloperModeEnabled() {
 		log.Error(ctx, map[string]interface{}{
 			"method": "Generate",
 		}, "Developer mode not enabled")
 		return nil, errors.NewInternalError(ctx, errs.New("postgres developer mode is not enabled"))
 	}
-	t, err := token.GenerateToken(uuid.NewV4().String(), username, token.PrivateKey())
+	t, err := token.GenerateToken(identityID, username, token.PrivateKey())
 	if err != nil {
 		return nil, err
 	}
