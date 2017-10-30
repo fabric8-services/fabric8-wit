@@ -30,7 +30,7 @@ func (bench *repoSpaceBench) BenchmarkCreate() {
 	for n := 0; n < bench.B().N; n++ {
 		newSpace := space.Space{
 			Name:    test.CreateRandomValidTestName("BenchmarkCreate"),
-			OwnerId: uuid.Nil,
+			OwnerID: uuid.Nil,
 		}
 		if s, err := bench.repo.Create(context.Background(), &newSpace); err != nil || (err == nil && s == nil) {
 			bench.B().Fail()
@@ -41,7 +41,7 @@ func (bench *repoSpaceBench) BenchmarkCreate() {
 func (bench *repoSpaceBench) BenchmarkLoadSpaceByName() {
 	newSpace := space.Space{
 		Name:    test.CreateRandomValidTestName("BenchmarkLoadSpaceByName"),
-		OwnerId: uuid.Nil,
+		OwnerID: uuid.Nil,
 	}
 	if s, err := bench.repo.Create(context.Background(), &newSpace); err != nil || (err == nil && s == nil) {
 		bench.B().Fail()
@@ -50,7 +50,7 @@ func (bench *repoSpaceBench) BenchmarkLoadSpaceByName() {
 	bench.B().ResetTimer()
 	bench.B().ReportAllocs()
 	for n := 0; n < bench.B().N; n++ {
-		if s, err := bench.repo.LoadByOwnerAndName(context.Background(), &newSpace.OwnerId, &newSpace.Name); err != nil || (err == nil && s == nil) {
+		if s, err := bench.repo.LoadByOwnerAndName(context.Background(), &newSpace.OwnerID, &newSpace.Name); err != nil || (err == nil && s == nil) {
 			bench.B().Fail()
 		}
 	}
