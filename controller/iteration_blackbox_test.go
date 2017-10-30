@@ -107,7 +107,8 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 		name := "Sprint #21"
 		ci := getChildIterationPayload(&name)
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.IdentityByUsername("other user"))
-		test.CreateChildIterationForbidden(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
+		_, jerrs := test.CreateChildIterationForbidden(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "forbidden_other_user.golden.json"), jerrs)
 	})
 
 	rest.T().Run("fail - create same child iteration conflict", func(t *testing.T) {
@@ -121,14 +122,16 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 		name := fxt.Iterations[1].Name
 		ci := getChildIterationPayload(&name)
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
-		test.CreateChildIterationConflict(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
+		_, jerrs := test.CreateChildIterationConflict(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "conflict_for_same_name.golden.json"), jerrs)
 	})
 
 	rest.T().Run("fail - create child iteration missing name", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, rest.DB, tf.Identities(1), tf.Areas(1), tf.Iterations(1))
 		ci := getChildIterationPayload(nil)
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
-		test.CreateChildIterationBadRequest(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
+		_, jerrs := test.CreateChildIterationBadRequest(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "bad_request_missing_name.golden.json"), jerrs)
 	})
 
 	rest.T().Run("fail - create child missing parent", func(t *testing.T) {
@@ -136,7 +139,10 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 		name := "Sprint #21"
 		ci := getChildIterationPayload(&name)
-		test.CreateChildIterationNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String(), ci)
+		_, jerrs := test.CreateChildIterationNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String(), ci)
+		ignoreString := "IGNORE_ME"
+		jerrs.Errors[0].ID = &ignoreString
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "bad_request_unknown_parent.golden.json"), jerrs)
 	})
 
 	rest.T().Run("unauthorized - create child iteration with unauthorized user", func(t *testing.T) {
@@ -144,7 +150,10 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 		name := "Sprint #21"
 		ci := getChildIterationPayload(&name)
 		svc, ctrl := rest.UnSecuredController()
-		test.CreateChildIterationUnauthorized(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
+		_, jerrs := test.CreateChildIterationUnauthorized(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
+		ignoreString := "IGNORE_ME"
+		jerrs.Errors[0].ID = &ignoreString
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized.golden.json"), jerrs)
 	})
 }
 
@@ -242,7 +251,7 @@ func (rest *TestIterationREST) createWorkItem(parentSpace space.Space) workitem.
 			workitem.SystemTitle: "Test Item",
 			workitem.SystemState: "new",
 		}
-		w, err := app.WorkItems().Create(context.Background(), parentSpace.ID, workitem.SystemBug, fields, parentSpace.OwnerId)
+		w, err := app.WorkItems().Create(context.Background(), parentSpace.ID, workitem.SystemBug, fields, parentSpace.OwnerID)
 		wi = w
 		return err
 	})
@@ -261,7 +270,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHead
 	// need to wait at least 1s because HTTP date time does not include microseconds, hence `Last-Modified` vs `If-Modified-Since` comparison may fail
 	time.Sleep(1 * time.Second)
 	err := application.Transactional(rest.db, func(app application.Application) error {
-		_, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerId)
+		_, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
 		return err
 	})
 	require.Nil(rest.T(), err)
@@ -280,7 +289,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHead
 	time.Sleep(1 * time.Second)
 	var updatedWI *workitem.WorkItem
 	err := application.Transactional(rest.db, func(app application.Application) error {
-		w, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerId)
+		w, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
 		updatedWI = w
 		return err
 	})
@@ -299,7 +308,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHead
 	delete(testWI.Fields, workitem.SystemIteration)
 	time.Sleep(1 * time.Second)
 	err = application.Transactional(rest.db, func(app application.Application) error {
-		_, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerId)
+		_, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
 		return err
 	})
 	require.Nil(rest.T(), err)
@@ -316,7 +325,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAf
 	testWI := rest.createWorkItem(parentSpace)
 	testWI.Fields[workitem.SystemIteration] = itr.ID.String()
 	err := application.Transactional(rest.db, func(app application.Application) error {
-		_, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerId)
+		_, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
 		return err
 	})
 	require.Nil(rest.T(), err)
@@ -335,7 +344,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAf
 	time.Sleep(1 * time.Second)
 	var updatedWI *workitem.WorkItem
 	err := application.Transactional(rest.db, func(app application.Application) error {
-		w, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerId)
+		w, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
 		updatedWI = w
 		return err
 	})
@@ -354,7 +363,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAf
 	delete(testWI.Fields, workitem.SystemIteration)
 	time.Sleep(1 * time.Second)
 	err = application.Transactional(rest.db, func(app application.Application) error {
-		_, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerId)
+		_, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
 		return err
 	})
 	require.Nil(rest.T(), err)
@@ -384,7 +393,7 @@ func (rest *TestIterationREST) TestSuccessUpdateIteration() {
 			Type: iteration.APIStringTypeIteration,
 		},
 	}
-	owner, errIdn := rest.db.Identities().Load(context.Background(), sp.OwnerId)
+	owner, errIdn := rest.db.Identities().Load(context.Background(), sp.OwnerID)
 	require.Nil(rest.T(), errIdn)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	// when
@@ -454,7 +463,7 @@ func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 		require.Nil(rest.T(), err)
 		require.NotNil(rest.T(), wi)
 	}
-	owner, errIdn := rest.db.Identities().Load(context.Background(), sp.OwnerId)
+	owner, errIdn := rest.db.Identities().Load(context.Background(), sp.OwnerID)
 	require.Nil(rest.T(), errIdn)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	// when
@@ -513,7 +522,7 @@ func (rest *TestIterationREST) TestIterationStateTransitions() {
 			Type: iteration.APIStringTypeIteration,
 		},
 	}
-	owner, errIdn := rest.db.Identities().Load(context.Background(), sp.OwnerId)
+	owner, errIdn := rest.db.Identities().Load(context.Background(), sp.OwnerID)
 	require.Nil(rest.T(), errIdn)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr1.ID.String(), &payload)
@@ -569,7 +578,7 @@ func (rest *TestIterationREST) TestRootIterationCanNotStart() {
 			Type: iteration.APIStringTypeIteration,
 		},
 	}
-	owner, errIdn := rest.db.Identities().Load(context.Background(), sp.OwnerId)
+	owner, errIdn := rest.db.Identities().Load(context.Background(), sp.OwnerID)
 	require.Nil(rest.T(), errIdn)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	test.UpdateIterationBadRequest(rest.T(), svc.Context, svc, ctrl, ri.ID.String(), &payload)
@@ -582,7 +591,7 @@ func (rest *TestIterationREST) createIterations() (*app.IterationSingle, *accoun
 	parentID := parent.ID
 	name := testsupport.CreateRandomValidTestName("Iteration-")
 	ci := getChildIterationPayload(&name)
-	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerId)
+	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
 	require.Nil(rest.T(), err)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	// when
@@ -680,7 +689,7 @@ func createSpaceAndRootAreaAndIterations(t *testing.T, db application.DB) (space
 		require.Nil(t, errCreateOwner)
 		spaceObj = space.Space{
 			Name:    testsupport.CreateRandomValidTestName("CreateSpaceAndRootAreaAndIterations-"),
-			OwnerId: owner.ID,
+			OwnerID: owner.ID,
 		}
 		_, err := app.Spaces().Create(context.Background(), &spaceObj)
 		require.Nil(t, err)

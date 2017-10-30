@@ -53,10 +53,10 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
-		if !uuid.Equal(*currentUser, s.OwnerId) {
+		if !uuid.Equal(*currentUser, s.OwnerID) {
 			log.Warn(ctx, map[string]interface{}{
 				"space_id":     ctx.SpaceID,
-				"space_owner":  s.OwnerId,
+				"space_owner":  s.OwnerID,
 				"current_user": *currentUser,
 			}, "user is not the space owner")
 			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the space owner"))

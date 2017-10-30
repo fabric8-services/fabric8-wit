@@ -71,10 +71,10 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		if !uuid.Equal(*currentUserIdentityID, space.OwnerId) {
+		if !uuid.Equal(*currentUserIdentityID, space.OwnerID) {
 			log.Warn(ctx, map[string]interface{}{
 				"space_id":     ctx.SpaceID,
-				"space_owner":  space.OwnerId,
+				"space_owner":  space.OwnerID,
 				"current_user": *currentUserIdentityID,
 			}, "user is not the space owner")
 			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the space owner"))

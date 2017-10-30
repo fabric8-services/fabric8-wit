@@ -49,7 +49,7 @@ func (rest *TestPlannerBacklogREST) setupPlannerBacklogWorkItems() (testSpace *s
 		spacesRepo := app.Spaces()
 		testSpace = &space.Space{
 			Name:    "PlannerBacklogWorkItems-" + uuid.NewV4().String(),
-			OwnerId: rest.testIdentity.ID,
+			OwnerID: rest.testIdentity.ID,
 		}
 		_, err := spacesRepo.Create(rest.Ctx, testSpace)
 		require.Nil(rest.T(), err)
@@ -128,7 +128,7 @@ func (rest *TestPlannerBacklogREST) TestCountZeroPlannerBacklogWorkItemsOK() {
 		spacesRepo := app.Spaces()
 		spaceCount = &space.Space{
 			Name:    "PlannerBacklogWorkItems-" + uuid.NewV4().String(),
-			OwnerId: rest.testIdentity.ID,
+			OwnerID: rest.testIdentity.ID,
 		}
 		_, err := spacesRepo.Create(rest.Ctx, spaceCount)
 		require.Nil(rest.T(), err)

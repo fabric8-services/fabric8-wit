@@ -78,7 +78,7 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIteration() {
 		repo := app.Spaces()
 		newSpace := space.Space{
 			Name:    "TestSuccessCreateIteration" + uuid.NewV4().String(),
-			OwnerId: testsupport.TestIdentity.ID,
+			OwnerID: testsupport.TestIdentity.ID,
 		}
 		createdSpace, err := repo.Create(rest.Ctx, &newSpace)
 		p = createdSpace
@@ -120,7 +120,7 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIterationWithOptionalValues
 		repo := app.Spaces()
 		testSpace := space.Space{
 			Name:    "TestSuccessCreateIterationWithOptionalValues-" + uuid.NewV4().String(),
-			OwnerId: testsupport.TestIdentity.ID,
+			OwnerID: testsupport.TestIdentity.ID,
 		}
 		p, _ = repo.Create(rest.Ctx, &testSpace)
 		// create Root iteration for above space
@@ -426,7 +426,7 @@ func (rest *TestSpaceIterationREST) TestOnlySpaceOwnerCreateIteration() {
 		repo := app.Spaces()
 		newSpace := space.Space{
 			Name:    "TestSuccessCreateIteration" + uuid.NewV4().String(),
-			OwnerId: spaceOwner.ID,
+			OwnerID: spaceOwner.ID,
 		}
 		createdSpace, err := repo.Create(rest.Ctx, &newSpace)
 		p = createdSpace
@@ -444,7 +444,7 @@ func (rest *TestSpaceIterationREST) TestOnlySpaceOwnerCreateIteration() {
 	})
 	require.Nil(rest.T(), err)
 
-	spaceOwner, errInLoad := identityRepo.Load(rest.Ctx, p.OwnerId)
+	spaceOwner, errInLoad := identityRepo.Load(rest.Ctx, p.OwnerID)
 	require.Nil(rest.T(), errInLoad)
 
 	svc, ctrl := rest.SecuredControllerWithIdentity(spaceOwner)

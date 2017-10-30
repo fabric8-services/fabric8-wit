@@ -46,7 +46,7 @@ func (c *SpaceCodebasesController) Create(ctx *app.CreateSpaceCodebasesContext) 
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
-		if *identityID != space.OwnerId {
+		if *identityID != space.OwnerID {
 			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the space owner"))
 		}
 

@@ -37,7 +37,7 @@ func (s *JSONComplianceTestSuite) NewSecuredSpaceController(identity account.Ide
 func (s *JSONComplianceTestSuite) TestListSpaces() {
 	// given
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(1), tf.Spaces(1, func(fxt *tf.TestFixture, idx int) error {
-		fxt.Spaces[idx].OwnerId = fxt.Identities[0].ID
+		fxt.Spaces[idx].OwnerID = fxt.Identities[0].ID
 		return nil
 	}))
 
