@@ -553,7 +553,7 @@ func testMigration79(t *testing.T) {
 
 func testMigration80(t *testing.T) {
 	migrateToVersion(t, sqlDB, migrations[:80], 80)
-	assert.Nil(t, runSQLscript(sqlDB, "080-old-link-type-relics.sql",
+	require.Nil(t, runSQLscript(sqlDB, "080-old-link-type-relics.sql",
 		space.SystemSpace.String(),
 		link.SystemWorkItemLinkTypeBugBlockerID.String(),
 		link.SystemWorkItemLinkPlannerItemRelatedID.String(),
@@ -639,15 +639,15 @@ func executeSQLTestFile(filename string, args ...string) fn {
 		}
 
 		if len(args) > 0 {
-			tmpl, err := template.New("sql").Parse(string(data))
-			if err != nil {
-				return errs.Wrapf(err, "failed to create new SQL template from file %s", filename)
+			tmpl, templErr := template.New("sql").Parse(string(data))
+			if templErr != nil {
+				return errs.Wrapf(templErr, "failed to create new SQL template from file %s", filename)
 			}
 			var sqlScript bytes.Buffer
 			writer := bufio.NewWriter(&sqlScript)
-			err = tmpl.Execute(writer, args)
-			if err != nil {
-				return errs.Wrapf(err, "failed to execute SQL template from file %s", filename)
+			tmplExecErr := tmpl.Execute(writer, args)
+			if tmplExecErr != nil {
+				return errs.Wrapf(tmplExecErr, "failed to execute SQL template from file %s", filename)
 			}
 			// We need to flush the content of the writer
 			writer.Flush()
