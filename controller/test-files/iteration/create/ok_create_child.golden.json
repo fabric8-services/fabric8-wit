@@ -1,0 +1,54 @@
+{
+  "data": {
+    "attributes": {
+      "active_status": false,
+      "created-at": "0001-01-01T00:00:00Z",
+      "description": "Some description",
+      "endAt": "2017-11-25T15:08:41Z",
+      "name": "Sprint #21",
+      "parent_path": "/e6a4dd3b-f086-43e8-9acd-121f3d269c30/3caa683e-7392-4909-a82a-5c04b0f46c69",
+      "resolved_parent_path": "/root iteration/child iteration",
+      "startAt": "2017-11-04T15:08:41Z",
+      "state": "new",
+      "updated-at": "0001-01-01T00:00:00Z",
+      "user_active": false
+    },
+    "id": "4533dd4e-0c67-4cc6-8dfa-94e6b6c9e26c",
+    "links": {
+      "related": "http:///api/iterations/4533dd4e-0c67-4cc6-8dfa-94e6b6c9e26c",
+      "self": "http:///api/iterations/4533dd4e-0c67-4cc6-8dfa-94e6b6c9e26c"
+    },
+    "relationships": {
+      "parent": {
+        "data": {
+          "id": "3caa683e-7392-4909-a82a-5c04b0f46c69",
+          "type": "iterations"
+        },
+        "links": {
+          "related": "http:///api/iterations/3caa683e-7392-4909-a82a-5c04b0f46c69",
+          "self": "http:///api/iterations/3caa683e-7392-4909-a82a-5c04b0f46c69"
+        }
+      },
+      "space": {
+        "data": {
+          "id": "826db44e-142b-4796-8140-54a4aef7759e",
+          "type": "spaces"
+        },
+        "links": {
+          "related": "http:///api/spaces/826db44e-142b-4796-8140-54a4aef7759e",
+          "self": "http:///api/spaces/826db44e-142b-4796-8140-54a4aef7759e"
+        }
+      },
+      "workitems": {
+        "links": {
+          "related": "http:///api/workitems/?filter[iteration]=4533dd4e-0c67-4cc6-8dfa-94e6b6c9e26c"
+        },
+        "meta": {
+          "closed": 0,
+          "total": 0
+        }
+      }
+    },
+    "type": "iterations"
+  }
+}

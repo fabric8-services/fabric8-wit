@@ -19,6 +19,12 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+// Following const are keys to be used in Meta Relationship for counters of Work Item
+const (
+	KeyTotalWorkItems  = "total"
+	KeyClosedWorkItems = "closed"
+)
+
 // IterationController implements the iteration resource.
 type IterationController struct {
 	*goa.Controller
@@ -79,7 +85,6 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 		} else {
 			userActive := false
 			reqIter.Attributes.UserActive = &userActive
-
 		}
 
 		newItr := iteration.Iteration{
@@ -91,7 +96,9 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 			EndAt:       reqIter.Attributes.EndAt,
 			UserActive:  *reqIter.Attributes.UserActive,
 		}
-
+		if reqIter.ID != nil {
+			newItr.ID = *reqIter.ID
+		}
 		err = appl.Iterations().Create(ctx, &newItr)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
@@ -468,7 +475,7 @@ func updateIterationsWithCounts(wiCounts map[string]workitem.WICountsPerIteratio
 		if appIteration.Relationships.Workitems.Meta == nil {
 			appIteration.Relationships.Workitems.Meta = map[string]interface{}{}
 		}
-		appIteration.Relationships.Workitems.Meta["total"] = counts.Total
-		appIteration.Relationships.Workitems.Meta["closed"] = counts.Closed
+		appIteration.Relationships.Workitems.Meta[KeyTotalWorkItems] = counts.Total
+		appIteration.Relationships.Workitems.Meta[KeyClosedWorkItems] = counts.Closed
 	}
 }

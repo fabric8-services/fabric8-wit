@@ -115,17 +115,13 @@ func (s *TestIterationRepository) TestCreate() {
 		)
 
 		i := *fxt.Iterations[0]
-		space1 := *fxt.Spaces[0]
 		space2 := *fxt.Spaces[1]
 
 		// another iteration with same name within same sapce, should fail
-		i2 := iteration.Iteration{
-			Name:    name,
-			SpaceID: space1.ID,
-		}
-		err := repo.Create(context.Background(), &i)
+		i2 := i
+		i2.ID = uuid.Nil
+		err := repo.Create(context.Background(), &i2)
 		require.NotNil(t, err)
-		require.Equal(t, uuid.Nil, i2.ID)
 		assert.Equal(t, reflect.TypeOf(errors.DataConflictError{}), reflect.TypeOf(err))
 
 		// create iteration with same name in another space, should pass
