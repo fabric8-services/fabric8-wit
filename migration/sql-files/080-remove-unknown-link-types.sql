@@ -61,21 +61,6 @@ UPDATE work_item_link_revisions
 UPDATE work_item_link_revisions rev SET
     work_item_link_type_id = (SELECT link_type_id FROM work_item_links WHERE id = rev.work_item_link_id);
 
--- Delete all revisions that point to a link that use the old link types 
-DELETE FROM work_item_link_revisions 
-    WHERE work_item_link_id IN (SELECT id FROM work_item_links WHERE id NOT IN (
-        current_setting('linktypes.bug_blocker')::uuid,
-        current_setting('linktypes.related')::uuid,
-        current_setting('linktypes.parenting')::uuid
-    ));
-
--- Finally, delete links using old link types
-DELETE FROM work_item_links WHERE link_type_id NOT IN (
-    current_setting('linktypes.bug_blocker')::uuid,
-    current_setting('linktypes.related')::uuid,
-    current_setting('linktypes.parenting')::uuid
-);
-
 -- Remove unknown link categories
 DELETE FROM work_item_link_categories WHERE id NOT IN (
      current_setting('linkcats.systemcat')::uuid,
