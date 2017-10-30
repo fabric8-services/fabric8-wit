@@ -942,3 +942,65 @@ func (s *searchBlackBoxTest) TestIncludedParents() {
 	}
 	assert.Equal(s.T(), successCnt, 4)
 }
+
+func (s *searchBlackBoxTest) TestUpdateWorkItem() {
+	resetFn := s.DisableGormCallbacks()
+	defer resetFn()
+
+	s.T().Run("assignees", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+		spaceIDStr := fxt.Spaces[0].ID.String()
+		filter := fmt.Sprintf(`{"assignee":null}`)
+		t.Run("filter null", func(t *testing.T) {
+			// when
+			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+			// then
+			require.Len(t, result.Data, 1)
+			require.Equal(t, fxt.WorkItems[0].ID, *result.Data[0].ID)
+
+			t.Run("assignee should be nil if assignee field is not touched during update", func(t *testing.T) {
+				wi := result.Data[0]
+				workitemCtrl := NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+
+				wi.Attributes[workitem.SystemTitle] = "Updated Test WI"
+				payload2 := app.UpdateWorkitemPayload{Data: wi}
+				_, updated := test.UpdateWorkitemOK(t, s.svc.Context, s.svc, workitemCtrl, *wi.ID, &payload2)
+				compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "filter_assignee_null_update_work_item.golden.json"), updated)
+
+				_, result = test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+				compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "filter_assignee_null_show_after_update_work_item.golden.json"), updated)
+				assert.Nil(s.T(), result.Data[0].Attributes[workitem.SystemAssignees])
+
+			})
+		})
+	})
+	s.T().Run("labels", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+		spaceIDStr := fxt.Spaces[0].ID.String()
+		filter := fmt.Sprintf(`{"label":null}`)
+		t.Run("filter null", func(t *testing.T) {
+			// when
+			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+			// then
+			require.Len(t, result.Data, 2)
+			require.Equal(t, fxt.WorkItems[0].ID, *result.Data[1].ID)
+
+			t.Run("assignee should be nil if label field is not touched during update", func(t *testing.T) {
+				wi := result.Data[0]
+				workitemCtrl := NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+
+				wi.Attributes[workitem.SystemTitle] = "Updated Test WI"
+				payload2 := app.UpdateWorkitemPayload{Data: wi}
+				_, updated := test.UpdateWorkitemOK(t, s.svc.Context, s.svc, workitemCtrl, *wi.ID, &payload2)
+				compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "filter_label_null_update_work_item.golden.json"), updated)
+
+				_, result = test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+				compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "filter_label_null_show_after_update_work_item.golden.json"), updated)
+				assert.Nil(s.T(), result.Data[0].Attributes[workitem.SystemLabels])
+
+			})
+		})
+	})
+}
