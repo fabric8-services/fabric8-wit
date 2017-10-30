@@ -1,0 +1,10 @@
+{
+  "errors": [
+    {
+      "code": "data_conflict_error",
+      "detail": "iteration already exists with name = iteration 82cce03c-7c51-4b6c-8565-f468a8f081f9 , space_id = ddfb6ae7-e006-42e4-a181-49b334afd18c , path = /d2665ed8-3f66-4149-886a-aca90e7f7d06 ",
+      "status": "409",
+      "title": "Data conflict error"
+    }
+  ]
+}
