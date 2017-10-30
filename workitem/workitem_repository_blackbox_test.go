@@ -373,7 +373,7 @@ func (s *workItemRepoBlackBoxTest) TestLookupIDByNamedSpaceAndNumberStaleSpace()
 
 	testFxt2 := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1, func(testf *tf.TestFixture, idx int) error {
 		testf.Spaces[0].Name = sp.Name
-		testf.Spaces[0].OwnerId = in.ID
+		testf.Spaces[0].OwnerID = in.ID
 		return nil
 	}), tf.WorkItems(20, func(testf *tf.TestFixture, idx int) error {
 		testf.WorkItems[idx].Fields[workitem.SystemState] = workitem.SystemStateNew
