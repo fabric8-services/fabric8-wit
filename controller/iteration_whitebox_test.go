@@ -44,16 +44,16 @@ func TestUpdateIterationsWithCounts(t *testing.T) {
 		require.NotNil(t, appIteration.Relationships.Workitems)
 		require.NotNil(t, appIteration.Relationships.Workitems.Meta)
 		if appIteration.ID.String() == i1.ID.String() {
-			assert.Equal(t, 10, appIteration.Relationships.Workitems.Meta["total"])
-			assert.Equal(t, 8, appIteration.Relationships.Workitems.Meta["closed"])
+			assert.Equal(t, 10, appIteration.Relationships.Workitems.Meta[KeyTotalWorkItems])
+			assert.Equal(t, 8, appIteration.Relationships.Workitems.Meta[KeyClosedWorkItems])
 		}
 		if appIteration.ID.String() == i2.ID.String() {
-			assert.Equal(t, 3, appIteration.Relationships.Workitems.Meta["total"])
-			assert.Equal(t, 1, appIteration.Relationships.Workitems.Meta["closed"])
+			assert.Equal(t, 3, appIteration.Relationships.Workitems.Meta[KeyTotalWorkItems])
+			assert.Equal(t, 1, appIteration.Relationships.Workitems.Meta[KeyClosedWorkItems])
 		}
 		if appIteration.ID.String() == i3.ID.String() {
-			assert.Equal(t, 0, appIteration.Relationships.Workitems.Meta["total"])
-			assert.Equal(t, 0, appIteration.Relationships.Workitems.Meta["closed"])
+			assert.Equal(t, 0, appIteration.Relationships.Workitems.Meta[KeyTotalWorkItems])
+			assert.Equal(t, 0, appIteration.Relationships.Workitems.Meta[KeyClosedWorkItems])
 		}
 	}
 }

@@ -4,7 +4,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	errs "github.com/pkg/errors"
-	uuid "github.com/satori/go.uuid"
 )
 
 // A CustomizeEntityFunc acts as a generic function to the various
@@ -94,58 +93,6 @@ func SetIterationNames(names ...string) CustomizeIterationFunc {
 			return errs.Errorf("number of names (%d) must match number of iterations to create (%d)", len(names), len(fxt.Iterations))
 		}
 		fxt.Iterations[idx].Name = names[idx]
-		return nil
-	}
-}
-
-// SetIterationIDsFromString takes the given IDs in string and uses them during
-// creation of iterations. The length of requested iterations and the number of
-// Ids must match or the NewFixture call will return an error.
-func SetIterationIDsFromString(IDs []string) CustomizeIterationFunc {
-	return func(fxt *TestFixture, idx int) error {
-		if len(fxt.Iterations) != len(IDs) {
-			return errs.Errorf("number of IDs (%d) must match number of iterations to create (%d)", len(IDs), len(fxt.Iterations))
-		}
-		fxt.Iterations[idx].ID = uuid.FromStringOrNil(IDs[idx])
-		return nil
-	}
-}
-
-// SetSpaceIDsFromString takes the given IDs in string and uses them during
-// creation of spaces. The length of requested spaces and the number of Ids must
-// match or the NewFixture call will return an error.
-func SetSpaceIDsFromString(IDs []string) CustomizeSpaceFunc {
-	return func(fxt *TestFixture, idx int) error {
-		if len(fxt.Spaces) != len(IDs) {
-			return errs.Errorf("number of IDs (%d) must match number of spaces to create (%d)", len(IDs), len(fxt.Spaces))
-		}
-		fxt.Spaces[idx].ID = uuid.FromStringOrNil(IDs[idx])
-		return nil
-	}
-}
-
-// SetAreaIDsFromString takes the given IDs in string and uses them during
-// creation of areas. The length of requested spaces and the number of Ids must
-// match or the NewFixture call will return an error.
-func SetAreaIDsFromString(IDs []string) CustomizeAreaFunc {
-	return func(fxt *TestFixture, idx int) error {
-		if len(fxt.Areas) != len(IDs) {
-			return errs.Errorf("number of IDs (%d) must match number of areas to create (%d)", len(IDs), len(fxt.Areas))
-		}
-		fxt.Areas[idx].ID = uuid.FromStringOrNil(IDs[idx])
-		return nil
-	}
-}
-
-// SetIdentityIDsFromString takes the given IDs in string and uses them during
-// creation of identities. The length of requested identities and the number of Ids must
-// match or the NewFixture call will return an error.
-func SetIdentityIDsFromString(IDs []string) CustomizeIdentityFunc {
-	return func(fxt *TestFixture, idx int) error {
-		if len(fxt.Identities) != len(IDs) {
-			return errs.Errorf("number of IDs (%d) must match number of identities to create (%d)", len(IDs), len(fxt.Identities))
-		}
-		fxt.Identities[idx].ID = uuid.FromStringOrNil(IDs[idx])
 		return nil
 	}
 }

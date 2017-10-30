@@ -355,6 +355,9 @@ func GetMigrations() Migrations {
 	// Version 77
 	m = append(m, steps{ExecuteSQLFile("077-index-work-item-links.sql")})
 
+	// Version 78
+	m = append(m, steps{ExecuteSQLFile("078-tracker-to-use-uuid.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -583,7 +586,7 @@ func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkIte
 		ID:             link.SystemWorkItemLinkTypeParentChildID,
 		Name:           "Parent child item",
 		Description:    &parentingDesc,
-		Topology:       link.TopologyNetwork,
+		Topology:       link.TopologyTree,
 		ForwardName:    "parent of",
 		ReverseName:    "child of",
 		LinkCategoryID: systemCat.ID,
