@@ -77,7 +77,10 @@ type GormAreaRepository struct {
 // Create creates a new record.
 func (m *GormAreaRepository) Create(ctx context.Context, u *Area) error {
 	defer goa.MeasureSince([]string{"goa", "db", "area", "create"}, time.Now())
-	u.ID = uuid.NewV4()
+
+	if u.ID == uuid.Nil {
+		u.ID = uuid.NewV4()
+	}
 	err := m.db.Create(u).Error
 	if err != nil {
 		// ( name, spaceID ,path ) needs to be unique
