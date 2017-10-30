@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/fabric8-services/fabric8-wit/account"
-	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/area"
 	"github.com/fabric8-services/fabric8-wit/codebase"
 	"github.com/fabric8-services/fabric8-wit/comment"
@@ -77,13 +76,13 @@ func makeSpaces(fxt *TestFixture) error {
 			Description: "Some description",
 		}
 		if !fxt.isolatedCreation {
-			fxt.Spaces[i].OwnerId = fxt.Identities[0].ID
+			fxt.Spaces[i].OwnerID = fxt.Identities[0].ID
 		}
 		if err := fxt.runCustomizeEntityFuncs(i, kindSpaces); err != nil {
 			return errs.WithStack(err)
 		}
 		if fxt.isolatedCreation {
-			if fxt.Spaces[i].OwnerId == uuid.Nil {
+			if fxt.Spaces[i].OwnerID == uuid.Nil {
 				return errs.New("you must specify an owner ID for each space")
 			}
 		}
@@ -492,22 +491,21 @@ func makeTrackers(fxt *TestFixture) error {
 	if fxt.info[kindTrackers] == nil {
 		return nil
 	}
-	fxt.Trackers = make([]*app.Tracker, fxt.info[kindTrackers].numInstances)
+	fxt.Trackers = make([]*remoteworkitem.Tracker, fxt.info[kindTrackers].numInstances)
 	trackerRepo := remoteworkitem.NewTrackerRepository(fxt.db)
 
 	for i := range fxt.Trackers {
-		fxt.Trackers[i] = &app.Tracker{
+		fxt.Trackers[i] = &remoteworkitem.Tracker{
 			URL:  "https://api.github.com/",
 			Type: remoteworkitem.ProviderGithub,
 		}
 		if err := fxt.runCustomizeEntityFuncs(i, kindTrackers); err != nil {
 			return errs.WithStack(err)
 		}
-		tracker, err := trackerRepo.Create(fxt.ctx, fxt.Trackers[i].URL, fxt.Trackers[i].Type)
+		err := trackerRepo.Create(fxt.ctx, fxt.Trackers[i])
 		if err != nil {
 			return errs.Wrapf(err, "failed to create tracker: %+v", fxt.Trackers[i])
 		}
-		fxt.Trackers[i] = tracker
 	}
 	return nil
 }

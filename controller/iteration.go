@@ -19,6 +19,12 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+// Following const are keys to be used in Meta Relationship for counters of Work Item
+const (
+	KeyTotalWorkItems  = "total"
+	KeyClosedWorkItems = "closed"
+)
+
 // IterationController implements the iteration resource.
 type IterationController struct {
 	*goa.Controller
@@ -58,10 +64,10 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
-		if !uuid.Equal(*currentUser, s.OwnerId) {
+		if !uuid.Equal(*currentUser, s.OwnerID) {
 			log.Warn(ctx, map[string]interface{}{
 				"space_id":     s.ID,
-				"space_owner":  s.OwnerId,
+				"space_owner":  s.OwnerID,
 				"current_user": *currentUser,
 			}, "user is not the space owner")
 			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the space owner"))
@@ -79,7 +85,6 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 		} else {
 			userActive := false
 			reqIter.Attributes.UserActive = &userActive
-
 		}
 
 		newItr := iteration.Iteration{
@@ -91,7 +96,9 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 			EndAt:       reqIter.Attributes.EndAt,
 			UserActive:  *reqIter.Attributes.UserActive,
 		}
-
+		if reqIter.ID != nil {
+			newItr.ID = *reqIter.ID
+		}
 		err = appl.Iterations().Create(ctx, &newItr)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
@@ -174,10 +181,10 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
-		if !uuid.Equal(*currentUser, s.OwnerId) {
+		if !uuid.Equal(*currentUser, s.OwnerID) {
 			log.Warn(ctx, map[string]interface{}{
 				"space_id":     s.ID,
-				"space_owner":  s.OwnerId,
+				"space_owner":  s.OwnerID,
 				"current_user": *currentUser,
 			}, "user is not the space owner")
 			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the space owner"))
@@ -247,12 +254,12 @@ func (c *IterationController) Delete(ctx *app.DeleteIterationContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
-		if !uuid.Equal(*currentUser, s.OwnerId) {
+		if !uuid.Equal(*currentUser, s.OwnerID) {
 			errorMsg := fmt.Sprintf("only the space owner can delete an iteration and %s is not the space owner of %s",
 				*currentUser, s.ID)
 			log.Warn(ctx, map[string]interface{}{
 				"space_id":     s.ID,
-				"space_owner":  s.OwnerId,
+				"space_owner":  s.OwnerID,
 				"current_user": *currentUser,
 			}, errorMsg)
 			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError(errorMsg))
@@ -468,7 +475,7 @@ func updateIterationsWithCounts(wiCounts map[string]workitem.WICountsPerIteratio
 		if appIteration.Relationships.Workitems.Meta == nil {
 			appIteration.Relationships.Workitems.Meta = map[string]interface{}{}
 		}
-		appIteration.Relationships.Workitems.Meta["total"] = counts.Total
-		appIteration.Relationships.Workitems.Meta["closed"] = counts.Closed
+		appIteration.Relationships.Workitems.Meta[KeyTotalWorkItems] = counts.Total
+		appIteration.Relationships.Workitems.Meta[KeyClosedWorkItems] = counts.Closed
 	}
 }

@@ -31,7 +31,7 @@ type Space struct {
 	Version     int
 	Name        string
 	Description string
-	OwnerId     uuid.UUID `sql:"type:uuid"` // Belongs To Identity
+	OwnerID     uuid.UUID `sql:"type:uuid"` // Belongs To Identity
 }
 
 // Ensure Fields implements the Equaler interface
@@ -57,7 +57,7 @@ func (p Space) Equal(u convert.Equaler) bool {
 	if p.Description != other.Description {
 		return false
 	}
-	if !uuid.Equal(p.OwnerId, other.OwnerId) {
+	if !uuid.Equal(p.OwnerID, other.OwnerID) {
 		return false
 	}
 	return true

@@ -53,6 +53,11 @@ func (m *Iteration) MakeChildOf(parent Iteration) {
 	m.Path = append(parent.Path, parent.ID)
 }
 
+// FullPath returns the Path by appending self ID to it.
+func (m *Iteration) FullPath() string {
+	return m.Path.String() + path.SepInService + m.ID.String()
+}
+
 // GetETagData returns the field values to use to generate the ETag
 func (m Iteration) GetETagData() []interface{} {
 	// using the 'ID' and 'UpdatedAt' (converted to number of seconds since epoch) fields
@@ -131,7 +136,9 @@ func (m *GormIterationRepository) LoadMultiple(ctx context.Context, ids []uuid.U
 func (m *GormIterationRepository) Create(ctx context.Context, u *Iteration) error {
 	defer goa.MeasureSince([]string{"goa", "db", "iteration", "create"}, time.Now())
 
-	u.ID = uuid.NewV4()
+	if u.ID == uuid.Nil {
+		u.ID = uuid.NewV4()
+	}
 	u.State = IterationStateNew
 	err := m.db.Create(u).Error
 	// Composite key (name,space,path) must be unique
@@ -278,19 +285,18 @@ func inTimeframe(startAt time.Time, endAt time.Time) bool {
 	return time.Now().UTC().After(startAt) && time.Now().UTC().Before(endAt)
 }
 
-func (i *Iteration) IsActive() bool {
-	if i.UserActive {
+func (m *Iteration) IsActive() bool {
+	if m.UserActive {
 		return true
 	}
 
-	if i.StartAt == nil {
+	if m.StartAt == nil {
 		return false
 	}
-	if i.EndAt == nil {
-		return time.Now().UTC().After(*i.StartAt)
+	if m.EndAt == nil {
+		return time.Now().UTC().After(*m.StartAt)
 	}
-	return inTimeframe(*i.StartAt, *i.EndAt)
-
+	return inTimeframe(*m.StartAt, *m.EndAt)
 }
 
 // LoadChildren executes - select * from iterations where path <@ 'parent_path.parent_id';

@@ -1,4 +1,4 @@
-package remoteworkitem
+package remoteworkitem_test
 
 import (
 	"encoding/json"
@@ -8,10 +8,12 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/test"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -32,16 +34,16 @@ func provideRemoteData(dataURL string) ([]byte, error) {
 func TestWorkItemMapping(t *testing.T) {
 	// given
 	resource.Require(t, resource.UnitTest)
-	workItemMap := RemoteWorkItemMap{
-		AttributeMapper{AttributeExpression("title"), AttributeConverter(StringConverter{})}: workitem.SystemTitle,
+	workItemMap := remoteworkitem.RemoteWorkItemMap{
+		remoteworkitem.AttributeMapper{remoteworkitem.AttributeExpression("title"), remoteworkitem.AttributeConverter(remoteworkitem.StringConverter{})}: workitem.SystemTitle,
 	}
 	jsonContent := `{"title":"abc"}`
-	remoteTrackerItem := TrackerItem{Item: jsonContent, RemoteItemID: "xyz", TrackerID: uint64(0)}
-	remoteWorkItemImpl := RemoteWorkItemImplRegistry[ProviderGithub]
+	remoteTrackerItem := remoteworkitem.TrackerItem{Item: jsonContent, RemoteItemID: "xyz", TrackerID: uuid.NewV4()}
+	remoteWorkItemImpl := remoteworkitem.RemoteWorkItemImplRegistry[remoteworkitem.ProviderGithub]
 	gh, err := remoteWorkItemImpl(remoteTrackerItem)
 	require.Nil(t, err)
 	// when
-	workItem, err := Map(gh, workItemMap)
+	workItem, err := remoteworkitem.Map(gh, workItemMap)
 	// then
 	require.Nil(t, err)
 	assert.NotNil(t, workItem.Fields[workitem.SystemTitle], fmt.Sprintf("%s not mapped", workitem.SystemTitle))
@@ -68,7 +70,7 @@ func TestGitHubIssueMapping(t *testing.T) {
 	}
 	// when/then
 	for _, j := range gitData {
-		doTestIssueMapping(t, j, ProviderGithub)
+		doTestIssueMapping(t, j, remoteworkitem.ProviderGithub)
 	}
 }
 
@@ -87,7 +89,7 @@ func TestJiraIssueMapping(t *testing.T) {
 	}
 	// when/then
 	for _, j := range jiraData {
-		doTestIssueMapping(t, j, ProviderJira)
+		doTestIssueMapping(t, j, remoteworkitem.ProviderJira)
 	}
 }
 
@@ -97,13 +99,13 @@ func doTestIssueMapping(t *testing.T, data remoteData, provider string) {
 		return provideRemoteData(data.inputURL)
 	})
 	require.Nil(t, err)
-	workItemMap := RemoteWorkItemKeyMaps[provider]
-	remoteTrackerItem := TrackerItem{Item: string(content[:]), RemoteItemID: "xyz", TrackerID: uint64(0)}
-	remoteWorkItemImpl := RemoteWorkItemImplRegistry[ProviderJira]
+	workItemMap := remoteworkitem.RemoteWorkItemKeyMaps[provider]
+	remoteTrackerItem := remoteworkitem.TrackerItem{Item: string(content[:]), RemoteItemID: "xyz", TrackerID: uuid.NewV4()}
+	remoteWorkItemImpl := remoteworkitem.RemoteWorkItemImplRegistry[remoteworkitem.ProviderJira]
 	issue, err := remoteWorkItemImpl(remoteTrackerItem)
 	require.Nil(t, err)
 	// when
-	workItem, err := Map(issue, workItemMap)
+	workItem, err := remoteworkitem.Map(issue, workItemMap)
 	require.Nil(t, err)
 	// then
 	for _, localWorkItemKey := range workItemMap {
@@ -131,7 +133,7 @@ func TestFlattenGithubResponseMap(t *testing.T) {
 	}
 
 	for _, data := range gitData {
-		doTestFlattenResponseMap(t, data, ProviderGithub)
+		doTestFlattenResponseMap(t, data, remoteworkitem.ProviderGithub)
 	}
 }
 
@@ -145,7 +147,7 @@ func TestFlattenJiraResponseMap(t *testing.T) {
 	}
 
 	for _, data := range jir {
-		doTestFlattenResponseMap(t, data, ProviderJira)
+		doTestFlattenResponseMap(t, data, remoteworkitem.ProviderJira)
 	}
 }
 
@@ -165,7 +167,7 @@ func TestFlattenGithubResponseMapWithoutAssignee(t *testing.T) {
 	// when/then
 	for _, data := range gitData {
 		// skipping assignees login and URL since the test data contain no assignee
-		doTestFlattenResponseMap(t, data, ProviderGithub, GithubAssigneesLogin, GithubAssigneesProfileURL)
+		doTestFlattenResponseMap(t, data, remoteworkitem.ProviderGithub, remoteworkitem.GithubAssigneesLogin, remoteworkitem.GithubAssigneesProfileURL)
 	}
 }
 
@@ -184,7 +186,7 @@ func TestFlattenJiraResponseMapWithoutAssignee(t *testing.T) {
 
 	for _, data := range jir {
 		// skipping assignee login and URL since the test data contain no assignee
-		doTestFlattenResponseMap(t, data, ProviderJira, JiraAssigneeLogin, JiraAssigneeProfileURL)
+		doTestFlattenResponseMap(t, data, remoteworkitem.ProviderJira, remoteworkitem.JiraAssigneeLogin, remoteworkitem.JiraAssigneeProfileURL)
 	}
 }
 
@@ -198,11 +200,11 @@ func doTestFlattenResponseMap(t *testing.T, data remoteData, provider string, sk
 	err = json.Unmarshal(testString, &nestedMap)
 	require.Nil(t, err, "Incorrect dataset %s", testString)
 	// when
-	oneLevelMap := Flatten(nestedMap)
+	oneLevelMap := remoteworkitem.Flatten(nestedMap)
 	// then: verifying that the newly converted map contains all expected keys
 KEYS:
-	for k := range RemoteWorkItemKeyMaps[provider] {
-		key := string(k.expression)
+	for k := range remoteworkitem.RemoteWorkItemKeyMaps[provider] {
+		key := string(k.Expression)
 		for _, skipField := range skipFields {
 			if skipField == key {
 				// skip the key
@@ -244,8 +246,8 @@ func TestNewGitHubRemoteWorkItem(t *testing.T) {
 			}
 		}`
 	// when
-	remoteTrackerItem := TrackerItem{Item: jsonContent, RemoteItemID: "xyz", TrackerID: uint64(0)}
-	githubRemoteWorkItem, err := NewGitHubRemoteWorkItem(remoteTrackerItem)
+	remoteTrackerItem := remoteworkitem.TrackerItem{Item: jsonContent, RemoteItemID: "xyz", TrackerID: uuid.NewV4()}
+	githubRemoteWorkItem, err := remoteworkitem.NewGitHubRemoteWorkItem(remoteTrackerItem)
 	// then
 	require.Nil(t, err)
 	assert.Equal(t, githubRemoteWorkItem.Get("admins.0.name"), "aslak")
@@ -278,8 +280,8 @@ func TestNewJiraRemoteWorkItem(t *testing.T) {
 			}
 		}`
 	// when
-	remoteTrackerItem := TrackerItem{Item: jsonContent, RemoteItemID: "xyz", TrackerID: uint64(0)}
-	jiraRemoteWorkItem, err := NewJiraRemoteWorkItem(remoteTrackerItem)
+	remoteTrackerItem := remoteworkitem.TrackerItem{Item: jsonContent, RemoteItemID: "xyz", TrackerID: uuid.NewV4()}
+	jiraRemoteWorkItem, err := remoteworkitem.NewJiraRemoteWorkItem(remoteTrackerItem)
 	// then
 	require.Nil(t, err)
 	assert.Equal(t, jiraRemoteWorkItem.Get("admins.0.name"), "aslak")
@@ -292,11 +294,11 @@ func TestRemoteWorkItemImplRegistry(t *testing.T) {
 	// given
 	resource.Require(t, resource.UnitTest)
 	// when
-	_, ok := RemoteWorkItemImplRegistry[ProviderGithub]
+	_, ok := remoteworkitem.RemoteWorkItemImplRegistry[remoteworkitem.ProviderGithub]
 	// then
 	assert.True(t, ok)
 	// when
-	_, ok = RemoteWorkItemImplRegistry[ProviderJira]
+	_, ok = remoteworkitem.RemoteWorkItemImplRegistry[remoteworkitem.ProviderJira]
 	// then
 	assert.True(t, ok)
 }
@@ -305,7 +307,7 @@ func TestPatternConverter(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	// given
 	content := make(map[string]interface{})
-	content[GithubState] = "open"
+	content[remoteworkitem.GithubState] = "open"
 	content["assignees.0.login"] = "foo0"
 	content["assignees.1.login"] = "foo1"
 	content["assignees.2.login"] = "foo2"
@@ -315,45 +317,45 @@ func TestPatternConverter(t *testing.T) {
 	workItem := TestWorkItem{
 		content: content,
 	}
-	workItemMap := RemoteWorkItemKeyMaps[ProviderGithub]
+	workItemMap := remoteworkitem.RemoteWorkItemKeyMaps[remoteworkitem.ProviderGithub]
 	// when
-	result, err := Map(workItem, workItemMap)
+	result, err := remoteworkitem.Map(workItem, workItemMap)
 	// then
 	require.Nil(t, err)
-	require.NotNil(t, result.Fields[remoteAssigneeLogins])
-	assert.Contains(t, result.Fields[remoteAssigneeLogins], content["assignees.0.login"])
-	assert.Contains(t, result.Fields[remoteAssigneeLogins], content["assignees.1.login"])
-	assert.Contains(t, result.Fields[remoteAssigneeLogins], content["assignees.2.login"])
-	require.NotNil(t, result.Fields[remoteAssigneeProfileURLs])
-	assert.Contains(t, result.Fields[remoteAssigneeProfileURLs], content["assignees.0.url"])
-	assert.Contains(t, result.Fields[remoteAssigneeProfileURLs], content["assignees.1.url"])
-	assert.Contains(t, result.Fields[remoteAssigneeProfileURLs], content["assignees.2.url"])
+	require.NotNil(t, result.Fields[remoteworkitem.RemoteAssigneeLogins])
+	assert.Contains(t, result.Fields[remoteworkitem.RemoteAssigneeLogins], content["assignees.0.login"])
+	assert.Contains(t, result.Fields[remoteworkitem.RemoteAssigneeLogins], content["assignees.1.login"])
+	assert.Contains(t, result.Fields[remoteworkitem.RemoteAssigneeLogins], content["assignees.2.login"])
+	require.NotNil(t, result.Fields[remoteworkitem.RemoteAssigneeProfileURLs])
+	assert.Contains(t, result.Fields[remoteworkitem.RemoteAssigneeProfileURLs], content["assignees.0.url"])
+	assert.Contains(t, result.Fields[remoteworkitem.RemoteAssigneeProfileURLs], content["assignees.1.url"])
+	assert.Contains(t, result.Fields[remoteworkitem.RemoteAssigneeProfileURLs], content["assignees.2.url"])
 }
 
 func TestPatternConverterWithNoValue(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	// given
 	content := make(map[string]interface{})
-	content[GithubState] = "open"
+	content[remoteworkitem.GithubState] = "open"
 	workItem := TestWorkItem{
 		content: content,
 	}
-	workItemMap := RemoteWorkItemKeyMaps[ProviderGithub]
+	workItemMap := remoteworkitem.RemoteWorkItemKeyMaps[remoteworkitem.ProviderGithub]
 	// when
-	result, err := Map(workItem, workItemMap)
+	result, err := remoteworkitem.Map(workItem, workItemMap)
 	// then
 	require.Nil(t, err)
-	require.NotNil(t, result.Fields[remoteAssigneeLogins])
-	require.Empty(t, result.Fields[remoteAssigneeLogins])
-	require.NotNil(t, result.Fields[remoteAssigneeProfileURLs])
-	require.Empty(t, result.Fields[remoteAssigneeProfileURLs])
+	require.NotNil(t, result.Fields[remoteworkitem.RemoteAssigneeLogins])
+	require.Empty(t, result.Fields[remoteworkitem.RemoteAssigneeLogins])
+	require.NotNil(t, result.Fields[remoteworkitem.RemoteAssigneeProfileURLs])
+	require.Empty(t, result.Fields[remoteworkitem.RemoteAssigneeProfileURLs])
 }
 
 type TestWorkItem struct {
 	content map[string]interface{}
 }
 
-func (t TestWorkItem) Get(field AttributeExpression) interface{} {
+func (t TestWorkItem) Get(field remoteworkitem.AttributeExpression) interface{} {
 	return t.content[string(field)]
 }
 
@@ -361,38 +363,38 @@ func TestListConverter(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	// given
 	content := make(map[string]interface{})
-	content[JiraState] = "open"
-	content[JiraAssigneeLogin] = "foo0"
-	content[JiraAssigneeProfileURL] = "/foo/1"
+	content[remoteworkitem.JiraState] = "open"
+	content[remoteworkitem.JiraAssigneeLogin] = "foo0"
+	content[remoteworkitem.JiraAssigneeProfileURL] = "/foo/1"
 	workItem := TestWorkItem{
 		content: content,
 	}
-	workItemMap := RemoteWorkItemKeyMaps[ProviderJira]
+	workItemMap := remoteworkitem.RemoteWorkItemKeyMaps[remoteworkitem.ProviderJira]
 	// when
-	result, err := Map(workItem, workItemMap)
+	result, err := remoteworkitem.Map(workItem, workItemMap)
 	// then
 	require.Nil(t, err)
-	require.NotNil(t, result.Fields[remoteAssigneeLogins])
-	assert.Contains(t, result.Fields[remoteAssigneeLogins], content[JiraAssigneeLogin])
-	require.NotNil(t, result.Fields[remoteAssigneeProfileURLs])
-	assert.Contains(t, result.Fields[remoteAssigneeProfileURLs], content[JiraAssigneeProfileURL])
+	require.NotNil(t, result.Fields[remoteworkitem.RemoteAssigneeLogins])
+	assert.Contains(t, result.Fields[remoteworkitem.RemoteAssigneeLogins], content[remoteworkitem.JiraAssigneeLogin])
+	require.NotNil(t, result.Fields[remoteworkitem.RemoteAssigneeProfileURLs])
+	assert.Contains(t, result.Fields[remoteworkitem.RemoteAssigneeProfileURLs], content[remoteworkitem.JiraAssigneeProfileURL])
 }
 
 func TestListConverterWithNoValue(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	// given
 	content := make(map[string]interface{})
-	content[JiraState] = "open"
+	content[remoteworkitem.JiraState] = "open"
 	workItem := TestWorkItem{
 		content: content,
 	}
-	workItemMap := RemoteWorkItemKeyMaps[ProviderJira]
+	workItemMap := remoteworkitem.RemoteWorkItemKeyMaps[remoteworkitem.ProviderJira]
 	// when
-	result, err := Map(workItem, workItemMap)
+	result, err := remoteworkitem.Map(workItem, workItemMap)
 	// then
 	require.Nil(t, err)
-	require.NotNil(t, result.Fields[remoteAssigneeLogins])
-	require.Empty(t, result.Fields[remoteAssigneeLogins])
-	require.NotNil(t, result.Fields[remoteAssigneeProfileURLs])
-	require.Empty(t, result.Fields[remoteAssigneeProfileURLs])
+	require.NotNil(t, result.Fields[remoteworkitem.RemoteAssigneeLogins])
+	require.Empty(t, result.Fields[remoteworkitem.RemoteAssigneeLogins])
+	require.NotNil(t, result.Fields[remoteworkitem.RemoteAssigneeProfileURLs])
+	require.Empty(t, result.Fields[remoteworkitem.RemoteAssigneeProfileURLs])
 }
