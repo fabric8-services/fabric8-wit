@@ -210,7 +210,7 @@ func (rest *TestSpaceCodebaseREST) createSpace(ownerID uuid.UUID) *space.Space {
 		repo := app.Spaces()
 		newSpace := &space.Space{
 			Name:    "TestSpaceCodebase " + uuid.NewV4().String(),
-			OwnerId: ownerID,
+			OwnerID: ownerID,
 		}
 		s, err = repo.Create(context.Background(), newSpace)
 		return err

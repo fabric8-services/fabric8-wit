@@ -76,13 +76,13 @@ func makeSpaces(fxt *TestFixture) error {
 			Description: "Some description",
 		}
 		if !fxt.isolatedCreation {
-			fxt.Spaces[i].OwnerId = fxt.Identities[0].ID
+			fxt.Spaces[i].OwnerID = fxt.Identities[0].ID
 		}
 		if err := fxt.runCustomizeEntityFuncs(i, kindSpaces); err != nil {
 			return errs.WithStack(err)
 		}
 		if fxt.isolatedCreation {
-			if fxt.Spaces[i].OwnerId == uuid.Nil {
+			if fxt.Spaces[i].OwnerID == uuid.Nil {
 				return errs.New("you must specify an owner ID for each space")
 			}
 		}
