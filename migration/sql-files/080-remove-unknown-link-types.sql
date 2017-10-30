@@ -46,17 +46,6 @@ UPDATE work_item_links l
             AND target_id = l.target_id
         );
 
--- Update link types in all revision entries
-UPDATE work_item_link_revisions 
-    SET work_item_link_type_id = current_setting('linktypes.bug_blocker')::uuid 
-    WHERE work_item_link_type_id = current_setting('linktypes.unknown_bug_blocker')::uuid;
-UPDATE work_item_link_revisions 
-    SET work_item_link_type_id = current_setting('linktypes.related')::uuid 
-    WHERE work_item_link_type_id = current_setting('linktypes.unknown_related')::uuid;
-UPDATE work_item_link_revisions 
-    SET work_item_link_type_id = current_setting('linktypes.parenting')::uuid 
-    WHERE work_item_link_type_id = current_setting('linktypes.unknown_parenting')::uuid;
-
 -- Update revisions
 UPDATE work_item_link_revisions rev SET
     work_item_link_type_id = (SELECT link_type_id FROM work_item_links WHERE id = rev.work_item_link_id);
