@@ -126,6 +126,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration75", testMigration75)
 	t.Run("TestMigration76", testMigration76)
 	t.Run("TestMigration79", testMigration79)
+	t.Run("TestMigration80", testMigration80)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -541,8 +542,18 @@ func testMigration76(t *testing.T) {
 }
 
 func testMigration79(t *testing.T) {
-	migrateToVersion(t, sqlDB, migrations, 79)
-	assert.Nil(t, runSQLscript(sqlDB, "079-old-link-type-relics.sql",
+	migrateToVersion(t, sqlDB, migrations[:80], 80)
+	count := -1
+	gormDB.Table("work_items").Where(`Fields->>'system.labels'='[]'`).Count(&count)
+	assert.Equal(t, 0, count)
+
+	gormDB.Table("work_items").Where(`Fields->>'system.assignees'='[]'`).Count(&count)
+	assert.Equal(t, 0, count)
+}
+
+func testMigration80(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations, 80)
+	assert.Nil(t, runSQLscript(sqlDB, "080-old-link-type-relics.sql",
 		space.SystemSpace.String(),
 		link.SystemWorkItemLinkTypeBugBlockerID.String(),
 		link.SystemWorkItemLinkPlannerItemRelatedID.String(),
@@ -551,9 +562,9 @@ func testMigration79(t *testing.T) {
 		link.SystemWorkItemLinkCategoryUserID.String(),
 	))
 
-	// When we migrate the DB to version 78 all but the known link types and
+	// When we migrate the DB to version 80 all but the known link types and
 	// categories should be gone, which is what we test below.
-	migrateToVersion(t, sqlDB, migrations, 79)
+	migrateToVersion(t, sqlDB, migrations, 81)
 
 	t.Run("only known link types exist", func(t *testing.T) {
 		// Make sure no other link type other than the known ones are present

@@ -359,7 +359,10 @@ func GetMigrations() Migrations {
 	m = append(m, steps{ExecuteSQLFile("078-tracker-to-use-uuid.sql")})
 
 	// Version 79
-	m = append(m, steps{ExecuteSQLFile("079-remove-unknown-link-types.sql",
+	m = append(m, steps{ExecuteSQLFile("079-assignee-and-label-empty-value.sql", workitem.SystemAssignees, workitem.SystemLabels)})
+
+	// Version 80
+	m = append(m, steps{ExecuteSQLFile("080-remove-unknown-link-types.sql",
 		link.SystemWorkItemLinkTypeBugBlockerID.String(),
 		link.SystemWorkItemLinkPlannerItemRelatedID.String(),
 		link.SystemWorkItemLinkTypeParentChildID.String(),
