@@ -520,6 +520,20 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 		}
 		fieldValue := updatedWorkItem.Fields[fieldName]
 		var err error
+		if fieldName == SystemAssignees || fieldName == SystemLabels {
+			switch fieldValue.(type) {
+			case []string:
+				if len(fieldValue.([]string)) == 0 {
+					delete(wiStorage.Fields, fieldName)
+					continue
+				}
+			case []interface{}:
+				if len(fieldValue.([]interface{})) == 0 {
+					delete(wiStorage.Fields, fieldName)
+					continue
+				}
+			}
+		}
 		wiStorage.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
 		if err != nil {
 			return nil, errors.NewBadParameterError(fieldName, fieldValue)
@@ -587,6 +601,9 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 		wi.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
 		if err != nil {
 			return nil, errors.NewBadParameterError(fieldName, fieldValue)
+		}
+		if (fieldName == SystemAssignees || fieldName == SystemLabels) && fieldValue == nil {
+			delete(wi.Fields, fieldName)
 		}
 		if fieldName == SystemDescription && wi.Fields[fieldName] != nil {
 			description := rendering.NewMarkupContentFromMap(wi.Fields[fieldName].(map[string]interface{}))
