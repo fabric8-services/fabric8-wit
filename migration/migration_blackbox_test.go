@@ -131,6 +131,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration74", testMigration74)
 	t.Run("TestMigration75", testMigration75)
 	t.Run("TestMigration76", testMigration76)
+	t.Run("TestMigration79", testMigration79)
 
 	// Perform the migration
 	if err := migration.Migrate(sqlDB, databaseName); err != nil {
@@ -559,6 +560,16 @@ func testMigration76(t *testing.T) {
 	migrateToVersion(sqlDB, migrations[:77], 77)
 	assert.False(t, dialect.HasTable("space_resources"))
 	assert.False(t, dialect.HasTable("oauth_state_references"))
+}
+
+func testMigration79(t *testing.T) {
+	migrateToVersion(sqlDB, migrations[:80], 80)
+	count := -1
+	gormDB.Table("work_items").Where(`Fields->>'system.labels'='[]'`).Count(&count)
+	assert.Equal(t, 0, count)
+
+	gormDB.Table("work_items").Where(`Fields->>'system.assignees'='[]'`).Count(&count)
+	assert.Equal(t, 0, count)
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and
