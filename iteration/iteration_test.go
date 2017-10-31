@@ -3,7 +3,6 @@ package iteration_test
 import (
 	"context"
 	"reflect"
-	"strconv"
 	"testing"
 	"time"
 
@@ -106,32 +105,42 @@ func (s *TestIterationRepository) TestCreate() {
 		assert.Equal(t, expectedPath, i2L.Path.Convert())
 	})
 
-	t.Run("same iteration name within space", func(t *testing.T) {
+	t.Run("fail - same iteration name within a space", func(t *testing.T) {
 		name := "Iteration name test"
-
+		// given
 		fxt := tf.NewTestFixture(s.T(), s.DB,
-			tf.Spaces(2),
 			tf.Iterations(1, tf.SetIterationNames(name)),
 		)
 
 		i := *fxt.Iterations[0]
-		space2 := *fxt.Spaces[1]
-
 		// another iteration with same name within same sapce, should fail
 		i2 := i
 		i2.ID = uuid.Nil
+		// when
 		err := repo.Create(context.Background(), &i2)
+		// then
 		require.NotNil(t, err)
 		assert.Equal(t, reflect.TypeOf(errors.DataConflictError{}), reflect.TypeOf(err))
+	})
 
+	t.Run("pass - same iteration name across different space", func(t *testing.T) {
+		name := "Iteration name test"
+		// given
+		fxt := tf.NewTestFixture(s.T(), s.DB,
+			tf.Spaces(2),
+			tf.Iterations(1, tf.SetIterationNames(name)),
+		)
+		space2 := *fxt.Spaces[1]
 		// create iteration with same name in another space, should pass
-		i3 := iteration.Iteration{
+		i2 := iteration.Iteration{
 			Name:    name,
 			SpaceID: space2.ID,
 		}
-		err = repo.Create(context.Background(), &i3)
+		// when
+		err := repo.Create(context.Background(), &i2)
+		// then
 		require.Nil(t, err)
-		require.NotEqual(t, uuid.Nil, i3.ID)
+		require.NotEqual(t, uuid.Nil, i2.ID)
 	})
 }
 
@@ -177,32 +186,45 @@ func (s *TestIterationRepository) TestLoad() {
 	})
 
 	t.Run("list by space", func(t *testing.T) {
-		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(2))
-
-		for i := 0; i < 3; i++ {
-			start := time.Now()
-			end := start.Add(time.Hour * (24 * 8 * 3))
-			name := "Sprint #2" + strconv.Itoa(i)
-
-			i := iteration.Iteration{
-				Name:    name,
-				SpaceID: fxt.Spaces[0].ID,
-				StartAt: &start,
-				EndAt:   &end,
-			}
-			e := repo.Create(context.Background(), &i)
-			require.Nil(t, e)
-		}
-		// add iteration to the second space from our fixture
-		e := repo.Create(context.Background(), &iteration.Iteration{
-			Name:    "Other Spring #2",
-			SpaceID: fxt.Spaces[1].ID,
-		})
-		require.Nil(t, e)
-
+		// given
+		fxt := tf.NewTestFixture(s.T(), s.DB,
+			tf.Spaces(2),
+			tf.Iterations(4, func(fxt *tf.TestFixture, idx int) error {
+				if idx == 3 {
+					itr := fxt.Iterations[idx]
+					itr.SpaceID = fxt.Spaces[1].ID
+				}
+				return nil
+			}))
+		// when
 		its, err := repo.List(context.Background(), fxt.Spaces[0].ID)
+		// then
 		assert.Nil(t, err)
 		assert.Len(t, its, 3)
+		var mustHaveIDs = make(map[uuid.UUID]struct{}, 3)
+		mustHaveIDs = map[uuid.UUID]struct{}{
+			fxt.Iterations[0].ID: {},
+			fxt.Iterations[1].ID: {},
+			fxt.Iterations[2].ID: {},
+		}
+		for _, itr := range its {
+			delete(mustHaveIDs, itr.ID)
+		}
+		require.Empty(t, mustHaveIDs)
+
+		// when
+		its, err = repo.List(context.Background(), fxt.Spaces[1].ID)
+		// then
+		assert.Nil(t, err)
+		assert.Len(t, its, 1)
+		mustHaveIDs = make(map[uuid.UUID]struct{}, 1)
+		mustHaveIDs = map[uuid.UUID]struct{}{
+			fxt.Iterations[3].ID: {},
+		}
+		for _, itr := range its {
+			delete(mustHaveIDs, itr.ID)
+		}
+		require.Empty(t, mustHaveIDs)
 	})
 
 	t.Run("load children", func(t *testing.T) {
@@ -226,7 +248,7 @@ func (s *TestIterationRepository) TestLoad() {
 		i2 := *fxt.Iterations[1]
 		i3 := *fxt.Iterations[2]
 
-		// fetch all children of top level iteraiton
+		// fetch all children of top level iteration
 		childIterations1, err := repo.LoadChildren(context.Background(), i1.ID)
 		require.Nil(t, err)
 		require.Equal(t, 2, len(childIterations1))
@@ -237,7 +259,7 @@ func (s *TestIterationRepository) TestLoad() {
 		}
 		assert.Equal(t, expectedChildIDs1, actualChildIDs1)
 
-		// fetch all children of level 1 iteraiton
+		// fetch all children of level 1 iteration
 		childIterations2, err := repo.LoadChildren(context.Background(), i2.ID)
 		require.Nil(t, err)
 		require.Equal(t, 1, len(childIterations2))
@@ -248,12 +270,12 @@ func (s *TestIterationRepository) TestLoad() {
 		}
 		assert.Equal(t, expectedChildIDs2, actualChildIDs2)
 
-		// fetch all children of level 2 iteraiton
+		// fetch all children of level 2 iteration
 		childIterations3, err := repo.LoadChildren(context.Background(), i3.ID)
 		require.Nil(t, err)
 		require.Equal(t, 0, len(childIterations3))
 
-		// try to fetch children of non-exisitng parent
+		// try to fetch children of non-existing parent
 		fakeParentId := uuid.NewV4()
 		_, err = repo.LoadChildren(context.Background(), fakeParentId)
 		require.NotNil(t, err)
