@@ -34,6 +34,38 @@ func TestParseMap(t *testing.T) {
 		assert.Equal(t, expectedQuery, actualQuery)
 	})
 
+	t.Run("Equality with NULL value", func(t *testing.T) {
+		t.Parallel()
+		// given
+		input := fmt.Sprintf(`{"assignee": null}`)
+		// Parsing/Unmarshalling JSON encoding/json
+		fm := map[string]interface{}{}
+		err := json.Unmarshal([]byte(input), &fm)
+		require.Nil(t, err)
+		// when
+		actualQuery := Query{}
+		parseMap(fm, &actualQuery)
+		// then
+		expectedQuery := Query{Name: "assignee", Value: nil}
+		assert.Equal(t, expectedQuery, actualQuery)
+	})
+
+	t.Run(Q_EQ+" with NULL value", func(t *testing.T) {
+		t.Parallel()
+		// given
+		input := fmt.Sprintf(`{"label": { "%s": null}}`, Q_EQ)
+		// Parsing/Unmarshalling JSON encoding/json
+		fm := map[string]interface{}{}
+		err := json.Unmarshal([]byte(input), &fm)
+		require.Nil(t, err)
+		// when
+		actualQuery := Query{}
+		parseMap(fm, &actualQuery)
+		// then
+		expectedQuery := Query{Name: "label", Value: nil}
+		assert.Equal(t, expectedQuery, actualQuery)
+	})
+
 	t.Run(Q_NE, func(t *testing.T) {
 		t.Parallel()
 		// given
