@@ -979,7 +979,7 @@ func (s *searchBlackBoxTest) TestUpdateWorkItem() {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
 		spaceIDStr := fxt.Spaces[0].ID.String()
-		filter := fmt.Sprintf(`{"label":null}`)
+		filter := fmt.Sprintf(`{"label":{"$EQ":null}}`)
 		t.Run("filter null", func(t *testing.T) {
 			// when
 			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
