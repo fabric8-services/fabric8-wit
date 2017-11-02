@@ -2,16 +2,13 @@ package controller
 
 import (
 	"fmt"
-	"net/http"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/auth"
-	"github.com/fabric8-services/fabric8-wit/codebase"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
-	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/search"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem"
@@ -262,10 +259,10 @@ func (c *SearchController) Codebases(ctx *app.CodebasesSearchContext) error {
 			}
 			includedData[i] = *appSpace
 		}
-		codebasesData := convertSearchCodebases(ctx.Request, matchingCodebases)
-		response := app.SearchCodebaseList{
+		codebasesData := ConvertCodebases(ctx.Request, matchingCodebases)
+		response := app.CodebaseList{
 			Links:    &app.PagingLinks{},
-			Meta:     &app.SearchCodebaseListMeta{TotalCount: totalCount},
+			Meta:     &app.CodebaseListMeta{TotalCount: totalCount},
 			Data:     codebasesData,
 			Included: includedData,
 		}
@@ -275,45 +272,45 @@ func (c *SearchController) Codebases(ctx *app.CodebasesSearchContext) error {
 }
 
 // convertSearchCodebases converts between internal and external REST representation
-func convertSearchCodebases(request *http.Request, codebases []codebase.Codebase) []*app.SearchCodebase {
-	var is = []*app.SearchCodebase{}
-	for _, i := range codebases {
-		is = append(is, convertSearchCodebase(request, i))
-	}
-	return is
-}
+// func convertSearchCodebases(request *http.Request, codebases []codebase.Codebase) []*app.Codebase {
+// 	var is = []*app.SearchCodebase{}
+// 	for _, i := range codebases {
+// 		is = append(is, convertSearchCodebase(request, i))
+// 	}
+// 	return is
+// }
 
-// convertSearchCodebase converts between internal and external REST representation
-func convertSearchCodebase(request *http.Request, codebase codebase.Codebase) *app.SearchCodebase {
-	codebaseType := APIStringTypeCodebase
-	spaceType := APIStringTypeSpace
-	spaceID := codebase.SpaceID.String()
-	codebaseSelfURL := rest.AbsoluteURL(request, app.CodebaseHref(codebase.ID))
-	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
+// // convertSearchCodebase converts between internal and external REST representation
+// func convertSearchCodebase(request *http.Request, codebase codebase.Codebase) *app.SearchCodebase {
+// 	codebaseType := APIStringTypeCodebase
+// 	spaceType := APIStringTypeSpace
+// 	spaceID := codebase.SpaceID.String()
+// 	codebaseSelfURL := rest.AbsoluteURL(request, app.CodebaseHref(codebase.ID))
+// 	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
 
-	return &app.SearchCodebase{
-		Type: codebaseType,
-		ID:   &codebase.ID,
-		Attributes: &app.SearchCodebaseAttributes{
-			CreatedAt:         &codebase.CreatedAt,
-			Type:              &codebase.Type,
-			URL:               &codebase.URL,
-			StackID:           codebase.StackID,
-			LastUsedWorkspace: &codebase.LastUsedWorkspace,
-		},
-		Relationships: &app.SearchCodebaseRelations{
-			Space: &app.RelationGeneric{
-				Data: &app.GenericData{
-					Type: &spaceType,
-					ID:   &spaceID,
-				},
-				Links: &app.GenericLinks{
-					Related: &spaceRelatedURL,
-				},
-			},
-		},
-		Links: &app.SearchCodebaseLinks{
-			Self: &codebaseSelfURL,
-		},
-	}
-}
+// 	return &app.SearchCodebase{
+// 		Type: codebaseType,
+// 		ID:   &codebase.ID,
+// 		Attributes: &app.SearchCodebaseAttributes{
+// 			CreatedAt:         &codebase.CreatedAt,
+// 			Type:              &codebase.Type,
+// 			URL:               &codebase.URL,
+// 			StackID:           codebase.StackID,
+// 			LastUsedWorkspace: &codebase.LastUsedWorkspace,
+// 		},
+// 		Relationships: &app.SearchCodebaseRelations{
+// 			Space: &app.RelationGeneric{
+// 				Data: &app.GenericData{
+// 					Type: &spaceType,
+// 					ID:   &spaceID,
+// 				},
+// 				Links: &app.GenericLinks{
+// 					Related: &spaceRelatedURL,
+// 				},
+// 			},
+// 		},
+// 		Links: &app.SearchCodebaseLinks{
+// 			Self: &codebaseSelfURL,
+// 		},
+// 	}
+// }
