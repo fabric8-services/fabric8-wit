@@ -35,34 +35,6 @@ var UpdateWorkItemPayload = a.Type("UpdateWorkItemPayload", func() {
 	a.Required("type", "fields", "version", "executionorder")
 })
 
-// CreateTrackerPayload defines the structure of tracker payload for create
-var CreateTrackerPayload = a.Type("CreateTrackerAlternatePayload", func() {
-	a.Attribute("url", d.String, "URL of the tracker", func() {
-		a.Example("https://api.github.com/")
-		a.MinLength(1)
-	})
-	a.Attribute("type", d.String, "Type of the tracker", func() {
-		a.Example("github")
-		a.Pattern("^[\\p{L}]+$")
-		a.MinLength(1)
-	})
-	a.Required("url", "type")
-})
-
-// UpdateTrackerPayload defines the structure of tracker payload for update
-var UpdateTrackerPayload = a.Type("UpdateTrackerAlternatePayload", func() {
-	a.Attribute("url", d.String, "URL of the tracker", func() {
-		a.Example("https://api.github.com/")
-		a.MinLength(1)
-	})
-	a.Attribute("type", d.String, "Type of the tracker", func() {
-		a.Example("github")
-		a.MinLength(1)
-		a.Pattern("^[\\p{L}]+$")
-	})
-	a.Required("url", "type")
-})
-
 // CreateTrackerQueryAlternatePayload defines the structure of tracker query payload for create
 var CreateTrackerQueryAlternatePayload = a.Type("CreateTrackerQueryAlternatePayload", func() {
 	a.Attribute("query", d.String, "Search query", func() {
