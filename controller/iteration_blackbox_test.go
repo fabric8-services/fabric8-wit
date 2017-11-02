@@ -104,7 +104,7 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 			tf.CreateWorkItemEnvironment(),
 			tf.Iterations(2,
 				tf.SetIterationNames("root iteration", "child iteration"),
-				tf.PlaceIterationUnderRootIteration()))
+			))
 		name := "Sprint #21"
 		childItr := fxt.IterationByName("child iteration")
 		ci := getChildIterationPayload(&name)
