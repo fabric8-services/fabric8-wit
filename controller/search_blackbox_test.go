@@ -715,7 +715,19 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 			spaceIDStr, "special")
 		_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotEmpty(t, result.Data)
-		assert.Len(t, result.Data, 3) // we have 9 items created by spaceowner
+		assert.Len(t, result.Data, 3)
+	})
+
+	s.T().Run("space=spaceID AND title=special with $SUBSTR", func(t *testing.T) {
+		filter := fmt.Sprintf(`
+				{"$AND": [
+					{"space":"%s"},
+					{"title": {"$SUBSTR":"%s"}}
+				]}`,
+			spaceIDStr, "special")
+		_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(t, result.Data)
+		assert.Len(t, result.Data, 3)
 	})
 
 	s.T().Run("space=spaceID AND creator=spaceowner", func(t *testing.T) {

@@ -303,6 +303,10 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 				s := v.(string)
 				q.Value = &s
 				q.Negate = true
+			} else if v, ok := concreteVal["$SUBSTR"]; ok {
+				s := v.(string)
+				q.Value = &s
+				q.Substring = true
 			}
 
 		default:
