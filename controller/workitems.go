@@ -79,7 +79,7 @@ func (c *WorkitemsController) Create(ctx *app.CreateWorkitemsContext) error {
 	// Allow any user to create a work item in spaces belong to the "openshiftio" user
 	// Other spaces are open for the space collaborators only
 	// ----
-	spaceOwnerID := space.OwnerId.String()
+	spaceOwnerID := space.OwnerID.String()
 	// check both the "openshiftio" user and the "test" user from the test realm.
 	if "7b50ddb4-5e12-4031-bca7-3b88f92e2339" != spaceOwnerID && "ae68a343-c866-430c-b6ce-a36f0b38d8e5" != spaceOwnerID {
 		authorized, err := authz.Authorize(ctx, ctx.SpaceID.String())

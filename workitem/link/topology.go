@@ -32,13 +32,7 @@ const (
 // BadParameterError is returned.
 func (t Topology) CheckValid() error {
 	switch t {
-	case TopologyNetwork:
-		return nil
-	case TopologyDirectedNetwork:
-		return nil
-	case TopologyDependency:
-		return nil
-	case TopologyTree:
+	case TopologyNetwork, TopologyDirectedNetwork, TopologyDependency, TopologyTree:
 		return nil
 	default:
 		return errors.NewBadParameterError("topolgy", t).Expected(TopologyNetwork + "|" + TopologyDirectedNetwork + "|" + TopologyDependency + "|" + TopologyTree)

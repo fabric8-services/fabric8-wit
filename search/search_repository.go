@@ -292,8 +292,13 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 					*c = append(*c, sq)
 				}
 			} else if v, ok := concreteVal["$EQ"]; ok {
-				s := v.(string)
-				q.Value = &s
+				switch v.(type) {
+				case string:
+					s := v.(string)
+					q.Value = &s
+				case nil:
+					q.Value = nil
+				}
 			} else if v, ok := concreteVal["$NE"]; ok {
 				s := v.(string)
 				q.Value = &s

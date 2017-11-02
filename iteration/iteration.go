@@ -53,6 +53,11 @@ func (m *Iteration) MakeChildOf(parent Iteration) {
 	m.Path = append(parent.Path, parent.ID)
 }
 
+// FullPath returns the Path by appending self ID to it.
+func (m *Iteration) FullPath() string {
+	return m.Path.String() + path.SepInService + m.ID.String()
+}
+
 // GetETagData returns the field values to use to generate the ETag
 func (m Iteration) GetETagData() []interface{} {
 	// using the 'ID' and 'UpdatedAt' (converted to number of seconds since epoch) fields
@@ -69,6 +74,17 @@ func (m Iteration) GetLastModified() time.Time {
 	}
 	return lastModified
 
+}
+
+// IsRoot Checks if given iteration is a root iteration or not
+func (m Iteration) IsRoot(spaceID uuid.UUID) bool {
+	return (m.SpaceID == spaceID && m.Path.String() == path.SepInService)
+}
+
+// Parent returns UUID of parent iteration or uuid.Nil
+// handle root itearion case, leaf node case, intermediate case
+func (m Iteration) Parent() uuid.UUID {
+	return m.Path.Parent().This()
 }
 
 // TableName overrides the table name settings in Gorm to force a specific table name
@@ -88,6 +104,7 @@ type Repository interface {
 	CanStart(ctx context.Context, i *Iteration) (bool, error)
 	LoadMultiple(ctx context.Context, ids []uuid.UUID) ([]Iteration, error)
 	LoadChildren(ctx context.Context, parentIterationID uuid.UUID) ([]Iteration, error)
+	Delete(ctx context.Context, ID uuid.UUID) error
 }
 
 // NewIterationRepository creates a new storage type.
@@ -119,7 +136,9 @@ func (m *GormIterationRepository) LoadMultiple(ctx context.Context, ids []uuid.U
 func (m *GormIterationRepository) Create(ctx context.Context, u *Iteration) error {
 	defer goa.MeasureSince([]string{"goa", "db", "iteration", "create"}, time.Now())
 
-	u.ID = uuid.NewV4()
+	if u.ID == uuid.Nil {
+		u.ID = uuid.NewV4()
+	}
 	u.State = IterationStateNew
 	err := m.db.Create(u).Error
 	// Composite key (name,space,path) must be unique
@@ -266,19 +285,18 @@ func inTimeframe(startAt time.Time, endAt time.Time) bool {
 	return time.Now().UTC().After(startAt) && time.Now().UTC().Before(endAt)
 }
 
-func (i *Iteration) IsActive() bool {
-	if i.UserActive {
+func (m *Iteration) IsActive() bool {
+	if m.UserActive {
 		return true
 	}
 
-	if i.StartAt == nil {
+	if m.StartAt == nil {
 		return false
 	}
-	if i.EndAt == nil {
-		return time.Now().UTC().After(*i.StartAt)
+	if m.EndAt == nil {
+		return time.Now().UTC().After(*m.StartAt)
 	}
-	return inTimeframe(*i.StartAt, *i.EndAt)
-
+	return inTimeframe(*m.StartAt, *m.EndAt)
 }
 
 // LoadChildren executes - select * from iterations where path <@ 'parent_path.parent_id';
@@ -301,4 +319,32 @@ func (m *GormIterationRepository) LoadChildren(ctx context.Context, parentIterat
 		return nil, err
 	}
 	return objs, nil
+}
+
+// Delete deletes the itertion with the given id
+// returns NotFoundError or InternalError
+func (m *GormIterationRepository) Delete(ctx context.Context, ID uuid.UUID) error {
+	defer goa.MeasureSince([]string{"goa", "db", "iteration", "delete"}, time.Now())
+	if ID == uuid.Nil {
+		log.Error(ctx, map[string]interface{}{
+			"iteration_id": ID.String(),
+		}, "unable to find the iteration by ID")
+		return errors.NewNotFoundError("iteration", ID.String())
+	}
+	itr := Iteration{ID: ID}
+	tx := m.db.Delete(itr)
+
+	if err := tx.Error; err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"iteration_id": ID.String(),
+		}, "unable to delete the iteration")
+		return errors.NewInternalError(ctx, err)
+	}
+	if tx.RowsAffected == 0 {
+		log.Error(ctx, map[string]interface{}{
+			"iteration_id": ID.String(),
+		}, "none row was affected by the deletion operation")
+		return errors.NewNotFoundError("iteration", ID.String())
+	}
+	return nil
 }

@@ -56,8 +56,8 @@ const (
 	remoteItemID              = workitem.SystemRemoteItemID
 	remoteCreatorLogin        = "system.creator.login"
 	remoteCreatorProfileURL   = "system.creator.profile_url"
-	remoteAssigneeLogins      = "system.assignees.login"
-	remoteAssigneeProfileURLs = "system.assignees.profile_url"
+	RemoteAssigneeLogins      = "system.assignees.login"
+	RemoteAssigneeProfileURLs = "system.assignees.profile_url"
 )
 
 // RemoteWorkItemKeyMaps relate remote attribute keys to internal representation
@@ -69,8 +69,8 @@ var RemoteWorkItemKeyMaps = map[string]RemoteWorkItemMap{
 		AttributeMapper{AttributeExpression(GithubID), StringConverter{}}:                                                                  remoteItemID,
 		AttributeMapper{AttributeExpression(GithubCreatorLogin), StringConverter{}}:                                                        remoteCreatorLogin,
 		AttributeMapper{AttributeExpression(GithubCreatorProfileURL), StringConverter{}}:                                                   remoteCreatorProfileURL,
-		AttributeMapper{AttributeExpression(GithubAssigneesLogin), PatternToListConverter{pattern: GithubAssigneesLoginPattern}}:           remoteAssigneeLogins,
-		AttributeMapper{AttributeExpression(GithubAssigneesProfileURL), PatternToListConverter{pattern: GithubAssigneesProfileURLPattern}}: remoteAssigneeProfileURLs,
+		AttributeMapper{AttributeExpression(GithubAssigneesLogin), PatternToListConverter{pattern: GithubAssigneesLoginPattern}}:           RemoteAssigneeLogins,
+		AttributeMapper{AttributeExpression(GithubAssigneesProfileURL), PatternToListConverter{pattern: GithubAssigneesProfileURLPattern}}: RemoteAssigneeProfileURLs,
 	},
 	ProviderJira: {
 		AttributeMapper{AttributeExpression(JiraTitle), StringConverter{}}:                                      remoteTitle,
@@ -79,8 +79,8 @@ var RemoteWorkItemKeyMaps = map[string]RemoteWorkItemMap{
 		AttributeMapper{AttributeExpression(JiraID), StringConverter{}}:                                         remoteItemID,
 		AttributeMapper{AttributeExpression(JiraCreatorLogin), StringConverter{}}:                               remoteCreatorLogin,
 		AttributeMapper{AttributeExpression(JiraCreatorProfileURL), StringConverter{}}:                          remoteCreatorProfileURL,
-		AttributeMapper{AttributeExpression(JiraAssigneeLogin), ListConverter{}}:                                remoteAssigneeLogins,
-		AttributeMapper{AttributeExpression(JiraAssigneeProfileURL), ListConverter{}}:                           remoteAssigneeProfileURLs,
+		AttributeMapper{AttributeExpression(JiraAssigneeLogin), ListConverter{}}:                                RemoteAssigneeLogins,
+		AttributeMapper{AttributeExpression(JiraAssigneeProfileURL), ListConverter{}}:                           RemoteAssigneeProfileURLs,
 	},
 }
 
@@ -186,8 +186,8 @@ func (jhc JiraStateConverter) Convert(value interface{}, item AttributeAccessor)
 }
 
 type AttributeMapper struct {
-	expression         AttributeExpression
-	attributeConverter AttributeConverter
+	Expression         AttributeExpression
+	AttributeConverter AttributeConverter
 }
 
 // RemoteWorkItemMap will define mappings between remote<->internal attribute
@@ -255,8 +255,8 @@ func (jira JiraRemoteWorkItem) Get(field AttributeExpression) interface{} {
 func Map(remoteItem AttributeAccessor, mapping RemoteWorkItemMap) (RemoteWorkItem, error) {
 	remoteWorkItem := RemoteWorkItem{Fields: make(map[string]interface{})}
 	for from, to := range mapping {
-		originalValue := remoteItem.Get(from.expression)
-		convertedValue, err := from.attributeConverter.Convert(originalValue, remoteItem)
+		originalValue := remoteItem.Get(from.Expression)
+		convertedValue, err := from.AttributeConverter.Convert(originalValue, remoteItem)
 		if err == nil {
 			remoteWorkItem.Fields[to] = convertedValue
 		}

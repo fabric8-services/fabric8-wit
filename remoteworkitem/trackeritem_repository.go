@@ -16,7 +16,7 @@ import (
 )
 
 // upload imports the items into database
-func upload(db *gorm.DB, tID int, item TrackerItemContent) error {
+func upload(db *gorm.DB, tID uuid.UUID, item TrackerItemContent) error {
 	remoteID := item.ID
 	content := string(item.Content)
 
@@ -25,7 +25,7 @@ func upload(db *gorm.DB, tID int, item TrackerItemContent) error {
 		ti = TrackerItem{
 			Item:         content,
 			RemoteItemID: remoteID,
-			TrackerID:    uint64(tID)}
+			TrackerID:    tID}
 		return db.Create(&ti).Error
 	}
 	ti.Item = content
@@ -33,10 +33,10 @@ func upload(db *gorm.DB, tID int, item TrackerItemContent) error {
 }
 
 // Map a remote work item into an WIT work item and persist it into the database.
-func convertToWorkItemModel(ctx context.Context, db *gorm.DB, tID int, item TrackerItemContent, providerType string, spaceID uuid.UUID) (*workitem.WorkItem, error) {
+func ConvertToWorkItemModel(ctx context.Context, db *gorm.DB, tID uuid.UUID, item TrackerItemContent, providerType string, spaceID uuid.UUID) (*workitem.WorkItem, error) {
 	remoteID := item.ID
 	content := string(item.Content)
-	trackerItem := TrackerItem{Item: content, RemoteItemID: remoteID, TrackerID: uint64(tID)}
+	trackerItem := TrackerItem{Item: content, RemoteItemID: remoteID, TrackerID: tID}
 	// Converting the remote item to a local work item
 	remoteTrackerItemConvertFunc, ok := RemoteWorkItemImplRegistry[providerType]
 	if !ok {
@@ -87,14 +87,14 @@ func lookupIdentities(ctx context.Context, db *gorm.DB, remoteWorkItem RemoteWor
 			// ignore here, it is being processed above
 		} else
 		// assignees
-		if fieldName == remoteAssigneeLogins {
+		if fieldName == RemoteAssigneeLogins {
 			if fieldValue == nil {
 				workItem.Fields[workitem.SystemAssignees] = make([]string, 0)
 				continue
 			}
 			var identities []string
 			assigneeLogins := fieldValue.([]string)
-			assigneeProfileURLs := remoteWorkItem.Fields[remoteAssigneeProfileURLs].([]string)
+			assigneeProfileURLs := remoteWorkItem.Fields[RemoteAssigneeProfileURLs].([]string)
 			for i, assigneeLogin := range assigneeLogins {
 				assigneeProfileURL := assigneeProfileURLs[i]
 				identity, err := identityRepository.Lookup(context.Background(), assigneeLogin, assigneeProfileURL, providerType)
@@ -105,7 +105,7 @@ func lookupIdentities(ctx context.Context, db *gorm.DB, remoteWorkItem RemoteWor
 			}
 			// associate the identities to the work item
 			workItem.Fields[workitem.SystemAssignees] = identities
-		} else if fieldName == remoteAssigneeProfileURLs {
+		} else if fieldName == RemoteAssigneeProfileURLs {
 			// ignore here, it is being processed above
 		} else {
 			// copy other fields

@@ -39,6 +39,18 @@ func (s *workItemRepoBlackBoxTest) SetupTest() {
 }
 
 func (s *workItemRepoBlackBoxTest) TestSave() {
+	s.T().Run("save work item without assignees & labels", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
+			fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "some title"
+			fxt.WorkItems[idx].Fields[workitem.SystemState] = workitem.SystemStateNew
+			return nil
+		}))
+		wiNew, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		require.Nil(t, err)
+		require.Len(t, wiNew.Fields[workitem.SystemAssignees].([]interface{}), 0)
+		require.Len(t, wiNew.Fields[workitem.SystemLabels].([]interface{}), 0)
+	})
+
 	s.T().Run("fail - save nil number", func(t *testing.T) {
 		// given at least 1 item to avoid RowsEffectedCheck
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1))
@@ -74,7 +86,6 @@ func (s *workItemRepoBlackBoxTest) TestSave() {
 		require.Nil(s.T(), err)
 		assert.Equal(s.T(), fxt.WorkItemTypes[1].ID, newWi.Type)
 	})
-
 }
 
 func (s *workItemRepoBlackBoxTest) TestLoadID() {
@@ -86,6 +97,20 @@ func (s *workItemRepoBlackBoxTest) TestLoadID() {
 }
 
 func (s *workItemRepoBlackBoxTest) TestCreate() {
+	s.T().Run("create work item without assignees & labels", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemTypes(1))
+		wi, err := s.repo.Create(
+			s.Ctx, fxt.Spaces[0].ID, fxt.WorkItemTypes[0].ID,
+			map[string]interface{}{
+				workitem.SystemTitle: "some title",
+				workitem.SystemState: workitem.SystemStateNew,
+			}, fxt.Identities[0].ID)
+		require.Nil(t, err)
+		require.Len(t, wi.Fields[workitem.SystemAssignees].([]interface{}), 0)
+		require.Len(t, wi.Fields[workitem.SystemLabels].([]interface{}), 0)
+
+	})
+
 	s.T().Run("ok - save assignees", func(t *testing.T) {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
@@ -241,7 +266,6 @@ func (s *workItemRepoBlackBoxTest) TestCreate() {
 			})
 		}
 	})
-
 }
 
 func (s *workItemRepoBlackBoxTest) TestCheckExists() {
@@ -349,7 +373,7 @@ func (s *workItemRepoBlackBoxTest) TestLookupIDByNamedSpaceAndNumberStaleSpace()
 
 	testFxt2 := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1, func(testf *tf.TestFixture, idx int) error {
 		testf.Spaces[0].Name = sp.Name
-		testf.Spaces[0].OwnerId = in.ID
+		testf.Spaces[0].OwnerID = in.ID
 		return nil
 	}), tf.WorkItems(20, func(testf *tf.TestFixture, idx int) error {
 		testf.WorkItems[idx].Fields[workitem.SystemState] = workitem.SystemStateNew
@@ -364,6 +388,36 @@ func (s *workItemRepoBlackBoxTest) TestLookupIDByNamedSpaceAndNumberStaleSpace()
 	assert.Equal(s.T(), wi2.ID, *wiID2)
 	require.NotNil(s.T(), spaceID2)
 	assert.Equal(s.T(), wi2.SpaceID, *spaceID2)
+}
+
+// TestLoadByIteration verifies that repo.LoadByIteration returns only associated items
+func (s *workItemRepoBlackBoxTest) TestLoadByIteration() {
+	fxt := tf.NewTestFixture(s.T(), s.DB,
+		tf.Iterations(3, tf.SetIterationNames("root", "one", "two")),
+		tf.WorkItems(5, func(fxt *tf.TestFixture, idx int) error {
+			wi := fxt.WorkItems[idx]
+			if idx < 3 {
+				wi.Fields[workitem.SystemIteration] = fxt.IterationByName("one").ID.String()
+			} else {
+				// set root iteration to WI
+				wi.Fields[workitem.SystemIteration] = fxt.IterationByName("root").ID.String()
+			}
+			return nil
+		}))
+	// Fetch work items for root iteration - should be 2
+	wiInRootIteration, err := s.repo.LoadByIteration(s.Ctx, fxt.IterationByName("root").ID) // pass duplicate IDs to fetch
+	require.Nil(s.T(), err)
+	assert.Len(s.T(), wiInRootIteration, 2)
+
+	// Fetch work items for "one"" iteration - should be 3
+	wiInOneIteration, err := s.repo.LoadByIteration(s.Ctx, fxt.IterationByName("one").ID) // pass duplicate IDs to fetch
+	require.Nil(s.T(), err)
+	assert.Len(s.T(), wiInOneIteration, 3)
+
+	// Fetch work items for "two" iteration - should be 0
+	wiInTwoIteration, err := s.repo.LoadByIteration(s.Ctx, fxt.IterationByName("two").ID) // pass duplicate IDs to fetch
+	require.Nil(s.T(), err)
+	assert.Empty(s.T(), wiInTwoIteration)
 }
 
 func (s *workItemRepoBlackBoxTest) TestConcurrentWorkItemCreations() {
