@@ -99,6 +99,31 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 		require.NotNil(t, created)
 		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child.golden.json"), created)
 	})
+	rest.T().Run("success - create child iteration with ID in request payload", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, rest.DB,
+			tf.Identities(1),
+			tf.Areas(1),
+			tf.Iterations(2,
+				tf.SetIterationNames("root iteration", "child iteration"),
+				tf.PlaceIterationUnderRootIteration()))
+		name := "Sprint #21"
+		childItr := fxt.IterationByName("child iteration")
+		ci := getChildIterationPayload(&name)
+		ci.Data.ID = &childItr.ID // set ID of parent and it must be ignoed by controller
+		startAt, err := time.Parse(time.RFC3339, "2017-11-04T15:08:41+00:00")
+		require.Nil(t, err)
+		endAt, err := time.Parse(time.RFC3339, "2017-11-25T15:08:41+00:00")
+		require.Nil(t, err)
+		ci.Data.Attributes.StartAt = &startAt
+		ci.Data.Attributes.EndAt = &endAt
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+		// when
+		_, created := test.CreateChildIterationCreated(t, svc.Context, svc, ctrl, childItr.ID.String(), ci)
+		// then
+		require.NotNil(t, created)
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child_ID_paylod.golden.json"), created)
+	})
 
 	rest.T().Run("forbidden - only space owener can create child iteration", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, rest.DB,

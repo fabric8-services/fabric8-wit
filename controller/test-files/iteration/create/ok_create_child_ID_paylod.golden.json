@@ -1,0 +1,54 @@
+{
+  "data": {
+    "attributes": {
+      "active_status": true,
+      "created-at": "0001-01-01T00:00:00Z",
+      "description": "Some description",
+      "endAt": "2017-11-26T13:12:56.519317245+05:30",
+      "name": "Sprint #21",
+      "parent_path": "/d34fd7b7-63ba-4a31-8535-73016ce4b945/cadac76d-3fd1-42ba-8814-b0f034de2a2d",
+      "resolved_parent_path": "/root iteration/child iteration",
+      "startAt": "2017-11-02T13:12:56.519317245+05:30",
+      "state": "new",
+      "updated-at": "0001-01-01T00:00:00Z",
+      "user_active": false
+    },
+    "id": "6fcda61d-d79e-4fc0-9170-918978a13ff7",
+    "links": {
+      "related": "http:///api/iterations/6fcda61d-d79e-4fc0-9170-918978a13ff7",
+      "self": "http:///api/iterations/6fcda61d-d79e-4fc0-9170-918978a13ff7"
+    },
+    "relationships": {
+      "parent": {
+        "data": {
+          "id": "cadac76d-3fd1-42ba-8814-b0f034de2a2d",
+          "type": "iterations"
+        },
+        "links": {
+          "related": "http:///api/iterations/cadac76d-3fd1-42ba-8814-b0f034de2a2d",
+          "self": "http:///api/iterations/cadac76d-3fd1-42ba-8814-b0f034de2a2d"
+        }
+      },
+      "space": {
+        "data": {
+          "id": "2b488c80-513d-45af-b061-50230b95444e",
+          "type": "spaces"
+        },
+        "links": {
+          "related": "http:///api/spaces/2b488c80-513d-45af-b061-50230b95444e",
+          "self": "http:///api/spaces/2b488c80-513d-45af-b061-50230b95444e"
+        }
+      },
+      "workitems": {
+        "links": {
+          "related": "http:///api/workitems/?filter[iteration]=6fcda61d-d79e-4fc0-9170-918978a13ff7"
+        },
+        "meta": {
+          "closed": 0,
+          "total": 0
+        }
+      }
+    },
+    "type": "iterations"
+  }
+}
