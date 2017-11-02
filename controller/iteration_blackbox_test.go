@@ -78,8 +78,7 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 
 	rest.T().Run("success - create child iteration", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, rest.DB,
-			tf.Identities(1),
-			tf.Areas(1),
+			tf.CreateWorkItemEnvironment(),
 			tf.Iterations(2,
 				tf.SetIterationNames("root iteration", "child iteration"),
 				tf.PlaceIterationUnderRootIteration()))
@@ -102,15 +101,15 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 	rest.T().Run("success - create child iteration with ID in request payload", func(t *testing.T) {
 		// given
 		fxt := tf.NewTestFixture(t, rest.DB,
-			tf.Identities(1),
-			tf.Areas(1),
+			tf.CreateWorkItemEnvironment(),
 			tf.Iterations(2,
 				tf.SetIterationNames("root iteration", "child iteration"),
 				tf.PlaceIterationUnderRootIteration()))
 		name := "Sprint #21"
 		childItr := fxt.IterationByName("child iteration")
 		ci := getChildIterationPayload(&name)
-		ci.Data.ID = &childItr.ID // set ID of parent and it must be ignoed by controller
+		id := uuid.NewV4()
+		ci.Data.ID = &id // set different ID and it must be ignoed by controller
 		startAt, err := time.Parse(time.RFC3339, "2017-11-04T15:08:41+00:00")
 		require.Nil(t, err)
 		endAt, err := time.Parse(time.RFC3339, "2017-11-25T15:08:41+00:00")
@@ -123,6 +122,7 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 		// then
 		require.NotNil(t, created)
 		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child_ID_paylod.golden.json"), created)
+		require.NotEqual(t, *ci.Data.ID, *created.Data.ID)
 	})
 
 	rest.T().Run("forbidden - only space owener can create child iteration", func(t *testing.T) {
