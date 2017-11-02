@@ -93,7 +93,7 @@ func (p Path) convertFromLtree(uuidStr string) ([]uuid.UUID, error) {
 	// Ltree allows only "_" as a special character.
 	converted := strings.Replace(uuidStr, "_", "-", -1)
 	parts := strings.Split(converted, SepInDatabase)
-	op := []uuid.UUID{}
+	var op []uuid.UUID
 	for _, x := range parts {
 		id, err := uuid.FromString(x)
 		if err != nil {
@@ -107,7 +107,7 @@ func (p Path) convertFromLtree(uuidStr string) ([]uuid.UUID, error) {
 // Value helps in implementing Valuer interfae on Path
 // This conversion uses Ltree specification
 func (p Path) Value() (driver.Value, error) {
-	op := []string{}
+	var op []string
 	for _, x := range p {
 		op = append(op, p.ConvertToLtree(x))
 	}

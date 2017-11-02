@@ -371,7 +371,7 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 		return nil, 0, err
 	}
 	defer rows.Close()
-	result := []workitem.WorkItemStorage{}
+	var result []workitem.WorkItemStorage
 
 	columns, err := rows.Columns()
 	if err != nil {

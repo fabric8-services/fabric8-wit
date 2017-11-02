@@ -43,7 +43,7 @@ func Run(b *testing.B, suite BenchingSuite) {
 	}()
 
 	methodFinder := reflect.TypeOf(suite)
-	benchmarks := []testing.InternalBenchmark{}
+	var benchmarks []testing.InternalBenchmark
 	for index := 0; index < methodFinder.NumMethod(); index++ {
 		method := methodFinder.Method(index)
 		ok, err := methodFilter(method.Name)

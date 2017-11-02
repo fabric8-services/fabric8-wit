@@ -526,7 +526,7 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 	}
 	defer rows.Close()
 
-	result := []workitem.WorkItemStorage{}
+	var result []workitem.WorkItemStorage
 	value := workitem.WorkItemStorage{}
 	columns, err := rows.Columns()
 	if err != nil {
@@ -652,7 +652,7 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 	}
 	defer rows.Close()
 
-	result := []workitem.WorkItemStorage{}
+	var result []workitem.WorkItemStorage
 	columns, err := rows.Columns()
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{

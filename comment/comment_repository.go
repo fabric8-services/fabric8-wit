@@ -154,7 +154,7 @@ func (m *GormCommentRepository) List(ctx context.Context, parentID uuid.UUID, st
 	}
 	defer rows.Close()
 
-	result := []Comment{}
+	var result []Comment
 	columns, err := rows.Columns()
 	if err != nil {
 		return nil, 0, errors.NewInternalError(ctx, err)

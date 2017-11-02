@@ -374,7 +374,7 @@ func (m *GormIdentityRepository) Search(ctx context.Context, q string, start int
 	}
 	defer rows.Close()
 
-	result := []Identity{}
+	var result []Identity
 	value := Identity{}
 	columns, err := rows.Columns()
 	if err != nil {

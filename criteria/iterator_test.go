@@ -11,7 +11,7 @@ func TestIterator(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
 	// test left-to-right, depth first iteration
-	visited := []Expression{}
+	var visited []Expression
 	l := Field("a")
 	r := Literal(5)
 	expr := Equals(l, r)

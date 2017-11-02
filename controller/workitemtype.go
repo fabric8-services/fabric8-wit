@@ -125,7 +125,7 @@ func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work item types"))
 		}
 		// Remove "planneritem" from the list of WITs
-		witModels := []workitem.WorkItemType{}
+		var witModels []workitem.WorkItemType
 		for _, wit := range witModelsOrig {
 			if wit.ID != workitem.SystemPlannerItem {
 				witModels = append(witModels, wit)

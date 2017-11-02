@@ -216,7 +216,7 @@ func (m *GormCodebaseRepository) List(ctx context.Context, spaceID uuid.UUID, st
 	}
 	defer rows.Close()
 
-	result := []*Codebase{}
+	var result []*Codebase
 	columns, err := rows.Columns()
 	if err != nil {
 		return nil, 0, errors.NewInternalError(ctx, err)
