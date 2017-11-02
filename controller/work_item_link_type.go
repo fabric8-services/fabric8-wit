@@ -61,7 +61,7 @@ func enrichLinkTypeSingle(ctx *workItemLinkContext, single *app.WorkItemLinkType
 		return err
 	}
 
-	spaceData, err := ConvertSpaceFromModel(ctx.Context, ctx.DB, ctx.Request, *space)
+	spaceData, err := ConvertSpaceFromModel(ctx.Request, *space, IncludeBacklogTotalCount(ctx.Context, ctx.DB))
 	if err != nil {
 		return err
 	}
@@ -109,7 +109,7 @@ func enrichLinkTypeList(ctx *workItemLinkContext, list *app.WorkItemLinkTypeList
 		if err != nil {
 			return err
 		}
-		spaceData, err := ConvertSpaceFromModel(ctx.Context, ctx.DB, ctx.Request, *space)
+		spaceData, err := ConvertSpaceFromModel(ctx.Request, *space, IncludeBacklogTotalCount(ctx.Context, ctx.DB))
 		if err != nil {
 			return err
 		}

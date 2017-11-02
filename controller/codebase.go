@@ -53,7 +53,7 @@ func (c *CodebaseController) Show(ctx *app.ShowCodebaseContext) error {
 		}
 
 		res := &app.CodebaseSingle{}
-		res.Data = ConvertCodebase(ctx.Request, c)
+		res.Data = ConvertCodebase(ctx.Request, *c)
 
 		return ctx.OK(res)
 	})
@@ -256,26 +256,24 @@ func (c *CodebaseController) Open(ctx *app.OpenCodebaseContext) error {
 type CodebaseConvertFunc func(*http.Request, *codebase.Codebase, *app.Codebase)
 
 // ConvertCodebases converts between internal and external REST representation
-func ConvertCodebases(request *http.Request, codebases []*codebase.Codebase, additional ...CodebaseConvertFunc) []*app.Codebase {
+func ConvertCodebases(request *http.Request, codebases []codebase.Codebase) []*app.Codebase {
 	var is = []*app.Codebase{}
 	for _, i := range codebases {
-		is = append(is, ConvertCodebase(request, i, additional...))
+		is = append(is, ConvertCodebase(request, i))
 	}
 	return is
 }
 
 // ConvertCodebase converts between internal and external REST representation
-func ConvertCodebase(request *http.Request, codebase *codebase.Codebase, additional ...CodebaseConvertFunc) *app.Codebase {
+func ConvertCodebase(request *http.Request, codebase codebase.Codebase) *app.Codebase {
 	codebaseType := APIStringTypeCodebase
 	spaceType := APIStringTypeSpace
-
 	spaceID := codebase.SpaceID.String()
-
 	relatedURL := rest.AbsoluteURL(request, app.CodebaseHref(codebase.ID))
 	editURL := rest.AbsoluteURL(request, app.CodebaseHref(codebase.ID)+"/edit")
 	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
 
-	i := &app.Codebase{
+	return &app.Codebase{
 		Type: codebaseType,
 		ID:   &codebase.ID,
 		Attributes: &app.CodebaseAttributes{
@@ -303,10 +301,6 @@ func ConvertCodebase(request *http.Request, codebase *codebase.Codebase, additio
 			Edit:    &editURL,
 		},
 	}
-	for _, add := range additional {
-		add(request, codebase, i)
-	}
-	return i
 }
 
 // CheState gets che server state.
