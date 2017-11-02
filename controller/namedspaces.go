@@ -43,7 +43,7 @@ func (c *NamedspacesController) Show(ctx *app.ShowNamedspacesContext) error {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
-		spaceData, err := ConvertSpaceFromModel(ctx.Context, c.db, ctx.Request, *s)
+		spaceData, err := ConvertSpaceFromModel(ctx.Request, *s, IncludeBacklogTotalCount(ctx.Context, c.db))
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -66,22 +66,22 @@ func (c *NamedspacesController) List(ctx *app.ListNamedspacesContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(fmt.Sprintf("not found, userName=%v. %v", ctx.UserName, err.Error())))
 		}
-		spaces, cnt, err := appl.Spaces().LoadByOwner(ctx.Context, &identity.ID, &offset, &limit)
-		count := int(cnt)
+		spaces, totalCnt, err := appl.Spaces().LoadByOwner(ctx.Context, &identity.ID, &offset, &limit)
+		totalCount := int(totalCnt)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
-		spaceData, err := ConvertSpacesFromModel(ctx.Context, c.db, ctx.Request, spaces)
+		spaceData, err := ConvertSpacesFromModel(ctx.Request, spaces, IncludeBacklogTotalCount(ctx.Context, c.db))
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		response := app.SpaceList{
 			Links: &app.PagingLinks{},
-			Meta:  &app.SpaceListMeta{TotalCount: count},
+			Meta:  &app.SpaceListMeta{TotalCount: totalCount},
 			Data:  spaceData,
 		}
-		setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(spaces), offset, limit, count)
+		setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(spaces), offset, limit, totalCount)
 
 		return ctx.OK(&response)
 	})
