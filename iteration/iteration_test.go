@@ -46,7 +46,7 @@ func (s *TestIterationRepository) TestCreate() {
 		start := time.Now()
 		end := start.Add(time.Hour * (24 * 8 * 3))
 		name := "Sprint #24"
-
+		// given
 		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1))
 
 		i := iteration.Iteration{
@@ -55,12 +55,12 @@ func (s *TestIterationRepository) TestCreate() {
 			StartAt: &start,
 			EndAt:   &end,
 		}
-
+		// when
 		repo.Create(context.Background(), &i)
+		// then
 		if i.ID == uuid.Nil {
 			t.Errorf("Iteration was not created, ID nil")
 		}
-
 		if i.CreatedAt.After(time.Now()) {
 			t.Errorf("Iteration was not created, CreatedAt after Now()?")
 		}
@@ -74,7 +74,7 @@ func (s *TestIterationRepository) TestCreate() {
 		end := start.Add(time.Hour * (24 * 8 * 3))
 		name := "Sprint #24"
 		name2 := "Sprint #24.1"
-
+		// given
 		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1))
 
 		i := iteration.Iteration{
@@ -83,8 +83,8 @@ func (s *TestIterationRepository) TestCreate() {
 			StartAt: &start,
 			EndAt:   &end,
 		}
+		// when
 		repo.Create(context.Background(), &i)
-
 		parentPath := append(i.Path, i.ID)
 		require.NotNil(t, parentPath)
 		i2 := iteration.Iteration{
@@ -95,7 +95,7 @@ func (s *TestIterationRepository) TestCreate() {
 			Path:    parentPath,
 		}
 		repo.Create(context.Background(), &i2)
-
+		// then
 		i2L, err := repo.Load(context.Background(), i2.ID)
 		require.Nil(t, err)
 		assert.NotEmpty(t, i2.Path)
@@ -154,7 +154,7 @@ func (s *TestIterationRepository) TestLoad() {
 		end := start.Add(time.Hour * (24 * 8 * 3))
 		name := "Sprint #24"
 		name2 := "Sprint #24.1"
-
+		// given
 		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1))
 
 		i := iteration.Iteration{
@@ -163,6 +163,7 @@ func (s *TestIterationRepository) TestLoad() {
 			StartAt: &start,
 			EndAt:   &end,
 		}
+		// when
 		repo.Create(context.Background(), &i)
 
 		parentPath := append(i.Path, i.ID)
@@ -175,7 +176,7 @@ func (s *TestIterationRepository) TestLoad() {
 			Path:    parentPath,
 		}
 		repo.Create(context.Background(), &i2)
-
+		// then
 		res, err := repo.Root(context.Background(), fxt.Spaces[0].ID)
 		require.Nil(t, err)
 		assert.Equal(t, i.Name, res.Name)
@@ -227,7 +228,8 @@ func (s *TestIterationRepository) TestLoad() {
 		require.Empty(t, mustHaveIDs)
 	})
 
-	t.Run("load children", func(t *testing.T) {
+	t.Run("success - load children for iteration", func(t *testing.T) {
+		// given
 		fxt := tf.NewTestFixture(s.T(), s.DB,
 			tf.Iterations(3, func(fxt *tf.TestFixture, idx int) error {
 				i := fxt.Iterations[idx]
@@ -248,8 +250,10 @@ func (s *TestIterationRepository) TestLoad() {
 		i2 := *fxt.Iterations[1]
 		i3 := *fxt.Iterations[2]
 
+		// when
 		// fetch all children of top level iteration
 		childIterations1, err := repo.LoadChildren(context.Background(), i1.ID)
+		// then
 		require.Nil(t, err)
 		require.Equal(t, 2, len(childIterations1))
 		expectedChildIDs1 := []uuid.UUID{i2.ID, i3.ID}
@@ -259,8 +263,10 @@ func (s *TestIterationRepository) TestLoad() {
 		}
 		assert.Equal(t, expectedChildIDs1, actualChildIDs1)
 
+		// when
 		// fetch all children of level 1 iteration
 		childIterations2, err := repo.LoadChildren(context.Background(), i2.ID)
+		// then
 		require.Nil(t, err)
 		require.Equal(t, 1, len(childIterations2))
 		expectedChildIDs2 := []uuid.UUID{i3.ID}
@@ -270,17 +276,24 @@ func (s *TestIterationRepository) TestLoad() {
 		}
 		assert.Equal(t, expectedChildIDs2, actualChildIDs2)
 
+		// when
 		// fetch all children of level 2 iteration
 		childIterations3, err := repo.LoadChildren(context.Background(), i3.ID)
+		// then
 		require.Nil(t, err)
 		require.Equal(t, 0, len(childIterations3))
+	})
 
+	t.Run("fail - load children for non-existing iteration", func(t *testing.T) {
 		// try to fetch children of non-existing parent
 		fakeParentId := uuid.NewV4()
-		_, err = repo.LoadChildren(context.Background(), fakeParentId)
+		// when
+		_, err := repo.LoadChildren(context.Background(), fakeParentId)
+		// then
 		require.NotNil(t, err)
 		assert.Equal(t, reflect.TypeOf(errors.NotFoundError{}), reflect.TypeOf(err))
 	})
+
 }
 
 func (s *TestIterationRepository) TestUpdate() {
