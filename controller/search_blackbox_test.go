@@ -2,13 +2,14 @@ package controller_test
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"path/filepath"
+	"sort"
+	"strings"
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/account"
@@ -1010,27 +1011,76 @@ func (s *searchControllerTestSuite) TestUpdateWorkItem() {
 }
 
 func (s *searchControllerTestSuite) TestSearchCodebases() {
-	// given
-	fxt := tf.NewTestFixture(s.T(), s.DB,
-		tf.Identities(1, tf.SetIdentityUsernames("spaceowner")),
-		tf.Codebases(2, func(fxt *tf.TestFixture, idx int) error {
-			fxt.Codebases[idx].URL = fmt.Sprintf("http://foo.com/repos/%d", idx)
-			return nil
-		}),
-	)
-	s.DB.LogMode(true)
-	defer s.DB.LogMode(false)
+	resetFn := s.DisableGormCallbacks()
+	defer resetFn()
 
 	s.T().Run("Single match", func(t *testing.T) {
-		// when
-		_, codebaseList := test.CodebasesSearchOK(t, nil, nil, s.controller, nil, nil, fxt.Codebases[0].URL)
+		// given
+		tf.NewTestFixture(s.T(), s.DB,
+			tf.Identities(1, tf.SetIdentityUsernames("spaceowner")),
+			tf.Codebases(2, func(fxt *tf.TestFixture, idx int) error {
+				fxt.Codebases[idx].URL = fmt.Sprintf("http://foo.com/single/%d", idx)
+				return nil
+			}),
+		) // when
+		_, codebaseList := test.CodebasesSearchOK(t, nil, nil, s.controller, nil, nil, "http://foo.com/single/0")
 		// then
 		require.NotNil(t, codebaseList)
 		require.NotNil(t, codebaseList.Data)
-		assert.Len(t, codebaseList.Data, 1)
-		jsonCodebaseList, err := json.MarshalIndent(codebaseList, "", "  ")
-		require.Nil(t, err)
-		t.Logf("JSON response:\n%s\n", string(jsonCodebaseList))
-
+		require.Len(t, codebaseList.Data, 1)
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "search_codebase_per_url_single_match.json"), codebaseList)
 	})
+
+	s.T().Run("Multi-match", func(t *testing.T) {
+		// given
+		tf.NewTestFixture(s.T(), s.DB,
+			tf.Identities(1, tf.SetIdentityUsernames("spaceowner")),
+			tf.Spaces(2),
+			tf.Codebases(2, func(fxt *tf.TestFixture, idx int) error {
+				fxt.Codebases[idx].URL = fmt.Sprintf("http://foo.com/multi/0") // both codebases have the same URL...
+				fxt.Codebases[idx].SpaceID = fxt.Spaces[idx].ID                // ... but they belong to different spaces
+				return nil
+			}),
+		) // when
+		_, codebaseList := test.CodebasesSearchOK(t, nil, nil, s.controller, nil, nil, "http://foo.com/multi/0")
+		// then
+		require.NotNil(t, codebaseList)
+		require.NotNil(t, codebaseList.Data)
+		require.Len(t, codebaseList.Data, 2)
+		// custom sorting of data to make sure the comparison works as expected
+		sort.Sort(SortCodebasesByID(codebaseList.Data))
+		sort.Sort(SortIncludedSpacesByID(codebaseList.Included))
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "search_codebase_per_url_multi_match.json"), codebaseList)
+	})
+}
+
+// SortCodebasesByID a custom type that implement `sort.Interface`
+type SortCodebasesByID []*app.Codebase
+
+func (s SortCodebasesByID) Len() int {
+	return len(s)
+}
+func (s SortCodebasesByID) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+func (s SortCodebasesByID) Less(i, j int) bool {
+	return strings.Compare(s[i].ID.String(), s[j].ID.String()) < 0
+}
+
+type SortIncludedSpacesByID []interface{}
+
+func (s SortIncludedSpacesByID) Len() int {
+	return len(s)
+}
+func (s SortIncludedSpacesByID) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+func (s SortIncludedSpacesByID) Less(i, j int) bool {
+	if _, ok := s[i].(app.Space); !ok {
+		return false
+	}
+	if _, ok := s[j].(app.Space); !ok {
+		return false
+	}
+	return strings.Compare(s[i].(app.Space).ID.String(), s[j].(app.Space).ID.String()) < 0
 }
