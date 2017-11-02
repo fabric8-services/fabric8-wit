@@ -504,22 +504,3 @@ func ConvertSpaceFromModel(request *http.Request, sp space.Space, options ...Spa
 	}
 	return s, nil
 }
-
-// ConvertSpaceToIncludedData converts between model and JSON-API representation, for use in the `included` section of a JSON-API response
-func ConvertSpaceToIncludedData(request *http.Request, sp space.Space) app.Space {
-	selfURL := rest.AbsoluteURL(request, app.SpaceHref(sp.ID))
-	return app.Space{
-		ID:   &sp.ID,
-		Type: APIStringTypeSpace,
-		Attributes: &app.SpaceAttributes{
-			Name:        &sp.Name,
-			Description: &sp.Description,
-			CreatedAt:   &sp.CreatedAt,
-			UpdatedAt:   &sp.UpdatedAt,
-			Version:     &sp.Version,
-		},
-		Links: &app.GenericLinksForSpace{
-			Self: &selfURL,
-		},
-	}
-}

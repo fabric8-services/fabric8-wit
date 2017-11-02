@@ -17,57 +17,6 @@ var searchSpaceList = JSONList(
 	pagingLinks,
 	spaceListMeta)
 
-// var searchCodebaseList = JSONList(
-// 	"SearchCodebase", "Holds the paginated response to a search for codebases request",
-// 	searchCodebaseType,
-// 	pagingLinks,
-// 	searchCodebaseListMeta)
-
-// var searchCodebaseType = a.Type("SearchCodebase", func() {
-// 	a.Description(`JSONAPI store for the data of a codebase.  See also http://jsonapi.org/format/#document-resource-object`)
-// 	a.Attribute("type", d.String, func() {
-// 		a.Enum("codebases")
-// 	})
-// 	a.Attribute("id", d.UUID, "ID of codebase", func() {
-// 		a.Example("40bbdd3d-8b5d-4fd6-ac90-7236b669af04")
-// 	})
-// 	a.Attribute("attributes", searchCodebaseAttributes)
-// 	a.Attribute("relationships", searchCodebaseRelationships)
-// 	a.Attribute("links", searchCodebaseLinks)
-// 	a.Required("type", "attributes")
-// })
-
-// var searchCodebaseAttributes = a.Type("SearchCodebaseAttributes", func() {
-// 	a.Description(`JSONAPI store for all the "attributes" of a codebase. +See also see http://jsonapi.org/format/#document-resource-object-attributes`)
-// 	a.Attribute("type", d.String, "The codebase type", func() {
-// 		a.Example("git")
-// 	})
-// 	a.Attribute("url", d.String, "The URL of the codebase ", func() {
-// 		a.Example("git@github.com:fabric8-services/fabric8-wit.git")
-// 	})
-// 	a.Attribute("stackId", d.String, "The stack id of the codebase ", func() {
-// 		a.Example("java-centos")
-// 	})
-// 	a.Attribute("createdAt", d.DateTime, "When the codebase was created", func() {
-// 		a.Example("2016-11-29T23:18:14Z")
-// 	})
-// 	a.Attribute("last_used_workspace", d.String, "The last used workspace name of the codebase ", func() {
-// 		a.Example("java-centos")
-// 	})
-// })
-
-// var searchCodebaseLinks = a.Type("SearchCodebaseLinks", func() {
-// 	a.UseTrait("GenericLinksTrait")
-// })
-// var searchCodebaseRelationships = a.Type("SearchCodebaseRelations", func() {
-// 	a.Attribute("space", relationGeneric, "This defines the owning space")
-// })
-
-// var searchCodebaseListMeta = a.Type("SearchCodebaseListMeta", func() {
-// 	a.Attribute("totalCount", d.Integer)
-// 	a.Required("totalCount")
-// })
-
 var _ = a.Resource("search", func() {
 	a.BasePath("/search")
 
