@@ -224,3 +224,45 @@ func (test *TestCodebaseRepository) TestLoadCodebase() {
 	assert.Equal(test.T(), *fxt.Codebases[0].StackID, *loadedCodebase.StackID)
 	assert.Equal(test.T(), fxt.Codebases[0].LastUsedWorkspace, loadedCodebase.LastUsedWorkspace)
 }
+
+func (test *TestCodebaseRepository) TestDeleteCodebase() {
+	repo := codebase.NewCodebaseRepository(test.DB)
+	test.T().Run("ok", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, test.DB, tf.Codebases(1))
+		id := fxt.Codebases[0].ID
+		// double check that we can load this codebase
+		cb, err := repo.Load(test.Ctx, id)
+		require.Nil(t, err)
+		require.NotNil(t, cb)
+
+		// when
+		err = repo.Delete(test.Ctx, id)
+
+		// then
+		require.Nil(t, err)
+		// double check that we can no longer load the codebase
+		cb, err = repo.Load(test.Ctx, id)
+		require.NotNil(t, err)
+		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
+		require.Nil(t, cb)
+	})
+	test.T().Run("not found - not existing codebase ID", func(t *testing.T) {
+		// given a not existing codebase ID
+		nonExistingCodebaseID := uuid.NewV4()
+		// when
+		err := repo.Delete(test.Ctx, nonExistingCodebaseID)
+		// then
+		require.NotNil(t, err)
+		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
+	})
+	test.T().Run("not found - nil codebase ID", func(t *testing.T) {
+		// given a not existing codebase ID
+		nilCodebaseID := uuid.Nil
+		// when
+		err := repo.Delete(test.Ctx, nilCodebaseID)
+		// then
+		require.NotNil(t, err)
+		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
+	})
+}

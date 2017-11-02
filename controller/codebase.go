@@ -15,7 +15,9 @@ import (
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/rest"
 
+	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/goadesign/goa"
+	"github.com/satori/go.uuid"
 )
 
 const (
@@ -116,6 +118,40 @@ func (c *CodebaseController) Edit(ctx *app.EditCodebaseContext) error {
 	}
 
 	return ctx.OK(resp)
+}
+
+func (c *CodebaseController) Delete(ctx *app.DeleteCodebaseContext) error {
+	currentUser, err := login.ContextIdentity(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
+	}
+
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		cb, err := appl.Codebases().Load(ctx.Context, ctx.CodebaseID)
+		if err != nil {
+			return err
+		}
+		s, err := appl.Spaces().Load(ctx.Context, cb.SpaceID)
+		if err != nil {
+			return err
+		}
+		if !uuid.Equal(*currentUser, s.OwnerId) {
+			log.Warn(ctx, map[string]interface{}{
+				"codebase_id":  ctx.CodebaseID,
+				"space_id":     cb.SpaceID,
+				"space_owner":  s.OwnerId,
+				"current_user": *currentUser,
+			}, "user is not the space owner")
+			return errors.NewForbiddenError("user is not the space owner")
+		}
+
+		return appl.Codebases().Delete(ctx, ctx.CodebaseID)
+	})
+
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return ctx.OK([]byte{})
 }
 
 // Create runs the create action.
