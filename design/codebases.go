@@ -164,7 +164,7 @@ var _ = a.Resource("codebase", func() {
 		a.Params(func() {
 			a.Param("codebaseID", d.UUID, "ID of the codebase to delete")
 		})
-		a.Response(d.OK)
+		a.Response(d.NoContent)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)

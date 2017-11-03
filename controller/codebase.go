@@ -120,6 +120,7 @@ func (c *CodebaseController) Edit(ctx *app.EditCodebaseContext) error {
 	return ctx.OK(resp)
 }
 
+// Delete deletes the given codebase if the user is authenticated and authorized
 func (c *CodebaseController) Delete(ctx *app.DeleteCodebaseContext) error {
 	currentUser, err := login.ContextIdentity(ctx)
 	if err != nil {
@@ -135,11 +136,11 @@ func (c *CodebaseController) Delete(ctx *app.DeleteCodebaseContext) error {
 		if err != nil {
 			return err
 		}
-		if !uuid.Equal(*currentUser, s.OwnerId) {
+		if !uuid.Equal(*currentUser, s.OwnerID) {
 			log.Warn(ctx, map[string]interface{}{
 				"codebase_id":  ctx.CodebaseID,
 				"space_id":     cb.SpaceID,
-				"space_owner":  s.OwnerId,
+				"space_owner":  s.OwnerID,
 				"current_user": *currentUser,
 			}, "user is not the space owner")
 			return errors.NewForbiddenError("user is not the space owner")
@@ -151,7 +152,7 @@ func (c *CodebaseController) Delete(ctx *app.DeleteCodebaseContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	return ctx.OK([]byte{})
+	return ctx.NoContent()
 }
 
 // Create runs the create action.
