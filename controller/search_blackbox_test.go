@@ -1033,10 +1033,11 @@ func (s *searchControllerTestSuite) TestSearchCodebases() {
 
 	s.T().Run("Multi-match", func(t *testing.T) {
 		// given
+		count := 5
 		tf.NewTestFixture(s.T(), s.DB,
 			tf.Identities(1, tf.SetIdentityUsernames("spaceowner")),
-			tf.Spaces(2),
-			tf.Codebases(2, func(fxt *tf.TestFixture, idx int) error {
+			tf.Spaces(count),
+			tf.Codebases(count, func(fxt *tf.TestFixture, idx int) error {
 				fxt.Codebases[idx].URL = fmt.Sprintf("http://foo.com/multi/0") // both codebases have the same URL...
 				fxt.Codebases[idx].SpaceID = fxt.Spaces[idx].ID                // ... but they belong to different spaces
 				return nil
@@ -1046,36 +1047,40 @@ func (s *searchControllerTestSuite) TestSearchCodebases() {
 		// then
 		require.NotNil(t, codebaseList)
 		require.NotNil(t, codebaseList.Data)
-		require.Len(t, codebaseList.Data, 2)
+		require.Len(t, codebaseList.Data, count)
+		require.Len(t, codebaseList.Included, count)
 		// custom sorting of data to make sure the comparison works as expected
-		sort.Sort(SortCodebasesByID(codebaseList.Data))
-		sort.Sort(SortIncludedSpacesByID(codebaseList.Included))
+		// sorting codebases in `data` by the ID of their part space
+		sort.Sort(SortableCodebasesByID(codebaseList.Data))
+		// for included spaces, we must sort the spaces by their ID
+		sort.Sort(SortableIncludedSpacesByID(codebaseList.Included))
 		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "search_codebase_per_url_multi_match.json"), codebaseList)
 	})
 }
 
-// SortCodebasesByID a custom type that implement `sort.Interface`
-type SortCodebasesByID []*app.Codebase
+// SortableCodebasesByID a custom type that implement `sort.Interface` for sorting CodeBases by ID
+type SortableCodebasesByID []*app.Codebase
 
-func (s SortCodebasesByID) Len() int {
+func (s SortableCodebasesByID) Len() int {
 	return len(s)
 }
-func (s SortCodebasesByID) Swap(i, j int) {
+func (s SortableCodebasesByID) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
-func (s SortCodebasesByID) Less(i, j int) bool {
-	return strings.Compare(s[i].ID.String(), s[j].ID.String()) < 0
+func (s SortableCodebasesByID) Less(i, j int) bool {
+	return strings.Compare(*s[i].Relationships.Space.Data.ID, *s[j].Relationships.Space.Data.ID) < 0
 }
 
-type SortIncludedSpacesByID []interface{}
+// SortableIncludedSpacesByID a custom type that implement `sort.Interface` for sorting Spaces by ID
+type SortableIncludedSpacesByID []interface{}
 
-func (s SortIncludedSpacesByID) Len() int {
+func (s SortableIncludedSpacesByID) Len() int {
 	return len(s)
 }
-func (s SortIncludedSpacesByID) Swap(i, j int) {
+func (s SortableIncludedSpacesByID) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
-func (s SortIncludedSpacesByID) Less(i, j int) bool {
+func (s SortableIncludedSpacesByID) Less(i, j int) bool {
 	if _, ok := s[i].(app.Space); !ok {
 		return false
 	}
