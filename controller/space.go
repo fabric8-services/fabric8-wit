@@ -123,7 +123,7 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
-	spaceData, err := ConvertSpaceFromModel(ctx.Context, c.db, ctx.Request, *rSpace)
+	spaceData, err := ConvertSpaceFromModel(ctx.Request, *rSpace, IncludeBacklogTotalCount(ctx.Context, c.db))
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
@@ -195,7 +195,7 @@ func (c *SpaceController) List(ctx *app.ListSpaceContext) error {
 		}
 		entityErr := ctx.ConditionalEntities(spaces, c.config.GetCacheControlSpaces, func() error {
 			count := int(cnt)
-			spaceData, err := ConvertSpacesFromModel(ctx.Context, c.db, ctx.Request, spaces)
+			spaceData, err := ConvertSpacesFromModel(ctx.Request, spaces, IncludeBacklogTotalCount(ctx.Context, c.db))
 			if err != nil {
 				return err
 			}
@@ -231,7 +231,7 @@ func (c *SpaceController) Show(ctx *app.ShowSpaceContext) error {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		return ctx.ConditionalRequest(*s, c.config.GetCacheControlSpace, func() error {
-			spaceData, err := ConvertSpaceFromModel(ctx.Context, c.db, ctx.Request, *s)
+			spaceData, err := ConvertSpaceFromModel(ctx.Request, *s, IncludeBacklogTotalCount(ctx.Context, c.db))
 			if err != nil {
 				log.Error(ctx, map[string]interface{}{
 					"err":      err,
@@ -283,7 +283,7 @@ func (c *SpaceController) Update(ctx *app.UpdateSpaceContext) error {
 			return err
 		}
 
-		spaceData, err := ConvertSpaceFromModel(ctx.Context, c.db, ctx.Request, *s)
+		spaceData, err := ConvertSpaceFromModel(ctx.Request, *s, IncludeBacklogTotalCount(ctx.Context, c.db))
 		if err != nil {
 			return err
 		}
@@ -361,24 +361,37 @@ func ConvertSpaceToModel(appSpace app.Space) space.Space {
 
 // SpaceConvertFunc is a open ended function to add additional links/data/relations to a Space during
 // conversion from internal to API
-type SpaceConvertFunc func(*http.Request, *space.Space, *app.Space)
+type SpaceConvertFunc func(*http.Request, *space.Space, *app.Space) error
+
+// IncludeBacklog returns a SpaceConvertFunc that includes the a link to the backlog
+// along with the total count of items in the backlog of the current space
+func IncludeBacklogTotalCount(ctx context.Context, db application.DB) SpaceConvertFunc {
+	return func(req *http.Request, modelSpace *space.Space, appSpace *app.Space) error {
+		count, err := countBacklogItems(ctx, db, modelSpace.ID)
+		if err != nil {
+			return errs.Wrap(err, "unable to count backlog items")
+		}
+		appSpace.Links.Backlog.Meta = &app.BacklogLinkMeta{TotalCount: count} // TODO (xcoulon) remove that part
+		appSpace.Relationships.Backlog.Meta = map[string]interface{}{"totalCount": count}
+		return nil
+	}
+}
 
 // ConvertSpacesFromModel converts between internal and external REST representation
-func ConvertSpacesFromModel(ctx context.Context, db application.DB, request *http.Request, spaces []space.Space, additional ...SpaceConvertFunc) ([]*app.Space, error) {
-	var ps = []*app.Space{}
-	for _, p := range spaces {
-		spaceData, err := ConvertSpaceFromModel(ctx, db, request, p, additional...)
+func ConvertSpacesFromModel(request *http.Request, spaces []space.Space, additional ...SpaceConvertFunc) ([]*app.Space, error) {
+	var result = make([]*app.Space, len(spaces))
+	for i, p := range spaces {
+		spaceData, err := ConvertSpaceFromModel(request, p, additional...)
 		if err != nil {
 			return nil, err
 		}
-
-		ps = append(ps, spaceData)
+		result[i] = spaceData
 	}
-	return ps, nil
+	return result, nil
 }
 
 // ConvertSpaceFromModel converts between internal and external REST representation
-func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *http.Request, sp space.Space, additional ...SpaceConvertFunc) (*app.Space, error) {
+func ConvertSpaceFromModel(request *http.Request, sp space.Space, options ...SpaceConvertFunc) (*app.Space, error) {
 	selfURL := rest.AbsoluteURL(request, app.SpaceHref(sp.ID))
 	spaceIDStr := sp.ID.String()
 	relatedIterations := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/iterations", spaceIDStr))
@@ -388,16 +401,12 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *http
 	relatedWorkItems := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitems", spaceIDStr))
 	relatedWorkItemTypes := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitemtypes", spaceIDStr))
 	relatedWorkItemLinkTypes := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitemlinktypes", spaceIDStr))
-	relatedOwners := rest.AbsoluteURL(request, fmt.Sprintf("%s/%s", usersEndpoint, sp.OwnerID.String()))
+	relatedOwners := app.UsersHref(sp.OwnerID.String())
 	relatedCollaborators := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/collaborators", spaceIDStr))
 	relatedFilters := rest.AbsoluteURL(request, "/api/filters")
 	relatedLabels := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/labels", spaceIDStr))
 	relatedWorkitemTypeGroups := rest.AbsoluteURL(request, app.SpaceTemplateHref(spaceIDStr)+"/workitemtypegroups/")
 
-	count, err := countBacklogItems(ctx, db, sp.ID)
-	if err != nil {
-		return nil, errs.Wrap(err, "unable to fetch backlog items")
-	}
 	s := &app.Space{
 		ID:   &sp.ID,
 		Type: APIStringTypeSpace,
@@ -413,7 +422,6 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *http
 			Related: &selfURL, //TODO (xcoulon): remove this link
 			Backlog: &app.BacklogGenericLink{ //TODO (xcoulon): remove this link
 				Self: &relatedBacklog,
-				Meta: &app.BacklogLinkMeta{TotalCount: count},
 			},
 			Workitemtypes:      &relatedWorkItemTypes,      //TODO (xcoulon): remove this link
 			Workitemlinktypes:  &relatedWorkItemLinkTypes,  //TODO (xcoulon): remove this link
@@ -424,6 +432,11 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *http
 			Areas: &app.RelationGeneric{
 				Links: &app.GenericLinks{
 					Related: &relatedAreas,
+				},
+			},
+			Backlog: &app.RelationGeneric{
+				Links: &app.GenericLinks{
+					Related: &relatedBacklog,
 				},
 			},
 			Codebases: &app.RelationGeneric{
@@ -482,8 +495,12 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *http
 			},
 		},
 	}
-	for _, add := range additional {
-		add(request, &sp, s)
+	// apply options (ie, if extra content needs to be provided in the response element)
+	for _, option := range options {
+		err := option(request, &sp, s)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return s, nil
 }

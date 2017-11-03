@@ -169,7 +169,7 @@ func (c *SearchController) Spaces(ctx *app.SpacesSearchContext) error {
 			}
 		}
 
-		spaceData, err := ConvertSpacesFromModel(ctx.Context, c.db, ctx.Request, result)
+		spaceData, err := ConvertSpacesFromModel(ctx.Request, result, IncludeBacklogTotalCount(ctx.Context, c.db))
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -215,4 +215,58 @@ func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, res *a
 		convertedWI := ConvertWorkItem(ctx.Request, *ele)
 		res.Included = append(res.Included, *convertedWI)
 	}
+}
+
+// Codebases runs the codebases search action.
+func (c *SearchController) Codebases(ctx *app.CodebasesSearchContext) error {
+	if ctx.URL == "" {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest("empty search query not allowed"))
+	}
+	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
+
+	return application.Transactional(c.db, func(appl application.Application) error {
+		matchingCodebases, totalCount, err := appl.Codebases().SearchByURL(ctx, ctx.URL, &offset, &limit)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"url":    ctx.URL,
+				"offset": offset,
+				"limit":  limit,
+				"err":    err,
+			}, "unable to search codebases by URL")
+			cause := errs.Cause(err)
+			switch cause.(type) {
+			case errors.BadParameterError:
+				return jsonapi.JSONErrorResponse(ctx, err)
+			default:
+				return jsonapi.JSONErrorResponse(ctx, err)
+			}
+		}
+		// look-up the spaces of the matching codebases
+		spaceIDs := make([]uuid.UUID, len(matchingCodebases))
+		for i, c := range matchingCodebases {
+			spaceIDs[i] = c.SpaceID
+		}
+		relatedSpaces, err := appl.Spaces().LoadMany(ctx, spaceIDs)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		// put all related spaces and associated owners in the `included` data
+		includedData := make([]interface{}, len(relatedSpaces))
+		for i, relatedSpace := range relatedSpaces {
+			appSpace, err := ConvertSpaceFromModel(ctx.Request, relatedSpace)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, err)
+			}
+			includedData[i] = *appSpace
+		}
+		codebasesData := ConvertCodebases(ctx.Request, matchingCodebases)
+		response := app.CodebaseList{
+			Links:    &app.PagingLinks{},
+			Meta:     &app.CodebaseListMeta{TotalCount: totalCount},
+			Data:     codebasesData,
+			Included: includedData,
+		}
+		setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(matchingCodebases), offset, limit, totalCount, "url="+ctx.URL)
+		return ctx.OK(&response)
+	})
 }

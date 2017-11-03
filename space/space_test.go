@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"context"
 
 	"github.com/fabric8-services/fabric8-wit/errors"
@@ -17,21 +19,21 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-func TestRunRepoBBTest(t *testing.T) {
-	suite.Run(t, &repoBBTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+func TestSpaceRepository(t *testing.T) {
+	suite.Run(t, &SpaceRepositoryTestSuite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
-type repoBBTest struct {
+type SpaceRepositoryTestSuite struct {
 	gormtestsupport.DBTestSuite
 	repo space.Repository
 }
 
-func (s *repoBBTest) SetupSuite() {
+func (s *SpaceRepositoryTestSuite) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
 	s.repo = space.NewRepository(s.DB)
 }
 
-func (s *repoBBTest) TestCreate() {
+func (s *SpaceRepositoryTestSuite) TestCreate() {
 	s.T().Run("ok", func(t *testing.T) {
 		// given an identity
 		fxt := tf.NewTestFixture(t, s.DB, tf.Identities(1))
@@ -77,7 +79,7 @@ func (s *repoBBTest) TestCreate() {
 	})
 }
 
-func (s *repoBBTest) TestLoad() {
+func (s *SpaceRepositoryTestSuite) TestLoad() {
 	s.T().Run("existing space", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1))
 		sp, err := s.repo.Load(s.Ctx, fxt.Spaces[0].ID)
@@ -92,7 +94,7 @@ func (s *repoBBTest) TestLoad() {
 	})
 }
 
-func (s *repoBBTest) TestCheckExists() {
+func (s *SpaceRepositoryTestSuite) TestCheckExists() {
 	resource.Require(s.T(), resource.Database)
 	s.T().Run("space exists", func(t *testing.T) {
 		// given a space
@@ -109,7 +111,7 @@ func (s *repoBBTest) TestCheckExists() {
 	})
 }
 
-func (s *repoBBTest) TestSave() {
+func (s *SpaceRepositoryTestSuite) TestSave() {
 	s.T().Run("ok", func(t *testing.T) {
 		// given a space
 		fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1))
@@ -159,7 +161,7 @@ func (s *repoBBTest) TestSave() {
 	})
 }
 
-func (s *repoBBTest) TestDelete() {
+func (s *SpaceRepositoryTestSuite) TestDelete() {
 	s.T().Run("ok", func(t *testing.T) {
 		// given a space
 		fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1))
@@ -198,7 +200,7 @@ func (s *repoBBTest) TestDelete() {
 	})
 }
 
-func (s *repoBBTest) TestList() {
+func (s *SpaceRepositoryTestSuite) TestList() {
 	s.T().Run("ok", func(t *testing.T) {
 		// given
 		var start, length *int
@@ -230,7 +232,7 @@ func (s *repoBBTest) TestList() {
 	})
 }
 
-func (s *repoBBTest) TestLoadByOwnerAndName() {
+func (s *SpaceRepositoryTestSuite) TestLoadByOwnerAndName() {
 	s.T().Run("ok", func(t *testing.T) {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1))
@@ -262,4 +264,60 @@ func (s *repoBBTest) TestLoadByOwnerAndName() {
 		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 		require.Nil(t, sp)
 	})
+}
+
+func (s *SpaceRepositoryTestSuite) TestLoadMany() {
+	s.T().Run("ok", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(2))
+		ids := make([]uuid.UUID, 0)
+		for _, s := range fxt.Spaces {
+			ids = append(ids, s.ID)
+		}
+		// when listing
+		result, err := s.repo.LoadMany(s.Ctx, ids)
+		// then
+		require.Nil(t, err)
+		assert.Condition(t, containsAllSpaces(t, fxt.Spaces, result...))
+	})
+	s.T().Run("ok with duplicates", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(10))
+		ids := make([]uuid.UUID, 0)
+		// add the IDs twice
+		for _, s := range fxt.Spaces {
+			ids = append(ids, s.ID)
+			ids = append(ids, s.ID)
+		}
+		// when listing
+		result, err := s.repo.LoadMany(s.Ctx, ids)
+		// then make sure the result does not contain duplicates
+		require.Nil(t, err)
+		assert.Condition(t, containsAllSpaces(t, fxt.Spaces, result...))
+	})
+}
+
+// containsAllSpaces verifies that the `expectedSpaces` array contains all `actualSpaces` in any order,
+// by comparing the lengths and each ID,
+func containsAllSpaces(t *testing.T, expectedSpaces []*space.Space, actualSpaces ...space.Space) assert.Comparison {
+	return func() bool {
+		if len(expectedSpaces) != len(actualSpaces) {
+			t.Logf("actualSpaces did not have the expected length: %d vs %d", len(actualSpaces), len(expectedSpaces))
+			return false
+		}
+		for _, expectedSpace := range expectedSpaces {
+			found := false
+			for _, actualSpace := range actualSpaces {
+				if uuid.Equal(actualSpace.ID, expectedSpace.ID) {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Logf("actualSpaces did not contain entry with ID='%v'", expectedSpace.ID)
+				return false
+			}
+		}
+		return true
+	}
 }
