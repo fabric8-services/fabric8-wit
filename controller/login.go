@@ -105,11 +105,11 @@ func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 	// Creates the testuser user and identity if they don't yet exist
 	_, _, err = c.auth.CreateOrUpdateKeycloakUser(*testuser.Token.AccessToken, ctx)
 	if err != nil {
-		log.Error(ctx, map[string]interface{}{
+		log.Warn(ctx, map[string]interface{}{
 			"err":      err,
 			"username": c.configuration.GetKeycloakTestUserName(),
 		}, "unable to create or update user")
-		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.Wrap(err, "unable to create or update user")))
+		//return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.Wrap(err, "unable to create or update user")))
 	}
 	tokens = append(tokens, testuser)
 
@@ -124,11 +124,11 @@ func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 	// Creates the testuser2 user and identity if they don't yet exist
 	_, _, err = c.auth.CreateOrUpdateKeycloakUser(*testuser.Token.AccessToken, ctx)
 	if err != nil {
-		log.Error(ctx, map[string]interface{}{
+		log.Warn(ctx, map[string]interface{}{
 			"err":      err,
 			"username": c.configuration.GetKeycloakTestUser2Name(),
 		}, "unable to create or update user")
-		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.Wrap(err, "unable to create or update user")))
+		//return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.Wrap(err, "unable to create or update user")))
 	}
 	tokens = append(tokens, testuser)
 
