@@ -33,7 +33,6 @@ func TestRunCodebasesTest(t *testing.T) {
 // ========== TestCodebaseREST struct that implements SetupSuite, TearDownSuite, SetupTest, TearDownTest ==========
 type TestCodebaseREST struct {
 	gormtestsupport.DBTestSuite
-
 	db      *gormapplication.GormDB
 	clean   func()
 	testDir string
@@ -97,6 +96,50 @@ func (s *TestCodebaseREST) TestSuccessCreateCodebaseWithoutStackID() {
 	})
 }
 
+func (s *TestCodebaseREST) TestDeleteCodebase() {
+	resetFn := s.DisableGormCallbacks()
+	defer resetFn()
+
+	s.T().Run("OK", func(t *testing.T) {
+		resource.Require(t, resource.Database)
+
+		// Create space and codebase
+		cb := minimalCodebaseWithSpace(t, s.db, testsupport.TestIdentity.ID)
+
+		svc, ctrl := s.SecuredControllers(testsupport.TestIdentity)
+		test.DeleteCodebaseOK(t, svc.Context, svc, ctrl, cb.ID)
+	})
+
+	s.T().Run("NotFound", func(t *testing.T) {
+		resource.Require(t, resource.Database)
+
+		codebaseID := uuid.FromStringOrNil("d7a282f6-1c10-459e-bb44-55a1a6d48bdd")
+
+		svc, ctrl := s.SecuredControllers(testsupport.TestIdentity)
+		test.DeleteCodebaseNotFound(t, svc.Context, svc, ctrl, codebaseID)
+	})
+
+	s.T().Run("Unauthorized", func(t *testing.T) {
+		resource.Require(t, resource.Database)
+
+		codebaseID := uuid.FromStringOrNil("d7a282f6-1c10-459e-bb44-55a1a6d48bdd")
+
+		svc, ctrl := s.UnsecuredController()
+		test.DeleteCodebaseUnauthorized(t, svc.Context, svc, ctrl, codebaseID)
+	})
+
+	s.T().Run("Forbidden", func(t *testing.T) {
+		resource.Require(t, resource.Database)
+
+		// Create space and codebase
+		cb := minimalCodebaseWithSpace(t, s.db, testsupport.TestIdentity.ID)
+
+		svc, ctrl := s.SecuredControllers(testsupport.TestIdentity2)
+		test.DeleteCodebaseForbidden(t, svc.Context, svc, ctrl, cb.ID)
+	})
+
+}
+
 func requireSpaceAndCodebase(t *testing.T, db *gormapplication.GormDB, ID, spaceID uuid.UUID, stackId *string) *codebase.Codebase {
 	var c *codebase.Codebase
 	application.Transactional(db, func(appl application.Application) error {
@@ -113,6 +156,30 @@ func requireSpaceAndCodebase(t *testing.T, db *gormapplication.GormDB, ID, space
 			Type:              "git",
 			URL:               "https://github.com/fabric8-services/fabric8-wit.git",
 			StackID:           stackId,
+			LastUsedWorkspace: "my-last-used-workspace",
+		}
+		err = appl.Codebases().Create(context.Background(), c)
+		require.Nil(t, err)
+		return nil
+	})
+	return c
+}
+
+func minimalCodebaseWithSpace(t *testing.T, db *gormapplication.GormDB, ownerID uuid.UUID) *codebase.Codebase {
+	var c *codebase.Codebase
+	application.Transactional(db, func(appl application.Application) error {
+		s := &space.Space{
+			Name:    "Test Space " + testsupport.CreateRandomValidTestName("CodebaseBlackboxTest-"),
+			OwnerId: ownerID,
+		}
+		_, err := appl.Spaces().Create(context.Background(), s)
+		require.Nil(t, err)
+		stackId := "golanRg-default"
+		c = &codebase.Codebase{
+			SpaceID:           s.ID,
+			Type:              "git",
+			URL:               "https://github.com/fabric8-services/fabric8-wit.git",
+			StackID:           &stackId,
 			LastUsedWorkspace: "my-last-used-workspace",
 		}
 		err = appl.Codebases().Create(context.Background(), c)
