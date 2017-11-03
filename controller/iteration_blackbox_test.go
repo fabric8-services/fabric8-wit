@@ -511,12 +511,12 @@ func (rest *TestIterationREST) TestFailUpdateIterationUnauthorized() {
 func (rest *TestIterationREST) TestIterationStateTransitions() {
 	// given
 	sp, _, _, _, itr1 := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
-	assert.Equal(rest.T(), iteration.IterationStateNew, itr1.State)
-	startState := iteration.IterationStateStart
+	assert.Equal(rest.T(), iteration.StateNew, itr1.State)
+	startState := iteration.StateStart
 	payload := app.UpdateIterationPayload{
 		Data: &app.Iteration{
 			Attributes: &app.IterationAttributes{
-				State: &startState,
+				State: startState.StringPtr(),
 			},
 			ID:   &itr1.ID,
 			Type: iteration.APIStringTypeIteration,
@@ -538,7 +538,7 @@ func (rest *TestIterationREST) TestIterationStateTransitions() {
 	payload2 := app.UpdateIterationPayload{
 		Data: &app.Iteration{
 			Attributes: &app.IterationAttributes{
-				State: &startState,
+				State: startState.StringPtr(),
 			},
 			ID:   &itr2.ID,
 			Type: iteration.APIStringTypeIteration,
@@ -546,8 +546,8 @@ func (rest *TestIterationREST) TestIterationStateTransitions() {
 	}
 	test.UpdateIterationBadRequest(rest.T(), svc.Context, svc, ctrl, itr2.ID.String(), &payload2)
 	// now close first iteration
-	closeState := iteration.IterationStateClose
-	payload.Data.Attributes.State = &closeState
+	closeState := iteration.StateClose
+	payload.Data.Attributes.State = closeState.StringPtr()
 	_, updated = test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr1.ID.String(), &payload)
 	assert.Equal(rest.T(), closeState, *updated.Data.Attributes.State)
 	// try to start iteration 2 now
@@ -568,11 +568,11 @@ func (rest *TestIterationREST) TestRootIterationCanNotStart() {
 	require.Nil(rest.T(), err)
 	require.NotNil(rest.T(), ri)
 
-	startState := iteration.IterationStateStart
+	startState := iteration.StateStart
 	payload := app.UpdateIterationPayload{
 		Data: &app.Iteration{
 			Attributes: &app.IterationAttributes{
-				State: &startState,
+				State: startState.StringPtr(),
 			},
 			ID:   &ri.ID,
 			Type: iteration.APIStringTypeIteration,

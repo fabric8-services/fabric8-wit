@@ -64,7 +64,7 @@ func (rest *BenchPlannerBacklogREST) setupPlannerBacklogWorkItems() (testSpace *
 		parentIteration = &iteration.Iteration{
 			Name:    "Parent Iteration",
 			SpaceID: testSpace.ID,
-			State:   iteration.IterationStateNew,
+			State:   iteration.StateNew,
 		}
 		err = iterationsRepo.Create(rest.Ctx, parentIteration)
 		if err != nil {
@@ -76,7 +76,7 @@ func (rest *BenchPlannerBacklogREST) setupPlannerBacklogWorkItems() (testSpace *
 			Name:    "Child Iteration",
 			SpaceID: testSpace.ID,
 			Path:    append(parentIteration.Path, parentIteration.ID),
-			State:   iteration.IterationStateStart,
+			State:   iteration.StateStart,
 		}
 		err = iterationsRepo.Create(rest.Ctx, childIteration)
 		if err != nil {
