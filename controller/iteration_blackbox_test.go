@@ -122,7 +122,7 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 		// then
 		require.NotNil(t, created)
 		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child_ID_paylod.golden.json"), created)
-		require.NotEqual(t, *ci.Data.ID, *created.Data.ID)
+		require.Equal(t, *ci.Data.ID, *created.Data.ID)
 	})
 
 	rest.T().Run("forbidden - only space owener can create child iteration", func(t *testing.T) {
