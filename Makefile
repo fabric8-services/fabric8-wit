@@ -272,6 +272,12 @@ dev: prebuild-check deps generate $(FRESH_BIN)
 	docker-compose up -d db auth
 	F8_DEVELOPER_MODE_ENABLED=true $(FRESH_BIN)
 
+.PHONY: core-dev-os
+core-dev-os: prebuild-check deps generate $(FRESH_BIN)
+	kedge create -f kedge/db.yml -f kedge/db-auth.yml -f kedge/auth.yml
+	export F8_AUTH_URL=http://`minishift ip`:31000 F8_POSTGRES_HOST=`minishift ip` F8_POSTGRES_PORT=32000
+	F8_DEVELOPER_MODE_ENABLED=true $(FRESH_BIN)
+
 include ./.make/test.mk
 
 ifneq ($(OS),Windows_NT)

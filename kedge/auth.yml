@@ -12,5 +12,7 @@ containers:
     value: "5432"
 services:
 - name: auth
+  type: NodePort
   ports:
   - port: 8089
+    nodePort: 31000

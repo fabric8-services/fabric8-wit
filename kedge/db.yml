@@ -6,5 +6,7 @@ containers:
     value: mysecretpassword
 services:
 - name: db
+  type: NodePort
   ports:
   - port: 5432
+    nodePort: 32000

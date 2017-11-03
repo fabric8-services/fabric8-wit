@@ -1,0 +1,13 @@
+name: core
+containers:
+- image: docker.io/fabric8/fabric8-wit:latest
+  env:
+  - name: F8_AUTH_URL
+    value: "http://auth:8089"
+  - name: F8_DEVELOPER_MODE_ENABLED
+    value: "true"
+  - name: F8_POSTGRES_HOST
+    value: "db"
+services:
+- ports:
+  - port: 8080
