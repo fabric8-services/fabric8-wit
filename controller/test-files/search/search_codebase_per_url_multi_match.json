@@ -1,0 +1,245 @@
+{
+  "data": [
+    {
+      "attributes": {
+        "createdAt": "0001-01-01T00:00:00Z",
+        "last_used_workspace": "my-used-last-workspace",
+        "stackId": "golang-default",
+        "type": "git",
+        "url": "http://foo.com/multi/0"
+      },
+      "id": "80f43ec6-8889-4ec6-81f6-bede08f4c36a",
+      "links": {
+        "edit": "http:///api/codebases/80f43ec6-8889-4ec6-81f6-bede08f4c36a/edit",
+        "related": "http:///api/codebases/80f43ec6-8889-4ec6-81f6-bede08f4c36a",
+        "self": "http:///api/codebases/80f43ec6-8889-4ec6-81f6-bede08f4c36a"
+      },
+      "relationships": {
+        "space": {
+          "data": {
+            "id": "15cc6ff2-4013-49fa-8229-8a03caf34280",
+            "type": "spaces"
+          },
+          "links": {
+            "related": "http:///api/spaces/15cc6ff2-4013-49fa-8229-8a03caf34280",
+            "self": "http:///api/spaces/15cc6ff2-4013-49fa-8229-8a03caf34280"
+          }
+        }
+      },
+      "type": "codebases"
+    },
+    {
+      "attributes": {
+        "createdAt": "0001-01-01T00:00:00Z",
+        "last_used_workspace": "my-used-last-workspace",
+        "stackId": "golang-default",
+        "type": "git",
+        "url": "http://foo.com/multi/0"
+      },
+      "id": "e0445563-3bbb-49bc-a181-52f2dea5bcf6",
+      "links": {
+        "edit": "http:///api/codebases/e0445563-3bbb-49bc-a181-52f2dea5bcf6/edit",
+        "related": "http:///api/codebases/e0445563-3bbb-49bc-a181-52f2dea5bcf6",
+        "self": "http:///api/codebases/e0445563-3bbb-49bc-a181-52f2dea5bcf6"
+      },
+      "relationships": {
+        "space": {
+          "data": {
+            "id": "b43e277c-be5a-43cb-86c9-88ccef7017a1",
+            "type": "spaces"
+          },
+          "links": {
+            "related": "http:///api/spaces/b43e277c-be5a-43cb-86c9-88ccef7017a1",
+            "self": "http:///api/spaces/b43e277c-be5a-43cb-86c9-88ccef7017a1"
+          }
+        }
+      },
+      "type": "codebases"
+    }
+  ],
+  "included": [
+    {
+      "attributes": {
+        "created-at": "0001-01-01T00:00:00Z",
+        "description": "Some description",
+        "name": "space dd7b09d9-240f-4333-b326-3d34dc323725",
+        "updated-at": "0001-01-01T00:00:00Z",
+        "version": 0
+      },
+      "id": "15cc6ff2-4013-49fa-8229-8a03caf34280",
+      "links": {
+        "backlog": {
+          "self": "http:///api/spaces/15cc6ff2-4013-49fa-8229-8a03caf34280/backlog"
+        },
+        "filters": "http:///api/filters",
+        "related": "http:///api/spaces/15cc6ff2-4013-49fa-8229-8a03caf34280",
+        "self": "http:///api/spaces/15cc6ff2-4013-49fa-8229-8a03caf34280",
+        "workitemlinktypes": "http:///api/spaces/15cc6ff2-4013-49fa-8229-8a03caf34280/workitemlinktypes",
+        "workitemtypegroups": "http:///api/spacetemplates/15cc6ff2-4013-49fa-8229-8a03caf34280/workitemtypegroups/",
+        "workitemtypes": "http:///api/spaces/15cc6ff2-4013-49fa-8229-8a03caf34280/workitemtypes"
+      },
+      "relationships": {
+        "areas": {
+          "links": {
+            "related": "http:///api/spaces/15cc6ff2-4013-49fa-8229-8a03caf34280/areas"
+          }
+        },
+        "backlog": {
+          "links": {
+            "related": "http:///api/spaces/15cc6ff2-4013-49fa-8229-8a03caf34280/backlog"
+          }
+        },
+        "codebases": {
+          "links": {
+            "related": "http:///api/spaces/15cc6ff2-4013-49fa-8229-8a03caf34280/codebases"
+          }
+        },
+        "collaborators": {
+          "links": {
+            "related": "http:///api/spaces/15cc6ff2-4013-49fa-8229-8a03caf34280/collaborators"
+          }
+        },
+        "filters": {
+          "links": {
+            "related": "http:///api/filters"
+          }
+        },
+        "iterations": {
+          "links": {
+            "related": "http:///api/spaces/15cc6ff2-4013-49fa-8229-8a03caf34280/iterations"
+          }
+        },
+        "labels": {
+          "links": {
+            "related": "http:///api/spaces/15cc6ff2-4013-49fa-8229-8a03caf34280/labels"
+          }
+        },
+        "owned-by": {
+          "data": {
+            "id": "fda98de4-fd30-45e7-9bc8-b6359d6a2e4b",
+            "type": "identities"
+          },
+          "links": {
+            "related": "/api/users/fda98de4-fd30-45e7-9bc8-b6359d6a2e4b"
+          }
+        },
+        "workitemlinktypes": {
+          "links": {
+            "related": "http:///api/spaces/15cc6ff2-4013-49fa-8229-8a03caf34280/workitemlinktypes"
+          }
+        },
+        "workitems": {
+          "links": {
+            "related": "http:///api/spaces/15cc6ff2-4013-49fa-8229-8a03caf34280/workitems"
+          }
+        },
+        "workitemtypegroups": {
+          "links": {
+            "related": "http:///api/spacetemplates/15cc6ff2-4013-49fa-8229-8a03caf34280/workitemtypegroups/"
+          }
+        },
+        "workitemtypes": {
+          "links": {
+            "related": "http:///api/spaces/15cc6ff2-4013-49fa-8229-8a03caf34280/workitemtypes"
+          }
+        }
+      },
+      "type": "spaces"
+    },
+    {
+      "attributes": {
+        "created-at": "0001-01-01T00:00:00Z",
+        "description": "Some description",
+        "name": "space 8466079a-48c0-4957-85d0-a9cdab61e8ba",
+        "updated-at": "0001-01-01T00:00:00Z",
+        "version": 0
+      },
+      "id": "b43e277c-be5a-43cb-86c9-88ccef7017a1",
+      "links": {
+        "backlog": {
+          "self": "http:///api/spaces/b43e277c-be5a-43cb-86c9-88ccef7017a1/backlog"
+        },
+        "filters": "http:///api/filters",
+        "related": "http:///api/spaces/b43e277c-be5a-43cb-86c9-88ccef7017a1",
+        "self": "http:///api/spaces/b43e277c-be5a-43cb-86c9-88ccef7017a1",
+        "workitemlinktypes": "http:///api/spaces/b43e277c-be5a-43cb-86c9-88ccef7017a1/workitemlinktypes",
+        "workitemtypegroups": "http:///api/spacetemplates/b43e277c-be5a-43cb-86c9-88ccef7017a1/workitemtypegroups/",
+        "workitemtypes": "http:///api/spaces/b43e277c-be5a-43cb-86c9-88ccef7017a1/workitemtypes"
+      },
+      "relationships": {
+        "areas": {
+          "links": {
+            "related": "http:///api/spaces/b43e277c-be5a-43cb-86c9-88ccef7017a1/areas"
+          }
+        },
+        "backlog": {
+          "links": {
+            "related": "http:///api/spaces/b43e277c-be5a-43cb-86c9-88ccef7017a1/backlog"
+          }
+        },
+        "codebases": {
+          "links": {
+            "related": "http:///api/spaces/b43e277c-be5a-43cb-86c9-88ccef7017a1/codebases"
+          }
+        },
+        "collaborators": {
+          "links": {
+            "related": "http:///api/spaces/b43e277c-be5a-43cb-86c9-88ccef7017a1/collaborators"
+          }
+        },
+        "filters": {
+          "links": {
+            "related": "http:///api/filters"
+          }
+        },
+        "iterations": {
+          "links": {
+            "related": "http:///api/spaces/b43e277c-be5a-43cb-86c9-88ccef7017a1/iterations"
+          }
+        },
+        "labels": {
+          "links": {
+            "related": "http:///api/spaces/b43e277c-be5a-43cb-86c9-88ccef7017a1/labels"
+          }
+        },
+        "owned-by": {
+          "data": {
+            "id": "fda98de4-fd30-45e7-9bc8-b6359d6a2e4b",
+            "type": "identities"
+          },
+          "links": {
+            "related": "/api/users/fda98de4-fd30-45e7-9bc8-b6359d6a2e4b"
+          }
+        },
+        "workitemlinktypes": {
+          "links": {
+            "related": "http:///api/spaces/b43e277c-be5a-43cb-86c9-88ccef7017a1/workitemlinktypes"
+          }
+        },
+        "workitems": {
+          "links": {
+            "related": "http:///api/spaces/b43e277c-be5a-43cb-86c9-88ccef7017a1/workitems"
+          }
+        },
+        "workitemtypegroups": {
+          "links": {
+            "related": "http:///api/spacetemplates/b43e277c-be5a-43cb-86c9-88ccef7017a1/workitemtypegroups/"
+          }
+        },
+        "workitemtypes": {
+          "links": {
+            "related": "http:///api/spaces/b43e277c-be5a-43cb-86c9-88ccef7017a1/workitemtypes"
+          }
+        }
+      },
+      "type": "spaces"
+    }
+  ],
+  "links": {
+    "first": "http:///api/search/codebases?page[offset]=0\u0026page[limit]=20\u0026url=http://foo.com/multi/0",
+    "last": "http:///api/search/codebases?page[offset]=0\u0026page[limit]=20\u0026url=http://foo.com/multi/0"
+  },
+  "meta": {
+    "totalCount": 2
+  }
+}

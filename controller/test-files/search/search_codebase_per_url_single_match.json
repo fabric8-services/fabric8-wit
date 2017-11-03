@@ -1,0 +1,129 @@
+{
+  "data": [
+    {
+      "attributes": {
+        "createdAt": "0001-01-01T00:00:00Z",
+        "last_used_workspace": "my-used-last-workspace",
+        "stackId": "golang-default",
+        "type": "git",
+        "url": "http://foo.com/single/0"
+      },
+      "id": "4a7c8d50-1471-4d45-9205-5d5e9bc6fa95",
+      "links": {
+        "edit": "http:///api/codebases/4a7c8d50-1471-4d45-9205-5d5e9bc6fa95/edit",
+        "related": "http:///api/codebases/4a7c8d50-1471-4d45-9205-5d5e9bc6fa95",
+        "self": "http:///api/codebases/4a7c8d50-1471-4d45-9205-5d5e9bc6fa95"
+      },
+      "relationships": {
+        "space": {
+          "data": {
+            "id": "952d975a-19bd-4c00-ac76-70e59cff2032",
+            "type": "spaces"
+          },
+          "links": {
+            "related": "http:///api/spaces/952d975a-19bd-4c00-ac76-70e59cff2032",
+            "self": "http:///api/spaces/952d975a-19bd-4c00-ac76-70e59cff2032"
+          }
+        }
+      },
+      "type": "codebases"
+    }
+  ],
+  "included": [
+    {
+      "attributes": {
+        "created-at": "0001-01-01T00:00:00Z",
+        "description": "Some description",
+        "name": "space 38423cf1-d489-4e44-96ca-facaa2e922c3",
+        "updated-at": "0001-01-01T00:00:00Z",
+        "version": 0
+      },
+      "id": "952d975a-19bd-4c00-ac76-70e59cff2032",
+      "links": {
+        "backlog": {
+          "self": "http:///api/spaces/952d975a-19bd-4c00-ac76-70e59cff2032/backlog"
+        },
+        "filters": "http:///api/filters",
+        "related": "http:///api/spaces/952d975a-19bd-4c00-ac76-70e59cff2032",
+        "self": "http:///api/spaces/952d975a-19bd-4c00-ac76-70e59cff2032",
+        "workitemlinktypes": "http:///api/spaces/952d975a-19bd-4c00-ac76-70e59cff2032/workitemlinktypes",
+        "workitemtypegroups": "http:///api/spacetemplates/952d975a-19bd-4c00-ac76-70e59cff2032/workitemtypegroups/",
+        "workitemtypes": "http:///api/spaces/952d975a-19bd-4c00-ac76-70e59cff2032/workitemtypes"
+      },
+      "relationships": {
+        "areas": {
+          "links": {
+            "related": "http:///api/spaces/952d975a-19bd-4c00-ac76-70e59cff2032/areas"
+          }
+        },
+        "backlog": {
+          "links": {
+            "related": "http:///api/spaces/952d975a-19bd-4c00-ac76-70e59cff2032/backlog"
+          }
+        },
+        "codebases": {
+          "links": {
+            "related": "http:///api/spaces/952d975a-19bd-4c00-ac76-70e59cff2032/codebases"
+          }
+        },
+        "collaborators": {
+          "links": {
+            "related": "http:///api/spaces/952d975a-19bd-4c00-ac76-70e59cff2032/collaborators"
+          }
+        },
+        "filters": {
+          "links": {
+            "related": "http:///api/filters"
+          }
+        },
+        "iterations": {
+          "links": {
+            "related": "http:///api/spaces/952d975a-19bd-4c00-ac76-70e59cff2032/iterations"
+          }
+        },
+        "labels": {
+          "links": {
+            "related": "http:///api/spaces/952d975a-19bd-4c00-ac76-70e59cff2032/labels"
+          }
+        },
+        "owned-by": {
+          "data": {
+            "id": "ed33f3b3-b07f-403d-98ae-d45e902d1762",
+            "type": "identities"
+          },
+          "links": {
+            "related": "/api/users/ed33f3b3-b07f-403d-98ae-d45e902d1762"
+          }
+        },
+        "workitemlinktypes": {
+          "links": {
+            "related": "http:///api/spaces/952d975a-19bd-4c00-ac76-70e59cff2032/workitemlinktypes"
+          }
+        },
+        "workitems": {
+          "links": {
+            "related": "http:///api/spaces/952d975a-19bd-4c00-ac76-70e59cff2032/workitems"
+          }
+        },
+        "workitemtypegroups": {
+          "links": {
+            "related": "http:///api/spacetemplates/952d975a-19bd-4c00-ac76-70e59cff2032/workitemtypegroups/"
+          }
+        },
+        "workitemtypes": {
+          "links": {
+            "related": "http:///api/spaces/952d975a-19bd-4c00-ac76-70e59cff2032/workitemtypes"
+          }
+        }
+      },
+      "type": "spaces"
+    }
+  ],
+  "links": {
+    "first": "http:///api/search/codebases?page[offset]=0\u0026page[limit]=20\u0026url=http://foo.com/single/0",
+    "last": "http:///api/search/codebases?page[offset]=0\u0026page[limit]=20\u0026url=http://foo.com/single/0"
+  },
+  "meta": {
+    "totalCount": 1
+  }
+}

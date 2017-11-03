@@ -12,7 +12,7 @@ var searchWorkItemList = JSONList(
 	meta)
 
 var searchSpaceList = JSONList(
-	"SearchSpace", "Holds the paginated response to a search request",
+	"SearchSpace", "Holds the paginated response to a search for spaces request",
 	space,
 	pagingLinks,
 	spaceListMeta)
@@ -46,6 +46,7 @@ var _ = a.Resource("search", func() {
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
+
 	a.Action("spaces", func() {
 		a.Routing(
 			a.GET("spaces"),
@@ -63,6 +64,7 @@ var _ = a.Resource("search", func() {
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
+
 	a.Action("users", func() {
 		a.Routing(
 			a.GET("users"),
@@ -70,5 +72,27 @@ var _ = a.Resource("search", func() {
 		a.Description("Search by fullname")
 		a.Response(d.OK)
 		a.Response(d.InternalServerError, JSONAPIErrors)
+	})
+
+	a.Action("codebases", func() {
+		a.Routing(
+			a.GET("codebases"),
+		)
+		a.Description("Search by URL")
+		a.Params(func() {
+			a.Param("url", d.String)
+			a.Param("page[offset]", d.String, "Paging start position") // #428
+			a.Param("page[limit]", d.Integer, "Paging size")
+			a.Required("url")
+		})
+		a.Response(d.OK, func() {
+			a.Media(codebaseList)
+		})
+
+		a.Response(d.BadRequest, func() {
+			a.Media(d.ErrorMedia)
+		})
+
+		a.Response(d.InternalServerError)
 	})
 })
