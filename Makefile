@@ -274,11 +274,17 @@ dev: prebuild-check deps generate $(FRESH_BIN)
 
 .PHONY: core-dev-os
 core-dev-os: prebuild-check deps generate $(FRESH_BIN)
+	-oc new-project core-dev-os
 	kedge apply -f kedge/db.yml -f kedge/db-auth.yml -f kedge/auth.yml
 	F8_AUTH_URL=http://`minishift ip`:31000 \
 	F8_POSTGRES_HOST=`minishift ip` \
 	F8_POSTGRES_PORT=32000 \
-	F8_DEVELOPER_MODE_ENABLED=true $(FRESH_BIN)
+	F8_DEVELOPER_MODE_ENABLED=true \
+	$(FRESH_BIN)
+
+.PHONY: core-dev-os-clean
+core-dev-os-clean:
+	-oc delete project core-dev-os --force
 
 include ./.make/test.mk
 
