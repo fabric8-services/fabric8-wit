@@ -275,9 +275,9 @@ dev: prebuild-check deps generate $(FRESH_BIN)
 .PHONY: core-dev-os
 core-dev-os: prebuild-check deps generate $(FRESH_BIN)
 	kedge apply -f kedge/db.yml -f kedge/db-auth.yml -f kedge/auth.yml
-	F8_AUTH_URL=http://`minishift ip`:31000
-	F8_POSTGRES_HOST=`minishift ip`
-	F8_POSTGRES_PORT=32000
+	F8_AUTH_URL=http://`minishift ip`:31000 \
+	F8_POSTGRES_HOST=`minishift ip` \
+	F8_POSTGRES_PORT=32000 \
 	F8_DEVELOPER_MODE_ENABLED=true $(FRESH_BIN)
 
 include ./.make/test.mk
