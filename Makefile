@@ -277,7 +277,7 @@ MINISHIFT_URL = http://$(MINISHIFT_IP)
 
 .PHONY: dev-wit-openshift
 dev-wit-openshift: prebuild-check deps generate $(FRESH_BIN)
-	-oc new-project wit-openshift
+	eval `minishift oc-env` && oc new-project wit-openshift
 	AUTH_WIT_URL=$(MINISHIFT_URL):8080 kedge apply -f kedge/db.yml -f kedge/db-auth.yml -f kedge/auth.yml
 	F8_AUTH_URL=$(MINISHIFT_URL):31000 \
 	F8_POSTGRES_HOST=$(MINISHIFT_IP) \
@@ -287,7 +287,7 @@ dev-wit-openshift: prebuild-check deps generate $(FRESH_BIN)
 
 .PHONY: dev-wit-openshift-clean
 dev-wit-openshift-clean:
-	-oc delete project wit-openshift --force
+	eval `minishift oc-env` && oc delete project wit-openshift --force
 
 include ./.make/test.mk
 
