@@ -138,6 +138,7 @@ func (m Codebase) TableName() string {
 type Repository interface {
 	repository.Exister
 	Create(ctx context.Context, u *Codebase) error
+	Delete(ctx context.Context, ID uuid.UUID) error
 	Save(ctx context.Context, codebase *Codebase) (*Codebase, error)
 	List(ctx context.Context, spaceID uuid.UUID, start *int, limit *int) ([]Codebase, uint64, error)
 	Load(ctx context.Context, id uuid.UUID) (*Codebase, error)
@@ -170,6 +171,35 @@ func (m *GormCodebaseRepository) Create(ctx context.Context, codebase *Codebase)
 	return nil
 }
 
+// Delete deletes the codebase with the given id
+// returns NotFoundError or InternalError
+func (r *GormCodebaseRepository) Delete(ctx context.Context, ID uuid.UUID) error {
+	defer goa.MeasureSince([]string{"goa", "db", "codebase", "delete"}, time.Now())
+	if ID == uuid.Nil {
+		log.Error(ctx, map[string]interface{}{
+			"codebase_id": ID.String(),
+		}, "unable to find the codebase by ID")
+		return errors.NewNotFoundError("codebase", ID.String())
+	}
+	codebase := Codebase{ID: ID}
+	tx := r.db.Delete(codebase)
+
+	if err := tx.Error; err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"codebase_id": ID.String(),
+		}, "unable to delete the codebase")
+		return errors.NewInternalError(ctx, err)
+	}
+	if tx.RowsAffected == 0 {
+		log.Error(ctx, map[string]interface{}{
+			"codebase_id": ID.String(),
+		}, "none row was affected by the deletion operation")
+		return errors.NewNotFoundError("codebase", ID.String())
+	}
+
+	return nil
+}
+
 // Save a single codebase
 func (m *GormCodebaseRepository) Save(ctx context.Context, codebase *Codebase) (*Codebase, error) {
 	c := Codebase{}
@@ -186,7 +216,7 @@ func (m *GormCodebaseRepository) Save(ctx context.Context, codebase *Codebase) (
 	if err := tx.Error; err != nil {
 		return nil, errors.NewInternalError(ctx, err)
 	}
-	log.Debug(ctx, map[string]interface{}{"codebase_id": codebase.ID}, "updated codebase to %v", codebase)
+	log.Debug(ctx, map[string]interface{}{"codebase_id": codebase.ID}, "codebase updated successfully")
 	return codebase, nil
 }
 

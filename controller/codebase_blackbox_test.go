@@ -1,13 +1,10 @@
 package controller_test
 
 import (
-	"context"
 	"path/filepath"
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/app/test"
-	"github.com/fabric8-services/fabric8-wit/application"
-	"github.com/fabric8-services/fabric8-wit/codebase"
 
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/controller"
@@ -16,8 +13,8 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
-	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
@@ -25,99 +22,127 @@ import (
 )
 
 // a normal test function that will kick off TestSuiteCodebases
-func TestRunCodebasesTest(t *testing.T) {
+func TestCodebaseController(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &TestCodebaseREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &CodebaseControllerTestSuite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
-// ========== TestCodebaseREST struct that implements SetupSuite, TearDownSuite, SetupTest, TearDownTest ==========
-type TestCodebaseREST struct {
+// ========== CodebaseControllerTestSuite struct that implements SetupSuite, TearDownSuite, SetupTest, TearDownTest ==========
+type CodebaseControllerTestSuite struct {
 	gormtestsupport.DBTestSuite
-
 	db      *gormapplication.GormDB
 	clean   func()
 	testDir string
 }
 
-func (s *TestCodebaseREST) SetupTest() {
+func (s *CodebaseControllerTestSuite) SetupTest() {
 	s.db = gormapplication.NewGormDB(s.DB)
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 	s.testDir = filepath.Join("test-files", "codebase")
 }
 
-func (s *TestCodebaseREST) TearDownTest() {
+func (s *CodebaseControllerTestSuite) TearDownTest() {
 	s.clean()
 }
 
-func (s *TestCodebaseREST) UnsecuredController() (*goa.Service, *CodebaseController) {
+func (s *CodebaseControllerTestSuite) UnsecuredController() (*goa.Service, *CodebaseController) {
 	svc := goa.New("Codebases-service")
 	return svc, NewCodebaseController(svc, s.db, s.Configuration)
 }
 
-func (s *TestCodebaseREST) SecuredControllers(identity account.Identity) (*goa.Service, *CodebaseController) {
+func (s *CodebaseControllerTestSuite) SecuredControllers(identity account.Identity) (*goa.Service, *CodebaseController) {
 	svc := testsupport.ServiceAsUser("Codebase-Service", identity)
 	return svc, controller.NewCodebaseController(svc, s.db, s.Configuration)
 }
 
-func (s *TestCodebaseREST) TestSuccessShowCodebaseWithoutAuth() {
+func (s *CodebaseControllerTestSuite) TestShowCodebase() {
 	resetFn := s.DisableGormCallbacks()
 	defer resetFn()
 
-	s.T().Run("success without auth", func(t *testing.T) {
-		resource.Require(t, resource.Database)
-
-		// Create space and codebase with sticky IDs
-		spaceID := uuid.FromStringOrNil("a8bee527-12d2-4aff-9823-3511c1c8e6b9")
-		codebaseID := uuid.FromStringOrNil("d7a282f6-1c10-459e-bb44-55a1a6d48bdd")
-		stackId := "golang-default"
-		cb := requireSpaceAndCodebase(t, s.db, codebaseID, spaceID, &stackId)
-
+	s.T().Run("success without stackId", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.Codebases(1))
 		svc, ctrl := s.UnsecuredController()
-		_, cbresp := test.ShowCodebaseOK(t, svc.Context, svc, ctrl, cb.ID)
-		require.NotNil(t, cbresp)
-		compareWithGolden(t, filepath.Join(s.testDir, "show", "ok_without_auth.golden.json"), cbresp)
+		// when
+		_, result := test.ShowCodebaseOK(t, svc.Context, svc, ctrl, fxt.Codebases[0].ID)
+		// then
+		require.NotNil(t, result)
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "ok_without_stackId.golden.json"), result)
+	})
+
+	s.T().Run("success with stackId", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.Codebases(1, func(fxt *tf.TestFixture, idx int) error {
+			stackID := "golang-default"
+			fxt.Codebases[idx].StackID = &stackID
+			return nil
+		}))
+		svc, ctrl := s.UnsecuredController()
+		// when
+		_, result := test.ShowCodebaseOK(t, svc.Context, svc, ctrl, fxt.Codebases[0].ID)
+		// then
+		require.NotNil(t, result)
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "ok_with_stackId.golden.json"), result)
 	})
 }
 
-func (s *TestCodebaseREST) TestSuccessCreateCodebaseWithoutStackID() {
+func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
 	resetFn := s.DisableGormCallbacks()
 	defer resetFn()
 
-	s.T().Run("success with stackId nil", func(t *testing.T) {
-		resource.Require(t, resource.Database)
+	s.T().Run("OK", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.Spaces(1, func(fxt *tf.TestFixture, idx int) error {
+				fxt.Spaces[idx].OwnerID = testsupport.TestIdentity.ID
+				return nil
+			}),
+			tf.Codebases(1))
+		// when/then
+		svc, ctrl := s.SecuredControllers(testsupport.TestIdentity)
+		test.DeleteCodebaseNoContent(t, svc.Context, svc, ctrl, fxt.Codebases[0].ID)
+	})
 
-		spaceID := uuid.FromStringOrNil("a8bee527-12d2-4aff-9823-3511c1c8e6b9")
-		codebaseID := uuid.FromStringOrNil("d7a282f6-1c10-459e-bb44-55a1a6d48bdd")
-		cb := requireSpaceAndCodebase(t, s.db, codebaseID, spaceID, nil)
+	s.T().Run("NotFound", func(t *testing.T) {
+		// given
+		codebaseID := uuid.NewV4()
+		// when/then (codebase does not exist)
+		svc, ctrl := s.SecuredControllers(testsupport.TestIdentity)
+		test.DeleteCodebaseNotFound(t, svc.Context, svc, ctrl, codebaseID)
+	})
 
+	s.T().Run("Unauthorized on non-existing codebase", func(t *testing.T) {
+		// given
+		codebaseID := uuid.NewV4()
+		// when/then (user is not authenticated)
 		svc, ctrl := s.UnsecuredController()
-		_, cbresp := test.ShowCodebaseOK(t, svc.Context, svc, ctrl, cb.ID)
-		require.NotNil(t, cbresp)
-		compareWithGolden(t, filepath.Join(s.testDir, "show", "ok_without_stackId.golden.json"), cbresp)
+		test.DeleteCodebaseUnauthorized(t, svc.Context, svc, ctrl, codebaseID)
 	})
-}
 
-func requireSpaceAndCodebase(t *testing.T, db *gormapplication.GormDB, ID, spaceID uuid.UUID, stackId *string) *codebase.Codebase {
-	var c *codebase.Codebase
-	application.Transactional(db, func(appl application.Application) error {
-
-		s := &space.Space{
-			ID:   spaceID,
-			Name: "Test Space " + spaceID.String(),
-		}
-		_, err := appl.Spaces().Create(context.Background(), s)
-		require.Nil(t, err)
-		c = &codebase.Codebase{
-			ID:                ID,
-			SpaceID:           spaceID,
-			Type:              "git",
-			URL:               "https://github.com/fabric8-services/fabric8-wit.git",
-			StackID:           stackId,
-			LastUsedWorkspace: "my-last-used-workspace",
-		}
-		err = appl.Codebases().Create(context.Background(), c)
-		require.Nil(t, err)
-		return nil
+	s.T().Run("Unauthorized on existing codebase", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.Spaces(1, func(fxt *tf.TestFixture, idx int) error {
+				fxt.Spaces[idx].OwnerID = testsupport.TestIdentity2.ID
+				return nil
+			}),
+			tf.Codebases(1))
+		// when/then (user is not authenticated)
+		svc, ctrl := s.UnsecuredController()
+		test.DeleteCodebaseUnauthorized(t, svc.Context, svc, ctrl, fxt.Codebases[0].ID)
 	})
-	return c
+
+	s.T().Run("Forbidden", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.Spaces(1, func(fxt *tf.TestFixture, idx int) error {
+				fxt.Spaces[idx].OwnerID = testsupport.TestIdentity.ID
+				return nil
+			}),
+			tf.Codebases(1))
+		// when/then (user is not space owner)
+		svc, ctrl := s.SecuredControllers(testsupport.TestIdentity2)
+		test.DeleteCodebaseForbidden(t, svc.Context, svc, ctrl, fxt.Codebases[0].ID)
+	})
+
 }
