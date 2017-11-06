@@ -526,7 +526,7 @@ func (rest *TestIterationREST) TestIterationStateTransitions() {
 	require.Nil(rest.T(), errIdn)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr1.ID.String(), &payload)
-	assert.Equal(rest.T(), startState, *updated.Data.Attributes.State)
+	assert.Equal(rest.T(), startState.String(), *updated.Data.Attributes.State)
 	// create another iteration in same space and then change State to start
 	itr2 := iteration.Iteration{
 		Name:    "Spring 123",
@@ -549,10 +549,10 @@ func (rest *TestIterationREST) TestIterationStateTransitions() {
 	closeState := iteration.StateClose
 	payload.Data.Attributes.State = closeState.StringPtr()
 	_, updated = test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr1.ID.String(), &payload)
-	assert.Equal(rest.T(), closeState, *updated.Data.Attributes.State)
+	assert.Equal(rest.T(), closeState.String(), *updated.Data.Attributes.State)
 	// try to start iteration 2 now
 	_, updated2 := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr2.ID.String(), &payload2)
-	assert.Equal(rest.T(), startState, *updated2.Data.Attributes.State)
+	assert.Equal(rest.T(), startState.String(), *updated2.Data.Attributes.State)
 }
 
 func (rest *TestIterationREST) TestRootIterationCanNotStart() {
