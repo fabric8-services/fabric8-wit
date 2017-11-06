@@ -3,7 +3,7 @@ containers:
 - image: docker.io/fabric8/fabric8-auth:latest
   env:
   - name: AUTH_WIT_URL
-    value: "http://192.168.42.1:8080"
+    value: "[[ AUTH_WIT_URL ]]"
   - name: AUTH_DEVELOPER_MODE_ENABLED
     value: "true"
   - name: AUTH_POSTGRES_HOST

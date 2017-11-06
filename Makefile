@@ -272,19 +272,22 @@ dev: prebuild-check deps generate $(FRESH_BIN)
 	docker-compose up -d db auth
 	F8_DEVELOPER_MODE_ENABLED=true $(FRESH_BIN)
 
-.PHONY: core-dev-os
-core-dev-os: prebuild-check deps generate $(FRESH_BIN)
-	-oc new-project core-dev-os
-	kedge apply -f kedge/db.yml -f kedge/db-auth.yml -f kedge/auth.yml
-	F8_AUTH_URL=http://`minishift ip`:31000 \
-	F8_POSTGRES_HOST=`minishift ip` \
+MINISHIFT_IP = `minishift ip`
+MINISHIFT_URL = http://$(MINISHIFT_IP)
+
+.PHONY: dev-wit-openshift
+dev-wit-openshift: prebuild-check deps generate $(FRESH_BIN)
+	-oc new-project wit-openshift
+	AUTH_WIT_URL=$(MINISHIFT_URL):8080 kedge apply -f kedge/db.yml -f kedge/db-auth.yml -f kedge/auth.yml
+	F8_AUTH_URL=$(MINISHIFT_URL):31000 \
+	F8_POSTGRES_HOST=$(MINISHIFT_IP) \
 	F8_POSTGRES_PORT=32000 \
 	F8_DEVELOPER_MODE_ENABLED=true \
 	$(FRESH_BIN)
 
-.PHONY: core-dev-os-clean
-core-dev-os-clean:
-	-oc delete project core-dev-os --force
+.PHONY: dev-wit-openshift-clean
+dev-wit-openshift-clean:
+	-oc delete project wit-openshift --force
 
 include ./.make/test.mk
 
