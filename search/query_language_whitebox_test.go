@@ -34,6 +34,23 @@ func TestParseMap(t *testing.T) {
 		assert.Equal(t, expectedQuery, actualQuery)
 	})
 
+	t.Run("Substr", func(t *testing.T) {
+		t.Parallel()
+		// given
+		openshiftio := "openshiftio"
+		input := fmt.Sprintf(`{"title": { "$SUBSTR": "%s"}}`, openshiftio)
+		// Parsing/Unmarshalling JSON encoding/json
+		fm := map[string]interface{}{}
+		err := json.Unmarshal([]byte(input), &fm)
+		require.Nil(t, err)
+		// when
+		actualQuery := Query{}
+		parseMap(fm, &actualQuery)
+		// then
+		expectedQuery := Query{Name: "title", Value: &openshiftio, Substring: true}
+		assert.Equal(t, expectedQuery, actualQuery)
+	})
+
 	t.Run("Equality with NULL value", func(t *testing.T) {
 		t.Parallel()
 		// given
@@ -246,6 +263,7 @@ func TestGenerateExpression(t *testing.T) {
 		expectedExpr := c.Equals(
 			c.Field("SpaceID"),
 			c.Literal(spaceName),
+			false,
 		)
 		expectEqualExpr(t, expectedExpr, actualExpr)
 	})
@@ -283,10 +301,12 @@ func TestGenerateExpression(t *testing.T) {
 			c.Equals(
 				c.Field("SpaceID"),
 				c.Literal(spaceName),
+				false,
 			),
 			c.Equals(
 				c.Field("system.state"),
 				c.Literal(statusName),
+				false,
 			),
 		)
 		expectEqualExpr(t, expectedExpr, actualExpr)
@@ -311,10 +331,12 @@ func TestGenerateExpression(t *testing.T) {
 			c.Equals(
 				c.Field("SpaceID"),
 				c.Literal(spaceName),
+				false,
 			),
 			c.Equals(
 				c.Field("system.state"),
 				c.Literal(statusName),
+				false,
 			),
 		)
 		expectEqualExpr(t, expectedExpr, actualExpr)
@@ -343,6 +365,7 @@ func TestGenerateExpression(t *testing.T) {
 			c.Equals(
 				c.Field("system.state"),
 				c.Literal(statusName),
+				false,
 			),
 		)
 		expectEqualExpr(t, expectedExpr, actualExpr)
@@ -366,6 +389,7 @@ func TestGenerateExpression(t *testing.T) {
 			c.Equals(
 				c.Field("SpaceID"),
 				c.Literal(spaceName),
+				false,
 			),
 
 			c.IsNull("system.assignees"),

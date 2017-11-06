@@ -14,7 +14,7 @@ func TestIterator(t *testing.T) {
 	visited := []Expression{}
 	l := Field("a")
 	r := Literal(5)
-	expr := Equals(l, r)
+	expr := Equals(l, r, false)
 	expected := []Expression{l, r, expr}
 	recorder := func(expr Expression) bool {
 		visited = append(visited, expr)

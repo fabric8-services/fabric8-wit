@@ -189,6 +189,7 @@ func Or(left Expression, right Expression) Expression {
 // EqualsExpression represents the equality operator
 type EqualsExpression struct {
 	binaryExpression
+	Substring bool
 }
 
 // Accept implements ExpressionVisitor
@@ -197,8 +198,8 @@ func (t *EqualsExpression) Accept(visitor ExpressionVisitor) interface{} {
 }
 
 // Equals constructs an EqualsExpression
-func Equals(left Expression, right Expression) Expression {
-	return reparent(&EqualsExpression{binaryExpression{expression{}, left, right}})
+func Equals(left Expression, right Expression, substring bool) Expression {
+	return reparent(&EqualsExpression{binaryExpression{expression{}, left, right}, substring})
 }
 
 // IS NULL
