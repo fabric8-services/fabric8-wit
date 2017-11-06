@@ -75,7 +75,7 @@ func (m *AuthzResourceManager) CreateSpace(ctx context.Context, request *http.Re
 			"response_status": res.Status,
 			"response_body":   rest.ReadBody(res.Body),
 		}, "unable to create a space resource via auth service")
-		return nil, errs.Errorf("unable to create a space resource via auth service. Response status: %s. Responce body: %s", res.Status, rest.ReadBody(res.Body))
+		return nil, errs.Errorf("unable to create a space resource via auth service. Response status: %s. Response body: %s", res.Status, rest.ReadBody(res.Body))
 	}
 
 	resource, err := c.DecodeSpaceResource(res)
@@ -129,7 +129,7 @@ func (m *AuthzResourceManager) DeleteSpace(ctx context.Context, request *http.Re
 			"response_status": res.Status,
 			"response_body":   rest.ReadBody(res.Body),
 		}, "unable to delete a space resource via auth service")
-		return errs.Errorf("unable to delete a space resource via auth service. Response status: %s. Responce body: %s", res.Status, rest.ReadBody(res.Body))
+		return errs.Errorf("unable to delete a space resource via auth service. Response status: %s. Response body: %s", res.Status, rest.ReadBody(res.Body))
 	}
 
 	log.Debug(ctx, map[string]interface{}{
