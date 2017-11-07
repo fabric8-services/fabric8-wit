@@ -1,7 +1,7 @@
 {
   "data": {
     "attributes": {
-      "active_status": true,
+      "active_status": false,
       "created-at": "0001-01-01T00:00:00Z",
       "description": "Some description",
       "endAt": "2016-11-25T15:08:41Z",
