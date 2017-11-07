@@ -155,6 +155,22 @@ var _ = a.Resource("codebase", func() {
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
+	a.Action("delete", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.DELETE("/:codebaseID"),
+		)
+		a.Description("Delete a codebase with the given ID.")
+		a.Params(func() {
+			a.Param("codebaseID", d.UUID, "ID of the codebase to delete")
+		})
+		a.Response(d.NoContent)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.Forbidden, JSONAPIErrors)
+	})
 	a.Action("create", func() {
 		a.Security("jwt")
 		a.Routing(

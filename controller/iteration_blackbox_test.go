@@ -85,9 +85,9 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 		name := "Sprint #21"
 		childItr := fxt.IterationByName("child iteration")
 		ci := getChildIterationPayload(&name)
-		startAt, err := time.Parse(time.RFC3339, "2017-11-04T15:08:41+00:00")
+		startAt, err := time.Parse(time.RFC3339, "2016-11-04T15:08:41+00:00")
 		require.Nil(t, err)
-		endAt, err := time.Parse(time.RFC3339, "2017-11-25T15:08:41+00:00")
+		endAt, err := time.Parse(time.RFC3339, "2016-11-25T15:08:41+00:00")
 		require.Nil(t, err)
 		ci.Data.Attributes.StartAt = &startAt
 		ci.Data.Attributes.EndAt = &endAt
