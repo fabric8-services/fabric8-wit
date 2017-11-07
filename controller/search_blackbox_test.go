@@ -418,6 +418,7 @@ func (s *searchControllerTestSuite) TestSearchQueryScenarioDriven() {
 		tf.WorkItems(3+5+1, func(fxt *tf.TestFixture, idx int) error {
 			wi := fxt.WorkItems[idx]
 			if idx < 3 {
+				wi.Fields[workitem.SystemTitle] = "There is a special case about it."
 				wi.Fields[workitem.SystemState] = workitem.SystemStateResolved
 				wi.Fields[workitem.SystemIteration] = fxt.IterationByName("sprint1").ID.String()
 				wi.Fields[workitem.SystemLabels] = []string{fxt.LabelByName("important").ID.String(), fxt.LabelByName("backend").ID.String()}
@@ -566,6 +567,18 @@ func (s *searchControllerTestSuite) TestSearchQueryScenarioDriven() {
 		_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotEmpty(t, result.Data)
 		assert.Len(t, result.Data, 3+5+1) // resolved items + items in sprint2
+	})
+
+	s.T().Run("space=spaceID AND title=special with $SUBSTR", func(t *testing.T) {
+		filter := fmt.Sprintf(`
+				{"$AND": [
+					{"space":"%s"},
+					{"title": {"$SUBSTR":"%s"}}
+				]}`,
+			spaceIDStr, "special")
+		_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(t, result.Data)
+		assert.Len(t, result.Data, 3)
 	})
 
 	s.T().Run("state IN resolved, closed", func(t *testing.T) {

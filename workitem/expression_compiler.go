@@ -36,6 +36,10 @@ func bubbleUpJSONContext(exp criteria.Expression) bool {
 		if t.Left().Annotation(jsonAnnotation) == true || t.Right().Annotation(jsonAnnotation) == true {
 			t.SetAnnotation(jsonAnnotation, true)
 		}
+	case *criteria.SubstringExpression:
+		if t.Left().Annotation(jsonAnnotation) == true || t.Right().Annotation(jsonAnnotation) == true {
+			t.SetAnnotation(jsonAnnotation, true)
+		}
 	case *criteria.NotExpression:
 		if t.Left().Annotation(jsonAnnotation) == true || t.Right().Annotation(jsonAnnotation) == true {
 			t.SetAnnotation(jsonAnnotation, true)
@@ -122,6 +126,24 @@ func (c *expressionCompiler) Equals(e *criteria.EqualsExpression) interface{} {
 		return c.binary(e, ":")
 	}
 	return c.binary(e, "=")
+}
+
+func (c *expressionCompiler) Substring(e *criteria.SubstringExpression) interface{} {
+	if isInJSONContext(e.Left()) {
+		l := e.Left().(*criteria.FieldExpression).FieldName
+		if strings.Contains(l, "'") {
+			// beware of injection, it's a reasonable restriction for field names,
+			// make sure it's not allowed when creating wi types
+			c.err = append(c.err, fmt.Errorf("single quote not allowed in field name"))
+			return nil
+		}
+
+		r := "%" + e.Right().(*criteria.LiteralExpression).Value.(string) + "%"
+		c.parameters = append(c.parameters, r)
+		return "Fields->>'" + l + "' ILIKE ?"
+	}
+	op := "ILIKE"
+	return c.binary(e, op)
 }
 
 func (c *expressionCompiler) IsNull(e *criteria.IsNullExpression) interface{} {

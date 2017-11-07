@@ -298,8 +298,11 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 				s := v.(string)
 				q.Value = &s
 				q.Negate = true
+			} else if v, ok := concreteVal["$SUBSTR"]; ok {
+				s := v.(string)
+				q.Value = &s
+				q.Substring = true
 			}
-
 		default:
 			log.Error(nil, nil, "Unexpected value: %#v", val)
 		}
@@ -332,6 +335,9 @@ type Query struct {
 	// check for inequality. When Name is an operator, the Negate field has no
 	// effect.
 	Negate bool
+	// If Substring is true, instead of exact match, anything that matches partially
+	// will be considered.
+	Substring bool
 	// A Query is expected to have child queries only if the Name field contains
 	// an operator like "$AND", or "$OR". If the Name is not an operator, the
 	// Children slice MUST be empty.
@@ -346,6 +352,7 @@ var searchKeyMap = map[string]string{
 	"area":         workitem.SystemArea,
 	"iteration":    workitem.SystemIteration,
 	"assignee":     workitem.SystemAssignees,
+	"title":        workitem.SystemTitle,
 	"creator":      workitem.SystemCreator,
 	"label":        workitem.SystemLabels,
 	"state":        workitem.SystemState,
@@ -387,7 +394,11 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 			if q.Negate {
 				myexpr = append(myexpr, criteria.Not(left, right))
 			} else {
-				myexpr = append(myexpr, criteria.Equals(left, right))
+				if q.Substring {
+					myexpr = append(myexpr, criteria.Substring(left, right))
+				} else {
+					myexpr = append(myexpr, criteria.Equals(left, right))
+				}
 			}
 		} else {
 			if q.Negate {
@@ -416,7 +427,11 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 				if child.Negate {
 					myexpr = append(myexpr, criteria.Not(left, right))
 				} else {
-					myexpr = append(myexpr, criteria.Equals(left, right))
+					if child.Substring {
+						myexpr = append(myexpr, criteria.Substring(left, right))
+					} else {
+						myexpr = append(myexpr, criteria.Equals(left, right))
+					}
 				}
 			} else {
 				if child.Negate {

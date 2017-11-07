@@ -41,6 +41,7 @@ type ExpressionVisitor interface {
 	And(a *AndExpression) interface{}
 	Or(a *OrExpression) interface{}
 	Equals(e *EqualsExpression) interface{}
+	Substring(e *SubstringExpression) interface{}
 	Parameter(v *ParameterExpression) interface{}
 	Literal(c *LiteralExpression) interface{}
 	Not(e *NotExpression) interface{}
@@ -199,6 +200,21 @@ func (t *EqualsExpression) Accept(visitor ExpressionVisitor) interface{} {
 // Equals constructs an EqualsExpression
 func Equals(left Expression, right Expression) Expression {
 	return reparent(&EqualsExpression{binaryExpression{expression{}, left, right}})
+}
+
+// SubstringExpression represents the equality operator
+type SubstringExpression struct {
+	binaryExpression
+}
+
+// Accept implements ExpressionVisitor
+func (t *SubstringExpression) Accept(visitor ExpressionVisitor) interface{} {
+	return visitor.Substring(t)
+}
+
+// Substring constructs an SubstringExpression
+func Substring(left Expression, right Expression) Expression {
+	return reparent(&SubstringExpression{binaryExpression{expression{}, left, right}})
 }
 
 // IS NULL
