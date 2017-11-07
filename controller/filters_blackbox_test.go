@@ -19,8 +19,7 @@ type TestFiltersREST struct {
 	// composing with the DBTestSuite to get the Configuration out-of-the-box, even though this particular Controller
 	// does not need an access to the DB.
 	gormtestsupport.DBTestSuite
-	db    *gormapplication.GormDB
-	clean func()
+	db *gormapplication.GormDB
 }
 
 func TestRunFiltersREST(t *testing.T) {

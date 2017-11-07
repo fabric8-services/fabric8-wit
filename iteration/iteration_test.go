@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/errors"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/resource"
@@ -22,20 +21,10 @@ import (
 
 type TestIterationRepository struct {
 	gormtestsupport.DBTestSuite
-
-	clean func()
 }
 
 func TestRunIterationRepository(t *testing.T) {
 	suite.Run(t, &TestIterationRepository{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
-}
-
-func (s *TestIterationRepository) SetupTest() {
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
-}
-
-func (s *TestIterationRepository) TearDownTest() {
-	s.clean()
 }
 
 func (s *TestIterationRepository) TestCreateIteration() {
