@@ -42,6 +42,7 @@ var backlogLinkMeta = a.Type("BacklogLinkMeta", func() {
 
 var spaceRelationships = a.Type("SpaceRelationships", func() {
 	a.Attribute("areas", relationGeneric, "Space can have one or many areas")
+	a.Attribute("backlog", relationGeneric, "Space can have a backlog")
 	a.Attribute("codebases", relationGeneric, "Space can have one or many codebases")
 	a.Attribute("collaborators", relationGeneric, `Space can have one or many collaborators`)
 	a.Attribute("filters", relationGeneric, "Space can have one or many filters")

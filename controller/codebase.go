@@ -15,7 +15,9 @@ import (
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/rest"
 
+	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/goadesign/goa"
+	"github.com/satori/go.uuid"
 )
 
 const (
@@ -53,7 +55,7 @@ func (c *CodebaseController) Show(ctx *app.ShowCodebaseContext) error {
 		}
 
 		res := &app.CodebaseSingle{}
-		res.Data = ConvertCodebase(ctx.Request, c)
+		res.Data = ConvertCodebase(ctx.Request, *c)
 
 		return ctx.OK(res)
 	})
@@ -116,6 +118,41 @@ func (c *CodebaseController) Edit(ctx *app.EditCodebaseContext) error {
 	}
 
 	return ctx.OK(resp)
+}
+
+// Delete deletes the given codebase if the user is authenticated and authorized
+func (c *CodebaseController) Delete(ctx *app.DeleteCodebaseContext) error {
+	currentUser, err := login.ContextIdentity(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
+	}
+
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		cb, err := appl.Codebases().Load(ctx.Context, ctx.CodebaseID)
+		if err != nil {
+			return err
+		}
+		s, err := appl.Spaces().Load(ctx.Context, cb.SpaceID)
+		if err != nil {
+			return err
+		}
+		if !uuid.Equal(*currentUser, s.OwnerID) {
+			log.Warn(ctx, map[string]interface{}{
+				"codebase_id":  ctx.CodebaseID,
+				"space_id":     cb.SpaceID,
+				"space_owner":  s.OwnerID,
+				"current_user": *currentUser,
+			}, "user is not the space owner")
+			return errors.NewForbiddenError("user is not the space owner")
+		}
+
+		return appl.Codebases().Delete(ctx, ctx.CodebaseID)
+	})
+
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return ctx.NoContent()
 }
 
 // Create runs the create action.
@@ -253,29 +290,27 @@ func (c *CodebaseController) Open(ctx *app.OpenCodebaseContext) error {
 
 // CodebaseConvertFunc is a open ended function to add additional links/data/relations to a Codebase during
 // convertion from internal to API
-type CodebaseConvertFunc func(*http.Request, *codebase.Codebase, *app.Codebase)
+type CodebaseConvertFunc func(*http.Request, codebase.Codebase, *app.Codebase)
 
 // ConvertCodebases converts between internal and external REST representation
-func ConvertCodebases(request *http.Request, codebases []*codebase.Codebase, additional ...CodebaseConvertFunc) []*app.Codebase {
-	var is = []*app.Codebase{}
-	for _, i := range codebases {
-		is = append(is, ConvertCodebase(request, i, additional...))
+func ConvertCodebases(request *http.Request, codebases []codebase.Codebase, options ...CodebaseConvertFunc) []*app.Codebase {
+	result := make([]*app.Codebase, len(codebases))
+	for i, c := range codebases {
+		result[i] = ConvertCodebase(request, c, options...)
 	}
-	return is
+	return result
 }
 
 // ConvertCodebase converts between internal and external REST representation
-func ConvertCodebase(request *http.Request, codebase *codebase.Codebase, additional ...CodebaseConvertFunc) *app.Codebase {
+func ConvertCodebase(request *http.Request, codebase codebase.Codebase, options ...CodebaseConvertFunc) *app.Codebase {
 	codebaseType := APIStringTypeCodebase
 	spaceType := APIStringTypeSpace
-
 	spaceID := codebase.SpaceID.String()
-
 	relatedURL := rest.AbsoluteURL(request, app.CodebaseHref(codebase.ID))
 	editURL := rest.AbsoluteURL(request, app.CodebaseHref(codebase.ID)+"/edit")
 	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
 
-	i := &app.Codebase{
+	result := &app.Codebase{
 		Type: codebaseType,
 		ID:   &codebase.ID,
 		Attributes: &app.CodebaseAttributes{
@@ -303,10 +338,10 @@ func ConvertCodebase(request *http.Request, codebase *codebase.Codebase, additio
 			Edit:    &editURL,
 		},
 	}
-	for _, add := range additional {
-		add(request, codebase, i)
+	for _, option := range options {
+		option(request, codebase, result)
 	}
-	return i
+	return result
 }
 
 // CheState gets che server state.

@@ -2,14 +2,13 @@ package codebase
 
 import (
 	"context"
-	"log"
 	"regexp"
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/application/repository"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
-
+	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
@@ -139,10 +138,12 @@ func (m Codebase) TableName() string {
 type Repository interface {
 	repository.Exister
 	Create(ctx context.Context, u *Codebase) error
+	Delete(ctx context.Context, ID uuid.UUID) error
 	Save(ctx context.Context, codebase *Codebase) (*Codebase, error)
-	List(ctx context.Context, spaceID uuid.UUID, start *int, limit *int) ([]*Codebase, uint64, error)
+	List(ctx context.Context, spaceID uuid.UUID, start *int, limit *int) ([]Codebase, uint64, error)
 	Load(ctx context.Context, id uuid.UUID) (*Codebase, error)
 	LoadByRepo(ctx context.Context, spaceID uuid.UUID, repository string) (*Codebase, error)
+	SearchByURL(ctx context.Context, url string, start *int, limit *int) ([]Codebase, int, error)
 }
 
 // NewCodebaseRepository creates a new storage type.
@@ -170,6 +171,35 @@ func (m *GormCodebaseRepository) Create(ctx context.Context, codebase *Codebase)
 	return nil
 }
 
+// Delete deletes the codebase with the given id
+// returns NotFoundError or InternalError
+func (r *GormCodebaseRepository) Delete(ctx context.Context, ID uuid.UUID) error {
+	defer goa.MeasureSince([]string{"goa", "db", "codebase", "delete"}, time.Now())
+	if ID == uuid.Nil {
+		log.Error(ctx, map[string]interface{}{
+			"codebase_id": ID.String(),
+		}, "unable to find the codebase by ID")
+		return errors.NewNotFoundError("codebase", ID.String())
+	}
+	codebase := Codebase{ID: ID}
+	tx := r.db.Delete(codebase)
+
+	if err := tx.Error; err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"codebase_id": ID.String(),
+		}, "unable to delete the codebase")
+		return errors.NewInternalError(ctx, err)
+	}
+	if tx.RowsAffected == 0 {
+		log.Error(ctx, map[string]interface{}{
+			"codebase_id": ID.String(),
+		}, "none row was affected by the deletion operation")
+		return errors.NewNotFoundError("codebase", ID.String())
+	}
+
+	return nil
+}
+
 // Save a single codebase
 func (m *GormCodebaseRepository) Save(ctx context.Context, codebase *Codebase) (*Codebase, error) {
 	c := Codebase{}
@@ -186,13 +216,13 @@ func (m *GormCodebaseRepository) Save(ctx context.Context, codebase *Codebase) (
 	if err := tx.Error; err != nil {
 		return nil, errors.NewInternalError(ctx, err)
 	}
-	log.Printf("updated codebase to %v\n", codebase)
+	log.Debug(ctx, map[string]interface{}{"codebase_id": codebase.ID}, "codebase updated successfully")
 	return codebase, nil
 }
 
 // List all codebases related to a single item
-func (m *GormCodebaseRepository) List(ctx context.Context, spaceID uuid.UUID, start *int, limit *int) ([]*Codebase, uint64, error) {
-	defer goa.MeasureSince([]string{"goa", "db", "codebase", "query"}, time.Now())
+func (m *GormCodebaseRepository) List(ctx context.Context, spaceID uuid.UUID, start *int, limit *int) ([]Codebase, uint64, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "codebase", "list"}, time.Now())
 
 	db := m.db.Model(&Codebase{}).Where("space_id = ?", spaceID)
 	orgDB := db
@@ -216,7 +246,7 @@ func (m *GormCodebaseRepository) List(ctx context.Context, spaceID uuid.UUID, st
 	}
 	defer rows.Close()
 
-	result := []*Codebase{}
+	result := []Codebase{}
 	columns, err := rows.Columns()
 	if err != nil {
 		return nil, 0, errors.NewInternalError(ctx, err)
@@ -234,8 +264,8 @@ func (m *GormCodebaseRepository) List(ctx context.Context, spaceID uuid.UUID, st
 	first := true
 
 	for rows.Next() {
-		value := &Codebase{}
-		db.ScanRows(rows, value)
+		value := Codebase{}
+		db.ScanRows(rows, &value)
 		if first {
 			first = false
 			if err = rows.Scan(columnValues...); err != nil {
@@ -294,4 +324,74 @@ func (m *GormCodebaseRepository) LoadByRepo(ctx context.Context, spaceID uuid.UU
 		return nil, errors.NewInternalError(ctx, tx.Error)
 	}
 	return &obj, nil
+}
+
+// SearchByURL searches for codebases that match the given URL
+func (m *GormCodebaseRepository) SearchByURL(ctx context.Context, url string, start *int, limit *int) ([]Codebase, int, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "codebase", "searchByURL"}, time.Now())
+	db := m.db.Model(&Codebase{}).Where("url = ?", url)
+	if start != nil {
+		if *start < 0 {
+			return nil, 0, errors.NewBadParameterError("start", *start)
+		}
+		db = db.Offset(*start)
+	}
+	if limit != nil {
+		if *limit <= 0 {
+			return nil, 0, errors.NewBadParameterError("limit", *limit)
+		}
+		db = db.Limit(*limit)
+	}
+	db = db.Select("count(*) over () as cnt2 , *")
+	rows, err := db.Rows()
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	result := []Codebase{}
+	columns, err := rows.Columns()
+	if err != nil {
+		return nil, 0, errors.NewInternalError(ctx, err)
+	}
+
+	// need to set up a result for Scan() in order to extract total count.
+	var count int
+	var anything interface{}
+	columnValues := make([]interface{}, len(columns))
+	for index := range columnValues {
+		columnValues[index] = &anything
+	}
+	columnValues[0] = &count
+	first := true
+	for rows.Next() {
+		value := Codebase{}
+		db.ScanRows(rows, &value)
+		if first {
+			first = false
+			if err = rows.Scan(columnValues...); err != nil {
+				log.Error(ctx, map[string]interface{}{"url": url}, "error while scanning results: ", err.Error())
+				return nil, 0, errors.NewInternalError(ctx, err)
+			}
+		}
+		result = append(result, value)
+
+	}
+	if len(result) == 0 {
+		// means 0 rows were returned from the first query (maybe becaus of offset outside of total count),
+		// need to do a count(*) to find out total
+		countRow, err := m.db.Model(&Codebase{}).Select("count(*)").Where("url = ?", url).Rows()
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{"url": url}, "error while counting total results only: ", err.Error())
+			return nil, 0, errors.NewInternalError(ctx, err)
+		}
+		if countRow.Next() {
+			err = countRow.Scan(&count)
+			if err != nil {
+				log.Error(ctx, map[string]interface{}{"url": url}, "error while scanning total count: ", err.Error())
+				return nil, 0, errors.NewInternalError(ctx, err)
+			}
+		}
+	}
+	return result, count, nil
 }

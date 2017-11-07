@@ -2,6 +2,7 @@ package codebase_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/codebase"
@@ -218,9 +219,103 @@ func (test *TestCodebaseRepository) TestLoadCodebase() {
 	repo := codebase.NewCodebaseRepository(test.DB)
 	// when
 	loadedCodebase, err := repo.Load(context.Background(), fxt.Codebases[0].ID)
+	// then
 	require.Nil(test.T(), err)
 	assert.Equal(test.T(), fxt.Codebases[0].ID, loadedCodebase.ID)
 	require.NotNil(test.T(), fxt.Codebases[0].StackID)
 	assert.Equal(test.T(), *fxt.Codebases[0].StackID, *loadedCodebase.StackID)
 	assert.Equal(test.T(), fxt.Codebases[0].LastUsedWorkspace, loadedCodebase.LastUsedWorkspace)
+}
+
+func (test *TestCodebaseRepository) TestSearchByURL() {
+	// given
+	fxt := tf.NewTestFixture(test.T(), test.DB, tf.Codebases(2, func(fxt *tf.TestFixture, idx int) error {
+		fxt.Codebases[idx].URL = fmt.Sprintf("http://foo.com/repos/%d", idx)
+		return nil
+	}))
+	repo := codebase.NewCodebaseRepository(test.DB)
+
+	test.T().Run("No match", func(t *testing.T) {
+		// when
+		result, totalCount, err := repo.SearchByURL(context.Background(), "http://foo.com/repos/unknown", nil, nil)
+		// then
+		require.Nil(t, err)
+		require.Equal(t, 0, totalCount)
+		assert.Empty(t, result)
+	})
+
+	test.T().Run("Single match", func(t *testing.T) {
+		// when
+		result, totalCount, err := repo.SearchByURL(context.Background(), "http://foo.com/repos/0", nil, nil)
+		// then
+		require.Nil(t, err)
+		require.Equal(t, 1, totalCount)
+		assert.Len(t, result, 1)
+		assert.Equal(t, fxt.Codebases[0].ID, result[0].ID)
+	})
+
+	test.T().Run("Single match with pagination", func(t *testing.T) {
+		// when
+		start := 0
+		limit := 10
+		result, totalCount, err := repo.SearchByURL(context.Background(), "http://foo.com/repos/0", &start, &limit)
+		// then
+		require.Nil(t, err)
+		require.Equal(t, 1, totalCount)
+		assert.Len(t, result, 1)
+		assert.Equal(t, fxt.Codebases[0].ID, result[0].ID)
+	})
+
+	test.T().Run("No match with wrong pagination", func(t *testing.T) {
+		// when
+		start := 10
+		limit := 20
+		result, totalCount, err := repo.SearchByURL(context.Background(), "http://foo.com/repos/0", &start, &limit)
+		// then
+		require.Nil(t, err)
+		require.Equal(t, 1, totalCount)
+		assert.Len(t, result, 0)
+	})
+}
+
+func (test *TestCodebaseRepository) TestDeleteCodebase() {
+	repo := codebase.NewCodebaseRepository(test.DB)
+	test.T().Run("ok", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, test.DB, tf.Codebases(1))
+		id := fxt.Codebases[0].ID
+		// double check that we can load this codebase
+		cb, err := repo.Load(test.Ctx, id)
+		require.Nil(t, err)
+		require.NotNil(t, cb)
+
+		// when
+		err = repo.Delete(test.Ctx, id)
+
+		// then
+		require.Nil(t, err)
+		// double check that we can no longer load the codebase
+		cb, err = repo.Load(test.Ctx, id)
+		require.NotNil(t, err)
+		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
+		require.Nil(t, cb)
+	})
+	test.T().Run("not found - not existing codebase ID", func(t *testing.T) {
+		// given a not existing codebase ID
+		nonExistingCodebaseID := uuid.NewV4()
+		// when
+		err := repo.Delete(test.Ctx, nonExistingCodebaseID)
+		// then
+		require.NotNil(t, err)
+		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
+	})
+	test.T().Run("not found - nil codebase ID", func(t *testing.T) {
+		// given a not existing codebase ID
+		nilCodebaseID := uuid.Nil
+		// when
+		err := repo.Delete(test.Ctx, nilCodebaseID)
+		// then
+		require.NotNil(t, err)
+		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
+	})
 }
