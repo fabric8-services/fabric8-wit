@@ -9,17 +9,15 @@ import (
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
-	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/area"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
-	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/resource"
-	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 
 	"context"
 
@@ -69,7 +67,9 @@ func (rest *TestAreaREST) UnSecuredController() (*goa.Service, *AreaController) 
 
 func (rest *TestAreaREST) TestSuccessCreateChildArea() {
 	// given
-	sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Spaces(1), tf.Areas(1))
+	sp := *fxt.Spaces[0]
+	parentArea := *fxt.Areas[0]
 	parentID := parentArea.ID
 	name := "TestSuccessCreateChildArea"
 	ci := newCreateChildAreaPayload(&name)
@@ -99,7 +99,9 @@ func (rest *TestAreaREST) TestSuccessCreateMultiChildArea() {
 		TestAreaREST ---> TestSuccessCreateMultiChildArea-0 ----> TestSuccessCreateMultiChildArea-0-0
 	*/
 	// given
-	sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Spaces(1), tf.Areas(1))
+	sp := *fxt.Spaces[0]
+	parentArea := *fxt.Areas[0]
 	parentID := parentArea.ID
 	name := "TestSuccessCreateMultiChildArea-0"
 	ci := newCreateChildAreaPayload(&name)
@@ -127,7 +129,9 @@ func (rest *TestAreaREST) TestSuccessCreateMultiChildArea() {
 
 func (rest *TestAreaREST) TestConflictCreatDuplicateChildArea() {
 	// given
-	sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Spaces(1), tf.Areas(1))
+	sp := *fxt.Spaces[0]
+	parentArea := *fxt.Areas[0]
 	parentID := parentArea.ID
 	name := uuid.NewV4().String()
 	ci := newCreateChildAreaPayload(&name)
@@ -147,7 +151,9 @@ func (rest *TestAreaREST) TestConflictCreatDuplicateChildArea() {
 
 func (rest *TestAreaREST) TestFailCreateChildAreaMissingName() {
 	// given
-	sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Spaces(1), tf.Areas(1))
+	sp := *fxt.Spaces[0]
+	parentArea := *fxt.Areas[0]
 	parentID := parentArea.ID
 	createChildAreaPayload := newCreateChildAreaPayload(nil)
 	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
@@ -168,8 +174,8 @@ func (rest *TestAreaREST) TestFailCreateChildAreaWithInvalidsParent() {
 
 func (rest *TestAreaREST) TestFailCreateChildAreaNotAuthorized() {
 	// given
-	_, parentArea := createSpaceAndArea(rest.T(), rest.db)
-	parentID := parentArea.ID
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Spaces(1), tf.Areas(1))
+	parentID := fxt.Areas[0].ID
 	name := "TestFailCreateChildAreaNotAuthorized"
 	createChildAreaPayload := newCreateChildAreaPayload(&name)
 	svc, ctrl := rest.UnSecuredController()
@@ -207,54 +213,54 @@ func (rest *TestAreaREST) TestFailShowAreaNotFound() {
 
 func (rest *TestAreaREST) TestShowAreaOK() {
 	// given
-	_, a := createSpaceAndArea(rest.T(), rest.db)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Spaces(1), tf.Areas(1))
 	svc, ctrl := rest.SecuredController()
 	// when
-	res, _ := test.ShowAreaOK(rest.T(), svc.Context, svc, ctrl, a.ID.String(), nil, nil)
+	res, _ := test.ShowAreaOK(rest.T(), svc.Context, svc, ctrl, fxt.Areas[0].ID.String(), nil, nil)
 	//then
 	assertResponseHeaders(rest.T(), res)
 }
 
 func (rest *TestAreaREST) TestShowAreaOKUsingExpiredIfModifedSinceHeader() {
 	// given
-	_, a := createSpaceAndArea(rest.T(), rest.db)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Spaces(1), tf.Areas(1))
 	svc, ctrl := rest.SecuredController()
 	// when
-	ifModifiedSince := app.ToHTTPTime(a.UpdatedAt.Add(-1 * time.Hour))
-	res, _ := test.ShowAreaOK(rest.T(), svc.Context, svc, ctrl, a.ID.String(), &ifModifiedSince, nil)
+	ifModifiedSince := app.ToHTTPTime(fxt.Areas[0].UpdatedAt.Add(-1 * time.Hour))
+	res, _ := test.ShowAreaOK(rest.T(), svc.Context, svc, ctrl, fxt.Areas[0].ID.String(), &ifModifiedSince, nil)
 	//then
 	assertResponseHeaders(rest.T(), res)
 }
 
 func (rest *TestAreaREST) TestShowAreaOKUsingExpiredIfNoneMatchHeader() {
 	// given
-	_, a := createSpaceAndArea(rest.T(), rest.db)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Spaces(1), tf.Areas(1))
 	svc, ctrl := rest.SecuredController()
 	// when
 	ifNoneMatch := "foo"
-	res, _ := test.ShowAreaOK(rest.T(), svc.Context, svc, ctrl, a.ID.String(), nil, &ifNoneMatch)
+	res, _ := test.ShowAreaOK(rest.T(), svc.Context, svc, ctrl, fxt.Areas[0].ID.String(), nil, &ifNoneMatch)
 	//then
 	assertResponseHeaders(rest.T(), res)
 }
 
 func (rest *TestAreaREST) TestShowAreaNotModifiedUsingIfModifedSinceHeader() {
 	// given
-	_, a := createSpaceAndArea(rest.T(), rest.db)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Spaces(1), tf.Areas(1))
 	svc, ctrl := rest.SecuredController()
 	// when
-	ifModifiedSince := app.ToHTTPTime(a.UpdatedAt)
-	res := test.ShowAreaNotModified(rest.T(), svc.Context, svc, ctrl, a.ID.String(), &ifModifiedSince, nil)
+	ifModifiedSince := app.ToHTTPTime(fxt.Areas[0].UpdatedAt)
+	res := test.ShowAreaNotModified(rest.T(), svc.Context, svc, ctrl, fxt.Areas[0].ID.String(), &ifModifiedSince, nil)
 	//then
 	assertResponseHeaders(rest.T(), res)
 }
 
 func (rest *TestAreaREST) TestShowAreaNotModifiedIfNoneMatchHeader() {
 	// given
-	_, a := createSpaceAndArea(rest.T(), rest.db)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Spaces(1), tf.Areas(1))
 	svc, ctrl := rest.SecuredController()
 	// when
-	ifNoneMatch := app.GenerateEntityTag(a)
-	res := test.ShowAreaNotModified(rest.T(), svc.Context, svc, ctrl, a.ID.String(), nil, &ifNoneMatch)
+	ifNoneMatch := app.GenerateEntityTag(fxt.Areas[0])
+	res := test.ShowAreaNotModified(rest.T(), svc.Context, svc, ctrl, fxt.Areas[0].ID.String(), nil, &ifNoneMatch)
 	//then
 	assertResponseHeaders(rest.T(), res)
 }
@@ -268,7 +274,9 @@ func (rest *TestAreaREST) createChildArea(name string, parent area.Area, svc *go
 
 func (rest *TestAreaREST) TestShowChildrenAreaOK() {
 	// given
-	sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Spaces(1), tf.Areas(1))
+	sp := *fxt.Spaces[0]
+	parentArea := *fxt.Areas[0]
 	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
 	require.Nil(rest.T(), err)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
@@ -282,7 +290,9 @@ func (rest *TestAreaREST) TestShowChildrenAreaOK() {
 
 func (rest *TestAreaREST) TestShowChildrenAreaOKUsingExpiredIfModifedSinceHeader() {
 	// given
-	sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Spaces(1), tf.Areas(1))
+	sp := *fxt.Spaces[0]
+	parentArea := *fxt.Areas[0]
 	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
 	require.Nil(rest.T(), err)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
@@ -297,7 +307,9 @@ func (rest *TestAreaREST) TestShowChildrenAreaOKUsingExpiredIfModifedSinceHeader
 
 func (rest *TestAreaREST) TestShowChildrenAreaOKUsingExpiredIfNoneMatchHeader() {
 	// given
-	sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Spaces(1), tf.Areas(1))
+	sp := *fxt.Spaces[0]
+	parentArea := *fxt.Areas[0]
 	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
 	require.Nil(rest.T(), err)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
@@ -312,7 +324,9 @@ func (rest *TestAreaREST) TestShowChildrenAreaOKUsingExpiredIfNoneMatchHeader() 
 
 func (rest *TestAreaREST) TestShowChildrenAreaNotModifiedUsingIfModifedSinceHeader() {
 	// given
-	sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Spaces(1), tf.Areas(1))
+	sp := *fxt.Spaces[0]
+	parentArea := *fxt.Areas[0]
 	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
 	require.Nil(rest.T(), err)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
@@ -326,7 +340,9 @@ func (rest *TestAreaREST) TestShowChildrenAreaNotModifiedUsingIfModifedSinceHead
 
 func (rest *TestAreaREST) TestShowChildrenAreaNotModifiedIfNoneMatchHeader() {
 	// given
-	sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Spaces(1), tf.Areas(1))
+	sp := *fxt.Spaces[0]
+	parentArea := *fxt.Areas[0]
 	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
 	require.Nil(rest.T(), err)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
@@ -359,34 +375,4 @@ func newCreateChildAreaPayload(name *string) *app.CreateChildAreaPayload {
 			},
 		},
 	}
-}
-
-func createSpaceAndArea(t *testing.T, db *gormapplication.GormDB) (space.Space, area.Area) {
-	var areaObj area.Area
-	var spaceObj space.Space
-	application.Transactional(db, func(app application.Application) error {
-		owner := &account.Identity{
-			Username:     "new-space-owner-identity",
-			ProviderType: account.KeycloakIDP,
-		}
-		errCreateOwner := app.Identities().Create(context.Background(), owner)
-		require.Nil(t, errCreateOwner)
-
-		spaceObj = space.Space{
-			Name:    "TestAreaREST-" + uuid.NewV4().String(),
-			OwnerID: owner.ID,
-		}
-		_, err := app.Spaces().Create(context.Background(), &spaceObj)
-		require.Nil(t, err)
-		name := "Main Area-" + uuid.NewV4().String()
-		areaObj = area.Area{
-			Name:    name,
-			SpaceID: spaceObj.ID,
-		}
-		err = app.Areas().Create(context.Background(), &areaObj)
-		require.Nil(t, err)
-		return nil
-	})
-	log.Info(nil, nil, "Space and root area created")
-	return spaceObj, areaObj
 }

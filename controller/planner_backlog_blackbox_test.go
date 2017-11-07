@@ -7,19 +7,17 @@ import (
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
-	"github.com/fabric8-services/fabric8-wit/application"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/iteration"
-	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	"github.com/goadesign/goa"
-	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -49,55 +47,15 @@ func (rest *TestPlannerBacklogBlackboxREST) UnSecuredController() (*goa.Service,
 }
 
 func (rest *TestPlannerBacklogBlackboxREST) setupPlannerBacklogWorkItems() (testSpace *space.Space, parentIteration *iteration.Iteration, createdWI *workitem.WorkItem) {
-	application.Transactional(gormapplication.NewGormDB(rest.DB), func(app application.Application) error {
-		spacesRepo := app.Spaces()
-		testSpace = &space.Space{
-			Name: "PlannerBacklogWorkItems-" + uuid.NewV4().String(),
-		}
-		_, err := spacesRepo.Create(rest.Ctx, testSpace)
-		require.Nil(rest.T(), err)
-		require.NotNil(rest.T(), testSpace.ID)
-		log.Info(nil, map[string]interface{}{"space_id": testSpace.ID}, "created space")
-		workitemTypesRepo := app.WorkItemTypes()
-		workitemType, err := workitemTypesRepo.Create(rest.Ctx, testSpace.ID, nil, &workitem.SystemPlannerItem, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
-		require.Nil(rest.T(), err)
-		log.Info(nil, map[string]interface{}{"wit_id": workitemType.ID}, "created workitem type")
-
-		iterationsRepo := app.Iterations()
-		parentIteration = &iteration.Iteration{
-			Name:    "Parent Iteration",
-			SpaceID: testSpace.ID,
-			State:   iteration.StateNew,
-		}
-		iterationsRepo.Create(rest.Ctx, parentIteration)
-		log.Info(nil, map[string]interface{}{"parent_iteration_id": parentIteration.ID}, "created parent iteration")
-
-		childIteration := &iteration.Iteration{
-			Name:    "Child Iteration",
-			SpaceID: testSpace.ID,
-			Path:    append(parentIteration.Path, parentIteration.ID),
-			State:   iteration.StateStart,
-		}
-		iterationsRepo.Create(rest.Ctx, childIteration)
-		log.Info(nil, map[string]interface{}{"child_iteration_id": childIteration.ID}, "created child iteration")
-
-		fields := map[string]interface{}{
-			workitem.SystemTitle:     "parentIteration Test",
-			workitem.SystemState:     "new",
-			workitem.SystemIteration: parentIteration.ID.String(),
-		}
-		app.WorkItems().Create(rest.Ctx, testSpace.ID, workitemType.ID, fields, rest.testIdentity.ID)
-
-		fields2 := map[string]interface{}{
-			workitem.SystemTitle:     "childIteration Test",
-			workitem.SystemState:     "closed",
-			workitem.SystemIteration: childIteration.ID.String(),
-		}
-		createdWI, err = app.WorkItems().Create(rest.Ctx, testSpace.ID, workitemType.ID, fields2, rest.testIdentity.ID)
-		require.Nil(rest.T(), err)
-		return nil
-	})
-	return
+	fxt := tf.NewTestFixture(rest.T(), rest.DB,
+		tf.CreateWorkItemEnvironment(),
+		tf.Iterations(2, tf.SetIterationNames("root", "child")),
+		tf.WorkItems(2,
+			tf.SetWorkItemField(workitem.SystemState, workitem.SystemStateNew, workitem.SystemStateClosed),
+			tf.SetWorkItemIterationsByName("parent", "child"),
+		),
+	)
+	return fxt.Spaces[0], fxt.IterationByName("root"), fxt.WorkItems[1]
 }
 
 func assertPlannerBacklogWorkItems(t *testing.T, workitems *app.WorkItemList, testSpace *space.Space, parentIteration *iteration.Iteration) {
@@ -188,41 +146,18 @@ func (rest *TestPlannerBacklogBlackboxREST) TestListPlannerBacklogWorkItemsNotMo
 }
 
 func (rest *TestPlannerBacklogBlackboxREST) TestSuccessEmptyListPlannerBacklogWorkItems() {
-	var spaceID uuid.UUID
-	var parentIteration *iteration.Iteration
-	application.Transactional(gormapplication.NewGormDB(rest.DB), func(app application.Application) error {
-		iterationsRepo := app.Iterations()
-		newSpace := space.Space{
-			Name: "TestSuccessEmptyListPlannerBacklogWorkItems" + uuid.NewV4().String(),
-		}
-		p, err := app.Spaces().Create(rest.Ctx, &newSpace)
-		if err != nil {
-			rest.T().Error(err)
-		}
-		spaceID = p.ID
-		parentIteration = &iteration.Iteration{
-			Name:    "Parent Iteration",
-			SpaceID: spaceID,
-			State:   iteration.StateNew,
-		}
-		iterationsRepo.Create(rest.Ctx, parentIteration)
-
-		fields := map[string]interface{}{
-			workitem.SystemTitle:     "parentIteration Test",
-			workitem.SystemState:     "new",
-			workitem.SystemIteration: parentIteration.ID.String(),
-		}
-		app.WorkItems().Create(rest.Ctx, spaceID, workitem.SystemPlannerItem, fields, rest.testIdentity.ID)
-
-		return nil
-	})
+	fxt := tf.NewTestFixture(rest.T(), rest.DB,
+		tf.CreateWorkItemEnvironment(),
+		tf.Iterations(1, tf.SetIterationNames("root")),
+		tf.WorkItems(1, tf.SetWorkItemIterationsByName("root")),
+	)
 
 	svc, ctrl := rest.UnSecuredController()
 
 	offset := "0"
 	filter := ""
 	limit := -1
-	_, workitems := test.ListPlannerBacklogOK(rest.T(), svc.Context, svc, ctrl, spaceID, &filter, nil, nil, nil, &limit, &offset, nil, nil)
+	_, workitems := test.ListPlannerBacklogOK(rest.T(), svc.Context, svc, ctrl, fxt.Spaces[0].ID, &filter, nil, nil, nil, &limit, &offset, nil, nil)
 	// The list has to be empty
 	assert.Len(rest.T(), workitems.Data, 0)
 }

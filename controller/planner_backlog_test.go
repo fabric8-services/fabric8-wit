@@ -5,7 +5,6 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
-	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/iteration"
@@ -92,18 +91,8 @@ func (rest *TestPlannerBacklogREST) TestCountPlannerBacklogWorkItemsOK() {
 
 func (rest *TestPlannerBacklogREST) TestCountZeroPlannerBacklogWorkItemsOK() {
 	// given
-	var spaceCount *space.Space
-	application.Transactional(gormapplication.NewGormDB(rest.DB), func(app application.Application) error {
-		spacesRepo := app.Spaces()
-		spaceCount = &space.Space{
-			Name:    "PlannerBacklogWorkItems-" + uuid.NewV4().String(),
-			OwnerID: rest.testIdentity.ID,
-		}
-		_, err := spacesRepo.Create(rest.Ctx, spaceCount)
-		require.Nil(rest.T(), err)
-
-		return nil
-	})
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Spaces(1))
+	spaceCount := fxt.Spaces[0]
 	svc, _ := rest.UnSecuredController()
 	// when
 	count, err := countBacklogItems(svc.Context, gormapplication.NewGormDB(rest.DB), spaceCount.ID)
