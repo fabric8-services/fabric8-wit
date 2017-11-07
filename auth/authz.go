@@ -81,7 +81,7 @@ func GetEntitlement(ctx context.Context, entitlementEndpoint string, entitlement
 			"response_status":      res.Status,
 			"response_body":        rest.ReadBody(res.Body),
 		}, "unable to update the Keycloak permission")
-		return nil, errors.NewInternalError(ctx, errs.New("unable to obtain entitlement resource. Response status: "+res.Status+". Responce body: "+rest.ReadBody(res.Body)))
+		return nil, errors.NewInternalError(ctx, errs.New("unable to obtain entitlement resource. Response status: "+res.Status+". Response body: "+rest.ReadBody(res.Body)))
 	}
 	jsonString := rest.ReadBody(res.Body)
 
