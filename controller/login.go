@@ -109,7 +109,6 @@ func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 			"err":      err,
 			"username": c.configuration.GetKeycloakTestUserName(),
 		}, "unable to create or update user")
-		//return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.Wrap(err, "unable to create or update user")))
 	}
 	tokens = append(tokens, testuser)
 
@@ -128,7 +127,6 @@ func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 			"err":      err,
 			"username": c.configuration.GetKeycloakTestUser2Name(),
 		}, "unable to create or update user")
-		//return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.Wrap(err, "unable to create or update user")))
 	}
 	tokens = append(tokens, testuser)
 
