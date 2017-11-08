@@ -1,5 +1,5 @@
-hash: 327b7815129d65bbfadc1bd5d88c29a13a85a41b0948a32be80be3a56ee477d3
-updated: 2017-10-10T18:09:12.470894517+02:00
+hash: caa9d898279820017887be76710f5ceccd0a6ba8d7fc4ccc3bbd40578fdfa4c4
+updated: 2017-11-08T03:37:24.617276964+01:00
 imports:
 - name: github.com/andygrunwald/go-jira
   version: 9d1f282f93af41553ddb53b0116a8cdb75b4837a
@@ -11,12 +11,16 @@ imports:
   version: c77561ca0c0cb1ed5d4ce4a912a75f5532566422
   subpackages:
   - gocov
+- name: github.com/beorn7/perks
+  version: 3ac7bf7a47d159a033b107610db8a1b6575507a4
+  subpackages:
+  - quantile
 - name: github.com/davecgh/go-spew
   version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
   subpackages:
   - spew
 - name: github.com/dgrijalva/jwt-go
-  version: d2709f9f1f31ebcda9651b03077758c1f3a0018c
+  version: dbeaa9332f19a944acb5736b4456cfcc02140e29
 - name: github.com/dimfeld/httppath
   version: c8e499c3ef3c3e272ed8bdcc1ccf39f73c88debc
 - name: github.com/dimfeld/httptreemux
@@ -140,6 +144,10 @@ imports:
   version: d228849504861217f796da67fae4f6e347643f15
 - name: github.com/mattn/go-isatty
   version: 0360b2af4f38e8d38c7fce2a9f4e702702d73a39
+- name: github.com/matttproud/golang_protobuf_extensions
+  version: fc2b8d3a73c4867e51861bbdd5ae3c1f0869dd6a
+  subpackages:
+  - pbutil
 - name: github.com/microcosm-cc/bluemonday
   version: e79763773ab6222ca1d5a7cbd9d62d83c1f77081
 - name: github.com/mitchellh/mapstructure
@@ -158,6 +166,22 @@ imports:
   version: d8ed2627bdf02c080bf22230dbb337003b7aba2d
   subpackages:
   - difflib
+- name: github.com/prometheus/client_golang
+  version: e51041b3fa41cece0dca035740ba6411905be473
+  subpackages:
+  - prometheus
+- name: github.com/prometheus/client_model
+  version: fa8ad6fec33561be4280a8f0514318c79d7f6cb6
+  subpackages:
+  - go
+- name: github.com/prometheus/common
+  version: a6ab08426bb262e2d190097751f5cfd1cfdfd17d
+  subpackages:
+  - expfmt
+  - internal/bitbucket.org/ww/goautoneg
+  - model
+- name: github.com/prometheus/procfs
+  version: 454a56f35412459b5e684fd5ec0f9211b94f002a
 - name: github.com/robfig/cron
   version: b024fc5ea0e34bc3f83d9941c8d60b0622bfaca4
 - name: github.com/russross/blackfriday
@@ -171,7 +195,7 @@ imports:
 - name: github.com/shurcooL/sanitized_anchor_name
   version: 1dba4b3954bc059efc3991ec364f9f9a35f597d2
 - name: github.com/sirupsen/logrus
-  version: 89742aefa4b206dcf400792f3bd35b542998eb3b
+  version: c078b1e43f58d563c74cebe63c85789e76ddb627
 - name: github.com/sourcegraph/annotate
   version: f4cad6c6324d3f584e1743d8b3e0e017a5f3a636
 - name: github.com/sourcegraph/syntaxhighlight
@@ -215,7 +239,6 @@ imports:
   subpackages:
   - ed25519
   - ed25519/internal/edwards25519
-  - ssh/terminal
 - name: golang.org/x/net
   version: b1a2d6e8c8b5fc8f601ead62536f02a8e1b6217d
   subpackages:
@@ -231,7 +254,6 @@ imports:
   version: 478fcf54317e52ab69f40bb4c7a1520288d7f7ea
   subpackages:
   - unix
-  - windows
 - name: golang.org/x/text
   version: 47a200a05c8b3fd1b698571caecbb68beb2611ec
   subpackages:
@@ -260,6 +282,4 @@ imports:
   - json
 - name: gopkg.in/yaml.v2
   version: a5b47d31c556af34a302ce5d659e6fea44d90de0
-testImports:
-- name: github.com/sirupsen/logrus
-  version: 89742aefa4b206dcf400792f3bd35b542998eb3b
+testImports: []
