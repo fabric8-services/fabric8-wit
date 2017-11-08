@@ -202,13 +202,13 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 			itr.Description = ctx.Payload.Data.Attributes.Description
 		}
 		if ctx.Payload.Data.Attributes.State != nil {
-			if *ctx.Payload.Data.Attributes.State == iteration.IterationStateStart {
+			if *ctx.Payload.Data.Attributes.State == iteration.StateStart.String() {
 				res, err := appl.Iterations().CanStart(ctx, itr)
 				if res == false && err != nil {
 					return jsonapi.JSONErrorResponse(ctx, err)
 				}
 			}
-			itr.State = *ctx.Payload.Data.Attributes.State
+			itr.State = iteration.State(*ctx.Payload.Data.Attributes.State)
 		}
 		if ctx.Payload.Data.Attributes.UserActive != nil {
 			itr.UserActive = *ctx.Payload.Data.Attributes.UserActive
@@ -359,7 +359,7 @@ func ConvertIteration(request *http.Request, itr iteration.Iteration, additional
 			StartAt:      itr.StartAt,
 			EndAt:        itr.EndAt,
 			Description:  itr.Description,
-			State:        &itr.State,
+			State:        itr.State.StringPtr(),
 			ParentPath:   &pathToTopMostParent,
 			UserActive:   &itr.UserActive,
 			ActiveStatus: &activeStatus,
