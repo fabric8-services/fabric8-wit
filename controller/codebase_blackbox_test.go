@@ -1,13 +1,20 @@
 package controller_test
 
 import (
+	"context"
+	"net/http"
 	"path/filepath"
 	"testing"
+	"time"
 
+	"github.com/dnaeon/go-vcr/cassette"
+	"github.com/dnaeon/go-vcr/recorder"
+	"github.com/fabric8-services/fabric8-wit/account/tenant"
 	"github.com/fabric8-services/fabric8-wit/app/test"
+	"github.com/fabric8-services/fabric8-wit/codebase/che"
+	"github.com/fabric8-services/fabric8-wit/configuration"
 
 	"github.com/fabric8-services/fabric8-wit/account"
-	"github.com/fabric8-services/fabric8-wit/controller"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
@@ -39,14 +46,56 @@ func (s *CodebaseControllerTestSuite) SetupTest() {
 	s.testDir = filepath.Join("test-files", "codebase")
 }
 
-func (s *CodebaseControllerTestSuite) UnsecuredController() (*goa.Service, *CodebaseController) {
+type ConfigureCodebaseController func(codebaseCtrl *CodebaseController)
+
+func (s *CodebaseControllerTestSuite) UnsecuredController(settings ...ConfigureCodebaseController) (*goa.Service, *CodebaseController) {
 	svc := goa.New("Codebases-service")
-	return svc, NewCodebaseController(svc, s.db, s.Configuration)
+	codebaseCtrl := NewCodebaseController(svc, s.db, s.Configuration)
+	for _, set := range settings {
+		set(codebaseCtrl)
+	}
+	return svc, codebaseCtrl
 }
 
-func (s *CodebaseControllerTestSuite) SecuredControllers(identity account.Identity) (*goa.Service, *CodebaseController) {
+func (s *CodebaseControllerTestSuite) SecuredControllers(identity account.Identity, settings ...ConfigureCodebaseController) (*goa.Service, *CodebaseController) {
 	svc := testsupport.ServiceAsUser("Codebase-Service", identity)
-	return svc, controller.NewCodebaseController(svc, s.db, s.Configuration)
+	codebaseCtrl := NewCodebaseController(svc, s.db, s.Configuration)
+	for _, set := range settings {
+		set(codebaseCtrl)
+	}
+	return svc, codebaseCtrl
+}
+
+func NewMockCheClient(r *recorder.Recorder, config *configuration.ConfigurationData) func(ctx context.Context, ns string) (che.Client, error) {
+	return func(ctx context.Context, ns string) (che.Client, error) {
+		h := &http.Client{
+			Timeout:   1 * time.Second,
+			Transport: r.Transport,
+		}
+		cheClient := che.NewStarterClient(config.GetCheStarterURL(), config.GetOpenshiftTenantMasterURL(), ns, h)
+		return cheClient, nil
+	}
+}
+
+func MockShowTenant() func(context.Context) (*tenant.TenantSingle, error) {
+	return func(context.Context) (*tenant.TenantSingle, error) {
+		// return a predefined response for the Tenant
+		tenantType := "che"
+		tenantNamespace := "foo"
+		return &tenant.TenantSingle{
+				Data: &tenant.Tenant{
+					Attributes: &tenant.TenantAttributes{
+						Namespaces: []*tenant.NamespaceAttributes{
+							{
+								Type: &tenantType,
+								Name: &tenantNamespace,
+							},
+						},
+					},
+				},
+			},
+			nil
+	}
 }
 
 func (s *CodebaseControllerTestSuite) TestShowCodebase() {
@@ -91,9 +140,58 @@ func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
 				fxt.Spaces[idx].OwnerID = testsupport.TestIdentity.ID
 				return nil
 			}),
-			tf.Codebases(1))
+			tf.Codebases(1, func(fxt *tf.TestFixture, idx int) error {
+				fxt.Codebases[idx].URL = "git@github.com:bar/foo"
+				return nil
+			}))
+
+		// setup the mock client for Che
+		r, err := recorder.New("../test/data/che/che_delete_codebase_workspaces.ok")
+		require.Nil(t, err)
+		defer r.Stop()
+		r.SetMatcher(func(r *http.Request, i cassette.Request) bool {
+			t.Logf("Matching `%s %s` againt `%s %s`...", r.Method, r.RequestURI, i.Method, i.URL)
+			return cassette.DefaultMatcher(r, i)
+		})
+		svc, ctrl := s.SecuredControllers(testsupport.TestIdentity,
+			func(codebaseCtrl *CodebaseController) {
+				codebaseCtrl.NewCheClient = NewMockCheClient(r, s.Configuration)
+			}, func(codebaseCtrl *CodebaseController) {
+				codebaseCtrl.ShowTenant = MockShowTenant()
+			})
+
 		// when/then
-		svc, ctrl := s.SecuredControllers(testsupport.TestIdentity)
+		test.DeleteCodebaseNoContent(t, svc.Context, svc, ctrl, fxt.Codebases[0].ID)
+	})
+
+	s.T().Run("OK with workspace deletion failure", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.Spaces(1, func(fxt *tf.TestFixture, idx int) error {
+				fxt.Spaces[idx].OwnerID = testsupport.TestIdentity.ID
+				return nil
+			}),
+			tf.Codebases(1, func(fxt *tf.TestFixture, idx int) error {
+				fxt.Codebases[idx].URL = "git@github.com:bar/foo"
+				return nil
+			}))
+
+		// setup the mock client for Che
+		r, err := recorder.New("../test/data/che/che_delete_codebase_workspaces.failure")
+		require.Nil(t, err)
+		defer r.Stop()
+		r.SetMatcher(func(r *http.Request, i cassette.Request) bool {
+			t.Logf("Matching `%s %s` againt `%s %s`...", r.Method, r.RequestURI, i.Method, i.URL)
+			return cassette.DefaultMatcher(r, i)
+		})
+		svc, ctrl := s.SecuredControllers(testsupport.TestIdentity,
+			func(codebaseCtrl *CodebaseController) {
+				codebaseCtrl.NewCheClient = NewMockCheClient(r, s.Configuration)
+			}, func(codebaseCtrl *CodebaseController) {
+				codebaseCtrl.ShowTenant = MockShowTenant()
+			})
+
+		// when/then
 		test.DeleteCodebaseNoContent(t, svc.Context, svc, ctrl, fxt.Codebases[0].ID)
 	})
 
