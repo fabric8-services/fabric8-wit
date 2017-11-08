@@ -3,7 +3,6 @@ package remoteworkitem
 import (
 	"testing"
 
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/stretchr/testify/suite"
@@ -11,20 +10,10 @@ import (
 
 type TestTrackerItemRepository struct {
 	gormtestsupport.DBTestSuite
-
-	clean func()
 }
 
 func TestRunTrackerItemRepository(t *testing.T) {
 	suite.Run(t, &TestTrackerItemRepository{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
-}
-
-func (test *TestTrackerItemRepository) SetupTest() {
-	test.clean = cleaner.DeleteCreatedEntities(test.DB)
-}
-
-func (test *TestTrackerItemRepository) TearDownTest() {
-	test.clean()
 }
 
 func (test *TestTrackerItemRepository) TestUpload() {

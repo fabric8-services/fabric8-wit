@@ -11,7 +11,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
@@ -30,11 +29,8 @@ import (
 
 type TestTrackerQueryREST struct {
 	gormtestsupport.DBTestSuite
-
 	RwiScheduler *remoteworkitem.Scheduler
-
-	db    *gormapplication.GormDB
-	clean func()
+	db           *gormapplication.GormDB
 }
 
 func TestRunTrackerQueryREST(t *testing.T) {
@@ -42,13 +38,9 @@ func TestRunTrackerQueryREST(t *testing.T) {
 }
 
 func (rest *TestTrackerQueryREST) SetupTest() {
+	rest.DBTestSuite.SetupTest()
 	rest.RwiScheduler = remoteworkitem.NewScheduler(rest.DB)
 	rest.db = gormapplication.NewGormDB(rest.DB)
-	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
-}
-
-func (rest *TestTrackerQueryREST) TearDownTest() {
-	rest.clean()
 }
 
 func (rest *TestTrackerQueryREST) SecuredController() (*goa.Service, *TrackerController, *TrackerqueryController) {

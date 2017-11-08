@@ -10,7 +10,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/controller"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
@@ -31,18 +30,13 @@ func TestCodebaseController(t *testing.T) {
 type CodebaseControllerTestSuite struct {
 	gormtestsupport.DBTestSuite
 	db      *gormapplication.GormDB
-	clean   func()
 	testDir string
 }
 
 func (s *CodebaseControllerTestSuite) SetupTest() {
+	s.DBTestSuite.SetupTest()
 	s.db = gormapplication.NewGormDB(s.DB)
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 	s.testDir = filepath.Join("test-files", "codebase")
-}
-
-func (s *CodebaseControllerTestSuite) TearDownTest() {
-	s.clean()
 }
 
 func (s *CodebaseControllerTestSuite) UnsecuredController() (*goa.Service, *CodebaseController) {
