@@ -29,7 +29,7 @@ services:
     image: docker.io/fabric8/fabric8-auth:latest
 #    command: -config /usr/local/auth/etc/config.yaml
     environment:
-      AUTH_WIT_URL: "http://localhost:8080"
+      AUTH_WIT_URL: "http://docker.for.mac.localhost:8080"
       AUTH_DEVELOPER_MODE_ENABLED: "true"
       AUTH_POSTGRES_HOST: db-auth
       AUTH_POSTGRES_PORT: 5432

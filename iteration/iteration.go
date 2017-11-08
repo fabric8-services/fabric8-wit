@@ -21,9 +21,6 @@ import (
 // Defines "type" string to be used while validating jsonapi spec based payload
 const (
 	APIStringTypeIteration = "iterations"
-	IterationStateNew      = "new"
-	IterationStateStart    = "start"
-	IterationStateClose    = "close"
 	PathSepInService       = "/"
 	PathSepInDatabase      = "."
 	IterationActive        = true
@@ -40,7 +37,7 @@ type Iteration struct {
 	EndAt       *time.Time
 	Name        string
 	Description *string
-	State       string // this tells if iteration is currently running or not
+	State       State // this tells if iteration is currently running or not
 	UserActive  bool
 	// optional, private timestamp of the latest addition/removal of a relationship with this iteration
 	// this field is used to generate the `ETag` and `Last-Modified` values in the HTTP responses and conditional requests processing
@@ -139,7 +136,9 @@ func (m *GormIterationRepository) Create(ctx context.Context, u *Iteration) erro
 	if u.ID == uuid.Nil {
 		u.ID = uuid.NewV4()
 	}
-	u.State = IterationStateNew
+	if !u.State.IsSet() {
+		u.State = StateNew
+	}
 	err := m.db.Create(u).Error
 	// Composite key (name,space,path) must be unique
 	// ( name, spaceID ,path ) needs to be unique
@@ -270,7 +269,7 @@ func (m *GormIterationRepository) CanStart(ctx context.Context, i *Iteration) (b
 	if i.ID == rootItr.ID {
 		return false, errors.NewBadParameterError("iteration", "Root iteration can not be started.")
 	}
-	m.db.Model(&Iteration{}).Where("space_id=? and state=?", i.SpaceID, IterationStateStart).Count(&count)
+	m.db.Model(&Iteration{}).Where("space_id=? and state=?", i.SpaceID, StateStart).Count(&count)
 	if count != 0 {
 		log.Error(ctx, map[string]interface{}{
 			"iteration_id": i.ID,

@@ -67,7 +67,7 @@ func (rest *TestPlannerBacklogBlackboxREST) setupPlannerBacklogWorkItems() (test
 		parentIteration = &iteration.Iteration{
 			Name:    "Parent Iteration",
 			SpaceID: testSpace.ID,
-			State:   iteration.IterationStateNew,
+			State:   iteration.StateNew,
 		}
 		iterationsRepo.Create(rest.Ctx, parentIteration)
 		log.Info(nil, map[string]interface{}{"parent_iteration_id": parentIteration.ID}, "created parent iteration")
@@ -76,7 +76,7 @@ func (rest *TestPlannerBacklogBlackboxREST) setupPlannerBacklogWorkItems() (test
 			Name:    "Child Iteration",
 			SpaceID: testSpace.ID,
 			Path:    append(parentIteration.Path, parentIteration.ID),
-			State:   iteration.IterationStateStart,
+			State:   iteration.StateStart,
 		}
 		iterationsRepo.Create(rest.Ctx, childIteration)
 		log.Info(nil, map[string]interface{}{"child_iteration_id": childIteration.ID}, "created child iteration")
@@ -203,7 +203,7 @@ func (rest *TestPlannerBacklogBlackboxREST) TestSuccessEmptyListPlannerBacklogWo
 		parentIteration = &iteration.Iteration{
 			Name:    "Parent Iteration",
 			SpaceID: spaceID,
-			State:   iteration.IterationStateNew,
+			State:   iteration.StateNew,
 		}
 		iterationsRepo.Create(rest.Ctx, parentIteration)
 
