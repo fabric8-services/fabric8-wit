@@ -47,6 +47,7 @@ const (
 	varFeatureWorkitemRemote        = "feature.workitem.remote"
 	varPopulateCommonTypes          = "populate.commontypes"
 	varHTTPAddress                  = "http.address"
+	varMetricsHTTPAddress           = "metrics.http.address"
 	varDeveloperModeEnabled         = "developer.mode.enabled"
 	varAuthDomainPrefix             = "auth.domain.prefix"
 	varAuthShortServiceHostName     = "auth.servicehostname.short"
@@ -176,6 +177,7 @@ func (c *ConfigurationData) setConfigDefaults() {
 	// HTTP
 	//-----
 	c.v.SetDefault(varHTTPAddress, "0.0.0.0:8080")
+	c.v.SetDefault(varMetricsHTTPAddress, "0.0.0.0:8080")
 	c.v.SetDefault(varHeaderMaxLength, defaultHeaderMaxLength)
 
 	//-----
@@ -319,6 +321,12 @@ func (c *ConfigurationData) GetPopulateCommonTypes() bool {
 // that the wit server binds to (e.g. "0.0.0.0:8080")
 func (c *ConfigurationData) GetHTTPAddress() string {
 	return c.v.GetString(varHTTPAddress)
+}
+
+// GetMetricsHTTPAddress returns the address the /metrics endpoing will be mounted.
+// By default GetMetricsHTTPAddress is the same as GetHTTPAddress
+func (c *ConfigurationData) GetMetricsHTTPAddress() string {
+	return c.v.GetString(varMetricsHTTPAddress)
 }
 
 // GetHeaderMaxLength returns the max length of HTTP headers allowed in the system
