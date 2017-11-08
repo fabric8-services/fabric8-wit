@@ -103,7 +103,13 @@ func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.Wrap(err, "unable to generate test token ")))
 	}
 	// Creates the testuser user and identity if they don't yet exist
-	c.auth.CreateOrUpdateKeycloakUser(*testuser.Token.AccessToken, ctx)
+	_, _, err = c.auth.CreateOrUpdateKeycloakUser(*testuser.Token.AccessToken, ctx)
+	if err != nil {
+		log.Warn(ctx, map[string]interface{}{
+			"err":      err,
+			"username": c.configuration.GetKeycloakTestUserName(),
+		}, "unable to create or update user")
+	}
 	tokens = append(tokens, testuser)
 
 	testuser, err = generateUserToken(ctx, c.configuration, c.configuration.GetKeycloakTestUser2Name())
@@ -115,7 +121,13 @@ func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.Wrap(err, "unable to generate test token")))
 	}
 	// Creates the testuser2 user and identity if they don't yet exist
-	c.auth.CreateOrUpdateKeycloakUser(*testuser.Token.AccessToken, ctx)
+	_, _, err = c.auth.CreateOrUpdateKeycloakUser(*testuser.Token.AccessToken, ctx)
+	if err != nil {
+		log.Warn(ctx, map[string]interface{}{
+			"err":      err,
+			"username": c.configuration.GetKeycloakTestUser2Name(),
+		}, "unable to create or update user")
+	}
 	tokens = append(tokens, testuser)
 
 	ctx.ResponseData.Header().Set("Cache-Control", "no-cache")
