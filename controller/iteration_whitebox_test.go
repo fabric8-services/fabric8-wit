@@ -64,7 +64,7 @@ func createMinimumIteration(name string, spaceID uuid.UUID) *iteration.Iteration
 	i := iteration.Iteration{
 		ID:      iterationID,
 		Name:    name,
-		State:   iteration.IterationStateNew,
+		State:   iteration.StateNew,
 		SpaceID: spaceID,
 	}
 	return &i

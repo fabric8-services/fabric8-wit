@@ -3,7 +3,7 @@ package controller_test
 import (
 	"net/http"
 	"net/url"
-	"strconv"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -23,6 +23,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	"github.com/goadesign/goa"
@@ -36,6 +37,7 @@ type TestSpaceIterationREST struct {
 	gormtestsupport.DBTestSuite
 	db           *gormapplication.GormDB
 	testIdentity account.Identity
+	testDir      string
 }
 
 func TestRunSpaceIterationREST(t *testing.T) {
@@ -52,6 +54,7 @@ func (rest *TestSpaceIterationREST) SetupTest() {
 	req := &http.Request{Host: "localhost"}
 	params := url.Values{}
 	rest.Ctx = goa.NewContext(context.Background(), nil, req, params)
+	rest.testDir = filepath.Join("test-files", "space_iterations")
 }
 
 func (rest *TestSpaceIterationREST) SecuredController() (*goa.Service, *SpaceIterationsController) {
@@ -102,7 +105,7 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIteration() {
 	require.NotNil(rest.T(), c.Data.ID)
 	require.NotNil(rest.T(), c.Data.Relationships.Space)
 	assert.Equal(rest.T(), p.ID.String(), *c.Data.Relationships.Space.Data.ID)
-	assert.Equal(rest.T(), iteration.IterationStateNew, *c.Data.Attributes.State)
+	assert.Equal(rest.T(), iteration.StateNew.String(), *c.Data.Attributes.State)
 	assert.Equal(rest.T(), "/"+rootItr.ID.String(), *c.Data.Attributes.ParentPath)
 	require.NotNil(rest.T(), c.Data.Relationships.Workitems.Meta)
 	assert.Equal(rest.T(), 0, c.Data.Relationships.Workitems.Meta[KeyTotalWorkItems])
@@ -151,56 +154,69 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIterationWithOptionalValues
 	assert.Nil(rest.T(), c.Data.Attributes.Description)
 }
 
-func (rest *TestSpaceIterationREST) TestListIterationsBySpaceOK() {
-	// given
-	spaceID, fatherIteration, childIteration, grandChildIteration := rest.createIterations()
-	svc, ctrl := rest.UnSecuredController()
-	// when
-	_, cs := test.ListSpaceIterationsOK(rest.T(), svc.Context, svc, ctrl, spaceID, nil, nil)
-	// then
-	assertIterations(rest.T(), cs.Data, fatherIteration, childIteration, grandChildIteration)
-}
+func (rest *TestSpaceIterationREST) TestListIterations() {
+	resetFn := rest.DisableGormCallbacks()
+	defer resetFn()
 
-func (rest *TestSpaceIterationREST) TestListIterationsBySpaceOKUsingExpiredIfModifiedSinceHeader() {
 	// given
-	spaceID, fatherIteration, childIteration, grandChildIteration := rest.createIterations()
+	fxt := tf.NewTestFixture(rest.T(), rest.DB,
+		tf.CreateWorkItemEnvironment(),
+		tf.Iterations(3,
+			tf.SetIterationNames("1", "1.1", "1.1.1"),
+			func(fxt *tf.TestFixture, idx int) error {
+				if idx == 2 {
+					fxt.Iterations[idx].MakeChildOf(*fxt.Iterations[idx-1])
+				}
+				return nil
+			},
+		),
+	)
+	spaceID := fxt.Spaces[0].ID
+	fatherIteration := fxt.IterationByName("1")
+	childIteration := fxt.IterationByName("1.1")
+	grandChildIteration := fxt.IterationByName("1.1.1")
+	require.NotNil(rest.T(), fatherIteration)
+	require.NotNil(rest.T(), childIteration)
+	require.NotNil(rest.T(), grandChildIteration)
 	svc, ctrl := rest.UnSecuredController()
-	// when
-	idModifiedSince := app.ToHTTPTime(fatherIteration.UpdatedAt.Add(-1 * time.Hour))
-	_, cs := test.ListSpaceIterationsOK(rest.T(), svc.Context, svc, ctrl, spaceID, &idModifiedSince, nil)
-	// then
-	assertIterations(rest.T(), cs.Data, fatherIteration, childIteration, grandChildIteration)
-}
 
-func (rest *TestSpaceIterationREST) TestListIterationsBySpaceOKUsingExpiredIfNoneMatchSinceHeader() {
-	// given
-	spaceID, fatherIteration, childIteration, grandChildIteration := rest.createIterations()
-	svc, ctrl := rest.UnSecuredController()
-	// when
-	idNoneMatch := "foo"
-	_, cs := test.ListSpaceIterationsOK(rest.T(), svc.Context, svc, ctrl, spaceID, nil, &idNoneMatch)
-	// then
-	assertIterations(rest.T(), cs.Data, fatherIteration, childIteration, grandChildIteration)
-}
-
-func (rest *TestSpaceIterationREST) TestListIterationsBySpaceNotModifiedUsingIfModifiedSinceHeader() {
-	// given
-	spaceID, _, _, grandChildIteration := rest.createIterations()
-	svc, ctrl := rest.UnSecuredController()
-	// when/then
-	idModifiedSince := app.ToHTTPTime(grandChildIteration.UpdatedAt)
-	test.ListSpaceIterationsNotModified(rest.T(), svc.Context, svc, ctrl, spaceID, &idModifiedSince, nil)
-}
-
-func (rest *TestSpaceIterationREST) TestListIterationsBySpaceNotModifiedUsingIfNoneMatchSinceHeader() {
-	// given
-	spaceID, _, _, _ := rest.createIterations()
-	svc, ctrl := rest.UnSecuredController()
-	// here we need to get all iterations for the spaceId
-	_, iterations := test.ListSpaceIterationsOK(rest.T(), svc.Context, svc, ctrl, spaceID, nil, nil)
-	// when/then
-	idNoneMatch := generateIterationsTag(*iterations)
-	test.ListSpaceIterationsNotModified(rest.T(), svc.Context, svc, ctrl, spaceID, nil, &idNoneMatch)
+	rest.T().Run("ok", func(t *testing.T) {
+		t.Run("normal", func(t *testing.T) {
+			// when
+			_, list := test.ListSpaceIterationsOK(t, svc.Context, svc, ctrl, spaceID, nil, nil)
+			// then
+			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "list", "ok_normal.json"), list)
+			assertIterations(t, list.Data, fatherIteration, childIteration, grandChildIteration)
+		})
+		t.Run("expired IfModifiedSince header", func(t *testing.T) {
+			// when
+			idModifiedSince := app.ToHTTPTime(fatherIteration.UpdatedAt.Add(-1 * time.Hour))
+			_, cs := test.ListSpaceIterationsOK(t, svc.Context, svc, ctrl, spaceID, &idModifiedSince, nil)
+			// then
+			assertIterations(t, cs.Data, fatherIteration, childIteration, grandChildIteration)
+		})
+		t.Run("expired IfNoneMatchSince header", func(t *testing.T) {
+			// when
+			idNoneMatch := "foo"
+			_, cs := test.ListSpaceIterationsOK(t, svc.Context, svc, ctrl, spaceID, nil, &idNoneMatch)
+			// then
+			assertIterations(t, cs.Data, fatherIteration, childIteration, grandChildIteration)
+		})
+	})
+	rest.T().Run("not modified", func(t *testing.T) {
+		t.Run("using IfNoneMatchSince header", func(t *testing.T) {
+			// here we need to get all iterations for the spaceId
+			_, iterations := test.ListSpaceIterationsOK(t, svc.Context, svc, ctrl, spaceID, nil, nil)
+			// when/then
+			idNoneMatch := generateIterationsTag(*iterations)
+			test.ListSpaceIterationsNotModified(t, svc.Context, svc, ctrl, spaceID, nil, &idNoneMatch)
+		})
+		t.Run("using IfModifiedSince header", func(t *testing.T) {
+			// when/then
+			idModifiedSince := app.ToHTTPTime(grandChildIteration.UpdatedAt)
+			test.ListSpaceIterationsNotModified(t, svc.Context, svc, ctrl, spaceID, &idModifiedSince, nil)
+		})
+	})
 }
 
 func (rest *TestSpaceIterationREST) TestCreateIterationMissingSpace() {
@@ -227,187 +243,186 @@ func (rest *TestSpaceIterationREST) TestFailListIterationsByMissingSpace() {
 }
 
 // Following is behaviour of the test that verifies the WI Count in an iteration
-// Consider, iteration i1 has 2 children c1 & c2
-// Total WI for i1 = WI assigned to i1 + WI assigned to c1 + WI assigned to c2
-// Begin test with following setup :-
-// Create a space s1
-// create iteartion i1 & iteration i2 in s1
-// Create child of i2 : name it child
-// Create child of child : name it grandChild
-// Add few "new" & "closed" work items to i1
-// Add few "new" work items to child
-// Add few "closed" work items to grandChild
-// Call List-Iterations API, should return Total & Closed WI count for every itearion
+// Consider this iteration structure with workitems assigend to them:
+//
+//        + Iteration: "Sprint 1"
+//        | * New WorkItem
+//        | * New WorkItem
+//        | * New WorkItem
+//        | * Closed WorkiItem
+//        | * Closed WorkiItem
+//        + Iteration: "Sprint 2"
+//        |  + Iteration: "Sprint 2.1"
+//        |    |  * New WorkItem
+//        |    |  * New WorkItem
+//        |    |  * New WorkItem
+//        |    |  * New WorkItem
+//        |  + Iteration: "Sprint 2.1.1"
+//        |    |  | * Closed WorkiItem
+//        |    |  | * Closed WorkiItem
+//        |    |  | * Closed WorkiItem
+//        |    |  | * Closed WorkiItem
+//        |    |  | * Closed WorkiItem
+//
+// Call List-Iterations API, should return Total & Closed WI count for every iteration
 // Verify counts for all 4 iterations retrieved.
 // Add few "new" & "closed" work items to i2
-// Call List-Iterations API, should return Total & Closed WI count for every itearion
+// Call List-Iterations API, should return Total & Closed WI count for every iteration
 // Verify updated count values for all 4 iterations retrieved.
 func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
-	// given
-	resource.Require(rest.T(), resource.Database)
-	// create seed data
-	spaceRepo := space.NewRepository(rest.DB)
-	spaceInstance := space.Space{
-		Name: "TestWICountsWithIterationListBySpace-" + uuid.NewV4().String(),
-	}
-	_, e := spaceRepo.Create(rest.Ctx, &spaceInstance)
-	require.Nil(rest.T(), e)
-	require.NotEqual(rest.T(), uuid.UUID{}, spaceInstance.ID)
-
-	iterationRepo := iteration.NewIterationRepository(rest.DB)
-	iteration1 := iteration.Iteration{
-		Name:    "Sprint 1",
-		SpaceID: spaceInstance.ID,
-	}
-	iterationRepo.Create(rest.Ctx, &iteration1)
-	assert.NotEqual(rest.T(), uuid.UUID{}, iteration1.ID)
-
-	iteration2 := iteration.Iteration{
-		Name:    "Sprint 2",
-		SpaceID: spaceInstance.ID,
-	}
-	iterationRepo.Create(rest.Ctx, &iteration2)
-	assert.NotEqual(rest.T(), uuid.UUID{}, iteration2.ID)
-
-	childOfIteration2 := iteration.Iteration{
-		Name:    "Sprint 2.1",
-		SpaceID: spaceInstance.ID,
-		Path:    append(iteration2.Path, iteration2.ID),
-	}
-	iterationRepo.Create(rest.Ctx, &childOfIteration2)
-	require.NotEqual(rest.T(), uuid.Nil, childOfIteration2.ID)
-
-	grandChildOfIteration2 := iteration.Iteration{
-		Name:    "Sprint 2.1.1",
-		SpaceID: spaceInstance.ID,
-		Path:    append(childOfIteration2.Path, childOfIteration2.ID),
-	}
-	iterationRepo.Create(rest.Ctx, &grandChildOfIteration2)
-	require.NotEqual(rest.T(), uuid.UUID{}, grandChildOfIteration2.ID)
-
-	wirepo := workitem.NewWorkItemRepository(rest.DB)
-
-	for i := 0; i < 3; i++ {
-		wirepo.Create(
-			rest.Ctx, iteration1.SpaceID, workitem.SystemBug,
-			map[string]interface{}{
-				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
-				workitem.SystemState:     workitem.SystemStateNew,
-				workitem.SystemIteration: iteration1.ID.String(),
-			}, rest.testIdentity.ID)
-	}
-	for i := 0; i < 2; i++ {
-		_, err := wirepo.Create(
-			rest.Ctx, iteration1.SpaceID, workitem.SystemBug,
-			map[string]interface{}{
-				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
-				workitem.SystemState:     workitem.SystemStateClosed,
-				workitem.SystemIteration: iteration1.ID.String(),
-			}, rest.testIdentity.ID)
-		require.Nil(rest.T(), err)
-	}
-	// add items to nested iteration level 1
-	for i := 0; i < 4; i++ {
-		_, err := wirepo.Create(
-			rest.Ctx, iteration1.SpaceID, workitem.SystemBug,
-			map[string]interface{}{
-				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
-				workitem.SystemState:     workitem.SystemStateNew,
-				workitem.SystemIteration: childOfIteration2.ID.String(),
-			}, rest.testIdentity.ID)
-		require.Nil(rest.T(), err)
-	}
-	// add items to nested iteration level 2
-	for i := 0; i < 5; i++ {
-		_, err := wirepo.Create(
-			rest.Ctx, iteration1.SpaceID, workitem.SystemBug,
-			map[string]interface{}{
-				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
-				workitem.SystemState:     workitem.SystemStateClosed,
-				workitem.SystemIteration: grandChildOfIteration2.ID.String(),
-			}, rest.testIdentity.ID)
-		require.Nil(rest.T(), err)
-	}
-
-	svc, ctrl := rest.UnSecuredController()
-	// when
-	_, cs := test.ListSpaceIterationsOK(rest.T(), svc.Context, svc, ctrl, spaceInstance.ID, nil, nil)
-	// then
-	require.Len(rest.T(), cs.Data, 4)
-	for _, iterationItem := range cs.Data {
-		if uuid.Equal(*iterationItem.ID, iteration1.ID) {
-			assert.Equal(rest.T(), 5, iterationItem.Relationships.Workitems.Meta[KeyTotalWorkItems])
-			assert.Equal(rest.T(), 2, iterationItem.Relationships.Workitems.Meta[KeyClosedWorkItems])
-		} else if uuid.Equal(*iterationItem.ID, iteration2.ID) {
-			// we expect these counts should include that of child iterations too.
-			expectedTotal := 0 + 4 + 5  // sum of all items of self + child + grand-child
-			expectedClosed := 0 + 0 + 5 // sum of closed items self + child + grand-child
-			assert.Equal(rest.T(), expectedTotal, iterationItem.Relationships.Workitems.Meta[KeyTotalWorkItems])
-			assert.Equal(rest.T(), expectedClosed, iterationItem.Relationships.Workitems.Meta[KeyClosedWorkItems])
-		} else if uuid.Equal(*iterationItem.ID, childOfIteration2.ID) {
-			// we expect these counts should include that of child iterations too.
-			expectedTotal := 4 + 5  // sum of all items of self and child
-			expectedClosed := 0 + 5 // sum of closed items of self and child
-			assert.Equal(rest.T(), expectedTotal, iterationItem.Relationships.Workitems.Meta[KeyTotalWorkItems])
-			assert.Equal(rest.T(), expectedClosed, iterationItem.Relationships.Workitems.Meta[KeyClosedWorkItems])
-		} else if uuid.Equal(*iterationItem.ID, grandChildOfIteration2.ID) {
-			// we expect these counts should include that of child iterations too.
-			expectedTotal := 5 + 0  // sum of all items of self and child
-			expectedClosed := 5 + 0 // sum of closed items of self and child
-			assert.Equal(rest.T(), expectedTotal, iterationItem.Relationships.Workitems.Meta[KeyTotalWorkItems])
-			assert.Equal(rest.T(), expectedClosed, iterationItem.Relationships.Workitems.Meta[KeyClosedWorkItems])
+	rest.T().Run("test 1", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, rest.DB,
+			tf.CreateWorkItemEnvironment(),
+			tf.Iterations(5,
+				tf.SetIterationNames("Root", "Sprint 1", "Sprint 2", "Sprint 2.1", "Sprint 2.1.1"),
+				func(fxt *tf.TestFixture, idx int) error {
+					if idx == 3 || idx == 4 {
+						fxt.Iterations[idx].MakeChildOf(*fxt.Iterations[idx-1])
+					}
+					return nil
+				},
+			),
+			tf.WorkItems(3+2+4+5, func(fxt *tf.TestFixture, idx int) error {
+				wi := fxt.WorkItems[idx]
+				switch idx {
+				case 0, 1, 2:
+					wi.Fields[workitem.SystemTitle] = fmt.Sprintf("New issue #%d", idx)
+					wi.Fields[workitem.SystemState] = workitem.SystemStateNew
+					wi.Fields[workitem.SystemIteration] = fxt.IterationByName("Sprint 1").ID.String()
+				case 3, 4:
+					wi.Fields[workitem.SystemTitle] = fmt.Sprintf("Closed issue #%d", idx)
+					wi.Fields[workitem.SystemState] = workitem.SystemStateClosed
+					wi.Fields[workitem.SystemIteration] = fxt.IterationByName("Sprint 1").ID.String()
+				case 5, 6, 7, 8:
+					wi.Fields[workitem.SystemTitle] = fmt.Sprintf("New issue #%d", idx)
+					wi.Fields[workitem.SystemState] = workitem.SystemStateNew
+					wi.Fields[workitem.SystemIteration] = fxt.IterationByName("Sprint 2.1").ID.String()
+				case 9, 10, 11, 12, 13:
+					wi.Fields[workitem.SystemTitle] = fmt.Sprintf("Closed issue #%d", idx)
+					wi.Fields[workitem.SystemState] = workitem.SystemStateClosed
+					wi.Fields[workitem.SystemIteration] = fxt.IterationByName("Sprint 2.1.1").ID.String()
+				}
+				return nil
+			}),
+		)
+		svc, ctrl := rest.UnSecuredController()
+		// when
+		_, cs := test.ListSpaceIterationsOK(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, nil, nil)
+		// then
+		require.Len(t, cs.Data, len(fxt.Iterations))
+		expectedTotalCounts := map[string]int{
+			"Root":         0 + 5 + 4 + 5,
+			"Sprint 1":     5,
+			"Sprint 2":     0 + 4 + 5,
+			"Sprint 2.1":   4 + 5,
+			"Sprint 2.1.1": 5,
 		}
-	}
-	// seed 5 New WI to iteration2
-	for i := 0; i < 5; i++ {
-		_, err := wirepo.Create(
-			rest.Ctx, iteration1.SpaceID, workitem.SystemBug,
-			map[string]interface{}{
-				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
-				workitem.SystemState:     workitem.SystemStateNew,
-				workitem.SystemIteration: iteration2.ID.String(),
-			}, rest.testIdentity.ID)
-		require.Nil(rest.T(), err)
-	}
-	// seed 2 Closed WI to iteration2
-	for i := 0; i < 3; i++ {
-		_, err := wirepo.Create(
-			rest.Ctx, iteration1.SpaceID, workitem.SystemBug,
-			map[string]interface{}{
-				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
-				workitem.SystemState:     workitem.SystemStateClosed,
-				workitem.SystemIteration: iteration2.ID.String(),
-			}, rest.testIdentity.ID)
-		require.Nil(rest.T(), err)
-	}
-	// when
-	_, cs = test.ListSpaceIterationsOK(rest.T(), svc.Context, svc, ctrl, spaceInstance.ID, nil, nil)
-	// then
-	require.Len(rest.T(), cs.Data, 4)
-	for _, iterationItem := range cs.Data {
-		if uuid.Equal(*iterationItem.ID, iteration1.ID) {
-			assert.Equal(rest.T(), 5, iterationItem.Relationships.Workitems.Meta[KeyTotalWorkItems])
-			assert.Equal(rest.T(), 2, iterationItem.Relationships.Workitems.Meta[KeyClosedWorkItems])
-		} else if uuid.Equal(*iterationItem.ID, iteration2.ID) {
-			// we expect these counts should include that of child iterations too.
-			expectedTotal := 8 + 4 + 5  // sum of all items of self + child + grand-child
-			expectedClosed := 3 + 0 + 5 // sum of closed items self + child + grand-child
-			assert.Equal(rest.T(), expectedTotal, iterationItem.Relationships.Workitems.Meta[KeyTotalWorkItems])
-			assert.Equal(rest.T(), expectedClosed, iterationItem.Relationships.Workitems.Meta[KeyClosedWorkItems])
-		} else if uuid.Equal(*iterationItem.ID, childOfIteration2.ID) {
-			// we expect these counts should include that of child iterations too.
-			expectedTotal := 4 + 5  // sum of all items of self + child + grand-child
-			expectedClosed := 0 + 5 // sum of closed items self + child + grand-child
-			assert.Equal(rest.T(), expectedTotal, iterationItem.Relationships.Workitems.Meta[KeyTotalWorkItems])
-			assert.Equal(rest.T(), expectedClosed, iterationItem.Relationships.Workitems.Meta[KeyClosedWorkItems])
-		} else if uuid.Equal(*iterationItem.ID, grandChildOfIteration2.ID) {
-			// we expect these counts should include that of child iterations too.
-			expectedTotal := 5 + 0  // sum of all items of self + child + grand-child
-			expectedClosed := 5 + 0 // sum of closed items self + child + grand-child
-			assert.Equal(rest.T(), expectedTotal, iterationItem.Relationships.Workitems.Meta[KeyTotalWorkItems])
-			assert.Equal(rest.T(), expectedClosed, iterationItem.Relationships.Workitems.Meta[KeyClosedWorkItems])
+		expectedClosedCounts := map[string]int{
+			"Root":         0 + 2 + 0 + 5,
+			"Sprint 1":     2,
+			"Sprint 2":     0 + 0 + 5,
+			"Sprint 2.1":   0 + 5,
+			"Sprint 2.1.1": 5,
 		}
-	}
+		t.Run("iteration", func(t *testing.T) {
+			for _, iterationItem := range cs.Data {
+				iterName := *iterationItem.Attributes.Name
+				t.Run(iterName, func(t *testing.T) {
+					t.Run("total count", func(t *testing.T) {
+						expectedTotalCount, ok := expectedTotalCounts[iterName]
+						require.True(t, ok, "failed to find iteration %s in %+v", iterName, expectedTotalCount)
+						require.Equal(t, expectedTotalCount, iterationItem.Relationships.Workitems.Meta[KeyTotalWorkItems])
+					})
+					t.Run("closed count", func(t *testing.T) {
+						expectedClosedCount, ok := expectedClosedCounts[iterName]
+						require.True(t, ok, "failed to find iteration %s in %+v", iterName, expectedClosedCount)
+						require.Equal(t, expectedClosedCount, iterationItem.Relationships.Workitems.Meta[KeyClosedWorkItems])
+					})
+				})
+			}
+		})
+	})
+	rest.T().Run("test 2", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, rest.DB,
+			tf.CreateWorkItemEnvironment(),
+			tf.Iterations(5,
+				tf.SetIterationNames("Root", "Sprint 1", "Sprint 2", "Sprint 2.1", "Sprint 2.1.1"),
+				func(fxt *tf.TestFixture, idx int) error {
+					if idx == 3 || idx == 4 {
+						fxt.Iterations[idx].MakeChildOf(*fxt.Iterations[idx-1])
+					}
+					return nil
+				},
+			),
+			tf.WorkItems(3+2+4+5+5+2, func(fxt *tf.TestFixture, idx int) error {
+				wi := fxt.WorkItems[idx]
+				switch idx {
+				case 0, 1, 2:
+					wi.Fields[workitem.SystemTitle] = fmt.Sprintf("New issue #%d", idx)
+					wi.Fields[workitem.SystemState] = workitem.SystemStateNew
+					wi.Fields[workitem.SystemIteration] = fxt.IterationByName("Sprint 1").ID.String()
+				case 3, 4:
+					wi.Fields[workitem.SystemTitle] = fmt.Sprintf("Closed issue #%d", idx)
+					wi.Fields[workitem.SystemState] = workitem.SystemStateClosed
+					wi.Fields[workitem.SystemIteration] = fxt.IterationByName("Sprint 1").ID.String()
+				case 5, 6, 7, 8:
+					wi.Fields[workitem.SystemTitle] = fmt.Sprintf("New issue #%d", idx)
+					wi.Fields[workitem.SystemState] = workitem.SystemStateNew
+					wi.Fields[workitem.SystemIteration] = fxt.IterationByName("Sprint 2.1").ID.String()
+				case 9, 10, 11, 12, 13:
+					wi.Fields[workitem.SystemTitle] = fmt.Sprintf("Closed issue #%d", idx)
+					wi.Fields[workitem.SystemState] = workitem.SystemStateClosed
+					wi.Fields[workitem.SystemIteration] = fxt.IterationByName("Sprint 2.1.1").ID.String()
+				case 14, 15, 16, 17, 18:
+					wi.Fields[workitem.SystemTitle] = fmt.Sprintf("New issue #%d", idx)
+					wi.Fields[workitem.SystemState] = workitem.SystemStateNew
+					wi.Fields[workitem.SystemIteration] = fxt.IterationByName("Sprint 2").ID.String()
+				case 19, 20:
+					wi.Fields[workitem.SystemTitle] = fmt.Sprintf("Closed issue #%d", idx)
+					wi.Fields[workitem.SystemState] = workitem.SystemStateClosed
+					wi.Fields[workitem.SystemIteration] = fxt.IterationByName("Sprint 2").ID.String()
+				}
+				return nil
+			}),
+		)
+		svc, ctrl := rest.UnSecuredController()
+		// when
+		_, cs := test.ListSpaceIterationsOK(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, nil, nil)
+		// then
+		require.Len(t, cs.Data, len(fxt.Iterations))
+		expectedTotalCounts := map[string]int{
+			"Root":         0 + 5 + 7 + 4 + 5,
+			"Sprint 1":     5,
+			"Sprint 2":     7 + 4 + 5,
+			"Sprint 2.1":   4 + 5,
+			"Sprint 2.1.1": 5,
+		}
+		expectedClosedCounts := map[string]int{
+			"Root":         0 + 2 + 2 + 0 + 5,
+			"Sprint 1":     2,
+			"Sprint 2":     2 + 0 + 5,
+			"Sprint 2.1":   0 + 5,
+			"Sprint 2.1.1": 5,
+		}
+		t.Run("iteration", func(t *testing.T) {
+			for _, iterationItem := range cs.Data {
+				iterName := *iterationItem.Attributes.Name
+				t.Run(iterName, func(t *testing.T) {
+					t.Run("total count", func(t *testing.T) {
+						expectedTotalCount, ok := expectedTotalCounts[iterName]
+						require.True(t, ok, "failed to find iteration %s in %+v", iterName, expectedTotalCount)
+						require.Equal(t, expectedTotalCount, iterationItem.Relationships.Workitems.Meta[KeyTotalWorkItems])
+					})
+					t.Run("closed count", func(t *testing.T) {
+						expectedClosedCount, ok := expectedClosedCounts[iterName]
+						require.True(t, ok, "failed to find iteration %s in %+v", iterName, expectedClosedCount)
+						require.Equal(t, expectedClosedCount, iterationItem.Relationships.Workitems.Meta[KeyClosedWorkItems])
+					})
+				})
+			}
+		})
+	})
 }
 
 func (rest *TestSpaceIterationREST) TestOnlySpaceOwnerCreateIteration() {
@@ -454,7 +469,7 @@ func (rest *TestSpaceIterationREST) TestOnlySpaceOwnerCreateIteration() {
 	require.NotNil(rest.T(), c.Data.ID)
 	require.NotNil(rest.T(), c.Data.Relationships.Space)
 	assert.Equal(rest.T(), p.ID.String(), *c.Data.Relationships.Space.Data.ID)
-	assert.Equal(rest.T(), iteration.IterationStateNew, *c.Data.Attributes.State)
+	assert.Equal(rest.T(), iteration.StateNew.String(), *c.Data.Attributes.State)
 	assert.Equal(rest.T(), "/"+rootItr.ID.String(), *c.Data.Attributes.ParentPath)
 	require.NotNil(rest.T(), c.Data.Relationships.Workitems.Meta)
 	assert.Equal(rest.T(), 0, c.Data.Relationships.Workitems.Meta[KeyTotalWorkItems])
@@ -488,59 +503,8 @@ func createSpaceIteration(name string, desc *string) *app.CreateSpaceIterationsP
 	}
 }
 
-func (rest *TestSpaceIterationREST) createIterations() (spaceID uuid.UUID, fatherIteration, childIteration, grandChildIteration *iteration.Iteration) {
-	err := application.Transactional(rest.db, func(app application.Application) error {
-		repo := app.Iterations()
-		newSpace := space.Space{
-			Name: "TestListIterationsBySpace-" + uuid.NewV4().String(),
-		}
-		p, err := app.Spaces().Create(rest.Ctx, &newSpace)
-		if err != nil {
-			return err
-		}
-		spaceID = p.ID
-		for i := 0; i < 3; i++ {
-			start := time.Now()
-			end := start.Add(time.Hour * (24 * 8 * 3))
-			name := "Sprint Test #" + strconv.Itoa(i)
-			i := iteration.Iteration{
-				Name:    name,
-				SpaceID: spaceID,
-				StartAt: &start,
-				EndAt:   &end,
-			}
-			repo.Create(rest.Ctx, &i)
-		}
-		// create one child iteration and test for relationships.Parent
-		fatherIteration = &iteration.Iteration{
-			Name:    "Parent Iteration",
-			SpaceID: spaceID,
-		}
-		repo.Create(rest.Ctx, fatherIteration)
-		rest.T().Log("fatherIteration:", fatherIteration.ID, fatherIteration.Name, fatherIteration.Path)
-		childIteration = &iteration.Iteration{
-			Name:    "Child Iteration",
-			SpaceID: spaceID,
-			Path:    append(fatherIteration.Path, fatherIteration.ID),
-		}
-		repo.Create(rest.Ctx, childIteration)
-		rest.T().Log("childIteration:", childIteration.ID, childIteration.Name, childIteration.Path)
-		grandChildIteration = &iteration.Iteration{
-			Name:    "Grand Child Iteration",
-			SpaceID: spaceID,
-			Path:    append(childIteration.Path, childIteration.ID),
-		}
-		repo.Create(rest.Ctx, grandChildIteration)
-		rest.T().Log("grandChildIteration:", grandChildIteration.ID, grandChildIteration.Name, grandChildIteration.Path)
-
-		return nil
-	})
-	require.Nil(rest.T(), err)
-	return
-}
-
 func assertIterations(t *testing.T, data []*app.Iteration, fatherIteration, childIteration, grandChildIteration *iteration.Iteration) {
-	assert.Len(t, data, 6)
+	assert.Len(t, data, 3)
 	for _, iterationItem := range data {
 		subString := fmt.Sprintf("?filter[iteration]=%s", iterationItem.ID.String())
 		require.Contains(t, *iterationItem.Relationships.Workitems.Links.Related, subString)

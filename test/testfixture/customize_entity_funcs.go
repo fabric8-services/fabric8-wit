@@ -1,6 +1,7 @@
 package testfixture
 
 import (
+	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	errs "github.com/pkg/errors"
@@ -97,6 +98,32 @@ func SetIterationNames(names ...string) CustomizeIterationFunc {
 	}
 }
 
+// SetIterationStates takes the given states and uses them during creation of
+// iterations. The length of requested iterations and the number of states must
+// match or the NewFixture call will return an error.
+func SetIterationStates(states ...iteration.State) CustomizeIterationFunc {
+	return func(fxt *TestFixture, idx int) error {
+		if len(fxt.Iterations) != len(states) {
+			return errs.Errorf("number of states (%d) must match number of iterations to create (%d)", len(states), len(fxt.Iterations))
+		}
+		fxt.Iterations[idx].State = states[idx]
+		return nil
+	}
+}
+
+// SetSpaceNames takes the given names and uses them during creation of spaces.
+// The length of requested spaces and the number of names must match or the
+// NewFixture call will return an error.
+func SetSpaceNames(names ...string) CustomizeSpaceFunc {
+	return func(fxt *TestFixture, idx int) error {
+		if len(fxt.Spaces) != len(names) {
+			return errs.Errorf("number of names (%d) must match number of spaces to create (%d)", len(names), len(fxt.Spaces))
+		}
+		fxt.Spaces[idx].Name = names[idx]
+		return nil
+	}
+}
+
 // PlaceIterationUnderRootIteration when asking for more than one iteration, all
 // but the first one will be placed under the first iteration (aka root
 // iteration).
@@ -149,13 +176,64 @@ func SetIdentityUsernames(usernames ...string) CustomizeIdentityFunc {
 // SetWorkItemTitles takes the given titles and uses them during creation of
 // work items. The length of requested work items and the number of titles must
 // match or the NewFixture call will return an error.
-func SetWorkItemTitles(titles ...string) CustomizeWorkItemFunc {
+func SetWorkItemTitles(titles ...interface{}) CustomizeWorkItemFunc {
+	return SetWorkItemField(workitem.SystemTitle, titles...)
+}
+
+// SetWorkItemField takes the given values and uses them during creation of work
+// items to set field values. The length of requested work items and the number
+// of values must match or the NewFixture call will return an error.
+func SetWorkItemField(fieldName string, values ...interface{}) CustomizeWorkItemFunc {
 	return func(fxt *TestFixture, idx int) error {
-		if len(fxt.WorkItems) != len(titles) {
-			return errs.Errorf("number of titles (%d) must match number of work items to create (%d)", len(titles), len(fxt.WorkItems))
+		if len(fxt.WorkItems) != len(values) {
+			return errs.Errorf("number of \"%s\" fields (%d) must match number of work items to create (%d)", fieldName, len(values), len(fxt.WorkItems))
 		}
-		fxt.WorkItems[idx].Fields[workitem.SystemTitle] = titles[idx]
+		witID := fxt.WorkItems[idx].Type
+		wit := fxt.WorkItemTypeByID(witID)
+		if wit == nil {
+			return errs.Errorf("failed to find work item type with ID %s in test fixture", witID)
+		}
+		field, ok := wit.Fields[fieldName]
+		if !ok {
+			return errs.Errorf("failed to find field \"%s\" in work item type %s", fieldName, witID)
+		}
+		v, err := field.Type.ConvertToModel(values[idx])
+		if err != nil {
+			return errs.Wrapf(err, "failed to set field \"%s\" in work item type %s to: %+v", fieldName, wit.Name, values[idx])
+		}
+		fxt.WorkItems[idx].Fields[fieldName] = v
 		return nil
+	}
+}
+
+// SetWorkItemStates takes the given states and uses them during creation of
+// work items. The length of requested work items and the number of states must
+// match or the NewFixture call will return an error.
+func SetWorkItemStates(states ...interface{}) CustomizeWorkItemFunc {
+	return SetWorkItemField(workitem.SystemState, states...)
+}
+
+// SetWorkItemIterationsByName takes the given iteration names and uses them
+// during creation of work items. The length of requested work items and the
+// number of iteration names must match or the NewFixture call will return an
+// error.
+func SetWorkItemIterationsByName(iterationNames ...string) CustomizeWorkItemFunc {
+	return func(fxt *TestFixture, idx int) error {
+		if len(fxt.WorkItems) != len(iterationNames) {
+			return errs.Errorf("number of iterations (%d) must match number of work items to create (%d)", len(iterationNames), len(fxt.WorkItems))
+		}
+		iterIDs := make([]interface{}, len(fxt.WorkItems))
+		for i := 0; i <= idx; i++ {
+			iter := fxt.IterationByName(iterationNames[idx], fxt.WorkItems[idx].SpaceID)
+			if iter == nil {
+				return errs.Errorf("failed to find iteration with name %s and space ID %s in fixture", iterationNames[idx], fxt.WorkItems[idx].SpaceID)
+			}
+			iterIDs[idx] = iter.ID.String()
+		}
+		return SetWorkItemField(workitem.SystemIteration, iterIDs...)(fxt, idx)
+
+		//fxt.WorkItems[idx].Fields[workitem.SystemIteration] = itr.ID.String()
+		// return nil
 	}
 }
 
