@@ -118,3 +118,4 @@ import:
 - package: github.com/xeipuuv/gojsonschema
 - package: github.com/xeipuuv/gojsonreference
 - package: github.com/xeipuuv/gojsonpointer
+- package: github.com/prometheus/client_golang
