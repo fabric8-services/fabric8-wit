@@ -202,7 +202,7 @@ func Equals(left Expression, right Expression) Expression {
 	return reparent(&EqualsExpression{binaryExpression{expression{}, left, right}})
 }
 
-// SubstringExpression represents the equality operator
+// SubstringExpression represents the substring operator
 type SubstringExpression struct {
 	binaryExpression
 }

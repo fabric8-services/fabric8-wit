@@ -426,6 +426,7 @@ func (s *searchControllerTestSuite) TestSearchQueryScenarioDriven() {
 				wi.Fields[workitem.SystemCreator] = fxt.IdentityByUsername("spaceowner").ID.String()
 				wi.Type = fxt.WorkItemTypeByName("bug").ID
 			} else if idx < 3+5 {
+				wi.Fields[workitem.SystemTitle] = "some random title"
 				wi.Fields[workitem.SystemState] = workitem.SystemStateClosed
 				wi.Fields[workitem.SystemIteration] = fxt.IterationByName("sprint2").ID.String()
 				wi.Fields[workitem.SystemLabels] = []string{fxt.LabelByName("ui").ID.String()}
@@ -433,6 +434,7 @@ func (s *searchControllerTestSuite) TestSearchQueryScenarioDriven() {
 				wi.Fields[workitem.SystemCreator] = fxt.IdentityByUsername("spaceowner").ID.String()
 				wi.Type = fxt.WorkItemTypeByName("feature").ID
 			} else {
+				wi.Fields[workitem.SystemTitle] = "some other random title"
 				wi.Fields[workitem.SystemState] = workitem.SystemStateClosed
 				wi.Fields[workitem.SystemIteration] = fxt.IterationByName("sprint2").ID.String()
 				wi.Fields[workitem.SystemCreator] = fxt.IdentityByUsername("spaceowner").ID.String()

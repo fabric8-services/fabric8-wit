@@ -37,8 +37,8 @@ func TestParseMap(t *testing.T) {
 	t.Run("$SUBSTR", func(t *testing.T) {
 		t.Parallel()
 		// given
-		openshiftio := "openshiftio"
-		input := fmt.Sprintf(`{"title": { "$SUBSTR": "%s"}}`, openshiftio)
+		substr := "openshiftio"
+		input := fmt.Sprintf(`{"title": { "$SUBSTR": "%s"}}`, substr)
 		// Parsing/Unmarshalling JSON encoding/json
 		fm := map[string]interface{}{}
 		err := json.Unmarshal([]byte(input), &fm)
@@ -47,7 +47,7 @@ func TestParseMap(t *testing.T) {
 		actualQuery := Query{}
 		parseMap(fm, &actualQuery)
 		// then
-		expectedQuery := Query{Name: "title", Value: &openshiftio, Substring: true}
+		expectedQuery := Query{Name: "title", Value: &substr, Substring: true}
 		assert.Equal(t, expectedQuery, actualQuery)
 	})
 

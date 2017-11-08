@@ -120,7 +120,7 @@ func (c *FilterController) List(ctx *app.ListFilterContext) error {
 				Query:       fmt.Sprintf("filter[%s]={id}", filterKeyTitle),
 				Key:         filterKeyTitle,
 				Description: "Filter by title",
-				Type:        "titles", // not really used anywhere
+				Type:        "title", // not really used anywhere
 			},
 			Type: "filters",
 		},
