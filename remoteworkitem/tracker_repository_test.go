@@ -6,7 +6,6 @@ import (
 	"context"
 
 	errors "github.com/fabric8-services/fabric8-wit/errors"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/resource"
@@ -20,10 +19,7 @@ import (
 
 type TestTrackerRepository struct {
 	gormtestsupport.DBTestSuite
-
 	repo remoteworkitem.TrackerRepository
-
-	clean func()
 }
 
 func TestRunTrackerRepository(t *testing.T) {
@@ -31,12 +27,8 @@ func TestRunTrackerRepository(t *testing.T) {
 }
 
 func (test *TestTrackerRepository) SetupTest() {
+	test.DBTestSuite.SetupTest()
 	test.repo = remoteworkitem.NewTrackerRepository(test.DB)
-	test.clean = cleaner.DeleteCreatedEntities(test.DB)
-}
-
-func (test *TestTrackerRepository) TearDownTest() {
-	test.clean()
 }
 
 func (test *TestTrackerRepository) TestTrackerCreate() {

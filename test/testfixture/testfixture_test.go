@@ -5,7 +5,6 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
@@ -22,14 +21,6 @@ func TestRunTestFixtureSuite(t *testing.T) {
 
 type testFixtureSuite struct {
 	gormtestsupport.DBTestSuite
-	clean func()
-}
-
-func (s *testFixtureSuite) SetupTest() {
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
-}
-func (s *testFixtureSuite) TearDownTest() {
-	s.clean()
 }
 
 func (s *testFixtureSuite) TestNewFixture_Advanced() {

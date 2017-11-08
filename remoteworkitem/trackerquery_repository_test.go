@@ -8,7 +8,6 @@ import (
 	"context"
 
 	errs "github.com/fabric8-services/fabric8-wit/errors"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
@@ -25,8 +24,6 @@ type TestTrackerQueryRepository struct {
 
 	trackerRepo TrackerRepository
 	queryRepo   TrackerQueryRepository
-
-	clean func()
 }
 
 func TestRunTrackerQueryRepository(t *testing.T) {
@@ -34,14 +31,9 @@ func TestRunTrackerQueryRepository(t *testing.T) {
 }
 
 func (test *TestTrackerQueryRepository) SetupTest() {
+	test.DBTestSuite.SetupTest()
 	test.trackerRepo = NewTrackerRepository(test.DB)
 	test.queryRepo = NewTrackerQueryRepository(test.DB)
-
-	test.clean = cleaner.DeleteCreatedEntities(test.DB)
-}
-
-func (test *TestTrackerQueryRepository) TearDownTest() {
-	test.clean()
 }
 
 func (test *TestTrackerQueryRepository) TestTrackerQueryCreate() {

@@ -18,7 +18,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/space"
@@ -38,7 +37,6 @@ import (
 type TestIterationREST struct {
 	gormtestsupport.DBTestSuite
 	db      *gormapplication.GormDB
-	clean   func()
 	testDir string
 }
 
@@ -48,13 +46,9 @@ func TestRunIterationREST(t *testing.T) {
 }
 
 func (rest *TestIterationREST) SetupTest() {
+	rest.DBTestSuite.SetupTest()
 	rest.db = gormapplication.NewGormDB(rest.DB)
-	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
 	rest.testDir = filepath.Join("test-files", "iteration")
-}
-
-func (rest *TestIterationREST) TearDownTest() {
-	rest.clean()
 }
 
 func (rest *TestIterationREST) SecuredController() (*goa.Service, *IterationController) {
