@@ -268,9 +268,19 @@ generate: app/controllers.go assets/js/client.js bindata_assetfs.go migration/sq
 regenerate: clean-generated generate
 
 .PHONY: dev
-dev: prebuild-check deps generate $(FRESH_BIN)
-	docker-compose up -d db auth
+dev: prebuild-check deps generate $(FRESH_BIN) docker-compose-up
 	F8_DEVELOPER_MODE_ENABLED=true $(FRESH_BIN)
+
+.PHONY: docker-compose-up
+docker-compose-up:
+ifeq ($(UNAME_S),Darwin)
+	@echo "Running docker-compose with macOS network settings"
+	docker-compose -f docker-compose.macos.yml up -d db auth
+else
+	@echo "Running docker-compose with Linux network settings"
+	docker-compose up -d db auth
+endif
+
 
 include ./.make/test.mk
 
