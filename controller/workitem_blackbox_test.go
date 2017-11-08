@@ -1949,7 +1949,8 @@ func (s *WorkItem2Suite) xTestWI2DeleteLinksOnWIDeletionOK() {
 
 func (s *WorkItem2Suite) TestWI2CreateWithArea() {
 	// given
-	_, areaInstance := createSpaceAndArea(s.T(), gormapplication.NewGormDB(s.DB))
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1), tf.Areas(1))
+	areaInstance := *fxt.Areas[0]
 	areaID := areaInstance.ID.String()
 	arType := area.APIStringTypeAreas
 	// when
@@ -1975,7 +1976,9 @@ func (s *WorkItem2Suite) TestWI2CreateWithArea() {
 
 func (s *WorkItem2Suite) TestWI2UpdateWithArea() {
 	// given
-	_, areaInstance := createSpaceAndArea(s.T(), gormapplication.NewGormDB(s.DB))
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1), tf.Areas(1))
+	areaInstance := *fxt.Areas[0]
+
 	areaID := areaInstance.ID.String()
 	arType := area.APIStringTypeAreas
 	c := minimumRequiredCreatePayload()
@@ -2021,7 +2024,9 @@ func (s *WorkItem2Suite) TestWI2UpdateWithArea() {
 
 func (s *WorkItem2Suite) TestWI2UpdateWithRootAreaIfMissing() {
 	// given
-	testSpace, rootArea := createSpaceAndArea(s.T(), gormapplication.NewGormDB(s.DB))
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1), tf.Areas(1))
+	testSpace := *fxt.Spaces[0]
+	rootArea := *fxt.Areas[0]
 	log.Info(nil, nil, "creating child area...")
 	childArea := area.Area{
 		Name:    "Child Area of " + rootArea.Name,
@@ -2104,7 +2109,7 @@ func (s *WorkItem2Suite) TestWI2CreateUnknownArea() {
 
 func (s *WorkItem2Suite) TestWI2CreateWithIteration() {
 	// given
-	_, _, _, _, iterationInstance := createSpaceAndRootAreaAndIterations(s.T(), gormapplication.NewGormDB(s.DB))
+	_, _, _, _, iterationInstance := createSpaceAndRootAreaAndIterations(s.T(), s.DB)
 	iterationID := iterationInstance.ID.String()
 	itType := iteration.APIStringTypeIteration
 	// when
@@ -2130,7 +2135,7 @@ func (s *WorkItem2Suite) TestWI2CreateWithIteration() {
 
 func (s *WorkItem2Suite) TestWI2UpdateWithIteration() {
 	// given
-	_, _, _, _, iterationInstance := createSpaceAndRootAreaAndIterations(s.T(), gormapplication.NewGormDB(s.DB))
+	_, _, _, _, iterationInstance := createSpaceAndRootAreaAndIterations(s.T(), s.DB)
 	iterationID := iterationInstance.ID.String()
 	itType := iteration.APIStringTypeIteration
 	c := minimumRequiredCreatePayload()
@@ -2167,7 +2172,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithIteration() {
 
 func (s *WorkItem2Suite) TestWI2UpdateWithRootIterationIfMissing() {
 	// given
-	testSpace, _, rootIteration, _, otherIteration := createSpaceAndRootAreaAndIterations(s.T(), gormapplication.NewGormDB(s.DB))
+	testSpace, _, rootIteration, _, otherIteration := createSpaceAndRootAreaAndIterations(s.T(), s.DB)
 	iterationID := otherIteration.ID.String()
 	iterationType := iteration.APIStringTypeIteration
 	payload := app.CreateWorkitemsPayload{
@@ -2223,7 +2228,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithRootIterationIfMissing() {
 func (s *WorkItem2Suite) TestWI2UpdateRemoveIteration() {
 	s.T().Skip("iteration.data can't be sent as nil from client libs since it's optionall and is removed during json encoding")
 	// given
-	_, _, _, _, iterationInstance := createSpaceAndRootAreaAndIterations(s.T(), gormapplication.NewGormDB(s.DB))
+	_, _, _, _, iterationInstance := createSpaceAndRootAreaAndIterations(s.T(), s.DB)
 	iterationID := iterationInstance.ID.String()
 	itType := iteration.APIStringTypeIteration
 	// when
@@ -2572,7 +2577,7 @@ func (s *WorkItem2Suite) TestDefaultSpaceAndIterationRelations() {
 // Following test verifies that UPDATE on WI by setting AREA & Iteration
 // works as expected and do not alter previously set values
 func (s *WorkItem2Suite) TestWI2UpdateWithAreaIterationSuccessively() {
-	sp, rootArea, rootIteration, areaInstance, iterationInstance := createSpaceAndRootAreaAndIterations(s.T(), gormapplication.NewGormDB(s.DB))
+	sp, rootArea, rootIteration, areaInstance, iterationInstance := createSpaceAndRootAreaAndIterations(s.T(), s.DB)
 	iterationID := iterationInstance.ID.String()
 	areaID := areaInstance.ID.String()
 	itType := iteration.APIStringTypeIteration

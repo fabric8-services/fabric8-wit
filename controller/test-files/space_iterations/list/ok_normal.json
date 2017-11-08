@@ -1,0 +1,144 @@
+{
+  "data": [
+    {
+      "attributes": {
+        "active_status": false,
+        "created-at": "0001-01-01T00:00:00Z",
+        "description": "Some description",
+        "name": "1",
+        "parent_path": "/",
+        "resolved_parent_path": "/",
+        "state": "new",
+        "updated-at": "0001-01-01T00:00:00Z",
+        "user_active": false
+      },
+      "id": "134e7de6-40a7-4055-9029-c59886a0b2f7",
+      "links": {
+        "related": "http:///api/iterations/134e7de6-40a7-4055-9029-c59886a0b2f7",
+        "self": "http:///api/iterations/134e7de6-40a7-4055-9029-c59886a0b2f7"
+      },
+      "relationships": {
+        "space": {
+          "data": {
+            "id": "ac465700-bb8b-4839-8de2-719bf5c40e4c",
+            "type": "spaces"
+          },
+          "links": {
+            "related": "http:///api/spaces/ac465700-bb8b-4839-8de2-719bf5c40e4c",
+            "self": "http:///api/spaces/ac465700-bb8b-4839-8de2-719bf5c40e4c"
+          }
+        },
+        "workitems": {
+          "links": {
+            "related": "http:///api/workitems/?filter[iteration]=134e7de6-40a7-4055-9029-c59886a0b2f7"
+          },
+          "meta": {
+            "closed": 0,
+            "total": 0
+          }
+        }
+      },
+      "type": "iterations"
+    },
+    {
+      "attributes": {
+        "active_status": false,
+        "created-at": "0001-01-01T00:00:00Z",
+        "description": "Some description",
+        "name": "1.1",
+        "parent_path": "/134e7de6-40a7-4055-9029-c59886a0b2f7",
+        "resolved_parent_path": "/1",
+        "state": "new",
+        "updated-at": "0001-01-01T00:00:00Z",
+        "user_active": false
+      },
+      "id": "cb6b2809-3697-4ef7-8489-e137358fd156",
+      "links": {
+        "related": "http:///api/iterations/cb6b2809-3697-4ef7-8489-e137358fd156",
+        "self": "http:///api/iterations/cb6b2809-3697-4ef7-8489-e137358fd156"
+      },
+      "relationships": {
+        "parent": {
+          "data": {
+            "id": "134e7de6-40a7-4055-9029-c59886a0b2f7",
+            "type": "iterations"
+          },
+          "links": {
+            "related": "http:///api/iterations/134e7de6-40a7-4055-9029-c59886a0b2f7",
+            "self": "http:///api/iterations/134e7de6-40a7-4055-9029-c59886a0b2f7"
+          }
+        },
+        "space": {
+          "data": {
+            "id": "ac465700-bb8b-4839-8de2-719bf5c40e4c",
+            "type": "spaces"
+          },
+          "links": {
+            "related": "http:///api/spaces/ac465700-bb8b-4839-8de2-719bf5c40e4c",
+            "self": "http:///api/spaces/ac465700-bb8b-4839-8de2-719bf5c40e4c"
+          }
+        },
+        "workitems": {
+          "links": {
+            "related": "http:///api/workitems/?filter[iteration]=cb6b2809-3697-4ef7-8489-e137358fd156"
+          },
+          "meta": {
+            "closed": 0,
+            "total": 0
+          }
+        }
+      },
+      "type": "iterations"
+    },
+    {
+      "attributes": {
+        "active_status": false,
+        "created-at": "0001-01-01T00:00:00Z",
+        "description": "Some description",
+        "name": "1.1.1",
+        "parent_path": "/134e7de6-40a7-4055-9029-c59886a0b2f7/cb6b2809-3697-4ef7-8489-e137358fd156",
+        "resolved_parent_path": "/1/1.1",
+        "state": "new",
+        "updated-at": "0001-01-01T00:00:00Z",
+        "user_active": false
+      },
+      "id": "6a8707a4-9fe2-46e6-b278-7dd7a4b87fa4",
+      "links": {
+        "related": "http:///api/iterations/6a8707a4-9fe2-46e6-b278-7dd7a4b87fa4",
+        "self": "http:///api/iterations/6a8707a4-9fe2-46e6-b278-7dd7a4b87fa4"
+      },
+      "relationships": {
+        "parent": {
+          "data": {
+            "id": "cb6b2809-3697-4ef7-8489-e137358fd156",
+            "type": "iterations"
+          },
+          "links": {
+            "related": "http:///api/iterations/cb6b2809-3697-4ef7-8489-e137358fd156",
+            "self": "http:///api/iterations/cb6b2809-3697-4ef7-8489-e137358fd156"
+          }
+        },
+        "space": {
+          "data": {
+            "id": "ac465700-bb8b-4839-8de2-719bf5c40e4c",
+            "type": "spaces"
+          },
+          "links": {
+            "related": "http:///api/spaces/ac465700-bb8b-4839-8de2-719bf5c40e4c",
+            "self": "http:///api/spaces/ac465700-bb8b-4839-8de2-719bf5c40e4c"
+          }
+        },
+        "workitems": {
+          "links": {
+            "related": "http:///api/workitems/?filter[iteration]=6a8707a4-9fe2-46e6-b278-7dd7a4b87fa4"
+          },
+          "meta": {
+            "closed": 0,
+            "total": 0
+          }
+        }
+      },
+      "type": "iterations"
+    }
+  ]
+}

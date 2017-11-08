@@ -62,8 +62,8 @@ func Identities(n int, fns ...CustomizeIdentityFunc) RecipeFunction {
 	}
 }
 
-// CustomizeSpacesFunc is directly compatible with CustomizeEntityFunc
-// but it can only be used for the Spaces() recipe-function.
+// CustomizeSpaceFunc is directly compatible with CustomizeEntityFunc but it can
+// only be used for the Spaces() recipe-function.
 type CustomizeSpaceFunc CustomizeEntityFunc
 
 // Spaces tells the test fixture to create at least n space objects. See also
@@ -271,8 +271,8 @@ type CustomizeWorkItemTypeFunc CustomizeEntityFunc
 // but with NewFixtureIsolated(), no other objects will be created.
 //
 // The work item type that we create for each of the n instances is always the
-// same and it tries to be compatible with the planner item work item type by
-// specifying the same fields.
+// same (except a different ID) and it tries to be compatible with the planner
+// item work item type by specifying the same fields.
 func WorkItemTypes(n int, fns ...CustomizeWorkItemTypeFunc) RecipeFunction {
 	return func(fxt *TestFixture) error {
 		fxt.checkFuncs = append(fxt.checkFuncs, func() error {

@@ -11,8 +11,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/test"
-
-	uuid "github.com/satori/go.uuid"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 )
 
 type BenchAreaRepository struct {
@@ -57,17 +56,11 @@ func (bench *BenchAreaRepository) BenchmarkRootArea() {
 func (bench *BenchAreaRepository) BenchmarkCreateArea() {
 	bench.B().ResetTimer()
 	bench.B().ReportAllocs()
+	fxt := tf.NewTestFixture(bench.B(), bench.DB, tf.Spaces(1))
 	for n := 0; n < bench.B().N; n++ {
-		newSpace := space.Space{
-			Name: "BenchmarkCreateArea " + uuid.NewV4().String(),
-		}
-		s, err := bench.repoSpace.Create(context.Background(), &newSpace)
-		if err != nil {
-			bench.B().Fail()
-		}
 		a := area.Area{
 			Name:    "TestCreateArea",
-			SpaceID: s.ID,
+			SpaceID: fxt.Spaces[0].ID,
 		}
 		if err := bench.repo.Create(context.Background(), &a); err != nil {
 			bench.B().Fail()
