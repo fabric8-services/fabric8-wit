@@ -40,6 +40,14 @@ func (t *TransportMonitor) ValidateExchanges(exchanges ...Exchange) error {
 	return nil
 }
 
+// ValidateNoExchanges verifies that the transport monitor does not contain any record of exchanges
+func (t *TransportMonitor) ValidateNoExchanges() error {
+	if len(t.Exchanges) != 0 {
+		return fmt.Errorf("unexpected number of exchanges: %d (actual)", len(t.Exchanges))
+	}
+	return nil
+}
+
 // RoundTrip implements the http.RoundTripper#RoundTrip(*http.Request) (*http.Response, error) function,
 // It delegates the call to the underlying RoundTripper of this monitor, and keps track of the request/response
 // exhanges data.
