@@ -50,9 +50,6 @@ func (s *CodebaseControllerTestSuite) SecuredControllers(identity account.Identi
 }
 
 func (s *CodebaseControllerTestSuite) TestShowCodebase() {
-	resetFn := s.DisableGormCallbacks()
-	defer resetFn()
-
 	s.T().Run("success without stackId", func(t *testing.T) {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.Codebases(1))

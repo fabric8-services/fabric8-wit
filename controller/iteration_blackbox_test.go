@@ -67,9 +67,6 @@ func (rest *TestIterationREST) UnSecuredController() (*goa.Service, *IterationCo
 }
 
 func (rest *TestIterationREST) TestCreateChildIteration() {
-	resetFn := rest.DisableGormCallbacks()
-	defer resetFn()
-
 	rest.T().Run("success - create child iteration", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, rest.DB,
 			tf.CreateWorkItemEnvironment(),

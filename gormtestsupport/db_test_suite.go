@@ -29,11 +29,12 @@ func NewDBTestSuite(configFilePath string) DBTestSuite {
 // DBTestSuite is a base for tests using a gorm db
 type DBTestSuite struct {
 	suite.Suite
-	configFile    string
-	Configuration *config.ConfigurationData
-	DB            *gorm.DB
-	clean         func()
-	Ctx           context.Context
+	configFile           string
+	Configuration        *config.ConfigurationData
+	DB                   *gorm.DB
+	clean                func()
+	restoreGormCallbacks func()
+	Ctx                  context.Context
 }
 
 // SetupSuite implements suite.SetupAllSuite
@@ -62,11 +63,24 @@ func (s *DBTestSuite) SetupSuite() {
 // SetupTest implements suite.SetupTest
 func (s *DBTestSuite) SetupTest() {
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+	s.DisableGormCallbacks()
 }
 
 // TearDownTest implements suite.TearDownTest
 func (s *DBTestSuite) TearDownTest() {
 	s.clean()
+	s.RestoreGormCallbacks()
+}
+
+// RestoreGormCallbacks restores gorm callbacks. For more information see
+// DisableGormCallbacks(). You can call this function multiple times but it will
+// only restore the callbacks once. For now this function is NOT thread-safe, so
+// don't use it in parallel tests!
+func (s *DBTestSuite) RestoreGormCallbacks() {
+	if s.restoreGormCallbacks != nil {
+		s.restoreGormCallbacks()
+	}
+	s.restoreGormCallbacks = nil
 }
 
 // populateDBTestSuite populates the DB with common values
@@ -89,12 +103,14 @@ func (s *DBTestSuite) TearDownSuite() {
 }
 
 // DisableGormCallbacks will turn off gorm's automatic setting of `created_at`
-// and `updated_at` columns. Call this function and make sure to `defer` the
-// returned function.
-//
-//    resetFn := DisableGormCallbacks()
-//    defer resetFn()
-func (s *DBTestSuite) DisableGormCallbacks() func() {
+// and `updated_at` columns. Call this function and make sure to call
+// RestoreGormCallbacks() when you want to restore the normal callbacks (e.g.
+// after each test).
+func (s *DBTestSuite) DisableGormCallbacks() {
+	// To avoid disabling callbacks entirely, first see if there's something to
+	// restore already.
+	s.RestoreGormCallbacks()
+
 	gormCallbackName := "gorm:update_time_stamp"
 	// remember old callbacks
 	oldCreateCallback := s.DB.Callback().Create().Get(gormCallbackName)
@@ -103,7 +119,7 @@ func (s *DBTestSuite) DisableGormCallbacks() func() {
 	s.DB.Callback().Create().Remove(gormCallbackName)
 	s.DB.Callback().Update().Remove(gormCallbackName)
 	// return a function to restore old callbacks
-	return func() {
+	s.restoreGormCallbacks = func() {
 		s.DB.Callback().Create().Register(gormCallbackName, oldCreateCallback)
 		s.DB.Callback().Update().Register(gormCallbackName, oldUpdateCallback)
 	}
