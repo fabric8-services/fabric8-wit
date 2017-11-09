@@ -78,9 +78,6 @@ func (s *CodebaseControllerTestSuite) TestShowCodebase() {
 }
 
 func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
-	resetFn := s.DisableGormCallbacks()
-	defer resetFn()
-
 	s.T().Run("OK", func(t *testing.T) {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB,
