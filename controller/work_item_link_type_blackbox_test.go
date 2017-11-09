@@ -100,7 +100,9 @@ func (s *workItemLinkTypeSuite) SetupTest() {
 // createDemoType creates a demo work item link type of type "name"
 func (s *workItemLinkTypeSuite) createDemoLinkType(name string) *app.CreateWorkItemLinkTypePayload {
 	//   1. Create a space
-	createSpacePayload := CreateSpacePayload(s.spaceName, "description")
+	spaceName := s.spaceName
+	spaceDescription := "description"
+	createSpacePayload := newCreateSpacePayload(&spaceName, &spaceDescription)
 	_, space := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, createSpacePayload)
 	s.spaceID = space.Data.ID
 
@@ -110,10 +112,10 @@ func (s *workItemLinkTypeSuite) createDemoLinkType(name string) *app.CreateWorkI
 	require.NotNil(s.T(), workItemType)
 
 	//   3. Create a work item link category
-	description := "This work item link category is managed by an admin user."
+	linkCategoryDescription := "This work item link category is managed by an admin user."
 	catID := createWorkItemLinkCategoryInRepo(s.T(), s.appDB, s.svc.Context, link.WorkItemLinkCategory{
 		Name:        s.categoryName,
-		Description: &description,
+		Description: &linkCategoryDescription,
 	})
 
 	// 4. Create work item link type payload
