@@ -289,7 +289,14 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 
 	for i := 0; i < 3; i++ {
 		wirepo.Create(
-			rest.Ctx, iteration1.SpaceID, workitem.SystemBug,
+			rest.Ctx, iteration1.SpaceID, workitem.SystemFeature,
+			map[string]interface{}{
+				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
+				workitem.SystemState:     workitem.SystemStateNew,
+				workitem.SystemIteration: iteration1.ID.String(),
+			}, rest.testIdentity.ID)
+		wirepo.Create(
+			rest.Ctx, iteration1.SpaceID, workitem.SystemTask,
 			map[string]interface{}{
 				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
 				workitem.SystemState:     workitem.SystemStateNew,
@@ -298,7 +305,15 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 	}
 	for i := 0; i < 2; i++ {
 		_, err := wirepo.Create(
-			rest.Ctx, iteration1.SpaceID, workitem.SystemBug,
+			rest.Ctx, iteration1.SpaceID, workitem.SystemFeature,
+			map[string]interface{}{
+				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
+				workitem.SystemState:     workitem.SystemStateClosed,
+				workitem.SystemIteration: iteration1.ID.String(),
+			}, rest.testIdentity.ID)
+		require.Nil(rest.T(), err)
+		_, err = wirepo.Create(
+			rest.Ctx, iteration1.SpaceID, workitem.SystemTask,
 			map[string]interface{}{
 				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
 				workitem.SystemState:     workitem.SystemStateClosed,
@@ -309,7 +324,16 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 	// add items to nested iteration level 1
 	for i := 0; i < 4; i++ {
 		_, err := wirepo.Create(
-			rest.Ctx, iteration1.SpaceID, workitem.SystemBug,
+			rest.Ctx, iteration1.SpaceID, workitem.SystemFeature,
+			map[string]interface{}{
+				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
+				workitem.SystemState:     workitem.SystemStateNew,
+				workitem.SystemIteration: childOfIteration2.ID.String(),
+			}, rest.testIdentity.ID)
+		require.Nil(rest.T(), err)
+
+		_, err = wirepo.Create(
+			rest.Ctx, iteration1.SpaceID, workitem.SystemTask,
 			map[string]interface{}{
 				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
 				workitem.SystemState:     workitem.SystemStateNew,
@@ -320,7 +344,15 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 	// add items to nested iteration level 2
 	for i := 0; i < 5; i++ {
 		_, err := wirepo.Create(
-			rest.Ctx, iteration1.SpaceID, workitem.SystemBug,
+			rest.Ctx, iteration1.SpaceID, workitem.SystemFeature,
+			map[string]interface{}{
+				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
+				workitem.SystemState:     workitem.SystemStateClosed,
+				workitem.SystemIteration: grandChildOfIteration2.ID.String(),
+			}, rest.testIdentity.ID)
+		require.Nil(rest.T(), err)
+		_, err = wirepo.Create(
+			rest.Ctx, iteration1.SpaceID, workitem.SystemTask,
 			map[string]interface{}{
 				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
 				workitem.SystemState:     workitem.SystemStateClosed,
@@ -361,7 +393,16 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 	// seed 5 New WI to iteration2
 	for i := 0; i < 5; i++ {
 		_, err := wirepo.Create(
-			rest.Ctx, iteration1.SpaceID, workitem.SystemBug,
+			rest.Ctx, iteration1.SpaceID, workitem.SystemFeature,
+			map[string]interface{}{
+				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
+				workitem.SystemState:     workitem.SystemStateNew,
+				workitem.SystemIteration: iteration2.ID.String(),
+			}, rest.testIdentity.ID)
+		require.Nil(rest.T(), err)
+
+		_, err = wirepo.Create(
+			rest.Ctx, iteration1.SpaceID, workitem.SystemTask,
 			map[string]interface{}{
 				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
 				workitem.SystemState:     workitem.SystemStateNew,
@@ -372,7 +413,16 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 	// seed 2 Closed WI to iteration2
 	for i := 0; i < 3; i++ {
 		_, err := wirepo.Create(
-			rest.Ctx, iteration1.SpaceID, workitem.SystemBug,
+			rest.Ctx, iteration1.SpaceID, workitem.SystemFeature,
+			map[string]interface{}{
+				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
+				workitem.SystemState:     workitem.SystemStateClosed,
+				workitem.SystemIteration: iteration2.ID.String(),
+			}, rest.testIdentity.ID)
+		require.Nil(rest.T(), err)
+
+		_, err = wirepo.Create(
+			rest.Ctx, iteration1.SpaceID, workitem.SystemTask,
 			map[string]interface{}{
 				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
 				workitem.SystemState:     workitem.SystemStateClosed,
