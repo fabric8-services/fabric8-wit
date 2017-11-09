@@ -62,6 +62,7 @@ const (
 // It will also make sure that some resources that we rely on do exists.
 func (s *workItemChildSuite) SetupTest() {
 	s.DBTestSuite.SetupTest()
+	s.RestoreGormCallbacks()
 	s.db = gormapplication.NewGormDB(s.DB)
 
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "workItemChildSuite user", "test provider")

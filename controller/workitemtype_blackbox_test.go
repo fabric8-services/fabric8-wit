@@ -392,6 +392,7 @@ func (s *workItemTypeSuite) TestShow() {
 }
 
 func (s *workItemTypeSuite) TestList() {
+	s.RestoreGormCallbacks()
 	// given
 	_, witAnimal := s.createWorkItemTypeAnimal()
 	require.NotNil(s.T(), witAnimal)
