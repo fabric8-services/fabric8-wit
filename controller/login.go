@@ -12,14 +12,10 @@ import (
 	"github.com/fabric8-services/fabric8-wit/auth/authservice"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
-	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/login"
-	"github.com/fabric8-services/fabric8-wit/test/token"
 
 	"github.com/fabric8-services/fabric8-wit/rest/proxy"
 	"github.com/goadesign/goa"
-	errs "github.com/pkg/errors"
-	"github.com/satori/go.uuid"
 )
 
 type loginConfiguration interface {
@@ -92,66 +88,5 @@ func redirectWithParams(ctx redirectContext, config auth.AuthServiceConfiguratio
 
 // Generate generates access tokens in Dev Mode
 func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
-	var tokens app.AuthTokenCollection
-
-	testuser, err := generateUserToken(ctx, c.configuration, c.configuration.GetKeycloakTestUserName())
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"err":      err,
-			"username": c.configuration.GetKeycloakTestUserName(),
-		}, "unable to get Generate User token")
-		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.Wrap(err, "unable to generate test token ")))
-	}
-	// Creates the testuser user and identity if they don't yet exist
-	_, _, err = c.auth.CreateOrUpdateKeycloakUser(*testuser.Token.AccessToken, ctx)
-	if err != nil {
-		log.Warn(ctx, map[string]interface{}{
-			"err":      err,
-			"username": c.configuration.GetKeycloakTestUserName(),
-		}, "unable to create or update user")
-	}
-	tokens = append(tokens, testuser)
-
-	testuser, err = generateUserToken(ctx, c.configuration, c.configuration.GetKeycloakTestUser2Name())
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"err":      err,
-			"username": c.configuration.GetKeycloakTestUser2Name(),
-		}, "unable to generate test token")
-		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.Wrap(err, "unable to generate test token")))
-	}
-	// Creates the testuser2 user and identity if they don't yet exist
-	_, _, err = c.auth.CreateOrUpdateKeycloakUser(*testuser.Token.AccessToken, ctx)
-	if err != nil {
-		log.Warn(ctx, map[string]interface{}{
-			"err":      err,
-			"username": c.configuration.GetKeycloakTestUser2Name(),
-		}, "unable to create or update user")
-	}
-	tokens = append(tokens, testuser)
-
-	ctx.ResponseData.Header().Set("Cache-Control", "no-cache")
-	return ctx.OK(tokens)
-}
-
-func generateUserToken(ctx context.Context, configuration loginConfiguration, username string) (*app.AuthToken, error) {
-	if !configuration.IsPostgresDeveloperModeEnabled() {
-		log.Error(ctx, map[string]interface{}{
-			"method": "Generate",
-		}, "Developer mode not enabled")
-		return nil, errors.NewInternalError(ctx, errs.New("postgres developer mode is not enabled"))
-	}
-	t, err := token.GenerateToken(uuid.NewV4().String(), username, token.PrivateKey())
-	if err != nil {
-		return nil, err
-	}
-	bearer := "Bearer"
-	return &app.AuthToken{Token: &app.TokenData{
-		AccessToken:      &t,
-		ExpiresIn:        60 * 60 * 24 * 30,
-		NotBeforePolicy:  0,
-		RefreshExpiresIn: 60 * 60 * 24 * 30,
-		RefreshToken:     &t,
-		TokenType:        &bearer,
-	}}, nil
+	return proxy.RouteHTTPToPath(ctx, c.configuration.GetAuthServiceURL(), authservice.GenerateTokenPath())
 }

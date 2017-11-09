@@ -401,7 +401,7 @@ func ConvertSpaceFromModel(request *http.Request, sp space.Space, options ...Spa
 	relatedWorkItems := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitems", spaceIDStr))
 	relatedWorkItemTypes := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitemtypes", spaceIDStr))
 	relatedWorkItemLinkTypes := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitemlinktypes", spaceIDStr))
-	relatedOwners := app.UsersHref(sp.OwnerID.String())
+	relatedOwners := rest.AbsoluteURL(request, app.UsersHref(sp.OwnerID.String()))
 	relatedCollaborators := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/collaborators", spaceIDStr))
 	relatedFilters := rest.AbsoluteURL(request, "/api/filters")
 	relatedLabels := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/labels", spaceIDStr))
