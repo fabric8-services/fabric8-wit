@@ -109,7 +109,7 @@ func TestLocateTokenInContex(t *testing.T) {
 
 func TestIsServiceAccountTokenInContextClaimPresent(t *testing.T) {
 	tk := jwt.New(jwt.SigningMethodRS256)
-	tk.Claims.(jwt.MapClaims)["service_accountname"] = "auth"
+	tk.Claims.(jwt.MapClaims)["service_accountname"] = "fabric8-auth"
 	ctx := goajwt.WithJWT(context.Background(), tk)
 
 	isServiceAccount := tokenManager.IsServiceAccount(ctx)
