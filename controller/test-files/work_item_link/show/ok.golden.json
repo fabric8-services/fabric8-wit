@@ -1,0 +1,218 @@
+{
+  "data": {
+    "attributes": {
+      "created-at": "0001-01-01T00:00:00Z",
+      "updated-at": "0001-01-01T00:00:00Z",
+      "version": 0
+    },
+    "id": "00000000-0000-0000-0000-000000000001",
+    "links": {
+      "related": "http:///api/workitemlinks/00000000-0000-0000-0000-000000000001",
+      "self": "http:///api/workitemlinks/00000000-0000-0000-0000-000000000001"
+    },
+    "relationships": {
+      "link_type": {
+        "data": {
+          "id": "00000000-0000-0000-0000-000000000002",
+          "type": "workitemlinktypes"
+        }
+      },
+      "source": {
+        "data": {
+          "id": "00000000-0000-0000-0000-000000000003",
+          "type": "workitems"
+        }
+      },
+      "target": {
+        "data": {
+          "id": "00000000-0000-0000-0000-000000000004",
+          "type": "workitems"
+        }
+      }
+    },
+    "type": "workitemlinks"
+  },
+  "included": [
+    {
+      "attributes": {
+        "created-at": "0001-01-01T00:00:00Z",
+        "description": "some description",
+        "forward_name": "forward name (e.g. blocks)",
+        "name": "work item link type 00000000-0000-0000-0000-000000000005",
+        "reverse_name": "reverse name (e.g. blocked by)",
+        "topology": "tree",
+        "updated-at": "0001-01-01T00:00:00Z",
+        "version": 0
+      },
+      "id": "00000000-0000-0000-0000-000000000002",
+      "relationships": {
+        "link_category": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000006",
+            "type": "workitemlinkcategories"
+          },
+          "links": {
+            "related": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000006",
+            "self": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000006"
+          }
+        },
+        "space": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000007",
+            "type": "spaces"
+          },
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000007",
+            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000007"
+          }
+        }
+      },
+      "type": "workitemlinktypes"
+    },
+    {
+      "attributes": {
+        "description": "some description",
+        "name": "link category 00000000-0000-0000-0000-000000000008",
+        "version": 0
+      },
+      "id": "00000000-0000-0000-0000-000000000006",
+      "type": "workitemlinkcategories"
+    },
+    {
+      "attributes": {
+        "system.created_at": "0001-01-01T00:00:00Z",
+        "system.number": 1,
+        "system.order": 1000,
+        "system.remote_item_id": null,
+        "system.state": "new",
+        "system.title": "work item 00000000-0000-0000-0000-000000000009",
+        "system.updated_at": "0001-01-01T00:00:00Z",
+        "version": 0
+      },
+      "id": "00000000-0000-0000-0000-000000000003",
+      "links": {
+        "related": "http:///api/workitems/00000000-0000-0000-0000-000000000003",
+        "self": "http:///api/workitems/00000000-0000-0000-0000-000000000003"
+      },
+      "relationships": {
+        "area": {},
+        "assignees": {},
+        "baseType": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000010",
+            "type": "workitemtypes"
+          },
+          "links": {
+            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000007/workitemtypes/00000000-0000-0000-0000-000000000010"
+          }
+        },
+        "children": {
+          "links": {
+            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000003/children"
+          }
+        },
+        "comments": {
+          "links": {
+            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000003/comments",
+            "self": "http:///api/workitems/00000000-0000-0000-0000-000000000003/relationships/comments"
+          }
+        },
+        "creator": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000011",
+            "links": {
+              "related": "http:///api/users/00000000-0000-0000-0000-000000000011",
+              "self": "http:///api/users/00000000-0000-0000-0000-000000000011"
+            },
+            "type": "users"
+          }
+        },
+        "iteration": {},
+        "labels": {
+          "links": {
+            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000003/labels"
+          }
+        },
+        "space": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000007",
+            "type": "spaces"
+          },
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000007",
+            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000007"
+          }
+        }
+      },
+      "type": "workitems"
+    },
+    {
+      "attributes": {
+        "system.created_at": "0001-01-01T00:00:00Z",
+        "system.number": 2,
+        "system.order": 2000,
+        "system.remote_item_id": null,
+        "system.state": "new",
+        "system.title": "work item 00000000-0000-0000-0000-000000000012",
+        "system.updated_at": "0001-01-01T00:00:00Z",
+        "version": 0
+      },
+      "id": "00000000-0000-0000-0000-000000000004",
+      "links": {
+        "related": "http:///api/workitems/00000000-0000-0000-0000-000000000004",
+        "self": "http:///api/workitems/00000000-0000-0000-0000-000000000004"
+      },
+      "relationships": {
+        "area": {},
+        "assignees": {},
+        "baseType": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000010",
+            "type": "workitemtypes"
+          },
+          "links": {
+            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000007/workitemtypes/00000000-0000-0000-0000-000000000010"
+          }
+        },
+        "children": {
+          "links": {
+            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000004/children"
+          }
+        },
+        "comments": {
+          "links": {
+            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000004/comments",
+            "self": "http:///api/workitems/00000000-0000-0000-0000-000000000004/relationships/comments"
+          }
+        },
+        "creator": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000011",
+            "links": {
+              "related": "http:///api/users/00000000-0000-0000-0000-000000000011",
+              "self": "http:///api/users/00000000-0000-0000-0000-000000000011"
+            },
+            "type": "users"
+          }
+        },
+        "iteration": {},
+        "labels": {
+          "links": {
+            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000004/labels"
+          }
+        },
+        "space": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000007",
+            "type": "spaces"
+          },
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000007",
+            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000007"
+          }
+        }
+      },
+      "type": "workitems"
+    }
+  ]
+}
