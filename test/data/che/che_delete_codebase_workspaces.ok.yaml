@@ -36,9 +36,9 @@ interactions:
       },
       "links": [
         {
-          "href": "che-server/workspace?masterUrl=https://tsrv.devshift.net:8443&namespace=foo&repository=git@github.com:bar/foo",
-          "method": "DELETE",
-          "rel": "delete"
+          "href": "string",
+          "method": "string",
+          "rel": "string"
         }
       ],
       "name": "string",
@@ -66,9 +66,9 @@ interactions:
     "id": "string",
     "links": [
       {
-        "href": "string",
-        "method": "string",
-        "rel": "string"
+        "href": "che-server/workspace?masterUrl=https://tsrv.devshift.net:8443&namespace=foo&repository=git@github.com:bar/foo",
+        "method": "DELETE",
+        "rel": "delete"
       }
     ],
     "runtime": {
@@ -85,11 +85,8 @@ interactions:
 
     status: 200 OK
     code: 200
----
-version: 1
-interactions:
 - request:
-    url: che-server/workspace?masterUrl=https://tsrv.devshift.net:8443&namespace=foo&repository=git@github.com:bar/foo
+    url: che-server/workspace/string?masterUrl=https://tsrv.devshift.net:8443&namespace=foo
     method: DELETE
   response:
     # headers:

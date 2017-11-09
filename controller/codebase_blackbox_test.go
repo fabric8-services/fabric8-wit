@@ -20,9 +20,11 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	"github.com/fabric8-services/fabric8-wit/test/http_monitor"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -66,11 +68,11 @@ func (s *CodebaseControllerTestSuite) SecuredControllers(identity account.Identi
 	return svc, codebaseCtrl
 }
 
-func NewMockCheClient(r *recorder.Recorder, config *configuration.ConfigurationData) func(ctx context.Context, ns string) (che.Client, error) {
+func NewMockCheClient(r http.RoundTripper, config *configuration.ConfigurationData) func(ctx context.Context, ns string) (che.Client, error) {
 	return func(ctx context.Context, ns string) (che.Client, error) {
 		h := &http.Client{
 			Timeout:   1 * time.Second,
-			Transport: r.Transport,
+			Transport: r,
 		}
 		cheClient := che.NewStarterClient(config.GetCheStarterURL(), config.GetOpenshiftTenantMasterURL(), ns, h)
 		return cheClient, nil
@@ -149,19 +151,31 @@ func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
 		r, err := recorder.New("../test/data/che/che_delete_codebase_workspaces.ok")
 		require.Nil(t, err)
 		defer r.Stop()
-		r.SetMatcher(func(r *http.Request, i cassette.Request) bool {
-			t.Logf("Matching `%s %s` againt `%s %s`...", r.Method, r.RequestURI, i.Method, i.URL)
-			return cassette.DefaultMatcher(r, i)
-		})
+		m := httpmonitor.NewTransportMonitor(r.Transport)
+		mockCheClient := NewMockCheClient(m, s.Configuration)
 		svc, ctrl := s.SecuredControllers(testsupport.TestIdentity,
 			func(codebaseCtrl *CodebaseController) {
-				codebaseCtrl.NewCheClient = NewMockCheClient(r, s.Configuration)
+				codebaseCtrl.NewCheClient = mockCheClient
 			}, func(codebaseCtrl *CodebaseController) {
 				codebaseCtrl.ShowTenant = MockShowTenant()
 			})
 
-		// when/then
+		// when
 		test.DeleteCodebaseNoContent(t, svc.Context, svc, ctrl, fxt.Codebases[0].ID)
+		// verify that a `DELETE workspace` request was sent by the Che client
+		err = m.ValidateExchanges(
+			httpmonitor.Exchange{
+				RequestMethod: "GET",
+				RequestURL:    "che-server/workspace?masterUrl=https://tsrv.devshift.net:8443&namespace=foo&repository=git@github.com:bar/foo",
+				StatusCode:    200,
+			},
+			httpmonitor.Exchange{
+				RequestMethod: "DELETE",
+				RequestURL:    "che-server/workspace/string?masterUrl=https://tsrv.devshift.net:8443&namespace=foo",
+				StatusCode:    200,
+			})
+		assert.Nil(t, err)
+
 	})
 
 	s.T().Run("OK with workspace deletion failure", func(t *testing.T) {
@@ -184,15 +198,30 @@ func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
 			t.Logf("Matching `%s %s` againt `%s %s`...", r.Method, r.RequestURI, i.Method, i.URL)
 			return cassette.DefaultMatcher(r, i)
 		})
+		m := httpmonitor.NewTransportMonitor(r.Transport)
+		mockCheClient := NewMockCheClient(m, s.Configuration)
 		svc, ctrl := s.SecuredControllers(testsupport.TestIdentity,
 			func(codebaseCtrl *CodebaseController) {
-				codebaseCtrl.NewCheClient = NewMockCheClient(r, s.Configuration)
+				codebaseCtrl.NewCheClient = mockCheClient
 			}, func(codebaseCtrl *CodebaseController) {
 				codebaseCtrl.ShowTenant = MockShowTenant()
 			})
 
-		// when/then
+		// when
 		test.DeleteCodebaseNoContent(t, svc.Context, svc, ctrl, fxt.Codebases[0].ID)
+		// then verify that the Che client emitted the expected requests
+		err = m.ValidateExchanges(
+			httpmonitor.Exchange{
+				RequestMethod: "GET",
+				RequestURL:    "che-server/workspace?masterUrl=https://tsrv.devshift.net:8443&namespace=foo&repository=git@github.com:bar/foo",
+				StatusCode:    200,
+			},
+			httpmonitor.Exchange{
+				RequestMethod: "DELETE",
+				RequestURL:    "che-server/workspace/string?masterUrl=https://tsrv.devshift.net:8443&namespace=foo",
+				StatusCode:    500,
+			})
+		assert.Nil(t, err)
 	})
 
 	s.T().Run("NotFound", func(t *testing.T) {

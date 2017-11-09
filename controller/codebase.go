@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/davecgh/go-spew/spew"
+
 	"github.com/fabric8-services/fabric8-wit/account/tenant"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
@@ -168,9 +170,16 @@ func (c *CodebaseController) Delete(ctx *app.DeleteCodebaseContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 	}
+	log.Warn(ctx, nil, "Found %d workspaces to delete", len(workspaces))
 	for _, workspace := range workspaces {
+		log.Warn(ctx, nil, "Checking workspace links: %v", spew.Sdump(workspace.Links))
 		for _, link := range workspace.Links {
 			if strings.ToLower(link.Method) == "delete" {
+				log.Warn(ctx,
+					map[string]interface{}{"codebase_url": cb.URL,
+						"che_namespace": ns,
+						"workspace":     workspace.Config.Name,
+					}, "About to delete Che workspace")
 				err = cheClient.DeleteWorkspace(ctx.Context, workspace.Config.Name)
 				if err != nil {
 					log.Error(ctx,
