@@ -498,7 +498,9 @@ func (s *workItemTypeSuite) createWorkitemtypeLinks() (app.WorkItemLinkTypeSingl
 	require.NotNil(s.T(), linkCat)
 	s.T().Log("Created work item link category")
 	// Create work item link space
-	spacePayload := CreateSpacePayload("some-link-space-"+uuid.NewV4().String(), "description")
+	spaceName := "some-link-space-" + uuid.NewV4().String()
+	spaceDescription := "description"
+	spacePayload := newCreateSpacePayload(&spaceName, &spaceDescription)
 	_, sp := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, spacePayload)
 	s.T().Log("Created space")
 	// Create work item link type

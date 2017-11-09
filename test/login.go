@@ -52,7 +52,7 @@ func WithAuthz(ctx context.Context, key interface{}, ident account.Identity, aut
 // Token is filled using input Identity object and resource authorization information
 func WithServiceAccountAuthz(ctx context.Context, key interface{}, ident account.Identity) context.Context {
 	token := fillClaimsWithIdentity(ident) // irrelavant for service account , but keeping it anyway.
-	token.Claims.(jwt.MapClaims)["service_accountname"] = "auth"
+	token.Claims.(jwt.MapClaims)["service_accountname"] = "fabric8-auth"
 	token.Header["kid"] = "test-key"
 	t, err := token.SignedString(key)
 	if err != nil {
