@@ -274,12 +274,15 @@ dev: prebuild-check deps generate $(FRESH_BIN)
 
 MINISHIFT_IP = `minishift ip`
 MINISHIFT_URL = http://$(MINISHIFT_IP)
+# make sure you have a entry in /etc/hosts for "minishift.local MINISHIFT_IP"
+MINISHIFT_HOSTS_ENTRY = http://minishift.local
 
 .PHONY: dev-wit-openshift
 dev-wit-openshift: prebuild-check deps generate $(FRESH_BIN)
-	eval `minishift oc-env` && oc new-project wit-openshift
+	-eval `minishift oc-env` &&  oc login -u developer -p developer && oc new-project wit-openshift
 	AUTH_WIT_URL=$(MINISHIFT_URL):8080 kedge apply -f kedge/db.yml -f kedge/db-auth.yml -f kedge/auth.yml
-	F8_AUTH_URL=$(MINISHIFT_URL):31000 \
+	sleep 2s
+	F8_AUTH_URL=$(MINISHIFT_HOSTS_ENTRY):31000 \
 	F8_POSTGRES_HOST=$(MINISHIFT_IP) \
 	F8_POSTGRES_PORT=32000 \
 	F8_DEVELOPER_MODE_ENABLED=true \
@@ -287,7 +290,20 @@ dev-wit-openshift: prebuild-check deps generate $(FRESH_BIN)
 
 .PHONY: dev-wit-openshift-clean
 dev-wit-openshift-clean:
-	eval `minishift oc-env` && oc delete project wit-openshift --force
+	-eval `minishift oc-env` &&  oc login -u developer -p developer && oc delete project wit-openshift --force
+
+
+.PHONY: dev-planner-openshift
+dev-planner-openshift: prebuild-check deps generate $(FRESH_BIN)
+	-eval `minishift oc-env` &&  oc login -u developer -p developer && oc new-project planner-openshift
+	F8_AUTH_URL=$(MINISHIFT_HOSTS_ENTRY):31000 \
+	AUTH_WIT_URL=$(MINISHIFT_URL):8080 \
+	kedge apply -f kedge/db.yml -f kedge/db-auth.yml -f kedge/auth.yml -f kedge/wit.yml
+
+
+.PHONY: dev-planner-openshift-clean
+dev-planner-openshift-clean:
+	-eval `minishift oc-env` &&  oc login -u developer -p developer && oc delete project planner-openshift --grace-period=1
 
 include ./.make/test.mk
 
