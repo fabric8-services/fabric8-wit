@@ -7,7 +7,6 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/codebase"
 	"github.com/fabric8-services/fabric8-wit/errors"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
@@ -156,20 +155,11 @@ func TestRepoValidURL(t *testing.T) {
 
 type TestCodebaseRepository struct {
 	gormtestsupport.DBTestSuite
-	clean func()
 }
 
 func TestRunCodebaseRepository(t *testing.T) {
 	resource.Require(t, resource.Database)
 	suite.Run(t, &TestCodebaseRepository{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
-}
-
-func (test *TestCodebaseRepository) SetupTest() {
-	test.clean = cleaner.DeleteCreatedEntities(test.DB)
-}
-
-func (test *TestCodebaseRepository) TearDownTest() {
-	test.clean()
 }
 
 func (test *TestCodebaseRepository) TestListCodebases() {
