@@ -130,7 +130,9 @@ func (s *workItemLinkSuite) SetupTest() {
 	s.workItemsCtrl = NewWorkitemsController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	require.NotNil(s.T(), s.workItemsCtrl)
 	// Create a work item link space
-	createSpacePayload := CreateSpacePayload("test-space", "description")
+	name := "test-space"
+	description := "description"
+	createSpacePayload := newCreateSpacePayload(&name, &description)
 	_, space := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, createSpacePayload)
 	s.userSpaceID = *space.Data.ID
 	s.T().Logf("Created link space with ID: %s\n", *space.Data.ID)
@@ -148,10 +150,10 @@ func (s *workItemLinkSuite) SetupTest() {
 	s.feature1ID = s.createWorkItem(*wit2.Data.ID, "feature1")
 
 	// Create a work item link category
-	description := "This work item link category is managed by an admin user."
+	linkCategoryDescription := "This work item link category is managed by an admin user."
 	s.userLinkCategoryID = createWorkItemLinkCategoryInRepo(s.T(), s.appDB, s.svc.Context, link.WorkItemLinkCategory{
 		Name:        "test-user",
-		Description: &description,
+		Description: &linkCategoryDescription,
 	})
 	s.T().Logf("Created link category with ID: %s\n", s.userLinkCategoryID)
 

@@ -120,7 +120,9 @@ func (s *workItemChildSuite) SetupTest() {
 	require.NotNil(s.T(), s.svc)
 
 	// Create a work item link space
-	createSpacePayload := CreateSpacePayload("test-space"+uuid.NewV4().String(), "description")
+	name := "test-space" + uuid.NewV4().String()
+	description := "description"
+	createSpacePayload := newCreateSpacePayload(&name, &description)
 	_, space := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, createSpacePayload)
 	s.userSpaceID = *space.Data.ID
 	s.T().Logf("Created link space with ID: %s\n", *space.Data.ID)
@@ -145,10 +147,10 @@ func (s *workItemChildSuite) SetupTest() {
 	s.T().Logf("Created bug3 with ID: %s\n", *s.bug3.Data.ID)
 
 	// Create a work item link category
-	description := "This work item link category is managed by an admin user."
+	linkCategoryDescription := "This work item link category is managed by an admin user."
 	userLinkCategoryID := createWorkItemLinkCategoryInRepo(s.T(), s.db, s.svc.Context, link.WorkItemLinkCategory{
 		Name:        "test-user",
-		Description: &description,
+		Description: &linkCategoryDescription,
 	})
 	s.T().Logf("Created link category with ID: %s\n", userLinkCategoryID)
 
