@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 
-	"github.com/fabric8-services/fabric8-wit/account/tenant"
+	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/codebase"
@@ -14,6 +15,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/space"
 
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/goadesign/goa"
@@ -33,12 +35,16 @@ type codebaseConfiguration interface {
 	GetCheStarterURL() string
 }
 
+// CodebaseCheClientProvider the function that provides a `cheClient`
+type CodebaseCheClientProvider func(ctx context.Context, ns string) (che.Client, error)
+
 // CodebaseController implements the codebase resource.
 type CodebaseController struct {
 	*goa.Controller
-	db         application.DB
-	config     codebaseConfiguration
-	ShowTenant func(context.Context) (*tenant.TenantSingle, error)
+	db           application.DB
+	config       codebaseConfiguration
+	ShowTenant   account.CodebaseInitTenantProvider
+	NewCheClient CodebaseCheClientProvider
 }
 
 // NewCodebaseController creates a codebase controller.
@@ -84,7 +90,10 @@ func (c *CodebaseController) Edit(ctx *app.EditCodebaseContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 	}
-	cheClient := che.NewStarterClient(c.config.GetCheStarterURL(), c.config.GetOpenshiftTenantMasterURL(), ns)
+	cheClient, err := c.NewCheClient(ctx, ns)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+	}
 	workspaces, err := cheClient.ListWorkspaces(ctx, cb.URL)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -126,29 +135,68 @@ func (c *CodebaseController) Delete(ctx *app.DeleteCodebaseContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
-
+	var cb *codebase.Codebase
+	var cbSpace *space.Space
 	err = application.Transactional(c.db, func(appl application.Application) error {
-		cb, err := appl.Codebases().Load(ctx.Context, ctx.CodebaseID)
+		var err error
+		cb, err = appl.Codebases().Load(ctx.Context, ctx.CodebaseID)
 		if err != nil {
 			return err
 		}
-		s, err := appl.Spaces().Load(ctx.Context, cb.SpaceID)
-		if err != nil {
-			return err
+		cbSpace, err = appl.Spaces().Load(ctx.Context, cb.SpaceID)
+		return err
+	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	if !uuid.Equal(*currentUser, cbSpace.OwnerID) {
+		log.Warn(ctx, map[string]interface{}{
+			"codebase_id":  ctx.CodebaseID,
+			"space_id":     cbSpace.ID,
+			"space_owner":  cbSpace.OwnerID,
+			"current_user": *currentUser,
+		}, "user is not the space owner")
+		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the space owner"))
+	}
+	// attempt to remotely delete the Che workspaces
+	ns, err := c.getCheNamespace(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+	}
+	cheClient, err := c.NewCheClient(ctx, ns)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+	}
+	workspaces, err := cheClient.ListWorkspaces(ctx, cb.URL)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+	}
+	log.Info(ctx, nil, "Found %d workspaces to delete", len(workspaces))
+	for _, workspace := range workspaces {
+		for _, link := range workspace.Links {
+			if strings.ToLower(link.Method) == "delete" {
+				log.Info(ctx,
+					map[string]interface{}{"codebase_url": cb.URL,
+						"che_namespace": ns,
+						"workspace":     workspace.Config.Name,
+					}, "About to delete Che workspace")
+				err = cheClient.DeleteWorkspace(ctx.Context, workspace.Config.Name)
+				if err != nil {
+					log.Error(ctx,
+						map[string]interface{}{
+							"codebase_url":  cb.URL,
+							"che_namespace": ns,
+							"workspace":     workspace.Config.Name},
+						"failed to delete Che workspace: %s", err.Error())
+				}
+			}
 		}
-		if !uuid.Equal(*currentUser, s.OwnerID) {
-			log.Warn(ctx, map[string]interface{}{
-				"codebase_id":  ctx.CodebaseID,
-				"space_id":     cb.SpaceID,
-				"space_owner":  s.OwnerID,
-				"current_user": *currentUser,
-			}, "user is not the space owner")
-			return errors.NewForbiddenError("user is not the space owner")
-		}
+	}
 
+	// delete the local codebase data
+	err = application.Transactional(c.db, func(appl application.Application) error {
 		return appl.Codebases().Delete(ctx, ctx.CodebaseID)
 	})
-
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
@@ -179,7 +227,10 @@ func (c *CodebaseController) Create(ctx *app.CreateCodebaseContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 	}
-	cheClient := che.NewStarterClient(c.config.GetCheStarterURL(), c.config.GetOpenshiftTenantMasterURL(), ns)
+	cheClient, err := c.NewCheClient(ctx, ns)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+	}
 
 	stackID := "java-centos"
 	if cb.StackID != nil && *cb.StackID != "" {
@@ -252,7 +303,10 @@ func (c *CodebaseController) Open(ctx *app.OpenCodebaseContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 	}
-	cheClient := che.NewStarterClient(c.config.GetCheStarterURL(), c.config.GetOpenshiftTenantMasterURL(), ns)
+	cheClient, err := c.NewCheClient(ctx, ns)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+	}
 	workspaceResp, err := cheClient.StartExistingWorkspace(ctx, ctx.WorkspaceID)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -350,7 +404,10 @@ func (c *CodebaseController) CheState(ctx *app.CheStateCodebaseContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 	}
-	cheClient := che.NewStarterClient(c.config.GetCheStarterURL(), c.config.GetOpenshiftTenantMasterURL(), ns)
+	cheClient, err := c.NewCheClient(ctx, ns)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+	}
 	cheState, err := cheClient.GetCheServerState(ctx)
 
 	if err != nil {
@@ -378,8 +435,10 @@ func (c *CodebaseController) CheStart(ctx *app.CheStartCodebaseContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 	}
-
-	cheClient := che.NewStarterClient(c.config.GetCheStarterURL(), c.config.GetOpenshiftTenantMasterURL(), ns)
+	cheClient, err := c.NewCheClient(ctx, ns)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+	}
 	cheState, err := cheClient.StartCheServer(ctx)
 
 	if err != nil {
@@ -410,7 +469,6 @@ func (c *CodebaseController) getCheNamespace(ctx context.Context) (string, error
 	if err != nil {
 		return "", err
 	}
-
 	if t.Data != nil && t.Data.Attributes != nil && t.Data.Attributes.Namespaces != nil {
 		for _, ns := range t.Data.Attributes.Namespaces {
 			if ns.Type != nil && *ns.Type == "che" && ns.Name != nil {
@@ -423,4 +481,12 @@ func (c *CodebaseController) getCheNamespace(ctx context.Context) (string, error
 	}, "unable to locate che namespace")
 
 	return "", fmt.Errorf("unable to resolve user service che namespace")
+}
+
+// NewDefaultCheClient returns the default function to initialize a new Che client with a "regular" http client
+func NewDefaultCheClient(config codebaseConfiguration) CodebaseCheClientProvider {
+	return func(ctx context.Context, ns string) (che.Client, error) {
+		cheClient := che.NewStarterClient(config.GetCheStarterURL(), config.GetOpenshiftTenantMasterURL(), ns, http.DefaultClient)
+		return cheClient, nil
+	}
 }
