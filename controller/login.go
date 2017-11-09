@@ -12,14 +12,10 @@ import (
 	"github.com/fabric8-services/fabric8-wit/auth/authservice"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
-	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/login"
-	"github.com/fabric8-services/fabric8-wit/test/token"
 
 	"github.com/fabric8-services/fabric8-wit/rest/proxy"
 	"github.com/goadesign/goa"
-	errs "github.com/pkg/errors"
-	"github.com/satori/go.uuid"
 )
 
 type loginConfiguration interface {
@@ -93,26 +89,4 @@ func redirectWithParams(ctx redirectContext, config auth.AuthServiceConfiguratio
 // Generate generates access tokens in Dev Mode
 func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 	return proxy.RouteHTTPToPath(ctx, c.configuration.GetAuthServiceURL(), authservice.GenerateTokenPath())
-}
-
-func generateUserToken(ctx context.Context, configuration loginConfiguration, username string) (*app.AuthToken, error) {
-	if !configuration.IsPostgresDeveloperModeEnabled() {
-		log.Error(ctx, map[string]interface{}{
-			"method": "Generate",
-		}, "Developer mode not enabled")
-		return nil, errors.NewInternalError(ctx, errs.New("postgres developer mode is not enabled"))
-	}
-	t, err := token.GenerateToken(uuid.NewV4().String(), username, token.PrivateKey())
-	if err != nil {
-		return nil, err
-	}
-	bearer := "Bearer"
-	return &app.AuthToken{Token: &app.TokenData{
-		AccessToken:      &t,
-		ExpiresIn:        60 * 60 * 24 * 30,
-		NotBeforePolicy:  0,
-		RefreshExpiresIn: 60 * 60 * 24 * 30,
-		RefreshToken:     &t,
-		TokenType:        &bearer,
-	}}, nil
 }
