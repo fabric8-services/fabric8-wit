@@ -6,9 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/davecgh/go-spew/spew"
-
-	"github.com/fabric8-services/fabric8-wit/account/tenant"
+	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/codebase"
@@ -37,13 +35,16 @@ type codebaseConfiguration interface {
 	GetCheStarterURL() string
 }
 
+// CodebaseCheClientProvider the function that provides a `cheClient`
+type CodebaseCheClientProvider func(ctx context.Context, ns string) (che.Client, error)
+
 // CodebaseController implements the codebase resource.
 type CodebaseController struct {
 	*goa.Controller
 	db           application.DB
 	config       codebaseConfiguration
-	ShowTenant   func(context.Context) (*tenant.TenantSingle, error)
-	NewCheClient func(ctx context.Context, ns string) (che.Client, error)
+	ShowTenant   account.CodebaseInitTenantProvider
+	NewCheClient CodebaseCheClientProvider
 }
 
 // NewCodebaseController creates a codebase controller.
@@ -170,12 +171,11 @@ func (c *CodebaseController) Delete(ctx *app.DeleteCodebaseContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 	}
-	log.Warn(ctx, nil, "Found %d workspaces to delete", len(workspaces))
+	log.Info(ctx, nil, "Found %d workspaces to delete", len(workspaces))
 	for _, workspace := range workspaces {
-		log.Warn(ctx, nil, "Checking workspace links: %v", spew.Sdump(workspace.Links))
 		for _, link := range workspace.Links {
 			if strings.ToLower(link.Method) == "delete" {
-				log.Warn(ctx,
+				log.Info(ctx,
 					map[string]interface{}{"codebase_url": cb.URL,
 						"che_namespace": ns,
 						"workspace":     workspace.Config.Name,
@@ -484,7 +484,7 @@ func (c *CodebaseController) getCheNamespace(ctx context.Context) (string, error
 }
 
 // NewDefaultCheClient returns the default function to initialize a new Che client with a "regular" http client
-func NewDefaultCheClient(config codebaseConfiguration) func(ctx context.Context, ns string) (che.Client, error) {
+func NewDefaultCheClient(config codebaseConfiguration) CodebaseCheClientProvider {
 	return func(ctx context.Context, ns string) (che.Client, error) {
 		cheClient := che.NewStarterClient(config.GetCheStarterURL(), config.GetOpenshiftTenantMasterURL(), ns, http.DefaultClient)
 		return cheClient, nil

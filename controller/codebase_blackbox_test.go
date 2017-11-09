@@ -50,6 +50,18 @@ func (s *CodebaseControllerTestSuite) SetupTest() {
 
 type ConfigureCodebaseController func(codebaseCtrl *CodebaseController)
 
+func withCheClient(f CodebaseCheClientProvider) ConfigureCodebaseController {
+	return func(codebaseCtrl *CodebaseController) {
+		codebaseCtrl.NewCheClient = f
+	}
+}
+
+func withShowTenant(f account.CodebaseInitTenantProvider) ConfigureCodebaseController {
+	return func(codebaseCtrl *CodebaseController) {
+		codebaseCtrl.ShowTenant = f
+	}
+}
+
 func (s *CodebaseControllerTestSuite) UnsecuredController(settings ...ConfigureCodebaseController) (*goa.Service, *CodebaseController) {
 	svc := goa.New("Codebases-service")
 	codebaseCtrl := NewCodebaseController(svc, s.db, s.Configuration)
@@ -68,7 +80,7 @@ func (s *CodebaseControllerTestSuite) SecuredControllers(identity account.Identi
 	return svc, codebaseCtrl
 }
 
-func NewMockCheClient(r http.RoundTripper, config *configuration.ConfigurationData) func(ctx context.Context, ns string) (che.Client, error) {
+func NewMockCheClient(r http.RoundTripper, config *configuration.ConfigurationData) CodebaseCheClientProvider {
 	return func(ctx context.Context, ns string) (che.Client, error) {
 		h := &http.Client{
 			Timeout:   1 * time.Second,
@@ -153,12 +165,7 @@ func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
 		defer r.Stop()
 		m := httpmonitor.NewTransportMonitor(r.Transport)
 		mockCheClient := NewMockCheClient(m, s.Configuration)
-		svc, ctrl := s.SecuredControllers(testsupport.TestIdentity,
-			func(codebaseCtrl *CodebaseController) {
-				codebaseCtrl.NewCheClient = mockCheClient
-			}, func(codebaseCtrl *CodebaseController) {
-				codebaseCtrl.ShowTenant = MockShowTenant()
-			})
+		svc, ctrl := s.SecuredControllers(testsupport.TestIdentity, withCheClient(mockCheClient), withShowTenant(MockShowTenant()))
 
 		// when
 		test.DeleteCodebaseNoContent(t, svc.Context, svc, ctrl, fxt.Codebases[0].ID)
