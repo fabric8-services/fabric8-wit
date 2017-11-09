@@ -13,7 +13,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/application"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
@@ -43,8 +42,7 @@ type okScenario struct {
 
 type TestSearchSpacesREST struct {
 	gormtestsupport.DBTestSuite
-	db    *gormapplication.GormDB
-	clean func()
+	db *gormapplication.GormDB
 }
 
 func TestRunSearchSpacesREST(t *testing.T) {
@@ -53,12 +51,8 @@ func TestRunSearchSpacesREST(t *testing.T) {
 }
 
 func (rest *TestSearchSpacesREST) SetupTest() {
+	rest.DBTestSuite.SetupTest()
 	rest.db = gormapplication.NewGormDB(rest.DB)
-	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
-}
-
-func (rest *TestSearchSpacesREST) TearDownTest() {
-	rest.clean()
 }
 
 func (rest *TestSearchSpacesREST) SecuredController() (*goa.Service, *SearchController) {

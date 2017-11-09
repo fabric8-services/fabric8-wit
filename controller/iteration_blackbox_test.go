@@ -18,7 +18,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/space"
@@ -38,7 +37,6 @@ import (
 type TestIterationREST struct {
 	gormtestsupport.DBTestSuite
 	db      *gormapplication.GormDB
-	clean   func()
 	testDir string
 }
 
@@ -48,13 +46,9 @@ func TestRunIterationREST(t *testing.T) {
 }
 
 func (rest *TestIterationREST) SetupTest() {
+	rest.DBTestSuite.SetupTest()
 	rest.db = gormapplication.NewGormDB(rest.DB)
-	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
 	rest.testDir = filepath.Join("test-files", "iteration")
-}
-
-func (rest *TestIterationREST) TearDownTest() {
-	rest.clean()
 }
 
 func (rest *TestIterationREST) SecuredController() (*goa.Service, *IterationController) {
@@ -536,12 +530,12 @@ func (rest *TestIterationREST) TestFailUpdateIterationUnauthorized() {
 func (rest *TestIterationREST) TestIterationStateTransitions() {
 	// given
 	sp, _, _, _, itr1 := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
-	assert.Equal(rest.T(), iteration.IterationStateNew, itr1.State)
-	startState := iteration.IterationStateStart
+	assert.Equal(rest.T(), iteration.StateNew, itr1.State)
+	startState := iteration.StateStart
 	payload := app.UpdateIterationPayload{
 		Data: &app.Iteration{
 			Attributes: &app.IterationAttributes{
-				State: &startState,
+				State: startState.StringPtr(),
 			},
 			ID:   &itr1.ID,
 			Type: iteration.APIStringTypeIteration,
@@ -551,7 +545,7 @@ func (rest *TestIterationREST) TestIterationStateTransitions() {
 	require.Nil(rest.T(), errIdn)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr1.ID.String(), &payload)
-	assert.Equal(rest.T(), startState, *updated.Data.Attributes.State)
+	assert.Equal(rest.T(), startState.String(), *updated.Data.Attributes.State)
 	// create another iteration in same space and then change State to start
 	itr2 := iteration.Iteration{
 		Name:    "Spring 123",
@@ -563,7 +557,7 @@ func (rest *TestIterationREST) TestIterationStateTransitions() {
 	payload2 := app.UpdateIterationPayload{
 		Data: &app.Iteration{
 			Attributes: &app.IterationAttributes{
-				State: &startState,
+				State: startState.StringPtr(),
 			},
 			ID:   &itr2.ID,
 			Type: iteration.APIStringTypeIteration,
@@ -571,13 +565,13 @@ func (rest *TestIterationREST) TestIterationStateTransitions() {
 	}
 	test.UpdateIterationBadRequest(rest.T(), svc.Context, svc, ctrl, itr2.ID.String(), &payload2)
 	// now close first iteration
-	closeState := iteration.IterationStateClose
-	payload.Data.Attributes.State = &closeState
+	closeState := iteration.StateClose
+	payload.Data.Attributes.State = closeState.StringPtr()
 	_, updated = test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr1.ID.String(), &payload)
-	assert.Equal(rest.T(), closeState, *updated.Data.Attributes.State)
+	assert.Equal(rest.T(), closeState.String(), *updated.Data.Attributes.State)
 	// try to start iteration 2 now
 	_, updated2 := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr2.ID.String(), &payload2)
-	assert.Equal(rest.T(), startState, *updated2.Data.Attributes.State)
+	assert.Equal(rest.T(), startState.String(), *updated2.Data.Attributes.State)
 }
 
 func (rest *TestIterationREST) TestRootIterationCanNotStart() {
@@ -593,11 +587,11 @@ func (rest *TestIterationREST) TestRootIterationCanNotStart() {
 	require.Nil(rest.T(), err)
 	require.NotNil(rest.T(), ri)
 
-	startState := iteration.IterationStateStart
+	startState := iteration.StateStart
 	payload := app.UpdateIterationPayload{
 		Data: &app.Iteration{
 			Attributes: &app.IterationAttributes{
-				State: &startState,
+				State: startState.StringPtr(),
 			},
 			ID:   &ri.ID,
 			Type: iteration.APIStringTypeIteration,

@@ -233,9 +233,13 @@ func makeWorkItemTypes(fxt *TestFixture) error {
 	witRepo := workitem.NewWorkItemTypeRepository(fxt.db)
 	for i := range fxt.WorkItemTypes {
 		desc := "this work item type was automatically generated"
+		id := uuid.NewV4()
+		path := workitem.LtreeSafeID(workitem.SystemPlannerItem) + workitem.GetTypePathSeparator() + workitem.LtreeSafeID(id)
 		fxt.WorkItemTypes[i] = &workitem.WorkItemType{
+			ID:          id,
 			Name:        testsupport.CreateRandomValidTestName("work item type "),
 			Description: &desc,
+			Path:        path,
 			Icon:        "fa-bug",
 			Fields: map[string]workitem.FieldDefinition{
 				workitem.SystemTitle:        {Type: workitem.SimpleType{Kind: workitem.KindString}, Required: true, Label: "Title", Description: "The title text of the work item"},
