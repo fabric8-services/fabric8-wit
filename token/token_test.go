@@ -126,7 +126,7 @@ func TestIsServiceAccountTokenInContextClaimAbsent(t *testing.T) {
 
 func TestIsServiceAccountTokenInContextClaimIncorrect(t *testing.T) {
 	tk := jwt.New(jwt.SigningMethodRS256)
-	tk.Claims.(jwt.MapClaims)["service_accountname"] = "Not-auth"
+	tk.Claims.(jwt.MapClaims)["service_accountname"] = "Not-fabric8-auth"
 	ctx := goajwt.WithJWT(context.Background(), tk)
 
 	isServiceAccount := tokenManager.IsServiceAccount(ctx)
