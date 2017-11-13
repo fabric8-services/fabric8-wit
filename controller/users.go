@@ -56,7 +56,7 @@ func (c *UsersController) Show(ctx *app.ShowUsersContext) error {
 // CreateUserAsServiceAccount updates a user when requested using a service account token
 func (c *UsersController) CreateUserAsServiceAccount(ctx *app.CreateUserAsServiceAccountUsersContext) error {
 
-	isSvcAccount, err := isServiceAccount(ctx)
+	isSvcAccount, err := isServiceAccount(ctx, "fabric8-auth")
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
@@ -166,7 +166,7 @@ func (c *UsersController) createUserInDB(ctx *app.CreateUserAsServiceAccountUser
 // UpdateUserAsServiceAccount updates a user when requested using a service account token
 func (c *UsersController) UpdateUserAsServiceAccount(ctx *app.UpdateUserAsServiceAccountUsersContext) error {
 
-	isSvcAccount, err := isServiceAccount(ctx)
+	isSvcAccount, err := isServiceAccount(ctx, "fabric8-auth")
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err":         err,
@@ -189,12 +189,12 @@ func (c *UsersController) UpdateUserAsServiceAccount(ctx *app.UpdateUserAsServic
 	return c.updateUserInDB(&id, ctx)
 }
 
-func isServiceAccount(ctx context.Context) (bool, error) {
+func isServiceAccount(ctx context.Context, serviceName string) (bool, error) {
 	tokenManager, err := token.ReadManagerFromContext(ctx)
 	if err != nil {
 		return false, err
 	}
-	return (*tokenManager).IsServiceAccount(ctx), nil
+	return (*tokenManager).IsServiceAccount(ctx, serviceName), nil
 }
 
 func (c *UsersController) updateUserInDB(id *uuid.UUID, ctx *app.UpdateUserAsServiceAccountUsersContext) error {
