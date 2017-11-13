@@ -288,8 +288,8 @@ MINISHIFT_HOSTS_ENTRY = http://minishift.local
 
 .PHONY: dev-wit-openshift
 dev-wit-openshift: prebuild-check deps generate $(FRESH_BIN)
-	./check_hosts.sh
 	minishift start
+	./check_hosts.sh
 	-eval `minishift oc-env` &&  oc login -u developer -p developer && oc new-project wit-openshift
 	AUTH_WIT_URL=$(MINISHIFT_URL):8080 kedge apply -f kedge/db.yml -f kedge/db-auth.yml -f kedge/auth.yml
 	sleep 3s
@@ -306,11 +306,9 @@ dev-wit-openshift-clean:
 
 .PHONY: dev-planner-openshift
 dev-planner-openshift: prebuild-check deps generate $(FRESH_BIN)
-	./check_hosts.sh
 	minishift start --cpus 4
+	./check_hosts.sh
 	-eval `minishift oc-env` &&  oc login -u developer -p developer && oc new-project planner-openshift
-	#F8_AUTH_URL=$(MINISHIFT_HOSTS_ENTRY):31000 \
-	
 	F8_DEVELOPER_MODE_ENABLED=true \
 	F8_POSTGRES_HOST=$(MINISHIFT_IP) \
 	F8_POSTGRES_PORT=32000 \
@@ -318,7 +316,7 @@ dev-planner-openshift: prebuild-check deps generate $(FRESH_BIN)
 	AUTH_WIT_URL=$(MINISHIFT_URL):30000 \
 	kedge apply -f kedge/db.yml -f kedge/db-auth.yml -f kedge/auth.yml
 	sleep 5s
-	F8_AUTH_URL=http://192.168.42.113:31000 \
+	F8_AUTH_URL=http://$(MINISHIFT_IP):31000 \
 	F8_DEVELOPER_MODE_ENABLED=true \
 	F8_POSTGRES_HOST=$(MINISHIFT_IP) \
 	F8_POSTGRES_PORT=32000 \
