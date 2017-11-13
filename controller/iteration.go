@@ -213,9 +213,24 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 		if ctx.Payload.Data.Attributes.UserActive != nil {
 			itr.UserActive = *ctx.Payload.Data.Attributes.UserActive
 		}
+		if ctx.Payload.Data.Relationships != nil && ctx.Payload.Data.Relationships.Parent != nil {
+			newParentID := ctx.Payload.Data.Relationships.Parent.Data.ID
+			if newParentID == nil {
+				return jsonapi.JSONErrorResponse(ctx,
+					errors.NewBadParameterError("Data.Relationships.Parent.ID", newParentID))
+			}
+			// load new parent
+			// set parent path using new parent
+		}
 		itr, err = appl.Iterations().Save(ctx.Context, *itr)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		// update all child iterations if parent is modified
+		if ctx.Payload.Data.Relationships != nil && ctx.Payload.Data.Relationships.Parent != nil {
+			// load subtree
+			// for each change parent path using new path of itr
+			// save all
 		}
 		wiCounts, err := appl.WorkItems().GetCountsForIteration(ctx, itr)
 		if err != nil {
