@@ -1116,7 +1116,6 @@ func (rest *TestIterationREST) TestUpdateIteration() {
 					}
 					return nil
 				}))
-		// update parent of iteration 1
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 		itr1 := fxt.IterationByName("iteration 1")
 		itr2 := fxt.IterationByName("iteration 2")
@@ -1124,6 +1123,7 @@ func (rest *TestIterationREST) TestUpdateIteration() {
 		itr4 := fxt.IterationByName("iteration 4")
 		itr5 := fxt.IterationByName("iteration 5")
 
+		// update parent of iteration 3 (move itr3 under itr1)
 		typeIterationString := iteration.APIStringTypeIteration
 		newParentIDStr := itr1.ID.String()
 		payload := app.UpdateIterationPayload{
