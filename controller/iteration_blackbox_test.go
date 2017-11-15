@@ -1084,7 +1084,8 @@ func (rest *TestIterationREST) TestIterationDelete() {
 func (rest *TestIterationREST) TestUpdateIteration() {
 	resetFn := rest.DisableGormCallbacks()
 	defer resetFn()
-	rest.T().Run("Update - iteration parent", func(t *testing.T) {
+	rest.T().Run("update success - iteration parent", func(t *testing.T) {
+		// build following structure
 		// 	root 0
 		// 		|---- itr 1
 		//			|---- itr 2
@@ -1092,6 +1093,8 @@ func (rest *TestIterationREST) TestUpdateIteration() {
 		//  				|---- itr 4
 		// 			|---- itr 5
 		// 		|---- itr 6
+
+		// given
 		fxt := tf.NewTestFixture(t, rest.DB,
 			tf.Iterations(7, tf.SetIterationNames("root iteration", "iteration 1",
 				"iteration 2", "iteration 3", "iteration 4", "iteration 5", "iteration 6"),
@@ -1138,11 +1141,15 @@ func (rest *TestIterationREST) TestUpdateIteration() {
 				Type: typeIterationString,
 			},
 		}
+		// when
 		_, updatedItr := test.UpdateIterationOK(t, svc.Context, svc, ctrl, itr3.ID.String(), &payload)
 		require.NotNil(t, updatedItr)
 		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "update", "ok_change_parent.golden.json"), updatedItr)
+		// then
 		require.NotNil(t, updatedItr.Data.Relationships.Parent)
 		assert.Equal(t, newParentIDStr, *updatedItr.Data.Relationships.Parent.Data.ID)
+
+		// updated structure looks like below
 		// root 0
 		//	|---- itr 1
 		// 			|---- itr 5
@@ -1150,14 +1157,16 @@ func (rest *TestIterationREST) TestUpdateIteration() {
 		//			|---- itr 3
 		// 				|---- itr 4
 		// 	|---- itr 6
-		// golden file for update parent call
-		// verify new parent path for updatedItr
 
+		// when
 		children, err := rest.db.Iterations().LoadChildren(svc.Context, itr2.ID)
+		// then
 		require.Nil(t, err)
 		require.Len(t, children, 0)
 
+		// when
 		children, err = rest.db.Iterations().LoadChildren(svc.Context, itr1.ID)
+		// then
 		require.Nil(t, err)
 		require.Len(t, children, 4)
 
@@ -1173,7 +1182,9 @@ func (rest *TestIterationREST) TestUpdateIteration() {
 		}
 		require.Empty(t, allChildren)
 
+		// when
 		children, err = rest.db.Iterations().LoadChildren(svc.Context, itr3.ID)
+		// then
 		require.Nil(t, err)
 		require.Len(t, children, 1)
 
@@ -1184,5 +1195,78 @@ func (rest *TestIterationREST) TestUpdateIteration() {
 			delete(allChildren, i.ID)
 		}
 		require.Empty(t, allChildren)
+	})
+
+	rest.T().Run("update fail - parent of root iteraton", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment(), tf.Iterations(2))
+		typeIterationString := iteration.APIStringTypeIteration
+		rootItr := fxt.Iterations[0]
+		itr1 := fxt.Iterations[1]
+		newParentIDStr := itr1.ID.String()
+		payload := app.UpdateIterationPayload{
+			Data: &app.Iteration{
+				Attributes: &app.IterationAttributes{},
+				Relationships: &app.IterationRelations{
+					Parent: &app.RelationGeneric{
+						Data: &app.GenericData{
+							ID:   &newParentIDStr,
+							Type: &typeIterationString,
+						},
+					},
+				},
+				ID:   &rootItr.ID,
+				Type: typeIterationString,
+			},
+		}
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+		test.UpdateIterationForbidden(t, svc.Context, svc, ctrl, rootItr.ID.String(), &payload)
+	})
+
+	rest.T().Run("update fail - non-existing parent of iteraton", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment(), tf.Iterations(2))
+		typeIterationString := iteration.APIStringTypeIteration
+		itr1 := fxt.Iterations[1]
+		newParentIDStr := "73048351-a4c0-4cf6-aff9-1fa3d7576ac0"
+		payload := app.UpdateIterationPayload{
+			Data: &app.Iteration{
+				Attributes: &app.IterationAttributes{},
+				Relationships: &app.IterationRelations{
+					Parent: &app.RelationGeneric{
+						Data: &app.GenericData{
+							ID:   &newParentIDStr,
+							Type: &typeIterationString,
+						},
+					},
+				},
+				ID:   &itr1.ID,
+				Type: typeIterationString,
+			},
+		}
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+		test.UpdateIterationNotFound(t, svc.Context, svc, ctrl, itr1.ID.String(), &payload)
+	})
+
+	rest.T().Run("update fail - invalid UUID parent of iteraton", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment(), tf.Iterations(2))
+		typeIterationString := iteration.APIStringTypeIteration
+		itr1 := fxt.Iterations[1]
+		newParentIDStr := "/"
+		payload := app.UpdateIterationPayload{
+			Data: &app.Iteration{
+				Attributes: &app.IterationAttributes{},
+				Relationships: &app.IterationRelations{
+					Parent: &app.RelationGeneric{
+						Data: &app.GenericData{
+							ID:   &newParentIDStr,
+							Type: &typeIterationString,
+						},
+					},
+				},
+				ID:   &itr1.ID,
+				Type: typeIterationString,
+			},
+		}
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+		test.UpdateIterationBadRequest(t, svc.Context, svc, ctrl, itr1.ID.String(), &payload)
 	})
 }

@@ -215,6 +215,12 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 		}
 		var oldSubtree []iteration.Iteration
 		if ctx.Payload.Data.Relationships != nil && ctx.Payload.Data.Relationships.Parent != nil {
+			// update parent of Iteration
+			// do not allow root-iteraiton to update its parent
+			if itr.IsRoot(itr.SpaceID) {
+				return jsonapi.JSONErrorResponse(ctx,
+					errors.NewForbiddenError("Parent of root iteration can not be updated"))
+			}
 			newParentID := ctx.Payload.Data.Relationships.Parent.Data.ID
 			if newParentID == nil {
 				return jsonapi.JSONErrorResponse(ctx,
@@ -222,12 +228,13 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 			}
 			id, err := uuid.FromString(*newParentID)
 			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, err)
+				return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("Data.Relationships.Parent.ID", newParentID))
 			}
 			newParentIteration, err := appl.Iterations().Load(ctx.Context, id)
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, err)
 			}
+			// we need subtree to update later
 			oldSubtree, err = appl.Iterations().LoadChildren(ctx, itr.ID)
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, err)
@@ -238,9 +245,8 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		// update all child iterations if parent is modified
 		if ctx.Payload.Data.Relationships != nil && ctx.Payload.Data.Relationships.Parent != nil {
-			// If parent was updated then need to move all iterations below it
+			// update all child iterations's parent as well
 			for _, x := range oldSubtree {
 				x.MakeChildOf(*itr)
 				_, err = appl.Iterations().Save(ctx.Context, x)
