@@ -211,7 +211,7 @@ func (m *GormIdentityRepository) Save(ctx context.Context, model *Identity) erro
 		}, "unable to update the identity")
 		return errs.WithStack(err)
 	}
-	err = m.db.Model(obj).Updates(model).Error
+	err = m.db.Model(obj).Save(model).Error
 
 	log.Debug(ctx, map[string]interface{}{
 		"identity_id": model.ID,
