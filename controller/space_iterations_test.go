@@ -23,6 +23,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	"github.com/goadesign/goa"
@@ -244,145 +245,87 @@ func (rest *TestSpaceIterationREST) TestFailListIterationsByMissingSpace() {
 // Verify updated count values for all 4 iterations retrieved.
 func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 	// given
-	resource.Require(rest.T(), resource.Database)
-	// create seed data
-	spaceRepo := space.NewRepository(rest.DB)
-	spaceInstance := space.Space{
-		Name: "TestWICountsWithIterationListBySpace-" + uuid.NewV4().String(),
-	}
-	_, e := spaceRepo.Create(rest.Ctx, &spaceInstance)
-	require.Nil(rest.T(), e)
-	require.NotEqual(rest.T(), uuid.UUID{}, spaceInstance.ID)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB,
+		tf.CreateWorkItemEnvironment(),
+		tf.Iterations(5,
+			tf.SetIterationNames("root", "Sprint 1", "Sprint 2", "Sprint 2.1", "Sprint 2.1.1"),
+			func(fxt *tf.TestFixture, idx int) error {
+				i := fxt.Iterations[idx]
+				switch idx {
+				case 1:
+					i.MakeChildOf(*fxt.Iterations[0])
+				case 2:
+					i.MakeChildOf(*fxt.Iterations[0])
+				case 3:
+					i.MakeChildOf(*fxt.Iterations[2])
+				case 4:
+					i.MakeChildOf(*fxt.Iterations[3])
+				}
+				return nil
+			}),
 
-	iterationRepo := iteration.NewIterationRepository(rest.DB)
-	iteration1 := iteration.Iteration{
-		Name:    "Sprint 1",
-		SpaceID: spaceInstance.ID,
-	}
-	iterationRepo.Create(rest.Ctx, &iteration1)
-	assert.NotEqual(rest.T(), uuid.UUID{}, iteration1.ID)
-
-	iteration2 := iteration.Iteration{
-		Name:    "Sprint 2",
-		SpaceID: spaceInstance.ID,
-	}
-	iterationRepo.Create(rest.Ctx, &iteration2)
-	assert.NotEqual(rest.T(), uuid.UUID{}, iteration2.ID)
-
-	childOfIteration2 := iteration.Iteration{
-		Name:    "Sprint 2.1",
-		SpaceID: spaceInstance.ID,
-		Path:    append(iteration2.Path, iteration2.ID),
-	}
-	iterationRepo.Create(rest.Ctx, &childOfIteration2)
-	require.NotEqual(rest.T(), uuid.Nil, childOfIteration2.ID)
-
-	grandChildOfIteration2 := iteration.Iteration{
-		Name:    "Sprint 2.1.1",
-		SpaceID: spaceInstance.ID,
-		Path:    append(childOfIteration2.Path, childOfIteration2.ID),
-	}
-	iterationRepo.Create(rest.Ctx, &grandChildOfIteration2)
-	require.NotEqual(rest.T(), uuid.UUID{}, grandChildOfIteration2.ID)
-
-	wirepo := workitem.NewWorkItemRepository(rest.DB)
-
-	for i := 0; i < 3; i++ {
-		wirepo.Create(
-			rest.Ctx, iteration1.SpaceID, workitem.SystemFeature,
-			map[string]interface{}{
-				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
-				workitem.SystemState:     workitem.SystemStateNew,
-				workitem.SystemIteration: iteration1.ID.String(),
-			}, rest.testIdentity.ID)
-		wirepo.Create(
-			rest.Ctx, iteration1.SpaceID, workitem.SystemTask,
-			map[string]interface{}{
-				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
-				workitem.SystemState:     workitem.SystemStateNew,
-				workitem.SystemIteration: iteration1.ID.String(),
-			}, rest.testIdentity.ID)
-	}
-	for i := 0; i < 2; i++ {
-		_, err := wirepo.Create(
-			rest.Ctx, iteration1.SpaceID, workitem.SystemFeature,
-			map[string]interface{}{
-				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
-				workitem.SystemState:     workitem.SystemStateClosed,
-				workitem.SystemIteration: iteration1.ID.String(),
-			}, rest.testIdentity.ID)
-		require.Nil(rest.T(), err)
-		_, err = wirepo.Create(
-			rest.Ctx, iteration1.SpaceID, workitem.SystemTask,
-			map[string]interface{}{
-				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
-				workitem.SystemState:     workitem.SystemStateClosed,
-				workitem.SystemIteration: iteration1.ID.String(),
-			}, rest.testIdentity.ID)
-		require.Nil(rest.T(), err)
-	}
-	// add items to nested iteration level 1
-	for i := 0; i < 4; i++ {
-		_, err := wirepo.Create(
-			rest.Ctx, iteration1.SpaceID, workitem.SystemFeature,
-			map[string]interface{}{
-				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
-				workitem.SystemState:     workitem.SystemStateNew,
-				workitem.SystemIteration: childOfIteration2.ID.String(),
-			}, rest.testIdentity.ID)
-		require.Nil(rest.T(), err)
-
-		_, err = wirepo.Create(
-			rest.Ctx, iteration1.SpaceID, workitem.SystemTask,
-			map[string]interface{}{
-				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
-				workitem.SystemState:     workitem.SystemStateNew,
-				workitem.SystemIteration: childOfIteration2.ID.String(),
-			}, rest.testIdentity.ID)
-		require.Nil(rest.T(), err)
-	}
-	// add items to nested iteration level 2
-	for i := 0; i < 5; i++ {
-		_, err := wirepo.Create(
-			rest.Ctx, iteration1.SpaceID, workitem.SystemFeature,
-			map[string]interface{}{
-				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
-				workitem.SystemState:     workitem.SystemStateClosed,
-				workitem.SystemIteration: grandChildOfIteration2.ID.String(),
-			}, rest.testIdentity.ID)
-		require.Nil(rest.T(), err)
-		_, err = wirepo.Create(
-			rest.Ctx, iteration1.SpaceID, workitem.SystemTask,
-			map[string]interface{}{
-				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
-				workitem.SystemState:     workitem.SystemStateClosed,
-				workitem.SystemIteration: grandChildOfIteration2.ID.String(),
-			}, rest.testIdentity.ID)
-		require.Nil(rest.T(), err)
-	}
+		tf.WorkItems(28, func(fxt *tf.TestFixture, idx int) error {
+			wi := fxt.WorkItems[idx]
+			switch idx {
+			case 0, 1, 2:
+				wi.Fields[workitem.SystemState] = workitem.SystemStateNew
+				wi.Fields[workitem.SystemIteration] = fxt.Iterations[1].ID.String()
+				wi.Type = workitem.SystemFeature
+			case 3, 4, 5:
+				wi.Fields[workitem.SystemState] = workitem.SystemStateNew
+				wi.Fields[workitem.SystemIteration] = fxt.Iterations[1].ID.String()
+				wi.Type = workitem.SystemTask
+			case 6, 7:
+				wi.Fields[workitem.SystemState] = workitem.SystemStateClosed
+				wi.Fields[workitem.SystemIteration] = fxt.Iterations[1].ID.String()
+				wi.Type = workitem.SystemFeature
+			case 8, 9:
+				wi.Fields[workitem.SystemState] = workitem.SystemStateClosed
+				wi.Fields[workitem.SystemIteration] = fxt.Iterations[1].ID.String()
+				wi.Type = workitem.SystemTask
+			case 10, 11, 12, 13:
+				wi.Fields[workitem.SystemState] = workitem.SystemStateNew
+				wi.Fields[workitem.SystemIteration] = fxt.Iterations[3].ID.String()
+				wi.Type = workitem.SystemFeature
+			case 14, 15, 16, 17:
+				wi.Fields[workitem.SystemState] = workitem.SystemStateNew
+				wi.Fields[workitem.SystemIteration] = fxt.Iterations[3].ID.String()
+				wi.Type = workitem.SystemTask
+			case 18, 19, 20, 21, 22:
+				wi.Fields[workitem.SystemState] = workitem.SystemStateClosed
+				wi.Fields[workitem.SystemIteration] = fxt.Iterations[4].ID.String()
+				wi.Type = workitem.SystemFeature
+			case 23, 24, 25, 26, 27:
+				wi.Fields[workitem.SystemState] = workitem.SystemStateClosed
+				wi.Fields[workitem.SystemIteration] = fxt.Iterations[4].ID.String()
+				wi.Type = workitem.SystemTask
+			}
+			return nil
+		}),
+	)
 
 	svc, ctrl := rest.UnSecuredController()
 	// when
-	_, cs := test.ListSpaceIterationsOK(rest.T(), svc.Context, svc, ctrl, spaceInstance.ID, nil, nil)
+	_, cs := test.ListSpaceIterationsOK(rest.T(), svc.Context, svc, ctrl, fxt.Spaces[0].ID, nil, nil)
 	// then
-	require.Len(rest.T(), cs.Data, 4)
+	require.Len(rest.T(), cs.Data, 5)
 	for _, iterationItem := range cs.Data {
-		if uuid.Equal(*iterationItem.ID, iteration1.ID) {
+		if uuid.Equal(*iterationItem.ID, fxt.Iterations[1].ID) {
 			assert.Equal(rest.T(), 5, iterationItem.Relationships.Workitems.Meta[KeyTotalWorkItems])
 			assert.Equal(rest.T(), 2, iterationItem.Relationships.Workitems.Meta[KeyClosedWorkItems])
-		} else if uuid.Equal(*iterationItem.ID, iteration2.ID) {
+		} else if uuid.Equal(*iterationItem.ID, fxt.Iterations[2].ID) {
 			// we expect these counts should include that of child iterations too.
 			expectedTotal := 0 + 4 + 5  // sum of all items of self + child + grand-child
 			expectedClosed := 0 + 0 + 5 // sum of closed items self + child + grand-child
 			assert.Equal(rest.T(), expectedTotal, iterationItem.Relationships.Workitems.Meta[KeyTotalWorkItems])
 			assert.Equal(rest.T(), expectedClosed, iterationItem.Relationships.Workitems.Meta[KeyClosedWorkItems])
-		} else if uuid.Equal(*iterationItem.ID, childOfIteration2.ID) {
+		} else if uuid.Equal(*iterationItem.ID, fxt.Iterations[2].ID) {
 			// we expect these counts should include that of child iterations too.
 			expectedTotal := 4 + 5  // sum of all items of self and child
 			expectedClosed := 0 + 5 // sum of closed items of self and child
 			assert.Equal(rest.T(), expectedTotal, iterationItem.Relationships.Workitems.Meta[KeyTotalWorkItems])
 			assert.Equal(rest.T(), expectedClosed, iterationItem.Relationships.Workitems.Meta[KeyClosedWorkItems])
-		} else if uuid.Equal(*iterationItem.ID, grandChildOfIteration2.ID) {
+		} else if uuid.Equal(*iterationItem.ID, fxt.Iterations[4].ID) {
 			// we expect these counts should include that of child iterations too.
 			expectedTotal := 5 + 0  // sum of all items of self and child
 			expectedClosed := 5 + 0 // sum of closed items of self and child
@@ -390,67 +333,53 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 			assert.Equal(rest.T(), expectedClosed, iterationItem.Relationships.Workitems.Meta[KeyClosedWorkItems])
 		}
 	}
-	// seed 5 New WI to iteration2
-	for i := 0; i < 5; i++ {
-		_, err := wirepo.Create(
-			rest.Ctx, iteration1.SpaceID, workitem.SystemFeature,
-			map[string]interface{}{
-				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
-				workitem.SystemState:     workitem.SystemStateNew,
-				workitem.SystemIteration: iteration2.ID.String(),
-			}, rest.testIdentity.ID)
-		require.Nil(rest.T(), err)
+	tf.NewTestFixture(rest.T(), rest.DB,
+		tf.CreateWorkItemEnvironment(),
+		tf.WorkItems(16, func(fxt2 *tf.TestFixture, idx int) error {
+			wi := fxt2.WorkItems[idx]
+			switch idx {
+			case 0, 1, 2, 3, 4:
+				wi.Fields[workitem.SystemState] = workitem.SystemStateNew
+				wi.Fields[workitem.SystemIteration] = fxt.Iterations[2].ID.String()
+				wi.Type = workitem.SystemFeature
+			case 5, 6, 7, 8, 9:
+				wi.Fields[workitem.SystemState] = workitem.SystemStateNew
+				wi.Fields[workitem.SystemIteration] = fxt.Iterations[2].ID.String()
+				wi.Type = workitem.SystemTask
+			case 10, 11, 12:
+				wi.Fields[workitem.SystemState] = workitem.SystemStateClosed
+				wi.Fields[workitem.SystemIteration] = fxt.Iterations[2].ID.String()
+				wi.Type = workitem.SystemFeature
+			case 13, 14, 15:
+				wi.Fields[workitem.SystemState] = workitem.SystemStateClosed
+				wi.Fields[workitem.SystemIteration] = fxt.Iterations[2].ID.String()
+				wi.Type = workitem.SystemTask
+			}
+			return nil
+		}),
+	)
 
-		_, err = wirepo.Create(
-			rest.Ctx, iteration1.SpaceID, workitem.SystemTask,
-			map[string]interface{}{
-				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
-				workitem.SystemState:     workitem.SystemStateNew,
-				workitem.SystemIteration: iteration2.ID.String(),
-			}, rest.testIdentity.ID)
-		require.Nil(rest.T(), err)
-	}
-	// seed 2 Closed WI to iteration2
-	for i := 0; i < 3; i++ {
-		_, err := wirepo.Create(
-			rest.Ctx, iteration1.SpaceID, workitem.SystemFeature,
-			map[string]interface{}{
-				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
-				workitem.SystemState:     workitem.SystemStateClosed,
-				workitem.SystemIteration: iteration2.ID.String(),
-			}, rest.testIdentity.ID)
-		require.Nil(rest.T(), err)
-
-		_, err = wirepo.Create(
-			rest.Ctx, iteration1.SpaceID, workitem.SystemTask,
-			map[string]interface{}{
-				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
-				workitem.SystemState:     workitem.SystemStateClosed,
-				workitem.SystemIteration: iteration2.ID.String(),
-			}, rest.testIdentity.ID)
-		require.Nil(rest.T(), err)
-	}
 	// when
-	_, cs = test.ListSpaceIterationsOK(rest.T(), svc.Context, svc, ctrl, spaceInstance.ID, nil, nil)
+	_, cs = test.ListSpaceIterationsOK(rest.T(), svc.Context, svc, ctrl, fxt.Spaces[0].ID, nil, nil)
 	// then
-	require.Len(rest.T(), cs.Data, 4)
+	require.Len(rest.T(), cs.Data, 5)
 	for _, iterationItem := range cs.Data {
-		if uuid.Equal(*iterationItem.ID, iteration1.ID) {
+		if uuid.Equal(*iterationItem.ID, fxt.Iterations[1].ID) {
 			assert.Equal(rest.T(), 5, iterationItem.Relationships.Workitems.Meta[KeyTotalWorkItems])
 			assert.Equal(rest.T(), 2, iterationItem.Relationships.Workitems.Meta[KeyClosedWorkItems])
-		} else if uuid.Equal(*iterationItem.ID, iteration2.ID) {
+		} else if uuid.Equal(*iterationItem.ID, fxt.Iterations[2].ID) {
 			// we expect these counts should include that of child iterations too.
 			expectedTotal := 8 + 4 + 5  // sum of all items of self + child + grand-child
 			expectedClosed := 3 + 0 + 5 // sum of closed items self + child + grand-child
 			assert.Equal(rest.T(), expectedTotal, iterationItem.Relationships.Workitems.Meta[KeyTotalWorkItems])
 			assert.Equal(rest.T(), expectedClosed, iterationItem.Relationships.Workitems.Meta[KeyClosedWorkItems])
-		} else if uuid.Equal(*iterationItem.ID, childOfIteration2.ID) {
+		} else if uuid.Equal(*iterationItem.ID, fxt.Iterations[3].ID) {
 			// we expect these counts should include that of child iterations too.
 			expectedTotal := 4 + 5  // sum of all items of self + child + grand-child
 			expectedClosed := 0 + 5 // sum of closed items self + child + grand-child
 			assert.Equal(rest.T(), expectedTotal, iterationItem.Relationships.Workitems.Meta[KeyTotalWorkItems])
 			assert.Equal(rest.T(), expectedClosed, iterationItem.Relationships.Workitems.Meta[KeyClosedWorkItems])
-		} else if uuid.Equal(*iterationItem.ID, grandChildOfIteration2.ID) {
+		} else if uuid.Equal(*iterationItem.ID, fxt.Iterations[4].ID) {
 			// we expect these counts should include that of child iterations too.
 			expectedTotal := 5 + 0  // sum of all items of self + child + grand-child
 			expectedClosed := 5 + 0 // sum of closed items self + child + grand-child
