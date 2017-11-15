@@ -1080,3 +1080,109 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		}
 	})
 }
+
+func (rest *TestIterationREST) TestUpdateIteration() {
+	resetFn := rest.DisableGormCallbacks()
+	defer resetFn()
+	rest.T().Run("Update - iteration parent", func(t *testing.T) {
+		// 	root 0
+		// 		|---- itr 1
+		//			|---- itr 2
+		//				|---- itr 3
+		//  				|---- itr 4
+		// 			|---- itr 5
+		// 		|---- itr 6
+		fxt := tf.NewTestFixture(t, rest.DB,
+			tf.Iterations(7, tf.SetIterationNames("root iteration", "iteration 1",
+				"iteration 2", "iteration 3", "iteration 4", "iteration 5", "iteration 6"),
+				func(fxt *tf.TestFixture, idx int) error {
+					itr := fxt.Iterations[idx]
+					switch idx {
+					case 1:
+						itr.MakeChildOf(*fxt.Iterations[0])
+					case 2:
+						itr.MakeChildOf(*fxt.Iterations[1])
+					case 3:
+						itr.MakeChildOf(*fxt.Iterations[2])
+					case 4:
+						itr.MakeChildOf(*fxt.Iterations[3])
+					case 5:
+						itr.MakeChildOf(*fxt.Iterations[1])
+					case 6:
+						itr.MakeChildOf(*fxt.Iterations[0])
+					}
+					return nil
+				}))
+		// update parent of iteration 1
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+		itr1 := fxt.IterationByName("iteration 1")
+		itr2 := fxt.IterationByName("iteration 2")
+		itr3 := fxt.IterationByName("iteration 3")
+		itr4 := fxt.IterationByName("iteration 4")
+		itr5 := fxt.IterationByName("iteration 5")
+
+		typeIterationString := iteration.APIStringTypeIteration
+		newParentIDStr := itr1.ID.String()
+		payload := app.UpdateIterationPayload{
+			Data: &app.Iteration{
+				Attributes: &app.IterationAttributes{},
+				Relationships: &app.IterationRelations{
+					Parent: &app.RelationGeneric{
+						Data: &app.GenericData{
+							ID:   &newParentIDStr,
+							Type: &typeIterationString,
+						},
+					},
+				},
+				ID:   &itr3.ID,
+				Type: typeIterationString,
+			},
+		}
+		_, updatedItr := test.UpdateIterationOK(t, svc.Context, svc, ctrl, itr3.ID.String(), &payload)
+		require.NotNil(t, updatedItr)
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "update", "ok_change_parent.golden.json"), updatedItr)
+		require.NotNil(t, updatedItr.Data.Relationships.Parent)
+		assert.Equal(t, newParentIDStr, *updatedItr.Data.Relationships.Parent.Data.ID)
+		// root 0
+		//	|---- itr 1
+		// 			|---- itr 5
+		//				|---- itr 2
+		//			|---- itr 3
+		// 				|---- itr 4
+		// 	|---- itr 6
+		// golden file for update parent call
+		// verify new parent path for updatedItr
+
+		children, err := rest.db.Iterations().LoadChildren(svc.Context, itr2.ID)
+		require.Nil(t, err)
+		require.Len(t, children, 0)
+
+		children, err = rest.db.Iterations().LoadChildren(svc.Context, itr1.ID)
+		require.Nil(t, err)
+		require.Len(t, children, 4)
+
+		allChildren := map[uuid.UUID]struct{}{
+			// expected subtree of itr 1
+			itr2.ID: {},
+			itr3.ID: {},
+			itr4.ID: {},
+			itr5.ID: {},
+		}
+		for _, i := range children {
+			delete(allChildren, i.ID)
+		}
+		require.Empty(t, allChildren)
+
+		children, err = rest.db.Iterations().LoadChildren(svc.Context, itr3.ID)
+		require.Nil(t, err)
+		require.Len(t, children, 1)
+
+		allChildren = map[uuid.UUID]struct{}{
+			itr4.ID: {},
+		}
+		for _, i := range children {
+			delete(allChildren, i.ID)
+		}
+		require.Empty(t, allChildren)
+	})
+}

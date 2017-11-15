@@ -213,14 +213,26 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 		if ctx.Payload.Data.Attributes.UserActive != nil {
 			itr.UserActive = *ctx.Payload.Data.Attributes.UserActive
 		}
+		var oldSubtree []iteration.Iteration
 		if ctx.Payload.Data.Relationships != nil && ctx.Payload.Data.Relationships.Parent != nil {
 			newParentID := ctx.Payload.Data.Relationships.Parent.Data.ID
 			if newParentID == nil {
 				return jsonapi.JSONErrorResponse(ctx,
-					errors.NewBadParameterError("Data.Relationships.Parent.ID", newParentID))
+					errors.NewBadParameterError("Data.Relationships.Parent.ID", newParentID).Expected("not nil"))
 			}
-			// load new parent
-			// set parent path using new parent
+			id, err := uuid.FromString(*newParentID)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, err)
+			}
+			newParentIteration, err := appl.Iterations().Load(ctx.Context, id)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, err)
+			}
+			oldSubtree, err = appl.Iterations().LoadChildren(ctx, itr.ID)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, err)
+			}
+			itr.MakeChildOf(*newParentIteration)
 		}
 		itr, err = appl.Iterations().Save(ctx.Context, *itr)
 		if err != nil {
@@ -228,9 +240,18 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 		}
 		// update all child iterations if parent is modified
 		if ctx.Payload.Data.Relationships != nil && ctx.Payload.Data.Relationships.Parent != nil {
-			// load subtree
-			// for each change parent path using new path of itr
-			// save all
+			// If parent was updated then need to move all iterations below it
+			for _, x := range oldSubtree {
+				x.MakeChildOf(*itr)
+				_, err = appl.Iterations().Save(ctx.Context, x)
+				if err != nil {
+					log.Error(ctx, map[string]interface{}{
+						"iteration_id": x.ID,
+						"err":          err.Error(),
+					}, "unable to update child iteration from subtree")
+					return jsonapi.JSONErrorResponse(ctx, err)
+				}
+			}
 		}
 		wiCounts, err := appl.WorkItems().GetCountsForIteration(ctx, itr)
 		if err != nil {

@@ -1,0 +1,52 @@
+{
+  "data": {
+    "attributes": {
+      "active_status": false,
+      "created-at": "0001-01-01T00:00:00Z",
+      "description": "Some description",
+      "name": "iteration 3",
+      "parent_path": "/d124787e-db62-4c95-9aca-ea0bfe32a6b1/67a614a0-e657-431b-a989-ec1f63fa43d3",
+      "resolved_parent_path": "/root iteration/iteration 1",
+      "state": "new",
+      "updated-at": "0001-01-01T00:00:00Z",
+      "user_active": false
+    },
+    "id": "8ce0f644-734c-451c-a4f0-5031c8cc7d21",
+    "links": {
+      "related": "http:///api/iterations/8ce0f644-734c-451c-a4f0-5031c8cc7d21",
+      "self": "http:///api/iterations/8ce0f644-734c-451c-a4f0-5031c8cc7d21"
+    },
+    "relationships": {
+      "parent": {
+        "data": {
+          "id": "67a614a0-e657-431b-a989-ec1f63fa43d3",
+          "type": "iterations"
+        },
+        "links": {
+          "related": "http:///api/iterations/67a614a0-e657-431b-a989-ec1f63fa43d3",
+          "self": "http:///api/iterations/67a614a0-e657-431b-a989-ec1f63fa43d3"
+        }
+      },
+      "space": {
+        "data": {
+          "id": "3a0c5b36-34b6-483b-ac22-a962eb1a7f09",
+          "type": "spaces"
+        },
+        "links": {
+          "related": "http:///api/spaces/3a0c5b36-34b6-483b-ac22-a962eb1a7f09",
+          "self": "http:///api/spaces/3a0c5b36-34b6-483b-ac22-a962eb1a7f09"
+        }
+      },
+      "workitems": {
+        "links": {
+          "related": "http:///api/workitems/?filter[iteration]=8ce0f644-734c-451c-a4f0-5031c8cc7d21"
+        },
+        "meta": {
+          "closed": 0,
+          "total": 0
+        }
+      }
+    },
+    "type": "iterations"
+  }
+}
