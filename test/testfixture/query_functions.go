@@ -52,6 +52,16 @@ func (fxt *TestFixture) WorkItemTypeByName(name string, spaceID ...uuid.UUID) *w
 	return nil
 }
 
+// WorkItemTypeByID returns the work item type that has the given ID (if any).
+func (fxt *TestFixture) WorkItemTypeByID(id uuid.UUID) *workitem.WorkItemType {
+	for _, wit := range fxt.WorkItemTypes {
+		if wit.ID == id {
+			return wit
+		}
+	}
+	return nil
+}
+
 // IdentityByUsername returns the first identity that has the given username (if
 // any).
 func (fxt *TestFixture) IdentityByUsername(username string) *account.Identity {

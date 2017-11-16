@@ -2,13 +2,13 @@
   "data": {
     "attributes": {
       "system.created_at": "0001-01-01T00:00:00Z",
-      "system.number": 1,
-      "system.order": 1000,
+      "system.number": 2,
+      "system.order": 2000,
       "system.remote_item_id": null,
       "system.state": "new",
       "system.title": "Updated Test WI",
       "system.updated_at": "0001-01-01T00:00:00Z",
-      "version": 2
+      "version": 1
     },
     "id": "3c0b14df-9205-4cbd-ade0-5feaa1a6f498",
     "links": {
