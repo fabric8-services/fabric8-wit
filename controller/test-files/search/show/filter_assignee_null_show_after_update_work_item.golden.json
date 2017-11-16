@@ -10,18 +10,18 @@
       "system.updated_at": "0001-01-01T00:00:00Z",
       "version": 1
     },
-    "id": "3c0b14df-9205-4cbd-ade0-5feaa1a6f498",
+    "id": "00000000-0000-0000-0000-000000000001",
     "links": {
-      "related": "http:///api/workitems/3c0b14df-9205-4cbd-ade0-5feaa1a6f498",
-      "self": "http:///api/workitems/3c0b14df-9205-4cbd-ade0-5feaa1a6f498"
+      "related": "http:///api/workitems/00000000-0000-0000-0000-000000000001",
+      "self": "http:///api/workitems/00000000-0000-0000-0000-000000000001"
     },
     "relationships": {
       "area": {
         "data": {
-          "id": "e189ad80-5d49-437c-ae4d-3905ff868bee",
+          "id": "00000000-0000-0000-0000-000000000002",
           "links": {
-            "related": "http:///api/areas/e189ad80-5d49-437c-ae4d-3905ff868bee",
-            "self": "http:///api/areas/e189ad80-5d49-437c-ae4d-3905ff868bee"
+            "related": "http:///api/areas/00000000-0000-0000-0000-000000000002",
+            "self": "http:///api/areas/00000000-0000-0000-0000-000000000002"
           },
           "type": "areas"
         }
@@ -29,16 +29,16 @@
       "assignees": {},
       "baseType": {
         "data": {
-          "id": "f13a0fbf-1c9b-4561-801e-cb2210067d18",
+          "id": "00000000-0000-0000-0000-000000000003",
           "type": "workitemtypes"
         },
         "links": {
-          "self": "http:///api/spaces/8aa4cb28-05a0-4f7e-b3e4-d4be40c60cba/workitemtypes/f13a0fbf-1c9b-4561-801e-cb2210067d18"
+          "self": "http:///api/spaces/00000000-0000-0000-0000-000000000004/workitemtypes/00000000-0000-0000-0000-000000000003"
         }
       },
       "children": {
         "links": {
-          "related": "http:///api/workitems/3c0b14df-9205-4cbd-ade0-5feaa1a6f498/children"
+          "related": "http:///api/workitems/00000000-0000-0000-0000-000000000001/children"
         },
         "meta": {
           "hasChildren": false
@@ -46,49 +46,49 @@
       },
       "comments": {
         "links": {
-          "related": "http:///api/workitems/3c0b14df-9205-4cbd-ade0-5feaa1a6f498/comments",
-          "self": "http:///api/workitems/3c0b14df-9205-4cbd-ade0-5feaa1a6f498/relationships/comments"
+          "related": "http:///api/workitems/00000000-0000-0000-0000-000000000001/comments",
+          "self": "http:///api/workitems/00000000-0000-0000-0000-000000000001/relationships/comments"
         }
       },
       "creator": {
         "data": {
-          "id": "71a1e4e2-0de9-4b47-9365-e600fdce4947",
+          "id": "00000000-0000-0000-0000-000000000005",
           "links": {
-            "related": "http:///api/users/71a1e4e2-0de9-4b47-9365-e600fdce4947",
-            "self": "http:///api/users/71a1e4e2-0de9-4b47-9365-e600fdce4947"
+            "related": "http:///api/users/00000000-0000-0000-0000-000000000005",
+            "self": "http:///api/users/00000000-0000-0000-0000-000000000005"
           },
           "type": "users"
         }
       },
       "iteration": {
         "data": {
-          "id": "ccfe5d06-69e4-45b9-b101-5a3d422694d6",
+          "id": "00000000-0000-0000-0000-000000000006",
           "links": {
-            "related": "http:///api/iterations/ccfe5d06-69e4-45b9-b101-5a3d422694d6",
-            "self": "http:///api/iterations/ccfe5d06-69e4-45b9-b101-5a3d422694d6"
+            "related": "http:///api/iterations/00000000-0000-0000-0000-000000000006",
+            "self": "http:///api/iterations/00000000-0000-0000-0000-000000000006"
           },
           "type": "iterations"
         }
       },
       "labels": {
         "links": {
-          "related": "http:///api/workitems/3c0b14df-9205-4cbd-ade0-5feaa1a6f498/labels"
+          "related": "http:///api/workitems/00000000-0000-0000-0000-000000000001/labels"
         }
       },
       "space": {
         "data": {
-          "id": "8aa4cb28-05a0-4f7e-b3e4-d4be40c60cba",
+          "id": "00000000-0000-0000-0000-000000000004",
           "type": "spaces"
         },
         "links": {
-          "related": "http:///api/spaces/8aa4cb28-05a0-4f7e-b3e4-d4be40c60cba",
-          "self": "http:///api/spaces/8aa4cb28-05a0-4f7e-b3e4-d4be40c60cba"
+          "related": "http:///api/spaces/00000000-0000-0000-0000-000000000004",
+          "self": "http:///api/spaces/00000000-0000-0000-0000-000000000004"
         }
       }
     },
     "type": "workitems"
   },
   "links": {
-    "self": "http:///api/workitems/3c0b14df-9205-4cbd-ade0-5feaa1a6f498"
+    "self": "http:///api/workitems/00000000-0000-0000-0000-000000000001"
   }
 }
