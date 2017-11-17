@@ -7,21 +7,21 @@
       "type": "git",
       "url": "git@github.com:fabric8-services/fabric8-wit.git"
     },
-    "id": "7ffb4b6d-7db6-4dd9-981f-991c14cf61c9",
+    "id": "00000000-0000-0000-0000-000000000001",
     "links": {
-      "edit": "http:///api/codebases/7ffb4b6d-7db6-4dd9-981f-991c14cf61c9/edit",
-      "related": "http:///api/codebases/7ffb4b6d-7db6-4dd9-981f-991c14cf61c9",
-      "self": "http:///api/codebases/7ffb4b6d-7db6-4dd9-981f-991c14cf61c9"
+      "edit": "http:///api/codebases/00000000-0000-0000-0000-000000000001/edit",
+      "related": "http:///api/codebases/00000000-0000-0000-0000-000000000001",
+      "self": "http:///api/codebases/00000000-0000-0000-0000-000000000001"
     },
     "relationships": {
       "space": {
         "data": {
-          "id": "703a5a0d-3885-42aa-948d-e03303d6ab2c",
+          "id": "00000000-0000-0000-0000-000000000002",
           "type": "spaces"
         },
         "links": {
-          "related": "http:///api/spaces/703a5a0d-3885-42aa-948d-e03303d6ab2c",
-          "self": "http:///api/spaces/703a5a0d-3885-42aa-948d-e03303d6ab2c"
+          "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002",
+          "self": "http:///api/spaces/00000000-0000-0000-0000-000000000002"
         }
       }
     },

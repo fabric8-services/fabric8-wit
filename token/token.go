@@ -58,7 +58,7 @@ type Manager interface {
 	ParseToken(ctx context.Context, tokenString string) (*TokenClaims, error)
 	PublicKey(kid string) *rsa.PublicKey
 	PublicKeys() []*rsa.PublicKey
-	IsServiceAccount(ctx context.Context) bool
+	IsServiceAccount(ctx context.Context, serviceName string) bool
 }
 
 type tokenManager struct {
@@ -130,7 +130,7 @@ func NewManagerWithPublicKey(id string, key *rsa.PublicKey) Manager {
 	}
 }
 
-func (mgm *tokenManager) IsServiceAccount(ctx context.Context) bool {
+func (mgm *tokenManager) IsServiceAccount(ctx context.Context, serviceName string) bool {
 	token := goajwt.ContextJWT(ctx)
 	if token == nil {
 		return false
@@ -142,7 +142,7 @@ func (mgm *tokenManager) IsServiceAccount(ctx context.Context) bool {
 	accountNameTyped, isString := accountName.(string)
 
 	// https://github.com/fabric8-services/fabric8-auth/commit/8d7f5a3646974ae8820893d75c29f3f5e9b1ff66#diff-6b1a7621961d1f6fe7463db59c5afef5R379
-	return isString && (accountNameTyped == "auth" || accountNameTyped == "fabric8-auth")
+	return isString && (accountNameTyped == serviceName)
 }
 
 // ParseToken parses token claims
