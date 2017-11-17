@@ -88,4 +88,13 @@ func TestSubstring(t *testing.T) {
 		assert.Equal(t, "Fields->>'system.title;DELETE FROM work_items' ILIKE ?", where)
 	})
 
+	t.Run("system.title with SQL injection text single quote", func(t *testing.T) {
+		title := "some title"
+
+		exp := Substring(Field("system.title'DELETE FROM work_items"), Literal(title))
+		where, _, err := Compile(exp)
+
+		assert.Equal(t, 1, len(err))
+		assert.Equal(t, "", where)
+	})
 }

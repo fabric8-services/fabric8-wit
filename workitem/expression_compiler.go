@@ -21,7 +21,11 @@ func Compile(where criteria.Expression) (whereClause string, parameters []interf
 	compiler := newExpressionCompiler()
 	compiled := where.Accept(&compiler)
 
-	return compiled.(string), compiler.parameters, compiler.err
+	c, ok := compiled.(string)
+	if !ok {
+		c = ""
+	}
+	return c, compiler.parameters, compiler.err
 }
 
 // mark expression tree nodes that reference json fields
