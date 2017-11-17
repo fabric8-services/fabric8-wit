@@ -8,21 +8,21 @@
         "type": "git",
         "url": "http://foo.com/single/0"
       },
-      "id": "ae5712e0-b4ad-43bb-9774-5c92fae85eb1",
+      "id": "00000000-0000-0000-0000-000000000001",
       "links": {
-        "edit": "http:///api/codebases/ae5712e0-b4ad-43bb-9774-5c92fae85eb1/edit",
-        "related": "http:///api/codebases/ae5712e0-b4ad-43bb-9774-5c92fae85eb1",
-        "self": "http:///api/codebases/ae5712e0-b4ad-43bb-9774-5c92fae85eb1"
+        "edit": "http:///api/codebases/00000000-0000-0000-0000-000000000001/edit",
+        "related": "http:///api/codebases/00000000-0000-0000-0000-000000000001",
+        "self": "http:///api/codebases/00000000-0000-0000-0000-000000000001"
       },
       "relationships": {
         "space": {
           "data": {
-            "id": "8e33e6cd-5c13-4ca3-9e25-e64813e2d605",
+            "id": "00000000-0000-0000-0000-000000000002",
             "type": "spaces"
           },
           "links": {
-            "related": "http:///api/spaces/8e33e6cd-5c13-4ca3-9e25-e64813e2d605",
-            "self": "http:///api/spaces/8e33e6cd-5c13-4ca3-9e25-e64813e2d605"
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002",
+            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000002"
           }
         }
       },
@@ -34,41 +34,41 @@
       "attributes": {
         "created-at": "0001-01-01T00:00:00Z",
         "description": "Some description",
-        "name": "space 276fe7ea-2f36-4153-befa-19e455ed08d6",
+        "name": "space 00000000-0000-0000-0000-000000000003",
         "updated-at": "0001-01-01T00:00:00Z",
         "version": 0
       },
-      "id": "8e33e6cd-5c13-4ca3-9e25-e64813e2d605",
+      "id": "00000000-0000-0000-0000-000000000002",
       "links": {
         "backlog": {
-          "self": "http:///api/spaces/8e33e6cd-5c13-4ca3-9e25-e64813e2d605/backlog"
+          "self": "http:///api/spaces/00000000-0000-0000-0000-000000000002/backlog"
         },
         "filters": "http:///api/filters",
-        "related": "http:///api/spaces/8e33e6cd-5c13-4ca3-9e25-e64813e2d605",
-        "self": "http:///api/spaces/8e33e6cd-5c13-4ca3-9e25-e64813e2d605",
-        "workitemlinktypes": "http:///api/spaces/8e33e6cd-5c13-4ca3-9e25-e64813e2d605/workitemlinktypes",
-        "workitemtypegroups": "http:///api/spacetemplates/8e33e6cd-5c13-4ca3-9e25-e64813e2d605/workitemtypegroups/",
-        "workitemtypes": "http:///api/spaces/8e33e6cd-5c13-4ca3-9e25-e64813e2d605/workitemtypes"
+        "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002",
+        "self": "http:///api/spaces/00000000-0000-0000-0000-000000000002",
+        "workitemlinktypes": "http:///api/spaces/00000000-0000-0000-0000-000000000002/workitemlinktypes",
+        "workitemtypegroups": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups/",
+        "workitemtypes": "http:///api/spaces/00000000-0000-0000-0000-000000000002/workitemtypes"
       },
       "relationships": {
         "areas": {
           "links": {
-            "related": "http:///api/spaces/8e33e6cd-5c13-4ca3-9e25-e64813e2d605/areas"
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002/areas"
           }
         },
         "backlog": {
           "links": {
-            "related": "http:///api/spaces/8e33e6cd-5c13-4ca3-9e25-e64813e2d605/backlog"
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002/backlog"
           }
         },
         "codebases": {
           "links": {
-            "related": "http:///api/spaces/8e33e6cd-5c13-4ca3-9e25-e64813e2d605/codebases"
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002/codebases"
           }
         },
         "collaborators": {
           "links": {
-            "related": "http:///api/spaces/8e33e6cd-5c13-4ca3-9e25-e64813e2d605/collaborators"
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002/collaborators"
           }
         },
         "filters": {
@@ -78,41 +78,41 @@
         },
         "iterations": {
           "links": {
-            "related": "http:///api/spaces/8e33e6cd-5c13-4ca3-9e25-e64813e2d605/iterations"
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002/iterations"
           }
         },
         "labels": {
           "links": {
-            "related": "http:///api/spaces/8e33e6cd-5c13-4ca3-9e25-e64813e2d605/labels"
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002/labels"
           }
         },
         "owned-by": {
           "data": {
-            "id": "f0f62def-b76a-4fd0-87d5-b1ce8b885196",
+            "id": "00000000-0000-0000-0000-000000000004",
             "type": "identities"
           },
           "links": {
-            "related": "http:///api/users/f0f62def-b76a-4fd0-87d5-b1ce8b885196"
+            "related": "http:///api/users/00000000-0000-0000-0000-000000000004"
           }
         },
         "workitemlinktypes": {
           "links": {
-            "related": "http:///api/spaces/8e33e6cd-5c13-4ca3-9e25-e64813e2d605/workitemlinktypes"
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002/workitemlinktypes"
           }
         },
         "workitems": {
           "links": {
-            "related": "http:///api/spaces/8e33e6cd-5c13-4ca3-9e25-e64813e2d605/workitems"
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002/workitems"
           }
         },
         "workitemtypegroups": {
           "links": {
-            "related": "http:///api/spacetemplates/8e33e6cd-5c13-4ca3-9e25-e64813e2d605/workitemtypegroups/"
+            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups/"
           }
         },
         "workitemtypes": {
           "links": {
-            "related": "http:///api/spaces/8e33e6cd-5c13-4ca3-9e25-e64813e2d605/workitemtypes"
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002/workitemtypes"
           }
         }
       },

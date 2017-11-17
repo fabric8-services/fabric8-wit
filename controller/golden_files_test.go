@@ -59,7 +59,17 @@ func testableCompareWithGolden(update bool, goldenFile string, actualObj interfa
 		return errs.WithStack(err)
 	}
 	if update {
-		err = ioutil.WriteFile(absPath, actual, os.ModePerm)
+		tmp := string(actual)
+		var err error
+		// Eliminate concrete UUIDs if requested. This makes adding changes to
+		// golden files much more easy in git.
+		if uuidAgnostic {
+			tmp, err = replaceUUIDs(tmp)
+			if err != nil {
+				return errs.Wrapf(err, "failed to replace UUIDs with more generic ones")
+			}
+		}
+		err = ioutil.WriteFile(absPath, []byte(tmp), os.ModePerm)
 		if err != nil {
 			return errs.Wrapf(err, "failed to update golden file: %s", absPath)
 		}
