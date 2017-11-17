@@ -130,14 +130,12 @@ func (c *expressionCompiler) Equals(e *criteria.EqualsExpression) interface{} {
 
 func (c *expressionCompiler) Substring(e *criteria.SubstringExpression) interface{} {
 	if isInJSONContext(e.Left()) {
-		var l string
-		if left, ok := e.Left().(*criteria.FieldExpression); ok {
-			l = left.FieldName
-		} else {
+		left, ok := e.Left().(*criteria.FieldExpression);
+		if !ok {
 			c.err = append(c.err, fmt.Errorf("invalid left expression"))
 			return nil
 		}
-		if strings.Contains(l, "'") {
+		if strings.Contains(left.FieldName, "'") {
 			// beware of injection, it's a reasonable restriction for field names,
 			// make sure it's not allowed when creating wi types
 			c.err = append(c.err, fmt.Errorf("single quote not allowed in field name"))
@@ -146,7 +144,7 @@ func (c *expressionCompiler) Substring(e *criteria.SubstringExpression) interfac
 
 		r := "%" + e.Right().(*criteria.LiteralExpression).Value.(string) + "%"
 		c.parameters = append(c.parameters, r)
-		return "Fields->>'" + l + "' ILIKE ?"
+		return "Fields->>'" + left.FieldName + "' ILIKE ?"
 	}
 	op := "ILIKE"
 	return c.binary(e, op)
