@@ -130,7 +130,7 @@ func (c *expressionCompiler) Equals(e *criteria.EqualsExpression) interface{} {
 
 func (c *expressionCompiler) Substring(e *criteria.SubstringExpression) interface{} {
 	if isInJSONContext(e.Left()) {
-		left, ok := e.Left().(*criteria.FieldExpression);
+		left, ok := e.Left().(*criteria.FieldExpression)
 		if !ok {
 			c.err = append(c.err, fmt.Errorf("invalid left expression"))
 			return nil
