@@ -13,10 +13,20 @@ import (
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 )
 
+// Client the interface for remote operations on Che
+type Client interface {
+	CreateWorkspace(ctx context.Context, workspace WorkspaceRequest) (*WorkspaceResponse, error)
+	ListWorkspaces(ctx context.Context, repository string) ([]*WorkspaceResponse, error)
+	DeleteWorkspace(ctx context.Context, workspaceName string) error
+	StartExistingWorkspace(ctx context.Context, workspaceName string) (*WorkspaceResponse, error)
+	GetCheServerState(ctx context.Context) (*CheServerStateResponse, error)
+	StartCheServer(ctx context.Context) (*CheServerStateResponse, error)
+}
+
 // NewStarterClient is a helper function to create a new CheStarter client
 // Uses http.DefaultClient
-func NewStarterClient(cheStarterURL, openshiftMasterURL string, namespace string) *StarterClient {
-	return &StarterClient{cheStarterURL: cheStarterURL, openshiftMasterURL: openshiftMasterURL, namespace: namespace, client: http.DefaultClient}
+func NewStarterClient(cheStarterURL, openshiftMasterURL string, namespace string, client *http.Client) Client {
+	return &StarterClient{cheStarterURL: cheStarterURL, openshiftMasterURL: openshiftMasterURL, namespace: namespace, client: client}
 }
 
 // StarterClient describes the REST interface between Platform and Che Starter
@@ -163,6 +173,64 @@ func (cs *StarterClient) CreateWorkspace(ctx context.Context, workspace Workspac
 		return nil, err
 	}
 	return &workspaceResp, nil
+}
+
+// DeleteWorkspace deletes a Che Workspace by its name
+func (cs *StarterClient) DeleteWorkspace(ctx context.Context, workspaceName string) error {
+	req, err := http.NewRequest("DELETE", cs.targetURL(fmt.Sprintf("workspace/%s", workspaceName)), nil)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"name":      workspaceName,
+			"masterURL": cs.cheStarterURL,
+			"namespace": cs.namespace,
+			"err":       err,
+		}, "failed to create request object")
+		return err
+	}
+	cs.setHeaders(ctx, req)
+
+	if log.IsDebug() {
+		b, _ := httputil.DumpRequest(req, true)
+		log.Debug(ctx, map[string]interface{}{
+			"request": string(b),
+		}, "request object")
+	}
+
+	resp, err := cs.client.Do(req)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"name":      workspaceName,
+			"masterURL": cs.cheStarterURL,
+			"namespace": cs.namespace,
+			"err":       err,
+		}, "failed to delete workspace")
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
+		workspaceErr := CheStarterError{}
+		err = json.NewDecoder(resp.Body).Decode(&workspaceErr)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"name":      workspaceName,
+				"masterURL": cs.cheStarterURL,
+				"namespace": cs.namespace,
+				"err":       err,
+			}, "failed to decode error response from list workspace for repository")
+			return err
+		}
+		log.Error(ctx, map[string]interface{}{
+			"name":      workspaceName,
+			"masterURL": cs.cheStarterURL,
+			"namespace": cs.namespace,
+			"err":       workspaceErr.String(),
+		}, "failed to delete workspace")
+		return &workspaceErr
+	}
+
+	return nil
 }
 
 // StartExistingWorkspace starts an existing Che Workspace based on a repository

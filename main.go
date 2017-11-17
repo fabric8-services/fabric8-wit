@@ -341,6 +341,8 @@ func main() {
 	// Mount "codebase" controller
 	codebaseCtrl := controller.NewCodebaseController(service, appDB, config)
 	codebaseCtrl.ShowTenant = account.NewShowTenant(config)
+	codebaseCtrl.NewCheClient = controller.NewDefaultCheClient(config)
+
 	app.MountCodebaseController(service, codebaseCtrl)
 
 	// Mount "spacecodebases" controller

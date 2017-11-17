@@ -969,15 +969,25 @@ func (s *searchControllerTestSuite) TestUpdateWorkItem() {
 
 	s.T().Run("assignees", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
-		spaceIDStr := fxt.Spaces[0].ID.String()
-		filter := fmt.Sprintf(`{"assignee":null}`)
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.CreateWorkItemEnvironment(),
+			tf.WorkItems(2,
+				tf.SetWorkItemField(workitem.SystemTitle, "assigned", "unassigned"),
+				func(fxt *tf.TestFixture, idx int) error {
+					if idx == 0 {
+						fxt.WorkItems[idx].Fields[workitem.SystemAssignees] = []string{fxt.Identities[0].ID.String()}
+					}
+					return nil
+				},
+			),
+		)
+		filter := fmt.Sprintf(`{"$AND":[{"space":"%s"},{"assignee":null}]}`, fxt.Spaces[0].ID.String())
 		t.Run("filter null", func(t *testing.T) {
 			// when
-			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
 			// then
 			require.Len(t, result.Data, 1)
-			require.Equal(t, fxt.WorkItems[0].ID, *result.Data[0].ID)
+			require.Equal(t, fxt.WorkItemByTitle("unassigned").ID, *result.Data[0].ID)
 
 			t.Run("assignee should be nil if assignee field is not touched during update", func(t *testing.T) {
 				wi := result.Data[0]
@@ -988,7 +998,7 @@ func (s *searchControllerTestSuite) TestUpdateWorkItem() {
 				_, updated := test.UpdateWorkitemOK(t, s.svc.Context, s.svc, workitemCtrl, *wi.ID, &payload2)
 				compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "filter_assignee_null_update_work_item.golden.json"), updated)
 
-				_, result = test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+				_, result = test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
 				compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "filter_assignee_null_show_after_update_work_item.golden.json"), updated)
 				assert.Nil(s.T(), result.Data[0].Attributes[workitem.SystemAssignees])
 
@@ -997,29 +1007,38 @@ func (s *searchControllerTestSuite) TestUpdateWorkItem() {
 	})
 	s.T().Run("labels", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
-		spaceIDStr := fxt.Spaces[0].ID.String()
-		filter := fmt.Sprintf(`{"label":{"$EQ":null}}`)
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.CreateWorkItemEnvironment(),
+			tf.Labels(1),
+			tf.WorkItems(2,
+				tf.SetWorkItemField(workitem.SystemTitle, "labelled", "unlabelled"),
+				func(fxt *tf.TestFixture, idx int) error {
+					if idx == 0 {
+						fxt.WorkItems[idx].Fields[workitem.SystemLabels] = []string{fxt.Labels[0].ID.String()}
+					}
+					return nil
+				},
+			),
+		)
+		filter := fmt.Sprintf(`{"$AND":[{"space":"%s"},{"label":{"$EQ":null}}]}`, fxt.Spaces[0].ID.String())
 		t.Run("filter null", func(t *testing.T) {
 			// when
-			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
 			// then
-			require.Len(t, result.Data, 2)
-			require.Equal(t, fxt.WorkItems[0].ID, *result.Data[1].ID)
+			require.Len(t, result.Data, 1)
+			require.Equal(t, fxt.WorkItemByTitle("unlabelled").ID, *result.Data[0].ID)
 
 			t.Run("assignee should be nil if label field is not touched during update", func(t *testing.T) {
 				wi := result.Data[0]
 				workitemCtrl := NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-
 				wi.Attributes[workitem.SystemTitle] = "Updated Test WI"
 				payload2 := app.UpdateWorkitemPayload{Data: wi}
 				_, updated := test.UpdateWorkitemOK(t, s.svc.Context, s.svc, workitemCtrl, *wi.ID, &payload2)
 				compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "filter_label_null_update_work_item.golden.json"), updated)
 
-				_, result = test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+				_, result = test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
 				compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "filter_label_null_show_after_update_work_item.golden.json"), updated)
 				assert.Nil(s.T(), result.Data[0].Attributes[workitem.SystemLabels])
-
 			})
 		})
 	})

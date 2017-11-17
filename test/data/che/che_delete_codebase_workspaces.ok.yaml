@@ -1,0 +1,94 @@
+---
+version: 1
+interactions:
+- request:
+    body: ""
+    form: {}
+    url: che-server/workspace?masterUrl=https://tsrv.devshift.net:8443&namespace=foo&repository=git@github.com:bar/foo
+    method: GET
+  response:
+    body: '[
+  {
+    "config": {
+      "commands": [
+        {
+          "attributes": {
+            "goal": "string",
+            "previewUrl": "string"
+          },
+          "commandLine": "string",
+          "name": "string",
+          "type": "string"
+        }
+      ],
+      "defaultEnv": "string",
+      "description": "string",
+      "environments": {
+        "default": {
+          "machines": {},
+          "recipe": {
+            "content": "string",
+            "contentType": "string",
+            "location": "string",
+            "type": "string"
+          }
+        }
+      },
+      "links": [
+        {
+          "href": "string",
+          "method": "string",
+          "rel": "string"
+        }
+      ],
+      "name": "string",
+      "projects": [
+        {
+          "attributes": {},
+          "description": "string",
+          "links": [
+            {}
+          ],
+          "mixins": [
+            "string"
+          ],
+          "name": "string",
+          "path": "string",
+          "source": {
+            "location": "string",
+            "parameters": {},
+            "type": "string"
+          },
+          "type": "string"
+        }
+      ]
+    },
+    "id": "string",
+    "links": [
+      {
+        "href": "che-server/workspace?masterUrl=https://tsrv.devshift.net:8443&namespace=foo&repository=git@github.com:bar/foo",
+        "method": "DELETE",
+        "rel": "delete"
+      }
+    ],
+    "runtime": {
+      "devMachine": {
+        "runtime": {
+          "servers": {}
+        }
+      }
+    },
+    "status": "string"
+  }
+]'
+    # headers:
+
+    status: 200 OK
+    code: 200
+- request:
+    url: che-server/workspace/string?masterUrl=https://tsrv.devshift.net:8443&namespace=foo
+    method: DELETE
+  response:
+    # headers:
+    status: 200 OK
+    code: 200
