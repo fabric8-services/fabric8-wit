@@ -34,6 +34,45 @@ func TestParseMap(t *testing.T) {
 		assert.Equal(t, expectedQuery, actualQuery)
 	})
 
+	t.Run("$SUBSTR", func(t *testing.T) {
+		t.Parallel()
+		// given
+		substr := "openshiftio"
+		input := fmt.Sprintf(`{"title": { "$SUBSTR": "%s"}}`, substr)
+		// Parsing/Unmarshalling JSON encoding/json
+		fm := map[string]interface{}{}
+		err := json.Unmarshal([]byte(input), &fm)
+		require.Nil(t, err)
+		// when
+		actualQuery := Query{}
+		parseMap(fm, &actualQuery)
+		// then
+		expectedQuery := Query{Name: "title", Value: &substr, Substring: true}
+		assert.Equal(t, expectedQuery, actualQuery)
+	})
+
+	t.Run("$SUBSTR within $AND", func(t *testing.T) {
+		t.Parallel()
+		// given
+		openshiftio := "openshiftio"
+		title := "sometitle"
+		input := fmt.Sprintf(`{"$AND": [{"space": "%s"}, {"title": { "$SUBSTR": "%s"}}]}`, openshiftio, title)
+		// Parsing/Unmarshalling JSON encoding/json
+		fm := map[string]interface{}{}
+		err := json.Unmarshal([]byte(input), &fm)
+		require.Nil(t, err)
+		// when
+		actualQuery := Query{}
+		parseMap(fm, &actualQuery)
+		// then
+		expectedQuery := Query{Name: Q_AND, Children: []Query{
+			{Name: "space", Value: &openshiftio},
+			{Name: "title", Value: &title, Substring: true}},
+		}
+
+		assert.Equal(t, expectedQuery, actualQuery)
+	})
+
 	t.Run("Equality with NULL value", func(t *testing.T) {
 		t.Parallel()
 		// given

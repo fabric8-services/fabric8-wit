@@ -37,6 +37,7 @@ const (
 	filterKeyWorkItemType = "workitemtype"
 	filterKeyState        = "state"
 	filterKeyLabel        = "label"
+	filterKeyTitle        = "title"
 )
 
 // List runs the list action.
@@ -110,6 +111,16 @@ func (c *FilterController) List(ctx *app.ListFilterContext) error {
 				Key:         filterKeyLabel,
 				Description: "Filter by label",
 				Type:        "labels",
+			},
+			Type: "filters",
+		},
+		&app.Filters{
+			Attributes: &app.FilterAttributes{
+				Title:       "Title",
+				Query:       fmt.Sprintf("filter[%s]={id}", filterKeyTitle),
+				Key:         filterKeyTitle,
+				Description: "Filter by title",
+				Type:        "title", // not really used anywhere
 			},
 			Type: "filters",
 		},
