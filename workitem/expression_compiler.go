@@ -130,7 +130,13 @@ func (c *expressionCompiler) Equals(e *criteria.EqualsExpression) interface{} {
 
 func (c *expressionCompiler) Substring(e *criteria.SubstringExpression) interface{} {
 	if isInJSONContext(e.Left()) {
-		l := e.Left().(*criteria.FieldExpression).FieldName
+		var l string
+		if left, ok := e.Left().(*criteria.FieldExpression); ok {
+			l = left.FieldName
+		} else {
+			c.err = append(c.err, fmt.Errorf("invalid left expression"))
+			return nil
+		}
 		if strings.Contains(l, "'") {
 			// beware of injection, it's a reasonable restriction for field names,
 			// make sure it's not allowed when creating wi types

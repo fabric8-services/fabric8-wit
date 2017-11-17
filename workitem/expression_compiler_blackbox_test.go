@@ -69,3 +69,23 @@ func TestArray(t *testing.T) {
 
 	assert.Equal(t, "(Fields@>'{\"system.assignees\" : [\"1\",\"2\",\"3\"]}')", where)
 }
+
+func TestSubstring(t *testing.T) {
+	t.Run("system.title with simple text", func(t *testing.T) {
+		title := "some title"
+
+		exp := Substring(Field("system.title"), Literal(title))
+		where, _, _ := Compile(exp)
+
+		assert.Equal(t, "Fields->>'system.title' ILIKE ?", where)
+	})
+	t.Run("system.title with SQL injection text", func(t *testing.T) {
+		title := "some title"
+
+		exp := Substring(Field("system.title;DELETE FROM work_items"), Literal(title))
+		where, _, _ := Compile(exp)
+
+		assert.Equal(t, "Fields->>'system.title;DELETE FROM work_items' ILIKE ?", where)
+	})
+
+}
