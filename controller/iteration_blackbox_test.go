@@ -67,9 +67,6 @@ func (rest *TestIterationREST) UnSecuredController() (*goa.Service, *IterationCo
 }
 
 func (rest *TestIterationREST) TestCreateChildIteration() {
-	resetFn := rest.DisableGormCallbacks()
-	defer resetFn()
-
 	rest.T().Run("success - create child iteration", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, rest.DB,
 			tf.CreateWorkItemEnvironment(),
@@ -279,6 +276,7 @@ func (rest *TestIterationREST) createWorkItem(parentSpace space.Space) workitem.
 }
 
 func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHeaderAfterWorkItemLinking() {
+	rest.RestoreGormCallbacks()
 	// given
 	parentSpace, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
 	svc, ctrl := rest.SecuredController()
@@ -298,6 +296,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHead
 }
 
 func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHeaderAfterWorkItemUnlinking() {
+	rest.RestoreGormCallbacks()
 	// given
 	parentSpace, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
 	svc, ctrl := rest.SecuredController()
@@ -353,6 +352,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAf
 }
 
 func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAfterWorkItemUnlinking() {
+	rest.RestoreGormCallbacks()
 	// given
 	parentSpace, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
 	svc, ctrl := rest.SecuredController()

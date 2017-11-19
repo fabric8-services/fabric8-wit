@@ -79,7 +79,7 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			// then
 			assert.Nil(t, err)
 			assert.Equal(t, uint64(2), count)
-			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[1], *fxt.WorkItems[0]))
+			containsAllWorkItems(t, res, *fxt.WorkItems[1], *fxt.WorkItems[0])
 		})
 		s.T().Run("unmatching title", func(t *testing.T) {
 			// given
@@ -106,7 +106,7 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			// then
 			require.Nil(t, err)
 			require.Equal(t, uint64(1), count)
-			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[0]))
+			containsAllWorkItems(t, res, *fxt.WorkItems[0])
 		})
 
 		t.Run("type sub2", func(t *testing.T) {
@@ -119,7 +119,7 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			// then
 			require.Nil(t, err)
 			require.Equal(t, uint64(1), count)
-			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[1]))
+			containsAllWorkItems(t, res, *fxt.WorkItems[1])
 		})
 
 		t.Run("type base", func(t *testing.T) {
@@ -132,7 +132,7 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			// then
 			require.Nil(t, err)
 			require.Equal(t, uint64(2), count)
-			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[1], *fxt.WorkItems[0]))
+			containsAllWorkItems(t, res, *fxt.WorkItems[1], *fxt.WorkItems[0])
 		})
 
 		t.Run("types sub1+sub2", func(t *testing.T) {
@@ -145,7 +145,7 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			// then
 			require.Nil(t, err)
 			assert.Equal(t, uint64(2), count)
-			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[1], *fxt.WorkItems[0]))
+			containsAllWorkItems(t, res, *fxt.WorkItems[1], *fxt.WorkItems[0])
 		})
 
 		t.Run("types base+sub1", func(t *testing.T) {
@@ -158,7 +158,7 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			// then
 			require.Nil(t, err)
 			assert.Equal(t, uint64(2), count)
-			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[1], *fxt.WorkItems[0]))
+			containsAllWorkItems(t, res, *fxt.WorkItems[1], *fxt.WorkItems[0])
 		})
 	})
 
@@ -238,7 +238,7 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			assert.Equal(t, uint64(2), count)
 			require.Equal(t, 2, len(res))
 			// item #0 is parent of #1 and item #2 is not linked to any otjer item
-			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[2], *fxt.WorkItems[0]))
+			containsAllWorkItems(t, res, *fxt.WorkItems[2], *fxt.WorkItems[0])
 		})
 
 		t.Run("link deleted", func(t *testing.T) {
@@ -268,18 +268,20 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 	})
 }
 
-// containsAllWorkItems verifies that the `expectedWorkItems` array contains all `actualWorkitems` in the _given order_,
-// by comparing the lengths and each ID,
-func containsAllWorkItems(expectedWorkitems []workitem.WorkItem, actualWorkitems ...workitem.WorkItem) assert.Comparison {
-	return func() bool {
-		if len(expectedWorkitems) != len(actualWorkitems) {
-			return false
-		}
-		for i, expectedWorkitem := range expectedWorkitems {
-			if !uuid.Equal(expectedWorkitem.ID, actualWorkitems[i].ID) {
-				return false
-			}
-		}
-		return true
+// containsAllWorkItems verifies that the `actualWorkitems` array contains all
+// `expectedWorkitems` in any given order. `actualWorkitems` can also contain
+// more items than the `expectedWorkitems` array.
+func containsAllWorkItems(t *testing.T, expectedWorkitems []workitem.WorkItem, actualWorkitems ...workitem.WorkItem) {
+	expectedMap := map[uuid.UUID]struct{}{}
+	for _, expectedWorkitem := range expectedWorkitems {
+		expectedMap[expectedWorkitem.ID] = struct{}{}
 	}
+
+	for _, actualWorkitem := range actualWorkitems {
+		_, ok := expectedMap[actualWorkitem.ID]
+		if ok {
+			delete(expectedMap, actualWorkitem.ID)
+		}
+	}
+	require.Empty(t, expectedMap)
 }

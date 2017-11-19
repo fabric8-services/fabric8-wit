@@ -30,9 +30,6 @@ func TestRunFiltersREST(t *testing.T) {
 }
 
 func (rest *TestFiltersREST) TestListFiltersOK() {
-	resetFn := rest.DisableGormCallbacks()
-	defer resetFn()
-
 	// given
 	svc := goa.New("filterService")
 	ctrl := controller.NewFilterController(svc, rest.Configuration)

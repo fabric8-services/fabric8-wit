@@ -964,9 +964,6 @@ func (s *searchControllerTestSuite) TestIncludedParents() {
 }
 
 func (s *searchControllerTestSuite) TestUpdateWorkItem() {
-	resetFn := s.DisableGormCallbacks()
-	defer resetFn()
-
 	s.T().Run("assignees", func(t *testing.T) {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB,
@@ -1045,9 +1042,6 @@ func (s *searchControllerTestSuite) TestUpdateWorkItem() {
 }
 
 func (s *searchControllerTestSuite) TestSearchCodebases() {
-	resetFn := s.DisableGormCallbacks()
-	defer resetFn()
-
 	s.T().Run("Single match", func(t *testing.T) {
 		// given
 		tf.NewTestFixture(s.T(), s.DB,

@@ -112,9 +112,6 @@ func MockShowTenant() func(context.Context) (*tenant.TenantSingle, error) {
 }
 
 func (s *CodebaseControllerTestSuite) TestShowCodebase() {
-	resetFn := s.DisableGormCallbacks()
-	defer resetFn()
-
 	s.T().Run("success without stackId", func(t *testing.T) {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.Codebases(1))
@@ -143,9 +140,6 @@ func (s *CodebaseControllerTestSuite) TestShowCodebase() {
 }
 
 func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
-	resetFn := s.DisableGormCallbacks()
-	defer resetFn()
-
 	s.T().Run("OK", func(t *testing.T) {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB,
