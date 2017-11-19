@@ -285,30 +285,11 @@ func (s *searchControllerTestSuite) verifySearchByKnownURLs(wi *app.WorkItemSing
 	assert.NotEmpty(s.T(), result.Data)
 	assert.Equal(s.T(), *wi.Data.ID, *result.Data[0].ID)
 
-	known := search.GetAllRegisteredURLs()
+	known := GetAllRegisteredURLs()
 	require.NotNil(s.T(), known)
 	assert.NotEmpty(s.T(), known)
 	assert.Contains(s.T(), known[search.HostRegistrationKeyForListWI].URLRegex, host)
 	assert.Contains(s.T(), known[search.HostRegistrationKeyForBoardWI].URLRegex, host)
-}
-
-// TestAutoRegisterHostURL checks if client's host is neatly registered as a KnwonURL or not
-// Uses helper functions verifySearchByKnownURLs, searchByURL, getWICreatePayload
-func (s *searchControllerTestSuite) TestAutoRegisterHostURL() {
-	wiCtrl := NewWorkitemsController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-	// create a WI, search by `list view URL` of newly created item
-	//fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1))
-	newWI := s.getWICreatePayload()
-	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, wiCtrl, space.SystemSpace, newWI)
-	require.NotNil(s.T(), wi)
-	customHost := "own.domain.one"
-	queryString := fmt.Sprintf("http://%s/work-item/list/detail/%d", customHost, wi.Data.Attributes[workitem.SystemNumber])
-	s.verifySearchByKnownURLs(wi, customHost, queryString)
-
-	// Search by `board view URL` of newly created item
-	customHost2 := "own.domain.two"
-	queryString2 := fmt.Sprintf("http://%s/work-item/board/detail/%d", customHost2, wi.Data.Attributes[workitem.SystemNumber])
-	s.verifySearchByKnownURLs(wi, customHost2, queryString2)
 }
 
 func (s *searchControllerTestSuite) TestSearchWorkItemsSpaceContext() {

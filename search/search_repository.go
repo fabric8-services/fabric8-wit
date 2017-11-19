@@ -3,15 +3,10 @@ package search
 import (
 	"encoding/json"
 	"fmt"
-	"sync"
 
 	"context"
 
 	"strings"
-
-	"regexp"
-
-	"net/url"
 
 	"github.com/fabric8-services/fabric8-wit/criteria"
 	"github.com/fabric8-services/fabric8-wit/errors"
@@ -19,7 +14,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 
-	"github.com/asaskevich/govalidator"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -53,209 +47,11 @@ func generateSearchQuery(q string) (string, error) {
 	return q, nil
 }
 
-//searchKeyword defines how a decomposed raw search query will look like
-type searchKeyword struct {
-	workItemTypes []uuid.UUID
-	number        []string
-	words         []string
-}
-
-// KnownURL has a regex string format URL and compiled regex for the same
-type KnownURL struct {
-	URLRegex          string         // regex for URL, Exposed to make the code testable
-	compiledRegex     *regexp.Regexp // valid output of regexp.MustCompile()
-	groupNamesInRegex []string       // Valid output of SubexpNames called on compliedRegex
-}
-
-/*
-KnownURLs is set of KnownURLs will be used while searching on a URL
-"Known" means that, our system understands the format of URLs
-URLs in this slice will be considered while searching to match search string and decouple it into multiple searchable parts
-e.g> Following example defines work-item-detail-page URL on client side, with its compiled version
-knownURLs["work-item-details"] = KnownURL{
-URLRegex:      `^(?P<protocol>http[s]?)://(?P<domain>demo.almighty.io)(?P<path>/work-item/list/detail/)(?P<id>\d*)`,
-compiledRegex: regexp.MustCompile(`^(?P<protocol>http[s]?)://(?P<domain>demo.almighty.io)(?P<path>/work-item/list/detail/)(?P<id>\d*)`),
-groupNamesInRegex: []string{"protocol", "domain", "path", "id"}
-}
-above url will be decoupled into two parts "ID:* | domain+path+id:*" while performing search query
-*/
-var knownURLs = make(map[string]KnownURL)
-var knownURLLock sync.RWMutex
-
-// RegisterAsKnownURL appends to KnownURLs
-func RegisterAsKnownURL(name, urlRegex string) {
-	compiledRegex := regexp.MustCompile(urlRegex)
-	groupNames := compiledRegex.SubexpNames()
-	knownURLLock.Lock()
-	defer knownURLLock.Unlock()
-	knownURLs[name] = KnownURL{
-		URLRegex:          urlRegex,
-		compiledRegex:     regexp.MustCompile(urlRegex),
-		groupNamesInRegex: groupNames,
-	}
-}
-
-// GetAllRegisteredURLs returns all known URLs
-func GetAllRegisteredURLs() map[string]KnownURL {
-	return knownURLs
-}
-
-/*
-isKnownURL compares with registered URLs in our system.
-Iterates over knownURLs and finds out most relevant matching pattern.
-If found, it returns true along with "name" of the KnownURL
-*/
-func isKnownURL(url string) (bool, string) {
-	// should check on all system's known URLs
-	var mostReleventMatchCount int
-	var mostReleventMatchName string
-	for name, known := range knownURLs {
-		match := known.compiledRegex.FindStringSubmatch(url)
-		if len(match) > mostReleventMatchCount {
-			mostReleventMatchCount = len(match)
-			mostReleventMatchName = name
-		}
-	}
-	if mostReleventMatchName == "" {
-		return false, ""
-	}
-	return true, mostReleventMatchName
-}
-
-func trimProtocolFromURLString(urlString string) string {
-	urlString = strings.TrimPrefix(urlString, `http://`)
-	urlString = strings.TrimPrefix(urlString, `https://`)
-	return urlString
-}
-
-func escapeCharFromURLString(urlString string) string {
-	// Replacer will escape `:` and `)` `(`.
-	var replacer = strings.NewReplacer(":", "\\:", "(", "\\(", ")", "\\)")
-	return replacer.Replace(urlString)
-}
-
-// sanitizeURL does cleaning of URL
-// returns DB friendly string
-// Trims protocol and escapes ":"
-func sanitizeURL(urlString string) string {
-	trimmedURL := trimProtocolFromURLString(urlString)
-	return escapeCharFromURLString(trimmedURL)
-}
-
-/*
-getSearchQueryFromURLPattern takes
-patternName - name of the KnownURL
-stringToMatch - search string
-Finds all string match for given pattern
-Iterates over pattern's groupNames and loads respective values into result
-*/
-func getSearchQueryFromURLPattern(patternName, stringToMatch string) string {
-	pattern := knownURLs[patternName]
-	// TODO : handle case for 0 matches
-	match := pattern.compiledRegex.FindStringSubmatch(stringToMatch)
-	result := make(map[string]string)
-	// result will hold key-value for groupName to its value
-	// e.g> "domain": "demo.almighty.io", "id": 200
-	for i, name := range pattern.groupNamesInRegex {
-		if i == 0 {
-			continue
-		}
-		if i > len(match)-1 {
-			result[name] = ""
-		} else {
-			result[name] = match[i]
-		}
-	}
-	// first value from FindStringSubmatch is always full input itself, hence ignored
-	// Join rest of the tokens to make query like "demo.almighty.io/work-item/list/detail/100"
-	if len(match) > 1 {
-		searchQueryString := strings.Join(match[1:], "")
-		searchQueryString = strings.Replace(searchQueryString, ":", "\\:", -1)
-		// need to escape ":" because this string will go as an input to tsquery
-		searchQueryString = fmt.Sprintf("%s:*", searchQueryString)
-		if result["id"] != "" {
-			// Look for pattern's ID field, if exists update searchQueryString
-			// `*A` is used to add sme weight to the work item number in the search results.
-			// See https://www.postgresql.org/docs/9.6/static/textsearch-controls.html
-			searchQueryString = fmt.Sprintf("(%v:*A | %v)", result["id"], searchQueryString)
-			// searchQueryString = "(" + result["id"] + ":*" + " | " + searchQueryString + ")"
-		}
-		return searchQueryString
-	}
-	return match[0] + ":*"
-}
-
-/*
-getSearchQueryFromURLString gets a url string and checks if that matches with any of known urls.
-Respectively it will return a string that can be directly used in search query
-e.g>
-Unknown url : www.google.com then response = "www.google.com:*"
-Known url : almighty.io/detail/500 then response = "500:* | almighty.io/detail/500"
-*/
-func getSearchQueryFromURLString(url string) string {
-	known, patternName := isKnownURL(url)
-	if known {
-		// this url is known to system
-		return getSearchQueryFromURLPattern(patternName, url)
-	}
-	// any URL other than our system's
-	// return url without protocol
-	return sanitizeURL(url) + ":*"
-}
-
-// parseSearchString accepts a raw string and generates a searchKeyword object
-func parseSearchString(ctx context.Context, rawSearchString string) (searchKeyword, error) {
-	// TODO remove special characters and exclaimations if any
-	rawSearchString = strings.Trim(rawSearchString, "/") // get rid of trailing slashes
-	rawSearchString = strings.Trim(rawSearchString, "\"")
-	parts := strings.Fields(rawSearchString)
-	var res searchKeyword
-	for _, part := range parts {
-		// QueryUnescape is required in case of encoded url strings.
-		// And does not harm regular search strings
-		// but this processing is required because at this moment, we do not know if
-		// search input is a regular string or a URL
-
-		part, err := url.QueryUnescape(part)
-		if err != nil {
-			log.Warn(nil, map[string]interface{}{
-				"part": part,
-			}, "unable to escape url!")
-		}
-		// IF part is for search with number:1234
-		// TODO: need to find out the way to use ID fields.
-		if strings.HasPrefix(part, "number:") {
-			res.number = append(res.number, strings.TrimPrefix(part, "number:")+":*A")
-		} else if strings.HasPrefix(part, "type:") {
-			typeIDStr := strings.TrimPrefix(part, "type:")
-			if len(typeIDStr) == 0 {
-				log.Error(ctx, map[string]interface{}{}, "type: part is empty")
-				return res, errors.NewBadParameterError("Type ID must not be empty", part)
-			}
-			typeID, err := uuid.FromString(typeIDStr)
-			if err != nil {
-				log.Error(ctx, map[string]interface{}{
-					"err":    err,
-					"typeID": typeIDStr,
-				}, "failed to convert type ID string to UUID")
-				return res, errors.NewBadParameterError("failed to parse type ID string as UUID", typeIDStr)
-			}
-			res.workItemTypes = append(res.workItemTypes, typeID)
-		} else if govalidator.IsURL(part) {
-			log.Debug(ctx, map[string]interface{}{"url": part}, "found a URL in the query string")
-			part := strings.ToLower(part)
-			part = trimProtocolFromURLString(part)
-			searchQueryFromURL := getSearchQueryFromURLString(part)
-			log.Debug(ctx, map[string]interface{}{"url": part, "search_query": searchQueryFromURL}, "found a URL in the query string")
-			res.words = append(res.words, searchQueryFromURL)
-		} else {
-			part := strings.ToLower(part)
-			part = sanitizeURL(part)
-			res.words = append(res.words, part+":*")
-		}
-	}
-	log.Info(nil, nil, "Search keywords: '%s' -> %v", rawSearchString, res)
-	return res, nil
+//Keywords defines how a decomposed raw search query will look like
+type Keywords struct {
+	WorkItemTypes []uuid.UUID
+	Number        []string
+	Words         []string
 }
 
 func parseMap(queryMap map[string]interface{}, q *Query) {
@@ -489,10 +285,10 @@ func parseFilterString(ctx context.Context, rawSearchString string) (criteria.Ex
 	return q.generateExpression()
 }
 
-// generateSQLSearchInfo accepts searchKeyword and join them in a way that can be used in sql
-func generateSQLSearchInfo(keywords searchKeyword) (sqlParameter string) {
-	numberStr := strings.Join(keywords.number, " & ")
-	wordStr := strings.Join(keywords.words, " & ")
+// generateSQLSearchInfo accepts Keywords and join them in a way that can be used in sql
+func generateSQLSearchInfo(keywords Keywords) (sqlParameter string) {
+	numberStr := strings.Join(keywords.Number, " & ")
+	wordStr := strings.Join(keywords.Words, " & ")
 	var fragments []string
 	for _, v := range []string{numberStr, wordStr} {
 		if v != "" {
@@ -586,19 +382,11 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 }
 
 // SearchFullText Search returns work items for the given query
-func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchString string, start *int, limit *int, spaceID *string) ([]workitem.WorkItem, uint64, error) {
-	// parse
-	// generateSearchQuery
-	// ....
-	parsedSearchDict, err := parseSearchString(ctx, rawSearchString)
-	if err != nil {
-		return nil, 0, errs.WithStack(err)
-	}
-
-	sqlSearchQueryParameter := generateSQLSearchInfo(parsedSearchDict)
+func (r *GormSearchRepository) SearchFullText(ctx context.Context, keywords Keywords, start *int, limit *int, spaceID *string) ([]workitem.WorkItem, uint64, error) {
+	sqlSearchQueryParameter := generateSQLSearchInfo(keywords)
 	var rows []workitem.WorkItemStorage
 	log.Debug(ctx, map[string]interface{}{"search query": sqlSearchQueryParameter}, "searching for work items")
-	rows, count, err := r.search(ctx, sqlSearchQueryParameter, parsedSearchDict.workItemTypes, start, limit, spaceID)
+	rows, count, err := r.search(ctx, sqlSearchQueryParameter, keywords.WorkItemTypes, start, limit, spaceID)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
 	}
