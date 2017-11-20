@@ -45,6 +45,99 @@ func (s *workItemLinkSuite) SetupTest() {
 	s.testDir = filepath.Join("test-files", "work_item_link")
 }
 
+// CreateWorkItemLinkCategory creates a work item link category
+func newCreateWorkItemLinkCategoryPayload(name string) *app.CreateWorkItemLinkCategoryPayload {
+	description := "This work item link category is managed by an admin user."
+	// Use the goa generated code to create a work item link category
+	return &app.CreateWorkItemLinkCategoryPayload{
+		Data: &app.WorkItemLinkCategoryData{
+			Type: link.EndpointWorkItemLinkCategories,
+			Attributes: &app.WorkItemLinkCategoryAttributes{
+				Name:        &name,
+				Description: &description,
+			},
+		},
+	}
+}
+
+// CreateWorkItem defines a work item link
+func newCreateWorkItemPayload(spaceID uuid.UUID, workItemType uuid.UUID, title string) *app.CreateWorkitemsPayload {
+	spaceRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(spaceID.String()))
+	witRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.WorkitemtypeHref(spaceID.String(), workItemType))
+	payload := app.CreateWorkitemsPayload{
+		Data: &app.WorkItem{
+			Attributes: map[string]interface{}{
+				workitem.SystemTitle: title,
+				workitem.SystemState: workitem.SystemStateClosed,
+			},
+			Relationships: &app.WorkItemRelationships{
+				BaseType: &app.RelationBaseType{
+					Data: &app.BaseTypeData{
+						ID:   workItemType,
+						Type: "workitemtypes",
+					},
+					Links: &app.GenericLinks{
+						Self:    &witRelatedURL,
+						Related: &witRelatedURL,
+					},
+				},
+				Space: app.NewSpaceRelation(spaceID, spaceRelatedURL),
+			},
+			Type: "workitems",
+		},
+	}
+	return &payload
+}
+
+// CreateWorkItemLinkType defines a work item link type
+func newCreateWorkItemLinkTypePayload(name string, categoryID, spaceID uuid.UUID) *app.CreateWorkItemLinkTypePayload {
+	description := "Specify that one bug blocks another one."
+	lt := link.WorkItemLinkType{
+		Name:           name,
+		Description:    &description,
+		Topology:       link.TopologyNetwork,
+		ForwardName:    "forward name string for " + name,
+		ReverseName:    "reverse name string for " + name,
+		LinkCategoryID: categoryID,
+		SpaceID:        spaceID,
+	}
+	reqLong := &http.Request{Host: "api.service.domain.org"}
+	payload := ConvertWorkItemLinkTypeFromModel(reqLong, lt)
+	// The create payload is required during creation. Simply copy data over.
+	return &app.CreateWorkItemLinkTypePayload{
+		Data: payload.Data,
+	}
+}
+
+// newCreateWorkItemLinkPayload returns the payload to create a work item link
+func newCreateWorkItemLinkPayload(sourceID, targetID, linkTypeID uuid.UUID) *app.CreateWorkItemLinkPayload {
+	lt := link.WorkItemLink{
+		SourceID:   sourceID,
+		TargetID:   targetID,
+		LinkTypeID: linkTypeID,
+	}
+	payload := ConvertLinkFromModel(&http.Request{Host: "api.service.domain.org"}, lt)
+	// The create payload is required during creation. Simply copy data over.
+	return &app.CreateWorkItemLinkPayload{
+		Data: payload.Data,
+	}
+}
+
+// newUpdateWorkItemLinkPayload returns the payload to update a work item link
+func newUpdateWorkItemLinkPayload(linkID, sourceID, targetID, linkTypeID uuid.UUID) *app.UpdateWorkItemLinkPayload {
+	lt := link.WorkItemLink{
+		ID:         linkID,
+		SourceID:   sourceID,
+		TargetID:   targetID,
+		LinkTypeID: linkTypeID,
+	}
+	payload := ConvertLinkFromModel(&http.Request{Host: "api.service.domain.org"}, lt)
+	// The create payload is required during creation. Simply copy data over.
+	return &app.UpdateWorkItemLinkPayload{
+		Data: payload.Data,
+	}
+}
+
 func (s *workItemLinkSuite) SecuredController(identity account.Identity) (*goa.Service, *WorkItemLinkController) {
 	svc := testsupport.ServiceAsUser("WorkItemLink-Service", identity)
 	return svc, NewWorkItemLinkController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
@@ -680,101 +773,4 @@ func (s *workItemLinkSuite) TestUnauthorizeWorkItemRelationshipsLinksCUD() {
 		app.MountWorkItemRelationshipsLinksController(service, controller)
 		return nil
 	})
-}
-
-//-----------------------------------------------------------------------------
-// helper methods
-//-----------------------------------------------------------------------------
-
-// CreateWorkItemLinkCategory creates a work item link category
-func newCreateWorkItemLinkCategoryPayload(name string) *app.CreateWorkItemLinkCategoryPayload {
-	description := "This work item link category is managed by an admin user."
-	// Use the goa generated code to create a work item link category
-	return &app.CreateWorkItemLinkCategoryPayload{
-		Data: &app.WorkItemLinkCategoryData{
-			Type: link.EndpointWorkItemLinkCategories,
-			Attributes: &app.WorkItemLinkCategoryAttributes{
-				Name:        &name,
-				Description: &description,
-			},
-		},
-	}
-}
-
-// CreateWorkItem defines a work item link
-func newCreateWorkItemPayload(spaceID uuid.UUID, workItemType uuid.UUID, title string) *app.CreateWorkitemsPayload {
-	spaceRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(spaceID.String()))
-	witRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.WorkitemtypeHref(spaceID.String(), workItemType))
-	payload := app.CreateWorkitemsPayload{
-		Data: &app.WorkItem{
-			Attributes: map[string]interface{}{
-				workitem.SystemTitle: title,
-				workitem.SystemState: workitem.SystemStateClosed,
-			},
-			Relationships: &app.WorkItemRelationships{
-				BaseType: &app.RelationBaseType{
-					Data: &app.BaseTypeData{
-						ID:   workItemType,
-						Type: "workitemtypes",
-					},
-					Links: &app.GenericLinks{
-						Self:    &witRelatedURL,
-						Related: &witRelatedURL,
-					},
-				},
-				Space: app.NewSpaceRelation(spaceID, spaceRelatedURL),
-			},
-			Type: "workitems",
-		},
-	}
-	return &payload
-}
-
-// CreateWorkItemLinkType defines a work item link type
-func newCreateWorkItemLinkTypePayload(name string, categoryID, spaceID uuid.UUID) *app.CreateWorkItemLinkTypePayload {
-	description := "Specify that one bug blocks another one."
-	lt := link.WorkItemLinkType{
-		Name:           name,
-		Description:    &description,
-		Topology:       link.TopologyNetwork,
-		ForwardName:    "forward name string for " + name,
-		ReverseName:    "reverse name string for " + name,
-		LinkCategoryID: categoryID,
-		SpaceID:        spaceID,
-	}
-	reqLong := &http.Request{Host: "api.service.domain.org"}
-	payload := ConvertWorkItemLinkTypeFromModel(reqLong, lt)
-	// The create payload is required during creation. Simply copy data over.
-	return &app.CreateWorkItemLinkTypePayload{
-		Data: payload.Data,
-	}
-}
-
-// newCreateWorkItemLinkPayload returns the payload to create a work item link
-func newCreateWorkItemLinkPayload(sourceID, targetID, linkTypeID uuid.UUID) *app.CreateWorkItemLinkPayload {
-	lt := link.WorkItemLink{
-		SourceID:   sourceID,
-		TargetID:   targetID,
-		LinkTypeID: linkTypeID,
-	}
-	payload := ConvertLinkFromModel(&http.Request{Host: "api.service.domain.org"}, lt)
-	// The create payload is required during creation. Simply copy data over.
-	return &app.CreateWorkItemLinkPayload{
-		Data: payload.Data,
-	}
-}
-
-// newUpdateWorkItemLinkPayload returns the payload to update a work item link
-func newUpdateWorkItemLinkPayload(linkID, sourceID, targetID, linkTypeID uuid.UUID) *app.UpdateWorkItemLinkPayload {
-	lt := link.WorkItemLink{
-		ID:         linkID,
-		SourceID:   sourceID,
-		TargetID:   targetID,
-		LinkTypeID: linkTypeID,
-	}
-	payload := ConvertLinkFromModel(&http.Request{Host: "api.service.domain.org"}, lt)
-	// The create payload is required during creation. Simply copy data over.
-	return &app.UpdateWorkItemLinkPayload{
-		Data: payload.Data,
-	}
 }
