@@ -249,10 +249,9 @@ func makeWorkItemTypes(fxt *TestFixture) error {
 				workitem.SystemCreatedAt:    {Type: workitem.SimpleType{Kind: workitem.KindInstant}, Required: false, Label: "Created at", Description: "The date and time when the work item was created"},
 				workitem.SystemUpdatedAt:    {Type: workitem.SimpleType{Kind: workitem.KindInstant}, Required: false, Label: "Updated at", Description: "The date and time when the work item was last updated"},
 				workitem.SystemOrder:        {Type: workitem.SimpleType{Kind: workitem.KindFloat}, Required: false, Label: "Execution Order", Description: "Execution Order of the workitem."},
-				//workitem.SystemNumber:       {Type: workitem.SimpleType{Kind: workitem.KindInteger}, Required: false, Label: "Work Item Number", Description: "Humand-readable number."},
-				workitem.SystemIteration: {Type: workitem.SimpleType{Kind: workitem.KindIteration}, Required: false, Label: "Iteration", Description: "The iteration to which the work item belongs"},
-				workitem.SystemArea:      {Type: workitem.SimpleType{Kind: workitem.KindArea}, Required: false, Label: "Area", Description: "The area to which the work item belongs"},
-				workitem.SystemCodebase:  {Type: workitem.SimpleType{Kind: workitem.KindCodebase}, Required: false, Label: "Codebase", Description: "Contains codebase attributes to which this WI belongs to"},
+				workitem.SystemIteration:    {Type: workitem.SimpleType{Kind: workitem.KindIteration}, Required: false, Label: "Iteration", Description: "The iteration to which the work item belongs"},
+				workitem.SystemArea:         {Type: workitem.SimpleType{Kind: workitem.KindArea}, Required: false, Label: "Area", Description: "The area to which the work item belongs"},
+				workitem.SystemCodebase:     {Type: workitem.SimpleType{Kind: workitem.KindCodebase}, Required: false, Label: "Codebase", Description: "Contains codebase attributes to which this WI belongs to"},
 				workitem.SystemAssignees: {
 					Type: &workitem.ListType{
 						SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
