@@ -149,9 +149,10 @@ func (s *workItemLinkSuite) TestCreate() {
 		createOK := func(t *testing.T, fxt *tf.TestFixture, svc *goa.Service, ctrl *WorkItemLinkController) {
 			// when
 			createPayload := newCreateWorkItemLinkPayload(fxt.WorkItems[0].ID, fxt.WorkItems[1].ID, fxt.WorkItemLinkTypes[0].ID)
-			_, workItemLink := test.CreateWorkItemLinkCreated(t, svc.Context, svc, ctrl, createPayload)
+			res, workItemLink := test.CreateWorkItemLinkCreated(t, svc.Context, svc, ctrl, createPayload)
 			// then
 			require.NotNil(t, workItemLink)
+
 			// ensure some relations are included in the response
 			expectedIDs := map[uuid.UUID]struct{}{
 				fxt.WorkItemLinkCategories[0].ID: {},
@@ -180,6 +181,10 @@ func (s *workItemLinkSuite) TestCreate() {
 				}
 			}
 			require.Empty(t, 0, expectedIDs, "these elements where missing from the included objects: %+v", expectedIDs)
+
+			compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "create", "ok.golden.json"), workItemLink)
+			res.Header().Set("Etag", "0icd7ov5CqwDXN6Fx9z18g==") // overwrite Etag to always match
+			compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "create", "ok.headers.golden.json"), res)
 		}
 
 		t.Run("as space owner", func(t *testing.T) {
