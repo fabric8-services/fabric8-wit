@@ -144,6 +144,8 @@ func (s *workItemLinkSuite) SecuredController(identity account.Identity) (*goa.S
 }
 
 func (s *workItemLinkSuite) TestCreate() {
+	resetFn := s.DisableGormCallbacks()
+	defer resetFn()
 	s.T().Run(http.StatusText(http.StatusOK), func(t *testing.T) {
 		// helper function used in all ok-cases
 		createOK := func(t *testing.T, fxt *tf.TestFixture, svc *goa.Service, ctrl *WorkItemLinkController) {
