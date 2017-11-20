@@ -757,7 +757,7 @@ func newCreateWorkItemLinkPayload(sourceID, targetID, linkTypeID uuid.UUID) *app
 		TargetID:   targetID,
 		LinkTypeID: linkTypeID,
 	}
-	payload := ConvertLinkFromModel(lt)
+	payload := ConvertLinkFromModel(&http.Request{Host: "api.service.domain.org"}, lt)
 	// The create payload is required during creation. Simply copy data over.
 	return &app.CreateWorkItemLinkPayload{
 		Data: payload.Data,
@@ -772,7 +772,7 @@ func newUpdateWorkItemLinkPayload(linkID, sourceID, targetID, linkTypeID uuid.UU
 		TargetID:   targetID,
 		LinkTypeID: linkTypeID,
 	}
-	payload := ConvertLinkFromModel(lt)
+	payload := ConvertLinkFromModel(&http.Request{Host: "api.service.domain.org"}, lt)
 	// The create payload is required during creation. Simply copy data over.
 	return &app.UpdateWorkItemLinkPayload{
 		Data: payload.Data,

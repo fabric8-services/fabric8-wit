@@ -94,7 +94,7 @@ func (c *WorkItemRelationshipsLinksController) List(ctx *app.ListWorkItemRelatio
 			appLinks := app.WorkItemLinkList{}
 			appLinks.Data = make([]*app.WorkItemLinkData, len(modelLinks))
 			for index, modelLink := range modelLinks {
-				appLink := ConvertLinkFromModel(modelLink)
+				appLink := ConvertLinkFromModel(ctx.Request, modelLink)
 				appLinks.Data[index] = appLink.Data
 			}
 			// TODO: When adding pagination, this must not be len(rows) but
@@ -102,8 +102,7 @@ func (c *WorkItemRelationshipsLinksController) List(ctx *app.ListWorkItemRelatio
 			appLinks.Meta = &app.WorkItemLinkListMeta{
 				TotalCount: len(modelLinks),
 			}
-			linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, app.WorkItemLinkHref, nil)
-			if err := enrichLinkList(linkCtx, &appLinks); err != nil {
+			if err := enrichLinkList(ctx.Context, appl, ctx.Request, &appLinks); err != nil {
 				return jsonapi.JSONErrorResponse(ctx, err)
 			}
 			return ctx.OK(&appLinks)
