@@ -49,11 +49,11 @@ type workItemLinkCategorySuite struct {
 	svc         *goa.Service
 }
 
-var wilCatConfiguration *config.ConfigurationData
+var wilCatConfiguration *config.Registry
 
 func init() {
 	var err error
-	wilCatConfiguration, err = config.GetConfigurationData()
+	wilCatConfiguration, err = config.GetRegistry()
 	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}

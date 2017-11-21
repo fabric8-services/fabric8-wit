@@ -28,7 +28,7 @@ func NewDBBenchSuite(configFilePath string) DBBenchSuite {
 type DBBenchSuite struct {
 	test.Suite
 	configFile    string
-	Configuration *config.ConfigurationData
+	Configuration *config.Registry
 	DB            *gorm.DB
 	Ctx           context.Context
 	clean         func()
@@ -37,7 +37,7 @@ type DBBenchSuite struct {
 // SetupSuite implements suite.SetupAllSuite
 func (s *DBBenchSuite) SetupSuite() {
 	resource.Require(s.B(), resource.Database)
-	configuration, err := config.NewConfigurationData(s.configFile)
+	configuration, err := config.NewRegistry(s.configFile)
 	if err != nil {
 		log.Panic(nil, map[string]interface{}{
 			"err": err,

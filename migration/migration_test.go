@@ -16,7 +16,7 @@ import (
 func TestConcurrentMigrations(t *testing.T) {
 	resource.Require(t, resource.Database)
 
-	configuration, err := config.GetConfigurationData()
+	configuration, err := config.GetRegistry()
 	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}

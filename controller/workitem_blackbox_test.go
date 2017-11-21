@@ -588,7 +588,7 @@ func (s *WorkItemSuite) TestListByFields() {
 	require.NotNil(s.T(), result)
 	require.Equal(s.T(), 1, len(result.Data))
 }
-func getWorkItemTestDataFunc(config configuration.ConfigurationData) func(t *testing.T) []testSecureAPI {
+func getWorkItemTestDataFunc(config configuration.Registry) func(t *testing.T) []testSecureAPI {
 	return func(t *testing.T) []testSecureAPI {
 		privatekey := token.PrivateKey()
 		differentPrivatekey, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSADifferentPrivateKeyTest)))

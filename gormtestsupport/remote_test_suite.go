@@ -20,13 +20,13 @@ func NewRemoteTestSuite(configFilePath string) RemoteTestSuite {
 type RemoteTestSuite struct {
 	suite.Suite
 	configFile    string
-	Configuration *config.ConfigurationData
+	Configuration *config.Registry
 }
 
 // SetupSuite implements suite.SetupAllSuite
 func (s *RemoteTestSuite) SetupSuite() {
 	resource.Require(s.T(), resource.Remote)
-	configuration, err := config.NewConfigurationData(s.configFile)
+	configuration, err := config.NewRegistry(s.configFile)
 	if err != nil {
 		log.Panic(nil, map[string]interface{}{
 			"err": err,

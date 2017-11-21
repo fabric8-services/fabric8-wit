@@ -15,7 +15,7 @@ import (
 
 var reqLong *http.Request
 var reqShort *http.Request
-var config *ConfigurationData
+var config *Registry
 
 func init() {
 	// ensure that the content here is executed only once.
@@ -26,7 +26,7 @@ func init() {
 
 func resetConfiguration() {
 	var err error
-	config, err = GetConfigurationData()
+	config, err = GetRegistry()
 	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
