@@ -9,6 +9,8 @@ image:https://goreportcard.com/badge/github.com/fabric8-services/fabric8-wit[Go 
 image:https://godoc.org/github.com/fabric8-services/fabric8-wit?status.png[GoDoc,link="https://godoc.org/github.com/fabric8-services/fabric8-wit"]
 image:https://codecov.io/gh/fabric8-services/fabric8-wit/branch/master/graph/badge.svg[Codecov.io,link="https://codecov.io/gh/fabric8-services/fabric8-wit"]
 
+WIT stands for Work Item Tracker, which is the planner and issue tracking component of fabric8. 
+
 == Building from source [[building]]
 
 The following guide is mainly targeted towards a Linux or Mac OSX development
