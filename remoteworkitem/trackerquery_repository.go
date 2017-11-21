@@ -14,7 +14,7 @@ import (
 )
 
 // APIStringTypeTrackerQueries helps to avoid string literal
-const APIStringTypeTrackerQueries = "trackerqueries"
+const APIStringTypeTrackerQuery = "trackerquery"
 
 const trackerQueriesTableName = "tracker_queries"
 

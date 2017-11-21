@@ -173,7 +173,7 @@ func ConvertTrackerQueries(appl application.Application, request *http.Request, 
 
 // ConvertTrackerQuery converts from internal to external REST representation
 func convertTrackerQuery(appl application.Application, request *http.Request, trackerquery remoteworkitem.TrackerQuery) *app.TrackerQuery {
-	trackerQueryStringType := remoteworkitem.APIStringTypeTrackerQueries
+	trackerQueryStringType := remoteworkitem.APIStringTypeTrackerQuery
 	selfURL := rest.AbsoluteURL(request, app.TrackerqueryHref(trackerquery.ID))
 	t := &app.TrackerQuery{
 		Type: trackerQueryStringType,

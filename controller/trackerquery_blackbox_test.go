@@ -15,12 +15,12 @@ import (
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/resource"
-	witrest "github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space"
 	uuid "github.com/satori/go.uuid"
 
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	testtoken "github.com/fabric8-services/fabric8-wit/test/token"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -184,7 +184,7 @@ func (rest *TestTrackerQueryREST) TestCreateTrackerQuery() {
 		Data: &app.Tracker{
 			Attributes: &app.TrackerAttributes{
 				URL:  "http://api.github.com",
-				Type: "jira",
+				Type: remoteworkitem.ProviderJira,
 			},
 			Type: remoteworkitem.APIStringTypeTrackers,
 		},
@@ -195,10 +195,7 @@ func (rest *TestTrackerQueryREST) TestCreateTrackerQuery() {
 	tqpayload := newCreateTrackerQueryPayload(*result.Data.ID)
 
 	_, tqresult := test.CreateTrackerqueryCreated(t, nil, nil, trackerQueryCtrl, &tqpayload)
-	t.Log(tqresult)
-	if tqresult.ID == "" {
-		t.Error("no id")
-	}
+	assert.NotNil(rest.T(), tqresult)
 }
 
 func (rest *TestTrackerQueryREST) TestGetTrackerQuery() {
@@ -221,14 +218,14 @@ func (rest *TestTrackerQueryREST) TestGetTrackerQuery() {
 
 	fmt.Printf("tq payload %#v", tqpayload)
 	_, tqresult := test.CreateTrackerqueryCreated(t, nil, nil, trackerQueryCtrl, &tqpayload)
-	test.ShowTrackerqueryOK(t, nil, nil, trackerQueryCtrl, tqresult.ID)
-	_, tqr := test.ShowTrackerqueryOK(t, nil, nil, trackerQueryCtrl, tqresult.ID)
+	test.ShowTrackerqueryOK(t, nil, nil, trackerQueryCtrl, *tqresult.Data.ID)
+	_, tqr := test.ShowTrackerqueryOK(t, nil, nil, trackerQueryCtrl, *tqresult.Data.ID)
 
 	if tqr == nil {
-		t.Fatalf("Tracker Query '%s' not present", tqresult.ID)
+		t.Fatalf("Tracker Query '%s' not present", tqresult.Data.ID)
 	}
-	if tqr.ID != tqresult.ID {
-		t.Errorf("Id should be %s, but is %s", tqresult.ID, tqr.ID)
+	if tqr.Data.ID != tqresult.Data.ID {
+		t.Errorf("Id should be %s, but is %s", tqresult.Data.ID, tqr.Data.ID)
 	}
 }
 
@@ -251,37 +248,49 @@ func (rest *TestTrackerQueryREST) TestUpdateTrackerQuery() {
 	tqpayload := newCreateTrackerQueryPayload(*result.Data.ID)
 
 	_, tqresult := test.CreateTrackerqueryCreated(t, nil, nil, trackerQueryCtrl, &tqpayload)
-	test.ShowTrackerqueryOK(t, nil, nil, trackerQueryCtrl, tqresult.ID)
-	_, tqr := test.ShowTrackerqueryOK(t, nil, nil, trackerQueryCtrl, tqresult.ID)
+	test.ShowTrackerqueryOK(t, nil, nil, trackerQueryCtrl, *tqresult.Data.ID)
+	_, tqr := test.ShowTrackerqueryOK(t, nil, nil, trackerQueryCtrl, *tqresult.Data.ID)
 
 	if tqr == nil {
-		t.Fatalf("Tracker Query '%s' not present", tqresult.ID)
+		t.Fatalf("Tracker Query '%s' not present", tqresult.Data.ID)
 	}
-	if tqr.ID != tqresult.ID {
-		t.Errorf("Id should be %s, but is %s", tqresult.ID, tqr.ID)
+	if tqr.Data.ID != tqresult.Data.ID {
+		t.Errorf("Id should be %s, but is %s", tqresult.Data.ID, tqr.Data.ID)
 	}
 
-	reqLong := &http.Request{Host: "api.service.domain.org"}
-	spaceSelfURL := witrest.AbsoluteURL(reqLong, app.SpaceHref(space.SystemSpace.String()))
-	payload2 := app.UpdateTrackerQueryAlternatePayload{
-		Query:     tqr.Query,
-		Schedule:  tqr.Schedule,
-		TrackerID: *result.Data.ID,
-		Relationships: &app.TrackerQueryRelationships{
-			Space: app.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
+	spaceID := space.SystemSpace.String()
+	trackerID := result.Data.ID.String()
+	payload2 := app.UpdateTrackerqueryPayload{
+		Data: &app.TrackerQuery{
+			Attributes: &app.TrackerQueryAttributes{
+				Query:    tqr.Data.Attributes.Query,
+				Schedule: tqr.Data.Attributes.Schedule,
+			},
+			Relationships: &app.TrackerQueryRelations{
+				Space: &app.RelationGeneric{
+					Data: &app.GenericData{
+						ID: &spaceID,
+					},
+				},
+				Tracker: &app.RelationGeneric{
+					Data: &app.GenericData{
+						ID: &trackerID,
+					},
+				},
+			},
 		},
 	}
 
-	_, updated := test.UpdateTrackerqueryOK(t, nil, nil, trackerQueryCtrl, tqr.ID, &payload2)
+	_, updated := test.UpdateTrackerqueryOK(t, nil, nil, trackerQueryCtrl, tqr.Data.ID.String(), &payload2)
 
-	if updated.ID != tqresult.ID {
-		t.Errorf("Id has changed from %s to %s", tqresult.ID, updated.ID)
+	if updated.Data.ID != tqresult.Data.ID {
+		t.Errorf("Id has changed from %s to %s", tqresult.Data.ID, updated.Data.ID)
 	}
-	if updated.Query != tqresult.Query {
-		t.Errorf("Query has changed from %s to %s", tqresult.Query, updated.Query)
+	if updated.Data.Attributes.Query != tqresult.Data.Attributes.Query {
+		t.Errorf("Query has changed from %s to %s", tqresult.Data.Attributes.Query, updated.Data.Attributes.Query)
 	}
-	if updated.Schedule != tqresult.Schedule {
-		t.Errorf("Type has changed has from %s to %s", tqresult.Schedule, updated.Schedule)
+	if updated.Data.Attributes.Schedule != tqresult.Data.Attributes.Schedule {
+		t.Errorf("Type has changed has from %s to %s", tqresult.Data.Attributes.Schedule, updated.Data.Attributes.Schedule)
 	}
 }
 
@@ -308,8 +317,8 @@ func (rest *TestTrackerQueryREST) TestTrackerQueryListItemsNotNil() {
 	test.CreateTrackerqueryCreated(t, nil, nil, trackerQueryCtrl, &tqpayload)
 	test.CreateTrackerqueryCreated(t, nil, nil, trackerQueryCtrl, &tqpayload)
 
-	_, list := test.ListTrackerqueryOK(t, nil, nil, trackerQueryCtrl)
-	for _, tq := range list {
+	_, list := test.ListTrackerqueryOK(t, nil, nil, trackerQueryCtrl, nil, nil)
+	for _, tq := range list.Data {
 		if tq == nil {
 			t.Error("Returned Tracker Query found nil")
 		}
@@ -333,26 +342,38 @@ func (rest *TestTrackerQueryREST) TestCreateTrackerQueryValidId() {
 		},
 	}
 	_, result := test.CreateTrackerCreated(t, svc.Context, svc, trackerCtrl, &payload)
-	t.Log(result.Data.ID)
 
 	tqpayload := newCreateTrackerQueryPayload(*result.Data.ID)
 
 	_, trackerquery := test.CreateTrackerqueryCreated(t, nil, nil, trackerQueryCtrl, &tqpayload)
-	_, created := test.ShowTrackerqueryOK(t, nil, nil, trackerQueryCtrl, trackerquery.ID)
-	if created != nil && created.ID != trackerquery.ID {
-		t.Error("Failed because fetched Tracker query not same as requested. Found: ", trackerquery.ID, " Expected, ", created.ID)
+	_, created := test.ShowTrackerqueryOK(t, nil, nil, trackerQueryCtrl, *trackerquery.Data.ID)
+	if created != nil && created.Data.ID != trackerquery.Data.ID {
+		t.Error("Failed because fetched Tracker query not same as requested. Found: ", trackerquery.Data.ID, " Expected, ", created.Data.ID)
 	}
 }
 
-func newCreateTrackerQueryPayload(trackerID uuid.UUID) app.CreateTrackerQueryAlternatePayload {
-	reqLong := &http.Request{Host: "api.service.domain.org"}
-	spaceSelfURL := witrest.AbsoluteURL(reqLong, app.SpaceHref(space.SystemSpace.String()))
-	return app.CreateTrackerQueryAlternatePayload{
-		Query:     "is:open is:issue user:arquillian author:aslakknutsen",
-		Schedule:  "15 * * * * *",
-		TrackerID: trackerID,
-		Relationships: &app.TrackerQueryRelationships{
-			Space: app.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
+func newCreateTrackerQueryPayload(trackerID uuid.UUID) app.CreateTrackerqueryPayload {
+	space := space.SystemSpace.String()
+	tracker := trackerID.String()
+	return app.CreateTrackerqueryPayload{
+		Data: &app.TrackerQuery{
+			Attributes: &app.TrackerQueryAttributes{
+				Query:    "is:open is:issue user:arquillian author:aslakknutsen",
+				Schedule: "15 * * * * *",
+			},
+			Relationships: &app.TrackerQueryRelations{
+				Space: &app.RelationGeneric{
+					Data: &app.GenericData{
+						ID: &space,
+					},
+				},
+				Tracker: &app.RelationGeneric{
+					Data: &app.GenericData{
+						ID: &tracker,
+					},
+				},
+			},
+			Type: remoteworkitem.APIStringTypeTrackerQuery,
 		},
 	}
 }
