@@ -26,7 +26,7 @@ func init() {
 
 func resetConfiguration() {
 	var err error
-	config, err = GetRegistry()
+	config, err = Get()
 	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
