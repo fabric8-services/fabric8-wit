@@ -80,6 +80,7 @@ See also http://jsonapi.org/format/#document-resource-object-relationships`)
 // relationWorkItem is the JSONAPI store for the links
 var relationWorkItem = a.Type("RelationWorkItem", func() {
 	a.Attribute("data", relationWorkItemData)
+	a.Attribute("links", genericLinks)
 })
 
 // relationWorkItemData is the JSONAPI data object of the the work item relationship objects

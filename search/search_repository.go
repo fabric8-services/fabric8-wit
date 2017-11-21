@@ -13,6 +13,7 @@ import (
 
 	"net/url"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/fabric8-services/fabric8-wit/criteria"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/log"
@@ -613,6 +614,7 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 				"err": err,
 				"wit": value.Type,
 			}, "failed to load work item type")
+			spew.Dump(value)
 			return nil, 0, errors.NewInternalError(ctx, errs.Wrap(err, "failed to load work item type"))
 		}
 		wiModel, err := wiType.ConvertWorkItemStorageToModel(value)
