@@ -23,18 +23,18 @@ type ResourceManager interface {
 
 // AuthzResourceManager implements ResourceManager interface
 type AuthzResourceManager struct {
-	configuration AuthServiceConfiguration
+	configuration ServiceConfiguration
 }
 
-// AuthServiceConfiguration represents auth service configuration
-type AuthServiceConfiguration interface {
+// ServiceConfiguration represents auth service configuration
+type ServiceConfiguration interface {
 	GetAuthServiceURL() string
 	GetAuthShortServiceHostName() string
 	IsAuthorizationEnabled() bool
 }
 
 // NewAuthzResourceManager constructs AuthzResourceManager
-func NewAuthzResourceManager(config AuthServiceConfiguration) *AuthzResourceManager {
+func NewAuthzResourceManager(config ServiceConfiguration) *AuthzResourceManager {
 	return &AuthzResourceManager{config}
 }
 
@@ -139,7 +139,7 @@ func (m *AuthzResourceManager) DeleteSpace(ctx context.Context, request *http.Re
 	return nil
 }
 
-func CreateClient(ctx context.Context, config AuthServiceConfiguration) (*authservice.Client, error) {
+func CreateClient(ctx context.Context, config ServiceConfiguration) (*authservice.Client, error) {
 	u, err := url.Parse(config.GetAuthServiceURL())
 	if err != nil {
 		return nil, err

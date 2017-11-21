@@ -31,12 +31,12 @@ const (
 	HostRegistrationKeyForListWI  = "work-item-list-details"
 	HostRegistrationKeyForBoardWI = "work-item-board-details"
 
-	Q_EQ  = "$EQ"
-	Q_NE  = "$NE"
-	Q_AND = "$AND"
-	Q_OR  = "$OR"
-	Q_NOT = "$NOT"
-	Q_IN  = "$IN"
+	EQ  = "$EQ"
+	NE  = "$NE"
+	AND = "$AND"
+	OR  = "$OR"
+	NOT = "$NOT"
+	IN  = "$IN"
 )
 
 // GormSearchRepository provides a Gorm based repository
@@ -278,7 +278,7 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 		case map[string]interface{}:
 			q.Name = key
 			if v, ok := concreteVal["$IN"]; ok {
-				q.Name = Q_OR
+				q.Name = OR
 				c := &q.Children
 				for _, vl := range v.([]interface{}) {
 					sq := Query{}
@@ -346,7 +346,7 @@ type Query struct {
 }
 
 func isOperator(str string) bool {
-	return str == Q_AND || str == Q_OR
+	return str == AND || str == OR
 }
 
 var searchKeyMap = map[string]string{
@@ -445,7 +445,7 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 	}
 	var res criteria.Expression
 	switch currentOperator {
-	case Q_AND:
+	case AND:
 		for _, expr := range myexpr {
 			if res == nil {
 				res = expr
@@ -453,7 +453,7 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 				res = criteria.And(res, expr)
 			}
 		}
-	case Q_OR:
+	case OR:
 		for _, expr := range myexpr {
 			if res == nil {
 				res = expr

@@ -158,7 +158,7 @@ func (mgm *tokenManager) ParseToken(ctx context.Context, tokenString string) (*T
 			log.Error(ctx, map[string]interface{}{
 				"kid": kid,
 			}, "There is no public key with such ID")
-			return nil, errors.New(fmt.Sprintf("there is no public key with such ID: %s", kid))
+			return nil, errors.Errorf("there is no public key with such ID: %s", kid)
 		}
 		return key, nil
 	})

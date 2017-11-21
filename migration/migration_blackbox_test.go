@@ -34,7 +34,7 @@ const (
 )
 
 var (
-	conf       *config.ConfigurationData
+	conf       *config.Registry
 	migrations migration.Migrations
 	dialect    gorm.Dialect
 	gormDB     *gorm.DB
@@ -43,7 +43,7 @@ var (
 
 func setupTest(t *testing.T) {
 	var err error
-	conf, err = config.GetConfigurationData()
+	conf, err = config.Get()
 	require.Nil(t, err, "failed to setup the configuration")
 
 	configurationString := fmt.Sprintf("host=%s port=%d user=%s password=%s sslmode=%s connect_timeout=%d",

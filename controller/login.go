@@ -19,7 +19,7 @@ import (
 )
 
 type loginConfiguration interface {
-	auth.AuthServiceConfiguration
+	auth.ServiceConfiguration
 	IsPostgresDeveloperModeEnabled() bool
 	GetKeycloakTestUserName() string
 	GetKeycloakTestUser2Name() string
@@ -76,7 +76,7 @@ func redirectLocation(params url.Values, location string) (string, error) {
 	return locationURL.String(), nil
 }
 
-func redirectWithParams(ctx redirectContext, config auth.AuthServiceConfiguration, header http.Header, params url.Values, path string) error {
+func redirectWithParams(ctx redirectContext, config auth.ServiceConfiguration, header http.Header, params url.Values, path string) error {
 	locationURL := fmt.Sprintf("%s%s", config.GetAuthServiceURL(), path)
 	locationURLWithParams, err := redirectLocation(params, locationURL)
 	if err != nil {

@@ -28,7 +28,7 @@ type UserController struct {
 
 // UserControllerConfiguration the configuration for the UserController
 type UserControllerConfiguration interface {
-	auth.AuthServiceConfiguration
+	auth.ServiceConfiguration
 	GetCacheControlUser() string
 }
 
