@@ -18,7 +18,7 @@ type CollaboratorsController struct {
 }
 
 type CollaboratorsConfiguration interface {
-	auth.AuthServiceConfiguration
+	auth.ServiceConfiguration
 	GetKeycloakEndpointEntitlement(*http.Request) (string, error)
 	GetCacheControlCollaborators() string
 }
