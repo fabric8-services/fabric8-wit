@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"runtime/debug"
+	"strconv"
+	"strings"
 	"testing"
 
 	c "github.com/fabric8-services/fabric8-wit/criteria"
@@ -524,7 +526,11 @@ func TestHierarchy(t *testing.T) {
 		typegroup.Requirements0,
 	}
 	for _, typeGroup := range typeGroups {
-		t.Run(typeGroup.Name, func(t *testing.T) {
+		levelArr := make([]string, len(typeGroup.Level))
+		for idx, level := range typeGroup.Level {
+			levelArr[idx] = strconv.FormatInt(int64(level), 10)
+		}
+		t.Run(typeGroup.Name+" (level: "+strings.Join(levelArr, ".")+")", func(t *testing.T) {
 			// given
 			spaceName := "openshiftio"
 			q := Query{

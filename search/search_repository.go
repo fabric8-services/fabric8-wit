@@ -434,6 +434,7 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 					e = eq
 				}
 			}
+			spew.Dump(e)
 			myexpr = append(myexpr, e)
 			// switch *child.Value {
 			// case typegroup.Requirements0.Name:
