@@ -19,7 +19,7 @@ type TestLogoutREST struct {
 
 func TestRunLogoutREST(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	configuration, err := config.GetRegistry()
+	configuration, err := config.Get()
 	if err != nil {
 		t.Fatalf("Failed to setup the configuration: %s", err.Error())
 	}

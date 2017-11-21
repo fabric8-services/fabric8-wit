@@ -53,7 +53,7 @@ var wilCatConfiguration *config.Registry
 
 func init() {
 	var err error
-	wilCatConfiguration, err = config.GetRegistry()
+	wilCatConfiguration, err = config.Get()
 	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}

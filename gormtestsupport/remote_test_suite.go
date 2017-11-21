@@ -26,7 +26,7 @@ type RemoteTestSuite struct {
 // SetupSuite implements suite.SetupAllSuite
 func (s *RemoteTestSuite) SetupSuite() {
 	resource.Require(s.T(), resource.Remote)
-	configuration, err := config.NewRegistry(s.configFile)
+	configuration, err := config.New(s.configFile)
 	if err != nil {
 		log.Panic(nil, map[string]interface{}{
 			"err": err,

@@ -37,7 +37,7 @@ type DBBenchSuite struct {
 // SetupSuite implements suite.SetupAllSuite
 func (s *DBBenchSuite) SetupSuite() {
 	resource.Require(s.B(), resource.Database)
-	configuration, err := config.NewRegistry(s.configFile)
+	configuration, err := config.New(s.configFile)
 	if err != nil {
 		log.Panic(nil, map[string]interface{}{
 			"err": err,

@@ -28,7 +28,7 @@ type TestAuthzSuite struct {
 
 func (s *TestAuthzSuite) SetupSuite() {
 	var err error
-	s.config, err = configuration.GetRegistry()
+	s.config, err = configuration.Get()
 	if err != nil {
 		panic(fmt.Errorf("failed to setup the configuration: %s", err.Error()))
 	}

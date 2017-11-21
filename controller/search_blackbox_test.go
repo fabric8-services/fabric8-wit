@@ -71,7 +71,7 @@ func (s *searchControllerTestSuite) SetupTest() {
 	s.testIdentity = *testIdentity
 
 	s.wiRepo = workitem.NewWorkItemRepository(s.DB)
-	spaceBlackBoxTestConfiguration, err := config.GetRegistry()
+	spaceBlackBoxTestConfiguration, err := config.Get()
 	require.Nil(s.T(), err)
 	s.spaceBlackBoxTestConfiguration = spaceBlackBoxTestConfiguration
 	s.svc = testsupport.ServiceAsUser("WorkItemComment-Service", s.testIdentity)

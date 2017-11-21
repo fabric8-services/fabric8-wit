@@ -43,7 +43,7 @@ var (
 
 func setupTest(t *testing.T) {
 	var err error
-	conf, err = config.GetRegistry()
+	conf, err = config.Get()
 	require.Nil(t, err, "failed to setup the configuration")
 
 	configurationString := fmt.Sprintf("host=%s port=%d user=%s password=%s sslmode=%s connect_timeout=%d",

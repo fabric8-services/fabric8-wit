@@ -110,9 +110,9 @@ type Registry struct {
 	tokenPrivateKey *rsa.PrivateKey
 }
 
-// NewRegistry creates a configuration reader object using a configurable
-// configuration file path.
-func NewRegistry(configFilePath string) (*Registry, error) {
+// New creates a configuration reader object using a configurable configuration
+// file path.
+func New(configFilePath string) (*Registry, error) {
 	c := Registry{
 		v: viper.New(),
 	}
@@ -147,10 +147,10 @@ func (c *Registry) GetDefaultConfigurationFile() string {
 	return defaultConfigFile
 }
 
-// GetRegistry is a wrapper over NewRegistry which reads configuration file path
-// from the environment variable.
-func GetRegistry() (*Registry, error) {
-	cd, err := NewRegistry(getConfigFilePath())
+// Get is a wrapper over New() which reads configuration file path from the
+// environment variable.
+func Get() (*Registry, error) {
+	cd, err := New(getConfigFilePath())
 	return cd, err
 }
 

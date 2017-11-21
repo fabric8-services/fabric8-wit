@@ -39,7 +39,7 @@ func resetConfiguration(configPath string) {
 	var err error
 
 	// calling NewConfigurationData("") is same as GetConfigurationData()
-	config, err = configuration.NewRegistry(configPath)
+	config, err = configuration.New(configPath)
 	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}

@@ -38,7 +38,7 @@ func TestRunLoginREST(t *testing.T) {
 func (rest *TestLoginREST) SetupTest() {
 	rest.db = gormapplication.NewGormDB(rest.DB)
 	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
-	c, err := configuration.GetRegistry()
+	c, err := configuration.Get()
 	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
