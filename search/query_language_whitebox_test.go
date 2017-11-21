@@ -9,6 +9,7 @@ import (
 	c "github.com/fabric8-services/fabric8-wit/criteria"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/workitem"
+	"github.com/fabric8-services/fabric8-wit/workitem/typegroup"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -513,4 +514,50 @@ func TestGenerateExpressionWithNonExistingKey(t *testing.T) {
 		require.Nil(t, actualExpr)
 	})
 
+}
+
+func TestHierarchy(t *testing.T) {
+	typeGroups := []typegroup.WorkItemTypeGroup{
+		typegroup.Execution0,
+		typegroup.Portfolio0,
+		typegroup.Portfolio1,
+		typegroup.Requirements0,
+	}
+	for _, typeGroup := range typeGroups {
+		t.Run(typeGroup.Name, func(t *testing.T) {
+			// given
+			spaceName := "openshiftio"
+			q := Query{
+				Name: OR,
+				Children: []Query{
+					{Name: "space", Value: &spaceName},
+					{Name: "hierarchy", Value: &typeGroup.Name},
+				},
+			}
+			// when
+			actualExpr, _ := q.generateExpression()
+			// then
+
+			var right c.Expression
+			for _, witID := range typeGroup.WorkItemTypeCollection {
+				exp := c.Equals(
+					c.Field("Type"),
+					c.Literal(witID.String()),
+				)
+				if right != nil {
+					right = c.Or(right, exp)
+				} else {
+					right = exp
+				}
+			}
+			expectedExpr := c.Or(
+				c.Equals(
+					c.Field("SpaceID"),
+					c.Literal(spaceName),
+				),
+				right,
+			)
+			expectEqualExpr(t, expectedExpr, actualExpr)
+		})
+	}
 }

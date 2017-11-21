@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/fabric8-services/fabric8-wit/workitem/typegroup"
+
 	"context"
 
 	"strings"
@@ -31,12 +33,13 @@ const (
 	HostRegistrationKeyForListWI  = "work-item-list-details"
 	HostRegistrationKeyForBoardWI = "work-item-board-details"
 
-	EQ  = "$EQ"
-	NE  = "$NE"
-	AND = "$AND"
-	OR  = "$OR"
-	NOT = "$NOT"
-	IN  = "$IN"
+	EQ     = "$EQ"
+	NE     = "$NE"
+	AND    = "$AND"
+	OR     = "$OR"
+	NOT    = "$NOT"
+	IN     = "$IN"
+	SUBSTR = "$SUBSTR"
 )
 
 // GormSearchRepository provides a Gorm based repository
@@ -277,7 +280,7 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 			q.Value = nil
 		case map[string]interface{}:
 			q.Name = key
-			if v, ok := concreteVal["$IN"]; ok {
+			if v, ok := concreteVal[IN]; ok {
 				q.Name = OR
 				c := &q.Children
 				for _, vl := range v.([]interface{}) {
@@ -287,7 +290,7 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 					sq.Value = &t
 					*c = append(*c, sq)
 				}
-			} else if v, ok := concreteVal["$EQ"]; ok {
+			} else if v, ok := concreteVal[EQ]; ok {
 				switch v.(type) {
 				case string:
 					s := v.(string)
@@ -295,11 +298,11 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 				case nil:
 					q.Value = nil
 				}
-			} else if v, ok := concreteVal["$NE"]; ok {
+			} else if v, ok := concreteVal[NE]; ok {
 				s := v.(string)
 				q.Value = &s
 				q.Negate = true
-			} else if v, ok := concreteVal["$SUBSTR"]; ok {
+			} else if v, ok := concreteVal[SUBSTR]; ok {
 				s := v.(string)
 				q.Value = &s
 				q.Substring = true
@@ -362,14 +365,6 @@ var searchKeyMap = map[string]string{
 	"space":        "SpaceID",
 }
 
-// returns SQL attibute name in query if found otherwise returns input key as is
-func (q Query) getAttributeKey(key string) string {
-	if val, ok := searchKeyMap[key]; ok {
-		return val
-	}
-	return key
-}
-
 func (q Query) determineLiteralType(key string, val string) criteria.Expression {
 	switch key {
 	case workitem.SystemAssignees, workitem.SystemLabels:
@@ -383,10 +378,8 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 	var myexpr []criteria.Expression
 	currentOperator := q.Name
 	if !isOperator(currentOperator) {
-		var key string
-		if val, ok := searchKeyMap[q.Name]; ok {
-			key = val
-		} else {
+		key, ok := searchKeyMap[q.Name]
+		if !ok {
 			return nil, errors.NewBadParameterError("key not found", q.Name)
 		}
 		left := criteria.Field(key)
@@ -415,11 +408,51 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 				return nil, err
 			}
 			myexpr = append(myexpr, exp)
+		} else if child.Name == "hierarchy" {
+			if child.Value == nil {
+				return nil, errors.NewBadParameterError("hierarchy", child.Value).Expected("not nil")
+			}
+			typeGroupMap := map[string]*typegroup.WorkItemTypeGroup{
+				typegroup.Execution0.Name:    &typegroup.Execution0,
+				typegroup.Portfolio0.Name:    &typegroup.Portfolio0,
+				typegroup.Portfolio1.Name:    &typegroup.Portfolio1,
+				typegroup.Requirements0.Name: &typegroup.Requirements0,
+			}
+			typeGroup, ok := typeGroupMap[*child.Value]
+			if !ok {
+				return nil, errors.NewBadParameterError("hierarchy", *child.Value).Expected("existing type hierarchy")
+			}
+			var e criteria.Expression
+			for _, witID := range typeGroup.WorkItemTypeCollection {
+				eq := criteria.Equals(
+					criteria.Field("Type"),
+					criteria.Literal(witID.String()),
+				)
+				if e != nil {
+					e = criteria.Or(e, eq)
+				} else {
+					e = eq
+				}
+			}
+			myexpr = append(myexpr, e)
+			// switch *child.Value {
+			// case typegroup.Requirements0.Name:
+			// 	myexpr = append(myexpr, criteria.Or(
+			// 		criteria.Equals(
+			// 			criteria.Field("Type"),
+			// 			criteria.Literal(workitem.SystemExperience.String()),
+			// 		),
+			// 		criteria.Equals(
+			// 			criteria.Field("Type"),
+			// 			criteria.Literal(workitem.SystemValueProposition.String()),
+			// 		),
+			// 	))
+			// default:
+			// 	return nil, errors.NewBadParameterError("unknown type hierarchy", *child.Value)
+			// }
 		} else {
-			var key string
-			if val, ok := searchKeyMap[child.Name]; ok {
-				key = val
-			} else {
+			key, ok := searchKeyMap[child.Name]
+			if !ok {
 				return nil, errors.NewBadParameterError("key not found", child.Name)
 			}
 			left := criteria.Field(key)
