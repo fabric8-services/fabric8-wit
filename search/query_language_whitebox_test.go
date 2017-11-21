@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"runtime/debug"
-	"strconv"
-	"strings"
 	"testing"
 
 	c "github.com/fabric8-services/fabric8-wit/criteria"
@@ -465,6 +463,8 @@ func TestGenerateExpression(t *testing.T) {
 }
 
 func expectEqualExpr(t *testing.T, expectedExpr, actualExpr c.Expression) {
+	require.NotNil(t, expectedExpr)
+	require.NotNil(t, actualExpr)
 	actualClause, actualParameters, actualErrs := workitem.Compile(actualExpr)
 	if len(actualErrs) > 0 {
 		debug.PrintStack()
@@ -475,6 +475,7 @@ func expectEqualExpr(t *testing.T, expectedExpr, actualExpr c.Expression) {
 		debug.PrintStack()
 		require.Nil(t, expectedErrs, "failed to compile expected expression")
 	}
+
 	require.Equal(t, exprectedClause, actualClause, "where clause differs")
 	require.Equal(t, expectedParameters, actualParameters, "parameters differ")
 }
@@ -525,45 +526,45 @@ func TestHierarchy(t *testing.T) {
 		typegroup.Portfolio1,
 		typegroup.Requirements0,
 	}
-	for _, typeGroup := range typeGroups {
-		levelArr := make([]string, len(typeGroup.Level))
-		for idx, level := range typeGroup.Level {
-			levelArr[idx] = strconv.FormatInt(int64(level), 10)
-		}
-		t.Run(typeGroup.Name+" (level: "+strings.Join(levelArr, ".")+")", func(t *testing.T) {
-			// given
-			spaceName := "openshiftio"
-			q := Query{
-				Name: OR,
-				Children: []Query{
-					{Name: "space", Value: &spaceName},
-					{Name: "hierarchy", Value: &typeGroup.Name},
-				},
-			}
-			// when
-			actualExpr, _ := q.generateExpression()
-			// then
 
-			var right c.Expression
-			for _, witID := range typeGroup.WorkItemTypeCollection {
-				exp := c.Equals(
-					c.Field("Type"),
-					c.Literal(witID.String()),
-				)
-				if right != nil {
-					right = c.Or(right, exp)
-				} else {
-					right = exp
+	t.Run("hierarchy as a query child", func(t *testing.T) {
+		for _, typeGroup := range typeGroups {
+			t.Run(typeGroup.BuildName(), func(t *testing.T) {
+				// given
+				spaceName := "openshiftio"
+				hierarchyFullName := typeGroup.BuildName()
+				q := Query{
+					Name: OR,
+					Children: []Query{
+						{Name: "space", Value: &spaceName},
+						{Name: "hierarchy", Value: &hierarchyFullName},
+					},
 				}
-			}
-			expectedExpr := c.Or(
-				c.Equals(
-					c.Field("SpaceID"),
-					c.Literal(spaceName),
-				),
-				right,
-			)
-			expectEqualExpr(t, expectedExpr, actualExpr)
-		})
-	}
+				// when
+				actualExpr, _ := q.generateExpression()
+				// then
+
+				var right c.Expression
+				for _, witID := range typeGroup.WorkItemTypeCollection {
+					exp := c.Equals(
+						c.Field("Type"),
+						c.Literal(witID.String()),
+					)
+					if right != nil {
+						right = c.Or(right, exp)
+					} else {
+						right = exp
+					}
+				}
+				expectedExpr := c.Or(
+					c.Equals(
+						c.Field("SpaceID"),
+						c.Literal(spaceName),
+					),
+					right,
+				)
+				expectEqualExpr(t, expectedExpr, actualExpr)
+			})
+		}
+	})
 }

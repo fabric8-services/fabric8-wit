@@ -1,6 +1,9 @@
 package typegroup
 
 import (
+	"strconv"
+	"strings"
+
 	uuid "github.com/satori/go.uuid"
 
 	"github.com/fabric8-services/fabric8-wit/workitem"
@@ -20,6 +23,16 @@ type WorkItemTypeGroup struct {
 	Name                   string // the name to be displayed to user
 	WorkItemTypeCollection []uuid.UUID
 	Icon                   string
+}
+
+// BuildName returns the name of the work item type group together with a string
+// representation of the level array.
+func (g WorkItemTypeGroup) BuildName() string {
+	levelArr := make([]string, len(g.Level))
+	for idx, level := range g.Level {
+		levelArr[idx] = strconv.FormatInt(int64(level), 10)
+	}
+	return g.Name + "-" + strings.Join(levelArr, ".")
 }
 
 // Use following group constants while defining static groups

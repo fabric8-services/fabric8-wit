@@ -40,6 +40,8 @@ const (
 	NOT    = "$NOT"
 	IN     = "$IN"
 	SUBSTR = "$SUBSTR"
+
+	hierarchy = "hierarchy"
 )
 
 // GormSearchRepository provides a Gorm based repository
@@ -408,19 +410,30 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 				return nil, err
 			}
 			myexpr = append(myexpr, exp)
-		} else if child.Name == "hierarchy" {
+		} else if child.Name == hierarchy {
+			// Here we handle the "hierarchy" query parameter which we translate
+			// from a simple
+			//
+			// "hierarchy = y"
+			//
+			// eypression into an
+			//
+			// "Type in (y1, y2, y3, ... ,yn)"
+			//
+			// expression where yi represents the i-th work item type associated
+			// with the hierarchy y.
 			if child.Value == nil {
-				return nil, errors.NewBadParameterError("hierarchy", child.Value).Expected("not nil")
+				return nil, errors.NewBadParameterError(hierarchy, child.Value).Expected("not nil")
 			}
 			typeGroupMap := map[string]*typegroup.WorkItemTypeGroup{
-				typegroup.Execution0.Name:    &typegroup.Execution0,
-				typegroup.Portfolio0.Name:    &typegroup.Portfolio0,
-				typegroup.Portfolio1.Name:    &typegroup.Portfolio1,
-				typegroup.Requirements0.Name: &typegroup.Requirements0,
+				typegroup.Execution0.BuildName():    &typegroup.Execution0,
+				typegroup.Portfolio0.BuildName():    &typegroup.Portfolio0,
+				typegroup.Portfolio1.BuildName():    &typegroup.Portfolio1,
+				typegroup.Requirements0.BuildName(): &typegroup.Requirements0,
 			}
 			typeGroup, ok := typeGroupMap[*child.Value]
 			if !ok {
-				return nil, errors.NewBadParameterError("hierarchy", *child.Value).Expected("existing type hierarchy")
+				return nil, errors.NewBadParameterError(hierarchy, *child.Value).Expected("existing " + hierarchy)
 			}
 			var e criteria.Expression
 			for _, witID := range typeGroup.WorkItemTypeCollection {
@@ -434,23 +447,7 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 					e = eq
 				}
 			}
-			spew.Dump(e)
 			myexpr = append(myexpr, e)
-			// switch *child.Value {
-			// case typegroup.Requirements0.Name:
-			// 	myexpr = append(myexpr, criteria.Or(
-			// 		criteria.Equals(
-			// 			criteria.Field("Type"),
-			// 			criteria.Literal(workitem.SystemExperience.String()),
-			// 		),
-			// 		criteria.Equals(
-			// 			criteria.Field("Type"),
-			// 			criteria.Literal(workitem.SystemValueProposition.String()),
-			// 		),
-			// 	))
-			// default:
-			// 	return nil, errors.NewBadParameterError("unknown type hierarchy", *child.Value)
-			// }
 		} else {
 			key, ok := searchKeyMap[child.Name]
 			if !ok {
