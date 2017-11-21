@@ -1,4 +1,4 @@
-= Fabric8 WIT
+= Fabric8 Work Item Tracker
 :toc:
 :toc-placement: preamble
 :sectnums:
@@ -9,7 +9,7 @@ image:https://goreportcard.com/badge/github.com/fabric8-services/fabric8-wit[Go 
 image:https://godoc.org/github.com/fabric8-services/fabric8-wit?status.png[GoDoc,link="https://godoc.org/github.com/fabric8-services/fabric8-wit"]
 image:https://codecov.io/gh/fabric8-services/fabric8-wit/branch/master/graph/badge.svg[Codecov.io,link="https://codecov.io/gh/fabric8-services/fabric8-wit"]
 
-WIT stands for Work Item Tracker, which is the planner and issue tracking component of fabric8. 
+Work Items describe and keep track of work that needs to be done. A user can be assigned to a Work Item. Each Work Item must be attached to a Collaboration Space and an Area (assigned by default). This can be used to model bugs, tasks, features, ideas, and more.
 
 == Building from source [[building]]
 
