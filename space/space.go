@@ -138,7 +138,7 @@ func (r *GormRepository) LoadMany(ctx context.Context, IDs []uuid.UUID) ([]Space
 		strIDs[i] = fmt.Sprintf("'%s'", ID.String())
 	}
 
-	result := make([]Space, 0)
+	var result []Space
 	db := r.db.Model(Space{}).Select("distinct *").Where(fmt.Sprintf("ID in (%s)", strings.Join(strIDs, ", ")))
 	rows, err := db.Rows()
 	if err != nil {
