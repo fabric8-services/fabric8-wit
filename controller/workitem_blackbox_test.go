@@ -2752,7 +2752,7 @@ func (s *WorkItem2Suite) TestWI2ListForChildIteration() {
 func (s *WorkItem2Suite) TestWI2FilterExpressionRedirection() {
 	c := minimumRequiredCreatePayload()
 	queryExpression := fmt.Sprintf(`{"iteration" : "%s"}`, uuid.NewV4().String())
-	expectedLocation := fmt.Sprintf(`/api/search?filter[expression]={"%s":[{"space": "%s" }, %s]}`, search.Q_AND, *c.Data.Relationships.Space.Data.ID, queryExpression)
+	expectedLocation := fmt.Sprintf(`/api/search?filter[expression]={"%s":[{"space": "%s" }, %s]}`, search.AND, *c.Data.Relationships.Space.Data.ID, queryExpression)
 	respWriter := test.ListWorkitemsTemporaryRedirect(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, nil, nil, nil, &queryExpression, nil, nil, nil, nil, nil, nil, nil, nil)
 	location := respWriter.Header().Get("location")
 	assert.Contains(s.T(), location, expectedLocation)
