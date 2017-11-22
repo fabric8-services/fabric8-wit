@@ -3,7 +3,8 @@ ifndef WIT_IMAGE_TAG
 WIT_IMAGE_TAG=latest
 endif
 
-WIT_IMAGE_URL=docker.io/fabric8/fabric8-wit:$(WIT_IMAGE_TAG)
+WIT_IMAGE=docker.io/fabric8/fabric8-wit
+WIT_IMAGE_URL=$(WIT_IMAGE):$(WIT_IMAGE_TAG)
 
 dev-planner-openshift:
 	minishift start --cpus 4
