@@ -466,10 +466,10 @@ func (s *searchControllerTestSuite) TestSearchByHierarchy() {
 			_, sr := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
 			// then
 			toBeFound := map[string]struct{}{
-				"open scenario":      struct{}{},
-				"closed scenario":    struct{}{},
-				"open fundamental":   struct{}{},
-				"closed fundamental": struct{}{},
+				"open scenario":      {},
+				"closed scenario":    {},
+				"open fundamental":   {},
+				"closed fundamental": {},
 			}
 			checkToBeFound(t, toBeFound, sr.Data)
 		})
@@ -484,8 +484,8 @@ func (s *searchControllerTestSuite) TestSearchByHierarchy() {
 			_, sr := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
 			// then
 			toBeFound := map[string]struct{}{
-				"open experience":   struct{}{},
-				"closed experience": struct{}{},
+				"open experience":   {},
+				"closed experience": {},
 			}
 			checkToBeFound(t, toBeFound, sr.Data)
 		})
@@ -500,10 +500,10 @@ func (s *searchControllerTestSuite) TestSearchByHierarchy() {
 			_, sr := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
 			// then
 			toBeFound := map[string]struct{}{
-				"open feature":   struct{}{},
-				"closed feature": struct{}{},
-				"open bug":       struct{}{},
-				"closed bug":     struct{}{},
+				"open feature":   {},
+				"closed feature": {},
+				"open bug":       {},
+				"closed bug":     {},
 			}
 			checkToBeFound(t, toBeFound, sr.Data)
 		})
@@ -518,8 +518,8 @@ func (s *searchControllerTestSuite) TestSearchByHierarchy() {
 			_, sr := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
 			// then
 			toBeFound := map[string]struct{}{
-				"open task":   struct{}{},
-				"closed task": struct{}{},
+				"open task":   {},
+				"closed task": {},
 			}
 			checkToBeFound(t, toBeFound, sr.Data)
 		})
