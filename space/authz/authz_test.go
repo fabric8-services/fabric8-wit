@@ -23,12 +23,12 @@ func TestAuthz(t *testing.T) {
 type TestAuthzSuite struct {
 	suite.Suite
 	authzService *authz.KeycloakAuthzService
-	config       *configuration.ConfigurationData
+	config       *configuration.Registry
 }
 
 func (s *TestAuthzSuite) SetupSuite() {
 	var err error
-	s.config, err = configuration.GetConfigurationData()
+	s.config, err = configuration.Get()
 	if err != nil {
 		panic(fmt.Errorf("failed to setup the configuration: %s", err.Error()))
 	}

@@ -34,7 +34,7 @@ type UsersController struct {
 
 // UsersControllerConfiguration the configuration for the UsersController
 type UsersControllerConfiguration interface {
-	auth.AuthServiceConfiguration
+	auth.ServiceConfiguration
 	GetCacheControlUsers() string
 	GetCacheControlUser() string
 	GetKeycloakAccountEndpoint(*http.Request) (string, error)

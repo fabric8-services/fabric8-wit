@@ -10,11 +10,11 @@ import (
 // LogoutController implements the logout resource.
 type LogoutController struct {
 	*goa.Controller
-	configuration auth.AuthServiceConfiguration
+	configuration auth.ServiceConfiguration
 }
 
 // NewLogoutController creates a logout controller.
-func NewLogoutController(service *goa.Service, configuration auth.AuthServiceConfiguration) *LogoutController {
+func NewLogoutController(service *goa.Service, configuration auth.ServiceConfiguration) *LogoutController {
 	return &LogoutController{Controller: service.NewController("LogoutController"), configuration: configuration}
 }
 

@@ -1,0 +1,232 @@
+{
+  "data": [
+    {
+      "attributes": {
+        "created-at": "0001-01-01T00:00:00Z",
+        "updated-at": "0001-01-01T00:00:00Z",
+        "version": 0
+      },
+      "id": "00000000-0000-0000-0000-000000000001",
+      "links": {
+        "self": "http:///api/workitemlinks/00000000-0000-0000-0000-000000000001"
+      },
+      "relationships": {
+        "link_type": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000002",
+            "type": "workitemlinktypes"
+          },
+          "links": {
+            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000003/workitemlinktypes/00000000-0000-0000-0000-000000000002"
+          }
+        },
+        "source": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000004",
+            "type": "workitems"
+          },
+          "links": {
+            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000004"
+          }
+        },
+        "target": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000005",
+            "type": "workitems"
+          },
+          "links": {
+            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000005"
+          }
+        }
+      },
+      "type": "workitemlinks"
+    }
+  ],
+  "included": [
+    {
+      "attributes": {
+        "created-at": "0001-01-01T00:00:00Z",
+        "description": "some description",
+        "forward_name": "forward name (e.g. blocks)",
+        "name": "work item link type 00000000-0000-0000-0000-000000000006",
+        "reverse_name": "reverse name (e.g. blocked by)",
+        "topology": "tree",
+        "updated-at": "0001-01-01T00:00:00Z",
+        "version": 0
+      },
+      "id": "00000000-0000-0000-0000-000000000002",
+      "relationships": {
+        "link_category": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000007",
+            "type": "workitemlinkcategories"
+          },
+          "links": {
+            "related": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000007",
+            "self": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000007"
+          }
+        },
+        "space": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000008",
+            "type": "spaces"
+          },
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000008",
+            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000008"
+          }
+        }
+      },
+      "type": "workitemlinktypes"
+    },
+    {
+      "attributes": {
+        "system.created_at": "0001-01-01T00:00:00Z",
+        "system.number": 1,
+        "system.order": 1,
+        "system.remote_item_id": null,
+        "system.state": "new",
+        "system.title": "work item 00000000-0000-0000-0000-000000000009",
+        "system.updated_at": "0001-01-01T00:00:00Z",
+        "version": 0
+      },
+      "id": "00000000-0000-0000-0000-000000000004",
+      "links": {
+        "related": "http:///api/workitems/00000000-0000-0000-0000-000000000004",
+        "self": "http:///api/workitems/00000000-0000-0000-0000-000000000004"
+      },
+      "relationships": {
+        "area": {},
+        "assignees": {},
+        "baseType": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000010",
+            "type": "workitemtypes"
+          },
+          "links": {
+            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000008/workitemtypes/00000000-0000-0000-0000-000000000010"
+          }
+        },
+        "children": {
+          "links": {
+            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000004/children"
+          }
+        },
+        "comments": {
+          "links": {
+            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000004/comments",
+            "self": "http:///api/workitems/00000000-0000-0000-0000-000000000004/relationships/comments"
+          }
+        },
+        "creator": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000011",
+            "links": {
+              "related": "http:///api/users/00000000-0000-0000-0000-000000000011",
+              "self": "http:///api/users/00000000-0000-0000-0000-000000000011"
+            },
+            "type": "users"
+          }
+        },
+        "iteration": {},
+        "labels": {
+          "links": {
+            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000004/labels"
+          }
+        },
+        "space": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000008",
+            "type": "spaces"
+          },
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000008",
+            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000008"
+          }
+        },
+        "workItemLinks": {
+          "links": {
+            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000004/links"
+          }
+        }
+      },
+      "type": "workitems"
+    },
+    {
+      "attributes": {
+        "system.created_at": "0001-01-01T00:00:00Z",
+        "system.number": 2,
+        "system.order": 2,
+        "system.remote_item_id": null,
+        "system.state": "new",
+        "system.title": "work item 00000000-0000-0000-0000-000000000012",
+        "system.updated_at": "0001-01-01T00:00:00Z",
+        "version": 0
+      },
+      "id": "00000000-0000-0000-0000-000000000005",
+      "links": {
+        "related": "http:///api/workitems/00000000-0000-0000-0000-000000000005",
+        "self": "http:///api/workitems/00000000-0000-0000-0000-000000000005"
+      },
+      "relationships": {
+        "area": {},
+        "assignees": {},
+        "baseType": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000010",
+            "type": "workitemtypes"
+          },
+          "links": {
+            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000008/workitemtypes/00000000-0000-0000-0000-000000000010"
+          }
+        },
+        "children": {
+          "links": {
+            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000005/children"
+          }
+        },
+        "comments": {
+          "links": {
+            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000005/comments",
+            "self": "http:///api/workitems/00000000-0000-0000-0000-000000000005/relationships/comments"
+          }
+        },
+        "creator": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000011",
+            "links": {
+              "related": "http:///api/users/00000000-0000-0000-0000-000000000011",
+              "self": "http:///api/users/00000000-0000-0000-0000-000000000011"
+            },
+            "type": "users"
+          }
+        },
+        "iteration": {},
+        "labels": {
+          "links": {
+            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000005/labels"
+          }
+        },
+        "space": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000008",
+            "type": "spaces"
+          },
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000008",
+            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000008"
+          }
+        },
+        "workItemLinks": {
+          "links": {
+            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000005/links"
+          }
+        }
+      },
+      "type": "workitems"
+    }
+  ],
+  "meta": {
+    "totalCount": 1
+  }
+}
