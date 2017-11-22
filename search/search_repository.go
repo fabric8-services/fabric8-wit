@@ -379,7 +379,68 @@ func (q Query) determineLiteralType(key string, val string) criteria.Expression 
 func (q Query) generateExpression() (criteria.Expression, error) {
 	var myexpr []criteria.Expression
 	currentOperator := q.Name
-	if !isOperator(currentOperator) {
+
+	// Here we handle the "hierarchy" query parameter which we translate from a
+	// simple
+	//
+	// "hierarchy = y"
+	//
+	// eypression into an
+	//
+	// "Type in (y1, y2, y3, ... ,yn)"
+	//
+	// expression where yi represents the i-th work item type associated with
+	// the hierarchy y.
+	handleHierarchy := func(q Query) error {
+		if q.Value == nil {
+			return errors.NewBadParameterError(hierarchy, q.Value).Expected("not nil")
+		}
+		typeGroupMap := map[string]*typegroup.WorkItemTypeGroup{
+			typegroup.Execution0.BuildName():    &typegroup.Execution0,
+			typegroup.Portfolio0.BuildName():    &typegroup.Portfolio0,
+			typegroup.Portfolio1.BuildName():    &typegroup.Portfolio1,
+			typegroup.Requirements0.BuildName(): &typegroup.Requirements0,
+		}
+		typeGroup, ok := typeGroupMap[*q.Value]
+		if !ok {
+			return errors.NewBadParameterError(hierarchy, *q.Value).Expected("existing " + hierarchy)
+		}
+		var e criteria.Expression
+		if !q.Negate {
+			for _, witID := range typeGroup.WorkItemTypeCollection {
+				eq := criteria.Equals(
+					criteria.Field("Type"),
+					criteria.Literal(witID.String()),
+				)
+				if e != nil {
+					e = criteria.Or(e, eq)
+				} else {
+					e = eq
+				}
+			}
+		} else {
+			for _, witID := range typeGroup.WorkItemTypeCollection {
+				eq := criteria.Not(
+					criteria.Field("Type"),
+					criteria.Literal(witID.String()),
+				)
+				if e != nil {
+					e = criteria.And(e, eq)
+				} else {
+					e = eq
+				}
+			}
+		}
+		myexpr = append(myexpr, e)
+		return nil
+	}
+
+	if q.Name == hierarchy {
+		err := handleHierarchy(q)
+		if err != nil {
+			return nil, errs.Wrap(err, "failed to handle hierarchy in top-level element")
+		}
+	} else if !isOperator(currentOperator) {
 		key, ok := searchKeyMap[q.Name]
 		if !ok {
 			return nil, errors.NewBadParameterError("key not found", q.Name)
@@ -411,43 +472,10 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 			}
 			myexpr = append(myexpr, exp)
 		} else if child.Name == hierarchy {
-			// Here we handle the "hierarchy" query parameter which we translate
-			// from a simple
-			//
-			// "hierarchy = y"
-			//
-			// eypression into an
-			//
-			// "Type in (y1, y2, y3, ... ,yn)"
-			//
-			// expression where yi represents the i-th work item type associated
-			// with the hierarchy y.
-			if child.Value == nil {
-				return nil, errors.NewBadParameterError(hierarchy, child.Value).Expected("not nil")
+			err := handleHierarchy(child)
+			if err != nil {
+				return nil, errs.Wrap(err, "failed to handle hierarchy in child element")
 			}
-			typeGroupMap := map[string]*typegroup.WorkItemTypeGroup{
-				typegroup.Execution0.BuildName():    &typegroup.Execution0,
-				typegroup.Portfolio0.BuildName():    &typegroup.Portfolio0,
-				typegroup.Portfolio1.BuildName():    &typegroup.Portfolio1,
-				typegroup.Requirements0.BuildName(): &typegroup.Requirements0,
-			}
-			typeGroup, ok := typeGroupMap[*child.Value]
-			if !ok {
-				return nil, errors.NewBadParameterError(hierarchy, *child.Value).Expected("existing " + hierarchy)
-			}
-			var e criteria.Expression
-			for _, witID := range typeGroup.WorkItemTypeCollection {
-				eq := criteria.Equals(
-					criteria.Field("Type"),
-					criteria.Literal(witID.String()),
-				)
-				if e != nil {
-					e = criteria.Or(e, eq)
-				} else {
-					e = eq
-				}
-			}
-			myexpr = append(myexpr, e)
 		} else {
 			key, ok := searchKeyMap[child.Name]
 			if !ok {

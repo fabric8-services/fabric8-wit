@@ -527,6 +527,36 @@ func TestHierarchy(t *testing.T) {
 		typegroup.Requirements0,
 	}
 
+	typeGroupToExpr := func(typeGroup typegroup.WorkItemTypeGroup, negate bool) c.Expression {
+		var e c.Expression
+		if !negate {
+			for _, witID := range typeGroup.WorkItemTypeCollection {
+				exp := c.Equals(
+					c.Field("Type"),
+					c.Literal(witID.String()),
+				)
+				if e != nil {
+					e = c.Or(e, exp)
+				} else {
+					e = exp
+				}
+			}
+		} else {
+			for _, witID := range typeGroup.WorkItemTypeCollection {
+				exp := c.Not(
+					c.Field("Type"),
+					c.Literal(witID.String()),
+				)
+				if e != nil {
+					e = c.And(e, exp)
+				} else {
+					e = exp
+				}
+			}
+		}
+		return e
+	}
+
 	t.Run("hierarchy as a query child", func(t *testing.T) {
 		for _, typeGroup := range typeGroups {
 			t.Run(typeGroup.BuildName(), func(t *testing.T) {
@@ -543,26 +573,71 @@ func TestHierarchy(t *testing.T) {
 				// when
 				actualExpr, _ := q.generateExpression()
 				// then
-
-				var right c.Expression
-				for _, witID := range typeGroup.WorkItemTypeCollection {
-					exp := c.Equals(
-						c.Field("Type"),
-						c.Literal(witID.String()),
-					)
-					if right != nil {
-						right = c.Or(right, exp)
-					} else {
-						right = exp
-					}
-				}
 				expectedExpr := c.Or(
 					c.Equals(
 						c.Field("SpaceID"),
 						c.Literal(spaceName),
 					),
-					right,
+					typeGroupToExpr(typeGroup, false),
 				)
+				expectEqualExpr(t, expectedExpr, actualExpr)
+			})
+		}
+	})
+
+	t.Run("hierarchy as a query child using NOT", func(t *testing.T) {
+		for _, typeGroup := range typeGroups {
+			t.Run(typeGroup.BuildName(), func(t *testing.T) {
+				// given
+				spaceName := "openshiftio"
+				hierarchyFullName := typeGroup.BuildName()
+				q := Query{
+					Name: OR,
+					Children: []Query{
+						{Name: "space", Value: &spaceName},
+						{Name: "hierarchy", Value: &hierarchyFullName, Negate: true},
+					},
+				}
+				// when
+				actualExpr, _ := q.generateExpression()
+				// then
+				expectedExpr := c.Or(
+					c.Equals(
+						c.Field("SpaceID"),
+						c.Literal(spaceName),
+					),
+					typeGroupToExpr(typeGroup, true),
+				)
+				expectEqualExpr(t, expectedExpr, actualExpr)
+			})
+		}
+	})
+
+	t.Run("hierarchy as a top-level expression", func(t *testing.T) {
+		for _, typeGroup := range typeGroups {
+			t.Run(typeGroup.BuildName(), func(t *testing.T) {
+				// given
+				hierarchyFullName := typeGroup.BuildName()
+				q := Query{Name: "hierarchy", Value: &hierarchyFullName}
+				// when
+				actualExpr, _ := q.generateExpression()
+				// then
+				expectedExpr := typeGroupToExpr(typeGroup, false)
+				expectEqualExpr(t, expectedExpr, actualExpr)
+			})
+		}
+	})
+
+	t.Run("hierarchy as a top-level expression using NOT", func(t *testing.T) {
+		for _, typeGroup := range typeGroups {
+			t.Run(typeGroup.BuildName(), func(t *testing.T) {
+				// given
+				hierarchyFullName := typeGroup.BuildName()
+				q := Query{Name: "hierarchy", Value: &hierarchyFullName, Negate: true}
+				// when
+				actualExpr, _ := q.generateExpression()
+				// then
+				expectedExpr := typeGroupToExpr(typeGroup, true)
 				expectEqualExpr(t, expectedExpr, actualExpr)
 			})
 		}
