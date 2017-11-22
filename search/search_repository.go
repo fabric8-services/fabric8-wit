@@ -385,7 +385,7 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 	//
 	// "hierarchy = y"
 	//
-	// eypression into an
+	// expression into an
 	//
 	// "Type in (y1, y2, y3, ... ,yn)"
 	//
