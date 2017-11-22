@@ -41,7 +41,7 @@ const (
 	IN     = "$IN"
 	SUBSTR = "$SUBSTR"
 
-	hierarchy = "hierarchy"
+	Hierarchy = "hierarchy"
 )
 
 // GormSearchRepository provides a Gorm based repository
@@ -393,7 +393,7 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 	// the hierarchy y.
 	handleHierarchy := func(q Query) error {
 		if q.Value == nil {
-			return errors.NewBadParameterError(hierarchy, q.Value).Expected("not nil")
+			return errors.NewBadParameterError(Hierarchy, q.Value).Expected("not nil")
 		}
 		typeGroupMap := map[string]*typegroup.WorkItemTypeGroup{
 			typegroup.Execution0.BuildName():    &typegroup.Execution0,
@@ -403,7 +403,7 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 		}
 		typeGroup, ok := typeGroupMap[*q.Value]
 		if !ok {
-			return errors.NewBadParameterError(hierarchy, *q.Value).Expected("existing " + hierarchy)
+			return errors.NewBadParameterError(Hierarchy, *q.Value).Expected("existing " + Hierarchy)
 		}
 		var e criteria.Expression
 		if !q.Negate {
@@ -435,7 +435,7 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 		return nil
 	}
 
-	if q.Name == hierarchy {
+	if q.Name == Hierarchy {
 		err := handleHierarchy(q)
 		if err != nil {
 			return nil, errs.Wrap(err, "failed to handle hierarchy in top-level element")
@@ -471,10 +471,10 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 				return nil, err
 			}
 			myexpr = append(myexpr, exp)
-		} else if child.Name == hierarchy {
+		} else if child.Name == Hierarchy {
 			err := handleHierarchy(child)
 			if err != nil {
-				return nil, errs.Wrap(err, "failed to handle hierarchy in child element")
+				return nil, errs.Wrap(err, "failed to handle "+Hierarchy+" in child element")
 			}
 		} else {
 			key, ok := searchKeyMap[child.Name]
