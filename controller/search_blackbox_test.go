@@ -406,7 +406,7 @@ func (s *searchControllerTestSuite) TestSearchFilter() {
 }
 
 func (s *searchControllerTestSuite) TestSearchByHierarchy() {
-	s.T().Run("ok", func(t *testing.T) {
+	s.T().Run(http.StatusText(http.StatusOK), func(t *testing.T) {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment())
 		svc := testsupport.ServiceAsUser("TestUpdateWI-Service", *fxt.Identities[0])
@@ -522,6 +522,19 @@ func (s *searchControllerTestSuite) TestSearchByHierarchy() {
 				"closed task": {},
 			}
 			checkToBeFound(t, toBeFound, sr.Data)
+		})
+	})
+	s.T().Run(http.StatusText(http.StatusBadRequest), func(t *testing.T) {
+		t.Run("unknown hierarchy", func(t *testing.T) {
+			// given
+			fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment())
+			filter := fmt.Sprintf(`
+				{"$AND": [
+					{"`+search.Hierarchy+`": "%s"},
+					{"space": "%s"}
+				]}`, "unknown hierarchy", fxt.Spaces[0].ID)
+			// when
+			_, _ = test.ShowSearchBadRequest(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
 		})
 	})
 }
