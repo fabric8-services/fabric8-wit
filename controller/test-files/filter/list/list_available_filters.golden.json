@@ -69,6 +69,16 @@
         "type": "labels"
       },
       "type": "filters"
+    },
+    {
+      "attributes": {
+        "description": "Filter by title",
+        "key": "title",
+        "query": "filter[title]={id}",
+        "title": "Title",
+        "type": "title"
+      },
+      "type": "filters"
     }
   ]
 }

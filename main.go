@@ -70,7 +70,7 @@ func main() {
 		}
 	}
 
-	config, err := configuration.NewConfigurationData(configFilePath)
+	config, err := configuration.New(configFilePath)
 	if err != nil {
 		log.Panic(nil, map[string]interface{}{
 			"config_file_path": configFilePath,

@@ -120,6 +120,37 @@ func PlaceAreaUnderRootArea() CustomizeAreaFunc {
 	}
 }
 
+// SetWorkItemField takes the given values and uses them during creation of work
+// items to set field values. The length of requested work items and the number
+// of values must match or the NewFixture call will return an error.
+func SetWorkItemField(fieldName string, values ...interface{}) CustomizeWorkItemFunc {
+	return func(fxt *TestFixture, idx int) error {
+		if len(fxt.WorkItems) < len(values) {
+			return errs.Errorf("number of \"%s\" fields (%d) must be smaller or equal to number of work items to create (%d)", fieldName, len(values), len(fxt.WorkItems))
+		}
+		// Gracefully return when only a fraction of work items needs to set a
+		// field value.
+		if idx >= len(values) {
+			return nil
+		}
+		witID := fxt.WorkItems[idx].Type
+		wit := fxt.WorkItemTypeByID(witID)
+		if wit == nil {
+			return errs.Errorf("failed to find work item type with ID %s in test fixture", witID)
+		}
+		field, ok := wit.Fields[fieldName]
+		if !ok {
+			return errs.Errorf("failed to find field \"%s\" in work item type %s", fieldName, witID)
+		}
+		v, err := field.Type.ConvertToModel(values[idx])
+		if err != nil {
+			return errs.Wrapf(err, "failed to set field \"%s\" in work item type %s to: %+v", fieldName, wit.Name, values[idx])
+		}
+		fxt.WorkItems[idx].Fields[fieldName] = v
+		return nil
+	}
+}
+
 // SetWorkItemTypeNames takes the given names and uses them during creation of
 // work item types. The length of requested work item types and the number of
 // names must match or the NewFixture call will return an error.
@@ -149,14 +180,8 @@ func SetIdentityUsernames(usernames ...string) CustomizeIdentityFunc {
 // SetWorkItemTitles takes the given titles and uses them during creation of
 // work items. The length of requested work items and the number of titles must
 // match or the NewFixture call will return an error.
-func SetWorkItemTitles(titles ...string) CustomizeWorkItemFunc {
-	return func(fxt *TestFixture, idx int) error {
-		if len(fxt.WorkItems) != len(titles) {
-			return errs.Errorf("number of titles (%d) must match number of work items to create (%d)", len(titles), len(fxt.WorkItems))
-		}
-		fxt.WorkItems[idx].Fields[workitem.SystemTitle] = titles[idx]
-		return nil
-	}
+func SetWorkItemTitles(titleStrings ...interface{}) CustomizeWorkItemFunc {
+	return SetWorkItemField(workitem.SystemTitle, titleStrings...)
 }
 
 // SetWorkItemLinkTypeNames takes the given names and uses them during creation

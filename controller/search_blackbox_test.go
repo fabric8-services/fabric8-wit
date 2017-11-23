@@ -53,7 +53,7 @@ type searchControllerTestSuite struct {
 	testIdentity                   account.Identity
 	wiRepo                         *workitem.GormWorkItemRepository
 	controller                     *SearchController
-	spaceBlackBoxTestConfiguration *config.ConfigurationData
+	spaceBlackBoxTestConfiguration *config.Registry
 	testDir                        string
 }
 
@@ -71,7 +71,7 @@ func (s *searchControllerTestSuite) SetupTest() {
 	s.testIdentity = *testIdentity
 
 	s.wiRepo = workitem.NewWorkItemRepository(s.DB)
-	spaceBlackBoxTestConfiguration, err := config.GetConfigurationData()
+	spaceBlackBoxTestConfiguration, err := config.Get()
 	require.Nil(s.T(), err)
 	s.spaceBlackBoxTestConfiguration = spaceBlackBoxTestConfiguration
 	s.svc = testsupport.ServiceAsUser("WorkItemComment-Service", s.testIdentity)
@@ -418,6 +418,7 @@ func (s *searchControllerTestSuite) TestSearchQueryScenarioDriven() {
 		tf.WorkItems(3+5+1, func(fxt *tf.TestFixture, idx int) error {
 			wi := fxt.WorkItems[idx]
 			if idx < 3 {
+				wi.Fields[workitem.SystemTitle] = "There is a special case about it."
 				wi.Fields[workitem.SystemState] = workitem.SystemStateResolved
 				wi.Fields[workitem.SystemIteration] = fxt.IterationByName("sprint1").ID.String()
 				wi.Fields[workitem.SystemLabels] = []string{fxt.LabelByName("important").ID.String(), fxt.LabelByName("backend").ID.String()}
@@ -425,6 +426,7 @@ func (s *searchControllerTestSuite) TestSearchQueryScenarioDriven() {
 				wi.Fields[workitem.SystemCreator] = fxt.IdentityByUsername("spaceowner").ID.String()
 				wi.Type = fxt.WorkItemTypeByName("bug").ID
 			} else if idx < 3+5 {
+				wi.Fields[workitem.SystemTitle] = "some random title"
 				wi.Fields[workitem.SystemState] = workitem.SystemStateClosed
 				wi.Fields[workitem.SystemIteration] = fxt.IterationByName("sprint2").ID.String()
 				wi.Fields[workitem.SystemLabels] = []string{fxt.LabelByName("ui").ID.String()}
@@ -432,6 +434,7 @@ func (s *searchControllerTestSuite) TestSearchQueryScenarioDriven() {
 				wi.Fields[workitem.SystemCreator] = fxt.IdentityByUsername("spaceowner").ID.String()
 				wi.Type = fxt.WorkItemTypeByName("feature").ID
 			} else {
+				wi.Fields[workitem.SystemTitle] = "some other random title"
 				wi.Fields[workitem.SystemState] = workitem.SystemStateClosed
 				wi.Fields[workitem.SystemIteration] = fxt.IterationByName("sprint2").ID.String()
 				wi.Fields[workitem.SystemCreator] = fxt.IdentityByUsername("spaceowner").ID.String()
@@ -566,6 +569,18 @@ func (s *searchControllerTestSuite) TestSearchQueryScenarioDriven() {
 		_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotEmpty(t, result.Data)
 		assert.Len(t, result.Data, 3+5+1) // resolved items + items in sprint2
+	})
+
+	s.T().Run("space=spaceID AND title=special with $SUBSTR", func(t *testing.T) {
+		filter := fmt.Sprintf(`
+				{"$AND": [
+					{"space":"%s"},
+					{"title": {"$SUBSTR":"%s"}}
+				]}`,
+			spaceIDStr, "special")
+		_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(t, result.Data)
+		assert.Len(t, result.Data, 3)
 	})
 
 	s.T().Run("state IN resolved, closed", func(t *testing.T) {
@@ -954,15 +969,25 @@ func (s *searchControllerTestSuite) TestUpdateWorkItem() {
 
 	s.T().Run("assignees", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
-		spaceIDStr := fxt.Spaces[0].ID.String()
-		filter := fmt.Sprintf(`{"assignee":null}`)
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.CreateWorkItemEnvironment(),
+			tf.WorkItems(2,
+				tf.SetWorkItemField(workitem.SystemTitle, "assigned", "unassigned"),
+				func(fxt *tf.TestFixture, idx int) error {
+					if idx == 0 {
+						fxt.WorkItems[idx].Fields[workitem.SystemAssignees] = []string{fxt.Identities[0].ID.String()}
+					}
+					return nil
+				},
+			),
+		)
+		filter := fmt.Sprintf(`{"$AND":[{"space":"%s"},{"assignee":null}]}`, fxt.Spaces[0].ID.String())
 		t.Run("filter null", func(t *testing.T) {
 			// when
-			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
 			// then
 			require.Len(t, result.Data, 1)
-			require.Equal(t, fxt.WorkItems[0].ID, *result.Data[0].ID)
+			require.Equal(t, fxt.WorkItemByTitle("unassigned").ID, *result.Data[0].ID)
 
 			t.Run("assignee should be nil if assignee field is not touched during update", func(t *testing.T) {
 				wi := result.Data[0]
@@ -973,7 +998,7 @@ func (s *searchControllerTestSuite) TestUpdateWorkItem() {
 				_, updated := test.UpdateWorkitemOK(t, s.svc.Context, s.svc, workitemCtrl, *wi.ID, &payload2)
 				compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "filter_assignee_null_update_work_item.golden.json"), updated)
 
-				_, result = test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+				_, result = test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
 				compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "filter_assignee_null_show_after_update_work_item.golden.json"), updated)
 				assert.Nil(s.T(), result.Data[0].Attributes[workitem.SystemAssignees])
 
@@ -982,29 +1007,38 @@ func (s *searchControllerTestSuite) TestUpdateWorkItem() {
 	})
 	s.T().Run("labels", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
-		spaceIDStr := fxt.Spaces[0].ID.String()
-		filter := fmt.Sprintf(`{"label":{"$EQ":null}}`)
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.CreateWorkItemEnvironment(),
+			tf.Labels(1),
+			tf.WorkItems(2,
+				tf.SetWorkItemField(workitem.SystemTitle, "labelled", "unlabelled"),
+				func(fxt *tf.TestFixture, idx int) error {
+					if idx == 0 {
+						fxt.WorkItems[idx].Fields[workitem.SystemLabels] = []string{fxt.Labels[0].ID.String()}
+					}
+					return nil
+				},
+			),
+		)
+		filter := fmt.Sprintf(`{"$AND":[{"space":"%s"},{"label":{"$EQ":null}}]}`, fxt.Spaces[0].ID.String())
 		t.Run("filter null", func(t *testing.T) {
 			// when
-			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
 			// then
-			require.Len(t, result.Data, 2)
-			require.Equal(t, fxt.WorkItems[0].ID, *result.Data[1].ID)
+			require.Len(t, result.Data, 1)
+			require.Equal(t, fxt.WorkItemByTitle("unlabelled").ID, *result.Data[0].ID)
 
 			t.Run("assignee should be nil if label field is not touched during update", func(t *testing.T) {
 				wi := result.Data[0]
 				workitemCtrl := NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-
 				wi.Attributes[workitem.SystemTitle] = "Updated Test WI"
 				payload2 := app.UpdateWorkitemPayload{Data: wi}
 				_, updated := test.UpdateWorkitemOK(t, s.svc.Context, s.svc, workitemCtrl, *wi.ID, &payload2)
 				compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "filter_label_null_update_work_item.golden.json"), updated)
 
-				_, result = test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+				_, result = test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
 				compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "filter_label_null_show_after_update_work_item.golden.json"), updated)
 				assert.Nil(s.T(), result.Data[0].Attributes[workitem.SystemLabels])
-
 			})
 		})
 	})

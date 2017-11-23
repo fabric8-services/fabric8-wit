@@ -19,8 +19,8 @@ type Client interface {
 	ListWorkspaces(ctx context.Context, repository string) ([]*WorkspaceResponse, error)
 	DeleteWorkspace(ctx context.Context, workspaceName string) error
 	StartExistingWorkspace(ctx context.Context, workspaceName string) (*WorkspaceResponse, error)
-	GetCheServerState(ctx context.Context) (*CheServerStateResponse, error)
-	StartCheServer(ctx context.Context) (*CheServerStateResponse, error)
+	GetCheServerState(ctx context.Context) (*ServerStateResponse, error)
+	StartCheServer(ctx context.Context) (*ServerStateResponse, error)
 }
 
 // NewStarterClient is a helper function to create a new CheStarter client
@@ -79,7 +79,7 @@ func (cs *StarterClient) ListWorkspaces(ctx context.Context, repository string) 
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
-		workspaceErr := CheStarterError{}
+		workspaceErr := StarterError{}
 		err = json.NewDecoder(resp.Body).Decode(&workspaceErr)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
@@ -141,7 +141,7 @@ func (cs *StarterClient) CreateWorkspace(ctx context.Context, workspace Workspac
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
-		workspaceErr := CheStarterError{}
+		workspaceErr := StarterError{}
 		err = json.NewDecoder(resp.Body).Decode(&workspaceErr)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
@@ -210,7 +210,7 @@ func (cs *StarterClient) DeleteWorkspace(ctx context.Context, workspaceName stri
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
-		workspaceErr := CheStarterError{}
+		workspaceErr := StarterError{}
 		err = json.NewDecoder(resp.Body).Decode(&workspaceErr)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
@@ -260,7 +260,7 @@ func (cs *StarterClient) StartExistingWorkspace(ctx context.Context, workspaceNa
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
-		workspaceErr := CheStarterError{}
+		workspaceErr := StarterError{}
 		err = json.NewDecoder(resp.Body).Decode(&workspaceErr)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
@@ -289,7 +289,7 @@ func (cs *StarterClient) StartExistingWorkspace(ctx context.Context, workspaceNa
 }
 
 // GetCheServerState get che server state.
-func (cs *StarterClient) GetCheServerState(ctx context.Context) (*CheServerStateResponse, error) {
+func (cs *StarterClient) GetCheServerState(ctx context.Context) (*ServerStateResponse, error) {
 	req, err := http.NewRequest("GET", cs.targetURL("server"), nil)
 
 	if err != nil {
@@ -314,7 +314,7 @@ func (cs *StarterClient) GetCheServerState(ctx context.Context) (*CheServerState
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
-		statusErr := CheStarterError{}
+		statusErr := StarterError{}
 		err = json.NewDecoder(resp.Body).Decode(&statusErr)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
@@ -328,7 +328,7 @@ func (cs *StarterClient) GetCheServerState(ctx context.Context) (*CheServerState
 		return nil, &statusErr
 	}
 
-	cheServerStateResponse := CheServerStateResponse{}
+	cheServerStateResponse := ServerStateResponse{}
 	err = json.NewDecoder(resp.Body).Decode(&cheServerStateResponse)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -340,7 +340,7 @@ func (cs *StarterClient) GetCheServerState(ctx context.Context) (*CheServerState
 }
 
 // StartCheServer start che server if not running.
-func (cs *StarterClient) StartCheServer(ctx context.Context) (*CheServerStateResponse, error) {
+func (cs *StarterClient) StartCheServer(ctx context.Context) (*ServerStateResponse, error) {
 	req, err := http.NewRequest("PATCH", cs.targetURL("server"), nil)
 
 	if err != nil {
@@ -365,7 +365,7 @@ func (cs *StarterClient) StartCheServer(ctx context.Context) (*CheServerStateRes
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusAccepted {
-		statusErr := CheStarterError{}
+		statusErr := StarterError{}
 		err = json.NewDecoder(resp.Body).Decode(&statusErr)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
@@ -379,7 +379,7 @@ func (cs *StarterClient) StartCheServer(ctx context.Context) (*CheServerStateRes
 		return nil, &statusErr
 	}
 
-	cheServerStateResponse := CheServerStateResponse{}
+	cheServerStateResponse := ServerStateResponse{}
 	err = json.NewDecoder(resp.Body).Decode(&cheServerStateResponse)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -436,8 +436,8 @@ type WorkspaceLink struct {
 	Rel    string `json:"rel"`
 }
 
-// CheStarterError represent an error comming from the che-starter service
-type CheStarterError struct {
+// StarterError represent an error comming from the che-starter service
+type StarterError struct {
 	Status    int    `json:"status"`
 	ErrorMsg  string `json:"error"`
 	Message   string `json:"message"`
@@ -445,15 +445,15 @@ type CheStarterError struct {
 	Trace     string `json:"trace"`
 }
 
-func (err *CheStarterError) Error() string {
+func (err *StarterError) Error() string {
 	return err.ErrorMsg
 }
 
-func (err *CheStarterError) String() string {
+func (err *StarterError) String() string {
 	return fmt.Sprintf("Status %v Error %v Message %v Trace\n%v", err.Status, err.ErrorMsg, err.ErrorMsg, err.Trace)
 }
 
-// CheServerStateResponse represents a get che state response body
-type CheServerStateResponse struct {
+// ServerStateResponse represents a get che state response body
+type ServerStateResponse struct {
 	Running bool `json:"running"`
 }

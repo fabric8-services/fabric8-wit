@@ -40,7 +40,7 @@ func route(ctx context.Context, targetHost string, targetPath *string) error {
 		return jsonapi.JSONErrorResponse(ctx, errors.New("unable to get request from context"))
 	}
 
-	targetUrl, err := url.Parse(targetHost)
+	targetURL, err := url.Parse(targetHost)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err":         err,
@@ -50,7 +50,7 @@ func route(ctx context.Context, targetHost string, targetPath *string) error {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
-	director := newDirector(ctx, req, targetUrl, targetPath)
+	director := newDirector(ctx, req, targetURL, targetPath)
 	proxy := &httputil.ReverseProxy{Director: director}
 
 	if strings.Contains(req.Header.Get("Accept-Encoding"), "gzip") {

@@ -11,7 +11,7 @@ import (
 
 type TestUserREST struct {
 	suite.Suite
-	config *configuration.ConfigurationData
+	config *configuration.Registry
 }
 
 func (rest *TestUserREST) TestRunUserREST(t *testing.T) {
@@ -21,7 +21,7 @@ func (rest *TestUserREST) TestRunUserREST(t *testing.T) {
 }
 
 func (rest *TestUserREST) SetupSuite() {
-	config, err := configuration.GetConfigurationData()
+	config, err := configuration.Get()
 	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}

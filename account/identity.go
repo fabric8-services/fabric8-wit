@@ -202,16 +202,7 @@ func (m *GormIdentityRepository) Lookup(ctx context.Context, username, profileUR
 func (m *GormIdentityRepository) Save(ctx context.Context, model *Identity) error {
 	defer goa.MeasureSince([]string{"goa", "db", "identity", "save"}, time.Now())
 
-	obj, err := m.Load(ctx, model.ID)
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"identity_id": model.ID,
-			"ctx":         ctx,
-			"err":         err,
-		}, "unable to update the identity")
-		return errs.WithStack(err)
-	}
-	err = m.db.Model(obj).Updates(model).Error
+	err := m.db.Save(model).Error
 
 	log.Debug(ctx, map[string]interface{}{
 		"identity_id": model.ID,

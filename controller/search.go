@@ -21,7 +21,7 @@ import (
 
 type searchConfiguration interface {
 	GetHTTPAddress() string
-	auth.AuthServiceConfiguration
+	auth.ServiceConfiguration
 }
 
 // SearchController implements the search resource.
