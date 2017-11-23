@@ -79,7 +79,7 @@ func (s *CodebaseControllerTestSuite) SecuredControllers(identity account.Identi
 	return svc, codebaseCtrl
 }
 
-func NewMockCheClient(r http.RoundTripper, config *configuration.ConfigurationData) CodebaseCheClientProvider {
+func NewMockCheClient(r http.RoundTripper, config *configuration.Registry) CodebaseCheClientProvider {
 	return func(ctx context.Context, ns string) (che.Client, error) {
 		h := &http.Client{
 			Timeout:   1 * time.Second,

@@ -62,7 +62,7 @@ func Identities(n int, fns ...CustomizeIdentityFunc) RecipeFunction {
 	}
 }
 
-// CustomizeSpacesFunc is directly compatible with CustomizeEntityFunc
+// CustomizeSpaceFunc is directly compatible with CustomizeEntityFunc
 // but it can only be used for the Spaces() recipe-function.
 type CustomizeSpaceFunc CustomizeEntityFunc
 

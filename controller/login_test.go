@@ -25,7 +25,7 @@ import (
 
 type TestLoginREST struct {
 	gormtestsupport.DBTestSuite
-	configuration *configuration.ConfigurationData
+	configuration *configuration.Registry
 	loginService  *login.KeycloakOAuthProvider
 	db            *gormapplication.GormDB
 	clean         func()
@@ -38,7 +38,7 @@ func TestRunLoginREST(t *testing.T) {
 func (rest *TestLoginREST) SetupTest() {
 	rest.db = gormapplication.NewGormDB(rest.DB)
 	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
-	c, err := configuration.GetConfigurationData()
+	c, err := configuration.Get()
 	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}

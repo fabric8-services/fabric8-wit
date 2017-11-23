@@ -27,7 +27,7 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-var spaceConfiguration *configuration.ConfigurationData
+var spaceConfiguration *configuration.Registry
 
 type DummyResourceManager struct {
 }
@@ -42,7 +42,7 @@ func (m *DummyResourceManager) DeleteSpace(ctx context.Context, request *http.Re
 
 func init() {
 	var err error
-	spaceConfiguration, err = configuration.GetConfigurationData()
+	spaceConfiguration, err = configuration.Get()
 	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}

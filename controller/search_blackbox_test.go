@@ -53,7 +53,7 @@ type searchControllerTestSuite struct {
 	testIdentity                   account.Identity
 	wiRepo                         *workitem.GormWorkItemRepository
 	controller                     *SearchController
-	spaceBlackBoxTestConfiguration *config.ConfigurationData
+	spaceBlackBoxTestConfiguration *config.Registry
 	testDir                        string
 }
 
@@ -71,7 +71,7 @@ func (s *searchControllerTestSuite) SetupTest() {
 	s.testIdentity = *testIdentity
 
 	s.wiRepo = workitem.NewWorkItemRepository(s.DB)
-	spaceBlackBoxTestConfiguration, err := config.GetConfigurationData()
+	spaceBlackBoxTestConfiguration, err := config.Get()
 	require.Nil(s.T(), err)
 	s.spaceBlackBoxTestConfiguration = spaceBlackBoxTestConfiguration
 	s.svc = testsupport.ServiceAsUser("WorkItemComment-Service", s.testIdentity)
@@ -418,6 +418,7 @@ func (s *searchControllerTestSuite) TestSearchQueryScenarioDriven() {
 		tf.WorkItems(3+5+1, func(fxt *tf.TestFixture, idx int) error {
 			wi := fxt.WorkItems[idx]
 			if idx < 3 {
+				wi.Fields[workitem.SystemTitle] = "There is a special case about it."
 				wi.Fields[workitem.SystemState] = workitem.SystemStateResolved
 				wi.Fields[workitem.SystemIteration] = fxt.IterationByName("sprint1").ID.String()
 				wi.Fields[workitem.SystemLabels] = []string{fxt.LabelByName("important").ID.String(), fxt.LabelByName("backend").ID.String()}
@@ -425,6 +426,7 @@ func (s *searchControllerTestSuite) TestSearchQueryScenarioDriven() {
 				wi.Fields[workitem.SystemCreator] = fxt.IdentityByUsername("spaceowner").ID.String()
 				wi.Type = fxt.WorkItemTypeByName("bug").ID
 			} else if idx < 3+5 {
+				wi.Fields[workitem.SystemTitle] = "some random title"
 				wi.Fields[workitem.SystemState] = workitem.SystemStateClosed
 				wi.Fields[workitem.SystemIteration] = fxt.IterationByName("sprint2").ID.String()
 				wi.Fields[workitem.SystemLabels] = []string{fxt.LabelByName("ui").ID.String()}
@@ -432,6 +434,7 @@ func (s *searchControllerTestSuite) TestSearchQueryScenarioDriven() {
 				wi.Fields[workitem.SystemCreator] = fxt.IdentityByUsername("spaceowner").ID.String()
 				wi.Type = fxt.WorkItemTypeByName("feature").ID
 			} else {
+				wi.Fields[workitem.SystemTitle] = "some other random title"
 				wi.Fields[workitem.SystemState] = workitem.SystemStateClosed
 				wi.Fields[workitem.SystemIteration] = fxt.IterationByName("sprint2").ID.String()
 				wi.Fields[workitem.SystemCreator] = fxt.IdentityByUsername("spaceowner").ID.String()
@@ -566,6 +569,18 @@ func (s *searchControllerTestSuite) TestSearchQueryScenarioDriven() {
 		_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotEmpty(t, result.Data)
 		assert.Len(t, result.Data, 3+5+1) // resolved items + items in sprint2
+	})
+
+	s.T().Run("space=spaceID AND title=special with $SUBSTR", func(t *testing.T) {
+		filter := fmt.Sprintf(`
+				{"$AND": [
+					{"space":"%s"},
+					{"title": {"$SUBSTR":"%s"}}
+				]}`,
+			spaceIDStr, "special")
+		_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(t, result.Data)
+		assert.Len(t, result.Data, 3)
 	})
 
 	s.T().Run("state IN resolved, closed", func(t *testing.T) {

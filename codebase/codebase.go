@@ -173,7 +173,7 @@ func (m *GormCodebaseRepository) Create(ctx context.Context, codebase *Codebase)
 
 // Delete deletes the codebase with the given id
 // returns NotFoundError or InternalError
-func (r *GormCodebaseRepository) Delete(ctx context.Context, ID uuid.UUID) error {
+func (m *GormCodebaseRepository) Delete(ctx context.Context, ID uuid.UUID) error {
 	defer goa.MeasureSince([]string{"goa", "db", "codebase", "delete"}, time.Now())
 	if ID == uuid.Nil {
 		log.Error(ctx, map[string]interface{}{
@@ -182,7 +182,7 @@ func (r *GormCodebaseRepository) Delete(ctx context.Context, ID uuid.UUID) error
 		return errors.NewNotFoundError("codebase", ID.String())
 	}
 	codebase := Codebase{ID: ID}
-	tx := r.db.Delete(codebase)
+	tx := m.db.Delete(codebase)
 
 	if err := tx.Error; err != nil {
 		log.Error(ctx, map[string]interface{}{

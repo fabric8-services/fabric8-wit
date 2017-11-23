@@ -160,7 +160,7 @@ func (c *WorkitemsController) List(ctx *app.ListWorkitemsContext) error {
 		// Better approach would be to convert string to Query instance itself.
 		// Then add new AND clause with spaceID as another child of input query
 		// Then convert new Query object into simple string
-		queryWithSpaceID := fmt.Sprintf(`{"%s":[{"space": "%s" }, %s]}`, search.Q_AND, ctx.SpaceID, q)
+		queryWithSpaceID := fmt.Sprintf(`{"%s":[{"space": "%s" }, %s]}`, search.AND, ctx.SpaceID, q)
 		queryWithSpaceID = fmt.Sprintf("?filter[expression]=%s", queryWithSpaceID)
 		searchURL := app.SearchHref() + queryWithSpaceID
 		ctx.ResponseData.Header().Set("Location", searchURL)

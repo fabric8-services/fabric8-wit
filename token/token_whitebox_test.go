@@ -13,7 +13,7 @@ import (
 func TestRemoteTokensLoaded(t *testing.T) {
 	t.Skipf("We're skipping this test on purpose until we can properly run remote tests on CI")
 	resource.Require(t, resource.Remote)
-	c, err := config.GetConfigurationData()
+	c, err := config.Get()
 	if err != nil {
 		panic(fmt.Errorf("failed to setup the configuration: %s", err.Error()))
 	}

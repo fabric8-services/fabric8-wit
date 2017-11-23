@@ -248,7 +248,7 @@ func (c *CodebaseController) Create(ctx *app.CreateCodebaseContext) error {
 			"stack_id":    stackID,
 			"err":         err,
 		}, "unable to create workspaces")
-		if werr, ok := err.(*che.CheStarterError); ok {
+		if werr, ok := err.(*che.StarterError); ok {
 			log.Error(ctx, map[string]interface{}{
 				"codebase_id": cb.ID,
 				"stack_id":    stackID,
@@ -314,7 +314,7 @@ func (c *CodebaseController) Open(ctx *app.OpenCodebaseContext) error {
 			"stack_id":    cb.StackID,
 			"err":         err,
 		}, "unable to open workspaces")
-		if werr, ok := err.(*che.CheStarterError); ok {
+		if werr, ok := err.(*che.StarterError); ok {
 			log.Error(ctx, map[string]interface{}{
 				"codebase_id": cb.ID,
 				"stack_id":    cb.StackID,
@@ -414,7 +414,7 @@ func (c *CodebaseController) CheState(ctx *app.CheStateCodebaseContext) error {
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
 		}, "unable to get che server state")
-		if werr, ok := err.(*che.CheStarterError); ok {
+		if werr, ok := err.(*che.StarterError); ok {
 			log.Error(ctx, map[string]interface{}{
 				"err": err,
 			}, "unable to get che server state: %s", werr.String())
@@ -445,7 +445,7 @@ func (c *CodebaseController) CheStart(ctx *app.CheStartCodebaseContext) error {
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
 		}, "unable to start che server")
-		if werr, ok := err.(*che.CheStarterError); ok {
+		if werr, ok := err.(*che.StarterError); ok {
 			log.Error(ctx, map[string]interface{}{
 				"err": err,
 			}, "unable to start che server: %s", werr.String())

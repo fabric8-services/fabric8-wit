@@ -461,6 +461,7 @@ func ConvertWorkItem(request *http.Request, wi workitem.WorkItem, additional ...
 	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(wi.SpaceID.String()))
 	witRelatedURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.SpaceID.String(), wi.Type))
 	labelsRelated := relatedURL + "/labels"
+	workItemLinksRelated := relatedURL + "/links"
 
 	op := &app.WorkItem{
 		ID:   &wi.ID,
@@ -480,6 +481,11 @@ func ConvertWorkItem(request *http.Request, wi workitem.WorkItem, additional ...
 				},
 			},
 			Space: app.NewSpaceRelation(wi.SpaceID, spaceRelatedURL),
+			WorkItemLinks: &app.RelationGeneric{
+				Links: &app.GenericLinks{
+					Related: &workItemLinksRelated,
+				},
+			},
 		},
 		Links: &app.GenericLinksForWorkItem{
 			Self:    &relatedURL,

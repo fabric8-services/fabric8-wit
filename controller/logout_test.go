@@ -14,12 +14,12 @@ import (
 
 type TestLogoutREST struct {
 	suite.Suite
-	configuration *config.ConfigurationData
+	configuration *config.Registry
 }
 
 func TestRunLogoutREST(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	configuration, err := config.GetConfigurationData()
+	configuration, err := config.Get()
 	if err != nil {
 		t.Fatalf("Failed to setup the configuration: %s", err.Error())
 	}
