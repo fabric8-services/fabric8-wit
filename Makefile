@@ -346,5 +346,3 @@ endif
 .PHONY: clean
 ## Runs all clean-* targets.
 clean: $(CLEAN_TARGETS)
-
-include ./openshift.mk

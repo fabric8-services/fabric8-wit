@@ -1,6 +1,6 @@
 name: auth
 containers:
-- image: docker.io/fabric8/fabric8-auth:latest
+- image: "[[ AUTH_IMAGE_URL ]]"
   env:
   - name: AUTH_WIT_URL
     value: "[[ AUTH_WIT_URL ]]"
