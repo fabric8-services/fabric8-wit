@@ -184,23 +184,42 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 	}
 
-	return application.Transactional(c.db, func(appl application.Application) error {
-		itr, err := appl.Iterations().Load(ctx.Context, id)
+	var itr *iteration.Iteration
+	var sp *space.Space
+	var editorIsCreator bool
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		itr, err = appl.Iterations().Load(ctx.Context, id)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
-		s, err := appl.Spaces().Load(ctx, itr.SpaceID)
+		sp, err = appl.Spaces().Load(ctx, itr.SpaceID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+			return err
 		}
-		if !uuid.Equal(*currentUser, s.OwnerID) {
+		if uuid.Equal(*currentUser, sp.OwnerID) {
+			editorIsCreator = true
+			return nil
+		}
+		return nil
+	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	if !editorIsCreator {
+		authorized, err := authz.Authorize(ctx, sp.ID.String())
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
+		}
+		if !authorized {
 			log.Warn(ctx, map[string]interface{}{
-				"space_id":     s.ID,
-				"space_owner":  s.OwnerID,
+				"space_id":     sp.ID,
+				"space_owner":  sp.OwnerID,
 				"current_user": *currentUser,
 			}, "user is not the space owner")
 			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the space owner"))
 		}
+	}
+	return application.Transactional(c.db, func(appl application.Application) error {
 		if ctx.Payload.Data.Attributes.Name != nil {
 			itr.Name = *ctx.Payload.Data.Attributes.Name
 		}

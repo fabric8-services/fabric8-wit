@@ -83,7 +83,6 @@ type DummySpaceAuthzService struct {
 
 func (s *DummySpaceAuthzService) Authorize(ctx context.Context, endpoint string, spaceID string) (bool, error) {
 	jwtToken := goajwt.ContextJWT(ctx)
-	fmt.Println("okay - Token - ", jwtToken)
 	if jwtToken == nil {
 		return false, errors.NewUnauthorizedError("Missing token")
 	}
@@ -446,7 +445,11 @@ func (rest *TestIterationREST) TestFailShowIterationMissing() {
 
 func (rest *TestIterationREST) TestSuccessUpdateIteration() {
 	// given
-	sp, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB,
+		tf.Identities(2, tf.SetIdentityUsernames("space owner", "other user")),
+		tf.Areas(1), tf.Iterations(1))
+	itr := fxt.Iterations[0]
+	owner := fxt.Identities[0]
 	newName := "Sprint 1001"
 	newDesc := "New Description"
 	payload := app.UpdateIterationPayload{
@@ -459,8 +462,6 @@ func (rest *TestIterationREST) TestSuccessUpdateIteration() {
 			Type: iteration.APIStringTypeIteration,
 		},
 	}
-	owner, errIdn := rest.db.Identities().Load(context.Background(), sp.OwnerID)
-	require.Nil(rest.T(), errIdn)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	// when
 	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &payload)
@@ -471,15 +472,32 @@ func (rest *TestIterationREST) TestSuccessUpdateIteration() {
 	assert.Equal(rest.T(), 0, updated.Data.Relationships.Workitems.Meta[KeyTotalWorkItems])
 	assert.Equal(rest.T(), 0, updated.Data.Relationships.Workitems.Meta[KeyClosedWorkItems])
 
-	// try update using some other user
-	otherIdentity := &account.Identity{
-		Username:     "non-space-owner-identity",
-		ProviderType: account.KeycloakIDP,
+	// update iteration using Collaborator
+	newName = "Sprint 1002"
+	newDesc = "New Description 2"
+	payload = app.UpdateIterationPayload{
+		Data: &app.Iteration{
+			Attributes: &app.IterationAttributes{
+				Name:        &newName,
+				Description: &newDesc,
+			},
+			ID:   &itr.ID,
+			Type: iteration.APIStringTypeIteration,
+		},
 	}
-	errInCreateOther := rest.db.Identities().Create(context.Background(), otherIdentity)
-	require.Nil(rest.T(), errInCreateOther)
-	svc, ctrl = rest.SecuredControllerWithIdentity(otherIdentity)
-	test.UpdateIterationForbidden(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &payload)
+	otherIdentity := fxt.Identities[1]
+	_, ctrl = rest.SecuredControllerWithIdentity(otherIdentity)
+	// add user as collaborator
+	rest.policy.AddUserToPolicy(otherIdentity.ID.String())
+	// overwrite service to use Dummy Auth
+	svc = testsupport.ServiceAsSpaceUser("Collaborators-Service", *otherIdentity, &DummySpaceAuthzService{rest})
+	_, updated = test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &payload)
+	assert.Equal(rest.T(), newName, *updated.Data.Attributes.Name)
+	assert.Equal(rest.T(), newDesc, *updated.Data.Attributes.Description)
+	require.NotNil(rest.T(), updated.Data.Relationships.Workitems.Meta)
+	assert.Equal(rest.T(), 0, updated.Data.Relationships.Workitems.Meta[KeyTotalWorkItems])
+	assert.Equal(rest.T(), 0, updated.Data.Relationships.Workitems.Meta[KeyClosedWorkItems])
+
 }
 
 func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
