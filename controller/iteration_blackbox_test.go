@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/fabric8-services/fabric8-auth/auth"
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
@@ -21,13 +22,16 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/space"
+	"github.com/fabric8-services/fabric8-wit/space/authz"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	"context"
 
+	token "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
+	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -38,6 +42,7 @@ type TestIterationREST struct {
 	gormtestsupport.DBTestSuite
 	db      *gormapplication.GormDB
 	testDir string
+	policy  *auth.KeycloakPolicy
 }
 
 func TestRunIterationREST(t *testing.T) {
@@ -49,6 +54,12 @@ func (rest *TestIterationREST) SetupTest() {
 	rest.DBTestSuite.SetupTest()
 	rest.db = gormapplication.NewGormDB(rest.DB)
 	rest.testDir = filepath.Join("test-files", "iteration")
+	rest.policy = &auth.KeycloakPolicy{
+		Name:             "TestCollaborators-" + uuid.NewV4().String(),
+		Type:             auth.PolicyTypeUser,
+		Logic:            auth.PolicyLogicPossitive,
+		DecisionStrategy: auth.PolicyDecisionStrategyUnanimous,
+	}
 }
 
 func (rest *TestIterationREST) SecuredController() (*goa.Service, *IterationController) {
@@ -64,6 +75,24 @@ func (rest *TestIterationREST) SecuredControllerWithIdentity(idn *account.Identi
 func (rest *TestIterationREST) UnSecuredController() (*goa.Service, *IterationController) {
 	svc := goa.New("Iteration-Service")
 	return svc, NewIterationController(svc, rest.db, rest.Configuration)
+}
+
+type DummySpaceAuthzService struct {
+	rest *TestIterationREST
+}
+
+func (s *DummySpaceAuthzService) Authorize(ctx context.Context, endpoint string, spaceID string) (bool, error) {
+	jwtToken := goajwt.ContextJWT(ctx)
+	fmt.Println("okay - Token - ", jwtToken)
+	if jwtToken == nil {
+		return false, errors.NewUnauthorizedError("Missing token")
+	}
+	id := jwtToken.Claims.(token.MapClaims)["sub"].(string)
+	return strings.Contains(s.rest.policy.Config.UserIDs, id), nil
+}
+
+func (s *DummySpaceAuthzService) Configuration() authz.AuthzConfiguration {
+	return nil
 }
 
 func (rest *TestIterationREST) TestCreateChildIteration() {
@@ -119,15 +148,33 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 		require.Equal(t, *ci.Data.ID, *created.Data.ID)
 	})
 
-	rest.T().Run("forbidden - only space owener can create child iteration", func(t *testing.T) {
+	rest.T().Run("forbidden - user must be space-owner or collaborator to create child iteration", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, rest.DB,
 			tf.Identities(2, tf.SetIdentityUsernames("space owner", "other user")),
 			tf.Areas(1), tf.Iterations(1))
 		name := "Sprint #21"
 		ci := getChildIterationPayload(&name)
-		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.IdentityByUsername("other user"))
+		otherUser := fxt.IdentityByUsername("other user")
+		_, ctrl := rest.SecuredControllerWithIdentity(fxt.IdentityByUsername("other user"))
+		// overwrite service with Dummy Auth to treat user as non-collaborator
+		svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *otherUser, &DummySpaceAuthzService{rest})
 		_, jerrs := test.CreateChildIterationForbidden(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
 		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "forbidden_other_user.golden.json"), jerrs)
+	})
+
+	rest.T().Run("Ok - collaborator can create child iteration", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, rest.DB,
+			tf.Identities(2, tf.SetIdentityUsernames("space owner", "other user")),
+			tf.Areas(1), tf.Iterations(1))
+		name := "Sprint #21"
+		ci := getChildIterationPayload(&name)
+		otherUser := fxt.IdentityByUsername("other user")
+		_, ctrl := rest.SecuredControllerWithIdentity(fxt.IdentityByUsername("other user"))
+		// add user as collaborator
+		rest.policy.AddUserToPolicy(otherUser.ID.String())
+		// overwrite service to use Dummy Auth
+		svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *otherUser, &DummySpaceAuthzService{rest})
+		test.CreateChildIterationCreated(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
 	})
 
 	rest.T().Run("fail - create same child iteration conflict", func(t *testing.T) {

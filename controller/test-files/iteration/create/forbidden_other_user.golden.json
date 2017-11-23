@@ -2,7 +2,7 @@
   "errors": [
     {
       "code": "forbidden_error",
-      "detail": "user is not the space owner",
+      "detail": "user is not a space collaborator",
       "status": "403",
       "title": "Forbidden error"
     }

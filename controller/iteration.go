@@ -13,6 +13,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space"
+	"github.com/fabric8-services/fabric8-wit/space/authz"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	"github.com/goadesign/goa"
@@ -53,26 +54,37 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 	}
-
+	var parent *iteration.Iteration
+	var sp *space.Space
+	var creatorIsSpaceOwner bool
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		parent, err = appl.Iterations().Load(ctx, parentID)
+		if err != nil {
+			return err
+		}
+		sp, err = appl.Spaces().Load(ctx, parent.SpaceID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		if uuid.Equal(*currentUser, sp.OwnerID) {
+			creatorIsSpaceOwner = true
+			return nil
+		}
+		return nil
+	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	if !creatorIsSpaceOwner {
+		authorized, err := authz.Authorize(ctx, sp.ID.String())
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
+		}
+		if !authorized {
+			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not a space collaborator"))
+		}
+	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-
-		parent, err := appl.Iterations().Load(ctx, parentID)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-		}
-		s, err := appl.Spaces().Load(ctx, parent.SpaceID)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-		}
-		if !uuid.Equal(*currentUser, s.OwnerID) {
-			log.Warn(ctx, map[string]interface{}{
-				"space_id":     s.ID,
-				"space_owner":  s.OwnerID,
-				"current_user": *currentUser,
-			}, "user is not the space owner")
-			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the space owner"))
-		}
-
 		reqIter := ctx.Payload.Data
 		if reqIter.Attributes.Name == nil {
 			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data.attributes.name", nil).Expected("not nil"))
