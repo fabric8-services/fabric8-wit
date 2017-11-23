@@ -46,7 +46,7 @@ func (c *AppsController) ShowApp(ctx *app.ShowAppAppsContext) error {
 			Name: &appname,
 			ID:   &ctx.AppID,
 			Pipeline: []*app.SimpleDeployment{
-				&app.SimpleDeployment{
+				{
 					Name: &pipename,
 					ID:   &ctx.AppID,
 					Stats: &app.EnvStats{
@@ -64,7 +64,7 @@ func (c *AppsController) ShowApp(ctx *app.ShowAppAppsContext) error {
 						},
 					},
 				},
-				&app.SimpleDeployment{
+				{
 					Name: &pipename2,
 					ID:   &ctx.AppID,
 					Stats: &app.EnvStats{
@@ -154,11 +154,11 @@ func (c *AppsController) ShowSpace(ctx *app.ShowSpaceAppsContext) error {
 			//Name: &spacename,
 			ID: &ctx.SpaceID,
 			Applications: []*app.SimpleApp{
-				&app.SimpleApp{
+				{
 					Name: &appname,
 					ID:   &ctx.SpaceID,
 					Pipeline: []*app.SimpleDeployment{
-						&app.SimpleDeployment{
+						{
 							Name: &pipename,
 							ID:   &ctx.SpaceID,
 							Stats: &app.EnvStats{
@@ -176,7 +176,7 @@ func (c *AppsController) ShowSpace(ctx *app.ShowSpaceAppsContext) error {
 								},
 							},
 						},
-						&app.SimpleDeployment{
+						{
 							Name: &pipename2,
 							ID:   &ctx.SpaceID,
 							Stats: &app.EnvStats{
@@ -196,11 +196,11 @@ func (c *AppsController) ShowSpace(ctx *app.ShowSpaceAppsContext) error {
 						},
 					},
 				},
-				&app.SimpleApp{
+				{
 					Name: &appname2,
 					ID:   &ctx.SpaceID,
 					Pipeline: []*app.SimpleDeployment{
-						&app.SimpleDeployment{
+						{
 							Name: &pipename,
 							ID:   &ctx.SpaceID,
 							Stats: &app.EnvStats{
@@ -218,7 +218,7 @@ func (c *AppsController) ShowSpace(ctx *app.ShowSpaceAppsContext) error {
 								},
 							},
 						},
-						&app.SimpleDeployment{
+						{
 							Name: &pipename2,
 							ID:   &ctx.SpaceID,
 							Stats: &app.EnvStats{
@@ -255,7 +255,7 @@ func (c *AppsController) ShowSpaceApp(ctx *app.ShowSpaceAppAppsContext) error {
 			Name: &appname,
 			ID:   &ctx.SpaceID,
 			Pipeline: []*app.SimpleDeployment{
-				&app.SimpleDeployment{
+				{
 					Name: &pipename,
 					ID:   &ctx.SpaceID,
 					Stats: &app.EnvStats{
@@ -273,7 +273,7 @@ func (c *AppsController) ShowSpaceApp(ctx *app.ShowSpaceAppAppsContext) error {
 						},
 					},
 				},
-				&app.SimpleDeployment{
+				{
 					Name: &pipename2,
 					ID:   &ctx.SpaceID,
 					Stats: &app.EnvStats{
