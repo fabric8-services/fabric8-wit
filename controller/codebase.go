@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
@@ -16,6 +17,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space"
+	errs "github.com/pkg/errors"
 
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/goadesign/goa"
@@ -53,7 +55,15 @@ func NewCodebaseController(service *goa.Service, db application.DB, config codeb
 }
 
 // Show runs the show action.
-func (c *CodebaseController) Show(ctx *app.ShowCodebaseContext) error {
+func (c *CodebaseController) Show(ctx *app.ShowCodebaseContext) (err error) {
+	defer func() {
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"err":        err,
+				"codebaseID": ctx.CodebaseID,
+			}, "failed to show codebase: %s", spew.Sdump(err))
+		}
+	}()
 	return application.Transactional(c.db, func(appl application.Application) error {
 		c, err := appl.Codebases().Load(ctx, ctx.CodebaseID)
 		if err != nil {
@@ -68,8 +78,16 @@ func (c *CodebaseController) Show(ctx *app.ShowCodebaseContext) error {
 }
 
 // Edit runs the edit action.
-func (c *CodebaseController) Edit(ctx *app.EditCodebaseContext) error {
-	_, err := login.ContextIdentity(ctx)
+func (c *CodebaseController) Edit(ctx *app.EditCodebaseContext) (err error) {
+	defer func() {
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"err":        err,
+				"codebaseID": ctx.CodebaseID,
+			}, "failed to edit codebase: %s", spew.Sdump(err))
+		}
+	}()
+	_, err = login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
@@ -96,11 +114,7 @@ func (c *CodebaseController) Edit(ctx *app.EditCodebaseContext) error {
 	}
 	workspaces, err := cheClient.ListWorkspaces(ctx, cb.URL)
 	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"codebase_id": cb.ID,
-			"err":         err,
-		}, "unable fetch list of workspaces")
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.Wrap(err, "unable to fetch list of workspaces")))
 	}
 
 	var existingWorkspaces []*app.Workspace
@@ -130,7 +144,15 @@ func (c *CodebaseController) Edit(ctx *app.EditCodebaseContext) error {
 }
 
 // Delete deletes the given codebase if the user is authenticated and authorized
-func (c *CodebaseController) Delete(ctx *app.DeleteCodebaseContext) error {
+func (c *CodebaseController) Delete(ctx *app.DeleteCodebaseContext) (err error) {
+	defer func() {
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"err":        err,
+				"codebaseID": ctx.CodebaseID,
+			}, "failed to delete codebase: %s", spew.Sdump(err))
+		}
+	}()
 	currentUser, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
@@ -204,8 +226,16 @@ func (c *CodebaseController) Delete(ctx *app.DeleteCodebaseContext) error {
 }
 
 // Create runs the create action.
-func (c *CodebaseController) Create(ctx *app.CreateCodebaseContext) error {
-	_, err := login.ContextIdentity(ctx)
+func (c *CodebaseController) Create(ctx *app.CreateCodebaseContext) (err error) {
+	defer func() {
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"err":        err,
+				"codebaseID": ctx.CodebaseID,
+			}, "failed to create codebase: %s", spew.Sdump(err))
+		}
+	}()
+	_, err = login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
@@ -243,17 +273,9 @@ func (c *CodebaseController) Create(ctx *app.CreateCodebaseContext) error {
 	}
 	workspaceResp, err := cheClient.CreateWorkspace(ctx, workspace)
 	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"codebase_id": cb.ID,
-			"stack_id":    stackID,
-			"err":         err,
-		}, "unable to create workspaces")
+		err = errs.Wrap(err, "unable to create workspace")
 		if werr, ok := err.(*che.StarterError); ok {
-			log.Error(ctx, map[string]interface{}{
-				"codebase_id": cb.ID,
-				"stack_id":    stackID,
-				"err":         err,
-			}, "unable to create workspaces: %s", werr.String())
+			err = errs.Wrap(werr, "unable to create workspace")
 		}
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 	}
@@ -280,8 +302,16 @@ func (c *CodebaseController) Create(ctx *app.CreateCodebaseContext) error {
 }
 
 // Open runs the open action.
-func (c *CodebaseController) Open(ctx *app.OpenCodebaseContext) error {
-	_, err := login.ContextIdentity(ctx)
+func (c *CodebaseController) Open(ctx *app.OpenCodebaseContext) (err error) {
+	defer func() {
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"err":        err,
+				"codebaseID": ctx.CodebaseID,
+			}, "failed to open codebase: %s", spew.Sdump(err))
+		}
+	}()
+	_, err = login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
@@ -309,17 +339,9 @@ func (c *CodebaseController) Open(ctx *app.OpenCodebaseContext) error {
 	}
 	workspaceResp, err := cheClient.StartExistingWorkspace(ctx, ctx.WorkspaceID)
 	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"codebase_id": cb.ID,
-			"stack_id":    cb.StackID,
-			"err":         err,
-		}, "unable to open workspaces")
+		err = errs.Wrap(err, "unable to open workspace")
 		if werr, ok := err.(*che.StarterError); ok {
-			log.Error(ctx, map[string]interface{}{
-				"codebase_id": cb.ID,
-				"stack_id":    cb.StackID,
-				"err":         err,
-			}, "unable to open workspaces: %s", werr.String())
+			err = errs.Wrap(werr, "unable to open workspace")
 		}
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 	}
@@ -399,7 +421,14 @@ func ConvertCodebase(request *http.Request, codebase codebase.Codebase, options 
 }
 
 // CheState gets che server state.
-func (c *CodebaseController) CheState(ctx *app.CheStateCodebaseContext) error {
+func (c *CodebaseController) CheState(ctx *app.CheStateCodebaseContext) (err error) {
+	defer func() {
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"err": err,
+			}, "failed to get che state: %s", spew.Sdump(err))
+		}
+	}()
 	ns, err := c.getCheNamespace(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
@@ -411,13 +440,9 @@ func (c *CodebaseController) CheState(ctx *app.CheStateCodebaseContext) error {
 	cheState, err := cheClient.GetCheServerState(ctx)
 
 	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"err": err,
-		}, "unable to get che server state")
+		err = errs.Wrap(err, "unable to get che server state")
 		if werr, ok := err.(*che.StarterError); ok {
-			log.Error(ctx, map[string]interface{}{
-				"err": err,
-			}, "unable to get che server state: %s", werr.String())
+			err = errs.Wrapf(werr, "unable to get che server state")
 		}
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 	}
@@ -430,7 +455,14 @@ func (c *CodebaseController) CheState(ctx *app.CheStateCodebaseContext) error {
 }
 
 // CheStart starts server if not running.
-func (c *CodebaseController) CheStart(ctx *app.CheStartCodebaseContext) error {
+func (c *CodebaseController) CheStart(ctx *app.CheStartCodebaseContext) (err error) {
+	defer func() {
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"err": err,
+			}, "failed to get che state: %s", spew.Sdump(err))
+		}
+	}()
 	ns, err := c.getCheNamespace(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
@@ -442,13 +474,9 @@ func (c *CodebaseController) CheStart(ctx *app.CheStartCodebaseContext) error {
 	cheState, err := cheClient.StartCheServer(ctx)
 
 	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"err": err,
-		}, "unable to start che server")
+		err = errs.Wrap(err, "unable to start che server")
 		if werr, ok := err.(*che.StarterError); ok {
-			log.Error(ctx, map[string]interface{}{
-				"err": err,
-			}, "unable to start che server: %s", werr.String())
+			err = errs.Wrapf(werr, "unable to start che server")
 		}
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 	}
@@ -464,7 +492,15 @@ func (c *CodebaseController) CheStart(ctx *app.CheStartCodebaseContext) error {
 	return ctx.Accepted(&state)
 }
 
-func (c *CodebaseController) getCheNamespace(ctx context.Context) (string, error) {
+func (c *CodebaseController) getCheNamespace(ctx context.Context) (nameSpaceName string, err error) {
+	defer func() {
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"err":           err,
+				"nameSpaceName": nameSpaceName,
+			}, "failed to get che namespace: %s", spew.Sdump(err))
+		}
+	}()
 	t, err := c.ShowTenant(ctx)
 	if err != nil {
 		return "", err
@@ -476,11 +512,7 @@ func (c *CodebaseController) getCheNamespace(ctx context.Context) (string, error
 			}
 		}
 	}
-	log.Error(ctx, map[string]interface{}{
-		"data": t.Data,
-	}, "unable to locate che namespace")
-
-	return "", fmt.Errorf("unable to resolve user service che namespace")
+	return "", errs.Errorf("unable to resolve user service che namespace: %s", spew.Sdump(t.Data))
 }
 
 // NewDefaultCheClient returns the default function to initialize a new Che client with a "regular" http client
