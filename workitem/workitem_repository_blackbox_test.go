@@ -292,6 +292,7 @@ func (s *workItemRepoBlackBoxTest) TestGetCountsPerIteration() {
 		testFxt := tf.NewTestFixture(t, s.DB, tf.Iterations(2), tf.WorkItems(5, func(fxt *tf.TestFixture, idx int) error {
 			wi := fxt.WorkItems[idx]
 			wi.Fields[workitem.SystemIteration] = fxt.Iterations[0].ID.String()
+			wi.Type = workitem.SystemTask
 			if idx < 3 {
 				wi.Fields[workitem.SystemState] = workitem.SystemStateNew
 			} else if idx >= 3 {
