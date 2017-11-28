@@ -21,10 +21,10 @@ MINISHIFT_URL = http://$(MINISHIFT_IP)
 MINISHIFT_HOSTS_ENTRY = http://minishift.local
 
 # Run AUTH, DB, DB-AUTH, WIT services in minishift
-dev-planner-openshift:
+dev-openshift:
 	minishift start --cpus 4
 	./check_hosts.sh
-	-eval `minishift oc-env` &&  oc login -u developer -p developer && oc new-project planner-openshift
+	-eval `minishift oc-env` &&  oc login -u developer -p developer && oc new-project planner-services
 	F8_DEVELOPER_MODE_ENABLED=true \
 	F8_POSTGRES_HOST=$(MINISHIFT_IP) \
 	F8_POSTGRES_PORT=32000 \
@@ -43,5 +43,5 @@ dev-planner-openshift:
 	kedge apply -f kedge/wit.yml
 
 # Stop running AUTH, DB, DB-AUTH, WIT services in minishift
-dev-planner-openshift-clean:
-	-eval `minishift oc-env` &&  oc login -u developer -p developer && oc delete project planner-openshift --grace-period=1
+dev-openshift-clean:
+	-eval `minishift oc-env` &&  oc login -u developer -p developer && oc delete project planner-services --grace-period=1
