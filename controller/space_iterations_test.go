@@ -319,7 +319,7 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 			expectedClosed := 0 + 0 + 5 // sum of closed items self + child + grand-child
 			assert.Equal(rest.T(), expectedTotal, iterationItem.Relationships.Workitems.Meta[KeyTotalWorkItems])
 			assert.Equal(rest.T(), expectedClosed, iterationItem.Relationships.Workitems.Meta[KeyClosedWorkItems])
-		} else if uuid.Equal(*iterationItem.ID, fxt.Iterations[2].ID) {
+		} else if uuid.Equal(*iterationItem.ID, fxt.Iterations[3].ID) {
 			// we expect these counts should include that of child iterations too.
 			expectedTotal := 4 + 5  // sum of all items of self and child
 			expectedClosed := 0 + 5 // sum of closed items of self and child
