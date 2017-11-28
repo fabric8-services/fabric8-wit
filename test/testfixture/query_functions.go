@@ -4,6 +4,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/label"
+	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	errs "github.com/pkg/errors"
@@ -33,6 +34,16 @@ func (fxt *TestFixture) IterationByName(name string, spaceID ...uuid.UUID) *iter
 			return i
 		} else if i.Name == name && len(spaceID) == 0 {
 			return i
+		}
+	}
+	return nil
+}
+
+// SpaceByName returns the first space that has the given name (if any).
+func (fxt *TestFixture) SpaceByName(name string) *space.Space {
+	for _, s := range fxt.Spaces {
+		if s.Name == name {
+			return s
 		}
 	}
 	return nil

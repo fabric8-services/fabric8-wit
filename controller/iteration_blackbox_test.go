@@ -1102,17 +1102,17 @@ func (rest *TestIterationREST) TestUpdateIteration() {
 					itr := fxt.Iterations[idx]
 					switch idx {
 					case 1:
-						itr.MakeChildOf(*fxt.Iterations[0])
+						itr.MakeChildOf(*fxt.IterationByName("root iteration"))
 					case 2:
-						itr.MakeChildOf(*fxt.Iterations[1])
+						itr.MakeChildOf(*fxt.IterationByName("iteration 1"))
 					case 3:
-						itr.MakeChildOf(*fxt.Iterations[2])
+						itr.MakeChildOf(*fxt.IterationByName("iteration 2"))
 					case 4:
-						itr.MakeChildOf(*fxt.Iterations[3])
+						itr.MakeChildOf(*fxt.IterationByName("iteration 3"))
 					case 5:
-						itr.MakeChildOf(*fxt.Iterations[1])
+						itr.MakeChildOf(*fxt.IterationByName("iteration 1"))
 					case 6:
-						itr.MakeChildOf(*fxt.Iterations[0])
+						itr.MakeChildOf(*fxt.IterationByName("root iteration"))
 					}
 					return nil
 				}))
@@ -1268,5 +1268,74 @@ func (rest *TestIterationREST) TestUpdateIteration() {
 		}
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 		test.UpdateIterationBadRequest(t, svc.Context, svc, ctrl, itr1.ID.String(), &payload)
+	})
+
+	rest.T().Run("update fail - parent UUID is same as subject iteraton", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment(), tf.Iterations(2))
+		typeIterationString := iteration.APIStringTypeIteration
+		itr1 := fxt.Iterations[1]
+		newParentIDStr := itr1.ID.String()
+		payload := app.UpdateIterationPayload{
+			Data: &app.Iteration{
+				Attributes: &app.IterationAttributes{},
+				Relationships: &app.IterationRelations{
+					Parent: &app.RelationGeneric{
+						Data: &app.GenericData{
+							ID:   &newParentIDStr,
+							Type: &typeIterationString,
+						},
+					},
+				},
+				ID:   &itr1.ID,
+				Type: typeIterationString,
+			},
+		}
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+		test.UpdateIterationForbidden(t, svc.Context, svc, ctrl, itr1.ID.String(), &payload)
+	})
+
+	rest.T().Run("update fail - valid parent but from different space", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, rest.DB,
+			tf.Spaces(2, tf.SetSpaceNames("space alpha", "space beta")),
+			tf.Iterations(4, tf.SetIterationNames(
+				"root alpha", "alpha 1",
+				"root beta", "beta 1"),
+				func(fxt *tf.TestFixture, idx int) error {
+					itr := fxt.Iterations[idx]
+					switch idx {
+					case 0:
+						itr.SpaceID = fxt.SpaceByName("space alpha").ID
+					case 1:
+						itr.SpaceID = fxt.SpaceByName("space alpha").ID
+						itr.MakeChildOf(*fxt.IterationByName("root alpha"))
+					case 2:
+						itr.SpaceID = fxt.SpaceByName("space beta").ID
+					case 3:
+						itr.SpaceID = fxt.SpaceByName("space beta").ID
+						itr.MakeChildOf(*fxt.IterationByName("root beta"))
+					}
+					return nil
+				}))
+		typeIterationString := iteration.APIStringTypeIteration
+		alpha := fxt.IterationByName("alpha 1")
+		beta := fxt.IterationByName("beta 1")
+		newParentIDStr := alpha.ID.String()
+		payload := app.UpdateIterationPayload{
+			Data: &app.Iteration{
+				Attributes: &app.IterationAttributes{},
+				Relationships: &app.IterationRelations{
+					Parent: &app.RelationGeneric{
+						Data: &app.GenericData{
+							ID:   &newParentIDStr,
+							Type: &typeIterationString,
+						},
+					},
+				},
+				ID:   &beta.ID,
+				Type: typeIterationString,
+			},
+		}
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+		test.UpdateIterationForbidden(t, svc.Context, svc, ctrl, beta.ID.String(), &payload)
 	})
 }
