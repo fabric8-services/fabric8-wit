@@ -32,8 +32,10 @@ import:
   - middleware/security/jwt
 - package: github.com/armon/go-metrics
   version: 9a4b6e10bed6220a1665955aa2b75afc91eb10b3
+- package: gopkg.in/inf.v0
 - package: gopkg.in/square/go-jose.v2
   version: ^2.1.2
+- package: gopkg.in/inf.v0
 - package: github.com/dimfeld/httptreemux
   version: ^3.1.0
 - package: github.com/lsegal/gucumber
@@ -54,6 +56,12 @@ import:
 - package: gopkg.in/yaml.v2
 - package: github.com/kr/pretty
 - package: github.com/kr/text
+- package: k8s.io/client-go
+  version: ^4.0.0
+  subpackages:
+  - kubernetes
+  - rest
+  - pkg/api/v1
 - package: github.com/pilu/fresh
 - package: github.com/howeyc/fsnotify
 - package: github.com/mattn/go-colorable
@@ -119,3 +127,10 @@ import:
 - package: github.com/xeipuuv/gojsonreference
 - package: github.com/xeipuuv/gojsonpointer
 - package: github.com/prometheus/client_golang
+- package: k8s.io/apimachinery
+  # From https://github.com/kubernetes/client-go/blob/v4.0.0/Godeps/Godeps.json
+  version: 1fd2e63a9a370677308a42f24fd40c86438afddf
+  subpackages:
+  - pkg/apis/meta/v1
+  - pkg/types
+  - pkg/api/resource
