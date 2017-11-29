@@ -64,7 +64,7 @@ func (s *TestNamedWorkItemsSuite) TestLookupWorkItemByNamedSpaceAndNumberOK() {
 	// given
 	wi := s.createWorkItem()
 	// when
-	res := test.ShowNamedWorkItemsMovedPermanently(s.T(), s.svc.Context, s.svc, s.namedWorkItemsCtrl, s.testIdentity.Username, *s.testSpace.Attributes.Name, wi.Data.Attributes[workitem.SystemNumber].(int))
+	res := test.ShowNamedWorkItemsTemporaryRedirect(s.T(), s.svc.Context, s.svc, s.namedWorkItemsCtrl, s.testIdentity.Username, *s.testSpace.Attributes.Name, wi.Data.Attributes[workitem.SystemNumber].(int))
 	// then
 	require.NotNil(s.T(), res.Header().Get("Location"))
 	assert.True(s.T(), strings.HasSuffix(res.Header().Get("Location"), "/workitems/"+wi.Data.ID.String()))
