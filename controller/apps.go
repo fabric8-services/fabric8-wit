@@ -3,6 +3,8 @@ package controller
 import (
 	"context"
 	"encoding/json"
+	"strconv"
+	"time"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/auth"
@@ -112,15 +114,70 @@ func (c *AppsController) getAndCheckKubeClient(ctx context.Context) (*KubeClient
 func (c *AppsController) SetDeployment(ctx *app.SetDeploymentAppsContext) error {
 	// AppsController_SetDeployment: start_implement
 
+	if ctx.PodCount == nil {
+		// TODO this should be error 400 (bad request) not 404 (not found)
+		return errors.NewNotFoundError("parameter", "podCount")
+	}
+
+	goa.LogInfo(ctx, "podcount will be set to "+strconv.Itoa(*ctx.PodCount))
+
 	// AppsController_SetDeployment: end_implement
 	return ctx.OK([]byte{})
+}
+
+func genData(start int, end int, limit int, low int, high int) []*app.TimedIntTuple {
+
+	period := float64(end-start) / float64(limit)
+	data := make([]*app.TimedIntTuple, limit, limit)
+
+	for i := 0; i < limit; i++ {
+		t := start + int(period*float64(i))
+		v := int(float64(high-low) * float64(i) / float64(limit))
+
+		tuple := app.TimedIntTuple{
+			Time:  &t,
+			Value: &v,
+		}
+		data[i] = &tuple
+	}
+	return data
 }
 
 // ShowDeploymentStatSeries runs the showDeploymentStatSeries action.
 func (c *AppsController) ShowDeploymentStatSeries(ctx *app.ShowDeploymentStatSeriesAppsContext) error {
 	// AppsController_ShowDeploymentStatSeries: start_implement
 
-	res := &app.SimpleDeploymentStatSeries{}
+	endMillis := time.Now().UnixNano() / 1000000
+	var eightHoursMillis int64 = 8 * 60 * 60 * 1000
+	startMillis := endMillis - eightHoursMillis
+	limit := 10
+
+	if ctx.Limit != nil {
+		limit = *ctx.Limit
+	}
+
+	if ctx.Start != nil {
+		startMillis = int64(*ctx.Start)
+	}
+
+	if ctx.End != nil {
+		endMillis = int64(*ctx.End)
+	}
+
+	if endMillis < startMillis {
+		return errors.NewBadParameterError("end", *ctx.End)
+	}
+
+	startInt := int(startMillis)
+	endInt := int(endMillis)
+	cores := genData(startInt, endInt, limit, 0, 10)
+	memory := genData(startInt, endInt, limit, 1000000, 2000000)
+	res := &app.SimpleDeploymentStatSeries{
+		Start:  &startInt,
+		End:    &endInt,
+		Cores:  cores,
+		Memory: memory,
+	}
 
 	// AppsController_ShowDeploymentStatSeries: end_implement
 	return ctx.OK(res)

@@ -74,8 +74,8 @@ var timedIntTuple = a.Type("TimedIntTuple", func() {
 
 var simpleDeploymentStatSeries = a.Type("SimpleDeploymentStatSeries", func() {
 	a.Description("pod stat series")
-	a.Attribute("start")
-	a.Attribute("end")
+	a.Attribute("start", d.Integer)
+	a.Attribute("end", d.Integer)
 	a.Attribute("memory", a.ArrayOf(timedIntTuple))
 	a.Attribute("cores", a.ArrayOf(timedIntTuple))
 })
@@ -119,7 +119,7 @@ var simpleEnvironmentStatSingle = JSONSingle(
 var _ = a.Resource("apps", func() {
 	a.BasePath("/apps")
 
-	// An aoth token is required to call the auth API to get an OpenShift auth token.
+	// An auth token is required to call the auth API to get an OpenShift auth token.
 	a.Security("jwt")
 
 	a.Action("showSpace", func() {

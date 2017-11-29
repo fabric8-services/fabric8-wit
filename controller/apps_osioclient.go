@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/fabric8-services/fabric8-wit/app"
@@ -25,6 +26,11 @@ func NewOsioClient(ctx context.Context, witURL string) (*OsioClient, error) {
 	config := rest.Config{
 		Host:        witURL,
 		BearerToken: goajwt.ContextJWT(ctx).Raw,
+	}
+
+	// TODO - remove before production
+	if os.Getenv("OSIO_TOKEN") != "" {
+		config.BearerToken = os.Getenv("OSIO_TOKEN")
 	}
 
 	client := new(OsioClient)

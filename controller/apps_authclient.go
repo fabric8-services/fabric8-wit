@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
+
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	rest "k8s.io/client-go/rest"
 )
@@ -44,6 +46,12 @@ func NewAuthClient(ctx context.Context, authURL string) (*AuthClient, error) {
 		Host:        authURL,
 		BearerToken: goajwt.ContextJWT(ctx).Raw,
 	}
+
+	// TODO - remove before production
+	if os.Getenv("OSIO_TOKEN") != "" {
+		config.BearerToken = os.Getenv("OSIO_TOKEN")
+	}
+
 	client := new(AuthClient)
 	client.config = &config
 
