@@ -97,19 +97,6 @@ func SetIterationNames(names ...string) CustomizeIterationFunc {
 	}
 }
 
-// SetSpaceNames takes the given names and uses them during creation of
-// spaces. The length of requested spaces and the number of names must
-// match or the NewFixture call will return an error.
-func SetSpaceNames(names ...string) CustomizeSpaceFunc {
-	return func(fxt *TestFixture, idx int) error {
-		if len(fxt.Spaces) != len(names) {
-			return errs.Errorf("number of names (%d) must match number of spaces to create (%d)", len(names), len(fxt.Spaces))
-		}
-		fxt.Spaces[idx].Name = names[idx]
-		return nil
-	}
-}
-
 // PlaceIterationUnderRootIteration when asking for more than one iteration, all
 // but the first one will be placed under the first iteration (aka root
 // iteration).
