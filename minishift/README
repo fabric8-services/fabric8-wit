@@ -41,15 +41,8 @@ minishift version
 
 
 ##### Install Kubectl
-we will use `curl` to download Kubectl, please execute following commands
-```
 
-curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
-
-chmod +x ./kubectl
-
-sudo mv ./kubectl /usr/local/bin/kubectl
-```
+Please install and set up Kubectl on your machine by visiting [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 
 Verify installation by running following command, you should get version number.
 ```
