@@ -455,5 +455,6 @@ func (err *StarterError) String() string {
 
 // ServerStateResponse represents a get che state response body
 type ServerStateResponse struct {
-	Running bool `json:"running"`
+	Running     bool `json:"running"`
+	MultiTenant bool `json:"multiTenant"`
 }
