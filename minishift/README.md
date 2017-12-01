@@ -100,4 +100,4 @@ eval $(minishift docker-env)
 ```
 
 
-##### Reach out to **[/pranavgore09](https://github.com/pranavgore09)** in case things are not working as expected
+##### Questions? contact **[/pranavgore09](https://github.com/pranavgore09)**
