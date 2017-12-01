@@ -65,6 +65,23 @@ func (c *AppsController) getSpaceNameFromSpaceID(ctx context.Context, spaceID uu
 	return osioSpace.Attributes.Name, nil
 }
 
+func (c *AppsController) getNamespaceName(ctx context.Context) (*string, error) {
+	osioclient, err := c.getAndCheckOsioClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	kubeSpaceAttr, err := osioclient.GetNamespaceByType(nil, "user")
+	if err != nil {
+		return nil, err
+	}
+	if kubeSpaceAttr == nil || kubeSpaceAttr.Name == nil {
+		return nil, errors.NewNotFoundError("namespace", "user")
+	}
+
+	return kubeSpaceAttr.Name, nil
+}
+
 func (c *AppsController) getKubeClient(ctx context.Context) (*KubeClient, error) {
 
 	// create Auth API login object
@@ -89,11 +106,15 @@ func (c *AppsController) getKubeClient(ctx context.Context) (*KubeClient, error)
 	}
 
 	kubeURL := *authUser.Data.Attributes.Cluster
-	kubeSpace := *authUser.Data.Attributes.Username
 	kubeToken := *osauth.AccessToken
 
+	kubeNamespaceName, err := c.getNamespaceName(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	// create the cluster login object
-	kc, err := NewKubeClient(kubeURL, kubeToken, kubeSpace)
+	kc, err := NewKubeClient(kubeURL, kubeToken, *kubeNamespaceName)
 	if err != nil {
 		return nil, err
 	}
@@ -119,8 +140,22 @@ func (c *AppsController) SetDeployment(ctx *app.SetDeploymentAppsContext) error 
 		return errors.NewNotFoundError("parameter", "podCount")
 	}
 
-	goa.LogInfo(ctx, "podcount will be set to "+strconv.Itoa(*ctx.PodCount))
+	kc, err := c.getAndCheckKubeClient(ctx)
+	if err != nil {
+		return err
+	}
 
+	kubeSpaceName, err := c.getSpaceNameFromSpaceID(ctx, ctx.SpaceID)
+	if err != nil {
+		return err
+	}
+
+	oldCount, err := kc.ScaleDeployment(*kubeSpaceName, ctx.AppName, ctx.DeployName, *ctx.PodCount)
+	if err != nil {
+		return err
+	}
+
+	goa.LogInfo(ctx, "podcount was ", oldCount, " will be set to "+strconv.Itoa(*ctx.PodCount))
 	// AppsController_SetDeployment: end_implement
 	return ctx.OK([]byte{})
 }
@@ -327,6 +362,25 @@ func (c *AppsController) ShowSpaceAppDeployment(ctx *app.ShowSpaceAppDeploymentA
 
 	// AppsController_ShowSpaceAppDeployment: end_implement
 	return ctx.OK(res)
+}
+
+// ShowEnvAppPods runs the showEnvAppPods action.
+func (c *AppsController) ShowEnvAppPods(ctx *app.ShowEnvAppPodsAppsContext) error {
+	// AppsController_ShowEnvAppPods: start_implement
+
+	kc, err := c.getAndCheckKubeClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	pods, err := kc.GetPodsInNamespace(ctx.EnvName, ctx.AppName)
+	if err != nil {
+		return err
+	}
+
+	jsonresp := "{\"pods\":" + tostring(pods) + "}\n"
+
+	return ctx.OK([]byte(jsonresp))
 }
 
 // ShowSpaceEnvironments runs the showSpaceEnvironments action.

@@ -1,0 +1,143 @@
+{
+  "data": [
+    {
+      "attributes": {
+        "bucket": "portfolio",
+        "created-at": "0001-01-01T00:00:00Z",
+        "icon": "fa fa-suitcase",
+        "name": "Scenarios",
+        "updated-at": "0001-01-01T00:00:00Z"
+      },
+      "id": "00000000-0000-0000-0000-000000000001",
+      "links": {
+        "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups/00000000-0000-0000-0000-000000000001"
+      },
+      "relationships": {
+        "defaultType": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000003",
+            "type": "workitemtypes"
+          }
+        },
+        "typeList": {
+          "data": [
+            {
+              "id": "00000000-0000-0000-0000-000000000003",
+              "type": "workitemtypes"
+            },
+            {
+              "id": "00000000-0000-0000-0000-000000000004",
+              "type": "workitemtypes"
+            },
+            {
+              "id": "00000000-0000-0000-0000-000000000005",
+              "type": "workitemtypes"
+            }
+          ]
+        }
+      },
+      "type": "workitemtypegroups"
+    },
+    {
+      "attributes": {
+        "bucket": "portfolio",
+        "created-at": "0001-01-01T00:00:00Z",
+        "icon": "fa fa-suitcase",
+        "name": "Experiences",
+        "updated-at": "0001-01-01T00:00:00Z"
+      },
+      "id": "00000000-0000-0000-0000-000000000006",
+      "links": {
+        "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups/00000000-0000-0000-0000-000000000006"
+      },
+      "relationships": {
+        "defaultType": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000007",
+            "type": "workitemtypes"
+          }
+        },
+        "typeList": {
+          "data": [
+            {
+              "id": "00000000-0000-0000-0000-000000000007",
+              "type": "workitemtypes"
+            },
+            {
+              "id": "00000000-0000-0000-0000-000000000008",
+              "type": "workitemtypes"
+            }
+          ]
+        }
+      },
+      "type": "workitemtypegroups"
+    },
+    {
+      "attributes": {
+        "bucket": "requirement",
+        "created-at": "0001-01-01T00:00:00Z",
+        "icon": "fa fa-list-ul",
+        "name": "Requirements",
+        "updated-at": "0001-01-01T00:00:00Z"
+      },
+      "id": "00000000-0000-0000-0000-000000000009",
+      "links": {
+        "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups/00000000-0000-0000-0000-000000000009"
+      },
+      "relationships": {
+        "defaultType": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000010",
+            "type": "workitemtypes"
+          }
+        },
+        "typeList": {
+          "data": [
+            {
+              "id": "00000000-0000-0000-0000-000000000010",
+              "type": "workitemtypes"
+            },
+            {
+              "id": "00000000-0000-0000-0000-000000000011",
+              "type": "workitemtypes"
+            }
+          ]
+        }
+      },
+      "type": "workitemtypegroups"
+    },
+    {
+      "attributes": {
+        "bucket": "iteration",
+        "created-at": "0001-01-01T00:00:00Z",
+        "icon": "fa fa-repeat",
+        "name": "Execution",
+        "updated-at": "0001-01-01T00:00:00Z"
+      },
+      "id": "00000000-0000-0000-0000-000000000012",
+      "links": {
+        "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups/00000000-0000-0000-0000-000000000012"
+      },
+      "relationships": {
+        "defaultType": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000013",
+            "type": "workitemtypes"
+          }
+        },
+        "typeList": {
+          "data": [
+            {
+              "id": "00000000-0000-0000-0000-000000000013",
+              "type": "workitemtypes"
+            }
+          ]
+        }
+      },
+      "type": "workitemtypegroups"
+    }
+  ],
+  "links": {
+    "self": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups"
+  }
+}

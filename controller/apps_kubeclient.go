@@ -103,6 +103,39 @@ func (kc *KubeClient) GetApplication(spaceName string, appName string) (*app.Sim
 	return result, nil
 }
 
+// ScaleDeployment - scale a deployment
+func (kc *KubeClient) ScaleDeployment(spaceName string, appName string, envName string, deployNumber int) (int, error) {
+	// Look up DeploymentConfig corresponding to the application name in the provided environment
+	dc, err := kc.getDeploymentConfig(envName, appName, spaceName)
+	if err != nil {
+		return -1, err
+	} else if len(dc) == 0 {
+		return -1, nil
+	}
+
+	spec, ok := dc["spec"].(map[interface{}]interface{})
+	if !ok {
+		return -1, errors.New("Invalid deployment config returned from endpoint: missing 'spec'")
+	}
+
+	oldReplicas, ok := spec["replicas"].(int)
+	if !ok {
+		return -1, errors.New("Invalid deployment config returned from endpoint: missing 'replicas'")
+	}
+	spec["replicas"] = deployNumber
+
+	// TODO send back to openshift
+	//jsonString, err := json.Marshal(dc)
+	jsonString := tostring(dc)
+	if err != nil {
+		return -1, err
+	}
+
+	fmt.Println("put back = ", jsonString)
+
+	return oldReplicas, nil
+}
+
 // GetDeployment returns information about the current deployment of an application within a
 // particular environment. The application must exist within the provided space.
 func (kc *KubeClient) GetDeployment(spaceName string, appName string, envName string) (*app.SimpleDeployment, error) {
@@ -111,7 +144,7 @@ func (kc *KubeClient) GetDeployment(spaceName string, appName string, envName st
 		return nil, errors.New("Unknown environment: " + envName)
 	}
 	// Look up DeploymentConfig corresponding to the application name in the provided environment
-	dc, err := kc.getDeploymentConfig(envNS, appName, spaceName)
+	dc, err := kc.getDeploymentConfigID(envNS, appName, spaceName)
 	if err != nil {
 		return nil, err
 	} else if len(dc) == 0 {
@@ -269,35 +302,54 @@ func (kc *KubeClient) getEnvironmentsFromConfigMap() (map[string]string, error) 
 	return envMap, nil
 }
 
-func (kc *KubeClient) getDeploymentConfig(namespace string, appName string, space string) (types.UID, error) {
+var deploymentConfig struct {
+}
+
+func (kc *KubeClient) getDeploymentConfig(namespace string, appName string, space string) (map[interface{}]interface{}, error) {
 	dcURL := fmt.Sprintf("/oapi/v1/namespaces/%s/deploymentconfigs/%s", namespace, appName)
 	result, err := kc.getResource(dcURL, true)
+	if err != nil {
+		return nil, err
+	} else if result == nil {
+		return nil, nil
+	}
+
+	// Parse deployment config from result
+	kind, ok := result["kind"].(string)
+	if !ok || kind != "DeploymentConfig" {
+		return nil, errors.New("No deployment config returned from endpoint")
+	}
+	metadata, ok := result["metadata"].(map[interface{}]interface{})
+	if !ok {
+		return nil, errors.New("Metadata missing from deployment config")
+	}
+	// Check the space label is what we expect
+	labels, ok := metadata["labels"].(map[interface{}]interface{})
+	if !ok {
+		return nil, errors.New("Labels missing from deployment config")
+	}
+	spaceLabel, ok := labels["space"].(string)
+	if !ok || len(spaceLabel) == 0 {
+		return nil, errors.New("Space label missing from deployment config")
+	}
+	if spaceLabel != space {
+		return nil, errors.New("Deployment config " + appName + " is part of space " +
+			spaceLabel + ", expected space " + space)
+	}
+	return result, nil
+}
+
+func (kc *KubeClient) getDeploymentConfigID(namespace string, appName string, space string) (types.UID, error) {
+	result, err := kc.getDeploymentConfig(namespace, appName, space)
 	if err != nil {
 		return "", err
 	} else if result == nil {
 		return "", nil
 	}
-	// Parse deployment config from result
-	kind, ok := result["kind"].(string)
-	if !ok || kind != "DeploymentConfig" {
-		return "", errors.New("No deployment config returned from endpoint")
-	}
+
 	metadata, ok := result["metadata"].(map[interface{}]interface{})
 	if !ok {
 		return "", errors.New("Metadata missing from deployment config")
-	}
-	// Check the space label is what we expect
-	labels, ok := metadata["labels"].(map[interface{}]interface{})
-	if !ok {
-		return "", errors.New("Labels missing from deployment config")
-	}
-	spaceLabel, ok := labels["space"].(string)
-	if !ok || len(spaceLabel) == 0 {
-		return "", errors.New("Space label missing from deployment config")
-	}
-	if spaceLabel != space {
-		return "", errors.New("Deployment config " + appName + " is part of space " +
-			spaceLabel + ", expected space " + space)
 	}
 	// Get UID from deployment config
 	uid, ok := metadata["uid"].(string)
@@ -460,6 +512,18 @@ func decToInt32(dec *inf.Dec) (int, error) {
 		return -1, errors.New(dec.String() + " cannot be represented as 64-bit integer")
 	}
 	return int64ToInt32(val64)
+}
+
+// GetPodsInNamespace - return all pods in namepsace 'nameSpace' and application 'appName'
+func (kc *KubeClient) GetPodsInNamespace(nameSpace string, appName string) ([]v1.Pod, error) {
+	listOptions := metaV1.ListOptions{
+		LabelSelector: "app=" + appName,
+	}
+	pods, err := kc.clientset.CoreV1().Pods(nameSpace).List(listOptions)
+	if err != nil {
+		return nil, err
+	}
+	return pods.Items, nil
 }
 
 func (kc *KubeClient) getPods(namespace string, uid types.UID) ([]v1.Pod, error) {
