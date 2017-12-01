@@ -101,6 +101,17 @@ var simpleEnvironmentMultiple = JSONList(
 	nil,
 	nil)
 
+var simplePod = a.Type("SimplePod", func() {
+	a.Description("wrapper for a kubernetes Pod")
+	a.Attribute("pod", d.Any)
+})
+
+var simplePodMultiple = JSONList(
+	"SimplePod", "Holds a list of pods",
+	simplePod,
+	nil,
+	nil)
+
 var simpleDeploymentSingle = JSONSingle(
 	"SimpleDeployment", "Holds a single response to a space/application/deployment request",
 	simpleDeployment,
@@ -207,6 +218,18 @@ var _ = a.Resource("apps", func() {
 		a.Response(d.NotFound, JSONAPIErrors)
 	})
 
+	a.Action("showSpaceEnvironments", func() {
+		a.Routing(
+			a.GET("/spaces/:spaceID/environments"),
+		)
+		a.Description("list all environments for a space")
+		a.Params(func() {
+			a.Param("spaceID", d.UUID, "ID of the space")
+		})
+		a.Response(d.OK, simpleEnvironmentMultiple)
+		a.Response(d.NotFound, JSONAPIErrors)
+	})
+
 	a.Action("showEnvironment", func() {
 		a.Routing(
 			a.GET("/environments/:envName"),
@@ -219,15 +242,18 @@ var _ = a.Resource("apps", func() {
 		a.Response(d.NotFound, JSONAPIErrors)
 	})
 
-	a.Action("showSpaceEnvironments", func() {
+	a.Action("showEnvAppPods", func() {
 		a.Routing(
-			a.GET("/spaces/:spaceID/environments"),
+			a.GET("/environments/:envName/applications/:appName/pods"),
 		)
-		a.Description("list all environments for a space")
+		a.Description("list application pods")
 		a.Params(func() {
-			a.Param("spaceID", d.UUID, "ID of the space")
+			a.Param("envName", d.String, "Name of the environment")
+			a.Param("appName", d.String, "Name of the application")
 		})
-		a.Response(d.OK, simpleEnvironmentMultiple)
+		// TODO - find a way to use predeined structs in goa DSL
+		// until then, hand code JSON response here instead of []v1.Pod
+		a.Response(d.OK, "application/json")
 		a.Response(d.NotFound, JSONAPIErrors)
 	})
 

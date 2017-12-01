@@ -76,6 +76,25 @@ func (osioclient *OsioClient) GetResource(url string, allowMissing bool) (map[st
 	return respType, nil
 }
 
+// GetNamespaceByType finds a namespace by type (user, che, stage, etc)
+// if userService is nil, will fetch the user services
+func (osioclient *OsioClient) GetNamespaceByType(userService *app.UserService, namespaceType string) (*app.NamespaceAttributes, error) {
+	if userService == nil {
+		us, err := osioclient.GetUserServices()
+		if err != nil {
+			return nil, err
+		}
+		userService = us
+	}
+	nameSpaces := userService.Attributes.Namespaces
+	for _, ns := range nameSpaces {
+		if *ns.Type == namespaceType {
+			return ns, nil
+		}
+	}
+	return nil, nil
+}
+
 // GetUserServices - fetch array of user services
 func (osioclient *OsioClient) GetUserServices() (*app.UserService, error) {
 	var body []byte
@@ -112,13 +131,13 @@ func (osioclient *OsioClient) GetUserServices() (*app.UserService, error) {
 	return respType.Data, nil
 }
 
-// GetSpaceByName - fetch space given useedname and spacename
+// GetSpaceByName - fetch space given username and spacename
 func (osioclient *OsioClient) GetSpaceByName(username string, spaceName string, allowMissing bool) (*app.Space, error) {
 	fullURL := strings.TrimSuffix(osioclient.config.Host, "/") + "/namedspaces/" + username + "/" + spaceName
 	return osioclient.getSpace(fullURL, allowMissing)
 }
 
-//GetSpaceByID - fetch space given UUID
+// GetSpaceByID - fetch space given UUID
 func (osioclient *OsioClient) GetSpaceByID(spaceID string, allowMissing bool) (*app.Space, error) {
 	fullURL := strings.TrimSuffix(osioclient.config.Host, "/") + "/spaces/" + spaceID
 	return osioclient.getSpace(fullURL, allowMissing)
