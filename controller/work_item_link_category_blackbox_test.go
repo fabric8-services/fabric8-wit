@@ -49,11 +49,11 @@ type workItemLinkCategorySuite struct {
 	svc         *goa.Service
 }
 
-var wilCatConfiguration *config.ConfigurationData
+var wilCatConfiguration *config.Registry
 
 func init() {
 	var err error
-	wilCatConfiguration, err = config.GetConfigurationData()
+	wilCatConfiguration, err = config.Get()
 	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
@@ -260,7 +260,7 @@ func (s *workItemLinkCategorySuite) TestFailValidationWorkItemLinkCategoryNameLe
 
 	// Validate payload function returns an error
 	assert.NotNil(s.T(), err)
-	assert.Contains(s.T(), err.Error(), "length of response.name must be less than or equal to than 62")
+	assert.Contains(s.T(), err.Error(), "length of type.name must be less than or equal to 62")
 }
 
 func (s *workItemLinkCategorySuite) TestFailValidationWorkItemLinkCategoryNameStartWith() {
@@ -282,7 +282,7 @@ func (s *workItemLinkCategorySuite) TestFailValidationWorkItemLinkCategoryNameSt
 	err := payload.Validate()
 	// Validate payload function returns an error
 	assert.NotNil(s.T(), err)
-	assert.Contains(s.T(), err.Error(), "response.name must match the regexp")
+	assert.Contains(s.T(), err.Error(), "type.name must match the regexp")
 }
 
 // Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299

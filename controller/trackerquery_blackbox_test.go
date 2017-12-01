@@ -11,13 +11,13 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	witrest "github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space"
+	uuid "github.com/satori/go.uuid"
 
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	testtoken "github.com/fabric8-services/fabric8-wit/test/token"
@@ -29,11 +29,8 @@ import (
 
 type TestTrackerQueryREST struct {
 	gormtestsupport.DBTestSuite
-
 	RwiScheduler *remoteworkitem.Scheduler
-
-	db    *gormapplication.GormDB
-	clean func()
+	db           *gormapplication.GormDB
 }
 
 func TestRunTrackerQueryREST(t *testing.T) {
@@ -41,13 +38,9 @@ func TestRunTrackerQueryREST(t *testing.T) {
 }
 
 func (rest *TestTrackerQueryREST) SetupTest() {
+	rest.DBTestSuite.SetupTest()
 	rest.RwiScheduler = remoteworkitem.NewScheduler(rest.DB)
 	rest.db = gormapplication.NewGormDB(rest.DB)
-	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
-}
-
-func (rest *TestTrackerQueryREST) TearDownTest() {
-	rest.clean()
 }
 
 func (rest *TestTrackerQueryREST) SecuredController() (*goa.Service, *TrackerController, *TrackerqueryController) {
@@ -187,14 +180,19 @@ func (rest *TestTrackerQueryREST) TestCreateTrackerQuery() {
 	resource.Require(t, resource.Database)
 
 	svc, trackerCtrl, trackerQueryCtrl := rest.SecuredController()
-	payload := app.CreateTrackerAlternatePayload{
-		URL:  "http://api.github.com",
-		Type: "github",
+	payload := app.CreateTrackerPayload{
+		Data: &app.Tracker{
+			Attributes: &app.TrackerAttributes{
+				URL:  "http://api.github.com",
+				Type: "jira",
+			},
+			Type: remoteworkitem.APIStringTypeTrackers,
+		},
 	}
 	_, result := test.CreateTrackerCreated(t, svc.Context, svc, trackerCtrl, &payload)
-	t.Log(result.ID)
+	t.Log(result.Data.ID)
 
-	tqpayload := newCreateTrackerQueryPayload(result.ID)
+	tqpayload := newCreateTrackerQueryPayload(*result.Data.ID)
 
 	_, tqresult := test.CreateTrackerqueryCreated(t, nil, nil, trackerQueryCtrl, &tqpayload)
 	t.Log(tqresult)
@@ -208,13 +206,18 @@ func (rest *TestTrackerQueryREST) TestGetTrackerQuery() {
 	resource.Require(t, resource.Database)
 
 	svc, trackerCtrl, trackerQueryCtrl := rest.SecuredController()
-	payload := app.CreateTrackerAlternatePayload{
-		URL:  "http://api.github.com",
-		Type: "github",
+	payload := app.CreateTrackerPayload{
+		Data: &app.Tracker{
+			Attributes: &app.TrackerAttributes{
+				URL:  "http://api.github.com",
+				Type: "jira",
+			},
+			Type: remoteworkitem.APIStringTypeTrackers,
+		},
 	}
 	_, result := test.CreateTrackerCreated(t, svc.Context, svc, trackerCtrl, &payload)
 
-	tqpayload := newCreateTrackerQueryPayload(result.ID)
+	tqpayload := newCreateTrackerQueryPayload(*result.Data.ID)
 
 	fmt.Printf("tq payload %#v", tqpayload)
 	_, tqresult := test.CreateTrackerqueryCreated(t, nil, nil, trackerQueryCtrl, &tqpayload)
@@ -234,13 +237,18 @@ func (rest *TestTrackerQueryREST) TestUpdateTrackerQuery() {
 	resource.Require(t, resource.Database)
 
 	svc, trackerCtrl, trackerQueryCtrl := rest.SecuredController()
-	payload := app.CreateTrackerAlternatePayload{
-		URL:  "http://api.github.com",
-		Type: "github",
+	payload := app.CreateTrackerPayload{
+		Data: &app.Tracker{
+			Attributes: &app.TrackerAttributes{
+				URL:  "http://api.github.com",
+				Type: "jira",
+			},
+			Type: remoteworkitem.APIStringTypeTrackers,
+		},
 	}
 	_, result := test.CreateTrackerCreated(t, svc.Context, svc, trackerCtrl, &payload)
 
-	tqpayload := newCreateTrackerQueryPayload(result.ID)
+	tqpayload := newCreateTrackerQueryPayload(*result.Data.ID)
 
 	_, tqresult := test.CreateTrackerqueryCreated(t, nil, nil, trackerQueryCtrl, &tqpayload)
 	test.ShowTrackerqueryOK(t, nil, nil, trackerQueryCtrl, tqresult.ID)
@@ -258,7 +266,7 @@ func (rest *TestTrackerQueryREST) TestUpdateTrackerQuery() {
 	payload2 := app.UpdateTrackerQueryAlternatePayload{
 		Query:     tqr.Query,
 		Schedule:  tqr.Schedule,
-		TrackerID: result.ID,
+		TrackerID: *result.Data.ID,
 		Relationships: &app.TrackerQueryRelationships{
 			Space: app.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 		},
@@ -283,14 +291,19 @@ func (rest *TestTrackerQueryREST) TestTrackerQueryListItemsNotNil() {
 	resource.Require(t, resource.Database)
 
 	svc, trackerCtrl, trackerQueryCtrl := rest.SecuredController()
-	payload := app.CreateTrackerAlternatePayload{
-		URL:  "http://api.github.com",
-		Type: "github",
+	payload := app.CreateTrackerPayload{
+		Data: &app.Tracker{
+			Attributes: &app.TrackerAttributes{
+				URL:  "http://api.github.com",
+				Type: "jira",
+			},
+			Type: remoteworkitem.APIStringTypeTrackers,
+		},
 	}
 	_, result := test.CreateTrackerCreated(t, svc.Context, svc, trackerCtrl, &payload)
-	t.Log(result.ID)
+	t.Log(result.Data.ID)
 
-	tqpayload := newCreateTrackerQueryPayload(result.ID)
+	tqpayload := newCreateTrackerQueryPayload(*result.Data.ID)
 
 	test.CreateTrackerqueryCreated(t, nil, nil, trackerQueryCtrl, &tqpayload)
 	test.CreateTrackerqueryCreated(t, nil, nil, trackerQueryCtrl, &tqpayload)
@@ -310,14 +323,19 @@ func (rest *TestTrackerQueryREST) TestCreateTrackerQueryValidId() {
 	resource.Require(t, resource.Database)
 
 	svc, trackerCtrl, trackerQueryCtrl := rest.SecuredController()
-	payload := app.CreateTrackerAlternatePayload{
-		URL:  "http://api.github.com",
-		Type: "github",
+	payload := app.CreateTrackerPayload{
+		Data: &app.Tracker{
+			Attributes: &app.TrackerAttributes{
+				URL:  "http://api.github.com",
+				Type: "jira",
+			},
+			Type: remoteworkitem.APIStringTypeTrackers,
+		},
 	}
 	_, result := test.CreateTrackerCreated(t, svc.Context, svc, trackerCtrl, &payload)
-	t.Log(result.ID)
+	t.Log(result.Data.ID)
 
-	tqpayload := newCreateTrackerQueryPayload(result.ID)
+	tqpayload := newCreateTrackerQueryPayload(*result.Data.ID)
 
 	_, trackerquery := test.CreateTrackerqueryCreated(t, nil, nil, trackerQueryCtrl, &tqpayload)
 	_, created := test.ShowTrackerqueryOK(t, nil, nil, trackerQueryCtrl, trackerquery.ID)
@@ -326,7 +344,7 @@ func (rest *TestTrackerQueryREST) TestCreateTrackerQueryValidId() {
 	}
 }
 
-func newCreateTrackerQueryPayload(trackerID string) app.CreateTrackerQueryAlternatePayload {
+func newCreateTrackerQueryPayload(trackerID uuid.UUID) app.CreateTrackerQueryAlternatePayload {
 	reqLong := &http.Request{Host: "api.service.domain.org"}
 	spaceSelfURL := witrest.AbsoluteURL(reqLong, app.SpaceHref(space.SystemSpace.String()))
 	return app.CreateTrackerQueryAlternatePayload{

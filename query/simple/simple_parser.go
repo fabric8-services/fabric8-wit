@@ -6,33 +6,33 @@ package query
 import (
 	"encoding/json"
 
-	. "github.com/fabric8-services/fabric8-wit/criteria"
+	"github.com/fabric8-services/fabric8-wit/criteria"
 	"github.com/pkg/errors"
 )
 
 // Parse parses strings of the form { "attribute1":value1,"attribute2":value2} into an expression of the form "attribute1=value1 and attribute2=value2"
 // returns the expression "true" if empty
-func Parse(exp *string) (Expression, error) {
+func Parse(exp *string) (criteria.Expression, error) {
 	if exp == nil || len(*exp) == 0 {
-		return Literal(true), nil
+		return criteria.Literal(true), nil
 	}
 	var unmarshalled map[string]interface{}
 	err := json.Unmarshal([]byte(*exp), &unmarshalled)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	var result *Expression
+	var result *criteria.Expression
 	if len(unmarshalled) > 0 {
 		for key, value := range unmarshalled {
-			current := Equals(Field(key), Literal(value))
+			current := criteria.Equals(criteria.Field(key), criteria.Literal(value))
 			if result == nil {
 				result = &current
 			} else {
-				current = And(*result, current)
+				current = criteria.And(*result, current)
 				result = &current
 			}
 		}
 		return *result, nil
 	}
-	return Literal(true), nil
+	return criteria.Literal(true), nil
 }

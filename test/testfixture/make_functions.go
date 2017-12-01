@@ -10,6 +10,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/comment"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/label"
+	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
@@ -27,7 +28,7 @@ func makeIdentities(fxt *TestFixture) error {
 	for i := range fxt.Identities {
 		fxt.Identities[i] = &account.Identity{
 			Username:     testsupport.CreateRandomValidTestName("John Doe "),
-			ProviderType: "test provider",
+			ProviderType: "test provider", // alternatively: account.KeycloakIDP
 		}
 		if err := fxt.runCustomizeEntityFuncs(i, kindIdentities); err != nil {
 			return errs.WithStack(err)
@@ -75,13 +76,13 @@ func makeSpaces(fxt *TestFixture) error {
 			Description: "Some description",
 		}
 		if !fxt.isolatedCreation {
-			fxt.Spaces[i].OwnerId = fxt.Identities[0].ID
+			fxt.Spaces[i].OwnerID = fxt.Identities[0].ID
 		}
 		if err := fxt.runCustomizeEntityFuncs(i, kindSpaces); err != nil {
 			return errs.WithStack(err)
 		}
 		if fxt.isolatedCreation {
-			if fxt.Spaces[i].OwnerId == uuid.Nil {
+			if fxt.Spaces[i].OwnerID == uuid.Nil {
 				return errs.New("you must specify an owner ID for each space")
 			}
 		}
@@ -169,10 +170,8 @@ func makeAreas(fxt *TestFixture) error {
 	fxt.Areas = make([]*area.Area, fxt.info[kindAreas].numInstances)
 	areaRepo := area.NewAreaRepository(fxt.db)
 	for i := range fxt.Areas {
-		//id := uuid.NewV4()
 		fxt.Areas[i] = &area.Area{
-			//ID:   id,
-			Name: testsupport.CreateRandomValidTestName("area "), // + id.String(),
+			Name: testsupport.CreateRandomValidTestName("area "),
 		}
 		if !fxt.isolatedCreation {
 			fxt.Areas[i].SpaceID = fxt.Spaces[0].ID
@@ -234,21 +233,25 @@ func makeWorkItemTypes(fxt *TestFixture) error {
 	witRepo := workitem.NewWorkItemTypeRepository(fxt.db)
 	for i := range fxt.WorkItemTypes {
 		desc := "this work item type was automatically generated"
+		id := uuid.NewV4()
+		path := workitem.LtreeSafeID(workitem.SystemPlannerItem) + workitem.GetTypePathSeparator() + workitem.LtreeSafeID(id)
 		fxt.WorkItemTypes[i] = &workitem.WorkItemType{
+			ID:          id,
 			Name:        testsupport.CreateRandomValidTestName("work item type "),
 			Description: &desc,
+			Path:        path,
 			Icon:        "fa-bug",
 			Fields: map[string]workitem.FieldDefinition{
-				workitem.SystemTitle:        {Type: workitem.SimpleType{Kind: "string"}, Required: true, Label: "Title", Description: "The title text of the work item"},
-				workitem.SystemDescription:  {Type: workitem.SimpleType{Kind: "markup"}, Required: false, Label: "Description", Description: "A descriptive text of the work item"},
-				workitem.SystemCreator:      {Type: workitem.SimpleType{Kind: "user"}, Required: true, Label: "Creator", Description: "The user that created the work item"},
-				workitem.SystemRemoteItemID: {Type: workitem.SimpleType{Kind: "string"}, Required: false, Label: "Remote item", Description: "The ID of the remote work item"},
-				workitem.SystemCreatedAt:    {Type: workitem.SimpleType{Kind: "instant"}, Required: false, Label: "Created at", Description: "The date and time when the work item was created"},
-				workitem.SystemUpdatedAt:    {Type: workitem.SimpleType{Kind: "instant"}, Required: false, Label: "Updated at", Description: "The date and time when the work item was last updated"},
-				workitem.SystemOrder:        {Type: workitem.SimpleType{Kind: "float"}, Required: false, Label: "Execution Order", Description: "Execution Order of the workitem."},
-				workitem.SystemIteration:    {Type: workitem.SimpleType{Kind: "iteration"}, Required: false, Label: "Iteration", Description: "The iteration to which the work item belongs"},
-				workitem.SystemArea:         {Type: workitem.SimpleType{Kind: "area"}, Required: false, Label: "Area", Description: "The area to which the work item belongs"},
-				workitem.SystemCodebase:     {Type: workitem.SimpleType{Kind: "codebase"}, Required: false, Label: "Codebase", Description: "Contains codebase attributes to which this WI belongs to"},
+				workitem.SystemTitle:        {Type: workitem.SimpleType{Kind: workitem.KindString}, Required: true, Label: "Title", Description: "The title text of the work item"},
+				workitem.SystemDescription:  {Type: workitem.SimpleType{Kind: workitem.KindMarkup}, Required: false, Label: "Description", Description: "A descriptive text of the work item"},
+				workitem.SystemCreator:      {Type: workitem.SimpleType{Kind: workitem.KindUser}, Required: true, Label: "Creator", Description: "The user that created the work item"},
+				workitem.SystemRemoteItemID: {Type: workitem.SimpleType{Kind: workitem.KindString}, Required: false, Label: "Remote item", Description: "The ID of the remote work item"},
+				workitem.SystemCreatedAt:    {Type: workitem.SimpleType{Kind: workitem.KindInstant}, Required: false, Label: "Created at", Description: "The date and time when the work item was created"},
+				workitem.SystemUpdatedAt:    {Type: workitem.SimpleType{Kind: workitem.KindInstant}, Required: false, Label: "Updated at", Description: "The date and time when the work item was last updated"},
+				workitem.SystemOrder:        {Type: workitem.SimpleType{Kind: workitem.KindFloat}, Required: false, Label: "Execution Order", Description: "Execution Order of the workitem."},
+				workitem.SystemIteration:    {Type: workitem.SimpleType{Kind: workitem.KindIteration}, Required: false, Label: "Iteration", Description: "The iteration to which the work item belongs"},
+				workitem.SystemArea:         {Type: workitem.SimpleType{Kind: workitem.KindArea}, Required: false, Label: "Area", Description: "The area to which the work item belongs"},
+				workitem.SystemCodebase:     {Type: workitem.SimpleType{Kind: workitem.KindCodebase}, Required: false, Label: "Codebase", Description: "Contains codebase attributes to which this WI belongs to"},
 				workitem.SystemAssignees: {
 					Type: &workitem.ListType{
 						SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
@@ -339,11 +342,11 @@ func makeWorkItems(fxt *TestFixture) error {
 		}
 		creatorIDStr, ok := fxt.WorkItems[i].Fields[workitem.SystemCreator].(string)
 		if !ok {
-			return errs.Errorf("failed to convert \"%s\" field to string in %+v", workitem.SystemCreator, fxt.WorkItems[i].Fields)
+			return errs.Errorf("failed to convert \"%s\" field to string in %+v: %v", workitem.SystemCreator, fxt.WorkItems[i].Fields, fxt.WorkItems[i].Fields[workitem.SystemCreator])
 		}
 		creatorID, err := uuid.FromString(creatorIDStr)
 		if err != nil {
-			return errs.Wrapf(err, "failed to convert \"%s\" field to uuid.UUID", workitem.SystemCreator)
+			return errs.Wrapf(err, "failed to convert \"%s\" field to uuid.UUID: %v", workitem.SystemCreator, fxt.WorkItems[i].Fields[workitem.SystemCreator])
 		}
 
 		wi, err := wiRepo.Create(fxt.ctx, fxt.WorkItems[i].SpaceID, fxt.WorkItems[i].Type, fxt.WorkItems[i].Fields, creatorID)
@@ -483,6 +486,29 @@ func makeLabels(fxt *TestFixture) error {
 		err := labelRrepo.Create(fxt.ctx, fxt.Labels[i])
 		if err != nil {
 			return errs.Wrapf(err, "failed to create label: %+v", fxt.Labels[i])
+		}
+	}
+	return nil
+}
+
+func makeTrackers(fxt *TestFixture) error {
+	if fxt.info[kindTrackers] == nil {
+		return nil
+	}
+	fxt.Trackers = make([]*remoteworkitem.Tracker, fxt.info[kindTrackers].numInstances)
+	trackerRepo := remoteworkitem.NewTrackerRepository(fxt.db)
+
+	for i := range fxt.Trackers {
+		fxt.Trackers[i] = &remoteworkitem.Tracker{
+			URL:  "https://api.github.com/",
+			Type: remoteworkitem.ProviderGithub,
+		}
+		if err := fxt.runCustomizeEntityFuncs(i, kindTrackers); err != nil {
+			return errs.WithStack(err)
+		}
+		err := trackerRepo.Create(fxt.ctx, fxt.Trackers[i])
+		if err != nil {
+			return errs.Wrapf(err, "failed to create tracker: %+v", fxt.Trackers[i])
 		}
 	}
 	return nil

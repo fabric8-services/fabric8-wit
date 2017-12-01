@@ -39,8 +39,11 @@ func NewCleanTenant(config tenantConfig) func(context.Context) error {
 	}
 }
 
+// CodebaseInitTenantProvider the function that provides a `tenant.TenantSingle`
+type CodebaseInitTenantProvider func(context.Context) (*tenant.TenantSingle, error)
+
 // NewShowTenant view an existing tenant in oso
-func NewShowTenant(config tenantConfig) func(context.Context) (*tenant.TenantSingle, error) {
+func NewShowTenant(config tenantConfig) CodebaseInitTenantProvider {
 	return func(ctx context.Context) (*tenant.TenantSingle, error) {
 		return ShowTenant(ctx, config)
 	}

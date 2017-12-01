@@ -92,7 +92,7 @@ func (rest *TestSpaceAreaREST) setupAreas() (area.Area, []uuid.UUID, []area.Area
 	parentID := parentArea.ID
 	name := "TestListAreas  A"
 	ci := newCreateChildAreaPayload(&name)
-	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerId)
+	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
 	require.Nil(rest.T(), err)
 	svc, ctrl := rest.SecuredAreasControllerWithIdentity(owner)
 	_, created := test.CreateChildAreaCreated(rest.T(), svc.Context, svc, ctrl, parentID.String(), ci)

@@ -8,7 +8,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
@@ -19,8 +18,7 @@ import (
 
 type TestNamedSpaceREST struct {
 	gormtestsupport.DBTestSuite
-	db    *gormapplication.GormDB
-	clean func()
+	db *gormapplication.GormDB
 }
 
 func TestRunNamedSpacesREST(t *testing.T) {
@@ -28,12 +26,8 @@ func TestRunNamedSpacesREST(t *testing.T) {
 }
 
 func (rest *TestNamedSpaceREST) SetupTest() {
+	rest.DBTestSuite.SetupTest()
 	rest.db = gormapplication.NewGormDB(rest.DB)
-	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
-}
-
-func (rest *TestNamedSpaceREST) TearDownTest() {
-	rest.clean()
 }
 
 func (rest *TestNamedSpaceREST) SecuredNamedSpaceController(identity account.Identity) (*goa.Service, *NamedspacesController) {
@@ -72,8 +66,7 @@ func (rest *TestNamedSpaceREST) TestSuccessQuerySpace() {
 
 	name := testsupport.CreateRandomValidTestName("Test 24")
 
-	p := minimumRequiredCreateSpace()
-	p.Data.Attributes.Name = &name
+	p := newCreateSpacePayload(&name, nil)
 
 	_, created := test.CreateSpaceCreated(t, spaceSvc.Context, spaceSvc, spaceCtrl, p)
 	assert.NotNil(t, created.Data)
@@ -114,8 +107,7 @@ func (rest *TestNamedSpaceREST) TestSuccessListSpaces() {
 
 	name := testsupport.CreateRandomValidTestName("Test 24")
 
-	p := minimumRequiredCreateSpace()
-	p.Data.Attributes.Name = &name
+	p := newCreateSpacePayload(&name, nil)
 
 	_, created := test.CreateSpaceCreated(t, spaceSvc.Context, spaceSvc, spaceCtrl, p)
 	assert.NotNil(t, created.Data)

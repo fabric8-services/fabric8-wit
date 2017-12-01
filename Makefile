@@ -229,7 +229,7 @@ clean-glide-cache:
 	-rm -rf ./.glide
 
 $(VENDOR_DIR): glide.lock glide.yaml
-	$(GLIDE_BIN) install
+	$(GLIDE_BIN) --quiet install
 	touch $(VENDOR_DIR)
 
 .PHONY: deps
@@ -268,9 +268,40 @@ generate: app/controllers.go assets/js/client.js bindata_assetfs.go migration/sq
 regenerate: clean-generated generate
 
 .PHONY: dev
-dev: prebuild-check deps generate $(FRESH_BIN)
-	docker-compose up -d db
+dev: prebuild-check deps generate $(FRESH_BIN) docker-compose-up
 	F8_DEVELOPER_MODE_ENABLED=true $(FRESH_BIN)
+
+.PHONY: docker-compose-up
+docker-compose-up:
+ifeq ($(UNAME_S),Darwin)
+	@echo "Running docker-compose with macOS network settings"
+	docker-compose -f docker-compose.macos.yml up -d db auth
+else
+	@echo "Running docker-compose with Linux network settings"
+	docker-compose up -d db auth
+endif
+
+MINISHIFT_IP = `minishift ip`
+MINISHIFT_URL = http://$(MINISHIFT_IP)
+# make sure you have a entry in /etc/hosts for "minishift.local MINISHIFT_IP"
+MINISHIFT_HOSTS_ENTRY = http://minishift.local
+
+.PHONY: dev-wit-openshift
+dev-wit-openshift: prebuild-check deps generate $(FRESH_BIN)
+	minishift start
+	./check_hosts.sh
+	-eval `minishift oc-env` &&  oc login -u developer -p developer && oc new-project wit-openshift
+	AUTH_WIT_URL=$(MINISHIFT_URL):8080 kedge apply -f kedge/db.yml -f kedge/db-auth.yml -f kedge/auth.yml
+	sleep 3s
+	F8_AUTH_URL=$(MINISHIFT_HOSTS_ENTRY):31000 \
+	F8_POSTGRES_HOST=$(MINISHIFT_IP) \
+	F8_POSTGRES_PORT=32000 \
+	F8_DEVELOPER_MODE_ENABLED=true \
+	$(FRESH_BIN)
+
+.PHONY: dev-wit-openshift-clean
+dev-wit-openshift-clean:
+	-eval `minishift oc-env` &&  oc login -u developer -p developer && oc delete project wit-openshift --force
 
 include ./.make/test.mk
 

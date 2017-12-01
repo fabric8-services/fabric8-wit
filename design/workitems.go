@@ -42,6 +42,8 @@ var workItemRelationships = a.Type("WorkItemRelationships", func() {
 	a.Attribute("area", relationGeneric, "This defines the area this work item belongs to")
 	a.Attribute("children", relationGeneric, "This defines the children of this work item")
 	a.Attribute("space", relationSpaces, "This defines the owning space of this work item.")
+	a.Attribute("parent", relationKindUUID, "This defines the parent of this work item.")
+	a.Attribute("workItemLinks", relationGeneric, "List of links in which this work item is involved")
 })
 
 // relationBaseType is top level block for WorkItemType relationship
@@ -283,7 +285,7 @@ var _ = a.Resource("named_work_items", func() {
 		a.Params(func() {
 			a.Param("wiNumber", d.Integer, "Number of the work item to show")
 		})
-		a.Response(d.MovedPermanently)
+		a.Response(d.TemporaryRedirect)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 	})

@@ -23,7 +23,7 @@ func TestWorkItemLinkType_Equal(t *testing.T) {
 		ID:             uuid.FromStringOrNil("0e671e36-871b-43a6-9166-0c4bd573e231"),
 		Name:           "Example work item link category",
 		Description:    &description,
-		Topology:       "network",
+		Topology:       link.TopologyNetwork,
 		Version:        0,
 		ForwardName:    "blocks",
 		ReverseName:    "blocked by",
@@ -67,7 +67,7 @@ func TestWorkItemLinkType_Equal(t *testing.T) {
 
 	// Test Topology
 	b = a
-	b.Topology = "tree"
+	b.Topology = link.TopologyTree
 	require.False(t, a.Equal(b))
 
 	// Test ForwardName
@@ -129,7 +129,7 @@ func TestWorkItemLinkTypeCheckValidForCreation(t *testing.T) {
 
 	// Check empty Topology
 	b = a
-	b.Topology = ""
+	b.Topology = link.Topology("")
 	require.NotNil(t, b.CheckValidForCreation())
 
 	// Check empty LinkCategoryID

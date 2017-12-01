@@ -5,6 +5,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/models"
 
 	"context"
+
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 	"github.com/robfig/cron"
@@ -13,7 +14,7 @@ import (
 
 // TrackerSchedule capture all configuration
 type trackerSchedule struct {
-	TrackerID   int
+	TrackerID   uuid.UUID
 	URL         string
 	TrackerType string
 	Query       string
@@ -66,7 +67,7 @@ func (s *Scheduler) ScheduleAllQueries(ctx context.Context, accessTokens map[str
 						return errors.WithStack(err)
 					}
 					// Convert the remote item into a local work item and persist in the DB.
-					_, err = convertToWorkItemModel(ctx, tx, tq.TrackerID, i, tq.TrackerType, tq.SpaceID)
+					_, err = ConvertToWorkItemModel(ctx, tx, tq.TrackerID, i, tq.TrackerType, tq.SpaceID)
 					return errors.WithStack(err)
 				})
 			}

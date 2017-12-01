@@ -6,6 +6,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/label"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
+	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -51,6 +52,16 @@ func (fxt *TestFixture) WorkItemTypeByName(name string, spaceID ...uuid.UUID) *w
 	return nil
 }
 
+// WorkItemTypeByID returns the work item type that has the given ID (if any).
+func (fxt *TestFixture) WorkItemTypeByID(id uuid.UUID) *workitem.WorkItemType {
+	for _, wit := range fxt.WorkItemTypes {
+		if wit.ID == id {
+			return wit
+		}
+	}
+	return nil
+}
+
 // IdentityByUsername returns the first identity that has the given username (if
 // any).
 func (fxt *TestFixture) IdentityByUsername(username string) *account.Identity {
@@ -67,9 +78,13 @@ func (fxt *TestFixture) IdentityByUsername(username string) *account.Identity {
 // also pass in one space ID to filter by space as well.
 func (fxt *TestFixture) WorkItemByTitle(title string, spaceID ...uuid.UUID) *workitem.WorkItem {
 	for _, wi := range fxt.WorkItems {
-		if wi.Fields[workitem.SystemTitle] == title && len(spaceID) > 0 && wi.SpaceID == spaceID[0] {
+		v, ok := wi.Fields[workitem.SystemTitle]
+		if !ok {
+			panic(errs.Errorf("failed to find work item with title '%s'", title))
+		}
+		if v == title && len(spaceID) > 0 && wi.SpaceID == spaceID[0] {
 			return wi
-		} else if wi.Fields[workitem.SystemTitle] == title && len(spaceID) == 0 {
+		} else if v == title && len(spaceID) == 0 {
 			return wi
 		}
 	}

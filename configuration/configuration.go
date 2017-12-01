@@ -9,16 +9,15 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
-	"github.com/pkg/errors"
-	yaml "gopkg.in/yaml.v2"
-
 	"github.com/fabric8-services/fabric8-wit/rest"
+	errs "github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"gopkg.in/yaml.v2"
 )
 
 // String returns the current configuration as a string
-func (c *ConfigurationData) String() string {
+func (c *Registry) String() string {
 	allSettings := c.v.AllSettings()
 	y, err := yaml.Marshal(&allSettings)
 	if err != nil {
@@ -48,8 +47,10 @@ const (
 	varFeatureWorkitemRemote        = "feature.workitem.remote"
 	varPopulateCommonTypes          = "populate.commontypes"
 	varHTTPAddress                  = "http.address"
+	varMetricsHTTPAddress           = "metrics.http.address"
 	varDeveloperModeEnabled         = "developer.mode.enabled"
 	varAuthDomainPrefix             = "auth.domain.prefix"
+	varAuthShortServiceHostName     = "auth.servicehostname.short"
 	varAuthURL                      = "auth.url"
 	varAuthorizationEnabled         = "authz.enabled"
 	varGithubAuthToken              = "github.auth.token"
@@ -101,16 +102,18 @@ const (
 	varNotificationServiceURL   = "notification.serviceurl"
 )
 
-// ConfigurationData encapsulates the Viper configuration object which stores the configuration data in-memory.
-type ConfigurationData struct {
+// Registry encapsulates the Viper configuration registry which stores the
+// configuration data in-memory.
+type Registry struct {
 	v               *viper.Viper
 	tokenPublicKey  *rsa.PublicKey
 	tokenPrivateKey *rsa.PrivateKey
 }
 
-// NewConfigurationData creates a configuration reader object using a configurable configuration file path
-func NewConfigurationData(configFilePath string) (*ConfigurationData, error) {
-	c := ConfigurationData{
+// New creates a configuration reader object using a configurable configuration
+// file path.
+func New(configFilePath string) (*Registry, error) {
+	c := Registry{
 		v: viper.New(),
 	}
 	c.v.SetEnvPrefix("F8")
@@ -124,7 +127,7 @@ func NewConfigurationData(configFilePath string) (*ConfigurationData, error) {
 		c.v.SetConfigFile(configFilePath)
 		err := c.v.ReadInConfig() // Find and read the config file
 		if err != nil {           // Handle errors reading the config file
-			return nil, errors.Errorf("Fatal error config file: %s \n", err)
+			return nil, errs.Errorf("Fatal error config file: %s \n", err)
 		}
 	}
 	return &c, nil
@@ -140,18 +143,18 @@ func getConfigFilePath() string {
 }
 
 // GetDefaultConfigurationFile returns the default configuration file.
-func (c *ConfigurationData) GetDefaultConfigurationFile() string {
+func (c *Registry) GetDefaultConfigurationFile() string {
 	return defaultConfigFile
 }
 
-// GetConfigurationData is a wrapper over NewConfigurationData which reads configuration file path
-// from the environment variable.
-func GetConfigurationData() (*ConfigurationData, error) {
-	cd, err := NewConfigurationData(getConfigFilePath())
+// Get is a wrapper over New() which reads configuration file path from the
+// environment variable.
+func Get() (*Registry, error) {
+	cd, err := New(getConfigFilePath())
 	return cd, err
 }
 
-func (c *ConfigurationData) setConfigDefaults() {
+func (c *Registry) setConfigDefaults() {
 	//---------
 	// Postgres
 	//---------
@@ -176,6 +179,7 @@ func (c *ConfigurationData) setConfigDefaults() {
 	// HTTP
 	//-----
 	c.v.SetDefault(varHTTPAddress, "0.0.0.0:8080")
+	c.v.SetDefault(varMetricsHTTPAddress, "0.0.0.0:8080")
 	c.v.SetDefault(varHeaderMaxLength, defaultHeaderMaxLength)
 
 	//-----
@@ -197,7 +201,7 @@ func (c *ConfigurationData) setConfigDefaults() {
 	c.v.SetDefault(varGithubAuthToken, defaultActualToken)
 	c.v.SetDefault(varKeycloakDomainPrefix, defaultKeycloakDomainPrefix)
 	c.v.SetDefault(varKeycloakTesUserName, defaultKeycloakTesUserName)
-	c.v.SetDefault(varKeycloakTesUserSecret, defaultKeycloakTesUserSecret)
+	c.v.SetDefault(varAuthorizationEnabled, true)
 
 	// HTTP Cache-Control/max-age default for a list of resources
 	c.v.SetDefault(varCacheControlWorkItems, "max-age=2") // very short life in cache, to allow for quick, repetitive updates.
@@ -229,76 +233,75 @@ func (c *ConfigurationData) setConfigDefaults() {
 	c.v.SetDefault(varFeatureWorkitemRemote, true)
 
 	c.v.SetDefault(varKeycloakTesUser2Name, defaultKeycloakTesUser2Name)
-	c.v.SetDefault(varKeycloakTesUser2Secret, defaultKeycloakTesUser2Secret)
 	c.v.SetDefault(varOpenshiftTenantMasterURL, defaultOpenshiftTenantMasterURL)
 	c.v.SetDefault(varCheStarterURL, defaultCheStarterURL)
 }
 
 // GetPostgresHost returns the postgres host as set via default, config file, or environment variable
-func (c *ConfigurationData) GetPostgresHost() string {
+func (c *Registry) GetPostgresHost() string {
 	return c.v.GetString(varPostgresHost)
 }
 
 // GetPostgresPort returns the postgres port as set via default, config file, or environment variable
-func (c *ConfigurationData) GetPostgresPort() int64 {
+func (c *Registry) GetPostgresPort() int64 {
 	return c.v.GetInt64(varPostgresPort)
 }
 
 // GetFeatureWorkitemRemote returns true if remote Work Item feaute is enabled
-func (c *ConfigurationData) GetFeatureWorkitemRemote() bool {
+func (c *Registry) GetFeatureWorkitemRemote() bool {
 	return c.v.GetBool(varFeatureWorkitemRemote)
 }
 
 // GetPostgresUser returns the postgres user as set via default, config file, or environment variable
-func (c *ConfigurationData) GetPostgresUser() string {
+func (c *Registry) GetPostgresUser() string {
 	return c.v.GetString(varPostgresUser)
 }
 
 // GetPostgresDatabase returns the postgres database as set via default, config file, or environment variable
-func (c *ConfigurationData) GetPostgresDatabase() string {
+func (c *Registry) GetPostgresDatabase() string {
 	return c.v.GetString(varPostgresDatabase)
 }
 
 // GetPostgresPassword returns the postgres password as set via default, config file, or environment variable
-func (c *ConfigurationData) GetPostgresPassword() string {
+func (c *Registry) GetPostgresPassword() string {
 	return c.v.GetString(varPostgresPassword)
 }
 
 // GetPostgresSSLMode returns the postgres sslmode as set via default, config file, or environment variable
-func (c *ConfigurationData) GetPostgresSSLMode() string {
+func (c *Registry) GetPostgresSSLMode() string {
 	return c.v.GetString(varPostgresSSLMode)
 }
 
 // GetPostgresConnectionTimeout returns the postgres connection timeout as set via default, config file, or environment variable
-func (c *ConfigurationData) GetPostgresConnectionTimeout() int64 {
+func (c *Registry) GetPostgresConnectionTimeout() int64 {
 	return c.v.GetInt64(varPostgresConnectionTimeout)
 }
 
 // GetPostgresConnectionRetrySleep returns the number of seconds (as set via default, config file, or environment variable)
 // to wait before trying to connect again
-func (c *ConfigurationData) GetPostgresConnectionRetrySleep() time.Duration {
+func (c *Registry) GetPostgresConnectionRetrySleep() time.Duration {
 	return c.v.GetDuration(varPostgresConnectionRetrySleep)
 }
 
 // GetPostgresTransactionTimeout returns the number of minutes to timeout a transaction
-func (c *ConfigurationData) GetPostgresTransactionTimeout() time.Duration {
+func (c *Registry) GetPostgresTransactionTimeout() time.Duration {
 	return c.v.GetDuration(varPostgresTransactionTimeout)
 }
 
 // GetPostgresConnectionMaxIdle returns the number of connections that should be keept alive in the database connection pool at
 // any given time. -1 represents no restrictions/default behavior
-func (c *ConfigurationData) GetPostgresConnectionMaxIdle() int {
+func (c *Registry) GetPostgresConnectionMaxIdle() int {
 	return c.v.GetInt(varPostgresConnectionMaxIdle)
 }
 
 // GetPostgresConnectionMaxOpen returns the max number of open connections that should be open in the database connection pool.
 // -1 represents no restrictions/default behavior
-func (c *ConfigurationData) GetPostgresConnectionMaxOpen() int {
+func (c *Registry) GetPostgresConnectionMaxOpen() int {
 	return c.v.GetInt(varPostgresConnectionMaxOpen)
 }
 
 // GetPostgresConfigString returns a ready to use string for usage in sql.Open()
-func (c *ConfigurationData) GetPostgresConfigString() string {
+func (c *Registry) GetPostgresConfigString() string {
 	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s connect_timeout=%d",
 		c.GetPostgresHost(),
 		c.GetPostgresPort(),
@@ -312,229 +315,205 @@ func (c *ConfigurationData) GetPostgresConfigString() string {
 
 // GetPopulateCommonTypes returns true if the (as set via default, config file, or environment variable)
 // the common work item types such as bug or feature shall be created.
-func (c *ConfigurationData) GetPopulateCommonTypes() bool {
+func (c *Registry) GetPopulateCommonTypes() bool {
 	return c.v.GetBool(varPopulateCommonTypes)
 }
 
 // GetHTTPAddress returns the HTTP address (as set via default, config file, or environment variable)
 // that the wit server binds to (e.g. "0.0.0.0:8080")
-func (c *ConfigurationData) GetHTTPAddress() string {
+func (c *Registry) GetHTTPAddress() string {
 	return c.v.GetString(varHTTPAddress)
+}
+
+// GetMetricsHTTPAddress returns the address the /metrics endpoing will be mounted.
+// By default GetMetricsHTTPAddress is the same as GetHTTPAddress
+func (c *Registry) GetMetricsHTTPAddress() string {
+	return c.v.GetString(varMetricsHTTPAddress)
 }
 
 // GetHeaderMaxLength returns the max length of HTTP headers allowed in the system
 // For example it can be used to limit the size of bearer tokens returned by the api service
-func (c *ConfigurationData) GetHeaderMaxLength() int64 {
+func (c *Registry) GetHeaderMaxLength() int64 {
 	return c.v.GetInt64(varHeaderMaxLength)
 }
 
 // IsPostgresDeveloperModeEnabled returns if development related features (as set via default, config file, or environment variable),
 // e.g. token generation endpoint are enabled
-func (c *ConfigurationData) IsPostgresDeveloperModeEnabled() bool {
+func (c *Registry) IsPostgresDeveloperModeEnabled() bool {
 	return c.v.GetBool(varDeveloperModeEnabled)
 }
 
 // IsAuthorizationEnabled returns true if space authorization enabled
-// By default athorization is disabled in Developer Mode only (if F8_AUTHZ_ENABLED us not set)
-// Set F8_AUTHZ_ENABLED env var to explictly disable or enable authorization regardless of Developer Mode settings
-func (c *ConfigurationData) IsAuthorizationEnabled() bool {
-	if c.v.IsSet(varAuthorizationEnabled) {
-		return c.v.GetBool(varAuthorizationEnabled)
-	}
-	return !c.IsPostgresDeveloperModeEnabled()
+func (c *Registry) IsAuthorizationEnabled() bool {
+	return c.v.GetBool(varAuthorizationEnabled)
 }
 
 // GetCacheControlWorkItemTypes returns the value to set in the "Cache-Control" HTTP response header
 // when returning a list of work item types.
-func (c *ConfigurationData) GetCacheControlWorkItemTypes() string {
+func (c *Registry) GetCacheControlWorkItemTypes() string {
 	return c.v.GetString(varCacheControlWorkItemTypes)
 }
 
 // GetCacheControlWorkItemType returns the value to set in the "Cache-Control" HTTP response header
 // when returning a work item type.
-func (c *ConfigurationData) GetCacheControlWorkItemType() string {
+func (c *Registry) GetCacheControlWorkItemType() string {
 	return c.v.GetString(varCacheControlWorkItemType)
 }
 
 // GetCacheControlWorkItemLinkTypes returns the value to set in the "Cache-Control" HTTP response header
 // when returning a list of work item types.
-func (c *ConfigurationData) GetCacheControlWorkItemLinkTypes() string {
+func (c *Registry) GetCacheControlWorkItemLinkTypes() string {
 	return c.v.GetString(varCacheControlWorkItemLinkTypes)
 }
 
 // GetCacheControlWorkItemLinkType returns the value to set in the "Cache-Control" HTTP response header
 // when returning a work item type.
-func (c *ConfigurationData) GetCacheControlWorkItemLinkType() string {
+func (c *Registry) GetCacheControlWorkItemLinkType() string {
 	return c.v.GetString(varCacheControlWorkItemLinkType)
 }
 
 // GetCacheControlWorkItems returns the value to set in the "Cache-Control" HTTP response header
 // when returning a list of work items.
-func (c *ConfigurationData) GetCacheControlWorkItems() string {
+func (c *Registry) GetCacheControlWorkItems() string {
 	return c.v.GetString(varCacheControlWorkItems)
 }
 
 // GetCacheControlWorkItem returns the value to set in the "Cache-Control" HTTP response header
 // when returning a work item.
-func (c *ConfigurationData) GetCacheControlWorkItem() string {
+func (c *Registry) GetCacheControlWorkItem() string {
 	return c.v.GetString(varCacheControlWorkItem)
 }
 
 // GetCacheControlWorkItemLinks returns the value to set in the "Cache-Control" HTTP response header
 // when returning a list of work item links.
-func (c *ConfigurationData) GetCacheControlWorkItemLinks() string {
+func (c *Registry) GetCacheControlWorkItemLinks() string {
 	return c.v.GetString(varCacheControlWorkItemLinks)
 }
 
 // GetCacheControlWorkItemLink returns the value to set in the "Cache-Control" HTTP response header
 // when returning a work item.
-func (c *ConfigurationData) GetCacheControlWorkItemLink() string {
+func (c *Registry) GetCacheControlWorkItemLink() string {
 	return c.v.GetString(varCacheControlWorkItemLink)
 }
 
 // GetCacheControlAreas returns the value to set in the "Cache-Control" HTTP response header
 // when returning a list of work items.
-func (c *ConfigurationData) GetCacheControlAreas() string {
+func (c *Registry) GetCacheControlAreas() string {
 	return c.v.GetString(varCacheControlAreas)
 }
 
 // GetCacheControlArea returns the value to set in the "Cache-Control" HTTP response header
 // when returning a work item (or a list of).
-func (c *ConfigurationData) GetCacheControlArea() string {
+func (c *Registry) GetCacheControlArea() string {
 	return c.v.GetString(varCacheControlArea)
 }
 
 // GetCacheControlLabels returns the value to set in the "Cache-Control" HTTP response header
 // when returning a list of labels.
-func (c *ConfigurationData) GetCacheControlLabels() string {
+func (c *Registry) GetCacheControlLabels() string {
 	return c.v.GetString(varCacheControlLabels)
 }
 
 // GetCacheControlLabel returns the value to set in the "Cache-Control" HTTP response header
 // when returning a label.
-func (c *ConfigurationData) GetCacheControlLabel() string {
+func (c *Registry) GetCacheControlLabel() string {
 	return c.v.GetString(varCacheControlLabel)
 }
 
 // GetCacheControlSpaces returns the value to set in the "Cache-Control" HTTP response header
 // when returning a list of spaces.
-func (c *ConfigurationData) GetCacheControlSpaces() string {
+func (c *Registry) GetCacheControlSpaces() string {
 	return c.v.GetString(varCacheControlSpaces)
 }
 
 // GetCacheControlSpace returns the value to set in the "Cache-Control" HTTP response header
 // when returning a space.
-func (c *ConfigurationData) GetCacheControlSpace() string {
+func (c *Registry) GetCacheControlSpace() string {
 	return c.v.GetString(varCacheControlSpace)
 }
 
 // GetCacheControlIterations returns the value to set in the "Cache-Control" HTTP response header
 // when returning a list of iterations.
-func (c *ConfigurationData) GetCacheControlIterations() string {
+func (c *Registry) GetCacheControlIterations() string {
 	return c.v.GetString(varCacheControlIterations)
 }
 
 // GetCacheControlIteration returns the value to set in the "Cache-Control" HTTP response header
 // when returning an iteration.
-func (c *ConfigurationData) GetCacheControlIteration() string {
+func (c *Registry) GetCacheControlIteration() string {
 	return c.v.GetString(varCacheControlIteration)
 }
 
 // GetCacheControlComments returns the value to set in the "Cache-Control" HTTP response header
 // when returning a list of comments.
-func (c *ConfigurationData) GetCacheControlComments() string {
+func (c *Registry) GetCacheControlComments() string {
 	return c.v.GetString(varCacheControlComments)
 }
 
 // GetCacheControlComment returns the value to set in the "Cache-Control" HTTP response header
 // when returning a comment.
-func (c *ConfigurationData) GetCacheControlComment() string {
+func (c *Registry) GetCacheControlComment() string {
 	return c.v.GetString(varCacheControlComment)
 }
 
 // GetCacheControlFilters returns the value to set in the "Cache-Control" HTTP response header
 // when returning comments.
-func (c *ConfigurationData) GetCacheControlFilters() string {
+func (c *Registry) GetCacheControlFilters() string {
 	return c.v.GetString(varCacheControlFilters)
 }
 
 // GetCacheControlUsers returns the value to set in the "Cache-Control" HTTP response header
 // when returning users.
-func (c *ConfigurationData) GetCacheControlUsers() string {
+func (c *Registry) GetCacheControlUsers() string {
 	return c.v.GetString(varCacheControlUsers)
 }
 
 // GetCacheControlCollaborators returns the value to set in the "Cache-Control" HTTP response header
 // when returning collaborators.
-func (c *ConfigurationData) GetCacheControlCollaborators() string {
+func (c *Registry) GetCacheControlCollaborators() string {
 	return c.v.GetString(varCacheControlCollaborators)
 }
 
 // GetCacheControlUser returns the value to set in the "Cache-Control" HTTP response header
 // when data for the current user.
-func (c *ConfigurationData) GetCacheControlUser() string {
+func (c *Registry) GetCacheControlUser() string {
 	return c.v.GetString(varCacheControlUser)
 }
 
-func (c *ConfigurationData) GetKeysEndpoint() string {
+// GetKeysEndpoint returns the endpoint to the auth service for key mgmt.
+func (c *Registry) GetKeysEndpoint() string {
 	return fmt.Sprintf("%s/api/token/keys", c.v.GetString(varAuthURL))
 }
 
 // GetAuthDevModeURL returns Auth Service URL used by default in Dev mode
-func (c *ConfigurationData) GetAuthDevModeURL() string {
+func (c *Registry) GetAuthDevModeURL() string {
 	return devModeAuthURL
 }
 
 // GetAuthDomainPrefix returns the domain prefix which should be used in requests to the auth service
-func (c *ConfigurationData) GetAuthDomainPrefix() string {
+func (c *Registry) GetAuthDomainPrefix() string {
 	return c.v.GetString(varAuthDomainPrefix)
 }
 
-// GetAuthEndpointSpaces returns the <auth>/api/spaces endpoint
-// set via config file or environment variable.
-// If nothing set then in Dev environment the defualt endopoint will be returned.
-// In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
-// Example: api.service.domain.org -> auth.service.domain.org
-// or api.domain.org -> auth.domain.org
-func (c *ConfigurationData) GetAuthEndpointSpaces(req *http.Request) (string, error) {
-	return c.getAuthEndpoint(req, "api/spaces")
+// GetAuthShortServiceHostName returns the short Auth service host name
+// or the full Auth service URL if not set and Dev Mode enabled.
+// Otherwise returns the default host - http://auth
+func (c *Registry) GetAuthShortServiceHostName() string {
+	if c.v.IsSet(varAuthShortServiceHostName) {
+		return c.v.GetString(varAuthShortServiceHostName)
+	}
+	if c.IsPostgresDeveloperModeEnabled() {
+		return c.GetAuthServiceURL()
+	}
+	return defaultAuthShortServiceHostName
 }
 
-func (c *ConfigurationData) getAuthEndpoint(req *http.Request, pathSufix string) (string, error) {
-	return c.getServiceEndpoint(req, varAuthURL, devModeAuthURL, c.GetAuthDomainPrefix(), pathSufix)
+// GetAuthServiceURL returns the Auth Service URL
+func (c *Registry) GetAuthServiceURL() string {
+	return c.v.GetString(varAuthURL)
 }
 
-// GetAuthEndpointLogin returns the <auth>/api/login endpoint
-func (c *ConfigurationData) GetAuthEndpointLogin(req *http.Request) (string, error) {
-	return c.getAuthEndpoint(req, "api/login")
-}
-
-// GetAuthEndpointLogout returns the <auth>/api/logout endpoint
-func (c *ConfigurationData) GetAuthEndpointLogout(req *http.Request) (string, error) {
-	return c.getAuthEndpoint(req, "api/logout")
-}
-
-// GetAuthEndpointLinksession returns the <auth>/api/link/session endpoint
-func (c *ConfigurationData) GetAuthEndpointLinksession(req *http.Request) (string, error) {
-	return c.getAuthEndpoint(req, "api/link/session")
-}
-
-// GetAuthEndpointLink returns the <auth>/api/link endpoint
-func (c *ConfigurationData) GetAuthEndpointLink(req *http.Request) (string, error) {
-	return c.getAuthEndpoint(req, "api/link")
-}
-
-// GetAuthEndpointTokenRefresh returns the <auth>/api/token/refresh endpoint
-func (c *ConfigurationData) GetAuthEndpointTokenRefresh(req *http.Request) (string, error) {
-	return c.getAuthEndpoint(req, "api/token/refresh")
-}
-
-// GetAuthEndpointUsers returns the <auth>/api/users endpoint
-func (c *ConfigurationData) GetAuthEndpointUsers(req *http.Request) (string, error) {
-	return c.getAuthEndpoint(req, "api/users")
-}
-
-func (c *ConfigurationData) getServiceEndpoint(req *http.Request, varServiceURL string, devModeURL string, serviceDomainPrefix string, pathSufix string) (string, error) {
+func (c *Registry) getServiceEndpoint(req *http.Request, varServiceURL string, devModeURL string, serviceDomainPrefix string, pathSufix string) (string, error) {
 	var endpoint string
 	var err error
 	if c.v.IsSet(varServiceURL) {
@@ -557,34 +536,34 @@ func (c *ConfigurationData) getServiceEndpoint(req *http.Request, varServiceURL 
 
 // GetAuthNotApprovedRedirect returns the URL to redirect to if the user is not approved
 // May return empty string which means an unauthorized error should be returned instead of redirecting the user
-func (c *ConfigurationData) GetAuthNotApprovedRedirect() string {
+func (c *Registry) GetAuthNotApprovedRedirect() string {
 	return c.v.GetString(varAuthNotApprovedRedirect)
 }
 
 // GetGithubAuthToken returns the actual Github OAuth Access Token
-func (c *ConfigurationData) GetGithubAuthToken() string {
+func (c *Registry) GetGithubAuthToken() string {
 	return c.v.GetString(varGithubAuthToken)
 }
 
 // GetKeycloakSecret returns the keycloak client secret (as set via config file or environment variable)
 // that is used to make authorized Keycloak API Calls.
-func (c *ConfigurationData) GetKeycloakSecret() string {
+func (c *Registry) GetKeycloakSecret() string {
 	return c.v.GetString(varKeycloakSecret)
 }
 
 // GetKeycloakClientID returns the keycloak client ID (as set via config file or environment variable)
 // that is used to make authorized Keycloak API Calls.
-func (c *ConfigurationData) GetKeycloakClientID() string {
+func (c *Registry) GetKeycloakClientID() string {
 	return c.v.GetString(varKeycloakClientID)
 }
 
 // GetKeycloakDomainPrefix returns the domain prefix which should be used in all Keycloak requests
-func (c *ConfigurationData) GetKeycloakDomainPrefix() string {
+func (c *Registry) GetKeycloakDomainPrefix() string {
 	return c.v.GetString(varKeycloakDomainPrefix)
 }
 
 // GetKeycloakRealm returns the keycloak realm name
-func (c *ConfigurationData) GetKeycloakRealm() string {
+func (c *Registry) GetKeycloakRealm() string {
 	if c.v.IsSet(varKeycloakRealm) {
 		return c.v.GetString(varKeycloakRealm)
 	}
@@ -595,23 +574,13 @@ func (c *ConfigurationData) GetKeycloakRealm() string {
 }
 
 // GetKeycloakTestUserName returns the keycloak test user name used to obtain a test token (as set via config file or environment variable)
-func (c *ConfigurationData) GetKeycloakTestUserName() string {
+func (c *Registry) GetKeycloakTestUserName() string {
 	return c.v.GetString(varKeycloakTesUserName)
 }
 
-// GetKeycloakTestUserSecret returns the keycloak test user password used to obtain a test token (as set via config file or environment variable)
-func (c *ConfigurationData) GetKeycloakTestUserSecret() string {
-	return c.v.GetString(varKeycloakTesUserSecret)
-}
-
 // GetKeycloakTestUser2Name returns the keycloak test user name used to obtain a test token (as set via config file or environment variable)
-func (c *ConfigurationData) GetKeycloakTestUser2Name() string {
+func (c *Registry) GetKeycloakTestUser2Name() string {
 	return c.v.GetString(varKeycloakTesUser2Name)
-}
-
-// GetKeycloakTestUser2Secret returns the keycloak test user password used to obtain a test token (as set via config file or environment variable)
-func (c *ConfigurationData) GetKeycloakTestUser2Secret() string {
-	return c.v.GetString(varKeycloakTesUser2Secret)
 }
 
 // GetKeycloakEndpointAuth returns the keycloak auth endpoint set via config file or environment variable.
@@ -619,7 +588,7 @@ func (c *ConfigurationData) GetKeycloakTestUser2Secret() string {
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
-func (c *ConfigurationData) GetKeycloakEndpointAuth(req *http.Request) (string, error) {
+func (c *Registry) GetKeycloakEndpointAuth(req *http.Request) (string, error) {
 	return c.getKeycloakOpenIDConnectEndpoint(req, "auth")
 }
 
@@ -628,7 +597,7 @@ func (c *ConfigurationData) GetKeycloakEndpointAuth(req *http.Request) (string, 
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
-func (c *ConfigurationData) GetKeycloakEndpointToken(req *http.Request) (string, error) {
+func (c *Registry) GetKeycloakEndpointToken(req *http.Request) (string, error) {
 	return c.getKeycloakOpenIDConnectEndpoint(req, "token")
 }
 
@@ -637,7 +606,7 @@ func (c *ConfigurationData) GetKeycloakEndpointToken(req *http.Request) (string,
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
-func (c *ConfigurationData) GetKeycloakEndpointUserInfo(req *http.Request) (string, error) {
+func (c *Registry) GetKeycloakEndpointUserInfo(req *http.Request) (string, error) {
 	return c.getKeycloakOpenIDConnectEndpoint(req, "userinfo")
 }
 
@@ -647,7 +616,7 @@ func (c *ConfigurationData) GetKeycloakEndpointUserInfo(req *http.Request) (stri
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
-func (c *ConfigurationData) GetKeycloakEndpointAdmin(req *http.Request) (string, error) {
+func (c *Registry) GetKeycloakEndpointAdmin(req *http.Request) (string, error) {
 	return c.getKeycloakEndpoint(req, "auth/admin/realms/"+c.GetKeycloakRealm())
 }
 
@@ -657,7 +626,7 @@ func (c *ConfigurationData) GetKeycloakEndpointAdmin(req *http.Request) (string,
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
-func (c *ConfigurationData) GetKeycloakEndpointAuthzResourceset(req *http.Request) (string, error) {
+func (c *Registry) GetKeycloakEndpointAuthzResourceset(req *http.Request) (string, error) {
 	return c.getKeycloakEndpoint(req, "auth/realms/"+c.GetKeycloakRealm()+"/authz/protection/resource_set")
 }
 
@@ -667,7 +636,7 @@ func (c *ConfigurationData) GetKeycloakEndpointAuthzResourceset(req *http.Reques
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
-func (c *ConfigurationData) GetKeycloakEndpointClients(req *http.Request) (string, error) {
+func (c *Registry) GetKeycloakEndpointClients(req *http.Request) (string, error) {
 	return c.getKeycloakEndpoint(req, "auth/admin/realms/"+c.GetKeycloakRealm()+"/clients")
 }
 
@@ -677,7 +646,7 @@ func (c *ConfigurationData) GetKeycloakEndpointClients(req *http.Request) (strin
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
-func (c *ConfigurationData) GetKeycloakEndpointEntitlement(req *http.Request) (string, error) {
+func (c *Registry) GetKeycloakEndpointEntitlement(req *http.Request) (string, error) {
 	return c.getKeycloakEndpoint(req, "auth/realms/"+c.GetKeycloakRealm()+"/authz/entitlement/"+c.GetKeycloakClientID())
 }
 
@@ -687,12 +656,12 @@ func (c *ConfigurationData) GetKeycloakEndpointEntitlement(req *http.Request) (s
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
-func (c *ConfigurationData) GetKeycloakEndpointBroker(req *http.Request) (string, error) {
+func (c *Registry) GetKeycloakEndpointBroker(req *http.Request) (string, error) {
 	return c.getKeycloakEndpoint(req, "auth/realms/"+c.GetKeycloakRealm()+"/broker")
 }
 
 // GetKeycloakAccountEndpoint returns the API URL for Read and Update on Keycloak User Accounts.
-func (c *ConfigurationData) GetKeycloakAccountEndpoint(req *http.Request) (string, error) {
+func (c *Registry) GetKeycloakAccountEndpoint(req *http.Request) (string, error) {
 	return c.getKeycloakEndpoint(req, "auth/realms/"+c.GetKeycloakRealm()+"/account")
 }
 
@@ -701,32 +670,32 @@ func (c *ConfigurationData) GetKeycloakAccountEndpoint(req *http.Request) (strin
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
-func (c *ConfigurationData) GetKeycloakEndpointLogout(req *http.Request) (string, error) {
+func (c *Registry) GetKeycloakEndpointLogout(req *http.Request) (string, error) {
 	return c.getKeycloakOpenIDConnectEndpoint(req, "logout")
 }
 
 // GetKeycloakDevModeURL returns Keycloak URL (including realm name) used by default in Dev mode
 // Returns "" if DevMode is not enabled
-func (c *ConfigurationData) GetKeycloakDevModeURL() string {
+func (c *Registry) GetKeycloakDevModeURL() string {
 	if c.IsPostgresDeveloperModeEnabled() {
 		return fmt.Sprintf("%s/auth/realms/%s", devModeKeycloakURL, c.GetKeycloakRealm())
 	}
 	return ""
 }
 
-func (c *ConfigurationData) getKeycloakOpenIDConnectEndpoint(req *http.Request, pathSufix string) (string, error) {
+func (c *Registry) getKeycloakOpenIDConnectEndpoint(req *http.Request, pathSufix string) (string, error) {
 	return c.getKeycloakEndpoint(req, c.openIDConnectPath(pathSufix))
 }
 
-func (c *ConfigurationData) getKeycloakEndpoint(req *http.Request, pathSufix string) (string, error) {
+func (c *Registry) getKeycloakEndpoint(req *http.Request, pathSufix string) (string, error) {
 	return c.getServiceEndpoint(req, varKeycloakURL, devModeKeycloakURL, c.GetKeycloakDomainPrefix(), pathSufix)
 }
 
-func (c *ConfigurationData) openIDConnectPath(suffix string) string {
+func (c *Registry) openIDConnectPath(suffix string) string {
 	return "auth/realms/" + c.GetKeycloakRealm() + "/protocol/openid-connect/" + suffix
 }
 
-func (c *ConfigurationData) getServiceURL(req *http.Request, serviceDomainPrefix string, path string) (string, error) {
+func (c *Registry) getServiceURL(req *http.Request, serviceDomainPrefix string, path string) (string, error) {
 	scheme := "http"
 	if req.URL != nil && req.URL.Scheme == "https" { // isHTTPS
 		scheme = "https"
@@ -746,22 +715,22 @@ func (c *ConfigurationData) getServiceURL(req *http.Request, serviceDomainPrefix
 }
 
 // GetCheStarterURL returns the URL for the Che Starter service used by codespaces to initiate code editing
-func (c *ConfigurationData) GetCheStarterURL() string {
+func (c *Registry) GetCheStarterURL() string {
 	return c.v.GetString(varCheStarterURL)
 }
 
 // GetOpenshiftTenantMasterURL returns the URL for the openshift cluster where the tenant services are running
-func (c *ConfigurationData) GetOpenshiftTenantMasterURL() string {
+func (c *Registry) GetOpenshiftTenantMasterURL() string {
 	return c.v.GetString(varOpenshiftTenantMasterURL)
 }
 
 // GetLogLevel returns the loggging level (as set via config file or environment variable)
-func (c *ConfigurationData) GetLogLevel() string {
+func (c *Registry) GetLogLevel() string {
 	return c.v.GetString(varLogLevel)
 }
 
 // IsLogJSON returns if we should log json format (as set via config file or environment variable)
-func (c *ConfigurationData) IsLogJSON() bool {
+func (c *Registry) IsLogJSON() bool {
 	if c.v.IsSet(varLogJSON) {
 		return c.v.GetBool(varLogJSON)
 	}
@@ -774,7 +743,7 @@ func (c *ConfigurationData) IsLogJSON() bool {
 // GetValidRedirectURLs returns the RegEx of valid redirect URLs for auth requests
 // If the F8_REDIRECT_VALID env var is not set then in Dev Mode all redirects allowed - *
 // In prod mode the default regex will be returned
-func (c *ConfigurationData) GetValidRedirectURLs(req *http.Request) (string, error) {
+func (c *Registry) GetValidRedirectURLs(req *http.Request) (string, error) {
 	if c.v.IsSet(varValidRedirectURLs) {
 		return c.v.GetString(varValidRedirectURLs), nil
 	}
@@ -784,7 +753,7 @@ func (c *ConfigurationData) GetValidRedirectURLs(req *http.Request) (string, err
 	return c.checkLocalhostRedirectException(req)
 }
 
-func (c *ConfigurationData) checkLocalhostRedirectException(req *http.Request) (string, error) {
+func (c *Registry) checkLocalhostRedirectException(req *http.Request) (string, error) {
 	if req.URL == nil {
 		return DefaultValidRedirectURLs, nil
 	}
@@ -799,12 +768,12 @@ func (c *ConfigurationData) checkLocalhostRedirectException(req *http.Request) (
 }
 
 // GetTenantServiceURL returns the URL for the Tenant service used by login to initialize OSO tenant space
-func (c *ConfigurationData) GetTenantServiceURL() string {
+func (c *Registry) GetTenantServiceURL() string {
 	return c.v.GetString(varTenantServiceURL)
 }
 
 // GetNotificationServiceURL returns the URL for the Notification service used for event notification
-func (c *ConfigurationData) GetNotificationServiceURL() string {
+func (c *Registry) GetNotificationServiceURL() string {
 	return c.v.GetString(varNotificationServiceURL)
 }
 
@@ -814,7 +783,9 @@ const (
 	defaultLogLevel = "info"
 
 	// Auth service URL to be used in dev mode. Can be overridden by setting up auth.url
-	devModeAuthURL = "https://auth.prod-preview.openshift.io"
+	devModeAuthURL = "http://localhost:8089"
+
+	defaultAuthShortServiceHostName = "http://auth"
 
 	defaultKeycloakClientID = "fabric8-online-platform"
 	defaultKeycloakSecret   = "7a3d5a00-7f80-40cf-8781-b5b6f2dfd1bd"
@@ -825,10 +796,8 @@ const (
 	// Github does not allow committing actual OAuth tokens no matter how less privilege the token has
 	camouflagedAccessToken = "751e16a8b39c0985066-AccessToken-4871777f2c13b32be8550"
 
-	defaultKeycloakTesUserName    = "testuser"
-	defaultKeycloakTesUserSecret  = "testuser"
-	defaultKeycloakTesUser2Name   = "testuser2"
-	defaultKeycloakTesUser2Secret = "testuser2"
+	defaultKeycloakTesUserName  = "testuser"
+	defaultKeycloakTesUser2Name = "testuser2"
 
 	// Keycloak vars to be used in dev mode. Can be overridden by setting up keycloak.url & keycloak.realm
 	devModeKeycloakURL   = "https://sso.prod-preview.openshift.io"
@@ -846,6 +815,35 @@ const (
 	localhostRedirectURLs      = "(" + DefaultValidRedirectURLs + "|^(https|http)://([^/]+[.])?(localhost|127[.]0[.]0[.]1)(:\\d+)?(/.*)?$)" // *.openshift.io/* or localhost/* or 127.0.0.1/*
 	localhostRedirectException = "^(https|http)://([^/]+[.])?(?i:prod-preview[.]openshift[.]io)(:\\d+)?(/.*)?$"                             // *.prod-preview.openshift.io/*
 
+	// DevModeRsaPrivateKey for signing JWT Tokens in Dev Mode
+	// ssh-keygen -f alm_rsa
+	DevModeRsaPrivateKey = `-----BEGIN RSA PRIVATE KEY-----
+MIIEpQIBAAKCAQEAnwrjH5iTSErw9xUptp6QSFoUfpHUXZ+PaslYSUrpLjw1q27O
+DSFwmhV4+dAaTMO5chFv/kM36H3ZOyA146nwxBobS723okFaIkshRrf6qgtD6coT
+HlVUSBTAcwKEjNn4C9jtEpyOl+eSgxhMzRH3bwTIFlLlVMiZf7XVE7P3yuOCpqkk
+2rdYVSpQWQWKU+ZRywJkYcLwjEYjc70AoNpjO5QnY+Exx98E30iEdPHZpsfNhsjh
+9Z7IX5TrMYgz7zBTw8+niO/uq3RBaHyIhDbvenbR9Q59d88lbnEeHKgSMe2RQpFR
+3rxFRkc/64Rn/bMuL/ptNowPqh1P+9GjYzWmPwIDAQABAoIBAQCBCl5ZpnvprhRx
+BVTA/Upnyd7TCxNZmzrME+10Gjmz79pD7DV25ejsu/taBYUxP6TZbliF3pggJOv6
+UxomTB4znlMDUz0JgyjUpkyril7xVQ6XRAPbGrS1f1Def+54MepWAn3oGeqASb3Q
+bAj0Yl12UFTf+AZmkhQpUKk/wUeN718EIY4GRHHQ6ykMSqCKvdnVbMyb9sIzbSTl
+v+l1nQFnB/neyJq6P0Q7cxlhVj03IhYj/AxveNlKqZd2Ih3m/CJo0Abtwhx+qHZp
+cCBrYj7VelEaGARTmfoIVoGxFGKZNCcNzn7R2ic7safxXqeEnxugsAYX/UmMoq1b
+vMYLcaLRAoGBAMqMbbgejbD8Cy6wa5yg7XquqOP5gPdIYYS88TkQTp+razDqKPIU
+hPKetnTDJ7PZleOLE6eJ+dQJ8gl6D/dtOsl4lVRy/BU74dk0fYMiEfiJMYEYuAU0
+MCramo3HAeySTP8pxSLFYqJVhcTpL9+NQgbpJBUlx5bLDlJPl7auY077AoGBAMkD
+UpJRIv/0gYSz5btVheEyDzcqzOMZUVsngabH7aoQ49VjKrfLzJ9WznzJS5gZF58P
+vB7RLuIA8m8Y4FUwxOr4w9WOevzlFh0gyzgNY4gCwrzEryOZqYYqCN+8QLWfq/hL
++gYFYpEW5pJ/lAy2i8kPanC3DyoqiZCsUmlg6JKNAoGBAIdCkf6zgKGhHwKV07cs
+DIqx2p0rQEFid6UB3ADkb+zWt2VZ6fAHXeT7shJ1RK0o75ydgomObWR5I8XKWqE7
+s1dZjDdx9f9kFuVK1Upd1SxoycNRM4peGJB1nWJydEl8RajcRwZ6U+zeOc+OfWbH
+WUFuLadlrEx5212CQ2k+OZlDAoGAdsH2w6kZ83xCFOOv41ioqx5HLQGlYLpxfVg+
+2gkeWa523HglIcdPEghYIBNRDQAuG3RRYSeW+kEy+f4Jc2tHu8bS9FWkRcsWoIji
+ZzBJ0G5JHPtaub6sEC6/ZWe0F1nJYP2KLop57FxKRt0G2+fxeA0ahpMwa2oMMiQM
+4GM3pHUCgYEAj2ZjjsF2MXYA6kuPUG1vyY9pvj1n4fyEEoV/zxY1k56UKboVOtYr
+BA/cKaLPqUF+08Tz/9MPBw51UH4GYfppA/x0ktc8998984FeIpfIFX6I2U9yUnoQ
+OCCAgsB8g8yTB4qntAYyfofEoDiseKrngQT5DSdxd51A/jw7B8WyBK8=
+-----END RSA PRIVATE KEY-----`
 )
 
 // ActualToken is actual OAuth access token of github

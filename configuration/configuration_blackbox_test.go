@@ -25,7 +25,7 @@ const (
 
 var reqLong *http.Request
 var reqShort *http.Request
-var config *configuration.ConfigurationData
+var config *configuration.Registry
 
 func TestMain(m *testing.M) {
 	resetConfiguration(defaultConfigFilePath)
@@ -37,21 +37,13 @@ func TestMain(m *testing.M) {
 
 func resetConfiguration(configPath string) {
 	var err error
-
-	// calling NewConfigurationData("") is same as GetConfigurationData()
-	config, err = configuration.NewConfigurationData(configPath)
+	config, err = configuration.New(configPath)
 	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
 }
 
-func TestGetAuthEndpointSpacesDevModeOK(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
-	t.Parallel()
-	checkGetServiceEndpointOK(t, config.GetAuthDevModeURL()+"/api/spaces", config.GetAuthEndpointSpaces)
-}
-
-func TestGetAuthEndpointSetByUrlEnvVaribaleOK(t *testing.T) {
+func TestGetAuthURLSetByEnvVaribaleOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	env := os.Getenv("F8_AUTH_URL")
 	defer func() {
@@ -62,9 +54,8 @@ func TestGetAuthEndpointSetByUrlEnvVaribaleOK(t *testing.T) {
 	os.Setenv("F8_AUTH_URL", "https://auth.xyz.io")
 	resetConfiguration(defaultValuesConfigFilePath)
 
-	url, err := config.GetAuthEndpointSpaces(reqLong)
-	require.Nil(t, err)
-	require.Equal(t, "https://auth.xyz.io/api/spaces", url)
+	url := config.GetAuthServiceURL()
+	require.Equal(t, "https://auth.xyz.io", url)
 }
 
 func TestGetKeycloakEndpointSetByUrlEnvVaribaleOK(t *testing.T) {

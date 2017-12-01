@@ -1,12 +1,15 @@
 package controller_test
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"path/filepath"
+	"sort"
+	"strings"
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/account"
@@ -16,6 +19,8 @@ import (
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/migration"
+	"github.com/fabric8-services/fabric8-wit/models"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/rest"
@@ -24,6 +29,10 @@ import (
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
+	"github.com/jinzhu/gorm"
+
+	"github.com/fabric8-services/fabric8-wit/workitem/link"
+
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/goatest"
 	uuid "github.com/satori/go.uuid"
@@ -32,41 +41,44 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-func TestRunSearchTests(t *testing.T) {
+func TestSearchController(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &searchBlackBoxTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &searchControllerTestSuite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
-type searchBlackBoxTest struct {
+type searchControllerTestSuite struct {
 	gormtestsupport.DBTestSuite
 	db                             *gormapplication.GormDB
 	svc                            *goa.Service
 	testIdentity                   account.Identity
 	wiRepo                         *workitem.GormWorkItemRepository
 	controller                     *SearchController
-	spaceBlackBoxTestConfiguration *config.ConfigurationData
+	spaceBlackBoxTestConfiguration *config.Registry
 	testDir                        string
 }
 
-func (s *searchBlackBoxTest) SetupTest() {
+func (s *searchControllerTestSuite) SetupTest() {
 	s.DBTestSuite.SetupTest()
+	err := models.Transactional(s.DB, func(tx *gorm.DB) error {
+		return migration.BootstrapWorkItemLinking(s.Ctx, link.NewWorkItemLinkCategoryRepository(tx), space.NewRepository(tx), link.NewWorkItemLinkTypeRepository(tx))
+	})
+	require.Nil(s.T(), err)
 	s.testDir = filepath.Join("test-files", "search")
 	s.db = gormapplication.NewGormDB(s.DB)
-	var err error
 	// create a test identity
-	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "SearchBlackBoxTest user", "test provider")
+	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "searchControllerTestSuite user", "test provider")
 	require.Nil(s.T(), err)
 	s.testIdentity = *testIdentity
 
 	s.wiRepo = workitem.NewWorkItemRepository(s.DB)
-	spaceBlackBoxTestConfiguration, err := config.GetConfigurationData()
+	spaceBlackBoxTestConfiguration, err := config.Get()
 	require.Nil(s.T(), err)
 	s.spaceBlackBoxTestConfiguration = spaceBlackBoxTestConfiguration
 	s.svc = testsupport.ServiceAsUser("WorkItemComment-Service", s.testIdentity)
 	s.controller = NewSearchController(s.svc, gormapplication.NewGormDB(s.DB), spaceBlackBoxTestConfiguration)
 }
 
-func (s *searchBlackBoxTest) TestSearchWorkItems() {
+func (s *searchControllerTestSuite) TestSearchWorkItems() {
 	// given
 	q := "specialwordforsearch"
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
@@ -84,7 +96,7 @@ func (s *searchBlackBoxTest) TestSearchWorkItems() {
 	assert.Equal(s.T(), q, r.Attributes[workitem.SystemTitle])
 }
 
-func (s *searchBlackBoxTest) TestSearchPagination() {
+func (s *searchControllerTestSuite) TestSearchPagination() {
 	// given
 	q := "specialwordforsearch2"
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
@@ -94,8 +106,10 @@ func (s *searchBlackBoxTest) TestSearchPagination() {
 		return nil
 	}))
 	// when
+	svc := goa.New("TestSearchPagination")
+	svc.Context = goa.NewContext(context.Background(), nil, &http.Request{URL: &url.URL{Scheme: "https", Host: "foo.bar.com"}}, nil)
 	spaceIDStr := fxt.WorkItems[0].SpaceID.String()
-	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, nil, nil, &q, &spaceIDStr)
+	_, sr := test.ShowSearchOK(s.T(), svc.Context, svc, s.controller, nil, nil, nil, nil, &q, &spaceIDStr)
 	// then
 	// defaults in paging.go is 'pageSizeDefault = 20'
 	assert.Equal(s.T(), "http:///api/search?page[offset]=0&page[limit]=20&q=specialwordforsearch2", *sr.Links.First)
@@ -105,7 +119,7 @@ func (s *searchBlackBoxTest) TestSearchPagination() {
 	assert.Equal(s.T(), q, r.Attributes[workitem.SystemTitle])
 }
 
-func (s *searchBlackBoxTest) TestSearchWithEmptyValue() {
+func (s *searchControllerTestSuite) TestSearchWithEmptyValue() {
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
 		wi := fxt.WorkItems[idx]
 		wi.Fields[workitem.SystemTitle] = "specialwordforsearch"
@@ -122,7 +136,7 @@ func (s *searchBlackBoxTest) TestSearchWithEmptyValue() {
 	require.NotNil(s.T(), jerrs.Errors[0].ID)
 }
 
-func (s *searchBlackBoxTest) TestSearchWithDomainPortCombination() {
+func (s *searchControllerTestSuite) TestSearchWithDomainPortCombination() {
 	description := "http://localhost:8080/detail/154687364529310 is related issue"
 	expectedDescription := rendering.NewMarkupContentFromLegacy(description)
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
@@ -142,7 +156,7 @@ func (s *searchBlackBoxTest) TestSearchWithDomainPortCombination() {
 	assert.Equal(s.T(), description, r.Attributes[workitem.SystemDescription])
 }
 
-func (s *searchBlackBoxTest) TestSearchURLWithoutPort() {
+func (s *searchControllerTestSuite) TestSearchURLWithoutPort() {
 	description := "This issue is related to http://localhost/detail/876394"
 	expectedDescription := rendering.NewMarkupContentFromLegacy(description)
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
@@ -162,7 +176,7 @@ func (s *searchBlackBoxTest) TestSearchURLWithoutPort() {
 	assert.Equal(s.T(), description, r.Attributes[workitem.SystemDescription])
 }
 
-func (s *searchBlackBoxTest) TestUnregisteredURLWithPort() {
+func (s *searchControllerTestSuite) TestUnregisteredURLWithPort() {
 	description := "Related to http://some-other-domain:8080/different-path/154687364529310/ok issue"
 	expectedDescription := rendering.NewMarkupContentFromLegacy(description)
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
@@ -182,7 +196,7 @@ func (s *searchBlackBoxTest) TestUnregisteredURLWithPort() {
 	assert.Equal(s.T(), description, r.Attributes[workitem.SystemDescription])
 }
 
-func (s *searchBlackBoxTest) TestUnwantedCharactersRelatedToSearchLogic() {
+func (s *searchControllerTestSuite) TestUnwantedCharactersRelatedToSearchLogic() {
 	expectedDescription := rendering.NewMarkupContentFromLegacy("Related to http://example-domain:8080/different-path/ok issue")
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
 		wi := fxt.WorkItems[idx]
@@ -201,7 +215,7 @@ func (s *searchBlackBoxTest) TestUnwantedCharactersRelatedToSearchLogic() {
 	assert.Empty(s.T(), sr.Data)
 }
 
-func (s *searchBlackBoxTest) getWICreatePayload() *app.CreateWorkitemsPayload {
+func (s *searchControllerTestSuite) getWICreatePayload() *app.CreateWorkitemsPayload {
 	spaceID := space.SystemSpace
 	spaceRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(spaceID.String()))
 	witRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.WorkitemtypeHref(spaceID.String(), workitem.SystemTask.String()))
@@ -235,7 +249,7 @@ func getServiceAsUser(testIdentity account.Identity) *goa.Service {
 
 // searchByURL copies much of the codebase from search_testing.go->ShowSearchOK
 // and customises the values to add custom Host in the call.
-func (s *searchBlackBoxTest) searchByURL(customHost, queryString string) *app.SearchWorkItemList {
+func (s *searchControllerTestSuite) searchByURL(customHost, queryString string) *app.SearchWorkItemList {
 	var resp interface{}
 	var respSetter goatest.ResponseSetterFunc = func(r interface{}) { resp = r }
 	newEncoder := func(io.Writer) goa.Encoder { return respSetter }
@@ -266,7 +280,7 @@ func (s *searchBlackBoxTest) searchByURL(customHost, queryString string) *app.Se
 }
 
 // verifySearchByKnownURLs performs actual tests on search result and knwonURL map
-func (s *searchBlackBoxTest) verifySearchByKnownURLs(wi *app.WorkItemSingle, host, searchQuery string) {
+func (s *searchControllerTestSuite) verifySearchByKnownURLs(wi *app.WorkItemSingle, host, searchQuery string) {
 	result := s.searchByURL(host, searchQuery)
 	assert.NotEmpty(s.T(), result.Data)
 	assert.Equal(s.T(), *wi.Data.ID, *result.Data[0].ID)
@@ -280,7 +294,7 @@ func (s *searchBlackBoxTest) verifySearchByKnownURLs(wi *app.WorkItemSingle, hos
 
 // TestAutoRegisterHostURL checks if client's host is neatly registered as a KnwonURL or not
 // Uses helper functions verifySearchByKnownURLs, searchByURL, getWICreatePayload
-func (s *searchBlackBoxTest) TestAutoRegisterHostURL() {
+func (s *searchControllerTestSuite) TestAutoRegisterHostURL() {
 	wiCtrl := NewWorkitemsController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	// create a WI, search by `list view URL` of newly created item
 	//fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1))
@@ -297,9 +311,9 @@ func (s *searchBlackBoxTest) TestAutoRegisterHostURL() {
 	s.verifySearchByKnownURLs(wi, customHost2, queryString2)
 }
 
-func (s *searchBlackBoxTest) TestSearchWorkItemsSpaceContext() {
+func (s *searchControllerTestSuite) TestSearchWorkItemsSpaceContext() {
 	fxt := tf.NewTestFixture(s.T(), s.DB,
-		tf.Identities(1, tf.SetIdentityUsernames([]string{"pranav"})),
+		tf.Identities(1, tf.SetIdentityUsernames("pranav")),
 		tf.Spaces(2),
 		tf.WorkItems(3+5, func(fxt *tf.TestFixture, idx int) error {
 			wi := fxt.WorkItems[idx]
@@ -344,10 +358,10 @@ func (s *searchBlackBoxTest) TestSearchWorkItemsSpaceContext() {
 	assert.Len(s.T(), sr.Data, 8)
 }
 
-func (s *searchBlackBoxTest) TestSearchWorkItemsWithoutSpaceContext() {
+func (s *searchControllerTestSuite) TestSearchWorkItemsWithoutSpaceContext() {
 	// given 2 spaces with 10 workitems in the first and 5 in the second space
 	_ = tf.NewTestFixture(s.T(), s.DB,
-		tf.Identities(1, tf.SetIdentityUsernames([]string{"pranav"})),
+		tf.Identities(1, tf.SetIdentityUsernames("pranav")),
 		tf.Spaces(2),
 		tf.WorkItems(10+5, func(fxt *tf.TestFixture, idx int) error {
 			wi := fxt.WorkItems[idx]
@@ -371,7 +385,7 @@ func (s *searchBlackBoxTest) TestSearchWorkItemsWithoutSpaceContext() {
 	assert.Len(s.T(), sr.Data, 15)
 }
 
-func (s *searchBlackBoxTest) TestSearchFilter() {
+func (s *searchControllerTestSuite) TestSearchFilter() {
 	// given
 	fxt := tf.NewTestFixture(s.T(), s.DB,
 		tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
@@ -394,16 +408,17 @@ func (s *searchBlackBoxTest) TestSearchFilter() {
 // creates 2 iterations within it
 // 8 work items with different states & iterations & assignees & types
 // and tests multiple combinations of space, state, iteration, assignee, type
-func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
+func (s *searchControllerTestSuite) TestSearchQueryScenarioDriven() {
 	// given
 	fxt := tf.NewTestFixture(s.T(), s.DB,
-		tf.Identities(3, tf.SetIdentityUsernames([]string{"spaceowner", "alice", "bob"})),
-		tf.Iterations(2, tf.SetIterationNames([]string{"sprint1", "sprint2"})),
-		tf.Labels(4, tf.SetLabelNames([]string{"important", "backend", "ui", "rest"})),
-		tf.WorkItemTypes(2, tf.SetWorkItemTypeNames([]string{"bug", "feature"})),
+		tf.Identities(3, tf.SetIdentityUsernames("spaceowner", "alice", "bob")),
+		tf.Iterations(2, tf.SetIterationNames("sprint1", "sprint2")),
+		tf.Labels(4, tf.SetLabelNames("important", "backend", "ui", "rest")),
+		tf.WorkItemTypes(2, tf.SetWorkItemTypeNames("bug", "feature")),
 		tf.WorkItems(3+5+1, func(fxt *tf.TestFixture, idx int) error {
 			wi := fxt.WorkItems[idx]
 			if idx < 3 {
+				wi.Fields[workitem.SystemTitle] = "There is a special case about it."
 				wi.Fields[workitem.SystemState] = workitem.SystemStateResolved
 				wi.Fields[workitem.SystemIteration] = fxt.IterationByName("sprint1").ID.String()
 				wi.Fields[workitem.SystemLabels] = []string{fxt.LabelByName("important").ID.String(), fxt.LabelByName("backend").ID.String()}
@@ -411,6 +426,7 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 				wi.Fields[workitem.SystemCreator] = fxt.IdentityByUsername("spaceowner").ID.String()
 				wi.Type = fxt.WorkItemTypeByName("bug").ID
 			} else if idx < 3+5 {
+				wi.Fields[workitem.SystemTitle] = "some random title"
 				wi.Fields[workitem.SystemState] = workitem.SystemStateClosed
 				wi.Fields[workitem.SystemIteration] = fxt.IterationByName("sprint2").ID.String()
 				wi.Fields[workitem.SystemLabels] = []string{fxt.LabelByName("ui").ID.String()}
@@ -418,6 +434,7 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 				wi.Fields[workitem.SystemCreator] = fxt.IdentityByUsername("spaceowner").ID.String()
 				wi.Type = fxt.WorkItemTypeByName("feature").ID
 			} else {
+				wi.Fields[workitem.SystemTitle] = "some other random title"
 				wi.Fields[workitem.SystemState] = workitem.SystemStateClosed
 				wi.Fields[workitem.SystemIteration] = fxt.IterationByName("sprint2").ID.String()
 				wi.Fields[workitem.SystemCreator] = fxt.IdentityByUsername("spaceowner").ID.String()
@@ -552,6 +569,18 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 		_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 		require.NotEmpty(t, result.Data)
 		assert.Len(t, result.Data, 3+5+1) // resolved items + items in sprint2
+	})
+
+	s.T().Run("space=spaceID AND title=special with $SUBSTR", func(t *testing.T) {
+		filter := fmt.Sprintf(`
+				{"$AND": [
+					{"space":"%s"},
+					{"title": {"$SUBSTR":"%s"}}
+				]}`,
+			spaceIDStr, "special")
+		_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(t, result.Data)
+		assert.Len(t, result.Data, 3)
 	})
 
 	s.T().Run("state IN resolved, closed", func(t *testing.T) {
@@ -696,6 +725,18 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 		assert.Len(t, result.Data, 3) // alice worked on 3 issues in sprint1
 	})
 
+	s.T().Run("space=spaceID AND creator=spaceowner", func(t *testing.T) {
+		filter := fmt.Sprintf(`
+				{"$AND": [
+					{"space":"%s"},
+					{"creator":"%s"}
+				]}`,
+			spaceIDStr, fxt.IdentityByUsername("spaceowner").ID.String())
+		_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.NotEmpty(t, result.Data)
+		assert.Len(t, result.Data, 9) // we have 9 items created by spaceowner
+	})
+
 	s.T().Run("space=spaceID AND state!=closed AND iteration=sprint1 AND assignee=alice", func(t *testing.T) {
 		// Let's see non-closed issues alice working on from sprint1
 		filter := fmt.Sprintf(`
@@ -822,6 +863,7 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 					]}`,
 		)
 		_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		require.NotNil(s.T(), result)
 		require.NotEmpty(t, result.Data)
 		assert.Len(t, result.Data, 1)
 	})
@@ -846,4 +888,238 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 		compareWithGolden(t, filepath.Join(s.testDir, "show", "assignee_null_negate.error.golden.json"), jerrs)
 		compareWithGolden(t, filepath.Join(s.testDir, "show", "assignee_null_negate.headers.golden.json"), res.Header())
 	})
+}
+
+// TestIncludedParents verifies the Included list of parents
+func (s *searchControllerTestSuite) TestIncludedParents() {
+	// keep in mind that TestFixture is going to create 6 items becasue we asked for 3 links
+	// we will ignore extra 2 items and we will use only 4
+	fixtures := tf.NewTestFixture(s.T(), s.DB,
+		tf.WorkItemLinkTypes(1, func(fxt *tf.TestFixture, idx int) error {
+			wilt := fxt.WorkItemLinkTypes[idx]
+			wilt.ForwardName = link.TypeParentOf
+			wilt.Topology = link.TopologyTree
+			return nil
+		}),
+		tf.WorkItemLinks(3, func(fxt *tf.TestFixture, idx int) error {
+			switch idx {
+			case 0:
+				fxt.WorkItemLinks[idx].SourceID = fxt.WorkItems[0].ID
+				fxt.WorkItemLinks[idx].TargetID = fxt.WorkItems[1].ID
+			case 1:
+				fxt.WorkItemLinks[idx].SourceID = fxt.WorkItems[1].ID
+				fxt.WorkItemLinks[idx].TargetID = fxt.WorkItems[2].ID
+			case 2:
+				fxt.WorkItemLinks[idx].SourceID = fxt.WorkItems[0].ID
+				fxt.WorkItemLinks[idx].TargetID = fxt.WorkItems[3].ID
+			}
+			return nil
+		}),
+	)
+
+	spaceIDStr := fixtures.Spaces[0].ID.String()
+	parentWI0 := fixtures.WorkItems[0]
+	parentWI1 := fixtures.WorkItems[1]
+	childWI := fixtures.WorkItems[2]
+	childWI2 := fixtures.WorkItems[3]
+
+	filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, spaceIDStr)
+	_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+	require.NotEmpty(s.T(), result.Data)
+	require.Len(s.T(), result.Data, 6)
+	require.Len(s.T(), result.Included, 2)
+
+	// verify included objects
+	includedMustHave := map[uuid.UUID]struct{}{
+		parentWI0.ID: {},
+		parentWI1.ID: {},
+	}
+	for _, ele := range result.Included {
+		appWI, ok := ele.(app.WorkItem)
+		if ok && appWI.Type == APIStringTypeWorkItem {
+			delete(includedMustHave, *appWI.ID)
+		}
+	}
+	assert.Empty(s.T(), includedMustHave)
+	var successCnt int
+	for _, wi := range result.Data {
+		if *wi.ID == parentWI0.ID {
+			require.Nil(s.T(), wi.Relationships.Parent.Data)
+			successCnt++
+		}
+		if *wi.ID == parentWI1.ID {
+			require.Equal(s.T(), parentWI0.ID, wi.Relationships.Parent.Data.ID)
+			successCnt++
+		}
+		if *wi.ID == childWI.ID {
+			require.Equal(s.T(), parentWI1.ID, wi.Relationships.Parent.Data.ID)
+			successCnt++
+		}
+		if *wi.ID == childWI2.ID {
+			require.Equal(s.T(), parentWI0.ID, wi.Relationships.Parent.Data.ID)
+			successCnt++
+		}
+	}
+	assert.Equal(s.T(), successCnt, 4)
+}
+
+func (s *searchControllerTestSuite) TestUpdateWorkItem() {
+	resetFn := s.DisableGormCallbacks()
+	defer resetFn()
+
+	s.T().Run("assignees", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.CreateWorkItemEnvironment(),
+			tf.WorkItems(2,
+				tf.SetWorkItemField(workitem.SystemTitle, "assigned", "unassigned"),
+				func(fxt *tf.TestFixture, idx int) error {
+					if idx == 0 {
+						fxt.WorkItems[idx].Fields[workitem.SystemAssignees] = []string{fxt.Identities[0].ID.String()}
+					}
+					return nil
+				},
+			),
+		)
+		filter := fmt.Sprintf(`{"$AND":[{"space":"%s"},{"assignee":null}]}`, fxt.Spaces[0].ID.String())
+		t.Run("filter null", func(t *testing.T) {
+			// when
+			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
+			// then
+			require.Len(t, result.Data, 1)
+			require.Equal(t, fxt.WorkItemByTitle("unassigned").ID, *result.Data[0].ID)
+
+			t.Run("assignee should be nil if assignee field is not touched during update", func(t *testing.T) {
+				wi := result.Data[0]
+				workitemCtrl := NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+
+				wi.Attributes[workitem.SystemTitle] = "Updated Test WI"
+				payload2 := app.UpdateWorkitemPayload{Data: wi}
+				_, updated := test.UpdateWorkitemOK(t, s.svc.Context, s.svc, workitemCtrl, *wi.ID, &payload2)
+				compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "filter_assignee_null_update_work_item.golden.json"), updated)
+
+				_, result = test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
+				compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "filter_assignee_null_show_after_update_work_item.golden.json"), updated)
+				assert.Nil(s.T(), result.Data[0].Attributes[workitem.SystemAssignees])
+
+			})
+		})
+	})
+	s.T().Run("labels", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.CreateWorkItemEnvironment(),
+			tf.Labels(1),
+			tf.WorkItems(2,
+				tf.SetWorkItemField(workitem.SystemTitle, "labelled", "unlabelled"),
+				func(fxt *tf.TestFixture, idx int) error {
+					if idx == 0 {
+						fxt.WorkItems[idx].Fields[workitem.SystemLabels] = []string{fxt.Labels[0].ID.String()}
+					}
+					return nil
+				},
+			),
+		)
+		filter := fmt.Sprintf(`{"$AND":[{"space":"%s"},{"label":{"$EQ":null}}]}`, fxt.Spaces[0].ID.String())
+		t.Run("filter null", func(t *testing.T) {
+			// when
+			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
+			// then
+			require.Len(t, result.Data, 1)
+			require.Equal(t, fxt.WorkItemByTitle("unlabelled").ID, *result.Data[0].ID)
+
+			t.Run("assignee should be nil if label field is not touched during update", func(t *testing.T) {
+				wi := result.Data[0]
+				workitemCtrl := NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+				wi.Attributes[workitem.SystemTitle] = "Updated Test WI"
+				payload2 := app.UpdateWorkitemPayload{Data: wi}
+				_, updated := test.UpdateWorkitemOK(t, s.svc.Context, s.svc, workitemCtrl, *wi.ID, &payload2)
+				compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "filter_label_null_update_work_item.golden.json"), updated)
+
+				_, result = test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
+				compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "filter_label_null_show_after_update_work_item.golden.json"), updated)
+				assert.Nil(s.T(), result.Data[0].Attributes[workitem.SystemLabels])
+			})
+		})
+	})
+}
+
+func (s *searchControllerTestSuite) TestSearchCodebases() {
+	resetFn := s.DisableGormCallbacks()
+	defer resetFn()
+
+	s.T().Run("Single match", func(t *testing.T) {
+		// given
+		tf.NewTestFixture(s.T(), s.DB,
+			tf.Identities(1, tf.SetIdentityUsernames("spaceowner")),
+			tf.Codebases(2, func(fxt *tf.TestFixture, idx int) error {
+				fxt.Codebases[idx].URL = fmt.Sprintf("http://foo.com/single/%d", idx)
+				return nil
+			}),
+		) // when
+		_, codebaseList := test.CodebasesSearchOK(t, nil, nil, s.controller, nil, nil, "http://foo.com/single/0")
+		// then
+		require.NotNil(t, codebaseList)
+		require.NotNil(t, codebaseList.Data)
+		require.Len(t, codebaseList.Data, 1)
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "search_codebase_per_url_single_match.json"), codebaseList)
+	})
+
+	s.T().Run("Multi-match", func(t *testing.T) {
+		// given
+		count := 5
+		tf.NewTestFixture(s.T(), s.DB,
+			tf.Identities(1, tf.SetIdentityUsernames("spaceowner")),
+			tf.Spaces(count),
+			tf.Codebases(count, func(fxt *tf.TestFixture, idx int) error {
+				fxt.Codebases[idx].URL = fmt.Sprintf("http://foo.com/multi/0") // both codebases have the same URL...
+				fxt.Codebases[idx].SpaceID = fxt.Spaces[idx].ID                // ... but they belong to different spaces
+				return nil
+			}),
+		) // when
+		_, codebaseList := test.CodebasesSearchOK(t, nil, nil, s.controller, nil, nil, "http://foo.com/multi/0")
+		// then
+		require.NotNil(t, codebaseList)
+		require.NotNil(t, codebaseList.Data)
+		require.Len(t, codebaseList.Data, count)
+		require.Len(t, codebaseList.Included, count)
+		// custom sorting of data to make sure the comparison works as expected
+		// sorting codebases in `data` by the ID of their part space
+		sort.Sort(SortableCodebasesByID(codebaseList.Data))
+		// for included spaces, we must sort the spaces by their ID
+		sort.Sort(SortableIncludedSpacesByID(codebaseList.Included))
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "search_codebase_per_url_multi_match.json"), codebaseList)
+	})
+}
+
+// SortableCodebasesByID a custom type that implement `sort.Interface` for sorting CodeBases by ID
+type SortableCodebasesByID []*app.Codebase
+
+func (s SortableCodebasesByID) Len() int {
+	return len(s)
+}
+func (s SortableCodebasesByID) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+func (s SortableCodebasesByID) Less(i, j int) bool {
+	return strings.Compare(*s[i].Relationships.Space.Data.ID, *s[j].Relationships.Space.Data.ID) < 0
+}
+
+// SortableIncludedSpacesByID a custom type that implement `sort.Interface` for sorting Spaces by ID
+type SortableIncludedSpacesByID []interface{}
+
+func (s SortableIncludedSpacesByID) Len() int {
+	return len(s)
+}
+func (s SortableIncludedSpacesByID) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+func (s SortableIncludedSpacesByID) Less(i, j int) bool {
+	if _, ok := s[i].(app.Space); !ok {
+		return false
+	}
+	if _, ok := s[j].(app.Space); !ok {
+		return false
+	}
+	return strings.Compare(s[i].(app.Space).ID.String(), s[j].(app.Space).ID.String()) < 0
 }

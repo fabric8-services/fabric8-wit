@@ -14,7 +14,6 @@ import (
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/resource"
@@ -32,8 +31,7 @@ import (
 
 type TestAreaREST struct {
 	gormtestsupport.DBTestSuite
-	db    *gormapplication.GormDB
-	clean func()
+	db *gormapplication.GormDB
 }
 
 func TestRunAreaREST(t *testing.T) {
@@ -44,12 +42,8 @@ func TestRunAreaREST(t *testing.T) {
 }
 
 func (rest *TestAreaREST) SetupTest() {
+	rest.DBTestSuite.SetupTest()
 	rest.db = gormapplication.NewGormDB(rest.DB)
-	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
-}
-
-func (rest *TestAreaREST) TearDownTest() {
-	rest.clean()
 }
 
 func (rest *TestAreaREST) SecuredController() (*goa.Service, *AreaController) {
@@ -73,7 +67,7 @@ func (rest *TestAreaREST) TestSuccessCreateChildArea() {
 	parentID := parentArea.ID
 	name := "TestSuccessCreateChildArea"
 	ci := newCreateChildAreaPayload(&name)
-	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerId)
+	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
 	require.Nil(rest.T(), err)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	// when
@@ -103,7 +97,7 @@ func (rest *TestAreaREST) TestSuccessCreateMultiChildArea() {
 	parentID := parentArea.ID
 	name := "TestSuccessCreateMultiChildArea-0"
 	ci := newCreateChildAreaPayload(&name)
-	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerId)
+	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
 	require.Nil(rest.T(), err)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	// when
@@ -131,7 +125,7 @@ func (rest *TestAreaREST) TestConflictCreatDuplicateChildArea() {
 	parentID := parentArea.ID
 	name := uuid.NewV4().String()
 	ci := newCreateChildAreaPayload(&name)
-	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerId)
+	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
 	require.Nil(rest.T(), err)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	// when
@@ -150,7 +144,7 @@ func (rest *TestAreaREST) TestFailCreateChildAreaMissingName() {
 	sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
 	parentID := parentArea.ID
 	createChildAreaPayload := newCreateChildAreaPayload(nil)
-	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerId)
+	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
 	require.Nil(rest.T(), err)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	// when/then
@@ -184,7 +178,7 @@ func (rest *TestAreaREST) TestFailValidationAreaNameLength() {
 	err := ci.Validate()
 	// Validate payload function returns an error
 	assert.NotNil(rest.T(), err)
-	assert.Contains(rest.T(), err.Error(), "length of response.name must be less than or equal to than 62")
+	assert.Contains(rest.T(), err.Error(), "length of type.name must be less than or equal to 62")
 }
 
 func (rest *TestAreaREST) TestFailValidationAreaNameStartWith() {
@@ -195,7 +189,7 @@ func (rest *TestAreaREST) TestFailValidationAreaNameStartWith() {
 	err := ci.Validate()
 	// Validate payload function returns an error
 	assert.NotNil(rest.T(), err)
-	assert.Contains(rest.T(), err.Error(), "response.name must match the regexp")
+	assert.Contains(rest.T(), err.Error(), "type.name must match the regexp")
 }
 
 func (rest *TestAreaREST) TestFailShowAreaNotFound() {
@@ -269,7 +263,7 @@ func (rest *TestAreaREST) createChildArea(name string, parent area.Area, svc *go
 func (rest *TestAreaREST) TestShowChildrenAreaOK() {
 	// given
 	sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
-	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerId)
+	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
 	require.Nil(rest.T(), err)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	rest.createChildArea("TestShowChildrenAreaOK", parentArea, svc, ctrl)
@@ -283,7 +277,7 @@ func (rest *TestAreaREST) TestShowChildrenAreaOK() {
 func (rest *TestAreaREST) TestShowChildrenAreaOKUsingExpiredIfModifedSinceHeader() {
 	// given
 	sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
-	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerId)
+	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
 	require.Nil(rest.T(), err)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	rest.createChildArea("TestShowChildrenAreaOKUsingExpiredIfModifedSinceHeader", parentArea, svc, ctrl)
@@ -298,7 +292,7 @@ func (rest *TestAreaREST) TestShowChildrenAreaOKUsingExpiredIfModifedSinceHeader
 func (rest *TestAreaREST) TestShowChildrenAreaOKUsingExpiredIfNoneMatchHeader() {
 	// given
 	sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
-	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerId)
+	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
 	require.Nil(rest.T(), err)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	rest.createChildArea("TestShowChildrenAreaOKUsingExpiredIfNoneMatchHeader", parentArea, svc, ctrl)
@@ -313,7 +307,7 @@ func (rest *TestAreaREST) TestShowChildrenAreaOKUsingExpiredIfNoneMatchHeader() 
 func (rest *TestAreaREST) TestShowChildrenAreaNotModifiedUsingIfModifedSinceHeader() {
 	// given
 	sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
-	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerId)
+	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
 	require.Nil(rest.T(), err)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	childArea := rest.createChildArea("TestShowChildrenAreaNotModifiedUsingIfModifedSinceHeader", parentArea, svc, ctrl)
@@ -327,7 +321,7 @@ func (rest *TestAreaREST) TestShowChildrenAreaNotModifiedUsingIfModifedSinceHead
 func (rest *TestAreaREST) TestShowChildrenAreaNotModifiedIfNoneMatchHeader() {
 	// given
 	sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
-	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerId)
+	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
 	require.Nil(rest.T(), err)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	childArea := rest.createChildArea("TestShowChildrenAreaNotModifiedIfNoneMatchHeader", parentArea, svc, ctrl)
@@ -374,7 +368,7 @@ func createSpaceAndArea(t *testing.T, db *gormapplication.GormDB) (space.Space, 
 
 		spaceObj = space.Space{
 			Name:    "TestAreaREST-" + uuid.NewV4().String(),
-			OwnerId: owner.ID,
+			OwnerID: owner.ID,
 		}
 		_, err := app.Spaces().Create(context.Background(), &spaceObj)
 		require.Nil(t, err)

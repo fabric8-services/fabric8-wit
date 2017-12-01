@@ -97,6 +97,7 @@ var relationWorkItemTypeData = a.Type("RelationWorkItemTypeData", func() {
 // relationWorkItemLinkType is the JSONAPI store for the links
 var relationWorkItemLinkType = a.Type("RelationWorkItemLinkType", func() {
 	a.Attribute("data", relationWorkItemLinkTypeData)
+	a.Attribute("links", genericLinks)
 })
 
 // relationWorkItemLinkTypeData is the JSONAPI data object of the the work item link type relationship objects

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	errs "github.com/fabric8-services/fabric8-wit/errors"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/label"
 	"github.com/fabric8-services/fabric8-wit/resource"
@@ -21,20 +20,11 @@ import (
 
 type TestLabelRepository struct {
 	gormtestsupport.DBTestSuite
-	clean func()
 }
 
 func TestRunLabelRepository(t *testing.T) {
 	resource.Require(t, resource.Database)
 	suite.Run(t, &TestLabelRepository{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
-}
-
-func (s *TestLabelRepository) SetupTest() {
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
-}
-
-func (s *TestLabelRepository) TearDownTest() {
-	s.clean()
 }
 
 func (s *TestLabelRepository) TestCreateLabel() {

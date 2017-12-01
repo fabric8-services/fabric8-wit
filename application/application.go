@@ -3,12 +3,11 @@ package application
 import (
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/area"
-	"github.com/fabric8-services/fabric8-wit/auth"
 	"github.com/fabric8-services/fabric8-wit/codebase"
-	"github.com/fabric8-services/fabric8-wit/label"
-
 	"github.com/fabric8-services/fabric8-wit/comment"
 	"github.com/fabric8-services/fabric8-wit/iteration"
+	"github.com/fabric8-services/fabric8-wit/label"
+	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
@@ -18,8 +17,8 @@ import (
 type Application interface {
 	WorkItems() workitem.WorkItemRepository
 	WorkItemTypes() workitem.WorkItemTypeRepository
-	Trackers() TrackerRepository
-	TrackerQueries() TrackerQueryRepository
+	Trackers() remoteworkitem.TrackerRepository
+	TrackerQueries() remoteworkitem.TrackerQueryRepository
 	SearchItems() SearchRepository
 	Identities() account.IdentityRepository
 	WorkItemLinkCategories() link.WorkItemLinkCategoryRepository
@@ -27,11 +26,9 @@ type Application interface {
 	WorkItemLinks() link.WorkItemLinkRepository
 	Comments() comment.Repository
 	Spaces() space.Repository
-	SpaceResources() space.ResourceRepository
 	Iterations() iteration.Repository
 	Users() account.UserRepository
 	Areas() area.Repository
-	OauthStates() auth.OauthStateReferenceRepository
 	Codebases() codebase.Repository
 	Labels() label.Repository
 }

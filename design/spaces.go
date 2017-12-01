@@ -41,15 +41,18 @@ var backlogLinkMeta = a.Type("BacklogLinkMeta", func() {
 })
 
 var spaceRelationships = a.Type("SpaceRelationships", func() {
-	a.Attribute("owned-by", spaceOwnedBy, "The owner of the Space")
-	a.Attribute("iterations", relationGeneric, "Space can have one or many iterations")
 	a.Attribute("areas", relationGeneric, "Space can have one or many areas")
-	a.Attribute("workitemlinktypes", relationGeneric, "Space can have one or many work item link types")
-	a.Attribute("workitemtypes", relationGeneric, "Space can have one or many work item types")
-	a.Attribute("workitems", relationGeneric, "Space can have one or many work items")
+	a.Attribute("backlog", relationGeneric, "Space can have a backlog")
 	a.Attribute("codebases", relationGeneric, "Space can have one or many codebases")
 	a.Attribute("collaborators", relationGeneric, `Space can have one or many collaborators`)
+	a.Attribute("filters", relationGeneric, "Space can have one or many filters")
+	a.Attribute("iterations", relationGeneric, "Space can have one or many iterations")
 	a.Attribute("labels", relationGeneric, "Space can have one or many labels")
+	a.Attribute("owned-by", spaceOwnedBy, "The owner of the Space")
+	a.Attribute("workitems", relationGeneric, "Space can have one or many work items")
+	a.Attribute("workitemlinktypes", relationGeneric, "Space can have one or many work item link types")
+	a.Attribute("workitemtypes", relationGeneric, "Space can have one or many work item types")
+	a.Attribute("workitemtypegroups", relationGeneric, "Space can have one or many work item type groups")
 })
 
 var spaceOwnedBy = a.Type("SpaceOwnedBy", func() {
