@@ -35,7 +35,6 @@ import:
 - package: gopkg.in/inf.v0
 - package: gopkg.in/square/go-jose.v2
   version: ^2.1.2
-- package: gopkg.in/inf.v0
 - package: github.com/dimfeld/httptreemux
   version: ^3.1.0
 - package: github.com/lsegal/gucumber
