@@ -116,6 +116,31 @@ func (rest *TestLabelREST) TestUpdateLabel() {
 	assert.False(rest.T(), updated.Data.Attributes.UpdatedAt.After(time.Now()), "Label was not updated, UpdatedAt after Now()")
 }
 
+func (rest *TestLabelREST) TestUpdateLabelWithVersionConflict() {
+	testFxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Labels(1))
+	i, err := tf.NewFixture(rest.DB, tf.Identities(1))
+	require.Nil(rest.T(), err)
+	svc := testsupport.ServiceAsUser("Label-Service", *i.Identities[0])
+
+	ctrl := NewLabelController(svc, rest.db, rest.Configuration)
+
+	newVersion := testFxt.Labels[0].Version + 1
+	payload := app.UpdateLabelPayload{
+		Data: &app.Label{
+			Attributes: &app.LabelAttributes{
+				Name:    &testFxt.Labels[0].Name,
+				Version: &newVersion,
+			},
+			ID:   &testFxt.Labels[0].ID,
+			Type: label.APIStringTypeLabels,
+		},
+	}
+	_, jerrs := test.UpdateLabelConflict(rest.T(), svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Labels[0].ID, &payload)
+	require.NotNil(rest.T(), jerrs)
+	require.Len(rest.T(), jerrs.Errors, 1)
+	require.Contains(rest.T(), jerrs.Errors[0].Detail, "version conflict")
+}
+
 func (rest *TestLabelREST) TestUpdateLabelWithBadParameter() {
 	testFxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Labels(1))
 	i, err := tf.NewFixture(rest.DB, tf.Identities(1))
