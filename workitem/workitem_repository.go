@@ -16,6 +16,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem/number_sequence"
+
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
@@ -793,21 +794,13 @@ func (r *GormWorkItemRepository) Fetch(ctx context.Context, spaceID uuid.UUID, c
 func (r *GormWorkItemRepository) getAllIterationWithCounts(ctx context.Context, db *gorm.DB, spaceID uuid.UUID) (map[string]WICountsPerIteration, error) {
 	var allIterations []uuid.UUID
 	db.Pluck("id", &allIterations)
-	// NOTE(kwk): use the type groups from the "iteration" bucket. Those hold
-	// information on which work item types to filter by when showing iterations.
-	witIDs := []string{}
-	typeGroups := TypeGroupsByBucket(BucketIteration)
-	for _, g := range typeGroups {
-		for _, id := range g.TypeList {
-			witIDs = append(witIDs, fmt.Sprintf("'%s'", id))
-		}
-	}
+	IDs := "'" + SystemTask.String() + "'"
 
 	var res []WICountsPerIteration
 	db = r.db.Table(workitemTableName).Select(`iterations.id as IterationId, count(*) as Total,
 			count( case fields->>'system.state' when 'closed' then '1' else null end ) as Closed`).Joins(`left join iterations
 			on fields@> concat('{"system.iteration": "', iterations.id, '"}')::jsonb`).Where(`iterations.space_id = ?
-			and work_items.deleted_at IS NULL AND work_items.type IN (`+strings.Join(witIDs, ",")+`)`, spaceID).Group(`IterationId`).Scan(&res)
+			and work_items.deleted_at IS NULL AND work_items.type IN (`+IDs+`)`, spaceID).Group(`IterationId`).Scan(&res)
 	db.Scan(&res)
 	if db.Error != nil {
 		log.Error(ctx, map[string]interface{}{

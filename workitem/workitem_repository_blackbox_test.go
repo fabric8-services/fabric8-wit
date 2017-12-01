@@ -288,16 +288,11 @@ func (s *workItemRepoBlackBoxTest) TestCheckExists() {
 
 func (s *workItemRepoBlackBoxTest) TestGetCountsPerIteration() {
 	s.T().Run("ok", func(t *testing.T) {
-		// given a work item type from the type group in the iteration bucket
-		typeGroups := workitem.TypeGroupsByBucket(workitem.BucketIteration)
-		require.NotEmpty(t, typeGroups)
-		require.NotEmpty(t, typeGroups[0].TypeList)
-		witID := typeGroups[0].TypeList[0]
-
+		// given
 		testFxt := tf.NewTestFixture(t, s.DB, tf.Iterations(2), tf.WorkItems(5, func(fxt *tf.TestFixture, idx int) error {
 			wi := fxt.WorkItems[idx]
 			wi.Fields[workitem.SystemIteration] = fxt.Iterations[0].ID.String()
-			wi.Type = witID
+			wi.Type = workitem.SystemTask
 			if idx < 3 {
 				wi.Fields[workitem.SystemState] = workitem.SystemStateNew
 			} else if idx >= 3 {
