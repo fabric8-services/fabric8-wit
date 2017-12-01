@@ -1,0 +1,40 @@
+{
+  "data": {
+    "attributes": {
+      "bucket": "portfolio",
+      "created-at": "0001-01-01T00:00:00Z",
+      "icon": "fa fa-suitcase",
+      "name": "Scenarios",
+      "updated-at": "0001-01-01T00:00:00Z"
+    },
+    "id": "00000000-0000-0000-0000-000000000001",
+    "links": {
+      "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups/00000000-0000-0000-0000-000000000001"
+    },
+    "relationships": {
+      "defaultType": {
+        "data": {
+          "id": "00000000-0000-0000-0000-000000000003",
+          "type": "workitemtypes"
+        }
+      },
+      "typeList": {
+        "data": [
+          {
+            "id": "00000000-0000-0000-0000-000000000003",
+            "type": "workitemtypes"
+          },
+          {
+            "id": "00000000-0000-0000-0000-000000000004",
+            "type": "workitemtypes"
+          },
+          {
+            "id": "00000000-0000-0000-0000-000000000005",
+            "type": "workitemtypes"
+          }
+        ]
+      }
+    },
+    "type": "workitemtypegroups"
+  }
+}

@@ -1,6 +1,6 @@
 name: wit
 containers:
-- image: docker.io/fabric8/fabric8-wit:latest
+- image: "[[ WIT_IMAGE_URL ]]"
   env:
   - name: F8_AUTH_URL
     value: "[[ F8_AUTH_URL ]]"
