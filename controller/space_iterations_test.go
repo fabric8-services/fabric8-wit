@@ -326,6 +326,9 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 	_, cs := test.ListSpaceIterationsOK(rest.T(), svc.Context, svc, ctrl, fxt.Spaces[0].ID, nil, nil)
 	// then
 	require.Len(rest.T(), cs.Data, len(fxt.Iterations))
+
+	// NOTE: A count only considers work items from the "iteration" work item type
+	// group (e.g. Tasks)
 	expectedTotalCounts := map[string]int{
 		"Root":         0 + 5 + 0 + 4 + 5,
 		"Sprint 1":     5,
@@ -388,6 +391,9 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 	_, cs = test.ListSpaceIterationsOK(rest.T(), svc.Context, svc, ctrl, fxt.Spaces[0].ID, nil, nil)
 	// then
 	require.Len(rest.T(), cs.Data, len(fxt.Iterations))
+
+	// NOTE: A count only considers work items from the "iteration" work item type
+	// group (e.g. Tasks)
 	expectedTotalCounts = map[string]int{
 		"Root":         0 + 5 + 8 + 4 + 5,
 		"Sprint 1":     5,
