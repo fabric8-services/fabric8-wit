@@ -74,10 +74,12 @@ func (c *WorkItemTypeGroupController) List(ctx *app.ListWorkItemTypeGroupContext
 // object for jsonapi.org specification
 func ConvertTypeGroup(request *http.Request, tg workitem.WorkItemTypeGroup) *app.WorkItemTypeGroupData {
 
+	spaceTemplateID := space.SystemSpace
+	spaceTemplateIDStr := spaceTemplateID.String()
 	workitemtypes := "workitemtypes"
 	// TODO(kwk): Replace system space once we have space templates
 	// defaultWorkItemTypeRelatedURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(space.SystemSpace, tg.DefaultType))
-	workItemTypeGroupRelatedURL := rest.AbsoluteURL(request, app.WorkItemTypeGroupHref(space.SystemSpace, tg.ID))
+	workItemTypeGroupRelatedURL := rest.AbsoluteURL(request, app.WorkItemTypeGroupHref(spaceTemplateID, tg.ID))
 	defaultIDStr := tg.DefaultType.String()
 	createdAt := tg.CreatedAt.UTC()
 	updatedAt := tg.UpdatedAt.UTC()
@@ -107,6 +109,12 @@ func ConvertTypeGroup(request *http.Request, tg workitem.WorkItemTypeGroup) *app
 			},
 			TypeList: &app.RelationGenericList{
 				Data: make([]*app.GenericData, len(tg.TypeList)),
+			},
+			SpaceTemplate: &app.RelationGeneric{
+				Data: &app.GenericData{
+					ID:   &spaceTemplateIDStr,
+					Type: &APISpaceTemplates,
+				},
 			},
 		},
 	}
