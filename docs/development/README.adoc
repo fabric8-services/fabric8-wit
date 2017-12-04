@@ -8,8 +8,7 @@ This section of the documentation contains a guide for users who want to contrib
 
 Code or documentation isn’t the only way to contribute. You can also link:https://github.com/fabric8-services/fabric8-wit/issues/new[report an issue].
 
-You can even propose your own type of contribution. Right now we don’t have a lot written about this yet, so just email almighty-public@redhat.com
-if this type of contributing interests you.
+You can even propose your own type of contribution. Right now we don’t have a lot written about this yet, so just discuss here https://groups.google.com/forum/#!forum/fabric8.
 
 === How to use this guide?
 
