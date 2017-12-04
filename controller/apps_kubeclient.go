@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"math"
 	"net/http"
 	"net/url"
@@ -25,6 +26,7 @@ import (
 type KubeClient struct {
 	config        *rest.Config
 	clientset     *kubernetes.Clientset
+	metrics       *metricsClient
 	userNamespace string
 	envMap        map[string]string
 }
@@ -41,10 +43,23 @@ func NewKubeClient(clusterURL string, kubeToken string, userNamespace string) (*
 		return nil, err
 	}
 
+	// In the absence of a better way to get the user's metrics URL,
+	// substitute "api" with "metrics" in user's cluster URL
+	metricsURL, err := getMetricsURLFromAPIURL(clusterURL)
+	if err != nil {
+		return nil, err
+	}
+	// Create MetricsClient for talking with Hawkular API
+	metrics, err := newMetricsClient(metricsURL, kubeToken)
+	if err != nil {
+		return nil, err
+	}
+
 	kubeClient := new(KubeClient)
 	kubeClient.config = &config
 	kubeClient.clientset = clientset
 	kubeClient.userNamespace = userNamespace
+	kubeClient.metrics = metrics
 
 	// Get environments from config map
 	envMap, err := kubeClient.getEnvironmentsFromConfigMap()
@@ -125,13 +140,16 @@ func (kc *KubeClient) ScaleDeployment(spaceName string, appName string, envName 
 	spec["replicas"] = deployNumber
 
 	// TODO send back to openshift
-	//jsonString, err := json.Marshal(dc)
 	jsonString := tostring(dc)
 	if err != nil {
 		return -1, err
 	}
+	fmt.Println("\n" + jsonString)
 
-	fmt.Println("put back = ", jsonString)
+	_, err = kc.setDeploymentConfig(envName, appName, jsonString)
+	if err != nil {
+		return -1, err
+	}
 
 	return oldReplicas, nil
 }
@@ -204,6 +222,27 @@ func (kc *KubeClient) GetEnvironment(envName string) (*app.SimpleEnvironment, er
 	return env, nil
 }
 
+func getMetricsURLFromAPIURL(apiURLStr string) (string, error) {
+	// Parse as URL to give us easy access to the hostname
+	apiURL, err := url.Parse(apiURLStr)
+	if err != nil {
+		return "", err
+	}
+
+	// Get the hostname (without port) and replace api prefix with metrics
+	apiHostname := apiURL.Hostname()
+	if !strings.HasPrefix(apiHostname, "api") {
+		return "", errors.New("Cluster URL does not begin with \"api\": " + apiHostname)
+	}
+	metricsHostname := strings.Replace(apiHostname, "api", "metrics", 1)
+	// Construct URL using just scheme from API URL and metrics hostname
+	metricsURL := url.URL{
+		Scheme: apiURL.Scheme,
+		Host:   metricsHostname,
+	}
+	return metricsURL.String(), nil
+}
+
 func (kc *KubeClient) getDeploymentEnvStats(envNS string, rc types.UID) (*app.EnvStats, error) {
 	// Get all pods created by this deployment
 	pods, err := kc.getPods(envNS, rc)
@@ -216,10 +255,27 @@ func (kc *KubeClient) getDeploymentEnvStats(envNS string, rc types.UID) (*app.En
 		return nil, err
 	}
 
+	cpuUsage, _, err := kc.metrics.getCPUMetrics(pods, envNS) // TODO use timestamp
+	if err != nil {
+		return nil, err
+	}
+	cpuUsageInt32 := int(cpuUsage)
+	memoryUsage, _, err := kc.metrics.getMemoryMetrics(pods, envNS) // TODO use timestamp
+	if err != nil {
+		return nil, err
+	}
+	memoryUsageInt32 := int(memoryUsage)
+
+	unitsBytes := "bytes"
 	result := &app.EnvStats{
-		Cpucores: &app.EnvStatCores{},  // TODO
-		Memory:   &app.EnvStatMemory{}, // TODO
-		Pods:     podStats,
+		Cpucores: &app.EnvStatCores{
+			Used: &cpuUsageInt32,
+		},
+		Memory: &app.EnvStatMemory{
+			Used:  &memoryUsageInt32,
+			Units: &unitsBytes,
+		},
+		Pods: podStats,
 	}
 	return result, nil
 }
@@ -302,7 +358,46 @@ func (kc *KubeClient) getEnvironmentsFromConfigMap() (map[string]string, error) 
 	return envMap, nil
 }
 
-var deploymentConfig struct {
+func (kc *KubeClient) setDeploymentConfig(namespace string, appName string, configstr string) (int, error) {
+	dcURL := fmt.Sprintf("/oapi/v1/namespaces/%s/deploymentconfigs/%s", namespace, appName)
+	result, err := kc.putResource(dcURL, configstr)
+	if err != nil {
+		return -1, err
+	} else if result == nil {
+		return -1, nil
+	}
+	return -1, nil
+}
+
+// Derived from: https://github.com/fabric8-services/fabric8-tenant/blob/master/openshift/kube_token.go
+func (kc *KubeClient) putResource(url string, putBody string) (*string, error) {
+	fullURL := strings.TrimSuffix(kc.config.Host, "/") + url
+	req, err := http.NewRequest("PUT", fullURL, strings.NewReader(putBody))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Accept", "application/yaml")
+	req.Header.Set("Authorization", "Bearer "+kc.config.BearerToken)
+	req.ContentLength = int64(len(putBody))
+
+	client := http.DefaultClient
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	status := resp.StatusCode
+	if status < 200 || status > 300 {
+		return nil, fmt.Errorf("Failed to PUT url %s: status code %d", fullURL, status)
+	}
+	bodyStr := string(body)
+	return &bodyStr, nil
 }
 
 func (kc *KubeClient) getDeploymentConfig(namespace string, appName string, space string) (map[interface{}]interface{}, error) {

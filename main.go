@@ -205,10 +205,6 @@ func main() {
 	logoutCtrl := controller.NewLogoutController(service, config)
 	app.MountLogoutController(service, logoutCtrl)
 
-	// Mount "apps" controller
-	appsCtrl := controller.NewAppsController(service, config)
-	app.MountAppsController(service, appsCtrl)
-
 	// Mount "status" controller
 	statusCtrl := controller.NewStatusController(service, db)
 	app.MountStatusController(service, statusCtrl)
@@ -295,6 +291,10 @@ func main() {
 	userServiceCtrl.CleanTenant = account.NewCleanTenant(config)
 	userServiceCtrl.ShowTenant = account.NewShowTenant(config)
 	app.MountUserServiceController(service, userServiceCtrl)
+
+	// Mount "apps" controller
+	appsCtrl := controller.NewAppsController(service, config)
+	app.MountAppsController(service, appsCtrl)
 
 	// Mount "search" controller
 	searchCtrl := controller.NewSearchController(service, appDB, config)

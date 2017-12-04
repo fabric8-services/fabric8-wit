@@ -61,7 +61,7 @@ func NewAuthClient(ctx context.Context, authURL string) (*AuthClient, error) {
 func (authclient *AuthClient) getAuthToken(forHost string) (*AuthToken, error) {
 	var body []byte
 
-	fullURL := strings.TrimSuffix(authclient.config.Host, "/") + "/token?for=" + forHost
+	fullURL := strings.TrimSuffix(authclient.config.Host, "/") + "/api/token?for=" + forHost
 
 	req, err := http.NewRequest("GET", fullURL, bytes.NewReader(body))
 	if err != nil {
@@ -93,17 +93,6 @@ func (authclient *AuthClient) getAuthToken(forHost string) (*AuthToken, error) {
 	return &respType, nil
 }
 
-func (authclient *AuthClient) ccgetAuthUser(username string) (*AuthUser, error) {
-	//path := "/users?filter[username]=" + username
-	path := "/user"
-	json, err := authclient.GetResource(path, false)
-	if err != nil {
-		return nil, err
-	}
-	fmt.Println("returned user json=" + tostring(json))
-	return nil, nil
-}
-
 func (authclient *AuthClient) getAuthUser() (*AuthUser, error) {
 	return authclient.getAuthUserByName(nil)
 }
@@ -111,12 +100,11 @@ func (authclient *AuthClient) getAuthUser() (*AuthUser, error) {
 func (authclient *AuthClient) getAuthUserByName(username *string) (*AuthUser, error) {
 	var body []byte
 
-	path := "/user"
+	path := "/api/user"
 	if username != nil {
-		path = "/users?filter[username]=" + *username
+		path = "/api/users?filter[username]=" + *username
 	}
 	fullURL := strings.TrimSuffix(authclient.config.Host, "/") + path
-	fmt.Println("AUTH URL= " + fullURL)
 	req, err := http.NewRequest("GET", fullURL, bytes.NewReader(body))
 	if err != nil {
 		return nil, err
@@ -151,7 +139,6 @@ func (authclient *AuthClient) getAuthUserByName(username *string) (*AuthUser, er
 func (authclient *AuthClient) GetResource(url string, allowMissing bool) (map[string]interface{}, error) {
 	var body []byte
 	fullURL := strings.TrimSuffix(authclient.config.Host, "/") + url
-	fmt.Println("full URL=", fullURL)
 	req, err := http.NewRequest("GET", fullURL, bytes.NewReader(body))
 	if err != nil {
 		return nil, err

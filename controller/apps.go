@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/app"
-	"github.com/fabric8-services/fabric8-wit/auth"
+	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
@@ -21,19 +21,19 @@ type AppsController struct {
 }
 
 // NewAppsController creates a apps controller.
-func NewAppsController(service *goa.Service, configuration auth.ServiceConfiguration) *AppsController {
+func NewAppsController(service *goa.Service, config *configuration.Registry) *AppsController {
 	return &AppsController{
 		Controller: service.NewController("AppsController"),
 
-		//AuthURL: configuration.GetAuthServiceURL(),
-		//AuthURL: "http://localhost:8089/api"
-		//AuthURL: "https://auth.prod-preview.openshift.io/api",
-		AuthURL: "https://auth.openshift.io/api",
+		AuthURL: config.GetAuthServiceURL(),
+		//AuthURL: "http://localhost:8089"
+		//AuthURL: "https://auth.prod-preview.openshift.io",
+		//AuthURL: "https://auth.openshift.io",
 
 		// TODO
-		//WitURL: "http://localhost:8080/api"
-		//WitURL: "http://api.prod-preview.openshift.io/api",
-		WitURL: "http://api.openshift.io/api",
+		//WitURL: "http://localhost:8080"
+		//WitURL: "http://api.prod-preview.openshift.io",
+		WitURL: "http://api.openshift.io",
 	}
 }
 
