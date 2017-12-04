@@ -9,7 +9,7 @@ import (
 // TrackerQuery represents tracker query
 type TrackerQuery struct {
 	gormsupport.Lifecycle
-	ID uint64 `gorm:"primary_key"`
+	ID uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
 	// Search query of the tracker
 	Query string
 	// Schedule to fetch and import remote tracker items

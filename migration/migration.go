@@ -370,6 +370,9 @@ func GetMigrations() Migrations {
 		link.SystemWorkItemLinkCategoryUserID.String(),
 	)})
 
+	// Version 81
+	m = append(m, steps{ExecuteSQLFile("081-trackerquery-to-use-uuid.sql", workitem.SystemAssignees, workitem.SystemLabels)})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the

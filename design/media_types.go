@@ -47,32 +47,3 @@ var position = a.Type("workItemReorderPosition", func() {
 
 	a.Required("direction")
 })
-
-// TrackerQuery represents the search query with schedule
-var TrackerQuery = a.MediaType("application/vnd.trackerquery+json", func() {
-	a.TypeName("TrackerQuery")
-	a.Description("Tracker query with schedule")
-	a.Attribute("id", d.String, "unique id per installation")
-	a.Attribute("query", d.String, "Search query")
-	a.Attribute("schedule", d.String, "Schedule for fetch and import")
-	a.Attribute("trackerID", d.UUID, "Tracker ID")
-	a.Attribute("relationships", trackerQueryRelationships)
-
-	a.Required("id")
-	a.Required("query")
-	a.Required("schedule")
-	a.Required("trackerID")
-	a.Required("relationships")
-
-	a.View("default", func() {
-		a.Attribute("id")
-		a.Attribute("query")
-		a.Attribute("schedule")
-		a.Attribute("trackerID")
-		a.Attribute("relationships")
-	})
-})
-
-var trackerQueryRelationships = a.Type("TrackerQueryRelationships", func() {
-	a.Attribute("space", relationSpaces, "This defines the owning space of this work item type.")
-})

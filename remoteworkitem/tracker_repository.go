@@ -67,7 +67,6 @@ func (r *GormTrackerRepository) Create(ctx context.Context, t *Tracker) error {
 // returns NotFoundError, ConversionError or InternalError
 func (r *GormTrackerRepository) Load(ctx context.Context, ID uuid.UUID) (*Tracker, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "tracker", "load"}, time.Now())
-
 	res := Tracker{}
 	tx := r.db.Where("id = ?", ID).Find(&res)
 	if tx.RecordNotFound() {
