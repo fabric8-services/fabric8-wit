@@ -19,6 +19,12 @@
             "type": "workitemtypes"
           }
         },
+        "spaceTemplate": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000002",
+            "type": "spacetemplates"
+          }
+        },
         "typeList": {
           "data": [
             {
@@ -57,6 +63,12 @@
             "type": "workitemtypes"
           }
         },
+        "spaceTemplate": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000002",
+            "type": "spacetemplates"
+          }
+        },
         "typeList": {
           "data": [
             {
@@ -91,6 +103,12 @@
             "type": "workitemtypes"
           }
         },
+        "spaceTemplate": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000002",
+            "type": "spacetemplates"
+          }
+        },
         "typeList": {
           "data": [
             {
@@ -123,6 +141,12 @@
           "data": {
             "id": "00000000-0000-0000-0000-000000000013",
             "type": "workitemtypes"
+          }
+        },
+        "spaceTemplate": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000002",
+            "type": "spacetemplates"
           }
         },
         "typeList": {
