@@ -6,9 +6,9 @@ project by reporting issues, sending pull requests, writing
 documentation etc.
 
 If you have any questions, you can ask in the
-[public mailing list](https://www.redhat.com/mailman/listinfo/almighty-public)
+[public mailing list](https://groups.google.com/forum/#!forum/fabric8)
 or
-[IRC channel](http://webchat.freenode.net/?randomnick=1&channels=almighty).
+[IRC channel](http://webchat.freenode.net/?randomnick=1&channels=fabric8).
 
 ## Reporting Issues
 
