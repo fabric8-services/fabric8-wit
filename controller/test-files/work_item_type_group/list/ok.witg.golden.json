@@ -19,6 +19,12 @@
             "type": "workitemtypes"
           }
         },
+        "nextGroup": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000004",
+            "type": "workitemtypegroups"
+          }
+        },
         "spaceTemplate": {
           "data": {
             "id": "00000000-0000-0000-0000-000000000002",
@@ -32,11 +38,11 @@
               "type": "workitemtypes"
             },
             {
-              "id": "00000000-0000-0000-0000-000000000004",
+              "id": "00000000-0000-0000-0000-000000000005",
               "type": "workitemtypes"
             },
             {
-              "id": "00000000-0000-0000-0000-000000000005",
+              "id": "00000000-0000-0000-0000-000000000006",
               "type": "workitemtypes"
             }
           ]
@@ -52,15 +58,27 @@
         "name": "Experiences",
         "updated-at": "0001-01-01T00:00:00Z"
       },
-      "id": "00000000-0000-0000-0000-000000000006",
+      "id": "00000000-0000-0000-0000-000000000004",
       "links": {
-        "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups/00000000-0000-0000-0000-000000000006"
+        "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups/00000000-0000-0000-0000-000000000004"
       },
       "relationships": {
         "defaultType": {
           "data": {
             "id": "00000000-0000-0000-0000-000000000007",
             "type": "workitemtypes"
+          }
+        },
+        "nextGroup": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000008",
+            "type": "workitemtypegroups"
+          }
+        },
+        "prevGroup": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000001",
+            "type": "workitemtypegroups"
           }
         },
         "spaceTemplate": {
@@ -76,7 +94,7 @@
               "type": "workitemtypes"
             },
             {
-              "id": "00000000-0000-0000-0000-000000000008",
+              "id": "00000000-0000-0000-0000-000000000009",
               "type": "workitemtypes"
             }
           ]
@@ -92,15 +110,27 @@
         "name": "Requirements",
         "updated-at": "0001-01-01T00:00:00Z"
       },
-      "id": "00000000-0000-0000-0000-000000000009",
+      "id": "00000000-0000-0000-0000-000000000008",
       "links": {
-        "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups/00000000-0000-0000-0000-000000000009"
+        "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups/00000000-0000-0000-0000-000000000008"
       },
       "relationships": {
         "defaultType": {
           "data": {
             "id": "00000000-0000-0000-0000-000000000010",
             "type": "workitemtypes"
+          }
+        },
+        "nextGroup": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000011",
+            "type": "workitemtypegroups"
+          }
+        },
+        "prevGroup": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000004",
+            "type": "workitemtypegroups"
           }
         },
         "spaceTemplate": {
@@ -116,7 +146,7 @@
               "type": "workitemtypes"
             },
             {
-              "id": "00000000-0000-0000-0000-000000000011",
+              "id": "00000000-0000-0000-0000-000000000012",
               "type": "workitemtypes"
             }
           ]
@@ -132,15 +162,21 @@
         "name": "Execution",
         "updated-at": "0001-01-01T00:00:00Z"
       },
-      "id": "00000000-0000-0000-0000-000000000012",
+      "id": "00000000-0000-0000-0000-000000000011",
       "links": {
-        "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups/00000000-0000-0000-0000-000000000012"
+        "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups/00000000-0000-0000-0000-000000000011"
       },
       "relationships": {
         "defaultType": {
           "data": {
             "id": "00000000-0000-0000-0000-000000000013",
             "type": "workitemtypes"
+          }
+        },
+        "prevGroup": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000008",
+            "type": "workitemtypegroups"
           }
         },
         "spaceTemplate": {

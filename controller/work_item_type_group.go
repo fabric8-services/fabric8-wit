@@ -11,6 +11,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/goadesign/goa"
+	uuid "github.com/satori/go.uuid"
 )
 
 // WorkItemTypeGroupController implements the work_item_type_group resource.
@@ -19,7 +20,9 @@ type WorkItemTypeGroupController struct {
 	db application.DB
 }
 
-const APIWorkItemTypeGroups = "workitemtypegroups"
+// APIWorkItemTypeGroups is the type constant used when referring to work item
+// type group relationships in JSONAPI
+var APIWorkItemTypeGroups = "workitemtypegroups"
 
 // NewWorkItemTypeGroupController creates a work_item_type_group controller.
 func NewWorkItemTypeGroupController(service *goa.Service, db application.DB) *WorkItemTypeGroupController {
@@ -117,6 +120,25 @@ func ConvertTypeGroup(request *http.Request, tg workitem.WorkItemTypeGroup) *app
 				},
 			},
 		},
+	}
+
+	if tg.PrevGroupID != uuid.Nil {
+		prevIDStr := tg.PrevGroupID.String()
+		res.Relationships.PrevGroup = &app.RelationGeneric{
+			Data: &app.GenericData{
+				ID:   &prevIDStr,
+				Type: &APIWorkItemTypeGroups,
+			},
+		}
+	}
+	if tg.NextGroupID != uuid.Nil {
+		nextIDStr := tg.NextGroupID.String()
+		res.Relationships.NextGroup = &app.RelationGeneric{
+			Data: &app.GenericData{
+				ID:   &nextIDStr,
+				Type: &APIWorkItemTypeGroups,
+			},
+		}
 	}
 
 	for i, witID := range tg.TypeList {
