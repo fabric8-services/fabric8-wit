@@ -11,7 +11,6 @@ import (
 
 	"time"
 
-	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/satori/go.uuid"
@@ -20,15 +19,13 @@ import (
 )
 
 const (
-	varTokenPublicKey           = "token.publickey"
-	varTokenPrivateKey          = "token.privatekey"
 	defaultConfigFilePath       = "../config.yaml"
 	defaultValuesConfigFilePath = "" // when the code defaults are to be used, the path to config file is ""
 )
 
 var reqLong *http.Request
 var reqShort *http.Request
-var config *configuration.ConfigurationData
+var config *configuration.Registry
 
 func TestMain(m *testing.M) {
 	resetConfiguration(defaultConfigFilePath)
@@ -40,21 +37,13 @@ func TestMain(m *testing.M) {
 
 func resetConfiguration(configPath string) {
 	var err error
-
-	// calling NewConfigurationData("") is same as GetConfigurationData()
-	config, err = configuration.NewConfigurationData(configPath)
+	config, err = configuration.New(configPath)
 	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
 }
 
-func TestGetAuthEndpointSpacesDevModeOK(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
-	t.Parallel()
-	checkGetServiceEndpointOK(t, config.GetAuthDevModeURL()+"/api/spaces", config.GetAuthEndpointSpaces)
-}
-
-func TestGetAuthEndpointSetByUrlEnvVaribaleOK(t *testing.T) {
+func TestGetAuthURLSetByEnvVaribaleOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	env := os.Getenv("F8_AUTH_URL")
 	defer func() {
@@ -65,9 +54,8 @@ func TestGetAuthEndpointSetByUrlEnvVaribaleOK(t *testing.T) {
 	os.Setenv("F8_AUTH_URL", "https://auth.xyz.io")
 	resetConfiguration(defaultValuesConfigFilePath)
 
-	url, err := config.GetAuthEndpointSpaces(reqLong)
-	require.Nil(t, err)
-	require.Equal(t, "https://auth.xyz.io/api/spaces", url)
+	url := config.GetAuthServiceURL()
+	require.Equal(t, "https://auth.xyz.io", url)
 }
 
 func TestGetKeycloakEndpointSetByUrlEnvVaribaleOK(t *testing.T) {
@@ -110,64 +98,52 @@ func TestGetKeycloakEndpointSetByUrlEnvVaribaleOK(t *testing.T) {
 	require.Equal(t, "http://xyz.io/auth/realms/"+config.GetKeycloakRealm()+"/authz/entitlement/fabric8-online-platform", url)
 }
 
-func TestGetKeycloakEndpointAdminDevModeOK(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
-	t.Parallel()
-	checkGetServiceEndpointOK(t, config.GetKeycloakDevModeURL()+"/auth/admin/realms/"+config.GetKeycloakRealm(), config.GetKeycloakEndpointAdmin)
-}
-
 func TestGetKeycloakEndpointAuthzResourcesetDevModeOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
-	checkGetServiceEndpointOK(t, config.GetKeycloakDevModeURL()+"/auth/realms/"+config.GetKeycloakRealm()+"/authz/protection/resource_set", config.GetKeycloakEndpointAuthzResourceset)
-}
-
-func TestGetKeycloakEndpointClientsDevModeOK(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
-	t.Parallel()
-	checkGetServiceEndpointOK(t, config.GetKeycloakDevModeURL()+"/auth/admin/realms/"+config.GetKeycloakRealm()+"/clients", config.GetKeycloakEndpointClients)
+	checkGetServiceEndpointOK(t, config.GetKeycloakDevModeURL()+"/authz/protection/resource_set", config.GetKeycloakEndpointAuthzResourceset)
 }
 
 func TestGetKeycloakEndpointAuthDevModeOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
-	checkGetServiceEndpointOK(t, config.GetKeycloakDevModeURL()+"/auth/realms/"+config.GetKeycloakRealm()+"/protocol/openid-connect/auth", config.GetKeycloakEndpointAuth)
+	checkGetServiceEndpointOK(t, config.GetKeycloakDevModeURL()+"/protocol/openid-connect/auth", config.GetKeycloakEndpointAuth)
 }
 
 func TestGetKeycloakEndpointLogoutDevModeOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
-	checkGetServiceEndpointOK(t, config.GetKeycloakDevModeURL()+"/auth/realms/"+config.GetKeycloakRealm()+"/protocol/openid-connect/logout", config.GetKeycloakEndpointLogout)
+	checkGetServiceEndpointOK(t, config.GetKeycloakDevModeURL()+"/protocol/openid-connect/logout", config.GetKeycloakEndpointLogout)
 }
 
 func TestGetKeycloakEndpointTokenOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
-	checkGetServiceEndpointOK(t, config.GetKeycloakDevModeURL()+"/auth/realms/"+config.GetKeycloakRealm()+"/protocol/openid-connect/token", config.GetKeycloakEndpointToken)
+	checkGetServiceEndpointOK(t, config.GetKeycloakDevModeURL()+"/protocol/openid-connect/token", config.GetKeycloakEndpointToken)
 }
 
 func TestGetKeycloakEndpointUserInfoOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
-	checkGetServiceEndpointOK(t, config.GetKeycloakDevModeURL()+"/auth/realms/"+config.GetKeycloakRealm()+"/protocol/openid-connect/userinfo", config.GetKeycloakEndpointUserInfo)
+	checkGetServiceEndpointOK(t, config.GetKeycloakDevModeURL()+"/protocol/openid-connect/userinfo", config.GetKeycloakEndpointUserInfo)
 }
 
 func TestGetKeycloakEndpointEntitlementOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
-	checkGetServiceEndpointOK(t, config.GetKeycloakDevModeURL()+"/auth/realms/"+config.GetKeycloakRealm()+"/authz/entitlement/fabric8-online-platform", config.GetKeycloakEndpointEntitlement)
+	checkGetServiceEndpointOK(t, config.GetKeycloakDevModeURL()+"/authz/entitlement/fabric8-online-platform", config.GetKeycloakEndpointEntitlement)
 }
 
 func TestGetKeycloakEndpointBrokerOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
-	checkGetServiceEndpointOK(t, config.GetKeycloakDevModeURL()+"/auth/realms/"+config.GetKeycloakRealm()+"/broker", config.GetKeycloakEndpointBroker)
+	checkGetServiceEndpointOK(t, config.GetKeycloakDevModeURL()+"/broker", config.GetKeycloakEndpointBroker)
 }
 
 func TestGetKeycloakUserInfoEndpointOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
-	checkGetServiceEndpointOK(t, config.GetKeycloakDevModeURL()+"/auth/realms/"+config.GetKeycloakRealm()+"/account", config.GetKeycloakAccountEndpoint)
+	checkGetServiceEndpointOK(t, config.GetKeycloakDevModeURL()+"/account", config.GetKeycloakAccountEndpoint)
 }
 
 func checkGetServiceEndpointOK(t *testing.T, expectedEndpoint string, getEndpoint func(req *http.Request) (string, error)) {
@@ -180,51 +156,6 @@ func checkGetServiceEndpointOK(t *testing.T, expectedEndpoint string, getEndpoin
 	assert.Nil(t, err)
 	// In dev mode it's always the defualt value regardless of the request
 	assert.Equal(t, expectedEndpoint, url)
-}
-
-func TestGetTokenPrivateKeyFromConfigFile(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
-	envKey := generateEnvKey(varTokenPrivateKey)
-	realEnvValue := os.Getenv(envKey) // could be "" as well.
-
-	os.Unsetenv(envKey)
-	defer func() {
-		os.Setenv(envKey, realEnvValue)
-		resetConfiguration(defaultValuesConfigFilePath)
-	}()
-
-	resetConfiguration(defaultConfigFilePath)
-	// env variable NOT set, so we check with config.yaml's value
-
-	viperValue := config.GetTokenPrivateKey()
-	assert.NotNil(t, viperValue)
-
-	parsedKey, err := jwt.ParseRSAPrivateKeyFromPEM(viperValue)
-	require.Nil(t, err)
-	assert.NotNil(t, parsedKey)
-}
-
-func TestGetTokenPublicKeyFromConfigFile(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
-	envKey := generateEnvKey(varTokenPublicKey)
-	realEnvValue := os.Getenv(envKey) // could be "" as well.
-
-	os.Unsetenv(envKey)
-	defer func() {
-		os.Setenv(envKey, realEnvValue)
-		resetConfiguration(defaultValuesConfigFilePath)
-	}()
-
-	resetConfiguration(defaultConfigFilePath)
-
-	// env variable is now unset for sure, this will lead to the test looking up for
-	// value in config.yaml
-	viperValue := config.GetTokenPublicKey()
-	assert.NotNil(t, viperValue)
-
-	parsedKey, err := jwt.ParseRSAPublicKeyFromPEM(viperValue)
-	require.Nil(t, err)
-	assert.NotNil(t, parsedKey)
 }
 
 func TestGetMaxHeaderSizeUsingDefaults(t *testing.T) {

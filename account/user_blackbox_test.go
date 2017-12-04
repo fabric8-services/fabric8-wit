@@ -1,14 +1,11 @@
 package account_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/errors"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
-	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/resource"
 
 	uuid "github.com/satori/go.uuid"
@@ -19,31 +16,16 @@ import (
 
 type userBlackBoxTest struct {
 	gormtestsupport.DBTestSuite
-	repo  account.UserRepository
-	clean func()
-	ctx   context.Context
+	repo account.UserRepository
 }
 
 func TestRunUserBlackBoxTest(t *testing.T) {
 	suite.Run(t, &userBlackBoxTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
-// SetupSuite overrides the DBTestSuite's function but calls it before doing anything else
-// The SetupSuite method will run before the tests in the suite are run.
-// It sets up a database connection for all the tests in this suite without polluting global space.
-func (s *userBlackBoxTest) SetupSuite() {
-	s.DBTestSuite.SetupSuite()
-	s.ctx = migration.NewMigrationContext(context.Background())
-	s.DBTestSuite.PopulateDBTestSuite(s.ctx)
-}
-
 func (s *userBlackBoxTest) SetupTest() {
+	s.DBTestSuite.SetupTest()
 	s.repo = account.NewUserRepository(s.DB)
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
-}
-
-func (s *userBlackBoxTest) TearDownTest() {
-	s.clean()
 }
 
 func (s *userBlackBoxTest) TestOKToDelete() {
@@ -54,11 +36,11 @@ func (s *userBlackBoxTest) TestOKToDelete() {
 	user := createAndLoadUser(s)
 	createAndLoadUser(s)
 
-	err := s.repo.Delete(s.ctx, user.ID)
+	err := s.repo.Delete(s.Ctx, user.ID)
 	assert.Nil(s.T(), err)
 
 	// lets see how many are present.
-	users, err := s.repo.List(s.ctx)
+	users, err := s.repo.List(s.Ctx)
 	require.Nil(s.T(), err, "Could not list users")
 	require.True(s.T(), len(users) > 0)
 
@@ -84,7 +66,7 @@ func (s *userBlackBoxTest) TestExistsUser() {
 		//t.Parallel()
 		user := createAndLoadUser(s)
 		// when
-		err := s.repo.CheckExists(s.ctx, user.ID.String())
+		err := s.repo.CheckExists(s.Ctx, user.ID.String())
 		// then
 		require.Nil(t, err)
 	})
@@ -92,7 +74,7 @@ func (s *userBlackBoxTest) TestExistsUser() {
 	t.Run("user doesn't exist", func(t *testing.T) {
 		//t.Parallel()
 		// Check not existing
-		err := s.repo.CheckExists(s.ctx, uuid.NewV4().String())
+		err := s.repo.CheckExists(s.Ctx, uuid.NewV4().String())
 		// then
 		//
 		require.IsType(s.T(), errors.NotFoundError{}, err)
@@ -106,16 +88,31 @@ func (s *userBlackBoxTest) TestOKToSave() {
 	user := createAndLoadUser(s)
 
 	user.FullName = "newusernameTestUser"
-	err := s.repo.Save(s.ctx, user)
+	err := s.repo.Save(s.Ctx, user)
 	require.Nil(s.T(), err, "Could not update user")
 
-	updatedUser, err := s.repo.Load(s.ctx, user.ID)
+	updatedUser, err := s.repo.Load(s.Ctx, user.ID)
 	require.Nil(s.T(), err, "Could not load user")
 	assert.Equal(s.T(), user.FullName, updatedUser.FullName)
 	fields := user.ContextInformation
 	assert.Equal(s.T(), fields["last_visited"], "http://www.google.com")
 	assert.Equal(s.T(), fields["myid"], "71f343e3-2bfa-4ec6-86d4-79b91476acfc")
 
+}
+
+func (s *userBlackBoxTest) TestUpdateToEmptyString() {
+	t := s.T()
+	resource.Require(t, resource.Database)
+	user := createAndLoadUser(s)
+
+	err := s.repo.Save(s.Ctx, user)
+	require.Nil(t, err)
+	user.Bio = ""
+	err = s.repo.Save(s.Ctx, user)
+	require.Nil(t, err)
+	u, err := s.repo.Load(s.Ctx, user.ID)
+	require.Nil(t, err)
+	require.Empty(t, u.Bio)
 }
 
 func createAndLoadUser(s *userBlackBoxTest) *account.User {
@@ -133,10 +130,10 @@ func createAndLoadUser(s *userBlackBoxTest) *account.User {
 		},
 	}
 
-	err := s.repo.Create(s.ctx, user)
+	err := s.repo.Create(s.Ctx, user)
 	require.Nil(s.T(), err, "Could not create user")
 
-	createdUser, err := s.repo.Load(s.ctx, user.ID)
+	createdUser, err := s.repo.Load(s.Ctx, user.ID)
 	require.Nil(s.T(), err, "Could not load user")
 	require.Equal(s.T(), user.Email, createdUser.Email)
 	require.Equal(s.T(), user.ID, createdUser.ID)

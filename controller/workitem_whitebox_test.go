@@ -10,7 +10,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
@@ -140,9 +139,7 @@ func TestConvertWorkItemWithoutDescription(t *testing.T) {
 
 type TestWorkItemREST struct {
 	gormtestsupport.DBTestSuite
-
-	db    *gormapplication.GormDB
-	clean func()
+	db *gormapplication.GormDB
 }
 
 func TestRunWorkItemREST(t *testing.T) {
@@ -154,12 +151,8 @@ func TestRunWorkItemREST(t *testing.T) {
 }
 
 func (rest *TestWorkItemREST) SetupTest() {
+	rest.DBTestSuite.SetupTest()
 	rest.db = gormapplication.NewGormDB(rest.DB)
-	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
-}
-
-func (rest *TestWorkItemREST) TearDownTest() {
-	rest.clean()
 }
 
 func prepareWI2(attributes map[string]interface{}) app.WorkItem {

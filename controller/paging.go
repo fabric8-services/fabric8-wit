@@ -47,8 +47,7 @@ func computePagingLimits(offsetParam *string, limitParam *int) (offset int, limi
 	return offset, limit
 }
 
-func setPagingLinks(links *app.PagingLinks, path string, resultLen, offset, limit, count int, additionalQuery ...string) {
-
+func setPagingLinks(links *app.PagingLinks, path string, currentCount, offset, limit, totalCount int, additionalQuery ...string) {
 	format := func(additional []string) string {
 		if len(additional) > 0 {
 			return "&" + strings.Join(additional, "&")
@@ -57,14 +56,14 @@ func setPagingLinks(links *app.PagingLinks, path string, resultLen, offset, limi
 	}
 
 	// prev link
-	if offset > 0 && count > 0 {
+	if offset > 0 && totalCount > 0 {
 		var prevStart int
 		// we do have a prev link
-		if offset <= count {
+		if offset <= totalCount {
 			prevStart = offset - limit
 		} else {
 			// the first range that intersects the end of the useful range
-			prevStart = offset - (((offset-count)/limit)+1)*limit
+			prevStart = offset - (((offset-totalCount)/limit)+1)*limit
 		}
 		realLimit := limit
 		if prevStart < 0 {
@@ -77,8 +76,8 @@ func setPagingLinks(links *app.PagingLinks, path string, resultLen, offset, limi
 	}
 
 	// next link
-	nextStart := offset + resultLen
-	if nextStart < count {
+	nextStart := offset + currentCount
+	if nextStart < totalCount {
 		// we have a next link
 		next := fmt.Sprintf("%s?page[offset]=%d&page[limit]=%d%s", path, nextStart, limit, format(additionalQuery))
 		links.Next = &next
@@ -97,12 +96,12 @@ func setPagingLinks(links *app.PagingLinks, path string, resultLen, offset, limi
 
 	// last link
 	var lastStart int
-	if offset < count {
+	if offset < totalCount {
 		// advance some pages until touching the end of the range
-		lastStart = offset + (((count - offset - 1) / limit) * limit)
+		lastStart = offset + (((totalCount - offset - 1) / limit) * limit)
 	} else {
 		// retreat at least one page until covering the range
-		lastStart = offset - ((((offset - count) / limit) + 1) * limit)
+		lastStart = offset - ((((offset - totalCount) / limit) + 1) * limit)
 	}
 	realLimit := limit
 	if lastStart < 0 {

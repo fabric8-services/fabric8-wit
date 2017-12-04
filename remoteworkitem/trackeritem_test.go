@@ -3,7 +3,6 @@ package remoteworkitem
 import (
 	"testing"
 
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/stretchr/testify/suite"
@@ -11,20 +10,10 @@ import (
 
 type TestTrackerItemRepository struct {
 	gormtestsupport.DBTestSuite
-
-	clean func()
 }
 
 func TestRunTrackerItemRepository(t *testing.T) {
 	suite.Run(t, &TestTrackerItemRepository{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
-}
-
-func (test *TestTrackerItemRepository) SetupTest() {
-	test.clean = cleaner.DeleteCreatedEntities(test.DB)
-}
-
-func (test *TestTrackerItemRepository) TearDownTest() {
-	test.clean()
 }
 
 func (test *TestTrackerItemRepository) TestUpload() {
@@ -41,7 +30,7 @@ func (test *TestTrackerItemRepository) TestUpload() {
 	i := TrackerItemContent{Content: []byte("some text"), ID: "https://github.com/golang/go/issues/124"}
 
 	// create
-	err := upload(test.DB, int(tr.ID), i)
+	err := upload(test.DB, tr.ID, i)
 	if err != nil {
 		t.Error("Create error:", err)
 	}
@@ -56,7 +45,7 @@ func (test *TestTrackerItemRepository) TestUpload() {
 
 	i = TrackerItemContent{Content: []byte("some text 2"), ID: "https://github.com/golang/go/issues/124"}
 	// update
-	err = upload(test.DB, int(tr.ID), i)
+	err = upload(test.DB, tr.ID, i)
 	if err != nil {
 		t.Error("Update error:", err)
 	}

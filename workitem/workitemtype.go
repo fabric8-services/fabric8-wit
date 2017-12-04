@@ -33,6 +33,7 @@ const (
 	SystemIteration           = "system.iteration"
 	SystemArea                = "system.area"
 	SystemCodebase            = "system.codebase"
+	SystemLabels              = "system.labels"
 
 	SystemStateOpen       = "open"
 	SystemStateNew        = "new"

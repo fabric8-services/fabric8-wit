@@ -4,6 +4,7 @@ import (
 	"os"
 
 	config "github.com/fabric8-services/fabric8-wit/configuration"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/models"
@@ -29,14 +30,16 @@ func NewDBTestSuite(configFilePath string) DBTestSuite {
 type DBTestSuite struct {
 	suite.Suite
 	configFile    string
-	Configuration *config.ConfigurationData
+	Configuration *config.Registry
 	DB            *gorm.DB
+	clean         func()
+	Ctx           context.Context
 }
 
 // SetupSuite implements suite.SetupAllSuite
 func (s *DBTestSuite) SetupSuite() {
 	resource.Require(s.T(), resource.Database)
-	configuration, err := config.NewConfigurationData(s.configFile)
+	configuration, err := config.New(s.configFile)
 	if err != nil {
 		log.Panic(nil, map[string]interface{}{
 			"err": err,
@@ -52,10 +55,22 @@ func (s *DBTestSuite) SetupSuite() {
 			}, "failed to connect to the database")
 		}
 	}
+	s.Ctx = migration.NewMigrationContext(context.Background())
+	s.populateDBTestSuite(s.Ctx)
 }
 
-// PopulateDBTestSuite populates the DB with common values
-func (s *DBTestSuite) PopulateDBTestSuite(ctx context.Context) {
+// SetupTest implements suite.SetupTest
+func (s *DBTestSuite) SetupTest() {
+	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+}
+
+// TearDownTest implements suite.TearDownTest
+func (s *DBTestSuite) TearDownTest() {
+	s.clean()
+}
+
+// populateDBTestSuite populates the DB with common values
+func (s *DBTestSuite) populateDBTestSuite(ctx context.Context) {
 	if _, c := os.LookupEnv(resource.Database); c != false {
 		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
 			return migration.PopulateCommonTypes(ctx, tx, workitem.NewWorkItemTypeRepository(tx))

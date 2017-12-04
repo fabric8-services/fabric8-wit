@@ -1,0 +1,39 @@
+version: '2'
+
+services:
+  db:
+    image: registry.centos.org/postgresql/postgresql:9.6
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRESQL_ADMIN_PASSWORD: mysecretpassword
+  core:
+    image: docker.io/fabric8/fabric8-wit:latest
+#    command: -config /usr/local/wit/etc/config.yaml
+    environment:
+      F8_AUTH_URL: "http://localhost:8089"
+      F8_DEVELOPER_MODE_ENABLED: "true"
+      F8_POSTGRES_HOST: db
+      F8_POSTGRES_PORT: 5432
+    ports:
+      - "8080:8080"
+    depends_on:
+      - auth
+  db-auth:
+    image: registry.centos.org/postgresql/postgresql:9.6
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRESQL_ADMIN_PASSWORD: mysecretpassword
+  auth:
+    image: docker.io/fabric8/fabric8-auth:latest
+#    command: -config /usr/local/auth/etc/config.yaml
+    environment:
+      AUTH_WIT_URL: "http://docker.for.mac.localhost:8080"
+      AUTH_DEVELOPER_MODE_ENABLED: "true"
+      AUTH_POSTGRES_HOST: db-auth
+      AUTH_POSTGRES_PORT: 5432
+    ports:
+      - "8089:8089"
+    depends_on:
+      - db-auth

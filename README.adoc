@@ -1,4 +1,4 @@
-= Fabric8 WIT
+= Fabric8 Work Item Tracker
 :toc:
 :toc-placement: preamble
 :sectnums:
@@ -8,6 +8,8 @@ image:https://ci.centos.org/buildStatus/icon?job=devtools-fabric8-wit-build-mast
 image:https://goreportcard.com/badge/github.com/fabric8-services/fabric8-wit[Go Report Card, link="https://goreportcard.com/report/github.com/fabric8-services/fabric8-wit"]
 image:https://godoc.org/github.com/fabric8-services/fabric8-wit?status.png[GoDoc,link="https://godoc.org/github.com/fabric8-services/fabric8-wit"]
 image:https://codecov.io/gh/fabric8-services/fabric8-wit/branch/master/graph/badge.svg[Codecov.io,link="https://codecov.io/gh/fabric8-services/fabric8-wit"]
+
+Work Items describe and keep track of work that needs to be done. A user can be assigned to a Work Item. Each Work Item must be attached to a Collaboration Space and an Area (assigned by default). This can be used to model bugs, tasks, features, ideas, and more.
 
 == Building from source [[building]]
 
@@ -19,7 +21,7 @@ link:docs/development/getting-started-win.adoc[Getting started with fabric8-wit 
 
 You need to install:
 
-* `go` (>= v1.7)
+* `go` (>= v1.8)
 * `git`
 * `mercurial`
 * `make`
@@ -32,7 +34,7 @@ Run the following command to find out your Go version.
 $ go version
 ----
 
-*You must at least have Go version 1.7.*
+*You must at least have Go version 1.8.*
 
 See <<fetch-dependencies>> to see an explanaition on how we deal with
 dependencies.
@@ -59,8 +61,8 @@ Try to use at least version `0.11.0` as we haven't tested another version.
 
 === Get the code [[get-the-code]]
 
-Assuming you have Go installed and configured (have `$GOPATH` setup) here is
-how to build.
+Assuming you have Go installed and configured (have `$GOPATH` setup and
+pointing to a single directory) here is how to build.
 
 Check out the code
 
@@ -406,10 +408,10 @@ The database are kept in a docker container that gets reused between restarts. T
 To clear out the database kill the database like this:
 
 ----
-$ docker kill almightycore_db_1 && docker rm almightycore_db_1
+$ docker kill fabric8wit_db_1 && docker rm fabric8wit_db_1
 ----
 
-In case you have mulitple almighty running use `docker ps` to locate the container name.
+In case you have mulitple `fabric8*` running use `docker ps` to locate the container name.
 
 == Debugging [[debug]]
 

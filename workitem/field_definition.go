@@ -7,6 +7,7 @@ import (
 
 	"strings"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/fabric8-services/fabric8-wit/convert"
 
 	errs "github.com/pkg/errors"
@@ -14,20 +15,21 @@ import (
 
 // constants for describing possible field types
 const (
-	KindString            Kind = "string"
-	KindInteger           Kind = "integer"
-	KindFloat             Kind = "float"
-	KindInstant           Kind = "instant"
-	KindDuration          Kind = "duration"
-	KindURL               Kind = "url"
-	KindIteration         Kind = "iteration"
-	KindWorkitemReference Kind = "workitem"
-	KindUser              Kind = "user"
-	KindEnum              Kind = "enum"
-	KindList              Kind = "list"
-	KindMarkup            Kind = "markup"
-	KindArea              Kind = "area"
-	KindCodebase          Kind = "codebase"
+	KindString    Kind = "string"
+	KindInteger   Kind = "integer"
+	KindFloat     Kind = "float"
+	KindBoolean   Kind = "bool"
+	KindInstant   Kind = "instant"
+	KindDuration  Kind = "duration"
+	KindURL       Kind = "url"
+	KindIteration Kind = "iteration"
+	KindUser      Kind = "user"
+	KindLabel     Kind = "label"
+	KindEnum      Kind = "enum"
+	KindList      Kind = "list"
+	KindMarkup    Kind = "markup"
+	KindArea      Kind = "area"
+	KindCodebase  Kind = "codebase"
 )
 
 // Kind is the kind of field type
@@ -36,6 +38,12 @@ type Kind string
 // IsSimpleType returns 'true' if the kind is simple, i.e., not a list nor an enum
 func (k Kind) IsSimpleType() bool {
 	return k != KindEnum && k != KindList
+}
+
+// String implements the Stringer interface and returns the kind as a string
+// object.
+func (k Kind) String() string {
+	return string(k)
 }
 
 // FieldType describes the possible values of a FieldDefinition
@@ -81,8 +89,19 @@ func (f FieldDefinition) Equal(u convert.Equaler) bool {
 
 // ConvertToModel converts a field value for use in the persistence layer
 func (f FieldDefinition) ConvertToModel(name string, value interface{}) (interface{}, error) {
-	if f.Required && (value == nil || (f.Type.GetKind() == KindString && strings.TrimSpace(value.(string)) == "")) {
-		return nil, fmt.Errorf("Value %s is required", name)
+	if f.Required {
+		if value == nil {
+			return nil, fmt.Errorf("Value %s must not be nil", name)
+		}
+		if f.Type.GetKind() == KindString {
+			sVal, ok := value.(string)
+			if !ok {
+				return nil, errs.Errorf("failed to convert '%+v' to string", spew.Sdump(value))
+			}
+			if strings.TrimSpace(sVal) == "" {
+				return nil, errs.Errorf("Value '%s' must not be empty: \"%+v\"", name, value)
+			}
+		}
 	}
 	return f.Type.ConvertToModel(value)
 }
@@ -179,10 +198,11 @@ func ConvertAnyToKind(any interface{}) (*Kind, error) {
 	return ConvertStringToKind(k)
 }
 
+// ConvertStringToKind returns the given string as a Kind object
 func ConvertStringToKind(k string) (*Kind, error) {
 	kind := Kind(k)
 	switch kind {
-	case KindString, KindInteger, KindFloat, KindInstant, KindDuration, KindURL, KindWorkitemReference, KindUser, KindEnum, KindList, KindIteration, KindMarkup, KindArea, KindCodebase:
+	case KindString, KindInteger, KindFloat, KindInstant, KindDuration, KindURL, KindUser, KindEnum, KindList, KindIteration, KindMarkup, KindArea, KindCodebase, KindLabel, KindBoolean:
 		return &kind, nil
 	}
 	return nil, fmt.Errorf("kind '%s' is not a simple type", k)

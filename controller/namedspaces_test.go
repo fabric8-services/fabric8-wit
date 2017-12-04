@@ -8,11 +8,9 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -20,8 +18,7 @@ import (
 
 type TestNamedSpaceREST struct {
 	gormtestsupport.DBTestSuite
-	db    *gormapplication.GormDB
-	clean func()
+	db *gormapplication.GormDB
 }
 
 func TestRunNamedSpacesREST(t *testing.T) {
@@ -29,18 +26,12 @@ func TestRunNamedSpacesREST(t *testing.T) {
 }
 
 func (rest *TestNamedSpaceREST) SetupTest() {
+	rest.DBTestSuite.SetupTest()
 	rest.db = gormapplication.NewGormDB(rest.DB)
-	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
-}
-
-func (rest *TestNamedSpaceREST) TearDownTest() {
-	rest.clean()
 }
 
 func (rest *TestNamedSpaceREST) SecuredNamedSpaceController(identity account.Identity) (*goa.Service, *NamedspacesController) {
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
-
-	svc := testsupport.ServiceAsUser("NamedSpace-Service", wittoken.NewManagerWithPrivateKey(priv), identity)
+	svc := testsupport.ServiceAsUser("NamedSpace-Service", identity)
 	return svc, NewNamedspacesController(svc, rest.db)
 }
 
@@ -50,9 +41,7 @@ func (rest *TestNamedSpaceREST) UnSecuredNamedSpaceController() (*goa.Service, *
 }
 
 func (rest *TestNamedSpaceREST) SecuredSpaceController() (*goa.Service, *SpaceController) {
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
-
-	svc := testsupport.ServiceAsUser("Space-Service", wittoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
+	svc := testsupport.ServiceAsUser("Space-Service", testsupport.TestIdentity)
 	return svc, NewSpaceController(svc, rest.db, rest.Configuration, &DummyResourceManager{})
 }
 
@@ -77,8 +66,7 @@ func (rest *TestNamedSpaceREST) TestSuccessQuerySpace() {
 
 	name := testsupport.CreateRandomValidTestName("Test 24")
 
-	p := minimumRequiredCreateSpace()
-	p.Data.Attributes.Name = &name
+	p := newCreateSpacePayload(&name, nil)
 
 	_, created := test.CreateSpaceCreated(t, spaceSvc.Context, spaceSvc, spaceCtrl, p)
 	assert.NotNil(t, created.Data)
@@ -119,8 +107,7 @@ func (rest *TestNamedSpaceREST) TestSuccessListSpaces() {
 
 	name := testsupport.CreateRandomValidTestName("Test 24")
 
-	p := minimumRequiredCreateSpace()
-	p.Data.Attributes.Name = &name
+	p := newCreateSpacePayload(&name, nil)
 
 	_, created := test.CreateSpaceCreated(t, spaceSvc.Context, spaceSvc, spaceCtrl, p)
 	assert.NotNil(t, created.Data)

@@ -11,6 +11,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
+	numbersequence "github.com/fabric8-services/fabric8-wit/workitem/number_sequence"
 
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -30,7 +31,7 @@ type Space struct {
 	Version     int
 	Name        string
 	Description string
-	OwnerId     uuid.UUID `sql:"type:uuid"` // Belongs To Identity
+	OwnerID     uuid.UUID `sql:"type:uuid"` // Belongs To Identity
 }
 
 // Ensure Fields implements the Equaler interface
@@ -56,7 +57,7 @@ func (p Space) Equal(u convert.Equaler) bool {
 	if p.Description != other.Description {
 		return false
 	}
-	if !uuid.Equal(p.OwnerId, other.OwnerId) {
+	if !uuid.Equal(p.OwnerID, other.OwnerID) {
 		return false
 	}
 	return true
@@ -84,6 +85,7 @@ type Repository interface {
 	Create(ctx context.Context, space *Space) (*Space, error)
 	Save(ctx context.Context, space *Space) (*Space, error)
 	Load(ctx context.Context, ID uuid.UUID) (*Space, error)
+	LoadMany(ctx context.Context, IDs []uuid.UUID) ([]Space, error)
 	Delete(ctx context.Context, ID uuid.UUID) error
 	LoadByOwner(ctx context.Context, userID *uuid.UUID, start *int, length *int) ([]Space, uint64, error)
 	LoadByOwnerAndName(ctx context.Context, userID *uuid.UUID, spaceName *string) (*Space, error)
@@ -93,12 +95,16 @@ type Repository interface {
 
 // NewRepository creates a new space repo
 func NewRepository(db *gorm.DB) *GormRepository {
-	return &GormRepository{db}
+	return &GormRepository{
+		db:   db,
+		winr: numbersequence.NewWorkItemNumberSequenceRepository(db),
+	}
 }
 
 // GormRepository implements SpaceRepository using gorm
 type GormRepository struct {
-	db *gorm.DB
+	db   *gorm.DB
+	winr numbersequence.WorkItemNumberSequenceRepository
 }
 
 // Load returns the space for the given id
@@ -121,6 +127,43 @@ func (r *GormRepository) Load(ctx context.Context, ID uuid.UUID) (*Space, error)
 		return nil, errors.NewInternalError(ctx, tx.Error)
 	}
 	return &res, nil
+}
+
+// LoadMany returns the spaces for the given IDs
+// returns NotFoundError or InternalError
+func (r *GormRepository) LoadMany(ctx context.Context, IDs []uuid.UUID) ([]Space, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "space", "loadMany"}, time.Now())
+	strIDs := make([]string, len(IDs))
+	for i, ID := range IDs {
+		strIDs[i] = fmt.Sprintf("'%s'", ID.String())
+	}
+
+	var result []Space
+	db := r.db.Model(Space{}).Select("distinct *").Where(fmt.Sprintf("ID in (%s)", strings.Join(strIDs, ", ")))
+	rows, err := db.Rows()
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err.Error(),
+		}, "unable to load multiple spaces by their IDs")
+		return nil, errors.NewInternalError(ctx, err)
+	}
+	// scan the results
+	for rows.Next() {
+		s := Space{}
+		err := db.ScanRows(rows, &s)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"err": err.Error(),
+			}, "unable to load space")
+			return nil, errors.NewInternalError(ctx, err)
+		}
+		result = append(result, s)
+	}
+	log.Debug(ctx, map[string]interface{}{
+		"count":  len(result),
+		"spaces": result,
+	}, "loaded multiple spaces by their IDs")
+	return result, nil
 }
 
 // CheckExists returns nil if the given ID exists otherwise returns an error
@@ -225,10 +268,9 @@ func (r *GormRepository) Create(ctx context.Context, space *Space) (*Space, erro
 		}
 		return nil, errors.NewInternalError(ctx, err)
 	}
-
-	log.Info(ctx, map[string]interface{}{
+	log.Debug(ctx, map[string]interface{}{
 		"space_id": space.ID,
-	}, "Space created successfully")
+	}, "Space created")
 	return space, nil
 }
 
@@ -258,6 +300,8 @@ func (r *GormRepository) listSpaceFromDB(ctx context.Context, q *string, userID 
 		db = db.Where("spaces.owner_id=?", userID)
 	}
 
+	// ensure that the result list is always ordered in the same manner
+	db = db.Order("spaces.updated_at DESC")
 	rows, err := db.Rows()
 	if err != nil {
 		return nil, 0, errs.WithStack(err)

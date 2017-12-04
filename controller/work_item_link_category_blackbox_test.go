@@ -16,7 +16,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	wittoken "github.com/fabric8-services/fabric8-wit/token"
+	testtoken "github.com/fabric8-services/fabric8-wit/test/token"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 
 	jwt "github.com/dgrijalva/jwt-go"
@@ -49,11 +49,11 @@ type workItemLinkCategorySuite struct {
 	svc         *goa.Service
 }
 
-var wilCatConfiguration *config.ConfigurationData
+var wilCatConfiguration *config.Registry
 
 func init() {
 	var err error
-	wilCatConfiguration, err = config.GetConfigurationData()
+	wilCatConfiguration, err = config.Get()
 	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
@@ -66,8 +66,7 @@ func (s *workItemLinkCategorySuite) SetupSuite() {
 	s.db, err = gorm.Open("postgres", wilCatConfiguration.GetPostgresConfigString())
 	require.Nil(s.T(), err)
 	s.appDB = gormapplication.NewGormDB(s.db)
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
-	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", wittoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
+	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", testsupport.TestIdentity)
 	require.NotNil(s.T(), s.svc)
 	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(s.db))
 	require.NotNil(s.T(), s.linkCatCtrl)
@@ -261,7 +260,7 @@ func (s *workItemLinkCategorySuite) TestFailValidationWorkItemLinkCategoryNameLe
 
 	// Validate payload function returns an error
 	assert.NotNil(s.T(), err)
-	assert.Contains(s.T(), err.Error(), "length of response.name must be less than or equal to than 62")
+	assert.Contains(s.T(), err.Error(), "length of type.name must be less than or equal to 62")
 }
 
 func (s *workItemLinkCategorySuite) TestFailValidationWorkItemLinkCategoryNameStartWith() {
@@ -283,7 +282,7 @@ func (s *workItemLinkCategorySuite) TestFailValidationWorkItemLinkCategoryNameSt
 	err := payload.Validate()
 	// Validate payload function returns an error
 	assert.NotNil(s.T(), err)
-	assert.Contains(s.T(), err.Error(), "response.name must match the regexp")
+	assert.Contains(s.T(), err.Error(), "type.name must match the regexp")
 }
 
 // Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
@@ -467,10 +466,7 @@ func (s *workItemLinkCategorySuite) TestListWorkItemLinkCategoryOK() {
 }
 
 func getWorkItemLinkCategoryTestData(t *testing.T) []testSecureAPI {
-	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((wilCatConfiguration.GetTokenPrivateKey()))
-	if err != nil {
-		t.Fatal("Could not parse Key ", err)
-	}
+	privatekey := testtoken.PrivateKey()
 	differentPrivatekey, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSADifferentPrivateKeyTest)))
 	if err != nil {
 		t.Fatal("Could not parse different private key ", err)

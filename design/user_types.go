@@ -35,34 +35,6 @@ var UpdateWorkItemPayload = a.Type("UpdateWorkItemPayload", func() {
 	a.Required("type", "fields", "version", "executionorder")
 })
 
-// CreateTrackerAlternatePayload defines the structure of tracker payload for create
-var CreateTrackerAlternatePayload = a.Type("CreateTrackerAlternatePayload", func() {
-	a.Attribute("url", d.String, "URL of the tracker", func() {
-		a.Example("https://api.github.com/")
-		a.MinLength(1)
-	})
-	a.Attribute("type", d.String, "Type of the tracker", func() {
-		a.Example("github")
-		a.Pattern("^[\\p{L}]+$")
-		a.MinLength(1)
-	})
-	a.Required("url", "type")
-})
-
-// UpdateTrackerAlternatePayload defines the structure of tracker payload for update
-var UpdateTrackerAlternatePayload = a.Type("UpdateTrackerAlternatePayload", func() {
-	a.Attribute("url", d.String, "URL of the tracker", func() {
-		a.Example("https://api.github.com/")
-		a.MinLength(1)
-	})
-	a.Attribute("type", d.String, "Type of the tracker", func() {
-		a.Example("github")
-		a.MinLength(1)
-		a.Pattern("^[\\p{L}]+$")
-	})
-	a.Required("url", "type")
-})
-
 // CreateTrackerQueryAlternatePayload defines the structure of tracker query payload for create
 var CreateTrackerQueryAlternatePayload = a.Type("CreateTrackerQueryAlternatePayload", func() {
 	a.Attribute("query", d.String, "Search query", func() {
@@ -74,11 +46,7 @@ var CreateTrackerQueryAlternatePayload = a.Type("CreateTrackerQueryAlternatePayl
 		a.Pattern("^[\\d]+|[\\d]+[\\/][\\d]+|\\*|\\-|\\?\\s{0,6}$")
 		a.MinLength(1)
 	})
-	a.Attribute("trackerID", d.String, "Tracker ID", func() {
-		a.Example("1")
-		a.MinLength(1)
-		a.Pattern("^[\\p{N}]+$")
-	})
+	a.Attribute("trackerID", d.UUID, "Tracker ID")
 	a.Attribute("relationships", trackerQueryRelationships)
 
 	a.Required("query", "schedule", "trackerID")
@@ -95,11 +63,7 @@ var UpdateTrackerQueryAlternatePayload = a.Type("UpdateTrackerQueryAlternatePayl
 		a.Pattern("^[\\d]+|[\\d]+[\\/][\\d]+|\\*|\\-|\\?\\s{0,6}$")
 		a.MinLength(1)
 	})
-	a.Attribute("trackerID", d.String, "Tracker ID", func() {
-		a.Example("1")
-		a.MinLength(1)
-		a.Pattern("[\\p{N}]+")
-	})
+	a.Attribute("trackerID", d.UUID, "Tracker ID")
 	a.Attribute("relationships", trackerQueryRelationships)
 
 	a.Required("query", "schedule", "trackerID")

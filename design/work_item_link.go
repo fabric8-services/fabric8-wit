@@ -80,6 +80,7 @@ See also http://jsonapi.org/format/#document-resource-object-relationships`)
 // relationWorkItem is the JSONAPI store for the links
 var relationWorkItem = a.Type("RelationWorkItem", func() {
 	a.Attribute("data", relationWorkItemData)
+	a.Attribute("links", genericLinks)
 })
 
 // relationWorkItemData is the JSONAPI data object of the the work item relationship objects
@@ -188,6 +189,7 @@ func createWorkItemLink() {
 	a.Response(d.Unauthorized, JSONAPIErrors)
 	a.Response(d.NotFound, JSONAPIErrors)
 	a.Response(d.Conflict, JSONAPIErrors)
+	a.Response(d.Forbidden, JSONAPIErrors)
 }
 
 func deleteWorkItemLink() {
@@ -204,6 +206,7 @@ func deleteWorkItemLink() {
 	a.Response(d.InternalServerError, JSONAPIErrors)
 	a.Response(d.NotFound, JSONAPIErrors)
 	a.Response(d.Unauthorized, JSONAPIErrors)
+	a.Response(d.Forbidden, JSONAPIErrors)
 }
 
 func updateWorkItemLink() {
@@ -224,4 +227,5 @@ func updateWorkItemLink() {
 	a.Response(d.InternalServerError, JSONAPIErrors)
 	a.Response(d.NotFound, JSONAPIErrors)
 	a.Response(d.Unauthorized, JSONAPIErrors)
+	a.Response(d.Forbidden, JSONAPIErrors)
 }

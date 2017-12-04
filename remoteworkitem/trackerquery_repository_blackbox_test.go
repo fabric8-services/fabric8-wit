@@ -3,31 +3,18 @@ package remoteworkitem_test
 import (
 	"testing"
 
-	"github.com/fabric8-services/fabric8-wit/application"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
-	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
-	"github.com/fabric8-services/fabric8-wit/space"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 
-	"context"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
 type trackerQueryRepoBlackBoxTest struct {
 	gormtestsupport.DBTestSuite
-	repo   application.TrackerQueryRepository
-	trRepo application.TrackerRepository
-	clean  func()
-	ctx    context.Context
-}
-
-// SetupSuite overrides the DBTestSuite's function but calls it before doing anything else
-func (s *trackerQueryRepoBlackBoxTest) SetupSuite() {
-	s.DBTestSuite.SetupSuite()
-	s.ctx = migration.NewMigrationContext(context.Background())
-	s.DBTestSuite.PopulateDBTestSuite(s.ctx)
+	repo   remoteworkitem.TrackerQueryRepository
+	trRepo remoteworkitem.TrackerRepository
 }
 
 func TestRunTrackerQueryRepoBlackBoxTest(t *testing.T) {
@@ -35,81 +22,52 @@ func TestRunTrackerQueryRepoBlackBoxTest(t *testing.T) {
 }
 
 func (s *trackerQueryRepoBlackBoxTest) SetupTest() {
+	s.DBTestSuite.SetupTest()
 	s.repo = remoteworkitem.NewTrackerQueryRepository(s.DB)
 	s.trRepo = remoteworkitem.NewTrackerRepository(s.DB)
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
-}
-
-func (s *trackerQueryRepoBlackBoxTest) TearDownTest() {
-	s.clean()
 }
 
 func (s *trackerQueryRepoBlackBoxTest) TestFailDeleteZeroID() {
 	// Create at least 1 item to avoid RowsEffectedCheck
-	tr, err := s.trRepo.Create(
-		s.ctx,
-		"http://api.github.com",
-		remoteworkitem.ProviderGithub)
-	if err != nil {
-		s.T().Error("Could not create tracker", err)
-	}
-
-	_, err = s.repo.Create(
-		s.ctx,
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Trackers(1), tf.Spaces(1))
+	_, err := s.repo.Create(
+		s.Ctx,
 		"project = ARQ AND text ~ 'arquillian'",
 		"15 * * * * *",
-		tr.ID, space.SystemSpace)
-	if err != nil {
-		s.T().Error("Could not create tracker query", err)
-	}
+		fxt.Trackers[0].ID, fxt.Spaces[0].ID)
+	require.Nil(s.T(), err)
 
-	err = s.repo.Delete(s.ctx, "0")
+	err = s.repo.Delete(s.Ctx, "0")
 	require.IsType(s.T(), remoteworkitem.NotFoundError{}, err)
 }
 
 func (s *trackerQueryRepoBlackBoxTest) TestFailSaveZeroID() {
 	// Create at least 1 item to avoid RowsEffectedCheck
-	tr, err := s.trRepo.Create(
-		s.ctx,
-		"http://api.github.com",
-		remoteworkitem.ProviderGithub)
-	if err != nil {
-		s.T().Error("Could not create tracker", err)
-	}
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Trackers(1), tf.Spaces(1))
 
 	tq, err := s.repo.Create(
-		s.ctx,
+		s.Ctx,
 		"project = ARQ AND text ~ 'arquillian'",
 		"15 * * * * *",
-		tr.ID, space.SystemSpace)
-	if err != nil {
-		s.T().Error("Could not create tracker query", err)
-	}
+		fxt.Trackers[0].ID, fxt.Spaces[0].ID)
+	require.Nil(s.T(), err)
 	tq.ID = "0"
 
-	_, err = s.repo.Save(s.ctx, *tq)
+	_, err = s.repo.Save(s.Ctx, *tq)
 	require.IsType(s.T(), remoteworkitem.NotFoundError{}, err)
 }
 
 func (s *trackerQueryRepoBlackBoxTest) TestFaiLoadZeroID() {
 	// Create at least 1 item to avoid RowsEffectedCheck
-	tr, err := s.trRepo.Create(
-		s.ctx,
-		"http://api.github.com",
-		remoteworkitem.ProviderGithub)
-	if err != nil {
-		s.T().Error("Could not create tracker", err)
-	}
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Trackers(1), tf.Spaces(1))
 
-	_, err = s.repo.Create(
-		s.ctx,
+	_, err := s.repo.Create(
+		s.Ctx,
 		"project = ARQ AND text ~ 'arquillian'",
 		"15 * * * * *",
-		tr.ID, space.SystemSpace)
-	if err != nil {
-		s.T().Error("Could not create tracker query", err)
-	}
+		fxt.Trackers[0].ID, fxt.Spaces[0].ID)
+	require.Nil(s.T(), err)
 
-	_, err = s.repo.Load(s.ctx, "0")
+	_, err = s.repo.Load(s.Ctx, "0")
 	require.IsType(s.T(), remoteworkitem.NotFoundError{}, err)
 }

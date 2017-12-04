@@ -21,7 +21,11 @@ func Compile(where criteria.Expression) (whereClause string, parameters []interf
 	compiler := newExpressionCompiler()
 	compiled := where.Accept(&compiler)
 
-	return compiled.(string), compiler.parameters, compiler.err
+	c, ok := compiled.(string)
+	if !ok {
+		c = ""
+	}
+	return c, compiler.parameters, compiler.err
 }
 
 // mark expression tree nodes that reference json fields
@@ -33,6 +37,10 @@ func bubbleUpJSONContext(exp criteria.Expression) bool {
 			t.SetAnnotation(jsonAnnotation, true)
 		}
 	case *criteria.EqualsExpression:
+		if t.Left().Annotation(jsonAnnotation) == true || t.Right().Annotation(jsonAnnotation) == true {
+			t.SetAnnotation(jsonAnnotation, true)
+		}
+	case *criteria.SubstringExpression:
 		if t.Left().Annotation(jsonAnnotation) == true || t.Right().Annotation(jsonAnnotation) == true {
 			t.SetAnnotation(jsonAnnotation, true)
 		}
@@ -122,6 +130,28 @@ func (c *expressionCompiler) Equals(e *criteria.EqualsExpression) interface{} {
 		return c.binary(e, ":")
 	}
 	return c.binary(e, "=")
+}
+
+func (c *expressionCompiler) Substring(e *criteria.SubstringExpression) interface{} {
+	if isInJSONContext(e.Left()) {
+		left, ok := e.Left().(*criteria.FieldExpression)
+		if !ok {
+			c.err = append(c.err, fmt.Errorf("invalid left expression"))
+			return nil
+		}
+		if strings.Contains(left.FieldName, "'") {
+			// beware of injection, it's a reasonable restriction for field names,
+			// make sure it's not allowed when creating wi types
+			c.err = append(c.err, fmt.Errorf("single quote not allowed in field name"))
+			return nil
+		}
+
+		r := "%" + e.Right().(*criteria.LiteralExpression).Value.(string) + "%"
+		c.parameters = append(c.parameters, r)
+		return "Fields->>'" + left.FieldName + "' ILIKE ?"
+	}
+	op := "ILIKE"
+	return c.binary(e, op)
 }
 
 func (c *expressionCompiler) IsNull(e *criteria.IsNullExpression) interface{} {

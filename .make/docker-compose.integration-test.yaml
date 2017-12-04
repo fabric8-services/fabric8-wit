@@ -1,8 +1,8 @@
 version: '2.1'
 services:
   postgres_integration_test:
-    image: centos/postgresql-95-centos7
     network_mode: "bridge"
+    image: registry.centos.org/postgresql/postgresql:9.6
     ports:
       - "5432"
     environment:

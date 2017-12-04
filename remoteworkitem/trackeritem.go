@@ -1,6 +1,9 @@
 package remoteworkitem
 
-import "github.com/fabric8-services/fabric8-wit/gormsupport"
+import (
+	"github.com/fabric8-services/fabric8-wit/gormsupport"
+	uuid "github.com/satori/go.uuid"
+)
 
 // TrackerItem represents a remote tracker item
 // Staging area before pushing to work item
@@ -12,5 +15,5 @@ type TrackerItem struct {
 	// the field values
 	Item string
 	// FK to tracker
-	TrackerID uint64 `gorm:"ForeignKey:Tracker"`
+	TrackerID uuid.UUID `gorm:"ForeignKey:Tracker"`
 }

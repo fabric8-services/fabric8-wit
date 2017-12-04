@@ -34,6 +34,7 @@ var workItem = a.Type("WorkItem", func() {
 // WorkItemRelationships defines only `assignee` as of now. To be updated
 var workItemRelationships = a.Type("WorkItemRelationships", func() {
 	a.Attribute("assignees", relationGenericList, "This defines assignees of the Work Item")
+	a.Attribute("labels", relationGenericList, "List of labels attached to the Work Item")
 	a.Attribute("creator", relationGeneric, "This defines creator of the Work Item")
 	a.Attribute("baseType", relationBaseType, "This defines type of Work Item")
 	a.Attribute("comments", relationGeneric, "This defines comments on the Work Item")
@@ -41,6 +42,8 @@ var workItemRelationships = a.Type("WorkItemRelationships", func() {
 	a.Attribute("area", relationGeneric, "This defines the area this work item belongs to")
 	a.Attribute("children", relationGeneric, "This defines the children of this work item")
 	a.Attribute("space", relationSpaces, "This defines the owning space of this work item.")
+	a.Attribute("parent", relationKindUUID, "This defines the parent of this work item.")
+	a.Attribute("workItemLinks", relationGeneric, "List of links in which this work item is involved")
 })
 
 // relationBaseType is top level block for WorkItemType relationship
@@ -282,7 +285,7 @@ var _ = a.Resource("named_work_items", func() {
 		a.Params(func() {
 			a.Param("wiNumber", d.Integer, "Number of the work item to show")
 		})
-		a.Response(d.MovedPermanently)
+		a.Response(d.TemporaryRedirect)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 	})

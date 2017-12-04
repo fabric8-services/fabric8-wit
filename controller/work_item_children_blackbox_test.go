@@ -1,7 +1,6 @@
 package controller_test
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"testing"
@@ -12,14 +11,11 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
-	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 
@@ -54,17 +50,6 @@ type workItemChildSuite struct {
 	// Store IDs of resources that need to be removed at the beginning or end of a test
 	testIdentity account.Identity
 	db           *gormapplication.GormDB
-	clean        func()
-}
-
-// The SetupSuite method will run before the tests in the suite are run.
-// It sets up a database connection for all the tests in this suite without polluting global space.
-func (s *workItemChildSuite) SetupSuite() {
-	s.DBTestSuite.SetupSuite()
-	ctx := migration.NewMigrationContext(context.Background())
-	s.DBTestSuite.PopulateDBTestSuite(ctx)
-
-	s.db = gormapplication.NewGormDB(s.DB)
 }
 
 const (
@@ -76,68 +61,68 @@ const (
 // SetupTest ensures that none of the work item links that we will create already exist.
 // It will also make sure that some resources that we rely on do exists.
 func (s *workItemChildSuite) SetupTest() {
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+	s.DBTestSuite.SetupTest()
+	s.db = gormapplication.NewGormDB(s.DB)
 
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "workItemChildSuite user", "test provider")
 	require.Nil(s.T(), err)
 	s.testIdentity = *testIdentity
 
-	priv, err := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
-	require.Nil(s.T(), err)
-
-	svc := testsupport.ServiceAsUser("WorkItemLink-Service", wittoken.NewManagerWithPrivateKey(priv), s.testIdentity)
+	svc := testsupport.ServiceAsUser("WorkItemLink-Service", s.testIdentity)
 	require.NotNil(s.T(), svc)
 	s.workitemLinkCtrl = NewWorkItemLinkController(svc, s.db, s.Configuration)
 	require.NotNil(s.T(), s.workitemLinkCtrl)
 
-	svc = testsupport.ServiceAsUser("WorkItemLinkType-Service", wittoken.NewManagerWithPrivateKey(priv), s.testIdentity)
+	svc = testsupport.ServiceAsUser("WorkItemLinkType-Service", s.testIdentity)
 	require.NotNil(s.T(), svc)
 	s.workitemLinkTypeCtrl = NewWorkItemLinkTypeController(svc, s.db, s.Configuration)
 	require.NotNil(s.T(), s.workitemLinkTypeCtrl)
 
-	svc = testsupport.ServiceAsUser("WorkItemLinkCategory-Service", wittoken.NewManagerWithPrivateKey(priv), s.testIdentity)
+	svc = testsupport.ServiceAsUser("WorkItemLinkCategory-Service", s.testIdentity)
 	require.NotNil(s.T(), svc)
 	s.workitemLinkCategoryCtrl = NewWorkItemLinkCategoryController(svc, s.db)
 	require.NotNil(s.T(), s.workitemLinkCategoryCtrl)
 
-	svc = testsupport.ServiceAsUser("WorkItemType-Service", wittoken.NewManagerWithPrivateKey(priv), s.testIdentity)
+	svc = testsupport.ServiceAsUser("WorkItemType-Service", s.testIdentity)
 	require.NotNil(s.T(), svc)
 	s.typeCtrl = NewWorkitemtypeController(svc, s.db, s.Configuration)
 	require.NotNil(s.T(), s.typeCtrl)
 
-	svc = testsupport.ServiceAsUser("WorkItemLink-Service", wittoken.NewManagerWithPrivateKey(priv), s.testIdentity)
+	svc = testsupport.ServiceAsUser("WorkItemLink-Service", s.testIdentity)
 	require.NotNil(s.T(), svc)
 	s.workitemLinkCtrl = NewWorkItemLinkController(svc, s.db, s.Configuration)
 	require.NotNil(s.T(), s.workitemLinkCtrl)
 
-	svc = testsupport.ServiceAsUser("WorkItemRelationshipsLinks-Service", wittoken.NewManagerWithPrivateKey(priv), s.testIdentity)
+	svc = testsupport.ServiceAsUser("WorkItemRelationshipsLinks-Service", s.testIdentity)
 	require.NotNil(s.T(), svc)
 	s.workItemRelsLinksCtrl = NewWorkItemRelationshipsLinksController(svc, s.db, s.Configuration)
 	require.NotNil(s.T(), s.workItemRelsLinksCtrl)
 
-	svc = testsupport.ServiceAsUser("TestWorkItem-Service", wittoken.NewManagerWithPrivateKey(priv), s.testIdentity)
+	svc = testsupport.ServiceAsUser("TestWorkItem-Service", s.testIdentity)
 	require.NotNil(s.T(), svc)
 	s.svc = svc
 	s.workItemCtrl = NewWorkitemController(svc, s.db, s.Configuration)
 	require.NotNil(s.T(), s.workItemCtrl)
 
-	svc = testsupport.ServiceAsUser("TestWorkItems-Service", wittoken.NewManagerWithPrivateKey(priv), *testIdentity)
+	svc = testsupport.ServiceAsUser("TestWorkItems-Service", *testIdentity)
 	require.NotNil(s.T(), svc)
 	s.svc = svc
 	s.workItemsCtrl = NewWorkitemsController(svc, s.db, s.Configuration)
 	require.NotNil(s.T(), s.workItemsCtrl)
 
-	svc = testsupport.ServiceAsUser("Space-Service", wittoken.NewManagerWithPrivateKey(priv), *testIdentity)
+	svc = testsupport.ServiceAsUser("Space-Service", *testIdentity)
 	require.NotNil(s.T(), svc)
 	s.spaceCtrl = NewSpaceController(svc, s.db, s.Configuration, &DummyResourceManager{})
 	require.NotNil(s.T(), s.spaceCtrl)
 
 	// Create a test user identity
-	s.svc = testsupport.ServiceAsUser("TestWorkItem-Service", wittoken.NewManagerWithPrivateKey(priv), s.testIdentity)
+	s.svc = testsupport.ServiceAsUser("TestWorkItem-Service", s.testIdentity)
 	require.NotNil(s.T(), s.svc)
 
 	// Create a work item link space
-	createSpacePayload := CreateSpacePayload("test-space"+uuid.NewV4().String(), "description")
+	name := "test-space" + uuid.NewV4().String()
+	description := "description"
+	createSpacePayload := newCreateSpacePayload(&name, &description)
 	_, space := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, createSpacePayload)
 	s.userSpaceID = *space.Data.ID
 	s.T().Logf("Created link space with ID: %s\n", *space.Data.ID)
@@ -162,10 +147,10 @@ func (s *workItemChildSuite) SetupTest() {
 	s.T().Logf("Created bug3 with ID: %s\n", *s.bug3.Data.ID)
 
 	// Create a work item link category
-	description := "This work item link category is managed by an admin user."
+	linkCategoryDescription := "This work item link category is managed by an admin user."
 	userLinkCategoryID := createWorkItemLinkCategoryInRepo(s.T(), s.db, s.svc.Context, link.WorkItemLinkCategory{
 		Name:        "test-user",
-		Description: &description,
+		Description: &linkCategoryDescription,
 	})
 	s.T().Logf("Created link category with ID: %s\n", userLinkCategoryID)
 
@@ -190,11 +175,6 @@ func (s *workItemChildSuite) updateWorkItemLink(workitemLinkID uuid.UUID, source
 	_, workitemLink := test.UpdateWorkItemLinkOK(s.T(), s.svc.Context, s.svc, s.workitemLinkCtrl, workitemLinkID, updatePayload)
 	require.NotNil(s.T(), workitemLink)
 	return *workitemLink
-}
-
-// The TearDownTest method will be run after every test in the suite.
-func (s *workItemChildSuite) TearDownTest() {
-	s.clean()
 }
 
 //-----------------------------------------------------------------------------
@@ -298,9 +278,11 @@ func (s *workItemChildSuite) TestChildren() {
 		assertResponseHeaders(t, res)
 	})
 	s.T().Run("not modified using if modified since header", func(t *testing.T) {
+		// given
+		res, _ := test.ListChildrenWorkitemOK(t, s.svc.Context, s.svc, s.workItemCtrl, *s.bug1.Data.ID, nil, nil, nil, nil)
+		ifModifiedSince := res.Header()[app.LastModified][0]
 		// when
-		ifModifiedSince := app.ToHTTPTime(s.bug3.Data.Attributes[workitem.SystemUpdatedAt].(time.Time))
-		res := test.ListChildrenWorkitemNotModified(t, s.svc.Context, s.svc, s.workItemCtrl, *s.bug1.Data.ID, nil, nil, &ifModifiedSince, nil)
+		res = test.ListChildrenWorkitemNotModified(t, s.svc.Context, s.svc, s.workItemCtrl, *s.bug1.Data.ID, nil, nil, &ifModifiedSince, nil)
 		// then
 		assertResponseHeaders(t, res)
 	})
@@ -839,15 +821,8 @@ func (s *searchParentExistsSuite) SetupSuite() {
 func (s *searchParentExistsSuite) SetupTest() {
 	s.workItemChildSuite.SetupTest()
 
-	priv, err := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
-	require.Nil(s.T(), err)
-
-	s.svc = testsupport.ServiceAsUser("Search-Service", wittoken.NewManagerWithPrivateKey(priv), s.testIdentity)
+	s.svc = testsupport.ServiceAsUser("Search-Service", s.testIdentity)
 	s.searchCtrl = NewSearchController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-}
-
-func (s *searchParentExistsSuite) TearDownTest() {
-	s.clean()
 }
 
 func TestSearchParentExists(t *testing.T) {
@@ -870,14 +845,15 @@ func (s *searchParentExistsSuite) TestSearchWorkItemListFilterUsingParentExists(
 		// given
 		pe := false
 		// when
-		sid := space.SystemSpace.String()
 		filter := fmt.Sprintf(`
 			{"$AND": [
-				{"type":"%s"}
+				{"space":"%[1]s"},
+				{"type":"%[2]s"}
 			]}`,
+			s.userSpaceID.String(),
 			workitem.SystemBug)
 
-		_, result := test.ShowSearchOK(t, nil, nil, s.searchCtrl, &filter, &pe, nil, nil, nil, &sid)
+		_, result := test.ShowSearchOK(t, nil, nil, s.searchCtrl, &filter, &pe, nil, nil, nil, nil)
 		// then
 		assert.Len(t, result.Data, 1)
 		checkChildrenRelationship(t, lookupWorkitemFromSearchList(t, *result, *s.bug1.Data.ID), hasChildren)
@@ -890,8 +866,10 @@ func (s *searchParentExistsSuite) TestSearchWorkItemListFilterUsingParentExists(
 		sid := space.SystemSpace.String()
 		filter := fmt.Sprintf(`
 			{"$AND": [
-				{"type":"%s"}
+				{"space":"%[1]s"},
+				{"type":"%[2]s"}
 			]}`,
+			s.userSpaceID.String(),
 			workitem.SystemBug)
 
 		_, result := test.ShowSearchOK(t, nil, nil, s.searchCtrl, &filter, &pe, nil, nil, nil, &sid)

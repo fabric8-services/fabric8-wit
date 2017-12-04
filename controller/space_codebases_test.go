@@ -13,13 +13,11 @@ import (
 	"github.com/fabric8-services/fabric8-wit/application"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -29,9 +27,7 @@ import (
 
 type TestSpaceCodebaseREST struct {
 	gormtestsupport.DBTestSuite
-
-	db    *gormapplication.GormDB
-	clean func()
+	db *gormapplication.GormDB
 }
 
 func TestRunSpaceCodebaseREST(t *testing.T) {
@@ -43,19 +39,12 @@ func TestRunSpaceCodebaseREST(t *testing.T) {
 }
 
 func (rest *TestSpaceCodebaseREST) SetupTest() {
+	rest.DBTestSuite.SetupTest()
 	rest.db = gormapplication.NewGormDB(rest.DB)
-	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
-}
-
-func (rest *TestSpaceCodebaseREST) TearDownTest() {
-	rest.clean()
 }
 
 func (rest *TestSpaceCodebaseREST) SecuredController() (*goa.Service, *SpaceCodebasesController) {
-	pub, _ := wittoken.ParsePublicKey([]byte(wittoken.RSAPublicKey))
-	//priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
-
-	svc := testsupport.ServiceAsUser("SpaceCodebase-Service", wittoken.NewManager(pub), testsupport.TestIdentity)
+	svc := testsupport.ServiceAsUser("SpaceCodebase-Service", testsupport.TestIdentity)
 	return svc, NewSpaceCodebasesController(svc, rest.db)
 }
 
@@ -214,7 +203,7 @@ func (rest *TestSpaceCodebaseREST) createSpace(ownerID uuid.UUID) *space.Space {
 		repo := app.Spaces()
 		newSpace := &space.Space{
 			Name:    "TestSpaceCodebase " + uuid.NewV4().String(),
-			OwnerId: ownerID,
+			OwnerID: ownerID,
 		}
 		s, err = repo.Create(context.Background(), newSpace)
 		return err

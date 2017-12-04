@@ -1,0 +1,10 @@
+{
+  "errors": [
+    {
+      "code": "forbidden_error",
+      "detail": "user is not the space owner",
+      "status": "403",
+      "title": "Forbidden error"
+    }
+  ]
+}
