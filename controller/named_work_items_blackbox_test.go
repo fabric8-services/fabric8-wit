@@ -12,7 +12,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
@@ -43,11 +42,10 @@ func (s *TestNamedWorkItemsSuite) SetupTest() {
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "TestUpdateWorkitemForSpaceCollaborator-"+uuid.NewV4().String(), "TestWI")
 	require.Nil(s.T(), err)
 	s.testIdentity = *testIdentity
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
-	s.svc = testsupport.ServiceAsSpaceUser("Collaborators-Service", wittoken.NewManagerWithPrivateKey(priv), s.testIdentity, &TestSpaceAuthzService{s.testIdentity})
+	s.svc = testsupport.ServiceAsSpaceUser("Collaborators-Service", s.testIdentity, &TestSpaceAuthzService{s.testIdentity, ""})
 	s.workitemsCtrl = NewWorkitemsController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.namedWorkItemsCtrl = NewNamedWorkItemsController(s.svc, gormapplication.NewGormDB(s.DB))
-	s.testSpace = CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, s.testIdentity)
+	s.testSpace = CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, s.testIdentity, "")
 }
 
 func (s *TestNamedWorkItemsSuite) TearDownTest() {
@@ -66,7 +64,7 @@ func (s *TestNamedWorkItemsSuite) TestLookupWorkItemByNamedSpaceAndNumberOK() {
 	// given
 	wi := s.createWorkItem()
 	// when
-	res := test.ShowNamedWorkItemsMovedPermanently(s.T(), s.svc.Context, s.svc, s.namedWorkItemsCtrl, s.testIdentity.Username, *s.testSpace.Attributes.Name, wi.Data.Attributes[workitem.SystemNumber].(int))
+	res := test.ShowNamedWorkItemsTemporaryRedirect(s.T(), s.svc.Context, s.svc, s.namedWorkItemsCtrl, s.testIdentity.Username, *s.testSpace.Attributes.Name, wi.Data.Attributes[workitem.SystemNumber].(int))
 	// then
 	require.NotNil(s.T(), res.Header().Get("Location"))
 	assert.True(s.T(), strings.HasSuffix(res.Header().Get("Location"), "/workitems/"+wi.Data.ID.String()))

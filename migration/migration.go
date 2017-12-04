@@ -340,6 +340,36 @@ func GetMigrations() Migrations {
 	// Version 72
 	m = append(m, steps{ExecuteSQLFile("072-adds-active-flag-in-iteration.sql")})
 
+	// Version 73
+	m = append(m, steps{ExecuteSQLFile("073-labels.sql")})
+
+	// Version 74
+	m = append(m, steps{ExecuteSQLFile("074-label-border-color.sql")})
+
+	// Version 75
+	m = append(m, steps{ExecuteSQLFile("075-label-unique-name.sql")})
+
+	// Version 76
+	m = append(m, steps{ExecuteSQLFile("076-drop-space-resources-and-oauth-state.sql")})
+
+	// Version 77
+	m = append(m, steps{ExecuteSQLFile("077-index-work-item-links.sql")})
+
+	// Version 78
+	m = append(m, steps{ExecuteSQLFile("078-tracker-to-use-uuid.sql")})
+
+	// Version 79
+	m = append(m, steps{ExecuteSQLFile("079-assignee-and-label-empty-value.sql", workitem.SystemAssignees, workitem.SystemLabels)})
+
+	// Version 80
+	m = append(m, steps{ExecuteSQLFile("080-remove-unknown-link-types.sql",
+		link.SystemWorkItemLinkTypeBugBlockerID.String(),
+		link.SystemWorkItemLinkPlannerItemRelatedID.String(),
+		link.SystemWorkItemLinkTypeParentChildID.String(),
+		link.SystemWorkItemLinkCategorySystemID.String(),
+		link.SystemWorkItemLinkCategoryUserID.String(),
+	)})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -380,24 +410,24 @@ func ExecuteSQLFile(filename string, args ...string) fn {
 		if len(args) > 0 {
 			tmpl, err := template.New("sql").Parse(string(data))
 			if err != nil {
-				return errs.Wrap(err, "failed to parse SQL template")
+				return errs.Wrapf(err, "failed to parse SQL template in file %s", filename)
 			}
 			var sqlScript bytes.Buffer
 			writer := bufio.NewWriter(&sqlScript)
 			err = tmpl.Execute(writer, args)
 			if err != nil {
-				return errs.Wrap(err, "failed to execute SQL template")
+				return errs.Wrapf(err, "failed to execute SQL template in file %s", filename)
 			}
 			// We need to flush the content of the writer
 			writer.Flush()
 			_, err = db.Exec(sqlScript.String())
 			if err != nil {
-				log.Error(context.Background(), map[string]interface{}{}, "failed to execute this query: \n\n%s\n\n", sqlScript.String())
+				log.Error(context.Background(), map[string]interface{}{"err": err}, "failed to execute this query in file %s: \n\n%s\n\n", filename, sqlScript.String())
 			}
 		} else {
 			_, err = db.Exec(string(data))
 			if err != nil {
-				log.Error(context.Background(), map[string]interface{}{}, "failed to execute this query: \n\n%s\n\n", string(data))
+				log.Error(context.Background(), map[string]interface{}{"err": err}, "failed to execute this query in file: %s \n\n%s\n\n", filename, string(data))
 			}
 		}
 
@@ -568,7 +598,7 @@ func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkIte
 		ID:             link.SystemWorkItemLinkTypeParentChildID,
 		Name:           "Parent child item",
 		Description:    &parentingDesc,
-		Topology:       link.TopologyNetwork,
+		Topology:       link.TopologyTree,
 		ForwardName:    "parent of",
 		ReverseName:    "child of",
 		LinkCategoryID: systemCat.ID,
@@ -744,6 +774,15 @@ func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.Gor
 			Required:    false,
 			Label:       "Assignees",
 			Description: "The users that are assigned to the work item",
+		},
+		workitem.SystemLabels: {
+			Type: &workitem.ListType{
+				SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
+				ComponentType: workitem.SimpleType{Kind: workitem.KindLabel},
+			},
+			Required:    false,
+			Label:       "Labels",
+			Description: "List of labels attached to the work item",
 		},
 		workitem.SystemState: {
 			Type: &workitem.EnumType{

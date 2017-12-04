@@ -2,7 +2,6 @@ package controller_test
 
 import (
 	"bytes"
-	"crypto/rsa"
 	"fmt"
 	"html"
 	"net/http"
@@ -13,6 +12,7 @@ import (
 
 	"context"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
@@ -21,12 +21,10 @@ import (
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
-	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/path"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
@@ -34,7 +32,9 @@ import (
 	"github.com/fabric8-services/fabric8-wit/search"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	wittoken "github.com/fabric8-services/fabric8-wit/token"
+	notificationsupport "github.com/fabric8-services/fabric8-wit/test/notification"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
+	"github.com/fabric8-services/fabric8-wit/test/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	jwt "github.com/dgrijalva/jwt-go"
@@ -55,46 +55,29 @@ func TestSuiteWorkItem1(t *testing.T) {
 
 type WorkItemSuite struct {
 	gormtestsupport.DBTestSuite
-	clean          func()
 	workitemCtrl   app.WorkitemController
 	workitemsCtrl  app.WorkitemsController
 	spaceCtrl      app.SpaceController
-	pubKey         *rsa.PublicKey
-	priKey         *rsa.PrivateKey
 	svc            *goa.Service
 	wi             *app.WorkItem
 	minimumPayload *app.UpdateWorkitemPayload
 	testIdentity   account.Identity
-	ctx            context.Context
 	repoWit        workitem.WorkItemRepository
 }
 
 func (s *WorkItemSuite) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
-	s.ctx = migration.NewMigrationContext(context.Background())
-	s.DBTestSuite.PopulateDBTestSuite(s.ctx)
-	s.priKey, _ = wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
 	s.repoWit = workitem.NewWorkItemRepository(s.DB)
 }
 
-func (s *WorkItemSuite) TearDownSuite() {
-	if s.DB != nil {
-		s.DB.Close()
-	}
-}
-
-func (s *WorkItemSuite) TearDownTest() {
-	s.clean()
-}
-
 func (s *WorkItemSuite) SetupTest() {
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+	s.DBTestSuite.SetupTest()
 	// create a test identity
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "WorkItemSuite setup user", "test provider")
 	require.Nil(s.T(), err)
 	s.testIdentity = *testIdentity
 
-	s.svc = testsupport.ServiceAsUser("TestUpdateWI-Service", wittoken.NewManagerWithPrivateKey(s.priKey), s.testIdentity)
+	s.svc = testsupport.ServiceAsUser("TestUpdateWI-Service", s.testIdentity)
 	s.workitemCtrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.workitemsCtrl = NewWorkitemsController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.spaceCtrl = NewSpaceController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration, &DummyResourceManager{})
@@ -254,18 +237,104 @@ func (s *WorkItemSuite) TestGetWorkItemWithLegacyDescription() {
 }
 
 func (s *WorkItemSuite) TestCreateWI() {
-	// given
-	payload := minimumRequiredCreateWithType(workitem.SystemBug)
-	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
-	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	// when
-	_, created := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
-	// then
-	require.NotNil(s.T(), created.Data.ID)
-	assert.NotEmpty(s.T(), *created.Data.ID)
-	assert.NotNil(s.T(), created.Data.Attributes[workitem.SystemCreatedAt])
-	assert.NotNil(s.T(), created.Data.Relationships.Creator.Data)
-	assert.Equal(s.T(), *created.Data.Relationships.Creator.Data.ID, s.testIdentity.ID.String())
+	s.T().Run("ok", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment())
+		svc := testsupport.ServiceAsUser("TestUpdateWI-Service", *fxt.Identities[0])
+		workitemsCtrl := NewWorkitemsController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+		// given
+		payload := minimumRequiredCreateWithTypeAndSpace(fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
+		payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
+		payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+		// when
+		_, created := test.CreateWorkitemsCreated(t, svc.Context, svc, workitemsCtrl, fxt.Spaces[0].ID, &payload)
+		// then
+		require.NotNil(t, created.Data.ID)
+		assert.NotEmpty(t, *created.Data.ID)
+		require.NotNil(t, created.Data.Attributes[workitem.SystemCreatedAt])
+		require.NotNil(t, created.Data.Relationships.Creator.Data)
+		assert.Equal(t, *created.Data.Relationships.Creator.Data.ID, fxt.Identities[0].ID.String())
+		require.NotNil(t, created.Data.Relationships.Iteration)
+		assert.Equal(t, fxt.Iterations[0].ID.String(), *created.Data.Relationships.Iteration.Data.ID)
+		require.NotNil(t, created.Data.Relationships.Area)
+		assert.Equal(t, fxt.Areas[0].ID.String(), *created.Data.Relationships.Area.Data.ID)
+	})
+
+	s.T().Run("field types", func(t *testing.T) {
+		vals := workitem.GetFieldTypeTestData(t)
+		// Get keys from the map above
+		kinds := []workitem.Kind{}
+		for k := range vals {
+			kinds = append(kinds, k)
+		}
+		fieldName := "fieldundertest"
+		// Create a work item type for each kind
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.CreateWorkItemEnvironment(),
+			tf.WorkItemTypes(len(kinds), func(fxt *tf.TestFixture, idx int) error {
+				fxt.WorkItemTypes[idx].Name = kinds[idx].String()
+				// Add one field that is used for testing
+				fxt.WorkItemTypes[idx].Fields[fieldName] = workitem.FieldDefinition{
+					Required:    true,
+					Label:       kinds[idx].String(),
+					Description: fmt.Sprintf("This field is used for testing values for the field kind '%s'", kinds[idx]),
+					Type: workitem.SimpleType{
+						Kind: kinds[idx],
+					},
+				}
+				return nil
+			}),
+		)
+		svc := testsupport.ServiceAsUser("TestUpdateWI-Service", *fxt.Identities[0])
+		workitemsCtrl := NewWorkitemsController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+		workitemCtrl := NewWorkitemController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+		_ = workitemCtrl
+
+		// when
+		for kind, iv := range vals {
+			witID := fxt.WorkItemTypeByName(kind.String()).ID
+			t.Run(kind.String(), func(t *testing.T) {
+				// Handle cases where the conversion is supposed to work
+				t.Run("legal", func(t *testing.T) {
+					for _, expected := range iv.Valid {
+						t.Run(spew.Sdump(expected), func(t *testing.T) {
+							payload := minimumRequiredCreateWithTypeAndSpace(witID, fxt.Spaces[0].ID)
+							payload.Data.Attributes[workitem.SystemTitle] = testsupport.CreateRandomValidTestName("Test WI")
+							payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+							payload.Data.Attributes[fieldName] = expected
+							_, created := test.CreateWorkitemsCreated(t, s.svc.Context, svc, workitemsCtrl, fxt.Spaces[0].ID, &payload)
+							_ = created
+							require.NotNil(t, created)
+							require.NotNil(t, created.Data)
+							require.NotNil(t, created.Data.ID)
+
+							_, loadedWi := test.ShowWorkitemOK(t, s.svc.Context, svc, workitemCtrl, *created.Data.ID, nil, nil)
+							require.NotNil(t, loadedWi)
+							// // compensate for errors when interpreting ambigous actual values
+							actual := loadedWi.Data.Attributes[fieldName]
+							if iv.Compensate != nil {
+								actual = iv.Compensate(actual)
+							}
+							require.Equal(t, expected, actual, "expected no error when loading and comparing the workitem with a '%s': %#v", kind, spew.Sdump(expected))
+						})
+					}
+				})
+				t.Run("illegal", func(t *testing.T) {
+					// Handle cases where the conversion is supposed to NOT work
+					for _, expected := range iv.Invalid {
+						t.Run(spew.Sdump(expected), func(t *testing.T) {
+							payload := minimumRequiredCreateWithTypeAndSpace(witID, fxt.Spaces[0].ID)
+							payload.Data.Attributes[workitem.SystemTitle] = testsupport.CreateRandomValidTestName("Test WI")
+							payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+							payload.Data.Attributes[fieldName] = expected
+							_, jerrs := test.CreateWorkitemsBadRequest(t, s.svc.Context, svc, workitemsCtrl, fxt.Spaces[0].ID, &payload)
+							require.NotNil(t, jerrs, "expected an error when assigning this value to a '%s' field during work item creation: %#v", kind, spew.Sdump(expected))
+						})
+					}
+				})
+			})
+		}
+	})
 }
 
 // TestReorderAbove is positive test which tests successful reorder by providing valid input
@@ -519,12 +588,9 @@ func (s *WorkItemSuite) TestListByFields() {
 	require.NotNil(s.T(), result)
 	require.Equal(s.T(), 1, len(result.Data))
 }
-func getWorkItemTestDataFunc(config configuration.ConfigurationData) func(t *testing.T) []testSecureAPI {
+func getWorkItemTestDataFunc(config configuration.Registry) func(t *testing.T) []testSecureAPI {
 	return func(t *testing.T) []testSecureAPI {
-		privatekey, err := jwt.ParseRSAPrivateKeyFromPEM(config.GetTokenPrivateKey())
-		if err != nil {
-			t.Fatal("Could not parse Key ", err)
-		}
+		privatekey := token.PrivateKey()
 		differentPrivatekey, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSADifferentPrivateKeyTest)))
 
 		if err != nil {
@@ -731,7 +797,7 @@ func minimumRequiredCreateWithType(witID uuid.UUID) app.CreateWorkitemsPayload {
 }
 
 func minimumRequiredCreateWithTypeAndSpace(witID uuid.UUID, spaceID uuid.UUID) app.CreateWorkitemsPayload {
-	c := minimumRequiredCreatePayload()
+	c := minimumRequiredCreatePayload(spaceID)
 	c.Data.Relationships.BaseType = newRelationBaseType(spaceID, witID)
 	return c
 }
@@ -750,14 +816,18 @@ func newRelationBaseType(spaceID, wit uuid.UUID) *app.RelationBaseType {
 	}
 }
 
-func minimumRequiredCreatePayload() app.CreateWorkitemsPayload {
-	spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(space.SystemSpace.String()))
+func minimumRequiredCreatePayload(spaceIDOptional ...uuid.UUID) app.CreateWorkitemsPayload {
+	spaceID := space.SystemSpace
+	if len(spaceIDOptional) == 1 {
+		spaceID = spaceIDOptional[0]
+	}
+	spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(spaceID.String()))
 	return app.CreateWorkitemsPayload{
 		Data: &app.WorkItem{
 			Type:       APIStringTypeWorkItem,
 			Attributes: map[string]interface{}{},
 			Relationships: &app.WorkItemRelationships{
-				Space: app.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
+				Space: app.NewSpaceRelation(spaceID, spaceSelfURL),
 			},
 		},
 	}
@@ -793,11 +863,9 @@ func createOneRandomIteration(ctx context.Context, db *gorm.DB) *iteration.Itera
 		return nil
 	}
 
-	userActive := false
 	itr := iteration.Iteration{
-		Name:       "Sprint 101",
-		SpaceID:    space.ID,
-		UserActive: &userActive,
+		Name:    "Sprint 101",
+		SpaceID: space.ID,
 	}
 	err = iterationRepo.Create(ctx, &itr)
 	if err != nil {
@@ -807,12 +875,12 @@ func createOneRandomIteration(ctx context.Context, db *gorm.DB) *iteration.Itera
 	return &itr
 }
 
-func createOneRandomArea(ctx context.Context, db *gorm.DB, testName string) *area.Area {
+func createOneRandomArea(ctx context.Context, db *gorm.DB) *area.Area {
 	areaRepo := area.NewAreaRepository(db)
 	spaceRepo := space.NewRepository(db)
 
 	newSpace := space.Space{
-		Name: fmt.Sprintf("Space area %v %v", testName, uuid.NewV4()),
+		Name: fmt.Sprintf("Space area %v", uuid.NewV4()),
 	}
 	space, err := spaceRepo.Create(ctx, &newSpace)
 	if err != nil {
@@ -835,12 +903,10 @@ func newChildIteration(ctx context.Context, db *gorm.DB, parentIteration *iterat
 	iterationRepo := iteration.NewIterationRepository(db)
 
 	parentPath := append(parentIteration.Path, parentIteration.ID)
-	userActive := false
 	itr := iteration.Iteration{
-		Name:       "Sprint 101",
-		SpaceID:    parentIteration.SpaceID,
-		Path:       parentPath,
-		UserActive: &userActive,
+		Name:    "Sprint 101",
+		SpaceID: parentIteration.SpaceID,
+		Path:    parentPath,
 	}
 	err := iterationRepo.Create(ctx, &itr)
 	if err != nil {
@@ -868,36 +934,25 @@ func ident(id uuid.UUID) *app.GenericData {
 
 type WorkItem2Suite struct {
 	gormtestsupport.DBTestSuite
-	clean          func()
 	workitemCtrl   app.WorkitemController
 	workitemsCtrl  app.WorkitemsController
 	linkCtrl       app.WorkItemLinkController
 	linkCatCtrl    app.WorkItemLinkCategoryController
 	linkTypeCtrl   app.WorkItemLinkTypeController
 	spaceCtrl      app.SpaceController
-	pubKey         *rsa.PublicKey
-	priKey         *rsa.PrivateKey
 	svc            *goa.Service
 	wi             *app.WorkItem
 	minimumPayload *app.UpdateWorkitemPayload
-	ctx            context.Context
-	notification   testsupport.NotificationChannel
-}
-
-func (s *WorkItem2Suite) SetupSuite() {
-	s.DBTestSuite.SetupSuite()
-	s.DBTestSuite.PopulateDBTestSuite(s.ctx)
+	notification   notificationsupport.FakeNotificationChannel
 }
 
 func (s *WorkItem2Suite) SetupTest() {
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
-
-	s.notification = testsupport.NotificationChannel{}
+	s.DBTestSuite.SetupTest()
+	s.notification = notificationsupport.FakeNotificationChannel{}
 	// create identity
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "WorkItem2Suite setup user", "test provider")
 	require.Nil(s.T(), err)
-	s.priKey, _ = wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
-	s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", wittoken.NewManagerWithPrivateKey(s.priKey), *testIdentity)
+	s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", *testIdentity)
 	s.workitemCtrl = NewNotifyingWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), &s.notification, s.Configuration)
 	s.workitemsCtrl = NewNotifyingWorkitemsController(s.svc, gormapplication.NewGormDB(s.DB), &s.notification, s.Configuration)
 	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(s.DB))
@@ -912,10 +967,6 @@ func (s *WorkItem2Suite) SetupTest() {
 	s.wi = wi.Data
 	s.minimumPayload = getMinimumRequiredUpdatePayload(s.wi)
 	//s.minimumReorderPayload = getMinimumRequiredReorderPayload(s.wi)
-}
-
-func (s *WorkItem2Suite) TearDownTest() {
-	s.clean()
 }
 
 // ========== Actual Test functions ==========
@@ -1533,7 +1584,7 @@ func (s *WorkItem2Suite) TestWI2ListByStateFilterOKModifiedUsingIfNoneMatchIfMod
 }
 
 func (s *WorkItem2Suite) setupAreaWorkItem(createWorkItem bool) (uuid.UUID, string, *app.WorkItemSingle) {
-	tempArea := createOneRandomArea(s.svc.Context, s.DB, "TestWI2ListByAreaFilter")
+	tempArea := createOneRandomArea(s.svc.Context, s.DB)
 	require.NotNil(s.T(), tempArea)
 	areaID := tempArea.ID.String()
 	c := minimumRequiredCreatePayload()
@@ -1806,6 +1857,11 @@ func assertSingleWorkItem(t *testing.T, createdWI app.WorkItemSingle, fetchedWI 
 	assert.NotNil(t, fetchedWI.Data.Links.Self)
 	assert.NotNil(t, fetchedWI.Data.Relationships.Creator.Data.ID)
 	assert.NotNil(t, fetchedWI.Data.Relationships.BaseType.Data.ID)
+	relatedLink := fmt.Sprintf("/%s/labels", fetchedWI.Data.ID)
+	require.NotNil(t, fetchedWI.Data.Relationships.Labels)
+	require.NotNil(t, fetchedWI.Data.Relationships.Labels.Links)
+	assert.Contains(t, *fetchedWI.Data.Relationships.Labels.Links.Related, relatedLink)
+	assert.Empty(t, fetchedWI.Data.Relationships.Labels.Data)
 }
 
 func assertResponseHeaders(t *testing.T, res http.ResponseWriter) (string, string, string) {
@@ -1868,7 +1924,9 @@ func (s *WorkItem2Suite) xTestWI2DeleteLinksOnWIDeletionOK() {
 	require.NotNil(s.T(), linkCat)
 
 	// Create link space
-	spacePayload := CreateSpacePayload("test-space"+uuid.NewV4().String(), "description")
+	spaceName := "test-space" + uuid.NewV4().String()
+	spaceDescription := "description"
+	spacePayload := newCreateSpacePayload(&spaceName, &spaceDescription)
 	_, space := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, spacePayload)
 
 	// Create work item link type payload
@@ -1973,7 +2031,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithRootAreaIfMissing() {
 		Path:    path.Path{rootArea.ID},
 	}
 	areaRepo := area.NewAreaRepository(s.DB)
-	err := areaRepo.Create(s.ctx, &childArea)
+	err := areaRepo.Create(s.Ctx, &childArea)
 	require.Nil(s.T(), err)
 	log.Info(nil, nil, "child area created")
 	childAreaID := childArea.ID.String()
@@ -2694,7 +2752,7 @@ func (s *WorkItem2Suite) TestWI2ListForChildIteration() {
 func (s *WorkItem2Suite) TestWI2FilterExpressionRedirection() {
 	c := minimumRequiredCreatePayload()
 	queryExpression := fmt.Sprintf(`{"iteration" : "%s"}`, uuid.NewV4().String())
-	expectedLocation := fmt.Sprintf(`/api/search?filter[expression]={"%s":[{"space": "%s" }, %s]}`, search.Q_AND, *c.Data.Relationships.Space.Data.ID, queryExpression)
+	expectedLocation := fmt.Sprintf(`/api/search?filter[expression]={"%s":[{"space": "%s" }, %s]}`, search.AND, *c.Data.Relationships.Space.Data.ID, queryExpression)
 	respWriter := test.ListWorkitemsTemporaryRedirect(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, nil, nil, nil, &queryExpression, nil, nil, nil, nil, nil, nil, nil, nil)
 	location := respWriter.Header().Get("location")
 	assert.Contains(s.T(), location, expectedLocation)
@@ -2759,18 +2817,17 @@ func minimumRequiredUpdatePayloadWithSpace(spaceID uuid.UUID) app.UpdateWorkitem
 func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "TestUpdateWorkitemForSpaceCollaborator-"+uuid.NewV4().String(), "TestWI")
 	require.Nil(s.T(), err)
-	space := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, *testIdentity)
+	space := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, *testIdentity, "")
 	// Create new workitem
 	payload := minimumRequiredCreateWithTypeAndSpace(workitem.SystemBug, *space.ID)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", wittoken.NewManagerWithPrivateKey(priv), *testIdentity, &TestSpaceAuthzService{*testIdentity})
+	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *testIdentity, &TestSpaceAuthzService{*testIdentity, ""})
 	workitemCtrl := NewWorkitemController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	workitemsCtrl := NewWorkitemsController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	testIdentity2, err := testsupport.CreateTestIdentity(s.DB, "TestUpdateWorkitemForSpaceCollaborator-"+uuid.NewV4().String(), "TestWI")
-	svcNotAuthorized := testsupport.ServiceAsSpaceUser("Collaborators-Service", wittoken.NewManagerWithPrivateKey(priv), *testIdentity2, &TestSpaceAuthzService{*testIdentity})
+	svcNotAuthorized := testsupport.ServiceAsSpaceUser("Collaborators-Service", *testIdentity2, &TestSpaceAuthzService{*testIdentity, ""})
 	workitemCtrlNotAuthorized := NewWorkitemController(svcNotAuthorized, gormapplication.NewGormDB(s.DB), s.Configuration)
 	workitemsCtrlNotAuthorized := NewWorkitemsController(svcNotAuthorized, gormapplication.NewGormDB(s.DB), s.Configuration)
 
@@ -2799,7 +2856,7 @@ func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	}
 	err = testsupport.CreateTestIdentityForAccountIdentity(s.DB, &openshiftioTestIdentity)
 	require.Nil(s.T(), err)
-	openshiftioTestIdentitySpace := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, openshiftioTestIdentity)
+	openshiftioTestIdentitySpace := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, openshiftioTestIdentity, "")
 	payload3 := minimumRequiredCreateWithTypeAndSpace(workitem.SystemBug, *openshiftioTestIdentitySpace.ID)
 	payload3.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload3.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
@@ -2874,11 +2931,9 @@ func createSpaceWithDefaults(ctx context.Context, db *gorm.DB) (*space.Space, *i
 		return nil, nil, nil
 	}
 
-	userActive := false
 	itr := &iteration.Iteration{
-		Name:       sp.Name,
-		SpaceID:    sp.ID,
-		UserActive: &userActive,
+		Name:    sp.Name,
+		SpaceID: sp.ID,
 	}
 	err = iterationRepo.Create(ctx, itr)
 	if err != nil {

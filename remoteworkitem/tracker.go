@@ -1,11 +1,14 @@
 package remoteworkitem
 
-import "github.com/fabric8-services/fabric8-wit/gormsupport"
+import (
+	"github.com/fabric8-services/fabric8-wit/gormsupport"
+	uuid "github.com/satori/go.uuid"
+)
 
 // Tracker represents tracker configuration
 type Tracker struct {
 	gormsupport.Lifecycle
-	ID uint64 `gorm:"primary_key"`
+	ID uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
 	// URL of the tracker
 	URL string
 	// Type of the tracker (jira, github, bugzilla, trello etc.)

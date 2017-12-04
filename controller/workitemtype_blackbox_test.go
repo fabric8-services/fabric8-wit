@@ -2,7 +2,6 @@ package controller_test
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"net/http"
 	"path/filepath"
@@ -13,22 +12,20 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
-	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	wittoken "github.com/fabric8-services/fabric8-wit/token"
+	testtoken "github.com/fabric8-services/fabric8-wit/test/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	"time"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
-	uuid "github.com/satori/go.uuid"
+	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -42,7 +39,6 @@ import (
 // It implements these interfaces from the suite package: SetupAllSuite, SetupTestSuite, TearDownAllSuite, TearDownTestSuite
 type workItemTypeSuite struct {
 	gormtestsupport.DBTestSuite
-	clean        func()
 	typeCtrl     *WorkitemtypeController
 	linkTypeCtrl *WorkItemLinkTypeController
 	linkCatCtrl  *WorkItemLinkCategoryController
@@ -64,30 +60,23 @@ func TestSuiteWorkItemType(t *testing.T) {
 // It sets up a database connection for all the tests in this suite without polluting global space.
 func (s *workItemTypeSuite) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
-	ctx := migration.NewMigrationContext(context.Background())
-	s.DBTestSuite.PopulateDBTestSuite(ctx)
 	s.testDir = filepath.Join("test-files", "work_item_type")
 }
 
 // The SetupTest method will be run before every test in the suite.
 func (s *workItemTypeSuite) SetupTest() {
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	s.DBTestSuite.SetupTest()
 	idn := &account.Identity{
 		ID:           uuid.Nil,
 		Username:     "TestDeveloper",
 		ProviderType: "test provider",
 	}
-	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", wittoken.NewManagerWithPrivateKey(priv), *idn)
+	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", *idn)
 	s.spaceCtrl = NewSpaceController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration, &DummyResourceManager{})
 	require.NotNil(s.T(), s.spaceCtrl)
 	s.typeCtrl = NewWorkitemtypeController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.linkTypeCtrl = NewWorkItemLinkTypeController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(s.DB))
-}
-
-func (s *workItemTypeSuite) TearDownTest() {
-	s.clean()
 }
 
 //-----------------------------------------------------------------------------
@@ -127,7 +116,9 @@ func (s *workItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *ap
 				Icon:        "fa-hand-lizard-o",
 				Fields: map[string]*app.FieldDefinition{
 					"animal_type": {
-						Required: true,
+						Required:    true,
+						Description: "Description for animal_type field",
+						Label:       "Animal Type",
 						Type: &app.FieldType{
 							BaseType: &stString,
 							Kind:     "enum",
@@ -135,7 +126,9 @@ func (s *workItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *ap
 						},
 					},
 					"color": {
-						Required: false,
+						Required:    false,
+						Description: "Description for color field",
+						Label:       "Color",
 						Type: &app.FieldType{
 							Kind: "string",
 						},
@@ -173,7 +166,9 @@ func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 				Icon:        "fa-user",
 				Fields: map[string]*app.FieldDefinition{
 					"name": {
-						Required: true,
+						Required:    true,
+						Description: "Description for Name field",
+						Label:       "Name",
 						Type: &app.FieldType{
 							Kind: "string",
 						},
@@ -206,7 +201,9 @@ func newCreateWorkItemTypePayload(id uuid.UUID, spaceID uuid.UUID) app.CreateWor
 				Icon:        "fa-user",
 				Fields: map[string]*app.FieldDefinition{
 					"test": {
-						Required: false,
+						Description: "this is a test field",
+						Label:       "Test Label",
+						Required:    false,
 						Type: &app.FieldType{
 							Kind: "string",
 						},
@@ -264,13 +261,12 @@ func (s *workItemTypeSuite) TestCreateByNotOwnerForbidden() {
 	defer resetFn()
 
 	s.T().Run("forbidden", func(t *testing.T) {
-		priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
 		idn := &account.Identity{
 			ID:           uuid.NewV4(),
 			Username:     "TestDeveloper",
 			ProviderType: "test provider",
 		}
-		svc := testsupport.ServiceAsUser("TestCreateByNotOwnerForbidden-WorItemType-Service", wittoken.NewManagerWithPrivateKey(priv), *idn)
+		svc := testsupport.ServiceAsUser("TestCreateByNotOwnerForbidden-WorItemType-Service", *idn)
 		typeCtrl := NewWorkitemtypeController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 
 		payload := newCreateWorkItemTypePayload(uuid.NewV4(), space.SystemSpace)
@@ -294,7 +290,9 @@ func (s *workItemTypeSuite) TestValidate() {
 				Icon:        "fa-user",
 				Fields: map[string]*app.FieldDefinition{
 					"name": {
-						Required: true,
+						Required:    true,
+						Description: "Description for name field",
+						Label:       "Name",
 						Type: &app.FieldType{
 							Kind: "string",
 						},
@@ -508,7 +506,9 @@ func (s *workItemTypeSuite) createWorkitemtypeLinks() (app.WorkItemLinkTypeSingl
 	require.NotNil(s.T(), linkCat)
 	s.T().Log("Created work item link category")
 	// Create work item link space
-	spacePayload := CreateSpacePayload("some-link-space-"+uuid.NewV4().String(), "description")
+	spaceName := "some-link-space-" + uuid.NewV4().String()
+	spaceDescription := "description"
+	spacePayload := newCreateSpacePayload(&spaceName, &spaceDescription)
 	_, sp := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, spacePayload)
 	s.T().Log("Created space")
 	// Create work item link type
@@ -590,11 +590,8 @@ func (s *workItemTypeSuite) TestUnauthorizeWorkItemTypeCreate() {
 }
 
 func (s *workItemTypeSuite) getWorkItemTypeTestDataFunc() func(*testing.T) []testSecureAPI {
-	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((s.Configuration.GetTokenPrivateKey()))
+	privatekey := testtoken.PrivateKey()
 	return func(t *testing.T) []testSecureAPI {
-		if err != nil {
-			t.Fatal("Could not parse Key ", err)
-		}
 		differentPrivatekey, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSADifferentPrivateKeyTest)))
 		require.Nil(t, err)
 

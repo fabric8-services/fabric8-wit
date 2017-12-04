@@ -86,7 +86,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	}
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
-		jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
 
 	var wi *workitem.WorkItem
@@ -124,7 +124,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error updating work item"))
 		}
-		hasChildren := workItemIncludeHasChildren(appl, ctx)
+		hasChildren := workItemIncludeHasChildren(ctx, appl)
 		wi2 := ConvertWorkItem(ctx.Request, *wi, hasChildren)
 		resp := &app.WorkItemSingle{
 			Data: wi2,
@@ -151,7 +151,7 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 		}
 		return ctx.ConditionalRequest(*wi, c.config.GetCacheControlWorkItem, func() error {
 			comments := workItemIncludeCommentsAndTotal(ctx, c.db, ctx.WiID)
-			hasChildren := workItemIncludeHasChildren(appl, ctx)
+			hasChildren := workItemIncludeHasChildren(ctx, appl)
 			wi2 := ConvertWorkItem(ctx.Request, *wi, comments, hasChildren)
 			resp := &app.WorkItemSingle{
 				Data: wi2,
@@ -258,6 +258,31 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 			}
 			target.Fields[workitem.SystemAssignees] = ids
 		}
+	}
+	if source.Relationships != nil && source.Relationships.Labels != nil {
+		// Pass empty array to remove all lables
+		// null is treated as bad param
+		if source.Relationships.Labels.Data == nil {
+			return errors.NewBadParameterError("data.relationships.labels.data", nil)
+		}
+		distinctIDs := make(map[string]struct{})
+		for _, d := range source.Relationships.Labels.Data {
+			labelUUID, err := uuid.FromString(*d.ID)
+			if err != nil {
+				return errors.NewBadParameterError("data.relationships.labels.data.id", *d.ID)
+			}
+			if ok := appl.Labels().IsValid(ctx, labelUUID); !ok {
+				return errors.NewBadParameterError("data.relationships.labels.data.id", *d.ID)
+			}
+			if _, ok := distinctIDs[labelUUID.String()]; !ok {
+				distinctIDs[labelUUID.String()] = struct{}{}
+			}
+		}
+		ids := make([]string, 0, len(distinctIDs))
+		for k := range distinctIDs {
+			ids = append(ids, k)
+		}
+		target.Fields[workitem.SystemLabels] = ids
 	}
 	if source.Relationships != nil {
 		if source.Relationships.Iteration == nil || (source.Relationships.Iteration != nil && source.Relationships.Iteration.Data == nil) {
@@ -435,6 +460,8 @@ func ConvertWorkItem(request *http.Request, wi workitem.WorkItem, additional ...
 	relatedURL := rest.AbsoluteURL(request, app.WorkitemHref(wi.ID))
 	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(wi.SpaceID.String()))
 	witRelatedURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.SpaceID.String(), wi.Type))
+	labelsRelated := relatedURL + "/labels"
+	workItemLinksRelated := relatedURL + "/links"
 
 	op := &app.WorkItem{
 		ID:   &wi.ID,
@@ -454,6 +481,11 @@ func ConvertWorkItem(request *http.Request, wi workitem.WorkItem, additional ...
 				},
 			},
 			Space: app.NewSpaceRelation(wi.SpaceID, spaceRelatedURL),
+			WorkItemLinks: &app.RelationGeneric{
+				Links: &app.GenericLinks{
+					Related: &workItemLinksRelated,
+				},
+			},
 		},
 		Links: &app.GenericLinksForWorkItem{
 			Self:    &relatedURL,
@@ -470,6 +502,16 @@ func ConvertWorkItem(request *http.Request, wi workitem.WorkItem, additional ...
 				userID := val.([]interface{})
 				op.Relationships.Assignees = &app.RelationGenericList{
 					Data: ConvertUsersSimple(request, userID),
+				}
+			}
+		case workitem.SystemLabels:
+			if val != nil {
+				labelIDs := val.([]interface{})
+				op.Relationships.Labels = &app.RelationGenericList{
+					Data: ConvertLabelsSimple(request, labelIDs),
+					Links: &app.GenericLinks{
+						Related: &labelsRelated,
+					},
 				}
 			}
 		case workitem.SystemCreator:
@@ -537,7 +579,7 @@ func ConvertWorkItem(request *http.Request, wi workitem.WorkItem, additional ...
 }
 
 // workItemIncludeHasChildren adds meta information about existing children
-func workItemIncludeHasChildren(appl application.Application, ctx context.Context) WorkItemConvertFunc {
+func workItemIncludeHasChildren(ctx context.Context, appl application.Application) WorkItemConvertFunc {
 	// TODO: Wrap ctx in a Timeout context?
 	return func(request *http.Request, wi *workitem.WorkItem, wi2 *app.WorkItem) {
 		var hasChildren bool
@@ -565,6 +607,34 @@ func workItemIncludeHasChildren(appl application.Application, ctx context.Contex
 	}
 }
 
+// includeParentWorkItem adds the parent of given WI to relationships & included object
+func includeParentWorkItem(ctx context.Context, appl application.Application) WorkItemConvertFunc {
+	return func(request *http.Request, wi *workitem.WorkItem, wi2 *app.WorkItem) {
+		var parentID *uuid.UUID
+		var err error
+		repo := appl.WorkItemLinks()
+		if repo != nil {
+			parentID, err = repo.GetParentID(ctx, wi.ID)
+			if err != nil {
+				log.Info(ctx, map[string]interface{}{
+					"wi_id":  wi.ID,
+					"detail": err,
+				}, "work item has no parent: %s", wi.ID)
+			}
+		}
+		if wi2.Relationships.Parent == nil {
+			wi2.Relationships.Parent = &app.RelationKindUUID{}
+		}
+		if parentID != nil {
+			if wi2.Relationships.Parent.Data == nil {
+				wi2.Relationships.Parent.Data = &app.DataKindUUID{}
+			}
+			wi2.Relationships.Parent.Data.ID = *parentID
+			wi2.Relationships.Parent.Data.Type = APIStringTypeWorkItem
+		}
+	}
+}
+
 // ListChildren runs the list action.
 func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) error {
 	// WorkItemChildrenController_List: start_implement
@@ -578,7 +648,7 @@ func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) 
 		}
 		count := int(tc)
 		return ctx.ConditionalEntities(result, c.config.GetCacheControlWorkItems, func() error {
-			hasChildren := workItemIncludeHasChildren(appl, ctx)
+			hasChildren := workItemIncludeHasChildren(ctx, appl)
 			response := app.WorkItemList{
 				Links: &app.PagingLinks{},
 				Meta:  &app.WorkItemListResponseMeta{TotalCount: count},

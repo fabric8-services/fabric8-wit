@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -28,22 +29,46 @@ func NewFilterController(service *goa.Service, config FilterControllerConfigurat
 	}
 }
 
+const (
+	filterKeyAssignee     = "assignee"
+	filterKeyCreator      = "creator"
+	filterKeyArea         = "area"
+	filterKeyIteration    = "iteration"
+	filterKeyWorkItemType = "workitemtype"
+	filterKeyState        = "state"
+	filterKeyLabel        = "label"
+	filterKeyTitle        = "title"
+)
+
 // List runs the list action.
 func (c *FilterController) List(ctx *app.ListFilterContext) error {
 	var arr []*app.Filters
-	arr = append(arr, &app.Filters{
-		Attributes: &app.FilterAttributes{
-			Title:       "Assignee",
-			Query:       "filter[assignee]={id}",
-			Description: "Filter by assignee",
-			Type:        "users",
+	arr = append(arr,
+		&app.Filters{
+			Attributes: &app.FilterAttributes{
+				Title:       "Assignee",
+				Description: "Filter by assignee",
+				Type:        "users",
+				Query:       fmt.Sprintf("filter[%s]={id}", filterKeyAssignee),
+				Key:         filterKeyAssignee,
+			},
+			Type: "filters",
 		},
-		Type: "filters",
-	},
+		&app.Filters{
+			Attributes: &app.FilterAttributes{
+				Title:       "Creator",
+				Description: "Filter by creator",
+				Type:        "users",
+				Query:       fmt.Sprintf("filter[%s]={id}", filterKeyCreator),
+				Key:         filterKeyCreator,
+			},
+			Type: "filters",
+		},
 		&app.Filters{
 			Attributes: &app.FilterAttributes{
 				Title:       "Area",
-				Query:       "filter[area]={id}",
+				Query:       fmt.Sprintf("filter[%s]={id}", filterKeyArea),
+				Key:         filterKeyArea,
 				Description: "Filter by area",
 				Type:        "areas",
 			},
@@ -52,7 +77,8 @@ func (c *FilterController) List(ctx *app.ListFilterContext) error {
 		&app.Filters{
 			Attributes: &app.FilterAttributes{
 				Title:       "Iteration",
-				Query:       "filter[iteration]={id}",
+				Query:       fmt.Sprintf("filter[%s]={id}", filterKeyIteration),
+				Key:         filterKeyIteration,
 				Description: "Filter by iteration",
 				Type:        "iterations",
 			},
@@ -61,7 +87,8 @@ func (c *FilterController) List(ctx *app.ListFilterContext) error {
 		&app.Filters{
 			Attributes: &app.FilterAttributes{
 				Title:       "Workitem type",
-				Query:       "filter[workitemtype]={id}",
+				Query:       fmt.Sprintf("filter[%s]={id}", filterKeyWorkItemType),
+				Key:         filterKeyWorkItemType,
 				Description: "Filter by workitemtype",
 				Type:        "workitemtypes",
 			},
@@ -69,10 +96,31 @@ func (c *FilterController) List(ctx *app.ListFilterContext) error {
 		},
 		&app.Filters{
 			Attributes: &app.FilterAttributes{
-				Title:       "Workitem state",
-				Query:       "filter[workitemstate]={id}",
-				Description: "Filter by workitemstate",
-				Type:        "workitemstate",
+				Title:       "State",
+				Query:       fmt.Sprintf("filter[%s]={id}", filterKeyState),
+				Key:         filterKeyState,
+				Description: "Filter by state",
+				Type:        "state",
+			},
+			Type: "filters",
+		},
+		&app.Filters{
+			Attributes: &app.FilterAttributes{
+				Title:       "Label",
+				Query:       fmt.Sprintf("filter[%s]={id}", filterKeyLabel),
+				Key:         filterKeyLabel,
+				Description: "Filter by label",
+				Type:        "labels",
+			},
+			Type: "filters",
+		},
+		&app.Filters{
+			Attributes: &app.FilterAttributes{
+				Title:       "Title",
+				Query:       fmt.Sprintf("filter[%s]={id}", filterKeyTitle),
+				Key:         filterKeyTitle,
+				Description: "Filter by title",
+				Type:        "title", // not really used anywhere
 			},
 			Type: "filters",
 		},

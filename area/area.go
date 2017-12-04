@@ -30,6 +30,12 @@ type Area struct {
 	Version int
 }
 
+// MakeChildOf does all the path magic to make the current area a child of
+// the given parent area.
+func (m *Area) MakeChildOf(parent Area) {
+	m.Path = append(parent.Path, parent.ID)
+}
+
 // GetETagData returns the field values to use to generate the ETag
 func (m Area) GetETagData() []interface{} {
 	return []interface{}{m.ID, m.Version}
@@ -71,7 +77,10 @@ type GormAreaRepository struct {
 // Create creates a new record.
 func (m *GormAreaRepository) Create(ctx context.Context, u *Area) error {
 	defer goa.MeasureSince([]string{"goa", "db", "area", "create"}, time.Now())
-	u.ID = uuid.NewV4()
+
+	if u.ID == uuid.Nil {
+		u.ID = uuid.NewV4()
+	}
 	err := m.db.Create(u).Error
 	if err != nil {
 		// ( name, spaceID ,path ) needs to be unique

@@ -72,6 +72,22 @@ var relationGeneric = a.Type("RelationGeneric", func() {
 	a.Attribute("meta", a.HashOf(d.String, d.Any))
 })
 
+// relationGenericTypeSensitive is a top level structure for 'other' relationships
+var relationKindUUID = a.Type("RelationKindUUID", func() {
+	a.Attribute("data", dataKindUUID)
+	a.Attribute("links", genericLinks)
+	a.Attribute("meta", a.HashOf(d.String, d.Any))
+})
+
+// dataKindUUID defines what is needed inside Generic Relationship
+var dataKindUUID = a.Type("DataKindUUID", func() {
+	a.Attribute("type", d.String)
+	a.Attribute("id", d.UUID, "UUID of the object", func() {
+		a.Example("6c5610be-30b2-4880-9fec-81e4f8e4fd76")
+	})
+	a.Required("type", "id")
+})
+
 // relationGeneric is a top level structure for 'other' relationships
 var relationGenericList = a.Type("RelationGenericList", func() {
 	a.Attribute("data", a.ArrayOf(genericData))

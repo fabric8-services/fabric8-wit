@@ -1,0 +1,11 @@
+{
+  "errors": [
+    {
+      "code": "not_found",
+      "detail": "spaces with id '00000000-0000-0000-0000-000000000001' not found",
+      "id": "IGNOREME",
+      "status": "404",
+      "title": "Not found error"
+    }
+  ]
+}
