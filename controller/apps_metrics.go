@@ -90,7 +90,7 @@ func (mc *metricsClient) getMetricsForPods(pods []v1.Pod, namespace string, desc
 	* https://github.com/kubernetes/heapster/blob/v1.3.0/metrics/sources/kubelet/kubelet.go#L238
 	* https://github.com/kubernetes/heapster/blob/v1.3.0/metrics/sinks/hawkular/driver.go#L124
 	* https://github.com/kubernetes/heapster/blob/v1.3.0/metrics/sinks/hawkular/client.go#L278
-	*/
+	 */
 	var avgTimestamp int64
 	if timestampsDiffer {
 		avgTimestamp = calcAvgTimestamp(samples)
