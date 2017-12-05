@@ -133,3 +133,6 @@ import:
   - pkg/apis/meta/v1
   - pkg/types
   - pkg/api/resource
+- package: github.com/hawkular/hawkular-client-go
+  subpackages:
+  - metrics
