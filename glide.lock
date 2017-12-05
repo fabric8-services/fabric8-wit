@@ -146,6 +146,10 @@ imports:
   - json/parser
   - json/scanner
   - json/token
+- name: github.com/hawkular/hawkular-client-go
+  version: 4863013673fcb807cda3b5103964b084566a4665
+  subpackages:
+  - metrics
 - name: github.com/howeyc/fsnotify
   version: f0c08ee9c60704c1879025f2ae0ff3e000082c13
 - name: github.com/inconshreveable/mousetrap
