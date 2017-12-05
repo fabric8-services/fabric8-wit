@@ -50,9 +50,11 @@ func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) erro
 	err = validateCreateTrackerQueryPayload(ctx)
 	result := application.Transactional(c.db, func(appl application.Application) error {
 		trackerQuery := remoteworkitem.TrackerQuery{
+			ID:        *ctx.Payload.Data.ID,
 			Query:     ctx.Payload.Data.Attributes.Query,
 			Schedule:  ctx.Payload.Data.Attributes.Schedule,
 			TrackerID: uuid.FromStringOrNil(*ctx.Payload.Data.Relationships.Tracker.Data.ID),
+			SpaceID:   uuid.FromStringOrNil(*ctx.Payload.Data.Relationships.Space.Data.ID),
 		}
 		err := appl.TrackerQueries().Create(ctx.Context, &trackerQuery)
 		if err != nil {

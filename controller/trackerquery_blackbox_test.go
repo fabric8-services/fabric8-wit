@@ -2,7 +2,6 @@ package controller_test
 
 import (
 	"bytes"
-	"fmt"
 	"net/http"
 	"testing"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
@@ -19,6 +19,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	testtoken "github.com/fabric8-services/fabric8-wit/test/token"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -31,6 +32,7 @@ type TestTrackerQueryREST struct {
 	gormtestsupport.DBTestSuite
 	RwiScheduler *remoteworkitem.Scheduler
 	db           *gormapplication.GormDB
+	clean        func()
 }
 
 func TestRunTrackerQueryREST(t *testing.T) {
@@ -41,15 +43,20 @@ func (rest *TestTrackerQueryREST) SetupTest() {
 	rest.DBTestSuite.SetupTest()
 	rest.RwiScheduler = remoteworkitem.NewScheduler(rest.DB)
 	rest.db = gormapplication.NewGormDB(rest.DB)
+	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
+}
+
+func (rest *TestTrackerQueryREST) TearDownTest() {
+	rest.clean()
 }
 
 func (rest *TestTrackerQueryREST) SecuredController() (*goa.Service, *TrackerController, *TrackerqueryController) {
-	svc := testsupport.ServiceAsUser("Tracker-Service", testsupport.TestIdentity)
+	svc := testsupport.ServiceAsUser("TrackerQuery-Service", testsupport.TestIdentity)
 	return svc, NewTrackerController(svc, rest.db, rest.RwiScheduler, rest.Configuration), NewTrackerqueryController(svc, rest.db, rest.RwiScheduler, rest.Configuration)
 }
 
 func (rest *TestTrackerQueryREST) UnSecuredController() (*goa.Service, *TrackerController, *TrackerqueryController) {
-	svc := goa.New("Tracker-Service")
+	svc := goa.New("TrackerQuery-Service")
 	return svc, NewTrackerController(svc, rest.db, rest.RwiScheduler, rest.Configuration), NewTrackerqueryController(svc, rest.db, rest.RwiScheduler, rest.Configuration)
 }
 
@@ -58,7 +65,7 @@ func getTrackerQueryTestData(t *testing.T) []testSecureAPI {
 	differentPrivatekey, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSADifferentPrivateKeyTest)))
 	require.Nil(t, err)
 
-	createTrackerQueryPayload := bytes.NewBuffer([]byte(`{"type": "github", "url": "https://api.github.com/"}`))
+	createTrackerQueryPayload := bytes.NewBuffer([]byte(`{"query": "is:open", "schedule": "5 * * * * *", "trackerID":"64e19607-9e54-4f11-a543-a0aa4288d326", "spaceID":"2e456849-4808-4a39-a3b7-a8c9252b1ede"}`))
 
 	return []testSecureAPI{
 		// Create tracker query API with different parameters
@@ -94,28 +101,28 @@ func getTrackerQueryTestData(t *testing.T) []testSecureAPI {
 		// Update tracker query API with different parameters
 		{
 			method:             http.MethodPut,
-			url:                "/api/trackerqueries/12345",
+			url:                "/api/trackerqueries/" + uuid.NewV4().String(),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createTrackerQueryPayload,
 			jwtToken:           getExpiredAuthHeader(t, privatekey),
 		}, {
 			method:             http.MethodPut,
-			url:                "/api/trackerqueries/12345",
+			url:                "/api/trackerqueries/" + uuid.NewV4().String(),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createTrackerQueryPayload,
 			jwtToken:           getMalformedAuthHeader(t, privatekey),
 		}, {
 			method:             http.MethodPut,
-			url:                "/api/trackerqueries/12345",
+			url:                "/api/trackerqueries/" + uuid.NewV4().String(),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createTrackerQueryPayload,
 			jwtToken:           getValidAuthHeader(t, differentPrivatekey),
 		}, {
 			method:             http.MethodPut,
-			url:                "/api/trackerqueries/12345",
+			url:                "/api/trackerqueries/" + uuid.NewV4().String(),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createTrackerQueryPayload,
@@ -124,28 +131,28 @@ func getTrackerQueryTestData(t *testing.T) []testSecureAPI {
 		// Delete tracker query API with different parameters
 		{
 			method:             http.MethodDelete,
-			url:                "/api/trackerqueries/12345",
+			url:                "/api/trackerqueries/" + uuid.NewV4().String(),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createTrackerQueryPayload,
 			jwtToken:           getExpiredAuthHeader(t, privatekey),
 		}, {
 			method:             http.MethodDelete,
-			url:                "/api/trackerqueries/12345",
+			url:                "/api/trackerqueries/" + uuid.NewV4().String(),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createTrackerQueryPayload,
 			jwtToken:           getMalformedAuthHeader(t, privatekey),
 		}, {
 			method:             http.MethodDelete,
-			url:                "/api/trackerqueries/12345",
+			url:                "/api/trackerqueries/" + uuid.NewV4().String(),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createTrackerQueryPayload,
 			jwtToken:           getValidAuthHeader(t, differentPrivatekey),
 		}, {
 			method:             http.MethodDelete,
-			url:                "/api/trackerqueries/12345",
+			url:                "/api/trackerqueries/" + uuid.NewV4().String(),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createTrackerQueryPayload,
@@ -155,7 +162,7 @@ func getTrackerQueryTestData(t *testing.T) []testSecureAPI {
 		// We do not have security on GET hence this should return 404 not found
 		{
 			method:             http.MethodGet,
-			url:                "/api/trackerqueries/088481764871",
+			url:                "/api/trackerqueries/" + uuid.NewV4().String(),
 			expectedStatusCode: http.StatusNotFound,
 			expectedErrorCode:  jsonapi.ErrorCodeNotFound,
 			payload:            nil,
@@ -179,22 +186,13 @@ func (rest *TestTrackerQueryREST) TestCreateTrackerQuery() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
-	svc, trackerCtrl, trackerQueryCtrl := rest.SecuredController()
-	payload := app.CreateTrackerPayload{
-		Data: &app.Tracker{
-			Attributes: &app.TrackerAttributes{
-				URL:  "http://api.github.com",
-				Type: remoteworkitem.ProviderJira,
-			},
-			Type: remoteworkitem.APIStringTypeTrackers,
-		},
-	}
-	_, result := test.CreateTrackerCreated(t, svc.Context, svc, trackerCtrl, &payload)
-	t.Log(result.Data.ID)
+	svc, _, trackerQueryCtrl := rest.SecuredController()
+	fxt := tf.NewTestFixture(t, rest.DB, tf.Spaces(1), tf.Trackers(1))
+	assert.NotNil(rest.T(), fxt.Spaces[0], fxt.Trackers[0])
 
-	tqpayload := newCreateTrackerQueryPayload(*result.Data.ID)
+	tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID)
 
-	_, tqresult := test.CreateTrackerqueryCreated(t, nil, nil, trackerQueryCtrl, &tqpayload)
+	_, tqresult := test.CreateTrackerqueryCreated(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
 	assert.NotNil(rest.T(), tqresult)
 }
 
@@ -202,69 +200,43 @@ func (rest *TestTrackerQueryREST) TestGetTrackerQuery() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
-	svc, trackerCtrl, trackerQueryCtrl := rest.SecuredController()
-	payload := app.CreateTrackerPayload{
-		Data: &app.Tracker{
-			Attributes: &app.TrackerAttributes{
-				URL:  "http://api.github.com",
-				Type: "jira",
-			},
-			Type: remoteworkitem.APIStringTypeTrackers,
-		},
-	}
-	_, result := test.CreateTrackerCreated(t, svc.Context, svc, trackerCtrl, &payload)
+	svc, _, trackerQueryCtrl := rest.SecuredController()
+	fxt := tf.NewTestFixture(t, rest.DB, tf.Spaces(1), tf.Trackers(1))
+	assert.NotNil(rest.T(), fxt.Spaces[0], fxt.Trackers[0])
 
-	tqpayload := newCreateTrackerQueryPayload(*result.Data.ID)
+	tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID)
 
-	fmt.Printf("tq payload %#v", tqpayload)
-	_, tqresult := test.CreateTrackerqueryCreated(t, nil, nil, trackerQueryCtrl, &tqpayload)
-	test.ShowTrackerqueryOK(t, nil, nil, trackerQueryCtrl, *tqresult.Data.ID)
-	_, tqr := test.ShowTrackerqueryOK(t, nil, nil, trackerQueryCtrl, *tqresult.Data.ID)
+	_, tqresult := test.CreateTrackerqueryCreated(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
 
-	if tqr == nil {
-		t.Fatalf("Tracker Query '%s' not present", tqresult.Data.ID)
-	}
-	if tqr.Data.ID != tqresult.Data.ID {
-		t.Errorf("Id should be %s, but is %s", tqresult.Data.ID, tqr.Data.ID)
-	}
+	_, tqr := test.ShowTrackerqueryOK(t, svc.Context, svc, trackerQueryCtrl, *tqresult.Data.ID)
+	assert.NotNil(rest.T(), tqr)
+	assert.Equal(rest.T(), tqresult.Data.ID, tqr.Data.ID)
 }
 
 func (rest *TestTrackerQueryREST) TestUpdateTrackerQuery() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
-	svc, trackerCtrl, trackerQueryCtrl := rest.SecuredController()
-	payload := app.CreateTrackerPayload{
-		Data: &app.Tracker{
-			Attributes: &app.TrackerAttributes{
-				URL:  "http://api.github.com",
-				Type: "jira",
-			},
-			Type: remoteworkitem.APIStringTypeTrackers,
-		},
-	}
-	_, result := test.CreateTrackerCreated(t, svc.Context, svc, trackerCtrl, &payload)
+	svc, _, trackerQueryCtrl := rest.SecuredController()
+	fxt := tf.NewTestFixture(t, rest.DB, tf.Spaces(1), tf.Trackers(1))
+	assert.NotNil(rest.T(), fxt.Spaces[0], fxt.Trackers[0])
 
-	tqpayload := newCreateTrackerQueryPayload(*result.Data.ID)
+	tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID)
 
-	_, tqresult := test.CreateTrackerqueryCreated(t, nil, nil, trackerQueryCtrl, &tqpayload)
-	test.ShowTrackerqueryOK(t, nil, nil, trackerQueryCtrl, *tqresult.Data.ID)
-	_, tqr := test.ShowTrackerqueryOK(t, nil, nil, trackerQueryCtrl, *tqresult.Data.ID)
+	_, tqresult := test.CreateTrackerqueryCreated(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
 
-	if tqr == nil {
-		t.Fatalf("Tracker Query '%s' not present", tqresult.Data.ID)
-	}
-	if tqr.Data.ID != tqresult.Data.ID {
-		t.Errorf("Id should be %s, but is %s", tqresult.Data.ID, tqr.Data.ID)
-	}
+	_, tqr := test.ShowTrackerqueryOK(t, svc.Context, svc, trackerQueryCtrl, *tqresult.Data.ID)
+	assert.NotNil(rest.T(), tqr)
+	assert.Equal(rest.T(), tqresult.Data.ID, tqr.Data.ID)
 
 	spaceID := space.SystemSpace.String()
-	trackerID := result.Data.ID.String()
+	trackerID := fxt.Trackers[0].ID.String()
 	payload2 := app.UpdateTrackerqueryPayload{
 		Data: &app.TrackerQuery{
+			ID: tqr.Data.ID,
 			Attributes: &app.TrackerQueryAttributes{
-				Query:    tqr.Data.Attributes.Query,
-				Schedule: tqr.Data.Attributes.Schedule,
+				Query:    "is:open",
+				Schedule: "* * * * * *",
 			},
 			Relationships: &app.TrackerQueryRelations{
 				Space: &app.RelationGeneric{
@@ -278,20 +250,15 @@ func (rest *TestTrackerQueryREST) TestUpdateTrackerQuery() {
 					},
 				},
 			},
+			Type: remoteworkitem.APIStringTypeTrackerQuery,
 		},
 	}
 
-	_, updated := test.UpdateTrackerqueryOK(t, nil, nil, trackerQueryCtrl, tqr.Data.ID.String(), &payload2)
-
-	if updated.Data.ID != tqresult.Data.ID {
-		t.Errorf("Id has changed from %s to %s", tqresult.Data.ID, updated.Data.ID)
-	}
-	if updated.Data.Attributes.Query != tqresult.Data.Attributes.Query {
-		t.Errorf("Query has changed from %s to %s", tqresult.Data.Attributes.Query, updated.Data.Attributes.Query)
-	}
-	if updated.Data.Attributes.Schedule != tqresult.Data.Attributes.Schedule {
-		t.Errorf("Type has changed has from %s to %s", tqresult.Data.Attributes.Schedule, updated.Data.Attributes.Schedule)
-	}
+	_, updated := test.UpdateTrackerqueryOK(t, svc.Context, svc, trackerQueryCtrl, tqr.Data.ID.String(), &payload2)
+	assert.NotNil(rest.T(), tqr)
+	assert.Equal(rest.T(), updated.Data.ID, tqr.Data.ID)
+	assert.Equal(rest.T(), updated.Data.Attributes.Query, "is:open")
+	assert.Equal(rest.T(), updated.Data.Attributes.Schedule, "* * * * * *")
 }
 
 // This test ensures that List does not return NIL items.
@@ -299,30 +266,17 @@ func (rest *TestTrackerQueryREST) TestTrackerQueryListItemsNotNil() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
-	svc, trackerCtrl, trackerQueryCtrl := rest.SecuredController()
-	payload := app.CreateTrackerPayload{
-		Data: &app.Tracker{
-			Attributes: &app.TrackerAttributes{
-				URL:  "http://api.github.com",
-				Type: "jira",
-			},
-			Type: remoteworkitem.APIStringTypeTrackers,
-		},
-	}
-	_, result := test.CreateTrackerCreated(t, svc.Context, svc, trackerCtrl, &payload)
-	t.Log(result.Data.ID)
+	svc, _, trackerQueryCtrl := rest.SecuredController()
+	fxt := tf.NewTestFixture(t, rest.DB, tf.Spaces(1), tf.Trackers(1))
+	assert.NotNil(rest.T(), fxt.Spaces[0], fxt.Trackers[0])
 
-	tqpayload := newCreateTrackerQueryPayload(*result.Data.ID)
+	tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID)
 
-	test.CreateTrackerqueryCreated(t, nil, nil, trackerQueryCtrl, &tqpayload)
-	test.CreateTrackerqueryCreated(t, nil, nil, trackerQueryCtrl, &tqpayload)
+	test.CreateTrackerqueryCreated(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
+	test.CreateTrackerqueryCreated(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
 
-	_, list := test.ListTrackerqueryOK(t, nil, nil, trackerQueryCtrl, nil, nil)
-	for _, tq := range list.Data {
-		if tq == nil {
-			t.Error("Returned Tracker Query found nil")
-		}
-	}
+	_, list := test.ListTrackerqueryOK(t, svc.Context, svc, trackerQueryCtrl, nil, nil)
+	require.Len(rest.T(), list.Data, 2)
 }
 
 // This test ensures that ID returned by Show is valid.
@@ -331,32 +285,24 @@ func (rest *TestTrackerQueryREST) TestCreateTrackerQueryValidId() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
-	svc, trackerCtrl, trackerQueryCtrl := rest.SecuredController()
-	payload := app.CreateTrackerPayload{
-		Data: &app.Tracker{
-			Attributes: &app.TrackerAttributes{
-				URL:  "http://api.github.com",
-				Type: "jira",
-			},
-			Type: remoteworkitem.APIStringTypeTrackers,
-		},
-	}
-	_, result := test.CreateTrackerCreated(t, svc.Context, svc, trackerCtrl, &payload)
+	svc, _, trackerQueryCtrl := rest.SecuredController()
+	fxt := tf.NewTestFixture(t, rest.DB, tf.Spaces(1), tf.Trackers(1))
+	assert.NotNil(rest.T(), fxt.Spaces[0], fxt.Trackers[0])
 
-	tqpayload := newCreateTrackerQueryPayload(*result.Data.ID)
+	tqpayload := newCreateTrackerQueryPayload(fxt.Spaces[0].ID, fxt.Trackers[0].ID)
 
-	_, trackerquery := test.CreateTrackerqueryCreated(t, nil, nil, trackerQueryCtrl, &tqpayload)
-	_, created := test.ShowTrackerqueryOK(t, nil, nil, trackerQueryCtrl, *trackerquery.Data.ID)
-	if created != nil && created.Data.ID != trackerquery.Data.ID {
-		t.Error("Failed because fetched Tracker query not same as requested. Found: ", trackerquery.Data.ID, " Expected, ", created.Data.ID)
-	}
+	_, trackerquery := test.CreateTrackerqueryCreated(t, svc.Context, svc, trackerQueryCtrl, &tqpayload)
+	_, created := test.ShowTrackerqueryOK(t, svc.Context, svc, trackerQueryCtrl, *trackerquery.Data.ID)
+	assert.Equal(rest.T(), created.Data.ID, trackerquery.Data.ID)
 }
 
-func newCreateTrackerQueryPayload(trackerID uuid.UUID) app.CreateTrackerqueryPayload {
-	space := space.SystemSpace.String()
+func newCreateTrackerQueryPayload(spaceID uuid.UUID, trackerID uuid.UUID) app.CreateTrackerqueryPayload {
+	trackerQueryId := uuid.NewV4()
+	space := spaceID.String()
 	tracker := trackerID.String()
 	return app.CreateTrackerqueryPayload{
 		Data: &app.TrackerQuery{
+			ID: &trackerQueryId,
 			Attributes: &app.TrackerQueryAttributes{
 				Query:    "is:open is:issue user:arquillian author:aslakknutsen",
 				Schedule: "15 * * * * *",
