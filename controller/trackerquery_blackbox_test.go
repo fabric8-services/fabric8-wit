@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/dgrijalva/jwt-go"
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
@@ -16,11 +16,11 @@ import (
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
+	testtoken "github.com/fabric8-services/fabric8-wit/test/token"
 	uuid "github.com/satori/go.uuid"
 
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
-	testtoken "github.com/fabric8-services/fabric8-wit/test/token"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
