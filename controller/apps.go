@@ -30,7 +30,7 @@ func NewAppsController(service *goa.Service, config *configuration.Registry) *Ap
 		//AuthURL: "https://auth.prod-preview.openshift.io",
 		//AuthURL: "https://auth.openshift.io",
 
-		// TODO
+		// TODO - make this a config variable?
 		//WitURL: "http://localhost:8080"
 		//WitURL: "http://api.prod-preview.openshift.io",
 		WitURL: "http://api.openshift.io",
@@ -43,7 +43,6 @@ func tostring(item interface{}) string {
 }
 
 func (c *AppsController) getAndCheckOsioClient(ctx context.Context) (*OsioClient, error) {
-
 	oc, err := NewOsioClient(ctx, c.WitURL)
 	if err != nil {
 		return nil, errors.NewUnauthorizedError("osio")
@@ -94,8 +93,13 @@ func (c *AppsController) getKubeClient(ctx context.Context) (*KubeClient, error)
 	// get the user definition (for cluster URL)
 	authUser, err := authClient.getAuthUser()
 	if err != nil {
-		goa.LogInfo(ctx, "error getting user info:"+tostring(err))
+		goa.LogInfo(ctx, "error accessing Auth server"+tostring(err))
 		return nil, err
+	}
+
+	if authUser == nil || authUser.Data.Attributes.Cluster == nil {
+		goa.LogInfo(ctx, "error getting user from Auth server:"+tostring(authUser))
+		return nil, nil
 	}
 
 	// get the login token for the cluster OpenShift API

@@ -40,7 +40,7 @@ func NewOsioClient(ctx context.Context, witURL string) (*OsioClient, error) {
 }
 
 // GetResource - generic JSON resource fetch
-func (osioclient *OsioClient) GetResource(url string, allowMissing bool) (map[string]interface{}, error) {
+func (osioclient *OsioClient) getResource(url string, allowMissing bool) (map[string]interface{}, error) {
 	var body []byte
 	fullURL := strings.TrimSuffix(osioclient.config.Host, "/") + url
 	req, err := http.NewRequest("GET", fullURL, bytes.NewReader(body))
@@ -95,7 +95,7 @@ func (osioclient *OsioClient) GetNamespaceByType(userService *app.UserService, n
 }
 
 // GetUserServices - fetch array of user services
-// better to use tenant get user services if possible
+// In the future, consider calling the tenant service (as /api/user/services implementation does)
 func (osioclient *OsioClient) GetUserServices() (*app.UserService, error) {
 	var body []byte
 	fullURL := strings.TrimSuffix(osioclient.config.Host, "/") + "/api/user/services"
