@@ -2,6 +2,8 @@ package label
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/application/repository"
@@ -9,9 +11,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
-
-	"fmt"
-
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
@@ -53,7 +52,8 @@ type Repository interface {
 	Create(ctx context.Context, u *Label) error
 	List(ctx context.Context, spaceID uuid.UUID) ([]Label, error)
 	IsValid(ctx context.Context, id uuid.UUID) bool
-	Load(ctx context.Context, spaceID uuid.UUID, labelID uuid.UUID) (*Label, error)
+	Load(ctx context.Context, labelID uuid.UUID) (*Label, error)
+	Save(ctx context.Context, lbl Label) (*Label, error)
 }
 
 // NewLabelRepository creates a new storage type.
@@ -73,6 +73,9 @@ const LabelTableName = "labels"
 func (m *GormLabelRepository) Create(ctx context.Context, u *Label) error {
 	defer goa.MeasureSince([]string{"goa", "db", "label", "create"}, time.Now())
 	u.ID = uuid.NewV4()
+	if strings.TrimSpace(u.Name) == "" {
+		return errors.NewBadParameterError("label name cannot be empty string", u.Name).Expected("non empty string")
+	}
 	err := m.db.Create(u).Error
 	if err != nil {
 		// combination of name and space ID should be unique
@@ -88,6 +91,56 @@ func (m *GormLabelRepository) Create(ctx context.Context, u *Label) error {
 		return err
 	}
 	return nil
+}
+
+// Save update the given label
+func (m *GormLabelRepository) Save(ctx context.Context, l Label) (*Label, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "label", "save"}, time.Now())
+	if strings.TrimSpace(l.Name) == "" {
+		return nil, errors.NewBadParameterError("label name cannot be empty string", l.Name).Expected("non empty string")
+	}
+	lbl := Label{}
+	tx := m.db.Where("id = ?", l.ID).First(&lbl)
+	oldVersion := l.Version
+	l.Version = lbl.Version + 1
+	if tx.RecordNotFound() {
+		log.Error(ctx, map[string]interface{}{
+			"label_id": l.ID,
+		}, "label cannot be found")
+		return nil, errors.NewNotFoundError("label", l.ID.String())
+	}
+	if err := tx.Error; err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"label_id": l.ID,
+			"err":      err,
+		}, "unknown error happened when searching the label")
+		return nil, errors.NewInternalError(ctx, err)
+	}
+	tx = tx.Where("Version = ?", oldVersion).Save(&l)
+	if err := tx.Error; err != nil {
+		// combination of name and space ID should be unique
+		if gormsupport.IsUniqueViolation(err, "labels_name_space_id_unique_idx") {
+			log.Error(ctx, map[string]interface{}{
+				"err":      err,
+				"name":     l.Name,
+				"space_id": l.SpaceID,
+			}, "unable to create label because a label with same already exists in the space")
+			return nil, errors.NewDataConflictError(fmt.Sprintf("label already exists with name = %s , space_id = %s", l.Name, l.SpaceID.String()))
+		}
+		log.Error(ctx, map[string]interface{}{
+			"label_id": l.ID,
+			"err":      err,
+		}, "unable to save the label")
+		return nil, errors.NewInternalError(ctx, err)
+	}
+	if tx.RowsAffected == 0 {
+		return nil, errors.NewVersionConflictError("version conflict")
+	}
+	log.Debug(ctx, map[string]interface{}{
+		"label_id": l.ID,
+	}, "label updated successfully")
+
+	return &l, nil
 }
 
 // List all labels in a space
@@ -107,12 +160,22 @@ func (m *GormLabelRepository) IsValid(ctx context.Context, id uuid.UUID) bool {
 }
 
 // Load label in a space
-func (m *GormLabelRepository) Load(ctx context.Context, spaceID uuid.UUID, labelID uuid.UUID) (*Label, error) {
+func (m *GormLabelRepository) Load(ctx context.Context, ID uuid.UUID) (*Label, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "label", "show"}, time.Now())
-	var lbl Label
-	err := m.db.Where("space_id = ? and id = ?", spaceID, labelID).Find(&lbl).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
-		return nil, err
+	lbl := Label{}
+	tx := m.db.Where("id = ?", ID).First(&lbl)
+	if tx.RecordNotFound() {
+		log.Error(ctx, map[string]interface{}{
+			"label_id": ID.String(),
+		}, "state or known referer was empty")
+		return nil, errors.NewNotFoundError("label", ID.String())
+	}
+	if tx.Error != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err":      tx.Error,
+			"label_id": ID.String(),
+		}, "unable to load the label by ID")
+		return nil, errors.NewInternalError(ctx, tx.Error)
 	}
 	return &lbl, nil
 }
