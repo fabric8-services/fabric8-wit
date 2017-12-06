@@ -1,0 +1,11 @@
+{
+  "errors": [
+    {
+      "code": "bad_parameter",
+      "detail": "Bad value for parameter 'label name cannot be empty string': '' (expected: 'non empty string')",
+      "id": "IGNORE_ME",
+      "status": "400",
+      "title": "Bad parameter error"
+    }
+  ]
+}

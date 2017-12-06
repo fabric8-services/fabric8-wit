@@ -1,0 +1,11 @@
+{
+  "errors": [
+    {
+      "code": "bad_parameter",
+      "detail": "Bad value for parameter 'data.attributes.version': '\u003cnil\u003e' (expected: 'not nil')",
+      "id": "IGNORE_ME",
+      "status": "400",
+      "title": "Bad parameter error"
+    }
+  ]
+}
