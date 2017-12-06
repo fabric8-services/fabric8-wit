@@ -161,6 +161,26 @@ func (rest *TestLabelREST) TestUpdate() {
 		require.Contains(t, jerrs.Errors[0].Detail, "Bad value for parameter 'data.attributes.version'")
 	})
 
+	rest.T().Run("update label with bad parameter - name", func(t *testing.T) {
+		newName := " 	   " // tab & spaces
+		newVersion := testFxt.Labels[0].Version + 1
+		payload := app.UpdateLabelPayload{
+			Data: &app.Label{
+				Attributes: &app.LabelAttributes{
+					Name:    &newName,
+					Version: &newVersion,
+				},
+				LabelID: &testFxt.Labels[0].ID,
+				Type:    label.APIStringTypeLabels,
+			},
+		}
+
+		_, jerrs := test.UpdateLabelBadRequest(t, svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Labels[0].ID, &payload)
+		require.NotNil(t, jerrs)
+		require.Len(t, jerrs.Errors, 1)
+		require.Contains(t, jerrs.Errors[0].Detail, "Bad value for parameter 'data.attributes.name'")
+	})
+
 	rest.T().Run("update label with unauthorized", func(t *testing.T) {
 		svc := goa.New("Label-Service")
 		ctrl := NewLabelController(svc, rest.db, rest.Configuration)
