@@ -7,6 +7,8 @@ import (
 	"github.com/goadesign/goa"
 )
 
+var APISpaceTemplates = "spacetemplates"
+
 // SpaceTemplateController implements the space_template resource.
 type SpaceTemplateController struct {
 	*goa.Controller
