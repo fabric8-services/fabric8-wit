@@ -17,6 +17,7 @@ import (
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/goadesign/goa"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -198,6 +199,22 @@ func (rest *TestLabelREST) TestUpdate() {
 		require.NotNil(t, jerrs)
 		require.Len(t, jerrs.Errors, 1)
 		require.Contains(t, jerrs.Errors[0].Detail, "Missing token manager")
+	})
+	rest.T().Run("update label not found", func(t *testing.T) {
+		newName := "Label New 1002"
+		newVersion := testFxt.Labels[0].Version + 1
+		id := uuid.NewV4()
+		payload := app.UpdateLabelPayload{
+			Data: &app.Label{
+				Attributes: &app.LabelAttributes{
+					Name:    &newName,
+					Version: &newVersion,
+				},
+				LabelID: &id,
+				Type:    label.APIStringTypeLabels,
+			},
+		}
+		test.UpdateLabelNotFound(t, svc.Context, svc, ctrl, testFxt.Spaces[0].ID, id, &payload)
 	})
 }
 
