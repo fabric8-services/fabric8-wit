@@ -187,9 +187,6 @@ func (c *LabelController) Update(ctx *app.UpdateLabelContext) error {
 		}
 		if ctx.Payload.Data.Attributes.Name != nil {
 			lbl.Name = strings.TrimSpace(*ctx.Payload.Data.Attributes.Name)
-			if l := strings.TrimSpace(lbl.Name); l == "" {
-				return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data.attributes.name", "").Expected("non empty string"))
-			}
 		}
 		if ctx.Payload.Data.Attributes.TextColor != nil {
 			lbl.TextColor = *ctx.Payload.Data.Attributes.TextColor

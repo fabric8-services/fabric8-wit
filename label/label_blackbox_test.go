@@ -124,10 +124,25 @@ func (s *TestLabelRepository) TestSave() {
 		assert.Equal(t, l.BorderColor, lbl.BorderColor)
 	})
 
+	s.T().Run("empty name", func(t *testing.T) {
+		l := testFxt.Labels[0]
+		l.Name = ""
+		l.TextColor = "#778899"
+		l.BackgroundColor = "#445566"
+		l.BorderColor = "#112233"
+
+		_, err := repo.Save(context.Background(), *l)
+		require.NotNil(t, err)
+		_, ok := errors.Cause(err).(errs.BadParameterError)
+		assert.Contains(t, err.Error(), "label name cannot be empty string")
+		assert.True(t, ok)
+	})
+
 	s.T().Run("non-existing label", func(t *testing.T) {
 		fakeID := uuid.NewV4()
 		fakeLabel := label.Label{
-			ID: fakeID,
+			ID:   fakeID,
+			Name: "Some name",
 		}
 		repo := label.NewLabelRepository(s.DB)
 		_, err := repo.Save(context.Background(), fakeLabel)

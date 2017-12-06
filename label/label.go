@@ -3,6 +3,7 @@ package label
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/application/repository"
@@ -72,6 +73,9 @@ const LabelTableName = "labels"
 func (m *GormLabelRepository) Create(ctx context.Context, u *Label) error {
 	defer goa.MeasureSince([]string{"goa", "db", "label", "create"}, time.Now())
 	u.ID = uuid.NewV4()
+	if strings.TrimSpace(u.Name) == "" {
+		return errors.NewBadParameterError("label name cannot be empty string", u.Name).Expected("non empty string")
+	}
 	err := m.db.Create(u).Error
 	if err != nil {
 		// combination of name and space ID should be unique
@@ -92,6 +96,9 @@ func (m *GormLabelRepository) Create(ctx context.Context, u *Label) error {
 // Save update the given label
 func (m *GormLabelRepository) Save(ctx context.Context, l Label) (*Label, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "label", "save"}, time.Now())
+	if strings.TrimSpace(l.Name) == "" {
+		return nil, errors.NewBadParameterError("label name cannot be empty string", l.Name).Expected("non empty string")
+	}
 	lbl := Label{}
 	tx := m.db.Where("id = ?", l.ID).First(&lbl)
 	oldVersion := l.Version
