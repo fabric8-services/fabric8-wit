@@ -1088,9 +1088,9 @@ func (rest *TestIterationREST) TestUpdateIteration() {
 		// build following structure
 		// 	root 0
 		// 		|---- itr 1
-		//			|---- itr 2
-		//				|---- itr 3
-		//  				|---- itr 4
+		// 			|---- itr 2
+		// 				|---- itr 3
+		//  					|---- itr 4
 		// 			|---- itr 5
 		// 		|---- itr 6
 
@@ -1231,9 +1231,8 @@ func (rest *TestIterationREST) TestUpdateIteration() {
 	rest.T().Run("update fail - valid parent but from different space", func(t *testing.T) {
 		fxt1 := tf.NewTestFixture(t, rest.DB, tf.Iterations(1, tf.SetIterationNames("alpha")))
 		fxt2 := tf.NewTestFixture(t, rest.DB, tf.Iterations(1, tf.SetIterationNames("beta")))
-		alpha := fxt1.IterationByName("alpha")
 		beta := fxt2.IterationByName("beta")
-		newParentIDStr := alpha.ID.String()
+		newParentIDStr := fxt1.IterationByName("alpha").ID.String()
 		payload := minimumUpdatePayloadWithParent()
 		payload.Data.Relationships.Parent.Data.ID = &newParentIDStr
 		payload.Data.ID = &beta.ID
