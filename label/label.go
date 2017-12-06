@@ -129,7 +129,7 @@ func (m *GormLabelRepository) Save(ctx context.Context, l Label) (*Label, error)
 	if tx.RowsAffected == 0 {
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
-	log.Info(ctx, map[string]interface{}{
+	log.Debug(ctx, map[string]interface{}{
 		"label_id": l.ID,
 	}, "label updated successfully")
 
