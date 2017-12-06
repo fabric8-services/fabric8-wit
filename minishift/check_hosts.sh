@@ -1,11 +1,3 @@
-#!/bin/bash
-
-# Output command before executing
-set -x
-
-# Exit on error
-set -e
-
 IP=$(minishift ip)
 HOSTNAME=minishift.local
 HOSTNAME_REGEX='minishift\.local'
