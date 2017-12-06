@@ -39,7 +39,7 @@ func NewLabelController(service *goa.Service, db application.DB, config LabelCon
 // Show retrieve a single label
 func (c *LabelController) Show(ctx *app.ShowLabelContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		lbl, err := appl.Labels().Load(ctx, ctx.ID)
+		lbl, err := appl.Labels().Load(ctx, ctx.LabelID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -55,6 +55,10 @@ func (c *LabelController) Create(ctx *app.CreateLabelContext) error {
 	_, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
+	}
+	if ctx.Payload.Data.Attributes.Name == nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest("Name cannot be empty"))
+
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		lbl := label.Label{
@@ -77,7 +81,7 @@ func (c *LabelController) Create(ctx *app.CreateLabelContext) error {
 		res := &app.LabelSingle{
 			Data: ConvertLabel(appl, ctx.Request, lbl),
 		}
-		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.LabelHref(ctx.SpaceID, res.Data.ID)))
+		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.LabelHref(ctx.SpaceID, res.Data.LabelID)))
 		return ctx.Created(res)
 	})
 }
@@ -89,8 +93,8 @@ func ConvertLabel(appl application.Application, request *http.Request, lbl label
 	relatedURL := rest.AbsoluteURL(request, app.LabelHref(spaceID, lbl.ID))
 	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
 	l := &app.Label{
-		Type: labelType,
-		ID:   &lbl.ID,
+		Type:    labelType,
+		LabelID: &lbl.ID,
 		Attributes: &app.LabelAttributes{
 			TextColor:       &lbl.TextColor,
 			BackgroundColor: &lbl.BackgroundColor,
@@ -162,31 +166,19 @@ func ConvertLabelSimple(request *http.Request, labelID interface{}) *app.Generic
 	}
 }
 
-func validateUpdateLabel(ctx *app.UpdateLabelContext) error {
-	if ctx.Payload.Data == nil {
-		return errors.NewBadParameterError("data", nil).Expected("not nil")
-	}
-	if ctx.Payload.Data.Attributes == nil {
-		return errors.NewBadParameterError("data.attributes", nil).Expected("not nil")
-	}
-	if ctx.Payload.Data.Attributes.Version == nil {
-		return errors.NewBadParameterError("data.attributes.version", nil).Expected("not nil")
-	}
-	return nil
-}
-
 // Update runs the update action.
 func (c *LabelController) Update(ctx *app.UpdateLabelContext) error {
 	_, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
-	err = validateUpdateLabel(ctx)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
+
+	if ctx.Payload.Data.Attributes.Version == nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data.attributes.version", nil).Expected("not nil"))
 	}
+
 	return application.Transactional(c.db, func(appl application.Application) error {
-		lbl, err := appl.Labels().Load(ctx.Context, ctx.ID)
+		lbl, err := appl.Labels().Load(ctx.Context, ctx.LabelID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -212,7 +204,7 @@ func (c *LabelController) Update(ctx *app.UpdateLabelContext) error {
 		res := &app.LabelSingle{
 			Data: ConvertLabel(appl, ctx.Request, *lbl),
 		}
-		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.LabelHref(ctx.SpaceID, res.Data.ID)))
+		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.LabelHref(ctx.SpaceID, res.Data.LabelID)))
 		return ctx.OK(res)
 	})
 }

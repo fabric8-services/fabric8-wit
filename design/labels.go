@@ -10,7 +10,7 @@ var label = a.Type("Label", func() {
 	a.Attribute("type", d.String, func() {
 		a.Enum("labels")
 	})
-	a.Attribute("id", d.UUID, "ID of label", func() {
+	a.Attribute("labelID", d.UUID, "ID of label", func() {
 		a.Example("40bbdd3d-8b5d-4fd6-ac90-7236b669af04")
 	})
 	a.Attribute("attributes", labelAttributes)
@@ -63,11 +63,11 @@ var _ = a.Resource("label", func() {
 
 	a.Action("show", func() {
 		a.Routing(
-			a.GET("/:id"),
+			a.GET("/:labelID"),
 		)
 		a.Description("Retrieve label for the given id.")
 		a.Params(func() {
-			a.Param("id", d.UUID, "id")
+			a.Param("labelID", d.UUID, "ID of the label")
 		})
 		a.UseTrait("conditional")
 		a.Response(d.OK, labelSingle)
@@ -110,11 +110,11 @@ var _ = a.Resource("label", func() {
 	a.Action("update", func() {
 		a.Security("jwt")
 		a.Routing(
-			a.PATCH("/:id"),
+			a.PATCH("/:labelID"),
 		)
 		a.Description("update the label for the given id.")
 		a.Params(func() {
-			a.Param("id", d.UUID, "ID of the label to update")
+			a.Param("labelID", d.UUID, "ID of the label to update")
 		})
 		a.Payload(labelSingle)
 		a.Response(d.OK, func() {
