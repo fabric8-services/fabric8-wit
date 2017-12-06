@@ -148,7 +148,7 @@ func (rest *TestLabelREST) TestUpdate() {
 		require.Contains(t, jerrs.Errors[0].Detail, "version conflict")
 		ignoreString := "IGNORE_ME"
 		jerrs.Errors[0].ID = &ignoreString
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "update", "conflict.golden.json"), jerrs)
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "update", "conflict.errors.golden.json"), jerrs)
 	})
 
 	rest.T().Run("update label with bad parameter", func(t *testing.T) {
@@ -165,7 +165,7 @@ func (rest *TestLabelREST) TestUpdate() {
 		require.Contains(t, jerrs.Errors[0].Detail, "Bad value for parameter 'data.attributes.version'")
 		ignoreString := "IGNORE_ME"
 		jerrs.Errors[0].ID = &ignoreString
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "update", "badparam_version.golden.json"), jerrs)
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "update", "badparam_version.errors.golden.json"), jerrs)
 	})
 
 	rest.T().Run("update label with bad parameter - name", func(t *testing.T) {
@@ -188,7 +188,7 @@ func (rest *TestLabelREST) TestUpdate() {
 		require.Contains(t, jerrs.Errors[0].Detail, "Bad value for parameter 'label name cannot be empty string'")
 		ignoreString := "IGNORE_ME"
 		jerrs.Errors[0].ID = &ignoreString
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "update", "badparam_name.golden.json"), jerrs)
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "update", "badparam_name.errors.golden.json"), jerrs)
 	})
 
 	rest.T().Run("update label with unauthorized", func(t *testing.T) {
@@ -210,7 +210,7 @@ func (rest *TestLabelREST) TestUpdate() {
 		require.Contains(t, jerrs.Errors[0].Detail, "Missing token manager")
 		ignoreString := "IGNORE_ME"
 		jerrs.Errors[0].ID = &ignoreString
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "update", "unauthorized.golden.json"), jerrs)
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "update", "unauthorized.errors.golden.json"), jerrs)
 	})
 	rest.T().Run("update label not found", func(t *testing.T) {
 		newName := "Label New 1002"
