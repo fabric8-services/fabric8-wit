@@ -32,7 +32,6 @@ var trackerQueryAttributes = a.Type("TrackerQueryAttributes", func() {
 	})
 	a.Attribute("schedule", d.String, "Schedule to fetch and import", func() {
 		a.Example("0 0/15 * * * *")
-		a.Pattern("^[\\d]+|[\\d]+[\\/][\\d]+|\\*|\\-|\\?\\s{0,6}$")
 	})
 	a.Required("query", "schedule")
 })
