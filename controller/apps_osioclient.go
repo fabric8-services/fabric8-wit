@@ -2,45 +2,37 @@ package controller
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/fabric8-services/fabric8-wit/app"
-	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	rest "k8s.io/client-go/rest"
 )
 
-// OsioClient contains configuration and methods for interacting with OSIO API
-type OsioClient struct {
+// OSIOClient contains configuration and methods for interacting with OSIO API
+type OSIOClient struct {
 	config *rest.Config
 }
 
 // NewOsioClient creates an openshift IO client given an http request context
-func NewOsioClient(ctx context.Context, witURL string) (*OsioClient, error) {
+func NewOSIOClient(authToken string, witURL string) *OSIOClient {
 
 	config := rest.Config{
 		Host:        witURL,
-		BearerToken: goajwt.ContextJWT(ctx).Raw,
+		BearerToken: authToken,
 	}
 
-	// TODO - remove before production
-	if os.Getenv("OSIO_TOKEN") != "" {
-		config.BearerToken = os.Getenv("OSIO_TOKEN")
-	}
-
-	client := new(OsioClient)
+	client := new(OSIOClient)
 	client.config = &config
 
-	return client, nil
+	return client
 }
 
 // GetResource - generic JSON resource fetch
-func (osioclient *OsioClient) getResource(url string, allowMissing bool) (map[string]interface{}, error) {
+func (osioclient *OSIOClient) getResource(url string, allowMissing bool) (map[string]interface{}, error) {
 	var body []byte
 	fullURL := strings.TrimSuffix(osioclient.config.Host, "/") + url
 	req, err := http.NewRequest("GET", fullURL, bytes.NewReader(body))
@@ -77,7 +69,7 @@ func (osioclient *OsioClient) getResource(url string, allowMissing bool) (map[st
 
 // GetNamespaceByType finds a namespace by type (user, che, stage, etc)
 // if userService is nil, will fetch the user services under the hood
-func (osioclient *OsioClient) GetNamespaceByType(userService *app.UserService, namespaceType string) (*app.NamespaceAttributes, error) {
+func (osioclient *OSIOClient) GetNamespaceByType(userService *app.UserService, namespaceType string) (*app.NamespaceAttributes, error) {
 	if userService == nil {
 		us, err := osioclient.GetUserServices()
 		if err != nil {
@@ -96,7 +88,7 @@ func (osioclient *OsioClient) GetNamespaceByType(userService *app.UserService, n
 
 // GetUserServices - fetch array of user services
 // In the future, consider calling the tenant service (as /api/user/services implementation does)
-func (osioclient *OsioClient) GetUserServices() (*app.UserService, error) {
+func (osioclient *OSIOClient) GetUserServices() (*app.UserService, error) {
 	var body []byte
 	fullURL := strings.TrimSuffix(osioclient.config.Host, "/") + "/api/user/services"
 	req, err := http.NewRequest("GET", fullURL, bytes.NewReader(body))
@@ -132,18 +124,18 @@ func (osioclient *OsioClient) GetUserServices() (*app.UserService, error) {
 }
 
 // GetSpaceByName - fetch space given username and spacename
-func (osioclient *OsioClient) GetSpaceByName(username string, spaceName string, allowMissing bool) (*app.Space, error) {
+func (osioclient *OSIOClient) GetSpaceByName(username string, spaceName string, allowMissing bool) (*app.Space, error) {
 	fullURL := strings.TrimSuffix(osioclient.config.Host, "/") + "/api/namedspaces/" + username + "/" + spaceName
 	return osioclient.getSpace(fullURL, allowMissing)
 }
 
 // GetSpaceByID - fetch space given UUID
-func (osioclient *OsioClient) GetSpaceByID(spaceID string, allowMissing bool) (*app.Space, error) {
+func (osioclient *OSIOClient) GetSpaceByID(spaceID string, allowMissing bool) (*app.Space, error) {
 	fullURL := strings.TrimSuffix(osioclient.config.Host, "/") + "/api/spaces/" + spaceID
 	return osioclient.getSpace(fullURL, allowMissing)
 }
 
-func (osioclient *OsioClient) getSpace(fullURL string, allowMissing bool) (*app.Space, error) {
+func (osioclient *OSIOClient) getSpace(fullURL string, allowMissing bool) (*app.Space, error) {
 	var body []byte
 	req, err := http.NewRequest("GET", fullURL, bytes.NewReader(body))
 	if err != nil {

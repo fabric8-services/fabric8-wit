@@ -20,6 +20,7 @@ import (
 	rest "k8s.io/client-go/rest"
 
 	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/log"
 )
 
 // KubeClient contains configuration and methods for interacting with Kubernetes cluster
@@ -119,39 +120,39 @@ func (kc *KubeClient) GetApplication(spaceName string, appName string) (*app.Sim
 }
 
 // ScaleDeployment - scale a deployment
-func (kc *KubeClient) ScaleDeployment(spaceName string, appName string, envName string, deployNumber int) (int, error) {
+func (kc *KubeClient) ScaleDeployment(spaceName string, appName string, envName string, deployNumber int) (*int, error) {
 	// Look up DeploymentConfig corresponding to the application name in the provided environment
 	dc, err := kc.getDeploymentConfig(envName, appName, spaceName)
 	if err != nil {
-		return -1, err
+		return nil, err
 	} else if len(dc) == 0 {
-		return -1, nil
+		return nil, nil
 	}
 
 	spec, ok := dc["spec"].(map[interface{}]interface{})
 	if !ok {
-		return -1, errors.New("Invalid deployment config returned from endpoint: missing 'spec'")
+		return nil, errors.New("Invalid deployment config returned from endpoint: missing 'spec'")
 	}
 
 	oldReplicas, ok := spec["replicas"].(int)
 	if !ok {
-		return -1, errors.New("Invalid deployment config returned from endpoint: missing 'replicas'")
+		return nil, errors.New("Invalid deployment config returned from endpoint: missing 'replicas'")
 	}
 	spec["replicas"] = deployNumber
 
 	// TODO send back to openshift
 	jsonString := tostring(dc)
 	if err != nil {
-		return -1, err
+		return nil, err
 	}
-	fmt.Println("\n" + jsonString)
+	log.Debug(nil, nil, "sending pod scaling JSON:\n%s", jsonString)
 
 	_, err = kc.setDeploymentConfig(envName, appName, jsonString)
 	if err != nil {
-		return -1, err
+		return nil, err
 	}
 
-	return oldReplicas, nil
+	return &oldReplicas, nil
 }
 
 // GetDeployment returns information about the current deployment of an application within a

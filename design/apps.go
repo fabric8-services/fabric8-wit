@@ -142,6 +142,8 @@ var _ = a.Resource("apps", func() {
 			a.Param("spaceID", d.UUID, "ID of the space")
 		})
 		a.Response(d.OK, simpleSpaceSingle)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 	})
 
@@ -155,6 +157,8 @@ var _ = a.Resource("apps", func() {
 			a.Param("appName", d.String, "Name of the application")
 		})
 		a.Response(d.OK, simpleAppSingle)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 	})
 
@@ -169,6 +173,8 @@ var _ = a.Resource("apps", func() {
 			a.Param("deployName", d.String, "Name of the pipe deployment")
 		})
 		a.Response(d.OK, simpleDeploymentSingle)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 	})
 
@@ -183,6 +189,8 @@ var _ = a.Resource("apps", func() {
 			a.Param("deployName", d.String, "Name of the deployment")
 		})
 		a.Response(d.OK, simpleDeploymentSingle)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 	})
 
@@ -200,6 +208,8 @@ var _ = a.Resource("apps", func() {
 			a.Param("limit", d.Integer, "maximum number of data points to return")
 		})
 		a.Response(d.OK, simpleDeploymentStatSeries)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 	})
 
@@ -215,6 +225,8 @@ var _ = a.Resource("apps", func() {
 			a.Param("podCount", d.Integer, "desired running pod count")
 		})
 		a.Response(d.OK)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 	})
 
@@ -227,6 +239,8 @@ var _ = a.Resource("apps", func() {
 			a.Param("spaceID", d.UUID, "ID of the space")
 		})
 		a.Response(d.OK, simpleEnvironmentMultiple)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 	})
 
@@ -239,6 +253,8 @@ var _ = a.Resource("apps", func() {
 			a.Param("envName", d.String, "Name of the environment")
 		})
 		a.Response(d.OK, simpleEnvironmentSingle)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 	})
 
@@ -251,9 +267,11 @@ var _ = a.Resource("apps", func() {
 			a.Param("envName", d.String, "Name of the environment")
 			a.Param("appName", d.String, "Name of the application")
 		})
-		// TODO - find a way to use predeined structs in goa DSL
+		// TODO - find a way to use predefined structs in goa DSL
 		// until then, hand code JSON response here instead of []v1.Pod
 		a.Response(d.OK, "application/json")
+		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 	})
 

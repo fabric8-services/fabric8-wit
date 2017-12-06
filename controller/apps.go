@@ -9,7 +9,10 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/goadesign/goa"
+	goajwt "github.com/goadesign/goa/middleware/security/jwt"
+	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -25,15 +28,15 @@ func NewAppsController(service *goa.Service, config *configuration.Registry) *Ap
 	return &AppsController{
 		Controller: service.NewController("AppsController"),
 
-		AuthURL: config.GetAuthServiceURL(),
+		//AuthURL: config.GetAuthServiceURL(),
 		//AuthURL: "http://localhost:8089"
-		//AuthURL: "https://auth.prod-preview.openshift.io",
+		AuthURL: "https://auth.prod-preview.openshift.io",
 		//AuthURL: "https://auth.openshift.io",
 
 		// TODO - make this a config variable?
 		//WitURL: "http://localhost:8080"
-		//WitURL: "http://api.prod-preview.openshift.io",
-		WitURL: "http://api.openshift.io",
+		WitURL: "http://api.prod-preview.openshift.io",
+		//WitURL: "http://api.openshift.io",
 	}
 }
 
@@ -42,20 +45,14 @@ func tostring(item interface{}) string {
 	return string(bytes)
 }
 
-func (c *AppsController) getAndCheckOsioClient(ctx context.Context) (*OsioClient, error) {
-	oc, err := NewOsioClient(ctx, c.WitURL)
-	if err != nil {
-		return nil, errors.NewUnauthorizedError("osio")
-	}
-	return oc, nil
+func (c *AppsController) getAndCheckOSIOClient(ctx context.Context) *OSIOClient {
+	oc := NewOSIOClient(goajwt.ContextJWT(ctx).Raw, c.WitURL)
+	return oc
 }
 
 func (c *AppsController) getSpaceNameFromSpaceID(ctx context.Context, spaceID uuid.UUID) (*string, error) {
 	// use WIT API to convert Space UUID to Space name
-	oc, err := c.getAndCheckOsioClient(ctx)
-	if err != nil {
-		return nil, err
-	}
+	oc := c.getAndCheckOSIOClient(ctx)
 
 	osioSpace, err := oc.GetSpaceByID(spaceID.String(), false)
 	if err != nil {
@@ -65,10 +62,7 @@ func (c *AppsController) getSpaceNameFromSpaceID(ctx context.Context, spaceID uu
 }
 
 func (c *AppsController) getNamespaceName(ctx context.Context) (*string, error) {
-	osioclient, err := c.getAndCheckOsioClient(ctx)
-	if err != nil {
-		return nil, err
-	}
+	osioclient := c.getAndCheckOSIOClient(ctx)
 
 	kubeSpaceAttr, err := osioclient.GetNamespaceByType(nil, "user")
 	if err != nil {
@@ -84,28 +78,24 @@ func (c *AppsController) getNamespaceName(ctx context.Context) (*string, error) 
 func (c *AppsController) getKubeClient(ctx context.Context) (*KubeClient, error) {
 
 	// create Auth API login object
-	authClient, err := NewAuthClient(ctx, c.AuthURL)
-	if err != nil {
-		goa.LogInfo(ctx, "errror creating auth client:"+tostring(err))
-		return nil, err
-	}
+	authClient := NewAuthClient(goajwt.ContextJWT(ctx).Raw, c.AuthURL)
 
 	// get the user definition (for cluster URL)
 	authUser, err := authClient.getAuthUser()
 	if err != nil {
-		goa.LogInfo(ctx, "error accessing Auth server"+tostring(err))
+		log.Error(ctx, nil, "error accessing Auth server"+tostring(err))
 		return nil, err
 	}
 
 	if authUser == nil || authUser.Data.Attributes.Cluster == nil {
-		goa.LogInfo(ctx, "error getting user from Auth server:"+tostring(authUser))
-		return nil, nil
+		log.Error(ctx, nil, "error getting user from Auth server:"+tostring(authUser))
+		return nil, errors.NewInternalError(ctx, errs.Errorf("errpr getting user from Auth Server: %s", tostring(authUser)))
 	}
 
 	// get the login token for the cluster OpenShift API
 	osauth, err := authClient.getAuthToken(*authUser.Data.Attributes.Cluster)
 	if err != nil {
-		goa.LogInfo(ctx, "error getting openshift credentials:"+tostring(err))
+		log.Error(ctx, nil, "error getting openshift credentials:"+tostring(err))
 		return nil, err
 	}
 
@@ -129,7 +119,7 @@ func (c *AppsController) getAndCheckKubeClient(ctx context.Context) (*KubeClient
 
 	kc, err := c.getKubeClient(ctx)
 	if err != nil {
-		goa.LogInfo(ctx, "didn't actually get a token")
+		log.Error(ctx, nil, "didn't actually get a token")
 		return nil, errors.NewUnauthorizedError("openshift token")
 	}
 	return kc, nil
@@ -137,11 +127,9 @@ func (c *AppsController) getAndCheckKubeClient(ctx context.Context) (*KubeClient
 
 // SetDeployment runs the setDeployment action.
 func (c *AppsController) SetDeployment(ctx *app.SetDeploymentAppsContext) error {
-	// AppsController_SetDeployment: start_implement
 
 	if ctx.PodCount == nil {
-		// TODO this should be error 400 (bad request) not 404 (not found)
-		return errors.NewNotFoundError("parameter", "podCount")
+		return errors.NewBadParameterError("podCount", "missing")
 	}
 
 	kc, err := c.getAndCheckKubeClient(ctx)
@@ -159,19 +147,19 @@ func (c *AppsController) SetDeployment(ctx *app.SetDeploymentAppsContext) error 
 		return err
 	}
 
-	goa.LogInfo(ctx, "podcount was ", oldCount, " will be set to "+strconv.Itoa(*ctx.PodCount))
-	// AppsController_SetDeployment: end_implement
+	log.Info(ctx, nil, "podcount was ", *oldCount, " will be set to "+strconv.Itoa(*ctx.PodCount))
 	return ctx.OK([]byte{})
 }
 
-func genData(start int, end int, limit int, low int, high int) []*app.TimedIntTuple {
+// genData generates an array[limit]  of tuples (Time,Value) over a time and value range - low to high
+func genData(start int, end int, count int, low int, high int) []*app.TimedIntTuple {
 
-	period := float64(end-start) / float64(limit)
-	data := make([]*app.TimedIntTuple, limit, limit)
+	period := float64(end-start) / float64(count)
+	data := make([]*app.TimedIntTuple, count, count)
 
-	for i := 0; i < limit; i++ {
+	for i := 0; i < count; i++ {
 		t := start + int(period*float64(i))
-		v := int(float64(high-low) * float64(i) / float64(limit))
+		v := int(float64(high-low) * float64(i) / float64(count))
 
 		tuple := app.TimedIntTuple{
 			Time:  &t,
@@ -182,9 +170,9 @@ func genData(start int, end int, limit int, low int, high int) []*app.TimedIntTu
 	return data
 }
 
-// ShowDeploymentStatSeries runs the showDeploymentStatSeries action.
+// ShowDeploymentStatSeries runs the showDeploymentStatSeries action
+// currently dummy data is returned
 func (c *AppsController) ShowDeploymentStatSeries(ctx *app.ShowDeploymentStatSeriesAppsContext) error {
-	// AppsController_ShowDeploymentStatSeries: start_implement
 
 	endMillis := time.Now().UnixNano() / 1000000
 	var eightHoursMillis int64 = 8 * 60 * 60 * 1000
@@ -218,13 +206,11 @@ func (c *AppsController) ShowDeploymentStatSeries(ctx *app.ShowDeploymentStatSer
 		Memory: memory,
 	}
 
-	// AppsController_ShowDeploymentStatSeries: end_implement
 	return ctx.OK(res)
 }
 
 // ShowDeploymentStats runs the showDeploymentStats action.
 func (c *AppsController) ShowDeploymentStats(ctx *app.ShowDeploymentStatsAppsContext) error {
-	// AppsController_ShowDeploymentStats: start_implement
 
 	kc, err := c.getAndCheckKubeClient(ctx)
 	if err != nil {
@@ -248,13 +234,11 @@ func (c *AppsController) ShowDeploymentStats(ctx *app.ShowDeploymentStatsAppsCon
 		Data: deploymentStats,
 	}
 
-	// AppsController_ShowDeploymentStats: end_implement
 	return ctx.OK(res)
 }
 
 // ShowEnvironment runs the showEnvironment action.
 func (c *AppsController) ShowEnvironment(ctx *app.ShowEnvironmentAppsContext) error {
-	// AppsController_ShowEnvironment: start_implement
 
 	kc, err := c.getAndCheckKubeClient(ctx)
 	if err != nil {
@@ -273,13 +257,11 @@ func (c *AppsController) ShowEnvironment(ctx *app.ShowEnvironmentAppsContext) er
 		Data: env,
 	}
 
-	// AppsController_ShowEnvironment: end_implement
 	return ctx.OK(res)
 }
 
 // ShowSpace runs the showSpace action.
 func (c *AppsController) ShowSpace(ctx *app.ShowSpaceAppsContext) error {
-	// AppsController_ShowSpace: start_implement
 
 	kc, err := c.getAndCheckKubeClient(ctx)
 	if err != nil {
@@ -304,13 +286,11 @@ func (c *AppsController) ShowSpace(ctx *app.ShowSpaceAppsContext) error {
 		Data: space,
 	}
 
-	// AppsController_ShowSpace: end_implement
 	return ctx.OK(res)
 }
 
 // ShowSpaceApp runs the showSpaceApp action.
 func (c *AppsController) ShowSpaceApp(ctx *app.ShowSpaceAppAppsContext) error {
-	// AppsController_ShowSpaceApp: start_implement
 
 	kc, err := c.getAndCheckKubeClient(ctx)
 	if err != nil {
@@ -334,13 +314,11 @@ func (c *AppsController) ShowSpaceApp(ctx *app.ShowSpaceAppAppsContext) error {
 		Data: theapp,
 	}
 
-	// AppsController_ShowSpaceApp: end_implement
 	return ctx.OK(res)
 }
 
 // ShowSpaceAppDeployment runs the showSpaceAppDeployment action.
 func (c *AppsController) ShowSpaceAppDeployment(ctx *app.ShowSpaceAppDeploymentAppsContext) error {
-	// AppsController_ShowSpaceAppDeployment: start_implement
 
 	kc, err := c.getAndCheckKubeClient(ctx)
 	if err != nil {
@@ -364,13 +342,11 @@ func (c *AppsController) ShowSpaceAppDeployment(ctx *app.ShowSpaceAppDeploymentA
 		Data: deploymentStats,
 	}
 
-	// AppsController_ShowSpaceAppDeployment: end_implement
 	return ctx.OK(res)
 }
 
 // ShowEnvAppPods runs the showEnvAppPods action.
 func (c *AppsController) ShowEnvAppPods(ctx *app.ShowEnvAppPodsAppsContext) error {
-	// AppsController_ShowEnvAppPods: start_implement
 
 	kc, err := c.getAndCheckKubeClient(ctx)
 	if err != nil {
@@ -389,7 +365,6 @@ func (c *AppsController) ShowEnvAppPods(ctx *app.ShowEnvAppPodsAppsContext) erro
 
 // ShowSpaceEnvironments runs the showSpaceEnvironments action.
 func (c *AppsController) ShowSpaceEnvironments(ctx *app.ShowSpaceEnvironmentsAppsContext) error {
-	// AppsController_ShowSpaceEnvironments: start_implement
 
 	kc, err := c.getAndCheckKubeClient(ctx)
 	if err != nil {
@@ -408,6 +383,5 @@ func (c *AppsController) ShowSpaceEnvironments(ctx *app.ShowSpaceEnvironmentsApp
 		Data: envs,
 	}
 
-	// AppsController_ShowSpaceEnvironments: end_implement
 	return ctx.OK(res)
 }

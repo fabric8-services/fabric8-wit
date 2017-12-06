@@ -2,15 +2,12 @@ package controller
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"strings"
 
-	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	rest "k8s.io/client-go/rest"
 )
 
@@ -40,22 +37,17 @@ type AuthUser struct {
 }
 
 // NewAuthClient creates an openshift IO client given an http request context
-func NewAuthClient(ctx context.Context, authURL string) (*AuthClient, error) {
+func NewAuthClient(authToken string, authURL string) *AuthClient {
 
 	config := rest.Config{
 		Host:        authURL,
-		BearerToken: goajwt.ContextJWT(ctx).Raw,
-	}
-
-	// TODO - remove before production
-	if os.Getenv("OSIO_TOKEN") != "" {
-		config.BearerToken = os.Getenv("OSIO_TOKEN")
+		BearerToken: authToken,
 	}
 
 	client := new(AuthClient)
 	client.config = &config
 
-	return client, nil
+	return client
 }
 
 func (authclient *AuthClient) getAuthToken(forHost string) (*AuthToken, error) {
