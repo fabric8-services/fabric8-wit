@@ -100,4 +100,4 @@ eval $(minishift docker-env)
 ```
 
 
-##### Questions? contact **[/pranavgore09](https://github.com/pranavgore09)**
+##### Questions? Errors? Please open issues on https://github.com/fabric8-services/fabric8-wit/issues if already not exist.
