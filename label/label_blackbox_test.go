@@ -55,7 +55,7 @@ func (s *TestLabelRepository) TestCreateLabelWithEmptyName() {
 	}
 	err := repo.Create(context.Background(), &l)
 	require.NotNil(s.T(), err)
-	assert.Contains(s.T(), err.Error(), "labels_name_check")
+	assert.Contains(s.T(), err.Error(), "label name cannot be empty string")
 }
 
 func (s *TestLabelRepository) TestCreateLabelWithSameName() {
