@@ -1,17 +1,11 @@
 # Setup WIT image URL, use default image path and default tag if not provided
 WIT_IMAGE_DEFAULT=docker.io/fabric8/fabric8-wit
-WIT_IMAGE_TAG_DEFAULT=latest
-ifndef WIT_IMAGE_TAG
-WIT_IMAGE_TAG=$(WIT_IMAGE_TAG_DEFAULT)
-endif
+WIT_IMAGE_TAG ?= latest
 WIT_IMAGE_URL=$(WIT_IMAGE_DEFAULT):$(WIT_IMAGE_TAG)
 
 # Setup AUTH image URL, use default image path and default tag if not provided
 AUTH_IMAGE_DEFAULT=docker.io/fabric8/fabric8-auth
-AUTH_IMAGE_TAG_DEFAULT=latest
-ifndef AUTH_IMAGE_TAG
-AUTH_IMAGE_TAG=$(AUTH_IMAGE_TAG_DEFAULT)
-endif
+AUTH_IMAGE_TAG ?= latest
 AUTH_IMAGE_URL=$(AUTH_IMAGE_DEFAULT):$(AUTH_IMAGE_TAG)
 
 
