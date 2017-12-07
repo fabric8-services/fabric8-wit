@@ -3,7 +3,7 @@ package controller
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -54,7 +54,7 @@ func (osioclient *OSIOClient) getResource(url string, allowMissing bool) (map[st
 	if status == 404 && allowMissing {
 		return nil, nil
 	} else if status < 200 || status > 300 {
-		return nil, fmt.Errorf("Failed to GET url %s due to status code %d", fullURL, status)
+		return nil, errors.New("Failed to GET url " + fullURL + " due to status code " + string(status))
 	}
 
 	respBody, err := ioutil.ReadAll(resp.Body)
@@ -110,7 +110,7 @@ func (osioclient *OSIOClient) GetUserServices() (*app.UserService, error) {
 	if status == 404 {
 		return nil, nil
 	} else if status < 200 || status > 300 {
-		return nil, fmt.Errorf("Failed to GET url %s due to status code %d", fullURL, status)
+		return nil, errors.New("Failed to GET url " + fullURL + " due to status code " + string(status))
 	}
 
 	respBody, err := ioutil.ReadAll(resp.Body)
@@ -156,7 +156,7 @@ func (osioclient *OSIOClient) getSpace(fullURL string, allowMissing bool) (*app.
 	if status == 404 && allowMissing {
 		return nil, nil
 	} else if status < 200 || status > 300 {
-		return nil, fmt.Errorf("Failed to GET url %s due to status code %d", fullURL, status)
+		return nil, errors.New("Failed to GET url " + fullURL + " due to status code " + string(status))
 	}
 
 	respBody, err := ioutil.ReadAll(resp.Body)
