@@ -114,3 +114,5 @@ WIT service(Work Item Tracker) is running at `minishift ip`:30000
 AUTH service is running at `minishift ip`:31000
 
 ##### Questions? Errors? Please open issues on https://github.com/fabric8-services/fabric8-wit/issues if already not exist.
+
+You can join our [channel](https://chat.openshift.io/developers/channels/fabric8-planner)
