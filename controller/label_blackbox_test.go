@@ -115,8 +115,8 @@ func (rest *TestLabelREST) TestUpdate() {
 					BackgroundColor: &backgroundColor,
 					BorderColor:     &borderColor,
 				},
-				LabelID: &testFxt.Labels[0].ID,
-				Type:    label.APIStringTypeLabels,
+				ID:   &testFxt.Labels[0].ID,
+				Type: label.APIStringTypeLabels,
 			},
 		}
 		resp, updated := test.UpdateLabelOK(t, svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Labels[0].ID, &payload)
@@ -138,8 +138,8 @@ func (rest *TestLabelREST) TestUpdate() {
 					Name:    &testFxt.Labels[0].Name,
 					Version: &newVersion,
 				},
-				LabelID: &testFxt.Labels[0].ID,
-				Type:    label.APIStringTypeLabels,
+				ID:   &testFxt.Labels[0].ID,
+				Type: label.APIStringTypeLabels,
 			},
 		}
 		_, jerrs := test.UpdateLabelConflict(t, svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Labels[0].ID, &payload)
@@ -177,8 +177,8 @@ func (rest *TestLabelREST) TestUpdate() {
 					Name:    &newName,
 					Version: &newVersion,
 				},
-				LabelID: &testFxt.Labels[0].ID,
-				Type:    label.APIStringTypeLabels,
+				ID:   &testFxt.Labels[0].ID,
+				Type: label.APIStringTypeLabels,
 			},
 		}
 
@@ -222,8 +222,8 @@ func (rest *TestLabelREST) TestUpdate() {
 					Name:    &newName,
 					Version: &newVersion,
 				},
-				LabelID: &id,
-				Type:    label.APIStringTypeLabels,
+				ID:   &id,
+				Type: label.APIStringTypeLabels,
 			},
 		}
 		test.UpdateLabelNotFound(t, svc.Context, svc, ctrl, testFxt.Spaces[0].ID, id, &payload)
@@ -272,7 +272,7 @@ func (rest *TestLabelREST) TestShowLabel() {
 }
 
 func assertLabelLinking(t *testing.T, target *app.Label) {
-	assert.NotNil(t, target.LabelID)
+	assert.NotNil(t, target.ID)
 	assert.Equal(t, label.APIStringTypeLabels, target.Type)
 	assert.NotNil(t, target.Links.Self)
 	require.NotNil(t, target.Relationships)
