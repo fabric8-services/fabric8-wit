@@ -231,7 +231,7 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 				return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("Data.Relationships.Parent.ID", newParentID))
 			}
 			// Iteration itself can not be parent of self
-			if uuid.Equal(pid, itr.ID) {
+			if pid == itr.ID {
 				return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("Parent must be different than subject iteration"))
 			}
 			newParentIteration, err := appl.Iterations().Load(ctx.Context, pid)
@@ -239,7 +239,7 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 				return jsonapi.JSONErrorResponse(ctx, err)
 			}
 			// New parent iteraiton must be from same sapce as that of subject iteration
-			if !uuid.Equal(newParentIteration.SpaceID, itr.SpaceID) {
+			if newParentIteration.SpaceID != itr.SpaceID {
 				return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("Parent must be from same space"))
 			}
 			// we need subtree to update later
@@ -249,7 +249,7 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 			}
 			// New parent must not be one of existing children of subject iteration
 			for _, childItr := range oldSubtree {
-				if uuid.Equal(newParentIteration.ID, childItr.ID) {
+				if newParentIteration.ID == childItr.ID {
 					return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("Parent must not be existing child"))
 				}
 			}

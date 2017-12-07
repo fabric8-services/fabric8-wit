@@ -1253,16 +1253,8 @@ func (rest *TestIterationREST) TestUpdateIteration() {
 			tf.Iterations(5, tf.SetIterationNames("root iteration", "iteration 1",
 				"iteration 2", "iteration 3", "iteration 4"),
 				func(fxt *tf.TestFixture, idx int) error {
-					itr := fxt.Iterations[idx]
-					switch idx {
-					case 1:
-						itr.MakeChildOf(*fxt.IterationByName("root iteration"))
-					case 2:
-						itr.MakeChildOf(*fxt.IterationByName("iteration 1"))
-					case 3:
-						itr.MakeChildOf(*fxt.IterationByName("iteration 2"))
-					case 4:
-						itr.MakeChildOf(*fxt.IterationByName("iteration 3"))
+					if idx > 0 {
+						fxt.Iterations[idx].MakeChildOf(*fxt.Iterations[idx-1])
 					}
 					return nil
 				}))
