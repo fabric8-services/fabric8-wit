@@ -44,6 +44,7 @@ var workItemTypeGroupData = a.Type("WorkItemTypeGroupData", func() {
 var workItemTypeGroupAttributes = a.Type("WorkItemTypeGroupAttributes", func() {
 	a.Attribute("bucket", d.String, "Name of the bucket this group belongs to")
 	a.Attribute("name", d.String)
+	a.Attribute("show-in-sidebar", d.Boolean, "Whether or not to render a link for this type group in the sidebar")
 	a.Attribute("icon", d.String, "CSS property value for icon of the group")
 	a.Attribute("created-at", d.DateTime, "timestamp of entity creation")
 	a.Attribute("updated-at", d.DateTime, "timestamp of last entity update")
