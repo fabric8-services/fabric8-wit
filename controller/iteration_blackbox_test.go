@@ -1239,6 +1239,43 @@ func (rest *TestIterationREST) TestUpdateIteration() {
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt2.Identities[0])
 		test.UpdateIterationForbidden(t, svc.Context, svc, ctrl, beta.ID.String(), &payload)
 	})
+
+	rest.T().Run("update fail - new parent is one of child", func(t *testing.T) {
+		// build following structure
+		// 	root 0
+		// 		|---- itr 1
+		// 			|---- itr 2
+		// 				|---- itr 3
+		//  					|---- itr 4
+
+		// given
+		fxt := tf.NewTestFixture(t, rest.DB,
+			tf.Iterations(5, tf.SetIterationNames("root iteration", "iteration 1",
+				"iteration 2", "iteration 3", "iteration 4"),
+				func(fxt *tf.TestFixture, idx int) error {
+					itr := fxt.Iterations[idx]
+					switch idx {
+					case 1:
+						itr.MakeChildOf(*fxt.IterationByName("root iteration"))
+					case 2:
+						itr.MakeChildOf(*fxt.IterationByName("iteration 1"))
+					case 3:
+						itr.MakeChildOf(*fxt.IterationByName("iteration 2"))
+					case 4:
+						itr.MakeChildOf(*fxt.IterationByName("iteration 3"))
+					}
+					return nil
+				}))
+		// try to set Iteation 3 as parent of iteration 1
+		iterationToUpdate := fxt.IterationByName("iteration 1")
+		newParentIDStr := fxt.IterationByName("iteration 3").ID.String()
+		payload := minimumUpdatePayloadWithParent()
+		payload.Data.Relationships.Parent.Data.ID = &newParentIDStr
+		payload.Data.ID = &iterationToUpdate.ID
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+		// when
+		test.UpdateIterationForbidden(t, svc.Context, svc, ctrl, iterationToUpdate.ID.String(), &payload)
+	})
 }
 
 func minimumUpdatePayloadWithParent() app.UpdateIterationPayload {

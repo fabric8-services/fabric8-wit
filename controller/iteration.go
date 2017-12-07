@@ -247,6 +247,12 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, err)
 			}
+			// New parent must not be one of existing children of subject iteration
+			for _, childItr := range oldSubtree {
+				if uuid.Equal(newParentIteration.ID, childItr.ID) {
+					return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("Parent must not be existing child"))
+				}
+			}
 			itr.MakeChildOf(*newParentIteration)
 		}
 		itr, err = appl.Iterations().Save(ctx.Context, *itr)
