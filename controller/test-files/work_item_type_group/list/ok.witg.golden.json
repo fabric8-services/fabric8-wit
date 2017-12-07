@@ -6,7 +6,6 @@
         "created-at": "0001-01-01T00:00:00Z",
         "icon": "fa fa-suitcase",
         "name": "Scenarios",
-        "show-in-sidebar": true,
         "updated-at": "0001-01-01T00:00:00Z"
       },
       "id": "00000000-0000-0000-0000-000000000001",
@@ -51,7 +50,6 @@
         "created-at": "0001-01-01T00:00:00Z",
         "icon": "fa fa-suitcase",
         "name": "Experiences",
-        "show-in-sidebar": true,
         "updated-at": "0001-01-01T00:00:00Z"
       },
       "id": "00000000-0000-0000-0000-000000000006",
@@ -92,7 +90,6 @@
         "created-at": "0001-01-01T00:00:00Z",
         "icon": "fa fa-list-ul",
         "name": "Requirements",
-        "show-in-sidebar": true,
         "updated-at": "0001-01-01T00:00:00Z"
       },
       "id": "00000000-0000-0000-0000-000000000009",
@@ -133,7 +130,6 @@
         "created-at": "0001-01-01T00:00:00Z",
         "icon": "fa fa-repeat",
         "name": "Execution",
-        "show-in-sidebar": false,
         "updated-at": "0001-01-01T00:00:00Z"
       },
       "id": "00000000-0000-0000-0000-000000000012",
