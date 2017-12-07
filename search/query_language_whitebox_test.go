@@ -9,7 +9,6 @@ import (
 	c "github.com/fabric8-services/fabric8-wit/criteria"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/workitem"
-	"github.com/fabric8-services/fabric8-wit/workitem/typegroup"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -520,17 +519,12 @@ func TestGenerateExpressionWithNonExistingKey(t *testing.T) {
 }
 
 func TestWorkItemTypeGroup(t *testing.T) {
-	typeGroups := []typegroup.WorkItemTypeGroup{
-		typegroup.Execution0,
-		typegroup.Portfolio0,
-		typegroup.Portfolio1,
-		typegroup.Requirements0,
-	}
+	typeGroups := workitem.TypeGroups()
 
-	typeGroupToExpr := func(typeGroup typegroup.WorkItemTypeGroup, negate bool) c.Expression {
+	typeGroupToExpr := func(typeGroup workitem.WorkItemTypeGroup, negate bool) c.Expression {
 		var e c.Expression
 		if !negate {
-			for _, witID := range typeGroup.WorkItemTypeCollection {
+			for _, witID := range typeGroup.TypeList {
 				exp := c.Equals(
 					c.Field("Type"),
 					c.Literal(witID.String()),
@@ -542,7 +536,7 @@ func TestWorkItemTypeGroup(t *testing.T) {
 				}
 			}
 		} else {
-			for _, witID := range typeGroup.WorkItemTypeCollection {
+			for _, witID := range typeGroup.TypeList {
 				exp := c.Not(
 					c.Field("Type"),
 					c.Literal(witID.String()),
@@ -557,17 +551,16 @@ func TestWorkItemTypeGroup(t *testing.T) {
 		return e
 	}
 
-	t.Run("hierarchy as a query child", func(t *testing.T) {
+	t.Run(WITGROUP+" as a query child", func(t *testing.T) {
 		for _, typeGroup := range typeGroups {
-			t.Run(typeGroup.BuildName(), func(t *testing.T) {
+			t.Run(typeGroup.Name, func(t *testing.T) {
 				// given
 				spaceName := "openshiftio"
-				hierarchyFullName := typeGroup.BuildName()
 				q := Query{
 					Name: OR,
 					Children: []Query{
 						{Name: "space", Value: &spaceName},
-						{Name: "hierarchy", Value: &hierarchyFullName},
+						{Name: WITGROUP, Value: &typeGroup.Name},
 					},
 				}
 				// when
@@ -585,17 +578,16 @@ func TestWorkItemTypeGroup(t *testing.T) {
 		}
 	})
 
-	t.Run("hierarchy as a query child using NOT", func(t *testing.T) {
+	t.Run(WITGROUP+" as a query child using NOT", func(t *testing.T) {
 		for _, typeGroup := range typeGroups {
-			t.Run(typeGroup.BuildName(), func(t *testing.T) {
+			t.Run(typeGroup.Name, func(t *testing.T) {
 				// given
 				spaceName := "openshiftio"
-				hierarchyFullName := typeGroup.BuildName()
 				q := Query{
 					Name: OR,
 					Children: []Query{
 						{Name: "space", Value: &spaceName},
-						{Name: "hierarchy", Value: &hierarchyFullName, Negate: true},
+						{Name: WITGROUP, Value: &typeGroup.Name, Negate: true},
 					},
 				}
 				// when
@@ -613,12 +605,11 @@ func TestWorkItemTypeGroup(t *testing.T) {
 		}
 	})
 
-	t.Run("hierarchy as a top-level expression", func(t *testing.T) {
+	t.Run(WITGROUP+" as a top-level expression", func(t *testing.T) {
 		for _, typeGroup := range typeGroups {
-			t.Run(typeGroup.BuildName(), func(t *testing.T) {
+			t.Run(typeGroup.Name, func(t *testing.T) {
 				// given
-				hierarchyFullName := typeGroup.BuildName()
-				q := Query{Name: "hierarchy", Value: &hierarchyFullName}
+				q := Query{Name: WITGROUP, Value: &typeGroup.Name}
 				// when
 				actualExpr, _ := q.generateExpression()
 				// then
@@ -628,12 +619,11 @@ func TestWorkItemTypeGroup(t *testing.T) {
 		}
 	})
 
-	t.Run("hierarchy as a top-level expression using NOT", func(t *testing.T) {
+	t.Run(WITGROUP+" as a top-level expression using NOT", func(t *testing.T) {
 		for _, typeGroup := range typeGroups {
-			t.Run(typeGroup.BuildName(), func(t *testing.T) {
+			t.Run(typeGroup.Name, func(t *testing.T) {
 				// given
-				hierarchyFullName := typeGroup.BuildName()
-				q := Query{Name: "hierarchy", Value: &hierarchyFullName, Negate: true}
+				q := Query{Name: WITGROUP, Value: &typeGroup.Name, Negate: true}
 				// when
 				actualExpr, _ := q.generateExpression()
 				// then

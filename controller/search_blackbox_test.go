@@ -12,8 +12,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabric8-services/fabric8-wit/workitem/typegroup"
-
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
@@ -31,12 +29,10 @@ import (
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
-	"github.com/jinzhu/gorm"
-
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
-
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/goatest"
+	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -405,7 +401,7 @@ func (s *searchControllerTestSuite) TestSearchFilter() {
 	assert.Equal(s.T(), "specialwordforsearch", r.Attributes[workitem.SystemTitle])
 }
 
-func (s *searchControllerTestSuite) TestSearchByHierarchy() {
+func (s *searchControllerTestSuite) TestSearchByWorkItemTypeGroup() {
 	s.T().Run(http.StatusText(http.StatusOK), func(t *testing.T) {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment())
@@ -455,13 +451,13 @@ func (s *searchControllerTestSuite) TestSearchByHierarchy() {
 		}
 
 		// when
-		t.Run(typegroup.Portfolio0.BuildName(), func(t *testing.T) {
+		t.Run("Scenarios", func(t *testing.T) {
 			// given
 			filter := fmt.Sprintf(`
 				{"$AND": [
-					{"`+search.Hierarchy+`": "%s"},
+					{"`+search.WITGROUP+`": "Scenarios"},
 					{"space": "%s"}
-				]}`, typegroup.Portfolio0.BuildName(), fxt.Spaces[0].ID)
+				]}`, fxt.Spaces[0].ID)
 			// when
 			_, sr := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
 			// then
@@ -473,13 +469,13 @@ func (s *searchControllerTestSuite) TestSearchByHierarchy() {
 			}
 			checkToBeFound(t, toBeFound, sr.Data)
 		})
-		t.Run(typegroup.Portfolio1.BuildName(), func(t *testing.T) {
+		t.Run("Experiences", func(t *testing.T) {
 			// given
 			filter := fmt.Sprintf(`
 				{"$AND": [
-					{"`+search.Hierarchy+`": "%s"},
+					{"`+search.WITGROUP+`": "Experiences"},
 					{"space": "%s"}
-				]}`, typegroup.Portfolio1.BuildName(), fxt.Spaces[0].ID)
+				]}`, fxt.Spaces[0].ID)
 			// when
 			_, sr := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
 			// then
@@ -489,13 +485,13 @@ func (s *searchControllerTestSuite) TestSearchByHierarchy() {
 			}
 			checkToBeFound(t, toBeFound, sr.Data)
 		})
-		t.Run(typegroup.Requirements0.BuildName(), func(t *testing.T) {
+		t.Run("Requirements", func(t *testing.T) {
 			// given
 			filter := fmt.Sprintf(`
 				{"$AND": [
-					{"`+search.Hierarchy+`": "%s"},
+					{"`+search.WITGROUP+`": "Requirements"},
 					{"space": "%s"}
-				]}`, typegroup.Requirements0.BuildName(), fxt.Spaces[0].ID)
+				]}`, fxt.Spaces[0].ID)
 			// when
 			_, sr := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
 			// then
@@ -507,13 +503,13 @@ func (s *searchControllerTestSuite) TestSearchByHierarchy() {
 			}
 			checkToBeFound(t, toBeFound, sr.Data)
 		})
-		t.Run(typegroup.Execution0.BuildName(), func(t *testing.T) {
+		t.Run("Execution", func(t *testing.T) {
 			// given
 			filter := fmt.Sprintf(`
 				{"$AND": [
-					{"`+search.Hierarchy+`": "%s"},
+					{"`+search.WITGROUP+`": "Execution"},
 					{"space": "%s"}
-				]}`, typegroup.Execution0.BuildName(), fxt.Spaces[0].ID)
+				]}`, fxt.Spaces[0].ID)
 			// when
 			_, sr := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
 			// then
@@ -530,9 +526,9 @@ func (s *searchControllerTestSuite) TestSearchByHierarchy() {
 			fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment())
 			filter := fmt.Sprintf(`
 				{"$AND": [
-					{"`+search.Hierarchy+`": "%s"},
+					{"`+search.WITGROUP+`": "%s"},
 					{"space": "%s"}
-				]}`, "unknown hierarchy", fxt.Spaces[0].ID)
+				]}`, "unknown work item type group", fxt.Spaces[0].ID)
 			// when
 			_, _ = test.ShowSearchBadRequest(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
 		})

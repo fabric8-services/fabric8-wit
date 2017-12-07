@@ -1,28 +1,21 @@
 package search
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
+	"regexp"
+	"strings"
 	"sync"
 
-	"github.com/fabric8-services/fabric8-wit/workitem/typegroup"
-
-	"context"
-
-	"strings"
-
-	"regexp"
-
-	"net/url"
-
+	"github.com/asaskevich/govalidator"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/fabric8-services/fabric8-wit/criteria"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
-
-	"github.com/asaskevich/govalidator"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -33,15 +26,14 @@ const (
 	HostRegistrationKeyForListWI  = "work-item-list-details"
 	HostRegistrationKeyForBoardWI = "work-item-board-details"
 
-	EQ     = "$EQ"
-	NE     = "$NE"
-	AND    = "$AND"
-	OR     = "$OR"
-	NOT    = "$NOT"
-	IN     = "$IN"
-	SUBSTR = "$SUBSTR"
-
-	WorkItemTypeGroup = "witgroup"
+	EQ       = "$EQ"
+	NE       = "$NE"
+	AND      = "$AND"
+	OR       = "$OR"
+	NOT      = "$NOT"
+	IN       = "$IN"
+	SUBSTR   = "$SUBSTR"
+	WITGROUP = "$WITGROUP"
 )
 
 // GormSearchRepository provides a Gorm based repository
@@ -380,34 +372,30 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 	var myexpr []criteria.Expression
 	currentOperator := q.Name
 
-	// Here we handle the "witGroup" query parameter which we translate from a
+	// Here we handle the "$WITGROUP" query parameter which we translate from a
 	// simple
 	//
-	// "witGroup = y"
+	// "$WITGROUP = y"
 	//
 	// expression into an
 	//
 	// "Type in (y1, y2, y3, ... ,yn)"
 	//
 	// expression where yi represents the i-th work item type associated with
-	// the witGroup y.
+	// the work item type group y.
 	handleWitGroup := func(q Query) error {
-		if q.Value == nil {
-			return errors.NewBadParameterError(WorkItemTypeGroup, q.Value).Expected("not nil")
+		typeGroupName := q.Value
+
+		if typeGroupName == nil {
+			return errors.NewBadParameterError(WITGROUP, typeGroupName).Expected("not nil")
 		}
-		typeGroupMap := map[string]*typegroup.WorkItemTypeGroup{
-			typegroup.Execution0.BuildName():    &typegroup.Execution0,
-			typegroup.Portfolio0.BuildName():    &typegroup.Portfolio0,
-			typegroup.Portfolio1.BuildName():    &typegroup.Portfolio1,
-			typegroup.Requirements0.BuildName(): &typegroup.Requirements0,
-		}
-		typeGroup, ok := typeGroupMap[*q.Value]
-		if !ok {
-			return errors.NewBadParameterError(WorkItemTypeGroup, *q.Value).Expected("existing " + WorkItemTypeGroup)
+		typeGroup := workitem.TypeGroupByName(*typeGroupName)
+		if typeGroup == nil {
+			return errors.NewBadParameterError(WITGROUP, *typeGroupName).Expected("existing " + WITGROUP)
 		}
 		var e criteria.Expression
 		if !q.Negate {
-			for _, witID := range typeGroup.WorkItemTypeCollection {
+			for _, witID := range typeGroup.TypeList {
 				eq := criteria.Equals(
 					criteria.Field("Type"),
 					criteria.Literal(witID.String()),
@@ -419,7 +407,7 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 				}
 			}
 		} else {
-			for _, witID := range typeGroup.WorkItemTypeCollection {
+			for _, witID := range typeGroup.TypeList {
 				eq := criteria.Not(
 					criteria.Field("Type"),
 					criteria.Literal(witID.String()),
@@ -435,7 +423,7 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 		return nil
 	}
 
-	if q.Name == WorkItemTypeGroup {
+	if q.Name == WITGROUP {
 		err := handleWitGroup(q)
 		if err != nil {
 			return nil, errs.Wrap(err, "failed to handle hierarchy in top-level element")
@@ -471,10 +459,10 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 				return nil, err
 			}
 			myexpr = append(myexpr, exp)
-		} else if child.Name == WorkItemTypeGroup {
+		} else if child.Name == WITGROUP {
 			err := handleWitGroup(child)
 			if err != nil {
-				return nil, errs.Wrap(err, "failed to handle "+WorkItemTypeGroup+" in child element")
+				return nil, errs.Wrap(err, "failed to handle "+WITGROUP+" in child element")
 			}
 		} else {
 			key, ok := searchKeyMap[child.Name]

@@ -36,7 +36,7 @@ type WorkItemTypeGroup struct {
 	gormsupport.Lifecycle
 	ID          uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
 	Bucket      TypeBucket
-	Name        string      // the name to be displayed to user
+	Name        string      // the name to be displayed to user (is unique)
 	TypeList    []uuid.UUID // TODO(kwk): We need to store this outside of this structure in the DB
 	DefaultType uuid.UUID   // the work item type that is supposed to be used with the quick add for example.
 	Icon        string
@@ -93,6 +93,17 @@ func TypeGroups() []WorkItemTypeGroup {
 			DefaultType: SystemTask,
 		},
 	}
+}
+
+// TypeGroupByName returns a type group based on its name if such a group
+// exists; otherwise nil is returned.
+func TypeGroupByName(name string) *WorkItemTypeGroup {
+	for _, t := range TypeGroups() {
+		if t.Name == name {
+			return &t
+		}
+	}
+	return nil
 }
 
 // TypeGroupsByBucket returns all type groups which fall into the given bucket
