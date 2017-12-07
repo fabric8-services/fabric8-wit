@@ -79,7 +79,7 @@ make dev-openshift-clean
 ```
 It will remove the project `planner-services` from MiniShift
 
-## Check logs from services
+### Check logs from services
 Use `oc` from MiniShift
 ```
 eval $(minishift oc-env)
@@ -99,5 +99,18 @@ Use `docker` from MiniShift
 eval $(minishift docker-env)
 ```
 
+### Service endpoints:
+Get minishit IP using following command
+```
+minishift ip
+```
+We will use this IP address to reach to services running in minishift
+
+You can visit database running in minishift by visiting
+> psql -h `minishift ip` -U postgres -d postgres -p 32000
+
+WIT service(Work Item Tracker) is running at `minishift ip`:30000
+
+AUTH service is running at `minishift ip`:31000
 
 ##### Questions? Errors? Please open issues on https://github.com/fabric8-services/fabric8-wit/issues if already not exist.
