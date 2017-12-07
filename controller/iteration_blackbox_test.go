@@ -98,82 +98,99 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 	resetFn := rest.DisableGormCallbacks()
 	defer resetFn()
 
-	rest.T().Run("success - create child iteration", func(t *testing.T) {
-		fxt := tf.NewTestFixture(t, rest.DB,
-			tf.CreateWorkItemEnvironment(),
-			tf.Iterations(2,
-				tf.SetIterationNames("root iteration", "child iteration"),
-				tf.PlaceIterationUnderRootIteration()))
-		name := "Sprint #21"
-		childItr := fxt.IterationByName("child iteration")
-		ci := getChildIterationPayload(&name)
-		startAt, err := time.Parse(time.RFC3339, "2016-11-04T15:08:41+00:00")
-		require.Nil(t, err)
-		endAt, err := time.Parse(time.RFC3339, "2016-11-25T15:08:41+00:00")
-		require.Nil(t, err)
-		ci.Data.Attributes.StartAt = &startAt
-		ci.Data.Attributes.EndAt = &endAt
-		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
-		// when
-		_, created := test.CreateChildIterationCreated(t, svc.Context, svc, ctrl, childItr.ID.String(), ci)
-		// then
-		require.NotNil(t, created)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child.golden.json"), created)
-	})
-	rest.T().Run("success - create child iteration with ID in request payload", func(t *testing.T) {
-		// given
-		fxt := tf.NewTestFixture(t, rest.DB,
-			tf.CreateWorkItemEnvironment(),
-			tf.Iterations(2,
-				tf.SetIterationNames("root iteration", "child iteration"),
-			))
-		name := "Sprint #21"
-		childItr := fxt.IterationByName("child iteration")
-		ci := getChildIterationPayload(&name)
-		id := uuid.NewV4()
-		ci.Data.ID = &id // set different ID and it must be ignoed by controller
-		startAt, err := time.Parse(time.RFC3339, "2016-11-04T15:08:41+00:00")
-		require.Nil(t, err)
-		endAt, err := time.Parse(time.RFC3339, "2016-11-25T15:08:41+00:00")
-		require.Nil(t, err)
-		ci.Data.Attributes.StartAt = &startAt
-		ci.Data.Attributes.EndAt = &endAt
-		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
-		// when
-		_, created := test.CreateChildIterationCreated(t, svc.Context, svc, ctrl, childItr.ID.String(), ci)
-		// then
-		require.NotNil(t, created)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child_ID_paylod.golden.json"), created)
-		require.Equal(t, *ci.Data.ID, *created.Data.ID)
+	rest.T().Run("Ok create iteration", func(t *testing.T) {
+		rest.T().Run("Ok create iteration/by space owner", func(t *testing.T) {
+			fxt := tf.NewTestFixture(t, rest.DB,
+				tf.CreateWorkItemEnvironment(),
+				tf.Iterations(2,
+					tf.SetIterationNames("root iteration", "child iteration"),
+					tf.PlaceIterationUnderRootIteration()))
+			name := "Sprint #21"
+			childItr := fxt.IterationByName("child iteration")
+			ci := getChildIterationPayload(&name)
+			startAt, err := time.Parse(time.RFC3339, "2016-11-04T15:08:41+00:00")
+			require.Nil(t, err)
+			endAt, err := time.Parse(time.RFC3339, "2016-11-25T15:08:41+00:00")
+			require.Nil(t, err)
+			ci.Data.Attributes.StartAt = &startAt
+			ci.Data.Attributes.EndAt = &endAt
+			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+			// when
+			_, created := test.CreateChildIterationCreated(t, svc.Context, svc, ctrl, childItr.ID.String(), ci)
+			// then
+			require.NotNil(t, created)
+			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child.golden.json"), created)
+		})
+
+		rest.T().Run("Ok create iteration/by collaborator", func(t *testing.T) {
+			fxt := tf.NewTestFixture(t, rest.DB,
+				tf.Identities(2, tf.SetIdentityUsernames("space owner", "other user")),
+				tf.Areas(1), tf.Iterations(1))
+			name := "Sprint #21"
+			ci := getChildIterationPayload(&name)
+			otherUser := fxt.IdentityByUsername("other user")
+			_, ctrl := rest.SecuredControllerWithIdentity(fxt.IdentityByUsername("other user"))
+			// add user as collaborator
+			rest.policy.AddUserToPolicy(otherUser.ID.String())
+			// overwrite service to use Dummy Auth
+			svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *otherUser, &DummySpaceAuthzService{rest})
+			test.CreateChildIterationCreated(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
+		})
+		rest.T().Run("Ok create iteration/with ID in request payload", func(t *testing.T) {
+			// given
+			fxt := tf.NewTestFixture(t, rest.DB,
+				tf.CreateWorkItemEnvironment(),
+				tf.Iterations(2,
+					tf.SetIterationNames("root iteration", "child iteration"),
+				))
+			name := "Sprint #21"
+			childItr := fxt.IterationByName("child iteration")
+			ci := getChildIterationPayload(&name)
+			id := uuid.NewV4()
+			ci.Data.ID = &id // set different ID and it must be ignoed by controller
+			startAt, err := time.Parse(time.RFC3339, "2016-11-04T15:08:41+00:00")
+			require.Nil(t, err)
+			endAt, err := time.Parse(time.RFC3339, "2016-11-25T15:08:41+00:00")
+			require.Nil(t, err)
+			ci.Data.Attributes.StartAt = &startAt
+			ci.Data.Attributes.EndAt = &endAt
+			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+			// when
+			_, created := test.CreateChildIterationCreated(t, svc.Context, svc, ctrl, childItr.ID.String(), ci)
+			// then
+			require.NotNil(t, created)
+			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child_ID_paylod.golden.json"), created)
+			require.Equal(t, *ci.Data.ID, *created.Data.ID)
+		})
 	})
 
-	rest.T().Run("forbidden - user must be space-owner or collaborator to create child iteration", func(t *testing.T) {
-		fxt := tf.NewTestFixture(t, rest.DB,
-			tf.Identities(2, tf.SetIdentityUsernames("space owner", "other user")),
-			tf.Areas(1), tf.Iterations(1))
-		name := "Sprint #21"
-		ci := getChildIterationPayload(&name)
-		otherUser := fxt.IdentityByUsername("other user")
-		_, ctrl := rest.SecuredControllerWithIdentity(fxt.IdentityByUsername("other user"))
-		// overwrite service with Dummy Auth to treat user as non-collaborator
-		svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *otherUser, &DummySpaceAuthzService{rest})
-		_, jerrs := test.CreateChildIterationForbidden(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "forbidden_other_user.golden.json"), jerrs)
-	})
-
-	rest.T().Run("Ok - collaborator can create child iteration", func(t *testing.T) {
-		fxt := tf.NewTestFixture(t, rest.DB,
-			tf.Identities(2, tf.SetIdentityUsernames("space owner", "other user")),
-			tf.Areas(1), tf.Iterations(1))
-		name := "Sprint #21"
-		ci := getChildIterationPayload(&name)
-		otherUser := fxt.IdentityByUsername("other user")
-		_, ctrl := rest.SecuredControllerWithIdentity(fxt.IdentityByUsername("other user"))
-		// add user as collaborator
-		rest.policy.AddUserToPolicy(otherUser.ID.String())
-		// overwrite service to use Dummy Auth
-		svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *otherUser, &DummySpaceAuthzService{rest})
-		test.CreateChildIterationCreated(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
+	rest.T().Run("forbidden", func(t *testing.T) {
+		rest.T().Run("forbidden/non space-owner", func(t *testing.T) {
+			fxt := tf.NewTestFixture(t, rest.DB,
+				tf.Identities(2, tf.SetIdentityUsernames("space owner", "not space owner")),
+				tf.Areas(1), tf.Iterations(1))
+			name := "Sprint #21"
+			ci := getChildIterationPayload(&name)
+			notSpaceOwner := fxt.IdentityByUsername("not space owner")
+			_, ctrl := rest.SecuredControllerWithIdentity(notSpaceOwner)
+			// overwrite service with Dummy Auth to treat user as non-collaborator
+			svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *notSpaceOwner, &DummySpaceAuthzService{rest})
+			_, jerrs := test.CreateChildIterationForbidden(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
+			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "forbidden_other_user.golden.json"), jerrs)
+		})
+		rest.T().Run("forbidden/non collaborator", func(t *testing.T) {
+			fxt := tf.NewTestFixture(t, rest.DB,
+				tf.Identities(2, tf.SetIdentityUsernames("space owner", "non collaborator")),
+				tf.Areas(1), tf.Iterations(1))
+			name := "Sprint #21"
+			ci := getChildIterationPayload(&name)
+			nonCollaborator := fxt.IdentityByUsername("non collaborator")
+			_, ctrl := rest.SecuredControllerWithIdentity(nonCollaborator)
+			// overwrite service with Dummy Auth to treat user as non-collaborator
+			svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *nonCollaborator, &DummySpaceAuthzService{rest})
+			_, jerrs := test.CreateChildIterationForbidden(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
+			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "forbidden_other_user.golden.json"), jerrs)
+		})
 	})
 
 	rest.T().Run("fail - create same child iteration conflict", func(t *testing.T) {
@@ -444,60 +461,71 @@ func (rest *TestIterationREST) TestFailShowIterationMissing() {
 }
 
 func (rest *TestIterationREST) TestSuccessUpdateIteration() {
-	// given
-	fxt := tf.NewTestFixture(rest.T(), rest.DB,
-		tf.Identities(2, tf.SetIdentityUsernames("space owner", "other user")),
-		tf.Areas(1), tf.Iterations(1))
-	itr := fxt.Iterations[0]
-	owner := fxt.Identities[0]
-	newName := "Sprint 1001"
-	newDesc := "New Description"
-	payload := app.UpdateIterationPayload{
-		Data: &app.Iteration{
-			Attributes: &app.IterationAttributes{
-				Name:        &newName,
-				Description: &newDesc,
-			},
-			ID:   &itr.ID,
-			Type: iteration.APIStringTypeIteration,
-		},
-	}
-	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
-	// when
-	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &payload)
-	// then
-	assert.Equal(rest.T(), newName, *updated.Data.Attributes.Name)
-	assert.Equal(rest.T(), newDesc, *updated.Data.Attributes.Description)
-	require.NotNil(rest.T(), updated.Data.Relationships.Workitems.Meta)
-	assert.Equal(rest.T(), 0, updated.Data.Relationships.Workitems.Meta[KeyTotalWorkItems])
-	assert.Equal(rest.T(), 0, updated.Data.Relationships.Workitems.Meta[KeyClosedWorkItems])
+	rest.T().Run("update", func(t *testing.T) {
+		rest.T().Run("update iteration/by space owner", func(t *testing.T) {
+			// given
+			fxt := tf.NewTestFixture(rest.T(), rest.DB,
+				tf.Identities(1, tf.SetIdentityUsernames("space owner")),
+				tf.Areas(1), tf.Iterations(1))
+			itr := fxt.Iterations[0]
+			newName := "Sprint 1001"
+			newDesc := "New Description"
+			payload := app.UpdateIterationPayload{
+				Data: &app.Iteration{
+					Attributes: &app.IterationAttributes{
+						Name:        &newName,
+						Description: &newDesc,
+					},
+					ID:   &itr.ID,
+					Type: iteration.APIStringTypeIteration,
+				},
+			}
+			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.IdentityByUsername("space owner"))
+			// when
+			_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &payload)
+			// then
+			assert.Equal(rest.T(), newName, *updated.Data.Attributes.Name)
+			assert.Equal(rest.T(), newDesc, *updated.Data.Attributes.Description)
+			require.NotNil(rest.T(), updated.Data.Relationships.Workitems.Meta)
+			assert.Equal(rest.T(), 0, updated.Data.Relationships.Workitems.Meta[KeyTotalWorkItems])
+			assert.Equal(rest.T(), 0, updated.Data.Relationships.Workitems.Meta[KeyClosedWorkItems])
+		})
 
-	// update iteration using Collaborator
-	newName = "Sprint 1002"
-	newDesc = "New Description 2"
-	payload = app.UpdateIterationPayload{
-		Data: &app.Iteration{
-			Attributes: &app.IterationAttributes{
-				Name:        &newName,
-				Description: &newDesc,
-			},
-			ID:   &itr.ID,
-			Type: iteration.APIStringTypeIteration,
-		},
-	}
-	otherIdentity := fxt.Identities[1]
-	_, ctrl = rest.SecuredControllerWithIdentity(otherIdentity)
-	// add user as collaborator
-	rest.policy.AddUserToPolicy(otherIdentity.ID.String())
-	// overwrite service to use Dummy Auth
-	svc = testsupport.ServiceAsSpaceUser("Collaborators-Service", *otherIdentity, &DummySpaceAuthzService{rest})
-	_, updated = test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &payload)
-	assert.Equal(rest.T(), newName, *updated.Data.Attributes.Name)
-	assert.Equal(rest.T(), newDesc, *updated.Data.Attributes.Description)
-	require.NotNil(rest.T(), updated.Data.Relationships.Workitems.Meta)
-	assert.Equal(rest.T(), 0, updated.Data.Relationships.Workitems.Meta[KeyTotalWorkItems])
-	assert.Equal(rest.T(), 0, updated.Data.Relationships.Workitems.Meta[KeyClosedWorkItems])
-
+		rest.T().Run("update iteration/by collaborator", func(t *testing.T) {
+			// given
+			fxt := tf.NewTestFixture(rest.T(), rest.DB,
+				tf.Identities(2, tf.SetIdentityUsernames("space owner", "collaborator")),
+				tf.Areas(1), tf.Iterations(1))
+			itr := fxt.Iterations[0]
+			// update iteration using Collaborator
+			newName := "Sprint 100"
+			newDesc := "New Description"
+			payload := app.UpdateIterationPayload{
+				Data: &app.Iteration{
+					Attributes: &app.IterationAttributes{
+						Name:        &newName,
+						Description: &newDesc,
+					},
+					ID:   &itr.ID,
+					Type: iteration.APIStringTypeIteration,
+				},
+			}
+			otherIdentity := fxt.Identities[1]
+			_, ctrl := rest.SecuredControllerWithIdentity(otherIdentity)
+			// add user as collaborator
+			rest.policy.AddUserToPolicy(otherIdentity.ID.String())
+			// overwrite service to use Dummy Auth
+			svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *otherIdentity, &DummySpaceAuthzService{rest})
+			// when
+			_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &payload)
+			// then
+			assert.Equal(rest.T(), newName, *updated.Data.Attributes.Name)
+			assert.Equal(rest.T(), newDesc, *updated.Data.Attributes.Description)
+			require.NotNil(rest.T(), updated.Data.Relationships.Workitems.Meta)
+			assert.Equal(rest.T(), 0, updated.Data.Relationships.Workitems.Meta[KeyTotalWorkItems])
+			assert.Equal(rest.T(), 0, updated.Data.Relationships.Workitems.Meta[KeyClosedWorkItems])
+		})
+	})
 }
 
 func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
