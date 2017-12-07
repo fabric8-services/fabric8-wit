@@ -31,6 +31,6 @@ func (c *NamedWorkItemsController) Show(ctx *app.ShowNamedWorkItemsContext) erro
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "Fail to load work item with number %v in %s/%s", ctx.WiNumber, ctx.UserName, ctx.SpaceName))
 		}
 		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.WorkitemHref(wiID)))
-		return ctx.MovedPermanently()
+		return ctx.TemporaryRedirect()
 	})
 }
