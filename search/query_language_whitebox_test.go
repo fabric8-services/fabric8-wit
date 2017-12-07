@@ -519,7 +519,7 @@ func TestGenerateExpressionWithNonExistingKey(t *testing.T) {
 
 }
 
-func TestHierarchy(t *testing.T) {
+func TestWorkItemTypeGroup(t *testing.T) {
 	typeGroups := []typegroup.WorkItemTypeGroup{
 		typegroup.Execution0,
 		typegroup.Portfolio0,
