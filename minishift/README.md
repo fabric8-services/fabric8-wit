@@ -75,7 +75,7 @@ When not specified any tag it is `latest` always.
 ## Cleanup
 When you want to stop all the services running in MiniShift, use following command
 ```
-make dev-openshift-clean
+make clean-openshift
 ```
 It will remove the project `planner-services` from MiniShift
 

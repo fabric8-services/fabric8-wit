@@ -37,5 +37,5 @@ dev-openshift:
 	kedge apply -f kedge/wit.yml
 
 # Stop running AUTH, DB, DB-AUTH, WIT services in minishift
-dev-openshift-clean:
+clean-openshift:
 	-eval `minishift oc-env` &&  oc login -u developer -p developer && oc delete project planner-services --grace-period=1
