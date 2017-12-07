@@ -81,7 +81,7 @@ func (c *LabelController) Create(ctx *app.CreateLabelContext) error {
 		res := &app.LabelSingle{
 			Data: ConvertLabel(appl, ctx.Request, lbl),
 		}
-		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.LabelHref(ctx.SpaceID, res.Data.LabelID)))
+		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.LabelHref(ctx.SpaceID, res.Data.ID)))
 		return ctx.Created(res)
 	})
 }
@@ -93,8 +93,8 @@ func ConvertLabel(appl application.Application, request *http.Request, lbl label
 	relatedURL := rest.AbsoluteURL(request, app.LabelHref(spaceID, lbl.ID))
 	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
 	l := &app.Label{
-		Type:    labelType,
-		LabelID: &lbl.ID,
+		Type: labelType,
+		ID:   &lbl.ID,
 		Attributes: &app.LabelAttributes{
 			TextColor:       &lbl.TextColor,
 			BackgroundColor: &lbl.BackgroundColor,
@@ -204,7 +204,7 @@ func (c *LabelController) Update(ctx *app.UpdateLabelContext) error {
 		res := &app.LabelSingle{
 			Data: ConvertLabel(appl, ctx.Request, *lbl),
 		}
-		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.LabelHref(ctx.SpaceID, res.Data.LabelID)))
+		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.LabelHref(ctx.SpaceID, res.Data.ID)))
 		return ctx.OK(res)
 	})
 }
