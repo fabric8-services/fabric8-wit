@@ -669,4 +669,23 @@ func TestHandleWitGroup(t *testing.T) {
 			require.Equal(t, exp, d.ExpectedExrpessions)
 		})
 	}
+
+	t.Run("value is nil", func(t *testing.T) {
+		// given
+		var v *string
+		exp := []criteria.Expression{}
+		// when
+		err := handleWitGroup(Query{Name: WITGROUP, Value: v}, &exp)
+		// then
+		require.NotNil(t, err)
+	})
+	t.Run("expression array is nil", func(t *testing.T) {
+		// given
+		v := "Scenarios"
+		var exp *[]criteria.Expression
+		// when
+		err := handleWitGroup(Query{Name: WITGROUP, Value: &v}, exp)
+		// then
+		require.NotNil(t, err)
+	})
 }

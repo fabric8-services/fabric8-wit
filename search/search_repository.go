@@ -383,6 +383,9 @@ func handleWitGroup(q Query, expArr *[]criteria.Expression) error {
 	if q.Name != WITGROUP {
 		return nil
 	}
+	if expArr == nil {
+		return errs.New("expression array must not be nil")
+	}
 
 	typeGroupName := q.Value
 	if typeGroupName == nil {
