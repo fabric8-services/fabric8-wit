@@ -1080,3 +1080,211 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		}
 	})
 }
+
+func (rest *TestIterationREST) TestUpdateIteration() {
+	resetFn := rest.DisableGormCallbacks()
+	defer resetFn()
+	rest.T().Run("update success - iteration parent", func(t *testing.T) {
+		// build following structure
+		// 	root 0
+		// 		|---- itr 1
+		// 			|---- itr 2
+		// 				|---- itr 3
+		//  					|---- itr 4
+		// 			|---- itr 5
+		// 		|---- itr 6
+
+		// given
+		fxt := tf.NewTestFixture(t, rest.DB,
+			tf.Iterations(7, tf.SetIterationNames("root iteration", "iteration 1",
+				"iteration 2", "iteration 3", "iteration 4", "iteration 5", "iteration 6"),
+				func(fxt *tf.TestFixture, idx int) error {
+					itr := fxt.Iterations[idx]
+					switch idx {
+					case 1:
+						itr.MakeChildOf(*fxt.IterationByName("root iteration"))
+					case 2:
+						itr.MakeChildOf(*fxt.IterationByName("iteration 1"))
+					case 3:
+						itr.MakeChildOf(*fxt.IterationByName("iteration 2"))
+					case 4:
+						itr.MakeChildOf(*fxt.IterationByName("iteration 3"))
+					case 5:
+						itr.MakeChildOf(*fxt.IterationByName("iteration 1"))
+					case 6:
+						itr.MakeChildOf(*fxt.IterationByName("root iteration"))
+					}
+					return nil
+				}))
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+		itr1 := fxt.IterationByName("iteration 1")
+		itr2 := fxt.IterationByName("iteration 2")
+		itr3 := fxt.IterationByName("iteration 3")
+		itr4 := fxt.IterationByName("iteration 4")
+		itr5 := fxt.IterationByName("iteration 5")
+
+		// update parent of iteration 3 (move itr3 under itr1)
+		newParentIDStr := itr1.ID.String()
+		payload := minimumUpdatePayloadWithParent()
+		payload.Data.Relationships.Parent.Data.ID = &newParentIDStr
+		payload.Data.ID = &itr3.ID
+		// when
+		_, updatedItr := test.UpdateIterationOK(t, svc.Context, svc, ctrl, itr3.ID.String(), &payload)
+		require.NotNil(t, updatedItr)
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "update", "ok_change_parent.golden.json"), updatedItr)
+		// then
+		require.NotNil(t, updatedItr.Data.Relationships.Parent)
+		assert.Equal(t, newParentIDStr, *updatedItr.Data.Relationships.Parent.Data.ID)
+
+		// updated structure looks like below
+		// root 0
+		//	|---- itr 1
+		// 			|---- itr 5
+		//				|---- itr 2
+		//			|---- itr 3
+		// 				|---- itr 4
+		// 	|---- itr 6
+
+		// when
+		children, err := rest.db.Iterations().LoadChildren(svc.Context, itr2.ID)
+		// then
+		require.Nil(t, err)
+		require.Len(t, children, 0)
+
+		// when
+		children, err = rest.db.Iterations().LoadChildren(svc.Context, itr1.ID)
+		// then
+		require.Nil(t, err)
+		require.Len(t, children, 4)
+
+		allChildren := map[uuid.UUID]struct{}{
+			// expected subtree of itr 1
+			itr2.ID: {},
+			itr3.ID: {},
+			itr4.ID: {},
+			itr5.ID: {},
+		}
+		for _, i := range children {
+			delete(allChildren, i.ID)
+		}
+		require.Empty(t, allChildren)
+
+		// when
+		children, err = rest.db.Iterations().LoadChildren(svc.Context, itr3.ID)
+		// then
+		require.Nil(t, err)
+		require.Len(t, children, 1)
+
+		allChildren = map[uuid.UUID]struct{}{
+			itr4.ID: {},
+		}
+		for _, i := range children {
+			delete(allChildren, i.ID)
+		}
+		require.Empty(t, allChildren)
+	})
+
+	rest.T().Run("update fail - parent of root iteraton", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment(), tf.Iterations(2))
+		rootItr := fxt.Iterations[0]
+		newParentIDStr := fxt.Iterations[1].ID.String()
+		payload := minimumUpdatePayloadWithParent()
+		payload.Data.Relationships.Parent.Data.ID = &newParentIDStr
+		payload.Data.ID = &rootItr.ID
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+		test.UpdateIterationForbidden(t, svc.Context, svc, ctrl, rootItr.ID.String(), &payload)
+	})
+
+	rest.T().Run("update fail - non-existing parent of iteraton", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment(), tf.Iterations(2))
+		itr1 := fxt.Iterations[1]
+		newParentIDStr := "73048351-a4c0-4cf6-aff9-1fa3d7576ac0"
+		payload := minimumUpdatePayloadWithParent()
+		payload.Data.Relationships.Parent.Data.ID = &newParentIDStr
+		payload.Data.ID = &itr1.ID
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+		test.UpdateIterationNotFound(t, svc.Context, svc, ctrl, itr1.ID.String(), &payload)
+	})
+
+	rest.T().Run("update fail - invalid UUID parent of iteraton", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment(), tf.Iterations(2))
+		itr1 := fxt.Iterations[1]
+		newParentIDStr := "/"
+		payload := minimumUpdatePayloadWithParent()
+		payload.Data.Relationships.Parent.Data.ID = &newParentIDStr
+		payload.Data.ID = &itr1.ID
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+		test.UpdateIterationBadRequest(t, svc.Context, svc, ctrl, itr1.ID.String(), &payload)
+	})
+
+	rest.T().Run("update fail - parent UUID is same as subject iteraton", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment(), tf.Iterations(1))
+		itr := fxt.Iterations[0]
+		newParentIDStr := itr.ID.String()
+		payload := minimumUpdatePayloadWithParent()
+		payload.Data.Relationships.Parent.Data.ID = &newParentIDStr
+		payload.Data.ID = &itr.ID
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+		test.UpdateIterationForbidden(t, svc.Context, svc, ctrl, itr.ID.String(), &payload)
+	})
+
+	rest.T().Run("update fail - valid parent but from different space", func(t *testing.T) {
+		fxt1 := tf.NewTestFixture(t, rest.DB, tf.Iterations(1, tf.SetIterationNames("alpha")))
+		fxt2 := tf.NewTestFixture(t, rest.DB, tf.Iterations(1, tf.SetIterationNames("beta")))
+		beta := fxt2.IterationByName("beta")
+		newParentIDStr := fxt1.IterationByName("alpha").ID.String()
+		payload := minimumUpdatePayloadWithParent()
+		payload.Data.Relationships.Parent.Data.ID = &newParentIDStr
+		payload.Data.ID = &beta.ID
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt2.Identities[0])
+		test.UpdateIterationForbidden(t, svc.Context, svc, ctrl, beta.ID.String(), &payload)
+	})
+
+	rest.T().Run("update fail - new parent is one of child", func(t *testing.T) {
+		// build following structure
+		// 	root 0
+		// 		|---- itr 1
+		// 			|---- itr 2
+		// 				|---- itr 3
+		//  					|---- itr 4
+
+		// given
+		fxt := tf.NewTestFixture(t, rest.DB,
+			tf.Iterations(5, tf.SetIterationNames("root iteration", "iteration 1",
+				"iteration 2", "iteration 3", "iteration 4"),
+				func(fxt *tf.TestFixture, idx int) error {
+					if idx > 0 {
+						fxt.Iterations[idx].MakeChildOf(*fxt.Iterations[idx-1])
+					}
+					return nil
+				}))
+		// try to set Iteation 3 as parent of iteration 1
+		iterationToUpdate := fxt.IterationByName("iteration 1")
+		newParentIDStr := fxt.IterationByName("iteration 3").ID.String()
+		payload := minimumUpdatePayloadWithParent()
+		payload.Data.Relationships.Parent.Data.ID = &newParentIDStr
+		payload.Data.ID = &iterationToUpdate.ID
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+		// when
+		test.UpdateIterationForbidden(t, svc.Context, svc, ctrl, iterationToUpdate.ID.String(), &payload)
+	})
+}
+
+func minimumUpdatePayloadWithParent() app.UpdateIterationPayload {
+	typeIterationString := iteration.APIStringTypeIteration
+	return app.UpdateIterationPayload{
+		Data: &app.Iteration{
+			Attributes: &app.IterationAttributes{},
+			Relationships: &app.IterationRelations{
+				Parent: &app.RelationGeneric{
+					Data: &app.GenericData{
+						ID:   nil,
+						Type: &typeIterationString,
+					},
+				},
+			},
+			ID:   nil,
+			Type: typeIterationString,
+		},
+	}
+}
