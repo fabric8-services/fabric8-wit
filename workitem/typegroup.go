@@ -40,14 +40,21 @@ type WorkItemTypeGroup struct {
 	TypeList    []uuid.UUID // TODO(kwk): We need to store this outside of this structure in the DB
 	DefaultType uuid.UUID   // the work item type that is supposed to be used with the quick add for example.
 	Icon        string
+	PrevGroupID uuid.UUID
+	NextGroupID uuid.UUID
 }
 
 // TypeGroups returns the list of work item type groups
 func TypeGroups() []WorkItemTypeGroup {
+	scenariosID := uuid.FromStringOrNil("feb28a28-44a6-43f8-946a-bae987713891")
+	experiencesID := uuid.FromStringOrNil("d4e2c859-f416-4e9a-a3e0-e7bb4e1b454b")
+	requirementsID := uuid.FromStringOrNil("bb1de8b6-3175-4821-abe9-50d0a64f19a2")
+	executionID := uuid.FromStringOrNil("7fdfde54-9cf2-4098-b33b-30cd505dcfc3")
+
 	return []WorkItemTypeGroup{
 		// There can be more than one groups in the "Portfolio" bucket
 		{
-			ID:     uuid.FromStringOrNil("feb28a28-44a6-43f8-946a-bae987713891"),
+			ID:     scenariosID,
 			Bucket: BucketPortfolio,
 			Name:   "Scenarios",
 			Icon:   "fa fa-suitcase",
@@ -57,9 +64,10 @@ func TypeGroups() []WorkItemTypeGroup {
 				SystemPapercuts,
 			},
 			DefaultType: SystemScenario,
+			NextGroupID: experiencesID,
 		},
 		{
-			ID:     uuid.FromStringOrNil("d4e2c859-f416-4e9a-a3e0-e7bb4e1b454b"),
+			ID:     experiencesID,
 			Bucket: BucketPortfolio,
 			Name:   "Experiences",
 			Icon:   "fa fa-suitcase",
@@ -68,10 +76,12 @@ func TypeGroups() []WorkItemTypeGroup {
 				SystemValueProposition,
 			},
 			DefaultType: SystemExperience,
+			PrevGroupID: scenariosID,
+			NextGroupID: requirementsID,
 		},
 		// There's always only one group in the "Requirement" bucket
 		{
-			ID:     uuid.FromStringOrNil("bb1de8b6-3175-4821-abe9-50d0a64f19a2"),
+			ID:     requirementsID,
 			Bucket: BucketRequirement,
 			Name:   "Requirements",
 			Icon:   "fa fa-list-ul",
@@ -80,10 +90,12 @@ func TypeGroups() []WorkItemTypeGroup {
 				SystemBug,
 			},
 			DefaultType: SystemFeature,
+			PrevGroupID: experiencesID,
+			NextGroupID: executionID,
 		},
 		// There's always only one group in the "Iteration" bucket
 		{
-			ID:     uuid.FromStringOrNil("7fdfde54-9cf2-4098-b33b-30cd505dcfc3"),
+			ID:     executionID,
 			Bucket: BucketIteration,
 			Name:   "Execution",
 			Icon:   "fa fa-repeat",
@@ -91,6 +103,7 @@ func TypeGroups() []WorkItemTypeGroup {
 				SystemTask,
 			},
 			DefaultType: SystemTask,
+			PrevGroupID: requirementsID,
 		},
 	}
 }
