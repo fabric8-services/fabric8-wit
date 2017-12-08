@@ -9,7 +9,7 @@ import:
   subpackages:
   - design
 - package: github.com/fabric8-services/fabric8-auth
-  version: da575b14ac9ceb113f18f1c1cab75be256460d64
+  version: 39c2f11b75983545c11f6c26963a1ce047b11df7
   subpackages:
   - design
 - package: github.com/dgrijalva/jwt-go
