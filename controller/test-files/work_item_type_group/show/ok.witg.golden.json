@@ -16,12 +16,18 @@
         "data": {
           "id": "00000000-0000-0000-0000-000000000003",
           "type": "workitemtypes"
+        },
+        "links": {
+          "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002/workitemtypes/00000000-0000-0000-0000-000000000003"
         }
       },
       "nextGroup": {
         "data": {
           "id": "00000000-0000-0000-0000-000000000004",
           "type": "workitemtypegroups"
+        },
+        "links": {
+          "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups/00000000-0000-0000-0000-000000000004"
         }
       },
       "spaceTemplate": {

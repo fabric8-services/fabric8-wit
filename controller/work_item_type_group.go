@@ -81,7 +81,7 @@ func ConvertTypeGroup(request *http.Request, tg workitem.WorkItemTypeGroup) *app
 	spaceTemplateIDStr := spaceTemplateID.String()
 	workitemtypes := "workitemtypes"
 	// TODO(kwk): Replace system space once we have space templates
-	// defaultWorkItemTypeRelatedURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(space.SystemSpace, tg.DefaultType))
+	defaultWorkItemTypeRelatedURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(space.SystemSpace, tg.DefaultType))
 	workItemTypeGroupRelatedURL := rest.AbsoluteURL(request, app.WorkItemTypeGroupHref(spaceTemplateID, tg.ID))
 	defaultIDStr := tg.DefaultType.String()
 	createdAt := tg.CreatedAt.UTC()
@@ -105,9 +105,9 @@ func ConvertTypeGroup(request *http.Request, tg workitem.WorkItemTypeGroup) *app
 				Data: &app.GenericData{
 					ID:   &defaultIDStr,
 					Type: &workitemtypes,
-					// Links: &app.GenericLinks{
-					// 	Related: &defaultWorkItemTypeRelatedURL,
-					// },
+				},
+				Links: &app.GenericLinks{
+					Related: &defaultWorkItemTypeRelatedURL,
 				},
 			},
 			TypeList: &app.RelationGenericList{
@@ -123,20 +123,28 @@ func ConvertTypeGroup(request *http.Request, tg workitem.WorkItemTypeGroup) *app
 	}
 
 	if tg.PrevGroupID != uuid.Nil {
+		prevGroupRelatedURL := rest.AbsoluteURL(request, app.WorkItemTypeGroupHref(spaceTemplateID, tg.PrevGroupID))
 		prevIDStr := tg.PrevGroupID.String()
 		res.Relationships.PrevGroup = &app.RelationGeneric{
 			Data: &app.GenericData{
 				ID:   &prevIDStr,
 				Type: &APIWorkItemTypeGroups,
 			},
+			Links: &app.GenericLinks{
+				Related: &prevGroupRelatedURL,
+			},
 		}
 	}
 	if tg.NextGroupID != uuid.Nil {
+		nextGroupRelatedURL := rest.AbsoluteURL(request, app.WorkItemTypeGroupHref(spaceTemplateID, tg.NextGroupID))
 		nextIDStr := tg.NextGroupID.String()
 		res.Relationships.NextGroup = &app.RelationGeneric{
 			Data: &app.GenericData{
 				ID:   &nextIDStr,
 				Type: &APIWorkItemTypeGroups,
+			},
+			Links: &app.GenericLinks{
+				Related: &nextGroupRelatedURL,
 			},
 		}
 	}
