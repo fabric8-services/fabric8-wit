@@ -6,13 +6,13 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/label"
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/goadesign/goa"
-	uuid "github.com/satori/go.uuid"
 )
 
 // LabelController implements the label resource.
@@ -38,13 +38,8 @@ func NewLabelController(service *goa.Service, db application.DB, config LabelCon
 
 // Show retrieve a single label
 func (c *LabelController) Show(ctx *app.ShowLabelContext) error {
-	id, err := uuid.FromString(ctx.ID)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-	}
-
 	return application.Transactional(c.db, func(appl application.Application) error {
-		lbl, err := appl.Labels().Load(ctx, ctx.SpaceID, id)
+		lbl, err := appl.Labels().Load(ctx, ctx.LabelID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -61,10 +56,14 @@ func (c *LabelController) Create(ctx *app.CreateLabelContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
+	if ctx.Payload.Data.Attributes.Name == nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest("Name cannot be empty"))
+
+	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		lbl := label.Label{
 			SpaceID: ctx.SpaceID,
-			Name:    strings.TrimSpace(ctx.Payload.Data.Attributes.Name),
+			Name:    strings.TrimSpace(*ctx.Payload.Data.Attributes.Name),
 		}
 		if ctx.Payload.Data.Attributes.TextColor != nil {
 			lbl.TextColor = *ctx.Payload.Data.Attributes.TextColor
@@ -100,7 +99,7 @@ func ConvertLabel(appl application.Application, request *http.Request, lbl label
 			TextColor:       &lbl.TextColor,
 			BackgroundColor: &lbl.BackgroundColor,
 			BorderColor:     &lbl.BorderColor,
-			Name:            lbl.Name,
+			Name:            &lbl.Name,
 			CreatedAt:       &lbl.CreatedAt,
 			UpdatedAt:       &lbl.UpdatedAt,
 			Version:         &lbl.Version,
@@ -165,4 +164,47 @@ func ConvertLabelSimple(request *http.Request, labelID interface{}) *app.Generic
 		Type: &t,
 		ID:   &i,
 	}
+}
+
+// Update runs the update action.
+func (c *LabelController) Update(ctx *app.UpdateLabelContext) error {
+	_, err := login.ContextIdentity(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
+	}
+
+	if ctx.Payload.Data.Attributes.Version == nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data.attributes.version", nil).Expected("not nil"))
+	}
+
+	return application.Transactional(c.db, func(appl application.Application) error {
+		lbl, err := appl.Labels().Load(ctx.Context, ctx.LabelID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		if lbl.Version != *ctx.Payload.Data.Attributes.Version {
+			return jsonapi.JSONErrorResponse(ctx, errors.NewVersionConflictError("version conflict"))
+		}
+		if ctx.Payload.Data.Attributes.Name != nil {
+			lbl.Name = strings.TrimSpace(*ctx.Payload.Data.Attributes.Name)
+		}
+		if ctx.Payload.Data.Attributes.TextColor != nil {
+			lbl.TextColor = *ctx.Payload.Data.Attributes.TextColor
+		}
+		if ctx.Payload.Data.Attributes.BackgroundColor != nil {
+			lbl.BackgroundColor = *ctx.Payload.Data.Attributes.BackgroundColor
+		}
+		if ctx.Payload.Data.Attributes.BorderColor != nil {
+			lbl.BorderColor = *ctx.Payload.Data.Attributes.BorderColor
+		}
+		lbl, err = appl.Labels().Save(ctx, *lbl)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		res := &app.LabelSingle{
+			Data: ConvertLabel(appl, ctx.Request, *lbl),
+		}
+		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.LabelHref(ctx.SpaceID, res.Data.ID)))
+		return ctx.OK(res)
+	})
 }
