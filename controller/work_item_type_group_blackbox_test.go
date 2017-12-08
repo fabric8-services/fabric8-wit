@@ -24,7 +24,7 @@ type workItemTypeGroupSuite struct {
 	testDir       string
 }
 
-func TestRunWorkItemTypeGroupSuite(t *testing.T) {
+func TestWorkItemTypeGroupSuite(t *testing.T) {
 	resource.Require(t, resource.Database)
 	suite.Run(t, &workItemTypeGroupSuite{
 		DBTestSuite: gormtestsupport.NewDBTestSuite(""),
