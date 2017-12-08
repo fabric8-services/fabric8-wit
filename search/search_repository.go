@@ -368,63 +368,66 @@ func (q Query) determineLiteralType(key string, val string) criteria.Expression 
 	}
 }
 
+// handleWitGroup Here we handle the "$WITGROUP" query parameter which we translate from a
+// simple
+//
+// "$WITGROUP = y"
+//
+// expression into an
+//
+// "Type in (y1, y2, y3, ... ,yn)"
+//
+// expression where yi represents the i-th work item type associated with
+// the work item type group y.
+func handleWitGroup(q Query, expArr *[]criteria.Expression) error {
+	if q.Name != WITGROUP {
+		return nil
+	}
+
+	typeGroupName := q.Value
+	if typeGroupName == nil {
+		return errors.NewBadParameterError(WITGROUP, typeGroupName).Expected("not nil")
+	}
+	typeGroup := workitem.TypeGroupByName(*typeGroupName)
+	if typeGroup == nil {
+		return errors.NewBadParameterError(WITGROUP, *typeGroupName).Expected("existing " + WITGROUP)
+	}
+	var e criteria.Expression
+	if !q.Negate {
+		for _, witID := range typeGroup.TypeList {
+			eq := criteria.Equals(
+				criteria.Field("Type"),
+				criteria.Literal(witID.String()),
+			)
+			if e != nil {
+				e = criteria.Or(e, eq)
+			} else {
+				e = eq
+			}
+		}
+	} else {
+		for _, witID := range typeGroup.TypeList {
+			eq := criteria.Not(
+				criteria.Field("Type"),
+				criteria.Literal(witID.String()),
+			)
+			if e != nil {
+				e = criteria.And(e, eq)
+			} else {
+				e = eq
+			}
+		}
+	}
+	*expArr = append(*expArr, e)
+	return nil
+}
+
 func (q Query) generateExpression() (criteria.Expression, error) {
 	var myexpr []criteria.Expression
 	currentOperator := q.Name
 
-	// Here we handle the "$WITGROUP" query parameter which we translate from a
-	// simple
-	//
-	// "$WITGROUP = y"
-	//
-	// expression into an
-	//
-	// "Type in (y1, y2, y3, ... ,yn)"
-	//
-	// expression where yi represents the i-th work item type associated with
-	// the work item type group y.
-	handleWitGroup := func(q Query) error {
-		typeGroupName := q.Value
-
-		if typeGroupName == nil {
-			return errors.NewBadParameterError(WITGROUP, typeGroupName).Expected("not nil")
-		}
-		typeGroup := workitem.TypeGroupByName(*typeGroupName)
-		if typeGroup == nil {
-			return errors.NewBadParameterError(WITGROUP, *typeGroupName).Expected("existing " + WITGROUP)
-		}
-		var e criteria.Expression
-		if !q.Negate {
-			for _, witID := range typeGroup.TypeList {
-				eq := criteria.Equals(
-					criteria.Field("Type"),
-					criteria.Literal(witID.String()),
-				)
-				if e != nil {
-					e = criteria.Or(e, eq)
-				} else {
-					e = eq
-				}
-			}
-		} else {
-			for _, witID := range typeGroup.TypeList {
-				eq := criteria.Not(
-					criteria.Field("Type"),
-					criteria.Literal(witID.String()),
-				)
-				if e != nil {
-					e = criteria.And(e, eq)
-				} else {
-					e = eq
-				}
-			}
-		}
-		myexpr = append(myexpr, e)
-		return nil
-	}
-
 	if q.Name == WITGROUP {
-		err := handleWitGroup(q)
+		err := handleWitGroup(q, &myexpr)
 		if err != nil {
 			return nil, errs.Wrap(err, "failed to handle hierarchy in top-level element")
 		}
@@ -460,7 +463,7 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 			}
 			myexpr = append(myexpr, exp)
 		} else if child.Name == WITGROUP {
-			err := handleWitGroup(child)
+			err := handleWitGroup(child, &myexpr)
 			if err != nil {
 				return nil, errs.Wrap(err, "failed to handle "+WITGROUP+" in child element")
 			}
