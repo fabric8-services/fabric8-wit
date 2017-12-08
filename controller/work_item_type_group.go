@@ -83,6 +83,9 @@ func ConvertTypeGroup(request *http.Request, tg workitem.WorkItemTypeGroup) *app
 	defaultIDStr := tg.DefaultType.String()
 	createdAt := tg.CreatedAt.UTC()
 	updatedAt := tg.UpdatedAt.UTC()
+	// Every work item type group except the one in the "iteration" bucket are
+	// meant to be shown in the sidebar.
+	showInSidebar := (tg.Bucket != workitem.BucketIteration)
 
 	res := &app.WorkItemTypeGroupData{
 		ID:   &tg.ID,
@@ -91,11 +94,12 @@ func ConvertTypeGroup(request *http.Request, tg workitem.WorkItemTypeGroup) *app
 			Related: &workItemTypeGroupRelatedURL,
 		},
 		Attributes: &app.WorkItemTypeGroupAttributes{
-			Bucket:    tg.Bucket.String(),
-			Name:      tg.Name,
-			Icon:      tg.Icon,
-			CreatedAt: &createdAt,
-			UpdatedAt: &updatedAt,
+			Bucket:        tg.Bucket.String(),
+			Name:          tg.Name,
+			Icon:          tg.Icon,
+			CreatedAt:     &createdAt,
+			UpdatedAt:     &updatedAt,
+			ShowInSidebar: &showInSidebar,
 		},
 		Relationships: &app.WorkItemTypeGroupRelationships{
 			DefaultType: &app.RelationGeneric{

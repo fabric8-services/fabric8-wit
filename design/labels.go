@@ -10,7 +10,7 @@ var label = a.Type("Label", func() {
 	a.Attribute("type", d.String, func() {
 		a.Enum("labels")
 	})
-	a.Attribute("labelID", d.UUID, "ID of label", func() {
+	a.Attribute("id", d.UUID, "ID of label", func() {
 		a.Example("40bbdd3d-8b5d-4fd6-ac90-7236b669af04")
 	})
 	a.Attribute("attributes", labelAttributes)
