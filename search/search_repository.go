@@ -34,6 +34,7 @@ const (
 	IN       = "$IN"
 	SUBSTR   = "$SUBSTR"
 	WITGROUP = "$WITGROUP"
+	OPTS     = "$OPTS"
 )
 
 // GormSearchRepository provides a Gorm based repository
@@ -317,6 +318,34 @@ func parseArray(anArray []interface{}, l *[]Query) {
 	}
 }
 
+// ResultViewType represents the view type requested for the result
+type ResultViewType int
+
+// List of available view types requested for the result
+const (
+	ResultViewTree ResultViewType = iota
+	ResultViewList
+)
+
+// OrderByType represents the type requested for the order
+type OrderByType int
+
+// List of available types requested for the result
+const (
+	OrderByExecution OrderByType = iota
+	OrderByNewest
+	OrderByOldest
+	OrderByRecentlyUpdated
+	OrderByLeastRecentlyUpdated
+)
+
+// QueryOptions represents all options provided user
+type QueryOptions struct {
+	ResultView   ResultViewType
+	ParentExists bool
+	OrderBy      OrderByType
+}
+
 // Query represents tree structure of the filter query
 type Query struct {
 	// Name can contain a field name to search for (e.g. "space") or one of the
@@ -524,8 +553,39 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 	return res, nil
 }
 
+func extractQueryOptions(q Query) *QueryOptions {
+	qo := QueryOptions{}
+	for _, o := range q.Children {
+		switch o.Name {
+		case "parent-exists":
+			qo.ParentExists = false
+			if *o.Value == "true" {
+				qo.ParentExists = true
+			}
+		case "order-by":
+			qo.OrderBy = OrderByExecution
+			switch *o.Value {
+			case "newest":
+				qo.OrderBy = OrderByNewest
+			case "oldest":
+				qo.OrderBy = OrderByOldest
+			case "recently-updated":
+				qo.OrderBy = OrderByRecentlyUpdated
+			case "least-recently-updated":
+				qo.OrderBy = OrderByLeastRecentlyUpdated
+			}
+		case "result-view":
+			qo.ResultView = ResultViewTree
+			if *o.Value == "list" {
+				qo.ResultView = ResultViewList
+			}
+		}
+	}
+	return &qo
+}
+
 // parseFilterString accepts a raw string and generates a criteria expression
-func parseFilterString(ctx context.Context, rawSearchString string) (criteria.Expression, error) {
+func parseFilterString(ctx context.Context, rawSearchString string) (criteria.Expression, *QueryOptions, error) {
 	fm := map[string]interface{}{}
 	// Parsing/Unmarshalling JSON encoding/json
 	err := json.Unmarshal([]byte(rawSearchString), &fm)
@@ -535,12 +595,15 @@ func parseFilterString(ctx context.Context, rawSearchString string) (criteria.Ex
 			"err":             err,
 			"rawSearchString": rawSearchString,
 		}, "failed to unmarshal raw search string")
-		return nil, errors.NewBadParameterError("expression", rawSearchString+": "+err.Error())
+		return nil, nil, errors.NewBadParameterError("expression", rawSearchString+": "+err.Error())
 	}
 	q := Query{}
 	parseMap(fm, &q)
 
-	return q.generateExpression()
+	queryOptions := extractQueryOptions(q)
+
+	exp, err := q.generateExpression()
+	return exp, queryOptions, err
 }
 
 // generateSQLSearchInfo accepts searchKeyword and join them in a way that can be used in sql
@@ -777,7 +840,7 @@ func (r *GormSearchRepository) Filter(ctx context.Context, rawFilterString strin
 	// parse
 	// generateSearchQuery
 	// ....
-	exp, err := parseFilterString(ctx, rawFilterString)
+	exp, _, err := parseFilterString(ctx, rawFilterString)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
 	}
