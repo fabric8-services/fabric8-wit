@@ -1,7 +1,8 @@
-package controller
+package kubernetes
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -30,6 +31,11 @@ type KubeClient struct {
 	metrics       *metricsClient
 	userNamespace string
 	envMap        map[string]string
+}
+
+func tostring(item interface{}) string {
+	bytes, _ := json.MarshalIndent(item, "", "  ")
+	return string(bytes)
 }
 
 // NewKubeClient creates a KubeClient given a URL to the Kubernetes cluster, an authorized token to
@@ -142,9 +148,6 @@ func (kc *KubeClient) ScaleDeployment(spaceName string, appName string, envName 
 
 	// TODO send back to openshift
 	jsonString := tostring(dc)
-	if err != nil {
-		return nil, err
-	}
 	log.Debug(nil, nil, "sending pod scaling JSON:\n%s", jsonString)
 
 	_, err = kc.setDeploymentConfig(envName, appName, jsonString)
@@ -284,9 +287,9 @@ func (kc *KubeClient) getDeploymentEnvStats(envNS string, rc types.UID) (*app.En
 func (kc *KubeClient) getBuildConfigs(space string) ([]string, error) {
 	// BuildConfigs are OpenShift objects, so access REST API using HTTP directly until
 	// there is a Go client for OpenShift
-	const spaceLabel string = "space"
+
 	// BuildConfigs created by fabric8 have a "space" label indicating the space they belong to
-	queryParam := url.QueryEscape(spaceLabel + "=" + space)
+	queryParam := url.QueryEscape("space=" + space)
 	bcURL := fmt.Sprintf("/oapi/v1/namespaces/%s/buildconfigs?labelSelector=%s", kc.userNamespace, queryParam)
 	result, err := kc.getResource(bcURL, false)
 	if err != nil {

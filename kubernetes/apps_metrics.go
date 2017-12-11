@@ -1,4 +1,4 @@
-package controller
+package kubernetes
 
 import (
 	"math/big"

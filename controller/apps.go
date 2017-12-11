@@ -4,13 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io/ioutil"
 	"os"
 	"strconv"
 	"time"
 
+	"github.com/fabric8-services/fabric8-wit/auth/authservice"
+
 	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/auth"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	witerrors "github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/kubernetes"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
@@ -20,8 +25,8 @@ import (
 // AppsController implements the apps resource.
 type AppsController struct {
 	*goa.Controller
-	AuthURL string
-	WitURL  string
+	Config *configuration.Registry
+	WitURL string
 }
 
 // NewAppsController creates a apps controller.
@@ -29,15 +34,12 @@ func NewAppsController(service *goa.Service, config *configuration.Registry) *Ap
 	return &AppsController{
 		Controller: service.NewController("AppsController"),
 
-		//AuthURL: config.GetAuthServiceURL(),
-		//AuthURL: "http://localhost:8089"
-		AuthURL: "https://auth.prod-preview.openshift.io",
-		//AuthURL: "https://auth.openshift.io",
-
 		// TODO - make this a config variable?
 		//WitURL: "http://localhost:8080"
-		WitURL: "http://api.prod-preview.openshift.io",
-		//WitURL: "http://api.openshift.io",
+		//WitURL: "http://api.prod-preview.openshift.io",
+		WitURL: "http://api.openshift.io",
+
+		Config: config,
 	}
 }
 
@@ -84,15 +86,66 @@ func (c *AppsController) getNamespaceName(ctx context.Context) (*string, error) 
 	return kubeSpaceAttr.Name, nil
 }
 
+func (c *AppsController) getUser(authClient authservice.Client, ctx context.Context) (*authservice.User, error) {
+	// get the user definition (for cluster URL)
+	resp, err := authClient.ShowUser(ctx, authservice.ShowUserPath(), nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+
+	status := resp.StatusCode
+	if status < 200 || status > 300 {
+		return nil, errors.New("Failed to GET user due to status code " + string(status))
+	}
+
+	respBody, err := ioutil.ReadAll(resp.Body)
+
+	var respType authservice.User
+	err = json.Unmarshal(respBody, &respType)
+	if err != nil {
+		return nil, err
+	}
+	return &respType, nil
+}
+
+func (c *AppsController) getToken(authClient authservice.Client, ctx context.Context, forService string) (*authservice.TokenData, error) {
+	// get the user definition (for cluster URL)
+	resp, err := authClient.RetrieveToken(ctx, authservice.RetrieveTokenPath(), forService, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+
+	status := resp.StatusCode
+	if status < 200 || status > 300 {
+		return nil, errors.New("Failed to GET user due to status code " + string(status))
+	}
+
+	respBody, err := ioutil.ReadAll(resp.Body)
+
+	var respType authservice.TokenData
+	err = json.Unmarshal(respBody, &respType)
+	if err != nil {
+		return nil, err
+	}
+	return &respType, nil
+}
+
 // getKubeClient createa kube client for the appropriate cluster assigned to the current user.
 // many different errors are possible, so controllers should call getAndCheckKubeClient() instead
-func (c *AppsController) getKubeClient(ctx context.Context) (*KubeClient, error) {
+func (c *AppsController) getKubeClient(ctx context.Context) (*kubernetes.KubeClient, error) {
 
 	// create Auth API login object
-	authClient := NewAuthClient(getOSIOAuthToken(ctx), c.AuthURL)
+	authClient, err := auth.CreateClient(ctx, c.Config)
+	if err != nil {
+		log.Error(ctx, nil, "error accessing Auth server"+tostring(err))
+		return nil, err
+	}
 
-	// get the user definition (for cluster URL)
-	authUser, err := authClient.getAuthUser()
+	authUser, err := c.getUser(*authClient, ctx)
 	if err != nil {
 		log.Error(ctx, nil, "error accessing Auth server"+tostring(err))
 		return nil, err
@@ -104,7 +157,7 @@ func (c *AppsController) getKubeClient(ctx context.Context) (*KubeClient, error)
 	}
 
 	// get the login token for the cluster OpenShift API
-	osauth, err := authClient.getAuthToken(*authUser.Data.Attributes.Cluster)
+	osauth, err := c.getToken(*authClient, ctx, *authUser.Data.Attributes.Cluster)
 	if err != nil {
 		log.Error(ctx, nil, "error getting openshift credentials:"+tostring(err))
 		return nil, err
@@ -119,7 +172,7 @@ func (c *AppsController) getKubeClient(ctx context.Context) (*KubeClient, error)
 	}
 
 	// create the cluster login object
-	kc, err := NewKubeClient(kubeURL, kubeToken, *kubeNamespaceName)
+	kc, err := kubernetes.NewKubeClient(kubeURL, kubeToken, *kubeNamespaceName)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +180,7 @@ func (c *AppsController) getKubeClient(ctx context.Context) (*KubeClient, error)
 }
 
 // getAndCheckKubeClient converts all errors Error 401, so errors can be returned from controllers as is
-func (c *AppsController) getAndCheckKubeClient(ctx context.Context) (*KubeClient, error) {
+func (c *AppsController) getAndCheckKubeClient(ctx context.Context) (*kubernetes.KubeClient, error) {
 
 	kc, err := c.getKubeClient(ctx)
 	if err != nil {
