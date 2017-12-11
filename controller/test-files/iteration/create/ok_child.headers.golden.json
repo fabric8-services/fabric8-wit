@@ -1,13 +1,8 @@
 {
-  "Code": 201,
-  "HeaderMap": {
-    "Content-Type": [
-      "application/vnd.api+json"
-    ],
-    "Location": [
-      "http:///api/iterations/00000000-0000-0000-0000-000000000001"
-    ]
-  },
-  "Body": {},
-  "Flushed": false
+  "Content-Type": [
+    "application/vnd.api+json"
+  ],
+  "Location": [
+    "http:///api/iterations/00000000-0000-0000-0000-000000000001"
+  ]
 }
