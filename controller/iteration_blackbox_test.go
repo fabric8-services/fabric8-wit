@@ -1218,9 +1218,10 @@ func (rest *TestIterationREST) TestUpdateIteration() {
 		payload.Data.Relationships.Parent.Data.ID = &newParentIDStr
 		payload.Data.ID = &itr3.ID
 		// when
-		_, updatedItr := test.UpdateIterationOK(t, svc.Context, svc, ctrl, itr3.ID.String(), &payload)
+		resp, updatedItr := test.UpdateIterationOK(t, svc.Context, svc, ctrl, itr3.ID.String(), &payload)
 		require.NotNil(t, updatedItr)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "update", "ok_change_parent.golden.json"), updatedItr)
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "update", "ok_change_parent.iteration.golden.json"), updatedItr)
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "update", "ok_change_parent.headers.golden.json"), resp)
 		// then
 		require.NotNil(t, updatedItr.Data.Relationships.Parent)
 		assert.Equal(t, newParentIDStr, *updatedItr.Data.Relationships.Parent.Data.ID)
