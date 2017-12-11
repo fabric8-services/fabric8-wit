@@ -1,26 +1,21 @@
 package search
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
+	"regexp"
+	"strings"
 	"sync"
 
-	"context"
-
-	"strings"
-
-	"regexp"
-
-	"net/url"
-
+	"github.com/asaskevich/govalidator"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/fabric8-services/fabric8-wit/criteria"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
-
-	"github.com/asaskevich/govalidator"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -31,12 +26,14 @@ const (
 	HostRegistrationKeyForListWI  = "work-item-list-details"
 	HostRegistrationKeyForBoardWI = "work-item-board-details"
 
-	EQ  = "$EQ"
-	NE  = "$NE"
-	AND = "$AND"
-	OR  = "$OR"
-	NOT = "$NOT"
-	IN  = "$IN"
+	EQ       = "$EQ"
+	NE       = "$NE"
+	AND      = "$AND"
+	OR       = "$OR"
+	NOT      = "$NOT"
+	IN       = "$IN"
+	SUBSTR   = "$SUBSTR"
+	WITGROUP = "$WITGROUP"
 )
 
 // GormSearchRepository provides a Gorm based repository
@@ -277,7 +274,7 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 			q.Value = nil
 		case map[string]interface{}:
 			q.Name = key
-			if v, ok := concreteVal["$IN"]; ok {
+			if v, ok := concreteVal[IN]; ok {
 				q.Name = OR
 				c := &q.Children
 				for _, vl := range v.([]interface{}) {
@@ -287,7 +284,7 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 					sq.Value = &t
 					*c = append(*c, sq)
 				}
-			} else if v, ok := concreteVal["$EQ"]; ok {
+			} else if v, ok := concreteVal[EQ]; ok {
 				switch v.(type) {
 				case string:
 					s := v.(string)
@@ -295,11 +292,11 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 				case nil:
 					q.Value = nil
 				}
-			} else if v, ok := concreteVal["$NE"]; ok {
+			} else if v, ok := concreteVal[NE]; ok {
 				s := v.(string)
 				q.Value = &s
 				q.Negate = true
-			} else if v, ok := concreteVal["$SUBSTR"]; ok {
+			} else if v, ok := concreteVal[SUBSTR]; ok {
 				s := v.(string)
 				q.Value = &s
 				q.Substring = true
@@ -362,14 +359,6 @@ var searchKeyMap = map[string]string{
 	"space":        "SpaceID",
 }
 
-// returns SQL attibute name in query if found otherwise returns input key as is
-func (q Query) getAttributeKey(key string) string {
-	if val, ok := searchKeyMap[key]; ok {
-		return val
-	}
-	return key
-}
-
 func (q Query) determineLiteralType(key string, val string) criteria.Expression {
 	switch key {
 	case workitem.SystemAssignees, workitem.SystemLabels:
@@ -379,14 +368,75 @@ func (q Query) determineLiteralType(key string, val string) criteria.Expression 
 	}
 }
 
+// handleWitGroup Here we handle the "$WITGROUP" query parameter which we translate from a
+// simple
+//
+// "$WITGROUP = y"
+//
+// expression into an
+//
+// "Type in (y1, y2, y3, ... ,yn)"
+//
+// expression where yi represents the i-th work item type associated with
+// the work item type group y.
+func handleWitGroup(q Query, expArr *[]criteria.Expression) error {
+	if q.Name != WITGROUP {
+		return nil
+	}
+	if expArr == nil {
+		return errs.New("expression array must not be nil")
+	}
+
+	typeGroupName := q.Value
+	if typeGroupName == nil {
+		return errors.NewBadParameterError(WITGROUP, typeGroupName).Expected("not nil")
+	}
+	typeGroup := workitem.TypeGroupByName(*typeGroupName)
+	if typeGroup == nil {
+		return errors.NewBadParameterError(WITGROUP, *typeGroupName).Expected("existing " + WITGROUP)
+	}
+	var e criteria.Expression
+	if !q.Negate {
+		for _, witID := range typeGroup.TypeList {
+			eq := criteria.Equals(
+				criteria.Field("Type"),
+				criteria.Literal(witID.String()),
+			)
+			if e != nil {
+				e = criteria.Or(e, eq)
+			} else {
+				e = eq
+			}
+		}
+	} else {
+		for _, witID := range typeGroup.TypeList {
+			eq := criteria.Not(
+				criteria.Field("Type"),
+				criteria.Literal(witID.String()),
+			)
+			if e != nil {
+				e = criteria.And(e, eq)
+			} else {
+				e = eq
+			}
+		}
+	}
+	*expArr = append(*expArr, e)
+	return nil
+}
+
 func (q Query) generateExpression() (criteria.Expression, error) {
 	var myexpr []criteria.Expression
 	currentOperator := q.Name
-	if !isOperator(currentOperator) {
-		var key string
-		if val, ok := searchKeyMap[q.Name]; ok {
-			key = val
-		} else {
+
+	if q.Name == WITGROUP {
+		err := handleWitGroup(q, &myexpr)
+		if err != nil {
+			return nil, errs.Wrap(err, "failed to handle hierarchy in top-level element")
+		}
+	} else if !isOperator(currentOperator) {
+		key, ok := searchKeyMap[q.Name]
+		if !ok {
 			return nil, errors.NewBadParameterError("key not found", q.Name)
 		}
 		left := criteria.Field(key)
@@ -415,11 +465,14 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 				return nil, err
 			}
 			myexpr = append(myexpr, exp)
+		} else if child.Name == WITGROUP {
+			err := handleWitGroup(child, &myexpr)
+			if err != nil {
+				return nil, errs.Wrap(err, "failed to handle "+WITGROUP+" in child element")
+			}
 		} else {
-			var key string
-			if val, ok := searchKeyMap[child.Name]; ok {
-				key = val
-			} else {
+			key, ok := searchKeyMap[child.Name]
+			if !ok {
 				return nil, errors.NewBadParameterError("key not found", child.Name)
 			}
 			left := criteria.Field(key)

@@ -55,7 +55,7 @@ End with an example of getting some data out of the system or using it for a lit
 
 When you want to run fabric8-wit, fabric8-auth and databases on OpenShift use following command
 ```
-make dev-planner-openshift
+make dev-openshift
 ```
 Please enter password when prompted, it is needed in order to make an entry in the `/etc/hosts`.
 `minishift ip` gives the IP address on which MiniShift is running. This automation creates a host entry as `minishift.local` for that IP. This domain is whitelisted on fabric8-auth.
@@ -64,15 +64,22 @@ This build uses developer account for creating a project called `planner-service
 
 Above command then automates the process of running the containers on OpenShift in MiniShift by using Kedge.
 
+Now, when you want to use specific tag for WIT image or for AUTH image, use following `optional` values
+
+```
+WIT_IMAGE_TAG=<<WIT_TAG>> AUTH_IMAGE_TAG=<<AUTH_TAG>> make dev-openshift
+```
+When not specified any tag it is `latest` always.
+
 
 ## Cleanup
 When you want to stop all the services running in MiniShift, use following command
 ```
-make dev-planner-openshift-clean
+make clean-openshift
 ```
 It will remove the project `planner-services` from MiniShift
 
-## Check logs from services
+### Check logs from services
 Use `oc` from MiniShift
 ```
 eval $(minishift oc-env)
@@ -92,5 +99,20 @@ Use `docker` from MiniShift
 eval $(minishift docker-env)
 ```
 
+### Service endpoints:
+Get minishit IP using following command
+```
+minishift ip
+```
+We will use this IP address to reach to services running in minishift
 
-##### Reach out to **[/pranavgore09](https://github.com/pranavgore09)** in case things are not working as expected
+You can visit database running in minishift by visiting
+> psql -h `minishift ip` -U postgres -d postgres -p 32000
+
+WIT service(Work Item Tracker) is running at `minishift ip`:30000
+
+AUTH service is running at `minishift ip`:31000
+
+##### Questions? Errors? Please open issues on https://github.com/fabric8-services/fabric8-wit/issues if already not exist.
+
+You can join our [channel](https://chat.openshift.io/developers/channels/fabric8-planner)

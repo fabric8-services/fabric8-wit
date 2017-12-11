@@ -44,6 +44,7 @@ var workItemTypeGroupData = a.Type("WorkItemTypeGroupData", func() {
 var workItemTypeGroupAttributes = a.Type("WorkItemTypeGroupAttributes", func() {
 	a.Attribute("bucket", d.String, "Name of the bucket this group belongs to")
 	a.Attribute("name", d.String)
+	a.Attribute("show-in-sidebar", d.Boolean, "Whether or not to render a link for this type group in the sidebar")
 	a.Attribute("icon", d.String, "CSS property value for icon of the group")
 	a.Attribute("created-at", d.DateTime, "timestamp of entity creation")
 	a.Attribute("updated-at", d.DateTime, "timestamp of last entity update")
@@ -54,6 +55,8 @@ var workItemTypeGroupsRelationships = a.Type("WorkItemTypeGroupRelationships", f
 	a.Attribute("defaultType", relationGeneric, "The default work item type from the type list")
 	a.Attribute("typeList", relationGenericList, "List of work item types attached to the type group")
 	a.Attribute("spaceTemplate", relationGeneric, "The space template to which this group belongs")
+	a.Attribute("nextGroup", relationGeneric, "The type group (if any) that comes after this one in the list")
+	a.Attribute("prevGroup", relationGeneric, "The type group (if any) that comes before this one in the list")
 })
 
 var _ = a.Resource("work_item_type_group", func() {
