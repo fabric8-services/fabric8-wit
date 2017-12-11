@@ -98,15 +98,14 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 	resetFn := rest.DisableGormCallbacks()
 	defer resetFn()
 
-	rest.T().Run("Ok create iteration", func(t *testing.T) {
-		rest.T().Run("Ok create iteration/by space owner", func(t *testing.T) {
+	rest.T().Run("Ok", func(t *testing.T) {
+		t.Run("as space owner", func(t *testing.T) {
 			fxt := tf.NewTestFixture(t, rest.DB,
 				tf.CreateWorkItemEnvironment(),
 				tf.Iterations(2,
-					tf.SetIterationNames("root iteration", "child iteration"),
-					tf.PlaceIterationUnderRootIteration()))
+					tf.SetIterationNames("root", "child")))
 			name := "Sprint #21"
-			childItr := fxt.IterationByName("child iteration")
+			childItr := fxt.IterationByName("child")
 			ci := getChildIterationPayload(&name)
 			startAt, err := time.Parse(time.RFC3339, "2016-11-04T15:08:41+00:00")
 			require.Nil(t, err)
@@ -121,30 +120,29 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 			require.NotNil(t, created)
 			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child.golden.json"), created)
 		})
-
-		rest.T().Run("Ok create iteration/by collaborator", func(t *testing.T) {
+		t.Run("as collaborator", func(t *testing.T) {
 			fxt := tf.NewTestFixture(t, rest.DB,
 				tf.Identities(2, tf.SetIdentityUsernames("space owner", "other user")),
 				tf.Areas(1), tf.Iterations(1))
 			name := "Sprint #21"
 			ci := getChildIterationPayload(&name)
 			otherUser := fxt.IdentityByUsername("other user")
-			_, ctrl := rest.SecuredControllerWithIdentity(fxt.IdentityByUsername("other user"))
+			_, ctrl := rest.SecuredControllerWithIdentity(otherUser)
 			// add user as collaborator
 			rest.policy.AddUserToPolicy(otherUser.ID.String())
 			// overwrite service to use Dummy Auth
 			svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *otherUser, &DummySpaceAuthzService{rest})
 			test.CreateChildIterationCreated(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
 		})
-		rest.T().Run("Ok create iteration/with ID in request payload", func(t *testing.T) {
+		t.Run("with ID in request payload", func(t *testing.T) {
 			// given
 			fxt := tf.NewTestFixture(t, rest.DB,
 				tf.CreateWorkItemEnvironment(),
 				tf.Iterations(2,
-					tf.SetIterationNames("root iteration", "child iteration"),
+					tf.SetIterationNames("root", "child"),
 				))
 			name := "Sprint #21"
-			childItr := fxt.IterationByName("child iteration")
+			childItr := fxt.IterationByName("child")
 			ci := getChildIterationPayload(&name)
 			id := uuid.NewV4()
 			ci.Data.ID = &id // set different ID and it must be ignoed by controller
@@ -165,7 +163,7 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 	})
 
 	rest.T().Run("forbidden", func(t *testing.T) {
-		rest.T().Run("forbidden/non space-owner", func(t *testing.T) {
+		t.Run("for non space-owner", func(t *testing.T) {
 			fxt := tf.NewTestFixture(t, rest.DB,
 				tf.Identities(2, tf.SetIdentityUsernames("space owner", "not space owner")),
 				tf.Areas(1), tf.Iterations(1))
@@ -178,7 +176,7 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 			_, jerrs := test.CreateChildIterationForbidden(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
 			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "forbidden_other_user.golden.json"), jerrs)
 		})
-		rest.T().Run("forbidden/non collaborator", func(t *testing.T) {
+		t.Run("for non-collaborator", func(t *testing.T) {
 			fxt := tf.NewTestFixture(t, rest.DB,
 				tf.Identities(2, tf.SetIdentityUsernames("space owner", "non collaborator")),
 				tf.Areas(1), tf.Iterations(1))
@@ -461,12 +459,11 @@ func (rest *TestIterationREST) TestFailShowIterationMissing() {
 }
 
 func (rest *TestIterationREST) TestSuccessUpdateIteration() {
-	rest.T().Run("update", func(t *testing.T) {
-		rest.T().Run("update iteration/by space owner", func(t *testing.T) {
+	rest.T().Run("ok", func(t *testing.T) {
+		t.Run("as space owner", func(t *testing.T) {
 			// given
 			fxt := tf.NewTestFixture(rest.T(), rest.DB,
-				tf.Identities(1, tf.SetIdentityUsernames("space owner")),
-				tf.Areas(1), tf.Iterations(1))
+				tf.CreateWorkItemEnvironment())
 			itr := fxt.Iterations[0]
 			newName := "Sprint 1001"
 			newDesc := "New Description"
@@ -480,7 +477,7 @@ func (rest *TestIterationREST) TestSuccessUpdateIteration() {
 					Type: iteration.APIStringTypeIteration,
 				},
 			}
-			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.IdentityByUsername("space owner"))
+			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 			// when
 			_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &payload)
 			// then
@@ -490,8 +487,7 @@ func (rest *TestIterationREST) TestSuccessUpdateIteration() {
 			assert.Equal(rest.T(), 0, updated.Data.Relationships.Workitems.Meta[KeyTotalWorkItems])
 			assert.Equal(rest.T(), 0, updated.Data.Relationships.Workitems.Meta[KeyClosedWorkItems])
 		})
-
-		rest.T().Run("update iteration/by collaborator", func(t *testing.T) {
+		t.Run("as collaborator", func(t *testing.T) {
 			// given
 			fxt := tf.NewTestFixture(rest.T(), rest.DB,
 				tf.Identities(2, tf.SetIdentityUsernames("space owner", "collaborator")),
@@ -877,9 +873,9 @@ func assertChildIterationLinking(t *testing.T, target *app.Iteration) {
 func (rest *TestIterationREST) TestIterationDelete() {
 	rest.T().Run("forbidden - delete root iteration", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, rest.DB,
-			tf.Iterations(1, tf.SetIterationNames("root iteration")))
+			tf.Iterations(1, tf.SetIterationNames("root")))
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
-		iterationToDelete := fxt.IterationByName("root iteration")
+		iterationToDelete := fxt.IterationByName("root")
 		test.DeleteIterationForbidden(t, svc.Context, svc, ctrl, iterationToDelete.ID)
 	})
 
@@ -887,10 +883,10 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		fxt := tf.NewTestFixture(t, rest.DB,
 			tf.CreateWorkItemEnvironment(),
 			tf.Iterations(2,
-				tf.SetIterationNames("root iteration", "first iteration"),
+				tf.SetIterationNames("root", "first"),
 			))
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
-		iterationToDelete := fxt.IterationByName("first iteration")
+		iterationToDelete := fxt.IterationByName("first")
 		test.DeleteIterationNoContent(t, svc.Context, svc, ctrl, iterationToDelete.ID)
 		_, err := rest.db.Iterations().Load(svc.Context, iterationToDelete.ID)
 		require.NotNil(t, err)
@@ -1189,13 +1185,13 @@ func (rest *TestIterationREST) TestUpdateIteration() {
 
 		// given
 		fxt := tf.NewTestFixture(t, rest.DB,
-			tf.Iterations(7, tf.SetIterationNames("root iteration", "iteration 1",
+			tf.Iterations(7, tf.SetIterationNames("root", "iteration 1",
 				"iteration 2", "iteration 3", "iteration 4", "iteration 5", "iteration 6"),
 				func(fxt *tf.TestFixture, idx int) error {
 					itr := fxt.Iterations[idx]
 					switch idx {
 					case 1:
-						itr.MakeChildOf(*fxt.IterationByName("root iteration"))
+						itr.MakeChildOf(*fxt.IterationByName("root"))
 					case 2:
 						itr.MakeChildOf(*fxt.IterationByName("iteration 1"))
 					case 3:
@@ -1205,7 +1201,7 @@ func (rest *TestIterationREST) TestUpdateIteration() {
 					case 5:
 						itr.MakeChildOf(*fxt.IterationByName("iteration 1"))
 					case 6:
-						itr.MakeChildOf(*fxt.IterationByName("root iteration"))
+						itr.MakeChildOf(*fxt.IterationByName("root"))
 					}
 					return nil
 				}))
@@ -1343,7 +1339,7 @@ func (rest *TestIterationREST) TestUpdateIteration() {
 
 		// given
 		fxt := tf.NewTestFixture(t, rest.DB,
-			tf.Iterations(5, tf.SetIterationNames("root iteration", "iteration 1",
+			tf.Iterations(5, tf.SetIterationNames("root", "iteration 1",
 				"iteration 2", "iteration 3", "iteration 4"),
 				func(fxt *tf.TestFixture, idx int) error {
 					if idx > 0 {
