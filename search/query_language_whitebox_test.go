@@ -273,7 +273,7 @@ func TestParseMap(t *testing.T) {
 	t.Run(OPTS, func(t *testing.T) {
 		t.Parallel()
 		// given
-		input := fmt.Sprintf(`{"%s": [ {"key1": "value1"}, {"key2": "value2"}]}`, OPTS)
+		input := fmt.Sprintf(`{"%s": [ {"parent-exists": true}, {"result-view": "list"}]}`, OPTS)
 		// Parsing/Unmarshalling JSON encoding/json
 		fm := map[string]interface{}{}
 		err := json.Unmarshal([]byte(input), &fm)
@@ -282,90 +282,9 @@ func TestParseMap(t *testing.T) {
 		actualQuery := Query{}
 		parseMap(fm, &actualQuery)
 		// then
-		v1 := "value1"
-		v2 := "value2"
-		expectedQuery := Query{Name: OPTS, Children: []Query{
-			{Name: "key1", Value: &v1},
-			{Name: "key2", Value: &v2}},
-		}
+		qo := QueryOptions{ParentExists: true, ResultView: ResultViewList}
+		expectedQuery := Query{Name: OPTS, Options: &qo}
 		assert.Equal(t, expectedQuery, actualQuery)
-	})
-}
-
-func TestExtractQueryOptions(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
-	t.Parallel()
-	t.Run("parent-exists false", func(t *testing.T) {
-		pe := "false"
-		q := Query{Name: OPTS, Children: []Query{
-			{Name: "parent-exists", Value: &pe},
-		},
-		}
-		queryOptions := extractQueryOptions(q)
-		assert.Equal(t, false, queryOptions.ParentExists)
-	})
-	t.Run("parent-exists true", func(t *testing.T) {
-		pe := "true"
-		q := Query{Name: OPTS, Children: []Query{
-			{Name: "parent-exists", Value: &pe},
-		},
-		}
-		queryOptions := extractQueryOptions(q)
-		assert.Equal(t, true, queryOptions.ParentExists)
-	})
-	t.Run("order-by newest", func(t *testing.T) {
-		ob := "newest"
-		q := Query{Name: OPTS, Children: []Query{
-			{Name: "order-by", Value: &ob},
-		},
-		}
-		queryOptions := extractQueryOptions(q)
-		assert.Equal(t, OrderByNewest, queryOptions.OrderBy)
-	})
-	t.Run("order-by oldest", func(t *testing.T) {
-		ob := "oldest"
-		q := Query{Name: OPTS, Children: []Query{
-			{Name: "order-by", Value: &ob},
-		},
-		}
-		queryOptions := extractQueryOptions(q)
-		assert.Equal(t, OrderByOldest, queryOptions.OrderBy)
-	})
-	t.Run("order-by recently-updated", func(t *testing.T) {
-		ob := "recently-updated"
-		q := Query{Name: OPTS, Children: []Query{
-			{Name: "order-by", Value: &ob},
-		},
-		}
-		queryOptions := extractQueryOptions(q)
-		assert.Equal(t, OrderByRecentlyUpdated, queryOptions.OrderBy)
-	})
-	t.Run("order-by least-recently-updated", func(t *testing.T) {
-		ob := "least-recently-updated"
-		q := Query{Name: OPTS, Children: []Query{
-			{Name: "order-by", Value: &ob},
-		},
-		}
-		queryOptions := extractQueryOptions(q)
-		assert.Equal(t, OrderByLeastRecentlyUpdated, queryOptions.OrderBy)
-	})
-	t.Run("result-view tree", func(t *testing.T) {
-		rv := "tree"
-		q := Query{Name: OPTS, Children: []Query{
-			{Name: "result-view", Value: &rv},
-		},
-		}
-		queryOptions := extractQueryOptions(q)
-		assert.Equal(t, ResultViewTree, queryOptions.ResultView)
-	})
-	t.Run("result-view list", func(t *testing.T) {
-		rv := "list"
-		q := Query{Name: OPTS, Children: []Query{
-			{Name: "result-view", Value: &rv},
-		},
-		}
-		queryOptions := extractQueryOptions(q)
-		assert.Equal(t, ResultViewList, queryOptions.ResultView)
 	})
 }
 

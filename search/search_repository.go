@@ -262,7 +262,29 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 		switch concreteVal := val.(type) {
 		case []interface{}:
 			q.Name = key
-			parseArray(val.([]interface{}), &q.Children)
+			if q.Name == OPTS {
+				options := QueryOptions{}
+				for _, v := range val.([]interface{}) {
+					if o, ok := v.(map[string]interface{}); ok {
+						for k, vl := range o {
+							switch k {
+							case "parent-exists":
+								options.ParentExists = vl.(bool)
+							case "result-view":
+								options.ResultView = ResultViewTree
+								if vl.(string) == "list" {
+									options.ResultView = ResultViewList
+								}
+							}
+						}
+					}
+				}
+				q.Options = &options
+
+			} else {
+
+				parseArray(val.([]interface{}), &q.Children)
+			}
 		case string:
 			q.Name = key
 			s := string(concreteVal)
@@ -327,23 +349,10 @@ const (
 	ResultViewList
 )
 
-// OrderByType represents the type requested for the order
-type OrderByType int
-
-// List of available types requested for the result
-const (
-	OrderByExecution OrderByType = iota
-	OrderByNewest
-	OrderByOldest
-	OrderByRecentlyUpdated
-	OrderByLeastRecentlyUpdated
-)
-
 // QueryOptions represents all options provided user
 type QueryOptions struct {
 	ResultView   ResultViewType
 	ParentExists bool
-	OrderBy      OrderByType
 }
 
 // Query represents tree structure of the filter query
@@ -369,6 +378,8 @@ type Query struct {
 	// an operator like "$AND", or "$OR". If the Name is not an operator, the
 	// Children slice MUST be empty.
 	Children []Query
+	// The Options represent the query options provided by the user.
+	Options *QueryOptions
 }
 
 func isOperator(str string) bool {
@@ -553,37 +564,6 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 	return res, nil
 }
 
-func extractQueryOptions(q Query) *QueryOptions {
-	qo := QueryOptions{}
-	for _, o := range q.Children {
-		switch o.Name {
-		case "parent-exists":
-			qo.ParentExists = false
-			if *o.Value == "true" {
-				qo.ParentExists = true
-			}
-		case "order-by":
-			qo.OrderBy = OrderByExecution
-			switch *o.Value {
-			case "newest":
-				qo.OrderBy = OrderByNewest
-			case "oldest":
-				qo.OrderBy = OrderByOldest
-			case "recently-updated":
-				qo.OrderBy = OrderByRecentlyUpdated
-			case "least-recently-updated":
-				qo.OrderBy = OrderByLeastRecentlyUpdated
-			}
-		case "result-view":
-			qo.ResultView = ResultViewTree
-			if *o.Value == "list" {
-				qo.ResultView = ResultViewList
-			}
-		}
-	}
-	return &qo
-}
-
 // parseFilterString accepts a raw string and generates a criteria expression
 func parseFilterString(ctx context.Context, rawSearchString string) (criteria.Expression, *QueryOptions, error) {
 	fm := map[string]interface{}{}
@@ -600,10 +580,8 @@ func parseFilterString(ctx context.Context, rawSearchString string) (criteria.Ex
 	q := Query{}
 	parseMap(fm, &q)
 
-	queryOptions := extractQueryOptions(q)
-
 	exp, err := q.generateExpression()
-	return exp, queryOptions, err
+	return exp, q.Options, err
 }
 
 // generateSQLSearchInfo accepts searchKeyword and join them in a way that can be used in sql
