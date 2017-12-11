@@ -11,16 +11,16 @@
       },
       "id": "00000000-0000-0000-0000-000000000001",
       "links": {
-        "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups/00000000-0000-0000-0000-000000000001"
+        "related": "http:///api/workitemtypegroups/00000000-0000-0000-0000-000000000001"
       },
       "relationships": {
         "defaultType": {
           "data": {
-            "id": "00000000-0000-0000-0000-000000000003",
+            "id": "00000000-0000-0000-0000-000000000002",
             "type": "workitemtypes"
           },
           "links": {
-            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002/workitemtypes/00000000-0000-0000-0000-000000000003"
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000003/workitemtypes/00000000-0000-0000-0000-000000000002"
           }
         },
         "nextGroup": {
@@ -29,19 +29,19 @@
             "type": "workitemtypegroups"
           },
           "links": {
-            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups/00000000-0000-0000-0000-000000000004"
+            "related": "http:///api/workitemtypegroups/00000000-0000-0000-0000-000000000004"
           }
         },
         "spaceTemplate": {
           "data": {
-            "id": "00000000-0000-0000-0000-000000000002",
+            "id": "00000000-0000-0000-0000-000000000003",
             "type": "spacetemplates"
           }
         },
         "typeList": {
           "data": [
             {
-              "id": "00000000-0000-0000-0000-000000000003",
+              "id": "00000000-0000-0000-0000-000000000002",
               "type": "workitemtypes"
             },
             {
@@ -68,7 +68,7 @@
       },
       "id": "00000000-0000-0000-0000-000000000004",
       "links": {
-        "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups/00000000-0000-0000-0000-000000000004"
+        "related": "http:///api/workitemtypegroups/00000000-0000-0000-0000-000000000004"
       },
       "relationships": {
         "defaultType": {
@@ -77,7 +77,7 @@
             "type": "workitemtypes"
           },
           "links": {
-            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002/workitemtypes/00000000-0000-0000-0000-000000000007"
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000003/workitemtypes/00000000-0000-0000-0000-000000000007"
           }
         },
         "nextGroup": {
@@ -86,7 +86,7 @@
             "type": "workitemtypegroups"
           },
           "links": {
-            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups/00000000-0000-0000-0000-000000000008"
+            "related": "http:///api/workitemtypegroups/00000000-0000-0000-0000-000000000008"
           }
         },
         "prevGroup": {
@@ -95,12 +95,12 @@
             "type": "workitemtypegroups"
           },
           "links": {
-            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups/00000000-0000-0000-0000-000000000001"
+            "related": "http:///api/workitemtypegroups/00000000-0000-0000-0000-000000000001"
           }
         },
         "spaceTemplate": {
           "data": {
-            "id": "00000000-0000-0000-0000-000000000002",
+            "id": "00000000-0000-0000-0000-000000000003",
             "type": "spacetemplates"
           }
         },
@@ -130,7 +130,7 @@
       },
       "id": "00000000-0000-0000-0000-000000000008",
       "links": {
-        "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups/00000000-0000-0000-0000-000000000008"
+        "related": "http:///api/workitemtypegroups/00000000-0000-0000-0000-000000000008"
       },
       "relationships": {
         "defaultType": {
@@ -139,7 +139,7 @@
             "type": "workitemtypes"
           },
           "links": {
-            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002/workitemtypes/00000000-0000-0000-0000-000000000010"
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000003/workitemtypes/00000000-0000-0000-0000-000000000010"
           }
         },
         "nextGroup": {
@@ -148,7 +148,7 @@
             "type": "workitemtypegroups"
           },
           "links": {
-            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups/00000000-0000-0000-0000-000000000011"
+            "related": "http:///api/workitemtypegroups/00000000-0000-0000-0000-000000000011"
           }
         },
         "prevGroup": {
@@ -157,12 +157,12 @@
             "type": "workitemtypegroups"
           },
           "links": {
-            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups/00000000-0000-0000-0000-000000000004"
+            "related": "http:///api/workitemtypegroups/00000000-0000-0000-0000-000000000004"
           }
         },
         "spaceTemplate": {
           "data": {
-            "id": "00000000-0000-0000-0000-000000000002",
+            "id": "00000000-0000-0000-0000-000000000003",
             "type": "spacetemplates"
           }
         },
@@ -192,7 +192,7 @@
       },
       "id": "00000000-0000-0000-0000-000000000011",
       "links": {
-        "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups/00000000-0000-0000-0000-000000000011"
+        "related": "http:///api/workitemtypegroups/00000000-0000-0000-0000-000000000011"
       },
       "relationships": {
         "defaultType": {
@@ -201,7 +201,7 @@
             "type": "workitemtypes"
           },
           "links": {
-            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002/workitemtypes/00000000-0000-0000-0000-000000000013"
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000003/workitemtypes/00000000-0000-0000-0000-000000000013"
           }
         },
         "prevGroup": {
@@ -210,12 +210,12 @@
             "type": "workitemtypegroups"
           },
           "links": {
-            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups/00000000-0000-0000-0000-000000000008"
+            "related": "http:///api/workitemtypegroups/00000000-0000-0000-0000-000000000008"
           }
         },
         "spaceTemplate": {
           "data": {
-            "id": "00000000-0000-0000-0000-000000000002",
+            "id": "00000000-0000-0000-0000-000000000003",
             "type": "spacetemplates"
           }
         },
@@ -232,6 +232,6 @@
     }
   ],
   "links": {
-    "self": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups"
+    "self": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000003/workitemtypegroups"
   }
 }
