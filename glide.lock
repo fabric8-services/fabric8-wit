@@ -1,6 +1,8 @@
-hash: 0cbff3d45883d771dbb59d9f89ff569de3b77f0ef833ece67230f577b98532e6
-updated: 2017-11-24T10:48:01.164798758-05:00
+hash: a8e2e2bedd07068ae0489286678f7fa4fbc364919195ff1ee4bda2b29ae796a9
+updated: 2017-12-08T17:15:37.854633010-05:00
 imports:
+- name: github.com/ajg/form
+  version: cc2954064ec9ea8d93917f0f87456e11d7b881ad
 - name: github.com/andygrunwald/go-jira
   version: 9d1f282f93af41553ddb53b0116a8cdb75b4837a
 - name: github.com/armon/go-metrics
@@ -46,9 +48,8 @@ imports:
 - name: github.com/emicklei/go-restful-swagger12
   version: dcef7f55730566d41eae5db10e7d6981829720f6
 - name: github.com/fabric8-services/fabric8-auth
-  version: da575b14ac9ceb113f18f1c1cab75be256460d64
+  version: 39c2f11b75983545c11f6c26963a1ce047b11df7
   subpackages:
-  - configuration
   - design
   - errors
   - log
