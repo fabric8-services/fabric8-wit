@@ -19,7 +19,6 @@
       "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002",
       "self": "http:///api/spaces/00000000-0000-0000-0000-000000000002",
       "workitemlinktypes": "http:///api/spaces/00000000-0000-0000-0000-000000000002/workitemlinktypes",
-      "workitemtypegroups": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups/",
       "workitemtypes": "http:///api/spaces/00000000-0000-0000-0000-000000000002/workitemtypes"
     },
     "relationships": {
@@ -82,7 +81,7 @@
       },
       "workitemtypegroups": {
         "links": {
-          "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups/"
+          "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups"
         }
       },
       "workitemtypes": {
