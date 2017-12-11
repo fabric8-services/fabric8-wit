@@ -59,9 +59,23 @@ var workItemTypeGroupsRelationships = a.Type("WorkItemTypeGroupRelationships", f
 	a.Attribute("prevGroup", relationGeneric, "The type group (if any) that comes before this one in the list")
 })
 
-var _ = a.Resource("work_item_type_group", func() {
+var _ = a.Resource("work_item_type_groups", func() {
 	a.BasePath("/workitemtypegroups")
 	a.Parent("space_template")
+
+	a.Action("list", func() {
+		a.Routing(
+			a.GET(""),
+		)
+		a.Description("List of work item type groups")
+		a.Response(d.OK, workItemTypeGroupList)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+	})
+})
+
+var _ = a.Resource("work_item_type_group", func() {
+	a.BasePath("/workitemtypegroups")
 
 	a.Action("show", func() {
 		a.Routing(
@@ -72,16 +86,6 @@ var _ = a.Resource("work_item_type_group", func() {
 		})
 		a.Description("Show work item type group for given ID")
 		a.Response(d.OK, workItemTypeGroupSingle)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-		a.Response(d.NotFound, JSONAPIErrors)
-	})
-
-	a.Action("list", func() {
-		a.Routing(
-			a.GET(""),
-		)
-		a.Description("List of work item type groups")
-		a.Response(d.OK, workItemTypeGroupList)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 	})
