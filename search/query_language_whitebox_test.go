@@ -462,6 +462,8 @@ func TestGenerateExpression(t *testing.T) {
 }
 
 func expectEqualExpr(t *testing.T, expectedExpr, actualExpr c.Expression) {
+	require.NotNil(t, expectedExpr)
+	require.NotNil(t, actualExpr)
 	actualClause, actualParameters, actualErrs := workitem.Compile(actualExpr)
 	if len(actualErrs) > 0 {
 		debug.PrintStack()
@@ -472,6 +474,7 @@ func expectEqualExpr(t *testing.T, expectedExpr, actualExpr c.Expression) {
 		debug.PrintStack()
 		require.Nil(t, expectedErrs, "failed to compile expected expression")
 	}
+
 	require.Equal(t, exprectedClause, actualClause, "where clause differs")
 	require.Equal(t, expectedParameters, actualParameters, "parameters differ")
 }
@@ -513,4 +516,120 @@ func TestGenerateExpressionWithNonExistingKey(t *testing.T) {
 		require.Nil(t, actualExpr)
 	})
 
+}
+
+func TestWorkItemTypeGroup(t *testing.T) {
+	typeGroups := workitem.TypeGroups()
+
+	typeGroupToExpr := func(typeGroup workitem.WorkItemTypeGroup, negate bool) c.Expression {
+		var e c.Expression
+		if !negate {
+			for _, witID := range typeGroup.TypeList {
+				exp := c.Equals(
+					c.Field("Type"),
+					c.Literal(witID.String()),
+				)
+				if e != nil {
+					e = c.Or(e, exp)
+				} else {
+					e = exp
+				}
+			}
+		} else {
+			for _, witID := range typeGroup.TypeList {
+				exp := c.Not(
+					c.Field("Type"),
+					c.Literal(witID.String()),
+				)
+				if e != nil {
+					e = c.And(e, exp)
+				} else {
+					e = exp
+				}
+			}
+		}
+		return e
+	}
+
+	t.Run(WITGROUP+" as a query child", func(t *testing.T) {
+		for _, typeGroup := range typeGroups {
+			t.Run(typeGroup.Name, func(t *testing.T) {
+				// given
+				spaceName := "openshiftio"
+				q := Query{
+					Name: OR,
+					Children: []Query{
+						{Name: "space", Value: &spaceName},
+						{Name: WITGROUP, Value: &typeGroup.Name},
+					},
+				}
+				// when
+				actualExpr, _ := q.generateExpression()
+				// then
+				expectedExpr := c.Or(
+					c.Equals(
+						c.Field("SpaceID"),
+						c.Literal(spaceName),
+					),
+					typeGroupToExpr(typeGroup, false),
+				)
+				expectEqualExpr(t, expectedExpr, actualExpr)
+			})
+		}
+	})
+
+	t.Run(WITGROUP+" as a query child using NOT", func(t *testing.T) {
+		for _, typeGroup := range typeGroups {
+			t.Run(typeGroup.Name, func(t *testing.T) {
+				// given
+				spaceName := "openshiftio"
+				q := Query{
+					Name: OR,
+					Children: []Query{
+						{Name: "space", Value: &spaceName},
+						{Name: WITGROUP, Value: &typeGroup.Name, Negate: true},
+					},
+				}
+				// when
+				actualExpr, _ := q.generateExpression()
+				// then
+				expectedExpr := c.Or(
+					c.Equals(
+						c.Field("SpaceID"),
+						c.Literal(spaceName),
+					),
+					typeGroupToExpr(typeGroup, true),
+				)
+				expectEqualExpr(t, expectedExpr, actualExpr)
+			})
+		}
+	})
+
+	t.Run(WITGROUP+" as a top-level expression", func(t *testing.T) {
+		for _, typeGroup := range typeGroups {
+			t.Run(typeGroup.Name, func(t *testing.T) {
+				// given
+				q := Query{Name: WITGROUP, Value: &typeGroup.Name}
+				// when
+				actualExpr, _ := q.generateExpression()
+				// then
+				expectedExpr := typeGroupToExpr(typeGroup, false)
+				expectEqualExpr(t, expectedExpr, actualExpr)
+			})
+		}
+	})
+
+	t.Run(WITGROUP+" as a top-level expression using NOT", func(t *testing.T) {
+		for _, typeGroup := range typeGroups {
+			t.Run(typeGroup.Name, func(t *testing.T) {
+				// given
+				q := Query{Name: WITGROUP, Value: &typeGroup.Name, Negate: true}
+				// when
+				actualExpr, _ := q.generateExpression()
+				// then
+				expectedExpr := typeGroupToExpr(typeGroup, true)
+				expectEqualExpr(t, expectedExpr, actualExpr)
+			})
+		}
+	})
 }

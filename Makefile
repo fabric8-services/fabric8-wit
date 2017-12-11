@@ -286,12 +286,19 @@ MINISHIFT_URL = http://$(MINISHIFT_IP)
 # make sure you have a entry in /etc/hosts for "minishift.local MINISHIFT_IP"
 MINISHIFT_HOSTS_ENTRY = http://minishift.local
 
+# Setup AUTH image URL, use default image path and default tag if not provided
+AUTH_IMAGE_DEFAULT=docker.io/fabric8/fabric8-auth
+AUTH_IMAGE_TAG ?= latest
+AUTH_IMAGE_URL=$(AUTH_IMAGE_DEFAULT):$(AUTH_IMAGE_TAG)
+
 .PHONY: dev-wit-openshift
 dev-wit-openshift: prebuild-check deps generate $(FRESH_BIN)
 	minishift start
 	./check_hosts.sh
 	-eval `minishift oc-env` &&  oc login -u developer -p developer && oc new-project wit-openshift
-	AUTH_WIT_URL=$(MINISHIFT_URL):8080 kedge apply -f kedge/db.yml -f kedge/db-auth.yml -f kedge/auth.yml
+	AUTH_IMAGE_URL=$(AUTH_IMAGE_URL) \
+	AUTH_WIT_URL=$(MINISHIFT_URL):8080 \
+	kedge apply -f minishift/kedge/db.yml -f minishift/kedge/db-auth.yml -f minishift/kedge/auth.yml
 	sleep 3s
 	F8_AUTH_URL=$(MINISHIFT_HOSTS_ENTRY):31000 \
 	F8_POSTGRES_HOST=$(MINISHIFT_IP) \

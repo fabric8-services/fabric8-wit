@@ -213,9 +213,65 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 		if ctx.Payload.Data.Attributes.UserActive != nil {
 			itr.UserActive = *ctx.Payload.Data.Attributes.UserActive
 		}
+		var oldSubtree []iteration.Iteration
+		if ctx.Payload.Data.Relationships != nil && ctx.Payload.Data.Relationships.Parent != nil {
+			// update parent of Iteration
+			// do not allow root-iteraiton to update its parent
+			if itr.IsRoot(itr.SpaceID) {
+				return jsonapi.JSONErrorResponse(ctx,
+					errors.NewForbiddenError("Parent of root iteration can not be updated"))
+			}
+			newParentID := ctx.Payload.Data.Relationships.Parent.Data.ID
+			if newParentID == nil {
+				return jsonapi.JSONErrorResponse(ctx,
+					errors.NewBadParameterError("Data.Relationships.Parent.ID", newParentID).Expected("not nil"))
+			}
+			pid, err := uuid.FromString(*newParentID)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("Data.Relationships.Parent.ID", newParentID))
+			}
+			// Iteration itself can not be parent of self
+			if pid == itr.ID {
+				return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("Parent must be different than subject iteration"))
+			}
+			newParentIteration, err := appl.Iterations().Load(ctx.Context, pid)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, err)
+			}
+			// New parent iteraiton must be from same sapce as that of subject iteration
+			if newParentIteration.SpaceID != itr.SpaceID {
+				return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("Parent must be from same space"))
+			}
+			// we need subtree to update later
+			oldSubtree, err = appl.Iterations().LoadChildren(ctx, itr.ID)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, err)
+			}
+			// New parent must not be one of existing children of subject iteration
+			for _, childItr := range oldSubtree {
+				if newParentIteration.ID == childItr.ID {
+					return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("Parent must not be existing child"))
+				}
+			}
+			itr.MakeChildOf(*newParentIteration)
+		}
 		itr, err = appl.Iterations().Save(ctx.Context, *itr)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		if ctx.Payload.Data.Relationships != nil && ctx.Payload.Data.Relationships.Parent != nil {
+			// update all child iterations's parent as well
+			for _, x := range oldSubtree {
+				x.MakeChildOf(*itr)
+				_, err = appl.Iterations().Save(ctx.Context, x)
+				if err != nil {
+					log.Error(ctx, map[string]interface{}{
+						"iteration_id": x.ID,
+						"err":          err.Error(),
+					}, "unable to update child iteration from subtree")
+					return jsonapi.JSONErrorResponse(ctx, err)
+				}
+			}
 		}
 		wiCounts, err := appl.WorkItems().GetCountsForIteration(ctx, itr)
 		if err != nil {
