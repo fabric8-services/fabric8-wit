@@ -357,9 +357,13 @@ func main() {
 	spaceTemplateCtrl := controller.NewSpaceTemplateController(service, appDB)
 	app.MountSpaceTemplateController(service, spaceTemplateCtrl)
 
-	// Mount "type hierarchy" controller
+	// Mount "type group" controller with "show" action
 	workItemTypeGroupCtrl := controller.NewWorkItemTypeGroupController(service, appDB)
 	app.MountWorkItemTypeGroupController(service, workItemTypeGroupCtrl)
+
+	// Mount "type groups" controller with "list" action
+	workItemTypeGroupsCtrl := controller.NewWorkItemTypeGroupsController(service, appDB)
+	app.MountWorkItemTypeGroupsController(service, workItemTypeGroupsCtrl)
 
 	log.Logger().Infoln("Git Commit SHA: ", controller.Commit)
 	log.Logger().Infoln("UTC Build Time: ", controller.BuildTime)
