@@ -273,7 +273,7 @@ func TestParseMap(t *testing.T) {
 	t.Run(OPTS, func(t *testing.T) {
 		t.Parallel()
 		// given
-		input := fmt.Sprintf(`{"%s": [ {"parent-exists": true}, {"result-view": "list"}]}`, OPTS)
+		input := fmt.Sprintf(`{"%s": [ {"parent-exists": true}, {"tree-view": true}]}`, OPTS)
 		// Parsing/Unmarshalling JSON encoding/json
 		fm := map[string]interface{}{}
 		err := json.Unmarshal([]byte(input), &fm)
@@ -282,7 +282,7 @@ func TestParseMap(t *testing.T) {
 		actualQuery := Query{}
 		parseMap(fm, &actualQuery)
 		// then
-		qo := QueryOptions{ParentExists: true, ResultView: ResultViewList}
+		qo := QueryOptions{ParentExists: true, TreeView: true}
 		expectedQuery := Query{Name: OPTS, Options: &qo}
 		assert.Equal(t, expectedQuery, actualQuery)
 	})

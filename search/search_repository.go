@@ -270,11 +270,8 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 							switch k {
 							case "parent-exists":
 								options.ParentExists = vl.(bool)
-							case "result-view":
-								options.ResultView = ResultViewTree
-								if vl.(string) == "list" {
-									options.ResultView = ResultViewList
-								}
+							case "tree-view":
+								options.TreeView = vl.(bool)
 							}
 						}
 					}
@@ -340,18 +337,9 @@ func parseArray(anArray []interface{}, l *[]Query) {
 	}
 }
 
-// ResultViewType represents the view type requested for the result
-type ResultViewType int
-
-// List of available view types requested for the result
-const (
-	ResultViewTree ResultViewType = iota
-	ResultViewList
-)
-
 // QueryOptions represents all options provided user
 type QueryOptions struct {
-	ResultView   ResultViewType
+	TreeView     bool
 	ParentExists bool
 }
 
