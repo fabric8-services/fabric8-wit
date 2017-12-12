@@ -553,7 +553,7 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 }
 
 // parseFilterString accepts a raw string and generates a criteria expression
-func parseFilterString(ctx context.Context, rawSearchString string) (criteria.Expression, *QueryOptions, error) {
+func parseFilterString(ctx context.Context, rawSearchString string) (criteria.Expression, error) {
 	fm := map[string]interface{}{}
 	// Parsing/Unmarshalling JSON encoding/json
 	err := json.Unmarshal([]byte(rawSearchString), &fm)
@@ -563,13 +563,13 @@ func parseFilterString(ctx context.Context, rawSearchString string) (criteria.Ex
 			"err":             err,
 			"rawSearchString": rawSearchString,
 		}, "failed to unmarshal raw search string")
-		return nil, nil, errors.NewBadParameterError("expression", rawSearchString+": "+err.Error())
+		return nil, errors.NewBadParameterError("expression", rawSearchString+": "+err.Error())
 	}
 	q := Query{}
 	parseMap(fm, &q)
 
 	exp, err := q.generateExpression()
-	return exp, q.Options, err
+	return exp, err
 }
 
 // generateSQLSearchInfo accepts searchKeyword and join them in a way that can be used in sql
@@ -806,7 +806,7 @@ func (r *GormSearchRepository) Filter(ctx context.Context, rawFilterString strin
 	// parse
 	// generateSearchQuery
 	// ....
-	exp, _, err := parseFilterString(ctx, rawFilterString)
+	exp, err := parseFilterString(ctx, rawFilterString)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
 	}
