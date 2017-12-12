@@ -66,18 +66,18 @@ var envStatPods = a.Type("EnvStatPods", func() {
 	a.Attribute("quota", d.Integer)
 })
 
-var timedIntTuple = a.Type("TimedIntTuple", func() {
-	a.Description("a set of time and integer values")
-	a.Attribute("time", d.Integer)
-	a.Attribute("value", d.Integer)
+var timedNumberTuple = a.Type("TimedNumberTuple", func() {
+	a.Description("a set of time and number values")
+	a.Attribute("time", d.Number)
+	a.Attribute("value", d.Number)
 })
 
 var simpleDeploymentStatSeries = a.Type("SimpleDeploymentStatSeries", func() {
 	a.Description("pod stat series")
-	a.Attribute("start", d.Integer)
-	a.Attribute("end", d.Integer)
-	a.Attribute("memory", a.ArrayOf(timedIntTuple))
-	a.Attribute("cores", a.ArrayOf(timedIntTuple))
+	a.Attribute("start", d.Number)
+	a.Attribute("end", d.Number)
+	a.Attribute("memory", a.ArrayOf(timedNumberTuple))
+	a.Attribute("cores", a.ArrayOf(timedNumberTuple))
 })
 
 var simpleSpaceSingle = JSONSingle(
@@ -203,11 +203,11 @@ var _ = a.Resource("apps", func() {
 			a.Param("spaceID", d.UUID, "ID of the space")
 			a.Param("appName", d.String, "Name of the application")
 			a.Param("deployName", d.String, "Name of the deployment")
-			a.Param("start", d.Integer, "start time in millis")
-			a.Param("end", d.Integer, "end time in millis")
+			a.Param("start", d.Number, "start time in millis")
+			a.Param("end", d.Number, "end time in millis")
 			a.Param("limit", d.Integer, "maximum number of data points to return")
 		})
-		a.Response(d.OK, simpleDeploymentStatSeries)
+		a.Response(d.OK, simpleDeploymentStatSeriesSingle)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
