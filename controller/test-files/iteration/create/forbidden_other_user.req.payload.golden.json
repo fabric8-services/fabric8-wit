@@ -1,0 +1,11 @@
+{
+  "data": {
+    "attributes": {
+      "description": "Some description",
+      "endAt": "2018-01-06T12:17:34.14970009+01:00",
+      "name": "Sprint #21",
+      "startAt": "2017-12-13T12:17:34.14970009+01:00"
+    },
+    "type": "iterations"
+  }
+}

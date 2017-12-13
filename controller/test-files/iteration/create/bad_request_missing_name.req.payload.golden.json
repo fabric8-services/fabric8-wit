@@ -1,0 +1,10 @@
+{
+  "data": {
+    "attributes": {
+      "description": "Some description",
+      "endAt": "2018-01-06T12:17:34.197755292+01:00",
+      "startAt": "2017-12-13T12:17:34.197755292+01:00"
+    },
+    "type": "iterations"
+  }
+}
