@@ -274,7 +274,7 @@ func TestParseMap(t *testing.T) {
 	t.Run(OPTS, func(t *testing.T) {
 		t.Parallel()
 		// given
-		input := fmt.Sprintf(`{"%s": [ {"parent-exists": true}, {"tree-view": true}]}`, OPTS)
+		input := fmt.Sprintf(`{"%s": {"parent-exists": true, "tree-view": true}}`, OPTS)
 		// Parsing/Unmarshalling JSON encoding/json
 		fm := map[string]interface{}{}
 		err := json.Unmarshal([]byte(input), &fm)
@@ -290,7 +290,7 @@ func TestParseMap(t *testing.T) {
 	t.Run(OPTS+" complex query", func(t *testing.T) {
 		t.Parallel()
 		// given
-		input := fmt.Sprintf(`{"%s":[{"title":"some"},{"state":"new"}],"%s": [ {"parent-exists": true}, {"tree-view": true}]}`, AND, OPTS)
+		input := fmt.Sprintf(`{"%s":[{"title":"some"},{"state":"new"}],"%s": {"parent-exists": true, "tree-view": true}}`, AND, OPTS)
 		// Parsing/Unmarshalling JSON encoding/json
 		fm := map[string]interface{}{}
 		err := json.Unmarshal([]byte(input), &fm)
@@ -322,7 +322,7 @@ func TestParseFilterString(t *testing.T) {
 	t.Parallel()
 	t.Run("OPTS with other query", func(t *testing.T) {
 
-		input := fmt.Sprintf(`{"$AND":[{"title":"some"},{"state":"new"}],"%s": [ {"parent-exists": true}, {"tree-view": true}]}`, OPTS)
+		input := fmt.Sprintf(`{"$AND":[{"title":"some"},{"state":"new"}],"%s": {"parent-exists": true, "tree-view": true}}`, OPTS)
 		actualExpr, options, err := parseFilterString(context.Background(), input)
 		expectedExpr := c.And(
 			c.Equals(

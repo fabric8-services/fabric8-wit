@@ -264,10 +264,8 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 	for key, val := range queryMap {
 		switch concreteVal := val.(type) {
 		case []interface{}:
-			if key != OPTS {
-				q.Name = key
-				parseArray(val.([]interface{}), &q.Children)
-			}
+			q.Name = key
+			parseArray(val.([]interface{}), &q.Children)
 		case string:
 			q.Name = key
 			s := string(concreteVal)
@@ -279,33 +277,35 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 			q.Name = key
 			q.Value = nil
 		case map[string]interface{}:
-			q.Name = key
-			if v, ok := concreteVal[IN]; ok {
-				q.Name = OR
-				c := &q.Children
-				for _, vl := range v.([]interface{}) {
-					sq := Query{}
-					sq.Name = key
-					t := vl.(string)
-					sq.Value = &t
-					*c = append(*c, sq)
-				}
-			} else if v, ok := concreteVal[EQ]; ok {
-				switch v.(type) {
-				case string:
+			if key != OPTS {
+				q.Name = key
+				if v, ok := concreteVal[IN]; ok {
+					q.Name = OR
+					c := &q.Children
+					for _, vl := range v.([]interface{}) {
+						sq := Query{}
+						sq.Name = key
+						t := vl.(string)
+						sq.Value = &t
+						*c = append(*c, sq)
+					}
+				} else if v, ok := concreteVal[EQ]; ok {
+					switch v.(type) {
+					case string:
+						s := v.(string)
+						q.Value = &s
+					case nil:
+						q.Value = nil
+					}
+				} else if v, ok := concreteVal[NE]; ok {
 					s := v.(string)
 					q.Value = &s
-				case nil:
-					q.Value = nil
+					q.Negate = true
+				} else if v, ok := concreteVal[SUBSTR]; ok {
+					s := v.(string)
+					q.Value = &s
+					q.Substring = true
 				}
-			} else if v, ok := concreteVal[NE]; ok {
-				s := v.(string)
-				q.Value = &s
-				q.Negate = true
-			} else if v, ok := concreteVal[SUBSTR]; ok {
-				s := v.(string)
-				q.Value = &s
-				q.Substring = true
 			}
 		default:
 			log.Error(nil, nil, "Unexpected value: %#v", val)
@@ -315,18 +315,14 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 
 func parseOptions(queryMap map[string]interface{}, q *Query) {
 	for key, val := range queryMap {
-		if ifArr, ok := val.([]interface{}); key == OPTS && ok {
+		if ifArr, ok := val.(map[string]interface{}); key == OPTS && ok {
 			options := QueryOptions{}
-			for _, v := range ifArr {
-				if o, ok := v.(map[string]interface{}); ok {
-					for k, vl := range o {
-						switch k {
-						case ParentExistsKey:
-							options.ParentExists = vl.(bool)
-						case TreeViewKey:
-							options.TreeView = vl.(bool)
-						}
-					}
+			for k, v := range ifArr {
+				switch k {
+				case ParentExistsKey:
+					options.ParentExists = v.(bool)
+				case TreeViewKey:
+					options.TreeView = v.(bool)
 				}
 			}
 			q.Options = &options
