@@ -312,25 +312,23 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 
 func parseOptions(queryMap map[string]interface{}, q *Query) {
 	for key, val := range queryMap {
-		switch val.(type) {
-		case []interface{}:
-			if key == OPTS {
-				options := QueryOptions{}
-				for _, v := range val.([]interface{}) {
-					if o, ok := v.(map[string]interface{}); ok {
-						for k, vl := range o {
-							switch k {
-							case "parent-exists":
-								options.ParentExists = vl.(bool)
-							case "tree-view":
-								options.TreeView = vl.(bool)
-							}
+		if ifArr, ok := val.([]interface{}); key == OPTS && ok {
+			options := QueryOptions{}
+			for _, v := range ifArr {
+				if o, ok := v.(map[string]interface{}); ok {
+					for k, vl := range o {
+						switch k {
+						case "parent-exists":
+							options.ParentExists = vl.(bool)
+						case "tree-view":
+							options.TreeView = vl.(bool)
 						}
 					}
 				}
-				q.Options = &options
 			}
+			q.Options = &options
 		}
+
 	}
 }
 
