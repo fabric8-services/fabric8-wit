@@ -35,6 +35,9 @@ const (
 	SUBSTR   = "$SUBSTR"
 	WITGROUP = "$WITGROUP"
 	OPTS     = "$OPTS"
+
+	ParentExistsKey = "parent-exists"
+	TreeViewKey     = "tree-view"
 )
 
 // GormSearchRepository provides a Gorm based repository
@@ -318,9 +321,9 @@ func parseOptions(queryMap map[string]interface{}, q *Query) {
 				if o, ok := v.(map[string]interface{}); ok {
 					for k, vl := range o {
 						switch k {
-						case "parent-exists":
+						case ParentExistsKey:
 							options.ParentExists = vl.(bool)
-						case "tree-view":
+						case TreeViewKey:
 							options.TreeView = vl.(bool)
 						}
 					}
