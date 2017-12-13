@@ -405,7 +405,7 @@ func ConvertSpaceFromModel(request *http.Request, sp space.Space, options ...Spa
 	relatedCollaborators := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/collaborators", spaceIDStr))
 	relatedFilters := rest.AbsoluteURL(request, "/api/filters")
 	relatedLabels := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/labels", spaceIDStr))
-	relatedWorkitemTypeGroups := rest.AbsoluteURL(request, app.SpaceTemplateHref(spaceIDStr)+"/workitemtypegroups/")
+	relatedWorkitemTypeGroups := rest.AbsoluteURL(request, app.SpaceTemplateHref(spaceIDStr)+"/workitemtypegroups")
 
 	s := &app.Space{
 		ID:   &sp.ID,
@@ -423,10 +423,9 @@ func ConvertSpaceFromModel(request *http.Request, sp space.Space, options ...Spa
 			Backlog: &app.BacklogGenericLink{ //TODO (xcoulon): remove this link
 				Self: &relatedBacklog,
 			},
-			Workitemtypes:      &relatedWorkItemTypes,      //TODO (xcoulon): remove this link
-			Workitemlinktypes:  &relatedWorkItemLinkTypes,  //TODO (xcoulon): remove this link
-			Filters:            &relatedFilters,            //TODO (xcoulon): remove this link
-			Workitemtypegroups: &relatedWorkitemTypeGroups, //TODO (xcoulon): remove this link
+			Workitemtypes:     &relatedWorkItemTypes,     //TODO (xcoulon): remove this link
+			Workitemlinktypes: &relatedWorkItemLinkTypes, //TODO (xcoulon): remove this link
+			Filters:           &relatedFilters,           //TODO (xcoulon): remove this link
 		},
 		Relationships: &app.SpaceRelationships{
 			Areas: &app.RelationGeneric{
