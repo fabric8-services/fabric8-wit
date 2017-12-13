@@ -10,7 +10,7 @@ var iteration = a.Type("Iteration", func() {
 	a.Attribute("type", d.String, func() {
 		a.Enum("iterations")
 	})
-	a.Attribute("id", d.UUID, "ID of iteration", func() {
+	a.Attribute("id", d.UUID, desc("ID of iteration").mandatoryOnUpdate().String(), func() {
 		a.Example("40bbdd3d-8b5d-4fd6-ac90-7236b669af04")
 	})
 	a.Attribute("attributes", iterationAttributes)

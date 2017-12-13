@@ -25,7 +25,7 @@ func desc(str ...string) fieldDesc {
 
 func (d fieldDesc) String() string {
 	s := d.desc
-	if strings.HasSuffix(strings.TrimSpace(s), ".") {
+	if !strings.HasSuffix(strings.TrimSpace(s), ".") {
 		s += ". "
 	}
 	if d.mandOnCreate {
