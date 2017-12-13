@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
@@ -44,6 +45,18 @@ func NewIterationController(service *goa.Service, db application.DB, config Iter
 	return &IterationController{Controller: service.NewController("IterationController"), db: db, config: config}
 }
 
+func verifyUser(ctx context.Context, currentUser uuid.UUID, sp *space.Space) (bool, bool, error) {
+	authorized, err := authz.Authorize(ctx, sp.ID.String())
+	if err != nil {
+		return false, false, err
+	}
+	var spaceOwner bool
+	if uuid.Equal(currentUser, sp.OwnerID) {
+		spaceOwner = true
+	}
+	return authorized, spaceOwner, nil
+}
+
 // CreateChild runs the create-child action.
 func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) error {
 	currentUser, err := login.ContextIdentity(ctx)
@@ -56,7 +69,6 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 	}
 	var parent *iteration.Iteration
 	var sp *space.Space
-	var creatorIsSpaceOwner bool
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		parent, err = appl.Iterations().Load(ctx, parentID)
 		if err != nil {
@@ -66,23 +78,22 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		if uuid.Equal(*currentUser, sp.OwnerID) {
-			creatorIsSpaceOwner = true
-			return nil
-		}
 		return nil
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	if !creatorIsSpaceOwner {
-		authorized, err := authz.Authorize(ctx, sp.ID.String())
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
-		}
-		if !authorized {
-			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not a space collaborator"))
-		}
+	authorized, spaceOwner, err := verifyUser(ctx, *currentUser, sp)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
+	}
+	if !authorized && !spaceOwner {
+		log.Error(ctx, map[string]interface{}{
+			"space_id":     sp.ID,
+			"space_owner":  sp.OwnerID,
+			"current_user": *currentUser,
+		}, "user is not the space owner")
+		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not a space collaborator or space owner"))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		reqIter := ctx.Payload.Data
@@ -186,7 +197,6 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 
 	var itr *iteration.Iteration
 	var sp *space.Space
-	var editorIsCreator bool
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		itr, err = appl.Iterations().Load(ctx.Context, id)
 		if err != nil {
@@ -196,28 +206,22 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 		if err != nil {
 			return err
 		}
-		if uuid.Equal(*currentUser, sp.OwnerID) {
-			editorIsCreator = true
-			return nil
-		}
 		return nil
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	if !editorIsCreator {
-		authorized, err := authz.Authorize(ctx, sp.ID.String())
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
-		}
-		if !authorized {
-			log.Warn(ctx, map[string]interface{}{
-				"space_id":     sp.ID,
-				"space_owner":  sp.OwnerID,
-				"current_user": *currentUser,
-			}, "user is not the space owner")
-			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the space owner"))
-		}
+	authorized, spaceOwner, err := verifyUser(ctx, *currentUser, sp)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
+	}
+	if !authorized && !spaceOwner {
+		log.Error(ctx, map[string]interface{}{
+			"space_id":     sp.ID,
+			"space_owner":  sp.OwnerID,
+			"current_user": *currentUser,
+		}, "user is not the space owner")
+		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not a space collaborator or space owner"))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		if ctx.Payload.Data.Attributes.Name != nil {
