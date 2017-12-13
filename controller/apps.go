@@ -217,62 +217,56 @@ func (c *AppsController) SetDeployment(ctx *app.SetDeploymentAppsContext) error 
 	return ctx.OK([]byte{})
 }
 
-// genData generates an array[limit]  of tuples (Time,Value) over a time and value range - low to high
-func genData(start int, end int, count int, low int, high int) []*app.TimedIntTuple {
-
-	period := float64(end-start) / float64(count)
-	data := make([]*app.TimedIntTuple, count, count)
-
-	for i := 0; i < count; i++ {
-		t := start + int(period*float64(i))
-		v := int(float64(high-low) * float64(i) / float64(count))
-
-		tuple := app.TimedIntTuple{
-			Time:  &t,
-			Value: &v,
-		}
-		data[i] = &tuple
-	}
-	return data
-}
-
-// ShowDeploymentStatSeries runs the showDeploymentStatSeries action
-// currently dummy data is returned - created via genData() above.
+// ShowDeploymentStatSeries runs the showDeploymentStatSeries action.
 func (c *AppsController) ShowDeploymentStatSeries(ctx *app.ShowDeploymentStatSeriesAppsContext) error {
 
-	endMillis := time.Now().UnixNano() / 1000000
-	var eightHoursMillis int64 = 8 * 60 * 60 * 1000
-	startMillis := endMillis - eightHoursMillis
-	limit := 10
+	endTime := time.Now()
+	startTime := endTime.Add(-8 * time.Hour)
+	limit := -1 // No limit
 
 	if ctx.Limit != nil {
 		limit = *ctx.Limit
 	}
 
 	if ctx.Start != nil {
-		startMillis = int64(*ctx.Start)
+		startTime = convertToTime(int64(*ctx.Start))
 	}
 
 	if ctx.End != nil {
-		endMillis = int64(*ctx.End)
+		endTime = convertToTime(int64(*ctx.End))
 	}
 
-	if endMillis < startMillis {
+	if endTime.Before(startTime) {
 		return witerrors.NewBadParameterError("end", *ctx.End)
 	}
 
-	startInt := int(startMillis)
-	endInt := int(endMillis)
-	cores := genData(startInt, endInt, limit, 0, 10)
-	memory := genData(startInt, endInt, limit, 1000000, 2000000)
-	res := &app.SimpleDeploymentStatSeries{
-		Start:  &startInt,
-		End:    &endInt,
-		Cores:  cores,
-		Memory: memory,
+	kc, err := c.getAndCheckKubeClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	kubeSpaceName, err := c.getSpaceNameFromSpaceID(ctx, ctx.SpaceID)
+	if err != nil {
+		return err
+	}
+
+	statSeries, err := kc.GetDeploymentStatSeries(*kubeSpaceName, ctx.AppName, ctx.DeployName,
+		startTime, endTime, limit)
+	if err != nil {
+		return err
+	} else if statSeries == nil {
+		return witerrors.NewNotFoundError("deployment", ctx.DeployName)
+	}
+
+	res := &app.SimpleDeploymentStatSeriesSingle{
+		Data: statSeries,
 	}
 
 	return ctx.OK(res)
+}
+
+func convertToTime(unixMillis int64) time.Time {
+	return time.Unix(0, unixMillis*int64(time.Millisecond))
 }
 
 // ShowDeploymentStats runs the showDeploymentStats action.
