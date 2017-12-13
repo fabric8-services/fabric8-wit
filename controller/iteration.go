@@ -45,6 +45,7 @@ func NewIterationController(service *goa.Service, db application.DB, config Iter
 	return &IterationController{Controller: service.NewController("IterationController"), db: db, config: config}
 }
 
+// verifyUser checks if user is a space owner or a collaborator
 func verifyUser(ctx context.Context, currentUser uuid.UUID, sp *space.Space) (bool, bool, error) {
 	authorized, err := authz.Authorize(ctx, sp.ID.String())
 	if err != nil {
