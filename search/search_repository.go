@@ -261,9 +261,7 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 	for key, val := range queryMap {
 		switch concreteVal := val.(type) {
 		case []interface{}:
-			if key == OPTS {
-				continue
-			} else {
+			if key != OPTS {
 				q.Name = key
 				parseArray(val.([]interface{}), &q.Children)
 			}
