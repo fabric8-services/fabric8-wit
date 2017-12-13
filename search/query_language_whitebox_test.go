@@ -313,7 +313,7 @@ func TestParseFilterString(t *testing.T) {
 
 		input := fmt.Sprintf(`{"$AND":[{"title":"some"},{"label":"abc"}],"%s": [ {"parent-exists": true}, {"tree-view": true}]}`, OPTS)
 		_, options, _ := parseFilterString(context.Background(), input)
-		expectedOptions := QueryOptions{ParentExists: true, TreeView: true}
+		expectedOptions := &QueryOptions{ParentExists: true, TreeView: true}
 		assert.Equal(t, expectedOptions, options)
 	})
 }
