@@ -3,6 +3,8 @@
 // from multiple clients.
 package design
 
+import "strings"
+
 type fieldDesc struct {
 	desc         string
 	mandOnCreate bool
@@ -23,15 +25,18 @@ func desc(str ...string) fieldDesc {
 
 func (d fieldDesc) String() string {
 	s := d.desc
+	if strings.HasSuffix(strings.TrimSpace(s), ".") {
+		s += ". "
+	}
 	if d.mandOnCreate {
 		s += "\n This is MANDATORY on creation of resource."
 	} else {
-		s += "\n This is OPTIONAL on creation of resource."
+		//s += "\n This is OPTIONAL on creation of resource."
 	}
 	if d.mandOnUpdate {
 		s += "\n This is MANDATORY on update of resource."
 	} else {
-		s += "\n This is OPTIONAL on update of resource."
+		//s += "\n This is OPTIONAL on update of resource."
 	}
 	return s
 }
