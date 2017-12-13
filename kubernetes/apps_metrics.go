@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-	"math/big"
 	"strings"
 	"time"
 
@@ -105,58 +104,6 @@ func (mc *metricsClient) getBucketAverage(pods []v1.Pod, namespace, descTag stri
 	return result.Avg, timestamp, err
 }
 
-func (mc *metricsClient) getMetricsForPods(pods []v1.Pod, namespace string, descTag string) (float64, int64, error) {
-	// Get most recent sample from each pod's gauge
-	samples, err := mc.readRaw(pods, namespace, descTag)
-	if err != nil {
-		return -1, -1, err
-	} else if len(samples) == 0 {
-		return -1, -1, nil
-	}
-
-	// Return sum of metrics for each pod, and average of timestamp
-	var totalValue float64
-	timestampsDiffer := false
-	for _, sample := range samples {
-		totalValue += sample.Value.(float64)
-		// If the timestamps are not identical, at least one must differ from the first timestamp
-		if !sample.Timestamp.Equal(samples[0].Timestamp) {
-			timestampsDiffer = true
-		}
-	}
-
-	/*
-	* Only compute average timestamp in the unlikely case that timestamps are not identical.
-	* Heapster uses the end time of its metric collection window as the timestamp for all
-	* metrics gathered in that window.
-	*
-	* https://github.com/kubernetes/heapster/blob/v1.3.0/metrics/sources/kubelet/kubelet.go#L238
-	* https://github.com/kubernetes/heapster/blob/v1.3.0/metrics/sinks/hawkular/driver.go#L124
-	* https://github.com/kubernetes/heapster/blob/v1.3.0/metrics/sinks/hawkular/client.go#L278
-	 */
-	var avgTimestamp int64
-	if timestampsDiffer {
-		avgTimestamp = calcAvgTimestamp(samples)
-	} else {
-		avgTimestamp = hawkular.ToUnixMilli(samples[0].Timestamp)
-	}
-
-	return totalValue, avgTimestamp, err
-}
-
-func calcAvgTimestamp(samples []*hawkular.Datapoint) int64 {
-	// Use big.Int for intermediate calculation to avoid overflow
-	// (and loss of precision)
-	bigAvg := big.NewInt(0)
-	for _, sample := range samples {
-		ts := big.NewInt(hawkular.ToUnixMilli(sample.Timestamp))
-		bigAvg = bigAvg.Add(bigAvg, ts)
-	}
-	numSamples := big.NewInt(int64(len(samples)))
-	avg := bigAvg.Div(bigAvg, numSamples).Int64()
-	return avg
-}
-
 func (mc *metricsClient) getLatestBucket(pods []v1.Pod, namespace string, descTag string) (*hawkular.Bucketpoint, error) {
 	// Get a bucket for the last minute
 	endTime := time.Now()
@@ -237,31 +184,4 @@ func (mc *metricsClient) readBuckets(pods []v1.Pod, namespace string, descTag st
 	// Append other filters to those provided
 	filters = append(filters, hawkular.TagsFilter(tags), hawkular.StackedFilter() /* Sum of each pod */)
 	return mc.hawkularClient.ReadBuckets(hawkular.Gauge, hawkular.Filters(filters...))
-}
-
-func (mc *metricsClient) readRaw(pods []v1.Pod, namespace string, descTag string) ([]*hawkular.Datapoint, error) {
-	numPods := len(pods)
-	if numPods == 0 {
-		return nil, nil
-	}
-
-	// Tenant should be set to OSO project name
-	mc.hawkularClient.Tenant = namespace
-	result := make([]*hawkular.Datapoint, 0, len(pods))
-	for _, pod := range pods {
-		// Gauge ID is "pod/<pod UID>/<descriptor>"
-		gaugeID := typePod + "/" + string(pod.UID) + "/" + descTag
-		// Get most recent sample from gauge
-		points, err := mc.hawkularClient.ReadRaw(hawkular.Gauge, gaugeID, hawkular.Filters(hawkular.LimitFilter(1),
-			hawkular.OrderFilter(hawkular.DESC)))
-		if err != nil {
-			return nil, err
-		}
-
-		// We should have received at most one datapoint
-		if len(points) > 0 {
-			result = append(result, points[0])
-		}
-	}
-	return result, nil
 }
