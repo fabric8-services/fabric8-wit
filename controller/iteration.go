@@ -94,7 +94,7 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 			"space_owner":  sp.OwnerID,
 			"current_user": *currentUser,
 		}, "user is not the space owner")
-		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not a space collaborator or space owner"))
+		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not allowed to create an iteration in this space"))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		reqIter := ctx.Payload.Data
@@ -222,7 +222,7 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 			"space_owner":  sp.OwnerID,
 			"current_user": *currentUser,
 		}, "user is not the space owner")
-		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not a space collaborator or space owner"))
+		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not allowed to create an iteration in this space"))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		if ctx.Payload.Data.Attributes.Name != nil {
