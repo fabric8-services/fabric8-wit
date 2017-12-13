@@ -215,13 +215,14 @@ func (rest *TestIterationREST) TestShowIterationOK() {
 	_, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
 	svc, ctrl := rest.SecuredController()
 	// when
-	iter, created := test.ShowIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), nil, nil)
+	res, created := test.ShowIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), nil, nil)
 	// then
 	assertIterationLinking(rest.T(), created.Data)
 	require.NotNil(rest.T(), created.Data.Relationships.Workitems.Meta)
 	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta[KeyTotalWorkItems])
 	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta[KeyClosedWorkItems])
-	compareWithGoldenUUIDAgnostic(rest.T(), filepath.Join(rest.testDir, "show", "ok.res.iteration.golden.json"), iter)
+	compareWithGoldenUUIDAgnostic(rest.T(), filepath.Join(rest.testDir, "show", "ok.res.iteration.golden.json"), created)
+	compareWithGoldenUUIDAgnostic(rest.T(), filepath.Join(rest.testDir, "show", "ok.res.headers.golden.json"), res.Header())
 }
 
 func (rest *TestIterationREST) TestShowIterationOKUsingExpiredIfModifiedSinceHeader() {

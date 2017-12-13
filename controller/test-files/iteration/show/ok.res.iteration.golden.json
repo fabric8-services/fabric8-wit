@@ -1,19 +1,53 @@
 {
-  "Code": 200,
-  "HeaderMap": {
-    "Cache-Control": [
-      "private,max-age=2"
-    ],
-    "Content-Type": [
-      "application/vnd.api+json"
-    ],
-    "Etag": [
-      "+dLtW4M9JGPpWknBN8Px0g=="
-    ],
-    "Last-Modified": [
-      "Wed, 13 Dec 2017 11:17:40 GMT"
-    ]
-  },
-  "Body": {},
-  "Flushed": false
+  "data": {
+    "attributes": {
+      "active_status": true,
+      "created-at": "2017-12-13T13:46:25.564749Z",
+      "endAt": "2018-01-06T13:46:25.568384Z",
+      "name": "Sprint #2",
+      "parent_path": "/00000000-0000-0000-0000-000000000001",
+      "resolved_parent_path": "/CreateSpaceAndRootAreaAndIterations-afa11ef1-0f94-4993-a6f7-3",
+      "startAt": "2017-12-13T13:46:25.568384Z",
+      "state": "new",
+      "updated-at": "2017-12-13T13:46:25.564749Z",
+      "user_active": false
+    },
+    "id": "00000000-0000-0000-0000-000000000002",
+    "links": {
+      "related": "http:///api/iterations/00000000-0000-0000-0000-000000000002",
+      "self": "http:///api/iterations/00000000-0000-0000-0000-000000000002"
+    },
+    "relationships": {
+      "parent": {
+        "data": {
+          "id": "00000000-0000-0000-0000-000000000001",
+          "type": "iterations"
+        },
+        "links": {
+          "related": "http:///api/iterations/00000000-0000-0000-0000-000000000001",
+          "self": "http:///api/iterations/00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "space": {
+        "data": {
+          "id": "00000000-0000-0000-0000-000000000003",
+          "type": "spaces"
+        },
+        "links": {
+          "related": "http:///api/spaces/00000000-0000-0000-0000-000000000003",
+          "self": "http:///api/spaces/00000000-0000-0000-0000-000000000003"
+        }
+      },
+      "workitems": {
+        "links": {
+          "related": "http:///api/workitems/?filter[iteration]=00000000-0000-0000-0000-000000000002"
+        },
+        "meta": {
+          "closed": 0,
+          "total": 0
+        }
+      }
+    },
+    "type": "iterations"
+  }
 }

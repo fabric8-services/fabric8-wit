@@ -1,0 +1,14 @@
+{
+  "Cache-Control": [
+    "private,max-age=2"
+  ],
+  "Content-Type": [
+    "application/vnd.api+json"
+  ],
+  "Etag": [
+    "7pci3mKQaTG45f0VIQj8kw=="
+  ],
+  "Last-Modified": [
+    "Wed, 13 Dec 2017 13:46:25 GMT"
+  ]
+}
