@@ -290,7 +290,7 @@ func TestParseMap(t *testing.T) {
 	t.Run(OPTS+" complex query", func(t *testing.T) {
 		t.Parallel()
 		// given
-		input := fmt.Sprintf(`{"$AND":[{"title":"some"},{"label":"abc"}],"%s": [ {"parent-exists": true}, {"tree-view": true}]}`, OPTS)
+		input := fmt.Sprintf(`{"$AND":[{"title":"some"},{"state":"new"}],"%s": [ {"parent-exists": true}, {"tree-view": true}]}`, OPTS)
 		// Parsing/Unmarshalling JSON encoding/json
 		fm := map[string]interface{}{}
 		err := json.Unmarshal([]byte(input), &fm)
@@ -301,6 +301,17 @@ func TestParseMap(t *testing.T) {
 		// then
 		qo := QueryOptions{ParentExists: true, TreeView: true}
 		expectedQuery := Query{Options: &qo}
+		assert.Equal(t, expectedQuery, actualQuery)
+
+		parseMap(fm, &actualQuery)
+		title := "some"
+		state := "new"
+		expectedQuery = Query{Options: &qo,
+			Name: AND, Children: []Query{
+				{Name: "title", Value: &title},
+				{Name: "state", Value: &state}},
+		}
+
 		assert.Equal(t, expectedQuery, actualQuery)
 	})
 
