@@ -11,6 +11,5 @@ containers:
 services:
 - name: wit
   type: NodePort
-  ports:
-    - port: 8080
-      nodePort: 30000
+  portMappings:
+    - 8080:30000

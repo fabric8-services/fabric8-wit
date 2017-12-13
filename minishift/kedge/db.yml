@@ -7,6 +7,5 @@ containers:
 services:
 - name: db
   type: NodePort
-  ports:
-  - port: 5432
-    nodePort: 32000
+  portMappings:
+    - 5432:32000

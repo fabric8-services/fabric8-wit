@@ -6,5 +6,5 @@ containers:
     value: mysecretpassword
 services:
 - name: db-auth
-  ports:
-  - port: 5432
+  portMappings:
+    - 5432

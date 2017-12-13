@@ -13,6 +13,5 @@ containers:
 services:
 - name: auth
   type: NodePort
-  ports:
-  - port: 8089
-    nodePort: 31000
+  portMappings:
+    - 8089:31000
