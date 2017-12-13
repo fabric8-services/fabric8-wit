@@ -261,25 +261,10 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 	for key, val := range queryMap {
 		switch concreteVal := val.(type) {
 		case []interface{}:
-			q.Name = key
-			if q.Name == OPTS {
-				options := QueryOptions{}
-				for _, v := range val.([]interface{}) {
-					if o, ok := v.(map[string]interface{}); ok {
-						for k, vl := range o {
-							switch k {
-							case "parent-exists":
-								options.ParentExists = vl.(bool)
-							case "tree-view":
-								options.TreeView = vl.(bool)
-							}
-						}
-					}
-				}
-				q.Options = &options
-
+			if key == OPTS {
+				continue
 			} else {
-
+				q.Name = key
 				parseArray(val.([]interface{}), &q.Children)
 			}
 		case string:
@@ -323,6 +308,30 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 			}
 		default:
 			log.Error(nil, nil, "Unexpected value: %#v", val)
+		}
+	}
+}
+
+func parseOptions(queryMap map[string]interface{}, q *Query) {
+	for key, val := range queryMap {
+		switch val.(type) {
+		case []interface{}:
+			if key == OPTS {
+				options := QueryOptions{}
+				for _, v := range val.([]interface{}) {
+					if o, ok := v.(map[string]interface{}); ok {
+						for k, vl := range o {
+							switch k {
+							case "parent-exists":
+								options.ParentExists = vl.(bool)
+							case "tree-view":
+								options.TreeView = vl.(bool)
+							}
+						}
+					}
+				}
+				q.Options = &options
+			}
 		}
 	}
 }
@@ -371,7 +380,7 @@ type Query struct {
 }
 
 func isOperator(str string) bool {
-	return str == AND || str == OR
+	return str == AND || str == OR || str == OPTS
 }
 
 var searchKeyMap = map[string]string{
@@ -553,7 +562,7 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 }
 
 // parseFilterString accepts a raw string and generates a criteria expression
-func parseFilterString(ctx context.Context, rawSearchString string) (criteria.Expression, error) {
+func parseFilterString(ctx context.Context, rawSearchString string) (criteria.Expression, *QueryOptions, error) {
 	fm := map[string]interface{}{}
 	// Parsing/Unmarshalling JSON encoding/json
 	err := json.Unmarshal([]byte(rawSearchString), &fm)
@@ -563,13 +572,29 @@ func parseFilterString(ctx context.Context, rawSearchString string) (criteria.Ex
 			"err":             err,
 			"rawSearchString": rawSearchString,
 		}, "failed to unmarshal raw search string")
-		return nil, errors.NewBadParameterError("expression", rawSearchString+": "+err.Error())
+		return nil, nil, errors.NewBadParameterError("expression", rawSearchString+": "+err.Error())
 	}
 	q := Query{}
 	parseMap(fm, &q)
 
+	fm2 := map[string]interface{}{}
+	// Parsing/Unmarshalling JSON encoding/json
+	err = json.Unmarshal([]byte(rawSearchString), &fm2)
+
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err":             err,
+			"rawSearchString": rawSearchString,
+		}, "failed to unmarshal raw search string")
+		return nil, nil, errors.NewBadParameterError("expression", rawSearchString+": "+err.Error())
+	}
+
+	q2 := Query{}
+	parseOptions(fm2, &q2)
+	q.Options = q2.Options
+
 	exp, err := q.generateExpression()
-	return exp, err
+	return exp, q.Options, err
 }
 
 // generateSQLSearchInfo accepts searchKeyword and join them in a way that can be used in sql
@@ -806,7 +831,7 @@ func (r *GormSearchRepository) Filter(ctx context.Context, rawFilterString strin
 	// parse
 	// generateSearchQuery
 	// ....
-	exp, err := parseFilterString(ctx, rawFilterString)
+	exp, _, err := parseFilterString(ctx, rawFilterString)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
 	}

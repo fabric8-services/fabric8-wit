@@ -1,6 +1,7 @@
 package search
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"runtime/debug"
@@ -280,11 +281,40 @@ func TestParseMap(t *testing.T) {
 		require.Nil(t, err)
 		// when
 		actualQuery := Query{}
-		parseMap(fm, &actualQuery)
+		parseOptions(fm, &actualQuery)
 		// then
 		qo := QueryOptions{ParentExists: true, TreeView: true}
-		expectedQuery := Query{Name: OPTS, Options: &qo}
+		expectedQuery := Query{Options: &qo}
 		assert.Equal(t, expectedQuery, actualQuery)
+	})
+	t.Run(OPTS+" complex query", func(t *testing.T) {
+		t.Parallel()
+		// given
+		input := fmt.Sprintf(`{"$AND":[{"title":"some"},{"label":"abc"}],"%s": [ {"parent-exists": true}, {"tree-view": true}]}`, OPTS)
+		// Parsing/Unmarshalling JSON encoding/json
+		fm := map[string]interface{}{}
+		err := json.Unmarshal([]byte(input), &fm)
+		require.Nil(t, err)
+		// when
+		actualQuery := Query{}
+		parseOptions(fm, &actualQuery)
+		// then
+		qo := QueryOptions{ParentExists: true, TreeView: true}
+		expectedQuery := Query{Options: &qo}
+		assert.Equal(t, expectedQuery, actualQuery)
+	})
+
+}
+
+func TestParseFilterString(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	t.Parallel()
+	t.Run("OPTS with other query", func(t *testing.T) {
+
+		input := fmt.Sprintf(`{"$AND":[{"title":"some"},{"label":"abc"}],"%s": [ {"parent-exists": true}, {"tree-view": true}]}`, OPTS)
+		_, options, _ := parseFilterString(context.Background(), input)
+		expectedOptions := QueryOptions{ParentExists: true, TreeView: true}
+		assert.Equal(t, expectedOptions, options)
 	})
 }
 
