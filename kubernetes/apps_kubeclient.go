@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	inf "gopkg.in/inf.v0"
 	yaml "gopkg.in/yaml.v2"
@@ -165,16 +166,8 @@ func (kc *KubeClient) GetDeployment(spaceName string, appName string, envName st
 	if !pres {
 		return nil, errors.New("Unknown environment: " + envName)
 	}
-	// Look up DeploymentConfig corresponding to the application name in the provided environment
-	dc, err := kc.getDeploymentConfigID(envNS, appName, spaceName)
-	if err != nil {
-		return nil, err
-	} else if len(dc) == 0 {
-		return nil, nil
-	}
-	// Find the current deployment for the DC we just found. This should correspond to the deployment
-	// shown in the OpenShift web console's overview page
-	rc, err := kc.getCurrentDeployment(envNS, dc)
+	// Get the UID for the current deployment of the app
+	rc, err := kc.getDeploymentUIDForApp(spaceName, appName, envNS)
 	if err != nil {
 		return nil, err
 	} else if len(rc) == 0 {
@@ -190,6 +183,52 @@ func (kc *KubeClient) GetDeployment(spaceName string, appName string, envName st
 		Name:  &envName,
 		Stats: envStats,
 	}
+	return result, nil
+}
+
+// GetDeploymentStatSeries returns performance metrics of an application as a time series bounded by
+// the provided time range in startTime and endTime. If there are more data points than the
+// limit argument, only the newest datapoints within that limit are returned.
+func (kc *KubeClient) GetDeploymentStatSeries(spaceName string, appName string, envName string,
+	startTime time.Time, endTime time.Time, limit int) (*app.SimpleDeploymentStatSeries, error) {
+	envNS, pres := kc.envMap[envName]
+	if !pres {
+		return nil, errors.New("Unknown environment: " + envName)
+	}
+
+	// Get the UID for the current deployment of the app
+	rc, err := kc.getDeploymentUIDForApp(spaceName, appName, envNS)
+	if err != nil {
+		return nil, err
+	} else if len(rc) == 0 {
+		return nil, nil
+	}
+
+	// Get pods belonging to current deployment
+	pods, err := kc.getPods(envNS, rc)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get CPU and memory metrics for pods in deployment
+	cpuMetrics, err := kc.metrics.getCPUMetricsRange(pods, envNS, startTime, endTime, limit)
+	if err != nil {
+		return nil, err
+	}
+	memoryMetrics, err := kc.metrics.getMemoryMetricsRange(pods, envNS, startTime, endTime, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get the earliest and latest timestamps
+	minTime, maxTime := getTimestampEndpoints(cpuMetrics, memoryMetrics)
+	result := &app.SimpleDeploymentStatSeries{
+		Cores:  cpuMetrics,
+		Memory: memoryMetrics,
+		Start:  minTime,
+		End:    maxTime,
+	}
+
 	return result, nil
 }
 
@@ -245,6 +284,36 @@ func getMetricsURLFromAPIURL(apiURLStr string) (string, error) {
 		Host:   metricsHostname,
 	}
 	return metricsURL.String(), nil
+}
+
+func getTimestampEndpoints(metricsSeries ...[]*app.TimedNumberTuple) (minTime, maxTime *float64) {
+	// Metrics arrays are ordered by timestamp, so just check beginning and end
+	for _, series := range metricsSeries {
+		if len(series) > 0 {
+			first := series[0].Time
+			if minTime == nil || *first < *minTime {
+				minTime = first
+			}
+			last := series[len(series)-1].Time
+			if maxTime == nil || *last > *maxTime {
+				maxTime = last
+			}
+		}
+	}
+	return minTime, maxTime
+}
+
+func (kc *KubeClient) getDeploymentUIDForApp(spaceName string, appName string, envNS string) (types.UID, error) {
+	// Look up DeploymentConfig corresponding to the application name in the provided environment
+	dc, err := kc.getDeploymentConfigID(envNS, appName, spaceName)
+	if err != nil {
+		return "", err
+	} else if len(dc) == 0 {
+		return "", nil
+	}
+	// Find the current deployment for the DC we just found. This should correspond to the deployment
+	// shown in the OpenShift web console's overview page
+	return kc.getCurrentDeployment(envNS, dc)
 }
 
 func (kc *KubeClient) getDeploymentEnvStats(envNS string, rc types.UID) (*app.EnvStats, error) {
