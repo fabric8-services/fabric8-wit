@@ -1,7 +1,10 @@
 package link_test
 
 import (
+	"strings"
 	"testing"
+
+	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
@@ -230,4 +233,213 @@ func (s *linkRepoBlackBoxTest) TestGetParentIDNotExist() {
 	parentID, err := s.workitemLinkRepo.GetParentID(s.Ctx, fixtures.WorkItems[0].ID)
 	require.NotNil(s.T(), err)
 	assert.Nil(s.T(), parentID)
+}
+
+func (s *linkRepoBlackBoxTest) TestGetAncestors() {
+	s.T().Run("ok", func(t *testing.T) {
+
+		setup := func(t *testing.T, withCycle bool) *tf.TestFixture {
+			// Test setup
+			//     scenario     1
+			//       experience 1.1
+			//       experience 1.2
+			//     scenario     2
+			//      experience  2.1
+			//       feature    2.1.1
+			//        task      2.1.1.1
+			//        task      2.1.1.2
+			//       feature    2.1.2
+			//        task      2.1.2.1
+
+			type testData struct {
+				title    string
+				typeName string
+			}
+			td := []testData{
+				{"s 1", "scenario"},
+				{"e 1.1", "experience"},
+				{"e 1.2", "experience"},
+				{"s 2", "scenario"},
+				{"e 2.1", "experience"},
+				{"f 2.1.1", "feature"},
+				{"t 2.1.1.1", "task"},
+				{"t 2.1.1.2", "task"},
+				{"f 2.1.2", "feature"},
+				{"t 2.1.2.1", "task"},
+			}
+
+			numLinks := 8
+			if withCycle {
+				numLinks += 1
+			}
+			return tf.NewTestFixture(t, s.DB,
+				tf.WorkItemTypes(4, tf.SetWorkItemTypeNames("scenario", "experience", "feature", "task")),
+				tf.WorkItemLinkTypes(1, tf.SetWorkItemLinkTypeNames("parenting"), tf.SetTopologies(link.TopologyTree)),
+				tf.WorkItems(len(td), func(fxt *tf.TestFixture, idx int) error {
+					fxt.WorkItems[idx].Fields[workitem.SystemTitle] = td[idx].title
+					fxt.WorkItems[idx].Type = fxt.WorkItemTypeByName(td[idx].typeName).ID
+					return nil
+				}),
+				tf.WorkItemLinksCustom(numLinks, func(fxt *tf.TestFixture, idx int) error {
+					l := fxt.WorkItemLinks[idx]
+					switch idx {
+					case 0:
+						l.SourceID = fxt.WorkItemByTitle("s 1").ID
+						l.TargetID = fxt.WorkItemByTitle("e 1.1").ID
+					case 1:
+						l.SourceID = fxt.WorkItemByTitle("s 1").ID
+						l.TargetID = fxt.WorkItemByTitle("e 1.2").ID
+					case 2:
+						l.SourceID = fxt.WorkItemByTitle("s 2").ID
+						l.TargetID = fxt.WorkItemByTitle("e 2.1").ID
+					case 3:
+						l.SourceID = fxt.WorkItemByTitle("e 2.1").ID
+						l.TargetID = fxt.WorkItemByTitle("f 2.1.1").ID
+					case 4:
+						l.SourceID = fxt.WorkItemByTitle("e 2.1").ID
+						l.TargetID = fxt.WorkItemByTitle("f 2.1.2").ID
+					case 5:
+						l.SourceID = fxt.WorkItemByTitle("f 2.1.1").ID
+						l.TargetID = fxt.WorkItemByTitle("t 2.1.1.1").ID
+					case 6:
+						l.SourceID = fxt.WorkItemByTitle("f 2.1.1").ID
+						l.TargetID = fxt.WorkItemByTitle("t 2.1.1.2").ID
+					case 7:
+						l.SourceID = fxt.WorkItemByTitle("f 2.1.2").ID
+						l.TargetID = fxt.WorkItemByTitle("t 2.1.2.1").ID
+					case 8:
+						// This link is only created when a cycle was requested
+						l.SourceID = fxt.WorkItemByTitle("t 2.1.2.1").ID
+						l.TargetID = fxt.WorkItemByTitle("s 2").ID
+					}
+					return nil
+				}),
+			)
+		}
+
+		validateAncestry := func(t *testing.T, fxt *tf.TestFixture, toBeFound map[uuid.UUID]struct{}, ancestorIDs []uuid.UUID) {
+			for _, id := range ancestorIDs {
+				wi := fxt.WorkItemByID(id)
+				assert.NotNil(t, wi, "failed to find work item with ID: %s", id)
+				if wi != nil {
+					t.Logf("found work item: %s", wi.Fields[workitem.SystemTitle].(string))
+				}
+				_, ok := toBeFound[id]
+				require.True(t, ok, "found unexpected work item: %s", fxt.WorkItemByID(id).Fields[workitem.SystemTitle].(string))
+				delete(toBeFound, id)
+			}
+			require.Empty(t, toBeFound, "failed to find these work items in ancestor list: %s", func() string {
+				titles := []string{}
+				for id := range toBeFound {
+					titles = append(titles, "\""+fxt.WorkItemByID(id).Fields[workitem.SystemTitle].(string)+"\"")
+				}
+				return strings.Join(titles, ", ")
+			}())
+		}
+
+		t.Run("complex scenario", func(t *testing.T) {
+			t.Run("search for tasks", func(t *testing.T) {
+				t.Run("WITHOUT cycle", func(t *testing.T) {
+					// given
+					fxt := setup(t, false)
+
+					// when fetching the ancestors for all tasks
+					ancestorIDs, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypeByName("parenting", fxt.Spaces[0].ID).ID,
+						fxt.WorkItemByTitle("t 2.1.1.1").ID,
+						fxt.WorkItemByTitle("t 2.1.1.2").ID,
+						fxt.WorkItemByTitle("t 2.1.2.1").ID)
+
+					// then
+					require.Nil(t, err)
+					toBeFound := map[uuid.UUID]struct{}{
+						fxt.WorkItemByTitle("s 2").ID:     {},
+						fxt.WorkItemByTitle("e 2.1").ID:   {},
+						fxt.WorkItemByTitle("f 2.1.1").ID: {},
+						fxt.WorkItemByTitle("f 2.1.2").ID: {},
+					}
+					validateAncestry(t, fxt, toBeFound, ancestorIDs)
+				})
+
+				t.Run("WITH cycle", func(t *testing.T) {
+					// given
+					fxt := setup(t, true)
+
+					// when fetching the ancestors for all tasks
+					ancestorIDs, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypeByName("parenting", fxt.Spaces[0].ID).ID,
+						fxt.WorkItemByTitle("t 2.1.1.1").ID,
+						fxt.WorkItemByTitle("t 2.1.1.2").ID,
+						fxt.WorkItemByTitle("t 2.1.2.1").ID)
+
+					// then
+					require.Nil(t, err)
+					toBeFound := map[uuid.UUID]struct{}{
+						fxt.WorkItemByTitle("s 2").ID:     {},
+						fxt.WorkItemByTitle("e 2.1").ID:   {},
+						fxt.WorkItemByTitle("f 2.1.1").ID: {},
+						fxt.WorkItemByTitle("f 2.1.2").ID: {},
+					}
+					validateAncestry(t, fxt, toBeFound, ancestorIDs)
+				})
+			})
+			t.Run("search for experience", func(t *testing.T) {
+				t.Run("WITHOUT cycle", func(t *testing.T) {
+					// given
+					fxt := setup(t, false)
+
+					// when fetching the ancestors for all tasks
+					ancestorIDs, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypeByName("parenting", fxt.Spaces[0].ID).ID,
+						fxt.WorkItemByTitle("e 2.1").ID)
+
+					// then
+					require.Nil(t, err)
+					toBeFound := map[uuid.UUID]struct{}{
+						fxt.WorkItemByTitle("s 2").ID: {},
+					}
+					validateAncestry(t, fxt, toBeFound, ancestorIDs)
+				})
+				t.Run("WITH cycle", func(t *testing.T) {
+					// given
+					fxt := setup(t, true)
+
+					// when fetching the ancestors for all tasks
+					ancestorIDs, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypeByName("parenting", fxt.Spaces[0].ID).ID,
+						fxt.WorkItemByTitle("e 2.1").ID)
+
+					// then
+					require.Nil(t, err)
+					toBeFound := map[uuid.UUID]struct{}{
+						fxt.WorkItemByTitle("s 2").ID: {},
+						// TODO(kwk): Do we want to find a task that is both a
+						// parent and a child? Currently we do find it because
+						// our search for parents started at the experience
+						// level and not at the task level.
+						fxt.WorkItemByTitle("t 2.1.2.1").ID: {},
+						// We only find this feature because we find the task, so...
+						fxt.WorkItemByTitle("f 2.1.2").ID: {},
+					}
+					validateAncestry(t, fxt, toBeFound, ancestorIDs)
+				})
+			})
+		})
+
+		t.Run("non-existent child workitem", func(t *testing.T) {
+			// given
+			fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemLinkTypes(1, tf.SetWorkItemLinkTypeNames("parenting"), tf.SetTopologies(link.TopologyTree)))
+			// when
+			ancestorIDs, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypeByName("parenting").ID, uuid.NewV4())
+			// then
+			require.Nil(t, err)
+			require.Empty(t, ancestorIDs)
+		})
+
+		t.Run("no given child work item", func(t *testing.T) {
+			// given
+			fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemLinkTypes(1, tf.SetWorkItemLinkTypeNames("parenting"), tf.SetTopologies(link.TopologyTree)))
+			// when
+			ancestorIDs, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypeByName("parenting").ID)
+			// then
+			require.Nil(t, err)
+			require.Empty(t, ancestorIDs)
+		})
+	})
 }

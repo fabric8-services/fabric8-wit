@@ -3,6 +3,7 @@ package link
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"context"
@@ -41,6 +42,8 @@ type WorkItemLinkRepository interface {
 	ListWorkItemChildren(ctx context.Context, parentID uuid.UUID, start *int, limit *int) ([]workitem.WorkItem, uint64, error)
 	WorkItemHasChildren(ctx context.Context, parentID uuid.UUID) (bool, error)
 	GetParentID(ctx context.Context, ID uuid.UUID) (*uuid.UUID, error) // GetParentID returns parent ID of the given work item if any
+	// GetAncestors returns all ID of the ancestor work items for the given work items
+	GetAncestors(ctx context.Context, linkTypeID uuid.UUID, workItemIDs ...uuid.UUID) ([]uuid.UUID, error)
 }
 
 // NewWorkItemLinkRepository creates a work item link repository based on gorm
@@ -481,4 +484,89 @@ func (r *GormWorkItemLinkRepository) GetParentID(ctx context.Context, ID uuid.UU
 		return nil, errs.Wrapf(err, "parent not found for work item: %s", ID.String(), query)
 	}
 	return &parentID, nil
+}
+
+// GetAncestors returns all ID of the ancestor work items for the given work items
+func (r *GormWorkItemLinkRepository) GetAncestors(ctx context.Context, linkTypeID uuid.UUID, workItemIDs ...uuid.UUID) ([]uuid.UUID, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "get", "ancestors"}, time.Now())
+
+	if len(workItemIDs) < 1 {
+		return nil, nil
+	}
+
+	// Get destincts work item IDs
+	idMap := map[uuid.UUID]struct{}{}
+	for _, id := range workItemIDs {
+		idMap[id] = struct{}{}
+	}
+
+	// Create a string array of of UUIDs separated by a comma
+	idArr := make([]string, len(idMap))
+	i := 0
+	for id := range idMap {
+		idArr[i] = "'" + id.String() + "'"
+		i++
+	}
+	idStr := strings.Join(idArr, ",")
+
+	query := fmt.Sprintf(`
+		WITH RECURSIVE tree(source, target, path_to_node, cycle) AS (
+			
+			-- non recursive term: Find the links where the given items are
+			-- in the target and put those links in the "working table". The
+			-- source can be considered the parent of the given items.
+			
+			SELECT
+				source_id,
+				target_id,
+				ARRAY[source_id, target_id],
+				false
+			FROM %[1]s
+			WHERE
+				target_id IN ( %[2]s ) 
+				AND link_type_id = $1
+			
+		UNION
+			
+			-- recursive term: Only this one can query the "tree" table.
+			-- Find a new link where the source from the "working table" is the
+			-- target and "merge" with the "working table".
+			
+			SELECT
+				l.source_id,
+				l.target_id,
+				l.source_id || path_to_node,
+				l.source_id  = ANY(path_to_node) AND path_to_node[1] <> l.source_id
+			FROM tree t, %[1]s l
+			WHERE
+				l.target_id = t.source
+				AND l.link_type_id = $1
+				AND NOT cycle
+		)
+		SELECT DISTINCT -- Eliminates duplicates originating from multiple children having the same parent
+			source AS "ancestor" FROM tree
+		-- Eliminate a child to appear as parent also
+		WHERE source NOT IN ( %[2]s )`,
+		WorkItemLink{}.TableName(),
+		idStr,
+	)
+
+	type ancestor struct {
+		Ancestor uuid.UUID `gorm:"column:ancestor" sql:"type:uuid"`
+	}
+	var ancestors []ancestor
+	db := r.db.Raw(query, linkTypeID.String()).Scan(&ancestors)
+	if db.Error != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": db.Error,
+		}, "failed to find ancestors for work items: %s", idStr)
+		return nil, errors.NewInternalError(ctx, errs.Wrapf(db.Error, "failed to find ancestors for work items: %s", idStr))
+	}
+
+	res := make([]uuid.UUID, len(ancestors))
+	for i, a := range ancestors {
+		res[i] = a.Ancestor
+	}
+	return res, nil
+
 }

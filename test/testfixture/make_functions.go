@@ -370,8 +370,10 @@ func makeWorkItemLinks(fxt *TestFixture) error {
 			fxt.WorkItemLinks[i].LinkTypeID = fxt.WorkItemLinkTypes[0].ID
 			// this is the logic that ensures, each work item is only appearing
 			// in one link
-			fxt.WorkItemLinks[i].SourceID = fxt.WorkItems[2*i].ID
-			fxt.WorkItemLinks[i].TargetID = fxt.WorkItems[2*i+1].ID
+			if !fxt.customLinkCreation {
+				fxt.WorkItemLinks[i].SourceID = fxt.WorkItems[2*i].ID
+				fxt.WorkItemLinks[i].TargetID = fxt.WorkItems[2*i+1].ID
+			}
 		}
 		if err := fxt.runCustomizeEntityFuncs(i, kindWorkItemLinks); err != nil {
 			return errs.WithStack(err)
