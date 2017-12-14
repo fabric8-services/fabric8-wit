@@ -148,7 +148,7 @@ imports:
   - json/scanner
   - json/token
 - name: github.com/hawkular/hawkular-client-go
-  version: 4863013673fcb807cda3b5103964b084566a4665
+  version: 3ec6f27f0d339f9aee02ee4ad545581e52b40e19
   subpackages:
   - metrics
 - name: github.com/howeyc/fsnotify
