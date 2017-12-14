@@ -13,6 +13,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/notification"
+	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space/authz"
@@ -234,27 +235,23 @@ func ConvertCommentResourceID(request *http.Request, comment comment.Comment, ad
 
 // ConvertComment converts between internal and external REST representation
 func ConvertComment(request *http.Request, comment comment.Comment, additional ...CommentConvertFunc) *app.Comment {
-	userType := APIStringTypeUser
-	creatorID := comment.Creator.String()
 	relatedURL := rest.AbsoluteURL(request, app.CommentsHref(comment.ID))
-	markup := rendering.NilSafeGetMarkup(&comment.Markup)
-	bodyRendered := rendering.RenderMarkupToHTML(html.EscapeString(comment.Body), comment.Markup)
-	relatedCreatorLink := rest.AbsoluteURL(request, fmt.Sprintf("%s/%s", usersEndpoint, creatorID))
+	relatedCreatorLink := rest.AbsoluteURL(request, fmt.Sprintf("%s/%s", usersEndpoint, comment.Creator))
 	c := &app.Comment{
 		Type: "comments",
 		ID:   &comment.ID,
 		Attributes: &app.CommentAttributes{
 			Body:         &comment.Body,
-			BodyRendered: &bodyRendered,
-			Markup:       &markup,
+			BodyRendered: ptr.String(rendering.RenderMarkupToHTML(html.EscapeString(comment.Body), comment.Markup)),
+			Markup:       ptr.String(rendering.NilSafeGetMarkup(&comment.Markup)),
 			CreatedAt:    &comment.CreatedAt,
 			UpdatedAt:    &comment.UpdatedAt,
 		},
 		Relationships: &app.CommentRelations{
 			Creator: &app.RelationGeneric{
 				Data: &app.GenericData{
-					Type: &userType,
-					ID:   &creatorID,
+					Type: ptr.String(APIStringTypeUser),
+					ID:   ptr.String(comment.Creator.String()),
 					Links: &app.GenericLinks{
 						Related: &relatedCreatorLink,
 					},
@@ -262,7 +259,7 @@ func ConvertComment(request *http.Request, comment comment.Comment, additional .
 			},
 			CreatedBy: &app.CommentCreatedBy{ // Keep old API style until all cients are updated
 				Data: &app.IdentityRelationData{
-					Type: userType,
+					Type: APIStringTypeUser,
 					ID:   &comment.Creator,
 				},
 				Links: &app.GenericLinks{
@@ -296,15 +293,13 @@ func CommentIncludeParentWorkItem(ctx context.Context, appl application.Applicat
 
 // CommentIncludeParent adds the "parent" relationship to this Comment
 func CommentIncludeParent(request *http.Request, comment *comment.Comment, data *app.Comment, ref HrefFunc, parentType string) {
-	parentSelf := rest.AbsoluteURL(request, ref(comment.ParentID))
-	parentID := comment.ParentID.String()
 	data.Relationships.Parent = &app.RelationGeneric{
 		Data: &app.GenericData{
 			Type: &parentType,
-			ID:   &parentID,
+			ID:   ptr.String(comment.ParentID.String()),
 		},
 		Links: &app.GenericLinks{
-			Self: &parentSelf,
+			Self: ptr.String(rest.AbsoluteURL(request, ref(comment.ParentID))),
 		},
 	}
 }
