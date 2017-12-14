@@ -1,77 +1,48 @@
 package controller
 
 import (
-	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strings"
 
 	"github.com/fabric8-services/fabric8-wit/app"
-	rest "k8s.io/client-go/rest"
+	witclient "github.com/fabric8-services/fabric8-wit/client"
+	"github.com/fabric8-services/fabric8-wit/goasupport"
+	goaclient "github.com/goadesign/goa/client"
+	uuid "github.com/satori/go.uuid"
 )
 
 // OSIOClient contains configuration and methods for interacting with OSIO API
 type OSIOClient struct {
-	config *rest.Config
+	wc *witclient.Client
 }
 
-// NewOsioClient creates an openshift IO client given an http request context
-func NewOSIOClient(authToken string, witURL string) *OSIOClient {
-
-	config := rest.Config{
-		Host:        witURL,
-		BearerToken: authToken,
-	}
+// NewOSIOClient creates an openshift IO client given an http request context
+func NewOSIOClient(ctx context.Context, witURL string) *OSIOClient {
 
 	client := new(OSIOClient)
-	client.config = &config
-
+	httpClient := newHTTPClient()
+	client.wc = witclient.New(goaclient.HTTPClientDoer(httpClient))
+	client.wc.Host = witURL
+	client.wc.Scheme = "https"
+	client.wc.SetJWTSigner(goasupport.NewForwardSigner(ctx))
 	return client
 }
 
-// GetResource - generic JSON resource fetch
-func (osioclient *OSIOClient) getResource(url string, allowMissing bool) (map[string]interface{}, error) {
-	var body []byte
-	fullURL := strings.TrimSuffix(osioclient.config.Host, "/") + url
-	req, err := http.NewRequest("GET", fullURL, bytes.NewReader(body))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Accept", "application/json, text/plain, */*")
-	req.Header.Set("Authorization", "Bearer "+osioclient.config.BearerToken)
-
-	client := http.DefaultClient
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	defer resp.Body.Close()
-
-	status := resp.StatusCode
-	if status == 404 && allowMissing {
-		return nil, nil
-	} else if status < 200 || status > 300 {
-		return nil, errors.New("Failed to GET url " + fullURL + " due to status code " + string(status))
-	}
-
-	respBody, err := ioutil.ReadAll(resp.Body)
-
-	var respType map[string]interface{}
-	err = json.Unmarshal(respBody, &respType)
-	if err != nil {
-		return nil, err
-	}
-	return respType, nil
+// newHTTPClient returns the HTTP client used by the API client to make requests to the service.
+func newHTTPClient() *http.Client {
+	// TODO change timeout
+	return http.DefaultClient
 }
 
 // GetNamespaceByType finds a namespace by type (user, che, stage, etc)
 // if userService is nil, will fetch the user services under the hood
-func (osioclient *OSIOClient) GetNamespaceByType(userService *app.UserService, namespaceType string) (*app.NamespaceAttributes, error) {
+func (osioclient *OSIOClient) GetNamespaceByType(ctx context.Context, userService *app.UserService, namespaceType string) (*app.NamespaceAttributes, error) {
 	if userService == nil {
-		us, err := osioclient.GetUserServices()
+		us, err := osioclient.GetUserServices(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -88,29 +59,18 @@ func (osioclient *OSIOClient) GetNamespaceByType(userService *app.UserService, n
 
 // GetUserServices - fetch array of user services
 // In the future, consider calling the tenant service (as /api/user/services implementation does)
-func (osioclient *OSIOClient) GetUserServices() (*app.UserService, error) {
-	var body []byte
-	fullURL := strings.TrimSuffix(osioclient.config.Host, "/") + "/api/user/services"
-	req, err := http.NewRequest("GET", fullURL, bytes.NewReader(body))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Accept", "application/json, text/plain, */*")
-	req.Header.Set("Authorization", "Bearer "+osioclient.config.BearerToken)
-
-	client := http.DefaultClient
-	resp, err := client.Do(req)
+func (osioclient *OSIOClient) GetUserServices(ctx context.Context) (*app.UserService, error) {
+	resp, err := osioclient.wc.ShowUserService(ctx, witclient.ShowUserServicePath())
 	if err != nil {
 		return nil, err
 	}
 
 	defer resp.Body.Close()
-
 	status := resp.StatusCode
 	if status == 404 {
 		return nil, nil
 	} else if status < 200 || status > 300 {
-		return nil, errors.New("Failed to GET url " + fullURL + " due to status code " + string(status))
+		return nil, errors.New("Failed to GET " + witclient.ShowUserServicePath() + " due to status code " + string(status))
 	}
 
 	respBody, err := ioutil.ReadAll(resp.Body)
@@ -123,29 +83,13 @@ func (osioclient *OSIOClient) GetUserServices() (*app.UserService, error) {
 	return respType.Data, nil
 }
 
-// GetSpaceByName - fetch space given username and spacename
-func (osioclient *OSIOClient) GetSpaceByName(username string, spaceName string, allowMissing bool) (*app.Space, error) {
-	fullURL := strings.TrimSuffix(osioclient.config.Host, "/") + "/api/namedspaces/" + username + "/" + spaceName
-	return osioclient.getSpace(fullURL, allowMissing)
-}
-
 // GetSpaceByID - fetch space given UUID
-func (osioclient *OSIOClient) GetSpaceByID(spaceID string, allowMissing bool) (*app.Space, error) {
-	fullURL := strings.TrimSuffix(osioclient.config.Host, "/") + "/api/spaces/" + spaceID
-	return osioclient.getSpace(fullURL, allowMissing)
-}
-
-func (osioclient *OSIOClient) getSpace(fullURL string, allowMissing bool) (*app.Space, error) {
-	var body []byte
-	req, err := http.NewRequest("GET", fullURL, bytes.NewReader(body))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Accept", "application/json, text/plain, */*")
-	req.Header.Set("Authorization", "Bearer "+osioclient.config.BearerToken)
-
-	client := http.DefaultClient
-	resp, err := client.Do(req)
+func (osioclient *OSIOClient) GetSpaceByID(ctx context.Context, spaceID uuid.UUID) (*app.Space, error) {
+	// there are two different uuid packages at play here:
+	//   github.com/satori/go.uuid and goadesign/goa/uuid.
+	// because of that, we fenerate our own URL to avoid issues for now.
+	urlpath := fmt.Sprintf("/api/spaces/%s", spaceID.String())
+	resp, err := osioclient.wc.ShowSpace(ctx, urlpath, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -153,10 +97,10 @@ func (osioclient *OSIOClient) getSpace(fullURL string, allowMissing bool) (*app.
 	defer resp.Body.Close()
 
 	status := resp.StatusCode
-	if status == 404 && allowMissing {
+	if status == 404 {
 		return nil, nil
 	} else if status < 200 || status > 300 {
-		return nil, errors.New("Failed to GET url " + fullURL + " due to status code " + string(status))
+		return nil, errors.New("Failed to GET " + urlpath + " due to status code " + string(status))
 	}
 
 	respBody, err := ioutil.ReadAll(resp.Body)

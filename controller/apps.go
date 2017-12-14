@@ -18,7 +18,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/kubernetes"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/goadesign/goa"
-	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -26,20 +25,13 @@ import (
 type AppsController struct {
 	*goa.Controller
 	Config *configuration.Registry
-	WitURL string
 }
 
 // NewAppsController creates a apps controller.
 func NewAppsController(service *goa.Service, config *configuration.Registry) *AppsController {
 	return &AppsController{
 		Controller: service.NewController("AppsController"),
-
-		// TODO - make this a config variable?
-		//WitURL: "http://localhost:8080"
-		//WitURL: "http://api.prod-preview.openshift.io",
-		WitURL: "http://api.openshift.io",
-
-		Config: config,
+		Config:     config,
 	}
 }
 
@@ -48,16 +40,18 @@ func tostring(item interface{}) string {
 	return string(bytes)
 }
 
-func getOSIOAuthToken(ctx context.Context) string {
-	// TODO - remove before production
-	if os.Getenv("OSIO_TOKEN") != "" {
-		return os.Getenv("OSIO_TOKEN")
-	}
-	return goajwt.ContextJWT(ctx).Raw
-}
-
 func (c *AppsController) getAndCheckOSIOClient(ctx context.Context) *OSIOClient {
-	oc := NewOSIOClient(getOSIOAuthToken(ctx), c.WitURL)
+
+	// TODO - grab the WIT URL from the incoming request if possible
+	witURL := "http://localhost:8080"
+
+	// TODO - remove this debug hook before production
+	if os.Getenv("OSIO_WIT_URL") != "" {
+		witURL = os.Getenv("OSIO_WIT_URL")
+	}
+
+	oc := NewOSIOClient(ctx, witURL)
+
 	return oc
 }
 
@@ -65,7 +59,7 @@ func (c *AppsController) getSpaceNameFromSpaceID(ctx context.Context, spaceID uu
 	// use WIT API to convert Space UUID to Space name
 	oc := c.getAndCheckOSIOClient(ctx)
 
-	osioSpace, err := oc.GetSpaceByID(spaceID.String(), false)
+	osioSpace, err := oc.GetSpaceByID(ctx, spaceID)
 	if err != nil {
 		return nil, err
 	}
@@ -73,9 +67,9 @@ func (c *AppsController) getSpaceNameFromSpaceID(ctx context.Context, spaceID uu
 }
 
 func (c *AppsController) getNamespaceName(ctx context.Context) (*string, error) {
-	osioclient := c.getAndCheckOSIOClient(ctx)
 
-	kubeSpaceAttr, err := osioclient.GetNamespaceByType(nil, "user")
+	osioclient := c.getAndCheckOSIOClient(ctx)
+	kubeSpaceAttr, err := osioclient.GetNamespaceByType(ctx, nil, "user")
 	if err != nil {
 		return nil, err
 	}
@@ -322,7 +316,6 @@ func (c *AppsController) ShowEnvironment(ctx *app.ShowEnvironmentAppsContext) er
 
 // ShowSpace runs the showSpace action.
 func (c *AppsController) ShowSpace(ctx *app.ShowSpaceAppsContext) error {
-
 	kc, err := c.getAndCheckKubeClient(ctx)
 	if err != nil {
 		return err
