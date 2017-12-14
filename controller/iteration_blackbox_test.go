@@ -211,18 +211,19 @@ func (rest *TestIterationREST) TestFailValidationIterationNameStartWith() {
 }
 
 func (rest *TestIterationREST) TestShowIterationOK() {
+	resetFn := rest.DisableGormCallbacks()
+	defer resetFn()
 	// given
 	_, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
 	svc, ctrl := rest.SecuredController()
 	// when
-	res, created := test.ShowIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), nil, nil)
+	_, created := test.ShowIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), nil, nil)
 	// then
 	assertIterationLinking(rest.T(), created.Data)
 	require.NotNil(rest.T(), created.Data.Relationships.Workitems.Meta)
 	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta[KeyTotalWorkItems])
 	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta[KeyClosedWorkItems])
 	compareWithGoldenUUIDAgnostic(rest.T(), filepath.Join(rest.testDir, "show", "ok.res.iteration.golden.json"), created)
-	compareWithGoldenUUIDAgnostic(rest.T(), filepath.Join(rest.testDir, "show", "ok.res.headers.golden.json"), res.Header())
 }
 
 func (rest *TestIterationREST) TestShowIterationOKUsingExpiredIfModifiedSinceHeader() {
@@ -679,8 +680,10 @@ func (rest *TestIterationREST) TestIterationActivatedByUser() {
 }
 
 func getChildIterationPayload(name *string) *app.CreateChildIterationPayload {
-	start := time.Now()
-	end := start.Add(time.Hour * (24 * 8 * 3))
+	// start is somewhere fixed in the past
+	start, _ := time.Parse(time.RFC822, "02 Jan 06 15:04 MST")
+	// end is 100 years in the future based on start date
+	end := start.Add(time.Hour * 24 * 365 * 100)
 
 	itType := iteration.APIStringTypeIteration
 	desc := "Some description"
@@ -716,7 +719,7 @@ func createSpaceAndRootAreaAndIterations(t *testing.T, db application.DB) (space
 		errCreateOwner := app.Identities().Create(context.Background(), owner)
 		require.Nil(t, errCreateOwner)
 		spaceObj = space.Space{
-			Name:    testsupport.CreateRandomValidTestName("CreateSpaceAndRootAreaAndIterations-"),
+			Name:    testsupport.CreateRandomValidTestName("foo-"),
 			OwnerID: owner.ID,
 		}
 		_, err := app.Spaces().Create(context.Background(), &spaceObj)
@@ -735,8 +738,9 @@ func createSpaceAndRootAreaAndIterations(t *testing.T, db application.DB) (space
 		}
 		err = app.Iterations().Create(context.Background(), &rootIterationObj)
 		require.Nil(t, err)
-		start := time.Now()
-		end := start.Add(time.Hour * (24 * 8 * 3))
+		start, err := time.Parse(time.RFC822, "02 Jan 06 15:04 MST")
+		require.Nil(t, err)
+		end := start.Add(time.Hour * 24 * 365 * 100)
 		iterationName := "Sprint #2"
 		otherIterationObj = iteration.Iteration{
 			Lifecycle: gormsupport.Lifecycle{
