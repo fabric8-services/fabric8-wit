@@ -36,8 +36,8 @@ const (
 	WITGROUP = "$WITGROUP"
 	OPTS     = "$OPTS"
 
-	ParentExistsKey = "parent-exists"
-	TreeViewKey     = "tree-view"
+	OptParentExistsKey = "parent-exists"
+	OptTreeViewKey     = "tree-view"
 )
 
 // GormSearchRepository provides a Gorm based repository
@@ -277,35 +277,36 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 			q.Name = key
 			q.Value = nil
 		case map[string]interface{}:
-			if key != OPTS {
-				q.Name = key
-				if v, ok := concreteVal[IN]; ok {
-					q.Name = OR
-					c := &q.Children
-					for _, vl := range v.([]interface{}) {
-						sq := Query{}
-						sq.Name = key
-						t := vl.(string)
-						sq.Value = &t
-						*c = append(*c, sq)
-					}
-				} else if v, ok := concreteVal[EQ]; ok {
-					switch v.(type) {
-					case string:
-						s := v.(string)
-						q.Value = &s
-					case nil:
-						q.Value = nil
-					}
-				} else if v, ok := concreteVal[NE]; ok {
-					s := v.(string)
-					q.Value = &s
-					q.Negate = true
-				} else if v, ok := concreteVal[SUBSTR]; ok {
-					s := v.(string)
-					q.Value = &s
-					q.Substring = true
+			if key == OPTS {
+				continue
+			}
+			q.Name = key
+			if v, ok := concreteVal[IN]; ok {
+				q.Name = OR
+				c := &q.Children
+				for _, vl := range v.([]interface{}) {
+					sq := Query{}
+					sq.Name = key
+					t := vl.(string)
+					sq.Value = &t
+					*c = append(*c, sq)
 				}
+			} else if v, ok := concreteVal[EQ]; ok {
+				switch v.(type) {
+				case string:
+					s := v.(string)
+					q.Value = &s
+				case nil:
+					q.Value = nil
+				}
+			} else if v, ok := concreteVal[NE]; ok {
+				s := v.(string)
+				q.Value = &s
+				q.Negate = true
+			} else if v, ok := concreteVal[SUBSTR]; ok {
+				s := v.(string)
+				q.Value = &s
+				q.Substring = true
 			}
 		default:
 			log.Error(nil, nil, "Unexpected value: %#v", val)
@@ -319,9 +320,9 @@ func parseOptions(queryMap map[string]interface{}, q *Query) {
 			options := QueryOptions{}
 			for k, v := range ifArr {
 				switch k {
-				case ParentExistsKey:
+				case OptParentExistsKey:
 					options.ParentExists = v.(bool)
-				case TreeViewKey:
+				case OptTreeViewKey:
 					options.TreeView = v.(bool)
 				}
 			}
@@ -375,7 +376,7 @@ type Query struct {
 }
 
 func isOperator(str string) bool {
-	return str == AND || str == OR || str == OPTS
+	return str == AND || str == OR
 }
 
 var searchKeyMap = map[string]string{
@@ -466,7 +467,7 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 		if err != nil {
 			return nil, errs.Wrap(err, "failed to handle hierarchy in top-level element")
 		}
-	} else if !isOperator(currentOperator) {
+	} else if !isOperator(currentOperator) || currentOperator == OPTS {
 		key, ok := searchKeyMap[q.Name]
 		if !ok {
 			return nil, errors.NewBadParameterError("key not found", q.Name)
@@ -491,7 +492,7 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 		}
 	}
 	for _, child := range q.Children {
-		if isOperator(child.Name) {
+		if isOperator(child.Name) || currentOperator == OPTS {
 			exp, err := child.generateExpression()
 			if err != nil {
 				return nil, err
@@ -572,20 +573,8 @@ func parseFilterString(ctx context.Context, rawSearchString string) (criteria.Ex
 	q := Query{}
 	parseMap(fm, &q)
 
-	fm2 := map[string]interface{}{}
-	// Parsing/Unmarshalling JSON encoding/json
-	err = json.Unmarshal([]byte(rawSearchString), &fm2)
-
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"err":             err,
-			"rawSearchString": rawSearchString,
-		}, "failed to unmarshal raw search string")
-		return nil, nil, errors.NewBadParameterError("expression", rawSearchString+": "+err.Error())
-	}
-
 	q2 := Query{}
-	parseOptions(fm2, &q2)
+	parseOptions(fm, &q2)
 	q.Options = q2.Options
 
 	exp, err := q.generateExpression()

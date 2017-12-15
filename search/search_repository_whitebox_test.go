@@ -526,7 +526,7 @@ func TestIsOperator(t *testing.T) {
 	testData := map[string]bool{
 		AND:   true,
 		OR:    true,
-		OPTS:  true,
+		OPTS:  false,
 		"":    false,
 		"   ": false,
 		"foo": false,
