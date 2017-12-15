@@ -94,7 +94,7 @@ func NewTestFixture(t testing.TB, db *gorm.DB, recipeFuncs ...RecipeFunction) *T
 	resource.Require(t, resource.Database)
 
 	tc, err := NewFixture(db, recipeFuncs...)
-	require.Nil(t, err, "%+v", err)
+	require.NoError(t, err)
 	require.NotNil(t, tc)
 	return tc
 }

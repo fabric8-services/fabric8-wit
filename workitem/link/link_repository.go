@@ -42,8 +42,14 @@ type WorkItemLinkRepository interface {
 	ListWorkItemChildren(ctx context.Context, parentID uuid.UUID, start *int, limit *int) ([]workitem.WorkItem, uint64, error)
 	WorkItemHasChildren(ctx context.Context, parentID uuid.UUID) (bool, error)
 	GetParentID(ctx context.Context, ID uuid.UUID) (*uuid.UUID, error) // GetParentID returns parent ID of the given work item if any
-	// GetAncestors returns all ID of the ancestor work items for the given work items
-	GetAncestors(ctx context.Context, linkTypeID uuid.UUID, workItemIDs ...uuid.UUID) ([]uuid.UUID, error)
+	// GetAncestors returns all IDs of the ancestors for the given work items.
+	// In addition to that it also returns the root IDs for each given work item
+	// ID.
+	//
+	// NOTE: In case the given link type doesn't have a tree topology a work
+	// item might have more than one root item. That is why the root IDs is
+	// keyed by the the given work item and mapped to an array of root IDs.
+	GetAncestors(ctx context.Context, linkTypeID uuid.UUID, workItemIDs ...uuid.UUID) (distinctAncestorIDs []uuid.UUID, rootIDs map[uuid.UUID][]uuid.UUID, err error)
 }
 
 // NewWorkItemLinkRepository creates a work item link repository based on gorm
@@ -128,6 +134,61 @@ func (r *GormWorkItemLinkRepository) ValidateTopology(ctx context.Context, sourc
 	return nil
 }
 
+// DetectCycle returns an error if it detects a link cycle.
+//
+// Legend
+// ------
+//
+//   \ = link
+//	 * = new link
+//   C = the element that is causing the cycle
+//
+// Scenarios
+// ---------
+//
+// I:        II:       III:      IV:       V:
+//
+//  C         C         C         C         A
+//   *         \         *         *         \
+//    A         A         A         A         B
+//	   \         \         \         \         *
+//      B         B         C         B         C
+//	     \         *         \
+//	 	  C         C         B
+//
+// Possibility to detect each cycle (if any)
+// -----------------------------------------
+//
+// We search for the root of the source and see if it matches the new link's
+// target. Holds true for I, II, III, V, IV.
+func (r *GormWorkItemLinkRepository) DetectCycle(ctx context.Context, sourceID, targetID, linkTypeID uuid.UUID) error {
+	// Get all roots for link's source.
+	// NOTE(kwk): Yes there can be more than one, if the link type is allowing it.
+	_, rootIDs, err := r.GetAncestors(ctx, linkTypeID, sourceID)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"wilt_id":   linkTypeID,
+			"target_id": targetID,
+			"err":       err,
+		}, "failed to check if the work item %s has a parent work item", targetID)
+		return errs.Wrapf(err, "failed to check if the work item %s has a parent work item", targetID)
+	}
+
+	// We search for the root of the source and see if it matches the new link's
+	// target. If it matches, we have a cylce.
+	roots, ok := rootIDs[sourceID]
+	if !ok || len(roots) <= 0 {
+		return nil // Scenario IV
+	}
+
+	for _, root := range roots {
+		if root == targetID { // Scenarios I, II, III
+			return errs.New("link cycle detected")
+		}
+	}
+	return nil // Scenario V
+}
+
 // Create creates a new work item link in the repository.
 // Returns BadParameterError, ConversionError or InternalError
 func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targetID uuid.UUID, linkTypeID uuid.UUID, creatorID uuid.UUID) (*WorkItemLink, error) {
@@ -148,7 +209,10 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 	}
 
 	if err := r.ValidateTopology(ctx, nil, targetID, *linkType); err != nil {
-		return nil, errs.WithStack(err)
+		return nil, errs.Wrapf(err, "failed to create work item due to invalid topology")
+	}
+	if err := r.DetectCycle(ctx, sourceID, targetID, linkTypeID); err != nil {
+		return nil, errs.Wrapf(err, "failed to create work item due to cycle-detection")
 	}
 
 	db := r.db.Create(link)
@@ -486,21 +550,31 @@ func (r *GormWorkItemLinkRepository) GetParentID(ctx context.Context, ID uuid.UU
 	return &parentID, nil
 }
 
-// GetAncestors returns all ID of the ancestor work items for the given work items
-func (r *GormWorkItemLinkRepository) GetAncestors(ctx context.Context, linkTypeID uuid.UUID, workItemIDs ...uuid.UUID) ([]uuid.UUID, error) {
+// GetAncestors returns all IDs of the ancestors for the given work items. In
+// addition to that it also returns the root IDs for each given work item ID.
+//
+// NOTE: In case the given link type doesn't have a tree topology a work item
+// might have more than one root item. That is why the root IDs is keyed by the
+// the given work item and mapped to an array of root IDs.
+func (r *GormWorkItemLinkRepository) GetAncestors(ctx context.Context, linkTypeID uuid.UUID, workItemIDs ...uuid.UUID) (distinctAncestorIDs []uuid.UUID, rootIDs map[uuid.UUID][]uuid.UUID, err error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "get", "ancestors"}, time.Now())
 
 	if len(workItemIDs) < 1 {
-		return nil, nil
+		return nil, nil, nil
 	}
 
-	// Get destincts work item IDs
+	rootIDs = map[uuid.UUID][]uuid.UUID{}
+
+	// Get destincts work item IDs (eliminates duplicates)
 	idMap := map[uuid.UUID]struct{}{}
 	for _, id := range workItemIDs {
 		idMap[id] = struct{}{}
+		// also intialize the root IDs
+		rootIDs[id] = []uuid.UUID{}
 	}
 
-	// Create a string array of of UUIDs separated by a comma
+	// Create a string array of of UUIDs separated by a comma for use in SQL
+	// JOIN clause.
 	idArr := make([]string, len(idMap))
 	i := 0
 	for id := range idMap {
@@ -509,22 +583,25 @@ func (r *GormWorkItemLinkRepository) GetAncestors(ctx context.Context, linkTypeI
 	}
 	idStr := strings.Join(idArr, ",")
 
+	// Postgres Common Table Expression (https://www.postgresql.org/docs/current/static/queries-with.html)
+	// TODO(kwk): We should probably measure performance for this.
 	query := fmt.Sprintf(`
-		WITH RECURSIVE tree(source, target, path_to_node, cycle) AS (
+		WITH RECURSIVE tree(id, source, original_child, path, cycle) AS (
 			
 			-- non recursive term: Find the links where the given items are
 			-- in the target and put those links in the "working table". The
 			-- source can be considered the parent of the given items.
 			
 			SELECT
-				source_id,
-				target_id,
-				ARRAY[source_id, target_id],
+				l.id,
+				l.source_id,
+				l.target_id,
+				ARRAY[l.id],
 				false
-			FROM %[1]s
+			FROM %[1]s l
 			WHERE
-				target_id IN ( %[2]s ) 
-				AND link_type_id = $1
+				l.target_id IN ( %[2]s ) 
+				AND l.link_type_id = $1
 			
 		UNION
 			
@@ -533,26 +610,35 @@ func (r *GormWorkItemLinkRepository) GetAncestors(ctx context.Context, linkTypeI
 			-- target and "merge" with the "working table".
 			
 			SELECT
+				l.id,
 				l.source_id,
-				l.target_id,
-				l.source_id || path_to_node,
-				l.source_id  = ANY(path_to_node) AND path_to_node[1] <> l.source_id
+				t.original_child, -- always remember the child from which the non recursive search originated
+				path || l.id,
+				l.id = ANY(path)
 			FROM tree t, %[1]s l
 			WHERE
 				l.target_id = t.source
 				AND l.link_type_id = $1
-				AND NOT cycle
+				AND NOT cycle -- recursive termination criteria
 		)
-		SELECT DISTINCT -- Eliminates duplicates originating from multiple children having the same parent
-			source AS "ancestor" FROM tree
+		SELECT
+			source AS "ancestor",
+			original_child,
+			(SELECT NOT EXISTS (SELECT 1 FROM work_item_links l WHERE l.target_id = source)) as "is_root"
+		FROM tree
 		-- Eliminate a child to appear as parent also
-		WHERE source NOT IN ( %[2]s )`,
+		WHERE source NOT IN ( %[2]s )
+		-- Hardcore limiter to abort potential infitnite loops (not that I'm aware of any).
+		LIMIT 10000;`,
 		WorkItemLink{}.TableName(),
 		idStr,
 	)
 
+	// Convert SQL results to instances of ancestor objects
 	type ancestor struct {
-		Ancestor uuid.UUID `gorm:"column:ancestor" sql:"type:uuid"`
+		Ancestor      uuid.UUID `gorm:"column:ancestor" sql:"type:uuid"`
+		OriginalChild uuid.UUID `gorm:"column:original_child" sql:"type:uuid"`
+		IsRoot        bool      `gorm:"column:is_root"`
 	}
 	var ancestors []ancestor
 	db := r.db.Raw(query, linkTypeID.String()).Scan(&ancestors)
@@ -560,13 +646,25 @@ func (r *GormWorkItemLinkRepository) GetAncestors(ctx context.Context, linkTypeI
 		log.Error(ctx, map[string]interface{}{
 			"err": db.Error,
 		}, "failed to find ancestors for work items: %s", idStr)
-		return nil, errors.NewInternalError(ctx, errs.Wrapf(db.Error, "failed to find ancestors for work items: %s", idStr))
+		return nil, nil, errors.NewInternalError(ctx, errs.Wrapf(db.Error, "failed to find ancestors for work items: %s", idStr))
 	}
 
-	res := make([]uuid.UUID, len(ancestors))
-	for i, a := range ancestors {
-		res[i] = a.Ancestor
+	// Iterate over all ancestors and build root array for each original child.
+	distinctAncestorMap := map[uuid.UUID]struct{}{}
+	for _, a := range ancestors {
+		distinctAncestorMap[a.Ancestor] = struct{}{}
+		if a.IsRoot {
+			rootIDs[a.OriginalChild] = append(rootIDs[a.OriginalChild], a.Ancestor)
+		}
 	}
-	return res, nil
+
+	// Convert distinct ancestor map to array
+	distinctAncestorIDs = make([]uuid.UUID, len(distinctAncestorMap))
+	i = 0
+	for id := range distinctAncestorMap {
+		distinctAncestorIDs[i] = id
+		i++
+	}
+	return distinctAncestorIDs, rootIDs, nil
 
 }

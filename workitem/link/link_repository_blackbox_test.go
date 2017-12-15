@@ -238,19 +238,6 @@ func (s *linkRepoBlackBoxTest) TestCreate() {
 			// then
 			require.Error(t, err)
 		})
-		// // given
-		// fxt := tf.NewTestFixture(t, s.DB,
-		// 	tf.WorkItems(3, tf.SetWorkItemTitles("parent1", "parent2", "child")),
-		// 	tf.WorkItemLinkTypes(1, tf.SetTopologies(link.TopologyTree), tf.SetWorkItemLinkTypeNames("tree-type")),
-		// )
-		// // when creating link between "parent1" and "child"
-		// _, err := s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("parent1").ID, fxt.WorkItemByTitle("child").ID, fxt.WorkItemLinkTypeByName("tree-type").ID, fxt.Identities[0].ID)
-		// // then it works
-		// require.NoError(t, err)
-		// // when creating link between "parent2" and "child"
-		// _, err = s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("parent2").ID, fxt.WorkItemByTitle("child").ID, fxt.WorkItemLinkTypeByName("tree-type").ID, fxt.Identities[0].ID)
-		// // then we expect an error because "child" is already a child of "parent1"
-		// require.Error(t, err)
 	})
 }
 
@@ -401,86 +388,39 @@ func (s *linkRepoBlackBoxTest) TestGetAncestors() {
 
 		t.Run("complex scenario", func(t *testing.T) {
 			t.Run("search for tasks", func(t *testing.T) {
-				t.Run("WITHOUT cycle", func(t *testing.T) {
-					// given
-					fxt := setup(t, false)
+				// given
+				fxt := setup(t, false)
 
-					// when fetching the ancestors for all tasks
-					ancestorIDs, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypeByName("parenting", fxt.Spaces[0].ID).ID,
-						fxt.WorkItemByTitle("t 2.1.1.1").ID,
-						fxt.WorkItemByTitle("t 2.1.1.2").ID,
-						fxt.WorkItemByTitle("t 2.1.2.1").ID)
+				// when fetching the ancestors for all tasks
+				ancestorIDs, _, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypeByName("parenting", fxt.Spaces[0].ID).ID,
+					fxt.WorkItemByTitle("t 2.1.1.1").ID,
+					fxt.WorkItemByTitle("t 2.1.1.2").ID,
+					fxt.WorkItemByTitle("t 2.1.2.1").ID)
 
-					// then
-					require.Nil(t, err)
-					toBeFound := map[uuid.UUID]struct{}{
-						fxt.WorkItemByTitle("s 2").ID:     {},
-						fxt.WorkItemByTitle("e 2.1").ID:   {},
-						fxt.WorkItemByTitle("f 2.1.1").ID: {},
-						fxt.WorkItemByTitle("f 2.1.2").ID: {},
-					}
-					validateAncestry(t, fxt, toBeFound, ancestorIDs)
-				})
-
-				t.Run("WITH cycle", func(t *testing.T) {
-					// given
-					fxt := setup(t, true)
-
-					// when fetching the ancestors for all tasks
-					ancestorIDs, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypeByName("parenting", fxt.Spaces[0].ID).ID,
-						fxt.WorkItemByTitle("t 2.1.1.1").ID,
-						fxt.WorkItemByTitle("t 2.1.1.2").ID,
-						fxt.WorkItemByTitle("t 2.1.2.1").ID)
-
-					// then
-					require.Nil(t, err)
-					toBeFound := map[uuid.UUID]struct{}{
-						fxt.WorkItemByTitle("s 2").ID:     {},
-						fxt.WorkItemByTitle("e 2.1").ID:   {},
-						fxt.WorkItemByTitle("f 2.1.1").ID: {},
-						fxt.WorkItemByTitle("f 2.1.2").ID: {},
-					}
-					validateAncestry(t, fxt, toBeFound, ancestorIDs)
-				})
+				// then
+				require.NoError(t, err)
+				toBeFound := map[uuid.UUID]struct{}{
+					fxt.WorkItemByTitle("s 2").ID:     {},
+					fxt.WorkItemByTitle("e 2.1").ID:   {},
+					fxt.WorkItemByTitle("f 2.1.1").ID: {},
+					fxt.WorkItemByTitle("f 2.1.2").ID: {},
+				}
+				validateAncestry(t, fxt, toBeFound, ancestorIDs)
 			})
 			t.Run("search for experience", func(t *testing.T) {
-				t.Run("WITHOUT cycle", func(t *testing.T) {
-					// given
-					fxt := setup(t, false)
+				// given
+				fxt := setup(t, false)
 
-					// when fetching the ancestors for all tasks
-					ancestorIDs, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypeByName("parenting", fxt.Spaces[0].ID).ID,
-						fxt.WorkItemByTitle("e 2.1").ID)
+				// when fetching the ancestors for all tasks
+				ancestorIDs, _, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypeByName("parenting", fxt.Spaces[0].ID).ID,
+					fxt.WorkItemByTitle("e 2.1").ID)
 
-					// then
-					require.Nil(t, err)
-					toBeFound := map[uuid.UUID]struct{}{
-						fxt.WorkItemByTitle("s 2").ID: {},
-					}
-					validateAncestry(t, fxt, toBeFound, ancestorIDs)
-				})
-				t.Run("WITH cycle", func(t *testing.T) {
-					// given
-					fxt := setup(t, true)
-
-					// when fetching the ancestors for all tasks
-					ancestorIDs, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypeByName("parenting", fxt.Spaces[0].ID).ID,
-						fxt.WorkItemByTitle("e 2.1").ID)
-
-					// then
-					require.Nil(t, err)
-					toBeFound := map[uuid.UUID]struct{}{
-						fxt.WorkItemByTitle("s 2").ID: {},
-						// TODO(kwk): Do we want to find a task that is both a
-						// parent and a child? Currently we do find it because
-						// our search for parents started at the experience
-						// level and not at the task level.
-						fxt.WorkItemByTitle("t 2.1.2.1").ID: {},
-						// We only find this feature because we find the task, so...
-						fxt.WorkItemByTitle("f 2.1.2").ID: {},
-					}
-					validateAncestry(t, fxt, toBeFound, ancestorIDs)
-				})
+				// then
+				require.NoError(t, err)
+				toBeFound := map[uuid.UUID]struct{}{
+					fxt.WorkItemByTitle("s 2").ID: {},
+				}
+				validateAncestry(t, fxt, toBeFound, ancestorIDs)
 			})
 		})
 
@@ -488,9 +428,9 @@ func (s *linkRepoBlackBoxTest) TestGetAncestors() {
 			// given
 			fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemLinkTypes(1, tf.SetWorkItemLinkTypeNames("parenting"), tf.SetTopologies(link.TopologyTree)))
 			// when
-			ancestorIDs, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypeByName("parenting").ID, uuid.NewV4())
+			ancestorIDs, _, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypeByName("parenting").ID, uuid.NewV4())
 			// then
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.Empty(t, ancestorIDs)
 		})
 
@@ -498,9 +438,9 @@ func (s *linkRepoBlackBoxTest) TestGetAncestors() {
 			// given
 			fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemLinkTypes(1, tf.SetWorkItemLinkTypeNames("parenting"), tf.SetTopologies(link.TopologyTree)))
 			// when
-			ancestorIDs, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypeByName("parenting").ID)
+			ancestorIDs, _, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypeByName("parenting").ID)
 			// then
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.Empty(t, ancestorIDs)
 		})
 	})
