@@ -43,7 +43,7 @@ func tostring(item interface{}) string {
 func (c *AppsController) getAndCheckOSIOClient(ctx context.Context) *OSIOClient {
 
 	// TODO - grab the WIT URL from the incoming request if possible
-	witURL := "http://localhost:8080"
+	witURL := "localhost"
 
 	// TODO - remove this debug hook before production
 	if os.Getenv("OSIO_WIT_URL") != "" {
@@ -56,6 +56,7 @@ func (c *AppsController) getAndCheckOSIOClient(ctx context.Context) *OSIOClient 
 }
 
 func (c *AppsController) getSpaceNameFromSpaceID(ctx context.Context, spaceID uuid.UUID) (*string, error) {
+	// TODO - add a cache in AppsController
 	// use WIT API to convert Space UUID to Space name
 	oc := c.getAndCheckOSIOClient(ctx)
 
@@ -105,7 +106,7 @@ func (c *AppsController) getUser(authClient authservice.Client, ctx context.Cont
 }
 
 func (c *AppsController) getToken(authClient authservice.Client, ctx context.Context, forService string) (*authservice.TokenData, error) {
-	// get the user definition (for cluster URL)
+
 	resp, err := authClient.RetrieveToken(ctx, authservice.RetrieveTokenPath(), forService, nil)
 	if err != nil {
 		return nil, err
