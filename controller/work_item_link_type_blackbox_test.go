@@ -284,7 +284,7 @@ func createWorkItemLinkTypeInRepo(t *testing.T, db application.DB, ctx context.C
 		Data: payload.Data,
 	}
 	modelLinkType, err := ConvertWorkItemLinkTypeToModel(appLinkType)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	var appLinkTypeResult app.WorkItemLinkTypeSingle
 	err = application.Transactional(db, func(appl application.Application) error {
 		createdModelLinkType, err := appl.WorkItemLinkTypes().Create(ctx, modelLinkType)
@@ -295,16 +295,16 @@ func createWorkItemLinkTypeInRepo(t *testing.T, db application.DB, ctx context.C
 		appLinkTypeResult = ConvertWorkItemLinkTypeFromModel(r, *createdModelLinkType)
 		return nil
 	})
-	require.Nil(t, err)
+	require.NoError(t, err)
 	return &appLinkTypeResult
 }
 
 func assertWorkItemLinkType(t *testing.T, expected *app.WorkItemLinkTypeSingle, spaceName, categoryName string, actual *app.WorkItemLinkTypeSingle) {
 	require.NotNil(t, actual)
 	expectedModel, err := ConvertWorkItemLinkTypeToModel(*expected)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	actualModel, err := ConvertWorkItemLinkTypeToModel(*actual)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, expectedModel.ID, actualModel.ID)
 	// Check that the link category is included in the response in the "included" array
 	require.Len(t, actual.Included, 2, "The work item link type should include it's work item link category and space.")
@@ -368,7 +368,7 @@ func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeNotModifiedUsingIfNoneMa
 	createdWorkItemLinkType := s.createWorkItemLinkType()
 	// when
 	createdWorkItemLinkTypeModel, err := ConvertWorkItemLinkTypeToModel(*createdWorkItemLinkType)
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	ifNoneMatch := app.GenerateEntityTag(createdWorkItemLinkTypeModel)
 	res := test.ShowWorkItemLinkTypeNotModified(s.T(), nil, nil, s.linkTypeCtrl, *createdWorkItemLinkType.Data.Relationships.Space.Data.ID, *createdWorkItemLinkType.Data.ID, nil, &ifNoneMatch)
 	// then
@@ -479,7 +479,7 @@ func (s *workItemLinkTypeSuite) TestListWorkItemLinkTypeNotModifiedUsingIfNoneMa
 				Data: linkTypeData,
 			},
 		)
-		require.Nil(s.T(), err)
+		require.NoError(s.T(), err)
 		createdWorkItemLinkTypeModels[i] = *createdWorkItemLinkTypeModel
 	}
 	ifNoneMatch := app.GenerateEntitiesTag(createdWorkItemLinkTypeModels)

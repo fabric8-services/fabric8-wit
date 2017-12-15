@@ -60,17 +60,17 @@ func (s *searchControllerTestSuite) SetupTest() {
 	err := models.Transactional(s.DB, func(tx *gorm.DB) error {
 		return migration.BootstrapWorkItemLinking(s.Ctx, link.NewWorkItemLinkCategoryRepository(tx), space.NewRepository(tx), link.NewWorkItemLinkTypeRepository(tx))
 	})
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	s.testDir = filepath.Join("test-files", "search")
 	s.db = gormapplication.NewGormDB(s.DB)
 	// create a test identity
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "searchControllerTestSuite user", "test provider")
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	s.testIdentity = *testIdentity
 
 	s.wiRepo = workitem.NewWorkItemRepository(s.DB)
 	spaceBlackBoxTestConfiguration, err := config.Get()
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	s.spaceBlackBoxTestConfiguration = spaceBlackBoxTestConfiguration
 	s.svc = testsupport.ServiceAsUser("WorkItemComment-Service", s.testIdentity)
 	s.controller = NewSearchController(s.svc, gormapplication.NewGormDB(s.DB), spaceBlackBoxTestConfiguration)
@@ -261,16 +261,16 @@ func (s *searchControllerTestSuite) searchByURL(customHost, queryString string) 
 		Host:     customHost,
 	}
 	req, err := http.NewRequest("GET", u.String(), nil)
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	prms := url.Values{}
 	prms["q"] = []string{queryString} // any value will do
 	goaCtx := goa.NewContext(goa.WithAction(s.svc.Context, "SearchTest"), rw, req, prms)
 	showCtx, err := app.NewShowSearchContext(goaCtx, req, s.svc)
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	// Perform action
 	err = s.controller.Show(showCtx)
 	// Validate response
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	require.Equal(s.T(), 200, rw.Code)
 	mt, ok := resp.(*app.SearchWorkItemList)
 	require.True(s.T(), ok)

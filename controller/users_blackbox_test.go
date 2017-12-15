@@ -250,7 +250,7 @@ func (s *TestUsersSuite) createRandomUser(fullname string) account.User {
 		Company:  uuid.NewV4().String() + "company",
 	}
 	err := s.userRepo.Create(context.Background(), &user)
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	return user
 }
 
@@ -286,7 +286,7 @@ func (s *TestUsersSuite) createRandomIdentity(user account.User, providerType st
 		UserID:       account.NullUUID{UUID: user.ID, Valid: true},
 	}
 	err := s.identityRepo.Create(context.Background(), &identity)
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	return identity
 }
 
