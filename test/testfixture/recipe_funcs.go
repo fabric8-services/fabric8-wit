@@ -408,6 +408,35 @@ func WorkItemLinks(n int, fns ...CustomizeWorkItemLinkFunc) RecipeFunction {
 	}
 }
 
+// WorkItemLinksCustom behaves the same ways as WorkItemLinks but it makes no
+// assumption on the number of work items that are going to be created. That
+// means you can request and arbitrary number of links but you are also
+// responsible of creating the the work items that you want to use in your
+// links.
+//
+// NOTE: Normal WorkItemLinks creates twice the amount of work items as links.
+func WorkItemLinksCustom(n int, fns ...CustomizeWorkItemLinkFunc) RecipeFunction {
+	return func(fxt *TestFixture) error {
+		fxt.customLinkCreation = true
+		fxt.checkFuncs = append(fxt.checkFuncs, func() error {
+			l := len(fxt.WorkItemLinks)
+			if l < n {
+				return errs.Errorf(checkStr, n, kindWorkItemLinks, l)
+			}
+			return nil
+		})
+		// Convert fns to []CustomizeEntityFunc
+		customFuncs := make([]CustomizeEntityFunc, len(fns))
+		for idx := range fns {
+			customFuncs[idx] = CustomizeEntityFunc(fns[idx])
+		}
+		if err := fxt.setupInfo(n, kindWorkItemLinks, customFuncs...); err != nil {
+			return err
+		}
+		return fxt.deps(WorkItemLinkTypes(1) /*, WorkItems(2*n)*/)
+	}
+}
+
 // CustomizeLabelFunc is directly compatible with CustomizeEntityFunc
 // but it can only be used for the Labels() recipe-function.
 type CustomizeLabelFunc CustomizeEntityFunc

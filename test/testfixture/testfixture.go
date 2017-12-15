@@ -27,11 +27,12 @@ import (
 //
 // Don't create one on your own!
 type TestFixture struct {
-	info             map[kind]*createInfo
-	db               *gorm.DB
-	isolatedCreation bool
-	ctx              context.Context
-	checkFuncs       []func() error
+	info               map[kind]*createInfo
+	db                 *gorm.DB
+	isolatedCreation   bool
+	customLinkCreation bool
+	ctx                context.Context
+	checkFuncs         []func() error
 
 	Identities             []*account.Identity          // Itentities (if any) that were created for this test fixture.
 	Iterations             []*iteration.Iteration       // Iterations (if any) that were created for this test fixture.
@@ -92,7 +93,7 @@ func NewTestFixture(t testing.TB, db *gorm.DB, recipeFuncs ...RecipeFunction) *T
 	resource.Require(t, resource.Database)
 
 	tc, err := NewFixture(db, recipeFuncs...)
-	require.Nil(t, err)
+	require.Nil(t, err, "%+v", err)
 	require.NotNil(t, tc)
 	return tc
 }

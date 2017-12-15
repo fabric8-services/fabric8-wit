@@ -91,6 +91,16 @@ func (fxt *TestFixture) WorkItemByTitle(title string, spaceID ...uuid.UUID) *wor
 	return nil
 }
 
+// WorkItemByID returns the first work item that has the given ID (if any).
+func (fxt *TestFixture) WorkItemByID(ID uuid.UUID) *workitem.WorkItem {
+	for _, wi := range fxt.WorkItems {
+		if ID == wi.ID {
+			return wi
+		}
+	}
+	return nil
+}
+
 // WorkItemLinkTypeByName returns the first work item link type that has the
 // given name (if any). If you have work item link types with the same name in
 // different spaces you can also pass in one space ID to filter by space as
