@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/auth/authservice"
@@ -36,40 +36,52 @@ func NewAppsController(service *goa.Service, config *configuration.Registry) *Ap
 }
 
 func tostring(item interface{}) string {
-	bytes, _ := json.MarshalIndent(item, "", "  ")
+	bytes, err := json.MarshalIndent(item, "", "  ")
+	if err != nil {
+		return err.Error()
+	}
 	return string(bytes)
 }
 
-func (c *AppsController) getAndCheckOSIOClient(ctx context.Context) *OSIOClient {
+func getAndCheckOSIOClient(ctx context.Context) *OSIOClient {
 
-	// TODO - grab the WIT URL from the incoming request if possible
-	witURL := "localhost"
+	// defaults
+	host := "localhost"
+	scheme := "https"
+
+	req := goa.ContextRequest(ctx)
+	if req != nil {
+		// Note - it's probably more efficient to force a loopback host, and only use the port number here
+		// (on some systems using a non-loopback interface forces a network stack traverse)
+		host = req.Host
+		scheme = req.URL.Scheme
+	}
 
 	// TODO - remove this debug hook before production
 	if os.Getenv("OSIO_WIT_URL") != "" {
-		witURL = os.Getenv("OSIO_WIT_URL")
+		host = os.Getenv("OSIO_WIT_URL")
 	}
 
-	oc := NewOSIOClient(ctx, witURL)
+	oc := NewOSIOClient(ctx, scheme, host)
 
 	return oc
 }
 
 func (c *AppsController) getSpaceNameFromSpaceID(ctx context.Context, spaceID uuid.UUID) (*string, error) {
-	// TODO - add a cache in AppsController
+	// TODO - add a cache in AppsController - but will break if user can change space name
 	// use WIT API to convert Space UUID to Space name
-	oc := c.getAndCheckOSIOClient(ctx)
+	osioclient := getAndCheckOSIOClient(ctx)
 
-	osioSpace, err := oc.GetSpaceByID(ctx, spaceID)
+	osioSpace, err := osioclient.GetSpaceByID(ctx, spaceID)
 	if err != nil {
 		return nil, err
 	}
 	return osioSpace.Attributes.Name, nil
 }
 
-func (c *AppsController) getNamespaceName(ctx context.Context) (*string, error) {
+func getNamespaceName(ctx context.Context) (*string, error) {
 
-	osioclient := c.getAndCheckOSIOClient(ctx)
+	osioclient := getAndCheckOSIOClient(ctx)
 	kubeSpaceAttr, err := osioclient.GetNamespaceByType(ctx, nil, "user")
 	if err != nil {
 		return nil, err
@@ -81,7 +93,7 @@ func (c *AppsController) getNamespaceName(ctx context.Context) (*string, error) 
 	return kubeSpaceAttr.Name, nil
 }
 
-func (c *AppsController) getUser(authClient authservice.Client, ctx context.Context) (*authservice.User, error) {
+func getUser(authClient authservice.Client, ctx context.Context) (*authservice.User, error) {
 	// get the user definition (for cluster URL)
 	resp, err := authClient.ShowUser(ctx, authservice.ShowUserPath(), nil, nil)
 	if err != nil {
@@ -90,12 +102,12 @@ func (c *AppsController) getUser(authClient authservice.Client, ctx context.Cont
 
 	defer resp.Body.Close()
 
+	respBody, err := ioutil.ReadAll(resp.Body)
+
 	status := resp.StatusCode
 	if status < 200 || status > 300 {
-		return nil, errors.New("Failed to GET user due to status code " + string(status))
+		return nil, fmt.Errorf("Failed to GET user due to status code %d", status)
 	}
-
-	respBody, err := ioutil.ReadAll(resp.Body)
 
 	var respType authservice.User
 	err = json.Unmarshal(respBody, &respType)
@@ -105,7 +117,7 @@ func (c *AppsController) getUser(authClient authservice.Client, ctx context.Cont
 	return &respType, nil
 }
 
-func (c *AppsController) getToken(authClient authservice.Client, ctx context.Context, forService string) (*authservice.TokenData, error) {
+func getTokenData(authClient authservice.Client, ctx context.Context, forService string) (*authservice.TokenData, error) {
 
 	resp, err := authClient.RetrieveToken(ctx, authservice.RetrieveTokenPath(), forService, nil)
 	if err != nil {
@@ -114,12 +126,12 @@ func (c *AppsController) getToken(authClient authservice.Client, ctx context.Con
 
 	defer resp.Body.Close()
 
+	respBody, err := ioutil.ReadAll(resp.Body)
+
 	status := resp.StatusCode
 	if status < 200 || status > 300 {
 		return nil, errors.New("Failed to GET user due to status code " + string(status))
 	}
-
-	respBody, err := ioutil.ReadAll(resp.Body)
 
 	var respType authservice.TokenData
 	err = json.Unmarshal(respBody, &respType)
@@ -133,14 +145,14 @@ func (c *AppsController) getToken(authClient authservice.Client, ctx context.Con
 // many different errors are possible, so controllers should call getAndCheckKubeClient() instead
 func (c *AppsController) getKubeClient(ctx context.Context) (*kubernetes.KubeClient, error) {
 
-	// create Auth API login object
+	// create Auth API client
 	authClient, err := auth.CreateClient(ctx, c.Config)
 	if err != nil {
 		log.Error(ctx, nil, "error accessing Auth server"+tostring(err))
 		return nil, err
 	}
 
-	authUser, err := c.getUser(*authClient, ctx)
+	authUser, err := getUser(*authClient, ctx)
 	if err != nil {
 		log.Error(ctx, nil, "error accessing Auth server"+tostring(err))
 		return nil, err
@@ -148,11 +160,11 @@ func (c *AppsController) getKubeClient(ctx context.Context) (*kubernetes.KubeCli
 
 	if authUser == nil || authUser.Data.Attributes.Cluster == nil {
 		log.Error(ctx, nil, "error getting user from Auth server:"+tostring(authUser))
-		return nil, errors.New("error getting user from Auth Server: %s" + tostring(authUser))
+		return nil, fmt.Errorf("error getting user from Auth Server: %s", tostring(authUser))
 	}
 
-	// get the login token for the cluster OpenShift API
-	osauth, err := c.getToken(*authClient, ctx, *authUser.Data.Attributes.Cluster)
+	// get the openshift/kubernetes auth info for the cluster OpenShift API
+	osauth, err := getTokenData(*authClient, ctx, *authUser.Data.Attributes.Cluster)
 	if err != nil {
 		log.Error(ctx, nil, "error getting openshift credentials:"+tostring(err))
 		return nil, err
@@ -161,12 +173,12 @@ func (c *AppsController) getKubeClient(ctx context.Context) (*kubernetes.KubeCli
 	kubeURL := *authUser.Data.Attributes.Cluster
 	kubeToken := *osauth.AccessToken
 
-	kubeNamespaceName, err := c.getNamespaceName(ctx)
+	kubeNamespaceName, err := getNamespaceName(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// create the cluster login object
+	// create the cluster API client
 	kc, err := kubernetes.NewKubeClient(kubeURL, kubeToken, *kubeNamespaceName)
 	if err != nil {
 		return nil, err
@@ -174,7 +186,8 @@ func (c *AppsController) getKubeClient(ctx context.Context) (*kubernetes.KubeCli
 	return kc, nil
 }
 
-// getAndCheckKubeClient converts all errors Error 401, so errors can be returned from controllers as is
+// getAndCheckKubeClient converts all errors fromgetKubeClient() to Error 401
+// this is for convenience and ensuring consistency
 func (c *AppsController) getAndCheckKubeClient(ctx context.Context) (*kubernetes.KubeClient, error) {
 
 	kc, err := c.getKubeClient(ctx)
@@ -208,7 +221,7 @@ func (c *AppsController) SetDeployment(ctx *app.SetDeploymentAppsContext) error 
 		return witerrors.NewInternalError(ctx, err)
 	}
 
-	log.Info(ctx, nil, "podcount was ", *oldCount, " will be set to "+strconv.Itoa(*ctx.PodCount))
+	log.Info(ctx, nil, "podcount was %d; will be set to %d", *oldCount, *ctx.PodCount)
 	return ctx.OK([]byte{})
 }
 
@@ -216,8 +229,8 @@ func (c *AppsController) SetDeployment(ctx *app.SetDeploymentAppsContext) error 
 func (c *AppsController) ShowDeploymentStatSeries(ctx *app.ShowDeploymentStatSeriesAppsContext) error {
 
 	endTime := time.Now()
-	startTime := endTime.Add(-8 * time.Hour)
-	limit := -1 // No limit
+	startTime := endTime.Add(-8 * time.Hour) // default: start time is 8 hours before end time
+	limit := -1                              // default: No limit
 
 	if ctx.Limit != nil {
 		limit = *ctx.Limit
@@ -317,6 +330,7 @@ func (c *AppsController) ShowEnvironment(ctx *app.ShowEnvironmentAppsContext) er
 
 // ShowSpace runs the showSpace action.
 func (c *AppsController) ShowSpace(ctx *app.ShowSpaceAppsContext) error {
+
 	kc, err := c.getAndCheckKubeClient(ctx)
 	if err != nil {
 		return err

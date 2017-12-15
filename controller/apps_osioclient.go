@@ -21,13 +21,13 @@ type OSIOClient struct {
 }
 
 // NewOSIOClient creates an openshift IO client given an http request context
-func NewOSIOClient(ctx context.Context, witURL string) *OSIOClient {
+func NewOSIOClient(ctx context.Context, scheme string, host string) *OSIOClient {
 
 	client := new(OSIOClient)
 	httpClient := newHTTPClient()
 	client.wc = witclient.New(goaclient.HTTPClientDoer(httpClient))
-	client.wc.Host = witURL
-	client.wc.Scheme = "https"
+	client.wc.Host = host
+	client.wc.Scheme = scheme
 	client.wc.SetJWTSigner(goasupport.NewForwardSigner(ctx))
 	return client
 }
@@ -66,14 +66,15 @@ func (osioclient *OSIOClient) GetUserServices(ctx context.Context) (*app.UserSer
 	}
 
 	defer resp.Body.Close()
+
+	respBody, err := ioutil.ReadAll(resp.Body)
+
 	status := resp.StatusCode
 	if status == 404 {
 		return nil, nil
 	} else if status < 200 || status > 300 {
 		return nil, errors.New("Failed to GET " + witclient.ShowUserServicePath() + " due to status code " + string(status))
 	}
-
-	respBody, err := ioutil.ReadAll(resp.Body)
 
 	var respType app.UserServiceSingle
 	err = json.Unmarshal(respBody, &respType)
@@ -96,14 +97,14 @@ func (osioclient *OSIOClient) GetSpaceByID(ctx context.Context, spaceID uuid.UUI
 
 	defer resp.Body.Close()
 
+	respBody, err := ioutil.ReadAll(resp.Body)
+
 	status := resp.StatusCode
 	if status == 404 {
 		return nil, nil
 	} else if status < 200 || status > 300 {
 		return nil, errors.New("Failed to GET " + urlpath + " due to status code " + string(status))
 	}
-
-	respBody, err := ioutil.ReadAll(resp.Body)
 
 	var respType app.SpaceSingle
 	err = json.Unmarshal(respBody, &respType)
