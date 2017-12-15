@@ -140,21 +140,21 @@ func (r *GormWorkItemLinkRepository) ValidateTopology(ctx context.Context, sourc
 // ------
 //
 //   \ = link
-//	 * = new link
+//   * = new link
 //   C = the element that is causing the cycle
 //
 // Scenarios
 // ---------
 //
-// I:        II:       III:      IV:       V:
+//   I:        II:       III:      IV:       V:
 //
-//  C         C         C         C         A
-//   *         \         *         *         \
-//    A         A         A         A         B
-//	   \         \         \         \         *
-//      B         B         C         B         C
-//	     \         *         \
-//	 	  C         C         B
+//    C         C         C         C         A
+//     *         \         *         *         \
+//      A         A         A         A         B
+//       \         \         \         \         *
+//        B         B         C         B         C
+//         \         *         \
+//          C         C         B
 //
 // Possibility to detect each cycle (if any)
 // -----------------------------------------
