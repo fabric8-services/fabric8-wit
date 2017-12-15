@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -22,7 +21,6 @@ import (
 	rest "k8s.io/client-go/rest"
 
 	"github.com/fabric8-services/fabric8-wit/app"
-	"github.com/fabric8-services/fabric8-wit/log"
 )
 
 // KubeClient contains configuration and methods for interacting with Kubernetes cluster
@@ -32,11 +30,6 @@ type KubeClient struct {
 	metrics       *metricsClient
 	userNamespace string
 	envMap        map[string]string
-}
-
-func tostring(item interface{}) string {
-	bytes, _ := json.MarshalIndent(item, "", "  ")
-	return string(bytes)
 }
 
 // NewKubeClient creates a KubeClient given a URL to the Kubernetes cluster, an authorized token to
@@ -126,32 +119,43 @@ func (kc *KubeClient) GetApplication(spaceName string, appName string) (*app.Sim
 	return result, nil
 }
 
-// ScaleDeployment - scale a deployment
+// ScaleDeployment adjusts the desired number of replicas for a specified application, returning the
+// previous number of desired replicas
 func (kc *KubeClient) ScaleDeployment(spaceName string, appName string, envName string, deployNumber int) (*int, error) {
-	// Look up DeploymentConfig corresponding to the application name in the provided environment
-	dc, err := kc.getDeploymentConfig(envName, appName, spaceName)
+	envNS, err := kc.getEnvironmentNamespace(envName)
 	if err != nil {
 		return nil, err
-	} else if len(dc) == 0 {
+	}
+	// Look up the Scale for the DeploymentConfig corresponding to the application name in the provided environment
+	dcScaleURL := fmt.Sprintf("/oapi/v1/namespaces/%s/deploymentconfigs/%s/scale", envNS, appName)
+	scale, err := kc.getResource(dcScaleURL, true)
+	if err != nil {
+		return nil, err
+	} else if scale == nil {
 		return nil, nil
 	}
 
-	spec, ok := dc["spec"].(map[interface{}]interface{})
+	spec, ok := scale["spec"].(map[interface{}]interface{})
 	if !ok {
 		return nil, errors.New("Invalid deployment config returned from endpoint: missing 'spec'")
 	}
 
-	oldReplicas, ok := spec["replicas"].(int)
-	if !ok {
-		return nil, errors.New("Invalid deployment config returned from endpoint: missing 'replicas'")
+	replicasYaml, pres := spec["replicas"]
+	oldReplicas := 0 // replicas property may be missing from spec if set to 0
+	if pres {
+		oldReplicas, ok = replicasYaml.(int)
+		if !ok {
+			return nil, errors.New("Invalid deployment config returned from endpoint: 'replicas' is not an integer")
+		}
 	}
 	spec["replicas"] = deployNumber
 
-	// TODO send back to openshift
-	jsonString := tostring(dc)
-	log.Debug(nil, nil, "sending pod scaling JSON:\n%s", jsonString)
+	yamlScale, err := yaml.Marshal(scale)
+	if err != nil {
+		return nil, err
+	}
 
-	_, err = kc.setDeploymentConfig(envName, appName, jsonString)
+	_, err = kc.putResource(dcScaleURL, yamlScale)
 	if err != nil {
 		return nil, err
 	}
@@ -162,9 +166,9 @@ func (kc *KubeClient) ScaleDeployment(spaceName string, appName string, envName 
 // GetDeployment returns information about the current deployment of an application within a
 // particular environment. The application must exist within the provided space.
 func (kc *KubeClient) GetDeployment(spaceName string, appName string, envName string) (*app.SimpleDeployment, error) {
-	envNS, pres := kc.envMap[envName]
-	if !pres {
-		return nil, errors.New("Unknown environment: " + envName)
+	envNS, err := kc.getEnvironmentNamespace(envName)
+	if err != nil {
+		return nil, err
 	}
 	// Get the UID for the current deployment of the app
 	rc, err := kc.getDeploymentUIDForApp(spaceName, appName, envNS)
@@ -191,9 +195,9 @@ func (kc *KubeClient) GetDeployment(spaceName string, appName string, envName st
 // limit argument, only the newest datapoints within that limit are returned.
 func (kc *KubeClient) GetDeploymentStatSeries(spaceName string, appName string, envName string,
 	startTime time.Time, endTime time.Time, limit int) (*app.SimpleDeploymentStatSeries, error) {
-	envNS, pres := kc.envMap[envName]
-	if !pres {
-		return nil, errors.New("Unknown environment: " + envName)
+	envNS, err := kc.getEnvironmentNamespace(envName)
+	if err != nil {
+		return nil, err
 	}
 
 	// Get the UID for the current deployment of the app
@@ -248,9 +252,9 @@ func (kc *KubeClient) GetEnvironments() ([]*app.SimpleEnvironment, error) {
 
 // GetEnvironment returns information on an environment with the provided name
 func (kc *KubeClient) GetEnvironment(envName string) (*app.SimpleEnvironment, error) {
-	envNS, pres := kc.envMap[envName]
-	if !pres {
-		return nil, errors.New("Unknown environment: " + envName)
+	envNS, err := kc.getEnvironmentNamespace(envName)
+	if err != nil {
+		return nil, err
 	}
 
 	envStats, err := kc.getResourceQuota(envNS)
@@ -431,27 +435,24 @@ func (kc *KubeClient) getEnvironmentsFromConfigMap() (map[string]string, error) 
 	return envMap, nil
 }
 
-func (kc *KubeClient) setDeploymentConfig(namespace string, appName string, configstr string) (int, error) {
-	dcURL := fmt.Sprintf("/oapi/v1/namespaces/%s/deploymentconfigs/%s", namespace, appName)
-	result, err := kc.putResource(dcURL, configstr)
-	if err != nil {
-		return -1, err
-	} else if result == nil {
-		return -1, nil
+func (kc *KubeClient) getEnvironmentNamespace(envName string) (string, error) {
+	envNS, pres := kc.envMap[envName]
+	if !pres {
+		return "", errors.New("Unknown environment: " + envName)
 	}
-	return -1, nil
+	return envNS, nil
 }
 
 // Derived from: https://github.com/fabric8-services/fabric8-tenant/blob/master/openshift/kube_token.go
-func (kc *KubeClient) putResource(url string, putBody string) (*string, error) {
+func (kc *KubeClient) putResource(url string, putBody []byte) (*string, error) {
 	fullURL := strings.TrimSuffix(kc.config.Host, "/") + url
-	req, err := http.NewRequest("PUT", fullURL, strings.NewReader(putBody))
+	req, err := http.NewRequest("PUT", fullURL, bytes.NewBuffer(putBody))
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("Content-Type", "application/yaml")
 	req.Header.Set("Accept", "application/yaml")
 	req.Header.Set("Authorization", "Bearer "+kc.config.BearerToken)
-	req.ContentLength = int64(len(putBody))
 
 	client := http.DefaultClient
 	resp, err := client.Do(req)
