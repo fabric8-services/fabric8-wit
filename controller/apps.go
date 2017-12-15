@@ -277,7 +277,15 @@ func (c *AppsController) ShowDeploymentStats(ctx *app.ShowDeploymentStatsAppsCon
 		return witerrors.NewNotFoundError("osio space", ctx.SpaceID.String())
 	}
 
-	deploymentStats, err := kc.GetDeployment(*kubeSpaceName, ctx.AppName, ctx.DeployName)
+	var startTime time.Time
+	if ctx.Start != nil {
+		startTime = convertToTime(int64(*ctx.Start))
+	} else {
+		// If a start time was not supplied, default to one minute ago
+		startTime = time.Now().Add(-1 * time.Minute)
+	}
+
+	deploymentStats, err := kc.GetDeploymentStats(*kubeSpaceName, ctx.AppName, ctx.DeployName, startTime)
 	if err != nil {
 		return witerrors.NewInternalError(ctx, err)
 	}
@@ -285,7 +293,7 @@ func (c *AppsController) ShowDeploymentStats(ctx *app.ShowDeploymentStatsAppsCon
 		return witerrors.NewNotFoundError("deployment", ctx.DeployName)
 	}
 
-	res := &app.SimpleDeploymentSingle{
+	res := &app.SimpleDeploymentStatsSingle{
 		Data: deploymentStats,
 	}
 
