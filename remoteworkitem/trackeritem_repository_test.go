@@ -55,16 +55,16 @@ func (s *TrackerItemRepositorySuite) createIdentity(username string) account.Ide
 		ProviderType: remoteworkitem.ProviderGithub,
 	}
 	err := identityRepo.Create(s.Ctx, &identity)
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	return identity
 }
 
 func (s *TrackerItemRepositorySuite) lookupIdentityByID(id string) account.Identity {
 	identityRepo := account.NewIdentityRepository(s.DB)
 	identityID, err := uuid.FromString(id)
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	identity, err := identityRepo.First(account.IdentityFilterByID(identityID))
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	return *identity
 }
 
@@ -102,7 +102,7 @@ func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithExistingIdentitie
 	// when
 	workItem, err := remoteworkitem.ConvertToWorkItemModel(s.Ctx, s.DB, s.trackerQuery.TrackerID, remoteItemData, remoteworkitem.ProviderGithub, s.trackerQuery.SpaceID)
 	// then
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	require.NotNil(s.T(), workItem.Fields)
 	assert.Equal(s.T(), "linking", workItem.Fields[workitem.SystemTitle])
 	assert.Equal(s.T(), identity0.ID.String(), workItem.Fields[workitem.SystemCreator])
@@ -145,7 +145,7 @@ func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithUnknownIdentities
 	// when
 	workItem, err := remoteworkitem.ConvertToWorkItemModel(s.Ctx, s.DB, s.trackerQuery.TrackerID, remoteItemData, remoteworkitem.ProviderGithub, s.trackerQuery.SpaceID)
 	// then
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	require.NotNil(s.T(), workItem.Fields)
 	assert.Equal(s.T(), "linking", workItem.Fields[workitem.SystemTitle])
 	assert.Equal(s.T(), 2, len(workItem.Fields[workitem.SystemAssignees].([]interface{})))
@@ -191,7 +191,7 @@ func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithNoAssignee() {
 	// when
 	workItem, err := remoteworkitem.ConvertToWorkItemModel(s.Ctx, s.DB, s.trackerQuery.TrackerID, remoteItemData, remoteworkitem.ProviderGithub, s.trackerQuery.SpaceID)
 	// then
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	require.NotNil(s.T(), workItem.Fields)
 	assert.Equal(s.T(), "linking", workItem.Fields[workitem.SystemTitle])
 	assert.Empty(s.T(), workItem.Fields[workitem.SystemAssignees])
@@ -231,7 +231,7 @@ func (s *TrackerItemRepositorySuite) TestConvertExistingWorkItem() {
 	// when
 	workItem, err := remoteworkitem.ConvertToWorkItemModel(s.Ctx, s.DB, s.trackerQuery.TrackerID, remoteItemData, remoteworkitem.ProviderGithub, s.trackerQuery.SpaceID)
 	// then
-	assert.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	assert.Equal(s.T(), "linking", workItem.Fields[workitem.SystemTitle])
 	assert.Equal(s.T(), identity0.ID.String(), workItem.Fields[workitem.SystemCreator])
 	require.NotEmpty(s.T(), workItem.Fields[workitem.SystemAssignees])
@@ -260,7 +260,7 @@ func (s *TrackerItemRepositorySuite) TestConvertExistingWorkItem() {
 	// when
 	workItemUpdated, err := remoteworkitem.ConvertToWorkItemModel(s.Ctx, s.DB, s.trackerQuery.TrackerID, remoteItemDataUpdated, remoteworkitem.ProviderGithub, s.trackerQuery.SpaceID)
 	// then
-	assert.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	require.NotNil(s.T(), workItemUpdated)
 	require.NotNil(s.T(), workItemUpdated.Fields)
 	assert.Equal(s.T(), "linking-updated", workItemUpdated.Fields[workitem.SystemTitle])
@@ -276,7 +276,7 @@ func (s *TrackerItemRepositorySuite) TestConvertGithubIssue() {
 	content, err := test.LoadTestData("github_issue_mapping.json", func() ([]byte, error) {
 		return provideRemoteData(GitIssueWithAssignee)
 	})
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	remoteItemDataGithub := remoteworkitem.TrackerItemContent{
 		Content: content[:],
 		ID:      GitIssueWithAssignee, // GH issue url
@@ -284,7 +284,7 @@ func (s *TrackerItemRepositorySuite) TestConvertGithubIssue() {
 	// when
 	workItemGithub, err := remoteworkitem.ConvertToWorkItemModel(s.Ctx, s.DB, s.trackerQuery.TrackerID, remoteItemDataGithub, remoteworkitem.ProviderGithub, s.trackerQuery.SpaceID)
 	// then
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	assert.Equal(s.T(), "map flatten : test case : with assignee", workItemGithub.Fields[workitem.SystemTitle])
 	assert.Equal(s.T(), identity.ID.String(), workItemGithub.Fields[workitem.SystemCreator])
 	assert.Equal(s.T(), identity.ID.String(), workItemGithub.Fields[workitem.SystemAssignees].([]interface{})[0])

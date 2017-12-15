@@ -212,7 +212,7 @@ func TestFindUUIDs(t *testing.T) {
 	t.Run("find UUIDs", func(t *testing.T) {
 		t.Parallel()
 		ids, err := findUUIDs(testInputStr)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Equal(t, []uuid.UUID{
 			uuid.FromStringOrNil("d7a282f6-1c10-459e-bb44-55a1a6d48bdd"),
 			uuid.FromStringOrNil("a8bee527-12d2-4aff-9823-3511c1c8e6b9"),
@@ -225,7 +225,7 @@ func TestReplaceUUIDs(t *testing.T) {
 	t.Run("replace UUIDs", func(t *testing.T) {
 		t.Parallel()
 		newStr, err := replaceUUIDs(testInputStr)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Equal(t, testOutputStr, newStr)
 	})
 }
@@ -247,7 +247,7 @@ func TestCompareWithGolden(t *testing.T) {
 			// when
 			err := testableCompareWithGolden(false, f, dummy, uuidAgnostic)
 			// then
-			require.NotNil(t, err)
+			require.Error(t, err)
 			_, isPathError := errs.Cause(err).(*os.PathError)
 			require.True(t, isPathError)
 		})
@@ -257,7 +257,7 @@ func TestCompareWithGolden(t *testing.T) {
 			// when
 			err := testableCompareWithGolden(true, f, dummy, uuidAgnostic)
 			// then
-			require.NotNil(t, err)
+			require.Error(t, err)
 			_, isPathError := errs.Cause(err).(*os.PathError)
 			require.True(t, isPathError)
 		})
@@ -267,7 +267,7 @@ func TestCompareWithGolden(t *testing.T) {
 			// when
 			err := testableCompareWithGolden(false, f, dummy, uuidAgnostic)
 			// then
-			require.NotNil(t, err)
+			require.Error(t, err)
 			_, isPathError := errs.Cause(err).(*os.PathError)
 			require.False(t, isPathError)
 		})
@@ -277,12 +277,12 @@ func TestCompareWithGolden(t *testing.T) {
 		// given
 		f := "test-files/dummy.golden.json"
 		bs, err := json.MarshalIndent(dummy, "", "  ")
-		require.Nil(t, err)
+		require.NoError(t, err)
 		err = ioutil.WriteFile(f, bs, os.ModePerm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		defer func() {
 			err := os.Remove(f)
-			require.Nil(t, err)
+			require.NoError(t, err)
 		}()
 
 		t.Run("comparing with the same object", func(t *testing.T) {
@@ -290,13 +290,13 @@ func TestCompareWithGolden(t *testing.T) {
 				// when
 				err = testableCompareWithGolden(false, f, dummy, false)
 				// then
-				require.Nil(t, err)
+				require.NoError(t, err)
 			})
 			t.Run("UUID agnostic", func(t *testing.T) {
 				// when
 				err = testableCompareWithGolden(false, f, dummy, true)
 				// then
-				require.Nil(t, err)
+				require.NoError(t, err)
 			})
 		})
 		t.Run("comparing with the same object but modified its UUID", func(t *testing.T) {
@@ -305,13 +305,13 @@ func TestCompareWithGolden(t *testing.T) {
 				// when
 				err = testableCompareWithGolden(false, f, dummy, false)
 				// then
-				require.NotNil(t, err)
+				require.Error(t, err)
 			})
 			t.Run("UUID agnostic", func(t *testing.T) {
 				// when
 				err = testableCompareWithGolden(false, f, dummy, true)
 				// then
-				require.Nil(t, err)
+				require.NoError(t, err)
 			})
 		})
 	})

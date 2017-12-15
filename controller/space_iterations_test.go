@@ -47,7 +47,7 @@ func (rest *TestSpaceIterationREST) SetupTest() {
 	rest.DBTestSuite.SetupTest()
 	rest.db = gormapplication.NewGormDB(rest.DB)
 	testIdentity, err := testsupport.CreateTestIdentity(rest.DB, "TestSpaceIterationREST user", "test provider")
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	rest.testIdentity = *testIdentity
 	req := &http.Request{Host: "localhost"}
 	params := url.Values{}
@@ -94,7 +94,7 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIteration() {
 		err = iterationRepo.Create(rest.Ctx, rootItr)
 		return err
 	})
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	svc, ctrl := rest.SecuredController()
 	// when
 	_, c := test.CreateSpaceIterationsCreated(rest.T(), svc.Context, svc, ctrl, p.ID, ci)
@@ -130,7 +130,7 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIterationWithOptionalValues
 		}
 		iterationRepo := app.Iterations()
 		err := iterationRepo.Create(rest.Ctx, rootItr)
-		require.Nil(rest.T(), err)
+		require.NoError(rest.T(), err)
 		return nil
 	})
 	svc, ctrl := rest.SecuredController()
@@ -304,7 +304,7 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 				workitem.SystemState:     workitem.SystemStateClosed,
 				workitem.SystemIteration: iteration1.ID.String(),
 			}, rest.testIdentity.ID)
-		require.Nil(rest.T(), err)
+		require.NoError(rest.T(), err)
 	}
 	// add items to nested iteration level 1
 	for i := 0; i < 4; i++ {
@@ -315,7 +315,7 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 				workitem.SystemState:     workitem.SystemStateNew,
 				workitem.SystemIteration: childOfIteration2.ID.String(),
 			}, rest.testIdentity.ID)
-		require.Nil(rest.T(), err)
+		require.NoError(rest.T(), err)
 	}
 	// add items to nested iteration level 2
 	for i := 0; i < 5; i++ {
@@ -326,7 +326,7 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 				workitem.SystemState:     workitem.SystemStateClosed,
 				workitem.SystemIteration: grandChildOfIteration2.ID.String(),
 			}, rest.testIdentity.ID)
-		require.Nil(rest.T(), err)
+		require.NoError(rest.T(), err)
 	}
 
 	svc, ctrl := rest.UnSecuredController()
@@ -367,7 +367,7 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 				workitem.SystemState:     workitem.SystemStateNew,
 				workitem.SystemIteration: iteration2.ID.String(),
 			}, rest.testIdentity.ID)
-		require.Nil(rest.T(), err)
+		require.NoError(rest.T(), err)
 	}
 	// seed 2 Closed WI to iteration2
 	for i := 0; i < 3; i++ {
@@ -378,7 +378,7 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 				workitem.SystemState:     workitem.SystemStateClosed,
 				workitem.SystemIteration: iteration2.ID.String(),
 			}, rest.testIdentity.ID)
-		require.Nil(rest.T(), err)
+		require.NoError(rest.T(), err)
 	}
 	// when
 	_, cs = test.ListSpaceIterationsOK(rest.T(), svc.Context, svc, ctrl, spaceInstance.ID, nil, nil)
@@ -419,7 +419,7 @@ func (rest *TestSpaceIterationREST) TestOnlySpaceOwnerCreateIteration() {
 		Username:     "space-owner-identity",
 		ProviderType: account.KeycloakIDP}
 	errInCreateOwner := identityRepo.Create(rest.Ctx, spaceOwner)
-	require.Nil(rest.T(), errInCreateOwner)
+	require.NoError(rest.T(), errInCreateOwner)
 
 	ci := createSpaceIteration("Sprint #21", nil)
 	err := application.Transactional(rest.db, func(app application.Application) error {
@@ -442,10 +442,10 @@ func (rest *TestSpaceIterationREST) TestOnlySpaceOwnerCreateIteration() {
 		err = iterationRepo.Create(rest.Ctx, rootItr)
 		return err
 	})
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 
 	spaceOwner, errInLoad := identityRepo.Load(rest.Ctx, p.OwnerID)
-	require.Nil(rest.T(), errInLoad)
+	require.NoError(rest.T(), errInLoad)
 
 	svc, ctrl := rest.SecuredControllerWithIdentity(spaceOwner)
 
@@ -465,7 +465,7 @@ func (rest *TestSpaceIterationREST) TestOnlySpaceOwnerCreateIteration() {
 		Username:     "non-space-owner-identity",
 		ProviderType: account.KeycloakIDP}
 	errInCreateOther := identityRepo.Create(rest.Ctx, otherIdentity)
-	require.Nil(rest.T(), errInCreateOther)
+	require.NoError(rest.T(), errInCreateOther)
 
 	svc, ctrl = rest.SecuredControllerWithIdentity(otherIdentity)
 	test.CreateSpaceIterationsForbidden(rest.T(), svc.Context, svc, ctrl, p.ID, ci)
@@ -535,7 +535,7 @@ func (rest *TestSpaceIterationREST) createIterations() (spaceID uuid.UUID, fathe
 
 		return nil
 	})
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	return
 }
 

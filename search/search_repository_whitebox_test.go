@@ -74,7 +74,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearch() {
 			spaceID := fxt.Spaces[0].ID.String()
 			searchResults, _, err := s.sr.SearchFullText(context.Background(), searchQuery, &start, &limit, &spaceID)
 			// then
-			require.Nil(t, err)
+			require.NoError(t, err)
 			verify(t, searchQuery, searchResults, 1)
 		})
 
@@ -91,7 +91,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearch() {
 			spaceID := fxt.Spaces[0].ID.String()
 			searchResults, _, err := s.sr.SearchFullText(context.Background(), searchQuery, &start, &limit, &spaceID)
 			// then
-			require.Nil(t, err)
+			require.NoError(t, err)
 			verify(t, searchQuery, searchResults, 1)
 		})
 
@@ -109,7 +109,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearch() {
 			spaceID := fxt.Spaces[0].ID.String()
 			searchResults, _, err := s.sr.SearchFullText(context.Background(), searchQuery, &start, &limit, &spaceID)
 			// then
-			require.Nil(t, err)
+			require.NoError(t, err)
 			verify(t, searchQuery, searchResults, 1)
 		})
 
@@ -126,7 +126,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearch() {
 			spaceID := fxt.Spaces[0].ID.String()
 			searchResults, _, err := s.sr.SearchFullText(context.Background(), searchQuery, &start, &limit, &spaceID)
 			// then
-			require.Nil(t, err)
+			require.NoError(t, err)
 			verify(t, searchQuery, searchResults, 1)
 
 		})
@@ -144,7 +144,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearch() {
 			spaceID := fxt.Spaces[0].ID.String()
 			searchResults, _, err := s.sr.SearchFullText(context.Background(), searchQuery, &start, &limit, &spaceID)
 			// then
-			require.Nil(t, err)
+			require.NoError(t, err)
 			verify(t, searchQuery, searchResults, 1)
 
 		})
@@ -162,7 +162,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearch() {
 			spaceID := fxt.Spaces[0].ID.String()
 			searchResults, _, err := s.sr.SearchFullText(context.Background(), searchQuery, &start, &limit, &spaceID)
 			// then
-			require.Nil(t, err)
+			require.NoError(t, err)
 			verify(t, searchQuery, searchResults, 0)
 		})
 	})
@@ -179,7 +179,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearch() {
 				searchQuery := fmt.Sprintf("number:%d", queryNumber)
 				searchResults, _, err := s.sr.SearchFullText(context.Background(), searchQuery, &start, &limit, &spaceID)
 				// then there should be a single match
-				require.Nil(t, err)
+				require.NoError(t, err)
 				require.Len(t, searchResults, 1)
 				assert.Equal(t, queryNumber, searchResults[0].Number)
 			})
@@ -191,7 +191,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearch() {
 				searchQuery := fmt.Sprintf("number:%d", queryNumber)
 				searchResults, _, err := s.sr.SearchFullText(context.Background(), searchQuery, &start, &limit, &spaceID)
 				// then there should be 2 matches: `1` and `10`
-				require.Nil(t, err)
+				require.NoError(t, err)
 				require.Len(t, searchResults, 2)
 				for _, searchResult := range searchResults {
 					// verifies that the number in the search result contains the query number
@@ -205,7 +205,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearch() {
 				// when
 				workItemList, _, err := s.sr.SearchFullText(context.Background(), searchString, &start, &limit, &spaceID)
 				// then
-				require.Nil(t, err)
+				require.NoError(t, err)
 				require.Len(t, workItemList, 0)
 			})
 		})
@@ -216,7 +216,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearch() {
 				// when
 				workItemList, _, err := s.sr.SearchFullText(context.Background(), searchString, &start, &limit, nil)
 				// then
-				require.Nil(t, err)
+				require.NoError(t, err)
 				require.True(t, len(workItemList) >= 1, "at least one work item should be found for the given work item number")
 				var found bool
 				for _, wi := range workItemList {
@@ -233,7 +233,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearch() {
 				// when
 				workItemList, _, err := s.sr.SearchFullText(context.Background(), searchString, &start, &limit, nil)
 				// then
-				require.Nil(t, err)
+				require.NoError(t, err)
 				require.Len(t, workItemList, 0)
 			})
 		})
@@ -254,7 +254,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearch() {
 			spaceID := fxt.Spaces[0].ID.String()
 			searchResults, _, err := s.sr.SearchFullText(context.Background(), searchQuery, &start, &limit, &spaceID)
 			// then
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.Len(t, searchResults, 1)
 			assert.Equal(t, queryNumber, searchResults[0].Number)
 		})
@@ -273,7 +273,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearch() {
 			spaceID := fxt.Spaces[0].ID.String()
 			searchResults, _, err := s.sr.SearchFullText(context.Background(), searchQuery, &start, &limit, &spaceID)
 			// then
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.Len(t, searchResults, 2)
 			for _, searchResult := range searchResults {
 				// verifies that the number in the search result contains the query number
@@ -662,9 +662,9 @@ func TestHandleWitGroup(t *testing.T) {
 			exp := []criteria.Expression{}
 			err := handleWitGroup(Query{Name: d.Name, Value: &d.Value, Negate: d.Negate}, &exp)
 			if d.ExpectError {
-				require.NotNil(t, err)
+				require.Error(t, err)
 			} else {
-				require.Nil(t, err)
+				require.NoError(t, err)
 			}
 			require.Equal(t, exp, d.ExpectedExrpessions)
 		})
@@ -677,7 +677,7 @@ func TestHandleWitGroup(t *testing.T) {
 		// when
 		err := handleWitGroup(Query{Name: WITGROUP, Value: v}, &exp)
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 	})
 	t.Run("expression array is nil", func(t *testing.T) {
 		// given
@@ -686,6 +686,6 @@ func TestHandleWitGroup(t *testing.T) {
 		// when
 		err := handleWitGroup(Query{Name: WITGROUP, Value: &v}, exp)
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 	})
 }

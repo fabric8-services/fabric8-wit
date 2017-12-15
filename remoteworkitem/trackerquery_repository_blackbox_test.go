@@ -35,7 +35,7 @@ func (s *trackerQueryRepoBlackBoxTest) TestFailDeleteZeroID() {
 		"project = ARQ AND text ~ 'arquillian'",
 		"15 * * * * *",
 		fxt.Trackers[0].ID, fxt.Spaces[0].ID)
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 
 	err = s.repo.Delete(s.Ctx, "0")
 	require.IsType(s.T(), remoteworkitem.NotFoundError{}, err)
@@ -50,7 +50,7 @@ func (s *trackerQueryRepoBlackBoxTest) TestFailSaveZeroID() {
 		"project = ARQ AND text ~ 'arquillian'",
 		"15 * * * * *",
 		fxt.Trackers[0].ID, fxt.Spaces[0].ID)
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	tq.ID = "0"
 
 	_, err = s.repo.Save(s.Ctx, *tq)
@@ -66,7 +66,7 @@ func (s *trackerQueryRepoBlackBoxTest) TestFaiLoadZeroID() {
 		"project = ARQ AND text ~ 'arquillian'",
 		"15 * * * * *",
 		fxt.Trackers[0].ID, fxt.Spaces[0].ID)
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 
 	_, err = s.repo.Load(s.Ctx, "0")
 	require.IsType(s.T(), remoteworkitem.NotFoundError{}, err)

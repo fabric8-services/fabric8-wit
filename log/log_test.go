@@ -7,6 +7,7 @@ import (
 
 	logrus "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func LogAndAssertJSON(t *testing.T, log func(), assertions func(fields logrus.Fields)) {
@@ -19,7 +20,7 @@ func LogAndAssertJSON(t *testing.T, log func(), assertions func(fields logrus.Fi
 	log()
 
 	err := json.Unmarshal(buffer.Bytes(), &fields)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 
 	assertions(fields)
 }
