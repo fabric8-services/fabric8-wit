@@ -280,11 +280,10 @@ func TestParseMap(t *testing.T) {
 		err := json.Unmarshal([]byte(input), &fm)
 		require.Nil(t, err)
 		// when
-		actualQuery := Query{}
-		parseOptions(fm, &actualQuery)
+		actualOptions := parseOptions(fm)
 		// then
-		expectedQuery := Query{Options: &QueryOptions{ParentExists: true, TreeView: true}}
-		assert.Equal(t, expectedQuery, actualQuery)
+		expectedOptions := &QueryOptions{ParentExists: true, TreeView: true}
+		assert.Equal(t, expectedOptions, actualOptions)
 	})
 	t.Run(OPTS+" complex query", func(t *testing.T) {
 		t.Parallel()
@@ -295,8 +294,9 @@ func TestParseMap(t *testing.T) {
 		err := json.Unmarshal([]byte(input), &fm)
 		require.Nil(t, err)
 		// when
-		actualQuery := Query{}
-		parseOptions(fm, &actualQuery)
+		options := parseOptions(fm)
+		actualQuery := Query{Options: options}
+
 		// then
 		expectedQuery := Query{Options: &QueryOptions{ParentExists: true, TreeView: true}}
 		assert.Equal(t, expectedQuery, actualQuery)

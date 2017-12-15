@@ -314,7 +314,7 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 	}
 }
 
-func parseOptions(queryMap map[string]interface{}, q *Query) {
+func parseOptions(queryMap map[string]interface{}) *QueryOptions {
 	for key, val := range queryMap {
 		if ifArr, ok := val.(map[string]interface{}); key == OPTS && ok {
 			options := QueryOptions{}
@@ -326,10 +326,10 @@ func parseOptions(queryMap map[string]interface{}, q *Query) {
 					options.TreeView = v.(bool)
 				}
 			}
-			q.Options = &options
+			return &options
 		}
-
 	}
+	return nil
 }
 
 func parseArray(anArray []interface{}, l *[]Query) {
@@ -573,9 +573,7 @@ func parseFilterString(ctx context.Context, rawSearchString string) (criteria.Ex
 	q := Query{}
 	parseMap(fm, &q)
 
-	q2 := Query{}
-	parseOptions(fm, &q2)
-	q.Options = q2.Options
+	q.Options = parseOptions(fm)
 
 	exp, err := q.generateExpression()
 	return exp, q.Options, err
