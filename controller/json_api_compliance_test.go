@@ -34,7 +34,7 @@ func TestJSONAPICompliance(t *testing.T) {
 func (s *JSONComplianceTestSuite) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
 	schemaLocation, err := filepath.Abs("./test-files/json_api_schema/json_api_schema.json")
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	schemaLoader := gojsonschema.NewReferenceLoader(fmt.Sprintf("file://%s", schemaLocation))
 	schema, err := gojsonschema.NewSchema(schemaLoader)
 	if err != nil {
@@ -46,12 +46,12 @@ func (s *JSONComplianceTestSuite) SetupSuite() {
 
 func (s *JSONComplianceTestSuite) Validate(response interface{}) {
 	marshalledResponse, err := json.MarshalIndent(response, "", "  ")
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	s.T().Logf("JSON response:\n%s\n", string(marshalledResponse))
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	documentLoader := gojsonschema.NewBytesLoader(marshalledResponse)
 	result, err := s.jsonapiSchema.Validate(documentLoader)
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	if result.Valid() {
 		s.T().Logf("The document is valid\n")
 	} else {

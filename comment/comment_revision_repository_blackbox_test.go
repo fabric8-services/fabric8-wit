@@ -33,19 +33,19 @@ func (s *revisionRepositoryBlackBoxTest) TestStoreCommentRevisions() {
 	c.Body = "Updated body"
 	c.Markup = rendering.SystemMarkupPlainText
 	err := repository.Save(context.Background(), &c, fxt.Identities[1].ID)
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	// modify again the comment
 	c.Body = "Updated body2"
 	c.Markup = rendering.SystemMarkupMarkdown
 	err = repository.Save(context.Background(), &c, fxt.Identities[1].ID)
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	// delete the comment
 	err = repository.Delete(context.Background(), c.ID, fxt.Identities[2].ID)
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	// when
 	commentRevisions, err := revisionRepository.List(context.Background(), c.ID)
 	// then
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	require.Len(s.T(), commentRevisions, 4)
 	// revision 1
 	revision1 := commentRevisions[0]

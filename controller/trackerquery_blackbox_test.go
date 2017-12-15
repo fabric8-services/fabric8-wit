@@ -56,7 +56,7 @@ func (rest *TestTrackerQueryREST) UnSecuredController() (*goa.Service, *TrackerC
 func getTrackerQueryTestData(t *testing.T) []testSecureAPI {
 	privatekey := testtoken.PrivateKey()
 	differentPrivatekey, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSADifferentPrivateKeyTest)))
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	createTrackerQueryPayload := bytes.NewBuffer([]byte(`{"type": "github", "url": "https://api.github.com/"}`))
 

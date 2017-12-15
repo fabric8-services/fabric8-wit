@@ -26,13 +26,13 @@ type testFixtureSuite struct {
 func (s *testFixtureSuite) TestNewFixture_Advanced() {
 	s.T().Run("implicitly created entities", func(t *testing.T) {
 		c, err := tf.NewFixture(s.DB, tf.WorkItems(2))
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Nil(t, c.Check())
 	})
 	s.T().Run("explicitly create entities", func(t *testing.T) {
 		// given
 		c, err := tf.NewFixture(s.DB, tf.WorkItems(2))
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Nil(t, c.Check())
 
 		// manually use values from previous fixture over fields from first fixture
@@ -42,7 +42,7 @@ func (s *testFixtureSuite) TestNewFixture_Advanced() {
 			fxt.WorkItems[idx].Fields[workitem.SystemCreator] = c.Identities[0].ID.String()
 			return nil
 		}))
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Nil(t, c1.Check())
 	})
 	s.T().Run("create 100 comments by 100 authors on 1 workitem", func(t *testing.T) {
@@ -50,17 +50,17 @@ func (s *testFixtureSuite) TestNewFixture_Advanced() {
 			fxt.Comments[idx].Creator = fxt.Identities[idx].ID
 			return nil
 		}))
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Nil(t, c.Check())
 	})
 	s.T().Run("create 10 links between 20 work items with a network topology link type", func(t *testing.T) {
 		c, err := tf.NewFixture(s.DB, tf.WorkItemLinks(10), tf.WorkItemLinkTypes(1, tf.SetTopologies(link.TopologyNetwork)))
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Nil(t, c.Check())
 	})
 	s.T().Run("test CreateWorkItemEnvironment error", func(t *testing.T) {
 		c, err := tf.NewFixture(s.DB, tf.CreateWorkItemEnvironment(), tf.Spaces(2))
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.Nil(t, c)
 	})
 }
@@ -78,7 +78,7 @@ func checkNewFixture(t *testing.T, db *gorm.DB, n int, isolated bool) {
 	// and a valid fixture
 	fxtCtor := tf.NewFixture
 	checkCtorErrFunc := func(t *testing.T, err error) {
-		require.Nil(t, err)
+		require.NoError(t, err)
 	}
 	checkFunc := func(t *testing.T, fxt *tf.TestFixture) {
 		require.NotNil(t, fxt)
@@ -90,7 +90,7 @@ func checkNewFixture(t *testing.T, db *gorm.DB, n int, isolated bool) {
 	if isolated {
 		fxtCtor = tf.NewFixtureIsolated
 		checkCtorErrFunc = func(t *testing.T, err error) {
-			require.NotNil(t, err)
+			require.Error(t, err)
 		}
 		checkFunc = func(t *testing.T, fxt *tf.TestFixture) {
 			require.Nil(t, fxt)
@@ -103,7 +103,7 @@ func checkNewFixture(t *testing.T, db *gorm.DB, n int, isolated bool) {
 		// given
 		c, err := fxtCtor(db, tf.Identities(n))
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Nil(t, c.Check())
 		// manual checking
 		require.Len(t, c.Identities, n)
@@ -112,7 +112,7 @@ func checkNewFixture(t *testing.T, db *gorm.DB, n int, isolated bool) {
 		// given
 		c, err := fxtCtor(db, tf.WorkItemLinkCategories(n))
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Nil(t, c.Check())
 		// manual checking
 		require.Len(t, c.WorkItemLinkCategories, n)
@@ -268,7 +268,7 @@ func (s *testFixtureSuite) TestWorkItemLinks() {
 			fxt, err := tf.NewFixture(s.DB, tf.WorkItemLinksCustom(3))
 			// then we expect an error because you're supposed to create work items
 			// yourself and link them on your own when using the custom method
-			require.NotNil(t, err)
+			require.Error(t, err)
 			require.Nil(t, fxt)
 		})
 		t.Run("missing link setup", func(t *testing.T) {
@@ -276,7 +276,7 @@ func (s *testFixtureSuite) TestWorkItemLinks() {
 			fxt, err := tf.NewFixture(s.DB, tf.WorkItemLinksCustom(3), tf.WorkItems(3))
 			// then we expect an error because you're supposed to setup links
 			// yourself when using the custom method
-			require.NotNil(t, err)
+			require.Error(t, err)
 			require.Nil(t, fxt)
 		})
 		t.Run("ok", func(t *testing.T) {
@@ -298,7 +298,7 @@ func (s *testFixtureSuite) TestWorkItemLinks() {
 			)
 			// then we expect an error because you're supposed to setup links
 			// yourself when using the custom method
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.NotNil(t, fxt)
 			require.Len(t, fxt.WorkItemLinks, 2)
 			require.Len(t, fxt.WorkItems, 3)
@@ -323,7 +323,7 @@ func (s *testFixtureSuite) TestWorkItemLinks() {
 			)
 			// then we expect an error because you're supposed to mix
 			// WorkItemLinks and WorkItemLinksCustom
-			require.NotNil(t, err)
+			require.Error(t, err)
 			require.Nil(t, fxt)
 		})
 		t.Run("mixture not allowed (normal second)", func(t *testing.T) {
@@ -346,7 +346,7 @@ func (s *testFixtureSuite) TestWorkItemLinks() {
 			)
 			// then we expect an error because you're supposed to mix
 			// WorkItemLinks and WorkItemLinksCustom
-			require.NotNil(t, err)
+			require.Error(t, err)
 			require.Nil(t, fxt)
 		})
 	})

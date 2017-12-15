@@ -54,7 +54,7 @@ func (s *linkRepoBlackBoxTest) TestList() {
 		offset := 0
 		limit := 1
 		res, count, err := s.workitemLinkRepo.ListWorkItemChildren(s.Ctx, fxt.WorkItems[0].ID, &offset, &limit)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Len(t, res, 1)
 		require.Equal(t, 3, int(count))
 	})
@@ -78,12 +78,12 @@ func (s *linkRepoBlackBoxTest) TestWorkItemHasChildren() {
 
 		// when this work item link is deleted
 		err := s.workitemLinkRepo.Delete(s.Ctx, fxt.WorkItemLinks[0].ID, fxt.Identities[0].ID)
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		// then it must not have any child
 		hasChildren, err := s.workitemLinkRepo.WorkItemHasChildren(s.Ctx, fxt.WorkItems[0].ID)
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.False(t, hasChildren)
 	})
 }
@@ -113,32 +113,32 @@ func (s *linkRepoBlackBoxTest) TestValidateTopology() {
 		// when
 		err := s.workitemLinkRepo.ValidateTopology(s.Ctx, nil, fxt.WorkItemByTitle("someWorkItem").ID, *fxt.WorkItemLinkTypeByName("tree-type"))
 		// then: there must be no error because no link exists
-		require.Nil(t, err)
+		require.NoError(t, err)
 	})
 
 	s.T().Run("ok - link exists but ignored", func(t *testing.T) {
 		err := s.workitemLinkRepo.ValidateTopology(s.Ctx, &fxt.WorkItemByTitle("parent").ID, fxt.WorkItemByTitle("child").ID, *fxt.WorkItemLinkTypeByName("tree-type"))
 		// then: there must be no error because the existing link was ignored
-		require.Nil(t, err)
+		require.NoError(t, err)
 	})
 
 	s.T().Run("ok - no link with same type", func(t *testing.T) {
 		// when using another link type to validate
 		err := s.workitemLinkRepo.ValidateTopology(s.Ctx, nil, fxt.WorkItemByTitle("child").ID, *fxt.WorkItemLinkTypeByName("another-type"))
 		// then: there must be no error because no link of the same type exists
-		require.Nil(t, err)
+		require.NoError(t, err)
 	})
 
 	s.T().Run("fail - link exists", func(t *testing.T) {
 		err := s.workitemLinkRepo.ValidateTopology(s.Ctx, nil, fxt.WorkItemByTitle("child").ID, *fxt.WorkItemLinkTypeByName("tree-type"))
 		// then: there must be an error because a link of the same type already exists
-		require.NotNil(t, err)
+		require.Error(t, err)
 	})
 
 	s.T().Run("fail - another link exists", func(t *testing.T) {
 		err := s.workitemLinkRepo.ValidateTopology(s.Ctx, &fxt.WorkItemByTitle("another-item").ID, fxt.WorkItemByTitle("child").ID, *fxt.WorkItemLinkTypeByName("tree-type"))
 		// then: there must be an error because a link of the same type already exists with another parent
-		require.NotNil(t, err)
+		require.Error(t, err)
 	})
 }
 
@@ -152,7 +152,7 @@ func (s *linkRepoBlackBoxTest) TestCreate() {
 		// when
 		_, err := s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("parent").ID, fxt.WorkItemByTitle("child").ID, fxt.WorkItemLinkTypeByName("tree-type").ID, fxt.Identities[0].ID)
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 	})
 
 	s.T().Run("fail - other parent-child-link exists", func(t *testing.T) {
@@ -172,7 +172,7 @@ func (s *linkRepoBlackBoxTest) TestCreate() {
 		// when try to link parent#2 to child
 		_, err := s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("another-item").ID, fxt.WorkItemByTitle("child").ID, fxt.WorkItemLinkTypeByName("tree-type").ID, fxt.Identities[0].ID)
 		// then expect an error because a parent/link relation already exists with the child item
-		require.NotNil(t, err)
+		require.Error(t, err)
 	})
 
 	s.T().Run("fail - multiple parents with tree-topology-based link type", func(t *testing.T) {
@@ -184,11 +184,11 @@ func (s *linkRepoBlackBoxTest) TestCreate() {
 		// when creating link between "parent1" and "child"
 		_, err := s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("parent1").ID, fxt.WorkItemByTitle("child").ID, fxt.WorkItemLinkTypeByName("tree-type").ID, fxt.Identities[0].ID)
 		// then it works
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// when creating link between "parent2" and "child"
 		_, err = s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("parent2").ID, fxt.WorkItemByTitle("child").ID, fxt.WorkItemLinkTypeByName("tree-type").ID, fxt.Identities[0].ID)
 		// then we expect an error because "child" is already a child of "parent1"
-		require.NotNil(t, err)
+		require.Error(t, err)
 	})
 
 	s.T().Run("cycle detection (tree topology)", func(t *testing.T) {
@@ -245,7 +245,7 @@ func (s *linkRepoBlackBoxTest) TestSave() {
 	s.T().Run("ok", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemLinks(1))
 		_, err := s.workitemLinkRepo.Save(s.Ctx, *fxt.WorkItemLinks[0], fxt.Identities[0].ID)
-		require.Nil(t, err)
+		require.NoError(t, err)
 	})
 }
 
@@ -253,7 +253,7 @@ func (s *linkRepoBlackBoxTest) TestExistsLink() {
 	s.T().Run("link exists", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemLinks(1))
 		err := s.workitemLinkRepo.CheckExists(s.Ctx, fxt.WorkItemLinks[0].ID.String())
-		require.Nil(t, err)
+		require.NoError(t, err)
 	})
 
 	s.T().Run("link doesn't exist", func(t *testing.T) {
@@ -269,7 +269,7 @@ func (s *linkRepoBlackBoxTest) TestGetParentID() {
 		return nil
 	}))
 	parentID, err := s.workitemLinkRepo.GetParentID(s.Ctx, fixtures.WorkItems[1].ID)
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	assert.Equal(s.T(), fixtures.WorkItems[0].ID, *parentID)
 }
 
@@ -280,7 +280,7 @@ func (s *linkRepoBlackBoxTest) TestGetParentIDNotExist() {
 		return nil
 	}))
 	parentID, err := s.workitemLinkRepo.GetParentID(s.Ctx, fixtures.WorkItems[0].ID)
-	require.NotNil(s.T(), err)
+	require.Error(s.T(), err)
 	assert.Nil(s.T(), parentID)
 }
 
