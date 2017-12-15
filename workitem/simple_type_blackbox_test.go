@@ -7,6 +7,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/resource"
 	. "github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSimpleTypeEqual(t *testing.T) {

@@ -8,9 +8,9 @@ import (
 
 	config "github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/stretchr/testify/require"
 
 	_ "github.com/lib/pq"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestConcurrentMigrations(t *testing.T) {

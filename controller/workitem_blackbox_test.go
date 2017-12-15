@@ -383,9 +383,9 @@ func (s *WorkItemSuite) TestReorderWorkitemConflict() {
 	payload2.Position.ID = result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
 	payload2.Position.Direction = string(workitem.DirectionAbove)
 
-	_, err := test.ReorderWorkitemsConflict(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, &payload2) // Returns the workitems which are reordered
+	_, jerrs := test.ReorderWorkitemsConflict(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, &payload2) // Returns the workitems which are reordered
 
-	require.Error(s.T(), err)
+	require.NotNil(s.T(), jerrs)
 }
 
 // TestReorderBelow is positive test which tests successful reorder by providing valid input
