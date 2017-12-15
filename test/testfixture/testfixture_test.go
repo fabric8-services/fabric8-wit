@@ -253,3 +253,101 @@ func checkNewFixture(t *testing.T, db *gorm.DB, n int, isolated bool) {
 		}
 	})
 }
+
+func (s *testFixtureSuite) TestWorkItemLinks() {
+	s.T().Run("standard", func(t *testing.T) {
+		// when
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemLinks(3))
+		// then
+		require.Len(t, fxt.WorkItemLinks, 3)
+		require.Len(t, fxt.WorkItems, 6)
+	})
+	s.T().Run("custom", func(t *testing.T) {
+		t.Run("missing work items and link setup", func(t *testing.T) {
+			// when
+			fxt, err := tf.NewFixture(s.DB, tf.WorkItemLinksCustom(3))
+			// then we expect an error because you're supposed to create work items
+			// yourself and link them on your own when using the custom method
+			require.NotNil(t, err)
+			require.Nil(t, fxt)
+		})
+		t.Run("missing link setup", func(t *testing.T) {
+			// when
+			fxt, err := tf.NewFixture(s.DB, tf.WorkItemLinksCustom(3), tf.WorkItems(3))
+			// then we expect an error because you're supposed to setup links
+			// yourself when using the custom method
+			require.NotNil(t, err)
+			require.Nil(t, fxt)
+		})
+		t.Run("ok", func(t *testing.T) {
+			// when
+			fxt, err := tf.NewFixture(s.DB,
+				tf.WorkItems(3),
+				tf.WorkItemLinksCustom(2, func(fxt *tf.TestFixture, idx int) error {
+					l := fxt.WorkItemLinks[idx]
+					switch idx {
+					case 0:
+						l.SourceID = fxt.WorkItems[0].ID
+						l.TargetID = fxt.WorkItems[1].ID
+					case 1:
+						l.SourceID = fxt.WorkItems[1].ID
+						l.TargetID = fxt.WorkItems[2].ID
+					}
+					return nil
+				}),
+			)
+			// then we expect an error because you're supposed to setup links
+			// yourself when using the custom method
+			require.Nil(t, err)
+			require.NotNil(t, fxt)
+			require.Len(t, fxt.WorkItemLinks, 2)
+			require.Len(t, fxt.WorkItems, 3)
+		})
+		t.Run("mixture not allowed (normal first)", func(t *testing.T) {
+			// when
+			fxt, err := tf.NewFixture(s.DB,
+				tf.WorkItems(3),
+				tf.WorkItemLinks(1),
+				tf.WorkItemLinksCustom(2, func(fxt *tf.TestFixture, idx int) error {
+					l := fxt.WorkItemLinks[idx]
+					switch idx {
+					case 0:
+						l.SourceID = fxt.WorkItems[0].ID
+						l.TargetID = fxt.WorkItems[1].ID
+					case 1:
+						l.SourceID = fxt.WorkItems[1].ID
+						l.TargetID = fxt.WorkItems[2].ID
+					}
+					return nil
+				}),
+			)
+			// then we expect an error because you're supposed to mix
+			// WorkItemLinks and WorkItemLinksCustom
+			require.NotNil(t, err)
+			require.Nil(t, fxt)
+		})
+		t.Run("mixture not allowed (normal second)", func(t *testing.T) {
+			// when
+			fxt, err := tf.NewFixture(s.DB,
+				tf.WorkItems(3),
+				tf.WorkItemLinksCustom(2, func(fxt *tf.TestFixture, idx int) error {
+					l := fxt.WorkItemLinks[idx]
+					switch idx {
+					case 0:
+						l.SourceID = fxt.WorkItems[0].ID
+						l.TargetID = fxt.WorkItems[1].ID
+					case 1:
+						l.SourceID = fxt.WorkItems[1].ID
+						l.TargetID = fxt.WorkItems[2].ID
+					}
+					return nil
+				}),
+				tf.WorkItemLinks(1),
+			)
+			// then we expect an error because you're supposed to mix
+			// WorkItemLinks and WorkItemLinksCustom
+			require.NotNil(t, err)
+			require.Nil(t, fxt)
+		})
+	})
+}
