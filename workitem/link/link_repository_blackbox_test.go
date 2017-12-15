@@ -190,6 +190,68 @@ func (s *linkRepoBlackBoxTest) TestCreate() {
 		// then we expect an error because "child" is already a child of "parent1"
 		require.NotNil(t, err)
 	})
+
+	s.T().Run("cycle detection (tree topology)", func(t *testing.T) {
+		t.Run("child first then adding as root", func(t *testing.T) {
+			// given
+			fxt := tf.NewTestFixture(t, s.DB,
+				tf.WorkItems(3, tf.SetWorkItemTitles("scenario", "experience", "feature")),
+				tf.WorkItemLinkTypes(1, tf.SetTopologies(link.TopologyTree)),
+				tf.WorkItemLinks(2, func(fxt *tf.TestFixture, idx int) error {
+					l := fxt.WorkItemLinks[idx]
+					switch idx {
+					case 0:
+						l.SourceID = fxt.WorkItemByTitle("scenario").ID
+						l.TargetID = fxt.WorkItemByTitle("experience").ID
+					case 1:
+						l.SourceID = fxt.WorkItemByTitle("experience").ID
+						l.TargetID = fxt.WorkItemByTitle("feature").ID
+					}
+					return nil
+				}),
+			)
+			// when
+			_, err := s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("feature").ID, fxt.WorkItemByTitle("scenario").ID, fxt.WorkItemLinkTypes[0].ID, fxt.Identities[0].ID)
+			// then
+			require.Error(t, err)
+		})
+		t.Run("root first then adding as child", func(t *testing.T) {
+			// given
+			fxt := tf.NewTestFixture(t, s.DB,
+				tf.WorkItems(3, tf.SetWorkItemTitles("scenario", "experience", "feature")),
+				tf.WorkItemLinkTypes(1, tf.SetTopologies(link.TopologyTree)),
+				tf.WorkItemLinks(2, func(fxt *tf.TestFixture, idx int) error {
+					l := fxt.WorkItemLinks[idx]
+					switch idx {
+					case 0:
+						l.SourceID = fxt.WorkItemByTitle("scenario").ID
+						l.TargetID = fxt.WorkItemByTitle("experience").ID
+					case 1:
+						l.SourceID = fxt.WorkItemByTitle("experience").ID
+						l.TargetID = fxt.WorkItemByTitle("feature").ID
+					}
+					return nil
+				}),
+			)
+			// when
+			_, err := s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("feature").ID, fxt.WorkItemByTitle("scenario").ID, fxt.WorkItemLinkTypes[0].ID, fxt.Identities[0].ID)
+			// then
+			require.Error(t, err)
+		})
+		// // given
+		// fxt := tf.NewTestFixture(t, s.DB,
+		// 	tf.WorkItems(3, tf.SetWorkItemTitles("parent1", "parent2", "child")),
+		// 	tf.WorkItemLinkTypes(1, tf.SetTopologies(link.TopologyTree), tf.SetWorkItemLinkTypeNames("tree-type")),
+		// )
+		// // when creating link between "parent1" and "child"
+		// _, err := s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("parent1").ID, fxt.WorkItemByTitle("child").ID, fxt.WorkItemLinkTypeByName("tree-type").ID, fxt.Identities[0].ID)
+		// // then it works
+		// require.NoError(t, err)
+		// // when creating link between "parent2" and "child"
+		// _, err = s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("parent2").ID, fxt.WorkItemByTitle("child").ID, fxt.WorkItemLinkTypeByName("tree-type").ID, fxt.Identities[0].ID)
+		// // then we expect an error because "child" is already a child of "parent1"
+		// require.Error(t, err)
+	})
 }
 
 func (s *linkRepoBlackBoxTest) TestSave() {
