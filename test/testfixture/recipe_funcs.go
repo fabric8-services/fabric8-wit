@@ -389,6 +389,10 @@ type CustomizeWorkItemLinkFunc CustomizeEntityFunc
 // same work item.
 func WorkItemLinks(n int, fns ...CustomizeWorkItemLinkFunc) RecipeFunction {
 	return func(fxt *TestFixture) error {
+		fxt.normalLinkCreation = true
+		if fxt.customLinkCreation {
+			return errs.New("When you have WorkItemLinksCustom() in your recipe you may no longer use WorkItemLinks().")
+		}
 		fxt.checkFuncs = append(fxt.checkFuncs, func() error {
 			l := len(fxt.WorkItemLinks)
 			if l < n {
@@ -418,6 +422,9 @@ func WorkItemLinks(n int, fns ...CustomizeWorkItemLinkFunc) RecipeFunction {
 func WorkItemLinksCustom(n int, fns ...CustomizeWorkItemLinkFunc) RecipeFunction {
 	return func(fxt *TestFixture) error {
 		fxt.customLinkCreation = true
+		if fxt.normalLinkCreation {
+			return errs.New("When you have WorkItemLinks() in your recipe you may no longer use WorkItemLinksCustom().")
+		}
 		fxt.checkFuncs = append(fxt.checkFuncs, func() error {
 			l := len(fxt.WorkItemLinks)
 			if l < n {
