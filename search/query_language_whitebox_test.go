@@ -278,7 +278,7 @@ func TestParseMap(t *testing.T) {
 		// Parsing/Unmarshalling JSON encoding/json
 		fm := map[string]interface{}{}
 		err := json.Unmarshal([]byte(input), &fm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// when
 		actualOptions := parseOptions(fm)
 		// then
@@ -292,7 +292,7 @@ func TestParseMap(t *testing.T) {
 		// Parsing/Unmarshalling JSON encoding/json
 		fm := map[string]interface{}{}
 		err := json.Unmarshal([]byte(input), &fm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// when
 		options := parseOptions(fm)
 		actualQuery := Query{Options: options}
