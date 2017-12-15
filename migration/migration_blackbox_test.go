@@ -44,7 +44,7 @@ var (
 func setupTest(t *testing.T) {
 	var err error
 	conf, err = config.Get()
-	require.Nil(t, err, "failed to setup the configuration")
+	require.NoError(t, err, "failed to setup the configuration")
 
 	configurationString := fmt.Sprintf("host=%s port=%d user=%s password=%s sslmode=%s connect_timeout=%d",
 		conf.GetPostgresHost(),
@@ -57,15 +57,15 @@ func setupTest(t *testing.T) {
 
 	db, err := sql.Open("postgres", configurationString)
 	defer db.Close()
-	require.Nil(t, err, "cannot connect to database: %s", databaseName)
+	require.NoError(t, err, "cannot connect to database: %s", databaseName)
 
 	_, err = db.Exec("DROP DATABASE " + databaseName)
 	if err != nil && !gormsupport.IsInvalidCatalogName(err) {
-		require.Nil(t, err, "failed to drop database %s", databaseName)
+		require.NoError(t, err, "failed to drop database %s", databaseName)
 	}
 
 	_, err = db.Exec("CREATE DATABASE " + databaseName)
-	require.Nil(t, err, "failed to create database %s", databaseName)
+	require.NoError(t, err, "failed to create database %s", databaseName)
 	migrations = migration.GetMigrations()
 }
 
@@ -86,11 +86,11 @@ func TestMigrations(t *testing.T) {
 	var err error
 	sqlDB, err = sql.Open("postgres", configurationString)
 	defer sqlDB.Close()
-	require.Nil(t, err, "cannot connect to DB %s", databaseName)
+	require.NoError(t, err, "cannot connect to DB %s", databaseName)
 
 	gormDB, err = gorm.Open("postgres", configurationString)
 	defer gormDB.Close()
-	require.Nil(t, err, "cannot connect to DB %s", databaseName)
+	require.NoError(t, err, "cannot connect to DB %s", databaseName)
 	dialect = gormDB.Dialect()
 	dialect.SetDB(sqlDB)
 
@@ -130,7 +130,7 @@ func TestMigrations(t *testing.T) {
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
-	require.Nil(t, err, "failed to execute database migration")
+	require.NoError(t, err, "failed to execute database migration")
 }
 
 func testMigration44(t *testing.T) {
@@ -139,17 +139,17 @@ func testMigration44(t *testing.T) {
 	for nextVersion := int64(0); nextVersion < int64(len(m)) && err == nil; nextVersion++ {
 		var tx *sql.Tx
 		tx, err = sqlDB.Begin()
-		require.Nil(t, err, "failed to start transaction")
+		require.NoError(t, err, "failed to start transaction")
 
 		if err = migration.MigrateToNextVersion(tx, &nextVersion, m, databaseName); err != nil {
 			t.Errorf("failed to migrate to version %d: %s\n", nextVersion, err)
 			errRollback := tx.Rollback()
-			require.Nil(t, errRollback, "error while rolling back transaction")
-			require.Nil(t, err, "failed to migrate to version after rolling back")
+			require.NoError(t, errRollback, "error while rolling back transaction")
+			require.NoError(t, err, "failed to migrate to version after rolling back")
 		}
 
 		err = tx.Commit()
-		require.Nil(t, err, "error during transaction commit")
+		require.NoError(t, err, "error during transaction commit")
 	}
 }
 
@@ -202,7 +202,7 @@ func testMigration49(t *testing.T) {
 	// Tests that migration 49 set the system.area to the work_items and its value
 	// is 71171e90-6d35-498f-a6a7-2083b5267c18
 	rows, err := sqlDB.Query("SELECT count(*), fields->>'system.area' FROM work_items where fields != '{}' GROUP BY fields")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	defer rows.Close()
 	for rows.Next() {
 		var fields string
@@ -241,7 +241,7 @@ func testMigration53(t *testing.T) {
 
 	// check if ALL the existing rows & new rows have the default value
 	rows, err := sqlDB.Query("SELECT registration_completed FROM identities")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	defer rows.Close()
 	for rows.Next() {
 		var registration_completed bool
@@ -267,7 +267,7 @@ func testMigration55(t *testing.T) {
 	migrateToVersion(t, sqlDB, migrations[:(initialMigratedVersion+11)], (initialMigratedVersion + 11))
 	// and verify that the root area is available
 	rows, err := sqlDB.Query("select fields->>'system.area' from work_items where id = 12345")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	defer rows.Close()
 	for rows.Next() {
 		var rootArea string
@@ -285,7 +285,7 @@ func testMigration56(t *testing.T) {
 	migrateToVersion(t, sqlDB, migrations[:(initialMigratedVersion+12)], (initialMigratedVersion + 12))
 	// and verify that the root area is available
 	rows, err := sqlDB.Query("select fields->>'system.iteration' from work_items where id = 12346")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	defer rows.Close()
 	for rows.Next() {
 		var rootIteration string
@@ -319,7 +319,7 @@ func testMigration61(t *testing.T) {
 	assert.True(t, dialect.HasIndex("spaces", "spaces_name_idx"))
 
 	rows, err := sqlDB.Query("SELECT COUNT(*) FROM spaces WHERE name='test.space.one-renamed'")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	defer rows.Close()
 	for rows.Next() {
 		var count int
@@ -340,32 +340,32 @@ func testMigration63(t *testing.T) {
 	// work item 62001 was commented
 	row := sqlDB.QueryRow("SELECT wi.relationships_changed_at, c.created_at FROM work_items wi left join comments c on c.parent_id::bigint = wi.id where wi.id = 62001")
 	err := row.Scan(&relationshipsChangeddAt, &createdAt)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, relationshipsChangeddAt, createdAt)
 	// work item 62003 was commented, then the comment was (soft) deleted
 	row = sqlDB.QueryRow("SELECT wi.relationships_changed_at, c.deleted_at FROM work_items wi left join comments c on c.parent_id::bigint = wi.id where wi.id = 62003")
 	err = row.Scan(&relationshipsChangeddAt, &deletedAt)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, relationshipsChangeddAt, deletedAt)
 
 	// links
 	// work items 62004 and 62005 were linked together
 	row = sqlDB.QueryRow("SELECT wi.relationships_changed_at, wil.created_at FROM work_items wi left join work_item_links wil on wil.source_id = wi.id where wi.id = 62004")
 	err = row.Scan(&relationshipsChangeddAt, &createdAt)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, relationshipsChangeddAt, createdAt)
 	row = sqlDB.QueryRow("SELECT wi.relationships_changed_at, wil.created_at FROM work_items wi left join work_item_links wil on wil.target_id = wi.id where wi.id = 62005")
 	err = row.Scan(&relationshipsChangeddAt, &createdAt)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, relationshipsChangeddAt, createdAt)
 	// work items 62008 and 62009 were linked together, but then the link was deleted
 	row = sqlDB.QueryRow("SELECT wi.relationships_changed_at, wil.deleted_at FROM work_items wi left join work_item_links wil on wil.source_id = wi.id where wi.id = 62008")
 	err = row.Scan(&relationshipsChangeddAt, &deletedAt)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, relationshipsChangeddAt, deletedAt)
 	row = sqlDB.QueryRow("SELECT wi.relationships_changed_at, wil.deleted_at FROM work_items wi left join work_item_links wil on wil.target_id = wi.id where wi.id = 62009")
 	err = row.Scan(&relationshipsChangeddAt, &deletedAt)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, relationshipsChangeddAt, deletedAt)
 }
 
@@ -382,18 +382,18 @@ func testMigration65(t *testing.T) {
 		CurrentVal int
 	}
 	space1, err := uuid.FromString("11111111-0000-0000-0000-000000000000")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	space2, err := uuid.FromString("22222222-0000-0000-0000-000000000000")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	expectations := make(map[uuid.UUID]int)
 	expectations[space1] = 12348
 	expectations[space2] = 12350
 	for spaceID, expectedCurrentVal := range expectations {
 		var currentVal int
 		stmt, err := sqlDB.Prepare("select current_val from work_item_number_sequences where space_id = $1")
-		require.Nil(t, err)
+		require.NoError(t, err)
 		err = stmt.QueryRow(spaceID.String()).Scan(&currentVal)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, currentVal)
 		assert.Equal(t, expectedCurrentVal, currentVal)
 	}
@@ -408,10 +408,10 @@ func testMigration66(t *testing.T) {
 	var workitemLinkId string
 	// verify that the first record was not removed
 	err := sqlDB.QueryRow("select id from work_item_links where id = '00000066-0000-0000-0000-000000000001'").Scan(&workitemLinkId)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	// verify that the 3 other records where deleted (because of invalid/null data)
 	stmt, err := sqlDB.Prepare("select id from work_item_links where id = $1")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	for _, id := range []string{"00000066-0000-0000-0000-000000000002", "00000066-0000-0000-0000-000000000003", "00000066-0000-0000-0000-000000000004"} {
 		err = stmt.QueryRow(id).Scan(&workitemLinkId)
 		assert.Equal(t, sql.ErrNoRows, err, "link with id='%v' was not removed", id)
@@ -429,14 +429,14 @@ func testMigration67(t *testing.T) {
 	// verify the data
 	var parentID uuid.UUID
 	stmt, err := sqlDB.Prepare("select parent_id from comments where id = $1")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	err = stmt.QueryRow("00000067-0000-0000-0000-000000000000").Scan(&parentID)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, parentID)
 	stmt, err = sqlDB.Prepare("select comment_parent_id from comment_revisions where id = $1")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	err = stmt.QueryRow("00000067-0000-0000-0000-000000000000").Scan(&parentID)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, parentID)
 }
 
@@ -452,57 +452,57 @@ func testMigration71(t *testing.T) {
 
 	// verify work item 1 linked to iteration 1
 	stmt, err := sqlDB.Prepare("select updated_at from work_items where id = $1")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	err = stmt.QueryRow("11111111-7171-0000-0000-000000000000").Scan(&updatedAt)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, updatedAt)
 	stmt, err = sqlDB.Prepare("select relationships_changed_at from iterations where id = $1")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	err = stmt.QueryRow("11111111-7171-0000-0000-000000000000").Scan(&relationshipsChangedAt)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, relationshipsChangedAt)
 	assert.Equal(t, *updatedAt, *relationshipsChangedAt)
 	// verify work item 2 linked to iteration 2 then iteration 3
 	stmt, err = sqlDB.Prepare("select updated_at from work_items where id = $1")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	err = stmt.QueryRow("22222222-7171-0000-0000-000000000000").Scan(&updatedAt)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, updatedAt)
 	stmt, err = sqlDB.Prepare("select relationships_changed_at from iterations where id = $1")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	err = stmt.QueryRow("22222222-7171-0000-0000-000000000000").Scan(&relationshipsChangedAt)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, relationshipsChangedAt)
 	assert.Equal(t, *updatedAt, *relationshipsChangedAt)
 	stmt, err = sqlDB.Prepare("select relationships_changed_at from iterations where id = $1")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	err = stmt.QueryRow("33333333-7171-0000-0000-000000000000").Scan(&relationshipsChangedAt)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, relationshipsChangedAt)
 	assert.Equal(t, *updatedAt, *relationshipsChangedAt)
 	// verify work item 3 linked to iteration 4
 	stmt, err = sqlDB.Prepare("select deleted_at from work_items where id = $1")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	err = stmt.QueryRow("33333333-7171-0000-0000-000000000000").Scan(&deletedAt)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, deletedAt)
 	stmt, err = sqlDB.Prepare("select relationships_changed_at from iterations where id = $1")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	err = stmt.QueryRow("44444444-7171-0000-0000-000000000000").Scan(&relationshipsChangedAt)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, relationshipsChangedAt)
 	assert.Equal(t, *deletedAt, *relationshipsChangedAt)
 	// verify work item 4 linked to iteration 5
 	// we will expect 1hr earlier for the last relationship change
 	stmt, err = sqlDB.Prepare("select (updated_at - interval '1 hour') from work_items where id = $1")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	err = stmt.QueryRow("44444444-7171-0000-0000-000000000000").Scan(&updatedAt)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, updatedAt)
 	stmt, err = sqlDB.Prepare("select relationships_changed_at from iterations where id = $1")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	err = stmt.QueryRow("55555555-7171-0000-0000-000000000000").Scan(&relationshipsChangedAt)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, relationshipsChangedAt)
 	assert.Equal(t, updatedAt.String(), relationshipsChangedAt.String())
 
@@ -574,11 +574,11 @@ func testMigration80(t *testing.T) {
 			link.SystemWorkItemLinkTypeParentChildID:    {},
 		}
 		rows, err := sqlDB.Query("SELECT id FROM work_item_link_types")
-		require.Nil(t, err)
+		require.NoError(t, err)
 		for rows.Next() {
 			var id uuid.UUID
 			err = rows.Scan(&id)
-			require.Nil(t, err, "failed to scan link type: %+v", err)
+			require.NoError(t, err, "failed to scan link type: %+v", err)
 			_, ok := linkTypesToBeFound[id]
 			require.True(t, ok, "link type should not exist: %s", id)
 			delete(linkTypesToBeFound, id)
@@ -593,11 +593,11 @@ func testMigration80(t *testing.T) {
 			link.SystemWorkItemLinkCategoryUserID:   {},
 		}
 		rows, err := sqlDB.Query("SELECT id FROM work_item_link_categories")
-		require.Nil(t, err)
+		require.NoError(t, err)
 		for rows.Next() {
 			var id uuid.UUID
 			err = rows.Scan(&id)
-			require.Nil(t, err, "failed to scan link category: %+v", err)
+			require.NoError(t, err, "failed to scan link category: %+v", err)
 			_, ok := linkCategoriesToBeFound[id]
 			require.True(t, ok, "link category should not exist: %s", id)
 			delete(linkCategoriesToBeFound, id)
@@ -666,14 +666,14 @@ func migrateToVersion(t *testing.T, db *sql.DB, m migration.Migrations, version 
 	for nextVersion := int64(0); nextVersion < version && err == nil; nextVersion++ {
 		var tx *sql.Tx
 		tx, err = sqlDB.Begin()
-		require.Nil(t, err, "failed to start tansaction for version %d", version)
+		require.NoError(t, err, "failed to start tansaction for version %d", version)
 		if err = migration.MigrateToNextVersion(tx, &nextVersion, m, databaseName); err != nil {
 			errRollback := tx.Rollback()
-			require.Nil(t, errRollback, "failed to roll back transaction for version %d", version)
-			require.Nil(t, err, "failed to migrate to version %d", version)
+			require.NoError(t, errRollback, "failed to roll back transaction for version %d", version)
+			require.NoError(t, err, "failed to migrate to version %d", version)
 		}
 
 		err = tx.Commit()
-		require.Nil(t, err, "error during transaction commit")
+		require.NoError(t, err, "error during transaction commit")
 	}
 }

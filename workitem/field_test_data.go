@@ -31,7 +31,7 @@ func GetFieldTypeTestData(t *testing.T) map[Kind]ValidInvalid {
 	validDuration := func(s string) time.Duration {
 		d, err := time.ParseDuration(s)
 		if err != nil {
-			require.Nil(t, err, "we expected the duration to be valid: %s", s)
+			require.NoError(t, err, "we expected the duration to be valid: %s", s)
 		}
 		return d
 	}
@@ -198,7 +198,7 @@ func GetFieldTypeTestData(t *testing.T) map[Kind]ValidInvalid {
 				// location if you don't believe me).
 				func() interface{} {
 					v, err := time.Parse("02 Jan 06 15:04 -0700", "02 Jan 06 15:04 -0700")
-					require.Nil(t, err)
+					require.NoError(t, err)
 					return v.UTC()
 				}(),
 				// time.Now().UTC(), // TODO(kwk): Somehow this fails due to different nsec

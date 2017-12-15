@@ -36,7 +36,7 @@ func TestRunSpaceAreaREST(t *testing.T) {
 	resource.Require(t, resource.Database)
 	pwd, err := os.Getwd()
 	if err != nil {
-		require.Nil(t, err)
+		require.NoError(t, err)
 	}
 	suite.Run(t, &TestSpaceAreaREST{DBTestSuite: gormtestsupport.NewDBTestSuite(pwd + "/../config.yaml")})
 }
@@ -93,7 +93,7 @@ func (rest *TestSpaceAreaREST) setupAreas() (area.Area, []uuid.UUID, []area.Area
 	name := "TestListAreas  A"
 	ci := newCreateChildAreaPayload(&name)
 	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	svc, ctrl := rest.SecuredAreasControllerWithIdentity(owner)
 	_, created := test.CreateChildAreaCreated(rest.T(), svc.Context, svc, ctrl, parentID.String(), ci)
 	assert.Equal(rest.T(), *ci.Data.Attributes.Name, *created.Data.Attributes.Name)

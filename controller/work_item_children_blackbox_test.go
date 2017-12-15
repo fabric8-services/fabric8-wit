@@ -65,7 +65,7 @@ func (s *workItemChildSuite) SetupTest() {
 	s.db = gormapplication.NewGormDB(s.DB)
 
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "workItemChildSuite user", "test provider")
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	s.testIdentity = *testIdentity
 
 	svc := testsupport.ServiceAsUser("WorkItemLink-Service", s.testIdentity)

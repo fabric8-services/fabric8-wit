@@ -86,7 +86,7 @@ func (s *TestIterationRepository) TestCreateIteration() {
 		repo.Create(context.Background(), &i2)
 		// then
 		i2L, err := repo.Load(context.Background(), i2.ID)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, i2.Path)
 		i2.Path.Convert()
 		expectedPath := i2.Path.Convert()
@@ -108,7 +108,7 @@ func (s *TestIterationRepository) TestCreateIteration() {
 		// when
 		err := repo.Create(context.Background(), &i2)
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 		assert.Equal(t, reflect.TypeOf(errors.DataConflictError{}), reflect.TypeOf(err))
 	})
 
@@ -128,7 +128,7 @@ func (s *TestIterationRepository) TestCreateIteration() {
 		// when
 		err := repo.Create(context.Background(), &i2)
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.NotEqual(t, uuid.Nil, i2.ID)
 	})
 }
@@ -167,7 +167,7 @@ func (s *TestIterationRepository) TestLoad() {
 		repo.Create(context.Background(), &i2)
 		// then
 		res, err := repo.Root(context.Background(), fxt.Spaces[0].ID)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, i.Name, res.Name)
 		assert.Equal(t, i.ID, res.ID)
 		expectedPath := i.Path.Convert()
@@ -189,7 +189,7 @@ func (s *TestIterationRepository) TestLoad() {
 		// when
 		its, err := repo.List(context.Background(), fxt.Spaces[0].ID)
 		// then
-		assert.Nil(t, err)
+		require.NoError(t, err)
 		assert.Len(t, its, 3)
 		var mustHaveIDs = make(map[uuid.UUID]struct{}, 3)
 		mustHaveIDs = map[uuid.UUID]struct{}{
@@ -205,7 +205,7 @@ func (s *TestIterationRepository) TestLoad() {
 		// when
 		its, err = repo.List(context.Background(), fxt.Spaces[1].ID)
 		// then
-		assert.Nil(t, err)
+		require.NoError(t, err)
 		assert.Len(t, its, 1)
 		mustHaveIDs = make(map[uuid.UUID]struct{}, 1)
 		mustHaveIDs = map[uuid.UUID]struct{}{
@@ -243,7 +243,7 @@ func (s *TestIterationRepository) TestLoad() {
 		// fetch all children of top level iteration
 		childIterations1, err := repo.LoadChildren(context.Background(), i1.ID)
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Equal(t, 2, len(childIterations1))
 		expectedChildIDs1 := []uuid.UUID{i2.ID, i3.ID}
 		var actualChildIDs1 []uuid.UUID
@@ -256,7 +256,7 @@ func (s *TestIterationRepository) TestLoad() {
 		// fetch all children of level 1 iteration
 		childIterations2, err := repo.LoadChildren(context.Background(), i2.ID)
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Equal(t, 1, len(childIterations2))
 		expectedChildIDs2 := []uuid.UUID{i3.ID}
 		var actualChildIDs2 []uuid.UUID
@@ -269,7 +269,7 @@ func (s *TestIterationRepository) TestLoad() {
 		// fetch all children of level 2 iteration
 		childIterations3, err := repo.LoadChildren(context.Background(), i3.ID)
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Equal(t, 0, len(childIterations3))
 	})
 
@@ -279,7 +279,7 @@ func (s *TestIterationRepository) TestLoad() {
 		// when
 		_, err := repo.LoadChildren(context.Background(), fakeParentId)
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 		assert.Equal(t, reflect.TypeOf(errors.NotFoundError{}), reflect.TypeOf(err))
 	})
 
@@ -315,7 +315,7 @@ func (s *TestIterationRepository) TestUpdate() {
 		i.Name = updatedName
 		// update iteration with new values of Name and Desc
 		updatedIteration, err := repo.Save(context.Background(), i)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, updatedIteration.Name, updatedName)
 		assert.Equal(t, *updatedIteration.Description, desc)
 
@@ -325,7 +325,7 @@ func (s *TestIterationRepository) TestUpdate() {
 		i.EndAt = &changedEnd
 		// update iteration with new values of StartAt, EndAt
 		updatedIteration, err = repo.Save(context.Background(), i)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, changedStart, *updatedIteration.StartAt)
 		assert.Equal(t, changedEnd, *updatedIteration.EndAt)
 	})

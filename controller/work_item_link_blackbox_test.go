@@ -352,7 +352,7 @@ func (s *workItemLinkSuite) TestUpdate() {
 			// then verify the update exchanged the source and the target
 			_, l := test.ShowWorkItemLinkOK(t, svc.Context, svc, ctrl, fxt.WorkItemLinks[0].ID, nil, nil)
 			model, err := ConvertLinkToModel(*l)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.Equal(t, fxt.WorkItemLinks[0].TargetID, model.SourceID)
 			require.Equal(t, fxt.WorkItemLinks[0].SourceID, model.TargetID)
 			require.Equal(t, fxt.WorkItemLinks[0].LinkTypeID, model.LinkTypeID)
@@ -367,7 +367,7 @@ func (s *workItemLinkSuite) TestUpdate() {
 			// then verify the update exchanged the source and the target
 			_, l := test.ShowWorkItemLinkOK(t, svc.Context, svc, ctrl, fxt.WorkItemLinks[0].ID, nil, nil)
 			model, err := ConvertLinkToModel(*l)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.Equal(t, fxt.WorkItemLinks[0].TargetID, model.SourceID)
 			require.Equal(t, fxt.WorkItemLinks[0].SourceID, model.TargetID)
 		})
@@ -433,7 +433,7 @@ func (s *workItemLinkSuite) TestShow() {
 			// then
 			assertResponseHeaders(t, res)
 			actual, err := ConvertLinkToModel(*l)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.Equal(t, fxt.WorkItemLinks[0].SourceID, actual.SourceID)
 			require.Equal(t, fxt.WorkItemLinks[0].TargetID, actual.TargetID)
 			require.Equal(t, fxt.WorkItemLinks[0].LinkTypeID, actual.LinkTypeID)
@@ -451,7 +451,7 @@ func (s *workItemLinkSuite) TestShow() {
 			// then
 			assertResponseHeaders(t, res)
 			actual, err := ConvertLinkToModel(*l)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.Equal(t, fxt.WorkItemLinks[0].SourceID, actual.SourceID)
 			require.Equal(t, fxt.WorkItemLinks[0].TargetID, actual.TargetID)
 			require.Equal(t, fxt.WorkItemLinks[0].LinkTypeID, actual.LinkTypeID)
@@ -466,7 +466,7 @@ func (s *workItemLinkSuite) TestShow() {
 			// then
 			assertResponseHeaders(t, res)
 			actual, err := ConvertLinkToModel(*l)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.Equal(t, fxt.WorkItemLinks[0].SourceID, actual.SourceID)
 			require.Equal(t, fxt.WorkItemLinks[0].TargetID, actual.TargetID)
 			require.Equal(t, fxt.WorkItemLinks[0].LinkTypeID, actual.LinkTypeID)
@@ -543,7 +543,7 @@ func (s *workItemLinkSuite) getWorkItemLinkTestDataFunc() func(t *testing.T) []t
 	return func(t *testing.T) []testSecureAPI {
 		privatekey := testtoken.PrivateKey()
 		differentPrivatekey, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSADifferentPrivateKeyTest)))
-		require.Nil(t, err, "Could not parse private key")
+		require.NoError(t, err, "Could not parse private key")
 		createWorkItemLinkPayloadString := bytes.NewBuffer([]byte(`
 		{
 			"data": {

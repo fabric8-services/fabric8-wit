@@ -37,7 +37,7 @@ type TestAreaREST struct {
 func TestRunAreaREST(t *testing.T) {
 	resource.Require(t, resource.Database)
 	pwd, err := os.Getwd()
-	require.Nil(t, err)
+	require.NoError(t, err)
 	suite.Run(t, &TestAreaREST{DBTestSuite: gormtestsupport.NewDBTestSuite(pwd + "/../config.yaml")})
 }
 
@@ -68,7 +68,7 @@ func (rest *TestAreaREST) TestSuccessCreateChildArea() {
 	name := "TestSuccessCreateChildArea"
 	ci := newCreateChildAreaPayload(&name)
 	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	// when
 	_, created := test.CreateChildAreaCreated(rest.T(), svc.Context, svc, ctrl, parentID.String(), ci)
@@ -83,7 +83,7 @@ func (rest *TestAreaREST) TestSuccessCreateChildArea() {
 		ProviderType: account.KeycloakIDP,
 	}
 	errInCreateOther := rest.db.Identities().Create(context.Background(), otherIdentity)
-	require.Nil(rest.T(), errInCreateOther)
+	require.NoError(rest.T(), errInCreateOther)
 	svc, ctrl = rest.SecuredControllerWithIdentity(otherIdentity)
 	test.CreateChildAreaForbidden(rest.T(), svc.Context, svc, ctrl, parentID.String(), ci)
 }
@@ -98,7 +98,7 @@ func (rest *TestAreaREST) TestSuccessCreateMultiChildArea() {
 	name := "TestSuccessCreateMultiChildArea-0"
 	ci := newCreateChildAreaPayload(&name)
 	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	// when
 	_, created := test.CreateChildAreaCreated(rest.T(), svc.Context, svc, ctrl, parentID.String(), ci)
@@ -126,7 +126,7 @@ func (rest *TestAreaREST) TestConflictCreatDuplicateChildArea() {
 	name := uuid.NewV4().String()
 	ci := newCreateChildAreaPayload(&name)
 	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	// when
 	_, created := test.CreateChildAreaCreated(rest.T(), svc.Context, svc, ctrl, parentID.String(), ci)
@@ -145,7 +145,7 @@ func (rest *TestAreaREST) TestFailCreateChildAreaMissingName() {
 	parentID := parentArea.ID
 	createChildAreaPayload := newCreateChildAreaPayload(nil)
 	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	// when/then
 	test.CreateChildAreaBadRequest(rest.T(), svc.Context, svc, ctrl, parentID.String(), createChildAreaPayload)
@@ -264,7 +264,7 @@ func (rest *TestAreaREST) TestShowChildrenAreaOK() {
 	// given
 	sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
 	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	rest.createChildArea("TestShowChildrenAreaOK", parentArea, svc, ctrl)
 	// when
@@ -278,7 +278,7 @@ func (rest *TestAreaREST) TestShowChildrenAreaOKUsingExpiredIfModifedSinceHeader
 	// given
 	sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
 	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	rest.createChildArea("TestShowChildrenAreaOKUsingExpiredIfModifedSinceHeader", parentArea, svc, ctrl)
 	// when
@@ -293,7 +293,7 @@ func (rest *TestAreaREST) TestShowChildrenAreaOKUsingExpiredIfNoneMatchHeader() 
 	// given
 	sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
 	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	rest.createChildArea("TestShowChildrenAreaOKUsingExpiredIfNoneMatchHeader", parentArea, svc, ctrl)
 	// when
@@ -308,7 +308,7 @@ func (rest *TestAreaREST) TestShowChildrenAreaNotModifiedUsingIfModifedSinceHead
 	// given
 	sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
 	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	childArea := rest.createChildArea("TestShowChildrenAreaNotModifiedUsingIfModifedSinceHeader", parentArea, svc, ctrl)
 	// when
@@ -322,7 +322,7 @@ func (rest *TestAreaREST) TestShowChildrenAreaNotModifiedIfNoneMatchHeader() {
 	// given
 	sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
 	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	childArea := rest.createChildArea("TestShowChildrenAreaNotModifiedIfNoneMatchHeader", parentArea, svc, ctrl)
 	modelChildArea := convertAreaToModel(*childArea)
@@ -364,21 +364,21 @@ func createSpaceAndArea(t *testing.T, db *gormapplication.GormDB) (space.Space, 
 			ProviderType: account.KeycloakIDP,
 		}
 		errCreateOwner := app.Identities().Create(context.Background(), owner)
-		require.Nil(t, errCreateOwner)
+		require.NoError(t, errCreateOwner)
 
 		spaceObj = space.Space{
 			Name:    "TestAreaREST-" + uuid.NewV4().String(),
 			OwnerID: owner.ID,
 		}
 		_, err := app.Spaces().Create(context.Background(), &spaceObj)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		name := "Main Area-" + uuid.NewV4().String()
 		areaObj = area.Area{
 			Name:    name,
 			SpaceID: spaceObj.ID,
 		}
 		err = app.Areas().Create(context.Background(), &areaObj)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		return nil
 	})
 	log.Info(nil, nil, "Space and root area created")

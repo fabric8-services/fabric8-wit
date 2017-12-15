@@ -50,7 +50,7 @@ func (rest *TestCommentREST) SetupTest() {
 	rest.db = gormapplication.NewGormDB(rest.DB)
 	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
 	testIdentity, err := testsupport.CreateTestIdentity(rest.DB, "TestCommentREST setup user", "test provider")
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	rest.testIdentity = *testIdentity
 	req := &http.Request{Host: "localhost"}
 	params := url.Values{}
@@ -104,7 +104,7 @@ func (rest *TestCommentREST) createDefaultWorkItem() *workitem.WorkItem {
 		workItem = wi
 		return nil
 	})
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	return workItem
 }
 
@@ -293,7 +293,7 @@ func (rest *TestCommentREST) TestShouldNotCreateEmptyBody() {
 	// when
 	err := p.Validate()
 	// then
-	require.NotNil(rest.T(), err)
+	require.Error(rest.T(), err)
 }
 
 func (rest *TestCommentREST) TestListCommentsByMissingParentWorkItem() {

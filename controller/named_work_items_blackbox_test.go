@@ -40,7 +40,7 @@ func (s *TestNamedWorkItemsSuite) SetupTest() {
 	s.db = gormapplication.NewGormDB(s.DB)
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "TestUpdateWorkitemForSpaceCollaborator-"+uuid.NewV4().String(), "TestWI")
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	s.testIdentity = *testIdentity
 	s.svc = testsupport.ServiceAsSpaceUser("Collaborators-Service", s.testIdentity, &TestSpaceAuthzService{s.testIdentity, ""})
 	s.workitemsCtrl = NewWorkitemsController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)

@@ -41,11 +41,11 @@ func TestWorkItemMapping(t *testing.T) {
 	remoteTrackerItem := remoteworkitem.TrackerItem{Item: jsonContent, RemoteItemID: "xyz", TrackerID: uuid.NewV4()}
 	remoteWorkItemImpl := remoteworkitem.RemoteWorkItemImplRegistry[remoteworkitem.ProviderGithub]
 	gh, err := remoteWorkItemImpl(remoteTrackerItem)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	// when
 	workItem, err := remoteworkitem.Map(gh, workItemMap)
 	// then
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, workItem.Fields[workitem.SystemTitle], fmt.Sprintf("%s not mapped", workitem.SystemTitle))
 }
 
@@ -98,15 +98,15 @@ func doTestIssueMapping(t *testing.T, data remoteData, provider string) {
 	content, err := test.LoadTestData(data.inputFile, func() ([]byte, error) {
 		return provideRemoteData(data.inputURL)
 	})
-	require.Nil(t, err)
+	require.NoError(t, err)
 	workItemMap := remoteworkitem.RemoteWorkItemKeyMaps[provider]
 	remoteTrackerItem := remoteworkitem.TrackerItem{Item: string(content[:]), RemoteItemID: "xyz", TrackerID: uuid.NewV4()}
 	remoteWorkItemImpl := remoteworkitem.RemoteWorkItemImplRegistry[remoteworkitem.ProviderJira]
 	issue, err := remoteWorkItemImpl(remoteTrackerItem)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	// when
 	workItem, err := remoteworkitem.Map(issue, workItemMap)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	// then
 	for _, localWorkItemKey := range workItemMap {
 		t.Log("Mapping ", localWorkItemKey)
@@ -195,10 +195,10 @@ func doTestFlattenResponseMap(t *testing.T, data remoteData, provider string, sk
 	testString, err := test.LoadTestData(data.inputFile, func() ([]byte, error) {
 		return provideRemoteData(data.inputURL)
 	})
-	require.Nil(t, err)
+	require.NoError(t, err)
 	var nestedMap map[string]interface{}
 	err = json.Unmarshal(testString, &nestedMap)
-	require.Nil(t, err, "Incorrect dataset %s", testString)
+	require.NoError(t, err, "Incorrect dataset %s", testString)
 	// when
 	oneLevelMap := remoteworkitem.Flatten(nestedMap)
 	// then: verifying that the newly converted map contains all expected keys
@@ -249,7 +249,7 @@ func TestNewGitHubRemoteWorkItem(t *testing.T) {
 	remoteTrackerItem := remoteworkitem.TrackerItem{Item: jsonContent, RemoteItemID: "xyz", TrackerID: uuid.NewV4()}
 	githubRemoteWorkItem, err := remoteworkitem.NewGitHubRemoteWorkItem(remoteTrackerItem)
 	// then
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, githubRemoteWorkItem.Get("admins.0.name"), "aslak")
 	assert.Equal(t, githubRemoteWorkItem.Get("name"), "shoubhik")
 	assert.Equal(t, githubRemoteWorkItem.Get("assignee.complete"), true)
@@ -283,7 +283,7 @@ func TestNewJiraRemoteWorkItem(t *testing.T) {
 	remoteTrackerItem := remoteworkitem.TrackerItem{Item: jsonContent, RemoteItemID: "xyz", TrackerID: uuid.NewV4()}
 	jiraRemoteWorkItem, err := remoteworkitem.NewJiraRemoteWorkItem(remoteTrackerItem)
 	// then
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, jiraRemoteWorkItem.Get("admins.0.name"), "aslak")
 	assert.Equal(t, jiraRemoteWorkItem.Get("name"), "shoubhik")
 	assert.Equal(t, jiraRemoteWorkItem.Get("assignee.complete"), true)
@@ -321,7 +321,7 @@ func TestPatternConverter(t *testing.T) {
 	// when
 	result, err := remoteworkitem.Map(workItem, workItemMap)
 	// then
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, result.Fields[remoteworkitem.RemoteAssigneeLogins])
 	assert.Contains(t, result.Fields[remoteworkitem.RemoteAssigneeLogins], content["assignees.0.login"])
 	assert.Contains(t, result.Fields[remoteworkitem.RemoteAssigneeLogins], content["assignees.1.login"])
@@ -344,7 +344,7 @@ func TestPatternConverterWithNoValue(t *testing.T) {
 	// when
 	result, err := remoteworkitem.Map(workItem, workItemMap)
 	// then
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, result.Fields[remoteworkitem.RemoteAssigneeLogins])
 	require.Empty(t, result.Fields[remoteworkitem.RemoteAssigneeLogins])
 	require.NotNil(t, result.Fields[remoteworkitem.RemoteAssigneeProfileURLs])
@@ -373,7 +373,7 @@ func TestListConverter(t *testing.T) {
 	// when
 	result, err := remoteworkitem.Map(workItem, workItemMap)
 	// then
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, result.Fields[remoteworkitem.RemoteAssigneeLogins])
 	assert.Contains(t, result.Fields[remoteworkitem.RemoteAssigneeLogins], content[remoteworkitem.JiraAssigneeLogin])
 	require.NotNil(t, result.Fields[remoteworkitem.RemoteAssigneeProfileURLs])
@@ -392,7 +392,7 @@ func TestListConverterWithNoValue(t *testing.T) {
 	// when
 	result, err := remoteworkitem.Map(workItem, workItemMap)
 	// then
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, result.Fields[remoteworkitem.RemoteAssigneeLogins])
 	require.Empty(t, result.Fields[remoteworkitem.RemoteAssigneeLogins])
 	require.NotNil(t, result.Fields[remoteworkitem.RemoteAssigneeProfileURLs])
