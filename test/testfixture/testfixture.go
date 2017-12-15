@@ -30,9 +30,10 @@ type TestFixture struct {
 	info               map[kind]*createInfo
 	db                 *gorm.DB
 	isolatedCreation   bool
-	customLinkCreation bool
 	ctx                context.Context
 	checkFuncs         []func() error
+	customLinkCreation bool // on when you've used WorkItemLinksCustom in your recipe
+	normalLinkCreation bool // on when you've used WorkItemLinks in your recipe
 
 	Identities             []*account.Identity          // Itentities (if any) that were created for this test fixture.
 	Iterations             []*iteration.Iteration       // Iterations (if any) that were created for this test fixture.
