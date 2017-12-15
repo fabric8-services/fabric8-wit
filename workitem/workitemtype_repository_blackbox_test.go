@@ -106,7 +106,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreate() {
 		baseTypeID := uuid.Nil
 		extendedWit, err := s.repo.Create(s.Ctx, fxt.Spaces[0].ID, nil, &baseTypeID, "foo.baz", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
 		// expect an error as the given base type does not exist
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.Nil(t, extendedWit)
 	})
 

@@ -51,7 +51,7 @@ func TestScan(t *testing.T) {
 				require.NoError(t, err)
 				assert.Equal(t, *td.ExpectedOutput, iter.String())
 			} else {
-				require.NotNil(t, err)
+				require.Error(t, err)
 			}
 		})
 	}

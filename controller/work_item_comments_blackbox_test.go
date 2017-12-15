@@ -293,7 +293,7 @@ func (rest *TestCommentREST) TestShouldNotCreateEmptyBody() {
 	// when
 	err := p.Validate()
 	// then
-	require.NotNil(rest.T(), err)
+	require.Error(rest.T(), err)
 }
 
 func (rest *TestCommentREST) TestListCommentsByMissingParentWorkItem() {

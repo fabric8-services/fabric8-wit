@@ -247,7 +247,7 @@ func TestCompareWithGolden(t *testing.T) {
 			// when
 			err := testableCompareWithGolden(false, f, dummy, uuidAgnostic)
 			// then
-			require.NotNil(t, err)
+			require.Error(t, err)
 			_, isPathError := errs.Cause(err).(*os.PathError)
 			require.True(t, isPathError)
 		})
@@ -257,7 +257,7 @@ func TestCompareWithGolden(t *testing.T) {
 			// when
 			err := testableCompareWithGolden(true, f, dummy, uuidAgnostic)
 			// then
-			require.NotNil(t, err)
+			require.Error(t, err)
 			_, isPathError := errs.Cause(err).(*os.PathError)
 			require.True(t, isPathError)
 		})
@@ -267,7 +267,7 @@ func TestCompareWithGolden(t *testing.T) {
 			// when
 			err := testableCompareWithGolden(false, f, dummy, uuidAgnostic)
 			// then
-			require.NotNil(t, err)
+			require.Error(t, err)
 			_, isPathError := errs.Cause(err).(*os.PathError)
 			require.False(t, isPathError)
 		})
@@ -305,7 +305,7 @@ func TestCompareWithGolden(t *testing.T) {
 				// when
 				err = testableCompareWithGolden(false, f, dummy, false)
 				// then
-				require.NotNil(t, err)
+				require.Error(t, err)
 			})
 			t.Run("UUID agnostic", func(t *testing.T) {
 				// when

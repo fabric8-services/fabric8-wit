@@ -40,7 +40,7 @@ func TestNewCodebase(t *testing.T) {
 	// Test for empty map
 	codebaseMap := map[string]interface{}{}
 	cb, err := codebase.NewCodebaseContent(codebaseMap)
-	require.NotNil(t, err)
+	require.Error(t, err)
 	assert.Equal(t, "", cb.Repository)
 	assert.Equal(t, "", cb.Branch)
 	assert.Equal(t, "", cb.FileName)
@@ -286,7 +286,7 @@ func (test *TestCodebaseRepository) TestDeleteCodebase() {
 		require.NoError(t, err)
 		// double check that we can no longer load the codebase
 		cb, err = repo.Load(test.Ctx, id)
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 		require.Nil(t, cb)
 	})
@@ -296,7 +296,7 @@ func (test *TestCodebaseRepository) TestDeleteCodebase() {
 		// when
 		err := repo.Delete(test.Ctx, nonExistingCodebaseID)
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 	})
 	test.T().Run("not found - nil codebase ID", func(t *testing.T) {
@@ -305,7 +305,7 @@ func (test *TestCodebaseRepository) TestDeleteCodebase() {
 		// when
 		err := repo.Delete(test.Ctx, nilCodebaseID)
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 	})
 }

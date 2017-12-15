@@ -61,7 +61,7 @@ func (s *SpaceRepositoryTestSuite) TestCreate() {
 			OwnerID: fxt.Identities[0].ID,
 		}
 		sp, err := s.repo.Create(context.Background(), &newSpace)
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.IsType(t, errors.BadParameterError{}, err, "error was %v", err)
 		require.Nil(t, sp)
 	})
@@ -73,7 +73,7 @@ func (s *SpaceRepositoryTestSuite) TestCreate() {
 		newSpace.ID = uuid.NewV4()
 		sp, err := s.repo.Create(s.Ctx, &newSpace)
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.Nil(t, sp)
 		require.IsType(t, errors.DataConflictError{}, err, "error was %v", err)
 	})
@@ -89,7 +89,7 @@ func (s *SpaceRepositoryTestSuite) TestLoad() {
 	})
 	s.T().Run("non-existing space", func(t *testing.T) {
 		sp, err := s.repo.Load(s.Ctx, uuid.NewV4())
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.Nil(t, sp)
 	})
 }
@@ -106,7 +106,7 @@ func (s *SpaceRepositoryTestSuite) TestCheckExists() {
 	})
 	s.T().Run("space doesn't exist", func(t *testing.T) {
 		err := s.repo.CheckExists(context.Background(), uuid.NewV4().String())
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 	})
 }
@@ -130,7 +130,7 @@ func (s *SpaceRepositoryTestSuite) TestSave() {
 		fxt.Spaces[0].Name = ""
 		sp, err := s.repo.Save(s.Ctx, fxt.Spaces[0])
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.IsType(t, errors.BadParameterError{}, err, "error was %v", err)
 		require.Nil(t, sp)
 	})
@@ -141,7 +141,7 @@ func (s *SpaceRepositoryTestSuite) TestSave() {
 		fxt.Spaces[0].Name = fxt.Spaces[1].Name
 		sp, err := s.repo.Save(s.Ctx, fxt.Spaces[0])
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.IsType(t, errors.BadParameterError{}, err, "error was %v", err)
 		require.Nil(t, sp)
 	})
@@ -155,7 +155,7 @@ func (s *SpaceRepositoryTestSuite) TestSave() {
 		// when updating this space
 		sp, err := s.repo.Save(s.Ctx, &p)
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 		require.Nil(t, sp)
 	})
@@ -176,7 +176,7 @@ func (s *SpaceRepositoryTestSuite) TestDelete() {
 		require.NoError(t, err)
 		// double check that we can no longer load the space
 		sp, err = s.repo.Load(s.Ctx, id)
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 		require.Nil(t, sp)
 	})
@@ -186,7 +186,7 @@ func (s *SpaceRepositoryTestSuite) TestDelete() {
 		// when
 		err := s.repo.Delete(s.Ctx, nonExistingSpaceID)
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 	})
 	s.T().Run("not found - nil space ID", func(t *testing.T) {
@@ -195,7 +195,7 @@ func (s *SpaceRepositoryTestSuite) TestDelete() {
 		// when
 		err := s.repo.Delete(s.Ctx, nilSpaceID)
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 	})
 }
@@ -249,7 +249,7 @@ func (s *SpaceRepositoryTestSuite) TestLoadByOwnerAndName() {
 		// when loading an existing space by name but with a different owner
 		sp, err := s.repo.LoadByOwnerAndName(context.Background(), &fxt.Identities[1].ID, &fxt.Spaces[0].Name)
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 		require.Nil(t, sp)
 	})
@@ -260,7 +260,7 @@ func (s *SpaceRepositoryTestSuite) TestLoadByOwnerAndName() {
 		nonExistingSpaceName := testsupport.CreateRandomValidTestName("non existing space name")
 		sp, err := s.repo.LoadByOwnerAndName(context.Background(), &fxt.Spaces[0].OwnerID, &nonExistingSpaceName)
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 		require.Nil(t, sp)
 	})

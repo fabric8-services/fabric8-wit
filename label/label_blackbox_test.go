@@ -54,7 +54,7 @@ func (s *TestLabelRepository) TestCreateLabelWithEmptyName() {
 		Name:    name,
 	}
 	err := repo.Create(context.Background(), &l)
-	require.NotNil(s.T(), err)
+	require.Error(s.T(), err)
 	assert.Contains(s.T(), err.Error(), "label name cannot be empty string")
 }
 
@@ -76,7 +76,7 @@ func (s *TestLabelRepository) TestCreateLabelWithSameName() {
 	require.Nil(s.T(), l.DeletedAt)
 
 	err := repo.Create(context.Background(), &l)
-	require.NotNil(s.T(), err)
+	require.Error(s.T(), err)
 	_, ok := errors.Cause(err).(errs.DataConflictError)
 	assert.Contains(s.T(), err.Error(), "label already exists with name = TestCreateLabel")
 	assert.True(s.T(), ok)
@@ -92,7 +92,7 @@ func (s *TestLabelRepository) TestCreateLabelWithWrongColorCode() {
 		TextColor: "#yyppww",
 	}
 	err := repo.Create(context.Background(), &l)
-	require.NotNil(s.T(), err)
+	require.Error(s.T(), err)
 	assert.Contains(s.T(), err.Error(), "labels_text_color_check")
 
 	l2 := label.Label{
@@ -101,7 +101,7 @@ func (s *TestLabelRepository) TestCreateLabelWithWrongColorCode() {
 		BackgroundColor: "#yyppww",
 	}
 	err = repo.Create(context.Background(), &l2)
-	require.NotNil(s.T(), err)
+	require.Error(s.T(), err)
 	assert.Contains(s.T(), err.Error(), "labels_background_color_check")
 }
 
@@ -132,7 +132,7 @@ func (s *TestLabelRepository) TestSave() {
 		l.BorderColor = "#112233"
 
 		_, err := repo.Save(context.Background(), *l)
-		require.NotNil(t, err)
+		require.Error(t, err)
 		_, ok := errors.Cause(err).(errs.BadParameterError)
 		assert.Contains(t, err.Error(), "label name cannot be empty string")
 		assert.True(t, ok)
@@ -146,7 +146,7 @@ func (s *TestLabelRepository) TestSave() {
 		}
 		repo := label.NewLabelRepository(s.DB)
 		_, err := repo.Save(context.Background(), fakeLabel)
-		require.NotNil(t, err)
+		require.Error(t, err)
 		assert.Equal(t, reflect.TypeOf(errs.NotFoundError{}), reflect.TypeOf(err))
 	})
 	s.T().Run("update label with same name", func(t *testing.T) {
@@ -155,7 +155,7 @@ func (s *TestLabelRepository) TestSave() {
 		testFxt.Labels[0].Name = testFxt.Labels[1].Name
 
 		_, err := repo.Save(context.Background(), *testFxt.Labels[0])
-		require.NotNil(t, err)
+		require.Error(t, err)
 		_, ok := errors.Cause(err).(errs.DataConflictError)
 		assert.Contains(t, err.Error(), "label already exists with name = label")
 		assert.True(t, ok)

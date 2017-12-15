@@ -156,7 +156,7 @@ func TestLocateMissingUUIDInTokenInContext(t *testing.T) {
 	ctx := goajwt.WithJWT(context.Background(), tk)
 
 	_, err := tokenManager.Locate(ctx)
-	require.NotNil(t, err)
+	require.Error(t, err)
 }
 
 func TestLocateInvalidUUIDInTokenInContext(t *testing.T) {
@@ -165,5 +165,5 @@ func TestLocateInvalidUUIDInTokenInContext(t *testing.T) {
 	ctx := goajwt.WithJWT(context.Background(), tk)
 
 	_, err := tokenManager.Locate(ctx)
-	require.NotNil(t, err)
+	require.Error(t, err)
 }

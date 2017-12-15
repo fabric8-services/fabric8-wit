@@ -813,7 +813,7 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		iterationToDelete := fxt.IterationByName("first iteration")
 		test.DeleteIterationNoContent(t, svc.Context, svc, ctrl, iterationToDelete.ID)
 		_, err := rest.db.Iterations().Load(svc.Context, iterationToDelete.ID)
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 	})
 
@@ -849,7 +849,7 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		}
 		for _, i := range deletedIterations {
 			_, err := rest.db.Iterations().Load(svc.Context, i.ID)
-			require.NotNil(t, err)
+			require.Error(t, err)
 			require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 		}
 		// make sure other iterations are not touched
@@ -882,7 +882,7 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0]) // get the space owner
 		test.DeleteIterationNoContent(t, svc.Context, svc, ctrl, iterationToDelete.ID)
 		_, err := rest.db.Iterations().Load(svc.Context, iterationToDelete.ID)
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 	})
 
@@ -1088,7 +1088,7 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		}
 		for _, i := range deletedIterations {
 			_, err := rest.db.Iterations().Load(svc.Context, i.ID)
-			require.NotNil(t, err)
+			require.Error(t, err)
 			require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 		}
 	})

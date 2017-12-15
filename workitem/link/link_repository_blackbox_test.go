@@ -129,13 +129,13 @@ func (s *linkRepoBlackBoxTest) TestValidateTopology() {
 	s.T().Run("fail - link exists", func(t *testing.T) {
 		err := s.workitemLinkRepo.ValidateTopology(s.Ctx, nil, fxt.WorkItemByTitle("child").ID, *fxt.WorkItemLinkTypeByName("tree-type"))
 		// then: there must be an error because a link of the same type already exists
-		require.NotNil(t, err)
+		require.Error(t, err)
 	})
 
 	s.T().Run("fail - another link exists", func(t *testing.T) {
 		err := s.workitemLinkRepo.ValidateTopology(s.Ctx, &fxt.WorkItemByTitle("another-item").ID, fxt.WorkItemByTitle("child").ID, *fxt.WorkItemLinkTypeByName("tree-type"))
 		// then: there must be an error because a link of the same type already exists with another parent
-		require.NotNil(t, err)
+		require.Error(t, err)
 	})
 }
 
@@ -169,7 +169,7 @@ func (s *linkRepoBlackBoxTest) TestCreate() {
 		// when try to link parent#2 to child
 		_, err := s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("another-item").ID, fxt.WorkItemByTitle("child").ID, fxt.WorkItemLinkTypeByName("tree-type").ID, fxt.Identities[0].ID)
 		// then expect an error because a parent/link relation already exists with the child item
-		require.NotNil(t, err)
+		require.Error(t, err)
 	})
 
 	s.T().Run("fail - multiple parents with tree-topology-based link type", func(t *testing.T) {
@@ -185,7 +185,7 @@ func (s *linkRepoBlackBoxTest) TestCreate() {
 		// when creating link between "parent2" and "child"
 		_, err = s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("parent2").ID, fxt.WorkItemByTitle("child").ID, fxt.WorkItemLinkTypeByName("tree-type").ID, fxt.Identities[0].ID)
 		// then we expect an error because "child" is already a child of "parent1"
-		require.NotNil(t, err)
+		require.Error(t, err)
 	})
 }
 
@@ -228,6 +228,6 @@ func (s *linkRepoBlackBoxTest) TestGetParentIDNotExist() {
 		return nil
 	}))
 	parentID, err := s.workitemLinkRepo.GetParentID(s.Ctx, fixtures.WorkItems[0].ID)
-	require.NotNil(s.T(), err)
+	require.Error(s.T(), err)
 	assert.Nil(s.T(), parentID)
 }

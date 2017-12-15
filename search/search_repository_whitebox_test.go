@@ -662,7 +662,7 @@ func TestHandleWitGroup(t *testing.T) {
 			exp := []criteria.Expression{}
 			err := handleWitGroup(Query{Name: d.Name, Value: &d.Value, Negate: d.Negate}, &exp)
 			if d.ExpectError {
-				require.NotNil(t, err)
+				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
 			}
@@ -677,7 +677,7 @@ func TestHandleWitGroup(t *testing.T) {
 		// when
 		err := handleWitGroup(Query{Name: WITGROUP, Value: v}, &exp)
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 	})
 	t.Run("expression array is nil", func(t *testing.T) {
 		// given
@@ -686,6 +686,6 @@ func TestHandleWitGroup(t *testing.T) {
 		// when
 		err := handleWitGroup(Query{Name: WITGROUP, Value: &v}, exp)
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 	})
 }

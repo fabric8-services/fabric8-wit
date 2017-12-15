@@ -205,7 +205,7 @@ func (s *workItemRepoBlackBoxTest) TestCreate() {
 				workitem.SystemState:    workitem.SystemStateNew,
 				workitem.SystemCodebase: cbase,
 			}, fxt.Identities[0].ID)
-		require.NotNil(t, err)
+		require.Error(t, err)
 	})
 
 	s.T().Run("field types", func(t *testing.T) {
@@ -334,7 +334,7 @@ func (s *workItemRepoBlackBoxTest) TestLookupIDByNamedSpaceAndNumber() {
 		// when
 		_, _, err := s.repo.LookupIDByNamedSpaceAndNumber(s.Ctx, "foo", fxt.Spaces[0].Name, fxt.WorkItems[0].Number)
 		// then
-		require.NotNil(s.T(), err)
+		require.Error(s.T(), err)
 		assert.IsType(s.T(), errors.NotFoundError{}, errs.Cause(err))
 	})
 }

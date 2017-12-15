@@ -170,7 +170,7 @@ func (s *TestCommentRepository) TestListCommentsWrongOffset() {
 	limit := 1
 	_, _, err := s.repo.List(s.Ctx, fxt.Comments[0].ParentID, &offset, &limit)
 	// then
-	require.NotNil(s.T(), err)
+	require.Error(s.T(), err)
 }
 
 func (s *TestCommentRepository) TestListCommentsWrongLimit() {
@@ -181,7 +181,7 @@ func (s *TestCommentRepository) TestListCommentsWrongLimit() {
 	limit := -1
 	_, _, err := s.repo.List(s.Ctx, fxt.Comments[0].ParentID, &offset, &limit)
 	// then
-	require.NotNil(s.T(), err)
+	require.Error(s.T(), err)
 }
 
 func (s *TestCommentRepository) TestLoadComment() {

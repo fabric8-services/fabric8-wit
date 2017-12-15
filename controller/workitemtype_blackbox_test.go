@@ -322,7 +322,7 @@ func (s *workItemTypeSuite) TestValidate() {
 		// when
 		err := p.Validate()
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 		gerr, ok := err.(*goa.ErrorResponse)
 		require.True(t, ok)
 		gerr.ID = "IGNORE_ME"
@@ -336,7 +336,7 @@ func (s *workItemTypeSuite) TestValidate() {
 		// when
 		err := p.Validate()
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 		gerr, ok := err.(*goa.ErrorResponse)
 		require.True(t, ok)
 		gerr.ID = "IGNORE_ME"

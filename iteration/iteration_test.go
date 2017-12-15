@@ -108,7 +108,7 @@ func (s *TestIterationRepository) TestCreateIteration() {
 		// when
 		err := repo.Create(context.Background(), &i2)
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 		assert.Equal(t, reflect.TypeOf(errors.DataConflictError{}), reflect.TypeOf(err))
 	})
 
@@ -279,7 +279,7 @@ func (s *TestIterationRepository) TestLoad() {
 		// when
 		_, err := repo.LoadChildren(context.Background(), fakeParentId)
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 		assert.Equal(t, reflect.TypeOf(errors.NotFoundError{}), reflect.TypeOf(err))
 	})
 

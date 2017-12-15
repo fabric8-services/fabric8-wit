@@ -60,7 +60,7 @@ func (s *testFixtureSuite) TestNewFixture_Advanced() {
 	})
 	s.T().Run("test CreateWorkItemEnvironment error", func(t *testing.T) {
 		c, err := tf.NewFixture(s.DB, tf.CreateWorkItemEnvironment(), tf.Spaces(2))
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.Nil(t, c)
 	})
 }
@@ -90,7 +90,7 @@ func checkNewFixture(t *testing.T, db *gorm.DB, n int, isolated bool) {
 	if isolated {
 		fxtCtor = tf.NewFixtureIsolated
 		checkCtorErrFunc = func(t *testing.T, err error) {
-			require.NotNil(t, err)
+			require.Error(t, err)
 		}
 		checkFunc = func(t *testing.T, fxt *tf.TestFixture) {
 			require.Nil(t, fxt)
@@ -268,7 +268,7 @@ func (s *testFixtureSuite) TestWorkItemLinks() {
 			fxt, err := tf.NewFixture(s.DB, tf.WorkItemLinksCustom(3))
 			// then we expect an error because you're supposed to create work items
 			// yourself and link them on your own when using the custom method
-			require.NotNil(t, err)
+			require.Error(t, err)
 			require.Nil(t, fxt)
 		})
 		t.Run("missing link setup", func(t *testing.T) {
@@ -276,7 +276,7 @@ func (s *testFixtureSuite) TestWorkItemLinks() {
 			fxt, err := tf.NewFixture(s.DB, tf.WorkItemLinksCustom(3), tf.WorkItems(3))
 			// then we expect an error because you're supposed to setup links
 			// yourself when using the custom method
-			require.NotNil(t, err)
+			require.Error(t, err)
 			require.Nil(t, fxt)
 		})
 		t.Run("ok", func(t *testing.T) {
@@ -323,7 +323,7 @@ func (s *testFixtureSuite) TestWorkItemLinks() {
 			)
 			// then we expect an error because you're supposed to mix
 			// WorkItemLinks and WorkItemLinksCustom
-			require.NotNil(t, err)
+			require.Error(t, err)
 			require.Nil(t, fxt)
 		})
 		t.Run("mixture not allowed (normal second)", func(t *testing.T) {
@@ -346,7 +346,7 @@ func (s *testFixtureSuite) TestWorkItemLinks() {
 			)
 			// then we expect an error because you're supposed to mix
 			// WorkItemLinks and WorkItemLinksCustom
-			require.NotNil(t, err)
+			require.Error(t, err)
 			require.Nil(t, fxt)
 		})
 	})

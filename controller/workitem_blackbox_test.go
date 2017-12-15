@@ -385,7 +385,7 @@ func (s *WorkItemSuite) TestReorderWorkitemConflict() {
 
 	_, err := test.ReorderWorkitemsConflict(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, &payload2) // Returns the workitems which are reordered
 
-	require.NotNil(s.T(), err)
+	require.Error(s.T(), err)
 }
 
 // TestReorderBelow is positive test which tests successful reorder by providing valid input
