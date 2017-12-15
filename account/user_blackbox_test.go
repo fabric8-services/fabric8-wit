@@ -37,7 +37,7 @@ func (s *userBlackBoxTest) TestOKToDelete() {
 	createAndLoadUser(s)
 
 	err := s.repo.Delete(s.Ctx, user.ID)
-	assert.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 
 	// lets see how many are present.
 	users, err := s.repo.List(s.Ctx)

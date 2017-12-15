@@ -242,7 +242,7 @@ func (s *workItemRepoBlackBoxTest) TestCreate() {
 					for _, expected := range iv.Valid {
 						t.Run(spew.Sdump(expected), func(t *testing.T) {
 							wi, err := s.repo.Create(s.Ctx, fxt.Spaces[0].ID, witID, map[string]interface{}{fieldName: expected}, fxt.Identities[0].ID)
-							assert.Nil(t, err, "expected no error when assigning this value to a '%s' field during work item creation: %#v", kind, spew.Sdump(expected))
+							require.NoError(t, err, "expected no error when assigning this value to a '%s' field during work item creation: %#v", kind, spew.Sdump(expected))
 							loadedWi, err := s.repo.LoadByID(s.Ctx, wi.ID)
 							require.NoError(t, err)
 							// compensate for errors when interpreting ambigous actual values

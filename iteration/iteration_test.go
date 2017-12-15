@@ -189,7 +189,7 @@ func (s *TestIterationRepository) TestLoad() {
 		// when
 		its, err := repo.List(context.Background(), fxt.Spaces[0].ID)
 		// then
-		assert.Nil(t, err)
+		require.NoError(t, err)
 		assert.Len(t, its, 3)
 		var mustHaveIDs = make(map[uuid.UUID]struct{}, 3)
 		mustHaveIDs = map[uuid.UUID]struct{}{
@@ -205,7 +205,7 @@ func (s *TestIterationRepository) TestLoad() {
 		// when
 		its, err = repo.List(context.Background(), fxt.Spaces[1].ID)
 		// then
-		assert.Nil(t, err)
+		require.NoError(t, err)
 		assert.Len(t, its, 1)
 		mustHaveIDs = make(map[uuid.UUID]struct{}, 1)
 		mustHaveIDs = map[uuid.UUID]struct{}{

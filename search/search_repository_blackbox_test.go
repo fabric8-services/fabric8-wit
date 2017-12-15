@@ -77,7 +77,7 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			query := "TestRestrictByType"
 			res, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
 			// then
-			assert.Nil(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, uint64(2), count)
 			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[1], *fxt.WorkItems[0]))
 		})

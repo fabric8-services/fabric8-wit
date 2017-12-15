@@ -50,14 +50,14 @@ func TestParseLimit(t *testing.T) {
 	// Test length = 1
 	str = "1000"
 	integers, length, err = parseLimit(&str)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, 1000, length)
 	assert.Nil(t, integers)
 
 	// Test empty string
 	str = ""
 	integers, length, err = parseLimit(&str)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, 100, length)
 	assert.Nil(t, integers)
 }

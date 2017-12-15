@@ -43,7 +43,7 @@ func TestReplaceDomainPrefixOK(t *testing.T) {
 	t.Parallel()
 
 	host, err := ReplaceDomainPrefix("api.service.domain.org", "sso")
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "sso.service.domain.org", host)
 }
 

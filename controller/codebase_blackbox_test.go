@@ -177,7 +177,7 @@ func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
 				RequestURL:    "che-server/workspace/string?masterUrl=https://tsrv.devshift.net:8443&namespace=foo",
 				StatusCode:    200,
 			})
-		assert.Nil(t, err)
+		require.NoError(t, err)
 
 	})
 
@@ -212,7 +212,7 @@ func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
 				RequestURL:    "che-server/workspace/string?masterUrl=https://tsrv.devshift.net:8443&namespace=foo",
 				StatusCode:    500,
 			})
-		assert.Nil(t, err)
+		require.NoError(t, err)
 	})
 
 	s.T().Run("NotFound", func(t *testing.T) {
@@ -227,7 +227,7 @@ func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
 		test.DeleteCodebaseNotFound(t, svc.Context, svc, ctrl, codebaseID)
 		// then nothing should be sent to Che
 		err = m.ValidateNoExchanges()
-		assert.Nil(t, err)
+		require.NoError(t, err)
 	})
 
 	s.T().Run("Unauthorized on non-existing codebase", func(t *testing.T) {
@@ -242,7 +242,7 @@ func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
 		test.DeleteCodebaseUnauthorized(t, svc.Context, svc, ctrl, codebaseID)
 		// then nothing should be sent to Che
 		err = m.ValidateNoExchanges()
-		assert.Nil(t, err)
+		require.NoError(t, err)
 	})
 
 	s.T().Run("Unauthorized on existing codebase", func(t *testing.T) {
@@ -262,7 +262,7 @@ func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
 		test.DeleteCodebaseUnauthorized(t, svc.Context, svc, ctrl, fxt.Codebases[0].ID)
 		// then nothing should be sent to Che
 		err = m.ValidateNoExchanges()
-		assert.Nil(t, err)
+		require.NoError(t, err)
 	})
 
 	s.T().Run("Forbidden", func(t *testing.T) {
@@ -282,7 +282,7 @@ func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
 		test.DeleteCodebaseForbidden(t, svc.Context, svc, ctrl, fxt.Codebases[0].ID)
 		// then nothing should be sent to Che
 		err = m.ValidateNoExchanges()
-		assert.Nil(t, err)
+		require.NoError(t, err)
 	})
 
 }

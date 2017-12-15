@@ -46,7 +46,7 @@ func (s *identityBlackBoxTest) TestOKToDelete() {
 	// when
 	err = s.repo.Delete(s.Ctx, identity.ID)
 	// then
-	assert.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	identities, err := s.repo.List(s.Ctx)
 	require.NoError(s.T(), err, "Could not list identities")
 	require.True(s.T(), len(identities) > 0)

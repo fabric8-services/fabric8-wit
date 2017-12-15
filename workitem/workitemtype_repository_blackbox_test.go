@@ -135,7 +135,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreate() {
 		)
 
 		wit, err := s.repo.Load(s.Ctx, fxt.WorkItemTypes[0].SpaceID, fxt.WorkItemTypes[0].ID)
-		assert.Nil(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, wit)
 		require.NotNil(t, wit.Fields)
 

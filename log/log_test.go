@@ -19,7 +19,7 @@ func LogAndAssertJSON(t *testing.T, log func(), assertions func(fields logrus.Fi
 	log()
 
 	err := json.Unmarshal(buffer.Bytes(), &fields)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 
 	assertions(fields)
 }

@@ -231,7 +231,7 @@ func (s *TrackerItemRepositorySuite) TestConvertExistingWorkItem() {
 	// when
 	workItem, err := remoteworkitem.ConvertToWorkItemModel(s.Ctx, s.DB, s.trackerQuery.TrackerID, remoteItemData, remoteworkitem.ProviderGithub, s.trackerQuery.SpaceID)
 	// then
-	assert.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	assert.Equal(s.T(), "linking", workItem.Fields[workitem.SystemTitle])
 	assert.Equal(s.T(), identity0.ID.String(), workItem.Fields[workitem.SystemCreator])
 	require.NotEmpty(s.T(), workItem.Fields[workitem.SystemAssignees])
@@ -260,7 +260,7 @@ func (s *TrackerItemRepositorySuite) TestConvertExistingWorkItem() {
 	// when
 	workItemUpdated, err := remoteworkitem.ConvertToWorkItemModel(s.Ctx, s.DB, s.trackerQuery.TrackerID, remoteItemDataUpdated, remoteworkitem.ProviderGithub, s.trackerQuery.SpaceID)
 	// then
-	assert.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	require.NotNil(s.T(), workItemUpdated)
 	require.NotNil(s.T(), workItemUpdated.Fields)
 	assert.Equal(s.T(), "linking-updated", workItemUpdated.Fields[workitem.SystemTitle])

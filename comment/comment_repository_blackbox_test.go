@@ -128,7 +128,7 @@ func (s *TestCommentRepository) TestDeleteComment() {
 	// when
 	err := s.repo.Delete(s.Ctx, c.ID, c.Creator)
 	// then
-	assert.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 }
 
 func (s *TestCommentRepository) TestCountComments() {

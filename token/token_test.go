@@ -36,14 +36,14 @@ func TestValidOAuthAccessToken(t *testing.T) {
 		Username: "testuser",
 	}
 	generatedToken, err := testtoken.GenerateToken(identity.ID.String(), identity.Username, privateKey)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	accessToken := &oauth2.Token{
 		AccessToken: generatedToken,
 		TokenType:   "Bearer",
 	}
 
 	claims, err := tokenManager.ParseToken(context.Background(), accessToken.AccessToken)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, identity.ID.String(), claims.Subject)
 	assert.Equal(t, identity.Username, claims.Username)
 }

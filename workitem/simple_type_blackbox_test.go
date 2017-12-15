@@ -30,7 +30,7 @@ func TestConvertToModel(t *testing.T) {
 	a := SimpleType{Kind: KindString}
 	res, err := a.ConvertToModel(nil)
 	assert.Nil(t, res)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 
 	// Test default case in swtich statement
 	b := 42
