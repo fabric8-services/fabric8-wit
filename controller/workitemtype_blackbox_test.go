@@ -312,7 +312,7 @@ func (s *workItemTypeSuite) TestValidate() {
 		// when
 		err := p.Validate()
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 	})
 
 	s.T().Run("invalid - oversized name", func(t *testing.T) {
@@ -593,7 +593,7 @@ func (s *workItemTypeSuite) getWorkItemTypeTestDataFunc() func(*testing.T) []tes
 	privatekey := testtoken.PrivateKey()
 	return func(t *testing.T) []testSecureAPI {
 		differentPrivatekey, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSADifferentPrivateKeyTest)))
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		createWITPayloadString := bytes.NewBuffer([]byte(`{"fields": {"system.administrator": {"Required": true,"Type": {"Kind": "string"}}},"name": "Epic"}`))
 

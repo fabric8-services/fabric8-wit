@@ -40,15 +40,15 @@ func (s *identityBlackBoxTest) TestOKToDelete() {
 		ProviderType: account.KeycloakIDP}
 
 	err := s.repo.Create(s.Ctx, identity)
-	require.Nil(s.T(), err, "Could not create identity")
+	require.NoError(s.T(), err, "Could not create identity")
 	err = s.repo.Create(s.Ctx, identity2)
-	require.Nil(s.T(), err, "Could not create identity")
+	require.NoError(s.T(), err, "Could not create identity")
 	// when
 	err = s.repo.Delete(s.Ctx, identity.ID)
 	// then
 	assert.Nil(s.T(), err)
 	identities, err := s.repo.List(s.Ctx)
-	require.Nil(s.T(), err, "Could not list identities")
+	require.NoError(s.T(), err, "Could not list identities")
 	require.True(s.T(), len(identities) > 0)
 	for _, ident := range identities {
 		require.NotEqual(s.T(), "someuserTestIdentity", ident.Username)
@@ -70,7 +70,7 @@ func (s *identityBlackBoxTest) TestExistsIdentity() {
 		// when
 		err := s.repo.CheckExists(s.Ctx, identity.ID.String())
 		// then
-		require.Nil(t, err, "Could not check if identity exists")
+		require.NoError(t, err, "Could not check if identity exists")
 	})
 
 	t.Run("identity doesn't exist", func(t *testing.T) {
@@ -90,7 +90,7 @@ func (s *identityBlackBoxTest) TestOKToSave() {
 	identity.Username = "newusernameTestIdentity"
 	err := s.repo.Save(s.Ctx, identity)
 	// then
-	require.Nil(s.T(), err, "Could not update identity")
+	require.NoError(s.T(), err, "Could not update identity")
 }
 
 func createAndLoad(s *identityBlackBoxTest) *account.Identity {
@@ -100,11 +100,11 @@ func createAndLoad(s *identityBlackBoxTest) *account.Identity {
 		ProviderType: account.KeycloakIDP}
 
 	err := s.repo.Create(s.Ctx, identity)
-	require.Nil(s.T(), err, "Could not create identity")
+	require.NoError(s.T(), err, "Could not create identity")
 	// when
 	idnt, err := s.repo.Load(s.Ctx, identity.ID)
 	// then
-	require.Nil(s.T(), err, "Could not load identity")
+	require.NoError(s.T(), err, "Could not load identity")
 	require.Equal(s.T(), "someuserTestIdentity2", idnt.Username)
 	return idnt
 }

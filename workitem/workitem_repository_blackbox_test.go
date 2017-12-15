@@ -46,7 +46,7 @@ func (s *workItemRepoBlackBoxTest) TestSave() {
 			return nil
 		}))
 		wiNew, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Len(t, wiNew.Fields[workitem.SystemAssignees].([]interface{}), 0)
 		require.Len(t, wiNew.Fields[workitem.SystemLabels].([]interface{}), 0)
 	})
@@ -70,7 +70,7 @@ func (s *workItemRepoBlackBoxTest) TestSave() {
 		newTime, ok := wiNew.Fields[workitem.SystemCreatedAt].(time.Time)
 		require.True(t, ok, "failed to convert interface{} to time.Time")
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, oldDate.UTC(), newTime.UTC())
 	})
 
@@ -83,7 +83,7 @@ func (s *workItemRepoBlackBoxTest) TestSave() {
 		fxt.WorkItems[0].Type = fxt.WorkItemTypes[1].ID
 		newWi, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
 		// then
-		require.Nil(s.T(), err)
+		require.NoError(s.T(), err)
 		assert.Equal(s.T(), fxt.WorkItemTypes[1].ID, newWi.Type)
 	})
 }
@@ -105,7 +105,7 @@ func (s *workItemRepoBlackBoxTest) TestCreate() {
 				workitem.SystemTitle: "some title",
 				workitem.SystemState: workitem.SystemStateNew,
 			}, fxt.Identities[0].ID)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Len(t, wi.Fields[workitem.SystemAssignees].([]interface{}), 0)
 		require.Len(t, wi.Fields[workitem.SystemLabels].([]interface{}), 0)
 
@@ -120,7 +120,7 @@ func (s *workItemRepoBlackBoxTest) TestCreate() {
 		// when
 		wi, err := s.repo.LoadByID(s.Ctx, fxt.WorkItems[0].ID)
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Len(t, wi.Fields[workitem.SystemAssignees].([]interface{}), 2)
 		assert.Equal(t, "A", wi.Fields[workitem.SystemAssignees].([]interface{})[0])
 		assert.Equal(t, "B", wi.Fields[workitem.SystemAssignees].([]interface{})[1])
@@ -135,7 +135,7 @@ func (s *workItemRepoBlackBoxTest) TestCreate() {
 		// when
 		wi, err := s.repo.LoadByID(s.Ctx, fxt.WorkItems[0].ID)
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// workitem.WorkItem does not contain the markup associated with the description (yet)
 		assert.Equal(t, rendering.NewMarkupContentFromLegacy("Description"), wi.Fields[workitem.SystemDescription])
 	})
@@ -149,7 +149,7 @@ func (s *workItemRepoBlackBoxTest) TestCreate() {
 		// when
 		wi, err := s.repo.LoadByID(s.Ctx, fxt.WorkItems[0].ID)
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// workitem.WorkItem does not contain the markup associated with the description (yet)
 		assert.Equal(t, rendering.NewMarkupContent("Description", rendering.SystemMarkupMarkdown), wi.Fields[workitem.SystemDescription])
 	})
@@ -174,7 +174,7 @@ func (s *workItemRepoBlackBoxTest) TestCreate() {
 		// when
 		wi, err := s.repo.LoadByID(s.Ctx, fxt.WorkItems[0].ID)
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, title, wi.Fields[workitem.SystemTitle].(string))
 		require.NotNil(t, wi.Fields[workitem.SystemCodebase])
 		cb := wi.Fields[workitem.SystemCodebase].(codebase.Content)
@@ -244,7 +244,7 @@ func (s *workItemRepoBlackBoxTest) TestCreate() {
 							wi, err := s.repo.Create(s.Ctx, fxt.Spaces[0].ID, witID, map[string]interface{}{fieldName: expected}, fxt.Identities[0].ID)
 							assert.Nil(t, err, "expected no error when assigning this value to a '%s' field during work item creation: %#v", kind, spew.Sdump(expected))
 							loadedWi, err := s.repo.LoadByID(s.Ctx, wi.ID)
-							require.Nil(t, err)
+							require.NoError(t, err)
 							// compensate for errors when interpreting ambigous actual values
 							actual := loadedWi.Fields[fieldName]
 							if iv.Compensate != nil {
@@ -275,7 +275,7 @@ func (s *workItemRepoBlackBoxTest) TestCheckExists() {
 		// when
 		err := s.repo.CheckExists(s.Ctx, fxt.WorkItems[0].ID.String())
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 	})
 
 	s.T().Run("work item doesn't exist", func(t *testing.T) {
@@ -320,7 +320,7 @@ func (s *workItemRepoBlackBoxTest) TestLookupIDByNamedSpaceAndNumber() {
 		// when
 		wiID, spaceID, err := s.repo.LookupIDByNamedSpaceAndNumber(s.Ctx, fxt.Identities[0].Username, fxt.Spaces[0].Name, fxt.WorkItems[0].Number)
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, wiID)
 		assert.Equal(t, fxt.WorkItems[0].ID, *wiID)
 		// TODO(xcoulon) can be removed once PR for #1452 is merged
@@ -346,7 +346,7 @@ func (s *workItemRepoBlackBoxTest) TestLoadBatchByID() {
 	// Added only 2 distinct IDs in following list
 	wis := []uuid.UUID{fixtures.WorkItems[1].ID, fixtures.WorkItems[1].ID, fixtures.WorkItems[2].ID, fixtures.WorkItems[2].ID}
 	res, err := s.repo.LoadBatchByID(s.Ctx, wis) // pass duplicate IDs to fetch
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	assert.Len(s.T(), res, 2) // Only 2 distinct IDs should be returned
 }
 
@@ -360,7 +360,7 @@ func (s *workItemRepoBlackBoxTest) TestLookupIDByNamedSpaceAndNumberStaleSpace()
 	wi := *testFxt.WorkItems[0]
 	in := *testFxt.Identities[0]
 	wiID, spaceID, err := s.repo.LookupIDByNamedSpaceAndNumber(s.Ctx, in.Username, sp.Name, wi.Number)
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	require.NotNil(s.T(), wiID)
 	assert.Equal(s.T(), wi.ID, *wiID)
 	require.NotNil(s.T(), spaceID)
@@ -369,7 +369,7 @@ func (s *workItemRepoBlackBoxTest) TestLookupIDByNamedSpaceAndNumberStaleSpace()
 	// delete above space
 	spaceRepo := space.NewRepository(s.DB)
 	err = spaceRepo.Delete(s.Ctx, sp.ID)
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 
 	testFxt2 := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1, func(testf *tf.TestFixture, idx int) error {
 		testf.Spaces[0].Name = sp.Name
@@ -383,7 +383,7 @@ func (s *workItemRepoBlackBoxTest) TestLookupIDByNamedSpaceAndNumberStaleSpace()
 	sp2 := *testFxt2.Spaces[0]
 	wi2 := *testFxt2.WorkItems[0]
 	wiID2, spaceID2, err := s.repo.LookupIDByNamedSpaceAndNumber(s.Ctx, in.Username, sp2.Name, wi2.Number)
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	require.NotNil(s.T(), wiID2)
 	assert.Equal(s.T(), wi2.ID, *wiID2)
 	require.NotNil(s.T(), spaceID2)
@@ -406,17 +406,17 @@ func (s *workItemRepoBlackBoxTest) TestLoadByIteration() {
 		}))
 	// Fetch work items for root iteration - should be 2
 	wiInRootIteration, err := s.repo.LoadByIteration(s.Ctx, fxt.IterationByName("root").ID) // pass duplicate IDs to fetch
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	assert.Len(s.T(), wiInRootIteration, 2)
 
 	// Fetch work items for "one"" iteration - should be 3
 	wiInOneIteration, err := s.repo.LoadByIteration(s.Ctx, fxt.IterationByName("one").ID) // pass duplicate IDs to fetch
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	assert.Len(s.T(), wiInOneIteration, 3)
 
 	// Fetch work items for "two" iteration - should be 0
 	wiInTwoIteration, err := s.repo.LoadByIteration(s.Ctx, fxt.IterationByName("two").ID) // pass duplicate IDs to fetch
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	assert.Empty(s.T(), wiInTwoIteration)
 }
 

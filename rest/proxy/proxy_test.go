@@ -30,18 +30,18 @@ func TestProxy(t *testing.T) {
 	// GET with custom header and 201 response
 	rw := httptest.NewRecorder()
 	u, err := url.Parse("http://domain.org/api")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	req, err := http.NewRequest("GET", u.String(), nil)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	ctx := context.Background()
 	goaCtx := goa.NewContext(goa.WithAction(ctx, "ProxyTest"), rw, req, url.Values{})
 	statusCtx, err := app.NewShowStatusContext(goaCtx, req, goa.New("StatusService"))
-	require.Nil(t, err)
+	require.NoError(t, err)
 	statusCtx.Request.Header.Del("Accept-Encoding")
 
 	err = RouteHTTP(statusCtx, "http://localhost:8889")
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(t, 201, rw.Code)
 	assert.Equal(t, "proxyTest", rw.Header().Get("Custom-Test-Header"))
@@ -51,16 +51,16 @@ func TestProxy(t *testing.T) {
 	// POST, gzipped, changed target path
 	rw = httptest.NewRecorder()
 	req, err = http.NewRequest("POST", u.String(), nil)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	ctx = context.Background()
 	goaCtx = goa.NewContext(goa.WithAction(ctx, "ProxyTest"), rw, req, url.Values{})
 	statusCtx, err = app.NewShowStatusContext(goaCtx, req, goa.New("StatusService"))
-	require.Nil(t, err)
+	require.NoError(t, err)
 	statusCtx.Request.Header.Set("Accept-Encoding", "gzip")
 
 	err = RouteHTTPToPath(statusCtx, "http://localhost:8889", "/api")
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(t, 201, rw.Code)
 	assert.Equal(t, "proxyTest", rw.Header().Get("Custom-Test-Header"))
@@ -75,7 +75,7 @@ func startServer() {
 
 func waitForServer(t *testing.T) {
 	req, err := http.NewRequest("GET", "http://localhost:8889/api", nil)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	for i := 0; i < 30; i++ {
 		time.Sleep(100 * time.Millisecond)
 		client := &http.Client{Timeout: time.Duration(500 * time.Millisecond)}

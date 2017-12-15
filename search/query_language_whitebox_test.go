@@ -24,7 +24,7 @@ func TestParseMap(t *testing.T) {
 		// Parsing/Unmarshalling JSON encoding/json
 		fm := map[string]interface{}{}
 		err := json.Unmarshal([]byte(input), &fm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// when
 		actualQuery := Query{}
 		parseMap(fm, &actualQuery)
@@ -42,7 +42,7 @@ func TestParseMap(t *testing.T) {
 		// Parsing/Unmarshalling JSON encoding/json
 		fm := map[string]interface{}{}
 		err := json.Unmarshal([]byte(input), &fm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// when
 		actualQuery := Query{}
 		parseMap(fm, &actualQuery)
@@ -60,7 +60,7 @@ func TestParseMap(t *testing.T) {
 		// Parsing/Unmarshalling JSON encoding/json
 		fm := map[string]interface{}{}
 		err := json.Unmarshal([]byte(input), &fm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// when
 		actualQuery := Query{}
 		parseMap(fm, &actualQuery)
@@ -80,7 +80,7 @@ func TestParseMap(t *testing.T) {
 		// Parsing/Unmarshalling JSON encoding/json
 		fm := map[string]interface{}{}
 		err := json.Unmarshal([]byte(input), &fm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// when
 		actualQuery := Query{}
 		parseMap(fm, &actualQuery)
@@ -96,7 +96,7 @@ func TestParseMap(t *testing.T) {
 		// Parsing/Unmarshalling JSON encoding/json
 		fm := map[string]interface{}{}
 		err := json.Unmarshal([]byte(input), &fm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// when
 		actualQuery := Query{}
 		parseMap(fm, &actualQuery)
@@ -112,7 +112,7 @@ func TestParseMap(t *testing.T) {
 		// Parsing/Unmarshalling JSON encoding/json
 		fm := map[string]interface{}{}
 		err := json.Unmarshal([]byte(input), &fm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// when
 		actualQuery := Query{}
 		parseMap(fm, &actualQuery)
@@ -130,7 +130,7 @@ func TestParseMap(t *testing.T) {
 		// Parsing/Unmarshalling JSON encoding/json
 		fm := map[string]interface{}{}
 		err := json.Unmarshal([]byte(input), &fm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// when
 		actualQuery := Query{}
 		parseMap(fm, &actualQuery)
@@ -151,7 +151,7 @@ func TestParseMap(t *testing.T) {
 		// Parsing/Unmarshalling JSON encoding/json
 		fm := map[string]interface{}{}
 		err := json.Unmarshal([]byte(input), &fm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// when
 		actualQuery := Query{}
 		parseMap(fm, &actualQuery)
@@ -175,7 +175,7 @@ func TestParseMap(t *testing.T) {
 
 		// Parsing/Unmarshalling JSON encoding/json
 		err := json.Unmarshal([]byte(input), &fm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		q := &Query{}
 
 		parseMap(fm, q)
@@ -203,7 +203,7 @@ func TestParseMap(t *testing.T) {
 
 		// Parsing/Unmarshalling JSON encoding/json
 		err := json.Unmarshal([]byte(input), &fm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		q := &Query{}
 
 		parseMap(fm, q)
@@ -231,7 +231,7 @@ func TestParseMap(t *testing.T) {
 
 		// Parsing/Unmarshalling JSON encoding/json
 		err := json.Unmarshal([]byte(input), &fm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		q := &Query{}
 
 		parseMap(fm, q)
@@ -256,7 +256,7 @@ func TestParseMap(t *testing.T) {
 		// Parsing/Unmarshalling JSON encoding/json
 		fm := map[string]interface{}{}
 		err := json.Unmarshal([]byte(input), &fm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// when
 		actualQuery := Query{}
 		parseMap(fm, &actualQuery)

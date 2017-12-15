@@ -38,7 +38,7 @@ func (test *TestTransaction) TestTransactionInTime() {
 		return nil
 	})
 	// then
-	require.Nil(test.T(), err)
+	require.NoError(test.T(), err)
 }
 
 func (test *TestTransaction) TestTransactionOut() {

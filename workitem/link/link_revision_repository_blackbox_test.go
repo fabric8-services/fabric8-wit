@@ -32,14 +32,14 @@ func (s *revisionRepositoryBlackBoxTest) TestList() {
 		// modify the work item link (change the link type)
 		fxt.WorkItemLinks[0].LinkTypeID = fxt.WorkItemLinkTypes[1].ID
 		_, err := linkRepository.Save(s.Ctx, *fxt.WorkItemLinks[0], fxt.Identities[1].ID)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// delete the work item link
 		err = linkRepository.Delete(s.Ctx, fxt.WorkItemLinks[0].ID, fxt.Identities[2].ID)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// when
 		workitemLinkRevisions, err := revRepo.List(s.Ctx, fxt.WorkItemLinks[0].ID)
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Len(t, workitemLinkRevisions, 3)
 		// revision 1
 		revision1 := workitemLinkRevisions[0]
@@ -73,11 +73,11 @@ func (s *revisionRepositoryBlackBoxTest) TestList() {
 		linkRepository := link.NewWorkItemLinkRepository(s.DB)
 		// delete the source work item
 		err := linkRepository.DeleteRelatedLinks(s.Ctx, fxt.WorkItems[0].ID, fxt.Identities[2].ID)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// when
 		workitemLinkRevisions, err := revRepo.List(s.Ctx, fxt.WorkItemLinks[0].ID)
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Len(t, workitemLinkRevisions, 2)
 		// revision 1
 		revision1 := workitemLinkRevisions[0]

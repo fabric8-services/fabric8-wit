@@ -21,7 +21,7 @@ func TestAbsoluteURLOK(t *testing.T) {
 
 	// HTTPS
 	r, err := http.NewRequest("", "https://api.service.domain.org", nil)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	urlStr = AbsoluteURL(r, "/testpath2")
 	assert.Equal(t, "https://api.service.domain.org/testpath2", urlStr)
 }
@@ -32,7 +32,7 @@ func TestAbsoluteURLOKWithProxyForward(t *testing.T) {
 
 	// HTTPS
 	r, err := http.NewRequest("", "http://api.service.domain.org", nil)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	r.Header.Set("X-Forwarded-Proto", "https")
 	urlStr := AbsoluteURL(r, "/testpath2")
 	assert.Equal(t, "https://api.service.domain.org/testpath2", urlStr)

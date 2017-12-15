@@ -103,7 +103,7 @@ func TestLocateTokenInContex(t *testing.T) {
 	ctx := goajwt.WithJWT(context.Background(), tk)
 
 	foundId, err := tokenManager.Locate(ctx)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, id, foundId, "ID in created context not equal")
 }
 

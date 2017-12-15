@@ -69,7 +69,7 @@ func TestGithubFetchWithRecording(t *testing.T) {
 	// given
 	resource.Require(t, resource.UnitTest)
 	r, err := recorder.New("../test/data/github_fetch_test")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	defer r.Stop()
 	h := &http.Client{
 		Timeout:   1 * time.Second,

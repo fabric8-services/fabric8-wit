@@ -33,7 +33,7 @@ type TestSpaceCodebaseREST struct {
 func TestRunSpaceCodebaseREST(t *testing.T) {
 	pwd, err := os.Getwd()
 	if err != nil {
-		require.Nil(t, err)
+		require.NoError(t, err)
 	}
 	suite.Run(t, &TestSpaceCodebaseREST{DBTestSuite: gormtestsupport.NewDBTestSuite(pwd + "/../config.yaml")})
 }
@@ -208,6 +208,6 @@ func (rest *TestSpaceCodebaseREST) createSpace(ownerID uuid.UUID) *space.Space {
 		s, err = repo.Create(context.Background(), newSpace)
 		return err
 	})
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	return s
 }

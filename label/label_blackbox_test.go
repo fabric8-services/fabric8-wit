@@ -117,7 +117,7 @@ func (s *TestLabelRepository) TestSave() {
 		l.BorderColor = "#112233"
 
 		lbl, err := repo.Save(context.Background(), *l)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, l.Name, lbl.Name)
 		assert.Equal(t, l.TextColor, lbl.TextColor)
 		assert.Equal(t, l.BackgroundColor, lbl.BackgroundColor)
@@ -167,7 +167,7 @@ func (s *TestLabelRepository) TestListLabelBySpace() {
 	testFxt := tf.NewTestFixture(s.T(), s.DB, tf.Labels(n))
 
 	labelList, err := label.NewLabelRepository(s.DB).List(context.Background(), testFxt.Spaces[0].ID)
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	require.Len(s.T(), labelList, n)
 
 	labelIDs := map[uuid.UUID]struct{}{}
@@ -183,7 +183,7 @@ func (s *TestLabelRepository) TestListLabelBySpace() {
 func (s *TestLabelRepository) TestLoadLabel() {
 	testFxt := tf.NewTestFixture(s.T(), s.DB, tf.Labels(1))
 	lbl, err := label.NewLabelRepository(s.DB).Load(context.Background(), testFxt.Labels[0].ID)
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	require.NotNil(s.T(), lbl)
 	assert.Equal(s.T(), testFxt.Labels[0].Name, lbl.Name)
 }

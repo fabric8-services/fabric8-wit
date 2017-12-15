@@ -70,31 +70,31 @@ func TestGetKeycloakEndpointSetByUrlEnvVaribaleOK(t *testing.T) {
 	resetConfiguration(defaultValuesConfigFilePath)
 
 	url, err := config.GetKeycloakEndpointAuth(reqLong)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, "http://xyz.io/auth/realms/"+config.GetKeycloakRealm()+"/protocol/openid-connect/auth", url)
 
 	url, err = config.GetKeycloakEndpointLogout(reqLong)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, "http://xyz.io/auth/realms/"+config.GetKeycloakRealm()+"/protocol/openid-connect/logout", url)
 
 	url, err = config.GetKeycloakEndpointToken(reqLong)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, "http://xyz.io/auth/realms/"+config.GetKeycloakRealm()+"/protocol/openid-connect/token", url)
 
 	url, err = config.GetKeycloakEndpointUserInfo(reqLong)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, "http://xyz.io/auth/realms/"+config.GetKeycloakRealm()+"/protocol/openid-connect/userinfo", url)
 
 	url, err = config.GetKeycloakEndpointAuthzResourceset(reqLong)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, "http://xyz.io/auth/realms/"+config.GetKeycloakRealm()+"/authz/protection/resource_set", url)
 
 	url, err = config.GetKeycloakEndpointClients(reqLong)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, "http://xyz.io/auth/admin/realms/"+config.GetKeycloakRealm()+"/clients", url)
 
 	url, err = config.GetKeycloakEndpointEntitlement(reqLong)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, "http://xyz.io/auth/realms/"+config.GetKeycloakRealm()+"/authz/entitlement/fabric8-online-platform", url)
 }
 
@@ -148,12 +148,12 @@ func TestGetKeycloakUserInfoEndpointOK(t *testing.T) {
 
 func checkGetServiceEndpointOK(t *testing.T, expectedEndpoint string, getEndpoint func(req *http.Request) (string, error)) {
 	url, err := getEndpoint(reqLong)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	// In dev mode it's always the defualt value regardless of the request
 	assert.Equal(t, expectedEndpoint, url)
 
 	url, err = getEndpoint(reqShort)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	// In dev mode it's always the defualt value regardless of the request
 	assert.Equal(t, expectedEndpoint, url)
 }
@@ -199,10 +199,10 @@ func checkGetKeycloakEndpointSetByEnvVaribaleOK(t *testing.T, envName string, ge
 	resetConfiguration(defaultValuesConfigFilePath)
 
 	url, err := getEndpoint(reqLong)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, envValue, url)
 
 	url, err = getEndpoint(reqShort)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, envValue, url)
 }

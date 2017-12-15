@@ -18,7 +18,7 @@ func TestRemoteTokensLoaded(t *testing.T) {
 		panic(fmt.Errorf("failed to setup the configuration: %s", err.Error()))
 	}
 	m, err := NewManager(c)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, m)
 	tm, ok := m.(*tokenManager)
 	require.True(t, ok)

@@ -32,7 +32,7 @@ type TestLabelREST struct {
 func TestRunLabelREST(t *testing.T) {
 	resource.Require(t, resource.Database)
 	pwd, err := os.Getwd()
-	require.Nil(t, err)
+	require.NoError(t, err)
 	suite.Run(t, &TestLabelREST{DBTestSuite: gormtestsupport.NewDBTestSuite(pwd + "/../config.yaml")})
 }
 
@@ -44,10 +44,10 @@ func (rest *TestLabelREST) SetupTest() {
 
 func (rest *TestLabelREST) TestCreateLabel() {
 	c, err := tf.NewFixture(rest.DB, tf.Spaces(1))
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	require.Nil(rest.T(), c.Check())
 	i, err := tf.NewFixture(rest.DB, tf.Identities(1))
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	require.Nil(rest.T(), c.Check())
 	svc := testsupport.ServiceAsUser("Label-Service", *i.Identities[0])
 
@@ -69,10 +69,10 @@ func (rest *TestLabelREST) TestCreateLabel() {
 
 func (rest *TestLabelREST) TestCreateLabelWithWhiteSpace() {
 	c, err := tf.NewFixture(rest.DB, tf.Spaces(1))
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	require.Nil(rest.T(), c.Check())
 	i, err := tf.NewFixture(rest.DB, tf.Identities(1))
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	require.Nil(rest.T(), c.Check())
 	svc := testsupport.ServiceAsUser("Label-Service", *i.Identities[0])
 
@@ -232,10 +232,10 @@ func (rest *TestLabelREST) TestUpdate() {
 
 func (rest *TestLabelREST) TestListLabel() {
 	c, err := tf.NewFixture(rest.DB, tf.Spaces(1))
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	require.Nil(rest.T(), c.Check())
 	i, err := tf.NewFixture(rest.DB, tf.Identities(1))
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	require.Nil(rest.T(), c.Check())
 	svc := testsupport.ServiceAsUser("Label-Service", *i.Identities[0])
 
@@ -260,7 +260,7 @@ func (rest *TestLabelREST) TestListLabel() {
 func (rest *TestLabelREST) TestShowLabel() {
 	testFxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Labels(1))
 	i, err := tf.NewFixture(rest.DB, tf.Identities(1))
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	svc := testsupport.ServiceAsUser("Label-Service", *i.Identities[0])
 
 	ctrl := NewLabelController(svc, rest.db, rest.Configuration)

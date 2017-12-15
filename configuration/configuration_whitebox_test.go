@@ -58,7 +58,7 @@ func TestGetKeycloakHttpsURLOK(t *testing.T) {
 	t.Parallel()
 
 	r, err := http.NewRequest("", "https://sso.domain.org", nil)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	url, err := config.getServiceURL(r, config.GetKeycloakDomainPrefix(), "somepath")
 	assert.Nil(t, err)
 	assert.Equal(t, "https://sso.domain.org/somepath", url)
@@ -145,7 +145,7 @@ func TestValidRedirectURLsInDevModeCanBeOverridden(t *testing.T) {
 	}()
 
 	whitelist, err := config.GetValidRedirectURLs(nil)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, devModeValidRedirectURLs, whitelist)
 
 	os.Setenv(key, "https://someDomain.org/redirect")
@@ -172,11 +172,11 @@ func TestRedirectURLsForLocalhostRequestAreExcepted(t *testing.T) {
 
 func validateRedirectURL(t *testing.T, request string, redirect string) bool {
 	r, err := http.NewRequest("", request, nil)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	whitelist, err := config.checkLocalhostRedirectException(r)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	matched, err := regexp.MatchString(whitelist, redirect)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	return matched
 }

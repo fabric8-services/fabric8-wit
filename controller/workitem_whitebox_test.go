@@ -145,7 +145,7 @@ type TestWorkItemREST struct {
 func TestRunWorkItemREST(t *testing.T) {
 	pwd, err := os.Getwd()
 	if err != nil {
-		require.Nil(t, err)
+		require.NoError(t, err)
 	}
 	suite.Run(t, &TestWorkItemREST{DBTestSuite: gormtestsupport.NewDBTestSuite(pwd + "/../config.yaml")})
 }
@@ -192,7 +192,7 @@ func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithLegacyDescription(
 		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, space.SystemSpace)
 	})
 	// assert
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, target)
 	require.NotNil(t, target.Fields)
 	require.True(t, uuid.Equal(source.Relationships.BaseType.Data.ID, target.Type))
@@ -214,7 +214,7 @@ func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithDescriptionContent
 	err := application.Transactional(rest.db, func(app application.Application) error {
 		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, space.SystemSpace)
 	})
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, target)
 	require.NotNil(t, target.Fields)
 	require.True(t, uuid.Equal(source.Relationships.BaseType.Data.ID, target.Type))
@@ -235,7 +235,7 @@ func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithDescriptionContent
 	err := application.Transactional(rest.db, func(app application.Application) error {
 		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, space.SystemSpace)
 	})
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, target)
 	require.NotNil(t, target.Fields)
 	require.True(t, uuid.Equal(source.Relationships.BaseType.Data.ID, target.Type))
@@ -256,7 +256,7 @@ func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithTitle() {
 	err := application.Transactional(rest.db, func(app application.Application) error {
 		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, space.SystemSpace)
 	})
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, target)
 	require.NotNil(t, target.Fields)
 	require.True(t, uuid.Equal(source.Relationships.BaseType.Data.ID, target.Type))
@@ -276,7 +276,7 @@ func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithMissingTitle() {
 		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, space.SystemSpace)
 	})
 	// then: no error expected at this level, even though the title is missing
-	require.Nil(t, err)
+	require.NoError(t, err)
 }
 
 func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithEmptyTitle() {
@@ -293,5 +293,5 @@ func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithEmptyTitle() {
 		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, space.SystemSpace)
 	})
 	// then: no error expected at this level, even though the title is missing
-	require.Nil(t, err)
+	require.NoError(t, err)
 }

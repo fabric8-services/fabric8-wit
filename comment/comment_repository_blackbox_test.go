@@ -42,7 +42,7 @@ func newComment(parentID uuid.UUID, body, markup string) *comment.Comment {
 
 func (s *TestCommentRepository) createComment(c *comment.Comment, creator uuid.UUID) {
 	err := s.repo.Create(s.Ctx, c, creator)
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 }
 
 func (s *TestCommentRepository) createComments(comments []*comment.Comment, creator uuid.UUID) {
@@ -91,7 +91,7 @@ func (s *TestCommentRepository) TestSaveCommentWithMarkup() {
 	limit := 1
 	comments, _, err := s.repo.List(s.Ctx, comment.ParentID, &offset, &limit)
 	// then
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	require.Len(s.T(), comments, 1)
 	assert.Equal(s.T(), "Test AB", comments[0].Body)
 	assert.Equal(s.T(), rendering.SystemMarkupMarkdown, comments[0].Markup)
@@ -112,7 +112,7 @@ func (s *TestCommentRepository) TestSaveCommentWithoutMarkup() {
 	limit := 1
 	comments, _, err := s.repo.List(s.Ctx, comment.ParentID, &offset, &limit)
 	// then
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	require.Len(s.T(), comments, 1)
 	assert.Equal(s.T(), "Test AB", comments[0].Body)
 	assert.Equal(s.T(), rendering.SystemMarkupPlainText, comments[0].Markup)
@@ -145,7 +145,7 @@ func (s *TestCommentRepository) TestCountComments() {
 	// when
 	count, err := s.repo.Count(s.Ctx, fxt.WorkItems[0].ID)
 	// then
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	assert.Equal(s.T(), 1, count)
 }
 
@@ -157,7 +157,7 @@ func (s *TestCommentRepository) TestListComments() {
 	limit := 1
 	resultComments, _, err := s.repo.List(s.Ctx, fxt.Comments[0].ParentID, &offset, &limit)
 	// then
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	require.Len(s.T(), resultComments, 1)
 	assert.Equal(s.T(), fxt.Comments[0].Body, resultComments[0].Body)
 }
@@ -190,7 +190,7 @@ func (s *TestCommentRepository) TestLoadComment() {
 	// when
 	loadedComment, err := s.repo.Load(s.Ctx, fxt.Comments[0].ID)
 	// then
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	assert.Equal(s.T(), fxt.Comments[0].ID, loadedComment.ID)
 	assert.Equal(s.T(), fxt.Comments[0].Body, loadedComment.Body)
 }
@@ -202,7 +202,7 @@ func (s *TestCommentRepository) TestExistsComment() {
 		// when
 		err := s.repo.CheckExists(s.Ctx, fxt.Comments[0].ID.String())
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 	})
 
 	s.T().Run("comment doesn't exist", func(t *testing.T) {

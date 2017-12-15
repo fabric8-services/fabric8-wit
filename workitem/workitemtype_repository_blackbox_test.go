@@ -35,7 +35,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestExists() {
 		// when
 		err := s.repo.CheckExists(s.Ctx, fxt.WorkItemTypes[0].ID.String())
 		// then
-		require.Nil(s.T(), err)
+		require.NoError(s.T(), err)
 	})
 
 	s.T().Run("wit doesn't exist", func(t *testing.T) {
@@ -90,11 +90,11 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreate() {
 			},
 		})
 
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, baseWit)
 		require.NotNil(t, baseWit.ID)
 		extendedWit, err := s.repo.Create(s.Ctx, fxt.Spaces[0].ID, nil, &baseWit.ID, "foo.baz", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, extendedWit)
 		require.NotNil(t, extendedWit.Fields)
 		// the Field 'foo' must exist since it is inherited from the base work item type

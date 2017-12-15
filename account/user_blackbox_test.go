@@ -41,7 +41,7 @@ func (s *userBlackBoxTest) TestOKToDelete() {
 
 	// lets see how many are present.
 	users, err := s.repo.List(s.Ctx)
-	require.Nil(s.T(), err, "Could not list users")
+	require.NoError(s.T(), err, "Could not list users")
 	require.True(s.T(), len(users) > 0)
 
 	for _, data := range users {
@@ -68,7 +68,7 @@ func (s *userBlackBoxTest) TestExistsUser() {
 		// when
 		err := s.repo.CheckExists(s.Ctx, user.ID.String())
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 	})
 
 	t.Run("user doesn't exist", func(t *testing.T) {
@@ -89,10 +89,10 @@ func (s *userBlackBoxTest) TestOKToSave() {
 
 	user.FullName = "newusernameTestUser"
 	err := s.repo.Save(s.Ctx, user)
-	require.Nil(s.T(), err, "Could not update user")
+	require.NoError(s.T(), err, "Could not update user")
 
 	updatedUser, err := s.repo.Load(s.Ctx, user.ID)
-	require.Nil(s.T(), err, "Could not load user")
+	require.NoError(s.T(), err, "Could not load user")
 	assert.Equal(s.T(), user.FullName, updatedUser.FullName)
 	fields := user.ContextInformation
 	assert.Equal(s.T(), fields["last_visited"], "http://www.google.com")
@@ -106,12 +106,12 @@ func (s *userBlackBoxTest) TestUpdateToEmptyString() {
 	user := createAndLoadUser(s)
 
 	err := s.repo.Save(s.Ctx, user)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	user.Bio = ""
 	err = s.repo.Save(s.Ctx, user)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	u, err := s.repo.Load(s.Ctx, user.ID)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Empty(t, u.Bio)
 }
 
@@ -131,10 +131,10 @@ func createAndLoadUser(s *userBlackBoxTest) *account.User {
 	}
 
 	err := s.repo.Create(s.Ctx, user)
-	require.Nil(s.T(), err, "Could not create user")
+	require.NoError(s.T(), err, "Could not create user")
 
 	createdUser, err := s.repo.Load(s.Ctx, user.ID)
-	require.Nil(s.T(), err, "Could not load user")
+	require.NoError(s.T(), err, "Could not load user")
 	require.Equal(s.T(), user.Email, createdUser.Email)
 	require.Equal(s.T(), user.ID, createdUser.ID)
 	require.Equal(s.T(), user.ContextInformation["last_visited"], createdUser.ContextInformation["last_visited"])

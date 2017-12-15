@@ -46,7 +46,7 @@ func (s *SpaceRepositoryTestSuite) TestCreate() {
 			OwnerID: fxt.Identities[0].ID,
 		}
 		sp, err := s.repo.Create(context.Background(), &newSpace)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, sp)
 		require.Equal(t, id, sp.ID)
 		require.Equal(t, name, sp.Name)
@@ -83,7 +83,7 @@ func (s *SpaceRepositoryTestSuite) TestLoad() {
 	s.T().Run("existing space", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1))
 		sp, err := s.repo.Load(s.Ctx, fxt.Spaces[0].ID)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, sp)
 		require.True(t, (*fxt.Spaces[0]).Equal(*sp))
 	})
@@ -102,7 +102,7 @@ func (s *SpaceRepositoryTestSuite) TestCheckExists() {
 		// when checking for existence
 		err := s.repo.CheckExists(s.Ctx, fxt.Spaces[0].ID.String())
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 	})
 	s.T().Run("space doesn't exist", func(t *testing.T) {
 		err := s.repo.CheckExists(context.Background(), uuid.NewV4().String())
@@ -119,7 +119,7 @@ func (s *SpaceRepositoryTestSuite) TestSave() {
 		newName := testsupport.CreateRandomValidTestName("new name")
 		fxt.Spaces[0].Name = newName
 		sp, err := s.repo.Save(s.Ctx, fxt.Spaces[0])
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, sp)
 		require.Equal(t, newName, sp.Name)
 	})
@@ -168,12 +168,12 @@ func (s *SpaceRepositoryTestSuite) TestDelete() {
 		id := fxt.Spaces[0].ID
 		// double check that we can load this space
 		sp, err := s.repo.Load(s.Ctx, id)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, sp)
 		// when
 		err = s.repo.Delete(s.Ctx, id)
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// double check that we can no longer load the space
 		sp, err = s.repo.Load(s.Ctx, id)
 		require.NotNil(t, err)
@@ -239,7 +239,7 @@ func (s *SpaceRepositoryTestSuite) TestLoadByOwnerAndName() {
 		// when
 		sp, err := s.repo.LoadByOwnerAndName(context.Background(), &fxt.Spaces[0].OwnerID, &fxt.Spaces[0].Name)
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, sp)
 		require.True(t, (*fxt.Spaces[0]).Equal(*sp))
 	})
@@ -277,7 +277,7 @@ func (s *SpaceRepositoryTestSuite) TestLoadMany() {
 		// when listing
 		result, err := s.repo.LoadMany(s.Ctx, ids)
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.Condition(t, containsAllSpaces(t, fxt.Spaces, result...))
 	})
 	s.T().Run("ok with duplicates", func(t *testing.T) {
@@ -292,7 +292,7 @@ func (s *SpaceRepositoryTestSuite) TestLoadMany() {
 		// when listing
 		result, err := s.repo.LoadMany(s.Ctx, ids)
 		// then make sure the result does not contain duplicates
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.Condition(t, containsAllSpaces(t, fxt.Spaces, result...))
 	})
 }

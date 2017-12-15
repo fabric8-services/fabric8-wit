@@ -159,7 +159,7 @@ func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
 			}))
 		// setup the mock client for Che
 		r, err := recorder.New("../test/data/che/che_delete_codebase_workspaces.ok")
-		require.Nil(t, err)
+		require.NoError(t, err)
 		defer r.Stop()
 		m := httpmonitor.NewTransportMonitor(r.Transport)
 		svc, ctrl := s.SecuredControllers(testsupport.TestIdentity, withCheClient(NewMockCheClient(m, s.Configuration)), withShowTenant(MockShowTenant()))
@@ -194,7 +194,7 @@ func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
 			}))
 		// setup the mock client for Che
 		r, err := recorder.New("../test/data/che/che_delete_codebase_workspaces.failure")
-		require.Nil(t, err)
+		require.NoError(t, err)
 		defer r.Stop()
 		m := httpmonitor.NewTransportMonitor(r.Transport)
 		svc, ctrl := s.SecuredControllers(testsupport.TestIdentity, withCheClient(NewMockCheClient(m, s.Configuration)), withShowTenant(MockShowTenant()))
@@ -219,7 +219,7 @@ func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
 		// given
 		codebaseID := uuid.NewV4()
 		r, err := recorder.New("")
-		require.Nil(t, err)
+		require.NoError(t, err)
 		defer r.Stop()
 		m := httpmonitor.NewTransportMonitor(r.Transport)
 		svc, ctrl := s.SecuredControllers(testsupport.TestIdentity, withCheClient(NewMockCheClient(m, s.Configuration)), withShowTenant(MockShowTenant()))
@@ -234,7 +234,7 @@ func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
 		// given
 		codebaseID := uuid.NewV4()
 		r, err := recorder.New("")
-		require.Nil(t, err)
+		require.NoError(t, err)
 		defer r.Stop()
 		m := httpmonitor.NewTransportMonitor(r.Transport)
 		svc, ctrl := s.UnsecuredController(withCheClient(NewMockCheClient(m, s.Configuration)), withShowTenant(MockShowTenant()))
@@ -255,7 +255,7 @@ func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
 			tf.Codebases(1))
 		// when/then (user is not authenticated)
 		r, err := recorder.New("")
-		require.Nil(t, err)
+		require.NoError(t, err)
 		defer r.Stop()
 		m := httpmonitor.NewTransportMonitor(r.Transport)
 		svc, ctrl := s.UnsecuredController(withCheClient(NewMockCheClient(m, s.Configuration)), withShowTenant(MockShowTenant()))
@@ -274,7 +274,7 @@ func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
 			}),
 			tf.Codebases(1))
 		r, err := recorder.New("")
-		require.Nil(t, err)
+		require.NoError(t, err)
 		defer r.Stop()
 		m := httpmonitor.NewTransportMonitor(r.Transport)
 		// when (user is not space owner)
