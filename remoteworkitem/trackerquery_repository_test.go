@@ -54,12 +54,12 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryCreate() {
 	}
 	err = test.trackerRepo.Create(ctx, &tracker)
 	query, err = test.queryRepo.Create(ctx, "abc", "xyz", tracker.ID, space.SystemSpace)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "abc", query.Query)
 	assert.Equal(t, "xyz", query.Schedule)
 
 	query2, err := test.queryRepo.Load(ctx, query.ID)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, query, query2)
 }
 
@@ -79,13 +79,13 @@ func (test *TestTrackerQueryRepository) TestExistsTrackerQuery() {
 			Type: ProviderJira,
 		}
 		err := test.trackerRepo.Create(ctx, &tracker)
-		assert.Nil(t, err)
+		require.NoError(t, err)
 
 		query, err := test.queryRepo.Create(ctx, "abc", "xyz", tracker.ID, space.SystemSpace)
-		assert.Nil(t, err)
+		require.NoError(t, err)
 
 		err = test.queryRepo.CheckExists(ctx, query.ID)
-		assert.Nil(t, err)
+		require.NoError(t, err)
 	})
 
 	t.Run("tracker query doesn't exist", func(t *testing.T) {
@@ -124,7 +124,7 @@ func (test *TestTrackerQueryRepository) TestTrackerQuerySave() {
 	err = test.trackerRepo.Create(ctx, &tracker2)
 	query, err = test.queryRepo.Create(ctx, "abc", "xyz", tracker.ID, space.SystemSpace)
 	query2, err := test.queryRepo.Load(ctx, query.ID)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, query, query2)
 
 	query.Query = "after"
@@ -135,7 +135,7 @@ func (test *TestTrackerQueryRepository) TestTrackerQuerySave() {
 	}
 
 	query2, err = test.queryRepo.Save(ctx, *query)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, query, query2)
 
 	err = test.trackerRepo.Delete(ctx, uuid.NewV4())
@@ -165,7 +165,7 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryDelete() {
 	err = test.trackerRepo.Create(ctx, &tracker)
 	tq, _ := test.queryRepo.Create(ctx, "is:open is:issue user:arquillian author:aslakknutsen", "15 * * * * *", tracker.ID, space.SystemSpace)
 	err = test.queryRepo.Delete(ctx, tq.ID)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 
 	tq, err = test.queryRepo.Load(ctx, tq.ID)
 	assert.IsType(t, NotFoundError{}, err)
@@ -191,7 +191,7 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryList() {
 		Type: ProviderGithub,
 	}
 	err := test.trackerRepo.Create(ctx, &tracker1)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	test.queryRepo.Create(ctx, "is:open is:issue user:arquillian author:aslakknutsen", "15 * * * * *", tracker1.ID, space.SystemSpace)
 	test.queryRepo.Create(ctx, "is:close is:issue user:arquillian author:aslakknutsen", "15 * * * * *", tracker1.ID, space.SystemSpace)
 
@@ -200,7 +200,7 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryList() {
 		Type: ProviderJira,
 	}
 	err = test.trackerRepo.Create(ctx, &tracker2)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	test.queryRepo.Create(ctx, "project = ARQ AND text ~ 'arquillian'", "15 * * * * *", tracker2.ID, space.SystemSpace)
 	test.queryRepo.Create(ctx, "project = ARQ AND text ~ 'javadoc'", "15 * * * * *", tracker2.ID, space.SystemSpace)
 

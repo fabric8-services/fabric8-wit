@@ -25,7 +25,7 @@ func TestParseMap(t *testing.T) {
 		// Parsing/Unmarshalling JSON encoding/json
 		fm := map[string]interface{}{}
 		err := json.Unmarshal([]byte(input), &fm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// when
 		actualQuery := Query{}
 		parseMap(fm, &actualQuery)
@@ -43,7 +43,7 @@ func TestParseMap(t *testing.T) {
 		// Parsing/Unmarshalling JSON encoding/json
 		fm := map[string]interface{}{}
 		err := json.Unmarshal([]byte(input), &fm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// when
 		actualQuery := Query{}
 		parseMap(fm, &actualQuery)
@@ -61,7 +61,7 @@ func TestParseMap(t *testing.T) {
 		// Parsing/Unmarshalling JSON encoding/json
 		fm := map[string]interface{}{}
 		err := json.Unmarshal([]byte(input), &fm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// when
 		actualQuery := Query{}
 		parseMap(fm, &actualQuery)
@@ -81,7 +81,7 @@ func TestParseMap(t *testing.T) {
 		// Parsing/Unmarshalling JSON encoding/json
 		fm := map[string]interface{}{}
 		err := json.Unmarshal([]byte(input), &fm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// when
 		actualQuery := Query{}
 		parseMap(fm, &actualQuery)
@@ -97,7 +97,7 @@ func TestParseMap(t *testing.T) {
 		// Parsing/Unmarshalling JSON encoding/json
 		fm := map[string]interface{}{}
 		err := json.Unmarshal([]byte(input), &fm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// when
 		actualQuery := Query{}
 		parseMap(fm, &actualQuery)
@@ -113,7 +113,7 @@ func TestParseMap(t *testing.T) {
 		// Parsing/Unmarshalling JSON encoding/json
 		fm := map[string]interface{}{}
 		err := json.Unmarshal([]byte(input), &fm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// when
 		actualQuery := Query{}
 		parseMap(fm, &actualQuery)
@@ -131,7 +131,7 @@ func TestParseMap(t *testing.T) {
 		// Parsing/Unmarshalling JSON encoding/json
 		fm := map[string]interface{}{}
 		err := json.Unmarshal([]byte(input), &fm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// when
 		actualQuery := Query{}
 		parseMap(fm, &actualQuery)
@@ -152,7 +152,7 @@ func TestParseMap(t *testing.T) {
 		// Parsing/Unmarshalling JSON encoding/json
 		fm := map[string]interface{}{}
 		err := json.Unmarshal([]byte(input), &fm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// when
 		actualQuery := Query{}
 		parseMap(fm, &actualQuery)
@@ -176,7 +176,7 @@ func TestParseMap(t *testing.T) {
 
 		// Parsing/Unmarshalling JSON encoding/json
 		err := json.Unmarshal([]byte(input), &fm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		q := &Query{}
 
 		parseMap(fm, q)
@@ -204,7 +204,7 @@ func TestParseMap(t *testing.T) {
 
 		// Parsing/Unmarshalling JSON encoding/json
 		err := json.Unmarshal([]byte(input), &fm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		q := &Query{}
 
 		parseMap(fm, q)
@@ -232,7 +232,7 @@ func TestParseMap(t *testing.T) {
 
 		// Parsing/Unmarshalling JSON encoding/json
 		err := json.Unmarshal([]byte(input), &fm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		q := &Query{}
 
 		parseMap(fm, q)
@@ -257,7 +257,7 @@ func TestParseMap(t *testing.T) {
 		// Parsing/Unmarshalling JSON encoding/json
 		fm := map[string]interface{}{}
 		err := json.Unmarshal([]byte(input), &fm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// when
 		actualQuery := Query{}
 		parseMap(fm, &actualQuery)
@@ -503,7 +503,7 @@ func TestGenerateExpression(t *testing.T) {
 		// when
 		actualExpr, err := q.generateExpression()
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.Nil(t, actualExpr)
 		assert.Contains(t, err.Error(), "negate for null not supported")
 	})
@@ -522,7 +522,7 @@ func TestGenerateExpression(t *testing.T) {
 		// when
 		actualExpr, err := q.generateExpression()
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.Nil(t, actualExpr)
 		assert.Contains(t, err.Error(), "negate for null not supported")
 	})
@@ -557,7 +557,7 @@ func TestGenerateExpressionWithNonExistingKey(t *testing.T) {
 		// when
 		actualExpr, err := q.generateExpression()
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.Nil(t, actualExpr)
 	})
 	t.Run("Empty name", func(t *testing.T) {
@@ -568,7 +568,7 @@ func TestGenerateExpressionWithNonExistingKey(t *testing.T) {
 		// when
 		actualExpr, err := q.generateExpression()
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.Nil(t, actualExpr)
 	})
 
@@ -580,7 +580,7 @@ func TestGenerateExpressionWithNonExistingKey(t *testing.T) {
 		// when
 		actualExpr, err := q.generateExpression()
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.Nil(t, actualExpr)
 	})
 

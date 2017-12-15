@@ -74,7 +74,7 @@ func (s *WorkItemSuite) SetupTest() {
 	s.DBTestSuite.SetupTest()
 	// create a test identity
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "WorkItemSuite setup user", "test provider")
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	s.testIdentity = *testIdentity
 
 	s.svc = testsupport.ServiceAsUser("TestUpdateWI-Service", s.testIdentity)
@@ -383,9 +383,9 @@ func (s *WorkItemSuite) TestReorderWorkitemConflict() {
 	payload2.Position.ID = result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
 	payload2.Position.Direction = string(workitem.DirectionAbove)
 
-	_, err := test.ReorderWorkitemsConflict(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, &payload2) // Returns the workitems which are reordered
+	_, jerrs := test.ReorderWorkitemsConflict(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, &payload2) // Returns the workitems which are reordered
 
-	require.NotNil(s.T(), err)
+	require.NotNil(s.T(), jerrs)
 }
 
 // TestReorderBelow is positive test which tests successful reorder by providing valid input
@@ -951,7 +951,7 @@ func (s *WorkItem2Suite) SetupTest() {
 	s.notification = notificationsupport.FakeNotificationChannel{}
 	// create identity
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "WorkItem2Suite setup user", "test provider")
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", *testIdentity)
 	s.workitemCtrl = NewNotifyingWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), &s.notification, s.Configuration)
 	s.workitemsCtrl = NewNotifyingWorkitemsController(s.svc, gormapplication.NewGormDB(s.DB), &s.notification, s.Configuration)
@@ -1995,10 +1995,10 @@ func (s *WorkItem2Suite) TestWI2UpdateWithArea() {
 	// should get root area's id for that space
 	spaceRepo := space.NewRepository(s.DB)
 	spaceInstance, err := spaceRepo.Load(s.svc.Context, *c.Data.Relationships.Space.Data.ID)
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	areaRepo := area.NewAreaRepository(s.DB)
 	rootArea, err := areaRepo.Root(context.Background(), spaceInstance.ID)
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	require.Equal(s.T(), rootArea.ID.String(), *wi.Data.Relationships.Area.Data.ID)
 	// when
 	u := minimumRequiredUpdatePayload()
@@ -2032,7 +2032,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithRootAreaIfMissing() {
 	}
 	areaRepo := area.NewAreaRepository(s.DB)
 	err := areaRepo.Create(s.Ctx, &childArea)
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	log.Info(nil, nil, "child area created")
 	childAreaID := childArea.ID.String()
 	childAreaType := area.APIStringTypeAreas
@@ -2146,7 +2146,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithIteration() {
 	spaceInstance, err := spaceRepo.Load(s.svc.Context, *c.Data.Relationships.Space.Data.ID)
 	iterationRepo := iteration.NewIterationRepository(s.DB)
 	rootIteration, err := iterationRepo.Root(context.Background(), spaceInstance.ID)
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	require.Equal(s.T(), rootIteration.ID.String(), *wi.Data.Relationships.Iteration.Data.ID)
 	// when
 	u := minimumRequiredUpdatePayload()
@@ -2567,7 +2567,7 @@ func (s *WorkItem2Suite) TestDefaultSpaceAndIterationRelations() {
 	spaceInstance, err := spaceRepo.Load(s.svc.Context, space.SystemSpace)
 	iterationRepo := iteration.NewIterationRepository(s.DB)
 	rootIteration, err := iterationRepo.Root(context.Background(), spaceInstance.ID)
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	assert.Equal(s.T(), rootIteration.ID.String(), *wi.Data.Relationships.Iteration.Data.ID)
 }
 
@@ -2593,7 +2593,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithAreaIterationSuccessively() {
 
 	workItemRepo := workitem.NewWorkItemRepository(s.DB)
 	wi, err := workItemRepo.LoadByID(context.Background(), *wiCreated.Data.ID)
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 
 	// update iteration of WI
 	u := minimumRequiredUpdatePayload()
@@ -2620,7 +2620,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithAreaIterationSuccessively() {
 
 	// reload the WI (version value changed)
 	wi, err = workItemRepo.LoadByID(context.Background(), *wiCreated.Data.ID)
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 
 	// now update AREA of WI, that should not affect previously set Iteration
 	u2 := minimumRequiredUpdatePayload()
@@ -2816,7 +2816,7 @@ func minimumRequiredUpdatePayloadWithSpace(spaceID uuid.UUID) app.UpdateWorkitem
 
 func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "TestUpdateWorkitemForSpaceCollaborator-"+uuid.NewV4().String(), "TestWI")
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	space := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, *testIdentity, "")
 	// Create new workitem
 	payload := minimumRequiredCreateWithTypeAndSpace(workitem.SystemBug, *space.ID)
@@ -2848,14 +2848,14 @@ func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 
 	// A not-space collaborator can create a work item in a space which belongs to the openshiftio test identity
 	openshiftioTestIdentityID, err := uuid.FromString("7b50ddb4-5e12-4031-bca7-3b88f92e2339")
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	openshiftioTestIdentity := account.Identity{
 		Username:     "TestUpdateWorkitemForSpaceCollaborator-" + uuid.NewV4().String(),
 		ProviderType: "TestWI",
 		ID:           openshiftioTestIdentityID,
 	}
 	err = testsupport.CreateTestIdentityForAccountIdentity(s.DB, &openshiftioTestIdentity)
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	openshiftioTestIdentitySpace := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, openshiftioTestIdentity, "")
 	payload3 := minimumRequiredCreateWithTypeAndSpace(workitem.SystemBug, *openshiftioTestIdentitySpace.ID)
 	payload3.Data.Attributes[workitem.SystemTitle] = "Test WI"

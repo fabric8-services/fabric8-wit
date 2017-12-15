@@ -69,7 +69,7 @@ func (rest *TestSearchSpacesREST) TestSpacesSearchOK() {
 	// given
 	prefix := time.Now().Format("2006_Jan_2_15_04_05_") // using a unique prefix to make sure the test data will not collide with existing, older spaces.
 	idents, err := createTestData(rest.db, prefix)
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	tests := []okScenario{
 		{"With uppercase fullname query", args{offset("0"), limit(10), prefix + "TEST_AB"}, expects{totalCount(1)}},
 		{"With lowercase fullname query", args{offset("0"), limit(10), prefix + "TEST_AB"}, expects{totalCount(1)}},

@@ -25,7 +25,7 @@ type TestFiltersREST struct {
 func TestRunFiltersREST(t *testing.T) {
 	resource.Require(t, resource.Database)
 	pwd, err := os.Getwd()
-	require.Nil(t, err)
+	require.NoError(t, err)
 	suite.Run(t, &TestFiltersREST{DBTestSuite: gormtestsupport.NewDBTestSuite(pwd + "/../config.yaml")})
 }
 

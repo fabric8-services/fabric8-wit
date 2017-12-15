@@ -80,9 +80,9 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 		childItr := fxt.IterationByName("child iteration")
 		ci := getChildIterationPayload(&name)
 		startAt, err := time.Parse(time.RFC3339, "2016-11-04T15:08:41+00:00")
-		require.Nil(t, err)
+		require.NoError(t, err)
 		endAt, err := time.Parse(time.RFC3339, "2016-11-25T15:08:41+00:00")
-		require.Nil(t, err)
+		require.NoError(t, err)
 		ci.Data.Attributes.StartAt = &startAt
 		ci.Data.Attributes.EndAt = &endAt
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
@@ -106,9 +106,9 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 		id := uuid.NewV4()
 		ci.Data.ID = &id // set different ID and it must be ignoed by controller
 		startAt, err := time.Parse(time.RFC3339, "2016-11-04T15:08:41+00:00")
-		require.Nil(t, err)
+		require.NoError(t, err)
 		endAt, err := time.Parse(time.RFC3339, "2016-11-25T15:08:41+00:00")
-		require.Nil(t, err)
+		require.NoError(t, err)
 		ci.Data.Attributes.StartAt = &startAt
 		ci.Data.Attributes.EndAt = &endAt
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
@@ -187,7 +187,7 @@ func (rest *TestIterationREST) TestFailValidationIterationNameLength() {
 	// given
 	_, _, _, _, parent := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
 	_, err := rest.db.Iterations().Root(context.Background(), parent.SpaceID)
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	ci := getChildIterationPayload(&testsupport.TestOversizedNameObj)
 
 	err = ci.Validate()
@@ -200,7 +200,7 @@ func (rest *TestIterationREST) TestFailValidationIterationNameStartWith() {
 	// given
 	_, _, _, _, parent := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
 	_, err := rest.db.Iterations().Root(context.Background(), parent.SpaceID)
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	name := "_Sprint #21"
 	ci := getChildIterationPayload(&name)
 
@@ -284,7 +284,7 @@ func (rest *TestIterationREST) createWorkItem(parentSpace space.Space) workitem.
 		wi = w
 		return err
 	})
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	return *wi
 }
 
@@ -302,7 +302,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHead
 		_, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
 		return err
 	})
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	// when/then
 	test.ShowIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &ifModifiedSinceHeader, nil)
 }
@@ -322,7 +322,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHead
 		updatedWI = w
 		return err
 	})
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	testWI = *updatedWI
 	// read the iteration to compute its current `If-Modified-Since` value
 	var updatedItr *iteration.Iteration
@@ -340,7 +340,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHead
 		_, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
 		return err
 	})
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	// when/then
 	test.ShowIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &ifModifiedSinceHeader, nil)
 }
@@ -357,7 +357,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAf
 		_, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
 		return err
 	})
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	// when/then
 	test.ShowIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), nil, &ifNoneMatch)
 }
@@ -377,7 +377,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAf
 		updatedWI = w
 		return err
 	})
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	testWI = *updatedWI
 	// read the iteration to compute its current `If-None-Match` value
 	var updatedItr *iteration.Iteration
@@ -395,7 +395,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAf
 		_, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
 		return err
 	})
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	// when/then
 	test.ShowIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), nil, &ifNoneMatch)
 }
@@ -423,7 +423,7 @@ func (rest *TestIterationREST) TestSuccessUpdateIteration() {
 		},
 	}
 	owner, errIdn := rest.db.Identities().Load(context.Background(), sp.OwnerID)
-	require.Nil(rest.T(), errIdn)
+	require.NoError(rest.T(), errIdn)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	// when
 	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &payload)
@@ -440,7 +440,7 @@ func (rest *TestIterationREST) TestSuccessUpdateIteration() {
 		ProviderType: account.KeycloakIDP,
 	}
 	errInCreateOther := rest.db.Identities().Create(context.Background(), otherIdentity)
-	require.Nil(rest.T(), errInCreateOther)
+	require.NoError(rest.T(), errInCreateOther)
 	svc, ctrl = rest.SecuredControllerWithIdentity(otherIdentity)
 	test.UpdateIterationForbidden(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &payload)
 }
@@ -462,7 +462,7 @@ func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 	}
 	// add WI to this iteration and test counts in the response of update iteration API
 	testIdentity, err := testsupport.CreateTestIdentity(rest.DB, "TestSuccessUpdateIterationWithWICounts user", "test provider")
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	wirepo := workitem.NewWorkItemRepository(rest.DB)
 	req := &http.Request{Host: "localhost"}
 	params := url.Values{}
@@ -477,7 +477,7 @@ func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 				workitem.SystemIteration: itr.ID.String(),
 			}, testIdentity.ID)
 		require.NotNil(rest.T(), wi)
-		require.Nil(rest.T(), err)
+		require.NoError(rest.T(), err)
 		require.NotNil(rest.T(), wi)
 	}
 	for i := 0; i < 5; i++ {
@@ -489,11 +489,11 @@ func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 				workitem.SystemIteration: itr.ID.String(),
 			}, testIdentity.ID)
 		require.NotNil(rest.T(), wi)
-		require.Nil(rest.T(), err)
+		require.NoError(rest.T(), err)
 		require.NotNil(rest.T(), wi)
 	}
 	owner, errIdn := rest.db.Identities().Load(context.Background(), sp.OwnerID)
-	require.Nil(rest.T(), errIdn)
+	require.NoError(rest.T(), errIdn)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	// when
 	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &payload)
@@ -552,7 +552,7 @@ func (rest *TestIterationREST) TestIterationStateTransitions() {
 		},
 	}
 	owner, errIdn := rest.db.Identities().Load(context.Background(), sp.OwnerID)
-	require.Nil(rest.T(), errIdn)
+	require.NoError(rest.T(), errIdn)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr1.ID.String(), &payload)
 	assert.Equal(rest.T(), startState.String(), *updated.Data.Attributes.State)
@@ -563,7 +563,7 @@ func (rest *TestIterationREST) TestIterationStateTransitions() {
 		Path:    itr1.Path,
 	}
 	err := rest.db.Iterations().Create(context.Background(), &itr2)
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	payload2 := app.UpdateIterationPayload{
 		Data: &app.Iteration{
 			Attributes: &app.IterationAttributes{
@@ -594,7 +594,7 @@ func (rest *TestIterationREST) TestRootIterationCanNotStart() {
 		ri, err = repo.Root(context.Background(), itr1.SpaceID)
 		return err
 	})
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	require.NotNil(rest.T(), ri)
 
 	startState := iteration.StateStart
@@ -608,7 +608,7 @@ func (rest *TestIterationREST) TestRootIterationCanNotStart() {
 		},
 	}
 	owner, errIdn := rest.db.Identities().Load(context.Background(), sp.OwnerID)
-	require.Nil(rest.T(), errIdn)
+	require.NoError(rest.T(), errIdn)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	test.UpdateIterationBadRequest(rest.T(), svc.Context, svc, ctrl, ri.ID.String(), &payload)
 }
@@ -616,12 +616,12 @@ func (rest *TestIterationREST) TestRootIterationCanNotStart() {
 func (rest *TestIterationREST) createIterations() (*app.IterationSingle, *account.Identity) {
 	sp, _, _, _, parent := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
 	_, err := rest.db.Iterations().Root(context.Background(), parent.SpaceID)
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	parentID := parent.ID
 	name := testsupport.CreateRandomValidTestName("Iteration-")
 	ci := getChildIterationPayload(&name)
 	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	// when
 	_, created := test.CreateChildIterationCreated(rest.T(), svc.Context, svc, ctrl, parentID.String(), ci)
@@ -653,7 +653,7 @@ func (rest *TestIterationREST) TestIterationNotActiveInTimeframe() {
 		},
 	}
 	owner, errIdn := rest.db.Identities().Load(context.Background(), owner.ID)
-	require.Nil(rest.T(), errIdn)
+	require.NoError(rest.T(), errIdn)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr1.Data.ID.String(), &payload)
 	assert.Equal(rest.T(), iteration.IterationNotActive, *updated.Data.Attributes.ActiveStatus) // iteration doesnot fall in timeframe, so iteration is not active
@@ -673,7 +673,7 @@ func (rest *TestIterationREST) TestIterationActivatedByUser() {
 		},
 	}
 	owner, errIdn := rest.db.Identities().Load(context.Background(), owner.ID)
-	require.Nil(rest.T(), errIdn)
+	require.NoError(rest.T(), errIdn)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr1.Data.ID.String(), &payload)
 	assert.Equal(rest.T(), iteration.IterationActive, *updated.Data.Attributes.ActiveStatus) // iteration doesnot fall in timeframe yet userActive is true so iteration is active
@@ -717,29 +717,29 @@ func createSpaceAndRootAreaAndIterations(t *testing.T, db application.DB) (space
 			ProviderType: account.KeycloakIDP,
 		}
 		errCreateOwner := app.Identities().Create(context.Background(), owner)
-		require.Nil(t, errCreateOwner)
+		require.NoError(t, errCreateOwner)
 		spaceObj = space.Space{
 			Name:    testsupport.CreateRandomValidTestName("foo-"),
 			OwnerID: owner.ID,
 		}
 		_, err := app.Spaces().Create(context.Background(), &spaceObj)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// create the root area
 		rootAreaObj = area.Area{
 			Name:    spaceObj.Name,
 			SpaceID: spaceObj.ID,
 		}
 		err = app.Areas().Create(context.Background(), &rootAreaObj)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// above space should have a root iteration for itself
 		rootIterationObj = iteration.Iteration{
 			Name:    spaceObj.Name,
 			SpaceID: spaceObj.ID,
 		}
 		err = app.Iterations().Create(context.Background(), &rootIterationObj)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		start, err := time.Parse(time.RFC822, "02 Jan 06 15:04 MST")
-		require.Nil(t, err)
+		require.NoError(t, err)
 		end := start.Add(time.Hour * 24 * 365 * 100)
 		iterationName := "Sprint #2"
 		otherIterationObj = iteration.Iteration{
@@ -754,7 +754,7 @@ func createSpaceAndRootAreaAndIterations(t *testing.T, db application.DB) (space
 			Path:    append(rootIterationObj.Path, rootIterationObj.ID),
 		}
 		err = app.Iterations().Create(context.Background(), &otherIterationObj)
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		areaName := "Area #2"
 		otherAreaObj = area.Area{
@@ -767,7 +767,7 @@ func createSpaceAndRootAreaAndIterations(t *testing.T, db application.DB) (space
 			Path:    append(rootAreaObj.Path, rootAreaObj.ID),
 		}
 		err = app.Areas().Create(context.Background(), &otherAreaObj)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		return nil
 	})
 	t.Log("Created space with ID=", spaceObj.ID.String(), "name=", spaceObj.Name)
@@ -813,7 +813,7 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		iterationToDelete := fxt.IterationByName("first iteration")
 		test.DeleteIterationNoContent(t, svc.Context, svc, ctrl, iterationToDelete.ID)
 		_, err := rest.db.Iterations().Load(svc.Context, iterationToDelete.ID)
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 	})
 
@@ -849,7 +849,7 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		}
 		for _, i := range deletedIterations {
 			_, err := rest.db.Iterations().Load(svc.Context, i.ID)
-			require.NotNil(t, err)
+			require.Error(t, err)
 			require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 		}
 		// make sure other iterations are not touched
@@ -859,7 +859,7 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		}
 		for _, i := range iterationsShouldPresent {
 			_, err := rest.db.Iterations().Load(svc.Context, i.ID)
-			require.Nil(t, err)
+			require.NoError(t, err)
 		}
 	})
 
@@ -882,7 +882,7 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0]) // get the space owner
 		test.DeleteIterationNoContent(t, svc.Context, svc, ctrl, iterationToDelete.ID)
 		_, err := rest.db.Iterations().Load(svc.Context, iterationToDelete.ID)
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 	})
 
@@ -909,7 +909,7 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		iterationToDelete := fxt.Iterations[1]
 		test.DeleteIterationNoContent(t, svc.Context, svc, ctrl, iterationToDelete.ID)
 		wis, err := rest.db.WorkItems().LoadByIteration(svc.Context, iterationToDelete.ID)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.Empty(t, wis)
 	})
 
@@ -942,20 +942,20 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		childIteration := fxt.IterationByName("child")
 		test.DeleteIterationNoContent(t, svc.Context, svc, ctrl, childIteration.ID)
 		wis, err := rest.db.WorkItems().LoadByIteration(svc.Context, childIteration.ID)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.Empty(t, wis)
 
 		// parent should get more 3 WI
 		parentIteration := fxt.IterationByName("parent")
 		wis, err = rest.db.WorkItems().LoadByIteration(svc.Context, parentIteration.ID)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// first iteration already have 3 & 3 more from child iteration
 		assert.Len(t, wis, 3+3)
 
 		// verify that root iteration still does not have any WI
 		rootIteration := fxt.IterationByName("root")
 		wis, err = rest.db.WorkItems().LoadByIteration(svc.Context, rootIteration.ID)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.Empty(t, wis)
 	})
 
@@ -1010,12 +1010,12 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		iterationToDelete := fxt.Iterations[1]
 		test.DeleteIterationNoContent(t, svc.Context, svc, ctrl, iterationToDelete.ID)
 		wis, err := rest.db.WorkItems().LoadByIteration(svc.Context, iterationToDelete.ID)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.Empty(t, wis)
 
 		// Verify that 15 WIs are moved to Root iteration
 		wis, err = rest.db.WorkItems().LoadByIteration(svc.Context, fxt.Iterations[0].ID)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.Len(t, wis, 15)
 
 		// verify included objects
@@ -1036,12 +1036,12 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		iterationToDelete = fxt.Iterations[5]
 		test.DeleteIterationNoContent(t, svc.Context, svc, ctrl, iterationToDelete.ID)
 		wis, err = rest.db.WorkItems().LoadByIteration(svc.Context, iterationToDelete.ID)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.Empty(t, wis)
 
 		// Verify that 3 WIs are moved to parent of deleted iteration
 		wis, err = rest.db.WorkItems().LoadByIteration(svc.Context, fxt.Iterations[4].ID)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.Len(t, wis, 2+3)
 
 		// verify included objects
@@ -1061,7 +1061,7 @@ func (rest *TestIterationREST) TestIterationDelete() {
 
 		// Verify that no more WIs are moved to Root iteration
 		wis, err = rest.db.WorkItems().LoadByIteration(svc.Context, fxt.Iterations[0].ID)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.Len(t, wis, 15)
 
 		// verify included objects
@@ -1088,7 +1088,7 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		}
 		for _, i := range deletedIterations {
 			_, err := rest.db.Iterations().Load(svc.Context, i.ID)
-			require.NotNil(t, err)
+			require.Error(t, err)
 			require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 		}
 	})
@@ -1161,13 +1161,13 @@ func (rest *TestIterationREST) TestUpdateIteration() {
 		// when
 		children, err := rest.db.Iterations().LoadChildren(svc.Context, itr2.ID)
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Len(t, children, 0)
 
 		// when
 		children, err = rest.db.Iterations().LoadChildren(svc.Context, itr1.ID)
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Len(t, children, 4)
 
 		allChildren := map[uuid.UUID]struct{}{
@@ -1185,7 +1185,7 @@ func (rest *TestIterationREST) TestUpdateIteration() {
 		// when
 		children, err = rest.db.Iterations().LoadChildren(svc.Context, itr3.ID)
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Len(t, children, 1)
 
 		allChildren = map[uuid.UUID]struct{}{

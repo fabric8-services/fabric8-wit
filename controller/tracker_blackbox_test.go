@@ -71,7 +71,7 @@ func (rest *TestTrackerREST) TestUnauthorizeTrackerCUD() {
 func getTrackerTestData(t *testing.T) []testSecureAPI {
 	privatekey := testtoken.PrivateKey()
 	differentPrivatekey, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSADifferentPrivateKeyTest)))
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	createTrackerPayload := bytes.NewBuffer([]byte(`{"type": "github", "url": "https://api.github.com/"}`))
 

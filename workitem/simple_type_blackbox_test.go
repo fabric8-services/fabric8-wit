@@ -7,6 +7,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/resource"
 	. "github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSimpleTypeEqual(t *testing.T) {
@@ -30,7 +31,7 @@ func TestConvertToModel(t *testing.T) {
 	a := SimpleType{Kind: KindString}
 	res, err := a.ConvertToModel(nil)
 	assert.Nil(t, res)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 
 	// Test default case in swtich statement
 	b := 42

@@ -94,7 +94,7 @@ func TestValuerImplementation(t *testing.T) {
 	expected := fmt.Sprintf("%s.%s", grandParent, immediateParent)
 	expected = strings.Replace(expected, "-", "_", -1)
 	v, err := lp.Value()
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, expected, v)
 }
 
@@ -105,18 +105,18 @@ func TestScannerImplementation(t *testing.T) {
 	immediateParent := uuid.NewV4()
 	lp := path.Path{grandParent, immediateParent}
 	v, err := lp.Value()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	lp2 := path.Path{}
 	err2 := lp2.Scan([]byte(v.(string)))
-	require.Nil(t, err2)
+	require.NoError(t, err2)
 	require.Len(t, lp2, 2)
 	assert.Equal(t, lp2, lp)
 	assert.Equal(t, lp[0], lp2[0])
 
 	lp3 := path.Path{}
 	err3 := lp2.Scan(nil)
-	require.Nil(t, err3)
+	require.NoError(t, err3)
 	assert.Len(t, lp3, 0)
 }
 
