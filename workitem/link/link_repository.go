@@ -211,8 +211,10 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 	if err := r.ValidateTopology(ctx, nil, targetID, *linkType); err != nil {
 		return nil, errs.Wrapf(err, "failed to create work item due to invalid topology")
 	}
-	if err := r.DetectCycle(ctx, sourceID, targetID, linkTypeID); err != nil {
-		return nil, errs.Wrapf(err, "failed to create work item due to cycle-detection")
+	if linkType.Topology == TopologyTree {
+		if err := r.DetectCycle(ctx, sourceID, targetID, linkTypeID); err != nil {
+			return nil, errs.Wrapf(err, "failed to create work item due to cycle-detection")
+		}
 	}
 
 	db := r.db.Create(link)
