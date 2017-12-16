@@ -195,7 +195,7 @@ func (s *linkRepoBlackBoxTest) TestCreate() {
 		// Map topologies to expected error during cycle
 		topos := map[link.Topology]bool{
 			link.TopologyNetwork:         false,
-			link.TopologyDependency:      false,
+			link.TopologyDependency:      true,
 			link.TopologyDirectedNetwork: false,
 			link.TopologyTree:            true,
 		}
