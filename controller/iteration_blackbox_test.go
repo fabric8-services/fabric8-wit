@@ -166,7 +166,7 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 		})
 	})
 
-	rest.T().Run("forbidden", func(t *testing.T) {
+	rest.T().Run("unauthorized", func(t *testing.T) {
 		t.Run("for non space-owner", func(t *testing.T) {
 			fxt := tf.NewTestFixture(t, rest.DB,
 				tf.Identities(2, tf.SetIdentityUsernames("space owner", "not space owner")),
@@ -177,9 +177,9 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 			_, ctrl := rest.SecuredControllerWithIdentity(notSpaceOwner)
 			// overwrite service with Dummy Auth to treat user as non-collaborator
 			svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *notSpaceOwner, &DummySpaceAuthzService{rest})
-			_, jerrs := test.CreateChildIterationForbidden(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "forbidden_other_user.errors.golden.json"), jerrs)
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "forbidden_other_user.req.payload.golden.json"), ci)
+			_, jerrs := test.CreateChildIterationUnauthorized(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
+			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized_other_user.errors.golden.json"), jerrs)
+			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized_other_user.req.payload.golden.json"), ci)
 		})
 		t.Run("for non-collaborator", func(t *testing.T) {
 			fxt := tf.NewTestFixture(t, rest.DB,
@@ -191,8 +191,8 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 			_, ctrl := rest.SecuredControllerWithIdentity(nonCollaborator)
 			// overwrite service with Dummy Auth to treat user as non-collaborator
 			svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *nonCollaborator, &DummySpaceAuthzService{rest})
-			_, jerrs := test.CreateChildIterationForbidden(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "forbidden_other_user.errors.golden.json"), jerrs)
+			_, jerrs := test.CreateChildIterationUnauthorized(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
+			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized_other_user.errors.golden.json"), jerrs)
 		})
 	})
 

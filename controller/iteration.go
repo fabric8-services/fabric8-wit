@@ -94,6 +94,13 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 			"space_owner":  sp.OwnerID,
 			"current_user": *currentUser,
 		}, "user is not the space owner")
+		if !authorized {
+			// unauthorized
+			return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError("user is not allowed to create an iteration in this space"))
+		}
+		// forbidden
+		// Ideally we never hit following error
+		// But written following line to make it verbose 401 vs 403
 		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not allowed to create an iteration in this space"))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
@@ -222,6 +229,13 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 			"space_owner":  sp.OwnerID,
 			"current_user": *currentUser,
 		}, "user is not the space owner")
+		if !authorized {
+			// unauthorized
+			return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError("user is not allowed to create an iteration in this space"))
+		}
+		// forbidden:
+		// Ideally we never hit following error
+		// But written following line to make it verbose 401 vs 403
 		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not allowed to create an iteration in this space"))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
