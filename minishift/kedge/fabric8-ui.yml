@@ -1,0 +1,22 @@
+name: fabric8-ui
+controller: DeploymentConfig
+containers:
+- image: "[[ F8UI_IMAGE_URL ]]"
+  env:
+  - name: PROXY_PASS_URL
+    # $PROXY_PASS_URL is required by the nginx-config file
+    # It's set by pipeline-library in CI & is emulated here
+    # More info: github.com/fabric8-ui/fabric8-planner/issues/2360
+    value: "https://api.free-int.openshift.com:443"
+  - name: FABRIC8_WIT_API_URL
+    value: "[[ FABRIC8_WIT_API_URL ]]"
+  - name: FABRIC8_AUTH_API_URL
+    value: "[[ FABRIC8_AUTH_API_URL ]]"
+  - name: FABRIC8_REALM
+    value: "fabric8-test"
+services:
+- name: fabric8-ui
+  type: NodePort
+  ports:
+    - port: 8088
+      nodePort: 31111
