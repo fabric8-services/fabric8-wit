@@ -1,6 +1,7 @@
 package search
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"runtime/debug"
@@ -270,7 +271,74 @@ func TestParseMap(t *testing.T) {
 		assert.Equal(t, expectedQuery, actualQuery)
 	})
 
+	t.Run(OPTS, func(t *testing.T) {
+		t.Parallel()
+		// given
+		input := fmt.Sprintf(`{"%s": {"parent-exists": true, "tree-view": true}}`, OPTS)
+		// Parsing/Unmarshalling JSON encoding/json
+		fm := map[string]interface{}{}
+		err := json.Unmarshal([]byte(input), &fm)
+		require.NoError(t, err)
+		// when
+		actualOptions := parseOptions(fm)
+		// then
+		expectedOptions := &QueryOptions{ParentExists: true, TreeView: true}
+		assert.Equal(t, expectedOptions, actualOptions)
+	})
+	t.Run(OPTS+" complex query", func(t *testing.T) {
+		t.Parallel()
+		// given
+		input := fmt.Sprintf(`{"%s":[{"title":"some"},{"state":"new"}],"%s": {"parent-exists": true, "tree-view": true}}`, AND, OPTS)
+		// Parsing/Unmarshalling JSON encoding/json
+		fm := map[string]interface{}{}
+		err := json.Unmarshal([]byte(input), &fm)
+		require.NoError(t, err)
+		// when
+		options := parseOptions(fm)
+		actualQuery := Query{Options: options}
+
+		// then
+		expectedQuery := Query{Options: &QueryOptions{ParentExists: true, TreeView: true}}
+		assert.Equal(t, expectedQuery, actualQuery)
+
+		parseMap(fm, &actualQuery)
+		title := "some"
+		state := "new"
+		expectedQuery = Query{Options: &QueryOptions{ParentExists: true, TreeView: true},
+			Name: AND, Children: []Query{
+				{Name: "title", Value: &title},
+				{Name: "state", Value: &state}},
+		}
+
+		assert.Equal(t, expectedQuery, actualQuery)
+	})
+
 }
+
+func TestParseFilterString(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	t.Parallel()
+	t.Run("OPTS with other query", func(t *testing.T) {
+
+		input := fmt.Sprintf(`{"$AND":[{"title":"some"},{"state":"new"}],"%s": {"parent-exists": true, "tree-view": true}}`, OPTS)
+		actualExpr, options, err := parseFilterString(context.Background(), input)
+		expectedExpr := c.And(
+			c.Equals(
+				c.Field("system.title"),
+				c.Literal("some"),
+			),
+			c.Equals(
+				c.Field("system.state"),
+				c.Literal("new"),
+			),
+		)
+		expectEqualExpr(t, expectedExpr, actualExpr)
+		assert.Nil(t, err)
+		expectedOptions := &QueryOptions{ParentExists: true, TreeView: true}
+		assert.Equal(t, expectedOptions, options)
+	})
+}
+
 func TestGenerateExpression(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
