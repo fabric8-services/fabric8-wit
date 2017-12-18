@@ -217,7 +217,7 @@ func convertFieldTypeToModel(t app.FieldType) (workitem.FieldType, error) {
 		if !componentType.IsSimpleType() {
 			return nil, fmt.Errorf("Component type is not list type: %T", componentType)
 		}
-		return workitem.ListType{workitem.SimpleType{*kind}, workitem.SimpleType{*componentType}}, nil
+		return workitem.ListType{SimpleType: workitem.SimpleType{Kind: *kind}, ComponentType: workitem.SimpleType{Kind: *componentType}}, nil
 	case workitem.KindEnum:
 		bt, err := workitem.ConvertAnyToKind(*t.BaseType)
 		if err != nil {
@@ -226,7 +226,7 @@ func convertFieldTypeToModel(t app.FieldType) (workitem.FieldType, error) {
 		if !bt.IsSimpleType() {
 			return nil, fmt.Errorf("baseType type is not list type: %T", bt)
 		}
-		baseType := workitem.SimpleType{*bt}
+		baseType := workitem.SimpleType{Kind: *bt}
 
 		values := t.Values
 		converted, err := workitem.ConvertList(func(ft workitem.FieldType, element interface{}) (interface{}, error) {
@@ -235,12 +235,13 @@ func convertFieldTypeToModel(t app.FieldType) (workitem.FieldType, error) {
 		if err != nil {
 			return nil, errs.WithStack(err)
 		}
-		return workitem.EnumType{workitem.SimpleType{*kind}, baseType, converted}, nil
+		return workitem.EnumType{SimpleType: workitem.SimpleType{Kind: *kind}, BaseType: baseType, Values: converted}, nil
 	default:
-		return workitem.SimpleType{*kind}, nil
+		return workitem.SimpleType{Kind: *kind}, nil
 	}
 }
 
+// ConvertFieldDefinitionsToModel TODO: document me
 func ConvertFieldDefinitionsToModel(fields map[string]app.FieldDefinition) (map[string]workitem.FieldDefinition, error) {
 	modelFields := map[string]workitem.FieldDefinition{}
 	// now process new fields, checking whether they are ok to add.
