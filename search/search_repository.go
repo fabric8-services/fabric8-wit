@@ -34,6 +34,10 @@ const (
 	IN       = "$IN"
 	SUBSTR   = "$SUBSTR"
 	WITGROUP = "$WITGROUP"
+	OPTS     = "$OPTS"
+
+	OptParentExistsKey = "parent-exists"
+	OptTreeViewKey     = "tree-view"
 )
 
 // GormSearchRepository provides a Gorm based repository
@@ -273,6 +277,9 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 			q.Name = key
 			q.Value = nil
 		case map[string]interface{}:
+			if key == OPTS {
+				continue
+			}
 			q.Name = key
 			if v, ok := concreteVal[IN]; ok {
 				q.Name = OR
@@ -307,6 +314,24 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 	}
 }
 
+func parseOptions(queryMap map[string]interface{}) *QueryOptions {
+	for key, val := range queryMap {
+		if ifArr, ok := val.(map[string]interface{}); key == OPTS && ok {
+			options := QueryOptions{}
+			for k, v := range ifArr {
+				switch k {
+				case OptParentExistsKey:
+					options.ParentExists = v.(bool)
+				case OptTreeViewKey:
+					options.TreeView = v.(bool)
+				}
+			}
+			return &options
+		}
+	}
+	return nil
+}
+
 func parseArray(anArray []interface{}, l *[]Query) {
 	for _, val := range anArray {
 		if o, ok := val.(map[string]interface{}); ok {
@@ -315,6 +340,12 @@ func parseArray(anArray []interface{}, l *[]Query) {
 			*l = append(*l, q)
 		}
 	}
+}
+
+// QueryOptions represents all options provided user
+type QueryOptions struct {
+	TreeView     bool
+	ParentExists bool
 }
 
 // Query represents tree structure of the filter query
@@ -340,6 +371,8 @@ type Query struct {
 	// an operator like "$AND", or "$OR". If the Name is not an operator, the
 	// Children slice MUST be empty.
 	Children []Query
+	// The Options represent the query options provided by the user.
+	Options *QueryOptions
 }
 
 func isOperator(str string) bool {
@@ -434,7 +467,7 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 		if err != nil {
 			return nil, errs.Wrap(err, "failed to handle hierarchy in top-level element")
 		}
-	} else if !isOperator(currentOperator) {
+	} else if !isOperator(currentOperator) || currentOperator == OPTS {
 		key, ok := searchKeyMap[q.Name]
 		if !ok {
 			return nil, errors.NewBadParameterError("key not found", q.Name)
@@ -459,7 +492,7 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 		}
 	}
 	for _, child := range q.Children {
-		if isOperator(child.Name) {
+		if isOperator(child.Name) || currentOperator == OPTS {
 			exp, err := child.generateExpression()
 			if err != nil {
 				return nil, err
@@ -525,7 +558,7 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 }
 
 // parseFilterString accepts a raw string and generates a criteria expression
-func parseFilterString(ctx context.Context, rawSearchString string) (criteria.Expression, error) {
+func parseFilterString(ctx context.Context, rawSearchString string) (criteria.Expression, *QueryOptions, error) {
 	fm := map[string]interface{}{}
 	// Parsing/Unmarshalling JSON encoding/json
 	err := json.Unmarshal([]byte(rawSearchString), &fm)
@@ -535,12 +568,15 @@ func parseFilterString(ctx context.Context, rawSearchString string) (criteria.Ex
 			"err":             err,
 			"rawSearchString": rawSearchString,
 		}, "failed to unmarshal raw search string")
-		return nil, errors.NewBadParameterError("expression", rawSearchString+": "+err.Error())
+		return nil, nil, errors.NewBadParameterError("expression", rawSearchString+": "+err.Error())
 	}
 	q := Query{}
 	parseMap(fm, &q)
 
-	return q.generateExpression()
+	q.Options = parseOptions(fm)
+
+	exp, err := q.generateExpression()
+	return exp, q.Options, err
 }
 
 // generateSQLSearchInfo accepts searchKeyword and join them in a way that can be used in sql
@@ -777,7 +813,7 @@ func (r *GormSearchRepository) Filter(ctx context.Context, rawFilterString strin
 	// parse
 	// generateSearchQuery
 	// ....
-	exp, err := parseFilterString(ctx, rawFilterString)
+	exp, _, err := parseFilterString(ctx, rawFilterString)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
 	}
