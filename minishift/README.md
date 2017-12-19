@@ -20,11 +20,6 @@ Following steps will download and install Kedge on your machine and put it in yo
 
 ```
 curl -L https://github.com/kedgeproject/kedge/releases/download/v0.5.1/kedge-linux-amd64 -o kedge
-```
-
-It is very easy to put kedge in your PATH
-```
-<cd to downloaded_directory>
 chmod +x ./kedge
 sudo mv ./kedge /usr/local/bin/kedge
 ```
