@@ -5,7 +5,7 @@ These instructions will help you run your services on OpenShift using MiniShift.
 ### Prerequisites
 
 
-[Kedge](kedgeproject.org)
+[Kedge](http://kedgeproject.org)
 
 [MiniShift](https://docs.openshift.org/latest/minishift/getting-started/installing.html)
 
@@ -22,6 +22,13 @@ Following steps will download and install Kedge on your machine and put it in yo
 curl -L https://github.com/kedgeproject/kedge/releases/download/v0.5.1/kedge-linux-amd64 -o kedge
 ```
 
+It is very easy to put kedge in your PATH
+```
+<cd to downloaded_directory>
+chmod +x ./kedge
+sudo mv ./kedge /usr/local/bin/kedge
+```
+
 Verify installation by running following command, you should get version number.
 
 ```
@@ -33,6 +40,13 @@ kedge version
 Make sure you have all prerequisites installed. Please check the list [here](https://docs.openshift.org/latest/minishift/getting-started/installing.html#install-prerequisites)
 
 Download and put `minishift` in your $PATH by following steps [here](https://docs.openshift.org/latest/minishift/getting-started/installing.html#manually)
+
+It is very easy to put minishift in your PATH
+```
+<cd to downloaded_directory>
+chmod +x ./minishift
+sudo mv ./minishift /usr/local/bin/minishift
+```
 
 Verify installation by running following command, you should get version number.
 ```
@@ -53,10 +67,17 @@ End with an example of getting some data out of the system or using it for a lit
 
 ## Usage
 
+Clone fabric8-wit repository
+```
+git clone git@github.com:fabric8-services/fabric8-wit.git
+```
+
 When you want to run fabric8-wit, fabric8-auth and databases on OpenShift use following command
 ```
+cd minishift/
 make dev-openshift
 ```
+
 Please enter password when prompted, it is needed in order to make an entry in the `/etc/hosts`.
 `minishift ip` gives the IP address on which MiniShift is running. This automation creates a host entry as `minishift.local` for that IP. This domain is whitelisted on fabric8-auth.
 
