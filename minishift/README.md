@@ -93,6 +93,14 @@ WIT_IMAGE_TAG=<<WIT_TAG>> AUTH_IMAGE_TAG=<<AUTH_TAG>> make dev-openshift
 When not specified any tag it is `latest` always.
 
 
+### Run fabric8-ui locally
+```
+git clone git@github.com:fabric8-ui/fabric8-ui.git
+npm install
+FABRIC8_WIT_API_URL="http://`minishift ip`:30000/api/" FABRIC8_AUTH_API_URL="http://minishift.local:31000/api/" FABRIC8_REALM="fabric8-test" npm start
+```
+Once server is running, you can visit `http://localhost:3000` and login using prod-preview credentials.
+
 ## Cleanup
 When you want to stop all the services running in MiniShift, use following command
 ```
