@@ -24,6 +24,14 @@ const (
 	podIDTag      string = "pod_id"
 )
 
+// Use 1 minute duration for buckets
+const bucketDuration = 1 * time.Minute
+
+// CPU metrics are in millicores
+// See: https://github.com/openshift/origin-web-console/blob/v3.6.0/app/scripts/services/metricsCharts.js#L15
+const millicoreToCoreScale = 0.001
+const noScale = 1
+
 func newMetricsClient(metricsURL string, token string) (*metricsClient, error) {
 	params := hawkular.Parameters{
 		Url:   metricsURL,
@@ -40,10 +48,8 @@ func newMetricsClient(metricsURL string, token string) (*metricsClient, error) {
 	return mc, nil
 }
 
-func (mc *metricsClient) getCPUMetrics(pods []v1.Pod, namespace string) (float64, int64, error) {
-	// CPU metrics are in millicores
-	// See: https://github.com/openshift/origin-web-console/blob/v3.6.0/app/scripts/services/metricsCharts.js#L15
-	return mc.getBucketAverage(pods, namespace, cpuDesc)
+func (mc *metricsClient) getCPUMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error) {
+	return mc.getBucketAverage(pods, namespace, cpuDesc, startTime, millicoreToCoreScale)
 }
 
 func (mc *metricsClient) getCPUMetricsRange(pods []v1.Pod, namespace string,
@@ -53,12 +59,12 @@ func (mc *metricsClient) getCPUMetricsRange(pods []v1.Pod, namespace string,
 		return nil, err
 	}
 
-	results := bucketsToTuples(buckets)
+	results := bucketsToTuples(buckets, millicoreToCoreScale)
 	return results, nil
 }
 
-func (mc *metricsClient) getMemoryMetrics(pods []v1.Pod, namespace string) (float64, int64, error) {
-	return mc.getBucketAverage(pods, namespace, memDesc)
+func (mc *metricsClient) getMemoryMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error) {
+	return mc.getBucketAverage(pods, namespace, memDesc, startTime, noScale)
 }
 
 func (mc *metricsClient) getMemoryMetricsRange(pods []v1.Pod, namespace string,
@@ -68,46 +74,51 @@ func (mc *metricsClient) getMemoryMetricsRange(pods []v1.Pod, namespace string,
 		return nil, err
 	}
 
-	results := bucketsToTuples(buckets)
+	results := bucketsToTuples(buckets, noScale)
 	return results, nil
 }
 
-func bucketsToTuples(buckets []*hawkular.Bucketpoint) []*app.TimedNumberTuple {
+func bucketsToTuples(buckets []*hawkular.Bucketpoint, scale float64) []*app.TimedNumberTuple {
 	results := make([]*app.TimedNumberTuple, len(buckets))
 	for idx, bucket := range buckets {
-		// Use bucket start time as timestamp for data, which is what the OSO web console uses:
-		// https://github.com/openshift/origin-web-console/blob/v3.7.0/app/scripts/directives/deploymentMetrics.js#L250
-		bucketTimeUnix := float64(convertToUnixMillis(bucket.Start))
-		results[idx] = &app.TimedNumberTuple{
-			Value: &bucket.Avg,
-			Time:  &bucketTimeUnix,
-		}
+		results[idx] = bucketToTuple(bucket, scale)
 	}
 	return results
+}
+
+func bucketToTuple(bucket *hawkular.Bucketpoint, scale float64) *app.TimedNumberTuple {
+	// Use bucket start time as timestamp for data, which is what the OSO web console uses:
+	// https://github.com/openshift/origin-web-console/blob/v3.7.0/app/scripts/directives/deploymentMetrics.js#L250
+	bucketTimeUnix := float64(convertToUnixMillis(bucket.Start))
+	scaledAvg := bucket.Avg * scale
+	result := &app.TimedNumberTuple{
+		Value: &scaledAvg,
+		Time:  &bucketTimeUnix,
+	}
+	return result
 }
 
 func convertToUnixMillis(t time.Time) int64 {
 	return hawkular.ToUnixMilli(t)
 }
 
-func (mc *metricsClient) getBucketAverage(pods []v1.Pod, namespace, descTag string) (float64, int64, error) {
-	result, err := mc.getLatestBucket(pods, namespace, descTag)
+func (mc *metricsClient) getBucketAverage(pods []v1.Pod, namespace, descTag string,
+	startTime time.Time, scale float64) (*app.TimedNumberTuple, error) {
+	result, err := mc.getLatestBucket(pods, namespace, descTag, startTime)
 	if err != nil {
-		return -1, -1, err
+		return nil, err
 	} else if result == nil {
-		return -1, -1, nil
+		return nil, nil
 	}
 
-	// Use start time of bucket as timestamp
-	timestamp := hawkular.ToUnixMilli(result.Start)
-	// Return average from bucket
-	return result.Avg, timestamp, err
+	tuple := bucketToTuple(result, scale)
+	return tuple, err
 }
 
-func (mc *metricsClient) getLatestBucket(pods []v1.Pod, namespace string, descTag string) (*hawkular.Bucketpoint, error) {
-	// Get a bucket for the last minute
-	endTime := time.Now()
-	startTime := endTime.Add(-1 * time.Minute)
+func (mc *metricsClient) getLatestBucket(pods []v1.Pod, namespace string, descTag string,
+	startTime time.Time) (*hawkular.Bucketpoint, error) {
+	// Get one bucket after the specified start time
+	endTime := startTime.Add(bucketDuration)
 	buckets, err := mc.readBuckets(pods, namespace, descTag, hawkular.StartTimeFilter(startTime),
 		hawkular.EndTimeFilter(endTime), hawkular.BucketsFilter(1))
 	if err != nil {
@@ -117,9 +128,6 @@ func (mc *metricsClient) getLatestBucket(pods []v1.Pod, namespace string, descTa
 	}
 	return buckets[0], nil
 }
-
-// Use 1 minute duration for buckets
-const bucketDuration = 1 * time.Minute
 
 func (mc *metricsClient) getBucketsInRange(pods []v1.Pod, namespace string, descTag string, startTime time.Time,
 	endTime time.Time, limit int) ([]*hawkular.Bucketpoint, error) {
