@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	inf "gopkg.in/inf.v0"
 	yaml "gopkg.in/yaml.v2"
 	resource "k8s.io/apimachinery/pkg/api/resource"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,6 +29,12 @@ type KubeClient struct {
 	metrics       *metricsClient
 	userNamespace string
 	envMap        map[string]string
+}
+
+type deployment struct {
+	dcUID      types.UID
+	appVersion string
+	currentUID types.UID
 }
 
 // NewKubeClient creates a KubeClient given a URL to the Kubernetes cluster, an authorized token to
@@ -92,7 +97,7 @@ func (kc *KubeClient) GetSpace(spaceName string) (*app.SimpleSpace, error) {
 	}
 
 	result := &app.SimpleSpace{
-		Applications: apps, // TODO UUID
+		Applications: apps,
 	}
 
 	return result, nil
@@ -113,7 +118,7 @@ func (kc *KubeClient) GetApplication(spaceName string, appName string) (*app.Sim
 	}
 
 	result := &app.SimpleApp{
-		Name:     &appName, // TODO UUID
+		Name:     &appName,
 		Pipeline: deployments,
 	}
 	return result, nil
@@ -171,22 +176,70 @@ func (kc *KubeClient) GetDeployment(spaceName string, appName string, envName st
 		return nil, err
 	}
 	// Get the UID for the current deployment of the app
-	rc, err := kc.getDeploymentUIDForApp(spaceName, appName, envNS)
+	deploy, err := kc.getCurrentDeployment(spaceName, appName, envNS)
 	if err != nil {
 		return nil, err
-	} else if len(rc) == 0 {
+	} else if deploy == nil || len(deploy.currentUID) == 0 {
 		return nil, nil
 	}
-	// Gather the statistics we need about the current deployment
-	envStats, err := kc.getDeploymentEnvStats(envNS, rc)
+
+	// Get all pods created by this deployment
+	pods, err := kc.getPods(envNS, deploy.currentUID)
+	if err != nil {
+		return nil, err
+	}
+	// Get the status of each pod in the deployment
+	podStats, err := kc.getPodStatus(pods)
 	if err != nil {
 		return nil, err
 	}
 
-	result := &app.SimpleDeployment{ // TODO UUID, add version
-		Name:  &envName,
-		Stats: envStats,
+	verString := string(deploy.appVersion)
+	result := &app.SimpleDeployment{
+		Name:    &envName,
+		Version: &verString,
+		Pods:    podStats,
 	}
+	return result, nil
+}
+
+// GetDeploymentStats returns performance metrics of an application for a period of 1 minute
+// beyond the specified start time, which are then aggregated into a single data point.
+func (kc *KubeClient) GetDeploymentStats(spaceName string, appName string, envName string,
+	startTime time.Time) (*app.SimpleDeploymentStats, error) {
+	envNS, err := kc.getEnvironmentNamespace(envName)
+	if err != nil {
+		return nil, err
+	}
+	// Get the UID for the current deployment of the app
+	deploy, err := kc.getCurrentDeployment(spaceName, appName, envNS)
+	if err != nil {
+		return nil, err
+	} else if deploy == nil || len(deploy.currentUID) == 0 {
+		return nil, nil
+	}
+
+	// Get pods belonging to current deployment
+	pods, err := kc.getPods(envNS, deploy.currentUID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Gather the statistics we need about the current deployment
+	cpuUsage, err := kc.metrics.getCPUMetrics(pods, envNS, startTime)
+	if err != nil {
+		return nil, err
+	}
+	memoryUsage, err := kc.metrics.getMemoryMetrics(pods, envNS, startTime)
+	if err != nil {
+		return nil, err
+	}
+
+	result := &app.SimpleDeploymentStats{
+		Cores:  cpuUsage,
+		Memory: memoryUsage,
+	}
+
 	return result, nil
 }
 
@@ -201,15 +254,15 @@ func (kc *KubeClient) GetDeploymentStatSeries(spaceName string, appName string, 
 	}
 
 	// Get the UID for the current deployment of the app
-	rc, err := kc.getDeploymentUIDForApp(spaceName, appName, envNS)
+	deploy, err := kc.getCurrentDeployment(spaceName, appName, envNS)
 	if err != nil {
 		return nil, err
-	} else if len(rc) == 0 {
+	} else if deploy == nil || len(deploy.currentUID) == 0 {
 		return nil, nil
 	}
 
 	// Get pods belonging to current deployment
-	pods, err := kc.getPods(envNS, rc)
+	pods, err := kc.getPods(envNS, deploy.currentUID)
 	if err != nil {
 		return nil, err
 	}
@@ -263,7 +316,7 @@ func (kc *KubeClient) GetEnvironment(envName string) (*app.SimpleEnvironment, er
 	}
 
 	env := &app.SimpleEnvironment{
-		Name:  &envName, // TODO UUID
+		Name:  &envName,
 		Quota: envStats,
 	}
 	return env, nil
@@ -305,56 +358,6 @@ func getTimestampEndpoints(metricsSeries ...[]*app.TimedNumberTuple) (minTime, m
 		}
 	}
 	return minTime, maxTime
-}
-
-func (kc *KubeClient) getDeploymentUIDForApp(spaceName string, appName string, envNS string) (types.UID, error) {
-	// Look up DeploymentConfig corresponding to the application name in the provided environment
-	dc, err := kc.getDeploymentConfigID(envNS, appName, spaceName)
-	if err != nil {
-		return "", err
-	} else if len(dc) == 0 {
-		return "", nil
-	}
-	// Find the current deployment for the DC we just found. This should correspond to the deployment
-	// shown in the OpenShift web console's overview page
-	return kc.getCurrentDeployment(envNS, dc)
-}
-
-func (kc *KubeClient) getDeploymentEnvStats(envNS string, rc types.UID) (*app.EnvStats, error) {
-	// Get all pods created by this deployment
-	pods, err := kc.getPods(envNS, rc)
-	if err != nil {
-		return nil, err
-	}
-	// Get the status of each pod in the deployment
-	podStats, err := kc.getPodStatus(pods)
-	if err != nil {
-		return nil, err
-	}
-
-	cpuUsage, _, err := kc.metrics.getCPUMetrics(pods, envNS) // TODO use timestamp
-	if err != nil {
-		return nil, err
-	}
-	cpuUsageInt32 := int(cpuUsage)
-	memoryUsage, _, err := kc.metrics.getMemoryMetrics(pods, envNS) // TODO use timestamp
-	if err != nil {
-		return nil, err
-	}
-	memoryUsageInt32 := int(memoryUsage)
-
-	unitsBytes := "bytes"
-	result := &app.EnvStats{
-		Cpucores: &app.EnvStatCores{
-			Used: &cpuUsageInt32,
-		},
-		Memory: &app.EnvStatMemory{
-			Used:  &memoryUsageInt32,
-			Units: &unitsBytes,
-		},
-		Pods: podStats,
-	}
-	return result, nil
 }
 
 func (kc *KubeClient) getBuildConfigs(space string) ([]string, error) {
@@ -474,7 +477,7 @@ func (kc *KubeClient) putResource(url string, putBody []byte) (*string, error) {
 	return &bodyStr, nil
 }
 
-func (kc *KubeClient) getDeploymentConfig(namespace string, appName string, space string) (map[interface{}]interface{}, error) {
+func (kc *KubeClient) getDeploymentConfig(namespace string, appName string, space string) (*deployment, error) {
 	dcURL := fmt.Sprintf("/oapi/v1/namespaces/%s/deploymentconfigs/%s", namespace, appName)
 	result, err := kc.getResource(dcURL, true)
 	if err != nil {
@@ -505,35 +508,39 @@ func (kc *KubeClient) getDeploymentConfig(namespace string, appName string, spac
 		return nil, errors.New("Deployment config " + appName + " is part of space " +
 			spaceLabel + ", expected space " + space)
 	}
-	return result, nil
-}
-
-func (kc *KubeClient) getDeploymentConfigID(namespace string, appName string, space string) (types.UID, error) {
-	result, err := kc.getDeploymentConfig(namespace, appName, space)
-	if err != nil {
-		return "", err
-	} else if result == nil {
-		return "", nil
-	}
-
-	metadata, ok := result["metadata"].(map[interface{}]interface{})
-	if !ok {
-		return "", errors.New("Metadata missing from deployment config")
-	}
 	// Get UID from deployment config
 	uid, ok := metadata["uid"].(string)
 	if !ok || len(uid) == 0 {
-		return "", errors.New("Malformed metadata in deployment config")
+		return nil, errors.New("Malformed metadata in deployment config")
 	}
-	return types.UID(uid), nil
+	// Read application version from label
+	version := labels["version"].(string)
+	if !ok || len(version) == 0 {
+		return nil, errors.New("Version missing from deployment config")
+	}
+
+	dc := &deployment{
+		dcUID:      types.UID(uid),
+		appVersion: version,
+	}
+	return dc, nil
 }
 
-func (kc *KubeClient) getCurrentDeployment(namespace string, dcUID types.UID) (types.UID, error) {
-	rcs, err := kc.getReplicationControllers(namespace, dcUID)
+func (kc *KubeClient) getCurrentDeployment(space string, appName string, namespace string) (*deployment, error) {
+	// Look up DeploymentConfig corresponding to the application name in the provided environment
+	result, err := kc.getDeploymentConfig(namespace, appName, space)
 	if err != nil {
-		return "", err
+		return nil, err
+	} else if result == nil {
+		return nil, nil
+	}
+	// Find the current deployment for the DC we just found. This should correspond to the deployment
+	// shown in the OpenShift web console's overview page
+	rcs, err := kc.getReplicationControllers(namespace, result.dcUID)
+	if err != nil {
+		return nil, err
 	} else if len(rcs) == 0 {
-		return "", nil
+		return result, nil
 	}
 
 	// Find newest RC created by this DC, which is also considered visible according to the
@@ -559,11 +566,10 @@ func (kc *KubeClient) getCurrentDeployment(namespace string, dcUID types.UID) (t
 			}
 		}
 	}
-	// No visible RCs
-	if newest == nil {
-		return "", nil
+	if newest != nil {
+		result.currentUID = newest.UID
 	}
-	return newest.UID, nil
+	return result, nil
 }
 
 func (kc *KubeClient) getReplicationControllers(namespace string, dcUID types.UID) ([]v1.ReplicationController, error) {
@@ -600,18 +606,13 @@ func (kc *KubeClient) getResourceQuota(namespace string) (*app.EnvStats, error) 
 		return nil, errors.New("No resource quota with name: " + computeResources)
 	}
 
-	// TODO Need to figure out how to express these quantities.
-	// - Keep fixed point rep
-	// -- Send as string value (see Quantity.String)
-	// -- Send as string mantissa and int exponent (see Quantity.AsCanonicalBytes)
-	// - Convert to floating point
-	cpuLimitRes := quota.Status.Hard[v1.ResourceLimitsCPU]
-	cpuLimit, err := int64ToInt32(cpuLimitRes.MilliValue())
+	// Convert quantities to floating point, as this should provide enough
+	// precision in practice
+	cpuLimit, err := quantityToFloat64(quota.Status.Hard[v1.ResourceLimitsCPU])
 	if err != nil {
 		return nil, err
 	}
-	cpuUsedRes := quota.Status.Used[v1.ResourceLimitsCPU]
-	cpuUsed, err := int64ToInt32(cpuUsedRes.MilliValue())
+	cpuUsed, err := quantityToFloat64(quota.Status.Used[v1.ResourceLimitsCPU])
 	if err != nil {
 		return nil, err
 	}
@@ -621,12 +622,12 @@ func (kc *KubeClient) getResourceQuota(namespace string) (*app.EnvStats, error) 
 		Used:  &cpuUsed,
 	}
 
-	memLimit, err := quantityToInt32(quota.Status.Hard[v1.ResourceLimitsMemory])
+	memLimit, err := quantityToFloat64(quota.Status.Hard[v1.ResourceLimitsMemory])
 	if err != nil {
 		return nil, err
 	}
 
-	memUsed, err := quantityToInt32(quota.Status.Used[v1.ResourceLimitsMemory])
+	memUsed, err := quantityToFloat64(quota.Status.Used[v1.ResourceLimitsMemory])
 	if err != nil {
 		return nil, err
 	}
@@ -646,41 +647,21 @@ func (kc *KubeClient) getResourceQuota(namespace string) (*app.EnvStats, error) 
 	return result, nil
 }
 
-// FIXME temporary function til we figure out how to express quantities
-func quantityToInt32(q resource.Quantity) (int, error) {
+func quantityToFloat64(q resource.Quantity) (float64, error) {
 	val64, rc := q.AsInt64()
-	var val32 int
-	var err error
+	var result float64
 	if rc {
-		val32, err = int64ToInt32(val64)
-		if err != nil {
-			return -1, err
-		}
+		result = float64(val64)
 	} else {
 		valDec := q.AsDec()
-		val32, err = decToInt32(valDec)
-		if err != nil {
-			return -1, err
+		val64, ok := valDec.Unscaled()
+		if !ok {
+			return -1, errors.New(valDec.String() + " cannot be represented as 64-bit integer")
 		}
+		// From dec.go: The mathematical value of a Dec equals: unscaled * 10**(-scale)
+		result = float64(val64) * math.Pow10(-int(valDec.Scale()))
 	}
-	return val32, nil
-}
-
-// FIXME temporary function til we figure out how to express quantities
-func int64ToInt32(num int64) (int, error) {
-	if num > math.MaxInt32 || num < math.MinInt32 {
-		return -1, errors.New(string(num) + " cannot be represented as 32-bit integer")
-	}
-	return int(num), nil
-}
-
-// FIXME temporary function til we figure out how to express quantities
-func decToInt32(dec *inf.Dec) (int, error) {
-	val64, ok := dec.Unscaled()
-	if !ok {
-		return -1, errors.New(dec.String() + " cannot be represented as 64-bit integer")
-	}
-	return int64ToInt32(val64)
+	return result, nil
 }
 
 // GetPodsInNamespace - return all pods in namepsace 'nameSpace' and application 'appName'
@@ -720,7 +701,7 @@ func (kc *KubeClient) getPods(namespace string, uid types.UID) ([]v1.Pod, error)
 	return appPods, nil
 }
 
-func (kc *KubeClient) getPodStatus(pods []v1.Pod) (*app.EnvStatPods, error) {
+func (kc *KubeClient) getPodStatus(pods []v1.Pod) (*app.PodStats, error) {
 	var starting, running, stopping int
 	/*
 	 * TODO Logic for pod phases in web console is calculated in the UI:
@@ -744,10 +725,12 @@ func (kc *KubeClient) getPodStatus(pods []v1.Pod) (*app.EnvStatPods, error) {
 		}
 	}
 
-	result := &app.EnvStatPods{
+	total := len(pods)
+	result := &app.PodStats{
 		Starting: &starting,
 		Running:  &running,
 		Stopping: &stopping,
+		Total:    &total,
 	}
 
 	return result, nil
