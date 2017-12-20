@@ -275,16 +275,16 @@ func (s *linkRepoBlackBoxTest) TestCreate() {
 				t.Run("Scenario II", func(t *testing.T) {
 					// given
 					fxt := tf.NewTestFixture(t, s.DB,
-						tf.WorkItems(3, tf.SetWorkItemTitles("A", "C", "B")),
+						tf.WorkItems(3, tf.SetWorkItemTitles("C", "A", "B")),
 						tf.WorkItemLinkTypes(1, tf.SetTopologies(topo)),
 						tf.WorkItemLinks(2, func(fxt *tf.TestFixture, idx int) error {
 							l := fxt.WorkItemLinks[idx]
 							switch idx {
 							case 0:
-								l.SourceID = fxt.WorkItemByTitle("A").ID
-								l.TargetID = fxt.WorkItemByTitle("C").ID
-							case 1:
 								l.SourceID = fxt.WorkItemByTitle("C").ID
+								l.TargetID = fxt.WorkItemByTitle("A").ID
+							case 1:
+								l.SourceID = fxt.WorkItemByTitle("A").ID
 								l.TargetID = fxt.WorkItemByTitle("B").ID
 							}
 							return nil
