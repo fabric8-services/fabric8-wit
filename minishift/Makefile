@@ -14,12 +14,14 @@ MINISHIFT_URL = http://$(MINISHIFT_IP)
 # make sure you have a entry in /etc/hosts for "minishift.local MINISHIFT_IP"
 MINISHIFT_HOSTS_ENTRY = http://minishift.local
 
+PROJECT_NAME = osio-services
+
 # Run AUTH, DB, DB-AUTH, WIT services in minishift
 dev-openshift:
 	minishift start --cpus 4
 	./check_hosts.sh
-	-eval `minishift oc-env` && oc login -u developer -p developer && oc new-project planner-services
-	-eval `minishift oc-env` && oc project planner-services
+	-eval `minishift oc-env` && oc login -u developer -p developer && oc new-project $(PROJECT_NAME)
+	-eval `minishift oc-env` && oc project $(PROJECT_NAME)
 	F8_DEVELOPER_MODE_ENABLED=true \
 	F8_POSTGRES_HOST=$(MINISHIFT_IP) \
 	F8_POSTGRES_PORT=32000 \
@@ -40,4 +42,4 @@ dev-openshift:
 # Stop running AUTH, DB, DB-AUTH, WIT services in minishift
 clean-openshift:
 	-eval `minishift oc-env` && oc login -u developer -p developer
-	-eval `minishift oc-env` && oc project planner-services && oc delete project planner-services --grace-period=1
+	-eval `minishift oc-env` && oc project $(PROJECT_NAME) && oc delete project $(PROJECT_NAME) --grace-period=1
