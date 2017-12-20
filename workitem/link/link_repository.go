@@ -626,7 +626,7 @@ func (r *GormWorkItemLinkRepository) GetAncestors(ctx context.Context, linkTypeI
 		SELECT
 			source AS "ancestor",
 			original_child,
-			(SELECT NOT EXISTS (SELECT 1 FROM work_item_links l WHERE l.target_id = source)) as "is_root"
+			(SELECT NOT EXISTS (SELECT 1 FROM work_item_links l WHERE l.target_id = source AND l.link_type_id = $1)) as "is_root"
 		FROM tree
 		-- Eliminate a child to appear as parent also
 		WHERE source NOT IN ( %[2]s )
