@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space"
+	"github.com/fabric8-services/fabric8-wit/space/authz"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	"github.com/goadesign/goa"
@@ -43,6 +45,19 @@ func NewIterationController(service *goa.Service, db application.DB, config Iter
 	return &IterationController{Controller: service.NewController("IterationController"), db: db, config: config}
 }
 
+// verifyUser checks if user is a space owner or a collaborator
+func verifyUser(ctx context.Context, currentUser uuid.UUID, sp *space.Space) (bool, bool, error) {
+	authorized, err := authz.Authorize(ctx, sp.ID.String())
+	if err != nil {
+		return false, false, err
+	}
+	var spaceOwner bool
+	if uuid.Equal(currentUser, sp.OwnerID) {
+		spaceOwner = true
+	}
+	return authorized, spaceOwner, nil
+}
+
 // CreateChild runs the create-child action.
 func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) error {
 	currentUser, err := login.ContextIdentity(ctx)
@@ -53,26 +68,42 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 	}
-
+	var parent *iteration.Iteration
+	var sp *space.Space
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		parent, err = appl.Iterations().Load(ctx, parentID)
+		if err != nil {
+			return err
+		}
+		sp, err = appl.Spaces().Load(ctx, parent.SpaceID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		return nil
+	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	authorized, spaceOwner, err := verifyUser(ctx, *currentUser, sp)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
+	}
+	if !authorized && !spaceOwner {
+		log.Error(ctx, map[string]interface{}{
+			"space_id":     sp.ID,
+			"space_owner":  sp.OwnerID,
+			"current_user": *currentUser,
+		}, "user is not the space owner")
+		if !authorized {
+			// unauthorized
+			return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError("user is not allowed to create an iteration in this space"))
+		}
+		// forbidden
+		// Ideally we never hit following error
+		// But written following line to make it verbose 401 vs 403
+		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not allowed to create an iteration in this space"))
+	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-
-		parent, err := appl.Iterations().Load(ctx, parentID)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-		}
-		s, err := appl.Spaces().Load(ctx, parent.SpaceID)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-		}
-		if !uuid.Equal(*currentUser, s.OwnerID) {
-			log.Warn(ctx, map[string]interface{}{
-				"space_id":     s.ID,
-				"space_owner":  s.OwnerID,
-				"current_user": *currentUser,
-			}, "user is not the space owner")
-			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the space owner"))
-		}
-
 		reqIter := ctx.Payload.Data
 		if reqIter.Attributes.Name == nil {
 			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data.attributes.name", nil).Expected("not nil"))
@@ -172,23 +203,42 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 	}
 
+	var itr *iteration.Iteration
+	var sp *space.Space
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		itr, err = appl.Iterations().Load(ctx.Context, id)
+		if err != nil {
+			return err
+		}
+		sp, err = appl.Spaces().Load(ctx, itr.SpaceID)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	authorized, spaceOwner, err := verifyUser(ctx, *currentUser, sp)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
+	}
+	if !authorized && !spaceOwner {
+		log.Error(ctx, map[string]interface{}{
+			"space_id":     sp.ID,
+			"space_owner":  sp.OwnerID,
+			"current_user": *currentUser,
+		}, "user is not the space owner")
+		if !authorized {
+			// unauthorized
+			return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError("user is not allowed to create an iteration in this space"))
+		}
+		// forbidden:
+		// Ideally we never hit following error
+		// But written following line to make it verbose 401 vs 403
+		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not allowed to create an iteration in this space"))
+	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-		itr, err := appl.Iterations().Load(ctx.Context, id)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
-		s, err := appl.Spaces().Load(ctx, itr.SpaceID)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-		}
-		if !uuid.Equal(*currentUser, s.OwnerID) {
-			log.Warn(ctx, map[string]interface{}{
-				"space_id":     s.ID,
-				"space_owner":  s.OwnerID,
-				"current_user": *currentUser,
-			}, "user is not the space owner")
-			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the space owner"))
-		}
 		if ctx.Payload.Data.Attributes.Name != nil {
 			itr.Name = *ctx.Payload.Data.Attributes.Name
 		}
