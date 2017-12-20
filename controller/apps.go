@@ -143,7 +143,7 @@ func getTokenData(authClient authservice.Client, ctx context.Context, forService
 
 // getKubeClient createa kube client for the appropriate cluster assigned to the current user.
 // many different errors are possible, so controllers should call getAndCheckKubeClient() instead
-func (c *AppsController) getKubeClient(ctx context.Context) (*kubernetes.KubeClient, error) {
+func (c *AppsController) getKubeClient(ctx context.Context) (kubernetes.KubeClientInterface, error) {
 
 	// create Auth API client
 	authClient, err := auth.CreateClient(ctx, c.Config)
@@ -179,7 +179,12 @@ func (c *AppsController) getKubeClient(ctx context.Context) (*kubernetes.KubeCli
 	}
 
 	// create the cluster API client
-	kc, err := kubernetes.NewKubeClient(kubeURL, kubeToken, *kubeNamespaceName)
+	kubeConfig := &kubernetes.KubeClientConfig{
+		ClusterURL:    kubeURL,
+		BearerToken:   kubeToken,
+		UserNamespace: *kubeNamespaceName,
+	}
+	kc, err := kubernetes.NewKubeClient(kubeConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -188,7 +193,7 @@ func (c *AppsController) getKubeClient(ctx context.Context) (*kubernetes.KubeCli
 
 // getAndCheckKubeClient converts all errors fromgetKubeClient() to Error 401
 // this is for convenience and ensuring consistency
-func (c *AppsController) getAndCheckKubeClient(ctx context.Context) (*kubernetes.KubeClient, error) {
+func (c *AppsController) getAndCheckKubeClient(ctx context.Context) (kubernetes.KubeClientInterface, error) {
 
 	kc, err := c.getKubeClient(ctx)
 	if err != nil {
