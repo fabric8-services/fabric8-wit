@@ -192,64 +192,206 @@ func (s *linkRepoBlackBoxTest) TestCreate() {
 	})
 
 	s.T().Run("cycle detection", func(t *testing.T) {
+
+		// These are the scenarios we test here.
+		//
+		// Legend
+		// ------
+		//
+		//   \ = link
+		//   * = new link
+		//   C = the element that is causing the cycle
+		//
+		// Scenarios
+		// ---------
+		//
+		//   I:        II:       III:      IV:       V:
+		//
+		//    C         C         C         C         A
+		//     *         \         *         *         \
+		//      A         A         A         A         B
+		//       \         \         \         \         *
+		//        B         B         C         B         C
+		//         \         *         \
+		//          C         C         B
+		//
+		// I, II, III are cycles
+		// IV and V are no cycles.
+
 		// Map topologies to expected error during cycle
-		topos := map[link.Topology]bool{
-			link.TopologyNetwork:         false,
-			link.TopologyDependency:      true,
-			link.TopologyDirectedNetwork: false,
-			link.TopologyTree:            true,
+		topos := map[link.Topology][5]bool{
+			link.TopologyNetwork:         {false, false, false, false, false},
+			link.TopologyDirectedNetwork: {false, false, false, false, false},
+			link.TopologyTree:            {true, true, true, false, false},
+			link.TopologyDependency:      {true, true, true, false, false},
 		}
 		for topo, errorExpected := range topos {
 			t.Run("topology: "+topo.String(), func(t *testing.T) {
-				t.Run("child first then adding as root", func(t *testing.T) {
+				//   I:
+				//
+				//    C
+				//     *
+				//      A
+				//       \
+				//        B
+				//         \
+				//          C
+				t.Run("Scenario I", func(t *testing.T) {
 					// given
 					fxt := tf.NewTestFixture(t, s.DB,
-						tf.WorkItems(3, tf.SetWorkItemTitles("scenario", "experience", "feature")),
+						tf.WorkItems(3, tf.SetWorkItemTitles("A", "B", "C")),
 						tf.WorkItemLinkTypes(1, tf.SetTopologies(topo)),
 						tf.WorkItemLinks(2, func(fxt *tf.TestFixture, idx int) error {
 							l := fxt.WorkItemLinks[idx]
 							switch idx {
 							case 0:
-								l.SourceID = fxt.WorkItemByTitle("scenario").ID
-								l.TargetID = fxt.WorkItemByTitle("experience").ID
+								l.SourceID = fxt.WorkItemByTitle("A").ID
+								l.TargetID = fxt.WorkItemByTitle("B").ID
 							case 1:
-								l.SourceID = fxt.WorkItemByTitle("experience").ID
-								l.TargetID = fxt.WorkItemByTitle("feature").ID
+								l.SourceID = fxt.WorkItemByTitle("B").ID
+								l.TargetID = fxt.WorkItemByTitle("C").ID
 							}
 							return nil
 						}),
 					)
 					// when
-					_, err := s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("feature").ID, fxt.WorkItemByTitle("scenario").ID, fxt.WorkItemLinkTypes[0].ID, fxt.Identities[0].ID)
+					_, err := s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("C").ID, fxt.WorkItemByTitle("A").ID, fxt.WorkItemLinkTypes[0].ID, fxt.Identities[0].ID)
 					// then
-					if errorExpected {
+					if errorExpected[0] {
 						require.Error(t, err)
 					} else {
 						require.NoError(t, err)
 					}
 				})
-				t.Run("root first then adding as child", func(t *testing.T) {
+				//   II:
+				//
+				//    C
+				//     \
+				//      A
+				//       \
+				//        B
+				//         *
+				//          C
+				t.Run("Scenario II", func(t *testing.T) {
 					// given
 					fxt := tf.NewTestFixture(t, s.DB,
-						tf.WorkItems(3, tf.SetWorkItemTitles("scenario", "experience", "feature")),
+						tf.WorkItems(3, tf.SetWorkItemTitles("A", "C", "B")),
 						tf.WorkItemLinkTypes(1, tf.SetTopologies(topo)),
 						tf.WorkItemLinks(2, func(fxt *tf.TestFixture, idx int) error {
 							l := fxt.WorkItemLinks[idx]
 							switch idx {
 							case 0:
-								l.SourceID = fxt.WorkItemByTitle("scenario").ID
-								l.TargetID = fxt.WorkItemByTitle("experience").ID
+								l.SourceID = fxt.WorkItemByTitle("A").ID
+								l.TargetID = fxt.WorkItemByTitle("C").ID
 							case 1:
-								l.SourceID = fxt.WorkItemByTitle("experience").ID
-								l.TargetID = fxt.WorkItemByTitle("feature").ID
+								l.SourceID = fxt.WorkItemByTitle("C").ID
+								l.TargetID = fxt.WorkItemByTitle("B").ID
 							}
 							return nil
 						}),
 					)
 					// when
-					_, err := s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("feature").ID, fxt.WorkItemByTitle("scenario").ID, fxt.WorkItemLinkTypes[0].ID, fxt.Identities[0].ID)
+					_, err := s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("B").ID, fxt.WorkItemByTitle("C").ID, fxt.WorkItemLinkTypes[0].ID, fxt.Identities[0].ID)
 					// then
-					if errorExpected {
+					if errorExpected[1] {
+						require.Error(t, err)
+					} else {
+						require.NoError(t, err)
+					}
+				})
+				//  III:
+				//
+				//   C
+				//    *
+				//     A
+				//      \
+				//       C
+				//        \
+				//         B
+				t.Run("Scenario III", func(t *testing.T) {
+					// given
+					fxt := tf.NewTestFixture(t, s.DB,
+						tf.WorkItems(3, tf.SetWorkItemTitles("A", "C", "B")),
+						tf.WorkItemLinkTypes(1, tf.SetTopologies(topo)),
+						tf.WorkItemLinks(2, func(fxt *tf.TestFixture, idx int) error {
+							l := fxt.WorkItemLinks[idx]
+							switch idx {
+							case 0:
+								l.SourceID = fxt.WorkItemByTitle("A").ID
+								l.TargetID = fxt.WorkItemByTitle("C").ID
+							case 1:
+								l.SourceID = fxt.WorkItemByTitle("C").ID
+								l.TargetID = fxt.WorkItemByTitle("B").ID
+							}
+							return nil
+						}),
+					)
+					// when
+					_, err := s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("C").ID, fxt.WorkItemByTitle("A").ID, fxt.WorkItemLinkTypes[0].ID, fxt.Identities[0].ID)
+					// then
+					if errorExpected[2] {
+						require.Error(t, err)
+					} else {
+						require.NoError(t, err)
+					}
+				})
+				//  IV:
+				//
+				//   C
+				//    *
+				//     A
+				//      \
+				//       B
+				t.Run("Scenario IV", func(t *testing.T) {
+					// given
+					fxt := tf.NewTestFixture(t, s.DB,
+						tf.WorkItems(3, tf.SetWorkItemTitles("A", "B", "C")),
+						tf.WorkItemLinkTypes(1, tf.SetTopologies(topo)),
+						tf.WorkItemLinks(1, func(fxt *tf.TestFixture, idx int) error {
+							l := fxt.WorkItemLinks[idx]
+							switch idx {
+							case 0:
+								l.SourceID = fxt.WorkItemByTitle("A").ID
+								l.TargetID = fxt.WorkItemByTitle("B").ID
+							}
+							return nil
+						}),
+					)
+					// when
+					_, err := s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("C").ID, fxt.WorkItemByTitle("A").ID, fxt.WorkItemLinkTypes[0].ID, fxt.Identities[0].ID)
+					// then
+					if errorExpected[3] {
+						require.Error(t, err)
+					} else {
+						require.NoError(t, err)
+					}
+				})
+				//  V:
+				//
+				//   A
+				//    \
+				//     B
+				//      *
+				//       C
+				t.Run("Scenario V", func(t *testing.T) {
+					// given
+					fxt := tf.NewTestFixture(t, s.DB,
+						tf.WorkItems(3, tf.SetWorkItemTitles("A", "B", "C")),
+						tf.WorkItemLinkTypes(1, tf.SetTopologies(topo)),
+						tf.WorkItemLinks(1, func(fxt *tf.TestFixture, idx int) error {
+							l := fxt.WorkItemLinks[idx]
+							switch idx {
+							case 0:
+								l.SourceID = fxt.WorkItemByTitle("A").ID
+								l.TargetID = fxt.WorkItemByTitle("B").ID
+							}
+							return nil
+						}),
+					)
+					// when
+					_, err := s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("B").ID, fxt.WorkItemByTitle("C").ID, fxt.WorkItemLinkTypes[0].ID, fxt.Identities[0].ID)
+					// then
+					if errorExpected[4] {
 						require.Error(t, err)
 					} else {
 						require.NoError(t, err)
