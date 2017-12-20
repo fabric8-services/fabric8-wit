@@ -24,8 +24,8 @@ MINISHIFT_HOSTS_ENTRY = http://minishift.local
 dev-openshift:
 	minishift start --cpus 4
 	./check_hosts.sh
-	-eval `minishift oc-env` &&  oc login -u developer -p developer && oc new-project planner-services
-	-oc project planner-services
+	-eval `minishift oc-env` && oc login -u developer -p developer && oc new-project planner-services
+	-eval `minishift oc-env` && oc project planner-services
 	F8_DEVELOPER_MODE_ENABLED=true \
 	F8_POSTGRES_HOST=$(MINISHIFT_IP) \
 	F8_POSTGRES_PORT=32000 \
@@ -50,4 +50,5 @@ dev-openshift:
 
 # Stop running AUTH, DB, DB-AUTH, WIT services in minishift
 clean-openshift:
-	-eval `minishift oc-env` &&  oc login -u developer -p developer && oc delete project planner-services --grace-period=1
+	-eval `minishift oc-env` && oc login -u developer -p developer
+	-eval `minishift oc-env` && oc project planner-services && oc delete project planner-services --grace-period=1
