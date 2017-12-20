@@ -13,8 +13,6 @@ UI_IMAGE_DEFAULT=docker.io/fabric8/fabric8-ui
 UI_IMAGE_TAG ?= v92bdaf4
 UI_IMAGE_URL=$(UI_IMAGE_DEFAULT):$(UI_IMAGE_TAG)
 
-MINISHIFT_IP = `minishift ip`
-MINISHIFT_URL = http://$(MINISHIFT_IP)
 # make sure you have a entry in /etc/hosts for "minishift.local MINISHIFT_IP"
 MINISHIFT_HOSTS_ENTRY = http://minishift.local
 
@@ -28,20 +26,20 @@ dev-openshift:
 	-eval `minishift oc-env` && oc project $(PROJECT_NAME)
 	# Create AUTH pod
 	F8_DEVELOPER_MODE_ENABLED=true \
-	F8_POSTGRES_HOST=$(MINISHIFT_IP) \
+	F8_POSTGRES_HOST=$(MINISHIFT_HOSTS_ENTRY) \
 	F8_POSTGRES_PORT=32000 \
 	AUTH_DEVELOPER_MODE_ENABLED=true \
-	AUTH_WIT_URL=$(MINISHIFT_URL):30000 \
+	AUTH_WIT_URL=$(MINISHIFT_HOSTS_ENTRY):30000 \
 	AUTH_IMAGE_URL=$(AUTH_IMAGE_URL) \
 	kedge apply -f kedge/db.yml -f kedge/db-auth.yml -f kedge/auth.yml
 	sleep 5s
 	# Create WIT pod
-	F8_AUTH_URL=http://$(MINISHIFT_IP):31000 \
+	F8_AUTH_URL=$(MINISHIFT_HOSTS_ENTRY):31000 \
 	F8_DEVELOPER_MODE_ENABLED=true \
-	F8_POSTGRES_HOST=$(MINISHIFT_IP) \
+	F8_POSTGRES_HOST=$(MINISHIFT_HOSTS_ENTRY) \
 	F8_POSTGRES_PORT=32000 \
 	AUTH_DEVELOPER_MODE_ENABLED=true \
-	AUTH_WIT_URL=$(MINISHIFT_URL):30000 \
+	AUTH_WIT_URL=$(MINISHIFT_HOSTS_ENTRY):30000 \
 	WIT_IMAGE_URL=$(WIT_IMAGE_URL) \
 	kedge apply -f kedge/wit.yml
 	# Create fabric8-ui pod
@@ -49,7 +47,7 @@ dev-openshift:
 	FABRIC8_AUTH_API_URL="$(MINISHIFT_HOSTS_ENTRY):31000/api/" \
 	FABRIC8_REALM="fabric8-test" \
 	FABRIC8_FORGE_URL="https://forge.api.prod-preview.openshift.io/" \
-	PROXY_PASS_URL="http://$(MINISHIFT_HOSTS_ENTRY):8443" \
+	PROXY_PASS_URL="$(MINISHIFT_HOSTS_ENTRY):8443" \
 	UI_IMAGE_URL=$(UI_IMAGE_URL) \
 	kedge apply -f kedge/ui.yml
 
