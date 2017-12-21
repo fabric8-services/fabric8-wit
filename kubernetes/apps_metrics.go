@@ -13,6 +13,21 @@ type metricsClient struct {
 	hawkularClient *hawkular.Client
 }
 
+// MetricsGetter has a method to access the MetricsInterface interface
+type MetricsGetter interface {
+	GetMetrics(metricsURL string, bearerToken string) (MetricsInterface, error)
+}
+
+// MetricsInterface provides methods to obtain performance metrics of a deployed application
+type MetricsInterface interface {
+	GetCPUMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error)
+	GetCPUMetricsRange(pods []v1.Pod, namespace string, startTime time.Time, endTime time.Time,
+		limit int) ([]*app.TimedNumberTuple, error)
+	GetMemoryMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error)
+	GetMemoryMetricsRange(pods []v1.Pod, namespace string, startTime time.Time, endTime time.Time,
+		limit int) ([]*app.TimedNumberTuple, error)
+}
+
 const (
 	descriptorTag string = "descriptor_name"
 	cpuDesc       string = "cpu/usage_rate"
@@ -32,10 +47,10 @@ const bucketDuration = 1 * time.Minute
 const millicoreToCoreScale = 0.001
 const noScale = 1
 
-func newMetricsClient(metricsURL string, token string) (*metricsClient, error) {
+func newMetricsClient(metricsURL string, bearerToken string) (MetricsInterface, error) {
 	params := hawkular.Parameters{
 		Url:   metricsURL,
-		Token: token,
+		Token: bearerToken,
 	}
 	client, err := hawkular.NewHawkularClient(params)
 	if err != nil {
@@ -48,11 +63,11 @@ func newMetricsClient(metricsURL string, token string) (*metricsClient, error) {
 	return mc, nil
 }
 
-func (mc *metricsClient) getCPUMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error) {
+func (mc *metricsClient) GetCPUMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error) {
 	return mc.getBucketAverage(pods, namespace, cpuDesc, startTime, millicoreToCoreScale)
 }
 
-func (mc *metricsClient) getCPUMetricsRange(pods []v1.Pod, namespace string,
+func (mc *metricsClient) GetCPUMetricsRange(pods []v1.Pod, namespace string,
 	startTime time.Time, endTime time.Time, limit int) ([]*app.TimedNumberTuple, error) {
 	buckets, err := mc.getBucketsInRange(pods, namespace, cpuDesc, startTime, endTime, limit)
 	if err != nil {
@@ -63,11 +78,11 @@ func (mc *metricsClient) getCPUMetricsRange(pods []v1.Pod, namespace string,
 	return results, nil
 }
 
-func (mc *metricsClient) getMemoryMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error) {
+func (mc *metricsClient) GetMemoryMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error) {
 	return mc.getBucketAverage(pods, namespace, memDesc, startTime, noScale)
 }
 
-func (mc *metricsClient) getMemoryMetricsRange(pods []v1.Pod, namespace string,
+func (mc *metricsClient) GetMemoryMetricsRange(pods []v1.Pod, namespace string,
 	startTime time.Time, endTime time.Time, limit int) ([]*app.TimedNumberTuple, error) {
 	buckets, err := mc.getBucketsInRange(pods, namespace, memDesc, startTime, endTime, limit)
 	if err != nil {
