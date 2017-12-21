@@ -504,36 +504,6 @@ func (s *workItemLinkSuite) getWorkItemLinkTestDataFunc() func(t *testing.T) []t
 				payload:            createWorkItemLinkPayloadString,
 				jwtToken:           "",
 			},
-			// Update Work Item API with different parameters
-			{
-				method:             http.MethodPatch,
-				url:                endpointWorkItemLinks + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
-				expectedStatusCode: http.StatusUnauthorized,
-				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-				payload:            createWorkItemLinkPayloadString,
-				jwtToken:           getExpiredAuthHeader(t, privatekey),
-			}, {
-				method:             http.MethodPatch,
-				url:                endpointWorkItemLinks + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
-				expectedStatusCode: http.StatusUnauthorized,
-				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-				payload:            createWorkItemLinkPayloadString,
-				jwtToken:           getMalformedAuthHeader(t, privatekey),
-			}, {
-				method:             http.MethodPatch,
-				url:                endpointWorkItemLinks + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
-				expectedStatusCode: http.StatusUnauthorized,
-				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-				payload:            createWorkItemLinkPayloadString,
-				jwtToken:           getValidAuthHeader(t, differentPrivatekey),
-			}, {
-				method:             http.MethodPatch,
-				url:                endpointWorkItemLinks + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
-				expectedStatusCode: http.StatusUnauthorized,
-				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-				payload:            createWorkItemLinkPayloadString,
-				jwtToken:           "",
-			},
 			// Delete Work Item API with different parameters
 			{
 				method:             http.MethodDelete,
@@ -591,76 +561,16 @@ func (s *workItemLinkSuite) TestUnauthorizeWorkItemLinkCUD() {
 }
 
 // The work item ID will be used to construct /api/workitems/:id/relationships/links endpoints
-func (s *workItemLinkSuite) getWorkItemRelationshipLinksTestData(spaceID, wiID uuid.UUID) func(t *testing.T) []testSecureAPI {
+func (s *workItemLinkSuite) getWorkItemRelationshipLinksTestData() func(t *testing.T) []testSecureAPI {
 	return func(t *testing.T) []testSecureAPI {
-		privatekey := testtoken.PrivateKey()
-		differentPrivatekey, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSADifferentPrivateKeyTest)))
-		if err != nil {
-			t.Fatal("Could not parse different private key ", err)
-		}
-
-		createWorkItemLinkPayloadString := bytes.NewBuffer([]byte(`
-		{
-			"data": {
-				"attributes": {
-					"version": 0
-				},
-				"id": "40bbdd3d-8b5d-4fd6-ac90-7236b669af04",
-				"relationships": {
-					"link_type": {
-						"data": {
-						"id": "6c5610be-30b2-4880-9fec-81e4f8e4fd76",
-						"type": "workitemlinktypes"
-						}
-					},
-					"source": {
-						"data": {
-						"id": "1234",
-						"type": "workitems"
-						}
-					},
-					"target": {
-						"data": {
-						"id": "1234",
-						"type": "workitems"
-						}
-					}
-				},
-				"type": "workitemlinks"
-			}
-		}
-  		`))
-
-		relationshipsEndpoint := fmt.Sprintf(endpointWorkItemRelationshipsLinks, wiID)
 		testWorkItemLinksAPI := []testSecureAPI{
-			// Create Work Item API with different parameters
+			// Get links for non existing work item
 			{
-				method:             http.MethodPost,
-				url:                relationshipsEndpoint,
-				expectedStatusCode: http.StatusUnauthorized,
-				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-				payload:            createWorkItemLinkPayloadString,
-				jwtToken:           getExpiredAuthHeader(t, privatekey),
-			}, {
-				method:             http.MethodPost,
-				url:                relationshipsEndpoint,
-				expectedStatusCode: http.StatusUnauthorized,
-				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-				payload:            createWorkItemLinkPayloadString,
-				jwtToken:           getMalformedAuthHeader(t, privatekey),
-			}, {
-				method:             http.MethodPost,
-				url:                relationshipsEndpoint,
-				expectedStatusCode: http.StatusUnauthorized,
-				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-				payload:            createWorkItemLinkPayloadString,
-				jwtToken:           getValidAuthHeader(t, differentPrivatekey),
-			}, {
-				method:             http.MethodPost,
-				url:                relationshipsEndpoint,
-				expectedStatusCode: http.StatusUnauthorized,
-				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-				payload:            createWorkItemLinkPayloadString,
+				method:             http.MethodGet,
+				url:                fmt.Sprintf(endpointWorkItemRelationshipsLinks, "7c73067d-be4f-4e7a-bf1d-644dabb90a5c"),
+				expectedStatusCode: http.StatusNotFound,
+				expectedErrorCode:  jsonapi.ErrorCodeNotFound,
+				payload:            nil,
 				jwtToken:           "",
 			},
 		}
@@ -669,8 +579,7 @@ func (s *workItemLinkSuite) getWorkItemRelationshipLinksTestData(spaceID, wiID u
 }
 
 func (s *workItemLinkSuite) TestUnauthorizeWorkItemRelationshipsLinksCUD() {
-	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItemLinks(1))
-	UnauthorizeCreateUpdateDeleteTest(s.T(), s.getWorkItemRelationshipLinksTestData(fxt.WorkItems[0].SpaceID, fxt.WorkItems[0].ID), func() *goa.Service {
+	UnauthorizeCreateUpdateDeleteTest(s.T(), s.getWorkItemRelationshipLinksTestData(), func() *goa.Service {
 		return goa.New("TestUnauthorizedCreateWorkItemRelationshipsLinks-Service")
 	}, func(service *goa.Service) error {
 		controller := NewWorkItemRelationshipsLinksController(service, gormapplication.NewGormDB(s.DB), s.Configuration)
