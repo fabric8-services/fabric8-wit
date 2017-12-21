@@ -363,15 +363,6 @@ func (s *workItemTypeSuite) TestShow() {
 		compareWithGolden(t, filepath.Join(s.testDir, "show", "ok.headers.golden.json"), res.Header())
 	})
 
-	s.T().Run("ok - (show feature)", func(t *testing.T) {
-		// when
-		res, actual := test.ShowWorkitemtypeOK(t, nil, nil, s.typeCtrl, space.SystemSpace, workitem.SystemFeature, nil, nil)
-		// then
-		require.NotNil(t, actual)
-		compareWithGolden(t, filepath.Join(s.testDir, "show", "ok_feature.wit.golden.json"), actual)
-		compareWithGolden(t, filepath.Join(s.testDir, "show", "ok_feature.headers.golden.json"), res.Header())
-	})
-
 	s.T().Run("ok - using expired IfModifiedSince header", func(t *testing.T) {
 		// when
 		lastModified := app.ToHTTPTime(wit.Data.Attributes.CreatedAt.Add(-1 * time.Hour))
