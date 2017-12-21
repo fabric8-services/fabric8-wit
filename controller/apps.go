@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"time"
 
@@ -57,9 +58,13 @@ func getAndCheckOSIOClient(ctx context.Context) *OSIOClient {
 		scheme = req.URL.Scheme
 	}
 
-	// TODO - remove this debug hook before production
-	if os.Getenv("OSIO_WIT_URL") != "" {
-		host = os.Getenv("OSIO_WIT_URL")
+	if os.Getenv("FABRIC8_WIT_API_URL") != "" {
+		witurl, err := url.Parse(os.Getenv("FABRIC8_WIT_API_URL"))
+		if err != nil {
+			log.Warn(ctx, nil, "Cannot parse FABRIC8_WIT_API_URL; assuming localhost")
+		}
+		host = witurl.Host
+		scheme = witurl.Scheme
 	}
 
 	oc := NewOSIOClient(ctx, scheme, host)
@@ -191,17 +196,6 @@ func (c *AppsController) getKubeClient(ctx context.Context) (kubernetes.KubeClie
 	return kc, nil
 }
 
-// getAndCheckKubeClient converts all errors fromgetKubeClient() to Error 401
-// this is for convenience and ensuring consistency
-func (c *AppsController) getAndCheckKubeClient(ctx context.Context) (kubernetes.KubeClientInterface, error) {
-
-	kc, err := c.getKubeClient(ctx)
-	if err != nil {
-		return nil, witerrors.NewUnauthorizedError("openshift token")
-	}
-	return kc, nil
-}
-
 // SetDeployment runs the setDeployment action.
 func (c *AppsController) SetDeployment(ctx *app.SetDeploymentAppsContext) error {
 
@@ -211,9 +205,9 @@ func (c *AppsController) SetDeployment(ctx *app.SetDeploymentAppsContext) error 
 		return witerrors.NewBadParameterError("podCount", "missing")
 	}
 
-	kc, err := c.getAndCheckKubeClient(ctx)
+	kc, err := c.getKubeClient(ctx)
 	if err != nil {
-		return err
+		return witerrors.NewUnauthorizedError("openshift token")
 	}
 
 	kubeSpaceName, err := c.getSpaceNameFromSpaceID(ctx, ctx.SpaceID)
@@ -253,9 +247,9 @@ func (c *AppsController) ShowDeploymentStatSeries(ctx *app.ShowDeploymentStatSer
 		return witerrors.NewBadParameterError("end", *ctx.End)
 	}
 
-	kc, err := c.getAndCheckKubeClient(ctx)
+	kc, err := c.getKubeClient(ctx)
 	if err != nil {
-		return err
+		return witerrors.NewUnauthorizedError("openshift token")
 	}
 
 	kubeSpaceName, err := c.getSpaceNameFromSpaceID(ctx, ctx.SpaceID)
@@ -285,9 +279,9 @@ func convertToTime(unixMillis int64) time.Time {
 // ShowDeploymentStats runs the showDeploymentStats action.
 func (c *AppsController) ShowDeploymentStats(ctx *app.ShowDeploymentStatsAppsContext) error {
 
-	kc, err := c.getAndCheckKubeClient(ctx)
+	kc, err := c.getKubeClient(ctx)
 	if err != nil {
-		return err
+		return witerrors.NewUnauthorizedError("openshift token")
 	}
 
 	kubeSpaceName, err := c.getSpaceNameFromSpaceID(ctx, ctx.SpaceID)
@@ -321,9 +315,9 @@ func (c *AppsController) ShowDeploymentStats(ctx *app.ShowDeploymentStatsAppsCon
 // ShowEnvironment runs the showEnvironment action.
 func (c *AppsController) ShowEnvironment(ctx *app.ShowEnvironmentAppsContext) error {
 
-	kc, err := c.getAndCheckKubeClient(ctx)
+	kc, err := c.getKubeClient(ctx)
 	if err != nil {
-		return err
+		return witerrors.NewUnauthorizedError("openshift token")
 	}
 
 	env, err := kc.GetEnvironment(ctx.EnvName)
@@ -344,9 +338,9 @@ func (c *AppsController) ShowEnvironment(ctx *app.ShowEnvironmentAppsContext) er
 // ShowSpace runs the showSpace action.
 func (c *AppsController) ShowSpace(ctx *app.ShowSpaceAppsContext) error {
 
-	kc, err := c.getAndCheckKubeClient(ctx)
+	kc, err := c.getKubeClient(ctx)
 	if err != nil {
-		return err
+		return witerrors.NewUnauthorizedError("openshift token")
 	}
 
 	kubeSpaceName, err := c.getSpaceNameFromSpaceID(ctx, ctx.SpaceID)
@@ -373,9 +367,9 @@ func (c *AppsController) ShowSpace(ctx *app.ShowSpaceAppsContext) error {
 // ShowSpaceApp runs the showSpaceApp action.
 func (c *AppsController) ShowSpaceApp(ctx *app.ShowSpaceAppAppsContext) error {
 
-	kc, err := c.getAndCheckKubeClient(ctx)
+	kc, err := c.getKubeClient(ctx)
 	if err != nil {
-		return err
+		return witerrors.NewUnauthorizedError("openshift token")
 	}
 
 	kubeSpaceName, err := c.getSpaceNameFromSpaceID(ctx, ctx.SpaceID)
@@ -401,9 +395,9 @@ func (c *AppsController) ShowSpaceApp(ctx *app.ShowSpaceAppAppsContext) error {
 // ShowSpaceAppDeployment runs the showSpaceAppDeployment action.
 func (c *AppsController) ShowSpaceAppDeployment(ctx *app.ShowSpaceAppDeploymentAppsContext) error {
 
-	kc, err := c.getAndCheckKubeClient(ctx)
+	kc, err := c.getKubeClient(ctx)
 	if err != nil {
-		return err
+		return witerrors.NewUnauthorizedError("openshift token")
 	}
 
 	kubeSpaceName, err := c.getSpaceNameFromSpaceID(ctx, ctx.SpaceID)
@@ -429,9 +423,9 @@ func (c *AppsController) ShowSpaceAppDeployment(ctx *app.ShowSpaceAppDeploymentA
 // ShowEnvAppPods runs the showEnvAppPods action.
 func (c *AppsController) ShowEnvAppPods(ctx *app.ShowEnvAppPodsAppsContext) error {
 
-	kc, err := c.getAndCheckKubeClient(ctx)
+	kc, err := c.getKubeClient(ctx)
 	if err != nil {
-		return err
+		return witerrors.NewUnauthorizedError("openshift token")
 	}
 
 	pods, err := kc.GetPodsInNamespace(ctx.EnvName, ctx.AppName)
@@ -449,9 +443,9 @@ func (c *AppsController) ShowEnvAppPods(ctx *app.ShowEnvAppPodsAppsContext) erro
 // ShowSpaceEnvironments runs the showSpaceEnvironments action.
 func (c *AppsController) ShowSpaceEnvironments(ctx *app.ShowSpaceEnvironmentsAppsContext) error {
 
-	kc, err := c.getAndCheckKubeClient(ctx)
+	kc, err := c.getKubeClient(ctx)
 	if err != nil {
-		return err
+		return witerrors.NewUnauthorizedError("openshift token")
 	}
 
 	envs, err := kc.GetEnvironments()

@@ -106,10 +106,11 @@ func NewKubeClient(config *KubeClientConfig) (KubeClientInterface, error) {
 		return nil, err
 	}
 
-	kubeClient := new(kubeClient)
-	kubeClient.config = config
-	kubeClient.KubeRESTAPI = kubeAPI
-	kubeClient.MetricsInterface = metrics
+	kubeClient := &kubeClient{
+		config:           config,
+		KubeRESTAPI:      kubeAPI,
+		MetricsInterface: metrics,
+	}
 
 	// Get environments from config map
 	envMap, err := kubeClient.getEnvironmentsFromConfigMap()

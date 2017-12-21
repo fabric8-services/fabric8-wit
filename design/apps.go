@@ -9,8 +9,9 @@ import (
 var simpleSpace = a.Type("SimpleSpace", func() {
 	a.Description(`a space consisting of multiple applications`)
 	a.Attribute("id", d.UUID)
-	//a.Attribute("name", d.String)
+	a.Attribute("name", d.String)
 	a.Attribute("applications", a.ArrayOf(simpleApp))
+	a.Required("applications")
 })
 
 // SimpleApp describe an application within a space
@@ -19,10 +20,11 @@ var simpleApp = a.Type("SimpleApp", func() {
 	a.Attribute("id", d.UUID)
 	a.Attribute("name", d.String)
 	a.Attribute("pipeline", a.ArrayOf(simpleDeployment))
+	a.Required("pipeline")
 })
 
 // simpleDeployment describe an element of an application pipeline
-var simpleDeployment = a.Type("simpleDeployment", func() {
+var simpleDeployment = a.Type("SimpleDeployment", func() {
 	a.Description(`a deployment (a step in a pipeline, e.g. 'build')`)
 	a.Attribute("id", d.UUID)
 	a.Attribute("name", d.String)
@@ -31,7 +33,7 @@ var simpleDeployment = a.Type("simpleDeployment", func() {
 })
 
 // simpleDeployment describe an element of an application pipeline
-var simpleEnvironment = a.Type("simpleEnvironment", func() {
+var simpleEnvironment = a.Type("SimpleEnvironment", func() {
 	a.Description(`a shared environment`)
 	a.Attribute("id", d.UUID)
 	a.Attribute("name", d.String)
