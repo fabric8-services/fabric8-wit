@@ -208,9 +208,9 @@ func ConvertWorkItemTypeFromModel(request *http.Request, t *workitem.WorkItemTyp
 	case workitem.SystemExperience, workitem.SystemValueProposition:
 		converted.Relationships.GuidedChildTypes = getGuidedChildTypes(workitem.SystemFeature, workitem.SystemBug)
 	case workitem.SystemFeature:
-		converted.Relationships.GuidedChildTypes = getGuidedChildTypes(workitem.SystemTask)
-	case workitem.SystemBug:
 		converted.Relationships.GuidedChildTypes = getGuidedChildTypes(workitem.SystemTask, workitem.SystemBug)
+	case workitem.SystemBug:
+		converted.Relationships.GuidedChildTypes = getGuidedChildTypes(workitem.SystemTask)
 	}
 	return converted
 }
