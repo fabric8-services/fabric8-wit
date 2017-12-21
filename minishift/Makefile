@@ -13,6 +13,9 @@ UI_IMAGE_DEFAULT=docker.io/fabric8/fabric8-ui
 UI_IMAGE_TAG ?= v92bdaf4
 UI_IMAGE_URL=$(UI_IMAGE_DEFAULT):$(UI_IMAGE_TAG)
 
+MINISHIFT_IP = `minishift ip`
+MINISHIFT_URL = http://$(MINISHIFT_IP)
+
 # make sure you have a entry in /etc/hosts for "minishift.local MINISHIFT_IP"
 MINISHIFT_HOSTS_ENTRY = http://minishift.local
 
@@ -34,7 +37,7 @@ dev-openshift:
 	kedge apply -f kedge/db.yml -f kedge/db-auth.yml -f kedge/auth.yml
 	sleep 5s
 	# Create WIT pod
-	F8_AUTH_URL=$(MINISHIFT_HOSTS_ENTRY):31000 \
+	F8_AUTH_URL=$(MINISHIFT_URL):31000 \
 	F8_DEVELOPER_MODE_ENABLED=true \
 	F8_POSTGRES_HOST=$(MINISHIFT_HOSTS_ENTRY) \
 	F8_POSTGRES_PORT=32000 \
