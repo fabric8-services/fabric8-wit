@@ -233,8 +233,10 @@ func (c *WorkItemLinkController) Create(ctx *app.CreateWorkItemLinkContext) erro
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
-	linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, c.db, c.db, ctx.Request, ctx.ResponseWriter, app.WorkItemLinkHref, currentUserIdentityID)
-	return createWorkItemLink(linkCtx, ctx, ctx.Payload)
+	return application.Transactional(c.db, func(appl application.Application) error {
+		linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, app.WorkItemLinkHref, currentUserIdentityID)
+		return createWorkItemLink(linkCtx, ctx, ctx.Payload)
+	})
 }
 
 func (c *WorkItemLinkController) checkIfUserIsSpaceCollaboratorOrWorkItemCreator(ctx context.Context, linkID uuid.UUID, currentIdentityID uuid.UUID) (bool, error) {
