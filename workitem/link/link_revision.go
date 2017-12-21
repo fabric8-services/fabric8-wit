@@ -17,7 +17,9 @@ const (
 	RevisionTypeDelete // 2
 	_                  // ignore 3rd value
 	// RevisionTypeUpdate a work item link update
+	// TODO(kwk): can we remove this "update" revsion type? We no longer support updating a link.
 	RevisionTypeUpdate // 4
+
 )
 
 // Revision represents a version of a work item link
