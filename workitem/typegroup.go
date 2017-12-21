@@ -101,6 +101,8 @@ func TypeGroups() []WorkItemTypeGroup {
 			Icon:   "fa fa-repeat",
 			TypeList: []uuid.UUID{
 				SystemTask,
+				SystemBug,
+				SystemFeature,
 			},
 			DefaultType: SystemTask,
 			PrevGroupID: requirementsID,
