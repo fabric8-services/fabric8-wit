@@ -235,17 +235,9 @@ func (s *workItemLinkSuite) TestCreate() {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(2), tf.WorkItemLinkTypes(1))
 		svc, ctrl := s.SecuredController(*fxt.Identities[0])
-		relCtrl := NewWorkItemRelationshipsLinksController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-
 		t.Run("invalid type id", func(t *testing.T) {
 			createPayload := newCreateWorkItemLinkPayload(fxt.WorkItems[0].ID, fxt.WorkItems[1].ID, uuid.Nil)
-			t.Run("for /api/workitemlinks", func(t *testing.T) {
-				// when then
-				_, _ = test.CreateWorkItemLinkBadRequest(t, svc.Context, svc, ctrl, createPayload)
-			})
-			t.Run("for /api/workitems/:id/relationships/links", func(t *testing.T) {
-				_, _ = test.CreateWorkItemRelationshipsLinksBadRequest(t, svc.Context, svc, relCtrl, fxt.WorkItems[0].ID, createPayload)
-			})
+			_, _ = test.CreateWorkItemLinkBadRequest(t, svc.Context, svc, ctrl, createPayload)
 		})
 	})
 
@@ -253,36 +245,20 @@ func (s *workItemLinkSuite) TestCreate() {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(2), tf.WorkItemLinkTypes(1))
 		svc, ctrl := s.SecuredController(*fxt.Identities[0])
-		relCtrl := NewWorkItemRelationshipsLinksController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 		t.Run("not existing link type id", func(t *testing.T) {
 			createPayload := newCreateWorkItemLinkPayload(fxt.WorkItems[0].ID, fxt.WorkItems[1].ID, uuid.NewV4())
-			t.Run("for /api/workitemlinks", func(t *testing.T) {
-				// when then
-				_, _ = test.CreateWorkItemLinkNotFound(t, svc.Context, svc, ctrl, createPayload)
-			})
-			t.Run("for /api/workitems/:id/relationships/links", func(t *testing.T) {
-				_, _ = test.CreateWorkItemRelationshipsLinksNotFound(t, svc.Context, svc, relCtrl, fxt.WorkItems[0].ID, createPayload)
-			})
+			// when then
+			_, _ = test.CreateWorkItemLinkNotFound(t, svc.Context, svc, ctrl, createPayload)
 		})
 		t.Run("not existing source", func(t *testing.T) {
 			createPayload := newCreateWorkItemLinkPayload(uuid.NewV4(), fxt.WorkItems[1].ID, fxt.WorkItemLinkTypes[0].ID)
-			t.Run("for /api/workitemlinks", func(t *testing.T) {
-				// when then
-				_, _ = test.CreateWorkItemLinkNotFound(t, svc.Context, svc, ctrl, createPayload)
-			})
-			t.Run("for /api/workitems/:id/relationships/links", func(t *testing.T) {
-				_, _ = test.CreateWorkItemRelationshipsLinksNotFound(t, svc.Context, svc, relCtrl, createPayload.Data.Relationships.Source.Data.ID, createPayload)
-			})
+			// when then
+			_, _ = test.CreateWorkItemLinkNotFound(t, svc.Context, svc, ctrl, createPayload)
 		})
 		t.Run("not existing target", func(t *testing.T) {
 			createPayload := newCreateWorkItemLinkPayload(fxt.WorkItems[0].ID, uuid.NewV4(), fxt.WorkItemLinkTypes[0].ID)
-			t.Run("for /api/workitemlinks", func(t *testing.T) {
-				// when then
-				_, _ = test.CreateWorkItemLinkNotFound(t, svc.Context, svc, ctrl, createPayload)
-			})
-			t.Run("for /api/workitems/:id/relationships/links", func(t *testing.T) {
-				_, _ = test.CreateWorkItemRelationshipsLinksNotFound(t, svc.Context, svc, relCtrl, fxt.WorkItems[0].ID, createPayload)
-			})
+			// when then
+			_, _ = test.CreateWorkItemLinkNotFound(t, svc.Context, svc, ctrl, createPayload)
 		})
 	})
 
@@ -337,85 +313,6 @@ func (s *workItemLinkSuite) TestDelete() {
 		svc, ctrl := s.SecuredController(*fxt.Identities[0])
 		// when/then
 		_, _ = test.DeleteWorkItemLinkNotFound(t, svc.Context, svc, ctrl, uuid.NewV4())
-	})
-}
-
-func (s *workItemLinkSuite) TestUpdate() {
-	s.T().Run(http.StatusText(http.StatusOK), func(t *testing.T) {
-		t.Run("as space owner", func(t *testing.T) {
-			// given
-			fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItemLinks(1))
-			svc, ctrl := s.SecuredController(*fxt.Identities[0])
-			// when
-			updateLinkPayload := newUpdateWorkItemLinkPayload(fxt.WorkItemLinks[0].ID, fxt.WorkItemLinks[0].TargetID, fxt.WorkItemLinks[0].SourceID, fxt.WorkItemLinks[0].LinkTypeID)
-			_, _ = test.UpdateWorkItemLinkOK(t, svc.Context, svc, ctrl, fxt.WorkItemLinks[0].ID, updateLinkPayload)
-			// then verify the update exchanged the source and the target
-			_, l := test.ShowWorkItemLinkOK(t, svc.Context, svc, ctrl, fxt.WorkItemLinks[0].ID, nil, nil)
-			model, err := ConvertLinkToModel(*l)
-			require.NoError(t, err)
-			require.Equal(t, fxt.WorkItemLinks[0].TargetID, model.SourceID)
-			require.Equal(t, fxt.WorkItemLinks[0].SourceID, model.TargetID)
-			require.Equal(t, fxt.WorkItemLinks[0].LinkTypeID, model.LinkTypeID)
-		})
-		t.Run("as space collaborator", func(t *testing.T) {
-			fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemLinks(1), tf.Identities(2, tf.SetIdentityUsernames("owner", "collaborator")))
-			svc := testsupport.ServiceAsSpaceUser("TestWorkItem-Service", *fxt.IdentityByUsername("collaborator"), &TestSpaceAuthzService{*fxt.IdentityByUsername("collaborator"), ""})
-			ctrl := NewWorkItemLinkController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-			// when
-			updateLinkPayload := newUpdateWorkItemLinkPayload(fxt.WorkItemLinks[0].ID, fxt.WorkItemLinks[0].TargetID, fxt.WorkItemLinks[0].SourceID, fxt.WorkItemLinks[0].LinkTypeID)
-			_, _ = test.UpdateWorkItemLinkOK(t, svc.Context, svc, ctrl, fxt.WorkItemLinks[0].ID, updateLinkPayload)
-			// then verify the update exchanged the source and the target
-			_, l := test.ShowWorkItemLinkOK(t, svc.Context, svc, ctrl, fxt.WorkItemLinks[0].ID, nil, nil)
-			model, err := ConvertLinkToModel(*l)
-			require.NoError(t, err)
-			require.Equal(t, fxt.WorkItemLinks[0].TargetID, model.SourceID)
-			require.Equal(t, fxt.WorkItemLinks[0].SourceID, model.TargetID)
-		})
-	})
-	s.T().Run(http.StatusText(http.StatusForbidden), func(t *testing.T) {
-		t.Run("not as space collaborator", func(t *testing.T) {
-			// given
-			fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemLinks(1), tf.Identities(2, tf.SetIdentityUsernames("owner", "bob")))
-			svc := testsupport.ServiceAsSpaceUser("svc", *fxt.IdentityByUsername("bob"), &TestSpaceAuthzService{*fxt.IdentityByUsername("owner"), ""})
-			ctrl := NewWorkItemLinkController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-			// when
-			updateLinkPayload := newUpdateWorkItemLinkPayload(fxt.WorkItemLinks[0].ID, fxt.WorkItemLinks[0].TargetID, fxt.WorkItemLinks[0].SourceID, fxt.WorkItemLinks[0].LinkTypeID)
-			test.UpdateWorkItemLinkForbidden(t, svc.Context, svc, ctrl, fxt.WorkItemLinks[0].ID, updateLinkPayload)
-		})
-	})
-	s.T().Run(http.StatusText(http.StatusUnauthorized), func(t *testing.T) {
-		t.Run("as not logged in user", func(t *testing.T) {
-			// given
-			fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemLinks(1))
-			svc := goa.New("TestUnauthorizedUpdateWorkItemLink-Service")
-			ctrl := NewWorkItemLinkController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-			// when
-			updateLinkPayload := newUpdateWorkItemLinkPayload(fxt.WorkItemLinks[0].ID, fxt.WorkItemLinks[0].TargetID, fxt.WorkItemLinks[0].SourceID, fxt.WorkItemLinks[0].LinkTypeID)
-			test.UpdateWorkItemLinkUnauthorized(t, svc.Context, svc, ctrl, fxt.WorkItemLinks[0].ID, updateLinkPayload)
-		})
-	})
-	s.T().Run(http.StatusText(http.StatusNotFound), func(t *testing.T) {
-		t.Run("not existing link id", func(t *testing.T) {
-			// given
-			fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemLinks(1))
-			svc, ctrl := s.SecuredController(*fxt.Identities[0])
-			// when
-			updateLinkPayload := newUpdateWorkItemLinkPayload(uuid.NewV4(), fxt.WorkItemLinks[0].TargetID, fxt.WorkItemLinks[0].SourceID, fxt.WorkItemLinks[0].LinkTypeID)
-			test.UpdateWorkItemLinkNotFound(t, svc.Context, svc, ctrl, *updateLinkPayload.Data.ID, updateLinkPayload)
-		})
-	})
-	s.T().Run(http.StatusText(http.StatusConflict), func(t *testing.T) {
-		t.Run("version conflict", func(t *testing.T) {
-			// given
-			fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemLinks(1), tf.WorkItems(3))
-			svc, ctrl := s.SecuredController(*fxt.Identities[0])
-			// when
-			updateLinkPayload := newUpdateWorkItemLinkPayload(fxt.WorkItemLinks[0].ID, fxt.WorkItems[1].ID, fxt.WorkItems[2].ID, fxt.WorkItemLinks[0].LinkTypeID)
-			// force a different version of the entity
-			previousVersion := *updateLinkPayload.Data.Attributes.Version - 1
-			updateLinkPayload.Data.Attributes.Version = &previousVersion
-			test.UpdateWorkItemLinkConflict(t, svc.Context, svc, ctrl, *updateLinkPayload.Data.ID, updateLinkPayload)
-		})
 	})
 }
 
@@ -607,36 +504,6 @@ func (s *workItemLinkSuite) getWorkItemLinkTestDataFunc() func(t *testing.T) []t
 				payload:            createWorkItemLinkPayloadString,
 				jwtToken:           "",
 			},
-			// Update Work Item API with different parameters
-			{
-				method:             http.MethodPatch,
-				url:                endpointWorkItemLinks + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
-				expectedStatusCode: http.StatusUnauthorized,
-				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-				payload:            createWorkItemLinkPayloadString,
-				jwtToken:           getExpiredAuthHeader(t, privatekey),
-			}, {
-				method:             http.MethodPatch,
-				url:                endpointWorkItemLinks + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
-				expectedStatusCode: http.StatusUnauthorized,
-				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-				payload:            createWorkItemLinkPayloadString,
-				jwtToken:           getMalformedAuthHeader(t, privatekey),
-			}, {
-				method:             http.MethodPatch,
-				url:                endpointWorkItemLinks + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
-				expectedStatusCode: http.StatusUnauthorized,
-				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-				payload:            createWorkItemLinkPayloadString,
-				jwtToken:           getValidAuthHeader(t, differentPrivatekey),
-			}, {
-				method:             http.MethodPatch,
-				url:                endpointWorkItemLinks + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
-				expectedStatusCode: http.StatusUnauthorized,
-				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-				payload:            createWorkItemLinkPayloadString,
-				jwtToken:           "",
-			},
 			// Delete Work Item API with different parameters
 			{
 				method:             http.MethodDelete,
@@ -694,76 +561,16 @@ func (s *workItemLinkSuite) TestUnauthorizeWorkItemLinkCUD() {
 }
 
 // The work item ID will be used to construct /api/workitems/:id/relationships/links endpoints
-func (s *workItemLinkSuite) getWorkItemRelationshipLinksTestData(spaceID, wiID uuid.UUID) func(t *testing.T) []testSecureAPI {
+func (s *workItemLinkSuite) getWorkItemRelationshipLinksTestData() func(t *testing.T) []testSecureAPI {
 	return func(t *testing.T) []testSecureAPI {
-		privatekey := testtoken.PrivateKey()
-		differentPrivatekey, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSADifferentPrivateKeyTest)))
-		if err != nil {
-			t.Fatal("Could not parse different private key ", err)
-		}
-
-		createWorkItemLinkPayloadString := bytes.NewBuffer([]byte(`
-		{
-			"data": {
-				"attributes": {
-					"version": 0
-				},
-				"id": "40bbdd3d-8b5d-4fd6-ac90-7236b669af04",
-				"relationships": {
-					"link_type": {
-						"data": {
-						"id": "6c5610be-30b2-4880-9fec-81e4f8e4fd76",
-						"type": "workitemlinktypes"
-						}
-					},
-					"source": {
-						"data": {
-						"id": "1234",
-						"type": "workitems"
-						}
-					},
-					"target": {
-						"data": {
-						"id": "1234",
-						"type": "workitems"
-						}
-					}
-				},
-				"type": "workitemlinks"
-			}
-		}
-  		`))
-
-		relationshipsEndpoint := fmt.Sprintf(endpointWorkItemRelationshipsLinks, wiID)
 		testWorkItemLinksAPI := []testSecureAPI{
-			// Create Work Item API with different parameters
+			// Get links for non existing work item
 			{
-				method:             http.MethodPost,
-				url:                relationshipsEndpoint,
-				expectedStatusCode: http.StatusUnauthorized,
-				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-				payload:            createWorkItemLinkPayloadString,
-				jwtToken:           getExpiredAuthHeader(t, privatekey),
-			}, {
-				method:             http.MethodPost,
-				url:                relationshipsEndpoint,
-				expectedStatusCode: http.StatusUnauthorized,
-				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-				payload:            createWorkItemLinkPayloadString,
-				jwtToken:           getMalformedAuthHeader(t, privatekey),
-			}, {
-				method:             http.MethodPost,
-				url:                relationshipsEndpoint,
-				expectedStatusCode: http.StatusUnauthorized,
-				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-				payload:            createWorkItemLinkPayloadString,
-				jwtToken:           getValidAuthHeader(t, differentPrivatekey),
-			}, {
-				method:             http.MethodPost,
-				url:                relationshipsEndpoint,
-				expectedStatusCode: http.StatusUnauthorized,
-				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-				payload:            createWorkItemLinkPayloadString,
+				method:             http.MethodGet,
+				url:                fmt.Sprintf(endpointWorkItemRelationshipsLinks, "7c73067d-be4f-4e7a-bf1d-644dabb90a5c"),
+				expectedStatusCode: http.StatusNotFound,
+				expectedErrorCode:  jsonapi.ErrorCodeNotFound,
+				payload:            nil,
 				jwtToken:           "",
 			},
 		}
@@ -772,8 +579,7 @@ func (s *workItemLinkSuite) getWorkItemRelationshipLinksTestData(spaceID, wiID u
 }
 
 func (s *workItemLinkSuite) TestUnauthorizeWorkItemRelationshipsLinksCUD() {
-	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItemLinks(1))
-	UnauthorizeCreateUpdateDeleteTest(s.T(), s.getWorkItemRelationshipLinksTestData(fxt.WorkItems[0].SpaceID, fxt.WorkItems[0].ID), func() *goa.Service {
+	UnauthorizeCreateUpdateDeleteTest(s.T(), s.getWorkItemRelationshipLinksTestData(), func() *goa.Service {
 		return goa.New("TestUnauthorizedCreateWorkItemRelationshipsLinks-Service")
 	}, func(service *goa.Service) error {
 		controller := NewWorkItemRelationshipsLinksController(service, gormapplication.NewGormDB(s.DB), s.Configuration)

@@ -169,14 +169,6 @@ func (s *workItemChildSuite) linkWorkItems(source, target *app.WorkItemSingle) a
 	return *workitemLink
 }
 
-func (s *workItemChildSuite) updateWorkItemLink(workitemLinkID uuid.UUID, source, target *app.WorkItemSingle) app.WorkItemLinkSingle {
-	updatePayload := newUpdateWorkItemLinkPayload(workitemLinkID, *source.Data.ID, *target.Data.ID, s.bugBlockerLinkTypeID)
-	log.Info(nil, nil, fmt.Sprintf("Updating work item link from %v to %v", *source.Data.ID, *target.Data.ID))
-	_, workitemLink := test.UpdateWorkItemLinkOK(s.T(), s.svc.Context, s.svc, s.workitemLinkCtrl, workitemLinkID, updatePayload)
-	require.NotNil(s.T(), workitemLink)
-	return *workitemLink
-}
-
 //-----------------------------------------------------------------------------
 // helper method
 //-----------------------------------------------------------------------------

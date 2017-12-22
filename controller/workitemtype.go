@@ -24,6 +24,8 @@ const (
 	targetLinkTypesRouteEnd = "/target-link-types"
 )
 
+const APIWorkItemTypes = "workitemtypes"
+
 // WorkitemtypeController implements the workitemtype resource.
 type WorkitemtypeController struct {
 	*goa.Controller
@@ -182,6 +184,33 @@ func ConvertWorkItemTypeFromModel(request *http.Request, t *workitem.WorkItemTyp
 			Description: def.Description,
 			Type:        &ct,
 		}
+	}
+	// TODO(kwk): Replaces this temporary static hack with a more dynamic solution
+	strPtr := func(s string) *string { return &s }
+	getGuidedChildTypes := func(witIDs ...uuid.UUID) *app.RelationGenericList {
+		res := &app.RelationGenericList{
+			Data: make([]*app.GenericData, len(witIDs)),
+		}
+		for i, id := range witIDs {
+			res.Data[i] = &app.GenericData{
+				ID:   strPtr(id.String()),
+				Type: strPtr(APIWorkItemTypes),
+				// Links: &app.GenericLinks{
+				// 	Related: strPtr(rest.AbsoluteURL(request, app.WorkitemtypeHref(t.SpaceID, id.String()))),
+				// },
+			}
+		}
+		return res
+	}
+	switch t.ID {
+	case workitem.SystemScenario, workitem.SystemFundamental, workitem.SystemPapercuts:
+		converted.Relationships.GuidedChildTypes = getGuidedChildTypes(workitem.SystemExperience, workitem.SystemValueProposition)
+	case workitem.SystemExperience, workitem.SystemValueProposition:
+		converted.Relationships.GuidedChildTypes = getGuidedChildTypes(workitem.SystemFeature, workitem.SystemBug)
+	case workitem.SystemFeature:
+		converted.Relationships.GuidedChildTypes = getGuidedChildTypes(workitem.SystemTask, workitem.SystemBug)
+	case workitem.SystemBug:
+		converted.Relationships.GuidedChildTypes = getGuidedChildTypes(workitem.SystemTask)
 	}
 	return converted
 }

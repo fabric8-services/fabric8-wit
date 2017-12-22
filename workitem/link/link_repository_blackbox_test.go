@@ -402,14 +402,6 @@ func (s *linkRepoBlackBoxTest) TestCreate() {
 	})
 }
 
-func (s *linkRepoBlackBoxTest) TestSave() {
-	s.T().Run("ok", func(t *testing.T) {
-		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemLinks(1))
-		_, err := s.workitemLinkRepo.Save(s.Ctx, *fxt.WorkItemLinks[0], fxt.Identities[0].ID)
-		require.NoError(t, err)
-	})
-}
-
 func (s *linkRepoBlackBoxTest) TestExistsLink() {
 	s.T().Run("link exists", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemLinks(1))
