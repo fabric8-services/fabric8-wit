@@ -51,24 +51,19 @@ func (c *QueryController) Create(ctx *app.CreateQueryContext) error {
 			Title:   strings.TrimSpace(ctx.Payload.Data.Attributes.Title),
 			Creator: *currentUserIdentityID,
 		}
-		fmt.Println("1111111111111111111111111111")
 		// Parse fields to make sure that query is valid
 		_, _, err := search.ParseFilterString(ctx, q.Fields)
 		if err != nil {
-			fmt.Println("22222222222222222222222222222222")
 			log.Error(ctx, map[string]interface{}{
 				"space_id": ctx.SpaceID,
 				"fields":   q.Fields,
 			}, "unable to parse the query fields")
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		fmt.Println("333333333333333333333333")
 		err = appl.Queries().Create(ctx, &q)
 		if err != nil {
-			fmt.Println("44444444444444444444444444444444")
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		fmt.Println("5555555555555555555555555555555")
 		res := &app.QuerySingle{
 			Data: ConvertQuery(appl, ctx.Request, q),
 		}
