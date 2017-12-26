@@ -8,6 +8,7 @@ AUTH_IMAGE_DEFAULT=docker.io/fabric8/fabric8-auth
 AUTH_IMAGE_TAG ?= latest
 AUTH_IMAGE_URL=$(AUTH_IMAGE_DEFAULT):$(AUTH_IMAGE_TAG)
 
+
 MINISHIFT_IP = `minishift ip`
 MINISHIFT_URL = http://$(MINISHIFT_IP)
 # make sure you have a entry in /etc/hosts for "minishift.local MINISHIFT_IP"
