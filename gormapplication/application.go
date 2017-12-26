@@ -11,6 +11,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/comment"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/label"
+	"github.com/fabric8-services/fabric8-wit/query"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/search"
 	"github.com/fabric8-services/fabric8-wit/space"
@@ -132,6 +133,11 @@ func (g *GormBase) Areas() area.Repository {
 // Labels returns a labels repository
 func (g *GormBase) Labels() label.Repository {
 	return label.NewLabelRepository(g.db)
+}
+
+// Queries returns a queries repository
+func (g *GormBase) Queries() query.Repository {
+	return query.NewQueryRepository(g.db)
 }
 
 // Codebases returns a codebase repository

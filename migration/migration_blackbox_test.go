@@ -127,6 +127,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration76", testMigration76)
 	t.Run("TestMigration79", testMigration79)
 	t.Run("TestMigration80", testMigration80)
+	t.Run("TestMigration81", testMigration81)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -604,6 +605,16 @@ func testMigration80(t *testing.T) {
 		}
 		require.Empty(t, linkCategoriesToBeFound, "not all link categories have been found: %+v", spew.Sdump(linkCategoriesToBeFound))
 	})
+}
+
+func testMigration81(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:82], 82)
+	assert.True(t, dialect.HasTable("queries"))
+	assert.True(t, dialect.HasIndex("queries", "query_title_idx"))
+
+	// These script execution has to fail
+	assert.NotNil(t, runSQLscript(sqlDB, "081-query-empty-title.sql"))
+	assert.NotNil(t, runSQLscript(sqlDB, "081-query-same-title.sql"))
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and

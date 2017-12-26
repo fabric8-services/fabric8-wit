@@ -10,6 +10,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/comment"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/label"
+	"github.com/fabric8-services/fabric8-wit/query"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/space"
@@ -511,6 +512,37 @@ func makeTrackers(fxt *TestFixture) error {
 		err := trackerRepo.Create(fxt.ctx, fxt.Trackers[i])
 		if err != nil {
 			return errs.Wrapf(err, "failed to create tracker: %+v", fxt.Trackers[i])
+		}
+	}
+	return nil
+}
+
+func makeQueries(fxt *TestFixture) error {
+	if fxt.info[kindQueries] == nil {
+		return nil
+	}
+	fxt.Queries = make([]*query.Query, fxt.info[kindQueries].numInstances)
+	queryRrepo := query.NewQueryRepository(fxt.db)
+
+	for i := range fxt.Queries {
+		fxt.Queries[i] = &query.Query{
+			Title:  testsupport.CreateRandomValidTestName("label "),
+			Fields: `{"key": "value"}`,
+		}
+		if !fxt.isolatedCreation {
+			fxt.Queries[i].SpaceID = fxt.Spaces[0].ID
+		}
+		if err := fxt.runCustomizeEntityFuncs(i, kindQueries); err != nil {
+			return errs.WithStack(err)
+		}
+		if fxt.isolatedCreation {
+			if fxt.Queries[i].SpaceID == uuid.Nil {
+				return errs.New("you must specify a space ID for each query")
+			}
+		}
+		err := queryRrepo.Create(fxt.ctx, fxt.Queries[i])
+		if err != nil {
+			return errs.Wrapf(err, "failed to create query: %+v", fxt.Queries[i])
 		}
 	}
 	return nil

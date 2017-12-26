@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/fabric8-services/fabric8-wit/query"
+
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/area"
 	"github.com/fabric8-services/fabric8-wit/codebase"
@@ -48,6 +50,7 @@ type TestFixture struct {
 	WorkItemLinks          []*link.WorkItemLink         // Work item links (if any) that were created for this test fixture.
 	Labels                 []*label.Label
 	Trackers               []*remoteworkitem.Tracker // Remote work item tracker (if any) that were created for this test fixture.
+	Queries                []*query.Query            // Queries (if any) that were created for this test fixture.
 }
 
 // NewFixture will create a test fixture by executing the recipies from the
@@ -160,6 +163,7 @@ const (
 	kindWorkItemLinks          kind = "work_item_link"
 	kindLabels                 kind = "label"
 	kindTrackers               kind = "tracker"
+	kindQueries                kind = "query"
 )
 
 type createInfo struct {
@@ -216,6 +220,7 @@ func newFixture(db *gorm.DB, isolatedCreation bool, recipeFuncs ...RecipeFunctio
 		// actually make the objects that DO have dependencies
 		makeSpaces,
 		makeLabels,
+		makeQueries,
 		makeWorkItemLinkTypes,
 		makeCodebases,
 		makeWorkItemTypes,
