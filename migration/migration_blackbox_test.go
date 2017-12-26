@@ -610,11 +610,12 @@ func testMigration80(t *testing.T) {
 func testMigration81(t *testing.T) {
 	migrateToVersion(t, sqlDB, migrations[:82], 82)
 	assert.True(t, dialect.HasTable("queries"))
-	assert.True(t, dialect.HasIndex("queries", "query_title_idx"))
+	assert.True(t, dialect.HasIndex("queries", "query_creator_idx"))
 
 	// These script execution has to fail
+	assert.NotNil(t, runSQLscript(sqlDB, "081-query-conflict.sql"))
 	assert.NotNil(t, runSQLscript(sqlDB, "081-query-empty-title.sql"))
-	assert.NotNil(t, runSQLscript(sqlDB, "081-query-same-title.sql"))
+	assert.NotNil(t, runSQLscript(sqlDB, "081-query-no-creator.sql"))
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and

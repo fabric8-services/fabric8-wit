@@ -15,7 +15,12 @@ var query = a.Type("Query", func() {
 	})
 	a.Attribute("attributes", queryAttributes)
 	a.Attribute("links", genericLinks)
+	a.Attribute("relationships", queryRelationships)
 	a.Required("type", "attributes")
+})
+
+var queryRelationships = a.Type("QueryRelations", func() {
+	a.Attribute("creator", relationGeneric, "This defines the creator of the query")
 })
 
 var queryAttributes = a.Type("QueryAttributes", func() {
@@ -93,7 +98,6 @@ var _ = a.Resource("query", func() {
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.Forbidden, JSONAPIErrors)
-		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.Conflict, JSONAPIErrors)
 	})
 })

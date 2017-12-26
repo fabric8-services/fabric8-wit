@@ -36,6 +36,7 @@ func (s *TestQueryRepository) TestCreateQuery() {
 			Title:   title,
 			Fields:  qs,
 			SpaceID: fxt.Spaces[0].ID,
+			Creator: fxt.Identities[0].ID,
 		}
 		// when
 		err := repo.Create(context.Background(), &q)

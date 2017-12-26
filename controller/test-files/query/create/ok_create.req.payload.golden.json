@@ -1,0 +1,9 @@
+{
+  "data": {
+    "attributes": {
+      "fields": "{\"$AND\": [{\"space\": \"00000000-0000-0000-0000-000000000001\"}]}",
+      "title": "query 1"
+    },
+    "type": "queries"
+  }
+}

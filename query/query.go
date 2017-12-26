@@ -22,6 +22,7 @@ type Query struct {
 	gormsupport.Lifecycle
 	ID      uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
 	SpaceID uuid.UUID `sql:"type:uuid"`
+	Creator uuid.UUID `sql:"type:uuid"`
 	Title   string
 	Fields  string
 }
@@ -70,16 +71,19 @@ func (r *GormQueryRepository) Create(ctx context.Context, q *Query) error {
 	if strings.TrimSpace(q.Title) == "" {
 		return errors.NewBadParameterError("query name cannot be empty string", q.Title).Expected("non empty string")
 	}
+	if q.Creator == uuid.Nil {
+		return errors.NewBadParameterError("creator cannot be nil", q.Creator).Expected("valid user ID")
+	}
 	err := r.db.Create(q).Error
 	if err != nil {
 		// combination of name and space ID should be unique
-		if gormsupport.IsUniqueViolation(err, "queries_name_space_id_unique_idx") {
+		if gormsupport.IsUniqueViolation(err, "queries_title_space_id_creator_unique") {
 			log.Error(ctx, map[string]interface{}{
 				"err":      err,
 				"title":    q.Title,
 				"space_id": q.SpaceID,
-			}, "unable to create query because a query with same title already exists in the space")
-			return errors.NewDataConflictError(fmt.Sprintf("query already exists with title = %s , space_id = %s", q.Title, q.SpaceID.String()))
+			}, "unable to create query because a query with same title already exists in the space by same creator")
+			return errors.NewDataConflictError(fmt.Sprintf("query already exists with title = %s , space_id = %s, creator = %s", q.Title, q.SpaceID, q.Creator))
 		}
 		log.Error(ctx, map[string]interface{}{}, "error adding Query: %s", err.Error())
 		return err

@@ -6,7 +6,8 @@ CREATE TABLE queries (
     title text NOT NULL CHECK(title <> ''),
     fields jsonb,
     space_id uuid NOT NULL REFERENCES spaces (id) ON DELETE CASCADE,
-    CONSTRAINT queries_title_space_id_unique UNIQUE(space_id, title)
+    creator uuid NOT NULL,
+    CONSTRAINT queries_title_space_id_creator_unique UNIQUE( title,space_id, creator)
 );
 
-CREATE INDEX query_title_idx ON queries USING btree (title);
+CREATE INDEX query_creator_idx ON queries USING btree (creator);
