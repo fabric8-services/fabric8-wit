@@ -80,6 +80,7 @@ var _ = a.Resource("query", func() {
 		// a.UseTrait("conditional")
 		a.Response(d.OK, queryList)
 		a.Response(d.NotModified)
+		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})

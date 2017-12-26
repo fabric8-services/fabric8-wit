@@ -47,6 +47,7 @@ func (q Query) TableName() string {
 type Repository interface {
 	Create(ctx context.Context, u *Query) error
 	List(ctx context.Context, spaceID uuid.UUID) ([]Query, error)
+	ListByCreator(ctx context.Context, spaceID uuid.UUID, creatorID uuid.UUID) ([]Query, error)
 	Load(ctx context.Context, queryID uuid.UUID) (*Query, error)
 	Delete(ctx context.Context, ID uuid.UUID) error
 }
@@ -102,10 +103,16 @@ func (r *GormQueryRepository) List(ctx context.Context, spaceID uuid.UUID) ([]Qu
 	return objs, nil
 }
 
-// // IsValid returns true if the identity exists
-// func (m *GormQueryRepository) IsValid(ctx context.Context, id uuid.UUID) bool {
-// 	return repository.CheckExists(ctx, m.db, LabelTableName, id.String()) == nil
-// }
+// ListByCreator all labels in a space by a creator
+func (r *GormQueryRepository) ListByCreator(ctx context.Context, spaceID uuid.UUID, creatorID uuid.UUID) ([]Query, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "Query", "list"}, time.Now())
+	var objs []Query
+	err := r.db.Where("space_id = ? AND creator=?", spaceID, creatorID).Find(&objs).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, err
+	}
+	return objs, nil
+}
 
 // Load Query in a space
 func (r *GormQueryRepository) Load(ctx context.Context, ID uuid.UUID) (*Query, error) {

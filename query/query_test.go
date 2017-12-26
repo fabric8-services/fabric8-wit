@@ -92,22 +92,44 @@ func (s *TestQueryRepository) TestListQuery() {
 	resource.Require(t, resource.Database)
 	repo := query.NewQueryRepository(s.DB)
 	t.Run("success", func(t *testing.T) {
-		// given
-		fxt := tf.NewTestFixture(s.T(), s.DB,
-			tf.Spaces(1), tf.Queries(3, tf.SetQueryTitles("q1", "q2", "q3")))
-		// when
-		qList, err := repo.List(context.Background(), fxt.Spaces[0].ID)
-		// then
-		require.Nil(t, err)
-		mustHave := map[string]struct{}{
-			"q1": {},
-			"q2": {},
-			"q3": {},
-		}
-		for _, q := range qList {
-			delete(mustHave, q.Title)
-		}
-		assert.Empty(s.T(), mustHave)
+		t.Run("by spaceID", func(t *testing.T) {
+
+			// given
+			fxt := tf.NewTestFixture(s.T(), s.DB,
+				tf.Spaces(1), tf.Queries(3, tf.SetQueryTitles("q1", "q2", "q3")))
+			// when
+			qList, err := repo.List(context.Background(), fxt.Spaces[0].ID)
+			// then
+			require.Nil(t, err)
+			mustHave := map[string]struct{}{
+				"q1": {},
+				"q2": {},
+				"q3": {},
+			}
+			for _, q := range qList {
+				delete(mustHave, q.Title)
+			}
+			assert.Empty(s.T(), mustHave)
+		})
+		t.Run("by spaceID and creator", func(t *testing.T) {
+			// given
+			fxt := tf.NewTestFixture(s.T(), s.DB,
+				tf.Spaces(1), tf.Queries(3, tf.SetQueryTitles("q1", "q2", "q3")))
+			// when
+			qList, err := repo.ListByCreator(context.Background(), fxt.Spaces[0].ID, fxt.Identities[0].ID)
+			// then
+			require.Nil(t, err)
+			mustHave := map[string]struct{}{
+				"q1": {},
+				"q2": {},
+				"q3": {},
+			}
+			for _, q := range qList {
+				delete(mustHave, q.Title)
+			}
+			assert.Empty(s.T(), mustHave)
+		})
+
 	})
 }
 

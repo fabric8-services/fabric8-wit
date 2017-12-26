@@ -16,6 +16,7 @@ import (
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -138,6 +139,63 @@ func (rest *TestQueryREST) TestCreateQueryREST() {
 			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 			// when
 			test.CreateQueryBadRequest(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, cq)
+		})
+	})
+}
+
+func (rest *TestQueryREST) TestListQueryREST() {
+	resetFn := rest.DisableGormCallbacks()
+	defer resetFn()
+
+	rest.T().Run("success", func(t *testing.T) {
+		t.Run("ok", func(t *testing.T) {
+			fxt := tf.NewTestFixture(t, rest.DB,
+				tf.CreateWorkItemEnvironment(),
+				tf.Queries(3, tf.SetQueryTitles("q1", "q2", "q3")))
+			fxt2 := tf.NewTestFixture(t, rest.DB,
+				tf.CreateWorkItemEnvironment(),
+				tf.Queries(3, tf.SetQueryTitles("q4", "q5", "q6")))
+			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+			// when
+			_, qList := test.ListQueryOK(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID)
+			// then
+			require.NotNil(t, qList)
+			mustHave := map[string]struct{}{
+				"q1": {},
+				"q2": {},
+				"q3": {},
+			}
+			for _, q := range qList.Data {
+				delete(mustHave, q.Attributes.Title)
+			}
+			assert.Empty(t, mustHave)
+
+			// list by different user
+			// when
+			svc, ctrl = rest.SecuredControllerWithIdentity(fxt2.Identities[0])
+			_, qList = test.ListQueryOK(t, svc.Context, svc, ctrl, fxt2.Spaces[0].ID)
+			// then
+			require.NotNil(t, qList)
+			mustHave = map[string]struct{}{
+				"q4": {},
+				"q5": {},
+				"q6": {},
+			}
+			for _, q := range qList.Data {
+				delete(mustHave, q.Attributes.Title)
+			}
+			assert.Empty(t, mustHave)
+		})
+	})
+
+	rest.T().Run("fail", func(t *testing.T) {
+		t.Run("unauthorized", func(t *testing.T) {
+			fxt := tf.NewTestFixture(t, rest.DB,
+				tf.CreateWorkItemEnvironment(),
+				tf.Queries(2))
+			svc, ctrl := rest.UnSecuredController()
+			// when
+			test.ListQueryUnauthorized(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID)
 		})
 	})
 }

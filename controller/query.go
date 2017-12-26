@@ -109,15 +109,30 @@ func ConvertQuery(appl application.Application, request *http.Request, q query.Q
 	return appQuery
 }
 
+// ConvertQueries from internal to external REST representation
+func ConvertQueries(appl application.Application, request *http.Request, queries []query.Query) []*app.Query {
+	var ls = []*app.Query{}
+	for _, q := range queries {
+		ls = append(ls, ConvertQuery(appl, request, q))
+	}
+	return ls
+}
+
 // List runs the list action.
 func (c *QueryController) List(ctx *app.ListQueryContext) error {
-	// QueryController_List: start_implement
-
-	// Put your logic here
-
-	// QueryController_List: end_implement
-	res := &app.QueryList{}
-	return ctx.OK(res)
+	currentUserIdentityID, err := login.ContextIdentity(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
+	}
+	return application.Transactional(c.db, func(appl application.Application) error {
+		queries, err := appl.Queries().ListByCreator(ctx, ctx.SpaceID, *currentUserIdentityID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		res := &app.QueryList{}
+		res.Data = ConvertQueries(appl, ctx.Request, queries)
+		return ctx.OK(res)
+	})
 }
 
 // Show runs the show action.
