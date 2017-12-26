@@ -603,9 +603,21 @@ func TestHandleWitGroup(t *testing.T) {
 			)},
 		},
 		{WITGROUP, "Execution", false, false, []criteria.Expression{
-			criteria.Equals(
-				criteria.Field("Type"),
-				criteria.Literal(workitem.SystemTask.String()),
+			criteria.Or(
+				criteria.Or(
+					criteria.Equals(
+						criteria.Field("Type"),
+						criteria.Literal(workitem.SystemTask.String()),
+					),
+					criteria.Equals(
+						criteria.Field("Type"),
+						criteria.Literal(workitem.SystemBug.String()),
+					),
+				),
+				criteria.Equals(
+					criteria.Field("Type"),
+					criteria.Literal(workitem.SystemFeature.String()),
+				),
 			),
 		}},
 		// // same with negation
@@ -654,9 +666,21 @@ func TestHandleWitGroup(t *testing.T) {
 			)},
 		},
 		{WITGROUP, "Execution", true, false, []criteria.Expression{
-			criteria.Not(
-				criteria.Field("Type"),
-				criteria.Literal(workitem.SystemTask.String()),
+			criteria.And(
+				criteria.And(
+					criteria.Not(
+						criteria.Field("Type"),
+						criteria.Literal(workitem.SystemTask.String()),
+					),
+					criteria.Not(
+						criteria.Field("Type"),
+						criteria.Literal(workitem.SystemBug.String()),
+					),
+				),
+				criteria.Not(
+					criteria.Field("Type"),
+					criteria.Literal(workitem.SystemFeature.String()),
+				),
 			),
 		}},
 	}
