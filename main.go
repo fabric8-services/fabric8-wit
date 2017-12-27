@@ -365,6 +365,10 @@ func main() {
 	workItemTypeGroupsCtrl := controller.NewWorkItemTypeGroupsController(service, appDB)
 	app.MountWorkItemTypeGroupsController(service, workItemTypeGroupsCtrl)
 
+	// Mount "queries" controller
+	queriesCtrl := controller.NewQueryController(service, appDB, config)
+	app.MountQueryController(service, queriesCtrl)
+
 	log.Logger().Infoln("Git Commit SHA: ", controller.Commit)
 	log.Logger().Infoln("UTC Build Time: ", controller.BuildTime)
 	log.Logger().Infoln("UTC Start Time: ", controller.StartTime)
