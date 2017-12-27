@@ -142,13 +142,13 @@ func (s *TestQueryRepository) TestShowQuery() {
 		fxt := tf.NewTestFixture(s.T(), s.DB,
 			tf.Spaces(1), tf.Queries(1, tf.SetQueryTitles("q1")))
 		// when
-		q, err := repo.Load(context.Background(), fxt.QueryByTitle("q1").ID)
+		q, err := repo.Load(context.Background(), fxt.QueryByTitle("q1").ID, fxt.Spaces[0].ID)
 		// then
 		require.Nil(t, err)
 		assert.Equal(s.T(), "q1", q.Title)
 	})
 	t.Run("fail", func(t *testing.T) {
-		_, err := repo.Load(context.Background(), uuid.NewV4())
+		_, err := repo.Load(context.Background(), uuid.NewV4(), uuid.NewV4())
 		require.NotNil(t, err)
 	})
 }

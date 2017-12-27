@@ -29,9 +29,6 @@ var queryAttributes = a.Type("QueryAttributes", func() {
 	a.Attribute("created-at", d.DateTime, "When the query was created", func() {
 		a.Example("2016-11-29T23:18:14Z")
 	})
-	a.Attribute("updated-at", d.DateTime, "When the query was updated", func() {
-		a.Example("2016-11-29T23:18:14Z")
-	})
 	a.Attribute("fields", d.String, "Actual query string created by user", func() {
 		a.Example("...")
 	})

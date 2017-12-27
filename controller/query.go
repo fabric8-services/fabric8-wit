@@ -92,7 +92,6 @@ func ConvertQuery(appl application.Application, request *http.Request, q query.Q
 			Title:     q.Title,
 			Fields:    q.Fields,
 			CreatedAt: &q.CreatedAt,
-			UpdatedAt: &q.UpdatedAt,
 		},
 		Links: &app.GenericLinks{
 			Self:    &relatedURL,
