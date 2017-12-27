@@ -7,6 +7,7 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/query"
@@ -158,4 +159,32 @@ func (c *QueryController) Show(ctx *app.ShowQueryContext) error {
 		}
 		return ctx.OK(res)
 	})
+}
+
+// Show runs the show action.
+func (c *QueryController) Delete(ctx *app.DeleteQueryContext) error {
+	currentUser, err := login.ContextIdentity(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
+	}
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		q, err := appl.Queries().Load(ctx.Context, ctx.QueryID, ctx.SpaceID)
+		if err != nil {
+			return err
+		}
+		if q.Creator != *currentUser {
+			log.Warn(ctx, map[string]interface{}{
+				"query_id":     ctx.QueryID,
+				"creator":      q.Creator,
+				"current_user": *currentUser,
+			}, "user is not the query creator")
+			return errors.NewForbiddenError("user is not the query creator")
+		}
+		return appl.Queries().Delete(ctx.Context, ctx.QueryID)
+	})
+
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return ctx.NoContent()
 }

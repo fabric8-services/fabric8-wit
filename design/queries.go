@@ -100,4 +100,21 @@ var _ = a.Resource("query", func() {
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.Conflict, JSONAPIErrors)
 	})
+
+	a.Action("delete", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.DELETE("/:queryID"),
+		)
+		a.Description("Delete a query with the given ID.")
+		a.Params(func() {
+			a.Param("queryID", d.UUID, "ID of the query to delete")
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.Forbidden, JSONAPIErrors)
+		a.Response(d.NoContent)
+	})
 })

@@ -272,3 +272,49 @@ func (rest *TestQueryREST) TestShowQueryREST() {
 		})
 	})
 }
+
+func (rest *TestQueryREST) TestDeleteQueryREST() {
+	resetFn := rest.DisableGormCallbacks()
+	defer resetFn()
+
+	rest.T().Run("success", func(t *testing.T) {
+		t.Run("ok with identity", func(t *testing.T) {
+			fxt := tf.NewTestFixture(t, rest.DB,
+				tf.CreateWorkItemEnvironment(),
+				tf.Queries(1))
+			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+			q := fxt.Queries[0]
+			// when
+			test.DeleteQueryNoContent(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, q.ID)
+		})
+	})
+
+	rest.T().Run("fail", func(t *testing.T) {
+		t.Run("random UUID", func(t *testing.T) {
+			fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment())
+			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+			// when
+			randomUUID := uuid.NewV4()
+			test.DeleteQueryNotFound(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, randomUUID)
+		})
+		t.Run("different space ID", func(t *testing.T) {
+			fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment(), tf.Queries(1))
+			fxt2 := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment())
+			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+			// when
+			test.DeleteQueryNotFound(t, svc.Context, svc, ctrl, fxt2.Spaces[0].ID, fxt.Queries[0].ID)
+		})
+		t.Run("different user", func(t *testing.T) {
+			fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment(), tf.Queries(1), tf.Identities(2))
+			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[1])
+			// when
+			test.DeleteQueryForbidden(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, fxt.Queries[0].ID)
+		})
+		t.Run("unauthorized", func(t *testing.T) {
+			fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment(), tf.Queries(1))
+			svc, ctrl := rest.UnSecuredController()
+			// when
+			test.DeleteQueryUnauthorized(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, fxt.Queries[0].ID)
+		})
+	})
+}
