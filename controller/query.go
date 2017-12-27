@@ -45,6 +45,10 @@ func (c *QueryController) Create(ctx *app.CreateQueryContext) error {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
+		_, err = appl.Spaces().Load(ctx, ctx.SpaceID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
 		q := query.Query{
 			SpaceID: ctx.SpaceID,
 			Fields:  ctx.Payload.Data.Attributes.Fields,
@@ -52,8 +56,8 @@ func (c *QueryController) Create(ctx *app.CreateQueryContext) error {
 			Creator: *currentUserIdentityID,
 		}
 		// Parse fields to make sure that query is valid
-		_, _, err := search.ParseFilterString(ctx, q.Fields)
-		if err != nil {
+		exp, _, err := search.ParseFilterString(ctx, q.Fields)
+		if err != nil || exp == nil {
 			log.Error(ctx, map[string]interface{}{
 				"space_id": ctx.SpaceID,
 				"fields":   q.Fields,
@@ -67,7 +71,7 @@ func (c *QueryController) Create(ctx *app.CreateQueryContext) error {
 		res := &app.QuerySingle{
 			Data: ConvertQuery(appl, ctx.Request, q),
 		}
-		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.LabelHref(ctx.SpaceID, res.Data.ID)))
+		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.QueryHref(ctx.SpaceID, res.Data.ID)))
 		return ctx.Created(res)
 	})
 }
@@ -76,7 +80,7 @@ func (c *QueryController) Create(ctx *app.CreateQueryContext) error {
 func ConvertQuery(appl application.Application, request *http.Request, q query.Query) *app.Query {
 	queryType := query.APIStringTypeQuery
 	spaceID := q.SpaceID.String()
-	relatedURL := rest.AbsoluteURL(request, app.LabelHref(spaceID, q.ID))
+	relatedURL := rest.AbsoluteURL(request, app.QueryHref(spaceID, q.ID))
 	creatorID := q.Creator.String()
 	userType := APIStringTypeUser
 	relatedCreatorLink := rest.AbsoluteURL(request, fmt.Sprintf("%s/%s", usersEndpoint, creatorID))
@@ -125,6 +129,10 @@ func (c *QueryController) List(ctx *app.ListQueryContext) error {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
+		_, err = appl.Spaces().Load(ctx, ctx.SpaceID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
 		queries, err := appl.Queries().ListByCreator(ctx, ctx.SpaceID, *currentUserIdentityID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
@@ -137,11 +145,18 @@ func (c *QueryController) List(ctx *app.ListQueryContext) error {
 
 // Show runs the show action.
 func (c *QueryController) Show(ctx *app.ShowQueryContext) error {
-	// QueryController_Show: start_implement
-
-	// Put your logic here
-
-	// QueryController_Show: end_implement
-	res := &app.QuerySingle{}
-	return ctx.OK(res)
+	return application.Transactional(c.db, func(appl application.Application) error {
+		_, err := appl.Spaces().Load(ctx, ctx.SpaceID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		q, err := appl.Queries().Load(ctx, ctx.QueryID, ctx.SpaceID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		res := &app.QuerySingle{
+			Data: ConvertQuery(appl, ctx.Request, *q),
+		}
+		return ctx.OK(res)
+	})
 }

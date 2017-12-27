@@ -526,7 +526,7 @@ func makeQueries(fxt *TestFixture) error {
 
 	for i := range fxt.Queries {
 		fxt.Queries[i] = &query.Query{
-			Title:   testsupport.CreateRandomValidTestName("label "),
+			Title:   testsupport.CreateRandomValidTestName("query "),
 			Fields:  `{"key": "value"}`,
 			Creator: fxt.Identities[0].ID,
 		}

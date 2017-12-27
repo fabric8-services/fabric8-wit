@@ -48,7 +48,7 @@ type Repository interface {
 	Create(ctx context.Context, u *Query) error
 	List(ctx context.Context, spaceID uuid.UUID) ([]Query, error)
 	ListByCreator(ctx context.Context, spaceID uuid.UUID, creatorID uuid.UUID) ([]Query, error)
-	Load(ctx context.Context, queryID uuid.UUID) (*Query, error)
+	Load(ctx context.Context, queryID uuid.UUID, spaceID uuid.UUID) (*Query, error)
 	Delete(ctx context.Context, ID uuid.UUID) error
 }
 
@@ -115,10 +115,10 @@ func (r *GormQueryRepository) ListByCreator(ctx context.Context, spaceID uuid.UU
 }
 
 // Load Query in a space
-func (r *GormQueryRepository) Load(ctx context.Context, ID uuid.UUID) (*Query, error) {
+func (r *GormQueryRepository) Load(ctx context.Context, ID uuid.UUID, spaceID uuid.UUID) (*Query, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "query", "show"}, time.Now())
 	q := Query{}
-	tx := r.db.Where("id = ?", ID).First(&q)
+	tx := r.db.Where("id = ? and space_id = ?", ID, spaceID).First(&q)
 	if tx.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
 			"query_id": ID.String(),

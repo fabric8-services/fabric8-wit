@@ -140,6 +140,14 @@ func (rest *TestQueryREST) TestCreateQueryREST() {
 			// when
 			test.CreateQueryBadRequest(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, cq)
 		})
+		t.Run("random sapce ID", func(t *testing.T) {
+			// given
+			fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment())
+			cq := getQueryCreatePayload("new query", nil)
+			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+			// when
+			test.CreateQueryNotFound(t, svc.Context, svc, ctrl, uuid.NewV4(), cq)
+		})
 	})
 }
 
@@ -190,12 +198,77 @@ func (rest *TestQueryREST) TestListQueryREST() {
 
 	rest.T().Run("fail", func(t *testing.T) {
 		t.Run("unauthorized", func(t *testing.T) {
+			// given
 			fxt := tf.NewTestFixture(t, rest.DB,
 				tf.CreateWorkItemEnvironment(),
 				tf.Queries(2))
 			svc, ctrl := rest.UnSecuredController()
 			// when
 			test.ListQueryUnauthorized(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID)
+		})
+		t.Run("random sapce ID", func(t *testing.T) {
+			// given
+			fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment())
+			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+			// when
+			test.ListQueryNotFound(t, svc.Context, svc, ctrl, uuid.NewV4())
+		})
+	})
+}
+
+func (rest *TestQueryREST) TestShowQueryREST() {
+	resetFn := rest.DisableGormCallbacks()
+	defer resetFn()
+
+	rest.T().Run("success", func(t *testing.T) {
+		t.Run("ok with identity", func(t *testing.T) {
+			fxt := tf.NewTestFixture(t, rest.DB,
+				tf.CreateWorkItemEnvironment(),
+				tf.Queries(1))
+			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+			q := fxt.Queries[0]
+			// when
+			resp, queryObj := test.ShowQueryOK(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, q.ID)
+			// then
+			require.NotNil(t, queryObj)
+			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "show", "ok_show.res.query.golden.json"), queryObj)
+			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "show", "ok_show.headers.golden.json"), resp.Header())
+		})
+		t.Run("ok without identity", func(t *testing.T) {
+			fxt := tf.NewTestFixture(t, rest.DB,
+				tf.CreateWorkItemEnvironment(),
+				tf.Queries(1))
+			svc, ctrl := rest.UnSecuredController()
+			q := fxt.Queries[0]
+			// when
+			resp, queryObj := test.ShowQueryOK(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, q.ID)
+			// then
+			require.NotNil(t, queryObj)
+			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "show", "ok_show.res.query.golden.json"), queryObj)
+			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "show", "ok_show.headers.golden.json"), resp.Header())
+		})
+	})
+
+	rest.T().Run("fail", func(t *testing.T) {
+		t.Run("random UUID", func(t *testing.T) {
+			fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment())
+			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+			// when
+			randomUUID := uuid.NewV4()
+			test.ShowQueryNotFound(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, randomUUID)
+		})
+		t.Run("different space ID", func(t *testing.T) {
+			fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment(), tf.Queries(1))
+			fxt2 := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment())
+			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+			// when
+			test.ShowQueryNotFound(t, svc.Context, svc, ctrl, fxt2.Spaces[0].ID, fxt.Queries[0].ID)
+		})
+		t.Run("random space ID", func(t *testing.T) {
+			fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment(), tf.Queries(1))
+			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+			// when
+			test.ShowQueryNotFound(t, svc.Context, svc, ctrl, uuid.NewV4(), fxt.Queries[0].ID)
 		})
 	})
 }

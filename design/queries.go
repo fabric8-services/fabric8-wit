@@ -82,6 +82,7 @@ var _ = a.Resource("query", func() {
 		a.Response(d.NotModified)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 
@@ -99,6 +100,7 @@ var _ = a.Resource("query", func() {
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.Forbidden, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.Conflict, JSONAPIErrors)
 	})
 })
