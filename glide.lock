@@ -175,7 +175,7 @@ imports:
   subpackages:
   - go
 - name: github.com/prometheus/common
-  version: a6ab08426bb262e2d190097751f5cfd1cfdfd17d
+  version: 2e54d0b93cba2fd133edc32211dcc32c06ef72ca
   subpackages:
   - expfmt
   - internal/bitbucket.org/ww/goautoneg
