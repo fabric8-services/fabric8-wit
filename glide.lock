@@ -1,6 +1,12 @@
-hash: caa9d898279820017887be76710f5ceccd0a6ba8d7fc4ccc3bbd40578fdfa4c4
-updated: 2017-11-08T03:37:24.617276964+01:00
+hash: 690f19fb4264e25bb6503329ef64f92f50a269bfe406a02304904b5c13e0223e
+updated: 2017-12-28T10:48:11.995094776+05:30
 imports:
+- name: github.com/alecthomas/template
+  version: a0175ee3bccc567396460bf5acd36800cb10c49c
+  subpackages:
+  - parse
+- name: github.com/alecthomas/units
+  version: 2efee857e7cfd4f3d0138cc3cbb1b4966962b93a
 - name: github.com/andygrunwald/go-jira
   version: 9d1f282f93af41553ddb53b0116a8cdb75b4837a
 - name: github.com/armon/go-metrics
@@ -37,9 +43,12 @@ imports:
 - name: github.com/fabric8-services/fabric8-auth
   version: da575b14ac9ceb113f18f1c1cab75be256460d64
   subpackages:
+  - auth
   - configuration
+  - convert
   - design
   - errors
+  - gormsupport
   - log
   - login/tokencontext
   - rest
@@ -137,7 +146,7 @@ imports:
 - name: github.com/lsegal/gucumber
   version: 71608e2f6e76fd4da5b09a376aeec7a5c0b5edbc
 - name: github.com/magiconair/properties
-  version: be5ece7dd465ab0765a9682137865547526d1dfb
+  version: d419a98cdbed11a922bf76f257b7c4be79b50e73
 - name: github.com/manveru/faker
   version: 717f7cf83fb78669bfab612749c2e8ff63d5be11
 - name: github.com/mattn/go-colorable
@@ -179,6 +188,7 @@ imports:
   subpackages:
   - expfmt
   - internal/bitbucket.org/ww/goautoneg
+  - log
   - model
 - name: github.com/prometheus/procfs
   version: 454a56f35412459b5e684fd5ec0f9211b94f002a
@@ -239,6 +249,7 @@ imports:
   subpackages:
   - ed25519
   - ed25519/internal/edwards25519
+  - ssh/terminal
 - name: golang.org/x/net
   version: b1a2d6e8c8b5fc8f601ead62536f02a8e1b6217d
   subpackages:
@@ -254,6 +265,9 @@ imports:
   version: 478fcf54317e52ab69f40bb4c7a1520288d7f7ea
   subpackages:
   - unix
+  - windows
+  - windows/registry
+  - windows/svc/eventlog
 - name: golang.org/x/text
   version: 47a200a05c8b3fd1b698571caecbb68beb2611ec
   subpackages:
@@ -273,6 +287,8 @@ imports:
   - internal/remote_api
   - internal/urlfetch
   - urlfetch
+- name: gopkg.in/alecthomas/kingpin.v2
+  version: 947dcec5ba9c011838740e680966fd7087a71d0d
 - name: gopkg.in/asaskevich/govalidator.v4
   version: 7664702784775e51966f0885f5cd27435916517b
 - name: gopkg.in/square/go-jose.v2
