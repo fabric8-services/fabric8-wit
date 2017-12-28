@@ -1,5 +1,5 @@
 hash: 690f19fb4264e25bb6503329ef64f92f50a269bfe406a02304904b5c13e0223e
-updated: 2017-12-28T11:16:15.523819425+05:30
+updated: 2017-12-28T10:48:11.995094776+05:30
 imports:
 - name: github.com/alecthomas/template
   version: a0175ee3bccc567396460bf5acd36800cb10c49c
