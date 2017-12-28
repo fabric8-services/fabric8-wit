@@ -3,6 +3,7 @@ package query
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -60,6 +61,11 @@ func NewQueryRepository(db *gorm.DB) Repository {
 // GormQueryRepository is the implementation of the storage interface for Labels.
 type GormQueryRepository struct {
 	db *gorm.DB
+}
+
+// GetETagData returns the field values to use to generate the ETag
+func (q Query) GetETagData() []interface{} {
+	return []interface{}{q.ID, strconv.FormatInt(q.UpdatedAt.Unix(), 10)}
 }
 
 // QueryTableName constant that holds table name of Labels

@@ -60,7 +60,7 @@ var _ = a.Resource("query", func() {
 		a.Params(func() {
 			a.Param("queryID", d.UUID, "ID of the query")
 		})
-		// a.UseTrait("conditional")
+		a.UseTrait("conditional")
 		a.Response(d.OK, querySingle)
 		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
@@ -74,7 +74,7 @@ var _ = a.Resource("query", func() {
 			a.GET(""),
 		)
 		a.Description("List queries.")
-		// a.UseTrait("conditional")
+		a.UseTrait("conditional")
 		a.Response(d.OK, queryList)
 		a.Response(d.NotModified)
 		a.Response(d.Unauthorized, JSONAPIErrors)
