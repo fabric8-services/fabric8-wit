@@ -165,7 +165,7 @@ func (rest *TestQueryREST) TestListQueryREST() {
 				tf.Queries(3, tf.SetQueryTitles("q4", "q5", "q6")))
 			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 			// when
-			_, qList := test.ListQueryOK(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID)
+			_, qList := test.ListQueryOK(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, nil, nil)
 			// then
 			require.NotNil(t, qList)
 			mustHave := map[string]struct{}{
@@ -181,7 +181,7 @@ func (rest *TestQueryREST) TestListQueryREST() {
 			// list by different user
 			// when
 			svc, ctrl = rest.SecuredControllerWithIdentity(fxt2.Identities[0])
-			_, qList = test.ListQueryOK(t, svc.Context, svc, ctrl, fxt2.Spaces[0].ID)
+			_, qList = test.ListQueryOK(t, svc.Context, svc, ctrl, fxt2.Spaces[0].ID, nil, nil)
 			// then
 			require.NotNil(t, qList)
 			mustHave = map[string]struct{}{
@@ -204,14 +204,14 @@ func (rest *TestQueryREST) TestListQueryREST() {
 				tf.Queries(2))
 			svc, ctrl := rest.UnSecuredController()
 			// when
-			test.ListQueryUnauthorized(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID)
+			test.ListQueryUnauthorized(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, nil, nil)
 		})
 		t.Run("random sapce ID", func(t *testing.T) {
 			// given
 			fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment())
 			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 			// when
-			test.ListQueryNotFound(t, svc.Context, svc, ctrl, uuid.NewV4())
+			test.ListQueryNotFound(t, svc.Context, svc, ctrl, uuid.NewV4(), nil, nil)
 		})
 	})
 }
@@ -228,7 +228,7 @@ func (rest *TestQueryREST) TestShowQueryREST() {
 			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 			q := fxt.Queries[0]
 			// when
-			resp, queryObj := test.ShowQueryOK(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, q.ID)
+			resp, queryObj := test.ShowQueryOK(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, q.ID, nil, nil)
 			// then
 			require.NotNil(t, queryObj)
 			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "show", "ok_show.res.query.golden.json"), queryObj)
@@ -241,7 +241,7 @@ func (rest *TestQueryREST) TestShowQueryREST() {
 			svc, ctrl := rest.UnSecuredController()
 			q := fxt.Queries[0]
 			// when
-			resp, queryObj := test.ShowQueryOK(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, q.ID)
+			resp, queryObj := test.ShowQueryOK(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, q.ID, nil, nil)
 			// then
 			require.NotNil(t, queryObj)
 			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "show", "ok_show.res.query.golden.json"), queryObj)
@@ -255,20 +255,20 @@ func (rest *TestQueryREST) TestShowQueryREST() {
 			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 			// when
 			randomUUID := uuid.NewV4()
-			test.ShowQueryNotFound(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, randomUUID)
+			test.ShowQueryNotFound(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, randomUUID, nil, nil)
 		})
 		t.Run("different space ID", func(t *testing.T) {
 			fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment(), tf.Queries(1))
 			fxt2 := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment())
 			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 			// when
-			test.ShowQueryNotFound(t, svc.Context, svc, ctrl, fxt2.Spaces[0].ID, fxt.Queries[0].ID)
+			test.ShowQueryNotFound(t, svc.Context, svc, ctrl, fxt2.Spaces[0].ID, fxt.Queries[0].ID, nil, nil)
 		})
 		t.Run("random space ID", func(t *testing.T) {
 			fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment(), tf.Queries(1))
 			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 			// when
-			test.ShowQueryNotFound(t, svc.Context, svc, ctrl, uuid.NewV4(), fxt.Queries[0].ID)
+			test.ShowQueryNotFound(t, svc.Context, svc, ctrl, uuid.NewV4(), fxt.Queries[0].ID, nil, nil)
 		})
 	})
 }
