@@ -110,6 +110,28 @@ func (rest *TestQueryREST) TestCreateQueryREST() {
 			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create.headers.golden.json"), resp.Header())
 			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create.req.payload.golden.json"), cq)
 		})
+		t.Run("same object after delete", func(t *testing.T) {
+			queryTitle := "query 1"
+			fxt := tf.NewTestFixture(t, rest.DB,
+				tf.CreateWorkItemEnvironment())
+			cq := getQueryCreatePayload(queryTitle, nil)
+			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+			// when
+			resp, created := test.CreateQueryCreated(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, cq)
+			require.NotNil(t, created)
+
+			// detele the query
+			test.DeleteQueryNoContent(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, *created.Data.ID)
+
+			// try to create exact same query again
+			resp, created = test.CreateQueryCreated(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, cq)
+			// then
+			require.NotNil(t, created)
+			require.Equal(t, fxt.Identities[0].ID.String(), *created.Data.Relationships.Creator.Data.ID)
+			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create.res.query.golden.json"), created)
+			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create.headers.golden.json"), resp.Header())
+			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create.req.payload.golden.json"), cq)
+		})
 	})
 
 	rest.T().Run("fail", func(t *testing.T) {

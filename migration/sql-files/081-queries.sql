@@ -7,7 +7,7 @@ CREATE TABLE queries (
     fields jsonb NOT NULL,
     space_id uuid NOT NULL REFERENCES spaces (id) ON DELETE CASCADE,
     creator uuid NOT NULL,
-    CONSTRAINT queries_title_space_id_creator_unique UNIQUE( title,space_id, creator)
+    CONSTRAINT queries_title_space_id_creator_unique UNIQUE(title, space_id, creator, deleted_at)
 );
 
 CREATE INDEX query_creator_idx ON queries USING btree (creator);
