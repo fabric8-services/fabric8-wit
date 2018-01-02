@@ -1,6 +1,8 @@
-hash: 804d8eed73804ff3c4057ec7f4071417f1fb88a4606af195252e69ba4392168f
-updated: 2018-01-02T14:39:47.694155469-05:00
+hash: 61a379b964a84fa0e5799195aaca2f0ecefc6eb3b04c8e0b454788a5bcdf5fd9
+updated: 2018-01-02T15:19:29.324239381-05:00
 imports:
+- name: github.com/ajg/form
+  version: cc2954064ec9ea8d93917f0f87456e11d7b881ad
 - name: github.com/andygrunwald/go-jira
   version: 9d1f282f93af41553ddb53b0116a8cdb75b4837a
 - name: github.com/armon/go-metrics
@@ -98,6 +100,7 @@ imports:
   - design
   - design/apidsl
   - dslengine
+  - encoding/form
   - goagen
   - goagen/codegen
   - goagen/gen_app
