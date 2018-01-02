@@ -37,7 +37,6 @@ type WorkItemLinkRepository interface {
 	ListByWorkItem(ctx context.Context, wiID uuid.UUID) ([]WorkItemLink, error)
 	DeleteRelatedLinks(ctx context.Context, wiID uuid.UUID, suppressorID uuid.UUID) error
 	Delete(ctx context.Context, ID uuid.UUID, suppressorID uuid.UUID) error
-	Save(ctx context.Context, linkCat WorkItemLink, modifierID uuid.UUID) (*WorkItemLink, error)
 	ListWorkItemChildren(ctx context.Context, parentID uuid.UUID, start *int, limit *int) ([]workitem.WorkItem, uint64, error)
 	WorkItemHasChildren(ctx context.Context, parentID uuid.UUID) (bool, error)
 	GetParentID(ctx context.Context, ID uuid.UUID) (*uuid.UUID, error) // GetParentID returns parent ID of the given work item if any
@@ -282,63 +281,6 @@ func (r *GormWorkItemLinkRepository) deleteLink(ctx context.Context, lnk WorkIte
 		return errs.Wrapf(err, "error while deleting work item")
 	}
 	return nil
-}
-
-// Save updates the given work item link in storage. Version must be the same as the one int the stored version.
-// returns NotFoundError, VersionConflictError, ConversionError or InternalError
-func (r *GormWorkItemLinkRepository) Save(ctx context.Context, linkToSave WorkItemLink, modifierID uuid.UUID) (*WorkItemLink, error) {
-	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "save"}, time.Now())
-	log.Info(ctx, map[string]interface{}{
-		"wil_id": linkToSave.LinkTypeID,
-	}, "Saving workitem link with type =  %s", linkToSave.LinkTypeID)
-	existingLink := WorkItemLink{}
-	db := r.db.Model(&existingLink).Where("id=?", linkToSave.ID).First(&existingLink)
-	if db.RecordNotFound() {
-		log.Error(ctx, map[string]interface{}{
-			"wil_id": linkToSave.ID,
-		}, "work item link not found")
-		return nil, errors.NewNotFoundError("work item link", linkToSave.ID.String())
-	}
-	if db.Error != nil {
-		log.Error(ctx, map[string]interface{}{
-			"wil_id": linkToSave.ID,
-			"err":    db.Error,
-		}, "unable to find work item link")
-		return nil, errors.NewInternalError(ctx, db.Error)
-	}
-	if existingLink.Version != linkToSave.Version {
-		return nil, errors.NewVersionConflictError("version conflict")
-	}
-	// retain the creation timestamp of the existing record
-	linkToSave.CreatedAt = existingLink.CreatedAt
-	linkToSave.Version = linkToSave.Version + 1
-
-	linkTypeToSave, err := r.workItemLinkTypeRepo.Load(ctx, linkToSave.LinkTypeID)
-	if err != nil {
-		return nil, errs.Wrap(err, "failed to load link type")
-	}
-
-	if err := r.ValidateTopology(ctx, &linkToSave.SourceID, linkToSave.TargetID, *linkTypeToSave); err != nil {
-		return nil, errs.WithStack(err)
-	}
-
-	// save
-	db = r.db.Save(&linkToSave)
-	if db.Error != nil {
-		log.Error(ctx, map[string]interface{}{
-			"wil_id": linkToSave.ID,
-			"err":    db.Error,
-		}, "unable to save work item link")
-		return nil, errors.NewInternalError(ctx, db.Error)
-	}
-	// save a revision of the modified work item link
-	if err := r.revisionRepo.Create(ctx, modifierID, RevisionTypeUpdate, linkToSave); err != nil {
-		return nil, errs.Wrapf(err, "error while saving work item")
-	}
-	log.Info(ctx, map[string]interface{}{
-		"wil_id": linkToSave.ID,
-	}, "Work item link updated")
-	return &linkToSave, nil
 }
 
 // ListWorkItemChildren get all child work items

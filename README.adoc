@@ -231,6 +231,11 @@ This file collects all the coverage profiles for all *integration* tests.
 This file is the merge result of the two afore mentioned files and thus gives
 coverage information for all tests.
 
+== Build through minishift
+
+There is a separate documentation for https://github.com/fabric8-services/fabric8-wit/blob/master/minishift/README.md[building WIT using minishift]
+
+
 == Configuration file
 
 If no configuration file is specified when the core is started, these are the defaults.
