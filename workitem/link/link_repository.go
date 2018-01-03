@@ -71,26 +71,11 @@ type GormWorkItemLinkRepository struct {
 	revisionRepo         *GormWorkItemLinkRevisionRepository
 }
 
-// CheckParentExists returns `true` if a link to a work item with the given `targetID` and of the given `linkType` already exists, `false` otherwise.
-// If the `sourceId` argument is not nil, then existing link from the source item to the target item with the given type is ignored.
-// In the context of a link creation, the `sourceID` argument should be nil, so the method will look for a link of the given type and target,
-// since during link creation we need to ensure that the child item has no parent yet. During the link update, the verification should not take into account
-// the existing record in the database.
-func (r *GormWorkItemLinkRepository) CheckParentExists(ctx context.Context, sourceID *uuid.UUID, targetID uuid.UUID, linkType WorkItemLinkType) (bool, error) {
+// HasParent returns `true` if a link to a work item with the given `childID`
+// and of the given `linkType` already exists; `false` otherwise.
+func (r *GormWorkItemLinkRepository) HasParent(ctx context.Context, childID uuid.UUID, linkType WorkItemLinkType) (bool, error) {
 	var row *sql.Row
-	if sourceID != nil {
-		query := fmt.Sprintf(`
-		SELECT EXISTS (
-			SELECT 1 FROM %[1]s
-			WHERE
-				link_type_id=$1
-				AND source_id!=$2
-				AND target_id=$3
-				AND deleted_at IS NULL
-		)`, WorkItemLink{}.TableName())
-		row = r.db.CommonDB().QueryRow(query, linkType.ID, *sourceID, targetID)
-	} else {
-		query := fmt.Sprintf(`
+	query := fmt.Sprintf(`
 		SELECT EXISTS (
 			SELECT 1 FROM %[1]s
 			WHERE
@@ -98,21 +83,20 @@ func (r *GormWorkItemLinkRepository) CheckParentExists(ctx context.Context, sour
 				AND target_id=$2
 				AND deleted_at IS NULL
 		)`, WorkItemLink{}.TableName())
-		row = r.db.CommonDB().QueryRow(query, linkType.ID, targetID)
-	}
+	row = r.db.CommonDB().QueryRow(query, linkType.ID, childID)
 	var exists bool
 	if err := row.Scan(&exists); err != nil {
-		return false, errs.Wrapf(err, "failed to check if a parent exists for the work item %d", targetID)
+		return false, errs.Wrapf(err, "failed to check if a parent exists for the work item %d", childID)
 	}
 	return exists, nil
 }
 
 // ValidateTopology validates the link topology of the work item given its ID. I.e, the given item should not have a parent with the same kind of link
 // if the `sourceID` arg is not empty, then the corresponding source item is ignored when checking the existing links of the given type.
-func (r *GormWorkItemLinkRepository) ValidateTopology(ctx context.Context, sourceID *uuid.UUID, targetID uuid.UUID, linkType WorkItemLinkType) error {
+func (r *GormWorkItemLinkRepository) ValidateTopology(ctx context.Context, sourceID uuid.UUID, targetID uuid.UUID, linkType WorkItemLinkType) error {
 	// check to disallow multiple parents in tree topology
 	if linkType.Topology == TopologyTree {
-		parentExists, err := r.CheckParentExists(ctx, sourceID, targetID, linkType)
+		parentExists, err := r.HasParent(ctx, targetID, linkType)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"wilt_id":   linkType.ID,
@@ -130,10 +114,21 @@ func (r *GormWorkItemLinkRepository) ValidateTopology(ctx context.Context, sourc
 			return errors.NewBadParameterError("linkTypeID + targetID", fmt.Sprintf("%s + %d", linkType.ID, targetID)).Expected("single parent in tree topology")
 		}
 	}
+	// Check to disallow cycles in tree and dependency topologies
+	if linkType.Topology == TopologyTree || linkType.Topology == TopologyDependency {
+		hasCycle, err := r.DetectCycle(ctx, sourceID, targetID, linkType.ID)
+		if err != nil {
+			return errs.Wrapf(err, "error during cycle-detection of new link")
+		}
+		if hasCycle {
+			return errs.New("link cycle detected")
+		}
+	}
 	return nil
 }
 
-// DetectCycle returns an error if it detects a link cycle.
+// DetectCycle returns true if the new link from source to target would cause a
+// cycle when created.
 //
 // Legend
 // ------
@@ -158,9 +153,10 @@ func (r *GormWorkItemLinkRepository) ValidateTopology(ctx context.Context, sourc
 // Possibility to detect each cycle (if any)
 // -----------------------------------------
 //
-// We search for the root of the source and see if it matches the new link's
-// target. Holds true for I, II, III, V, IV.
-func (r *GormWorkItemLinkRepository) DetectCycle(ctx context.Context, sourceID, targetID, linkTypeID uuid.UUID) error {
+// In the existing tree we search for the new link's source and traverse up to
+// get its root. If that root node matches the new link's target, we have found
+// ourselves a cycle. Holds true for I, II, III, V, IV.
+func (r *GormWorkItemLinkRepository) DetectCycle(ctx context.Context, sourceID, targetID, linkTypeID uuid.UUID) (hasCycle bool, err error) {
 	// Get all roots for link's source.
 	// NOTE(kwk): Yes there can be more than one, if the link type is allowing it.
 	_, rootIDs, err := r.GetAncestorsLocked(ctx, linkTypeID, sourceID)
@@ -170,22 +166,22 @@ func (r *GormWorkItemLinkRepository) DetectCycle(ctx context.Context, sourceID, 
 			"target_id": targetID,
 			"err":       err,
 		}, "failed to check if the work item %s has a parent work item", targetID)
-		return errs.Wrapf(err, "failed to check if the work item %s has a parent work item", targetID)
+		return false, errs.Wrapf(err, "failed to check if the work item %s has a parent work item", targetID)
 	}
 
 	// We search for the root of the source and see if it matches the new link's
 	// target. If it matches, we have a cylce.
 	roots, ok := rootIDs[sourceID]
 	if !ok || len(roots) <= 0 {
-		return nil // Scenario IV
+		return false, nil // Scenario IV
 	}
 
 	for _, root := range roots {
 		if root == targetID { // Scenarios I, II, III
-			return errs.New("link cycle detected")
+			return true, nil
 		}
 	}
-	return nil // Scenario V
+	return false, nil // Scenario V
 }
 
 // Create creates a new work item link in the repository.
@@ -207,13 +203,10 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 		return nil, errs.Wrap(err, "failed to load link type")
 	}
 
-	if err := r.ValidateTopology(ctx, nil, targetID, *linkType); err != nil {
-		return nil, errs.Wrapf(err, "failed to create work item due to invalid topology")
-	}
-	if linkType.Topology == TopologyTree || linkType.Topology == TopologyDependency {
-		if err := r.DetectCycle(ctx, sourceID, targetID, linkTypeID); err != nil {
-			return nil, errs.Wrapf(err, "failed to create work item due to cycle-detection")
-		}
+	// Make sure we don't violate the topology when we add the link from source
+	// to target.
+	if err := r.ValidateTopology(ctx, sourceID, targetID, *linkType); err != nil {
+		return nil, errs.Wrapf(err, "failed to create work item due to topology violation")
 	}
 
 	db := r.db.Create(link)

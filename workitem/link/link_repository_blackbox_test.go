@@ -92,7 +92,7 @@ func (s *linkRepoBlackBoxTest) TestValidateTopology() {
 	// given 2 work items linked with one tree-topology link type
 	fxt := tf.NewTestFixture(s.T(), s.DB,
 		tf.WorkItems(3, tf.SetWorkItemTitles("parent", "child", "another-item")),
-		tf.WorkItemLinkTypes(2,
+		tf.WorkItemLinkTypes(,
 			tf.SetTopologies(link.TopologyTree, link.TopologyTree),
 			tf.SetWorkItemLinkTypeNames("tree-type", "another-type"),
 		),
@@ -107,11 +107,11 @@ func (s *linkRepoBlackBoxTest) TestValidateTopology() {
 	s.T().Run("ok - no link", func(t *testing.T) {
 		// given link type exists but no link to child item
 		fxt := tf.NewTestFixture(t, s.DB,
-			tf.WorkItems(1, tf.SetWorkItemTitles("someWorkItem")),
+			tf.WorkItems(1, tf.SetWorkItemTitles("foo", "bar")),
 			tf.WorkItemLinkTypes(1, tf.SetTopologies(link.TopologyTree), tf.SetWorkItemLinkTypeNames("tree-type")),
 		)
 		// when
-		err := s.workitemLinkRepo.ValidateTopology(s.Ctx, nil, fxt.WorkItemByTitle("someWorkItem").ID, *fxt.WorkItemLinkTypeByName("tree-type"))
+		err := s.workitemLinkRepo.ValidateTopology(s.Ctx, fxt.WorkItemByTitle("foo").ID, fxt.WorkItemByTitle("bar").ID, *fxt.WorkItemLinkTypeByName("tree-type"))
 		// then: there must be no error because no link exists
 		require.NoError(t, err)
 	})
@@ -124,13 +124,13 @@ func (s *linkRepoBlackBoxTest) TestValidateTopology() {
 
 	s.T().Run("ok - no link with same type", func(t *testing.T) {
 		// when using another link type to validate
-		err := s.workitemLinkRepo.ValidateTopology(s.Ctx, nil, fxt.WorkItemByTitle("child").ID, *fxt.WorkItemLinkTypeByName("another-type"))
+		err := s.workitemLinkRepo.ValidateTopology(s.Ctx,  fxt.WorkItemByTitle("another-item").ID, fxt.WorkItemByTitle("child").ID, *fxt.WorkItemLinkTypeByName("another-type"))
 		// then: there must be no error because no link of the same type exists
 		require.NoError(t, err)
 	})
 
 	s.T().Run("fail - link exists", func(t *testing.T) {
-		err := s.workitemLinkRepo.ValidateTopology(s.Ctx, nil, fxt.WorkItemByTitle("child").ID, *fxt.WorkItemLinkTypeByName("tree-type"))
+		err := s.workitemLinkRepo.ValidateTopology(s.Ctx,  fxt.WorkItemByTitle("another-item").ID, fxt.WorkItemByTitle("child").ID, *fxt.WorkItemLinkTypeByName("tree-type"))
 		// then: there must be an error because a link of the same type already exists
 		require.Error(t, err)
 	})
