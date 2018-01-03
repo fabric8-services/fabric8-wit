@@ -200,14 +200,14 @@ func (s *TestCommentRepository) TestExistsComment() {
 		// given
 		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Comments(1))
 		// when
-		err := s.repo.CheckExists(s.Ctx, fxt.Comments[0].ID.String())
+		err := s.repo.CheckExists(s.Ctx, fxt.Comments[0].ID)
 		// then
 		require.NoError(t, err)
 	})
 
 	s.T().Run("comment doesn't exist", func(t *testing.T) {
 		// when
-		err := s.repo.CheckExists(s.Ctx, uuid.NewV4().String())
+		err := s.repo.CheckExists(s.Ctx, uuid.NewV4())
 		// then
 		require.IsType(t, errors.NotFoundError{}, err)
 	})

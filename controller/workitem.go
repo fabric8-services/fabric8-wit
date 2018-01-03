@@ -309,7 +309,7 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 			if err != nil {
 				return errors.NewBadParameterError("data.relationships.iteration.data.id", *d.ID)
 			}
-			if err := appl.Iterations().CheckExists(ctx, iterationUUID.String()); err != nil {
+			if err := appl.Iterations().CheckExists(ctx, iterationUUID); err != nil {
 				return errors.NewNotFoundError("data.relationships.iteration.data.id", *d.ID)
 			}
 			target.Fields[workitem.SystemIteration] = iterationUUID.String()
@@ -339,7 +339,7 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 			if err != nil {
 				return errors.NewBadParameterError("data.relationships.area.data.id", *d.ID)
 			}
-			if err := appl.Areas().CheckExists(ctx, areaUUID.String()); err != nil {
+			if err := appl.Areas().CheckExists(ctx, areaUUID); err != nil {
 				cause := errs.Cause(err)
 				switch cause.(type) {
 				case errors.NotFoundError:

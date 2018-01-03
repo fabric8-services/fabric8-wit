@@ -81,7 +81,7 @@ func (r *GormWorkItemLinkCategoryRepository) Load(ctx context.Context, ID uuid.U
 }
 
 // CheckExists returns nil if the given ID exists otherwise returns an error
-func (r *GormWorkItemLinkCategoryRepository) CheckExists(ctx context.Context, id string) error {
+func (r *GormWorkItemLinkCategoryRepository) CheckExists(ctx context.Context, id uuid.UUID) error {
 	defer goa.MeasureSince([]string{"goa", "db", "workitemlinkcategory", "exists"}, time.Now())
 	return repository.CheckExists(ctx, r.db, WorkItemLinkCategory{}.TableName(), id)
 }

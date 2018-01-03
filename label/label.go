@@ -156,7 +156,7 @@ func (m *GormLabelRepository) List(ctx context.Context, spaceID uuid.UUID) ([]La
 
 // IsValid returns true if the identity exists
 func (m *GormLabelRepository) IsValid(ctx context.Context, id uuid.UUID) bool {
-	return repository.CheckExists(ctx, m.db, LabelTableName, id.String()) == nil
+	return repository.CheckExists(ctx, m.db, LabelTableName, id) == nil
 }
 
 // Load label in a space
