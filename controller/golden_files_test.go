@@ -256,15 +256,16 @@ func TestCompareWithGolden(t *testing.T) {
 			_, isPathError := errs.Cause(err).(*os.PathError)
 			require.True(t, isPathError)
 		})
-		t.Run("unable to update golden file due to not existing folder", func(t *testing.T) {
+		t.Run("update golden file in a folder that does not yet exist", func(t *testing.T) {
 			// given
 			f := "not/existing/folder/file.golden.json"
 			// when
 			err := testableCompareWithGolden(true, f, dummy, uuidAgnostic)
 			// then
-			require.Error(t, err)
-			_, isPathError := errs.Cause(err).(*os.PathError)
-			require.True(t, isPathError)
+			// then double check that file exists and no error occurred
+			require.NoError(t, err)
+			_, err = os.Stat(f)
+			require.NoError(t, err)
 		})
 		t.Run("mismatch between expected and actual output", func(t *testing.T) {
 			// given
