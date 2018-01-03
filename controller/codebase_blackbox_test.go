@@ -12,6 +12,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	"github.com/fabric8-services/fabric8-wit/codebase/che"
 	"github.com/fabric8-services/fabric8-wit/configuration"
+	"github.com/fabric8-services/fabric8-wit/ptr"
 
 	"github.com/fabric8-services/fabric8-wit/account"
 	. "github.com/fabric8-services/fabric8-wit/controller"
@@ -92,15 +93,13 @@ func NewMockCheClient(r http.RoundTripper, config *configuration.Registry) Codeb
 func MockShowTenant() func(context.Context) (*tenant.TenantSingle, error) {
 	return func(context.Context) (*tenant.TenantSingle, error) {
 		// return a predefined response for the Tenant
-		tenantType := "che"
-		tenantNamespace := "foo"
 		return &tenant.TenantSingle{
 				Data: &tenant.Tenant{
 					Attributes: &tenant.TenantAttributes{
 						Namespaces: []*tenant.NamespaceAttributes{
 							{
-								Type: &tenantType,
-								Name: &tenantNamespace,
+								Type: ptr.String("che"),
+								Name: ptr.String("foo"),
 							},
 						},
 					},
@@ -128,8 +127,7 @@ func (s *CodebaseControllerTestSuite) TestShowCodebase() {
 	s.T().Run("success with stackId", func(t *testing.T) {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.Codebases(1, func(fxt *tf.TestFixture, idx int) error {
-			stackID := "golang-default"
-			fxt.Codebases[idx].StackID = &stackID
+			fxt.Codebases[idx].StackID = ptr.String("golang-default")
 			return nil
 		}))
 		svc, ctrl := s.UnsecuredController()

@@ -1,6 +1,7 @@
 package controller_test
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -9,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	token "github.com/dgrijalva/jwt-go"
 	"github.com/fabric8-services/fabric8-auth/auth"
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
@@ -21,15 +23,12 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/iteration"
+	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/space/authz"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
-
-	"context"
-
-	token "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	uuid "github.com/satori/go.uuid"
@@ -104,9 +103,8 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 				tf.CreateWorkItemEnvironment(),
 				tf.Iterations(2,
 					tf.SetIterationNames("root", "child")))
-			name := "Sprint #21"
 			childItr := fxt.IterationByName("child")
-			ci := getChildIterationPayload(&name)
+			ci := getChildIterationPayload("Sprint #21")
 			startAt, err := time.Parse(time.RFC3339, "2016-11-04T15:08:41+00:00")
 			require.NoError(t, err)
 			endAt, err := time.Parse(time.RFC3339, "2016-11-25T15:08:41+00:00")
@@ -126,8 +124,7 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 			fxt := tf.NewTestFixture(t, rest.DB,
 				tf.Identities(2, tf.SetIdentityUsernames("space owner", "other user")),
 				tf.Areas(1), tf.Iterations(1))
-			name := "Sprint #21"
-			ci := getChildIterationPayload(&name)
+			ci := getChildIterationPayload("Sprint #21")
 			otherUser := fxt.IdentityByUsername("other user")
 			_, ctrl := rest.SecuredControllerWithIdentity(otherUser)
 			// add user as collaborator
@@ -143,9 +140,8 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 				tf.Iterations(2,
 					tf.SetIterationNames("root", "child"),
 				))
-			name := "Sprint #21"
 			childItr := fxt.IterationByName("child")
-			ci := getChildIterationPayload(&name)
+			ci := getChildIterationPayload("Sprint #21")
 			id := uuid.NewV4()
 			ci.Data.ID = &id // set different ID and it must be ignoed by controller
 			startAt, err := time.Parse(time.RFC3339, "2016-11-04T15:08:41+00:00")
@@ -171,8 +167,7 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 			fxt := tf.NewTestFixture(t, rest.DB,
 				tf.Identities(2, tf.SetIdentityUsernames("space owner", "not space owner")),
 				tf.Areas(1), tf.Iterations(1))
-			name := "Sprint #21"
-			ci := getChildIterationPayload(&name)
+			ci := getChildIterationPayload("Sprint #21")
 			notSpaceOwner := fxt.IdentityByUsername("not space owner")
 			_, ctrl := rest.SecuredControllerWithIdentity(notSpaceOwner)
 			// overwrite service with Dummy Auth to treat user as non-collaborator
@@ -185,8 +180,7 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 			fxt := tf.NewTestFixture(t, rest.DB,
 				tf.Identities(2, tf.SetIdentityUsernames("space owner", "non collaborator")),
 				tf.Areas(1), tf.Iterations(1))
-			name := "Sprint #21"
-			ci := getChildIterationPayload(&name)
+			ci := getChildIterationPayload("Sprint #21")
 			nonCollaborator := fxt.IdentityByUsername("non collaborator")
 			_, ctrl := rest.SecuredControllerWithIdentity(nonCollaborator)
 			// overwrite service with Dummy Auth to treat user as non-collaborator
@@ -204,8 +198,7 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 				}
 				return nil
 			}))
-		name := fxt.Iterations[1].Name
-		ci := getChildIterationPayload(&name)
+		ci := getChildIterationPayload(fxt.Iterations[1].Name)
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 		_, jerrs := test.CreateChildIterationConflict(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
 
@@ -215,7 +208,8 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 
 	rest.T().Run("fail - create child iteration missing name", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, rest.DB, tf.Identities(1), tf.Areas(1), tf.Iterations(1))
-		ci := getChildIterationPayload(nil)
+		ci := getChildIterationPayload("remove below")
+		ci.Data.Attributes.Name = nil
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 		_, jerrs := test.CreateChildIterationBadRequest(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
 
@@ -226,11 +220,9 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 	rest.T().Run("fail - create child missing parent", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, rest.DB, tf.Identities(1), tf.Areas(1), tf.Iterations(1))
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
-		name := "Sprint #21"
-		ci := getChildIterationPayload(&name)
+		ci := getChildIterationPayload("Sprint #21")
 		_, jerrs := test.CreateChildIterationNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String(), ci)
-		ignoreString := "IGNORE_ME"
-		jerrs.Errors[0].ID = &ignoreString
+		jerrs.Errors[0].ID = ptr.String("IGNORE_ME")
 
 		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "bad_request_unknown_parent.res.errors.golden.json"), jerrs)
 		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "bad_request_unknown_parent.req.payload.golden.json"), ci)
@@ -238,12 +230,10 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 
 	rest.T().Run("unauthorized - create child iteration with unauthorized user", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, rest.DB, tf.Identities(1), tf.Iterations(1))
-		name := "Sprint #21"
-		ci := getChildIterationPayload(&name)
+		ci := getChildIterationPayload("Sprint #21")
 		svc, ctrl := rest.UnSecuredController()
 		_, jerrs := test.CreateChildIterationUnauthorized(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
-		ignoreString := "IGNORE_ME"
-		jerrs.Errors[0].ID = &ignoreString
+		jerrs.Errors[0].ID = ptr.String("IGNORE_ME")
 		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized.res.errors.golden.json"), jerrs)
 		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized.req.payload.golden.json"), ci)
 	})
@@ -254,7 +244,7 @@ func (rest *TestIterationREST) TestFailValidationIterationNameLength() {
 	_, _, _, _, parent := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
 	_, err := rest.db.Iterations().Root(context.Background(), parent.SpaceID)
 	require.NoError(rest.T(), err)
-	ci := getChildIterationPayload(&testsupport.TestOversizedNameObj)
+	ci := getChildIterationPayload(testsupport.TestOversizedNameObj)
 
 	err = ci.Validate()
 	// Validate payload function returns an error
@@ -267,12 +257,11 @@ func (rest *TestIterationREST) TestFailValidationIterationNameStartWith() {
 	_, _, _, _, parent := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
 	_, err := rest.db.Iterations().Root(context.Background(), parent.SpaceID)
 	require.NoError(rest.T(), err)
-	name := "_Sprint #21"
-	ci := getChildIterationPayload(&name)
+	ci := getChildIterationPayload("_Sprint #21")
 
 	err = ci.Validate()
 	// Validate payload function returns an error
-	assert.NotNil(rest.T(), err)
+	require.Error(rest.T(), err)
 	assert.Contains(rest.T(), err.Error(), "type.name must match the regexp")
 }
 
@@ -712,8 +701,7 @@ func (rest *TestIterationREST) createIterations() (*app.IterationSingle, *accoun
 	_, err := rest.db.Iterations().Root(context.Background(), parent.SpaceID)
 	require.NoError(rest.T(), err)
 	parentID := parent.ID
-	name := testsupport.CreateRandomValidTestName("Iteration-")
-	ci := getChildIterationPayload(&name)
+	ci := getChildIterationPayload(testsupport.CreateRandomValidTestName("Iteration-"))
 	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
 	require.NoError(rest.T(), err)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
@@ -773,20 +761,18 @@ func (rest *TestIterationREST) TestIterationActivatedByUser() {
 	assert.Equal(rest.T(), iteration.IterationActive, *updated.Data.Attributes.ActiveStatus) // iteration doesnot fall in timeframe yet userActive is true so iteration is active
 }
 
-func getChildIterationPayload(name *string) *app.CreateChildIterationPayload {
+func getChildIterationPayload(name string) *app.CreateChildIterationPayload {
 	// start is somewhere fixed in the past
 	start, _ := time.Parse(time.RFC822, "02 Jan 06 15:04 MST")
 	// end is 100 years in the future based on start date
 	end := start.Add(time.Hour * 24 * 365 * 100)
 
-	itType := iteration.APIStringTypeIteration
-	desc := "Some description"
 	return &app.CreateChildIterationPayload{
 		Data: &app.Iteration{
-			Type: itType,
+			Type: iteration.APIStringTypeIteration,
 			Attributes: &app.IterationAttributes{
-				Name:        name,
-				Description: &desc,
+				Name:        &name,
+				Description: ptr.String("Some description"),
 				StartAt:     &start,
 				EndAt:       &end,
 			},
@@ -835,13 +821,12 @@ func createSpaceAndRootAreaAndIterations(t *testing.T, db application.DB) (space
 		start, err := time.Parse(time.RFC822, "02 Jan 06 15:04 MST")
 		require.NoError(t, err)
 		end := start.Add(time.Hour * 24 * 365 * 100)
-		iterationName := "Sprint #2"
 		otherIterationObj = iteration.Iteration{
 			Lifecycle: gormsupport.Lifecycle{
 				CreatedAt: spaceObj.CreatedAt,
 				UpdatedAt: spaceObj.UpdatedAt,
 			},
-			Name:    iterationName,
+			Name:    "Sprint #2",
 			SpaceID: spaceObj.ID,
 			StartAt: &start,
 			EndAt:   &end,
@@ -850,13 +835,12 @@ func createSpaceAndRootAreaAndIterations(t *testing.T, db application.DB) (space
 		err = app.Iterations().Create(context.Background(), &otherIterationObj)
 		require.NoError(t, err)
 
-		areaName := "Area #2"
 		otherAreaObj = area.Area{
 			Lifecycle: gormsupport.Lifecycle{
 				CreatedAt: spaceObj.CreatedAt,
 				UpdatedAt: spaceObj.UpdatedAt,
 			},
-			Name:    areaName,
+			Name:    "Area #2",
 			SpaceID: spaceObj.ID,
 			Path:    append(rootAreaObj.Path, rootAreaObj.ID),
 		}
