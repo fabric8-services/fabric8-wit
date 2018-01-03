@@ -19,6 +19,16 @@
           },
           "type": "identities"
         }
+      },
+      "space": {
+        "data": {
+          "id": "00000000-0000-0000-0000-000000000003",
+          "type": "spaces"
+        },
+        "links": {
+          "related": "http:///api/spaces/00000000-0000-0000-0000-000000000003",
+          "self": "http:///api/spaces/00000000-0000-0000-0000-000000000003"
+        }
       }
     },
     "type": "queries"

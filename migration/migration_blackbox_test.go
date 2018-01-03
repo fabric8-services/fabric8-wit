@@ -614,6 +614,7 @@ func testMigration81(t *testing.T) {
 
 	// These script execution has to fail
 	assert.NotNil(t, runSQLscript(sqlDB, "081-query-conflict.sql"))
+	assert.NotNil(t, runSQLscript(sqlDB, "081-query-null-title.sql"))
 	assert.NotNil(t, runSQLscript(sqlDB, "081-query-empty-title.sql"))
 	assert.NotNil(t, runSQLscript(sqlDB, "081-query-no-creator.sql"))
 }

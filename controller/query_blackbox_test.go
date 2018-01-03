@@ -76,7 +76,7 @@ func getQueryCreatePayload(title string, qs *string) *app.CreateQueryPayload {
 	}
 }
 
-func (rest *TestQueryREST) TestCreateQueryREST() {
+func (rest *TestQueryREST) TestCreate() {
 	resetFn := rest.DisableGormCallbacks()
 	defer resetFn()
 
@@ -162,7 +162,7 @@ func (rest *TestQueryREST) TestCreateQueryREST() {
 			// when
 			test.CreateQueryBadRequest(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, cq)
 		})
-		t.Run("random sapce ID", func(t *testing.T) {
+		t.Run("unknown space ID", func(t *testing.T) {
 			// given
 			fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment())
 			cq := getQueryCreatePayload("new query", nil)
@@ -173,7 +173,7 @@ func (rest *TestQueryREST) TestCreateQueryREST() {
 	})
 }
 
-func (rest *TestQueryREST) TestListQueryREST() {
+func (rest *TestQueryREST) TestList() {
 	resetFn := rest.DisableGormCallbacks()
 	defer resetFn()
 
@@ -228,7 +228,7 @@ func (rest *TestQueryREST) TestListQueryREST() {
 			// when
 			test.ListQueryUnauthorized(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, nil, nil)
 		})
-		t.Run("random sapce ID", func(t *testing.T) {
+		t.Run("unknown space ID", func(t *testing.T) {
 			// given
 			fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment())
 			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
@@ -238,7 +238,7 @@ func (rest *TestQueryREST) TestListQueryREST() {
 	})
 }
 
-func (rest *TestQueryREST) TestShowQueryREST() {
+func (rest *TestQueryREST) TestShow() {
 	resetFn := rest.DisableGormCallbacks()
 	defer resetFn()
 
@@ -286,7 +286,7 @@ func (rest *TestQueryREST) TestShowQueryREST() {
 			// when
 			test.ShowQueryNotFound(t, svc.Context, svc, ctrl, fxt2.Spaces[0].ID, fxt.Queries[0].ID, nil, nil)
 		})
-		t.Run("random space ID", func(t *testing.T) {
+		t.Run("unknown space ID", func(t *testing.T) {
 			fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment(), tf.Queries(1))
 			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 			// when
@@ -295,7 +295,7 @@ func (rest *TestQueryREST) TestShowQueryREST() {
 	})
 }
 
-func (rest *TestQueryREST) TestDeleteQueryREST() {
+func (rest *TestQueryREST) TestDelete() {
 	resetFn := rest.DisableGormCallbacks()
 	defer resetFn()
 

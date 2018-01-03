@@ -13,6 +13,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/query"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/search"
+	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/goadesign/goa"
 	"github.com/prometheus/common/log"
 )
@@ -24,7 +25,7 @@ type QueryController struct {
 	config QueryControllerConfiguration
 }
 
-// QueryControllerConfiguration the configuration for the LabelController
+// QueryControllerConfiguration the configuration for the QueryController
 type QueryControllerConfiguration interface {
 	GetCacheControlQueries() string
 	GetCacheControlQuery() string
@@ -46,7 +47,7 @@ func (c *QueryController) Create(ctx *app.CreateQueryContext) error {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-		_, err = appl.Spaces().Load(ctx, ctx.SpaceID)
+		err = appl.Spaces().CheckExists(ctx, ctx.SpaceID.String())
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -85,7 +86,7 @@ func ConvertQuery(appl application.Application, request *http.Request, q query.Q
 	creatorID := q.Creator.String()
 	userType := APIStringTypeUser
 	relatedCreatorLink := rest.AbsoluteURL(request, fmt.Sprintf("%s/%s", usersEndpoint, creatorID))
-	// spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
+	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
 	appQuery := &app.Query{
 		Type: queryType,
 		ID:   &q.ID,
@@ -106,6 +107,16 @@ func ConvertQuery(appl application.Application, request *http.Request, q query.Q
 					Links: &app.GenericLinks{
 						Related: &relatedCreatorLink,
 					},
+				},
+			},
+			Space: &app.RelationGeneric{
+				Data: &app.GenericData{
+					Type: &space.SpaceType,
+					ID:   &spaceID,
+				},
+				Links: &app.GenericLinks{
+					Self:    &spaceRelatedURL,
+					Related: &spaceRelatedURL,
 				},
 			},
 		},
@@ -146,7 +157,7 @@ func (c *QueryController) List(ctx *app.ListQueryContext) error {
 // Show runs the show action.
 func (c *QueryController) Show(ctx *app.ShowQueryContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		_, err := appl.Spaces().Load(ctx, ctx.SpaceID)
+		err := appl.Spaces().CheckExists(ctx, ctx.SpaceID.String())
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -161,7 +172,7 @@ func (c *QueryController) Show(ctx *app.ShowQueryContext) error {
 	})
 }
 
-// Show runs the show action.
+// Delete runs the delete action.
 func (c *QueryController) Delete(ctx *app.DeleteQueryContext) error {
 	currentUser, err := login.ContextIdentity(ctx)
 	if err != nil {

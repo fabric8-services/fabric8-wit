@@ -23,15 +23,14 @@ func TestRunQueryRepository(t *testing.T) {
 	suite.Run(t, &TestQueryRepository{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
-func (s *TestQueryRepository) TestCreateQuery() {
-	t := s.T()
-	resource.Require(t, resource.Database)
+func (s *TestQueryRepository) TestCreate() {
+	resource.Require(s.T(), resource.Database)
 	repo := query.NewQueryRepository(s.DB)
-	t.Run("success", func(t *testing.T) {
-		title := "My WI for sprin #101"
-		qs := `{"hello": "worold"}`
+	s.T().Run("success", func(t *testing.T) {
+		title := "My WI for sprint #101"
+		qs := `{"hello": "world"}`
 		// given
-		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1))
+		fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1))
 		q := query.Query{
 			Title:   title,
 			Fields:  qs,
@@ -40,7 +39,7 @@ func (s *TestQueryRepository) TestCreateQuery() {
 		}
 		// when
 		err := repo.Create(context.Background(), &q)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// then
 		if q.ID == uuid.Nil {
 			t.Errorf("Query was not created, ID nil")
@@ -52,12 +51,12 @@ func (s *TestQueryRepository) TestCreateQuery() {
 		assert.Equal(t, qs, q.Fields)
 	})
 
-	t.Run("fail", func(t *testing.T) {
+	s.T().Run("fail", func(t *testing.T) {
 		t.Run("empty title", func(t *testing.T) {
 			title := ""
-			qs := `{"hello": "worold"}`
+			qs := `{"hello": "world"}`
 			// given
-			fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1))
+			fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1))
 			q := query.Query{
 				Title:   title,
 				Fields:  qs,
@@ -66,13 +65,13 @@ func (s *TestQueryRepository) TestCreateQuery() {
 			// when
 			err := repo.Create(context.Background(), &q)
 			// then
-			require.NotNil(t, err)
+			require.Error(t, err)
 		})
 		t.Run("invalid query json", func(t *testing.T) {
-			title := "My WI for sprin #101"
+			title := "My WI for sprint #101"
 			qs := "non-json query"
 			// given
-			fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1))
+			fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1))
 			q := query.Query{
 				Title:   title,
 				Fields:  qs,
@@ -81,26 +80,24 @@ func (s *TestQueryRepository) TestCreateQuery() {
 			// when
 			err := repo.Create(context.Background(), &q)
 			// then
-			require.NotNil(t, err)
+			require.Error(t, err)
 		})
 	})
 
 }
 
-func (s *TestQueryRepository) TestListQuery() {
-	t := s.T()
-	resource.Require(t, resource.Database)
+func (s *TestQueryRepository) TestList() {
+	resource.Require(s.T(), resource.Database)
 	repo := query.NewQueryRepository(s.DB)
-	t.Run("success", func(t *testing.T) {
+	s.T().Run("success", func(t *testing.T) {
 		t.Run("by spaceID", func(t *testing.T) {
-
 			// given
-			fxt := tf.NewTestFixture(s.T(), s.DB,
+			fxt := tf.NewTestFixture(t, s.DB,
 				tf.Spaces(1), tf.Queries(3, tf.SetQueryTitles("q1", "q2", "q3")))
 			// when
 			qList, err := repo.List(context.Background(), fxt.Spaces[0].ID)
 			// then
-			require.Nil(t, err)
+			require.NoError(t, err)
 			mustHave := map[string]struct{}{
 				"q1": {},
 				"q2": {},
@@ -109,16 +106,16 @@ func (s *TestQueryRepository) TestListQuery() {
 			for _, q := range qList {
 				delete(mustHave, q.Title)
 			}
-			assert.Empty(s.T(), mustHave)
+			assert.Empty(t, mustHave)
 		})
 		t.Run("by spaceID and creator", func(t *testing.T) {
 			// given
-			fxt := tf.NewTestFixture(s.T(), s.DB,
+			fxt := tf.NewTestFixture(t, s.DB,
 				tf.Spaces(1), tf.Queries(3, tf.SetQueryTitles("q1", "q2", "q3")))
 			// when
 			qList, err := repo.ListByCreator(context.Background(), fxt.Spaces[0].ID, fxt.Identities[0].ID)
 			// then
-			require.Nil(t, err)
+			require.NoError(t, err)
 			mustHave := map[string]struct{}{
 				"q1": {},
 				"q2": {},
@@ -127,42 +124,40 @@ func (s *TestQueryRepository) TestListQuery() {
 			for _, q := range qList {
 				delete(mustHave, q.Title)
 			}
-			assert.Empty(s.T(), mustHave)
+			assert.Empty(t, mustHave)
 		})
 
 	})
 }
 
-func (s *TestQueryRepository) TestShowQuery() {
-	t := s.T()
-	resource.Require(t, resource.Database)
+func (s *TestQueryRepository) TestShow() {
+	resource.Require(s.T(), resource.Database)
 	repo := query.NewQueryRepository(s.DB)
-	t.Run("success", func(t *testing.T) {
+	s.T().Run("success", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(s.T(), s.DB,
+		fxt := tf.NewTestFixture(t, s.DB,
 			tf.Spaces(1), tf.Queries(1, tf.SetQueryTitles("q1")))
 		// when
 		q, err := repo.Load(context.Background(), fxt.QueryByTitle("q1").ID, fxt.Spaces[0].ID)
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.Equal(s.T(), "q1", q.Title)
 	})
-	t.Run("fail", func(t *testing.T) {
+	s.T().Run("fail", func(t *testing.T) {
 		_, err := repo.Load(context.Background(), uuid.NewV4(), uuid.NewV4())
-		require.NotNil(t, err)
+		require.Error(t, err)
 	})
 }
-func (s *TestQueryRepository) TestDeleteQuery() {
-	t := s.T()
-	resource.Require(t, resource.Database)
+func (s *TestQueryRepository) TestDelete() {
+	resource.Require(s.T(), resource.Database)
 	repo := query.NewQueryRepository(s.DB)
-	t.Run("success", func(t *testing.T) {
+	s.T().Run("success", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(s.T(), s.DB,
+		fxt := tf.NewTestFixture(t, s.DB,
 			tf.Spaces(1), tf.Queries(1, tf.SetQueryTitles("q1")))
 		// when
 		err := repo.Delete(context.Background(), fxt.QueryByTitle("q1").ID)
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 	})
 }

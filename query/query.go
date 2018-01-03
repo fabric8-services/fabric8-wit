@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
+	"github.com/fabric8-services/fabric8-wit/application/repository"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
@@ -18,7 +18,7 @@ import (
 // APIStringTypeQuery helps to avoid string literal
 const APIStringTypeQuery = "queries"
 
-// Query describes a single Label
+// Query describes a single Query
 type Query struct {
 	gormsupport.Lifecycle
 	ID      uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
@@ -28,10 +28,8 @@ type Query struct {
 	Fields  string
 }
 
-// GetETagData returns the field values to use to generate the ETag
-// func (q Query) GetETagData() []interface{} {
-// 	return []interface{}{q.ID, q.Version}
-// }
+// QueryTableName constant that holds table name of Queries
+const QueryTableName = "queries"
 
 // GetLastModified returns the last modification time
 func (q Query) GetLastModified() time.Time {
@@ -41,11 +39,12 @@ func (q Query) GetLastModified() time.Time {
 // TableName overrides the table name settings in Gorm to force a specific table name
 // in the database.
 func (q Query) TableName() string {
-	return "queries"
+	return QueryTableName
 }
 
-// Repository describes interactions with Labels
+// Repository describes interactions with Queries.
 type Repository interface {
+	repository.Exister
 	Create(ctx context.Context, u *Query) error
 	List(ctx context.Context, spaceID uuid.UUID) ([]Query, error)
 	ListByCreator(ctx context.Context, spaceID uuid.UUID, creatorID uuid.UUID) ([]Query, error)
@@ -58,9 +57,15 @@ func NewQueryRepository(db *gorm.DB) Repository {
 	return &GormQueryRepository{db: db}
 }
 
-// GormQueryRepository is the implementation of the storage interface for Labels.
+// GormQueryRepository is the implementation of the storage interface for Queries.
 type GormQueryRepository struct {
 	db *gorm.DB
+}
+
+// CheckExists returns nil if the given ID exists otherwise returns an error
+func (r *GormQueryRepository) CheckExists(ctx context.Context, id string) error {
+	defer goa.MeasureSince([]string{"goa", "db", "query", "exists"}, time.Now())
+	return repository.CheckExists(ctx, r.db, Query{}.TableName(), id)
 }
 
 // GetETagData returns the field values to use to generate the ETag
@@ -68,16 +73,10 @@ func (q Query) GetETagData() []interface{} {
 	return []interface{}{q.ID, strconv.FormatInt(q.UpdatedAt.Unix(), 10)}
 }
 
-// QueryTableName constant that holds table name of Labels
-const QueryTableName = "queries"
-
-// Create a new label
+// Create a new query
 func (r *GormQueryRepository) Create(ctx context.Context, q *Query) error {
 	defer goa.MeasureSince([]string{"goa", "db", "Query", "create"}, time.Now())
 	q.ID = uuid.NewV4()
-	if strings.TrimSpace(q.Title) == "" {
-		return errors.NewBadParameterError("query name cannot be empty string", q.Title).Expected("non empty string")
-	}
 	if q.Creator == uuid.Nil {
 		return errors.NewBadParameterError("creator cannot be nil", q.Creator).Expected("valid user ID")
 	}
@@ -98,7 +97,7 @@ func (r *GormQueryRepository) Create(ctx context.Context, q *Query) error {
 	return nil
 }
 
-// List all labels in a space
+// List all queries in a space
 func (r *GormQueryRepository) List(ctx context.Context, spaceID uuid.UUID) ([]Query, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "Query", "list"}, time.Now())
 	var objs []Query
@@ -109,9 +108,9 @@ func (r *GormQueryRepository) List(ctx context.Context, spaceID uuid.UUID) ([]Qu
 	return objs, nil
 }
 
-// ListByCreator all labels in a space by a creator
+// ListByCreator all queries in a space by a creator
 func (r *GormQueryRepository) ListByCreator(ctx context.Context, spaceID uuid.UUID, creatorID uuid.UUID) ([]Query, error) {
-	defer goa.MeasureSince([]string{"goa", "db", "Query", "list"}, time.Now())
+	defer goa.MeasureSince([]string{"goa", "db", "Query", "listbycreator"}, time.Now())
 	var objs []Query
 	err := r.db.Where("space_id = ? AND creator=?", spaceID, creatorID).Find(&objs).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
