@@ -61,6 +61,10 @@ func (c *LabelController) Create(ctx *app.CreateLabelContext) error {
 
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
+		err = appl.Spaces().CheckExists(ctx, ctx.SpaceID.String())
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
 		lbl := label.Label{
 			SpaceID: ctx.SpaceID,
 			Name:    strings.TrimSpace(*ctx.Payload.Data.Attributes.Name),
@@ -128,6 +132,10 @@ func ConvertLabel(appl application.Application, request *http.Request, lbl label
 // List runs the list action.
 func (c *LabelController) List(ctx *app.ListLabelContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
+		err = appl.Spaces().CheckExists(ctx, ctx.SpaceID.String())
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
 		labels, err := appl.Labels().List(ctx, ctx.SpaceID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
