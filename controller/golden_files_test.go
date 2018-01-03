@@ -59,8 +59,14 @@ func testableCompareWithGolden(update bool, goldenFile string, actualObj interfa
 		return errs.WithStack(err)
 	}
 	if update {
+		// Make sure the directory exists where to write the file to
+		dir := filepath.Dir(absPath)
+		err := os.MkdirAll(dir, os.FileMode(0777))
+		if err != nil {
+			return errs.Wrapf(err, "failed to create directory (and potential parents dirs) to write golden file to")
+		}
+
 		tmp := string(actual)
-		var err error
 		// Eliminate concrete UUIDs if requested. This makes adding changes to
 		// golden files much more easy in git.
 		if uuidAgnostic {
