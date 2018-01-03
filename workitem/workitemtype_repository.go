@@ -81,17 +81,13 @@ func (r *GormWorkItemTypeRepository) Load(ctx context.Context, spaceID uuid.UUID
 }
 
 // CheckExists returns nil if the given ID exists otherwise returns an error
-func (r *GormWorkItemTypeRepository) CheckExists(ctx context.Context, id string) error {
+func (r *GormWorkItemTypeRepository) CheckExists(ctx context.Context, id uuid.UUID) error {
 	defer goa.MeasureSince([]string{"goa", "db", "workitemtype", "exists"}, time.Now())
 	log.Info(ctx, map[string]interface{}{
 		"wit_id": id,
 	}, "Checking if work item type exists")
 
-	uuid, err := uuid.FromString(id)
-	if err != nil {
-		return errors.NewBadParameterError("id", id)
-	}
-	_, exists := cache.Get(uuid)
+	_, exists := cache.Get(id)
 	if exists {
 		return nil
 	}

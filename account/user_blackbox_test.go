@@ -66,7 +66,7 @@ func (s *userBlackBoxTest) TestExistsUser() {
 		//t.Parallel()
 		user := createAndLoadUser(s)
 		// when
-		err := s.repo.CheckExists(s.Ctx, user.ID.String())
+		err := s.repo.CheckExists(s.Ctx, user.ID)
 		// then
 		require.NoError(t, err)
 	})
@@ -74,7 +74,7 @@ func (s *userBlackBoxTest) TestExistsUser() {
 	t.Run("user doesn't exist", func(t *testing.T) {
 		//t.Parallel()
 		// Check not existing
-		err := s.repo.CheckExists(s.Ctx, uuid.NewV4().String())
+		err := s.repo.CheckExists(s.Ctx, uuid.NewV4())
 		// then
 		//
 		require.IsType(s.T(), errors.NotFoundError{}, err)

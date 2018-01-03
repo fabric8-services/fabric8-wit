@@ -219,7 +219,7 @@ func (m *GormIterationRepository) Load(ctx context.Context, id uuid.UUID) (*Iter
 }
 
 // CheckExists returns nil if the given ID exists otherwise returns an error
-func (m *GormIterationRepository) CheckExists(ctx context.Context, id string) error {
+func (m *GormIterationRepository) CheckExists(ctx context.Context, id uuid.UUID) error {
 	defer goa.MeasureSince([]string{"goa", "db", "iteration", "exists"}, time.Now())
 	return repository.CheckExists(ctx, m.db, Iteration{}.TableName(), id)
 }

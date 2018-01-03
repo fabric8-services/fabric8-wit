@@ -291,7 +291,7 @@ func (m *GormCodebaseRepository) List(ctx context.Context, spaceID uuid.UUID, st
 }
 
 // CheckExists returns nil if the given ID exists otherwise returns an error
-func (m *GormCodebaseRepository) CheckExists(ctx context.Context, id string) error {
+func (m *GormCodebaseRepository) CheckExists(ctx context.Context, id uuid.UUID) error {
 	defer goa.MeasureSince([]string{"goa", "db", "codebase", "exists"}, time.Now())
 	return repository.CheckExists(ctx, m.db, Codebase{}.TableName(), id)
 }

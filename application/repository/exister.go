@@ -8,13 +8,14 @@ import (
 
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 )
 
 type Exister interface {
-	// Exists returns nil if the object with the given ID exists;
-	// otherwise an error is returned in case the given ID doesn't exists or any
-	// other unknown issue occured
-	CheckExists(ctx context.Context, id string) error
+	// Exists returns nil if the object with the given ID exists; otherwise an
+	// error is returned in case the given ID doesn't exists or any other
+	// unknown issue occured
+	CheckExists(ctx context.Context, id uuid.UUID) error
 }
 
 // Exists returns true if an item exists in the database table with a given ID
@@ -40,7 +41,7 @@ func Exists(ctx context.Context, db *gorm.DB, tableName string, id string) (bool
 
 // CheckExists does the same as Exists but only returns the error value; thereby
 // being a handy convenience function.
-func CheckExists(ctx context.Context, db *gorm.DB, tableName string, id string) error {
-	_, err := Exists(ctx, db, tableName, id)
+func CheckExists(ctx context.Context, db *gorm.DB, tableName string, id uuid.UUID) error {
+	_, err := Exists(ctx, db, tableName, id.String())
 	return err
 }

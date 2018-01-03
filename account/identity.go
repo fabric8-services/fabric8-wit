@@ -142,7 +142,7 @@ func (m *GormIdentityRepository) Load(ctx context.Context, id uuid.UUID) (*Ident
 }
 
 // CheckExists returns nil if the given ID exists otherwise returns an error
-func (m *GormIdentityRepository) CheckExists(ctx context.Context, id string) error {
+func (m *GormIdentityRepository) CheckExists(ctx context.Context, id uuid.UUID) error {
 	defer goa.MeasureSince([]string{"goa", "db", "identity", "exists"}, time.Now())
 	return repository.CheckExists(ctx, m.db, m.TableName(), id)
 }
@@ -341,7 +341,7 @@ func (m *GormIdentityRepository) List(ctx context.Context) ([]Identity, error) {
 
 // IsValid returns true if the identity exists
 func (m *GormIdentityRepository) IsValid(ctx context.Context, id uuid.UUID) bool {
-	return m.CheckExists(ctx, id.String()) == nil
+	return m.CheckExists(ctx, id) == nil
 }
 
 // Search searches for Identites where FullName like %q% or users.email like %q% or users.username like %q%

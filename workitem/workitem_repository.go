@@ -211,7 +211,7 @@ func (r *GormWorkItemRepository) LookupIDByNamedSpaceAndNumber(ctx context.Conte
 }
 
 // CheckExists returns nil if the given ID exists otherwise returns an error
-func (r *GormWorkItemRepository) CheckExists(ctx context.Context, workitemID string) error {
+func (r *GormWorkItemRepository) CheckExists(ctx context.Context, workitemID uuid.UUID) error {
 	defer goa.MeasureSince([]string{"goa", "db", "workitem", "exists"}, time.Now())
 	return repository.CheckExists(ctx, r.db, workitemTableName, workitemID)
 }

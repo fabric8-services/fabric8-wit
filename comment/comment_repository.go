@@ -232,7 +232,7 @@ func (m *GormCommentRepository) Load(ctx context.Context, id uuid.UUID) (*Commen
 }
 
 // CheckExists returns nil if the given ID exists otherwise returns an error
-func (m *GormCommentRepository) CheckExists(ctx context.Context, id string) error {
+func (m *GormCommentRepository) CheckExists(ctx context.Context, id uuid.UUID) error {
 	defer goa.MeasureSince([]string{"goa", "db", "comment", "exists"}, time.Now())
 	return repository.CheckExists(ctx, m.db, Comment{}.TableName(), id)
 }
