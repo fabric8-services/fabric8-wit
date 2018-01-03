@@ -60,8 +60,7 @@ func testableCompareWithGolden(update bool, goldenFile string, actualObj interfa
 	}
 	if update {
 		// Make sure the directory exists where to write the file to
-		dir := filepath.Dir(absPath)
-		err := os.MkdirAll(dir, os.FileMode(0777))
+		err := os.MkdirAll(filepath.Dir(absPath), os.FileMode(0777))
 		if err != nil {
 			return errs.Wrapf(err, "failed to create directory (and potential parents dirs) to write golden file to")
 		}
