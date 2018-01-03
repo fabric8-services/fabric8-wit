@@ -405,12 +405,12 @@ func (s *linkRepoBlackBoxTest) TestCreate() {
 func (s *linkRepoBlackBoxTest) TestExistsLink() {
 	s.T().Run("link exists", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemLinks(1))
-		err := s.workitemLinkRepo.CheckExists(s.Ctx, fxt.WorkItemLinks[0].ID.String())
+		err := s.workitemLinkRepo.CheckExists(s.Ctx, fxt.WorkItemLinks[0].ID)
 		require.NoError(t, err)
 	})
 
 	s.T().Run("link doesn't exist", func(t *testing.T) {
-		err := s.workitemLinkRepo.CheckExists(s.Ctx, uuid.NewV4().String())
+		err := s.workitemLinkRepo.CheckExists(s.Ctx, uuid.NewV4())
 		require.IsType(t, errors.NotFoundError{}, err)
 	})
 }

@@ -69,13 +69,13 @@ func (test *TestTrackerRepository) TestExistsTracker() {
 		assert.Equal(t, githubTrackerURL, fxt.Trackers[0].URL)
 		assert.Equal(t, remoteworkitem.ProviderGithub, fxt.Trackers[0].Type)
 
-		err := test.repo.CheckExists(context.Background(), fxt.Trackers[0].ID.String())
+		err := test.repo.CheckExists(context.Background(), fxt.Trackers[0].ID)
 		require.NoError(t, err)
 	})
 
 	t.Run("tracker doesn't exist", func(t *testing.T) {
 		t.Parallel()
-		err := test.repo.CheckExists(context.Background(), uuid.NewV4().String())
+		err := test.repo.CheckExists(context.Background(), uuid.NewV4())
 		require.IsType(t, errors.NotFoundError{}, err)
 	})
 
