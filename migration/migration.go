@@ -668,7 +668,7 @@ func createOrUpdateSpace(ctx context.Context, spaceRepo *space.GormRepository, i
 }
 
 func createSpace(ctx context.Context, spaceRepo *space.GormRepository, id uuid.UUID, description string) error {
-	err := spaceRepo.CheckExists(ctx, id.String())
+	err := spaceRepo.CheckExists(ctx, id)
 	if err != nil {
 		cause := errs.Cause(err)
 		switch cause.(type) {

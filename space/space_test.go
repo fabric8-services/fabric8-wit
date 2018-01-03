@@ -100,12 +100,12 @@ func (s *SpaceRepositoryTestSuite) TestCheckExists() {
 		// given a space
 		fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1))
 		// when checking for existence
-		err := s.repo.CheckExists(s.Ctx, fxt.Spaces[0].ID.String())
+		err := s.repo.CheckExists(s.Ctx, fxt.Spaces[0].ID)
 		// then
 		require.NoError(t, err)
 	})
 	s.T().Run("space doesn't exist", func(t *testing.T) {
-		err := s.repo.CheckExists(context.Background(), uuid.NewV4().String())
+		err := s.repo.CheckExists(context.Background(), uuid.NewV4())
 		require.Error(t, err)
 		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 	})

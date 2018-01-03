@@ -88,7 +88,7 @@ func (r *GormTrackerRepository) Load(ctx context.Context, ID uuid.UUID) (*Tracke
 }
 
 // CheckExists returns nil if the given ID exists otherwise returns an error
-func (r *GormTrackerRepository) CheckExists(ctx context.Context, id string) error {
+func (r *GormTrackerRepository) CheckExists(ctx context.Context, id uuid.UUID) error {
 	return repository.CheckExists(ctx, r.db, trackersTableName, id)
 }
 
