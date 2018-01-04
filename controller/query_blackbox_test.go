@@ -157,10 +157,9 @@ func (rest *TestQueryREST) TestCreate() {
 				tf.CreateWorkItemEnvironment(),
 				tf.Queries(1, tf.SetQueryTitles("q1")))
 			cq := getQueryCreatePayload(fxt.Queries[0].Title, nil)
-			cq.Data.Attributes.Fields = `{"invalid: json"}`
 			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 			// when
-			test.CreateQueryBadRequest(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, cq)
+			test.CreateQueryConflict(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, cq)
 		})
 		t.Run("unknown space ID", func(t *testing.T) {
 			// given

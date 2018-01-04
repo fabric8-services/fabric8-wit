@@ -66,6 +66,10 @@ func (c *QueryController) Create(ctx *app.CreateQueryContext) error {
 			}, "unable to parse the query fields")
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
+		dup, err := appl.Queries().IsDuplicate(ctx, &q)
+		if err != nil || dup {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
 		err = appl.Queries().Create(ctx, &q)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)

@@ -50,6 +50,7 @@ type Repository interface {
 	ListByCreator(ctx context.Context, spaceID uuid.UUID, creatorID uuid.UUID) ([]Query, error)
 	Load(ctx context.Context, queryID uuid.UUID, spaceID uuid.UUID) (*Query, error)
 	Delete(ctx context.Context, ID uuid.UUID) error
+	IsDuplicate(ctx context.Context, q *Query) (bool, error)
 }
 
 // NewQueryRepository creates a new storage type.
@@ -138,6 +139,29 @@ func (r *GormQueryRepository) Load(ctx context.Context, ID uuid.UUID, spaceID uu
 		return nil, errors.NewInternalError(ctx, tx.Error)
 	}
 	return &q, nil
+}
+
+// IsDuplicate checks if there is already a query with same content by same user
+func (r *GormQueryRepository) IsDuplicate(ctx context.Context, q *Query) (bool, error) {
+	var exists bool
+	tableName := Query{}.TableName()
+	query := fmt.Sprintf(`
+		SELECT EXISTS (
+			SELECT 1 FROM %[1]s
+			WHERE
+				title = $1
+				AND creator = $2
+				AND space_id = $3
+				AND deleted_at IS NULL
+		)`, tableName)
+	err := r.db.CommonDB().QueryRow(query, q.Title, q.Creator, q.SpaceID).Scan(&exists)
+	if exists {
+		return true, errors.NewDataConflictError(fmt.Sprintf("query already exists with title = %s , space_id = %s, creator = %s", q.Title, q.SpaceID, q.Creator))
+	}
+	if err != nil {
+		return false, err
+	}
+	return exists, nil
 }
 
 // Delete deletes the query with the given id, returns NotFoundError or InternalError
