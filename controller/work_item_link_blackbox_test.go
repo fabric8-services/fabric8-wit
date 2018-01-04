@@ -23,9 +23,8 @@ import (
 	testtoken "github.com/fabric8-services/fabric8-wit/test/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
-
 	"github.com/goadesign/goa"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -151,6 +150,7 @@ func (s *workItemLinkSuite) TestCreate() {
 		createOK := func(t *testing.T, fxt *tf.TestFixture, svc *goa.Service, ctrl *WorkItemLinkController) {
 			// when
 			createPayload := newCreateWorkItemLinkPayload(fxt.WorkItems[0].ID, fxt.WorkItems[1].ID, fxt.WorkItemLinkTypes[0].ID)
+			compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "create", "ok.req.payload.golden.json"), createPayload)
 			res, workItemLink := test.CreateWorkItemLinkCreated(t, svc.Context, svc, ctrl, createPayload)
 			// then
 			require.NotNil(t, workItemLink)
@@ -184,9 +184,9 @@ func (s *workItemLinkSuite) TestCreate() {
 			}
 			require.Empty(t, 0, expectedIDs, "these elements where missing from the included objects: %+v", expectedIDs)
 
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "create", "ok.golden.json"), workItemLink)
+			compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "create", "ok.res.payload.golden.json"), workItemLink)
 			res.Header().Set("Etag", "0icd7ov5CqwDXN6Fx9z18g==") // overwrite Etag to always match
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "create", "ok.headers.golden.json"), res)
+			compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "create", "ok.res.headers.golden.json"), res)
 		}
 
 		t.Run("as space owner", func(t *testing.T) {
@@ -334,9 +334,9 @@ func (s *workItemLinkSuite) TestShow() {
 			require.Equal(t, fxt.WorkItemLinks[0].SourceID, actual.SourceID)
 			require.Equal(t, fxt.WorkItemLinks[0].TargetID, actual.TargetID)
 			require.Equal(t, fxt.WorkItemLinks[0].LinkTypeID, actual.LinkTypeID)
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "ok.golden.json"), l)
+			compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "ok.res.payload.golden.json"), l)
 			res.Header().Set("Etag", "0icd7ov5CqwDXN6Fx9z18g==") // overwrite Etag to always match
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "ok.headers.golden.json"), res)
+			compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "ok.res.headers.golden.json"), res)
 		})
 		t.Run("using expired IfModifiedSince header", func(t *testing.T) {
 			// given
@@ -400,7 +400,7 @@ func (s *workItemLinkSuite) TestShow() {
 			_, jerrs := test.ShowWorkItemLinkNotFound(t, svc.Context, svc, ctrl, uuid.NewV4(), nil, nil)
 			ignoreMe := "IGNOREME"
 			jerrs.Errors[0].ID = &ignoreMe
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "not_found.errors.golden.json"), jerrs)
+			compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "not_found.res.errors.golden.json"), jerrs)
 		})
 	})
 }
@@ -425,7 +425,7 @@ func (s *workItemLinkSuite) TestList() {
 				}
 			}
 			// then
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "list", "ok.golden.json"), links)
+			compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "list", "ok.res.paylpad.golden.json"), links)
 		})
 	})
 	s.T().Run(http.StatusText(http.StatusNotFound), func(t *testing.T) {
