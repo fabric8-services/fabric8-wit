@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/fabric8-services/fabric8-wit/ptr"
+
 	"context"
 
 	"github.com/fabric8-services/fabric8-wit/app"
@@ -192,27 +194,24 @@ func ConvertAreas(appl application.Application, request *http.Request, areas []a
 
 // ConvertArea converts between internal and external REST representation
 func ConvertArea(appl application.Application, request *http.Request, ar area.Area, additional ...AreaConvertFunc) *app.Area {
-	areaType := area.APIStringTypeAreas
-	spaceID := ar.SpaceID.String()
 	relatedURL := rest.AbsoluteURL(request, app.AreaHref(ar.ID))
 	childURL := rest.AbsoluteURL(request, app.AreaHref(ar.ID)+"/children")
-	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
-	pathToTopMostParent := ar.Path.String() // /uuid1/uuid2/uuid3s
+	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(ar.SpaceID))
 	i := &app.Area{
-		Type: areaType,
+		Type: area.APIStringTypeAreas,
 		ID:   &ar.ID,
 		Attributes: &app.AreaAttributes{
 			Name:       &ar.Name,
 			CreatedAt:  &ar.CreatedAt,
 			UpdatedAt:  &ar.UpdatedAt,
 			Version:    &ar.Version,
-			ParentPath: &pathToTopMostParent,
+			ParentPath: ptr.String(ar.Path.String()), // /uuid1/uuid2/uuid3s
 		},
 		Relationships: &app.AreaRelations{
 			Space: &app.RelationGeneric{
 				Data: &app.GenericData{
 					Type: &space.SpaceType,
-					ID:   &spaceID,
+					ID:   ptr.String(ar.SpaceID.String()),
 				},
 				Links: &app.GenericLinks{
 					Self:    &spaceRelatedURL,
@@ -236,16 +235,14 @@ func ConvertArea(appl application.Application, request *http.Request, ar area.Ar
 	// in a specific space.
 	if ar.Path.IsEmpty() == false {
 		parent := ar.Path.This().String()
-		// Only the immediate parent's URL.
-		parentSelfURL := rest.AbsoluteURL(request, app.AreaHref(parent))
-
 		i.Relationships.Parent = &app.RelationGeneric{
 			Data: &app.GenericData{
-				Type: &areaType,
+				Type: ptr.String(area.APIStringTypeAreas),
 				ID:   &parent,
 			},
 			Links: &app.GenericLinks{
-				Self: &parentSelfURL,
+				// Only the immediate parent's URL.
+				Self: ptr.String(rest.AbsoluteURL(request, app.AreaHref(parent))),
 			},
 		}
 	}

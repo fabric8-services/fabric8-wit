@@ -30,7 +30,7 @@ func NewTrackerQueryRepository(db *gorm.DB) *GormTrackerQueryRepository {
 
 // TrackerQueryRepository encapsulate storage & retrieval of tracker queries
 type TrackerQueryRepository interface {
-	repository.Exister
+	CheckExists(ctx context.Context, id string) error
 	Create(ctx context.Context, query string, schedule string, tracker uuid.UUID, spaceID uuid.UUID) (*app.TrackerQuery, error)
 	Save(ctx context.Context, tq app.TrackerQuery) (*app.TrackerQuery, error)
 	Load(ctx context.Context, ID string) (*app.TrackerQuery, error)
@@ -113,7 +113,8 @@ func (r *GormTrackerQueryRepository) Load(ctx context.Context, ID string) (*app.
 
 // CheckExists returns nil if the given ID exists otherwise returns an error
 func (r *GormTrackerQueryRepository) CheckExists(ctx context.Context, id string) error {
-	return repository.CheckExists(ctx, r.db, trackerQueriesTableName, id)
+	_, err := repository.Exists(ctx, r.db, trackerQueriesTableName, id)
+	return err
 }
 
 // Save updates the given tracker query in storage.
