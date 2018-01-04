@@ -12,7 +12,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/query"
 	"github.com/fabric8-services/fabric8-wit/rest"
-	"github.com/fabric8-services/fabric8-wit/search"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/goadesign/goa"
 	"github.com/prometheus/common/log"
@@ -56,15 +55,6 @@ func (c *QueryController) Create(ctx *app.CreateQueryContext) error {
 			Fields:  ctx.Payload.Data.Attributes.Fields,
 			Title:   strings.TrimSpace(ctx.Payload.Data.Attributes.Title),
 			Creator: *currentUserIdentityID,
-		}
-		// Parse fields to make sure that query is valid
-		exp, _, err := search.ParseFilterString(ctx, q.Fields)
-		if err != nil || exp == nil {
-			log.Error(ctx, map[string]interface{}{
-				"space_id": ctx.SpaceID,
-				"fields":   q.Fields,
-			}, "unable to parse the query fields")
-			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		dup, err := appl.Queries().IsDuplicate(ctx, &q)
 		if err != nil || dup {

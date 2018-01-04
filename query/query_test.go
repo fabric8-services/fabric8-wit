@@ -28,7 +28,7 @@ func (s *TestQueryRepository) TestCreate() {
 	repo := query.NewQueryRepository(s.DB)
 	s.T().Run("success", func(t *testing.T) {
 		title := "My WI for sprint #101"
-		qs := `{"hello": "world"}`
+		qs := `{"assignee": "3dde4657-1c71-4fe7-b4c3-8b88accc03dd"}`
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1))
 		q := query.Query{

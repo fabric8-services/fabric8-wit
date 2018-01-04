@@ -10,6 +10,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/search"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
@@ -81,7 +82,16 @@ func (r *GormQueryRepository) Create(ctx context.Context, q *Query) error {
 	if q.Creator == uuid.Nil {
 		return errors.NewBadParameterError("creator cannot be nil", q.Creator).Expected("valid user ID")
 	}
-	err := r.db.Create(q).Error
+	// Parse fields to make sure that query is valid
+	exp, _, err := search.ParseFilterString(ctx, q.Fields)
+	if err != nil || exp == nil {
+		log.Error(ctx, map[string]interface{}{
+			"space_id": q.SpaceID,
+			"fields":   q.Fields,
+		}, "unable to parse the query fields")
+		return err
+	}
+	err = r.db.Create(q).Error
 	if err != nil {
 		// combination of name and space ID should be unique
 		if gormsupport.IsUniqueViolation(err, "queries_title_space_id_creator_unique") {
