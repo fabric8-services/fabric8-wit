@@ -47,7 +47,7 @@ func (c *QueryController) Create(ctx *app.CreateQueryContext) error {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-		err = appl.Spaces().CheckExists(ctx, ctx.SpaceID.String())
+		err = appl.Spaces().CheckExists(ctx, ctx.SpaceID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -157,7 +157,7 @@ func (c *QueryController) List(ctx *app.ListQueryContext) error {
 // Show runs the show action.
 func (c *QueryController) Show(ctx *app.ShowQueryContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		err := appl.Spaces().CheckExists(ctx, ctx.SpaceID.String())
+		err := appl.Spaces().CheckExists(ctx, ctx.SpaceID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
