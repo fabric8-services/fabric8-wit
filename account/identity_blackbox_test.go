@@ -67,14 +67,14 @@ func (s *identityBlackBoxTest) TestExistsIdentity() {
 		// given
 		identity := createAndLoad(s)
 		// when
-		err := s.repo.CheckExists(s.Ctx, identity.ID.String())
+		err := s.repo.CheckExists(s.Ctx, identity.ID)
 		// then
 		require.NoError(t, err, "Could not check if identity exists")
 	})
 
 	t.Run("identity doesn't exist", func(t *testing.T) {
 		//t.Parallel()
-		err := s.repo.CheckExists(s.Ctx, uuid.NewV4().String())
+		err := s.repo.CheckExists(s.Ctx, uuid.NewV4())
 		// then
 
 		require.IsType(t, errors.NotFoundError{}, err)

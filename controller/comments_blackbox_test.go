@@ -20,6 +20,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/rest"
@@ -566,14 +567,12 @@ func CreateSecuredSpace(t *testing.T, db application.DB, config SpaceConfigurati
 	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", owner, &TestSpaceAuthzService{owner: owner, userIDs: userIDs})
 	spaceCtrl := NewSpaceController(svc, db, config, &DummyResourceManager{})
 	require.NotNil(t, spaceCtrl)
-	name := "TestCollaborators-space-" + uuid.NewV4().String()
-	description := "description"
 	spacePayload := &app.CreateSpacePayload{
 		Data: &app.Space{
 			Type: "spaces",
 			Attributes: &app.SpaceAttributes{
-				Name:        &name,
-				Description: &description,
+				Name:        ptr.String("TestCollaborators-space-" + uuid.NewV4().String()),
+				Description: ptr.String("description"),
 			},
 		},
 	}

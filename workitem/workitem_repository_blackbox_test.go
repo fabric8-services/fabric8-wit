@@ -273,14 +273,14 @@ func (s *workItemRepoBlackBoxTest) TestCheckExists() {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1))
 		// when
-		err := s.repo.CheckExists(s.Ctx, fxt.WorkItems[0].ID.String())
+		err := s.repo.CheckExists(s.Ctx, fxt.WorkItems[0].ID)
 		// then
 		require.NoError(t, err)
 	})
 
 	s.T().Run("work item doesn't exist", func(t *testing.T) {
 		// when
-		err := s.repo.CheckExists(s.Ctx, uuid.NewV4().String())
+		err := s.repo.CheckExists(s.Ctx, uuid.NewV4())
 		// then
 		require.IsType(t, errors.NotFoundError{}, err)
 	})

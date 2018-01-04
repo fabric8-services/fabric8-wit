@@ -167,7 +167,7 @@ func (r *GormRepository) LoadMany(ctx context.Context, IDs []uuid.UUID) ([]Space
 }
 
 // CheckExists returns nil if the given ID exists otherwise returns an error
-func (r *GormRepository) CheckExists(ctx context.Context, id string) error {
+func (r *GormRepository) CheckExists(ctx context.Context, id uuid.UUID) error {
 	defer goa.MeasureSince([]string{"goa", "db", "space", "exists"}, time.Now())
 	return repository.CheckExists(ctx, r.db, Space{}.TableName(), id)
 }
