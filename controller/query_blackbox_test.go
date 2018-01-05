@@ -198,7 +198,7 @@ func (rest *TestQueryREST) TestList() {
 				delete(mustHave, q.Attributes.Title)
 			}
 			assert.Empty(t, mustHave)
-
+			assert.Equal(t, 3, qList.Meta.TotalCount)
 			// list by different user
 			// when
 			svc, ctrl = rest.SecuredControllerWithIdentity(fxt2.Identities[0])
@@ -214,6 +214,7 @@ func (rest *TestQueryREST) TestList() {
 				delete(mustHave, q.Attributes.Title)
 			}
 			assert.Empty(t, mustHave)
+			assert.Equal(t, 3, qList.Meta.TotalCount)
 		})
 	})
 

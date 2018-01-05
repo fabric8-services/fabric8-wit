@@ -144,6 +144,9 @@ func (c *QueryController) List(ctx *app.ListQueryContext) error {
 		}
 		res := &app.QueryList{}
 		res.Data = ConvertQueries(appl, ctx.Request, queries)
+		res.Meta = &app.WorkItemListResponseMeta{
+			TotalCount: len(res.Data),
+		}
 		return ctx.OK(res)
 	})
 }
