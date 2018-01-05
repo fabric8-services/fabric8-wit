@@ -150,6 +150,10 @@ func (c *QueryController) List(ctx *app.ListQueryContext) error {
 
 // Show runs the show action.
 func (c *QueryController) Show(ctx *app.ShowQueryContext) error {
+	currentUserIdentityID, err := login.ContextIdentity(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
+	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		err := appl.Spaces().CheckExists(ctx, ctx.SpaceID)
 		if err != nil {
@@ -158,6 +162,14 @@ func (c *QueryController) Show(ctx *app.ShowQueryContext) error {
 		q, err := appl.Queries().Load(ctx, ctx.QueryID, ctx.SpaceID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		if *currentUserIdentityID != q.Creator {
+			log.Warn(ctx, map[string]interface{}{
+				"query_id":     ctx.QueryID,
+				"creator":      q.Creator,
+				"current_user": *currentUserIdentityID,
+			}, "user is not the query creator")
+			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the query creator"))
 		}
 		res := &app.QuerySingle{
 			Data: ConvertQuery(appl, ctx.Request, *q),
@@ -183,7 +195,7 @@ func (c *QueryController) Delete(ctx *app.DeleteQueryContext) error {
 				"creator":      q.Creator,
 				"current_user": *currentUser,
 			}, "user is not the query creator")
-			return errors.NewForbiddenError("user is not the query creator")
+			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the query creator"))
 		}
 		return appl.Queries().Delete(ctx.Context, ctx.QueryID)
 	})

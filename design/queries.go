@@ -54,6 +54,7 @@ var _ = a.Resource("query", func() {
 	a.BasePath("/queries")
 
 	a.Action("show", func() {
+		a.Security("jwt")
 		a.Routing(
 			a.GET("/:queryID"),
 		)
@@ -67,6 +68,8 @@ var _ = a.Resource("query", func() {
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.Forbidden, JSONAPIErrors)
 	})
 
 	a.Action("list", func() {

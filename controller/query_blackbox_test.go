@@ -255,22 +255,18 @@ func (rest *TestQueryREST) TestShow() {
 			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "show", "ok_show.res.query.golden.json"), queryObj)
 			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "show", "ok_show.headers.golden.json"), resp.Header())
 		})
-		t.Run("ok without identity", func(t *testing.T) {
+	})
+
+	rest.T().Run("fail", func(t *testing.T) {
+		t.Run("unauthorized", func(t *testing.T) {
 			fxt := tf.NewTestFixture(t, rest.DB,
 				tf.CreateWorkItemEnvironment(),
 				tf.Queries(1))
 			svc, ctrl := rest.UnSecuredController()
 			q := fxt.Queries[0]
 			// when
-			resp, queryObj := test.ShowQueryOK(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, q.ID, nil, nil)
-			// then
-			require.NotNil(t, queryObj)
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "show", "ok_show.res.query.golden.json"), queryObj)
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "show", "ok_show.headers.golden.json"), resp.Header())
+			test.ShowQueryUnauthorized(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, q.ID, nil, nil)
 		})
-	})
-
-	rest.T().Run("fail", func(t *testing.T) {
 		t.Run("random UUID", func(t *testing.T) {
 			fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment())
 			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
@@ -290,6 +286,15 @@ func (rest *TestQueryREST) TestShow() {
 			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 			// when
 			test.ShowQueryNotFound(t, svc.Context, svc, ctrl, uuid.NewV4(), fxt.Queries[0].ID, nil, nil)
+		})
+		t.Run("forbidden", func(t *testing.T) {
+			fxt := tf.NewTestFixture(t, rest.DB,
+				tf.CreateWorkItemEnvironment(),
+				tf.Identities(2),
+				tf.Queries(1))
+			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[1])
+			// when
+			test.ShowQueryForbidden(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, fxt.Queries[0].ID, nil, nil)
 		})
 	})
 }
