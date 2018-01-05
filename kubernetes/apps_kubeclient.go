@@ -8,6 +8,7 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -158,7 +159,10 @@ func (kc *kubeClient) GetSpace(spaceName string) (*app.SimpleSpace, error) {
 	}
 
 	result := &app.SimpleSpace{
-		Applications: apps,
+		Type: "space",
+		Attributes: &app.SimpleSpaceAttributes{
+			Applications: apps, // TODO UUID
+		},
 	}
 
 	return result, nil
@@ -179,8 +183,11 @@ func (kc *kubeClient) GetApplication(spaceName string, appName string) (*app.Sim
 	}
 
 	result := &app.SimpleApp{
-		Name:     &appName,
-		Pipeline: deployments,
+		Type: "application",
+		Attributes: &app.SimpleAppAttributes{
+			Name:        &appName, // TODO UUID
+			Deployments: deployments,
+		},
 	}
 	return result, nil
 }
@@ -229,6 +236,18 @@ func (kc *kubeClient) ScaleDeployment(spaceName string, appName string, envName 
 	return &oldReplicas, nil
 }
 
+func (kc *kubeClient) getConsoleURL(spaceName string, appName string, envName string) *string {
+	return nil
+}
+
+func (kc *kubeClient) getLogURL(spaceName string, appName string, envName string) *string {
+	return nil
+}
+
+func (kc *kubeClient) getApplicationURL(spaceName string, appName string, envName string) *string {
+	return nil
+}
+
 // GetDeployment returns information about the current deployment of an application within a
 // particular environment. The application must exist within the provided space.
 func (kc *kubeClient) GetDeployment(spaceName string, appName string, envName string) (*app.SimpleDeployment, error) {
@@ -250,16 +269,34 @@ func (kc *kubeClient) GetDeployment(spaceName string, appName string, envName st
 		return nil, err
 	}
 	// Get the status of each pod in the deployment
-	podStats, err := kc.getPodStatus(pods)
+	podStats, total, err := kc.getPodStatus(pods)
 	if err != nil {
 		return nil, err
 	}
 
+	consoleURL := kc.getConsoleURL(spaceName, appName, envName)
+	appURL := kc.getApplicationURL(spaceName, appName, envName)
+	logURL := kc.getLogURL(spaceName, appName, envName)
+
+	var links *app.GenericLinksForDeployment
+	if consoleURL != nil || appURL != nil || logURL != nil {
+		links = &app.GenericLinksForDeployment{
+			Console:     consoleURL,
+			Logs:        logURL,
+			Application: appURL,
+		}
+	}
+
 	verString := string(deploy.appVersion)
 	result := &app.SimpleDeployment{
-		Name:    &envName,
-		Version: &verString,
-		Pods:    podStats,
+		Type: "deployment",
+		Attributes: &app.SimpleDeploymentAttributes{
+			Name:    &envName,
+			Version: &verString,
+			Pods:    podStats,
+			Total:   &total,
+		},
+		Links: links,
 	}
 	return result, nil
 }
@@ -297,8 +334,11 @@ func (kc *kubeClient) GetDeploymentStats(spaceName string, appName string, envNa
 	}
 
 	result := &app.SimpleDeploymentStats{
-		Cores:  cpuUsage,
-		Memory: memoryUsage,
+		Type: "deploymentstats",
+		Attributes: &app.SimpleDeploymentStatsAttributes{
+			Cores:  cpuUsage,
+			Memory: memoryUsage,
+		},
 	}
 
 	return result, nil
@@ -377,8 +417,11 @@ func (kc *kubeClient) GetEnvironment(envName string) (*app.SimpleEnvironment, er
 	}
 
 	env := &app.SimpleEnvironment{
-		Name:  &envName,
-		Quota: envStats,
+		Type: "environment",
+		Attributes: &app.SimpleEnvironmentAttributes{
+			Name:  &envName, // TODO UUID
+			Quota: envStats,
+		},
 	}
 	return env, nil
 }
@@ -762,7 +805,7 @@ func (kc *kubeClient) getPods(namespace string, uid types.UID) ([]v1.Pod, error)
 	return appPods, nil
 }
 
-func (kc *kubeClient) getPodStatus(pods []v1.Pod) (*app.PodStats, error) {
+func (kc *kubeClient) getPodStatus(pods []v1.Pod) ([][]string, int, error) {
 	var starting, running, stopping int
 	/*
 	 * TODO Logic for pod phases in web console is calculated in the UI:
@@ -787,14 +830,18 @@ func (kc *kubeClient) getPodStatus(pods []v1.Pod) (*app.PodStats, error) {
 	}
 
 	total := len(pods)
-	result := &app.PodStats{
-		Starting: &starting,
-		Running:  &running,
-		Stopping: &stopping,
-		Total:    &total,
+
+	startingArray := []string{"Starting", strconv.Itoa(starting)}
+	runningArray := []string{"Running", strconv.Itoa(running)}
+	stoppingArray := []string{"Stopping", strconv.Itoa(stopping)}
+
+	result := [][]string{
+		startingArray,
+		runningArray,
+		stoppingArray,
 	}
 
-	return result, nil
+	return result, total, nil
 }
 
 // Derived from: https://github.com/fabric8-services/fabric8-tenant/blob/master/openshift/kube_token.go

@@ -8,7 +8,19 @@ import (
 // SimpleSpace describe a space
 var simpleSpace = a.Type("SimpleSpace", func() {
 	a.Description(`a space consisting of multiple applications`)
-	a.Attribute("id", d.UUID)
+	a.Attribute("type", d.String, "The type of the related resource", func() {
+		a.Enum("space")
+		a.Default("space")
+	})
+	a.Attribute("id", d.UUID, "ID of the space", func() {
+		a.Example("40bbdd3d-8b5d-4fd6-ac90-7236b669af04")
+	})
+	a.Attribute("attributes", simpleSpaceAttributes)
+	a.Required("type", "attributes")
+})
+
+var simpleSpaceAttributes = a.Type("SimpleSpaceAttributes", func() {
+	a.Description(`a space consisting of multiple applications`)
 	a.Attribute("name", d.String)
 	a.Attribute("applications", a.ArrayOf(simpleApp))
 	a.Required("applications")
@@ -17,25 +29,67 @@ var simpleSpace = a.Type("SimpleSpace", func() {
 // SimpleApp describe an application within a space
 var simpleApp = a.Type("SimpleApp", func() {
 	a.Description(`a description of an application`)
-	a.Attribute("id", d.UUID)
+	a.Attribute("type", d.String, "The type of the related resource", func() {
+		a.Enum("application")
+	})
+	a.Attribute("id", d.UUID, "ID of the application", func() {
+		a.Example("40bbdd3d-8b5d-4fd6-ac90-7236b669af04")
+	})
+	a.Attribute("attributes", simpleAppAttributes)
+	a.Required("type", "attributes")
+})
+
+var simpleAppAttributes = a.Type("SimpleAppAttributes", func() {
+	a.Description(`a description of an application`)
 	a.Attribute("name", d.String)
-	a.Attribute("pipeline", a.ArrayOf(simpleDeployment))
-	a.Required("pipeline")
+	a.Attribute("deployments", a.ArrayOf(simpleDeployment))
+	a.Required("deployments")
 })
 
 // simpleDeployment describe an element of an application pipeline
 var simpleDeployment = a.Type("SimpleDeployment", func() {
 	a.Description(`a deployment (a step in a pipeline, e.g. 'build')`)
+	a.Attribute("type", d.String, "The type of the related resource", func() {
+		a.Enum("deployment")
+	})
+	a.Attribute("id", d.UUID, "ID of the deployment", func() {
+		a.Example("40bbdd3d-8b5d-4fd6-ac90-7236b669af04")
+	})
+	a.Attribute("attributes", simpleDeploymentAttributes)
+	a.Attribute("links", genericLinksForDeployment)
+	a.Required("type", "attributes")
+})
+
+var genericLinksForDeployment = a.Type("GenericLinksForDeployment", func() {
+	a.Attribute("console", d.String)
+	a.Attribute("logs", d.String)
+	a.Attribute("application", d.String)
+	// in the future perhaps: a.Attribute("self", d.String)
+})
+
+var simpleDeploymentAttributes = a.Type("SimpleDeploymentAttributes", func() {
+	a.Description(`a deployment (a step in a pipeline, e.g. 'build')`)
 	a.Attribute("id", d.UUID)
 	a.Attribute("name", d.String)
 	a.Attribute("version", d.String)
-	a.Attribute("pods", podStats)
+	a.Attribute("pods", a.ArrayOf(a.ArrayOf(d.String)))
+	a.Attribute("total", d.Integer)
 })
 
-// simpleDeployment describe an element of an application pipeline
 var simpleEnvironment = a.Type("SimpleEnvironment", func() {
 	a.Description(`a shared environment`)
-	a.Attribute("id", d.UUID)
+	a.Attribute("type", d.String, "The type of the related resource", func() {
+		a.Enum("environment")
+	})
+	a.Attribute("id", d.UUID, "ID of the environment", func() {
+		a.Example("40bbdd3d-8b5d-4fd6-ac90-7236b669af04")
+	})
+	a.Attribute("attributes", simpleEnvironmentAttributes)
+	a.Required("type", "attributes")
+})
+
+var simpleEnvironmentAttributes = a.Type("SimpleEnvironmentAttributes", func() {
+	a.Description(`a shared environment`)
 	a.Attribute("name", d.String)
 	a.Attribute("quota", envStats)
 })
@@ -59,14 +113,6 @@ var envStatMemory = a.Type("EnvStatMemory", func() {
 	a.Attribute("units", d.String)
 })
 
-var podStats = a.Type("PodStats", func() {
-	a.Description(`pod stats`)
-	a.Attribute("starting", d.Integer)
-	a.Attribute("running", d.Integer)
-	a.Attribute("stopping", d.Integer)
-	a.Attribute("total", d.Integer)
-})
-
 var timedNumberTuple = a.Type("TimedNumberTuple", func() {
 	a.Description("a set of time and number values")
 	a.Attribute("time", d.Number)
@@ -74,6 +120,18 @@ var timedNumberTuple = a.Type("TimedNumberTuple", func() {
 })
 
 var simpleDeploymentStats = a.Type("SimpleDeploymentStats", func() {
+	a.Description("current deployment stats")
+	a.Attribute("type", d.String, "The type of the related resource", func() {
+		a.Enum("deploymentstats")
+	})
+	a.Attribute("id", d.UUID, "ID of the stats object", func() {
+		a.Example("40bbdd3d-8b5d-4fd6-ac90-7236b669af04")
+	})
+	a.Attribute("attributes", simpleDeploymentStatsAttributes)
+	a.Required("type", "attributes")
+})
+
+var simpleDeploymentStatsAttributes = a.Type("SimpleDeploymentStatsAttributes", func() {
 	a.Description("current deployment stats")
 	a.Attribute("cores", timedNumberTuple)
 	a.Attribute("memory", timedNumberTuple)

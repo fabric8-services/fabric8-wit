@@ -357,6 +357,9 @@ func (c *AppsController) ShowSpace(ctx *app.ShowSpaceAppsContext) error {
 		return witerrors.NewNotFoundError("space", *kubeSpaceName)
 	}
 
+	// Kubernetes doesn't know about space ID, so add it here
+	space.ID = &ctx.SpaceID
+
 	res := &app.SimpleSpaceSingle{
 		Data: space,
 	}

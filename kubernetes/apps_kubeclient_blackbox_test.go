@@ -370,13 +370,13 @@ func TestGetEnvironment(t *testing.T) {
 				continue
 			}
 			assert.Equal(t, "compute-resources", quota.Name, "Wrong ResourceQuota name")
-			assert.Equal(t, testCase.name, *env.Name, "Wrong environment name")
+			assert.Equal(t, testCase.name, *env.Attributes.Name, "Wrong environment name")
 
-			cpuQuota := env.Quota.Cpucores
+			cpuQuota := env.Attributes.Quota.Cpucores
 			assert.InEpsilon(t, testCase.hard[v1.ResourceLimitsCPU], *cpuQuota.Quota, fltEpsilon, "Incorrect CPU quota")
 			assert.InEpsilon(t, testCase.used[v1.ResourceLimitsCPU], *cpuQuota.Used, fltEpsilon, "Incorrect CPU usage")
 
-			memQuota := env.Quota.Memory
+			memQuota := env.Attributes.Quota.Memory
 			assert.InEpsilon(t, testCase.hard[v1.ResourceLimitsMemory], *memQuota.Quota, fltEpsilon, "Incorrect memory quota")
 			assert.InEpsilon(t, testCase.used[v1.ResourceLimitsMemory], *memQuota.Used, fltEpsilon, "Incorrect memory usage")
 		}
