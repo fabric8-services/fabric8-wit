@@ -100,6 +100,7 @@ const (
 	varLogJSON                  = "log.json"
 	varTenantServiceURL         = "tenant.serviceurl"
 	varNotificationServiceURL   = "notification.serviceurl"
+	varTogglesServiceURL        = "toggles.serviceurl"
 )
 
 // Registry encapsulates the Viper configuration registry which stores the
@@ -235,6 +236,7 @@ func (c *Registry) setConfigDefaults() {
 	c.v.SetDefault(varKeycloakTesUser2Name, defaultKeycloakTesUser2Name)
 	c.v.SetDefault(varOpenshiftTenantMasterURL, defaultOpenshiftTenantMasterURL)
 	c.v.SetDefault(varCheStarterURL, defaultCheStarterURL)
+	c.v.SetDefault(varTogglesServiceURL, defaultTogglesServiceURL)
 }
 
 // GetPostgresHost returns the postgres host as set via default, config file, or environment variable
@@ -777,6 +779,11 @@ func (c *Registry) GetNotificationServiceURL() string {
 	return c.v.GetString(varNotificationServiceURL)
 }
 
+// GetTogglesServiceURL returns the URL for the Feature Toggles service used enabling/disabling features per user
+func (c *Registry) GetTogglesServiceURL() string {
+	return c.v.GetString(varTogglesServiceURL)
+}
+
 const (
 	defaultHeaderMaxLength = 5000 // bytes
 
@@ -804,6 +811,7 @@ const (
 	devModeKeycloakRealm = "fabric8-test"
 
 	defaultOpenshiftTenantMasterURL = "https://tsrv.devshift.net:8443"
+	defaultTogglesServiceURL        = "http://toggles-service:8080"
 	defaultCheStarterURL            = "che-server"
 
 	// DefaultValidRedirectURLs is a regex to be used to whitelist redirect URL for auth

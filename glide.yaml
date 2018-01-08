@@ -12,6 +12,10 @@ import:
   version: da575b14ac9ceb113f18f1c1cab75be256460d64
   subpackages:
   - design
+- package: github.com/fabric8-services/fabric8-toggles-service
+  version: 2c960d1716de03f5706e3b158de6a192cb06a46f
+  subpackages:
+  - design
 - package: github.com/dgrijalva/jwt-go
   version: ^3.0.0
 - package: github.com/goadesign/goa

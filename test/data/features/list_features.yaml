@@ -1,0 +1,29 @@
+---
+version: 1
+interactions:
+- request:
+    method: GET
+    url: http://toggles-service:8080/api/features
+    headers:
+      sub: ["user_foo"] # will be compared against the `sub` claim in the incoming request's token
+  response:
+    status: 200 OK
+    code: 200
+    body: '{
+      	"id":   "featureB",
+				"type": "features",
+				"attributes": {
+          "description":     "Feature description",
+					"enabled":         true,
+					"userEnabled":     false,
+					"enablementLevel": "beta"
+				}
+			}'
+- request:
+    method: GET
+    url: http://toggles-service:8080/api/features
+    headers:
+      sub: ["user_bar"] # will be compared against the `sub` claim in the incoming request's token
+  response:
+    status: 404 Not Found
+    code: 404
