@@ -10,10 +10,12 @@ skinparam titleBorderThickness 2
 skinparam monochrome false
 
 title 
-    = Work Item Linking:
-    == Algorithm for link creation
-    (Generated at %date%)
+    = Work Item Linking: Algorithm for link creation
 end title
+
+footer
+(Generated at %date%)
+end footer
 
 start
 :Begin Database Transaction;
