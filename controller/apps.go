@@ -305,6 +305,8 @@ func (c *AppsController) ShowDeploymentStats(ctx *app.ShowDeploymentStatsAppsCon
 		return witerrors.NewNotFoundError("deployment", ctx.DeployName)
 	}
 
+	deploymentStats.ID = ctx.DeployName
+
 	res := &app.SimpleDeploymentStatsSingle{
 		Data: deploymentStats,
 	}
@@ -327,6 +329,8 @@ func (c *AppsController) ShowEnvironment(ctx *app.ShowEnvironmentAppsContext) er
 	if env == nil {
 		return witerrors.NewNotFoundError("environment", ctx.EnvName)
 	}
+
+	env.ID = *env.Attributes.Name
 
 	res := &app.SimpleEnvironmentSingle{
 		Data: env,
@@ -358,7 +362,7 @@ func (c *AppsController) ShowSpace(ctx *app.ShowSpaceAppsContext) error {
 	}
 
 	// Kubernetes doesn't know about space ID, so add it here
-	space.ID = &ctx.SpaceID
+	space.ID = ctx.SpaceID
 
 	res := &app.SimpleSpaceSingle{
 		Data: space,
@@ -388,6 +392,8 @@ func (c *AppsController) ShowSpaceApp(ctx *app.ShowSpaceAppAppsContext) error {
 		return witerrors.NewNotFoundError("application", ctx.AppName)
 	}
 
+	theapp.ID = *theapp.Attributes.Name
+
 	res := &app.SimpleApplicationSingle{
 		Data: theapp,
 	}
@@ -415,6 +421,8 @@ func (c *AppsController) ShowSpaceAppDeployment(ctx *app.ShowSpaceAppDeploymentA
 	if deploymentStats == nil {
 		return witerrors.NewNotFoundError("deployment statistics", ctx.DeployName)
 	}
+
+	deploymentStats.ID = *deploymentStats.Attributes.Name
 
 	res := &app.SimpleDeploymentSingle{
 		Data: deploymentStats,

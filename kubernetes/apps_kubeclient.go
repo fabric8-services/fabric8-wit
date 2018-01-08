@@ -188,6 +188,7 @@ func (kc *kubeClient) GetApplication(spaceName string, appName string) (*app.Sim
 			Name:        &appName, // TODO UUID
 			Deployments: deployments,
 		},
+		ID: appName,
 	}
 	return result, nil
 }
@@ -237,15 +238,18 @@ func (kc *kubeClient) ScaleDeployment(spaceName string, appName string, envName 
 }
 
 func (kc *kubeClient) getConsoleURL(spaceName string, appName string, envName string) *string {
-	return nil
+	dummy := "http://openshift.io"
+	return &dummy
 }
 
 func (kc *kubeClient) getLogURL(spaceName string, appName string, envName string) *string {
-	return nil
+	dummy := "http://openshift.io"
+	return &dummy
 }
 
 func (kc *kubeClient) getApplicationURL(spaceName string, appName string, envName string) *string {
-	return nil
+	dummy := "http://openshift.io"
+	return &dummy
 }
 
 // GetDeployment returns information about the current deployment of an application within a
@@ -291,11 +295,12 @@ func (kc *kubeClient) GetDeployment(spaceName string, appName string, envName st
 	result := &app.SimpleDeployment{
 		Type: "deployment",
 		Attributes: &app.SimpleDeploymentAttributes{
-			Name:    &envName,
-			Version: &verString,
-			Pods:    podStats,
-			Total:   &total,
+			Name:     &envName,
+			Version:  &verString,
+			Pods:     podStats,
+			PodTotal: &total,
 		},
+		ID:    envName,
 		Links: links,
 	}
 	return result, nil

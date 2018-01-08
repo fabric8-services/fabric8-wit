@@ -16,7 +16,7 @@ var simpleSpace = a.Type("SimpleSpace", func() {
 		a.Example("40bbdd3d-8b5d-4fd6-ac90-7236b669af04")
 	})
 	a.Attribute("attributes", simpleSpaceAttributes)
-	a.Required("type", "attributes")
+	a.Required("type", "id", "attributes")
 })
 
 var simpleSpaceAttributes = a.Type("SimpleSpaceAttributes", func() {
@@ -32,11 +32,9 @@ var simpleApp = a.Type("SimpleApp", func() {
 	a.Attribute("type", d.String, "The type of the related resource", func() {
 		a.Enum("application")
 	})
-	a.Attribute("id", d.UUID, "ID of the application", func() {
-		a.Example("40bbdd3d-8b5d-4fd6-ac90-7236b669af04")
-	})
+	a.Attribute("id", d.String, "ID of the application (same as 'name')")
 	a.Attribute("attributes", simpleAppAttributes)
-	a.Required("type", "attributes")
+	a.Required("type", "id", "attributes")
 })
 
 var simpleAppAttributes = a.Type("SimpleAppAttributes", func() {
@@ -52,12 +50,10 @@ var simpleDeployment = a.Type("SimpleDeployment", func() {
 	a.Attribute("type", d.String, "The type of the related resource", func() {
 		a.Enum("deployment")
 	})
-	a.Attribute("id", d.UUID, "ID of the deployment", func() {
-		a.Example("40bbdd3d-8b5d-4fd6-ac90-7236b669af04")
-	})
+	a.Attribute("id", d.String, "ID of the deployment (same as 'name')")
 	a.Attribute("attributes", simpleDeploymentAttributes)
 	a.Attribute("links", genericLinksForDeployment)
-	a.Required("type", "attributes")
+	a.Required("type", "id", "attributes")
 })
 
 var genericLinksForDeployment = a.Type("GenericLinksForDeployment", func() {
@@ -73,7 +69,7 @@ var simpleDeploymentAttributes = a.Type("SimpleDeploymentAttributes", func() {
 	a.Attribute("name", d.String)
 	a.Attribute("version", d.String)
 	a.Attribute("pods", a.ArrayOf(a.ArrayOf(d.String)))
-	a.Attribute("total", d.Integer)
+	a.Attribute("pod_total", d.Integer)
 })
 
 var simpleEnvironment = a.Type("SimpleEnvironment", func() {
@@ -81,11 +77,9 @@ var simpleEnvironment = a.Type("SimpleEnvironment", func() {
 	a.Attribute("type", d.String, "The type of the related resource", func() {
 		a.Enum("environment")
 	})
-	a.Attribute("id", d.UUID, "ID of the environment", func() {
-		a.Example("40bbdd3d-8b5d-4fd6-ac90-7236b669af04")
-	})
+	a.Attribute("id", d.String, "ID of the environment (same as 'name')")
 	a.Attribute("attributes", simpleEnvironmentAttributes)
-	a.Required("type", "attributes")
+	a.Required("type", "id", "attributes")
 })
 
 var simpleEnvironmentAttributes = a.Type("SimpleEnvironmentAttributes", func() {
@@ -124,11 +118,9 @@ var simpleDeploymentStats = a.Type("SimpleDeploymentStats", func() {
 	a.Attribute("type", d.String, "The type of the related resource", func() {
 		a.Enum("deploymentstats")
 	})
-	a.Attribute("id", d.UUID, "ID of the stats object", func() {
-		a.Example("40bbdd3d-8b5d-4fd6-ac90-7236b669af04")
-	})
+	a.Attribute("id", d.String, "ID of the deployment (same as 'name')")
 	a.Attribute("attributes", simpleDeploymentStatsAttributes)
-	a.Required("type", "attributes")
+	a.Required("type", "id", "attributes")
 })
 
 var simpleDeploymentStatsAttributes = a.Type("SimpleDeploymentStatsAttributes", func() {
@@ -286,7 +278,7 @@ var _ = a.Resource("apps", func() {
 
 	a.Action("setDeployment", func() {
 		a.Routing(
-			a.PUT("/spaces/:spaceID/applications/:appName/deployments/:deployName/control"),
+			a.PUT("/spaces/:spaceID/applications/:appName/deployments/:deployName"),
 		)
 		a.Description("set deployment pod count")
 		a.Params(func() {
