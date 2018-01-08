@@ -79,7 +79,7 @@ if (Is topology "tree" or "dependency"?) then (yes)
             Here, E and C are a child of B,
             and B is a child of A.
             
-            Now suppose Alice want to make
+            Now suppose Alice wants to make
             D a child of C:
 
             A
@@ -91,7 +91,8 @@ if (Is topology "tree" or "dependency"?) then (yes)
             That means, C is the source and
             D is the target of the link.
             Then the algorithm locks the work
-            items C and D themselves:
+            items C and D themselves before
+            it creates the link.
 
             A
             |_ B
