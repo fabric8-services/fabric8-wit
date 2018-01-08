@@ -74,7 +74,13 @@ type KubeRESTAPI interface {
 type deployment struct {
 	dcUID      types.UID
 	appVersion string
-	currentUID types.UID
+	current    *v1.ReplicationController
+}
+
+type route struct {
+	host string
+	path string
+	tls  bool
 }
 
 // Receiver for default implementation of KubeRESTAPIGetter and MetricsGetter
@@ -247,9 +253,18 @@ func (kc *kubeClient) getLogURL(spaceName string, appName string, envName string
 	return &dummy
 }
 
-func (kc *kubeClient) getApplicationURL(spaceName string, appName string, envName string) *string {
-	dummy := "http://openshift.io"
-	return &dummy
+func (kc *kubeClient) getApplicationURL(envNS string, deploy *deployment) (*string, error) {
+	// Get the best route to the application to show to the user
+	routeURL, err := kc.getBestRoute(envNS, deploy)
+	if err != nil {
+		return nil, err
+	}
+	var result *string
+	if routeURL != nil {
+		route := routeURL.String()
+		result = &route
+	}
+	return result, nil
 }
 
 // GetDeployment returns information about the current deployment of an application within a
@@ -263,12 +278,12 @@ func (kc *kubeClient) GetDeployment(spaceName string, appName string, envName st
 	deploy, err := kc.getCurrentDeployment(spaceName, appName, envNS)
 	if err != nil {
 		return nil, err
-	} else if deploy == nil || len(deploy.currentUID) == 0 {
+	} else if deploy == nil || deploy.current == nil {
 		return nil, nil
 	}
 
 	// Get all pods created by this deployment
-	pods, err := kc.getPods(envNS, deploy.currentUID)
+	pods, err := kc.getPods(envNS, deploy.current.UID)
 	if err != nil {
 		return nil, err
 	}
@@ -278,8 +293,11 @@ func (kc *kubeClient) GetDeployment(spaceName string, appName string, envName st
 		return nil, err
 	}
 
+	appURL, err := kc.getApplicationURL(envNS, deploy)
+	if err != nil {
+		return nil, err
+	}
 	consoleURL := kc.getConsoleURL(spaceName, appName, envName)
-	appURL := kc.getApplicationURL(spaceName, appName, envName)
 	logURL := kc.getLogURL(spaceName, appName, envName)
 
 	var links *app.GenericLinksForDeployment
@@ -318,12 +336,12 @@ func (kc *kubeClient) GetDeploymentStats(spaceName string, appName string, envNa
 	deploy, err := kc.getCurrentDeployment(spaceName, appName, envNS)
 	if err != nil {
 		return nil, err
-	} else if deploy == nil || len(deploy.currentUID) == 0 {
+	} else if deploy == nil || deploy.current == nil {
 		return nil, nil
 	}
 
 	// Get pods belonging to current deployment
-	pods, err := kc.getPods(envNS, deploy.currentUID)
+	pods, err := kc.getPods(envNS, deploy.current.UID)
 	if err != nil {
 		return nil, err
 	}
@@ -363,12 +381,12 @@ func (kc *kubeClient) GetDeploymentStatSeries(spaceName string, appName string, 
 	deploy, err := kc.getCurrentDeployment(spaceName, appName, envNS)
 	if err != nil {
 		return nil, err
-	} else if deploy == nil || len(deploy.currentUID) == 0 {
+	} else if deploy == nil || deploy.current == nil {
 		return nil, nil
 	}
 
 	// Get pods belonging to current deployment
-	pods, err := kc.getPods(envNS, deploy.currentUID)
+	pods, err := kc.getPods(envNS, deploy.current.UID)
 	if err != nil {
 		return nil, err
 	}
@@ -676,7 +694,7 @@ func (kc *kubeClient) getCurrentDeployment(space string, appName string, namespa
 		}
 	}
 	if newest != nil {
-		result.currentUID = newest.UID
+		result.current = newest
 	}
 	return result, nil
 }
@@ -847,6 +865,155 @@ func (kc *kubeClient) getPodStatus(pods []v1.Pod) ([][]string, int, error) {
 	}
 
 	return result, total, nil
+}
+
+func (kc *kubeClient) getBestRoute(namespace string, dc *deployment) (*url.URL, error) {
+	services, err := kc.getMatchingServices(namespace, dc)
+	if err != nil {
+		return nil, err
+	}
+	// Get routes and associate to services using spec.to.name
+	routes, err := kc.getRoutesByService(namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	// Find route with highest score according to heuristics from web-console
+	// https://github.com/openshift/origin-web-console/blob/v3.7.0/app/scripts/services/routes.js#L106
+	var bestRoute *route
+	bestScore := -1
+	for _, service := range services {
+		for _, route := range routes[service.Name] {
+			score := scoreRoute(route)
+			if score > bestScore {
+				bestScore = score
+				bestRoute = route
+			}
+		}
+	}
+
+	// Construct URL from best route
+	var result *url.URL
+	if bestRoute != nil {
+		scheme := "http"
+		if bestRoute.tls {
+			scheme = "https"
+		}
+		result = &url.URL{
+			Scheme: scheme,
+			Host:   bestRoute.host,
+			Path:   bestRoute.path,
+		}
+	}
+
+	return result, nil
+}
+
+func (kc *kubeClient) getMatchingServices(namespace string, dc *deployment) ([]v1.Service, error) {
+	services, err := kc.Services(namespace).List(metaV1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	// Check if each service's selector matches labels in deployment's pod template
+	template := dc.current.Spec.Template
+	if template == nil {
+		return nil, errors.New("No pod template for current deployment")
+	}
+	var matches []v1.Service
+	for _, service := range services.Items {
+		selector := service.Spec.Selector
+		match := true
+		// Treat empty selector as not matching
+		if len(selector) == 0 {
+			match = false
+		}
+		for key := range selector {
+			if selector[key] != template.Labels[key] {
+				match = false
+			}
+		}
+		// If all selector labels match those in the pod template, add to result
+		if match {
+			matches = append(matches, service)
+		}
+	}
+	return matches, nil
+}
+
+func (kc *kubeClient) getRoutesByService(namespace string) (map[string][]*route, error) {
+	routeURL := fmt.Sprintf("/oapi/v1/namespaces/%s/routes", namespace)
+	result, err := kc.getResource(routeURL, false)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse list of routes
+	kind, ok := result["kind"].(string)
+	if !ok || kind != "RouteList" {
+		return nil, errors.New("No route list returned from endpoint")
+	}
+	items, ok := result["items"].([]interface{})
+	if !ok {
+		return nil, errors.New("No list of routes in response")
+	}
+
+	serviceMap := make(map[string][]*route)
+	for _, item := range items {
+		routeItem, ok := item.(map[interface{}]interface{})
+		if !ok {
+			return nil, errors.New("Route object invalid")
+		}
+
+		// Parse route from result
+		spec, ok := routeItem["spec"].(map[interface{}]interface{})
+		if !ok {
+			return nil, errors.New("Spec missing from deployment config")
+		}
+		// Determine which service this route points to
+		to, ok := spec["to"].(map[interface{}]interface{})
+		if !ok {
+			return nil, errors.New("Route has no destination")
+		}
+		toName, ok := to["name"].(string)
+		if !ok || len(toName) == 0 {
+			return nil, errors.New("Service name missing or invalid for route")
+		}
+		// Get hostname from route
+		hostname, ok := spec["host"].(string)
+		if !ok || len(hostname) == 0 {
+			return nil, errors.New("Hostname missing from route")
+		}
+		// Check for optional path
+		path, _ := spec["path"].(string)
+
+		// Determine whether route uses TLS
+		// see: https://github.com/openshift/origin-web-console/blob/v3.7.0/app/scripts/filters/resources.js#L193
+		isTLS := false
+		tls, ok := spec["tls"].(map[interface{}]interface{})
+		if ok {
+			tlsTerm, ok := tls["termination"].(string)
+			if ok && len(tlsTerm) > 0 {
+				isTLS = true
+			}
+		}
+		route := &route{
+			host: hostname,
+			path: path,
+			tls:  isTLS,
+		}
+		// TODO handle alternate backends, use oldest admitted ingress, check wildcard policy? (see above link)
+		serviceMap[toName] = append(serviceMap[toName], route)
+	}
+	return serviceMap, nil
+}
+
+func scoreRoute(route *route) int {
+	score := 0
+	// TODO implement other criteria
+	if route.tls {
+		score++
+	}
+	return score
 }
 
 // Derived from: https://github.com/fabric8-services/fabric8-tenant/blob/master/openshift/kube_token.go
