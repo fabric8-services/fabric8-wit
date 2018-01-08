@@ -38,7 +38,8 @@ endif
 
 if (Is topology "tree" or "dependency"?) then (yes)
     partition "Cycle detection" {
-        :<&lock-locked> To protect the integrity of the topology, we only allow
+        :== Work item locking
+        To protect the integrity of the topology, we only allow
         one transaction at a time to operate on the source and
         target work work items of the link. To achieve this we
         lock the source and target work item of new link using
@@ -48,7 +49,7 @@ if (Is topology "tree" or "dependency"?) then (yes)
         **""FOR UPDATE;""**
 
         **NOTE:** This only locks the individual rows of the work
-        items and not the whole ""work_items"" table;
+        items and not the whole ""work_items"" table.;
         note right
             Consider work item **B** is not yet linked and
             so there are no links with **B** in to lock.
@@ -67,15 +68,52 @@ if (Is topology "tree" or "dependency"?) then (yes)
             until the first transaction ends before it even
             gets a chance to start the cycle detection.
         end note
-        
-        :<&lock-locked> Among all links we search for the new link's source
+        note left
+            Consider this tree topology:
+
+            A
+            |_ B
+              |_ E
+              |_ C
+
+            Here, E and C are a child of B,
+            and B is a child of A.
+            
+            Now suppose Alice want to make
+            D a child of C:
+
+            A
+            |_ B
+              |_ E
+              |_ C
+                |_ **D**
+            
+            That means, C is the source and
+            D is the target of the link.
+            Then the algorithm locks the work
+            items C and D themselves:
+
+            A
+            |_ B
+              |_ E
+              |_ <&lock-locked>C
+                |_ <&lock-locked>**D**
+        end note
+
+        :== Link locking
+        Among all links we search for the new link's source
         work item and traverse up <&arrow-top> to get its root. If that root
         node matches the new link's target, we have found
         ourselves a cycle.
 
-        We also row-lock each link node as we traverse.
+        <&lock-locked> We also row-lock each link node as we traverse.
         Those locks will automatically be freed once the
-        transaction ends;
+        transaction ends
+
+        It is very important to do this last locking **after** the
+        traversal; otherwise we might end up with a deadlock!
+        (See example note to the left.)
+        ;
         note right
             This "link locking" causes any other concurrent
             operation to wait if it touches the same branches.
@@ -87,6 +125,11 @@ if (Is topology "tree" or "dependency"?) then (yes)
             without us noticing since we were only blocked with
             the locking but not with the traversal (which happens
             using PostgreSQL's ""WITH RECURSIVE"")?
+        end note
+        note left
+            Following the example above,
+            the algorithm now locks the links
+            B<&arrow-right>C and A<&arrow-right>B.
         end note
 
         if (cycle detected?) then (yes)
