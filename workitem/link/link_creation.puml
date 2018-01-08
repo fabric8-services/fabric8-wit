@@ -1,0 +1,104 @@
+@startuml
+
+' This is a PlantUML activity diagram.
+' To generate a PNG diagram from this file follow these steps:
+' $ wget -o plantuml.jar http://sourceforge.net/projects/plantuml/files/plantuml.jar/download
+' $ java -jar plantuml.jar -verbose link_creation.puml
+
+skinparam titleBorderRoundCorner 15
+skinparam titleBorderThickness 2
+skinparam monochrome false
+
+title 
+    = Work Item Linking:
+    == Algorithm for link creation
+    (Generated at %date%)
+end title
+
+start
+:Begin Database Transaction;
+:Load link type
+as given by the link;
+->Run validation depending on topology;
+
+
+if (Is topology "tree"?) then (yes)
+    partition "Multi-parent check" {        
+        if (Does the target of the new link\nalready have a parent?) then (yes)
+            :Rollback transaction;
+            stop
+        else (no)
+        endif    
+    }
+else (no)
+endif
+
+
+if (Is topology "tree" or "dependency"?) then (yes)
+    partition "Cycle detection" {
+        :<&lock-locked> To protect the integrity of the topology, we only allow
+        one transaction at a time to operate on the source and
+        target work work items of the link. To achieve this we
+        lock the source and target work item of new link using
+
+        ""SELECT * FROM work_items""
+        ""WHERE id IN(source, target)""
+        **""FOR UPDATE;""**
+
+        **NOTE:** This only locks the individual rows of the work
+        items and not the whole ""work_items"" table;
+        note right
+            Consider work item **B** is not yet linked and
+            so there are no links with **B** in to lock.
+            Now consider these two concurrent operations:
+
+            # Alice wants to make **A** a child of **B**
+            # Bob wants to make **B** a child of **A**
+
+            Both operations are valid on their own and don't
+            violate the topology. But if both are executed, we
+            have created a cylce in this form: **B -> A -> B**.
+
+            In order to detect this our only chance is lock
+            **A** and **B** by the first transaction to come.
+            Any followup transaction will then have to wait
+            until the first transaction ends before it even
+            gets a chance to start the cycle detection.
+        end note
+        
+        :<&lock-locked> Among all links we search for the new link's source
+        work item and traverse up <&arrow-top> to get its root. If that root
+        node matches the new link's target, we have found
+        ourselves a cycle.
+
+        We also row-lock each link node as we traverse.
+        Those locks will automatically be freed once the
+        transaction ends;
+        note right
+            This "link locking" causes any other concurrent
+            operation to wait if it touches the same branches.
+
+            **Open question**: The implementation currently traverses
+            all links and then locks them. <back:FireBrick><color:white>I wonder if the traversal
+            <back:FireBrick><color:white>once completed is still correct after being blocked.
+            Is there a chance of somebody having modified the tree
+            without us noticing since we were only blocked with
+            the locking but not with the traversal (which happens
+            using PostgreSQL's ""WITH RECURSIVE"")?
+        end note
+
+        if (cycle detected?) then (yes)
+            :Rollback transaction;
+            stop
+        else (no)
+        endif
+    }
+else (no)    
+endif
+
+:Create link;
+:Commit transaction;
+
+stop
+
+@enduml
