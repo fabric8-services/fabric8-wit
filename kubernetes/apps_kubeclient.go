@@ -243,14 +243,24 @@ func (kc *kubeClient) ScaleDeployment(spaceName string, appName string, envName 
 	return &oldReplicas, nil
 }
 
-func (kc *kubeClient) getConsoleURL(spaceName string, appName string, envName string) *string {
-	dummy := "http://openshift.io"
-	return &dummy
+func (kc *kubeClient) getConsoleURL() (*string, error) {
+	// Replace "api" prefix with "console" and append "console" to path
+	consoleURL, err := modifyURL(kc.config.ClusterURL, "console", "console")
+	if err != nil {
+		return nil, err
+	}
+	consoleURLStr := consoleURL.String()
+	return &consoleURLStr, nil
 }
 
-func (kc *kubeClient) getLogURL(spaceName string, appName string, envName string) *string {
-	dummy := "http://openshift.io"
-	return &dummy
+func (kc *kubeClient) getLogURL(envNS string, deploy *deployment) (*string, error) {
+	consoleURL, err := kc.getConsoleURL()
+	if err != nil {
+		return nil, err
+	}
+	rcName := deploy.current.Name
+	logURL := fmt.Sprintf("%s/project/%s/browse/rc/%s?tab=logs", *consoleURL, envNS, rcName)
+	return &logURL, nil
 }
 
 func (kc *kubeClient) getApplicationURL(envNS string, deploy *deployment) (*string, error) {
@@ -293,12 +303,19 @@ func (kc *kubeClient) GetDeployment(spaceName string, appName string, envName st
 		return nil, err
 	}
 
+	// Get related URLs for the deployment
 	appURL, err := kc.getApplicationURL(envNS, deploy)
 	if err != nil {
 		return nil, err
 	}
-	consoleURL := kc.getConsoleURL(spaceName, appName, envName)
-	logURL := kc.getLogURL(spaceName, appName, envName)
+	consoleURL, err := kc.getConsoleURL()
+	if err != nil {
+		return nil, err
+	}
+	logURL, err := kc.getLogURL(envNS, deploy)
+	if err != nil {
+		return nil, err
+	}
 
 	var links *app.GenericLinksForDeployment
 	if consoleURL != nil || appURL != nil || logURL != nil {
@@ -450,24 +467,33 @@ func (kc *kubeClient) GetEnvironment(envName string) (*app.SimpleEnvironment, er
 }
 
 func getMetricsURLFromAPIURL(apiURLStr string) (string, error) {
-	// Parse as URL to give us easy access to the hostname
-	apiURL, err := url.Parse(apiURLStr)
+	metricsURL, err := modifyURL(apiURLStr, "metrics", "")
 	if err != nil {
 		return "", err
 	}
+	return metricsURL.String(), nil
+}
 
-	// Get the hostname (without port) and replace api prefix with metrics
+func modifyURL(apiURLStr string, prefix string, path string) (*url.URL, error) {
+	// Parse as URL to give us easy access to the hostname
+	apiURL, err := url.Parse(apiURLStr)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get the hostname (without port) and replace api prefix with prefix arg
 	apiHostname := apiURL.Hostname()
 	if !strings.HasPrefix(apiHostname, "api") {
-		return "", errors.New("Cluster URL does not begin with \"api\": " + apiHostname)
+		return nil, errors.New("Cluster URL does not begin with \"api\": " + apiHostname)
 	}
-	metricsHostname := strings.Replace(apiHostname, "api", "metrics", 1)
-	// Construct URL using just scheme from API URL and metrics hostname
-	metricsURL := url.URL{
+	newHostname := strings.Replace(apiHostname, "api", prefix, 1)
+	// Construct URL using just scheme from API URL, modified hostname and supplied path
+	newURL := &url.URL{
 		Scheme: apiURL.Scheme,
-		Host:   metricsHostname,
+		Host:   newHostname,
+		Path:   path,
 	}
-	return metricsURL.String(), nil
+	return newURL, nil
 }
 
 func getTimestampEndpoints(metricsSeries ...[]*app.TimedNumberTuple) (minTime, maxTime *float64) {
