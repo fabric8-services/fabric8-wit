@@ -42,6 +42,25 @@ func (rest *TestLabelREST) SetupTest() {
 	rest.testDir = filepath.Join("test-files", "label")
 }
 
+func (rest *TestLabelREST) TestCreateLabelNoSpace() {
+	fxt, err := tf.NewFixture(rest.DB, tf.Identities(1), tf.Spaces(1))
+	require.NoError(rest.T(), err)
+	svc := testsupport.ServiceAsUser("Label-Service", *fxt.Identities[0])
+	ctrl := NewLabelController(svc, rest.db, rest.Configuration)
+	color := "some color"
+	pl := app.CreateLabelPayload{
+		Data: &app.Label{
+			Attributes: &app.LabelAttributes{Name: &color},
+			Type:       label.APIStringTypeLabels,
+		},
+	}
+	_, jerrs := test.CreateLabelNotFound(rest.T(), svc.Context, svc, ctrl, uuid.Nil, &pl)
+	require.NotNil(rest.T(), jerrs)
+	require.Len(rest.T(), jerrs.Errors, 1)
+	require.Contains(rest.T(), jerrs.Errors[0].Detail, "spaces with id '00000000-0000-0000-0000-000000000000' not found")
+
+}
+
 func (rest *TestLabelREST) TestCreateLabel() {
 	c, err := tf.NewFixture(rest.DB, tf.Spaces(1))
 	require.NoError(rest.T(), err)
