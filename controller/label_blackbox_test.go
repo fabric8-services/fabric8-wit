@@ -58,6 +58,7 @@ func (rest *TestLabelREST) TestCreateLabelNoSpace() {
 	require.NotNil(rest.T(), jerrs)
 	require.Len(rest.T(), jerrs.Errors, 1)
 	require.Contains(rest.T(), jerrs.Errors[0].Detail, "spaces with id '00000000-0000-0000-0000-000000000000' not found")
+	compareWithGoldenUUIDAgnostic(rest.T(), filepath.Join(rest.testDir, "create", "not_found.errors.golden.json"), jerrs)
 
 }
 
