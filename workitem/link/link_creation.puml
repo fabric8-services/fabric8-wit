@@ -70,8 +70,10 @@ if (Is topology "tree"?) then (yes)
         ""    AND target= <TARGET_OF_NEW_LINK> ""
         ""    AND deleted_at IS NULL""
         "")"";
+        ->has parent or not;
         if (has a parent?) then (yes)
-            #FF0000:Disallow link creation;
+            #FF0000:Disallow link creation because of duplicate
+            parent for <TARGET_OF_NEW_LINK>.;
             :Rollback transaction;
             stop
         else (no)
@@ -88,6 +90,8 @@ if (Is topology "tree" or "dependency"?) then (yes)
             pass source and link type
             // //;
             :**Non-recursive term in CTE**
+            Finds the immediate parent of a given work item.
+
             Find those links of the same given type where the source
             is in the target and put those links in the a so called
             //working table//:
@@ -101,8 +105,6 @@ if (Is topology "tree" or "dependency"?) then (yes)
             ""  AND l.deleted_at IS NULL""
             ;
             note right
-                Finds the immediate parent of a given work item (i.e. ""'E'"")
-
                 Consider this example tree topology:
 
                 A
