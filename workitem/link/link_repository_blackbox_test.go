@@ -143,15 +143,70 @@ func (s *linkRepoBlackBoxTest) TestValidateTopology() {
 
 func (s *linkRepoBlackBoxTest) TestCreate() {
 	s.T().Run("ok", func(t *testing.T) {
-		// given
-		fxt := tf.NewTestFixture(t, s.DB,
-			tf.WorkItems(2, tf.SetWorkItemTitles("parent", "child")),
-			tf.WorkItemLinkTypes(1, tf.SetTopologies(link.TopologyTree), tf.SetWorkItemLinkTypeNames("tree-type")),
-		)
-		// when
-		_, err := s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("parent").ID, fxt.WorkItemByTitle("child").ID, fxt.WorkItemLinkTypeByName("tree-type").ID, fxt.Identities[0].ID)
-		// then
-		require.NoError(t, err)
+		t.Run("serial", func(t *testing.T) {
+			// given
+			fxt := tf.NewTestFixture(t, s.DB,
+				tf.WorkItems(2, tf.SetWorkItemTitles("parent", "child")),
+				tf.WorkItemLinkTypes(1, tf.SetTopologies(link.TopologyTree), tf.SetWorkItemLinkTypeNames("tree-type")),
+			)
+			// when
+			_, err := s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("parent").ID, fxt.WorkItemByTitle("child").ID, fxt.WorkItemLinkTypeByName("tree-type").ID, fxt.Identities[0].ID)
+			// then
+			require.NoError(t, err)
+		})
+
+		// t.Run("concurrent", func(t *testing.T) {
+		// 	// given
+		// 	fxt := tf.NewTestFixture(t, s.DB,
+		// 		tf.WorkItems(2, tf.SetWorkItemTitles("parent", "child")),
+		// 		tf.WorkItemLinkTypes(1, tf.SetTopologies(link.TopologyTree), tf.SetWorkItemLinkTypeNames("tree-type")),
+		// 	)
+
+		// 	// When starting N concurrent requests to execute the same
+		// 	// operation, only one shall succeed
+		// 	N := 2
+
+		// 	// wait group that is used to have two transactions executed
+		// 	// concurrently
+		// 	wgBegin := sync.WaitGroup{}
+		// 	wgBegin.Add(N)
+
+		// 	// wait group that is used to synchronize go routines
+		// 	wgFinish := sync.WaitGroup{}
+		// 	wgFinish.Add(N)
+
+		// 	errs := make([]error, N)
+		// 	errCnt := 0
+
+		// 	for i := 0; i < N; i++ {
+		// 		go func() {
+		// 			defer wgFinish.Done()
+
+		// 			// Make sure that each go routine operates on its own
+		// 			// transaction
+		// 			db := s.DB.Begin()
+		// 			defer func() {
+		// 				if db.Error != nil {
+		// 					db.Commit()
+		// 				} else {
+		// 					db.Rollback()
+		// 				}
+		// 			}()
+
+		// 			workitemLinkRepo := link.NewWorkItemLinkRepository(db)
+		// 			wgBegin.Done()
+		// 			wgBegin.Wait()
+
+		// 			_, errs[i] = workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("parent").ID, fxt.WorkItemByTitle("child").ID, fxt.WorkItemLinkTypeByName("tree-type").ID, fxt.Identities[0].ID)
+		// 			if errs[i] != nil {
+		// 				errCnt++
+		// 			}
+		// 		}()
+		// 	}
+		// 	go wgFinish.Wait()
+		// 	t.Log("Finished waiting")
+		// 	require.Equal(t, errCnt, N-1, "expected all out of %d concurrent routines to fail but here %d failed: %+v", N, errCnt, errs)
+		// })
 	})
 
 	s.T().Run("fail - other parent-child-link exists", func(t *testing.T) {

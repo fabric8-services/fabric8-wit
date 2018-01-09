@@ -159,7 +159,7 @@ func (r *GormWorkItemLinkRepository) ValidateTopology(ctx context.Context, sourc
 func (r *GormWorkItemLinkRepository) DetectCycle(ctx context.Context, sourceID, targetID, linkTypeID uuid.UUID) (hasCycle bool, err error) {
 	// Get all roots for link's source.
 	// NOTE(kwk): Yes there can be more than one, if the link type is allowing it.
-	_, rootIDs, err := r.GetAncestorsLocked(ctx, linkTypeID, sourceID)
+	_, rootIDs, err := r.GetAncestors(ctx, linkTypeID, sourceID)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"wilt_id":   linkTypeID,
@@ -202,6 +202,9 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 	if err != nil {
 		return nil, errs.Wrap(err, "failed to load link type")
 	}
+
+	// Lock the links table for write access.
+	r.db.Raw(fmt.Sprintf("LOCK TABLE %s IN EXCLUSIVE MODE;", WorkItemLink{}.TableName()))
 
 	// Make sure we don't violate the topology when we add the link from source
 	// to target.
@@ -494,17 +497,6 @@ func (r *GormWorkItemLinkRepository) GetParentID(ctx context.Context, ID uuid.UU
 // might have more than one root item. That is why the root IDs is keyed by the
 // the given work item and mapped to an array of root IDs.
 func (r *GormWorkItemLinkRepository) GetAncestors(ctx context.Context, linkTypeID uuid.UUID, workItemIDs ...uuid.UUID) (distinctAncestorIDs []uuid.UUID, rootIDs map[uuid.UUID][]uuid.UUID, err error) {
-	return r.getAncestors(ctx, false, linkTypeID, workItemIDs...)
-}
-
-// GetAncestorsLocked does the same as GetAncestors but locks the result rows
-// using `FOR UPDATE` as described here:
-// https://www.postgresql.org/docs/current/static/explicit-locking.html#LOCKING-ROWS
-func (r *GormWorkItemLinkRepository) GetAncestorsLocked(ctx context.Context, linkTypeID uuid.UUID, workItemIDs ...uuid.UUID) (distinctAncestorIDs []uuid.UUID, rootIDs map[uuid.UUID][]uuid.UUID, err error) {
-	return r.getAncestors(ctx, true, linkTypeID, workItemIDs...)
-}
-
-func (r *GormWorkItemLinkRepository) getAncestors(ctx context.Context, lockRows bool, linkTypeID uuid.UUID, workItemIDs ...uuid.UUID) (distinctAncestorIDs []uuid.UUID, rootIDs map[uuid.UUID][]uuid.UUID, err error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "get", "ancestors"}, time.Now())
 
 	if len(workItemIDs) < 1 {
@@ -531,15 +523,10 @@ func (r *GormWorkItemLinkRepository) getAncestors(ctx context.Context, lockRows 
 	}
 	idStr := strings.Join(idArr, ",")
 
-	lockTerm := ""
-	if lockRows {
-		lockTerm = " FOR UPDATE "
-	}
-
 	// Postgres Common Table Expression (https://www.postgresql.org/docs/current/static/queries-with.html)
 	// TODO(kwk): We should probably measure performance for this.
 	query := fmt.Sprintf(`
-		WITH RECURSIVE tree(id, source, original_child, path, cycle) AS (
+		WITH RECURSIVE working_table(id, ancestor, original_child, already_visited, cycle) AS (
 			
 			-- non recursive term: Find the links where the given items are
 			-- in the target and put those links in the "working table". The
@@ -555,7 +542,7 @@ func (r *GormWorkItemLinkRepository) getAncestors(ctx context.Context, lockRows 
 			WHERE
 				l.target_id IN ( %[2]s ) 
 				AND l.link_type_id = $1
-			
+				AND l.deleted_at IS NULL
 		UNION
 			
 			-- recursive term: Only this one can query the "tree" table.
@@ -565,27 +552,26 @@ func (r *GormWorkItemLinkRepository) getAncestors(ctx context.Context, lockRows 
 			SELECT
 				l.id,
 				l.source_id,
-				t.original_child, -- always remember the child from which the non recursive search originated
-				path || l.id,
-				l.id = ANY(path)
-			FROM tree t, %[1]s l
+				w.original_child, -- always remember the child from which the non recursive search originated
+				already_visited || l.id,
+				l.id = ANY(already_visited)
+			FROM working_table w, %[1]s l
 			WHERE
-				l.target_id = t.source
+				l.target_id = w.ancestor
 				AND l.link_type_id = $1
+				AND l.deleted_at IS NULL
 				AND NOT cycle -- recursive termination criteria
 		)
 		SELECT
-			source AS "ancestor",
+			ancestor,
 			original_child,
-			(SELECT NOT EXISTS (SELECT 1 FROM work_item_links l WHERE l.target_id = source AND l.link_type_id = $1)) as "is_root"
+			(SELECT NOT EXISTS (SELECT 1 FROM work_item_links l WHERE l.target_id = ancestor AND l.link_type_id = $1)) as "is_root"
 		FROM tree
 		-- Eliminate a child to appear as parent also
-		WHERE source NOT IN ( %[2]s )
-		%[3]s
+		WHERE ancestor NOT IN ( %[2]s )
 		;`,
 		WorkItemLink{}.TableName(),
 		idStr,
-		lockTerm,
 	)
 
 	// Convert SQL results to instances of ancestor objects
