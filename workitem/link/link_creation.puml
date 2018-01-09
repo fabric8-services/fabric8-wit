@@ -18,15 +18,60 @@ footer
 end footer
 
 start
-:Begin Database Transaction;
-:Load link type
-as given by the link;
-->Run validation depending on topology;
+:Begin Database Transaction
 
+""BEGIN;"";
+
+:Given a new link with **type**, **source** and **target**
+ID we load the __link type__ by it's ID.;
+
+:Acquire exclusive write lock on the links table:
+
+""LOCK TABLE work_item_links IN EXCLUSIVE MODE;""
+
+The lock is automatically release when the transaction ends.
+
+__From the manual:__
+//"This mode allows only concurrent ACCESS SHARE//
+//locks, i.e., only reads from the table can//
+//proceed in parallel with a transaction holding//
+//this lock mode."//
+;
+note right
+    In principle there are at least two ways
+    to approach locking here.
+
+    # Only lock what you need and __when you need it__.
+    # Lock more than what you need __before you need it__.
+
+    We've played with many ideas on how to lock only
+    __what we need__ and __when we need it__, but we always
+    ended up having synchronization issues with other
+    transactions. That's why we go with number 2 and
+    lock the whole work item links table for concurrent
+    write access.
+
+    This method of locking might not be the most
+    performant one but it essentially guarantees
+    no deadlocks.
+end note
+
+->Run validation
+depending on topology;
 
 if (Is topology "tree"?) then (yes)
-    partition "Multi-parent check" {        
-        if (Does the target of the new link\nalready have a parent?) then (yes)
+    partition "Multi-parent check" {
+        :Check if the target of the new link already have a parent:
+
+        ""SELECT EXISTS (""
+        ""  SELECT 1 FROM work_item_links""
+        ""  WHERE""
+        ""    link_type='parenting'""
+        ""    AND target= <TARGET_OF_NEW_LINK> ""
+        ""    AND deleted_at IS NULL""
+        "")"";
+        if (has a parent?) then (yes)
+            #FF0000:Disallow link creation;
             :Rollback transaction;
             stop
         else (no)
@@ -38,111 +83,145 @@ endif
 
 if (Is topology "tree" or "dependency"?) then (yes)
     partition "Cycle detection" {
-        :== Work item locking
-        To protect the integrity of the topology, we only allow
-        one transaction at a time to operate on the source and
-        target work work items of the link. To achieve this we
-        lock the source and target work item of new link using
+        partition "Find ancestors as executed in DB with a WITH RECURSIVE statement - aka Common Table Expression - CTE)" {
+            -> // //
+            pass source and link type
+            // //;
+            :**Non-recursive term in CTE**
+            Find those links of the same given type where the source
+            is in the target and put those links in the a so called
+            //working table//:
 
-        ""SELECT * FROM work_items""
-        ""WHERE id IN(source, target)""
-        **""FOR UPDATE;""**
+            ""SELECT""
+            ""  l.id, l.source, l.target, ARRAY[l.id], false""
+            ""FROM work_item_links l""
+            ""WHERE""
+            ""  l.target IN ( <SOURCE_OF_NEW_LINK> ) ""
+            ""  AND l.link_type = 'parenting'""
+            ""  AND l.deleted_at IS NULL""
+            ;
+            note right
+                Finds the immediate parent of a given work item (i.e. ""'E'"")
 
-        **NOTE:** This only locks the individual rows of the work
-        items and not the whole ""work_items"" table.;
-        note right
-            Consider work item **B** is not yet linked and
-            so there are no links with **B** in to lock.
-            Now consider these two concurrent operations:
+                Consider this example tree topology:
 
-            # Alice wants to make **A** a child of **B**
-            # Bob wants to make **B** a child of **A**
+                A
+                |_ B
+                  |_ C
+                    |_ D
+                      |_ E
 
-            Both operations are valid on their own and don't
-            violate the topology. But if both are executed, we
-            have created a cylce in this form: **B -> A -> B**.
+                That means we have at least these entries in the links table
+                (ignoring the type for now):
 
-            In order to detect this our only chance is lock
-            **A** and **B** by the first transaction to come.
-            Any followup transaction will then have to wait
-            until the first transaction ends before it even
-            gets a chance to start the cycle detection.
-        end note
-        note left
-            Consider this tree topology:
+                |= id |= source |= target |
+                | 111 | A | B |
+                | 222 | B | C |
+                | 333 | C | D |
+                | 444 | D | E |
 
-            A
-            |_ B
-              |_ E
-              |_ C
+                Suppose, that you want to link **E** to some work item **X**.
+                In other words **E** is the source of the new link we're about to create.
+                
+                The algorithm to the left will construct this //working table//:
 
-            Here, E and C are a child of B,
-            and B is a child of A.
+                |= link ID |= source |= original_child |= already_visited |= cycle |
+                | 444 | D | E | [111] | false |
+
+                //NOTE:// For the sake of readability we show a work item's title
+                here instead of it's ID and the link IDs are simplified to numbers
+                instead of UUIDs.
+            end note
+            while (as long as //working table// is not empty) is (not empty)
+                :**Recursive term of CTE**
+                Take the ""source"" value of all entries from the //working table//
+                and search for links of the same type where the target is one of
+                the ""source"" values.
+
+                ""SELECT""
+                ""  l.id,""
+                ""  l.source,""
+                ""  t.original_child,""
+                ""  already_visited || l.id,""
+                ""  l.id = ANY(already_visited)""
+                ""FROM working_table w, work_item_links l""
+                ""WHERE""				
+                ""  l.target = w.source""
+                ""  AND l.link_type = 'parenting'""
+                ""  AND l.deleted_at IS NULL""
+                ""  AND NOT cycle""
+                ;
+                note right
+                    This finds parents of any work item that we already
+                    stored in the //working table//.
+
+                    This is essentially the same as the non-recursive term
+                    except that the thing to search for is driven by the
+                    //working table// instead of the user given source of
+                    a link.
+                end note
+
+                ->found links;
+
+                :""UNION"" join the results from the //working table//
+                and the found links and store them in a temporary
+                //intermediate table//.;
+                note right
+                    Actually I find this description a bit foggy but
+                    in essence the algorithm is straight forward and
+                    easily understood.
+                end note
+
+                :From the manual:
+                //Replace the contents of the working table with the//
+                //contents of the intermediate table, then empty the//
+                //intermediate table.//;
+            endwhile (empty)
+
+            -> Ancestors of <SOURCE_OF_NEW_LINK>;
+
+            :**Annotate ancestors if they are the root**
+            For each ancestor we determine if that ancestor is at
+            the root of the ""original_child"" (here ""'E'"")
             
-            Now suppose Alice wants to make
-            D a child of C:
+            ""SELECT NOT EXISTS (""
+            ""    SELECT 1""
+            ""    FROM work_item_links l""
+            ""    WHERE l.target = ancestor AND l.link_type_id = 'parenting'""
+            "") as 'is_root'""
+            ;
+            note right
+                This checks if an ancestor has a parent.
+                If it doesn't have one, it must be the root
+                or the //origin// if we're considering
+                a depdency topology.
+            end note
+        }
+        
+        ->Annotated ancestors of <SOURCE_OF_NEW_LINK>;
 
-            A
-            |_ B
-              |_ E
-              |_ C
-                |_ **D**
-            
-            That means, C is the source and
-            D is the target of the link.
-            Then the algorithm locks the work
-            items C and D themselves before
-            it creates the link.
-
-            A
-            |_ B
-              |_ E
-              |_ <&lock-locked>C
-                |_ <&lock-locked>**D**
-        end note
-
-        :== Link locking
-        Among all links we search for the new link's source
-        work item and traverse up <&arrow-top> to get its root. If that root
-        node matches the new link's target, we have found
-        ourselves a cycle.
-
-        <&lock-locked> We also row-lock each link node as we traverse.
-        Those locks will automatically be freed once the
-        transaction ends
-
-        It is very important to do this last locking **after** the
-        traversal; otherwise we might end up with a deadlock!
-        (See example note to the left.)
-        ;
-        note right
-            This "link locking" causes any other concurrent
-            operation to wait if it touches the same branches.
-
-            **Open question**: The implementation currently traverses
-            all links and then locks them. <back:FireBrick><color:white>I wonder if the traversal
-            <back:FireBrick><color:white>once completed is still correct after being blocked.
-            Is there a chance of somebody having modified the tree
-            without us noticing since we were only blocked with
-            the locking but not with the traversal (which happens
-            using PostgreSQL's ""WITH RECURSIVE"")?
-        end note
-        note left
-            Following the example above,
-            the algorithm now locks the links
-            B<&arrow-right>C and A<&arrow-right>B.
-        end note
-
-        if (cycle detected?) then (yes)
-            :Rollback transaction;
-            stop
-        else (no)
-        endif
+        while (has more ancestors) is (yes)
+            :Get next ancestor;
+            note right
+                In a "dependency" topology a work item can have
+                more than one "parent", therefore multiple ancestors
+                can be the root of an item.
+                
+                In a "tree" topology a work item can only have
+                one root.
+            end note
+            if (ancestor is a annotated as "root" AND ancestor == <TARGET_OF_NEW_LINK>) then (yes)
+                #FF0000:Disallow link creation because of cycle;
+                :Rollback transaction;
+                stop
+            else (false)
+            endif
+        end while (no more ancestors)
     }
 else (no)    
 endif
 
-:Create link;
+#00FF00:Create link;
 :Commit transaction;
 
 stop
