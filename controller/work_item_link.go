@@ -17,6 +17,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 )
 
 // WorkItemLinkController implements the work-item-link resource.
