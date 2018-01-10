@@ -81,6 +81,10 @@ type route struct {
 	host string
 	path string
 	tls  bool
+	// Scoring criteria below
+	hasAdmitted          bool
+	hasAlternateBackends bool
+	isCustomHost         bool
 }
 
 // Receiver for default implementation of KubeRESTAPIGetter and MetricsGetter
@@ -894,22 +898,21 @@ func (kc *kubeClient) getPodStatus(pods []v1.Pod) ([][]string, int, error) {
 }
 
 func (kc *kubeClient) getBestRoute(namespace string, dc *deployment) (*url.URL, error) {
-	services, err := kc.getMatchingServices(namespace, dc)
+	serviceMap, err := kc.getMatchingServices(namespace, dc)
 	if err != nil {
 		return nil, err
 	}
 	// Get routes and associate to services using spec.to.name
-	routes, err := kc.getRoutesByService(namespace)
+	err = kc.getRoutesByService(namespace, serviceMap)
 	if err != nil {
 		return nil, err
 	}
 
 	// Find route with highest score according to heuristics from web-console
-	// https://github.com/openshift/origin-web-console/blob/v3.7.0/app/scripts/services/routes.js#L106
 	var bestRoute *route
 	bestScore := -1
-	for _, service := range services {
-		for _, route := range routes[service.Name] {
+	for _, routes := range serviceMap {
+		for _, route := range routes {
 			score := scoreRoute(route)
 			if score > bestScore {
 				bestScore = score
@@ -935,7 +938,7 @@ func (kc *kubeClient) getBestRoute(namespace string, dc *deployment) (*url.URL, 
 	return result, nil
 }
 
-func (kc *kubeClient) getMatchingServices(namespace string, dc *deployment) ([]v1.Service, error) {
+func (kc *kubeClient) getMatchingServices(namespace string, dc *deployment) (routesByService map[string][]*route, err error) {
 	services, err := kc.Services(namespace).List(metaV1.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -945,7 +948,7 @@ func (kc *kubeClient) getMatchingServices(namespace string, dc *deployment) ([]v
 	if template == nil {
 		return nil, errors.New("No pod template for current deployment")
 	}
-	var matches []v1.Service
+	routesByService = make(map[string][]*route)
 	for _, service := range services.Items {
 		selector := service.Spec.Selector
 		match := true
@@ -958,84 +961,203 @@ func (kc *kubeClient) getMatchingServices(namespace string, dc *deployment) ([]v
 				match = false
 			}
 		}
-		// If all selector labels match those in the pod template, add to result
+		// If all selector labels match those in the pod template, add service key to map
 		if match {
-			matches = append(matches, service)
+			routesByService[service.Name] = nil
 		}
 	}
-	return matches, nil
+	return routesByService, nil
 }
 
-func (kc *kubeClient) getRoutesByService(namespace string) (map[string][]*route, error) {
+func (kc *kubeClient) getRoutesByService(namespace string, routesByService map[string][]*route) error {
 	routeURL := fmt.Sprintf("/oapi/v1/namespaces/%s/routes", namespace)
 	result, err := kc.getResource(routeURL, false)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// Parse list of routes
 	kind, ok := result["kind"].(string)
 	if !ok || kind != "RouteList" {
-		return nil, errors.New("No route list returned from endpoint")
+		return errors.New("No route list returned from endpoint")
 	}
 	items, ok := result["items"].([]interface{})
 	if !ok {
-		return nil, errors.New("No list of routes in response")
+		return errors.New("No list of routes in response")
 	}
 
-	serviceMap := make(map[string][]*route)
 	for _, item := range items {
 		routeItem, ok := item.(map[interface{}]interface{})
 		if !ok {
-			return nil, errors.New("Route object invalid")
+			return errors.New("Route object invalid")
 		}
 
 		// Parse route from result
 		spec, ok := routeItem["spec"].(map[interface{}]interface{})
 		if !ok {
-			return nil, errors.New("Spec missing from deployment config")
+			return errors.New("Spec missing from route")
 		}
 		// Determine which service this route points to
 		to, ok := spec["to"].(map[interface{}]interface{})
 		if !ok {
-			return nil, errors.New("Route has no destination")
+			return errors.New("Route has no destination")
 		}
 		toName, ok := to["name"].(string)
 		if !ok || len(toName) == 0 {
-			return nil, errors.New("Service name missing or invalid for route")
+			return errors.New("Service name missing or invalid for route")
 		}
-		// Get hostname from route
-		hostname, ok := spec["host"].(string)
-		if !ok || len(hostname) == 0 {
-			return nil, errors.New("Hostname missing from route")
-		}
-		// Check for optional path
-		path, _ := spec["path"].(string)
 
-		// Determine whether route uses TLS
-		// see: https://github.com/openshift/origin-web-console/blob/v3.7.0/app/scripts/filters/resources.js#L193
-		isTLS := false
-		tls, ok := spec["tls"].(map[interface{}]interface{})
+		var matchingServices []string
+		// Check if this route is for a service we're interested in
+		_, pres := routesByService[toName]
+		if pres {
+			matchingServices = append(matchingServices, toName)
+		}
+
+		// Also check alternate backends for services
+		altBackends, ok := spec["alternateBackends"].([]interface{})
 		if ok {
-			tlsTerm, ok := tls["termination"].(string)
-			if ok && len(tlsTerm) > 0 {
-				isTLS = true
+			for idx := range altBackends {
+				backend, ok := altBackends[idx].(map[interface{}]interface{})
+				if !ok {
+					return errors.New("Malformed alternative backend")
+				}
+				// Check if this alternate backend is a service we want a route for
+				backendKind, _ := backend["kind"].(string)
+				if backendKind == "Service" {
+					backendName, ok := backend["name"].(string)
+					if ok && len(backendName) > 0 {
+						_, pres := routesByService[backendName]
+						if pres {
+							matchingServices = append(matchingServices, backendName)
+						}
+					}
+				}
 			}
 		}
-		route := &route{
-			host: hostname,
-			path: path,
-			tls:  isTLS,
+		if len(matchingServices) > 0 {
+			// Get ingress points
+			status, ok := routeItem["status"].(map[interface{}]interface{})
+			if !ok {
+				return errors.New("Status missing from route")
+			}
+			ingresses, ok := status["ingress"].([]interface{})
+			if !ok {
+				return errors.New("No ingress array listed in route")
+			}
+
+			// Prefer ingress with oldest lastTransitionTime that is marked as admitted
+			oldestAdmittedIngress, err := findOldestAdmittedIngress(ingresses)
+			if err != nil {
+				return err
+			}
+
+			// Use hostname from oldest admitted ingress if possible
+			var hostname string
+			if oldestAdmittedIngress != nil {
+				hostname, ok = oldestAdmittedIngress["host"].(string)
+				if !ok {
+					return errors.New("Hostname missing from ingress")
+				}
+			} else {
+				// Fall back to optional host in spec
+				hostname, _ = spec["host"].(string)
+			}
+
+			// Check for optional path
+			path, _ := spec["path"].(string)
+
+			// Determine whether route uses TLS
+			// see: https://github.com/openshift/origin-web-console/blob/v3.7.0/app/scripts/filters/resources.js#L193
+			isTLS := false
+			tls, ok := spec["tls"].(map[interface{}]interface{})
+			if ok {
+				tlsTerm, ok := tls["termination"].(string)
+				if ok && len(tlsTerm) > 0 {
+					isTLS = true
+				}
+			}
+
+			// Check if this route uses a custom hostname
+			customHost := true
+			metadata, ok := routeItem["metadata"].(map[interface{}]interface{})
+			if ok {
+				annotations, ok := metadata["annotations"].(map[interface{}]interface{})
+				if ok {
+					hostGenerated, _ := annotations["openshift.io/host.generated"].(string)
+					if hostGenerated == "true" {
+						customHost = false
+					}
+				}
+			}
+			route := &route{
+				host:                 hostname,
+				path:                 path,
+				tls:                  isTLS,
+				hasAdmitted:          oldestAdmittedIngress != nil,
+				hasAlternateBackends: len(altBackends) > 0,
+				isCustomHost:         customHost,
+			}
+			// TODO check wildcard policy? (see above link)
+			// Associate this route with any services whoses routes we're looking for
+			for _, serviceName := range matchingServices {
+				routesByService[serviceName] = append(routesByService[serviceName], route)
+			}
 		}
-		// TODO handle alternate backends, use oldest admitted ingress, check wildcard policy? (see above link)
-		serviceMap[toName] = append(serviceMap[toName], route)
 	}
-	return serviceMap, nil
+	return nil
+}
+
+func findOldestAdmittedIngress(ingresses []interface{}) (ingress map[interface{}]interface{}, err error) {
+	var oldestAdmittedIngress map[interface{}]interface{}
+	var oldestIngressTime time.Time
+	for idx := range ingresses {
+		ingress, ok := ingresses[idx].(map[interface{}]interface{})
+		if !ok {
+			return nil, errors.New("Bad ingress found in route")
+		}
+		// Check for oldest admitted ingress
+		conditions, ok := ingress["conditions"].([]interface{})
+		if ok {
+			for condIdx := range conditions {
+				condition, ok := conditions[condIdx].(map[interface{}]interface{})
+				if !ok {
+					return nil, errors.New("Bad condition for ingress")
+				}
+				condType, _ := condition["type"].(string)
+				condStatus, _ := condition["status"].(string)
+				if condType == "Admitted" && condStatus == "True" {
+					lastTransitionStr, ok := condition["lastTransitionTime"].(string)
+					if !ok {
+						return nil, errors.New("Missing last transition time from ingress condition")
+					}
+					lastTransition, err := time.Parse(time.RFC3339, lastTransitionStr)
+					if err != nil {
+						return nil, err
+					}
+					if oldestAdmittedIngress == nil || lastTransition.Before(oldestIngressTime) {
+						oldestAdmittedIngress = ingress
+						oldestIngressTime = lastTransition
+					}
+				}
+			}
+		}
+	}
+	return oldestAdmittedIngress, nil
 }
 
 func scoreRoute(route *route) int {
+	// See: https://github.com/openshift/origin-web-console/blob/v3.7.0/app/scripts/services/routes.js#L106
 	score := 0
-	// TODO implement other criteria
+	if route.hasAdmitted {
+		score += 11
+	}
+	if route.hasAlternateBackends {
+		score += 5
+	}
+	if route.isCustomHost {
+		score += 3
+	}
 	if route.tls {
 		score++
 	}
