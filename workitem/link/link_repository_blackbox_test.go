@@ -2,16 +2,16 @@ package link_test
 
 import (
 	"strings"
+	"sync"
 	"testing"
-
-	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
-
+	_ "github.com/lib/pq" // need to import postgres driver
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -155,58 +155,75 @@ func (s *linkRepoBlackBoxTest) TestCreate() {
 			require.NoError(t, err)
 		})
 
-		// t.Run("concurrent", func(t *testing.T) {
-		// 	// given
-		// 	fxt := tf.NewTestFixture(t, s.DB,
-		// 		tf.WorkItems(2, tf.SetWorkItemTitles("parent", "child")),
-		// 		tf.WorkItemLinkTypes(1, tf.SetTopologies(link.TopologyTree), tf.SetWorkItemLinkTypeNames("tree-type")),
-		// 	)
+		t.Run("2 concurrent requests to create A->B and B->A", func(t *testing.T) {
+			// given
+			fxt := tf.NewTestFixture(t, s.DB,
+				tf.WorkItems(2, tf.SetWorkItemTitles("A", "B")),
+				tf.WorkItemLinkTypes(1, tf.SetTopologies(link.TopologyTree)),
+			)
 
-		// 	// When starting N concurrent requests to execute the same
-		// 	// operation, only one shall succeed
-		// 	N := 2
+			N := 2
+			wgBegin := sync.WaitGroup{}  // synced begin
+			wgFinish := sync.WaitGroup{} // synced end
+			errs := make([]error, N)
+			errCnt := 0
 
-		// 	// wait group that is used to have two transactions executed
-		// 	// concurrently
-		// 	wgBegin := sync.WaitGroup{}
-		// 	wgBegin.Add(N)
+			for n := 0; n < N; n++ {
+				wgBegin.Add(1)
+				wgFinish.Add(1)
 
-		// 	// wait group that is used to synchronize go routines
-		// 	wgFinish := sync.WaitGroup{}
-		// 	wgFinish.Add(N)
+				go func(i int) {
+					t.Logf("entering go routine %d\n", i)
+					defer func() {
+						t.Logf("finishing go routine %d\n", i)
+						wgFinish.Done()
+					}()
 
-		// 	errs := make([]error, N)
-		// 	errCnt := 0
+					// Make sure that each go routine operates on its own
+					// transaction
+					db := s.DB.Begin()
+					require.NoError(t, db.Error)
+					defer func() {
+						if db.Error != nil {
+							t.Logf("rolling back transaction %d: %+v\n", i, db.Error)
+							db.Rollback()
+						} else {
+							t.Logf("committing transaction %d\n", i)
+							db.Commit()
+						}
+						require.NoError(t, db.Error)
+					}()
 
-		// 	for i := 0; i < N; i++ {
-		// 		go func() {
-		// 			defer wgFinish.Done()
+					workitemLinkRepo := link.NewWorkItemLinkRepository(db)
 
-		// 			// Make sure that each go routine operates on its own
-		// 			// transaction
-		// 			db := s.DB.Begin()
-		// 			defer func() {
-		// 				if db.Error != nil {
-		// 					db.Commit()
-		// 				} else {
-		// 					db.Rollback()
-		// 				}
-		// 			}()
+					// barrier to synchronize creation of links
+					wgBegin.Done()
+					wgBegin.Wait()
+					t.Logf("Let the games begin: %d", i)
 
-		// 			workitemLinkRepo := link.NewWorkItemLinkRepository(db)
-		// 			wgBegin.Done()
-		// 			wgBegin.Wait()
+					switch i {
+					case 0:
+						_, errs[i] = workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("A").ID, fxt.WorkItemByTitle("B").ID, fxt.WorkItemLinkTypes[0].ID, fxt.Identities[0].ID)
+					case 1:
+						_, errs[i] = workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("B").ID, fxt.WorkItemByTitle("A").ID, fxt.WorkItemLinkTypes[0].ID, fxt.Identities[0].ID)
+					}
 
-		// 			_, errs[i] = workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("parent").ID, fxt.WorkItemByTitle("child").ID, fxt.WorkItemLinkTypeByName("tree-type").ID, fxt.Identities[0].ID)
-		// 			if errs[i] != nil {
-		// 				errCnt++
-		// 			}
-		// 		}()
-		// 	}
-		// 	go wgFinish.Wait()
-		// 	t.Log("Finished waiting")
-		// 	require.Equal(t, errCnt, N-1, "expected all out of %d concurrent routines to fail but here %d failed: %+v", N, errCnt, errs)
-		// })
+					if errs[i] != nil {
+						errCnt++
+					}
+				}(n)
+			}
+			wgFinish.Wait()
+			t.Log("All test go routines have returned.")
+			require.Equal(t, N-1, errCnt, "expected %d out of %d concurrent routines to fail but here %d failed: %+v", N-1, N, errCnt, errs)
+
+			t.Run("only one link was created", func(t *testing.T) {
+				links := []link.WorkItemLink{}
+				db := s.DB.Table(link.WorkItemLink{}.TableName()).Where("link_type_id = ?", fxt.WorkItemLinkTypes[0].ID).Find(&links)
+				require.NoError(t, db.Error)
+				require.Len(t, links, 1)
+			})
+		})
 	})
 
 	s.T().Run("fail - other parent-child-link exists", func(t *testing.T) {

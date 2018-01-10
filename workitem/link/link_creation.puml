@@ -25,35 +25,18 @@ start
 :Given a new link with **type**, **source** and **target**
 ID we load the __link type__ by it's ID.;
 
-:Acquire exclusive write lock on the links table:
+:Acquire a lock for **source** and **target** work items:
 
-""LOCK TABLE work_item_links IN EXCLUSIVE MODE;""
+""SELECT id FROM work_items ""
+""WHERE id IN (""
+""  <SOURCE_OF_NEW_LINK>, <TARGET_OF_NEW_LINK>""
+"") FOR UPDATE;""
 
-The lock is automatically release when the transaction ends.
-
-__From the manual:__
-//"This mode allows only concurrent ACCESS SHARE//
-//locks, i.e., only reads from the table can//
-//proceed in parallel with a transaction holding//
-//this lock mode."//
-;
+The lock is automatically release when the transaction ends.;
 note right
-    In principle there are at least two ways
-    to approach locking here.
-
-    # Only lock what you need and __when you need it__.
-    # Lock more than what you need __before you need it__.
-
-    We've played with many ideas on how to lock only
-    __what we need__ and __when we need it__, but we always
-    ended up having synchronization issues with other
-    transactions. That's why we go with number 2 and
-    lock the whole work item links table for concurrent
-    write access.
-
-    This method of locking might not be the most
-    performant one but it essentially guarantees
-    no deadlocks.
+    Until proven wrong we only lock the source and
+    target work items. This also needs to be done
+    when deleting a link.
 end note
 
 ->Run validation

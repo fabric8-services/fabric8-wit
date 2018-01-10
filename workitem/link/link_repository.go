@@ -184,6 +184,21 @@ func (r *GormWorkItemLinkRepository) DetectCycle(ctx context.Context, sourceID, 
 	return false, nil // Scenario V
 }
 
+// lockWorkItemsForUpdate tries to acquire locks for the given work items IDs.
+// It blocks until the lock is acquired or an error occured.
+func (r *GormWorkItemLinkRepository) lockWorkItemsForUpdate(IDs ...uuid.UUID) error {
+	ifArr := make([]interface{}, len(IDs))
+	for i, id := range IDs {
+		ifArr[i] = id
+	}
+	result := []int{}
+	db := r.db.Set("gorm:query_option", "FOR UPDATE").Table(workitem.WorkItemStorage{}.TableName()).Select(1).Where("id in (?, ?)", ifArr...).Find(&result)
+	if db.Error != nil {
+		return errs.Wrapf(db.Error, "failed to lock work items: %+v", IDs)
+	}
+	return nil
+}
+
 // Create creates a new work item link in the repository.
 // Returns BadParameterError, ConversionError or InternalError
 func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targetID uuid.UUID, linkTypeID uuid.UUID, creatorID uuid.UUID) (*WorkItemLink, error) {
@@ -203,8 +218,10 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 		return nil, errs.Wrap(err, "failed to load link type")
 	}
 
-	// Lock the links table for write access.
-	r.db.Raw(fmt.Sprintf("LOCK TABLE %s IN EXCLUSIVE MODE;", WorkItemLink{}.TableName()))
+	// Lock source and target work items
+	if err := r.lockWorkItemsForUpdate(sourceID, targetID); err != nil {
+		return nil, errs.Wrap(err, "failed to lock work items during link creation")
+	}
 
 	// Make sure we don't violate the topology when we add the link from source
 	// to target.
@@ -301,6 +318,9 @@ func (r *GormWorkItemLinkRepository) Delete(ctx context.Context, linkID uuid.UUI
 	tx := r.db.Where("id = ?", linkID).Find(&lnk)
 	if tx.RecordNotFound() {
 		return errors.NewNotFoundError("work item link", linkID.String())
+	}
+	if err := r.lockWorkItemsForUpdate(lnk.SourceID, lnk.TargetID); err != nil {
+		return errs.Wrap(err, "failed to lock work items during link deletion")
 	}
 	r.deleteLink(ctx, lnk, suppressorID)
 	return nil
