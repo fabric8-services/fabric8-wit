@@ -189,13 +189,12 @@ if (Is topology "tree" or "dependency"?) then (yes)
             :Get next ancestor;
             note right
                 In a "dependency" topology a work item can have
-                more than one "parent", therefore multiple ancestors
-                can be the root of an item.
+                more than one "parent".
                 
                 In a "tree" topology a work item can only have
                 one root.
             end note
-            if (ancestor is a annotated as "root" AND ancestor == <TARGET_OF_NEW_LINK>) then (yes)
+            if (ancestor == <TARGET_OF_NEW_LINK>) then (yes)
                 #FF0000:Disallow link creation because of cycle;
                 :Rollback transaction;
                 stop

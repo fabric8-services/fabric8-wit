@@ -271,30 +271,36 @@ func (s *linkRepoBlackBoxTest) TestCreate() {
 		//
 		//   \ = link
 		//   * = new link
-		//   C = the element that is causing the cycle
+		//   C = the element that is potentially causing the cycle
 		//
 		// Scenarios
 		// ---------
 		//
-		//   I:        II:       III:      IV:       V:
+		//   I:        II:       III:      IV:       V:       VI:
 		//
-		//    C         C         C         C         A
-		//     *         \         *         *         \
-		//      A         A         A         A         B
-		//       \         \         \         \         *
-		//        B         B         C         B         C
-		//         \         *         \
-		//          C         C         B
+		//    C         C         C         C         A        A
+		//     *         \         *         *         \        \
+		//      A         A         A         A         B        C
+		//       \         \         \         \         *        \
+		//        B         B         C         B         C        B
+		//         \         *         \                            *
+		//          C         C         B                            C
 		//
-		// I, II, III are cycles
-		// IV and V are no cycles.
+		// In a "tree" topology:
+		//   I, II, III are cycles
+		//   IV and V are no cycles.
+		//   VI violates the single-parent rule
+		//
+		// In a "dependency" topology:
+		//   I, II, III, and VI are cycles
+		//   IV and V are no cycles.
 
 		// Map topologies to expected error during cycle
-		topos := map[link.Topology][5]bool{
-			link.TopologyNetwork:         {false, false, false, false, false},
-			link.TopologyDirectedNetwork: {false, false, false, false, false},
-			link.TopologyTree:            {true, true, true, false, false},
-			link.TopologyDependency:      {true, true, true, false, false},
+		topos := map[link.Topology][]bool{
+			link.TopologyNetwork:         {false, false, false, false, false, false},
+			link.TopologyDirectedNetwork: {false, false, false, false, false, false},
+			link.TopologyTree:            {true, true, true, false, false, true},
+			link.TopologyDependency:      {true, true, true, false, false, true},
 		}
 		for topo, errorExpected := range topos {
 			t.Run("topology: "+topo.String(), func(t *testing.T) {
@@ -307,12 +313,12 @@ func (s *linkRepoBlackBoxTest) TestCreate() {
 				//        B
 				//         \
 				//          C
-				t.Run("Scenario I", func(t *testing.T) {
+				t.Run("Scenario I: C*A-B-C", func(t *testing.T) {
 					// given
 					fxt := tf.NewTestFixture(t, s.DB,
 						tf.WorkItems(3, tf.SetWorkItemTitles("A", "B", "C")),
 						tf.WorkItemLinkTypes(1, tf.SetTopologies(topo)),
-						tf.WorkItemLinks(2, func(fxt *tf.TestFixture, idx int) error {
+						tf.WorkItemLinksCustom(2, func(fxt *tf.TestFixture, idx int) error {
 							l := fxt.WorkItemLinks[idx]
 							switch idx {
 							case 0:
@@ -343,12 +349,12 @@ func (s *linkRepoBlackBoxTest) TestCreate() {
 				//        B
 				//         *
 				//          C
-				t.Run("Scenario II", func(t *testing.T) {
+				t.Run("Scenario II: C-A-B*C", func(t *testing.T) {
 					// given
 					fxt := tf.NewTestFixture(t, s.DB,
 						tf.WorkItems(3, tf.SetWorkItemTitles("C", "A", "B")),
 						tf.WorkItemLinkTypes(1, tf.SetTopologies(topo)),
-						tf.WorkItemLinks(2, func(fxt *tf.TestFixture, idx int) error {
+						tf.WorkItemLinksCustom(2, func(fxt *tf.TestFixture, idx int) error {
 							l := fxt.WorkItemLinks[idx]
 							switch idx {
 							case 0:
@@ -379,12 +385,12 @@ func (s *linkRepoBlackBoxTest) TestCreate() {
 				//       C
 				//        \
 				//         B
-				t.Run("Scenario III", func(t *testing.T) {
+				t.Run("Scenario III: C*A-C-B", func(t *testing.T) {
 					// given
 					fxt := tf.NewTestFixture(t, s.DB,
 						tf.WorkItems(3, tf.SetWorkItemTitles("A", "C", "B")),
 						tf.WorkItemLinkTypes(1, tf.SetTopologies(topo)),
-						tf.WorkItemLinks(2, func(fxt *tf.TestFixture, idx int) error {
+						tf.WorkItemLinksCustom(2, func(fxt *tf.TestFixture, idx int) error {
 							l := fxt.WorkItemLinks[idx]
 							switch idx {
 							case 0:
@@ -413,12 +419,12 @@ func (s *linkRepoBlackBoxTest) TestCreate() {
 				//     A
 				//      \
 				//       B
-				t.Run("Scenario IV", func(t *testing.T) {
+				t.Run("Scenario IV: C*A-B", func(t *testing.T) {
 					// given
 					fxt := tf.NewTestFixture(t, s.DB,
 						tf.WorkItems(3, tf.SetWorkItemTitles("A", "B", "C")),
 						tf.WorkItemLinkTypes(1, tf.SetTopologies(topo)),
-						tf.WorkItemLinks(1, func(fxt *tf.TestFixture, idx int) error {
+						tf.WorkItemLinksCustom(1, func(fxt *tf.TestFixture, idx int) error {
 							l := fxt.WorkItemLinks[idx]
 							switch idx {
 							case 0:
@@ -444,12 +450,12 @@ func (s *linkRepoBlackBoxTest) TestCreate() {
 				//     B
 				//      *
 				//       C
-				t.Run("Scenario V", func(t *testing.T) {
+				t.Run("Scenario V: A-B*C", func(t *testing.T) {
 					// given
 					fxt := tf.NewTestFixture(t, s.DB,
 						tf.WorkItems(3, tf.SetWorkItemTitles("A", "B", "C")),
 						tf.WorkItemLinkTypes(1, tf.SetTopologies(topo)),
-						tf.WorkItemLinks(1, func(fxt *tf.TestFixture, idx int) error {
+						tf.WorkItemLinksCustom(1, func(fxt *tf.TestFixture, idx int) error {
 							l := fxt.WorkItemLinks[idx]
 							switch idx {
 							case 0:
@@ -463,6 +469,42 @@ func (s *linkRepoBlackBoxTest) TestCreate() {
 					_, err := s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("B").ID, fxt.WorkItemByTitle("C").ID, fxt.WorkItemLinkTypes[0].ID, fxt.Identities[0].ID)
 					// then
 					if errorExpected[4] {
+						require.Error(t, err)
+					} else {
+						require.NoError(t, err)
+					}
+				})
+				//  VI:
+				//
+				//   A
+				//    \
+				//     C
+				//      \
+				//       B
+				//        *
+				//         C
+				t.Run("Scenario VI: A-C-B*C", func(t *testing.T) {
+					// given
+					fxt := tf.NewTestFixture(t, s.DB,
+						tf.WorkItems(3, tf.SetWorkItemTitles("A", "B", "C")),
+						tf.WorkItemLinkTypes(1, tf.SetTopologies(topo)),
+						tf.WorkItemLinksCustom(2, func(fxt *tf.TestFixture, idx int) error {
+							l := fxt.WorkItemLinks[idx]
+							switch idx {
+							case 0:
+								l.SourceID = fxt.WorkItemByTitle("A").ID
+								l.TargetID = fxt.WorkItemByTitle("C").ID
+							case 1:
+								l.SourceID = fxt.WorkItemByTitle("C").ID
+								l.TargetID = fxt.WorkItemByTitle("B").ID
+							}
+							return nil
+						}),
+					)
+					// when
+					_, err := s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("B").ID, fxt.WorkItemByTitle("C").ID, fxt.WorkItemLinkTypes[0].ID, fxt.Identities[0].ID)
+					// then
+					if errorExpected[5] {
 						require.Error(t, err)
 					} else {
 						require.NoError(t, err)
