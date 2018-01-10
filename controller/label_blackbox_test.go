@@ -54,12 +54,13 @@ func (rest *TestLabelREST) TestCreateLabelNoSpace() {
 			Type:       label.APIStringTypeLabels,
 		},
 	}
-	_, jerrs := test.CreateLabelNotFound(rest.T(), svc.Context, svc, ctrl, uuid.Nil, &pl)
+	resp, jerrs := test.CreateLabelNotFound(rest.T(), svc.Context, svc, ctrl, uuid.Nil, &pl)
 	require.NotNil(rest.T(), jerrs)
 	require.Len(rest.T(), jerrs.Errors, 1)
 	require.Contains(rest.T(), jerrs.Errors[0].Detail, "spaces with id '00000000-0000-0000-0000-000000000000' not found")
 	compareWithGoldenUUIDAgnostic(rest.T(), filepath.Join(rest.testDir, "create", "not_found.errors.golden.json"), jerrs)
-
+	compareWithGoldenUUIDAgnostic(rest.T(), filepath.Join(rest.testDir, "create", "not_found.req.payload.golden.json"), &pl)
+	compareWithGoldenUUIDAgnostic(rest.T(), filepath.Join(rest.testDir, "create", "not_found.headers.golden.json"), resp.Header())
 }
 
 func (rest *TestLabelREST) TestCreateLabel() {
