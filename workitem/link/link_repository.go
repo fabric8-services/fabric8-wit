@@ -135,31 +135,40 @@ func (r *GormWorkItemLinkRepository) ValidateTopology(ctx context.Context, sourc
 //
 //   \ = link
 //   * = new link
-//   C = the element that is causing the cycle
+//   C = the element that is potentially causing the cycle
 //
 // Scenarios
 // ---------
 //
-//   I:        II:       III:      IV:       V:
+//   I:        II:       III:      IV:       V:       VI:
 //
-//    C         C         C         C         A
-//     *         \         *         *         \
-//      A         A         A         A         B
-//       \         \         \         \         *
-//        B         B         C         B         C
-//         \         *         \
-//          C         C         B
+//    C         C         C         C         A        A
+//     *         \         *         *         \        \
+//      A         A         A         A         B        C
+//       \         \         \         \         *        \
+//        B         B         C         B         C        B
+//         \         *         \                            *
+//          C         C         B                            C
+//
+// In a "tree" topology:
+//   I, II, III are cycles
+//   IV and V are no cycles.
+//   VI violates the single-parent rule
+//
+// In a "dependency" topology:
+//   I, II, III, and VI are cycles
+//   IV and V are no cycles.
 //
 // Possibility to detect each cycle (if any)
 // -----------------------------------------
 //
-// In the existing tree we search for the new link's source and traverse up to
-// get its root. If that root node matches the new link's target, we have found
-// ourselves a cycle. Holds true for I, II, III, V, IV.
+// In the existing topology we search for the new link's source and traverse up
+// to get its ancestors. If any of those ancestors match the new link's target,
+// we have found ourselves a cycle. Holds true for I, II, III, V, IV, and VI.
 func (r *GormWorkItemLinkRepository) DetectCycle(ctx context.Context, sourceID, targetID, linkTypeID uuid.UUID) (hasCycle bool, err error) {
 	// Get all roots for link's source.
 	// NOTE(kwk): Yes there can be more than one, if the link type is allowing it.
-	_, rootIDs, err := r.GetAncestors(ctx, linkTypeID, sourceID)
+	ancestorIDs, _, err := r.GetAncestors(ctx, linkTypeID, sourceID)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"wilt_id":   linkTypeID,
@@ -169,19 +178,12 @@ func (r *GormWorkItemLinkRepository) DetectCycle(ctx context.Context, sourceID, 
 		return false, errs.Wrapf(err, "failed to check if the work item %s has a parent work item", targetID)
 	}
 
-	// We search for the root of the source and see if it matches the new link's
-	// target. If it matches, we have a cylce.
-	roots, ok := rootIDs[sourceID]
-	if !ok || len(roots) <= 0 {
-		return false, nil // Scenario IV
-	}
-
-	for _, root := range roots {
-		if root == targetID { // Scenarios I, II, III
+	for _, ancestorID := range ancestorIDs {
+		if ancestorID == targetID { // Scenarios I, II, III, VI
 			return true, nil
 		}
 	}
-	return false, nil // Scenario V
+	return false, nil // Scenario IV and V
 }
 
 // lockWorkItemsForUpdate tries to acquire locks for the given work items IDs.
