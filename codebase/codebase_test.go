@@ -189,14 +189,14 @@ func (test *TestCodebaseRepository) TestExistsCodebase() {
 		// given
 		fxt := tf.NewTestFixture(t, test.DB, tf.Codebases(1))
 		// when
-		err := repo.CheckExists(context.Background(), fxt.Codebases[0].ID.String())
+		err := repo.CheckExists(context.Background(), fxt.Codebases[0].ID)
 		// then
 		require.NoError(t, err)
 	})
 
 	test.T().Run("codebase doesn't exist", func(t *testing.T) {
 		// when
-		err := repo.CheckExists(context.Background(), uuid.NewV4().String())
+		err := repo.CheckExists(context.Background(), uuid.NewV4())
 		// then
 		require.IsType(t, errors.NotFoundError{}, err)
 	})

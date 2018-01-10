@@ -93,7 +93,7 @@ func (m *GormUserRepository) Load(ctx context.Context, id uuid.UUID) (*User, err
 }
 
 // CheckExists returns nil if the given ID exists otherwise returns an error
-func (m *GormUserRepository) CheckExists(ctx context.Context, id string) error {
+func (m *GormUserRepository) CheckExists(ctx context.Context, id uuid.UUID) error {
 	defer goa.MeasureSince([]string{"goa", "db", "user", "exists"}, time.Now())
 	return repository.CheckExists(ctx, m.db, m.TableName(), id)
 }

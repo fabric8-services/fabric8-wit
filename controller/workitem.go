@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/fabric8-services/fabric8-wit/ptr"
+
 	"context"
 
 	"github.com/fabric8-services/fabric8-wit/app"
@@ -307,7 +309,7 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 			if err != nil {
 				return errors.NewBadParameterError("data.relationships.iteration.data.id", *d.ID)
 			}
-			if err := appl.Iterations().CheckExists(ctx, iterationUUID.String()); err != nil {
+			if err := appl.Iterations().CheckExists(ctx, iterationUUID); err != nil {
 				return errors.NewNotFoundError("data.relationships.iteration.data.id", *d.ID)
 			}
 			target.Fields[workitem.SystemIteration] = iterationUUID.String()
@@ -337,7 +339,7 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 			if err != nil {
 				return errors.NewBadParameterError("data.relationships.area.data.id", *d.ID)
 			}
-			if err := appl.Areas().CheckExists(ctx, areaUUID.String()); err != nil {
+			if err := appl.Areas().CheckExists(ctx, areaUUID); err != nil {
 				cause := errs.Cause(err)
 				switch cause.(type) {
 				case errors.NotFoundError:
@@ -406,12 +408,11 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 // for future use
 func setupCodebase(appl application.Application, cb *codebase.Content, spaceID uuid.UUID) error {
 	if cb.CodebaseID == "" {
-		defaultStackID := "java-centos"
 		newCodeBase := codebase.Codebase{
 			SpaceID: spaceID,
 			Type:    "git",
 			URL:     cb.Repository,
-			StackID: &defaultStackID,
+			StackID: ptr.String("java-centos"),
 			//TODO: Think of making stackID dynamic value (from analyzer)
 		}
 		existingCB, err := appl.Codebases().LoadByRepo(context.Background(), spaceID, cb.Repository)
@@ -458,8 +459,6 @@ func ConvertWorkItems(request *http.Request, wis []workitem.WorkItem, additional
 func ConvertWorkItem(request *http.Request, wi workitem.WorkItem, additional ...WorkItemConvertFunc) *app.WorkItem {
 	// construct default values from input WI
 	relatedURL := rest.AbsoluteURL(request, app.WorkitemHref(wi.ID))
-	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(wi.SpaceID.String()))
-	witRelatedURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.SpaceID.String(), wi.Type))
 	labelsRelated := relatedURL + "/labels"
 	workItemLinksRelated := relatedURL + "/links"
 
@@ -477,10 +476,10 @@ func ConvertWorkItem(request *http.Request, wi workitem.WorkItem, additional ...
 					Type: APIStringTypeWorkItemType,
 				},
 				Links: &app.GenericLinks{
-					Self: &witRelatedURL,
+					Self: ptr.String(rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.SpaceID.String(), wi.Type))),
 				},
 			},
-			Space: app.NewSpaceRelation(wi.SpaceID, spaceRelatedURL),
+			Space: app.NewSpaceRelation(wi.SpaceID, rest.AbsoluteURL(request, app.SpaceHref(wi.SpaceID.String()))),
 			WorkItemLinks: &app.RelationGeneric{
 				Links: &app.GenericLinks{
 					Related: &workItemLinksRelated,

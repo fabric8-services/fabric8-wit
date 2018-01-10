@@ -514,8 +514,12 @@ func (s *searchControllerTestSuite) TestSearchByWorkItemTypeGroup() {
 			_, sr := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
 			// then
 			toBeFound := map[string]struct{}{
-				"open task":   {},
-				"closed task": {},
+				"open task":      {},
+				"closed task":    {},
+				"open bug":       {},
+				"closed bug":     {},
+				"open feature":   {},
+				"closed feature": {},
 			}
 			checkToBeFound(t, toBeFound, sr.Data)
 		})

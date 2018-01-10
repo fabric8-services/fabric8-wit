@@ -337,10 +337,10 @@ func (s *TestIterationRepository) TestExistsIteration() {
 	repo := iteration.NewIterationRepository(s.DB)
 	t.Run("iteration exists", func(t *testing.T) {
 		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Iterations(1))
-		require.Nil(t, repo.CheckExists(context.Background(), fxt.Iterations[0].ID.String()))
+		require.Nil(t, repo.CheckExists(context.Background(), fxt.Iterations[0].ID))
 	})
 	t.Run("iteration doesn't exist", func(t *testing.T) {
-		err := repo.CheckExists(context.Background(), uuid.NewV4().String())
+		err := repo.CheckExists(context.Background(), uuid.NewV4())
 		require.IsType(t, errors.NotFoundError{}, err)
 	})
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/login"
+	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space"
 
@@ -357,15 +358,10 @@ func ConvertCodebases(request *http.Request, codebases []codebase.Codebase, opti
 
 // ConvertCodebase converts between internal and external REST representation
 func ConvertCodebase(request *http.Request, codebase codebase.Codebase, options ...CodebaseConvertFunc) *app.Codebase {
-	codebaseType := APIStringTypeCodebase
-	spaceType := APIStringTypeSpace
-	spaceID := codebase.SpaceID.String()
 	relatedURL := rest.AbsoluteURL(request, app.CodebaseHref(codebase.ID))
-	editURL := rest.AbsoluteURL(request, app.CodebaseHref(codebase.ID)+"/edit")
-	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
-
+	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(codebase.SpaceID))
 	result := &app.Codebase{
-		Type: codebaseType,
+		Type: APIStringTypeCodebase,
 		ID:   &codebase.ID,
 		Attributes: &app.CodebaseAttributes{
 			CreatedAt:         &codebase.CreatedAt,
@@ -377,8 +373,8 @@ func ConvertCodebase(request *http.Request, codebase codebase.Codebase, options 
 		Relationships: &app.CodebaseRelations{
 			Space: &app.RelationGeneric{
 				Data: &app.GenericData{
-					Type: &spaceType,
-					ID:   &spaceID,
+					Type: ptr.String(APIStringTypeSpace),
+					ID:   ptr.String(codebase.SpaceID.String()),
 				},
 				Links: &app.GenericLinks{
 					Self:    &spaceRelatedURL,
@@ -389,7 +385,7 @@ func ConvertCodebase(request *http.Request, codebase codebase.Codebase, options 
 		Links: &app.CodebaseLinks{
 			Self:    &relatedURL,
 			Related: &relatedURL,
-			Edit:    &editURL,
+			Edit:    ptr.String(rest.AbsoluteURL(request, app.CodebaseHref(codebase.ID)+"/edit")),
 		},
 	}
 	for _, option := range options {

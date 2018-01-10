@@ -126,7 +126,7 @@ func (m *GormAreaRepository) Load(ctx context.Context, id uuid.UUID) (*Area, err
 }
 
 // CheckExists returns nil if the given ID exists otherwise returns an error
-func (m *GormAreaRepository) CheckExists(ctx context.Context, id string) error {
+func (m *GormAreaRepository) CheckExists(ctx context.Context, id uuid.UUID) error {
 	defer goa.MeasureSince([]string{"goa", "db", "area", "exists"}, time.Now())
 	return repository.CheckExists(ctx, m.db, Area{}.TableName(), id)
 }
