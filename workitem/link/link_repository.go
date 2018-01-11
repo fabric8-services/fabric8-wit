@@ -168,7 +168,7 @@ func (r *GormWorkItemLinkRepository) ValidateTopology(ctx context.Context, sourc
 func (r *GormWorkItemLinkRepository) DetectCycle(ctx context.Context, sourceID, targetID, linkTypeID uuid.UUID) (hasCycle bool, err error) {
 	// Get all roots for link's source.
 	// NOTE(kwk): Yes there can be more than one, if the link type is allowing it.
-	ancestorIDs, _, err := r.GetAncestors(ctx, linkTypeID, sourceID)
+	ancestorIDs, _, err := r.GetAncestorsAndRoots(ctx, linkTypeID, sourceID)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"wilt_id":   linkTypeID,
@@ -512,13 +512,14 @@ func (r *GormWorkItemLinkRepository) GetParentID(ctx context.Context, ID uuid.UU
 	return &parentID, nil
 }
 
-// GetAncestors returns all IDs of the ancestors for the given work items. In
-// addition to that it also returns the root IDs for each given work item ID.
+// GetAncestorsAndRoots returns all IDs of the ancestors for the given work
+// items. In addition to that it also returns the root IDs for each given work
+// item ID (if any).
 //
 // NOTE: In case the given link type doesn't have a tree topology a work item
 // might have more than one root item. That is why the root IDs is keyed by the
 // the given work item and mapped to an array of root IDs.
-func (r *GormWorkItemLinkRepository) GetAncestors(ctx context.Context, linkTypeID uuid.UUID, workItemIDs ...uuid.UUID) (distinctAncestorIDs []uuid.UUID, rootIDs map[uuid.UUID][]uuid.UUID, err error) {
+func (r *GormWorkItemLinkRepository) GetAncestorsAndRoots(ctx context.Context, linkTypeID uuid.UUID, workItemIDs ...uuid.UUID) (distinctAncestorIDs []uuid.UUID, rootIDs map[uuid.UUID][]uuid.UUID, err error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "get", "ancestors"}, time.Now())
 
 	if len(workItemIDs) < 1 {
