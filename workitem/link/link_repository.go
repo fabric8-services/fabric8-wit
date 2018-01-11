@@ -593,8 +593,6 @@ func (r *GormWorkItemLinkRepository) GetAncestors(ctx context.Context, linkTypeI
 	)
 
 	// Convert SQL results to instances of ancestor objects
-
-	//var ancestors []Ancestor
 	db := r.db.Raw(query, linkTypeID.String()).Scan(&ancestors)
 	if db.Error != nil {
 		log.Error(ctx, map[string]interface{}{

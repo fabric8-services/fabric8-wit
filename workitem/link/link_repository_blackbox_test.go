@@ -506,9 +506,9 @@ func (s *linkRepoBlackBoxTest) TestGetAncestors() {
 					ancestors, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypes[0].ID, D)
 					require.NoError(t, err)
 					validateAncestry(t, fxt, map[link.Ancestor]struct{}{
-						link.Ancestor{ID: A, OriginalChildID: D, IsRoot: true}:  {},
-						link.Ancestor{ID: B, OriginalChildID: D, IsRoot: false}: {},
-						link.Ancestor{ID: C, OriginalChildID: D, IsRoot: false}: {},
+						{ID: A, OriginalChildID: D, IsRoot: true}:  {},
+						{ID: B, OriginalChildID: D, IsRoot: false}: {},
+						{ID: C, OriginalChildID: D, IsRoot: false}: {},
 					}, ancestors)
 				})
 
@@ -516,8 +516,8 @@ func (s *linkRepoBlackBoxTest) TestGetAncestors() {
 					ancestors, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypes[0].ID, C)
 					require.NoError(t, err)
 					validateAncestry(t, fxt, map[link.Ancestor]struct{}{
-						link.Ancestor{ID: A, OriginalChildID: C, IsRoot: true}:  {},
-						link.Ancestor{ID: B, OriginalChildID: C, IsRoot: false}: {},
+						{ID: A, OriginalChildID: C, IsRoot: true}:  {},
+						{ID: B, OriginalChildID: C, IsRoot: false}: {},
 					}, ancestors)
 				})
 
@@ -526,12 +526,12 @@ func (s *linkRepoBlackBoxTest) TestGetAncestors() {
 					require.NoError(t, err)
 					validateAncestry(t, fxt, map[link.Ancestor]struct{}{
 						// for D
-						link.Ancestor{ID: A, OriginalChildID: D, IsRoot: true}:  {},
-						link.Ancestor{ID: B, OriginalChildID: D, IsRoot: false}: {},
-						link.Ancestor{ID: C, OriginalChildID: D, IsRoot: false}: {},
+						{ID: A, OriginalChildID: D, IsRoot: true}:  {},
+						{ID: B, OriginalChildID: D, IsRoot: false}: {},
+						{ID: C, OriginalChildID: D, IsRoot: false}: {},
 						// for C
-						link.Ancestor{ID: A, OriginalChildID: C, IsRoot: true}:  {},
-						link.Ancestor{ID: B, OriginalChildID: C, IsRoot: false}: {},
+						{ID: A, OriginalChildID: C, IsRoot: true}:  {},
+						{ID: B, OriginalChildID: C, IsRoot: false}: {},
 					}, ancestors)
 				})
 
@@ -571,10 +571,10 @@ func (s *linkRepoBlackBoxTest) TestGetAncestors() {
 					require.NoError(t, err)
 					validateAncestry(t, fxt, map[link.Ancestor]struct{}{
 						// for Y
-						link.Ancestor{ID: X, OriginalChildID: Y, IsRoot: true}: {},
+						{ID: X, OriginalChildID: Y, IsRoot: true}: {},
 						// for E
-						link.Ancestor{ID: A, OriginalChildID: E, IsRoot: true}:  {},
-						link.Ancestor{ID: D, OriginalChildID: E, IsRoot: false}: {},
+						{ID: A, OriginalChildID: E, IsRoot: true}:  {},
+						{ID: D, OriginalChildID: E, IsRoot: false}: {},
 					}, ancestors)
 				})
 			})
