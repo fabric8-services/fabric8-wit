@@ -29,7 +29,7 @@ objects:
     chestarter.url: http://che-starter:10000
     notification.serviceurl: ""
     auth.serviceurl: https://auth.openshift.io
-    toggles.serviceurl: http://f8toggles-service:8080
+    toggles.serviceurl: http://f8toggles-service
     redirect.valid: ".*"
     openshift.tenant.masterurl: https://openshift.local/
     auth_notapproved_redirect: ""

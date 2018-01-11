@@ -811,7 +811,7 @@ const (
 	devModeKeycloakRealm = "fabric8-test"
 
 	defaultOpenshiftTenantMasterURL = "https://tsrv.devshift.net:8443"
-	defaultTogglesServiceURL        = "http://toggles-service:8080"
+	defaultTogglesServiceURL        = "http://f8toggles-service"
 	defaultCheStarterURL            = "che-server"
 
 	// DefaultValidRedirectURLs is a regex to be used to whitelist redirect URL for auth
