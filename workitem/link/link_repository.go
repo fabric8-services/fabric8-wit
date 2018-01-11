@@ -41,14 +41,8 @@ type WorkItemLinkRepository interface {
 	ListWorkItemChildren(ctx context.Context, parentID uuid.UUID, start *int, limit *int) ([]workitem.WorkItem, uint64, error)
 	WorkItemHasChildren(ctx context.Context, parentID uuid.UUID) (bool, error)
 	GetParentID(ctx context.Context, ID uuid.UUID) (*uuid.UUID, error) // GetParentID returns parent ID of the given work item if any
-	// GetAncestors returns all IDs of the ancestors for the given work items.
-	// In addition to that it also returns the root IDs for each given work item
-	// ID.
-	//
-	// NOTE: In case the given link type doesn't have a tree topology a work
-	// item might have more than one root item. That is why the root IDs is
-	// keyed by the the given work item and mapped to an array of root IDs.
-	GetAncestors(ctx context.Context, linkTypeID uuid.UUID, workItemIDs ...uuid.UUID) (distinctAncestorIDs []uuid.UUID, rootIDs map[uuid.UUID][]uuid.UUID, err error)
+	// GetAncestors returns all ancestors for the given work items.
+	GetAncestors(ctx context.Context, linkTypeID uuid.UUID, workItemIDs ...uuid.UUID) (ancestors []Ancestor, err error)
 }
 
 // NewWorkItemLinkRepository creates a work item link repository based on gorm
