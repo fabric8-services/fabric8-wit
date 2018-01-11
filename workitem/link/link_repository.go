@@ -168,7 +168,7 @@ func (r *GormWorkItemLinkRepository) ValidateTopology(ctx context.Context, sourc
 func (r *GormWorkItemLinkRepository) DetectCycle(ctx context.Context, sourceID, targetID, linkTypeID uuid.UUID) (hasCycle bool, err error) {
 	// Get all roots for link's source.
 	// NOTE(kwk): Yes there can be more than one, if the link type is allowing it.
-	ancestorIDs, _, err := r.GetAncestorsAndRoots(ctx, linkTypeID, sourceID)
+	ancestors, err := r.GetAncestors(ctx, linkTypeID, sourceID)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"wilt_id":   linkTypeID,
@@ -178,8 +178,8 @@ func (r *GormWorkItemLinkRepository) DetectCycle(ctx context.Context, sourceID, 
 		return false, errs.Wrapf(err, "failed to check if the work item %s has a parent work item", targetID)
 	}
 
-	for _, ancestorID := range ancestorIDs {
-		if ancestorID == targetID { // Scenarios I, II, III, VI
+	for _, ancestor := range ancestors {
+		if ancestor.ID == targetID { // Scenarios I, II, III, VI
 			return true, nil
 		}
 	}
@@ -512,28 +512,31 @@ func (r *GormWorkItemLinkRepository) GetParentID(ctx context.Context, ID uuid.UU
 	return &parentID, nil
 }
 
-// GetAncestorsAndRoots returns all IDs of the ancestors for the given work
-// items. In addition to that it also returns the root IDs for each given work
-// item ID (if any).
+// Ancestor is essentially an annotated work item ID. Each Ancestor knows for
+// which original child it is the ancestor and whether or not itself is the
+// root.
+type Ancestor struct {
+	ID              uuid.UUID `gorm:"column:ancestor" sql:"type:uuid"`
+	OriginalChildID uuid.UUID `gorm:"column:original_child" sql:"type:uuid"`
+	IsRoot          bool      `gorm:"column:is_root"`
+}
+
+// GetAncestors returns all ancestors for the given work items.
 //
 // NOTE: In case the given link type doesn't have a tree topology a work item
 // might have more than one root item. That is why the root IDs is keyed by the
 // the given work item and mapped to an array of root IDs.
-func (r *GormWorkItemLinkRepository) GetAncestorsAndRoots(ctx context.Context, linkTypeID uuid.UUID, workItemIDs ...uuid.UUID) (distinctAncestorIDs []uuid.UUID, rootIDs map[uuid.UUID][]uuid.UUID, err error) {
+func (r *GormWorkItemLinkRepository) GetAncestors(ctx context.Context, linkTypeID uuid.UUID, workItemIDs ...uuid.UUID) (ancestors []Ancestor, err error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "get", "ancestors"}, time.Now())
 
 	if len(workItemIDs) < 1 {
-		return nil, nil, nil
+		return nil, nil
 	}
-
-	rootIDs = map[uuid.UUID][]uuid.UUID{}
 
 	// Get destincts work item IDs (eliminates duplicates)
 	idMap := map[uuid.UUID]struct{}{}
 	for _, id := range workItemIDs {
 		idMap[id] = struct{}{}
-		// also intialize the root IDs
-		rootIDs[id] = []uuid.UUID{}
 	}
 
 	// Create a string array of of UUIDs separated by a comma for use in SQL
@@ -590,44 +593,20 @@ func (r *GormWorkItemLinkRepository) GetAncestorsAndRoots(ctx context.Context, l
 			original_child,
 			(SELECT NOT EXISTS (SELECT 1 FROM work_item_links l WHERE l.target_id = ancestor AND l.link_type_id = $1)) as "is_root"
 		FROM working_table
-		-- Eliminate a child to appear as parent also
-		WHERE ancestor NOT IN ( %[2]s )
 		;`,
 		WorkItemLink{}.TableName(),
 		idStr,
 	)
 
 	// Convert SQL results to instances of ancestor objects
-	type ancestor struct {
-		Ancestor      uuid.UUID `gorm:"column:ancestor" sql:"type:uuid"`
-		OriginalChild uuid.UUID `gorm:"column:original_child" sql:"type:uuid"`
-		IsRoot        bool      `gorm:"column:is_root"`
-	}
-	var ancestors []ancestor
+
+	//var ancestors []Ancestor
 	db := r.db.Raw(query, linkTypeID.String()).Scan(&ancestors)
 	if db.Error != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": db.Error,
 		}, "failed to find ancestors for work items: %s", idStr)
-		return nil, nil, errors.NewInternalError(ctx, errs.Wrapf(db.Error, "failed to find ancestors for work items: %s", idStr))
+		return nil, errors.NewInternalError(ctx, errs.Wrapf(db.Error, "failed to find ancestors for work items: %s", idStr))
 	}
-
-	// Iterate over all ancestors and build root array for each original child.
-	distinctAncestorMap := map[uuid.UUID]struct{}{}
-	for _, a := range ancestors {
-		distinctAncestorMap[a.Ancestor] = struct{}{}
-		if a.IsRoot {
-			rootIDs[a.OriginalChild] = append(rootIDs[a.OriginalChild], a.Ancestor)
-		}
-	}
-
-	// Convert distinct ancestor map to array
-	distinctAncestorIDs = make([]uuid.UUID, len(distinctAncestorMap))
-	i = 0
-	for id := range distinctAncestorMap {
-		distinctAncestorIDs[i] = id
-		i++
-	}
-	return distinctAncestorIDs, rootIDs, nil
-
+	return ancestors, nil
 }
