@@ -59,8 +59,13 @@ func testableCompareWithGolden(update bool, goldenFile string, actualObj interfa
 		return errs.WithStack(err)
 	}
 	if update {
+		// Make sure the directory exists where to write the file to
+		err := os.MkdirAll(filepath.Dir(absPath), os.FileMode(0777))
+		if err != nil {
+			return errs.Wrapf(err, "failed to create directory (and potential parents dirs) to write golden file to")
+		}
+
 		tmp := string(actual)
-		var err error
 		// Eliminate concrete UUIDs if requested. This makes adding changes to
 		// golden files much more easy in git.
 		if uuidAgnostic {
@@ -251,15 +256,17 @@ func TestCompareWithGolden(t *testing.T) {
 			_, isPathError := errs.Cause(err).(*os.PathError)
 			require.True(t, isPathError)
 		})
-		t.Run("unable to update golden file due to not existing folder", func(t *testing.T) {
+		t.Run("update golden file in a folder that does not yet exist", func(t *testing.T) {
 			// given
 			f := "not/existing/folder/file.golden.json"
 			// when
 			err := testableCompareWithGolden(true, f, dummy, uuidAgnostic)
 			// then
-			require.Error(t, err)
-			_, isPathError := errs.Cause(err).(*os.PathError)
-			require.True(t, isPathError)
+			// then double check that file exists and no error occurred
+			require.NoError(t, err)
+			_, err = os.Stat(f)
+			require.NoError(t, err)
+			require.NoError(t, os.Remove(f), "failed to remove test file")
 		})
 		t.Run("mismatch between expected and actual output", func(t *testing.T) {
 			// given

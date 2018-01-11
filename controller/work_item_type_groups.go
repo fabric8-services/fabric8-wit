@@ -27,7 +27,7 @@ func NewWorkItemTypeGroupsController(service *goa.Service, db application.DB) *W
 // List runs the list action.
 func (c *WorkItemTypeGroupsController) List(ctx *app.ListWorkItemTypeGroupsContext) error {
 	err := application.Transactional(c.db, func(appl application.Application) error {
-		return appl.Spaces().CheckExists(ctx, ctx.SpaceTemplateID.String())
+		return appl.Spaces().CheckExists(ctx, ctx.SpaceTemplateID)
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
