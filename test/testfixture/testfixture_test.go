@@ -351,7 +351,7 @@ func (s *testFixtureSuite) TestWorkItemLinks() {
 			require.Nil(t, fxt)
 		})
 		t.Run("multiple link chains", func(t *testing.T) {
-			// Here's a much easier was to create link trees without the hassle
+			// Here's a much easier way to create link trees without the hassle
 			// of big switch statements. I've used two link chains in order to
 			// demonstrate that you can create disjoint links as well.
 			chain1 := tf.LinkChain("A", "B", "C")
