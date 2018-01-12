@@ -370,6 +370,9 @@ func GetMigrations() Migrations {
 		link.SystemWorkItemLinkCategoryUserID.String(),
 	)})
 
+	// Version 81
+	m = append(m, steps{ExecuteSQLFile("081-space_related_locks.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
