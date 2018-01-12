@@ -1,4 +1,4 @@
-@startuml
+@startuml link_creation
 
 ' This is a PlantUML activity diagram.
 ' To generate a PNG diagram from this file follow these steps:

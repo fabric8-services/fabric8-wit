@@ -180,18 +180,30 @@ func (r *GormWorkItemLinkRepository) DetectCycle(ctx context.Context, sourceID, 
 	return false, nil // Scenario IV and V
 }
 
-// lockWorkItemsForUpdate tries to acquire locks for the given work items IDs.
-// It blocks until the lock is acquired or an error occured.
-func (r *GormWorkItemLinkRepository) lockWorkItemsForUpdate(IDs ...uuid.UUID) error {
-	ifArr := make([]interface{}, len(IDs))
-	for i, id := range IDs {
-		ifArr[i] = id
+// acquireLocks takes work item IDs, fetches the space ID of each work
+// item and blocks until it acquires a lock for the entry in our
+// space_related_locks table.
+func (r *GormWorkItemLinkRepository) acquireLocks(ctx context.Context, workItemIDs ...uuid.UUID) error {
+	// load work items
+	wiRepo := workitem.NewWorkItemRepository(r.db)
+	items, err := wiRepo.LoadBatchByID(ctx, workItemIDs)
+	if err != nil {
+		return errs.Wrapf(err, "failed to load source and target work items: %+v", workItemIDs)
 	}
+
+	// extract space IDs
+	ifArr := make([]interface{}, len(items))
+	for i, item := range items {
+		ifArr[i] = item.SpaceID
+	}
+
+	// acquire row-lock on space_id
 	result := []int{}
-	db := r.db.Set("gorm:query_option", "FOR UPDATE").Table(workitem.WorkItemStorage{}.TableName()).Select(1).Where("id in (?, ?)", ifArr...).Find(&result)
+	db := r.db.Set("gorm:query_option", "FOR UPDATE").Table("space_related_locks").Select(1).Where("space_id IN (?)", ifArr).Find(&result)
 	if db.Error != nil {
-		return errs.Wrapf(db.Error, "failed to lock work items: %+v", IDs)
+		return errs.Wrapf(db.Error, "failed to acquire lock")
 	}
+
 	return nil
 }
 
@@ -208,6 +220,21 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 		return nil, errs.WithStack(err)
 	}
 
+	// double check only links between the same space are allowed.
+	// NOTE(kwk): This is only until we have a proper
+	wiRepo := workitem.NewWorkItemRepository(r.db)
+	workItemIDs := []uuid.UUID{sourceID, targetID}
+	items, err := wiRepo.LoadBatchByID(ctx, workItemIDs)
+	if err != nil {
+		return nil, errs.Wrapf(err, "failed to load source and target work items: %+v", workItemIDs)
+	}
+	spaceID := items[0].SpaceID
+	for _, item := range items {
+		if item.SpaceID != spaceID {
+			return nil, errs.Errorf("cross-space links are not allowed (for now)")
+		}
+	}
+
 	// Fetch the link type
 	linkType, err := r.workItemLinkTypeRepo.Load(ctx, linkTypeID)
 	if err != nil {
@@ -215,8 +242,8 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 	}
 
 	// Lock source and target work items
-	if err := r.lockWorkItemsForUpdate(sourceID, targetID); err != nil {
-		return nil, errs.Wrap(err, "failed to lock work items during link creation")
+	if err := r.acquireLocks(ctx, sourceID, targetID); err != nil {
+		return nil, errs.Wrap(err, "failed to acquire lock during link creation")
 	}
 
 	// Make sure we don't violate the topology when we add the link from source
@@ -315,8 +342,8 @@ func (r *GormWorkItemLinkRepository) Delete(ctx context.Context, linkID uuid.UUI
 	if tx.RecordNotFound() {
 		return errors.NewNotFoundError("work item link", linkID.String())
 	}
-	if err := r.lockWorkItemsForUpdate(lnk.SourceID, lnk.TargetID); err != nil {
-		return errs.Wrap(err, "failed to lock work items during link deletion")
+	if err := r.acquireLocks(ctx, lnk.SourceID, lnk.TargetID); err != nil {
+		return errs.Wrap(err, "failed to acquire lock during link deletion")
 	}
 	r.deleteLink(ctx, lnk, suppressorID)
 	return nil
@@ -331,6 +358,9 @@ func (r *GormWorkItemLinkRepository) DeleteRelatedLinks(ctx context.Context, wiI
 	}, "Deleting the links related to work item")
 
 	var workitemLinks = []WorkItemLink{}
+	if err := r.acquireLocks(ctx, wiID); err != nil {
+		return errs.Wrap(err, "failed to acquire lock during link deletion")
+	}
 	r.db.Where("? in (source_id, target_id)", wiID).Find(&workitemLinks)
 	// delete one by one to trigger the creation of a new work item link revision
 	for _, workitemLink := range workitemLinks {

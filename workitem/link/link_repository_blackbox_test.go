@@ -1,6 +1,7 @@
 package link_test
 
 import (
+	"fmt"
 	"strings"
 	"sync"
 	"testing"
@@ -141,6 +142,60 @@ func (s *linkRepoBlackBoxTest) TestValidateTopology() {
 	})
 }
 
+// createLinksConcurrently accepts a list of function of which only 1 is
+// supposed to succeed; the rest are supposed to fail for (concurrency reasons).
+func (s *linkRepoBlackBoxTest) createLinksConcurrently(t *testing.T, fxt *tf.TestFixture, numLinksExpected int, fns ...func(fxt *tf.TestFixture, workItemLinkRepo link.WorkItemLinkRepository) error) {
+	N := len(fns)
+	wgBegin := sync.WaitGroup{} // synced begin
+	wgBegin.Add(N)
+	wgFinish := sync.WaitGroup{} // synced end
+	wgFinish.Add(N)
+	errs := make([]error, N)
+	errCnt := 0
+
+	for n := 0; n < N; n++ {
+		go func(i int) {
+			defer func() {
+				wgFinish.Done()
+			}()
+
+			// Make sure that each go routine operates on its own
+			// transaction
+			db := s.DB.Begin()
+			require.NoError(t, db.Error)
+			defer func() {
+				if errs[i] != nil {
+					db.Rollback()
+				} else {
+					db.Commit()
+				}
+				require.NoError(t, db.Error)
+			}()
+
+			workitemLinkRepo := link.NewWorkItemLinkRepository(db)
+
+			// barrier to synchronize creation of links
+			wgBegin.Done()
+			wgBegin.Wait()
+
+			// Execute the i-th function
+			errs[i] = fns[i](fxt, workitemLinkRepo)
+
+			if errs[i] != nil {
+				errCnt++
+			}
+		}(n)
+	}
+	wgFinish.Wait()
+	// require.Equal(t, numLinksExpected, errCnt, "expected %d out of %d concurrent routines to fail but here %d failed: %+v", numLinksExpected, N, errCnt, errs)
+	t.Run(fmt.Sprintf("total #links is %d", numLinksExpected), func(t *testing.T) {
+		links := []link.WorkItemLink{}
+		db := s.DB.Table(link.WorkItemLink{}.TableName()).Where("link_type_id = ?", fxt.WorkItemLinkTypes[0].ID).Find(&links)
+		require.NoError(t, db.Error)
+		require.Len(t, links, numLinksExpected)
+	})
+}
+
 func (s *linkRepoBlackBoxTest) TestCreate() {
 	s.T().Run("ok", func(t *testing.T) {
 		t.Run("serial", func(t *testing.T) {
@@ -153,76 +208,6 @@ func (s *linkRepoBlackBoxTest) TestCreate() {
 			_, err := s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("parent").ID, fxt.WorkItemByTitle("child").ID, fxt.WorkItemLinkTypeByName("tree-type").ID, fxt.Identities[0].ID)
 			// then
 			require.NoError(t, err)
-		})
-
-		t.Run("2 concurrent requests to create A->B and B->A", func(t *testing.T) {
-			// given
-			fxt := tf.NewTestFixture(t, s.DB,
-				tf.WorkItems(2, tf.SetWorkItemTitles("A", "B")),
-				tf.WorkItemLinkTypes(1, tf.SetTopologies(link.TopologyTree)),
-			)
-
-			N := 2
-			wgBegin := sync.WaitGroup{}  // synced begin
-			wgFinish := sync.WaitGroup{} // synced end
-			errs := make([]error, N)
-			errCnt := 0
-
-			for n := 0; n < N; n++ {
-				wgBegin.Add(1)
-				wgFinish.Add(1)
-
-				go func(i int) {
-					t.Logf("entering go routine %d\n", i)
-					defer func() {
-						t.Logf("finishing go routine %d\n", i)
-						wgFinish.Done()
-					}()
-
-					// Make sure that each go routine operates on its own
-					// transaction
-					db := s.DB.Begin()
-					require.NoError(t, db.Error)
-					defer func() {
-						if db.Error != nil {
-							t.Logf("rolling back transaction %d: %+v\n", i, db.Error)
-							db.Rollback()
-						} else {
-							t.Logf("committing transaction %d\n", i)
-							db.Commit()
-						}
-						require.NoError(t, db.Error)
-					}()
-
-					workitemLinkRepo := link.NewWorkItemLinkRepository(db)
-
-					// barrier to synchronize creation of links
-					wgBegin.Done()
-					wgBegin.Wait()
-					t.Logf("Let the games begin: %d", i)
-
-					switch i {
-					case 0:
-						_, errs[i] = workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("A").ID, fxt.WorkItemByTitle("B").ID, fxt.WorkItemLinkTypes[0].ID, fxt.Identities[0].ID)
-					case 1:
-						_, errs[i] = workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("B").ID, fxt.WorkItemByTitle("A").ID, fxt.WorkItemLinkTypes[0].ID, fxt.Identities[0].ID)
-					}
-
-					if errs[i] != nil {
-						errCnt++
-					}
-				}(n)
-			}
-			wgFinish.Wait()
-			t.Log("All test go routines have returned.")
-			require.Equal(t, N-1, errCnt, "expected %d out of %d concurrent routines to fail but here %d failed: %+v", N-1, N, errCnt, errs)
-
-			t.Run("only one link was created", func(t *testing.T) {
-				links := []link.WorkItemLink{}
-				db := s.DB.Table(link.WorkItemLink{}.TableName()).Where("link_type_id = ?", fxt.WorkItemLinkTypes[0].ID).Find(&links)
-				require.NoError(t, db.Error)
-				require.Len(t, links, 1)
-			})
 		})
 	})
 
@@ -263,145 +248,244 @@ func (s *linkRepoBlackBoxTest) TestCreate() {
 	})
 
 	s.T().Run("cycle detection", func(t *testing.T) {
+		t.Run("serial", func(t *testing.T) {
+			// These are the scenarios we test here.
+			//
+			// Legend
+			// ------
+			//
+			//   \ = link
+			//   * = new link
+			//   C = the element that is potentially causing the cycle
+			//
+			// Scenarios
+			// ---------
+			//
+			//   I:        II:       III:      IV:       V:       VI:
+			//
+			//    C         C         C         C         A        A
+			//     *         \         *         *         \        \
+			//      A         A         A         A         B        C
+			//       \         \         \         \         *        \
+			//        B         B         C         B         C        B
+			//         \         *         \                            *
+			//          C         C         B                            C
+			//
+			// In a "tree" topology:
+			//   I, II, III are cycles
+			//   IV and V are no cycles.
+			//   VI violates the single-parent rule
+			//
+			// In a "dependency" topology:
+			//   I, II, III, and VI are cycles
+			//   IV and V are no cycles.
 
-		// These are the scenarios we test here.
-		//
-		// Legend
-		// ------
-		//
-		//   \ = link
-		//   * = new link
-		//   C = the element that is potentially causing the cycle
-		//
-		// Scenarios
-		// ---------
-		//
-		//   I:        II:       III:      IV:       V:       VI:
-		//
-		//    C         C         C         C         A        A
-		//     *         \         *         *         \        \
-		//      A         A         A         A         B        C
-		//       \         \         \         \         *        \
-		//        B         B         C         B         C        B
-		//         \         *         \                            *
-		//          C         C         B                            C
-		//
-		// In a "tree" topology:
-		//   I, II, III are cycles
-		//   IV and V are no cycles.
-		//   VI violates the single-parent rule
-		//
-		// In a "dependency" topology:
-		//   I, II, III, and VI are cycles
-		//   IV and V are no cycles.
-
-		// Map topologies to expected error during cycle
-		topos := map[link.Topology][]bool{
-			link.TopologyNetwork:         {false, false, false, false, false, false},
-			link.TopologyDirectedNetwork: {false, false, false, false, false, false},
-			link.TopologyTree:            {true, true, true, false, false, true},
-			link.TopologyDependency:      {true, true, true, false, false, true},
-		}
-		for topo, errorExpected := range topos {
-			t.Run("topology: "+topo.String(), func(t *testing.T) {
-				t.Run("Scenario I: C*A-B-C", func(t *testing.T) {
-					// given
-					fxt := tf.NewTestFixture(t, s.DB,
-						tf.WorkItems(3, tf.SetWorkItemTitles("A", "B", "C")),
-						tf.WorkItemLinkTypes(1, tf.SetTopologies(topo)),
-						tf.WorkItemLinksCustom(2, tf.BuildLinks(tf.LinkChain("A", "B", "C")...)),
-					)
-					// when
-					_, err := s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("C").ID, fxt.WorkItemByTitle("A").ID, fxt.WorkItemLinkTypes[0].ID, fxt.Identities[0].ID)
-					// then
-					if errorExpected[0] {
-						require.Error(t, err)
-					} else {
-						require.NoError(t, err)
-					}
+			// Map topologies to expected error during cycle
+			topos := map[link.Topology][]bool{
+				link.TopologyNetwork:         {false, false, false, false, false, false},
+				link.TopologyDirectedNetwork: {false, false, false, false, false, false},
+				link.TopologyTree:            {true, true, true, false, false, true},
+				link.TopologyDependency:      {true, true, true, false, false, true},
+			}
+			for topo, errorExpected := range topos {
+				t.Run("topology: "+topo.String(), func(t *testing.T) {
+					t.Run("Scenario I: C*A-B-C", func(t *testing.T) {
+						// given
+						fxt := tf.NewTestFixture(t, s.DB,
+							tf.WorkItems(3, tf.SetWorkItemTitles("A", "B", "C")),
+							tf.WorkItemLinkTypes(1, tf.SetTopologies(topo)),
+							tf.WorkItemLinksCustom(2, tf.BuildLinks(tf.LinkChain("A", "B", "C")...)),
+						)
+						// when
+						_, err := s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("C").ID, fxt.WorkItemByTitle("A").ID, fxt.WorkItemLinkTypes[0].ID, fxt.Identities[0].ID)
+						// then
+						if errorExpected[0] {
+							require.Error(t, err)
+						} else {
+							require.NoError(t, err)
+						}
+					})
+					t.Run("Scenario II: C-A-B*C", func(t *testing.T) {
+						// given
+						fxt := tf.NewTestFixture(t, s.DB,
+							tf.WorkItems(3, tf.SetWorkItemTitles("C", "A", "B")),
+							tf.WorkItemLinkTypes(1, tf.SetTopologies(topo)),
+							tf.WorkItemLinksCustom(2, tf.BuildLinks(tf.LinkChain("C", "A", "B")...)),
+						)
+						// when
+						_, err := s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("B").ID, fxt.WorkItemByTitle("C").ID, fxt.WorkItemLinkTypes[0].ID, fxt.Identities[0].ID)
+						// then
+						if errorExpected[1] {
+							require.Error(t, err)
+						} else {
+							require.NoError(t, err)
+						}
+					})
+					t.Run("Scenario III: C*A-C-B", func(t *testing.T) {
+						// given
+						fxt := tf.NewTestFixture(t, s.DB,
+							tf.WorkItems(3, tf.SetWorkItemTitles("A", "C", "B")),
+							tf.WorkItemLinkTypes(1, tf.SetTopologies(topo)),
+							tf.WorkItemLinksCustom(2, tf.BuildLinks(tf.LinkChain("A", "C", "B")...)),
+						)
+						// when
+						_, err := s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("C").ID, fxt.WorkItemByTitle("A").ID, fxt.WorkItemLinkTypes[0].ID, fxt.Identities[0].ID)
+						// then
+						if errorExpected[2] {
+							require.Error(t, err)
+						} else {
+							require.NoError(t, err)
+						}
+					})
+					t.Run("Scenario IV: C*A-B", func(t *testing.T) {
+						// given
+						fxt := tf.NewTestFixture(t, s.DB,
+							tf.WorkItems(3, tf.SetWorkItemTitles("A", "B", "C")),
+							tf.WorkItemLinkTypes(1, tf.SetTopologies(topo)),
+							tf.WorkItemLinksCustom(1, tf.BuildLinks(tf.LinkChain("A", "B")...)),
+						)
+						// when
+						_, err := s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("C").ID, fxt.WorkItemByTitle("A").ID, fxt.WorkItemLinkTypes[0].ID, fxt.Identities[0].ID)
+						// then
+						if errorExpected[3] {
+							require.Error(t, err)
+						} else {
+							require.NoError(t, err)
+						}
+					})
+					t.Run("Scenario V: A-B*C", func(t *testing.T) {
+						// given
+						fxt := tf.NewTestFixture(t, s.DB,
+							tf.WorkItems(3, tf.SetWorkItemTitles("A", "B", "C")),
+							tf.WorkItemLinkTypes(1, tf.SetTopologies(topo)),
+							tf.WorkItemLinksCustom(1, tf.BuildLinks(tf.LinkChain("A", "B")...)),
+						)
+						// when
+						_, err := s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("B").ID, fxt.WorkItemByTitle("C").ID, fxt.WorkItemLinkTypes[0].ID, fxt.Identities[0].ID)
+						// then
+						if errorExpected[4] {
+							require.Error(t, err)
+						} else {
+							require.NoError(t, err)
+						}
+					})
+					t.Run("Scenario VI: A-C-B*C", func(t *testing.T) {
+						// given
+						fxt := tf.NewTestFixture(t, s.DB,
+							tf.WorkItems(3, tf.SetWorkItemTitles("A", "B", "C")),
+							tf.WorkItemLinkTypes(1, tf.SetTopologies(topo)),
+							tf.WorkItemLinksCustom(2, tf.BuildLinks(tf.LinkChain("A", "C", "B")...)),
+						)
+						// when
+						_, err := s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("B").ID, fxt.WorkItemByTitle("C").ID, fxt.WorkItemLinkTypes[0].ID, fxt.Identities[0].ID)
+						// then
+						if errorExpected[5] {
+							require.Error(t, err)
+						} else {
+							require.NoError(t, err)
+						}
+					})
 				})
-				t.Run("Scenario II: C-A-B*C", func(t *testing.T) {
-					// given
-					fxt := tf.NewTestFixture(t, s.DB,
-						tf.WorkItems(3, tf.SetWorkItemTitles("C", "A", "B")),
-						tf.WorkItemLinkTypes(1, tf.SetTopologies(topo)),
-						tf.WorkItemLinksCustom(2, tf.BuildLinks(tf.LinkChain("C", "A", "B")...)),
-					)
-					// when
-					_, err := s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("B").ID, fxt.WorkItemByTitle("C").ID, fxt.WorkItemLinkTypes[0].ID, fxt.Identities[0].ID)
-					// then
-					if errorExpected[1] {
-						require.Error(t, err)
-					} else {
-						require.NoError(t, err)
-					}
+			}
+		})
+		t.Run("concurrent", func(t *testing.T) {
+			// Scenarios
+			//
+			//  I:
+			//  	Topology: -
+			//  	Alice   : A*B
+			//  	Bob     : B*A
+			//
+			//  II:
+			// 		A->B->C * D->E->F
+			// 		   ^         |
+			// 		    \__ * ___/
+			//
+			//  III:
+			//		A->B->C * D->E->F
+			//		 ^              |
+			//		  \____ * ______/
+			// Map topologies to expected error during cycle
+			topos := map[link.Topology][]bool{
+				link.TopologyNetwork:         {false, false, false},
+				link.TopologyDirectedNetwork: {false, false, false},
+				link.TopologyTree:            {true, true, true},
+				link.TopologyDependency:      {true, true, true},
+			}
+			for topo, errorExpected := range topos {
+				t.Run("topology: "+topo.String(), func(t *testing.T) {
+					t.Run("create A->B and B->A", func(t *testing.T) {
+						fxt := tf.NewTestFixture(t, s.DB,
+							tf.WorkItems(2, tf.SetWorkItemTitles("A", "B")),
+							tf.WorkItemLinkTypes(1, tf.SetTopologies(topo)),
+						)
+						addon := 1
+						if !errorExpected[0] {
+							addon++
+						}
+						s.createLinksConcurrently(t, fxt, addon,
+							func(fxt *tf.TestFixture, workItemLinkRepo link.WorkItemLinkRepository) error {
+								_, err := workItemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("A").ID, fxt.WorkItemByTitle("B").ID, fxt.WorkItemLinkTypes[0].ID, fxt.Identities[0].ID)
+								return err
+							}, func(fxt *tf.TestFixture, workItemLinkRepo link.WorkItemLinkRepository) error {
+								_, err := workItemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("B").ID, fxt.WorkItemByTitle("A").ID, fxt.WorkItemLinkTypes[0].ID, fxt.Identities[0].ID)
+								return err
+							},
+						)
+					})
+					// Concurrently create these links
+					// A->B->C * D->E->F
+					//    ^         |
+					//     \___*____|
+					t.Run("given A->B->C and D->E->F, now create E->B and C->D", func(t *testing.T) {
+						chain := append(tf.LinkChain("A", "B", "C"), tf.LinkChain("D", "E", "F")...)
+						fxt := tf.NewTestFixture(t, s.DB,
+							tf.WorkItems(6, tf.SetWorkItemTitles("A", "B", "C", "D", "E", "F")),
+							tf.WorkItemLinkTypes(1, tf.SetTopologies(topo)),
+							tf.WorkItemLinksCustom(len(chain), tf.BuildLinks(chain...)),
+						)
+						addon := 1
+						if !errorExpected[1] {
+							addon++
+						}
+						s.createLinksConcurrently(t, fxt, len(chain)+addon,
+							func(fxt *tf.TestFixture, workItemLinkRepo link.WorkItemLinkRepository) error {
+								_, err := workItemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("C").ID, fxt.WorkItemByTitle("D").ID, fxt.WorkItemLinkTypes[0].ID, fxt.Identities[0].ID)
+								return err
+							}, func(fxt *tf.TestFixture, workItemLinkRepo link.WorkItemLinkRepository) error {
+								_, err := workItemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("E").ID, fxt.WorkItemByTitle("B").ID, fxt.WorkItemLinkTypes[0].ID, fxt.Identities[0].ID)
+								return err
+							},
+						)
+					})
+					// Concurrently create these links
+					// A->B->C * D->E->F
+					// ^               |
+					//  \______*______/
+					t.Run("given A->B->C and D->E->F, now create C->D and F->A", func(t *testing.T) {
+						chain := append(tf.LinkChain("A", "B", "C"), tf.LinkChain("D", "E", "F")...)
+						fxt := tf.NewTestFixture(t, s.DB,
+							tf.WorkItems(6, tf.SetWorkItemTitles("A", "B", "C", "D", "E", "F")),
+							tf.WorkItemLinkTypes(1, tf.SetTopologies(topo)),
+							tf.WorkItemLinksCustom(len(chain), tf.BuildLinks(chain...)),
+						)
+						addon := 1
+						if !errorExpected[2] {
+							addon++
+						}
+						s.createLinksConcurrently(t, fxt, len(chain)+addon,
+							func(fxt *tf.TestFixture, workItemLinkRepo link.WorkItemLinkRepository) error {
+								_, err := workItemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("C").ID, fxt.WorkItemByTitle("D").ID, fxt.WorkItemLinkTypes[0].ID, fxt.Identities[0].ID)
+								return err
+							}, func(fxt *tf.TestFixture, workItemLinkRepo link.WorkItemLinkRepository) error {
+								_, err := workItemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("F").ID, fxt.WorkItemByTitle("A").ID, fxt.WorkItemLinkTypes[0].ID, fxt.Identities[0].ID)
+								return err
+							},
+						)
+					})
 				})
-				t.Run("Scenario III: C*A-C-B", func(t *testing.T) {
-					// given
-					fxt := tf.NewTestFixture(t, s.DB,
-						tf.WorkItems(3, tf.SetWorkItemTitles("A", "C", "B")),
-						tf.WorkItemLinkTypes(1, tf.SetTopologies(topo)),
-						tf.WorkItemLinksCustom(2, tf.BuildLinks(tf.LinkChain("A", "C", "B")...)),
-					)
-					// when
-					_, err := s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("C").ID, fxt.WorkItemByTitle("A").ID, fxt.WorkItemLinkTypes[0].ID, fxt.Identities[0].ID)
-					// then
-					if errorExpected[2] {
-						require.Error(t, err)
-					} else {
-						require.NoError(t, err)
-					}
-				})
-				t.Run("Scenario IV: C*A-B", func(t *testing.T) {
-					// given
-					fxt := tf.NewTestFixture(t, s.DB,
-						tf.WorkItems(3, tf.SetWorkItemTitles("A", "B", "C")),
-						tf.WorkItemLinkTypes(1, tf.SetTopologies(topo)),
-						tf.WorkItemLinksCustom(1, tf.BuildLinks(tf.LinkChain("A", "B")...)),
-					)
-					// when
-					_, err := s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("C").ID, fxt.WorkItemByTitle("A").ID, fxt.WorkItemLinkTypes[0].ID, fxt.Identities[0].ID)
-					// then
-					if errorExpected[3] {
-						require.Error(t, err)
-					} else {
-						require.NoError(t, err)
-					}
-				})
-				t.Run("Scenario V: A-B*C", func(t *testing.T) {
-					// given
-					fxt := tf.NewTestFixture(t, s.DB,
-						tf.WorkItems(3, tf.SetWorkItemTitles("A", "B", "C")),
-						tf.WorkItemLinkTypes(1, tf.SetTopologies(topo)),
-						tf.WorkItemLinksCustom(1, tf.BuildLinks(tf.LinkChain("A", "B")...)),
-					)
-					// when
-					_, err := s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("B").ID, fxt.WorkItemByTitle("C").ID, fxt.WorkItemLinkTypes[0].ID, fxt.Identities[0].ID)
-					// then
-					if errorExpected[4] {
-						require.Error(t, err)
-					} else {
-						require.NoError(t, err)
-					}
-				})
-				t.Run("Scenario VI: A-C-B*C", func(t *testing.T) {
-					// given
-					fxt := tf.NewTestFixture(t, s.DB,
-						tf.WorkItems(3, tf.SetWorkItemTitles("A", "B", "C")),
-						tf.WorkItemLinkTypes(1, tf.SetTopologies(topo)),
-						tf.WorkItemLinksCustom(2, tf.BuildLinks(tf.LinkChain("A", "C", "B")...)),
-					)
-					// when
-					_, err := s.workitemLinkRepo.Create(s.Ctx, fxt.WorkItemByTitle("B").ID, fxt.WorkItemByTitle("C").ID, fxt.WorkItemLinkTypes[0].ID, fxt.Identities[0].ID)
-					// then
-					if errorExpected[5] {
-						require.Error(t, err)
-					} else {
-						require.NoError(t, err)
-					}
-				})
-			})
-		}
+			}
+		})
 	})
 }
 
