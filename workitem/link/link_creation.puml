@@ -163,6 +163,9 @@ if (Is topology "tree" or "dependency"?) then (yes)
                     | 333 | C | E | [444,333] | false |
                     | 222 | B | E | [444,333,222] | false |
                     | 111 | A | E | [444,333,222,111] | false |
+
+                    Note, that PostgreSQL is operating a bit differently
+                    but this table helps to understand what we store.
                 end note
 
                 ->found links;
