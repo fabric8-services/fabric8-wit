@@ -224,14 +224,14 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 		}
 	}
 
+	if err := r.acquireLock(spaceID); err != nil {
+		return nil, errs.Wrap(err, "failed to acquire lock during link creation")
+	}
+
 	// Fetch the link type
 	linkType, err := r.workItemLinkTypeRepo.Load(ctx, linkTypeID)
 	if err != nil {
 		return nil, errs.Wrap(err, "failed to load link type")
-	}
-
-	if err := r.acquireLock(spaceID); err != nil {
-		return nil, errs.Wrap(err, "failed to acquire lock during link creation")
 	}
 
 	// Make sure we don't violate the topology when we add the link from source

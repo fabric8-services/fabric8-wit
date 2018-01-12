@@ -22,22 +22,31 @@ start
 
 ""BEGIN;"";
 
-:Given a new link with **type**, **source** and **target**
-ID we load the __link type__ by it's ID.;
+partition "Single space linking (for now)" {
+    :Load **source** and **target** of new link
+    to find out in which space they reside.;
+    if (space IDs are different) then (yes)
+        #FF0000:Disallow link creation because of cross-space link.;
+            :Rollback transaction;
+            stop
+    else (no)
+    endif
+}
 
-:Acquire a lock for **source** and **target** work items:
+:Acquire a PostgreSQL advisory lock named after the 32bit hash
+of the space's UUID.
 
-""SELECT id FROM work_items ""
-""WHERE id IN (""
-""  <SOURCE_OF_NEW_LINK>, <TARGET_OF_NEW_LINK>""
-"") FOR UPDATE;""
+""SELECT pg_advisory_xact_lock(<HASH_OF_SPACE_ID>);""
 
 The lock is automatically release when the transaction ends.;
 note right
-    Until proven wrong we only lock the source and
-    target work items. This also needs to be done
-    when deleting a link.
+    With the single-space linking restriction in place
+    (see above) we ensure that only one person can create
+    a link within a space. This does not block anybody
+    from creating links in other spaces.
 end note
+
+:Load new link's type to get the topology.;
 
 ->Run validation
 depending on topology;
@@ -111,7 +120,7 @@ if (Is topology "tree" or "dependency"?) then (yes)
                 The algorithm to the left will construct this //working table//:
 
                 |= link ID |= source |= original_child |= already_visited |= cycle |
-                | 444 | D | E | [111] | false |
+                | 444 | D | E | [444] | false |
 
                 //NOTE:// For the sake of readability we show a work item's title
                 here instead of it's ID and the link IDs are simplified to numbers
@@ -119,9 +128,10 @@ if (Is topology "tree" or "dependency"?) then (yes)
             end note
             while (as long as //working table// is not empty) is (not empty)
                 :**Recursive term of CTE**
-                Take the ""source"" value of all entries from the //working table//
-                and search for links of the same type where the target is one of
-                the ""source"" values.
+                Take the ""source"" value of all entries
+                from the //working table// and search
+                for links of the same type where the
+                target is one of the ""source"" values.
 
                 ""SELECT""
                 ""  l.id,""
@@ -144,6 +154,15 @@ if (Is topology "tree" or "dependency"?) then (yes)
                     except that the thing to search for is driven by the
                     //working table// instead of the user given source of
                     a link.
+
+                    Think of the //working// table to look like this
+                    over time:
+
+                    |= link ID |= source |= original_child |= already_visited |= cycle |
+                    | 444 | D | E | [444] | false |
+                    | 333 | C | E | [444,333] | false |
+                    | 222 | B | E | [444,333,222] | false |
+                    | 111 | A | E | [444,333,222,111] | false |
                 end note
 
                 ->found links;
