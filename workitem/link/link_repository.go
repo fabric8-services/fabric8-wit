@@ -189,7 +189,7 @@ func (r *GormWorkItemLinkRepository) acquireLock(spaceID uuid.UUID) error {
 	// TODO(kwk): Reducing the 128 bit UUID to a 32 bit number potentially ends
 	// up in longer wait times for locks because there exists a certain
 	// potential to have hash collisions for two distinct UUIDs. But currently
-	// Postgres only allos for 64 bit numbers without the high bit set. That
+	// Postgres only allows for 64 bit numbers without the high bit set. That
 	// effectively limits us to just 32 bit hashes. Once we allos cross-space
 	// linking we need to revisit the locking.
 	h := fnv.New32()
