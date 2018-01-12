@@ -181,20 +181,20 @@ func (getter *testMetricsGetter) GetMetrics(metricsURL string, bearerToken strin
 	return testMetrics{}, nil
 }
 
-func (testMetrics) GetCPUMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error) {
+func (testMetrics) GetCPUMetrics(pods []*v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error) {
 	return nil, nil // TODO
 }
 
-func (testMetrics) GetCPUMetricsRange(pods []v1.Pod, namespace string, startTime time.Time, endTime time.Time,
+func (testMetrics) GetCPUMetricsRange(pods []*v1.Pod, namespace string, startTime time.Time, endTime time.Time,
 	limit int) ([]*app.TimedNumberTuple, error) {
 	return nil, nil // TODO
 }
 
-func (testMetrics) GetMemoryMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error) {
+func (testMetrics) GetMemoryMetrics(pods []*v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error) {
 	return nil, nil // TODO
 }
 
-func (testMetrics) GetMemoryMetricsRange(pods []v1.Pod, namespace string, startTime time.Time, endTime time.Time,
+func (testMetrics) GetMemoryMetricsRange(pods []*v1.Pod, namespace string, startTime time.Time, endTime time.Time,
 	limit int) ([]*app.TimedNumberTuple, error) {
 	return nil, nil // TODO
 }

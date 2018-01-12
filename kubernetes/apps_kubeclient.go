@@ -302,10 +302,7 @@ func (kc *kubeClient) GetDeployment(spaceName string, appName string, envName st
 		return nil, err
 	}
 	// Get the status of each pod in the deployment
-	podStats, total, err := kc.getPodStatus(pods)
-	if err != nil {
-		return nil, err
-	}
+	podStats, total := kc.getPodStatus(pods)
 
 	// Get related URLs for the deployment
 	appURL, err := kc.getApplicationURL(envNS, deploy)
@@ -833,14 +830,14 @@ func (kc *kubeClient) GetPodsInNamespace(nameSpace string, appName string) ([]v1
 	return pods.Items, nil
 }
 
-func (kc *kubeClient) getPods(namespace string, uid types.UID) ([]v1.Pod, error) {
+func (kc *kubeClient) getPods(namespace string, uid types.UID) ([]*v1.Pod, error) {
 	pods, err := kc.Pods(namespace).List(metaV1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	var appPods []v1.Pod
-	for _, pod := range pods.Items {
+	var appPods []*v1.Pod
+	for idx, pod := range pods.Items {
 		// If a pod belongs to a given RC, it should have an OwnerReference
 		// whose UID matches that of the RC
 		// https://github.com/openshift/origin-web-console/blob/v3.7.0/app/scripts/services/ownerReferences.js#L40
@@ -851,50 +848,144 @@ func (kc *kubeClient) getPods(namespace string, uid types.UID) ([]v1.Pod, error)
 			}
 		}
 		if match {
-			appPods = append(appPods, pod)
+			appPods = append(appPods, &pods.Items[idx])
 		}
 	}
 
 	return appPods, nil
 }
 
-func (kc *kubeClient) getPodStatus(pods []v1.Pod) ([][]string, int, error) {
-	var starting, running, stopping int
+// Pod status constants
+const (
+	podRunning     = "Running"
+	podNotReady    = "Not Ready"
+	podWarning     = "Warning"
+	podError       = "Error"
+	podPulling     = "Pulling"
+	podPending     = "Pending"
+	podSucceeded   = "Succeeded"
+	podTerminating = "Terminating"
+	podUnknown     = "Unknown"
+)
+
+func (kc *kubeClient) getPodStatus(pods []*v1.Pod) ([][]string, int) {
 	/*
-	 * TODO Logic for pod phases in web console is calculated in the UI:
+	 * Use the same categorization used by the web console. See:
 	 * https://github.com/openshift/origin-web-console/blob/v3.7.0/app/scripts/directives/podDonut.js
 	 * https://github.com/openshift/origin-web-console/blob/v3.7.0/app/scripts/filters/resources.js
-	 * Should we duplicate the logic here in Go, opt for simpler phases (perhaps just PodPhase), or send Pod as JSON to fabric8-ui
-	 * to reuse JS components
-	 * const phases = []string{"Running", "Not Ready", "Warning", "Error", "Pulling", "Pending", "Succeeded", "Terminating", "Unknown"}
 	 */
+	podStatus := make(map[string]int)
+	podTotal := 0
 	for _, pod := range pods {
-		// Terminating pods have a deletionTimeStamp set
-		if pod.ObjectMeta.DeletionTimestamp != nil {
-			stopping++
-		} else if pod.Status.Phase == v1.PodPending {
-			// TODO Is this a good approximation of "Starting"?
-			starting++
-		} else if pod.Status.Phase == v1.PodRunning {
-			running++
+		statusKey := podUnknown
+		if pod.Status.Phase == v1.PodFailed {
+			// Failed pods are not included, see web console:
+			// https://github.com/openshift/origin-web-console/blob/v3.7.0/app/scripts/directives/podDonut.js#L32
+			continue
+		} else if pod.DeletionTimestamp != nil {
+			// Terminating pods have a deletionTimeStamp set
+			statusKey = podTerminating
+		} else if warn, severe := isPodWarning(pod); warn {
+			// Check for warnings/errors
+			if severe {
+				statusKey = podError
+			} else {
+				statusKey = podWarning
+			}
+		} else if isPullingImage(pod) {
+			// One or more containers is waiting on its image to be pulled
+			statusKey = podPulling
+		} else if pod.Status.Phase == v1.PodRunning && !isPodReady(pod) {
+			// Pod is running, but one or more containers is not yet ready
+			statusKey = podNotReady
 		} else {
-			// TODO Handle other phases
+			// Use Kubernetes pod phase
+			statusKey = string(pod.Status.Phase)
+		}
+		podStatus[statusKey]++
+		podTotal++
+	}
+
+	var result [][]string
+	for status, count := range podStatus {
+		statusEntry := []string{status, strconv.Itoa(count)}
+		result = append(result, statusEntry)
+	}
+
+	return result, podTotal
+}
+
+func isPodWarning(pod *v1.Pod) (warning, severe bool) {
+	const containerTimeout time.Duration = 5 * time.Minute
+	const containerCrashLoop string = "CrashLoopBackOff"
+	// Consider Unknown phase a warning state
+	if pod.Status.Phase == v1.PodUnknown {
+		return true, false
+	}
+
+	// Check if pod has been in Pending phase for too long
+	now := time.Now()
+	if pod.Status.Phase == v1.PodPending {
+		duration := now.Sub(pod.CreationTimestamp.Time)
+		if duration > containerTimeout {
+			return true, false
 		}
 	}
 
-	total := len(pods)
-
-	startingArray := []string{"Starting", strconv.Itoa(starting)}
-	runningArray := []string{"Running", strconv.Itoa(running)}
-	stoppingArray := []string{"Stopping", strconv.Itoa(stopping)}
-
-	result := [][]string{
-		startingArray,
-		runningArray,
-		stoppingArray,
+	// Check for warning conditions in pod's containers
+	if pod.Status.Phase == v1.PodRunning {
+		for _, status := range pod.Status.ContainerStatuses {
+			state := status.State
+			// Check if the container terminated with non-zero exit status
+			if state.Terminated != nil && state.Terminated.ExitCode != 0 {
+				// Severe if pod is terminated, indicating container didn't stop cleanly
+				return true, pod.DeletionTimestamp != nil
+			}
+			// Check if the container has been repeatedly crashing
+			if state.Waiting != nil && state.Waiting.Reason == containerCrashLoop {
+				return true, true
+			}
+			// Check if the container has not become ready within timeout
+			if state.Running != nil && !status.Ready {
+				startTime := state.Running.StartedAt.Time
+				duration := now.Sub(startTime)
+				if duration > containerTimeout {
+					return true, false
+				}
+			}
+		}
 	}
 
-	return result, total, nil
+	return false, false
+}
+
+func isPullingImage(pod *v1.Pod) bool {
+	const containerCreating string = "ContainerCreating"
+	// If pod is pending with a container waiting due to a "ContainerCreating" event,
+	// categorize as "Pulling". This may change as more information is made available.
+	// See: https://github.com/openshift/origin-web-console/blob/v3.7.0/app/scripts/filters/resources.js#L663
+	if pod.Status.Phase == v1.PodPending {
+		for _, status := range pod.Status.ContainerStatuses {
+			waiting := status.State.Waiting
+			if waiting != nil && waiting.Reason == containerCreating {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func isPodReady(pod *v1.Pod) bool {
+	// If all of the pod's containers have a ready status, then the pod is
+	// considered ready.
+	total := len(pod.Spec.Containers)
+	numReady := 0
+	for _, status := range pod.Status.ContainerStatuses {
+		if status.Ready {
+			numReady++
+		}
+	}
+	return numReady == total
 }
 
 func (kc *kubeClient) getBestRoute(namespace string, dc *deployment) (*url.URL, error) {
