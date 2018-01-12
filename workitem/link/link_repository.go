@@ -190,7 +190,7 @@ func (r *GormWorkItemLinkRepository) acquireLock(spaceID uuid.UUID) error {
 	// up in longer wait times for locks because there exists a certain
 	// potential to have hash collisions for two distinct UUIDs. But currently
 	// Postgres only allows for 64 bit numbers without the high bit set. That
-	// effectively limits us to just 32 bit hashes. Once we allos cross-space
+	// effectively limits us to just 32 bit hashes. Once we allow cross-space
 	// linking we need to revisit the locking.
 	h := fnv.New32()
 	h.Write([]byte(spaceID.String()))
