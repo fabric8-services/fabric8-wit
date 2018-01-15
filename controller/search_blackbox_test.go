@@ -1060,7 +1060,6 @@ func (s *searchControllerTestSuite) TestIncludedParents() {
 	spaceIDStr := fxt.Spaces[0].ID.String()
 
 	s.T().Run("in topology A-B-C-D and A-D search for", func(t *testing.T) {
-
 		testFunc := func(t *testing.T, searchForTitle string, expectedData, expectedIncludeWorkItems map[uuid.UUID]struct{}, treeView bool) {
 			// we need to access these maps twice, therefore we copy them
 			expectedData2 := map[uuid.UUID]struct{}{}
@@ -1082,12 +1081,6 @@ func (s *searchControllerTestSuite) TestIncludedParents() {
 			t.Run(testName, func(t *testing.T) {
 				t.Logf("Running with filter: %s", filter)
 				_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
-				goldenFileName := searchForTitle + "" + ".res.golden.json"
-				if treeView {
-					goldenFileName = searchForTitle + "_with_tree_view_" + ".res.golden.json"
-				}
-				compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "included-parents", goldenFileName), result)
-				// fmt.Printf("Result: %s\n\n", spew.Sdump(result))
 				require.NotEmpty(t, result.Data)
 				require.Len(t, result.Data, 1)
 				// test what's included in the "data" portion of the response
