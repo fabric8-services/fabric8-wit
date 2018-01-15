@@ -217,7 +217,8 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 	}
 
 	// double check only links between the same space are allowed.
-	// NOTE(kwk): This is only until we have a proper
+	// NOTE(kwk): This is only until we have a proper cross-space
+	// cycle detection with locks.
 	wiRepo := workitem.NewWorkItemRepository(r.db)
 	workItemIDs := []uuid.UUID{sourceID, targetID}
 	items, err := wiRepo.LoadBatchByID(ctx, workItemIDs)
