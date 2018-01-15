@@ -62,6 +62,88 @@ func SetTopologies(topologies ...link.Topology) CustomizeWorkItemLinkTypeFunc {
 	}
 }
 
+// Link is a helper struct to construct a link from two work item titles
+// (instead of the work item IDs). It is mainly used by the `L`, `LinkChain` and
+// `BuildLinks` functions.
+type Link struct {
+	SourceTitle   string
+	TargetTitle   string
+	LinkTypeTitle string
+}
+
+// L constructs and individual link from the source and target work item titles
+// with an optional link type name.
+func L(SourceTitle string, TargetTitle string, LinkTypeTitle ...string) Link {
+	res := Link{
+		SourceTitle: SourceTitle,
+		TargetTitle: TargetTitle,
+	}
+	if len(LinkTypeTitle) > 0 {
+		res.LinkTypeTitle = LinkTypeTitle[0]
+	}
+	return res
+}
+
+// LinkChain creates Link objects between each of the given work item as
+// specified by their title.
+//
+// For example, `LinkChain("A", "B", "C", "D")`` will create these links `A->B`,
+// `B->C`, and `C-D`.
+func LinkChain(workItemTitles ...string) []Link {
+	res := make([]Link, len(workItemTitles)-1)
+	for i := 1; i < len(workItemTitles); i++ {
+		res[i-1] = L(workItemTitles[i-1], workItemTitles[i])
+	}
+	return res
+}
+
+// BuildLinks is best explained with an example: the function takes `Link`
+// objects, which are meant to be constructed using either `L` or `LinkChain`.
+// Before you would have to build a gigantic `switch` statement even for the
+// simplest of links.
+//
+// The following example shows how you can create two links chains that create
+// these links `A->B, B->C, D->E, E->F, F->G`:
+//
+// 		chain1 := tf.LinkChain("A", "B", "C")
+// 		chain2 := tf.LinkChain("D", "E", "F", "G")
+// 		fxt := tf.NewTestFixture(t, s.DB,
+// 			tf.WorkItemLinkTypes(1, tf.SetTopologies(link.TopologyDependency)),
+// 			tf.WorkItems(7, tf.SetWorkItemTitles("A", "B", "C", "D", "E", "F", "G")),
+// 			tf.WorkItemLinksCustom(5, tf.BuildLinks(append(chain1, chain2...)...)),
+// 		)
+func BuildLinks(links ...Link) CustomizeWorkItemLinkFunc {
+	return func(fxt *TestFixture, idx int) error {
+		if len(fxt.WorkItemLinks) != len(links) {
+			return errs.Errorf("number of work item pairs (%d) must match number of work item links to create (%d)", len(links), len(fxt.WorkItemLinks))
+		}
+
+		l := fxt.WorkItemLinks[idx]
+
+		if links[idx].LinkTypeTitle != "" {
+			linkType := fxt.WorkItemLinkTypeByName(links[idx].LinkTypeTitle)
+			if linkType == nil {
+				return errs.Errorf("failed to find work item link type by title: %s", links[idx].LinkTypeTitle)
+			}
+			l.LinkTypeID = linkType.ID
+		}
+
+		src := fxt.WorkItemByTitle(links[idx].SourceTitle)
+		if src == nil {
+			return errs.Errorf("failed to find source work item by title: %s", links[idx].SourceTitle)
+		}
+		l.SourceID = src.ID
+
+		tgt := fxt.WorkItemByTitle(links[idx].TargetTitle)
+		if src == nil {
+			return errs.Errorf("failed to find target work item by title: %s", links[idx].TargetTitle)
+		}
+		l.TargetID = tgt.ID
+
+		return nil
+	}
+}
+
 // UserActive ensures that all created iterations have the given user activation
 // state
 func UserActive(active bool) CustomizeIterationFunc {

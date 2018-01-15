@@ -102,6 +102,11 @@ objects:
               configMapKeyRef:
                 name: core
                 key: auth.serviceurl
+          - name: F8_TOGGLES_SERVICEURL
+            valueFrom:
+              configMapKeyRef:
+                name: core
+                key: toggles.serviceurl
           - name: F8_REDIRECT_VALID
             valueFrom:
               configMapKeyRef:

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
+	uuid "github.com/satori/go.uuid"
 
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
@@ -360,6 +361,38 @@ func (s *testFixtureSuite) TestWorkItemLinks() {
 			// WorkItemLinks and WorkItemLinksCustom
 			require.Error(t, err)
 			require.Nil(t, fxt)
+		})
+		t.Run("multiple link chains", func(t *testing.T) {
+			// Here's a much easier way to create link trees without the hassle
+			// of big switch statements. I've used two link chains in order to
+			// demonstrate that you can create disjoint links as well.
+			chain1 := tf.LinkChain("A", "B", "C")
+			chain2 := tf.LinkChain("D", "E", "F", "G")
+
+			fxt := tf.NewTestFixture(t, s.DB,
+				tf.WorkItemLinkTypes(1, tf.SetTopologies(link.TopologyDependency)),
+				tf.WorkItems(7, tf.SetWorkItemTitles("A", "B", "C", "D", "E", "F", "G")),
+				tf.WorkItemLinksCustom(5, tf.BuildLinks(append(chain1, chain2...)...)),
+			)
+
+			expectedLinks := map[uuid.UUID]uuid.UUID{
+				fxt.WorkItemByTitle("A").ID: fxt.WorkItemByTitle("B").ID,
+				fxt.WorkItemByTitle("B").ID: fxt.WorkItemByTitle("C").ID,
+				fxt.WorkItemByTitle("D").ID: fxt.WorkItemByTitle("E").ID,
+				fxt.WorkItemByTitle("E").ID: fxt.WorkItemByTitle("F").ID,
+				fxt.WorkItemByTitle("F").ID: fxt.WorkItemByTitle("G").ID,
+			}
+			actualLinks := []link.WorkItemLink{}
+			db := s.DB.Table(link.WorkItemLink{}.TableName()).Where("link_type_id = ?", fxt.WorkItemLinkTypes[0].ID).Find(&actualLinks)
+			require.NoError(t, db.Error)
+			require.Len(t, actualLinks, 5)
+			for _, l := range actualLinks {
+				_, ok := expectedLinks[l.SourceID]
+				if ok {
+					delete(expectedLinks, l.SourceID)
+				}
+			}
+			require.Empty(t, expectedLinks, "failed to find all expected links: %+v", expectedLinks)
 		})
 	})
 }

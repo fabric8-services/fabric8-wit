@@ -1,0 +1,185 @@
+[[running-dependent-services-on-openshift]]
+= Running dependent services on OpenShift
+:icons:
+:toc: macro
+:toc-title:
+:toclevels: 2
+
+toc::[]
+
+These instructions will help you run your services on OpenShift using
+Minishift.
+
+[[prerequisites]]
+== Prerequisites
+
+[[install-kedge]]
+=== Install Kedge (Linux)
+
+. Follow these steps to download and install Kedge on your machine and add the binary to your `PATH` environment variable. For more detailed information see link:http://kedgeproject.org[kedgeproject.org].
++
+----
+curl -L https://github.com/kedgeproject/kedge/releases/download/v0.5.1/kedge-linux-amd64 -o kedge
+chmod +x ./kedge
+sudo mv ./kedge /usr/local/bin/kedge
+----
+
+. Verify the installation by running the following command.
++
+----
+kedge version
+----
++
+If successfully installed, the Kedge version number is displayed.
+
+[[install-minishift]]
+=== Install Minishift (Linux)
+
+. Make sure you have installed the link:https://docs.openshift.org/latest/minishift/getting-started/installing.html#install-prerequisites[hypervisor] of your choice for Minishift. For more detailed information see link:https://docs.openshift.org/latest/minishift/index.html[Minishift overview].
+. Download and install Minishift by following the steps listed
+https://docs.openshift.org/latest/minishift/getting-started/installing.html#manually[here].
+. Add the `minishift` binary to your `PATH` environment variable as follows:
++
+----
+<cd to downloaded_directory>
+chmod +x ./minishift
+sudo mv ./minishift /usr/local/bin/minishift
+----
++
+. Verify the installation by running the following command.
++
+----
+minishift version
+----
++
+If successfully installed, the Minishift version number is displayed.
+
+[[install-kubectl]]
+=== Install Kubectl (Linux)
+
+. Install and set up Kubectl on your machine as per instructions listed
+https://kubernetes.io/docs/tasks/tools/install-kubectl/[here]
+
+. Verify the installation by running the following command.
++
+----
+kubectl version
+----
++
+If successfully installed, the kubectl version number is displayed.
+
+[[usage]]
+== Usage
+To automate the process of running the containers on OpenShift in Minishift by using Kedge:
+
+. Clone fabric8-wit repository
++
+----
+git clone git@github.com:fabric8-services/fabric8-wit.git
+----
++
+
+. Run the fabric8-wit, fabric8-auth, and databases on OpenShift as follows:
++
+----
+cd minishift/
+make dev-openshift
+----
++
+
+. Enter your password, when prompted, to make an entry in the `/etc/hosts`.
++
+
+NOTE: In the background, `minishift ip` provides the IP address on which it runs. This creates a host entry as
+`minishift.local` for that IP. This domain is whitelisted on
+fabric8-keycloak.
+This process uses developer account for creating a project called `planner-services`.
++
+
+You can use the following `optional` values to add specific tags to your WIT or AUTH image,
++
+----
+WIT_IMAGE_TAG=<<WIT_TAG>> AUTH_IMAGE_TAG=<<AUTH_TAG>> make dev-openshift
+----
++
+The `latest` tag is taken as the default if no tags are specified.
+
+[[run-fabric8-ui-locally]]
+=== Run fabric8-ui locally
+. Use the following commands to run fabric8-ui locally.
++
+----
+git clone git@github.com:fabric8-ui/fabric8-ui.git
+npm install
+FABRIC8_WIT_API_URL="http://`minishift ip`:30000/api/" FABRIC8_AUTH_API_URL="http://minishift.local:31000/api/" FABRIC8_REALM="fabric8-test" npm start
+----
++
+. After the server runs, you can visit `http://localhost:3000` and login by using prod-preview credentials.
+
+[[cleanup]]
+=== Cleanup
+
+* If you want to stop all the services running in Minishift, use the following command:
++
+----
+make clean-openshift
+----
++
+
+It will remove the project `planner-services` from Minishift.
+
+[[check-logs-from-services]]
+=== Check logs from services
+
+. Use `oc` from Minishift as follows:
++
+----
+eval $(minishift oc-env)
+----
++
+. List out all running services in Minishift using:
++
+----
+oc get pods
+----
++
+. Wait until all pods are in running state, and then copy pod name and use the following command to see the logs.
++
+----
+oc logs <<pod name>> -f
+----
++
+. Use `docker` from Minishift as follows:
++
+----
+eval $(minishift docker-env)
+----
++
+
+
+[[service-endpoints]]
+=== Service endpoints
+
+. Get the minishit IP by using the following command.
++
+----
+minishift ip
+----
++
+Use this IP address to reach to services running in minishift.
+
+. Visit the database running in minishift by visiting:
++
+----
+psql -h `minishift ip` -U postgres -d postgres -p 32000
+----
++
+** The WIT (Work Item Tracker) service  runs at `minishift ip`:30000.
+
+** The AUTH service runs at `minishift ip`:31000.
+
+[[feedback]]
+== Feedback
+If you have any feedback, suggestions, or ideas, reach us on our Mattermost channel, link:https://chat.openshift.io/developers/channels/fabric8-planner[fabric8-planner].
+
+Contributions and questions are welcome. You can file issues link:https://github.com/fabric8-services/fabric8-wit/issues[here]. Before you submit an issue, search the list of issues to see that it does not already exist.

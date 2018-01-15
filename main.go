@@ -369,6 +369,10 @@ func main() {
 	queriesCtrl := controller.NewQueryController(service, appDB, config)
 	app.MountQueryController(service, queriesCtrl)
 
+	// proxying call to "/api/features/*" to the toggles service
+	featuresCtrl := controller.NewFeaturesController(service, config)
+	app.MountFeaturesController(service, featuresCtrl)
+
 	log.Logger().Infoln("Git Commit SHA: ", controller.Commit)
 	log.Logger().Infoln("UTC Build Time: ", controller.BuildTime)
 	log.Logger().Infoln("UTC Start Time: ", controller.StartTime)

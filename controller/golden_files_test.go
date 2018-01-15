@@ -266,6 +266,7 @@ func TestCompareWithGolden(t *testing.T) {
 			require.NoError(t, err)
 			_, err = os.Stat(f)
 			require.NoError(t, err)
+			require.NoError(t, os.Remove(f), "failed to remove test file")
 		})
 		t.Run("mismatch between expected and actual output", func(t *testing.T) {
 			// given
