@@ -115,7 +115,7 @@ func LinkChain(workItemTitles ...string) []Link {
 func BuildLinks(links ...Link) CustomizeWorkItemLinkFunc {
 	return func(fxt *TestFixture, idx int) error {
 		if len(fxt.WorkItemLinks) != len(links) {
-			return errs.Errorf("number of work item pairs (%d) must match number of work item links to create (%d)", len(links), len(fxt.WorkItemLinks))
+			return errs.Errorf("number of links (%d) must match number of work item links to create (%d)", len(links), len(fxt.WorkItemLinks))
 		}
 
 		l := fxt.WorkItemLinks[idx]
@@ -135,7 +135,7 @@ func BuildLinks(links ...Link) CustomizeWorkItemLinkFunc {
 		l.SourceID = src.ID
 
 		tgt := fxt.WorkItemByTitle(links[idx].TargetTitle)
-		if src == nil {
+		if tgt == nil {
 			return errs.Errorf("failed to find target work item by title: %s", links[idx].TargetTitle)
 		}
 		l.TargetID = tgt.ID
