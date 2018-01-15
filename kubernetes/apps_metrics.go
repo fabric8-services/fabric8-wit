@@ -20,11 +20,11 @@ type MetricsGetter interface {
 
 // MetricsInterface provides methods to obtain performance metrics of a deployed application
 type MetricsInterface interface {
-	GetCPUMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error)
-	GetCPUMetricsRange(pods []v1.Pod, namespace string, startTime time.Time, endTime time.Time,
+	GetCPUMetrics(pods []*v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error)
+	GetCPUMetricsRange(pods []*v1.Pod, namespace string, startTime time.Time, endTime time.Time,
 		limit int) ([]*app.TimedNumberTuple, error)
-	GetMemoryMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error)
-	GetMemoryMetricsRange(pods []v1.Pod, namespace string, startTime time.Time, endTime time.Time,
+	GetMemoryMetrics(pods []*v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error)
+	GetMemoryMetricsRange(pods []*v1.Pod, namespace string, startTime time.Time, endTime time.Time,
 		limit int) ([]*app.TimedNumberTuple, error)
 }
 
@@ -63,11 +63,11 @@ func newMetricsClient(metricsURL string, bearerToken string) (MetricsInterface, 
 	return mc, nil
 }
 
-func (mc *metricsClient) GetCPUMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error) {
+func (mc *metricsClient) GetCPUMetrics(pods []*v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error) {
 	return mc.getBucketAverage(pods, namespace, cpuDesc, startTime, millicoreToCoreScale)
 }
 
-func (mc *metricsClient) GetCPUMetricsRange(pods []v1.Pod, namespace string,
+func (mc *metricsClient) GetCPUMetricsRange(pods []*v1.Pod, namespace string,
 	startTime time.Time, endTime time.Time, limit int) ([]*app.TimedNumberTuple, error) {
 	buckets, err := mc.getBucketsInRange(pods, namespace, cpuDesc, startTime, endTime, limit)
 	if err != nil {
@@ -78,11 +78,11 @@ func (mc *metricsClient) GetCPUMetricsRange(pods []v1.Pod, namespace string,
 	return results, nil
 }
 
-func (mc *metricsClient) GetMemoryMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error) {
+func (mc *metricsClient) GetMemoryMetrics(pods []*v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error) {
 	return mc.getBucketAverage(pods, namespace, memDesc, startTime, noScale)
 }
 
-func (mc *metricsClient) GetMemoryMetricsRange(pods []v1.Pod, namespace string,
+func (mc *metricsClient) GetMemoryMetricsRange(pods []*v1.Pod, namespace string,
 	startTime time.Time, endTime time.Time, limit int) ([]*app.TimedNumberTuple, error) {
 	buckets, err := mc.getBucketsInRange(pods, namespace, memDesc, startTime, endTime, limit)
 	if err != nil {
@@ -117,7 +117,7 @@ func convertToUnixMillis(t time.Time) int64 {
 	return hawkular.ToUnixMilli(t)
 }
 
-func (mc *metricsClient) getBucketAverage(pods []v1.Pod, namespace, descTag string,
+func (mc *metricsClient) getBucketAverage(pods []*v1.Pod, namespace, descTag string,
 	startTime time.Time, scale float64) (*app.TimedNumberTuple, error) {
 	result, err := mc.getLatestBucket(pods, namespace, descTag, startTime)
 	if err != nil {
@@ -130,7 +130,7 @@ func (mc *metricsClient) getBucketAverage(pods []v1.Pod, namespace, descTag stri
 	return tuple, err
 }
 
-func (mc *metricsClient) getLatestBucket(pods []v1.Pod, namespace string, descTag string,
+func (mc *metricsClient) getLatestBucket(pods []*v1.Pod, namespace string, descTag string,
 	startTime time.Time) (*hawkular.Bucketpoint, error) {
 	// Get one bucket after the specified start time
 	endTime := startTime.Add(bucketDuration)
@@ -144,7 +144,7 @@ func (mc *metricsClient) getLatestBucket(pods []v1.Pod, namespace string, descTa
 	return buckets[0], nil
 }
 
-func (mc *metricsClient) getBucketsInRange(pods []v1.Pod, namespace string, descTag string, startTime time.Time,
+func (mc *metricsClient) getBucketsInRange(pods []*v1.Pod, namespace string, descTag string, startTime time.Time,
 	endTime time.Time, limit int) ([]*hawkular.Bucketpoint, error) {
 	// Note: returned buckets are ordered by start time
 	// https://github.com/hawkular/hawkular-metrics/blob/0.28.3/core/metrics-model/src/main/java/org/hawkular/metrics/model/BucketPoint.java#L70
@@ -182,7 +182,7 @@ func (mc *metricsClient) getBucketsInRange(pods []v1.Pod, namespace string, desc
 	return buckets, nil
 }
 
-func (mc *metricsClient) readBuckets(pods []v1.Pod, namespace string, descTag string,
+func (mc *metricsClient) readBuckets(pods []*v1.Pod, namespace string, descTag string,
 	filters ...hawkular.Filter) ([]*hawkular.Bucketpoint, error) {
 	numPods := len(pods)
 	if numPods == 0 {
