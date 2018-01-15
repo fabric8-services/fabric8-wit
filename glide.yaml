@@ -9,7 +9,7 @@ import:
   subpackages:
   - design
 - package: github.com/fabric8-services/fabric8-auth
-  version: da575b14ac9ceb113f18f1c1cab75be256460d64
+  version: 39c2f11b75983545c11f6c26963a1ce047b11df7
   subpackages:
   - design
 - package: github.com/dgrijalva/jwt-go
@@ -121,3 +121,30 @@ import:
 - package: github.com/prometheus/client_golang
 - package: gopkg.in/alecthomas/kingpin.v2
   version: ^2.2.6
+- package: gopkg.in/inf.v0
+- package: github.com/ugorji/go
+  version: ded73eae5db7e7a0ef6f55aace87a2873c5d2b74
+  subpackages:
+  - codec
+- package: github.com/davecgh/go-spew
+  version: adab96458c51a58dc1783b3335dcce5461522e75
+  subpackages:
+  - spew
+- package: k8s.io/apimachinery
+  # From https://github.com/kubernetes/client-go/blob/v4.0.0/Godeps/Godeps.json
+  version: 1fd2e63a9a370677308a42f24fd40c86438afddf
+  subpackages:
+  - pkg/apis/meta/v1
+  - pkg/types
+  - pkg/api/resource
+- package: github.com/hawkular/hawkular-client-go
+  subpackages:
+  - metrics
+- package: k8s.io/client-go
+  version: ^4.0.0
+  subpackages:
+  - kubernetes
+  - rest
+  - pkg/api/v1
+- package: github.com/ajg/form
+  version: ^1.5.0
