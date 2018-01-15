@@ -612,7 +612,7 @@ func workItemIncludeHasChildren(ctx context.Context, appl application.Applicatio
 func includeParentWorkItem(ctx context.Context, appl application.Application, ancestors link.AncestorList) WorkItemConvertFunc {
 	return func(request *http.Request, wi *workitem.WorkItem, wi2 *app.WorkItem) {
 		var parentID *uuid.UUID
-		if ancestors != nil || len(ancestors) == 0 {
+		if ancestors != nil && len(ancestors) != 0 {
 			// if we have an ancestry we can lookup the parent in no time.
 			p := ancestors.GetParentOf(wi.ID)
 			if p != nil {
