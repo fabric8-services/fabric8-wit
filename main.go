@@ -369,6 +369,10 @@ func main() {
 	workItemTypeGroupsCtrl := controller.NewWorkItemTypeGroupsController(service, appDB)
 	app.MountWorkItemTypeGroupsController(service, workItemTypeGroupsCtrl)
 
+	// proxying call to "/api/features/*" to the toggles service
+	featuresCtrl := controller.NewFeaturesController(service, config)
+	app.MountFeaturesController(service, featuresCtrl)
+
 	log.Logger().Infoln("Git Commit SHA: ", controller.Commit)
 	log.Logger().Infoln("UTC Build Time: ", controller.BuildTime)
 	log.Logger().Infoln("UTC Start Time: ", controller.StartTime)
