@@ -74,7 +74,17 @@ type KubeRESTAPI interface {
 type deployment struct {
 	dcUID      types.UID
 	appVersion string
-	currentUID types.UID
+	current    *v1.ReplicationController
+}
+
+type route struct {
+	host string
+	path string
+	tls  bool
+	// Scoring criteria below
+	hasAdmitted          bool
+	hasAlternateBackends bool
+	isCustomHost         bool
 }
 
 // Receiver for default implementation of KubeRESTAPIGetter and MetricsGetter
@@ -237,19 +247,38 @@ func (kc *kubeClient) ScaleDeployment(spaceName string, appName string, envName 
 	return &oldReplicas, nil
 }
 
-func (kc *kubeClient) getConsoleURL(spaceName string, appName string, envName string) *string {
-	dummy := "http://openshift.io"
-	return &dummy
+func (kc *kubeClient) getConsoleURL() (*string, error) {
+	// Replace "api" prefix with "console" and append "console" to path
+	consoleURL, err := modifyURL(kc.config.ClusterURL, "console", "console")
+	if err != nil {
+		return nil, err
+	}
+	consoleURLStr := consoleURL.String()
+	return &consoleURLStr, nil
 }
 
-func (kc *kubeClient) getLogURL(spaceName string, appName string, envName string) *string {
-	dummy := "http://openshift.io"
-	return &dummy
+func (kc *kubeClient) getLogURL(envNS string, deploy *deployment) (*string, error) {
+	consoleURL, err := kc.getConsoleURL()
+	if err != nil {
+		return nil, err
+	}
+	rcName := deploy.current.Name
+	logURL := fmt.Sprintf("%s/project/%s/browse/rc/%s?tab=logs", *consoleURL, envNS, rcName)
+	return &logURL, nil
 }
 
-func (kc *kubeClient) getApplicationURL(spaceName string, appName string, envName string) *string {
-	dummy := "http://openshift.io"
-	return &dummy
+func (kc *kubeClient) getApplicationURL(envNS string, deploy *deployment) (*string, error) {
+	// Get the best route to the application to show to the user
+	routeURL, err := kc.getBestRoute(envNS, deploy)
+	if err != nil {
+		return nil, err
+	}
+	var result *string
+	if routeURL != nil {
+		route := routeURL.String()
+		result = &route
+	}
+	return result, nil
 }
 
 // GetDeployment returns information about the current deployment of an application within a
@@ -263,12 +292,12 @@ func (kc *kubeClient) GetDeployment(spaceName string, appName string, envName st
 	deploy, err := kc.getCurrentDeployment(spaceName, appName, envNS)
 	if err != nil {
 		return nil, err
-	} else if deploy == nil || len(deploy.currentUID) == 0 {
+	} else if deploy == nil || deploy.current == nil {
 		return nil, nil
 	}
 
 	// Get all pods created by this deployment
-	pods, err := kc.getPods(envNS, deploy.currentUID)
+	pods, err := kc.getPods(envNS, deploy.current.UID)
 	if err != nil {
 		return nil, err
 	}
@@ -278,9 +307,19 @@ func (kc *kubeClient) GetDeployment(spaceName string, appName string, envName st
 		return nil, err
 	}
 
-	consoleURL := kc.getConsoleURL(spaceName, appName, envName)
-	appURL := kc.getApplicationURL(spaceName, appName, envName)
-	logURL := kc.getLogURL(spaceName, appName, envName)
+	// Get related URLs for the deployment
+	appURL, err := kc.getApplicationURL(envNS, deploy)
+	if err != nil {
+		return nil, err
+	}
+	consoleURL, err := kc.getConsoleURL()
+	if err != nil {
+		return nil, err
+	}
+	logURL, err := kc.getLogURL(envNS, deploy)
+	if err != nil {
+		return nil, err
+	}
 
 	var links *app.GenericLinksForDeployment
 	if consoleURL != nil || appURL != nil || logURL != nil {
@@ -318,12 +357,12 @@ func (kc *kubeClient) GetDeploymentStats(spaceName string, appName string, envNa
 	deploy, err := kc.getCurrentDeployment(spaceName, appName, envNS)
 	if err != nil {
 		return nil, err
-	} else if deploy == nil || len(deploy.currentUID) == 0 {
+	} else if deploy == nil || deploy.current == nil {
 		return nil, nil
 	}
 
 	// Get pods belonging to current deployment
-	pods, err := kc.getPods(envNS, deploy.currentUID)
+	pods, err := kc.getPods(envNS, deploy.current.UID)
 	if err != nil {
 		return nil, err
 	}
@@ -363,12 +402,12 @@ func (kc *kubeClient) GetDeploymentStatSeries(spaceName string, appName string, 
 	deploy, err := kc.getCurrentDeployment(spaceName, appName, envNS)
 	if err != nil {
 		return nil, err
-	} else if deploy == nil || len(deploy.currentUID) == 0 {
+	} else if deploy == nil || deploy.current == nil {
 		return nil, nil
 	}
 
 	// Get pods belonging to current deployment
-	pods, err := kc.getPods(envNS, deploy.currentUID)
+	pods, err := kc.getPods(envNS, deploy.current.UID)
 	if err != nil {
 		return nil, err
 	}
@@ -432,24 +471,33 @@ func (kc *kubeClient) GetEnvironment(envName string) (*app.SimpleEnvironment, er
 }
 
 func getMetricsURLFromAPIURL(apiURLStr string) (string, error) {
-	// Parse as URL to give us easy access to the hostname
-	apiURL, err := url.Parse(apiURLStr)
+	metricsURL, err := modifyURL(apiURLStr, "metrics", "")
 	if err != nil {
 		return "", err
 	}
+	return metricsURL.String(), nil
+}
 
-	// Get the hostname (without port) and replace api prefix with metrics
+func modifyURL(apiURLStr string, prefix string, path string) (*url.URL, error) {
+	// Parse as URL to give us easy access to the hostname
+	apiURL, err := url.Parse(apiURLStr)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get the hostname (without port) and replace api prefix with prefix arg
 	apiHostname := apiURL.Hostname()
 	if !strings.HasPrefix(apiHostname, "api") {
-		return "", errors.New("Cluster URL does not begin with \"api\": " + apiHostname)
+		return nil, errors.New("Cluster URL does not begin with \"api\": " + apiHostname)
 	}
-	metricsHostname := strings.Replace(apiHostname, "api", "metrics", 1)
-	// Construct URL using just scheme from API URL and metrics hostname
-	metricsURL := url.URL{
+	newHostname := strings.Replace(apiHostname, "api", prefix, 1)
+	// Construct URL using just scheme from API URL, modified hostname and supplied path
+	newURL := &url.URL{
 		Scheme: apiURL.Scheme,
-		Host:   metricsHostname,
+		Host:   newHostname,
+		Path:   path,
 	}
-	return metricsURL.String(), nil
+	return newURL, nil
 }
 
 func getTimestampEndpoints(metricsSeries ...[]*app.TimedNumberTuple) (minTime, maxTime *float64) {
@@ -676,7 +724,7 @@ func (kc *kubeClient) getCurrentDeployment(space string, appName string, namespa
 		}
 	}
 	if newest != nil {
-		result.currentUID = newest.UID
+		result.current = newest
 	}
 	return result, nil
 }
@@ -847,6 +895,273 @@ func (kc *kubeClient) getPodStatus(pods []v1.Pod) ([][]string, int, error) {
 	}
 
 	return result, total, nil
+}
+
+func (kc *kubeClient) getBestRoute(namespace string, dc *deployment) (*url.URL, error) {
+	serviceMap, err := kc.getMatchingServices(namespace, dc)
+	if err != nil {
+		return nil, err
+	}
+	// Get routes and associate to services using spec.to.name
+	err = kc.getRoutesByService(namespace, serviceMap)
+	if err != nil {
+		return nil, err
+	}
+
+	// Find route with highest score according to heuristics from web-console
+	var bestRoute *route
+	bestScore := -1
+	for _, routes := range serviceMap {
+		for _, route := range routes {
+			score := scoreRoute(route)
+			if score > bestScore {
+				bestScore = score
+				bestRoute = route
+			}
+		}
+	}
+
+	// Construct URL from best route
+	var result *url.URL
+	if bestRoute != nil {
+		scheme := "http"
+		if bestRoute.tls {
+			scheme = "https"
+		}
+		result = &url.URL{
+			Scheme: scheme,
+			Host:   bestRoute.host,
+			Path:   bestRoute.path,
+		}
+	}
+
+	return result, nil
+}
+
+func (kc *kubeClient) getMatchingServices(namespace string, dc *deployment) (routesByService map[string][]*route, err error) {
+	services, err := kc.Services(namespace).List(metaV1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	// Check if each service's selector matches labels in deployment's pod template
+	template := dc.current.Spec.Template
+	if template == nil {
+		return nil, errors.New("No pod template for current deployment")
+	}
+	routesByService = make(map[string][]*route)
+	for _, service := range services.Items {
+		selector := service.Spec.Selector
+		match := true
+		// Treat empty selector as not matching
+		if len(selector) == 0 {
+			match = false
+		}
+		for key := range selector {
+			if selector[key] != template.Labels[key] {
+				match = false
+			}
+		}
+		// If all selector labels match those in the pod template, add service key to map
+		if match {
+			routesByService[service.Name] = nil
+		}
+	}
+	return routesByService, nil
+}
+
+func (kc *kubeClient) getRoutesByService(namespace string, routesByService map[string][]*route) error {
+	routeURL := fmt.Sprintf("/oapi/v1/namespaces/%s/routes", namespace)
+	result, err := kc.getResource(routeURL, false)
+	if err != nil {
+		return err
+	}
+
+	// Parse list of routes
+	kind, ok := result["kind"].(string)
+	if !ok || kind != "RouteList" {
+		return errors.New("No route list returned from endpoint")
+	}
+	items, ok := result["items"].([]interface{})
+	if !ok {
+		return errors.New("No list of routes in response")
+	}
+
+	for _, item := range items {
+		routeItem, ok := item.(map[interface{}]interface{})
+		if !ok {
+			return errors.New("Route object invalid")
+		}
+
+		// Parse route from result
+		spec, ok := routeItem["spec"].(map[interface{}]interface{})
+		if !ok {
+			return errors.New("Spec missing from route")
+		}
+		// Determine which service this route points to
+		to, ok := spec["to"].(map[interface{}]interface{})
+		if !ok {
+			return errors.New("Route has no destination")
+		}
+		toName, ok := to["name"].(string)
+		if !ok || len(toName) == 0 {
+			return errors.New("Service name missing or invalid for route")
+		}
+
+		var matchingServices []string
+		// Check if this route is for a service we're interested in
+		_, pres := routesByService[toName]
+		if pres {
+			matchingServices = append(matchingServices, toName)
+		}
+
+		// Also check alternate backends for services
+		altBackends, ok := spec["alternateBackends"].([]interface{})
+		if ok {
+			for idx := range altBackends {
+				backend, ok := altBackends[idx].(map[interface{}]interface{})
+				if !ok {
+					return errors.New("Malformed alternative backend")
+				}
+				// Check if this alternate backend is a service we want a route for
+				backendKind, _ := backend["kind"].(string)
+				if backendKind == "Service" {
+					backendName, ok := backend["name"].(string)
+					if ok && len(backendName) > 0 {
+						_, pres := routesByService[backendName]
+						if pres {
+							matchingServices = append(matchingServices, backendName)
+						}
+					}
+				}
+			}
+		}
+		if len(matchingServices) > 0 {
+			// Get ingress points
+			status, ok := routeItem["status"].(map[interface{}]interface{})
+			if !ok {
+				return errors.New("Status missing from route")
+			}
+			ingresses, ok := status["ingress"].([]interface{})
+			if !ok {
+				return errors.New("No ingress array listed in route")
+			}
+
+			// Prefer ingress with oldest lastTransitionTime that is marked as admitted
+			oldestAdmittedIngress, err := findOldestAdmittedIngress(ingresses)
+			if err != nil {
+				return err
+			}
+
+			// Use hostname from oldest admitted ingress if possible
+			var hostname string
+			if oldestAdmittedIngress != nil {
+				hostname, ok = oldestAdmittedIngress["host"].(string)
+				if !ok {
+					return errors.New("Hostname missing from ingress")
+				}
+			} else {
+				// Fall back to optional host in spec
+				hostname, _ = spec["host"].(string)
+			}
+
+			// Check for optional path
+			path, _ := spec["path"].(string)
+
+			// Determine whether route uses TLS
+			// see: https://github.com/openshift/origin-web-console/blob/v3.7.0/app/scripts/filters/resources.js#L193
+			isTLS := false
+			tls, ok := spec["tls"].(map[interface{}]interface{})
+			if ok {
+				tlsTerm, ok := tls["termination"].(string)
+				if ok && len(tlsTerm) > 0 {
+					isTLS = true
+				}
+			}
+
+			// Check if this route uses a custom hostname
+			customHost := true
+			metadata, ok := routeItem["metadata"].(map[interface{}]interface{})
+			if ok {
+				annotations, ok := metadata["annotations"].(map[interface{}]interface{})
+				if ok {
+					hostGenerated, _ := annotations["openshift.io/host.generated"].(string)
+					if hostGenerated == "true" {
+						customHost = false
+					}
+				}
+			}
+			route := &route{
+				host:                 hostname,
+				path:                 path,
+				tls:                  isTLS,
+				hasAdmitted:          oldestAdmittedIngress != nil,
+				hasAlternateBackends: len(altBackends) > 0,
+				isCustomHost:         customHost,
+			}
+			// TODO check wildcard policy? (see above link)
+			// Associate this route with any services whoses routes we're looking for
+			for _, serviceName := range matchingServices {
+				routesByService[serviceName] = append(routesByService[serviceName], route)
+			}
+		}
+	}
+	return nil
+}
+
+func findOldestAdmittedIngress(ingresses []interface{}) (ingress map[interface{}]interface{}, err error) {
+	var oldestAdmittedIngress map[interface{}]interface{}
+	var oldestIngressTime time.Time
+	for idx := range ingresses {
+		ingress, ok := ingresses[idx].(map[interface{}]interface{})
+		if !ok {
+			return nil, errors.New("Bad ingress found in route")
+		}
+		// Check for oldest admitted ingress
+		conditions, ok := ingress["conditions"].([]interface{})
+		if ok {
+			for condIdx := range conditions {
+				condition, ok := conditions[condIdx].(map[interface{}]interface{})
+				if !ok {
+					return nil, errors.New("Bad condition for ingress")
+				}
+				condType, _ := condition["type"].(string)
+				condStatus, _ := condition["status"].(string)
+				if condType == "Admitted" && condStatus == "True" {
+					lastTransitionStr, ok := condition["lastTransitionTime"].(string)
+					if !ok {
+						return nil, errors.New("Missing last transition time from ingress condition")
+					}
+					lastTransition, err := time.Parse(time.RFC3339, lastTransitionStr)
+					if err != nil {
+						return nil, err
+					}
+					if oldestAdmittedIngress == nil || lastTransition.Before(oldestIngressTime) {
+						oldestAdmittedIngress = ingress
+						oldestIngressTime = lastTransition
+					}
+				}
+			}
+		}
+	}
+	return oldestAdmittedIngress, nil
+}
+
+func scoreRoute(route *route) int {
+	// See: https://github.com/openshift/origin-web-console/blob/v3.7.0/app/scripts/services/routes.js#L106
+	score := 0
+	if route.hasAdmitted {
+		score += 11
+	}
+	if route.hasAlternateBackends {
+		score += 5
+	}
+	if route.isCustomHost {
+		score += 3
+	}
+	if route.tls {
+		score++
+	}
+	return score
 }
 
 // Derived from: https://github.com/fabric8-services/fabric8-tenant/blob/master/openshift/kube_token.go
