@@ -1,11 +1,12 @@
 package link
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
+	"hash/fnv"
+	"strings"
 	"time"
-
-	"context"
 
 	"github.com/fabric8-services/fabric8-wit/application/repository"
 	"github.com/fabric8-services/fabric8-wit/errors"
@@ -40,6 +41,8 @@ type WorkItemLinkRepository interface {
 	ListWorkItemChildren(ctx context.Context, parentID uuid.UUID, start *int, limit *int) ([]workitem.WorkItem, uint64, error)
 	WorkItemHasChildren(ctx context.Context, parentID uuid.UUID) (bool, error)
 	GetParentID(ctx context.Context, ID uuid.UUID) (*uuid.UUID, error) // GetParentID returns parent ID of the given work item if any
+	// GetAncestors returns all ancestors for the given work items.
+	GetAncestors(ctx context.Context, linkTypeID uuid.UUID, workItemIDs ...uuid.UUID) (ancestors []Ancestor, err error)
 }
 
 // NewWorkItemLinkRepository creates a work item link repository based on gorm
@@ -62,26 +65,11 @@ type GormWorkItemLinkRepository struct {
 	revisionRepo         *GormWorkItemLinkRevisionRepository
 }
 
-// CheckParentExists returns `true` if a link to a work item with the given `targetID` and of the given `linkType` already exists, `false` otherwise.
-// If the `sourceId` argument is not nil, then existing link from the source item to the target item with the given type is ignored.
-// In the context of a link creation, the `sourceID` argument should be nil, so the method will look for a link of the given type and target,
-// since during link creation we need to ensure that the child item has no parent yet. During the link update, the verification should not take into account
-// the existing record in the database.
-func (r *GormWorkItemLinkRepository) CheckParentExists(ctx context.Context, sourceID *uuid.UUID, targetID uuid.UUID, linkType WorkItemLinkType) (bool, error) {
+// HasParent returns `true` if a link to a work item with the given `childID`
+// and of the given `linkType` already exists; `false` otherwise.
+func (r *GormWorkItemLinkRepository) HasParent(ctx context.Context, childID uuid.UUID, linkType WorkItemLinkType) (bool, error) {
 	var row *sql.Row
-	if sourceID != nil {
-		query := fmt.Sprintf(`
-		SELECT EXISTS (
-			SELECT 1 FROM %[1]s
-			WHERE
-				link_type_id=$1
-				AND source_id!=$2
-				AND target_id=$3
-				AND deleted_at IS NULL
-		)`, WorkItemLink{}.TableName())
-		row = r.db.CommonDB().QueryRow(query, linkType.ID, *sourceID, targetID)
-	} else {
-		query := fmt.Sprintf(`
+	query := fmt.Sprintf(`
 		SELECT EXISTS (
 			SELECT 1 FROM %[1]s
 			WHERE
@@ -89,21 +77,20 @@ func (r *GormWorkItemLinkRepository) CheckParentExists(ctx context.Context, sour
 				AND target_id=$2
 				AND deleted_at IS NULL
 		)`, WorkItemLink{}.TableName())
-		row = r.db.CommonDB().QueryRow(query, linkType.ID, targetID)
-	}
+	row = r.db.CommonDB().QueryRow(query, linkType.ID, childID)
 	var exists bool
 	if err := row.Scan(&exists); err != nil {
-		return false, errs.Wrapf(err, "failed to check if a parent exists for the work item %d", targetID)
+		return false, errs.Wrapf(err, "failed to check if a parent exists for the work item %d", childID)
 	}
 	return exists, nil
 }
 
 // ValidateTopology validates the link topology of the work item given its ID. I.e, the given item should not have a parent with the same kind of link
 // if the `sourceID` arg is not empty, then the corresponding source item is ignored when checking the existing links of the given type.
-func (r *GormWorkItemLinkRepository) ValidateTopology(ctx context.Context, sourceID *uuid.UUID, targetID uuid.UUID, linkType WorkItemLinkType) error {
+func (r *GormWorkItemLinkRepository) ValidateTopology(ctx context.Context, sourceID uuid.UUID, targetID uuid.UUID, linkType WorkItemLinkType) error {
 	// check to disallow multiple parents in tree topology
 	if linkType.Topology == TopologyTree {
-		parentExists, err := r.CheckParentExists(ctx, sourceID, targetID, linkType)
+		parentExists, err := r.HasParent(ctx, targetID, linkType)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"wilt_id":   linkType.ID,
@@ -121,6 +108,98 @@ func (r *GormWorkItemLinkRepository) ValidateTopology(ctx context.Context, sourc
 			return errors.NewBadParameterError("linkTypeID + targetID", fmt.Sprintf("%s + %d", linkType.ID, targetID)).Expected("single parent in tree topology")
 		}
 	}
+	// Check to disallow cycles in tree and dependency topologies
+	if linkType.Topology == TopologyTree || linkType.Topology == TopologyDependency {
+		hasCycle, err := r.DetectCycle(ctx, sourceID, targetID, linkType.ID)
+		if err != nil {
+			return errs.Wrapf(err, "error during cycle-detection of new link")
+		}
+		if hasCycle {
+			return errs.New("link cycle detected")
+		}
+	}
+	return nil
+}
+
+// DetectCycle returns true if the new link from source to target would cause a
+// cycle when created.
+//
+// Legend
+// ------
+//
+//   \ = link
+//   * = new link
+//   C = the element that is potentially causing the cycle
+//
+// Scenarios
+// ---------
+//
+//   I:        II:       III:      IV:       V:       VI:
+//
+//    C         C         C         C         A        A
+//     *         \         *         *         \        \
+//      A         A         A         A         B        C
+//       \         \         \         \         *        \
+//        B         B         C         B         C        B
+//         \         *         \                            *
+//          C         C         B                            C
+//
+// In a "tree" topology:
+//   I, II, III are cycles
+//   IV and V are no cycles.
+//   VI violates the single-parent rule
+//
+// In a "dependency" topology:
+//   I, II, III, and VI are cycles
+//   IV and V are no cycles.
+//
+// Possibility to detect each cycle (if any)
+// -----------------------------------------
+//
+// In the existing topology we search for the new link's source and traverse up
+// to get its ancestors. If any of those ancestors match the new link's target,
+// we have found ourselves a cycle. Holds true for I, II, III, V, IV, and VI.
+func (r *GormWorkItemLinkRepository) DetectCycle(ctx context.Context, sourceID, targetID, linkTypeID uuid.UUID) (hasCycle bool, err error) {
+	// Get all roots for link's source.
+	// NOTE(kwk): Yes there can be more than one, if the link type is allowing it.
+	ancestors, err := r.GetAncestors(ctx, linkTypeID, sourceID)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"wilt_id":   linkTypeID,
+			"target_id": targetID,
+			"err":       err,
+		}, "failed to check if the work item %s has a parent work item", targetID)
+		return false, errs.Wrapf(err, "failed to check if the work item %s has a parent work item", targetID)
+	}
+
+	for _, ancestor := range ancestors {
+		if ancestor.ID == targetID { // Scenarios I, II, III, VI
+			return true, nil
+		}
+	}
+	return false, nil // Scenario IV and V
+}
+
+// acquireLock takes a space ID and acquires an advisory lock. It blocks until
+// it acquires the lock.
+func (r *GormWorkItemLinkRepository) acquireLock(spaceID uuid.UUID) error {
+	// hash the UUID to get a 32 bit value from a 128 UUID that we can then use
+	// with a PostgreSQL advisory lock.
+	//
+	// TODO(kwk): Reducing the 128 bit UUID to a 32 bit number potentially ends
+	// up in longer wait times for locks because there exists a certain
+	// potential to have hash collisions for two distinct UUIDs. But currently
+	// Postgres only allows for 64 bit numbers without the high bit set. That
+	// effectively limits us to just 32 bit hashes. Once we allow cross-space
+	// linking we need to revisit the locking.
+	h := fnv.New32()
+	h.Write([]byte("links-" + spaceID.String()))
+	key := h.Sum32()
+
+	db := r.db.Exec("SELECT pg_advisory_xact_lock($1)", key)
+	if db.Error != nil {
+		return errs.Wrapf(db.Error, "failed to acquire pg_advisory_xact_lock(%d)\n", key)
+	}
 	return nil
 }
 
@@ -137,14 +216,36 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 		return nil, errs.WithStack(err)
 	}
 
+	// double check only links between the same space are allowed.
+	// NOTE(kwk): This is only until we have a proper cross-space
+	// cycle detection with locks.
+	wiRepo := workitem.NewWorkItemRepository(r.db)
+	workItemIDs := []uuid.UUID{sourceID, targetID}
+	items, err := wiRepo.LoadBatchByID(ctx, workItemIDs)
+	if err != nil {
+		return nil, errs.Wrapf(err, "failed to load source and target work items: %+v", workItemIDs)
+	}
+	spaceID := items[0].SpaceID
+	for _, item := range items {
+		if item.SpaceID != spaceID {
+			return nil, errs.Errorf("cross-space links are not allowed (for now)")
+		}
+	}
+
+	if err := r.acquireLock(spaceID); err != nil {
+		return nil, errs.Wrap(err, "failed to acquire lock during link creation")
+	}
+
 	// Fetch the link type
 	linkType, err := r.workItemLinkTypeRepo.Load(ctx, linkTypeID)
 	if err != nil {
 		return nil, errs.Wrap(err, "failed to load link type")
 	}
 
-	if err := r.ValidateTopology(ctx, nil, targetID, *linkType); err != nil {
-		return nil, errs.WithStack(err)
+	// Make sure we don't violate the topology when we add the link from source
+	// to target.
+	if err := r.ValidateTopology(ctx, sourceID, targetID, *linkType); err != nil {
+		return nil, errs.Wrapf(err, "failed to create work item due to topology violation")
 	}
 
 	db := r.db.Create(link)
@@ -237,6 +338,15 @@ func (r *GormWorkItemLinkRepository) Delete(ctx context.Context, linkID uuid.UUI
 	if tx.RecordNotFound() {
 		return errors.NewNotFoundError("work item link", linkID.String())
 	}
+	// get space ID to acquire lock for
+	wiRepo := workitem.NewWorkItemRepository(r.db)
+	src, err := wiRepo.LoadByID(ctx, lnk.SourceID)
+	if err != nil {
+		return errs.Wrapf(err, "failed to load source work item for: %s", lnk.SourceID)
+	}
+	if err := r.acquireLock(src.SpaceID); err != nil {
+		return errs.Wrap(err, "failed to acquire lock during link deletion")
+	}
 	r.deleteLink(ctx, lnk, suppressorID)
 	return nil
 }
@@ -248,11 +358,22 @@ func (r *GormWorkItemLinkRepository) DeleteRelatedLinks(ctx context.Context, wiI
 	log.Info(ctx, map[string]interface{}{
 		"wi_id": wiID,
 	}, "Deleting the links related to work item")
-
 	var workitemLinks = []WorkItemLink{}
 	r.db.Where("? in (source_id, target_id)", wiID).Find(&workitemLinks)
 	// delete one by one to trigger the creation of a new work item link revision
+	locked := false
 	for _, workitemLink := range workitemLinks {
+		if !locked {
+			wiRepo := workitem.NewWorkItemRepository(r.db)
+			src, err := wiRepo.LoadByID(ctx, workitemLink.SourceID)
+			if err != nil {
+				return errs.Wrapf(err, "failed to load source work item for: %s", workitemLink.SourceID)
+			}
+			if err := r.acquireLock(src.SpaceID); err != nil {
+				return errs.Wrap(err, "failed to acquire lock during link deletion")
+			}
+			locked = true
+		}
 		r.deleteLink(ctx, workitemLink, suppressorID)
 	}
 	return nil
@@ -423,4 +544,101 @@ func (r *GormWorkItemLinkRepository) GetParentID(ctx context.Context, ID uuid.UU
 		return nil, errs.Wrapf(err, "parent not found for work item: %s", ID.String(), query)
 	}
 	return &parentID, nil
+}
+
+// Ancestor is essentially an annotated work item ID. Each Ancestor knows for
+// which original child it is the ancestor and whether or not itself is the
+// root.
+type Ancestor struct {
+	ID              uuid.UUID `gorm:"column:ancestor" sql:"type:uuid"`
+	OriginalChildID uuid.UUID `gorm:"column:original_child" sql:"type:uuid"`
+	IsRoot          bool      `gorm:"column:is_root"`
+}
+
+// GetAncestors returns all ancestors for the given work items.
+//
+// NOTE: In case the given link type doesn't have a tree topology a work item
+// might have more than one root item. That is why the root IDs is keyed by the
+// the given work item and mapped to an array of root IDs.
+func (r *GormWorkItemLinkRepository) GetAncestors(ctx context.Context, linkTypeID uuid.UUID, workItemIDs ...uuid.UUID) (ancestors []Ancestor, err error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "get", "ancestors"}, time.Now())
+
+	if len(workItemIDs) < 1 {
+		return nil, nil
+	}
+
+	// Get destincts work item IDs (eliminates duplicates)
+	idMap := map[uuid.UUID]struct{}{}
+	for _, id := range workItemIDs {
+		idMap[id] = struct{}{}
+	}
+
+	// Create a string array of of UUIDs separated by a comma for use in SQL
+	// JOIN clause.
+	idArr := make([]string, len(idMap))
+	i := 0
+	for id := range idMap {
+		idArr[i] = "'" + id.String() + "'"
+		i++
+	}
+	idStr := strings.Join(idArr, ",")
+
+	// Postgres Common Table Expression (https://www.postgresql.org/docs/current/static/queries-with.html)
+	// TODO(kwk): We should probably measure performance for this.
+	query := fmt.Sprintf(`
+		WITH RECURSIVE working_table(id, ancestor, original_child, already_visited, cycle) AS (
+			
+			-- non recursive term: Find the links where the given items are
+			-- in the target and put those links in the "working table". The
+			-- source can be considered the parent of the given items.
+			
+			SELECT
+				l.id,
+				l.source_id,
+				l.target_id,
+				ARRAY[l.id],
+				false
+			FROM %[1]s l
+			WHERE
+				l.target_id IN ( %[2]s ) 
+				AND l.link_type_id = $1
+				AND l.deleted_at IS NULL
+		UNION
+			
+			-- recursive term: Only this one can query the "tree" table.
+			-- Find a new link where the source from the "working table" is the
+			-- target and "merge" with the "working table".
+			
+			SELECT
+				l.id,
+				l.source_id,
+				w.original_child, -- always remember the child from which the non recursive search originated
+				already_visited || l.id,
+				l.id = ANY(already_visited)
+			FROM working_table w, %[1]s l
+			WHERE
+				l.target_id = w.ancestor
+				AND l.link_type_id = $1
+				AND l.deleted_at IS NULL
+				AND NOT cycle -- recursive termination criteria
+		)
+		SELECT
+			ancestor,
+			original_child,
+			(SELECT NOT EXISTS (SELECT 1 FROM work_item_links l WHERE l.target_id = ancestor AND l.link_type_id = $1)) as "is_root"
+		FROM working_table
+		;`,
+		WorkItemLink{}.TableName(),
+		idStr,
+	)
+
+	// Convert SQL results to instances of ancestor objects
+	db := r.db.Raw(query, linkTypeID.String()).Scan(&ancestors)
+	if db.Error != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": db.Error,
+		}, "failed to find ancestors for work items: %s", idStr)
+		return nil, errors.NewInternalError(ctx, errs.Wrapf(db.Error, "failed to find ancestors for work items: %s", idStr))
+	}
+	return ancestors, nil
 }
