@@ -1028,6 +1028,9 @@ func (s *searchControllerTestSuite) TestSearchQueryScenarioDriven() {
 
 // TestIncludedParents verifies the Included list of parents
 func (s *searchControllerTestSuite) TestIncludedParents() {
+	resetFn := s.DisableGormCallbacks()
+	defer resetFn()
+
 	fxt := tf.NewTestFixture(s.T(), s.DB,
 		tf.WorkItems(5, tf.SetWorkItemTitles("A", "B", "C", "D", "E")),
 		tf.WorkItemLinksCustom(3, func(fxt *tf.TestFixture, idx int) error {
@@ -1079,6 +1082,11 @@ func (s *searchControllerTestSuite) TestIncludedParents() {
 			t.Run(testName, func(t *testing.T) {
 				t.Logf("Running with filter: %s", filter)
 				_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+				goldenFileName := searchForTitle + "" + ".res.golden.json"
+				if treeView {
+					goldenFileName = searchForTitle + "_with_tree_view_" + ".res.golden.json"
+				}
+				compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "included-parents", goldenFileName), result)
 				// fmt.Printf("Result: %s\n\n", spew.Sdump(result))
 				require.NotEmpty(t, result.Data)
 				require.Len(t, result.Data, 1)
