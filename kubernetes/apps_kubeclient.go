@@ -159,7 +159,7 @@ func (kc *kubeClient) GetSpace(spaceName string) (*app.SimpleSpace, error) {
 	}
 
 	// Get all applications in this space using BuildConfig names
-	var apps []*app.SimpleApp
+	apps := make([]*app.SimpleApp, 0)
 	for _, bc := range buildconfigs {
 		appn, err := kc.GetApplication(spaceName, bc)
 		if err != nil {
@@ -171,6 +171,7 @@ func (kc *kubeClient) GetSpace(spaceName string) (*app.SimpleSpace, error) {
 	result := &app.SimpleSpace{
 		Type: "space",
 		Attributes: &app.SimpleSpaceAttributes{
+			Name:         &spaceName,
 			Applications: apps, // TODO UUID
 		},
 	}
@@ -182,7 +183,7 @@ func (kc *kubeClient) GetSpace(spaceName string) (*app.SimpleSpace, error) {
 // of that application's deployment in each environment
 func (kc *kubeClient) GetApplication(spaceName string, appName string) (*app.SimpleApp, error) {
 	// Get all deployments of this app for each environment in this space
-	var deployments []*app.SimpleDeployment
+	deployments := make([]*app.SimpleDeployment, 0)
 	for envName := range kc.envMap {
 		deployment, err := kc.GetDeployment(spaceName, appName, envName)
 		if err != nil {
@@ -434,7 +435,7 @@ func (kc *kubeClient) GetDeploymentStatSeries(spaceName string, appName string, 
 // GetEnvironments retrieves information on all environments in the cluster
 // for the current user
 func (kc *kubeClient) GetEnvironments() ([]*app.SimpleEnvironment, error) {
-	var envs []*app.SimpleEnvironment
+	envs := make([]*app.SimpleEnvironment, 0)
 	for envName := range kc.envMap {
 		env, err := kc.GetEnvironment(envName)
 		if err != nil {
