@@ -173,11 +173,12 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			fxt := s.getTestFixture()
 			// when
 			filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, fxt.Spaces[0].ID)
-			res, count, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+			res, count, ancestors, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
 			// when
 			require.NoError(t, err)
 			assert.Equal(t, uint64(2), count)
 			assert.Equal(t, 2, len(res))
+			assert.Empty(t, ancestors)
 		})
 
 		t.Run("with offset", func(t *testing.T) {
@@ -186,11 +187,12 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			// when
 			filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, fxt.Spaces[0].ID)
 			start := 3
-			res, count, err := s.searchRepo.Filter(context.Background(), filter, nil, &start, nil)
+			res, count, ancestors, err := s.searchRepo.Filter(context.Background(), filter, nil, &start, nil)
 			// then
 			require.NoError(t, err)
 			assert.Equal(t, uint64(2), count)
 			assert.Equal(t, 0, len(res))
+			assert.Empty(t, ancestors)
 		})
 
 		t.Run("with limit", func(t *testing.T) {
@@ -199,11 +201,12 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			// when
 			filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, fxt.Spaces[0].ID)
 			limit := 1
-			res, count, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, &limit)
+			res, count, ancestors, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, &limit)
 			// then
 			require.NoError(s.T(), err)
 			assert.Equal(t, uint64(2), count)
 			assert.Equal(t, 1, len(res))
+			assert.Empty(t, ancestors)
 		})
 	})
 
@@ -215,11 +218,12 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			// when
 			filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, fxt.Spaces[0].ID)
 			parentExists := false
-			res, count, err := s.searchRepo.Filter(context.Background(), filter, &parentExists, nil, nil)
+			res, count, ancestors, err := s.searchRepo.Filter(context.Background(), filter, &parentExists, nil, nil)
 			// then both work items should be returned
 			require.NoError(t, err)
 			assert.Equal(t, uint64(3), count)
 			assert.Equal(t, 3, len(res))
+			assert.Empty(t, ancestors)
 		})
 
 		t.Run("link created", func(t *testing.T) {
@@ -236,13 +240,14 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			// when
 			filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, fxt.Spaces[0].ID)
 			parentExists := false
-			res, count, err := s.searchRepo.Filter(context.Background(), filter, &parentExists, nil, nil)
+			res, count, ancestors, err := s.searchRepo.Filter(context.Background(), filter, &parentExists, nil, nil)
 			// then only parent work item should be returned
 			require.NoError(t, err)
 			assert.Equal(t, uint64(2), count)
 			require.Equal(t, 2, len(res))
 			// item #0 is parent of #1 and item #2 is not linked to any otjer item
 			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[2], *fxt.WorkItems[0]))
+			assert.Empty(t, ancestors)
 		})
 
 		t.Run("link deleted", func(t *testing.T) {
@@ -262,11 +267,12 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			// when
 			filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, fxt.Spaces[0].ID)
 			parentExists := false
-			res, count, err := s.searchRepo.Filter(context.Background(), filter, &parentExists, nil, nil)
+			res, count, ancestors, err := s.searchRepo.Filter(context.Background(), filter, &parentExists, nil, nil)
 			// then both work items should be returned
 			require.NoError(t, err)
 			assert.Equal(t, uint64(3), count)
 			assert.Equal(t, 3, len(res))
+			assert.Empty(t, ancestors)
 		})
 
 	})

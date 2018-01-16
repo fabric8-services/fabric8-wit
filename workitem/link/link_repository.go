@@ -42,7 +42,7 @@ type WorkItemLinkRepository interface {
 	WorkItemHasChildren(ctx context.Context, parentID uuid.UUID) (bool, error)
 	GetParentID(ctx context.Context, ID uuid.UUID) (*uuid.UUID, error) // GetParentID returns parent ID of the given work item if any
 	// GetAncestors returns all ancestors for the given work items.
-	GetAncestors(ctx context.Context, linkTypeID uuid.UUID, workItemIDs ...uuid.UUID) (ancestors []Ancestor, err error)
+	GetAncestors(ctx context.Context, linkTypeID uuid.UUID, workItemIDs ...uuid.UUID) (ancestors AncestorList, err error)
 }
 
 // NewWorkItemLinkRepository creates a work item link repository based on gorm
@@ -546,13 +546,21 @@ func (r *GormWorkItemLinkRepository) GetParentID(ctx context.Context, ID uuid.UU
 	return &parentID, nil
 }
 
-// Ancestor is essentially an annotated work item ID. Each Ancestor knows for
-// which original child it is the ancestor and whether or not itself is the
-// root.
-type Ancestor struct {
-	ID              uuid.UUID `gorm:"column:ancestor" sql:"type:uuid"`
-	OriginalChildID uuid.UUID `gorm:"column:original_child" sql:"type:uuid"`
-	IsRoot          bool      `gorm:"column:is_root"`
+// IDSliceDiff returns the difference of the given slices.
+func IDSliceDiff(a, b []uuid.UUID) []uuid.UUID {
+	slice := append(a, b...)
+	encountered := map[uuid.UUID]int{}
+	for _, v := range slice {
+		encountered[v] = encountered[v] + 1
+	}
+
+	diff := []uuid.UUID{}
+	for _, v := range slice {
+		if encountered[v] == 1 {
+			diff = append(diff, v)
+		}
+	}
+	return diff
 }
 
 // GetAncestors returns all ancestors for the given work items.
@@ -560,7 +568,7 @@ type Ancestor struct {
 // NOTE: In case the given link type doesn't have a tree topology a work item
 // might have more than one root item. That is why the root IDs is keyed by the
 // the given work item and mapped to an array of root IDs.
-func (r *GormWorkItemLinkRepository) GetAncestors(ctx context.Context, linkTypeID uuid.UUID, workItemIDs ...uuid.UUID) (ancestors []Ancestor, err error) {
+func (r *GormWorkItemLinkRepository) GetAncestors(ctx context.Context, linkTypeID uuid.UUID, workItemIDs ...uuid.UUID) (ancestors AncestorList, err error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "get", "ancestors"}, time.Now())
 
 	if len(workItemIDs) < 1 {
@@ -586,7 +594,7 @@ func (r *GormWorkItemLinkRepository) GetAncestors(ctx context.Context, linkTypeI
 	// Postgres Common Table Expression (https://www.postgresql.org/docs/current/static/queries-with.html)
 	// TODO(kwk): We should probably measure performance for this.
 	query := fmt.Sprintf(`
-		WITH RECURSIVE working_table(id, ancestor, original_child, already_visited, cycle) AS (
+		WITH RECURSIVE working_table(id, ancestor, direct_child, original_child, already_visited, cycle) AS (
 			
 			-- non recursive term: Find the links where the given items are
 			-- in the target and put those links in the "working table". The
@@ -595,6 +603,7 @@ func (r *GormWorkItemLinkRepository) GetAncestors(ctx context.Context, linkTypeI
 			SELECT
 				l.id,
 				l.source_id,
+				l.target_id,
 				l.target_id,
 				ARRAY[l.id],
 				false
@@ -612,6 +621,7 @@ func (r *GormWorkItemLinkRepository) GetAncestors(ctx context.Context, linkTypeI
 			SELECT
 				l.id,
 				l.source_id,
+				l.target_id,
 				w.original_child, -- always remember the child from which the non recursive search originated
 				already_visited || l.id,
 				l.id = ANY(already_visited)
@@ -624,8 +634,10 @@ func (r *GormWorkItemLinkRepository) GetAncestors(ctx context.Context, linkTypeI
 		)
 		SELECT
 			ancestor,
+			direct_child,
 			original_child,
-			(SELECT NOT EXISTS (SELECT 1 FROM work_item_links l WHERE l.target_id = ancestor AND l.link_type_id = $1)) as "is_root"
+			(SELECT NOT EXISTS (SELECT 1 FROM work_item_links l WHERE l.target_id = ancestor AND l.link_type_id = $1)) as "is_root",
+			array_length(already_visited, 1) as "ancestor_level"
 		FROM working_table
 		;`,
 		WorkItemLink{}.TableName(),

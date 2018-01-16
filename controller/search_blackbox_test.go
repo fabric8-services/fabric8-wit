@@ -1028,75 +1028,116 @@ func (s *searchControllerTestSuite) TestSearchQueryScenarioDriven() {
 
 // TestIncludedParents verifies the Included list of parents
 func (s *searchControllerTestSuite) TestIncludedParents() {
-	// keep in mind that TestFixture is going to create 6 items becasue we asked for 3 links
-	// we will ignore extra 2 items and we will use only 4
-	fixtures := tf.NewTestFixture(s.T(), s.DB,
-		tf.WorkItemLinkTypes(1, func(fxt *tf.TestFixture, idx int) error {
-			wilt := fxt.WorkItemLinkTypes[idx]
-			wilt.ForwardName = link.TypeParentOf
-			wilt.Topology = link.TopologyTree
-			return nil
-		}),
-		tf.WorkItemLinks(3, func(fxt *tf.TestFixture, idx int) error {
+	resetFn := s.DisableGormCallbacks()
+	defer resetFn()
+
+	fxt := tf.NewTestFixture(s.T(), s.DB,
+		tf.WorkItems(5, tf.SetWorkItemTitles("A", "B", "C", "D", "E")),
+		tf.WorkItemLinksCustom(3, func(fxt *tf.TestFixture, idx int) error {
+			l := fxt.WorkItemLinks[idx]
+			l.LinkTypeID = link.SystemWorkItemLinkTypeParentChildID
 			switch idx {
 			case 0:
-				fxt.WorkItemLinks[idx].SourceID = fxt.WorkItems[0].ID
-				fxt.WorkItemLinks[idx].TargetID = fxt.WorkItems[1].ID
+				l.SourceID = fxt.WorkItemByTitle("A").ID
+				l.TargetID = fxt.WorkItemByTitle("B").ID
 			case 1:
-				fxt.WorkItemLinks[idx].SourceID = fxt.WorkItems[1].ID
-				fxt.WorkItemLinks[idx].TargetID = fxt.WorkItems[2].ID
+				l.SourceID = fxt.WorkItemByTitle("B").ID
+				l.TargetID = fxt.WorkItemByTitle("C").ID
 			case 2:
-				fxt.WorkItemLinks[idx].SourceID = fxt.WorkItems[0].ID
-				fxt.WorkItemLinks[idx].TargetID = fxt.WorkItems[3].ID
+				l.SourceID = fxt.WorkItemByTitle("A").ID
+				l.TargetID = fxt.WorkItemByTitle("D").ID
 			}
 			return nil
 		}),
 	)
 
-	spaceIDStr := fixtures.Spaces[0].ID.String()
-	parentWI0 := fixtures.WorkItems[0]
-	parentWI1 := fixtures.WorkItems[1]
-	childWI := fixtures.WorkItems[2]
-	childWI2 := fixtures.WorkItems[3]
+	A := fxt.WorkItemByTitle("A").ID
+	B := fxt.WorkItemByTitle("B").ID
+	C := fxt.WorkItemByTitle("C").ID
+	D := fxt.WorkItemByTitle("D").ID
+	E := fxt.WorkItemByTitle("E").ID
 
-	filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, spaceIDStr)
-	_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
-	require.NotEmpty(s.T(), result.Data)
-	require.Len(s.T(), result.Data, 6)
-	require.Len(s.T(), result.Included, 2)
+	spaceIDStr := fxt.Spaces[0].ID.String()
 
-	// verify included objects
-	includedMustHave := map[uuid.UUID]struct{}{
-		parentWI0.ID: {},
-		parentWI1.ID: {},
-	}
-	for _, ele := range result.Included {
-		appWI, ok := ele.(app.WorkItem)
-		if ok && appWI.Type == APIStringTypeWorkItem {
-			delete(includedMustHave, *appWI.ID)
+	s.T().Run("in topology A-B-C-D and A-D search for", func(t *testing.T) {
+		testFunc := func(t *testing.T, searchForTitle string, expectedData, expectedIncludeWorkItems map[uuid.UUID]struct{}, treeView bool) {
+			// we need to access these maps twice, therefore we copy them
+			expectedData2 := map[uuid.UUID]struct{}{}
+			for k, v := range expectedData {
+				expectedData2[k] = v
+			}
+			expectedIncludeWorkItems2 := map[uuid.UUID]struct{}{}
+			for k, v := range expectedIncludeWorkItems {
+				expectedIncludeWorkItems2[k] = v
+			}
+
+			testName := searchForTitle
+			filter := fmt.Sprintf(`"$AND": [{"title":"%[1]s"}, {"space": "%[2]s"}]`, searchForTitle, spaceIDStr)
+			if treeView {
+				filter = filter + "," + fmt.Sprintf(`"$OPTS":{"%[1]s": true}`, search.OptTreeViewKey)
+				testName += " with query options"
+			}
+			filter = "{" + filter + "}"
+			t.Run(testName, func(t *testing.T) {
+				t.Logf("Running with filter: %s", filter)
+				_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+				require.NotEmpty(t, result.Data)
+				require.Len(t, result.Data, 1)
+				// test what's included in the "data" portion of the response
+				for _, wi := range result.Data {
+					_, ok := expectedData[*wi.ID]
+					require.True(t, ok, "failed to find work item in list of expected results: %s", wi.Attributes[workitem.SystemTitle].(string))
+					delete(expectedData, *wi.ID)
+				}
+				// test what's included in the "included" portion of the response
+				require.True(t, len(result.Included) >= len(expectedIncludeWorkItems), "length of included elements (%d) must be at least %d: %+v")
+				for _, ele := range result.Included {
+					appWI, ok := ele.(app.WorkItem)
+					if ok {
+						_, ok = expectedIncludeWorkItems[*appWI.ID]
+						assert.True(t, ok, "failed to find work item in list of expected results: %s", appWI.Attributes[workitem.SystemTitle].(string))
+						if ok {
+							delete(expectedIncludeWorkItems, *appWI.ID)
+						}
+					}
+				}
+				require.Empty(t, expectedIncludeWorkItems, "failed to find these work items in \"included\" section: %s", expectedIncludeWorkItems)
+				if treeView {
+					// Our test topolgies are simple enough to assume that the
+					// included work items are the ones that we must find under the
+					// array named AncestorWorkItemIDs of the result's meta object
+					t.Run("check AncestorWorkItemIDs", func(t *testing.T) {
+						for _, id := range result.Meta.AncestorWorkItemIDs {
+							_, ok := expectedIncludeWorkItems2[id]
+							require.True(t, ok, "failed to find ID %s in AncestorWorkItemIDs meta-array", id)
+							delete(expectedIncludeWorkItems2, id)
+						}
+						require.Empty(t, expectedIncludeWorkItems2, "these IDs are missing from AncestorWorkItemIDs meta-array: %+v", expectedIncludeWorkItems2)
+					})
+				}
+				t.Run("check MatchingWorkItemIDs", func(t *testing.T) {
+					for _, id := range result.Meta.MatchingWorkItemIDs {
+						_, ok := expectedData2[id]
+						require.True(t, ok, "failed to find ID %s in MatchingWorkItemIDs meta-array", id)
+						delete(expectedData2, id)
+					}
+					require.Empty(t, expectedData2, "these IDs are missing from MatchingWorkItemIDs meta-array: %+v", expectedData2)
+				})
+			})
 		}
-	}
-	assert.Empty(s.T(), includedMustHave)
-	var successCnt int
-	for _, wi := range result.Data {
-		if *wi.ID == parentWI0.ID {
-			require.Nil(s.T(), wi.Relationships.Parent.Data)
-			successCnt++
-		}
-		if *wi.ID == parentWI1.ID {
-			require.Equal(s.T(), parentWI0.ID, wi.Relationships.Parent.Data.ID)
-			successCnt++
-		}
-		if *wi.ID == childWI.ID {
-			require.Equal(s.T(), parentWI1.ID, wi.Relationships.Parent.Data.ID)
-			successCnt++
-		}
-		if *wi.ID == childWI2.ID {
-			require.Equal(s.T(), parentWI0.ID, wi.Relationships.Parent.Data.ID)
-			successCnt++
-		}
-	}
-	assert.Equal(s.T(), successCnt, 4)
+		// Without tree-view query option
+		testFunc(t, "A", map[uuid.UUID]struct{}{A: {}}, nil, false)
+		testFunc(t, "B", map[uuid.UUID]struct{}{B: {}}, map[uuid.UUID]struct{}{A: {}}, false)
+		testFunc(t, "C", map[uuid.UUID]struct{}{C: {}}, map[uuid.UUID]struct{}{B: {}}, false)
+		testFunc(t, "D", map[uuid.UUID]struct{}{D: {}}, map[uuid.UUID]struct{}{A: {}}, false)
+		testFunc(t, "E", map[uuid.UUID]struct{}{E: {}}, nil, false)
+		// With tree-view query option
+		testFunc(t, "A", map[uuid.UUID]struct{}{A: {}}, nil, true)
+		testFunc(t, "B", map[uuid.UUID]struct{}{B: {}}, map[uuid.UUID]struct{}{A: {}}, true)
+		testFunc(t, "C", map[uuid.UUID]struct{}{C: {}}, map[uuid.UUID]struct{}{B: {}, A: {}}, true)
+		testFunc(t, "D", map[uuid.UUID]struct{}{D: {}}, map[uuid.UUID]struct{}{A: {}}, true)
+		testFunc(t, "E", map[uuid.UUID]struct{}{E: {}}, nil, true)
+	})
 }
 
 func (s *searchControllerTestSuite) TestUpdateWorkItem() {
