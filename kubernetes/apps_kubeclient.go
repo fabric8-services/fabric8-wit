@@ -295,10 +295,20 @@ func (kc *kubeClient) GetDeploymentStats(spaceName string, appName string, envNa
 	if err != nil {
 		return nil, err
 	}
+	netTxUsage, err := kc.GetNetworkSentMetrics(pods, envNS, startTime)
+	if err != nil {
+		return nil, err
+	}
+	netRxUsage, err := kc.GetNetworkRecvMetrics(pods, envNS, startTime)
+	if err != nil {
+		return nil, err
+	}
 
 	result := &app.SimpleDeploymentStats{
 		Cores:  cpuUsage,
 		Memory: memoryUsage,
+		NetTx:  netTxUsage,
+		NetRx:  netRxUsage,
 	}
 
 	return result, nil
@@ -328,12 +338,20 @@ func (kc *kubeClient) GetDeploymentStatSeries(spaceName string, appName string, 
 		return nil, err
 	}
 
-	// Get CPU and memory metrics for pods in deployment
+	// Get CPU, memory and network metrics for pods in deployment
 	cpuMetrics, err := kc.GetCPUMetricsRange(pods, envNS, startTime, endTime, limit)
 	if err != nil {
 		return nil, err
 	}
 	memoryMetrics, err := kc.GetMemoryMetricsRange(pods, envNS, startTime, endTime, limit)
+	if err != nil {
+		return nil, err
+	}
+	netTxMetrics, err := kc.GetNetworkSentMetricsRange(pods, envNS, startTime, endTime, limit)
+	if err != nil {
+		return nil, err
+	}
+	netRxMetrics, err := kc.GetNetworkRecvMetricsRange(pods, envNS, startTime, endTime, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -343,6 +361,8 @@ func (kc *kubeClient) GetDeploymentStatSeries(spaceName string, appName string, 
 	result := &app.SimpleDeploymentStatSeries{
 		Cores:  cpuMetrics,
 		Memory: memoryMetrics,
+		NetTx:  netTxMetrics,
+		NetRx:  netRxMetrics,
 		Start:  minTime,
 		End:    maxTime,
 	}

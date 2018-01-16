@@ -199,6 +199,24 @@ func (testMetrics) GetMemoryMetricsRange(pods []v1.Pod, namespace string, startT
 	return nil, nil // TODO
 }
 
+func (testMetrics) GetNetworkSentMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error) {
+	return nil, nil // TODO add fake impl when tests exercise this code
+}
+
+func (testMetrics) GetNetworkSentMetricsRange(pods []v1.Pod, namespace string, startTime time.Time, endTime time.Time,
+	limit int) ([]*app.TimedNumberTuple, error) {
+	return nil, nil // TODO add fake impl when tests exercise this code
+}
+
+func (testMetrics) GetNetworkRecvMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error) {
+	return nil, nil // TODO add fake impl when tests exercise this code
+}
+
+func (testMetrics) GetNetworkRecvMetricsRange(pods []v1.Pod, namespace string, startTime time.Time, endTime time.Time,
+	limit int) ([]*app.TimedNumberTuple, error) {
+	return nil, nil // TODO add fake impl when tests exercise this code
+}
+
 func TestGetMetrics(t *testing.T) {
 	kubeGetter := &testKubeGetter{
 		cmInput: defaultConfigMapInput,

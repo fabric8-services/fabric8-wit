@@ -26,6 +26,12 @@ type MetricsInterface interface {
 	GetMemoryMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error)
 	GetMemoryMetricsRange(pods []v1.Pod, namespace string, startTime time.Time, endTime time.Time,
 		limit int) ([]*app.TimedNumberTuple, error)
+	GetNetworkSentMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error)
+	GetNetworkSentMetricsRange(pods []v1.Pod, namespace string, startTime time.Time, endTime time.Time,
+		limit int) ([]*app.TimedNumberTuple, error)
+	GetNetworkRecvMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error)
+	GetNetworkRecvMetricsRange(pods []v1.Pod, namespace string, startTime time.Time, endTime time.Time,
+		limit int) ([]*app.TimedNumberTuple, error)
 }
 
 const (
@@ -85,6 +91,36 @@ func (mc *metricsClient) GetMemoryMetrics(pods []v1.Pod, namespace string, start
 func (mc *metricsClient) GetMemoryMetricsRange(pods []v1.Pod, namespace string,
 	startTime time.Time, endTime time.Time, limit int) ([]*app.TimedNumberTuple, error) {
 	buckets, err := mc.getBucketsInRange(pods, namespace, memDesc, startTime, endTime, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	results := bucketsToTuples(buckets, noScale)
+	return results, nil
+}
+
+func (mc *metricsClient) GetNetworkSentMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error) {
+	return mc.getBucketAverage(pods, namespace, netSent, startTime, noScale)
+}
+
+func (mc *metricsClient) GetNetworkSentMetricsRange(pods []v1.Pod, namespace string,
+	startTime time.Time, endTime time.Time, limit int) ([]*app.TimedNumberTuple, error) {
+	buckets, err := mc.getBucketsInRange(pods, namespace, netSent, startTime, endTime, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	results := bucketsToTuples(buckets, noScale)
+	return results, nil
+}
+
+func (mc *metricsClient) GetNetworkRecvMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error) {
+	return mc.getBucketAverage(pods, namespace, netRecv, startTime, noScale)
+}
+
+func (mc *metricsClient) GetNetworkRecvMetricsRange(pods []v1.Pod, namespace string,
+	startTime time.Time, endTime time.Time, limit int) ([]*app.TimedNumberTuple, error) {
+	buckets, err := mc.getBucketsInRange(pods, namespace, netRecv, startTime, endTime, limit)
 	if err != nil {
 		return nil, err
 	}
