@@ -586,9 +586,9 @@ func (s *linkRepoBlackBoxTest) TestGetAncestors() {
 					ancestors, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypes[0].ID, D)
 					require.NoError(t, err)
 					validateAncestry(t, fxt, map[link.Ancestor]struct{}{
-						{ID: A, OriginalChildID: D, IsRoot: true}:  {},
-						{ID: B, OriginalChildID: D, IsRoot: false}: {},
-						{ID: C, OriginalChildID: D, IsRoot: false}: {},
+						{ID: A, DirectChildID: B, Level: 3, OriginalChildID: D, IsRoot: true}:  {},
+						{ID: B, DirectChildID: C, Level: 2, OriginalChildID: D, IsRoot: false}: {},
+						{ID: C, DirectChildID: D, Level: 1, OriginalChildID: D, IsRoot: false}: {},
 					}, ancestors)
 				})
 
@@ -596,8 +596,8 @@ func (s *linkRepoBlackBoxTest) TestGetAncestors() {
 					ancestors, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypes[0].ID, C)
 					require.NoError(t, err)
 					validateAncestry(t, fxt, map[link.Ancestor]struct{}{
-						{ID: A, OriginalChildID: C, IsRoot: true}:  {},
-						{ID: B, OriginalChildID: C, IsRoot: false}: {},
+						{ID: A, DirectChildID: B, Level: 2, OriginalChildID: C, IsRoot: true}:  {},
+						{ID: B, DirectChildID: C, Level: 1, OriginalChildID: C, IsRoot: false}: {},
 					}, ancestors)
 				})
 
@@ -606,12 +606,12 @@ func (s *linkRepoBlackBoxTest) TestGetAncestors() {
 					require.NoError(t, err)
 					validateAncestry(t, fxt, map[link.Ancestor]struct{}{
 						// for D
-						{ID: A, OriginalChildID: D, IsRoot: true}:  {},
-						{ID: B, OriginalChildID: D, IsRoot: false}: {},
-						{ID: C, OriginalChildID: D, IsRoot: false}: {},
+						{ID: A, DirectChildID: B, Level: 3, OriginalChildID: D, IsRoot: true}:  {},
+						{ID: B, DirectChildID: C, Level: 2, OriginalChildID: D, IsRoot: false}: {},
+						{ID: C, DirectChildID: D, Level: 1, OriginalChildID: D, IsRoot: false}: {},
 						// for C
-						{ID: A, OriginalChildID: C, IsRoot: true}:  {},
-						{ID: B, OriginalChildID: C, IsRoot: false}: {},
+						{ID: A, DirectChildID: B, Level: 2, OriginalChildID: C, IsRoot: true}:  {},
+						{ID: B, DirectChildID: C, Level: 1, OriginalChildID: C, IsRoot: false}: {},
 					}, ancestors)
 				})
 
@@ -651,14 +651,122 @@ func (s *linkRepoBlackBoxTest) TestGetAncestors() {
 					require.NoError(t, err)
 					validateAncestry(t, fxt, map[link.Ancestor]struct{}{
 						// for Y
-						{ID: X, OriginalChildID: Y, IsRoot: true}: {},
+						{ID: X, DirectChildID: Y, Level: 1, OriginalChildID: Y, IsRoot: true}: {},
 						// for E
-						{ID: A, OriginalChildID: E, IsRoot: true}:  {},
-						{ID: D, OriginalChildID: E, IsRoot: false}: {},
+						{ID: A, DirectChildID: D, Level: 2, OriginalChildID: E, IsRoot: true}:  {},
+						{ID: D, DirectChildID: E, Level: 1, OriginalChildID: E, IsRoot: false}: {},
 					}, ancestors)
 				})
 			})
 
 		})
 	}
+}
+
+func (s *linkRepoBlackBoxTest) TestAncestorList() {
+	s.T().Run("A,B,C,D,E", func(t *testing.T) {
+		chain := tf.LinkChain("A", "B", "C", "D", "E")
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.WorkItemLinkTypes(1, tf.SetTopologies(link.TopologyTree)),
+			tf.WorkItems(5, tf.SetWorkItemTitles("A", "B", "C", "D", "E")),
+			tf.WorkItemLinksCustom(4, tf.BuildLinks(chain...)),
+		)
+		// to shorten the test code below
+		A := fxt.WorkItemByTitle("A").ID
+		B := fxt.WorkItemByTitle("B").ID
+		C := fxt.WorkItemByTitle("C").ID
+		D := fxt.WorkItemByTitle("D").ID
+		E := fxt.WorkItemByTitle("E").ID
+
+		// given
+		ancestors, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypes[0].ID, E)
+		require.NoError(t, err)
+
+		t.Run("GetAncestorOf", func(t *testing.T) {
+			t.Run("parent", func(t *testing.T) {
+				a := ancestors.GetAncestorOf(E, 1)
+				require.NotNil(t, a)
+				require.Equal(t, D, a.ID)
+			})
+			t.Run("grandparent", func(t *testing.T) {
+				a := ancestors.GetAncestorOf(E, 2)
+				require.NotNil(t, a)
+				require.Equal(t, C, a.ID)
+			})
+			t.Run("great-grandparent", func(t *testing.T) {
+				a := ancestors.GetAncestorOf(E, 3)
+				require.NotNil(t, a)
+				require.Equal(t, B, a.ID)
+			})
+			t.Run("level=100", func(t *testing.T) {
+				a := ancestors.GetAncestorOf(E, 100)
+				require.Nil(t, a)
+			})
+			t.Run("level<0", func(t *testing.T) {
+				a := ancestors.GetAncestorOf(E, -1)
+				require.Nil(t, a)
+			})
+			t.Run("level==0", func(t *testing.T) {
+				a := ancestors.GetAncestorOf(E, 0)
+				require.Nil(t, a)
+			})
+		})
+		t.Run("GetParentOf", func(t *testing.T) {
+			t.Run("A", func(t *testing.T) {
+				a := ancestors.GetParentOf(A)
+				require.Nil(t, a)
+			})
+			t.Run("E", func(t *testing.T) {
+				a := ancestors.GetParentOf(E)
+				require.NotNil(t, a)
+				require.Equal(t, D, a.ID)
+			})
+		})
+	})
+}
+
+func TestIDSliceDiff(t *testing.T) {
+	a := []uuid.UUID{
+		// shared with b
+		uuid.FromStringOrNil("9afc7d5c-9f4e-4a04-8359-71d72e5eed94"),
+		uuid.FromStringOrNil("4ce8076c-4997-4565-8272-9a3cb4d7a1a8"),
+		// unique
+		uuid.FromStringOrNil("0403d2cb-02d9-466f-88cd-65dc9247f809"),
+		uuid.FromStringOrNil("0b5159b5-c21b-40c2-af90-f020d71a8e94"),
+	}
+	b := []uuid.UUID{
+		// shared with a
+		uuid.FromStringOrNil("9afc7d5c-9f4e-4a04-8359-71d72e5eed94"),
+		uuid.FromStringOrNil("4ce8076c-4997-4565-8272-9a3cb4d7a1a8"),
+		// unique to b
+		uuid.FromStringOrNil("03a9a225-e7b0-4229-b698-716308f2136a"),
+		uuid.FromStringOrNil("1db1c165-2360-4efc-89b4-e4d3d4988091"),
+		uuid.FromStringOrNil("2fc09162-bf2f-4a1c-b622-323d8495ac58"),
+	}
+	t.Run("equal", func(t *testing.T) {
+		require.Equal(t, []uuid.UUID{}, link.IDSliceDiff(a, a))
+	})
+	t.Run("difference", func(t *testing.T) {
+		toBeFound := map[uuid.UUID]struct{}{
+			// unique to a
+			uuid.FromStringOrNil("0403d2cb-02d9-466f-88cd-65dc9247f809"): {},
+			uuid.FromStringOrNil("0b5159b5-c21b-40c2-af90-f020d71a8e94"): {},
+			// unique to b
+			uuid.FromStringOrNil("03a9a225-e7b0-4229-b698-716308f2136a"): {},
+			uuid.FromStringOrNil("1db1c165-2360-4efc-89b4-e4d3d4988091"): {},
+			uuid.FromStringOrNil("2fc09162-bf2f-4a1c-b622-323d8495ac58"): {},
+		}
+		// when
+		diff := link.IDSliceDiff(a, b)
+		t.Logf("diff: %s", diff)
+		// then
+		for _, id := range diff {
+			_, ok := toBeFound[id]
+			require.True(t, ok, "failed to find %s in expected difference: %s", id, toBeFound)
+			delete(toBeFound, id)
+		}
+		require.Empty(t, toBeFound, "found not all IDs in difference: %+v", toBeFound)
+	})
+
+	_, _ = a, b
 }

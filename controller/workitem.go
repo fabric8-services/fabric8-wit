@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/fabric8-services/fabric8-wit/workitem/link"
+
 	"github.com/fabric8-services/fabric8-wit/ptr"
 
 	"context"
@@ -607,18 +609,27 @@ func workItemIncludeHasChildren(ctx context.Context, appl application.Applicatio
 }
 
 // includeParentWorkItem adds the parent of given WI to relationships & included object
-func includeParentWorkItem(ctx context.Context, appl application.Application) WorkItemConvertFunc {
+func includeParentWorkItem(ctx context.Context, appl application.Application, ancestors link.AncestorList) WorkItemConvertFunc {
 	return func(request *http.Request, wi *workitem.WorkItem, wi2 *app.WorkItem) {
 		var parentID *uuid.UUID
-		var err error
-		repo := appl.WorkItemLinks()
-		if repo != nil {
-			parentID, err = repo.GetParentID(ctx, wi.ID)
-			if err != nil {
-				log.Info(ctx, map[string]interface{}{
-					"wi_id":  wi.ID,
-					"detail": err,
-				}, "work item has no parent: %s", wi.ID)
+		if ancestors != nil && len(ancestors) != 0 {
+			// if we have an ancestry we can lookup the parent in no time.
+			p := ancestors.GetParentOf(wi.ID)
+			if p != nil {
+				parentID = &p.ID
+			}
+		} else {
+			// if ancestry is empty, fall back to old way of finding the immediate parent
+			var err error
+			repo := appl.WorkItemLinks()
+			if repo != nil {
+				parentID, err = repo.GetParentID(ctx, wi.ID)
+				if err != nil {
+					log.Info(ctx, map[string]interface{}{
+						"wi_id":  wi.ID,
+						"detail": err,
+					}, "work item has no parent: %s", wi.ID)
+				}
 			}
 		}
 		if wi2.Relationships.Parent == nil {
