@@ -47,6 +47,15 @@ To install glide, go to the
 link:https://github.com/Masterminds/glide/releases[release page] and download
 the newest binary for your operating system.
 
+Glide expects `GOPATH` environment variable to be set.  It also requires
+`PATH` environment updated with `$GOPATH/bin`. e.g.,
+
+----
+export GOPATH=$HOME/go
+mkdir -p $GOPATH/bin
+export PATH=$GOPATH/bin:$PATH
+----
+
 Unpack the archive that you've downloaded and place the `glide` executable
 somewhere so that it is in your `PATH`.
 
