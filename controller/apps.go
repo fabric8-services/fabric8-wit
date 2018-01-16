@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/url"
 	"os"
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/auth/authservice"
+	errs "github.com/pkg/errors"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/auth"
@@ -61,7 +61,7 @@ func getAndCheckOSIOClient(ctx context.Context) *OSIOClient {
 	if os.Getenv("FABRIC8_WIT_API_URL") != "" {
 		witurl, err := url.Parse(os.Getenv("FABRIC8_WIT_API_URL"))
 		if err != nil {
-			log.Warn(ctx, nil, "Cannot parse FABRIC8_WIT_API_URL; assuming localhost")
+			log.Warn(ctx, nil, "cannot parse FABRIC8_WIT_API_URL; assuming localhost")
 		}
 		host = witurl.Host
 		scheme = witurl.Scheme
@@ -111,7 +111,7 @@ func getUser(authClient authservice.Client, ctx context.Context) (*authservice.U
 
 	status := resp.StatusCode
 	if status < 200 || status > 300 {
-		return nil, fmt.Errorf("Failed to GET user due to status code %d", status)
+		return nil, errs.Errorf("failed to GET user due to status code %d", status)
 	}
 
 	var respType authservice.User
@@ -135,7 +135,7 @@ func getTokenData(authClient authservice.Client, ctx context.Context, forService
 
 	status := resp.StatusCode
 	if status < 200 || status > 300 {
-		return nil, errors.New("Failed to GET user due to status code " + string(status))
+		return nil, errs.WithStack(errors.New("failed to GET user due to status code " + string(status)))
 	}
 
 	var respType authservice.TokenData
@@ -165,7 +165,7 @@ func (c *AppsController) getKubeClient(ctx context.Context) (kubernetes.KubeClie
 
 	if authUser == nil || authUser.Data.Attributes.Cluster == nil {
 		log.Error(ctx, nil, "error getting user from Auth server:"+tostring(authUser))
-		return nil, fmt.Errorf("error getting user from Auth Server: %s", tostring(authUser))
+		return nil, errs.Errorf("error getting user from Auth Server: %s", tostring(authUser))
 	}
 
 	// get the openshift/kubernetes auth info for the cluster OpenShift API

@@ -21,6 +21,8 @@ import (
 	rest "k8s.io/client-go/rest"
 
 	"github.com/fabric8-services/fabric8-wit/app"
+
+	errs "github.com/pkg/errors"
 )
 
 // KubeClientConfig holds configuration data needed to create a new KubeClientInterface
@@ -203,7 +205,7 @@ func (kc *kubeClient) ScaleDeployment(spaceName string, appName string, envName 
 
 	spec, ok := scale["spec"].(map[interface{}]interface{})
 	if !ok {
-		return nil, errors.New("Invalid deployment config returned from endpoint: missing 'spec'")
+		return nil, errs.WithStack(errors.New("invalid deployment config returned from endpoint: missing 'spec'"))
 	}
 
 	replicasYaml, pres := spec["replicas"]
@@ -211,7 +213,7 @@ func (kc *kubeClient) ScaleDeployment(spaceName string, appName string, envName 
 	if pres {
 		oldReplicas, ok = replicasYaml.(int)
 		if !ok {
-			return nil, errors.New("Invalid deployment config returned from endpoint: 'replicas' is not an integer")
+			return nil, errs.WithStack(errors.New("invalid deployment config returned from endpoint: 'replicas' is not an integer"))
 		}
 	}
 	spec["replicas"] = deployNumber
@@ -393,7 +395,7 @@ func getMetricsURLFromAPIURL(apiURLStr string) (string, error) {
 	// Get the hostname (without port) and replace api prefix with metrics
 	apiHostname := apiURL.Hostname()
 	if !strings.HasPrefix(apiHostname, "api") {
-		return "", errors.New("Cluster URL does not begin with \"api\": " + apiHostname)
+		return "", errs.WithStack(errors.New("cluster URL does not begin with \"api\": " + apiHostname))
 	}
 	metricsHostname := strings.Replace(apiHostname, "api", "metrics", 1)
 	// Construct URL using just scheme from API URL and metrics hostname
@@ -435,11 +437,11 @@ func (kc *kubeClient) getBuildConfigs(space string) ([]string, error) {
 	// Parse build configs from result
 	kind, ok := result["kind"].(string)
 	if !ok || kind != "BuildConfigList" {
-		return nil, errors.New("No build configs returned from endpoint")
+		return nil, errs.WithStack(errors.New("no build configs returned from endpoint"))
 	}
 	items, ok := result["items"].([]interface{})
 	if !ok {
-		return nil, errors.New("Malformed response from endpoint")
+		return nil, errs.WithStack(errors.New("malformed response from endpoint"))
 	}
 
 	// Extract the names of the BuildConfigs from the response
@@ -447,15 +449,15 @@ func (kc *kubeClient) getBuildConfigs(space string) ([]string, error) {
 	for _, item := range items {
 		bc, ok := item.(map[interface{}]interface{})
 		if !ok {
-			return nil, errors.New("Malformed build config")
+			return nil, errs.WithStack(errors.New("malformed build config"))
 		}
 		metadata, ok := bc["metadata"].(map[interface{}]interface{})
 		if !ok {
-			return nil, errors.New("Metadata missing from build config")
+			return nil, errs.WithStack(errors.New("metadata missing from build config"))
 		}
 		name, ok := metadata["name"].(string)
 		if !ok || len(name) == 0 {
-			return nil, errors.New("Malformed metadata in build config")
+			return nil, errors.New("malformed metadata in build config")
 		}
 		buildconfigs = append(buildconfigs, name)
 	}
@@ -472,7 +474,7 @@ func (kc *kubeClient) getEnvironmentsFromConfigMap() (map[string]string, error) 
 	}
 	// Check that config map has the expected label
 	if configmap.Labels["provider"] != providerLabel {
-		return nil, errors.New("Unknown or missing provider for environments config map")
+		return nil, errs.WithStack(errors.New("unknown or missing provider for environments config map"))
 	}
 	// Parse config map data to construct environments map
 	envMap := make(map[string]string)
@@ -486,13 +488,13 @@ func (kc *kubeClient) getEnvironmentsFromConfigMap() (map[string]string, error) 
 			if strings.HasPrefix(line, namespaceProp) {
 				tokens := strings.SplitN(line, ":", 2)
 				if len(tokens) < 2 {
-					return nil, errors.New("Malformed environments config map")
+					return nil, errs.WithStack(errors.New("malformed environments config map"))
 				}
 				namespace = strings.TrimSpace(tokens[1])
 			}
 		}
 		if len(namespace) == 0 {
-			return nil, errors.New("No namespace for environment " + key + " in config map")
+			return nil, errs.WithStack(errors.New("no namespace for environment " + key + " in config map"))
 		}
 		envMap[key] = namespace
 	}
@@ -502,7 +504,7 @@ func (kc *kubeClient) getEnvironmentsFromConfigMap() (map[string]string, error) 
 func (kc *kubeClient) getEnvironmentNamespace(envName string) (string, error) {
 	envNS, pres := kc.envMap[envName]
 	if !pres {
-		return "", errors.New("Unknown environment: " + envName)
+		return "", errs.WithStack(errors.New("unknown environment: " + envName))
 	}
 	return envNS, nil
 }
@@ -532,7 +534,7 @@ func (kc *kubeClient) putResource(url string, putBody []byte) (*string, error) {
 
 	status := resp.StatusCode
 	if status < 200 || status > 300 {
-		return nil, fmt.Errorf("Failed to PUT url %s: status code %d", fullURL, status)
+		return nil, errs.Errorf("failed to PUT url %s: status code %d", fullURL, status)
 	}
 	bodyStr := string(body)
 	return &bodyStr, nil
@@ -550,34 +552,34 @@ func (kc *kubeClient) getDeploymentConfig(namespace string, appName string, spac
 	// Parse deployment config from result
 	kind, ok := result["kind"].(string)
 	if !ok || kind != "DeploymentConfig" {
-		return nil, errors.New("No deployment config returned from endpoint")
+		return nil, errs.WithStack(errors.New("no deployment config returned from endpoint"))
 	}
 	metadata, ok := result["metadata"].(map[interface{}]interface{})
 	if !ok {
-		return nil, errors.New("Metadata missing from deployment config")
+		return nil, errs.WithStack(errors.New("metadata missing from deployment config"))
 	}
 	// Check the space label is what we expect
 	labels, ok := metadata["labels"].(map[interface{}]interface{})
 	if !ok {
-		return nil, errors.New("Labels missing from deployment config")
+		return nil, errs.WithStack(errors.New("labels missing from deployment config"))
 	}
 	spaceLabel, ok := labels["space"].(string)
 	if !ok || len(spaceLabel) == 0 {
-		return nil, errors.New("Space label missing from deployment config")
+		return nil, errs.WithStack(errors.New("space label missing from deployment config"))
 	}
 	if spaceLabel != space {
-		return nil, errors.New("Deployment config " + appName + " is part of space " +
-			spaceLabel + ", expected space " + space)
+		return nil, errs.WithStack(errors.New("deployment config " + appName + " is part of space " +
+			spaceLabel + ", expected space " + space))
 	}
 	// Get UID from deployment config
 	uid, ok := metadata["uid"].(string)
 	if !ok || len(uid) == 0 {
-		return nil, errors.New("Malformed metadata in deployment config")
+		return nil, errs.WithStack(errors.New("malformed metadata in deployment config"))
 	}
 	// Read application version from label
 	version := labels["version"].(string)
 	if !ok || len(version) == 0 {
-		return nil, errors.New("Version missing from deployment config")
+		return nil, errs.WithStack(errors.New("version missing from deployment config"))
 	}
 
 	dc := &deployment{
@@ -664,7 +666,7 @@ func (kc *kubeClient) getResourceQuota(namespace string) (*app.EnvStats, error) 
 	if err != nil {
 		return nil, err
 	} else if quota == nil {
-		return nil, errors.New("No resource quota with name: " + computeResources)
+		return nil, errs.WithStack(errors.New("no resource quota with name: " + computeResources))
 	}
 
 	// Convert quantities to floating point, as this should provide enough
@@ -717,7 +719,7 @@ func quantityToFloat64(q resource.Quantity) (float64, error) {
 		valDec := q.AsDec()
 		val64, ok := valDec.Unscaled()
 		if !ok {
-			return -1, errors.New(valDec.String() + " cannot be represented as 64-bit integer")
+			return -1, errs.WithStack(errors.New(valDec.String() + " cannot be represented as 64-bit integer"))
 		}
 		// From dec.go: The mathematical value of a Dec equals: unscaled * 10**(-scale)
 		result = float64(val64) * math.Pow10(-int(valDec.Scale()))
@@ -821,10 +823,10 @@ func (kc *kubeClient) getResource(url string, allowMissing bool) (map[interface{
 	b := buf.Bytes()
 
 	status := resp.StatusCode
-	if status == 404 && allowMissing {
+	if status == http.StatusNotFound && allowMissing {
 		return nil, nil
 	} else if status < 200 || status > 300 {
-		return nil, fmt.Errorf("Failed to GET url %s due to status code %d", fullURL, status)
+		return nil, errs.Errorf("failed to GET url %s due to status code %d", fullURL, status)
 	}
 	var respType map[interface{}]interface{}
 	err = yaml.Unmarshal(b, &respType)
