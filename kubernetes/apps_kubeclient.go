@@ -248,9 +248,10 @@ func (kc *kubeClient) ScaleDeployment(spaceName string, appName string, envName 
 	return &oldReplicas, nil
 }
 
-func (kc *kubeClient) getConsoleURL() (*string, error) {
-	// Replace "api" prefix with "console" and append "console" to path
-	consoleURL, err := modifyURL(kc.config.ClusterURL, "console", "console")
+func (kc *kubeClient) getConsoleURL(envNS string) (*string, error) {
+	path := "console/project/" + envNS
+	// Replace "api" prefix with "console" and append path
+	consoleURL, err := modifyURL(kc.config.ClusterURL, "console", path)
 	if err != nil {
 		return nil, err
 	}
@@ -259,12 +260,12 @@ func (kc *kubeClient) getConsoleURL() (*string, error) {
 }
 
 func (kc *kubeClient) getLogURL(envNS string, deploy *deployment) (*string, error) {
-	consoleURL, err := kc.getConsoleURL()
+	consoleURL, err := kc.getConsoleURL(envNS)
 	if err != nil {
 		return nil, err
 	}
 	rcName := deploy.current.Name
-	logURL := fmt.Sprintf("%s/project/%s/browse/rc/%s?tab=logs", *consoleURL, envNS, rcName)
+	logURL := fmt.Sprintf("%s/browse/rc/%s?tab=logs", *consoleURL, rcName)
 	return &logURL, nil
 }
 
@@ -310,7 +311,7 @@ func (kc *kubeClient) GetDeployment(spaceName string, appName string, envName st
 	if err != nil {
 		return nil, err
 	}
-	consoleURL, err := kc.getConsoleURL()
+	consoleURL, err := kc.getConsoleURL(envNS)
 	if err != nil {
 		return nil, err
 	}
