@@ -177,12 +177,6 @@ func (r *GormQueryRepository) IsDuplicate(ctx context.Context, q *Query) (bool, 
 // Delete deletes the query with the given id, returns NotFoundError or InternalError
 func (r *GormQueryRepository) Delete(ctx context.Context, ID uuid.UUID) error {
 	defer goa.MeasureSince([]string{"goa", "db", "query", "delete"}, time.Now())
-	if ID == uuid.Nil {
-		log.Error(ctx, map[string]interface{}{
-			"query_id": ID.String(),
-		}, "unable to find the query by ID")
-		return errors.NewNotFoundError("query", ID.String())
-	}
 	q := Query{ID: ID}
 	tx := r.db.Delete(q)
 

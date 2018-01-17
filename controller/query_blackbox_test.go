@@ -343,5 +343,11 @@ func (rest *TestQueryREST) TestDelete() {
 			// when
 			test.DeleteQueryUnauthorized(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, fxt.Queries[0].ID)
 		})
+		t.Run("nil UUID", func(t *testing.T) {
+			fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment())
+			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+			// when
+			test.DeleteQueryNotFound(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, uuid.Nil)
+		})
 	})
 }
