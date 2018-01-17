@@ -546,23 +546,6 @@ func (r *GormWorkItemLinkRepository) GetParentID(ctx context.Context, ID uuid.UU
 	return &parentID, nil
 }
 
-// IDSliceDiff returns the difference of the given slices.
-func IDSliceDiff(a, b []uuid.UUID) []uuid.UUID {
-	slice := append(a, b...)
-	encountered := map[uuid.UUID]int{}
-	for _, v := range slice {
-		encountered[v] = encountered[v] + 1
-	}
-
-	diff := []uuid.UUID{}
-	for _, v := range slice {
-		if encountered[v] == 1 {
-			diff = append(diff, v)
-		}
-	}
-	return diff
-}
-
 // GetAncestors returns all ancestors for the given work items.
 //
 // NOTE: In case the given link type doesn't have a tree topology a work item

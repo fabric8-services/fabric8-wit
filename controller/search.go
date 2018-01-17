@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 
+	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 
 	"github.com/fabric8-services/fabric8-wit/app"
@@ -77,7 +78,7 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 				}
 			}
 
-			matchingWorkItemIDs := make([]uuid.UUID, len(result))
+			matchingWorkItemIDs := make(id.Slice, len(result))
 			for i, wi := range result {
 				matchingWorkItemIDs[i] = wi.ID
 			}
@@ -93,7 +94,7 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 				},
 				Data: ConvertWorkItems(ctx.Request, result, hasChildren, includeParent),
 			}
-			c.enrichWorkItemList(ctx, ancestors, &response) // append parentWI and ancestors (if not empty) in response
+			c.enrichWorkItemList(ctx, ancestors, matchingWorkItemIDs, &response) // append parentWI and ancestors (if not empty) in response
 			setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(result), offset, limit, count, "filter[expression]="+*ctx.FilterExpression)
 			return ctx.OK(&response)
 		})
@@ -202,17 +203,19 @@ func (c *SearchController) Users(ctx *app.UsersSearchContext) error {
 
 // Iterate over the WI list and read parent IDs
 // Fetch and load Parent WI in the included list
-func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, ancestors link.AncestorList, res *app.SearchWorkItemList) {
-	fetchInBatch := []uuid.UUID{}
+func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, ancestors link.AncestorList, matchingIDs id.Slice, res *app.SearchWorkItemList) {
+	parentIDs := id.Slice{}
 	for _, wi := range res.Data {
 		if wi.Relationships != nil && wi.Relationships.Parent != nil && wi.Relationships.Parent.Data != nil {
-			parentID := wi.Relationships.Parent.Data.ID
-			fetchInBatch = append(fetchInBatch, parentID)
+			parentIDs = append(parentIDs, wi.Relationships.Parent.Data.ID)
 		}
 	}
 
-	// Also append the ancestors not already included in the parent list.
-	fetchInBatch = append(fetchInBatch, link.IDSliceDiff(ancestors.GetDistinctAncestorIDs(), fetchInBatch)...)
+	// Also append the ancestors not already included in the parent list
+	parentAncestorDiff := ancestors.GetDistinctAncestorIDs().Diff(parentIDs)
+	fetchInBatch := append(parentIDs, parentAncestorDiff...)
+	// Eliminate work item already in the search
+	fetchInBatch = fetchInBatch.Sub(matchingIDs)
 
 	wis := []*workitem.WorkItem{}
 	err := application.Transactional(c.db, func(appl application.Application) error {

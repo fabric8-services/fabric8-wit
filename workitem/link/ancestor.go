@@ -1,6 +1,7 @@
 package link
 
 import (
+	"github.com/fabric8-services/fabric8-wit/id"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -12,8 +13,8 @@ type Ancestor struct {
 	DirectChildID   uuid.UUID `gorm:"column:direct_child" sql:"type:uuid"`
 	OriginalChildID uuid.UUID `gorm:"column:original_child" sql:"type:uuid"`
 	IsRoot          bool      `gorm:"column:is_root"`
-	// Level encodes if an ancestor is a parent(1), grandparent(2),
-	// grandgrandparent(3), and so forth for the given original child.
+	// Level encodes if an ancestor is a parent (1), grandparent (2),
+	// grandgrandparent (3), and so forth for the given original child.
 	Level int `gorm:"column:ancestor_level"`
 }
 
@@ -21,25 +22,13 @@ type Ancestor struct {
 // functionality add to it.
 type AncestorList []Ancestor
 
-// GetDistinctAncestorIDMap returns a list with distinct ancestor IDs.
-func (l AncestorList) getDistinctAncestorIDMap() map[uuid.UUID]struct{} {
-	distinctAncestorWorkItemIDMap := map[uuid.UUID]struct{}{}
-	for _, ancestor := range l {
-		distinctAncestorWorkItemIDMap[ancestor.ID] = struct{}{}
-	}
-	return distinctAncestorWorkItemIDMap
-}
-
 // GetDistinctAncestorIDs returns a list with distinct ancestor IDs.
-func (l AncestorList) GetDistinctAncestorIDs() []uuid.UUID {
-	distinctAncestorWorkItemIDMap := l.getDistinctAncestorIDMap()
-	distinctAncestorIDs := make([]uuid.UUID, len(distinctAncestorWorkItemIDMap))
-	i := 0
-	for id := range distinctAncestorWorkItemIDMap {
-		distinctAncestorIDs[i] = id
-		i++
+func (l AncestorList) GetDistinctAncestorIDs() id.Slice {
+	m := id.Map{}
+	for _, ancestor := range l {
+		m[ancestor.ID] = struct{}{}
 	}
-	return distinctAncestorIDs
+	return m.ToSlice()
 }
 
 // GetParentOf returns the immediated (level 1) ancestor (if any) of the given

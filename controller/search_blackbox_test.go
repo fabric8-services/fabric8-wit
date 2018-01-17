@@ -19,6 +19,7 @@ import (
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/models"
 	"github.com/fabric8-services/fabric8-wit/rendering"
@@ -1059,84 +1060,111 @@ func (s *searchControllerTestSuite) TestIncludedParents() {
 
 	spaceIDStr := fxt.Spaces[0].ID.String()
 
-	s.T().Run("in topology A-B-C-D and A-D search for", func(t *testing.T) {
-		testFunc := func(t *testing.T, searchForTitle string, expectedData, expectedIncludeWorkItems map[uuid.UUID]struct{}, treeView bool) {
-			// we need to access these maps twice, therefore we copy them
-			expectedData2 := map[uuid.UUID]struct{}{}
-			for k, v := range expectedData {
-				expectedData2[k] = v
-			}
-			expectedIncludeWorkItems2 := map[uuid.UUID]struct{}{}
-			for k, v := range expectedIncludeWorkItems {
-				expectedIncludeWorkItems2[k] = v
-			}
+	printCb := func(ID uuid.UUID) string {
+		return fmt.Sprintf("%s (%s)", fxt.WorkItemByID(ID).Fields[workitem.SystemTitle].(string), ID)
+	}
 
-			testName := searchForTitle
-			filter := fmt.Sprintf(`"$AND": [{"title":"%[1]s"}, {"space": "%[2]s"}]`, searchForTitle, spaceIDStr)
+	s.T().Run("in topology A-B-C-D and A-D search for", func(t *testing.T) {
+		testFunc := func(t *testing.T, searchForTitles []string, expectedData, expectedIncludes, expectedAncestorIDs id.Slice, treeView bool) {
+			matches := id.MapFromSlice(expectedData)
+			included := id.MapFromSlice(expectedIncludes)
+			ancestorIDs := id.MapFromSlice(expectedAncestorIDs)
+			// we need to access these maps twice (remove elements from them),
+			// therefore we copy them.
+			expectedData2 := matches.Copy()
+
+			// Build title filter and test name
+			require.NotEmpty(t, searchForTitles)
+			titleFilter := ""
+			for _, title := range searchForTitles {
+				f := fmt.Sprintf(`{"title":"%[1]s"}`, title)
+				if titleFilter == "" {
+					titleFilter = f
+				} else {
+					titleFilter = fmt.Sprintf(`{"$OR": [%[1]s, %[2]s]}`, f, titleFilter)
+				}
+			}
+			filter := fmt.Sprintf(`"$AND": [%[1]s, {"space": "%[2]s"}]`, titleFilter, spaceIDStr)
+			testName := strings.Join(searchForTitles, ",")
 			if treeView {
 				filter = filter + "," + fmt.Sprintf(`"$OPTS":{"%[1]s": true}`, search.OptTreeViewKey)
-				testName += " with query options"
+				testName += " with tree-view=true"
+			} else {
+				testName += " with tree-view=false"
 			}
 			filter = "{" + filter + "}"
+
 			t.Run(testName, func(t *testing.T) {
 				t.Logf("Running with filter: %s", filter)
+				// when
 				_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+				// then
 				require.NotEmpty(t, result.Data)
-				require.Len(t, result.Data, 1)
+				assert.Len(t, result.Data, len(searchForTitles))
+
 				// test what's included in the "data" portion of the response
 				for _, wi := range result.Data {
-					_, ok := expectedData[*wi.ID]
-					require.True(t, ok, "failed to find work item in list of expected results: %s", wi.Attributes[workitem.SystemTitle].(string))
-					delete(expectedData, *wi.ID)
+					_, ok := matches[*wi.ID]
+					if wi := fxt.WorkItemByID(*wi.ID); wi != nil {
+						t.Logf("found data work item: %s (%s)", wi.Fields[workitem.SystemTitle].(string), wi.ID)
+					}
+					assert.True(t, ok, "failed to find work item in list of expected \"data\" results: %s (%s)", wi.Attributes[workitem.SystemTitle].(string), wi.ID)
+					delete(matches, *wi.ID)
 				}
-				// test what's included in the "included" portion of the response
-				require.True(t, len(result.Included) >= len(expectedIncludeWorkItems), "length of included elements (%d) must be at least %d: %+v")
+				assert.Empty(t, matches, "failed to find these work items in \"data\" section: %s", matches.ToString(", ", printCb))
+
+				assert.True(t, len(result.Included) >= len(included), "length of included elements (%d) must be at least %d", len(result.Included), len(included))
 				for _, ele := range result.Included {
 					appWI, ok := ele.(app.WorkItem)
 					if ok {
-						_, ok = expectedIncludeWorkItems[*appWI.ID]
-						assert.True(t, ok, "failed to find work item in list of expected results: %s", appWI.Attributes[workitem.SystemTitle].(string))
-						if ok {
-							delete(expectedIncludeWorkItems, *appWI.ID)
-						}
+						_, ok = included[*appWI.ID]
+						t.Logf("found included work item: %s (%s)", fxt.WorkItemByID(*appWI.ID).Fields[workitem.SystemTitle].(string), *appWI.ID)
+						assert.True(t, ok, "failed to find work item in list of expected \"included\" results: %s (%s)", appWI.Attributes[workitem.SystemTitle].(string), *appWI.ID)
+						delete(included, *appWI.ID)
 					}
 				}
-				require.Empty(t, expectedIncludeWorkItems, "failed to find these work items in \"included\" section: %s", expectedIncludeWorkItems)
-				if treeView {
-					// Our test topolgies are simple enough to assume that the
-					// included work items are the ones that we must find under the
-					// array named AncestorWorkItemIDs of the result's meta object
-					t.Run("check AncestorWorkItemIDs", func(t *testing.T) {
-						for _, id := range result.Meta.AncestorWorkItemIDs {
-							_, ok := expectedIncludeWorkItems2[id]
-							require.True(t, ok, "failed to find ID %s in AncestorWorkItemIDs meta-array", id)
-							delete(expectedIncludeWorkItems2, id)
+				assert.Empty(t, included, "failed to find these work items in \"included\" section: %s", included.ToString(", ", printCb))
+
+				t.Run("check AncestorWorkItemIDs", func(t *testing.T) {
+					if !treeView {
+						assert.Empty(t, ancestorIDs, "expected no ancestor item IDs listed but these were listed: %s", ancestorIDs.ToString(", ", printCb))
+					} else {
+						for _, ID := range result.Meta.AncestorWorkItemIDs {
+							_, ok := ancestorIDs[ID]
+							assert.True(t, ok, "failed to find %s (%s) in AncestorWorkItemIDs meta-array", fxt.WorkItemByID(ID).Fields[workitem.SystemTitle].(string), ID)
+							t.Logf("found work item listed in ancestor ID array: %s (%s)", fxt.WorkItemByID(ID).Fields[workitem.SystemTitle].(string), ID)
+							delete(ancestorIDs, ID)
 						}
-						require.Empty(t, expectedIncludeWorkItems2, "these IDs are missing from AncestorWorkItemIDs meta-array: %+v", expectedIncludeWorkItems2)
-					})
-				}
+						assert.Empty(t, ancestorIDs, "these IDs are missing from AncestorWorkItemIDs meta-array: %s", ancestorIDs.ToString(", ", printCb))
+					}
+				})
 				t.Run("check MatchingWorkItemIDs", func(t *testing.T) {
-					for _, id := range result.Meta.MatchingWorkItemIDs {
-						_, ok := expectedData2[id]
-						require.True(t, ok, "failed to find ID %s in MatchingWorkItemIDs meta-array", id)
-						delete(expectedData2, id)
+					for _, ID := range result.Meta.MatchingWorkItemIDs {
+						_, ok := expectedData2[ID]
+						assert.True(t, ok, "failed to find %s (%s) in MatchingWorkItemIDs meta-array", fxt.WorkItemByID(ID).Fields[workitem.SystemTitle].(string), ID)
+						t.Logf("found work item listed in matching ID array: %s (%s)", fxt.WorkItemByID(ID).Fields[workitem.SystemTitle].(string), ID)
+						delete(expectedData2, ID)
 					}
-					require.Empty(t, expectedData2, "these IDs are missing from MatchingWorkItemIDs meta-array: %+v", expectedData2)
+					assert.Empty(t, expectedData2, "these IDs are missing from MatchingWorkItemIDs meta-array: %s", expectedData2.ToString(", ", printCb))
 				})
 			})
 		}
 		// Without tree-view query option
-		testFunc(t, "A", map[uuid.UUID]struct{}{A: {}}, nil, false)
-		testFunc(t, "B", map[uuid.UUID]struct{}{B: {}}, map[uuid.UUID]struct{}{A: {}}, false)
-		testFunc(t, "C", map[uuid.UUID]struct{}{C: {}}, map[uuid.UUID]struct{}{B: {}}, false)
-		testFunc(t, "D", map[uuid.UUID]struct{}{D: {}}, map[uuid.UUID]struct{}{A: {}}, false)
-		testFunc(t, "E", map[uuid.UUID]struct{}{E: {}}, nil, false)
+		testFunc(t, []string{"A"}, id.Slice{A}, nil, nil, false)
+		testFunc(t, []string{"B"}, id.Slice{B}, id.Slice{A}, nil, false)
+		testFunc(t, []string{"C"}, id.Slice{C}, id.Slice{B}, nil, false)
+		testFunc(t, []string{"D"}, id.Slice{D}, id.Slice{A}, nil, false)
+		testFunc(t, []string{"E"}, id.Slice{E}, nil, nil, false)
 		// With tree-view query option
-		testFunc(t, "A", map[uuid.UUID]struct{}{A: {}}, nil, true)
-		testFunc(t, "B", map[uuid.UUID]struct{}{B: {}}, map[uuid.UUID]struct{}{A: {}}, true)
-		testFunc(t, "C", map[uuid.UUID]struct{}{C: {}}, map[uuid.UUID]struct{}{B: {}, A: {}}, true)
-		testFunc(t, "D", map[uuid.UUID]struct{}{D: {}}, map[uuid.UUID]struct{}{A: {}}, true)
-		testFunc(t, "E", map[uuid.UUID]struct{}{E: {}}, nil, true)
+		testFunc(t, []string{"A"}, id.Slice{A}, nil, nil, true)
+		testFunc(t, []string{"B"}, id.Slice{B}, id.Slice{A}, id.Slice{A}, true)
+		testFunc(t, []string{"C"}, id.Slice{C}, id.Slice{B, A}, id.Slice{A, B}, true)
+		testFunc(t, []string{"D"}, id.Slice{D}, id.Slice{A}, id.Slice{A}, true)
+		testFunc(t, []string{"E"}, id.Slice{E}, nil, nil, true)
+		// search for parent and child elements without tree-view query option
+		testFunc(t, []string{"B", "C"}, id.Slice{B, C}, id.Slice{A}, nil, false)
+		// search for parent and child elements with tree-view query option
+		testFunc(t, []string{"B", "C"}, id.Slice{B, C}, id.Slice{A}, id.Slice{A, B}, true)
 	})
 }
 
