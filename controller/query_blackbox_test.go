@@ -230,7 +230,7 @@ func (rest *TestQueryREST) TestList() {
 		})
 		t.Run("unknown space ID", func(t *testing.T) {
 			// given
-			fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment())
+			fxt := tf.NewTestFixture(t, rest.DB, tf.Identities(1))
 			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 			// when
 			test.ListQueryNotFound(t, svc.Context, svc, ctrl, uuid.NewV4(), nil, nil)

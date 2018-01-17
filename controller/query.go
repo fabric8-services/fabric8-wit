@@ -134,7 +134,7 @@ func (c *QueryController) List(ctx *app.ListQueryContext) error {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-		_, err = appl.Spaces().Load(ctx, ctx.SpaceID)
+		err = appl.Spaces().CheckExists(ctx, ctx.SpaceID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
