@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/fabric8-services/fabric8-wit/ptr"
+
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/errors"
@@ -74,15 +76,13 @@ func (c *QueryController) Create(ctx *app.CreateQueryContext) error {
 
 // ConvertQuery converts from internal to external REST representation
 func ConvertQuery(appl application.Application, request *http.Request, q query.Query) *app.Query {
-	queryType := query.APIStringTypeQuery
 	spaceID := q.SpaceID.String()
 	relatedURL := rest.AbsoluteURL(request, app.QueryHref(spaceID, q.ID))
 	creatorID := q.Creator.String()
-	userType := APIStringTypeUser
 	relatedCreatorLink := rest.AbsoluteURL(request, fmt.Sprintf("%s/%s", usersEndpoint, creatorID))
 	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
 	appQuery := &app.Query{
-		Type: queryType,
+		Type: query.APIStringTypeQuery,
 		ID:   &q.ID,
 		Attributes: &app.QueryAttributes{
 			Title:     q.Title,
@@ -96,7 +96,7 @@ func ConvertQuery(appl application.Application, request *http.Request, q query.Q
 		Relationships: &app.QueryRelations{
 			Creator: &app.RelationGeneric{
 				Data: &app.GenericData{
-					Type: &userType,
+					Type: ptr.String(APIStringTypeUser),
 					ID:   &creatorID,
 					Links: &app.GenericLinks{
 						Related: &relatedCreatorLink,
