@@ -6,8 +6,7 @@ import uuid "github.com/satori/go.uuid"
 type Map map[uuid.UUID]struct{}
 
 // MapFromSlice constructs a map of empty struct values with keys taken from the
-// given slice. As a consequence all potential IDs from the given slice are
-// removed.
+// given slice.
 func MapFromSlice(s Slice) Map {
 	m := Map{}
 	for _, ID := range s {
