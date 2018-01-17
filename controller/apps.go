@@ -6,19 +6,22 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"net/url"
 	"os"
 	"time"
 
-	"github.com/fabric8-services/fabric8-wit/auth/authservice"
-
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/auth"
+	"github.com/fabric8-services/fabric8-wit/auth/authservice"
 	"github.com/fabric8-services/fabric8-wit/configuration"
+	"github.com/fabric8-services/fabric8-wit/goasupport"
+	witclient "github.com/fabric8-services/fabric8-wit/client"
 	witerrors "github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/kubernetes"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/goadesign/goa"
+	goaclient "github.com/goadesign/goa/client"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -67,7 +70,13 @@ func getAndCheckOSIOClient(ctx context.Context) *OSIOClient {
 		scheme = witurl.Scheme
 	}
 
-	oc := NewOSIOClient(ctx, scheme, host)
+	// TODO: Change timeout for http client
+	httpClient := http.DefaultClient
+	wc := witclient.New(goaclient.HTTPClientDoer(httpClient))
+	wc.Host = host
+	wc.Scheme = scheme
+	wc.SetJWTSigner(goasupport.NewForwardSigner(ctx))
+	oc := NewOSIOClient(wc, &IOResponseReader{})
 
 	return oc
 }

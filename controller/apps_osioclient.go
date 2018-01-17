@@ -10,32 +10,46 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	witclient "github.com/fabric8-services/fabric8-wit/client"
-	"github.com/fabric8-services/fabric8-wit/goasupport"
-	goaclient "github.com/goadesign/goa/client"
 	uuid "github.com/satori/go.uuid"
 )
 
+// Allows for reading from responses
+type ResponseReader interface {
+	ReadResponse(*http.Response) ([]byte, error)
+}
+
+type IOResponseReader struct {
+}
+
+func (r *IOResponseReader) ReadResponse(resp *http.Response) ([]byte, error) {
+	return ioutil.ReadAll(resp.Body)
+}
+
+// Interface for mocking the witclient.Client
+type WitClient interface {
+	ShowSpace(ctx context.Context, path string, ifModifiedSince *string, ifNoneMatch *string) (*http.Response, error)
+	ShowUserService(ctx context.Context, path string) (*http.Response, error)
+}
+
+// Interface for mocking OSIOClient
+type OpenshiftIOClient interface {
+	GetNamespaceByType(ctx context.Context, userService *app.UserService, namespaceType string) (*app.NamespaceAttributes, error)
+	GetUserServices(ctx context.Context) (*app.UserService, error)
+	GetSpaceByID(ctx context.Context, spaceID uuid.UUID) (*app.Space, error)
+}
+
 // OSIOClient contains configuration and methods for interacting with OSIO API
 type OSIOClient struct {
-	wc *witclient.Client
+	wc WitClient
+	responseReader ResponseReader
 }
 
-// NewOSIOClient creates an openshift IO client given an http request context
-func NewOSIOClient(ctx context.Context, scheme string, host string) *OSIOClient {
-
+// NewOSIOClient creates an openshift IO client given a wit client
+func NewOSIOClient(witclient WitClient, responseReader ResponseReader) *OSIOClient {
 	client := new(OSIOClient)
-	httpClient := newHTTPClient()
-	client.wc = witclient.New(goaclient.HTTPClientDoer(httpClient))
-	client.wc.Host = host
-	client.wc.Scheme = scheme
-	client.wc.SetJWTSigner(goasupport.NewForwardSigner(ctx))
+	client.wc = witclient
+	client.responseReader = responseReader
 	return client
-}
-
-// newHTTPClient returns the HTTP client used by the API client to make requests to the service.
-func newHTTPClient() *http.Client {
-	// TODO change timeout
-	return http.DefaultClient
 }
 
 // GetNamespaceByType finds a namespace by type (user, che, stage, etc)
@@ -67,7 +81,7 @@ func (osioclient *OSIOClient) GetUserServices(ctx context.Context) (*app.UserSer
 
 	defer resp.Body.Close()
 
-	respBody, err := ioutil.ReadAll(resp.Body)
+	respBody, err := osioclient.responseReader.ReadResponse(resp)
 
 	status := resp.StatusCode
 	if status == 404 {
@@ -97,7 +111,7 @@ func (osioclient *OSIOClient) GetSpaceByID(ctx context.Context, spaceID uuid.UUI
 
 	defer resp.Body.Close()
 
-	respBody, err := ioutil.ReadAll(resp.Body)
+	respBody, err := osioclient.responseReader.ReadResponse(resp)
 
 	status := resp.StatusCode
 	if status == 404 {
