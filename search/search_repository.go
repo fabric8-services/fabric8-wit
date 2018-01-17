@@ -42,8 +42,8 @@ const (
 
 // GormSearchRepository provides a Gorm based repository
 type GormSearchRepository struct {
-	db  *gorm.DB
-	wir *workitem.GormWorkItemTypeRepository
+	db   *gorm.DB
+	witr *workitem.GormWorkItemTypeRepository
 }
 
 // NewGormSearchRepository creates a new search repository
@@ -697,7 +697,7 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 	for index, value := range rows {
 		var err error
 		// FIXME: Against best practice http://go-database-sql.org/retrieving.html
-		wiType, err := r.wir.LoadTypeFromDB(ctx, value.Type)
+		wiType, err := r.witr.LoadTypeFromDB(ctx, value.Type)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"err": err,
@@ -809,13 +809,13 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 }
 
 // Filter Search returns work items for the given query
-func (r *GormSearchRepository) Filter(ctx context.Context, rawFilterString string, parentExists *bool, start *int, limit *int) ([]workitem.WorkItem, uint64, error) {
+func (r *GormSearchRepository) Filter(ctx context.Context, rawFilterString string, parentExists *bool, start *int, limit *int) (matches []workitem.WorkItem, count uint64, ancestors link.AncestorList, err error) {
 	// parse
 	// generateSearchQuery
 	// ....
-	exp, _, err := ParseFilterString(ctx, rawFilterString)
+	exp, opts, err := ParseFilterString(ctx, rawFilterString)
 	if err != nil {
-		return nil, 0, errs.WithStack(err)
+		return nil, 0, nil, errs.Wrap(err, "failed to parse filter string")
 	}
 	log.Debug(ctx, map[string]interface{}{
 		"expression": exp,
@@ -827,31 +827,51 @@ func (r *GormSearchRepository) Filter(ctx context.Context, rawFilterString strin
 			"expression": exp,
 			"raw_filter": rawFilterString,
 		}, "unable to parse the raw filter string")
-		return nil, 0, errors.NewBadParameterError("rawFilterString", rawFilterString)
+		return nil, 0, nil, errors.NewBadParameterError("rawFilterString", rawFilterString)
 	}
 
 	result, count, err := r.listItemsFromDB(ctx, exp, parentExists, start, limit)
 	if err != nil {
-		return nil, 0, errs.WithStack(err)
+		return nil, 0, nil, errs.WithStack(err)
 	}
-	res := make([]workitem.WorkItem, len(result))
+
+	// if requested search for ancestors of all matched work items
+	if opts != nil && opts.TreeView {
+		linkRepo := link.NewWorkItemLinkRepository(r.db)
+		matchingIDs := make([]uuid.UUID, len(result))
+		for i, wi := range result {
+			matchingIDs[i] = wi.ID
+		}
+		ancestors, err = linkRepo.GetAncestors(ctx, link.SystemWorkItemLinkTypeParentChildID, matchingIDs...)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"expression":  exp,
+				"raw_filter":  rawFilterString,
+				"err":         err,
+				"matchingIDs": matchingIDs,
+			}, "failed to find ancestors for these work items")
+			return nil, 0, nil, errs.Wrapf(err, "failed to find ancestors for these work items: %s", matchingIDs)
+		}
+	}
+
+	matches = make([]workitem.WorkItem, len(result))
 	for index, value := range result {
-		wiType, err := r.wir.LoadTypeFromDB(ctx, value.Type)
+		wiType, err := r.witr.LoadTypeFromDB(ctx, value.Type)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"err": err,
 				"wit": value.Type,
 			}, "failed to load work item type")
-			return nil, 0, errors.NewInternalError(ctx, errs.Wrap(err, "failed to load work item type"))
+			return nil, 0, nil, errors.NewInternalError(ctx, errs.Wrap(err, "failed to load work item type"))
 		}
 		modelWI, err := workitem.ConvertWorkItemStorageToModel(wiType, &value)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"err": err,
 			}, "failed to convert to storage to model")
-			return nil, 0, errors.NewInternalError(ctx, errs.Wrap(err, "failed to convert storage to model"))
+			return nil, 0, nil, errors.NewInternalError(ctx, errs.Wrap(err, "failed to convert storage to model"))
 		}
-		res[index] = *modelWI
+		matches[index] = *modelWI
 	}
-	return res, count, nil
+	return matches, count, ancestors, nil
 }

@@ -93,7 +93,7 @@ func (r *GormQueryRepository) Create(ctx context.Context, q *Query) error {
 	}
 	err = r.db.Create(q).Error
 	if err != nil {
-		// combination of name and space ID should be unique
+		// combination of title, space ID and creator should be unique
 		if gormsupport.IsUniqueViolation(err, "queries_title_space_id_creator_unique") {
 			log.Error(ctx, map[string]interface{}{
 				"err":      err,
