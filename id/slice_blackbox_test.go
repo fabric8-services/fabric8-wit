@@ -1,6 +1,7 @@
 package id_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/id"
@@ -114,4 +115,28 @@ func TestSliceSub(t *testing.T) {
 		}
 		require.Empty(t, toBeFound, "found not all IDs in subtraction result: %+v", toBeFound)
 	})
+}
+
+func TestSliceToString(t *testing.T) {
+	// given
+	a := uuid.FromStringOrNil("9afc7d5c-9f4e-4a04-8359-71d72e5eed94")
+	b := uuid.FromStringOrNil("4ce8076c-4997-4565-8272-9a3cb4d7a1a8")
+	c := uuid.FromStringOrNil("0403d2cb-02d9-466f-88cd-65dc9247f809")
+	s := id.Slice{a, b, c}
+	// when
+	res := s.ToString("; ", func(ID uuid.UUID) string { return fmt.Sprintf("(%s)", ID) })
+	// then
+	require.Equal(t, fmt.Sprintf("(%s); (%s); (%s)", a, b, c), res)
+}
+
+func TestSliceString(t *testing.T) {
+	// given
+	a := uuid.FromStringOrNil("9afc7d5c-9f4e-4a04-8359-71d72e5eed94")
+	b := uuid.FromStringOrNil("4ce8076c-4997-4565-8272-9a3cb4d7a1a8")
+	c := uuid.FromStringOrNil("0403d2cb-02d9-466f-88cd-65dc9247f809")
+	s := id.Slice{a, b, c}
+	// when
+	res := s.String()
+	// then
+	require.Equal(t, fmt.Sprintf("%s, %s, %s", a, b, c), res)
 }

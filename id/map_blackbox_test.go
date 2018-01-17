@@ -1,10 +1,13 @@
 package id_test
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/id"
 	uuid "github.com/satori/go.uuid"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -36,4 +39,34 @@ func TestMapToSlice(t *testing.T) {
 		}
 		require.Empty(t, toBeFound)
 	})
+}
+
+func TestMapToString(t *testing.T) {
+	// given
+	a := uuid.FromStringOrNil("9afc7d5c-9f4e-4a04-8359-71d72e5eed94")
+	b := uuid.FromStringOrNil("4ce8076c-4997-4565-8272-9a3cb4d7a1a8")
+	c := uuid.FromStringOrNil("0403d2cb-02d9-466f-88cd-65dc9247f809")
+	m := id.Map{a: {}, b: {}, c: {}}
+	// when
+	res := m.ToString("; ", func(ID uuid.UUID) string { return fmt.Sprintf("(%s)", ID) })
+	// then
+	assert.Equal(t, 1, strings.Count(res, fmt.Sprintf("(%s)", a)))
+	assert.Equal(t, 1, strings.Count(res, fmt.Sprintf("(%s)", b)))
+	assert.Equal(t, 1, strings.Count(res, fmt.Sprintf("(%s)", c)))
+	assert.Equal(t, 2, strings.Count(res, "; "))
+}
+
+func TestMapString(t *testing.T) {
+	// given
+	a := uuid.FromStringOrNil("9afc7d5c-9f4e-4a04-8359-71d72e5eed94")
+	b := uuid.FromStringOrNil("4ce8076c-4997-4565-8272-9a3cb4d7a1a8")
+	c := uuid.FromStringOrNil("0403d2cb-02d9-466f-88cd-65dc9247f809")
+	m := id.Map{a: {}, b: {}, c: {}, c: {}}
+	// when
+	res := m.String()
+	// then
+	assert.Equal(t, 1, strings.Count(res, a.String()))
+	assert.Equal(t, 1, strings.Count(res, b.String()))
+	assert.Equal(t, 1, strings.Count(res, c.String()))
+	assert.Equal(t, 2, strings.Count(res, ", "))
 }

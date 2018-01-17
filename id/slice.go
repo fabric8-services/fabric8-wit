@@ -1,6 +1,10 @@
 package id
 
-import uuid "github.com/satori/go.uuid"
+import (
+	"strings"
+
+	uuid "github.com/satori/go.uuid"
+)
 
 // Slice describes a slice of UUID objects
 type Slice []uuid.UUID
@@ -41,4 +45,26 @@ func (s Slice) Sub(b Slice) Slice {
 // Unique returns a slice in which all duplicate elements have been removed.
 func (s Slice) Unique(b Slice) Slice {
 	return MapFromSlice(s).ToSlice()
+}
+
+// ToString returns all IDs as a string separated by the given separation
+// string. If a callback is specified that callback will be called for every ID
+// to generate a custom output string for that element.
+func (s Slice) ToString(sep string, fn ...func(ID uuid.UUID) string) string {
+	res := make([]string, len(s))
+	i := 0
+	for _, ID := range s {
+		if len(fn) != 0 {
+			res[i] = fn[0](ID)
+		} else {
+			res[i] = ID.String()
+		}
+		i++
+	}
+	return strings.Join(res, sep)
+}
+
+// String returns all IDs separated by ", ".
+func (s Slice) String() string {
+	return s.ToString(", ")
 }
