@@ -165,7 +165,7 @@ func (r *GormQueryRepository) Delete(ctx context.Context, ID uuid.UUID) error {
 	if tx.RowsAffected == 0 {
 		log.Error(ctx, map[string]interface{}{
 			"query_id": ID.String(),
-		}, "none row was affected by the delete operation")
+		}, "no row was affected by the delete operation")
 		return errors.NewNotFoundError("query", ID.String())
 	}
 	return nil

@@ -1,6 +1,7 @@
 package testfixture
 
 import (
+	"fmt"
 	"math/rand"
 	"strings"
 
@@ -527,10 +528,10 @@ func makeQueries(fxt *TestFixture) error {
 	for i := range fxt.Queries {
 		fxt.Queries[i] = &query.Query{
 			Title:   testsupport.CreateRandomValidTestName("query "),
-			Fields:  `{"space": "a2bda47f-4c4a-400c-9e30-62b11eaf8900"}`,
 			Creator: fxt.Identities[0].ID,
 		}
 		if !fxt.isolatedCreation {
+			fxt.Queries[i].Fields = fmt.Sprintf(`{"space": "%s"}`, fxt.Spaces[0].ID)
 			fxt.Queries[i].SpaceID = fxt.Spaces[0].ID
 		}
 		if err := fxt.runCustomizeEntityFuncs(i, kindQueries); err != nil {
