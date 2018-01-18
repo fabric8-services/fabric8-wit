@@ -2,6 +2,7 @@ package id_test
 
 import (
 	"fmt"
+	"sort"
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/id"
@@ -139,4 +140,16 @@ func TestSliceString(t *testing.T) {
 	res := s.String()
 	// then
 	require.Equal(t, fmt.Sprintf("%s, %s, %s", a, b, c), res)
+}
+
+func TestSliceSort(t *testing.T) {
+	// given
+	a := uuid.FromStringOrNil("9afc7d5c-9f4e-4a04-8359-71d72e5eed94")
+	b := uuid.FromStringOrNil("4ce8076c-4997-4565-8272-9a3cb4d7a1a8")
+	c := uuid.FromStringOrNil("0403d2cb-02d9-466f-88cd-65dc9247f809")
+	s := id.Slice{a, b, c}
+	// when
+	sort.Sort(s)
+	// then
+	require.Equal(t, id.Slice{c, b, a}, s)
 }
