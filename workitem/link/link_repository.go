@@ -42,7 +42,7 @@ type WorkItemLinkRepository interface {
 	WorkItemHasChildren(ctx context.Context, parentID uuid.UUID) (bool, error)
 	GetParentID(ctx context.Context, ID uuid.UUID) (*uuid.UUID, error) // GetParentID returns parent ID of the given work item if any
 	// GetAncestors returns all ancestors for the given work items.
-	GetAncestors(ctx context.Context, linkTypeID uuid.UUID, workItemIDs ...uuid.UUID) (ancestors AncestorList, err error)
+	GetAncestors(ctx context.Context, linkTypeID uuid.UUID, upToLevel AncestorLevel, workItemIDs ...uuid.UUID) (ancestors AncestorList, err error)
 }
 
 // NewWorkItemLinkRepository creates a work item link repository based on gorm
@@ -162,7 +162,7 @@ func (r *GormWorkItemLinkRepository) ValidateTopology(ctx context.Context, sourc
 func (r *GormWorkItemLinkRepository) DetectCycle(ctx context.Context, sourceID, targetID, linkTypeID uuid.UUID) (hasCycle bool, err error) {
 	// Get all roots for link's source.
 	// NOTE(kwk): Yes there can be more than one, if the link type is allowing it.
-	ancestors, err := r.GetAncestors(ctx, linkTypeID, sourceID)
+	ancestors, err := r.GetAncestors(ctx, linkTypeID, AllAncestors, sourceID)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"wilt_id":   linkTypeID,
@@ -546,12 +546,25 @@ func (r *GormWorkItemLinkRepository) GetParentID(ctx context.Context, ID uuid.UU
 	return &parentID, nil
 }
 
-// GetAncestors returns all ancestors for the given work items.
+// AncestorLevel defines up to which level the GetAncestors function returns
+// ancestors.
+type AncestorLevel int
+
+const (
+	AllAncestors                  AncestorLevel = -1
+	AncestorsUpToParent           AncestorLevel = 1
+	AncestorsUpToGrandParent      AncestorLevel = 2
+	AncestorsUpToGreatGrandParent AncestorLevel = 3
+)
+
+// GetAncestors returns all ancestors for the given work items based on the
+// given level. Level stands for -1=all, 0=no, 1=up to parent, 2=up to
+// grandparent, 3=up to great-grandparent, and so forth.
 //
 // NOTE: In case the given link type doesn't have a tree topology a work item
 // might have more than one root item. That is why the root IDs is keyed by the
 // the given work item and mapped to an array of root IDs.
-func (r *GormWorkItemLinkRepository) GetAncestors(ctx context.Context, linkTypeID uuid.UUID, workItemIDs ...uuid.UUID) (ancestors AncestorList, err error) {
+func (r *GormWorkItemLinkRepository) GetAncestors(ctx context.Context, linkTypeID uuid.UUID, upToLevel AncestorLevel, workItemIDs ...uuid.UUID) (ancestors AncestorList, err error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "get", "ancestors"}, time.Now())
 
 	if len(workItemIDs) < 1 {
@@ -573,6 +586,11 @@ func (r *GormWorkItemLinkRepository) GetAncestors(ctx context.Context, linkTypeI
 		i++
 	}
 	idStr := strings.Join(idArr, ",")
+
+	levelLimitation := ""
+	if upToLevel != AllAncestors {
+		levelLimitation = fmt.Sprintf(" AND array_length(already_visited, 1) < %d ", upToLevel)
+	}
 
 	// Postgres Common Table Expression (https://www.postgresql.org/docs/current/static/queries-with.html)
 	// TODO(kwk): We should probably measure performance for this.
@@ -614,6 +632,7 @@ func (r *GormWorkItemLinkRepository) GetAncestors(ctx context.Context, linkTypeI
 				AND l.link_type_id = $1
 				AND l.deleted_at IS NULL
 				AND NOT cycle -- recursive termination criteria
+				%[3]s
 		)
 		SELECT
 			ancestor,
@@ -625,6 +644,7 @@ func (r *GormWorkItemLinkRepository) GetAncestors(ctx context.Context, linkTypeI
 		;`,
 		WorkItemLink{}.TableName(),
 		idStr,
+		levelLimitation,
 	)
 
 	// Convert SQL results to instances of ancestor objects
