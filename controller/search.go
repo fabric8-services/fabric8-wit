@@ -230,7 +230,7 @@ func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, ancest
 		}, "unable to load parent work items in batch: %s", fetchInBatch)
 	}
 	for _, ele := range wis {
-		convertedWI := ConvertWorkItem(ctx.Request, *ele)
+		convertedWI := ConvertWorkItem(ctx.Request, *ele, includeParentWorkItem(ctx, appl, ancestors))
 		res.Included = append(res.Included, *convertedWI)
 	}
 }

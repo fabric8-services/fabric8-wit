@@ -11,6 +11,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/application/repository"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
+	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 
@@ -42,7 +43,7 @@ type WorkItemLinkRepository interface {
 	WorkItemHasChildren(ctx context.Context, parentID uuid.UUID) (bool, error)
 	GetParentID(ctx context.Context, ID uuid.UUID) (*uuid.UUID, error) // GetParentID returns parent ID of the given work item if any
 	// GetAncestors returns all ancestors for the given work items.
-	GetAncestors(ctx context.Context, linkTypeID uuid.UUID, upToLevel AncestorLevel, workItemIDs ...uuid.UUID) (ancestors AncestorList, err error)
+	GetAncestors(ctx context.Context, linkTypeID uuid.UUID, upToLevel int64, workItemIDs ...uuid.UUID) (ancestors AncestorList, err error)
 }
 
 // NewWorkItemLinkRepository creates a work item link repository based on gorm
@@ -553,31 +554,27 @@ func (r *GormWorkItemLinkRepository) GetParentID(ctx context.Context, ID uuid.UU
 // NOTE: In case the given link type doesn't have a tree topology a work item
 // might have more than one root item. That is why the root IDs is keyed by the
 // the given work item and mapped to an array of root IDs.
-func (r *GormWorkItemLinkRepository) GetAncestors(ctx context.Context, linkTypeID uuid.UUID, upToLevel AncestorLevel, workItemIDs ...uuid.UUID) (ancestors AncestorList, err error) {
+func (r *GormWorkItemLinkRepository) GetAncestors(ctx context.Context, linkTypeID uuid.UUID, upToLevel int64, workItemIDs ...uuid.UUID) (ancestors AncestorList, err error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "get", "ancestors"}, time.Now())
 
 	if len(workItemIDs) < 1 {
 		return nil, nil
 	}
-
-	// Get destincts work item IDs (eliminates duplicates)
-	idMap := map[uuid.UUID]struct{}{}
-	for _, id := range workItemIDs {
-		idMap[id] = struct{}{}
+	if upToLevel <= 0 && upToLevel != AncestorLevelAll {
+		return nil, nil
 	}
 
-	// Create a string array of of UUIDs separated by a comma for use in SQL
+	// Create a string array of unique UUIDs separated by a comma for use in SQL
 	// JOIN clause.
-	idArr := make([]string, len(idMap))
-	i := 0
-	for id := range idMap {
-		idArr[i] = "'" + id.String() + "'"
-		i++
+	idArr := append(id.Slice{}, workItemIDs...).Unique()
+	idStrArr := make([]string, len(idArr))
+	for i, id := range idArr {
+		idStrArr[i] = "'" + id.String() + "'"
 	}
-	idStr := strings.Join(idArr, ",")
+	idStr := strings.Join(idStrArr, ",")
 
 	levelLimitation := ""
-	if upToLevel != AncestorLevelAll {
+	if upToLevel != AncestorLevelAll && upToLevel > 0 {
 		levelLimitation = fmt.Sprintf(" AND array_length(already_visited, 1) < %d ", upToLevel)
 	}
 

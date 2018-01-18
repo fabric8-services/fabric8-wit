@@ -842,7 +842,7 @@ func (r *GormSearchRepository) Filter(ctx context.Context, rawFilterString strin
 		for i, wi := range result {
 			matchingIDs[i] = wi.ID
 		}
-		ancestors, err = linkRepo.GetAncestors(ctx, link.SystemWorkItemLinkTypeParentChildID, matchingIDs...)
+		ancestors, err = linkRepo.GetAncestors(ctx, link.SystemWorkItemLinkTypeParentChildID, link.AncestorLevelAll, matchingIDs...)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"expression":  exp,

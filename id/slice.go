@@ -44,7 +44,7 @@ func (s Slice) Sub(b Slice) Slice {
 }
 
 // Unique returns a slice in which all duplicate elements have been removed.
-func (s Slice) Unique(b Slice) Slice {
+func (s Slice) Unique() Slice {
 	return MapFromSlice(s).ToSlice()
 }
 
