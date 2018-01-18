@@ -162,7 +162,7 @@ func (r *GormWorkItemLinkRepository) ValidateTopology(ctx context.Context, sourc
 func (r *GormWorkItemLinkRepository) DetectCycle(ctx context.Context, sourceID, targetID, linkTypeID uuid.UUID) (hasCycle bool, err error) {
 	// Get all roots for link's source.
 	// NOTE(kwk): Yes there can be more than one, if the link type is allowing it.
-	ancestors, err := r.GetAncestors(ctx, linkTypeID, AllAncestors, sourceID)
+	ancestors, err := r.GetAncestors(ctx, linkTypeID, AncestorLevelAll, sourceID)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"wilt_id":   linkTypeID,
@@ -546,17 +546,6 @@ func (r *GormWorkItemLinkRepository) GetParentID(ctx context.Context, ID uuid.UU
 	return &parentID, nil
 }
 
-// AncestorLevel defines up to which level the GetAncestors function returns
-// ancestors.
-type AncestorLevel int
-
-const (
-	AllAncestors                  AncestorLevel = -1
-	AncestorsUpToParent           AncestorLevel = 1
-	AncestorsUpToGrandParent      AncestorLevel = 2
-	AncestorsUpToGreatGrandParent AncestorLevel = 3
-)
-
 // GetAncestors returns all ancestors for the given work items based on the
 // given level. Level stands for -1=all, 0=no, 1=up to parent, 2=up to
 // grandparent, 3=up to great-grandparent, and so forth.
@@ -588,7 +577,7 @@ func (r *GormWorkItemLinkRepository) GetAncestors(ctx context.Context, linkTypeI
 	idStr := strings.Join(idArr, ",")
 
 	levelLimitation := ""
-	if upToLevel != AllAncestors {
+	if upToLevel != AncestorLevelAll {
 		levelLimitation = fmt.Sprintf(" AND array_length(already_visited, 1) < %d ", upToLevel)
 	}
 

@@ -571,19 +571,19 @@ func (s *linkRepoBlackBoxTest) TestGetAncestors() {
 				E := fxt.WorkItemByTitle("E").ID
 
 				t.Run("ancestors for E (none expected)", func(t *testing.T) {
-					ancestors, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypes[0].ID, link.AllAncestors, E)
+					ancestors, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypes[0].ID, link.AncestorLevelAll, E)
 					require.NoError(t, err)
 					validateAncestry(t, fxt, nil, ancestors)
 				})
 
 				t.Run("ancestors for A (none expected)", func(t *testing.T) {
-					ancestors, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypes[0].ID, link.AllAncestors, A)
+					ancestors, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypes[0].ID, link.AncestorLevelAll, A)
 					require.NoError(t, err)
 					validateAncestry(t, fxt, nil, ancestors)
 				})
 
 				t.Run("ancestors for D (expecting A,B,C)", func(t *testing.T) {
-					ancestors, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypes[0].ID, link.AllAncestors, D)
+					ancestors, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypes[0].ID, link.AncestorLevelAll, D)
 					require.NoError(t, err)
 					validateAncestry(t, fxt, map[link.Ancestor]struct{}{
 						{ID: A, DirectChildID: B, Level: 3, OriginalChildID: D, IsRoot: true}:  {},
@@ -593,7 +593,7 @@ func (s *linkRepoBlackBoxTest) TestGetAncestors() {
 				})
 
 				t.Run("ancestors for C (expecting A,B)", func(t *testing.T) {
-					ancestors, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypes[0].ID, link.AllAncestors, C)
+					ancestors, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypes[0].ID, link.AncestorLevelAll, C)
 					require.NoError(t, err)
 					validateAncestry(t, fxt, map[link.Ancestor]struct{}{
 						{ID: A, DirectChildID: B, Level: 2, OriginalChildID: C, IsRoot: true}:  {},
@@ -602,7 +602,7 @@ func (s *linkRepoBlackBoxTest) TestGetAncestors() {
 				})
 
 				t.Run("ancestors for D, and C (expecting, A,B,C and A,B)", func(t *testing.T) {
-					ancestors, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypes[0].ID, link.AllAncestors, D, C)
+					ancestors, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypes[0].ID, link.AncestorLevelAll, D, C)
 					require.NoError(t, err)
 					validateAncestry(t, fxt, map[link.Ancestor]struct{}{
 						// for D
@@ -616,12 +616,12 @@ func (s *linkRepoBlackBoxTest) TestGetAncestors() {
 				})
 
 				t.Run("E up to parent (none expected)", func(t *testing.T) {
-					ancestors, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypes[0].ID, link.AncestorsUpToParent, E)
+					ancestors, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypes[0].ID, link.AncestorLevelParent, E)
 					require.NoError(t, err)
 					validateAncestry(t, fxt, nil, ancestors)
 				})
 				t.Run("C up to parent (expecting B)", func(t *testing.T) {
-					ancestors, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypes[0].ID, link.AncestorsUpToParent, C)
+					ancestors, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypes[0].ID, link.AncestorLevelParent, C)
 					require.NoError(t, err)
 					validateAncestry(t, fxt, map[link.Ancestor]struct{}{
 						// for C
@@ -629,7 +629,7 @@ func (s *linkRepoBlackBoxTest) TestGetAncestors() {
 					}, ancestors)
 				})
 				t.Run("C up to grandparent (expecting A,B)", func(t *testing.T) {
-					ancestors, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypes[0].ID, link.AncestorsUpToGrandParent, C)
+					ancestors, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypes[0].ID, link.AncestorLevelGrandParent, C)
 					require.NoError(t, err)
 					validateAncestry(t, fxt, map[link.Ancestor]struct{}{
 						// for C
@@ -638,7 +638,7 @@ func (s *linkRepoBlackBoxTest) TestGetAncestors() {
 					}, ancestors)
 				})
 				t.Run("D up to great-grandparent (expecting A,B,C)", func(t *testing.T) {
-					ancestors, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypes[0].ID, link.AncestorsUpToGreatGrandParent, D)
+					ancestors, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypes[0].ID, link.AncestorLevelGreatGrandParent, D)
 					require.NoError(t, err)
 					validateAncestry(t, fxt, map[link.Ancestor]struct{}{
 						// for D
@@ -679,7 +679,7 @@ func (s *linkRepoBlackBoxTest) TestGetAncestors() {
 				Y := fxt.WorkItemByTitle("Y").ID
 
 				t.Run("ancestors for Y and E (expecting X and A,D)", func(t *testing.T) {
-					ancestors, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypes[0].ID, link.AllAncestors, Y, E)
+					ancestors, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypes[0].ID, link.AncestorLevelAll, Y, E)
 					require.NoError(t, err)
 					validateAncestry(t, fxt, map[link.Ancestor]struct{}{
 						// for Y
@@ -711,7 +711,7 @@ func (s *linkRepoBlackBoxTest) TestAncestorList() {
 		E := fxt.WorkItemByTitle("E").ID
 
 		// given
-		ancestors, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypes[0].ID, link.AllAncestors, E)
+		ancestors, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypes[0].ID, link.AncestorLevelAll, E)
 		require.NoError(t, err)
 
 		t.Run("GetAncestorOf", func(t *testing.T) {
