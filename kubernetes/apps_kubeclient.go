@@ -36,11 +36,18 @@ type KubeClientConfig struct {
 	KubeRESTAPIGetter
 	// Provides access to the metrics API, uses default implementation if not set
 	MetricsGetter
+	// hook to inject build configs for testing
+	BuildConfigInterface
 }
 
 // KubeRESTAPIGetter has a method to access the KubeRESTAPI interface
 type KubeRESTAPIGetter interface {
 	GetKubeRESTAPI(config *KubeClientConfig) (KubeRESTAPI, error)
+}
+
+// BuildConfigGetter will provide build configs for testing
+type BuildConfigInterface interface {
+	GetBuildConfigs(space string) ([]string, error)
 }
 
 // KubeClientInterface contains configuration and methods for interacting with a Kubernetes cluster
@@ -63,6 +70,7 @@ type kubeClient struct {
 	envMap map[string]string
 	KubeRESTAPI
 	MetricsInterface
+	BuildConfigInterface
 }
 
 // KubeRESTAPI collects methods that call out to the Kubernetes API server over the network
@@ -107,9 +115,10 @@ func NewKubeClient(config *KubeClientConfig) (KubeClientInterface, error) {
 	}
 
 	kubeClient := &kubeClient{
-		config:           config,
-		KubeRESTAPI:      kubeAPI,
-		MetricsInterface: metrics,
+		config:               config,
+		KubeRESTAPI:          kubeAPI,
+		MetricsInterface:     metrics,
+		BuildConfigInterface: config.BuildConfigInterface,
 	}
 
 	// Get environments from config map
@@ -422,6 +431,12 @@ func getTimestampEndpoints(metricsSeries ...[]*app.TimedNumberTuple) (minTime, m
 }
 
 func (kc *kubeClient) getBuildConfigs(space string) ([]string, error) {
+
+	// hook for testing
+	if kc.config.BuildConfigInterface != nil {
+		return kc.config.BuildConfigInterface.GetBuildConfigs(space)
+	}
+
 	// BuildConfigs are OpenShift objects, so access REST API using HTTP directly until
 	// there is a Go client for OpenShift
 
