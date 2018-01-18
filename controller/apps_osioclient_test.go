@@ -62,7 +62,7 @@ func TestGetUserServicesWithShowUserServiceError(t *testing.T) {
 		UserServiceHttpResponse: nil,
 		UserServiceHttpResponseError: errors.New("error"),
 	}
-	mockOSIOClient := controller.NewOSIOClient(mockWitClient, &controller.IOResponseReader{})
+	mockOSIOClient := controller.CreateOSIOClient(mockWitClient, &controller.IOResponseReader{})
 
 	_, err := mockOSIOClient.GetUserServices(&MockContext{})
 	assert.NotNil(t, err)
@@ -89,7 +89,7 @@ func TestGetUserServicesBadStatusCodes(t *testing.T) {
 			UserServiceHttpResponse: mockResponse,
 			UserServiceHttpResponseError: nil,
 		}
-		mockOSIOClient := controller.NewOSIOClient(mockWitClient, &controller.IOResponseReader{})
+		mockOSIOClient := controller.CreateOSIOClient(mockWitClient, &controller.IOResponseReader{})
 
 		userService, err := mockOSIOClient.GetUserServices(&MockContext{})
 		assert.Nil(t, userService)
@@ -115,7 +115,7 @@ func TestGetUserServiceWithMalformedJSON(t *testing.T) {
 		UserServiceHttpResponse: mockResponse,
 		UserServiceHttpResponseError: nil,
 	}
-	mockOSIOClient := controller.NewOSIOClient(mockWitClient, jsonReader)
+	mockOSIOClient := controller.CreateOSIOClient(mockWitClient, jsonReader)
 
 	_, err := mockOSIOClient.GetUserServices(&MockContext{})
 	assert.NotNil(t, err)
@@ -179,7 +179,7 @@ func TestUserServiceWithProperJSON(t *testing.T) {
 		UserServiceHttpResponse: mockResponse,
 		UserServiceHttpResponseError: nil,
 	}
-	mockOSIOClient := controller.NewOSIOClient(mockWitClient, jsonReader)
+	mockOSIOClient := controller.CreateOSIOClient(mockWitClient, jsonReader)
 
 	userService, err := mockOSIOClient.GetUserServices(&MockContext{})
 	assert.NotNil(t, userService)
@@ -198,7 +198,7 @@ func TestGetSpaceByIDWithShowSpaceError(t *testing.T) {
 		UserServiceHttpResponse: nil,
 		UserServiceHttpResponseError: nil,
 	}
-	mockOSIOClient := controller.NewOSIOClient(mockWitClient, &controller.IOResponseReader{})
+	mockOSIOClient := controller.CreateOSIOClient(mockWitClient, &controller.IOResponseReader{})
 
 	_, err := mockOSIOClient.GetSpaceByID(mockContext, uuid.Nil)
 	assert.NotNil(t, err)
@@ -225,7 +225,7 @@ func TestGetSpaceByIDBadStatusCode(t *testing.T) {
 			UserServiceHttpResponse: nil,
 			UserServiceHttpResponseError: nil,
 		}
-		mockOSIOClient := controller.NewOSIOClient(mockWitClient, &controller.IOResponseReader{})
+		mockOSIOClient := controller.CreateOSIOClient(mockWitClient, &controller.IOResponseReader{})
 
 		userService, err := mockOSIOClient.GetSpaceByID(&MockContext{}, uuid.Nil)
 		assert.Nil(t, userService)
@@ -251,7 +251,7 @@ func TestGetSpaceByIDWithMalformedJSON(t *testing.T) {
 		UserServiceHttpResponse: nil,
 		UserServiceHttpResponseError: nil,
 	}
-	mockOSIOClient := controller.NewOSIOClient(mockWitClient, jsonReader)
+	mockOSIOClient := controller.CreateOSIOClient(mockWitClient, jsonReader)
 
 	_, err := mockOSIOClient.GetSpaceByID(&MockContext{}, uuid.Nil)
 	assert.NotNil(t, err)
@@ -304,7 +304,7 @@ func TestGetSpaceByIDWithProperJSON(t *testing.T) {
 		UserServiceHttpResponse: nil,
 		UserServiceHttpResponseError: nil,
 	}
-	mockOSIOClient := controller.NewOSIOClient(mockWitClient, jsonReader)
+	mockOSIOClient := controller.CreateOSIOClient(mockWitClient, jsonReader)
 
 	space, err := mockOSIOClient.GetSpaceByID(mockContext, uuid.Nil)
 	assert.NotNil(t, space)
@@ -329,7 +329,7 @@ func TestGetNamespaceByTypeErrorFromUserServices(t *testing.T) {
 		UserServiceHttpResponse: nil,
 		UserServiceHttpResponseError: errors.New("error"),
 	}
-	mockOSIOClient := controller.NewOSIOClient(mockWitClient, &controller.IOResponseReader{})
+	mockOSIOClient := controller.CreateOSIOClient(mockWitClient, &controller.IOResponseReader{})
 
 	namespaceAttributes, err := mockOSIOClient.GetNamespaceByType(&MockContext{}, nil, "namespace")
 	assert.Nil(t, namespaceAttributes)
@@ -343,7 +343,7 @@ func TestGetNamespaceByTypeNoMatch(t *testing.T) {
 		UserServiceHttpResponse: nil,
 		UserServiceHttpResponseError: nil,
 	}
-	mockOSIOClient := controller.NewOSIOClient(mockWitClient, &controller.IOResponseReader{})
+	mockOSIOClient := controller.CreateOSIOClient(mockWitClient, &controller.IOResponseReader{})
 	mockUserService := &app.UserService{
 		Attributes: &app.UserServiceAttributes{
 			Namespaces: make([]*app.NamespaceAttributes, 0),
@@ -417,7 +417,7 @@ func TestGetNamespaceByTypeMatchNamespace(t *testing.T) {
 		UserServiceHttpResponse: mockResponse,
 		UserServiceHttpResponseError: nil,
 	}
-	mockOSIOClient := controller.NewOSIOClient(mockWitClient, jsonProvider)
+	mockOSIOClient := controller.CreateOSIOClient(mockWitClient, jsonProvider)
 	mockUserService := &app.UserService{
 		Attributes: &app.UserServiceAttributes{
 			Namespaces: []*app.NamespaceAttributes{ mockNamespace },
@@ -464,7 +464,7 @@ func TestGetNamespaceByTypeMatchNamespaceWithDiscoveredUserService(t *testing.T)
 		UserServiceHttpResponse: mockResponse,
 		UserServiceHttpResponseError: nil,
 	}
-	mockOSIOClient := controller.NewOSIOClient(mockWitClient, jsonProvider)
+	mockOSIOClient := controller.CreateOSIOClient(mockWitClient, jsonProvider)
 	namespaceAttributes, err := mockOSIOClient.GetNamespaceByType(&MockContext{}, nil, NAMESPACE_TYPE)
 	assert.Equal(t, NAMESPACE_TYPE, *namespaceAttributes.Type)
 	assert.Equal(t, "some-name", *namespaceAttributes.Name)

@@ -10,6 +10,8 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	witclient "github.com/fabric8-services/fabric8-wit/client"
+	"github.com/fabric8-services/fabric8-wit/goasupport"
+	goaclient "github.com/goadesign/goa/client"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -44,8 +46,16 @@ type OSIOClient struct {
 	responseReader ResponseReader
 }
 
-// NewOSIOClient creates an openshift IO client given a wit client
-func NewOSIOClient(witclient WitClient, responseReader ResponseReader) *OSIOClient {
+// NewOSIOClient creates an openshift IO client given an http request context
+func NewOSIOClient(ctx context.Context, scheme string, host string) *OSIOClient {
+	wc := witclient.New(goaclient.HTTPClientDoer(http.DefaultClient))
+	wc.Host = host
+	wc.Scheme = scheme
+	wc.SetJWTSigner(goasupport.NewForwardSigner(ctx))
+	return CreateOSIOClient(wc, &IOResponseReader{})
+}
+
+func CreateOSIOClient(witclient WitClient, responseReader ResponseReader) *OSIOClient {
 	client := new(OSIOClient)
 	client.wc = witclient
 	client.responseReader = responseReader
