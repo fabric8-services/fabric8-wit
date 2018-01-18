@@ -37,11 +37,18 @@ type KubeClientConfig struct {
 	KubeRESTAPIGetter
 	// Provides access to the metrics API, uses default implementation if not set
 	MetricsGetter
+	// hook to inject build configs for testing
+	BuildConfigInterface
 }
 
 // KubeRESTAPIGetter has a method to access the KubeRESTAPI interface
 type KubeRESTAPIGetter interface {
 	GetKubeRESTAPI(config *KubeClientConfig) (KubeRESTAPI, error)
+}
+
+// BuildConfigGetter will provide build configs for testing
+type BuildConfigInterface interface {
+	GetBuildConfigs(space string) ([]string, error)
 }
 
 // KubeClientInterface contains configuration and methods for interacting with a Kubernetes cluster
@@ -64,6 +71,7 @@ type kubeClient struct {
 	envMap map[string]string
 	KubeRESTAPI
 	MetricsInterface
+	BuildConfigInterface
 }
 
 // KubeRESTAPI collects methods that call out to the Kubernetes API server over the network
@@ -118,9 +126,10 @@ func NewKubeClient(config *KubeClientConfig) (KubeClientInterface, error) {
 	}
 
 	kubeClient := &kubeClient{
-		config:           config,
-		KubeRESTAPI:      kubeAPI,
-		MetricsInterface: metrics,
+		config:               config,
+		KubeRESTAPI:          kubeAPI,
+		MetricsInterface:     metrics,
+		BuildConfigInterface: config.BuildConfigInterface,
 	}
 
 	// Get environments from config map
@@ -517,6 +526,12 @@ func getTimestampEndpoints(metricsSeries ...[]*app.TimedNumberTuple) (minTime, m
 }
 
 func (kc *kubeClient) getBuildConfigs(space string) ([]string, error) {
+
+	// hook for testing
+	if kc.config.BuildConfigInterface != nil {
+		return kc.config.BuildConfigInterface.GetBuildConfigs(space)
+	}
+
 	// BuildConfigs are OpenShift objects, so access REST API using HTTP directly until
 	// there is a Go client for OpenShift
 
@@ -538,7 +553,7 @@ func (kc *kubeClient) getBuildConfigs(space string) ([]string, error) {
 	}
 
 	// Extract the names of the BuildConfigs from the response
-	var buildconfigs []string
+	buildconfigs := make([]string, 0)
 	for _, item := range items {
 		bc, ok := item.(map[interface{}]interface{})
 		if !ok {
@@ -735,7 +750,7 @@ func (kc *kubeClient) getReplicationControllers(namespace string, dcUID types.UI
 	}
 
 	// Current Kubernetes concept used to represent OpenShift Deployments
-	var rcsForDc []v1.ReplicationController
+	rcsForDc := make([]v1.ReplicationController, 0)
 	for _, rc := range rcs.Items {
 
 		// Use OwnerReferences to map RC to DC that created it
@@ -838,8 +853,8 @@ func (kc *kubeClient) getPods(namespace string, uid types.UID) ([]*v1.Pod, error
 		return nil, err
 	}
 
-	var appPods []*v1.Pod
-	for idx, pod := range pods.Items {
+	appPods := make([]*v1.Pod, 0)
+	for _, pod := range pods.Items {
 		// If a pod belongs to a given RC, it should have an OwnerReference
 		// whose UID matches that of the RC
 		// https://github.com/openshift/origin-web-console/blob/v3.7.0/app/scripts/services/ownerReferences.js#L40
@@ -850,7 +865,7 @@ func (kc *kubeClient) getPods(namespace string, uid types.UID) ([]*v1.Pod, error
 			}
 		}
 		if match {
-			appPods = append(appPods, &pods.Items[idx])
+			appPods = append(appPods, &pod)
 		}
 	}
 
