@@ -10,10 +10,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/fabric8-services/fabric8-wit/auth/authservice"
-
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/auth"
+	"github.com/fabric8-services/fabric8-wit/auth/authservice"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	witerrors "github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/kubernetes"
@@ -67,9 +66,7 @@ func getAndCheckOSIOClient(ctx context.Context) *OSIOClient {
 		scheme = witurl.Scheme
 	}
 
-	oc := NewOSIOClient(ctx, scheme, host)
-
-	return oc
+	return NewOSIOClient(ctx, scheme, host)
 }
 
 func (c *AppsController) getSpaceNameFromSpaceID(ctx context.Context, spaceID uuid.UUID) (*string, error) {
