@@ -253,6 +253,18 @@ func checkNewFixture(t *testing.T, db *gorm.DB, n int, isolated bool) {
 			require.Len(t, c.Spaces, 1)
 		}
 	})
+	t.Run("queries", func(t *testing.T) {
+		// given
+		c, err := fxtCtor(db, tf.Queries(n))
+		// then
+		checkCtorErrFunc(t, err)
+		checkFunc(t, c)
+		// manual checking
+		if !isolated {
+			require.Len(t, c.Queries, n)
+			require.Len(t, c.Spaces, 1)
+		}
+	})
 }
 
 func (s *testFixtureSuite) TestWorkItemLinks() {
