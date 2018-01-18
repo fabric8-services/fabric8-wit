@@ -58,10 +58,6 @@ func (c *QueryController) Create(ctx *app.CreateQueryContext) error {
 			Title:   strings.TrimSpace(ctx.Payload.Data.Attributes.Title),
 			Creator: *currentUserIdentityID,
 		}
-		dup, err := appl.Queries().IsDuplicate(ctx, &q)
-		if err != nil || dup {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
 		err = appl.Queries().Create(ctx, &q)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
