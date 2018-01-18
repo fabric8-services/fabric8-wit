@@ -382,3 +382,54 @@ func TestGetEnvironment(t *testing.T) {
 		}
 	}
 }
+
+type spaceTestData struct {
+	kubernetes.BuildConfigInterface
+	name       string
+	shouldFail bool
+	configs    *[]string
+}
+
+func (sp spaceTestData) GetBuildConfigs(space string) ([]string, error) {
+	if sp.configs == nil {
+		return nil, nil
+	}
+	return *sp.configs, nil
+}
+
+func TestGetSpaceWithNoConfigs(t *testing.T) {
+	testCases := []*spaceTestData{
+		{
+			name:       "nilCfg", // Bad environment name
+			configs:    nil,
+			shouldFail: false,
+		},
+	}
+
+	for _, testCase := range testCases {
+		kubeGetter := &testKubeGetter{}
+		metricsGetter := &testMetricsGetter{}
+		cfgGetter := testCase
+		config := &kubernetes.KubeClientConfig{
+			ClusterURL:           "http://api.myCluster",
+			BearerToken:          "myToken",
+			UserNamespace:        "myNamespace",
+			KubeRESTAPIGetter:    kubeGetter,
+			MetricsGetter:        metricsGetter,
+			BuildConfigInterface: cfgGetter,
+		}
+
+		kc, err := kubernetes.NewKubeClient(config)
+
+		assert.NoError(t, err)
+		space, err := kc.GetSpace(testCase.name)
+		if testCase.shouldFail {
+			assert.Error(t, err)
+		} else {
+			if !assert.NoError(t, err) {
+				continue
+			}
+			assert.NotNil(t, space.Applications)
+		}
+	}
+}
