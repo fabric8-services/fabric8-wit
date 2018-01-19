@@ -43,6 +43,11 @@ func (s Slice) Sub(b Slice) Slice {
 	return sub
 }
 
+// Add appends all elements from b to this slice using append
+func (s *Slice) Add(b Slice) {
+	*s = append(*s, b...)
+}
+
 // Unique returns a slice in which all duplicate elements have been removed.
 func (s Slice) Unique() Slice {
 	return MapFromSlice(s).ToSlice()
