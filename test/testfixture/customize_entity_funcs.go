@@ -278,3 +278,16 @@ func SetWorkItemLinkTypeNames(names ...string) CustomizeWorkItemLinkTypeFunc {
 		return nil
 	}
 }
+
+// SetQueryTitles takes the given titles and uses them during creation of
+// queries. The length of requested queries and the number of titles must
+// match or the NewFixture call will return an error.
+func SetQueryTitles(titles ...string) CustomizeQueryFunc {
+	return func(fxt *TestFixture, idx int) error {
+		if len(fxt.Queries) != len(titles) {
+			return errs.Errorf("number of titles (%d) must match number of queries to create (%d)", len(titles), len(fxt.Queries))
+		}
+		fxt.Queries[idx].Title = titles[idx]
+		return nil
+	}
+}

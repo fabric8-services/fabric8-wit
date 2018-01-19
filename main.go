@@ -369,6 +369,10 @@ func main() {
 	workItemTypeGroupsCtrl := controller.NewWorkItemTypeGroupsController(service, appDB)
 	app.MountWorkItemTypeGroupsController(service, workItemTypeGroupsCtrl)
 
+	// Mount "queries" controller
+	queriesCtrl := controller.NewQueryController(service, appDB, config)
+	app.MountQueryController(service, queriesCtrl)
+
 	// proxying call to "/api/features/*" to the toggles service
 	featuresCtrl := controller.NewFeaturesController(service, config)
 	app.MountFeaturesController(service, featuresCtrl)
