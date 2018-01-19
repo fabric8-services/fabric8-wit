@@ -40,7 +40,6 @@ type WorkItemLinkRepository interface {
 	Delete(ctx context.Context, ID uuid.UUID, suppressorID uuid.UUID) error
 	ListWorkItemChildren(ctx context.Context, parentID uuid.UUID, start *int, limit *int) ([]workitem.WorkItem, uint64, error)
 	WorkItemHasChildren(ctx context.Context, parentID uuid.UUID) (bool, error)
-	GetParentID(ctx context.Context, ID uuid.UUID) (*uuid.UUID, error) // GetParentID returns parent ID of the given work item if any
 	// GetAncestors returns all ancestors for the given work items.
 	GetAncestors(ctx context.Context, linkTypeID uuid.UUID, upToLevel int64, workItemIDs ...uuid.UUID) (ancestors AncestorList, err error)
 }
