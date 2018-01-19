@@ -82,15 +82,30 @@ func (a WorkItemInterfaceSlice) Len() int {
 	return len(a)
 }
 
-// Less reports whether the element with
-// index i should sort before the element with index j.
+// Less reports whether the element with index i should sort before the element
+// with index j.
+//
+// NOTE: For now we assume that included elements in the search response are
+// only work items. We can handle work items as pointers or objects. Both
+// options are possible.
 func (a WorkItemInterfaceSlice) Less(i, j int) bool {
-	x, ok := a[i].(*app.WorkItem)
-	if !ok {
-		return false
+	var x, y *app.WorkItem
+
+	switch v := a[i].(type) {
+	case app.WorkItem:
+		x = &v
+	case *app.WorkItem:
+		x = v
 	}
-	y, ok := a[j].(*app.WorkItem)
-	if !ok {
+
+	switch v := a[j].(type) {
+	case app.WorkItem:
+		y = &v
+	case *app.WorkItem:
+		y = v
+	}
+
+	if x == nil || y == nil {
 		return false
 	}
 
