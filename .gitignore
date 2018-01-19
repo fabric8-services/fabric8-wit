@@ -85,3 +85,6 @@ auth/authservice
 
 # Ignore artifacts directory
 bin/
+
+# make sure this file is not committed anymore
+controller/not/existing/folder/file.golden.json 

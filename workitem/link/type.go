@@ -12,7 +12,9 @@ import (
 )
 
 const (
-	// the `parent of` type of link
+	// TypeParentOf designates the forward name of the link type used for
+	// parent-child linking.
+	// TODO(kwk): This needs to be reworked when space templates come in.
 	TypeParentOf = "parent of"
 )
 

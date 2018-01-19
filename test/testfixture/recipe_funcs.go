@@ -501,3 +501,34 @@ func Trackers(n int, fns ...CustomizeTrackerFunc) RecipeFunction {
 		return fxt.deps()
 	}
 }
+
+// CustomizeQueryFunc is directly compatible with CustomizeEntityFunc
+// but it can only be used for the Queries() recipe-function.
+type CustomizeQueryFunc CustomizeEntityFunc
+
+// Queries tells the test fixture to create at least n Query objects. See
+// also the Identities() function for more general information on n and fns.
+//
+// When called in NewFixture() this function will call also call
+//     Spaces(1)
+// but with NewFixtureIsolated(), no other objects will be created.
+func Queries(n int, fns ...CustomizeQueryFunc) RecipeFunction {
+	return func(fxt *TestFixture) error {
+		fxt.checkFuncs = append(fxt.checkFuncs, func() error {
+			l := len(fxt.Queries)
+			if l < n {
+				return errs.Errorf(checkStr, n, kindQueries, l)
+			}
+			return nil
+		})
+		// Convert fns to []CustomizeEntityFunc
+		customFuncs := make([]CustomizeEntityFunc, len(fns))
+		for idx := range fns {
+			customFuncs[idx] = CustomizeEntityFunc(fns[idx])
+		}
+		if err := fxt.setupInfo(n, kindQueries, customFuncs...); err != nil {
+			return err
+		}
+		return fxt.deps(Spaces(1))
+	}
+}

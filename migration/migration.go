@@ -370,6 +370,9 @@ func GetMigrations() Migrations {
 		link.SystemWorkItemLinkCategoryUserID.String(),
 	)})
 
+	// Version 81
+	m = append(m, steps{ExecuteSQLFile("081-queries.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -443,7 +446,7 @@ func MigrateToNextVersion(tx *sql.Tx, nextVersion *int64, m Migrations, catalog 
 	// Once obtained, the lock is held for the remainder of the current transaction.
 	// (There is no UNLOCK TABLE command; locks are always released at transaction end.)
 	if _, err := tx.Exec("SELECT pg_advisory_xact_lock($1)", AdvisoryLockID); err != nil {
-		return errs.Errorf("Failed to acquire lock: %s\n", err)
+		return errs.Wrapf(err, "failed to acquire lock: %s\n", AdvisoryLockID)
 	}
 
 	// Determine current version and adjust the outmost loop

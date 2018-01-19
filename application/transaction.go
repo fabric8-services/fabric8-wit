@@ -1,7 +1,6 @@
 package application
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/log"
@@ -11,6 +10,8 @@ import (
 
 var databaseTransactionTimeout = 5 * time.Minute
 
+// SetDatabaseTransactionTimeout sets the global timeout variable to the given
+// duration.
 func SetDatabaseTransactionTimeout(t time.Duration) {
 	databaseTransactionTimeout = t
 }
@@ -34,7 +35,7 @@ func Transactional(db DB, todo func(f Application) error) error {
 		go func(tx Transaction) {
 			defer func() {
 				if err := recover(); err != nil {
-					errorChan <- errors.New(fmt.Sprintf("Unknown error: %v", err))
+					errorChan <- errors.Errorf("Unknown error: %v", err)
 				}
 			}()
 			errorChan <- todo(tx)
@@ -58,7 +59,7 @@ func Transactional(db DB, todo func(f Application) error) error {
 			log.Debug(nil, nil, "Rolling back the transaction...")
 			tx.Rollback()
 			log.Error(nil, nil, "database transaction timeout!")
-			return errors.New("database transaction timeout!")
+			return errors.New("database transaction timeout")
 		}
 	}()
 }

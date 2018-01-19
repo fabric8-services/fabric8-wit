@@ -3,6 +3,8 @@ package controller
 import (
 	"fmt"
 
+	"github.com/fabric8-services/fabric8-wit/workitem/link"
+
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/auth"
@@ -56,7 +58,7 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 
 	if ctx.FilterExpression != nil {
 		return application.Transactional(c.db, func(appl application.Application) error {
-			result, cnt, err := appl.SearchItems().Filter(ctx.Context, *ctx.FilterExpression, ctx.FilterParentexists, &offset, &limit)
+			result, cnt, ancestors, err := appl.SearchItems().Filter(ctx.Context, *ctx.FilterExpression, ctx.FilterParentexists, &offset, &limit)
 			count := int(cnt)
 			if err != nil {
 				cause := errs.Cause(err)
@@ -75,14 +77,23 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 				}
 			}
 
+			matchingWorkItemIDs := make([]uuid.UUID, len(result))
+			for i, wi := range result {
+				matchingWorkItemIDs[i] = wi.ID
+			}
+
 			hasChildren := workItemIncludeHasChildren(ctx, appl)
-			includeParent := includeParentWorkItem(ctx, appl)
+			includeParent := includeParentWorkItem(ctx, appl, ancestors)
 			response := app.SearchWorkItemList{
 				Links: &app.PagingLinks{},
-				Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
-				Data:  ConvertWorkItems(ctx.Request, result, hasChildren, includeParent),
+				Meta: &app.WorkItemListResponseMeta{
+					TotalCount:          count,
+					AncestorWorkItemIDs: ancestors.GetDistinctAncestorIDs(),
+					MatchingWorkItemIDs: matchingWorkItemIDs,
+				},
+				Data: ConvertWorkItems(ctx.Request, result, hasChildren, includeParent),
 			}
-			c.enrichWorkItemList(ctx, &response) // append parentWI in response
+			c.enrichWorkItemList(ctx, ancestors, &response) // append parentWI and ancestors (if not empty) in response
 			setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(result), offset, limit, count, "filter[expression]="+*ctx.FilterExpression)
 			return ctx.OK(&response)
 		})
@@ -191,7 +202,7 @@ func (c *SearchController) Users(ctx *app.UsersSearchContext) error {
 
 // Iterate over the WI list and read parent IDs
 // Fetch and load Parent WI in the included list
-func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, res *app.SearchWorkItemList) {
+func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, ancestors link.AncestorList, res *app.SearchWorkItemList) {
 	fetchInBatch := []uuid.UUID{}
 	for _, wi := range res.Data {
 		if wi.Relationships != nil && wi.Relationships.Parent != nil && wi.Relationships.Parent.Data != nil {
@@ -199,6 +210,10 @@ func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, res *a
 			fetchInBatch = append(fetchInBatch, parentID)
 		}
 	}
+
+	// Also append the ancestors not already included in the parent list.
+	fetchInBatch = append(fetchInBatch, link.IDSliceDiff(ancestors.GetDistinctAncestorIDs(), fetchInBatch)...)
+
 	wis := []*workitem.WorkItem{}
 	err := application.Transactional(c.db, func(appl application.Application) error {
 		var err error

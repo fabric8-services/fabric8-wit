@@ -26,7 +26,7 @@ func NewRevisionRepository(db *gorm.DB) *GormWorkItemLinkRevisionRepository {
 	return repository
 }
 
-// GormCommentRevisionRepository implements CommentRevisionRepository using gorm
+// GormWorkItemLinkRevisionRepository implements CommentRevisionRepository using gorm
 type GormWorkItemLinkRevisionRepository struct {
 	db *gorm.DB
 }

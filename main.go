@@ -292,6 +292,10 @@ func main() {
 	userServiceCtrl.ShowTenant = account.NewShowTenant(config)
 	app.MountUserServiceController(service, userServiceCtrl)
 
+	// Mount "apps" controller
+	appsCtrl := controller.NewAppsController(service, config)
+	app.MountAppsController(service, appsCtrl)
+
 	// Mount "search" controller
 	searchCtrl := controller.NewSearchController(service, appDB, config)
 	app.MountSearchController(service, searchCtrl)
@@ -364,6 +368,14 @@ func main() {
 	// Mount "type groups" controller with "list" action
 	workItemTypeGroupsCtrl := controller.NewWorkItemTypeGroupsController(service, appDB)
 	app.MountWorkItemTypeGroupsController(service, workItemTypeGroupsCtrl)
+
+	// Mount "queries" controller
+	queriesCtrl := controller.NewQueryController(service, appDB, config)
+	app.MountQueryController(service, queriesCtrl)
+
+	// proxying call to "/api/features/*" to the toggles service
+	featuresCtrl := controller.NewFeaturesController(service, config)
+	app.MountFeaturesController(service, featuresCtrl)
 
 	log.Logger().Infoln("Git Commit SHA: ", controller.Commit)
 	log.Logger().Infoln("UTC Build Time: ", controller.BuildTime)
