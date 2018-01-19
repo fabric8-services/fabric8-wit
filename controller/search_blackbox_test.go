@@ -1065,13 +1065,9 @@ func (s *searchControllerTestSuite) TestIncludedParents() {
 	}
 
 	s.T().Run("in topology A-B-C and A-D search for", func(t *testing.T) {
-		testFunc := func(t *testing.T, searchForTitles []string, expectedData, expectedIncludes, expectedAncestorIDs id.Slice, treeView bool) {
+		testFunc := func(t *testing.T, searchForTitles []string, expectedData, expectedIncludes id.Slice, treeView bool) {
 			matches := id.MapFromSlice(expectedData)
 			included := id.MapFromSlice(expectedIncludes)
-			ancestorIDs := id.MapFromSlice(expectedAncestorIDs)
-			// we need to access these maps twice (remove elements from them),
-			// therefore we copy them.
-			expectedData2 := matches.Copy()
 
 			// Build title filter and test name
 			require.NotEmpty(t, searchForTitles)
@@ -1101,6 +1097,7 @@ func (s *searchControllerTestSuite) TestIncludedParents() {
 				// then
 				require.NotEmpty(t, result.Data)
 				assert.Len(t, result.Data, len(searchForTitles))
+				compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", strings.Replace("in topology A-B-C and A-D search for", " ", "_", -1), strings.Replace(testName+".res.golden.json", " ", "_", -1)), result)
 
 				// test what's included in the "data" portion of the response
 				for _, wi := range result.Data {
@@ -1124,29 +1121,6 @@ func (s *searchControllerTestSuite) TestIncludedParents() {
 					}
 				}
 				assert.Empty(t, included, "failed to find these work items in \"included\" section: %s", included.ToString(", ", printCb))
-
-				t.Run("check AncestorWorkItemIDs", func(t *testing.T) {
-					if !treeView {
-						assert.Empty(t, ancestorIDs, "expected no ancestor item IDs listed but these were listed: %s", ancestorIDs.ToString(", ", printCb))
-					} else {
-						for _, ID := range result.Meta.AncestorWorkItemIDs {
-							_, ok := ancestorIDs[ID]
-							assert.True(t, ok, "failed to find %s (%s) in AncestorWorkItemIDs meta-array", fxt.WorkItemByID(ID).Fields[workitem.SystemTitle].(string), ID)
-							t.Logf("found work item listed in ancestor ID array: %s (%s)", fxt.WorkItemByID(ID).Fields[workitem.SystemTitle].(string), ID)
-							delete(ancestorIDs, ID)
-						}
-						assert.Empty(t, ancestorIDs, "these IDs are missing from AncestorWorkItemIDs meta-array: %s", ancestorIDs.ToString(", ", printCb))
-					}
-				})
-				t.Run("check MatchingWorkItemIDs", func(t *testing.T) {
-					for _, ID := range result.Meta.MatchingWorkItemIDs {
-						_, ok := expectedData2[ID]
-						assert.True(t, ok, "failed to find %s (%s) in MatchingWorkItemIDs meta-array", fxt.WorkItemByID(ID).Fields[workitem.SystemTitle].(string), ID)
-						t.Logf("found work item listed in matching ID array: %s (%s)", fxt.WorkItemByID(ID).Fields[workitem.SystemTitle].(string), ID)
-						delete(expectedData2, ID)
-					}
-					assert.Empty(t, expectedData2, "these IDs are missing from MatchingWorkItemIDs meta-array: %s", expectedData2.ToString(", ", printCb))
-				})
 
 				if treeView {
 					t.Run("check that all non-root work items have a parent relationship", func(t *testing.T) {
@@ -1184,23 +1158,22 @@ func (s *searchControllerTestSuite) TestIncludedParents() {
 				}
 			})
 		}
-		_, _, _, _, _ = A, B, C, D, E
 		// // Without tree-view query option
-		testFunc(t, []string{"A"}, id.Slice{A}, nil, nil, false)
-		testFunc(t, []string{"B"}, id.Slice{B}, nil, nil, false)
-		testFunc(t, []string{"C"}, id.Slice{C}, nil, nil, false)
-		testFunc(t, []string{"D"}, id.Slice{D}, nil, nil, false)
-		testFunc(t, []string{"E"}, id.Slice{E}, nil, nil, false)
+		testFunc(t, []string{"A"}, id.Slice{A}, nil, false)
+		testFunc(t, []string{"B"}, id.Slice{B}, nil, false)
+		testFunc(t, []string{"C"}, id.Slice{C}, nil, false)
+		testFunc(t, []string{"D"}, id.Slice{D}, nil, false)
+		testFunc(t, []string{"E"}, id.Slice{E}, nil, false)
 		// With tree-view query option
-		testFunc(t, []string{"A"}, id.Slice{A}, nil, nil, true)
-		testFunc(t, []string{"B"}, id.Slice{B}, id.Slice{A}, id.Slice{A}, true)
-		testFunc(t, []string{"C"}, id.Slice{C}, id.Slice{B, A}, id.Slice{A, B}, true)
-		testFunc(t, []string{"D"}, id.Slice{D}, id.Slice{A}, id.Slice{A}, true)
-		testFunc(t, []string{"E"}, id.Slice{E}, nil, nil, true)
+		testFunc(t, []string{"A"}, id.Slice{A}, nil, true)
+		testFunc(t, []string{"B"}, id.Slice{B}, id.Slice{A}, true)
+		testFunc(t, []string{"C"}, id.Slice{C}, id.Slice{B, A}, true)
+		testFunc(t, []string{"D"}, id.Slice{D}, id.Slice{A}, true)
+		testFunc(t, []string{"E"}, id.Slice{E}, nil, true)
 		// search for parent and child elements without tree-view query option
-		testFunc(t, []string{"B", "C"}, id.Slice{B, C}, nil, nil, false)
+		testFunc(t, []string{"B", "C"}, id.Slice{B, C}, nil, false)
 		// search for parent and child elements with tree-view query option
-		testFunc(t, []string{"B", "C"}, id.Slice{B, C}, id.Slice{A}, id.Slice{A, B}, true)
+		testFunc(t, []string{"B", "C"}, id.Slice{B, C}, id.Slice{A}, true)
 	})
 }
 

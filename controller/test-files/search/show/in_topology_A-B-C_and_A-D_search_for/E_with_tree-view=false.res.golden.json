@@ -1,0 +1,88 @@
+{
+  "data": [
+    {
+      "attributes": {
+        "system.created_at": "0001-01-01T00:00:00Z",
+        "system.number": 5,
+        "system.order": 5000,
+        "system.remote_item_id": null,
+        "system.state": "new",
+        "system.title": "E",
+        "system.updated_at": "0001-01-01T00:00:00Z",
+        "version": 0
+      },
+      "id": "00000000-0000-0000-0000-000000000001",
+      "links": {
+        "related": "http:///api/workitems/00000000-0000-0000-0000-000000000001",
+        "self": "http:///api/workitems/00000000-0000-0000-0000-000000000001"
+      },
+      "relationships": {
+        "area": {},
+        "assignees": {},
+        "baseType": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000002",
+            "type": "workitemtypes"
+          },
+          "links": {
+            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000003/workitemtypes/00000000-0000-0000-0000-000000000002"
+          }
+        },
+        "children": {
+          "links": {
+            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000001/children"
+          },
+          "meta": {
+            "hasChildren": false
+          }
+        },
+        "comments": {
+          "links": {
+            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000001/comments",
+            "self": "http:///api/workitems/00000000-0000-0000-0000-000000000001/relationships/comments"
+          }
+        },
+        "creator": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000004",
+            "links": {
+              "related": "http:///api/users/00000000-0000-0000-0000-000000000004",
+              "self": "http:///api/users/00000000-0000-0000-0000-000000000004"
+            },
+            "type": "users"
+          }
+        },
+        "iteration": {},
+        "labels": {
+          "links": {
+            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000001/labels"
+          }
+        },
+        "parent": {},
+        "space": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000003",
+            "type": "spaces"
+          },
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000003",
+            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000003"
+          }
+        },
+        "workItemLinks": {
+          "links": {
+            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000001/links"
+          }
+        }
+      },
+      "type": "workitems"
+    }
+  ],
+  "links": {
+    "first": "http:///api/search?page[offset]=0\u0026page[limit]=20\u0026filter[expression]={\"$AND\": [{\"title\":\"E\"}, {\"space\": \"00000000-0000-0000-0000-000000000003\"}]}",
+    "last": "http:///api/search?page[offset]=0\u0026page[limit]=20\u0026filter[expression]={\"$AND\": [{\"title\":\"E\"}, {\"space\": \"00000000-0000-0000-0000-000000000003\"}]}"
+  },
+  "meta": {
+    "totalCount": 1
+  }
+}

@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
@@ -38,6 +39,81 @@ type SearchController struct {
 func NewSearchController(service *goa.Service, db application.DB, configuration searchConfiguration) *SearchController {
 	return &SearchController{Controller: service.NewController("SearchController"), db: db, configuration: configuration}
 }
+
+// WorkItemPtrArray exists in order to allow sorting results in a search
+// response.
+type WorkItemPtrArray []*app.WorkItem
+
+// Len is the number of elements in the collection.
+func (a WorkItemPtrArray) Len() int {
+	return len(a)
+}
+
+// Less reports whether the element with
+// index i should sort before the element with index j.
+func (a WorkItemPtrArray) Less(i, j int) bool {
+	title1, foundTitle1 := a[i].Attributes[workitem.SystemTitle]
+	title2, foundTitle2 := a[j].Attributes[workitem.SystemTitle]
+	if foundTitle1 && foundTitle2 {
+		t1, cast1Ok := title1.(string)
+		t2, cast2Ok := title2.(string)
+		if cast1Ok && cast2Ok {
+			return t1 < t2
+		}
+	}
+	return a[i].ID.String() < a[j].ID.String()
+}
+
+// Swap swaps the elements with indexes i and j.
+func (a WorkItemPtrArray) Swap(i, j int) {
+	a[i], a[j] = a[j], a[i]
+}
+
+// Ensure WorkItemPtrArray implements the sort.Interface
+var _ sort.Interface = WorkItemPtrArray{}
+var _ sort.Interface = (*WorkItemPtrArray)(nil)
+
+// WorkItemInterfaceArray exists in order to allow sorting results in a search
+// response.
+type WorkItemInterfaceArray []interface{}
+
+// Len is the number of elements in the collection.
+func (a WorkItemInterfaceArray) Len() int {
+	return len(a)
+}
+
+// Less reports whether the element with
+// index i should sort before the element with index j.
+func (a WorkItemInterfaceArray) Less(i, j int) bool {
+	x, ok := a[i].(*app.WorkItem)
+	if !ok {
+		return false
+	}
+	y, ok := a[j].(*app.WorkItem)
+	if !ok {
+		return false
+	}
+
+	title1, foundTitle1 := x.Attributes[workitem.SystemTitle]
+	title2, foundTitle2 := y.Attributes[workitem.SystemTitle]
+	if foundTitle1 && foundTitle2 {
+		t1, cast1Ok := title1.(string)
+		t2, cast2Ok := title2.(string)
+		if cast1Ok && cast2Ok {
+			return t1 < t2
+		}
+	}
+	return x.ID.String() < y.ID.String()
+}
+
+// Swap swaps the elements with indexes i and j.
+func (a WorkItemInterfaceArray) Swap(i, j int) {
+	a[i], a[j] = a[j], a[i]
+}
+
+// Ensure WorkItemInterfaceArray implements the sort.Interface
+var _ sort.Interface = WorkItemInterfaceArray{}
+var _ sort.Interface = (*WorkItemInterfaceArray)(nil)
 
 // Show runs the show action.
 func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
@@ -88,14 +164,23 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 			response := app.SearchWorkItemList{
 				Links: &app.PagingLinks{},
 				Meta: &app.WorkItemListResponseMeta{
-					TotalCount:          count,
-					AncestorWorkItemIDs: ancestors.GetDistinctAncestorIDs(),
-					MatchingWorkItemIDs: matchingWorkItemIDs,
+					TotalCount: count,
 				},
 				Data: ConvertWorkItems(ctx.Request, result, hasChildren, includeParent),
 			}
 			c.enrichWorkItemList(ctx, ancestors, matchingWorkItemIDs, &response) // append parentWI and ancestors (if not empty) in response
 			setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(result), offset, limit, count, "filter[expression]="+*ctx.FilterExpression)
+
+			// Sort "data" by name or ID if no title given
+			var data WorkItemPtrArray = response.Data
+			sort.Sort(data)
+			response.Data = data
+
+			// Sort work items in the "included" array by ID or title
+			var included WorkItemInterfaceArray = response.Included
+			sort.Sort(included)
+			response.Included = included
+
 			return ctx.OK(&response)
 		})
 
