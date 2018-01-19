@@ -557,8 +557,8 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 	return res, nil
 }
 
-// parseFilterString accepts a raw string and generates a criteria expression
-func parseFilterString(ctx context.Context, rawSearchString string) (criteria.Expression, *QueryOptions, error) {
+// ParseFilterString accepts a raw string and generates a criteria expression
+func ParseFilterString(ctx context.Context, rawSearchString string) (criteria.Expression, *QueryOptions, error) {
 	fm := map[string]interface{}{}
 	// Parsing/Unmarshalling JSON encoding/json
 	err := json.Unmarshal([]byte(rawSearchString), &fm)
@@ -813,7 +813,7 @@ func (r *GormSearchRepository) Filter(ctx context.Context, rawFilterString strin
 	// parse
 	// generateSearchQuery
 	// ....
-	exp, opts, err := parseFilterString(ctx, rawFilterString)
+	exp, opts, err := ParseFilterString(ctx, rawFilterString)
 	if err != nil {
 		return nil, 0, nil, errs.Wrap(err, "failed to parse filter string")
 	}

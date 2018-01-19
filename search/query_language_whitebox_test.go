@@ -321,7 +321,7 @@ func TestParseFilterString(t *testing.T) {
 	t.Run("OPTS with other query", func(t *testing.T) {
 
 		input := fmt.Sprintf(`{"$AND":[{"title":"some"},{"state":"new"}],"%s": {"parent-exists": true, "tree-view": true}}`, OPTS)
-		actualExpr, options, err := parseFilterString(context.Background(), input)
+		actualExpr, options, err := ParseFilterString(context.Background(), input)
 		expectedExpr := c.And(
 			c.Equals(
 				c.Field("system.title"),
