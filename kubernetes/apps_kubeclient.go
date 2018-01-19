@@ -138,6 +138,7 @@ func NewKubeClient(config *KubeClientConfig) (KubeClientInterface, error) {
 		return nil, err
 	}
 	kubeClient.envMap = envMap
+
 	return kubeClient, nil
 }
 
@@ -168,7 +169,7 @@ func (kc *kubeClient) GetSpace(spaceName string) (*app.SimpleSpace, error) {
 	}
 
 	// Get all applications in this space using BuildConfig names
-	apps := make([]*app.SimpleApp, 0)
+	apps := []*app.SimpleApp{}
 	for _, bc := range buildconfigs {
 		appn, err := kc.GetApplication(spaceName, bc)
 		if err != nil {
@@ -192,7 +193,7 @@ func (kc *kubeClient) GetSpace(spaceName string) (*app.SimpleSpace, error) {
 // of that application's deployment in each environment
 func (kc *kubeClient) GetApplication(spaceName string, appName string) (*app.SimpleApp, error) {
 	// Get all deployments of this app for each environment in this space
-	deployments := make([]*app.SimpleDeployment, 0)
+	deployments := []*app.SimpleDeployment{}
 	for envName := range kc.envMap {
 		deployment, err := kc.GetDeployment(spaceName, appName, envName)
 		if err != nil {
@@ -445,7 +446,7 @@ func (kc *kubeClient) GetDeploymentStatSeries(spaceName string, appName string, 
 // GetEnvironments retrieves information on all environments in the cluster
 // for the current user
 func (kc *kubeClient) GetEnvironments() ([]*app.SimpleEnvironment, error) {
-	envs := make([]*app.SimpleEnvironment, 0)
+	envs := []*app.SimpleEnvironment{}
 	for envName := range kc.envMap {
 		env, err := kc.GetEnvironment(envName)
 		if err != nil {
@@ -553,7 +554,7 @@ func (kc *kubeClient) getBuildConfigs(space string) ([]string, error) {
 	}
 
 	// Extract the names of the BuildConfigs from the response
-	buildconfigs := make([]string, 0)
+	buildconfigs := []string{}
 	for _, item := range items {
 		bc, ok := item.(map[interface{}]interface{})
 		if !ok {
@@ -722,7 +723,7 @@ func (kc *kubeClient) getCurrentDeployment(space string, appName string, namespa
 	for idx := range rcs {
 		rc := &rcs[idx]
 		if newest == nil || newest.CreationTimestamp.Before(rc.CreationTimestamp) {
-			visible := false
+			visible := true
 			// Check if this RC has replicas running
 			if rc.Status.Replicas > 0 {
 				visible = true
@@ -750,7 +751,7 @@ func (kc *kubeClient) getReplicationControllers(namespace string, dcUID types.UI
 	}
 
 	// Current Kubernetes concept used to represent OpenShift Deployments
-	rcsForDc := make([]v1.ReplicationController, 0)
+	rcsForDc := []v1.ReplicationController{}
 	for _, rc := range rcs.Items {
 
 		// Use OwnerReferences to map RC to DC that created it
@@ -853,7 +854,7 @@ func (kc *kubeClient) getPods(namespace string, uid types.UID) ([]*v1.Pod, error
 		return nil, err
 	}
 
-	appPods := make([]*v1.Pod, 0)
+	appPods := []*v1.Pod{}
 	for _, pod := range pods.Items {
 		// If a pod belongs to a given RC, it should have an OwnerReference
 		// whose UID matches that of the RC
@@ -921,6 +922,11 @@ func (kc *kubeClient) getPodStatus(pods []*v1.Pod) ([][]string, int) {
 		}
 		podStatus[statusKey]++
 		podTotal++
+	}
+
+	// if there were actually no pods, create a dummy entry
+	if podTotal == 0 {
+		podStatus[podRunning] = 0
 	}
 
 	var result [][]string
