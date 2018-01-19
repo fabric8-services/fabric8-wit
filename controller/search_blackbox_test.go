@@ -1367,10 +1367,10 @@ func TestWorkItemPtrSliceSort(t *testing.T) {
 
 func TestWorkItemInterfaceSliceSort(t *testing.T) {
 	t.Run("by work item title", func(t *testing.T) {
-		// given
-		var a interface{} = &app.WorkItem{Attributes: map[string]interface{}{workitem.SystemTitle: "A"}}
+		// given objects and pointers
+		var a interface{} = app.WorkItem{Attributes: map[string]interface{}{workitem.SystemTitle: "A"}}
 		var b interface{} = &app.WorkItem{Attributes: map[string]interface{}{workitem.SystemTitle: "B"}}
-		var c interface{} = &app.WorkItem{Attributes: map[string]interface{}{workitem.SystemTitle: "C"}}
+		var c interface{} = app.WorkItem{Attributes: map[string]interface{}{workitem.SystemTitle: "C"}}
 		s := WorkItemInterfaceSlice{c, a, b}
 		// when
 		sort.Sort(s)
@@ -1378,10 +1378,10 @@ func TestWorkItemInterfaceSliceSort(t *testing.T) {
 		require.Equal(t, WorkItemInterfaceSlice{a, b, c}, s)
 	})
 	t.Run("by work item ID", func(t *testing.T) {
-		// given
-		var a interface{} = &app.WorkItem{ID: ptr.UUID(uuid.FromStringOrNil("00000000-0000-0000-0000-000000000001"))}
+		// given objects and pointers
+		var a interface{} = app.WorkItem{ID: ptr.UUID(uuid.FromStringOrNil("00000000-0000-0000-0000-000000000001"))}
 		var b interface{} = &app.WorkItem{ID: ptr.UUID(uuid.FromStringOrNil("00000000-0000-0000-0000-000000000002"))}
-		var c interface{} = &app.WorkItem{ID: ptr.UUID(uuid.FromStringOrNil("00000000-0000-0000-0000-000000000003"))}
+		var c interface{} = app.WorkItem{ID: ptr.UUID(uuid.FromStringOrNil("00000000-0000-0000-0000-000000000003"))}
 		s := WorkItemInterfaceSlice{c, a, b}
 		// when
 		sort.Sort(s)
