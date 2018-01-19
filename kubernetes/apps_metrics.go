@@ -9,13 +9,24 @@ import (
 	v1 "k8s.io/client-go/pkg/api/v1"
 )
 
-type metricsClient struct {
-	hawkularClient *hawkular.Client
+// MetricsClientConfig holds configuration data needed to create a new MetricsInterface
+// with kubernetes.NewMetricsClient
+type MetricsClientConfig struct {
+	// URL to the Kubernetes cluster's metrics server
+	MetricsURL string
+	// An authorized token to access the cluster
+	BearerToken string
+	// Provides access to the underlying Hawkular API, uses default implementation if not set
+	HawkularGetter
 }
 
-// MetricsGetter has a method to access the MetricsInterface interface
-type MetricsGetter interface {
-	GetMetrics(metricsURL string, bearerToken string) (MetricsInterface, error)
+type metricsClient struct {
+	HawkularRESTAPI
+}
+
+// HawkularGetter has a method to access the HawkularRESTAPI interface
+type HawkularGetter interface {
+	GetHawkularRESTAPI(config *MetricsClientConfig) (HawkularRESTAPI, error)
 }
 
 // MetricsInterface provides methods to obtain performance metrics of a deployed application
@@ -32,6 +43,17 @@ type MetricsInterface interface {
 	GetNetworkRecvMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error)
 	GetNetworkRecvMetricsRange(pods []v1.Pod, namespace string, startTime time.Time, endTime time.Time,
 		limit int) ([]*app.TimedNumberTuple, error)
+}
+
+// HawkularRESTAPI collects methods that call out to the Hawkular metrics server over the network
+type HawkularRESTAPI interface {
+	ReadBuckets(metricType hawkular.MetricType, namespace string,
+		modifiers ...hawkular.Modifier) ([]*hawkular.Bucketpoint, error)
+}
+
+// Default receiver for HawkularRESTAPI methods
+type hawkularHelper struct {
+	client *hawkular.Client
 }
 
 const (
@@ -53,20 +75,37 @@ const bucketDuration = 1 * time.Minute
 const millicoreToCoreScale = 0.001
 const noScale = 1
 
-func newMetricsClient(metricsURL string, bearerToken string) (MetricsInterface, error) {
+// NewMetricsClient creates a MetricsInterface given a configuration
+func NewMetricsClient(config *MetricsClientConfig) (MetricsInterface, error) {
+	// Use default implementation if no HawkularGetter is specified
+	if config.HawkularGetter == nil {
+		config.HawkularGetter = &defaultGetter{}
+	}
+	helper, err := config.GetHawkularRESTAPI(config)
+	if err != nil {
+		return nil, err
+	}
+	mc := &metricsClient{
+		HawkularRESTAPI: helper,
+	}
+
+	return mc, nil
+}
+
+func (*defaultGetter) GetHawkularRESTAPI(config *MetricsClientConfig) (HawkularRESTAPI, error) {
 	params := hawkular.Parameters{
-		Url:   metricsURL,
-		Token: bearerToken,
+		Url:   config.MetricsURL,
+		Token: config.BearerToken,
 	}
 	client, err := hawkular.NewHawkularClient(params)
 	if err != nil {
 		return nil, err
 	}
 
-	mc := new(metricsClient)
-	mc.hawkularClient = client
-
-	return mc, nil
+	helper := &hawkularHelper{
+		client: client,
+	}
+	return helper, nil
 }
 
 func (mc *metricsClient) GetCPUMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error) {
@@ -238,9 +277,14 @@ func (mc *metricsClient) readBuckets(pods []v1.Pod, namespace string, descTag st
 		podIDTag:      podsForTag,
 	}
 
-	// Tenant should be set to OSO project name
-	mc.hawkularClient.Tenant = namespace
 	// Append other filters to those provided
 	filters = append(filters, hawkular.TagsFilter(tags), hawkular.StackedFilter() /* Sum of each pod */)
-	return mc.hawkularClient.ReadBuckets(hawkular.Gauge, hawkular.Filters(filters...))
+	return mc.ReadBuckets(hawkular.Gauge, namespace, hawkular.Filters(filters...))
+}
+
+func (helper *hawkularHelper) ReadBuckets(metricType hawkular.MetricType, namespace string,
+	modifiers ...hawkular.Modifier) ([]*hawkular.Bucketpoint, error) {
+	// Tenant should be set to OSO project name
+	helper.client.Tenant = namespace
+	return helper.client.ReadBuckets(metricType, modifiers...)
 }

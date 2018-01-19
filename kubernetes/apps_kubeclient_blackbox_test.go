@@ -169,15 +169,13 @@ func (getter *testKubeGetter) GetKubeRESTAPI(config *kubernetes.KubeClientConfig
 }
 
 type testMetricsGetter struct {
-	metricsURL  string
-	bearerToken string
+	config *kubernetes.MetricsClientConfig
 }
 
 type testMetrics struct{}
 
-func (getter *testMetricsGetter) GetMetrics(metricsURL string, bearerToken string) (kubernetes.MetricsInterface, error) {
-	getter.metricsURL = metricsURL
-	getter.bearerToken = bearerToken
+func (getter *testMetricsGetter) GetMetrics(config *kubernetes.MetricsClientConfig) (kubernetes.MetricsInterface, error) {
+	getter.config = config
 	return testMetrics{}, nil
 }
 
@@ -247,8 +245,8 @@ func TestGetMetrics(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			assert.Equal(t, testCase.expectedURL, metricsGetter.metricsURL, "Incorrect Metrics URL")
-			assert.Equal(t, token, metricsGetter.bearerToken, "Incorrect bearer token")
+			assert.Equal(t, testCase.expectedURL, metricsGetter.config.MetricsURL, "Incorrect Metrics URL")
+			assert.Equal(t, token, metricsGetter.config.BearerToken, "Incorrect bearer token")
 		} else {
 			if err == nil {
 				t.Error("Expected error, but was successful")

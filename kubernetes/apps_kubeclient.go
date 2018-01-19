@@ -43,6 +43,11 @@ type KubeRESTAPIGetter interface {
 	GetKubeRESTAPI(config *KubeClientConfig) (KubeRESTAPI, error)
 }
 
+// MetricsGetter has a method to access the MetricsInterface interface
+type MetricsGetter interface {
+	GetMetrics(config *MetricsClientConfig) (MetricsInterface, error)
+}
+
 // KubeClientInterface contains configuration and methods for interacting with a Kubernetes cluster
 type KubeClientInterface interface {
 	GetSpace(spaceName string) (*app.SimpleSpace, error)
@@ -83,7 +88,7 @@ type defaultGetter struct{}
 func NewKubeClient(config *KubeClientConfig) (KubeClientInterface, error) {
 	// Use default implementation if no KubernetesGetter is specified
 	if config.KubeRESTAPIGetter == nil {
-		config.KubeRESTAPIGetter = defaultGetter{}
+		config.KubeRESTAPIGetter = &defaultGetter{}
 	}
 	kubeAPI, err := config.GetKubeRESTAPI(config)
 	if err != nil {
@@ -92,7 +97,7 @@ func NewKubeClient(config *KubeClientConfig) (KubeClientInterface, error) {
 
 	// Use default implementation if no MetricsGetter is specified
 	if config.MetricsGetter == nil {
-		config.MetricsGetter = defaultGetter{}
+		config.MetricsGetter = &defaultGetter{}
 	}
 	// In the absence of a better way to get the user's metrics URL,
 	// substitute "api" with "metrics" in user's cluster URL
@@ -101,7 +106,11 @@ func NewKubeClient(config *KubeClientConfig) (KubeClientInterface, error) {
 		return nil, err
 	}
 	// Create MetricsClient for talking with Hawkular API
-	metrics, err := config.GetMetrics(metricsURL, config.BearerToken)
+	metricsConfig := &MetricsClientConfig{
+		MetricsURL:  metricsURL,
+		BearerToken: config.BearerToken,
+	}
+	metrics, err := config.GetMetrics(metricsConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +130,7 @@ func NewKubeClient(config *KubeClientConfig) (KubeClientInterface, error) {
 	return kubeClient, nil
 }
 
-func (defaultGetter) GetKubeRESTAPI(config *KubeClientConfig) (KubeRESTAPI, error) {
+func (*defaultGetter) GetKubeRESTAPI(config *KubeClientConfig) (KubeRESTAPI, error) {
 	restConfig := &rest.Config{
 		Host:        config.ClusterURL,
 		BearerToken: config.BearerToken,
@@ -133,8 +142,8 @@ func (defaultGetter) GetKubeRESTAPI(config *KubeClientConfig) (KubeRESTAPI, erro
 	return clientset.CoreV1(), nil
 }
 
-func (defaultGetter) GetMetrics(metricsURL string, bearerToken string) (MetricsInterface, error) {
-	return newMetricsClient(metricsURL, bearerToken)
+func (*defaultGetter) GetMetrics(config *MetricsClientConfig) (MetricsInterface, error) {
+	return NewMetricsClient(config)
 }
 
 // GetSpace returns a space matching the provided name, containing all applications that belong to it
