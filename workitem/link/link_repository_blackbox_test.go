@@ -498,28 +498,6 @@ func (s *linkRepoBlackBoxTest) TestExistsLink() {
 	})
 }
 
-func (s *linkRepoBlackBoxTest) TestGetParentID() {
-	// create 1 links between 2 work items having TopologyNetwork with ForwardName = "parent of"
-	fixtures := tf.NewTestFixture(s.T(), s.DB, tf.WorkItemLinks(1), tf.WorkItemLinkTypes(1, tf.SetTopologies(link.TopologyTree), func(fxt *tf.TestFixture, idx int) error {
-		fxt.WorkItemLinkTypes[idx].ForwardName = "parent of"
-		return nil
-	}))
-	parentID, err := s.workitemLinkRepo.GetParentID(s.Ctx, fixtures.WorkItems[1].ID)
-	require.NoError(s.T(), err)
-	assert.Equal(s.T(), fixtures.WorkItems[0].ID, *parentID)
-}
-
-func (s *linkRepoBlackBoxTest) TestGetParentIDNotExist() {
-	// create 1 links between 2 work items having TopologyNetwork with ForwardName = "parent of"
-	fixtures := tf.NewTestFixture(s.T(), s.DB, tf.WorkItemLinks(1), tf.WorkItemLinkTypes(1, tf.SetTopologies(link.TopologyTree), func(fxt *tf.TestFixture, idx int) error {
-		fxt.WorkItemLinkTypes[idx].ForwardName = "parent of"
-		return nil
-	}))
-	parentID, err := s.workitemLinkRepo.GetParentID(s.Ctx, fixtures.WorkItems[0].ID)
-	require.Error(s.T(), err)
-	assert.Nil(s.T(), parentID)
-}
-
 func (s *linkRepoBlackBoxTest) TestGetAncestors() {
 	validateAncestry := func(t *testing.T, fxt *tf.TestFixture, toBeFound map[link.Ancestor]struct{}, ancestors []link.Ancestor) {
 		// uncomment for more information:

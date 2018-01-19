@@ -523,29 +523,6 @@ func (r *GormWorkItemLinkRepository) WorkItemHasChildren(ctx context.Context, pa
 	return hasChildren, nil
 }
 
-// GetParentID returns parent ID of the given work item if any
-func (r *GormWorkItemLinkRepository) GetParentID(ctx context.Context, ID uuid.UUID) (*uuid.UUID, error) {
-	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "get", "parent"}, time.Now())
-	query := fmt.Sprintf(`
-			SELECT id FROM %[1]s WHERE id in (
-				SELECT source_id FROM %[2]s
-				WHERE target_id = $1 AND deleted_at IS NULL AND link_type_id IN (
-					SELECT id FROM %[3]s WHERE forward_name = 'parent of' and topology = '%[4]s'
-				)
-			)`,
-		workitem.WorkItemStorage{}.TableName(),
-		WorkItemLink{}.TableName(),
-		WorkItemLinkType{}.TableName(),
-		TopologyTree)
-	var parentID uuid.UUID
-	db := r.db.CommonDB()
-	err := db.QueryRow(query, ID.String()).Scan(&parentID)
-	if err != nil {
-		return nil, errs.Wrapf(err, "parent not found for work item: %s", ID.String(), query)
-	}
-	return &parentID, nil
-}
-
 // GetAncestors returns all ancestors for the given work items based on the
 // given level. Level stands for -1=all, 0=no, 1=up to parent, 2=up to
 // grandparent, 3=up to great-grandparent, and so forth.
