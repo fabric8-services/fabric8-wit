@@ -3,7 +3,6 @@ package controller
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"net/url"
 	"os"
@@ -79,7 +78,7 @@ func (c *AppsController) getSpaceNameFromSpaceID(ctx context.Context, spaceID uu
 
 	osioSpace, err := osioclient.GetSpaceByID(ctx, spaceID)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 	return osioSpace.Attributes.Name, nil
 }
@@ -89,7 +88,7 @@ func getNamespaceName(ctx context.Context) (*string, error) {
 	osioclient := getAndCheckOSIOClient(ctx)
 	kubeSpaceAttr, err := osioclient.GetNamespaceByType(ctx, nil, "user")
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 	if kubeSpaceAttr == nil || kubeSpaceAttr.Name == nil {
 		return nil, witerrors.NewNotFoundError("namespace", "user")
@@ -102,7 +101,7 @@ func getUser(authClient authservice.Client, ctx context.Context) (*authservice.U
 	// get the user definition (for cluster URL)
 	resp, err := authClient.ShowUser(ctx, authservice.ShowUserPath(), nil, nil)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	defer resp.Body.Close()
@@ -117,7 +116,7 @@ func getUser(authClient authservice.Client, ctx context.Context) (*authservice.U
 	var respType authservice.User
 	err = json.Unmarshal(respBody, &respType)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 	return &respType, nil
 }
@@ -126,7 +125,7 @@ func getTokenData(authClient authservice.Client, ctx context.Context, forService
 
 	resp, err := authClient.RetrieveToken(ctx, authservice.RetrieveTokenPath(), forService, nil)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	defer resp.Body.Close()
@@ -135,13 +134,13 @@ func getTokenData(authClient authservice.Client, ctx context.Context, forService
 
 	status := resp.StatusCode
 	if status < 200 || status > 300 {
-		return nil, errs.WithStack(errors.New("failed to GET user due to status code " + string(status)))
+		return nil, errs.New("failed to GET user due to status code " + string(status))
 	}
 
 	var respType authservice.TokenData
 	err = json.Unmarshal(respBody, &respType)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 	return &respType, nil
 }
@@ -154,13 +153,13 @@ func (c *AppsController) getKubeClient(ctx context.Context) (kubernetes.KubeClie
 	authClient, err := auth.CreateClient(ctx, c.Config)
 	if err != nil {
 		log.Error(ctx, nil, "error accessing Auth server"+tostring(err))
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	authUser, err := getUser(*authClient, ctx)
 	if err != nil {
 		log.Error(ctx, nil, "error accessing Auth server"+tostring(err))
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	if authUser == nil || authUser.Data.Attributes.Cluster == nil {
@@ -172,7 +171,7 @@ func (c *AppsController) getKubeClient(ctx context.Context) (kubernetes.KubeClie
 	osauth, err := getTokenData(*authClient, ctx, *authUser.Data.Attributes.Cluster)
 	if err != nil {
 		log.Error(ctx, nil, "error getting openshift credentials:"+tostring(err))
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	kubeURL := *authUser.Data.Attributes.Cluster
@@ -180,7 +179,7 @@ func (c *AppsController) getKubeClient(ctx context.Context) (kubernetes.KubeClie
 
 	kubeNamespaceName, err := getNamespaceName(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	// create the cluster API client
@@ -191,7 +190,7 @@ func (c *AppsController) getKubeClient(ctx context.Context) (kubernetes.KubeClie
 	}
 	kc, err := kubernetes.NewKubeClient(kubeConfig)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 	return kc, nil
 }
@@ -217,7 +216,7 @@ func (c *AppsController) SetDeployment(ctx *app.SetDeploymentAppsContext) error 
 
 	oldCount, err := kc.ScaleDeployment(*kubeSpaceName, ctx.AppName, ctx.DeployName, *ctx.PodCount)
 	if err != nil {
-		return witerrors.NewInternalError(ctx, err)
+		return witerrors.NewInternalError(ctx, errs.Wrap(err, "error scaling depoyment "+ctx.DeployName))
 	}
 
 	log.Info(ctx, nil, "podcount was %d; will be set to %d", *oldCount, *ctx.PodCount)
@@ -299,7 +298,7 @@ func (c *AppsController) ShowDeploymentStats(ctx *app.ShowDeploymentStatsAppsCon
 
 	deploymentStats, err := kc.GetDeploymentStats(*kubeSpaceName, ctx.AppName, ctx.DeployName, startTime)
 	if err != nil {
-		return witerrors.NewInternalError(ctx, err)
+		return witerrors.NewInternalError(ctx, errs.Wrap(err, "could not retrieve deployment statistics for "+ctx.DeployName))
 	}
 	if deploymentStats == nil {
 		return witerrors.NewNotFoundError("deployment", ctx.DeployName)
@@ -322,7 +321,7 @@ func (c *AppsController) ShowEnvironment(ctx *app.ShowEnvironmentAppsContext) er
 
 	env, err := kc.GetEnvironment(ctx.EnvName)
 	if err != nil {
-		return witerrors.NewInternalError(ctx, err)
+		return witerrors.NewInternalError(ctx, errs.Wrap(err, "could not retrieve environment "+ctx.EnvName))
 	}
 	if env == nil {
 		return witerrors.NewNotFoundError("environment", ctx.EnvName)
@@ -351,7 +350,7 @@ func (c *AppsController) ShowSpace(ctx *app.ShowSpaceAppsContext) error {
 	// get OpenShift space
 	space, err := kc.GetSpace(*kubeSpaceName)
 	if err != nil {
-		return witerrors.NewInternalError(ctx, err)
+		return witerrors.NewInternalError(ctx, errs.Wrap(err, "could not retrieve space "+*kubeSpaceName))
 	}
 	if space == nil {
 		return witerrors.NewNotFoundError("space", *kubeSpaceName)
@@ -379,7 +378,7 @@ func (c *AppsController) ShowSpaceApp(ctx *app.ShowSpaceAppAppsContext) error {
 
 	theapp, err := kc.GetApplication(*kubeSpaceName, ctx.AppName)
 	if err != nil {
-		return witerrors.NewInternalError(ctx, err)
+		return witerrors.NewInternalError(ctx, errs.Wrap(err, "could not retrieve application "+ctx.AppName))
 	}
 	if theapp == nil {
 		return witerrors.NewNotFoundError("application", ctx.AppName)
@@ -407,7 +406,7 @@ func (c *AppsController) ShowSpaceAppDeployment(ctx *app.ShowSpaceAppDeploymentA
 
 	deploymentStats, err := kc.GetDeployment(*kubeSpaceName, ctx.AppName, ctx.DeployName)
 	if err != nil {
-		return witerrors.NewInternalError(ctx, err)
+		return witerrors.NewInternalError(ctx, errs.Wrap(err, "error retrieving deployment "+ctx.DeployName))
 	}
 	if deploymentStats == nil {
 		return witerrors.NewNotFoundError("deployment statistics", ctx.DeployName)
@@ -430,7 +429,7 @@ func (c *AppsController) ShowEnvAppPods(ctx *app.ShowEnvAppPodsAppsContext) erro
 
 	pods, err := kc.GetPodsInNamespace(ctx.EnvName, ctx.AppName)
 	if err != nil {
-		return witerrors.NewInternalError(ctx, err)
+		return witerrors.NewInternalError(ctx, errs.Wrap(err, "error retrieving pods from namespace "+ctx.EnvName+"/"+ctx.AppName))
 	}
 	if pods == nil || len(pods) == 0 {
 		return witerrors.NewNotFoundError("pods", ctx.AppName)
@@ -450,7 +449,7 @@ func (c *AppsController) ShowSpaceEnvironments(ctx *app.ShowSpaceEnvironmentsApp
 
 	envs, err := kc.GetEnvironments()
 	if err != nil {
-		return witerrors.NewInternalError(ctx, err)
+		return witerrors.NewInternalError(ctx, errs.Wrap(err, "error retrieving environments"))
 	}
 	if envs == nil {
 		return witerrors.NewNotFoundError("environments", ctx.SpaceID.String())

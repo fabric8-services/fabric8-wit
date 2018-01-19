@@ -3,7 +3,6 @@ package controller
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -12,6 +11,7 @@ import (
 	witclient "github.com/fabric8-services/fabric8-wit/client"
 	"github.com/fabric8-services/fabric8-wit/goasupport"
 	goaclient "github.com/goadesign/goa/client"
+	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -44,7 +44,7 @@ func (osioclient *OSIOClient) GetNamespaceByType(ctx context.Context, userServic
 	if userService == nil {
 		us, err := osioclient.GetUserServices(ctx)
 		if err != nil {
-			return nil, err
+			return nil, errs.WithStack(err)
 		}
 		userService = us
 	}
@@ -62,7 +62,7 @@ func (osioclient *OSIOClient) GetNamespaceByType(ctx context.Context, userServic
 func (osioclient *OSIOClient) GetUserServices(ctx context.Context) (*app.UserService, error) {
 	resp, err := osioclient.wc.ShowUserService(ctx, witclient.ShowUserServicePath())
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	defer resp.Body.Close()
@@ -73,13 +73,13 @@ func (osioclient *OSIOClient) GetUserServices(ctx context.Context) (*app.UserSer
 	if status == http.StatusNotFound {
 		return nil, nil
 	} else if status < 200 || status > 300 {
-		return nil, errors.New("failed to GET " + witclient.ShowUserServicePath() + " due to status code " + string(status))
+		return nil, errs.New("failed to GET " + witclient.ShowUserServicePath() + " due to status code " + string(status))
 	}
 
 	var respType app.UserServiceSingle
 	err = json.Unmarshal(respBody, &respType)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 	return respType.Data, nil
 }
@@ -87,12 +87,12 @@ func (osioclient *OSIOClient) GetUserServices(ctx context.Context) (*app.UserSer
 // GetSpaceByID - fetch space given UUID
 func (osioclient *OSIOClient) GetSpaceByID(ctx context.Context, spaceID uuid.UUID) (*app.Space, error) {
 	// there are two different uuid packages at play here:
-	//   github.com/satori/go.uuid and goadesign/goa/uuid.
-	// because of that, we fenerate our own URL to avoid issues for now.
+	// github.com/satori/go.uuid and goadesign/goa/uuid.
+	// because of that, we generate our own URL to avoid issues for now.
 	urlpath := fmt.Sprintf("/api/spaces/%s", spaceID.String())
 	resp, err := osioclient.wc.ShowSpace(ctx, urlpath, nil, nil)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	defer resp.Body.Close()
@@ -103,13 +103,13 @@ func (osioclient *OSIOClient) GetSpaceByID(ctx context.Context, spaceID uuid.UUI
 	if status == http.StatusNotFound {
 		return nil, nil
 	} else if status < 200 || status > 300 {
-		return nil, errors.New("failed to GET " + urlpath + " due to status code " + string(status))
+		return nil, errs.New("failed to GET " + urlpath + " due to status code " + string(status))
 	}
 
 	var respType app.SpaceSingle
 	err = json.Unmarshal(respBody, &respType)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 	return respType.Data, nil
 }

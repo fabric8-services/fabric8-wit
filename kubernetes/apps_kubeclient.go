@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -97,7 +96,7 @@ func NewKubeClient(config *KubeClientConfig) (KubeClientInterface, error) {
 	}
 	kubeAPI, err := config.GetKubeRESTAPI(config)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	// Use default implementation if no MetricsGetter is specified
@@ -108,12 +107,12 @@ func NewKubeClient(config *KubeClientConfig) (KubeClientInterface, error) {
 	// substitute "api" with "metrics" in user's cluster URL
 	metricsURL, err := getMetricsURLFromAPIURL(config.ClusterURL)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 	// Create MetricsClient for talking with Hawkular API
 	metrics, err := config.GetMetrics(metricsURL, config.BearerToken)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	kubeClient := &kubeClient{
@@ -126,7 +125,7 @@ func NewKubeClient(config *KubeClientConfig) (KubeClientInterface, error) {
 	// Get environments from config map
 	envMap, err := kubeClient.getEnvironmentsFromConfigMap()
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 	kubeClient.envMap = envMap
 	return kubeClient, nil
@@ -139,7 +138,7 @@ func (defaultGetter) GetKubeRESTAPI(config *KubeClientConfig) (KubeRESTAPI, erro
 	}
 	clientset, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 	return clientset.CoreV1(), nil
 }
@@ -155,15 +154,15 @@ func (kc *kubeClient) GetSpace(spaceName string) (*app.SimpleSpace, error) {
 	// https://github.com/fabric8-ui/fabric8-ui/blob/master/src/app/space/create/pipelines/pipelines.component.ts
 	buildconfigs, err := kc.getBuildConfigs(spaceName)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	// Get all applications in this space using BuildConfig names
-	apps := make([]*app.SimpleApp, 0)
+	apps := []*app.SimpleApp{}
 	for _, bc := range buildconfigs {
 		appn, err := kc.GetApplication(spaceName, bc)
 		if err != nil {
-			return nil, err
+			return nil, errs.WithStack(err)
 		}
 		apps = append(apps, appn)
 	}
@@ -179,11 +178,11 @@ func (kc *kubeClient) GetSpace(spaceName string) (*app.SimpleSpace, error) {
 // of that application's deployment in each environment
 func (kc *kubeClient) GetApplication(spaceName string, appName string) (*app.SimpleApp, error) {
 	// Get all deployments of this app for each environment in this space
-	deployments := make([]*app.SimpleDeployment, 0)
+	deployments := []*app.SimpleDeployment{}
 	for envName := range kc.envMap {
 		deployment, err := kc.GetDeployment(spaceName, appName, envName)
 		if err != nil {
-			return nil, err
+			return nil, errs.WithStack(err)
 		} else if deployment != nil {
 			deployments = append(deployments, deployment)
 		}
@@ -201,20 +200,20 @@ func (kc *kubeClient) GetApplication(spaceName string, appName string) (*app.Sim
 func (kc *kubeClient) ScaleDeployment(spaceName string, appName string, envName string, deployNumber int) (*int, error) {
 	envNS, err := kc.getEnvironmentNamespace(envName)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 	// Look up the Scale for the DeploymentConfig corresponding to the application name in the provided environment
 	dcScaleURL := fmt.Sprintf("/oapi/v1/namespaces/%s/deploymentconfigs/%s/scale", envNS, appName)
 	scale, err := kc.getResource(dcScaleURL, true)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	} else if scale == nil {
 		return nil, nil
 	}
 
 	spec, ok := scale["spec"].(map[interface{}]interface{})
 	if !ok {
-		return nil, errs.WithStack(errors.New("invalid deployment config returned from endpoint: missing 'spec'"))
+		return nil, errs.New("invalid deployment config returned from endpoint: missing 'spec'")
 	}
 
 	replicasYaml, pres := spec["replicas"]
@@ -222,19 +221,19 @@ func (kc *kubeClient) ScaleDeployment(spaceName string, appName string, envName 
 	if pres {
 		oldReplicas, ok = replicasYaml.(int)
 		if !ok {
-			return nil, errs.WithStack(errors.New("invalid deployment config returned from endpoint: 'replicas' is not an integer"))
+			return nil, errs.New("invalid deployment config returned from endpoint: 'replicas' is not an integer")
 		}
 	}
 	spec["replicas"] = deployNumber
 
 	yamlScale, err := yaml.Marshal(scale)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	_, err = kc.putResource(dcScaleURL, yamlScale)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	return &oldReplicas, nil
@@ -245,12 +244,12 @@ func (kc *kubeClient) ScaleDeployment(spaceName string, appName string, envName 
 func (kc *kubeClient) GetDeployment(spaceName string, appName string, envName string) (*app.SimpleDeployment, error) {
 	envNS, err := kc.getEnvironmentNamespace(envName)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 	// Get the UID for the current deployment of the app
 	deploy, err := kc.getCurrentDeployment(spaceName, appName, envNS)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	} else if deploy == nil || len(deploy.currentUID) == 0 {
 		return nil, nil
 	}
@@ -258,12 +257,12 @@ func (kc *kubeClient) GetDeployment(spaceName string, appName string, envName st
 	// Get all pods created by this deployment
 	pods, err := kc.getPods(envNS, deploy.currentUID)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 	// Get the status of each pod in the deployment
 	podStats, err := kc.getPodStatus(pods)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	verString := string(deploy.appVersion)
@@ -281,12 +280,12 @@ func (kc *kubeClient) GetDeploymentStats(spaceName string, appName string, envNa
 	startTime time.Time) (*app.SimpleDeploymentStats, error) {
 	envNS, err := kc.getEnvironmentNamespace(envName)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 	// Get the UID for the current deployment of the app
 	deploy, err := kc.getCurrentDeployment(spaceName, appName, envNS)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	} else if deploy == nil || len(deploy.currentUID) == 0 {
 		return nil, nil
 	}
@@ -294,17 +293,17 @@ func (kc *kubeClient) GetDeploymentStats(spaceName string, appName string, envNa
 	// Get pods belonging to current deployment
 	pods, err := kc.getPods(envNS, deploy.currentUID)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	// Gather the statistics we need about the current deployment
 	cpuUsage, err := kc.GetCPUMetrics(pods, envNS, startTime)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 	memoryUsage, err := kc.GetMemoryMetrics(pods, envNS, startTime)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	result := &app.SimpleDeploymentStats{
@@ -322,13 +321,13 @@ func (kc *kubeClient) GetDeploymentStatSeries(spaceName string, appName string, 
 	startTime time.Time, endTime time.Time, limit int) (*app.SimpleDeploymentStatSeries, error) {
 	envNS, err := kc.getEnvironmentNamespace(envName)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	// Get the UID for the current deployment of the app
 	deploy, err := kc.getCurrentDeployment(spaceName, appName, envNS)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	} else if deploy == nil || len(deploy.currentUID) == 0 {
 		return nil, nil
 	}
@@ -336,17 +335,17 @@ func (kc *kubeClient) GetDeploymentStatSeries(spaceName string, appName string, 
 	// Get pods belonging to current deployment
 	pods, err := kc.getPods(envNS, deploy.currentUID)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	// Get CPU and memory metrics for pods in deployment
 	cpuMetrics, err := kc.GetCPUMetricsRange(pods, envNS, startTime, endTime, limit)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 	memoryMetrics, err := kc.GetMemoryMetricsRange(pods, envNS, startTime, endTime, limit)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	// Get the earliest and latest timestamps
@@ -364,11 +363,11 @@ func (kc *kubeClient) GetDeploymentStatSeries(spaceName string, appName string, 
 // GetEnvironments retrieves information on all environments in the cluster
 // for the current user
 func (kc *kubeClient) GetEnvironments() ([]*app.SimpleEnvironment, error) {
-	envs := make([]*app.SimpleEnvironment, 0)
+	envs := []*app.SimpleEnvironment{}
 	for envName := range kc.envMap {
 		env, err := kc.GetEnvironment(envName)
 		if err != nil {
-			return nil, err
+			return nil, errs.WithStack(err)
 		}
 		envs = append(envs, env)
 	}
@@ -379,12 +378,12 @@ func (kc *kubeClient) GetEnvironments() ([]*app.SimpleEnvironment, error) {
 func (kc *kubeClient) GetEnvironment(envName string) (*app.SimpleEnvironment, error) {
 	envNS, err := kc.getEnvironmentNamespace(envName)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	envStats, err := kc.getResourceQuota(envNS)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	env := &app.SimpleEnvironment{
@@ -404,7 +403,7 @@ func getMetricsURLFromAPIURL(apiURLStr string) (string, error) {
 	// Get the hostname (without port) and replace api prefix with metrics
 	apiHostname := apiURL.Hostname()
 	if !strings.HasPrefix(apiHostname, "api") {
-		return "", errs.WithStack(errors.New("cluster URL does not begin with \"api\": " + apiHostname))
+		return "", errs.New("cluster URL does not begin with \"api\": " + apiHostname)
 	}
 	metricsHostname := strings.Replace(apiHostname, "api", "metrics", 1)
 	// Construct URL using just scheme from API URL and metrics hostname
@@ -447,32 +446,32 @@ func (kc *kubeClient) getBuildConfigs(space string) ([]string, error) {
 	bcURL := fmt.Sprintf("/oapi/v1/namespaces/%s/buildconfigs?labelSelector=%s", kc.config.UserNamespace, queryParam)
 	result, err := kc.getResource(bcURL, false)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 	// Parse build configs from result
 	kind, ok := result["kind"].(string)
 	if !ok || kind != "BuildConfigList" {
-		return nil, errs.WithStack(errors.New("no build configs returned from endpoint"))
+		return nil, errs.New("no build configs returned from endpoint")
 	}
 	items, ok := result["items"].([]interface{})
 	if !ok {
-		return nil, errs.WithStack(errors.New("malformed response from endpoint"))
+		return nil, errs.New("malformed response from endpoint")
 	}
 
 	// Extract the names of the BuildConfigs from the response
-	buildconfigs := make([]string, 0)
+	buildconfigs := []string{}
 	for _, item := range items {
 		bc, ok := item.(map[interface{}]interface{})
 		if !ok {
-			return nil, errs.WithStack(errors.New("malformed build config"))
+			return nil, errs.New("malformed build config")
 		}
 		metadata, ok := bc["metadata"].(map[interface{}]interface{})
 		if !ok {
-			return nil, errs.WithStack(errors.New("metadata missing from build config"))
+			return nil, errs.New("metadata missing from build config")
 		}
 		name, ok := metadata["name"].(string)
 		if !ok || len(name) == 0 {
-			return nil, errors.New("malformed metadata in build config")
+			return nil, errs.New("malformed metadata in build config")
 		}
 		buildconfigs = append(buildconfigs, name)
 	}
@@ -485,11 +484,11 @@ func (kc *kubeClient) getEnvironmentsFromConfigMap() (map[string]string, error) 
 	const providerLabel string = "fabric8"
 	configmap, err := kc.ConfigMaps(kc.config.UserNamespace).Get(envConfigMap, metaV1.GetOptions{})
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 	// Check that config map has the expected label
 	if configmap.Labels["provider"] != providerLabel {
-		return nil, errs.WithStack(errors.New("unknown or missing provider for environments config map"))
+		return nil, errs.New("unknown or missing provider for environments config map")
 	}
 	// Parse config map data to construct environments map
 	envMap := make(map[string]string)
@@ -503,13 +502,13 @@ func (kc *kubeClient) getEnvironmentsFromConfigMap() (map[string]string, error) 
 			if strings.HasPrefix(line, namespaceProp) {
 				tokens := strings.SplitN(line, ":", 2)
 				if len(tokens) < 2 {
-					return nil, errs.WithStack(errors.New("malformed environments config map"))
+					return nil, errs.New("malformed environments config map")
 				}
 				namespace = strings.TrimSpace(tokens[1])
 			}
 		}
 		if len(namespace) == 0 {
-			return nil, errs.WithStack(errors.New("no namespace for environment " + key + " in config map"))
+			return nil, errs.New("no namespace for environment " + key + " in config map")
 		}
 		envMap[key] = namespace
 	}
@@ -519,7 +518,7 @@ func (kc *kubeClient) getEnvironmentsFromConfigMap() (map[string]string, error) 
 func (kc *kubeClient) getEnvironmentNamespace(envName string) (string, error) {
 	envNS, pres := kc.envMap[envName]
 	if !pres {
-		return "", errs.WithStack(errors.New("unknown environment: " + envName))
+		return "", errs.New("unknown environment: " + envName)
 	}
 	return envNS, nil
 }
@@ -529,7 +528,7 @@ func (kc *kubeClient) putResource(url string, putBody []byte) (*string, error) {
 	fullURL := strings.TrimSuffix(kc.config.ClusterURL, "/") + url
 	req, err := http.NewRequest("PUT", fullURL, bytes.NewBuffer(putBody))
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 	req.Header.Set("Content-Type", "application/yaml")
 	req.Header.Set("Accept", "application/yaml")
@@ -538,13 +537,13 @@ func (kc *kubeClient) putResource(url string, putBody []byte) (*string, error) {
 	client := http.DefaultClient
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	status := resp.StatusCode
@@ -559,7 +558,7 @@ func (kc *kubeClient) getDeploymentConfig(namespace string, appName string, spac
 	dcURL := fmt.Sprintf("/oapi/v1/namespaces/%s/deploymentconfigs/%s", namespace, appName)
 	result, err := kc.getResource(dcURL, true)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	} else if result == nil {
 		return nil, nil
 	}
@@ -567,34 +566,34 @@ func (kc *kubeClient) getDeploymentConfig(namespace string, appName string, spac
 	// Parse deployment config from result
 	kind, ok := result["kind"].(string)
 	if !ok || kind != "DeploymentConfig" {
-		return nil, errs.WithStack(errors.New("no deployment config returned from endpoint"))
+		return nil, errs.New("no deployment config returned from endpoint")
 	}
 	metadata, ok := result["metadata"].(map[interface{}]interface{})
 	if !ok {
-		return nil, errs.WithStack(errors.New("metadata missing from deployment config"))
+		return nil, errs.New("metadata missing from deployment config")
 	}
 	// Check the space label is what we expect
 	labels, ok := metadata["labels"].(map[interface{}]interface{})
 	if !ok {
-		return nil, errs.WithStack(errors.New("labels missing from deployment config"))
+		return nil, errs.New("labels missing from deployment config")
 	}
 	spaceLabel, ok := labels["space"].(string)
 	if !ok || len(spaceLabel) == 0 {
-		return nil, errs.WithStack(errors.New("space label missing from deployment config"))
+		return nil, errs.New("space label missing from deployment config")
 	}
 	if spaceLabel != space {
-		return nil, errs.WithStack(errors.New("deployment config " + appName + " is part of space " +
-			spaceLabel + ", expected space " + space))
+		return nil, errs.New("deployment config " + appName + " is part of space " +
+			spaceLabel + ", expected space " + space)
 	}
 	// Get UID from deployment config
 	uid, ok := metadata["uid"].(string)
 	if !ok || len(uid) == 0 {
-		return nil, errs.WithStack(errors.New("malformed metadata in deployment config"))
+		return nil, errs.New("malformed metadata in deployment config")
 	}
 	// Read application version from label
 	version := labels["version"].(string)
 	if !ok || len(version) == 0 {
-		return nil, errs.WithStack(errors.New("version missing from deployment config"))
+		return nil, errs.New("version missing from deployment config")
 	}
 
 	dc := &deployment{
@@ -608,7 +607,7 @@ func (kc *kubeClient) getCurrentDeployment(space string, appName string, namespa
 	// Look up DeploymentConfig corresponding to the application name in the provided environment
 	result, err := kc.getDeploymentConfig(namespace, appName, space)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	} else if result == nil {
 		return nil, nil
 	}
@@ -616,7 +615,7 @@ func (kc *kubeClient) getCurrentDeployment(space string, appName string, namespa
 	// shown in the OpenShift web console's overview page
 	rcs, err := kc.getReplicationControllers(namespace, result.dcUID)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	} else if len(rcs) == 0 {
 		return result, nil
 	}
@@ -653,11 +652,11 @@ func (kc *kubeClient) getCurrentDeployment(space string, appName string, namespa
 func (kc *kubeClient) getReplicationControllers(namespace string, dcUID types.UID) ([]v1.ReplicationController, error) {
 	rcs, err := kc.ReplicationControllers(namespace).List(metaV1.ListOptions{})
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	// Current Kubernetes concept used to represent OpenShift Deployments
-	rcsForDc := make([]v1.ReplicationController, 0)
+	rcsForDc := []v1.ReplicationController{}
 	for _, rc := range rcs.Items {
 
 		// Use OwnerReferences to map RC to DC that created it
@@ -679,20 +678,20 @@ func (kc *kubeClient) getResourceQuota(namespace string) (*app.EnvStats, error) 
 	const computeResources string = "compute-resources"
 	quota, err := kc.ResourceQuotas(namespace).Get(computeResources, metaV1.GetOptions{})
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	} else if quota == nil {
-		return nil, errs.WithStack(errors.New("no resource quota with name: " + computeResources))
+		return nil, errs.New("no resource quota with name: " + computeResources)
 	}
 
 	// Convert quantities to floating point, as this should provide enough
 	// precision in practice
 	cpuLimit, err := quantityToFloat64(quota.Status.Hard[v1.ResourceLimitsCPU])
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 	cpuUsed, err := quantityToFloat64(quota.Status.Used[v1.ResourceLimitsCPU])
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	cpuStats := &app.EnvStatCores{
@@ -702,12 +701,12 @@ func (kc *kubeClient) getResourceQuota(namespace string) (*app.EnvStats, error) 
 
 	memLimit, err := quantityToFloat64(quota.Status.Hard[v1.ResourceLimitsMemory])
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	memUsed, err := quantityToFloat64(quota.Status.Used[v1.ResourceLimitsMemory])
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	memUnits := "bytes"
@@ -734,7 +733,7 @@ func quantityToFloat64(q resource.Quantity) (float64, error) {
 		valDec := q.AsDec()
 		val64, ok := valDec.Unscaled()
 		if !ok {
-			return -1, errs.WithStack(errors.New(valDec.String() + " cannot be represented as 64-bit integer"))
+			return -1, errs.New(valDec.String() + " cannot be represented as 64-bit integer")
 		}
 		// From dec.go: The mathematical value of a Dec equals: unscaled * 10**(-scale)
 		result = float64(val64) * math.Pow10(-int(valDec.Scale()))
@@ -749,7 +748,7 @@ func (kc *kubeClient) GetPodsInNamespace(nameSpace string, appName string) ([]v1
 	}
 	pods, err := kc.Pods(nameSpace).List(listOptions)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 	return pods.Items, nil
 }
@@ -757,10 +756,10 @@ func (kc *kubeClient) GetPodsInNamespace(nameSpace string, appName string) ([]v1
 func (kc *kubeClient) getPods(namespace string, uid types.UID) ([]v1.Pod, error) {
 	pods, err := kc.Pods(namespace).List(metaV1.ListOptions{})
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
-	appPods := make([]v1.Pod, 0)
+	appPods := []v1.Pod{}
 	for _, pod := range pods.Items {
 		// If a pod belongs to a given RC, it should have an OwnerReference
 		// whose UID matches that of the RC
@@ -820,7 +819,7 @@ func (kc *kubeClient) getResource(url string, allowMissing bool) (map[interface{
 	fullURL := strings.TrimSuffix(kc.config.ClusterURL, "/") + url
 	req, err := http.NewRequest("GET", fullURL, bytes.NewReader(body))
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 	req.Header.Set("Accept", "application/yaml")
 	req.Header.Set("Authorization", "Bearer "+kc.config.BearerToken)
@@ -828,7 +827,7 @@ func (kc *kubeClient) getResource(url string, allowMissing bool) (map[interface{
 	client := http.DefaultClient
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	defer resp.Body.Close()
@@ -846,7 +845,7 @@ func (kc *kubeClient) getResource(url string, allowMissing bool) (map[interface{
 	var respType map[interface{}]interface{}
 	err = yaml.Unmarshal(b, &respType)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 	return respType, nil
 }
