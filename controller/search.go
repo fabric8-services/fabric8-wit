@@ -40,18 +40,18 @@ func NewSearchController(service *goa.Service, db application.DB, configuration 
 	return &SearchController{Controller: service.NewController("SearchController"), db: db, configuration: configuration}
 }
 
-// WorkItemPtrArray exists in order to allow sorting results in a search
+// WorkItemPtrSlice exists in order to allow sorting results in a search
 // response.
-type WorkItemPtrArray []*app.WorkItem
+type WorkItemPtrSlice []*app.WorkItem
 
 // Len is the number of elements in the collection.
-func (a WorkItemPtrArray) Len() int {
+func (a WorkItemPtrSlice) Len() int {
 	return len(a)
 }
 
 // Less reports whether the element with
 // index i should sort before the element with index j.
-func (a WorkItemPtrArray) Less(i, j int) bool {
+func (a WorkItemPtrSlice) Less(i, j int) bool {
 	title1, foundTitle1 := a[i].Attributes[workitem.SystemTitle]
 	title2, foundTitle2 := a[j].Attributes[workitem.SystemTitle]
 	if foundTitle1 && foundTitle2 {
@@ -65,26 +65,26 @@ func (a WorkItemPtrArray) Less(i, j int) bool {
 }
 
 // Swap swaps the elements with indexes i and j.
-func (a WorkItemPtrArray) Swap(i, j int) {
+func (a WorkItemPtrSlice) Swap(i, j int) {
 	a[i], a[j] = a[j], a[i]
 }
 
-// Ensure WorkItemPtrArray implements the sort.Interface
-var _ sort.Interface = WorkItemPtrArray{}
-var _ sort.Interface = (*WorkItemPtrArray)(nil)
+// Ensure WorkItemPtrSlice implements the sort.Interface
+var _ sort.Interface = WorkItemPtrSlice{}
+var _ sort.Interface = (*WorkItemPtrSlice)(nil)
 
-// WorkItemInterfaceArray exists in order to allow sorting results in a search
+// WorkItemInterfaceSlice exists in order to allow sorting results in a search
 // response.
-type WorkItemInterfaceArray []interface{}
+type WorkItemInterfaceSlice []interface{}
 
 // Len is the number of elements in the collection.
-func (a WorkItemInterfaceArray) Len() int {
+func (a WorkItemInterfaceSlice) Len() int {
 	return len(a)
 }
 
 // Less reports whether the element with
 // index i should sort before the element with index j.
-func (a WorkItemInterfaceArray) Less(i, j int) bool {
+func (a WorkItemInterfaceSlice) Less(i, j int) bool {
 	x, ok := a[i].(*app.WorkItem)
 	if !ok {
 		return false
@@ -107,13 +107,13 @@ func (a WorkItemInterfaceArray) Less(i, j int) bool {
 }
 
 // Swap swaps the elements with indexes i and j.
-func (a WorkItemInterfaceArray) Swap(i, j int) {
+func (a WorkItemInterfaceSlice) Swap(i, j int) {
 	a[i], a[j] = a[j], a[i]
 }
 
-// Ensure WorkItemInterfaceArray implements the sort.Interface
-var _ sort.Interface = WorkItemInterfaceArray{}
-var _ sort.Interface = (*WorkItemInterfaceArray)(nil)
+// Ensure WorkItemInterfaceSlice implements the sort.Interface
+var _ sort.Interface = WorkItemInterfaceSlice{}
+var _ sort.Interface = (*WorkItemInterfaceSlice)(nil)
 
 // Show runs the show action.
 func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
@@ -172,12 +172,12 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 			setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(result), offset, limit, count, "filter[expression]="+*ctx.FilterExpression)
 
 			// Sort "data" by name or ID if no title given
-			var data WorkItemPtrArray = response.Data
+			var data WorkItemPtrSlice = response.Data
 			sort.Sort(data)
 			response.Data = data
 
 			// Sort work items in the "included" array by ID or title
-			var included WorkItemInterfaceArray = response.Included
+			var included WorkItemInterfaceSlice = response.Included
 			sort.Sort(included)
 			response.Included = included
 

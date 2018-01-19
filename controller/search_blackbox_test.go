@@ -12,6 +12,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fabric8-services/fabric8-wit/ptr"
+
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
@@ -1336,4 +1338,54 @@ func (s SortableIncludedSpacesByID) Less(i, j int) bool {
 		return false
 	}
 	return strings.Compare(s[i].(app.Space).ID.String(), s[j].(app.Space).ID.String()) < 0
+}
+
+func TestWorkItemPtrSliceSort(t *testing.T) {
+	t.Run("by work item title", func(t *testing.T) {
+		// given
+		a := &app.WorkItem{Attributes: map[string]interface{}{workitem.SystemTitle: "A"}}
+		b := &app.WorkItem{Attributes: map[string]interface{}{workitem.SystemTitle: "B"}}
+		c := &app.WorkItem{Attributes: map[string]interface{}{workitem.SystemTitle: "C"}}
+		s := WorkItemPtrSlice{c, a, b}
+		// when
+		sort.Sort(s)
+		// then
+		require.Equal(t, WorkItemPtrSlice{a, b, c}, s)
+	})
+	t.Run("by work item ID", func(t *testing.T) {
+		// given
+		a := &app.WorkItem{ID: ptr.UUID(uuid.FromStringOrNil("00000000-0000-0000-0000-000000000001"))}
+		b := &app.WorkItem{ID: ptr.UUID(uuid.FromStringOrNil("00000000-0000-0000-0000-000000000001"))}
+		c := &app.WorkItem{ID: ptr.UUID(uuid.FromStringOrNil("00000000-0000-0000-0000-000000000003"))}
+		s := WorkItemPtrSlice{c, a, b}
+		// when
+		sort.Sort(s)
+		// then
+		require.Equal(t, WorkItemPtrSlice{a, b, c}, s)
+	})
+}
+
+func TestWorkItemInterfaceSliceSort(t *testing.T) {
+	t.Run("by work item title", func(t *testing.T) {
+		// given
+		var a interface{} = &app.WorkItem{Attributes: map[string]interface{}{workitem.SystemTitle: "A"}}
+		var b interface{} = &app.WorkItem{Attributes: map[string]interface{}{workitem.SystemTitle: "B"}}
+		var c interface{} = &app.WorkItem{Attributes: map[string]interface{}{workitem.SystemTitle: "C"}}
+		s := WorkItemInterfaceSlice{c, a, b}
+		// when
+		sort.Sort(s)
+		// then
+		require.Equal(t, WorkItemInterfaceSlice{a, b, c}, s)
+	})
+	t.Run("by work item ID", func(t *testing.T) {
+		// given
+		var a interface{} = &app.WorkItem{ID: ptr.UUID(uuid.FromStringOrNil("00000000-0000-0000-0000-000000000001"))}
+		var b interface{} = &app.WorkItem{ID: ptr.UUID(uuid.FromStringOrNil("00000000-0000-0000-0000-000000000002"))}
+		var c interface{} = &app.WorkItem{ID: ptr.UUID(uuid.FromStringOrNil("00000000-0000-0000-0000-000000000003"))}
+		s := WorkItemInterfaceSlice{c, a, b}
+		// when
+		sort.Sort(s)
+		// then
+		require.Equal(t, WorkItemInterfaceSlice{a, b, c}, s)
+	})
 }
