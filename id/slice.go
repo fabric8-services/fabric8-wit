@@ -1,6 +1,7 @@
 package id
 
 import (
+	"sort"
 	"strings"
 
 	uuid "github.com/satori/go.uuid"
@@ -42,8 +43,13 @@ func (s Slice) Sub(b Slice) Slice {
 	return sub
 }
 
+// Add appends all elements from b to this slice using append
+func (s *Slice) Add(b Slice) {
+	*s = append(*s, b...)
+}
+
 // Unique returns a slice in which all duplicate elements have been removed.
-func (s Slice) Unique(b Slice) Slice {
+func (s Slice) Unique() Slice {
 	return MapFromSlice(s).ToSlice()
 }
 
@@ -68,3 +74,23 @@ func (s Slice) ToString(sep string, fn ...func(ID uuid.UUID) string) string {
 func (s Slice) String() string {
 	return s.ToString(", ")
 }
+
+// Len is the number of elements in the collection.
+func (s Slice) Len() int {
+	return len(s)
+}
+
+// Less reports whether the element with
+// index i should sort before the element with index j.
+func (s Slice) Less(i, j int) bool {
+	return s[i].String() < s[j].String()
+}
+
+// Swap swaps the elements with indexes i and j.
+func (s Slice) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+// Ensure Slice implements the sort.Interface
+var _ sort.Interface = Slice{}
+var _ sort.Interface = (*Slice)(nil)
