@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"hash/fnv"
-	"strings"
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/application/repository"
@@ -566,12 +565,8 @@ func (r *GormWorkItemLinkRepository) GetAncestors(ctx context.Context, linkTypeI
 
 	// Create a string array of unique UUIDs separated by a comma for use in SQL
 	// JOIN clause.
-	idArr := append(id.Slice{}, workItemIDs...).Unique()
-	idStrArr := make([]string, len(idArr))
-	for i, id := range idArr {
-		idStrArr[i] = "'" + id.String() + "'"
-	}
-	idStr := strings.Join(idStrArr, ",")
+	var idArr id.Slice = workItemIDs
+	idStr := idArr.Unique().ToString(",", func(ID uuid.UUID) string { return fmt.Sprintf("'%s'", ID) })
 
 	levelLimitation := ""
 	if upToLevel != AncestorLevelAll && upToLevel > 0 {
