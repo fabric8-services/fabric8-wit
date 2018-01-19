@@ -1064,7 +1064,7 @@ func (s *searchControllerTestSuite) TestIncludedParents() {
 		return fmt.Sprintf("%s (%s)", fxt.WorkItemByID(ID).Fields[workitem.SystemTitle].(string), ID)
 	}
 
-	s.T().Run("in topology A-B-C-D and A-D search for", func(t *testing.T) {
+	s.T().Run("in topology A-B-C and A-D search for", func(t *testing.T) {
 		testFunc := func(t *testing.T, searchForTitles []string, expectedData, expectedIncludes, expectedAncestorIDs id.Slice, treeView bool) {
 			matches := id.MapFromSlice(expectedData)
 			included := id.MapFromSlice(expectedIncludes)
@@ -1147,13 +1147,49 @@ func (s *searchControllerTestSuite) TestIncludedParents() {
 					}
 					assert.Empty(t, expectedData2, "these IDs are missing from MatchingWorkItemIDs meta-array: %s", expectedData2.ToString(", ", printCb))
 				})
+
+				if treeView {
+					t.Run("check that all non-root work items have a parent relationship", func(t *testing.T) {
+						hasParent := func(wi app.WorkItem) {
+							// treat the root differently
+							if *wi.ID == A || *wi.ID == E {
+								return
+							}
+							title := fxt.WorkItemByID(*wi.ID).Fields[workitem.SystemTitle].(string)
+							require.NotNil(t, wi.Relationships, "work item %s is missing relationships", title)
+							require.NotNil(t, wi.Relationships.Parent, "work item %s is missing relationships.parent", title)
+							require.NotNil(t, wi.Relationships.Parent.Data, "work item %s is missing relationships.parent.data", title)
+							parentID := wi.Relationships.Parent.Data.ID
+							switch *wi.ID {
+							case B:
+								require.Equal(t, parentID, A)
+							case C:
+								require.Equal(t, parentID, B)
+							case D:
+								require.Equal(t, parentID, A)
+							}
+						}
+						// check data array
+						for _, wi := range result.Data {
+							hasParent(*wi)
+						}
+						// check included array
+						for _, ele := range result.Included {
+							wi, ok := ele.(app.WorkItem)
+							if ok {
+								hasParent(wi)
+							}
+						}
+					})
+				}
 			})
 		}
-		// Without tree-view query option
+		_, _, _, _, _ = A, B, C, D, E
+		// // Without tree-view query option
 		testFunc(t, []string{"A"}, id.Slice{A}, nil, nil, false)
-		testFunc(t, []string{"B"}, id.Slice{B}, id.Slice{A}, nil, false)
-		testFunc(t, []string{"C"}, id.Slice{C}, id.Slice{B}, nil, false)
-		testFunc(t, []string{"D"}, id.Slice{D}, id.Slice{A}, nil, false)
+		testFunc(t, []string{"B"}, id.Slice{B}, nil, nil, false)
+		testFunc(t, []string{"C"}, id.Slice{C}, nil, nil, false)
+		testFunc(t, []string{"D"}, id.Slice{D}, nil, nil, false)
 		testFunc(t, []string{"E"}, id.Slice{E}, nil, nil, false)
 		// With tree-view query option
 		testFunc(t, []string{"A"}, id.Slice{A}, nil, nil, true)
@@ -1162,7 +1198,7 @@ func (s *searchControllerTestSuite) TestIncludedParents() {
 		testFunc(t, []string{"D"}, id.Slice{D}, id.Slice{A}, id.Slice{A}, true)
 		testFunc(t, []string{"E"}, id.Slice{E}, nil, nil, true)
 		// search for parent and child elements without tree-view query option
-		testFunc(t, []string{"B", "C"}, id.Slice{B, C}, id.Slice{A}, nil, false)
+		testFunc(t, []string{"B", "C"}, id.Slice{B, C}, nil, nil, false)
 		// search for parent and child elements with tree-view query option
 		testFunc(t, []string{"B", "C"}, id.Slice{B, C}, id.Slice{A}, id.Slice{A, B}, true)
 	})

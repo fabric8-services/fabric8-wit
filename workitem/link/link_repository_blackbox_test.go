@@ -714,35 +714,6 @@ func (s *linkRepoBlackBoxTest) TestAncestorList() {
 		ancestors, err := s.workitemLinkRepo.GetAncestors(s.Ctx, fxt.WorkItemLinkTypes[0].ID, link.AncestorLevelAll, E)
 		require.NoError(t, err)
 
-		t.Run("GetAncestorOf", func(t *testing.T) {
-			t.Run("parent", func(t *testing.T) {
-				a := ancestors.GetAncestorOf(E, 1)
-				require.NotNil(t, a)
-				require.Equal(t, D, a.ID)
-			})
-			t.Run("grandparent", func(t *testing.T) {
-				a := ancestors.GetAncestorOf(E, 2)
-				require.NotNil(t, a)
-				require.Equal(t, C, a.ID)
-			})
-			t.Run("great-grandparent", func(t *testing.T) {
-				a := ancestors.GetAncestorOf(E, 3)
-				require.NotNil(t, a)
-				require.Equal(t, B, a.ID)
-			})
-			t.Run("level=100", func(t *testing.T) {
-				a := ancestors.GetAncestorOf(E, 100)
-				require.Nil(t, a)
-			})
-			t.Run("level<0", func(t *testing.T) {
-				a := ancestors.GetAncestorOf(E, -1)
-				require.Nil(t, a)
-			})
-			t.Run("level==0", func(t *testing.T) {
-				a := ancestors.GetAncestorOf(E, 0)
-				require.Nil(t, a)
-			})
-		})
 		t.Run("GetParentOf", func(t *testing.T) {
 			t.Run("A", func(t *testing.T) {
 				a := ancestors.GetParentOf(A)
@@ -752,6 +723,11 @@ func (s *linkRepoBlackBoxTest) TestAncestorList() {
 				a := ancestors.GetParentOf(E)
 				require.NotNil(t, a)
 				require.Equal(t, D, a.ID)
+			})
+			t.Run("C", func(t *testing.T) {
+				a := ancestors.GetParentOf(C)
+				require.NotNil(t, a)
+				require.Equal(t, B, a.ID)
 			})
 		})
 	})

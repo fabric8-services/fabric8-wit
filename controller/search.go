@@ -84,7 +84,7 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 			}
 
 			hasChildren := workItemIncludeHasChildren(ctx, appl)
-			includeParent := includeParentWorkItem(ctx, appl, ancestors)
+			includeParent := includeParentWorkItem(ctx, ancestors)
 			response := app.SearchWorkItemList{
 				Links: &app.PagingLinks{},
 				Meta: &app.WorkItemListResponseMeta{
@@ -204,6 +204,7 @@ func (c *SearchController) Users(ctx *app.UsersSearchContext) error {
 // Iterate over the WI list and read parent IDs
 // Fetch and load Parent WI in the included list
 func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, ancestors link.AncestorList, matchingIDs id.Slice, res *app.SearchWorkItemList) {
+
 	parentIDs := id.Slice{}
 	for _, wi := range res.Data {
 		if wi.Relationships != nil && wi.Relationships.Parent != nil && wi.Relationships.Parent.Data != nil {
@@ -229,8 +230,9 @@ func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, ancest
 			"err": err,
 		}, "unable to load parent work items in batch: %s", fetchInBatch)
 	}
+
 	for _, ele := range wis {
-		convertedWI := ConvertWorkItem(ctx.Request, *ele, includeParentWorkItem(ctx, appl, ancestors))
+		convertedWI := ConvertWorkItem(ctx.Request, *ele, includeParentWorkItem(ctx, ancestors))
 		res.Included = append(res.Included, *convertedWI)
 	}
 }

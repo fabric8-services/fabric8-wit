@@ -40,17 +40,11 @@ func (l AncestorList) GetDistinctAncestorIDs() id.Slice {
 	return m.ToSlice()
 }
 
-// GetParentOf returns the immediated (level 1) ancestor (if any) of the given
-// work item ID; otherwise nil is returned.
+// GetParentOf returns the first parent item that we can find in the list of
+// ancestors; otherwise nil is returned.
 func (l AncestorList) GetParentOf(workItemID uuid.UUID) *Ancestor {
-	return l.GetAncestorOf(workItemID, 1)
-}
-
-// GetAncestorOf returns the ancestor (if any) of the given work item ID at the
-// given level; otherwise nil is returned.
-func (l AncestorList) GetAncestorOf(workItemID uuid.UUID, level int64) *Ancestor {
 	for _, a := range l {
-		if a.OriginalChildID == workItemID && a.Level == level {
+		if a.DirectChildID == workItemID {
 			return &a
 		}
 	}
