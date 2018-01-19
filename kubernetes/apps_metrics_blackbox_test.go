@@ -75,14 +75,14 @@ func (helper *testHawkular) ReadBuckets(metricType hawkular.MetricType, namespac
 var singleMetricTestCases []*testMetricsInput = []*testMetricsInput{
 	{ // Basic test case
 		buckets: []*hawkular.Bucketpoint{
-			&hawkular.Bucketpoint{
+			{
 				Avg:   5.0,
 				Start: hawkular.FromUnixMilli(1516301818000),
 				End:   hawkular.FromUnixMilli(1516301878000),
 			},
 		},
 		pods: []v1.Pod{
-			v1.Pod{
+			{
 				ObjectMeta: metav1.ObjectMeta{
 					UID: types.UID("hello"),
 				},
@@ -93,19 +93,19 @@ var singleMetricTestCases []*testMetricsInput = []*testMetricsInput{
 	},
 	{ // Multiple pods
 		buckets: []*hawkular.Bucketpoint{
-			&hawkular.Bucketpoint{
+			{
 				Avg:   5.0,
 				Start: hawkular.FromUnixMilli(1516301818000),
 				End:   hawkular.FromUnixMilli(1516301878000),
 			},
 		},
 		pods: []v1.Pod{
-			v1.Pod{
+			{
 				ObjectMeta: metav1.ObjectMeta{
 					UID: types.UID("hello"),
 				},
 			},
-			v1.Pod{
+			{
 				ObjectMeta: metav1.ObjectMeta{
 					UID: types.UID("world"),
 				},
@@ -119,19 +119,19 @@ var singleMetricTestCases []*testMetricsInput = []*testMetricsInput{
 var metricRangeTestCases []*testMetricsInput = []*testMetricsInput{
 	{ // Basic test case
 		buckets: []*hawkular.Bucketpoint{
-			&hawkular.Bucketpoint{
+			{
 				Avg:   5.0,
 				Start: hawkular.FromUnixMilli(1516301758000),
 				End:   hawkular.FromUnixMilli(1516301818000),
 			},
-			&hawkular.Bucketpoint{
+			{
 				Avg:   72.0,
 				Start: hawkular.FromUnixMilli(1516301818000),
 				End:   hawkular.FromUnixMilli(1516301878000),
 			},
 		},
 		pods: []v1.Pod{
-			v1.Pod{
+			{
 				ObjectMeta: metav1.ObjectMeta{
 					UID: types.UID("hello"),
 				},
@@ -143,24 +143,24 @@ var metricRangeTestCases []*testMetricsInput = []*testMetricsInput{
 	},
 	{ // Multiple pods
 		buckets: []*hawkular.Bucketpoint{
-			&hawkular.Bucketpoint{
+			{
 				Avg:   5.0,
 				Start: hawkular.FromUnixMilli(1516301758000),
 				End:   hawkular.FromUnixMilli(1516301818000),
 			},
-			&hawkular.Bucketpoint{
+			{
 				Avg:   72.0,
 				Start: hawkular.FromUnixMilli(1516301818000),
 				End:   hawkular.FromUnixMilli(1516301878000),
 			},
 		},
 		pods: []v1.Pod{
-			v1.Pod{
+			{
 				ObjectMeta: metav1.ObjectMeta{
 					UID: types.UID("hello"),
 				},
 			},
-			v1.Pod{
+			{
 				ObjectMeta: metav1.ObjectMeta{
 					UID: types.UID("world"),
 				},
@@ -172,19 +172,19 @@ var metricRangeTestCases []*testMetricsInput = []*testMetricsInput{
 	},
 	{ // Metrics limit
 		buckets: []*hawkular.Bucketpoint{
-			&hawkular.Bucketpoint{
+			{
 				Avg:   5.0,
 				Start: hawkular.FromUnixMilli(1516301758000),
 				End:   hawkular.FromUnixMilli(1516301818000),
 			},
-			&hawkular.Bucketpoint{
+			{
 				Avg:   72.0,
 				Start: hawkular.FromUnixMilli(1516301818000),
 				End:   hawkular.FromUnixMilli(1516301878000),
 			},
 		},
 		pods: []v1.Pod{
-			v1.Pod{
+			{
 				ObjectMeta: metav1.ObjectMeta{
 					UID: types.UID("hello"),
 				},
