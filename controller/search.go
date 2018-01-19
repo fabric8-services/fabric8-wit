@@ -298,8 +298,8 @@ func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, ancest
 	}
 
 	// Also append the ancestors not already included in the parent list
-	parentAncestorDiff := ancestors.GetDistinctAncestorIDs().Diff(parentIDs)
-	fetchInBatch.Add(parentIDs).Add(parentAncestorDiff)
+	fetchInBatch := parentIDs
+	fetchInBatch.Add(ancestors.GetDistinctAncestorIDs().Diff(parentIDs))
 	// Eliminate work item already in the search
 	fetchInBatch = fetchInBatch.Sub(matchingIDs)
 
