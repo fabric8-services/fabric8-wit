@@ -403,7 +403,7 @@ func getMetricsURLFromAPIURL(apiURLStr string) (string, error) {
 	// Get the hostname (without port) and replace api prefix with metrics
 	apiHostname := apiURL.Hostname()
 	if !strings.HasPrefix(apiHostname, "api") {
-		return "", errs.New("cluster URL does not begin with \"api\": " + apiHostname)
+		return "", errs.Errorf("cluster URL does not begin with \"api\": %s", apiHostname)
 	}
 	metricsHostname := strings.Replace(apiHostname, "api", "metrics", 1)
 	// Construct URL using just scheme from API URL and metrics hostname
@@ -467,11 +467,11 @@ func (kc *kubeClient) getBuildConfigs(space string) ([]string, error) {
 		}
 		metadata, ok := bc["metadata"].(map[interface{}]interface{})
 		if !ok {
-			return nil, errs.New("metadata missing from build config")
+			return nil, errs.New("'metadata' object missing from build config")
 		}
 		name, ok := metadata["name"].(string)
 		if !ok || len(name) == 0 {
-			return nil, errs.New("malformed metadata in build config")
+			return nil, errs.New("malformed metadata in build config; 'name' is missing or invalid")
 		}
 		buildconfigs = append(buildconfigs, name)
 	}
@@ -488,7 +488,7 @@ func (kc *kubeClient) getEnvironmentsFromConfigMap() (map[string]string, error) 
 	}
 	// Check that config map has the expected label
 	if configmap.Labels["provider"] != providerLabel {
-		return nil, errs.New("unknown or missing provider for environments config map")
+		return nil, errs.Errorf("unknown or missing provider %s for environments config map", providerLabel)
 	}
 	// Parse config map data to construct environments map
 	envMap := make(map[string]string)
@@ -508,7 +508,7 @@ func (kc *kubeClient) getEnvironmentsFromConfigMap() (map[string]string, error) 
 			}
 		}
 		if len(namespace) == 0 {
-			return nil, errs.New("no namespace for environment " + key + " in config map")
+			return nil, errs.Errorf("no namespace for environment %s in config map", key)
 		}
 		envMap[key] = namespace
 	}
@@ -518,7 +518,7 @@ func (kc *kubeClient) getEnvironmentsFromConfigMap() (map[string]string, error) 
 func (kc *kubeClient) getEnvironmentNamespace(envName string) (string, error) {
 	envNS, pres := kc.envMap[envName]
 	if !pres {
-		return "", errs.New("unknown environment: " + envName)
+		return "", errs.Errorf("unknown environment: %s", envName)
 	}
 	return envNS, nil
 }
@@ -570,30 +570,29 @@ func (kc *kubeClient) getDeploymentConfig(namespace string, appName string, spac
 	}
 	metadata, ok := result["metadata"].(map[interface{}]interface{})
 	if !ok {
-		return nil, errs.New("metadata missing from deployment config")
+		return nil, errs.Errorf("metadata missing from deployment config %s", appName)
 	}
 	// Check the space label is what we expect
 	labels, ok := metadata["labels"].(map[interface{}]interface{})
 	if !ok {
-		return nil, errs.New("labels missing from deployment config")
+		return nil, errs.Errorf("labels missing from deployment config %s", appName)
 	}
 	spaceLabel, ok := labels["space"].(string)
 	if !ok || len(spaceLabel) == 0 {
-		return nil, errs.New("space label missing from deployment config")
+		return nil, errs.Errorf("space label missing from deployment config %s", appName)
 	}
 	if spaceLabel != space {
-		return nil, errs.New("deployment config " + appName + " is part of space " +
-			spaceLabel + ", expected space " + space)
+		return nil, errs.Errorf("deployment config %s is part of space %s, expected space %s", appName, spaceLabel, space)
 	}
 	// Get UID from deployment config
 	uid, ok := metadata["uid"].(string)
 	if !ok || len(uid) == 0 {
-		return nil, errs.New("malformed metadata in deployment config")
+		return nil, errs.Errorf("malformed metadata in deployment config %s", appName)
 	}
 	// Read application version from label
 	version := labels["version"].(string)
 	if !ok || len(version) == 0 {
-		return nil, errs.New("version missing from deployment config")
+		return nil, errs.Errorf("version missing from deployment config %s", appName)
 	}
 
 	dc := &deployment{
@@ -680,7 +679,7 @@ func (kc *kubeClient) getResourceQuota(namespace string) (*app.EnvStats, error) 
 	if err != nil {
 		return nil, errs.WithStack(err)
 	} else if quota == nil {
-		return nil, errs.New("no resource quota with name: " + computeResources)
+		return nil, errs.Errorf("no resource quota with name: %s", computeResources)
 	}
 
 	// Convert quantities to floating point, as this should provide enough
@@ -733,7 +732,7 @@ func quantityToFloat64(q resource.Quantity) (float64, error) {
 		valDec := q.AsDec()
 		val64, ok := valDec.Unscaled()
 		if !ok {
-			return -1, errs.New(valDec.String() + " cannot be represented as 64-bit integer")
+			return -1, errs.Errorf("%s cannot be represented as a 64-bit integer", valDec.String())
 		}
 		// From dec.go: The mathematical value of a Dec equals: unscaled * 10**(-scale)
 		result = float64(val64) * math.Pow10(-int(valDec.Scale()))

@@ -44,7 +44,7 @@ func (osioclient *OSIOClient) GetNamespaceByType(ctx context.Context, userServic
 	if userService == nil {
 		us, err := osioclient.GetUserServices(ctx)
 		if err != nil {
-			return nil, errs.WithStack(err)
+			return nil, errs.Wrapf(err, "could not retrieve user services")
 		}
 		userService = us
 	}
@@ -62,7 +62,7 @@ func (osioclient *OSIOClient) GetNamespaceByType(ctx context.Context, userServic
 func (osioclient *OSIOClient) GetUserServices(ctx context.Context) (*app.UserService, error) {
 	resp, err := osioclient.wc.ShowUserService(ctx, witclient.ShowUserServicePath())
 	if err != nil {
-		return nil, errs.WithStack(err)
+		return nil, errs.Wrapf(err, "could not retrieve uses services")
 	}
 
 	defer resp.Body.Close()
@@ -73,13 +73,13 @@ func (osioclient *OSIOClient) GetUserServices(ctx context.Context) (*app.UserSer
 	if status == http.StatusNotFound {
 		return nil, nil
 	} else if status < 200 || status > 300 {
-		return nil, errs.New("failed to GET " + witclient.ShowUserServicePath() + " due to status code " + string(status))
+		return nil, errs.Errorf("failed to GET %s due to status code %d", witclient.ShowUserServicePath(), status)
 	}
 
 	var respType app.UserServiceSingle
 	err = json.Unmarshal(respBody, &respType)
 	if err != nil {
-		return nil, errs.WithStack(err)
+		return nil, errs.Wrapf(err, "could not unmarshal user services JSON")
 	}
 	return respType.Data, nil
 }
@@ -92,7 +92,7 @@ func (osioclient *OSIOClient) GetSpaceByID(ctx context.Context, spaceID uuid.UUI
 	urlpath := fmt.Sprintf("/api/spaces/%s", spaceID.String())
 	resp, err := osioclient.wc.ShowSpace(ctx, urlpath, nil, nil)
 	if err != nil {
-		return nil, errs.WithStack(err)
+		return nil, errs.Wrapf(err, "could not connect to %s", urlpath)
 	}
 
 	defer resp.Body.Close()
@@ -103,13 +103,13 @@ func (osioclient *OSIOClient) GetSpaceByID(ctx context.Context, spaceID uuid.UUI
 	if status == http.StatusNotFound {
 		return nil, nil
 	} else if status < 200 || status > 300 {
-		return nil, errs.New("failed to GET " + urlpath + " due to status code " + string(status))
+		return nil, errs.Errorf("failed to GET %s due to status code %d", urlpath, status)
 	}
 
 	var respType app.SpaceSingle
 	err = json.Unmarshal(respBody, &respType)
 	if err != nil {
-		return nil, errs.WithStack(err)
+		return nil, errs.Wrapf(err, "could not unmarshal SpaceSingle JSON")
 	}
 	return respType.Data, nil
 }
