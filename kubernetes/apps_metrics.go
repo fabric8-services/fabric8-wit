@@ -6,6 +6,7 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	hawkular "github.com/hawkular/hawkular-client-go/metrics"
+	errs "github.com/pkg/errors"
 	v1 "k8s.io/client-go/pkg/api/v1"
 )
 
@@ -54,7 +55,7 @@ func newMetricsClient(metricsURL string, bearerToken string) (MetricsInterface, 
 	}
 	client, err := hawkular.NewHawkularClient(params)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	mc := new(metricsClient)
@@ -71,7 +72,7 @@ func (mc *metricsClient) GetCPUMetricsRange(pods []*v1.Pod, namespace string,
 	startTime time.Time, endTime time.Time, limit int) ([]*app.TimedNumberTuple, error) {
 	buckets, err := mc.getBucketsInRange(pods, namespace, cpuDesc, startTime, endTime, limit)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	results := bucketsToTuples(buckets, millicoreToCoreScale)
@@ -86,7 +87,7 @@ func (mc *metricsClient) GetMemoryMetricsRange(pods []*v1.Pod, namespace string,
 	startTime time.Time, endTime time.Time, limit int) ([]*app.TimedNumberTuple, error) {
 	buckets, err := mc.getBucketsInRange(pods, namespace, memDesc, startTime, endTime, limit)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	results := bucketsToTuples(buckets, noScale)
@@ -121,7 +122,7 @@ func (mc *metricsClient) getBucketAverage(pods []*v1.Pod, namespace, descTag str
 	startTime time.Time, scale float64) (*app.TimedNumberTuple, error) {
 	result, err := mc.getLatestBucket(pods, namespace, descTag, startTime)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	} else if result == nil {
 		return nil, nil
 	}
@@ -137,7 +138,7 @@ func (mc *metricsClient) getLatestBucket(pods []*v1.Pod, namespace string, descT
 	buckets, err := mc.readBuckets(pods, namespace, descTag, hawkular.StartTimeFilter(startTime),
 		hawkular.EndTimeFilter(endTime), hawkular.BucketsFilter(1))
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	} else if len(buckets) == 0 { // Should have gotten at most one bucket
 		return nil, nil
 	}
@@ -151,7 +152,7 @@ func (mc *metricsClient) getBucketsInRange(pods []*v1.Pod, namespace string, des
 	buckets, err := mc.readBuckets(pods, namespace, descTag, hawkular.StartTimeFilter(startTime),
 		hawkular.EndTimeFilter(endTime), hawkular.BucketsDurationFilter(bucketDuration))
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	// Hawkular buckets may extend beyond the requested endpoint if
