@@ -737,9 +737,9 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *workitem.GormWo
 		{workitem.SystemBug, "Bug", "", "fa fa-bug"},
 		{workitem.SystemTask, "Task", "", "fa fa-tasks"},
 		{workitem.SystemFeature, "Feature", "", "fa fa-puzzle-piece"},
-		{workitem.SystemScenario, "Scenario", "", "fa fa-bolt"},
+		{workitem.SystemScenario, "Scenario", "", "fa fa-bullseye"},
 		{workitem.SystemValueProposition, "Value Proposition", "", "fa fa-diamond"},
-		{workitem.SystemExperience, "Experience", "", "fa fa-map"},
+		{workitem.SystemExperience, "Experience", "", "pficon pficon-infrastructure"},
 		{workitem.SystemFundamental, "Fundamental", "", "fa fa-university"},
 		{workitem.SystemPapercuts, "Papercuts", "", "fa fa-scissors"},
 	}
