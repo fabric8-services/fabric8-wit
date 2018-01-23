@@ -77,6 +77,8 @@ var simpleDeploymentStats = a.Type("SimpleDeploymentStats", func() {
 	a.Description("current deployment stats")
 	a.Attribute("cores", timedNumberTuple)
 	a.Attribute("memory", timedNumberTuple)
+	a.Attribute("net_tx", timedNumberTuple)
+	a.Attribute("net_rx", timedNumberTuple)
 })
 
 var simpleDeploymentStatSeries = a.Type("SimpleDeploymentStatSeries", func() {
@@ -85,6 +87,8 @@ var simpleDeploymentStatSeries = a.Type("SimpleDeploymentStatSeries", func() {
 	a.Attribute("end", d.Number)
 	a.Attribute("memory", a.ArrayOf(timedNumberTuple))
 	a.Attribute("cores", a.ArrayOf(timedNumberTuple))
+	a.Attribute("net_tx", a.ArrayOf(timedNumberTuple))
+	a.Attribute("net_rx", a.ArrayOf(timedNumberTuple))
 })
 
 var simpleSpaceSingle = JSONSingle(

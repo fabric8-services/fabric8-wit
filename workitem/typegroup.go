@@ -57,7 +57,7 @@ func TypeGroups() []WorkItemTypeGroup {
 			ID:     scenariosID,
 			Bucket: BucketPortfolio,
 			Name:   "Scenarios",
-			Icon:   "fa fa-suitcase",
+			Icon:   "fa fa-bullseye",
 			TypeList: []uuid.UUID{
 				SystemScenario,
 				SystemFundamental,
@@ -70,7 +70,7 @@ func TypeGroups() []WorkItemTypeGroup {
 			ID:     experiencesID,
 			Bucket: BucketPortfolio,
 			Name:   "Experiences",
-			Icon:   "fa fa-suitcase",
+			Icon:   "pficon pficon-infrastructure",
 			TypeList: []uuid.UUID{
 				SystemExperience,
 				SystemValueProposition,

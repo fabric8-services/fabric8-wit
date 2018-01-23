@@ -46,6 +46,11 @@ type KubeRESTAPIGetter interface {
 	GetKubeRESTAPI(config *KubeClientConfig) (KubeRESTAPI, error)
 }
 
+// MetricsGetter has a method to access the MetricsInterface interface
+type MetricsGetter interface {
+	GetMetrics(config *MetricsClientConfig) (MetricsInterface, error)
+}
+
 // BuildConfigGetter will provide build configs for testing
 type BuildConfigInterface interface {
 	GetBuildConfigs(space string) ([]string, error)
@@ -92,7 +97,7 @@ type defaultGetter struct{}
 func NewKubeClient(config *KubeClientConfig) (KubeClientInterface, error) {
 	// Use default implementation if no KubernetesGetter is specified
 	if config.KubeRESTAPIGetter == nil {
-		config.KubeRESTAPIGetter = defaultGetter{}
+		config.KubeRESTAPIGetter = &defaultGetter{}
 	}
 	kubeAPI, err := config.GetKubeRESTAPI(config)
 	if err != nil {
@@ -101,7 +106,7 @@ func NewKubeClient(config *KubeClientConfig) (KubeClientInterface, error) {
 
 	// Use default implementation if no MetricsGetter is specified
 	if config.MetricsGetter == nil {
-		config.MetricsGetter = defaultGetter{}
+		config.MetricsGetter = &defaultGetter{}
 	}
 	// In the absence of a better way to get the user's metrics URL,
 	// substitute "api" with "metrics" in user's cluster URL
@@ -110,7 +115,11 @@ func NewKubeClient(config *KubeClientConfig) (KubeClientInterface, error) {
 		return nil, errs.WithStack(err)
 	}
 	// Create MetricsClient for talking with Hawkular API
-	metrics, err := config.GetMetrics(metricsURL, config.BearerToken)
+	metricsConfig := &MetricsClientConfig{
+		MetricsURL:  metricsURL,
+		BearerToken: config.BearerToken,
+	}
+	metrics, err := config.GetMetrics(metricsConfig)
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
@@ -131,7 +140,7 @@ func NewKubeClient(config *KubeClientConfig) (KubeClientInterface, error) {
 	return kubeClient, nil
 }
 
-func (defaultGetter) GetKubeRESTAPI(config *KubeClientConfig) (KubeRESTAPI, error) {
+func (*defaultGetter) GetKubeRESTAPI(config *KubeClientConfig) (KubeRESTAPI, error) {
 	restConfig := &rest.Config{
 		Host:        config.ClusterURL,
 		BearerToken: config.BearerToken,
@@ -143,8 +152,8 @@ func (defaultGetter) GetKubeRESTAPI(config *KubeClientConfig) (KubeRESTAPI, erro
 	return clientset.CoreV1(), nil
 }
 
-func (defaultGetter) GetMetrics(metricsURL string, bearerToken string) (MetricsInterface, error) {
-	return newMetricsClient(metricsURL, bearerToken)
+func (*defaultGetter) GetMetrics(config *MetricsClientConfig) (MetricsInterface, error) {
+	return NewMetricsClient(config)
 }
 
 // GetSpace returns a space matching the provided name, containing all applications that belong to it
@@ -305,10 +314,20 @@ func (kc *kubeClient) GetDeploymentStats(spaceName string, appName string, envNa
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
+	netTxUsage, err := kc.GetNetworkSentMetrics(pods, envNS, startTime)
+	if err != nil {
+		return nil, err
+	}
+	netRxUsage, err := kc.GetNetworkRecvMetrics(pods, envNS, startTime)
+	if err != nil {
+		return nil, err
+	}
 
 	result := &app.SimpleDeploymentStats{
 		Cores:  cpuUsage,
 		Memory: memoryUsage,
+		NetTx:  netTxUsage,
+		NetRx:  netRxUsage,
 	}
 
 	return result, nil
@@ -338,7 +357,7 @@ func (kc *kubeClient) GetDeploymentStatSeries(spaceName string, appName string, 
 		return nil, errs.WithStack(err)
 	}
 
-	// Get CPU and memory metrics for pods in deployment
+	// Get CPU, memory and network metrics for pods in deployment
 	cpuMetrics, err := kc.GetCPUMetricsRange(pods, envNS, startTime, endTime, limit)
 	if err != nil {
 		return nil, errs.WithStack(err)
@@ -347,12 +366,22 @@ func (kc *kubeClient) GetDeploymentStatSeries(spaceName string, appName string, 
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
+	netTxMetrics, err := kc.GetNetworkSentMetricsRange(pods, envNS, startTime, endTime, limit)
+	if err != nil {
+		return nil, err
+	}
+	netRxMetrics, err := kc.GetNetworkRecvMetricsRange(pods, envNS, startTime, endTime, limit)
+	if err != nil {
+		return nil, err
+	}
 
 	// Get the earliest and latest timestamps
 	minTime, maxTime := getTimestampEndpoints(cpuMetrics, memoryMetrics)
 	result := &app.SimpleDeploymentStatSeries{
 		Cores:  cpuMetrics,
 		Memory: memoryMetrics,
+		NetTx:  netTxMetrics,
+		NetRx:  netRxMetrics,
 		Start:  minTime,
 		End:    maxTime,
 	}
