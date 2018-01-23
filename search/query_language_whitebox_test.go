@@ -123,7 +123,6 @@ func TestParseMap(t *testing.T) {
 		assert.Equal(t, expectedQuery, actualQuery)
 	})
 
-	// {"type" : { "$IN" : ["", "" , ""] } }
 	t.Run(AND, func(t *testing.T) {
 		t.Parallel()
 		// given
@@ -141,6 +140,52 @@ func TestParseMap(t *testing.T) {
 		expectedQuery := Query{Name: AND, Children: []Query{
 			{Name: "space", Value: &openshiftio},
 			{Name: "status", Value: &status}},
+		}
+		assert.Equal(t, expectedQuery, actualQuery)
+	})
+
+	t.Run("Multiple "+AND, func(t *testing.T) {
+		t.Parallel()
+		// given
+		input := `{"` + AND + `": [{"space": "openshiftio"}, {"status": "NEW"}, {"title": "hello"}]}`
+		// Parsing/Unmarshalling JSON encoding/json
+		fm := map[string]interface{}{}
+		err := json.Unmarshal([]byte(input), &fm)
+		require.NoError(t, err)
+		// when
+		actualQuery := Query{}
+		parseMap(fm, &actualQuery)
+		// then
+		openshiftio := "openshiftio"
+		status := "NEW"
+		title := "hello"
+		expectedQuery := Query{Name: AND, Children: []Query{
+			{Name: "space", Value: &openshiftio},
+			{Name: "status", Value: &status},
+			{Name: "title", Value: &title}},
+		}
+		assert.Equal(t, expectedQuery, actualQuery)
+	})
+
+	t.Run("Multiple "+OR, func(t *testing.T) {
+		t.Parallel()
+		// given
+		input := `{"` + OR + `": [{"space": "openshiftio"}, {"status": "NEW"}, {"title": "hello"}]}`
+		// Parsing/Unmarshalling JSON encoding/json
+		fm := map[string]interface{}{}
+		err := json.Unmarshal([]byte(input), &fm)
+		require.NoError(t, err)
+		// when
+		actualQuery := Query{}
+		parseMap(fm, &actualQuery)
+		// then
+		openshiftio := "openshiftio"
+		status := "NEW"
+		title := "hello"
+		expectedQuery := Query{Name: OR, Children: []Query{
+			{Name: "space", Value: &openshiftio},
+			{Name: "status", Value: &status},
+			{Name: "title", Value: &title}},
 		}
 		assert.Equal(t, expectedQuery, actualQuery)
 	})
