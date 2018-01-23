@@ -16,7 +16,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	witerrors "github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/kubernetes"
-	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 )
@@ -43,7 +42,7 @@ func tostring(item interface{}) string {
 	return string(bytes)
 }
 
-func getAndCheckOSIOClient(ctx context.Context) *OSIOClient {
+func getAndCheckOSIOClient(ctx context.Context) (*OSIOClient, error) {
 
 	// defaults
 	host := "localhost"
@@ -60,7 +59,7 @@ func getAndCheckOSIOClient(ctx context.Context) *OSIOClient {
 	if os.Getenv("FABRIC8_WIT_API_URL") != "" {
 		witurl, err := url.Parse(os.Getenv("FABRIC8_WIT_API_URL"))
 		if err != nil {
-			log.Warn(ctx, nil, "cannot parse FABRIC8_WIT_API_URL; assuming localhost")
+			return nil, errs.Wrapf(err, "cannot parse FABRIC8_WIT_API_URL")
 		}
 		host = witurl.Host
 		scheme = witurl.Scheme
@@ -68,24 +67,31 @@ func getAndCheckOSIOClient(ctx context.Context) *OSIOClient {
 
 	oc := NewOSIOClient(ctx, scheme, host)
 
-	return oc
+	return oc, nil
 }
 
 func (c *AppsController) getSpaceNameFromSpaceID(ctx context.Context, spaceID uuid.UUID) (*string, error) {
 	// TODO - add a cache in AppsController - but will break if user can change space name
 	// use WIT API to convert Space UUID to Space name
-	osioclient := getAndCheckOSIOClient(ctx)
+	osioclient, err := getAndCheckOSIOClient(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	osioSpace, err := osioclient.GetSpaceByID(ctx, spaceID)
 	if err != nil {
-		return nil, errs.Wrapf(err, "unable to connvert space UUID %s to space name", spaceID.String())
+		return nil, errs.Wrapf(err, "unable to convert space UUID %s to space name", spaceID)
 	}
 	return osioSpace.Attributes.Name, nil
 }
 
 func getNamespaceName(ctx context.Context) (*string, error) {
 
-	osioclient := getAndCheckOSIOClient(ctx)
+	osioclient, err := getAndCheckOSIOClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	kubeSpaceAttr, err := osioclient.GetNamespaceByType(ctx, nil, "user")
 	if err != nil {
 		return nil, errs.Wrap(err, "unable to retrieve 'user' namespace")
@@ -152,25 +158,21 @@ func (c *AppsController) getKubeClient(ctx context.Context) (kubernetes.KubeClie
 	// create Auth API client
 	authClient, err := auth.CreateClient(ctx, c.Config)
 	if err != nil {
-		log.Error(ctx, nil, "error accessing Auth server %s", tostring(err))
 		return nil, errs.Wrapf(err, "error creating Auth client")
 	}
 
 	authUser, err := getUser(*authClient, ctx)
 	if err != nil {
-		log.Error(ctx, nil, "error accessing Auth server: %s", tostring(err))
 		return nil, errs.Wrapf(err, "error retrieving user definition from Auth client")
 	}
 
 	if authUser == nil || authUser.Data.Attributes.Cluster == nil {
-		log.Error(ctx, nil, "error getting user from Auth server: %s", tostring(authUser))
 		return nil, errs.Errorf("error getting user from Auth Server: %s", tostring(authUser))
 	}
 
 	// get the openshift/kubernetes auth info for the cluster OpenShift API
 	osauth, err := getTokenData(*authClient, ctx, *authUser.Data.Attributes.Cluster)
 	if err != nil {
-		log.Error(ctx, nil, "error getting openshift credentials: %s", tostring(err))
 		return nil, errs.Wrapf(err, "error getting openshift credentials")
 	}
 
@@ -214,12 +216,12 @@ func (c *AppsController) SetDeployment(ctx *app.SetDeploymentAppsContext) error 
 		return witerrors.NewNotFoundError("osio space", ctx.SpaceID.String())
 	}
 
-	oldCount, err := kc.ScaleDeployment(*kubeSpaceName, ctx.AppName, ctx.DeployName, *ctx.PodCount)
+	_ /*oldCount*/, err = kc.ScaleDeployment(*kubeSpaceName, ctx.AppName, ctx.DeployName, *ctx.PodCount)
 	if err != nil {
-		return witerrors.NewInternalError(ctx, errs.Wrapf(err, "error scaling depoyment %s", ctx.DeployName))
+		return witerrors.NewInternalError(ctx, errs.Wrapf(err, "error scaling deployment %s", ctx.DeployName))
 	}
 
-	log.Info(ctx, nil, "podcount was %d; will be set to %d", *oldCount, *ctx.PodCount)
+	//log.Info(ctx, nil, "podcount was %d; will be set to %d", *oldCount, *ctx.PodCount)
 	return ctx.OK([]byte{})
 }
 
