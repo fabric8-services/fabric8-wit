@@ -4,7 +4,7 @@
       "attributes": {
         "bucket": "portfolio",
         "created-at": "0001-01-01T00:00:00Z",
-        "icon": "fa fa-suitcase",
+        "icon": "fa fa-bullseye",
         "name": "Scenarios",
         "show-in-sidebar": true,
         "updated-at": "0001-01-01T00:00:00Z"
@@ -61,7 +61,7 @@
       "attributes": {
         "bucket": "portfolio",
         "created-at": "0001-01-01T00:00:00Z",
-        "icon": "fa fa-suitcase",
+        "icon": "pficon pficon-infrastructure",
         "name": "Experiences",
         "show-in-sidebar": true,
         "updated-at": "0001-01-01T00:00:00Z"
