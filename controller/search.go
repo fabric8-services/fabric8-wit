@@ -2,7 +2,9 @@ package controller
 
 import (
 	"fmt"
+	"sort"
 
+	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 
 	"github.com/fabric8-services/fabric8-wit/app"
@@ -37,6 +39,96 @@ type SearchController struct {
 func NewSearchController(service *goa.Service, db application.DB, configuration searchConfiguration) *SearchController {
 	return &SearchController{Controller: service.NewController("SearchController"), db: db, configuration: configuration}
 }
+
+// WorkItemPtrSlice exists in order to allow sorting results in a search
+// response.
+type WorkItemPtrSlice []*app.WorkItem
+
+// Len is the number of elements in the collection.
+func (a WorkItemPtrSlice) Len() int {
+	return len(a)
+}
+
+// Less reports whether the element with
+// index i should sort before the element with index j.
+func (a WorkItemPtrSlice) Less(i, j int) bool {
+	title1, foundTitle1 := a[i].Attributes[workitem.SystemTitle]
+	title2, foundTitle2 := a[j].Attributes[workitem.SystemTitle]
+	if foundTitle1 && foundTitle2 {
+		t1, cast1Ok := title1.(string)
+		t2, cast2Ok := title2.(string)
+		if cast1Ok && cast2Ok {
+			return t1 < t2
+		}
+	}
+	return a[i].ID.String() < a[j].ID.String()
+}
+
+// Swap swaps the elements with indexes i and j.
+func (a WorkItemPtrSlice) Swap(i, j int) {
+	a[i], a[j] = a[j], a[i]
+}
+
+// Ensure WorkItemPtrSlice implements the sort.Interface
+var _ sort.Interface = WorkItemPtrSlice{}
+var _ sort.Interface = (*WorkItemPtrSlice)(nil)
+
+// WorkItemInterfaceSlice exists in order to allow sorting results in a search
+// response.
+type WorkItemInterfaceSlice []interface{}
+
+// Len is the number of elements in the collection.
+func (a WorkItemInterfaceSlice) Len() int {
+	return len(a)
+}
+
+// Less reports whether the element with index i should sort before the element
+// with index j.
+//
+// NOTE: For now we assume that included elements in the search response are
+// only work items. We can handle work items as pointers or objects. Both
+// options are possible.
+func (a WorkItemInterfaceSlice) Less(i, j int) bool {
+	var x, y *app.WorkItem
+
+	switch v := a[i].(type) {
+	case app.WorkItem:
+		x = &v
+	case *app.WorkItem:
+		x = v
+	}
+
+	switch v := a[j].(type) {
+	case app.WorkItem:
+		y = &v
+	case *app.WorkItem:
+		y = v
+	}
+
+	if x == nil || y == nil {
+		return false
+	}
+
+	title1, foundTitle1 := x.Attributes[workitem.SystemTitle]
+	title2, foundTitle2 := y.Attributes[workitem.SystemTitle]
+	if foundTitle1 && foundTitle2 {
+		t1, cast1Ok := title1.(string)
+		t2, cast2Ok := title2.(string)
+		if cast1Ok && cast2Ok {
+			return t1 < t2
+		}
+	}
+	return x.ID.String() < y.ID.String()
+}
+
+// Swap swaps the elements with indexes i and j.
+func (a WorkItemInterfaceSlice) Swap(i, j int) {
+	a[i], a[j] = a[j], a[i]
+}
+
+// Ensure WorkItemInterfaceSlice implements the sort.Interface
+var _ sort.Interface = WorkItemInterfaceSlice{}
+var _ sort.Interface = (*WorkItemInterfaceSlice)(nil)
 
 // Show runs the show action.
 func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
@@ -77,24 +169,33 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 				}
 			}
 
-			matchingWorkItemIDs := make([]uuid.UUID, len(result))
+			matchingWorkItemIDs := make(id.Slice, len(result))
 			for i, wi := range result {
 				matchingWorkItemIDs[i] = wi.ID
 			}
 
 			hasChildren := workItemIncludeHasChildren(ctx, appl)
-			includeParent := includeParentWorkItem(ctx, appl, ancestors)
+			includeParent := includeParentWorkItem(ctx, ancestors)
 			response := app.SearchWorkItemList{
 				Links: &app.PagingLinks{},
 				Meta: &app.WorkItemListResponseMeta{
-					TotalCount:          count,
-					AncestorWorkItemIDs: ancestors.GetDistinctAncestorIDs(),
-					MatchingWorkItemIDs: matchingWorkItemIDs,
+					TotalCount: count,
 				},
 				Data: ConvertWorkItems(ctx.Request, result, hasChildren, includeParent),
 			}
-			c.enrichWorkItemList(ctx, ancestors, &response) // append parentWI and ancestors (if not empty) in response
+			c.enrichWorkItemList(ctx, ancestors, matchingWorkItemIDs, &response) // append parentWI and ancestors (if not empty) in response
 			setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(result), offset, limit, count, "filter[expression]="+*ctx.FilterExpression)
+
+			// Sort "data" by name or ID if no title given
+			var data WorkItemPtrSlice = response.Data
+			sort.Sort(data)
+			response.Data = data
+
+			// Sort work items in the "included" array by ID or title
+			var included WorkItemInterfaceSlice = response.Included
+			sort.Sort(included)
+			response.Included = included
+
 			return ctx.OK(&response)
 		})
 
@@ -202,17 +303,20 @@ func (c *SearchController) Users(ctx *app.UsersSearchContext) error {
 
 // Iterate over the WI list and read parent IDs
 // Fetch and load Parent WI in the included list
-func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, ancestors link.AncestorList, res *app.SearchWorkItemList) {
-	fetchInBatch := []uuid.UUID{}
+func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, ancestors link.AncestorList, matchingIDs id.Slice, res *app.SearchWorkItemList) {
+
+	parentIDs := id.Slice{}
 	for _, wi := range res.Data {
 		if wi.Relationships != nil && wi.Relationships.Parent != nil && wi.Relationships.Parent.Data != nil {
-			parentID := wi.Relationships.Parent.Data.ID
-			fetchInBatch = append(fetchInBatch, parentID)
+			parentIDs = append(parentIDs, wi.Relationships.Parent.Data.ID)
 		}
 	}
 
-	// Also append the ancestors not already included in the parent list.
-	fetchInBatch = append(fetchInBatch, link.IDSliceDiff(ancestors.GetDistinctAncestorIDs(), fetchInBatch)...)
+	// Also append the ancestors not already included in the parent list
+	fetchInBatch := parentIDs
+	fetchInBatch.Add(ancestors.GetDistinctAncestorIDs().Diff(parentIDs))
+	// Eliminate work item already in the search
+	fetchInBatch = fetchInBatch.Sub(matchingIDs)
 
 	wis := []*workitem.WorkItem{}
 	err := application.Transactional(c.db, func(appl application.Application) error {
@@ -226,8 +330,9 @@ func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, ancest
 			"err": err,
 		}, "unable to load parent work items in batch: %s", fetchInBatch)
 	}
+
 	for _, ele := range wis {
-		convertedWI := ConvertWorkItem(ctx.Request, *ele)
+		convertedWI := ConvertWorkItem(ctx.Request, *ele, includeParentWorkItem(ctx, ancestors))
 		res.Included = append(res.Included, *convertedWI)
 	}
 }
