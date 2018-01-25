@@ -6,60 +6,60 @@ import (
 )
 
 // SimpleSpace describe a space
-var simpleSpace = a.Type("SimpleSpace", func() {
+var simpleSpaceV1 = a.Type("SimpleSpaceV1", func() {
 	a.Description(`a space consisting of multiple applications`)
 	a.Attribute("id", d.UUID)
 	a.Attribute("name", d.String)
-	a.Attribute("applications", a.ArrayOf(simpleApp))
+	a.Attribute("applications", a.ArrayOf(simpleAppV1))
 	a.Required("applications")
 })
 
 // SimpleApp describe an application within a space
-var simpleApp = a.Type("SimpleApp", func() {
+var simpleAppV1 = a.Type("SimpleAppV1", func() {
 	a.Description(`a description of an application`)
 	a.Attribute("id", d.UUID)
 	a.Attribute("name", d.String)
-	a.Attribute("pipeline", a.ArrayOf(simpleDeployment))
+	a.Attribute("pipeline", a.ArrayOf(simpleDeploymentV1))
 	a.Required("pipeline")
 })
 
 // simpleDeployment describe an element of an application pipeline
-var simpleDeployment = a.Type("SimpleDeployment", func() {
+var simpleDeploymentV1 = a.Type("SimpleDeploymentV1", func() {
 	a.Description(`a deployment (a step in a pipeline, e.g. 'build')`)
 	a.Attribute("id", d.UUID)
 	a.Attribute("name", d.String)
 	a.Attribute("version", d.String)
-	a.Attribute("pods", podStats)
+	a.Attribute("pods", podStatsV1)
 })
 
 // simpleDeployment describe an element of an application pipeline
-var simpleEnvironment = a.Type("SimpleEnvironment", func() {
+var simpleEnvironmentV1 = a.Type("SimpleEnvironmentV1", func() {
 	a.Description(`a shared environment`)
 	a.Attribute("id", d.UUID)
 	a.Attribute("name", d.String)
-	a.Attribute("quota", envStats)
+	a.Attribute("quota", envStatsV1)
 })
 
-var envStats = a.Type("EnvStats", func() {
+var envStatsV1 = a.Type("EnvStatsV1", func() {
 	a.Description("resource usage and quotas for an environment")
-	a.Attribute("cpucores", envStatCores)
-	a.Attribute("memory", envStatMemory)
+	a.Attribute("cpucores", envStatCoresV1)
+	a.Attribute("memory", envStatMemoryV1)
 })
 
-var envStatCores = a.Type("EnvStatCores", func() {
+var envStatCoresV1 = a.Type("EnvStatCoresV1", func() {
 	a.Description(`CPU core stats`)
 	a.Attribute("used", d.Number)
 	a.Attribute("quota", d.Number)
 })
 
-var envStatMemory = a.Type("EnvStatMemory", func() {
+var envStatMemoryV1 = a.Type("EnvStatMemoryV1", func() {
 	a.Description(`memory stats`)
 	a.Attribute("used", d.Number)
 	a.Attribute("quota", d.Number)
 	a.Attribute("units", d.String)
 })
 
-var podStats = a.Type("PodStats", func() {
+var podStatsV1 = a.Type("PodStatsV1", func() {
 	a.Description(`pod stats`)
 	a.Attribute("starting", d.Integer)
 	a.Attribute("running", d.Integer)
@@ -67,80 +67,80 @@ var podStats = a.Type("PodStats", func() {
 	a.Attribute("total", d.Integer)
 })
 
-var timedNumberTuple = a.Type("TimedNumberTuple", func() {
+var timedNumberTupleV1 = a.Type("TimedNumberTupleV1", func() {
 	a.Description("a set of time and number values")
 	a.Attribute("time", d.Number)
 	a.Attribute("value", d.Number)
 })
 
-var simpleDeploymentStats = a.Type("SimpleDeploymentStats", func() {
+var simpleDeploymentStatsV1 = a.Type("SimpleDeploymentStatsV1", func() {
 	a.Description("current deployment stats")
-	a.Attribute("cores", timedNumberTuple)
-	a.Attribute("memory", timedNumberTuple)
-	a.Attribute("net_tx", timedNumberTuple)
-	a.Attribute("net_rx", timedNumberTuple)
+	a.Attribute("cores", timedNumberTupleV1)
+	a.Attribute("memory", timedNumberTupleV1)
+	a.Attribute("net_tx", timedNumberTupleV1)
+	a.Attribute("net_rx", timedNumberTupleV1)
 })
 
-var simpleDeploymentStatSeries = a.Type("SimpleDeploymentStatSeries", func() {
+var simpleDeploymentStatSeriesV1 = a.Type("SimpleDeploymentStatSeriesV1", func() {
 	a.Description("pod stat series")
 	a.Attribute("start", d.Number)
 	a.Attribute("end", d.Number)
-	a.Attribute("memory", a.ArrayOf(timedNumberTuple))
-	a.Attribute("cores", a.ArrayOf(timedNumberTuple))
-	a.Attribute("net_tx", a.ArrayOf(timedNumberTuple))
-	a.Attribute("net_rx", a.ArrayOf(timedNumberTuple))
+	a.Attribute("memory", a.ArrayOf(timedNumberTupleV1))
+	a.Attribute("cores", a.ArrayOf(timedNumberTupleV1))
+	a.Attribute("net_tx", a.ArrayOf(timedNumberTupleV1))
+	a.Attribute("net_rx", a.ArrayOf(timedNumberTupleV1))
 })
 
-var simpleSpaceSingle = JSONSingle(
+var simpleSpaceSingleV1 = JSONSingle(
 	"SimpleSpace", "Holds a single response to a space request",
-	simpleSpace,
+	simpleSpaceV1,
 	nil)
 
-var simpleAppSingle = JSONSingle(
+var simpleAppSingleV1 = JSONSingle(
 	"SimpleApplication", "Holds a single response to a space/application request",
-	simpleApp,
+	simpleAppV1,
 	nil)
 
-var simpleEnvironmentSingle = JSONSingle(
+var simpleEnvironmentSingleV1 = JSONSingle(
 	"SimpleEnvironment", "Holds a single response to a space/environment request",
-	simpleEnvironment,
+	simpleEnvironmentV1,
 	nil)
 
-var simpleEnvironmentMultiple = JSONList(
+var simpleEnvironmentMultipleV1 = JSONList(
 	"SimpleEnvironment", "Holds a response to a space/environment request",
-	simpleEnvironment,
+	simpleEnvironmentV1,
 	nil,
 	nil)
 
-var simplePod = a.Type("SimplePod", func() {
+var simplePodV1 = a.Type("SimplePodV1", func() {
 	a.Description("wrapper for a kubernetes Pod")
 	a.Attribute("pod", d.Any)
 })
 
-var simplePodMultiple = JSONList(
+var simplePodMultipleV1 = JSONList(
 	"SimplePod", "Holds a list of pods",
-	simplePod,
+	simplePodV1,
 	nil,
 	nil)
 
-var simpleDeploymentSingle = JSONSingle(
+var simpleDeploymentSingleV1 = JSONSingle(
 	"SimpleDeployment", "Holds a single response to a space/application/deployment request",
-	simpleDeployment,
+	simpleDeploymentV1,
 	nil)
 
-var simpleDeploymentStatsSingle = JSONSingle(
+var simpleDeploymentStatsSingleV1 = JSONSingle(
 	"SimpleDeploymentStats", "Holds a single response to a space/application/deployment/stats request",
-	simpleDeploymentStats,
+	simpleDeploymentStatsV1,
 	nil)
 
-var simpleDeploymentStatSeriesSingle = JSONSingle(
+var simpleDeploymentStatSeriesSingleV1 = JSONSingle(
 	"SimpleDeploymentStatSeries", "HOlds a response to a stat series query",
-	simpleDeploymentStatSeries,
+	simpleDeploymentStatSeriesV1,
 	nil)
 
-var simpleEnvironmentStatSingle = JSONSingle(
+var simpleEnvironmentStatSingleV1 = JSONSingle(
 	"EnvStats", "Holds a single response to a pipeline/stats request",
-	envStats,
+	envStatsV1,
 	nil)
 
 var _ = a.Resource("apps", func() {
@@ -157,7 +157,7 @@ var _ = a.Resource("apps", func() {
 		a.Params(func() {
 			a.Param("spaceID", d.UUID, "ID of the space")
 		})
-		a.Response(d.OK, simpleSpaceSingle)
+		a.Response(d.OK, simpleSpaceSingleV1)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
@@ -172,7 +172,7 @@ var _ = a.Resource("apps", func() {
 			a.Param("spaceID", d.UUID, "ID of the space")
 			a.Param("appName", d.String, "Name of the application")
 		})
-		a.Response(d.OK, simpleAppSingle)
+		a.Response(d.OK, simpleAppSingleV1)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
@@ -188,7 +188,7 @@ var _ = a.Resource("apps", func() {
 			a.Param("appName", d.String, "Name of the application")
 			a.Param("deployName", d.String, "Name of the pipe deployment")
 		})
-		a.Response(d.OK, simpleDeploymentSingle)
+		a.Response(d.OK, simpleDeploymentSingleV1)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
@@ -205,7 +205,7 @@ var _ = a.Resource("apps", func() {
 			a.Param("deployName", d.String, "Name of the deployment")
 			a.Param("start", d.Number, "start time in millis")
 		})
-		a.Response(d.OK, simpleDeploymentStatsSingle)
+		a.Response(d.OK, simpleDeploymentStatsSingleV1)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
@@ -224,7 +224,7 @@ var _ = a.Resource("apps", func() {
 			a.Param("end", d.Number, "end time in millis")
 			a.Param("limit", d.Integer, "maximum number of data points to return")
 		})
-		a.Response(d.OK, simpleDeploymentStatSeriesSingle)
+		a.Response(d.OK, simpleDeploymentStatSeriesSingleV1)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
@@ -255,7 +255,7 @@ var _ = a.Resource("apps", func() {
 		a.Params(func() {
 			a.Param("spaceID", d.UUID, "ID of the space")
 		})
-		a.Response(d.OK, simpleEnvironmentMultiple)
+		a.Response(d.OK, simpleEnvironmentMultipleV1)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
@@ -269,7 +269,7 @@ var _ = a.Resource("apps", func() {
 		a.Params(func() {
 			a.Param("envName", d.String, "Name of the environment")
 		})
-		a.Response(d.OK, simpleEnvironmentSingle)
+		a.Response(d.OK, simpleEnvironmentSingleV1)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
