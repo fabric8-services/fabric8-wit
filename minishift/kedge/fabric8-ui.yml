@@ -1,0 +1,20 @@
+name: fabric8-ui
+containers:
+- image: "[[ UI_IMAGE_URL ]]"
+  env:
+  - name: FABRIC8_WIT_API_URL
+    value: "[[ FABRIC8_WIT_API_URL ]]"
+  - name: FABRIC8_AUTH_API_URL
+    value: "[[ FABRIC8_AUTH_API_URL ]]"
+  - name: FABRIC8_REALM
+    value: "[[ FABRIC8_REALM ]]"
+  - name: FABRIC8_FORGE_URL
+    value: "[[ FABRIC8_FORGE_URL ]]"
+  - name: PROXY_PASS_URL
+    value: "[[ PROXY_PASS_URL ]]"
+services:
+- name: ui
+  type: NodePort
+  ports:
+    - port: 8080
+      nodePort: 31200
