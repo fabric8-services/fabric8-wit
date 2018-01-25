@@ -118,7 +118,9 @@ type GormIterationRepository struct {
 func (m *GormIterationRepository) LoadMultiple(ctx context.Context, ids []uuid.UUID) ([]Iteration, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "iteration", "getmultiple"}, time.Now())
 	var objs []Iteration
-
+	if len(ids) == 0 {
+		return objs, nil
+	}
 	for i := 0; i < len(ids); i++ {
 		m.db = m.db.Or("id = ?", ids[i])
 	}
