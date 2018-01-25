@@ -1,4 +1,4 @@
-package kubernetes_test
+package kubernetesV1_test
 
 import (
 	"strconv"
@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/fabric8-services/fabric8-wit/app"
-	"github.com/fabric8-services/fabric8-wit/kubernetes"
+	"github.com/fabric8-services/fabric8-wit/kubernetesV1"
 	errs "github.com/pkg/errors"
 	resource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,10 +20,10 @@ import (
 const fltEpsilon = 0.00000001
 
 type testKube struct {
-	kubernetes.KubeRESTAPI // Allows us to only implement methods we'll use
-	getter                 *testKubeGetter
-	configMapHolder        *testConfigMap
-	quotaHolder            *testResourceQuota
+	kubernetesV1.KubeRESTAPI // Allows us to only implement methods we'll use
+	getter                   *testKubeGetter
+	configMapHolder          *testConfigMap
+	quotaHolder              *testResourceQuota
 }
 
 type testKubeGetter struct {
@@ -161,7 +161,7 @@ func stringToQuantityMap(input map[v1.ResourceName]float64) (v1.ResourceList, er
 	return result, nil
 }
 
-func (getter *testKubeGetter) GetKubeRESTAPI(config *kubernetes.KubeClientConfig) (kubernetes.KubeRESTAPI, error) {
+func (getter *testKubeGetter) GetKubeRESTAPI(config *kubernetesV1.KubeClientConfig) (kubernetesV1.KubeRESTAPI, error) {
 	mock := new(testKube)
 	// Doubly-linked for access by tests
 	mock.getter = getter
@@ -170,49 +170,49 @@ func (getter *testKubeGetter) GetKubeRESTAPI(config *kubernetes.KubeClientConfig
 }
 
 type testMetricsGetter struct {
-	config *kubernetes.MetricsClientConfig
+	config *kubernetesV1.MetricsClientConfig
 }
 
 type testMetrics struct{}
 
-func (getter *testMetricsGetter) GetMetrics(config *kubernetes.MetricsClientConfig) (kubernetes.MetricsInterface, error) {
+func (getter *testMetricsGetter) GetMetrics(config *kubernetesV1.MetricsClientConfig) (kubernetesV1.MetricsInterface, error) {
 	getter.config = config
 	return testMetrics{}, nil
 }
 
-func (testMetrics) GetCPUMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error) {
+func (testMetrics) GetCPUMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTupleV1, error) {
 	return nil, nil // TODO
 }
 
 func (testMetrics) GetCPUMetricsRange(pods []v1.Pod, namespace string, startTime time.Time, endTime time.Time,
-	limit int) ([]*app.TimedNumberTuple, error) {
+	limit int) ([]*app.TimedNumberTupleV1, error) {
 	return nil, nil // TODO
 }
 
-func (testMetrics) GetMemoryMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error) {
+func (testMetrics) GetMemoryMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTupleV1, error) {
 	return nil, nil // TODO
 }
 
 func (testMetrics) GetMemoryMetricsRange(pods []v1.Pod, namespace string, startTime time.Time, endTime time.Time,
-	limit int) ([]*app.TimedNumberTuple, error) {
+	limit int) ([]*app.TimedNumberTupleV1, error) {
 	return nil, nil // TODO
 }
 
-func (testMetrics) GetNetworkSentMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error) {
+func (testMetrics) GetNetworkSentMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTupleV1, error) {
 	return nil, nil // TODO add fake impl when tests exercise this code
 }
 
 func (testMetrics) GetNetworkSentMetricsRange(pods []v1.Pod, namespace string, startTime time.Time, endTime time.Time,
-	limit int) ([]*app.TimedNumberTuple, error) {
+	limit int) ([]*app.TimedNumberTupleV1, error) {
 	return nil, nil // TODO add fake impl when tests exercise this code
 }
 
-func (testMetrics) GetNetworkRecvMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error) {
+func (testMetrics) GetNetworkRecvMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTupleV1, error) {
 	return nil, nil // TODO add fake impl when tests exercise this code
 }
 
 func (testMetrics) GetNetworkRecvMetricsRange(pods []v1.Pod, namespace string, startTime time.Time, endTime time.Time,
-	limit int) ([]*app.TimedNumberTuple, error) {
+	limit int) ([]*app.TimedNumberTupleV1, error) {
 	return nil, nil // TODO add fake impl when tests exercise this code
 }
 
@@ -233,14 +233,14 @@ func TestGetMetrics(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		config := &kubernetes.KubeClientConfig{
+		config := &kubernetesV1.KubeClientConfig{
 			ClusterURL:        testCase.clusterURL,
 			BearerToken:       token,
 			UserNamespace:     "myNamespace",
 			KubeRESTAPIGetter: kubeGetter,
 			MetricsGetter:     metricsGetter,
 		}
-		_, err := kubernetes.NewKubeClient(config)
+		_, err := kubernetesV1.NewKubeClient(config)
 		if testCase.shouldSucceed {
 			if err != nil {
 				t.Fatal(err)
@@ -290,7 +290,7 @@ func TestConfigMapEnvironments(t *testing.T) {
 	kubeGetter := &testKubeGetter{}
 	metricsGetter := &testMetricsGetter{}
 	userNamespace := "myNamespace"
-	config := &kubernetes.KubeClientConfig{
+	config := &kubernetesV1.KubeClientConfig{
 		ClusterURL:        "http://api.myCluster",
 		BearerToken:       "myToken",
 		UserNamespace:     userNamespace,
@@ -301,7 +301,7 @@ func TestConfigMapEnvironments(t *testing.T) {
 	expectedName := "fabric8-environments"
 	for _, testCase := range testCases {
 		kubeGetter.cmInput = testCase
-		_, err := kubernetes.NewKubeClient(config)
+		_, err := kubernetesV1.NewKubeClient(config)
 		if testCase.shouldFail {
 			assert.Error(t, err)
 		} else {
@@ -357,7 +357,7 @@ func TestGetEnvironment(t *testing.T) {
 	}
 	kubeGetter := &testKubeGetter{}
 	metricsGetter := &testMetricsGetter{}
-	config := &kubernetes.KubeClientConfig{
+	config := &kubernetesV1.KubeClientConfig{
 		ClusterURL:        "http://api.myCluster",
 		BearerToken:       "myToken",
 		UserNamespace:     "myNamespace",
@@ -365,7 +365,7 @@ func TestGetEnvironment(t *testing.T) {
 		MetricsGetter:     metricsGetter,
 	}
 
-	kc, err := kubernetes.NewKubeClient(config)
+	kc, err := kubernetesV1.NewKubeClient(config)
 	assert.NoError(t, err)
 	for _, testCase := range testCases {
 		kubeGetter.rqInput = testCase
@@ -401,7 +401,7 @@ func TestGetEnvironment(t *testing.T) {
 }
 
 type spaceTestData struct {
-	kubernetes.BuildConfigInterface
+	kubernetesV1.BuildConfigInterface
 	name       string
 	shouldFail bool
 	configs    *[]string
@@ -427,7 +427,7 @@ func TestGetSpaceWithNoConfigs(t *testing.T) {
 		kubeGetter := &testKubeGetter{}
 		metricsGetter := &testMetricsGetter{}
 		cfgGetter := testCase
-		config := &kubernetes.KubeClientConfig{
+		config := &kubernetesV1.KubeClientConfig{
 			ClusterURL:           "http://api.myCluster",
 			BearerToken:          "myToken",
 			UserNamespace:        "myNamespace",
@@ -436,7 +436,7 @@ func TestGetSpaceWithNoConfigs(t *testing.T) {
 			BuildConfigInterface: cfgGetter,
 		}
 
-		kc, err := kubernetes.NewKubeClient(config)
+		kc, err := kubernetesV1.NewKubeClient(config)
 
 		assert.NoError(t, err)
 		space, err := kc.GetSpace(testCase.name)

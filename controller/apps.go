@@ -9,13 +9,13 @@ import (
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/auth/authservice"
+	"github.com/fabric8-services/fabric8-wit/kubernetesV1"
 	errs "github.com/pkg/errors"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/auth"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	witerrors "github.com/fabric8-services/fabric8-wit/errors"
-	"github.com/fabric8-services/fabric8-wit/kubernetes"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 )
@@ -42,7 +42,7 @@ func tostring(item interface{}) string {
 	return string(bytes)
 }
 
-func getAndCheckOSIOClient(ctx context.Context) (*OSIOClient, error) {
+func getAndCheckOSIOClient(ctx context.Context) (*OSIOClientV1, error) {
 
 	// defaults
 	host := "localhost"
@@ -65,7 +65,7 @@ func getAndCheckOSIOClient(ctx context.Context) (*OSIOClient, error) {
 		scheme = witurl.Scheme
 	}
 
-	oc := NewOSIOClient(ctx, scheme, host)
+	oc := NewOSIOClientV1(ctx, scheme, host)
 
 	return oc, nil
 }
@@ -153,7 +153,7 @@ func getTokenData(authClient authservice.Client, ctx context.Context, forService
 
 // getKubeClient createa kube client for the appropriate cluster assigned to the current user.
 // many different errors are possible, so controllers should call getAndCheckKubeClient() instead
-func (c *AppsController) getKubeClient(ctx context.Context) (kubernetes.KubeClientInterface, error) {
+func (c *AppsController) getKubeClient(ctx context.Context) (kubernetesV1.KubeClientInterface, error) {
 
 	// create Auth API client
 	authClient, err := auth.CreateClient(ctx, c.Config)
@@ -185,12 +185,12 @@ func (c *AppsController) getKubeClient(ctx context.Context) (kubernetes.KubeClie
 	}
 
 	// create the cluster API client
-	kubeConfig := &kubernetes.KubeClientConfig{
+	kubeConfig := &kubernetesV1.KubeClientConfig{
 		ClusterURL:    kubeURL,
 		BearerToken:   kubeToken,
 		UserNamespace: *kubeNamespaceName,
 	}
-	kc, err := kubernetes.NewKubeClient(kubeConfig)
+	kc, err := kubernetesV1.NewKubeClient(kubeConfig)
 	if err != nil {
 		return nil, errs.Wrapf(err, "could not create Kubernetes client object")
 	}

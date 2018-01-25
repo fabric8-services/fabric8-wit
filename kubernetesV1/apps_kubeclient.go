@@ -1,4 +1,4 @@
-package kubernetes
+package kubernetesV1
 
 import (
 	"bytes"
@@ -58,16 +58,16 @@ type BuildConfigInterface interface {
 
 // KubeClientInterface contains configuration and methods for interacting with a Kubernetes cluster
 type KubeClientInterface interface {
-	GetSpace(spaceName string) (*app.SimpleSpace, error)
-	GetApplication(spaceName string, appName string) (*app.SimpleApp, error)
-	GetDeployment(spaceName string, appName string, envName string) (*app.SimpleDeployment, error)
+	GetSpace(spaceName string) (*app.SimpleSpaceV1, error)
+	GetApplication(spaceName string, appName string) (*app.SimpleAppV1, error)
+	GetDeployment(spaceName string, appName string, envName string) (*app.SimpleDeploymentV1, error)
 	ScaleDeployment(spaceName string, appName string, envName string, deployNumber int) (*int, error)
 	GetDeploymentStats(spaceName string, appName string, envName string,
-		startTime time.Time) (*app.SimpleDeploymentStats, error)
+		startTime time.Time) (*app.SimpleDeploymentStatsV1, error)
 	GetDeploymentStatSeries(spaceName string, appName string, envName string, startTime time.Time,
-		endTime time.Time, limit int) (*app.SimpleDeploymentStatSeries, error)
-	GetEnvironments() ([]*app.SimpleEnvironment, error)
-	GetEnvironment(envName string) (*app.SimpleEnvironment, error)
+		endTime time.Time, limit int) (*app.SimpleDeploymentStatSeriesV1, error)
+	GetEnvironments() ([]*app.SimpleEnvironmentV1, error)
+	GetEnvironment(envName string) (*app.SimpleEnvironmentV1, error)
 	GetPodsInNamespace(nameSpace string, appName string) ([]v1.Pod, error)
 }
 
@@ -157,7 +157,7 @@ func (*defaultGetter) GetMetrics(config *MetricsClientConfig) (MetricsInterface,
 }
 
 // GetSpace returns a space matching the provided name, containing all applications that belong to it
-func (kc *kubeClient) GetSpace(spaceName string) (*app.SimpleSpace, error) {
+func (kc *kubeClient) GetSpace(spaceName string) (*app.SimpleSpaceV1, error) {
 	// Get BuildConfigs within the user namespace that have a matching 'space' label
 	// This is similar to how pipelines are displayed in fabric8-ui
 	// https://github.com/fabric8-ui/fabric8-ui/blob/master/src/app/space/create/pipelines/pipelines.component.ts
@@ -167,7 +167,7 @@ func (kc *kubeClient) GetSpace(spaceName string) (*app.SimpleSpace, error) {
 	}
 
 	// Get all applications in this space using BuildConfig names
-	apps := []*app.SimpleApp{}
+	apps := []*app.SimpleAppV1{}
 	for _, bc := range buildconfigs {
 		appn, err := kc.GetApplication(spaceName, bc)
 		if err != nil {
@@ -176,7 +176,7 @@ func (kc *kubeClient) GetSpace(spaceName string) (*app.SimpleSpace, error) {
 		apps = append(apps, appn)
 	}
 
-	result := &app.SimpleSpace{
+	result := &app.SimpleSpaceV1{
 		Applications: apps,
 	}
 
@@ -185,9 +185,9 @@ func (kc *kubeClient) GetSpace(spaceName string) (*app.SimpleSpace, error) {
 
 // GetApplication retrieves an application with the given space and application names, with the status
 // of that application's deployment in each environment
-func (kc *kubeClient) GetApplication(spaceName string, appName string) (*app.SimpleApp, error) {
+func (kc *kubeClient) GetApplication(spaceName string, appName string) (*app.SimpleAppV1, error) {
 	// Get all deployments of this app for each environment in this space
-	deployments := []*app.SimpleDeployment{}
+	deployments := []*app.SimpleDeploymentV1{}
 	for envName := range kc.envMap {
 		deployment, err := kc.GetDeployment(spaceName, appName, envName)
 		if err != nil {
@@ -197,7 +197,7 @@ func (kc *kubeClient) GetApplication(spaceName string, appName string) (*app.Sim
 		}
 	}
 
-	result := &app.SimpleApp{
+	result := &app.SimpleAppV1{
 		Name:     &appName,
 		Pipeline: deployments,
 	}
@@ -250,7 +250,7 @@ func (kc *kubeClient) ScaleDeployment(spaceName string, appName string, envName 
 
 // GetDeployment returns information about the current deployment of an application within a
 // particular environment. The application must exist within the provided space.
-func (kc *kubeClient) GetDeployment(spaceName string, appName string, envName string) (*app.SimpleDeployment, error) {
+func (kc *kubeClient) GetDeployment(spaceName string, appName string, envName string) (*app.SimpleDeploymentV1, error) {
 	envNS, err := kc.getEnvironmentNamespace(envName)
 	if err != nil {
 		return nil, errs.WithStack(err)
@@ -275,7 +275,7 @@ func (kc *kubeClient) GetDeployment(spaceName string, appName string, envName st
 	}
 
 	verString := string(deploy.appVersion)
-	result := &app.SimpleDeployment{
+	result := &app.SimpleDeploymentV1{
 		Name:    &envName,
 		Version: &verString,
 		Pods:    podStats,
@@ -286,7 +286,7 @@ func (kc *kubeClient) GetDeployment(spaceName string, appName string, envName st
 // GetDeploymentStats returns performance metrics of an application for a period of 1 minute
 // beyond the specified start time, which are then aggregated into a single data point.
 func (kc *kubeClient) GetDeploymentStats(spaceName string, appName string, envName string,
-	startTime time.Time) (*app.SimpleDeploymentStats, error) {
+	startTime time.Time) (*app.SimpleDeploymentStatsV1, error) {
 	envNS, err := kc.getEnvironmentNamespace(envName)
 	if err != nil {
 		return nil, errs.WithStack(err)
@@ -323,7 +323,7 @@ func (kc *kubeClient) GetDeploymentStats(spaceName string, appName string, envNa
 		return nil, err
 	}
 
-	result := &app.SimpleDeploymentStats{
+	result := &app.SimpleDeploymentStatsV1{
 		Cores:  cpuUsage,
 		Memory: memoryUsage,
 		NetTx:  netTxUsage,
@@ -337,7 +337,7 @@ func (kc *kubeClient) GetDeploymentStats(spaceName string, appName string, envNa
 // the provided time range in startTime and endTime. If there are more data points than the
 // limit argument, only the newest datapoints within that limit are returned.
 func (kc *kubeClient) GetDeploymentStatSeries(spaceName string, appName string, envName string,
-	startTime time.Time, endTime time.Time, limit int) (*app.SimpleDeploymentStatSeries, error) {
+	startTime time.Time, endTime time.Time, limit int) (*app.SimpleDeploymentStatSeriesV1, error) {
 	envNS, err := kc.getEnvironmentNamespace(envName)
 	if err != nil {
 		return nil, errs.WithStack(err)
@@ -377,7 +377,7 @@ func (kc *kubeClient) GetDeploymentStatSeries(spaceName string, appName string, 
 
 	// Get the earliest and latest timestamps
 	minTime, maxTime := getTimestampEndpoints(cpuMetrics, memoryMetrics)
-	result := &app.SimpleDeploymentStatSeries{
+	result := &app.SimpleDeploymentStatSeriesV1{
 		Cores:  cpuMetrics,
 		Memory: memoryMetrics,
 		NetTx:  netTxMetrics,
@@ -391,8 +391,8 @@ func (kc *kubeClient) GetDeploymentStatSeries(spaceName string, appName string, 
 
 // GetEnvironments retrieves information on all environments in the cluster
 // for the current user
-func (kc *kubeClient) GetEnvironments() ([]*app.SimpleEnvironment, error) {
-	envs := []*app.SimpleEnvironment{}
+func (kc *kubeClient) GetEnvironments() ([]*app.SimpleEnvironmentV1, error) {
+	envs := []*app.SimpleEnvironmentV1{}
 	for envName := range kc.envMap {
 		env, err := kc.GetEnvironment(envName)
 		if err != nil {
@@ -404,7 +404,7 @@ func (kc *kubeClient) GetEnvironments() ([]*app.SimpleEnvironment, error) {
 }
 
 // GetEnvironment returns information on an environment with the provided name
-func (kc *kubeClient) GetEnvironment(envName string) (*app.SimpleEnvironment, error) {
+func (kc *kubeClient) GetEnvironment(envName string) (*app.SimpleEnvironmentV1, error) {
 	envNS, err := kc.getEnvironmentNamespace(envName)
 	if err != nil {
 		return nil, errs.WithStack(err)
@@ -415,7 +415,7 @@ func (kc *kubeClient) GetEnvironment(envName string) (*app.SimpleEnvironment, er
 		return nil, errs.WithStack(err)
 	}
 
-	env := &app.SimpleEnvironment{
+	env := &app.SimpleEnvironmentV1{
 		Name:  &envName,
 		Quota: envStats,
 	}
@@ -443,7 +443,7 @@ func getMetricsURLFromAPIURL(apiURLStr string) (string, error) {
 	return metricsURL.String(), nil
 }
 
-func getTimestampEndpoints(metricsSeries ...[]*app.TimedNumberTuple) (minTime, maxTime *float64) {
+func getTimestampEndpoints(metricsSeries ...[]*app.TimedNumberTupleV1) (minTime, maxTime *float64) {
 	// Metrics arrays are ordered by timestamp, so just check beginning and end
 	for _, series := range metricsSeries {
 		if len(series) > 0 {
@@ -656,19 +656,7 @@ func (kc *kubeClient) getCurrentDeployment(space string, appName string, namespa
 	for idx := range rcs {
 		rc := &rcs[idx]
 		if newest == nil || newest.CreationTimestamp.Before(rc.CreationTimestamp) {
-			visible := false
-			// Check if this RC has replicas running
-			if rc.Status.Replicas > 0 {
-				visible = true
-			} else { // Check if RC is in progress
-				phase := rc.Annotations[deploymentPhaseAnnotation]
-				if phase == "New" || phase == "Pending" || phase == "Running" {
-					visible = true
-				}
-			}
-			if visible {
-				newest = rc
-			}
+			newest = rc
 		}
 	}
 	if newest != nil {
@@ -702,7 +690,7 @@ func (kc *kubeClient) getReplicationControllers(namespace string, dcUID types.UI
 	return rcsForDc, nil
 }
 
-func (kc *kubeClient) getResourceQuota(namespace string) (*app.EnvStats, error) {
+func (kc *kubeClient) getResourceQuota(namespace string) (*app.EnvStatsV1, error) {
 	const computeResources string = "compute-resources"
 	quota, err := kc.ResourceQuotas(namespace).Get(computeResources, metaV1.GetOptions{})
 	if err != nil {
@@ -722,7 +710,7 @@ func (kc *kubeClient) getResourceQuota(namespace string) (*app.EnvStats, error) 
 		return nil, errs.WithStack(err)
 	}
 
-	cpuStats := &app.EnvStatCores{
+	cpuStats := &app.EnvStatCoresV1{
 		Quota: &cpuLimit,
 		Used:  &cpuUsed,
 	}
@@ -738,13 +726,13 @@ func (kc *kubeClient) getResourceQuota(namespace string) (*app.EnvStats, error) 
 	}
 
 	memUnits := "bytes"
-	memStats := &app.EnvStatMemory{
+	memStats := &app.EnvStatMemoryV1{
 		Quota: &memLimit,
 		Used:  &memUsed,
 		Units: &memUnits,
 	}
 
-	result := &app.EnvStats{
+	result := &app.EnvStatsV1{
 		Cpucores: cpuStats,
 		Memory:   memStats,
 	}
@@ -806,7 +794,7 @@ func (kc *kubeClient) getPods(namespace string, uid types.UID) ([]v1.Pod, error)
 	return appPods, nil
 }
 
-func (kc *kubeClient) getPodStatus(pods []v1.Pod) (*app.PodStats, error) {
+func (kc *kubeClient) getPodStatus(pods []v1.Pod) (*app.PodStatsV1, error) {
 	var starting, running, stopping int
 	/*
 	 * TODO Logic for pod phases in web console is calculated in the UI:
@@ -831,7 +819,7 @@ func (kc *kubeClient) getPodStatus(pods []v1.Pod) (*app.PodStats, error) {
 	}
 
 	total := len(pods)
-	result := &app.PodStats{
+	result := &app.PodStatsV1{
 		Starting: &starting,
 		Running:  &running,
 		Stopping: &stopping,

@@ -1,4 +1,4 @@
-package kubernetes_test
+package kubernetesV1_test
 
 import (
 	"net/http"
@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/app"
-	"github.com/fabric8-services/fabric8-wit/kubernetes"
+	"github.com/fabric8-services/fabric8-wit/kubernetesV1"
 	hawkular "github.com/hawkular/hawkular-client-go/metrics"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -43,7 +43,7 @@ type testMetricsOutput struct {
 	filters    url.Values
 }
 
-func (getter *testHawkularGetter) GetHawkularRESTAPI(config *kubernetes.MetricsClientConfig) (kubernetes.HawkularRESTAPI, error) {
+func (getter *testHawkularGetter) GetHawkularRESTAPI(config *kubernetesV1.MetricsClientConfig) (kubernetesV1.HawkularRESTAPI, error) {
 	helper := &testHawkular{
 		getter: getter,
 		output: &testMetricsOutput{},
@@ -200,12 +200,12 @@ var metricRangeTestCases []*testMetricsInput = []*testMetricsInput{
 func TestGetNetworkRecv(t *testing.T) {
 	testCases := singleMetricTestCases
 	test := &testHawkularGetter{}
-	config := &kubernetes.MetricsClientConfig{
+	config := &kubernetesV1.MetricsClientConfig{
 		MetricsURL:     "myMetricsServer",
 		BearerToken:    "token",
 		HawkularGetter: test,
 	}
-	client, err := kubernetes.NewMetricsClient(config)
+	client, err := kubernetesV1.NewMetricsClient(config)
 	require.NoError(t, err, "Failed to create metrics client")
 
 	for _, testCase := range testCases {
@@ -218,7 +218,7 @@ func TestGetNetworkRecv(t *testing.T) {
 
 		// Check that the result has the correct value and timestamp and that the Hawkular API was called
 		// with the expected values
-		metrics := []*app.TimedNumberTuple{metric}
+		metrics := []*app.TimedNumberTupleV1{metric}
 		output := test.result.output
 		verifyMetrics(metrics, testCase, output, "network/rx_rate", t)
 
@@ -230,12 +230,12 @@ func TestGetNetworkRecv(t *testing.T) {
 func TestGetNetworkRecvRange(t *testing.T) {
 	testCases := metricRangeTestCases
 	test := &testHawkularGetter{}
-	config := &kubernetes.MetricsClientConfig{
+	config := &kubernetesV1.MetricsClientConfig{
 		MetricsURL:     "myMetricsServer",
 		BearerToken:    "token",
 		HawkularGetter: test,
 	}
-	client, err := kubernetes.NewMetricsClient(config)
+	client, err := kubernetesV1.NewMetricsClient(config)
 	require.NoError(t, err, "Failed to create metrics client")
 
 	for _, testCase := range testCases {
@@ -260,12 +260,12 @@ func TestGetNetworkRecvRange(t *testing.T) {
 func TestGetNetworkSent(t *testing.T) {
 	testCases := singleMetricTestCases
 	test := &testHawkularGetter{}
-	config := &kubernetes.MetricsClientConfig{
+	config := &kubernetesV1.MetricsClientConfig{
 		MetricsURL:     "myMetricsServer",
 		BearerToken:    "token",
 		HawkularGetter: test,
 	}
-	client, err := kubernetes.NewMetricsClient(config)
+	client, err := kubernetesV1.NewMetricsClient(config)
 	require.NoError(t, err, "Failed to create metrics client")
 
 	for _, testCase := range testCases {
@@ -278,7 +278,7 @@ func TestGetNetworkSent(t *testing.T) {
 
 		// Check that the result has the correct value and timestamp and that the Hawkular API was called
 		// with the expected values
-		metrics := []*app.TimedNumberTuple{metric}
+		metrics := []*app.TimedNumberTupleV1{metric}
 		output := test.result.output
 		verifyMetrics(metrics, testCase, output, "network/tx_rate", t)
 
@@ -290,12 +290,12 @@ func TestGetNetworkSent(t *testing.T) {
 func TestGetNetworkSentRange(t *testing.T) {
 	testCases := metricRangeTestCases
 	test := &testHawkularGetter{}
-	config := &kubernetes.MetricsClientConfig{
+	config := &kubernetesV1.MetricsClientConfig{
 		MetricsURL:     "myMetricsServer",
 		BearerToken:    "token",
 		HawkularGetter: test,
 	}
-	client, err := kubernetes.NewMetricsClient(config)
+	client, err := kubernetesV1.NewMetricsClient(config)
 	require.NoError(t, err, "Failed to create metrics client")
 
 	for _, testCase := range testCases {
@@ -316,7 +316,7 @@ func TestGetNetworkSentRange(t *testing.T) {
 	}
 }
 
-func verifyMetrics(metrics []*app.TimedNumberTuple, testCase *testMetricsInput, result *testMetricsOutput,
+func verifyMetrics(metrics []*app.TimedNumberTupleV1, testCase *testMetricsInput, result *testMetricsOutput,
 	gaugeDesc string, t *testing.T) {
 	// If limit is specified, check that the number of metrics doesn't exceed that limit
 	numMetrics := len(metrics)
