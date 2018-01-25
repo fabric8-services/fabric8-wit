@@ -753,19 +753,7 @@ func (kc *kubeClient) getCurrentDeployment(space string, appName string, namespa
 	for idx := range rcs {
 		rc := &rcs[idx]
 		if newest == nil || newest.CreationTimestamp.Before(rc.CreationTimestamp) {
-			visible := true
-			// Check if this RC has replicas running
-			if rc.Status.Replicas > 0 {
-				visible = true
-			} else { // Check if RC is in progress
-				phase := rc.Annotations[deploymentPhaseAnnotation]
-				if phase == "New" || phase == "Pending" || phase == "Running" {
-					visible = true
-				}
-			}
-			if visible {
-				newest = rc
-			}
+			newest = rc
 		}
 	}
 	if newest != nil {
