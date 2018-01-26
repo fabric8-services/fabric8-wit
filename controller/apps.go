@@ -42,7 +42,7 @@ func tostring(item interface{}) string {
 	return string(bytes)
 }
 
-func getAndCheckOSIOClient(ctx context.Context) (*OSIOClientV1, error) {
+func getAndCheckOSIOClientV1(ctx context.Context) (*OSIOClientV1, error) {
 
 	// defaults
 	host := "localhost"
@@ -73,7 +73,7 @@ func getAndCheckOSIOClient(ctx context.Context) (*OSIOClientV1, error) {
 func (c *AppsController) getSpaceNameFromSpaceID(ctx context.Context, spaceID uuid.UUID) (*string, error) {
 	// TODO - add a cache in AppsController - but will break if user can change space name
 	// use WIT API to convert Space UUID to Space name
-	osioclient, err := getAndCheckOSIOClient(ctx)
+	osioclient, err := getAndCheckOSIOClientV1(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -85,9 +85,9 @@ func (c *AppsController) getSpaceNameFromSpaceID(ctx context.Context, spaceID uu
 	return osioSpace.Attributes.Name, nil
 }
 
-func getNamespaceName(ctx context.Context) (*string, error) {
+func getNamespaceNameV1(ctx context.Context) (*string, error) {
 
-	osioclient, err := getAndCheckOSIOClient(ctx)
+	osioclient, err := getAndCheckOSIOClientV1(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +103,7 @@ func getNamespaceName(ctx context.Context) (*string, error) {
 	return kubeSpaceAttr.Name, nil
 }
 
-func getUser(authClient authservice.Client, ctx context.Context) (*authservice.User, error) {
+func getUserV1(authClient authservice.Client, ctx context.Context) (*authservice.User, error) {
 	// get the user definition (for cluster URL)
 	resp, err := authClient.ShowUser(ctx, authservice.ShowUserPath(), nil, nil)
 	if err != nil {
@@ -127,7 +127,7 @@ func getUser(authClient authservice.Client, ctx context.Context) (*authservice.U
 	return &respType, nil
 }
 
-func getTokenData(authClient authservice.Client, ctx context.Context, forService string) (*authservice.TokenData, error) {
+func getTokenDataV1(authClient authservice.Client, ctx context.Context, forService string) (*authservice.TokenData, error) {
 
 	resp, err := authClient.RetrieveToken(ctx, authservice.RetrieveTokenPath(), forService, nil)
 	if err != nil {
@@ -161,7 +161,7 @@ func (c *AppsController) getKubeClient(ctx context.Context) (kubernetesV1.KubeCl
 		return nil, errs.Wrapf(err, "error creating Auth client")
 	}
 
-	authUser, err := getUser(*authClient, ctx)
+	authUser, err := getUserV1(*authClient, ctx)
 	if err != nil {
 		return nil, errs.Wrapf(err, "error retrieving user definition from Auth client")
 	}
@@ -171,7 +171,7 @@ func (c *AppsController) getKubeClient(ctx context.Context) (kubernetesV1.KubeCl
 	}
 
 	// get the openshift/kubernetes auth info for the cluster OpenShift API
-	osauth, err := getTokenData(*authClient, ctx, *authUser.Data.Attributes.Cluster)
+	osauth, err := getTokenDataV1(*authClient, ctx, *authUser.Data.Attributes.Cluster)
 	if err != nil {
 		return nil, errs.Wrapf(err, "error getting openshift credentials")
 	}
@@ -179,7 +179,7 @@ func (c *AppsController) getKubeClient(ctx context.Context) (kubernetesV1.KubeCl
 	kubeURL := *authUser.Data.Attributes.Cluster
 	kubeToken := *osauth.AccessToken
 
-	kubeNamespaceName, err := getNamespaceName(ctx)
+	kubeNamespaceName, err := getNamespaceNameV1(ctx)
 	if err != nil {
 		return nil, errs.Wrapf(err, "could not retrieve namespace name")
 	}
@@ -266,7 +266,7 @@ func (c *AppsController) ShowDeploymentStatSeries(ctx *app.ShowDeploymentStatSer
 		return witerrors.NewNotFoundError("deployment", ctx.DeployName)
 	}
 
-	res := &app.SimpleDeploymentStatSeriesSingle{
+	res := &app.SimpleDeploymentStatSeriesV1Single{
 		Data: statSeries,
 	}
 
@@ -306,7 +306,7 @@ func (c *AppsController) ShowDeploymentStats(ctx *app.ShowDeploymentStatsAppsCon
 		return witerrors.NewNotFoundError("deployment", ctx.DeployName)
 	}
 
-	res := &app.SimpleDeploymentStatsSingle{
+	res := &app.SimpleDeploymentStatsV1Single{
 		Data: deploymentStats,
 	}
 
@@ -329,7 +329,7 @@ func (c *AppsController) ShowEnvironment(ctx *app.ShowEnvironmentAppsContext) er
 		return witerrors.NewNotFoundError("environment", ctx.EnvName)
 	}
 
-	res := &app.SimpleEnvironmentSingle{
+	res := &app.SimpleEnvironmentV1Single{
 		Data: env,
 	}
 
@@ -358,7 +358,7 @@ func (c *AppsController) ShowSpace(ctx *app.ShowSpaceAppsContext) error {
 		return witerrors.NewNotFoundError("space", *kubeSpaceName)
 	}
 
-	res := &app.SimpleSpaceSingle{
+	res := &app.SimpleSpaceV1Single{
 		Data: space,
 	}
 
@@ -386,7 +386,7 @@ func (c *AppsController) ShowSpaceApp(ctx *app.ShowSpaceAppAppsContext) error {
 		return witerrors.NewNotFoundError("application", ctx.AppName)
 	}
 
-	res := &app.SimpleApplicationSingle{
+	res := &app.SimpleApplicationV1Single{
 		Data: theapp,
 	}
 
@@ -414,7 +414,7 @@ func (c *AppsController) ShowSpaceAppDeployment(ctx *app.ShowSpaceAppDeploymentA
 		return witerrors.NewNotFoundError("deployment statistics", ctx.DeployName)
 	}
 
-	res := &app.SimpleDeploymentSingle{
+	res := &app.SimpleDeploymentV1Single{
 		Data: deploymentStats,
 	}
 
@@ -457,7 +457,7 @@ func (c *AppsController) ShowSpaceEnvironments(ctx *app.ShowSpaceEnvironmentsApp
 		return witerrors.NewNotFoundError("environments", ctx.SpaceID.String())
 	}
 
-	res := &app.SimpleEnvironmentList{
+	res := &app.SimpleEnvironmentV1List{
 		Data: envs,
 	}
 
