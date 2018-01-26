@@ -438,3 +438,17 @@ func (s *TestIterationRepository) TestParent() {
 		require.Equal(t, iteration4ID, fxt.Iterations[5].Parent())
 	})
 }
+
+func (s *TestIterationRepository) TestLoadMultiple() {
+	// nothing should be returned by LoadMultiple when we pass empty slice
+	s.T().Run("input empty slice", func(t *testing.T) {
+		// keep few iterations in DB on purpose
+		_ = tf.NewTestFixture(t, s.DB, tf.Iterations(2))
+		emptyList := []uuid.UUID{}
+		// when
+		listLoadedIterations, err := iteration.NewIterationRepository(s.DB).LoadMultiple(context.Background(), emptyList)
+		// then
+		require.NoError(t, err)
+		require.Empty(t, listLoadedIterations)
+	})
+}

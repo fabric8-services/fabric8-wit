@@ -293,3 +293,17 @@ func (s *TestAreaRepository) TestListParentTree() {
 		assert.NotNil(s.T(), searchInAreaSlice(listOfCreatedID[i], listOfCreatedAreas))
 	}
 }
+
+func (s *TestAreaRepository) TestLoadMultiple() {
+	// nothing should be returned by LoadMultiple when we pass empty slice
+	s.T().Run("input empty slice", func(t *testing.T) {
+		// keep few areas in DB on purpose
+		_ = tf.NewTestFixture(t, s.DB, tf.Areas(2))
+		emptyList := []uuid.UUID{}
+		// when
+		listLoadedAreas, err := area.NewAreaRepository(s.DB).LoadMultiple(context.Background(), emptyList)
+		// then
+		require.NoError(t, err)
+		require.Empty(t, listLoadedAreas)
+	})
+}
