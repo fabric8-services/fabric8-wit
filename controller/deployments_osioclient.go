@@ -42,7 +42,7 @@ type OpenshiftIOClient interface {
 
 // OSIOClient contains configuration and methods for interacting with OSIO API
 type OSIOClient struct {
-	wc WitClient
+	wc             WitClient
 	responseReader ResponseReader
 }
 
