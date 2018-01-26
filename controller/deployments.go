@@ -3,40 +3,46 @@ package controller
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/url"
 	"os"
 	"time"
 
-	"github.com/fabric8-services/fabric8-wit/auth/authservice"
-	"github.com/fabric8-services/fabric8-wit/kubernetesV1"
-
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/auth"
+	"github.com/fabric8-services/fabric8-wit/auth/authservice"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	witerrors "github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/kubernetes"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/goadesign/goa"
+	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
 
-// AppsController implements the apps resource.
-type AppsController struct {
+// DeploymentsController implements the deployments resource.
+type DeploymentsController struct {
 	*goa.Controller
 	Config *configuration.Registry
 }
 
-// NewAppsController creates a apps controller.
-func NewAppsController(service *goa.Service, config *configuration.Registry) *AppsController {
-	return &AppsController{
-		Controller: service.NewController("AppsController"),
+// NewDeploymentsController creates a deployments controller.
+func NewDeploymentsController(service *goa.Service, config *configuration.Registry) *DeploymentsController {
+	return &DeploymentsController{
+		Controller: service.NewController("DeploymentsController"),
 		Config:     config,
 	}
 }
 
-func getAndCheckOSIOClientV1(ctx context.Context) *OSIOClientV1 {
+func tostring(item interface{}) string {
+	bytes, err := json.MarshalIndent(item, "", "  ")
+	if err != nil {
+		return err.Error()
+	}
+	return string(bytes)
+}
+
+func getAndCheckOSIOClient(ctx context.Context) *OSIOClient {
 
 	// defaults
 	host := "localhost"
@@ -53,35 +59,33 @@ func getAndCheckOSIOClientV1(ctx context.Context) *OSIOClientV1 {
 	if os.Getenv("FABRIC8_WIT_API_URL") != "" {
 		witurl, err := url.Parse(os.Getenv("FABRIC8_WIT_API_URL"))
 		if err != nil {
-			log.Warn(ctx, nil, "Cannot parse FABRIC8_WIT_API_URL; assuming localhost")
+			log.Warn(ctx, nil, "cannot parse FABRIC8_WIT_API_URL; assuming localhost")
 		}
 		host = witurl.Host
 		scheme = witurl.Scheme
 	}
 
-	oc := NewOSIOClientV1(ctx, scheme, host)
-
-	return oc
+	return NewOSIOClient(ctx, scheme, host)
 }
 
-func (c *AppsController) getSpaceNameFromSpaceID(ctx context.Context, spaceID uuid.UUID) (*string, error) {
-	// TODO - add a cache in AppsController - but will break if user can change space name
+func (c *DeploymentsController) getSpaceNameFromSpaceID(ctx context.Context, spaceID uuid.UUID) (*string, error) {
+	// TODO - add a cache in DeploymentsController - but will break if user can change space name
 	// use WIT API to convert Space UUID to Space name
-	osioclient := getAndCheckOSIOClientV1(ctx)
+	osioclient := getAndCheckOSIOClient(ctx)
 
 	osioSpace, err := osioclient.GetSpaceByID(ctx, spaceID)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrapf(err, "unable to connvert space UUID %s to space name", spaceID.String())
 	}
 	return osioSpace.Attributes.Name, nil
 }
 
-func getNamespaceNameV1(ctx context.Context) (*string, error) {
+func getNamespaceName(ctx context.Context) (*string, error) {
 
-	osioclient := getAndCheckOSIOClientV1(ctx)
+	osioclient := getAndCheckOSIOClient(ctx)
 	kubeSpaceAttr, err := osioclient.GetNamespaceByType(ctx, nil, "user")
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "unable to retrieve 'user' namespace")
 	}
 	if kubeSpaceAttr == nil || kubeSpaceAttr.Name == nil {
 		return nil, witerrors.NewNotFoundError("namespace", "user")
@@ -90,11 +94,11 @@ func getNamespaceNameV1(ctx context.Context) (*string, error) {
 	return kubeSpaceAttr.Name, nil
 }
 
-func getUserV1(authClient authservice.Client, ctx context.Context) (*authservice.User, error) {
+func getUser(authClient authservice.Client, ctx context.Context) (*authservice.User, error) {
 	// get the user definition (for cluster URL)
 	resp, err := authClient.ShowUser(ctx, authservice.ShowUserPath(), nil, nil)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrapf(err, "unable to retrive user from Auth service")
 	}
 
 	defer resp.Body.Close()
@@ -103,22 +107,22 @@ func getUserV1(authClient authservice.Client, ctx context.Context) (*authservice
 
 	status := resp.StatusCode
 	if status < 200 || status > 300 {
-		return nil, fmt.Errorf("Failed to GET user due to status code %d", status)
+		return nil, errs.Errorf("failed to GET user due to status code %d", status)
 	}
 
 	var respType authservice.User
 	err = json.Unmarshal(respBody, &respType)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrapf(err, "unable to unmarshal user definition from Auth service")
 	}
 	return &respType, nil
 }
 
-func getTokenDataV1(authClient authservice.Client, ctx context.Context, forService string) (*authservice.TokenData, error) {
+func getTokenData(authClient authservice.Client, ctx context.Context, forService string) (*authservice.TokenData, error) {
 
 	resp, err := authClient.RetrieveToken(ctx, authservice.RetrieveTokenPath(), forService, nil)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrapf(err, "unable to retrieve Auth token for '%s' service", forService)
 	}
 
 	defer resp.Body.Close()
@@ -127,69 +131,69 @@ func getTokenDataV1(authClient authservice.Client, ctx context.Context, forServi
 
 	status := resp.StatusCode
 	if status < 200 || status > 300 {
-		return nil, errors.New("Failed to GET user due to status code " + string(status))
+		return nil, errs.Errorf("failed to GET Auth token for '%s' service due to status code %d", forService, status)
 	}
 
 	var respType authservice.TokenData
 	err = json.Unmarshal(respBody, &respType)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrapf(err, "unable to unmarshal Auth token for '%s' service from Auth service", forService)
 	}
 	return &respType, nil
 }
 
 // getKubeClient createa kube client for the appropriate cluster assigned to the current user.
 // many different errors are possible, so controllers should call getAndCheckKubeClient() instead
-func (c *AppsController) getKubeClient(ctx context.Context) (kubernetesV1.KubeClientInterface, error) {
+func (c *DeploymentsController) getKubeClient(ctx context.Context) (kubernetes.KubeClientInterface, error) {
 
 	// create Auth API client
 	authClient, err := auth.CreateClient(ctx, c.Config)
 	if err != nil {
-		log.Error(ctx, nil, "error accessing Auth server"+tostring(err))
-		return nil, err
+		log.Error(ctx, nil, "error accessing Auth server %s", tostring(err))
+		return nil, errs.Wrapf(err, "error creating Auth client")
 	}
 
-	authUser, err := getUserV1(*authClient, ctx)
+	authUser, err := getUser(*authClient, ctx)
 	if err != nil {
-		log.Error(ctx, nil, "error accessing Auth server"+tostring(err))
-		return nil, err
+		log.Error(ctx, nil, "error accessing Auth server: %s", tostring(err))
+		return nil, errs.Wrapf(err, "error retrieving user definition from Auth client")
 	}
 
 	if authUser == nil || authUser.Data.Attributes.Cluster == nil {
-		log.Error(ctx, nil, "error getting user from Auth server:"+tostring(authUser))
-		return nil, fmt.Errorf("error getting user from Auth Server: %s", tostring(authUser))
+		log.Error(ctx, nil, "error getting user from Auth server: %s", tostring(authUser))
+		return nil, errs.Errorf("error getting user from Auth Server: %s", tostring(authUser))
 	}
 
 	// get the openshift/kubernetes auth info for the cluster OpenShift API
-	osauth, err := getTokenDataV1(*authClient, ctx, *authUser.Data.Attributes.Cluster)
+	osauth, err := getTokenData(*authClient, ctx, *authUser.Data.Attributes.Cluster)
 	if err != nil {
-		log.Error(ctx, nil, "error getting openshift credentials:"+tostring(err))
-		return nil, err
+		log.Error(ctx, nil, "error getting openshift credentials: %s", tostring(err))
+		return nil, errs.Wrapf(err, "error getting openshift credentials")
 	}
 
 	kubeURL := *authUser.Data.Attributes.Cluster
 	kubeToken := *osauth.AccessToken
 
-	kubeNamespaceName, err := getNamespaceNameV1(ctx)
+	kubeNamespaceName, err := getNamespaceName(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrapf(err, "could not retrieve namespace name")
 	}
 
 	// create the cluster API client
-	kubeConfig := &kubernetesV1.KubeClientConfig{
+	kubeConfig := &kubernetes.KubeClientConfig{
 		ClusterURL:    kubeURL,
 		BearerToken:   kubeToken,
 		UserNamespace: *kubeNamespaceName,
 	}
-	kc, err := kubernetesV1.NewKubeClient(kubeConfig)
+	kc, err := kubernetes.NewKubeClient(kubeConfig)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrapf(err, "could not create Kubernetes client object")
 	}
 	return kc, nil
 }
 
 // SetDeployment runs the setDeployment action.
-func (c *AppsController) SetDeployment(ctx *app.SetDeploymentAppsContext) error {
+func (c *DeploymentsController) SetDeployment(ctx *app.SetDeploymentDeploymentsContext) error {
 
 	// we double check podcount here, because in the future we might have different query parameters
 	// (for setting different Pod switches) and PodCount might become optional
@@ -209,7 +213,7 @@ func (c *AppsController) SetDeployment(ctx *app.SetDeploymentAppsContext) error 
 
 	oldCount, err := kc.ScaleDeployment(*kubeSpaceName, ctx.AppName, ctx.DeployName, *ctx.PodCount)
 	if err != nil {
-		return witerrors.NewInternalError(ctx, err)
+		return witerrors.NewInternalError(ctx, errs.Wrapf(err, "error scaling depoyment %s", ctx.DeployName))
 	}
 
 	log.Info(ctx, nil, "podcount was %d; will be set to %d", *oldCount, *ctx.PodCount)
@@ -217,7 +221,7 @@ func (c *AppsController) SetDeployment(ctx *app.SetDeploymentAppsContext) error 
 }
 
 // ShowDeploymentStatSeries runs the showDeploymentStatSeries action.
-func (c *AppsController) ShowDeploymentStatSeries(ctx *app.ShowDeploymentStatSeriesAppsContext) error {
+func (c *DeploymentsController) ShowDeploymentStatSeries(ctx *app.ShowDeploymentStatSeriesDeploymentsContext) error {
 
 	endTime := time.Now()
 	startTime := endTime.Add(-8 * time.Hour) // default: start time is 8 hours before end time
@@ -257,15 +261,19 @@ func (c *AppsController) ShowDeploymentStatSeries(ctx *app.ShowDeploymentStatSer
 		return witerrors.NewNotFoundError("deployment", ctx.DeployName)
 	}
 
-	res := &app.SimpleDeploymentStatSeriesV1Single{
+	res := &app.SimpleDeploymentStatSeriesSingle{
 		Data: statSeries,
 	}
 
 	return ctx.OK(res)
 }
 
+func convertToTime(unixMillis int64) time.Time {
+	return time.Unix(0, unixMillis*int64(time.Millisecond))
+}
+
 // ShowDeploymentStats runs the showDeploymentStats action.
-func (c *AppsController) ShowDeploymentStats(ctx *app.ShowDeploymentStatsAppsContext) error {
+func (c *DeploymentsController) ShowDeploymentStats(ctx *app.ShowDeploymentStatsDeploymentsContext) error {
 
 	kc, err := c.getKubeClient(ctx)
 	if err != nil {
@@ -287,13 +295,15 @@ func (c *AppsController) ShowDeploymentStats(ctx *app.ShowDeploymentStatsAppsCon
 
 	deploymentStats, err := kc.GetDeploymentStats(*kubeSpaceName, ctx.AppName, ctx.DeployName, startTime)
 	if err != nil {
-		return witerrors.NewInternalError(ctx, err)
+		return witerrors.NewInternalError(ctx, errs.Wrapf(err, "could not retrieve deployment statistics for %s", ctx.DeployName))
 	}
 	if deploymentStats == nil {
 		return witerrors.NewNotFoundError("deployment", ctx.DeployName)
 	}
 
-	res := &app.SimpleDeploymentStatsV1Single{
+	deploymentStats.ID = ctx.DeployName
+
+	res := &app.SimpleDeploymentStatsSingle{
 		Data: deploymentStats,
 	}
 
@@ -301,7 +311,7 @@ func (c *AppsController) ShowDeploymentStats(ctx *app.ShowDeploymentStatsAppsCon
 }
 
 // ShowEnvironment runs the showEnvironment action.
-func (c *AppsController) ShowEnvironment(ctx *app.ShowEnvironmentAppsContext) error {
+func (c *DeploymentsController) ShowEnvironment(ctx *app.ShowEnvironmentDeploymentsContext) error {
 
 	kc, err := c.getKubeClient(ctx)
 	if err != nil {
@@ -310,13 +320,15 @@ func (c *AppsController) ShowEnvironment(ctx *app.ShowEnvironmentAppsContext) er
 
 	env, err := kc.GetEnvironment(ctx.EnvName)
 	if err != nil {
-		return witerrors.NewInternalError(ctx, err)
+		return witerrors.NewInternalError(ctx, errs.Wrapf(err, "could not retrieve environment %s", ctx.EnvName))
 	}
 	if env == nil {
 		return witerrors.NewNotFoundError("environment", ctx.EnvName)
 	}
 
-	res := &app.SimpleEnvironmentV1Single{
+	env.ID = *env.Attributes.Name
+
+	res := &app.SimpleEnvironmentSingle{
 		Data: env,
 	}
 
@@ -324,7 +336,7 @@ func (c *AppsController) ShowEnvironment(ctx *app.ShowEnvironmentAppsContext) er
 }
 
 // ShowSpace runs the showSpace action.
-func (c *AppsController) ShowSpace(ctx *app.ShowSpaceAppsContext) error {
+func (c *DeploymentsController) ShowSpace(ctx *app.ShowSpaceDeploymentsContext) error {
 
 	kc, err := c.getKubeClient(ctx)
 	if err != nil {
@@ -339,13 +351,16 @@ func (c *AppsController) ShowSpace(ctx *app.ShowSpaceAppsContext) error {
 	// get OpenShift space
 	space, err := kc.GetSpace(*kubeSpaceName)
 	if err != nil {
-		return witerrors.NewInternalError(ctx, err)
+		return witerrors.NewInternalError(ctx, errs.Wrapf(err, "could not retrieve space %s", *kubeSpaceName))
 	}
 	if space == nil {
 		return witerrors.NewNotFoundError("space", *kubeSpaceName)
 	}
 
-	res := &app.SimpleSpaceV1Single{
+	// Kubernetes doesn't know about space ID, so add it here
+	space.ID = ctx.SpaceID
+
+	res := &app.SimpleSpaceSingle{
 		Data: space,
 	}
 
@@ -353,7 +368,7 @@ func (c *AppsController) ShowSpace(ctx *app.ShowSpaceAppsContext) error {
 }
 
 // ShowSpaceApp runs the showSpaceApp action.
-func (c *AppsController) ShowSpaceApp(ctx *app.ShowSpaceAppAppsContext) error {
+func (c *DeploymentsController) ShowSpaceApp(ctx *app.ShowSpaceAppDeploymentsContext) error {
 
 	kc, err := c.getKubeClient(ctx)
 	if err != nil {
@@ -367,13 +382,15 @@ func (c *AppsController) ShowSpaceApp(ctx *app.ShowSpaceAppAppsContext) error {
 
 	theapp, err := kc.GetApplication(*kubeSpaceName, ctx.AppName)
 	if err != nil {
-		return witerrors.NewInternalError(ctx, err)
+		return witerrors.NewInternalError(ctx, errs.Wrapf(err, "could not retrieve application %s", ctx.AppName))
 	}
 	if theapp == nil {
 		return witerrors.NewNotFoundError("application", ctx.AppName)
 	}
 
-	res := &app.SimpleApplicationV1Single{
+	theapp.ID = *theapp.Attributes.Name
+
+	res := &app.SimpleApplicationSingle{
 		Data: theapp,
 	}
 
@@ -381,7 +398,7 @@ func (c *AppsController) ShowSpaceApp(ctx *app.ShowSpaceAppAppsContext) error {
 }
 
 // ShowSpaceAppDeployment runs the showSpaceAppDeployment action.
-func (c *AppsController) ShowSpaceAppDeployment(ctx *app.ShowSpaceAppDeploymentAppsContext) error {
+func (c *DeploymentsController) ShowSpaceAppDeployment(ctx *app.ShowSpaceAppDeploymentDeploymentsContext) error {
 
 	kc, err := c.getKubeClient(ctx)
 	if err != nil {
@@ -395,13 +412,15 @@ func (c *AppsController) ShowSpaceAppDeployment(ctx *app.ShowSpaceAppDeploymentA
 
 	deploymentStats, err := kc.GetDeployment(*kubeSpaceName, ctx.AppName, ctx.DeployName)
 	if err != nil {
-		return witerrors.NewInternalError(ctx, err)
+		return witerrors.NewInternalError(ctx, errs.Wrapf(err, "error retrieving deployment %s", ctx.DeployName))
 	}
 	if deploymentStats == nil {
 		return witerrors.NewNotFoundError("deployment statistics", ctx.DeployName)
 	}
 
-	res := &app.SimpleDeploymentV1Single{
+	deploymentStats.ID = *deploymentStats.Attributes.Name
+
+	res := &app.SimpleDeploymentSingle{
 		Data: deploymentStats,
 	}
 
@@ -409,7 +428,7 @@ func (c *AppsController) ShowSpaceAppDeployment(ctx *app.ShowSpaceAppDeploymentA
 }
 
 // ShowEnvAppPods runs the showEnvAppPods action.
-func (c *AppsController) ShowEnvAppPods(ctx *app.ShowEnvAppPodsAppsContext) error {
+func (c *DeploymentsController) ShowEnvAppPods(ctx *app.ShowEnvAppPodsDeploymentsContext) error {
 
 	kc, err := c.getKubeClient(ctx)
 	if err != nil {
@@ -418,7 +437,7 @@ func (c *AppsController) ShowEnvAppPods(ctx *app.ShowEnvAppPodsAppsContext) erro
 
 	pods, err := kc.GetPodsInNamespace(ctx.EnvName, ctx.AppName)
 	if err != nil {
-		return witerrors.NewInternalError(ctx, err)
+		return witerrors.NewInternalError(ctx, errs.Wrapf(err, "error retrieving pods from namespace %s/%s", ctx.EnvName, ctx.AppName))
 	}
 	if pods == nil || len(pods) == 0 {
 		return witerrors.NewNotFoundError("pods", ctx.AppName)
@@ -429,7 +448,7 @@ func (c *AppsController) ShowEnvAppPods(ctx *app.ShowEnvAppPodsAppsContext) erro
 }
 
 // ShowSpaceEnvironments runs the showSpaceEnvironments action.
-func (c *AppsController) ShowSpaceEnvironments(ctx *app.ShowSpaceEnvironmentsAppsContext) error {
+func (c *DeploymentsController) ShowSpaceEnvironments(ctx *app.ShowSpaceEnvironmentsDeploymentsContext) error {
 
 	kc, err := c.getKubeClient(ctx)
 	if err != nil {
@@ -438,13 +457,13 @@ func (c *AppsController) ShowSpaceEnvironments(ctx *app.ShowSpaceEnvironmentsApp
 
 	envs, err := kc.GetEnvironments()
 	if err != nil {
-		return witerrors.NewInternalError(ctx, err)
+		return witerrors.NewInternalError(ctx, errs.Wrap(err, "error retrieving environments"))
 	}
 	if envs == nil {
 		return witerrors.NewNotFoundError("environments", ctx.SpaceID.String())
 	}
 
-	res := &app.SimpleEnvironmentV1List{
+	res := &app.SimpleEnvironmentList{
 		Data: envs,
 	}
 

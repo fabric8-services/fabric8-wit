@@ -135,7 +135,9 @@ func (m *GormAreaRepository) CheckExists(ctx context.Context, id uuid.UUID) erro
 func (m *GormAreaRepository) LoadMultiple(ctx context.Context, ids []uuid.UUID) ([]Area, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "Area", "getmultiple"}, time.Now())
 	var objs []Area
-
+	if len(ids) == 0 {
+		return objs, nil
+	}
 	for i := 0; i < len(ids); i++ {
 		m.db = m.db.Or("id = ?", ids[i])
 	}
