@@ -92,22 +92,22 @@ var simpleDeploymentStatSeriesV1 = a.Type("SimpleDeploymentStatSeriesV1", func()
 })
 
 var simpleSpaceSingleV1 = JSONSingle(
-	"SimpleSpace", "Holds a single response to a space request",
+	"SimpleSpaceV1", "Holds a single response to a space request",
 	simpleSpaceV1,
 	nil)
 
 var simpleAppSingleV1 = JSONSingle(
-	"SimpleApplication", "Holds a single response to a space/application request",
+	"SimpleApplicationV1", "Holds a single response to a space/application request",
 	simpleAppV1,
 	nil)
 
 var simpleEnvironmentSingleV1 = JSONSingle(
-	"SimpleEnvironment", "Holds a single response to a space/environment request",
+	"SimpleEnvironmentV1", "Holds a single response to a space/environment request",
 	simpleEnvironmentV1,
 	nil)
 
 var simpleEnvironmentMultipleV1 = JSONList(
-	"SimpleEnvironment", "Holds a response to a space/environment request",
+	"SimpleEnvironmentV1", "Holds a response to a space/environment request",
 	simpleEnvironmentV1,
 	nil,
 	nil)
@@ -118,28 +118,28 @@ var simplePodV1 = a.Type("SimplePodV1", func() {
 })
 
 var simplePodMultipleV1 = JSONList(
-	"SimplePod", "Holds a list of pods",
+	"SimplePodV1", "Holds a list of pods",
 	simplePodV1,
 	nil,
 	nil)
 
 var simpleDeploymentSingleV1 = JSONSingle(
-	"SimpleDeployment", "Holds a single response to a space/application/deployment request",
+	"SimpleDeploymentV1", "Holds a single response to a space/application/deployment request",
 	simpleDeploymentV1,
 	nil)
 
 var simpleDeploymentStatsSingleV1 = JSONSingle(
-	"SimpleDeploymentStats", "Holds a single response to a space/application/deployment/stats request",
+	"SimpleDeploymentStatsV1", "Holds a single response to a space/application/deployment/stats request",
 	simpleDeploymentStatsV1,
 	nil)
 
 var simpleDeploymentStatSeriesSingleV1 = JSONSingle(
-	"SimpleDeploymentStatSeries", "HOlds a response to a stat series query",
+	"SimpleDeploymentStatSeriesV1", "HOlds a response to a stat series query",
 	simpleDeploymentStatSeriesV1,
 	nil)
 
 var simpleEnvironmentStatSingleV1 = JSONSingle(
-	"EnvStats", "Holds a single response to a pipeline/stats request",
+	"EnvStatsV1", "Holds a single response to a pipeline/stats request",
 	envStatsV1,
 	nil)
 
