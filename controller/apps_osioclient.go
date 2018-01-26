@@ -16,14 +16,14 @@ import (
 )
 
 // OSIOClient contains configuration and methods for interacting with OSIO API
-type OSIOClient struct {
+type OSIOClientV1 struct {
 	wc *witclient.Client
 }
 
 // NewOSIOClient creates an openshift IO client given an http request context
-func NewOSIOClient(ctx context.Context, scheme string, host string) *OSIOClient {
+func NewOSIOClientV1(ctx context.Context, scheme string, host string) *OSIOClientV1 {
 
-	client := new(OSIOClient)
+	client := new(OSIOClientV1)
 	httpClient := newHTTPClient()
 	client.wc = witclient.New(goaclient.HTTPClientDoer(httpClient))
 	client.wc.Host = host
@@ -40,7 +40,7 @@ func newHTTPClient() *http.Client {
 
 // GetNamespaceByType finds a namespace by type (user, che, stage, etc)
 // if userService is nil, will fetch the user services under the hood
-func (osioclient *OSIOClient) GetNamespaceByType(ctx context.Context, userService *app.UserService, namespaceType string) (*app.NamespaceAttributes, error) {
+func (osioclient *OSIOClientV1) GetNamespaceByType(ctx context.Context, userService *app.UserService, namespaceType string) (*app.NamespaceAttributes, error) {
 	if userService == nil {
 		us, err := osioclient.GetUserServices(ctx)
 		if err != nil {
@@ -59,7 +59,7 @@ func (osioclient *OSIOClient) GetNamespaceByType(ctx context.Context, userServic
 
 // GetUserServices - fetch array of user services
 // In the future, consider calling the tenant service (as /api/user/services implementation does)
-func (osioclient *OSIOClient) GetUserServices(ctx context.Context) (*app.UserService, error) {
+func (osioclient *OSIOClientV1) GetUserServices(ctx context.Context) (*app.UserService, error) {
 	resp, err := osioclient.wc.ShowUserService(ctx, witclient.ShowUserServicePath())
 	if err != nil {
 		return nil, err
@@ -85,7 +85,7 @@ func (osioclient *OSIOClient) GetUserServices(ctx context.Context) (*app.UserSer
 }
 
 // GetSpaceByID - fetch space given UUID
-func (osioclient *OSIOClient) GetSpaceByID(ctx context.Context, spaceID uuid.UUID) (*app.Space, error) {
+func (osioclient *OSIOClientV1) GetSpaceByID(ctx context.Context, spaceID uuid.UUID) (*app.Space, error) {
 	// there are two different uuid packages at play here:
 	//   github.com/satori/go.uuid and goadesign/goa/uuid.
 	// because of that, we fenerate our own URL to avoid issues for now.
