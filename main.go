@@ -296,6 +296,10 @@ func main() {
 	appsCtrl := controller.NewAppsController(service, config)
 	app.MountAppsController(service, appsCtrl)
 
+	// Mount "deployments" controller
+	deploymentsCtrl := controller.NewDeploymentsController(service, config)
+	app.MountDeploymentsController(service, deploymentsCtrl)
+
 	// Mount "search" controller
 	searchCtrl := controller.NewSearchController(service, appDB, config)
 	app.MountSearchController(service, searchCtrl)
