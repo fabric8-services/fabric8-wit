@@ -18,7 +18,7 @@ RUN yum --enablerepo=centosplus install -y --quiet \
 
 # Get glide for Go package management
 RUN cd /tmp \
-    && wget https://github.com/Masterminds/glide/releases/download/v0.11.1/glide-v0.11.1-linux-amd64.tar.gz \
+    && wget https://github.com/Masterminds/glide/releases/download/v0.13.1/glide-v0.13.1-linux-amd64.tar.gz \
     && tar xzf glide-v*.tar.gz \
     && mv linux-amd64/glide /usr/bin \
     && rm -rfv glide-v* linux-amd64
