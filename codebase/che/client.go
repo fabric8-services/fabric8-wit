@@ -9,6 +9,7 @@ import (
 	"net/http/httputil"
 
 	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/goadesign/goa/middleware"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 )
@@ -76,7 +77,7 @@ func (cs *StarterClient) ListWorkspaces(ctx context.Context, repository string) 
 		return nil, err
 	}
 
-	defer resp.Body.Close()
+	defer rest.CloseResponse(resp)
 
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
 		workspaceErr := StarterError{}
@@ -138,7 +139,7 @@ func (cs *StarterClient) CreateWorkspace(ctx context.Context, workspace Workspac
 		return nil, err
 	}
 
-	defer resp.Body.Close()
+	defer rest.CloseResponse(resp)
 
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
 		workspaceErr := StarterError{}
@@ -207,7 +208,7 @@ func (cs *StarterClient) DeleteWorkspace(ctx context.Context, workspaceName stri
 		return err
 	}
 
-	defer resp.Body.Close()
+	defer rest.CloseResponse(resp)
 
 	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
 		workspaceErr := StarterError{}
@@ -257,7 +258,7 @@ func (cs *StarterClient) StartExistingWorkspace(ctx context.Context, workspaceNa
 		return nil, err
 	}
 
-	defer resp.Body.Close()
+	defer rest.CloseResponse(resp)
 
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
 		workspaceErr := StarterError{}
@@ -311,7 +312,7 @@ func (cs *StarterClient) GetCheServerState(ctx context.Context) (*ServerStateRes
 		return nil, err
 	}
 
-	defer resp.Body.Close()
+	defer rest.CloseResponse(resp)
 
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
 		statusErr := StarterError{}
@@ -362,7 +363,7 @@ func (cs *StarterClient) StartCheServer(ctx context.Context) (*ServerStateRespon
 		return nil, err
 	}
 
-	defer resp.Body.Close()
+	defer rest.CloseResponse(resp)
 
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusAccepted {
 		statusErr := StarterError{}

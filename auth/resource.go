@@ -68,7 +68,8 @@ func (m *AuthzResourceManager) CreateSpace(ctx context.Context, request *http.Re
 		}, "unable to create a space resource via auth service")
 		return nil, errs.Wrap(err, "unable to create a space resource via auth service")
 	}
-	defer res.Body.Close()
+	defer rest.CloseResponse(res)
+
 	if res.StatusCode != http.StatusOK {
 		log.Error(ctx, map[string]interface{}{
 			"space_id":        spaceID,
@@ -122,7 +123,8 @@ func (m *AuthzResourceManager) DeleteSpace(ctx context.Context, request *http.Re
 		}, "unable to delete a space resource via auth service")
 		return errs.Wrap(err, "unable to delete a space resource via auth service")
 	}
-	defer res.Body.Close()
+	defer rest.CloseResponse(res)
+
 	if res.StatusCode != http.StatusOK {
 		log.Error(ctx, map[string]interface{}{
 			"space_id":        spaceID,
