@@ -11,6 +11,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/account/tenant"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/goasupport"
+	"github.com/fabric8-services/fabric8-wit/rest"
 	goaclient "github.com/goadesign/goa/client"
 )
 
@@ -58,7 +59,8 @@ func InitTenant(ctx context.Context, config tenantConfig) error {
 	}
 
 	// Ignore response for now
-	_, err = c.SetupTenant(goasupport.ForwardContextRequestID(ctx), tenant.SetupTenantPath())
+	res, err := c.SetupTenant(goasupport.ForwardContextRequestID(ctx), tenant.SetupTenantPath())
+	defer rest.CloseResponse(res)
 
 	return err
 }
@@ -72,7 +74,8 @@ func UpdateTenant(ctx context.Context, config tenantConfig) error {
 	}
 
 	// Ignore response for now
-	_, err = c.UpdateTenant(goasupport.ForwardContextRequestID(ctx), tenant.UpdateTenantPath())
+	res, err := c.UpdateTenant(goasupport.ForwardContextRequestID(ctx), tenant.UpdateTenantPath())
+	defer rest.CloseResponse(res)
 
 	return err
 }
@@ -89,6 +92,8 @@ func CleanTenant(ctx context.Context, config tenantConfig) error {
 	if err != nil {
 		return err
 	}
+	defer rest.CloseResponse(res)
+
 	if res.StatusCode != http.StatusOK {
 		jsonErr, err := c.DecodeJSONAPIErrors(res)
 		if err == nil {
@@ -112,6 +117,8 @@ func ShowTenant(ctx context.Context, config tenantConfig) (*tenant.TenantSingle,
 	if err != nil {
 		return nil, err
 	}
+	defer rest.CloseResponse(res)
+
 	if res.StatusCode == http.StatusOK {
 		tenant, err := c.DecodeTenantSingle(res)
 		if err != nil {
