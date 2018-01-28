@@ -15,7 +15,7 @@ import:
 - package: github.com/dgrijalva/jwt-go
   version: ^3.0.0
 - package: github.com/goadesign/goa
-  version: ^1.3.0
+  version: v1.3.0
   vcs: git
   subpackages:
   - client
@@ -30,6 +30,8 @@ import:
   - goatest
   - middleware
   - middleware/security/jwt
+- package: github.com/satori/go.uuid
+  version: v1.1.0
 - package: github.com/armon/go-metrics
   version: 9a4b6e10bed6220a1665955aa2b75afc91eb10b3
 - package: gopkg.in/square/go-jose.v2
@@ -119,6 +121,7 @@ import:
 - package: github.com/xeipuuv/gojsonreference
 - package: github.com/xeipuuv/gojsonpointer
 - package: github.com/prometheus/client_golang
+- package: github.com/google/gops
 - package: gopkg.in/alecthomas/kingpin.v2
   version: ^2.2.6
 - package: gopkg.in/inf.v0
