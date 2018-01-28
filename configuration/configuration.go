@@ -48,6 +48,7 @@ const (
 	varPopulateCommonTypes          = "populate.commontypes"
 	varHTTPAddress                  = "http.address"
 	varMetricsHTTPAddress           = "metrics.http.address"
+	varDiagnoseHTTPAddress          = "diagnose.http.address"
 	varDeveloperModeEnabled         = "developer.mode.enabled"
 	varAuthDomainPrefix             = "auth.domain.prefix"
 	varAuthShortServiceHostName     = "auth.servicehostname.short"
@@ -333,6 +334,18 @@ func (c *Registry) GetHTTPAddress() string {
 // By default GetMetricsHTTPAddress is the same as GetHTTPAddress
 func (c *Registry) GetMetricsHTTPAddress() string {
 	return c.v.GetString(varMetricsHTTPAddress)
+}
+
+// GetDiagnoseHTTPAddress returns the address of where to start the gops handler.
+// By default GetDiagnoseHTTPAddress is 127.0.0.1:0 in devMode, but turned off in prod mode
+// unless explicitly configured
+func (c *Registry) GetDiagnoseHTTPAddress() string {
+	if c.v.IsSet(varDiagnoseHTTPAddress) {
+		return c.v.GetString(varDiagnoseHTTPAddress)
+	} else if c.IsPostgresDeveloperModeEnabled() {
+		return "127.0.0.1:0"
+	}
+	return ""
 }
 
 // GetHeaderMaxLength returns the max length of HTTP headers allowed in the system
