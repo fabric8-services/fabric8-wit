@@ -1,5 +1,5 @@
-hash: 0be95f5803d025af2b443969c3ce1ee5075b16472021c2c12e07ccb7a7883317
-updated: 2018-01-28T17:29:26.874439733+01:00
+hash: 07b8ab33e5b3fdecf96b31fdd29b307f872dc87d657a83094368cff81d335d90
+updated: 2018-01-29T05:14:18.625729376+01:00
 imports:
 - name: github.com/ajg/form
   version: cc2954064ec9ea8d93917f0f87456e11d7b881ad
@@ -64,7 +64,7 @@ imports:
   subpackages:
   - design
 - name: github.com/fabric8-services/fabric8-tenant
-  version: 5ce38dea6287d9bac7789a8bc24556867a4fcee6
+  version: 284c295d606b71447bd5f9831f1b5fb6f899a2d4
   subpackages:
   - design
 - name: github.com/fatih/structs
