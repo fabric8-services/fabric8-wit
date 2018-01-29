@@ -52,13 +52,16 @@ func convert(t *tenant.TenantSingle) *app.UserServiceSingle {
 	var ns []*app.NamespaceAttributes
 	for _, tn := range t.Data.Attributes.Namespaces {
 		ns = append(ns, &app.NamespaceAttributes{
-			CreatedAt:  tn.CreatedAt,
-			UpdatedAt:  tn.UpdatedAt,
-			Name:       tn.Name,
-			State:      tn.State,
-			Version:    tn.Version,
-			Type:       tn.Type,
-			ClusterURL: tn.ClusterURL,
+			CreatedAt:         tn.CreatedAt,
+			UpdatedAt:         tn.UpdatedAt,
+			Name:              tn.Name,
+			State:             tn.State,
+			Version:           tn.Version,
+			Type:              tn.Type,
+			ClusterURL:        tn.ClusterURL,
+			ClusterConsoleURL: tn.ClusterConsoleURL,
+			ClusterMetricsURL: tn.ClusterMetricsURL,
+			ClusterAppDomain:  tn.ClusterAppDomain,
 		})
 	}
 	id := uuid.UUID(*t.Data.ID)
