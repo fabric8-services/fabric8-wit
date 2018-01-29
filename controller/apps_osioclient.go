@@ -3,7 +3,6 @@ package controller
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -11,6 +10,7 @@ import (
 	witclient "github.com/fabric8-services/fabric8-wit/client"
 	"github.com/fabric8-services/fabric8-wit/goasupport"
 	goaclient "github.com/goadesign/goa/client"
+	goauuid "github.com/goadesign/goa/uuid"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
@@ -51,6 +51,9 @@ func (osioclient *OSIOClientV1) GetNamespaceByType(ctx context.Context, userServ
 	nameSpaces := userService.Attributes.Namespaces
 	for _, ns := range nameSpaces {
 		if *ns.Type == namespaceType {
+			if ns.Name == nil {
+				return nil, errs.Errorf("Namespace with type %s found, but has no name", namespaceType)
+			}
 			return ns, nil
 		}
 	}
@@ -89,7 +92,11 @@ func (osioclient *OSIOClientV1) GetSpaceByID(ctx context.Context, spaceID uuid.U
 	// there are two different uuid packages at play here:
 	// github.com/satori/go.uuid and goadesign/goa/uuid.
 	// because of that, we generate our own URL to avoid issues for now.
-	urlpath := fmt.Sprintf("/api/spaces/%s", spaceID.String())
+	var guid goauuid.UUID
+	for i, b := range spaceID {
+		guid[i] = b
+	}
+	urlpath := witclient.ShowSpacePath(guid)
 	resp, err := osioclient.wc.ShowSpace(ctx, urlpath, nil, nil)
 	if err != nil {
 		return nil, errs.Wrapf(err, "could not connect to %s", urlpath)

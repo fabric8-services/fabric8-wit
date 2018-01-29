@@ -96,7 +96,7 @@ func getNamespaceNameV1(ctx context.Context) (*string, error) {
 	if err != nil {
 		return nil, errs.Wrap(err, "unable to retrieve 'user' namespace")
 	}
-	if kubeSpaceAttr == nil || kubeSpaceAttr.Name == nil {
+	if kubeSpaceAttr == nil {
 		return nil, witerrors.NewNotFoundError("namespace", "user")
 	}
 
