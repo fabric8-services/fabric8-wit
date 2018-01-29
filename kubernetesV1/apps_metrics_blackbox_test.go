@@ -41,6 +41,7 @@ type testMetricsOutput struct {
 	metricType hawkular.MetricType
 	namespace  string
 	filters    url.Values
+	closed     bool
 }
 
 func (getter *testHawkularGetter) GetHawkularRESTAPI(config *kubernetesV1.MetricsClientConfig) (kubernetesV1.HawkularRESTAPI, error) {
@@ -70,6 +71,10 @@ func (helper *testHawkular) ReadBuckets(metricType hawkular.MetricType, namespac
 
 	buckets := helper.getter.input.buckets
 	return buckets, nil
+}
+
+func (helper *testHawkular) Close() {
+	helper.output.closed = true
 }
 
 var singleMetricTestCases []*testMetricsInput = []*testMetricsInput{
@@ -314,6 +319,21 @@ func TestGetNetworkSentRange(t *testing.T) {
 		// Verify the remaining filters
 		verifyMetricRangeFilters(testCase, output.filters, t)
 	}
+}
+
+func TestCloseHawkular(t *testing.T) {
+	test := &testHawkularGetter{}
+	config := &kubernetesV1.MetricsClientConfig{
+		MetricsURL:     "myMetricsServer",
+		BearerToken:    "token",
+		HawkularGetter: test,
+	}
+	client, err := kubernetesV1.NewMetricsClient(config)
+	require.NoError(t, err, "Failed to create metrics client")
+
+	// Check that MetricsInterface.Close invokes Hawkular's Client.Close
+	client.Close()
+	assert.True(t, test.result.output.closed, "Hawkular client not closed")
 }
 
 func verifyMetrics(metrics []*app.TimedNumberTupleV1, testCase *testMetricsInput, result *testMetricsOutput,
