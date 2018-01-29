@@ -127,6 +127,12 @@ objects:
               configMapKeyRef:
                 name: core
                 key: notification.serviceurl
+          - name: F8_DIAGNOSE_HTTP_ADDRESS
+            valueFrom:
+              configMapKeyRef:
+                name: core
+                key: diagnose.http.address
+                optional: true
           imagePullPolicy: Always
           name: core
           ports:

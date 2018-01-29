@@ -54,7 +54,8 @@ func (c *UserController) Show(ctx *app.ShowUserContext) error {
 		}, "unable to get user from the auth service")
 		return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "unable to get user from the auth service"))
 	}
-	defer res.Body.Close()
+	defer rest.CloseResponse(res)
+
 	switch res.StatusCode {
 	case 200:
 	// OK
