@@ -89,14 +89,9 @@ func (osioclient *OSIOClientV1) GetUserServices(ctx context.Context) (*app.UserS
 
 // GetSpaceByID - fetch space given UUID
 func (osioclient *OSIOClientV1) GetSpaceByID(ctx context.Context, spaceID uuid.UUID) (*app.Space, error) {
-	// there are two different uuid packages at play here:
-	// github.com/satori/go.uuid and goadesign/goa/uuid.
-	// because of that, we generate our own URL to avoid issues for now.
-	var guid goauuid.UUID
-	for i, b := range spaceID {
-		guid[i] = b
-	}
-	urlpath := witclient.ShowSpacePath(guid)
+
+	urlpath := witclient.ShowSpacePath(goauuid.UUID(spaceID))
+
 	resp, err := osioclient.wc.ShowSpace(ctx, urlpath, nil, nil)
 	if err != nil {
 		return nil, errs.Wrapf(err, "could not connect to %s", urlpath)
