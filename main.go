@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/google/gops/agent"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"context"
@@ -391,6 +392,17 @@ func main() {
 	http.Handle("/api/", service.Mux)
 	http.Handle("/", http.FileServer(assetFS()))
 	http.Handle("/favicon.ico", http.NotFoundHandler())
+
+	if config.GetDiagnoseHTTPAddress() != "" {
+		log.Logger().Infoln("Diagnose:       ", config.GetDiagnoseHTTPAddress())
+		// Start diagnostic http
+		if err := agent.Listen(agent.Options{Addr: config.GetDiagnoseHTTPAddress(), ConfigDir: "/tmp/gops/"}); err != nil {
+			log.Error(nil, map[string]interface{}{
+				"addr": config.GetDiagnoseHTTPAddress(),
+				"err":  err,
+			}, "unable to connect to diagnose server")
+		}
+	}
 
 	// Start/mount metrics http
 	if config.GetHTTPAddress() == config.GetMetricsHTTPAddress() {
