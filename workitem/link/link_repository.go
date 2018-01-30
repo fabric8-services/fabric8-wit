@@ -426,7 +426,7 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 		}
 		db = db.Limit(*limit)
 	}
-	db = db.Select("count(*) over () as cnt2 , *")
+	db = db.Select("count(*) over () as cnt2 , *").Order("execution_order desc")
 
 	rows, err := db.Rows()
 	if err != nil {

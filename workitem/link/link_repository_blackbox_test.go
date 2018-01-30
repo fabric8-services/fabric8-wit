@@ -61,6 +61,33 @@ func (s *linkRepoBlackBoxTest) TestList() {
 	})
 }
 
+func (s *linkRepoBlackBoxTest) TestChildrenOrderOfExecution() {
+	// tests order of workitem children returned by list is according to the
+	// "order of execution" specified
+	s.T().Run("ok - child work items order", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.WorkItems(4), // parent + child 1-3
+			tf.WorkItemLinkTypes(1, func(fxt *tf.TestFixture, idx int) error {
+				fxt.WorkItemLinkTypes[idx].ForwardName = "parent of"
+				return nil
+			}),
+			tf.WorkItemLinks(3, func(fxt *tf.TestFixture, idx int) error {
+				fxt.WorkItemLinks[idx].SourceID = fxt.WorkItems[0].ID
+				fxt.WorkItemLinks[idx].TargetID = fxt.WorkItems[idx+1].ID
+				return nil
+			}),
+		)
+
+		res, _, err := s.workitemLinkRepo.ListWorkItemChildren(s.Ctx, fxt.WorkItems[0].ID, nil, nil)
+		require.NoError(t, err)
+		require.Len(t, res, 3)
+
+		assert.Equal(t, fxt.WorkItems[1].Fields[workitem.SystemOrder], res[2].Fields[workitem.SystemOrder].(float64))
+		assert.Equal(t, fxt.WorkItems[2].Fields[workitem.SystemOrder], res[1].Fields[workitem.SystemOrder].(float64))
+		assert.Equal(t, fxt.WorkItems[3].Fields[workitem.SystemOrder], res[0].Fields[workitem.SystemOrder].(float64))
+	})
+}
+
 func (s *linkRepoBlackBoxTest) TestWorkItemHasChildren() {
 	s.T().Run("work item has no child after deletion", func(t *testing.T) {
 		// given a work item link
