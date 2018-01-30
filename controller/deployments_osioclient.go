@@ -96,7 +96,7 @@ func (osioclient *OSIOClient) GetUserServices(ctx context.Context) (*app.UserSer
 	status := resp.StatusCode
 	if status == http.StatusNotFound {
 		return nil, nil
-	} else if status < 200 || status > 300 {
+	} else if httpStatusFailed(status) {
 		return nil, errs.Errorf("failed to GET %s due to status code %d", witclient.ShowUserServicePath(), status)
 	}
 
@@ -126,7 +126,7 @@ func (osioclient *OSIOClient) GetSpaceByID(ctx context.Context, spaceID uuid.UUI
 	status := resp.StatusCode
 	if status == http.StatusNotFound {
 		return nil, nil
-	} else if status < 200 || status > 300 {
+	} else if httpStatusFailed(status) {
 		return nil, errs.Errorf("failed to GET %s due to status code %d", urlpath, status)
 	}
 

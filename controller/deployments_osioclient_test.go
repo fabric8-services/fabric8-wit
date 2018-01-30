@@ -74,7 +74,7 @@ func TestGetUserServicesBadStatusCodes(t *testing.T) {
 		shouldBeNil bool
 	}{
 		{301, false},
-		{404, true},
+		{http.StatusNotFound, true},
 		{500, false},
 	}
 
@@ -209,9 +209,9 @@ func TestGetSpaceByIDBadStatusCode(t *testing.T) {
 		statusCode  int
 		shouldBeNil bool
 	}{
-		{301, false},
-		{404, true},
-		{500, false},
+		{http.StatusMovedPermanently, false},
+		{http.StatusNotFound, true},
+		{http.StatusInternalServerError, false},
 	}
 
 	for _, testCase := range testCases {

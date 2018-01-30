@@ -673,7 +673,7 @@ func (kc *kubeClient) putResource(url string, putBody []byte) (*string, error) {
 	}
 
 	status := resp.StatusCode
-	if status < 200 || status > 300 {
+	if httpStatusFailed(status) {
 		return nil, errs.Errorf("failed to PUT url %s: status code %d", fullURL, status)
 	}
 	bodyStr := string(body)
@@ -1322,7 +1322,7 @@ func (kc *kubeClient) getResource(url string, allowMissing bool) (map[interface{
 	status := resp.StatusCode
 	if status == http.StatusNotFound && allowMissing {
 		return nil, nil
-	} else if status < 200 || status > 300 {
+	} else if httpStatusFailed(status) {
 		return nil, errs.Errorf("failed to GET url %s due to status code %d", fullURL, status)
 	}
 	var respType map[interface{}]interface{}
@@ -1331,4 +1331,9 @@ func (kc *kubeClient) getResource(url string, allowMissing bool) (map[interface{
 		return nil, errs.WithStack(err)
 	}
 	return respType, nil
+}
+
+func httpStatusFailed(status int) bool {
+	// if status is not between 200-299 then it's an error
+	return status < http.StatusOK || status >= http.StatusMultipleChoices
 }

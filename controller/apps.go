@@ -102,7 +102,7 @@ func getUserV1(authClient authservice.Client, ctx context.Context) (*authservice
 	respBody, err := ioutil.ReadAll(resp.Body)
 
 	status := resp.StatusCode
-	if status < 200 || status > 300 {
+	if httpStatusFailed(status) {
 		return nil, fmt.Errorf("Failed to GET user due to status code %d", status)
 	}
 
@@ -126,7 +126,7 @@ func getTokenDataV1(authClient authservice.Client, ctx context.Context, forServi
 	respBody, err := ioutil.ReadAll(resp.Body)
 
 	status := resp.StatusCode
-	if status < 200 || status > 300 {
+	if httpStatusFailed(status) {
 		return nil, errors.New("Failed to GET user due to status code " + string(status))
 	}
 

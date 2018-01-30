@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"io/ioutil"
+	"net/http"
 	"net/url"
 	"os"
 	"time"
@@ -106,7 +107,7 @@ func getUser(authClient authservice.Client, ctx context.Context) (*authservice.U
 	respBody, err := ioutil.ReadAll(resp.Body)
 
 	status := resp.StatusCode
-	if status < 200 || status > 300 {
+	if httpStatusFailed(status) {
 		return nil, errs.Errorf("failed to GET user due to status code %d", status)
 	}
 
@@ -130,7 +131,7 @@ func getTokenData(authClient authservice.Client, ctx context.Context, forService
 	respBody, err := ioutil.ReadAll(resp.Body)
 
 	status := resp.StatusCode
-	if status < 200 || status > 300 {
+	if httpStatusFailed(status) {
 		return nil, errs.Errorf("failed to GET Auth token for '%s' service due to status code %d", forService, status)
 	}
 
@@ -190,6 +191,11 @@ func (c *DeploymentsController) getKubeClient(ctx context.Context) (kubernetes.K
 		return nil, errs.Wrapf(err, "could not create Kubernetes client object")
 	}
 	return kc, nil
+}
+
+func httpStatusFailed(status int) bool {
+	// if status is not between 200-299 then it's an error
+	return status < http.StatusOK || status >= http.StatusMultipleChoices
 }
 
 // SetDeployment runs the setDeployment action.
