@@ -3,7 +3,6 @@ package controller
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -11,6 +10,7 @@ import (
 	witclient "github.com/fabric8-services/fabric8-wit/client"
 	"github.com/fabric8-services/fabric8-wit/goasupport"
 	goaclient "github.com/goadesign/goa/client"
+	goauuid "github.com/goadesign/goa/uuid"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
@@ -110,10 +110,8 @@ func (osioclient *OSIOClient) GetUserServices(ctx context.Context) (*app.UserSer
 
 // GetSpaceByID - fetch space given UUID
 func (osioclient *OSIOClient) GetSpaceByID(ctx context.Context, spaceID uuid.UUID) (*app.Space, error) {
-	// there are two different uuid packages at play here:
-	// github.com/satori/go.uuid and goadesign/goa/uuid.
-	// because of that, we generate our own URL to avoid issues for now.
-	urlpath := fmt.Sprintf("/api/spaces/%s", spaceID.String())
+	guid := goauuid.UUID(spaceID)
+	urlpath := witclient.ShowSpacePath(guid)
 	resp, err := osioclient.wc.ShowSpace(ctx, urlpath, nil, nil)
 	if err != nil {
 		return nil, errs.Wrapf(err, "could not connect to %s", urlpath)
