@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/kubernetesV1"
@@ -170,29 +171,37 @@ func (getter *testKubeGetter) GetKubeRESTAPI(config *kubernetesV1.KubeClientConf
 
 type testMetricsGetter struct {
 	config *kubernetesV1.MetricsClientConfig
+	result *testMetrics
 }
 
-type testMetrics struct{}
+type testMetrics struct {
+	closed bool
+}
 
 func (getter *testMetricsGetter) GetMetrics(config *kubernetesV1.MetricsClientConfig) (kubernetesV1.MetricsInterface, error) {
 	getter.config = config
-	return testMetrics{}, nil
+	getter.result = &testMetrics{}
+	return getter.result, nil
 }
 
-func (testMetrics) GetCPUMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTupleV1, error) {
+func (tm *testMetrics) Close() {
+	tm.closed = true
+}
+
+func (tm *testMetrics) GetCPUMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTupleV1, error) {
 	return nil, nil // TODO
 }
 
-func (testMetrics) GetCPUMetricsRange(pods []v1.Pod, namespace string, startTime time.Time, endTime time.Time,
+func (tm *testMetrics) GetCPUMetricsRange(pods []v1.Pod, namespace string, startTime time.Time, endTime time.Time,
 	limit int) ([]*app.TimedNumberTupleV1, error) {
 	return nil, nil // TODO
 }
 
-func (testMetrics) GetMemoryMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTupleV1, error) {
+func (tm *testMetrics) GetMemoryMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTupleV1, error) {
 	return nil, nil // TODO
 }
 
-func (testMetrics) GetMemoryMetricsRange(pods []v1.Pod, namespace string, startTime time.Time, endTime time.Time,
+func (tm *testMetrics) GetMemoryMetricsRange(pods []v1.Pod, namespace string, startTime time.Time, endTime time.Time,
 	limit int) ([]*app.TimedNumberTupleV1, error) {
 	return nil, nil // TODO
 }
@@ -253,6 +262,25 @@ func TestGetMetrics(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestClose(t *testing.T) {
+	kubeGetter := &testKubeGetter{}
+	metricsGetter := &testMetricsGetter{}
+
+	config := &kubernetesV1.KubeClientConfig{
+		ClusterURL:        "http://api.myCluster",
+		BearerToken:       "myToken",
+		UserNamespace:     "myNamespace",
+		KubeRESTAPIGetter: kubeGetter,
+		MetricsGetter:     metricsGetter,
+	}
+	client, err := kubernetesV1.NewKubeClient(config)
+	require.NoError(t, err, "Failed to create Kubernetes client")
+
+	// Check that KubeClientInterface.Close invokes MetricsInterface.Close
+	client.Close()
+	assert.True(t, metricsGetter.result.closed, "Metrics client not closed")
 }
 
 func TestConfigMapEnvironments(t *testing.T) {
