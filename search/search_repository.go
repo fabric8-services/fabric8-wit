@@ -13,6 +13,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/fabric8-services/fabric8-wit/criteria"
 	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
@@ -809,13 +810,13 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 }
 
 // Filter Search returns work items for the given query
-func (r *GormSearchRepository) Filter(ctx context.Context, rawFilterString string, parentExists *bool, start *int, limit *int) (matches []workitem.WorkItem, count uint64, ancestors link.AncestorList, err error) {
+func (r *GormSearchRepository) Filter(ctx context.Context, rawFilterString string, parentExists *bool, start *int, limit *int) (matches []workitem.WorkItem, count uint64, ancestors link.AncestorList, childLinks link.WorkItemLinkList, err error) {
 	// parse
 	// generateSearchQuery
 	// ....
 	exp, opts, err := ParseFilterString(ctx, rawFilterString)
 	if err != nil {
-		return nil, 0, nil, errs.Wrap(err, "failed to parse filter string")
+		return nil, 0, nil, nil, errs.Wrap(err, "failed to parse filter string")
 	}
 	log.Debug(ctx, map[string]interface{}{
 		"expression": exp,
@@ -827,12 +828,12 @@ func (r *GormSearchRepository) Filter(ctx context.Context, rawFilterString strin
 			"expression": exp,
 			"raw_filter": rawFilterString,
 		}, "unable to parse the raw filter string")
-		return nil, 0, nil, errors.NewBadParameterError("rawFilterString", rawFilterString)
+		return nil, 0, nil, nil, errors.NewBadParameterError("rawFilterString", rawFilterString)
 	}
 
 	result, count, err := r.listItemsFromDB(ctx, exp, parentExists, start, limit)
 	if err != nil {
-		return nil, 0, nil, errs.WithStack(err)
+		return nil, 0, nil, nil, errs.WithStack(err)
 	}
 
 	// if requested search for ancestors of all matched work items
@@ -850,7 +851,35 @@ func (r *GormSearchRepository) Filter(ctx context.Context, rawFilterString strin
 				"err":         err,
 				"matchingIDs": matchingIDs,
 			}, "failed to find ancestors for these work items")
-			return nil, 0, nil, errs.Wrapf(err, "failed to find ancestors for these work items: %s", matchingIDs)
+			return nil, 0, nil, nil, errs.Wrapf(err, "failed to find ancestors for these work items: %s", matchingIDs)
+		}
+
+		// For each matchingIDs work item that has a child which is also a matching
+		// work item, we load all direct children.
+		includeChildrenFor := id.Slice{}
+		for _, match := range matchingIDs {
+			var includeChildren bool
+			// Check if this matched work item appears as a parent for one of
+			// the other matches. If it does, then include its direct children.
+			for i := 0; i < len(result) && !includeChildren; i++ {
+				if result[i].ID == match {
+					continue
+				}
+				parent := ancestors.GetParentOf(result[i].ID)
+				if parent != nil && parent.ID == match {
+					includeChildren = true
+					includeChildrenFor = append(includeChildrenFor, match)
+				}
+			}
+		}
+		childLinks, err = linkRepo.ListChildLinks(ctx, link.SystemWorkItemLinkTypeParentChildID, includeChildrenFor...)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"expression": exp,
+				"raw_filter": rawFilterString,
+				"err":        err,
+			}, "failed to list child links for work items %+v", includeChildrenFor)
+			return nil, 0, nil, nil, errs.Wrapf(err, "failed to list child links for work item %+v", includeChildrenFor)
 		}
 	}
 
@@ -862,16 +891,16 @@ func (r *GormSearchRepository) Filter(ctx context.Context, rawFilterString strin
 				"err": err,
 				"wit": value.Type,
 			}, "failed to load work item type")
-			return nil, 0, nil, errors.NewInternalError(ctx, errs.Wrap(err, "failed to load work item type"))
+			return nil, 0, nil, nil, errors.NewInternalError(ctx, errs.Wrap(err, "failed to load work item type"))
 		}
 		modelWI, err := workitem.ConvertWorkItemStorageToModel(wiType, &value)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"err": err,
 			}, "failed to convert to storage to model")
-			return nil, 0, nil, errors.NewInternalError(ctx, errs.Wrap(err, "failed to convert storage to model"))
+			return nil, 0, nil, nil, errors.NewInternalError(ctx, errs.Wrap(err, "failed to convert storage to model"))
 		}
 		matches[index] = *modelWI
 	}
-	return matches, count, ancestors, nil
+	return matches, count, ancestors, childLinks, nil
 }
