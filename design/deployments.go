@@ -23,7 +23,7 @@ var simpleSpaceAttributes = a.Type("SimpleSpaceAttributes", func() {
 	a.Description(`a space consisting of multiple applications`)
 	a.Attribute("name", d.String)
 	a.Attribute("applications", a.ArrayOf(simpleApp))
-	a.Required("applications")
+	a.Required("name", "applications")
 })
 
 // SimpleApp describe an application within a space
@@ -41,7 +41,7 @@ var simpleAppAttributes = a.Type("SimpleAppAttributes", func() {
 	a.Description(`a description of an application`)
 	a.Attribute("name", d.String)
 	a.Attribute("deployments", a.ArrayOf(simpleDeployment))
-	a.Required("deployments")
+	a.Required("name", "deployments")
 })
 
 // simpleDeployment describe an element of an application pipeline
@@ -70,6 +70,7 @@ var simpleDeploymentAttributes = a.Type("SimpleDeploymentAttributes", func() {
 	a.Attribute("version", d.String)
 	a.Attribute("pods", a.ArrayOf(a.ArrayOf(d.String)))
 	a.Attribute("pod_total", d.Integer)
+	a.Required("name")
 })
 
 var simpleEnvironment = a.Type("SimpleEnvironment", func() {
@@ -232,11 +233,11 @@ var _ = a.Resource("deployments", func() {
 		a.Routing(
 			a.GET("/spaces/:spaceID/applications/:appName/deployments/:deployName"),
 		)
-		a.Description("list pipe element")
+		a.Description("list deployment")
 		a.Params(func() {
 			a.Param("spaceID", d.UUID, "ID of the space")
 			a.Param("appName", d.String, "Name of the application")
-			a.Param("deployName", d.String, "Name of the pipe deployment")
+			a.Param("deployName", d.String, "Name of the deployment")
 		})
 		a.Response(d.OK, simpleDeploymentSingle)
 		a.Response(d.Unauthorized, JSONAPIErrors)

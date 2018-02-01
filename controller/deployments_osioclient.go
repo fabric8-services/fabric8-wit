@@ -24,6 +24,7 @@ type IOResponseReader struct {
 }
 
 func (r *IOResponseReader) ReadResponse(resp *http.Response) ([]byte, error) {
+	defer resp.Body.Close()
 	return ioutil.ReadAll(resp.Body)
 }
 
@@ -89,14 +90,12 @@ func (osioclient *OSIOClient) GetUserServices(ctx context.Context) (*app.UserSer
 		return nil, errs.Wrapf(err, "could not retrieve uses services")
 	}
 
-	defer resp.Body.Close()
-
 	respBody, err := osioclient.responseReader.ReadResponse(resp)
 
 	status := resp.StatusCode
 	if status == http.StatusNotFound {
 		return nil, nil
-	} else if httpStatusFailed(status) {
+	} else if status != http.StatusOK {
 		return nil, errs.Errorf("failed to GET %s due to status code %d", witclient.ShowUserServicePath(), status)
 	}
 
@@ -117,14 +116,12 @@ func (osioclient *OSIOClient) GetSpaceByID(ctx context.Context, spaceID uuid.UUI
 		return nil, errs.Wrapf(err, "could not connect to %s", urlpath)
 	}
 
-	defer resp.Body.Close()
-
 	respBody, err := osioclient.responseReader.ReadResponse(resp)
 
 	status := resp.StatusCode
 	if status == http.StatusNotFound {
 		return nil, nil
-	} else if httpStatusFailed(status) {
+	} else if status != http.StatusOK {
 		return nil, errs.Errorf("failed to GET %s due to status code %d", urlpath, status)
 	}
 

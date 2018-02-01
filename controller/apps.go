@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"net/url"
 	"os"
 	"time"
@@ -116,7 +117,7 @@ func getUserV1(authClient authservice.Client, ctx context.Context) (*authservice
 	respBody, err := ioutil.ReadAll(resp.Body)
 
 	status := resp.StatusCode
-	if httpStatusFailed(status) {
+	if status != http.StatusOK {
 		return nil, fmt.Errorf("Failed to GET user due to status code %d", status)
 	}
 
@@ -140,7 +141,7 @@ func getTokenDataV1(authClient authservice.Client, ctx context.Context, forServi
 	respBody, err := ioutil.ReadAll(resp.Body)
 
 	status := resp.StatusCode
-	if httpStatusFailed(status) {
+	if status != http.StatusOK {
 		return nil, errors.New("Failed to GET user due to status code " + string(status))
 	}
 

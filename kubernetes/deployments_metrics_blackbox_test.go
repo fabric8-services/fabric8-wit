@@ -11,7 +11,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/kubernetes"
 	hawkular "github.com/hawkular/hawkular-client-go/metrics"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -211,10 +210,8 @@ func TestGetNetworkRecv(t *testing.T) {
 	for _, testCase := range testCases {
 		test.input = testCase
 		metric, err := client.GetNetworkRecvMetrics(testCase.pods, testCase.namespace, testCase.startTime)
-		if !assert.NoError(t, err, "Getting network metrics failed") ||
-			!assert.NotNil(t, metric, "Nil result from network metrics") {
-			continue
-		}
+		require.NoError(t, err, "Getting network metrics failed")
+		require.NotNil(t, metric, "Nil result from network metrics")
 
 		// Check that the result has the correct value and timestamp and that the Hawkular API was called
 		// with the expected values
@@ -242,10 +239,8 @@ func TestGetNetworkRecvRange(t *testing.T) {
 		test.input = testCase
 		metrics, err := client.GetNetworkRecvMetricsRange(testCase.pods, testCase.namespace, testCase.startTime,
 			testCase.endTime, testCase.limit)
-		if !assert.NoError(t, err, "Getting network metrics failed") ||
-			!assert.NotNil(t, metrics, "Nil result from network metrics") {
-			continue
-		}
+		require.NoError(t, err, "Getting network metrics failed")
+		require.NotNil(t, metrics, "Nil result from network metrics")
 
 		// Check that the result has the correct value and timestamp and that the Hawkular API was called
 		// with the expected values
@@ -271,10 +266,8 @@ func TestGetNetworkSent(t *testing.T) {
 	for _, testCase := range testCases {
 		test.input = testCase
 		metric, err := client.GetNetworkSentMetrics(testCase.pods, testCase.namespace, testCase.startTime)
-		if !assert.NoError(t, err, "Getting network metrics failed") ||
-			!assert.NotNil(t, metric, "Nil result from network metrics") {
-			continue
-		}
+		require.NoError(t, err, "Getting network metrics failed")
+		require.NotNil(t, metric, "Nil result from network metrics")
 
 		// Check that the result has the correct value and timestamp and that the Hawkular API was called
 		// with the expected values
@@ -301,10 +294,8 @@ func TestGetNetworkSentRange(t *testing.T) {
 	for _, testCase := range testCases {
 		test.input = testCase
 		metrics, err := client.GetNetworkSentMetricsRange(testCase.pods, testCase.namespace, testCase.startTime, testCase.endTime, 0)
-		if !assert.NoError(t, err, "Getting network metrics failed") ||
-			!assert.NotNil(t, metrics, "Nil result from network metrics") {
-			continue
-		}
+		require.NoError(t, err, "Getting network metrics failed")
+		require.NotNil(t, metrics, "Nil result from network metrics")
 
 		// Check that the result has the correct value and timestamp and that the Hawkular API was called
 		// with the expected values
@@ -320,8 +311,8 @@ func verifyMetrics(metrics []*app.TimedNumberTuple, testCase *testMetricsInput, 
 	gaugeDesc string, t *testing.T) {
 	// If limit is specified, check that the number of metrics doesn't exceed that limit
 	numMetrics := len(metrics)
-	if testCase.limit > 0 && !assert.True(t, numMetrics <= testCase.limit, "Too many metrics returned") {
-		return
+	if testCase.limit > 0 {
+		require.True(t, numMetrics <= testCase.limit, "Too many metrics returned")
 	}
 
 	// Check that the result has the correct values and timestamps
@@ -330,19 +321,15 @@ func verifyMetrics(metrics []*app.TimedNumberTuple, testCase *testMetricsInput, 
 		// Iterate backwards since earlier buckets may have been discarded due to limit parameter
 		metric := metrics[numMetrics-1-i]
 		bucket := testCase.buckets[len(testCase.buckets)-1-i]
-		if !assert.NotNil(t, metric.Value, "Nil value in network metric") ||
-			!assert.InEpsilon(t, bucket.Avg, *metric.Value, fltEpsilon, "Incorrect value in network metric") ||
-			!assert.NotNil(t, metric.Time, "Nil time in network metric") ||
-			!assert.InEpsilon(t, hawkular.ToUnixMilli(bucket.Start), *metric.Time, fltEpsilon, "Incorrect time in network metric") {
-			return
-		}
+		require.NotNil(t, metric.Value, "Nil value in network metric")
+		require.InEpsilon(t, bucket.Avg, *metric.Value, fltEpsilon, "Incorrect value in network metric")
+		require.NotNil(t, metric.Time, "Nil time in network metric")
+		require.InEpsilon(t, hawkular.ToUnixMilli(bucket.Start), *metric.Time, fltEpsilon, "Incorrect time in network metric")
 	}
 
 	// Check that ReadBuckets was called with the correct inputs
-	if !assert.Equal(t, testCase.namespace, result.namespace, "ReadBuckets called with incorrect namespace") ||
-		!assert.Equal(t, hawkular.Gauge, result.metricType, "Incorrect Hawkular metric type") {
-		return
-	}
+	require.Equal(t, testCase.namespace, result.namespace, "ReadBuckets called with incorrect namespace")
+	require.Equal(t, hawkular.Gauge, result.metricType, "Incorrect Hawkular metric type")
 
 	// Check that the tags used in the Hawkular query are correct
 	uids := make([]string, len(testCase.pods))
@@ -360,26 +347,26 @@ func verifyMetrics(metrics []*app.TimedNumberTuple, testCase *testMetricsInput, 
 		return
 	}
 	for key, value := range expectedTags {
-		assert.Equal(t, value, tags[key], "Tag mismatch")
+		require.Equal(t, value, tags[key], "Tag mismatch")
 	}
 }
 
 func verifySingleMetricFilters(testCase *testMetricsInput, filters url.Values, t *testing.T) {
-	assert.Equal(t, "1", filters.Get("buckets"), "Buckets parameter missing or incorrect")
-	assert.Equal(t, strconv.FormatInt(hawkular.ToUnixMilli(testCase.startTime), 10),
+	require.Equal(t, "1", filters.Get("buckets"), "Buckets parameter missing or incorrect")
+	require.Equal(t, strconv.FormatInt(hawkular.ToUnixMilli(testCase.startTime), 10),
 		filters.Get("start"), "Start parameter missing or incorrect")
-	assert.Equal(t, strconv.FormatInt(hawkular.ToUnixMilli(testCase.startTime.Add(time.Minute)), 10),
+	require.Equal(t, strconv.FormatInt(hawkular.ToUnixMilli(testCase.startTime.Add(time.Minute)), 10),
 		filters.Get("end"), "End parameter missing or incorrect")
-	assert.Equal(t, "true", filters.Get("stacked"), "Stacked parameter missing or incorrect")
+	require.Equal(t, "true", filters.Get("stacked"), "Stacked parameter missing or incorrect")
 }
 
 func verifyMetricRangeFilters(testCase *testMetricsInput, filters url.Values, t *testing.T) {
-	assert.Equal(t, "60000ms", filters.Get("bucketDuration"), "BucketDuration parameter missing or incorrect")
-	assert.Equal(t, strconv.FormatInt(hawkular.ToUnixMilli(testCase.startTime), 10),
+	require.Equal(t, "60000ms", filters.Get("bucketDuration"), "BucketDuration parameter missing or incorrect")
+	require.Equal(t, strconv.FormatInt(hawkular.ToUnixMilli(testCase.startTime), 10),
 		filters.Get("start"), "Start parameter missing or incorrect")
-	assert.Equal(t, strconv.FormatInt(hawkular.ToUnixMilli(testCase.endTime), 10),
+	require.Equal(t, strconv.FormatInt(hawkular.ToUnixMilli(testCase.endTime), 10),
 		filters.Get("end"), "End parameter missing or incorrect")
-	assert.Equal(t, "true", filters.Get("stacked"), "Stacked parameter missing or incorrect")
+	require.Equal(t, "true", filters.Get("stacked"), "Stacked parameter missing or incorrect")
 }
 
 func tagsToMap(tagsParam string, t *testing.T) map[string]string {
@@ -387,7 +374,7 @@ func tagsToMap(tagsParam string, t *testing.T) map[string]string {
 	tagMap := make(map[string]string)
 	for _, tag := range tags {
 		tagSplit := strings.SplitN(tag, ":", 2)
-		assert.Len(t, tagSplit, 2, "Tag in wrong format")
+		require.Len(t, tagSplit, 2, "Tag in wrong format")
 		tagMap[tagSplit[0]] = tagSplit[1]
 	}
 	return tagMap

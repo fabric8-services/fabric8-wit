@@ -40,7 +40,7 @@ type KubeClientConfig struct {
 	// Provides access to the metrics API, uses default implementation if not set
 	MetricsGetter
 	// hook to inject build configs for testing
-	BuildConfigInterface
+	BuildConfig
 }
 
 // KubeRESTAPIGetter has a method to access the KubeRESTAPI interface
@@ -48,13 +48,13 @@ type KubeRESTAPIGetter interface {
 	GetKubeRESTAPI(config *KubeClientConfig) (KubeRESTAPI, error)
 }
 
-// MetricsGetter has a method to access the MetricsInterface interface
+// MetricsGetter has a method to access the Metrics interface
 type MetricsGetter interface {
-	GetMetrics(config *MetricsClientConfig) (MetricsInterface, error)
+	GetMetrics(config *MetricsClientConfig) (Metrics, error)
 }
 
 // BuildConfigGetter will provide build configs for testing
-type BuildConfigInterface interface {
+type BuildConfig interface {
 	GetBuildConfigs(space string) ([]string, error)
 }
 
@@ -77,8 +77,8 @@ type kubeClient struct {
 	config *KubeClientConfig
 	envMap map[string]string
 	KubeRESTAPI
-	MetricsInterface
-	BuildConfigInterface
+	Metrics
+	BuildConfig
 }
 
 // KubeRESTAPI collects methods that call out to the Kubernetes API server over the network
@@ -137,10 +137,10 @@ func NewKubeClient(config *KubeClientConfig) (KubeClientInterface, error) {
 	}
 
 	kubeClient := &kubeClient{
-		config:               config,
-		KubeRESTAPI:          kubeAPI,
-		MetricsInterface:     metrics,
-		BuildConfigInterface: config.BuildConfigInterface,
+		config:      config,
+		KubeRESTAPI: kubeAPI,
+		Metrics:     metrics,
+		BuildConfig: config.BuildConfig,
 	}
 
 	// Get environments from config map
@@ -165,7 +165,7 @@ func (*defaultGetter) GetKubeRESTAPI(config *KubeClientConfig) (KubeRESTAPI, err
 	return clientset.CoreV1(), nil
 }
 
-func (*defaultGetter) GetMetrics(config *MetricsClientConfig) (MetricsInterface, error) {
+func (*defaultGetter) GetMetrics(config *MetricsClientConfig) (Metrics, error) {
 	return NewMetricsClient(config)
 }
 
@@ -192,7 +192,7 @@ func (kc *kubeClient) GetSpace(spaceName string) (*app.SimpleSpace, error) {
 	result := &app.SimpleSpace{
 		Type: "space",
 		Attributes: &app.SimpleSpaceAttributes{
-			Name:         &spaceName,
+			Name:         spaceName,
 			Applications: apps,
 		},
 	}
@@ -217,7 +217,7 @@ func (kc *kubeClient) GetApplication(spaceName string, appName string) (*app.Sim
 	result := &app.SimpleApp{
 		Type: "application",
 		Attributes: &app.SimpleAppAttributes{
-			Name:        &appName,
+			Name:        appName,
 			Deployments: deployments,
 		},
 		ID: appName,
@@ -270,7 +270,7 @@ func (kc *kubeClient) ScaleDeployment(spaceName string, appName string, envName 
 }
 
 func (kc *kubeClient) getConsoleURL(envNS string) (*string, error) {
-	path := "console/project/" + envNS
+	path := fmt.Sprintf("console/project/%s", envNS)
 	// Replace "api" prefix with "console" and append path
 	consoleURL, err := modifyURL(kc.config.ClusterURL, "console", path)
 	if err != nil {
@@ -354,7 +354,7 @@ func (kc *kubeClient) GetDeployment(spaceName string, appName string, envName st
 	result := &app.SimpleDeployment{
 		Type: "deployment",
 		Attributes: &app.SimpleDeploymentAttributes{
-			Name:     &envName,
+			Name:     envName,
 			Version:  &verString,
 			Pods:     podStats,
 			PodTotal: &total,
@@ -560,8 +560,8 @@ func getTimestampEndpoints(metricsSeries ...[]*app.TimedNumberTuple) (minTime, m
 func (kc *kubeClient) getBuildConfigs(space string) ([]string, error) {
 
 	// hook for testing
-	if kc.config.BuildConfigInterface != nil {
-		return kc.config.BuildConfigInterface.GetBuildConfigs(space)
+	if kc.config.BuildConfig != nil {
+		return kc.config.BuildConfig.GetBuildConfigs(space)
 	}
 
 	// BuildConfigs are OpenShift objects, so access REST API using HTTP directly until
@@ -807,11 +807,6 @@ func (kc *kubeClient) getResourceQuota(namespace string) (*app.EnvStats, error) 
 		return nil, errs.WithStack(err)
 	}
 
-	cpuStats := &app.EnvStatCores{
-		Quota: &cpuLimit,
-		Used:  &cpuUsed,
-	}
-
 	memLimit, err := quantityToFloat64(quota.Status.Hard[v1.ResourceLimitsMemory])
 	if err != nil {
 		return nil, errs.WithStack(err)
@@ -821,17 +816,18 @@ func (kc *kubeClient) getResourceQuota(namespace string) (*app.EnvStats, error) 
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
-
 	memUnits := "bytes"
-	memStats := &app.EnvStatMemory{
-		Quota: &memLimit,
-		Used:  &memUsed,
-		Units: &memUnits,
-	}
 
 	result := &app.EnvStats{
-		Cpucores: cpuStats,
-		Memory:   memStats,
+		Cpucores: &app.EnvStatCores{
+			Quota: &cpuLimit,
+			Used:  &cpuUsed,
+		},
+		Memory: &app.EnvStatMemory{
+			Quota: &memLimit,
+			Used:  &memUsed,
+			Units: &memUnits,
+		},
 	}
 
 	return result, nil
@@ -881,6 +877,7 @@ func (kc *kubeClient) getPods(namespace string, uid types.UID) ([]*v1.Pod, error
 		for _, ref := range pod.OwnerReferences {
 			if ref.UID == uid && ref.Controller != nil && *ref.Controller {
 				match = true
+				break
 			}
 		}
 		if match {
@@ -1091,6 +1088,7 @@ func (kc *kubeClient) getMatchingServices(namespace string, dc *deployment) (rou
 		for key := range selector {
 			if selector[key] != template.Labels[key] {
 				match = false
+				break
 			}
 		}
 		// If all selector labels match those in the pod template, add service key to map

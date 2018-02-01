@@ -15,12 +15,12 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-// OSIOClient contains configuration and methods for interacting with OSIO API
+// OSIOClientV1 contains configuration and methods for interacting with OSIO API
 type OSIOClientV1 struct {
 	wc *witclient.Client
 }
 
-// NewOSIOClient creates an openshift IO client given an http request context
+// NewOSIOClientV1 creates an openshift IO client given an http request context
 func NewOSIOClientV1(ctx context.Context, scheme string, host string) *OSIOClientV1 {
 
 	client := new(OSIOClientV1)
@@ -72,7 +72,7 @@ func (osioclient *OSIOClientV1) GetUserServices(ctx context.Context) (*app.UserS
 	status := resp.StatusCode
 	if status == http.StatusNotFound {
 		return nil, nil
-	} else if httpStatusFailed(status) {
+	} else if status != http.StatusOK {
 		return nil, errors.New("Failed to GET " + witclient.ShowUserServicePath() + " due to status code " + string(status))
 	}
 
@@ -100,7 +100,7 @@ func (osioclient *OSIOClientV1) GetSpaceByID(ctx context.Context, spaceID uuid.U
 	status := resp.StatusCode
 	if status == http.StatusNotFound {
 		return nil, nil
-	} else if httpStatusFailed(status) {
+	} else if status != http.StatusOK {
 		return nil, errors.New("Failed to GET " + urlpath + " due to status code " + string(status))
 	}
 

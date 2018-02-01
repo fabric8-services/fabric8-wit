@@ -30,8 +30,8 @@ type HawkularGetter interface {
 	GetHawkularRESTAPI(config *MetricsClientConfig) (HawkularRESTAPI, error)
 }
 
-// MetricsInterface provides methods to obtain performance metrics of a deployed application
-type MetricsInterface interface {
+// Metrics provides methods to obtain performance metrics of a deployed application
+type Metrics interface {
 	GetCPUMetrics(pods []*v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error)
 	GetCPUMetricsRange(pods []*v1.Pod, namespace string, startTime time.Time, endTime time.Time,
 		limit int) ([]*app.TimedNumberTuple, error)
@@ -76,8 +76,8 @@ const bucketDuration = 1 * time.Minute
 const millicoreToCoreScale = 0.001
 const noScale = 1
 
-// NewMetricsClient creates a MetricsInterface given a configuration
-func NewMetricsClient(config *MetricsClientConfig) (MetricsInterface, error) {
+// NewMetricsClient creates a Metrics object given a configuration
+func NewMetricsClient(config *MetricsClientConfig) (Metrics, error) {
 	// Use default implementation if no HawkularGetter is specified
 	if config.HawkularGetter == nil {
 		config.HawkularGetter = &defaultGetter{}

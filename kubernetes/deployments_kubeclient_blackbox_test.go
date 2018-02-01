@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/kubernetes"
@@ -175,7 +175,7 @@ type testMetricsGetter struct {
 
 type testMetrics struct{}
 
-func (getter *testMetricsGetter) GetMetrics(config *kubernetes.MetricsClientConfig) (kubernetes.MetricsInterface, error) {
+func (getter *testMetricsGetter) GetMetrics(config *kubernetes.MetricsClientConfig) (kubernetes.Metrics, error) {
 	getter.config = config
 	return testMetrics{}, nil
 }
@@ -242,16 +242,12 @@ func TestGetMetrics(t *testing.T) {
 		}
 		_, err := kubernetes.NewKubeClient(config)
 		if testCase.shouldSucceed {
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
 
-			assert.Equal(t, testCase.expectedURL, metricsGetter.config.MetricsURL, "Incorrect Metrics URL")
-			assert.Equal(t, token, metricsGetter.config.BearerToken, "Incorrect bearer token")
+			require.Equal(t, testCase.expectedURL, metricsGetter.config.MetricsURL, "Incorrect Metrics URL")
+			require.Equal(t, token, metricsGetter.config.BearerToken, "Incorrect bearer token")
 		} else {
-			if err == nil {
-				t.Error("Expected error, but was successful")
-			}
+			require.Error(t, err)
 		}
 	}
 }
@@ -303,21 +299,15 @@ func TestConfigMapEnvironments(t *testing.T) {
 		kubeGetter.cmInput = testCase
 		_, err := kubernetes.NewKubeClient(config)
 		if testCase.shouldFail {
-			assert.Error(t, err)
+			require.Error(t, err)
 		} else {
-			if !assert.NoError(t, err) {
-				continue
-			}
+			require.NoError(t, err)
 			configMapHolder := kubeGetter.result.configMapHolder
-			if !assert.NotNil(t, configMapHolder, "No ConfigMap created by test") {
-				continue
-			}
-			assert.Equal(t, userNamespace, configMapHolder.namespace, "ConfigMap obtained from wrong namespace")
+			require.NotNil(t, configMapHolder, "No ConfigMap created by test")
+			require.Equal(t, userNamespace, configMapHolder.namespace, "ConfigMap obtained from wrong namespace")
 			configMap := configMapHolder.configMap
-			if !assert.NotNil(t, configMap, "Never sent ConfigMap GET") {
-				continue
-			}
-			assert.Equal(t, expectedName, configMap.Name, "Incorrect ConfigMap name")
+			require.NotNil(t, configMap, "Never sent ConfigMap GET")
+			require.Equal(t, expectedName, configMap.Name, "Incorrect ConfigMap name")
 		}
 	}
 }
@@ -366,42 +356,36 @@ func TestGetEnvironment(t *testing.T) {
 	}
 
 	kc, err := kubernetes.NewKubeClient(config)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	for _, testCase := range testCases {
 		kubeGetter.rqInput = testCase
 		env, err := kc.GetEnvironment(testCase.name)
 		if testCase.shouldFail {
-			assert.Error(t, err)
+			require.Error(t, err)
 		} else {
-			if !assert.NoError(t, err) {
-				continue
-			}
+			require.NoError(t, err)
 
 			quotaHolder := kubeGetter.result.quotaHolder
-			if !assert.NotNil(t, quotaHolder, "No ResourceQuota created by test") {
-				continue
-			}
-			assert.Equal(t, testCase.namespace, quotaHolder.namespace, "Quota retrieved from wrong namespace")
+			require.NotNil(t, quotaHolder, "No ResourceQuota created by test")
+			require.Equal(t, testCase.namespace, quotaHolder.namespace, "Quota retrieved from wrong namespace")
 			quota := quotaHolder.quota
-			if !assert.NotNil(t, quota, "Never sent ResourceQuota GET") {
-				continue
-			}
-			assert.Equal(t, "compute-resources", quota.Name, "Wrong ResourceQuota name")
-			assert.Equal(t, testCase.name, *env.Attributes.Name, "Wrong environment name")
+			require.NotNil(t, quota, "Never sent ResourceQuota GET")
+			require.Equal(t, "compute-resources", quota.Name, "Wrong ResourceQuota name")
+			require.Equal(t, testCase.name, *env.Attributes.Name, "Wrong environment name")
 
 			cpuQuota := env.Attributes.Quota.Cpucores
-			assert.InEpsilon(t, testCase.hard[v1.ResourceLimitsCPU], *cpuQuota.Quota, fltEpsilon, "Incorrect CPU quota")
-			assert.InEpsilon(t, testCase.used[v1.ResourceLimitsCPU], *cpuQuota.Used, fltEpsilon, "Incorrect CPU usage")
+			require.InEpsilon(t, testCase.hard[v1.ResourceLimitsCPU], *cpuQuota.Quota, fltEpsilon, "Incorrect CPU quota")
+			require.InEpsilon(t, testCase.used[v1.ResourceLimitsCPU], *cpuQuota.Used, fltEpsilon, "Incorrect CPU usage")
 
 			memQuota := env.Attributes.Quota.Memory
-			assert.InEpsilon(t, testCase.hard[v1.ResourceLimitsMemory], *memQuota.Quota, fltEpsilon, "Incorrect memory quota")
-			assert.InEpsilon(t, testCase.used[v1.ResourceLimitsMemory], *memQuota.Used, fltEpsilon, "Incorrect memory usage")
+			require.InEpsilon(t, testCase.hard[v1.ResourceLimitsMemory], *memQuota.Quota, fltEpsilon, "Incorrect memory quota")
+			require.InEpsilon(t, testCase.used[v1.ResourceLimitsMemory], *memQuota.Used, fltEpsilon, "Incorrect memory usage")
 		}
 	}
 }
 
 type spaceTestData struct {
-	kubernetes.BuildConfigInterface
+	kubernetes.BuildConfig
 	name       string
 	shouldFail bool
 	configs    *[]string
@@ -428,25 +412,23 @@ func TestGetSpaceWithNoConfigs(t *testing.T) {
 		metricsGetter := &testMetricsGetter{}
 		cfgGetter := testCase
 		config := &kubernetes.KubeClientConfig{
-			ClusterURL:           "http://api.myCluster",
-			BearerToken:          "myToken",
-			UserNamespace:        "myNamespace",
-			KubeRESTAPIGetter:    kubeGetter,
-			MetricsGetter:        metricsGetter,
-			BuildConfigInterface: cfgGetter,
+			ClusterURL:        "http://api.myCluster",
+			BearerToken:       "myToken",
+			UserNamespace:     "myNamespace",
+			KubeRESTAPIGetter: kubeGetter,
+			MetricsGetter:     metricsGetter,
+			BuildConfig:       cfgGetter,
 		}
 
 		kc, err := kubernetes.NewKubeClient(config)
+		require.NoError(t, err)
 
-		assert.NoError(t, err)
 		space, err := kc.GetSpace(testCase.name)
 		if testCase.shouldFail {
-			assert.Error(t, err)
+			require.Error(t, err)
 		} else {
-			if !assert.NoError(t, err) {
-				continue
-			}
-			assert.NotNil(t, space.Attributes.Applications)
+			require.NoError(t, err)
+			require.NotNil(t, space.Attributes.Applications)
 		}
 	}
 }

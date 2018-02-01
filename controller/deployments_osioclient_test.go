@@ -11,7 +11,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/satori/go.uuid"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // Structs and interfaces for mocking/testing
@@ -65,7 +65,7 @@ func TestGetUserServicesWithShowUserServiceError(t *testing.T) {
 	mockOSIOClient := controller.CreateOSIOClient(mockWitClient, &controller.IOResponseReader{})
 
 	_, err := mockOSIOClient.GetUserServices(&MockContext{})
-	assert.NotNil(t, err)
+	require.Error(t, err)
 }
 
 func TestGetUserServicesBadStatusCodes(t *testing.T) {
@@ -73,9 +73,9 @@ func TestGetUserServicesBadStatusCodes(t *testing.T) {
 		statusCode  int
 		shouldBeNil bool
 	}{
-		{301, false},
+		{http.StatusMovedPermanently, false},
 		{http.StatusNotFound, true},
-		{500, false},
+		{http.StatusInternalServerError, false},
 	}
 
 	for _, testCase := range testCases {
@@ -92,12 +92,12 @@ func TestGetUserServicesBadStatusCodes(t *testing.T) {
 		mockOSIOClient := controller.CreateOSIOClient(mockWitClient, &controller.IOResponseReader{})
 
 		userService, err := mockOSIOClient.GetUserServices(&MockContext{})
-		assert.Nil(t, userService)
 		if testCase.shouldBeNil {
-			assert.Nil(t, err)
+			require.NoError(t, err)
 		} else {
-			assert.NotNil(t, err)
+			require.Error(t, err)
 		}
+		require.Nil(t, userService)
 	}
 }
 
@@ -107,7 +107,7 @@ func TestGetUserServiceWithMalformedJSON(t *testing.T) {
 	}
 	mockResponse := &http.Response{
 		Body:       &MockResponseBodyReader{},
-		StatusCode: 200,
+		StatusCode: http.StatusOK,
 	}
 	mockWitClient := &MockWitClient{
 		SpaceHttpResponse:            nil,
@@ -118,7 +118,7 @@ func TestGetUserServiceWithMalformedJSON(t *testing.T) {
 	mockOSIOClient := controller.CreateOSIOClient(mockWitClient, jsonReader)
 
 	_, err := mockOSIOClient.GetUserServices(&MockContext{})
-	assert.NotNil(t, err)
+	require.Error(t, err)
 }
 
 func TestUserServiceWithProperJSON(t *testing.T) {
@@ -171,7 +171,7 @@ func TestUserServiceWithProperJSON(t *testing.T) {
 	}
 	mockResponse := &http.Response{
 		Body:       &MockResponseBodyReader{},
-		StatusCode: 200,
+		StatusCode: http.StatusOK,
 	}
 	mockWitClient := &MockWitClient{
 		SpaceHttpResponse:            nil,
@@ -182,12 +182,12 @@ func TestUserServiceWithProperJSON(t *testing.T) {
 	mockOSIOClient := controller.CreateOSIOClient(mockWitClient, jsonReader)
 
 	userService, err := mockOSIOClient.GetUserServices(&MockContext{})
-	assert.NotNil(t, userService)
-	assert.Nil(t, err)
-	assert.Equal(t, "https://auth.openshift.io/api/users/77777777-7777-7777-7777-777777777777", *userService.Links.Related)
-	assert.Equal(t, "https://auth.openshift.io/api/users/88888888-8888-8888-8888-888888888888", *userService.Links.Self)
-	assert.Equal(t, "66666666-6666-6666-6666-666666666666", userService.ID.String())
-	assert.Equal(t, "identities", userService.Type)
+	require.NoError(t, err)
+	require.NotNil(t, userService)
+	require.Equal(t, "https://auth.openshift.io/api/users/77777777-7777-7777-7777-777777777777", *userService.Links.Related)
+	require.Equal(t, "https://auth.openshift.io/api/users/88888888-8888-8888-8888-888888888888", *userService.Links.Self)
+	require.Equal(t, "66666666-6666-6666-6666-666666666666", userService.ID.String())
+	require.Equal(t, "identities", userService.Type)
 }
 
 func TestGetSpaceByIDWithShowSpaceError(t *testing.T) {
@@ -201,7 +201,7 @@ func TestGetSpaceByIDWithShowSpaceError(t *testing.T) {
 	mockOSIOClient := controller.CreateOSIOClient(mockWitClient, &controller.IOResponseReader{})
 
 	_, err := mockOSIOClient.GetSpaceByID(mockContext, uuid.Nil)
-	assert.NotNil(t, err)
+	require.Error(t, err)
 }
 
 func TestGetSpaceByIDBadStatusCode(t *testing.T) {
@@ -228,12 +228,12 @@ func TestGetSpaceByIDBadStatusCode(t *testing.T) {
 		mockOSIOClient := controller.CreateOSIOClient(mockWitClient, &controller.IOResponseReader{})
 
 		userService, err := mockOSIOClient.GetSpaceByID(&MockContext{}, uuid.Nil)
-		assert.Nil(t, userService)
 		if testCase.shouldBeNil {
-			assert.Nil(t, err)
+			require.NoError(t, err)
 		} else {
-			assert.NotNil(t, err)
+			require.Error(t, err)
 		}
+		require.Nil(t, userService)
 	}
 }
 
@@ -243,7 +243,7 @@ func TestGetSpaceByIDWithMalformedJSON(t *testing.T) {
 	}
 	mockResponse := &http.Response{
 		Body:       &MockResponseBodyReader{},
-		StatusCode: 200,
+		StatusCode: http.StatusOK,
 	}
 	mockWitClient := &MockWitClient{
 		SpaceHttpResponse:            mockResponse,
@@ -254,7 +254,7 @@ func TestGetSpaceByIDWithMalformedJSON(t *testing.T) {
 	mockOSIOClient := controller.CreateOSIOClient(mockWitClient, jsonReader)
 
 	_, err := mockOSIOClient.GetSpaceByID(&MockContext{}, uuid.Nil)
-	assert.NotNil(t, err)
+	require.Error(t, err)
 }
 
 func TestGetSpaceByIDWithProperJSON(t *testing.T) {
@@ -296,7 +296,7 @@ func TestGetSpaceByIDWithProperJSON(t *testing.T) {
 	mockContext := &MockContext{}
 	mockResponse := &http.Response{
 		Body:       &MockResponseBodyReader{},
-		StatusCode: 200,
+		StatusCode: http.StatusOK,
 	}
 	mockWitClient := &MockWitClient{
 		SpaceHttpResponse:            mockResponse,
@@ -307,19 +307,19 @@ func TestGetSpaceByIDWithProperJSON(t *testing.T) {
 	mockOSIOClient := controller.CreateOSIOClient(mockWitClient, jsonReader)
 
 	space, err := mockOSIOClient.GetSpaceByID(mockContext, uuid.Nil)
-	assert.NotNil(t, space)
-	assert.Nil(t, err)
-	assert.Equal(t, "https://api.openshift.io/api/spaces/00000000-0000-0000-0000-000000000000", *space.Links.Self)
-	assert.Equal(t, "https://api.openshift.io/api/spaces/00000000-0000-0000-0000-000000000000", *space.Links.Related)
-	assert.Equal(t, "https://api.openshift.io/api/spaces/00000000-0000-0000-0000-000000000000/backlog", *space.Links.Backlog.Self)
-	assert.Equal(t, 0, space.Links.Backlog.Meta.TotalCount)
-	assert.Equal(t, "https://api.openshift.io/api/filters", *space.Links.Filters)
-	assert.Equal(t, "https://api.openshift.io/api/spaces/00000000-0000-0000-0000-000000000000/workitemlinktypes", *space.Links.Workitemlinktypes)
-	assert.Equal(t, "https://api.openshift.io/api/spaces/00000000-0000-0000-0000-000000000000/workitemtypes", *space.Links.Workitemtypes)
-	assert.Equal(t, "00000000-0000-0000-0000-000000000000", space.ID.String())
-	assert.Equal(t, "spaces", space.Type)
-	assert.Equal(t, "", *space.Attributes.Description)
-	assert.Equal(t, "yet_another", *space.Attributes.Name)
+	require.NoError(t, err)
+	require.NotNil(t, space)
+	require.Equal(t, "https://api.openshift.io/api/spaces/00000000-0000-0000-0000-000000000000", *space.Links.Self)
+	require.Equal(t, "https://api.openshift.io/api/spaces/00000000-0000-0000-0000-000000000000", *space.Links.Related)
+	require.Equal(t, "https://api.openshift.io/api/spaces/00000000-0000-0000-0000-000000000000/backlog", *space.Links.Backlog.Self)
+	require.Equal(t, 0, space.Links.Backlog.Meta.TotalCount)
+	require.Equal(t, "https://api.openshift.io/api/filters", *space.Links.Filters)
+	require.Equal(t, "https://api.openshift.io/api/spaces/00000000-0000-0000-0000-000000000000/workitemlinktypes", *space.Links.Workitemlinktypes)
+	require.Equal(t, "https://api.openshift.io/api/spaces/00000000-0000-0000-0000-000000000000/workitemtypes", *space.Links.Workitemtypes)
+	require.Equal(t, "00000000-0000-0000-0000-000000000000", space.ID.String())
+	require.Equal(t, "spaces", space.Type)
+	require.Equal(t, "", *space.Attributes.Description)
+	require.Equal(t, "yet_another", *space.Attributes.Name)
 }
 
 func TestGetNamespaceByTypeErrorFromUserServices(t *testing.T) {
@@ -332,8 +332,8 @@ func TestGetNamespaceByTypeErrorFromUserServices(t *testing.T) {
 	mockOSIOClient := controller.CreateOSIOClient(mockWitClient, &controller.IOResponseReader{})
 
 	namespaceAttributes, err := mockOSIOClient.GetNamespaceByType(&MockContext{}, nil, "namespace")
-	assert.Nil(t, namespaceAttributes)
-	assert.NotNil(t, err)
+	require.Error(t, err)
+	require.Nil(t, namespaceAttributes)
 }
 
 func TestGetNamespaceByTypeNoMatch(t *testing.T) {
@@ -352,8 +352,8 @@ func TestGetNamespaceByTypeNoMatch(t *testing.T) {
 	}
 
 	namespaceAttributes, err := mockOSIOClient.GetNamespaceByType(&MockContext{}, mockUserService, "namespace")
-	assert.Nil(t, namespaceAttributes)
-	assert.Nil(t, err)
+	require.NoError(t, err)
+	require.Nil(t, namespaceAttributes)
 }
 
 func TestGetNamespaceByTypeMatchNamespace(t *testing.T) {
@@ -409,7 +409,7 @@ func TestGetNamespaceByTypeMatchNamespace(t *testing.T) {
 	}
 	mockResponse := &http.Response{
 		Body:       &MockResponseBodyReader{},
-		StatusCode: 200,
+		StatusCode: http.StatusOK,
 	}
 	mockWitClient := &MockWitClient{
 		SpaceHttpResponse:            nil,
@@ -425,8 +425,8 @@ func TestGetNamespaceByTypeMatchNamespace(t *testing.T) {
 		},
 	}
 	namespaceAttributes, err := mockOSIOClient.GetNamespaceByType(&MockContext{}, mockUserService, NAMESPACE_TYPE)
-	assert.Equal(t, mockNamespace, namespaceAttributes)
-	assert.Nil(t, err)
+	require.NoError(t, err)
+	require.Equal(t, mockNamespace, namespaceAttributes)
 }
 
 func TestGetNamespaceByTypeMatchNamespaceWithDiscoveredUserService(t *testing.T) {
@@ -456,7 +456,7 @@ func TestGetNamespaceByTypeMatchNamespaceWithDiscoveredUserService(t *testing.T)
 	}
 	mockResponse := &http.Response{
 		Body:       &MockResponseBodyReader{},
-		StatusCode: 200,
+		StatusCode: http.StatusOK,
 	}
 	mockWitClient := &MockWitClient{
 		SpaceHttpResponse:            nil,
@@ -466,9 +466,9 @@ func TestGetNamespaceByTypeMatchNamespaceWithDiscoveredUserService(t *testing.T)
 	}
 	mockOSIOClient := controller.CreateOSIOClient(mockWitClient, jsonProvider)
 	namespaceAttributes, err := mockOSIOClient.GetNamespaceByType(&MockContext{}, nil, NAMESPACE_TYPE)
-	assert.Equal(t, NAMESPACE_TYPE, *namespaceAttributes.Type)
-	assert.Equal(t, "some-name", *namespaceAttributes.Name)
-	assert.Equal(t, "some-state", *namespaceAttributes.State)
-	assert.Equal(t, "123", *namespaceAttributes.Version)
-	assert.Nil(t, err)
+	require.NoError(t, err)
+	require.Equal(t, NAMESPACE_TYPE, *namespaceAttributes.Type)
+	require.Equal(t, "some-name", *namespaceAttributes.Name)
+	require.Equal(t, "some-state", *namespaceAttributes.State)
+	require.Equal(t, "123", *namespaceAttributes.Version)
 }
