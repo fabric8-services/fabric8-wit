@@ -53,7 +53,7 @@ type MetricsGetter interface {
 	GetMetrics(config *MetricsClientConfig) (Metrics, error)
 }
 
-// BuildConfigGetter will provide build configs for testing
+// BuildConfig will provide build configs for testing
 type BuildConfig interface {
 	GetBuildConfigs(space string) ([]string, error)
 }
@@ -136,20 +136,19 @@ func NewKubeClient(config *KubeClientConfig) (KubeClientInterface, error) {
 		return nil, errs.WithStack(err)
 	}
 
+	// Get environments from config map
+	envMap, err := getEnvironmentsFromConfigMap(kubeAPI, config.UserNamespace)
+	if err != nil {
+		return nil, errs.WithStack(err)
+	}
+
 	kubeClient := &kubeClient{
 		config:      config,
+		envMap:      envMap,
 		KubeRESTAPI: kubeAPI,
 		Metrics:     metrics,
 		BuildConfig: config.BuildConfig,
 	}
-
-	// Get environments from config map
-	envMap, err := kubeClient.getEnvironmentsFromConfigMap()
-	if err != nil {
-		return nil, errs.WithStack(err)
-	}
-	kubeClient.envMap = envMap
-
 	return kubeClient, nil
 }
 
@@ -604,11 +603,11 @@ func (kc *kubeClient) getBuildConfigs(space string) ([]string, error) {
 	return buildconfigs, nil
 }
 
-func (kc *kubeClient) getEnvironmentsFromConfigMap() (map[string]string, error) {
+func getEnvironmentsFromConfigMap(kube KubeRESTAPI, userNamespace string) (map[string]string, error) {
 	// fabric8 creates a ConfigMap in the user namespace with information on environments
 	const envConfigMap string = "fabric8-environments"
 	const providerLabel string = "fabric8"
-	configmap, err := kc.ConfigMaps(kc.config.UserNamespace).Get(envConfigMap, metaV1.GetOptions{})
+	configmap, err := kube.ConfigMaps(userNamespace).Get(envConfigMap, metaV1.GetOptions{})
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
