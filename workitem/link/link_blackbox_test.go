@@ -131,6 +131,13 @@ func TestWorkItemLinkList(t *testing.T) {
 	})
 
 	t.Run("GetDistinctListOfTargetIDs", func(t *testing.T) {
-		require.Equal(t, id.Slice{y, z}, list.GetDistinctListOfTargetIDs(linkTypeID1))
+		toBeFound := id.Slice{y, z}.ToMap()
+		actual := list.GetDistinctListOfTargetIDs(linkTypeID1)
+		for _, ID := range actual {
+			_, ok := toBeFound[ID]
+			require.True(t, ok, "found unexpected ID: %s", ID)
+			delete(toBeFound, ID)
+		}
+		require.Empty(t, toBeFound, "failed to find these IDs: %+v", toBeFound)
 	})
 }
