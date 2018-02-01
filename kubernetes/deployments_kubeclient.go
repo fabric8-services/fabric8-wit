@@ -776,6 +776,7 @@ func (kc *kubeClient) getReplicationControllers(namespace string, dcUID types.UI
 		for _, ref := range rc.OwnerReferences {
 			if ref.UID == dcUID && ref.Controller != nil && *ref.Controller {
 				match = true
+				break
 			}
 		}
 		if match {
