@@ -82,9 +82,14 @@ func (s *linkRepoBlackBoxTest) TestChildrenOrderOfExecution() {
 		require.NoError(t, err)
 		require.Len(t, res, 3)
 
-		assert.Equal(t, fxt.WorkItems[1].Fields[workitem.SystemOrder], res[2].Fields[workitem.SystemOrder].(float64))
-		assert.Equal(t, fxt.WorkItems[2].Fields[workitem.SystemOrder], res[1].Fields[workitem.SystemOrder].(float64))
-		assert.Equal(t, fxt.WorkItems[3].Fields[workitem.SystemOrder], res[0].Fields[workitem.SystemOrder].(float64))
+		var expectedOrder []interface{}
+		for i := 1; i < 4; i++ {
+			expectedOrder = append(expectedOrder, fxt.WorkItems[i].Fields[workitem.SystemOrder])
+		}
+		for i, v := range expectedOrder {
+			i = len(expectedOrder) - 1 - i
+			require.Equal(t, v, res[i].Fields[workitem.SystemOrder])
+		}
 	})
 }
 
