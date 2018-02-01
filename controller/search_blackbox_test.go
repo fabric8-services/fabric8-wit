@@ -1192,9 +1192,9 @@ func (s *searchControllerTestSuite) TestIncludedChildren() {
 	//     |
 	//     |_E
 	//
-	// We need to make sure that C is included when B is a match AND the
-	// tree-view option is "on". If B is a match and trew-view option is "off",
-	// then don't include C.
+	// We need to make sure that E is included when C is a match AND the
+	// tree-view option is "on". If C is a match and trew-view option is "off",
+	// then don't include E.
 	fxt := tf.NewTestFixture(s.T(), s.DB,
 		tf.WorkItems(5, tf.SetWorkItemTitles("A", "B", "C", "D", "E")),
 		tf.WorkItemLinksCustom(4,
