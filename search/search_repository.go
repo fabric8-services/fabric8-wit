@@ -809,7 +809,12 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 	return result, count, nil
 }
 
-// Filter Search returns work items for the given query
+// Filter returns the work items matching the search as well as their count. If
+// the filter did specify the "tree-view" option to be "true", then we will also
+// create a list of ancestors as well as a list of links. The ancestors exist in
+// order to list the parent of each matching work item up to its root work item.
+// The child links are there in order to know what siblings to load for matching
+// work items.
 func (r *GormSearchRepository) Filter(ctx context.Context, rawFilterString string, parentExists *bool, start *int, limit *int) (matches []workitem.WorkItem, count uint64, ancestors link.AncestorList, childLinks link.WorkItemLinkList, err error) {
 	// parse
 	// generateSearchQuery
