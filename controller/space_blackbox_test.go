@@ -96,7 +96,7 @@ func (s *SpaceControllerTestSuite) TestValidateSpaceName() {
 		err := p.Validate()
 		// Validate payload function returns an error
 		assert.NotNil(t, err)
-		assert.Contains(t, err.Error(), "length of type.name must be less than or equal to 62 but got")
+		assert.Contains(t, err.Error(), "length of type.name must be less than or equal to 63 but got")
 	})
 
 	s.T().Run("Fail - prefix", func(t *testing.T) {
