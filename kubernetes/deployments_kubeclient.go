@@ -1091,9 +1091,10 @@ func (kc *kubeClient) getMatchingServices(namespace string, dc *deployment) (rou
 				break
 			}
 		}
-		// If all selector labels match those in the pod template, add service key to map
+		// If all selector labels match those in the pod template, add service key to map.
+		// Routes will be added later by the getRoutesByService method.
 		if match {
-			routesByService[service.Name] = nil
+			routesByService[service.Name] = make([]*route, 0)
 		}
 	}
 	return routesByService, nil
@@ -1153,7 +1154,10 @@ func (kc *kubeClient) getRoutesByService(namespace string, routesByService map[s
 					return errors.New("Malformed alternative backend")
 				}
 				// Check if this alternate backend is a service we want a route for
-				backendKind, _ := backend["kind"].(string)
+				backendKind, err := getOptionalStringValue(backend, "kind")
+				if err != nil {
+					return err
+				}
 				if backendKind == "Service" {
 					backendName, ok := backend["name"].(string)
 					if ok && len(backendName) > 0 {
@@ -1195,7 +1199,10 @@ func (kc *kubeClient) getRoutesByService(namespace string, routesByService map[s
 			}
 
 			// Check for optional path
-			path, _ := spec["path"].(string)
+			path, err := getOptionalStringValue(spec, "path")
+			if err != nil {
+				return err
+			}
 
 			// Determine whether route uses TLS
 			// see: https://github.com/openshift/origin-web-console/blob/v3.7.0/app/scripts/filters/resources.js#L193
@@ -1214,7 +1221,10 @@ func (kc *kubeClient) getRoutesByService(namespace string, routesByService map[s
 			if ok {
 				annotations, ok := metadata["annotations"].(map[interface{}]interface{})
 				if ok {
-					hostGenerated, _ := annotations["openshift.io/host.generated"].(string)
+					hostGenerated, err := getOptionalStringValue(annotations, "openshift.io/host.generated")
+					if err != nil {
+						return err
+					}
 					if hostGenerated == "true" {
 						customHost = false
 					}
@@ -1238,6 +1248,18 @@ func (kc *kubeClient) getRoutesByService(namespace string, routesByService map[s
 	return nil
 }
 
+func getOptionalStringValue(respData map[interface{}]interface{}, paramName string) (string, error) {
+	val, pres := respData[paramName]
+	if !pres {
+		return "", nil
+	}
+	strVal, ok := val.(string)
+	if !ok {
+		return "", errors.New("Property " + paramName + " is not a string")
+	}
+	return strVal, nil
+}
+
 func findOldestAdmittedIngress(ingresses []interface{}) (ingress map[interface{}]interface{}, err error) {
 	var oldestAdmittedIngress map[interface{}]interface{}
 	var oldestIngressTime time.Time
@@ -1254,8 +1276,14 @@ func findOldestAdmittedIngress(ingresses []interface{}) (ingress map[interface{}
 				if !ok {
 					return nil, errors.New("Bad condition for ingress")
 				}
-				condType, _ := condition["type"].(string)
-				condStatus, _ := condition["status"].(string)
+				condType, err := getOptionalStringValue(condition, "type")
+				if err != nil {
+					return nil, err
+				}
+				condStatus, err := getOptionalStringValue(condition, "status")
+				if err != nil {
+					return nil, err
+				}
 				if condType == "Admitted" && condStatus == "True" {
 					lastTransitionStr, ok := condition["lastTransitionTime"].(string)
 					if !ok {
