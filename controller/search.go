@@ -196,6 +196,37 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 			sort.Sort(included)
 			response.Included = included
 
+			// build up list of sorted ancestor IDs from already sorted work items
+			ancestorIDs := ancestors.GetDistinctAncestorIDs().ToMap()
+			sortedAncestorIDs := make(id.Slice, len(ancestorIDs))
+			i := 0
+			for _, wi := range response.Data {
+				_, ok := ancestorIDs[*wi.ID]
+				if ok {
+					sortedAncestorIDs[i] = *wi.ID
+					i++
+					delete(ancestorIDs, *wi.ID)
+				}
+			}
+			for _, ifObj := range response.Included {
+				var wi *app.WorkItem
+				switch v := ifObj.(type) {
+				case app.WorkItem:
+					wi = &v
+				case *app.WorkItem:
+					wi = v
+				default:
+					continue
+				}
+				_, ok := ancestorIDs[*wi.ID]
+				if ok {
+					sortedAncestorIDs[i] = *wi.ID
+					i++
+					delete(ancestorIDs, *wi.ID)
+				}
+			}
+			response.Meta.AncestorIDs = sortedAncestorIDs
+
 			return ctx.OK(&response)
 		})
 
