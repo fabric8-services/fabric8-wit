@@ -201,6 +201,9 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 			sortedAncestorIDs := make(id.Slice, len(ancestorIDs))
 			i := 0
 			for _, wi := range response.Data {
+				if len(ancestorIDs) <= 0 {
+					break
+				}
 				_, ok := ancestorIDs[*wi.ID]
 				if ok {
 					sortedAncestorIDs[i] = *wi.ID
@@ -209,6 +212,9 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 				}
 			}
 			for _, ifObj := range response.Included {
+				if len(ancestorIDs) <= 0 {
+					break
+				}
 				var wi *app.WorkItem
 				switch v := ifObj.(type) {
 				case app.WorkItem:
