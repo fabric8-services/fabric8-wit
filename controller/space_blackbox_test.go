@@ -89,6 +89,15 @@ func (s *SpaceControllerTestSuite) SecuredSpaceIterationController(identity acco
 
 func (s *SpaceControllerTestSuite) TestValidateSpaceName() {
 
+	s.T().Run("ok", func(t *testing.T) {
+		// given
+		p := newCreateSpacePayload(&testsupport.TestMaxsizedNameObj, nil)
+		// when
+		err := p.Validate()
+		// Validate payload function returns no error
+		assert.Nil(t, err)
+	})
+
 	s.T().Run("Fail - length", func(t *testing.T) {
 		// given
 		p := newCreateSpacePayload(&testsupport.TestOversizedNameObj, nil)
