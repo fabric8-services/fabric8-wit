@@ -128,6 +128,39 @@ func (s *linkRepoBlackBoxTest) TestChildrenReorderAbove() {
 	})
 }
 
+func (s *linkRepoBlackBoxTest) TestChildrenReorderBelow() {
+	s.T().Run("ok - child work items reorder below", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.Identities(1),
+			tf.Spaces(1),
+			tf.WorkItems(3), // parent + child 1-2
+			tf.WorkItemLinkTypes(1, func(fxt *tf.TestFixture, idx int) error {
+				fxt.WorkItemLinkTypes[idx].ForwardName = "parent of"
+				return nil
+			}),
+			tf.WorkItemLinks(2, func(fxt *tf.TestFixture, idx int) error {
+				fxt.WorkItemLinks[idx].SourceID = fxt.WorkItems[0].ID
+				fxt.WorkItemLinks[idx].TargetID = fxt.WorkItems[idx+1].ID
+				return nil
+			}),
+		)
+		s.workitemRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, workitem.DirectionBelow, &fxt.WorkItems[2].ID, *fxt.WorkItems[1], fxt.Identities[0].ID)
+
+		res, _, err := s.workitemLinkRepo.ListWorkItemChildren(s.Ctx, fxt.WorkItems[0].ID, nil, nil)
+		require.NoError(t, err)
+		require.Len(t, res, 2)
+
+		var expectedOrder []interface{}
+		for i := 1; i < 3; i++ {
+			expectedOrder = append(expectedOrder, fxt.WorkItems[i].ID)
+		}
+		for i, v := range expectedOrder {
+			i = len(expectedOrder) - 1 - i
+			require.Equal(t, v, res[i].ID)
+		}
+	})
+}
+
 func (s *linkRepoBlackBoxTest) TestWorkItemHasChildren() {
 	s.T().Run("work item has no child after deletion", func(t *testing.T) {
 		// given a work item link
