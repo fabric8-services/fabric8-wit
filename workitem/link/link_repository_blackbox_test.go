@@ -63,38 +63,6 @@ func (s *linkRepoBlackBoxTest) TestList() {
 	})
 }
 
-func (s *linkRepoBlackBoxTest) TestChildrenOrderOfExecution() {
-	// tests order of workitem children returned by list is according to the
-	// "order of execution" specified
-	s.T().Run("ok - child work items order", func(t *testing.T) {
-		fxt := tf.NewTestFixture(t, s.DB,
-			tf.WorkItems(4), // parent + child 1-3
-			tf.WorkItemLinkTypes(1, func(fxt *tf.TestFixture, idx int) error {
-				fxt.WorkItemLinkTypes[idx].ForwardName = "parent of"
-				return nil
-			}),
-			tf.WorkItemLinks(3, func(fxt *tf.TestFixture, idx int) error {
-				fxt.WorkItemLinks[idx].SourceID = fxt.WorkItems[0].ID
-				fxt.WorkItemLinks[idx].TargetID = fxt.WorkItems[idx+1].ID
-				return nil
-			}),
-		)
-
-		res, _, err := s.workitemLinkRepo.ListWorkItemChildren(s.Ctx, fxt.WorkItems[0].ID, nil, nil)
-		require.NoError(t, err)
-		require.Len(t, res, 3)
-
-		var expectedOrder []interface{}
-		for i := 1; i < 4; i++ {
-			expectedOrder = append(expectedOrder, fxt.WorkItems[i].Fields[workitem.SystemOrder])
-		}
-		for i, v := range expectedOrder {
-			i = len(expectedOrder) - 1 - i
-			require.Equal(t, v, res[i].Fields[workitem.SystemOrder])
-		}
-	})
-}
-
 func (s *linkRepoBlackBoxTest) TestChildrenReorderAbove() {
 	s.T().Run("ok - child work items reorder above", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB,
