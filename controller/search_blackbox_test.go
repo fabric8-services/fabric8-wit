@@ -1212,7 +1212,7 @@ func (s *searchControllerTestSuite) TestIncludedChildren() {
 	E := fxt.WorkItemByTitle("E").ID
 	spaceIDStr := fxt.Spaces[0].ID.String()
 
-	testFolder := "in_topology_A-B-C-D_and_B-E_search_for_B,C"
+	testFolder := "in_topology_A-B-C-D_and_B-E_search_for_B_and_C"
 	s.T().Run("in topology A-B-C-D and B-E search for", func(t *testing.T) {
 		t.Run("B,C with tree-view = true", func(t *testing.T) {
 			// when
