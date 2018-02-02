@@ -64,6 +64,7 @@ func (s *linkRepoBlackBoxTest) TestList() {
 }
 
 func (s *linkRepoBlackBoxTest) TestChildrenReorderAbove() {
+	// Tests reorder child work item above
 	s.T().Run("ok - child work items reorder above", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB,
 			tf.Identities(1),
@@ -97,6 +98,7 @@ func (s *linkRepoBlackBoxTest) TestChildrenReorderAbove() {
 }
 
 func (s *linkRepoBlackBoxTest) TestChildrenReorderBelow() {
+	// Tests reorder child work item below
 	s.T().Run("ok - child work items reorder below", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB,
 			tf.Identities(1),
@@ -130,6 +132,7 @@ func (s *linkRepoBlackBoxTest) TestChildrenReorderBelow() {
 }
 
 func (s *linkRepoBlackBoxTest) TestChildrenReorderTop() {
+	// Tests reorder child work item top
 	s.T().Run("ok - child work items reorder top", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB,
 			tf.Identities(1),
@@ -163,6 +166,7 @@ func (s *linkRepoBlackBoxTest) TestChildrenReorderTop() {
 }
 
 func (s *linkRepoBlackBoxTest) TestChildrenReorderBottom() {
+	// Tests reorder child work item bottom
 	s.T().Run("ok - child work items reorder bottom", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB,
 			tf.Identities(1),
