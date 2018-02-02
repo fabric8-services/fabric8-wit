@@ -164,6 +164,9 @@
     "last": "http:///api/search?page[offset]=0\u0026page[limit]=20\u0026filter[expression]={\"$AND\": [{\"title\":\"B\"}, {\"space\": \"00000000-0000-0000-0000-000000000003\"}],\"$OPTS\":{\"tree-view\": true}}"
   },
   "meta": {
+    "ancestorIDs": [
+      "00000000-0000-0000-0000-000000000005"
+    ],
     "totalCount": 1
   }
 }

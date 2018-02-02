@@ -325,6 +325,10 @@
     "last": "http:///api/search?page[offset]=0\u0026page[limit]=20\u0026filter[expression]={\"$AND\":[{\"space\":\"00000000-0000-0000-0000-000000000003\"}, {\"$OR\": [{\"title\":\"B\"}, {\"title\":\"C\"}]}], \"$OPTS\":{\"tree-view\": true}}"
   },
   "meta": {
+    "ancestorIDs": [
+      "00000000-0000-0000-0000-000000000001",
+      "00000000-0000-0000-0000-000000000005"
+    ],
     "totalCount": 2
   }
 }
