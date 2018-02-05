@@ -215,6 +215,24 @@ func (s *SpaceControllerTestSuite) TestCreateSpace() {
 		assert.NotEqual(t, created.Data.Relationships.OwnedBy.Data.ID, created2.Data.Relationships.OwnedBy.Data.ID)
 	})
 
+	s.T().Run("ok with max length name", func(t *testing.T) {
+		// given
+		name := testsupport.TestMaxsizedNameObj
+		p := newCreateSpacePayload(&name, nil)
+		svc, ctrl := s.SecuredController(testsupport.TestIdentity)
+		// when
+		_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
+		// then
+		require.NotNil(t, created.Data)
+		require.NotNil(t, created.Data.Attributes)
+		assert.NotNil(t, created.Data.Attributes.CreatedAt)
+		assert.NotNil(t, created.Data.Attributes.UpdatedAt)
+		require.NotNil(t, created.Data.Attributes.Name)
+		assert.Equal(t, name, *created.Data.Attributes.Name)
+		require.NotNil(t, created.Data.Links)
+		assert.NotNil(t, created.Data.Links.Self)
+	})
+
 	s.T().Run("fail same name and same owner", func(t *testing.T) {
 		// given
 		name := testsupport.CreateRandomValidTestName("SameName-")
