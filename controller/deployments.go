@@ -79,6 +79,9 @@ func (c *DeploymentsController) getSpaceNameFromSpaceID(ctx context.Context, spa
 	if err != nil {
 		return nil, errs.Wrapf(err, "unable to convert space UUID %s to space name", spaceID.String())
 	}
+	if osioSpace == nil || osioSpace.Attributes == nil || osioSpace.Attributes.Name == nil {
+		return nil, errs.Wrapf(err, "space UUID %s is not valid space name", spaceID.String())
+	}
 	return osioSpace.Attributes.Name, nil
 }
 
@@ -346,7 +349,7 @@ func (c *DeploymentsController) ShowSpace(ctx *app.ShowSpaceDeploymentsContext) 
 	}
 
 	kubeSpaceName, err := c.getSpaceNameFromSpaceID(ctx, ctx.SpaceID)
-	if err != nil {
+	if err != nil || kubeSpaceName == nil {
 		return errors.NewNotFoundError("osio space", ctx.SpaceID.String())
 	}
 
