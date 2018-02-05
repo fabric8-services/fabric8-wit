@@ -183,7 +183,7 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 				},
 				Data: ConvertWorkItems(ctx.Request, result, hasChildren, includeParent),
 			}
-			c.enrichWorkItemList(ctx, ancestors, matchingWorkItemIDs, childLinks, &response) // append parentWI and ancestors (if not empty) in response
+			c.enrichWorkItemList(ctx, ancestors, matchingWorkItemIDs, childLinks, &response, hasChildren) // append parentWI and ancestors (if not empty) in response
 			setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(result), offset, limit, count, "filter[expression]="+*ctx.FilterExpression)
 
 			// Sort "data" by name or ID if no title given
@@ -340,7 +340,7 @@ func (c *SearchController) Users(ctx *app.UsersSearchContext) error {
 
 // Iterate over the WI list and read parent IDs
 // Fetch and load Parent WI in the included list
-func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, ancestors link.AncestorList, matchingIDs id.Slice, childLinks link.WorkItemLinkList, res *app.SearchWorkItemList) {
+func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, ancestors link.AncestorList, matchingIDs id.Slice, childLinks link.WorkItemLinkList, res *app.SearchWorkItemList, additional ...WorkItemConvertFunc) {
 
 	parentIDs := id.Slice{}
 	for _, wi := range res.Data {
@@ -375,7 +375,7 @@ func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, ancest
 	}
 
 	for _, ele := range wis {
-		convertedWI := ConvertWorkItem(ctx.Request, *ele, includeParentWorkItem(ctx, ancestors, childLinks))
+		convertedWI := ConvertWorkItem(ctx.Request, *ele, additional[0], includeParentWorkItem(ctx, ancestors, childLinks))
 		res.Included = append(res.Included, *convertedWI)
 	}
 }
