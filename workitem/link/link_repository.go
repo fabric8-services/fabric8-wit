@@ -38,6 +38,7 @@ type WorkItemLinkRepository interface {
 	ListByWorkItem(ctx context.Context, wiID uuid.UUID) ([]WorkItemLink, error)
 	DeleteRelatedLinks(ctx context.Context, wiID uuid.UUID, suppressorID uuid.UUID) error
 	Delete(ctx context.Context, ID uuid.UUID, suppressorID uuid.UUID) error
+	ListChildLinks(ctx context.Context, linkTypeID uuid.UUID, parentIDs ...uuid.UUID) (WorkItemLinkList, error)
 	ListWorkItemChildren(ctx context.Context, parentID uuid.UUID, start *int, limit *int) ([]workitem.WorkItem, uint64, error)
 	WorkItemHasChildren(ctx context.Context, parentID uuid.UUID) (bool, error)
 	// GetAncestors returns all ancestors for the given work items.
@@ -403,6 +404,22 @@ func (r *GormWorkItemLinkRepository) deleteLink(ctx context.Context, lnk WorkIte
 	return nil
 }
 
+// ListChildLinks gets all links to children for the given parents
+func (r *GormWorkItemLinkRepository) ListChildLinks(ctx context.Context, linkTypeID uuid.UUID, parentIDs ...uuid.UUID) (WorkItemLinkList, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "list", "children", "ids"}, time.Now())
+
+	var results WorkItemLinkList
+	db := r.db.Model(&WorkItemLink{}).Where("source_id IN (?) AND link_type_id = ?", parentIDs, linkTypeID).Scan(&results)
+	if db.Error != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": db.Error,
+		}, "failed to find children for work items: %+v", parentIDs)
+		return nil, errors.NewInternalError(ctx, errs.Wrapf(db.Error, "failed to find children for work items: %+v", parentIDs))
+	}
+
+	return results, nil
+}
+
 // ListWorkItemChildren get all child work items
 func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, parentID uuid.UUID, start *int, limit *int) ([]workitem.WorkItem, uint64, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "children", "query"}, time.Now())
@@ -426,7 +443,7 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 		}
 		db = db.Limit(*limit)
 	}
-	db = db.Select("count(*) over () as cnt2 , *")
+	db = db.Select("count(*) over () as cnt2 , *").Order("execution_order desc")
 
 	rows, err := db.Rows()
 	if err != nil {
@@ -464,8 +481,9 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 	}
 
 	if first {
-		// means 0 rows were returned from the first query (maybe becaus of offset outside of total count),
-		// need to do a count(*) to find out total
+		// means 0 rows were returned from the first query (maybe because of
+		// offset outside of total count), need to do a count(*) to find out
+		// total
 		db := db.Select("count(*)")
 		rows2, err := db.Rows()
 		defer rows2.Close()
