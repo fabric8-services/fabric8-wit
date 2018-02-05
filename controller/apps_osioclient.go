@@ -9,18 +9,19 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	witclient "github.com/fabric8-services/fabric8-wit/client"
 	"github.com/fabric8-services/fabric8-wit/goasupport"
+	"github.com/fabric8-services/fabric8-wit/log"
 	goaclient "github.com/goadesign/goa/client"
 	goauuid "github.com/goadesign/goa/uuid"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
 
-// OSIOClient contains configuration and methods for interacting with OSIO API
+// OSIOClientV1 contains configuration and methods for interacting with OSIO API
 type OSIOClientV1 struct {
 	wc *witclient.Client
 }
 
-// NewOSIOClient creates an openshift IO client given an http request context
+// NewOSIOClientV1 creates an openshift IO client given an http request context
 func NewOSIOClientV1(ctx context.Context, scheme string, host string) *OSIOClientV1 {
 
 	client := new(OSIOClientV1)
@@ -52,7 +53,7 @@ func (osioclient *OSIOClientV1) GetNamespaceByType(ctx context.Context, userServ
 	for _, ns := range nameSpaces {
 		if *ns.Type == namespaceType {
 			if ns.Name == nil {
-				return nil, errs.Errorf("Namespace with type %s found, but has no name", namespaceType)
+				return nil, errs.Errorf("namespace with type %s found, but has no name", namespaceType)
 			}
 			return ns, nil
 		}
@@ -65,6 +66,10 @@ func (osioclient *OSIOClientV1) GetNamespaceByType(ctx context.Context, userServ
 func (osioclient *OSIOClientV1) GetUserServices(ctx context.Context) (*app.UserService, error) {
 	resp, err := osioclient.wc.ShowUserService(ctx, witclient.ShowUserServicePath())
 	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"ShowUserServicePath": witclient.ShowUserServicePath(),
+			"err": err,
+		}, "could not retrieve uses services from ", witclient.ShowUserServicePath())
 		return nil, errs.Wrapf(err, "could not retrieve uses services")
 	}
 
@@ -74,6 +79,7 @@ func (osioclient *OSIOClientV1) GetUserServices(ctx context.Context) (*app.UserS
 
 	status := resp.StatusCode
 	if status == http.StatusNotFound {
+		// 404 Not Found is either a bad URL path or an invalid space.
 		return nil, nil
 	} else if status < 200 || status > 300 {
 		return nil, errs.Errorf("failed to GET %s due to status code %d", witclient.ShowUserServicePath(), status)
@@ -82,7 +88,11 @@ func (osioclient *OSIOClientV1) GetUserServices(ctx context.Context) (*app.UserS
 	var respType app.UserServiceSingle
 	err = json.Unmarshal(respBody, &respType)
 	if err != nil {
-		return nil, errs.Wrapf(err, "could not unmarshal user services JSON")
+		log.Error(ctx, map[string]interface{}{
+			"json": respBody,
+			"err":  err,
+		}, "could not unmarshal UserServiceSingle JSON")
+		return nil, errs.Wrapf(err, "could not unmarshal UserServiceSingle JSON")
 	}
 	return respType.Data, nil
 }
@@ -94,6 +104,10 @@ func (osioclient *OSIOClientV1) GetSpaceByID(ctx context.Context, spaceID uuid.U
 
 	resp, err := osioclient.wc.ShowSpace(ctx, urlpath, nil, nil)
 	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"ShowSpacePath": witclient.ShowSpacePath(goauuid.UUID(spaceID)),
+			"err":           err,
+		}, "could not retrieve space from %s", witclient.ShowSpacePath(goauuid.UUID(spaceID)))
 		return nil, errs.Wrapf(err, "could not connect to %s", urlpath)
 	}
 
@@ -111,6 +125,10 @@ func (osioclient *OSIOClientV1) GetSpaceByID(ctx context.Context, spaceID uuid.U
 	var respType app.SpaceSingle
 	err = json.Unmarshal(respBody, &respType)
 	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"json": respBody,
+			"err":  err,
+		}, "could not unmarshal SpaceSingle JSON")
 		return nil, errs.Wrapf(err, "could not unmarshal SpaceSingle JSON")
 	}
 	return respType.Data, nil

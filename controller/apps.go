@@ -10,6 +10,7 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/auth/authservice"
 	"github.com/fabric8-services/fabric8-wit/kubernetesV1"
+	"github.com/fabric8-services/fabric8-wit/log"
 	errs "github.com/pkg/errors"
 
 	"github.com/fabric8-services/fabric8-wit/app"
@@ -70,10 +71,15 @@ func getAndCheckOSIOClientV1(ctx context.Context) (*OSIOClientV1, error) {
 		scheme = req.URL.Scheme
 	}
 
-	if os.Getenv("FABRIC8_WIT_API_URL") != "" {
-		witurl, err := url.Parse(os.Getenv("FABRIC8_WIT_API_URL"))
+	witURLStr := os.Getenv("FABRIC8_WIT_API_URL")
+	if witURLStr != "" {
+		witurl, err := url.Parse(witURLStr)
 		if err != nil {
-			return nil, errs.Wrapf(err, "cannot parse FABRIC8_WIT_API_URL")
+			log.Error(ctx, map[string]interface{}{
+				"FABRIC8_WIT_API_URL": witURLStr,
+				"err": err,
+			}, "cannot parse FABRIC8_WIT_API_URL: %s", witURLStr)
+			return nil, errs.Wrapf(err, "cannot parse FABRIC8_WIT_API_URL: %s", witURLStr)
 		}
 		host = witurl.Host
 		scheme = witurl.Scheme
@@ -84,6 +90,8 @@ func getAndCheckOSIOClientV1(ctx context.Context) (*OSIOClientV1, error) {
 	return oc, nil
 }
 
+// getSpaceNameFromSpaceID() converts an OSIO Space UUID to an OpenShift space name.
+// will return an error if the space is not found.
 func (c *AppsController) getSpaceNameFromSpaceID(ctx context.Context, spaceID uuid.UUID) (*string, error) {
 	// TODO - add a cache in AppsController - but will break if user can change space name
 	// use WIT API to convert Space UUID to Space name
@@ -95,6 +103,9 @@ func (c *AppsController) getSpaceNameFromSpaceID(ctx context.Context, spaceID uu
 	osioSpace, err := osioclient.GetSpaceByID(ctx, spaceID)
 	if err != nil {
 		return nil, errs.Wrapf(err, "unable to convert space UUID %s to space name", spaceID)
+	}
+	if osioSpace == nil {
+		return nil, errs.Errorf("space with id '%s' not found", spaceID)
 	}
 	return osioSpace.Attributes.Name, nil
 }
@@ -373,7 +384,7 @@ func (c *AppsController) ShowSpace(ctx *app.ShowSpaceAppsContext) error {
 		return witerrors.NewInternalError(ctx, errs.Wrapf(err, "could not retrieve space %s", *kubeSpaceName))
 	}
 	if space == nil {
-		return witerrors.NewNotFoundError("space", *kubeSpaceName)
+		return witerrors.NewNotFoundError("openshift space", *kubeSpaceName)
 	}
 
 	res := &app.SimpleSpaceV1Single{

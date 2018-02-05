@@ -20,6 +20,7 @@ import (
 	rest "k8s.io/client-go/rest"
 
 	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/log"
 
 	errs "github.com/pkg/errors"
 )
@@ -251,6 +252,14 @@ func (kc *kubeClient) ScaleDeployment(spaceName string, appName string, envName 
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
+
+	log.Info(nil, map[string]interface{}{
+		"space":       spaceName,
+		"application": appName,
+		"environment": envName,
+		"old":         oldReplicas,
+		"new":         deployNumber,
+	}, "scaled deployment to %d replicas", deployNumber)
 
 	return &oldReplicas, nil
 }
