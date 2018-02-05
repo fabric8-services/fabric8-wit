@@ -1179,6 +1179,127 @@ func (s *searchControllerTestSuite) TestIncludedParents() {
 	})
 }
 
+func (s *searchControllerTestSuite) TestIncludedChildren() {
+	resetFn := s.DisableGormCallbacks()
+	defer resetFn()
+
+	// Suppose we have this topology:
+	//
+	//   A
+	//   |_B
+	//     |_C
+	//     | |_D
+	//     |
+	//     |_E
+	//
+	// We need to make sure that E is included when C is a match AND the
+	// tree-view option is "on". If C is a match and trew-view option is "off",
+	// then don't include E.
+	fxt := tf.NewTestFixture(s.T(), s.DB,
+		tf.WorkItems(5, tf.SetWorkItemTitles("A", "B", "C", "D", "E")),
+		tf.WorkItemLinksCustom(4,
+			tf.BuildLinks(append(tf.LinkChain("A", "B", "C", "D"), tf.L("B", "E"))...),
+			func(fxt *tf.TestFixture, idx int) error {
+				fxt.WorkItemLinks[idx].LinkTypeID = link.SystemWorkItemLinkTypeParentChildID
+				return nil
+			},
+		),
+	)
+
+	A := fxt.WorkItemByTitle("A").ID
+	B := fxt.WorkItemByTitle("B").ID
+	C := fxt.WorkItemByTitle("C").ID
+	E := fxt.WorkItemByTitle("E").ID
+	spaceIDStr := fxt.Spaces[0].ID.String()
+
+	testFolder := "in_topology_A-B-C-D_and_B-E_search_for_B_and_C"
+	s.T().Run("in topology A-B-C-D and B-E search for", func(t *testing.T) {
+		t.Run("B,C with tree-view = true", func(t *testing.T) {
+			// when
+			filter := fmt.Sprintf(`{"$AND":[{"space":"%[1]s"}, {"$OR": [{"title":"B"}, {"title":"C"}]}], "$OPTS":{"%[2]s": true}}`, spaceIDStr, search.OptTreeViewKey)
+			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+			// then
+			require.NotEmpty(t, result.Data)
+			// check "data" section
+			toBeFound := id.Slice{B, C}.ToMap()
+			for _, wi := range result.Data {
+				_, ok := toBeFound[*wi.ID]
+				require.True(t, ok, "found unexpected work item in data section: %s", wi.Attributes[workitem.SystemTitle].(string))
+				delete(toBeFound, *wi.ID)
+				// check parent of each work item
+				require.NotNil(t, wi.Relationships)
+				require.NotNil(t, wi.Relationships.Parent)
+				require.NotNil(t, wi.Relationships.Parent.Data)
+				if *wi.ID == B {
+					require.Equal(t, A, wi.Relationships.Parent.Data.ID)
+				}
+				if *wi.ID == C {
+					require.Equal(t, B, wi.Relationships.Parent.Data.ID)
+				}
+			}
+			require.Empty(t, toBeFound, "failed to find these work items: %s", toBeFound.ToString(", ", func(ID uuid.UUID) string {
+				return fxt.WorkItemByID(ID).Fields[workitem.SystemTitle].(string)
+			}))
+			// check "included" section
+			toBeFound = id.Slice{A, E}.ToMap()
+			for _, ifObj := range result.Included {
+				// technically an included object can be a pointer or an object
+				var wi *app.WorkItem
+				obj, ok := ifObj.(app.WorkItem)
+				if ok {
+					wi = &obj
+				} else {
+					wi, ok = ifObj.(*app.WorkItem)
+					if !ok {
+						continue
+					}
+				}
+				_, ok = toBeFound[*wi.ID]
+				require.True(t, ok, "found unexpected work item in data section: %s", wi.Attributes[workitem.SystemTitle].(string))
+				delete(toBeFound, *wi.ID)
+				// check parent of each work item
+				require.NotNil(t, wi.Relationships)
+				if *wi.ID == E {
+					require.NotNil(t, wi.Relationships.Parent)
+					require.NotNil(t, wi.Relationships.Parent.Data)
+					require.Equal(t, B, wi.Relationships.Parent.Data.ID)
+				}
+				if *wi.ID == A {
+					require.Empty(t, wi.Relationships.Parent)
+				}
+			}
+			require.Empty(t, toBeFound, "failed to find these work items: %s", toBeFound.ToString(", ", func(ID uuid.UUID) string {
+				return fxt.WorkItemByID(ID).Fields[workitem.SystemTitle].(string)
+			}))
+			compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", testFolder, "include_children.res.payload.golden.json"), result)
+		})
+
+		t.Run("B,C with tree-view = false", func(t *testing.T) {
+			// when
+			filter := fmt.Sprintf(`{"$AND":[{"space":"%[1]s"}, {"$OR": [{"title":"B"}, {"title":"C"}]}], "$OPTS":{"%[2]s": false}}`, spaceIDStr, search.OptTreeViewKey)
+			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+			// then
+			require.NotEmpty(t, result.Data)
+			require.Empty(t, result.Included)
+			// check "data" section
+			toBeFound := id.Slice{B, C}.ToMap()
+			for _, wi := range result.Data {
+				_, ok := toBeFound[*wi.ID]
+				require.True(t, ok, "found unexpected work item in data section: %s", wi.Attributes[workitem.SystemTitle].(string))
+				delete(toBeFound, *wi.ID)
+				// check parent of each work item
+				require.NotNil(t, wi.Relationships)
+				require.Empty(t, wi.Relationships.Parent)
+			}
+			require.Empty(t, toBeFound, "failed to find these work items: %s", toBeFound.ToString(", ", func(ID uuid.UUID) string {
+				return fxt.WorkItemByID(ID).Fields[workitem.SystemTitle].(string)
+			}))
+			// check "included" section
+			compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", testFolder, "do_not_include_children.res.payload.golden.json"), result)
+		})
+	})
+}
+
 func (s *searchControllerTestSuite) TestUpdateWorkItem() {
 	resetFn := s.DisableGormCallbacks()
 	defer resetFn()
