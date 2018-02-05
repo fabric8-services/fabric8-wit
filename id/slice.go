@@ -70,6 +70,11 @@ func (s Slice) ToString(sep string, fn ...func(ID uuid.UUID) string) string {
 	return strings.Join(res, sep)
 }
 
+// ToMap returns the slice elements as a map using MapFromSlice()
+func (s Slice) ToMap() Map {
+	return MapFromSlice(s)
+}
+
 // String returns all IDs separated by ", ".
 func (s Slice) String() string {
 	return s.ToString(", ")

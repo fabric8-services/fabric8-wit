@@ -710,3 +710,38 @@ func (s *linkRepoBlackBoxTest) TestAncestorList() {
 		})
 	})
 }
+
+func (s *linkRepoBlackBoxTest) TestListChildLinks() {
+	resetFn := s.DisableGormCallbacks()
+	defer resetFn()
+
+	s.T().Run("ok", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.WorkItems(4, tf.SetWorkItemTitles("A", "B", "C", "D")),
+			tf.WorkItemLinksCustom(3, tf.BuildLinks(tf.L("A", "B"), tf.L("A", "C"), tf.L("C", "D"))),
+		)
+		A := fxt.WorkItemByTitle("A").ID
+		B := fxt.WorkItemByTitle("B").ID
+		C := fxt.WorkItemByTitle("C").ID
+		linkType := fxt.WorkItemLinkTypes[0].ID
+		// when
+		childLinks, err := s.workitemLinkRepo.ListChildLinks(s.Ctx, linkType, A)
+		// then
+		require.NoError(t, err)
+		var foundAB, foundAC bool
+		cnt := 0
+		for _, l := range childLinks {
+			if l.SourceID == A && l.TargetID == B {
+				foundAB = true
+			}
+			if l.SourceID == A && l.TargetID == C {
+				foundAC = true
+			}
+			cnt++
+		}
+		require.Equal(t, 2, cnt)
+		require.True(t, foundAB, "failed to find link A-B")
+		require.True(t, foundAC, "failed to find link A-C")
+	})
+}
