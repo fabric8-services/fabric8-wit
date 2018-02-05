@@ -69,6 +69,9 @@ var workspaceAttributes = a.Type("WorkspaceAttributes", func() {
 	a.Attribute("description", d.String, "The URL of the codebase ", func() {
 		a.Example("")
 	})
+	a.Attribute("status", d.String, "The workspace status", func() {
+		a.Example("STOPPED");
+	})
 })
 
 var workspaceLinks = a.Type("WorkspaceLinks", func() {

@@ -111,6 +111,7 @@ func (c *CodebaseController) Edit(ctx *app.EditCodebaseContext) error {
 			Attributes: &app.WorkspaceAttributes{
 				Name:        &workspace.Config.Name,
 				Description: &workspace.Status,
+				Status:      &workspace.Status,
 			},
 			Type: "workspaces",
 			Links: &app.WorkspaceLinks{
