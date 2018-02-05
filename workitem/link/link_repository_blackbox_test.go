@@ -63,13 +63,18 @@ func (s *linkRepoBlackBoxTest) TestList() {
 	})
 }
 
-func (s *linkRepoBlackBoxTest) TestChildrenReorderAbove() {
-	// Tests reorder child work item above
-	s.T().Run("ok - child work items reorder above", func(t *testing.T) {
+// Tests reorder of child work item **above**
+func (s *linkRepoBlackBoxTest) TestChildReorderAbove() {
+	s.T().Run("ok - child work item reorder above", func(t *testing.T) {
+		// Create 3 workitems -> Parent, Child 1 & 2
+		// Workitems in ascending order =
+		// Parent (1000)
+		// Child1 (2000)
+		// Child2 (3000)
 		fxt := tf.NewTestFixture(t, s.DB,
 			tf.Identities(1),
 			tf.Spaces(1),
-			tf.WorkItems(3), // parent + child 1-2
+			tf.WorkItems(3),
 			tf.WorkItemLinkTypes(1, func(fxt *tf.TestFixture, idx int) error {
 				fxt.WorkItemLinkTypes[idx].ForwardName = "parent of"
 				return nil
@@ -80,30 +85,50 @@ func (s *linkRepoBlackBoxTest) TestChildrenReorderAbove() {
 				return nil
 			}),
 		)
-		s.workitemRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, workitem.DirectionAbove, &fxt.WorkItems[1].ID, *fxt.WorkItems[2], fxt.Identities[0].ID)
 
-		res, _, err := s.workitemLinkRepo.ListWorkItemChildren(s.Ctx, fxt.WorkItems[0].ID, nil, nil)
+		// List all children before reordering.
+		// List returns workitems in descending order.
+		// So, beforeReorder returns
+		// Child2 (3000)
+		// Child1 (2000)
+		beforeReorder, _, err := s.workitemLinkRepo.ListWorkItemChildren(s.Ctx, fxt.WorkItems[0].ID, nil, nil)
 		require.NoError(t, err)
-		require.Len(t, res, 2)
+		require.Len(t, beforeReorder, 2)
+
+		// Reorder child1 above child2
+		_, err = s.workitemRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, workitem.DirectionAbove, &fxt.WorkItems[2].ID, *fxt.WorkItems[1], fxt.Identities[0].ID)
+		require.NoError(t, err)
+
+		// List all workitem children after reordering. Again, List returns workitems in descending order
+		// afterReorder returns
+		// Child1 (3500)
+		// Child2 (3000)
+		afterReorder, _, err := s.workitemLinkRepo.ListWorkItemChildren(s.Ctx, fxt.WorkItems[0].ID, nil, nil)
+		require.NoError(t, err)
+		require.Len(t, afterReorder, 2)
 
 		var expectedOrder []interface{}
 		for i := 1; i < 3; i++ {
-			expectedOrder = append(expectedOrder, fxt.WorkItems[i].ID)
+			expectedOrder = append(expectedOrder, fxt.WorkItems[i].ID) // expectedOrder = [child1, child2]
 		}
-		for i, v := range expectedOrder {
-			i = len(expectedOrder) - 1 - i
-			require.Equal(t, v, res[i].ID)
+		for i, v := range afterReorder {
+			assert.Equal(t, v.ID, expectedOrder[i])
 		}
 	})
 }
 
-func (s *linkRepoBlackBoxTest) TestChildrenReorderBelow() {
-	// Tests reorder child work item below
-	s.T().Run("ok - child work items reorder below", func(t *testing.T) {
+// Tests reorder of child work item **below**
+func (s *linkRepoBlackBoxTest) TestChildReorderBelow() {
+	s.T().Run("ok - child work item reorder below", func(t *testing.T) {
+		// Create 3 workitems -> Parent, Child 1 & 2
+		// Workitems in ascending order =
+		// Parent (1000)
+		// Child1 (2000)
+		// Child2 (3000)
 		fxt := tf.NewTestFixture(t, s.DB,
 			tf.Identities(1),
 			tf.Spaces(1),
-			tf.WorkItems(3), // parent + child 1-2
+			tf.WorkItems(3),
 			tf.WorkItemLinkTypes(1, func(fxt *tf.TestFixture, idx int) error {
 				fxt.WorkItemLinkTypes[idx].ForwardName = "parent of"
 				return nil
@@ -114,30 +139,50 @@ func (s *linkRepoBlackBoxTest) TestChildrenReorderBelow() {
 				return nil
 			}),
 		)
-		s.workitemRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, workitem.DirectionBelow, &fxt.WorkItems[2].ID, *fxt.WorkItems[1], fxt.Identities[0].ID)
 
-		res, _, err := s.workitemLinkRepo.ListWorkItemChildren(s.Ctx, fxt.WorkItems[0].ID, nil, nil)
+		// List all children before reordering.
+		// List returns workitems in descending order.
+		// So, beforeReorder returns
+		// Child2 (3000)
+		// Child1 (2000)
+		beforeReorder, _, err := s.workitemLinkRepo.ListWorkItemChildren(s.Ctx, fxt.WorkItems[0].ID, nil, nil)
 		require.NoError(t, err)
-		require.Len(t, res, 2)
+		require.Len(t, beforeReorder, 2)
+
+		// Reorder child2 below child1
+		_, err = s.workitemRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, workitem.DirectionBelow, &fxt.WorkItems[1].ID, *fxt.WorkItems[2], fxt.Identities[0].ID)
+		require.NoError(t, err)
+
+		// List all workitem children after reordering. Again, List returns workitems in descending order
+		// afterReorder returns
+		// Child1 (2000)
+		// Child2 (1500)
+		afterReorder, _, err := s.workitemLinkRepo.ListWorkItemChildren(s.Ctx, fxt.WorkItems[0].ID, nil, nil)
+		require.NoError(t, err)
+		require.Len(t, afterReorder, 2)
 
 		var expectedOrder []interface{}
 		for i := 1; i < 3; i++ {
-			expectedOrder = append(expectedOrder, fxt.WorkItems[i].ID)
+			expectedOrder = append(expectedOrder, fxt.WorkItems[i].ID) // expectedOrder = [child1, child2]
 		}
-		for i, v := range expectedOrder {
-			i = len(expectedOrder) - 1 - i
-			require.Equal(t, v, res[i].ID)
+		for i, v := range afterReorder {
+			assert.Equal(t, v.ID, expectedOrder[i])
 		}
 	})
 }
 
+// Tests reorder of child work item **top**
 func (s *linkRepoBlackBoxTest) TestChildrenReorderTop() {
-	// Tests reorder child work item top
 	s.T().Run("ok - child work items reorder top", func(t *testing.T) {
+		// Create 3 workitems -> Parent, Child 1 & 2
+		// Workitems in ascending order =
+		// Parent (1000)
+		// Child1 (2000)
+		// Child2 (3000)
 		fxt := tf.NewTestFixture(t, s.DB,
 			tf.Identities(1),
 			tf.Spaces(1),
-			tf.WorkItems(3), // parent + child 1-2
+			tf.WorkItems(3),
 			tf.WorkItemLinkTypes(1, func(fxt *tf.TestFixture, idx int) error {
 				fxt.WorkItemLinkTypes[idx].ForwardName = "parent of"
 				return nil
@@ -148,30 +193,49 @@ func (s *linkRepoBlackBoxTest) TestChildrenReorderTop() {
 				return nil
 			}),
 		)
-		s.workitemRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, workitem.DirectionTop, nil, *fxt.WorkItems[2], fxt.Identities[0].ID)
 
-		res, _, err := s.workitemLinkRepo.ListWorkItemChildren(s.Ctx, fxt.WorkItems[0].ID, nil, nil)
+		// List all children before reordering.
+		// List returns workitems in descending order.
+		// So, beforeReorder returns
+		// Child2 (3000)
+		// Child1 (2000)
+		beforeReorder, _, err := s.workitemLinkRepo.ListWorkItemChildren(s.Ctx, fxt.WorkItems[0].ID, nil, nil)
 		require.NoError(t, err)
-		require.Len(t, res, 2)
+		require.Len(t, beforeReorder, 2)
+
+		// Reorder child 1 to topmost position
+		s.workitemRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, workitem.DirectionTop, nil, *fxt.WorkItems[1], fxt.Identities[0].ID)
+
+		// List all workitem children after reordering. Again, List returns workitems in descending order
+		// afterReorder returns
+		// Child1 (4000)
+		// Child2 (3000)
+		afterReorder, _, err := s.workitemLinkRepo.ListWorkItemChildren(s.Ctx, fxt.WorkItems[0].ID, nil, nil)
+		require.NoError(t, err)
+		require.Len(t, afterReorder, 2)
 
 		var expectedOrder []interface{}
 		for i := 1; i < 3; i++ {
-			expectedOrder = append(expectedOrder, fxt.WorkItems[i].ID)
+			expectedOrder = append(expectedOrder, fxt.WorkItems[i].ID) // expectedOrder = [child1, child2]
 		}
-		for i, v := range expectedOrder {
-			i = len(expectedOrder) - 1 - i
-			require.Equal(t, v, res[i].ID)
+		for i, v := range afterReorder {
+			assert.Equal(t, v.ID, expectedOrder[i])
 		}
 	})
 }
 
+// Tests reorder of child work item **bottom**
 func (s *linkRepoBlackBoxTest) TestChildrenReorderBottom() {
-	// Tests reorder child work item bottom
 	s.T().Run("ok - child work items reorder bottom", func(t *testing.T) {
+		// Create 3 workitems -> Parent, Child 1 & 2
+		// Workitems in ascending order =
+		// Parent (1000)
+		// Child1 (2000)
+		// Child2 (3000)
 		fxt := tf.NewTestFixture(t, s.DB,
 			tf.Identities(1),
 			tf.Spaces(1),
-			tf.WorkItems(3), // parent + child 1-2
+			tf.WorkItems(3),
 			tf.WorkItemLinkTypes(1, func(fxt *tf.TestFixture, idx int) error {
 				fxt.WorkItemLinkTypes[idx].ForwardName = "parent of"
 				return nil
@@ -182,19 +246,33 @@ func (s *linkRepoBlackBoxTest) TestChildrenReorderBottom() {
 				return nil
 			}),
 		)
-		s.workitemRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, workitem.DirectionBottom, nil, *fxt.WorkItems[1], fxt.Identities[0].ID)
 
-		res, _, err := s.workitemLinkRepo.ListWorkItemChildren(s.Ctx, fxt.WorkItems[0].ID, nil, nil)
+		// List all children before reordering.
+		// List returns workitems in descending order.
+		// So, beforeReorder returns
+		// Child2 (3000)
+		// Child1 (2000)
+		beforeReorder, _, err := s.workitemLinkRepo.ListWorkItemChildren(s.Ctx, fxt.WorkItems[0].ID, nil, nil)
 		require.NoError(t, err)
-		require.Len(t, res, 2)
+		require.Len(t, beforeReorder, 2)
+
+		// Reorder child 2 to bottom most position
+		s.workitemRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, workitem.DirectionBottom, nil, *fxt.WorkItems[2], fxt.Identities[0].ID)
+
+		// List all workitem children after reordering. Again, List returns workitems in descending order
+		// afterReorder returns
+		// Child1 (2000)
+		// Child2 (500)
+		afterReorder, _, err := s.workitemLinkRepo.ListWorkItemChildren(s.Ctx, fxt.WorkItems[0].ID, nil, nil)
+		require.NoError(t, err)
+		require.Len(t, afterReorder, 2)
 
 		var expectedOrder []interface{}
 		for i := 1; i < 3; i++ {
-			expectedOrder = append(expectedOrder, fxt.WorkItems[i].ID)
+			expectedOrder = append(expectedOrder, fxt.WorkItems[i].ID) // expectedOrder = [child1, child2]
 		}
-		for i, v := range expectedOrder {
-			i = len(expectedOrder) - 1 - i
-			require.Equal(t, v, res[i].ID)
+		for i, v := range afterReorder {
+			assert.Equal(t, v.ID, expectedOrder[i])
 		}
 	})
 }
