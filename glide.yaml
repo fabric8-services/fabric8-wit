@@ -32,7 +32,7 @@ import:
   - middleware
   - middleware/security/jwt
 - package: github.com/satori/go.uuid
-  version: v1.1.0
+  version: v1.2.0
 - package: github.com/armon/go-metrics
   version: 9a4b6e10bed6220a1665955aa2b75afc91eb10b3
 - package: gopkg.in/square/go-jose.v2

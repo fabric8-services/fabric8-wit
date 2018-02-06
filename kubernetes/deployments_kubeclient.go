@@ -1,12 +1,14 @@
-package kubernetesV1
+package kubernetes
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -39,7 +41,7 @@ type KubeClientConfig struct {
 	// Provides access to the metrics API, uses default implementation if not set
 	MetricsGetter
 	// hook to inject build configs for testing
-	BuildConfigInterface
+	BuildConfig
 }
 
 // KubeRESTAPIGetter has a method to access the KubeRESTAPI interface
@@ -47,28 +49,28 @@ type KubeRESTAPIGetter interface {
 	GetKubeRESTAPI(config *KubeClientConfig) (KubeRESTAPI, error)
 }
 
-// MetricsGetter has a method to access the MetricsInterface interface
+// MetricsGetter has a method to access the Metrics interface
 type MetricsGetter interface {
-	GetMetrics(config *MetricsClientConfig) (MetricsInterface, error)
+	GetMetrics(config *MetricsClientConfig) (Metrics, error)
 }
 
-// BuildConfigGetter will provide build configs for testing
-type BuildConfigInterface interface {
+// BuildConfig will provide build configs for testing
+type BuildConfig interface {
 	GetBuildConfigs(space string) ([]string, error)
 }
 
 // KubeClientInterface contains configuration and methods for interacting with a Kubernetes cluster
 type KubeClientInterface interface {
-	GetSpace(spaceName string) (*app.SimpleSpaceV1, error)
-	GetApplication(spaceName string, appName string) (*app.SimpleAppV1, error)
-	GetDeployment(spaceName string, appName string, envName string) (*app.SimpleDeploymentV1, error)
+	GetSpace(spaceName string) (*app.SimpleSpace, error)
+	GetApplication(spaceName string, appName string) (*app.SimpleApp, error)
+	GetDeployment(spaceName string, appName string, envName string) (*app.SimpleDeployment, error)
 	ScaleDeployment(spaceName string, appName string, envName string, deployNumber int) (*int, error)
 	GetDeploymentStats(spaceName string, appName string, envName string,
-		startTime time.Time) (*app.SimpleDeploymentStatsV1, error)
+		startTime time.Time) (*app.SimpleDeploymentStats, error)
 	GetDeploymentStatSeries(spaceName string, appName string, envName string, startTime time.Time,
-		endTime time.Time, limit int) (*app.SimpleDeploymentStatSeriesV1, error)
-	GetEnvironments() ([]*app.SimpleEnvironmentV1, error)
-	GetEnvironment(envName string) (*app.SimpleEnvironmentV1, error)
+		endTime time.Time, limit int) (*app.SimpleDeploymentStatSeries, error)
+	GetEnvironments() ([]*app.SimpleEnvironment, error)
+	GetEnvironment(envName string) (*app.SimpleEnvironment, error)
 	GetPodsInNamespace(nameSpace string, appName string) ([]v1.Pod, error)
 	Close()
 }
@@ -77,8 +79,8 @@ type kubeClient struct {
 	config *KubeClientConfig
 	envMap map[string]string
 	KubeRESTAPI
-	MetricsInterface
-	BuildConfigInterface
+	Metrics
+	BuildConfig
 }
 
 // KubeRESTAPI collects methods that call out to the Kubernetes API server over the network
@@ -89,7 +91,17 @@ type KubeRESTAPI interface {
 type deployment struct {
 	dcUID      types.UID
 	appVersion string
-	currentUID types.UID
+	current    *v1.ReplicationController
+}
+
+type route struct {
+	host string
+	path string
+	tls  bool
+	// Scoring criteria below
+	hasAdmitted          bool
+	hasAlternateBackends bool
+	isCustomHost         bool
 }
 
 // Receiver for default implementation of KubeRESTAPIGetter and MetricsGetter
@@ -126,19 +138,19 @@ func NewKubeClient(config *KubeClientConfig) (KubeClientInterface, error) {
 		return nil, errs.WithStack(err)
 	}
 
-	kubeClient := &kubeClient{
-		config:               config,
-		KubeRESTAPI:          kubeAPI,
-		MetricsInterface:     metrics,
-		BuildConfigInterface: config.BuildConfigInterface,
-	}
-
 	// Get environments from config map
-	envMap, err := kubeClient.getEnvironmentsFromConfigMap()
+	envMap, err := getEnvironmentsFromConfigMap(kubeAPI, config.UserNamespace)
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
-	kubeClient.envMap = envMap
+
+	kubeClient := &kubeClient{
+		config:      config,
+		envMap:      envMap,
+		KubeRESTAPI: kubeAPI,
+		Metrics:     metrics,
+		BuildConfig: config.BuildConfig,
+	}
 	return kubeClient, nil
 }
 
@@ -154,18 +166,18 @@ func (*defaultGetter) GetKubeRESTAPI(config *KubeClientConfig) (KubeRESTAPI, err
 	return clientset.CoreV1(), nil
 }
 
-func (*defaultGetter) GetMetrics(config *MetricsClientConfig) (MetricsInterface, error) {
+func (*defaultGetter) GetMetrics(config *MetricsClientConfig) (Metrics, error) {
 	return NewMetricsClient(config)
 }
 
 // Close releases any resources held by this KubeClientInterface
 func (kc *kubeClient) Close() {
 	// Metrics client needs to be closed to stop Hawkular go-routine from spinning
-	kc.MetricsInterface.Close()
+	kc.Metrics.Close()
 }
 
 // GetSpace returns a space matching the provided name, containing all applications that belong to it
-func (kc *kubeClient) GetSpace(spaceName string) (*app.SimpleSpaceV1, error) {
+func (kc *kubeClient) GetSpace(spaceName string) (*app.SimpleSpace, error) {
 	// Get BuildConfigs within the user namespace that have a matching 'space' label
 	// This is similar to how pipelines are displayed in fabric8-ui
 	// https://github.com/fabric8-ui/fabric8-ui/blob/master/src/app/space/create/pipelines/pipelines.component.ts
@@ -175,7 +187,7 @@ func (kc *kubeClient) GetSpace(spaceName string) (*app.SimpleSpaceV1, error) {
 	}
 
 	// Get all applications in this space using BuildConfig names
-	apps := []*app.SimpleAppV1{}
+	apps := []*app.SimpleApp{}
 	for _, bc := range buildconfigs {
 		appn, err := kc.GetApplication(spaceName, bc)
 		if err != nil {
@@ -184,8 +196,12 @@ func (kc *kubeClient) GetSpace(spaceName string) (*app.SimpleSpaceV1, error) {
 		apps = append(apps, appn)
 	}
 
-	result := &app.SimpleSpaceV1{
-		Applications: apps,
+	result := &app.SimpleSpace{
+		Type: "space",
+		Attributes: &app.SimpleSpaceAttributes{
+			Name:         spaceName,
+			Applications: apps,
+		},
 	}
 
 	return result, nil
@@ -193,9 +209,9 @@ func (kc *kubeClient) GetSpace(spaceName string) (*app.SimpleSpaceV1, error) {
 
 // GetApplication retrieves an application with the given space and application names, with the status
 // of that application's deployment in each environment
-func (kc *kubeClient) GetApplication(spaceName string, appName string) (*app.SimpleAppV1, error) {
+func (kc *kubeClient) GetApplication(spaceName string, appName string) (*app.SimpleApp, error) {
 	// Get all deployments of this app for each environment in this space
-	deployments := []*app.SimpleDeploymentV1{}
+	deployments := []*app.SimpleDeployment{}
 	for envName := range kc.envMap {
 		deployment, err := kc.GetDeployment(spaceName, appName, envName)
 		if err != nil {
@@ -205,9 +221,13 @@ func (kc *kubeClient) GetApplication(spaceName string, appName string) (*app.Sim
 		}
 	}
 
-	result := &app.SimpleAppV1{
-		Name:     &appName,
-		Pipeline: deployments,
+	result := &app.SimpleApp{
+		Type: "application",
+		Attributes: &app.SimpleAppAttributes{
+			Name:        appName,
+			Deployments: deployments,
+		},
+		ID: appName,
 	}
 	return result, nil
 }
@@ -264,9 +284,44 @@ func (kc *kubeClient) ScaleDeployment(spaceName string, appName string, envName 
 	return &oldReplicas, nil
 }
 
+func (kc *kubeClient) getConsoleURL(envNS string) (*string, error) {
+	path := fmt.Sprintf("console/project/%s", envNS)
+	// Replace "api" prefix with "console" and append path
+	consoleURL, err := modifyURL(kc.config.ClusterURL, "console", path)
+	if err != nil {
+		return nil, err
+	}
+	consoleURLStr := consoleURL.String()
+	return &consoleURLStr, nil
+}
+
+func (kc *kubeClient) getLogURL(envNS string, deploy *deployment) (*string, error) {
+	consoleURL, err := kc.getConsoleURL(envNS)
+	if err != nil {
+		return nil, err
+	}
+	rcName := deploy.current.Name
+	logURL := fmt.Sprintf("%s/browse/rc/%s?tab=logs", *consoleURL, rcName)
+	return &logURL, nil
+}
+
+func (kc *kubeClient) getApplicationURL(envNS string, deploy *deployment) (*string, error) {
+	// Get the best route to the application to show to the user
+	routeURL, err := kc.getBestRoute(envNS, deploy)
+	if err != nil {
+		return nil, err
+	}
+	var result *string
+	if routeURL != nil {
+		route := routeURL.String()
+		result = &route
+	}
+	return result, nil
+}
+
 // GetDeployment returns information about the current deployment of an application within a
 // particular environment. The application must exist within the provided space.
-func (kc *kubeClient) GetDeployment(spaceName string, appName string, envName string) (*app.SimpleDeploymentV1, error) {
+func (kc *kubeClient) GetDeployment(spaceName string, appName string, envName string) (*app.SimpleDeployment, error) {
 	envNS, err := kc.getEnvironmentNamespace(envName)
 	if err != nil {
 		return nil, errs.WithStack(err)
@@ -275,26 +330,52 @@ func (kc *kubeClient) GetDeployment(spaceName string, appName string, envName st
 	deploy, err := kc.getCurrentDeployment(spaceName, appName, envNS)
 	if err != nil {
 		return nil, errs.WithStack(err)
-	} else if deploy == nil || len(deploy.currentUID) == 0 {
+	} else if deploy == nil || deploy.current == nil {
 		return nil, nil
 	}
 
 	// Get all pods created by this deployment
-	pods, err := kc.getPods(envNS, deploy.currentUID)
+	pods, err := kc.getPods(envNS, deploy.current.UID)
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
 	// Get the status of each pod in the deployment
-	podStats, err := kc.getPodStatus(pods)
+	podStats, total := kc.getPodStatus(pods)
+
+	// Get related URLs for the deployment
+	appURL, err := kc.getApplicationURL(envNS, deploy)
+	if err != nil {
+		return nil, err
+	}
+	consoleURL, err := kc.getConsoleURL(envNS)
+	if err != nil {
+		return nil, err
+	}
+	logURL, err := kc.getLogURL(envNS, deploy)
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
 
+	var links *app.GenericLinksForDeployment
+	if consoleURL != nil || appURL != nil || logURL != nil {
+		links = &app.GenericLinksForDeployment{
+			Console:     consoleURL,
+			Logs:        logURL,
+			Application: appURL,
+		}
+	}
+
 	verString := string(deploy.appVersion)
-	result := &app.SimpleDeploymentV1{
-		Name:    &envName,
-		Version: &verString,
-		Pods:    podStats,
+	result := &app.SimpleDeployment{
+		Type: "deployment",
+		Attributes: &app.SimpleDeploymentAttributes{
+			Name:     envName,
+			Version:  &verString,
+			Pods:     podStats,
+			PodTotal: &total,
+		},
+		ID:    envName,
+		Links: links,
 	}
 	return result, nil
 }
@@ -302,7 +383,7 @@ func (kc *kubeClient) GetDeployment(spaceName string, appName string, envName st
 // GetDeploymentStats returns performance metrics of an application for a period of 1 minute
 // beyond the specified start time, which are then aggregated into a single data point.
 func (kc *kubeClient) GetDeploymentStats(spaceName string, appName string, envName string,
-	startTime time.Time) (*app.SimpleDeploymentStatsV1, error) {
+	startTime time.Time) (*app.SimpleDeploymentStats, error) {
 	envNS, err := kc.getEnvironmentNamespace(envName)
 	if err != nil {
 		return nil, errs.WithStack(err)
@@ -311,12 +392,12 @@ func (kc *kubeClient) GetDeploymentStats(spaceName string, appName string, envNa
 	deploy, err := kc.getCurrentDeployment(spaceName, appName, envNS)
 	if err != nil {
 		return nil, errs.WithStack(err)
-	} else if deploy == nil || len(deploy.currentUID) == 0 {
+	} else if deploy == nil || deploy.current == nil {
 		return nil, nil
 	}
 
 	// Get pods belonging to current deployment
-	pods, err := kc.getPods(envNS, deploy.currentUID)
+	pods, err := kc.getPods(envNS, deploy.current.UID)
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
@@ -339,11 +420,14 @@ func (kc *kubeClient) GetDeploymentStats(spaceName string, appName string, envNa
 		return nil, err
 	}
 
-	result := &app.SimpleDeploymentStatsV1{
-		Cores:  cpuUsage,
-		Memory: memoryUsage,
-		NetTx:  netTxUsage,
-		NetRx:  netRxUsage,
+	result := &app.SimpleDeploymentStats{
+		Type: "deploymentstats",
+		Attributes: &app.SimpleDeploymentStatsAttributes{
+			Cores:  cpuUsage,
+			Memory: memoryUsage,
+			NetTx:  netTxUsage,
+			NetRx:  netRxUsage,
+		},
 	}
 
 	return result, nil
@@ -353,7 +437,7 @@ func (kc *kubeClient) GetDeploymentStats(spaceName string, appName string, envNa
 // the provided time range in startTime and endTime. If there are more data points than the
 // limit argument, only the newest datapoints within that limit are returned.
 func (kc *kubeClient) GetDeploymentStatSeries(spaceName string, appName string, envName string,
-	startTime time.Time, endTime time.Time, limit int) (*app.SimpleDeploymentStatSeriesV1, error) {
+	startTime time.Time, endTime time.Time, limit int) (*app.SimpleDeploymentStatSeries, error) {
 	envNS, err := kc.getEnvironmentNamespace(envName)
 	if err != nil {
 		return nil, errs.WithStack(err)
@@ -363,12 +447,12 @@ func (kc *kubeClient) GetDeploymentStatSeries(spaceName string, appName string, 
 	deploy, err := kc.getCurrentDeployment(spaceName, appName, envNS)
 	if err != nil {
 		return nil, errs.WithStack(err)
-	} else if deploy == nil || len(deploy.currentUID) == 0 {
+	} else if deploy == nil || deploy.current == nil {
 		return nil, nil
 	}
 
 	// Get pods belonging to current deployment
-	pods, err := kc.getPods(envNS, deploy.currentUID)
+	pods, err := kc.getPods(envNS, deploy.current.UID)
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
@@ -393,7 +477,7 @@ func (kc *kubeClient) GetDeploymentStatSeries(spaceName string, appName string, 
 
 	// Get the earliest and latest timestamps
 	minTime, maxTime := getTimestampEndpoints(cpuMetrics, memoryMetrics)
-	result := &app.SimpleDeploymentStatSeriesV1{
+	result := &app.SimpleDeploymentStatSeries{
 		Cores:  cpuMetrics,
 		Memory: memoryMetrics,
 		NetTx:  netTxMetrics,
@@ -407,8 +491,8 @@ func (kc *kubeClient) GetDeploymentStatSeries(spaceName string, appName string, 
 
 // GetEnvironments retrieves information on all environments in the cluster
 // for the current user
-func (kc *kubeClient) GetEnvironments() ([]*app.SimpleEnvironmentV1, error) {
-	envs := []*app.SimpleEnvironmentV1{}
+func (kc *kubeClient) GetEnvironments() ([]*app.SimpleEnvironment, error) {
+	envs := []*app.SimpleEnvironment{}
 	for envName := range kc.envMap {
 		env, err := kc.GetEnvironment(envName)
 		if err != nil {
@@ -420,7 +504,7 @@ func (kc *kubeClient) GetEnvironments() ([]*app.SimpleEnvironmentV1, error) {
 }
 
 // GetEnvironment returns information on an environment with the provided name
-func (kc *kubeClient) GetEnvironment(envName string) (*app.SimpleEnvironmentV1, error) {
+func (kc *kubeClient) GetEnvironment(envName string) (*app.SimpleEnvironment, error) {
 	envNS, err := kc.getEnvironmentNamespace(envName)
 	if err != nil {
 		return nil, errs.WithStack(err)
@@ -431,35 +515,47 @@ func (kc *kubeClient) GetEnvironment(envName string) (*app.SimpleEnvironmentV1, 
 		return nil, errs.WithStack(err)
 	}
 
-	env := &app.SimpleEnvironmentV1{
-		Name:  &envName,
-		Quota: envStats,
+	env := &app.SimpleEnvironment{
+		Type: "environment",
+		Attributes: &app.SimpleEnvironmentAttributes{
+			Name:  &envName,
+			Quota: envStats,
+		},
 	}
 	return env, nil
 }
 
 func getMetricsURLFromAPIURL(apiURLStr string) (string, error) {
-	// Parse as URL to give us easy access to the hostname
-	apiURL, err := url.Parse(apiURLStr)
+	metricsURL, err := modifyURL(apiURLStr, "metrics", "")
 	if err != nil {
 		return "", err
-	}
-
-	// Get the hostname (without port) and replace api prefix with metrics
-	apiHostname := apiURL.Hostname()
-	if !strings.HasPrefix(apiHostname, "api") {
-		return "", errs.Errorf("cluster URL does not begin with \"api\": %s", apiHostname)
-	}
-	metricsHostname := strings.Replace(apiHostname, "api", "metrics", 1)
-	// Construct URL using just scheme from API URL and metrics hostname
-	metricsURL := url.URL{
-		Scheme: apiURL.Scheme,
-		Host:   metricsHostname,
 	}
 	return metricsURL.String(), nil
 }
 
-func getTimestampEndpoints(metricsSeries ...[]*app.TimedNumberTupleV1) (minTime, maxTime *float64) {
+func modifyURL(apiURLStr string, prefix string, path string) (*url.URL, error) {
+	// Parse as URL to give us easy access to the hostname
+	apiURL, err := url.Parse(apiURLStr)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get the hostname (without port) and replace api prefix with prefix arg
+	apiHostname := apiURL.Hostname()
+	if !strings.HasPrefix(apiHostname, "api") {
+		return nil, errs.Errorf("cluster URL does not begin with \"api\": %s", apiHostname)
+	}
+	newHostname := strings.Replace(apiHostname, "api", prefix, 1)
+	// Construct URL using just scheme from API URL, modified hostname and supplied path
+	newURL := &url.URL{
+		Scheme: apiURL.Scheme,
+		Host:   newHostname,
+		Path:   path,
+	}
+	return newURL, nil
+}
+
+func getTimestampEndpoints(metricsSeries ...[]*app.TimedNumberTuple) (minTime, maxTime *float64) {
 	// Metrics arrays are ordered by timestamp, so just check beginning and end
 	for _, series := range metricsSeries {
 		if len(series) > 0 {
@@ -479,8 +575,8 @@ func getTimestampEndpoints(metricsSeries ...[]*app.TimedNumberTupleV1) (minTime,
 func (kc *kubeClient) getBuildConfigs(space string) ([]string, error) {
 
 	// hook for testing
-	if kc.config.BuildConfigInterface != nil {
-		return kc.config.BuildConfigInterface.GetBuildConfigs(space)
+	if kc.config.BuildConfig != nil {
+		return kc.config.BuildConfig.GetBuildConfigs(space)
 	}
 
 	// BuildConfigs are OpenShift objects, so access REST API using HTTP directly until
@@ -523,11 +619,11 @@ func (kc *kubeClient) getBuildConfigs(space string) ([]string, error) {
 	return buildconfigs, nil
 }
 
-func (kc *kubeClient) getEnvironmentsFromConfigMap() (map[string]string, error) {
+func getEnvironmentsFromConfigMap(kube KubeRESTAPI, userNamespace string) (map[string]string, error) {
 	// fabric8 creates a ConfigMap in the user namespace with information on environments
 	const envConfigMap string = "fabric8-environments"
 	const providerLabel string = "fabric8"
-	configmap, err := kc.ConfigMaps(kc.config.UserNamespace).Get(envConfigMap, metaV1.GetOptions{})
+	configmap, err := kube.ConfigMaps(userNamespace).Get(envConfigMap, metaV1.GetOptions{})
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
@@ -676,7 +772,7 @@ func (kc *kubeClient) getCurrentDeployment(space string, appName string, namespa
 		}
 	}
 	if newest != nil {
-		result.currentUID = newest.UID
+		result.current = newest
 	}
 	return result, nil
 }
@@ -696,6 +792,7 @@ func (kc *kubeClient) getReplicationControllers(namespace string, dcUID types.UI
 		for _, ref := range rc.OwnerReferences {
 			if ref.UID == dcUID && ref.Controller != nil && *ref.Controller {
 				match = true
+				break
 			}
 		}
 		if match {
@@ -706,7 +803,7 @@ func (kc *kubeClient) getReplicationControllers(namespace string, dcUID types.UI
 	return rcsForDc, nil
 }
 
-func (kc *kubeClient) getResourceQuota(namespace string) (*app.EnvStatsV1, error) {
+func (kc *kubeClient) getResourceQuota(namespace string) (*app.EnvStats, error) {
 	const computeResources string = "compute-resources"
 	quota, err := kc.ResourceQuotas(namespace).Get(computeResources, metaV1.GetOptions{})
 	if err != nil {
@@ -726,11 +823,6 @@ func (kc *kubeClient) getResourceQuota(namespace string) (*app.EnvStatsV1, error
 		return nil, errs.WithStack(err)
 	}
 
-	cpuStats := &app.EnvStatCoresV1{
-		Quota: &cpuLimit,
-		Used:  &cpuUsed,
-	}
-
 	memLimit, err := quantityToFloat64(quota.Status.Hard[v1.ResourceLimitsMemory])
 	if err != nil {
 		return nil, errs.WithStack(err)
@@ -740,17 +832,18 @@ func (kc *kubeClient) getResourceQuota(namespace string) (*app.EnvStatsV1, error
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
-
 	memUnits := "bytes"
-	memStats := &app.EnvStatMemoryV1{
-		Quota: &memLimit,
-		Used:  &memUsed,
-		Units: &memUnits,
-	}
 
-	result := &app.EnvStatsV1{
-		Cpucores: cpuStats,
-		Memory:   memStats,
+	result := &app.EnvStats{
+		Cpucores: &app.EnvStatCores{
+			Quota: &cpuLimit,
+			Used:  &cpuUsed,
+		},
+		Memory: &app.EnvStatMemory{
+			Quota: &memLimit,
+			Used:  &memUsed,
+			Units: &memUnits,
+		},
 	}
 
 	return result, nil
@@ -785,13 +878,13 @@ func (kc *kubeClient) GetPodsInNamespace(nameSpace string, appName string) ([]v1
 	return pods.Items, nil
 }
 
-func (kc *kubeClient) getPods(namespace string, uid types.UID) ([]v1.Pod, error) {
+func (kc *kubeClient) getPods(namespace string, uid types.UID) ([]*v1.Pod, error) {
 	pods, err := kc.Pods(namespace).List(metaV1.ListOptions{})
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
 
-	appPods := []v1.Pod{}
+	appPods := []*v1.Pod{}
 	for _, pod := range pods.Items {
 		// If a pod belongs to a given RC, it should have an OwnerReference
 		// whose UID matches that of the RC
@@ -800,49 +893,449 @@ func (kc *kubeClient) getPods(namespace string, uid types.UID) ([]v1.Pod, error)
 		for _, ref := range pod.OwnerReferences {
 			if ref.UID == uid && ref.Controller != nil && *ref.Controller {
 				match = true
+				break
 			}
 		}
 		if match {
-			appPods = append(appPods, pod)
+			appPods = append(appPods, &pod)
 		}
 	}
 
 	return appPods, nil
 }
 
-func (kc *kubeClient) getPodStatus(pods []v1.Pod) (*app.PodStatsV1, error) {
-	var starting, running, stopping int
+// Pod status constants
+const (
+	podRunning     = "Running"
+	podNotReady    = "Not Ready"
+	podWarning     = "Warning"
+	podError       = "Error"
+	podPulling     = "Pulling"
+	podPending     = "Pending"
+	podSucceeded   = "Succeeded"
+	podTerminating = "Terminating"
+	podUnknown     = "Unknown"
+)
+
+func (kc *kubeClient) getPodStatus(pods []*v1.Pod) ([][]string, int) {
 	/*
-	 * TODO Logic for pod phases in web console is calculated in the UI:
+	 * Use the same categorization used by the web console. See:
 	 * https://github.com/openshift/origin-web-console/blob/v3.7.0/app/scripts/directives/podDonut.js
 	 * https://github.com/openshift/origin-web-console/blob/v3.7.0/app/scripts/filters/resources.js
-	 * Should we duplicate the logic here in Go, opt for simpler phases (perhaps just PodPhase), or send Pod as JSON to fabric8-ui
-	 * to reuse JS components
-	 * const phases = []string{"Running", "Not Ready", "Warning", "Error", "Pulling", "Pending", "Succeeded", "Terminating", "Unknown"}
 	 */
+	podStatus := make(map[string]int)
+	podTotal := 0
 	for _, pod := range pods {
-		// Terminating pods have a deletionTimeStamp set
-		if pod.ObjectMeta.DeletionTimestamp != nil {
-			stopping++
-		} else if pod.Status.Phase == v1.PodPending {
-			// TODO Is this a good approximation of "Starting"?
-			starting++
-		} else if pod.Status.Phase == v1.PodRunning {
-			running++
+		statusKey := podUnknown
+		if pod.Status.Phase == v1.PodFailed {
+			// Failed pods are not included, see web console:
+			// https://github.com/openshift/origin-web-console/blob/v3.7.0/app/scripts/directives/podDonut.js#L32
+			continue
+		} else if pod.DeletionTimestamp != nil {
+			// Terminating pods have a deletionTimeStamp set
+			statusKey = podTerminating
+		} else if warn, severe := isPodWarning(pod); warn {
+			// Check for warnings/errors
+			if severe {
+				statusKey = podError
+			} else {
+				statusKey = podWarning
+			}
+		} else if isPullingImage(pod) {
+			// One or more containers is waiting on its image to be pulled
+			statusKey = podPulling
+		} else if pod.Status.Phase == v1.PodRunning && !isPodReady(pod) {
+			// Pod is running, but one or more containers is not yet ready
+			statusKey = podNotReady
 		} else {
-			// TODO Handle other phases
+			// Use Kubernetes pod phase
+			statusKey = string(pod.Status.Phase)
+		}
+		podStatus[statusKey]++
+		podTotal++
+	}
+
+	// if there were actually no pods, create a dummy entry
+	if podTotal == 0 {
+		podStatus[podRunning] = 0
+	}
+
+	var result [][]string
+	for status, count := range podStatus {
+		statusEntry := []string{status, strconv.Itoa(count)}
+		result = append(result, statusEntry)
+	}
+
+	return result, podTotal
+}
+
+func isPodWarning(pod *v1.Pod) (warning, severe bool) {
+	const containerTimeout time.Duration = 5 * time.Minute
+	const containerCrashLoop string = "CrashLoopBackOff"
+	// Consider Unknown phase a warning state
+	if pod.Status.Phase == v1.PodUnknown {
+		return true, false
+	}
+
+	// Check if pod has been in Pending phase for too long
+	now := time.Now()
+	if pod.Status.Phase == v1.PodPending {
+		duration := now.Sub(pod.CreationTimestamp.Time)
+		if duration > containerTimeout {
+			return true, false
 		}
 	}
 
-	total := len(pods)
-	result := &app.PodStatsV1{
-		Starting: &starting,
-		Running:  &running,
-		Stopping: &stopping,
-		Total:    &total,
+	// Check for warning conditions in pod's containers
+	if pod.Status.Phase == v1.PodRunning {
+		for _, status := range pod.Status.ContainerStatuses {
+			state := status.State
+			// Check if the container terminated with non-zero exit status
+			if state.Terminated != nil && state.Terminated.ExitCode != 0 {
+				// Severe if pod is terminated, indicating container didn't stop cleanly
+				return true, pod.DeletionTimestamp != nil
+			}
+			// Check if the container has been repeatedly crashing
+			if state.Waiting != nil && state.Waiting.Reason == containerCrashLoop {
+				return true, true
+			}
+			// Check if the container has not become ready within timeout
+			if state.Running != nil && !status.Ready {
+				startTime := state.Running.StartedAt.Time
+				duration := now.Sub(startTime)
+				if duration > containerTimeout {
+					return true, false
+				}
+			}
+		}
+	}
+
+	return false, false
+}
+
+func isPullingImage(pod *v1.Pod) bool {
+	const containerCreating string = "ContainerCreating"
+	// If pod is pending with a container waiting due to a "ContainerCreating" event,
+	// categorize as "Pulling". This may change as more information is made available.
+	// See: https://github.com/openshift/origin-web-console/blob/v3.7.0/app/scripts/filters/resources.js#L663
+	if pod.Status.Phase == v1.PodPending {
+		for _, status := range pod.Status.ContainerStatuses {
+			waiting := status.State.Waiting
+			if waiting != nil && waiting.Reason == containerCreating {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func isPodReady(pod *v1.Pod) bool {
+	// If all of the pod's containers have a ready status, then the pod is
+	// considered ready.
+	total := len(pod.Spec.Containers)
+	numReady := 0
+	for _, status := range pod.Status.ContainerStatuses {
+		if status.Ready {
+			numReady++
+		}
+	}
+	return numReady == total
+}
+
+func (kc *kubeClient) getBestRoute(namespace string, dc *deployment) (*url.URL, error) {
+	serviceMap, err := kc.getMatchingServices(namespace, dc)
+	if err != nil {
+		return nil, err
+	}
+	// Get routes and associate to services using spec.to.name
+	err = kc.getRoutesByService(namespace, serviceMap)
+	if err != nil {
+		return nil, err
+	}
+
+	// Find route with highest score according to heuristics from web-console
+	var bestRoute *route
+	bestScore := -1
+	for _, routes := range serviceMap {
+		for _, route := range routes {
+			score := scoreRoute(route)
+			if score > bestScore {
+				bestScore = score
+				bestRoute = route
+			}
+		}
+	}
+
+	// Construct URL from best route
+	var result *url.URL
+	if bestRoute != nil {
+		scheme := "http"
+		if bestRoute.tls {
+			scheme = "https"
+		}
+		result = &url.URL{
+			Scheme: scheme,
+			Host:   bestRoute.host,
+			Path:   bestRoute.path,
+		}
 	}
 
 	return result, nil
+}
+
+func (kc *kubeClient) getMatchingServices(namespace string, dc *deployment) (routesByService map[string][]*route, err error) {
+	services, err := kc.Services(namespace).List(metaV1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	// Check if each service's selector matches labels in deployment's pod template
+	template := dc.current.Spec.Template
+	if template == nil {
+		return nil, errors.New("No pod template for current deployment")
+	}
+	routesByService = make(map[string][]*route)
+	for _, service := range services.Items {
+		selector := service.Spec.Selector
+		match := true
+		// Treat empty selector as not matching
+		if len(selector) == 0 {
+			match = false
+		}
+		for key := range selector {
+			if selector[key] != template.Labels[key] {
+				match = false
+				break
+			}
+		}
+		// If all selector labels match those in the pod template, add service key to map.
+		// Routes will be added later by the getRoutesByService method.
+		if match {
+			routesByService[service.Name] = make([]*route, 0)
+		}
+	}
+	return routesByService, nil
+}
+
+func (kc *kubeClient) getRoutesByService(namespace string, routesByService map[string][]*route) error {
+	routeURL := fmt.Sprintf("/oapi/v1/namespaces/%s/routes", namespace)
+	result, err := kc.getResource(routeURL, false)
+	if err != nil {
+		return err
+	}
+
+	// Parse list of routes
+	kind, ok := result["kind"].(string)
+	if !ok || kind != "RouteList" {
+		return errors.New("No route list returned from endpoint")
+	}
+	items, ok := result["items"].([]interface{})
+	if !ok {
+		return errors.New("No list of routes in response")
+	}
+
+	for _, item := range items {
+		routeItem, ok := item.(map[interface{}]interface{})
+		if !ok {
+			return errors.New("Route object invalid")
+		}
+
+		// Parse route from result
+		spec, ok := routeItem["spec"].(map[interface{}]interface{})
+		if !ok {
+			return errors.New("Spec missing from route")
+		}
+		// Determine which service this route points to
+		to, ok := spec["to"].(map[interface{}]interface{})
+		if !ok {
+			return errors.New("Route has no destination")
+		}
+		toName, ok := to["name"].(string)
+		if !ok || len(toName) == 0 {
+			return errors.New("Service name missing or invalid for route")
+		}
+
+		var matchingServices []string
+		// Check if this route is for a service we're interested in
+		_, pres := routesByService[toName]
+		if pres {
+			matchingServices = append(matchingServices, toName)
+		}
+
+		// Also check alternate backends for services
+		altBackends, ok := spec["alternateBackends"].([]interface{})
+		if ok {
+			for idx := range altBackends {
+				backend, ok := altBackends[idx].(map[interface{}]interface{})
+				if !ok {
+					return errors.New("Malformed alternative backend")
+				}
+				// Check if this alternate backend is a service we want a route for
+				backendKind, err := getOptionalStringValue(backend, "kind")
+				if err != nil {
+					return err
+				}
+				if backendKind == "Service" {
+					backendName, ok := backend["name"].(string)
+					if ok && len(backendName) > 0 {
+						_, pres := routesByService[backendName]
+						if pres {
+							matchingServices = append(matchingServices, backendName)
+						}
+					}
+				}
+			}
+		}
+		if len(matchingServices) > 0 {
+			// Get ingress points
+			status, ok := routeItem["status"].(map[interface{}]interface{})
+			if !ok {
+				return errors.New("Status missing from route")
+			}
+			ingresses, ok := status["ingress"].([]interface{})
+			if !ok {
+				return errors.New("No ingress array listed in route")
+			}
+
+			// Prefer ingress with oldest lastTransitionTime that is marked as admitted
+			oldestAdmittedIngress, err := findOldestAdmittedIngress(ingresses)
+			if err != nil {
+				return err
+			}
+
+			// Use hostname from oldest admitted ingress if possible
+			var hostname string
+			if oldestAdmittedIngress != nil {
+				hostname, ok = oldestAdmittedIngress["host"].(string)
+				if !ok {
+					return errors.New("Hostname missing from ingress")
+				}
+			} else {
+				// Fall back to optional host in spec
+				hostname, _ = spec["host"].(string)
+			}
+
+			// Check for optional path
+			path, err := getOptionalStringValue(spec, "path")
+			if err != nil {
+				return err
+			}
+
+			// Determine whether route uses TLS
+			// see: https://github.com/openshift/origin-web-console/blob/v3.7.0/app/scripts/filters/resources.js#L193
+			isTLS := false
+			tls, ok := spec["tls"].(map[interface{}]interface{})
+			if ok {
+				tlsTerm, ok := tls["termination"].(string)
+				if ok && len(tlsTerm) > 0 {
+					isTLS = true
+				}
+			}
+
+			// Check if this route uses a custom hostname
+			customHost := true
+			metadata, ok := routeItem["metadata"].(map[interface{}]interface{})
+			if ok {
+				annotations, ok := metadata["annotations"].(map[interface{}]interface{})
+				if ok {
+					hostGenerated, err := getOptionalStringValue(annotations, "openshift.io/host.generated")
+					if err != nil {
+						return err
+					}
+					if hostGenerated == "true" {
+						customHost = false
+					}
+				}
+			}
+			route := &route{
+				host:                 hostname,
+				path:                 path,
+				tls:                  isTLS,
+				hasAdmitted:          oldestAdmittedIngress != nil,
+				hasAlternateBackends: len(altBackends) > 0,
+				isCustomHost:         customHost,
+			}
+			// TODO check wildcard policy? (see above link)
+			// Associate this route with any services whoses routes we're looking for
+			for _, serviceName := range matchingServices {
+				routesByService[serviceName] = append(routesByService[serviceName], route)
+			}
+		}
+	}
+	return nil
+}
+
+func getOptionalStringValue(respData map[interface{}]interface{}, paramName string) (string, error) {
+	val, pres := respData[paramName]
+	if !pres {
+		return "", nil
+	}
+	strVal, ok := val.(string)
+	if !ok {
+		return "", errors.New("Property " + paramName + " is not a string")
+	}
+	return strVal, nil
+}
+
+func findOldestAdmittedIngress(ingresses []interface{}) (ingress map[interface{}]interface{}, err error) {
+	var oldestAdmittedIngress map[interface{}]interface{}
+	var oldestIngressTime time.Time
+	for idx := range ingresses {
+		ingress, ok := ingresses[idx].(map[interface{}]interface{})
+		if !ok {
+			return nil, errors.New("Bad ingress found in route")
+		}
+		// Check for oldest admitted ingress
+		conditions, ok := ingress["conditions"].([]interface{})
+		if ok {
+			for condIdx := range conditions {
+				condition, ok := conditions[condIdx].(map[interface{}]interface{})
+				if !ok {
+					return nil, errors.New("Bad condition for ingress")
+				}
+				condType, err := getOptionalStringValue(condition, "type")
+				if err != nil {
+					return nil, err
+				}
+				condStatus, err := getOptionalStringValue(condition, "status")
+				if err != nil {
+					return nil, err
+				}
+				if condType == "Admitted" && condStatus == "True" {
+					lastTransitionStr, ok := condition["lastTransitionTime"].(string)
+					if !ok {
+						return nil, errors.New("Missing last transition time from ingress condition")
+					}
+					lastTransition, err := time.Parse(time.RFC3339, lastTransitionStr)
+					if err != nil {
+						return nil, err
+					}
+					if oldestAdmittedIngress == nil || lastTransition.Before(oldestIngressTime) {
+						oldestAdmittedIngress = ingress
+						oldestIngressTime = lastTransition
+					}
+				}
+			}
+		}
+	}
+	return oldestAdmittedIngress, nil
+}
+
+func scoreRoute(route *route) int {
+	// See: https://github.com/openshift/origin-web-console/blob/v3.7.0/app/scripts/services/routes.js#L106
+	score := 0
+	if route.hasAdmitted {
+		score += 11
+	}
+	if route.hasAlternateBackends {
+		score += 5
+	}
+	if route.isCustomHost {
+		score += 3
+	}
+	if route.tls {
+		score++
+	}
+	return score
 }
 
 // Derived from: https://github.com/fabric8-services/fabric8-tenant/blob/master/openshift/kube_token.go

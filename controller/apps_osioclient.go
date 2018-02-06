@@ -67,7 +67,7 @@ func (osioclient *OSIOClientV1) GetUserServices(ctx context.Context) (*app.UserS
 	resp, err := osioclient.wc.ShowUserService(ctx, witclient.ShowUserServicePath())
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"ShowUserServicePath": witclient.ShowUserServicePath(),
+			"show_user_sevice_path": witclient.ShowUserServicePath(),
 			"err": err,
 		}, "could not retrieve uses services from ", witclient.ShowUserServicePath())
 		return nil, errs.Wrapf(err, "could not retrieve uses services")
@@ -81,7 +81,7 @@ func (osioclient *OSIOClientV1) GetUserServices(ctx context.Context) (*app.UserS
 	if status == http.StatusNotFound {
 		// 404 Not Found is either a bad URL path or an invalid space.
 		return nil, nil
-	} else if status < 200 || status > 300 {
+	} else if status != http.StatusOK {
 		return nil, errs.Errorf("failed to GET %s due to status code %d", witclient.ShowUserServicePath(), status)
 	}
 
@@ -105,8 +105,8 @@ func (osioclient *OSIOClientV1) GetSpaceByID(ctx context.Context, spaceID uuid.U
 	resp, err := osioclient.wc.ShowSpace(ctx, urlpath, nil, nil)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"ShowSpacePath": witclient.ShowSpacePath(goauuid.UUID(spaceID)),
-			"err":           err,
+			"show_space_path": witclient.ShowSpacePath(goauuid.UUID(spaceID)),
+			"err":             err,
 		}, "could not retrieve space from %s", witclient.ShowSpacePath(goauuid.UUID(spaceID)))
 		return nil, errs.Wrapf(err, "could not connect to %s", urlpath)
 	}
@@ -118,7 +118,7 @@ func (osioclient *OSIOClientV1) GetSpaceByID(ctx context.Context, spaceID uuid.U
 	status := resp.StatusCode
 	if status == http.StatusNotFound {
 		return nil, nil
-	} else if status < 200 || status > 300 {
+	} else if status != http.StatusOK {
 		return nil, errs.Errorf("failed to GET %s due to status code %d", urlpath, status)
 	}
 

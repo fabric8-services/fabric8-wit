@@ -5,35 +5,34 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/kubernetesV1"
+	"github.com/stretchr/testify/require"
 )
 
-type testKubeClient struct {
+type testKubeClientV1 struct {
 	closed bool
 	// Don't implement methods we don't yet need
 	kubernetesV1.KubeClientInterface
 }
 
-func (kc *testKubeClient) Close() {
+func (kc *testKubeClientV1) Close() {
 	kc.closed = true
 }
 
-type testKubeClientGetter struct {
-	client *testKubeClient
+type testKubeClientGetterV1 struct {
+	client *testKubeClientV1
 }
 
-func (g *testKubeClientGetter) GetKubeClient(ctx context.Context) (kubernetesV1.KubeClientInterface, error) {
+func (g *testKubeClientGetterV1) GetKubeClient(ctx context.Context) (kubernetesV1.KubeClientInterface, error) {
 	// Overwrites previous clients created by this getter
-	g.client = &testKubeClient{}
+	g.client = &testKubeClientV1{}
 	// Also return an error to avoid executing remainder of calling method
 	return g.client, errors.New("Test")
 }
 
-func TestAPIMethodsCloseKube(t *testing.T) {
+func TestAPIMethodsCloseKubeV1(t *testing.T) {
 	testCases := []struct {
 		name   string
 		method func(*controller.AppsController) error
@@ -79,15 +78,15 @@ func TestAPIMethodsCloseKube(t *testing.T) {
 		}},
 	}
 	// Check that each API method creating a KubeClientInterface also closes it
-	getter := &testKubeClientGetter{}
+	getter := &testKubeClientGetterV1{}
 	controller := &controller.AppsController{
-		KubeClientGetter: getter,
+		KubeClientGetterV1: getter,
 	}
 	for _, testCase := range testCases {
 		err := testCase.method(controller)
-		assert.Error(t, err, "Expected error \"Test\": "+testCase.name)
+		require.Error(t, err, "Expected error \"Test\": "+testCase.name)
 		// Check Close was called before returning
-		assert.NotNil(t, getter.client, "No Kube client created: "+testCase.name)
-		assert.True(t, getter.client.closed, "Kube client not closed: "+testCase.name)
+		require.NotNil(t, getter.client, "No Kube client created: "+testCase.name)
+		require.True(t, getter.client.closed, "Kube client not closed: "+testCase.name)
 	}
 }

@@ -580,22 +580,33 @@ func ConvertWorkItem(request *http.Request, wi workitem.WorkItem, additional ...
 }
 
 // workItemIncludeHasChildren adds meta information about existing children
-func workItemIncludeHasChildren(ctx context.Context, appl application.Application) WorkItemConvertFunc {
+func workItemIncludeHasChildren(ctx context.Context, appl application.Application, childLinks ...link.WorkItemLinkList) WorkItemConvertFunc {
 	// TODO: Wrap ctx in a Timeout context?
 	return func(request *http.Request, wi *workitem.WorkItem, wi2 *app.WorkItem) {
 		var hasChildren bool
-		var err error
-		repo := appl.WorkItemLinks()
-		if repo != nil {
-			hasChildren, err = appl.WorkItemLinks().WorkItemHasChildren(ctx, wi.ID)
-			log.Info(ctx, map[string]interface{}{"wi_id": wi.ID}, "Work item has children: %t", hasChildren)
-			if err != nil {
-				log.Error(ctx, map[string]interface{}{
-					"wi_id": wi.ID,
-					"err":   err,
-				}, "unable to find out if work item has children: %s", wi.ID)
-				// enforce to have no children
-				hasChildren = false
+		// If we already have information about children inside the child links
+		// we can use that before querying the DB.
+		if len(childLinks) == 1 {
+			for _, l := range childLinks[0] {
+				if l.LinkTypeID == link.SystemWorkItemLinkTypeParentChildID && l.SourceID == wi.ID {
+					hasChildren = true
+				}
+			}
+		}
+		if !hasChildren {
+			var err error
+			repo := appl.WorkItemLinks()
+			if repo != nil {
+				hasChildren, err = appl.WorkItemLinks().WorkItemHasChildren(ctx, wi.ID)
+				log.Info(ctx, map[string]interface{}{"wi_id": wi.ID}, "Work item has children: %t", hasChildren)
+				if err != nil {
+					log.Error(ctx, map[string]interface{}{
+						"wi_id": wi.ID,
+						"err":   err,
+					}, "unable to find out if work item has children: %s", wi.ID)
+					// enforce to have no children
+					hasChildren = false
+				}
 			}
 		}
 		if wi2.Relationships.Children == nil {
@@ -609,14 +620,22 @@ func workItemIncludeHasChildren(ctx context.Context, appl application.Applicatio
 }
 
 // includeParentWorkItem adds the parent of given WI to relationships & included object
-func includeParentWorkItem(ctx context.Context, ancestors link.AncestorList) WorkItemConvertFunc {
+func includeParentWorkItem(ctx context.Context, ancestors link.AncestorList, childLinks link.WorkItemLinkList) WorkItemConvertFunc {
 	return func(request *http.Request, wi *workitem.WorkItem, wi2 *app.WorkItem) {
 		var parentID *uuid.UUID
+		// If we have an ancestry we can lookup the parent in no time.
 		if ancestors != nil && len(ancestors) != 0 {
-			// if we have an ancestry we can lookup the parent in no time.
 			p := ancestors.GetParentOf(wi.ID)
 			if p != nil {
 				parentID = &p.ID
+			}
+		}
+		// If no parent ID was found in the ancestor list, see if the child
+		// link list contains information to use.
+		if parentID == nil && childLinks != nil && len(childLinks) != 0 {
+			p := childLinks.GetParentIDOf(wi.ID, link.SystemWorkItemLinkTypeParentChildID)
+			if p != uuid.Nil {
+				parentID = &p
 			}
 		}
 		if wi2.Relationships.Parent == nil {
