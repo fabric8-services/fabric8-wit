@@ -26,6 +26,17 @@ import (
 type DeploymentsController struct {
 	*goa.Controller
 	Config *configuration.Registry
+	KubeClientGetter
+}
+
+// KubeClientGetter creates an instance of KubeClientInterface
+type KubeClientGetter interface {
+	GetKubeClient(ctx context.Context) (kubernetes.KubeClientInterface, error)
+}
+
+// Default implementation of KubeClientGetter used by NewDeploymentsController
+type defaultKubeClientGetter struct {
+	config *configuration.Registry
 }
 
 // NewDeploymentsController creates a deployments controller.
@@ -33,6 +44,9 @@ func NewDeploymentsController(service *goa.Service, config *configuration.Regist
 	return &DeploymentsController{
 		Controller: service.NewController("DeploymentsController"),
 		Config:     config,
+		KubeClientGetter: &defaultKubeClientGetter{
+			config: config,
+		},
 	}
 }
 
@@ -147,12 +161,11 @@ func getTokenData(ctx context.Context, authClient authservice.Client, forService
 	return &respType, nil
 }
 
-// getKubeClient createa kube client for the appropriate cluster assigned to the current user.
-// many different errors are possible, so controllers should call getAndCheckKubeClient() instead
-func (c *DeploymentsController) getKubeClient(ctx context.Context) (kubernetes.KubeClientInterface, error) {
+// GetKubeClient creates a kube client for the appropriate cluster assigned to the current user
+func (g *defaultKubeClientGetter) GetKubeClient(ctx context.Context) (kubernetes.KubeClientInterface, error) {
 
 	// create Auth API client
-	authClient, err := auth.CreateClient(ctx, c.Config)
+	authClient, err := auth.CreateClient(ctx, g.config)
 	if err != nil {
 		log.Error(ctx, nil, "error accessing Auth server %s", tostring(err))
 		return nil, errs.Wrapf(err, "error creating Auth client")
@@ -206,7 +219,8 @@ func (c *DeploymentsController) SetDeployment(ctx *app.SetDeploymentDeploymentsC
 		return errors.NewBadParameterError("podCount", "missing")
 	}
 
-	kc, err := c.getKubeClient(ctx)
+	kc, err := c.GetKubeClient(ctx)
+	defer cleanup(kc)
 	if err != nil {
 		return errors.NewUnauthorizedError("openshift token")
 	}
@@ -248,7 +262,8 @@ func (c *DeploymentsController) ShowDeploymentStatSeries(ctx *app.ShowDeployment
 		return errors.NewBadParameterError("end", *ctx.End)
 	}
 
-	kc, err := c.getKubeClient(ctx)
+	kc, err := c.GetKubeClient(ctx)
+	defer cleanup(kc)
 	if err != nil {
 		return errors.NewUnauthorizedError("openshift token")
 	}
@@ -280,7 +295,8 @@ func convertToTime(unixMillis int64) time.Time {
 // ShowDeploymentStats runs the showDeploymentStats action.
 func (c *DeploymentsController) ShowDeploymentStats(ctx *app.ShowDeploymentStatsDeploymentsContext) error {
 
-	kc, err := c.getKubeClient(ctx)
+	kc, err := c.GetKubeClient(ctx)
+	defer cleanup(kc)
 	if err != nil {
 		return errors.NewUnauthorizedError("openshift token")
 	}
@@ -318,7 +334,8 @@ func (c *DeploymentsController) ShowDeploymentStats(ctx *app.ShowDeploymentStats
 // ShowEnvironment runs the showEnvironment action.
 func (c *DeploymentsController) ShowEnvironment(ctx *app.ShowEnvironmentDeploymentsContext) error {
 
-	kc, err := c.getKubeClient(ctx)
+	kc, err := c.GetKubeClient(ctx)
+	defer cleanup(kc)
 	if err != nil {
 		return errors.NewUnauthorizedError("openshift token")
 	}
@@ -343,7 +360,8 @@ func (c *DeploymentsController) ShowEnvironment(ctx *app.ShowEnvironmentDeployme
 // ShowSpace runs the showSpace action.
 func (c *DeploymentsController) ShowSpace(ctx *app.ShowSpaceDeploymentsContext) error {
 
-	kc, err := c.getKubeClient(ctx)
+	kc, err := c.GetKubeClient(ctx)
+	defer cleanup(kc)
 	if err != nil {
 		return errors.NewUnauthorizedError("openshift token")
 	}
@@ -375,7 +393,8 @@ func (c *DeploymentsController) ShowSpace(ctx *app.ShowSpaceDeploymentsContext) 
 // ShowSpaceApp runs the showSpaceApp action.
 func (c *DeploymentsController) ShowSpaceApp(ctx *app.ShowSpaceAppDeploymentsContext) error {
 
-	kc, err := c.getKubeClient(ctx)
+	kc, err := c.GetKubeClient(ctx)
+	defer cleanup(kc)
 	if err != nil {
 		return errors.NewUnauthorizedError("openshift token")
 	}
@@ -405,7 +424,8 @@ func (c *DeploymentsController) ShowSpaceApp(ctx *app.ShowSpaceAppDeploymentsCon
 // ShowSpaceAppDeployment runs the showSpaceAppDeployment action.
 func (c *DeploymentsController) ShowSpaceAppDeployment(ctx *app.ShowSpaceAppDeploymentDeploymentsContext) error {
 
-	kc, err := c.getKubeClient(ctx)
+	kc, err := c.GetKubeClient(ctx)
+	defer cleanup(kc)
 	if err != nil {
 		return errors.NewUnauthorizedError("openshift token")
 	}
@@ -435,7 +455,8 @@ func (c *DeploymentsController) ShowSpaceAppDeployment(ctx *app.ShowSpaceAppDepl
 // ShowEnvAppPods runs the showEnvAppPods action.
 func (c *DeploymentsController) ShowEnvAppPods(ctx *app.ShowEnvAppPodsDeploymentsContext) error {
 
-	kc, err := c.getKubeClient(ctx)
+	kc, err := c.GetKubeClient(ctx)
+	defer cleanup(kc)
 	if err != nil {
 		return errors.NewUnauthorizedError("openshift token")
 	}
@@ -456,7 +477,8 @@ func (c *DeploymentsController) ShowEnvAppPods(ctx *app.ShowEnvAppPodsDeployment
 // ShowSpaceEnvironments runs the showSpaceEnvironments action.
 func (c *DeploymentsController) ShowSpaceEnvironments(ctx *app.ShowSpaceEnvironmentsDeploymentsContext) error {
 
-	kc, err := c.getKubeClient(ctx)
+	kc, err := c.GetKubeClient(ctx)
+	defer cleanup(kc)
 	if err != nil {
 		return errors.NewUnauthorizedError("openshift token")
 	}
@@ -474,4 +496,10 @@ func (c *DeploymentsController) ShowSpaceEnvironments(ctx *app.ShowSpaceEnvironm
 	}
 
 	return ctx.OK(res)
+}
+
+func cleanup(kc kubernetes.KubeClientInterface) {
+	if kc != nil {
+		kc.Close()
+	}
 }
