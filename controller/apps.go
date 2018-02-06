@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"net/url"
 	"os"
 	"time"
@@ -48,14 +49,6 @@ func NewAppsController(service *goa.Service, config *configuration.Registry) *Ap
 			config: config,
 		},
 	}
-}
-
-func tostring(item interface{}) string {
-	bytes, err := json.MarshalIndent(item, "", "  ")
-	if err != nil {
-		return err.Error()
-	}
-	return string(bytes)
 }
 
 func getAndCheckOSIOClientV1(ctx context.Context) *OSIOClientV1 {
@@ -124,7 +117,7 @@ func getUserV1(authClient authservice.Client, ctx context.Context) (*authservice
 	respBody, err := ioutil.ReadAll(resp.Body)
 
 	status := resp.StatusCode
-	if status < 200 || status > 300 {
+	if status != http.StatusOK {
 		return nil, fmt.Errorf("Failed to GET user due to status code %d", status)
 	}
 
@@ -148,7 +141,7 @@ func getTokenDataV1(authClient authservice.Client, ctx context.Context, forServi
 	respBody, err := ioutil.ReadAll(resp.Body)
 
 	status := resp.StatusCode
-	if status < 200 || status > 300 {
+	if status != http.StatusOK {
 		return nil, errors.New("Failed to GET user due to status code " + string(status))
 	}
 
@@ -285,10 +278,6 @@ func (c *AppsController) ShowDeploymentStatSeries(ctx *app.ShowDeploymentStatSer
 	}
 
 	return ctx.OK(res)
-}
-
-func convertToTime(unixMillis int64) time.Time {
-	return time.Unix(0, unixMillis*int64(time.Millisecond))
 }
 
 // ShowDeploymentStats runs the showDeploymentStats action.
