@@ -115,6 +115,9 @@
         "children": {
           "links": {
             "related": "http:///api/workitems/00000000-0000-0000-0000-000000000006/children"
+          },
+          "meta": {
+            "hasChildren": true
           }
         },
         "comments": {
@@ -189,6 +192,9 @@
         "children": {
           "links": {
             "related": "http:///api/workitems/00000000-0000-0000-0000-000000000005/children"
+          },
+          "meta": {
+            "hasChildren": true
           }
         },
         "comments": {
