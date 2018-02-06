@@ -68,6 +68,7 @@ type KubeClientInterface interface {
 	GetEnvironments() ([]*app.SimpleEnvironmentV1, error)
 	GetEnvironment(envName string) (*app.SimpleEnvironmentV1, error)
 	GetPodsInNamespace(nameSpace string, appName string) ([]v1.Pod, error)
+	Close()
 }
 
 type kubeClient struct {
@@ -153,6 +154,12 @@ func (*defaultGetter) GetKubeRESTAPI(config *KubeClientConfig) (KubeRESTAPI, err
 
 func (*defaultGetter) GetMetrics(config *MetricsClientConfig) (MetricsInterface, error) {
 	return NewMetricsClient(config)
+}
+
+// Close releases any resources held by this KubeClientInterface
+func (kc *kubeClient) Close() {
+	// Metrics client needs to be closed to stop Hawkular go-routine from spinning
+	kc.MetricsInterface.Close()
 }
 
 // GetSpace returns a space matching the provided name, containing all applications that belong to it
@@ -575,7 +582,7 @@ func (kc *kubeClient) putResource(url string, putBody []byte) (*string, error) {
 	}
 
 	status := resp.StatusCode
-	if status < 200 || status > 300 {
+	if httpStatusFailed(status) {
 		return nil, fmt.Errorf("Failed to PUT url %s: status code %d", fullURL, status)
 	}
 	bodyStr := string(body)
@@ -853,9 +860,9 @@ func (kc *kubeClient) getResource(url string, allowMissing bool) (map[interface{
 	b := buf.Bytes()
 
 	status := resp.StatusCode
-	if status == 404 && allowMissing {
+	if status == http.StatusNotFound && allowMissing {
 		return nil, nil
-	} else if status < 200 || status > 300 {
+	} else if httpStatusFailed(status) {
 		return nil, fmt.Errorf("Failed to GET url %s due to status code %d", fullURL, status)
 	}
 	var respType map[interface{}]interface{}
@@ -864,4 +871,9 @@ func (kc *kubeClient) getResource(url string, allowMissing bool) (map[interface{
 		return nil, err
 	}
 	return respType, nil
+}
+
+func httpStatusFailed(status int) bool {
+	// if status is not between 200-299 then it's an error
+	return status < http.StatusOK || status >= http.StatusMultipleChoices
 }

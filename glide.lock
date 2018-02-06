@@ -1,5 +1,5 @@
-hash: 07b8ab33e5b3fdecf96b31fdd29b307f872dc87d657a83094368cff81d335d90
-updated: 2018-01-29T05:14:18.625729376+01:00
+hash: 15d5352cd859fe23a262399290cc123d65ef272beed702c7bbb97b9797f31e6c
+updated: 2018-01-29T16:04:56.911667453-05:00
 imports:
 - name: github.com/ajg/form
   version: cc2954064ec9ea8d93917f0f87456e11d7b881ad
@@ -250,7 +250,7 @@ imports:
 - name: github.com/russross/blackfriday
   version: 5f33e7b7878355cd2b7e6b8eefc48a5472c69f70
 - name: github.com/satori/go.uuid
-  version: 879c5887cd475cd7864858769793b2ceb0d44feb
+  version: f58768cc1a7a7e77a3bd49e98cdd21419399b6a3
 - name: github.com/sergi/go-diff
   version: feef008d51ad2b3778f85d387ccf91735543008d
   subpackages:
