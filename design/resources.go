@@ -97,7 +97,7 @@ var _ = a.Resource("trackerquery", func() {
 })
 
 var nameValidationFunction = func() {
-	a.MaxLength(62) // maximum name length is 62 characters
+	a.MaxLength(63) // maximum name length is 63 characters
 	a.MinLength(1)  // minimum name length is 1 characters
 	a.Pattern("^[^_|-].*")
 	a.Example("name for the object")

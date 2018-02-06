@@ -2,12 +2,12 @@
   "id": "IGNORE_ME",
   "code": "invalid_request",
   "status": 400,
-  "detail": "length of type.name must be less than or equal to 62 but got value \"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ\" (len=104)",
+  "detail": "length of type.name must be less than or equal to 63 but got value \"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijkl\" (len=64)",
   "meta": {
     "attribute": "type.name",
     "comp": "less than or equal to",
-    "expected": 62,
-    "len": 104,
-    "value": "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    "expected": 63,
+    "len": 64,
+    "value": "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijkl"
   }
 }

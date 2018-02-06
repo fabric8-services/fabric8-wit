@@ -260,7 +260,7 @@ func (s *workItemLinkCategorySuite) TestFailValidationWorkItemLinkCategoryNameLe
 
 	// Validate payload function returns an error
 	assert.NotNil(s.T(), err)
-	assert.Contains(s.T(), err.Error(), "length of type.name must be less than or equal to 62")
+	assert.Contains(s.T(), err.Error(), "length of type.name must be less than or equal to 63")
 }
 
 func (s *workItemLinkCategorySuite) TestFailValidationWorkItemLinkCategoryNameStartWith() {

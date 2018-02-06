@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -12,15 +11,16 @@ import (
 	witclient "github.com/fabric8-services/fabric8-wit/client"
 	"github.com/fabric8-services/fabric8-wit/goasupport"
 	goaclient "github.com/goadesign/goa/client"
+	goauuid "github.com/goadesign/goa/uuid"
 	uuid "github.com/satori/go.uuid"
 )
 
-// OSIOClient contains configuration and methods for interacting with OSIO API
+// OSIOClientV1 contains configuration and methods for interacting with OSIO API
 type OSIOClientV1 struct {
 	wc *witclient.Client
 }
 
-// NewOSIOClient creates an openshift IO client given an http request context
+// NewOSIOClientV1 creates an openshift IO client given an http request context
 func NewOSIOClientV1(ctx context.Context, scheme string, host string) *OSIOClientV1 {
 
 	client := new(OSIOClientV1)
@@ -70,9 +70,9 @@ func (osioclient *OSIOClientV1) GetUserServices(ctx context.Context) (*app.UserS
 	respBody, err := ioutil.ReadAll(resp.Body)
 
 	status := resp.StatusCode
-	if status == 404 {
+	if status == http.StatusNotFound {
 		return nil, nil
-	} else if status < 200 || status > 300 {
+	} else if status != http.StatusOK {
 		return nil, errors.New("Failed to GET " + witclient.ShowUserServicePath() + " due to status code " + string(status))
 	}
 
@@ -86,10 +86,8 @@ func (osioclient *OSIOClientV1) GetUserServices(ctx context.Context) (*app.UserS
 
 // GetSpaceByID - fetch space given UUID
 func (osioclient *OSIOClientV1) GetSpaceByID(ctx context.Context, spaceID uuid.UUID) (*app.Space, error) {
-	// there are two different uuid packages at play here:
-	//   github.com/satori/go.uuid and goadesign/goa/uuid.
-	// because of that, we fenerate our own URL to avoid issues for now.
-	urlpath := fmt.Sprintf("/api/spaces/%s", spaceID.String())
+	guid := goauuid.UUID(spaceID)
+	urlpath := witclient.ShowSpacePath(guid)
 	resp, err := osioclient.wc.ShowSpace(ctx, urlpath, nil, nil)
 	if err != nil {
 		return nil, err
@@ -100,9 +98,9 @@ func (osioclient *OSIOClientV1) GetSpaceByID(ctx context.Context, spaceID uuid.U
 	respBody, err := ioutil.ReadAll(resp.Body)
 
 	status := resp.StatusCode
-	if status == 404 {
+	if status == http.StatusNotFound {
 		return nil, nil
-	} else if status < 200 || status > 300 {
+	} else if status != http.StatusOK {
 		return nil, errors.New("Failed to GET " + urlpath + " due to status code " + string(status))
 	}
 
