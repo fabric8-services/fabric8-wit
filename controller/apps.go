@@ -31,7 +31,7 @@ type AppsController struct {
 
 // KubeClientGetterV1 creates an instance of KubeClientInterface
 type KubeClientGetterV1 interface {
-	GetKubeClient(ctx context.Context) (kubernetesV1.KubeClientInterface, error)
+	GetKubeClientV1(ctx context.Context) (kubernetesV1.KubeClientInterface, error)
 }
 
 // Default implementation of KubeClientGetter used by NewAppsController
@@ -170,7 +170,7 @@ func getTokenDataV1(authClient authservice.Client, ctx context.Context, forServi
 }
 
 // GetKubeClient creates a kube client for the appropriate cluster assigned to the current user
-func (g *defaultKubeClientGetterV1) GetKubeClient(ctx context.Context) (kubernetesV1.KubeClientInterface, error) {
+func (g *defaultKubeClientGetterV1) GetKubeClientV1(ctx context.Context) (kubernetesV1.KubeClientInterface, error) {
 
 	// create Auth API client
 	authClient, err := auth.CreateClient(ctx, g.config)
@@ -223,7 +223,7 @@ func (c *AppsController) SetDeployment(ctx *app.SetDeploymentAppsContext) error 
 		return errors.NewBadParameterError("podCount", "missing")
 	}
 
-	kc, err := c.GetKubeClient(ctx)
+	kc, err := c.GetKubeClientV1(ctx)
 	defer cleanupV1(kc)
 	if err != nil {
 		return errors.NewUnauthorizedError("openshift token")
@@ -266,7 +266,7 @@ func (c *AppsController) ShowDeploymentStatSeries(ctx *app.ShowDeploymentStatSer
 		return errors.NewBadParameterError("end", *ctx.End)
 	}
 
-	kc, err := c.GetKubeClient(ctx)
+	kc, err := c.GetKubeClientV1(ctx)
 	defer cleanupV1(kc)
 	if err != nil {
 		return errors.NewUnauthorizedError("openshift token")
@@ -295,7 +295,7 @@ func (c *AppsController) ShowDeploymentStatSeries(ctx *app.ShowDeploymentStatSer
 // ShowDeploymentStats runs the showDeploymentStats action.
 func (c *AppsController) ShowDeploymentStats(ctx *app.ShowDeploymentStatsAppsContext) error {
 
-	kc, err := c.GetKubeClient(ctx)
+	kc, err := c.GetKubeClientV1(ctx)
 	defer cleanupV1(kc)
 	if err != nil {
 		return errors.NewUnauthorizedError("openshift token")
@@ -332,7 +332,7 @@ func (c *AppsController) ShowDeploymentStats(ctx *app.ShowDeploymentStatsAppsCon
 // ShowEnvironment runs the showEnvironment action.
 func (c *AppsController) ShowEnvironment(ctx *app.ShowEnvironmentAppsContext) error {
 
-	kc, err := c.GetKubeClient(ctx)
+	kc, err := c.GetKubeClientV1(ctx)
 	defer cleanupV1(kc)
 	if err != nil {
 		return errors.NewUnauthorizedError("openshift token")
@@ -356,7 +356,7 @@ func (c *AppsController) ShowEnvironment(ctx *app.ShowEnvironmentAppsContext) er
 // ShowSpace runs the showSpace action.
 func (c *AppsController) ShowSpace(ctx *app.ShowSpaceAppsContext) error {
 
-	kc, err := c.GetKubeClient(ctx)
+	kc, err := c.GetKubeClientV1(ctx)
 	defer cleanupV1(kc)
 	if err != nil {
 		return errors.NewUnauthorizedError("openshift token")
@@ -386,7 +386,7 @@ func (c *AppsController) ShowSpace(ctx *app.ShowSpaceAppsContext) error {
 // ShowSpaceApp runs the showSpaceApp action.
 func (c *AppsController) ShowSpaceApp(ctx *app.ShowSpaceAppAppsContext) error {
 
-	kc, err := c.GetKubeClient(ctx)
+	kc, err := c.GetKubeClientV1(ctx)
 	defer cleanupV1(kc)
 	if err != nil {
 		return errors.NewUnauthorizedError("openshift token")
@@ -415,7 +415,7 @@ func (c *AppsController) ShowSpaceApp(ctx *app.ShowSpaceAppAppsContext) error {
 // ShowSpaceAppDeployment runs the showSpaceAppDeployment action.
 func (c *AppsController) ShowSpaceAppDeployment(ctx *app.ShowSpaceAppDeploymentAppsContext) error {
 
-	kc, err := c.GetKubeClient(ctx)
+	kc, err := c.GetKubeClientV1(ctx)
 	defer cleanupV1(kc)
 	if err != nil {
 		return errors.NewUnauthorizedError("openshift token")
@@ -444,7 +444,7 @@ func (c *AppsController) ShowSpaceAppDeployment(ctx *app.ShowSpaceAppDeploymentA
 // ShowEnvAppPods runs the showEnvAppPods action.
 func (c *AppsController) ShowEnvAppPods(ctx *app.ShowEnvAppPodsAppsContext) error {
 
-	kc, err := c.GetKubeClient(ctx)
+	kc, err := c.GetKubeClientV1(ctx)
 	defer cleanupV1(kc)
 	if err != nil {
 		return errors.NewUnauthorizedError("openshift token")
@@ -465,7 +465,7 @@ func (c *AppsController) ShowEnvAppPods(ctx *app.ShowEnvAppPodsAppsContext) erro
 // ShowSpaceEnvironments runs the showSpaceEnvironments action.
 func (c *AppsController) ShowSpaceEnvironments(ctx *app.ShowSpaceEnvironmentsAppsContext) error {
 
-	kc, err := c.GetKubeClient(ctx)
+	kc, err := c.GetKubeClientV1(ctx)
 	defer cleanupV1(kc)
 	if err != nil {
 		return errors.NewUnauthorizedError("openshift token")

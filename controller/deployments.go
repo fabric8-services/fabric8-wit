@@ -17,7 +17,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/kubernetes"
 	"github.com/fabric8-services/fabric8-wit/log"
-
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -35,7 +34,7 @@ type KubeClientGetter interface {
 	GetKubeClient(ctx context.Context) (kubernetes.KubeClientInterface, error)
 }
 
-// Default implementation of KubeClientGetter used by NewAppsController
+// Default implementation of KubeClientGetter used by NewDeploymentsController
 type defaultKubeClientGetter struct {
 	config *configuration.Registry
 }
@@ -178,8 +177,7 @@ func getTokenData(ctx context.Context, authClient authservice.Client, forService
 	return &respType, nil
 }
 
-// getKubeClient create a kube client for the appropriate cluster assigned to the current user.
-// many different errors are possible, so controllers should call getAndCheckKubeClient() instead
+// GetKubeClient creates a kube client for the appropriate cluster assigned to the current user
 func (g *defaultKubeClientGetter) GetKubeClient(ctx context.Context) (kubernetes.KubeClientInterface, error) {
 
 	// create Auth API client

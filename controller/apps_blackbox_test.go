@@ -25,7 +25,7 @@ type testKubeClientGetterV1 struct {
 	client *testKubeClientV1
 }
 
-func (g *testKubeClientGetterV1) GetKubeClient(ctx context.Context) (kubernetesV1.KubeClientInterface, error) {
+func (g *testKubeClientGetterV1) GetKubeClientV1(ctx context.Context) (kubernetesV1.KubeClientInterface, error) {
 	// Overwrites previous clients created by this getter
 	g.client = &testKubeClientV1{}
 	// Also return an error to avoid executing remainder of calling method
