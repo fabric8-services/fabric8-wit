@@ -44,12 +44,14 @@ type Metrics interface {
 	GetNetworkRecvMetrics(pods []*v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error)
 	GetNetworkRecvMetricsRange(pods []*v1.Pod, namespace string, startTime time.Time, endTime time.Time,
 		limit int) ([]*app.TimedNumberTuple, error)
+	Close()
 }
 
 // HawkularRESTAPI collects methods that call out to the Hawkular metrics server over the network
 type HawkularRESTAPI interface {
 	ReadBuckets(metricType hawkular.MetricType, namespace string,
 		modifiers ...hawkular.Modifier) ([]*hawkular.Bucketpoint, error)
+	Close()
 }
 
 // Default receiver for HawkularRESTAPI methods
@@ -107,6 +109,10 @@ func (*defaultGetter) GetHawkularRESTAPI(config *MetricsClientConfig) (HawkularR
 		client: client,
 	}
 	return helper, nil
+}
+
+func (mc *metricsClient) Close() {
+	mc.HawkularRESTAPI.Close()
 }
 
 func (mc *metricsClient) GetCPUMetrics(pods []*v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error) {
@@ -288,4 +294,8 @@ func (helper *hawkularHelper) ReadBuckets(metricType hawkular.MetricType, namesp
 	// Tenant should be set to OSO project name
 	helper.client.Tenant = namespace
 	return helper.client.ReadBuckets(metricType, modifiers...)
+}
+
+func (helper *hawkularHelper) Close() {
+	helper.client.Close()
 }
