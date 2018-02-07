@@ -31,6 +31,8 @@ import (
 type KubeClientConfig struct {
 	// URL to the Kubernetes cluster's API server
 	ClusterURL string
+	// true if we're using a proxy to acces openshift
+	UsingOpenshiftProxy bool
 	// An authorized token to access the cluster
 	BearerToken string
 	// Kubernetes namespace in the cluster of type 'user'
@@ -122,7 +124,7 @@ func NewKubeClient(config *KubeClientConfig) (KubeClientInterface, error) {
 	}
 	// In the absence of a better way to get the user's metrics URL,
 	// substitute "api" with "metrics" in user's cluster URL
-	metricsURL, err := getMetricsURLFromAPIURL(config.ClusterURL)
+	metricsURL, err := getMetricsURLFromAPIURL(config.ClusterURL, config.UsingOpenshiftProxy)
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
@@ -509,7 +511,12 @@ func (kc *kubeClient) GetEnvironment(envName string) (*app.SimpleEnvironment, er
 	return env, nil
 }
 
-func getMetricsURLFromAPIURL(apiURLStr string) (string, error) {
+func getMetricsURLFromAPIURL(apiURLStr string, usingProxy bool) (string, error) {
+
+	if usingProxy {
+		return apiURLStr, nil
+	}
+
 	metricsURL, err := modifyURL(apiURLStr, "metrics", "")
 	if err != nil {
 		return "", err

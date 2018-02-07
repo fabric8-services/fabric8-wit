@@ -17,7 +17,9 @@ import (
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/kubernetes"
 	"github.com/fabric8-services/fabric8-wit/log"
+
 	"github.com/goadesign/goa"
+	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
@@ -25,14 +27,19 @@ import (
 // DeploymentsController implements the deployments resource.
 type DeploymentsController struct {
 	*goa.Controller
-	Config *configuration.Registry
+	Config              *configuration.Registry
+	UsingOpenshiftProxy bool
+	OpenshiftProxyURL   string
 }
 
 // NewDeploymentsController creates a deployments controller.
 func NewDeploymentsController(service *goa.Service, config *configuration.Registry) *DeploymentsController {
+	osproxy := config.GetOpenshiftProxyURL()
 	return &DeploymentsController{
-		Controller: service.NewController("DeploymentsController"),
-		Config:     config,
+		Controller:          service.NewController("DeploymentsController"),
+		Config:              config,
+		UsingOpenshiftProxy: len(osproxy) > 0,
+		OpenshiftProxyURL:   osproxy,
 	}
 }
 
@@ -151,33 +158,38 @@ func getTokenData(ctx context.Context, authClient authservice.Client, forService
 // many different errors are possible, so controllers should call getAndCheckKubeClient() instead
 func (c *DeploymentsController) getKubeClient(ctx context.Context) (kubernetes.KubeClientInterface, error) {
 
-	// create Auth API client
-	authClient, err := auth.CreateClient(ctx, c.Config)
-	if err != nil {
-		log.Error(ctx, nil, "error accessing Auth server %s", tostring(err))
-		return nil, errs.Wrapf(err, "error creating Auth client")
-	}
+	kubeURL := c.OpenshiftProxyURL
+	kubeToken := goajwt.ContextJWT(ctx).Raw
 
-	authUser, err := getUser(ctx, *authClient)
-	if err != nil {
-		log.Error(ctx, nil, "error accessing Auth server: %s", tostring(err))
-		return nil, errs.Wrapf(err, "error retrieving user definition from Auth client")
-	}
+	if !c.UsingOpenshiftProxy {
+		// create Auth API client
+		authClient, err := auth.CreateClient(ctx, c.Config)
+		if err != nil {
+			log.Error(ctx, nil, "error accessing Auth server %s", tostring(err))
+			return nil, errs.Wrapf(err, "error creating Auth client")
+		}
 
-	if authUser == nil || authUser.Data.Attributes.Cluster == nil {
-		log.Error(ctx, nil, "error getting user from Auth server: %s", tostring(authUser))
-		return nil, errs.Errorf("error getting user from Auth Server: %s", tostring(authUser))
-	}
+		authUser, err := getUser(ctx, *authClient)
+		if err != nil {
+			log.Error(ctx, nil, "error accessing Auth server: %s", tostring(err))
+			return nil, errs.Wrapf(err, "error retrieving user definition from Auth client")
+		}
 
-	// get the openshift/kubernetes auth info for the cluster OpenShift API
-	osauth, err := getTokenData(ctx, *authClient, *authUser.Data.Attributes.Cluster)
-	if err != nil {
-		log.Error(ctx, nil, "error getting openshift credentials: %s", tostring(err))
-		return nil, errs.Wrapf(err, "error getting openshift credentials")
-	}
+		if authUser == nil || authUser.Data.Attributes.Cluster == nil {
+			log.Error(ctx, nil, "error getting user from Auth server: %s", tostring(authUser))
+			return nil, errs.Errorf("error getting user from Auth Server: %s", tostring(authUser))
+		}
 
-	kubeURL := *authUser.Data.Attributes.Cluster
-	kubeToken := *osauth.AccessToken
+		// get the openshift/kubernetes auth info for the cluster OpenShift API
+		osauth, err := getTokenData(ctx, *authClient, *authUser.Data.Attributes.Cluster)
+		if err != nil {
+			log.Error(ctx, nil, "error getting openshift credentials: %s", tostring(err))
+			return nil, errs.Wrapf(err, "error getting openshift credentials")
+		}
+
+		kubeURL = *authUser.Data.Attributes.Cluster
+		kubeToken = *osauth.AccessToken
+	}
 
 	kubeNamespaceName, err := getNamespaceName(ctx)
 	if err != nil {
@@ -186,9 +198,10 @@ func (c *DeploymentsController) getKubeClient(ctx context.Context) (kubernetes.K
 
 	// create the cluster API client
 	kubeConfig := &kubernetes.KubeClientConfig{
-		ClusterURL:    kubeURL,
-		BearerToken:   kubeToken,
-		UserNamespace: *kubeNamespaceName,
+		ClusterURL:          kubeURL,
+		UsingOpenshiftProxy: c.UsingOpenshiftProxy,
+		BearerToken:         kubeToken,
+		UserNamespace:       *kubeNamespaceName,
 	}
 	kc, err := kubernetes.NewKubeClient(kubeConfig)
 	if err != nil {
