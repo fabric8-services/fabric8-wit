@@ -71,6 +71,7 @@ type KubeClientInterface interface {
 	GetEnvironments() ([]*app.SimpleEnvironment, error)
 	GetEnvironment(envName string) (*app.SimpleEnvironment, error)
 	GetPodsInNamespace(nameSpace string, appName string) ([]v1.Pod, error)
+	Close()
 }
 
 type kubeClient struct {
@@ -166,6 +167,12 @@ func (*defaultGetter) GetKubeRESTAPI(config *KubeClientConfig) (KubeRESTAPI, err
 
 func (*defaultGetter) GetMetrics(config *MetricsClientConfig) (Metrics, error) {
 	return NewMetricsClient(config)
+}
+
+// Close releases any resources held by this KubeClientInterface
+func (kc *kubeClient) Close() {
+	// Metrics client needs to be closed to stop Hawkular go-routine from spinning
+	kc.Metrics.Close()
 }
 
 // GetSpace returns a space matching the provided name, containing all applications that belong to it
