@@ -171,47 +171,55 @@ func (getter *testKubeGetter) GetKubeRESTAPI(config *kubernetes.KubeClientConfig
 
 type testMetricsGetter struct {
 	config *kubernetes.MetricsClientConfig
+	result *testMetrics
 }
 
-type testMetrics struct{}
+type testMetrics struct {
+	closed bool
+}
 
 func (getter *testMetricsGetter) GetMetrics(config *kubernetes.MetricsClientConfig) (kubernetes.Metrics, error) {
 	getter.config = config
-	return testMetrics{}, nil
+	getter.result = &testMetrics{}
+	return getter.result, nil
 }
 
-func (testMetrics) GetCPUMetrics(pods []*v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error) {
+func (tm *testMetrics) Close() {
+	tm.closed = true
+}
+
+func (tm *testMetrics) GetCPUMetrics(pods []*v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error) {
 	return nil, nil // TODO
 }
 
-func (testMetrics) GetCPUMetricsRange(pods []*v1.Pod, namespace string, startTime time.Time, endTime time.Time,
+func (tm *testMetrics) GetCPUMetricsRange(pods []*v1.Pod, namespace string, startTime time.Time, endTime time.Time,
 	limit int) ([]*app.TimedNumberTuple, error) {
 	return nil, nil // TODO
 }
 
-func (testMetrics) GetMemoryMetrics(pods []*v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error) {
+func (tm *testMetrics) GetMemoryMetrics(pods []*v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error) {
 	return nil, nil // TODO
 }
 
-func (testMetrics) GetMemoryMetricsRange(pods []*v1.Pod, namespace string, startTime time.Time, endTime time.Time,
+func (tm *testMetrics) GetMemoryMetricsRange(pods []*v1.Pod, namespace string, startTime time.Time, endTime time.Time,
 	limit int) ([]*app.TimedNumberTuple, error) {
 	return nil, nil // TODO
 }
 
-func (testMetrics) GetNetworkSentMetrics(pods []*v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error) {
+func (tm *testMetrics) GetNetworkSentMetrics(pods []*v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error) {
 	return nil, nil // TODO add fake impl when tests exercise this code
 }
 
-func (testMetrics) GetNetworkSentMetricsRange(pods []*v1.Pod, namespace string, startTime time.Time, endTime time.Time,
+func (tm *testMetrics) GetNetworkSentMetricsRange(pods []*v1.Pod, namespace string, startTime time.Time, endTime time.Time,
 	limit int) ([]*app.TimedNumberTuple, error) {
 	return nil, nil // TODO add fake impl when tests exercise this code
 }
 
-func (testMetrics) GetNetworkRecvMetrics(pods []*v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error) {
+func (tm *testMetrics) GetNetworkRecvMetrics(pods []*v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error) {
 	return nil, nil // TODO add fake impl when tests exercise this code
 }
 
-func (testMetrics) GetNetworkRecvMetricsRange(pods []*v1.Pod, namespace string, startTime time.Time, endTime time.Time,
+func (tm *testMetrics) GetNetworkRecvMetricsRange(pods []*v1.Pod, namespace string, startTime time.Time, endTime time.Time,
 	limit int) ([]*app.TimedNumberTuple, error) {
 	return nil, nil // TODO add fake impl when tests exercise this code
 }
@@ -250,6 +258,25 @@ func TestGetMetrics(t *testing.T) {
 			require.Error(t, err)
 		}
 	}
+}
+
+func TestClose(t *testing.T) {
+	kubeGetter := &testKubeGetter{}
+	metricsGetter := &testMetricsGetter{}
+
+	config := &kubernetes.KubeClientConfig{
+		ClusterURL:        "http://api.myCluster",
+		BearerToken:       "myToken",
+		UserNamespace:     "myNamespace",
+		KubeRESTAPIGetter: kubeGetter,
+		MetricsGetter:     metricsGetter,
+	}
+	client, err := kubernetes.NewKubeClient(config)
+	require.NoError(t, err, "Failed to create Kubernetes client")
+
+	// Check that KubeClientInterface.Close invokes MetricsInterface.Close
+	client.Close()
+	require.True(t, metricsGetter.result.closed, "Metrics client not closed")
 }
 
 func TestConfigMapEnvironments(t *testing.T) {
