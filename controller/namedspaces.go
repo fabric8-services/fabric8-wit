@@ -62,14 +62,19 @@ func (c *NamedspacesController) List(ctx *app.ListNamedspacesContext) error {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(fmt.Sprintf("not found, userName=%v", ctx.UserName)))
 	}
 
+	sort, err := space.ParseSortSpaceBy(ctx.Sort)
+	if err != nil {
+		return err
+	}
+
 	var spaces []space.Space
 	var count int
-	err := application.Transactional(c.db, func(appl application.Application) error {
+	err = application.Transactional(c.db, func(appl application.Application) error {
 		identity, err := loadKeyCloakIdentityByUserName(ctx, appl, ctx.UserName)
 		if err != nil {
 			return goa.ErrNotFound(fmt.Sprintf("not found, userName=%v. %v", ctx.UserName, err.Error()))
 		}
-		spaces, count, err = appl.Spaces().LoadByOwner(ctx.Context, &identity.ID, &offset, &limit)
+		spaces, count, err = appl.Spaces().LoadByOwner(ctx.Context, &identity.ID, &offset, &limit, sort)
 		return err
 	})
 	if err != nil {

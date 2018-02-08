@@ -56,6 +56,10 @@ var _ = a.Resource("search", func() {
 			a.Param("q", d.String, "Text to match against Name or description")
 			a.Param("page[offset]", d.String, "Paging start position")
 			a.Param("page[limit]", d.Integer, "Paging size")
+			a.Param("sort", d.String, func() {
+				a.Enum("name", "owner", "created", "updated",
+					"-name", "-owner", "-created", "-updated")
+			})
 			a.Required("q")
 		})
 		a.Response(d.OK, func() {

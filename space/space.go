@@ -93,10 +93,10 @@ type Repository interface {
 	Load(ctx context.Context, ID uuid.UUID) (*Space, error)
 	LoadMany(ctx context.Context, IDs []uuid.UUID) ([]Space, error)
 	Delete(ctx context.Context, ID uuid.UUID) error
-	LoadByOwner(ctx context.Context, userID *uuid.UUID, start *int, length *int) ([]Space, int, error)
+	LoadByOwner(ctx context.Context, userID *uuid.UUID, start *int, length *int, sort SortSpaceBy) ([]Space, int, error)
 	LoadByOwnerAndName(ctx context.Context, userID *uuid.UUID, spaceName *string) (*Space, error)
 	List(ctx context.Context, start *int, length *int) ([]Space, int, error)
-	Search(ctx context.Context, q *string, start *int, length *int) ([]Space, int, error)
+	Search(ctx context.Context, q *string, start *int, length *int, sort SortSpaceBy) ([]Space, int, error)
 }
 
 // NewRepository creates a new space repo
@@ -295,9 +295,57 @@ func (r *GormRepository) Create(ctx context.Context, space *Space) (*Space, erro
 	return space, nil
 }
 
+// SortSpaceBy is type used to define parameters using which spaces will be sorted
+type SortSpaceBy string
+
+var (
+	SortSpaceByNameAsc       = SortSpaceBy("name ASC")
+	SortSpaceByNameDesc      = SortSpaceBy("name DESC")
+	SortSpaceByOwnerIDAsc    = SortSpaceBy("owner_id ASC")
+	SortSpaceByOwnerIDDesc   = SortSpaceBy("owner_id DESC")
+	SortSpaceByCreatedAtAsc  = SortSpaceBy("created_at ASC")
+	SortSpaceByCreatedAtDesc = SortSpaceBy("created_at DESC")
+	SortSpaceByUpdatedAtAsc  = SortSpaceBy("updated_at ASC")
+	SortSpaceByUpdatedAtDesc = SortSpaceBy("updated_at DESC")
+	SortSpaceByDefault       = SortSpaceByUpdatedAtDesc
+)
+
+// ParseSortSpaceBy parses the string input and returns object of type SortSpaceBy
+// which can directly be used while querying database to order the output.
+func ParseSortSpaceBy(s *string) (SortSpaceBy, error) {
+	if s == nil {
+		// this is the default case
+		// which returns recently updated spaces first
+		return SortSpaceByDefault, nil
+	}
+
+	var sort SortSpaceBy
+	switch *s {
+	case "name":
+		sort = SortSpaceByNameAsc
+	case "-name":
+		sort = SortSpaceByNameDesc
+	case "owner":
+		sort = SortSpaceByOwnerIDAsc
+	case "-owner":
+		sort = SortSpaceByOwnerIDDesc
+	case "created":
+		sort = SortSpaceByCreatedAtAsc
+	case "-created":
+		sort = SortSpaceByCreatedAtDesc
+	case "updated":
+		sort = SortSpaceByUpdatedAtAsc
+	case "-updated":
+		sort = SortSpaceByUpdatedAtDesc
+	default:
+		return SortSpaceBy(""), fmt.Errorf("unknown sort parameter: %s", *s)
+	}
+	return sort, nil
+}
+
 // extracted this function from List() in order to close the rows object with "defer" for more readability
 // workaround for https://github.com/lib/pq/issues/81
-func (r *GormRepository) listSpaceFromDB(ctx context.Context, q *string, userID *uuid.UUID, start *int, limit *int) ([]Space, int, error) {
+func (r *GormRepository) listSpaceFromDB(ctx context.Context, q *string, userID *uuid.UUID, start *int, limit *int, sort SortSpaceBy) ([]Space, int, error) {
 	db := r.db.Model(&Space{})
 	orgDB := db
 	if start != nil {
@@ -322,7 +370,8 @@ func (r *GormRepository) listSpaceFromDB(ctx context.Context, q *string, userID 
 	}
 
 	// ensure that the result list is always ordered in the same manner
-	db = db.Order("spaces.updated_at DESC")
+	db = db.Order(string(sort))
+
 	rows, err := db.Rows()
 	defer closeable.Close(ctx, rows)
 	if err != nil {
@@ -387,24 +436,24 @@ func (r *GormRepository) listSpaceFromDB(ctx context.Context, q *string, userID 
 // List returns work item selected by the given criteria.Expression, starting with start (zero-based) and returning at most limit items
 func (r *GormRepository) List(ctx context.Context, start *int, limit *int) ([]Space, int, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "space", "list"}, time.Now())
-	result, count, err := r.listSpaceFromDB(ctx, nil, nil, start, limit)
+	result, count, err := r.listSpaceFromDB(ctx, nil, nil, start, limit, SortSpaceByDefault)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
 	}
 	return result, count, nil
 }
 
-func (r *GormRepository) Search(ctx context.Context, q *string, start *int, limit *int) ([]Space, int, error) {
+func (r *GormRepository) Search(ctx context.Context, q *string, start *int, limit *int, sort SortSpaceBy) ([]Space, int, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "space", "search"}, time.Now())
-	result, count, err := r.listSpaceFromDB(ctx, q, nil, start, limit)
+	result, count, err := r.listSpaceFromDB(ctx, q, nil, start, limit, sort)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
 	}
 	return result, count, nil
 }
 
-func (r *GormRepository) LoadByOwner(ctx context.Context, userID *uuid.UUID, start *int, limit *int) ([]Space, int, error) {
-	result, count, err := r.listSpaceFromDB(ctx, nil, userID, start, limit)
+func (r *GormRepository) LoadByOwner(ctx context.Context, userID *uuid.UUID, start *int, limit *int, sort SortSpaceBy) ([]Space, int, error) {
+	result, count, err := r.listSpaceFromDB(ctx, nil, userID, start, limit, sort)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
 	}
