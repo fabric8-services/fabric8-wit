@@ -13,7 +13,7 @@ Minishift.
 [[prerequisites]]
 == Prerequisites
 
-==== Verified compatibility mattrix
+==== Compatibility mattrix
 [cols="^,^,^", options="header"]
 |===
 | Kedge
@@ -26,8 +26,7 @@ Minishift.
 |===
 
 [[install-kedge]]
-=== Install Kedge (Linux)
-
+=== Install Kedge (Linux) (Recommended version 0.4.0)
 . Follow these steps to download and install Kedge on your machine and add the binary to your `PATH` environment variable. For more detailed information see link:http://kedgeproject.org[kedgeproject.org].
 +
 ----
@@ -45,7 +44,7 @@ kedge version
 If successfully installed, the Kedge version number is displayed.
 
 [[install-minishift]]
-=== Install Minishift (Linux)
+=== Install Minishift (Linux) (Recommended version 1.10.0)
 
 . Make sure you have installed the link:https://docs.openshift.org/latest/minishift/getting-started/installing.html#install-prerequisites[hypervisor] of your choice for Minishift. For more detailed information see link:https://docs.openshift.org/latest/minishift/index.html[Minishift overview].
 . Download and install Minishift by following the steps listed
@@ -67,7 +66,7 @@ minishift version
 If successfully installed, the Minishift version number is displayed.
 
 [[install-kubectl]]
-=== Install Kubectl (Linux)
+=== Install Kubectl (Linux) (Recommended version 1.8.2)
 
 . Install and set up Kubectl on your machine as per instructions listed
 https://kubernetes.io/docs/tasks/tools/install-kubectl/[here]
