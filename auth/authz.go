@@ -69,7 +69,8 @@ func GetEntitlement(ctx context.Context, entitlementEndpoint string, entitlement
 		}, "unable to obtain entitlement resource")
 		return nil, errors.NewInternalError(ctx, errs.Wrap(err, "unable to obtain entitlement resource"))
 	}
-	defer res.Body.Close()
+	defer rest.CloseResponse(res)
+
 	switch res.StatusCode {
 	case http.StatusOK:
 		// OK

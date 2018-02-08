@@ -150,7 +150,7 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 
 	if ctx.FilterExpression != nil {
 		return application.Transactional(c.db, func(appl application.Application) error {
-			result, cnt, ancestors, err := appl.SearchItems().Filter(ctx.Context, *ctx.FilterExpression, ctx.FilterParentexists, &offset, &limit)
+			result, cnt, ancestors, childLinks, err := appl.SearchItems().Filter(ctx.Context, *ctx.FilterExpression, ctx.FilterParentexists, &offset, &limit)
 			count := int(cnt)
 			if err != nil {
 				cause := errs.Cause(err)
@@ -174,8 +174,8 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 				matchingWorkItemIDs[i] = wi.ID
 			}
 
-			hasChildren := workItemIncludeHasChildren(ctx, appl)
-			includeParent := includeParentWorkItem(ctx, ancestors)
+			hasChildren := workItemIncludeHasChildren(ctx, appl, childLinks)
+			includeParent := includeParentWorkItem(ctx, ancestors, childLinks)
 			response := app.SearchWorkItemList{
 				Links: &app.PagingLinks{},
 				Meta: &app.WorkItemListResponseMeta{
@@ -183,7 +183,7 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 				},
 				Data: ConvertWorkItems(ctx.Request, result, hasChildren, includeParent),
 			}
-			c.enrichWorkItemList(ctx, ancestors, matchingWorkItemIDs, &response) // append parentWI and ancestors (if not empty) in response
+			c.enrichWorkItemList(ctx, ancestors, matchingWorkItemIDs, childLinks, &response, hasChildren) // append parentWI and ancestors (if not empty) in response
 			setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(result), offset, limit, count, "filter[expression]="+*ctx.FilterExpression)
 
 			// Sort "data" by name or ID if no title given
@@ -195,6 +195,43 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 			var included WorkItemInterfaceSlice = response.Included
 			sort.Sort(included)
 			response.Included = included
+
+			// build up list of sorted ancestor IDs from already sorted work items
+			ancestorIDs := ancestors.GetDistinctAncestorIDs().ToMap()
+			sortedAncestorIDs := make(id.Slice, len(ancestorIDs))
+			i := 0
+			for _, wi := range response.Data {
+				if len(ancestorIDs) <= 0 {
+					break
+				}
+				_, ok := ancestorIDs[*wi.ID]
+				if ok {
+					sortedAncestorIDs[i] = *wi.ID
+					i++
+					delete(ancestorIDs, *wi.ID)
+				}
+			}
+			for _, ifObj := range response.Included {
+				if len(ancestorIDs) <= 0 {
+					break
+				}
+				var wi *app.WorkItem
+				switch v := ifObj.(type) {
+				case app.WorkItem:
+					wi = &v
+				case *app.WorkItem:
+					wi = v
+				default:
+					continue
+				}
+				_, ok := ancestorIDs[*wi.ID]
+				if ok {
+					sortedAncestorIDs[i] = *wi.ID
+					i++
+					delete(ancestorIDs, *wi.ID)
+				}
+			}
+			response.Meta.AncestorIDs = sortedAncestorIDs
 
 			return ctx.OK(&response)
 		})
@@ -303,7 +340,7 @@ func (c *SearchController) Users(ctx *app.UsersSearchContext) error {
 
 // Iterate over the WI list and read parent IDs
 // Fetch and load Parent WI in the included list
-func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, ancestors link.AncestorList, matchingIDs id.Slice, res *app.SearchWorkItemList) {
+func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, ancestors link.AncestorList, matchingIDs id.Slice, childLinks link.WorkItemLinkList, res *app.SearchWorkItemList, hasChildren WorkItemConvertFunc) {
 
 	parentIDs := id.Slice{}
 	for _, wi := range res.Data {
@@ -315,7 +352,13 @@ func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, ancest
 	// Also append the ancestors not already included in the parent list
 	fetchInBatch := parentIDs
 	fetchInBatch.Add(ancestors.GetDistinctAncestorIDs().Diff(parentIDs))
-	// Eliminate work item already in the search
+
+	// Append direct children of matching work items that have a child that is
+	// also a match and are not yet in the list.
+	nonMatchingChildItems := childLinks.GetDistinctListOfTargetIDs(link.SystemWorkItemLinkTypeParentChildID)
+	fetchInBatch.Add(fetchInBatch.Diff(nonMatchingChildItems))
+
+	// Eliminate work items already in the search
 	fetchInBatch = fetchInBatch.Sub(matchingIDs)
 
 	wis := []*workitem.WorkItem{}
@@ -332,7 +375,7 @@ func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, ancest
 	}
 
 	for _, ele := range wis {
-		convertedWI := ConvertWorkItem(ctx.Request, *ele, includeParentWorkItem(ctx, ancestors))
+		convertedWI := ConvertWorkItem(ctx.Request, *ele, hasChildren, includeParentWorkItem(ctx, ancestors, childLinks))
 		res.Included = append(res.Included, *convertedWI)
 	}
 }
