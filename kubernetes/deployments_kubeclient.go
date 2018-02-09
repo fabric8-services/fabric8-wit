@@ -542,14 +542,21 @@ func (kc *kubeClient) DeleteDeployment(spaceName string, appName string, envName
 	if err != nil {
 		return errs.WithStack(err)
 	}
+	// Delete routes
+	err = kc.deleteRoutes(appName, envNS)
+	if err != nil {
+		return err
+	}
+	// Delete services
+	err = kc.deleteServices(appName, envNS)
+	if err != nil {
+		return err
+	}
 	// Delete DC (will also delete RCs and pods)
 	err = kc.deleteDeploymentConfig(spaceName, appName, envNS)
 	if err != nil {
-		return errs.WithStack(err)
+		return err
 	}
-	// Delete routes
-	//err = kc.deleteRoutes(appName, envNS)
-	// Delete services
 	return nil
 }
 
@@ -856,7 +863,6 @@ func (kc *kubeClient) deleteDeploymentConfig(spaceName string, appName string, n
 	opts := metaV1.DeleteOptions{
 		PropagationPolicy: &policy,
 	}
-
 	// API states this should return a Status object, but it returns the DC instead,
 	// just check for no HTTP error
 	err = kc.sendResource(dcURL, "DELETE", opts)
@@ -1616,6 +1622,54 @@ func scoreRoute(route *route) int {
 		score++
 	}
 	return score
+}
+
+func (kc *kubeClient) deleteServices(appName string, envNS string) error {
+	// Delete all dependent objects before deleting the service
+	policy := metaV1.DeletePropagationForeground
+	delOpts := &metaV1.DeleteOptions{
+		PropagationPolicy: &policy,
+	}
+	// Delete all services in namespace with matching 'app' label
+	listOpts := metaV1.ListOptions{
+		LabelSelector: "app=" + appName,
+	}
+	// The API server rejects deleting services by label, so get all
+	// services with the label, and delete one-by-one
+	services, err := kc.Services(envNS).List(listOpts)
+	if err != nil {
+		return errs.WithStack(err)
+	}
+	for _, service := range services.Items {
+		err = kc.Services(envNS).Delete(service.Name, delOpts)
+		if err != nil {
+			return errs.WithStack(err)
+		}
+	}
+	return nil
+}
+
+func (kc *kubeClient) deleteRoutes(appName string, envNS string) error {
+	// Delete all routes in namespace with matching 'app' label
+	queryParam := url.QueryEscape("app=" + appName)
+	routesURL := fmt.Sprintf("/oapi/v1/namespaces/%s/routes?labelSelector=%s", envNS, queryParam)
+	// Delete all dependent objects before deleting the route
+	policy := metaV1.DeletePropagationForeground
+	opts := metaV1.DeleteOptions{
+		PropagationPolicy: &policy,
+	}
+	reqBody, err := json.Marshal(opts)
+	if err != nil {
+		return errs.WithStack(err)
+	}
+	// API states this should return a Status object, but it returns the route instead,
+	// just check for no HTTP error
+	resp, err := kc.sendResource(routesURL, "DELETE", reqBody, "application/json")
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(resp))
+	return nil
 }
 
 // Derived from: https://github.com/fabric8-services/fabric8-tenant/blob/master/openshift/kube_token.go
