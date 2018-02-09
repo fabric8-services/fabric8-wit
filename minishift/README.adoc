@@ -13,18 +13,6 @@ Minishift.
 [[prerequisites]]
 == Prerequisites
 
-==== Compatibility mattrix
-[cols="^,^,^", options="header"]
-|===
-| Kedge
-| Minishift
-| Kubectl
-
-| 0.4.0
-| 1.10.0
-| 1.8.2
-|===
-
 [[install-kedge]]
 === Install Kedge (Linux) (Recommended version 0.4.0)
 . Follow these steps to download and install Kedge on your machine and add the binary to your `PATH` environment variable. For more detailed information see link:http://kedgeproject.org[kedgeproject.org].
