@@ -66,7 +66,7 @@ func (s *DBTestSuite) SetupTest() {
 
 // TearDownTest implements suite.TearDownTest
 func (s *DBTestSuite) TearDownTest() {
-	// s.clean()
+	s.clean()
 }
 
 // populateDBTestSuite populates the DB with common values
