@@ -216,6 +216,13 @@ clean-generated:
 	-rm -rf ./account/tenant
 	-rm -rf ./auth/authservice
 
+CLEAN_TARGETS += clean-sql-generated
+.PHONY: clean-sql-generated
+## Removes all generated code for SQL migration and tests.
+clean-sql-generated:
+	-rm -f ./migration/sqlbindata.go
+	-rm -f ./migration/sqlbindata_test.go
+
 CLEAN_TARGETS += clean-vendor
 .PHONY: clean-vendor
 ## Removes the ./vendor directory.

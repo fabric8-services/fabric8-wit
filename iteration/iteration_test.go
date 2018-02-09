@@ -452,3 +452,9 @@ func (s *TestIterationRepository) TestLoadMultiple() {
 		require.Empty(t, listLoadedIterations)
 	})
 }
+
+func (s *TestIterationRepository) TestMassLoad() {
+
+	_ = tf.NewTestFixture(s.T(), s.DB, tf.Iterations(5000))
+
+}
