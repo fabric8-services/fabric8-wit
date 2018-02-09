@@ -67,6 +67,7 @@ type KubeClientInterface interface {
 		startTime time.Time) (*app.SimpleDeploymentStats, error)
 	GetDeploymentStatSeries(spaceName string, appName string, envName string, startTime time.Time,
 		endTime time.Time, limit int) (*app.SimpleDeploymentStatSeries, error)
+	DeleteDeployment(spaceName string, appName string, envName string) error
 	GetEnvironments() ([]*app.SimpleEnvironment, error)
 	GetEnvironment(envName string) (*app.SimpleEnvironment, error)
 	GetPodsInNamespace(nameSpace string, appName string) ([]v1.Pod, error)
@@ -320,7 +321,7 @@ func (oc *openShiftAPIClient) GetDeploymentConfigScale(namespace string, name st
 
 func (oc *openShiftAPIClient) SetDeploymentConfigScale(namespace string, name string, scale map[string]interface{}) error {
 	dcScaleURL := fmt.Sprintf("/oapi/v1/namespaces/%s/deploymentconfigs/%s/scale", namespace, name)
-	return oc.putResource(dcScaleURL, scale)
+	return oc.sendResource("PUT", dcScaleURL, scale)
 }
 
 func (kc *kubeClient) getConsoleURL(envNS string) (*string, error) {
@@ -536,6 +537,22 @@ func (kc *kubeClient) GetDeploymentStatSeries(spaceName string, appName string, 
 	return result, nil
 }
 
+func (kc *kubeClient) DeleteDeployment(spaceName string, appName string, envName string) error {
+	envNS, err := kc.getEnvironmentNamespace(envName)
+	if err != nil {
+		return errs.WithStack(err)
+	}
+	// Delete DC (will also delete RCs and pods)
+	err = kc.deleteDeploymentConfig(spaceName, appName, envNS)
+	if err != nil {
+		return errs.WithStack(err)
+	}
+	// Delete routes
+	//err = kc.deleteRoutes(appName, envNS)
+	// Delete services
+	return nil
+}
+
 // GetEnvironments retrieves information on all environments in the cluster
 // for the current user
 func (kc *kubeClient) GetEnvironments() ([]*app.SimpleEnvironment, error) {
@@ -710,26 +727,26 @@ func (kc *kubeClient) getEnvironmentNamespace(envName string) (string, error) {
 }
 
 // Derived from: https://github.com/fabric8-services/fabric8-tenant/blob/master/openshift/kube_token.go
-func (oc *openShiftAPIClient) putResource(url string, putBody map[string]interface{}) error {
+func (oc *openShiftAPIClient) sendResource(url string, method string, reqBody interface{}) error {
 	fullURL := strings.TrimSuffix(oc.config.ClusterURL, "/") + url
 
-	marshalled, err := json.Marshal(putBody)
+	marshalled, err := json.Marshal(reqBody)
 	if err != nil {
 		log.Error(nil, map[string]interface{}{
 			"err":          err,
 			"url":          fullURL,
-			"request_body": putBody,
-		}, "could not marshall PUT request")
+			"request_body": reqBody,
+		}, "could not marshall %s request", method)
 		return errs.WithStack(err)
 	}
 
-	req, err := http.NewRequest("PUT", fullURL, bytes.NewBuffer(marshalled))
+	req, err := http.NewRequest(method, fullURL, bytes.NewBuffer(marshalled))
 	if err != nil {
 		log.Error(nil, map[string]interface{}{
 			"err":          err,
 			"url":          fullURL,
-			"request_body": putBody,
-		}, "could not create PUT request")
+			"request_body": reqBody,
+		}, "could not create %s request", method)
 		return errs.WithStack(err)
 	}
 
@@ -743,20 +760,20 @@ func (oc *openShiftAPIClient) putResource(url string, putBody map[string]interfa
 		log.Error(nil, map[string]interface{}{
 			"err":          err,
 			"url":          fullURL,
-			"request_body": putBody,
-		}, "could not perform PUT request")
+			"request_body": reqBody,
+		}, "could not perform %s request", method)
 		return errs.WithStack(err)
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
 	defer resp.Body.Close()
+	respBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Error(nil, map[string]interface{}{
 			"err":           err,
 			"url":           fullURL,
-			"request_body":  putBody,
-			"response_body": body,
-		}, "could not read response from PUT request")
+			"request_body":  reqBody,
+			"response_body": respBody,
+		}, "could not read response from %s request", method)
 		return errs.WithStack(err)
 	}
 
@@ -765,11 +782,11 @@ func (oc *openShiftAPIClient) putResource(url string, putBody map[string]interfa
 		log.Error(nil, map[string]interface{}{
 			"err":           err,
 			"url":           fullURL,
-			"request_body":  putBody,
-			"response_body": body,
+			"request_body":  reqBody,
+			"response_body": respBody,
 			"http_status":   status,
-		}, "failed to PUT request due to HTTP error")
-		return errs.Errorf("failed to PUT url %s: status code %d", fullURL, status)
+		}, "failed to %s request due to HTTP error", method)
+		return errs.Errorf("failed to %s url %s: status code %d", method, fullURL, status)
 	}
 	return nil
 }
@@ -824,6 +841,29 @@ func (kc *kubeClient) getDeploymentConfig(namespace string, appName string, spac
 func (oc *openShiftAPIClient) GetDeploymentConfig(namespace string, name string) (map[string]interface{}, error) {
 	dcURL := fmt.Sprintf("/oapi/v1/namespaces/%s/deploymentconfigs/%s", namespace, name)
 	return oc.getResource(dcURL, true)
+}
+
+func (kc *kubeClient) deleteDeploymentConfig(spaceName string, appName string, namespace string) error {
+	// Check that the deployment config belongs to the expected space
+	_, err := kc.getDeploymentConfig(namespace, appName, spaceName)
+	if err != nil {
+		return err
+	}
+
+	dcURL := fmt.Sprintf("/oapi/v1/namespaces/%s/deploymentconfigs/%s", namespace, appName)
+	// Delete all dependent objects and then this DC
+	policy := metaV1.DeletePropagationForeground
+	opts := metaV1.DeleteOptions{
+		PropagationPolicy: &policy,
+	}
+
+	// API states this should return a Status object, but it returns the DC instead,
+	// just check for no HTTP error
+	err = kc.sendResource(dcURL, "DELETE", opts)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 const deploymentPhaseAnnotation string = "openshift.io/deployment.phase"
