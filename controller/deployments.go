@@ -25,7 +25,8 @@ import (
 // DeploymentsController implements the deployments resource.
 type DeploymentsController struct {
 	*goa.Controller
-	Config *configuration.Registry
+	Config           *configuration.Registry
+	ContextResponder ContextResponder
 	ClientGetter
 }
 
@@ -40,14 +41,85 @@ type defaultClientGetter struct {
 	config *configuration.Registry
 }
 
+func (g defaultClientGetter) GetConfig() *configuration.Registry {
+	return g.config
+}
+
+type DeploymentsControllerConfig struct {
+	clientGetter ClientGetter
+}
+
+type deploymentsControllerContextResponser struct {
+}
+
+func (r deploymentsControllerContextResponser) SendShowDeploymentStatSeriesAppsOK(res *app.SimpleDeploymentStatSeriesSingle, ctx *app.ShowDeploymentStatSeriesDeploymentsContext) error {
+	return ctx.OK(res)
+}
+
+func (r deploymentsControllerContextResponser) SendShowDeploymentStatsOK(res *app.SimpleDeploymentStatsSingle, ctx *app.ShowDeploymentStatsDeploymentsContext) error {
+	return ctx.OK(res)
+}
+
+func (r deploymentsControllerContextResponser) SendSpaceOK(res *app.SimpleSpaceSingle, ctx *app.ShowSpaceDeploymentsContext) error {
+	return ctx.OK(res)
+}
+
+func (r deploymentsControllerContextResponser) SendEnvironmentsOK(res *app.SimpleEnvironmentList, ctx *app.ShowSpaceEnvironmentsDeploymentsContext) error {
+	return ctx.OK(res)
+}
+
+func (r deploymentsControllerContextResponser) SendSetDeploymentOK(res []byte, ctx *app.SetDeploymentDeploymentsContext) error {
+	return ctx.OK(res)
+}
+
+func (r deploymentsControllerContextResponser) SendDeleteDeploymentOK(res []byte, ctx *app.DeleteDeploymentDeploymentsContext) error {
+	return ctx.OK(res)
+}
+
+type ContextResponder interface {
+	SendShowDeploymentStatSeriesAppsOK(res *app.SimpleDeploymentStatSeriesSingle, ctx *app.ShowDeploymentStatSeriesDeploymentsContext) error
+	SendShowDeploymentStatsOK(res *app.SimpleDeploymentStatsSingle, ctx *app.ShowDeploymentStatsDeploymentsContext) error
+	SendSpaceOK(res *app.SimpleSpaceSingle, ctx *app.ShowSpaceDeploymentsContext) error
+	SendEnvironmentsOK(res *app.SimpleEnvironmentList, ctx *app.ShowSpaceEnvironmentsDeploymentsContext) error
+	SendSetDeploymentOK(res []byte, ctx *app.SetDeploymentDeploymentsContext) error
+	SendDeleteDeploymentOK(res []byte, ctx *app.DeleteDeploymentDeploymentsContext) error
+}
+
+type KubeClientGetterDefault struct {
+	config *configuration.Registry
+}
+
+func (c KubeClientGetterDefault) GetConfig() *configuration.Registry {
+	return c.config
+}
+
+type OSIOClientGetter interface {
+	GetAndCheckOSIOClient(ctx context.Context) (OpenshiftIOClient, error)
+}
+
+// KubeClientGetter creates an instance of KubeClientInterface
+type KubeClientGetter interface {
+	GetKubeClient(ctx context.Context) (kubernetes.KubeClientInterface, error)
+	GetConfig() *configuration.Registry
+}
+
 // NewDeploymentsController creates a deployments controller.
 func NewDeploymentsController(service *goa.Service, config *configuration.Registry) *DeploymentsController {
+	return createDeploymentsController(DeploymentsControllerConfig{}, service, config)
+}
+
+func createDeploymentsController(appConfig DeploymentsControllerConfig, service *goa.Service, registryConfig *configuration.Registry) *DeploymentsController {
+	if appConfig.clientGetter == nil {
+		appConfig.clientGetter = &defaultClientGetter{
+			config: registryConfig,
+		}
+	}
+
 	return &DeploymentsController{
-		Controller: service.NewController("DeploymentsController"),
-		Config:     config,
-		ClientGetter: &defaultClientGetter{
-			config: config,
-		},
+		Controller:       service.NewController("DeploymentsController"),
+		Config:           registryConfig,
+		ContextResponder: deploymentsControllerContextResponser{},
+		ClientGetter:     appConfig.clientGetter,
 	}
 }
 
@@ -60,7 +132,6 @@ func tostring(item interface{}) string {
 }
 
 func (*defaultClientGetter) GetAndCheckOSIOClient(ctx context.Context) (OpenshiftIOClient, error) {
-
 	// defaults
 	host := "localhost"
 	scheme := "https"
@@ -115,7 +186,6 @@ func (c *DeploymentsController) getSpaceNameFromSpaceID(ctx context.Context, spa
 }
 
 func (g *defaultClientGetter) getNamespaceName(ctx context.Context) (*string, error) {
-
 	osioclient, err := g.GetAndCheckOSIOClient(ctx)
 	if err != nil {
 		return nil, err
@@ -206,9 +276,8 @@ func getTokenData(ctx context.Context, authClient authservice.Client, forService
 
 // GetKubeClient creates a kube client for the appropriate cluster assigned to the current user
 func (g *defaultClientGetter) GetKubeClient(ctx context.Context) (kubernetes.KubeClientInterface, error) {
-
 	// create Auth API client
-	authClient, err := auth.CreateClient(ctx, g.config)
+	authClient, err := auth.CreateClient(ctx, g.GetConfig())
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
@@ -308,7 +377,7 @@ func (c *DeploymentsController) SetDeployment(ctx *app.SetDeploymentDeploymentsC
 		return errors.NewInternalError(ctx, errs.Wrapf(err, "error scaling deployment %s", ctx.DeployName))
 	}
 
-	return ctx.OK([]byte{})
+	return c.ContextResponder.SendSetDeploymentOK([]byte{}, ctx)
 }
 
 // DeleteDeployment runs the deleteDeployment action.
@@ -333,7 +402,7 @@ func (c *DeploymentsController) DeleteDeployment(ctx *app.DeleteDeploymentDeploy
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 	}
 
-	return ctx.OK([]byte{})
+	return c.ContextResponder.SendDeleteDeploymentOK([]byte{}, ctx)
 }
 
 // ShowDeploymentStatSeries runs the showDeploymentStatSeries action.
@@ -382,7 +451,7 @@ func (c *DeploymentsController) ShowDeploymentStatSeries(ctx *app.ShowDeployment
 		Data: statSeries,
 	}
 
-	return ctx.OK(res)
+	return c.ContextResponder.SendShowDeploymentStatSeriesAppsOK(res, ctx)
 }
 
 func convertToTime(unixMillis int64) time.Time {
@@ -425,7 +494,7 @@ func (c *DeploymentsController) ShowDeploymentStats(ctx *app.ShowDeploymentStats
 		Data: deploymentStats,
 	}
 
-	return ctx.OK(res)
+	return c.ContextResponder.SendShowDeploymentStatsOK(res, ctx)
 }
 
 // ShowSpace runs the showSpace action.
@@ -458,7 +527,7 @@ func (c *DeploymentsController) ShowSpace(ctx *app.ShowSpaceDeploymentsContext) 
 		Data: space,
 	}
 
-	return ctx.OK(res)
+	return c.ContextResponder.SendSpaceOK(res, ctx)
 }
 
 // ShowSpaceEnvironments runs the showSpaceEnvironments action.
@@ -482,7 +551,7 @@ func (c *DeploymentsController) ShowSpaceEnvironments(ctx *app.ShowSpaceEnvironm
 		Data: envs,
 	}
 
-	return ctx.OK(res)
+	return c.ContextResponder.SendEnvironmentsOK(res, ctx)
 }
 
 func cleanup(kc kubernetes.KubeClientInterface) {
