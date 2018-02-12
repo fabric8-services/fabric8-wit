@@ -1,4 +1,4 @@
-package kubernetesV1
+package kubernetes
 
 import (
 	"strings"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	hawkular "github.com/hawkular/hawkular-client-go/metrics"
+	errs "github.com/pkg/errors"
 	v1 "k8s.io/client-go/pkg/api/v1"
 )
 
@@ -29,20 +30,20 @@ type HawkularGetter interface {
 	GetHawkularRESTAPI(config *MetricsClientConfig) (HawkularRESTAPI, error)
 }
 
-// MetricsInterface provides methods to obtain performance metrics of a deployed application
-type MetricsInterface interface {
-	GetCPUMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTupleV1, error)
-	GetCPUMetricsRange(pods []v1.Pod, namespace string, startTime time.Time, endTime time.Time,
-		limit int) ([]*app.TimedNumberTupleV1, error)
-	GetMemoryMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTupleV1, error)
-	GetMemoryMetricsRange(pods []v1.Pod, namespace string, startTime time.Time, endTime time.Time,
-		limit int) ([]*app.TimedNumberTupleV1, error)
-	GetNetworkSentMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTupleV1, error)
-	GetNetworkSentMetricsRange(pods []v1.Pod, namespace string, startTime time.Time, endTime time.Time,
-		limit int) ([]*app.TimedNumberTupleV1, error)
-	GetNetworkRecvMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTupleV1, error)
-	GetNetworkRecvMetricsRange(pods []v1.Pod, namespace string, startTime time.Time, endTime time.Time,
-		limit int) ([]*app.TimedNumberTupleV1, error)
+// Metrics provides methods to obtain performance metrics of a deployed application
+type Metrics interface {
+	GetCPUMetrics(pods []*v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error)
+	GetCPUMetricsRange(pods []*v1.Pod, namespace string, startTime time.Time, endTime time.Time,
+		limit int) ([]*app.TimedNumberTuple, error)
+	GetMemoryMetrics(pods []*v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error)
+	GetMemoryMetricsRange(pods []*v1.Pod, namespace string, startTime time.Time, endTime time.Time,
+		limit int) ([]*app.TimedNumberTuple, error)
+	GetNetworkSentMetrics(pods []*v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error)
+	GetNetworkSentMetricsRange(pods []*v1.Pod, namespace string, startTime time.Time, endTime time.Time,
+		limit int) ([]*app.TimedNumberTuple, error)
+	GetNetworkRecvMetrics(pods []*v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error)
+	GetNetworkRecvMetricsRange(pods []*v1.Pod, namespace string, startTime time.Time, endTime time.Time,
+		limit int) ([]*app.TimedNumberTuple, error)
 	Close()
 }
 
@@ -77,8 +78,8 @@ const bucketDuration = 1 * time.Minute
 const millicoreToCoreScale = 0.001
 const noScale = 1
 
-// NewMetricsClient creates a MetricsInterface given a configuration
-func NewMetricsClient(config *MetricsClientConfig) (MetricsInterface, error) {
+// NewMetricsClient creates a Metrics object given a configuration
+func NewMetricsClient(config *MetricsClientConfig) (Metrics, error) {
 	// Use default implementation if no HawkularGetter is specified
 	if config.HawkularGetter == nil {
 		config.HawkularGetter = &defaultGetter{}
@@ -101,7 +102,7 @@ func (*defaultGetter) GetHawkularRESTAPI(config *MetricsClientConfig) (HawkularR
 	}
 	client, err := hawkular.NewHawkularClient(params)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	helper := &hawkularHelper{
@@ -114,42 +115,42 @@ func (mc *metricsClient) Close() {
 	mc.HawkularRESTAPI.Close()
 }
 
-func (mc *metricsClient) GetCPUMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTupleV1, error) {
+func (mc *metricsClient) GetCPUMetrics(pods []*v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error) {
 	return mc.getBucketAverage(pods, namespace, cpuDesc, startTime, millicoreToCoreScale)
 }
 
-func (mc *metricsClient) GetCPUMetricsRange(pods []v1.Pod, namespace string,
-	startTime time.Time, endTime time.Time, limit int) ([]*app.TimedNumberTupleV1, error) {
+func (mc *metricsClient) GetCPUMetricsRange(pods []*v1.Pod, namespace string,
+	startTime time.Time, endTime time.Time, limit int) ([]*app.TimedNumberTuple, error) {
 	buckets, err := mc.getBucketsInRange(pods, namespace, cpuDesc, startTime, endTime, limit)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	results := bucketsToTuples(buckets, millicoreToCoreScale)
 	return results, nil
 }
 
-func (mc *metricsClient) GetMemoryMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTupleV1, error) {
+func (mc *metricsClient) GetMemoryMetrics(pods []*v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error) {
 	return mc.getBucketAverage(pods, namespace, memDesc, startTime, noScale)
 }
 
-func (mc *metricsClient) GetMemoryMetricsRange(pods []v1.Pod, namespace string,
-	startTime time.Time, endTime time.Time, limit int) ([]*app.TimedNumberTupleV1, error) {
+func (mc *metricsClient) GetMemoryMetricsRange(pods []*v1.Pod, namespace string,
+	startTime time.Time, endTime time.Time, limit int) ([]*app.TimedNumberTuple, error) {
 	buckets, err := mc.getBucketsInRange(pods, namespace, memDesc, startTime, endTime, limit)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	results := bucketsToTuples(buckets, noScale)
 	return results, nil
 }
 
-func (mc *metricsClient) GetNetworkSentMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTupleV1, error) {
+func (mc *metricsClient) GetNetworkSentMetrics(pods []*v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error) {
 	return mc.getBucketAverage(pods, namespace, netSent, startTime, noScale)
 }
 
-func (mc *metricsClient) GetNetworkSentMetricsRange(pods []v1.Pod, namespace string,
-	startTime time.Time, endTime time.Time, limit int) ([]*app.TimedNumberTupleV1, error) {
+func (mc *metricsClient) GetNetworkSentMetricsRange(pods []*v1.Pod, namespace string,
+	startTime time.Time, endTime time.Time, limit int) ([]*app.TimedNumberTuple, error) {
 	buckets, err := mc.getBucketsInRange(pods, namespace, netSent, startTime, endTime, limit)
 	if err != nil {
 		return nil, err
@@ -159,12 +160,12 @@ func (mc *metricsClient) GetNetworkSentMetricsRange(pods []v1.Pod, namespace str
 	return results, nil
 }
 
-func (mc *metricsClient) GetNetworkRecvMetrics(pods []v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTupleV1, error) {
+func (mc *metricsClient) GetNetworkRecvMetrics(pods []*v1.Pod, namespace string, startTime time.Time) (*app.TimedNumberTuple, error) {
 	return mc.getBucketAverage(pods, namespace, netRecv, startTime, noScale)
 }
 
-func (mc *metricsClient) GetNetworkRecvMetricsRange(pods []v1.Pod, namespace string,
-	startTime time.Time, endTime time.Time, limit int) ([]*app.TimedNumberTupleV1, error) {
+func (mc *metricsClient) GetNetworkRecvMetricsRange(pods []*v1.Pod, namespace string,
+	startTime time.Time, endTime time.Time, limit int) ([]*app.TimedNumberTuple, error) {
 	buckets, err := mc.getBucketsInRange(pods, namespace, netRecv, startTime, endTime, limit)
 	if err != nil {
 		return nil, err
@@ -174,20 +175,20 @@ func (mc *metricsClient) GetNetworkRecvMetricsRange(pods []v1.Pod, namespace str
 	return results, nil
 }
 
-func bucketsToTuples(buckets []*hawkular.Bucketpoint, scale float64) []*app.TimedNumberTupleV1 {
-	results := make([]*app.TimedNumberTupleV1, len(buckets))
+func bucketsToTuples(buckets []*hawkular.Bucketpoint, scale float64) []*app.TimedNumberTuple {
+	results := make([]*app.TimedNumberTuple, len(buckets))
 	for idx, bucket := range buckets {
 		results[idx] = bucketToTuple(bucket, scale)
 	}
 	return results
 }
 
-func bucketToTuple(bucket *hawkular.Bucketpoint, scale float64) *app.TimedNumberTupleV1 {
+func bucketToTuple(bucket *hawkular.Bucketpoint, scale float64) *app.TimedNumberTuple {
 	// Use bucket start time as timestamp for data, which is what the OSO web console uses:
 	// https://github.com/openshift/origin-web-console/blob/v3.7.0/app/scripts/directives/deploymentMetrics.js#L250
 	bucketTimeUnix := float64(convertToUnixMillis(bucket.Start))
 	scaledAvg := bucket.Avg * scale
-	result := &app.TimedNumberTupleV1{
+	result := &app.TimedNumberTuple{
 		Value: &scaledAvg,
 		Time:  &bucketTimeUnix,
 	}
@@ -198,11 +199,11 @@ func convertToUnixMillis(t time.Time) int64 {
 	return hawkular.ToUnixMilli(t)
 }
 
-func (mc *metricsClient) getBucketAverage(pods []v1.Pod, namespace, descTag string,
-	startTime time.Time, scale float64) (*app.TimedNumberTupleV1, error) {
+func (mc *metricsClient) getBucketAverage(pods []*v1.Pod, namespace, descTag string,
+	startTime time.Time, scale float64) (*app.TimedNumberTuple, error) {
 	result, err := mc.getLatestBucket(pods, namespace, descTag, startTime)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	} else if result == nil {
 		return nil, nil
 	}
@@ -211,28 +212,28 @@ func (mc *metricsClient) getBucketAverage(pods []v1.Pod, namespace, descTag stri
 	return tuple, err
 }
 
-func (mc *metricsClient) getLatestBucket(pods []v1.Pod, namespace string, descTag string,
+func (mc *metricsClient) getLatestBucket(pods []*v1.Pod, namespace string, descTag string,
 	startTime time.Time) (*hawkular.Bucketpoint, error) {
 	// Get one bucket after the specified start time
 	endTime := startTime.Add(bucketDuration)
 	buckets, err := mc.readBuckets(pods, namespace, descTag, hawkular.StartTimeFilter(startTime),
 		hawkular.EndTimeFilter(endTime), hawkular.BucketsFilter(1))
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	} else if len(buckets) == 0 { // Should have gotten at most one bucket
 		return nil, nil
 	}
 	return buckets[0], nil
 }
 
-func (mc *metricsClient) getBucketsInRange(pods []v1.Pod, namespace string, descTag string, startTime time.Time,
+func (mc *metricsClient) getBucketsInRange(pods []*v1.Pod, namespace string, descTag string, startTime time.Time,
 	endTime time.Time, limit int) ([]*hawkular.Bucketpoint, error) {
 	// Note: returned buckets are ordered by start time
 	// https://github.com/hawkular/hawkular-metrics/blob/0.28.3/core/metrics-model/src/main/java/org/hawkular/metrics/model/BucketPoint.java#L70
 	buckets, err := mc.readBuckets(pods, namespace, descTag, hawkular.StartTimeFilter(startTime),
 		hawkular.EndTimeFilter(endTime), hawkular.BucketsDurationFilter(bucketDuration))
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	// Hawkular buckets may extend beyond the requested endpoint if
@@ -263,7 +264,7 @@ func (mc *metricsClient) getBucketsInRange(pods []v1.Pod, namespace string, desc
 	return buckets, nil
 }
 
-func (mc *metricsClient) readBuckets(pods []v1.Pod, namespace string, descTag string,
+func (mc *metricsClient) readBuckets(pods []*v1.Pod, namespace string, descTag string,
 	filters ...hawkular.Filter) ([]*hawkular.Bucketpoint, error) {
 	numPods := len(pods)
 	if numPods == 0 {
