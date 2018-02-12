@@ -24,7 +24,7 @@ DOCKER_BIN := $(shell command -v $(DOCKER_BIN_NAME) 2> /dev/null)
 GLIDE_VERSION := $(shell ${GLIDE_BIN} --version | sed -rn 's/([^0-9.]*)([0-9]*\.[0-9]*)(.*)/\2/p')
 DESIRED_GLIDE_VERSION := 0.12
 
-check-version :
+check-glide-version :
 	@if [ `echo "${GLIDE_VERSION} < ${DESIRED_GLIDE_VERSION}" | bc -l` -eq 1 ] ; then \
 	 echo Warning: Glide version ${GLIDE_VERSION} is less than desired Glide version ${DESIRED_GLIDE_VERSION};\
 	fi
@@ -334,7 +334,7 @@ $(TMP_PATH):
 	mkdir -p $(TMP_PATH)
 
 .PHONY: prebuild-check
-prebuild-check: $(TMP_PATH) $(INSTALL_PREFIX) $(CHECK_GOPATH_BIN)
+prebuild-check: $(TMP_PATH) $(INSTALL_PREFIX) $(CHECK_GOPATH_BIN) check-glide-version
 # Check that all tools where found
 ifndef GIT_BIN
 	$(error The "$(GIT_BIN_NAME)" executable could not be found in your PATH)
