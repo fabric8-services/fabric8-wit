@@ -303,6 +303,27 @@ func (c *DeploymentsController) SetDeployment(ctx *app.SetDeploymentDeploymentsC
 	return ctx.OK([]byte{})
 }
 
+// DeleteDeployment runs the deleteDeployment action.
+func (c *DeploymentsController) DeleteDeployment(ctx *app.DeleteDeploymentDeploymentsContext) error {
+	kc, err := c.GetKubeClient(ctx)
+	defer cleanup(kc)
+	if err != nil {
+		return errors.NewUnauthorizedError("openshift token")
+	}
+
+	kubeSpaceName, err := c.getSpaceNameFromSpaceID(ctx, ctx.SpaceID)
+	if err != nil {
+		return errors.NewNotFoundError("osio space", ctx.SpaceID.String())
+	}
+
+	err = kc.DeleteDeployment(*kubeSpaceName, ctx.AppName, ctx.DeployName)
+	if err != nil {
+		return errors.NewInternalError(ctx, errs.Wrapf(err, "error deleting deployment %s", ctx.DeployName))
+	}
+
+	return ctx.OK([]byte{})
+}
+
 // ShowDeploymentStatSeries runs the showDeploymentStatSeries action.
 func (c *DeploymentsController) ShowDeploymentStatSeries(ctx *app.ShowDeploymentStatSeriesDeploymentsContext) error {
 
