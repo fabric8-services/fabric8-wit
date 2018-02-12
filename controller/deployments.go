@@ -72,6 +72,8 @@ func getAndCheckOSIOClient(ctx context.Context) (*OSIOClient, error) {
 		scheme = req.URL.Scheme
 	}
 
+	// The deployments API communicates with the rest of WIT via the stnadard WIT API.
+	// This environment variable is used for local development of the deployments API, to point ot a remote WIT.
 	witURLStr := os.Getenv("FABRIC8_WIT_API_URL")
 	if witURLStr != "" {
 		witurl, err := url.Parse(witURLStr)
@@ -142,12 +144,23 @@ func getUser(ctx context.Context, authClient authservice.Client) (*authservice.U
 
 	status := resp.StatusCode
 	if status != http.StatusOK {
+		log.Error(nil, map[string]interface{}{
+			"err":           err,
+			"request_path":  authservice.ShowUserPath(),
+			"response_body": respBody,
+			"http_status":   status,
+		}, "failed to GET user from auth service due to HTTP error")
 		return nil, errs.Errorf("failed to GET user due to status code %d", status)
 	}
 
 	var respType authservice.User
 	err = json.Unmarshal(respBody, &respType)
 	if err != nil {
+		log.Error(nil, map[string]interface{}{
+			"err":           err,
+			"request_path":  authservice.ShowUserPath(),
+			"response_body": respBody,
+		}, "unable to unmarshal user definition from Auth service")
 		return nil, errs.Wrapf(err, "unable to unmarshal user definition from Auth service")
 	}
 	return &respType, nil
@@ -166,12 +179,25 @@ func getTokenData(ctx context.Context, authClient authservice.Client, forService
 
 	status := resp.StatusCode
 	if status != http.StatusOK {
+		log.Error(nil, map[string]interface{}{
+			"err":          err,
+			"request_path": authservice.ShowUserPath(),
+			"for_service":  forService,
+			"http_status":  status,
+		}, "failed to GET token from auth service due to HTTP error")
 		return nil, errs.Errorf("failed to GET Auth token for '%s' service due to status code %d", forService, status)
 	}
 
 	var respType authservice.TokenData
 	err = json.Unmarshal(respBody, &respType)
 	if err != nil {
+		log.Error(nil, map[string]interface{}{
+			"err":           err,
+			"request_path":  authservice.ShowUserPath(),
+			"for_service":   forService,
+			"http_status":   status,
+			"response_body": respBody,
+		}, "unable to unmarshal Auth token")
 		return nil, errs.Wrapf(err, "unable to unmarshal Auth token for '%s' service from Auth service", forService)
 	}
 	return &respType, nil
@@ -183,25 +209,43 @@ func (g *defaultKubeClientGetter) GetKubeClient(ctx context.Context) (kubernetes
 	// create Auth API client
 	authClient, err := auth.CreateClient(ctx, g.config)
 	if err != nil {
-		// TODO log.Error(ctx, nil, "error accessing Auth server %s", tostring(err))
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "error accessing Auth server")
 		return nil, errs.Wrapf(err, "error creating Auth client")
 	}
 
 	authUser, err := getUser(ctx, *authClient)
 	if err != nil {
-		// TODO log.Error(ctx, nil, "error accessing Auth server: %s", tostring(err))
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "error accessing Auth server")
 		return nil, errs.Wrapf(err, "error retrieving user definition from Auth client")
 	}
 
-	if authUser == nil || authUser.Data.Attributes.Cluster == nil {
-		// TODO log.Error(ctx, nil, "error getting user from Auth server: %s", tostring(authUser))
-		return nil, errs.Errorf("error getting user from Auth Server: %s", tostring(authUser))
+	if authUser == nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "error retrieving user from Auth server")
+		return nil, errs.Errorf("error getting user from Auth Server")
+	}
+
+	if authUser.Data.Attributes.Cluster == nil {
+		log.Error(ctx, map[string]interface{}{
+			"err":     err,
+			"user_id": *authUser.Data.Attributes.UserID,
+		}, "error retrieving user cluster from Auth server")
+		return nil, errs.Errorf("error getting user cluster from Auth Server: %s", tostring(authUser))
 	}
 
 	// get the openshift/kubernetes auth info for the cluster OpenShift API
 	osauth, err := getTokenData(ctx, *authClient, *authUser.Data.Attributes.Cluster)
 	if err != nil {
-		// TODO log.Error(ctx, nil, "error getting openshift credentials: %s", tostring(err))
+		log.Error(ctx, map[string]interface{}{
+			"err":     err,
+			"user_id": *authUser.Data.Attributes.UserID,
+			"cluster": *authUser.Data.Attributes.Cluster,
+		}, "error getting openshift credentials for user from Auth server")
 		return nil, errs.Wrapf(err, "error getting openshift credentials")
 	}
 
@@ -221,6 +265,11 @@ func (g *defaultKubeClientGetter) GetKubeClient(ctx context.Context) (kubernetes
 	}
 	kc, err := kubernetes.NewKubeClient(kubeConfig)
 	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err":     err,
+			"user_id": *authUser.Data.Attributes.UserID,
+			"cluster": *authUser.Data.Attributes.Cluster,
+		}, "could not create Kubernetes client object")
 		return nil, errs.Wrapf(err, "could not create Kubernetes client object")
 	}
 	return kc, nil
@@ -251,7 +300,6 @@ func (c *DeploymentsController) SetDeployment(ctx *app.SetDeploymentDeploymentsC
 		return errors.NewInternalError(ctx, errs.Wrapf(err, "error scaling deployment %s", ctx.DeployName))
 	}
 
-	// TODO log.Info(ctx, nil, "podcount was %d; will be set to %d", *oldCount, *ctx.PodCount)
 	return ctx.OK([]byte{})
 }
 

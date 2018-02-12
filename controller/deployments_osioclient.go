@@ -9,6 +9,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	witclient "github.com/fabric8-services/fabric8-wit/client"
 	"github.com/fabric8-services/fabric8-wit/goasupport"
+	"github.com/fabric8-services/fabric8-wit/log"
 	goaclient "github.com/goadesign/goa/client"
 	goauuid "github.com/goadesign/goa/uuid"
 	errs "github.com/pkg/errors"
@@ -96,12 +97,22 @@ func (osioclient *OSIOClient) GetUserServices(ctx context.Context) (*app.UserSer
 	if status == http.StatusNotFound {
 		return nil, nil
 	} else if status != http.StatusOK {
+		log.Error(nil, map[string]interface{}{
+			"err":    err,
+			"path":   witclient.ShowUserServicePath(),
+			"status": status,
+		}, "failed to user service from WIT service due to HTTP error")
 		return nil, errs.Errorf("failed to GET %s due to status code %d", witclient.ShowUserServicePath(), status)
 	}
 
 	var respType app.UserServiceSingle
 	err = json.Unmarshal(respBody, &respType)
 	if err != nil {
+		log.Error(nil, map[string]interface{}{
+			"err":      err,
+			"path":     witclient.ShowUserServicePath(),
+			"response": respBody,
+		}, "unable to unmarshal user service from WIT service")
 		return nil, errs.Wrapf(err, "could not unmarshal user services JSON")
 	}
 	return respType.Data, nil
@@ -122,12 +133,24 @@ func (osioclient *OSIOClient) GetSpaceByID(ctx context.Context, spaceID uuid.UUI
 	if status == http.StatusNotFound {
 		return nil, nil
 	} else if status != http.StatusOK {
+		log.Error(nil, map[string]interface{}{
+			"err":      err,
+			"space_id": spaceID,
+			"path":     urlpath,
+			"status":   status,
+		}, "failed to get user space from WIT service due to HTTP error")
 		return nil, errs.Errorf("failed to GET %s due to status code %d", urlpath, status)
 	}
 
 	var respType app.SpaceSingle
 	err = json.Unmarshal(respBody, &respType)
 	if err != nil {
+		log.Error(nil, map[string]interface{}{
+			"err":      err,
+			"space_id": spaceID,
+			"path":     urlpath,
+			"response": respBody,
+		}, "unable to unmarshal user space from WIT service")
 		return nil, errs.Wrapf(err, "could not unmarshal SpaceSingle JSON")
 	}
 	return respType.Data, nil

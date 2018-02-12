@@ -250,6 +250,12 @@ func (kc *kubeClient) ScaleDeployment(spaceName string, appName string, envName 
 
 	spec, ok := scale["spec"].(map[interface{}]interface{})
 	if !ok {
+		log.Error(nil, map[string]interface{}{
+			"err":              err,
+			"space_name":       spaceName,
+			"application_name": appName,
+			"environment_name": envName,
+		}, "invalid deployment config returned from endpoint")
 		return nil, errs.New("invalid deployment config returned from endpoint: missing 'spec'")
 	}
 
@@ -274,11 +280,11 @@ func (kc *kubeClient) ScaleDeployment(spaceName string, appName string, envName 
 	}
 
 	log.Info(nil, map[string]interface{}{
-		"space":       spaceName,
-		"application": appName,
-		"environment": envName,
-		"old":         oldReplicas,
-		"new":         deployNumber,
+		"space_name":        spaceName,
+		"application_name":  appName,
+		"environment_name":  envName,
+		"old_replica_count": oldReplicas,
+		"new_replica_count": deployNumber,
 	}, "scaled deployment to %d replicas", deployNumber)
 
 	return &oldReplicas, nil
@@ -669,6 +675,11 @@ func (kc *kubeClient) putResource(url string, putBody []byte) (*string, error) {
 	fullURL := strings.TrimSuffix(kc.config.ClusterURL, "/") + url
 	req, err := http.NewRequest("PUT", fullURL, bytes.NewBuffer(putBody))
 	if err != nil {
+		log.Error(nil, map[string]interface{}{
+			"err":          err,
+			"url":          fullURL,
+			"request_body": putBody,
+		}, "could not create PUT request")
 		return nil, errs.WithStack(err)
 	}
 	req.Header.Set("Content-Type", "application/yaml")
@@ -678,17 +689,35 @@ func (kc *kubeClient) putResource(url string, putBody []byte) (*string, error) {
 	client := http.DefaultClient
 	resp, err := client.Do(req)
 	if err != nil {
+		log.Error(nil, map[string]interface{}{
+			"err":          err,
+			"url":          fullURL,
+			"request_body": putBody,
+		}, "could not perform PUT request")
 		return nil, errs.WithStack(err)
 	}
 
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		log.Error(nil, map[string]interface{}{
+			"err":           err,
+			"url":           fullURL,
+			"request_body":  putBody,
+			"response_body": body,
+		}, "could not read response from PUT request")
 		return nil, errs.WithStack(err)
 	}
 
 	status := resp.StatusCode
 	if status != http.StatusOK {
+		log.Error(nil, map[string]interface{}{
+			"err":           err,
+			"url":           fullURL,
+			"request_body":  putBody,
+			"response_body": body,
+			"http_status":   status,
+		}, "failed to PUT request due to HTTP error")
 		return nil, errs.Errorf("failed to PUT url %s: status code %d", fullURL, status)
 	}
 	bodyStr := string(body)
@@ -1344,6 +1373,10 @@ func (kc *kubeClient) getResource(url string, allowMissing bool) (map[interface{
 	fullURL := strings.TrimSuffix(kc.config.ClusterURL, "/") + url
 	req, err := http.NewRequest("GET", fullURL, bytes.NewReader(body))
 	if err != nil {
+		log.Error(nil, map[string]interface{}{
+			"err": err,
+			"url": fullURL,
+		}, "error creating HTTP GET request")
 		return nil, errs.WithStack(err)
 	}
 	req.Header.Set("Accept", "application/yaml")
@@ -1352,6 +1385,10 @@ func (kc *kubeClient) getResource(url string, allowMissing bool) (map[interface{
 	client := http.DefaultClient
 	resp, err := client.Do(req)
 	if err != nil {
+		log.Error(nil, map[string]interface{}{
+			"err": err,
+			"url": fullURL,
+		}, "error during HTTP request")
 		return nil, errs.WithStack(err)
 	}
 
@@ -1365,11 +1402,23 @@ func (kc *kubeClient) getResource(url string, allowMissing bool) (map[interface{
 	if status == http.StatusNotFound && allowMissing {
 		return nil, nil
 	} else if status != http.StatusOK {
+		log.Error(nil, map[string]interface{}{
+			"err":           err,
+			"url":           fullURL,
+			"response_body": buf,
+			"http_status":   status,
+		}, "error returned from HTTP request")
 		return nil, errs.Errorf("failed to GET url %s due to status code %d", fullURL, status)
 	}
 	var respType map[interface{}]interface{}
 	err = yaml.Unmarshal(b, &respType)
 	if err != nil {
+		log.Error(nil, map[string]interface{}{
+			"err":           err,
+			"url":           fullURL,
+			"response_body": buf,
+			"http_status":   status,
+		}, "error unmarshalling JSON response")
 		return nil, errs.WithStack(err)
 	}
 	return respType, nil
