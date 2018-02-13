@@ -9,7 +9,6 @@ var _ = a.Resource("features", func() {
 	a.BasePath("/features")
 
 	a.Action("show", func() {
-		a.Security("jwt")
 		a.Routing(
 			a.GET("/:featureName"),
 		)
@@ -25,7 +24,6 @@ var _ = a.Resource("features", func() {
 	})
 
 	a.Action("list", func() {
-		a.Security("jwt")
 		a.Routing(
 			a.GET(""),
 		)
