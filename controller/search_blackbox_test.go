@@ -1123,6 +1123,18 @@ func (s *searchControllerTestSuite) TestIncludedParents() {
 					}
 				}
 				assert.Empty(t, included, "failed to find these work items in \"included\" section: %s", included.ToString(", ", printCb))
+				// check order of execution
+				if len(result.Included) > 1 {
+					var expectedOrder []interface{}
+					for i := 0; i < 2; i++ {
+						expectedOrder = append(expectedOrder, fxt.WorkItems[i].ID) // expectedOrder = [A, B]
+					}
+					includedData := make([]app.WorkItem, len(result.Included))
+					for i, v := range result.Included {
+						includedData[i].ID = v.(app.WorkItem).ID
+						assert.Equal(t, expectedOrder[i], *includedData[i].ID)
+					}
+				}
 
 				if treeView {
 					t.Run("check that all non-root work items have a parent relationship", func(t *testing.T) {
