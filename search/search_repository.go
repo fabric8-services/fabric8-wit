@@ -619,7 +619,7 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 		db = db.Where(query, workItemTypes)
 	}
 
-	db = db.Select("count(*) over () as cnt2 , *")
+	db = db.Select("count(*) over () as cnt2 , *").Order("execution_order desc")
 	db = db.Joins(", to_tsquery('english', ?) as query, ts_rank(tsv, query) as rank", sqlSearchQueryParameter)
 	if spaceID != nil {
 		db = db.Where("space_id=?", *spaceID)
