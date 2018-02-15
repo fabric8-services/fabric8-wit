@@ -373,6 +373,9 @@ func GetMigrations() Migrations {
 	// Version 81
 	m = append(m, steps{ExecuteSQLFile("081-queries.sql")})
 
+	// Version 82
+	m = append(m, steps{ExecuteSQLFile("082-iteration-related-changes.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
