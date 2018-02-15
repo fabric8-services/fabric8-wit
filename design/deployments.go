@@ -71,6 +71,7 @@ var simpleDeploymentAttributes = a.Type("SimpleDeploymentAttributes", func() {
 	a.Attribute("pods", a.ArrayOf(a.ArrayOf(d.String)))
 	a.Attribute("pod_total", d.Integer)
 	a.Required("name")
+	a.Required("pods")
 })
 
 var simpleEnvironment = a.Type("SimpleEnvironment", func() {
