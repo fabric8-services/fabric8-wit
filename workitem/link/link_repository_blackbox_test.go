@@ -64,7 +64,7 @@ func (s *linkRepoBlackBoxTest) TestReorder() {
 		var fxt *tf.TestFixture
 		t.Run("setup", func(t *testing.T) {
 			fxt = tf.NewTestFixture(t, s.DB,
-				tf.WorkItems(3, tf.SetWorkItemTitles("parent", "child1", "child2", "child3")),
+				tf.WorkItems(4, tf.SetWorkItemTitles("parent", "child1", "child2", "child3")),
 				tf.WorkItemLinkTypes(1, func(fxt *tf.TestFixture, idx int) error {
 					fxt.WorkItemLinkTypes[idx].ForwardName = link.TypeParentOf
 					return nil
@@ -137,6 +137,38 @@ func (s *linkRepoBlackBoxTest) TestReorder() {
 		require.Equal(t, fxt.WorkItemByTitle("child2").ID, afterReorder[0].ID)
 		require.Equal(t, fxt.WorkItemByTitle("child1").ID, afterReorder[1].ID)
 		require.Equal(t, fxt.WorkItemByTitle("child3").ID, afterReorder[2].ID)
+	})
+	s.T().Run("invalid", func(t *testing.T) {
+		fxt := setup(t)
+		directions := []workitem.DirectionType{workitem.DirectionAbove, workitem.DirectionBelow, workitem.DirectionBottom, workitem.DirectionTop}
+		for _, direction := range directions {
+			t.Run(string(direction), func(t *testing.T) {
+				t.Run("empty workitem", func(t *testing.T) {
+					_, err := s.workitemRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, direction, &fxt.WorkItemByTitle("child2").ID, workitem.WorkItem{}, fxt.Identities[0].ID)
+					require.Error(t, err)
+				})
+				t.Run("targetID", func(t *testing.T) {
+					switch direction {
+					case workitem.DirectionAbove, workitem.DirectionBelow:
+						t.Run("unknown", func(t *testing.T) {
+							_, err := s.workitemRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, direction, ptr.UUID(uuid.NewV4()), *fxt.WorkItemByTitle("child2"), fxt.Identities[0].ID)
+							require.Error(t, err)
+						})
+						t.Run("nil", func(t *testing.T) {
+							_, err := s.workitemRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, direction, nil, *fxt.WorkItemByTitle("child2"), fxt.Identities[0].ID)
+							require.Error(t, err)
+						})
+					case workitem.DirectionTop, workitem.DirectionBottom:
+						_, err := s.workitemRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, direction, ptr.UUID(uuid.NewV4()), *fxt.WorkItemByTitle("child2"), fxt.Identities[0].ID)
+						require.Error(t, err)
+					}
+				})
+				t.Run("invalid space ID", func(t *testing.T) {
+					_, err := s.workitemRepo.Reorder(s.Ctx, uuid.NewV4(), direction, &fxt.WorkItemByTitle("child1").ID, *fxt.WorkItemByTitle("child2"), fxt.Identities[0].ID)
+					require.Error(t, err)
+				})
+			})
+		}
 	})
 }
 
