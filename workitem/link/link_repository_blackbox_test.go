@@ -43,12 +43,12 @@ func (s *linkRepoBlackBoxTest) TestList() {
 	// children in a page are equal to the "limit" specified
 	s.T().Run("ok - count child work items", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB,
-			tf.WorkItems(3, tf.SetWorkItemTitles("parent", "child1", "child2", "child3")),
+			tf.WorkItems(4, tf.SetWorkItemTitles("parent", "child1", "child2", "child3")),
 			tf.WorkItemLinkTypes(1, func(fxt *tf.TestFixture, idx int) error {
 				fxt.WorkItemLinkTypes[idx].ForwardName = "parent of"
 				return nil
 			}),
-			tf.WorkItemLinksCustom(2, tf.BuildLinks(tf.L("parent", "child1"), tf.L("parent", "child2"), tf.L("parent", "child3"))),
+			tf.WorkItemLinksCustom(3, tf.BuildLinks(tf.L("parent", "child1"), tf.L("parent", "child2"), tf.L("parent", "child3"))),
 		)
 		res, count, err := s.workitemLinkRepo.ListWorkItemChildren(s.Ctx, fxt.WorkItemByTitle("parent").ID, ptr.Int(0), ptr.Int(1))
 		require.NoError(t, err)
