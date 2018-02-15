@@ -254,7 +254,7 @@ func (r *GormWorkItemRepository) LoadTopWorkitem(ctx context.Context, spaceID uu
 		WorkItemStorage{}.TableName(),
 	)
 	db = db.Where(query, spaceID).First(&res)
-	if db.Error != nil {
+	if db.Error != nil && !db.RecordNotFound() {
 		return nil, errors.NewInternalError(ctx, db.Error)
 	}
 	wiType, err := r.witr.LoadTypeFromDB(ctx, res.Type)
@@ -273,7 +273,7 @@ func (r *GormWorkItemRepository) LoadBottomWorkitem(ctx context.Context, spaceID
 		WorkItemStorage{}.TableName(),
 	)
 	db = db.Where(query, spaceID).First(&res)
-	if db.Error != nil {
+	if db.Error != nil && !db.RecordNotFound() {
 		return nil, errors.NewInternalError(ctx, db.Error)
 	}
 	wiType, err := r.witr.LoadTypeFromDB(ctx, res.Type)
@@ -291,7 +291,7 @@ func (r *GormWorkItemRepository) LoadHighestOrder(ctx context.Context, spaceID u
 		WorkItemStorage{}.TableName(),
 	)
 	db = db.Where(query, spaceID).First(&res)
-	if db.Error != nil {
+	if db.Error != nil && !db.RecordNotFound() {
 		return 0, errors.NewInternalError(ctx, db.Error)
 	}
 	order, err := strconv.ParseFloat(fmt.Sprintf("%v", res.ExecutionOrder), 64)
