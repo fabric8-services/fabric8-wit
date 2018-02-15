@@ -400,6 +400,9 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, spaceID uuid.UUID,
 
 	switch direction {
 	case DirectionBelow:
+		if targetID == nil {
+			return nil, errors.NewBadParameterError("target ID", targetID).Expected("not nil")
+		}
 		// if direction == "below", place the reorder item **below** the workitem having id equal to targetID
 		aboveItemOrder, err := r.FindFirstItem(ctx, spaceID, *targetID)
 		if aboveItemOrder == nil || err != nil {
@@ -420,6 +423,9 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, spaceID uuid.UUID,
 			order = r.CalculateOrder(aboveItemOrder, belowItemOrder)
 		}
 	case DirectionAbove:
+		if targetID == nil {
+			return nil, errors.NewBadParameterError("target ID", targetID).Expected("not nil")
+		}
 		// if direction == "above", place the reorder item **above** the workitem having id equal to targetID
 		belowItemOrder, err := r.FindFirstItem(ctx, spaceID, *targetID)
 		if belowItemOrder == nil || err != nil {
@@ -439,6 +445,9 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, spaceID uuid.UUID,
 			order = r.CalculateOrder(aboveItemOrder, belowItemOrder)
 		}
 	case DirectionTop:
+		if targetID != nil {
+			return nil, errors.NewBadParameterError("target ID", targetID).Expected("nil")
+		}
 		// if direction == "top", place the reorder item at the topmost position. Now, the reorder item has the highest order in the whole list.
 		res, err := r.LoadTopWorkitem(ctx, spaceID)
 		if err != nil {
@@ -452,6 +461,9 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, spaceID uuid.UUID,
 			order = topItemOrder + orderValue
 		}
 	case DirectionBottom:
+		if targetID != nil {
+			return nil, errors.NewBadParameterError("target ID", targetID).Expected("nil")
+		}
 		// if direction == "bottom", place the reorder item at the bottom most position. Now, the reorder item has the lowest order in the whole list
 		res, err := r.LoadBottomWorkitem(ctx, spaceID)
 		if err != nil {
