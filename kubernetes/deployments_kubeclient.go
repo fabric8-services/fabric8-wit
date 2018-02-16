@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -23,7 +22,6 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/log"
-
 	errs "github.com/pkg/errors"
 )
 
@@ -740,16 +738,16 @@ func (kc *kubeClient) getDeploymentConfig(namespace string, appName string, spac
 	}
 	metadata, ok := result["metadata"].(map[interface{}]interface{})
 	if !ok {
-		return nil, errs.Errorf("metadata missing from deployment config %s", appName)
+		return nil, errs.Errorf("metadata missing from deployment config for applicaton %s configuration %+v", appName, result)
 	}
 	// Check the space label is what we expect
 	labels, ok := metadata["labels"].(map[interface{}]interface{})
 	if !ok {
-		return nil, errs.Errorf("labels missing from deployment config %s", appName)
+		return nil, errs.Errorf("labels missing from deployment config for application %s: %+v", appName, metadata)
 	}
 	spaceLabel, ok := labels["space"].(string)
 	if !ok || len(spaceLabel) == 0 {
-		return nil, errs.Errorf("space label missing from deployment config %s", appName)
+		return nil, errs.Errorf("space label missing from deployment config for application %s: %+v", appName, metadata)
 	}
 	if spaceLabel != space {
 		return nil, errs.Errorf("deployment config %s is part of space %s, expected space %s", appName, spaceLabel, space)
@@ -757,12 +755,12 @@ func (kc *kubeClient) getDeploymentConfig(namespace string, appName string, spac
 	// Get UID from deployment config
 	uid, ok := metadata["uid"].(string)
 	if !ok || len(uid) == 0 {
-		return nil, errs.Errorf("malformed metadata in deployment config %s", appName)
+		return nil, errs.Errorf("malformed metadata in deployment config for application %s: %+v", appName, metadata)
 	}
 	// Read application version from label
 	version := labels["version"].(string)
 	if !ok || len(version) == 0 {
-		return nil, errs.Errorf("version missing from deployment config %s", appName)
+		return nil, errs.Errorf("version missing from deployment config for application %s: %+v", appName, metadata)
 	}
 
 	dc := &deployment{
@@ -1120,7 +1118,7 @@ func (kc *kubeClient) getMatchingServices(namespace string, dc *deployment) (rou
 	// Check if each service's selector matches labels in deployment's pod template
 	template := dc.current.Spec.Template
 	if template == nil {
-		return nil, errors.New("No pod template for current deployment")
+		return nil, errs.Errorf("no pod template for current deployment in namespace %s", namespace)
 	}
 	routesByService = make(map[string][]*route)
 	for _, service := range services.Items {
@@ -1155,32 +1153,32 @@ func (kc *kubeClient) getRoutesByService(namespace string, routesByService map[s
 	// Parse list of routes
 	kind, ok := result["kind"].(string)
 	if !ok || kind != "RouteList" {
-		return errors.New("No route list returned from endpoint")
+		return errs.Errorf("no route list returned from endpoint %s", routeURL)
 	}
 	items, ok := result["items"].([]interface{})
 	if !ok {
-		return errors.New("No list of routes in response")
+		return errs.Errorf("no list of routes in response")
 	}
 
 	for _, item := range items {
 		routeItem, ok := item.(map[interface{}]interface{})
 		if !ok {
-			return errors.New("Route object invalid")
+			return errs.Errorf("route object invalid")
 		}
 
 		// Parse route from result
 		spec, ok := routeItem["spec"].(map[interface{}]interface{})
 		if !ok {
-			return errors.New("Spec missing from route")
+			return errs.Errorf("spec missing from route")
 		}
 		// Determine which service this route points to
 		to, ok := spec["to"].(map[interface{}]interface{})
 		if !ok {
-			return errors.New("Route has no destination")
+			return errs.Errorf("route has no destination")
 		}
 		toName, ok := to["name"].(string)
 		if !ok || len(toName) == 0 {
-			return errors.New("Service name missing or invalid for route")
+			return errs.Errorf("service name missing or invalid for route")
 		}
 
 		var matchingServices []string
@@ -1196,7 +1194,7 @@ func (kc *kubeClient) getRoutesByService(namespace string, routesByService map[s
 			for idx := range altBackends {
 				backend, ok := altBackends[idx].(map[interface{}]interface{})
 				if !ok {
-					return errors.New("Malformed alternative backend")
+					return errs.Errorf("malformed alternative backend")
 				}
 				// Check if this alternate backend is a service we want a route for
 				backendKind, err := getOptionalStringValue(backend, "kind")
@@ -1218,11 +1216,11 @@ func (kc *kubeClient) getRoutesByService(namespace string, routesByService map[s
 			// Get ingress points
 			status, ok := routeItem["status"].(map[interface{}]interface{})
 			if !ok {
-				return errors.New("Status missing from route")
+				return errs.Errorf("status missing from route")
 			}
 			ingresses, ok := status["ingress"].([]interface{})
 			if !ok {
-				return errors.New("No ingress array listed in route")
+				return errs.Errorf("no ingress array listed in route")
 			}
 
 			// Prefer ingress with oldest lastTransitionTime that is marked as admitted
@@ -1236,7 +1234,7 @@ func (kc *kubeClient) getRoutesByService(namespace string, routesByService map[s
 			if oldestAdmittedIngress != nil {
 				hostname, ok = oldestAdmittedIngress["host"].(string)
 				if !ok {
-					return errors.New("Hostname missing from ingress")
+					return errs.Errorf("hostname missing from ingress")
 				}
 			} else {
 				// Fall back to optional host in spec
@@ -1300,7 +1298,7 @@ func getOptionalStringValue(respData map[interface{}]interface{}, paramName stri
 	}
 	strVal, ok := val.(string)
 	if !ok {
-		return "", errors.New("Property " + paramName + " is not a string")
+		return "", errs.Errorf("property %s is not a string", paramName)
 	}
 	return strVal, nil
 }
@@ -1311,7 +1309,7 @@ func findOldestAdmittedIngress(ingresses []interface{}) (ingress map[interface{}
 	for idx := range ingresses {
 		ingress, ok := ingresses[idx].(map[interface{}]interface{})
 		if !ok {
-			return nil, errors.New("Bad ingress found in route")
+			return nil, errs.Errorf("bad ingress found in route")
 		}
 		// Check for oldest admitted ingress
 		conditions, ok := ingress["conditions"].([]interface{})
@@ -1319,7 +1317,7 @@ func findOldestAdmittedIngress(ingresses []interface{}) (ingress map[interface{}
 			for condIdx := range conditions {
 				condition, ok := conditions[condIdx].(map[interface{}]interface{})
 				if !ok {
-					return nil, errors.New("Bad condition for ingress")
+					return nil, errs.Errorf("bad condition for ingress")
 				}
 				condType, err := getOptionalStringValue(condition, "type")
 				if err != nil {
@@ -1332,7 +1330,7 @@ func findOldestAdmittedIngress(ingresses []interface{}) (ingress map[interface{}
 				if condType == "Admitted" && condStatus == "True" {
 					lastTransitionStr, ok := condition["lastTransitionTime"].(string)
 					if !ok {
-						return nil, errors.New("Missing last transition time from ingress condition")
+						return nil, errs.Errorf("missing last transition time from ingress condition")
 					}
 					lastTransition, err := time.Parse(time.RFC3339, lastTransitionStr)
 					if err != nil {
