@@ -1153,31 +1153,61 @@ func (kc *kubeClient) getRoutesByService(namespace string, routesByService map[s
 	// Parse list of routes
 	kind, ok := result["kind"].(string)
 	if !ok || kind != "RouteList" {
+		log.Error(nil, map[string]interface{}{
+			"err":          err,
+			"request_path": routeURL,
+			"response":     result,
+		}, "no route list returned from endpoint")
 		return errs.Errorf("no route list returned from endpoint %s", routeURL)
 	}
 	items, ok := result["items"].([]interface{})
 	if !ok {
+		log.Error(nil, map[string]interface{}{
+			"err":          err,
+			"request_path": routeURL,
+			"response":     result,
+		}, "no list of routes in response")
 		return errs.Errorf("no list of routes in response")
 	}
 
 	for _, item := range items {
 		routeItem, ok := item.(map[interface{}]interface{})
 		if !ok {
+			log.Error(nil, map[string]interface{}{
+				"err":          err,
+				"request_path": routeURL,
+				"response":     result,
+			}, "route object invalid")
 			return errs.Errorf("route object invalid")
 		}
 
 		// Parse route from result
 		spec, ok := routeItem["spec"].(map[interface{}]interface{})
 		if !ok {
+			log.Error(nil, map[string]interface{}{
+				"err":          err,
+				"request_path": routeURL,
+				"response":     result,
+			}, "spec missing from route")
 			return errs.Errorf("spec missing from route")
 		}
 		// Determine which service this route points to
 		to, ok := spec["to"].(map[interface{}]interface{})
 		if !ok {
+			log.Error(nil, map[string]interface{}{
+				"err":          err,
+				"request_path": routeURL,
+				"response":     result,
+			}, "route has no destination")
 			return errs.Errorf("route has no destination")
 		}
 		toName, ok := to["name"].(string)
 		if !ok || len(toName) == 0 {
+			log.Error(nil, map[string]interface{}{
+				"err":          err,
+				"request_path": routeURL,
+				"response":     result,
+			}, "service name missing or invalid for route")
 			return errs.Errorf("service name missing or invalid for route")
 		}
 
@@ -1194,6 +1224,11 @@ func (kc *kubeClient) getRoutesByService(namespace string, routesByService map[s
 			for idx := range altBackends {
 				backend, ok := altBackends[idx].(map[interface{}]interface{})
 				if !ok {
+					log.Error(nil, map[string]interface{}{
+						"err":          err,
+						"request_path": routeURL,
+						"response":     result,
+					}, "malformed alternative backend")
 					return errs.Errorf("malformed alternative backend")
 				}
 				// Check if this alternate backend is a service we want a route for
@@ -1216,10 +1251,20 @@ func (kc *kubeClient) getRoutesByService(namespace string, routesByService map[s
 			// Get ingress points
 			status, ok := routeItem["status"].(map[interface{}]interface{})
 			if !ok {
+				log.Error(nil, map[string]interface{}{
+					"err":          err,
+					"request_path": routeURL,
+					"response":     result,
+				}, "status missing from route")
 				return errs.Errorf("status missing from route")
 			}
 			ingresses, ok := status["ingress"].([]interface{})
 			if !ok {
+				log.Error(nil, map[string]interface{}{
+					"err":          err,
+					"request_path": routeURL,
+					"response":     result,
+				}, "no ingress array listed in route")
 				return errs.Errorf("no ingress array listed in route")
 			}
 
@@ -1234,6 +1279,11 @@ func (kc *kubeClient) getRoutesByService(namespace string, routesByService map[s
 			if oldestAdmittedIngress != nil {
 				hostname, ok = oldestAdmittedIngress["host"].(string)
 				if !ok {
+					log.Error(nil, map[string]interface{}{
+						"err":          err,
+						"request_path": routeURL,
+						"response":     result,
+					}, "hostname missing from ingress")
 					return errs.Errorf("hostname missing from ingress")
 				}
 			} else {

@@ -98,10 +98,10 @@ func (osioclient *OSIOClient) GetUserServices(ctx context.Context) (*app.UserSer
 		return nil, nil
 	} else if status != http.StatusOK {
 		log.Error(nil, map[string]interface{}{
-			"err":    err,
-			"path":   witclient.ShowUserServicePath(),
-			"status": status,
-		}, "failed to user service from WIT service due to HTTP error")
+			"err":         err,
+			"path":        witclient.ShowUserServicePath(),
+			"http_status": status,
+		}, "failed to user service from WIT service due to HTTP error %s", status)
 		return nil, errs.Errorf("failed to GET %s due to status code %d", witclient.ShowUserServicePath(), status)
 	}
 
@@ -134,11 +134,11 @@ func (osioclient *OSIOClient) GetSpaceByID(ctx context.Context, spaceID uuid.UUI
 		return nil, nil
 	} else if status != http.StatusOK {
 		log.Error(nil, map[string]interface{}{
-			"err":      err,
-			"space_id": spaceID,
-			"path":     urlpath,
-			"status":   status,
-		}, "failed to get user space from WIT service due to HTTP error")
+			"err":         err,
+			"space_id":    spaceID,
+			"path":        urlpath,
+			"http_status": status,
+		}, "failed to get user space from WIT service due to HTTP error %s", status)
 		return nil, errs.Errorf("failed to GET %s due to status code %d", urlpath, status)
 	}
 

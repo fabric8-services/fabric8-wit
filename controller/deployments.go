@@ -135,7 +135,7 @@ func getUser(ctx context.Context, authClient authservice.Client) (*authservice.U
 	// get the user definition (for cluster URL)
 	resp, err := authClient.ShowUser(ctx, authservice.ShowUserPath(), nil, nil)
 	if err != nil {
-		return nil, errs.Wrapf(err, "unable to retrive user from Auth service")
+		return nil, errs.Wrapf(err, "unable to retrieve user from Auth service")
 	}
 
 	defer resp.Body.Close()
@@ -149,7 +149,7 @@ func getUser(ctx context.Context, authClient authservice.Client) (*authservice.U
 			"request_path":  authservice.ShowUserPath(),
 			"response_body": respBody,
 			"http_status":   status,
-		}, "failed to GET user from auth service due to HTTP error")
+		}, "failed to GET user from auth service due to HTTP error %s", status)
 		return nil, errs.Errorf("failed to GET user due to status code %d", status)
 	}
 
@@ -184,7 +184,7 @@ func getTokenData(ctx context.Context, authClient authservice.Client, forService
 			"request_path": authservice.ShowUserPath(),
 			"for_service":  forService,
 			"http_status":  status,
-		}, "failed to GET token from auth service due to HTTP error")
+		}, "failed to GET token from auth service due to HTTP error %s", status)
 		return nil, errs.Errorf("failed to GET Auth token for '%s' service due to status code %d", forService, status)
 	}
 
