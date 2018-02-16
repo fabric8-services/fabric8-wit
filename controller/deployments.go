@@ -323,7 +323,7 @@ func (c *DeploymentsController) DeleteDeployment(ctx *app.DeleteDeploymentDeploy
 			"err":        err,
 			"space_name": *kubeSpaceName,
 		}, "error deleting deployment")
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 	}
 
 	return ctx.OK([]byte{})
