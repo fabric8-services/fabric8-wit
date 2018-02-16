@@ -15,6 +15,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/auth/authservice"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/kubernetes"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/goadesign/goa"
@@ -308,17 +309,21 @@ func (c *DeploymentsController) DeleteDeployment(ctx *app.DeleteDeploymentDeploy
 	kc, err := c.GetKubeClient(ctx)
 	defer cleanup(kc)
 	if err != nil {
-		return errors.NewUnauthorizedError("openshift token")
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
 
 	kubeSpaceName, err := c.getSpaceNameFromSpaceID(ctx, ctx.SpaceID)
 	if err != nil {
-		return errors.NewNotFoundError("osio space", ctx.SpaceID.String())
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 	}
 
 	err = kc.DeleteDeployment(*kubeSpaceName, ctx.AppName, ctx.DeployName)
 	if err != nil {
-		return errors.NewInternalError(ctx, errs.Wrapf(err, "error deleting deployment %s", ctx.DeployName))
+		log.Error(ctx, map[string]interface{}{
+			"err":        err,
+			"space_name": *kubeSpaceName,
+		}, "error deleting deployment")
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 	}
 
 	return ctx.OK([]byte{})
