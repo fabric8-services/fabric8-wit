@@ -52,11 +52,8 @@ var workItemTypeGroupAttributes = a.Type("WorkItemTypeGroupAttributes", func() {
 })
 
 var workItemTypeGroupsRelationships = a.Type("WorkItemTypeGroupRelationships", func() {
-	a.Attribute("defaultType", relationGeneric, "The default work item type from the type list")
 	a.Attribute("typeList", relationGenericList, "List of work item types attached to the type group")
 	a.Attribute("spaceTemplate", relationGeneric, "The space template to which this group belongs")
-	a.Attribute("nextGroup", relationGeneric, "The type group (if any) that comes after this one in the list")
-	a.Attribute("prevGroup", relationGeneric, "The type group (if any) that comes before this one in the list")
 })
 
 var _ = a.Resource("work_item_type_groups", func() {

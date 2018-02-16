@@ -34,14 +34,11 @@ const (
 // WorkItemTypeGroup represents the node in the group of work item types
 type WorkItemTypeGroup struct {
 	gormsupport.Lifecycle
-	ID          uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
-	Bucket      TypeBucket
-	Name        string      // the name to be displayed to user (is unique)
-	TypeList    []uuid.UUID // TODO(kwk): We need to store this outside of this structure in the DB
-	DefaultType uuid.UUID   // the work item type that is supposed to be used with the quick add for example.
-	Icon        string
-	PrevGroupID uuid.UUID
-	NextGroupID uuid.UUID
+	ID       uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
+	Bucket   TypeBucket
+	Name     string      // the name to be displayed to user (is unique)
+	TypeList []uuid.UUID // TODO(kwk): We need to store this outside of this structure in the DB
+	Icon     string
 }
 
 // TypeGroups returns the list of work item type groups
@@ -63,8 +60,6 @@ func TypeGroups() []WorkItemTypeGroup {
 				SystemFundamental,
 				SystemPapercuts,
 			},
-			DefaultType: SystemScenario,
-			NextGroupID: experiencesID,
 		},
 		{
 			ID:     experiencesID,
@@ -75,9 +70,6 @@ func TypeGroups() []WorkItemTypeGroup {
 				SystemExperience,
 				SystemValueProposition,
 			},
-			DefaultType: SystemExperience,
-			PrevGroupID: scenariosID,
-			NextGroupID: requirementsID,
 		},
 		// There's always only one group in the "Requirement" bucket
 		{
@@ -89,9 +81,6 @@ func TypeGroups() []WorkItemTypeGroup {
 				SystemFeature,
 				SystemBug,
 			},
-			DefaultType: SystemFeature,
-			PrevGroupID: experiencesID,
-			NextGroupID: executionID,
 		},
 		// There's always only one group in the "Iteration" bucket
 		{
@@ -104,8 +93,6 @@ func TypeGroups() []WorkItemTypeGroup {
 				SystemBug,
 				SystemFeature,
 			},
-			DefaultType: SystemTask,
-			PrevGroupID: requirementsID,
 		},
 	}
 }
