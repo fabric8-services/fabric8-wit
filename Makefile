@@ -25,8 +25,8 @@ GLIDE_VERSION := $(shell $(GLIDE_BIN) --version | sed -rn 's/([^0-9.]*)([0-9]*\.
 DESIRED_GLIDE_VERSION := 0.12
 
 check-glide-version :
-	@if [ `echo "${GLIDE_VERSION} < ${DESIRED_GLIDE_VERSION}" | bc -l` -eq 1 ] ; then \
-	 echo Warning: Glide version ${GLIDE_VERSION} is less than desired Glide version ${DESIRED_GLIDE_VERSION};\
+	@if [ `echo "$(GLIDE_VERSION) < $(DESIRED_GLIDE_VERSION)" | bc -l` -eq 1 ] ; then \
+	 echo Warning: Glide version $(GLIDE_VERSION) is less than desired Glide version $(DESIRED_GLIDE_VERSION);\
 	fi
 
 # This is a fix for a non-existing user in passwd file when running in a docker
