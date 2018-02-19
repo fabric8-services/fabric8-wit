@@ -21,6 +21,14 @@ HG_BIN := $(shell command -v $(HG_BIN_NAME) 2> /dev/null)
 DOCKER_COMPOSE_BIN := $(shell command -v $(DOCKER_COMPOSE_BIN_NAME) 2> /dev/null)
 DOCKER_BIN := $(shell command -v $(DOCKER_BIN_NAME) 2> /dev/null)
 
+GLIDE_VERSION := $(shell ${GLIDE_BIN} --version | sed -rn 's/([^0-9.]*)([0-9]*\.[0-9]*)(.*)/\2/p')
+DESIRED_GLIDE_VERSION := 0.12
+
+check-glide-version :
+	@if [ `echo "${GLIDE_VERSION} < ${DESIRED_GLIDE_VERSION}" | bc -l` -eq 1 ] ; then \
+	 echo Warning: Glide version ${GLIDE_VERSION} is less than desired Glide version ${DESIRED_GLIDE_VERSION};\
+	fi
+
 # This is a fix for a non-existing user in passwd file when running in a docker
 # container and trying to clone repos of dependencies
 GIT_COMMITTER_NAME ?= "user"
@@ -216,6 +224,13 @@ clean-generated:
 	-rm -rf ./account/tenant
 	-rm -rf ./auth/authservice
 
+CLEAN_TARGETS += clean-sql-generated
+.PHONY: clean-sql-generated
+## Removes all generated code for SQL migration and tests.
+clean-sql-generated:
+	-rm -f ./migration/sqlbindata.go
+	-rm -f ./migration/sqlbindata_test.go
+
 CLEAN_TARGETS += clean-vendor
 .PHONY: clean-vendor
 ## Removes the ./vendor directory.
@@ -229,7 +244,7 @@ clean-glide-cache:
 	-rm -rf ./.glide
 
 $(VENDOR_DIR): glide.lock glide.yaml
-	$(GLIDE_BIN) --quiet install --strip-vendor --strip-vcs
+	$(GLIDE_BIN) --quiet install --strip-vendor
 	touch $(VENDOR_DIR)
 
 .PHONY: deps
@@ -326,7 +341,7 @@ $(TMP_PATH):
 	mkdir -p $(TMP_PATH)
 
 .PHONY: prebuild-check
-prebuild-check: $(TMP_PATH) $(INSTALL_PREFIX) $(CHECK_GOPATH_BIN)
+prebuild-check: $(TMP_PATH) $(INSTALL_PREFIX) $(CHECK_GOPATH_BIN) check-glide-version
 # Check that all tools where found
 ifndef GIT_BIN
 	$(error The "$(GIT_BIN_NAME)" executable could not be found in your PATH)
