@@ -46,7 +46,7 @@ func (c *SpaceCodebasesController) Create(ctx *app.CreateSpaceCodebasesContext) 
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
-		if *identityID != space.OwnerId {
+		if *identityID != space.OwnerID {
 			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the space owner"))
 		}
 
@@ -62,7 +62,7 @@ func (c *SpaceCodebasesController) Create(ctx *app.CreateSpaceCodebasesContext) 
 		}
 
 		res := &app.CodebaseSingle{
-			Data: ConvertCodebase(ctx.Request, &newCodeBase),
+			Data: ConvertCodebase(ctx.Request, newCodeBase),
 		}
 		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.CodebaseHref(res.Data.ID)))
 		return ctx.Created(res)
@@ -73,7 +73,7 @@ func (c *SpaceCodebasesController) Create(ctx *app.CreateSpaceCodebasesContext) 
 func (c *SpaceCodebasesController) List(ctx *app.ListSpaceCodebasesContext) error {
 	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
 	return application.Transactional(c.db, func(appl application.Application) error {
-		err := appl.Spaces().CheckExists(ctx, ctx.SpaceID.String())
+		err := appl.Spaces().CheckExists(ctx, ctx.SpaceID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}

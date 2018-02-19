@@ -40,7 +40,7 @@ func (s *TestNamedWorkItemsSuite) SetupTest() {
 	s.db = gormapplication.NewGormDB(s.DB)
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "TestUpdateWorkitemForSpaceCollaborator-"+uuid.NewV4().String(), "TestWI")
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	s.testIdentity = *testIdentity
 	s.svc = testsupport.ServiceAsSpaceUser("Collaborators-Service", s.testIdentity, &TestSpaceAuthzService{s.testIdentity, ""})
 	s.workitemsCtrl = NewWorkitemsController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
@@ -64,7 +64,7 @@ func (s *TestNamedWorkItemsSuite) TestLookupWorkItemByNamedSpaceAndNumberOK() {
 	// given
 	wi := s.createWorkItem()
 	// when
-	res := test.ShowNamedWorkItemsMovedPermanently(s.T(), s.svc.Context, s.svc, s.namedWorkItemsCtrl, s.testIdentity.Username, *s.testSpace.Attributes.Name, wi.Data.Attributes[workitem.SystemNumber].(int))
+	res := test.ShowNamedWorkItemsTemporaryRedirect(s.T(), s.svc.Context, s.svc, s.namedWorkItemsCtrl, s.testIdentity.Username, *s.testSpace.Attributes.Name, wi.Data.Attributes[workitem.SystemNumber].(int))
 	// then
 	require.NotNil(s.T(), res.Header().Get("Location"))
 	assert.True(s.T(), strings.HasSuffix(res.Header().Get("Location"), "/workitems/"+wi.Data.ID.String()))

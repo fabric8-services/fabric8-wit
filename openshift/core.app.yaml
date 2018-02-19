@@ -102,6 +102,11 @@ objects:
               configMapKeyRef:
                 name: core
                 key: auth.serviceurl
+          - name: F8_TOGGLES_SERVICEURL
+            valueFrom:
+              configMapKeyRef:
+                name: core
+                key: toggles.serviceurl
           - name: F8_REDIRECT_VALID
             valueFrom:
               configMapKeyRef:
@@ -122,6 +127,12 @@ objects:
               configMapKeyRef:
                 name: core
                 key: notification.serviceurl
+          - name: F8_DIAGNOSE_HTTP_ADDRESS
+            valueFrom:
+              configMapKeyRef:
+                name: core
+                key: diagnose.http.address
+                optional: true
           imagePullPolicy: Always
           name: core
           ports:

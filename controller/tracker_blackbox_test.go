@@ -13,6 +13,8 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/goadesign/goa"
+	uuid "github.com/satori/go.uuid"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -20,16 +22,15 @@ import (
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	testtoken "github.com/fabric8-services/fabric8-wit/test/token"
 )
 
 type TestTrackerREST struct {
 	gormtestsupport.DBTestSuite
-
 	RwiScheduler *remoteworkitem.Scheduler
-
-	db    *gormapplication.GormDB
-	clean func()
+	db           *gormapplication.GormDB
+	clean        func()
 }
 
 func TestRunTrackerREST(t *testing.T) {
@@ -70,7 +71,7 @@ func (rest *TestTrackerREST) TestUnauthorizeTrackerCUD() {
 func getTrackerTestData(t *testing.T) []testSecureAPI {
 	privatekey := testtoken.PrivateKey()
 	differentPrivatekey, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSADifferentPrivateKeyTest)))
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	createTrackerPayload := bytes.NewBuffer([]byte(`{"type": "github", "url": "https://api.github.com/"}`))
 
@@ -108,28 +109,28 @@ func getTrackerTestData(t *testing.T) []testSecureAPI {
 		// Update tracker API with different parameters
 		{
 			method:             http.MethodPut,
-			url:                "/api/trackers/12345",
+			url:                "/api/trackers/" + uuid.NewV4().String(),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createTrackerPayload,
 			jwtToken:           getExpiredAuthHeader(t, privatekey),
 		}, {
 			method:             http.MethodPut,
-			url:                "/api/trackers/12345",
+			url:                "/api/trackers/" + uuid.NewV4().String(),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createTrackerPayload,
 			jwtToken:           getMalformedAuthHeader(t, privatekey),
 		}, {
 			method:             http.MethodPut,
-			url:                "/api/trackers/12345",
+			url:                "/api/trackers/" + uuid.NewV4().String(),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createTrackerPayload,
 			jwtToken:           getValidAuthHeader(t, differentPrivatekey),
 		}, {
 			method:             http.MethodPut,
-			url:                "/api/trackers/12345",
+			url:                "/api/trackers/" + uuid.NewV4().String(),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createTrackerPayload,
@@ -138,28 +139,28 @@ func getTrackerTestData(t *testing.T) []testSecureAPI {
 		// Delete tracker API with different parameters
 		{
 			method:             http.MethodDelete,
-			url:                "/api/trackers/12345",
+			url:                "/api/trackers/" + uuid.NewV4().String(),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createTrackerPayload,
 			jwtToken:           getExpiredAuthHeader(t, privatekey),
 		}, {
 			method:             http.MethodDelete,
-			url:                "/api/trackers/12345",
+			url:                "/api/trackers/" + uuid.NewV4().String(),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createTrackerPayload,
 			jwtToken:           getMalformedAuthHeader(t, privatekey),
 		}, {
 			method:             http.MethodDelete,
-			url:                "/api/trackers/12345",
+			url:                "/api/trackers/" + uuid.NewV4().String(),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createTrackerPayload,
 			jwtToken:           getValidAuthHeader(t, differentPrivatekey),
 		}, {
 			method:             http.MethodDelete,
-			url:                "/api/trackers/12345",
+			url:                "/api/trackers/" + uuid.NewV4().String(),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createTrackerPayload,
@@ -169,7 +170,7 @@ func getTrackerTestData(t *testing.T) []testSecureAPI {
 		// We do not have security on GET hence this should return 404 not found
 		{
 			method:             http.MethodGet,
-			url:                "/api/trackers/088481764871",
+			url:                "/api/trackers/" + uuid.NewV4().String(),
 			expectedStatusCode: http.StatusNotFound,
 			expectedErrorCode:  jsonapi.ErrorCodeNotFound,
 			payload:            nil,
@@ -182,53 +183,38 @@ func (rest *TestTrackerREST) TestCreateTracker() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
-	svc, ctrl := rest.SecuredController()
-	payload := app.CreateTrackerAlternatePayload{
-		URL:  "http://issues.jboss.com",
-		Type: "jira",
-	}
-
-	_, created := test.CreateTrackerCreated(t, svc.Context, svc, ctrl, &payload)
-	if created.ID == "" {
-		t.Error("no id")
-	}
+	fxt := tf.NewTestFixture(t, rest.DB, tf.Trackers(1))
+	assert.NotNil(rest.T(), fxt.Trackers[0])
 }
 
-func (rest *TestTrackerREST) TestGetTracker() {
+func (rest *TestTrackerREST) TestUpdateTracker() {
+	jiraTrackerURL := "http://issues.jboss.com"
+
 	t := rest.T()
 	resource.Require(t, resource.Database)
-
 	svc, ctrl := rest.SecuredController()
-	payload := app.CreateTrackerAlternatePayload{
-		URL:  "http://issues.jboss.com",
-		Type: "jira",
-	}
 
-	_, result := test.CreateTrackerCreated(t, svc.Context, svc, ctrl, &payload)
-	test.ShowTrackerOK(t, svc.Context, svc, ctrl, result.ID)
-	_, tr := test.ShowTrackerOK(t, svc.Context, svc, ctrl, result.ID)
-	if tr == nil {
-		t.Fatalf("Tracker '%s' not present", result.ID)
-	}
-	if tr.ID != result.ID {
-		t.Errorf("Id should be %s, but is %s", result.ID, tr.ID)
-	}
+	fxt := tf.NewTestFixture(t, rest.DB, tf.Trackers(1))
 
-	payload2 := app.UpdateTrackerAlternatePayload{
-		URL:  tr.URL,
-		Type: tr.Type,
-	}
-	_, updated := test.UpdateTrackerOK(t, svc.Context, svc, ctrl, tr.ID, &payload2)
-	if updated.ID != result.ID {
-		t.Errorf("Id has changed from %s to %s", result.ID, updated.ID)
-	}
-	if updated.URL != result.URL {
-		t.Errorf("URL has changed from %s to %s", result.URL, updated.URL)
-	}
-	if updated.Type != result.Type {
-		t.Errorf("Type has changed has from %s to %s", result.Type, updated.Type)
-	}
+	_, tr := test.ShowTrackerOK(t, svc.Context, svc, ctrl, fxt.Trackers[0].ID)
+	assert.NotNil(rest.T(), tr)
+	assert.Equal(rest.T(), &fxt.Trackers[0].ID, tr.Data.ID)
 
+	payload2 := app.UpdateTrackerPayload{
+		Data: &app.Tracker{
+			ID: &fxt.Trackers[0].ID,
+			Attributes: &app.TrackerAttributes{
+				URL:  "http://issues.jboss.com",
+				Type: remoteworkitem.ProviderJira,
+			},
+			Type: remoteworkitem.APIStringTypeTrackers,
+		},
+	}
+	_, updated := test.UpdateTrackerOK(t, svc.Context, svc, ctrl, tr.Data.ID.String(), &payload2)
+	assert.NotNil(rest.T(), updated)
+	assert.Equal(rest.T(), &fxt.Trackers[0].ID, updated.Data.ID)
+	assert.Equal(rest.T(), jiraTrackerURL, updated.Data.Attributes.URL)
+	assert.Equal(rest.T(), remoteworkitem.ProviderJira, updated.Data.Attributes.Type)
 }
 
 // This test ensures that List does not return NIL items.
@@ -238,21 +224,12 @@ func (rest *TestTrackerREST) TestTrackerListItemsNotNil() {
 	resource.Require(t, resource.Database)
 
 	svc, ctrl := rest.SecuredController()
-	payload := app.CreateTrackerAlternatePayload{
-		URL:  "http://issues.jboss.com",
-		Type: "jira",
-	}
-	test.CreateTrackerCreated(t, svc.Context, svc, ctrl, &payload)
-
-	test.CreateTrackerCreated(t, svc.Context, svc, ctrl, &payload)
+	tf.NewTestFixture(t, rest.DB, tf.Trackers(2))
 
 	_, list := test.ListTrackerOK(t, svc.Context, svc, ctrl, nil, nil)
 
-	for _, tracker := range list {
-		if tracker == nil {
-			t.Error("Returned Tracker found nil")
-		}
-	}
+	require.NotNil(rest.T(), list)
+	require.NotEmpty(rest.T(), list.Data)
 }
 
 // This test ensures that ID returned by Show is valid.
@@ -262,14 +239,8 @@ func (rest *TestTrackerREST) TestCreateTrackerValidId() {
 	resource.Require(t, resource.Database)
 
 	svc, ctrl := rest.SecuredController()
-	payload := app.CreateTrackerAlternatePayload{
-		URL:  "http://issues.jboss.com",
-		Type: "jira",
-	}
-	_, tracker := test.CreateTrackerCreated(t, svc.Context, svc, ctrl, &payload)
-
-	_, created := test.ShowTrackerOK(t, svc.Context, svc, ctrl, tracker.ID)
-	if created != nil && created.ID != tracker.ID {
-		t.Error("Failed because fetched Tracker not same as requested. Found: ", tracker.ID, " Expected, ", created.ID)
-	}
+	fxt := tf.NewTestFixture(t, rest.DB, tf.Trackers(1))
+	_, created := test.ShowTrackerOK(t, svc.Context, svc, ctrl, fxt.Trackers[0].ID)
+	require.NotNil(t, created.Data)
+	require.Equal(t, fxt.Trackers[0].ID, *created.Data.ID)
 }

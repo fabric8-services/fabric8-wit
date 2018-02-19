@@ -116,7 +116,9 @@ func (s *workItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *ap
 				Icon:        "fa-hand-lizard-o",
 				Fields: map[string]*app.FieldDefinition{
 					"animal_type": {
-						Required: true,
+						Required:    true,
+						Description: "Description for animal_type field",
+						Label:       "Animal Type",
 						Type: &app.FieldType{
 							BaseType: &stString,
 							Kind:     "enum",
@@ -124,7 +126,9 @@ func (s *workItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *ap
 						},
 					},
 					"color": {
-						Required: false,
+						Required:    false,
+						Description: "Description for color field",
+						Label:       "Color",
 						Type: &app.FieldType{
 							Kind: "string",
 						},
@@ -162,7 +166,9 @@ func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 				Icon:        "fa-user",
 				Fields: map[string]*app.FieldDefinition{
 					"name": {
-						Required: true,
+						Required:    true,
+						Description: "Description for Name field",
+						Label:       "Name",
 						Type: &app.FieldType{
 							Kind: "string",
 						},
@@ -195,7 +201,9 @@ func newCreateWorkItemTypePayload(id uuid.UUID, spaceID uuid.UUID) app.CreateWor
 				Icon:        "fa-user",
 				Fields: map[string]*app.FieldDefinition{
 					"test": {
-						Required: false,
+						Description: "this is a test field",
+						Label:       "Test Label",
+						Required:    false,
 						Type: &app.FieldType{
 							Kind: "string",
 						},
@@ -282,7 +290,9 @@ func (s *workItemTypeSuite) TestValidate() {
 				Icon:        "fa-user",
 				Fields: map[string]*app.FieldDefinition{
 					"name": {
-						Required: true,
+						Required:    true,
+						Description: "Description for name field",
+						Label:       "Name",
 						Type: &app.FieldType{
 							Kind: "string",
 						},
@@ -302,7 +312,7 @@ func (s *workItemTypeSuite) TestValidate() {
 		// when
 		err := p.Validate()
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 	})
 
 	s.T().Run("invalid - oversized name", func(t *testing.T) {
@@ -312,7 +322,7 @@ func (s *workItemTypeSuite) TestValidate() {
 		// when
 		err := p.Validate()
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 		gerr, ok := err.(*goa.ErrorResponse)
 		require.True(t, ok)
 		gerr.ID = "IGNORE_ME"
@@ -326,7 +336,7 @@ func (s *workItemTypeSuite) TestValidate() {
 		// when
 		err := p.Validate()
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 		gerr, ok := err.(*goa.ErrorResponse)
 		require.True(t, ok)
 		gerr.ID = "IGNORE_ME"
@@ -496,7 +506,9 @@ func (s *workItemTypeSuite) createWorkitemtypeLinks() (app.WorkItemLinkTypeSingl
 	require.NotNil(s.T(), linkCat)
 	s.T().Log("Created work item link category")
 	// Create work item link space
-	spacePayload := CreateSpacePayload("some-link-space-"+uuid.NewV4().String(), "description")
+	spaceName := "some-link-space-" + uuid.NewV4().String()
+	spaceDescription := "description"
+	spacePayload := newCreateSpacePayload(&spaceName, &spaceDescription)
 	_, sp := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, spacePayload)
 	s.T().Log("Created space")
 	// Create work item link type
@@ -581,7 +593,7 @@ func (s *workItemTypeSuite) getWorkItemTypeTestDataFunc() func(*testing.T) []tes
 	privatekey := testtoken.PrivateKey()
 	return func(t *testing.T) []testSecureAPI {
 		differentPrivatekey, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSADifferentPrivateKeyTest)))
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		createWITPayloadString := bytes.NewBuffer([]byte(`{"fields": {"system.administrator": {"Required": true,"Type": {"Kind": "string"}}},"name": "Epic"}`))
 

@@ -3,7 +3,9 @@ package testfixture_test
 import (
 	"testing"
 
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
+	"github.com/fabric8-services/fabric8-wit/workitem/link"
+	uuid "github.com/satori/go.uuid"
+
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
@@ -20,26 +22,18 @@ func TestRunTestFixtureSuite(t *testing.T) {
 
 type testFixtureSuite struct {
 	gormtestsupport.DBTestSuite
-	clean func()
-}
-
-func (s *testFixtureSuite) SetupTest() {
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
-}
-func (s *testFixtureSuite) TearDownTest() {
-	s.clean()
 }
 
 func (s *testFixtureSuite) TestNewFixture_Advanced() {
 	s.T().Run("implicitly created entities", func(t *testing.T) {
 		c, err := tf.NewFixture(s.DB, tf.WorkItems(2))
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Nil(t, c.Check())
 	})
 	s.T().Run("explicitly create entities", func(t *testing.T) {
 		// given
 		c, err := tf.NewFixture(s.DB, tf.WorkItems(2))
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Nil(t, c.Check())
 
 		// manually use values from previous fixture over fields from first fixture
@@ -49,7 +43,7 @@ func (s *testFixtureSuite) TestNewFixture_Advanced() {
 			fxt.WorkItems[idx].Fields[workitem.SystemCreator] = c.Identities[0].ID.String()
 			return nil
 		}))
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Nil(t, c1.Check())
 	})
 	s.T().Run("create 100 comments by 100 authors on 1 workitem", func(t *testing.T) {
@@ -57,13 +51,18 @@ func (s *testFixtureSuite) TestNewFixture_Advanced() {
 			fxt.Comments[idx].Creator = fxt.Identities[idx].ID
 			return nil
 		}))
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Nil(t, c.Check())
 	})
 	s.T().Run("create 10 links between 20 work items with a network topology link type", func(t *testing.T) {
-		c, err := tf.NewFixture(s.DB, tf.WorkItemLinks(10), tf.WorkItemLinkTypes(1, tf.TopologyNetwork()))
-		require.Nil(t, err)
+		c, err := tf.NewFixture(s.DB, tf.WorkItemLinks(10), tf.WorkItemLinkTypes(1, tf.SetTopologies(link.TopologyNetwork)))
+		require.NoError(t, err)
 		require.Nil(t, c.Check())
+	})
+	s.T().Run("test CreateWorkItemEnvironment error", func(t *testing.T) {
+		c, err := tf.NewFixture(s.DB, tf.CreateWorkItemEnvironment(), tf.Spaces(2))
+		require.Error(t, err)
+		require.Nil(t, c)
 	})
 }
 
@@ -80,7 +79,7 @@ func checkNewFixture(t *testing.T, db *gorm.DB, n int, isolated bool) {
 	// and a valid fixture
 	fxtCtor := tf.NewFixture
 	checkCtorErrFunc := func(t *testing.T, err error) {
-		require.Nil(t, err)
+		require.NoError(t, err)
 	}
 	checkFunc := func(t *testing.T, fxt *tf.TestFixture) {
 		require.NotNil(t, fxt)
@@ -92,7 +91,7 @@ func checkNewFixture(t *testing.T, db *gorm.DB, n int, isolated bool) {
 	if isolated {
 		fxtCtor = tf.NewFixtureIsolated
 		checkCtorErrFunc = func(t *testing.T, err error) {
-			require.NotNil(t, err)
+			require.Error(t, err)
 		}
 		checkFunc = func(t *testing.T, fxt *tf.TestFixture) {
 			require.Nil(t, fxt)
@@ -105,7 +104,7 @@ func checkNewFixture(t *testing.T, db *gorm.DB, n int, isolated bool) {
 		// given
 		c, err := fxtCtor(db, tf.Identities(n))
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Nil(t, c.Check())
 		// manual checking
 		require.Len(t, c.Identities, n)
@@ -114,7 +113,7 @@ func checkNewFixture(t *testing.T, db *gorm.DB, n int, isolated bool) {
 		// given
 		c, err := fxtCtor(db, tf.WorkItemLinkCategories(n))
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Nil(t, c.Check())
 		// manual checking
 		require.Len(t, c.WorkItemLinkCategories, n)
@@ -253,5 +252,147 @@ func checkNewFixture(t *testing.T, db *gorm.DB, n int, isolated bool) {
 			require.Len(t, c.Labels, n)
 			require.Len(t, c.Spaces, 1)
 		}
+	})
+	t.Run("queries", func(t *testing.T) {
+		// given
+		c, err := fxtCtor(db, tf.Queries(n))
+		// then
+		checkCtorErrFunc(t, err)
+		checkFunc(t, c)
+		// manual checking
+		if !isolated {
+			require.Len(t, c.Queries, n)
+			require.Len(t, c.Spaces, 1)
+		}
+	})
+}
+
+func (s *testFixtureSuite) TestWorkItemLinks() {
+	s.T().Run("standard", func(t *testing.T) {
+		// when
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemLinks(3))
+		// then
+		require.Len(t, fxt.WorkItemLinks, 3)
+		require.Len(t, fxt.WorkItems, 6)
+	})
+	s.T().Run("custom", func(t *testing.T) {
+		t.Run("missing work items and link setup", func(t *testing.T) {
+			// when
+			fxt, err := tf.NewFixture(s.DB, tf.WorkItemLinksCustom(3))
+			// then we expect an error because you're supposed to create work items
+			// yourself and link them on your own when using the custom method
+			require.Error(t, err)
+			require.Nil(t, fxt)
+		})
+		t.Run("missing link setup", func(t *testing.T) {
+			// when
+			fxt, err := tf.NewFixture(s.DB, tf.WorkItemLinksCustom(3), tf.WorkItems(3))
+			// then we expect an error because you're supposed to setup links
+			// yourself when using the custom method
+			require.Error(t, err)
+			require.Nil(t, fxt)
+		})
+		t.Run("ok", func(t *testing.T) {
+			// when
+			fxt, err := tf.NewFixture(s.DB,
+				tf.WorkItems(3),
+				tf.WorkItemLinksCustom(2, func(fxt *tf.TestFixture, idx int) error {
+					l := fxt.WorkItemLinks[idx]
+					switch idx {
+					case 0:
+						l.SourceID = fxt.WorkItems[0].ID
+						l.TargetID = fxt.WorkItems[1].ID
+					case 1:
+						l.SourceID = fxt.WorkItems[1].ID
+						l.TargetID = fxt.WorkItems[2].ID
+					}
+					return nil
+				}),
+			)
+			// then we expect an error because you're supposed to setup links
+			// yourself when using the custom method
+			require.NoError(t, err)
+			require.NotNil(t, fxt)
+			require.Len(t, fxt.WorkItemLinks, 2)
+			require.Len(t, fxt.WorkItems, 3)
+		})
+		t.Run("mixture not allowed (normal first)", func(t *testing.T) {
+			// when
+			fxt, err := tf.NewFixture(s.DB,
+				tf.WorkItems(3),
+				tf.WorkItemLinks(1),
+				tf.WorkItemLinksCustom(2, func(fxt *tf.TestFixture, idx int) error {
+					l := fxt.WorkItemLinks[idx]
+					switch idx {
+					case 0:
+						l.SourceID = fxt.WorkItems[0].ID
+						l.TargetID = fxt.WorkItems[1].ID
+					case 1:
+						l.SourceID = fxt.WorkItems[1].ID
+						l.TargetID = fxt.WorkItems[2].ID
+					}
+					return nil
+				}),
+			)
+			// then we expect an error because you're supposed to mix
+			// WorkItemLinks and WorkItemLinksCustom
+			require.Error(t, err)
+			require.Nil(t, fxt)
+		})
+		t.Run("mixture not allowed (normal second)", func(t *testing.T) {
+			// when
+			fxt, err := tf.NewFixture(s.DB,
+				tf.WorkItems(3),
+				tf.WorkItemLinksCustom(2, func(fxt *tf.TestFixture, idx int) error {
+					l := fxt.WorkItemLinks[idx]
+					switch idx {
+					case 0:
+						l.SourceID = fxt.WorkItems[0].ID
+						l.TargetID = fxt.WorkItems[1].ID
+					case 1:
+						l.SourceID = fxt.WorkItems[1].ID
+						l.TargetID = fxt.WorkItems[2].ID
+					}
+					return nil
+				}),
+				tf.WorkItemLinks(1),
+			)
+			// then we expect an error because you're supposed to mix
+			// WorkItemLinks and WorkItemLinksCustom
+			require.Error(t, err)
+			require.Nil(t, fxt)
+		})
+		t.Run("multiple link chains", func(t *testing.T) {
+			// Here's a much easier way to create link trees without the hassle
+			// of big switch statements. I've used two link chains in order to
+			// demonstrate that you can create disjoint links as well.
+			chain1 := tf.LinkChain("A", "B", "C")
+			chain2 := tf.LinkChain("D", "E", "F", "G")
+
+			fxt := tf.NewTestFixture(t, s.DB,
+				tf.WorkItemLinkTypes(1, tf.SetTopologies(link.TopologyDependency)),
+				tf.WorkItems(7, tf.SetWorkItemTitles("A", "B", "C", "D", "E", "F", "G")),
+				tf.WorkItemLinksCustom(5, tf.BuildLinks(append(chain1, chain2...)...)),
+			)
+
+			expectedLinks := map[uuid.UUID]uuid.UUID{
+				fxt.WorkItemByTitle("A").ID: fxt.WorkItemByTitle("B").ID,
+				fxt.WorkItemByTitle("B").ID: fxt.WorkItemByTitle("C").ID,
+				fxt.WorkItemByTitle("D").ID: fxt.WorkItemByTitle("E").ID,
+				fxt.WorkItemByTitle("E").ID: fxt.WorkItemByTitle("F").ID,
+				fxt.WorkItemByTitle("F").ID: fxt.WorkItemByTitle("G").ID,
+			}
+			actualLinks := []link.WorkItemLink{}
+			db := s.DB.Table(link.WorkItemLink{}.TableName()).Where("link_type_id = ?", fxt.WorkItemLinkTypes[0].ID).Find(&actualLinks)
+			require.NoError(t, db.Error)
+			require.Len(t, actualLinks, 5)
+			for _, l := range actualLinks {
+				_, ok := expectedLinks[l.SourceID]
+				if ok {
+					delete(expectedLinks, l.SourceID)
+				}
+			}
+			require.Empty(t, expectedLinks, "failed to find all expected links: %+v", expectedLinks)
+		})
 	})
 }

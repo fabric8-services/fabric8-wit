@@ -6,13 +6,13 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	"github.com/fabric8-services/fabric8-wit/application"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
@@ -42,9 +42,7 @@ type okScenario struct {
 
 type TestSearchSpacesREST struct {
 	gormtestsupport.DBTestSuite
-
-	db    *gormapplication.GormDB
-	clean func()
+	db *gormapplication.GormDB
 }
 
 func TestRunSearchSpacesREST(t *testing.T) {
@@ -53,12 +51,8 @@ func TestRunSearchSpacesREST(t *testing.T) {
 }
 
 func (rest *TestSearchSpacesREST) SetupTest() {
+	rest.DBTestSuite.SetupTest()
 	rest.db = gormapplication.NewGormDB(rest.DB)
-	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
-}
-
-func (rest *TestSearchSpacesREST) TearDownTest() {
-	rest.clean()
 }
 
 func (rest *TestSearchSpacesREST) SecuredController() (*goa.Service, *SearchController) {
@@ -73,18 +67,19 @@ func (rest *TestSearchSpacesREST) UnSecuredController() (*goa.Service, *SearchCo
 
 func (rest *TestSearchSpacesREST) TestSpacesSearchOK() {
 	// given
-	idents, err := createTestData(rest.db)
-	require.Nil(rest.T(), err)
+	prefix := time.Now().Format("2006_Jan_2_15_04_05_") // using a unique prefix to make sure the test data will not collide with existing, older spaces.
+	idents, err := createTestData(rest.db, prefix)
+	require.NoError(rest.T(), err)
 	tests := []okScenario{
-		{"With uppercase fullname query", args{offset("0"), limit(10), "TEST_AB"}, expects{totalCount(1)}},
-		{"With lowercase fullname query", args{offset("0"), limit(10), "TEST_AB"}, expects{totalCount(1)}},
-		{"With uppercase description query", args{offset("0"), limit(10), "DESCRIPTION FOR TEST_AB"}, expects{totalCount(1)}},
-		{"With lowercase description query", args{offset("0"), limit(10), "description for test_ab"}, expects{totalCount(1)}},
+		{"With uppercase fullname query", args{offset("0"), limit(10), prefix + "TEST_AB"}, expects{totalCount(1)}},
+		{"With lowercase fullname query", args{offset("0"), limit(10), prefix + "TEST_AB"}, expects{totalCount(1)}},
+		{"With uppercase description query", args{offset("0"), limit(10), "DESCRIPTION FOR " + prefix + "TEST_AB"}, expects{totalCount(1)}},
+		{"With lowercase description query", args{offset("0"), limit(10), "description for " + prefix + "test_ab"}, expects{totalCount(1)}},
 		{"with special chars", args{offset("0"), limit(10), "&:\n!#%?*"}, expects{totalCount(0)}},
 		{"with * to list all", args{offset("0"), limit(10), "*"}, expects{totalCountAtLeast(len(idents))}},
-		{"with multi page", args{offset("0"), limit(10), "TEST"}, expects{hasLinks("Next")}},
-		{"with last page", args{offset(strconv.Itoa(len(idents) - 1)), limit(10), "TEST"}, expects{hasNoLinks("Next"), hasLinks("Prev")}},
-		{"with different values", args{offset("0"), limit(10), "TEST"}, expects{differentValues()}},
+		{"with multi page", args{offset("0"), limit(10), prefix + "TEST"}, expects{hasLinks("Next")}},
+		{"with last page", args{offset(strconv.Itoa(len(idents) - 1)), limit(10), prefix + "TEST"}, expects{hasNoLinks("Next"), hasLinks("Prev")}},
+		{"with different values", args{offset("0"), limit(10), prefix + "TEST"}, expects{differentValues()}},
 	}
 	svc, ctrl := rest.UnSecuredController()
 	// when/then
@@ -96,10 +91,10 @@ func (rest *TestSearchSpacesREST) TestSpacesSearchOK() {
 	}
 }
 
-func createTestData(db application.DB) ([]space.Space, error) {
-	names := []string{"TEST_A", "TEST_AB", "TEST_B", "TEST_C"}
+func createTestData(db application.DB, prefix string) ([]space.Space, error) {
+	names := []string{prefix + "TEST_A", prefix + "TEST_AB", prefix + "TEST_B", prefix + "TEST_C"}
 	for i := 0; i < 20; i++ {
-		names = append(names, "TEST_"+strconv.Itoa(i))
+		names = append(names, prefix+"TEST_"+strconv.Itoa(i))
 	}
 
 	spaces := []space.Space{}

@@ -22,6 +22,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	notificationsupport "github.com/fabric8-services/fabric8-wit/test/notification"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/goadesign/goa"
 	"github.com/pkg/errors"
@@ -37,7 +38,7 @@ type TestCommentREST struct {
 	clean        func()
 	testIdentity account.Identity
 	ctx          context.Context
-	notification testsupport.NotificationChannel
+	notification notificationsupport.FakeNotificationChannel
 }
 
 func TestRunCommentREST(t *testing.T) {
@@ -49,12 +50,12 @@ func (rest *TestCommentREST) SetupTest() {
 	rest.db = gormapplication.NewGormDB(rest.DB)
 	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
 	testIdentity, err := testsupport.CreateTestIdentity(rest.DB, "TestCommentREST setup user", "test provider")
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	rest.testIdentity = *testIdentity
 	req := &http.Request{Host: "localhost"}
 	params := url.Values{}
 	rest.ctx = goa.NewContext(context.Background(), nil, req, params)
-	rest.notification = testsupport.NotificationChannel{}
+	rest.notification = notificationsupport.FakeNotificationChannel{}
 }
 
 func (rest *TestCommentREST) TearDownTest() {
@@ -103,7 +104,7 @@ func (rest *TestCommentREST) createDefaultWorkItem() *workitem.WorkItem {
 		workItem = wi
 		return nil
 	})
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	return workItem
 }
 
@@ -292,7 +293,7 @@ func (rest *TestCommentREST) TestShouldNotCreateEmptyBody() {
 	// when
 	err := p.Validate()
 	// then
-	require.NotNil(rest.T(), err)
+	require.Error(rest.T(), err)
 }
 
 func (rest *TestCommentREST) TestListCommentsByMissingParentWorkItem() {

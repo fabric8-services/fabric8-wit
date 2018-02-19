@@ -5,19 +5,20 @@ import (
 
 	"fmt"
 
-	"github.com/fabric8-services/fabric8-auth/resource"
 	config "github.com/fabric8-services/fabric8-wit/configuration"
+	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/stretchr/testify/require"
 )
 
 func TestRemoteTokensLoaded(t *testing.T) {
+	t.Skipf("We're skipping this test on purpose until we can properly run remote tests on CI")
 	resource.Require(t, resource.Remote)
-	c, err := config.GetConfigurationData()
+	c, err := config.Get()
 	if err != nil {
 		panic(fmt.Errorf("failed to setup the configuration: %s", err.Error()))
 	}
 	m, err := NewManager(c)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, m)
 	tm, ok := m.(*tokenManager)
 	require.True(t, ok)

@@ -35,7 +35,7 @@ func (rest *TestPlannerBacklogREST) SetupTest() {
 	rest.DBTestSuite.SetupTest()
 	// create a test identity
 	testIdentity, err := testsupport.CreateTestIdentity(rest.DB, "TestPlannerBacklogREST user", "test provider")
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	rest.testIdentity = *testIdentity
 }
 
@@ -49,22 +49,22 @@ func (rest *TestPlannerBacklogREST) setupPlannerBacklogWorkItems() (testSpace *s
 		spacesRepo := app.Spaces()
 		testSpace = &space.Space{
 			Name:    "PlannerBacklogWorkItems-" + uuid.NewV4().String(),
-			OwnerId: rest.testIdentity.ID,
+			OwnerID: rest.testIdentity.ID,
 		}
 		_, err := spacesRepo.Create(rest.Ctx, testSpace)
-		require.Nil(rest.T(), err)
+		require.NoError(rest.T(), err)
 		require.NotNil(rest.T(), testSpace.ID)
 		log.Info(nil, map[string]interface{}{"space_id": testSpace.ID}, "created space")
 		workitemTypesRepo := app.WorkItemTypes()
 		workitemType, err := workitemTypesRepo.Create(rest.Ctx, testSpace.ID, nil, &workitem.SystemPlannerItem, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
-		require.Nil(rest.T(), err)
+		require.NoError(rest.T(), err)
 		log.Info(nil, map[string]interface{}{"wit_id": workitemType.ID}, "created workitem type")
 
 		iterationsRepo := app.Iterations()
 		parentIteration = &iteration.Iteration{
 			Name:    "Parent Iteration",
 			SpaceID: testSpace.ID,
-			State:   iteration.IterationStateNew,
+			State:   iteration.StateNew,
 		}
 		iterationsRepo.Create(rest.Ctx, parentIteration)
 		log.Info(nil, map[string]interface{}{"parent_iteration_id": parentIteration.ID}, "created parent iteration")
@@ -73,7 +73,7 @@ func (rest *TestPlannerBacklogREST) setupPlannerBacklogWorkItems() (testSpace *s
 			Name:    "Child Iteration",
 			SpaceID: testSpace.ID,
 			Path:    append(parentIteration.Path, parentIteration.ID),
-			State:   iteration.IterationStateStart,
+			State:   iteration.StateStart,
 		}
 		iterationsRepo.Create(rest.Ctx, childIteration)
 		log.Info(nil, map[string]interface{}{"child_iteration_id": childIteration.ID}, "created child iteration")
@@ -91,7 +91,7 @@ func (rest *TestPlannerBacklogREST) setupPlannerBacklogWorkItems() (testSpace *s
 			workitem.SystemIteration: childIteration.ID.String(),
 		}
 		createdWI, err = app.WorkItems().Create(rest.Ctx, testSpace.ID, workitemType.ID, fields2, rest.testIdentity.ID)
-		require.Nil(rest.T(), err)
+		require.NoError(rest.T(), err)
 		return nil
 	})
 	return
@@ -117,7 +117,7 @@ func (rest *TestPlannerBacklogREST) TestCountPlannerBacklogWorkItemsOK() {
 	// when
 	count, err := countBacklogItems(svc.Context, gormapplication.NewGormDB(rest.DB), testSpace.ID)
 	// we expect the count to be equal to 1
-	assert.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	assert.Equal(rest.T(), 1, count)
 }
 
@@ -128,10 +128,10 @@ func (rest *TestPlannerBacklogREST) TestCountZeroPlannerBacklogWorkItemsOK() {
 		spacesRepo := app.Spaces()
 		spaceCount = &space.Space{
 			Name:    "PlannerBacklogWorkItems-" + uuid.NewV4().String(),
-			OwnerId: rest.testIdentity.ID,
+			OwnerID: rest.testIdentity.ID,
 		}
 		_, err := spacesRepo.Create(rest.Ctx, spaceCount)
-		require.Nil(rest.T(), err)
+		require.NoError(rest.T(), err)
 
 		return nil
 	})
@@ -139,6 +139,6 @@ func (rest *TestPlannerBacklogREST) TestCountZeroPlannerBacklogWorkItemsOK() {
 	// when
 	count, err := countBacklogItems(svc.Context, gormapplication.NewGormDB(rest.DB), spaceCount.ID)
 	// we expect the count to be equal to 0
-	assert.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	assert.Equal(rest.T(), 0, count)
 }

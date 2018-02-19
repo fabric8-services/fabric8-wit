@@ -142,7 +142,7 @@ func (m *GormIdentityRepository) Load(ctx context.Context, id uuid.UUID) (*Ident
 }
 
 // CheckExists returns nil if the given ID exists otherwise returns an error
-func (m *GormIdentityRepository) CheckExists(ctx context.Context, id string) error {
+func (m *GormIdentityRepository) CheckExists(ctx context.Context, id uuid.UUID) error {
 	defer goa.MeasureSince([]string{"goa", "db", "identity", "exists"}, time.Now())
 	return repository.CheckExists(ctx, m.db, m.TableName(), id)
 }
@@ -161,9 +161,9 @@ func (m *GormIdentityRepository) Create(ctx context.Context, model *Identity) er
 		}, "unable to create the identity")
 		return errs.WithStack(err)
 	}
-	log.Info(ctx, map[string]interface{}{
+	log.Debug(ctx, map[string]interface{}{
 		"identity_id": model.ID,
-	}, "Identity created!")
+	}, "Identity created")
 	return nil
 }
 
@@ -202,16 +202,7 @@ func (m *GormIdentityRepository) Lookup(ctx context.Context, username, profileUR
 func (m *GormIdentityRepository) Save(ctx context.Context, model *Identity) error {
 	defer goa.MeasureSince([]string{"goa", "db", "identity", "save"}, time.Now())
 
-	obj, err := m.Load(ctx, model.ID)
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"identity_id": model.ID,
-			"ctx":         ctx,
-			"err":         err,
-		}, "unable to update the identity")
-		return errs.WithStack(err)
-	}
-	err = m.db.Model(obj).Updates(model).Error
+	err := m.db.Save(model).Error
 
 	log.Debug(ctx, map[string]interface{}{
 		"identity_id": model.ID,
@@ -350,7 +341,7 @@ func (m *GormIdentityRepository) List(ctx context.Context) ([]Identity, error) {
 
 // IsValid returns true if the identity exists
 func (m *GormIdentityRepository) IsValid(ctx context.Context, id uuid.UUID) bool {
-	return m.CheckExists(ctx, id.String()) == nil
+	return m.CheckExists(ctx, id) == nil
 }
 
 // Search searches for Identites where FullName like %q% or users.email like %q% or users.username like %q%

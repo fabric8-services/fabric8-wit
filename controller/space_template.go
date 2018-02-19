@@ -7,6 +7,8 @@ import (
 	"github.com/goadesign/goa"
 )
 
+var APISpaceTemplates = "spacetemplates"
+
 // SpaceTemplateController implements the space_template resource.
 type SpaceTemplateController struct {
 	*goa.Controller
@@ -23,7 +25,7 @@ func (c *SpaceTemplateController) Show(ctx *app.ShowSpaceTemplateContext) error 
 	// till we have space templates in place, let this controller redirect
 	// user to the typegroups endpoint that returns list of type-groups.
 	err := application.Transactional(c.db, func(appl application.Application) error {
-		return appl.Spaces().CheckExists(ctx, ctx.SpaceTemplateID.String())
+		return appl.Spaces().CheckExists(ctx, ctx.SpaceTemplateID)
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)

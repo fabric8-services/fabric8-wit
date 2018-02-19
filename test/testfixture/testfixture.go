@@ -4,12 +4,15 @@ import (
 	"context"
 	"testing"
 
+	"github.com/fabric8-services/fabric8-wit/query"
+
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/area"
 	"github.com/fabric8-services/fabric8-wit/codebase"
 	"github.com/fabric8-services/fabric8-wit/comment"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/label"
+	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem"
@@ -26,11 +29,13 @@ import (
 //
 // Don't create one on your own!
 type TestFixture struct {
-	info             map[kind]*createInfo
-	db               *gorm.DB
-	isolatedCreation bool
-	ctx              context.Context
-	checkFuncs       []func() error
+	info               map[kind]*createInfo
+	db                 *gorm.DB
+	isolatedCreation   bool
+	ctx                context.Context
+	checkFuncs         []func() error
+	customLinkCreation bool // on when you've used WorkItemLinksCustom in your recipe
+	normalLinkCreation bool // on when you've used WorkItemLinks in your recipe
 
 	Identities             []*account.Identity          // Itentities (if any) that were created for this test fixture.
 	Iterations             []*iteration.Iteration       // Iterations (if any) that were created for this test fixture.
@@ -44,6 +49,8 @@ type TestFixture struct {
 	WorkItemLinkCategories []*link.WorkItemLinkCategory // Work item link categories (if any) that were created for this test fixture.
 	WorkItemLinks          []*link.WorkItemLink         // Work item links (if any) that were created for this test fixture.
 	Labels                 []*label.Label
+	Trackers               []*remoteworkitem.Tracker // Remote work item tracker (if any) that were created for this test fixture.
+	Queries                []*query.Query            // Queries (if any) that were created for this test fixture.
 }
 
 // NewFixture will create a test fixture by executing the recipies from the
@@ -86,11 +93,11 @@ func NewFixture(db *gorm.DB, recipeFuncs ...RecipeFunction) (*TestFixture, error
 
 // NewTestFixture does the same as NewFixture except that it automatically
 // fails the given test if the fixture could not be created correctly.
-func NewTestFixture(t *testing.T, db *gorm.DB, recipeFuncs ...RecipeFunction) *TestFixture {
+func NewTestFixture(t testing.TB, db *gorm.DB, recipeFuncs ...RecipeFunction) *TestFixture {
 	resource.Require(t, resource.Database)
 
 	tc, err := NewFixture(db, recipeFuncs...)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, tc)
 	return tc
 }
@@ -152,9 +159,11 @@ const (
 	kindComments               kind = "comment"
 	kindWorkItemTypes          kind = "work_item_type"
 	kindWorkItemLinkTypes      kind = "work_item_link_type"
-	kindWorkItemLinkCategories kind = "work_item_link_categorie"
+	kindWorkItemLinkCategories kind = "work_item_link_category"
 	kindWorkItemLinks          kind = "work_item_link"
-	kindLabels                 kind = "labels"
+	kindLabels                 kind = "label"
+	kindTrackers               kind = "tracker"
+	kindQueries                kind = "query"
 )
 
 type createInfo struct {
@@ -206,10 +215,12 @@ func newFixture(db *gorm.DB, isolatedCreation bool, recipeFuncs ...RecipeFunctio
 	makeFuncs := []func(fxt *TestFixture) error{
 		// make the objects that DON'T have any dependency
 		makeIdentities,
+		makeTrackers,
 		makeWorkItemLinkCategories,
 		// actually make the objects that DO have dependencies
 		makeSpaces,
 		makeLabels,
+		makeQueries,
 		makeWorkItemLinkTypes,
 		makeCodebases,
 		makeWorkItemTypes,

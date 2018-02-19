@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"context"
 
 	"github.com/fabric8-services/fabric8-wit/errors"
@@ -17,21 +19,21 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-func TestRunRepoBBTest(t *testing.T) {
-	suite.Run(t, &repoBBTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+func TestSpaceRepository(t *testing.T) {
+	suite.Run(t, &SpaceRepositoryTestSuite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
-type repoBBTest struct {
+type SpaceRepositoryTestSuite struct {
 	gormtestsupport.DBTestSuite
 	repo space.Repository
 }
 
-func (s *repoBBTest) SetupSuite() {
+func (s *SpaceRepositoryTestSuite) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
 	s.repo = space.NewRepository(s.DB)
 }
 
-func (s *repoBBTest) TestCreate() {
+func (s *SpaceRepositoryTestSuite) TestCreate() {
 	s.T().Run("ok", func(t *testing.T) {
 		// given an identity
 		fxt := tf.NewTestFixture(t, s.DB, tf.Identities(1))
@@ -41,14 +43,14 @@ func (s *repoBBTest) TestCreate() {
 		newSpace := space.Space{
 			ID:      id,
 			Name:    name,
-			OwnerId: fxt.Identities[0].ID,
+			OwnerID: fxt.Identities[0].ID,
 		}
 		sp, err := s.repo.Create(context.Background(), &newSpace)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, sp)
 		require.Equal(t, id, sp.ID)
 		require.Equal(t, name, sp.Name)
-		require.Equal(t, fxt.Identities[0].ID, sp.OwnerId)
+		require.Equal(t, fxt.Identities[0].ID, sp.OwnerID)
 	})
 	s.T().Run("fail - empty space name", func(t *testing.T) {
 		// given an identity
@@ -56,10 +58,10 @@ func (s *repoBBTest) TestCreate() {
 		// when creating space
 		newSpace := space.Space{
 			Name:    "",
-			OwnerId: fxt.Identities[0].ID,
+			OwnerID: fxt.Identities[0].ID,
 		}
 		sp, err := s.repo.Create(context.Background(), &newSpace)
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.IsType(t, errors.BadParameterError{}, err, "error was %v", err)
 		require.Nil(t, sp)
 	})
@@ -71,45 +73,45 @@ func (s *repoBBTest) TestCreate() {
 		newSpace.ID = uuid.NewV4()
 		sp, err := s.repo.Create(s.Ctx, &newSpace)
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.Nil(t, sp)
 		require.IsType(t, errors.DataConflictError{}, err, "error was %v", err)
 	})
 }
 
-func (s *repoBBTest) TestLoad() {
+func (s *SpaceRepositoryTestSuite) TestLoad() {
 	s.T().Run("existing space", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1))
 		sp, err := s.repo.Load(s.Ctx, fxt.Spaces[0].ID)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, sp)
 		require.True(t, (*fxt.Spaces[0]).Equal(*sp))
 	})
 	s.T().Run("non-existing space", func(t *testing.T) {
 		sp, err := s.repo.Load(s.Ctx, uuid.NewV4())
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.Nil(t, sp)
 	})
 }
 
-func (s *repoBBTest) TestCheckExists() {
+func (s *SpaceRepositoryTestSuite) TestCheckExists() {
 	resource.Require(s.T(), resource.Database)
 	s.T().Run("space exists", func(t *testing.T) {
 		// given a space
 		fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1))
 		// when checking for existence
-		err := s.repo.CheckExists(s.Ctx, fxt.Spaces[0].ID.String())
+		err := s.repo.CheckExists(s.Ctx, fxt.Spaces[0].ID)
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 	})
 	s.T().Run("space doesn't exist", func(t *testing.T) {
-		err := s.repo.CheckExists(context.Background(), uuid.NewV4().String())
-		require.NotNil(t, err)
+		err := s.repo.CheckExists(context.Background(), uuid.NewV4())
+		require.Error(t, err)
 		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 	})
 }
 
-func (s *repoBBTest) TestSave() {
+func (s *SpaceRepositoryTestSuite) TestSave() {
 	s.T().Run("ok", func(t *testing.T) {
 		// given a space
 		fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1))
@@ -117,7 +119,7 @@ func (s *repoBBTest) TestSave() {
 		newName := testsupport.CreateRandomValidTestName("new name")
 		fxt.Spaces[0].Name = newName
 		sp, err := s.repo.Save(s.Ctx, fxt.Spaces[0])
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, sp)
 		require.Equal(t, newName, sp.Name)
 	})
@@ -128,7 +130,7 @@ func (s *repoBBTest) TestSave() {
 		fxt.Spaces[0].Name = ""
 		sp, err := s.repo.Save(s.Ctx, fxt.Spaces[0])
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.IsType(t, errors.BadParameterError{}, err, "error was %v", err)
 		require.Nil(t, sp)
 	})
@@ -139,7 +141,7 @@ func (s *repoBBTest) TestSave() {
 		fxt.Spaces[0].Name = fxt.Spaces[1].Name
 		sp, err := s.repo.Save(s.Ctx, fxt.Spaces[0])
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.IsType(t, errors.BadParameterError{}, err, "error was %v", err)
 		require.Nil(t, sp)
 	})
@@ -153,28 +155,28 @@ func (s *repoBBTest) TestSave() {
 		// when updating this space
 		sp, err := s.repo.Save(s.Ctx, &p)
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 		require.Nil(t, sp)
 	})
 }
 
-func (s *repoBBTest) TestDelete() {
+func (s *SpaceRepositoryTestSuite) TestDelete() {
 	s.T().Run("ok", func(t *testing.T) {
 		// given a space
 		fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1))
 		id := fxt.Spaces[0].ID
 		// double check that we can load this space
 		sp, err := s.repo.Load(s.Ctx, id)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, sp)
 		// when
 		err = s.repo.Delete(s.Ctx, id)
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// double check that we can no longer load the space
 		sp, err = s.repo.Load(s.Ctx, id)
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 		require.Nil(t, sp)
 	})
@@ -184,7 +186,7 @@ func (s *repoBBTest) TestDelete() {
 		// when
 		err := s.repo.Delete(s.Ctx, nonExistingSpaceID)
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 	})
 	s.T().Run("not found - nil space ID", func(t *testing.T) {
@@ -193,12 +195,12 @@ func (s *repoBBTest) TestDelete() {
 		// when
 		err := s.repo.Delete(s.Ctx, nilSpaceID)
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 	})
 }
 
-func (s *repoBBTest) TestList() {
+func (s *SpaceRepositoryTestSuite) TestList() {
 	s.T().Run("ok", func(t *testing.T) {
 		// given
 		var start, length *int
@@ -230,14 +232,14 @@ func (s *repoBBTest) TestList() {
 	})
 }
 
-func (s *repoBBTest) TestLoadByOwnerAndName() {
+func (s *SpaceRepositoryTestSuite) TestLoadByOwnerAndName() {
 	s.T().Run("ok", func(t *testing.T) {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1))
 		// when
-		sp, err := s.repo.LoadByOwnerAndName(context.Background(), &fxt.Spaces[0].OwnerId, &fxt.Spaces[0].Name)
+		sp, err := s.repo.LoadByOwnerAndName(context.Background(), &fxt.Spaces[0].OwnerID, &fxt.Spaces[0].Name)
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, sp)
 		require.True(t, (*fxt.Spaces[0]).Equal(*sp))
 	})
@@ -247,7 +249,7 @@ func (s *repoBBTest) TestLoadByOwnerAndName() {
 		// when loading an existing space by name but with a different owner
 		sp, err := s.repo.LoadByOwnerAndName(context.Background(), &fxt.Identities[1].ID, &fxt.Spaces[0].Name)
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 		require.Nil(t, sp)
 	})
@@ -256,10 +258,66 @@ func (s *repoBBTest) TestLoadByOwnerAndName() {
 		fxt := tf.NewTestFixture(t, s.DB, tf.Identities(2), tf.Spaces(1))
 		// when loading an existing space by name but with a different owner
 		nonExistingSpaceName := testsupport.CreateRandomValidTestName("non existing space name")
-		sp, err := s.repo.LoadByOwnerAndName(context.Background(), &fxt.Spaces[0].OwnerId, &nonExistingSpaceName)
+		sp, err := s.repo.LoadByOwnerAndName(context.Background(), &fxt.Spaces[0].OwnerID, &nonExistingSpaceName)
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 		require.Nil(t, sp)
 	})
+}
+
+func (s *SpaceRepositoryTestSuite) TestLoadMany() {
+	s.T().Run("ok", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(2))
+		ids := make([]uuid.UUID, 0)
+		for _, s := range fxt.Spaces {
+			ids = append(ids, s.ID)
+		}
+		// when listing
+		result, err := s.repo.LoadMany(s.Ctx, ids)
+		// then
+		require.NoError(t, err)
+		assert.Condition(t, containsAllSpaces(t, fxt.Spaces, result...))
+	})
+	s.T().Run("ok with duplicates", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(10))
+		ids := make([]uuid.UUID, 0)
+		// add the IDs twice
+		for _, s := range fxt.Spaces {
+			ids = append(ids, s.ID)
+			ids = append(ids, s.ID)
+		}
+		// when listing
+		result, err := s.repo.LoadMany(s.Ctx, ids)
+		// then make sure the result does not contain duplicates
+		require.NoError(t, err)
+		assert.Condition(t, containsAllSpaces(t, fxt.Spaces, result...))
+	})
+}
+
+// containsAllSpaces verifies that the `expectedSpaces` array contains all `actualSpaces` in any order,
+// by comparing the lengths and each ID,
+func containsAllSpaces(t *testing.T, expectedSpaces []*space.Space, actualSpaces ...space.Space) assert.Comparison {
+	return func() bool {
+		if len(expectedSpaces) != len(actualSpaces) {
+			t.Logf("actualSpaces did not have the expected length: %d vs %d", len(actualSpaces), len(expectedSpaces))
+			return false
+		}
+		for _, expectedSpace := range expectedSpaces {
+			found := false
+			for _, actualSpace := range actualSpaces {
+				if uuid.Equal(actualSpace.ID, expectedSpace.ID) {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Logf("actualSpaces did not contain entry with ID='%v'", expectedSpace.ID)
+				return false
+			}
+		}
+		return true
+	}
 }

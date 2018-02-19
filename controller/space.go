@@ -18,25 +18,16 @@ import (
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
-	uuid "github.com/satori/go.uuid"
+	"github.com/satori/go.uuid"
 )
 
 const (
 	// APIStringTypeCodebase contains the JSON API type for codebases
 	APIStringTypeSpace = "spaces"
-	spaceResourceType  = "space"
 )
-
-var scopes = []string{"read:space", "admin:space"}
 
 // SpaceConfiguration represents space configuratoin
 type SpaceConfiguration interface {
-	GetKeycloakEndpointAuthzResourceset(*http.Request) (string, error)
-	GetKeycloakEndpointToken(*http.Request) (string, error)
-	GetKeycloakEndpointClients(*http.Request) (string, error)
-	GetKeycloakEndpointAdmin(*http.Request) (string, error)
-	GetKeycloakClientID() string
-	GetKeycloakSecret() string
 	GetCacheControlSpaces() string
 	GetCacheControlSpace() string
 }
@@ -78,7 +69,7 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 		newSpace := space.Space{
 			ID:      spaceID,
 			Name:    spaceName,
-			OwnerId: *currentUser,
+			OwnerID: *currentUser,
 		}
 		if reqSpace.Attributes.Description != nil {
 			newSpace.Description = *reqSpace.Attributes.Description
@@ -125,39 +116,14 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 	}
 
 	// Create keycloak resource for this space
-
-	resource, err := c.resourceManager.CreateSpace(ctx, ctx.Request, spaceID.String())
+	_, err = c.resourceManager.CreateSpace(ctx, ctx.Request, spaceID.String())
 	if err != nil {
-		// Unable to create a space resource. Can't proceed. Rool back space creation and return an error.
+		// Unable to create a space resource. Can't proceed. Roll back space creation and return an error.
 		c.rollBackSpaceCreation(ctx, spaceID)
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	spaceResource := &space.Resource{
-		ResourceID:   resource.Data.ResourceID,
-		PolicyID:     resource.Data.PolicyID,
-		PermissionID: resource.Data.PermissionID,
-		SpaceID:      spaceID,
-	}
 
-	err = application.Transactional(c.db, func(appl application.Application) error {
-		// Create space resource which will represent the keyclok resource associated with this space
-		_, err = appl.SpaceResources().Create(ctx, spaceResource)
-		return err
-	})
-	if err != nil {
-		// Rool back space and space resource creation
-		c.rollBackSpaceCreation(ctx, spaceID)
-		remoteErr := c.resourceManager.DeleteSpace(ctx, ctx.Request, spaceID.String())
-		if remoteErr != nil {
-			log.Error(ctx, map[string]interface{}{
-				"err":      remoteErr,
-				"space_id": spaceID,
-			}, "unable to roll back space resource creation")
-		}
-		return jsonapi.JSONErrorResponse(ctx, err)
-	}
-
-	spaceData, err := ConvertSpaceFromModel(ctx.Context, c.db, ctx.Request, *rSpace)
+	spaceData, err := ConvertSpaceFromModel(ctx.Request, *rSpace, IncludeBacklogTotalCount(ctx.Context, c.db))
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
@@ -187,47 +153,18 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
-	var resourceID string
-	var permissionID string
-	var policyID string
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		s, err := appl.Spaces().Load(ctx.Context, ctx.SpaceID)
 		if err != nil {
 			return err
 		}
-		if !uuid.Equal(*currentUser, s.OwnerId) {
+		if !uuid.Equal(*currentUser, s.OwnerID) {
 			log.Warn(ctx, map[string]interface{}{
 				"space_id":     ctx.SpaceID,
-				"space_owner":  s.OwnerId,
+				"space_owner":  s.OwnerID,
 				"current_user": *currentUser,
 			}, "user is not the space owner")
 			return errors.NewForbiddenError("user is not the space owner")
-		}
-
-		// FIXME: what about relying on CASCADE DELETE in the DB instead of doing this ?
-		// Delete associated space resource
-		resource, err := appl.SpaceResources().LoadBySpace(ctx, &ctx.SpaceID)
-		if err != nil {
-			if notFound, _ := errors.IsNotFoundError(err); notFound {
-				// Space resource is not found.
-				// It can happen to old spaces if Keycloak failed to create a space resource for some reason during space creation.
-				// New spaces won't be created if the space resource creation failed but we have to ignore this errors for old spaces.
-				log.Error(ctx, map[string]interface{}{
-					"space_id":     ctx.SpaceID,
-					"current_user": *currentUser,
-					"err":          err,
-				}, "Can't delete the space resource because it's not found. May happen to old spaces. Space will be deleted anyway.")
-				return appl.Spaces().Delete(ctx.Context, ctx.SpaceID)
-			}
-			return err
-		}
-		resourceID = resource.ResourceID
-		permissionID = resource.PermissionID
-		policyID = resource.PolicyID
-
-		appl.SpaceResources().Delete(ctx, resource.ID)
-		if err != nil {
-			return err
 		}
 		return appl.Spaces().Delete(ctx.Context, ctx.SpaceID)
 	})
@@ -258,7 +195,7 @@ func (c *SpaceController) List(ctx *app.ListSpaceContext) error {
 		}
 		entityErr := ctx.ConditionalEntities(spaces, c.config.GetCacheControlSpaces, func() error {
 			count := int(cnt)
-			spaceData, err := ConvertSpacesFromModel(ctx.Context, c.db, ctx.Request, spaces)
+			spaceData, err := ConvertSpacesFromModel(ctx.Request, spaces, IncludeBacklogTotalCount(ctx.Context, c.db))
 			if err != nil {
 				return err
 			}
@@ -294,7 +231,7 @@ func (c *SpaceController) Show(ctx *app.ShowSpaceContext) error {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		return ctx.ConditionalRequest(*s, c.config.GetCacheControlSpace, func() error {
-			spaceData, err := ConvertSpaceFromModel(ctx.Context, c.db, ctx.Request, *s)
+			spaceData, err := ConvertSpaceFromModel(ctx.Request, *s, IncludeBacklogTotalCount(ctx.Context, c.db))
 			if err != nil {
 				log.Error(ctx, map[string]interface{}{
 					"err":      err,
@@ -328,8 +265,8 @@ func (c *SpaceController) Update(ctx *app.UpdateSpaceContext) error {
 			return err
 		}
 
-		if !uuid.Equal(*currentUser, s.OwnerId) {
-			log.Error(ctx, map[string]interface{}{"currentUser": *currentUser, "owner": s.OwnerId}, "Current user is not owner")
+		if !uuid.Equal(*currentUser, s.OwnerID) {
+			log.Error(ctx, map[string]interface{}{"currentUser": *currentUser, "owner": s.OwnerID}, "Current user is not owner")
 			return goa.NewErrorClass("forbidden", 403)("User is not the space owner")
 		}
 
@@ -346,7 +283,7 @@ func (c *SpaceController) Update(ctx *app.UpdateSpaceContext) error {
 			return err
 		}
 
-		spaceData, err := ConvertSpaceFromModel(ctx.Context, c.db, ctx.Request, *s)
+		spaceData, err := ConvertSpaceFromModel(ctx.Request, *s, IncludeBacklogTotalCount(ctx.Context, c.db))
 		if err != nil {
 			return err
 		}
@@ -417,50 +354,59 @@ func ConvertSpaceToModel(appSpace app.Space) space.Space {
 	}
 	if appSpace.Relationships != nil && appSpace.Relationships.OwnedBy != nil &&
 		appSpace.Relationships.OwnedBy.Data != nil && appSpace.Relationships.OwnedBy.Data.ID != nil {
-		modelSpace.OwnerId = *appSpace.Relationships.OwnedBy.Data.ID
+		modelSpace.OwnerID = *appSpace.Relationships.OwnedBy.Data.ID
 	}
 	return modelSpace
 }
 
 // SpaceConvertFunc is a open ended function to add additional links/data/relations to a Space during
 // conversion from internal to API
-type SpaceConvertFunc func(*http.Request, *space.Space, *app.Space)
+type SpaceConvertFunc func(*http.Request, *space.Space, *app.Space) error
+
+// IncludeBacklog returns a SpaceConvertFunc that includes the a link to the backlog
+// along with the total count of items in the backlog of the current space
+func IncludeBacklogTotalCount(ctx context.Context, db application.DB) SpaceConvertFunc {
+	return func(req *http.Request, modelSpace *space.Space, appSpace *app.Space) error {
+		count, err := countBacklogItems(ctx, db, modelSpace.ID)
+		if err != nil {
+			return errs.Wrap(err, "unable to count backlog items")
+		}
+		appSpace.Links.Backlog.Meta = &app.BacklogLinkMeta{TotalCount: count} // TODO (xcoulon) remove that part
+		appSpace.Relationships.Backlog.Meta = map[string]interface{}{"totalCount": count}
+		return nil
+	}
+}
 
 // ConvertSpacesFromModel converts between internal and external REST representation
-func ConvertSpacesFromModel(ctx context.Context, db application.DB, request *http.Request, spaces []space.Space, additional ...SpaceConvertFunc) ([]*app.Space, error) {
-	var ps = []*app.Space{}
-	for _, p := range spaces {
-		spaceData, err := ConvertSpaceFromModel(ctx, db, request, p, additional...)
+func ConvertSpacesFromModel(request *http.Request, spaces []space.Space, additional ...SpaceConvertFunc) ([]*app.Space, error) {
+	var result = make([]*app.Space, len(spaces))
+	for i, p := range spaces {
+		spaceData, err := ConvertSpaceFromModel(request, p, additional...)
 		if err != nil {
 			return nil, err
 		}
-
-		ps = append(ps, spaceData)
+		result[i] = spaceData
 	}
-	return ps, nil
+	return result, nil
 }
 
 // ConvertSpaceFromModel converts between internal and external REST representation
-func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *http.Request, sp space.Space, additional ...SpaceConvertFunc) (*app.Space, error) {
-	relatedURL := rest.AbsoluteURL(request, app.SpaceHref(sp.ID))
+func ConvertSpaceFromModel(request *http.Request, sp space.Space, options ...SpaceConvertFunc) (*app.Space, error) {
+	selfURL := rest.AbsoluteURL(request, app.SpaceHref(sp.ID))
 	spaceIDStr := sp.ID.String()
-	relatedIterationList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/iterations", spaceIDStr))
-	relatedAreaList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/areas", spaceIDStr))
-	relatedBacklogList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/backlog", spaceIDStr))
-	relatedCodebasesList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/codebases", spaceIDStr))
-	relatedWorkItemList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitems", spaceIDStr))
-	relatedWorkItemTypeList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitemtypes", spaceIDStr))
-	relatedWorkItemLinkTypeList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitemlinktypes", spaceIDStr))
-	relatedOwnerByLink := rest.AbsoluteURL(request, fmt.Sprintf("%s/%s", usersEndpoint, sp.OwnerId.String()))
-	relatedCollaboratorList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/collaborators", spaceIDStr))
-	relatedFilterList := rest.AbsoluteURL(request, "/api/filters")
-	relatedLabelList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/labels", spaceIDStr))
-	workitemTypeGroupsLink := rest.AbsoluteURL(request, app.SpaceTemplateHref(spaceIDStr)+"/workitemtypegroups/")
+	relatedIterations := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/iterations", spaceIDStr))
+	relatedAreas := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/areas", spaceIDStr))
+	relatedBacklog := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/backlog", spaceIDStr))
+	relatedCodebases := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/codebases", spaceIDStr))
+	relatedWorkItems := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitems", spaceIDStr))
+	relatedWorkItemTypes := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitemtypes", spaceIDStr))
+	relatedWorkItemLinkTypes := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitemlinktypes", spaceIDStr))
+	relatedOwners := rest.AbsoluteURL(request, app.UsersHref(sp.OwnerID.String()))
+	relatedCollaborators := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/collaborators", spaceIDStr))
+	relatedFilters := rest.AbsoluteURL(request, "/api/filters")
+	relatedLabels := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/labels", spaceIDStr))
+	relatedWorkitemTypeGroups := rest.AbsoluteURL(request, app.SpaceTemplateHref(spaceIDStr)+"/workitemtypegroups")
 
-	count, err := countBacklogItems(ctx, db, sp.ID)
-	if err != nil {
-		return nil, errs.Wrap(err, "unable to fetch backlog items")
-	}
 	s := &app.Space{
 		ID:   &sp.ID,
 		Type: APIStringTypeSpace,
@@ -472,61 +418,88 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *http
 			Version:     &sp.Version,
 		},
 		Links: &app.GenericLinksForSpace{
-			Self:    &relatedURL,
-			Related: &relatedURL,
-			Backlog: &app.BacklogGenericLink{
-				Self: &relatedBacklogList,
-				Meta: &app.BacklogLinkMeta{TotalCount: count},
+			Self:    &selfURL,
+			Related: &selfURL, //TODO (xcoulon): remove this link
+			Backlog: &app.BacklogGenericLink{ //TODO (xcoulon): remove this link
+				Self: &relatedBacklog,
 			},
-			Workitemtypes:      &relatedWorkItemTypeList,
-			Workitemlinktypes:  &relatedWorkItemLinkTypeList,
-			Filters:            &relatedFilterList,
-			Workitemtypegroups: &workitemTypeGroupsLink,
+			Workitemtypes:     &relatedWorkItemTypes,     //TODO (xcoulon): remove this link
+			Workitemlinktypes: &relatedWorkItemLinkTypes, //TODO (xcoulon): remove this link
+			Filters:           &relatedFilters,           //TODO (xcoulon): remove this link
 		},
 		Relationships: &app.SpaceRelationships{
-			OwnedBy: &app.SpaceOwnedBy{
-				Data: &app.IdentityRelationData{
-					Type: "identities",
-					ID:   &sp.OwnerId,
-				},
-				Links: &app.GenericLinks{
-					Related: &relatedOwnerByLink,
-				},
-			},
-			Iterations: &app.RelationGeneric{
-				Links: &app.GenericLinks{
-					Related: &relatedIterationList,
-				},
-			},
 			Areas: &app.RelationGeneric{
 				Links: &app.GenericLinks{
-					Related: &relatedAreaList,
+					Related: &relatedAreas,
+				},
+			},
+			Backlog: &app.RelationGeneric{
+				Links: &app.GenericLinks{
+					Related: &relatedBacklog,
 				},
 			},
 			Codebases: &app.RelationGeneric{
 				Links: &app.GenericLinks{
-					Related: &relatedCodebasesList,
-				},
-			},
-			Workitems: &app.RelationGeneric{
-				Links: &app.GenericLinks{
-					Related: &relatedWorkItemList,
+					Related: &relatedCodebases,
 				},
 			},
 			Collaborators: &app.RelationGeneric{
 				Links: &app.GenericLinks{
-					Related: &relatedCollaboratorList,
+					Related: &relatedCollaborators,
+				},
+			},
+			Filters: &app.RelationGeneric{
+				Links: &app.GenericLinks{
+					Related: &relatedFilters,
+				},
+			},
+			OwnedBy: &app.SpaceOwnedBy{
+				Data: &app.IdentityRelationData{
+					Type: "identities",
+					ID:   &sp.OwnerID,
+				},
+				Links: &app.GenericLinks{
+					Related: &relatedOwners,
+				},
+			},
+			Iterations: &app.RelationGeneric{
+				Links: &app.GenericLinks{
+					Related: &relatedIterations,
 				},
 			},
 			Labels: &app.RelationGeneric{
 				Links: &app.GenericLinks{
-					Related: &relatedLabelList,
+					Related: &relatedLabels,
+				},
+			},
+			Workitems: &app.RelationGeneric{
+				Links: &app.GenericLinks{
+					Related: &relatedWorkItems,
+				},
+			},
+			Workitemtypes: &app.RelationGeneric{
+				Links: &app.GenericLinks{
+					Related: &relatedWorkItemTypes,
+				},
+			},
+			Workitemlinktypes: &app.RelationGeneric{
+				Links: &app.GenericLinks{
+					Related: &relatedWorkItemLinkTypes,
+				},
+			},
+			Workitemtypegroups: &app.RelationGeneric{
+				Links: &app.GenericLinks{
+					Related: &relatedWorkitemTypeGroups,
 				},
 			},
 		},
 	}
-	for _, add := range additional {
-		add(request, &sp, s)
+	// apply options (ie, if extra content needs to be provided in the response element)
+	for _, option := range options {
+		err := option(request, &sp, s)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return s, nil
 }

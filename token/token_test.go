@@ -36,14 +36,14 @@ func TestValidOAuthAccessToken(t *testing.T) {
 		Username: "testuser",
 	}
 	generatedToken, err := testtoken.GenerateToken(identity.ID.String(), identity.Username, privateKey)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	accessToken := &oauth2.Token{
 		AccessToken: generatedToken,
 		TokenType:   "Bearer",
 	}
 
 	claims, err := tokenManager.ParseToken(context.Background(), accessToken.AccessToken)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, identity.ID.String(), claims.Subject)
 	assert.Equal(t, identity.Username, claims.Username)
 }
@@ -103,16 +103,16 @@ func TestLocateTokenInContex(t *testing.T) {
 	ctx := goajwt.WithJWT(context.Background(), tk)
 
 	foundId, err := tokenManager.Locate(ctx)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, id, foundId, "ID in created context not equal")
 }
 
 func TestIsServiceAccountTokenInContextClaimPresent(t *testing.T) {
 	tk := jwt.New(jwt.SigningMethodRS256)
-	tk.Claims.(jwt.MapClaims)["service_accountname"] = "auth"
+	tk.Claims.(jwt.MapClaims)["service_accountname"] = "fabric8-auth"
 	ctx := goajwt.WithJWT(context.Background(), tk)
 
-	isServiceAccount := tokenManager.IsServiceAccount(ctx)
+	isServiceAccount := tokenManager.IsServiceAccount(ctx, "fabric8-auth")
 	require.True(t, isServiceAccount)
 }
 
@@ -120,16 +120,16 @@ func TestIsServiceAccountTokenInContextClaimAbsent(t *testing.T) {
 	tk := jwt.New(jwt.SigningMethodRS256)
 	ctx := goajwt.WithJWT(context.Background(), tk)
 
-	isServiceAccount := tokenManager.IsServiceAccount(ctx)
+	isServiceAccount := tokenManager.IsServiceAccount(ctx, "fabric8-auth")
 	require.False(t, isServiceAccount)
 }
 
 func TestIsServiceAccountTokenInContextClaimIncorrect(t *testing.T) {
 	tk := jwt.New(jwt.SigningMethodRS256)
-	tk.Claims.(jwt.MapClaims)["service_accountname"] = "Not-auth"
+	tk.Claims.(jwt.MapClaims)["service_accountname"] = "auth"
 	ctx := goajwt.WithJWT(context.Background(), tk)
 
-	isServiceAccount := tokenManager.IsServiceAccount(ctx)
+	isServiceAccount := tokenManager.IsServiceAccount(ctx, "fabric8-auth")
 	require.False(t, isServiceAccount)
 }
 
@@ -138,7 +138,7 @@ func TestIsServiceAccountTokenInContextClaimIncorrectType(t *testing.T) {
 	tk.Claims.(jwt.MapClaims)["service_accountname"] = 1
 	ctx := goajwt.WithJWT(context.Background(), tk)
 
-	isServiceAccount := tokenManager.IsServiceAccount(ctx)
+	isServiceAccount := tokenManager.IsServiceAccount(ctx, "fabric8-auth")
 	require.False(t, isServiceAccount)
 }
 
@@ -156,7 +156,7 @@ func TestLocateMissingUUIDInTokenInContext(t *testing.T) {
 	ctx := goajwt.WithJWT(context.Background(), tk)
 
 	_, err := tokenManager.Locate(ctx)
-	require.NotNil(t, err)
+	require.Error(t, err)
 }
 
 func TestLocateInvalidUUIDInTokenInContext(t *testing.T) {
@@ -165,5 +165,5 @@ func TestLocateInvalidUUIDInTokenInContext(t *testing.T) {
 	ctx := goajwt.WithJWT(context.Background(), tk)
 
 	_, err := tokenManager.Locate(ctx)
-	require.NotNil(t, err)
+	require.Error(t, err)
 }

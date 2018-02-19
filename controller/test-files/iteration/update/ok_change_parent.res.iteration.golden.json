@@ -1,0 +1,52 @@
+{
+  "data": {
+    "attributes": {
+      "active_status": false,
+      "created-at": "0001-01-01T00:00:00Z",
+      "description": "Some description",
+      "name": "iteration 3",
+      "parent_path": "/00000000-0000-0000-0000-000000000001/00000000-0000-0000-0000-000000000002",
+      "resolved_parent_path": "/root/iteration 1",
+      "state": "new",
+      "updated-at": "0001-01-01T00:00:00Z",
+      "user_active": false
+    },
+    "id": "00000000-0000-0000-0000-000000000003",
+    "links": {
+      "related": "http:///api/iterations/00000000-0000-0000-0000-000000000003",
+      "self": "http:///api/iterations/00000000-0000-0000-0000-000000000003"
+    },
+    "relationships": {
+      "parent": {
+        "data": {
+          "id": "00000000-0000-0000-0000-000000000002",
+          "type": "iterations"
+        },
+        "links": {
+          "related": "http:///api/iterations/00000000-0000-0000-0000-000000000002",
+          "self": "http:///api/iterations/00000000-0000-0000-0000-000000000002"
+        }
+      },
+      "space": {
+        "data": {
+          "id": "00000000-0000-0000-0000-000000000004",
+          "type": "spaces"
+        },
+        "links": {
+          "related": "http:///api/spaces/00000000-0000-0000-0000-000000000004",
+          "self": "http:///api/spaces/00000000-0000-0000-0000-000000000004"
+        }
+      },
+      "workitems": {
+        "links": {
+          "related": "http:///api/workitems/?filter[iteration]=00000000-0000-0000-0000-000000000003"
+        },
+        "meta": {
+          "closed": 0,
+          "total": 0
+        }
+      }
+    },
+    "type": "iterations"
+  }
+}

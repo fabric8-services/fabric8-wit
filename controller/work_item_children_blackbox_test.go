@@ -65,7 +65,7 @@ func (s *workItemChildSuite) SetupTest() {
 	s.db = gormapplication.NewGormDB(s.DB)
 
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "workItemChildSuite user", "test provider")
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	s.testIdentity = *testIdentity
 
 	svc := testsupport.ServiceAsUser("WorkItemLink-Service", s.testIdentity)
@@ -120,7 +120,9 @@ func (s *workItemChildSuite) SetupTest() {
 	require.NotNil(s.T(), s.svc)
 
 	// Create a work item link space
-	createSpacePayload := CreateSpacePayload("test-space"+uuid.NewV4().String(), "description")
+	name := "test-space" + uuid.NewV4().String()
+	description := "description"
+	createSpacePayload := newCreateSpacePayload(&name, &description)
 	_, space := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, createSpacePayload)
 	s.userSpaceID = *space.Data.ID
 	s.T().Logf("Created link space with ID: %s\n", *space.Data.ID)
@@ -145,10 +147,10 @@ func (s *workItemChildSuite) SetupTest() {
 	s.T().Logf("Created bug3 with ID: %s\n", *s.bug3.Data.ID)
 
 	// Create a work item link category
-	description := "This work item link category is managed by an admin user."
+	linkCategoryDescription := "This work item link category is managed by an admin user."
 	userLinkCategoryID := createWorkItemLinkCategoryInRepo(s.T(), s.db, s.svc.Context, link.WorkItemLinkCategory{
 		Name:        "test-user",
-		Description: &description,
+		Description: &linkCategoryDescription,
 	})
 	s.T().Logf("Created link category with ID: %s\n", userLinkCategoryID)
 
@@ -163,14 +165,6 @@ func (s *workItemChildSuite) SetupTest() {
 func (s *workItemChildSuite) linkWorkItems(source, target *app.WorkItemSingle) app.WorkItemLinkSingle {
 	createPayload := newCreateWorkItemLinkPayload(*source.Data.ID, *target.Data.ID, s.bugBlockerLinkTypeID)
 	_, workitemLink := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.workitemLinkCtrl, createPayload)
-	require.NotNil(s.T(), workitemLink)
-	return *workitemLink
-}
-
-func (s *workItemChildSuite) updateWorkItemLink(workitemLinkID uuid.UUID, source, target *app.WorkItemSingle) app.WorkItemLinkSingle {
-	updatePayload := newUpdateWorkItemLinkPayload(workitemLinkID, *source.Data.ID, *target.Data.ID, s.bugBlockerLinkTypeID)
-	log.Info(nil, nil, fmt.Sprintf("Updating work item link from %v to %v", *source.Data.ID, *target.Data.ID))
-	_, workitemLink := test.UpdateWorkItemLinkOK(s.T(), s.svc.Context, s.svc, s.workitemLinkCtrl, workitemLinkID, updatePayload)
 	require.NotNil(s.T(), workitemLink)
 	return *workitemLink
 }
@@ -276,9 +270,11 @@ func (s *workItemChildSuite) TestChildren() {
 		assertResponseHeaders(t, res)
 	})
 	s.T().Run("not modified using if modified since header", func(t *testing.T) {
+		// given
+		res, _ := test.ListChildrenWorkitemOK(t, s.svc.Context, s.svc, s.workItemCtrl, *s.bug1.Data.ID, nil, nil, nil, nil)
+		ifModifiedSince := res.Header()[app.LastModified][0]
 		// when
-		ifModifiedSince := app.ToHTTPTime(s.bug3.Data.Attributes[workitem.SystemUpdatedAt].(time.Time))
-		res := test.ListChildrenWorkitemNotModified(t, s.svc.Context, s.svc, s.workItemCtrl, *s.bug1.Data.ID, nil, nil, &ifModifiedSince, nil)
+		res = test.ListChildrenWorkitemNotModified(t, s.svc.Context, s.svc, s.workItemCtrl, *s.bug1.Data.ID, nil, nil, &ifModifiedSince, nil)
 		// then
 		assertResponseHeaders(t, res)
 	})
@@ -841,14 +837,15 @@ func (s *searchParentExistsSuite) TestSearchWorkItemListFilterUsingParentExists(
 		// given
 		pe := false
 		// when
-		sid := space.SystemSpace.String()
 		filter := fmt.Sprintf(`
 			{"$AND": [
-				{"type":"%s"}
+				{"space":"%[1]s"},
+				{"type":"%[2]s"}
 			]}`,
+			s.userSpaceID.String(),
 			workitem.SystemBug)
 
-		_, result := test.ShowSearchOK(t, nil, nil, s.searchCtrl, &filter, &pe, nil, nil, nil, &sid)
+		_, result := test.ShowSearchOK(t, nil, nil, s.searchCtrl, &filter, &pe, nil, nil, nil, nil)
 		// then
 		assert.Len(t, result.Data, 1)
 		checkChildrenRelationship(t, lookupWorkitemFromSearchList(t, *result, *s.bug1.Data.ID), hasChildren)
@@ -861,8 +858,10 @@ func (s *searchParentExistsSuite) TestSearchWorkItemListFilterUsingParentExists(
 		sid := space.SystemSpace.String()
 		filter := fmt.Sprintf(`
 			{"$AND": [
-				{"type":"%s"}
+				{"space":"%[1]s"},
+				{"type":"%[2]s"}
 			]}`,
+			s.userSpaceID.String(),
 			workitem.SystemBug)
 
 		_, result := test.ShowSearchOK(t, nil, nil, s.searchCtrl, &filter, &pe, nil, nil, nil, &sid)

@@ -8,6 +8,9 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/google/gops/agent"
+	"github.com/prometheus/client_golang/prometheus"
+
 	"context"
 
 	"github.com/jinzhu/gorm"
@@ -68,7 +71,7 @@ func main() {
 		}
 	}
 
-	config, err := configuration.NewConfigurationData(configFilePath)
+	config, err := configuration.New(configFilePath)
 	if err != nil {
 		log.Panic(nil, map[string]interface{}{
 			"config_file_path": configFilePath,
@@ -193,11 +196,11 @@ func main() {
 	service.Use(log.LogRequest(config.IsPostgresDeveloperModeEnabled()))
 	app.UseJWTMiddleware(service, goajwt.New(tokenManager.PublicKeys(), nil, app.NewJWTSecurity()))
 
-	spaceAuthzService := authz.NewAuthzService(config, appDB)
+	spaceAuthzService := authz.NewAuthzService(config)
 	service.Use(authz.InjectAuthzService(spaceAuthzService))
 
 	loginService := login.NewKeycloakOAuthProvider(identityRepository, userRepository, tokenManager, appDB)
-	loginCtrl := controller.NewLoginController(service, loginService, tokenManager, config, identityRepository)
+	loginCtrl := controller.NewLoginController(service, loginService, config, identityRepository)
 	app.MountLoginController(service, loginCtrl)
 
 	logoutCtrl := controller.NewLogoutController(service, config)
@@ -277,7 +280,7 @@ func main() {
 	app.MountSpaceController(service, spaceCtrl)
 
 	// Mount "user" controller
-	userCtrl := controller.NewUserController(service, appDB, tokenManager, config)
+	userCtrl := controller.NewUserController(service, config)
 	if config.GetTenantServiceURL() != "" {
 		log.Logger().Infof("Enabling Init Tenant service %v", config.GetTenantServiceURL())
 		userCtrl.InitTenant = account.NewInitTenant(config)
@@ -290,13 +293,16 @@ func main() {
 	userServiceCtrl.ShowTenant = account.NewShowTenant(config)
 	app.MountUserServiceController(service, userServiceCtrl)
 
+	// Mount "deployments" controller
+	deploymentsCtrl := controller.NewDeploymentsController(service, config)
+	app.MountDeploymentsController(service, deploymentsCtrl)
+
 	// Mount "search" controller
 	searchCtrl := controller.NewSearchController(service, appDB, config)
 	app.MountSearchController(service, searchCtrl)
 
 	// Mount "users" controller
-	keycloakProfileService := login.NewKeycloakUserProfileClient()
-	usersCtrl := controller.NewUsersController(service, appDB, config, keycloakProfileService)
+	usersCtrl := controller.NewUsersController(service, appDB, config)
 	app.MountUsersController(service, usersCtrl)
 
 	// Mount "labels" controller
@@ -340,6 +346,8 @@ func main() {
 	// Mount "codebase" controller
 	codebaseCtrl := controller.NewCodebaseController(service, appDB, config)
 	codebaseCtrl.ShowTenant = account.NewShowTenant(config)
+	codebaseCtrl.NewCheClient = controller.NewDefaultCheClient(config)
+
 	app.MountCodebaseController(service, codebaseCtrl)
 
 	// Mount "spacecodebases" controller
@@ -347,16 +355,28 @@ func main() {
 	app.MountSpaceCodebasesController(service, spaceCodebaseCtrl)
 
 	// Mount "collaborators" controller
-	collaboratorsCtrl := controller.NewCollaboratorsController(service, appDB, config, auth.NewKeycloakPolicyManager(config))
+	collaboratorsCtrl := controller.NewCollaboratorsController(service, config)
 	app.MountCollaboratorsController(service, collaboratorsCtrl)
 
 	// Mount "space template" controller
 	spaceTemplateCtrl := controller.NewSpaceTemplateController(service, appDB)
 	app.MountSpaceTemplateController(service, spaceTemplateCtrl)
 
-	// Mount "type hierarchy" controller
+	// Mount "type group" controller with "show" action
 	workItemTypeGroupCtrl := controller.NewWorkItemTypeGroupController(service, appDB)
 	app.MountWorkItemTypeGroupController(service, workItemTypeGroupCtrl)
+
+	// Mount "type groups" controller with "list" action
+	workItemTypeGroupsCtrl := controller.NewWorkItemTypeGroupsController(service, appDB)
+	app.MountWorkItemTypeGroupsController(service, workItemTypeGroupsCtrl)
+
+	// Mount "queries" controller
+	queriesCtrl := controller.NewQueryController(service, appDB, config)
+	app.MountQueryController(service, queriesCtrl)
+
+	// proxying call to "/api/features/*" to the toggles service
+	featuresCtrl := controller.NewFeaturesController(service, config)
+	app.MountFeaturesController(service, featuresCtrl)
 
 	log.Logger().Infoln("Git Commit SHA: ", controller.Commit)
 	log.Logger().Infoln("UTC Build Time: ", controller.BuildTime)
@@ -368,6 +388,34 @@ func main() {
 	http.Handle("/api/", service.Mux)
 	http.Handle("/", http.FileServer(assetFS()))
 	http.Handle("/favicon.ico", http.NotFoundHandler())
+
+	if config.GetDiagnoseHTTPAddress() != "" {
+		log.Logger().Infoln("Diagnose:       ", config.GetDiagnoseHTTPAddress())
+		// Start diagnostic http
+		if err := agent.Listen(agent.Options{Addr: config.GetDiagnoseHTTPAddress(), ConfigDir: "/tmp/gops/"}); err != nil {
+			log.Error(nil, map[string]interface{}{
+				"addr": config.GetDiagnoseHTTPAddress(),
+				"err":  err,
+			}, "unable to connect to diagnose server")
+		}
+	}
+
+	// Start/mount metrics http
+	if config.GetHTTPAddress() == config.GetMetricsHTTPAddress() {
+		http.Handle("/metrics", prometheus.Handler())
+	} else {
+		go func(metricAddress string) {
+			mx := http.NewServeMux()
+			mx.Handle("/metrics", prometheus.Handler())
+			if err := http.ListenAndServe(metricAddress, mx); err != nil {
+				log.Error(nil, map[string]interface{}{
+					"addr": metricAddress,
+					"err":  err,
+				}, "unable to connect to metrics server")
+				service.LogError("startup", "err", err)
+			}
+		}(config.GetMetricsHTTPAddress())
+	}
 
 	// Start http
 	if err := http.ListenAndServe(config.GetHTTPAddress(), nil); err != nil {

@@ -1,0 +1,95 @@
+{
+  "data": {
+    "attributes": {
+      "created-at": "0001-01-01T00:00:00Z",
+      "description": "Space for TestShowSpaceOK",
+      "name": "TestShowSpaceOK-00000000-0000-0000-0000-000000000001",
+      "updated-at": "0001-01-01T00:00:00Z",
+      "version": 0
+    },
+    "id": "00000000-0000-0000-0000-000000000002",
+    "links": {
+      "backlog": {
+        "meta": {
+          "totalCount": 0
+        },
+        "self": "http:///api/spaces/00000000-0000-0000-0000-000000000002/backlog"
+      },
+      "filters": "http:///api/filters",
+      "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002",
+      "self": "http:///api/spaces/00000000-0000-0000-0000-000000000002",
+      "workitemlinktypes": "http:///api/spaces/00000000-0000-0000-0000-000000000002/workitemlinktypes",
+      "workitemtypes": "http:///api/spaces/00000000-0000-0000-0000-000000000002/workitemtypes"
+    },
+    "relationships": {
+      "areas": {
+        "links": {
+          "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002/areas"
+        }
+      },
+      "backlog": {
+        "links": {
+          "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002/backlog"
+        },
+        "meta": {
+          "totalCount": 0
+        }
+      },
+      "codebases": {
+        "links": {
+          "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002/codebases"
+        }
+      },
+      "collaborators": {
+        "links": {
+          "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002/collaborators"
+        }
+      },
+      "filters": {
+        "links": {
+          "related": "http:///api/filters"
+        }
+      },
+      "iterations": {
+        "links": {
+          "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002/iterations"
+        }
+      },
+      "labels": {
+        "links": {
+          "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002/labels"
+        }
+      },
+      "owned-by": {
+        "data": {
+          "id": "00000000-0000-0000-0000-000000000003",
+          "type": "identities"
+        },
+        "links": {
+          "related": "http:///api/users/00000000-0000-0000-0000-000000000003"
+        }
+      },
+      "workitemlinktypes": {
+        "links": {
+          "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002/workitemlinktypes"
+        }
+      },
+      "workitems": {
+        "links": {
+          "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002/workitems"
+        }
+      },
+      "workitemtypegroups": {
+        "links": {
+          "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups"
+        }
+      },
+      "workitemtypes": {
+        "links": {
+          "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002/workitemtypes"
+        }
+      }
+    },
+    "type": "spaces"
+  }
+}

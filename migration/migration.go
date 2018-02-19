@@ -349,6 +349,33 @@ func GetMigrations() Migrations {
 	// Version 75
 	m = append(m, steps{ExecuteSQLFile("075-label-unique-name.sql")})
 
+	// Version 76
+	m = append(m, steps{ExecuteSQLFile("076-drop-space-resources-and-oauth-state.sql")})
+
+	// Version 77
+	m = append(m, steps{ExecuteSQLFile("077-index-work-item-links.sql")})
+
+	// Version 78
+	m = append(m, steps{ExecuteSQLFile("078-tracker-to-use-uuid.sql")})
+
+	// Version 79
+	m = append(m, steps{ExecuteSQLFile("079-assignee-and-label-empty-value.sql", workitem.SystemAssignees, workitem.SystemLabels)})
+
+	// Version 80
+	m = append(m, steps{ExecuteSQLFile("080-remove-unknown-link-types.sql",
+		link.SystemWorkItemLinkTypeBugBlockerID.String(),
+		link.SystemWorkItemLinkPlannerItemRelatedID.String(),
+		link.SystemWorkItemLinkTypeParentChildID.String(),
+		link.SystemWorkItemLinkCategorySystemID.String(),
+		link.SystemWorkItemLinkCategoryUserID.String(),
+	)})
+
+	// Version 81
+	m = append(m, steps{ExecuteSQLFile("081-queries.sql")})
+
+	// Version 82
+	m = append(m, steps{ExecuteSQLFile("082-iteration-related-changes.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -389,24 +416,24 @@ func ExecuteSQLFile(filename string, args ...string) fn {
 		if len(args) > 0 {
 			tmpl, err := template.New("sql").Parse(string(data))
 			if err != nil {
-				return errs.Wrap(err, "failed to parse SQL template")
+				return errs.Wrapf(err, "failed to parse SQL template in file %s", filename)
 			}
 			var sqlScript bytes.Buffer
 			writer := bufio.NewWriter(&sqlScript)
 			err = tmpl.Execute(writer, args)
 			if err != nil {
-				return errs.Wrap(err, "failed to execute SQL template")
+				return errs.Wrapf(err, "failed to execute SQL template in file %s", filename)
 			}
 			// We need to flush the content of the writer
 			writer.Flush()
 			_, err = db.Exec(sqlScript.String())
 			if err != nil {
-				log.Error(context.Background(), map[string]interface{}{}, "failed to execute this query: \n\n%s\n\n", sqlScript.String())
+				log.Error(context.Background(), map[string]interface{}{"err": err}, "failed to execute this query in file %s: \n\n%s\n\n", filename, sqlScript.String())
 			}
 		} else {
 			_, err = db.Exec(string(data))
 			if err != nil {
-				log.Error(context.Background(), map[string]interface{}{}, "failed to execute this query: \n\n%s\n\n", string(data))
+				log.Error(context.Background(), map[string]interface{}{"err": err}, "failed to execute this query in file: %s \n\n%s\n\n", filename, string(data))
 			}
 		}
 
@@ -422,7 +449,7 @@ func MigrateToNextVersion(tx *sql.Tx, nextVersion *int64, m Migrations, catalog 
 	// Once obtained, the lock is held for the remainder of the current transaction.
 	// (There is no UNLOCK TABLE command; locks are always released at transaction end.)
 	if _, err := tx.Exec("SELECT pg_advisory_xact_lock($1)", AdvisoryLockID); err != nil {
-		return errs.Errorf("Failed to acquire lock: %s\n", err)
+		return errs.Wrapf(err, "failed to acquire lock: %s\n", AdvisoryLockID)
 	}
 
 	// Determine current version and adjust the outmost loop
@@ -577,7 +604,7 @@ func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkIte
 		ID:             link.SystemWorkItemLinkTypeParentChildID,
 		Name:           "Parent child item",
 		Description:    &parentingDesc,
-		Topology:       link.TopologyNetwork,
+		Topology:       link.TopologyTree,
 		ForwardName:    "parent of",
 		ReverseName:    "child of",
 		LinkCategoryID: systemCat.ID,
@@ -644,7 +671,7 @@ func createOrUpdateSpace(ctx context.Context, spaceRepo *space.GormRepository, i
 }
 
 func createSpace(ctx context.Context, spaceRepo *space.GormRepository, id uuid.UUID, description string) error {
-	err := spaceRepo.CheckExists(ctx, id.String())
+	err := spaceRepo.CheckExists(ctx, id)
 	if err != nil {
 		cause := errs.Cause(err)
 		switch cause.(type) {
@@ -713,9 +740,9 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *workitem.GormWo
 		{workitem.SystemBug, "Bug", "", "fa fa-bug"},
 		{workitem.SystemTask, "Task", "", "fa fa-tasks"},
 		{workitem.SystemFeature, "Feature", "", "fa fa-puzzle-piece"},
-		{workitem.SystemScenario, "Scenario", "", "fa fa-bolt"},
+		{workitem.SystemScenario, "Scenario", "", "fa fa-bullseye"},
 		{workitem.SystemValueProposition, "Value Proposition", "", "fa fa-diamond"},
-		{workitem.SystemExperience, "Experience", "", "fa fa-map"},
+		{workitem.SystemExperience, "Experience", "", "pficon pficon-infrastructure"},
 		{workitem.SystemFundamental, "Fundamental", "", "fa fa-university"},
 		{workitem.SystemPapercuts, "Papercuts", "", "fa fa-scissors"},
 	}

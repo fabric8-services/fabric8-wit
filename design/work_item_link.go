@@ -80,6 +80,7 @@ See also http://jsonapi.org/format/#document-resource-object-relationships`)
 // relationWorkItem is the JSONAPI store for the links
 var relationWorkItem = a.Type("RelationWorkItem", func() {
 	a.Attribute("data", relationWorkItemData)
+	a.Attribute("links", genericLinks)
 })
 
 // relationWorkItemData is the JSONAPI data object of the the work item relationship objects
@@ -124,104 +125,72 @@ var workItemLinkList = JSONList(
 
 var _ = a.Resource("work_item_link", func() {
 	a.BasePath("/workitemlinks")
-	a.Action("show", showWorkItemLink)
-	a.Action("create", createWorkItemLink)
-	a.Action("delete", deleteWorkItemLink)
-	a.Action("update", updateWorkItemLink)
+	a.Action("show", func() {
+		a.Description("Retrieve work item link (as JSONAPI) for the given link ID.")
+		a.Routing(
+			a.GET("/:linkId"),
+		)
+		a.Params(func() {
+			a.Param("linkId", d.UUID, "ID of the work item link to show")
+		})
+		a.UseTrait("conditional")
+		a.Response(d.OK, workItemLink)
+		a.Response(d.NotModified)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+	})
+	a.Action("create", func() {
+		a.Description("Create a work item link")
+		a.Security("jwt")
+		a.Routing(
+			a.POST(""),
+		)
+		a.Payload(createWorkItemLinkPayload)
+		a.Response(d.Created, "/workitemlinks/.*", func() {
+			a.Media(workItemLink)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Conflict, JSONAPIErrors)
+		a.Response(d.Forbidden, JSONAPIErrors)
+	})
+	a.Action("delete", func() {
+		a.Description("Delete work item link with given id.")
+		a.Security("jwt")
+		a.Routing(
+			a.DELETE("/:linkId"),
+		)
+		a.Params(func() {
+			a.Param("linkId", d.UUID, "ID of the work item link to be deleted")
+		})
+		a.Response(d.OK)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.Forbidden, JSONAPIErrors)
+	})
 })
 
 var _ = a.Resource("work_item_relationships_links", func() {
 	a.BasePath("/relationships/links")
 	a.Parent("workitem")
 	a.Action("list", func() {
-		listWorkItemLinks()
+		a.Description("Retrieve work item link (as JSONAPI) for the given link ID.")
+		a.Routing(
+			a.GET(""),
+		)
+		a.UseTrait("conditional")
+		a.Response(d.OK, workItemLinkList)
+		a.Response(d.NotModified)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Description("List work item links associated with the given work item (either as source or as target work item).")
 		a.Response(d.NotFound, JSONAPIErrors, func() {
 			a.Description("This error arises when the given work item does not exist.")
 		})
 	})
-	a.Action("create", createWorkItemLink)
 })
-
-// listWorkItemLinks defines the list action for endpoints that return an array
-// of work item links.
-func listWorkItemLinks() {
-	a.Description("Retrieve work item link (as JSONAPI) for the given link ID.")
-	a.Routing(
-		a.GET(""),
-	)
-	a.UseTrait("conditional")
-	a.Response(d.OK, workItemLinkList)
-	a.Response(d.NotModified)
-	a.Response(d.BadRequest, JSONAPIErrors)
-	a.Response(d.InternalServerError, JSONAPIErrors)
-}
-
-func showWorkItemLink() {
-	a.Description("Retrieve work item link (as JSONAPI) for the given link ID.")
-	a.Routing(
-		a.GET("/:linkId"),
-	)
-	a.Params(func() {
-		a.Param("linkId", d.UUID, "ID of the work item link to show")
-	})
-	a.UseTrait("conditional")
-	a.Response(d.OK, workItemLink)
-	a.Response(d.NotModified)
-	a.Response(d.BadRequest, JSONAPIErrors)
-	a.Response(d.InternalServerError, JSONAPIErrors)
-	a.Response(d.NotFound, JSONAPIErrors)
-}
-
-func createWorkItemLink() {
-	a.Description("Create a work item link")
-	a.Security("jwt")
-	a.Routing(
-		a.POST(""),
-	)
-	a.Payload(createWorkItemLinkPayload)
-	a.Response(d.Created, "/workitemlinks/.*", func() {
-		a.Media(workItemLink)
-	})
-	a.Response(d.BadRequest, JSONAPIErrors)
-	a.Response(d.InternalServerError, JSONAPIErrors)
-	a.Response(d.Unauthorized, JSONAPIErrors)
-	a.Response(d.NotFound, JSONAPIErrors)
-	a.Response(d.Conflict, JSONAPIErrors)
-}
-
-func deleteWorkItemLink() {
-	a.Description("Delete work item link with given id.")
-	a.Security("jwt")
-	a.Routing(
-		a.DELETE("/:linkId"),
-	)
-	a.Params(func() {
-		a.Param("linkId", d.UUID, "ID of the work item link to be deleted")
-	})
-	a.Response(d.OK)
-	a.Response(d.BadRequest, JSONAPIErrors)
-	a.Response(d.InternalServerError, JSONAPIErrors)
-	a.Response(d.NotFound, JSONAPIErrors)
-	a.Response(d.Unauthorized, JSONAPIErrors)
-}
-
-func updateWorkItemLink() {
-	a.Description("Update the given work item link with given id.")
-	a.Security("jwt")
-	a.Routing(
-		a.PATCH("/:linkId"),
-	)
-	a.Params(func() {
-		a.Param("linkId", d.UUID, "ID of the work item link to be updated")
-	})
-	a.Payload(updateWorkItemLinkPayload)
-	a.Response(d.OK, func() {
-		a.Media(workItemLink)
-	})
-	a.Response(d.BadRequest, JSONAPIErrors)
-	a.Response(d.Conflict, JSONAPIErrors)
-	a.Response(d.InternalServerError, JSONAPIErrors)
-	a.Response(d.NotFound, JSONAPIErrors)
-	a.Response(d.Unauthorized, JSONAPIErrors)
-}

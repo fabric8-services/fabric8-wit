@@ -30,6 +30,12 @@ type Area struct {
 	Version int
 }
 
+// MakeChildOf does all the path magic to make the current area a child of
+// the given parent area.
+func (m *Area) MakeChildOf(parent Area) {
+	m.Path = append(parent.Path, parent.ID)
+}
+
 // GetETagData returns the field values to use to generate the ETag
 func (m Area) GetETagData() []interface{} {
 	return []interface{}{m.ID, m.Version}
@@ -71,7 +77,10 @@ type GormAreaRepository struct {
 // Create creates a new record.
 func (m *GormAreaRepository) Create(ctx context.Context, u *Area) error {
 	defer goa.MeasureSince([]string{"goa", "db", "area", "create"}, time.Now())
-	u.ID = uuid.NewV4()
+
+	if u.ID == uuid.Nil {
+		u.ID = uuid.NewV4()
+	}
 	err := m.db.Create(u).Error
 	if err != nil {
 		// ( name, spaceID ,path ) needs to be unique
@@ -117,7 +126,7 @@ func (m *GormAreaRepository) Load(ctx context.Context, id uuid.UUID) (*Area, err
 }
 
 // CheckExists returns nil if the given ID exists otherwise returns an error
-func (m *GormAreaRepository) CheckExists(ctx context.Context, id string) error {
+func (m *GormAreaRepository) CheckExists(ctx context.Context, id uuid.UUID) error {
 	defer goa.MeasureSince([]string{"goa", "db", "area", "exists"}, time.Now())
 	return repository.CheckExists(ctx, m.db, Area{}.TableName(), id)
 }
@@ -126,7 +135,9 @@ func (m *GormAreaRepository) CheckExists(ctx context.Context, id string) error {
 func (m *GormAreaRepository) LoadMultiple(ctx context.Context, ids []uuid.UUID) ([]Area, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "Area", "getmultiple"}, time.Now())
 	var objs []Area
-
+	if len(ids) == 0 {
+		return objs, nil
+	}
 	for i := 0; i < len(ids); i++ {
 		m.db = m.db.Or("id = ?", ids[i])
 	}

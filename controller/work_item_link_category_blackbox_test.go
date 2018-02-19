@@ -49,11 +49,11 @@ type workItemLinkCategorySuite struct {
 	svc         *goa.Service
 }
 
-var wilCatConfiguration *config.ConfigurationData
+var wilCatConfiguration *config.Registry
 
 func init() {
 	var err error
-	wilCatConfiguration, err = config.GetConfigurationData()
+	wilCatConfiguration, err = config.Get()
 	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
@@ -64,7 +64,7 @@ func init() {
 func (s *workItemLinkCategorySuite) SetupSuite() {
 	var err error
 	s.db, err = gorm.Open("postgres", wilCatConfiguration.GetPostgresConfigString())
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	s.appDB = gormapplication.NewGormDB(s.db)
 	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", testsupport.TestIdentity)
 	require.NotNil(s.T(), s.svc)
@@ -170,7 +170,7 @@ func createWorkItemLinkCategoryInRepo(t *testing.T, db application.DB, ctx conte
 		_, err := appl.WorkItemLinkCategories().Create(ctx, &linkCat)
 		return err
 	})
-	require.Nil(t, err)
+	require.NoError(t, err)
 	return linkCat.ID
 }
 
@@ -260,7 +260,7 @@ func (s *workItemLinkCategorySuite) TestFailValidationWorkItemLinkCategoryNameLe
 
 	// Validate payload function returns an error
 	assert.NotNil(s.T(), err)
-	assert.Contains(s.T(), err.Error(), "length of response.name must be less than or equal to than 62")
+	assert.Contains(s.T(), err.Error(), "length of type.name must be less than or equal to 63")
 }
 
 func (s *workItemLinkCategorySuite) TestFailValidationWorkItemLinkCategoryNameStartWith() {
@@ -282,7 +282,7 @@ func (s *workItemLinkCategorySuite) TestFailValidationWorkItemLinkCategoryNameSt
 	err := payload.Validate()
 	// Validate payload function returns an error
 	assert.NotNil(s.T(), err)
-	assert.Contains(s.T(), err.Error(), "response.name must match the regexp")
+	assert.Contains(s.T(), err.Error(), "type.name must match the regexp")
 }
 
 // Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299

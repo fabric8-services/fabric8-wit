@@ -25,7 +25,7 @@ const (
 
 var reqLong *http.Request
 var reqShort *http.Request
-var config *configuration.ConfigurationData
+var config *configuration.Registry
 
 func TestMain(m *testing.M) {
 	resetConfiguration(defaultConfigFilePath)
@@ -37,21 +37,13 @@ func TestMain(m *testing.M) {
 
 func resetConfiguration(configPath string) {
 	var err error
-
-	// calling NewConfigurationData("") is same as GetConfigurationData()
-	config, err = configuration.NewConfigurationData(configPath)
+	config, err = configuration.New(configPath)
 	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
 }
 
-func TestGetAuthEndpointSpacesDevModeOK(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
-	t.Parallel()
-	checkGetServiceEndpointOK(t, config.GetAuthDevModeURL()+"/api/spaces", config.GetAuthEndpointSpaces)
-}
-
-func TestGetAuthEndpointSetByUrlEnvVaribaleOK(t *testing.T) {
+func TestGetAuthURLSetByEnvVaribaleOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	env := os.Getenv("F8_AUTH_URL")
 	defer func() {
@@ -62,9 +54,8 @@ func TestGetAuthEndpointSetByUrlEnvVaribaleOK(t *testing.T) {
 	os.Setenv("F8_AUTH_URL", "https://auth.xyz.io")
 	resetConfiguration(defaultValuesConfigFilePath)
 
-	url, err := config.GetAuthEndpointSpaces(reqLong)
-	require.Nil(t, err)
-	require.Equal(t, "https://auth.xyz.io/api/spaces", url)
+	url := config.GetAuthServiceURL()
+	require.Equal(t, "https://auth.xyz.io", url)
 }
 
 func TestGetKeycloakEndpointSetByUrlEnvVaribaleOK(t *testing.T) {
@@ -79,31 +70,31 @@ func TestGetKeycloakEndpointSetByUrlEnvVaribaleOK(t *testing.T) {
 	resetConfiguration(defaultValuesConfigFilePath)
 
 	url, err := config.GetKeycloakEndpointAuth(reqLong)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, "http://xyz.io/auth/realms/"+config.GetKeycloakRealm()+"/protocol/openid-connect/auth", url)
 
 	url, err = config.GetKeycloakEndpointLogout(reqLong)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, "http://xyz.io/auth/realms/"+config.GetKeycloakRealm()+"/protocol/openid-connect/logout", url)
 
 	url, err = config.GetKeycloakEndpointToken(reqLong)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, "http://xyz.io/auth/realms/"+config.GetKeycloakRealm()+"/protocol/openid-connect/token", url)
 
 	url, err = config.GetKeycloakEndpointUserInfo(reqLong)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, "http://xyz.io/auth/realms/"+config.GetKeycloakRealm()+"/protocol/openid-connect/userinfo", url)
 
 	url, err = config.GetKeycloakEndpointAuthzResourceset(reqLong)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, "http://xyz.io/auth/realms/"+config.GetKeycloakRealm()+"/authz/protection/resource_set", url)
 
 	url, err = config.GetKeycloakEndpointClients(reqLong)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, "http://xyz.io/auth/admin/realms/"+config.GetKeycloakRealm()+"/clients", url)
 
 	url, err = config.GetKeycloakEndpointEntitlement(reqLong)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, "http://xyz.io/auth/realms/"+config.GetKeycloakRealm()+"/authz/entitlement/fabric8-online-platform", url)
 }
 
@@ -157,12 +148,12 @@ func TestGetKeycloakUserInfoEndpointOK(t *testing.T) {
 
 func checkGetServiceEndpointOK(t *testing.T, expectedEndpoint string, getEndpoint func(req *http.Request) (string, error)) {
 	url, err := getEndpoint(reqLong)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	// In dev mode it's always the defualt value regardless of the request
 	assert.Equal(t, expectedEndpoint, url)
 
 	url, err = getEndpoint(reqShort)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	// In dev mode it's always the defualt value regardless of the request
 	assert.Equal(t, expectedEndpoint, url)
 }
@@ -208,10 +199,10 @@ func checkGetKeycloakEndpointSetByEnvVaribaleOK(t *testing.T, envName string, ge
 	resetConfiguration(defaultValuesConfigFilePath)
 
 	url, err := getEndpoint(reqLong)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, envValue, url)
 
 	url, err = getEndpoint(reqShort)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, envValue, url)
 }

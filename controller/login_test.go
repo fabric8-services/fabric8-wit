@@ -1,13 +1,11 @@
 package controller
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
-	"context"
-
 	"github.com/fabric8-services/fabric8-wit/account"
-
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	"github.com/fabric8-services/fabric8-wit/application"
@@ -27,7 +25,7 @@ import (
 
 type TestLoginREST struct {
 	gormtestsupport.DBTestSuite
-	configuration *configuration.ConfigurationData
+	configuration *configuration.Registry
 	loginService  *login.KeycloakOAuthProvider
 	db            *gormapplication.GormDB
 	clean         func()
@@ -40,7 +38,7 @@ func TestRunLoginREST(t *testing.T) {
 func (rest *TestLoginREST) SetupTest() {
 	rest.db = gormapplication.NewGormDB(rest.DB)
 	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
-	c, err := configuration.GetConfigurationData()
+	c, err := configuration.Get()
 	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
@@ -62,7 +60,7 @@ func (rest *TestLoginREST) SecuredController() (*goa.Service, *LoginController) 
 	identityRepository := account.NewIdentityRepository(rest.DB)
 
 	svc := testsupport.ServiceAsUser("Login-Service", testsupport.TestIdentity)
-	return svc, NewLoginController(svc, rest.loginService, rest.loginService.TokenManager, rest.Configuration, identityRepository)
+	return svc, NewLoginController(svc, rest.loginService, rest.Configuration, identityRepository)
 }
 
 func (rest *TestLoginREST) newTestKeycloakOAuthProvider(db application.DB) *login.KeycloakOAuthProvider {
@@ -110,6 +108,6 @@ func validateToken(t *testing.T, token *app.AuthToken, controler *LoginControlle
 
 type TestLoginService struct{}
 
-func (t TestLoginService) CreateOrUpdateKeycloakUser(accessToken string, ctx context.Context, profileEndpoint string) (*account.Identity, *account.User, error) {
+func (t TestLoginService) CreateOrUpdateKeycloakUser(accessToken string, ctx context.Context) (*account.Identity, *account.User, error) {
 	return nil, nil, nil
 }

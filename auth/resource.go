@@ -12,7 +12,7 @@ import (
 	goaclient "github.com/goadesign/goa/client"
 	goauuid "github.com/goadesign/goa/uuid"
 	errs "github.com/pkg/errors"
-	uuid "github.com/satori/go.uuid"
+	"github.com/satori/go.uuid"
 )
 
 // ResourceManager represents a space resource manager
@@ -23,17 +23,18 @@ type ResourceManager interface {
 
 // AuthzResourceManager implements ResourceManager interface
 type AuthzResourceManager struct {
-	configuration AuthServiceConfiguration
+	configuration ServiceConfiguration
 }
 
-// AuthServiceConfiguration represents auth service configuration
-type AuthServiceConfiguration interface {
-	GetAuthEndpointSpaces(*http.Request) (string, error)
+// ServiceConfiguration represents auth service configuration
+type ServiceConfiguration interface {
+	GetAuthServiceURL() string
+	GetAuthShortServiceHostName() string
 	IsAuthorizationEnabled() bool
 }
 
 // NewAuthzResourceManager constructs AuthzResourceManager
-func NewAuthzResourceManager(config AuthServiceConfiguration) *AuthzResourceManager {
+func NewAuthzResourceManager(config ServiceConfiguration) *AuthzResourceManager {
 	return &AuthzResourceManager{config}
 }
 
@@ -51,7 +52,7 @@ func (m *AuthzResourceManager) CreateSpace(ctx context.Context, request *http.Re
 		}}, nil
 	}
 
-	c, err := m.createClient(ctx, request)
+	c, err := CreateClient(ctx, m.configuration)
 	if err != nil {
 		return nil, err
 	}
@@ -67,14 +68,15 @@ func (m *AuthzResourceManager) CreateSpace(ctx context.Context, request *http.Re
 		}, "unable to create a space resource via auth service")
 		return nil, errs.Wrap(err, "unable to create a space resource via auth service")
 	}
-	defer res.Body.Close()
+	defer rest.CloseResponse(res)
+
 	if res.StatusCode != http.StatusOK {
 		log.Error(ctx, map[string]interface{}{
 			"space_id":        spaceID,
 			"response_status": res.Status,
 			"response_body":   rest.ReadBody(res.Body),
 		}, "unable to create a space resource via auth service")
-		return nil, errs.Errorf("unable to create a space resource via auth service. Response status: %s. Responce body: %s", res.Status, rest.ReadBody(res.Body))
+		return nil, errs.Errorf("unable to create a space resource via auth service. Response status: %s. Response body: %s", res.Status, rest.ReadBody(res.Body))
 	}
 
 	resource, err := c.DecodeSpaceResource(res)
@@ -105,7 +107,7 @@ func (m *AuthzResourceManager) DeleteSpace(ctx context.Context, request *http.Re
 		}, "Authorization is disabled. Keycloak space resource won't be deleted")
 		return nil
 	}
-	c, err := m.createClient(ctx, request)
+	c, err := CreateClient(ctx, m.configuration)
 	if err != nil {
 		return err
 	}
@@ -121,14 +123,15 @@ func (m *AuthzResourceManager) DeleteSpace(ctx context.Context, request *http.Re
 		}, "unable to delete a space resource via auth service")
 		return errs.Wrap(err, "unable to delete a space resource via auth service")
 	}
-	defer res.Body.Close()
+	defer rest.CloseResponse(res)
+
 	if res.StatusCode != http.StatusOK {
 		log.Error(ctx, map[string]interface{}{
 			"space_id":        spaceID,
 			"response_status": res.Status,
 			"response_body":   rest.ReadBody(res.Body),
 		}, "unable to delete a space resource via auth service")
-		return errs.Errorf("unable to delete a space resource via auth service. Response status: %s. Responce body: %s", res.Status, rest.ReadBody(res.Body))
+		return errs.Errorf("unable to delete a space resource via auth service. Response status: %s. Response body: %s", res.Status, rest.ReadBody(res.Body))
 	}
 
 	log.Debug(ctx, map[string]interface{}{
@@ -138,13 +141,8 @@ func (m *AuthzResourceManager) DeleteSpace(ctx context.Context, request *http.Re
 	return nil
 }
 
-func (m *AuthzResourceManager) createClient(ctx context.Context, request *http.Request) (*authservice.Client, error) {
-	authSpacesEndpoint, err := m.configuration.GetAuthEndpointSpaces(request)
-	if err != nil {
-		return nil, err
-	}
-
-	u, err := url.Parse(authSpacesEndpoint)
+func CreateClient(ctx context.Context, config ServiceConfiguration) (*authservice.Client, error) {
+	u, err := url.Parse(config.GetAuthServiceURL())
 	if err != nil {
 		return nil, err
 	}

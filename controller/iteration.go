@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
@@ -13,10 +14,17 @@ import (
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space"
+	"github.com/fabric8-services/fabric8-wit/space/authz"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
+)
+
+// Following const are keys to be used in Meta Relationship for counters of Work Item
+const (
+	KeyTotalWorkItems  = "total"
+	KeyClosedWorkItems = "closed"
 )
 
 // IterationController implements the iteration resource.
@@ -27,7 +35,6 @@ type IterationController struct {
 }
 
 // IterationControllerConfiguration configuration for the IterationController
-
 type IterationControllerConfiguration interface {
 	GetCacheControlIterations() string
 	GetCacheControlIteration() string
@@ -36,6 +43,19 @@ type IterationControllerConfiguration interface {
 // NewIterationController creates a iteration controller.
 func NewIterationController(service *goa.Service, db application.DB, config IterationControllerConfiguration) *IterationController {
 	return &IterationController{Controller: service.NewController("IterationController"), db: db, config: config}
+}
+
+// verifyUser checks if user is a space owner or a collaborator
+func verifyUser(ctx context.Context, currentUser uuid.UUID, sp *space.Space) (bool, bool, error) {
+	authorized, err := authz.Authorize(ctx, sp.ID.String())
+	if err != nil {
+		return false, false, err
+	}
+	var spaceOwner bool
+	if uuid.Equal(currentUser, sp.OwnerID) {
+		spaceOwner = true
+	}
+	return authorized, spaceOwner, nil
 }
 
 // CreateChild runs the create-child action.
@@ -48,26 +68,42 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 	}
-
+	var parent *iteration.Iteration
+	var sp *space.Space
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		parent, err = appl.Iterations().Load(ctx, parentID)
+		if err != nil {
+			return err
+		}
+		sp, err = appl.Spaces().Load(ctx, parent.SpaceID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		return nil
+	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	authorized, spaceOwner, err := verifyUser(ctx, *currentUser, sp)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
+	}
+	if !authorized && !spaceOwner {
+		log.Error(ctx, map[string]interface{}{
+			"space_id":     sp.ID,
+			"space_owner":  sp.OwnerID,
+			"current_user": *currentUser,
+		}, "user is not the space owner")
+		if !authorized {
+			// unauthorized
+			return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError("user is not allowed to create an iteration in this space"))
+		}
+		// forbidden
+		// Ideally we never hit following error
+		// But written following line to make it verbose 401 vs 403
+		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not allowed to create an iteration in this space"))
+	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-
-		parent, err := appl.Iterations().Load(ctx, parentID)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-		}
-		s, err := appl.Spaces().Load(ctx, parent.SpaceID)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-		}
-		if !uuid.Equal(*currentUser, s.OwnerId) {
-			log.Warn(ctx, map[string]interface{}{
-				"space_id":     s.ID,
-				"space_owner":  s.OwnerId,
-				"current_user": *currentUser,
-			}, "user is not the space owner")
-			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the space owner"))
-		}
-
 		reqIter := ctx.Payload.Data
 		if reqIter.Attributes.Name == nil {
 			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data.attributes.name", nil).Expected("not nil"))
@@ -80,18 +116,20 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 		} else {
 			userActive := false
 			reqIter.Attributes.UserActive = &userActive
-
 		}
 
 		newItr := iteration.Iteration{
-			SpaceID:    parent.SpaceID,
-			Path:       childPath,
-			Name:       *reqIter.Attributes.Name,
-			StartAt:    reqIter.Attributes.StartAt,
-			EndAt:      reqIter.Attributes.EndAt,
-			UserActive: *reqIter.Attributes.UserActive,
+			SpaceID:     parent.SpaceID,
+			Path:        childPath,
+			Name:        *reqIter.Attributes.Name,
+			Description: reqIter.Attributes.Description,
+			StartAt:     reqIter.Attributes.StartAt,
+			EndAt:       reqIter.Attributes.EndAt,
+			UserActive:  *reqIter.Attributes.UserActive,
 		}
-
+		if reqIter.ID != nil {
+			newItr.ID = *reqIter.ID
+		}
 		err = appl.Iterations().Create(ctx, &newItr)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
@@ -165,23 +203,42 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 	}
 
+	var itr *iteration.Iteration
+	var sp *space.Space
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		itr, err = appl.Iterations().Load(ctx.Context, id)
+		if err != nil {
+			return err
+		}
+		sp, err = appl.Spaces().Load(ctx, itr.SpaceID)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	authorized, spaceOwner, err := verifyUser(ctx, *currentUser, sp)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
+	}
+	if !authorized && !spaceOwner {
+		log.Error(ctx, map[string]interface{}{
+			"space_id":     sp.ID,
+			"space_owner":  sp.OwnerID,
+			"current_user": *currentUser,
+		}, "user is not the space owner")
+		if !authorized {
+			// unauthorized
+			return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError("user is not allowed to create an iteration in this space"))
+		}
+		// forbidden:
+		// Ideally we never hit following error
+		// But written following line to make it verbose 401 vs 403
+		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not allowed to create an iteration in this space"))
+	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-		itr, err := appl.Iterations().Load(ctx.Context, id)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
-		s, err := appl.Spaces().Load(ctx, itr.SpaceID)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-		}
-		if !uuid.Equal(*currentUser, s.OwnerId) {
-			log.Warn(ctx, map[string]interface{}{
-				"space_id":     s.ID,
-				"space_owner":  s.OwnerId,
-				"current_user": *currentUser,
-			}, "user is not the space owner")
-			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the space owner"))
-		}
 		if ctx.Payload.Data.Attributes.Name != nil {
 			itr.Name = *ctx.Payload.Data.Attributes.Name
 		}
@@ -195,20 +252,76 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 			itr.Description = ctx.Payload.Data.Attributes.Description
 		}
 		if ctx.Payload.Data.Attributes.State != nil {
-			if *ctx.Payload.Data.Attributes.State == iteration.IterationStateStart {
+			if *ctx.Payload.Data.Attributes.State == iteration.StateStart.String() {
 				res, err := appl.Iterations().CanStart(ctx, itr)
 				if res == false && err != nil {
 					return jsonapi.JSONErrorResponse(ctx, err)
 				}
 			}
-			itr.State = *ctx.Payload.Data.Attributes.State
+			itr.State = iteration.State(*ctx.Payload.Data.Attributes.State)
 		}
 		if ctx.Payload.Data.Attributes.UserActive != nil {
 			itr.UserActive = *ctx.Payload.Data.Attributes.UserActive
 		}
+		var oldSubtree []iteration.Iteration
+		if ctx.Payload.Data.Relationships != nil && ctx.Payload.Data.Relationships.Parent != nil {
+			// update parent of Iteration
+			// do not allow root-iteraiton to update its parent
+			if itr.IsRoot(itr.SpaceID) {
+				return jsonapi.JSONErrorResponse(ctx,
+					errors.NewForbiddenError("Parent of root iteration can not be updated"))
+			}
+			newParentID := ctx.Payload.Data.Relationships.Parent.Data.ID
+			if newParentID == nil {
+				return jsonapi.JSONErrorResponse(ctx,
+					errors.NewBadParameterError("Data.Relationships.Parent.ID", newParentID).Expected("not nil"))
+			}
+			pid, err := uuid.FromString(*newParentID)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("Data.Relationships.Parent.ID", newParentID))
+			}
+			// Iteration itself can not be parent of self
+			if pid == itr.ID {
+				return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("Parent must be different than subject iteration"))
+			}
+			newParentIteration, err := appl.Iterations().Load(ctx.Context, pid)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, err)
+			}
+			// New parent iteraiton must be from same sapce as that of subject iteration
+			if newParentIteration.SpaceID != itr.SpaceID {
+				return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("Parent must be from same space"))
+			}
+			// we need subtree to update later
+			oldSubtree, err = appl.Iterations().LoadChildren(ctx, itr.ID)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, err)
+			}
+			// New parent must not be one of existing children of subject iteration
+			for _, childItr := range oldSubtree {
+				if newParentIteration.ID == childItr.ID {
+					return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("Parent must not be existing child"))
+				}
+			}
+			itr.MakeChildOf(*newParentIteration)
+		}
 		itr, err = appl.Iterations().Save(ctx.Context, *itr)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		if ctx.Payload.Data.Relationships != nil && ctx.Payload.Data.Relationships.Parent != nil {
+			// update all child iterations's parent as well
+			for _, x := range oldSubtree {
+				x.MakeChildOf(*itr)
+				_, err = appl.Iterations().Save(ctx.Context, x)
+				if err != nil {
+					log.Error(ctx, map[string]interface{}{
+						"iteration_id": x.ID,
+						"err":          err.Error(),
+					}, "unable to update child iteration from subtree")
+					return jsonapi.JSONErrorResponse(ctx, err)
+				}
+			}
 		}
 		wiCounts, err := appl.WorkItems().GetCountsForIteration(ctx, itr)
 		if err != nil {
@@ -230,6 +343,94 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 		}
 		return ctx.OK(res)
 	})
+}
+
+// Delete runs the delete action.
+func (c *IterationController) Delete(ctx *app.DeleteIterationContext) error {
+	currentUser, err := login.ContextIdentity(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
+	}
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		itr, err := appl.Iterations().Load(ctx.Context, ctx.IterationID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		s, err := appl.Spaces().Load(ctx, itr.SpaceID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+		}
+		if !uuid.Equal(*currentUser, s.OwnerID) {
+			errorMsg := fmt.Sprintf("only the space owner can delete an iteration and %s is not the space owner of %s",
+				*currentUser, s.ID)
+			log.Warn(ctx, map[string]interface{}{
+				"space_id":     s.ID,
+				"space_owner":  s.OwnerID,
+				"current_user": *currentUser,
+			}, errorMsg)
+			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError(errorMsg))
+		}
+		if itr.IsRoot(s.ID) {
+			log.Warn(ctx, map[string]interface{}{
+				"space_id":     s.ID,
+				"iteration_id": itr.ID,
+			}, "cannot delete root iteration")
+			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("can not delete root iteration"))
+		}
+		subtree, err := appl.Iterations().LoadChildren(ctx, ctx.IterationID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		// Fetch parent iteration to which work items will get attached
+		parentID := itr.Parent()
+		if parentID == uuid.Nil {
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound("can not find parent iteration"))
+		}
+		parentIteration, err := appl.Iterations().Load(ctx, parentID)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"iteration_id": parentID,
+				"err":          err.Error(),
+			}, "unable to load parent iteration of iteration %s", parentID)
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		// delete all children along with given iteration
+		subtree = append(subtree, *itr)
+		for _, child := range subtree {
+			// fetch associated work items
+			wis, err := appl.WorkItems().LoadByIteration(ctx, child.ID)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, err)
+			}
+			// update iteration on all associated work items
+			for _, wi := range wis {
+				// move WI to parent iteration
+				wi.Fields[workitem.SystemIteration] = parentIteration.ID.String()
+				_, err = appl.WorkItems().Save(ctx, wi.SpaceID, *wi, *currentUser)
+				if err != nil {
+					log.Error(ctx, map[string]interface{}{
+						"workitem_id": wi.ID,
+						"err":         err.Error(),
+					}, "unable to update iteration for work item")
+					return jsonapi.JSONErrorResponse(ctx, err)
+				}
+			}
+			// now, remove the iteration
+			err = appl.Iterations().Delete(ctx.Context, child.ID)
+			if err != nil {
+				log.Error(ctx, map[string]interface{}{
+					"iteration_id": child.ID,
+					"err":          err.Error(),
+				}, "unable to delete iteration")
+				return jsonapi.JSONErrorResponse(ctx, err)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
+	}
+	return ctx.NoContent()
 }
 
 // IterationConvertFunc is a open ended function to add additional links/data/relations to a Iteration during
@@ -264,7 +465,7 @@ func ConvertIteration(request *http.Request, itr iteration.Iteration, additional
 			StartAt:      itr.StartAt,
 			EndAt:        itr.EndAt,
 			Description:  itr.Description,
-			State:        &itr.State,
+			State:        itr.State.StringPtr(),
 			ParentPath:   &pathToTopMostParent,
 			UserActive:   &itr.UserActive,
 			ActiveStatus: &activeStatus,
@@ -380,7 +581,7 @@ func updateIterationsWithCounts(wiCounts map[string]workitem.WICountsPerIteratio
 		if appIteration.Relationships.Workitems.Meta == nil {
 			appIteration.Relationships.Workitems.Meta = map[string]interface{}{}
 		}
-		appIteration.Relationships.Workitems.Meta["total"] = counts.Total
-		appIteration.Relationships.Workitems.Meta["closed"] = counts.Closed
+		appIteration.Relationships.Workitems.Meta[KeyTotalWorkItems] = counts.Total
+		appIteration.Relationships.Workitems.Meta[KeyClosedWorkItems] = counts.Closed
 	}
 }

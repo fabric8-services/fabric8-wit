@@ -10,7 +10,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
@@ -51,14 +50,14 @@ func TestParseLimit(t *testing.T) {
 	// Test length = 1
 	str = "1000"
 	integers, length, err = parseLimit(&str)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, 1000, length)
 	assert.Nil(t, integers)
 
 	// Test empty string
 	str = ""
 	integers, length, err = parseLimit(&str)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, 100, length)
 	assert.Nil(t, integers)
 }
@@ -140,26 +139,20 @@ func TestConvertWorkItemWithoutDescription(t *testing.T) {
 
 type TestWorkItemREST struct {
 	gormtestsupport.DBTestSuite
-
-	db    *gormapplication.GormDB
-	clean func()
+	db *gormapplication.GormDB
 }
 
 func TestRunWorkItemREST(t *testing.T) {
 	pwd, err := os.Getwd()
 	if err != nil {
-		require.Nil(t, err)
+		require.NoError(t, err)
 	}
 	suite.Run(t, &TestWorkItemREST{DBTestSuite: gormtestsupport.NewDBTestSuite(pwd + "/../config.yaml")})
 }
 
 func (rest *TestWorkItemREST) SetupTest() {
+	rest.DBTestSuite.SetupTest()
 	rest.db = gormapplication.NewGormDB(rest.DB)
-	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
-}
-
-func (rest *TestWorkItemREST) TearDownTest() {
-	rest.clean()
 }
 
 func prepareWI2(attributes map[string]interface{}) app.WorkItem {
@@ -199,7 +192,7 @@ func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithLegacyDescription(
 		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, space.SystemSpace)
 	})
 	// assert
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, target)
 	require.NotNil(t, target.Fields)
 	require.True(t, uuid.Equal(source.Relationships.BaseType.Data.ID, target.Type))
@@ -221,7 +214,7 @@ func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithDescriptionContent
 	err := application.Transactional(rest.db, func(app application.Application) error {
 		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, space.SystemSpace)
 	})
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, target)
 	require.NotNil(t, target.Fields)
 	require.True(t, uuid.Equal(source.Relationships.BaseType.Data.ID, target.Type))
@@ -242,7 +235,7 @@ func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithDescriptionContent
 	err := application.Transactional(rest.db, func(app application.Application) error {
 		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, space.SystemSpace)
 	})
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, target)
 	require.NotNil(t, target.Fields)
 	require.True(t, uuid.Equal(source.Relationships.BaseType.Data.ID, target.Type))
@@ -263,7 +256,7 @@ func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithTitle() {
 	err := application.Transactional(rest.db, func(app application.Application) error {
 		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, space.SystemSpace)
 	})
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, target)
 	require.NotNil(t, target.Fields)
 	require.True(t, uuid.Equal(source.Relationships.BaseType.Data.ID, target.Type))
@@ -283,7 +276,7 @@ func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithMissingTitle() {
 		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, space.SystemSpace)
 	})
 	// then: no error expected at this level, even though the title is missing
-	require.Nil(t, err)
+	require.NoError(t, err)
 }
 
 func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithEmptyTitle() {
@@ -300,5 +293,5 @@ func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithEmptyTitle() {
 		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, space.SystemSpace)
 	})
 	// then: no error expected at this level, even though the title is missing
-	require.Nil(t, err)
+	require.NoError(t, err)
 }

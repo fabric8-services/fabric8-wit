@@ -1,0 +1,128 @@
+{
+  "data": [
+    {
+      "attributes": {
+        "createdAt": "0001-01-01T00:00:00Z",
+        "last_used_workspace": "my-used-last-workspace",
+        "stackId": "golang-default",
+        "type": "git",
+        "url": "http://foo.com/single/0"
+      },
+      "id": "00000000-0000-0000-0000-000000000001",
+      "links": {
+        "edit": "http:///api/codebases/00000000-0000-0000-0000-000000000001/edit",
+        "related": "http:///api/codebases/00000000-0000-0000-0000-000000000001",
+        "self": "http:///api/codebases/00000000-0000-0000-0000-000000000001"
+      },
+      "relationships": {
+        "space": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000002",
+            "type": "spaces"
+          },
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002",
+            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000002"
+          }
+        }
+      },
+      "type": "codebases"
+    }
+  ],
+  "included": [
+    {
+      "attributes": {
+        "created-at": "0001-01-01T00:00:00Z",
+        "description": "Some description",
+        "name": "space 00000000-0000-0000-0000-000000000003",
+        "updated-at": "0001-01-01T00:00:00Z",
+        "version": 0
+      },
+      "id": "00000000-0000-0000-0000-000000000002",
+      "links": {
+        "backlog": {
+          "self": "http:///api/spaces/00000000-0000-0000-0000-000000000002/backlog"
+        },
+        "filters": "http:///api/filters",
+        "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002",
+        "self": "http:///api/spaces/00000000-0000-0000-0000-000000000002",
+        "workitemlinktypes": "http:///api/spaces/00000000-0000-0000-0000-000000000002/workitemlinktypes",
+        "workitemtypes": "http:///api/spaces/00000000-0000-0000-0000-000000000002/workitemtypes"
+      },
+      "relationships": {
+        "areas": {
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002/areas"
+          }
+        },
+        "backlog": {
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002/backlog"
+          }
+        },
+        "codebases": {
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002/codebases"
+          }
+        },
+        "collaborators": {
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002/collaborators"
+          }
+        },
+        "filters": {
+          "links": {
+            "related": "http:///api/filters"
+          }
+        },
+        "iterations": {
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002/iterations"
+          }
+        },
+        "labels": {
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002/labels"
+          }
+        },
+        "owned-by": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000004",
+            "type": "identities"
+          },
+          "links": {
+            "related": "http:///api/users/00000000-0000-0000-0000-000000000004"
+          }
+        },
+        "workitemlinktypes": {
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002/workitemlinktypes"
+          }
+        },
+        "workitems": {
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002/workitems"
+          }
+        },
+        "workitemtypegroups": {
+          "links": {
+            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups"
+          }
+        },
+        "workitemtypes": {
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002/workitemtypes"
+          }
+        }
+      },
+      "type": "spaces"
+    }
+  ],
+  "links": {
+    "first": "http:///api/search/codebases?page[offset]=0\u0026page[limit]=20\u0026url=http://foo.com/single/0",
+    "last": "http:///api/search/codebases?page[offset]=0\u0026page[limit]=20\u0026url=http://foo.com/single/0"
+  },
+  "meta": {
+    "totalCount": 1
+  }
+}

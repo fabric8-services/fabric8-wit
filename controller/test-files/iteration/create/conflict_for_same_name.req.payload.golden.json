@@ -1,0 +1,12 @@
+{
+  "data": {
+    "attributes": {
+      "description": "Some description",
+      "endAt": "2105-12-09T15:04:00Z",
+      "name": "iteration 00000000-0000-0000-0000-000000000001",
+      "startAt": "2006-01-02T15:04:00Z",
+      "user_active": false
+    },
+    "type": "iterations"
+  }
+}

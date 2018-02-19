@@ -13,7 +13,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/application"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 
 	"github.com/fabric8-services/fabric8-wit/resource"
@@ -28,26 +27,20 @@ import (
 
 type TestSpaceCodebaseREST struct {
 	gormtestsupport.DBTestSuite
-
-	db    *gormapplication.GormDB
-	clean func()
+	db *gormapplication.GormDB
 }
 
 func TestRunSpaceCodebaseREST(t *testing.T) {
 	pwd, err := os.Getwd()
 	if err != nil {
-		require.Nil(t, err)
+		require.NoError(t, err)
 	}
 	suite.Run(t, &TestSpaceCodebaseREST{DBTestSuite: gormtestsupport.NewDBTestSuite(pwd + "/../config.yaml")})
 }
 
 func (rest *TestSpaceCodebaseREST) SetupTest() {
+	rest.DBTestSuite.SetupTest()
 	rest.db = gormapplication.NewGormDB(rest.DB)
-	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
-}
-
-func (rest *TestSpaceCodebaseREST) TearDownTest() {
-	rest.clean()
 }
 
 func (rest *TestSpaceCodebaseREST) SecuredController() (*goa.Service, *SpaceCodebasesController) {
@@ -210,11 +203,11 @@ func (rest *TestSpaceCodebaseREST) createSpace(ownerID uuid.UUID) *space.Space {
 		repo := app.Spaces()
 		newSpace := &space.Space{
 			Name:    "TestSpaceCodebase " + uuid.NewV4().String(),
-			OwnerId: ownerID,
+			OwnerID: ownerID,
 		}
 		s, err = repo.Create(context.Background(), newSpace)
 		return err
 	})
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	return s
 }

@@ -15,7 +15,7 @@ import (
 
 var reqLong *http.Request
 var reqShort *http.Request
-var config *ConfigurationData
+var config *Registry
 
 func init() {
 	// ensure that the content here is executed only once.
@@ -26,7 +26,7 @@ func init() {
 
 func resetConfiguration() {
 	var err error
-	config, err = GetConfigurationData()
+	config, err = Get()
 	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
@@ -45,11 +45,11 @@ func TestGetKeycloakURLOK(t *testing.T) {
 	t.Parallel()
 
 	url, err := config.getServiceURL(reqLong, config.GetKeycloakDomainPrefix(), "somepath")
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "http://sso.service.domain.org/somepath", url)
 
 	url, err = config.getServiceURL(reqShort, config.GetKeycloakDomainPrefix(), "somepath2")
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "http://sso.domain.org/somepath2", url)
 }
 
@@ -58,9 +58,9 @@ func TestGetKeycloakHttpsURLOK(t *testing.T) {
 	t.Parallel()
 
 	r, err := http.NewRequest("", "https://sso.domain.org", nil)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	url, err := config.getServiceURL(r, config.GetKeycloakDomainPrefix(), "somepath")
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "https://sso.domain.org/somepath", url)
 }
 
@@ -145,7 +145,7 @@ func TestValidRedirectURLsInDevModeCanBeOverridden(t *testing.T) {
 	}()
 
 	whitelist, err := config.GetValidRedirectURLs(nil)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, devModeValidRedirectURLs, whitelist)
 
 	os.Setenv(key, "https://someDomain.org/redirect")
@@ -172,11 +172,11 @@ func TestRedirectURLsForLocalhostRequestAreExcepted(t *testing.T) {
 
 func validateRedirectURL(t *testing.T, request string, redirect string) bool {
 	r, err := http.NewRequest("", request, nil)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	whitelist, err := config.checkLocalhostRedirectException(r)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	matched, err := regexp.MatchString(whitelist, redirect)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	return matched
 }

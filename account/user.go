@@ -93,7 +93,7 @@ func (m *GormUserRepository) Load(ctx context.Context, id uuid.UUID) (*User, err
 }
 
 // CheckExists returns nil if the given ID exists otherwise returns an error
-func (m *GormUserRepository) CheckExists(ctx context.Context, id string) error {
+func (m *GormUserRepository) CheckExists(ctx context.Context, id uuid.UUID) error {
 	defer goa.MeasureSince([]string{"goa", "db", "user", "exists"}, time.Now())
 	return repository.CheckExists(ctx, m.db, m.TableName(), id)
 }
@@ -122,15 +122,7 @@ func (m *GormUserRepository) Create(ctx context.Context, u *User) error {
 func (m *GormUserRepository) Save(ctx context.Context, model *User) error {
 	defer goa.MeasureSince([]string{"goa", "db", "user", "save"}, time.Now())
 
-	obj, err := m.Load(ctx, model.ID)
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"user_id": model.ID,
-			"err":     err,
-		}, "unable to update user")
-		return errs.WithStack(err)
-	}
-	err = m.db.Model(obj).Updates(model).Error
+	err := m.db.Save(model).Error
 	if err != nil {
 		return errs.WithStack(err)
 	}

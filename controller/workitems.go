@@ -79,7 +79,7 @@ func (c *WorkitemsController) Create(ctx *app.CreateWorkitemsContext) error {
 	// Allow any user to create a work item in spaces belong to the "openshiftio" user
 	// Other spaces are open for the space collaborators only
 	// ----
-	spaceOwnerID := space.OwnerId.String()
+	spaceOwnerID := space.OwnerID.String()
 	// check both the "openshiftio" user and the "test" user from the test realm.
 	if "7b50ddb4-5e12-4031-bca7-3b88f92e2339" != spaceOwnerID && "ae68a343-c866-430c-b6ce-a36f0b38d8e5" != spaceOwnerID {
 		authorized, err := authz.Authorize(ctx, ctx.SpaceID.String())
@@ -114,7 +114,7 @@ func (c *WorkitemsController) Create(ctx *app.CreateWorkitemsContext) error {
 		//verify spaceID:
 		// To be removed once we have endpoint like - /api/space/{spaceID}/workitems
 		var err error
-		err = appl.Spaces().CheckExists(ctx, ctx.SpaceID.String())
+		err = appl.Spaces().CheckExists(ctx, ctx.SpaceID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -128,7 +128,7 @@ func (c *WorkitemsController) Create(ctx *app.CreateWorkitemsContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))
 		}
-		hasChildren := workItemIncludeHasChildren(appl, ctx)
+		hasChildren := workItemIncludeHasChildren(ctx, appl)
 		wi2 := ConvertWorkItem(ctx.Request, *wi, hasChildren)
 		resp := &app.WorkItemSingle{
 			Data: wi2,
@@ -160,7 +160,7 @@ func (c *WorkitemsController) List(ctx *app.ListWorkitemsContext) error {
 		// Better approach would be to convert string to Query instance itself.
 		// Then add new AND clause with spaceID as another child of input query
 		// Then convert new Query object into simple string
-		queryWithSpaceID := fmt.Sprintf(`{"%s":[{"space": "%s" }, %s]}`, search.Q_AND, ctx.SpaceID, q)
+		queryWithSpaceID := fmt.Sprintf(`{"%s":[{"space": "%s" }, %s]}`, search.AND, ctx.SpaceID, q)
 		queryWithSpaceID = fmt.Sprintf("?filter[expression]=%s", queryWithSpaceID)
 		searchURL := app.SearchHref() + queryWithSpaceID
 		ctx.ResponseData.Header().Set("Location", searchURL)
@@ -223,7 +223,7 @@ func (c *WorkitemsController) List(ctx *app.ListWorkitemsContext) error {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work items"))
 		}
 		return ctx.ConditionalEntities(workitems, c.config.GetCacheControlWorkItems, func() error {
-			hasChildren := workItemIncludeHasChildren(tx, ctx)
+			hasChildren := workItemIncludeHasChildren(ctx, tx)
 			response := app.WorkItemList{
 				Links: &app.PagingLinks{},
 				Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
@@ -281,7 +281,7 @@ func (c *WorkitemsController) Reorder(ctx *app.ReorderWorkitemsContext) error {
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, err)
 			}
-			hasChildren := workItemIncludeHasChildren(appl, ctx)
+			hasChildren := workItemIncludeHasChildren(ctx, appl)
 			wi2 := ConvertWorkItem(ctx.Request, *wi, hasChildren)
 			dataArray = append(dataArray, wi2)
 		}

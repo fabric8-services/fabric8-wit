@@ -69,6 +69,9 @@ var workspaceAttributes = a.Type("WorkspaceAttributes", func() {
 	a.Attribute("description", d.String, "The URL of the codebase ", func() {
 		a.Example("")
 	})
+	a.Attribute("status", d.String, "The workspace status", func() {
+		a.Example("STOPPED");
+	})
 })
 
 var workspaceLinks = a.Type("WorkspaceLinks", func() {
@@ -114,9 +117,11 @@ var cheServerState = a.MediaType("CheServerState", func() {
 	a.Description(`JSONAPI store Che Server state.  See also http://jsonapi.org/format/#document-resource-object`)
 	a.Attributes(func() {
 		a.Attribute("running", d.Boolean, "Che server state")
+		a.Attribute("multiTenant", d.Boolean, "Holds info about Che server type - multi-tenant / single-tenant")
 	})
 	a.View("default", func() {
 		a.Attribute("running")
+		a.Attribute("multiTenant")
 	})
 })
 
@@ -154,6 +159,22 @@ var _ = a.Resource("codebase", func() {
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
+	})
+	a.Action("delete", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.DELETE("/:codebaseID"),
+		)
+		a.Description("Delete a codebase with the given ID.")
+		a.Params(func() {
+			a.Param("codebaseID", d.UUID, "ID of the codebase to delete")
+		})
+		a.Response(d.NoContent)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.Forbidden, JSONAPIErrors)
 	})
 	a.Action("create", func() {
 		a.Security("jwt")

@@ -7,11 +7,11 @@ import (
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/area"
-	"github.com/fabric8-services/fabric8-wit/auth"
 	"github.com/fabric8-services/fabric8-wit/codebase"
 	"github.com/fabric8-services/fabric8-wit/comment"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/label"
+	"github.com/fabric8-services/fabric8-wit/query"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/search"
 	"github.com/fabric8-services/fabric8-wit/space"
@@ -79,14 +79,10 @@ func (g *GormBase) Spaces() space.Repository {
 	return space.NewRepository(g.db)
 }
 
-func (g *GormBase) SpaceResources() space.ResourceRepository {
-	return space.NewResourceRepository(g.db)
-}
-
-func (g *GormBase) Trackers() application.TrackerRepository {
+func (g *GormBase) Trackers() remoteworkitem.TrackerRepository {
 	return remoteworkitem.NewTrackerRepository(g.db)
 }
-func (g *GormBase) TrackerQueries() application.TrackerQueryRepository {
+func (g *GormBase) TrackerQueries() remoteworkitem.TrackerQueryRepository {
 	return remoteworkitem.NewTrackerQueryRepository(g.db)
 }
 
@@ -139,9 +135,9 @@ func (g *GormBase) Labels() label.Repository {
 	return label.NewLabelRepository(g.db)
 }
 
-// OauthStates returns an oauth state reference repository
-func (g *GormBase) OauthStates() auth.OauthStateReferenceRepository {
-	return auth.NewOauthStateReferenceRepository(g.db)
+// Queries returns a queries repository
+func (g *GormBase) Queries() query.Repository {
+	return query.NewQueryRepository(g.db)
 }
 
 // Codebases returns a codebase repository

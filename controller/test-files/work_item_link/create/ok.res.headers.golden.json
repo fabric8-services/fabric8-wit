@@ -1,0 +1,16 @@
+{
+  "Code": 201,
+  "HeaderMap": {
+    "Content-Type": [
+      "application/vnd.api+json"
+    ],
+    "Etag": [
+      "0icd7ov5CqwDXN6Fx9z18g=="
+    ],
+    "Location": [
+      "/api/workitemlinks/00000000-0000-0000-0000-000000000001"
+    ]
+  },
+  "Body": {},
+  "Flushed": false
+}
