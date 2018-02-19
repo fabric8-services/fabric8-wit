@@ -184,7 +184,7 @@ test-remote-no-coverage: prebuild-check $(SOURCES)
 .PHONY: test-migration
 ## Runs the migration tests and should be executed before running the integration tests
 ## in order to have a clean database
-test-migration: prebuild-check
+test-migration: prebuild-check migration/sqlbindata.go migration/sqlbindata_test.go
 	F8_RESOURCE_DATABASE=1 F8_LOG_LEVEL=$(F8_LOG_LEVEL) go test $(GO_TEST_VERBOSITY_FLAG) github.com/fabric8-services/fabric8-wit/migration
 
 # Downloads docker-compose to tmp/docker-compose if it does not already exist.

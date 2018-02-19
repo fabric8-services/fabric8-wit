@@ -11,7 +11,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/goadesign/goa"
-	uuid "github.com/satori/go.uuid"
 )
 
 // WorkItemTypeGroupController implements the work_item_type_group resource.
@@ -53,10 +52,7 @@ func ConvertTypeGroup(request *http.Request, tg workitem.WorkItemTypeGroup) *app
 	spaceTemplateID := space.SystemSpace
 	spaceTemplateIDStr := spaceTemplateID.String()
 	workitemtypes := "workitemtypes"
-	// TODO(kwk): Replace system space once we have space templates
-	defaultWorkItemTypeRelatedURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(space.SystemSpace, tg.DefaultType))
 	workItemTypeGroupRelatedURL := rest.AbsoluteURL(request, app.WorkItemTypeGroupHref(tg.ID))
-	defaultIDStr := tg.DefaultType.String()
 	createdAt := tg.CreatedAt.UTC()
 	updatedAt := tg.UpdatedAt.UTC()
 	// Every work item type group except the one in the "iteration" bucket are
@@ -78,15 +74,6 @@ func ConvertTypeGroup(request *http.Request, tg workitem.WorkItemTypeGroup) *app
 			ShowInSidebar: &showInSidebar,
 		},
 		Relationships: &app.WorkItemTypeGroupRelationships{
-			DefaultType: &app.RelationGeneric{
-				Data: &app.GenericData{
-					ID:   &defaultIDStr,
-					Type: &workitemtypes,
-				},
-				Links: &app.GenericLinks{
-					Related: &defaultWorkItemTypeRelatedURL,
-				},
-			},
 			TypeList: &app.RelationGenericList{
 				Data: make([]*app.GenericData, len(tg.TypeList)),
 			},
@@ -97,33 +84,6 @@ func ConvertTypeGroup(request *http.Request, tg workitem.WorkItemTypeGroup) *app
 				},
 			},
 		},
-	}
-
-	if tg.PrevGroupID != uuid.Nil {
-		prevGroupRelatedURL := rest.AbsoluteURL(request, app.WorkItemTypeGroupHref(tg.PrevGroupID))
-		prevIDStr := tg.PrevGroupID.String()
-		res.Relationships.PrevGroup = &app.RelationGeneric{
-			Data: &app.GenericData{
-				ID:   &prevIDStr,
-				Type: &APIWorkItemTypeGroups,
-			},
-			Links: &app.GenericLinks{
-				Related: &prevGroupRelatedURL,
-			},
-		}
-	}
-	if tg.NextGroupID != uuid.Nil {
-		nextGroupRelatedURL := rest.AbsoluteURL(request, app.WorkItemTypeGroupHref(tg.NextGroupID))
-		nextIDStr := tg.NextGroupID.String()
-		res.Relationships.NextGroup = &app.RelationGeneric{
-			Data: &app.GenericData{
-				ID:   &nextIDStr,
-				Type: &APIWorkItemTypeGroups,
-			},
-			Links: &app.GenericLinks{
-				Related: &nextGroupRelatedURL,
-			},
-		}
 	}
 
 	for i, witID := range tg.TypeList {
