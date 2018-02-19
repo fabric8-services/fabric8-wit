@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/fabric8-services/fabric8-wit/metric"
 	"flag"
 	"net/http"
 	"os"
@@ -198,6 +199,8 @@ func main() {
 
 	spaceAuthzService := authz.NewAuthzService(config)
 	service.Use(authz.InjectAuthzService(spaceAuthzService))
+
+	service.Use(metric.Recorder())
 
 	loginService := login.NewKeycloakOAuthProvider(identityRepository, userRepository, tokenManager, appDB)
 	loginCtrl := controller.NewLoginController(service, loginService, config, identityRepository)
