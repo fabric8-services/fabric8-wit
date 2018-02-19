@@ -21,7 +21,7 @@ HG_BIN := $(shell command -v $(HG_BIN_NAME) 2> /dev/null)
 DOCKER_COMPOSE_BIN := $(shell command -v $(DOCKER_COMPOSE_BIN_NAME) 2> /dev/null)
 DOCKER_BIN := $(shell command -v $(DOCKER_BIN_NAME) 2> /dev/null)
 
-GLIDE_VERSION := $(shell ${GLIDE_BIN} --version | sed -rn 's/([^0-9.]*)([0-9]*\.[0-9]*)(.*)/\2/p')
+GLIDE_VERSION := $(shell $(GLIDE_BIN) --version | sed -rn 's/([^0-9.]*)([0-9]*\.[0-9]*)(.*)/\2/p')
 DESIRED_GLIDE_VERSION := 0.12
 
 check-glide-version :
