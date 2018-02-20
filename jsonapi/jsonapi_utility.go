@@ -4,11 +4,14 @@ import (
 	"context"
 	"net/http"
 	"strconv"
+	"sync"
 
 	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/log"
 
+	"github.com/getsentry/raven-go"
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 )
@@ -25,6 +28,14 @@ const (
 	ErrorCodeJWTSecurityError  = "jwt_security_error"
 	ErrorCodeDataConflict      = "data_conflict_error"
 )
+
+var mutex sync.Mutex
+
+func init() {
+	c, err := configuration.Get()
+	_ = err // Log this
+	raven.SetDSN(c.GetSentryDSN())
+}
 
 // ErrorToJSONAPIError returns the JSONAPI representation
 // of an error and the HTTP status code that will be associated with it.
@@ -167,6 +178,11 @@ func JSONErrorResponse(obj interface{}, err error) error {
 			return errs.WithStack(ctx.Conflict(jsonErr))
 		}
 	default:
+		mutex.Lock()
+		raven.CaptureErrorAndWait(err, nil)
+		raven.ClearContext()
+		mutex.Unlock()
+
 		return errs.WithStack(x.InternalServerError(jsonErr))
 	}
 	return nil
