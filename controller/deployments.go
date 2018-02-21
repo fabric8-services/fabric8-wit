@@ -212,7 +212,7 @@ func (g *defaultKubeClientGetter) GetKubeClient(ctx context.Context) (kubernetes
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
 		}, "error accessing Auth server")
-		return nil, errs.Wrapf(err, "error creating Auth client")
+		return nil, errs.Wrap(err, "error creating Auth client")
 	}
 
 	authUser, err := getUser(ctx, *authClient)
@@ -220,14 +220,14 @@ func (g *defaultKubeClientGetter) GetKubeClient(ctx context.Context) (kubernetes
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
 		}, "error accessing Auth server")
-		return nil, errs.Wrapf(err, "error retrieving user definition from Auth client")
+		return nil, errs.Wrap(err, "error retrieving user definition from Auth client")
 	}
 
 	if authUser == nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
 		}, "error retrieving user from Auth server")
-		return nil, errs.Errorf("error getting user from Auth Server")
+		return nil, errs.New("error getting user from Auth Server")
 	}
 
 	if authUser.Data.Attributes.Cluster == nil {
@@ -246,7 +246,7 @@ func (g *defaultKubeClientGetter) GetKubeClient(ctx context.Context) (kubernetes
 			"user_id": *authUser.Data.Attributes.UserID,
 			"cluster": *authUser.Data.Attributes.Cluster,
 		}, "error getting openshift credentials for user from Auth server")
-		return nil, errs.Wrapf(err, "error getting openshift credentials")
+		return nil, errs.Wrap(err, "error getting openshift credentials")
 	}
 
 	kubeURL := *authUser.Data.Attributes.Cluster
@@ -254,7 +254,7 @@ func (g *defaultKubeClientGetter) GetKubeClient(ctx context.Context) (kubernetes
 
 	kubeNamespaceName, err := getNamespaceName(ctx)
 	if err != nil {
-		return nil, errs.Wrapf(err, "could not retrieve namespace name")
+		return nil, errs.Wrap(err, "could not retrieve namespace name")
 	}
 
 	// create the cluster API client
@@ -270,7 +270,7 @@ func (g *defaultKubeClientGetter) GetKubeClient(ctx context.Context) (kubernetes
 			"user_id": *authUser.Data.Attributes.UserID,
 			"cluster": *authUser.Data.Attributes.Cluster,
 		}, "could not create Kubernetes client object")
-		return nil, errs.Wrapf(err, "could not create Kubernetes client object")
+		return nil, errs.Wrap(err, "could not create Kubernetes client object")
 	}
 	return kc, nil
 }

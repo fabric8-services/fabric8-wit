@@ -633,7 +633,7 @@ func getEnvironmentsFromConfigMap(kube KubeRESTAPI, userNamespace string) (map[s
 	}
 	// Check that config map has the expected label
 	if configmap.Labels["provider"] != providerLabel {
-		return nil, errs.Errorf("unknown or missing provider %s for environments config map", providerLabel)
+		return nil, errs.Errorf("unknown or missing provider %s for environments config map in namespace %s", providerLabel, userNamespace)
 	}
 	// Parse config map data to construct environments map
 	envMap := make(map[string]string)
@@ -1167,7 +1167,7 @@ func (kc *kubeClient) getRoutesByService(namespace string, routesByService map[s
 			"request_path": routeURL,
 			"response":     result,
 		}, "no list of routes in response")
-		return errs.Errorf("no list of routes in response")
+		return errs.Errorf("no list of routes in response from %s", routeURL)
 	}
 
 	for _, item := range items {
@@ -1178,7 +1178,7 @@ func (kc *kubeClient) getRoutesByService(namespace string, routesByService map[s
 				"request_path": routeURL,
 				"response":     result,
 			}, "route object invalid")
-			return errs.Errorf("route object invalid")
+			return errs.Errorf("invalid route object returned from %s", routeURL)
 		}
 
 		// Parse route from result
@@ -1189,7 +1189,7 @@ func (kc *kubeClient) getRoutesByService(namespace string, routesByService map[s
 				"request_path": routeURL,
 				"response":     result,
 			}, "spec missing from route")
-			return errs.Errorf("spec missing from route")
+			return errs.Errorf("spec missing from route returned from %s", routeURL)
 		}
 		// Determine which service this route points to
 		to, ok := spec["to"].(map[interface{}]interface{})
@@ -1199,7 +1199,7 @@ func (kc *kubeClient) getRoutesByService(namespace string, routesByService map[s
 				"request_path": routeURL,
 				"response":     result,
 			}, "route has no destination")
-			return errs.Errorf("route has no destination")
+			return errs.Errorf("no destination in route returned from %s", routeURL)
 		}
 		toName, ok := to["name"].(string)
 		if !ok || len(toName) == 0 {
@@ -1208,7 +1208,7 @@ func (kc *kubeClient) getRoutesByService(namespace string, routesByService map[s
 				"request_path": routeURL,
 				"response":     result,
 			}, "service name missing or invalid for route")
-			return errs.Errorf("service name missing or invalid for route")
+			return errs.Errorf("service name missing or invalid for route returned from %s", routeURL)
 		}
 
 		var matchingServices []string
@@ -1229,7 +1229,7 @@ func (kc *kubeClient) getRoutesByService(namespace string, routesByService map[s
 						"request_path": routeURL,
 						"response":     result,
 					}, "malformed alternative backend")
-					return errs.Errorf("malformed alternative backend")
+					return errs.Errorf("malformed alternative backend in route returned from %s", routeURL)
 				}
 				// Check if this alternate backend is a service we want a route for
 				backendKind, err := getOptionalStringValue(backend, "kind")
@@ -1256,7 +1256,7 @@ func (kc *kubeClient) getRoutesByService(namespace string, routesByService map[s
 					"request_path": routeURL,
 					"response":     result,
 				}, "status missing from route")
-				return errs.Errorf("status missing from route")
+				return errs.Errorf("status missing from route returned from %s", routeURL)
 			}
 			ingresses, ok := status["ingress"].([]interface{})
 			if !ok {
@@ -1265,7 +1265,7 @@ func (kc *kubeClient) getRoutesByService(namespace string, routesByService map[s
 					"request_path": routeURL,
 					"response":     result,
 				}, "no ingress array listed in route")
-				return errs.Errorf("no ingress array listed in route")
+				return errs.Errorf("no ingress array listed in route returned from %s", routeURL)
 			}
 
 			// Prefer ingress with oldest lastTransitionTime that is marked as admitted
@@ -1284,7 +1284,7 @@ func (kc *kubeClient) getRoutesByService(namespace string, routesByService map[s
 						"request_path": routeURL,
 						"response":     result,
 					}, "hostname missing from ingress")
-					return errs.Errorf("hostname missing from ingress")
+					return errs.Errorf("hostname missing from ingress in route returned from %s", routeURL)
 				}
 			} else {
 				// Fall back to optional host in spec
@@ -1359,7 +1359,7 @@ func findOldestAdmittedIngress(ingresses []interface{}) (ingress map[interface{}
 	for idx := range ingresses {
 		ingress, ok := ingresses[idx].(map[interface{}]interface{})
 		if !ok {
-			return nil, errs.Errorf("bad ingress found in route")
+			return nil, errs.New("bad ingress found in route")
 		}
 		// Check for oldest admitted ingress
 		conditions, ok := ingress["conditions"].([]interface{})
@@ -1367,7 +1367,7 @@ func findOldestAdmittedIngress(ingresses []interface{}) (ingress map[interface{}
 			for condIdx := range conditions {
 				condition, ok := conditions[condIdx].(map[interface{}]interface{})
 				if !ok {
-					return nil, errs.Errorf("bad condition for ingress")
+					return nil, errs.New("bad condition for ingress")
 				}
 				condType, err := getOptionalStringValue(condition, "type")
 				if err != nil {
@@ -1380,7 +1380,7 @@ func findOldestAdmittedIngress(ingresses []interface{}) (ingress map[interface{}
 				if condType == "Admitted" && condStatus == "True" {
 					lastTransitionStr, ok := condition["lastTransitionTime"].(string)
 					if !ok {
-						return nil, errs.Errorf("missing last transition time from ingress condition")
+						return nil, errs.New("missing last transition time from ingress condition")
 					}
 					lastTransition, err := time.Parse(time.RFC3339, lastTransitionStr)
 					if err != nil {

@@ -151,7 +151,7 @@ func (osioclient *OSIOClient) GetSpaceByID(ctx context.Context, spaceID uuid.UUI
 			"path":     urlpath,
 			"response": respBody,
 		}, "unable to unmarshal user space from WIT service")
-		return nil, errs.Wrapf(err, "could not unmarshal SpaceSingle JSON")
+		return nil, errs.Wrap(err, "could not unmarshal SpaceSingle JSON")
 	}
 	return respType.Data, nil
 }
