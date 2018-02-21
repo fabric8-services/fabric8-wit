@@ -46,11 +46,9 @@ func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) erro
 			cause := errs.Cause(err)
 			switch cause.(type) {
 			case remoteworkitem.BadParameterError, remoteworkitem.ConversionError:
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrBadRequest(err.Error()))
-				return ctx.BadRequest(jerrors)
+				return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(err.Error()))
 			default:
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInternal(err.Error()))
-				return ctx.InternalServerError(jerrors)
+				return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err))
 			}
 		}
 		ctx.ResponseData.Header().Set("Location", app.TrackerqueryHref(tq.ID))
@@ -72,8 +70,7 @@ func (c *TrackerqueryController) Show(ctx *app.ShowTrackerqueryContext) error {
 				log.Error(ctx, map[string]interface{}{
 					"tracker_id": ctx.ID,
 				}, "tracker query controller not found")
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrNotFound(err.Error()))
-				return ctx.NotFound(jerrors)
+				return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 			default:
 				return errs.WithStack(err)
 			}
@@ -99,11 +96,9 @@ func (c *TrackerqueryController) Update(ctx *app.UpdateTrackerqueryContext) erro
 			cause := errs.Cause(err)
 			switch cause.(type) {
 			case remoteworkitem.BadParameterError, remoteworkitem.ConversionError:
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrBadRequest(err.Error()))
-				return ctx.BadRequest(jerrors)
+				return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(err.Error()))
 			default:
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInternal(err.Error()))
-				return ctx.InternalServerError(jerrors)
+				return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err))
 			}
 		}
 		return ctx.OK(tq)
@@ -121,11 +116,9 @@ func (c *TrackerqueryController) Delete(ctx *app.DeleteTrackerqueryContext) erro
 			cause := errs.Cause(err)
 			switch cause.(type) {
 			case remoteworkitem.NotFoundError:
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrNotFound(err.Error()))
-				return ctx.NotFound(jerrors)
+				return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 			default:
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInternal(err.Error()))
-				return ctx.InternalServerError(jerrors)
+				return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err))
 			}
 		}
 		return ctx.OK([]byte{})
@@ -140,8 +133,8 @@ func (c *TrackerqueryController) List(ctx *app.ListTrackerqueryContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		result, err := appl.TrackerQueries().List(ctx.Context)
 		if err != nil {
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInternal(fmt.Sprintf("Error listing tracker queries: %s", err.Error())))
-			return ctx.InternalServerError(jerrors)
+			return jsonapi.JSONErrorResponse(ctx,
+				goa.ErrInternal(fmt.Sprintf("Error listing tracker queries: %v", err)))
 		}
 		return ctx.OK(result)
 	})

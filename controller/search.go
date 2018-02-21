@@ -156,16 +156,16 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 				cause := errs.Cause(err)
 				switch cause.(type) {
 				case errors.BadParameterError:
-					jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx,
-						goa.ErrBadRequest(fmt.Sprintf("error listing work items for expression '%s': %s", *ctx.FilterExpression, err)))
-					return ctx.BadRequest(jerrors)
+					return jsonapi.JSONErrorResponse(ctx,
+						goa.ErrBadRequest(fmt.Sprintf("error listing work items for expression '%s': %s",
+							*ctx.FilterExpression, err)))
 				default:
 					log.Error(ctx, map[string]interface{}{
 						"err":               err,
 						"filter_expression": *ctx.FilterExpression,
 					}, "unable to list the work items")
-					jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInternal(fmt.Sprintf("unable to list the work items: %s", err)))
-					return ctx.InternalServerError(jerrors)
+					return jsonapi.JSONErrorResponse(ctx,
+						goa.ErrInternal(fmt.Sprintf("unable to list the work items: %s", err)))
 				}
 			}
 
@@ -239,9 +239,7 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		if ctx.Q == nil || *ctx.Q == "" {
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx,
-				goa.ErrBadRequest("empty search query not allowed"))
-			return ctx.BadRequest(jerrors)
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest("empty search query not allowed"))
 		}
 
 		result, c, err := appl.SearchItems().SearchFullText(ctx.Context, *ctx.Q, &offset, &limit, ctx.SpaceID)
@@ -254,15 +252,15 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 					"err":        err,
 					"expression": *ctx.Q,
 				}, "unable to list the work items")
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrBadRequest(fmt.Sprintf("error listing work items for expression: %s: %s", *ctx.Q, err)))
-				return ctx.BadRequest(jerrors)
+				return jsonapi.JSONErrorResponse(ctx,
+					goa.ErrBadRequest(fmt.Sprintf("error listing work items for expression: %s: %s", *ctx.Q, err)))
 			default:
 				log.Error(ctx, map[string]interface{}{
 					"err":        err,
 					"expression": *ctx.Q,
 				}, "unable to list the work items")
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInternal(fmt.Sprintf("unable to list the work items expression: %s: %s", *ctx.Q, err)))
-				return ctx.InternalServerError(jerrors)
+				return jsonapi.JSONErrorResponse(ctx,
+					goa.ErrInternal(fmt.Sprintf("unable to list the work items expression: %s: %s", *ctx.Q, err)))
 			}
 		}
 
