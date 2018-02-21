@@ -118,10 +118,10 @@ DOCKER_COMPOSE_BIN_ALT = $(TMP_PATH)/docker-compose
 DOCKER_COMPOSE_FILE = $(CUR_DIR)/.make/docker-compose.integration-test.yaml
 
 # This pattern excludes some folders from the coverage calculation (see grep -v)
-ALL_PKGS_EXCLUDE_PATTERN = 'vendor\|app\|tool\/cli\|design\|client\|test'
+ALL_PKGS_EXCLUDE_PATTERN = 'vendor\|account\/tenant\|app\|tool\/cli\|design\|client\|test'
 
 # This pattern excludes some folders from the go code analysis
-GOANALYSIS_PKGS_EXCLUDE_PATTERN="vendor|app|client|tool/cli"
+GOANALYSIS_PKGS_EXCLUDE_PATTERN="vendor|account/tenant|app|client|tool/cli"
 GOANALYSIS_DIRS=$(shell go list -f {{.Dir}} ./... | grep -v -E $(GOANALYSIS_PKGS_EXCLUDE_PATTERN))
 
 #-------------------------------------------------------------------------------
@@ -184,7 +184,7 @@ test-remote-no-coverage: prebuild-check $(SOURCES)
 .PHONY: test-migration
 ## Runs the migration tests and should be executed before running the integration tests
 ## in order to have a clean database
-test-migration: prebuild-check
+test-migration: prebuild-check migration/sqlbindata.go migration/sqlbindata_test.go
 	F8_RESOURCE_DATABASE=1 F8_LOG_LEVEL=$(F8_LOG_LEVEL) go test $(GO_TEST_VERBOSITY_FLAG) github.com/fabric8-services/fabric8-wit/migration
 
 # Downloads docker-compose to tmp/docker-compose if it does not already exist.
@@ -423,7 +423,7 @@ $(eval ALL_PKGS_COMMA_SEPARATED := $(6))
 @mkdir -p $(COV_DIR)/$(PACKAGE_NAME);
 $(eval COV_OUT_FILE := $(COV_DIR)/$(PACKAGE_NAME)/coverage.$(TEST_NAME).mode-$(COVERAGE_MODE))
 @$(ENV_VAR) F8_DEVELOPER_MODE_ENABLED=1 F8_POSTGRES_HOST=$(F8_POSTGRES_HOST) F8_LOG_LEVEL=$(F8_LOG_LEVEL) \
-	go test $(PACKAGE_NAME) \
+	go test  $(PACKAGE_NAME) \
 		$(GO_TEST_VERBOSITY_FLAG) \
 		-coverprofile $(COV_OUT_FILE) \
 		-coverpkg $(ALL_PKGS_COMMA_SEPARATED) \

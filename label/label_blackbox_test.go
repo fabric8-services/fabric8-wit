@@ -2,6 +2,7 @@ package label_test
 
 import (
 	"context"
+	"reflect"
 	"testing"
 	"time"
 
@@ -53,8 +54,8 @@ func (s *TestLabelRepository) TestCreateLabelWithEmptyName() {
 		Name:    name,
 	}
 	err := repo.Create(context.Background(), &l)
-	require.NotNil(s.T(), err)
-	assert.Contains(s.T(), err.Error(), "labels_name_check")
+	require.Error(s.T(), err)
+	assert.Contains(s.T(), err.Error(), "label name cannot be empty string")
 }
 
 func (s *TestLabelRepository) TestCreateLabelWithSameName() {
@@ -75,8 +76,9 @@ func (s *TestLabelRepository) TestCreateLabelWithSameName() {
 	require.Nil(s.T(), l.DeletedAt)
 
 	err := repo.Create(context.Background(), &l)
-	require.NotNil(s.T(), err)
+	require.Error(s.T(), err)
 	_, ok := errors.Cause(err).(errs.DataConflictError)
+	assert.Contains(s.T(), err.Error(), "label already exists with name = TestCreateLabel")
 	assert.True(s.T(), ok)
 }
 
@@ -90,7 +92,7 @@ func (s *TestLabelRepository) TestCreateLabelWithWrongColorCode() {
 		TextColor: "#yyppww",
 	}
 	err := repo.Create(context.Background(), &l)
-	require.NotNil(s.T(), err)
+	require.Error(s.T(), err)
 	assert.Contains(s.T(), err.Error(), "labels_text_color_check")
 
 	l2 := label.Label{
@@ -99,8 +101,65 @@ func (s *TestLabelRepository) TestCreateLabelWithWrongColorCode() {
 		BackgroundColor: "#yyppww",
 	}
 	err = repo.Create(context.Background(), &l2)
-	require.NotNil(s.T(), err)
+	require.Error(s.T(), err)
 	assert.Contains(s.T(), err.Error(), "labels_background_color_check")
+}
+
+func (s *TestLabelRepository) TestSave() {
+	testFxt := tf.NewTestFixture(s.T(), s.DB, tf.Labels(1))
+	repo := label.NewLabelRepository(s.DB)
+
+	s.T().Run("success - save label", func(t *testing.T) {
+		l := testFxt.Labels[0]
+		l.Name = "severity/p5"
+		l.TextColor = "#778899"
+		l.BackgroundColor = "#445566"
+		l.BorderColor = "#112233"
+
+		lbl, err := repo.Save(context.Background(), *l)
+		require.NoError(t, err)
+		assert.Equal(t, l.Name, lbl.Name)
+		assert.Equal(t, l.TextColor, lbl.TextColor)
+		assert.Equal(t, l.BackgroundColor, lbl.BackgroundColor)
+		assert.Equal(t, l.BorderColor, lbl.BorderColor)
+	})
+
+	s.T().Run("empty name", func(t *testing.T) {
+		l := testFxt.Labels[0]
+		l.Name = ""
+		l.TextColor = "#778899"
+		l.BackgroundColor = "#445566"
+		l.BorderColor = "#112233"
+
+		_, err := repo.Save(context.Background(), *l)
+		require.Error(t, err)
+		_, ok := errors.Cause(err).(errs.BadParameterError)
+		assert.Contains(t, err.Error(), "label name cannot be empty string")
+		assert.True(t, ok)
+	})
+
+	s.T().Run("non-existing label", func(t *testing.T) {
+		fakeID := uuid.NewV4()
+		fakeLabel := label.Label{
+			ID:   fakeID,
+			Name: "Some name",
+		}
+		repo := label.NewLabelRepository(s.DB)
+		_, err := repo.Save(context.Background(), fakeLabel)
+		require.Error(t, err)
+		assert.Equal(t, reflect.TypeOf(errs.NotFoundError{}), reflect.TypeOf(err))
+	})
+	s.T().Run("update label with same name", func(t *testing.T) {
+		testFxt := tf.NewTestFixture(t, s.DB, tf.Labels(2))
+		repo := label.NewLabelRepository(s.DB)
+		testFxt.Labels[0].Name = testFxt.Labels[1].Name
+
+		_, err := repo.Save(context.Background(), *testFxt.Labels[0])
+		require.Error(t, err)
+		_, ok := errors.Cause(err).(errs.DataConflictError)
+		assert.Contains(t, err.Error(), "label already exists with name = label")
+		assert.True(t, ok)
+	})
 }
 
 func (s *TestLabelRepository) TestListLabelBySpace() {
@@ -108,7 +167,7 @@ func (s *TestLabelRepository) TestListLabelBySpace() {
 	testFxt := tf.NewTestFixture(s.T(), s.DB, tf.Labels(n))
 
 	labelList, err := label.NewLabelRepository(s.DB).List(context.Background(), testFxt.Spaces[0].ID)
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	require.Len(s.T(), labelList, n)
 
 	labelIDs := map[uuid.UUID]struct{}{}
@@ -123,8 +182,8 @@ func (s *TestLabelRepository) TestListLabelBySpace() {
 
 func (s *TestLabelRepository) TestLoadLabel() {
 	testFxt := tf.NewTestFixture(s.T(), s.DB, tf.Labels(1))
-	lbl, err := label.NewLabelRepository(s.DB).Load(context.Background(), testFxt.Spaces[0].ID, testFxt.Labels[0].ID)
-	require.Nil(s.T(), err)
+	lbl, err := label.NewLabelRepository(s.DB).Load(context.Background(), testFxt.Labels[0].ID)
+	require.NoError(s.T(), err)
 	require.NotNil(s.T(), lbl)
 	assert.Equal(s.T(), testFxt.Labels[0].Name, lbl.Name)
 }

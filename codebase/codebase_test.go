@@ -40,7 +40,7 @@ func TestNewCodebase(t *testing.T) {
 	// Test for empty map
 	codebaseMap := map[string]interface{}{}
 	cb, err := codebase.NewCodebaseContent(codebaseMap)
-	require.NotNil(t, err)
+	require.Error(t, err)
 	assert.Equal(t, "", cb.Repository)
 	assert.Equal(t, "", cb.Branch)
 	assert.Equal(t, "", cb.FileName)
@@ -58,7 +58,7 @@ func TestNewCodebase(t *testing.T) {
 		codebase.LineNumberKey: line,
 	}
 	cb, err = codebase.NewCodebaseContent(codebaseMap)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, repo, cb.Repository)
 	assert.Equal(t, branch, cb.Branch)
 	assert.Equal(t, file, cb.FileName)
@@ -178,7 +178,7 @@ func (test *TestCodebaseRepository) TestListCodebases() {
 	limit := 1
 	codebases, _, err := codebase.NewCodebaseRepository(test.DB).List(context.Background(), fxt.Codebases[0].SpaceID, &offset, &limit)
 	// then
-	require.Nil(test.T(), err)
+	require.NoError(test.T(), err)
 	require.Len(test.T(), codebases, 1)
 	require.Equal(test.T(), fxt.Codebases[0].URL, codebases[0].URL)
 }
@@ -189,14 +189,14 @@ func (test *TestCodebaseRepository) TestExistsCodebase() {
 		// given
 		fxt := tf.NewTestFixture(t, test.DB, tf.Codebases(1))
 		// when
-		err := repo.CheckExists(context.Background(), fxt.Codebases[0].ID.String())
+		err := repo.CheckExists(context.Background(), fxt.Codebases[0].ID)
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 	})
 
 	test.T().Run("codebase doesn't exist", func(t *testing.T) {
 		// when
-		err := repo.CheckExists(context.Background(), uuid.NewV4().String())
+		err := repo.CheckExists(context.Background(), uuid.NewV4())
 		// then
 		require.IsType(t, errors.NotFoundError{}, err)
 	})
@@ -210,7 +210,7 @@ func (test *TestCodebaseRepository) TestLoadCodebase() {
 	// when
 	loadedCodebase, err := repo.Load(context.Background(), fxt.Codebases[0].ID)
 	// then
-	require.Nil(test.T(), err)
+	require.NoError(test.T(), err)
 	assert.Equal(test.T(), fxt.Codebases[0].ID, loadedCodebase.ID)
 	require.NotNil(test.T(), fxt.Codebases[0].StackID)
 	assert.Equal(test.T(), *fxt.Codebases[0].StackID, *loadedCodebase.StackID)
@@ -229,7 +229,7 @@ func (test *TestCodebaseRepository) TestSearchByURL() {
 		// when
 		result, totalCount, err := repo.SearchByURL(context.Background(), "http://foo.com/repos/unknown", nil, nil)
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Equal(t, 0, totalCount)
 		assert.Empty(t, result)
 	})
@@ -238,7 +238,7 @@ func (test *TestCodebaseRepository) TestSearchByURL() {
 		// when
 		result, totalCount, err := repo.SearchByURL(context.Background(), "http://foo.com/repos/0", nil, nil)
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Equal(t, 1, totalCount)
 		assert.Len(t, result, 1)
 		assert.Equal(t, fxt.Codebases[0].ID, result[0].ID)
@@ -250,7 +250,7 @@ func (test *TestCodebaseRepository) TestSearchByURL() {
 		limit := 10
 		result, totalCount, err := repo.SearchByURL(context.Background(), "http://foo.com/repos/0", &start, &limit)
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Equal(t, 1, totalCount)
 		assert.Len(t, result, 1)
 		assert.Equal(t, fxt.Codebases[0].ID, result[0].ID)
@@ -262,7 +262,7 @@ func (test *TestCodebaseRepository) TestSearchByURL() {
 		limit := 20
 		result, totalCount, err := repo.SearchByURL(context.Background(), "http://foo.com/repos/0", &start, &limit)
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Equal(t, 1, totalCount)
 		assert.Len(t, result, 0)
 	})
@@ -276,17 +276,17 @@ func (test *TestCodebaseRepository) TestDeleteCodebase() {
 		id := fxt.Codebases[0].ID
 		// double check that we can load this codebase
 		cb, err := repo.Load(test.Ctx, id)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, cb)
 
 		// when
 		err = repo.Delete(test.Ctx, id)
 
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// double check that we can no longer load the codebase
 		cb, err = repo.Load(test.Ctx, id)
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 		require.Nil(t, cb)
 	})
@@ -296,7 +296,7 @@ func (test *TestCodebaseRepository) TestDeleteCodebase() {
 		// when
 		err := repo.Delete(test.Ctx, nonExistingCodebaseID)
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 	})
 	test.T().Run("not found - nil codebase ID", func(t *testing.T) {
@@ -305,7 +305,7 @@ func (test *TestCodebaseRepository) TestDeleteCodebase() {
 		// when
 		err := repo.Delete(test.Ctx, nilCodebaseID)
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 	})
 }

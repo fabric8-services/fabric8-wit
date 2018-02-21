@@ -1,0 +1,235 @@
+@startuml link_creation
+
+' This is a PlantUML activity diagram.
+' To generate a PNG diagram from this file follow these steps:
+' $ wget -o plantuml.jar http://sourceforge.net/projects/plantuml/files/plantuml.jar/download
+' $ java -jar plantuml.jar -verbose link_creation.puml
+
+skinparam titleBorderRoundCorner 15
+skinparam titleBorderThickness 2
+skinparam monochrome false
+
+title 
+    = Work Item Linking: Algorithm for link creation
+end title
+
+footer
+(Generated at %date%)
+end footer
+
+start
+:Begin Database Transaction
+
+""BEGIN;"";
+
+partition "Single space linking (for now)" {
+    :Load **source** and **target** of new link
+    to find out in which space they reside.;
+    if (space IDs are different) then (yes)
+        #FF0000:Disallow link creation because of cross-space link.;
+            :Rollback transaction;
+            stop
+    else (no)
+    endif
+}
+
+:Acquire a PostgreSQL advisory lock named after the 32bit hash
+of the space's UUID.
+
+""SELECT pg_advisory_xact_lock(<HASH_OF_SPACE_ID>);""
+
+The lock is automatically release when the transaction ends.;
+note right
+    With the single-space linking restriction in place
+    (see above) we ensure that only one person can create
+    a link within a space. This does not block anybody
+    from creating links in other spaces.
+end note
+
+:Load new link's type to get the topology.;
+
+->Run validation
+depending on topology;
+
+if (Is topology "tree"?) then (yes)
+    partition "Multi-parent check" {
+        :Check if the target of the new link already have a parent:
+
+        ""SELECT EXISTS (""
+        ""  SELECT 1 FROM work_item_links""
+        ""  WHERE""
+        ""    link_type='parenting'""
+        ""    AND target= <TARGET_OF_NEW_LINK> ""
+        ""    AND deleted_at IS NULL""
+        "")"";
+        ->has parent or not;
+        if (has a parent?) then (yes)
+            #FF0000:Disallow link creation because of duplicate
+            parent for <TARGET_OF_NEW_LINK>.;
+            :Rollback transaction;
+            stop
+        else (no)
+        endif    
+    }
+else (no)
+endif
+
+
+if (Is topology "tree" or "dependency"?) then (yes)
+    partition "Cycle detection" {
+        partition "Find ancestors as executed in DB with a WITH RECURSIVE statement - aka Common Table Expression - CTE)" {
+            -> // //
+            pass source and link type
+            // //;
+            :**Non-recursive term in CTE**
+            Finds the immediate parent of a given work item.
+
+            Find those links of the same given type where the source
+            is in the target and put those links in the a so called
+            //working table//:
+
+            ""SELECT""
+            ""  l.id, l.source, l.target, ARRAY[l.id], false""
+            ""FROM work_item_links l""
+            ""WHERE""
+            ""  l.target IN ( <SOURCE_OF_NEW_LINK> ) ""
+            ""  AND l.link_type = 'parenting'""
+            ""  AND l.deleted_at IS NULL""
+            ;
+            note right
+                Consider this example tree topology:
+
+                A
+                |_ B
+                  |_ C
+                    |_ D
+                      |_ E
+
+                That means we have at least these entries in the links table
+                (ignoring the type for now):
+
+                |= id |= source |= target |
+                | 111 | A | B |
+                | 222 | B | C |
+                | 333 | C | D |
+                | 444 | D | E |
+
+                Suppose, that you want to link **E** to some work item **X**.
+                In other words **E** is the source of the new link we're about to create.
+                
+                The algorithm to the left will construct this //working table//:
+
+                |= link ID |= source |= original_child |= already_visited |= cycle |
+                | 444 | D | E | [444] | false |
+
+                //NOTE:// For the sake of readability we show a work item's title
+                here instead of it's ID and the link IDs are simplified to numbers
+                instead of UUIDs.
+            end note
+            while (as long as //working table// is not empty) is (not empty)
+                :**Recursive term of CTE**
+                Take the ""source"" value of all entries
+                from the //working table// and search
+                for links of the same type where the
+                target is one of the ""source"" values.
+
+                ""SELECT""
+                ""  l.id,""
+                ""  l.source,""
+                ""  t.original_child,""
+                ""  already_visited || l.id,""
+                ""  l.id = ANY(already_visited)""
+                ""FROM working_table w, work_item_links l""
+                ""WHERE""				
+                ""  l.target = w.source""
+                ""  AND l.link_type = 'parenting'""
+                ""  AND l.deleted_at IS NULL""
+                ""  AND NOT cycle""
+                ;
+                note right
+                    This finds parents of any work item that we already
+                    stored in the //working table//.
+
+                    This is essentially the same as the non-recursive term
+                    except that the thing to search for is driven by the
+                    //working table// instead of the user given source of
+                    a link.
+
+                    Think of the //working// table to look like this
+                    over time:
+
+                    |= link ID |= source |= original_child |= already_visited |= cycle |
+                    | 444 | D | E | [444] | false |
+                    | 333 | C | E | [444,333] | false |
+                    | 222 | B | E | [444,333,222] | false |
+                    | 111 | A | E | [444,333,222,111] | false |
+
+                    Note, that PostgreSQL is operating a bit differently
+                    but this table helps to understand what we store.
+                end note
+
+                ->found links;
+
+                :""UNION"" join the results from the //working table//
+                and the found links and store them in a temporary
+                //intermediate table//.;
+                note right
+                    Actually I find this description a bit foggy but
+                    in essence the algorithm is straight forward and
+                    easily understood.
+                end note
+
+                :From the manual:
+                //Replace the contents of the working table with the//
+                //contents of the intermediate table, then empty the//
+                //intermediate table.//;
+            endwhile (empty)
+
+            -> Ancestors of <SOURCE_OF_NEW_LINK>;
+
+            :**Annotate ancestors if they are the root**
+            For each ancestor we determine if that ancestor is at
+            the root of the ""original_child"" (here ""'E'"")
+            
+            ""SELECT NOT EXISTS (""
+            ""    SELECT 1""
+            ""    FROM work_item_links l""
+            ""    WHERE l.target = ancestor AND l.link_type_id = 'parenting'""
+            "") as 'is_root'""
+            ;
+            note right
+                This checks if an ancestor has a parent.
+                If it doesn't have one, it must be the root
+                or the //origin// if we're considering
+                a depdency topology.
+            end note
+        }
+        
+        ->Annotated ancestors of <SOURCE_OF_NEW_LINK>;
+
+        while (has more ancestors) is (yes)
+            :Get next ancestor;
+            note right
+                In a "dependency" topology a work item can have
+                more than one "parent".
+                
+                In a "tree" topology a work item can only have
+                one root.
+            end note
+            if (ancestor == <TARGET_OF_NEW_LINK>) then (yes)
+                #FF0000:Disallow link creation because of cycle;
+                :Rollback transaction;
+                stop
+            else (false)
+            endif
+        end while (no more ancestors)
+    }
+else (no)    
+endif
+
+#00FF00:Create link;
+:Commit transaction;
+
+stop
+
+@enduml

@@ -12,6 +12,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fabric8-services/fabric8-wit/ptr"
+
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
@@ -19,6 +21,7 @@ import (
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/models"
 	"github.com/fabric8-services/fabric8-wit/rendering"
@@ -29,12 +32,10 @@ import (
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
-	"github.com/jinzhu/gorm"
-
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
-
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/goatest"
+	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -62,17 +63,17 @@ func (s *searchControllerTestSuite) SetupTest() {
 	err := models.Transactional(s.DB, func(tx *gorm.DB) error {
 		return migration.BootstrapWorkItemLinking(s.Ctx, link.NewWorkItemLinkCategoryRepository(tx), space.NewRepository(tx), link.NewWorkItemLinkTypeRepository(tx))
 	})
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	s.testDir = filepath.Join("test-files", "search")
 	s.db = gormapplication.NewGormDB(s.DB)
 	// create a test identity
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "searchControllerTestSuite user", "test provider")
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	s.testIdentity = *testIdentity
 
 	s.wiRepo = workitem.NewWorkItemRepository(s.DB)
 	spaceBlackBoxTestConfiguration, err := config.Get()
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	s.spaceBlackBoxTestConfiguration = spaceBlackBoxTestConfiguration
 	s.svc = testsupport.ServiceAsUser("WorkItemComment-Service", s.testIdentity)
 	s.controller = NewSearchController(s.svc, gormapplication.NewGormDB(s.DB), spaceBlackBoxTestConfiguration)
@@ -263,16 +264,16 @@ func (s *searchControllerTestSuite) searchByURL(customHost, queryString string) 
 		Host:     customHost,
 	}
 	req, err := http.NewRequest("GET", u.String(), nil)
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	prms := url.Values{}
 	prms["q"] = []string{queryString} // any value will do
 	goaCtx := goa.NewContext(goa.WithAction(s.svc.Context, "SearchTest"), rw, req, prms)
 	showCtx, err := app.NewShowSearchContext(goaCtx, req, s.svc)
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	// Perform action
 	err = s.controller.Show(showCtx)
 	// Validate response
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	require.Equal(s.T(), 200, rw.Code)
 	mt, ok := resp.(*app.SearchWorkItemList)
 	require.True(s.T(), ok)
@@ -401,6 +402,144 @@ func (s *searchControllerTestSuite) TestSearchFilter() {
 	require.NotEmpty(s.T(), sr.Data)
 	r := sr.Data[0]
 	assert.Equal(s.T(), "specialwordforsearch", r.Attributes[workitem.SystemTitle])
+}
+
+func (s *searchControllerTestSuite) TestSearchByWorkItemTypeGroup() {
+	s.T().Run(http.StatusText(http.StatusOK), func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment())
+		svc := testsupport.ServiceAsUser("TestUpdateWI-Service", *fxt.Identities[0])
+		workitemsCtrl := NewWorkitemsController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+		// given work items of different types and in different states
+		type testWI struct {
+			Title          string
+			WorkItemTypeID uuid.UUID
+			State          string
+			SpaceID        uuid.UUID
+		}
+		testWIs := []testWI{
+			{"closed feature", workitem.SystemFeature, workitem.SystemStateClosed, fxt.Spaces[0].ID},
+			{"open feature", workitem.SystemFeature, workitem.SystemStateOpen, fxt.Spaces[0].ID},
+			{"closed bug", workitem.SystemBug, workitem.SystemStateClosed, fxt.Spaces[0].ID},
+			{"open bug", workitem.SystemBug, workitem.SystemStateOpen, fxt.Spaces[0].ID},
+			{"open experience", workitem.SystemExperience, workitem.SystemStateOpen, fxt.Spaces[0].ID},
+			{"closed experience", workitem.SystemExperience, workitem.SystemStateClosed, fxt.Spaces[0].ID},
+			{"open task", workitem.SystemTask, workitem.SystemStateOpen, fxt.Spaces[0].ID},
+			{"closed task", workitem.SystemTask, workitem.SystemStateClosed, fxt.Spaces[0].ID},
+			{"open scenario", workitem.SystemScenario, workitem.SystemStateOpen, fxt.Spaces[0].ID},
+			{"closed scenario", workitem.SystemScenario, workitem.SystemStateClosed, fxt.Spaces[0].ID},
+			{"open fundamental", workitem.SystemFundamental, workitem.SystemStateOpen, fxt.Spaces[0].ID},
+			{"closed fundamental", workitem.SystemFundamental, workitem.SystemStateClosed, fxt.Spaces[0].ID},
+		}
+		for _, wi := range testWIs {
+			payload := minimumRequiredCreateWithTypeAndSpace(wi.WorkItemTypeID, wi.SpaceID)
+			payload.Data.Attributes[workitem.SystemTitle] = wi.Title
+			payload.Data.Attributes[workitem.SystemState] = wi.State
+			_, _ = test.CreateWorkitemsCreated(t, svc.Context, svc, workitemsCtrl, wi.SpaceID, &payload)
+		}
+
+		// helper function that checks if the given to be found work item titles
+		// exist in the result list that originate from a search query.
+		checkToBeFound := func(t *testing.T, toBeFound map[string]struct{}, results []*app.WorkItem) {
+			require.Len(t, results, len(toBeFound))
+			for _, wi := range results {
+				title, ok := wi.Attributes[workitem.SystemTitle].(string)
+				require.True(t, ok)
+				_, ok = toBeFound[title]
+				if ok {
+					delete(toBeFound, title)
+				}
+			}
+			require.Empty(t, toBeFound, "not all work items could be found: %+v", toBeFound)
+		}
+
+		// when
+		t.Run("Scenarios", func(t *testing.T) {
+			// given
+			filter := fmt.Sprintf(`
+				{"$AND": [
+					{"`+search.WITGROUP+`": "Scenarios"},
+					{"space": "%s"}
+				]}`, fxt.Spaces[0].ID)
+			// when
+			_, sr := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
+			// then
+			toBeFound := map[string]struct{}{
+				"open scenario":      {},
+				"closed scenario":    {},
+				"open fundamental":   {},
+				"closed fundamental": {},
+			}
+			checkToBeFound(t, toBeFound, sr.Data)
+		})
+		t.Run("Experiences", func(t *testing.T) {
+			// given
+			filter := fmt.Sprintf(`
+				{"$AND": [
+					{"`+search.WITGROUP+`": "Experiences"},
+					{"space": "%s"}
+				]}`, fxt.Spaces[0].ID)
+			// when
+			_, sr := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
+			// then
+			toBeFound := map[string]struct{}{
+				"open experience":   {},
+				"closed experience": {},
+			}
+			checkToBeFound(t, toBeFound, sr.Data)
+		})
+		t.Run("Requirements", func(t *testing.T) {
+			// given
+			filter := fmt.Sprintf(`
+				{"$AND": [
+					{"`+search.WITGROUP+`": "Requirements"},
+					{"space": "%s"}
+				]}`, fxt.Spaces[0].ID)
+			// when
+			_, sr := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
+			// then
+			toBeFound := map[string]struct{}{
+				"open feature":   {},
+				"closed feature": {},
+				"open bug":       {},
+				"closed bug":     {},
+			}
+			checkToBeFound(t, toBeFound, sr.Data)
+		})
+		t.Run("Execution", func(t *testing.T) {
+			// given
+			filter := fmt.Sprintf(`
+				{"$AND": [
+					{"`+search.WITGROUP+`": "Execution"},
+					{"space": "%s"}
+				]}`, fxt.Spaces[0].ID)
+			// when
+			_, sr := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
+			// then
+			toBeFound := map[string]struct{}{
+				"open task":      {},
+				"closed task":    {},
+				"open bug":       {},
+				"closed bug":     {},
+				"open feature":   {},
+				"closed feature": {},
+			}
+			checkToBeFound(t, toBeFound, sr.Data)
+		})
+	})
+	s.T().Run(http.StatusText(http.StatusBadRequest), func(t *testing.T) {
+		t.Run("unknown hierarchy", func(t *testing.T) {
+			// given
+			fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment())
+			filter := fmt.Sprintf(`
+				{"$AND": [
+					{"`+search.WITGROUP+`": "%s"},
+					{"space": "%s"}
+				]}`, "unknown work item type group", fxt.Spaces[0].ID)
+			// when
+			_, _ = test.ShowSearchBadRequest(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
+		})
+	})
 }
 
 // It creates 1 space
@@ -892,75 +1031,285 @@ func (s *searchControllerTestSuite) TestSearchQueryScenarioDriven() {
 
 // TestIncludedParents verifies the Included list of parents
 func (s *searchControllerTestSuite) TestIncludedParents() {
-	// keep in mind that TestFixture is going to create 6 items becasue we asked for 3 links
-	// we will ignore extra 2 items and we will use only 4
-	fixtures := tf.NewTestFixture(s.T(), s.DB,
-		tf.WorkItemLinkTypes(1, func(fxt *tf.TestFixture, idx int) error {
-			wilt := fxt.WorkItemLinkTypes[idx]
-			wilt.ForwardName = link.TypeParentOf
-			wilt.Topology = link.TopologyTree
-			return nil
-		}),
-		tf.WorkItemLinks(3, func(fxt *tf.TestFixture, idx int) error {
+	resetFn := s.DisableGormCallbacks()
+	defer resetFn()
+
+	fxt := tf.NewTestFixture(s.T(), s.DB,
+		tf.WorkItems(5, tf.SetWorkItemTitles("A", "B", "C", "D", "E")),
+		tf.WorkItemLinksCustom(3, func(fxt *tf.TestFixture, idx int) error {
+			l := fxt.WorkItemLinks[idx]
+			l.LinkTypeID = link.SystemWorkItemLinkTypeParentChildID
 			switch idx {
 			case 0:
-				fxt.WorkItemLinks[idx].SourceID = fxt.WorkItems[0].ID
-				fxt.WorkItemLinks[idx].TargetID = fxt.WorkItems[1].ID
+				l.SourceID = fxt.WorkItemByTitle("A").ID
+				l.TargetID = fxt.WorkItemByTitle("B").ID
 			case 1:
-				fxt.WorkItemLinks[idx].SourceID = fxt.WorkItems[1].ID
-				fxt.WorkItemLinks[idx].TargetID = fxt.WorkItems[2].ID
+				l.SourceID = fxt.WorkItemByTitle("B").ID
+				l.TargetID = fxt.WorkItemByTitle("C").ID
 			case 2:
-				fxt.WorkItemLinks[idx].SourceID = fxt.WorkItems[0].ID
-				fxt.WorkItemLinks[idx].TargetID = fxt.WorkItems[3].ID
+				l.SourceID = fxt.WorkItemByTitle("A").ID
+				l.TargetID = fxt.WorkItemByTitle("D").ID
 			}
 			return nil
 		}),
 	)
 
-	spaceIDStr := fixtures.Spaces[0].ID.String()
-	parentWI0 := fixtures.WorkItems[0]
-	parentWI1 := fixtures.WorkItems[1]
-	childWI := fixtures.WorkItems[2]
-	childWI2 := fixtures.WorkItems[3]
+	A := fxt.WorkItemByTitle("A").ID
+	B := fxt.WorkItemByTitle("B").ID
+	C := fxt.WorkItemByTitle("C").ID
+	D := fxt.WorkItemByTitle("D").ID
+	E := fxt.WorkItemByTitle("E").ID
 
-	filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, spaceIDStr)
-	_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
-	require.NotEmpty(s.T(), result.Data)
-	require.Len(s.T(), result.Data, 6)
-	require.Len(s.T(), result.Included, 2)
+	spaceIDStr := fxt.Spaces[0].ID.String()
 
-	// verify included objects
-	includedMustHave := map[uuid.UUID]struct{}{
-		parentWI0.ID: {},
-		parentWI1.ID: {},
+	printCb := func(ID uuid.UUID) string {
+		return fmt.Sprintf("%s (%s)", fxt.WorkItemByID(ID).Fields[workitem.SystemTitle].(string), ID)
 	}
-	for _, ele := range result.Included {
-		appWI, ok := ele.(app.WorkItem)
-		if ok && appWI.Type == APIStringTypeWorkItem {
-			delete(includedMustHave, *appWI.ID)
+
+	s.T().Run("in topology A-B-C and A-D search for", func(t *testing.T) {
+		testFunc := func(t *testing.T, searchForTitles []string, expectedData, expectedIncludes id.Slice, treeView bool) {
+			matches := id.MapFromSlice(expectedData)
+			included := id.MapFromSlice(expectedIncludes)
+
+			// Build title filter and test name
+			require.NotEmpty(t, searchForTitles)
+			titleFilter := ""
+			for _, title := range searchForTitles {
+				f := fmt.Sprintf(`{"title":"%[1]s"}`, title)
+				if titleFilter == "" {
+					titleFilter = f
+				} else {
+					titleFilter = fmt.Sprintf(`{"$OR": [%[1]s, %[2]s]}`, f, titleFilter)
+				}
+			}
+			filter := fmt.Sprintf(`"$AND": [%[1]s, {"space": "%[2]s"}]`, titleFilter, spaceIDStr)
+			testName := strings.Join(searchForTitles, ",")
+			if treeView {
+				filter = filter + "," + fmt.Sprintf(`"$OPTS":{"%[1]s": true}`, search.OptTreeViewKey)
+				testName += " with tree-view=true"
+			} else {
+				testName += " with tree-view=false"
+			}
+			filter = "{" + filter + "}"
+
+			t.Run(testName, func(t *testing.T) {
+				t.Logf("Running with filter: %s", filter)
+				// when
+				_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+				// then
+				require.NotEmpty(t, result.Data)
+				assert.Len(t, result.Data, len(searchForTitles))
+				compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", strings.Replace("in topology A-B-C and A-D search for", " ", "_", -1), strings.Replace(testName+".res.golden.json", " ", "_", -1)), result)
+
+				// test what's included in the "data" portion of the response
+				for _, wi := range result.Data {
+					_, ok := matches[*wi.ID]
+					if wi := fxt.WorkItemByID(*wi.ID); wi != nil {
+						t.Logf("found data work item: %s (%s)", wi.Fields[workitem.SystemTitle].(string), wi.ID)
+					}
+					assert.True(t, ok, "failed to find work item in list of expected \"data\" results: %s (%s)", wi.Attributes[workitem.SystemTitle].(string), wi.ID)
+					delete(matches, *wi.ID)
+				}
+				assert.Empty(t, matches, "failed to find these work items in \"data\" section: %s", matches.ToString(", ", printCb))
+
+				assert.True(t, len(result.Included) >= len(included), "length of included elements (%d) must be at least %d", len(result.Included), len(included))
+				for _, ele := range result.Included {
+					appWI, ok := ele.(app.WorkItem)
+					if ok {
+						_, ok = included[*appWI.ID]
+						t.Logf("found included work item: %s (%s)", fxt.WorkItemByID(*appWI.ID).Fields[workitem.SystemTitle].(string), *appWI.ID)
+						assert.True(t, ok, "failed to find work item in list of expected \"included\" results: %s (%s)", appWI.Attributes[workitem.SystemTitle].(string), *appWI.ID)
+						delete(included, *appWI.ID)
+					}
+				}
+				assert.Empty(t, included, "failed to find these work items in \"included\" section: %s", included.ToString(", ", printCb))
+				// check order of execution
+				if len(result.Included) > 1 {
+					var expectedOrder []interface{}
+					for i := 0; i < 2; i++ {
+						expectedOrder = append(expectedOrder, fxt.WorkItems[i].ID) // expectedOrder = [A, B]
+					}
+					includedData := make([]app.WorkItem, len(result.Included))
+					for i, v := range result.Included {
+						includedData[i].ID = v.(app.WorkItem).ID
+						assert.Equal(t, expectedOrder[i], *includedData[i].ID)
+					}
+				}
+
+				if treeView {
+					t.Run("check that all non-root work items have a parent relationship", func(t *testing.T) {
+						hasParent := func(wi app.WorkItem) {
+							// treat the root differently
+							if *wi.ID == A || *wi.ID == E {
+								return
+							}
+							title := fxt.WorkItemByID(*wi.ID).Fields[workitem.SystemTitle].(string)
+							require.NotNil(t, wi.Relationships, "work item %s is missing relationships", title)
+							require.NotNil(t, wi.Relationships.Parent, "work item %s is missing relationships.parent", title)
+							require.NotNil(t, wi.Relationships.Parent.Data, "work item %s is missing relationships.parent.data", title)
+							parentID := wi.Relationships.Parent.Data.ID
+							switch *wi.ID {
+							case B:
+								require.Equal(t, parentID, A)
+							case C:
+								require.Equal(t, parentID, B)
+							case D:
+								require.Equal(t, parentID, A)
+							}
+						}
+						// check data array
+						for _, wi := range result.Data {
+							hasParent(*wi)
+						}
+						// check included array
+						for _, ele := range result.Included {
+							wi, ok := ele.(app.WorkItem)
+							if ok {
+								hasParent(wi)
+							}
+						}
+					})
+				}
+			})
 		}
-	}
-	assert.Empty(s.T(), includedMustHave)
-	var successCnt int
-	for _, wi := range result.Data {
-		if *wi.ID == parentWI0.ID {
-			require.Nil(s.T(), wi.Relationships.Parent.Data)
-			successCnt++
-		}
-		if *wi.ID == parentWI1.ID {
-			require.Equal(s.T(), parentWI0.ID, wi.Relationships.Parent.Data.ID)
-			successCnt++
-		}
-		if *wi.ID == childWI.ID {
-			require.Equal(s.T(), parentWI1.ID, wi.Relationships.Parent.Data.ID)
-			successCnt++
-		}
-		if *wi.ID == childWI2.ID {
-			require.Equal(s.T(), parentWI0.ID, wi.Relationships.Parent.Data.ID)
-			successCnt++
-		}
-	}
-	assert.Equal(s.T(), successCnt, 4)
+		// // Without tree-view query option
+		testFunc(t, []string{"A"}, id.Slice{A}, nil, false)
+		testFunc(t, []string{"B"}, id.Slice{B}, nil, false)
+		testFunc(t, []string{"C"}, id.Slice{C}, nil, false)
+		testFunc(t, []string{"D"}, id.Slice{D}, nil, false)
+		testFunc(t, []string{"E"}, id.Slice{E}, nil, false)
+		// With tree-view query option
+		testFunc(t, []string{"A"}, id.Slice{A}, nil, true)
+		testFunc(t, []string{"B"}, id.Slice{B}, id.Slice{A}, true)
+		testFunc(t, []string{"C"}, id.Slice{C}, id.Slice{B, A}, true)
+		testFunc(t, []string{"D"}, id.Slice{D}, id.Slice{A}, true)
+		testFunc(t, []string{"E"}, id.Slice{E}, nil, true)
+		// search for parent and child elements without tree-view query option
+		testFunc(t, []string{"B", "C"}, id.Slice{B, C}, nil, false)
+		// search for parent and child elements with tree-view query option
+		testFunc(t, []string{"B", "C"}, id.Slice{B, C}, id.Slice{A}, true)
+	})
+}
+
+func (s *searchControllerTestSuite) TestIncludedChildren() {
+	resetFn := s.DisableGormCallbacks()
+	defer resetFn()
+
+	// Suppose we have this topology:
+	//
+	//   A
+	//   |_B
+	//     |_C
+	//     | |_D
+	//     |
+	//     |_E
+	//
+	// We need to make sure that E is included when C is a match AND the
+	// tree-view option is "on". If C is a match and trew-view option is "off",
+	// then don't include E.
+	fxt := tf.NewTestFixture(s.T(), s.DB,
+		tf.WorkItems(5, tf.SetWorkItemTitles("A", "B", "C", "D", "E")),
+		tf.WorkItemLinksCustom(4,
+			tf.BuildLinks(append(tf.LinkChain("A", "B", "C", "D"), tf.L("B", "E"))...),
+			func(fxt *tf.TestFixture, idx int) error {
+				fxt.WorkItemLinks[idx].LinkTypeID = link.SystemWorkItemLinkTypeParentChildID
+				return nil
+			},
+		),
+	)
+
+	A := fxt.WorkItemByTitle("A").ID
+	B := fxt.WorkItemByTitle("B").ID
+	C := fxt.WorkItemByTitle("C").ID
+	E := fxt.WorkItemByTitle("E").ID
+	spaceIDStr := fxt.Spaces[0].ID.String()
+
+	testFolder := "in_topology_A-B-C-D_and_B-E_search_for_B_and_C"
+	s.T().Run("in topology A-B-C-D and B-E search for", func(t *testing.T) {
+		t.Run("B,C with tree-view = true", func(t *testing.T) {
+			// when
+			filter := fmt.Sprintf(`{"$AND":[{"space":"%[1]s"}, {"$OR": [{"title":"B"}, {"title":"C"}]}], "$OPTS":{"%[2]s": true}}`, spaceIDStr, search.OptTreeViewKey)
+			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+			// then
+			require.NotEmpty(t, result.Data)
+			// check "data" section
+			toBeFound := id.Slice{B, C}.ToMap()
+			for _, wi := range result.Data {
+				_, ok := toBeFound[*wi.ID]
+				require.True(t, ok, "found unexpected work item in data section: %s", wi.Attributes[workitem.SystemTitle].(string))
+				delete(toBeFound, *wi.ID)
+				// check parent of each work item
+				require.NotNil(t, wi.Relationships)
+				require.NotNil(t, wi.Relationships.Parent)
+				require.NotNil(t, wi.Relationships.Parent.Data)
+				if *wi.ID == B {
+					require.Equal(t, A, wi.Relationships.Parent.Data.ID)
+				}
+				if *wi.ID == C {
+					require.Equal(t, B, wi.Relationships.Parent.Data.ID)
+				}
+			}
+			require.Empty(t, toBeFound, "failed to find these work items: %s", toBeFound.ToString(", ", func(ID uuid.UUID) string {
+				return fxt.WorkItemByID(ID).Fields[workitem.SystemTitle].(string)
+			}))
+			// check "included" section
+			toBeFound = id.Slice{A, E}.ToMap()
+			for _, ifObj := range result.Included {
+				// technically an included object can be a pointer or an object
+				var wi *app.WorkItem
+				obj, ok := ifObj.(app.WorkItem)
+				if ok {
+					wi = &obj
+				} else {
+					wi, ok = ifObj.(*app.WorkItem)
+					if !ok {
+						continue
+					}
+				}
+				_, ok = toBeFound[*wi.ID]
+				require.True(t, ok, "found unexpected work item in data section: %s", wi.Attributes[workitem.SystemTitle].(string))
+				delete(toBeFound, *wi.ID)
+				// check parent of each work item
+				require.NotNil(t, wi.Relationships)
+				if *wi.ID == E {
+					require.NotNil(t, wi.Relationships.Parent)
+					require.NotNil(t, wi.Relationships.Parent.Data)
+					require.Equal(t, B, wi.Relationships.Parent.Data.ID)
+				}
+				if *wi.ID == A {
+					require.Empty(t, wi.Relationships.Parent)
+				}
+			}
+			require.Empty(t, toBeFound, "failed to find these work items: %s", toBeFound.ToString(", ", func(ID uuid.UUID) string {
+				return fxt.WorkItemByID(ID).Fields[workitem.SystemTitle].(string)
+			}))
+			compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", testFolder, "include_children.res.payload.golden.json"), result)
+		})
+
+		t.Run("B,C with tree-view = false", func(t *testing.T) {
+			// when
+			filter := fmt.Sprintf(`{"$AND":[{"space":"%[1]s"}, {"$OR": [{"title":"B"}, {"title":"C"}]}], "$OPTS":{"%[2]s": false}}`, spaceIDStr, search.OptTreeViewKey)
+			_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+			// then
+			require.NotEmpty(t, result.Data)
+			require.Empty(t, result.Included)
+			// check "data" section
+			toBeFound := id.Slice{B, C}.ToMap()
+			for _, wi := range result.Data {
+				_, ok := toBeFound[*wi.ID]
+				require.True(t, ok, "found unexpected work item in data section: %s", wi.Attributes[workitem.SystemTitle].(string))
+				delete(toBeFound, *wi.ID)
+				// check parent of each work item
+				require.NotNil(t, wi.Relationships)
+				require.Empty(t, wi.Relationships.Parent)
+			}
+			require.Empty(t, toBeFound, "failed to find these work items: %s", toBeFound.ToString(", ", func(ID uuid.UUID) string {
+				return fxt.WorkItemByID(ID).Fields[workitem.SystemTitle].(string)
+			}))
+			// check "included" section
+			compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", testFolder, "do_not_include_children.res.payload.golden.json"), result)
+		})
+	})
 }
 
 func (s *searchControllerTestSuite) TestUpdateWorkItem() {
@@ -1122,4 +1471,54 @@ func (s SortableIncludedSpacesByID) Less(i, j int) bool {
 		return false
 	}
 	return strings.Compare(s[i].(app.Space).ID.String(), s[j].(app.Space).ID.String()) < 0
+}
+
+func TestWorkItemPtrSliceSort(t *testing.T) {
+	t.Run("by work item title", func(t *testing.T) {
+		// given
+		a := &app.WorkItem{Attributes: map[string]interface{}{workitem.SystemTitle: "A"}}
+		b := &app.WorkItem{Attributes: map[string]interface{}{workitem.SystemTitle: "B"}}
+		c := &app.WorkItem{Attributes: map[string]interface{}{workitem.SystemTitle: "C"}}
+		s := WorkItemPtrSlice{c, a, b}
+		// when
+		sort.Sort(s)
+		// then
+		require.Equal(t, WorkItemPtrSlice{a, b, c}, s)
+	})
+	t.Run("by work item ID", func(t *testing.T) {
+		// given
+		a := &app.WorkItem{ID: ptr.UUID(uuid.FromStringOrNil("00000000-0000-0000-0000-000000000001"))}
+		b := &app.WorkItem{ID: ptr.UUID(uuid.FromStringOrNil("00000000-0000-0000-0000-000000000001"))}
+		c := &app.WorkItem{ID: ptr.UUID(uuid.FromStringOrNil("00000000-0000-0000-0000-000000000003"))}
+		s := WorkItemPtrSlice{c, a, b}
+		// when
+		sort.Sort(s)
+		// then
+		require.Equal(t, WorkItemPtrSlice{a, b, c}, s)
+	})
+}
+
+func TestWorkItemInterfaceSliceSort(t *testing.T) {
+	t.Run("by work item title", func(t *testing.T) {
+		// given objects and pointers
+		var a interface{} = app.WorkItem{Attributes: map[string]interface{}{workitem.SystemTitle: "A"}}
+		var b interface{} = &app.WorkItem{Attributes: map[string]interface{}{workitem.SystemTitle: "B"}}
+		var c interface{} = app.WorkItem{Attributes: map[string]interface{}{workitem.SystemTitle: "C"}}
+		s := WorkItemInterfaceSlice{c, a, b}
+		// when
+		sort.Sort(s)
+		// then
+		require.Equal(t, WorkItemInterfaceSlice{a, b, c}, s)
+	})
+	t.Run("by work item ID", func(t *testing.T) {
+		// given objects and pointers
+		var a interface{} = app.WorkItem{ID: ptr.UUID(uuid.FromStringOrNil("00000000-0000-0000-0000-000000000001"))}
+		var b interface{} = &app.WorkItem{ID: ptr.UUID(uuid.FromStringOrNil("00000000-0000-0000-0000-000000000002"))}
+		var c interface{} = app.WorkItem{ID: ptr.UUID(uuid.FromStringOrNil("00000000-0000-0000-0000-000000000003"))}
+		s := WorkItemInterfaceSlice{c, a, b}
+		// when
+		sort.Sort(s)
+		// then
+		require.Equal(t, WorkItemInterfaceSlice{a, b, c}, s)
+	})
 }

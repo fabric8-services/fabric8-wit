@@ -40,19 +40,19 @@ func (s *workItemRevisionRepositoryBlackBoxTest) TestStoreRevisions() {
 		wi.Fields[workitem.SystemTitle] = "Updated Title"
 		wi.Fields[workitem.SystemState] = workitem.SystemStateOpen
 		wi, err := s.repository.Save(s.Ctx, wi.SpaceID, *wi, fxt.Identities[1].ID)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// modify again the workitem
 		wi.Fields[workitem.SystemTitle] = "Updated Title2"
 		wi.Fields[workitem.SystemState] = workitem.SystemStateInProgress
 		wi, err = s.repository.Save(s.Ctx, wi.SpaceID, *wi, fxt.Identities[1].ID)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// delete the workitem
 		err = s.repository.Delete(s.Ctx, wi.ID, fxt.Identities[2].ID)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// when
 		revisions, err := s.revisionRepository.List(s.Ctx, wi.ID)
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Len(t, revisions, 4)
 		// revision 1
 		revision1 := revisions[0]

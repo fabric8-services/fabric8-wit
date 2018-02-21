@@ -38,6 +38,6 @@ func (s *TestAuthzSuite) SetupSuite() {
 func (s *TestAuthzSuite) TestFailsIfNoTokenInContext() {
 	ctx := context.Background()
 	_, err := s.authzService.Authorize(ctx, "", uuid.NewV4().String())
-	require.NotNil(s.T(), err)
+	require.Error(s.T(), err)
 	require.IsType(s.T(), errors.UnauthorizedError{}, err)
 }

@@ -1,0 +1,31 @@
+{
+  "data": {
+    "attributes": {
+      "background-color": "#10b2f4",
+      "border-color": "#0ccca6",
+      "created-at": "0001-01-01T00:00:00Z",
+      "name": "Label New 1001",
+      "text-color": "#dbe1f6",
+      "updated-at": "0001-01-01T00:00:00Z",
+      "version": 1
+    },
+    "id": "00000000-0000-0000-0000-000000000001",
+    "links": {
+      "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002/labels/00000000-0000-0000-0000-000000000001",
+      "self": "http:///api/spaces/00000000-0000-0000-0000-000000000002/labels/00000000-0000-0000-0000-000000000001"
+    },
+    "relationships": {
+      "space": {
+        "data": {
+          "id": "00000000-0000-0000-0000-000000000002",
+          "type": "spaces"
+        },
+        "links": {
+          "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002",
+          "self": "http:///api/spaces/00000000-0000-0000-0000-000000000002"
+        }
+      }
+    },
+    "type": "labels"
+  }
+}

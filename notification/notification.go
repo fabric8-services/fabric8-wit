@@ -11,6 +11,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/notification/client"
+	"github.com/fabric8-services/fabric8-wit/rest"
 	goaclient "github.com/goadesign/goa/client"
 	goauuid "github.com/goadesign/goa/uuid"
 	uuid "github.com/satori/go.uuid"
@@ -145,7 +146,7 @@ func (s *Service) Send(ctx context.Context, msg Message) {
 				"err":        err,
 			}, "unexpected response code")
 		}
-		defer resp.Body.Close()
+		defer rest.CloseResponse(resp)
 
 	}(ctx, msg)
 }

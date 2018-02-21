@@ -21,6 +21,14 @@ HG_BIN := $(shell command -v $(HG_BIN_NAME) 2> /dev/null)
 DOCKER_COMPOSE_BIN := $(shell command -v $(DOCKER_COMPOSE_BIN_NAME) 2> /dev/null)
 DOCKER_BIN := $(shell command -v $(DOCKER_BIN_NAME) 2> /dev/null)
 
+GLIDE_VERSION := $(shell ${GLIDE_BIN} --version | sed -rn 's/([^0-9.]*)([0-9]*\.[0-9]*)(.*)/\2/p')
+DESIRED_GLIDE_VERSION := 0.12
+
+check-glide-version :
+	@if [ `echo "${GLIDE_VERSION} < ${DESIRED_GLIDE_VERSION}" | bc -l` -eq 1 ] ; then \
+	 echo Warning: Glide version ${GLIDE_VERSION} is less than desired Glide version ${DESIRED_GLIDE_VERSION};\
+	fi
+
 # This is a fix for a non-existing user in passwd file when running in a docker
 # container and trying to clone repos of dependencies
 GIT_COMMITTER_NAME ?= "user"
@@ -216,6 +224,13 @@ clean-generated:
 	-rm -rf ./account/tenant
 	-rm -rf ./auth/authservice
 
+CLEAN_TARGETS += clean-sql-generated
+.PHONY: clean-sql-generated
+## Removes all generated code for SQL migration and tests.
+clean-sql-generated:
+	-rm -f ./migration/sqlbindata.go
+	-rm -f ./migration/sqlbindata_test.go
+
 CLEAN_TARGETS += clean-vendor
 .PHONY: clean-vendor
 ## Removes the ./vendor directory.
@@ -229,7 +244,7 @@ clean-glide-cache:
 	-rm -rf ./.glide
 
 $(VENDOR_DIR): glide.lock glide.yaml
-	$(GLIDE_BIN) --quiet install
+	$(GLIDE_BIN) --quiet install --strip-vendor
 	touch $(VENDOR_DIR)
 
 .PHONY: deps
@@ -286,12 +301,19 @@ MINISHIFT_URL = http://$(MINISHIFT_IP)
 # make sure you have a entry in /etc/hosts for "minishift.local MINISHIFT_IP"
 MINISHIFT_HOSTS_ENTRY = http://minishift.local
 
+# Setup AUTH image URL, use default image path and default tag if not provided
+AUTH_IMAGE_DEFAULT=docker.io/fabric8/fabric8-auth
+AUTH_IMAGE_TAG ?= latest
+AUTH_IMAGE_URL=$(AUTH_IMAGE_DEFAULT):$(AUTH_IMAGE_TAG)
+
 .PHONY: dev-wit-openshift
 dev-wit-openshift: prebuild-check deps generate $(FRESH_BIN)
 	minishift start
 	./check_hosts.sh
 	-eval `minishift oc-env` &&  oc login -u developer -p developer && oc new-project wit-openshift
-	AUTH_WIT_URL=$(MINISHIFT_URL):8080 kedge apply -f kedge/db.yml -f kedge/db-auth.yml -f kedge/auth.yml
+	AUTH_IMAGE_URL=$(AUTH_IMAGE_URL) \
+	AUTH_WIT_URL=$(MINISHIFT_URL):8080 \
+	kedge apply -f minishift/kedge/db.yml -f minishift/kedge/db-auth.yml -f minishift/kedge/auth.yml
 	sleep 3s
 	F8_AUTH_URL=$(MINISHIFT_HOSTS_ENTRY):31000 \
 	F8_POSTGRES_HOST=$(MINISHIFT_IP) \
@@ -319,7 +341,7 @@ $(TMP_PATH):
 	mkdir -p $(TMP_PATH)
 
 .PHONY: prebuild-check
-prebuild-check: $(TMP_PATH) $(INSTALL_PREFIX) $(CHECK_GOPATH_BIN)
+prebuild-check: $(TMP_PATH) $(INSTALL_PREFIX) $(CHECK_GOPATH_BIN) check-glide-version
 # Check that all tools where found
 ifndef GIT_BIN
 	$(error The "$(GIT_BIN_NAME)" executable could not be found in your PATH)

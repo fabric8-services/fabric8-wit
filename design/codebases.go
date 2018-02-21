@@ -42,8 +42,10 @@ var codebaseLinks = a.Type("CodebaseLinks", func() {
 	a.UseTrait("GenericLinksTrait")
 	a.Attribute("edit", d.String)
 })
+
 var codebaseRelationships = a.Type("CodebaseRelations", func() {
 	a.Attribute("space", relationGeneric, "This defines the owning space")
+	a.Attribute("workspaces", relationGeneric, "This defines the dependent workspaces")
 })
 
 var codebaseListMeta = a.Type("CodebaseListMeta", func() {
@@ -63,16 +65,30 @@ var workspace = a.Type("Workspace", func() {
 
 var workspaceAttributes = a.Type("WorkspaceAttributes", func() {
 	a.Description(`JSONAPI store for all the "attributes" of a workspace. +See also see http://jsonapi.org/format/#document-resource-object-attributes`)
+	a.Attribute("id", d.String, "The workspace id", func() {
+		a.Example("workspacephly8l91tqg0u08x")
+	})
 	a.Attribute("name", d.String, "The workspace name", func() {
 		a.Example("test")
 	})
-	a.Attribute("description", d.String, "The URL of the codebase ", func() {
+	a.Attribute("description", d.String, "The workspace description", func() {
 		a.Example("")
+	})
+	a.Attribute("status", d.String, "The workspace status", func() {
+		a.Example("STOPPED");
 	})
 })
 
 var workspaceLinks = a.Type("WorkspaceLinks", func() {
-	a.Attribute("open", d.String)
+	a.Attribute("open", d.String, "The workspace 'open' link", func() {
+		a.Example("http://localhost:8080/wsmaster/api/workspace/workspace28t00rschopreajr")
+	})
+	a.Attribute("self", d.String, "The workspace 'self' link", func() {
+		a.Example("http://localhost:8080/wsmaster/api/workspace/workspace28t00rschopreajr")
+	})
+	a.Attribute("ide", d.String, "The workspace 'ide' link", func() {
+		a.Example("http://localhost:8080/che/test")
+	})
 })
 
 var workspaceEditLinks = a.Type("WorkspaceEditLinks", func() {
@@ -140,12 +156,30 @@ var _ = a.Resource("codebase", func() {
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 	})
+	// Deprecated: Use 'listWorkspaces' instead
 	a.Action("edit", func() {
 		a.Security("jwt")
 		a.Routing(
 			a.GET("/:codebaseID/edit"),
 		)
-		a.Description("Trigger edit of a given codebase.")
+		a.Description("Deprecated: Trigger edit of a given codebase.")
+		a.Params(func() {
+			a.Param("codebaseID", d.UUID, "Codebase Identifier")
+		})
+		a.Response(d.OK, func() {
+			a.Media(workspaceList)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+	})
+	a.Action("listWorkspaces", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.GET("/:codebaseID/workspaces"),
+		)
+		a.Description("Retrieve the list of workspaces that belong to a given codebase")
 		a.Params(func() {
 			a.Param("codebaseID", d.UUID, "Codebase Identifier")
 		})

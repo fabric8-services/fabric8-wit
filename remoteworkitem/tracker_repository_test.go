@@ -49,10 +49,10 @@ func (test *TestTrackerRepository) TestTrackerCreate() {
 	}
 
 	err = test.repo.Create(context.Background(), &tracker)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 
 	tracker2, err := test.repo.Load(context.Background(), tracker.ID)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, tracker2)
 	assert.Equal(t, "http://api.github.com", tracker2.URL)
 	assert.Equal(t, remoteworkitem.ProviderGithub, tracker2.Type)
@@ -69,13 +69,13 @@ func (test *TestTrackerRepository) TestExistsTracker() {
 		assert.Equal(t, githubTrackerURL, fxt.Trackers[0].URL)
 		assert.Equal(t, remoteworkitem.ProviderGithub, fxt.Trackers[0].Type)
 
-		err := test.repo.CheckExists(context.Background(), fxt.Trackers[0].ID.String())
-		assert.Nil(t, err)
+		err := test.repo.CheckExists(context.Background(), fxt.Trackers[0].ID)
+		require.NoError(t, err)
 	})
 
 	t.Run("tracker doesn't exist", func(t *testing.T) {
 		t.Parallel()
-		err := test.repo.CheckExists(context.Background(), uuid.NewV4().String())
+		err := test.repo.CheckExists(context.Background(), uuid.NewV4())
 		require.IsType(t, errors.NotFoundError{}, err)
 	})
 
@@ -133,7 +133,7 @@ func (test *TestTrackerRepository) TestTrackerDelete() {
 
 	fxt := tf.NewTestFixture(t, test.DB, tf.Trackers(1))
 	err = test.repo.Delete(context.Background(), fxt.Trackers[0].ID)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 
 	tracker2, err := test.repo.Load(context.Background(), fxt.Trackers[0].ID)
 	assert.IsType(t, errors.NotFoundError{}, err)

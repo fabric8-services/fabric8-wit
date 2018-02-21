@@ -38,7 +38,7 @@ func (test *TestTransaction) TestTransactionInTime() {
 		return nil
 	})
 	// then
-	require.Nil(test.T(), err)
+	require.NoError(test.T(), err)
 }
 
 func (test *TestTransaction) TestTransactionOut() {
@@ -51,6 +51,6 @@ func (test *TestTransaction) TestTransactionOut() {
 		return nil
 	})
 	// then
-	require.NotNil(test.T(), err)
+	require.Error(test.T(), err)
 	assert.Contains(test.T(), err.Error(), "database transaction timeout!")
 }

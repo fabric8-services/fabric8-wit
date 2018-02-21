@@ -7,6 +7,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/fabric8-services/fabric8-wit/workitem/link"
+
+	"github.com/fabric8-services/fabric8-wit/ptr"
+
 	"context"
 
 	"github.com/fabric8-services/fabric8-wit/app"
@@ -307,7 +311,7 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 			if err != nil {
 				return errors.NewBadParameterError("data.relationships.iteration.data.id", *d.ID)
 			}
-			if err := appl.Iterations().CheckExists(ctx, iterationUUID.String()); err != nil {
+			if err := appl.Iterations().CheckExists(ctx, iterationUUID); err != nil {
 				return errors.NewNotFoundError("data.relationships.iteration.data.id", *d.ID)
 			}
 			target.Fields[workitem.SystemIteration] = iterationUUID.String()
@@ -337,7 +341,7 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 			if err != nil {
 				return errors.NewBadParameterError("data.relationships.area.data.id", *d.ID)
 			}
-			if err := appl.Areas().CheckExists(ctx, areaUUID.String()); err != nil {
+			if err := appl.Areas().CheckExists(ctx, areaUUID); err != nil {
 				cause := errs.Cause(err)
 				switch cause.(type) {
 				case errors.NotFoundError:
@@ -406,12 +410,11 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 // for future use
 func setupCodebase(appl application.Application, cb *codebase.Content, spaceID uuid.UUID) error {
 	if cb.CodebaseID == "" {
-		defaultStackID := "java-centos"
 		newCodeBase := codebase.Codebase{
 			SpaceID: spaceID,
 			Type:    "git",
 			URL:     cb.Repository,
-			StackID: &defaultStackID,
+			StackID: ptr.String("java-centos"),
 			//TODO: Think of making stackID dynamic value (from analyzer)
 		}
 		existingCB, err := appl.Codebases().LoadByRepo(context.Background(), spaceID, cb.Repository)
@@ -458,8 +461,6 @@ func ConvertWorkItems(request *http.Request, wis []workitem.WorkItem, additional
 func ConvertWorkItem(request *http.Request, wi workitem.WorkItem, additional ...WorkItemConvertFunc) *app.WorkItem {
 	// construct default values from input WI
 	relatedURL := rest.AbsoluteURL(request, app.WorkitemHref(wi.ID))
-	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(wi.SpaceID.String()))
-	witRelatedURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.SpaceID.String(), wi.Type))
 	labelsRelated := relatedURL + "/labels"
 	workItemLinksRelated := relatedURL + "/links"
 
@@ -477,10 +478,10 @@ func ConvertWorkItem(request *http.Request, wi workitem.WorkItem, additional ...
 					Type: APIStringTypeWorkItemType,
 				},
 				Links: &app.GenericLinks{
-					Self: &witRelatedURL,
+					Self: ptr.String(rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.SpaceID.String(), wi.Type))),
 				},
 			},
-			Space: app.NewSpaceRelation(wi.SpaceID, spaceRelatedURL),
+			Space: app.NewSpaceRelation(wi.SpaceID, rest.AbsoluteURL(request, app.SpaceHref(wi.SpaceID.String()))),
 			WorkItemLinks: &app.RelationGeneric{
 				Links: &app.GenericLinks{
 					Related: &workItemLinksRelated,
@@ -579,22 +580,33 @@ func ConvertWorkItem(request *http.Request, wi workitem.WorkItem, additional ...
 }
 
 // workItemIncludeHasChildren adds meta information about existing children
-func workItemIncludeHasChildren(ctx context.Context, appl application.Application) WorkItemConvertFunc {
+func workItemIncludeHasChildren(ctx context.Context, appl application.Application, childLinks ...link.WorkItemLinkList) WorkItemConvertFunc {
 	// TODO: Wrap ctx in a Timeout context?
 	return func(request *http.Request, wi *workitem.WorkItem, wi2 *app.WorkItem) {
 		var hasChildren bool
-		var err error
-		repo := appl.WorkItemLinks()
-		if repo != nil {
-			hasChildren, err = appl.WorkItemLinks().WorkItemHasChildren(ctx, wi.ID)
-			log.Info(ctx, map[string]interface{}{"wi_id": wi.ID}, "Work item has children: %t", hasChildren)
-			if err != nil {
-				log.Error(ctx, map[string]interface{}{
-					"wi_id": wi.ID,
-					"err":   err,
-				}, "unable to find out if work item has children: %s", wi.ID)
-				// enforce to have no children
-				hasChildren = false
+		// If we already have information about children inside the child links
+		// we can use that before querying the DB.
+		if len(childLinks) == 1 {
+			for _, l := range childLinks[0] {
+				if l.LinkTypeID == link.SystemWorkItemLinkTypeParentChildID && l.SourceID == wi.ID {
+					hasChildren = true
+				}
+			}
+		}
+		if !hasChildren {
+			var err error
+			repo := appl.WorkItemLinks()
+			if repo != nil {
+				hasChildren, err = appl.WorkItemLinks().WorkItemHasChildren(ctx, wi.ID)
+				log.Info(ctx, map[string]interface{}{"wi_id": wi.ID}, "Work item has children: %t", hasChildren)
+				if err != nil {
+					log.Error(ctx, map[string]interface{}{
+						"wi_id": wi.ID,
+						"err":   err,
+					}, "unable to find out if work item has children: %s", wi.ID)
+					// enforce to have no children
+					hasChildren = false
+				}
 			}
 		}
 		if wi2.Relationships.Children == nil {
@@ -608,18 +620,22 @@ func workItemIncludeHasChildren(ctx context.Context, appl application.Applicatio
 }
 
 // includeParentWorkItem adds the parent of given WI to relationships & included object
-func includeParentWorkItem(ctx context.Context, appl application.Application) WorkItemConvertFunc {
+func includeParentWorkItem(ctx context.Context, ancestors link.AncestorList, childLinks link.WorkItemLinkList) WorkItemConvertFunc {
 	return func(request *http.Request, wi *workitem.WorkItem, wi2 *app.WorkItem) {
 		var parentID *uuid.UUID
-		var err error
-		repo := appl.WorkItemLinks()
-		if repo != nil {
-			parentID, err = repo.GetParentID(ctx, wi.ID)
-			if err != nil {
-				log.Info(ctx, map[string]interface{}{
-					"wi_id":  wi.ID,
-					"detail": err,
-				}, "work item has no parent: %s", wi.ID)
+		// If we have an ancestry we can lookup the parent in no time.
+		if ancestors != nil && len(ancestors) != 0 {
+			p := ancestors.GetParentOf(wi.ID)
+			if p != nil {
+				parentID = &p.ID
+			}
+		}
+		// If no parent ID was found in the ancestor list, see if the child
+		// link list contains information to use.
+		if parentID == nil && childLinks != nil && len(childLinks) != 0 {
+			p := childLinks.GetParentIDOf(wi.ID, link.SystemWorkItemLinkTypeParentChildID)
+			if p != uuid.Nil {
+				parentID = &p
 			}
 		}
 		if wi2.Relationships.Parent == nil {

@@ -9,6 +9,7 @@ import (
 	"net/http/httputil"
 
 	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/goadesign/goa/middleware"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 )
@@ -76,7 +77,7 @@ func (cs *StarterClient) ListWorkspaces(ctx context.Context, repository string) 
 		return nil, err
 	}
 
-	defer resp.Body.Close()
+	defer rest.CloseResponse(resp)
 
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
 		workspaceErr := StarterError{}
@@ -138,7 +139,7 @@ func (cs *StarterClient) CreateWorkspace(ctx context.Context, workspace Workspac
 		return nil, err
 	}
 
-	defer resp.Body.Close()
+	defer rest.CloseResponse(resp)
 
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
 		workspaceErr := StarterError{}
@@ -207,7 +208,7 @@ func (cs *StarterClient) DeleteWorkspace(ctx context.Context, workspaceName stri
 		return err
 	}
 
-	defer resp.Body.Close()
+	defer rest.CloseResponse(resp)
 
 	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
 		workspaceErr := StarterError{}
@@ -257,7 +258,7 @@ func (cs *StarterClient) StartExistingWorkspace(ctx context.Context, workspaceNa
 		return nil, err
 	}
 
-	defer resp.Body.Close()
+	defer rest.CloseResponse(resp)
 
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
 		workspaceErr := StarterError{}
@@ -311,7 +312,7 @@ func (cs *StarterClient) GetCheServerState(ctx context.Context) (*ServerStateRes
 		return nil, err
 	}
 
-	defer resp.Body.Close()
+	defer rest.CloseResponse(resp)
 
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
 		statusErr := StarterError{}
@@ -362,7 +363,7 @@ func (cs *StarterClient) StartCheServer(ctx context.Context) (*ServerStateRespon
 		return nil, err
 	}
 
-	defer resp.Body.Close()
+	defer rest.CloseResponse(resp)
 
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusAccepted {
 		statusErr := StarterError{}
@@ -402,7 +403,7 @@ type WorkspaceRequest struct {
 
 // WorkspaceResponse represents a create workspace response body
 type WorkspaceResponse struct {
-	//ID string `json:"id,omitempty"`
+	ID string `json:"id,omitempty"`
 	//	Branch          string `json:"branch"`
 	Description string `json:"description,omitempty"`
 	//	Location        string `json:"location"`
@@ -419,19 +420,30 @@ type WorkspaceConfig struct {
 	Name string `json:"name"`
 }
 
-// GetIDEURL return the link with rel for ide url
-func (w WorkspaceResponse) GetIDEURL() string {
+// GetHrefByRel return the 'href' of 'rel' of WorkspaceLink
+// {
+//   "href": "https://che.prod-preview.openshift.io/user/wksp-0dae",
+//   "rel": "ide url",
+//   "method": "GET"
+// }
+func (w WorkspaceResponse) GetHrefByRelOfWorkspaceLink(rel string) string {
 	for _, l := range w.Links {
-		if l.Rel == "ide url" {
-			return l.HRef
+		if l.Rel == rel {
+			return l.Href
 		}
 	}
 	return ""
 }
 
+// Following const define commonly used WorkspaceLink rel
+const (
+	IdeUrlRel   = "ide url"
+	SelfLinkRel = "self link"
+)
+
 // WorkspaceLink represents a URL for the location of a workspace
 type WorkspaceLink struct {
-	HRef   string `json:"href"`
+	Href   string `json:"href"`
 	Method string `json:"method"`
 	Rel    string `json:"rel"`
 }

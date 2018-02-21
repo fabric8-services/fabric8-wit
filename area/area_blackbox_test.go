@@ -45,7 +45,7 @@ func (s *TestAreaRepository) TestCreateAreaWithSameNameFail() {
 	// when
 	err := repo.Create(context.Background(), &anotherAreaWithSameName)
 	// then
-	require.NotNil(s.T(), err)
+	require.Error(s.T(), err)
 	// In case of unique constrain error, a DataConflictError is returned.
 	_, ok := errors.Cause(err).(errs.DataConflictError)
 	assert.True(s.T(), ok)
@@ -63,7 +63,7 @@ func (s *TestAreaRepository) TestCreateArea() {
 	// when
 	err := repo.Create(context.Background(), &a)
 	// then
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	require.NotEqual(s.T(), uuid.Nil, a.ID)
 	assert.True(s.T(), !a.CreatedAt.After(time.Now()), "Area was not created, CreatedAt after Now()?")
 	assert.Equal(s.T(), name, a.Name)
@@ -78,14 +78,14 @@ func (s *TestAreaRepository) TestExistsArea() {
 		// given
 		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Areas(1))
 		// when
-		err := repo.CheckExists(context.Background(), fxt.Areas[0].ID.String())
+		err := repo.CheckExists(context.Background(), fxt.Areas[0].ID)
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 	})
 
 	t.Run("area doesn't exist", func(t *testing.T) {
 		// when
-		err := repo.CheckExists(context.Background(), uuid.NewV4().String())
+		err := repo.CheckExists(context.Background(), uuid.NewV4())
 		// then
 		require.IsType(t, errs.NotFoundError{}, err)
 	})
@@ -111,7 +111,7 @@ func (s *TestAreaRepository) TestCreateChildArea() {
 	// then
 	actualArea, err := area.NewAreaRepository(s.DB).Load(context.Background(), fxt.Areas[1].ID)
 	actualPath := actualArea.Path
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	require.NotNil(s.T(), actualArea)
 	assert.Equal(s.T(), expectedPath, actualPath)
 }
@@ -134,7 +134,7 @@ func (s *TestAreaRepository) TestGetAreaBySpaceIDAndNameAndPath() {
 	repo := area.NewAreaRepository(s.DB)
 	areaList, err := repo.Query(area.FilterBySpaceID(fxt.Spaces[0].ID), area.FilterByPath(path.Path{}), area.FilterByName(name))
 	// then
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	// there must be ONLY 1 result, because of the space,name,path unique constraint
 	require.Len(s.T(), areaList, 1)
 	rootArea := areaList[0]
@@ -158,7 +158,7 @@ func (s *TestAreaRepository) TestListAreaBySpace() {
 	repo := area.NewAreaRepository(s.DB)
 	its, err := repo.List(context.Background(), fxt.Spaces[0].ID)
 	// then
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	require.Len(s.T(), its, 3)
 	for i := 0; i < 3; i++ {
 		assert.NotNil(s.T(), searchInAreaSlice(createdAreaIds[i], its))
@@ -197,12 +197,12 @@ func (s *TestAreaRepository) TestListChildrenOfParents() {
 		expectedPath := path.Path{fxt.Areas[0].ID}
 
 		actualArea, err := repo.Load(context.Background(), fxt.Areas[1].ID)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.NotEqual(t, uuid.Nil, fxt.Areas[1].Path)
 		assert.Equal(t, expectedPath, actualArea.Path) // check that path ( an ltree field ) was populated.
 
 		actualArea, err = repo.Load(context.Background(), fxt.Areas[2].ID)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.NotEqual(t, uuid.Nil, fxt.Areas[2].Path)
 		assert.Equal(t, expectedPath, actualArea.Path) // check that path ( an ltree field ) was populated.
 	})
@@ -216,7 +216,7 @@ func (s *TestAreaRepository) TestListChildrenOfParents() {
 		// when
 		childAreaList, err := repo.ListChildren(context.Background(), fxt.Areas[0])
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 		for _, child := range childAreaList {
 			delete(childIDs, child.ID)
 		}
@@ -247,7 +247,7 @@ func (s *TestAreaRepository) TestListImmediateChildrenOfGrandParents() {
 		// when
 		childAreaList, err := repo.ListChildren(context.Background(), fxt.Areas[0])
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Len(t, childAreaList, 1)
 		require.Equal(t, fxt.Areas[1].ID, childAreaList[0].ID)
 	})
@@ -256,7 +256,7 @@ func (s *TestAreaRepository) TestListImmediateChildrenOfGrandParents() {
 		// when
 		childAreaList, err := repo.ListChildren(context.Background(), fxt.Areas[1])
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Len(t, childAreaList, 1)
 		require.Equal(t, fxt.Areas[2].ID, childAreaList[0].ID)
 	})
@@ -265,7 +265,7 @@ func (s *TestAreaRepository) TestListImmediateChildrenOfGrandParents() {
 		// when
 		childAreaList, err := repo.ListChildren(context.Background(), fxt.Areas[2])
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Len(t, childAreaList, 0)
 	})
 }
@@ -287,9 +287,23 @@ func (s *TestAreaRepository) TestListParentTree() {
 	// when
 	listOfCreatedAreas, err := area.NewAreaRepository(s.DB).LoadMultiple(context.Background(), listOfCreatedID)
 	// then
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	assert.Equal(s.T(), 2, len(listOfCreatedAreas))
 	for i := 0; i < 2; i++ {
 		assert.NotNil(s.T(), searchInAreaSlice(listOfCreatedID[i], listOfCreatedAreas))
 	}
+}
+
+func (s *TestAreaRepository) TestLoadMultiple() {
+	// nothing should be returned by LoadMultiple when we pass empty slice
+	s.T().Run("input empty slice", func(t *testing.T) {
+		// keep few areas in DB on purpose
+		_ = tf.NewTestFixture(t, s.DB, tf.Areas(2))
+		emptyList := []uuid.UUID{}
+		// when
+		listLoadedAreas, err := area.NewAreaRepository(s.DB).LoadMultiple(context.Background(), emptyList)
+		// then
+		require.NoError(t, err)
+		require.Empty(t, listLoadedAreas)
+	})
 }

@@ -34,7 +34,7 @@ func TestFlattenMap(t *testing.T) {
 		}`)
 	var nestedMap map[string]interface{}
 	err := json.Unmarshal(testString, &nestedMap)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	// when
 	oneLevelMap := make(map[string]interface{})
 	flatten(oneLevelMap, nestedMap, nil)

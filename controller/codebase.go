@@ -14,6 +14,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/login"
+	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space"
 
@@ -67,8 +68,14 @@ func (c *CodebaseController) Show(ctx *app.ShowCodebaseContext) error {
 	})
 }
 
-// Edit runs the edit action.
+// Deprecated: ListWorkspaces action should be used instead.
 func (c *CodebaseController) Edit(ctx *app.EditCodebaseContext) error {
+	listWorkspacesContext := app.ListWorkspacesCodebaseContext{ctx.Context, ctx.ResponseData, ctx.RequestData, ctx.CodebaseID}
+	return c.ListWorkspaces(&listWorkspacesContext)
+}
+
+// ListWorkspaces runs the listWorkspaces action.
+func (c *CodebaseController) ListWorkspaces(ctx *app.ListWorkspacesCodebaseContext) error {
 	_, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
@@ -106,14 +113,22 @@ func (c *CodebaseController) Edit(ctx *app.EditCodebaseContext) error {
 	var existingWorkspaces []*app.Workspace
 	for _, workspace := range workspaces {
 		openLink := rest.AbsoluteURL(ctx.Request, fmt.Sprintf(app.CodebaseHref(cb.ID)+"/open/%v", workspace.Config.Name))
+
+		ideLink := workspace.GetHrefByRelOfWorkspaceLink(che.IdeUrlRel)
+		selfLink := workspace.GetHrefByRelOfWorkspaceLink(che.SelfLinkRel)
+
 		existingWorkspaces = append(existingWorkspaces, &app.Workspace{
 			Attributes: &app.WorkspaceAttributes{
+				ID:          &workspace.ID,
 				Name:        &workspace.Config.Name,
-				Description: &workspace.Status,
+				Description: &workspace.Description,
+				Status:      &workspace.Status,
 			},
 			Type: "workspaces",
 			Links: &app.WorkspaceLinks{
 				Open: &openLink,
+				Self: &selfLink,
+				Ide:  &ideLink,
 			},
 		})
 	}
@@ -270,7 +285,7 @@ func (c *CodebaseController) Create(ctx *app.CreateCodebaseContext) error {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
-	ideURL := workspaceResp.GetIDEURL()
+	ideURL := workspaceResp.GetHrefByRelOfWorkspaceLink(che.IdeUrlRel)
 	resp := &app.WorkspaceOpen{
 		Links: &app.WorkspaceOpenLinks{
 			Open: &ideURL,
@@ -333,7 +348,7 @@ func (c *CodebaseController) Open(ctx *app.OpenCodebaseContext) error {
 		return nil
 	})
 
-	ideURL := workspaceResp.GetIDEURL()
+	ideURL := workspaceResp.GetHrefByRelOfWorkspaceLink(che.IdeUrlRel)
 	resp := &app.WorkspaceOpen{
 		Links: &app.WorkspaceOpenLinks{
 			Open: &ideURL,
@@ -357,15 +372,12 @@ func ConvertCodebases(request *http.Request, codebases []codebase.Codebase, opti
 
 // ConvertCodebase converts between internal and external REST representation
 func ConvertCodebase(request *http.Request, codebase codebase.Codebase, options ...CodebaseConvertFunc) *app.Codebase {
-	codebaseType := APIStringTypeCodebase
-	spaceType := APIStringTypeSpace
-	spaceID := codebase.SpaceID.String()
 	relatedURL := rest.AbsoluteURL(request, app.CodebaseHref(codebase.ID))
-	editURL := rest.AbsoluteURL(request, app.CodebaseHref(codebase.ID)+"/edit")
-	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
+	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(codebase.SpaceID))
+	workspacesRelatedURL := rest.AbsoluteURL(request, app.CodebaseHref(codebase.ID)+"/workspaces")
 
 	result := &app.Codebase{
-		Type: codebaseType,
+		Type: APIStringTypeCodebase,
 		ID:   &codebase.ID,
 		Attributes: &app.CodebaseAttributes{
 			CreatedAt:         &codebase.CreatedAt,
@@ -377,19 +389,26 @@ func ConvertCodebase(request *http.Request, codebase codebase.Codebase, options 
 		Relationships: &app.CodebaseRelations{
 			Space: &app.RelationGeneric{
 				Data: &app.GenericData{
-					Type: &spaceType,
-					ID:   &spaceID,
+					Type: ptr.String(APIStringTypeSpace),
+					ID:   ptr.String(codebase.SpaceID.String()),
 				},
 				Links: &app.GenericLinks{
 					Self:    &spaceRelatedURL,
 					Related: &spaceRelatedURL,
 				},
 			},
+			Workspaces: &app.RelationGeneric{
+				Links: &app.GenericLinks{
+					Self:    &workspacesRelatedURL,
+					Related: &workspacesRelatedURL,
+				},
+			},
 		},
 		Links: &app.CodebaseLinks{
 			Self:    &relatedURL,
 			Related: &relatedURL,
-			Edit:    &editURL,
+			// Deprecated: use 'Workspaces' links instead
+			Edit: ptr.String(rest.AbsoluteURL(request, app.CodebaseHref(codebase.ID)+"/edit")),
 		},
 	}
 	for _, option := range options {

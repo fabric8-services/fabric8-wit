@@ -1,0 +1,10 @@
+{
+  "errors": [
+    {
+      "code": "unauthorized_error",
+      "detail": "user is not allowed to create an iteration in this space",
+      "status": "401",
+      "title": "Unauthorized error"
+    }
+  ]
+}

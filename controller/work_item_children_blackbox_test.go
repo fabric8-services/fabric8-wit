@@ -65,7 +65,7 @@ func (s *workItemChildSuite) SetupTest() {
 	s.db = gormapplication.NewGormDB(s.DB)
 
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "workItemChildSuite user", "test provider")
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	s.testIdentity = *testIdentity
 
 	svc := testsupport.ServiceAsUser("WorkItemLink-Service", s.testIdentity)
@@ -165,14 +165,6 @@ func (s *workItemChildSuite) SetupTest() {
 func (s *workItemChildSuite) linkWorkItems(source, target *app.WorkItemSingle) app.WorkItemLinkSingle {
 	createPayload := newCreateWorkItemLinkPayload(*source.Data.ID, *target.Data.ID, s.bugBlockerLinkTypeID)
 	_, workitemLink := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.workitemLinkCtrl, createPayload)
-	require.NotNil(s.T(), workitemLink)
-	return *workitemLink
-}
-
-func (s *workItemChildSuite) updateWorkItemLink(workitemLinkID uuid.UUID, source, target *app.WorkItemSingle) app.WorkItemLinkSingle {
-	updatePayload := newUpdateWorkItemLinkPayload(workitemLinkID, *source.Data.ID, *target.Data.ID, s.bugBlockerLinkTypeID)
-	log.Info(nil, nil, fmt.Sprintf("Updating work item link from %v to %v", *source.Data.ID, *target.Data.ID))
-	_, workitemLink := test.UpdateWorkItemLinkOK(s.T(), s.svc.Context, s.svc, s.workitemLinkCtrl, workitemLinkID, updatePayload)
 	require.NotNil(s.T(), workitemLink)
 	return *workitemLink
 }

@@ -33,7 +33,7 @@ func NewSpaceAreasController(service *goa.Service, db application.DB, config Spa
 // List runs the list action.
 func (c *SpaceAreasController) List(ctx *app.ListSpaceAreasContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		if err := appl.Spaces().CheckExists(ctx, ctx.SpaceID.String()); err != nil {
+		if err := appl.Spaces().CheckExists(ctx, ctx.SpaceID); err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		areas, err := appl.Areas().List(ctx, ctx.SpaceID)

@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/fabric8-services/fabric8-wit/query"
+
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/area"
 	"github.com/fabric8-services/fabric8-wit/codebase"
@@ -27,11 +29,13 @@ import (
 //
 // Don't create one on your own!
 type TestFixture struct {
-	info             map[kind]*createInfo
-	db               *gorm.DB
-	isolatedCreation bool
-	ctx              context.Context
-	checkFuncs       []func() error
+	info               map[kind]*createInfo
+	db                 *gorm.DB
+	isolatedCreation   bool
+	ctx                context.Context
+	checkFuncs         []func() error
+	customLinkCreation bool // on when you've used WorkItemLinksCustom in your recipe
+	normalLinkCreation bool // on when you've used WorkItemLinks in your recipe
 
 	Identities             []*account.Identity          // Itentities (if any) that were created for this test fixture.
 	Iterations             []*iteration.Iteration       // Iterations (if any) that were created for this test fixture.
@@ -46,6 +50,7 @@ type TestFixture struct {
 	WorkItemLinks          []*link.WorkItemLink         // Work item links (if any) that were created for this test fixture.
 	Labels                 []*label.Label
 	Trackers               []*remoteworkitem.Tracker // Remote work item tracker (if any) that were created for this test fixture.
+	Queries                []*query.Query            // Queries (if any) that were created for this test fixture.
 }
 
 // NewFixture will create a test fixture by executing the recipies from the
@@ -92,7 +97,7 @@ func NewTestFixture(t testing.TB, db *gorm.DB, recipeFuncs ...RecipeFunction) *T
 	resource.Require(t, resource.Database)
 
 	tc, err := NewFixture(db, recipeFuncs...)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, tc)
 	return tc
 }
@@ -158,6 +163,7 @@ const (
 	kindWorkItemLinks          kind = "work_item_link"
 	kindLabels                 kind = "label"
 	kindTrackers               kind = "tracker"
+	kindQueries                kind = "query"
 )
 
 type createInfo struct {
@@ -214,6 +220,7 @@ func newFixture(db *gorm.DB, isolatedCreation bool, recipeFuncs ...RecipeFunctio
 		// actually make the objects that DO have dependencies
 		makeSpaces,
 		makeLabels,
+		makeQueries,
 		makeWorkItemLinkTypes,
 		makeCodebases,
 		makeWorkItemTypes,

@@ -20,6 +20,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/rest"
@@ -55,10 +56,10 @@ func (s *CommentsSuite) SetupTest() {
 	s.DBTestSuite.SetupTest()
 	s.db = gormapplication.NewGormDB(s.DB)
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "CommentsSuite user", "test provider")
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	s.testIdentity = *testIdentity
 	testIdentity2, err := testsupport.CreateTestIdentity(s.DB, "CommentsSuite user2", "test provider")
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	s.testIdentity2 = *testIdentity2
 	s.notification = notificationsupport.FakeNotificationChannel{}
 }
@@ -365,7 +366,7 @@ func (s *CommentsSuite) TestNonCollaboratorCanNotDelete() {
 	// create workitem in created space
 	// create another user - do not add this user into collaborator list
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestNonCollaboraterCanNotDelete-"), "TestWIComments")
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	space := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, *testIdentity, "")
 
 	payload := minimumRequiredCreateWithTypeAndSpace(workitem.SystemFeature, *space.ID)
@@ -387,7 +388,7 @@ func (s *CommentsSuite) TestNonCollaboratorCanNotDelete() {
 
 func (s *CommentsSuite) TestCollaboratorCanDelete() {
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestCollaboratorCanDelete-"), "TestWIComments")
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	space := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, *testIdentity, "")
 
 	payload := minimumRequiredCreateWithTypeAndSpace(workitem.SystemFeature, *space.ID)
@@ -414,14 +415,14 @@ func (s *CommentsSuite) TestCreatorCanDelete() {
 func (s *CommentsSuite) TestOtherCollaboratorCanDelete() {
 	// create space owner identity
 	spaceOwner, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestOtherCollaboratorCanDelete-"), "TestWIComments")
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 
 	// create 2 space collaborators' identity
 	collaborator1, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestOtherCollaboratorCanDelete-"), "TestWIComments")
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 
 	collaborator2, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestOtherCollaboratorCanDelete-"), "TestWIComments")
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 
 	// Add 2 identities as Collaborators
 	space := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, *spaceOwner, fmt.Sprintf("%s,%s", collaborator1.ID.String(), collaborator2.ID.String()))
@@ -450,7 +451,7 @@ func (s *CommentsSuite) TestOtherCollaboratorCanDelete() {
 // Test if another user can edit/update the comment
 func (s *CommentsSuite) TestNonCollaboratorCanNotUpdate() {
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestNonCollaboraterCanNotUpdate-"), "TestWIComments")
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	space := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, *testIdentity, "")
 
 	payload := minimumRequiredCreateWithTypeAndSpace(workitem.SystemFeature, *space.ID)
@@ -473,7 +474,7 @@ func (s *CommentsSuite) TestNonCollaboratorCanNotUpdate() {
 
 func (s *CommentsSuite) TestCollaboratorCanUpdate() {
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestCollaboratorCanUpdate-"), "TestWIComments")
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 	space := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, *testIdentity, "")
 
 	payload := minimumRequiredCreateWithTypeAndSpace(workitem.SystemFeature, *space.ID)
@@ -508,14 +509,14 @@ func (s *CommentsSuite) TestCreatorCanUpdate() {
 func (s *CommentsSuite) TestOtherCollaboratorCanUpdate() {
 	// create space owner identity
 	spaceOwner, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestOtherCollaboratorCanUpdate-"), "TestWIComments")
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 
 	// create 2 space collaborators' identity
 	collaborator1, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestOtherCollaboratorCanUpdate-"), "TestWIComments")
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 
 	collaborator2, err := testsupport.CreateTestIdentity(s.DB, testsupport.CreateRandomValidTestName("TestOtherCollaboratorCanUpdate-"), "TestWIComments")
-	require.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 
 	// Add 2 Collaborators in space
 	space := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, *spaceOwner, "")
@@ -566,14 +567,12 @@ func CreateSecuredSpace(t *testing.T, db application.DB, config SpaceConfigurati
 	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", owner, &TestSpaceAuthzService{owner: owner, userIDs: userIDs})
 	spaceCtrl := NewSpaceController(svc, db, config, &DummyResourceManager{})
 	require.NotNil(t, spaceCtrl)
-	name := "TestCollaborators-space-" + uuid.NewV4().String()
-	description := "description"
 	spacePayload := &app.CreateSpacePayload{
 		Data: &app.Space{
 			Type: "spaces",
 			Attributes: &app.SpaceAttributes{
-				Name:        &name,
-				Description: &description,
+				Name:        ptr.String("TestCollaborators-space-" + uuid.NewV4().String()),
+				Description: ptr.String("description"),
 			},
 		},
 	}

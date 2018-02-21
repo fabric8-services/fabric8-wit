@@ -10,19 +10,21 @@ import (
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/login"
+	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem"
-	"github.com/satori/go.uuid"
-
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 )
 
 const (
 	sourceLinkTypesRouteEnd = "/source-link-types"
 	targetLinkTypesRouteEnd = "/target-link-types"
 )
+
+const APIWorkItemTypes = "workitemtypes"
 
 // WorkitemtypeController implements the workitemtype resource.
 type WorkitemtypeController struct {
@@ -155,15 +157,12 @@ func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
 // ConvertWorkItemTypeFromModel converts from models to app representation
 func ConvertWorkItemTypeFromModel(request *http.Request, t *workitem.WorkItemType) app.WorkItemTypeData {
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(t.SpaceID.String()))
-	id := t.ID
-	createdAt := t.CreatedAt.UTC()
-	updatedAt := t.UpdatedAt.UTC()
 	var converted = app.WorkItemTypeData{
 		Type: "workitemtypes",
-		ID:   &id,
+		ID:   ptr.UUID(t.ID),
 		Attributes: &app.WorkItemTypeAttributes{
-			CreatedAt:   &createdAt,
-			UpdatedAt:   &updatedAt,
+			CreatedAt:   ptr.Time(t.CreatedAt.UTC()),
+			UpdatedAt:   ptr.Time(t.UpdatedAt.UTC()),
 			Version:     &t.Version,
 			Description: t.Description,
 			Icon:        t.Icon,
@@ -183,6 +182,32 @@ func ConvertWorkItemTypeFromModel(request *http.Request, t *workitem.WorkItemTyp
 			Type:        &ct,
 		}
 	}
+	// TODO(kwk): Replaces this temporary static hack with a more dynamic solution
+	getGuidedChildTypes := func(witIDs ...uuid.UUID) *app.RelationGenericList {
+		res := &app.RelationGenericList{
+			Data: make([]*app.GenericData, len(witIDs)),
+		}
+		for i, id := range witIDs {
+			res.Data[i] = &app.GenericData{
+				ID:   ptr.String(id.String()),
+				Type: ptr.String(APIWorkItemTypes),
+				// Links: &app.GenericLinks{
+				// 	Related: strPtr(rest.AbsoluteURL(request, app.WorkitemtypeHref(t.SpaceID, id.String()))),
+				// },
+			}
+		}
+		return res
+	}
+	switch t.ID {
+	case workitem.SystemScenario, workitem.SystemFundamental, workitem.SystemPapercuts:
+		converted.Relationships.GuidedChildTypes = getGuidedChildTypes(workitem.SystemExperience, workitem.SystemValueProposition)
+	case workitem.SystemExperience, workitem.SystemValueProposition:
+		converted.Relationships.GuidedChildTypes = getGuidedChildTypes(workitem.SystemFeature, workitem.SystemBug)
+	case workitem.SystemFeature:
+		converted.Relationships.GuidedChildTypes = getGuidedChildTypes(workitem.SystemTask, workitem.SystemBug)
+	case workitem.SystemBug:
+		converted.Relationships.GuidedChildTypes = getGuidedChildTypes(workitem.SystemTask)
+	}
 	return converted
 }
 
@@ -192,11 +217,9 @@ func convertFieldTypeFromModel(t workitem.FieldType) app.FieldType {
 	result.Kind = string(t.GetKind())
 	switch t2 := t.(type) {
 	case workitem.ListType:
-		kind := string(t2.ComponentType.GetKind())
-		result.ComponentType = &kind
+		result.ComponentType = ptr.String(string(t2.ComponentType.GetKind()))
 	case workitem.EnumType:
-		kind := string(t2.BaseType.GetKind())
-		result.BaseType = &kind
+		result.BaseType = ptr.String(string(t2.BaseType.GetKind()))
 		result.Values = t2.Values
 	}
 

@@ -24,6 +24,12 @@
             "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002",
             "self": "http:///api/spaces/00000000-0000-0000-0000-000000000002"
           }
+        },
+        "workspaces": {
+          "links": {
+            "related": "http:///api/codebases/00000000-0000-0000-0000-000000000001/workspaces",
+            "self": "http:///api/codebases/00000000-0000-0000-0000-000000000001/workspaces"
+          }
         }
       },
       "type": "codebases"
@@ -51,6 +57,12 @@
           "links": {
             "related": "http:///api/spaces/00000000-0000-0000-0000-000000000004",
             "self": "http:///api/spaces/00000000-0000-0000-0000-000000000004"
+          }
+        },
+        "workspaces": {
+          "links": {
+            "related": "http:///api/codebases/00000000-0000-0000-0000-000000000003/workspaces",
+            "self": "http:///api/codebases/00000000-0000-0000-0000-000000000003/workspaces"
           }
         }
       },
@@ -80,6 +92,12 @@
             "related": "http:///api/spaces/00000000-0000-0000-0000-000000000006",
             "self": "http:///api/spaces/00000000-0000-0000-0000-000000000006"
           }
+        },
+        "workspaces": {
+          "links": {
+            "related": "http:///api/codebases/00000000-0000-0000-0000-000000000005/workspaces",
+            "self": "http:///api/codebases/00000000-0000-0000-0000-000000000005/workspaces"
+          }
         }
       },
       "type": "codebases"
@@ -107,6 +125,12 @@
           "links": {
             "related": "http:///api/spaces/00000000-0000-0000-0000-000000000008",
             "self": "http:///api/spaces/00000000-0000-0000-0000-000000000008"
+          }
+        },
+        "workspaces": {
+          "links": {
+            "related": "http:///api/codebases/00000000-0000-0000-0000-000000000007/workspaces",
+            "self": "http:///api/codebases/00000000-0000-0000-0000-000000000007/workspaces"
           }
         }
       },
@@ -136,6 +160,12 @@
             "related": "http:///api/spaces/00000000-0000-0000-0000-000000000010",
             "self": "http:///api/spaces/00000000-0000-0000-0000-000000000010"
           }
+        },
+        "workspaces": {
+          "links": {
+            "related": "http:///api/codebases/00000000-0000-0000-0000-000000000009/workspaces",
+            "self": "http:///api/codebases/00000000-0000-0000-0000-000000000009/workspaces"
+          }
         }
       },
       "type": "codebases"
@@ -159,7 +189,6 @@
         "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002",
         "self": "http:///api/spaces/00000000-0000-0000-0000-000000000002",
         "workitemlinktypes": "http:///api/spaces/00000000-0000-0000-0000-000000000002/workitemlinktypes",
-        "workitemtypegroups": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups/",
         "workitemtypes": "http:///api/spaces/00000000-0000-0000-0000-000000000002/workitemtypes"
       },
       "relationships": {
@@ -219,7 +248,7 @@
         },
         "workitemtypegroups": {
           "links": {
-            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups/"
+            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups"
           }
         },
         "workitemtypes": {
@@ -247,7 +276,6 @@
         "related": "http:///api/spaces/00000000-0000-0000-0000-000000000004",
         "self": "http:///api/spaces/00000000-0000-0000-0000-000000000004",
         "workitemlinktypes": "http:///api/spaces/00000000-0000-0000-0000-000000000004/workitemlinktypes",
-        "workitemtypegroups": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000004/workitemtypegroups/",
         "workitemtypes": "http:///api/spaces/00000000-0000-0000-0000-000000000004/workitemtypes"
       },
       "relationships": {
@@ -307,7 +335,7 @@
         },
         "workitemtypegroups": {
           "links": {
-            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000004/workitemtypegroups/"
+            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000004/workitemtypegroups"
           }
         },
         "workitemtypes": {
@@ -335,7 +363,6 @@
         "related": "http:///api/spaces/00000000-0000-0000-0000-000000000006",
         "self": "http:///api/spaces/00000000-0000-0000-0000-000000000006",
         "workitemlinktypes": "http:///api/spaces/00000000-0000-0000-0000-000000000006/workitemlinktypes",
-        "workitemtypegroups": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000006/workitemtypegroups/",
         "workitemtypes": "http:///api/spaces/00000000-0000-0000-0000-000000000006/workitemtypes"
       },
       "relationships": {
@@ -395,7 +422,7 @@
         },
         "workitemtypegroups": {
           "links": {
-            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000006/workitemtypegroups/"
+            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000006/workitemtypegroups"
           }
         },
         "workitemtypes": {
@@ -423,7 +450,6 @@
         "related": "http:///api/spaces/00000000-0000-0000-0000-000000000008",
         "self": "http:///api/spaces/00000000-0000-0000-0000-000000000008",
         "workitemlinktypes": "http:///api/spaces/00000000-0000-0000-0000-000000000008/workitemlinktypes",
-        "workitemtypegroups": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000008/workitemtypegroups/",
         "workitemtypes": "http:///api/spaces/00000000-0000-0000-0000-000000000008/workitemtypes"
       },
       "relationships": {
@@ -483,7 +509,7 @@
         },
         "workitemtypegroups": {
           "links": {
-            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000008/workitemtypegroups/"
+            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000008/workitemtypegroups"
           }
         },
         "workitemtypes": {
@@ -511,7 +537,6 @@
         "related": "http:///api/spaces/00000000-0000-0000-0000-000000000010",
         "self": "http:///api/spaces/00000000-0000-0000-0000-000000000010",
         "workitemlinktypes": "http:///api/spaces/00000000-0000-0000-0000-000000000010/workitemlinktypes",
-        "workitemtypegroups": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000010/workitemtypegroups/",
         "workitemtypes": "http:///api/spaces/00000000-0000-0000-0000-000000000010/workitemtypes"
       },
       "relationships": {
@@ -571,7 +596,7 @@
         },
         "workitemtypegroups": {
           "links": {
-            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000010/workitemtypegroups/"
+            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000010/workitemtypegroups"
           }
         },
         "workitemtypes": {

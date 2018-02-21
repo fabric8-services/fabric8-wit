@@ -12,6 +12,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	"github.com/fabric8-services/fabric8-wit/codebase/che"
 	"github.com/fabric8-services/fabric8-wit/configuration"
+	"github.com/fabric8-services/fabric8-wit/ptr"
 
 	"github.com/fabric8-services/fabric8-wit/account"
 	. "github.com/fabric8-services/fabric8-wit/controller"
@@ -23,7 +24,6 @@ import (
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -93,15 +93,13 @@ func NewMockCheClient(r http.RoundTripper, config *configuration.Registry) Codeb
 func MockShowTenant() func(context.Context) (*tenant.TenantSingle, error) {
 	return func(context.Context) (*tenant.TenantSingle, error) {
 		// return a predefined response for the Tenant
-		tenantType := "che"
-		tenantNamespace := "foo"
 		return &tenant.TenantSingle{
 				Data: &tenant.Tenant{
 					Attributes: &tenant.TenantAttributes{
 						Namespaces: []*tenant.NamespaceAttributes{
 							{
-								Type: &tenantType,
-								Name: &tenantNamespace,
+								Type: ptr.String("che"),
+								Name: ptr.String("foo"),
 							},
 						},
 					},
@@ -129,8 +127,7 @@ func (s *CodebaseControllerTestSuite) TestShowCodebase() {
 	s.T().Run("success with stackId", func(t *testing.T) {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.Codebases(1, func(fxt *tf.TestFixture, idx int) error {
-			stackID := "golang-default"
-			fxt.Codebases[idx].StackID = &stackID
+			fxt.Codebases[idx].StackID = ptr.String("golang-default")
 			return nil
 		}))
 		svc, ctrl := s.UnsecuredController()
@@ -159,7 +156,7 @@ func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
 			}))
 		// setup the mock client for Che
 		r, err := recorder.New("../test/data/che/che_delete_codebase_workspaces.ok")
-		require.Nil(t, err)
+		require.NoError(t, err)
 		defer r.Stop()
 		m := httpmonitor.NewTransportMonitor(r.Transport)
 		svc, ctrl := s.SecuredControllers(testsupport.TestIdentity, withCheClient(NewMockCheClient(m, s.Configuration)), withShowTenant(MockShowTenant()))
@@ -177,7 +174,7 @@ func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
 				RequestURL:    "che-server/workspace/string?masterUrl=https://tsrv.devshift.net:8443&namespace=foo",
 				StatusCode:    200,
 			})
-		assert.Nil(t, err)
+		require.NoError(t, err)
 
 	})
 
@@ -194,7 +191,7 @@ func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
 			}))
 		// setup the mock client for Che
 		r, err := recorder.New("../test/data/che/che_delete_codebase_workspaces.failure")
-		require.Nil(t, err)
+		require.NoError(t, err)
 		defer r.Stop()
 		m := httpmonitor.NewTransportMonitor(r.Transport)
 		svc, ctrl := s.SecuredControllers(testsupport.TestIdentity, withCheClient(NewMockCheClient(m, s.Configuration)), withShowTenant(MockShowTenant()))
@@ -212,14 +209,14 @@ func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
 				RequestURL:    "che-server/workspace/string?masterUrl=https://tsrv.devshift.net:8443&namespace=foo",
 				StatusCode:    500,
 			})
-		assert.Nil(t, err)
+		require.NoError(t, err)
 	})
 
 	s.T().Run("NotFound", func(t *testing.T) {
 		// given
 		codebaseID := uuid.NewV4()
 		r, err := recorder.New("")
-		require.Nil(t, err)
+		require.NoError(t, err)
 		defer r.Stop()
 		m := httpmonitor.NewTransportMonitor(r.Transport)
 		svc, ctrl := s.SecuredControllers(testsupport.TestIdentity, withCheClient(NewMockCheClient(m, s.Configuration)), withShowTenant(MockShowTenant()))
@@ -227,14 +224,14 @@ func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
 		test.DeleteCodebaseNotFound(t, svc.Context, svc, ctrl, codebaseID)
 		// then nothing should be sent to Che
 		err = m.ValidateNoExchanges()
-		assert.Nil(t, err)
+		require.NoError(t, err)
 	})
 
 	s.T().Run("Unauthorized on non-existing codebase", func(t *testing.T) {
 		// given
 		codebaseID := uuid.NewV4()
 		r, err := recorder.New("")
-		require.Nil(t, err)
+		require.NoError(t, err)
 		defer r.Stop()
 		m := httpmonitor.NewTransportMonitor(r.Transport)
 		svc, ctrl := s.UnsecuredController(withCheClient(NewMockCheClient(m, s.Configuration)), withShowTenant(MockShowTenant()))
@@ -242,7 +239,7 @@ func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
 		test.DeleteCodebaseUnauthorized(t, svc.Context, svc, ctrl, codebaseID)
 		// then nothing should be sent to Che
 		err = m.ValidateNoExchanges()
-		assert.Nil(t, err)
+		require.NoError(t, err)
 	})
 
 	s.T().Run("Unauthorized on existing codebase", func(t *testing.T) {
@@ -255,14 +252,14 @@ func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
 			tf.Codebases(1))
 		// when/then (user is not authenticated)
 		r, err := recorder.New("")
-		require.Nil(t, err)
+		require.NoError(t, err)
 		defer r.Stop()
 		m := httpmonitor.NewTransportMonitor(r.Transport)
 		svc, ctrl := s.UnsecuredController(withCheClient(NewMockCheClient(m, s.Configuration)), withShowTenant(MockShowTenant()))
 		test.DeleteCodebaseUnauthorized(t, svc.Context, svc, ctrl, fxt.Codebases[0].ID)
 		// then nothing should be sent to Che
 		err = m.ValidateNoExchanges()
-		assert.Nil(t, err)
+		require.NoError(t, err)
 	})
 
 	s.T().Run("Forbidden", func(t *testing.T) {
@@ -274,7 +271,7 @@ func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
 			}),
 			tf.Codebases(1))
 		r, err := recorder.New("")
-		require.Nil(t, err)
+		require.NoError(t, err)
 		defer r.Stop()
 		m := httpmonitor.NewTransportMonitor(r.Transport)
 		// when (user is not space owner)
@@ -282,7 +279,7 @@ func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
 		test.DeleteCodebaseForbidden(t, svc.Context, svc, ctrl, fxt.Codebases[0].ID)
 		// then nothing should be sent to Che
 		err = m.ValidateNoExchanges()
-		assert.Nil(t, err)
+		require.NoError(t, err)
 	})
 
 }

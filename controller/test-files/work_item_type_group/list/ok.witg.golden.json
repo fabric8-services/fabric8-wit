@@ -4,21 +4,16 @@
       "attributes": {
         "bucket": "portfolio",
         "created-at": "0001-01-01T00:00:00Z",
-        "icon": "fa fa-suitcase",
+        "icon": "fa fa-bullseye",
         "name": "Scenarios",
+        "show-in-sidebar": true,
         "updated-at": "0001-01-01T00:00:00Z"
       },
       "id": "00000000-0000-0000-0000-000000000001",
       "links": {
-        "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups/00000000-0000-0000-0000-000000000001"
+        "related": "http:///api/workitemtypegroups/00000000-0000-0000-0000-000000000001"
       },
       "relationships": {
-        "defaultType": {
-          "data": {
-            "id": "00000000-0000-0000-0000-000000000003",
-            "type": "workitemtypes"
-          }
-        },
         "spaceTemplate": {
           "data": {
             "id": "00000000-0000-0000-0000-000000000002",
@@ -48,21 +43,16 @@
       "attributes": {
         "bucket": "portfolio",
         "created-at": "0001-01-01T00:00:00Z",
-        "icon": "fa fa-suitcase",
+        "icon": "pficon pficon-infrastructure",
         "name": "Experiences",
+        "show-in-sidebar": true,
         "updated-at": "0001-01-01T00:00:00Z"
       },
       "id": "00000000-0000-0000-0000-000000000006",
       "links": {
-        "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups/00000000-0000-0000-0000-000000000006"
+        "related": "http:///api/workitemtypegroups/00000000-0000-0000-0000-000000000006"
       },
       "relationships": {
-        "defaultType": {
-          "data": {
-            "id": "00000000-0000-0000-0000-000000000007",
-            "type": "workitemtypes"
-          }
-        },
         "spaceTemplate": {
           "data": {
             "id": "00000000-0000-0000-0000-000000000002",
@@ -90,19 +80,14 @@
         "created-at": "0001-01-01T00:00:00Z",
         "icon": "fa fa-list-ul",
         "name": "Requirements",
+        "show-in-sidebar": true,
         "updated-at": "0001-01-01T00:00:00Z"
       },
       "id": "00000000-0000-0000-0000-000000000009",
       "links": {
-        "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups/00000000-0000-0000-0000-000000000009"
+        "related": "http:///api/workitemtypegroups/00000000-0000-0000-0000-000000000009"
       },
       "relationships": {
-        "defaultType": {
-          "data": {
-            "id": "00000000-0000-0000-0000-000000000010",
-            "type": "workitemtypes"
-          }
-        },
         "spaceTemplate": {
           "data": {
             "id": "00000000-0000-0000-0000-000000000002",
@@ -130,19 +115,14 @@
         "created-at": "0001-01-01T00:00:00Z",
         "icon": "fa fa-repeat",
         "name": "Execution",
+        "show-in-sidebar": false,
         "updated-at": "0001-01-01T00:00:00Z"
       },
       "id": "00000000-0000-0000-0000-000000000012",
       "links": {
-        "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups/00000000-0000-0000-0000-000000000012"
+        "related": "http:///api/workitemtypegroups/00000000-0000-0000-0000-000000000012"
       },
       "relationships": {
-        "defaultType": {
-          "data": {
-            "id": "00000000-0000-0000-0000-000000000013",
-            "type": "workitemtypes"
-          }
-        },
         "spaceTemplate": {
           "data": {
             "id": "00000000-0000-0000-0000-000000000002",
@@ -153,6 +133,14 @@
           "data": [
             {
               "id": "00000000-0000-0000-0000-000000000013",
+              "type": "workitemtypes"
+            },
+            {
+              "id": "00000000-0000-0000-0000-000000000011",
+              "type": "workitemtypes"
+            },
+            {
+              "id": "00000000-0000-0000-0000-000000000010",
               "type": "workitemtypes"
             }
           ]

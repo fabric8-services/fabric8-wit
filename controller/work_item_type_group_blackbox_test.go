@@ -19,12 +19,13 @@ import (
 
 type workItemTypeGroupSuite struct {
 	gormtestsupport.DBTestSuite
-	svc           *goa.Service
-	typeGroupCtrl *WorkItemTypeGroupController
-	testDir       string
+	svc            *goa.Service
+	typeGroupCtrl  *WorkItemTypeGroupController
+	typeGroupsCtrl *WorkItemTypeGroupsController
+	testDir        string
 }
 
-func TestRunWorkItemTypeGroupSuite(t *testing.T) {
+func TestWorkItemTypeGroupSuite(t *testing.T) {
 	resource.Require(t, resource.Database)
 	suite.Run(t, &workItemTypeGroupSuite{
 		DBTestSuite: gormtestsupport.NewDBTestSuite(""),
@@ -36,6 +37,7 @@ func (s *workItemTypeGroupSuite) SetupTest() {
 	s.DBTestSuite.SetupTest()
 	s.svc = testsupport.ServiceAsUser("WITG-Service", testsupport.TestIdentity)
 	s.typeGroupCtrl = NewWorkItemTypeGroupController(s.svc, gormapplication.NewGormDB(s.DB))
+	s.typeGroupsCtrl = NewWorkItemTypeGroupsController(s.svc, gormapplication.NewGormDB(s.DB))
 	s.testDir = filepath.Join("test-files", "work_item_type_group")
 }
 
@@ -44,7 +46,7 @@ func (s *workItemTypeGroupSuite) TestList() {
 		// given
 		sapcetemplateID := space.SystemSpace // must be valid space ID
 		// when
-		res, groups := test.ListWorkItemTypeGroupOK(t, nil, s.svc, s.typeGroupCtrl, sapcetemplateID)
+		res, groups := test.ListWorkItemTypeGroupsOK(t, nil, s.svc, s.typeGroupsCtrl, sapcetemplateID)
 		// then
 		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "list", "ok.witg.golden.json"), groups)
 		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "list", "ok.headers.golden.json"), res.Header())
@@ -53,7 +55,7 @@ func (s *workItemTypeGroupSuite) TestList() {
 		// given
 		sapcetemplateID := uuid.NewV4()
 		// when
-		res, jerrs := test.ListWorkItemTypeGroupNotFound(t, nil, s.svc, s.typeGroupCtrl, sapcetemplateID)
+		res, jerrs := test.ListWorkItemTypeGroupsNotFound(t, nil, s.svc, s.typeGroupsCtrl, sapcetemplateID)
 		// then
 		ignoreMe := "IGNOREME"
 		jerrs.Errors[0].ID = &ignoreMe
@@ -62,23 +64,21 @@ func (s *workItemTypeGroupSuite) TestList() {
 	})
 }
 
-func (s *workItemTypeGroupSuite) TestListShow() {
+func (s *workItemTypeGroupSuite) TestShow() {
 	s.T().Run("ok", func(t *testing.T) {
 		// given
-		sapcetemplateID := space.SystemSpace // must be valid space ID
 		typeGroupID := workitem.TypeGroups()[0].ID
 		// when
-		res, group := test.ShowWorkItemTypeGroupOK(t, nil, s.svc, s.typeGroupCtrl, sapcetemplateID, typeGroupID)
+		res, group := test.ShowWorkItemTypeGroupOK(t, nil, s.svc, s.typeGroupCtrl, typeGroupID)
 		// then
 		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "ok.witg.golden.json"), group)
 		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "ok.headers.golden.json"), res.Header())
 	})
 	s.T().Run("not found", func(t *testing.T) {
 		// given
-		sapcetemplateID := space.SystemSpace
 		typeGroupID := uuid.NewV4()
 		// when
-		res, jerrs := test.ShowWorkItemTypeGroupNotFound(t, nil, s.svc, s.typeGroupCtrl, sapcetemplateID, typeGroupID)
+		res, jerrs := test.ShowWorkItemTypeGroupNotFound(t, nil, s.svc, s.typeGroupCtrl, typeGroupID)
 		// then
 		ignoreMe := "IGNOREME"
 		jerrs.Errors[0].ID = &ignoreMe

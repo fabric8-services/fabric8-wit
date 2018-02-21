@@ -1,6 +1,7 @@
 package controller_test
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -9,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	token "github.com/dgrijalva/jwt-go"
+	"github.com/fabric8-services/fabric8-auth/auth"
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
@@ -20,14 +23,14 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/iteration"
+	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/space"
+	"github.com/fabric8-services/fabric8-wit/space/authz"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
-
-	"context"
-
 	"github.com/goadesign/goa"
+	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -38,6 +41,7 @@ type TestIterationREST struct {
 	gormtestsupport.DBTestSuite
 	db      *gormapplication.GormDB
 	testDir string
+	policy  *auth.KeycloakPolicy
 }
 
 func TestRunIterationREST(t *testing.T) {
@@ -49,6 +53,12 @@ func (rest *TestIterationREST) SetupTest() {
 	rest.DBTestSuite.SetupTest()
 	rest.db = gormapplication.NewGormDB(rest.DB)
 	rest.testDir = filepath.Join("test-files", "iteration")
+	rest.policy = &auth.KeycloakPolicy{
+		Name:             "TestCollaborators-" + uuid.NewV4().String(),
+		Type:             auth.PolicyTypeUser,
+		Logic:            auth.PolicyLogicPossitive,
+		DecisionStrategy: auth.PolicyDecisionStrategyUnanimous,
+	}
 }
 
 func (rest *TestIterationREST) SecuredController() (*goa.Service, *IterationController) {
@@ -66,68 +76,118 @@ func (rest *TestIterationREST) UnSecuredController() (*goa.Service, *IterationCo
 	return svc, NewIterationController(svc, rest.db, rest.Configuration)
 }
 
+type DummySpaceAuthzService struct {
+	rest *TestIterationREST
+}
+
+func (s *DummySpaceAuthzService) Authorize(ctx context.Context, endpoint string, spaceID string) (bool, error) {
+	jwtToken := goajwt.ContextJWT(ctx)
+	if jwtToken == nil {
+		return false, errors.NewUnauthorizedError("Missing token")
+	}
+	id := jwtToken.Claims.(token.MapClaims)["sub"].(string)
+	return strings.Contains(s.rest.policy.Config.UserIDs, id), nil
+}
+
+func (s *DummySpaceAuthzService) Configuration() authz.AuthzConfiguration {
+	return nil
+}
+
 func (rest *TestIterationREST) TestCreateChildIteration() {
 	resetFn := rest.DisableGormCallbacks()
 	defer resetFn()
 
-	rest.T().Run("success - create child iteration", func(t *testing.T) {
-		fxt := tf.NewTestFixture(t, rest.DB,
-			tf.CreateWorkItemEnvironment(),
-			tf.Iterations(2,
-				tf.SetIterationNames("root iteration", "child iteration"),
-				tf.PlaceIterationUnderRootIteration()))
-		name := "Sprint #21"
-		childItr := fxt.IterationByName("child iteration")
-		ci := getChildIterationPayload(&name)
-		startAt, err := time.Parse(time.RFC3339, "2016-11-04T15:08:41+00:00")
-		require.Nil(t, err)
-		endAt, err := time.Parse(time.RFC3339, "2016-11-25T15:08:41+00:00")
-		require.Nil(t, err)
-		ci.Data.Attributes.StartAt = &startAt
-		ci.Data.Attributes.EndAt = &endAt
-		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
-		// when
-		_, created := test.CreateChildIterationCreated(t, svc.Context, svc, ctrl, childItr.ID.String(), ci)
-		// then
-		require.NotNil(t, created)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child.golden.json"), created)
-	})
-	rest.T().Run("success - create child iteration with ID in request payload", func(t *testing.T) {
-		// given
-		fxt := tf.NewTestFixture(t, rest.DB,
-			tf.CreateWorkItemEnvironment(),
-			tf.Iterations(2,
-				tf.SetIterationNames("root iteration", "child iteration"),
-			))
-		name := "Sprint #21"
-		childItr := fxt.IterationByName("child iteration")
-		ci := getChildIterationPayload(&name)
-		id := uuid.NewV4()
-		ci.Data.ID = &id // set different ID and it must be ignoed by controller
-		startAt, err := time.Parse(time.RFC3339, "2016-11-04T15:08:41+00:00")
-		require.Nil(t, err)
-		endAt, err := time.Parse(time.RFC3339, "2016-11-25T15:08:41+00:00")
-		require.Nil(t, err)
-		ci.Data.Attributes.StartAt = &startAt
-		ci.Data.Attributes.EndAt = &endAt
-		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
-		// when
-		_, created := test.CreateChildIterationCreated(t, svc.Context, svc, ctrl, childItr.ID.String(), ci)
-		// then
-		require.NotNil(t, created)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child_ID_paylod.golden.json"), created)
-		require.Equal(t, *ci.Data.ID, *created.Data.ID)
+	rest.T().Run("Ok", func(t *testing.T) {
+		t.Run("as space owner", func(t *testing.T) {
+			fxt := tf.NewTestFixture(t, rest.DB,
+				tf.CreateWorkItemEnvironment(),
+				tf.Iterations(2,
+					tf.SetIterationNames("root", "child")))
+			childItr := fxt.IterationByName("child")
+			ci := getChildIterationPayload("Sprint #21")
+			startAt, err := time.Parse(time.RFC3339, "2016-11-04T15:08:41+00:00")
+			require.NoError(t, err)
+			endAt, err := time.Parse(time.RFC3339, "2016-11-25T15:08:41+00:00")
+			require.NoError(t, err)
+			ci.Data.Attributes.StartAt = &startAt
+			ci.Data.Attributes.EndAt = &endAt
+			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+			// when
+			resp, created := test.CreateChildIterationCreated(t, svc.Context, svc, ctrl, childItr.ID.String(), ci)
+			// then
+			require.NotNil(t, created)
+			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child.res.iteration.golden.json"), created)
+			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child.headers.golden.json"), resp.Header())
+			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child.req.payload.golden.json"), ci)
+		})
+		t.Run("as collaborator", func(t *testing.T) {
+			fxt := tf.NewTestFixture(t, rest.DB,
+				tf.Identities(2, tf.SetIdentityUsernames("space owner", "other user")),
+				tf.Areas(1), tf.Iterations(1))
+			ci := getChildIterationPayload("Sprint #21")
+			otherUser := fxt.IdentityByUsername("other user")
+			_, ctrl := rest.SecuredControllerWithIdentity(otherUser)
+			// add user as collaborator
+			rest.policy.AddUserToPolicy(otherUser.ID.String())
+			// overwrite service to use Dummy Auth
+			svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *otherUser, &DummySpaceAuthzService{rest})
+			test.CreateChildIterationCreated(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
+		})
+		t.Run("with ID in request payload", func(t *testing.T) {
+			// given
+			fxt := tf.NewTestFixture(t, rest.DB,
+				tf.CreateWorkItemEnvironment(),
+				tf.Iterations(2,
+					tf.SetIterationNames("root", "child"),
+				))
+			childItr := fxt.IterationByName("child")
+			ci := getChildIterationPayload("Sprint #21")
+			id := uuid.NewV4()
+			ci.Data.ID = &id // set different ID and it must be ignoed by controller
+			startAt, err := time.Parse(time.RFC3339, "2016-11-04T15:08:41+00:00")
+			require.NoError(t, err)
+			endAt, err := time.Parse(time.RFC3339, "2016-11-25T15:08:41+00:00")
+			require.NoError(t, err)
+			ci.Data.Attributes.StartAt = &startAt
+			ci.Data.Attributes.EndAt = &endAt
+			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+			// when
+			resp, created := test.CreateChildIterationCreated(t, svc.Context, svc, ctrl, childItr.ID.String(), ci)
+			// then
+			require.NotNil(t, created)
+			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child_with_ID_paylod.res.iteration.golden.json"), created)
+			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child_with_ID_paylod.headers.golden.json"), resp.Header())
+			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child_ID_paylod.req.payload.golden.json"), ci)
+			require.Equal(t, *ci.Data.ID, *created.Data.ID)
+		})
 	})
 
-	rest.T().Run("forbidden - only space owener can create child iteration", func(t *testing.T) {
-		fxt := tf.NewTestFixture(t, rest.DB,
-			tf.Identities(2, tf.SetIdentityUsernames("space owner", "other user")),
-			tf.Areas(1), tf.Iterations(1))
-		name := "Sprint #21"
-		ci := getChildIterationPayload(&name)
-		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.IdentityByUsername("other user"))
-		_, jerrs := test.CreateChildIterationForbidden(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "forbidden_other_user.golden.json"), jerrs)
+	rest.T().Run("unauthorized", func(t *testing.T) {
+		t.Run("for non space-owner", func(t *testing.T) {
+			fxt := tf.NewTestFixture(t, rest.DB,
+				tf.Identities(2, tf.SetIdentityUsernames("space owner", "not space owner")),
+				tf.Areas(1), tf.Iterations(1))
+			ci := getChildIterationPayload("Sprint #21")
+			notSpaceOwner := fxt.IdentityByUsername("not space owner")
+			_, ctrl := rest.SecuredControllerWithIdentity(notSpaceOwner)
+			// overwrite service with Dummy Auth to treat user as non-collaborator
+			svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *notSpaceOwner, &DummySpaceAuthzService{rest})
+			_, jerrs := test.CreateChildIterationUnauthorized(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
+			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized_other_user.errors.golden.json"), jerrs)
+			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized_other_user.req.payload.golden.json"), ci)
+		})
+		t.Run("for non-collaborator", func(t *testing.T) {
+			fxt := tf.NewTestFixture(t, rest.DB,
+				tf.Identities(2, tf.SetIdentityUsernames("space owner", "non collaborator")),
+				tf.Areas(1), tf.Iterations(1))
+			ci := getChildIterationPayload("Sprint #21")
+			nonCollaborator := fxt.IdentityByUsername("non collaborator")
+			_, ctrl := rest.SecuredControllerWithIdentity(nonCollaborator)
+			// overwrite service with Dummy Auth to treat user as non-collaborator
+			svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *nonCollaborator, &DummySpaceAuthzService{rest})
+			_, jerrs := test.CreateChildIterationUnauthorized(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
+			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized_other_user.errors.golden.json"), jerrs)
+		})
 	})
 
 	rest.T().Run("fail - create same child iteration conflict", func(t *testing.T) {
@@ -138,41 +198,44 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 				}
 				return nil
 			}))
-		name := fxt.Iterations[1].Name
-		ci := getChildIterationPayload(&name)
+		ci := getChildIterationPayload(fxt.Iterations[1].Name)
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 		_, jerrs := test.CreateChildIterationConflict(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "conflict_for_same_name.golden.json"), jerrs)
+
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "conflict_for_same_name.res.errors.golden.json"), jerrs)
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "conflict_for_same_name.req.payload.golden.json"), ci)
 	})
 
 	rest.T().Run("fail - create child iteration missing name", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, rest.DB, tf.Identities(1), tf.Areas(1), tf.Iterations(1))
-		ci := getChildIterationPayload(nil)
+		ci := getChildIterationPayload("remove below")
+		ci.Data.Attributes.Name = nil
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 		_, jerrs := test.CreateChildIterationBadRequest(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "bad_request_missing_name.golden.json"), jerrs)
+
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "bad_request_missing_name.res.errors.golden.json"), jerrs)
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "bad_request_missing_name.req.payload.golden.json"), ci)
 	})
 
 	rest.T().Run("fail - create child missing parent", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, rest.DB, tf.Identities(1), tf.Areas(1), tf.Iterations(1))
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
-		name := "Sprint #21"
-		ci := getChildIterationPayload(&name)
+		ci := getChildIterationPayload("Sprint #21")
 		_, jerrs := test.CreateChildIterationNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String(), ci)
-		ignoreString := "IGNORE_ME"
-		jerrs.Errors[0].ID = &ignoreString
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "bad_request_unknown_parent.golden.json"), jerrs)
+		jerrs.Errors[0].ID = ptr.String("IGNORE_ME")
+
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "bad_request_unknown_parent.res.errors.golden.json"), jerrs)
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "bad_request_unknown_parent.req.payload.golden.json"), ci)
 	})
 
 	rest.T().Run("unauthorized - create child iteration with unauthorized user", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, rest.DB, tf.Identities(1), tf.Iterations(1))
-		name := "Sprint #21"
-		ci := getChildIterationPayload(&name)
+		ci := getChildIterationPayload("Sprint #21")
 		svc, ctrl := rest.UnSecuredController()
 		_, jerrs := test.CreateChildIterationUnauthorized(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
-		ignoreString := "IGNORE_ME"
-		jerrs.Errors[0].ID = &ignoreString
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized.golden.json"), jerrs)
+		jerrs.Errors[0].ID = ptr.String("IGNORE_ME")
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized.res.errors.golden.json"), jerrs)
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized.req.payload.golden.json"), ci)
 	})
 }
 
@@ -180,30 +243,31 @@ func (rest *TestIterationREST) TestFailValidationIterationNameLength() {
 	// given
 	_, _, _, _, parent := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
 	_, err := rest.db.Iterations().Root(context.Background(), parent.SpaceID)
-	require.Nil(rest.T(), err)
-	ci := getChildIterationPayload(&testsupport.TestOversizedNameObj)
+	require.NoError(rest.T(), err)
+	ci := getChildIterationPayload(testsupport.TestOversizedNameObj)
 
 	err = ci.Validate()
 	// Validate payload function returns an error
 	assert.NotNil(rest.T(), err)
-	assert.Contains(rest.T(), err.Error(), "length of type.name must be less than or equal to 62")
+	assert.Contains(rest.T(), err.Error(), "length of type.name must be less than or equal to 63")
 }
 
 func (rest *TestIterationREST) TestFailValidationIterationNameStartWith() {
 	// given
 	_, _, _, _, parent := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
 	_, err := rest.db.Iterations().Root(context.Background(), parent.SpaceID)
-	require.Nil(rest.T(), err)
-	name := "_Sprint #21"
-	ci := getChildIterationPayload(&name)
+	require.NoError(rest.T(), err)
+	ci := getChildIterationPayload("_Sprint #21")
 
 	err = ci.Validate()
 	// Validate payload function returns an error
-	assert.NotNil(rest.T(), err)
+	require.Error(rest.T(), err)
 	assert.Contains(rest.T(), err.Error(), "type.name must match the regexp")
 }
 
 func (rest *TestIterationREST) TestShowIterationOK() {
+	resetFn := rest.DisableGormCallbacks()
+	defer resetFn()
 	// given
 	_, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
 	svc, ctrl := rest.SecuredController()
@@ -214,6 +278,7 @@ func (rest *TestIterationREST) TestShowIterationOK() {
 	require.NotNil(rest.T(), created.Data.Relationships.Workitems.Meta)
 	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta[KeyTotalWorkItems])
 	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta[KeyClosedWorkItems])
+	compareWithGoldenUUIDAgnostic(rest.T(), filepath.Join(rest.testDir, "show", "ok.res.iteration.golden.json"), created)
 }
 
 func (rest *TestIterationREST) TestShowIterationOKUsingExpiredIfModifiedSinceHeader() {
@@ -274,7 +339,7 @@ func (rest *TestIterationREST) createWorkItem(parentSpace space.Space) workitem.
 		wi = w
 		return err
 	})
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	return *wi
 }
 
@@ -292,7 +357,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHead
 		_, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
 		return err
 	})
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	// when/then
 	test.ShowIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &ifModifiedSinceHeader, nil)
 }
@@ -312,7 +377,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHead
 		updatedWI = w
 		return err
 	})
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	testWI = *updatedWI
 	// read the iteration to compute its current `If-Modified-Since` value
 	var updatedItr *iteration.Iteration
@@ -330,7 +395,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHead
 		_, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
 		return err
 	})
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	// when/then
 	test.ShowIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &ifModifiedSinceHeader, nil)
 }
@@ -347,7 +412,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAf
 		_, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
 		return err
 	})
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	// when/then
 	test.ShowIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), nil, &ifNoneMatch)
 }
@@ -367,7 +432,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAf
 		updatedWI = w
 		return err
 	})
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	testWI = *updatedWI
 	// read the iteration to compute its current `If-None-Match` value
 	var updatedItr *iteration.Iteration
@@ -385,7 +450,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAf
 		_, err := app.WorkItems().Save(context.Background(), parentSpace.ID, testWI, parentSpace.OwnerID)
 		return err
 	})
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	// when/then
 	test.ShowIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), nil, &ifNoneMatch)
 }
@@ -398,41 +463,69 @@ func (rest *TestIterationREST) TestFailShowIterationMissing() {
 }
 
 func (rest *TestIterationREST) TestSuccessUpdateIteration() {
-	// given
-	sp, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
-	newName := "Sprint 1001"
-	newDesc := "New Description"
-	payload := app.UpdateIterationPayload{
-		Data: &app.Iteration{
-			Attributes: &app.IterationAttributes{
-				Name:        &newName,
-				Description: &newDesc,
-			},
-			ID:   &itr.ID,
-			Type: iteration.APIStringTypeIteration,
-		},
-	}
-	owner, errIdn := rest.db.Identities().Load(context.Background(), sp.OwnerID)
-	require.Nil(rest.T(), errIdn)
-	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
-	// when
-	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &payload)
-	// then
-	assert.Equal(rest.T(), newName, *updated.Data.Attributes.Name)
-	assert.Equal(rest.T(), newDesc, *updated.Data.Attributes.Description)
-	require.NotNil(rest.T(), updated.Data.Relationships.Workitems.Meta)
-	assert.Equal(rest.T(), 0, updated.Data.Relationships.Workitems.Meta[KeyTotalWorkItems])
-	assert.Equal(rest.T(), 0, updated.Data.Relationships.Workitems.Meta[KeyClosedWorkItems])
-
-	// try update using some other user
-	otherIdentity := &account.Identity{
-		Username:     "non-space-owner-identity",
-		ProviderType: account.KeycloakIDP,
-	}
-	errInCreateOther := rest.db.Identities().Create(context.Background(), otherIdentity)
-	require.Nil(rest.T(), errInCreateOther)
-	svc, ctrl = rest.SecuredControllerWithIdentity(otherIdentity)
-	test.UpdateIterationForbidden(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &payload)
+	rest.T().Run("ok", func(t *testing.T) {
+		t.Run("as space owner", func(t *testing.T) {
+			// given
+			fxt := tf.NewTestFixture(rest.T(), rest.DB,
+				tf.CreateWorkItemEnvironment())
+			itr := fxt.Iterations[0]
+			newName := "Sprint 1001"
+			newDesc := "New Description"
+			payload := app.UpdateIterationPayload{
+				Data: &app.Iteration{
+					Attributes: &app.IterationAttributes{
+						Name:        &newName,
+						Description: &newDesc,
+					},
+					ID:   &itr.ID,
+					Type: iteration.APIStringTypeIteration,
+				},
+			}
+			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+			// when
+			_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &payload)
+			// then
+			assert.Equal(rest.T(), newName, *updated.Data.Attributes.Name)
+			assert.Equal(rest.T(), newDesc, *updated.Data.Attributes.Description)
+			require.NotNil(rest.T(), updated.Data.Relationships.Workitems.Meta)
+			assert.Equal(rest.T(), 0, updated.Data.Relationships.Workitems.Meta[KeyTotalWorkItems])
+			assert.Equal(rest.T(), 0, updated.Data.Relationships.Workitems.Meta[KeyClosedWorkItems])
+		})
+		t.Run("as collaborator", func(t *testing.T) {
+			// given
+			fxt := tf.NewTestFixture(rest.T(), rest.DB,
+				tf.Identities(2, tf.SetIdentityUsernames("space owner", "collaborator")),
+				tf.Areas(1), tf.Iterations(1))
+			itr := fxt.Iterations[0]
+			// update iteration using Collaborator
+			newName := "Sprint 100"
+			newDesc := "New Description"
+			payload := app.UpdateIterationPayload{
+				Data: &app.Iteration{
+					Attributes: &app.IterationAttributes{
+						Name:        &newName,
+						Description: &newDesc,
+					},
+					ID:   &itr.ID,
+					Type: iteration.APIStringTypeIteration,
+				},
+			}
+			otherIdentity := fxt.Identities[1]
+			_, ctrl := rest.SecuredControllerWithIdentity(otherIdentity)
+			// add user as collaborator
+			rest.policy.AddUserToPolicy(otherIdentity.ID.String())
+			// overwrite service to use Dummy Auth
+			svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *otherIdentity, &DummySpaceAuthzService{rest})
+			// when
+			_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &payload)
+			// then
+			assert.Equal(rest.T(), newName, *updated.Data.Attributes.Name)
+			assert.Equal(rest.T(), newDesc, *updated.Data.Attributes.Description)
+			require.NotNil(rest.T(), updated.Data.Relationships.Workitems.Meta)
+			assert.Equal(rest.T(), 0, updated.Data.Relationships.Workitems.Meta[KeyTotalWorkItems])
+			assert.Equal(rest.T(), 0, updated.Data.Relationships.Workitems.Meta[KeyClosedWorkItems])
+		})
+	})
 }
 
 func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
@@ -452,7 +545,7 @@ func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 	}
 	// add WI to this iteration and test counts in the response of update iteration API
 	testIdentity, err := testsupport.CreateTestIdentity(rest.DB, "TestSuccessUpdateIterationWithWICounts user", "test provider")
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	wirepo := workitem.NewWorkItemRepository(rest.DB)
 	req := &http.Request{Host: "localhost"}
 	params := url.Values{}
@@ -467,7 +560,7 @@ func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 				workitem.SystemIteration: itr.ID.String(),
 			}, testIdentity.ID)
 		require.NotNil(rest.T(), wi)
-		require.Nil(rest.T(), err)
+		require.NoError(rest.T(), err)
 		require.NotNil(rest.T(), wi)
 	}
 	for i := 0; i < 5; i++ {
@@ -479,11 +572,11 @@ func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 				workitem.SystemIteration: itr.ID.String(),
 			}, testIdentity.ID)
 		require.NotNil(rest.T(), wi)
-		require.Nil(rest.T(), err)
+		require.NoError(rest.T(), err)
 		require.NotNil(rest.T(), wi)
 	}
 	owner, errIdn := rest.db.Identities().Load(context.Background(), sp.OwnerID)
-	require.Nil(rest.T(), errIdn)
+	require.NoError(rest.T(), errIdn)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	// when
 	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &payload)
@@ -542,7 +635,7 @@ func (rest *TestIterationREST) TestIterationStateTransitions() {
 		},
 	}
 	owner, errIdn := rest.db.Identities().Load(context.Background(), sp.OwnerID)
-	require.Nil(rest.T(), errIdn)
+	require.NoError(rest.T(), errIdn)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr1.ID.String(), &payload)
 	assert.Equal(rest.T(), startState.String(), *updated.Data.Attributes.State)
@@ -553,7 +646,7 @@ func (rest *TestIterationREST) TestIterationStateTransitions() {
 		Path:    itr1.Path,
 	}
 	err := rest.db.Iterations().Create(context.Background(), &itr2)
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	payload2 := app.UpdateIterationPayload{
 		Data: &app.Iteration{
 			Attributes: &app.IterationAttributes{
@@ -584,7 +677,7 @@ func (rest *TestIterationREST) TestRootIterationCanNotStart() {
 		ri, err = repo.Root(context.Background(), itr1.SpaceID)
 		return err
 	})
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	require.NotNil(rest.T(), ri)
 
 	startState := iteration.StateStart
@@ -598,7 +691,7 @@ func (rest *TestIterationREST) TestRootIterationCanNotStart() {
 		},
 	}
 	owner, errIdn := rest.db.Identities().Load(context.Background(), sp.OwnerID)
-	require.Nil(rest.T(), errIdn)
+	require.NoError(rest.T(), errIdn)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	test.UpdateIterationBadRequest(rest.T(), svc.Context, svc, ctrl, ri.ID.String(), &payload)
 }
@@ -606,12 +699,11 @@ func (rest *TestIterationREST) TestRootIterationCanNotStart() {
 func (rest *TestIterationREST) createIterations() (*app.IterationSingle, *account.Identity) {
 	sp, _, _, _, parent := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
 	_, err := rest.db.Iterations().Root(context.Background(), parent.SpaceID)
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	parentID := parent.ID
-	name := testsupport.CreateRandomValidTestName("Iteration-")
-	ci := getChildIterationPayload(&name)
+	ci := getChildIterationPayload(testsupport.CreateRandomValidTestName("Iteration-"))
 	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	// when
 	_, created := test.CreateChildIterationCreated(rest.T(), svc.Context, svc, ctrl, parentID.String(), ci)
@@ -643,7 +735,7 @@ func (rest *TestIterationREST) TestIterationNotActiveInTimeframe() {
 		},
 	}
 	owner, errIdn := rest.db.Identities().Load(context.Background(), owner.ID)
-	require.Nil(rest.T(), errIdn)
+	require.NoError(rest.T(), errIdn)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr1.Data.ID.String(), &payload)
 	assert.Equal(rest.T(), iteration.IterationNotActive, *updated.Data.Attributes.ActiveStatus) // iteration doesnot fall in timeframe, so iteration is not active
@@ -663,24 +755,24 @@ func (rest *TestIterationREST) TestIterationActivatedByUser() {
 		},
 	}
 	owner, errIdn := rest.db.Identities().Load(context.Background(), owner.ID)
-	require.Nil(rest.T(), errIdn)
+	require.NoError(rest.T(), errIdn)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr1.Data.ID.String(), &payload)
 	assert.Equal(rest.T(), iteration.IterationActive, *updated.Data.Attributes.ActiveStatus) // iteration doesnot fall in timeframe yet userActive is true so iteration is active
 }
 
-func getChildIterationPayload(name *string) *app.CreateChildIterationPayload {
-	start := time.Now()
-	end := start.Add(time.Hour * (24 * 8 * 3))
+func getChildIterationPayload(name string) *app.CreateChildIterationPayload {
+	// start is somewhere fixed in the past
+	start, _ := time.Parse(time.RFC822, "02 Jan 06 15:04 MST")
+	// end is 100 years in the future based on start date
+	end := start.Add(time.Hour * 24 * 365 * 100)
 
-	itType := iteration.APIStringTypeIteration
-	desc := "Some description"
 	return &app.CreateChildIterationPayload{
 		Data: &app.Iteration{
-			Type: itType,
+			Type: iteration.APIStringTypeIteration,
 			Attributes: &app.IterationAttributes{
-				Name:        name,
-				Description: &desc,
+				Name:        &name,
+				Description: ptr.String("Some description"),
 				StartAt:     &start,
 				EndAt:       &end,
 			},
@@ -705,56 +797,55 @@ func createSpaceAndRootAreaAndIterations(t *testing.T, db application.DB) (space
 			ProviderType: account.KeycloakIDP,
 		}
 		errCreateOwner := app.Identities().Create(context.Background(), owner)
-		require.Nil(t, errCreateOwner)
+		require.NoError(t, errCreateOwner)
 		spaceObj = space.Space{
-			Name:    testsupport.CreateRandomValidTestName("CreateSpaceAndRootAreaAndIterations-"),
+			Name:    testsupport.CreateRandomValidTestName("foo-"),
 			OwnerID: owner.ID,
 		}
 		_, err := app.Spaces().Create(context.Background(), &spaceObj)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// create the root area
 		rootAreaObj = area.Area{
 			Name:    spaceObj.Name,
 			SpaceID: spaceObj.ID,
 		}
 		err = app.Areas().Create(context.Background(), &rootAreaObj)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// above space should have a root iteration for itself
 		rootIterationObj = iteration.Iteration{
 			Name:    spaceObj.Name,
 			SpaceID: spaceObj.ID,
 		}
 		err = app.Iterations().Create(context.Background(), &rootIterationObj)
-		require.Nil(t, err)
-		start := time.Now()
-		end := start.Add(time.Hour * (24 * 8 * 3))
-		iterationName := "Sprint #2"
+		require.NoError(t, err)
+		start, err := time.Parse(time.RFC822, "02 Jan 06 15:04 MST")
+		require.NoError(t, err)
+		end := start.Add(time.Hour * 24 * 365 * 100)
 		otherIterationObj = iteration.Iteration{
 			Lifecycle: gormsupport.Lifecycle{
 				CreatedAt: spaceObj.CreatedAt,
 				UpdatedAt: spaceObj.UpdatedAt,
 			},
-			Name:    iterationName,
+			Name:    "Sprint #2",
 			SpaceID: spaceObj.ID,
 			StartAt: &start,
 			EndAt:   &end,
 			Path:    append(rootIterationObj.Path, rootIterationObj.ID),
 		}
 		err = app.Iterations().Create(context.Background(), &otherIterationObj)
-		require.Nil(t, err)
+		require.NoError(t, err)
 
-		areaName := "Area #2"
 		otherAreaObj = area.Area{
 			Lifecycle: gormsupport.Lifecycle{
 				CreatedAt: spaceObj.CreatedAt,
 				UpdatedAt: spaceObj.UpdatedAt,
 			},
-			Name:    areaName,
+			Name:    "Area #2",
 			SpaceID: spaceObj.ID,
 			Path:    append(rootAreaObj.Path, rootAreaObj.ID),
 		}
 		err = app.Areas().Create(context.Background(), &otherAreaObj)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		return nil
 	})
 	t.Log("Created space with ID=", spaceObj.ID.String(), "name=", spaceObj.Name)
@@ -784,9 +875,9 @@ func assertChildIterationLinking(t *testing.T, target *app.Iteration) {
 func (rest *TestIterationREST) TestIterationDelete() {
 	rest.T().Run("forbidden - delete root iteration", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, rest.DB,
-			tf.Iterations(1, tf.SetIterationNames("root iteration")))
+			tf.Iterations(1, tf.SetIterationNames("root")))
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
-		iterationToDelete := fxt.IterationByName("root iteration")
+		iterationToDelete := fxt.IterationByName("root")
 		test.DeleteIterationForbidden(t, svc.Context, svc, ctrl, iterationToDelete.ID)
 	})
 
@@ -794,13 +885,13 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		fxt := tf.NewTestFixture(t, rest.DB,
 			tf.CreateWorkItemEnvironment(),
 			tf.Iterations(2,
-				tf.SetIterationNames("root iteration", "first iteration"),
+				tf.SetIterationNames("root", "first"),
 			))
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
-		iterationToDelete := fxt.IterationByName("first iteration")
+		iterationToDelete := fxt.IterationByName("first")
 		test.DeleteIterationNoContent(t, svc.Context, svc, ctrl, iterationToDelete.ID)
 		_, err := rest.db.Iterations().Load(svc.Context, iterationToDelete.ID)
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 	})
 
@@ -836,7 +927,7 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		}
 		for _, i := range deletedIterations {
 			_, err := rest.db.Iterations().Load(svc.Context, i.ID)
-			require.NotNil(t, err)
+			require.Error(t, err)
 			require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 		}
 		// make sure other iterations are not touched
@@ -846,7 +937,7 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		}
 		for _, i := range iterationsShouldPresent {
 			_, err := rest.db.Iterations().Load(svc.Context, i.ID)
-			require.Nil(t, err)
+			require.NoError(t, err)
 		}
 	})
 
@@ -869,7 +960,7 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0]) // get the space owner
 		test.DeleteIterationNoContent(t, svc.Context, svc, ctrl, iterationToDelete.ID)
 		_, err := rest.db.Iterations().Load(svc.Context, iterationToDelete.ID)
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 	})
 
@@ -896,7 +987,7 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		iterationToDelete := fxt.Iterations[1]
 		test.DeleteIterationNoContent(t, svc.Context, svc, ctrl, iterationToDelete.ID)
 		wis, err := rest.db.WorkItems().LoadByIteration(svc.Context, iterationToDelete.ID)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.Empty(t, wis)
 	})
 
@@ -929,20 +1020,20 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		childIteration := fxt.IterationByName("child")
 		test.DeleteIterationNoContent(t, svc.Context, svc, ctrl, childIteration.ID)
 		wis, err := rest.db.WorkItems().LoadByIteration(svc.Context, childIteration.ID)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.Empty(t, wis)
 
 		// parent should get more 3 WI
 		parentIteration := fxt.IterationByName("parent")
 		wis, err = rest.db.WorkItems().LoadByIteration(svc.Context, parentIteration.ID)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// first iteration already have 3 & 3 more from child iteration
 		assert.Len(t, wis, 3+3)
 
 		// verify that root iteration still does not have any WI
 		rootIteration := fxt.IterationByName("root")
 		wis, err = rest.db.WorkItems().LoadByIteration(svc.Context, rootIteration.ID)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.Empty(t, wis)
 	})
 
@@ -997,12 +1088,12 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		iterationToDelete := fxt.Iterations[1]
 		test.DeleteIterationNoContent(t, svc.Context, svc, ctrl, iterationToDelete.ID)
 		wis, err := rest.db.WorkItems().LoadByIteration(svc.Context, iterationToDelete.ID)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.Empty(t, wis)
 
 		// Verify that 15 WIs are moved to Root iteration
 		wis, err = rest.db.WorkItems().LoadByIteration(svc.Context, fxt.Iterations[0].ID)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.Len(t, wis, 15)
 
 		// verify included objects
@@ -1023,12 +1114,12 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		iterationToDelete = fxt.Iterations[5]
 		test.DeleteIterationNoContent(t, svc.Context, svc, ctrl, iterationToDelete.ID)
 		wis, err = rest.db.WorkItems().LoadByIteration(svc.Context, iterationToDelete.ID)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.Empty(t, wis)
 
 		// Verify that 3 WIs are moved to parent of deleted iteration
 		wis, err = rest.db.WorkItems().LoadByIteration(svc.Context, fxt.Iterations[4].ID)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.Len(t, wis, 2+3)
 
 		// verify included objects
@@ -1048,7 +1139,7 @@ func (rest *TestIterationREST) TestIterationDelete() {
 
 		// Verify that no more WIs are moved to Root iteration
 		wis, err = rest.db.WorkItems().LoadByIteration(svc.Context, fxt.Iterations[0].ID)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.Len(t, wis, 15)
 
 		// verify included objects
@@ -1075,8 +1166,217 @@ func (rest *TestIterationREST) TestIterationDelete() {
 		}
 		for _, i := range deletedIterations {
 			_, err := rest.db.Iterations().Load(svc.Context, i.ID)
-			require.NotNil(t, err)
+			require.Error(t, err)
 			require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 		}
 	})
+}
+
+func (rest *TestIterationREST) TestUpdateIteration() {
+	resetFn := rest.DisableGormCallbacks()
+	defer resetFn()
+	rest.T().Run("update success - iteration parent", func(t *testing.T) {
+		// build following structure
+		// 	root 0
+		// 		|---- itr 1
+		// 			|---- itr 2
+		// 				|---- itr 3
+		//  					|---- itr 4
+		// 			|---- itr 5
+		// 		|---- itr 6
+
+		// given
+		fxt := tf.NewTestFixture(t, rest.DB,
+			tf.Iterations(7, tf.SetIterationNames("root", "iteration 1",
+				"iteration 2", "iteration 3", "iteration 4", "iteration 5", "iteration 6"),
+				func(fxt *tf.TestFixture, idx int) error {
+					itr := fxt.Iterations[idx]
+					switch idx {
+					case 1:
+						itr.MakeChildOf(*fxt.IterationByName("root"))
+					case 2:
+						itr.MakeChildOf(*fxt.IterationByName("iteration 1"))
+					case 3:
+						itr.MakeChildOf(*fxt.IterationByName("iteration 2"))
+					case 4:
+						itr.MakeChildOf(*fxt.IterationByName("iteration 3"))
+					case 5:
+						itr.MakeChildOf(*fxt.IterationByName("iteration 1"))
+					case 6:
+						itr.MakeChildOf(*fxt.IterationByName("root"))
+					}
+					return nil
+				}))
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+		itr1 := fxt.IterationByName("iteration 1")
+		itr2 := fxt.IterationByName("iteration 2")
+		itr3 := fxt.IterationByName("iteration 3")
+		itr4 := fxt.IterationByName("iteration 4")
+		itr5 := fxt.IterationByName("iteration 5")
+
+		// update parent of iteration 3 (move itr3 under itr1)
+		newParentIDStr := itr1.ID.String()
+		payload := minimumUpdatePayloadWithParent()
+		payload.Data.Relationships.Parent.Data.ID = &newParentIDStr
+		payload.Data.ID = &itr3.ID
+		// when
+		resp, updatedItr := test.UpdateIterationOK(t, svc.Context, svc, ctrl, itr3.ID.String(), &payload)
+		require.NotNil(t, updatedItr)
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "update", "ok_change_parent.res.iteration.golden.json"), updatedItr)
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "update", "ok_change_parent.headers.golden.json"), resp.Header())
+		// then
+		require.NotNil(t, updatedItr.Data.Relationships.Parent)
+		assert.Equal(t, newParentIDStr, *updatedItr.Data.Relationships.Parent.Data.ID)
+
+		// updated structure looks like below
+		// root 0
+		//	|---- itr 1
+		// 			|---- itr 5
+		//				|---- itr 2
+		//			|---- itr 3
+		// 				|---- itr 4
+		// 	|---- itr 6
+
+		// when
+		children, err := rest.db.Iterations().LoadChildren(svc.Context, itr2.ID)
+		// then
+		require.NoError(t, err)
+		require.Len(t, children, 0)
+
+		// when
+		children, err = rest.db.Iterations().LoadChildren(svc.Context, itr1.ID)
+		// then
+		require.NoError(t, err)
+		require.Len(t, children, 4)
+
+		allChildren := map[uuid.UUID]struct{}{
+			// expected subtree of itr 1
+			itr2.ID: {},
+			itr3.ID: {},
+			itr4.ID: {},
+			itr5.ID: {},
+		}
+		for _, i := range children {
+			delete(allChildren, i.ID)
+		}
+		require.Empty(t, allChildren)
+
+		// when
+		children, err = rest.db.Iterations().LoadChildren(svc.Context, itr3.ID)
+		// then
+		require.NoError(t, err)
+		require.Len(t, children, 1)
+
+		allChildren = map[uuid.UUID]struct{}{
+			itr4.ID: {},
+		}
+		for _, i := range children {
+			delete(allChildren, i.ID)
+		}
+		require.Empty(t, allChildren)
+	})
+
+	rest.T().Run("update fail - parent of root iteraton", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment(), tf.Iterations(2))
+		rootItr := fxt.Iterations[0]
+		newParentIDStr := fxt.Iterations[1].ID.String()
+		payload := minimumUpdatePayloadWithParent()
+		payload.Data.Relationships.Parent.Data.ID = &newParentIDStr
+		payload.Data.ID = &rootItr.ID
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+		test.UpdateIterationForbidden(t, svc.Context, svc, ctrl, rootItr.ID.String(), &payload)
+	})
+
+	rest.T().Run("update fail - non-existing parent of iteraton", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment(), tf.Iterations(2))
+		itr1 := fxt.Iterations[1]
+		newParentIDStr := "73048351-a4c0-4cf6-aff9-1fa3d7576ac0"
+		payload := minimumUpdatePayloadWithParent()
+		payload.Data.Relationships.Parent.Data.ID = &newParentIDStr
+		payload.Data.ID = &itr1.ID
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+		test.UpdateIterationNotFound(t, svc.Context, svc, ctrl, itr1.ID.String(), &payload)
+	})
+
+	rest.T().Run("update fail - invalid UUID parent of iteraton", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment(), tf.Iterations(2))
+		itr1 := fxt.Iterations[1]
+		newParentIDStr := "/"
+		payload := minimumUpdatePayloadWithParent()
+		payload.Data.Relationships.Parent.Data.ID = &newParentIDStr
+		payload.Data.ID = &itr1.ID
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+		test.UpdateIterationBadRequest(t, svc.Context, svc, ctrl, itr1.ID.String(), &payload)
+	})
+
+	rest.T().Run("update fail - parent UUID is same as subject iteraton", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment(), tf.Iterations(1))
+		itr := fxt.Iterations[0]
+		newParentIDStr := itr.ID.String()
+		payload := minimumUpdatePayloadWithParent()
+		payload.Data.Relationships.Parent.Data.ID = &newParentIDStr
+		payload.Data.ID = &itr.ID
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+		test.UpdateIterationForbidden(t, svc.Context, svc, ctrl, itr.ID.String(), &payload)
+	})
+
+	rest.T().Run("update fail - valid parent but from different space", func(t *testing.T) {
+		fxt1 := tf.NewTestFixture(t, rest.DB, tf.Iterations(1, tf.SetIterationNames("alpha")))
+		fxt2 := tf.NewTestFixture(t, rest.DB, tf.Iterations(1, tf.SetIterationNames("beta")))
+		beta := fxt2.IterationByName("beta")
+		newParentIDStr := fxt1.IterationByName("alpha").ID.String()
+		payload := minimumUpdatePayloadWithParent()
+		payload.Data.Relationships.Parent.Data.ID = &newParentIDStr
+		payload.Data.ID = &beta.ID
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt2.Identities[0])
+		test.UpdateIterationForbidden(t, svc.Context, svc, ctrl, beta.ID.String(), &payload)
+	})
+
+	rest.T().Run("update fail - new parent is one of child", func(t *testing.T) {
+		// build following structure
+		// 	root 0
+		// 		|---- itr 1
+		// 			|---- itr 2
+		// 				|---- itr 3
+		//  					|---- itr 4
+
+		// given
+		fxt := tf.NewTestFixture(t, rest.DB,
+			tf.Iterations(5, tf.SetIterationNames("root", "iteration 1",
+				"iteration 2", "iteration 3", "iteration 4"),
+				func(fxt *tf.TestFixture, idx int) error {
+					if idx > 0 {
+						fxt.Iterations[idx].MakeChildOf(*fxt.Iterations[idx-1])
+					}
+					return nil
+				}))
+		// try to set Iteation 3 as parent of iteration 1
+		iterationToUpdate := fxt.IterationByName("iteration 1")
+		newParentIDStr := fxt.IterationByName("iteration 3").ID.String()
+		payload := minimumUpdatePayloadWithParent()
+		payload.Data.Relationships.Parent.Data.ID = &newParentIDStr
+		payload.Data.ID = &iterationToUpdate.ID
+		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+		// when
+		test.UpdateIterationForbidden(t, svc.Context, svc, ctrl, iterationToUpdate.ID.String(), &payload)
+	})
+}
+
+func minimumUpdatePayloadWithParent() app.UpdateIterationPayload {
+	typeIterationString := iteration.APIStringTypeIteration
+	return app.UpdateIterationPayload{
+		Data: &app.Iteration{
+			Attributes: &app.IterationAttributes{},
+			Relationships: &app.IterationRelations{
+				Parent: &app.RelationGeneric{
+					Data: &app.GenericData{
+						ID:   nil,
+						Type: &typeIterationString,
+					},
+				},
+			},
+			ID:   nil,
+			Type: typeIterationString,
+		},
+	}
 }

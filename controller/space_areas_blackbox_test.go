@@ -36,7 +36,7 @@ func TestRunSpaceAreaREST(t *testing.T) {
 	resource.Require(t, resource.Database)
 	pwd, err := os.Getwd()
 	if err != nil {
-		require.Nil(t, err)
+		require.NoError(t, err)
 	}
 	suite.Run(t, &TestSpaceAreaREST{DBTestSuite: gormtestsupport.NewDBTestSuite(pwd + "/../config.yaml")})
 }
@@ -90,10 +90,9 @@ func (rest *TestSpaceAreaREST) setupAreas() (area.Area, []uuid.UUID, []area.Area
 	createdAreas = append(createdAreas, parentArea)
 	createdAreaUuids = append(createdAreaUuids, parentArea.ID)
 	parentID := parentArea.ID
-	name := "TestListAreas  A"
-	ci := newCreateChildAreaPayload(&name)
+	ci := newCreateChildAreaPayload("TestListAreas  A")
 	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
-	require.Nil(rest.T(), err)
+	require.NoError(rest.T(), err)
 	svc, ctrl := rest.SecuredAreasControllerWithIdentity(owner)
 	_, created := test.CreateChildAreaCreated(rest.T(), svc.Context, svc, ctrl, parentID.String(), ci)
 	assert.Equal(rest.T(), *ci.Data.Attributes.Name, *created.Data.Attributes.Name)
@@ -102,8 +101,7 @@ func (rest *TestSpaceAreaREST) setupAreas() (area.Area, []uuid.UUID, []area.Area
 	createdAreas = append(createdAreas, convertAreaToModel(*created))
 
 	// Create a child of the child created above.
-	name = "TestListAreas B"
-	ci = newCreateChildAreaPayload(&name)
+	ci = newCreateChildAreaPayload("TestListAreas B")
 	newParentID := *created.Data.Relationships.Parent.Data.ID
 	_, created = test.CreateChildAreaCreated(rest.T(), svc.Context, svc, ctrl, newParentID, ci)
 	assert.Equal(rest.T(), *ci.Data.Attributes.Name, *created.Data.Attributes.Name)

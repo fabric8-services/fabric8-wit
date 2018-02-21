@@ -44,6 +44,7 @@ var workItemTypeGroupData = a.Type("WorkItemTypeGroupData", func() {
 var workItemTypeGroupAttributes = a.Type("WorkItemTypeGroupAttributes", func() {
 	a.Attribute("bucket", d.String, "Name of the bucket this group belongs to")
 	a.Attribute("name", d.String)
+	a.Attribute("show-in-sidebar", d.Boolean, "Whether or not to render a link for this type group in the sidebar")
 	a.Attribute("icon", d.String, "CSS property value for icon of the group")
 	a.Attribute("created-at", d.DateTime, "timestamp of entity creation")
 	a.Attribute("updated-at", d.DateTime, "timestamp of last entity update")
@@ -51,14 +52,27 @@ var workItemTypeGroupAttributes = a.Type("WorkItemTypeGroupAttributes", func() {
 })
 
 var workItemTypeGroupsRelationships = a.Type("WorkItemTypeGroupRelationships", func() {
-	a.Attribute("defaultType", relationGeneric, "The default work item type from the type list")
 	a.Attribute("typeList", relationGenericList, "List of work item types attached to the type group")
 	a.Attribute("spaceTemplate", relationGeneric, "The space template to which this group belongs")
 })
 
-var _ = a.Resource("work_item_type_group", func() {
+var _ = a.Resource("work_item_type_groups", func() {
 	a.BasePath("/workitemtypegroups")
 	a.Parent("space_template")
+
+	a.Action("list", func() {
+		a.Routing(
+			a.GET(""),
+		)
+		a.Description("List of work item type groups")
+		a.Response(d.OK, workItemTypeGroupList)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+	})
+})
+
+var _ = a.Resource("work_item_type_group", func() {
+	a.BasePath("/workitemtypegroups")
 
 	a.Action("show", func() {
 		a.Routing(
@@ -69,16 +83,6 @@ var _ = a.Resource("work_item_type_group", func() {
 		})
 		a.Description("Show work item type group for given ID")
 		a.Response(d.OK, workItemTypeGroupSingle)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-		a.Response(d.NotFound, JSONAPIErrors)
-	})
-
-	a.Action("list", func() {
-		a.Routing(
-			a.GET(""),
-		)
-		a.Description("List of work item type groups")
-		a.Response(d.OK, workItemTypeGroupList)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 	})

@@ -3,21 +3,16 @@
     "attributes": {
       "bucket": "portfolio",
       "created-at": "0001-01-01T00:00:00Z",
-      "icon": "fa fa-suitcase",
+      "icon": "fa fa-bullseye",
       "name": "Scenarios",
+      "show-in-sidebar": true,
       "updated-at": "0001-01-01T00:00:00Z"
     },
     "id": "00000000-0000-0000-0000-000000000001",
     "links": {
-      "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups/00000000-0000-0000-0000-000000000001"
+      "related": "http:///api/workitemtypegroups/00000000-0000-0000-0000-000000000001"
     },
     "relationships": {
-      "defaultType": {
-        "data": {
-          "id": "00000000-0000-0000-0000-000000000003",
-          "type": "workitemtypes"
-        }
-      },
       "spaceTemplate": {
         "data": {
           "id": "00000000-0000-0000-0000-000000000002",

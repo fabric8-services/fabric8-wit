@@ -1,26 +1,22 @@
 package search
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
+	"regexp"
+	"strings"
 	"sync"
 
-	"context"
-
-	"strings"
-
-	"regexp"
-
-	"net/url"
-
+	"github.com/asaskevich/govalidator"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/fabric8-services/fabric8-wit/criteria"
 	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
-
-	"github.com/asaskevich/govalidator"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -31,18 +27,24 @@ const (
 	HostRegistrationKeyForListWI  = "work-item-list-details"
 	HostRegistrationKeyForBoardWI = "work-item-board-details"
 
-	EQ  = "$EQ"
-	NE  = "$NE"
-	AND = "$AND"
-	OR  = "$OR"
-	NOT = "$NOT"
-	IN  = "$IN"
+	EQ       = "$EQ"
+	NE       = "$NE"
+	AND      = "$AND"
+	OR       = "$OR"
+	NOT      = "$NOT"
+	IN       = "$IN"
+	SUBSTR   = "$SUBSTR"
+	WITGROUP = "$WITGROUP"
+	OPTS     = "$OPTS"
+
+	OptParentExistsKey = "parent-exists"
+	OptTreeViewKey     = "tree-view"
 )
 
 // GormSearchRepository provides a Gorm based repository
 type GormSearchRepository struct {
-	db  *gorm.DB
-	wir *workitem.GormWorkItemTypeRepository
+	db   *gorm.DB
+	witr *workitem.GormWorkItemTypeRepository
 }
 
 // NewGormSearchRepository creates a new search repository
@@ -276,8 +278,11 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 			q.Name = key
 			q.Value = nil
 		case map[string]interface{}:
+			if key == OPTS {
+				continue
+			}
 			q.Name = key
-			if v, ok := concreteVal["$IN"]; ok {
+			if v, ok := concreteVal[IN]; ok {
 				q.Name = OR
 				c := &q.Children
 				for _, vl := range v.([]interface{}) {
@@ -287,7 +292,7 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 					sq.Value = &t
 					*c = append(*c, sq)
 				}
-			} else if v, ok := concreteVal["$EQ"]; ok {
+			} else if v, ok := concreteVal[EQ]; ok {
 				switch v.(type) {
 				case string:
 					s := v.(string)
@@ -295,11 +300,11 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 				case nil:
 					q.Value = nil
 				}
-			} else if v, ok := concreteVal["$NE"]; ok {
+			} else if v, ok := concreteVal[NE]; ok {
 				s := v.(string)
 				q.Value = &s
 				q.Negate = true
-			} else if v, ok := concreteVal["$SUBSTR"]; ok {
+			} else if v, ok := concreteVal[SUBSTR]; ok {
 				s := v.(string)
 				q.Value = &s
 				q.Substring = true
@@ -310,6 +315,24 @@ func parseMap(queryMap map[string]interface{}, q *Query) {
 	}
 }
 
+func parseOptions(queryMap map[string]interface{}) *QueryOptions {
+	for key, val := range queryMap {
+		if ifArr, ok := val.(map[string]interface{}); key == OPTS && ok {
+			options := QueryOptions{}
+			for k, v := range ifArr {
+				switch k {
+				case OptParentExistsKey:
+					options.ParentExists = v.(bool)
+				case OptTreeViewKey:
+					options.TreeView = v.(bool)
+				}
+			}
+			return &options
+		}
+	}
+	return nil
+}
+
 func parseArray(anArray []interface{}, l *[]Query) {
 	for _, val := range anArray {
 		if o, ok := val.(map[string]interface{}); ok {
@@ -318,6 +341,12 @@ func parseArray(anArray []interface{}, l *[]Query) {
 			*l = append(*l, q)
 		}
 	}
+}
+
+// QueryOptions represents all options provided user
+type QueryOptions struct {
+	TreeView     bool
+	ParentExists bool
 }
 
 // Query represents tree structure of the filter query
@@ -343,6 +372,8 @@ type Query struct {
 	// an operator like "$AND", or "$OR". If the Name is not an operator, the
 	// Children slice MUST be empty.
 	Children []Query
+	// The Options represent the query options provided by the user.
+	Options *QueryOptions
 }
 
 func isOperator(str string) bool {
@@ -362,14 +393,6 @@ var searchKeyMap = map[string]string{
 	"space":        "SpaceID",
 }
 
-// returns SQL attibute name in query if found otherwise returns input key as is
-func (q Query) getAttributeKey(key string) string {
-	if val, ok := searchKeyMap[key]; ok {
-		return val
-	}
-	return key
-}
-
 func (q Query) determineLiteralType(key string, val string) criteria.Expression {
 	switch key {
 	case workitem.SystemAssignees, workitem.SystemLabels:
@@ -379,14 +402,75 @@ func (q Query) determineLiteralType(key string, val string) criteria.Expression 
 	}
 }
 
+// handleWitGroup Here we handle the "$WITGROUP" query parameter which we translate from a
+// simple
+//
+// "$WITGROUP = y"
+//
+// expression into an
+//
+// "Type in (y1, y2, y3, ... ,yn)"
+//
+// expression where yi represents the i-th work item type associated with
+// the work item type group y.
+func handleWitGroup(q Query, expArr *[]criteria.Expression) error {
+	if q.Name != WITGROUP {
+		return nil
+	}
+	if expArr == nil {
+		return errs.New("expression array must not be nil")
+	}
+
+	typeGroupName := q.Value
+	if typeGroupName == nil {
+		return errors.NewBadParameterError(WITGROUP, typeGroupName).Expected("not nil")
+	}
+	typeGroup := workitem.TypeGroupByName(*typeGroupName)
+	if typeGroup == nil {
+		return errors.NewBadParameterError(WITGROUP, *typeGroupName).Expected("existing " + WITGROUP)
+	}
+	var e criteria.Expression
+	if !q.Negate {
+		for _, witID := range typeGroup.TypeList {
+			eq := criteria.Equals(
+				criteria.Field("Type"),
+				criteria.Literal(witID.String()),
+			)
+			if e != nil {
+				e = criteria.Or(e, eq)
+			} else {
+				e = eq
+			}
+		}
+	} else {
+		for _, witID := range typeGroup.TypeList {
+			eq := criteria.Not(
+				criteria.Field("Type"),
+				criteria.Literal(witID.String()),
+			)
+			if e != nil {
+				e = criteria.And(e, eq)
+			} else {
+				e = eq
+			}
+		}
+	}
+	*expArr = append(*expArr, e)
+	return nil
+}
+
 func (q Query) generateExpression() (criteria.Expression, error) {
 	var myexpr []criteria.Expression
 	currentOperator := q.Name
-	if !isOperator(currentOperator) {
-		var key string
-		if val, ok := searchKeyMap[q.Name]; ok {
-			key = val
-		} else {
+
+	if q.Name == WITGROUP {
+		err := handleWitGroup(q, &myexpr)
+		if err != nil {
+			return nil, errs.Wrap(err, "failed to handle hierarchy in top-level element")
+		}
+	} else if !isOperator(currentOperator) || currentOperator == OPTS {
+		key, ok := searchKeyMap[q.Name]
+		if !ok {
 			return nil, errors.NewBadParameterError("key not found", q.Name)
 		}
 		left := criteria.Field(key)
@@ -409,17 +493,20 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 		}
 	}
 	for _, child := range q.Children {
-		if isOperator(child.Name) {
+		if isOperator(child.Name) || currentOperator == OPTS {
 			exp, err := child.generateExpression()
 			if err != nil {
 				return nil, err
 			}
 			myexpr = append(myexpr, exp)
+		} else if child.Name == WITGROUP {
+			err := handleWitGroup(child, &myexpr)
+			if err != nil {
+				return nil, errs.Wrap(err, "failed to handle "+WITGROUP+" in child element")
+			}
 		} else {
-			var key string
-			if val, ok := searchKeyMap[child.Name]; ok {
-				key = val
-			} else {
+			key, ok := searchKeyMap[child.Name]
+			if !ok {
 				return nil, errors.NewBadParameterError("key not found", child.Name)
 			}
 			left := criteria.Field(key)
@@ -471,8 +558,8 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 	return res, nil
 }
 
-// parseFilterString accepts a raw string and generates a criteria expression
-func parseFilterString(ctx context.Context, rawSearchString string) (criteria.Expression, error) {
+// ParseFilterString accepts a raw string and generates a criteria expression
+func ParseFilterString(ctx context.Context, rawSearchString string) (criteria.Expression, *QueryOptions, error) {
 	fm := map[string]interface{}{}
 	// Parsing/Unmarshalling JSON encoding/json
 	err := json.Unmarshal([]byte(rawSearchString), &fm)
@@ -482,12 +569,15 @@ func parseFilterString(ctx context.Context, rawSearchString string) (criteria.Ex
 			"err":             err,
 			"rawSearchString": rawSearchString,
 		}, "failed to unmarshal raw search string")
-		return nil, errors.NewBadParameterError("expression", rawSearchString+": "+err.Error())
+		return nil, nil, errors.NewBadParameterError("expression", rawSearchString+": "+err.Error())
 	}
 	q := Query{}
 	parseMap(fm, &q)
 
-	return q.generateExpression()
+	q.Options = parseOptions(fm)
+
+	exp, err := q.generateExpression()
+	return exp, q.Options, err
 }
 
 // generateSQLSearchInfo accepts searchKeyword and join them in a way that can be used in sql
@@ -529,7 +619,7 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 		db = db.Where(query, workItemTypes)
 	}
 
-	db = db.Select("count(*) over () as cnt2 , *")
+	db = db.Select("count(*) over () as cnt2 , *").Order("execution_order desc")
 	db = db.Joins(", to_tsquery('english', ?) as query, ts_rank(tsv, query) as rank", sqlSearchQueryParameter)
 	if spaceID != nil {
 		db = db.Where("space_id=?", *spaceID)
@@ -608,7 +698,7 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 	for index, value := range rows {
 		var err error
 		// FIXME: Against best practice http://go-database-sql.org/retrieving.html
-		wiType, err := r.wir.LoadTypeFromDB(ctx, value.Type)
+		wiType, err := r.witr.LoadTypeFromDB(ctx, value.Type)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"err": err,
@@ -719,14 +809,19 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 	return result, count, nil
 }
 
-// Filter Search returns work items for the given query
-func (r *GormSearchRepository) Filter(ctx context.Context, rawFilterString string, parentExists *bool, start *int, limit *int) ([]workitem.WorkItem, uint64, error) {
+// Filter returns the work items matching the search as well as their count. If
+// the filter did specify the "tree-view" option to be "true", then we will also
+// create a list of ancestors as well as a list of links. The ancestors exist in
+// order to list the parent of each matching work item up to its root work item.
+// The child links are there in order to know what siblings to load for matching
+// work items.
+func (r *GormSearchRepository) Filter(ctx context.Context, rawFilterString string, parentExists *bool, start *int, limit *int) (matches []workitem.WorkItem, count uint64, ancestors link.AncestorList, childLinks link.WorkItemLinkList, err error) {
 	// parse
 	// generateSearchQuery
 	// ....
-	exp, err := parseFilterString(ctx, rawFilterString)
+	exp, opts, err := ParseFilterString(ctx, rawFilterString)
 	if err != nil {
-		return nil, 0, errs.WithStack(err)
+		return nil, 0, nil, nil, errs.Wrap(err, "failed to parse filter string")
 	}
 	log.Debug(ctx, map[string]interface{}{
 		"expression": exp,
@@ -738,31 +833,79 @@ func (r *GormSearchRepository) Filter(ctx context.Context, rawFilterString strin
 			"expression": exp,
 			"raw_filter": rawFilterString,
 		}, "unable to parse the raw filter string")
-		return nil, 0, errors.NewBadParameterError("rawFilterString", rawFilterString)
+		return nil, 0, nil, nil, errors.NewBadParameterError("rawFilterString", rawFilterString)
 	}
 
 	result, count, err := r.listItemsFromDB(ctx, exp, parentExists, start, limit)
 	if err != nil {
-		return nil, 0, errs.WithStack(err)
+		return nil, 0, nil, nil, errs.WithStack(err)
 	}
-	res := make([]workitem.WorkItem, len(result))
+
+	// if requested search for ancestors of all matched work items
+	if opts != nil && opts.TreeView {
+		linkRepo := link.NewWorkItemLinkRepository(r.db)
+		matchingIDs := make([]uuid.UUID, len(result))
+		for i, wi := range result {
+			matchingIDs[i] = wi.ID
+		}
+		ancestors, err = linkRepo.GetAncestors(ctx, link.SystemWorkItemLinkTypeParentChildID, link.AncestorLevelAll, matchingIDs...)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"expression":  exp,
+				"raw_filter":  rawFilterString,
+				"err":         err,
+				"matchingIDs": matchingIDs,
+			}, "failed to find ancestors for these work items")
+			return nil, 0, nil, nil, errs.Wrapf(err, "failed to find ancestors for these work items: %s", matchingIDs)
+		}
+
+		// For each matchingIDs work item that has a child which is also a matching
+		// work item, we load all direct children.
+		includeChildrenFor := id.Slice{}
+		for _, match := range matchingIDs {
+			var includeChildren bool
+			// Check if this matched work item appears as a parent for one of
+			// the other matches. If it does, then include its direct children.
+			for i := 0; i < len(result) && !includeChildren; i++ {
+				if result[i].ID == match {
+					continue
+				}
+				parent := ancestors.GetParentOf(result[i].ID)
+				if parent != nil && parent.ID == match {
+					includeChildren = true
+					includeChildrenFor = append(includeChildrenFor, match)
+				}
+			}
+		}
+		childLinks, err = linkRepo.ListChildLinks(ctx, link.SystemWorkItemLinkTypeParentChildID, includeChildrenFor...)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"expression": exp,
+				"raw_filter": rawFilterString,
+				"err":        err,
+			}, "failed to list child links for work items %+v", includeChildrenFor)
+			return nil, 0, nil, nil, errs.Wrapf(err, "failed to list child links for work item %+v", includeChildrenFor)
+		}
+	}
+
+	matches = make([]workitem.WorkItem, len(result))
 	for index, value := range result {
-		wiType, err := r.wir.LoadTypeFromDB(ctx, value.Type)
+		wiType, err := r.witr.LoadTypeFromDB(ctx, value.Type)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"err": err,
 				"wit": value.Type,
 			}, "failed to load work item type")
-			return nil, 0, errors.NewInternalError(ctx, errs.Wrap(err, "failed to load work item type"))
+			return nil, 0, nil, nil, errors.NewInternalError(ctx, errs.Wrap(err, "failed to load work item type"))
 		}
 		modelWI, err := workitem.ConvertWorkItemStorageToModel(wiType, &value)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"err": err,
 			}, "failed to convert to storage to model")
-			return nil, 0, errors.NewInternalError(ctx, errs.Wrap(err, "failed to convert storage to model"))
+			return nil, 0, nil, nil, errors.NewInternalError(ctx, errs.Wrap(err, "failed to convert storage to model"))
 		}
-		res[index] = *modelWI
+		matches[index] = *modelWI
 	}
-	return res, count, nil
+	return matches, count, ancestors, childLinks, nil
 }

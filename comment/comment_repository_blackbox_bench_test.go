@@ -34,7 +34,7 @@ func (s *BenchCommentRepository) SetupBenchmark() {
 
 func (s *BenchCommentRepository) createComment(c *comment.Comment, creator uuid.UUID) {
 	err := s.repo.Create(s.Ctx, c, creator)
-	require.Nil(s.B(), err)
+	require.NoError(s.B(), err)
 }
 
 func (s *BenchCommentRepository) createComments(comments []*comment.Comment, creator uuid.UUID) {

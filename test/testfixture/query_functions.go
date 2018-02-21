@@ -4,6 +4,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/label"
+	"github.com/fabric8-services/fabric8-wit/query"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	errs "github.com/pkg/errors"
@@ -91,6 +92,16 @@ func (fxt *TestFixture) WorkItemByTitle(title string, spaceID ...uuid.UUID) *wor
 	return nil
 }
 
+// WorkItemByID returns the first work item that has the given ID (if any).
+func (fxt *TestFixture) WorkItemByID(ID uuid.UUID) *workitem.WorkItem {
+	for _, wi := range fxt.WorkItems {
+		if ID == wi.ID {
+			return wi
+		}
+	}
+	return nil
+}
+
 // WorkItemLinkTypeByName returns the first work item link type that has the
 // given name (if any). If you have work item link types with the same name in
 // different spaces you can also pass in one space ID to filter by space as
@@ -101,6 +112,20 @@ func (fxt *TestFixture) WorkItemLinkTypeByName(name string, spaceID ...uuid.UUID
 			return wilt
 		} else if wilt.Name == name && len(spaceID) == 0 {
 			return wilt
+		}
+	}
+	return nil
+}
+
+// QueryByTitle returns the first query that has the given title (if
+// any). If you have queries with the same title in different spaces you can
+// also pass in one space ID to filter by space as well.
+func (fxt *TestFixture) QueryByTitle(title string, spaceID ...uuid.UUID) *query.Query {
+	for _, q := range fxt.Queries {
+		if q.Title == title && len(spaceID) > 0 && q.SpaceID == spaceID[0] {
+			return q
+		} else if q.Title == title && len(spaceID) == 0 {
+			return q
 		}
 	}
 	return nil

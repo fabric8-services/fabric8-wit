@@ -370,6 +370,12 @@ func GetMigrations() Migrations {
 		link.SystemWorkItemLinkCategoryUserID.String(),
 	)})
 
+	// Version 81
+	m = append(m, steps{ExecuteSQLFile("081-queries.sql")})
+
+	// Version 82
+	m = append(m, steps{ExecuteSQLFile("082-iteration-related-changes.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -443,7 +449,7 @@ func MigrateToNextVersion(tx *sql.Tx, nextVersion *int64, m Migrations, catalog 
 	// Once obtained, the lock is held for the remainder of the current transaction.
 	// (There is no UNLOCK TABLE command; locks are always released at transaction end.)
 	if _, err := tx.Exec("SELECT pg_advisory_xact_lock($1)", AdvisoryLockID); err != nil {
-		return errs.Errorf("Failed to acquire lock: %s\n", err)
+		return errs.Wrapf(err, "failed to acquire lock: %s\n", AdvisoryLockID)
 	}
 
 	// Determine current version and adjust the outmost loop
@@ -665,7 +671,7 @@ func createOrUpdateSpace(ctx context.Context, spaceRepo *space.GormRepository, i
 }
 
 func createSpace(ctx context.Context, spaceRepo *space.GormRepository, id uuid.UUID, description string) error {
-	err := spaceRepo.CheckExists(ctx, id.String())
+	err := spaceRepo.CheckExists(ctx, id)
 	if err != nil {
 		cause := errs.Cause(err)
 		switch cause.(type) {
@@ -734,9 +740,9 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *workitem.GormWo
 		{workitem.SystemBug, "Bug", "", "fa fa-bug"},
 		{workitem.SystemTask, "Task", "", "fa fa-tasks"},
 		{workitem.SystemFeature, "Feature", "", "fa fa-puzzle-piece"},
-		{workitem.SystemScenario, "Scenario", "", "fa fa-bolt"},
+		{workitem.SystemScenario, "Scenario", "", "fa fa-bullseye"},
 		{workitem.SystemValueProposition, "Value Proposition", "", "fa fa-diamond"},
-		{workitem.SystemExperience, "Experience", "", "fa fa-map"},
+		{workitem.SystemExperience, "Experience", "", "pficon pficon-infrastructure"},
 		{workitem.SystemFundamental, "Fundamental", "", "fa fa-university"},
 		{workitem.SystemPapercuts, "Papercuts", "", "fa fa-scissors"},
 	}

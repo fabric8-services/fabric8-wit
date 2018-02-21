@@ -17,7 +17,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 )
 
 // WorkItemLinkController implements the work-item-link resource.
@@ -233,8 +233,10 @@ func (c *WorkItemLinkController) Create(ctx *app.CreateWorkItemLinkContext) erro
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
-	linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, c.db, c.db, ctx.Request, ctx.ResponseWriter, app.WorkItemLinkHref, currentUserIdentityID)
-	return createWorkItemLink(linkCtx, ctx, ctx.Payload)
+	return application.Transactional(c.db, func(appl application.Application) error {
+		linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, app.WorkItemLinkHref, currentUserIdentityID)
+		return createWorkItemLink(linkCtx, ctx, ctx.Payload)
+	})
 }
 
 func (c *WorkItemLinkController) checkIfUserIsSpaceCollaboratorOrWorkItemCreator(ctx context.Context, linkID uuid.UUID, currentIdentityID uuid.UUID) (bool, error) {
@@ -333,55 +335,6 @@ func (c *WorkItemLinkController) Show(ctx *app.ShowWorkItemLinkContext) error {
 			}
 			return ctx.OK(&appLink)
 		})
-	})
-}
-
-type updateWorkItemLinkFuncs interface {
-	OK(r *app.WorkItemLinkSingle) error
-	NotFound(r *app.JSONAPIErrors) error
-	BadRequest(r *app.JSONAPIErrors) error
-	InternalServerError(r *app.JSONAPIErrors) error
-	Unauthorized(r *app.JSONAPIErrors) error
-}
-
-func updateWorkItemLink(ctx *workItemLinkContext, httpFuncs updateWorkItemLinkFuncs, payload *app.UpdateWorkItemLinkPayload) error {
-	toSave := app.WorkItemLinkSingle{
-		Data: payload.Data,
-	}
-	modelLink, err := ConvertLinkToModel(toSave)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(httpFuncs, err)
-	}
-	savedModelLink, err := ctx.Application.WorkItemLinks().Save(ctx.Context, *modelLink, *ctx.CurrentUserIdentityID)
-	if err != nil {
-		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(ctx.Context, err)
-		return ctx.Service.Send(ctx.Context, httpStatusCode, jerrors)
-	}
-	// Convert the created link type entry into a rest representation
-	savedAppLink := ConvertLinkFromModel(ctx.Request, *savedModelLink)
-
-	if err := enrichLinkSingle(ctx.Context, ctx.Application, ctx.Request, &savedAppLink); err != nil {
-		return jsonapi.JSONErrorResponse(httpFuncs, err)
-	}
-	return httpFuncs.OK(&savedAppLink)
-}
-
-// Update runs the update action.
-func (c *WorkItemLinkController) Update(ctx *app.UpdateWorkItemLinkContext) error {
-	currentUserIdentityID, err := login.ContextIdentity(ctx)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
-	}
-	authorized, err := c.checkIfUserIsSpaceCollaboratorOrWorkItemCreator(ctx, ctx.LinkID, *currentUserIdentityID)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
-	}
-	if !authorized {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to delete the link"))
-	}
-	return application.Transactional(c.db, func(appl application.Application) error {
-		linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, app.WorkItemLinkHref, currentUserIdentityID)
-		return updateWorkItemLink(linkCtx, ctx, ctx.Payload)
 	})
 }
 

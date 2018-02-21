@@ -33,7 +33,7 @@ var pagingLinks = a.Type("pagingLinks", func() {
 
 var meta = a.Type("workItemListResponseMeta", func() {
 	a.Attribute("totalCount", d.Integer)
-
+	a.Attribute("ancestorIDs", a.ArrayOf(d.UUID), "array of work item IDs in the \"included\" array that are ancestors")
 	a.Required("totalCount")
 })
 

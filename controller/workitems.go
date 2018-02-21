@@ -114,7 +114,7 @@ func (c *WorkitemsController) Create(ctx *app.CreateWorkitemsContext) error {
 		//verify spaceID:
 		// To be removed once we have endpoint like - /api/space/{spaceID}/workitems
 		var err error
-		err = appl.Spaces().CheckExists(ctx, ctx.SpaceID.String())
+		err = appl.Spaces().CheckExists(ctx, ctx.SpaceID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}

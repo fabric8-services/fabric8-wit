@@ -1,6 +1,7 @@
 package search
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"runtime/debug"
@@ -24,7 +25,7 @@ func TestParseMap(t *testing.T) {
 		// Parsing/Unmarshalling JSON encoding/json
 		fm := map[string]interface{}{}
 		err := json.Unmarshal([]byte(input), &fm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// when
 		actualQuery := Query{}
 		parseMap(fm, &actualQuery)
@@ -42,7 +43,7 @@ func TestParseMap(t *testing.T) {
 		// Parsing/Unmarshalling JSON encoding/json
 		fm := map[string]interface{}{}
 		err := json.Unmarshal([]byte(input), &fm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// when
 		actualQuery := Query{}
 		parseMap(fm, &actualQuery)
@@ -60,7 +61,7 @@ func TestParseMap(t *testing.T) {
 		// Parsing/Unmarshalling JSON encoding/json
 		fm := map[string]interface{}{}
 		err := json.Unmarshal([]byte(input), &fm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// when
 		actualQuery := Query{}
 		parseMap(fm, &actualQuery)
@@ -80,7 +81,7 @@ func TestParseMap(t *testing.T) {
 		// Parsing/Unmarshalling JSON encoding/json
 		fm := map[string]interface{}{}
 		err := json.Unmarshal([]byte(input), &fm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// when
 		actualQuery := Query{}
 		parseMap(fm, &actualQuery)
@@ -96,7 +97,7 @@ func TestParseMap(t *testing.T) {
 		// Parsing/Unmarshalling JSON encoding/json
 		fm := map[string]interface{}{}
 		err := json.Unmarshal([]byte(input), &fm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// when
 		actualQuery := Query{}
 		parseMap(fm, &actualQuery)
@@ -112,7 +113,7 @@ func TestParseMap(t *testing.T) {
 		// Parsing/Unmarshalling JSON encoding/json
 		fm := map[string]interface{}{}
 		err := json.Unmarshal([]byte(input), &fm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// when
 		actualQuery := Query{}
 		parseMap(fm, &actualQuery)
@@ -122,7 +123,6 @@ func TestParseMap(t *testing.T) {
 		assert.Equal(t, expectedQuery, actualQuery)
 	})
 
-	// {"type" : { "$IN" : ["", "" , ""] } }
 	t.Run(AND, func(t *testing.T) {
 		t.Parallel()
 		// given
@@ -130,7 +130,7 @@ func TestParseMap(t *testing.T) {
 		// Parsing/Unmarshalling JSON encoding/json
 		fm := map[string]interface{}{}
 		err := json.Unmarshal([]byte(input), &fm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// when
 		actualQuery := Query{}
 		parseMap(fm, &actualQuery)
@@ -144,6 +144,52 @@ func TestParseMap(t *testing.T) {
 		assert.Equal(t, expectedQuery, actualQuery)
 	})
 
+	t.Run("Multiple "+AND, func(t *testing.T) {
+		t.Parallel()
+		// given
+		input := `{"` + AND + `": [{"space": "openshiftio"}, {"status": "NEW"}, {"title": "hello"}]}`
+		// Parsing/Unmarshalling JSON encoding/json
+		fm := map[string]interface{}{}
+		err := json.Unmarshal([]byte(input), &fm)
+		require.NoError(t, err)
+		// when
+		actualQuery := Query{}
+		parseMap(fm, &actualQuery)
+		// then
+		openshiftio := "openshiftio"
+		status := "NEW"
+		title := "hello"
+		expectedQuery := Query{Name: AND, Children: []Query{
+			{Name: "space", Value: &openshiftio},
+			{Name: "status", Value: &status},
+			{Name: "title", Value: &title}},
+		}
+		assert.Equal(t, expectedQuery, actualQuery)
+	})
+
+	t.Run("Multiple "+OR, func(t *testing.T) {
+		t.Parallel()
+		// given
+		input := `{"` + OR + `": [{"space": "openshiftio"}, {"status": "NEW"}, {"title": "hello"}]}`
+		// Parsing/Unmarshalling JSON encoding/json
+		fm := map[string]interface{}{}
+		err := json.Unmarshal([]byte(input), &fm)
+		require.NoError(t, err)
+		// when
+		actualQuery := Query{}
+		parseMap(fm, &actualQuery)
+		// then
+		openshiftio := "openshiftio"
+		status := "NEW"
+		title := "hello"
+		expectedQuery := Query{Name: OR, Children: []Query{
+			{Name: "space", Value: &openshiftio},
+			{Name: "status", Value: &status},
+			{Name: "title", Value: &title}},
+		}
+		assert.Equal(t, expectedQuery, actualQuery)
+	})
+
 	t.Run("AND with EQ", func(t *testing.T) {
 		t.Parallel()
 		// given
@@ -151,7 +197,7 @@ func TestParseMap(t *testing.T) {
 		// Parsing/Unmarshalling JSON encoding/json
 		fm := map[string]interface{}{}
 		err := json.Unmarshal([]byte(input), &fm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// when
 		actualQuery := Query{}
 		parseMap(fm, &actualQuery)
@@ -175,7 +221,7 @@ func TestParseMap(t *testing.T) {
 
 		// Parsing/Unmarshalling JSON encoding/json
 		err := json.Unmarshal([]byte(input), &fm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		q := &Query{}
 
 		parseMap(fm, q)
@@ -203,7 +249,7 @@ func TestParseMap(t *testing.T) {
 
 		// Parsing/Unmarshalling JSON encoding/json
 		err := json.Unmarshal([]byte(input), &fm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		q := &Query{}
 
 		parseMap(fm, q)
@@ -231,7 +277,7 @@ func TestParseMap(t *testing.T) {
 
 		// Parsing/Unmarshalling JSON encoding/json
 		err := json.Unmarshal([]byte(input), &fm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		q := &Query{}
 
 		parseMap(fm, q)
@@ -256,7 +302,7 @@ func TestParseMap(t *testing.T) {
 		// Parsing/Unmarshalling JSON encoding/json
 		fm := map[string]interface{}{}
 		err := json.Unmarshal([]byte(input), &fm)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		// when
 		actualQuery := Query{}
 		parseMap(fm, &actualQuery)
@@ -270,7 +316,74 @@ func TestParseMap(t *testing.T) {
 		assert.Equal(t, expectedQuery, actualQuery)
 	})
 
+	t.Run(OPTS, func(t *testing.T) {
+		t.Parallel()
+		// given
+		input := fmt.Sprintf(`{"%s": {"parent-exists": true, "tree-view": true}}`, OPTS)
+		// Parsing/Unmarshalling JSON encoding/json
+		fm := map[string]interface{}{}
+		err := json.Unmarshal([]byte(input), &fm)
+		require.NoError(t, err)
+		// when
+		actualOptions := parseOptions(fm)
+		// then
+		expectedOptions := &QueryOptions{ParentExists: true, TreeView: true}
+		assert.Equal(t, expectedOptions, actualOptions)
+	})
+	t.Run(OPTS+" complex query", func(t *testing.T) {
+		t.Parallel()
+		// given
+		input := fmt.Sprintf(`{"%s":[{"title":"some"},{"state":"new"}],"%s": {"parent-exists": true, "tree-view": true}}`, AND, OPTS)
+		// Parsing/Unmarshalling JSON encoding/json
+		fm := map[string]interface{}{}
+		err := json.Unmarshal([]byte(input), &fm)
+		require.NoError(t, err)
+		// when
+		options := parseOptions(fm)
+		actualQuery := Query{Options: options}
+
+		// then
+		expectedQuery := Query{Options: &QueryOptions{ParentExists: true, TreeView: true}}
+		assert.Equal(t, expectedQuery, actualQuery)
+
+		parseMap(fm, &actualQuery)
+		title := "some"
+		state := "new"
+		expectedQuery = Query{Options: &QueryOptions{ParentExists: true, TreeView: true},
+			Name: AND, Children: []Query{
+				{Name: "title", Value: &title},
+				{Name: "state", Value: &state}},
+		}
+
+		assert.Equal(t, expectedQuery, actualQuery)
+	})
+
 }
+
+func TestParseFilterString(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	t.Parallel()
+	t.Run("OPTS with other query", func(t *testing.T) {
+
+		input := fmt.Sprintf(`{"$AND":[{"title":"some"},{"state":"new"}],"%s": {"parent-exists": true, "tree-view": true}}`, OPTS)
+		actualExpr, options, err := ParseFilterString(context.Background(), input)
+		expectedExpr := c.And(
+			c.Equals(
+				c.Field("system.title"),
+				c.Literal("some"),
+			),
+			c.Equals(
+				c.Field("system.state"),
+				c.Literal("new"),
+			),
+		)
+		expectEqualExpr(t, expectedExpr, actualExpr)
+		assert.Nil(t, err)
+		expectedOptions := &QueryOptions{ParentExists: true, TreeView: true}
+		assert.Equal(t, expectedOptions, options)
+	})
+}
+
 func TestGenerateExpression(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
@@ -435,7 +548,7 @@ func TestGenerateExpression(t *testing.T) {
 		// when
 		actualExpr, err := q.generateExpression()
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.Nil(t, actualExpr)
 		assert.Contains(t, err.Error(), "negate for null not supported")
 	})
@@ -454,7 +567,7 @@ func TestGenerateExpression(t *testing.T) {
 		// when
 		actualExpr, err := q.generateExpression()
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.Nil(t, actualExpr)
 		assert.Contains(t, err.Error(), "negate for null not supported")
 	})
@@ -462,6 +575,8 @@ func TestGenerateExpression(t *testing.T) {
 }
 
 func expectEqualExpr(t *testing.T, expectedExpr, actualExpr c.Expression) {
+	require.NotNil(t, expectedExpr)
+	require.NotNil(t, actualExpr)
 	actualClause, actualParameters, actualErrs := workitem.Compile(actualExpr)
 	if len(actualErrs) > 0 {
 		debug.PrintStack()
@@ -472,6 +587,7 @@ func expectEqualExpr(t *testing.T, expectedExpr, actualExpr c.Expression) {
 		debug.PrintStack()
 		require.Nil(t, expectedErrs, "failed to compile expected expression")
 	}
+
 	require.Equal(t, exprectedClause, actualClause, "where clause differs")
 	require.Equal(t, expectedParameters, actualParameters, "parameters differ")
 }
@@ -486,7 +602,7 @@ func TestGenerateExpressionWithNonExistingKey(t *testing.T) {
 		// when
 		actualExpr, err := q.generateExpression()
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.Nil(t, actualExpr)
 	})
 	t.Run("Empty name", func(t *testing.T) {
@@ -497,7 +613,7 @@ func TestGenerateExpressionWithNonExistingKey(t *testing.T) {
 		// when
 		actualExpr, err := q.generateExpression()
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.Nil(t, actualExpr)
 	})
 
@@ -509,8 +625,124 @@ func TestGenerateExpressionWithNonExistingKey(t *testing.T) {
 		// when
 		actualExpr, err := q.generateExpression()
 		// then
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.Nil(t, actualExpr)
 	})
 
+}
+
+func TestWorkItemTypeGroup(t *testing.T) {
+	typeGroups := workitem.TypeGroups()
+
+	typeGroupToExpr := func(typeGroup workitem.WorkItemTypeGroup, negate bool) c.Expression {
+		var e c.Expression
+		if !negate {
+			for _, witID := range typeGroup.TypeList {
+				exp := c.Equals(
+					c.Field("Type"),
+					c.Literal(witID.String()),
+				)
+				if e != nil {
+					e = c.Or(e, exp)
+				} else {
+					e = exp
+				}
+			}
+		} else {
+			for _, witID := range typeGroup.TypeList {
+				exp := c.Not(
+					c.Field("Type"),
+					c.Literal(witID.String()),
+				)
+				if e != nil {
+					e = c.And(e, exp)
+				} else {
+					e = exp
+				}
+			}
+		}
+		return e
+	}
+
+	t.Run(WITGROUP+" as a query child", func(t *testing.T) {
+		for _, typeGroup := range typeGroups {
+			t.Run(typeGroup.Name, func(t *testing.T) {
+				// given
+				spaceName := "openshiftio"
+				q := Query{
+					Name: OR,
+					Children: []Query{
+						{Name: "space", Value: &spaceName},
+						{Name: WITGROUP, Value: &typeGroup.Name},
+					},
+				}
+				// when
+				actualExpr, _ := q.generateExpression()
+				// then
+				expectedExpr := c.Or(
+					c.Equals(
+						c.Field("SpaceID"),
+						c.Literal(spaceName),
+					),
+					typeGroupToExpr(typeGroup, false),
+				)
+				expectEqualExpr(t, expectedExpr, actualExpr)
+			})
+		}
+	})
+
+	t.Run(WITGROUP+" as a query child using NOT", func(t *testing.T) {
+		for _, typeGroup := range typeGroups {
+			t.Run(typeGroup.Name, func(t *testing.T) {
+				// given
+				spaceName := "openshiftio"
+				q := Query{
+					Name: OR,
+					Children: []Query{
+						{Name: "space", Value: &spaceName},
+						{Name: WITGROUP, Value: &typeGroup.Name, Negate: true},
+					},
+				}
+				// when
+				actualExpr, _ := q.generateExpression()
+				// then
+				expectedExpr := c.Or(
+					c.Equals(
+						c.Field("SpaceID"),
+						c.Literal(spaceName),
+					),
+					typeGroupToExpr(typeGroup, true),
+				)
+				expectEqualExpr(t, expectedExpr, actualExpr)
+			})
+		}
+	})
+
+	t.Run(WITGROUP+" as a top-level expression", func(t *testing.T) {
+		for _, typeGroup := range typeGroups {
+			t.Run(typeGroup.Name, func(t *testing.T) {
+				// given
+				q := Query{Name: WITGROUP, Value: &typeGroup.Name}
+				// when
+				actualExpr, _ := q.generateExpression()
+				// then
+				expectedExpr := typeGroupToExpr(typeGroup, false)
+				expectEqualExpr(t, expectedExpr, actualExpr)
+			})
+		}
+	})
+
+	t.Run(WITGROUP+" as a top-level expression using NOT", func(t *testing.T) {
+		for _, typeGroup := range typeGroups {
+			t.Run(typeGroup.Name, func(t *testing.T) {
+				// given
+				q := Query{Name: WITGROUP, Value: &typeGroup.Name, Negate: true}
+				// when
+				actualExpr, _ := q.generateExpression()
+				// then
+				expectedExpr := typeGroupToExpr(typeGroup, true)
+				expectEqualExpr(t, expectedExpr, actualExpr)
+			})
+		}
+	})
 }

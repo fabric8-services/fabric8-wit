@@ -37,11 +37,11 @@ func (s *userBlackBoxTest) TestOKToDelete() {
 	createAndLoadUser(s)
 
 	err := s.repo.Delete(s.Ctx, user.ID)
-	assert.Nil(s.T(), err)
+	require.NoError(s.T(), err)
 
 	// lets see how many are present.
 	users, err := s.repo.List(s.Ctx)
-	require.Nil(s.T(), err, "Could not list users")
+	require.NoError(s.T(), err, "Could not list users")
 	require.True(s.T(), len(users) > 0)
 
 	for _, data := range users {
@@ -66,15 +66,15 @@ func (s *userBlackBoxTest) TestExistsUser() {
 		//t.Parallel()
 		user := createAndLoadUser(s)
 		// when
-		err := s.repo.CheckExists(s.Ctx, user.ID.String())
+		err := s.repo.CheckExists(s.Ctx, user.ID)
 		// then
-		require.Nil(t, err)
+		require.NoError(t, err)
 	})
 
 	t.Run("user doesn't exist", func(t *testing.T) {
 		//t.Parallel()
 		// Check not existing
-		err := s.repo.CheckExists(s.Ctx, uuid.NewV4().String())
+		err := s.repo.CheckExists(s.Ctx, uuid.NewV4())
 		// then
 		//
 		require.IsType(s.T(), errors.NotFoundError{}, err)
@@ -89,10 +89,10 @@ func (s *userBlackBoxTest) TestOKToSave() {
 
 	user.FullName = "newusernameTestUser"
 	err := s.repo.Save(s.Ctx, user)
-	require.Nil(s.T(), err, "Could not update user")
+	require.NoError(s.T(), err, "Could not update user")
 
 	updatedUser, err := s.repo.Load(s.Ctx, user.ID)
-	require.Nil(s.T(), err, "Could not load user")
+	require.NoError(s.T(), err, "Could not load user")
 	assert.Equal(s.T(), user.FullName, updatedUser.FullName)
 	fields := user.ContextInformation
 	assert.Equal(s.T(), fields["last_visited"], "http://www.google.com")
@@ -106,12 +106,12 @@ func (s *userBlackBoxTest) TestUpdateToEmptyString() {
 	user := createAndLoadUser(s)
 
 	err := s.repo.Save(s.Ctx, user)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	user.Bio = ""
 	err = s.repo.Save(s.Ctx, user)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	u, err := s.repo.Load(s.Ctx, user.ID)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Empty(t, u.Bio)
 }
 
@@ -131,10 +131,10 @@ func createAndLoadUser(s *userBlackBoxTest) *account.User {
 	}
 
 	err := s.repo.Create(s.Ctx, user)
-	require.Nil(s.T(), err, "Could not create user")
+	require.NoError(s.T(), err, "Could not create user")
 
 	createdUser, err := s.repo.Load(s.Ctx, user.ID)
-	require.Nil(s.T(), err, "Could not load user")
+	require.NoError(s.T(), err, "Could not load user")
 	require.Equal(s.T(), user.Email, createdUser.Email)
 	require.Equal(s.T(), user.ID, createdUser.ID)
 	require.Equal(s.T(), user.ContextInformation["last_visited"], createdUser.ContextInformation["last_visited"])

@@ -4,11 +4,9 @@
       "active_status": false,
       "created-at": "0001-01-01T00:00:00Z",
       "description": "Some description",
-      "endAt": "2016-11-25T15:08:41Z",
-      "name": "Sprint #21",
+      "name": "iteration 3",
       "parent_path": "/00000000-0000-0000-0000-000000000001/00000000-0000-0000-0000-000000000002",
-      "resolved_parent_path": "/root iteration/child iteration",
-      "startAt": "2016-11-04T15:08:41Z",
+      "resolved_parent_path": "/root/iteration 1",
       "state": "new",
       "updated-at": "0001-01-01T00:00:00Z",
       "user_active": false
