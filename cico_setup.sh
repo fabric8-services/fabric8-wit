@@ -48,6 +48,7 @@ function prepare() {
   make docker-check-go-format
   make docker-deps
   depth -internal -json .
+  glide tree
   make docker-analyze-go-code
   make docker-generate
   make docker-build
