@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/fabric8-services/fabric8-wit/app"
-	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/log"
 
@@ -30,12 +29,6 @@ const (
 )
 
 var mutex sync.Mutex
-
-func init() {
-	c, err := configuration.Get()
-	_ = err // Log this
-	raven.SetDSN(c.GetSentryDSN())
-}
 
 // ErrorToJSONAPIError returns the JSONAPI representation
 // of an error and the HTTP status code that will be associated with it.
@@ -179,7 +172,7 @@ func JSONErrorResponse(obj interface{}, err error) error {
 		}
 	default:
 		mutex.Lock()
-		raven.CaptureErrorAndWait(err, nil)
+		raven.CaptureError(err, nil)
 		raven.ClearContext()
 		mutex.Unlock()
 
