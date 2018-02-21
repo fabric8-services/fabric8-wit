@@ -183,6 +183,8 @@ func JSONErrorResponse(obj interface{}, err error) error {
 			// TODO: Handle error here
 		}
 		c.SetUserContext(u)
+		// Can't call SetRelease from here, since it causes cyclic dependency
+		// c.SetRelease(controller.Commit)
 		c.CaptureError(err, nil)
 		c.ClearContext()
 
