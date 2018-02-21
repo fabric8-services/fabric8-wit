@@ -1,5 +1,5 @@
-hash: 15d5352cd859fe23a262399290cc123d65ef272beed702c7bbb97b9797f31e6c
-updated: 2018-01-29T16:04:56.911667453-05:00
+hash: d9834966e400926d3a16023dd75b52074b9887ae039ed1f2194b2cde8fed8c18
+updated: 2018-02-21T11:53:21.33734033+05:30
 imports:
 - name: github.com/ajg/form
   version: cc2954064ec9ea8d93917f0f87456e11d7b881ad
@@ -190,7 +190,7 @@ imports:
 - name: github.com/lsegal/gucumber
   version: 71608e2f6e76fd4da5b09a376aeec7a5c0b5edbc
 - name: github.com/magiconair/properties
-  version: d419a98cdbed11a922bf76f257b7c4be79b50e73
+  version: c3beff4c2358b44d0493c7dda585e7db7ff28ae6
 - name: github.com/mailru/easyjson
   version: d5b7844b561a7bc640052f1b935f7b800330d7e0
   subpackages:
@@ -226,7 +226,7 @@ imports:
   subpackages:
   - difflib
 - name: github.com/prometheus/client_golang
-  version: e51041b3fa41cece0dca035740ba6411905be473
+  version: c5b7fccd204277076155f10851dad72b76a49317
   subpackages:
   - prometheus
 - name: github.com/prometheus/client_model
@@ -278,7 +278,7 @@ imports:
 - name: github.com/spf13/viper
   version: 651d9d916abc3c3d6a91a12549495caba5edffd2
 - name: github.com/stretchr/testify
-  version: b91bfb9ebec76498946beb6af7c0230c7cc7ba6c
+  version: 12b6f73e6084dad08a7c6e575284b177ecafbc71
   subpackages:
   - assert
   - require
