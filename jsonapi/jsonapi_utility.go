@@ -9,6 +9,8 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/token"
+	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 
 	"github.com/getsentry/raven-go"
 	"github.com/goadesign/goa"
@@ -169,11 +171,44 @@ func JSONErrorResponse(obj interface{}, err error) error {
 			return errs.WithStack(ctx.Conflict(jsonErr))
 		}
 	default:
+		// extract user information
+		u, errLocal := extractUserInfo(c)
+		if errLocal != nil {
+			// TODO: Handle error here
+		}
+
 		// report this unknown error to sentry
-		c, _ := raven.New(os.Getenv("SENTRY_DSN"))
+		c, errLocal := raven.New(os.Getenv("SENTRY_DSN"))
+		if errLocal != nil {
+			// TODO: Handle error here
+		}
+		c.SetUserContext(u)
 		c.CaptureError(err, nil)
+		c.ClearContext()
 
 		return errs.WithStack(x.InternalServerError(jsonErr))
 	}
 	return nil
+}
+
+// extractUserInfo reads the context and returns sentry understandable
+// user object's reference and error
+func extractUserInfo(c context.Context) (*raven.User, error) {
+	m, errLocal := token.ReadManagerFromContext(c)
+	if errLocal != nil {
+		return nil, errLocal
+	}
+
+	q := *m
+	token := goajwt.ContextJWT(c)
+	t, errLocal := q.ParseToken(c, token.Raw)
+	if errLocal != nil {
+		return nil, errLocal
+	}
+
+	return &raven.User{
+		Username: t.Username,
+		Email:    t.Email,
+		ID:       t.Id,
+	}, nil
 }
