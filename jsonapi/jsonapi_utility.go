@@ -3,8 +3,8 @@ package jsonapi
 import (
 	"context"
 	"net/http"
+	"os"
 	"strconv"
-	"sync"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/errors"
@@ -27,8 +27,6 @@ const (
 	ErrorCodeJWTSecurityError  = "jwt_security_error"
 	ErrorCodeDataConflict      = "data_conflict_error"
 )
-
-var mutex sync.Mutex
 
 // ErrorToJSONAPIError returns the JSONAPI representation
 // of an error and the HTTP status code that will be associated with it.
@@ -171,10 +169,9 @@ func JSONErrorResponse(obj interface{}, err error) error {
 			return errs.WithStack(ctx.Conflict(jsonErr))
 		}
 	default:
-		mutex.Lock()
-		raven.CaptureError(err, nil)
-		raven.ClearContext()
-		mutex.Unlock()
+		// report this unknown error to sentry
+		c, _ := raven.New(os.Getenv("SENTRY_DSN"))
+		c.CaptureError(err, nil)
 
 		return errs.WithStack(x.InternalServerError(jsonErr))
 	}
