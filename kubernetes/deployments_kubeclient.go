@@ -102,6 +102,10 @@ type route struct {
 	isCustomHost         bool
 }
 
+// ensure kubeClient implements KubeClientInterface
+var _ KubeClientInterface = &kubeClient{}
+var _ KubeClientInterface = (*kubeClient)(nil)
+
 // Receiver for default implementation of KubeRESTAPIGetter and MetricsGetter
 type defaultGetter struct{}
 

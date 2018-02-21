@@ -16,26 +16,32 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-// Allows for reading from responses
+// ResponseReader allows for reading from responses or mocked responses
 type ResponseReader interface {
 	ReadResponse(*http.Response) ([]byte, error)
 }
 
+// IOResponseReader actual implementation of ResponseReader
 type IOResponseReader struct {
 }
 
+// ReadResponse implementation for ResponseReader
 func (r *IOResponseReader) ReadResponse(resp *http.Response) ([]byte, error) {
 	defer resp.Body.Close()
 	return ioutil.ReadAll(resp.Body)
 }
 
-// Interface for mocking the witclient.Client
+// ensure IOResponseReader implements all methods in ResponseReader
+var _ ResponseReader = &IOResponseReader{}
+var _ ResponseReader = (*IOResponseReader)(nil)
+
+// WitClient is an interface for mocking the witclient.Client
 type WitClient interface {
 	ShowSpace(ctx context.Context, path string, ifModifiedSince *string, ifNoneMatch *string) (*http.Response, error)
 	ShowUserService(ctx context.Context, path string) (*http.Response, error)
 }
 
-// Interface for mocking OSIOClient
+// OpenshiftIOClient is an interface for mocking OSIOClient
 type OpenshiftIOClient interface {
 	GetNamespaceByType(ctx context.Context, userService *app.UserService, namespaceType string) (*app.NamespaceAttributes, error)
 	GetUserServices(ctx context.Context) (*app.UserService, error)
@@ -48,6 +54,10 @@ type OSIOClient struct {
 	responseReader ResponseReader
 }
 
+// ensure OSIOClient implements all methods in OpenshiftIOClient
+var _ OpenshiftIOClient = &OSIOClient{}
+var _ OpenshiftIOClient = (*OSIOClient)(nil)
+
 // NewOSIOClient creates an openshift IO client given an http request context
 func NewOSIOClient(ctx context.Context, scheme string, host string) *OSIOClient {
 	wc := witclient.New(goaclient.HTTPClientDoer(http.DefaultClient))
@@ -57,6 +67,7 @@ func NewOSIOClient(ctx context.Context, scheme string, host string) *OSIOClient 
 	return CreateOSIOClient(wc, &IOResponseReader{})
 }
 
+// CreateOSIOClient factory method replaced during unit testing
 func CreateOSIOClient(witclient WitClient, responseReader ResponseReader) *OSIOClient {
 	client := new(OSIOClient)
 	client.wc = witclient
