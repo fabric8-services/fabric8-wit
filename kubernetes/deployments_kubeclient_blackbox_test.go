@@ -1165,6 +1165,32 @@ func TestGetDeployment(t *testing.T) {
 			deploymentInput: defaultDeploymentInput,
 			shouldFail:      true,
 		},
+		{
+			// Verifies that a newer scaled down deployment is favoured over
+			// an older one with replicas and an even newer deployment that failed
+			testName:         "Scaled Down",
+			spaceName:        "mySpace",
+			appName:          "myApp",
+			envName:          "run",
+			envNS:            "my-run",
+			expectVersion:    "1.0.2",
+			expectPodStatus:  [][]string{},
+			expectPodsTotal:  0,
+			expectConsoleURL: "http://console.myCluster/console/project/my-run",
+			expectLogURL:     "http://console.myCluster/console/project/my-run/browse/rc/myApp-2?tab=logs",
+			expectAppURL:     "http://myApp-my-run.example.com",
+			deploymentInput: deploymentInput{
+				dcInput: defaultDeploymentConfigInput,
+				rcInput: map[string]string{
+					// List containing RCs in ascending deployment version:
+					// 1. Visible 2. Scaled-down "active" 3. Failed
+					"my-run": "replicationcontroller-scaled-down.json",
+				},
+				podInput:   defaultPodInput,
+				svcInput:   defaultServiceInput,
+				routeInput: defaultRouteInput,
+			},
+		},
 	}
 
 	fixture := &testFixture{}
@@ -1407,7 +1433,7 @@ func verifyDeployment(dep *app.SimpleDeployment, testCase *deployTestData, t *te
 
 	// Check pod status and total
 	require.NotNil(t, dep.Attributes.Pods, "Pods are nil")
-	require.ElementsMatch(t, testCase.expectPodStatus, dep.Attributes.Pods, "Incorrect pod status")
+	require.ElementsMatch(t, testCase.expectPodStatus, dep.Attributes.Pods, "Incorrect pod status %v", dep.Attributes.Pods)
 	require.NotNil(t, dep.Attributes.PodTotal, "Pod total is nil")
 	require.Equal(t, testCase.expectPodsTotal, *dep.Attributes.PodTotal, "Wrong number of total pods")
 

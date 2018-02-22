@@ -826,6 +826,9 @@ func (oc *openShiftAPIClient) GetDeploymentConfig(namespace string, name string)
 	return oc.getResource(dcURL, true)
 }
 
+const deploymentPhaseAnnotation string = "openshift.io/deployment.phase"
+const deploymentVersionAnnotation string = "openshift.io/deployment-config.latest-version"
+
 func (kc *kubeClient) getCurrentDeployment(space string, appName string, namespace string) (*deployment, error) {
 	// Look up DeploymentConfig corresponding to the application name in the provided environment
 	result, err := kc.getDeploymentConfig(namespace, appName, space)
@@ -845,18 +848,88 @@ func (kc *kubeClient) getCurrentDeployment(space string, appName string, namespa
 
 	// Find newest RC created by this DC, which is also considered visible according to the
 	// OpenShift web console's criteria:
-	// https://github.com/openshift/origin-web-console/blob/v3.7.0/app/scripts/controllers/overview.js#L658
-	const deploymentPhaseAnnotation string = "openshift.io/deployment.phase"
-	var newest *v1.ReplicationController
+	// https://github.com/openshift/origin-web-console/blob/v3.7.0/app/scripts/controllers/overview.js#L679
+	candidates := make(map[string]*v1.ReplicationController)
+	// Also consider most recent successful deployment, even if scaled down (not visible)
+	var active *v1.ReplicationController
 	for idx := range rcs {
 		rc := &rcs[idx]
-		if newest == nil || newest.CreationTimestamp.Before(rc.CreationTimestamp) {
-			newest = rc
+		phase := rc.Annotations[deploymentPhaseAnnotation]
+		if phase == "Complete" && (active == nil ||
+			active.CreationTimestamp.Before(rc.CreationTimestamp)) {
+			active = rc
+		}
+		if isReplicationControllerVisible(rc) {
+			candidates[rc.Name] = rc
 		}
 	}
-	if newest != nil {
-		result.current = newest
+	if active != nil {
+		candidates[active.Name] = active
 	}
+	// For final comparison use deployment version annotation instead of creation timestamp
+	current, err := getMostRecentByDeploymentVersion(candidates)
+	if err != nil {
+		return nil, err
+	}
+	result.current = current
+	return result, nil
+}
+
+func isReplicationControllerVisible(rc *v1.ReplicationController) bool {
+	visible := false
+	// Check if this RC has replicas running
+	if rc.Status.Replicas > 0 {
+		visible = true
+	} else { // Check if RC is in progress
+		phase := rc.Annotations[deploymentPhaseAnnotation]
+		if phase == "New" || phase == "Pending" || phase == "Running" {
+			visible = true
+		}
+	}
+	return visible
+}
+
+func getMostRecentByDeploymentVersion(rcs map[string]*v1.ReplicationController) (*v1.ReplicationController, error) {
+	var result *v1.ReplicationController
+	var newestVersion *int64
+
+	for _, rc := range rcs {
+		var version *int64
+		versionStr, pres := rc.Annotations[deploymentVersionAnnotation]
+		if pres {
+			versionNum, err := strconv.ParseInt(versionStr, 10, 64)
+			if err != nil {
+				return nil, errs.Wrapf(err, "deployment version for %s is not a valid integer", rc.Name)
+			}
+			version = &versionNum
+		}
+
+		// Take first RC unconditionally
+		if result == nil {
+			result = rc
+			newestVersion = version
+		} else if newestVersion == nil {
+			// Prioritize RC with version over those without
+			if version != nil {
+				result = rc
+				newestVersion = version
+			} else {
+				// Have neither current version nor newest version so far
+				// Compare RC names lexicographically as done by web console:
+				// https://github.com/openshift/origin-web-console/blob/v3.7.0/app/scripts/services/deployments.js#L393
+				if rc.Name > result.Name {
+					result = rc
+				}
+			}
+		} else if version != nil {
+			// Both current RC and newest RC have versions, so compare as integers
+			if *version > *newestVersion {
+				result = rc
+				newestVersion = version
+			}
+		}
+	}
+
 	return result, nil
 }
 
