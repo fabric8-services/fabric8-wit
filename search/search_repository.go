@@ -718,7 +718,7 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 }
 
 func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria criteria.Expression, parentExists *bool, start *int, limit *int) ([]workitem.WorkItemStorage, uint64, error) {
-	where, parameters, compileError := workitem.Compile(criteria)
+	where, parameters, joins, compileError := workitem.Compile(criteria)
 	if compileError != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err":        compileError,
@@ -737,6 +737,9 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 	}
 
 	db := r.db.Model(&workitem.WorkItemStorage{}).Where(where, parameters...)
+	for _, j := range joins {
+		db = db.Joins(j.String())
+	}
 	orgDB := db
 	if start != nil {
 		if *start < 0 {

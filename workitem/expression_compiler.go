@@ -15,7 +15,7 @@ const (
 
 // Compile takes an expression and compiles it to a where clause for use with gorm.DB.Where()
 // Returns the number of expected parameters for the query and a slice of errors if something goes wrong
-func Compile(where criteria.Expression) (whereClause string, parameters []interface{}, err []error) {
+func Compile(where criteria.Expression) (whereClause string, parameters []interface{}, joins map[string]TableJoin, err []error) {
 	criteria.IteratePostOrder(where, bubbleUpJSONContext)
 
 	compiler := newExpressionCompiler()
@@ -25,7 +25,7 @@ func Compile(where criteria.Expression) (whereClause string, parameters []interf
 	if !ok {
 		c = ""
 	}
-	return c, compiler.parameters, compiler.err
+	return c, compiler.parameters, compiler.joins, compiler.err
 }
 
 // mark expression tree nodes that reference json fields
@@ -80,15 +80,37 @@ func getFieldName(fieldName string) (mappedFieldName string, isJSONField bool) {
 }
 
 func newExpressionCompiler() expressionCompiler {
-	return expressionCompiler{parameters: []interface{}{}}
+	return expressionCompiler{
+		parameters: []interface{}{},
+		joins:      map[string]TableJoin{},
+	}
+}
+
+// A TableJoin helps to construct a query like this:
+// SELECT * FROM workitems LEFT JOIN iterations iter ON iter.ID = "a1801a16-0f09-4536-8c49-894be664488f" WHERE iter.name = "foo"
+type TableJoin struct {
+	tableName         string // e.g. "iterations"
+	tableNameShortcut string // e.g. "iter"
+	joinOnLeftColumn  string // e.g. "iter.ID"
+	joinOnRightColumn string // e.g. "Field->>system.iteration"
+}
+
+// String implements Stringer interface
+func (j TableJoin) String() string {
+	return "JOIN " + j.tableName + " ON " + j.joinOnLeftColumn + " = " + j.joinOnRightColumn
 }
 
 // expressionCompiler takes an expression and compiles it to a where clause for our gorm models
 // implements criteria.ExpressionVisitor
 type expressionCompiler struct {
-	parameters []interface{} // records the number of parameter expressions encountered
-	err        []error       // record any errors found in the expression
+	parameters []interface{}        // records the number of parameter expressions encountered
+	err        []error              // record any errors found in the expression
+	joins      map[string]TableJoin // map of table joins keyed by table name
 }
+
+// Ensure expressionCompiler implements the ExpressionVisitor interface
+var _ criteria.ExpressionVisitor = &expressionCompiler{}
+var _ criteria.ExpressionVisitor = (*expressionCompiler)(nil)
 
 // visitor implementation
 // the convention is to return nil when the expression cannot be compiled and to append an error to the err field
@@ -104,6 +126,17 @@ func (c *expressionCompiler) Field(f *criteria.FieldExpression) interface{} {
 		c.err = append(c.err, errs.Errorf("single quote not allowed in field name: %s", mappedFieldName))
 		return nil
 	}
+
+	if strings.HasPrefix(mappedFieldName, "iteration.") {
+		c.joins["iterations"] = TableJoin{
+			tableName:         "iterations",
+			tableNameShortcut: "iter",
+			joinOnLeftColumn:  "iter.ID",
+			joinOnRightColumn: fmt.Sprintf("Fields->>'%s'", SystemIteration),
+		}
+		return "iter." + strings.TrimPrefix(mappedFieldName, "iteration.")
+	}
+
 	return "Fields@>'{\"" + mappedFieldName + "\""
 }
 

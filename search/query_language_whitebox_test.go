@@ -577,19 +577,13 @@ func TestGenerateExpression(t *testing.T) {
 func expectEqualExpr(t *testing.T, expectedExpr, actualExpr c.Expression) {
 	require.NotNil(t, expectedExpr)
 	require.NotNil(t, actualExpr)
-	actualClause, actualParameters, actualErrs := workitem.Compile(actualExpr)
-	if len(actualErrs) > 0 {
-		debug.PrintStack()
-		require.Nil(t, actualErrs, "failed to compile actual expression")
-	}
-	exprectedClause, expectedParameters, expectedErrs := workitem.Compile(expectedExpr)
-	if len(expectedErrs) > 0 {
-		debug.PrintStack()
-		require.Nil(t, expectedErrs, "failed to compile expected expression")
-	}
-
+	actualClause, actualParameters, actualJoins, actualErrs := workitem.Compile(actualExpr)
+	require.Empty(t, actualErrs, "failed to compile actual expression. stack: %s", string(debug.Stack()))
+	exprectedClause, expectedParameters, expectedJoins, expectedErrs := workitem.Compile(expectedExpr)
+	require.Empty(t, actualErrs, "failed to compile expected expression. stack: %s", string(debug.Stack()))
 	require.Equal(t, exprectedClause, actualClause, "where clause differs")
 	require.Equal(t, expectedParameters, actualParameters, "parameters differ")
+	require.Equal(t, expectedJoins, actualJoins, "joins differ")
 }
 
 func TestGenerateExpressionWithNonExistingKey(t *testing.T) {

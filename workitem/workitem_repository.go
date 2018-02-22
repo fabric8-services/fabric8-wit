@@ -672,8 +672,9 @@ func ConvertWorkItemStorageToModel(wiType *WorkItemType, wi *WorkItemStorage) (*
 // extracted this function from List() in order to close the rows object with "defer" for more readability
 // workaround for https://github.com/lib/pq/issues/81
 func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, parentExists *bool, start *int, limit *int) ([]WorkItemStorage, int, error) {
-	where, parameters, compileError := Compile(criteria)
-	if compileError != nil {
+	where, parameters, joins, compileErrors := Compile(criteria)
+	if compileErrors != nil {
+		log.Error(ctx, map[string]interface{}{"compile_errors": compileErrors, "expression": criteria}, "failed to compile expression")
 		return nil, 0, errors.NewBadParameterError("expression", criteria)
 	}
 	where = where + " AND space_id = ?"
@@ -690,6 +691,9 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, spaceID uu
 
 	}
 	db := r.db.Model(&WorkItemStorage{}).Where(where, parameters...)
+	for _, j := range joins {
+		db = db.Joins(j.String())
+	}
 	orgDB := db
 	if start != nil {
 		if *start < 0 {
@@ -782,7 +786,7 @@ func (r *GormWorkItemRepository) List(ctx context.Context, spaceID uuid.UUID, cr
 func (r *GormWorkItemRepository) Count(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression) (int, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitem", "count"}, time.Now())
 
-	where, parameters, compileError := Compile(criteria)
+	where, parameters, joins, compileError := Compile(criteria)
 	if compileError != nil {
 		return 0, errors.NewBadParameterError("expression", criteria)
 	}
@@ -790,7 +794,14 @@ func (r *GormWorkItemRepository) Count(ctx context.Context, spaceID uuid.UUID, c
 	parameters = append(parameters, spaceID)
 
 	var count int
-	r.db.Model(&WorkItemStorage{}).Where(where, parameters...).Count(&count)
+	db := r.db.Model(&WorkItemStorage{}).Where(where, parameters...)
+	for _, j := range joins {
+		db = db.Joins(j.String())
+	}
+	db = db.Count(&count)
+	if db.Error != nil {
+		return 0, errors.NewInternalError(ctx, errs.Wrapf(db.Error, "failed to count work items that match this criteria: %s", criteria))
+	}
 	return count, nil
 }
 
