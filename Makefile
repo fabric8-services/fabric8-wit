@@ -214,11 +214,9 @@ CLEAN_TARGETS += clean-generated
 ## Removes all generated code.
 clean-generated:
 	-rm -rf ./app
-	-rm -rf ./assets/js
 	-rm -rf ./client/
 	-rm -rf ./swagger/
 	-rm -rf ./tool/cli/
-	-rm -f ./bindata_assetfs.go
 	-rm -f ./migration/sqlbindata.go
 	-rm -f ./migration/sqlbindata_test.go
 	-rm -rf ./account/tenant
