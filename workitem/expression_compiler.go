@@ -82,7 +82,7 @@ func getFieldName(fieldName string) (mappedFieldName string, isJSONField bool) {
 func newExpressionCompiler() expressionCompiler {
 	return expressionCompiler{
 		parameters: []interface{}{},
-		joins:      map[string]TableJoin{},
+		// joins:      map[string]TableJoin{},
 	}
 }
 
@@ -128,6 +128,9 @@ func (c *expressionCompiler) Field(f *criteria.FieldExpression) interface{} {
 	}
 
 	if strings.HasPrefix(mappedFieldName, "iteration.") {
+		if c.joins == nil {
+			c.joins = map[string]TableJoin{}
+		}
 		c.joins["iterations"] = TableJoin{
 			tableName:         "iterations",
 			tableNameShortcut: "iter",
@@ -169,10 +172,18 @@ func (c *expressionCompiler) Or(a *criteria.OrExpression) interface{} {
 }
 
 func (c *expressionCompiler) Equals(e *criteria.EqualsExpression) interface{} {
+	op := "="
 	if isInJSONContext(e.Left()) {
-		return c.binary(e, ":")
+		op = ":"
 	}
-	return c.binary(e, "=")
+	switch t := e.Left().(type) {
+	case *criteria.FieldExpression:
+		if strings.HasPrefix(t.FieldName, "iteration.") {
+			op = "="
+		}
+		fmt.Printf("\n\nIS FIELD Expression: %s \n\n", t.FieldName)
+	}
+	return c.binary(e, op)
 }
 
 func (c *expressionCompiler) Substring(e *criteria.SubstringExpression) interface{} {
@@ -216,6 +227,8 @@ func (c *expressionCompiler) IsNull(e *criteria.IsNullExpression) interface{} {
 }
 
 func (c *expressionCompiler) Not(e *criteria.NotExpression) interface{} {
+	// TODO(kwk): Handle operator switching here as well if left is a field
+	// expression and has an "iteration." prefix.
 	if isInJSONContext(e.Left()) {
 		condition := c.binary(e, ":")
 		if condition != nil {
