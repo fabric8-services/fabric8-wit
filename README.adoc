@@ -233,7 +233,7 @@ coverage information for all tests.
 
 == Build through minishift
 
-There is a separate documentation for https://github.com/fabric8-services/fabric8-wit/blob/master/minishift/README.md[building WIT using minishift]
+There is a separate documentation for https://github.com/fabric8-services/fabric8-wit/blob/master/minishift/README.adoc[building WIT using minishift]
 
 
 == Configuration file
@@ -443,16 +443,22 @@ $ ./bin/wit-cli show workitem --id <ID> -H localhost:8080 --pp
 
 == Prod preview setup
 
-In order to setup wit to work against link:https://prod-preview.openshift.io/[prod preview] one needs to update `token.publickey` in config.yaml.
-
-NOTE: Public key can be obtained from https://sso.prod-preview.openshift.io/auth/realms/fabric8/
-
-Also, the following environment variables must be set:
+In order to setup wit to work against link:https://prod-preview.openshift.io/[prod preview] the following environment variables must be set:
 
 * `export F8_DEVELOPER_MODE_ENABLED=1`
-* `export F8_OPENSHIFT_TENANT_MASTERURL="https://console.free-int.openshift.com/"`
+* `export F8_OPENSHIFT_TENANT_MASTERURL="https://console.free-stg.openshift.com/"`
 * `export F8_KEYCLOAK_REALM="fabric8"`
 * `export F8_CONFIG_FILE_PATH="config.yaml"`
+
+Also, `F8_TENANT_SERVICEURL` env var must be set and point to the prod-preview link:https://github.com/fabric8-services/fabric8-tenant[fabric8-tenant] endpoint.
+However, there is no publicly available route for it and one should `oc login` to the prod-preview OpenShift Dedicated cluster and use
+link:https://docs.openshift.com/enterprise/3.0/dev_guide/port_forwarding.html[port forwarding] for fabric8-tenant pod:
+
+----
+$ oc port-forward <f8tenant-pod> <local-port>:8080
+----
+
+* `export F8_TENANT_SERVICEURL="http://localhost:<local-port>/"`
 
 == che-starter setup
 

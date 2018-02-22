@@ -23,6 +23,12 @@
           "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002",
           "self": "http:///api/spaces/00000000-0000-0000-0000-000000000002"
         }
+      },
+      "workspaces": {
+        "links": {
+          "related": "http:///api/codebases/00000000-0000-0000-0000-000000000001/workspaces",
+          "self": "http:///api/codebases/00000000-0000-0000-0000-000000000001/workspaces"
+        }
       }
     },
     "type": "codebases"
