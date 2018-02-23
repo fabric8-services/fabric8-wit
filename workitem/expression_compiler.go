@@ -163,7 +163,7 @@ func (c *expressionCompiler) Substring(e *criteria.SubstringExpression) interfac
 		}
 		r, ok := litExp.Value.(string)
 		if !ok {
-			c.err = append(c.err, errs.Errorf("failed to convert value of right literal expression string: %+v", litExp.Value))
+			c.err = append(c.err, errs.Errorf("failed to convert value of right literal expression to string: %+v", litExp.Value))
 			return nil
 		}
 		r = "%" + r + "%"
