@@ -1,11 +1,11 @@
 package workitem
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/fabric8-services/fabric8-wit/criteria"
+	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -101,7 +101,7 @@ func (c *expressionCompiler) Field(f *criteria.FieldExpression) interface{} {
 	if strings.Contains(mappedFieldName, "'") {
 		// beware of injection, it's a reasonable restriction for field names,
 		// make sure it's not allowed when creating wi types
-		c.err = append(c.err, fmt.Errorf("single quote not allowed in field name"))
+		c.err = append(c.err, errs.Errorf("single quote not allowed in field name: %s", mappedFieldName))
 		return nil
 	}
 	return "Fields@>'{\"" + mappedFieldName + "\""
@@ -115,7 +115,17 @@ func (c *expressionCompiler) binary(a criteria.BinaryExpression, op string) inte
 	left := a.Left().Accept(c)
 	right := a.Right().Accept(c)
 	if left != nil && right != nil {
-		return "(" + left.(string) + " " + op + " " + right.(string) + ")"
+		l, ok := left.(string)
+		if !ok {
+			c.err = append(c.err, errs.Errorf("failed to convert left expression to string: %+v", left))
+			return nil
+		}
+		r, ok := right.(string)
+		if !ok {
+			c.err = append(c.err, errs.Errorf("failed to convert right expression to string: %+v", right))
+			return nil
+		}
+		return "(" + l + " " + op + " " + r + ")"
 	}
 	// something went wrong in either compilation, errors have been accumulated
 	return nil
@@ -136,17 +146,27 @@ func (c *expressionCompiler) Substring(e *criteria.SubstringExpression) interfac
 	if isInJSONContext(e.Left()) {
 		left, ok := e.Left().(*criteria.FieldExpression)
 		if !ok {
-			c.err = append(c.err, fmt.Errorf("invalid left expression"))
+			c.err = append(c.err, errs.Errorf("invalid left expression (not a field expression): %+v", e.Left()))
 			return nil
 		}
 		if strings.Contains(left.FieldName, "'") {
 			// beware of injection, it's a reasonable restriction for field names,
 			// make sure it's not allowed when creating wi types
-			c.err = append(c.err, fmt.Errorf("single quote not allowed in field name"))
+			c.err = append(c.err, errs.Errorf("single quote not allowed in field name: %s", left.FieldName))
 			return nil
 		}
 
-		r := "%" + e.Right().(*criteria.LiteralExpression).Value.(string) + "%"
+		litExp, ok := e.Right().(*criteria.LiteralExpression)
+		if !ok {
+			c.err = append(c.err, errs.Errorf("failed to convert right expression to literal expression: %+v", e.Right()))
+			return nil
+		}
+		r, ok := litExp.Value.(string)
+		if !ok {
+			c.err = append(c.err, errs.Errorf("failed to convert value of right literal expression to string: %+v", litExp.Value))
+			return nil
+		}
+		r = "%" + r + "%"
 		c.parameters = append(c.parameters, r)
 		return "Fields->>'" + left.FieldName + "' ILIKE ?"
 	}
@@ -166,7 +186,12 @@ func (c *expressionCompiler) Not(e *criteria.NotExpression) interface{} {
 	if isInJSONContext(e.Left()) {
 		condition := c.binary(e, ":")
 		if condition != nil {
-			return "NOT " + condition.(string)
+			cond, ok := condition.(string)
+			if !ok {
+				c.err = append(c.err, errs.Errorf("failed to convert condition to string: %+v", condition))
+				return nil
+			}
+			return "NOT " + cond
 		}
 		return nil
 	}
@@ -174,7 +199,7 @@ func (c *expressionCompiler) Not(e *criteria.NotExpression) interface{} {
 }
 
 func (c *expressionCompiler) Parameter(v *criteria.ParameterExpression) interface{} {
-	c.err = append(c.err, fmt.Errorf("Parameter expression not supported"))
+	c.err = append(c.err, errs.Errorf("parameter expression not supported"))
 	return nil
 }
 
@@ -239,7 +264,7 @@ func (c *expressionCompiler) convertToString(value interface{}) (string, error) 
 	case uuid.UUID:
 		result = t.String()
 	default:
-		return "", fmt.Errorf("unknown value type of %v: %T", value, value)
+		return "", errs.Errorf("unknown value type of %v: %T", value, value)
 	}
 	return result, nil
 }
