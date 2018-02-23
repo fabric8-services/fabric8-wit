@@ -14,11 +14,10 @@ func Test_TableJoin_HandlesFieldName(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	// given
 	j := workitem.TableJoin{
-		TableName:         "iterations",
-		TableNameShortcut: "iter",
-		JoinOnLeftColumn:  "iter.ID",
-		JoinOnRightColumn: "Field->>system.iteration",
-		PrefixTrigger:     "iteration.",
+		TableName:     "iterations",
+		TableAlias:    "iter",
+		On:            workitem.JoinOnJSONField(workitem.SystemIteration, "iter.ID"),
+		PrefixTrigger: "iteration.",
 	}
 	t.Run("has prefix", func(t *testing.T) {
 		t.Parallel()
@@ -30,22 +29,29 @@ func Test_TableJoin_HandlesFieldName(t *testing.T) {
 	})
 }
 
+func Test_JoinOnJSONField(t *testing.T) {
+	t.Parallel()
+	resource.Require(t, resource.UnitTest)
+	// when
+	actual := workitem.JoinOnJSONField("system.iteration", "iter.ID")
+	// then
+	require.Equal(t, `fields@> concat('{"system.iteration": "', iter.ID, '"}')::jsonb`, actual)
+}
+
 func Test_TableJoin_String(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	// given
 	j := workitem.TableJoin{
-		TableName:         "iterations",
-		TableNameShortcut: "iter",
-		JoinOnLeftColumn:  "iter.ID",
-		JoinOnRightColumn: "Field->>system.iteration",
-		PrefixTrigger:     "iteration.",
+		TableName:     "iterations",
+		TableAlias:    "iter",
+		On:            workitem.JoinOnJSONField(workitem.SystemIteration, "iter.ID"),
+		PrefixTrigger: "iteration.",
 	}
 	// when
 	s := j.String()
 	// then
-	expected := "JOIN " + j.TableName + " " + j.TableNameShortcut + " ON " + j.JoinOnLeftColumn + " = " + j.JoinOnRightColumn
-	require.Equal(t, expected, s)
+	require.Equal(t, "JOIN "+j.TableName+" "+j.TableAlias+" ON "+j.On, s)
 }
 
 func Test_TableJoin_TranslateFieldName(t *testing.T) {
@@ -53,11 +59,10 @@ func Test_TableJoin_TranslateFieldName(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	// given
 	j := workitem.TableJoin{
-		TableName:         "iterations",
-		TableNameShortcut: "iter",
-		JoinOnLeftColumn:  "iter.ID",
-		JoinOnRightColumn: "Field->>system.iteration",
-		PrefixTrigger:     "iteration.",
+		TableName:     "iterations",
+		TableAlias:    "iter",
+		On:            workitem.JoinOnJSONField(workitem.SystemIteration, "iter.ID"),
+		PrefixTrigger: "iteration.",
 	}
 	t.Run("missing prefix", func(t *testing.T) {
 		t.Parallel()
@@ -97,7 +102,7 @@ func Test_TableJoin_TranslateFieldName(t *testing.T) {
 		col, err := j.TranslateFieldName(j.PrefixTrigger + "name")
 		// then
 		require.NoError(t, err)
-		require.Equal(t, j.TableNameShortcut+".name", col)
+		require.Equal(t, j.TableAlias+".name", col)
 	})
 	t.Run("explicitly allowed column", func(t *testing.T) {
 		t.Parallel()
@@ -108,7 +113,7 @@ func Test_TableJoin_TranslateFieldName(t *testing.T) {
 		col, err := a.TranslateFieldName(a.PrefixTrigger + "name")
 		// then
 		require.NoError(t, err)
-		require.Equal(t, j.TableNameShortcut+".name", col)
+		require.Equal(t, j.TableAlias+".name", col)
 	})
 	t.Run("explicitly allowed column not matching", func(t *testing.T) {
 		t.Parallel()
@@ -141,7 +146,7 @@ func Test_TableJoin_TranslateFieldName(t *testing.T) {
 		col, err := a.TranslateFieldName(a.PrefixTrigger + "foobar")
 		// then
 		require.NoError(t, err)
-		require.Equal(t, j.TableNameShortcut+".foobar", col)
+		require.Equal(t, j.TableAlias+".foobar", col)
 	})
 	t.Run("combination of explicitly allowed and disallowed columns", func(t *testing.T) {
 		t.Parallel()
@@ -153,12 +158,12 @@ func Test_TableJoin_TranslateFieldName(t *testing.T) {
 		col, err := a.TranslateFieldName(a.PrefixTrigger + "random_field")
 		// then
 		require.NoError(t, err)
-		require.Equal(t, j.TableNameShortcut+".random_field", col)
+		require.Equal(t, j.TableAlias+".random_field", col)
 		// when
 		col, err = a.TranslateFieldName(a.PrefixTrigger + "name")
 		// then
 		require.NoError(t, err)
-		require.Equal(t, j.TableNameShortcut+".name", col)
+		require.Equal(t, j.TableAlias+".name", col)
 		// when
 		col, err = a.TranslateFieldName(a.PrefixTrigger + "foobar")
 		// then

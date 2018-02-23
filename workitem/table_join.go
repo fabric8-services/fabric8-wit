@@ -1,6 +1,7 @@
 package workitem
 
 import (
+	"fmt"
 	"strings"
 
 	errs "github.com/pkg/errors"
@@ -10,7 +11,7 @@ import (
 //
 //   SELECT *
 //     FROM workitems
-//     JOIN iterations iter ON iter.ID = "a1801a16-0f09-4536-8c49-894be664488f"
+//     JOIN iterations iter ON fields@> concat('{"system.iteration": "', iter.ID, '"}')::jsonb
 //     WHERE iter.name = "foo"
 //
 // With the prefix trigger we can identify if a certain field expression points
@@ -19,28 +20,42 @@ import (
 // arrays you can explicitly allow or disallow columns to be queried.
 // The names in the allowed/disalowed columns are those of the table.
 type TableJoin struct {
-	TableName         string // e.g. "iterations"
-	TableNameShortcut string // e.g. "iter"
-	JoinOnLeftColumn  string // e.g. "iter.ID"
-	JoinOnRightColumn string // e.g. "Field->>system.iteration"
-
+	Active            bool     // true if this table join is used
+	TableName         string   // e.g. "iterations"
+	TableAlias        string   // e.g. "iter"
+	On                string   // e.g. `fields@> concat('{"system.iteration": "', iter.ID, '"}')::jsonb`
 	PrefixTrigger     string   // e.g. "iteration."
-	AllowedColumns    []string // e.g. ["name"]. when empty all columns are allowed
-	DisallowedColumns []string // e.g. ["created_at"]. when empty all columns are allowed
+	AllowedColumns    []string // e.g. ["name"]. When empty all columns are allowed.
+	DisallowedColumns []string // e.g. ["created_at"]. When empty all columns are allowed.
 
 	// TODO(kwk): Maybe introduce a column mapping table here: ColumnMapping map[string]string
 }
 
+// JoinOnJSONField returns the ON part of an SQL JOIN for the given fields
+func JoinOnJSONField(jsonField, foreignCol string) string {
+	return fmt.Sprintf(`fields@> concat('{"%[1]s": "', %[2]s, '"}')::jsonb`, jsonField, foreignCol)
+}
+
+// String implements Stringer interface
+func (j TableJoin) String() string {
+	return "JOIN " + j.TableName + " " + j.TableAlias + " ON " + j.On
+}
+
 // HandlesFieldName returns true if the given field name should be handled by
 // this table join.
-func (j TableJoin) HandlesFieldName(fieldName string) bool {
-	return strings.HasPrefix(fieldName, j.PrefixTrigger)
+func (j *TableJoin) HandlesFieldName(fieldName string) bool {
+	if strings.HasPrefix(fieldName, j.PrefixTrigger) {
+		fmt.Printf("\n\nSETTING ACTIVE\n\n")
+		j.Active = true
+		return true
+	}
+	return false
 }
 
 // TranslateFieldName returns a non-empty string if the given field name has the
 // prefix specified by the table join and if the field is allowed to be queried;
 // otherwise it returns an empty string.
-func (j TableJoin) TranslateFieldName(fieldName string) (string, error) {
+func (j *TableJoin) TranslateFieldName(fieldName string) (string, error) {
 	if !j.HandlesFieldName(fieldName) {
 		return "", errs.Errorf(`field name "%s" is missing "%s" prefix defined by this join`, fieldName, j.PrefixTrigger)
 	}
@@ -76,10 +91,5 @@ func (j TableJoin) TranslateFieldName(fieldName string) (string, error) {
 	if !columnIsAllowed {
 		return "", errs.Errorf("column is not allowed: %s", col)
 	}
-	return j.TableNameShortcut + "." + col, nil
-}
-
-// String implements Stringer interface
-func (j TableJoin) String() string {
-	return "JOIN " + j.TableName + " " + j.TableNameShortcut + " ON " + j.JoinOnLeftColumn + " = " + j.JoinOnRightColumn
+	return j.TableAlias + "." + col, nil
 }

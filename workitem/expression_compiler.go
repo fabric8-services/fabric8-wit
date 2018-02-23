@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/davecgh/go-spew/spew"
+
 	"github.com/fabric8-services/fabric8-wit/criteria"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -16,41 +18,54 @@ const (
 
 // Compile takes an expression and compiles it to a where clause for use with gorm.DB.Where()
 // Returns the number of expected parameters for the query and a slice of errors if something goes wrong
-func Compile(where criteria.Expression) (whereClause string, parameters []interface{}, joins map[string]TableJoin, err []error) {
-	criteria.IteratePostOrder(where, bubbleUpJSONContext)
-
+func Compile(where criteria.Expression) (whereClause string, parameters []interface{}, joins []TableJoin, err []error) {
 	compiler := newExpressionCompiler()
+
+	criteria.IteratePostOrder(where, bubbleUpJSONContext(&compiler))
+
 	compiled := where.Accept(&compiler)
 
 	c, ok := compiled.(string)
 	if !ok {
 		c = ""
 	}
-	return c, compiler.parameters, compiler.joins, compiler.err
+
+	// Make sure we don't return all possible joins but only the once that were activated
+	joins = []TableJoin{}
+	for _, j := range compiler.joins {
+		scs := spew.ConfigState{DisableMethods: true, Indent: "  "}
+		fmt.Printf("join: %s", scs.Sdump(j))
+		if j.Active {
+			joins = append(joins, *j)
+		}
+	}
+	return c, compiler.parameters, joins, compiler.err
 }
 
 // mark expression tree nodes that reference json fields
-func bubbleUpJSONContext(exp criteria.Expression) bool {
-	switch t := exp.(type) {
-	case *criteria.FieldExpression:
-		_, isJSONField := getFieldName(t.FieldName)
-		if isJSONField {
-			t.SetAnnotation(jsonAnnotation, true)
+func bubbleUpJSONContext(c *expressionCompiler) func(exp criteria.Expression) bool {
+	return func(exp criteria.Expression) bool {
+		switch t := exp.(type) {
+		case *criteria.FieldExpression:
+			_, isJSONField := c.getFieldName(t.FieldName)
+			if isJSONField {
+				t.SetAnnotation(jsonAnnotation, true)
+			}
+		case *criteria.EqualsExpression:
+			if t.Left().Annotation(jsonAnnotation) == true || t.Right().Annotation(jsonAnnotation) == true {
+				t.SetAnnotation(jsonAnnotation, true)
+			}
+		case *criteria.SubstringExpression:
+			if t.Left().Annotation(jsonAnnotation) == true || t.Right().Annotation(jsonAnnotation) == true {
+				t.SetAnnotation(jsonAnnotation, true)
+			}
+		case *criteria.NotExpression:
+			if t.Left().Annotation(jsonAnnotation) == true || t.Right().Annotation(jsonAnnotation) == true {
+				t.SetAnnotation(jsonAnnotation, true)
+			}
 		}
-	case *criteria.EqualsExpression:
-		if t.Left().Annotation(jsonAnnotation) == true || t.Right().Annotation(jsonAnnotation) == true {
-			t.SetAnnotation(jsonAnnotation, true)
-		}
-	case *criteria.SubstringExpression:
-		if t.Left().Annotation(jsonAnnotation) == true || t.Right().Annotation(jsonAnnotation) == true {
-			t.SetAnnotation(jsonAnnotation, true)
-		}
-	case *criteria.NotExpression:
-		if t.Left().Annotation(jsonAnnotation) == true || t.Right().Annotation(jsonAnnotation) == true {
-			t.SetAnnotation(jsonAnnotation, true)
-		}
+		return true
 	}
-	return true
 }
 
 // fieldMap tells how to resolve struct fields as SQL fields in the work_items
@@ -68,11 +83,20 @@ var fieldMap = map[string]string{
 // getFieldName applies any potentially necessary mapping to field names (e.g.
 // SpaceID -> space_id) and tells if the field is stored inside the jsonb column
 // (last result is true then) or as a normal column.
-func getFieldName(fieldName string) (mappedFieldName string, isJSONField bool) {
+func (c *expressionCompiler) getFieldName(fieldName string) (mappedFieldName string, isJSONField bool) {
+	// If this field name references a joinable table, we will not say that it
+	// is a JSON field even though it might contain a dot.
+	for _, j := range c.joins {
+		if j.HandlesFieldName(fieldName) {
+			return fieldName, false
+		}
+	}
+
 	mappedFieldName, isColumnField := fieldMap[fieldName]
 	if isColumnField {
 		return mappedFieldName, false
 	}
+
 	if strings.Contains(fieldName, ".") {
 		// leave field untouched
 		return fieldName, true
@@ -83,27 +107,72 @@ func getFieldName(fieldName string) (mappedFieldName string, isJSONField bool) {
 func newExpressionCompiler() expressionCompiler {
 	return expressionCompiler{
 		parameters: []interface{}{},
-		joins:      map[string]TableJoin{},
+		// Define all possible join scenarios here
+		joins: map[string]*TableJoin{
+			"iterations": &TableJoin{
+				TableName:      "iterations",
+				TableAlias:     "iter",
+				On:             JoinOnJSONField(SystemIteration, "iter.id"),
+				PrefixTrigger:  "iteration.",
+				AllowedColumns: []string{"name"},
+			},
+			// TODO(kwk): fix this as we currently cannot join on arrays and labels are arrays
+			// "labels": &TableJoin{
+			// 	TableName:        "labels",
+			// 	TableAlias:       "lbl",
+			// 	JoinOnLeftColumn: "lbl.ID", On: JoinOnJSONField(SystemLabels, "lbl.ID"),
+			// 	PrefixTrigger:  "label.",
+			// 	AllowedColumns: []string{"name"},
+			// },
+		},
 	}
 }
 
 // expressionCompiler takes an expression and compiles it to a where clause for our gorm models
 // implements criteria.ExpressionVisitor
 type expressionCompiler struct {
-	parameters []interface{}        // records the number of parameter expressions encountered
-	err        []error              // record any errors found in the expression
-	joins      map[string]TableJoin // map of table joins keyed by table name
+	parameters []interface{}         // records the number of parameter expressions encountered
+	err        []error               // record any errors found in the expression
+	joins      map[string]*TableJoin // map of table joins keyed by table name
 }
 
 // Ensure expressionCompiler implements the ExpressionVisitor interface
 var _ criteria.ExpressionVisitor = &expressionCompiler{}
 var _ criteria.ExpressionVisitor = (*expressionCompiler)(nil)
 
+// expressionRefersToJoinedData returns true if the given field expression is a
+// field expression and  refers to joined data; otherwise false is returned.
+func (c *expressionCompiler) expressionRefersToJoinedData(e criteria.Expression) (*TableJoin, bool) {
+	switch t := e.(type) {
+	case *criteria.FieldExpression:
+		for _, j := range c.joins {
+			if j.HandlesFieldName(t.FieldName) {
+				return j, true
+			}
+		}
+	}
+	return nil, false
+}
+
 // visitor implementation
 // the convention is to return nil when the expression cannot be compiled and to append an error to the err field
 
 func (c *expressionCompiler) Field(f *criteria.FieldExpression) interface{} {
-	mappedFieldName, isJSONField := getFieldName(f.FieldName)
+	mappedFieldName, isJSONField := c.getFieldName(f.FieldName)
+
+	// Check if this field is referencing joinable data
+	for _, j := range c.joins {
+		if j.HandlesFieldName(mappedFieldName) {
+			fmt.Printf("\n\nHANDLES field name: %s\n\n", mappedFieldName)
+			j.Active = true
+			col, err := j.TranslateFieldName(mappedFieldName)
+			if err != nil {
+				c.err = append(c.err, errs.Wrapf(err, `failed to translate field "%s"`, mappedFieldName))
+			}
+			return col // e.g. "iter.name"
+		}
+	}
+
 	if !isJSONField {
 		return mappedFieldName
 	}
@@ -114,21 +183,7 @@ func (c *expressionCompiler) Field(f *criteria.FieldExpression) interface{} {
 		return nil
 	}
 
-	if strings.HasPrefix(mappedFieldName, "iteration.") {
-		if c.joins == nil {
-			c.joins = map[string]TableJoin{}
-		}
-		c.joins["iterations"] = TableJoin{
-			TableName:         "iterations",
-			TableNameShortcut: "iter",
-			JoinOnLeftColumn:  "iter.ID",
-			JoinOnRightColumn: fmt.Sprintf("Fields->>'%s'", SystemIteration),
-			PrefixTrigger:     "iteration.",
-			AllowedColumns:    []string{"name"},
-		}
-		return "iter." + strings.TrimPrefix(mappedFieldName, "iteration.")
-	}
-
+	// default to plain json field (e.g. for ID comparisons)
 	return "Fields@>'{\"" + mappedFieldName + "\""
 }
 
@@ -160,25 +215,12 @@ func (c *expressionCompiler) Or(a *criteria.OrExpression) interface{} {
 	return c.binary(a, "or")
 }
 
-func (c *expressionCompiler) lookupJoinedData(fieldExpression criteria.Expression) (TableJoin, bool) {
-	switch t := fieldExpression.(type) {
-	case *criteria.FieldExpression:
-		for _, j := range c.joins {
-			col, err := j.TranslateFieldName(t.FieldName)
-			if err == nil && col != "" {
-				return j, true
-			}
-		}
-	}
-	return TableJoin{}, false
-}
-
 func (c *expressionCompiler) Equals(e *criteria.EqualsExpression) interface{} {
 	op := "="
 	if isInJSONContext(e.Left()) {
 		op = ":"
 	}
-	_, ok := c.lookupJoinedData(e.Left())
+	_, ok := c.expressionRefersToJoinedData(e.Left())
 	if ok {
 		op = "="
 	}
@@ -187,7 +229,7 @@ func (c *expressionCompiler) Equals(e *criteria.EqualsExpression) interface{} {
 
 func (c *expressionCompiler) Substring(e *criteria.SubstringExpression) interface{} {
 	inJSONContext := isInJSONContext(e.Left())
-	_, isJoinedRef := c.lookupJoinedData(e.Left())
+	join, isJoinedRef := c.expressionRefersToJoinedData(e.Left())
 	if inJSONContext || isJoinedRef {
 		left, ok := e.Left().(*criteria.FieldExpression)
 		if !ok {
@@ -211,17 +253,25 @@ func (c *expressionCompiler) Substring(e *criteria.SubstringExpression) interfac
 			c.err = append(c.err, errs.Errorf("failed to convert value of right literal expression to string: %+v", litExp.Value))
 			return nil
 		}
-		if true || inJSONContext {
+		// Handle normal JSON field
+		if inJSONContext {
 			r = "%" + r + "%"
 			c.parameters = append(c.parameters, r)
 			return "Fields->>'" + left.FieldName + "' ILIKE ?"
 		}
+		// Handle more complex joined field
+		col, err := join.TranslateFieldName(left.FieldName)
+		if err != nil {
+			c.err = append(c.err, errs.Wrapf(err, `failed to translate field name: "%s"`, left.FieldName))
+			return nil
+		}
+		return col
 	}
 	return c.binary(e, "ILIKE")
 }
 
 func (c *expressionCompiler) IsNull(e *criteria.IsNullExpression) interface{} {
-	mappedFieldName, isJSONField := getFieldName(e.FieldName)
+	mappedFieldName, isJSONField := c.getFieldName(e.FieldName)
 	if isJSONField {
 		return "(Fields->>'" + mappedFieldName + "' IS NULL)"
 	}
@@ -264,23 +314,25 @@ func isInJSONContext(exp criteria.Expression) bool {
 	return result
 }
 
-// literal values need to be converted differently depending on whether they are used in a JSON context or a regular SQL expression.
-// JSON values are always strings (delimited with "'"), but operators can be used depending on the dynamic type. For example,
-// you can write "a->'foo' < '5'" and it will return true for the json object { "a": 40 }.
-func (c *expressionCompiler) Literal(v *criteria.LiteralExpression) interface{} {
-	json := isInJSONContext(v)
+// literal values need to be converted differently depending on whether they are
+// used in a JSON context or a regular SQL expression. JSON values are always
+// strings (delimited with "'"), but operators can be used depending on the
+// dynamic type. For example, you can write "a->'foo' < '5'" and it will return
+// true for the json object { "a": 40 }.
+func (c *expressionCompiler) Literal(e *criteria.LiteralExpression) interface{} {
+	json := isInJSONContext(e)
 	if json {
-		stringVal, err := c.convertToString(v.Value)
+		stringVal, err := c.convertToString(e.Value)
 		if err == nil {
 			return stringVal + "}'"
 		}
-		if stringArr, ok := v.Value.([]string); ok {
+		if stringArr, ok := e.Value.([]string); ok {
 			return "[" + c.wrapStrings(stringArr) + "]}'"
 		}
 		c.err = append(c.err, err)
 		return nil
 	}
-	c.parameters = append(c.parameters, v.Value)
+	c.parameters = append(c.parameters, e.Value)
 	return "?"
 }
 
@@ -312,7 +364,7 @@ func (c *expressionCompiler) convertToString(value interface{}) (string, error) 
 	case uuid.UUID:
 		result = t.String()
 	default:
-		return "", errs.Errorf("unknown value type of %v: %T", value, value)
+		return "", errs.Errorf(`unknown value type "%T": %+v`, value, value)
 	}
 	return result, nil
 }
