@@ -251,8 +251,9 @@ func (c *CodebaseController) Create(ctx *app.CreateCodebaseContext) error {
 	if cb.StackID != nil && *cb.StackID != "" {
 		stackID = *cb.StackID
 	}
+
 	workspace := che.WorkspaceRequest{
-		Branch:     "master",
+		Branch:     getWorkspaceBranch(ctx),
 		StackID:    stackID,
 		Repository: cb.URL,
 	}
@@ -512,4 +513,13 @@ func NewDefaultCheClient(config codebaseConfiguration) CodebaseCheClientProvider
 		cheClient := che.NewStarterClient(config.GetCheStarterURL(), config.GetOpenshiftTenantMasterURL(), ns, http.DefaultClient)
 		return cheClient, nil
 	}
+}
+
+// getWorkspaceBranch returns the branch defined in the request payload ('master' is used by default)
+func getWorkspaceBranch(ctx *app.CreateCodebaseContext) string {
+	branch := "master"
+	if ctx.Payload != nil && ctx.Payload.Data != nil && ctx.Payload.Data.Attributes != nil && ctx.Payload.Data.Attributes.Branch != nil && *ctx.Payload.Data.Attributes.Branch != "" {
+		branch = *ctx.Payload.Data.Attributes.Branch
+	}
+	return branch
 }
