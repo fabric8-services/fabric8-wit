@@ -1,6 +1,7 @@
 package workitem
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -87,17 +88,58 @@ func newExpressionCompiler() expressionCompiler {
 }
 
 // A TableJoin helps to construct a query like this:
-// SELECT * FROM workitems LEFT JOIN iterations iter ON iter.ID = "a1801a16-0f09-4536-8c49-894be664488f" WHERE iter.name = "foo"
+//
+//   SELECT *
+//     FROM workitems
+//     JOIN iterations iter ON iter.ID = "a1801a16-0f09-4536-8c49-894be664488f"
+//     WHERE iter.name = "foo"
+//
+// With the prefix trigger we can identify if a certain field expression points
+// at data from a joined table. By default there are no restrictions on what can
+// be queried in joined table but if you fill the allowed/disallowed columns
+// arrays you can explicitly disallow columns to be queried.
 type TableJoin struct {
-	tableName         string // e.g. "iterations"
-	tableNameShortcut string // e.g. "iter"
-	joinOnLeftColumn  string // e.g. "iter.ID"
-	joinOnRightColumn string // e.g. "Field->>system.iteration"
+	TableName         string // e.g. "iterations"
+	TableNameShortcut string // e.g. "iter"
+	JoinOnLeftColumn  string // e.g. "iter.ID"
+	JoinOnRightColumn string // e.g. "Field->>system.iteration"
+
+	PrefixTrigger     string   // e.g. "iteration."
+	AllowedColumns    []string // e.g. ["name"]. when empty all columns are allowed
+	DisallowedColumns []string // e.g. ["created_at"]. when empty all columns are allowed
+}
+
+// TranslateFieldName returns the name of the linked
+func (j TableJoin) TranslateFieldName(fieldName string) string {
+	if !strings.HasPrefix(fieldName, j.PrefixTrigger) {
+		return ""
+	}
+	col := strings.TrimPrefix(fieldName, j.PrefixTrigger)
+	// if no columns are explicitly allowed, then this column is allowed by
+	// default.
+	columnIsAllowed := (j.AllowedColumns == nil || len(j.AllowedColumns) == 0)
+	for _, allowedColumn := range j.AllowedColumns {
+		if allowedColumn == col {
+			columnIsAllowed = true
+			break
+		}
+	}
+	// if a columns is explictly disallowed we must check for it.
+	for _, disallowedColumn := range j.DisallowedColumns {
+		if disallowedColumn == col {
+			columnIsAllowed = false
+			break
+		}
+	}
+	if !columnIsAllowed {
+		return ""
+	}
+	return col
 }
 
 // String implements Stringer interface
 func (j TableJoin) String() string {
-	return "JOIN " + j.tableName + " ON " + j.joinOnLeftColumn + " = " + j.joinOnRightColumn
+	return "JOIN " + j.TableName + " ON " + j.JoinOnLeftColumn + " = " + j.JoinOnRightColumn
 }
 
 // expressionCompiler takes an expression and compiles it to a where clause for our gorm models
@@ -132,10 +174,12 @@ func (c *expressionCompiler) Field(f *criteria.FieldExpression) interface{} {
 			c.joins = map[string]TableJoin{}
 		}
 		c.joins["iterations"] = TableJoin{
-			tableName:         "iterations",
-			tableNameShortcut: "iter",
-			joinOnLeftColumn:  "iter.ID",
-			joinOnRightColumn: fmt.Sprintf("Fields->>'%s'", SystemIteration),
+			TableName:         "iterations",
+			TableNameShortcut: "iter",
+			JoinOnLeftColumn:  "iter.ID",
+			JoinOnRightColumn: fmt.Sprintf("Fields->>'%s'", SystemIteration),
+			PrefixTrigger:     "iteration.",
+			AllowedColumns:    []string{"name"},
 		}
 		return "iter." + strings.TrimPrefix(mappedFieldName, "iteration.")
 	}
@@ -171,23 +215,34 @@ func (c *expressionCompiler) Or(a *criteria.OrExpression) interface{} {
 	return c.binary(a, "or")
 }
 
+func (c *expressionCompiler) lookupJoinedData(fieldExpression criteria.Expression) (TableJoin, bool) {
+	switch t := fieldExpression.(type) {
+	case *criteria.FieldExpression:
+		for _, j := range c.joins {
+			if j.TranslateFieldName(t.FieldName) != "" {
+				return j, true
+			}
+		}
+	}
+	return TableJoin{}, false
+}
+
 func (c *expressionCompiler) Equals(e *criteria.EqualsExpression) interface{} {
 	op := "="
 	if isInJSONContext(e.Left()) {
 		op = ":"
 	}
-	switch t := e.Left().(type) {
-	case *criteria.FieldExpression:
-		if strings.HasPrefix(t.FieldName, "iteration.") {
-			op = "="
-		}
-		fmt.Printf("\n\nIS FIELD Expression: %s \n\n", t.FieldName)
+	_, ok := c.lookupJoinedData(e.Left())
+	if ok {
+		op = "="
 	}
 	return c.binary(e, op)
 }
 
 func (c *expressionCompiler) Substring(e *criteria.SubstringExpression) interface{} {
-	if isInJSONContext(e.Left()) {
+	inJSONContext := isInJSONContext(e.Left())
+	_, isJoinedRef := c.lookupJoinedData(e.Left())
+	if inJSONContext || isJoinedRef {
 		left, ok := e.Left().(*criteria.FieldExpression)
 		if !ok {
 			c.err = append(c.err, errs.Errorf("invalid left expression (not a field expression): %+v", e.Left()))
@@ -210,12 +265,13 @@ func (c *expressionCompiler) Substring(e *criteria.SubstringExpression) interfac
 			c.err = append(c.err, errs.Errorf("failed to convert value of right literal expression to string: %+v", litExp.Value))
 			return nil
 		}
-		r = "%" + r + "%"
-		c.parameters = append(c.parameters, r)
-		return "Fields->>'" + left.FieldName + "' ILIKE ?"
+		if true || inJSONContext {
+			r = "%" + r + "%"
+			c.parameters = append(c.parameters, r)
+			return "Fields->>'" + left.FieldName + "' ILIKE ?"
+		}
 	}
-	op := "ILIKE"
-	return c.binary(e, op)
+	return c.binary(e, "ILIKE")
 }
 
 func (c *expressionCompiler) IsNull(e *criteria.IsNullExpression) interface{} {

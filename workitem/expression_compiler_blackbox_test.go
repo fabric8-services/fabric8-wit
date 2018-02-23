@@ -23,11 +23,15 @@ func TestField(t *testing.T) {
 	expect(t, Not(Field("Number"), Literal("abcd")), "(number != ?)", []interface{}{"abcd"}, nil)
 	expect(t, Not(Field("SpaceID"), Literal("abcd")), "(space_id != ?)", []interface{}{"abcd"}, nil)
 
+	expect(t, Not(Literal("abcd"), Field("SpaceID")), "(? != space_id)", []interface{}{"abcd"}, nil)
+	expect(t, Equals(Literal(23), Field("foo.bar")), "(Fields@>'{\"foo.bar\" : 23}')", []interface{}{}, nil)
+
 	// test joined tables
 	//expect(t, Not(Field("iteration.name"), Literal("abcd")), "(iter.name != ?)", []interface{}{"abcd"}, nil)
 	// TODO(kwk): This is the correct Negation syntax IMHO. Implement it
 	//expect(t, Not(Field("iteration.name"), Literal("abcd")), "NOT(iter.name = ?)", []interface{}{"abcd"}, nil)
-	expect(t, Equals(Field("iteration.name"), Literal("abcd")), `(iter.name = "abcd")`, []interface{}{"abcd"}, nil)
+
+	//expect(t, Equals(Field("iteration.name"), Literal("abcd")), `(iter.name = "abcd")`, []interface{}{"abcd"}, nil)
 }
 
 func TestAndOr(t *testing.T) {
