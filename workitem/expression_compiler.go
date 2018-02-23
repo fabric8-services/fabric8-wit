@@ -83,63 +83,8 @@ func getFieldName(fieldName string) (mappedFieldName string, isJSONField bool) {
 func newExpressionCompiler() expressionCompiler {
 	return expressionCompiler{
 		parameters: []interface{}{},
-		// joins:      map[string]TableJoin{},
+		joins:      map[string]TableJoin{},
 	}
-}
-
-// A TableJoin helps to construct a query like this:
-//
-//   SELECT *
-//     FROM workitems
-//     JOIN iterations iter ON iter.ID = "a1801a16-0f09-4536-8c49-894be664488f"
-//     WHERE iter.name = "foo"
-//
-// With the prefix trigger we can identify if a certain field expression points
-// at data from a joined table. By default there are no restrictions on what can
-// be queried in joined table but if you fill the allowed/disallowed columns
-// arrays you can explicitly disallow columns to be queried.
-type TableJoin struct {
-	TableName         string // e.g. "iterations"
-	TableNameShortcut string // e.g. "iter"
-	JoinOnLeftColumn  string // e.g. "iter.ID"
-	JoinOnRightColumn string // e.g. "Field->>system.iteration"
-
-	PrefixTrigger     string   // e.g. "iteration."
-	AllowedColumns    []string // e.g. ["name"]. when empty all columns are allowed
-	DisallowedColumns []string // e.g. ["created_at"]. when empty all columns are allowed
-}
-
-// TranslateFieldName returns the name of the linked
-func (j TableJoin) TranslateFieldName(fieldName string) string {
-	if !strings.HasPrefix(fieldName, j.PrefixTrigger) {
-		return ""
-	}
-	col := strings.TrimPrefix(fieldName, j.PrefixTrigger)
-	// if no columns are explicitly allowed, then this column is allowed by
-	// default.
-	columnIsAllowed := (j.AllowedColumns == nil || len(j.AllowedColumns) == 0)
-	for _, allowedColumn := range j.AllowedColumns {
-		if allowedColumn == col {
-			columnIsAllowed = true
-			break
-		}
-	}
-	// if a columns is explictly disallowed we must check for it.
-	for _, disallowedColumn := range j.DisallowedColumns {
-		if disallowedColumn == col {
-			columnIsAllowed = false
-			break
-		}
-	}
-	if !columnIsAllowed {
-		return ""
-	}
-	return col
-}
-
-// String implements Stringer interface
-func (j TableJoin) String() string {
-	return "JOIN " + j.TableName + " ON " + j.JoinOnLeftColumn + " = " + j.JoinOnRightColumn
 }
 
 // expressionCompiler takes an expression and compiles it to a where clause for our gorm models
@@ -219,7 +164,8 @@ func (c *expressionCompiler) lookupJoinedData(fieldExpression criteria.Expressio
 	switch t := fieldExpression.(type) {
 	case *criteria.FieldExpression:
 		for _, j := range c.joins {
-			if j.TranslateFieldName(t.FieldName) != "" {
+			col, err := j.TranslateFieldName(t.FieldName)
+			if err == nil && col != "" {
 				return j, true
 			}
 		}

@@ -15,44 +15,44 @@ import (
 func TestField(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
-	expect(t, Equals(Field("foo.bar"), Literal(23)), "(Fields@>'{\"foo.bar\" : 23}')", []interface{}{}, nil)
-	expect(t, Equals(Field("foo"), Literal(23)), "(foo = ?)", []interface{}{23}, nil)
-	expect(t, Equals(Field("Type"), Literal("abcd")), "(type = ?)", []interface{}{"abcd"}, nil)
-	expect(t, Not(Field("Type"), Literal("abcd")), "(type != ?)", []interface{}{"abcd"}, nil)
-	expect(t, Not(Field("Version"), Literal("abcd")), "(version != ?)", []interface{}{"abcd"}, nil)
-	expect(t, Not(Field("Number"), Literal("abcd")), "(number != ?)", []interface{}{"abcd"}, nil)
-	expect(t, Not(Field("SpaceID"), Literal("abcd")), "(space_id != ?)", []interface{}{"abcd"}, nil)
+	expect(t, Equals(Field("foo.bar"), Literal(23)), "(Fields@>'{\"foo.bar\" : 23}')", []interface{}{}, map[string]TableJoin{})
+	expect(t, Equals(Field("foo"), Literal(23)), "(foo = ?)", []interface{}{23}, map[string]TableJoin{})
+	expect(t, Equals(Field("Type"), Literal("abcd")), "(type = ?)", []interface{}{"abcd"}, map[string]TableJoin{})
+	expect(t, Not(Field("Type"), Literal("abcd")), "(type != ?)", []interface{}{"abcd"}, map[string]TableJoin{})
+	expect(t, Not(Field("Version"), Literal("abcd")), "(version != ?)", []interface{}{"abcd"}, map[string]TableJoin{})
+	expect(t, Not(Field("Number"), Literal("abcd")), "(number != ?)", []interface{}{"abcd"}, map[string]TableJoin{})
+	expect(t, Not(Field("SpaceID"), Literal("abcd")), "(space_id != ?)", []interface{}{"abcd"}, map[string]TableJoin{})
 
-	expect(t, Not(Literal("abcd"), Field("SpaceID")), "(? != space_id)", []interface{}{"abcd"}, nil)
-	expect(t, Equals(Literal(23), Field("foo.bar")), "(Fields@>'{\"foo.bar\" : 23}')", []interface{}{}, nil)
+	expect(t, Not(Literal("abcd"), Field("SpaceID")), "(? != space_id)", []interface{}{"abcd"}, map[string]TableJoin{})
+	expect(t, Equals(Literal(23), Field("foo.bar")), "(Fields@>'{\"foo.bar\" : 23}')", []interface{}{}, map[string]TableJoin{})
 
 	// test joined tables
-	//expect(t, Not(Field("iteration.name"), Literal("abcd")), "(iter.name != ?)", []interface{}{"abcd"}, nil)
+	//expect(t, Not(Field("iteration.name"), Literal("abcd")), "(iter.name != ?)", []interface{}{"abcd"}, map[string]TableJoin{})
 	// TODO(kwk): This is the correct Negation syntax IMHO. Implement it
-	//expect(t, Not(Field("iteration.name"), Literal("abcd")), "NOT(iter.name = ?)", []interface{}{"abcd"}, nil)
+	//expect(t, Not(Field("iteration.name"), Literal("abcd")), "NOT(iter.name = ?)", []interface{}{"abcd"}, map[string]TableJoin{})
 
-	//expect(t, Equals(Field("iteration.name"), Literal("abcd")), `(iter.name = "abcd")`, []interface{}{"abcd"}, nil)
+	//expect(t, Equals(Field("iteration.name"), Literal("abcd")), `(iter.name = "abcd")`, []interface{}{"abcd"}, map[string]TableJoin{})
 }
 
 func TestAndOr(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
-	expect(t, Or(Literal(true), Literal(false)), "(? or ?)", []interface{}{true, false}, nil)
+	expect(t, Or(Literal(true), Literal(false)), "(? or ?)", []interface{}{true, false}, map[string]TableJoin{})
 
-	expect(t, And(Not(Field("foo.bar"), Literal("abcd")), Not(Literal(true), Literal(false))), "(NOT (Fields@>'{\"foo.bar\" : \"abcd\"}') and (? != ?))", []interface{}{true, false}, nil)
-	expect(t, And(Equals(Field("foo.bar"), Literal("abcd")), Equals(Literal(true), Literal(false))), "((Fields@>'{\"foo.bar\" : \"abcd\"}') and (? = ?))", []interface{}{true, false}, nil)
-	expect(t, Or(Equals(Field("foo.bar"), Literal("abcd")), Equals(Literal(true), Literal(false))), "((Fields@>'{\"foo.bar\" : \"abcd\"}') or (? = ?))", []interface{}{true, false}, nil)
+	expect(t, And(Not(Field("foo.bar"), Literal("abcd")), Not(Literal(true), Literal(false))), "(NOT (Fields@>'{\"foo.bar\" : \"abcd\"}') and (? != ?))", []interface{}{true, false}, map[string]TableJoin{})
+	expect(t, And(Equals(Field("foo.bar"), Literal("abcd")), Equals(Literal(true), Literal(false))), "((Fields@>'{\"foo.bar\" : \"abcd\"}') and (? = ?))", []interface{}{true, false}, map[string]TableJoin{})
+	expect(t, Or(Equals(Field("foo.bar"), Literal("abcd")), Equals(Literal(true), Literal(false))), "((Fields@>'{\"foo.bar\" : \"abcd\"}') or (? = ?))", []interface{}{true, false}, map[string]TableJoin{})
 }
 
 func TestIsNull(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
-	expect(t, IsNull("system.assignees"), "(Fields->>'system.assignees' IS NULL)", []interface{}{}, nil)
-	expect(t, IsNull("ID"), "(id IS NULL)", []interface{}{}, nil)
-	expect(t, IsNull("Type"), "(type IS NULL)", []interface{}{}, nil)
-	expect(t, IsNull("Version"), "(version IS NULL)", []interface{}{}, nil)
-	expect(t, IsNull("Number"), "(number IS NULL)", []interface{}{}, nil)
-	expect(t, IsNull("SpaceID"), "(space_id IS NULL)", []interface{}{}, nil)
+	expect(t, IsNull("system.assignees"), "(Fields->>'system.assignees' IS NULL)", []interface{}{}, map[string]TableJoin{})
+	expect(t, IsNull("ID"), "(id IS NULL)", []interface{}{}, map[string]TableJoin{})
+	expect(t, IsNull("Type"), "(type IS NULL)", []interface{}{}, map[string]TableJoin{})
+	expect(t, IsNull("Version"), "(version IS NULL)", []interface{}{}, map[string]TableJoin{})
+	expect(t, IsNull("Number"), "(number IS NULL)", []interface{}{}, map[string]TableJoin{})
+	expect(t, IsNull("SpaceID"), "(space_id IS NULL)", []interface{}{}, map[string]TableJoin{})
 }
 
 func expect(t *testing.T, expr Expression, expectedClause string, expectedParameters []interface{}, expectedJoins map[string]TableJoin) {
