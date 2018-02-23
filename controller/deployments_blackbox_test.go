@@ -5,11 +5,10 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/kubernetes"
+	"github.com/stretchr/testify/require"
 )
 
 type testKubeClient struct {
@@ -85,9 +84,9 @@ func TestAPIMethodsCloseKube(t *testing.T) {
 	}
 	for _, testCase := range testCases {
 		err := testCase.method(controller)
-		assert.Error(t, err, "Expected error \"Test\": "+testCase.name)
+		require.Error(t, err, "Expected error \"Test\": "+testCase.name)
 		// Check Close was called before returning
-		assert.NotNil(t, getter.client, "No Kube client created: "+testCase.name)
-		assert.True(t, getter.client.closed, "Kube client not closed: "+testCase.name)
+		require.NotNil(t, getter.client, "No Kube client created: "+testCase.name)
+		require.True(t, getter.client.closed, "Kube client not closed: "+testCase.name)
 	}
 }

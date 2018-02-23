@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetParent(t *testing.T) {
@@ -11,7 +12,5 @@ func TestGetParent(t *testing.T) {
 	l := Field("a")
 	r := Literal(5)
 	expr := Equals(l, r)
-	if l.Parent() != expr {
-		t.Errorf("parent should be %v, but is %v", expr, l.Parent())
-	}
+	require.Equal(t, expr, l.Parent(), "parent should be %+v, but is %+v", expr, l.Parent())
 }

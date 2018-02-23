@@ -128,6 +128,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration79", testMigration79)
 	t.Run("TestMigration80", testMigration80)
 	t.Run("TestMigration81", testMigration81)
+	t.Run("TestMigration82", testMigration82)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -506,7 +507,6 @@ func testMigration71(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, relationshipsChangedAt)
 	assert.Equal(t, updatedAt.String(), relationshipsChangedAt.String())
-
 }
 
 func testMigration72(t *testing.T) {
@@ -617,6 +617,73 @@ func testMigration81(t *testing.T) {
 	assert.NotNil(t, runSQLscript(sqlDB, "081-query-null-title.sql"))
 	assert.NotNil(t, runSQLscript(sqlDB, "081-query-empty-title.sql"))
 	assert.NotNil(t, runSQLscript(sqlDB, "081-query-no-creator.sql"))
+}
+
+func testMigration82(t *testing.T) {
+	// migrate to version
+	migrateToVersion(t, sqlDB, migrations[:83], 83)
+	// fill DB with data
+	assert.Nil(t, runSQLscript(sqlDB, "082-iteration-related-changes.sql"))
+	// verify the data
+	var updatedAt *time.Time
+	var deletedAt *time.Time
+	var relationshipsChangedAt *time.Time
+
+	// verify work item 1 linked to iteration 1
+	stmt, err := sqlDB.Prepare("select updated_at from work_items where id = $1")
+	require.NoError(t, err)
+	err = stmt.QueryRow("11111111-8282-0000-0000-000000000000").Scan(&updatedAt)
+	require.NoError(t, err)
+	require.NotNil(t, updatedAt)
+	stmt, err = sqlDB.Prepare("select relationships_changed_at from iterations where id = $1")
+	require.NoError(t, err)
+	err = stmt.QueryRow("11111111-8282-0000-0000-000000000000").Scan(&relationshipsChangedAt)
+	require.NoError(t, err)
+	require.NotNil(t, relationshipsChangedAt)
+	assert.Equal(t, *updatedAt, *relationshipsChangedAt)
+	// verify work item 2 linked to iteration 2 then iteration 3
+	stmt, err = sqlDB.Prepare("select updated_at from work_items where id = $1")
+	require.NoError(t, err)
+	err = stmt.QueryRow("22222222-8282-0000-0000-000000000000").Scan(&updatedAt)
+	require.NoError(t, err)
+	require.NotNil(t, updatedAt)
+	stmt, err = sqlDB.Prepare("select relationships_changed_at from iterations where id = $1")
+	require.NoError(t, err)
+	err = stmt.QueryRow("22222222-8282-0000-0000-000000000000").Scan(&relationshipsChangedAt)
+	require.NoError(t, err)
+	require.NotNil(t, relationshipsChangedAt)
+	assert.Equal(t, *updatedAt, *relationshipsChangedAt)
+	stmt, err = sqlDB.Prepare("select relationships_changed_at from iterations where id = $1")
+	require.NoError(t, err)
+	err = stmt.QueryRow("33333333-8282-0000-0000-000000000000").Scan(&relationshipsChangedAt)
+	require.NoError(t, err)
+	require.NotNil(t, relationshipsChangedAt)
+	assert.Equal(t, *updatedAt, *relationshipsChangedAt)
+	// verify work item 3 linked to iteration 4
+	stmt, err = sqlDB.Prepare("select deleted_at from work_items where id = $1")
+	require.NoError(t, err)
+	err = stmt.QueryRow("33333333-8282-0000-0000-000000000000").Scan(&deletedAt)
+	require.NoError(t, err)
+	require.NotNil(t, deletedAt)
+	stmt, err = sqlDB.Prepare("select relationships_changed_at from iterations where id = $1")
+	require.NoError(t, err)
+	err = stmt.QueryRow("44444444-8282-0000-0000-000000000000").Scan(&relationshipsChangedAt)
+	require.NoError(t, err)
+	require.NotNil(t, relationshipsChangedAt)
+	assert.Equal(t, *deletedAt, *relationshipsChangedAt)
+	// verify work item 4 linked to iteration 5
+	// we will expect 1hr earlier for the last relationship change
+	stmt, err = sqlDB.Prepare("select (updated_at - interval '1 hour') from work_items where id = $1")
+	require.NoError(t, err)
+	err = stmt.QueryRow("44444444-8282-0000-0000-000000000000").Scan(&updatedAt)
+	require.NoError(t, err)
+	require.NotNil(t, updatedAt)
+	stmt, err = sqlDB.Prepare("select relationships_changed_at from iterations where id = $1")
+	require.NoError(t, err)
+	err = stmt.QueryRow("55555555-8282-0000-0000-000000000000").Scan(&relationshipsChangedAt)
+	require.NoError(t, err)
+	require.NotNil(t, relationshipsChangedAt)
+	assert.Equal(t, updatedAt.String(), relationshipsChangedAt.String())
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and
