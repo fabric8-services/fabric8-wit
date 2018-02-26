@@ -471,6 +471,7 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 	} else if !isOperator(currentOperator) || currentOperator == OPTS {
 		key, ok := searchKeyMap[q.Name]
 		if !ok {
+			// TODO(kwk): If we do this support prefixed table joins, we must disable the TestGenerateExpressionWithNonExistingKey test
 			key = q.Name
 			//return nil, errors.NewBadParameterError("key not found", q.Name)
 		}

@@ -586,44 +586,43 @@ func expectEqualExpr(t *testing.T, expectedExpr, actualExpr c.Expression) {
 	require.Equal(t, expectedJoins, actualJoins, "joins differ")
 }
 
-func TestGenerateExpressionWithNonExistingKey(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
-	t.Parallel()
-	t.Run("Empty query", func(t *testing.T) {
-		t.Parallel()
-		// given
-		q := Query{}
-		// when
-		actualExpr, err := q.generateExpression()
-		// then
-		require.Error(t, err)
-		require.Nil(t, actualExpr)
-	})
-	t.Run("Empty name", func(t *testing.T) {
-		t.Parallel()
-		// given
-		spaceName := "openshiftio"
-		q := Query{Name: "", Value: &spaceName}
-		// when
-		actualExpr, err := q.generateExpression()
-		// then
-		require.Error(t, err)
-		require.Nil(t, actualExpr)
-	})
+// func TestGenerateExpressionWithNonExistingKey(t *testing.T) {
+// 	resource.Require(t, resource.UnitTest)
+// 	t.Parallel()
+// 	t.Run("Empty query", func(t *testing.T) {
+// 		t.Parallel()
+// 		// given
+// 		q := Query{}
+// 		// when
+// 		actualExpr, err := q.generateExpression()
+// 		// then
+// 		require.Error(t, err)
+// 		require.Nil(t, actualExpr)
+// 	})
+// 	t.Run("Empty name", func(t *testing.T) {
+// 		t.Parallel()
+// 		// given
+// 		spaceName := "openshiftio"
+// 		q := Query{Name: "", Value: &spaceName}
+// 		// when
+// 		actualExpr, err := q.generateExpression()
+// 		// then
+// 		require.Error(t, err)
+// 		require.Nil(t, actualExpr)
+// 	})
 
-	t.Run("No existing key", func(t *testing.T) {
-		t.Parallel()
-		// given
-		spaceName := "openshiftio"
-		q := Query{Name: "nonexistingkey", Value: &spaceName}
-		// when
-		actualExpr, err := q.generateExpression()
-		// then
-		require.Error(t, err)
-		require.Nil(t, actualExpr)
-	})
-
-}
+// 	t.Run("No existing key", func(t *testing.T) {
+// 		t.Parallel()
+// 		// given
+// 		spaceName := "openshiftio"
+// 		q := Query{Name: "nonexistingkey", Value: &spaceName}
+// 		// when
+// 		actualExpr, err := q.generateExpression()
+// 		// then
+// 		require.Error(t, err)
+// 		require.Nil(t, actualExpr)
+// 	})
+// }
 
 func TestWorkItemTypeGroup(t *testing.T) {
 	typeGroups := workitem.TypeGroups()
