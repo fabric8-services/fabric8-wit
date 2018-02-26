@@ -112,8 +112,8 @@ func Test_TableJoin_TranslateFieldName(t *testing.T) {
 		col, err := a.TranslateFieldName(a.PrefixActivators[0] + "name")
 		// then
 		require.NoError(t, err)
-		require.Equal(t, j.TableAlias+".name", col)
-		require.Equal(t, []string{"name"}, j.HandledFields)
+		require.Equal(t, a.TableAlias+".name", col)
+		require.Equal(t, []string{"name"}, a.HandledFields)
 	})
 	t.Run("explicitly allowed column not matching", func(t *testing.T) {
 		t.Parallel()
@@ -146,8 +146,8 @@ func Test_TableJoin_TranslateFieldName(t *testing.T) {
 		col, err := a.TranslateFieldName(a.PrefixActivators[0] + "foobar")
 		// then
 		require.NoError(t, err)
-		require.Equal(t, j.TableAlias+".foobar", col)
-		require.Equal(t, []string{"foobar"}, j.HandledFields)
+		require.Equal(t, a.TableAlias+".foobar", col)
+		require.Equal(t, []string{"foobar"}, a.HandledFields)
 	})
 	t.Run("combination of explicitly allowed and disallowed columns", func(t *testing.T) {
 		t.Parallel()
