@@ -129,7 +129,7 @@ func newExpressionCompiler() expressionCompiler {
 				TableName:      "work_item_types",
 				TableAlias:     "wit",
 				On:             "wit.id = " + WorkItemStorage{}.TableName() + ".type",
-				PrefixTriggers: []string{"wit."},
+				PrefixTriggers: []string{"wit.", "workitemtype.", "work_item_type.", "type."},
 			},
 			"space": {
 				TableName:      "spaces",
