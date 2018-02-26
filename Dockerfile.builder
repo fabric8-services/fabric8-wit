@@ -15,6 +15,7 @@ RUN yum --enablerepo=centosplus install -y --quiet \
       tar \
       wget \
       which \
+      bc \
     && yum clean all
 
 RUN test -n $USE_GO_VERSION_FROM_WEBSITE \
