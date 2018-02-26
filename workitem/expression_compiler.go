@@ -108,20 +108,29 @@ func newExpressionCompiler() expressionCompiler {
 		// Define all possible join scenarios here
 		joins: map[string]*TableJoin{
 			"iterations": &TableJoin{
-				TableName:      "iterations",
-				TableAlias:     "iter",
-				On:             JoinOnJSONField(SystemIteration, "iter.id"),
-				PrefixTrigger:  "iteration.",
-				AllowedColumns: []string{"name"},
+				TableName:     "iterations",
+				TableAlias:    "iter",
+				On:            JoinOnJSONField(SystemIteration, "iter.id"),
+				PrefixTrigger: "iteration.",
 			},
-			// TODO(kwk): fix this as we currently cannot join on arrays and labels are arrays
-			// "labels": &TableJoin{
-			// 	TableName:        "labels",
-			// 	TableAlias:       "lbl",
-			// 	JoinOnLeftColumn: "lbl.ID", On: JoinOnJSONField(SystemLabels, "lbl.ID"),
-			// 	PrefixTrigger:  "label.",
-			// 	AllowedColumns: []string{"name"},
-			// },
+			"areas": &TableJoin{
+				TableName:     "areas",
+				TableAlias:    "ar",
+				On:            JoinOnJSONField(SystemArea, "ar.id"),
+				PrefixTrigger: "area.",
+			},
+			"codebases": &TableJoin{
+				TableName:     "codebases",
+				TableAlias:    "cb",
+				On:            JoinOnJSONField(SystemCodebase, "cb.id"),
+				PrefixTrigger: "codebase.",
+			},
+			"work_item_types": &TableJoin{
+				TableName:     "work_item_types",
+				TableAlias:    "wit",
+				On:            "wit.id = work_items.type",
+				PrefixTrigger: "wit.",
+			},
 		},
 	}
 }

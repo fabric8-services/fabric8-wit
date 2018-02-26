@@ -22,40 +22,42 @@ func TestField(t *testing.T) {
 	expect(t, c.Not(c.Field("Number"), c.Literal("abcd")), "(number != ?)", []interface{}{"abcd"}, nil)
 	expect(t, c.Not(c.Field("SpaceID"), c.Literal("abcd")), "(space_id != ?)", []interface{}{"abcd"}, nil)
 
-	// TODO(kwk): I've found out that we currently cannot handle when the field
-	// expression is on the right side. This should be fixed
-	//
-	// expect(t, c.Not(c.Literal("abcd"), c.Field("SpaceID")), "(? != space_id)", []interface{}{"abcd"}, nil)
-	// expect(t, c.Equals(c.Literal(23), c.Field("foo.bar")), "(Fields@>'{\"foo.bar\" : 23}')", []interface{}{}, nil)
-
-	t.Run("test iteration join", func(t *testing.T) {
+	t.Run("test join", func(t *testing.T) {
 		expect(t, c.Equals(c.Field("iteration.name"), c.Literal("abcd")), `(iter.name = ?)`, []interface{}{"abcd"}, map[string]workitem.TableJoin{
 			"iterations": {
-				Active:         true,
-				TableName:      "iterations",
-				TableAlias:     "iter",
-				PrefixTrigger:  "iteration.",
-				On:             `fields@> concat('{"system.iteration": "', iter.id, '"}')::jsonb`,
-				AllowedColumns: []string{"name"},
+				Active:        true,
+				TableName:     "iterations",
+				TableAlias:    "iter",
+				PrefixTrigger: "iteration.",
+				On:            workitem.JoinOnJSONField(workitem.SystemIteration, "iter.id"),
 			},
 		})
-		expect(t, c.Not(c.Field("iteration.name"), c.Literal("abcd")), `(iter.name != ?)`, []interface{}{"abcd"}, map[string]workitem.TableJoin{
-			"iterations": {
-				Active:         true,
-				TableName:      "iterations",
-				TableAlias:     "iter",
-				PrefixTrigger:  "iteration.",
-				On:             `fields@> concat('{"system.iteration": "', iter.id, '"}')::jsonb`,
-				AllowedColumns: []string{"name"},
+		expect(t, c.Equals(c.Field("area.name"), c.Literal("abcd")), `(ar.name = ?)`, []interface{}{"abcd"}, map[string]workitem.TableJoin{
+			"areas": {
+				Active:        true,
+				TableName:     "areas",
+				TableAlias:    "ar",
+				PrefixTrigger: "area.",
+				On:            workitem.JoinOnJSONField(workitem.SystemArea, "ar.id"),
 			},
 		})
-		t.Run("test only name field is allowed", func(t *testing.T) {
-			// given
-			expr := c.Equals(c.Field("iteration.somec.NotAllowedc.Field"), c.Literal("abcd"))
-			// when
-			_, _, _, compileErrors := workitem.Compile(expr)
-			// then
-			require.NotEmpty(t, compileErrors)
+		expect(t, c.Equals(c.Field("codebase.name"), c.Literal("abcd")), `(cb.name = ?)`, []interface{}{"abcd"}, map[string]workitem.TableJoin{
+			"codebases": {
+				Active:        true,
+				TableName:     "codebases",
+				TableAlias:    "cb",
+				PrefixTrigger: "codebase.",
+				On:            workitem.JoinOnJSONField(workitem.SystemCodebase, "cb.id"),
+			},
+		})
+		expect(t, c.Equals(c.Field("wit.name"), c.Literal("abcd")), `(wit.name = ?)`, []interface{}{"abcd"}, map[string]workitem.TableJoin{
+			"work_item_types": {
+				Active:        true,
+				TableName:     "work_item_types",
+				TableAlias:    "wit",
+				PrefixTrigger: "wit.",
+				On:            "wit.id = work_items.type",
+			},
 		})
 	})
 }
@@ -95,7 +97,6 @@ func expect(t *testing.T, expr c.Expression, expectedClause string, expectedPara
 		})
 		t.Run("check parameters", func(t *testing.T) {
 			require.Equal(t, expectedParameters, parameters, "parameters mismatch. stack: %s", string(debug.Stack()))
-
 		})
 	})
 }
@@ -135,9 +136,8 @@ func TestSubstring(t *testing.T) {
 
 		exp := c.Substring(c.Field("system.title'DELETE FROM work_items"), c.Literal(title))
 		where, _, _, compileErrors := workitem.Compile(exp)
-		require.Empty(t, compileErrors)
-
-		assert.Equal(t, 1, len(compileErrors))
+		require.NotEmpty(t, compileErrors)
+		assert.Len(t, compileErrors, 1)
 		assert.Equal(t, "", where)
 	})
 }
