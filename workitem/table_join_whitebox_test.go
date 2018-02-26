@@ -55,15 +55,10 @@ func Test_TableJoin_String(t *testing.T) {
 func Test_TableJoin_TranslateFieldName(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
-	// given
-	j := TableJoin{
-		TableName:        "iterations",
-		TableAlias:       "iter",
-		On:               JoinOnJSONField(SystemIteration, "iter.ID"),
-		PrefixActivators: []string{"iteration."},
-	}
 	t.Run("missing prefix", func(t *testing.T) {
 		t.Parallel()
+		// given
+		j := TableJoin{TableName: "iterations", TableAlias: "iter", On: JoinOnJSONField(SystemIteration, "iter.ID"), PrefixActivators: []string{"iteration."}}
 		// when
 		col, err := j.TranslateFieldName("foo.bar")
 		// then
@@ -72,6 +67,8 @@ func Test_TableJoin_TranslateFieldName(t *testing.T) {
 	})
 	t.Run("empty locator", func(t *testing.T) {
 		t.Parallel()
+		// given
+		j := TableJoin{TableName: "iterations", TableAlias: "iter", On: JoinOnJSONField(SystemIteration, "iter.ID"), PrefixActivators: []string{"iteration."}}
 		// when
 		col, err := j.TranslateFieldName(j.PrefixActivators[0])
 		// then
@@ -80,6 +77,8 @@ func Test_TableJoin_TranslateFieldName(t *testing.T) {
 	})
 	t.Run("empty locator with whitespace", func(t *testing.T) {
 		t.Parallel()
+		// given
+		j := TableJoin{TableName: "iterations", TableAlias: "iter", On: JoinOnJSONField(SystemIteration, "iter.ID"), PrefixActivators: []string{"iteration."}}
 		// when
 		col, err := j.TranslateFieldName(j.PrefixActivators[0] + "    ")
 		// then
@@ -88,6 +87,8 @@ func Test_TableJoin_TranslateFieldName(t *testing.T) {
 	})
 	t.Run("not allowed ' in locator", func(t *testing.T) {
 		t.Parallel()
+		// given
+		j := TableJoin{TableName: "iterations", TableAlias: "iter", On: JoinOnJSONField(SystemIteration, "iter.ID"), PrefixActivators: []string{"iteration."}}
 		// when
 		col, err := j.TranslateFieldName(j.PrefixActivators[0] + "foo'bar")
 		// then
@@ -96,6 +97,8 @@ func Test_TableJoin_TranslateFieldName(t *testing.T) {
 	})
 	t.Run("ok", func(t *testing.T) {
 		t.Parallel()
+		// given
+		j := TableJoin{TableName: "iterations", TableAlias: "iter", On: JoinOnJSONField(SystemIteration, "iter.ID"), PrefixActivators: []string{"iteration."}}
 		// when
 		col, err := j.TranslateFieldName(j.PrefixActivators[0] + "name")
 		// then
@@ -106,22 +109,23 @@ func Test_TableJoin_TranslateFieldName(t *testing.T) {
 	t.Run("explicitly allowed column", func(t *testing.T) {
 		t.Parallel()
 		// given
-		a := j
-		a.AllowedColumns = []string{"name"}
+		j := TableJoin{TableName: "iterations", TableAlias: "iter", On: JoinOnJSONField(SystemIteration, "iter.ID"), PrefixActivators: []string{"iteration."}}
+		// given
+		j.AllowedColumns = []string{"name"}
 		// when
-		col, err := a.TranslateFieldName(a.PrefixActivators[0] + "name")
+		col, err := j.TranslateFieldName(j.PrefixActivators[0] + "name")
 		// then
 		require.NoError(t, err)
-		require.Equal(t, a.TableAlias+".name", col)
-		require.Equal(t, []string{"name"}, a.HandledFields)
+		require.Equal(t, j.TableAlias+".name", col)
+		require.Equal(t, []string{"name"}, j.HandledFields)
 	})
 	t.Run("explicitly allowed column not matching", func(t *testing.T) {
 		t.Parallel()
 		// given
-		a := j
-		a.AllowedColumns = []string{"name"}
+		j := TableJoin{TableName: "iterations", TableAlias: "iter", On: JoinOnJSONField(SystemIteration, "iter.ID"), PrefixActivators: []string{"iteration."}}
+		j.AllowedColumns = []string{"name"}
 		// when
-		col, err := a.TranslateFieldName(a.PrefixActivators[0] + "foobar")
+		col, err := j.TranslateFieldName(j.PrefixActivators[0] + "foobar")
 		// then
 		require.Error(t, err)
 		require.Empty(t, col)
@@ -129,10 +133,10 @@ func Test_TableJoin_TranslateFieldName(t *testing.T) {
 	t.Run("explicitly disallowed column", func(t *testing.T) {
 		t.Parallel()
 		// given
-		a := j
-		a.DisallowedColumns = []string{"name"}
+		j := TableJoin{TableName: "iterations", TableAlias: "iter", On: JoinOnJSONField(SystemIteration, "iter.ID"), PrefixActivators: []string{"iteration."}}
+		j.DisallowedColumns = []string{"name"}
 		// when
-		col, err := a.TranslateFieldName(a.PrefixActivators[0] + "name")
+		col, err := j.TranslateFieldName(j.PrefixActivators[0] + "name")
 		// then
 		require.Error(t, err)
 		require.Empty(t, col)
@@ -140,33 +144,33 @@ func Test_TableJoin_TranslateFieldName(t *testing.T) {
 	t.Run("explicitly disallowed column not matching", func(t *testing.T) {
 		t.Parallel()
 		// given
-		a := j
-		a.DisallowedColumns = []string{"name"}
+		j := TableJoin{TableName: "iterations", TableAlias: "iter", On: JoinOnJSONField(SystemIteration, "iter.ID"), PrefixActivators: []string{"iteration."}}
+		j.DisallowedColumns = []string{"name"}
 		// when
-		col, err := a.TranslateFieldName(a.PrefixActivators[0] + "foobar")
+		col, err := j.TranslateFieldName(j.PrefixActivators[0] + "foobar")
 		// then
 		require.NoError(t, err)
-		require.Equal(t, a.TableAlias+".foobar", col)
-		require.Equal(t, []string{"foobar"}, a.HandledFields)
+		require.Equal(t, j.TableAlias+".foobar", col)
+		require.Equal(t, []string{"foobar"}, j.HandledFields)
 	})
 	t.Run("combination of explicitly allowed and disallowed columns", func(t *testing.T) {
 		t.Parallel()
 		// given
-		a := j
-		a.DisallowedColumns = []string{"name"}
-		a.DisallowedColumns = []string{"foobar"}
+		j := TableJoin{TableName: "iterations", TableAlias: "iter", On: JoinOnJSONField(SystemIteration, "iter.ID"), PrefixActivators: []string{"iteration."}}
+		j.DisallowedColumns = []string{"name"}
+		j.DisallowedColumns = []string{"foobar"}
 		// when
-		col, err := a.TranslateFieldName(a.PrefixActivators[0] + "random_field")
+		col, err := j.TranslateFieldName(j.PrefixActivators[0] + "random_field")
 		// then
 		require.NoError(t, err)
 		require.Equal(t, j.TableAlias+".random_field", col)
 		// when
-		col, err = a.TranslateFieldName(a.PrefixActivators[0] + "name")
+		col, err = j.TranslateFieldName(j.PrefixActivators[0] + "name")
 		// then
 		require.NoError(t, err)
 		require.Equal(t, j.TableAlias+".name", col)
 		// when
-		col, err = a.TranslateFieldName(a.PrefixActivators[0] + "foobar")
+		col, err = j.TranslateFieldName(j.PrefixActivators[0] + "foobar")
 		// then
 		require.Error(t, err)
 		require.Empty(t, col)
