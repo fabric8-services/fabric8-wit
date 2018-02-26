@@ -14,14 +14,14 @@ func Test_TableJoin_HandlesFieldName(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	// given
 	j := workitem.TableJoin{
-		TableName:     "iterations",
-		TableAlias:    "iter",
-		On:            workitem.JoinOnJSONField(workitem.SystemIteration, "iter.ID"),
-		PrefixTrigger: "iteration.",
+		TableName:      "iterations",
+		TableAlias:     "iter",
+		On:             workitem.JoinOnJSONField(workitem.SystemIteration, "iter.ID"),
+		PrefixTriggers: []string{"iteration."},
 	}
 	t.Run("has prefix", func(t *testing.T) {
 		t.Parallel()
-		require.True(t, j.HandlesFieldName(j.PrefixTrigger+"foobar"))
+		require.True(t, j.HandlesFieldName(j.PrefixTriggers[0]+"foobar"))
 	})
 	t.Run("missing prefix", func(t *testing.T) {
 		t.Parallel()
@@ -56,10 +56,10 @@ func Test_TableJoin_String(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	// given
 	j := workitem.TableJoin{
-		TableName:     "iterations",
-		TableAlias:    "iter",
-		On:            workitem.JoinOnJSONField(workitem.SystemIteration, "iter.ID"),
-		PrefixTrigger: "iteration.",
+		TableName:      "iterations",
+		TableAlias:     "iter",
+		On:             workitem.JoinOnJSONField(workitem.SystemIteration, "iter.ID"),
+		PrefixTriggers: []string{"iteration."},
 	}
 	// when
 	s := j.String()
@@ -72,10 +72,10 @@ func Test_TableJoin_TranslateFieldName(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	// given
 	j := workitem.TableJoin{
-		TableName:     "iterations",
-		TableAlias:    "iter",
-		On:            workitem.JoinOnJSONField(workitem.SystemIteration, "iter.ID"),
-		PrefixTrigger: "iteration.",
+		TableName:      "iterations",
+		TableAlias:     "iter",
+		On:             workitem.JoinOnJSONField(workitem.SystemIteration, "iter.ID"),
+		PrefixTriggers: []string{"iteration."},
 	}
 	t.Run("missing prefix", func(t *testing.T) {
 		t.Parallel()
@@ -88,7 +88,7 @@ func Test_TableJoin_TranslateFieldName(t *testing.T) {
 	t.Run("empty locator", func(t *testing.T) {
 		t.Parallel()
 		// when
-		col, err := j.TranslateFieldName(j.PrefixTrigger)
+		col, err := j.TranslateFieldName(j.PrefixTriggers[0])
 		// then
 		require.Error(t, err)
 		require.Empty(t, col)
@@ -96,7 +96,7 @@ func Test_TableJoin_TranslateFieldName(t *testing.T) {
 	t.Run("empty locator with whitespace", func(t *testing.T) {
 		t.Parallel()
 		// when
-		col, err := j.TranslateFieldName(j.PrefixTrigger + "    ")
+		col, err := j.TranslateFieldName(j.PrefixTriggers[0] + "    ")
 		// then
 		require.Error(t, err)
 		require.Empty(t, col)
@@ -104,7 +104,7 @@ func Test_TableJoin_TranslateFieldName(t *testing.T) {
 	t.Run("not allowed ' in locator", func(t *testing.T) {
 		t.Parallel()
 		// when
-		col, err := j.TranslateFieldName(j.PrefixTrigger + "foo'bar")
+		col, err := j.TranslateFieldName(j.PrefixTriggers[0] + "foo'bar")
 		// then
 		require.Error(t, err)
 		require.Empty(t, col)
@@ -112,7 +112,7 @@ func Test_TableJoin_TranslateFieldName(t *testing.T) {
 	t.Run("ok", func(t *testing.T) {
 		t.Parallel()
 		// when
-		col, err := j.TranslateFieldName(j.PrefixTrigger + "name")
+		col, err := j.TranslateFieldName(j.PrefixTriggers[0] + "name")
 		// then
 		require.NoError(t, err)
 		require.Equal(t, j.TableAlias+".name", col)
@@ -123,7 +123,7 @@ func Test_TableJoin_TranslateFieldName(t *testing.T) {
 		a := j
 		a.AllowedColumns = []string{"name"}
 		// when
-		col, err := a.TranslateFieldName(a.PrefixTrigger + "name")
+		col, err := a.TranslateFieldName(a.PrefixTriggers[0] + "name")
 		// then
 		require.NoError(t, err)
 		require.Equal(t, j.TableAlias+".name", col)
@@ -134,7 +134,7 @@ func Test_TableJoin_TranslateFieldName(t *testing.T) {
 		a := j
 		a.AllowedColumns = []string{"name"}
 		// when
-		col, err := a.TranslateFieldName(a.PrefixTrigger + "foobar")
+		col, err := a.TranslateFieldName(a.PrefixTriggers[0] + "foobar")
 		// then
 		require.Error(t, err)
 		require.Empty(t, col)
@@ -145,7 +145,7 @@ func Test_TableJoin_TranslateFieldName(t *testing.T) {
 		a := j
 		a.DisallowedColumns = []string{"name"}
 		// when
-		col, err := a.TranslateFieldName(a.PrefixTrigger + "name")
+		col, err := a.TranslateFieldName(a.PrefixTriggers[0] + "name")
 		// then
 		require.Error(t, err)
 		require.Empty(t, col)
@@ -156,7 +156,7 @@ func Test_TableJoin_TranslateFieldName(t *testing.T) {
 		a := j
 		a.DisallowedColumns = []string{"name"}
 		// when
-		col, err := a.TranslateFieldName(a.PrefixTrigger + "foobar")
+		col, err := a.TranslateFieldName(a.PrefixTriggers[0] + "foobar")
 		// then
 		require.NoError(t, err)
 		require.Equal(t, j.TableAlias+".foobar", col)
@@ -168,17 +168,17 @@ func Test_TableJoin_TranslateFieldName(t *testing.T) {
 		a.DisallowedColumns = []string{"name"}
 		a.DisallowedColumns = []string{"foobar"}
 		// when
-		col, err := a.TranslateFieldName(a.PrefixTrigger + "random_field")
+		col, err := a.TranslateFieldName(a.PrefixTriggers[0] + "random_field")
 		// then
 		require.NoError(t, err)
 		require.Equal(t, j.TableAlias+".random_field", col)
 		// when
-		col, err = a.TranslateFieldName(a.PrefixTrigger + "name")
+		col, err = a.TranslateFieldName(a.PrefixTriggers[0] + "name")
 		// then
 		require.NoError(t, err)
 		require.Equal(t, j.TableAlias+".name", col)
 		// when
-		col, err = a.TranslateFieldName(a.PrefixTrigger + "foobar")
+		col, err = a.TranslateFieldName(a.PrefixTriggers[0] + "foobar")
 		// then
 		require.Error(t, err)
 		require.Empty(t, col)

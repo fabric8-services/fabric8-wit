@@ -107,35 +107,41 @@ func newExpressionCompiler() expressionCompiler {
 		parameters: []interface{}{},
 		// Define all possible join scenarios here
 		joins: map[string]*TableJoin{
-			"iterations": &TableJoin{
-				TableName:     "iterations",
-				TableAlias:    "iter",
-				On:            JoinOnJSONField(SystemIteration, "iter.id"),
-				PrefixTrigger: "iteration.",
+			"iteration": &TableJoin{
+				TableName:      "iterations",
+				TableAlias:     "iter",
+				On:             JoinOnJSONField(SystemIteration, "iter.id"),
+				PrefixTriggers: []string{"iteration."},
 			},
-			"areas": &TableJoin{
-				TableName:     "areas",
-				TableAlias:    "ar",
-				On:            JoinOnJSONField(SystemArea, "ar.id"),
-				PrefixTrigger: "area.",
+			"area": &TableJoin{
+				TableName:      "areas",
+				TableAlias:     "ar",
+				On:             JoinOnJSONField(SystemArea, "ar.id"),
+				PrefixTriggers: []string{"area."},
 			},
-			"codebases": &TableJoin{
-				TableName:     "codebases",
-				TableAlias:    "cb",
-				On:            JoinOnJSONField(SystemCodebase, "cb.id"),
-				PrefixTrigger: "codebase.",
+			"codebase": &TableJoin{
+				TableName:      "codebases",
+				TableAlias:     "cb",
+				On:             JoinOnJSONField(SystemCodebase, "cb.id"),
+				PrefixTriggers: []string{"codebase."},
 			},
-			"work_item_types": &TableJoin{
-				TableName:     "work_item_types",
-				TableAlias:    "wit",
-				On:            "wit.id = " + WorkItemStorage{}.TableName() + ".type",
-				PrefixTrigger: "wit.",
+			"work_item_type": &TableJoin{
+				TableName:      "work_item_types",
+				TableAlias:     "wit",
+				On:             "wit.id = " + WorkItemStorage{}.TableName() + ".type",
+				PrefixTriggers: []string{"wit."},
 			},
-			"spaces": &TableJoin{
-				TableName:     "spaces",
-				TableAlias:    "space",
-				On:            "space.id = " + WorkItemStorage{}.TableName() + ".space_id",
-				PrefixTrigger: "space.",
+			"space": &TableJoin{
+				TableName:      "spaces",
+				TableAlias:     "space",
+				On:             "space.id = " + WorkItemStorage{}.TableName() + ".space_id",
+				PrefixTriggers: []string{"space."},
+			},
+			"creator": &TableJoin{
+				TableName:      "users",
+				TableAlias:     "creator",
+				On:             JoinOnJSONField(SystemCreator, "creator.id"),
+				PrefixTriggers: []string{"creator."},
 			},
 		},
 	}

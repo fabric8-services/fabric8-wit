@@ -23,51 +23,12 @@ func TestField(t *testing.T) {
 	expect(t, c.Not(c.Field("SpaceID"), c.Literal("abcd")), "(space_id != ?)", []interface{}{"abcd"}, nil)
 
 	t.Run("test join", func(t *testing.T) {
-		expect(t, c.Equals(c.Field("iteration.name"), c.Literal("abcd")), `(iter.name = ?)`, []interface{}{"abcd"}, map[string]workitem.TableJoin{
-			"iterations": {
-				Active:        true,
-				TableName:     "iterations",
-				TableAlias:    "iter",
-				PrefixTrigger: "iteration.",
-				On:            workitem.JoinOnJSONField(workitem.SystemIteration, "iter.id"),
-			},
-		})
-		expect(t, c.Equals(c.Field("area.name"), c.Literal("abcd")), `(ar.name = ?)`, []interface{}{"abcd"}, map[string]workitem.TableJoin{
-			"areas": {
-				Active:        true,
-				TableName:     "areas",
-				TableAlias:    "ar",
-				PrefixTrigger: "area.",
-				On:            workitem.JoinOnJSONField(workitem.SystemArea, "ar.id"),
-			},
-		})
-		expect(t, c.Equals(c.Field("codebase.name"), c.Literal("abcd")), `(cb.name = ?)`, []interface{}{"abcd"}, map[string]workitem.TableJoin{
-			"codebases": {
-				Active:        true,
-				TableName:     "codebases",
-				TableAlias:    "cb",
-				PrefixTrigger: "codebase.",
-				On:            workitem.JoinOnJSONField(workitem.SystemCodebase, "cb.id"),
-			},
-		})
-		expect(t, c.Equals(c.Field("wit.name"), c.Literal("abcd")), `(wit.name = ?)`, []interface{}{"abcd"}, map[string]workitem.TableJoin{
-			"work_item_types": {
-				Active:        true,
-				TableName:     "work_item_types",
-				TableAlias:    "wit",
-				PrefixTrigger: "wit.",
-				On:            "wit.id = " + workitem.WorkItemStorage{}.TableName() + ".type",
-			},
-		})
-		expect(t, c.Equals(c.Field("space.name"), c.Literal("abcd")), `(space.name = ?)`, []interface{}{"abcd"}, map[string]workitem.TableJoin{
-			"spaces": {
-				Active:        true,
-				TableName:     "spaces",
-				TableAlias:    "space",
-				PrefixTrigger: "space.",
-				On:            "space.id = " + workitem.WorkItemStorage{}.TableName() + ".space_id",
-			},
-		})
+		expect(t, c.Equals(c.Field("iteration.name"), c.Literal("abcd")), `(iter.name = ?)`, []interface{}{"abcd"}, []string{"iteration"})
+		expect(t, c.Equals(c.Field("area.name"), c.Literal("abcd")), `(ar.name = ?)`, []interface{}{"abcd"}, []string{"area"})
+		expect(t, c.Equals(c.Field("codebase.name"), c.Literal("abcd")), `(cb.name = ?)`, []interface{}{"abcd"}, []string{"codebase"})
+		expect(t, c.Equals(c.Field("wit.name"), c.Literal("abcd")), `(wit.name = ?)`, []interface{}{"abcd"}, []string{"work_item_type"})
+		expect(t, c.Equals(c.Field("space.name"), c.Literal("abcd")), `(space.name = ?)`, []interface{}{"abcd"}, []string{"space"})
+		expect(t, c.Equals(c.Field("creator.full_name"), c.Literal("abcd")), `(creator.full_name = ?)`, []interface{}{"abcd"}, []string{"creator"})
 	})
 }
 
@@ -92,7 +53,7 @@ func TestIsNull(t *testing.T) {
 	expect(t, c.IsNull("SpaceID"), "(space_id IS NULL)", []interface{}{}, nil)
 }
 
-func expect(t *testing.T, expr c.Expression, expectedClause string, expectedParameters []interface{}, expectedJoins map[string]workitem.TableJoin) {
+func expect(t *testing.T, expr c.Expression, expectedClause string, expectedParameters []interface{}, expectedJoins []string) {
 	clause, parameters, joins, compileErrors := workitem.Compile(expr)
 	t.Run(expectedClause, func(t *testing.T) {
 		t.Run("check for compile errors", func(t *testing.T) {
@@ -101,11 +62,14 @@ func expect(t *testing.T, expr c.Expression, expectedClause string, expectedPara
 		t.Run("check clause", func(t *testing.T) {
 			require.Equal(t, expectedClause, clause, "clause mismatch. stack: %s", string(debug.Stack()))
 		})
-		t.Run("check joins", func(t *testing.T) {
-			require.Equal(t, expectedJoins, joins, "joins mismatch. stack: %s", string(debug.Stack()))
-		})
 		t.Run("check parameters", func(t *testing.T) {
 			require.Equal(t, expectedParameters, parameters, "parameters mismatch. stack: %s", string(debug.Stack()))
+		})
+		t.Run("check joins", func(t *testing.T) {
+			for _, k := range expectedJoins {
+				_, ok := joins[k]
+				require.True(t, ok, `joins is missing "%s". stack: %s`, k, string(debug.Stack()))
+			}
 		})
 	})
 }
