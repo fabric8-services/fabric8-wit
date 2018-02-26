@@ -391,9 +391,6 @@ var searchKeyMap = map[string]string{
 	"type":         "Type",
 	"workitemtype": "Type", // same as 'type' - added for compatibility. (Ref. #1564)
 	"space":        "SpaceID",
-
-	// TODO(kwk): only as a workaround for now. REMOVE ME
-	"iteration.name": "iteration.name",
 }
 
 func (q Query) determineLiteralType(key string, val string) criteria.Expression {
@@ -474,7 +471,8 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 	} else if !isOperator(currentOperator) || currentOperator == OPTS {
 		key, ok := searchKeyMap[q.Name]
 		if !ok {
-			return nil, errors.NewBadParameterError("key not found", q.Name)
+			key = q.Name
+			//return nil, errors.NewBadParameterError("key not found", q.Name)
 		}
 		left := criteria.Field(key)
 		if q.Value != nil {
