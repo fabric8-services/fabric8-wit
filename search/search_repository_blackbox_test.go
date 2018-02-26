@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/search"
@@ -67,6 +68,46 @@ func (s *searchRepositoryBlackboxTest) getTestFixture() *tf.TestFixture {
 			return nil
 		}),
 	)
+}
+
+func (s *searchRepositoryBlackboxTest) TestSearchWithJoin() {
+	s.T().Run("Search with join", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.Iterations(2),
+			tf.WorkItems(10, func(fxt *tf.TestFixture, idx int) error {
+				switch idx {
+				case 0, 1, 2, 3, 4, 5, 6:
+					fxt.WorkItems[idx].Fields[workitem.SystemIteration] = fxt.Iterations[0].ID.String()
+				default:
+					fxt.WorkItems[idx].Fields[workitem.SystemIteration] = fxt.Iterations[1].ID.String()
+				}
+				return nil
+			}),
+		)
+		t.Run("matching name", func(t *testing.T) {
+			// when
+			filter := fmt.Sprintf(`{"iteration.name": "%s"}`, fxt.Iterations[0].Name)
+			res, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+			// then
+			require.NoError(t, err)
+			assert.Equal(t, uint64(7), count)
+			toBeFound := id.Slice{
+				fxt.WorkItems[0].ID,
+				fxt.WorkItems[1].ID,
+				fxt.WorkItems[2].ID,
+				fxt.WorkItems[3].ID,
+				fxt.WorkItems[4].ID,
+				fxt.WorkItems[5].ID,
+				fxt.WorkItems[6].ID,
+			}.ToMap()
+			for _, wi := range res {
+				_, ok := toBeFound[wi.ID]
+				require.True(t, ok, "unknown work item found: %s", wi.ID)
+				delete(toBeFound, wi.ID)
+			}
+			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
+		})
+	})
 }
 
 func (s *searchRepositoryBlackboxTest) TestSearchFullText() {

@@ -470,7 +470,17 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 		}
 	} else if !isOperator(currentOperator) || currentOperator == OPTS {
 		key, ok := searchKeyMap[q.Name]
-		if !ok {
+		// check that none of the default table joins handles this column:
+		var handledByJoin bool
+		joins := workitem.DefaultTableJoins()
+		for _, j := range joins {
+			if j.HandlesFieldName(q.Name) {
+				handledByJoin = true
+				key = q.Name
+				break
+			}
+		}
+		if !ok && !handledByJoin {
 			return nil, errors.NewBadParameterError("key not found", q.Name)
 		}
 		left := criteria.Field(key)
@@ -718,7 +728,7 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 }
 
 func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria criteria.Expression, parentExists *bool, start *int, limit *int) ([]workitem.WorkItemStorage, uint64, error) {
-	where, parameters, compileError := workitem.Compile(criteria)
+	where, parameters, joins, compileError := workitem.Compile(criteria)
 	if compileError != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err":        compileError,
@@ -737,6 +747,13 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 	}
 
 	db := r.db.Model(&workitem.WorkItemStorage{}).Where(where, parameters...)
+	for _, j := range joins {
+		if err := j.Validate(db); err != nil {
+			log.Error(ctx, map[string]interface{}{"expression": criteria, "err": err}, "table join not valid")
+			return nil, 0, errors.NewBadParameterError("expression", criteria).Expected("valid table join")
+		}
+		db = db.Joins(j.String())
+	}
 	orgDB := db
 	if start != nil {
 		if *start < 0 {
