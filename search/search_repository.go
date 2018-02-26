@@ -739,7 +739,7 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 
 	db := r.db.Model(&workitem.WorkItemStorage{}).Where(where, parameters...)
 	for _, j := range joins {
-		if err := j.IsValid(db); err != nil {
+		if err := j.Validate(db); err != nil {
 			log.Error(ctx, map[string]interface{}{"expression": criteria, "err": err}, "table join not valid")
 			return nil, 0, errors.NewBadParameterError("expression", criteria).Expected("valid table join")
 		}

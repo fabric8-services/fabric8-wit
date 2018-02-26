@@ -30,7 +30,7 @@ func Compile(where criteria.Expression) (whereClause string, parameters []interf
 	// Make sure we don't return all possible joins but only the once that were activated
 	joins = map[string]TableJoin{}
 	for k, j := range compiler.joins {
-		if j.IsActive() {
+		if j.Active {
 			joins[k] = *j
 		}
 	}
@@ -108,46 +108,46 @@ func newExpressionCompiler() expressionCompiler {
 		// Define all possible join scenarios here
 		joins: map[string]*TableJoin{
 			"iteration": {
-				tableName:        "iterations",
-				tableAlias:       "iter",
-				on:               JoinOnJSONField(SystemIteration, "iter.id"),
-				prefixActivators: []string{"iteration."},
-				allowedColumns:   []string{"name", "created_at"},
+				TableName:        "iterations",
+				TableAlias:       "iter",
+				On:               JoinOnJSONField(SystemIteration, "iter.id"),
+				PrefixActivators: []string{"iteration."},
+				AllowedColumns:   []string{"name", "created_at"},
 			},
 			"area": {
-				tableName:        "areas",
-				tableAlias:       "ar",
-				on:               JoinOnJSONField(SystemArea, "ar.id"),
-				prefixActivators: []string{"area."},
-				allowedColumns:   []string{"name"},
+				TableName:        "areas",
+				TableAlias:       "ar",
+				On:               JoinOnJSONField(SystemArea, "ar.id"),
+				PrefixActivators: []string{"area."},
+				AllowedColumns:   []string{"name"},
 			},
 			"codebase": {
-				tableName:        "codebases",
-				tableAlias:       "cb",
-				on:               JoinOnJSONField(SystemCodebase, "cb.id"),
-				prefixActivators: []string{"codebase."},
-				allowedColumns:   []string{"url"},
+				TableName:        "codebases",
+				TableAlias:       "cb",
+				On:               JoinOnJSONField(SystemCodebase, "cb.id"),
+				PrefixActivators: []string{"codebase."},
+				AllowedColumns:   []string{"url"},
 			},
 			"work_item_type": {
-				tableName:        "work_item_types",
-				tableAlias:       "wit",
-				on:               "wit.id = " + WorkItemStorage{}.TableName() + ".type",
-				prefixActivators: []string{"wit.", "workitemtype.", "work_item_type.", "type."},
-				allowedColumns:   []string{"name"},
+				TableName:        "work_item_types",
+				TableAlias:       "wit",
+				On:               "wit.id = " + WorkItemStorage{}.TableName() + ".type",
+				PrefixActivators: []string{"wit.", "workitemtype.", "work_item_type.", "type."},
+				AllowedColumns:   []string{"name"},
 			},
 			"space": {
-				tableName:        "spaces",
-				tableAlias:       "space",
-				on:               "space.id = " + WorkItemStorage{}.TableName() + ".space_id",
-				prefixActivators: []string{"space."},
-				allowedColumns:   []string{"name"},
+				TableName:        "spaces",
+				TableAlias:       "space",
+				On:               "space.id = " + WorkItemStorage{}.TableName() + ".space_id",
+				PrefixActivators: []string{"space."},
+				AllowedColumns:   []string{"name"},
 			},
 			"creator": {
-				tableName:        "users",
-				tableAlias:       "creator",
-				on:               JoinOnJSONField(SystemCreator, "creator.id"),
-				prefixActivators: []string{"creator.", "author."},
-				allowedColumns:   []string{"full_name"},
+				TableName:        "users",
+				TableAlias:       "creator",
+				On:               JoinOnJSONField(SystemCreator, "creator.id"),
+				PrefixActivators: []string{"creator.", "author."},
+				AllowedColumns:   []string{"full_name"},
 			},
 		},
 	}
@@ -172,7 +172,7 @@ func (c *expressionCompiler) expressionRefersToJoinedData(e criteria.Expression)
 	case *criteria.FieldExpression:
 		for _, j := range c.joins {
 			if j.HandlesFieldName(t.FieldName) {
-				j.Activate()
+				j.Active = true
 				return j, true
 			}
 		}
@@ -189,7 +189,7 @@ func (c *expressionCompiler) Field(f *criteria.FieldExpression) interface{} {
 	// Check if this field is referencing joinable data
 	for _, j := range c.joins {
 		if j.HandlesFieldName(mappedFieldName) {
-			j.Activate()
+			j.Active = true
 			col, err := j.TranslateFieldName(mappedFieldName)
 			if err != nil {
 				c.err = append(c.err, errs.Wrapf(err, `failed to translate field "%s"`, mappedFieldName))

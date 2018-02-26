@@ -12,51 +12,61 @@ import (
 //
 //   SELECT *
 //     FROM workitems
-//     JOIN iterations iter ON fields@> concat('{"system.iteration": "', iter.ID, '"}')::jsonb
+//     LEFT JOIN iterations iter ON fields@> concat('{"system.iteration": "', iter.ID, '"}')::jsonb
 //     WHERE iter.name = "foo"
 //
-// With the prefix triggers we can identify if a certain field expression points
-// at data from a joined table. By default there are no restrictions on what can
-// be queried in the joined table but if you fill the allowed/disallowed columns
-// arrays you can explicitly allow or disallow columns to be queried. The names
-// in the allowed/disalowed columns are those of the table.
+// With the prefix activators we can identify if a certain field expression
+// points at data from a joined table. By default there are no restrictions on
+// what can be queried in the joined table but if you fill the
+// allowed/disallowed columns arrays you can explicitly allow or disallow
+// columns to be queried. The names in the allowed/disalowed columns are those
+// of the foreign (aka joined) table.
 type TableJoin struct {
-	active            bool     // true if this table join is used
-	tableName         string   // e.g. "iterations"
-	tableAlias        string   // e.g. "iter"
-	on                string   // e.g. `fields@> concat('{"system.iteration": "', iter.ID, '"}')::jsonb`
-	prefixActivators  []string // e.g. []string{"iteration."}
-	allowedColumns    []string // e.g. ["name"]. When empty all columns are allowed.
-	disallowedColumns []string // e.g. ["created_at"]. When empty all columns are allowed.
-	handledFields     []string // e.g. []string{"name", "created_at", "foobar"}
+	Active bool // true if this table join is used
+
+	// TableName specifies the foreign table upon which to join
+	TableName string // e.g. "iterations"
+
+	// TableAlias allows us to specify an alias for the table to be used in the
+	// WHERE clause.
+	TableAlias string // e.g. "iter"
+
+	// On is the ON part of the JOIN.
+	On string // e.g. `fields@> concat('{"system.iteration": "', iter.ID, '"}')::jsonb`
+
+	// PrefixActivators can hold a number of prefix strings that cause this join
+	// object to be activated.
+	PrefixActivators []string // e.g. []string{"iteration."}
+
+	// disallowedColumns specified all fields that are allowed to be queried
+	// from the foreign table. When empty all columns are allowed.
+	AllowedColumns []string // e.g. ["name"].
+
+	// DisallowedColumns specified all fields that are not allowed to be queried
+	// from the foreign table. When empty all columns are allowed.
+	DisallowedColumns []string // e.g. ["created_at"].
+
+	// HandledFields contains those fields that were found to reference this
+	// table join. It is later used by Validate() to find out if a field name
+	// exists in the database.
+	HandledFields []string // e.g. []string{"name", "created_at", "foobar"}
+
 	// TODO(kwk): Maybe introduce a column mapping table here: ColumnMapping map[string]string
 }
 
-// IsValid returns nil if the join is active and all the fields handled by this
+// Validate returns nil if the join is active and all the fields handled by this
 // join do exist in the joined table; otherwise an error is returned.
-func (j TableJoin) IsValid(db *gorm.DB) error {
+func (j TableJoin) Validate(db *gorm.DB) error {
 	dialect := db.Dialect()
 	dialect.SetDB(db.CommonDB())
-	if j.IsActive() {
-		for _, f := range j.handledFields {
-			if !dialect.HasColumn(j.tableName, f) {
-				return errs.Errorf(`table "%s" has no column "%s"`, j.tableName, f)
+	if j.Active {
+		for _, f := range j.HandledFields {
+			if !dialect.HasColumn(j.TableName, f) {
+				return errs.Errorf(`table "%s" has no column "%s"`, j.TableName, f)
 			}
 		}
 	}
 	return nil
-}
-
-// Activate tells the search engine to actually use this join information;
-// otherwise it won't be used.
-func (j *TableJoin) Activate() {
-	j.active = true
-}
-
-// IsActive returns true if this table join was activated; otherwise false is
-// returned.
-func (j TableJoin) IsActive() bool {
-	return j.active
 }
 
 // JoinOnJSONField returns the ON part of an SQL JOIN for the given fields
@@ -66,13 +76,13 @@ func JoinOnJSONField(jsonField, foreignCol string) string {
 
 // String implements Stringer interface
 func (j TableJoin) String() string {
-	return "LEFT JOIN " + j.tableName + " " + j.tableAlias + " ON " + j.on
+	return "LEFT JOIN " + j.TableName + " " + j.TableAlias + " ON " + j.On
 }
 
 // HandlesFieldName returns true if the given field name should be handled by
 // this table join.
 func (j *TableJoin) HandlesFieldName(fieldName string) bool {
-	for _, t := range j.prefixActivators {
+	for _, t := range j.PrefixActivators {
 		if strings.HasPrefix(fieldName, t) {
 			return true
 		}
@@ -89,10 +99,10 @@ func (j *TableJoin) TranslateFieldName(fieldName string) (string, error) {
 	}
 
 	// Ensure this join is active
-	j.Activate()
+	j.Active = true
 
 	var prefix string
-	for _, t := range j.prefixActivators {
+	for _, t := range j.PrefixActivators {
 		if strings.HasPrefix(fieldName, t) {
 			prefix = t
 		}
@@ -112,15 +122,15 @@ func (j *TableJoin) TranslateFieldName(fieldName string) (string, error) {
 
 	// if no columns are explicitly allowed, then this column is allowed by
 	// default.
-	columnIsAllowed := (j.allowedColumns == nil || len(j.allowedColumns) == 0)
-	for _, c := range j.allowedColumns {
+	columnIsAllowed := (j.AllowedColumns == nil || len(j.AllowedColumns) == 0)
+	for _, c := range j.AllowedColumns {
 		if c == col {
 			columnIsAllowed = true
 			break
 		}
 	}
 	// check if a column is explicitly disallowed
-	for _, c := range j.disallowedColumns {
+	for _, c := range j.DisallowedColumns {
 		if c == col {
 			columnIsAllowed = false
 			break
@@ -129,6 +139,10 @@ func (j *TableJoin) TranslateFieldName(fieldName string) (string, error) {
 	if !columnIsAllowed {
 		return "", errs.Errorf("column is not allowed: %s", col)
 	}
-	j.handledFields = append(j.handledFields, col)
-	return j.tableAlias + "." + col, nil
+
+	// Remember what foreign columns where queried for. Later we can use
+	// Validate() to see if those columns do exist or not.
+	j.HandledFields = append(j.HandledFields, col)
+
+	return j.TableAlias + "." + col, nil
 }
