@@ -298,8 +298,6 @@ func (c *expressionCompiler) IsNull(e *criteria.IsNullExpression) interface{} {
 }
 
 func (c *expressionCompiler) Not(e *criteria.NotExpression) interface{} {
-	// TODO(kwk): Handle operator switching here as well if left is a field
-	// expression and has an "iteration." prefix.
 	if isInJSONContext(e.Left()) {
 		condition := c.binary(e, ":")
 		if condition != nil {
