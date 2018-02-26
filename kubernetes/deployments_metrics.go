@@ -78,6 +78,10 @@ const bucketDuration = 1 * time.Minute
 const millicoreToCoreScale = 0.001
 const noScale = 1
 
+// ensure metricsClient implements Metrics
+var _ Metrics = &metricsClient{}
+var _ Metrics = (*metricsClient)(nil)
+
 // NewMetricsClient creates a Metrics object given a configuration
 func NewMetricsClient(config *MetricsClientConfig) (Metrics, error) {
 	// Use default implementation if no HawkularGetter is specified
