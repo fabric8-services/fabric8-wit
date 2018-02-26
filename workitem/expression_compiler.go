@@ -1,11 +1,8 @@
 package workitem
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
-
-	"github.com/davecgh/go-spew/spew"
 
 	"github.com/fabric8-services/fabric8-wit/criteria"
 	errs "github.com/pkg/errors"
@@ -18,7 +15,7 @@ const (
 
 // Compile takes an expression and compiles it to a where clause for use with gorm.DB.Where()
 // Returns the number of expected parameters for the query and a slice of errors if something goes wrong
-func Compile(where criteria.Expression) (whereClause string, parameters []interface{}, joins []TableJoin, err []error) {
+func Compile(where criteria.Expression) (whereClause string, parameters []interface{}, joins map[string]TableJoin, err []error) {
 	compiler := newExpressionCompiler()
 
 	criteria.IteratePostOrder(where, bubbleUpJSONContext(&compiler))
@@ -31,13 +28,14 @@ func Compile(where criteria.Expression) (whereClause string, parameters []interf
 	}
 
 	// Make sure we don't return all possible joins but only the once that were activated
-	joins = []TableJoin{}
-	for _, j := range compiler.joins {
-		scs := spew.ConfigState{DisableMethods: true, Indent: "  "}
-		fmt.Printf("join: %s", scs.Sdump(j))
-		if j.Active {
-			joins = append(joins, *j)
+	joins = map[string]TableJoin{}
+	for k, j := range compiler.joins {
+		if j.IsActive() {
+			joins[k] = *j
 		}
+	}
+	if len(joins) <= 0 {
+		joins = nil
 	}
 	return c, compiler.parameters, joins, compiler.err
 }
@@ -147,6 +145,7 @@ func (c *expressionCompiler) expressionRefersToJoinedData(e criteria.Expression)
 	case *criteria.FieldExpression:
 		for _, j := range c.joins {
 			if j.HandlesFieldName(t.FieldName) {
+				j.Activate()
 				return j, true
 			}
 		}
@@ -163,8 +162,7 @@ func (c *expressionCompiler) Field(f *criteria.FieldExpression) interface{} {
 	// Check if this field is referencing joinable data
 	for _, j := range c.joins {
 		if j.HandlesFieldName(mappedFieldName) {
-			fmt.Printf("\n\nHANDLES field name: %s\n\n", mappedFieldName)
-			j.Active = true
+			j.Activate()
 			col, err := j.TranslateFieldName(mappedFieldName)
 			if err != nil {
 				c.err = append(c.err, errs.Wrapf(err, `failed to translate field "%s"`, mappedFieldName))

@@ -38,6 +38,19 @@ func Test_JoinOnJSONField(t *testing.T) {
 	require.Equal(t, `fields@> concat('{"system.iteration": "', iter.ID, '"}')::jsonb`, actual)
 }
 
+func Test_TableJoin_Activate(t *testing.T) {
+	t.Parallel()
+	resource.Require(t, resource.UnitTest)
+	// given
+	j := workitem.TableJoin{Active: false}
+	require.False(t, j.IsActive())
+	// when
+	j.Activate()
+	// then
+	require.True(t, j.Active)
+	require.True(t, j.IsActive())
+}
+
 func Test_TableJoin_String(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)

@@ -738,7 +738,9 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 
 	db := r.db.Model(&workitem.WorkItemStorage{}).Where(where, parameters...)
 	for _, j := range joins {
-		db = db.Joins(j.String())
+		if j.IsActive() {
+			db = db.Joins(j.String())
+		}
 	}
 	orgDB := db
 	if start != nil {

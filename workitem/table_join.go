@@ -31,6 +31,18 @@ type TableJoin struct {
 	// TODO(kwk): Maybe introduce a column mapping table here: ColumnMapping map[string]string
 }
 
+// Activate tells the search engine to actually use this join information;
+// otherwise it won't be used.
+func (j *TableJoin) Activate() {
+	j.Active = true
+}
+
+// IsActive returns true if this table join was activated; otherwise false is
+// returned.
+func (j TableJoin) IsActive() bool {
+	return j.Active
+}
+
 // JoinOnJSONField returns the ON part of an SQL JOIN for the given fields
 func JoinOnJSONField(jsonField, foreignCol string) string {
 	return fmt.Sprintf(`fields@> concat('{"%[1]s": "', %[2]s, '"}')::jsonb`, jsonField, foreignCol)
@@ -45,8 +57,6 @@ func (j TableJoin) String() string {
 // this table join.
 func (j *TableJoin) HandlesFieldName(fieldName string) bool {
 	if strings.HasPrefix(fieldName, j.PrefixTrigger) {
-		fmt.Printf("\n\nSETTING ACTIVE\n\n")
-		j.Active = true
 		return true
 	}
 	return false
@@ -59,6 +69,10 @@ func (j *TableJoin) TranslateFieldName(fieldName string) (string, error) {
 	if !j.HandlesFieldName(fieldName) {
 		return "", errs.Errorf(`field name "%s" is missing "%s" prefix defined by this join`, fieldName, j.PrefixTrigger)
 	}
+
+	// Ensure this join is active
+	j.Activate()
+
 	col := strings.TrimPrefix(fieldName, j.PrefixTrigger)
 	col = strings.TrimSpace(col)
 	if col == "" {
