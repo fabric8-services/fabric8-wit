@@ -107,37 +107,37 @@ func newExpressionCompiler() expressionCompiler {
 		parameters: []interface{}{},
 		// Define all possible join scenarios here
 		joins: map[string]*TableJoin{
-			"iteration": &TableJoin{
+			"iteration": {
 				TableName:      "iterations",
 				TableAlias:     "iter",
 				On:             JoinOnJSONField(SystemIteration, "iter.id"),
 				PrefixTriggers: []string{"iteration."},
 			},
-			"area": &TableJoin{
+			"area": {
 				TableName:      "areas",
 				TableAlias:     "ar",
 				On:             JoinOnJSONField(SystemArea, "ar.id"),
 				PrefixTriggers: []string{"area."},
 			},
-			"codebase": &TableJoin{
+			"codebase": {
 				TableName:      "codebases",
 				TableAlias:     "cb",
 				On:             JoinOnJSONField(SystemCodebase, "cb.id"),
 				PrefixTriggers: []string{"codebase."},
 			},
-			"work_item_type": &TableJoin{
+			"work_item_type": {
 				TableName:      "work_item_types",
 				TableAlias:     "wit",
 				On:             "wit.id = " + WorkItemStorage{}.TableName() + ".type",
 				PrefixTriggers: []string{"wit."},
 			},
-			"space": &TableJoin{
+			"space": {
 				TableName:      "spaces",
 				TableAlias:     "space",
 				On:             "space.id = " + WorkItemStorage{}.TableName() + ".space_id",
 				PrefixTriggers: []string{"space."},
 			},
-			"creator": &TableJoin{
+			"creator": {
 				TableName:      "users",
 				TableAlias:     "creator",
 				On:             JoinOnJSONField(SystemCreator, "creator.id"),
