@@ -128,8 +128,14 @@ func newExpressionCompiler() expressionCompiler {
 			"work_item_types": &TableJoin{
 				TableName:     "work_item_types",
 				TableAlias:    "wit",
-				On:            "wit.id = work_items.type",
+				On:            "wit.id = " + WorkItemStorage{}.TableName() + ".type",
 				PrefixTrigger: "wit.",
+			},
+			"spaces": &TableJoin{
+				TableName:     "spaces",
+				TableAlias:    "space",
+				On:            "space.id = " + WorkItemStorage{}.TableName() + ".space_id",
+				PrefixTrigger: "space.",
 			},
 		},
 	}

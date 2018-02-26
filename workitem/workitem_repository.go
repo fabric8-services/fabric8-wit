@@ -692,7 +692,9 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, spaceID uu
 	}
 	db := r.db.Model(&WorkItemStorage{}).Where(where, parameters...)
 	for _, j := range joins {
-		db = db.Joins(j.String())
+		if j.IsActive() {
+			db = db.Joins(j.String())
+		}
 	}
 	orgDB := db
 	if start != nil {
@@ -796,7 +798,9 @@ func (r *GormWorkItemRepository) Count(ctx context.Context, spaceID uuid.UUID, c
 	var count int
 	db := r.db.Model(&WorkItemStorage{}).Where(where, parameters...)
 	for _, j := range joins {
-		db = db.Joins(j.String())
+		if j.IsActive() {
+			db = db.Joins(j.String())
+		}
 	}
 	db = db.Count(&count)
 	if db.Error != nil {

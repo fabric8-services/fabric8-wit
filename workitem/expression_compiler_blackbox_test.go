@@ -56,7 +56,16 @@ func TestField(t *testing.T) {
 				TableName:     "work_item_types",
 				TableAlias:    "wit",
 				PrefixTrigger: "wit.",
-				On:            "wit.id = work_items.type",
+				On:            "wit.id = " + workitem.WorkItemStorage{}.TableName() + ".type",
+			},
+		})
+		expect(t, c.Equals(c.Field("space.name"), c.Literal("abcd")), `(space.name = ?)`, []interface{}{"abcd"}, map[string]workitem.TableJoin{
+			"spaces": {
+				Active:        true,
+				TableName:     "spaces",
+				TableAlias:    "space",
+				PrefixTrigger: "space.",
+				On:            "space.id = " + workitem.WorkItemStorage{}.TableName() + ".space_id",
 			},
 		})
 	})
