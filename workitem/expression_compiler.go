@@ -102,54 +102,60 @@ func (c *expressionCompiler) getFieldName(fieldName string) (mappedFieldName str
 	return fieldName, false
 }
 
+// DefaultTableJoins returns the default list of joinable tables used when
+// creating a new expression compiler.
+func DefaultTableJoins() map[string]*TableJoin {
+	return map[string]*TableJoin{
+		"iteration": {
+			TableName:        "iterations",
+			TableAlias:       "iter",
+			On:               JoinOnJSONField(SystemIteration, "iter.id"),
+			PrefixActivators: []string{"iteration."},
+			AllowedColumns:   []string{"name", "created_at"},
+		},
+		"area": {
+			TableName:        "areas",
+			TableAlias:       "ar",
+			On:               JoinOnJSONField(SystemArea, "ar.id"),
+			PrefixActivators: []string{"area."},
+			AllowedColumns:   []string{"name"},
+		},
+		"codebase": {
+			TableName:        "codebases",
+			TableAlias:       "cb",
+			On:               JoinOnJSONField(SystemCodebase, "cb.id"),
+			PrefixActivators: []string{"codebase."},
+			AllowedColumns:   []string{"url"},
+		},
+		"work_item_type": {
+			TableName:        "work_item_types",
+			TableAlias:       "wit",
+			On:               "wit.id = " + WorkItemStorage{}.TableName() + ".type",
+			PrefixActivators: []string{"wit.", "workitemtype.", "work_item_type.", "type."},
+			AllowedColumns:   []string{"name"},
+		},
+		"space": {
+			TableName:        "spaces",
+			TableAlias:       "space",
+			On:               "space.id = " + WorkItemStorage{}.TableName() + ".space_id",
+			PrefixActivators: []string{"space."},
+			AllowedColumns:   []string{"name"},
+		},
+		"creator": {
+			TableName:        "users",
+			TableAlias:       "creator",
+			On:               JoinOnJSONField(SystemCreator, "creator.id"),
+			PrefixActivators: []string{"creator.", "author."},
+			AllowedColumns:   []string{"full_name"},
+		},
+	}
+}
+
 func newExpressionCompiler() expressionCompiler {
 	return expressionCompiler{
 		parameters: []interface{}{},
 		// Define all possible join scenarios here
-		joins: map[string]*TableJoin{
-			"iteration": {
-				TableName:        "iterations",
-				TableAlias:       "iter",
-				On:               JoinOnJSONField(SystemIteration, "iter.id"),
-				PrefixActivators: []string{"iteration."},
-				AllowedColumns:   []string{"name", "created_at"},
-			},
-			"area": {
-				TableName:        "areas",
-				TableAlias:       "ar",
-				On:               JoinOnJSONField(SystemArea, "ar.id"),
-				PrefixActivators: []string{"area."},
-				AllowedColumns:   []string{"name"},
-			},
-			"codebase": {
-				TableName:        "codebases",
-				TableAlias:       "cb",
-				On:               JoinOnJSONField(SystemCodebase, "cb.id"),
-				PrefixActivators: []string{"codebase."},
-				AllowedColumns:   []string{"url"},
-			},
-			"work_item_type": {
-				TableName:        "work_item_types",
-				TableAlias:       "wit",
-				On:               "wit.id = " + WorkItemStorage{}.TableName() + ".type",
-				PrefixActivators: []string{"wit.", "workitemtype.", "work_item_type.", "type."},
-				AllowedColumns:   []string{"name"},
-			},
-			"space": {
-				TableName:        "spaces",
-				TableAlias:       "space",
-				On:               "space.id = " + WorkItemStorage{}.TableName() + ".space_id",
-				PrefixActivators: []string{"space."},
-				AllowedColumns:   []string{"name"},
-			},
-			"creator": {
-				TableName:        "users",
-				TableAlias:       "creator",
-				On:               JoinOnJSONField(SystemCreator, "creator.id"),
-				PrefixActivators: []string{"creator.", "author."},
-				AllowedColumns:   []string{"full_name"},
-			},
-		},
+		joins: DefaultTableJoins(),
 	}
 }
 
