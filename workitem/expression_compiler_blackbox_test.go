@@ -25,7 +25,7 @@ func TestField(t *testing.T) {
 	t.Run("test join", func(t *testing.T) {
 		expect(t, c.Equals(c.Field("iteration.name"), c.Literal("abcd")), `(iter.name = ?)`, []interface{}{"abcd"}, []string{"iteration"})
 		expect(t, c.Equals(c.Field("area.name"), c.Literal("abcd")), `(ar.name = ?)`, []interface{}{"abcd"}, []string{"area"})
-		expect(t, c.Equals(c.Field("codebase.name"), c.Literal("abcd")), `(cb.name = ?)`, []interface{}{"abcd"}, []string{"codebase"})
+		expect(t, c.Equals(c.Field("codebase.url"), c.Literal("abcd")), `(cb.url = ?)`, []interface{}{"abcd"}, []string{"codebase"})
 		expect(t, c.Equals(c.Field("wit.name"), c.Literal("abcd")), `(wit.name = ?)`, []interface{}{"abcd"}, []string{"work_item_type"})
 		expect(t, c.Equals(c.Field("work_item_type.name"), c.Literal("abcd")), `(wit.name = ?)`, []interface{}{"abcd"}, []string{"work_item_type"})
 		expect(t, c.Equals(c.Field("type.name"), c.Literal("abcd")), `(wit.name = ?)`, []interface{}{"abcd"}, []string{"work_item_type"})
@@ -33,6 +33,16 @@ func TestField(t *testing.T) {
 		expect(t, c.Equals(c.Field("creator.full_name"), c.Literal("abcd")), `(creator.full_name = ?)`, []interface{}{"abcd"}, []string{"creator"})
 		expect(t, c.Equals(c.Field("author.full_name"), c.Literal("abcd")), `(creator.full_name = ?)`, []interface{}{"abcd"}, []string{"creator"})
 		expect(t, c.Not(c.Field("author.full_name"), c.Literal("abcd")), `(creator.full_name != ?)`, []interface{}{"abcd"}, []string{"creator"})
+
+		expect(t, c.Or(
+			c.Equals(c.Field("iteration.name"), c.Literal("abcd")),
+			c.Equals(c.Field("area.name"), c.Literal("xyz")),
+		), `((iter.name = ?) or (ar.name = ?))`, []interface{}{"abcd", "xyz"}, []string{"iteration", "area"})
+
+		expect(t, c.Or(
+			c.Equals(c.Field("iteration.name"), c.Literal("abcd")),
+			c.Equals(c.Field("iteration.created_at"), c.Literal("123")),
+		), `((iter.name = ?) or (iter.created_at = ?))`, []interface{}{"abcd", "123"}, []string{"iteration"})
 	})
 }
 

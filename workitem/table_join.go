@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 )
 
@@ -24,11 +25,26 @@ type TableJoin struct {
 	TableName         string   // e.g. "iterations"
 	TableAlias        string   // e.g. "iter"
 	On                string   // e.g. `fields@> concat('{"system.iteration": "', iter.ID, '"}')::jsonb`
-	PrefixTriggers    []string // e.g. "iteration."
+	PrefixTriggers    []string // e.g. []string{"iteration."}
 	AllowedColumns    []string // e.g. ["name"]. When empty all columns are allowed.
 	DisallowedColumns []string // e.g. ["created_at"]. When empty all columns are allowed.
-
+	HandledFields     []string // e.g. []string{"name", "created_at", "foobar"}
 	// TODO(kwk): Maybe introduce a column mapping table here: ColumnMapping map[string]string
+}
+
+// IsValid returns nil if the join is active and all the fields handled by this
+// join do exist in the joined table; otherwise an error is returned.
+func (j TableJoin) IsValid(db *gorm.DB) error {
+	dialect := db.Dialect()
+	dialect.SetDB(db.CommonDB())
+	if j.IsActive() {
+		for _, f := range j.HandledFields {
+			if !dialect.HasColumn(j.TableName, f) {
+				return errs.Errorf(`table "%s" has no column "%s"`, j.TableName, f)
+			}
+		}
+	}
+	return nil
 }
 
 // Activate tells the search engine to actually use this join information;
@@ -113,5 +129,6 @@ func (j *TableJoin) TranslateFieldName(fieldName string) (string, error) {
 	if !columnIsAllowed {
 		return "", errs.Errorf("column is not allowed: %s", col)
 	}
+	j.HandledFields = append(j.HandledFields, col)
 	return j.TableAlias + "." + col, nil
 }

@@ -691,11 +691,15 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, spaceID uu
 
 	}
 	db := r.db.Model(&WorkItemStorage{}).Where(where, parameters...)
+
 	for _, j := range joins {
-		if j.IsActive() {
-			db = db.Joins(j.String())
+		if err := j.IsValid(db); err != nil {
+			log.Error(ctx, map[string]interface{}{"expression": criteria, "err": err}, "table join not valid")
+			return nil, 0, errors.NewBadParameterError("expression", criteria).Expected("valid table join")
 		}
+		db = db.Joins(j.String())
 	}
+
 	orgDB := db
 	if start != nil {
 		if *start < 0 {
@@ -798,9 +802,11 @@ func (r *GormWorkItemRepository) Count(ctx context.Context, spaceID uuid.UUID, c
 	var count int
 	db := r.db.Model(&WorkItemStorage{}).Where(where, parameters...)
 	for _, j := range joins {
-		if j.IsActive() {
-			db = db.Joins(j.String())
+		if err := j.IsValid(db); err != nil {
+			log.Error(ctx, map[string]interface{}{"expression": criteria, "err": err}, "table join not valid")
+			return 0, errors.NewBadParameterError("expression", criteria).Expected("valid table join")
 		}
+		db = db.Joins(j.String())
 	}
 	db = db.Count(&count)
 	if db.Error != nil {
