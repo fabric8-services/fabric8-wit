@@ -443,7 +443,7 @@ $ ./bin/wit-cli show workitem --id <ID> -H localhost:8080 --pp
 
 == Swagger API
 
-Swagger API is available via http://swagger.goa.design/?url=github.com%2Ffabric8-services%2Ffabric8-wit%2Fdesign[Goa Swagger Generator]
+A browsable documentation for our API is available with http://swagger.goa.design/?url=github.com%2Ffabric8-services%2Ffabric8-wit%2Fdesign[goa Swagger Generator]. It reflects the latest state of the master branch.
 
 == Prod preview setup
 
