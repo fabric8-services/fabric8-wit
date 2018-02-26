@@ -21,14 +21,14 @@ import (
 // arrays you can explicitly allow or disallow columns to be queried. The names
 // in the allowed/disalowed columns are those of the table.
 type TableJoin struct {
-	Active            bool     // true if this table join is used
-	TableName         string   // e.g. "iterations"
-	TableAlias        string   // e.g. "iter"
-	On                string   // e.g. `fields@> concat('{"system.iteration": "', iter.ID, '"}')::jsonb`
-	PrefixTriggers    []string // e.g. []string{"iteration."}
-	AllowedColumns    []string // e.g. ["name"]. When empty all columns are allowed.
-	DisallowedColumns []string // e.g. ["created_at"]. When empty all columns are allowed.
-	HandledFields     []string // e.g. []string{"name", "created_at", "foobar"}
+	active            bool     // true if this table join is used
+	tableName         string   // e.g. "iterations"
+	tableAlias        string   // e.g. "iter"
+	on                string   // e.g. `fields@> concat('{"system.iteration": "', iter.ID, '"}')::jsonb`
+	prefixActivators  []string // e.g. []string{"iteration."}
+	allowedColumns    []string // e.g. ["name"]. When empty all columns are allowed.
+	disallowedColumns []string // e.g. ["created_at"]. When empty all columns are allowed.
+	handledFields     []string // e.g. []string{"name", "created_at", "foobar"}
 	// TODO(kwk): Maybe introduce a column mapping table here: ColumnMapping map[string]string
 }
 
@@ -38,9 +38,9 @@ func (j TableJoin) IsValid(db *gorm.DB) error {
 	dialect := db.Dialect()
 	dialect.SetDB(db.CommonDB())
 	if j.IsActive() {
-		for _, f := range j.HandledFields {
-			if !dialect.HasColumn(j.TableName, f) {
-				return errs.Errorf(`table "%s" has no column "%s"`, j.TableName, f)
+		for _, f := range j.handledFields {
+			if !dialect.HasColumn(j.tableName, f) {
+				return errs.Errorf(`table "%s" has no column "%s"`, j.tableName, f)
 			}
 		}
 	}
@@ -50,13 +50,13 @@ func (j TableJoin) IsValid(db *gorm.DB) error {
 // Activate tells the search engine to actually use this join information;
 // otherwise it won't be used.
 func (j *TableJoin) Activate() {
-	j.Active = true
+	j.active = true
 }
 
 // IsActive returns true if this table join was activated; otherwise false is
 // returned.
 func (j TableJoin) IsActive() bool {
-	return j.Active
+	return j.active
 }
 
 // JoinOnJSONField returns the ON part of an SQL JOIN for the given fields
@@ -66,13 +66,13 @@ func JoinOnJSONField(jsonField, foreignCol string) string {
 
 // String implements Stringer interface
 func (j TableJoin) String() string {
-	return "JOIN " + j.TableName + " " + j.TableAlias + " ON " + j.On
+	return "LEFT JOIN " + j.tableName + " " + j.tableAlias + " ON " + j.on
 }
 
 // HandlesFieldName returns true if the given field name should be handled by
 // this table join.
 func (j *TableJoin) HandlesFieldName(fieldName string) bool {
-	for _, t := range j.PrefixTriggers {
+	for _, t := range j.prefixActivators {
 		if strings.HasPrefix(fieldName, t) {
 			return true
 		}
@@ -92,7 +92,7 @@ func (j *TableJoin) TranslateFieldName(fieldName string) (string, error) {
 	j.Activate()
 
 	var prefix string
-	for _, t := range j.PrefixTriggers {
+	for _, t := range j.prefixActivators {
 		if strings.HasPrefix(fieldName, t) {
 			prefix = t
 		}
@@ -112,15 +112,15 @@ func (j *TableJoin) TranslateFieldName(fieldName string) (string, error) {
 
 	// if no columns are explicitly allowed, then this column is allowed by
 	// default.
-	columnIsAllowed := (j.AllowedColumns == nil || len(j.AllowedColumns) == 0)
-	for _, c := range j.AllowedColumns {
+	columnIsAllowed := (j.allowedColumns == nil || len(j.allowedColumns) == 0)
+	for _, c := range j.allowedColumns {
 		if c == col {
 			columnIsAllowed = true
 			break
 		}
 	}
 	// check if a column is explicitly disallowed
-	for _, c := range j.DisallowedColumns {
+	for _, c := range j.disallowedColumns {
 		if c == col {
 			columnIsAllowed = false
 			break
@@ -129,6 +129,6 @@ func (j *TableJoin) TranslateFieldName(fieldName string) (string, error) {
 	if !columnIsAllowed {
 		return "", errs.Errorf("column is not allowed: %s", col)
 	}
-	j.HandledFields = append(j.HandledFields, col)
-	return j.TableAlias + "." + col, nil
+	j.handledFields = append(j.handledFields, col)
+	return j.tableAlias + "." + col, nil
 }

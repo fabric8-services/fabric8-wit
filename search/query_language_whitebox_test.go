@@ -580,7 +580,7 @@ func expectEqualExpr(t *testing.T, expectedExpr, actualExpr c.Expression) {
 	actualClause, actualParameters, actualJoins, actualErrs := workitem.Compile(actualExpr)
 	require.Empty(t, actualErrs, "failed to compile actual expression. stack: %s", string(debug.Stack()))
 	exprectedClause, expectedParameters, expectedJoins, expectedErrs := workitem.Compile(expectedExpr)
-	require.Empty(t, actualErrs, "failed to compile expected expression. stack: %s", string(debug.Stack()))
+	require.Empty(t, expectedErrs, "failed to compile expected expression. stack: %s", string(debug.Stack()))
 	require.Equal(t, exprectedClause, actualClause, "where clause differs")
 	require.Equal(t, expectedParameters, actualParameters, "parameters differ")
 	require.Equal(t, expectedJoins, actualJoins, "joins differ")

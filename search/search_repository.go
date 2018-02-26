@@ -391,6 +391,9 @@ var searchKeyMap = map[string]string{
 	"type":         "Type",
 	"workitemtype": "Type", // same as 'type' - added for compatibility. (Ref. #1564)
 	"space":        "SpaceID",
+
+	// TODO(kwk): only as a workaround for now. REMOVE ME
+	"iteration.name": "iteration.name",
 }
 
 func (q Query) determineLiteralType(key string, val string) criteria.Expression {
@@ -736,7 +739,7 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 				AND wil.deleted_at IS NULL)`, link.TypeParentOf)
 	}
 
-	db := r.db.Model(&workitem.WorkItemStorage{}).Where(where, parameters...)
+	db := r.db.Debug().Model(&workitem.WorkItemStorage{}).Where(where, parameters...)
 	for _, j := range joins {
 		if err := j.IsValid(db); err != nil {
 			log.Error(ctx, map[string]interface{}{"expression": criteria, "err": err}, "table join not valid")
