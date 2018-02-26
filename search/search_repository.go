@@ -737,7 +737,7 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 				AND wil.deleted_at IS NULL)`, link.TypeParentOf)
 	}
 
-	db := r.db.Debug().Model(&workitem.WorkItemStorage{}).Where(where, parameters...)
+	db := r.db.Model(&workitem.WorkItemStorage{}).Where(where, parameters...)
 	for _, j := range joins {
 		if err := j.IsValid(db); err != nil {
 			log.Error(ctx, map[string]interface{}{"expression": criteria, "err": err}, "table join not valid")
