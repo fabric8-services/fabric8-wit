@@ -29,6 +29,7 @@ func TestField(t *testing.T) {
 		expect(t, c.Equals(c.Field("wit.name"), c.Literal("abcd")), `(wit.name = ?)`, []interface{}{"abcd"}, []string{"work_item_type"})
 		expect(t, c.Equals(c.Field("space.name"), c.Literal("abcd")), `(space.name = ?)`, []interface{}{"abcd"}, []string{"space"})
 		expect(t, c.Equals(c.Field("creator.full_name"), c.Literal("abcd")), `(creator.full_name = ?)`, []interface{}{"abcd"}, []string{"creator"})
+		expect(t, c.Equals(c.Field("author.full_name"), c.Literal("abcd")), `(creator.full_name = ?)`, []interface{}{"abcd"}, []string{"creator"})
 	})
 }
 

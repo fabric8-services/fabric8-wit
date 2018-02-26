@@ -141,7 +141,7 @@ func newExpressionCompiler() expressionCompiler {
 				TableName:      "users",
 				TableAlias:     "creator",
 				On:             JoinOnJSONField(SystemCreator, "creator.id"),
-				PrefixTriggers: []string{"creator."},
+				PrefixTriggers: []string{"creator.", "author."},
 			},
 		},
 	}
