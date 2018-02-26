@@ -470,20 +470,18 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 		}
 	} else if !isOperator(currentOperator) || currentOperator == OPTS {
 		key, ok := searchKeyMap[q.Name]
-		if !ok {
-			// check that none of the default table joins handles this column:
-			var handled bool
-			joins := workitem.DefaultTableJoins()
-			for _, j := range joins {
-				if j.HandlesFieldName(q.Name) {
-					handled = true
-					break
-				}
+		// check that none of the default table joins handles this column:
+		var handledByJoin bool
+		joins := workitem.DefaultTableJoins()
+		for _, j := range joins {
+			if j.HandlesFieldName(q.Name) {
+				handledByJoin = true
+				key = q.Name
+				break
 			}
-			if !handled {
-				return nil, errors.NewBadParameterError("key not found", q.Name)
-			}
-			key = q.Name
+		}
+		if !ok && !handledByJoin {
+			return nil, errors.NewBadParameterError("key not found", q.Name)
 		}
 		left := criteria.Field(key)
 		if q.Value != nil {
