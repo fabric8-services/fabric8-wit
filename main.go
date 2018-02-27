@@ -86,7 +86,7 @@ func main() {
 	log.InitializeLogger(config.IsLogJSON(), config.GetLogLevel())
 
 	// Initialize sentry client
-	sentry.InitializeSentryClient(controller.Commit)
+	sentry.InitializeSentryClient(controller.Commit, config.GetEnvironment())
 
 	printUserInfo()
 

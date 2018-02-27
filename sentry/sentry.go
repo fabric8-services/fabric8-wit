@@ -28,13 +28,14 @@ func Sentry() *Client {
 }
 
 // InitializeSentryClient initializes sentry client
-func InitializeSentryClient(release string) error {
+func InitializeSentryClient(release, environment string) error {
 	c, err := raven.New(os.Getenv("SENTRY_DSN"))
 	if err != nil {
 		return err
 	}
 
 	c.SetRelease(release)
+	c.SetEnvironment(environment)
 	sentryClient = &Client{
 		c: c,
 	}
@@ -62,15 +63,15 @@ func (c *Client) CaptureError(ctx context.Context, err error) error {
 
 // extractUserInfo reads the context and returns sentry understandable
 // user object's reference and error
-func extractUserInfo(c context.Context) (*raven.User, error) {
-	m, err := token.ReadManagerFromContext(c)
+func extractUserInfo(ctx context.Context) (*raven.User, error) {
+	m, err := token.ReadManagerFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	q := *m
-	token := goajwt.ContextJWT(c)
-	t, err := q.ParseToken(c, token.Raw)
+	token := goajwt.ContextJWT(ctx)
+	t, err := q.ParseToken(ctx, token.Raw)
 	if err != nil {
 		return nil, err
 	}
