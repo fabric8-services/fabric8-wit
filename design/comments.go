@@ -61,14 +61,7 @@ var createCommentAttributes = a.Type("CreateCommentAttributes", func() {
 
 var commentRelationships = a.Type("CommentRelations", func() {
 	a.Attribute("creator", relationGeneric, "This defines the creator of the comment")
-	a.Attribute("created-by", commentCreatedBy, "DEPRECATED. This defines the creator of the comment.")
 	a.Attribute("parent", relationGeneric, "This defines the owning resource of the comment")
-})
-
-var commentCreatedBy = a.Type("CommentCreatedBy", func() {
-	a.Attribute("data", identityRelationData)
-	a.Required("data")
-	a.Attribute("links", genericLinks)
 })
 
 var identityRelationData = a.Type("IdentityRelationData", func() {

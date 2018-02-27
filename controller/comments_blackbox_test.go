@@ -199,17 +199,6 @@ func convertCommentToModel(c app.CommentSingle) comment.Comment {
 	}
 }
 
-func (s *CommentsSuite) TestShowCommentWithBackwardSupport() {
-	// given
-	wiID := s.createWorkItem(s.testIdentity)
-	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &markdownMarkup)
-	// when
-	userSvc, commentsCtrl := s.unsecuredController()
-	_, result := test.ShowCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID, nil, nil)
-	// then
-	assert.Equal(s.T(), *result.Data.Relationships.Creator.Data.ID, result.Data.Relationships.CreatedBy.Data.ID.String())
-}
-
 func (s *CommentsSuite) TestShowCommentWithoutAuthOK() {
 	// given
 	wiID := s.createWorkItem(s.testIdentity)
