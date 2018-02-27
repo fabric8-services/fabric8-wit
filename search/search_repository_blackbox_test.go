@@ -107,6 +107,29 @@ func (s *searchRepositoryBlackboxTest) TestSearchWithJoin() {
 			}
 			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
 		})
+		t.Run("matching name in child", func(t *testing.T) {
+			// when
+			filter := fmt.Sprintf(`{"$AND":[{"iteration.name": "%s"},{"space":"%s"}]}`, fxt.Iterations[0].Name, fxt.Spaces[0].ID)
+			res, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
+			// then
+			require.NoError(t, err)
+			assert.Equal(t, uint64(7), count)
+			toBeFound := id.Slice{
+				fxt.WorkItems[0].ID,
+				fxt.WorkItems[1].ID,
+				fxt.WorkItems[2].ID,
+				fxt.WorkItems[3].ID,
+				fxt.WorkItems[4].ID,
+				fxt.WorkItems[5].ID,
+				fxt.WorkItems[6].ID,
+			}.ToMap()
+			for _, wi := range res {
+				_, ok := toBeFound[wi.ID]
+				require.True(t, ok, "unknown work item found: %s", wi.ID)
+				delete(toBeFound, wi.ID)
+			}
+			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
+		})
 	})
 }
 

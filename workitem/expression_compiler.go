@@ -92,14 +92,14 @@ func (c *expressionCompiler) getFieldName(fieldName string) (mappedFieldName str
 
 	mappedFieldName, isColumnField := fieldMap[fieldName]
 	if isColumnField {
-		return mappedFieldName, false
+		return WorkItemStorage{}.TableName() + "." + mappedFieldName, false
 	}
 
 	if strings.Contains(fieldName, ".") {
 		// leave field untouched
 		return fieldName, true
 	}
-	return fieldName, false
+	return WorkItemStorage{}.TableName() + "." + fieldName, false
 }
 
 // DefaultTableJoins returns the default list of joinable tables used when
