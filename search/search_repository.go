@@ -516,7 +516,17 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 			}
 		} else {
 			key, ok := searchKeyMap[child.Name]
-			if !ok {
+			// check that none of the default table joins handles this column:
+			var handledByJoin bool
+			joins := workitem.DefaultTableJoins()
+			for _, j := range joins {
+				if j.HandlesFieldName(child.Name) {
+					handledByJoin = true
+					key = child.Name
+					break
+				}
+			}
+			if !ok && !handledByJoin {
 				return nil, errors.NewBadParameterError("key not found", child.Name)
 			}
 			left := criteria.Field(key)

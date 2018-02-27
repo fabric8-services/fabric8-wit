@@ -15,12 +15,12 @@ func TestField(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	expect(t, c.Equals(c.Field("foo.bar"), c.Literal(23)), "(Fields@>'{\"foo.bar\" : 23}')", []interface{}{}, nil)
-	expect(t, c.Equals(c.Field("foo"), c.Literal(23)), "(foo = ?)", []interface{}{23}, nil)
-	expect(t, c.Equals(c.Field("Type"), c.Literal("abcd")), "(type = ?)", []interface{}{"abcd"}, nil)
-	expect(t, c.Not(c.Field("Type"), c.Literal("abcd")), "(type != ?)", []interface{}{"abcd"}, nil)
-	expect(t, c.Not(c.Field("Version"), c.Literal("abcd")), "(version != ?)", []interface{}{"abcd"}, nil)
-	expect(t, c.Not(c.Field("Number"), c.Literal("abcd")), "(number != ?)", []interface{}{"abcd"}, nil)
-	expect(t, c.Not(c.Field("SpaceID"), c.Literal("abcd")), "(space_id != ?)", []interface{}{"abcd"}, nil)
+	expect(t, c.Equals(c.Field("foo"), c.Literal(23)), "(work_items.foo = ?)", []interface{}{23}, nil)
+	expect(t, c.Equals(c.Field("Type"), c.Literal("abcd")), "(work_items.type = ?)", []interface{}{"abcd"}, nil)
+	expect(t, c.Not(c.Field("Type"), c.Literal("abcd")), "(work_items.type != ?)", []interface{}{"abcd"}, nil)
+	expect(t, c.Not(c.Field("Version"), c.Literal("abcd")), "(work_items.version != ?)", []interface{}{"abcd"}, nil)
+	expect(t, c.Not(c.Field("Number"), c.Literal("abcd")), "(work_items.number != ?)", []interface{}{"abcd"}, nil)
+	expect(t, c.Not(c.Field("SpaceID"), c.Literal("abcd")), "(work_items.space_id != ?)", []interface{}{"abcd"}, nil)
 
 	t.Run("test join", func(t *testing.T) {
 		expect(t, c.Equals(c.Field("iteration.name"), c.Literal("abcd")), `(iter.name = ?)`, []interface{}{"abcd"}, []string{"iteration"})
@@ -60,11 +60,11 @@ func TestIsNull(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	expect(t, c.IsNull("system.assignees"), "(Fields->>'system.assignees' IS NULL)", []interface{}{}, nil)
-	expect(t, c.IsNull("ID"), "(id IS NULL)", []interface{}{}, nil)
-	expect(t, c.IsNull("Type"), "(type IS NULL)", []interface{}{}, nil)
-	expect(t, c.IsNull("Version"), "(version IS NULL)", []interface{}{}, nil)
-	expect(t, c.IsNull("Number"), "(number IS NULL)", []interface{}{}, nil)
-	expect(t, c.IsNull("SpaceID"), "(space_id IS NULL)", []interface{}{}, nil)
+	expect(t, c.IsNull("ID"), "(work_items.id IS NULL)", []interface{}{}, nil)
+	expect(t, c.IsNull("Type"), "(work_items.type IS NULL)", []interface{}{}, nil)
+	expect(t, c.IsNull("Version"), "(work_items.version IS NULL)", []interface{}{}, nil)
+	expect(t, c.IsNull("Number"), "(work_items.number IS NULL)", []interface{}{}, nil)
+	expect(t, c.IsNull("SpaceID"), "(work_items.space_id IS NULL)", []interface{}{}, nil)
 }
 
 func expect(t *testing.T, expr c.Expression, expectedClause string, expectedParameters []interface{}, expectedJoins []string) {
