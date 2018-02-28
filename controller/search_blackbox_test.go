@@ -1029,6 +1029,45 @@ func (s *searchControllerTestSuite) TestSearchQueryScenarioDriven() {
 	})
 }
 
+func (s *searchControllerTestSuite) TestSearchByJoinedData() {
+	// given
+	fxt := tf.NewTestFixture(s.T(), s.DB,
+		tf.Iterations(2),
+		tf.WorkItems(5, func(fxt *tf.TestFixture, idx int) error {
+			switch idx {
+			case 0, 1, 2, 3:
+				fxt.WorkItems[idx].Fields[workitem.SystemIteration] = fxt.Iterations[0].ID.String()
+			default:
+				fxt.WorkItems[idx].Fields[workitem.SystemIteration] = fxt.Iterations[1].ID.String()
+			}
+			return nil
+		}),
+	)
+	spaceIDStr := fxt.Spaces[0].ID.String()
+	s.T().Run("matching name", func(t *testing.T) {
+		// given
+		filter := fmt.Sprintf(`{"iteration.name": "%s"}`, fxt.Iterations[0].Name)
+		// when
+		resWriter, list := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, ptr.String(spaceIDStr))
+		// then
+		require.NotNil(t, resWriter)
+		require.NotNil(t, list)
+		assert.Len(t, list.Data, 4)
+		toBeFound := id.MapFromSlice(id.Slice{
+			fxt.WorkItems[0].ID,
+			fxt.WorkItems[1].ID,
+			fxt.WorkItems[2].ID,
+			fxt.WorkItems[3].ID,
+		})
+		for _, wi := range list.Data {
+			_, ok := toBeFound[*wi.ID]
+			require.True(t, ok, "unknown work item found: %s", *wi.ID)
+			delete(toBeFound, *wi.ID)
+		}
+		require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
+	})
+}
+
 // TestIncludedParents verifies the Included list of parents
 func (s *searchControllerTestSuite) TestIncludedParents() {
 	resetFn := s.DisableGormCallbacks()
