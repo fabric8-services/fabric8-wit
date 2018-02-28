@@ -51,6 +51,13 @@ type TableJoin struct {
 	// exists in the database.
 	HandledFields []string // e.g. []string{"name", "created_at", "foobar"}
 
+	// ActivateOtherJoins is useful when you make complex joins over mutliple
+	// tables. Just put in the names of the table join keys in here that you
+	// would like to activate as well. See DefaultTypeGroups() for how the map
+	// looks like. If you ask for "A" and that requires "B", then "B" is also
+	// added automatically.
+	ActivateOtherJoins []string
+
 	// TODO(kwk): Maybe introduce a column mapping table here: ColumnMapping map[string]string
 }
 
@@ -71,12 +78,12 @@ func (j TableJoin) Validate(db *gorm.DB) error {
 
 // JoinOnJSONField returns the ON part of an SQL JOIN for the given fields
 func JoinOnJSONField(jsonField, foreignCol string) string {
-	return fmt.Sprintf(`fields@> concat('{"%[1]s": "', %[2]s, '"}')::jsonb`, jsonField, foreignCol)
+	return fmt.Sprintf(`%[1]s @> concat('{"%[2]s": "', %[3]s, '"}')::jsonb`, Column(WorkItemStorage{}.TableName(), "fields"), jsonField, foreignCol)
 }
 
-// String implements Stringer interface
-func (j TableJoin) String() string {
-	return "LEFT JOIN " + j.TableName + " " + j.TableAlias + " ON " + j.On
+// GetJoinExpression returns the SQL JOIN expression for this table join.
+func (j TableJoin) GetJoinExpression() string {
+	return fmt.Sprintf(`LEFT JOIN "%s" "%s" ON %s`, j.TableName, j.TableAlias, j.On)
 }
 
 // HandlesFieldName returns true if the given field name should be handled by
@@ -144,5 +151,36 @@ func (j *TableJoin) TranslateFieldName(fieldName string) (string, error) {
 	// Validate() to see if those columns do exist or not.
 	j.HandledFields = append(j.HandledFields, col)
 
-	return j.TableAlias + "." + col, nil
+	return Column(j.TableAlias, col), nil
+}
+
+// TableJoinMap is used to store join in the expression compiler
+type TableJoinMap map[string]*TableJoin
+
+// ActivateRequiredJoins recursively walks over all given joins potentially
+// multiple times and activates all other required joins.
+func (joins *TableJoinMap) ActivateRequiredJoins() error {
+	for k, join := range *joins {
+		if !join.Active {
+			continue
+		}
+
+		for _, name := range join.ActivateOtherJoins {
+			other, exists := (*joins)[name]
+			if !exists {
+				return errs.Errorf(`join "%s" not found for "%s" join`, name, k)
+			}
+
+			// Check if dependend join is already active
+			if other.Active {
+				continue
+			}
+
+			other.Active = true
+			if err := joins.ActivateRequiredJoins(); err != nil {
+				return errs.Wrapf(err, `failed to activate required joins for "%s" join`, k)
+			}
+		}
+	}
+	return nil
 }
