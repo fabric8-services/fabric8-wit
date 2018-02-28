@@ -168,9 +168,7 @@ func JSONErrorResponse(obj interface{}, err error) error {
 			return errs.WithStack(ctx.Conflict(jsonErr))
 		}
 	default:
-		if errLocal := sentry.Sentry().CaptureError(c, err); errLocal != nil {
-			// TODO: Handle error here
-		}
+		sentry.Sentry().CaptureError(c, err)
 		return errs.WithStack(x.InternalServerError(jsonErr))
 	}
 	return nil
