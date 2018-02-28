@@ -13,8 +13,9 @@ const (
 	jsonAnnotation = "JSON"
 )
 
-// Compile takes an expression and compiles it to a where clause for use with gorm.DB.Where()
-// Returns the number of expected parameters for the query and a slice of errors if something goes wrong
+// Compile takes an expression and compiles it to a where clause for use with
+// gorm.DB.Where(). Returns the number of expected parameters for the query and a
+// slice of errors if something goes wrong.
 func Compile(where criteria.Expression) (whereClause string, parameters []interface{}, joins map[string]TableJoin, err []error) {
 	compiler := newExpressionCompiler()
 
@@ -25,6 +26,10 @@ func Compile(where criteria.Expression) (whereClause string, parameters []interf
 	c, ok := compiled.(string)
 	if !ok {
 		c = ""
+	}
+
+	if err := compiler.joins.ActivateRequiredJoins(); err != nil {
+		compiler.err = append(compiler.err, err)
 	}
 
 	// Make sure we don't return all possible joins but only the once that were activated
@@ -66,6 +71,12 @@ func bubbleUpJSONContext(c *expressionCompiler) func(exp criteria.Expression) bo
 	}
 }
 
+// Column returns a proper column name from the given column name in the given
+// table.
+func Column(table, column string) string {
+	return `"` + table + `"."` + column + `"`
+}
+
 // fieldMap tells how to resolve struct fields as SQL fields in the work_items
 // SQL table.
 // NOTE: anything not listed here will be treated as if it is nested inside the
@@ -92,20 +103,20 @@ func (c *expressionCompiler) getFieldName(fieldName string) (mappedFieldName str
 
 	mappedFieldName, isColumnField := fieldMap[fieldName]
 	if isColumnField {
-		return WorkItemStorage{}.TableName() + "." + mappedFieldName, false
+		return Column(WorkItemStorage{}.TableName(), mappedFieldName), false
 	}
 
 	if strings.Contains(fieldName, ".") {
 		// leave field untouched
 		return fieldName, true
 	}
-	return WorkItemStorage{}.TableName() + "." + fieldName, false
+	return Column(WorkItemStorage{}.TableName(), fieldName), false
 }
 
 // DefaultTableJoins returns the default list of joinable tables used when
 // creating a new expression compiler.
-func DefaultTableJoins() map[string]*TableJoin {
-	return map[string]*TableJoin{
+func DefaultTableJoins() TableJoinMap {
+	return TableJoinMap{
 		"iteration": {
 			TableName:        "iterations",
 			TableAlias:       "iter",
@@ -162,9 +173,9 @@ func newExpressionCompiler() expressionCompiler {
 // expressionCompiler takes an expression and compiles it to a where clause for our gorm models
 // implements criteria.ExpressionVisitor
 type expressionCompiler struct {
-	parameters []interface{}         // records the number of parameter expressions encountered
-	err        []error               // record any errors found in the expression
-	joins      map[string]*TableJoin // map of table joins keyed by table name
+	parameters []interface{} // records the number of parameter expressions encountered
+	err        []error       // record any errors found in the expression
+	joins      TableJoinMap  // map of table joins keyed by table name
 }
 
 // Ensure expressionCompiler implements the ExpressionVisitor interface
@@ -186,10 +197,23 @@ func (c *expressionCompiler) expressionRefersToJoinedData(e criteria.Expression)
 	return nil, false
 }
 
+// Ensure expressionCompiler implements the ExpressionVisitor interface
+var _ criteria.ExpressionVisitor = &expressionCompiler{}
+var _ criteria.ExpressionVisitor = (*expressionCompiler)(nil)
+
 // visitor implementation
 // the convention is to return nil when the expression cannot be compiled and to append an error to the err field
 
 func (c *expressionCompiler) Field(f *criteria.FieldExpression) interface{} {
+	if strings.Contains(f.FieldName, `"`) {
+		c.err = append(c.err, errs.Errorf("field name must not contain double quotes: %s", f.FieldName))
+		return nil
+	}
+	if strings.Contains(f.FieldName, `'`) {
+		c.err = append(c.err, errs.Errorf("field name must not contain single quotes: %s", f.FieldName))
+		return nil
+	}
+
 	mappedFieldName, isJSONField := c.getFieldName(f.FieldName)
 
 	// Check if this field is referencing joinable data
@@ -215,11 +239,11 @@ func (c *expressionCompiler) Field(f *criteria.FieldExpression) interface{} {
 	}
 
 	// default to plain json field (e.g. for ID comparisons)
-	return "Fields@>'{\"" + mappedFieldName + "\""
+	return Column(WorkItemStorage{}.TableName(), "fields") + ` @> '{"` + mappedFieldName + `"`
 }
 
 func (c *expressionCompiler) And(a *criteria.AndExpression) interface{} {
-	return c.binary(a, "and")
+	return c.binary(a, "AND")
 }
 
 func (c *expressionCompiler) binary(a criteria.BinaryExpression, op string) interface{} {
@@ -243,7 +267,7 @@ func (c *expressionCompiler) binary(a criteria.BinaryExpression, op string) inte
 }
 
 func (c *expressionCompiler) Or(a *criteria.OrExpression) interface{} {
-	return c.binary(a, "or")
+	return c.binary(a, "OR")
 }
 
 func (c *expressionCompiler) Equals(e *criteria.EqualsExpression) interface{} {
@@ -288,7 +312,7 @@ func (c *expressionCompiler) Substring(e *criteria.SubstringExpression) interfac
 		if inJSONContext {
 			r = "%" + r + "%"
 			c.parameters = append(c.parameters, r)
-			return "Fields->>'" + left.FieldName + "' ILIKE ?"
+			return Column(WorkItemStorage{}.TableName(), "fields") + `->>'` + left.FieldName + `' ILIKE ?`
 		}
 		// Handle more complex joined field
 		col, err := join.TranslateFieldName(left.FieldName)
@@ -304,7 +328,7 @@ func (c *expressionCompiler) Substring(e *criteria.SubstringExpression) interfac
 func (c *expressionCompiler) IsNull(e *criteria.IsNullExpression) interface{} {
 	mappedFieldName, isJSONField := c.getFieldName(e.FieldName)
 	if isJSONField {
-		return "(Fields->>'" + mappedFieldName + "' IS NULL)"
+		return "(" + Column(WorkItemStorage{}.TableName(), "fields") + "->>'" + mappedFieldName + "' IS NULL)"
 	}
 	return "(" + mappedFieldName + " IS NULL)"
 }
