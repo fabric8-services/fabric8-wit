@@ -74,7 +74,7 @@ func bubbleUpJSONContext(c *expressionCompiler) func(exp criteria.Expression) bo
 // Column returns a proper column name from the given column name in the given
 // table.
 func Column(table, column string) string {
-	return `"` + table + `"."` + column + `"`
+	return fmt.Sprintf(`"%s"."%s"`, table, column)
 }
 
 // fieldMap tells how to resolve struct fields as SQL fields in the work_items
