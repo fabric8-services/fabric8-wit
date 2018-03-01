@@ -697,7 +697,7 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, spaceID uu
 			log.Error(ctx, map[string]interface{}{"expression": criteria, "err": err}, "table join not valid")
 			return nil, 0, errors.NewBadParameterError("expression", criteria).Expected("valid table join")
 		}
-		db = db.Joins(j.String())
+		db = db.Joins(j.GetJoinExpression())
 	}
 
 	orgDB := db
@@ -806,7 +806,7 @@ func (r *GormWorkItemRepository) Count(ctx context.Context, spaceID uuid.UUID, c
 			log.Error(ctx, map[string]interface{}{"expression": criteria, "err": err}, "table join not valid")
 			return 0, errors.NewBadParameterError("expression", criteria).Expected("valid table join")
 		}
-		db = db.Joins(j.String())
+		db = db.Joins(j.GetJoinExpression())
 	}
 	db = db.Count(&count)
 	if db.Error != nil {
