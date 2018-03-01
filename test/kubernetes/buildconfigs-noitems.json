@@ -1,0 +1,7 @@
+{
+    "apiVersion": "v1",
+    "kind": "BuildConfigList",
+    "metadata": {},
+    "resourceVersion": "",
+    "selfLink": ""
+}

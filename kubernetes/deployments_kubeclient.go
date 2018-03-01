@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -11,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	yaml "gopkg.in/yaml.v2"
 	resource "k8s.io/apimachinery/pkg/api/resource"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -38,8 +38,8 @@ type KubeClientConfig struct {
 	KubeRESTAPIGetter
 	// Provides access to the metrics API, uses default implementation if not set
 	MetricsGetter
-	// hook to inject build configs for testing
-	BuildConfig
+	// Provides access to the OpenShift REST API, uses default implementation if not set
+	OpenShiftRESTAPIGetter
 }
 
 // KubeRESTAPIGetter has a method to access the KubeRESTAPI interface
@@ -47,14 +47,14 @@ type KubeRESTAPIGetter interface {
 	GetKubeRESTAPI(config *KubeClientConfig) (KubeRESTAPI, error)
 }
 
+// OpenShiftRESTAPIGetter has a method to access the OpenShiftRESTAPI interface
+type OpenShiftRESTAPIGetter interface {
+	GetOpenShiftRESTAPI(config *KubeClientConfig) (OpenShiftRESTAPI, error)
+}
+
 // MetricsGetter has a method to access the Metrics interface
 type MetricsGetter interface {
 	GetMetrics(config *MetricsClientConfig) (Metrics, error)
-}
-
-// BuildConfig will provide build configs for testing
-type BuildConfig interface {
-	GetBuildConfigs(space string) ([]string, error)
 }
 
 // KubeClientInterface contains configuration and methods for interacting with a Kubernetes cluster
@@ -78,12 +78,25 @@ type kubeClient struct {
 	envMap map[string]string
 	KubeRESTAPI
 	Metrics
-	BuildConfig
+	OpenShiftRESTAPI
 }
 
 // KubeRESTAPI collects methods that call out to the Kubernetes API server over the network
 type KubeRESTAPI interface {
 	corev1.CoreV1Interface
+}
+
+// OpenShiftRESTAPI collects methods that call out to the OpenShift API server over the network
+type OpenShiftRESTAPI interface {
+	GetBuildConfigs(namespace string, labelSelector string) (map[string]interface{}, error)
+	GetDeploymentConfig(namespace string, name string) (map[string]interface{}, error)
+	GetDeploymentConfigScale(namespace string, name string) (map[string]interface{}, error)
+	SetDeploymentConfigScale(namespace string, name string, scale map[string]interface{}) error
+	GetRoutes(namespace string) (map[string]interface{}, error)
+}
+
+type openShiftAPIClient struct {
+	config *KubeClientConfig
 }
 
 type deployment struct {
@@ -115,7 +128,15 @@ func NewKubeClient(config *KubeClientConfig) (KubeClientInterface, error) {
 	if config.KubeRESTAPIGetter == nil {
 		config.KubeRESTAPIGetter = &defaultGetter{}
 	}
+	// Use default implementation if no OpenShiftGetter is specified
+	if config.OpenShiftRESTAPIGetter == nil {
+		config.OpenShiftRESTAPIGetter = &defaultGetter{}
+	}
 	kubeAPI, err := config.GetKubeRESTAPI(config)
+	if err != nil {
+		return nil, errs.WithStack(err)
+	}
+	osAPI, err := config.GetOpenShiftRESTAPI(config)
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
@@ -147,11 +168,11 @@ func NewKubeClient(config *KubeClientConfig) (KubeClientInterface, error) {
 	}
 
 	kubeClient := &kubeClient{
-		config:      config,
-		envMap:      envMap,
-		KubeRESTAPI: kubeAPI,
-		Metrics:     metrics,
-		BuildConfig: config.BuildConfig,
+		config:           config,
+		envMap:           envMap,
+		KubeRESTAPI:      kubeAPI,
+		Metrics:          metrics,
+		OpenShiftRESTAPI: osAPI,
 	}
 	return kubeClient, nil
 }
@@ -166,6 +187,13 @@ func (*defaultGetter) GetKubeRESTAPI(config *KubeClientConfig) (KubeRESTAPI, err
 		return nil, errs.WithStack(err)
 	}
 	return clientset.CoreV1(), nil
+}
+
+func (*defaultGetter) GetOpenShiftRESTAPI(config *KubeClientConfig) (OpenShiftRESTAPI, error) {
+	client := &openShiftAPIClient{
+		config: config,
+	}
+	return client, nil
 }
 
 func (*defaultGetter) GetMetrics(config *MetricsClientConfig) (Metrics, error) {
@@ -183,7 +211,7 @@ func (kc *kubeClient) GetSpace(spaceName string) (*app.SimpleSpace, error) {
 	// Get BuildConfigs within the user namespace that have a matching 'space' label
 	// This is similar to how pipelines are displayed in fabric8-ui
 	// https://github.com/fabric8-ui/fabric8-ui/blob/master/src/app/space/create/pipelines/pipelines.component.ts
-	buildconfigs, err := kc.getBuildConfigs(spaceName)
+	buildconfigs, err := kc.getBuildConfigsForSpace(spaceName)
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
@@ -242,15 +270,12 @@ func (kc *kubeClient) ScaleDeployment(spaceName string, appName string, envName 
 		return nil, errs.WithStack(err)
 	}
 	// Look up the Scale for the DeploymentConfig corresponding to the application name in the provided environment
-	dcScaleURL := fmt.Sprintf("/oapi/v1/namespaces/%s/deploymentconfigs/%s/scale", envNS, appName)
-	scale, err := kc.getResource(dcScaleURL, true)
+	scale, err := kc.GetDeploymentConfigScale(envNS, appName)
 	if err != nil {
 		return nil, errs.WithStack(err)
-	} else if scale == nil {
-		return nil, nil
 	}
 
-	spec, ok := scale["spec"].(map[interface{}]interface{})
+	spec, ok := scale["spec"].(map[string]interface{})
 	if !ok {
 		log.Error(nil, map[string]interface{}{
 			"err":              err,
@@ -261,22 +286,18 @@ func (kc *kubeClient) ScaleDeployment(spaceName string, appName string, envName 
 		return nil, errs.New("invalid deployment config returned from endpoint: missing 'spec'")
 	}
 
-	replicasYaml, pres := spec["replicas"]
+	replicas, pres := spec["replicas"]
 	oldReplicas := 0 // replicas property may be missing from spec if set to 0
 	if pres {
-		oldReplicas, ok = replicasYaml.(int)
+		oldReplicasFlt, ok := replicas.(float64)
 		if !ok {
-			return nil, errs.New("invalid deployment config returned from endpoint: 'replicas' is not an integer")
+			return nil, errs.New("invalid deployment config returned from endpoint: 'replicas' is not a number")
 		}
+		oldReplicas = int(oldReplicasFlt)
 	}
 	spec["replicas"] = deployNumber
 
-	yamlScale, err := yaml.Marshal(scale)
-	if err != nil {
-		return nil, errs.WithStack(err)
-	}
-
-	_, err = kc.putResource(dcScaleURL, yamlScale)
+	err = kc.SetDeploymentConfigScale(envNS, appName, scale)
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
@@ -290,6 +311,16 @@ func (kc *kubeClient) ScaleDeployment(spaceName string, appName string, envName 
 	}, "scaled deployment to %d replicas", deployNumber)
 
 	return &oldReplicas, nil
+}
+
+func (oc *openShiftAPIClient) GetDeploymentConfigScale(namespace string, name string) (map[string]interface{}, error) {
+	dcScaleURL := fmt.Sprintf("/oapi/v1/namespaces/%s/deploymentconfigs/%s/scale", namespace, name)
+	return oc.getResource(dcScaleURL, false)
+}
+
+func (oc *openShiftAPIClient) SetDeploymentConfigScale(namespace string, name string, scale map[string]interface{}) error {
+	dcScaleURL := fmt.Sprintf("/oapi/v1/namespaces/%s/deploymentconfigs/%s/scale", namespace, name)
+	return oc.putResource(dcScaleURL, scale)
 }
 
 func (kc *kubeClient) getConsoleURL(envNS string) (*string, error) {
@@ -580,20 +611,13 @@ func getTimestampEndpoints(metricsSeries ...[]*app.TimedNumberTuple) (minTime, m
 	return minTime, maxTime
 }
 
-func (kc *kubeClient) getBuildConfigs(space string) ([]string, error) {
-
-	// hook for testing
-	if kc.config.BuildConfig != nil {
-		return kc.config.BuildConfig.GetBuildConfigs(space)
-	}
-
+func (kc *kubeClient) getBuildConfigsForSpace(space string) ([]string, error) {
 	// BuildConfigs are OpenShift objects, so access REST API using HTTP directly until
 	// there is a Go client for OpenShift
 
 	// BuildConfigs created by fabric8 have a "space" label indicating the space they belong to
-	queryParam := url.QueryEscape("space=" + space)
-	bcURL := fmt.Sprintf("/oapi/v1/namespaces/%s/buildconfigs?labelSelector=%s", kc.config.UserNamespace, queryParam)
-	result, err := kc.getResource(bcURL, false)
+	escapedSelector := url.QueryEscape("space=" + space)
+	result, err := kc.GetBuildConfigs(kc.config.UserNamespace, escapedSelector)
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
@@ -610,11 +634,11 @@ func (kc *kubeClient) getBuildConfigs(space string) ([]string, error) {
 	// Extract the names of the BuildConfigs from the response
 	buildconfigs := []string{}
 	for _, item := range items {
-		bc, ok := item.(map[interface{}]interface{})
+		bc, ok := item.(map[string]interface{})
 		if !ok {
 			return nil, errs.New("malformed build config")
 		}
-		metadata, ok := bc["metadata"].(map[interface{}]interface{})
+		metadata, ok := bc["metadata"].(map[string]interface{})
 		if !ok {
 			return nil, errs.New("'metadata' object missing from build config")
 		}
@@ -625,6 +649,11 @@ func (kc *kubeClient) getBuildConfigs(space string) ([]string, error) {
 		buildconfigs = append(buildconfigs, name)
 	}
 	return buildconfigs, nil
+}
+
+func (oc *openShiftAPIClient) GetBuildConfigs(namespace string, labelSelector string) (map[string]interface{}, error) {
+	bcURL := fmt.Sprintf("/oapi/v1/namespaces/%s/buildconfigs?labelSelector=%s", namespace, labelSelector)
+	return oc.getResource(bcURL, false)
 }
 
 func getEnvironmentsFromConfigMap(kube KubeRESTAPI, userNamespace string) (map[string]string, error) {
@@ -673,20 +702,32 @@ func (kc *kubeClient) getEnvironmentNamespace(envName string) (string, error) {
 }
 
 // Derived from: https://github.com/fabric8-services/fabric8-tenant/blob/master/openshift/kube_token.go
-func (kc *kubeClient) putResource(url string, putBody []byte) (*string, error) {
-	fullURL := strings.TrimSuffix(kc.config.ClusterURL, "/") + url
-	req, err := http.NewRequest("PUT", fullURL, bytes.NewBuffer(putBody))
+func (oc *openShiftAPIClient) putResource(url string, putBody map[string]interface{}) error {
+	fullURL := strings.TrimSuffix(oc.config.ClusterURL, "/") + url
+
+	marshalled, err := json.Marshal(putBody)
+	if err != nil {
+		log.Error(nil, map[string]interface{}{
+			"err":          err,
+			"url":          fullURL,
+			"request_body": putBody,
+		}, "could not marshall PUT request")
+		return errs.WithStack(err)
+	}
+
+	req, err := http.NewRequest("PUT", fullURL, bytes.NewBuffer(marshalled))
 	if err != nil {
 		log.Error(nil, map[string]interface{}{
 			"err":          err,
 			"url":          fullURL,
 			"request_body": putBody,
 		}, "could not create PUT request")
-		return nil, errs.WithStack(err)
+		return errs.WithStack(err)
 	}
-	req.Header.Set("Content-Type", "application/yaml")
-	req.Header.Set("Accept", "application/yaml")
-	req.Header.Set("Authorization", "Bearer "+kc.config.BearerToken)
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Authorization", "Bearer "+oc.config.BearerToken)
 
 	client := http.DefaultClient
 	resp, err := client.Do(req)
@@ -696,11 +737,11 @@ func (kc *kubeClient) putResource(url string, putBody []byte) (*string, error) {
 			"url":          fullURL,
 			"request_body": putBody,
 		}, "could not perform PUT request")
-		return nil, errs.WithStack(err)
+		return errs.WithStack(err)
 	}
 
-	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
 	if err != nil {
 		log.Error(nil, map[string]interface{}{
 			"err":           err,
@@ -708,7 +749,7 @@ func (kc *kubeClient) putResource(url string, putBody []byte) (*string, error) {
 			"request_body":  putBody,
 			"response_body": body,
 		}, "could not read response from PUT request")
-		return nil, errs.WithStack(err)
+		return errs.WithStack(err)
 	}
 
 	status := resp.StatusCode
@@ -720,15 +761,13 @@ func (kc *kubeClient) putResource(url string, putBody []byte) (*string, error) {
 			"response_body": body,
 			"http_status":   status,
 		}, "failed to PUT request due to HTTP error")
-		return nil, errs.Errorf("failed to PUT url %s: status code %d", fullURL, status)
+		return errs.Errorf("failed to PUT url %s: status code %d", fullURL, status)
 	}
-	bodyStr := string(body)
-	return &bodyStr, nil
+	return nil
 }
 
 func (kc *kubeClient) getDeploymentConfig(namespace string, appName string, space string) (*deployment, error) {
-	dcURL := fmt.Sprintf("/oapi/v1/namespaces/%s/deploymentconfigs/%s", namespace, appName)
-	result, err := kc.getResource(dcURL, true)
+	result, err := kc.GetDeploymentConfig(namespace, appName)
 	if err != nil {
 		return nil, errs.WithStack(err)
 	} else if result == nil {
@@ -740,12 +779,12 @@ func (kc *kubeClient) getDeploymentConfig(namespace string, appName string, spac
 	if !ok || kind != "DeploymentConfig" {
 		return nil, errs.New("no deployment config returned from endpoint")
 	}
-	metadata, ok := result["metadata"].(map[interface{}]interface{})
+	metadata, ok := result["metadata"].(map[string]interface{})
 	if !ok {
 		return nil, errs.Errorf("metadata missing from deployment config for applicaton %s configuration %+v", appName, result)
 	}
 	// Check the space label is what we expect
-	labels, ok := metadata["labels"].(map[interface{}]interface{})
+	labels, ok := metadata["labels"].(map[string]interface{})
 	if !ok {
 		return nil, errs.Errorf("labels missing from deployment config for application %s: %+v", appName, metadata)
 	}
@@ -772,6 +811,11 @@ func (kc *kubeClient) getDeploymentConfig(namespace string, appName string, spac
 		appVersion: version,
 	}
 	return dc, nil
+}
+
+func (oc *openShiftAPIClient) GetDeploymentConfig(namespace string, name string) (map[string]interface{}, error) {
+	dcURL := fmt.Sprintf("/oapi/v1/namespaces/%s/deploymentconfigs/%s", namespace, name)
+	return oc.getResource(dcURL, true)
 }
 
 func (kc *kubeClient) getCurrentDeployment(space string, appName string, namespace string) (*deployment, error) {
@@ -916,7 +960,7 @@ func (kc *kubeClient) getPods(namespace string, uid types.UID) ([]*v1.Pod, error
 	}
 
 	appPods := []*v1.Pod{}
-	for _, pod := range pods.Items {
+	for idx, pod := range pods.Items {
 		// If a pod belongs to a given RC, it should have an OwnerReference
 		// whose UID matches that of the RC
 		// https://github.com/openshift/origin-web-console/blob/v3.7.0/app/scripts/services/ownerReferences.js#L40
@@ -928,7 +972,7 @@ func (kc *kubeClient) getPods(namespace string, uid types.UID) ([]*v1.Pod, error
 			}
 		}
 		if match {
-			appPods = append(appPods, &pod)
+			appPods = append(appPods, &pods.Items[idx])
 		}
 	}
 
@@ -986,12 +1030,7 @@ func (kc *kubeClient) getPodStatus(pods []*v1.Pod) ([][]string, int) {
 		podTotal++
 	}
 
-	// if there were actually no pods, create a dummy entry
-	if podTotal == 0 {
-		podStatus[podRunning] = 0
-	}
-
-	var result [][]string
+	result := [][]string{}
 	for status, count := range podStatus {
 		statusEntry := []string{status, strconv.Itoa(count)}
 		result = append(result, statusEntry)
@@ -1148,71 +1187,70 @@ func (kc *kubeClient) getMatchingServices(namespace string, dc *deployment) (rou
 }
 
 func (kc *kubeClient) getRoutesByService(namespace string, routesByService map[string][]*route) error {
-	routeURL := fmt.Sprintf("/oapi/v1/namespaces/%s/routes", namespace)
-	result, err := kc.getResource(routeURL, false)
+	result, err := kc.GetRoutes(namespace)
 	if err != nil {
-		return err
+		return errs.WithStack(err)
 	}
 
 	// Parse list of routes
 	kind, ok := result["kind"].(string)
 	if !ok || kind != "RouteList" {
 		log.Error(nil, map[string]interface{}{
-			"err":          err,
-			"request_path": routeURL,
-			"response":     result,
+			"err":       err,
+			"namespace": namespace,
+			"response":  result,
 		}, "no route list returned from endpoint")
-		return errs.Errorf("no route list returned from endpoint %s", routeURL)
+		return errs.Errorf("no route list returned for namespace %s", namespace)
 	}
 	items, ok := result["items"].([]interface{})
 	if !ok {
 		log.Error(nil, map[string]interface{}{
-			"err":          err,
-			"request_path": routeURL,
-			"response":     result,
+			"err":       err,
+			"namespace": namespace,
+			"response":  result,
 		}, "no list of routes in response")
-		return errs.Errorf("no list of routes in response from %s", routeURL)
+		return errs.Errorf("no list of routes in response for %s", namespace)
 	}
 
 	for _, item := range items {
-		routeItem, ok := item.(map[interface{}]interface{})
+		routeItem, ok := item.(map[string]interface{})
 		if !ok {
 			log.Error(nil, map[string]interface{}{
-				"err":          err,
-				"request_path": routeURL,
-				"response":     result,
+				"err":       err,
+				"namespace": namespace,
+				"response":  result,
 			}, "route object invalid")
-			return errs.Errorf("invalid route object returned from %s", routeURL)
+			return errs.Errorf("invalid route object returned from %s", namespace)
 		}
 
 		// Parse route from result
-		spec, ok := routeItem["spec"].(map[interface{}]interface{})
+		spec, ok := routeItem["spec"].(map[string]interface{})
 		if !ok {
 			log.Error(nil, map[string]interface{}{
-				"err":          err,
-				"request_path": routeURL,
-				"response":     result,
+				"err":       err,
+				"namespace": namespace,
+				"response":  result,
 			}, "spec missing from route")
-			return errs.Errorf("spec missing from route returned from %s", routeURL)
+			return errs.Errorf("spec missing from route returned from %s", namespace)
 		}
 		// Determine which service this route points to
-		to, ok := spec["to"].(map[interface{}]interface{})
+		to, ok := spec["to"].(map[string]interface{})
 		if !ok {
 			log.Error(nil, map[string]interface{}{
-				"err":          err,
-				"request_path": routeURL,
-				"response":     result,
+				"err":       err,
+				"namespace": namespace,
+				"response":  result,
 			}, "route has no destination")
-			return errs.Errorf("no destination in route returned from %s", routeURL)
+			return errs.Errorf("no destination in route returned from %s", namespace)
 		}
 		toName, ok := to["name"].(string)
 		if !ok || len(toName) == 0 {
 			log.Error(nil, map[string]interface{}{
-				"err":          err,
-				"request_path": routeURL,
-				"response":     result,
+				"err":       err,
+				"namespace": namespace,
+				"response":  result,
 			}, "service name missing or invalid for route")
-			return errs.Errorf("service name missing or invalid for route returned from %s", routeURL)
+			return errs.Errorf("service name missing or invalid for route returned from %s", namespace)
 		}
 
 		var matchingServices []string
@@ -1226,14 +1264,14 @@ func (kc *kubeClient) getRoutesByService(namespace string, routesByService map[s
 		altBackends, ok := spec["alternateBackends"].([]interface{})
 		if ok {
 			for idx := range altBackends {
-				backend, ok := altBackends[idx].(map[interface{}]interface{})
+				backend, ok := altBackends[idx].(map[string]interface{})
 				if !ok {
 					log.Error(nil, map[string]interface{}{
-						"err":          err,
-						"request_path": routeURL,
-						"response":     result,
+						"err":       err,
+						"namespace": namespace,
+						"response":  result,
 					}, "malformed alternative backend")
-					return errs.Errorf("malformed alternative backend in route returned from %s", routeURL)
+					return errs.Errorf("malformed alternative backend in route returned from %s", namespace)
 				}
 				// Check if this alternate backend is a service we want a route for
 				backendKind, err := getOptionalStringValue(backend, "kind")
@@ -1253,23 +1291,23 @@ func (kc *kubeClient) getRoutesByService(namespace string, routesByService map[s
 		}
 		if len(matchingServices) > 0 {
 			// Get ingress points
-			status, ok := routeItem["status"].(map[interface{}]interface{})
+			status, ok := routeItem["status"].(map[string]interface{})
 			if !ok {
 				log.Error(nil, map[string]interface{}{
-					"err":          err,
-					"request_path": routeURL,
-					"response":     result,
+					"err":       err,
+					"namespace": namespace,
+					"response":  result,
 				}, "status missing from route")
-				return errs.Errorf("status missing from route returned from %s", routeURL)
+				return errs.Errorf("status missing from route returned from %s", namespace)
 			}
 			ingresses, ok := status["ingress"].([]interface{})
 			if !ok {
 				log.Error(nil, map[string]interface{}{
-					"err":          err,
-					"request_path": routeURL,
-					"response":     result,
+					"err":       err,
+					"namespace": namespace,
+					"response":  result,
 				}, "no ingress array listed in route")
-				return errs.Errorf("no ingress array listed in route returned from %s", routeURL)
+				return errs.Errorf("no ingress array listed in route returned from %s", namespace)
 			}
 
 			// Prefer ingress with oldest lastTransitionTime that is marked as admitted
@@ -1284,15 +1322,23 @@ func (kc *kubeClient) getRoutesByService(namespace string, routesByService map[s
 				hostname, ok = oldestAdmittedIngress["host"].(string)
 				if !ok {
 					log.Error(nil, map[string]interface{}{
-						"err":          err,
-						"request_path": routeURL,
-						"response":     result,
+						"err":       err,
+						"namespace": namespace,
+						"response":  result,
 					}, "hostname missing from ingress")
-					return errs.Errorf("hostname missing from ingress in route returned from %s", routeURL)
+					return errs.Errorf("hostname missing from ingress in route returned from %s", namespace)
 				}
 			} else {
 				// Fall back to optional host in spec
-				hostname, _ = spec["host"].(string)
+				hostname, err = getOptionalStringValue(spec, "host")
+				if err != nil {
+					log.Error(nil, map[string]interface{}{
+						"err":       err,
+						"namespace": namespace,
+						"response":  result,
+					}, "invalid hostname in route spec")
+					return errs.Wrapf(err, "invalid hostname in route spec returned from %s", namespace)
+				}
 			}
 
 			// Check for optional path
@@ -1304,7 +1350,7 @@ func (kc *kubeClient) getRoutesByService(namespace string, routesByService map[s
 			// Determine whether route uses TLS
 			// see: https://github.com/openshift/origin-web-console/blob/v3.7.0/app/scripts/filters/resources.js#L193
 			isTLS := false
-			tls, ok := spec["tls"].(map[interface{}]interface{})
+			tls, ok := spec["tls"].(map[string]interface{})
 			if ok {
 				tlsTerm, ok := tls["termination"].(string)
 				if ok && len(tlsTerm) > 0 {
@@ -1314,9 +1360,9 @@ func (kc *kubeClient) getRoutesByService(namespace string, routesByService map[s
 
 			// Check if this route uses a custom hostname
 			customHost := true
-			metadata, ok := routeItem["metadata"].(map[interface{}]interface{})
+			metadata, ok := routeItem["metadata"].(map[string]interface{})
 			if ok {
-				annotations, ok := metadata["annotations"].(map[interface{}]interface{})
+				annotations, ok := metadata["annotations"].(map[string]interface{})
 				if ok {
 					hostGenerated, err := getOptionalStringValue(annotations, "openshift.io/host.generated")
 					if err != nil {
@@ -1345,7 +1391,12 @@ func (kc *kubeClient) getRoutesByService(namespace string, routesByService map[s
 	return nil
 }
 
-func getOptionalStringValue(respData map[interface{}]interface{}, paramName string) (string, error) {
+func (oc *openShiftAPIClient) GetRoutes(namespace string) (map[string]interface{}, error) {
+	routeURL := fmt.Sprintf("/oapi/v1/namespaces/%s/routes", namespace)
+	return oc.getResource(routeURL, false)
+}
+
+func getOptionalStringValue(respData map[string]interface{}, paramName string) (string, error) {
 	val, pres := respData[paramName]
 	if !pres {
 		return "", nil
@@ -1357,11 +1408,11 @@ func getOptionalStringValue(respData map[interface{}]interface{}, paramName stri
 	return strVal, nil
 }
 
-func findOldestAdmittedIngress(ingresses []interface{}) (ingress map[interface{}]interface{}, err error) {
-	var oldestAdmittedIngress map[interface{}]interface{}
+func findOldestAdmittedIngress(ingresses []interface{}) (ingress map[string]interface{}, err error) {
+	var oldestAdmittedIngress map[string]interface{}
 	var oldestIngressTime time.Time
 	for idx := range ingresses {
-		ingress, ok := ingresses[idx].(map[interface{}]interface{})
+		ingress, ok := ingresses[idx].(map[string]interface{})
 		if !ok {
 			return nil, errs.New("bad ingress found in route")
 		}
@@ -1369,7 +1420,7 @@ func findOldestAdmittedIngress(ingresses []interface{}) (ingress map[interface{}
 		conditions, ok := ingress["conditions"].([]interface{})
 		if ok {
 			for condIdx := range conditions {
-				condition, ok := conditions[condIdx].(map[interface{}]interface{})
+				condition, ok := conditions[condIdx].(map[string]interface{})
 				if !ok {
 					return nil, errs.New("bad condition for ingress")
 				}
@@ -1420,9 +1471,9 @@ func scoreRoute(route *route) int {
 }
 
 // Derived from: https://github.com/fabric8-services/fabric8-tenant/blob/master/openshift/kube_token.go
-func (kc *kubeClient) getResource(url string, allowMissing bool) (map[interface{}]interface{}, error) {
+func (oc *openShiftAPIClient) getResource(url string, allowMissing bool) (map[string]interface{}, error) {
 	var body []byte
-	fullURL := strings.TrimSuffix(kc.config.ClusterURL, "/") + url
+	fullURL := strings.TrimSuffix(oc.config.ClusterURL, "/") + url
 	req, err := http.NewRequest("GET", fullURL, bytes.NewReader(body))
 	if err != nil {
 		log.Error(nil, map[string]interface{}{
@@ -1431,8 +1482,8 @@ func (kc *kubeClient) getResource(url string, allowMissing bool) (map[interface{
 		}, "error creating HTTP GET request")
 		return nil, errs.WithStack(err)
 	}
-	req.Header.Set("Accept", "application/yaml")
-	req.Header.Set("Authorization", "Bearer "+kc.config.BearerToken)
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Authorization", "Bearer "+oc.config.BearerToken)
 
 	client := http.DefaultClient
 	resp, err := client.Do(req)
@@ -1462,8 +1513,8 @@ func (kc *kubeClient) getResource(url string, allowMissing bool) (map[interface{
 		}, "error returned from HTTP request")
 		return nil, errs.Errorf("failed to GET url %s due to status code %d", fullURL, status)
 	}
-	var respType map[interface{}]interface{}
-	err = yaml.Unmarshal(b, &respType)
+	var respType map[string]interface{}
+	err = json.Unmarshal(b, &respType)
 	if err != nil {
 		log.Error(nil, map[string]interface{}{
 			"err":           err,
