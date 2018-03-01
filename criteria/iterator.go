@@ -1,12 +1,15 @@
 package criteria
 
-// IteratePostOrder walks the expression tree in depth-first, left to right order
-// The iteration stops if visitorFunction returns false
+// IteratePostOrder walks the expression tree in depth-first, left to right
+// order. The iteration stops if visitorFunction returns false.
 func IteratePostOrder(exp Expression, visitorFunction func(exp Expression) bool) {
 	exp.Accept(&postOrderIterator{visitorFunction})
 }
 
-// implements ExpressionVisitor
+// Ensure postOrderIterator implements the ExpressionVisitor interface
+var _ ExpressionVisitor = &postOrderIterator{}
+var _ ExpressionVisitor = (*postOrderIterator)(nil)
+
 type postOrderIterator struct {
 	visit func(exp Expression) bool
 }

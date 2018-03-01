@@ -441,6 +441,10 @@ In response you should get ID of created item, using that you can retrieve the w
 $ ./bin/wit-cli show workitem --id <ID> -H localhost:8080 --pp
 ----
 
+== Swagger API
+
+A browsable documentation for our API is available with http://swagger.goa.design/?url=github.com%2Ffabric8-services%2Ffabric8-wit%2Fdesign[goa Swagger Generator]. It reflects the latest state of the master branch.
+
 == Prod preview setup
 
 In order to setup wit to work against link:https://prod-preview.openshift.io/[prod preview] the following environment variables must be set:

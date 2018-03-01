@@ -389,7 +389,6 @@ func main() {
 	log.Logger().Infoln("NumCPU:         ", runtime.NumCPU())
 
 	http.Handle("/api/", service.Mux)
-	http.Handle("/", http.FileServer(assetFS()))
 	http.Handle("/favicon.ico", http.NotFoundHandler())
 
 	if config.GetDiagnoseHTTPAddress() != "" {
