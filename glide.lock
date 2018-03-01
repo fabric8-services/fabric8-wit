@@ -1,5 +1,5 @@
-hash: 15d5352cd859fe23a262399290cc123d65ef272beed702c7bbb97b9797f31e6c
-updated: 2018-01-29T16:04:56.911667453-05:00
+hash: ca397fe1a2f352c850c51423f47b00a17afa36df9707d08a63c9fee28cddaf90
+updated: 2018-03-01T12:51:32.500844863-05:00
 imports:
 - name: github.com/ajg/form
   version: cc2954064ec9ea8d93917f0f87456e11d7b881ad
@@ -48,7 +48,7 @@ imports:
 - name: github.com/emicklei/go-restful-swagger12
   version: dcef7f55730566d41eae5db10e7d6981829720f6
 - name: github.com/fabric8-services/fabric8-auth
-  version: 39c2f11b75983545c11f6c26963a1ce047b11df7
+  version: a801d184afb23ed62e5d1762778b0a5283407c42
   subpackages:
   - auth
   - convert
@@ -64,7 +64,7 @@ imports:
   subpackages:
   - design
 - name: github.com/fabric8-services/fabric8-tenant
-  version: 284c295d606b71447bd5f9831f1b5fb6f899a2d4
+  version: be8f39326808024c29ef6946151273359ae3e472
   subpackages:
   - design
 - name: github.com/fatih/structs
@@ -190,7 +190,7 @@ imports:
 - name: github.com/lsegal/gucumber
   version: 71608e2f6e76fd4da5b09a376aeec7a5c0b5edbc
 - name: github.com/magiconair/properties
-  version: d419a98cdbed11a922bf76f257b7c4be79b50e73
+  version: c3beff4c2358b44d0493c7dda585e7db7ff28ae6
 - name: github.com/mailru/easyjson
   version: d5b7844b561a7bc640052f1b935f7b800330d7e0
   subpackages:
@@ -278,7 +278,7 @@ imports:
 - name: github.com/spf13/viper
   version: 651d9d916abc3c3d6a91a12549495caba5edffd2
 - name: github.com/stretchr/testify
-  version: b91bfb9ebec76498946beb6af7c0230c7cc7ba6c
+  version: 12b6f73e6084dad08a7c6e575284b177ecafbc71
   subpackages:
   - assert
   - require
@@ -360,7 +360,7 @@ imports:
 - name: gopkg.in/inf.v0
   version: 3887ee99ecf07df5b447e9b00d9c0b2adaa9f3e4
 - name: gopkg.in/square/go-jose.v2
-  version: f8f38de21b4dcd69d0413faf231983f5fd6634b1
+  version: 6ee92191fea850cdcab9a18867abf5f521cdbadb
   subpackages:
   - cipher
   - json

@@ -53,16 +53,6 @@ func (c *LoginController) Refresh(ctx *app.RefreshLoginContext) error {
 	return proxy.RouteHTTPToPath(ctx, c.configuration.GetAuthShortServiceHostName(), authservice.RefreshTokenPath())
 }
 
-// Link links identity provider(s) to the user's account
-func (c *LoginController) Link(ctx *app.LinkLoginContext) error {
-	return redirectWithParams(ctx, c.configuration, ctx.ResponseData.Header(), ctx.Params, authservice.LinkLinkPath())
-}
-
-// Linksession links identity provider(s) to the user's account
-func (c *LoginController) Linksession(ctx *app.LinksessionLoginContext) error {
-	return redirectWithParams(ctx, c.configuration, ctx.ResponseData.Header(), ctx.Params, authservice.SessionLinkPath())
-}
-
 func redirectLocation(params url.Values, location string) (string, error) {
 	locationURL, err := url.Parse(location)
 	if err != nil {
