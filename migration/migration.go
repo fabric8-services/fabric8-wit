@@ -379,6 +379,9 @@ func GetMigrations() Migrations {
 	// Version 83
 	m = append(m, steps{ExecuteSQLFile("083-index-comments-parent.sql")})
 
+	// Version 84
+	m = append(m, steps{ExecuteSQLFile("084-codebases-spaceid-url-index.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the

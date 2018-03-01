@@ -686,6 +686,24 @@ func testMigration82(t *testing.T) {
 	assert.Equal(t, updatedAt.String(), relationshipsChangedAt.String())
 }
 
+func testMigration84(t *testing.T) {
+	// migrate to version so that we create duplicate data
+	migrateToVersion(t, sqlDB, migrations[:84], 84)
+
+	// create dummy space and add entry in codebases that are duplicate
+	assert.Nil(t, runSQLscript(sqlDB, "084-codebases-spaceid-url-idx-setup.sql"))
+
+	// migrate to current version, which applies unique index
+	// and removes duplicate
+	migrateToVersion(t, sqlDB, migrations[:85], 85)
+
+	// try to add duplicate entry, which should fail
+	assert.NotNil(t, runSQLscript(sqlDB, "084-codebases-spaceid-url-idx-violate.sql"))
+
+	// cleanup
+	assert.Nil(t, runSQLscript(sqlDB, "084-codebases-spaceid-url-idx-cleanup.sql"))
+}
+
 // runSQLscript loads the given filename from the packaged SQL test files and
 // executes it on the given database. Golang text/template module is used
 // to handle all the optional arguments passed to the sql test files
