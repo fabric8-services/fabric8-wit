@@ -13,6 +13,9 @@ import (
 func TestField(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
+
+	defJoins := workitem.DefaultTableJoins()
+
 	wiTbl := workitem.WorkItemStorage{}.TableName()
 	expect(t, c.Equals(c.Field("foo.bar"), c.Literal(23)), `(`+workitem.Column(wiTbl, "fields")+` @> '{"foo.bar" : 23}')`, []interface{}{}, nil)
 	expect(t, c.Equals(c.Field("foo"), c.Literal(23)), `(`+workitem.Column(wiTbl, "foo")+` = ?)`, []interface{}{23}, nil)
@@ -23,26 +26,67 @@ func TestField(t *testing.T) {
 	expect(t, c.Not(c.Field("SpaceID"), c.Literal("abcd")), `(`+workitem.Column(wiTbl, "space_id")+` != ?)`, []interface{}{"abcd"}, nil)
 
 	t.Run("test join", func(t *testing.T) {
-		expect(t, c.Equals(c.Field("iteration.name"), c.Literal("abcd")), `(`+workitem.Column("iter", "name")+` = ?)`, []interface{}{"abcd"}, []string{"iteration"})
-		expect(t, c.Equals(c.Field("area.name"), c.Literal("abcd")), `(`+workitem.Column("ar", "name")+` = ?)`, []interface{}{"abcd"}, []string{"area"})
-		expect(t, c.Equals(c.Field("codebase.url"), c.Literal("abcd")), `(`+workitem.Column("cb", "url")+` = ?)`, []interface{}{"abcd"}, []string{"codebase"})
-		expect(t, c.Equals(c.Field("wit.name"), c.Literal("abcd")), `(`+workitem.Column("wit", "name")+` = ?)`, []interface{}{"abcd"}, []string{"work_item_type"})
-		expect(t, c.Equals(c.Field("work_item_type.name"), c.Literal("abcd")), `(`+workitem.Column("wit", "name")+` = ?)`, []interface{}{"abcd"}, []string{"work_item_type"})
-		expect(t, c.Equals(c.Field("type.name"), c.Literal("abcd")), `(`+workitem.Column("wit", "name")+` = ?)`, []interface{}{"abcd"}, []string{"work_item_type"})
-		expect(t, c.Equals(c.Field("space.name"), c.Literal("abcd")), `(`+workitem.Column("space", "name")+` = ?)`, []interface{}{"abcd"}, []string{"space"})
-		expect(t, c.Equals(c.Field("creator.full_name"), c.Literal("abcd")), `(`+workitem.Column("creator", "full_name")+` = ?)`, []interface{}{"abcd"}, []string{"creator"})
-		expect(t, c.Equals(c.Field("author.full_name"), c.Literal("abcd")), `(`+workitem.Column("creator", "full_name")+` = ?)`, []interface{}{"abcd"}, []string{"creator"})
-		expect(t, c.Not(c.Field("author.full_name"), c.Literal("abcd")), `(`+workitem.Column("creator", "full_name")+` != ?)`, []interface{}{"abcd"}, []string{"creator"})
-
-		expect(t, c.Or(
-			c.Equals(c.Field("iteration.name"), c.Literal("abcd")),
-			c.Equals(c.Field("area.name"), c.Literal("xyz")),
-		), `((`+workitem.Column("iter", "name")+` = ?) OR (`+workitem.Column("ar", "name")+` = ?))`, []interface{}{"abcd", "xyz"}, []string{"iteration", "area"})
-
-		expect(t, c.Or(
-			c.Equals(c.Field("iteration.name"), c.Literal("abcd")),
-			c.Equals(c.Field("iteration.created_at"), c.Literal("123")),
-		), `((`+workitem.Column("iter", "name")+` = ?) OR (`+workitem.Column("iter", "created_at")+` = ?))`, []interface{}{"abcd", "123"}, []string{"iteration"})
+		t.Run("iteration", func(t *testing.T) {
+			j := *defJoins["iteration"]
+			j.Active = true
+			j.HandledFields = []string{"name"}
+			expect(t, c.Equals(c.Field("iteration.name"), c.Literal("abcd")), `(`+workitem.Column("iter", "name")+` = ?)`, []interface{}{"abcd"}, []*workitem.TableJoin{&j})
+		})
+		t.Run("area", func(t *testing.T) {
+			j := *defJoins["area"]
+			j.Active = true
+			j.HandledFields = []string{"name"}
+			expect(t, c.Equals(c.Field("area.name"), c.Literal("abcd")), `(`+workitem.Column("ar", "name")+` = ?)`, []interface{}{"abcd"}, []*workitem.TableJoin{&j})
+		})
+		t.Run("codebase", func(t *testing.T) {
+			j := *defJoins["codebase"]
+			j.Active = true
+			j.HandledFields = []string{"url"}
+			expect(t, c.Equals(c.Field("codebase.url"), c.Literal("abcd")), `(`+workitem.Column("cb", "url")+` = ?)`, []interface{}{"abcd"}, []*workitem.TableJoin{&j})
+		})
+		t.Run("work item type", func(t *testing.T) {
+			j := *defJoins["work_item_type"]
+			j.Active = true
+			j.HandledFields = []string{"name"}
+			expect(t, c.Equals(c.Field("wit.name"), c.Literal("abcd")), `(`+workitem.Column("wit", "name")+` = ?)`, []interface{}{"abcd"}, []*workitem.TableJoin{&j})
+			expect(t, c.Equals(c.Field("work_item_type.name"), c.Literal("abcd")), `(`+workitem.Column("wit", "name")+` = ?)`, []interface{}{"abcd"}, []*workitem.TableJoin{&j})
+			expect(t, c.Equals(c.Field("type.name"), c.Literal("abcd")), `(`+workitem.Column("wit", "name")+` = ?)`, []interface{}{"abcd"}, []*workitem.TableJoin{&j})
+		})
+		t.Run("space", func(t *testing.T) {
+			j := *defJoins["space"]
+			j.Active = true
+			j.HandledFields = []string{"name"}
+			expect(t, c.Equals(c.Field("space.name"), c.Literal("abcd")), `(`+workitem.Column("space", "name")+` = ?)`, []interface{}{"abcd"}, []*workitem.TableJoin{&j})
+		})
+		t.Run("creator", func(t *testing.T) {
+			j := *defJoins["creator"]
+			j.Active = true
+			j.HandledFields = []string{"full_name"}
+			expect(t, c.Equals(c.Field("creator.full_name"), c.Literal("abcd")), `(`+workitem.Column("creator", "full_name")+` = ?)`, []interface{}{"abcd"}, []*workitem.TableJoin{&j})
+			expect(t, c.Equals(c.Field("author.full_name"), c.Literal("abcd")), `(`+workitem.Column("creator", "full_name")+` = ?)`, []interface{}{"abcd"}, []*workitem.TableJoin{&j})
+			expect(t, c.Not(c.Field("author.full_name"), c.Literal("abcd")), `(`+workitem.Column("creator", "full_name")+` != ?)`, []interface{}{"abcd"}, []*workitem.TableJoin{&j})
+		})
+		t.Run("iteration + area", func(t *testing.T) {
+			j := *defJoins["iteration"]
+			j.Active = true
+			j.HandledFields = []string{"name"}
+			k := *defJoins["area"]
+			k.Active = true
+			k.HandledFields = []string{"name"}
+			expect(t, c.Or(
+				c.Equals(c.Field("iteration.name"), c.Literal("abcd")),
+				c.Equals(c.Field("area.name"), c.Literal("xyz")),
+			), `((`+workitem.Column("iter", "name")+` = ?) OR (`+workitem.Column("ar", "name")+` = ?))`, []interface{}{"abcd", "xyz"}, []*workitem.TableJoin{&j, &k})
+		})
+		t.Run("iteration with two fields", func(t *testing.T) {
+			j := *defJoins["iteration"]
+			j.Active = true
+			j.HandledFields = []string{"name", "created_at"}
+			expect(t, c.Or(
+				c.Equals(c.Field("iteration.name"), c.Literal("abcd")),
+				c.Equals(c.Field("iteration.created_at"), c.Literal("123")),
+			), `((`+workitem.Column("iter", "name")+` = ?) OR (`+workitem.Column("iter", "created_at")+` = ?))`, []interface{}{"abcd", "123"}, []*workitem.TableJoin{&j})
+		})
 	})
 	t.Run("test illegal field name", func(t *testing.T) {
 		t.Run("double quote", func(t *testing.T) {
@@ -82,24 +126,19 @@ func TestIsNull(t *testing.T) {
 	expect(t, c.IsNull("SpaceID"), `(`+workitem.Column(wiTbl, "space_id")+` IS NULL)`, []interface{}{}, nil)
 }
 
-func expect(t *testing.T, expr c.Expression, expectedClause string, expectedParameters []interface{}, expectedJoins []string) {
+func expect(t *testing.T, expr c.Expression, expectedClause string, expectedParameters []interface{}, expectedJoins []*workitem.TableJoin) {
 	clause, parameters, joins, compileErrors := workitem.Compile(expr)
-	t.Run(expectedClause, func(t *testing.T) {
-		t.Run("check for compile errors", func(t *testing.T) {
-			require.Empty(t, compileErrors, "compile error")
-		})
-		t.Run("check clause", func(t *testing.T) {
-			require.Equal(t, expectedClause, clause, "clause mismatch")
-		})
-		t.Run("check parameters", func(t *testing.T) {
-			require.Equal(t, expectedParameters, parameters, "parameters mismatch")
-		})
-		t.Run("check joins", func(t *testing.T) {
-			for _, k := range expectedJoins {
-				_, ok := joins[k]
-				require.True(t, ok, `joins is missing "%s"`)
-			}
-		})
+	t.Run("check for compile errors", func(t *testing.T) {
+		require.Empty(t, compileErrors, "compile error")
+	})
+	t.Run("check clause", func(t *testing.T) {
+		require.Equal(t, expectedClause, clause, "clause mismatch")
+	})
+	t.Run("check parameters", func(t *testing.T) {
+		require.Equal(t, expectedParameters, parameters, "parameters mismatch")
+	})
+	t.Run("check joins", func(t *testing.T) {
+		require.Equal(t, expectedJoins, joins)
 	})
 }
 
