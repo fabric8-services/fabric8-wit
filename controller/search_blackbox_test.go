@@ -1101,15 +1101,15 @@ func (s *searchControllerTestSuite) TestOrderOfExecution() {
 			return nil
 		}),
 	)
-	spaceIDStr := fxt.Spaces[0].ID.String() 
+	spaceIDStr := fxt.Spaces[0].ID.String()
 
 	// Without Tree View
 	filter := fmt.Sprintf(`{"space": "%[1]s"}`, spaceIDStr)
 	_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 	// then
 	require.NotEmpty(s.T(), result.Data)
-	for i, wi := range result.Data{
-		i = len(result.Data)-1-i
+	for i, wi := range result.Data {
+		i = len(result.Data) - 1 - i
 		assert.Equal(s.T(), fxt.WorkItems[i].Fields[workitem.SystemOrder], wi.Attributes[workitem.SystemOrder])
 	}
 
@@ -1118,8 +1118,8 @@ func (s *searchControllerTestSuite) TestOrderOfExecution() {
 	_, result = test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
 	// then
 	require.NotEmpty(s.T(), result.Data)
-	for i, wi := range result.Data{
-		i = len(result.Data)-1-i
+	for i, wi := range result.Data {
+		i = len(result.Data) - 1 - i
 		assert.Equal(s.T(), fxt.WorkItems[i].Fields[workitem.SystemOrder], wi.Attributes[workitem.SystemOrder])
 	}
 }
