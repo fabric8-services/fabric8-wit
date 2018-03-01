@@ -22,7 +22,10 @@ import (
 
 	errs "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/watch"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	v1 "k8s.io/client-go/pkg/api/v1"
+	"k8s.io/client-go/tools/cache"
 )
 
 // Used for equality comparisons between float64s
@@ -1611,4 +1614,296 @@ func modifyURL(apiURLStr string, prefix string, path string) (*url.URL, error) {
 		Path:   path,
 	}
 	return newURL, nil
+}
+
+type testKube struct {
+	kubernetes.KubeRESTAPI // Allows us to only implement methods we'll use
+	getter                 *testKubeGetter
+	eventsHolder           *testEvents
+	configMapHolder        *testConfigMap
+}
+
+type testKubeGetter struct {
+	result      *testKube
+	eventsInput *eventsInput
+}
+
+func (getter *testKubeGetter) GetKubeRESTAPI(config *kubernetes.KubeClientConfig) (kubernetes.KubeRESTAPI, error) {
+	mock := new(testKube)
+	// Doubly-linked for access by tests
+	mock.getter = getter
+	getter.result = mock
+	return mock, nil
+}
+
+type eventsInput struct {
+	listInput  *v1.EventList
+	watchInput *v1.EventList
+}
+
+type testEvents struct {
+	corev1.EventInterface
+	namespace  string
+	listInput  *v1.EventList
+	watchInput *v1.EventList
+	watcher    *watch.FakeWatcher
+}
+
+func (tk *testKube) Events(ns string) corev1.EventInterface {
+	result := &testEvents{
+		namespace:  ns,
+		listInput:  tk.getter.eventsInput.listInput,
+		watchInput: tk.getter.eventsInput.watchInput,
+	}
+	tk.eventsHolder = result
+	return result
+}
+
+func (ev *testEvents) List(options metav1.ListOptions) (*v1.EventList, error) {
+	result := ev.listInput
+	return result, nil
+}
+
+func (ev *testEvents) Watch(options metav1.ListOptions) (watch.Interface, error) {
+	result := watch.NewFake()
+	ev.watcher = result
+
+	go func(watcher *watch.FakeWatcher) {
+		for _, item := range ev.watchInput.Items {
+			// Add is blocking so run in a go routine
+			go func(item v1.Event) {
+				watcher.Add(&item)
+			}(item)
+		}
+	}(result)
+
+	return result, nil
+}
+
+type testConfigMap struct {
+	corev1.ConfigMapInterface
+	input     *configMapInput
+	namespace string
+	configMap *v1.ConfigMap
+}
+
+type configMapInput struct {
+	data   map[string]string
+	labels map[string]string
+}
+
+func (tk *testKube) ConfigMaps(ns string) corev1.ConfigMapInterface {
+	input := defaultConfigMapInput
+	result := &testConfigMap{
+		input:     input,
+		namespace: ns,
+	}
+	tk.configMapHolder = result
+	return result
+}
+
+var defaultConfigMapInput *configMapInput = &configMapInput{
+	labels: map[string]string{"provider": "fabric8"},
+	data: map[string]string{
+		"run":   "name: Run\nnamespace: my-run\norder: 1",
+		"stage": "name: Stage\nnamespace: my-stage\norder: 0",
+	},
+}
+
+func (cm *testConfigMap) Get(name string, options metav1.GetOptions) (*v1.ConfigMap, error) {
+	result := &v1.ConfigMap{
+		Data: cm.input.data,
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   name,
+			Labels: cm.input.labels,
+		},
+	}
+	cm.configMap = result
+	return result, nil
+}
+
+func TestWatchEventsInNamespace(t *testing.T) {
+	testCases := []struct {
+		testName    string
+		eventsInput *eventsInput
+	}{
+		{
+			testName: "List Events",
+			eventsInput: &eventsInput{
+				listInput: &v1.EventList{
+					Items: []v1.Event{
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:            "list-one",
+								ResourceVersion: "0",
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:            "list-two",
+								ResourceVersion: "1",
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:            "list-three",
+								ResourceVersion: "2",
+							},
+						},
+					},
+				},
+				watchInput: &v1.EventList{
+					Items: []v1.Event{},
+				},
+			},
+		},
+		{
+			testName: "Watch Events",
+			eventsInput: &eventsInput{
+				listInput: &v1.EventList{
+					Items: []v1.Event{},
+				},
+				watchInput: &v1.EventList{
+					Items: []v1.Event{
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:            "watch-one",
+								ResourceVersion: "3",
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:            "watch-two",
+								ResourceVersion: "4",
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:            "watch-three",
+								ResourceVersion: "5",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			testName: "List and Watch Events",
+			eventsInput: &eventsInput{
+				listInput: &v1.EventList{
+					Items: []v1.Event{
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:            "list-one",
+								ResourceVersion: "0",
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:            "list-two",
+								ResourceVersion: "1",
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:            "list-three",
+								ResourceVersion: "2",
+							},
+						},
+					},
+				},
+				watchInput: &v1.EventList{
+					Items: []v1.Event{
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:            "watch-one",
+								ResourceVersion: "3",
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:            "watch-two",
+								ResourceVersion: "4",
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:            "watch-three",
+								ResourceVersion: "5",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.testName, func(t *testing.T) {
+			kubeGetter := &testKubeGetter{}
+			kubeGetter.eventsInput = testCase.eventsInput
+
+			config := &kubernetes.KubeClientConfig{
+				BaseURLProvider:   getDefaultURLProvider("http://api.myCluster", "myToken"),
+				UserNamespace:     "myNamespace",
+				KubeRESTAPIGetter: kubeGetter,
+			}
+
+			kc, err := kubernetes.NewKubeClient(config)
+
+			require.NoError(t, err)
+
+			store, stopCh := kc.WatchEventsInNamespace("test-namespace")
+			defer close(stopCh)
+
+			validateEventsItems(t, testCase.eventsInput.listInput, store)
+			validateEventsItems(t, testCase.eventsInput.watchInput, store)
+		})
+	}
+}
+
+func printObj(obj interface{}) {
+	fmt.Println(obj)
+}
+
+func checkEventItems(t *testing.T, eventList *v1.EventList, store *cache.FIFO) {
+	for _, item := range eventList.Items {
+		_, exists, _ := store.Get(item)
+		if !exists {
+			t.Fatalf("Expected %s but did not exist", item.ObjectMeta.Name)
+		}
+	}
+}
+
+func validateEventsItems(t *testing.T, eventList *v1.EventList, store *cache.FIFO) {
+	// The kubernetes Reflector uses Store.Replace to set the list
+	// The kubernetes FIFO implementation does not guarantee the
+	// order of the results when using Replace
+	// For validation, just check that the recieved item exists in the list
+	// of expected items
+
+	for range eventList.Items {
+		actualItem, err := store.Pop(cache.PopProcessFunc(func(item interface{}) error {
+			return nil
+		}))
+		if err != nil {
+			t.Fatalf(err.Error())
+		}
+		item, ok := actualItem.(*v1.Event)
+
+		if !ok {
+			t.Fatalf("Expected object of type *v1.Event but was %T", actualItem)
+		}
+
+		found := false
+		for _, expectedItem := range eventList.Items {
+			if expectedItem.ObjectMeta.Name == item.ObjectMeta.Name {
+				found = true
+			}
+		}
+
+		if !found {
+			t.Fatalf("Recieved %s but was not in the list of expected items", item.ObjectMeta.Name)
+		}
+	}
 }

@@ -70,6 +70,10 @@ type deleteTestResults struct {
 	envName   string
 }
 
+type testWatchItem struct {
+	name string
+}
+
 func (c *testKubeClient) DeleteDeployment(spaceName string, appName string, envName string) error {
 	c.deleteResults = &deleteTestResults{
 		spaceName: spaceName,
@@ -538,7 +542,6 @@ func TestShowSpaceEnvironments(t *testing.T) {
 		test.ShowSpaceEnvironmentsDeploymentsOK(t, context.Background(), svc, ctrl, space.SystemSpace)
 		// then verify that the Close method was called
 		assert.Equal(t, uint64(1), kubeClientMock.CloseCounter)
-
 	})
 
 	t.Run("failure", func(t *testing.T) {
@@ -572,7 +575,6 @@ func TestShowSpaceEnvironments(t *testing.T) {
 			assert.Equal(t, uint64(1), kubeClientMock.CloseCounter)
 		})
 	})
-
 }
 
 func TestShowAllEnvironments(t *testing.T) {
@@ -666,3 +668,42 @@ func createOSIOClientMock(t minimock.Tester, spaceName string) *testcontroller.O
 	}
 	return osioClientMock
 }
+
+// func TestWatchEnvironmentEvents(t *testing.T) {
+// 	// given
+// 	clientGetterMock := testcontroller.NewClientGetterMock(t)
+// 	svc, ctrl, err := createDeploymentsController()
+// 	require.NoError(t, err)
+// 	ctrl.ClientGetter = clientGetterMock
+
+// 	t.Run("ok", func(t *testing.T) {
+// 		// given
+// 		mockKeyFunc := func(obj interface{}) (string, error) {
+// 			if v, ok := obj.(testWatchItem); ok {
+// 				return v.name, nil
+// 			}
+// 			return "default", nil
+// 		}
+
+// 		kubeClientMock := testk8s.NewKubeClientMock(t)
+// 		kubeClientMock.WatchEventsInNamespaceFunc = func(p string) (r *cache.FIFO, r1 chan struct{}) {
+// 			store := cache.NewFIFO(mockKeyFunc)
+// 			store.Add(testWatchItem{name: "one"})
+
+// 			return store, nil
+// 		}
+// 		kubeClientMock.CloseFunc = func() {}
+// 		clientGetterMock.GetKubeClientFunc = func(p context.Context) (kubernetes.KubeClientInterface, error) {
+// 			return kubeClientMock, nil
+// 		}
+// 		osioClientMock := testcontroller.NewOSIOClientMock(t)
+// 		clientGetterMock.GetAndCheckOSIOClientFunc = func(p context.Context) (controller.OpenshiftIOClient, error) {
+// 			return osioClientMock, nil
+// 		}
+
+// 		// when
+// 		test.ShowSpaceEnvironmentsDeploymentsOK(t, context.Background(), svc, ctrl, space.SystemSpace)
+// 		// then verify that the Close method was called
+// 		assert.Equal(t, uint64(1), kubeClientMock.CloseCounter)
+// 	})
+// }

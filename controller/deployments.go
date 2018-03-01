@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/url"
 	"os"
 	"time"
@@ -17,6 +18,8 @@ import (
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
+	"golang.org/x/net/websocket"
+	"k8s.io/client-go/tools/cache"
 )
 
 // DeploymentsController implements the deployments resource.
@@ -402,6 +405,81 @@ func (c *DeploymentsController) ShowAllEnvironments(ctx *app.ShowAllEnvironments
 	}
 
 	return ctx.OK(res)
+}
+
+// WatchEnvironmentEvents runs the watchEnvironmentEvents action.
+func (c *DeploymentsController) WatchEnvironmentEvents(ctx *app.WatchEnvironmentEventsDeploymentsContext) error {
+	c.WatchEnvironmentEventsWSHandler(ctx).ServeHTTP(ctx.ResponseWriter, ctx.Request)
+	return nil
+}
+
+// WatchEnvironmentEventsWSHandler establishes a websocket connection to run the watchEnvironmentEvents action.
+func (c *DeploymentsController) WatchEnvironmentEventsWSHandler(ctx *app.WatchEnvironmentEventsDeploymentsContext) websocket.Handler {
+	return func(ws *websocket.Conn) {
+		defer ws.Close()
+
+		kc, err := c.GetKubeClient(ctx)
+		defer cleanup(kc)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"err": err,
+			}, "error accessing Auth server")
+
+			sendWebsocketJSON(ctx, ws, map[string]interface{}{"error": "unable to access auth server"})
+			return
+		}
+
+		store, stopWs := kc.WatchEventsInNamespace(ctx.EnvName)
+		defer close(stopWs)
+
+		go func() {
+			for {
+				var m string
+				err := websocket.Message.Receive(ws, &m)
+				if err != nil {
+					if err != io.EOF {
+						log.Error(ctx, map[string]interface{}{
+							"err": err,
+						}, "error reading from websocket")
+					}
+					store.Close()
+					return
+				}
+			}
+		}()
+
+		for {
+			item, err := store.Pop(cache.PopProcessFunc(func(item interface{}) error {
+				return nil
+			}))
+			if err != nil {
+				if err != cache.FIFOClosedError {
+					log.Error(ctx, map[string]interface{}{
+						"err": err,
+					}, "error receiving events")
+
+					sendWebsocketJSON(ctx, ws, map[string]interface{}{"error": "unable to access Kubernetes events"})
+				}
+				return
+			}
+			err = websocket.JSON.Send(ws, item)
+			if err != nil {
+				log.Error(ctx, map[string]interface{}{
+					"err": err,
+				}, "error sending events")
+				return
+			}
+		}
+	}
+}
+
+func sendWebsocketJSON(ctx *app.WatchEnvironmentEventsDeploymentsContext, ws *websocket.Conn, item interface{}) {
+	err := websocket.JSON.Send(ws, item)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "error sending websocket message")
+	}
 }
 
 func cleanup(kc kubernetes.KubeClientInterface) {

@@ -292,4 +292,17 @@ var _ = a.Resource("deployments", func() {
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.BadRequest, JSONAPIErrors)
 	})
+
+	a.Action("watchEnvironmentEvents", func() {
+		a.Routing(
+			a.GET("/environments/:envName/events/watch"),
+		)
+		a.Params(func() {
+			a.Param("envName", d.String, "Name of the environment")
+		})
+		a.Description("watch events for an environment")
+		a.Scheme("wss")
+		a.Response(d.SwitchingProtocols)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+	})
 })
