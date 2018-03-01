@@ -61,6 +61,7 @@ func convert(t *tenant.TenantSingle) *app.UserServiceSingle {
 			ClusterURL:        tn.ClusterURL,
 			ClusterConsoleURL: tn.ClusterConsoleURL,
 			ClusterMetricsURL: tn.ClusterMetricsURL,
+			ClusterLoggingURL: tn.ClusterLoggingURL,
 			ClusterAppDomain:  tn.ClusterAppDomain,
 		})
 	}

@@ -1,0 +1,115 @@
+{
+    "apiVersion": "v1",
+    "items": [
+        {
+            "apiVersion": "v1",
+            "kind": "Service",
+            "metadata": {
+                "annotations": {
+                    "fabric8.io/exposeUrl": "http://myOtherApp-my-run.example.com",
+                    "fabric8.io/git-branch": "ebaron/myOtherApp/master-1.0.1",
+                    "fabric8.io/git-commit": "55ca6286e3e4f4fba5d0448333fa99fc5a404a73",
+                    "fabric8.io/iconUrl": "img/icon.svg",
+                    "fabric8.io/scm-con-url": "scm:git:https://example.com/myOtherApp",
+                    "fabric8.io/scm-devcon-url": "scm:git:git:@example.com/myOtherApp",
+                    "fabric8.io/scm-tag": "myTag",
+                    "fabric8.io/scm-url": "https://example.com/myOtherApp",
+                    "prometheus.io/port": "9779",
+                    "prometheus.io/scrape": "true"
+                },
+                "creationTimestamp": "2018-01-25T16:29:24Z",
+                "labels": {
+                    "app": "myOtherApp",
+                    "expose": "true",
+                    "group": "myGroup",
+                    "provider": "fabric8",
+                    "space": "mySpace",
+                    "version": "1.0.1"
+                },
+                "name": "myOtherApp",
+                "namespace": "my-run",
+                "resourceVersion": "837351634",
+                "selfLink": "/api/v1/namespaces/my-run/services/myOtherApp",
+                "uid": "b8a09642-a164-4491-a3b5-9e990e977bab"
+            },
+            "spec": {
+                "clusterIP": "127.0.0.102",
+                "ports": [
+                    {
+                        "name": "http",
+                        "port": 8080,
+                        "protocol": "TCP",
+                        "targetPort": 8080
+                    }
+                ],
+                "selector": {
+                    "app": "myOtherApp",
+                    "group": "myGroup",
+                    "provider": "fabric8"
+                },
+                "sessionAffinity": "None",
+                "type": "ClusterIP"
+            },
+            "status": {
+                "loadBalancer": {}
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Service",
+            "metadata": {
+                "annotations": {
+                    "fabric8.io/exposeUrl": "http://myApp-my-run.example.com",
+                    "fabric8.io/git-branch": "ebaron/myApp/master-1.0.2",
+                    "fabric8.io/git-commit": "55ca6286e3e4f4fba5d0448333fa99fc5a404a73",
+                    "fabric8.io/iconUrl": "img/icon.svg",
+                    "fabric8.io/scm-con-url": "scm:git:https://example.com/myApp",
+                    "fabric8.io/scm-devcon-url": "scm:git:git:@example.com/myApp",
+                    "fabric8.io/scm-tag": "myTag",
+                    "fabric8.io/scm-url": "https://example.com/myApp",
+                    "prometheus.io/port": "9779",
+                    "prometheus.io/scrape": "true"
+                },
+                "creationTimestamp": "2018-01-25T16:33:02Z",
+                "labels": {
+                    "app": "myApp",
+                    "expose": "true",
+                    "group": "myGroup",
+                    "provider": "fabric8",
+                    "space": "mySpace",
+                    "version": "1.0.2"
+                },
+                "name": "myApp",
+                "namespace": "my-run",
+                "resourceVersion": "837362353",
+                "selfLink": "/api/v1/namespaces/my-run/services/myApp",
+                "uid": "f4e6e2b2-f86d-4e78-94e5-079bb3f0b05d"
+            },
+            "spec": {
+                "clusterIP": "127.0.0.101",
+                "ports": [
+                    {
+                        "name": "http",
+                        "port": 8080,
+                        "protocol": "TCP",
+                        "targetPort": 8080
+                    }
+                ],
+                "selector": {
+                    "app": "myApp",
+                    "group": "myGroup",
+                    "provider": "fabric8"
+                },
+                "sessionAffinity": "None",
+                "type": "ClusterIP"
+            },
+            "status": {
+                "loadBalancer": {}
+            }
+        }
+    ],
+    "kind": "ServiceList",
+    "metadata": {},
+    "resourceVersion": "",
+    "selfLink": ""
+}

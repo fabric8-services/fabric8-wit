@@ -298,7 +298,8 @@ func TestGetNetworkSentRange(t *testing.T) {
 
 	for _, testCase := range testCases {
 		test.input = testCase
-		metrics, err := client.GetNetworkSentMetricsRange(testCase.pods, testCase.namespace, testCase.startTime, testCase.endTime, 0)
+		metrics, err := client.GetNetworkSentMetricsRange(testCase.pods, testCase.namespace, testCase.startTime,
+			testCase.endTime, testCase.limit)
 		require.NoError(t, err, "Getting network metrics failed")
 		require.NotNil(t, metrics, "Nil result from network metrics")
 
