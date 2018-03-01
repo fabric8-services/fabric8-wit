@@ -33,6 +33,7 @@ cachecontrol.workitemtypes: max-age=2
 cachecontrol.workitemlinks: max-age=2
 cachecontrol.workitemlinktypes: max-age=2
 cachecontrol.spaces: max-age=2
+cachecontrol.spacetemplates: max-age=2
 cachecontrol.iterations: max-age=2
 cachecontrol.areas: max-age=2
 cachecontrol.users: max-age=2

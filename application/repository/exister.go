@@ -12,7 +12,7 @@ import (
 )
 
 type Exister interface {
-	// Exists returns nil if the object with the given ID exists; otherwise an
+	// CheckExists returns nil if the object with the given ID exists; otherwise an
 	// error is returned in case the given ID doesn't exists or any other
 	// unknown issue occured
 	CheckExists(ctx context.Context, id uuid.UUID) error

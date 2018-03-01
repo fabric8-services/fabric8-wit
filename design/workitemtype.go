@@ -44,10 +44,10 @@ var workItemTypeAttributes = a.Type("WorkItemTypeAttributes", func() {
 	a.Attribute("fields", a.HashOf(d.String, fieldDefinition), "Definitions of fields in this work item type", func() {
 		a.Example(map[string]interface{}{
 			"system.administrator": map[string]interface{}{
-				"Type": map[string]interface{}{
-					"Kind": "string",
+				"type": map[string]interface{}{
+					"kind": "string",
 				},
-				"Required": true,
+				"required": true,
 			},
 		})
 		a.MinLength(1)
@@ -59,8 +59,6 @@ var workItemTypeAttributes = a.Type("WorkItemTypeAttributes", func() {
 	a.Attribute("icon", d.String, "CSS class string for an icon to use. See http://fontawesome.io/icons/ or http://www.patternfly.org/styles/icons/#_ for examples.", func() {
 		a.Example("fa-bug")
 		a.MinLength(1)
-		// TODO: Add a pattern that disallows whitespaces
-		//a.Pattern(^[^\\s]+$)
 	})
 
 	//a.Required("version")
@@ -70,7 +68,8 @@ var workItemTypeAttributes = a.Type("WorkItemTypeAttributes", func() {
 })
 
 var workItemTypeRelationships = a.Type("WorkItemTypeRelationships", func() {
-	a.Attribute("space", relationSpaces, "This defines the owning space of this work item type.")
+	a.Attribute("space", relationSpaces, "(OBSOLETE) This defines the owning space of this work item type.")
+	a.Attribute("space_template", spaceTemplateRelation, "This defines the owning space template of this work item type.")
 	a.Attribute("guidedChildTypes", relationGenericList, "List of work item types that shall be proposed when creating a child of a work item of this type.")
 })
 
@@ -111,8 +110,27 @@ var workItemTypeSingle = JSONSingle(
 	workItemTypeData,
 	workItemTypeLinks)
 
+var _ = a.Resource("workitemtypes", func() {
+	a.Parent("space_template")
+	a.BasePath("/workitemtypes")
+	a.Action("list", func() {
+		a.Routing(
+			a.GET(""),
+		)
+		a.Description("List work item types.")
+		a.Params(func() {
+			a.Param("page", d.String, "Paging in the format <start>,<limit>")
+			// TODO: Support same params as in work item list-action?
+		})
+		a.UseTrait("conditional")
+		a.Response(d.OK, workItemTypeList)
+		a.Response(d.NotModified)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+	})
+})
+
 var _ = a.Resource("workitemtype", func() {
-	a.Parent("space")
 	a.BasePath("/workitemtypes")
 	a.Action("show", func() {
 		a.Routing(
@@ -127,36 +145,6 @@ var _ = a.Resource("workitemtype", func() {
 		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-	})
-	a.Action("create", func() {
-		a.Security("jwt")
-		a.Routing(
-			a.POST(""),
-		)
-		a.Description("Create work item type.")
-		a.Payload(workItemTypeSingle)
-		a.Response(d.Created, "/workitemtypes/.*", func() {
-			a.Media(workItemTypeSingle)
-		})
-		a.Response(d.BadRequest, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-		a.Response(d.Unauthorized, JSONAPIErrors)
-		a.Response(d.Forbidden, JSONAPIErrors)
-	})
-	a.Action("list", func() {
-		a.Routing(
-			a.GET(""),
-		)
-		a.Description("List work item types.")
-		a.Params(func() {
-			a.Param("page", d.String, "Paging in the format <start>,<limit>")
-			// TODO: Support same params as in work item list-action?
-		})
-		a.UseTrait("conditional")
-		a.Response(d.OK, workItemTypeList)
-		a.Response(d.NotModified)
-		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 })

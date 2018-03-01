@@ -1,12 +1,9 @@
 package space_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
-
-	"context"
 
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
@@ -15,6 +12,7 @@ import (
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	uuid "github.com/satori/go.uuid"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -36,14 +34,15 @@ func (s *SpaceRepositoryTestSuite) SetupSuite() {
 func (s *SpaceRepositoryTestSuite) TestCreate() {
 	s.T().Run("ok", func(t *testing.T) {
 		// given an identity
-		fxt := tf.NewTestFixture(t, s.DB, tf.Identities(1))
+		fxt := tf.NewTestFixture(t, s.DB, tf.Identities(1), tf.SpaceTemplates(1))
 		// when creating space
 		name := testsupport.CreateRandomValidTestName("test space")
 		id := uuid.NewV4()
 		newSpace := space.Space{
-			ID:      id,
-			Name:    name,
-			OwnerID: fxt.Identities[0].ID,
+			ID:              id,
+			Name:            name,
+			OwnerID:         fxt.Identities[0].ID,
+			SpaceTemplateID: fxt.SpaceTemplates[0].ID,
 		}
 		sp, err := s.repo.Create(context.Background(), &newSpace)
 		require.NoError(t, err)
@@ -54,11 +53,12 @@ func (s *SpaceRepositoryTestSuite) TestCreate() {
 	})
 	s.T().Run("fail - empty space name", func(t *testing.T) {
 		// given an identity
-		fxt := tf.NewTestFixture(t, s.DB, tf.Identities(1))
+		fxt := tf.NewTestFixture(t, s.DB, tf.Identities(1), tf.SpaceTemplates(1))
 		// when creating space
 		newSpace := space.Space{
-			Name:    "",
-			OwnerID: fxt.Identities[0].ID,
+			Name:            "",
+			OwnerID:         fxt.Identities[0].ID,
+			SpaceTemplateID: fxt.SpaceTemplates[0].ID,
 		}
 		sp, err := s.repo.Create(context.Background(), &newSpace)
 		require.Error(t, err)
@@ -146,11 +146,14 @@ func (s *SpaceRepositoryTestSuite) TestSave() {
 		require.Nil(t, sp)
 	})
 	s.T().Run("fail - space not existing", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1))
 		// given a space with a not existing ID
 		p := space.Space{
-			ID:      uuid.NewV4(),
-			Version: 0,
-			Name:    testsupport.CreateRandomValidTestName("some space"),
+			ID:              uuid.NewV4(),
+			Version:         0,
+			Name:            testsupport.CreateRandomValidTestName("some space"),
+			SpaceTemplateID: fxt.SpaceTemplates[0].ID,
 		}
 		// when updating this space
 		sp, err := s.repo.Save(s.Ctx, &p)

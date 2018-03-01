@@ -27,11 +27,12 @@ var (
 // Space represents a Space on the domain and db layer
 type Space struct {
 	gormsupport.Lifecycle
-	ID          uuid.UUID
-	Version     int
-	Name        string
-	Description string
-	OwnerID     uuid.UUID `sql:"type:uuid"` // Belongs To Identity
+	ID              uuid.UUID
+	Version         int
+	Name            string
+	Description     string
+	OwnerID         uuid.UUID `sql:"type:uuid"` // Belongs To Identity
+	SpaceTemplateID uuid.UUID `sql:"type:uuid"`
 }
 
 // Ensure Fields implements the Equaler interface
@@ -52,6 +53,9 @@ func (p Space) Equal(u convert.Equaler) bool {
 		return false
 	}
 	if p.Name != other.Name {
+		return false
+	}
+	if !uuid.Equal(p.SpaceTemplateID, other.SpaceTemplateID) {
 		return false
 	}
 	if p.Description != other.Description {

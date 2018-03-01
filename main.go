@@ -1,20 +1,13 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"net/http"
 	"os"
 	"os/user"
 	"runtime"
 	"time"
-
-	"github.com/google/gops/agent"
-	"github.com/prometheus/client_golang/prometheus"
-
-	"context"
-
-	"github.com/jinzhu/gorm"
-	_ "github.com/lib/pq"
 
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
@@ -31,17 +24,17 @@ import (
 	"github.com/fabric8-services/fabric8-wit/models"
 	"github.com/fabric8-services/fabric8-wit/notification"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
-	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/space/authz"
 	"github.com/fabric8-services/fabric8-wit/token"
-	"github.com/fabric8-services/fabric8-wit/workitem"
-	"github.com/fabric8-services/fabric8-wit/workitem/link"
-
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/logging/logrus"
 	"github.com/goadesign/goa/middleware"
 	"github.com/goadesign/goa/middleware/gzip"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
+	"github.com/google/gops/agent"
+	"github.com/jinzhu/gorm"
+	_ "github.com/lib/pq"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 func main() {
@@ -136,18 +129,11 @@ func main() {
 		ctx := migration.NewMigrationContext(context.Background())
 
 		if err := models.Transactional(db, func(tx *gorm.DB) error {
-			return migration.PopulateCommonTypes(ctx, tx, workitem.NewWorkItemTypeRepository(tx))
+			return migration.PopulateCommonTypes(ctx, tx)
 		}); err != nil {
 			log.Panic(ctx, map[string]interface{}{
 				"err": err,
 			}, "failed to populate common types")
-		}
-		if err := models.Transactional(db, func(tx *gorm.DB) error {
-			return migration.BootstrapWorkItemLinking(ctx, link.NewWorkItemLinkCategoryRepository(tx), space.NewRepository(tx), link.NewWorkItemLinkTypeRepository(tx))
-		}); err != nil {
-			log.Panic(ctx, map[string]interface{}{
-				"err": err,
-			}, "failed to bootstap work item linking")
 		}
 	}
 
@@ -359,7 +345,7 @@ func main() {
 	app.MountCollaboratorsController(service, collaboratorsCtrl)
 
 	// Mount "space template" controller
-	spaceTemplateCtrl := controller.NewSpaceTemplateController(service, appDB)
+	spaceTemplateCtrl := controller.NewSpaceTemplateController(service, appDB, config)
 	app.MountSpaceTemplateController(service, spaceTemplateCtrl)
 
 	// Mount "type group" controller with "show" action

@@ -3,3 +3,4 @@ sqlbindata
 design/.*
 .*exported
 EOF
+spacetemplate/template_assets\.go

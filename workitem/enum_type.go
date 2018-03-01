@@ -8,9 +8,9 @@ import (
 )
 
 type EnumType struct {
-	SimpleType
-	BaseType SimpleType
-	Values   []interface{}
+	SimpleType `json:"simple_type"`
+	BaseType   SimpleType    `json:"base_type"`
+	Values     []interface{} `json:"values"`
 }
 
 // Ensure EnumType implements the Equaler interface

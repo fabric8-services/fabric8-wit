@@ -6,25 +6,14 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
-	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
-	"github.com/fabric8-services/fabric8-wit/log"
-	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
-	uuid "github.com/satori/go.uuid"
 )
-
-const (
-	sourceLinkTypesRouteEnd = "/source-link-types"
-	targetLinkTypesRouteEnd = "/target-link-types"
-)
-
-const APIWorkItemTypes = "workitemtypes"
 
 // WorkitemtypeController implements the workitemtype resource.
 type WorkitemtypeController struct {
@@ -50,7 +39,7 @@ func NewWorkitemtypeController(service *goa.Service, db application.DB, config W
 // Show runs the show action.
 func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		witModel, err := appl.WorkItemTypes().Load(ctx.Context, ctx.SpaceID, ctx.WitID)
+		witModel, err := appl.WorkItemTypes().Load(ctx.Context, ctx.WitID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -62,103 +51,12 @@ func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 	})
 }
 
-// Create runs the create action.
-func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) error {
-	currentUserIdentityID, err := login.ContextIdentity(ctx)
-	if err != nil {
-		jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
-	}
-	return application.Transactional(c.db, func(appl application.Application) error {
-		space, err := appl.Spaces().Load(ctx, ctx.SpaceID)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
-		if !uuid.Equal(*currentUserIdentityID, space.OwnerID) {
-			log.Warn(ctx, map[string]interface{}{
-				"space_id":     ctx.SpaceID,
-				"space_owner":  space.OwnerID,
-				"current_user": *currentUserIdentityID,
-			}, "user is not the space owner")
-			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the space owner"))
-		}
-		var fields = map[string]app.FieldDefinition{}
-		for key, fd := range ctx.Payload.Data.Attributes.Fields {
-			fields[key] = *fd
-		}
-		// Set the space to the Payload
-		if ctx.Payload.Data != nil && ctx.Payload.Data.Relationships != nil {
-			// We overwrite or use the space ID in the URL to set the space of this WI
-			spaceSelfURL := rest.AbsoluteURL(ctx.Request, app.SpaceHref(ctx.SpaceID.String()))
-			ctx.Payload.Data.Relationships.Space = app.NewSpaceRelation(ctx.SpaceID, spaceSelfURL)
-		}
-		modelFields, err := ConvertFieldDefinitionsToModel(fields)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
-		witTypeModel, err := appl.WorkItemTypes().Create(
-			ctx.Context,
-			*ctx.Payload.Data.Relationships.Space.Data.ID,
-			ctx.Payload.Data.ID,
-			ctx.Payload.Data.Attributes.ExtendedTypeName,
-			ctx.Payload.Data.Attributes.Name,
-			ctx.Payload.Data.Attributes.Description,
-			ctx.Payload.Data.Attributes.Icon,
-			modelFields)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
-		witData := ConvertWorkItemTypeFromModel(ctx.Request, witTypeModel)
-		wit := &app.WorkItemTypeSingle{Data: &witData}
-		ctx.ResponseData.Header().Set("Location", app.WorkitemtypeHref(*ctx.Payload.Data.Relationships.Space.Data.ID, wit.Data.ID))
-		return ctx.Created(wit)
-	})
-}
-
-// List runs the list action
-func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
-	log.Debug(ctx, map[string]interface{}{"space_id": ctx.SpaceID}, "Listing work item types per space")
-	start, limit, err := parseLimit(ctx.Page)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Could not parse paging"))
-	}
-	return application.Transactional(c.db, func(appl application.Application) error {
-		witModelsOrig, err := appl.WorkItemTypes().List(ctx.Context, ctx.SpaceID, start, &limit)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work item types"))
-		}
-		// Remove "planneritem" from the list of WITs
-		witModels := []workitem.WorkItemType{}
-		for _, wit := range witModelsOrig {
-			if wit.ID != workitem.SystemPlannerItem {
-				witModels = append(witModels, wit)
-			}
-		}
-		return ctx.ConditionalEntities(witModels, c.config.GetCacheControlWorkItemTypes, func() error {
-			// TEMP!!!!! Until Space Template can setup a Space, redirect to SystemSpace WITs if non are found
-			// for the space.
-			if len(witModels) == 0 {
-				witModels, err = appl.WorkItemTypes().List(ctx.Context, space.SystemSpace, start, &limit)
-				if err != nil {
-					return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work item types"))
-				}
-			}
-			// convert from model to app
-			result := &app.WorkItemTypeList{}
-			result.Data = make([]*app.WorkItemTypeData, len(witModels))
-			for index, value := range witModels {
-				wit := ConvertWorkItemTypeFromModel(ctx.Request, &value)
-				result.Data[index] = &wit
-			}
-			return ctx.OK(result)
-		})
-	})
-}
-
 // ConvertWorkItemTypeFromModel converts from models to app representation
 func ConvertWorkItemTypeFromModel(request *http.Request, t *workitem.WorkItemType) app.WorkItemTypeData {
-	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(t.SpaceID.String()))
+	spaceTemplateRelatedURL := rest.AbsoluteURL(request, app.SpaceTemplateHref(t.SpaceTemplateID.String()))
+	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(space.SystemSpace.String()))
 	var converted = app.WorkItemTypeData{
-		Type: "workitemtypes",
+		Type: APIStringTypeWorkItemType,
 		ID:   ptr.UUID(t.ID),
 		Attributes: &app.WorkItemTypeAttributes{
 			CreatedAt:   ptr.Time(t.CreatedAt.UTC()),
@@ -170,7 +68,9 @@ func ConvertWorkItemTypeFromModel(request *http.Request, t *workitem.WorkItemTyp
 			Fields:      map[string]*app.FieldDefinition{},
 		},
 		Relationships: &app.WorkItemTypeRelationships{
-			Space: app.NewSpaceRelation(t.SpaceID, spaceSelfURL),
+			// TODO(kwk): The Space relationship should be deprecated after clients adopted
+			Space:         app.NewSpaceRelation(space.SystemSpace, spaceRelatedURL),
+			SpaceTemplate: app.NewSpaceTemplateRelation(t.SpaceTemplateID, spaceTemplateRelatedURL),
 		},
 	}
 	for name, def := range t.Fields {
@@ -182,31 +82,16 @@ func ConvertWorkItemTypeFromModel(request *http.Request, t *workitem.WorkItemTyp
 			Type:        &ct,
 		}
 	}
-	// TODO(kwk): Replaces this temporary static hack with a more dynamic solution
-	getGuidedChildTypes := func(witIDs ...uuid.UUID) *app.RelationGenericList {
-		res := &app.RelationGenericList{
-			Data: make([]*app.GenericData, len(witIDs)),
+	if len(t.ChildTypeIDs) > 0 {
+		converted.Relationships.GuidedChildTypes = &app.RelationGenericList{
+			Data: make([]*app.GenericData, len(t.ChildTypeIDs)),
 		}
-		for i, id := range witIDs {
-			res.Data[i] = &app.GenericData{
+		for i, id := range t.ChildTypeIDs {
+			converted.Relationships.GuidedChildTypes.Data[i] = &app.GenericData{
 				ID:   ptr.String(id.String()),
-				Type: ptr.String(APIWorkItemTypes),
-				// Links: &app.GenericLinks{
-				// 	Related: strPtr(rest.AbsoluteURL(request, app.WorkitemtypeHref(t.SpaceID, id.String()))),
-				// },
+				Type: ptr.String(APIStringTypeWorkItemType),
 			}
 		}
-		return res
-	}
-	switch t.ID {
-	case workitem.SystemScenario, workitem.SystemFundamental, workitem.SystemPapercuts:
-		converted.Relationships.GuidedChildTypes = getGuidedChildTypes(workitem.SystemExperience, workitem.SystemValueProposition)
-	case workitem.SystemExperience, workitem.SystemValueProposition:
-		converted.Relationships.GuidedChildTypes = getGuidedChildTypes(workitem.SystemFeature, workitem.SystemBug)
-	case workitem.SystemFeature:
-		converted.Relationships.GuidedChildTypes = getGuidedChildTypes(workitem.SystemTask, workitem.SystemBug)
-	case workitem.SystemBug:
-		converted.Relationships.GuidedChildTypes = getGuidedChildTypes(workitem.SystemTask)
 	}
 	return converted
 }

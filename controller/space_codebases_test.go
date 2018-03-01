@@ -1,12 +1,11 @@
 package controller_test
 
 import (
+	"context"
 	"os"
 	"strconv"
 	"strings"
 	"testing"
-
-	"context"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
@@ -14,9 +13,9 @@ import (
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
-
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
+	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
@@ -97,6 +96,7 @@ func (rest *TestSpaceCodebaseREST) TestListCodebase() {
 	// Create a new space where we'll create 3 codebase
 	s := rest.createSpace(testsupport.TestIdentity.ID)
 	// Create another space where we'll create 1 codebase.
+
 	anotherSpace := rest.createSpace(testsupport.TestIdentity.ID)
 
 	repo := "https://github.com/fabric8-services/fabric8-wit.git"
@@ -202,8 +202,9 @@ func (rest *TestSpaceCodebaseREST) createSpace(ownerID uuid.UUID) *space.Space {
 	err = application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Spaces()
 		newSpace := &space.Space{
-			Name:    "TestSpaceCodebase " + uuid.NewV4().String(),
-			OwnerID: ownerID,
+			Name:            "TestSpaceCodebase " + uuid.NewV4().String(),
+			OwnerID:         ownerID,
+			SpaceTemplateID: spacetemplate.SystemLegacyTemplateID,
 		}
 		s, err = repo.Create(context.Background(), newSpace)
 		return err

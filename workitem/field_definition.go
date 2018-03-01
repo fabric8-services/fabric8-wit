@@ -4,12 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-
 	"strings"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/fabric8-services/fabric8-wit/convert"
-
 	errs "github.com/pkg/errors"
 )
 
@@ -59,15 +57,21 @@ type FieldType interface {
 
 // FieldDefinition describes type & other restrictions of a field
 type FieldDefinition struct {
-	Required    bool
-	Label       string
-	Description string
-	Type        FieldType
+	Required    bool      `json:"required"`
+	Label       string    `json:"label"`
+	Description string    `json:"description"`
+	Type        FieldType `json:"type"`
 }
 
 // Ensure FieldDefinition implements the Equaler interface
 var _ convert.Equaler = FieldDefinition{}
 var _ convert.Equaler = (*FieldDefinition)(nil)
+
+// Ensure FieldDefinition implements the json.Unmarshaler interface
+var _ json.Unmarshaler = (*FieldDefinition)(nil)
+
+// // Ensure FieldDefinition implements the yaml.Unmarshaler interface
+// var _ yaml.Unmarshaler = (*FieldDefinition)(nil)
 
 // Equal returns true if two FieldDefinition objects are equal; otherwise false is returned.
 func (f FieldDefinition) Equal(u convert.Equaler) bool {
@@ -155,15 +159,31 @@ func (f *FieldDefinition) UnmarshalJSON(bytes []byte) error {
 
 	err := json.Unmarshal(bytes, &temp)
 	if err != nil {
-		return errs.WithStack(err)
+		return errs.Wrapf(err, "failed to unmarshall field definition into rawFieldDef")
 	}
 	rawType := map[string]interface{}{}
-	json.Unmarshal(*temp.Type, &rawType)
-	kind, err := ConvertAnyToKind(rawType["Kind"])
-
+	err = json.Unmarshal(*temp.Type, &rawType)
 	if err != nil {
-		return errs.WithStack(err)
+		return errs.Wrapf(err, "failed to unmarshall from json.RawMessage to a map: %+v", *temp.Type)
 	}
+
+	var rawKind interface{}
+	rawKind, hasRawKind := rawType["kind"]
+	if !hasRawKind {
+		simpleType, hasSimpleType := rawType["simple_type"]
+		if hasSimpleType {
+			simpleTypeMap, ok := simpleType.(map[string]interface{})
+			if ok {
+				rawKind = simpleTypeMap["kind"]
+			}
+		}
+	}
+	kind, err := ConvertAnyToKind(rawKind)
+	if err != nil {
+		// return the first error anyway
+		return errs.Wrapf(err, "failed to convert any '%+v' to kind", rawKind)
+	}
+
 	switch *kind {
 	case KindList:
 		theType := ListType{}

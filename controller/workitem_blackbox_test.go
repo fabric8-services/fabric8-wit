@@ -2,6 +2,7 @@ package controller_test
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"html"
 	"net/http"
@@ -10,9 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"context"
-
 	"github.com/davecgh/go-spew/spew"
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
@@ -31,13 +31,12 @@ import (
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/search"
 	"github.com/fabric8-services/fabric8-wit/space"
+	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	notificationsupport "github.com/fabric8-services/fabric8-wit/test/notification"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/test/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
-
-	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
@@ -803,7 +802,7 @@ func minimumRequiredCreateWithTypeAndSpace(witID uuid.UUID, spaceID uuid.UUID) a
 }
 
 func newRelationBaseType(spaceID, wit uuid.UUID) *app.RelationBaseType {
-	witRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.WorkitemtypeHref(spaceID.String(), wit.String()))
+	witRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.WorkitemtypeHref(wit.String()))
 	return &app.RelationBaseType{
 		Data: &app.BaseTypeData{
 			Type: "workitemtypes",
@@ -844,7 +843,9 @@ func newChildIteration(ctx context.Context, db *gorm.DB, parentIteration *iterat
 	}
 	err := iterationRepo.Create(ctx, &itr)
 	if err != nil {
-		fmt.Println("Failed to create iteration.")
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "failed to create iteration")
 		return nil
 	}
 	return &itr
@@ -1799,22 +1800,24 @@ func assertSingleWorkItem(t *testing.T, createdWI app.WorkItemSingle, fetchedWI 
 	assert.NotNil(t, fetchedWI.Data.Attributes)
 	assert.NotNil(t, fetchedWI.Data.Links.Self)
 	assert.NotNil(t, fetchedWI.Data.Relationships.Creator.Data.ID)
-	assert.NotNil(t, fetchedWI.Data.Relationships.BaseType.Data.ID)
 	relatedLink := fmt.Sprintf("/%s/labels", fetchedWI.Data.ID)
+	assert.NotNil(t, fetchedWI.Data.Relationships.BaseType.Data.ID)
 	require.NotNil(t, fetchedWI.Data.Relationships.Labels)
 	require.NotNil(t, fetchedWI.Data.Relationships.Labels.Links)
 	assert.Contains(t, *fetchedWI.Data.Relationships.Labels.Links.Related, relatedLink)
 	assert.Empty(t, fetchedWI.Data.Relationships.Labels.Data)
 }
 
-func assertResponseHeaders(t *testing.T, res http.ResponseWriter) (string, string, string) {
-	lastModified := res.Header()[app.LastModified]
-	etag := res.Header()[app.ETag]
-	cacheControl := res.Header()[app.CacheControl]
-	assert.NotEmpty(t, lastModified)
-	assert.NotEmpty(t, etag)
-	assert.NotEmpty(t, cacheControl)
-	return etag[0], lastModified[0], cacheControl[0]
+func assertResponseHeaders(t *testing.T, res http.ResponseWriter) (etag string, lastModified string, cacheControl string) {
+	lastModifiedArr := res.Header()[app.LastModified]
+	etagArr := res.Header()[app.ETag]
+	cacheControlArr := res.Header()[app.CacheControl]
+
+	require.NotEmpty(t, lastModifiedArr, `response header entry "%s" is empty or not set`, app.LastModified)
+	require.NotEmpty(t, etagArr, `response header entry "%s" is empty or not set`, app.ETag)
+	require.NotEmpty(t, cacheControlArr, `response header entry "%s" is empty or not set`, app.CacheControl)
+
+	return etagArr[0], lastModifiedArr[0], cacheControlArr[0]
 }
 
 func (s *WorkItem2Suite) TestWI2FailShowMissing() {
@@ -1845,52 +1848,52 @@ func (s *WorkItem2Suite) xTestWI2SuccessDelete() {
 	test.ShowWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *createdWI.Data.ID, nil, nil)
 }
 
-// TestWI2DeleteLinksOnWIDeletionOK creates two work items (WI1 and WI2) and
-// creates a link between them. When one of the work items is deleted, the
-// link shall be gone as well.
-// Temporarly disabled, See https://github.com/fabric8-services/fabric8-wit/issues/1036
-func (s *WorkItem2Suite) xTestWI2DeleteLinksOnWIDeletionOK() {
-	// Create two work items (wi1 and wi2)
-	c := minimumRequiredCreatePayload()
-	c.Data.Attributes[workitem.SystemTitle] = "WI1"
-	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
-	_, wi1 := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, &c)
-	require.NotNil(s.T(), wi1)
-	c.Data.Attributes[workitem.SystemTitle] = "WI2"
-	_, wi2 := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, &c)
-	require.NotNil(s.T(), wi2)
+// // TestWI2DeleteLinksOnWIDeletionOK creates two work items (WI1 and WI2) and
+// // creates a link between them. When one of the work items is deleted, the
+// // link shall be gone as well.
+// // Temporarly disabled, See https://github.com/fabric8-services/fabric8-wit/issues/1036
+// func (s *WorkItem2Suite) xTestWI2DeleteLinksOnWIDeletionOK() {
+// 	// Create two work items (wi1 and wi2)
+// 	c := minimumRequiredCreatePayload()
+// 	c.Data.Attributes[workitem.SystemTitle] = "WI1"
+// 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+// 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
+// 	_, wi1 := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, &c)
+// 	require.NotNil(s.T(), wi1)
+// 	c.Data.Attributes[workitem.SystemTitle] = "WI2"
+// 	_, wi2 := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, &c)
+// 	require.NotNil(s.T(), wi2)
 
-	// Create link category
-	linkCatPayload := newCreateWorkItemLinkCategoryPayload("test-user")
-	_, linkCat := test.CreateWorkItemLinkCategoryCreated(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, linkCatPayload)
-	require.NotNil(s.T(), linkCat)
+// 	// Create link category
+// 	linkCatPayload := newCreateWorkItemLinkCategoryPayload("test-user")
+// 	_, linkCat := test.CreateWorkItemLinkCategoryCreated(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, linkCatPayload)
+// 	require.NotNil(s.T(), linkCat)
 
-	// Create link space
-	spaceName := "test-space" + uuid.NewV4().String()
-	spaceDescription := "description"
-	spacePayload := newCreateSpacePayload(&spaceName, &spaceDescription)
-	_, space := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, spacePayload)
+// 	// Create link space
+// 	spaceName := "test-space" + uuid.NewV4().String()
+// 	spaceDescription := "description"
+// 	spacePayload := newCreateSpacePayload(&spaceName, &spaceDescription)
+// 	_, space := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, spacePayload)
 
-	// Create work item link type payload
-	linkTypePayload := newCreateWorkItemLinkTypePayload("MyLinkType", *linkCat.Data.ID, *space.Data.ID)
-	_, linkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *space.Data.ID, linkTypePayload)
-	require.NotNil(s.T(), linkType)
+// 	// Create work item link type payload
+// 	linkTypePayload := newCreateWorkItemLinkTypePayload("MyLinkType", *linkCat.Data.ID, *space.Data.ID)
+// 	_, linkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *space.Data.ID, linkTypePayload)
+// 	require.NotNil(s.T(), linkType)
 
-	// Create link between wi1 and wi2
-	linkPayload := newCreateWorkItemLinkPayload(*wi1.Data.ID, *wi2.Data.ID, *linkType.Data.ID)
-	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.linkCtrl, linkPayload)
-	require.NotNil(s.T(), workItemLink)
+// 	// Create link between wi1 and wi2
+// 	linkPayload := newCreateWorkItemLinkPayload(*wi1.Data.ID, *wi2.Data.ID, *linkType.Data.ID)
+// 	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.linkCtrl, linkPayload)
+// 	require.NotNil(s.T(), workItemLink)
 
-	// Delete work item wi1
-	test.DeleteWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *wi1.Data.ID)
+// 	// Delete work item wi1
+// 	test.DeleteWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *wi1.Data.ID)
 
-	// Check that the link was deleted by deleting wi1
-	test.ShowWorkItemLinkNotFound(s.T(), s.svc.Context, s.svc, s.linkCtrl, *workItemLink.Data.ID, nil, nil)
+// 	// Check that the link was deleted by deleting wi1
+// 	test.ShowWorkItemLinkNotFound(s.T(), s.svc.Context, s.svc, s.linkCtrl, *workItemLink.Data.ID, nil, nil)
 
-	// Check that we can query for wi2 without problems
-	test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *wi2.Data.ID, nil, nil)
-}
+// 	// Check that we can query for wi2 without problems
+// 	test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *wi2.Data.ID, nil, nil)
+// }
 
 func (s *WorkItem2Suite) TestWI2CreateWithArea() {
 	// given
@@ -1935,6 +1938,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithArea() {
 	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, &c)
 	require.NotNil(s.T(), wi.Data.Relationships.Area)
 	require.NotNil(s.T(), wi.Data.Relationships.Area.Data.ID)
+
 	// should get root area's id for that space
 	spaceRepo := space.NewRepository(s.DB)
 	spaceInstance, err := spaceRepo.Load(s.svc.Context, *c.Data.Relationships.Space.Data.ID)
@@ -2049,7 +2053,7 @@ func (s *WorkItem2Suite) TestWI2CreateUnknownArea() {
 
 func (s *WorkItem2Suite) TestWI2CreateWithIteration() {
 	// given
-	fxt := createSpaceAndRootAreaAndIterations(s.T(), s.DB)
+	fxt := tf.NewTestFixture(s.T(), s.DB, createSpaceAndRootAreaAndIterations()...)
 	iterationInstance := *fxt.Iterations[1]
 	iterationID := iterationInstance.ID.String()
 	itType := iteration.APIStringTypeIteration
@@ -2076,7 +2080,7 @@ func (s *WorkItem2Suite) TestWI2CreateWithIteration() {
 
 func (s *WorkItem2Suite) TestWI2UpdateWithIteration() {
 	// given
-	fxt := createSpaceAndRootAreaAndIterations(s.T(), s.DB)
+	fxt := tf.NewTestFixture(s.T(), s.DB, createSpaceAndRootAreaAndIterations()...)
 	iterationInstance := *fxt.Iterations[1]
 	iterationID := iterationInstance.ID.String()
 	itType := iteration.APIStringTypeIteration
@@ -2114,7 +2118,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithIteration() {
 
 func (s *WorkItem2Suite) TestWI2UpdateWithRootIterationIfMissing() {
 	// given
-	fxt := createSpaceAndRootAreaAndIterations(s.T(), s.DB)
+	fxt := tf.NewTestFixture(s.T(), s.DB, createSpaceAndRootAreaAndIterations()...)
 	otherIteration := *fxt.Iterations[1]
 	rootIteration := *fxt.Iterations[0]
 	testSpace := *fxt.Spaces[0]
@@ -2173,7 +2177,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithRootIterationIfMissing() {
 func (s *WorkItem2Suite) TestWI2UpdateRemoveIteration() {
 	s.T().Skip("iteration.data can't be sent as nil from client libs since it's optionall and is removed during json encoding")
 	// given
-	fxt := createSpaceAndRootAreaAndIterations(s.T(), s.DB)
+	fxt := tf.NewTestFixture(s.T(), s.DB, createSpaceAndRootAreaAndIterations()...)
 	iterationInstance := *fxt.Iterations[1]
 	iterationID := iterationInstance.ID.String()
 	itType := iteration.APIStringTypeIteration
@@ -2458,12 +2462,19 @@ func (s *WorkItem2Suite) TestCreateWorkItemWithInferredSpace() {
 
 func (s *WorkItem2Suite) TestCreateWorkItemWithCustomSpace() {
 	// given
+	reqLong := &http.Request{Host: "api.service.domain.org"}
+	spaceTemplateID := spacetemplate.SystemLegacyTemplateID
+	spaceTemplateSelfURL := rest.AbsoluteURL(reqLong, app.SpaceTemplateHref(spaceTemplateID.String()))
+
 	spaceName := "My own Space " + uuid.NewV4().String()
 	sp := &app.CreateSpacePayload{
 		Data: &app.Space{
 			Type: "spaces",
 			Attributes: &app.SpaceAttributes{
 				Name: &spaceName,
+			},
+			Relationships: &app.SpaceRelationships{
+				SpaceTemplate: app.NewSpaceTemplateRelation(spaceTemplateID, spaceTemplateSelfURL),
 			},
 		},
 	}
@@ -2523,7 +2534,7 @@ func (s *WorkItem2Suite) TestDefaultSpaceAndIterationRelations() {
 // Following test verifies that UPDATE on WI by setting AREA & Iteration
 // works as expected and do not alter previously set values
 func (s *WorkItem2Suite) TestWI2UpdateWithAreaIterationSuccessively() {
-	fxt := createSpaceAndRootAreaAndIterations(s.T(), s.DB)
+	fxt := tf.NewTestFixture(s.T(), s.DB, createSpaceAndRootAreaAndIterations()...)
 	iterationInstance := *fxt.Iterations[1]
 	rootIteration := *fxt.Iterations[0]
 	areaInstance := *fxt.Areas[1]
@@ -2862,7 +2873,8 @@ func createSpaceWithDefaults(ctx context.Context, db *gorm.DB) (*space.Space, *i
 	areaRepo := area.NewAreaRepository(db)
 
 	newSpace := space.Space{
-		Name: fmt.Sprintf("The Space %v", uuid.NewV4()),
+		Name:            fmt.Sprintf("The Space %v", uuid.NewV4()),
+		SpaceTemplateID: spacetemplate.SystemLegacyTemplateID,
 	}
 	sp, err := spaceRepo.Create(ctx, &newSpace)
 	if err != nil {

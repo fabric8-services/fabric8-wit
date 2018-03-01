@@ -9,7 +9,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
-
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"

@@ -1,0 +1,119 @@
+@startuml space_templates
+
+' This is a PlantUML class diagram.
+' To generate a PNG diagram from this file follow these steps:
+' $ wget -o plantuml.jar http://sourceforge.net/projects/plantuml/files/plantuml.jar/download
+' $ java -jar plantuml.jar -verbose space_templates.puml
+
+hide empty members
+
+package spacetemplate <<Folder>> {
+  class SpaceTemplate {
+    +uuid.UUID ID
+    +int Version
+    +string Name
+    +string Description
+
+    +Validate() error
+    +GetETagData() []interface{}
+    +GetLastModified() time.Time
+    +TableName() string
+    +Equal(u convert.Equaler) bool
+  }
+  note right: This is what gets stored in the DB.\nYou can create, load, and list objects\n of this kind as usual.
+
+  package importer <<Folder>> {
+    class ImportHelper {
+        SpaceTemplate Template
+        []*workitem.WorkItemType WITs
+        []*link.WorkItemLinkType WILTs
+        []*workitem.WorkItemTypeGroup WITGs
+        +Validate() error 
+        +SetID(id uuid.UUID)
+        +String() string
+        +Equal(u convert.Equaler) bool
+    }
+    note top: The import helper holds all information from\nthe YAML space template definition we don't\nstore an import helper in the database. It is just\nan intermediate construct that isn't exposed.\nThe ""spacetemplate.FromString()"" creates an\nimport helper that can be imported using\nthe ""SpaceTemplateRepository""'s ""Import()"" method.
+  }
+}
+
+package workitem <<Folder>> {
+    class ChildType {
+        +uuid.UUID ID
+        +uuid.UUID ParentWorkItemTypeID
+        +uuid.UUID ChildWorkItemTypeID
+        +int Position
+
+        +TableName() string
+    }
+    note bottom: not exposed through API\nonly used to model DB storage
+
+    class WorkItemType {
+        +uuid.UUID SpaceTemplateID
+        +[]uuid.UUID ChildTypeIDs
+    }
+    note bottom: ""ChildTypeIDs"" is filled using the\n""WorkItemTypeRepository""'s\n""AddChildTypes()"" method.\nUpon ""Load()"", and other retrieval\nmethod the child types are loaded\nautomatically.
+
+    WorkItemType "n" o-- "1" SpaceTemplate
+
+    WorkItemType "1" - "n" WorkItemType
+    (WorkItemType, WorkItemType) . ChildType
+
+    class WorkItemTypeGroup {
+        +uuid.UUID ID
+        +uuid.UUID SpaceTemplateID
+        +bucket TypeBucket
+        +string Name
+        +string Icon
+        +int[] Position
+        +uuid.UUID[] TypeList
+
+        +TableName() string
+        +Equal(u convert.Equaler) bool
+        +GetETagData() []interface{}
+        +GetLastModified() time.Time
+    }
+
+    WorkItemTypeGroup "n" o-- "1" SpaceTemplate
+    
+    class typeGroupMember {
+        +uuid.UUID ID
+        +uuid.UUID TypeGroupID
+        +uuid.UUID WorkItemTypeID
+        +int Position
+
+        +TableName() string
+    }
+    note bottom: not exposed through API\nonly used to model DB storage
+
+    WorkItemTypeGroup "1" - "n" WorkItemType
+    (WorkItemTypeGroup, WorkItemType) .. typeGroupMember
+    
+    class Bucket <<stereotype>>
+    note bottom: Allowed values are:\n"portfolio",\n"requirement", and\n"iteration"
+
+    WorkItemTypeGroup o-- Bucket
+
+    package link <<Folder>> {
+        class WorkItemLinkType {
+            +uuid.UUID SpaceTemplateID
+        }
+        WorkItemLinkType "n" o-- "1" SpaceTemplate
+        class WorkItemLinkCategory
+        WorkItemLinkType o-- WorkItemLinkCategory
+    }
+}
+
+package space <<Folder>> {
+    class Space {
+        +uuid.UUID SpaceTemplateID
+    }
+    Space "n" o-- "1" SpaceTemplate
+}
+
+ImportHelper o--"n" WorkItemType
+ImportHelper o--"n" WorkItemLinkType
+ImportHelper o--"n" WorkItemTypeGroup
+ImportHelper o-up-"1" SpaceTemplate
+
+@enduml

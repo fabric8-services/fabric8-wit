@@ -39,19 +39,18 @@ func (s *searchRepositoryBlackboxTest) SetupTest() {
 
 func (s *searchRepositoryBlackboxTest) getTestFixture() *tf.TestFixture {
 	return tf.NewTestFixture(s.T(), s.DB,
-		tf.WorkItemTypes(4, func(fxt *tf.TestFixture, idx int) error {
+		tf.WorkItemTypes(3, func(fxt *tf.TestFixture, idx int) error {
 			wit := fxt.WorkItemTypes[idx]
 			wit.ID = uuid.NewV4()
 			switch idx {
 			case 0:
 				wit.Name = "base"
-				wit.Path = workitem.LtreeSafeID(wit.ID)
 			case 1:
 				wit.Name = "sub1"
-				wit.Path = fxt.WorkItemTypes[0].Path + workitem.GetTypePathSeparator() + workitem.LtreeSafeID(wit.ID)
+				wit.Extends = fxt.WorkItemTypeByName("base").ID
 			case 2:
 				wit.Name = "sub2"
-				wit.Path = fxt.WorkItemTypes[0].Path + workitem.GetTypePathSeparator() + workitem.LtreeSafeID(wit.ID)
+				wit.Extends = fxt.WorkItemTypeByName("base").ID
 			}
 			return nil
 		}),
@@ -71,7 +70,7 @@ func (s *searchRepositoryBlackboxTest) getTestFixture() *tf.TestFixture {
 }
 
 func (s *searchRepositoryBlackboxTest) TestSearchWithJoin() {
-	s.T().Run("Search with join", func(t *testing.T) {
+	s.T().Run("join iterations", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB,
 			tf.Iterations(2),
 			tf.WorkItems(10, func(fxt *tf.TestFixture, idx int) error {
@@ -107,22 +106,36 @@ func (s *searchRepositoryBlackboxTest) TestSearchWithJoin() {
 			}
 			require.Empty(t, toBeFound, "failed to found all work items: %+s", toBeFound)
 		})
-		t.Run("matching name in child", func(t *testing.T) {
+	})
+	s.T().Run("join work item type groups", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.WorkItemTypes(2),
+			tf.WorkItemTypeGroups(2, func(fxt *tf.TestFixture, idx int) error {
+				fxt.WorkItemTypeGroups[idx].TypeList = []uuid.UUID{fxt.WorkItemTypes[idx].ID}
+				return nil
+			}),
+			tf.WorkItems(4, func(fxt *tf.TestFixture, idx int) error {
+				switch idx {
+				case 0, 1, 2:
+					fxt.WorkItems[idx].Type = fxt.WorkItemTypes[0].ID
+				default:
+					fxt.WorkItems[idx].Type = fxt.WorkItemTypes[1].ID
+				}
+				return nil
+			}),
+		)
+		t.Run("matching name", func(t *testing.T) {
 			// when
-			filter := fmt.Sprintf(`{"$AND":[{"iteration.name": "%s"},{"space":"%s"}]}`, fxt.Iterations[0].Name, fxt.Spaces[0].ID)
+			filter := fmt.Sprintf(`{"typegroup.name": "%s"}`, fxt.WorkItemTypeGroups[0].Name)
 			res, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
 			// then
 			require.NoError(t, err)
-			assert.Equal(t, uint64(7), count)
-			toBeFound := id.Slice{
+			assert.Equal(t, uint64(3), count)
+			toBeFound := id.MapFromSlice(id.Slice{
 				fxt.WorkItems[0].ID,
 				fxt.WorkItems[1].ID,
 				fxt.WorkItems[2].ID,
-				fxt.WorkItems[3].ID,
-				fxt.WorkItems[4].ID,
-				fxt.WorkItems[5].ID,
-				fxt.WorkItems[6].ID,
-			}.ToMap()
+			})
 			for _, wi := range res {
 				_, ok := toBeFound[wi.ID]
 				require.True(t, ok, "unknown work item found: %s", wi.ID)

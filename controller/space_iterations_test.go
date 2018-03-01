@@ -1,15 +1,13 @@
 package controller_test
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
 	"testing"
 	"time"
-
-	"context"
-
-	"fmt"
 
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
@@ -22,9 +20,10 @@ import (
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
+	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
-
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -54,8 +53,12 @@ func (rest *TestSpaceIterationREST) SetupTest() {
 	rest.Ctx = goa.NewContext(context.Background(), nil, req, params)
 }
 
-func (rest *TestSpaceIterationREST) SecuredController() (*goa.Service, *SpaceIterationsController) {
-	svc := testsupport.ServiceAsUser("Iteration-Service", testsupport.TestIdentity)
+func (rest *TestSpaceIterationREST) SecuredController(identity ...account.Identity) (*goa.Service, *SpaceIterationsController) {
+	i := testsupport.TestIdentity
+	if identity != nil && len(identity) > 0 {
+		i = identity[0]
+	}
+	svc := testsupport.ServiceAsUser("Iteration-Service", i)
 	return svc, NewSpaceIterationsController(svc, rest.db, rest.Configuration)
 }
 
@@ -77,8 +80,9 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIteration() {
 	err := application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Spaces()
 		newSpace := space.Space{
-			Name:    "TestSuccessCreateIteration" + uuid.NewV4().String(),
-			OwnerID: testsupport.TestIdentity.ID,
+			Name:            testsupport.CreateRandomValidTestName("TestSuccessCreateIteration-"),
+			OwnerID:         testsupport.TestIdentity.ID,
+			SpaceTemplateID: spacetemplate.SystemLegacyTemplateID,
 		}
 		createdSpace, err := repo.Create(rest.Ctx, &newSpace)
 		p = createdSpace
@@ -111,42 +115,24 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIteration() {
 
 func (rest *TestSpaceIterationREST) TestSuccessCreateIterationWithOptionalValues() {
 	// given
-	var p *space.Space
-	var rootItr *iteration.Iteration
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.CreateWorkItemEnvironment())
 	iterationName := "Sprint #22"
 	iterationDesc := "testing description"
 	ci := createSpaceIteration(iterationName, &iterationDesc)
-	application.Transactional(rest.db, func(app application.Application) error {
-		repo := app.Spaces()
-		testSpace := space.Space{
-			Name:    "TestSuccessCreateIterationWithOptionalValues-" + uuid.NewV4().String(),
-			OwnerID: testsupport.TestIdentity.ID,
-		}
-		p, _ = repo.Create(rest.Ctx, &testSpace)
-		// create Root iteration for above space
-		rootItr = &iteration.Iteration{
-			SpaceID: testSpace.ID,
-			Name:    testSpace.Name,
-		}
-		iterationRepo := app.Iterations()
-		err := iterationRepo.Create(rest.Ctx, rootItr)
-		require.NoError(rest.T(), err)
-		return nil
-	})
-	svc, ctrl := rest.SecuredController()
+	svc, ctrl := rest.SecuredController(*fxt.Identities[0])
 	// when
-	_, c := test.CreateSpaceIterationsCreated(rest.T(), svc.Context, svc, ctrl, p.ID, ci)
+	_, c := test.CreateSpaceIterationsCreated(rest.T(), svc.Context, svc, ctrl, fxt.Spaces[0].ID, ci)
 	// then
 	assert.NotNil(rest.T(), c.Data.ID)
 	assert.NotNil(rest.T(), c.Data.Relationships.Space)
-	assert.Equal(rest.T(), p.ID.String(), *c.Data.Relationships.Space.Data.ID)
+	assert.Equal(rest.T(), fxt.Spaces[0].ID.String(), *c.Data.Relationships.Space.Data.ID)
 	assert.Equal(rest.T(), *c.Data.Attributes.Name, iterationName)
 	assert.Equal(rest.T(), *c.Data.Attributes.Description, iterationDesc)
 
 	// create another Iteration with nil description
 	iterationName2 := "Sprint #23"
 	ci = createSpaceIteration(iterationName2, nil)
-	_, c = test.CreateSpaceIterationsCreated(rest.T(), svc.Context, svc, ctrl, p.ID, ci)
+	_, c = test.CreateSpaceIterationsCreated(rest.T(), svc.Context, svc, ctrl, fxt.Spaces[0].ID, ci)
 	assert.Equal(rest.T(), *c.Data.Attributes.Name, iterationName2)
 	assert.Nil(rest.T(), c.Data.Attributes.Description)
 }
@@ -248,7 +234,8 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 	// create seed data
 	spaceRepo := space.NewRepository(rest.DB)
 	spaceInstance := space.Space{
-		Name: "TestWICountsWithIterationListBySpace-" + uuid.NewV4().String(),
+		Name:            testsupport.CreateRandomValidTestName("TestWICountsWithIterationListBySpace-"),
+		SpaceTemplateID: spacetemplate.SystemLegacyTemplateID,
 	}
 	_, e := spaceRepo.Create(rest.Ctx, &spaceInstance)
 	require.Nil(rest.T(), e)
@@ -411,41 +398,13 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 }
 
 func (rest *TestSpaceIterationREST) TestOnlySpaceOwnerCreateIteration() {
-	var p *space.Space
-	var rootItr *iteration.Iteration
-	identityRepo := account.NewIdentityRepository(rest.DB)
-	spaceOwner := &account.Identity{
-		ID:           uuid.NewV4(),
-		Username:     "space-owner-identity",
-		ProviderType: account.KeycloakIDP}
-	errInCreateOwner := identityRepo.Create(rest.Ctx, spaceOwner)
-	require.NoError(rest.T(), errInCreateOwner)
-
 	ci := createSpaceIteration("Sprint #21", nil)
-	err := application.Transactional(rest.db, func(app application.Application) error {
-		repo := app.Spaces()
-		newSpace := space.Space{
-			Name:    "TestSuccessCreateIteration" + uuid.NewV4().String(),
-			OwnerID: spaceOwner.ID,
-		}
-		createdSpace, err := repo.Create(rest.Ctx, &newSpace)
-		p = createdSpace
-		if err != nil {
-			return err
-		}
-		// create Root iteration for above space
-		rootItr = &iteration.Iteration{
-			SpaceID: newSpace.ID,
-			Name:    newSpace.Name,
-		}
-		iterationRepo := app.Iterations()
-		err = iterationRepo.Create(rest.Ctx, rootItr)
-		return err
-	})
-	require.NoError(rest.T(), err)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.CreateWorkItemEnvironment(), tf.Identities(2))
 
-	spaceOwner, errInLoad := identityRepo.Load(rest.Ctx, p.OwnerID)
-	require.NoError(rest.T(), errInLoad)
+	spaceOwner := fxt.Identities[0]
+	otherIdentity := fxt.Identities[1]
+	rootItr := fxt.Iterations[0]
+	p := fxt.Spaces[0]
 
 	svc, ctrl := rest.SecuredControllerWithIdentity(spaceOwner)
 
@@ -459,13 +418,6 @@ func (rest *TestSpaceIterationREST) TestOnlySpaceOwnerCreateIteration() {
 	require.NotNil(rest.T(), c.Data.Relationships.Workitems.Meta)
 	assert.Equal(rest.T(), 0, c.Data.Relationships.Workitems.Meta[KeyTotalWorkItems])
 	assert.Equal(rest.T(), 0, c.Data.Relationships.Workitems.Meta[KeyClosedWorkItems])
-
-	otherIdentity := &account.Identity{
-		ID:           uuid.NewV4(),
-		Username:     "non-space-owner-identity",
-		ProviderType: account.KeycloakIDP}
-	errInCreateOther := identityRepo.Create(rest.Ctx, otherIdentity)
-	require.NoError(rest.T(), errInCreateOther)
 
 	svc, ctrl = rest.SecuredControllerWithIdentity(otherIdentity)
 	test.CreateSpaceIterationsForbidden(rest.T(), svc.Context, svc, ctrl, p.ID, ci)
@@ -492,7 +444,8 @@ func (rest *TestSpaceIterationREST) createIterations() (spaceID uuid.UUID, fathe
 	err := application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Iterations()
 		newSpace := space.Space{
-			Name: "TestListIterationsBySpace-" + uuid.NewV4().String(),
+			Name:            testsupport.CreateRandomValidTestName("TestListIterationsBySpace-"),
+			SpaceTemplateID: spacetemplate.SystemLegacyTemplateID,
 		}
 		p, err := app.Spaces().Create(rest.Ctx, &newSpace)
 		if err != nil {

@@ -50,9 +50,10 @@ var spaceRelationships = a.Type("SpaceRelationships", func() {
 	a.Attribute("labels", relationGeneric, "Space can have one or many labels")
 	a.Attribute("owned-by", spaceOwnedBy, "The owner of the Space")
 	a.Attribute("workitems", relationGeneric, "Space can have one or many work items")
-	a.Attribute("workitemlinktypes", relationGeneric, "Space can have one or many work item link types")
-	a.Attribute("workitemtypes", relationGeneric, "Space can have one or many work item types")
-	a.Attribute("workitemtypegroups", relationGeneric, "Space can have one or many work item type groups")
+	a.Attribute("workitemlinktypes", relationGeneric, "(OBSOLETE) Space can have one or many work item link types")
+	a.Attribute("workitemtypes", relationGeneric, "(OBSOLETE) Space can have one or many work item types")
+	a.Attribute("workitemtypegroups", relationGeneric, "(OBSOLETE) Space can have one or many work item type groups")
+	a.Attribute("space-template", spaceTemplateRelation, `Space is constructed from a space template`)
 })
 
 var spaceOwnedBy = a.Type("SpaceOwnedBy", func() {
@@ -158,6 +159,7 @@ var _ = a.Resource("space", func() {
 		a.Response(d.Created, "/spaces/.*", func() {
 			a.Media(spaceSingle)
 		})
+		a.Response(d.NotFound, JSONAPIErrors) // In case the provided space template wasn't found
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)

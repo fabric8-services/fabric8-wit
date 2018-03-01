@@ -1,15 +1,15 @@
 package workitem
 
 import (
-	"time"
-
 	"context"
+	"time"
 
 	"github.com/fabric8-services/fabric8-wit/application/repository"
 	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/path"
-
+	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
@@ -21,11 +21,11 @@ var cache = NewWorkItemTypeCache()
 // WorkItemTypeRepository encapsulates storage & retrieval of work item types
 type WorkItemTypeRepository interface {
 	repository.Exister
-	Load(ctx context.Context, spaceID uuid.UUID, id uuid.UUID) (*WorkItemType, error)
-	Create(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]FieldDefinition) (*WorkItemType, error)
-	CreateFromModel(ctx context.Context, model *WorkItemType) (*WorkItemType, error)
-	List(ctx context.Context, spaceID uuid.UUID, start *int, length *int) ([]WorkItemType, error)
-	ListPlannerItems(ctx context.Context, spaceID uuid.UUID) ([]WorkItemType, error)
+	Load(ctx context.Context, id uuid.UUID) (*WorkItemType, error)
+	Create(ctx context.Context, spaceTemplateID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields FieldDefinitions) (*WorkItemType, error)
+	List(ctx context.Context, spaceTemplateID uuid.UUID, start *int, length *int) ([]WorkItemType, error)
+	ListPlannerItemTypes(ctx context.Context, spaceTemplateID uuid.UUID) ([]WorkItemType, error)
+	AddChildTypes(ctx context.Context, parentTypeID uuid.UUID, childTypeIDs []uuid.UUID) error
 }
 
 // NewWorkItemTypeRepository creates a wi type repository based on gorm
@@ -38,43 +38,35 @@ type GormWorkItemTypeRepository struct {
 	db *gorm.DB
 }
 
-// LoadByID returns the work item for the given id
-// returns NotFoundError, InternalError
-func (r *GormWorkItemTypeRepository) LoadByID(ctx context.Context, id uuid.UUID) (*WorkItemType, error) {
-	res, err := r.LoadTypeFromDB(ctx, id)
-	if err != nil {
-		return nil, errs.WithStack(err)
-	}
-	return res, nil
-}
-
 // Load returns the work item for the given spaceID and id
 // returns NotFoundError, InternalError
-func (r *GormWorkItemTypeRepository) Load(ctx context.Context, spaceID uuid.UUID, id uuid.UUID) (*WorkItemType, error) {
+func (r *GormWorkItemTypeRepository) Load(ctx context.Context, id uuid.UUID) (*WorkItemType, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitemtype", "load"}, time.Now())
 	log.Debug(ctx, map[string]interface{}{
-		"wit_id":   id,
-		"space_id": spaceID,
+		"wit_id": id,
 	}, "Loading work item type")
 	res, ok := cache.Get(id)
 	if !ok {
 		log.Info(ctx, map[string]interface{}{
-			"wit_id":   id,
-			"space_id": spaceID,
+			"wit_id": id,
 		}, "Work item type doesn't exist in the cache. Loading from DB...")
 		res = WorkItemType{}
 
-		db := r.db.Model(&res).Where("id=? AND space_id=?", id, spaceID).First(&res)
+		db := r.db.Model(&res).Where("id=?", id).First(&res)
 		if db.RecordNotFound() {
-			log.Error(ctx, map[string]interface{}{
-				"wit_id":   id,
-				"space_id": spaceID,
+			log.Info(ctx, map[string]interface{}{
+				"wit_id": id,
 			}, "work item type not found")
 			return nil, errors.NewNotFoundError("work item type", id.String())
 		}
 		if err := db.Error; err != nil {
 			return nil, errors.NewInternalError(ctx, err)
 		}
+		childTypes, err := r.loadChildTypeList(ctx, res.ID)
+		if err != nil {
+			return nil, errs.Wrapf(err, `failed to load child types for WIT "%s" (%s)`, res.Name, res.ID)
+		}
+		res.ChildTypeIDs = childTypes
 		cache.Put(res)
 	}
 	return &res, nil
@@ -94,60 +86,14 @@ func (r *GormWorkItemTypeRepository) CheckExists(ctx context.Context, id uuid.UU
 	return repository.CheckExists(ctx, r.db, WorkItemType{}.TableName(), id)
 }
 
-// LoadTypeFromDB return work item type for the given id
-func (r *GormWorkItemTypeRepository) LoadTypeFromDB(ctx context.Context, id uuid.UUID) (*WorkItemType, error) {
-	log.Debug(ctx, map[string]interface{}{
-		"wit_id": id,
-	}, "Loading work item type")
-	res, ok := cache.Get(id)
-	if !ok {
-		log.Info(ctx, map[string]interface{}{
-			"wit_id": id,
-		}, "Work item type doesn't exist in the cache. Loading from DB...")
-		res = WorkItemType{}
-		db := r.db.Model(&res).Where("id=?", id).First(&res)
-		if db.RecordNotFound() {
-			log.Error(ctx, map[string]interface{}{
-				"wit_id": id,
-			}, "work item type not found")
-			return nil, errors.NewNotFoundError("work item type", id.String())
-		}
-		if err := db.Error; err != nil {
-			log.Error(ctx, map[string]interface{}{
-				"witID": id,
-			}, "work item type retrieval error", err.Error())
-			return nil, errors.NewInternalError(ctx, err)
-		}
-		cache.Put(res)
-	}
-	return &res, nil
-}
-
 // ClearGlobalWorkItemTypeCache removes all work items from the global cache
 func ClearGlobalWorkItemTypeCache() {
 	cache.Clear()
 }
 
-// CreateFromModel creates a new work item type in the repository without any
-// fancy stuff.
-func (r *GormWorkItemTypeRepository) CreateFromModel(ctx context.Context, model *WorkItemType) (*WorkItemType, error) {
-	defer goa.MeasureSince([]string{"goa", "db", "workitemtype", "createfrommodel"}, time.Now())
-	// Make sure this WIT has an ID
-	if model.ID == uuid.Nil {
-		model.ID = uuid.NewV4()
-	}
-
-	if err := r.db.Create(&model).Error; err != nil {
-		return nil, errors.NewInternalError(ctx, errs.Wrap(err, "failed to create work item type"))
-	}
-
-	log.Debug(ctx, map[string]interface{}{"witID": model.ID}, "work item type created successfully!")
-	return model, nil
-}
-
 // Create creates a new work item type in the repository
 // returns BadParameterError, ConversionError or InternalError
-func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]FieldDefinition) (*WorkItemType, error) {
+func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceTemplateID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields FieldDefinitions) (*WorkItemType, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitemtype", "create"}, time.Now())
 	// Make sure this WIT has an ID
 	if id == nil {
@@ -157,7 +103,7 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UU
 
 	allFields := map[string]FieldDefinition{}
 	path := LtreeSafeID(*id)
-	if extendedTypeID != nil {
+	if extendedTypeID != nil && *extendedTypeID != uuid.Nil {
 		extendedType := WorkItemType{}
 		db := r.db.Model(&extendedType).Where("id=?", extendedTypeID).First(&extendedType)
 		if db.RecordNotFound() {
@@ -182,52 +128,133 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UU
 	}
 
 	model := WorkItemType{
-		Version:     0,
-		ID:          *id,
-		Name:        name,
-		Description: description,
-		Icon:        icon,
-		Path:        path,
-		Fields:      allFields,
-		SpaceID:     spaceID,
+		Version:         0,
+		ID:              *id,
+		Name:            name,
+		Description:     description,
+		Icon:            icon,
+		Path:            path,
+		Fields:          allFields,
+		SpaceTemplateID: spaceTemplateID,
 	}
 
-	return r.CreateFromModel(ctx, &model)
+	db := r.db.Create(&model)
+	if db.Error != nil {
+		return nil, errors.NewInternalError(ctx, db.Error)
+	}
+	return &model, nil
 }
 
-// List returns work item types that derives from PlannerItem type
-func (r *GormWorkItemTypeRepository) ListPlannerItems(ctx context.Context, spaceID uuid.UUID) ([]WorkItemType, error) {
+// ListPlannerItemTypes returns work item types that derives from PlannerItem type
+func (r *GormWorkItemTypeRepository) ListPlannerItemTypes(ctx context.Context, spaceTemplateID uuid.UUID) ([]WorkItemType, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitemtype", "listPlannerItems"}, time.Now())
-	var rows []WorkItemType
-	path := path.Path{}
-	db := r.db.Select("id").Where("space_id = ? AND path::text LIKE '"+path.ConvertToLtree(SystemPlannerItem)+".%'", spaceID.String())
-
-	if err := db.Find(&rows).Error; err != nil {
+	var wits []WorkItemType
+	db := r.db.Select("id").Where("space_template_id = ? AND path::text LIKE '"+path.ConvertToLtree(SystemPlannerItem)+".%'", spaceTemplateID.String()).Order("name")
+	if err := db.Find(&wits).Error; err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"space_id": spaceID,
-			"err":      err,
+			"space_template_id": spaceTemplateID,
+			"err":               err,
 		}, "unable to list the work item types that derive of planner item")
 		return nil, errs.WithStack(err)
 	}
-	return rows, nil
+	for i, wit := range wits {
+		childTypes, err := r.loadChildTypeList(ctx, wit.ID)
+		if err != nil {
+			return nil, errs.Wrapf(err, `failed to load child types for WIT "%s" (%s)`, wit.Name, wit.ID)
+		}
+		wits[i].ChildTypeIDs = childTypes
+	}
+	return wits, nil
+
 }
 
 // List returns work item types selected by the given criteria.Expression,
 // starting with start (zero-based) and returning at most "limit" item types.
-func (r *GormWorkItemTypeRepository) List(ctx context.Context, spaceID uuid.UUID, start *int, limit *int) ([]WorkItemType, error) {
+func (r *GormWorkItemTypeRepository) List(ctx context.Context, spaceTemplateID uuid.UUID, start *int, limit *int) ([]WorkItemType, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitemtype", "list"}, time.Now())
+
+	// check space template exists
+	if err := spacetemplate.NewRepository(r.db).CheckExists(ctx, spaceTemplateID); err != nil {
+		return nil, errors.NewNotFoundError("space template", spaceTemplateID.String())
+	}
+
 	// Currently we don't implement filtering here, so leave this empty
 	// TODO: (kwk) implement criteria parsing just like for work items
-	var rows []WorkItemType
-	db := r.db.Where("space_id = ?", spaceID)
+	var wits []WorkItemType
+	db := r.db.Where("space_template_id = ?", spaceTemplateID).Order("name")
 	if start != nil {
 		db = db.Offset(*start)
 	}
 	if limit != nil {
 		db = db.Limit(*limit)
 	}
-	if err := db.Find(&rows).Error; err != nil {
+	if err := db.Find(&wits).Error; err != nil {
 		return nil, errs.WithStack(err)
 	}
-	return rows, nil
+	for i, wit := range wits {
+		childTypes, err := r.loadChildTypeList(ctx, wit.ID)
+		if err != nil {
+			return nil, errs.Wrapf(err, `failed to load child types for WIT "%s" (%s)`, wit.Name, wit.ID)
+		}
+		wits[i].ChildTypeIDs = childTypes
+	}
+	return wits, nil
+}
+
+// ChildType models the relationship from one parent work item type to its child
+// types.
+type ChildType struct {
+	gormsupport.Lifecycle
+	ID                   uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
+	ParentWorkItemTypeID uuid.UUID `sql:"type:uuid"`
+	ChildWorkItemTypeID  uuid.UUID `sql:"type:uuid"`
+	Position             int       // position in type list of child types
+}
+
+// TableName implements gorm.tabler
+func (wit ChildType) TableName() string {
+	return "work_item_child_types"
+}
+
+// AddChildTypes adds the given child work item types to the parent work item
+// type.
+func (r *GormWorkItemTypeRepository) AddChildTypes(ctx context.Context, parentTypeID uuid.UUID, childTypeIDs []uuid.UUID) error {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemtype", "add_child_types"}, time.Now())
+	if len(childTypeIDs) <= 0 {
+		return nil
+	}
+	// Create entries for each child in the type list
+	for idx, ID := range childTypeIDs {
+		childType := ChildType{
+			ParentWorkItemTypeID: parentTypeID,
+			ChildWorkItemTypeID:  ID,
+			Position:             idx,
+		}
+		db := r.db.Create(&childType)
+		if db.Error != nil {
+			return errors.NewInternalError(ctx, db.Error)
+		}
+	}
+	ClearGlobalWorkItemTypeCache()
+	return nil
+
+}
+
+// loadChildTypeList loads all child work item types associated with the given
+// work item type
+func (r *GormWorkItemTypeRepository) loadChildTypeList(ctx context.Context, parentTypeID uuid.UUID) ([]uuid.UUID, error) {
+	types := []ChildType{}
+	db := r.db.Model(&types).Where("parent_work_item_type_id=?", parentTypeID).Order("position ASC").Find(&types)
+	if db.RecordNotFound() {
+		log.Error(ctx, map[string]interface{}{"wit_id": parentTypeID}, "work item type child types not found")
+		return nil, errors.NewNotFoundError("work item type child types", parentTypeID.String())
+	}
+	if err := db.Error; err != nil {
+		return nil, errors.NewInternalError(ctx, err)
+	}
+	res := make([]uuid.UUID, len(types))
+	for i, childType := range types {
+		res[i] = childType.ChildWorkItemTypeID
+	}
+	return res, nil
 }

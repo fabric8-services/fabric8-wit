@@ -11,7 +11,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/rest"
-	"github.com/fabric8-services/fabric8-wit/space"
+	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -53,7 +53,7 @@ func TestConvertTypeFromModel(t *testing.T) {
 				Required: true,
 			},
 		},
-		SpaceID: space.SystemSpace,
+		SpaceTemplateID: spacetemplate.SystemLegacyTemplateID,
 	}
 	//----------------------------
 	// Work item type in app space
@@ -71,7 +71,8 @@ func TestConvertTypeFromModel(t *testing.T) {
 	// Create the type for "animal-type" field based on the enum above
 	stString := "string"
 	reqLong := &http.Request{Host: "api.service.domain.org"}
-	spaceSelfURL := rest.AbsoluteURL(reqLong, app.SpaceHref(space.SystemSpace.String()))
+	spaceTemplateID := spacetemplate.SystemLegacyTemplateID
+	spaceTemplateSelfURL := rest.AbsoluteURL(reqLong, app.SpaceTemplateHref(spaceTemplateID.String()))
 	version := 42
 	expected := app.WorkItemTypeSingle{
 		Data: &app.WorkItemTypeData{
@@ -97,7 +98,7 @@ func TestConvertTypeFromModel(t *testing.T) {
 				},
 			},
 			Relationships: &app.WorkItemTypeRelationships{
-				Space: app.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
+				SpaceTemplate: app.NewSpaceTemplateRelation(spaceTemplateID, spaceTemplateSelfURL),
 			},
 		},
 	}

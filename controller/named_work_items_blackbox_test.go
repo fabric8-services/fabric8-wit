@@ -9,7 +9,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	"github.com/fabric8-services/fabric8-wit/workitem"
@@ -22,14 +21,12 @@ import (
 
 type TestNamedWorkItemsSuite struct {
 	gormtestsupport.DBTestSuite
-	db                 *gormapplication.GormDB
 	testIdentity       account.Identity
 	testSpace          app.Space
 	svc                *goa.Service
 	workitemsCtrl      *WorkitemsController
 	namedWorkItemsCtrl *NamedWorkItemsController
 	wi                 *app.WorkItemSingle
-	clean              func()
 }
 
 func TestNamedWorkItems(t *testing.T) {
@@ -37,8 +34,7 @@ func TestNamedWorkItems(t *testing.T) {
 }
 
 func (s *TestNamedWorkItemsSuite) SetupTest() {
-	s.db = gormapplication.NewGormDB(s.DB)
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+	s.DBTestSuite.SetupTest()
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "TestUpdateWorkitemForSpaceCollaborator-"+uuid.NewV4().String(), "TestWI")
 	require.NoError(s.T(), err)
 	s.testIdentity = *testIdentity
@@ -46,10 +42,6 @@ func (s *TestNamedWorkItemsSuite) SetupTest() {
 	s.workitemsCtrl = NewWorkitemsController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.namedWorkItemsCtrl = NewNamedWorkItemsController(s.svc, gormapplication.NewGormDB(s.DB))
 	s.testSpace = CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, s.testIdentity, "")
-}
-
-func (s *TestNamedWorkItemsSuite) TearDownTest() {
-	s.clean()
 }
 
 func (s *TestNamedWorkItemsSuite) createWorkItem() *app.WorkItemSingle {

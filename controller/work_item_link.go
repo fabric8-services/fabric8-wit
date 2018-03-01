@@ -11,7 +11,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/rest"
-	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/space/authz"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
@@ -178,7 +177,7 @@ func enrichLinkList(ctx context.Context, appl application.Application, req *http
 	}
 	linkArr.Included = append(linkArr.Included, interfaceArr...)
 
-	// TODO(kwk): Include WIs from source and target
+	// TODO(kwk): Include WIs from source and target?
 	workItemDataArr, err := getWorkItemsOfLinks(ctx, appl, req, linkArr.Data)
 	if err != nil {
 		return errs.WithStack(err)
@@ -341,7 +340,7 @@ func (c *WorkItemLinkController) Show(ctx *app.ShowWorkItemLinkContext) error {
 // ConvertLinkFromModel converts a work item from model to REST representation
 func ConvertLinkFromModel(request *http.Request, t link.WorkItemLink) app.WorkItemLinkSingle {
 	linkSelfURL := rest.AbsoluteURL(request, app.WorkItemLinkHref(t.ID.String()))
-	linkTypeRelatedURL := rest.AbsoluteURL(request, app.WorkItemLinkTypeHref(space.SystemSpace, t.LinkTypeID.String()))
+	linkTypeRelatedURL := rest.AbsoluteURL(request, app.WorkItemLinkTypeHref(t.LinkTypeID.String()))
 
 	sourceRelatedURL := rest.AbsoluteURL(request, app.WorkitemHref(t.SourceID.String()))
 	targetRelatedURL := rest.AbsoluteURL(request, app.WorkitemHref(t.TargetID.String()))

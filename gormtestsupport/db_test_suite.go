@@ -9,7 +9,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/models"
 	"github.com/fabric8-services/fabric8-wit/resource"
-	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	"context"
 
@@ -74,9 +73,10 @@ func (s *DBTestSuite) TearDownTest() {
 // populateDBTestSuite populates the DB with common values
 func (s *DBTestSuite) populateDBTestSuite(ctx context.Context) {
 	if _, c := os.LookupEnv(resource.Database); c != false {
-		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
-			return migration.PopulateCommonTypes(ctx, tx, workitem.NewWorkItemTypeRepository(tx))
-		}); err != nil {
+		err := models.Transactional(s.DB, func(tx *gorm.DB) error {
+			return migration.PopulateCommonTypes(ctx, tx)
+		})
+		if err != nil {
 			log.Panic(nil, map[string]interface{}{
 				"err":             err,
 				"postgres_config": s.Configuration.GetPostgresConfigString(),

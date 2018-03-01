@@ -58,8 +58,10 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreate() {
 					if idx == 1 {
 						fxt.WorkItemTypes[1].Fields = map[string]workitem.FieldDefinition{
 							"foo": {
-								Required: true,
-								Type:     &workitem.SimpleType{Kind: workitem.KindFloat},
+								Required:    true,
+								Label:       "foo",
+								Description: "foo description",
+								Type:        &workitem.SimpleType{Kind: workitem.KindFloat},
 							},
 						}
 					}
@@ -79,11 +81,13 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreate() {
 	})
 
 	s.T().Run("ok - WIT with base type", func(t *testing.T) {
-		fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1))
+		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1))
 		basetype := "foo.bar"
-		baseWit, err := s.repo.Create(s.Ctx, fxt.Spaces[0].ID, nil, nil, basetype, nil, "fa-bomb", map[string]workitem.FieldDefinition{
+		baseWit, err := s.repo.Create(s.Ctx, fxt.SpaceTemplates[0].ID, nil, nil, basetype, nil, "fa-bomb", map[string]workitem.FieldDefinition{
 			"foo": {
-				Required: true,
+				Required:    true,
+				Label:       "foo",
+				Description: "foo description",
 				Type: &workitem.ListType{
 					SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
 					ComponentType: workitem.SimpleType{Kind: workitem.KindString}},
@@ -93,7 +97,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreate() {
 		require.NoError(t, err)
 		require.NotNil(t, baseWit)
 		require.NotNil(t, baseWit.ID)
-		extendedWit, err := s.repo.Create(s.Ctx, fxt.Spaces[0].ID, nil, &baseWit.ID, "foo.baz", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
+		extendedWit, err := s.repo.Create(s.Ctx, fxt.SpaceTemplates[0].ID, nil, &baseWit.ID, "foo.baz", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
 		require.NoError(t, err)
 		require.NotNil(t, extendedWit)
 		require.NotNil(t, extendedWit.Fields)
@@ -102,9 +106,9 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreate() {
 	})
 
 	s.T().Run("fail - WIT with missing base type", func(t *testing.T) {
-		fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1))
-		baseTypeID := uuid.Nil
-		extendedWit, err := s.repo.Create(s.Ctx, fxt.Spaces[0].ID, nil, &baseTypeID, "foo.baz", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
+		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1))
+		baseTypeID := uuid.NewV4()
+		extendedWit, err := s.repo.Create(s.Ctx, fxt.SpaceTemplates[0].ID, nil, &baseTypeID, "foo.baz", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
 		// expect an error as the given base type does not exist
 		require.Error(t, err)
 		require.Nil(t, extendedWit)
@@ -120,7 +124,9 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreate() {
 					case 0:
 						fxt.WorkItemTypes[idx].Fields = map[string]workitem.FieldDefinition{
 							"foo": {
-								Required: true,
+								Required:    true,
+								Label:       "foo",
+								Description: "foo description",
 								Type: &workitem.ListType{
 									SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
 									ComponentType: workitem.SimpleType{Kind: workitem.KindString}},
@@ -134,7 +140,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreate() {
 			),
 		)
 
-		wit, err := s.repo.Load(s.Ctx, fxt.WorkItemTypes[0].SpaceID, fxt.WorkItemTypes[0].ID)
+		wit, err := s.repo.Load(s.Ctx, fxt.WorkItemTypes[0].ID)
 		require.NoError(t, err)
 		require.NotNil(t, wit)
 		require.NotNil(t, wit.Fields)
@@ -143,5 +149,39 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreate() {
 		require.NotNil(t, field)
 		assert.Equal(t, workitem.KindList, field.Type.GetKind())
 		assert.Equal(t, true, field.Required)
+	})
+}
+
+func (s *workItemTypeRepoBlackBoxTest) TestAddChildTypes() {
+	s.T().Run("existing child types", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemTypes(3))
+		// when
+		err := s.repo.AddChildTypes(s.Ctx, fxt.WorkItemTypes[0].ID, []uuid.UUID{
+			fxt.WorkItemTypes[1].ID,
+			fxt.WorkItemTypes[2].ID,
+		})
+		// then
+		require.NoError(t, err)
+		wit, err := s.repo.Load(s.Ctx, fxt.WorkItemTypes[0].ID)
+		require.NoError(t, err)
+		require.Equal(t, wit.ChildTypeIDs, []uuid.UUID{
+			fxt.WorkItemTypes[1].ID,
+			fxt.WorkItemTypes[2].ID,
+		})
+	})
+	s.T().Run("non existing child types", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemTypes(3))
+		// when
+		err := s.repo.AddChildTypes(s.Ctx, fxt.WorkItemTypes[0].ID, []uuid.UUID{
+			fxt.WorkItemTypes[2].ID,
+			uuid.NewV4(),
+		})
+		// then
+		require.Error(t, err)
+		wit, err := s.repo.Load(s.Ctx, fxt.WorkItemTypes[0].ID)
+		require.NoError(t, err)
+		require.Equal(t, []uuid.UUID{fxt.WorkItemTypes[2].ID}, wit.ChildTypeIDs)
 	})
 }

@@ -152,3 +152,5 @@ import:
   - pkg/api/v1
 - package: github.com/ajg/form
   version: ^1.5.0
+- package: github.com/ghodss/yaml
+  version: =1.0.0

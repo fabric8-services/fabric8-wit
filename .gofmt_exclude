@@ -5,3 +5,4 @@ vendor/.*
 app/.*
 client/.*
 tool/cli/.*
+spacetemplate/template_assets\.go

@@ -5,12 +5,12 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
-	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
+	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/rest"
-	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/goadesign/goa"
+	errs "github.com/pkg/errors"
 )
 
 // WorkItemTypeGroupController implements the work_item_type_group resource.
@@ -33,24 +33,26 @@ func NewWorkItemTypeGroupController(service *goa.Service, db application.DB) *Wo
 
 // Show runs the list action.
 func (c *WorkItemTypeGroupController) Show(ctx *app.ShowWorkItemTypeGroupContext) error {
-	// TODO(kwk): Replace with loading from DB once type groups are persistently
-	// stored in there.
-	for _, group := range workitem.TypeGroups() {
-		if group.ID == ctx.GroupID {
-			return ctx.OK(&app.WorkItemTypeGroupSingle{
-				Data: ConvertTypeGroup(ctx.Request, group),
-			})
+	var typeGroup *workitem.WorkItemTypeGroup
+	var err error
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		typeGroup, err = appl.WorkItemTypeGroups().Load(ctx, ctx.GroupID)
+		if err != nil {
+			return errs.WithStack(err)
 		}
+		return nil
+	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	return jsonapi.JSONErrorResponse(ctx, errors.NewNotFoundError("type group", ctx.GroupID.String()))
+	return ctx.OK(&app.WorkItemTypeGroupSingle{
+		Data: ConvertTypeGroup(ctx.Request, *typeGroup),
+	})
 }
 
 // ConvertTypeGroup converts WorkitemTypeGroup model to a response resource
 // object for jsonapi.org specification
 func ConvertTypeGroup(request *http.Request, tg workitem.WorkItemTypeGroup) *app.WorkItemTypeGroupData {
-
-	spaceTemplateID := space.SystemSpace
-	spaceTemplateIDStr := spaceTemplateID.String()
 	workitemtypes := "workitemtypes"
 	workItemTypeGroupRelatedURL := rest.AbsoluteURL(request, app.WorkItemTypeGroupHref(tg.ID))
 	createdAt := tg.CreatedAt.UTC()
@@ -79,7 +81,7 @@ func ConvertTypeGroup(request *http.Request, tg workitem.WorkItemTypeGroup) *app
 			},
 			SpaceTemplate: &app.RelationGeneric{
 				Data: &app.GenericData{
-					ID:   &spaceTemplateIDStr,
+					ID:   ptr.String(tg.SpaceTemplateID.String()),
 					Type: &APISpaceTemplates,
 				},
 			},

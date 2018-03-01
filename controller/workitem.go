@@ -92,7 +92,6 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
-
 	var wi *workitem.WorkItem
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		wi, err = appl.WorkItems().LoadByID(ctx, *ctx.Payload.Data.ID)
@@ -317,7 +316,6 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 			target.Fields[workitem.SystemIteration] = iterationUUID.String()
 		}
 	}
-
 	if source.Relationships != nil {
 		if source.Relationships.Area == nil || (source.Relationships.Area != nil && source.Relationships.Area.Data == nil) {
 			log.Debug(ctx, map[string]interface{}{
@@ -478,7 +476,7 @@ func ConvertWorkItem(request *http.Request, wi workitem.WorkItem, additional ...
 					Type: APIStringTypeWorkItemType,
 				},
 				Links: &app.GenericLinks{
-					Self: ptr.String(rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.SpaceID.String(), wi.Type))),
+					Self: ptr.String(rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.Type))),
 				},
 			},
 			Space: app.NewSpaceRelation(wi.SpaceID, rest.AbsoluteURL(request, app.SpaceHref(wi.SpaceID.String()))),

@@ -21,7 +21,7 @@
         "color": {
           "description": "Description for color field",
           "label": "Color",
-          "required": false,
+          "required": true,
           "type": {
             "kind": "string"
           }
@@ -42,6 +42,16 @@
         "links": {
           "related": "http:///api/spaces/2e0698d8-753e-4cef-bb7c-f027634824a2",
           "self": "http:///api/spaces/2e0698d8-753e-4cef-bb7c-f027634824a2"
+        }
+      },
+      "space_template": {
+        "data": {
+          "id": "929c963a-174c-4c37-b487-272067e88bd4",
+          "type": "spacetemplates"
+        },
+        "links": {
+          "related": "http:///api/spacetemplates/929c963a-174c-4c37-b487-272067e88bd4",
+          "self": "http:///api/spacetemplates/929c963a-174c-4c37-b487-272067e88bd4"
         }
       }
     },

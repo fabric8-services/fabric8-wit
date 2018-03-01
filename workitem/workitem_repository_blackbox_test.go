@@ -98,7 +98,7 @@ func (s *workItemRepoBlackBoxTest) TestLoadID() {
 
 func (s *workItemRepoBlackBoxTest) TestCreate() {
 	s.T().Run("create work item without assignees & labels", func(t *testing.T) {
-		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemTypes(1))
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemTypes(1), tf.Spaces(1))
 		wi, err := s.repo.Create(
 			s.Ctx, fxt.Spaces[0].ID, fxt.WorkItemTypes[0].ID,
 			map[string]interface{}{
@@ -197,7 +197,7 @@ func (s *workItemRepoBlackBoxTest) TestCreate() {
 			FileName:   file,
 			LineNumber: line,
 		}
-		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemTypes(1))
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemTypes(1), tf.Spaces(1))
 		_, err := s.repo.Create(
 			s.Ctx, fxt.Spaces[0].ID, fxt.WorkItemTypes[0].ID,
 			map[string]interface{}{
@@ -218,8 +218,11 @@ func (s *workItemRepoBlackBoxTest) TestCreate() {
 		fieldName := "fieldundertest"
 		// Create a work item type for each kind
 		fxt := tf.NewTestFixture(t, s.DB,
+			tf.Spaces(1),
 			tf.WorkItemTypes(len(kinds), func(fxt *tf.TestFixture, idx int) error {
 				fxt.WorkItemTypes[idx].Name = kinds[idx].String()
+				// Explicitly don't inherit fields from other work item type
+				fxt.WorkItemTypes[idx].Extends = uuid.Nil
 				fxt.WorkItemTypes[idx].Fields = map[string]workitem.FieldDefinition{
 					fieldName: {
 						Required:    true,

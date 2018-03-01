@@ -444,7 +444,8 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 		db = db.Limit(*limit)
 	}
 	db = db.Select("count(*) over () as cnt2 , *").Order("execution_order desc")
-
+	// To sort by title do this:
+	// db = db.Select("count(*) over () as cnt2 , *").Order(fmt.Sprintf("fields->>'%s'", workitem.SystemTitle))
 	rows, err := db.Rows()
 	if err != nil {
 		return nil, 0, err
@@ -496,7 +497,7 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 
 	res := make([]workitem.WorkItem, len(result))
 	for index, value := range result {
-		wiType, err := r.workItemTypeRepo.LoadTypeFromDB(ctx, value.Type)
+		wiType, err := r.workItemTypeRepo.Load(ctx, value.Type)
 		if err != nil {
 			return nil, 0, errors.NewInternalError(ctx, err)
 		}
@@ -519,13 +520,14 @@ func (r *GormWorkItemLinkRepository) WorkItemHasChildren(ctx context.Context, pa
 			SELECT 1 FROM %[1]s WHERE id in (
 				SELECT target_id FROM %[2]s
 				WHERE source_id = $1 AND deleted_at IS NULL AND link_type_id IN (
-					SELECT id FROM %[3]s WHERE forward_name = 'parent of'
+					SELECT id FROM %[3]s WHERE forward_name = '%[4]s'
 				)
 			)
 		)`,
 		workitem.WorkItemStorage{}.TableName(),
 		WorkItemLink{}.TableName(),
-		WorkItemLinkType{}.TableName())
+		WorkItemLinkType{}.TableName(),
+		TypeParentOf)
 	var hasChildren bool
 	db := r.db.CommonDB()
 	stmt, err := db.Prepare(query)

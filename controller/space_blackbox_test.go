@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"path/filepath"
 	"testing"
-
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/account"
@@ -121,6 +120,8 @@ func (s *SpaceControllerTestSuite) TestValidateSpaceName() {
 }
 
 func (s *SpaceControllerTestSuite) TestCreateSpace() {
+	resetFn := s.DisableGormCallbacks()
+	defer resetFn()
 
 	s.T().Run("Fail - unsecure", func(t *testing.T) {
 		// given
@@ -136,7 +137,8 @@ func (s *SpaceControllerTestSuite) TestCreateSpace() {
 		p := newCreateSpacePayload(&name, nil)
 		svc, ctrl := s.SecuredController(testsupport.TestIdentity)
 		// when
-		_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "create", "ok.payload.req.golden.json"), p)
+		res, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
 		// then
 		require.NotNil(t, created.Data)
 		require.NotNil(t, created.Data.Attributes)
@@ -146,6 +148,8 @@ func (s *SpaceControllerTestSuite) TestCreateSpace() {
 		assert.Equal(t, name, *created.Data.Attributes.Name)
 		require.NotNil(t, created.Data.Links)
 		assert.NotNil(t, created.Data.Links.Self)
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "create", "ok.payload.res.golden.json"), created)
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "create", "ok.headers.res.golden.json"), res.Header())
 	})
 
 	s.T().Run("ok with default area", func(t *testing.T) {
@@ -440,7 +444,7 @@ func (s *SpaceControllerTestSuite) TestShowSpace() {
 		eTag, lastModified, _ := assertResponseHeaders(t, res)
 		assert.Equal(t, app.ToHTTPTime(getSpaceUpdatedAt(*created)), lastModified)
 		assert.Equal(t, generateSpaceTag(*created), eTag)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show_space_ok.golden.json"), fetched)
+		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "ok.payload.res.golden.json"), fetched)
 	})
 
 	s.T().Run("conditional request", func(t *testing.T) {
@@ -591,6 +595,9 @@ func (s *SpaceControllerTestSuite) TestListSpaces() {
 }
 
 func newCreateSpacePayload(name, description *string) *app.CreateSpacePayload {
+	//spaceTemplateID := spacetemplate.SystemLegacyTemplateID
+	//req := &http.Request{Host: "api.service.domain.org"}
+	// spaceTemplateRelatedURL := rest.AbsoluteURL(req, app.SpaceTemplateHref(spaceTemplateID.String()))
 	return &app.CreateSpacePayload{
 		Data: &app.Space{
 			Type: "spaces",
@@ -599,6 +606,12 @@ func newCreateSpacePayload(name, description *string) *app.CreateSpacePayload {
 				Description: description,
 			},
 		},
+		// NOTE(kwk): For now we don't specify a space template to test that a
+		// default one is taken.
+		//
+		// Relationships: &app.SpaceRelationships{
+		// 	SpaceTemplate: app.NewSpaceTemplateRelation(spaceTemplateID, spaceTemplateRelatedURL),
+		// },
 	}
 }
 

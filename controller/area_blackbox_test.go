@@ -19,6 +19,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
+	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
@@ -359,8 +360,9 @@ func createSpaceAndArea(t *testing.T, db *gormapplication.GormDB) (space.Space, 
 		require.NoError(t, errCreateOwner)
 
 		spaceObj = space.Space{
-			Name:    "TestAreaREST-" + uuid.NewV4().String(),
-			OwnerID: owner.ID,
+			Name:            "TestAreaREST-" + uuid.NewV4().String(),
+			OwnerID:         owner.ID,
+			SpaceTemplateID: spacetemplate.SystemLegacyTemplateID,
 		}
 		_, err := app.Spaces().Create(context.Background(), &spaceObj)
 		require.NoError(t, err)

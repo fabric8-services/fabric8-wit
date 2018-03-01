@@ -9,8 +9,8 @@ import (
 
 //ListType describes a list of SimpleType values
 type ListType struct {
-	SimpleType
-	ComponentType SimpleType
+	SimpleType    `json:"simple_type"`
+	ComponentType SimpleType `json:"component_type"`
 }
 
 // Ensure ListType implements the Equaler interface

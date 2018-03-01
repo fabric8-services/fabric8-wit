@@ -16,25 +16,25 @@
           "type": "workitemlinktypes"
         },
         "links": {
-          "self": "http://api.service.domain.org/api/spaces/00000000-0000-0000-0000-000000000002/workitemlinktypes/00000000-0000-0000-0000-000000000001"
+          "self": "http://api.service.domain.org/api/workitemlinktypes/00000000-0000-0000-0000-000000000001"
         }
       },
       "source": {
+        "data": {
+          "id": "00000000-0000-0000-0000-000000000002",
+          "type": "workitems"
+        },
+        "links": {
+          "related": "http://api.service.domain.org/api/workitems/00000000-0000-0000-0000-000000000002"
+        }
+      },
+      "target": {
         "data": {
           "id": "00000000-0000-0000-0000-000000000003",
           "type": "workitems"
         },
         "links": {
           "related": "http://api.service.domain.org/api/workitems/00000000-0000-0000-0000-000000000003"
-        }
-      },
-      "target": {
-        "data": {
-          "id": "00000000-0000-0000-0000-000000000004",
-          "type": "workitems"
-        },
-        "links": {
-          "related": "http://api.service.domain.org/api/workitems/00000000-0000-0000-0000-000000000004"
         }
       }
     },

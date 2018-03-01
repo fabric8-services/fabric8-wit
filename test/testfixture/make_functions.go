@@ -5,6 +5,9 @@ import (
 	"math/rand"
 	"strings"
 
+	"github.com/fabric8-services/fabric8-wit/ptr"
+	"github.com/fabric8-services/fabric8-wit/spacetemplate"
+
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/area"
 	"github.com/fabric8-services/fabric8-wit/codebase"
@@ -66,6 +69,30 @@ func makeWorkItemLinkCategories(fxt *TestFixture) error {
 	return nil
 }
 
+func makeSpaceTemplates(fxt *TestFixture) error {
+	if fxt.info[kindSpaceTemplates] == nil {
+		return nil
+	}
+	fxt.SpaceTemplates = make([]*spacetemplate.SpaceTemplate, fxt.info[kindSpaceTemplates].numInstances)
+	spaceTemplateRepo := spacetemplate.NewRepository(fxt.db)
+	for i := range fxt.SpaceTemplates {
+		fxt.SpaceTemplates[i] = &spacetemplate.SpaceTemplate{
+			Name: testsupport.CreateRandomValidTestName("space template "),
+		}
+		fxt.SpaceTemplates[i].Description = ptr.String("Description for " + fxt.SpaceTemplates[i].Name)
+
+		if err := fxt.runCustomizeEntityFuncs(i, kindSpaceTemplates); err != nil {
+			return errs.WithStack(err)
+		}
+		st, err := spaceTemplateRepo.Create(fxt.ctx, *fxt.SpaceTemplates[i])
+		if err != nil {
+			return errs.Wrapf(err, "failed to create space template: %+v", fxt.SpaceTemplates[i])
+		}
+		fxt.SpaceTemplates[i] = st
+	}
+	return nil
+}
+
 func makeSpaces(fxt *TestFixture) error {
 	if fxt.info[kindSpaces] == nil {
 		return nil
@@ -79,6 +106,7 @@ func makeSpaces(fxt *TestFixture) error {
 		}
 		if !fxt.isolatedCreation {
 			fxt.Spaces[i].OwnerID = fxt.Identities[0].ID
+			fxt.Spaces[i].SpaceTemplateID = fxt.SpaceTemplates[0].ID
 		}
 		if err := fxt.runCustomizeEntityFuncs(i, kindSpaces); err != nil {
 			return errs.WithStack(err)
@@ -86,6 +114,9 @@ func makeSpaces(fxt *TestFixture) error {
 		if fxt.isolatedCreation {
 			if fxt.Spaces[i].OwnerID == uuid.Nil {
 				return errs.New("you must specify an owner ID for each space")
+			}
+			if fxt.Spaces[i].SpaceTemplateID == uuid.Nil {
+				return errs.New("you must specify a space template ID for each space")
 			}
 		}
 		_, err := spaceRepo.Create(fxt.ctx, fxt.Spaces[i])
@@ -112,15 +143,15 @@ func makeWorkItemLinkTypes(fxt *TestFixture) error {
 			ReverseName: "reverse name (e.g. blocked by)",
 		}
 		if !fxt.isolatedCreation {
-			fxt.WorkItemLinkTypes[i].SpaceID = fxt.Spaces[0].ID
+			fxt.WorkItemLinkTypes[i].SpaceTemplateID = fxt.SpaceTemplates[0].ID
 			fxt.WorkItemLinkTypes[i].LinkCategoryID = fxt.WorkItemLinkCategories[0].ID
 		}
 		if err := fxt.runCustomizeEntityFuncs(i, kindWorkItemLinkTypes); err != nil {
 			return errs.WithStack(err)
 		}
 		if fxt.isolatedCreation {
-			if fxt.WorkItemLinkTypes[i].SpaceID == uuid.Nil {
-				return errs.New("you must specify a space for each work item link type")
+			if fxt.WorkItemLinkTypes[i].SpaceTemplateID == uuid.Nil {
+				return errs.New("you must specify a space template for each work item link type")
 			}
 			if fxt.WorkItemLinkTypes[i].LinkCategoryID == uuid.Nil {
 				return errs.New("you must specify a link category for each work item link type")
@@ -234,77 +265,66 @@ func makeWorkItemTypes(fxt *TestFixture) error {
 	fxt.WorkItemTypes = make([]*workitem.WorkItemType, fxt.info[kindWorkItemTypes].numInstances)
 	witRepo := workitem.NewWorkItemTypeRepository(fxt.db)
 	for i := range fxt.WorkItemTypes {
-		desc := "this work item type was automatically generated"
-		id := uuid.NewV4()
-		path := workitem.LtreeSafeID(workitem.SystemPlannerItem) + workitem.GetTypePathSeparator() + workitem.LtreeSafeID(id)
 		fxt.WorkItemTypes[i] = &workitem.WorkItemType{
-			ID:          id,
+			ID:          uuid.NewV4(),
 			Name:        testsupport.CreateRandomValidTestName("work item type "),
-			Description: &desc,
-			Path:        path,
+			Description: ptr.String("this work item type was automatically generated"),
 			Icon:        "fa-bug",
-			Fields: map[string]workitem.FieldDefinition{
-				workitem.SystemTitle:        {Type: workitem.SimpleType{Kind: workitem.KindString}, Required: true, Label: "Title", Description: "The title text of the work item"},
-				workitem.SystemDescription:  {Type: workitem.SimpleType{Kind: workitem.KindMarkup}, Required: false, Label: "Description", Description: "A descriptive text of the work item"},
-				workitem.SystemCreator:      {Type: workitem.SimpleType{Kind: workitem.KindUser}, Required: true, Label: "Creator", Description: "The user that created the work item"},
-				workitem.SystemRemoteItemID: {Type: workitem.SimpleType{Kind: workitem.KindString}, Required: false, Label: "Remote item", Description: "The ID of the remote work item"},
-				workitem.SystemCreatedAt:    {Type: workitem.SimpleType{Kind: workitem.KindInstant}, Required: false, Label: "Created at", Description: "The date and time when the work item was created"},
-				workitem.SystemUpdatedAt:    {Type: workitem.SimpleType{Kind: workitem.KindInstant}, Required: false, Label: "Updated at", Description: "The date and time when the work item was last updated"},
-				workitem.SystemOrder:        {Type: workitem.SimpleType{Kind: workitem.KindFloat}, Required: false, Label: "Execution Order", Description: "Execution Order of the workitem."},
-				workitem.SystemIteration:    {Type: workitem.SimpleType{Kind: workitem.KindIteration}, Required: false, Label: "Iteration", Description: "The iteration to which the work item belongs"},
-				workitem.SystemArea:         {Type: workitem.SimpleType{Kind: workitem.KindArea}, Required: false, Label: "Area", Description: "The area to which the work item belongs"},
-				workitem.SystemCodebase:     {Type: workitem.SimpleType{Kind: workitem.KindCodebase}, Required: false, Label: "Codebase", Description: "Contains codebase attributes to which this WI belongs to"},
-				workitem.SystemAssignees: {
-					Type: &workitem.ListType{
-						SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
-						ComponentType: workitem.SimpleType{Kind: workitem.KindUser}},
-					Required:    false,
-					Label:       "Assignees",
-					Description: "The users that are assigned to the work item",
-				},
-				workitem.SystemLabels: {
-					Type: &workitem.ListType{
-						SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
-						ComponentType: workitem.SimpleType{Kind: workitem.KindLabel},
-					},
-					Required:    false,
-					Label:       "Labels",
-					Description: "List of labels attached to the work item",
-				},
-				workitem.SystemState: {
-					Type: &workitem.EnumType{
-						SimpleType: workitem.SimpleType{Kind: workitem.KindEnum},
-						BaseType:   workitem.SimpleType{Kind: workitem.KindString},
-						Values: []interface{}{
-							workitem.SystemStateNew,
-							workitem.SystemStateOpen,
-							workitem.SystemStateInProgress,
-							workitem.SystemStateResolved,
-							workitem.SystemStateClosed,
-						},
-					},
-
-					Required:    true,
-					Label:       "State",
-					Description: "The state of the work item",
-				},
-			},
+			Extends:     workitem.SystemPlannerItem,
+			Fields:      workitem.FieldDefinitions{},
 		}
 		if !fxt.isolatedCreation {
-			fxt.WorkItemTypes[i].SpaceID = fxt.Spaces[0].ID
+			fxt.WorkItemTypes[i].SpaceTemplateID = fxt.SpaceTemplates[0].ID
 		}
 		if err := fxt.runCustomizeEntityFuncs(i, kindWorkItemTypes); err != nil {
 			return errs.WithStack(err)
 		}
 		if fxt.isolatedCreation {
-			if fxt.WorkItemTypes[i].SpaceID == uuid.Nil {
-				return errs.New("you must specify a space ID for each work item type")
+			if fxt.WorkItemTypes[i].SpaceTemplateID == uuid.Nil {
+				return errs.New("you must specify a space template ID for each work item type")
 			}
 		}
-		_, err := witRepo.CreateFromModel(fxt.ctx, fxt.WorkItemTypes[i])
+		m := fxt.WorkItemTypes[i]
+		wit, err := witRepo.Create(fxt.ctx, m.SpaceTemplateID, &m.ID, &m.Extends, m.Name, m.Description, m.Icon, m.Fields)
 		if err != nil {
 			return errs.Wrapf(err, "failed to create work item type %+v", fxt.WorkItemTypes[i])
 		}
+		fxt.WorkItemTypes[i] = wit
+	}
+	return nil
+}
+
+func makeWorkItemTypeGroups(fxt *TestFixture) error {
+	if fxt.info[kindWorkItemTypeGroups] == nil {
+		return nil
+	}
+	fxt.WorkItemTypeGroups = make([]*workitem.WorkItemTypeGroup, fxt.info[kindWorkItemTypeGroups].numInstances)
+	witgRepo := workitem.NewWorkItemTypeGroupRepository(fxt.db)
+	for i := range fxt.WorkItemTypeGroups {
+		fxt.WorkItemTypeGroups[i] = &workitem.WorkItemTypeGroup{
+			ID:       uuid.NewV4(),
+			Name:     testsupport.CreateRandomValidTestName("work item type group "),
+			Bucket:   workitem.BucketPortfolio,
+			Icon:     "fa fa-suitcase",
+			Position: i,
+		}
+		if !fxt.isolatedCreation {
+			fxt.WorkItemTypeGroups[i].TypeList = append(fxt.WorkItemTypeGroups[i].TypeList, fxt.WorkItemTypes[0].ID)
+			fxt.WorkItemTypeGroups[i].SpaceTemplateID = fxt.SpaceTemplates[0].ID
+		}
+		if err := fxt.runCustomizeEntityFuncs(i, kindWorkItemTypeGroups); err != nil {
+			return errs.WithStack(err)
+		}
+		if fxt.isolatedCreation {
+			if fxt.WorkItemTypes[i].SpaceTemplateID == uuid.Nil {
+				return errs.New("you must specify a space template ID for each work item type group")
+			}
+		}
+		witg, err := witgRepo.Create(fxt.ctx, *fxt.WorkItemTypeGroups[i])
+		if err != nil {
+			return errs.Wrapf(err, "failed to create work item type group %+v", fxt.WorkItemTypeGroups[i])
+		}
+		fxt.WorkItemTypeGroups[i] = witg
 	}
 	return nil
 }

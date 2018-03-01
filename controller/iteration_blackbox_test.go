@@ -29,7 +29,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
-	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -240,7 +239,7 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 
 func (rest *TestIterationREST) TestFailValidationIterationNameLength() {
 	// given
-	fxt := createSpaceAndRootAreaAndIterations(rest.T(), rest.DB)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
 	parent := *fxt.Iterations[1]
 	_, err := rest.db.Iterations().Root(context.Background(), parent.SpaceID)
 	require.NoError(rest.T(), err)
@@ -254,7 +253,7 @@ func (rest *TestIterationREST) TestFailValidationIterationNameLength() {
 
 func (rest *TestIterationREST) TestFailValidationIterationNameStartWith() {
 	// given
-	fxt := createSpaceAndRootAreaAndIterations(rest.T(), rest.DB)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
 	parent := *fxt.Iterations[1]
 	_, err := rest.db.Iterations().Root(context.Background(), parent.SpaceID)
 	require.NoError(rest.T(), err)
@@ -270,7 +269,7 @@ func (rest *TestIterationREST) TestShowIterationOK() {
 	resetFn := rest.DisableGormCallbacks()
 	defer resetFn()
 	// given
-	fxt := createSpaceAndRootAreaAndIterations(rest.T(), rest.DB)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
 	itr := *fxt.Iterations[1]
 	svc, ctrl := rest.SecuredController()
 	// when
@@ -285,7 +284,7 @@ func (rest *TestIterationREST) TestShowIterationOK() {
 
 func (rest *TestIterationREST) TestShowIterationOKUsingExpiredIfModifiedSinceHeader() {
 	// given
-	fxt := createSpaceAndRootAreaAndIterations(rest.T(), rest.DB)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
 	itr := *fxt.Iterations[1]
 	svc, ctrl := rest.SecuredController()
 	// when
@@ -300,7 +299,7 @@ func (rest *TestIterationREST) TestShowIterationOKUsingExpiredIfModifiedSinceHea
 
 func (rest *TestIterationREST) TestShowIterationOKUsingExpiredIfNoneMatchHeader() {
 	// given
-	fxt := createSpaceAndRootAreaAndIterations(rest.T(), rest.DB)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
 	itr := *fxt.Iterations[1]
 	svc, ctrl := rest.SecuredController()
 	// when
@@ -315,7 +314,7 @@ func (rest *TestIterationREST) TestShowIterationOKUsingExpiredIfNoneMatchHeader(
 
 func (rest *TestIterationREST) TestShowIterationNotModifiedUsingIfModifiedSinceHeader() {
 	// given
-	fxt := createSpaceAndRootAreaAndIterations(rest.T(), rest.DB)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
 	itr := *fxt.Iterations[1]
 	svc, ctrl := rest.SecuredController()
 	// when/then
@@ -326,7 +325,7 @@ func (rest *TestIterationREST) TestShowIterationNotModifiedUsingIfModifiedSinceH
 
 func (rest *TestIterationREST) TestShowIterationNotModifiedUsingIfNoneMatchHeader() {
 	// given
-	fxt := createSpaceAndRootAreaAndIterations(rest.T(), rest.DB)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
 	itr := *fxt.Iterations[1]
 	svc, ctrl := rest.SecuredController()
 	// when/then
@@ -351,13 +350,19 @@ func (rest *TestIterationREST) createWorkItem(parentSpace space.Space) workitem.
 
 func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHeaderAfterWorkItemLinking() {
 	// given
-	fxt := createSpaceAndRootAreaAndIterations(rest.T(), rest.DB)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB,
+		append(createSpaceAndRootAreaAndIterations(),
+			tf.WorkItems(1,
+				tf.SetWorkItemField(workitem.SystemState, workitem.SystemStateNew),
+			),
+		)...,
+	)
 	itr := *fxt.Iterations[1]
 	parentSpace := *fxt.Spaces[0]
+	testWI := *fxt.WorkItems[0]
 	svc, ctrl := rest.SecuredController()
 	rest.T().Logf("Iteration: %s: updatedAt: %s", itr.ID.String(), itr.UpdatedAt.String())
 	ifModifiedSinceHeader := app.ToHTTPTime(itr.UpdatedAt)
-	testWI := rest.createWorkItem(parentSpace)
 	testWI.Fields[workitem.SystemIteration] = itr.ID.String()
 	// need to wait at least 1s because HTTP date time does not include microseconds, hence `Last-Modified` vs `If-Modified-Since` comparison may fail
 	time.Sleep(1 * time.Second)
@@ -372,7 +377,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHead
 
 func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHeaderAfterWorkItemUnlinking() {
 	// given
-	fxt := createSpaceAndRootAreaAndIterations(rest.T(), rest.DB)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
 	itr := *fxt.Iterations[1]
 	parentSpace := *fxt.Spaces[0]
 	svc, ctrl := rest.SecuredController()
@@ -412,7 +417,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHead
 
 func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAfterWorkItemLinking() {
 	// given
-	fxt := createSpaceAndRootAreaAndIterations(rest.T(), rest.DB)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
 	itr := *fxt.Iterations[1]
 	parentSpace := *fxt.Spaces[0]
 	svc, ctrl := rest.SecuredController()
@@ -431,7 +436,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAf
 
 func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAfterWorkItemUnlinking() {
 	// given
-	fxt := createSpaceAndRootAreaAndIterations(rest.T(), rest.DB)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
 	itr := *fxt.Iterations[1]
 	parentSpace := *fxt.Spaces[0]
 	svc, ctrl := rest.SecuredController()
@@ -544,7 +549,7 @@ func (rest *TestIterationREST) TestSuccessUpdateIteration() {
 
 func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 	// given
-	fxt := createSpaceAndRootAreaAndIterations(rest.T(), rest.DB)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
 	itr := *fxt.Iterations[1]
 	sp := *fxt.Spaces[0]
 	newName := "Sprint 1001"
@@ -607,7 +612,7 @@ func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 
 func (rest *TestIterationREST) TestFailUpdateIterationNotFound() {
 	// given
-	fxt := createSpaceAndRootAreaAndIterations(rest.T(), rest.DB)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
 	itr := *fxt.Iterations[1]
 	itr.ID = uuid.NewV4()
 	payload := app.UpdateIterationPayload{
@@ -624,7 +629,7 @@ func (rest *TestIterationREST) TestFailUpdateIterationNotFound() {
 
 func (rest *TestIterationREST) TestFailUpdateIterationUnauthorized() {
 	// given
-	fxt := createSpaceAndRootAreaAndIterations(rest.T(), rest.DB)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
 	itr := *fxt.Iterations[1]
 	payload := app.UpdateIterationPayload{
 		Data: &app.Iteration{
@@ -640,7 +645,7 @@ func (rest *TestIterationREST) TestFailUpdateIterationUnauthorized() {
 
 func (rest *TestIterationREST) TestIterationStateTransitions() {
 	// given
-	fxt := createSpaceAndRootAreaAndIterations(rest.T(), rest.DB)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
 	itr1 := *fxt.Iterations[1]
 	sp := *fxt.Spaces[0]
 	assert.Equal(rest.T(), iteration.StateNew, itr1.State)
@@ -689,7 +694,7 @@ func (rest *TestIterationREST) TestIterationStateTransitions() {
 
 func (rest *TestIterationREST) TestRootIterationCanNotStart() {
 	// given
-	fxt := createSpaceAndRootAreaAndIterations(rest.T(), rest.DB)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
 	itr1 := *fxt.Iterations[1]
 	sp := *fxt.Spaces[0]
 	var ri *iteration.Iteration
@@ -719,7 +724,7 @@ func (rest *TestIterationREST) TestRootIterationCanNotStart() {
 }
 
 func (rest *TestIterationREST) createIterations() (*app.IterationSingle, *account.Identity) {
-	fxt := createSpaceAndRootAreaAndIterations(rest.T(), rest.DB)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
 	parent := *fxt.Iterations[1]
 	sp := *fxt.Spaces[0]
 	_, err := rest.db.Iterations().Root(context.Background(), parent.SpaceID)
@@ -806,8 +811,8 @@ func getChildIterationPayload(name string) *app.CreateChildIterationPayload {
 
 // following helper function creates a space , root area, root iteration for that space.
 // Also creates a new iteration and new area in the same space
-func createSpaceAndRootAreaAndIterations(t *testing.T, db *gorm.DB) *tf.TestFixture {
-	return tf.NewTestFixture(t, db,
+func createSpaceAndRootAreaAndIterations() []tf.RecipeFunction {
+	return []tf.RecipeFunction{
 		tf.CreateWorkItemEnvironment(),
 		tf.Iterations(2, func(fxt *tf.TestFixture, idx int) error {
 			switch idx {
@@ -823,7 +828,7 @@ func createSpaceAndRootAreaAndIterations(t *testing.T, db *gorm.DB) *tf.TestFixt
 			return nil
 		}),
 		tf.Areas(2),
-	)
+	}
 }
 
 func assertIterationLinking(t *testing.T, target *app.Iteration) {

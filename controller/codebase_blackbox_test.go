@@ -8,13 +8,15 @@ import (
 	"time"
 
 	"github.com/dnaeon/go-vcr/recorder"
+	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/account/tenant"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	"github.com/fabric8-services/fabric8-wit/codebase/che"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/ptr"
 
-	"github.com/fabric8-services/fabric8-wit/account"
+	// "github.com/fabric8-services/fabric8-wit/codebase"
+	// "github.com/fabric8-services/fabric8-wit/controller"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"

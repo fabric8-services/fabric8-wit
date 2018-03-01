@@ -14,7 +14,7 @@ import (
 
 // SimpleType is an unstructured FieldType
 type SimpleType struct {
-	Kind Kind
+	Kind Kind `json:"kind"`
 }
 
 // Ensure SimpleType implements the Equaler interface
