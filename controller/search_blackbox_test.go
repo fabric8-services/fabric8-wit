@@ -1068,6 +1068,62 @@ func (s *searchControllerTestSuite) TestSearchByJoinedData() {
 	})
 }
 
+// TestOrderOfExecution tests order of execution of workitems with tree-view and without tree-view filter
+// Suppose we have this topology:
+// Parent1
+// 	|_ Child1
+// Parent2
+//	|_ Child2
+//	|_ Child3
+// Parent3
+// Parent4
+// Parent5
+func (s *searchControllerTestSuite) TestOrderOfExecution() {
+	resetFn := s.DisableGormCallbacks()
+	defer resetFn()
+
+	fxt := tf.NewTestFixture(s.T(), s.DB,
+		tf.WorkItems(8, tf.SetWorkItemTitles("Parent1", "Parent2", "Parent3", "Parent4", "Parent5", "Child1", "Child2", "Child3")),
+		tf.WorkItemLinksCustom(3, func(fxt *tf.TestFixture, idx int) error {
+			l := fxt.WorkItemLinks[idx]
+			l.LinkTypeID = link.SystemWorkItemLinkTypeParentChildID
+			switch idx {
+			case 0:
+				l.SourceID = fxt.WorkItemByTitle("Parent1").ID
+				l.TargetID = fxt.WorkItemByTitle("Child1").ID
+			case 1:
+				l.SourceID = fxt.WorkItemByTitle("Parent2").ID
+				l.TargetID = fxt.WorkItemByTitle("Child2").ID
+			case 2:
+				l.SourceID = fxt.WorkItemByTitle("Parent2").ID
+				l.TargetID = fxt.WorkItemByTitle("Child3").ID
+			}
+			return nil
+		}),
+	)
+	spaceIDStr := fxt.Spaces[0].ID.String() 
+
+	// Without Tree View
+	filter := fmt.Sprintf(`{"space": "%[1]s"}`, spaceIDStr)
+	_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+	// then
+	require.NotEmpty(s.T(), result.Data)
+	for i, wi := range result.Data{
+		i = len(result.Data)-1-i
+		assert.Equal(s.T(), fxt.WorkItems[i].Fields[workitem.SystemOrder], wi.Attributes[workitem.SystemOrder])
+	}
+
+	// With Tree View
+	filter = fmt.Sprintf(`{"space": "%[1]s", "$OPTS":{"%[2]s": true}}`, spaceIDStr, search.OptTreeViewKey)
+	_, result = test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+	// then
+	require.NotEmpty(s.T(), result.Data)
+	for i, wi := range result.Data{
+		i = len(result.Data)-1-i
+		assert.Equal(s.T(), fxt.WorkItems[i].Fields[workitem.SystemOrder], wi.Attributes[workitem.SystemOrder])
+	}
+}
+
 // TestIncludedParents verifies the Included list of parents
 func (s *searchControllerTestSuite) TestIncludedParents() {
 	resetFn := s.DisableGormCallbacks()

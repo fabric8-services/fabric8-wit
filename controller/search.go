@@ -69,10 +69,6 @@ func (a WorkItemPtrSlice) Swap(i, j int) {
 	a[i], a[j] = a[j], a[i]
 }
 
-// Ensure WorkItemPtrSlice implements the sort.Interface
-var _ sort.Interface = WorkItemPtrSlice{}
-var _ sort.Interface = (*WorkItemPtrSlice)(nil)
-
 // WorkItemInterfaceSlice exists in order to allow sorting results in a search
 // response.
 type WorkItemInterfaceSlice []interface{}
@@ -185,11 +181,6 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 			}
 			c.enrichWorkItemList(ctx, ancestors, matchingWorkItemIDs, childLinks, &response, hasChildren) // append parentWI and ancestors (if not empty) in response
 			setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(result), offset, limit, count, "filter[expression]="+*ctx.FilterExpression)
-
-			// Sort "data" by name or ID if no title given
-			var data WorkItemPtrSlice = response.Data
-			sort.Sort(data)
-			response.Data = data
 
 			// Sort work items in the "included" array by ID or title
 			var included WorkItemInterfaceSlice = response.Included
