@@ -34,6 +34,9 @@ type KubeClientConfig struct {
 	BearerToken string
 	// Kubernetes namespace in the cluster of type 'user'
 	UserNamespace string
+	// Timeout used for communicating with Kubernetes and OpenShift API servers,
+	// a value of zero indicates no timeout
+	Timeout time.Duration // TODO determine good timeout to set here, or possibly make configurable
 	// Provides access to the Kubernetes REST API, uses default implementation if not set
 	KubeRESTAPIGetter
 	// Provides access to the metrics API, uses default implementation if not set
@@ -99,7 +102,8 @@ type OpenShiftRESTAPI interface {
 }
 
 type openShiftAPIClient struct {
-	config *KubeClientConfig
+	config     *KubeClientConfig
+	httpClient *http.Client
 }
 
 type deployment struct {
@@ -184,6 +188,7 @@ func (*defaultGetter) GetKubeRESTAPI(config *KubeClientConfig) (KubeRESTAPI, err
 	restConfig := &rest.Config{
 		Host:        config.ClusterURL,
 		BearerToken: config.BearerToken,
+		Timeout:     config.Timeout,
 	}
 	clientset, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
@@ -193,8 +198,13 @@ func (*defaultGetter) GetKubeRESTAPI(config *KubeClientConfig) (KubeRESTAPI, err
 }
 
 func (*defaultGetter) GetOpenShiftRESTAPI(config *KubeClientConfig) (OpenShiftRESTAPI, error) {
+	// Equivalent to http.DefaultClient with added timeout
+	httpClient := &http.Client{
+		Timeout: config.Timeout, // TODO test timeouts with whitebox tests
+	}
 	client := &openShiftAPIClient{
-		config: config,
+		config:     config,
+		httpClient: httpClient,
 	}
 	return client, nil
 }
@@ -763,8 +773,7 @@ func (oc *openShiftAPIClient) sendResource(url string, method string, reqBody in
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Authorization", "Bearer "+oc.config.BearerToken)
 
-	client := http.DefaultClient
-	resp, err := client.Do(req)
+	resp, err := oc.httpClient.Do(req)
 	if err != nil {
 		log.Error(nil, map[string]interface{}{
 			"err":          err,
@@ -1726,8 +1735,7 @@ func (oc *openShiftAPIClient) getResource(url string, allowMissing bool) (map[st
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Authorization", "Bearer "+oc.config.BearerToken)
 
-	client := http.DefaultClient
-	resp, err := client.Do(req)
+	resp, err := oc.httpClient.Do(req)
 	if err != nil {
 		log.Error(nil, map[string]interface{}{
 			"err": err,
