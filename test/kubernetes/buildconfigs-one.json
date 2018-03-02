@@ -1,0 +1,69 @@
+{
+    "apiVersion": "v1",
+    "kind": "BuildConfigList",
+    "items": [
+        {
+            "apiVersion": "v1",
+            "kind": "BuildConfig",
+            "metadata": {
+                "annotations": {
+                    "che.fabric8.io/stack": "java-centos",
+                    "jenkins.openshift.org/disable-sync-create-on": "jenkins",
+                    "jenkins.openshift.org/generated-by": "jenkins",
+                    "jenkins.openshift.org/job-path": "myUser/myApp/master"
+                },
+                "creationTimestamp": "2018-01-17T20:23:30Z",
+                "labels": {
+                    "space": "mySpace"
+                },
+                "name": "myApp",
+                "namespace": "myNamespace",
+                "resourceVersion": "828221505",
+                "selfLink": "/oapi/v1/namespaces/myNamespace/buildconfigs/myApp",
+                "uid": "b4bde2cd-fc5c-4e1d-9c37-8fb07ee6c30f"
+            },
+            "spec": {
+                "failedBuildsHistoryLimit": 5,
+                "nodeSelector": {},
+                "output": {},
+                "postCommit": {},
+                "resources": {},
+                "runPolicy": "Serial",
+                "source": {
+                    "git": {
+                        "ref": "master",
+                        "uri": "https://example.com/myApp.git"
+                    },
+                    "type": "Git"
+                },
+                "strategy": {
+                    "jenkinsPipelineStrategy": {
+                        "env": [
+                            {
+                                "name": "FABRIC8_SPACE",
+                                "value": "mySpace"
+                            }
+                        ],
+                        "jenkinsfilePath": "Jenkinsfile"
+                    },
+                    "type": "JenkinsPipeline"
+                },
+                "successfulBuildsHistoryLimit": 5,
+                "triggers": [
+                    {
+                        "generic": {
+                            "secret": "mySecret"
+                        },
+                        "type": "Generic"
+                    }
+                ]
+            },
+            "status": {
+                "lastVersion": 4
+            }
+        }
+    ],
+    "metadata": {},
+    "resourceVersion": "",
+    "selfLink": ""
+}
