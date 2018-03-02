@@ -34,7 +34,7 @@ const (
 	NOT      = "$NOT"
 	IN       = "$IN"
 	SUBSTR   = "$SUBSTR"
-	WITGROUP = "$WITGROUP"
+	WITGROUP = "typegroup.name"
 	OPTS     = "$OPTS"
 
 	OptParentExistsKey = "parent-exists"
