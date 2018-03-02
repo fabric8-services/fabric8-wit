@@ -59,7 +59,7 @@ var _ OpenshiftIOClient = &OSIOClient{}
 var _ OpenshiftIOClient = (*OSIOClient)(nil)
 
 // NewOSIOClient creates an openshift IO client given an http request context
-func NewOSIOClient(ctx context.Context, scheme string, host string) *OSIOClient {
+func NewOSIOClient(ctx context.Context, scheme string, host string) OpenshiftIOClient {
 	wc := witclient.New(goaclient.HTTPClientDoer(http.DefaultClient))
 	wc.Host = host
 	wc.Scheme = scheme
@@ -68,7 +68,7 @@ func NewOSIOClient(ctx context.Context, scheme string, host string) *OSIOClient 
 }
 
 // CreateOSIOClient factory method replaced during unit testing
-func CreateOSIOClient(witclient WitClient, responseReader ResponseReader) *OSIOClient {
+func CreateOSIOClient(witclient WitClient, responseReader ResponseReader) OpenshiftIOClient {
 	client := new(OSIOClient)
 	client.wc = witclient
 	client.responseReader = responseReader
