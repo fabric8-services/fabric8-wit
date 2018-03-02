@@ -793,18 +793,20 @@ var defaultAppTestData = &appTestData{
 }
 
 type deployTestData struct {
-	testName         string
-	spaceName        string
-	appName          string
-	envName          string
-	envNS            string
-	expectVersion    string
-	expectPodStatus  [][]string
-	expectPodsTotal  int
-	expectConsoleURL string
-	expectLogURL     string
-	expectAppURL     string
-	shouldFail       bool
+	testName                string
+	spaceName               string
+	appName                 string
+	envName                 string
+	envNS                   string
+	expectVersion           string
+	expectPodStatus         [][]string
+	expectPodsTotal         int
+	expectPodsQuotaCpucores float64
+	expectPodsQuotaMemory   float64
+	expectConsoleURL        string
+	expectLogURL            string
+	expectAppURL            string
+	shouldFail              bool
 	deploymentInput
 }
 
@@ -818,11 +820,13 @@ var defaultDeployTestData = &deployTestData{
 	expectPodStatus: [][]string{
 		{"Running", "2"},
 	},
-	expectPodsTotal:  2,
-	expectConsoleURL: "http://console.myCluster/console/project/my-run",
-	expectLogURL:     "http://console.myCluster/console/project/my-run/browse/rc/myApp-1?tab=logs",
-	expectAppURL:     "http://myApp-my-run.example.com",
-	deploymentInput:  defaultDeploymentInput,
+	expectPodsQuotaCpucores: 0.976,
+	expectPodsQuotaMemory:   524288000,
+	expectPodsTotal:         2,
+	expectConsoleURL:        "http://console.myCluster/console/project/my-run",
+	expectLogURL:            "http://console.myCluster/console/project/my-run/browse/rc/myApp-1?tab=logs",
+	expectAppURL:            "http://myApp-my-run.example.com",
+	deploymentInput:         defaultDeploymentInput,
 }
 
 type deployStatsTestData struct {
@@ -938,10 +942,12 @@ func TestGetSpace(t *testing.T) {
 							expectPodStatus: [][]string{
 								{"Running", "2"},
 							},
-							expectPodsTotal:  2,
-							expectConsoleURL: "http://console.myCluster/console/project/my-run",
-							expectLogURL:     "http://console.myCluster/console/project/my-run/browse/rc/myApp-1?tab=logs",
-							expectAppURL:     "http://myApp-my-run.example.com",
+							expectPodsTotal:         2,
+							expectPodsQuotaCpucores: 0.976,
+							expectPodsQuotaMemory:   524288000,
+							expectConsoleURL:        "http://console.myCluster/console/project/my-run",
+							expectLogURL:            "http://console.myCluster/console/project/my-run/browse/rc/myApp-1?tab=logs",
+							expectAppURL:            "http://myApp-my-run.example.com",
 						},
 						"stage": {
 							spaceName:     "mySpace",
@@ -953,9 +959,11 @@ func TestGetSpace(t *testing.T) {
 								{"Running", "1"},
 								{"Terminating", "1"},
 							},
-							expectPodsTotal:  2,
-							expectConsoleURL: "http://console.myCluster/console/project/my-stage",
-							expectLogURL:     "http://console.myCluster/console/project/my-stage/browse/rc/myApp-1?tab=logs",
+							expectPodsTotal:         2,
+							expectPodsQuotaCpucores: 0.976,
+							expectPodsQuotaMemory:   524288000,
+							expectConsoleURL:        "http://console.myCluster/console/project/my-stage",
+							expectLogURL:            "http://console.myCluster/console/project/my-stage/browse/rc/myApp-1?tab=logs",
 						},
 					},
 				},
@@ -972,10 +980,12 @@ func TestGetSpace(t *testing.T) {
 							expectPodStatus: [][]string{
 								{"Running", "1"},
 							},
-							expectPodsTotal:  1,
-							expectConsoleURL: "http://console.myCluster/console/project/my-run",
-							expectLogURL:     "http://console.myCluster/console/project/my-run/browse/rc/myOtherApp-1?tab=logs",
-							expectAppURL:     "http://myOtherApp-my-run.example.com",
+							expectPodsTotal:         1,
+							expectPodsQuotaCpucores: 0.488,
+							expectPodsQuotaMemory:   262144000,
+							expectConsoleURL:        "http://console.myCluster/console/project/my-run",
+							expectLogURL:            "http://console.myCluster/console/project/my-run/browse/rc/myOtherApp-1?tab=logs",
+							expectAppURL:            "http://myOtherApp-my-run.example.com",
 						},
 					},
 				},
@@ -1081,9 +1091,11 @@ func TestGetApplication(t *testing.T) {
 						{"Running", "1"},
 						{"Terminating", "1"},
 					},
-					expectPodsTotal:  2,
-					expectConsoleURL: "http://console.myCluster/console/project/my-stage",
-					expectLogURL:     "http://console.myCluster/console/project/my-stage/browse/rc/myApp-1?tab=logs",
+					expectPodsTotal:         2,
+					expectPodsQuotaCpucores: 0.976,
+					expectPodsQuotaMemory:   524288000,
+					expectConsoleURL:        "http://console.myCluster/console/project/my-stage",
+					expectLogURL:            "http://console.myCluster/console/project/my-stage/browse/rc/myApp-1?tab=logs",
 				},
 			},
 			deploymentInput: deploymentInput{
@@ -1398,6 +1410,14 @@ func verifyDeployment(dep *app.SimpleDeployment, testCase *deployTestData, t *te
 	require.ElementsMatch(t, testCase.expectPodStatus, dep.Attributes.Pods, "Incorrect pod status")
 	require.NotNil(t, dep.Attributes.PodTotal, "Pod total is nil")
 	require.Equal(t, testCase.expectPodsTotal, *dep.Attributes.PodTotal, "Wrong number of total pods")
+
+	// Check pod quota and total
+	require.NotNil(t, dep.Attributes.PodsQuota, "PodsQuota is nil")
+	require.NotNil(t, dep.Attributes.PodsQuota.Cpucores, "PodsQuota.Cpucores is nil")
+	require.NotNil(t, dep.Attributes.PodsQuota.Memory, "PodsQuota.Memory is nil")
+
+	require.Equal(t, testCase.expectPodsQuotaCpucores, *dep.Attributes.PodsQuota.Cpucores, "Incorrect pods quota cpucores")
+	require.Equal(t, testCase.expectPodsQuotaMemory, *dep.Attributes.PodsQuota.Memory, "Incorrect pods quota cpucores")
 
 	// Check related URLs
 	require.NotNil(t, dep.Links, "Related URLs are nil")

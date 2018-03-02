@@ -70,8 +70,15 @@ var simpleDeploymentAttributes = a.Type("SimpleDeploymentAttributes", func() {
 	a.Attribute("version", d.String)
 	a.Attribute("pods", a.ArrayOf(a.ArrayOf(d.String)))
 	a.Attribute("pod_total", d.Integer)
+	a.Attribute("pods_quota", podsQuota)
 	a.Required("name")
 	a.Required("pods")
+})
+
+var podsQuota = a.Type("PodsQuota", func() {
+	a.Description(`resource quotas for pods of a deployment`)
+	a.Attribute("cpucores", d.Number)
+	a.Attribute("memory", d.Number)
 })
 
 var simpleEnvironment = a.Type("SimpleEnvironment", func() {
