@@ -88,14 +88,6 @@ func (rest *TestLoginREST) TestTestUserTokenObtainedFromKeycloakOK() {
 	}
 }
 
-func (rest *TestLoginREST) TestLinkRedirected() {
-	t := rest.T()
-	resource.Require(t, resource.UnitTest)
-	svc, ctrl := rest.UnSecuredController()
-
-	test.LinkLoginTemporaryRedirect(t, svc.Context, svc, ctrl)
-}
-
 func validateToken(t *testing.T, token *app.AuthToken, controler *LoginController) {
 	assert.NotNil(t, token, "Token data is nil")
 	assert.NotEmpty(t, token.Token.AccessToken, "Access token is empty")

@@ -38,24 +38,6 @@ var _ = a.Resource("login", func() {
 		a.Response(d.OK)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
-
-	a.Action("link", func() {
-		a.Routing(
-			a.GET("/link"),
-		)
-		a.Description("Link an Identity Provider account to the user account")
-		a.Response(d.TemporaryRedirect)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-	})
-
-	a.Action("linksession", func() {
-		a.Routing(
-			a.GET("/linksession"),
-		)
-		a.Description("Link an Identity Provider account to the user account represented by user's session. This endpoint is to be used for auto linking during login.")
-		a.Response(d.TemporaryRedirect)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-	})
 })
 
 var _ = a.Resource("logout", func() {

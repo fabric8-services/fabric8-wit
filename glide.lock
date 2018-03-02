@@ -1,5 +1,5 @@
-hash: d9834966e400926d3a16023dd75b52074b9887ae039ed1f2194b2cde8fed8c18
-updated: 2018-02-21T11:53:21.33734033+05:30
+hash: 64edd7056bcfadbf1d2d0504eba53b08260b2e452d998ad8ceba9dbeb9c0a301
+updated: 2018-03-02T15:11:31.943415758+05:30
 imports:
 - name: github.com/ajg/form
   version: cc2954064ec9ea8d93917f0f87456e11d7b881ad
@@ -48,7 +48,7 @@ imports:
 - name: github.com/emicklei/go-restful-swagger12
   version: dcef7f55730566d41eae5db10e7d6981829720f6
 - name: github.com/fabric8-services/fabric8-auth
-  version: 39c2f11b75983545c11f6c26963a1ce047b11df7
+  version: a801d184afb23ed62e5d1762778b0a5283407c42
   subpackages:
   - auth
   - convert
@@ -64,7 +64,7 @@ imports:
   subpackages:
   - design
 - name: github.com/fabric8-services/fabric8-tenant
-  version: 284c295d606b71447bd5f9831f1b5fb6f899a2d4
+  version: be8f39326808024c29ef6946151273359ae3e472
   subpackages:
   - design
 - name: github.com/fatih/structs
@@ -360,7 +360,7 @@ imports:
 - name: gopkg.in/inf.v0
   version: 3887ee99ecf07df5b447e9b00d9c0b2adaa9f3e4
 - name: gopkg.in/square/go-jose.v2
-  version: f8f38de21b4dcd69d0413faf231983f5fd6634b1
+  version: 6ee92191fea850cdcab9a18867abf5f521cdbadb
   subpackages:
   - cipher
   - json

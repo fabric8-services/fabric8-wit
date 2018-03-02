@@ -48,6 +48,8 @@ var namespaceAttributes = a.Type("NamespaceAttributes", func() {
 	})
 	a.Attribute("cluster-metrics-url", d.String, "The cluster metrics url", func() {
 	})
+	a.Attribute("cluster-logging-url", d.String, "The cluster logging url", func() {
+	})
 	a.Attribute("cluster-app-domain", d.String, "The cluster app domain", func() {
 	})
 	a.Attribute("type", d.String, "The tenant namespaces", func() {

@@ -1,0 +1,109 @@
+{
+    "apiVersion": "v1",
+    "items": [
+        {
+            "apiVersion": "v1",
+            "kind": "Route",
+            "metadata": {
+                "annotations": {
+                    "openshift.io/host.generated": "true"
+                },
+                "creationTimestamp": "2018-01-25T16:29:33Z",
+                "labels": {
+                    "app": "myOtherApp",
+                    "group": "myGroup",
+                    "provider": "fabric8",
+                    "version": "1.0.1"
+                },
+                "name": "myOtherApp",
+                "namespace": "my-run",
+                "resourceVersion": "837351613",
+                "selfLink": "/oapi/v1/namespaces/my-run/routes/myOtherApp",
+                "uid": "ba127f7e-c735-4470-a96f-e3462a050d0a"
+            },
+            "spec": {
+                "host": "myOtherApp-my-run.example.com",
+                "port": {
+                    "targetPort": 8080
+                },
+                "to": {
+                    "kind": "Service",
+                    "name": "myOtherApp",
+                    "weight": 100
+                },
+                "wildcardPolicy": "None"
+            },
+            "status": {
+                "ingress": [
+                    {
+                        "conditions": [
+                            {
+                                "lastTransitionTime": "2018-01-25T16:29:33Z",
+                                "status": "True",
+                                "type": "Admitted"
+                            }
+                        ],
+                        "host": "myOtherApp-my-run.example.com",
+                        "routerCanonicalHostname": "router.example.com",
+                        "routerName": "router",
+                        "wildcardPolicy": "None"
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Route",
+            "metadata": {
+                "annotations": {
+                    "openshift.io/host.generated": "true"
+                },
+                "creationTimestamp": "2018-01-25T16:33:08Z",
+                "labels": {
+                    "app": "myApp",
+                    "group": "myGroup",
+                    "provider": "fabric8",
+                    "version": "1.0.2"
+                },
+                "name": "myApp",
+                "namespace": "my-run",
+                "resourceVersion": "837362360",
+                "selfLink": "/oapi/v1/namespaces/my-run/routes/myApp",
+                "uid": "d727601d-8c5a-4271-bd1b-90929461c947"
+            },
+            "spec": {
+                "host": "myApp-my-run.example.com",
+                "port": {
+                    "targetPort": 8080
+                },
+                "to": {
+                    "kind": "Service",
+                    "name": "myApp",
+                    "weight": 100
+                },
+                "wildcardPolicy": "None"
+            },
+            "status": {
+                "ingress": [
+                    {
+                        "conditions": [
+                            {
+                                "lastTransitionTime": "2018-01-25T16:33:09Z",
+                                "status": "True",
+                                "type": "Admitted"
+                            }
+                        ],
+                        "host": "myApp-my-run.example.com",
+                        "routerCanonicalHostname": "router.example.com",
+                        "routerName": "router",
+                        "wildcardPolicy": "None"
+                    }
+                ]
+            }
+        }
+    ],
+    "kind": "RouteList",
+    "metadata": {},
+    "resourceVersion": "",
+    "selfLink": ""
+}
