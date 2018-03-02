@@ -380,6 +380,13 @@ func (kc *kubeClient) GetDeployment(spaceName string, appName string, envName st
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
+
+	// Get the quota for all pods in the deployment
+	podsQuota, err := kc.getPodsQuota(pods)
+	if err != nil {
+		return nil, err
+	}
+
 	// Get the status of each pod in the deployment
 	podStats, total := kc.getPodStatus(pods)
 
@@ -410,10 +417,11 @@ func (kc *kubeClient) GetDeployment(spaceName string, appName string, envName st
 	result := &app.SimpleDeployment{
 		Type: "deployment",
 		Attributes: &app.SimpleDeploymentAttributes{
-			Name:     envName,
-			Version:  &verString,
-			Pods:     podStats,
-			PodTotal: &total,
+			Name:      envName,
+			Version:   &verString,
+			Pods:      podStats,
+			PodTotal:  &total,
+			PodsQuota: podsQuota,
 		},
 		ID:    envName,
 		Links: links,
@@ -984,6 +992,33 @@ func (kc *kubeClient) getPods(namespace string, uid types.UID) ([]*v1.Pod, error
 	}
 
 	return appPods, nil
+}
+
+func (kc *kubeClient) getPodsQuota(pods []*v1.Pod) (*app.PodsQuota, error) {
+	cores := float64(0)
+	memory := float64(0)
+
+	for _, pod := range pods {
+		for _, container := range pod.Spec.Containers {
+			cpu, err := quantityToFloat64(*container.Resources.Limits.Cpu())
+			if err != nil {
+				return nil, errs.WithStack(err)
+			}
+			mem, err := quantityToFloat64(*container.Resources.Limits.Memory())
+			if err != nil {
+				return nil, errs.WithStack(err)
+			}
+			cores += cpu
+			memory += mem
+		}
+	}
+
+	result := &app.PodsQuota{
+		Cpucores: &cores,
+		Memory:   &memory,
+	}
+
+	return result, nil
 }
 
 // Pod status constants
