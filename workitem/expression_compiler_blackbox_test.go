@@ -138,7 +138,7 @@ func expect(t *testing.T, expr c.Expression, expectedClause string, expectedPara
 		require.Equal(t, expectedParameters, parameters, "parameters mismatch")
 	})
 	t.Run("check joins", func(t *testing.T) {
-		require.Equal(t, expectedJoins, joins)
+		require.Equal(t, expectedJoins, joins, "joins mismatch")
 	})
 }
 
