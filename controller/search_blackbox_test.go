@@ -459,7 +459,7 @@ func (s *searchControllerTestSuite) TestSearchByWorkItemTypeGroup() {
 				// given
 				filter := fmt.Sprintf(`
 				{"$AND": [
-					{"`+search.paramName+`": "Scenarios"},
+					{"`+paramName+`": "Scenarios"},
 					{"space": "%s"}
 				]}`, fxt.Spaces[0].ID)
 				// when
@@ -477,7 +477,7 @@ func (s *searchControllerTestSuite) TestSearchByWorkItemTypeGroup() {
 				// given
 				filter := fmt.Sprintf(`
 				{"$AND": [
-					{"`+search.paramName+`": "Experiences"},
+					{"`+paramName+`": "Experiences"},
 					{"space": "%s"}
 				]}`, fxt.Spaces[0].ID)
 				// when
@@ -493,7 +493,7 @@ func (s *searchControllerTestSuite) TestSearchByWorkItemTypeGroup() {
 				// given
 				filter := fmt.Sprintf(`
 				{"$AND": [
-					{"`+search.paramName+`": "Requirements"},
+					{"`+paramName+`": "Requirements"},
 					{"space": "%s"}
 				]}`, fxt.Spaces[0].ID)
 				// when
@@ -511,7 +511,7 @@ func (s *searchControllerTestSuite) TestSearchByWorkItemTypeGroup() {
 				// given
 				filter := fmt.Sprintf(`
 				{"$AND": [
-					{"`+search.paramName+`": "Execution"},
+					{"`+paramName+`": "Execution"},
 					{"space": "%s"}
 				]}`, fxt.Spaces[0].ID)
 				// when
@@ -534,7 +534,7 @@ func (s *searchControllerTestSuite) TestSearchByWorkItemTypeGroup() {
 				fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment())
 				filter := fmt.Sprintf(`
 				{"$AND": [
-					{"`+search.paramName+`": "%s"},
+					{"`+paramName+`": "%s"},
 					{"space": "%s"}
 				]}`, "unknown work item type group", fxt.Spaces[0].ID)
 				// when
