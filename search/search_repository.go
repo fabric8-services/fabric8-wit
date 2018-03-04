@@ -417,7 +417,7 @@ func (q Query) determineLiteralType(key string, val string) criteria.Expression 
 // expression where yi represents the i-th work item type associated with the
 // work item type group y.
 func handleWitGroup(q Query, expArr *[]criteria.Expression) error {
-	if q.Name != WITGROUP && q.Name != "typegroup.name" {
+	if q.Name != WITGROUP && q.Name != TypeGroupName {
 		return nil
 	}
 	if expArr == nil {
