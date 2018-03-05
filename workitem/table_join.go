@@ -144,7 +144,7 @@ func (j *TableJoin) TranslateFieldName(fieldName string) (string, error) {
 				return "", errs.Errorf(`delegated join "%s" for field "%s" must not point to nil`, prefix, fieldName)
 			}
 			delegator = dele
-			// ensure the other join is activate (just to be safe) if it
+			// ensure the other join is active (just to be safe) if it
 			// wasn't activated yet.
 			delegator.Active = true
 			break
