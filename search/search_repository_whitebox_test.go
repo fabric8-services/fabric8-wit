@@ -222,12 +222,13 @@ func TestIsOperator(t *testing.T) {
 		"   ": false,
 		"foo": false,
 		uuid.NewV4().String(): false,
-		EQ:       false,
-		NE:       false,
-		NOT:      false,
-		IN:       false,
-		SUBSTR:   false,
-		WITGROUP: false,
+		EQ:            false,
+		NE:            false,
+		NOT:           false,
+		IN:            false,
+		SUBSTR:        false,
+		WITGROUP:      false,
+		TypeGroupName: false,
 	}
 	for k, v := range testData {
 		t.Run(k, func(t *testing.T) {
@@ -241,173 +242,175 @@ func TestIsOperator(t *testing.T) {
 }
 
 func TestHandleWitGroup(t *testing.T) {
-	type testData struct {
-		Name                string
-		Value               string
-		Negate              bool
-		ExpectError         bool
-		ExpectedExrpessions []criteria.Expression
-	}
-	td := []testData{
-		{"foo", "bar", false, false, []criteria.Expression{}},
-		{WITGROUP, "unknown", false, true, []criteria.Expression{}},
-		{WITGROUP, "Scenarios", false, false, []criteria.Expression{
-			criteria.Or(
-				criteria.Or(
-					criteria.Equals(
-						criteria.Field("Type"),
-						criteria.Literal(workitem.SystemScenario.String()),
-					),
-					criteria.Equals(
-						criteria.Field("Type"),
-						criteria.Literal(workitem.SystemFundamental.String()),
-					),
-				),
-				criteria.Equals(
-					criteria.Field("Type"),
-					criteria.Literal(workitem.SystemPapercuts.String()),
-				),
-			)},
-		},
-		{WITGROUP, "Experiences", false, false, []criteria.Expression{
-			criteria.Or(
-				criteria.Equals(
-					criteria.Field("Type"),
-					criteria.Literal(workitem.SystemExperience.String()),
-				),
-				criteria.Equals(
-					criteria.Field("Type"),
-					criteria.Literal(workitem.SystemValueProposition.String()),
-				),
-			)},
-		},
-		{WITGROUP, "Requirements", false, false, []criteria.Expression{
-			criteria.Or(
-				criteria.Equals(
-					criteria.Field("Type"),
-					criteria.Literal(workitem.SystemFeature.String()),
-				),
-				criteria.Equals(
-					criteria.Field("Type"),
-					criteria.Literal(workitem.SystemBug.String()),
-				),
-			)},
-		},
-		{WITGROUP, "Execution", false, false, []criteria.Expression{
-			criteria.Or(
-				criteria.Or(
-					criteria.Equals(
-						criteria.Field("Type"),
-						criteria.Literal(workitem.SystemTask.String()),
-					),
-					criteria.Equals(
-						criteria.Field("Type"),
-						criteria.Literal(workitem.SystemBug.String()),
-					),
-				),
-				criteria.Equals(
-					criteria.Field("Type"),
-					criteria.Literal(workitem.SystemFeature.String()),
-				),
-			),
-		}},
-		// // same with negation
-		{"foo", "bar", true, false, []criteria.Expression{}},
-		{WITGROUP, "unknown", true, true, []criteria.Expression{}},
-		{WITGROUP, "Scenarios", true, false, []criteria.Expression{
-			criteria.And(
-				criteria.And(
-					criteria.Not(
-						criteria.Field("Type"),
-						criteria.Literal(workitem.SystemScenario.String()),
-					),
-					criteria.Not(
-						criteria.Field("Type"),
-						criteria.Literal(workitem.SystemFundamental.String()),
-					),
-				),
-				criteria.Not(
-					criteria.Field("Type"),
-					criteria.Literal(workitem.SystemPapercuts.String()),
-				),
-			)},
-		},
-		{WITGROUP, "Experiences", true, false, []criteria.Expression{
-			criteria.And(
-				criteria.Not(
-					criteria.Field("Type"),
-					criteria.Literal(workitem.SystemExperience.String()),
-				),
-				criteria.Not(
-					criteria.Field("Type"),
-					criteria.Literal(workitem.SystemValueProposition.String()),
-				),
-			)},
-		},
-		{WITGROUP, "Requirements", true, false, []criteria.Expression{
-			criteria.And(
-				criteria.Not(
-					criteria.Field("Type"),
-					criteria.Literal(workitem.SystemFeature.String()),
-				),
-				criteria.Not(
-					criteria.Field("Type"),
-					criteria.Literal(workitem.SystemBug.String()),
-				),
-			)},
-		},
-		{WITGROUP, "Execution", true, false, []criteria.Expression{
-			criteria.And(
-				criteria.And(
-					criteria.Not(
-						criteria.Field("Type"),
-						criteria.Literal(workitem.SystemTask.String()),
-					),
-					criteria.Not(
-						criteria.Field("Type"),
-						criteria.Literal(workitem.SystemBug.String()),
-					),
-				),
-				criteria.Not(
-					criteria.Field("Type"),
-					criteria.Literal(workitem.SystemFeature.String()),
-				),
-			),
-		}},
-	}
-	for _, d := range td {
-		format := "%s = %s"
-		if d.Negate {
-			format = "%s != %s"
+	for _, paramName := range []string{WITGROUP, TypeGroupName} {
+		type testData struct {
+			Name                string
+			Value               string
+			Negate              bool
+			ExpectError         bool
+			ExpectedExrpessions []criteria.Expression
 		}
-		t.Run(fmt.Sprintf(format, d.Name, d.Value), func(t *testing.T) {
-			exp := []criteria.Expression{}
-			err := handleWitGroup(Query{Name: d.Name, Value: &d.Value, Negate: d.Negate}, &exp)
-			if d.ExpectError {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
+		td := []testData{
+			{"foo", "bar", false, false, []criteria.Expression{}},
+			{paramName, "unknown", false, true, []criteria.Expression{}},
+			{paramName, "Scenarios", false, false, []criteria.Expression{
+				criteria.Or(
+					criteria.Or(
+						criteria.Equals(
+							criteria.Field("Type"),
+							criteria.Literal(workitem.SystemScenario.String()),
+						),
+						criteria.Equals(
+							criteria.Field("Type"),
+							criteria.Literal(workitem.SystemFundamental.String()),
+						),
+					),
+					criteria.Equals(
+						criteria.Field("Type"),
+						criteria.Literal(workitem.SystemPapercuts.String()),
+					),
+				)},
+			},
+			{paramName, "Experiences", false, false, []criteria.Expression{
+				criteria.Or(
+					criteria.Equals(
+						criteria.Field("Type"),
+						criteria.Literal(workitem.SystemExperience.String()),
+					),
+					criteria.Equals(
+						criteria.Field("Type"),
+						criteria.Literal(workitem.SystemValueProposition.String()),
+					),
+				)},
+			},
+			{paramName, "Requirements", false, false, []criteria.Expression{
+				criteria.Or(
+					criteria.Equals(
+						criteria.Field("Type"),
+						criteria.Literal(workitem.SystemFeature.String()),
+					),
+					criteria.Equals(
+						criteria.Field("Type"),
+						criteria.Literal(workitem.SystemBug.String()),
+					),
+				)},
+			},
+			{paramName, "Execution", false, false, []criteria.Expression{
+				criteria.Or(
+					criteria.Or(
+						criteria.Equals(
+							criteria.Field("Type"),
+							criteria.Literal(workitem.SystemTask.String()),
+						),
+						criteria.Equals(
+							criteria.Field("Type"),
+							criteria.Literal(workitem.SystemBug.String()),
+						),
+					),
+					criteria.Equals(
+						criteria.Field("Type"),
+						criteria.Literal(workitem.SystemFeature.String()),
+					),
+				),
+			}},
+			// // same with negation
+			{"foo", "bar", true, false, []criteria.Expression{}},
+			{paramName, "unknown", true, true, []criteria.Expression{}},
+			{paramName, "Scenarios", true, false, []criteria.Expression{
+				criteria.And(
+					criteria.And(
+						criteria.Not(
+							criteria.Field("Type"),
+							criteria.Literal(workitem.SystemScenario.String()),
+						),
+						criteria.Not(
+							criteria.Field("Type"),
+							criteria.Literal(workitem.SystemFundamental.String()),
+						),
+					),
+					criteria.Not(
+						criteria.Field("Type"),
+						criteria.Literal(workitem.SystemPapercuts.String()),
+					),
+				)},
+			},
+			{paramName, "Experiences", true, false, []criteria.Expression{
+				criteria.And(
+					criteria.Not(
+						criteria.Field("Type"),
+						criteria.Literal(workitem.SystemExperience.String()),
+					),
+					criteria.Not(
+						criteria.Field("Type"),
+						criteria.Literal(workitem.SystemValueProposition.String()),
+					),
+				)},
+			},
+			{paramName, "Requirements", true, false, []criteria.Expression{
+				criteria.And(
+					criteria.Not(
+						criteria.Field("Type"),
+						criteria.Literal(workitem.SystemFeature.String()),
+					),
+					criteria.Not(
+						criteria.Field("Type"),
+						criteria.Literal(workitem.SystemBug.String()),
+					),
+				)},
+			},
+			{paramName, "Execution", true, false, []criteria.Expression{
+				criteria.And(
+					criteria.And(
+						criteria.Not(
+							criteria.Field("Type"),
+							criteria.Literal(workitem.SystemTask.String()),
+						),
+						criteria.Not(
+							criteria.Field("Type"),
+							criteria.Literal(workitem.SystemBug.String()),
+						),
+					),
+					criteria.Not(
+						criteria.Field("Type"),
+						criteria.Literal(workitem.SystemFeature.String()),
+					),
+				),
+			}},
+		}
+		for _, d := range td {
+			format := "%s = %s"
+			if d.Negate {
+				format = "%s != %s"
 			}
-			require.Equal(t, exp, d.ExpectedExrpessions)
+			t.Run(fmt.Sprintf(format, d.Name, d.Value), func(t *testing.T) {
+				exp := []criteria.Expression{}
+				err := handleWitGroup(Query{Name: d.Name, Value: &d.Value, Negate: d.Negate}, &exp)
+				if d.ExpectError {
+					require.Error(t, err)
+				} else {
+					require.NoError(t, err)
+				}
+				require.Equal(t, exp, d.ExpectedExrpessions)
+			})
+		}
+
+		t.Run("value is nil", func(t *testing.T) {
+			// given
+			var v *string
+			exp := []criteria.Expression{}
+			// when
+			err := handleWitGroup(Query{Name: paramName, Value: v}, &exp)
+			// then
+			require.Error(t, err)
+		})
+		t.Run("expression array is nil", func(t *testing.T) {
+			// given
+			v := "Scenarios"
+			var exp *[]criteria.Expression
+			// when
+			err := handleWitGroup(Query{Name: paramName, Value: &v}, exp)
+			// then
+			require.Error(t, err)
 		})
 	}
-
-	t.Run("value is nil", func(t *testing.T) {
-		// given
-		var v *string
-		exp := []criteria.Expression{}
-		// when
-		err := handleWitGroup(Query{Name: WITGROUP, Value: v}, &exp)
-		// then
-		require.Error(t, err)
-	})
-	t.Run("expression array is nil", func(t *testing.T) {
-		// given
-		v := "Scenarios"
-		var exp *[]criteria.Expression
-		// when
-		err := handleWitGroup(Query{Name: WITGROUP, Value: &v}, exp)
-		// then
-		require.Error(t, err)
-	})
 }
