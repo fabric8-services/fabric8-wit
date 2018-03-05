@@ -37,6 +37,9 @@ const (
 	WITGROUP = "$WITGROUP"
 	OPTS     = "$OPTS"
 
+	// This is the replacement for $WITGROUP in the upcoming changes.
+	TypeGroupName = "typegroup.name"
+
 	OptParentExistsKey = "parent-exists"
 	OptTreeViewKey     = "tree-view"
 )
@@ -402,32 +405,34 @@ func (q Query) determineLiteralType(key string, val string) criteria.Expression 
 	}
 }
 
-// handleWitGroup Here we handle the "$WITGROUP" query parameter which we translate from a
-// simple
+// handleWitGroup Here we handle the "$WITGROUP" and "typegroup.name" query
+// parameter which we translate from a simple
 //
-// "$WITGROUP = y"
+// "$WITGROUP = y" or "typegroup.name = y"
 //
 // expression into an
 //
 // "Type in (y1, y2, y3, ... ,yn)"
 //
-// expression where yi represents the i-th work item type associated with
-// the work item type group y.
+// expression where yi represents the i-th work item type associated with the
+// work item type group y.
 func handleWitGroup(q Query, expArr *[]criteria.Expression) error {
-	if q.Name != WITGROUP {
+	if q.Name != WITGROUP && q.Name != TypeGroupName {
 		return nil
 	}
 	if expArr == nil {
 		return errs.New("expression array must not be nil")
 	}
 
+	paramName := q.Name
+
 	typeGroupName := q.Value
 	if typeGroupName == nil {
-		return errors.NewBadParameterError(WITGROUP, typeGroupName).Expected("not nil")
+		return errors.NewBadParameterError(paramName, typeGroupName).Expected("not nil")
 	}
 	typeGroup := workitem.TypeGroupByName(*typeGroupName)
 	if typeGroup == nil {
-		return errors.NewBadParameterError(WITGROUP, *typeGroupName).Expected("existing " + WITGROUP)
+		return errors.NewBadParameterError(paramName, *typeGroupName).Expected("existing " + paramName)
 	}
 	var e criteria.Expression
 	if !q.Negate {
@@ -463,7 +468,7 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 	var myexpr []criteria.Expression
 	currentOperator := q.Name
 
-	if q.Name == WITGROUP {
+	if q.Name == WITGROUP || q.Name == TypeGroupName {
 		err := handleWitGroup(q, &myexpr)
 		if err != nil {
 			return nil, errs.Wrap(err, "failed to handle hierarchy in top-level element")
@@ -509,14 +514,24 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 				return nil, err
 			}
 			myexpr = append(myexpr, exp)
-		} else if child.Name == WITGROUP {
+		} else if child.Name == WITGROUP || child.Name == TypeGroupName {
 			err := handleWitGroup(child, &myexpr)
 			if err != nil {
-				return nil, errs.Wrap(err, "failed to handle "+WITGROUP+" in child element")
+				return nil, errs.Wrap(err, "failed to handle "+child.Name+" in child element")
 			}
 		} else {
 			key, ok := searchKeyMap[child.Name]
-			if !ok {
+			// check that none of the default table joins handles this column:
+			var handledByJoin bool
+			joins := workitem.DefaultTableJoins()
+			for _, j := range joins {
+				if j.HandlesFieldName(child.Name) {
+					handledByJoin = true
+					key = child.Name
+					break
+				}
+			}
+			if !ok && !handledByJoin {
 				return nil, errors.NewBadParameterError("key not found", child.Name)
 			}
 			left := criteria.Field(key)
@@ -752,7 +767,7 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 			log.Error(ctx, map[string]interface{}{"expression": criteria, "err": err}, "table join not valid")
 			return nil, 0, errors.NewBadParameterError("expression", criteria).Expected("valid table join")
 		}
-		db = db.Joins(j.String())
+		db = db.Joins(j.GetJoinExpression())
 	}
 	orgDB := db
 	if start != nil {
