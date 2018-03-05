@@ -1070,7 +1070,7 @@ func (s *searchControllerTestSuite) TestSearchByJoinedData() {
 	})
 }
 
-// TestOrderOfExecution tests order of execution of workitems with tree-view and without tree-view filter
+// TestOrderOfExecution tests that workitems are ordered according to their descending order-of-execution in search api with tree-view and without tree-view filter
 // Suppose we have this topology:
 // Parent1
 // 	|_ Child1
@@ -1105,6 +1105,7 @@ func (s *searchControllerTestSuite) TestOrderOfExecution() {
 		require.NotEmpty(t, result.Data)
 		for i, wi := range result.Data {
 			i = len(result.Data) - 1 - i
+			fmt.Println(">>>>>>>>>>>>>>>>>>>>>", fxt.WorkItems[i].Fields[workitem.SystemTitle])
 			assert.Equal(t, fxt.WorkItems[i].Fields[workitem.SystemOrder], wi.Attributes[workitem.SystemOrder])
 		}
 	})
@@ -1116,6 +1117,7 @@ func (s *searchControllerTestSuite) TestOrderOfExecution() {
 		require.NotEmpty(t, result.Data)
 		for i, wi := range result.Data {
 			i = len(result.Data) - 1 - i
+			fmt.Println("#########################", fxt.WorkItems[i].Fields[workitem.SystemTitle])
 			assert.Equal(t, fxt.WorkItems[i].Fields[workitem.SystemOrder], wi.Attributes[workitem.SystemOrder])
 		}
 	})
