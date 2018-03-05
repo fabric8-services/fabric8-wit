@@ -1,5 +1,5 @@
 hash: 64edd7056bcfadbf1d2d0504eba53b08260b2e452d998ad8ceba9dbeb9c0a301
-updated: 2018-03-02T15:11:31.943415758+05:30
+updated: 2018-03-05T12:46:47.44852614+05:30
 imports:
 - name: github.com/ajg/form
   version: cc2954064ec9ea8d93917f0f87456e11d7b881ad
@@ -229,6 +229,7 @@ imports:
   version: c5b7fccd204277076155f10851dad72b76a49317
   subpackages:
   - prometheus
+  - prometheus/promhttp
 - name: github.com/prometheus/client_model
   version: fa8ad6fec33561be4280a8f0514318c79d7f6cb6
   subpackages:
