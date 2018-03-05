@@ -1098,25 +1098,27 @@ func (s *searchControllerTestSuite) TestOrderOfExecution() {
 	)
 	spaceIDStr := fxt.Spaces[0].ID.String()
 
-	// Without Tree View
-	filter := fmt.Sprintf(`{"space": "%[1]s"}`, spaceIDStr)
-	_, result := test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
-	// then
-	require.NotEmpty(s.T(), result.Data)
-	for i, wi := range result.Data {
-		i = len(result.Data) - 1 - i
-		assert.Equal(s.T(), fxt.WorkItems[i].Fields[workitem.SystemOrder], wi.Attributes[workitem.SystemOrder])
-	}
+	s.T().Run("with tree-view=false", func(t *testing.T) {
+		filter := fmt.Sprintf(`{"space": "%[1]s"}`, spaceIDStr)
+		_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		// then
+		require.NotEmpty(t, result.Data)
+		for i, wi := range result.Data {
+			i = len(result.Data) - 1 - i
+			assert.Equal(t, fxt.WorkItems[i].Fields[workitem.SystemOrder], wi.Attributes[workitem.SystemOrder])
+		}
+	})
 
-	// With Tree View
-	filter = fmt.Sprintf(`{"space": "%[1]s", "$OPTS":{"%[2]s": true}}`, spaceIDStr, search.OptTreeViewKey)
-	_, result = test.ShowSearchOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
-	// then
-	require.NotEmpty(s.T(), result.Data)
-	for i, wi := range result.Data {
-		i = len(result.Data) - 1 - i
-		assert.Equal(s.T(), fxt.WorkItems[i].Fields[workitem.SystemOrder], wi.Attributes[workitem.SystemOrder])
-	}
+	s.T().Run("with tree-view=true", func(t *testing.T) {
+		filter := fmt.Sprintf(`{"space": "%[1]s", "$OPTS":{"%[2]s": true}}`, spaceIDStr, search.OptTreeViewKey)
+		_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
+		// then
+		require.NotEmpty(t, result.Data)
+		for i, wi := range result.Data {
+			i = len(result.Data) - 1 - i
+			assert.Equal(t, fxt.WorkItems[i].Fields[workitem.SystemOrder], wi.Attributes[workitem.SystemOrder])
+		}
+	})
 }
 
 // TestIncludedParents verifies the Included list of parents
