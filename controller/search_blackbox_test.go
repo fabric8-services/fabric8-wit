@@ -1070,7 +1070,10 @@ func (s *searchControllerTestSuite) TestSearchByJoinedData() {
 	})
 }
 
-// TestOrderOfExecution tests that workitems are ordered according to their descending order-of-execution in search api with tree-view and without tree-view filter
+// TestOrderOfExecution tests that workitems are ordered according to their
+// descending order-of-execution in search api with tree-view and without
+// tree-view filter
+
 // Suppose we have this topology:
 // Parent1
 // 	|_ Child1
