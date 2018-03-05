@@ -1108,7 +1108,6 @@ func (s *searchControllerTestSuite) TestOrderOfExecution() {
 		require.NotEmpty(t, result.Data)
 		for i, wi := range result.Data {
 			i = len(result.Data) - 1 - i
-			fmt.Println(">>>>>>>>>>>>>>>>>>>>>", fxt.WorkItems[i].Fields[workitem.SystemTitle])
 			assert.Equal(t, fxt.WorkItems[i].Fields[workitem.SystemOrder], wi.Attributes[workitem.SystemOrder])
 		}
 	})
@@ -1120,7 +1119,6 @@ func (s *searchControllerTestSuite) TestOrderOfExecution() {
 		require.NotEmpty(t, result.Data)
 		for i, wi := range result.Data {
 			i = len(result.Data) - 1 - i
-			fmt.Println("#########################", fxt.WorkItems[i].Fields[workitem.SystemTitle])
 			assert.Equal(t, fxt.WorkItems[i].Fields[workitem.SystemOrder], wi.Attributes[workitem.SystemOrder])
 		}
 	})
@@ -1278,7 +1276,7 @@ func (s *searchControllerTestSuite) TestIncludedParents() {
 		// With tree-view query option
 		testFunc(t, []string{"A"}, id.Slice{A}, nil, true)
 		testFunc(t, []string{"B"}, id.Slice{B}, id.Slice{A}, true)
-		//testFunc(t, []string{"C"}, id.Slice{C}, id.Slice{B, A}, true)
+		testFunc(t, []string{"C"}, id.Slice{C}, id.Slice{B, A}, true)
 		testFunc(t, []string{"D"}, id.Slice{D}, id.Slice{A}, true)
 		testFunc(t, []string{"E"}, id.Slice{E}, nil, true)
 		// search for parent and child elements without tree-view query option
