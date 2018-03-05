@@ -86,10 +86,16 @@ func main() {
 	log.InitializeLogger(config.IsLogJSON(), config.GetLogLevel())
 
 	// Initialize sentry client
-	sentry.InitializeSentryClient(
+	haltSentry, err := sentry.InitializeSentryClient(
 		sentry.WithRelease(controller.Commit),
 		sentry.WithEnvironment(config.GetEnvironment()),
 	)
+	if err != nil {
+		log.Panic(nil, map[string]interface{}{
+			"err": err,
+		}, "failed to setup the sentry client")
+	}
+	defer haltSentry()
 
 	printUserInfo()
 

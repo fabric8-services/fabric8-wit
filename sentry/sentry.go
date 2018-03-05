@@ -3,7 +3,6 @@ package sentry
 import (
 	"context"
 	"os"
-	"sync"
 
 	"github.com/fabric8-services/fabric8-wit/token"
 
@@ -14,8 +13,8 @@ import (
 // client encapsulates client to Sentry service
 // also has mutex which controls access to the client
 type client struct {
-	c   *raven.Client
-	mux sync.Mutex
+	c       *raven.Client
+	sendErr chan func()
 }
 
 var (
@@ -27,21 +26,27 @@ func Sentry() *client {
 	return sentryClient
 }
 
-// InitializeSentryClient initializes sentry client
-func InitializeSentryClient(options ...func(*client)) error {
+// InitializeSentryClient initializes sentry client. This function returns
+// function that can be used to close the sentry client and error.
+func InitializeSentryClient(options ...func(*client)) (func(), error) {
 	c, err := raven.New(os.Getenv("SENTRY_DSN"))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	sentryClient = &client{
-		c: c,
+		c:       c,
+		sendErr: make(chan func()),
 	}
 	// set all options passed by user
 	for _, opt := range options {
 		opt(sentryClient)
 	}
 
-	return nil
+	// wait on errors to be sent on channel of client object
+	go sentryClient.loop()
+	return func() {
+		close(sentryClient.sendErr)
+	}, nil
 }
 
 // WithRelease helps you set release/commit of currently running
@@ -61,20 +66,32 @@ func WithEnvironment(env string) func(*client) {
 	}
 }
 
+// waits on functions to be sent on channel
+// which are then executed
+func (c *client) loop() {
+	for op := range c.sendErr {
+		op()
+	}
+}
+
 // CaptureError sends error 'err' to Sentry, meanwhile also sets user
 // information by extracting user information from the context provided
 func (c *client) CaptureError(ctx context.Context, err error) {
+	// if method called during test which has uninitialized client
+	if c == nil {
+		return
+	}
 	// Extract user information. Ignoring error here but then before using the
 	// object user make sure to check if it wasn't nil.
 	user, _ := extractUserInfo(ctx)
 
-	c.mux.Lock()
-	if user != nil {
-		c.c.SetUserContext(user)
+	c.sendErr <- func() {
+		if user != nil {
+			c.c.SetUserContext(user)
+		}
+		c.c.CaptureError(err, nil)
+		c.c.ClearContext()
 	}
-	c.c.CaptureError(err, nil)
-	c.c.ClearContext()
-	c.mux.Unlock()
 }
 
 // extractUserInfo reads the context and returns sentry understandable
