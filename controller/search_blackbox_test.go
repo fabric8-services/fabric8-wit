@@ -1086,22 +1086,15 @@ func (s *searchControllerTestSuite) TestOrderOfExecution() {
 
 	fxt := tf.NewTestFixture(s.T(), s.DB,
 		tf.WorkItems(8, tf.SetWorkItemTitles("Parent1", "Parent2", "Parent3", "Parent4", "Parent5", "Child1", "Child2", "Child3")),
-		tf.WorkItemLinksCustom(3, func(fxt *tf.TestFixture, idx int) error {
-			l := fxt.WorkItemLinks[idx]
-			l.LinkTypeID = link.SystemWorkItemLinkTypeParentChildID
-			switch idx {
-			case 0:
-				l.SourceID = fxt.WorkItemByTitle("Parent1").ID
-				l.TargetID = fxt.WorkItemByTitle("Child1").ID
-			case 1:
-				l.SourceID = fxt.WorkItemByTitle("Parent2").ID
-				l.TargetID = fxt.WorkItemByTitle("Child2").ID
-			case 2:
-				l.SourceID = fxt.WorkItemByTitle("Parent2").ID
-				l.TargetID = fxt.WorkItemByTitle("Child3").ID
-			}
-			return nil
-		}),
+		tf.WorkItemLinksCustom(3, tf.BuildLinks(
+				tf.L("Parent1", "Child1"),
+				tf.L("Parent2", "Child2"),
+				tf.L("Parent2", "Child3")),
+				func(fxt *tf.TestFixture, idx int) error {
+					fxt.WorkItemLinks[idx].LinkTypeID = link.SystemWorkItemLinkTypeParentChildID
+					return nil
+				},
+			),
 	)
 	spaceIDStr := fxt.Spaces[0].ID.String()
 
