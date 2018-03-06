@@ -1226,6 +1226,7 @@ func (s *searchControllerTestSuite) TestIncludedParents() {
 					}
 					includedData := make([]app.WorkItem, len(result.Included))
 					for i, v := range result.Included {
+						i = len(result.Included) - 1 - i
 						includedData[i].ID = v.(app.WorkItem).ID
 						assert.Equal(t, expectedOrder[i], *includedData[i].ID)
 					}
