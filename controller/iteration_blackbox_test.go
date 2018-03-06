@@ -16,11 +16,9 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	"github.com/fabric8-services/fabric8-wit/application"
-	"github.com/fabric8-services/fabric8-wit/area"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
-	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/ptr"
@@ -31,6 +29,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
+	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -42,6 +41,28 @@ type TestIterationREST struct {
 	db      *gormapplication.GormDB
 	testDir string
 	policy  *auth.KeycloakPolicy
+}
+
+// following helper function creates a space , root area, root iteration for that space.
+// Also creates a new iteration and new area in the same space
+func createSpaceAndRootAreaAndIterations(t *testing.T, db *gorm.DB) *tf.TestFixture {
+	return tf.NewTestFixture(t, db,
+		tf.CreateWorkItemEnvironment(),
+		tf.Iterations(2, func(fxt *tf.TestFixture, idx int) error {
+			switch idx {
+			case 1:
+				start, err := time.Parse(time.RFC822, "02 Jan 06 15:04 MST")
+				if err != nil {
+					return err
+				}
+				end := start.Add(time.Hour * 24 * 365 * 100)
+				fxt.Iterations[idx].StartAt = &start
+				fxt.Iterations[idx].EndAt = &end
+			}
+			return nil
+		}),
+		tf.Areas(2),
+	)
 }
 
 func TestRunIterationREST(t *testing.T) {
@@ -241,7 +262,8 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 
 func (rest *TestIterationREST) TestFailValidationIterationNameLength() {
 	// given
-	_, _, _, _, parent := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	fxt := createSpaceAndRootAreaAndIterations(rest.T(), rest.DB)
+	parent := *fxt.Iterations[1]
 	_, err := rest.db.Iterations().Root(context.Background(), parent.SpaceID)
 	require.NoError(rest.T(), err)
 	ci := getChildIterationPayload(testsupport.TestOversizedNameObj)
@@ -254,7 +276,8 @@ func (rest *TestIterationREST) TestFailValidationIterationNameLength() {
 
 func (rest *TestIterationREST) TestFailValidationIterationNameStartWith() {
 	// given
-	_, _, _, _, parent := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	fxt := createSpaceAndRootAreaAndIterations(rest.T(), rest.DB)
+	parent := *fxt.Iterations[1]
 	_, err := rest.db.Iterations().Root(context.Background(), parent.SpaceID)
 	require.NoError(rest.T(), err)
 	ci := getChildIterationPayload("_Sprint #21")
@@ -269,7 +292,8 @@ func (rest *TestIterationREST) TestShowIterationOK() {
 	resetFn := rest.DisableGormCallbacks()
 	defer resetFn()
 	// given
-	_, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	fxt := createSpaceAndRootAreaAndIterations(rest.T(), rest.DB)
+	itr := *fxt.Iterations[1]
 	svc, ctrl := rest.SecuredController()
 	// when
 	_, created := test.ShowIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), nil, nil)
@@ -283,7 +307,8 @@ func (rest *TestIterationREST) TestShowIterationOK() {
 
 func (rest *TestIterationREST) TestShowIterationOKUsingExpiredIfModifiedSinceHeader() {
 	// given
-	_, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	fxt := createSpaceAndRootAreaAndIterations(rest.T(), rest.DB)
+	itr := *fxt.Iterations[1]
 	svc, ctrl := rest.SecuredController()
 	// when
 	ifModifiedSinceHeader := app.ToHTTPTime(itr.UpdatedAt.Add(-1 * time.Hour))
@@ -297,7 +322,8 @@ func (rest *TestIterationREST) TestShowIterationOKUsingExpiredIfModifiedSinceHea
 
 func (rest *TestIterationREST) TestShowIterationOKUsingExpiredIfNoneMatchHeader() {
 	// given
-	_, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	fxt := createSpaceAndRootAreaAndIterations(rest.T(), rest.DB)
+	itr := *fxt.Iterations[1]
 	svc, ctrl := rest.SecuredController()
 	// when
 	ifNoneMatch := "foo"
@@ -311,7 +337,8 @@ func (rest *TestIterationREST) TestShowIterationOKUsingExpiredIfNoneMatchHeader(
 
 func (rest *TestIterationREST) TestShowIterationNotModifiedUsingIfModifiedSinceHeader() {
 	// given
-	_, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	fxt := createSpaceAndRootAreaAndIterations(rest.T(), rest.DB)
+	itr := *fxt.Iterations[1]
 	svc, ctrl := rest.SecuredController()
 	// when/then
 	rest.T().Log("Iteration:", itr, " updatedAt: ", itr.UpdatedAt)
@@ -321,7 +348,8 @@ func (rest *TestIterationREST) TestShowIterationNotModifiedUsingIfModifiedSinceH
 
 func (rest *TestIterationREST) TestShowIterationNotModifiedUsingIfNoneMatchHeader() {
 	// given
-	_, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	fxt := createSpaceAndRootAreaAndIterations(rest.T(), rest.DB)
+	itr := *fxt.Iterations[1]
 	svc, ctrl := rest.SecuredController()
 	// when/then
 	ifNoneMatch := app.GenerateEntityTag(itr)
@@ -345,7 +373,9 @@ func (rest *TestIterationREST) createWorkItem(parentSpace space.Space) workitem.
 
 func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHeaderAfterWorkItemLinking() {
 	// given
-	parentSpace, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	fxt := createSpaceAndRootAreaAndIterations(rest.T(), rest.DB)
+	itr := *fxt.Iterations[1]
+	parentSpace := *fxt.Spaces[0]
 	svc, ctrl := rest.SecuredController()
 	rest.T().Logf("Iteration: %s: updatedAt: %s", itr.ID.String(), itr.UpdatedAt.String())
 	ifModifiedSinceHeader := app.ToHTTPTime(itr.UpdatedAt)
@@ -364,7 +394,9 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHead
 
 func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHeaderAfterWorkItemUnlinking() {
 	// given
-	parentSpace, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	fxt := createSpaceAndRootAreaAndIterations(rest.T(), rest.DB)
+	itr := *fxt.Iterations[1]
+	parentSpace := *fxt.Spaces[0]
 	svc, ctrl := rest.SecuredController()
 	rest.T().Logf("Iteration: %s: updatedAt: %s", itr.ID.String(), itr.UpdatedAt.String())
 	testWI := rest.createWorkItem(parentSpace)
@@ -402,7 +434,9 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHead
 
 func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAfterWorkItemLinking() {
 	// given
-	parentSpace, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	fxt := createSpaceAndRootAreaAndIterations(rest.T(), rest.DB)
+	itr := *fxt.Iterations[1]
+	parentSpace := *fxt.Spaces[0]
 	svc, ctrl := rest.SecuredController()
 	ifNoneMatch := app.GenerateEntityTag(itr)
 	// now, create and attach a work item to the iteration
@@ -419,7 +453,9 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAf
 
 func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAfterWorkItemUnlinking() {
 	// given
-	parentSpace, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	fxt := createSpaceAndRootAreaAndIterations(rest.T(), rest.DB)
+	itr := *fxt.Iterations[1]
+	parentSpace := *fxt.Spaces[0]
 	svc, ctrl := rest.SecuredController()
 	rest.T().Logf("Iteration: %s: updatedAt: %s", itr.ID.String(), itr.UpdatedAt.String())
 	testWI := rest.createWorkItem(parentSpace)
@@ -530,7 +566,9 @@ func (rest *TestIterationREST) TestSuccessUpdateIteration() {
 
 func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 	// given
-	sp, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	fxt := createSpaceAndRootAreaAndIterations(rest.T(), rest.DB)
+	itr := *fxt.Iterations[1]
+	sp := *fxt.Spaces[0]
 	newName := "Sprint 1001"
 	newDesc := "New Description"
 	payload := app.UpdateIterationPayload{
@@ -591,7 +629,8 @@ func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 
 func (rest *TestIterationREST) TestFailUpdateIterationNotFound() {
 	// given
-	_, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	fxt := createSpaceAndRootAreaAndIterations(rest.T(), rest.DB)
+	itr := *fxt.Iterations[1]
 	itr.ID = uuid.NewV4()
 	payload := app.UpdateIterationPayload{
 		Data: &app.Iteration{
@@ -607,7 +646,8 @@ func (rest *TestIterationREST) TestFailUpdateIterationNotFound() {
 
 func (rest *TestIterationREST) TestFailUpdateIterationUnauthorized() {
 	// given
-	_, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	fxt := createSpaceAndRootAreaAndIterations(rest.T(), rest.DB)
+	itr := *fxt.Iterations[1]
 	payload := app.UpdateIterationPayload{
 		Data: &app.Iteration{
 			Attributes: &app.IterationAttributes{},
@@ -622,7 +662,9 @@ func (rest *TestIterationREST) TestFailUpdateIterationUnauthorized() {
 
 func (rest *TestIterationREST) TestIterationStateTransitions() {
 	// given
-	sp, _, _, _, itr1 := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	fxt := createSpaceAndRootAreaAndIterations(rest.T(), rest.DB)
+	itr1 := *fxt.Iterations[1]
+	sp := *fxt.Spaces[0]
 	assert.Equal(rest.T(), iteration.StateNew, itr1.State)
 	startState := iteration.StateStart
 	payload := app.UpdateIterationPayload{
@@ -669,7 +711,9 @@ func (rest *TestIterationREST) TestIterationStateTransitions() {
 
 func (rest *TestIterationREST) TestRootIterationCanNotStart() {
 	// given
-	sp, _, _, _, itr1 := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	fxt := createSpaceAndRootAreaAndIterations(rest.T(), rest.DB)
+	itr1 := *fxt.Iterations[1]
+	sp := *fxt.Spaces[0]
 	var ri *iteration.Iteration
 	err := application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Iterations()
@@ -697,7 +741,9 @@ func (rest *TestIterationREST) TestRootIterationCanNotStart() {
 }
 
 func (rest *TestIterationREST) createIterations() (*app.IterationSingle, *account.Identity) {
-	sp, _, _, _, parent := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	fxt := createSpaceAndRootAreaAndIterations(rest.T(), rest.DB)
+	parent := *fxt.Iterations[1]
+	sp := *fxt.Spaces[0]
 	_, err := rest.db.Iterations().Root(context.Background(), parent.SpaceID)
 	require.NoError(rest.T(), err)
 	parentID := parent.ID
@@ -782,74 +828,24 @@ func getChildIterationPayload(name string) *app.CreateChildIterationPayload {
 
 // following helper function creates a space , root area, root iteration for that space.
 // Also creates a new iteration and new area in the same space
-func createSpaceAndRootAreaAndIterations(t *testing.T, db application.DB) (space.Space, area.Area, iteration.Iteration, area.Area, iteration.Iteration) {
-	var (
-		spaceObj          space.Space
-		rootAreaObj       area.Area
-		rootIterationObj  iteration.Iteration
-		otherIterationObj iteration.Iteration
-		otherAreaObj      area.Area
+func createSpaceAndRootAreaAndIterations(t *testing.T, db *gorm.DB) *tf.TestFixture {
+	return tf.NewTestFixture(t, db,
+		tf.CreateWorkItemEnvironment(),
+		tf.Iterations(2, func(fxt *tf.TestFixture, idx int) error {
+			switch idx {
+			case 1:
+				start, err := time.Parse(time.RFC822, "02 Jan 06 15:04 MST")
+				if err != nil {
+					return err
+				}
+				end := start.Add(time.Hour * 24 * 365 * 100)
+				fxt.Iterations[idx].StartAt = &start
+				fxt.Iterations[idx].EndAt = &end
+			}
+			return nil
+		}),
+		tf.Areas(2),
 	)
-
-	application.Transactional(db, func(app application.Application) error {
-		owner := &account.Identity{
-			Username:     "new-space-owner-identity",
-			ProviderType: account.KeycloakIDP,
-		}
-		errCreateOwner := app.Identities().Create(context.Background(), owner)
-		require.NoError(t, errCreateOwner)
-		spaceObj = space.Space{
-			Name:    testsupport.CreateRandomValidTestName("foo-"),
-			OwnerID: owner.ID,
-		}
-		_, err := app.Spaces().Create(context.Background(), &spaceObj)
-		require.NoError(t, err)
-		// create the root area
-		rootAreaObj = area.Area{
-			Name:    spaceObj.Name,
-			SpaceID: spaceObj.ID,
-		}
-		err = app.Areas().Create(context.Background(), &rootAreaObj)
-		require.NoError(t, err)
-		// above space should have a root iteration for itself
-		rootIterationObj = iteration.Iteration{
-			Name:    spaceObj.Name,
-			SpaceID: spaceObj.ID,
-		}
-		err = app.Iterations().Create(context.Background(), &rootIterationObj)
-		require.NoError(t, err)
-		start, err := time.Parse(time.RFC822, "02 Jan 06 15:04 MST")
-		require.NoError(t, err)
-		end := start.Add(time.Hour * 24 * 365 * 100)
-		otherIterationObj = iteration.Iteration{
-			Lifecycle: gormsupport.Lifecycle{
-				CreatedAt: spaceObj.CreatedAt,
-				UpdatedAt: spaceObj.UpdatedAt,
-			},
-			Name:    "Sprint #2",
-			SpaceID: spaceObj.ID,
-			StartAt: &start,
-			EndAt:   &end,
-			Path:    append(rootIterationObj.Path, rootIterationObj.ID),
-		}
-		err = app.Iterations().Create(context.Background(), &otherIterationObj)
-		require.NoError(t, err)
-
-		otherAreaObj = area.Area{
-			Lifecycle: gormsupport.Lifecycle{
-				CreatedAt: spaceObj.CreatedAt,
-				UpdatedAt: spaceObj.UpdatedAt,
-			},
-			Name:    "Area #2",
-			SpaceID: spaceObj.ID,
-			Path:    append(rootAreaObj.Path, rootAreaObj.ID),
-		}
-		err = app.Areas().Create(context.Background(), &otherAreaObj)
-		require.NoError(t, err)
-		return nil
-	})
-	t.Log("Created space with ID=", spaceObj.ID.String(), "name=", spaceObj.Name)
-	return spaceObj, rootAreaObj, rootIterationObj, otherAreaObj, otherIterationObj
 }
 
 func assertIterationLinking(t *testing.T, target *app.Iteration) {
@@ -1206,7 +1202,9 @@ func (rest *TestIterationREST) TestUpdateIteration() {
 						itr.MakeChildOf(*fxt.IterationByName("root"))
 					}
 					return nil
-				}))
+				},
+			),
+		)
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 		itr1 := fxt.IterationByName("iteration 1")
 		itr2 := fxt.IterationByName("iteration 2")
