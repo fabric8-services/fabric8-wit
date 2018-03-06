@@ -1107,8 +1107,8 @@ func (s *searchControllerTestSuite) TestOrderOfExecution() {
 		// then
 		require.NotEmpty(t, result.Data)
 		for i, wi := range result.Data {
-			i = len(result.Data) - 1 - i
-			assert.Equal(t, fxt.WorkItems[i].Fields[workitem.SystemOrder], wi.Attributes[workitem.SystemOrder])
+			j := len(result.Data) - 1 - i
+			assert.Equal(t, fxt.WorkItems[j].Fields[workitem.SystemOrder], wi.Attributes[workitem.SystemOrder])
 		}
 	})
 
@@ -1118,8 +1118,8 @@ func (s *searchControllerTestSuite) TestOrderOfExecution() {
 		// then
 		require.NotEmpty(t, result.Data)
 		for i, wi := range result.Data {
-			i = len(result.Data) - 1 - i
-			assert.Equal(t, fxt.WorkItems[i].Fields[workitem.SystemOrder], wi.Attributes[workitem.SystemOrder])
+			j := len(result.Data) - 1 - i
+			assert.Equal(t, fxt.WorkItems[j].Fields[workitem.SystemOrder], wi.Attributes[workitem.SystemOrder])
 		}
 	})
 }
@@ -1226,9 +1226,9 @@ func (s *searchControllerTestSuite) TestIncludedParents() {
 					}
 					includedData := make([]app.WorkItem, len(result.Included))
 					for i, v := range result.Included {
-						i = len(result.Included) - 1 - i
-						includedData[i].ID = v.(app.WorkItem).ID
-						assert.Equal(t, expectedOrder[i], *includedData[i].ID)
+						j := len(result.Included) - 1 - i
+						includedData[j].ID = v.(app.WorkItem).ID
+						assert.Equal(t, expectedOrder[j], *includedData[j].ID)
 					}
 				}
 
