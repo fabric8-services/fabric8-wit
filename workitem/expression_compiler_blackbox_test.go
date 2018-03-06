@@ -11,7 +11,6 @@ import (
 )
 
 func TestField(t *testing.T) {
-	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 
 	defJoins := workitem.DefaultTableJoins()
