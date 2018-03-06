@@ -66,21 +66,39 @@ func TestField(t *testing.T) {
 			expect(t, c.Equals(c.Field("author.full_name"), c.Literal("abcd")), `(`+workitem.Column("creator", "full_name")+` = ?)`, []interface{}{"abcd"}, []*workitem.TableJoin{&j})
 			expect(t, c.Not(c.Field("author.full_name"), c.Literal("abcd")), `(`+workitem.Column("creator", "full_name")+` != ?)`, []interface{}{"abcd"}, []*workitem.TableJoin{&j})
 		})
-		t.Run("iteration + area", func(t *testing.T) {
-			j := *defJoins["iteration"]
+		t.Run("custom1 + custom2", func(t *testing.T) {
+			oldTableJoins := workitem.DefaultTableJoins
+			defer func() {
+				workitem.DefaultTableJoins = oldTableJoins
+			}()
+
+			joins := workitem.TableJoinMap{
+				"custom1": &workitem.TableJoin{
+					TableName:        "custom1",
+					TableAlias:       "cust1",
+					PrefixActivators: []string{"custom1."},
+				},
+				"custom2": &workitem.TableJoin{
+					TableName:          "custom2",
+					TableAlias:         "cust2",
+					PrefixActivators:   []string{"custom2."},
+					ActivateOtherJoins: []string{"custom1"},
+				},
+			}
+			workitem.DefaultTableJoins = func() workitem.TableJoinMap {
+				return joins
+			}
+			j := *joins["custom1"]
 			j.Active = true
 			j.HandledFields = []string{"name"}
-			// Internally when we iterate over the map of joins the order of
-			// table joins is not predictable. If we want to have a predictable
-			// order we need to make one table join depend on another.
-			j.ActivateOtherJoins = []string{"area"}
-			k := *defJoins["area"]
+			k := *joins["custom2"]
 			k.Active = true
 			k.HandledFields = []string{"name"}
+			k.ActivateOtherJoins = []string{"custom1"}
 			expect(t, c.Or(
-				c.Equals(c.Field("iteration.name"), c.Literal("abcd")),
-				c.Equals(c.Field("area.name"), c.Literal("xyz")),
-			), `((`+workitem.Column("iter", "name")+` = ?) OR (`+workitem.Column("ar", "name")+` = ?))`, []interface{}{"abcd", "xyz"}, []*workitem.TableJoin{&j, &k})
+				c.Equals(c.Field("custom1.name"), c.Literal("abcd")),
+				c.Equals(c.Field("custom2.name"), c.Literal("xyz")),
+			), `((`+workitem.Column("cust1", "name")+` = ?) OR (`+workitem.Column("cust2", "name")+` = ?))`, []interface{}{"abcd", "xyz"}, []*workitem.TableJoin{&j, &k})
 		})
 		t.Run("iteration with two fields", func(t *testing.T) {
 			j := *defJoins["iteration"]
