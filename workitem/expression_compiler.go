@@ -17,7 +17,7 @@ const (
 // Compile takes an expression and compiles it to a where clause for use with
 // gorm.DB.Where(). Returns the number of expected parameters for the query and a
 // slice of errors if something goes wrong.
-func Compile(where criteria.Expression) (whereClause string, parameters []interface{}, joins map[string]TableJoin, err []error) {
+func Compile(where criteria.Expression) (whereClause string, parameters []interface{}, joins []*TableJoin, err []error) {
 	compiler := newExpressionCompiler()
 
 	criteria.IteratePostOrder(where, bubbleUpJSONContext(&compiler))
@@ -29,20 +29,24 @@ func Compile(where criteria.Expression) (whereClause string, parameters []interf
 		c = ""
 	}
 
-	if err := compiler.joins.ActivateRequiredJoins(); err != nil {
-		compiler.err = append(compiler.err, err)
+	// Make sure we don't return all possible joins but only the once that were
+	// activated. Returning them as a slice preserves the correct order of
+	// joins.
+	joins, e := compiler.joins.GetOrderdActivatedJoins()
+	if e != nil {
+		compiler.err = append(compiler.err, e)
 	}
 
-	// Make sure we don't return all possible joins but only the once that were activated
-	joins = map[string]TableJoin{}
-	for k, j := range compiler.joins {
-		if j.Active {
-			joins[k] = *j
+	for _, j := range joins {
+		if j.Where == "" {
+			continue
 		}
+		if c != "" {
+			c += " AND "
+		}
+		c += j.Where
 	}
-	if len(joins) <= 0 {
-		joins = nil
-	}
+
 	return c, compiler.parameters, joins, compiler.err
 }
 
@@ -116,8 +120,8 @@ func (c *expressionCompiler) getFieldName(fieldName string) (mappedFieldName str
 
 // DefaultTableJoins returns the default list of joinable tables used when
 // creating a new expression compiler.
-func DefaultTableJoins() TableJoinMap {
-	return TableJoinMap{
+var DefaultTableJoins = func() TableJoinMap {
+	res := TableJoinMap{
 		"iteration": {
 			TableName:        "iterations",
 			TableAlias:       "iter",
@@ -146,13 +150,6 @@ func DefaultTableJoins() TableJoinMap {
 			PrefixActivators: []string{"wit.", "workitemtype.", "work_item_type.", "type."},
 			AllowedColumns:   []string{"name"},
 		},
-		"space": {
-			TableName:        "spaces",
-			TableAlias:       "space",
-			On:               "space.id = " + WorkItemStorage{}.TableName() + ".space_id",
-			PrefixActivators: []string{"space."},
-			AllowedColumns:   []string{"name"},
-		},
 		"creator": {
 			TableName:        "users",
 			TableAlias:       "creator",
@@ -160,7 +157,15 @@ func DefaultTableJoins() TableJoinMap {
 			PrefixActivators: []string{"creator.", "author."},
 			AllowedColumns:   []string{"full_name"},
 		},
+		"space": {
+			TableName:        "spaces",
+			TableAlias:       "space",
+			On:               Column("space", "id") + "=" + Column(WorkItemStorage{}.TableName(), "space_id"),
+			PrefixActivators: []string{"space."},
+			AllowedColumns:   []string{"name"},
+		},
 	}
+	return res
 }
 
 func newExpressionCompiler() expressionCompiler {
