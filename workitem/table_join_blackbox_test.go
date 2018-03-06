@@ -323,3 +323,94 @@ func Test_TableJoinMap_ActivateRequiredJoins(t *testing.T) {
 		})
 	})
 }
+
+func Test_TableJoinMap_GetOrderdActivatedJoins(t *testing.T) {
+	t.Parallel()
+	resource.Require(t, resource.UnitTest)
+	t.Run("nothing activated, so nothing in ordered activation list", func(t *testing.T) {
+		t.Parallel()
+		// given
+		joins := workitem.DefaultTableJoins()
+		// when
+		list, err := joins.GetOrderdActivatedJoins()
+		// then
+		require.NoError(t, err)
+		require.Empty(t, list)
+	})
+	t.Run("recursively activated joins", func(t *testing.T) {
+		t.Run("check that space, custom1 and custom2 are activated", func(t *testing.T) {
+			// given
+			joins := workitem.DefaultTableJoins()
+			joins["custom1"] = &workitem.TableJoin{
+				TableName:          "custom1",
+				TableAlias:         "cust1",
+				PrefixActivators:   []string{"custom1."},
+				ActivateOtherJoins: []string{"space"},
+			}
+			joins["custom2"] = &workitem.TableJoin{
+				TableName:          "custom2",
+				TableAlias:         "cust2",
+				PrefixActivators:   []string{"custom2."},
+				ActivateOtherJoins: []string{"custom1"},
+			}
+			// when
+			f, err := joins["custom2"].TranslateFieldName("custom2.foo")
+			// then
+			require.NoError(t, err)
+			require.Equal(t, workitem.Column("cust2", "foo"), f)
+			// when
+			list, err := joins.GetOrderdActivatedJoins()
+			require.NoError(t, err)
+			require.NotEmpty(t, list)
+			// then
+			require.Equal(t, []*workitem.TableJoin{joins["space"], joins["custom1"], joins["custom2"]}, list)
+		})
+	})
+}
+
+func Test_TableJoinMap_DelegateTo(t *testing.T) {
+	t.Parallel()
+	resource.Require(t, resource.UnitTest)
+	t.Run("recursively activated joins", func(t *testing.T) {
+		// given
+		joins := workitem.TableJoinMap{
+			"custom1": &workitem.TableJoin{
+				TableName:  "custom1",
+				TableAlias: "cust1",
+			},
+		}
+		joins["custom2"] = &workitem.TableJoin{
+			TableName:          "custom2",
+			TableAlias:         "cust2",
+			PrefixActivators:   []string{"custom2.", "custom1."},
+			ActivateOtherJoins: []string{"custom1"},
+			DelegateTo: map[string]*workitem.TableJoin{
+				"custom1.": joins["custom1"],
+			},
+		}
+		// when accessing a column through a delegation
+		f, err := joins["custom2"].TranslateFieldName("custom1.foo")
+		// then
+		require.NoError(t, err)
+
+		t.Run("check delegation", func(t *testing.T) {
+			t.Run("field translates to custom1 field", func(t *testing.T) {
+				require.Equal(t, workitem.Column("cust1", "foo"), f)
+			})
+			t.Run("custom1 is activated", func(t *testing.T) {
+				require.True(t, joins["custom1"].Active)
+			})
+			t.Run("custom1 handles field \"foo\"", func(t *testing.T) {
+				require.Len(t, joins["custom1"].HandledFields, 1)
+				require.Equal(t, "foo", joins["custom1"].HandledFields[0])
+			})
+		})
+		t.Run("order of activated joins", func(t *testing.T) {
+			list, err := joins.GetOrderdActivatedJoins()
+			require.NoError(t, err)
+			require.NotEmpty(t, list)
+			// then
+			require.Equal(t, []*workitem.TableJoin{joins["custom1"], joins["custom2"]}, list)
+		})
+	})
+}
