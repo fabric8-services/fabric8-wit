@@ -9,29 +9,31 @@ import (
 
 var (
 	namespace = ""
-	subsystem = "wit"
+	subsystem = "service"
 )
 
 var (
+	reqLabels = []string{"method", "entity", "code"}
+
 	reqCnt = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: namespace,
 		Subsystem: subsystem,
 		Name:      "requests_total",
 		Help:      "Counter of requests received into the system.",
-	}, []string{"method", "entity"})
+	}, reqLabels)
 
-	reqSuccessDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+	reqDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: namespace,
 		Subsystem: subsystem,
-		Name:      "request_successful_duration_seconds",
-		Help:      "Bucketed histogram of processing time (s) of successfully completed requests, by method (GET/PUT etc.).",
-		Buckets:   prometheus.ExponentialBuckets(0.1, 2, 7),
-	}, []string{"method"})
+		Name:      "request_duration_seconds",
+		Help:      "Bucketed histogram of processing time (s) of requests.",
+		Buckets:   prometheus.ExponentialBuckets(0.1, 2, 8),
+	}, reqLabels)
 )
 
 func init() {
 	reqCnt = register(reqCnt, "requests_total").(*prometheus.CounterVec)
-	reqSuccessDuration = register(reqSuccessDuration, "request_successful_duration_seconds").(*prometheus.HistogramVec)
+	reqDuration = register(reqDuration, "request_duration_seconds").(*prometheus.HistogramVec)
 }
 
 func register(c prometheus.Collector, name string) prometheus.Collector {
@@ -48,14 +50,14 @@ func register(c prometheus.Collector, name string) prometheus.Collector {
 	return c
 }
 
-func reportRequest(method, entity string) {
-	if entity != "" && method != "" {
-		reqCnt.WithLabelValues(method, entity).Inc()
+func reportRequestsTotal(method, entity, code string) {
+	if method != "" && entity != "" && code != "" {
+		reqCnt.WithLabelValues(method, entity, code).Inc()
 	}
 }
 
-func reportRequestCompleted(method string, startTime time.Time) {
-	if method != "" && !startTime.IsZero() {
-		reqSuccessDuration.WithLabelValues(method).Observe(time.Since(startTime).Seconds())
+func reportRequestDuration(method, entity, code string, startTime time.Time) {
+	if method != "" && entity != "" && code != "" && !startTime.IsZero() {
+		reqDuration.WithLabelValues(method, entity, code).Observe(time.Since(startTime).Seconds())
 	}
 }
