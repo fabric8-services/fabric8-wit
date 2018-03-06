@@ -32,6 +32,7 @@ type testKube struct {
 	rcHolder               *testReplicationController
 	podHolder              *testPod
 	svcHolder              *testService
+	svcDelHolder           []*testDeleteByName
 }
 
 type testFixture struct {
@@ -288,6 +289,7 @@ type testService struct {
 	corev1.ServiceInterface
 	inputFile string
 	namespace string
+	kube      *testKube
 }
 
 func (tk *testKube) Services(ns string) corev1.ServiceInterface {
@@ -295,6 +297,7 @@ func (tk *testKube) Services(ns string) corev1.ServiceInterface {
 	result := &testService{
 		inputFile: input,
 		namespace: ns,
+		kube:      tk,
 	}
 	tk.svcHolder = result
 	return result
@@ -308,6 +311,16 @@ func (svc *testService) List(options metav1.ListOptions) (*v1.ServiceList, error
 	}
 	err := readJSON(svc.inputFile, &result)
 	return &result, err
+}
+
+func (svc *testService) Delete(name string, options *metav1.DeleteOptions) error {
+	delHolder := &testDeleteByName{
+		namespace: svc.namespace,
+		name:      name,
+		opts:      options,
+	}
+	svc.kube.svcDelHolder = append(svc.kube.svcDelHolder, delHolder)
+	return nil
 }
 
 // Metrics fakes
@@ -437,14 +450,28 @@ func (tm *testMetrics) getManyMetrics(metrics []*app.TimedNumberTuple, pods []*v
 // OpenShift API fakes
 
 type testOpenShift struct {
-	fixture     *testFixture
-	scaleHolder *testScale
+	fixture        *testFixture
+	scaleHolder    *testScale
+	routeHolder    *testGetResult
+	delDCHolder    *testDeleteByName
+	delRouteHolder []*testDeleteByName
 }
 
 type testScale struct {
 	scaleOutput map[string]interface{}
 	namespace   string
 	dcName      string
+}
+
+type testGetResult struct {
+	namespace     string
+	labelSelector string
+}
+
+type testDeleteByName struct {
+	namespace string
+	name      string
+	opts      *metav1.DeleteOptions
 }
 
 func (fixture *testFixture) GetOpenShiftRESTAPI(config *kubernetes.KubeClientConfig) (kubernetes.OpenShiftRESTAPI, error) {
@@ -503,6 +530,15 @@ func (to *testOpenShift) GetDeploymentConfig(namespace string, name string) (map
 	return result, err
 }
 
+func (to *testOpenShift) DeleteDeploymentConfig(namespace string, name string, opts *metav1.DeleteOptions) error {
+	to.delDCHolder = &testDeleteByName{
+		namespace: namespace,
+		name:      name,
+		opts:      opts,
+	}
+	return nil
+}
+
 func (to *testOpenShift) GetDeploymentConfigScale(namespace string, name string) (map[string]interface{}, error) {
 	input := to.fixture.scaleInput.getInput(name, namespace)
 	if input == nil {
@@ -527,15 +563,29 @@ var defaultRouteInput = map[string]string{
 	"my-run": "routes-two.json",
 }
 
-func (to *testOpenShift) GetRoutes(namespace string) (map[string]interface{}, error) {
+func (to *testOpenShift) GetRoutes(namespace string, labelSelector string) (map[string]interface{}, error) {
 	var result map[string]interface{}
 	input := to.fixture.routeInput[namespace]
 	if len(input) == 0 {
 		// No matching routes
 		return result, nil
 	}
+	to.routeHolder = &testGetResult{
+		namespace:     namespace,
+		labelSelector: labelSelector,
+	}
 	err := readJSON(input, &result)
 	return result, err
+}
+
+func (to *testOpenShift) DeleteRoute(namespace string, name string, opts *metav1.DeleteOptions) error {
+	delHolder := &testDeleteByName{
+		namespace: namespace,
+		name:      name,
+		opts:      opts,
+	}
+	to.delRouteHolder = append(to.delRouteHolder, delHolder)
+	return nil
 }
 
 func readJSON(filename string, dest interface{}) error {
@@ -1280,6 +1330,179 @@ func TestScaleDeployment(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestDeleteDeployment(t *testing.T) {
+	// DeleteOptions do not change
+	policy := metav1.DeletePropagationForeground
+	expectOpts := &metav1.DeleteOptions{
+		PropagationPolicy: &policy,
+	}
+	expectServices := []string{"myApp", "myOtherApp"} // Test impl doesn't check labels
+	expectRoutes := expectServices                    // Our routes use the same names as their services
+	testCases := []struct {
+		testName       string
+		spaceName      string
+		appName        string
+		envName        string
+		expectNS       string
+		expectSelector string
+		expectServices []string
+		expectRoutes   []string
+		shouldFail     bool
+		deploymentInput
+	}{
+		{
+			testName:        "Basic",
+			spaceName:       "mySpace",
+			appName:         "myApp",
+			envName:         "run",
+			expectNS:        "my-run",
+			expectSelector:  "app%3DmyApp",
+			expectServices:  expectServices,
+			expectRoutes:    expectRoutes,
+			deploymentInput: defaultDeploymentInput,
+		},
+		{
+			testName:        "Bad Environment",
+			spaceName:       "mySpace",
+			appName:         "myApp",
+			envName:         "doesNotExist",
+			expectNS:        "my-run",
+			expectSelector:  "app%3DmyApp",
+			expectServices:  expectServices,
+			expectRoutes:    expectRoutes,
+			deploymentInput: defaultDeploymentInput,
+			shouldFail:      true,
+		},
+		{
+			testName:        "Wrong Space",
+			spaceName:       "otherSpace",
+			appName:         "myApp",
+			envName:         "run",
+			expectNS:        "my-run",
+			expectSelector:  "app%3DmyApp",
+			expectServices:  expectServices,
+			expectRoutes:    expectRoutes,
+			deploymentInput: defaultDeploymentInput,
+			shouldFail:      true,
+		},
+		{
+			testName:       "No Routes",
+			spaceName:      "mySpace",
+			appName:        "myApp",
+			envName:        "run",
+			expectNS:       "my-run",
+			expectSelector: "app%3DmyApp",
+			expectServices: expectServices,
+			expectRoutes:   []string{},
+			deploymentInput: deploymentInput{
+				dcInput:  defaultDeploymentConfigInput,
+				rcInput:  defaultReplicationControllerInput,
+				podInput: defaultPodInput,
+				svcInput: defaultServiceInput,
+				routeInput: map[string]string{
+					"my-run": "routes-zero.json",
+				},
+			},
+		},
+		{
+			testName:       "No Services",
+			spaceName:      "mySpace",
+			appName:        "myApp",
+			envName:        "run",
+			expectNS:       "my-run",
+			expectSelector: "app%3DmyApp",
+			expectServices: []string{},
+			expectRoutes:   expectRoutes,
+			deploymentInput: deploymentInput{
+				dcInput:  defaultDeploymentConfigInput,
+				rcInput:  defaultReplicationControllerInput,
+				podInput: defaultPodInput,
+				svcInput: map[string]string{
+					"my-run": "services-zero.json",
+				},
+				routeInput: defaultRouteInput,
+			},
+		},
+		{
+			testName:       "No DeploymentConfig",
+			spaceName:      "mySpace",
+			appName:        "myApp",
+			envName:        "run",
+			expectNS:       "my-run",
+			expectSelector: "app%3DmyApp",
+			expectServices: expectServices,
+			expectRoutes:   expectRoutes,
+			deploymentInput: deploymentInput{
+				dcInput:    deploymentConfigInput{}, // Empty
+				rcInput:    defaultReplicationControllerInput,
+				podInput:   defaultPodInput,
+				svcInput:   defaultServiceInput,
+				routeInput: defaultRouteInput,
+			},
+			shouldFail: true,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.testName, func(t *testing.T) {
+			fixture := &testFixture{}
+			fixture.deploymentInput = testCase.deploymentInput
+
+			kc := getDefaultKubeClient(fixture, t)
+			err := kc.DeleteDeployment(testCase.spaceName, testCase.appName, testCase.envName)
+			if testCase.shouldFail {
+				require.Error(t, err, "Expected an error")
+			} else {
+				require.NoError(t, err, "Unexpected error occurred")
+
+				// Check route list
+				require.NotNil(t, fixture.os.routeHolder, "Route list was never retrieved")
+				routeHolder := fixture.os.routeHolder
+				require.Equal(t, testCase.expectSelector, routeHolder.labelSelector, "Incorrect label selector for routes")
+				require.Equal(t, testCase.expectNS, routeHolder.namespace, "Routes retrieved from wrong namespace")
+
+				// Check routes deleted
+				expectedRoutes := createSet(testCase.expectRoutes...)
+				for _, route := range fixture.os.delRouteHolder {
+					_, pres := expectedRoutes[route.name]
+					require.True(t, pres, "Found unexpected route %s", route.name)
+					require.Equal(t, testCase.expectNS, route.namespace, "Routes deleted in wrong namespace")
+					require.Equal(t, expectOpts, route.opts, "Delete options for routes are incorrect")
+					delete(expectedRoutes, route.name)
+				}
+				require.Empty(t, expectedRoutes, "Some expected routes were not found: %v", expectedRoutes)
+
+				// Check services deleted
+				expectedServices := createSet(testCase.expectServices...)
+				for _, svc := range fixture.kube.svcDelHolder {
+					_, pres := expectedServices[svc.name]
+					require.True(t, pres, "Found unexpected service %s", svc.name)
+					require.Equal(t, testCase.expectNS, svc.namespace, "Service deleted in wrong namespace")
+					require.Equal(t, expectOpts, svc.opts, "Delete options for services are incorrect")
+					delete(expectedServices, svc.name)
+				}
+				require.Empty(t, expectedServices, "Some expected services were not found: %v", expectedServices)
+
+				// Check deployment config deleted
+				dcHolder := fixture.os.delDCHolder
+				require.NotNil(t, dcHolder, "Deployment config not deleted")
+				require.Equal(t, testCase.appName, dcHolder.name, "Wrong deployment config deleted")
+				require.Equal(t, testCase.expectNS, dcHolder.namespace, "Deployment config deleted in wrong namespace")
+				require.Equal(t, expectOpts, dcHolder.opts, "Delete options for DC are incorrect")
+			}
+		})
+	}
+}
+
+func createSet(values ...string) map[string]struct{} {
+	result := make(map[string]struct{}, len(values))
+	var empty struct{}
+	for _, value := range values {
+		result[value] = empty
+	}
+	return result
 }
 
 func TestGetDeploymentStats(t *testing.T) {
