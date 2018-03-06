@@ -120,7 +120,7 @@ func (c *expressionCompiler) getFieldName(fieldName string) (mappedFieldName str
 
 // DefaultTableJoins returns the default list of joinable tables used when
 // creating a new expression compiler.
-func DefaultTableJoins() TableJoinMap {
+var DefaultTableJoins = func() TableJoinMap {
 	res := TableJoinMap{
 		"iteration": {
 			TableName:        "iterations",
