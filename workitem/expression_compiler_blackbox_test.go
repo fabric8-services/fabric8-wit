@@ -70,6 +70,10 @@ func TestField(t *testing.T) {
 			j := *defJoins["iteration"]
 			j.Active = true
 			j.HandledFields = []string{"name"}
+			// Internally when we iterate over the map of joins the order of
+			// table joins is not predictable. If we want to have a predictable
+			// order we need to make one table join depend on another.
+			j.ActivateOtherJoins = []string{"area"}
 			k := *defJoins["area"]
 			k.Active = true
 			k.HandledFields = []string{"name"}
