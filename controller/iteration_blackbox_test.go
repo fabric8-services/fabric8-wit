@@ -43,28 +43,6 @@ type TestIterationREST struct {
 	policy  *auth.KeycloakPolicy
 }
 
-// following helper function creates a space , root area, root iteration for that space.
-// Also creates a new iteration and new area in the same space
-func createSpaceAndRootAreaAndIterations(t *testing.T, db *gorm.DB) *tf.TestFixture {
-	return tf.NewTestFixture(t, db,
-		tf.CreateWorkItemEnvironment(),
-		tf.Iterations(2, func(fxt *tf.TestFixture, idx int) error {
-			switch idx {
-			case 1:
-				start, err := time.Parse(time.RFC822, "02 Jan 06 15:04 MST")
-				if err != nil {
-					return err
-				}
-				end := start.Add(time.Hour * 24 * 365 * 100)
-				fxt.Iterations[idx].StartAt = &start
-				fxt.Iterations[idx].EndAt = &end
-			}
-			return nil
-		}),
-		tf.Areas(2),
-	)
-}
-
 func TestRunIterationREST(t *testing.T) {
 	// given
 	suite.Run(t, &TestIterationREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
