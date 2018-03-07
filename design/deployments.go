@@ -306,6 +306,22 @@ var _ = a.Resource("deployments", func() {
 		a.Response(d.NotFound, JSONAPIErrors)
 	})
 
+	a.Action("deleteDeployment", func() {
+		a.Routing(
+			a.DELETE("/spaces/:spaceID/applications/:appName/deployments/:deployName"),
+		)
+		a.Description("Delete a deployment of an application")
+		a.Params(func() {
+			a.Param("spaceID", d.UUID, "ID of the space")
+			a.Param("appName", d.String, "Name of the application")
+			a.Param("deployName", d.String, "Name of the deployment")
+		})
+		a.Response(d.OK)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+	})
+
 	a.Action("showSpaceEnvironments", func() {
 		a.Routing(
 			a.GET("/spaces/:spaceID/environments"),
