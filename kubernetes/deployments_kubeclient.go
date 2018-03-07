@@ -28,12 +28,8 @@ import (
 // KubeClientConfig holds configuration data needed to create a new KubeClientInterface
 // with kubernetes.NewKubeClient
 type KubeClientConfig struct {
-	// URL to the Kubernetes cluster's API server
-	ClusterURL string
-	// true if we're using a proxy to acces openshift
-	UsingOpenshiftProxy bool
-	// An authorized token to access the cluster
-	BearerToken string
+	// Provides URLS for all APIs, and also access tokens
+	BaseURLProvider
 	// Kubernetes namespace in the cluster of type 'user'
 	UserNamespace string
 	// Provides access to the Kubernetes REST API, uses default implementation if not set
@@ -79,6 +75,7 @@ type KubeClientInterface interface {
 type kubeClient struct {
 	config *KubeClientConfig
 	envMap map[string]string
+	BaseURLProvider
 	KubeRESTAPI
 	Metrics
 	OpenShiftRESTAPI
@@ -152,14 +149,14 @@ func NewKubeClient(config *KubeClientConfig) (KubeClientInterface, error) {
 	}
 	// In the absence of a better way to get the user's metrics URL,
 	// substitute "api" with "metrics" in user's cluster URL
-	metricsURL, err := getMetricsURLFromAPIURL(config.ClusterURL, config.UsingOpenshiftProxy)
+	metricsURL, err := config.GetMetricsURL()
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
 	// Create MetricsClient for talking with Hawkular API
 	metricsConfig := &MetricsClientConfig{
-		MetricsURL:  metricsURL,
-		BearerToken: config.BearerToken,
+		MetricsURL:  *metricsURL,
+		BearerToken: *config.GetMetricsToken(),
 	}
 	metrics, err := config.GetMetrics(metricsConfig)
 	if err != nil {
@@ -175,6 +172,7 @@ func NewKubeClient(config *KubeClientConfig) (KubeClientInterface, error) {
 	kubeClient := &kubeClient{
 		config:           config,
 		envMap:           envMap,
+		BaseURLProvider:  config,
 		KubeRESTAPI:      kubeAPI,
 		Metrics:          metrics,
 		OpenShiftRESTAPI: osAPI,
@@ -184,8 +182,8 @@ func NewKubeClient(config *KubeClientConfig) (KubeClientInterface, error) {
 
 func (*defaultGetter) GetKubeRESTAPI(config *KubeClientConfig) (KubeRESTAPI, error) {
 	restConfig := &rest.Config{
-		Host:        config.ClusterURL,
-		BearerToken: config.BearerToken,
+		Host:        config.GetAPIURL(),
+		BearerToken: *config.GetAPIToken(),
 	}
 	clientset, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
@@ -328,27 +326,6 @@ func (oc *openShiftAPIClient) SetDeploymentConfigScale(namespace string, name st
 	return oc.sendResource(dcScaleURL, "PUT", scale)
 }
 
-func (kc *kubeClient) getConsoleURL(envNS string) (*string, error) {
-	path := fmt.Sprintf("console/project/%s", envNS)
-	// Replace "api" prefix with "console" and append path
-	consoleURL, err := modifyURL(kc.config.ClusterURL, "console", path)
-	if err != nil {
-		return nil, err
-	}
-	consoleURLStr := consoleURL.String()
-	return &consoleURLStr, nil
-}
-
-func (kc *kubeClient) getLogURL(envNS string, deploy *deployment) (*string, error) {
-	consoleURL, err := kc.getConsoleURL(envNS)
-	if err != nil {
-		return nil, err
-	}
-	rcName := deploy.current.Name
-	logURL := fmt.Sprintf("%s/browse/rc/%s?tab=logs", *consoleURL, rcName)
-	return &logURL, nil
-}
-
 func (kc *kubeClient) getApplicationURL(envNS string, deploy *deployment) (*string, error) {
 	// Get the best route to the application to show to the user
 	routeURL, err := kc.getBestRoute(envNS, deploy)
@@ -398,11 +375,13 @@ func (kc *kubeClient) GetDeployment(spaceName string, appName string, envName st
 	if err != nil {
 		return nil, err
 	}
-	consoleURL, err := kc.getConsoleURL(envNS)
+
+	consoleURL, err := kc.GetConsoleURL(envNS)
 	if err != nil {
 		return nil, err
 	}
-	logURL, err := kc.getLogURL(envNS, deploy)
+
+	logURL, err := kc.GetLogURL(envNS, deploy.current.Name)
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
@@ -600,41 +579,6 @@ func (kc *kubeClient) GetEnvironment(envName string) (*app.SimpleEnvironment, er
 	return env, nil
 }
 
-func getMetricsURLFromAPIURL(apiURLStr string, usingProxy bool) (string, error) {
-
-	if usingProxy {
-		return apiURLStr, nil
-	}
-
-	metricsURL, err := modifyURL(apiURLStr, "metrics", "")
-	if err != nil {
-		return "", err
-	}
-	return metricsURL.String(), nil
-}
-
-func modifyURL(apiURLStr string, prefix string, path string) (*url.URL, error) {
-	// Parse as URL to give us easy access to the hostname
-	apiURL, err := url.Parse(apiURLStr)
-	if err != nil {
-		return nil, err
-	}
-
-	// Get the hostname (without port) and replace api prefix with prefix arg
-	apiHostname := apiURL.Hostname()
-	if !strings.HasPrefix(apiHostname, "api") {
-		return nil, errs.Errorf("cluster URL does not begin with \"api\": %s", apiHostname)
-	}
-	newHostname := strings.Replace(apiHostname, "api", prefix, 1)
-	// Construct URL using just scheme from API URL, modified hostname and supplied path
-	newURL := &url.URL{
-		Scheme: apiURL.Scheme,
-		Host:   newHostname,
-		Path:   path,
-	}
-	return newURL, nil
-}
-
 func getTimestampEndpoints(metricsSeries ...[]*app.TimedNumberTuple) (minTime, maxTime *float64) {
 	// Metrics arrays are ordered by timestamp, so just check beginning and end
 	for _, series := range metricsSeries {
@@ -744,7 +688,7 @@ func (kc *kubeClient) getEnvironmentNamespace(envName string) (string, error) {
 
 // Derived from: https://github.com/fabric8-services/fabric8-tenant/blob/master/openshift/kube_token.go
 func (oc *openShiftAPIClient) sendResource(url string, method string, reqBody interface{}) error {
-	fullURL := strings.TrimSuffix(oc.config.ClusterURL, "/") + url
+	fullURL := strings.TrimSuffix(oc.config.GetAPIURL(), "/") + url
 
 	marshalled, err := json.Marshal(reqBody)
 	if err != nil {
@@ -768,7 +712,7 @@ func (oc *openShiftAPIClient) sendResource(url string, method string, reqBody in
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Authorization", "Bearer "+oc.config.BearerToken)
+	req.Header.Set("Authorization", "Bearer "+*oc.config.GetAPIToken())
 
 	client := http.DefaultClient
 	resp, err := client.Do(req)
@@ -1721,7 +1665,7 @@ func (oc *openShiftAPIClient) DeleteRoute(namespace string, name string, opts *m
 // Derived from: https://github.com/fabric8-services/fabric8-tenant/blob/master/openshift/kube_token.go
 func (oc *openShiftAPIClient) getResource(url string, allowMissing bool) (map[string]interface{}, error) {
 	var body []byte
-	fullURL := strings.TrimSuffix(oc.config.ClusterURL, "/") + url
+	fullURL := strings.TrimSuffix(oc.config.GetAPIURL(), "/") + url
 	req, err := http.NewRequest("GET", fullURL, bytes.NewReader(body))
 	if err != nil {
 		log.Error(nil, map[string]interface{}{
@@ -1731,7 +1675,7 @@ func (oc *openShiftAPIClient) getResource(url string, allowMissing bool) (map[st
 		return nil, errs.WithStack(err)
 	}
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Authorization", "Bearer "+oc.config.BearerToken)
+	req.Header.Set("Authorization", "Bearer "+*oc.config.GetAPIToken())
 
 	client := http.DefaultClient
 	resp, err := client.Do(req)

@@ -64,10 +64,14 @@ var defaultDeploymentInput = deploymentInput{
 	routeInput: defaultRouteInput,
 }
 
+func getDefaultURLProvider(baseurl string, token string) kubernetes.BaseURLProvider {
+	return kubernetes.NewTestURLProvider(baseurl, token)
+}
+
 func getDefaultKubeClient(fixture *testFixture, t *testing.T) kubernetes.KubeClientInterface {
+
 	config := &kubernetes.KubeClientConfig{
-		ClusterURL:             "http://api.myCluster",
-		BearerToken:            "myToken",
+		BaseURLProvider:        getDefaultURLProvider("http://api.myCluster", "myToken"),
 		UserNamespace:          "myNamespace",
 		KubeRESTAPIGetter:      fixture,
 		MetricsGetter:          fixture,
@@ -75,6 +79,7 @@ func getDefaultKubeClient(fixture *testFixture, t *testing.T) kubernetes.KubeCli
 	}
 
 	kc, err := kubernetes.NewKubeClient(config)
+
 	require.NoError(t, err)
 	return kc
 }
@@ -618,8 +623,7 @@ func TestGetMetrics(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			config := &kubernetes.KubeClientConfig{
-				ClusterURL:        testCase.clusterURL,
-				BearerToken:       token,
+				BaseURLProvider:   getDefaultURLProvider(testCase.clusterURL, token),
 				UserNamespace:     "myNamespace",
 				KubeRESTAPIGetter: fixture,
 				MetricsGetter:     fixture,
@@ -700,8 +704,7 @@ func TestConfigMapEnvironments(t *testing.T) {
 	fixture := &testFixture{}
 	userNamespace := "myNamespace"
 	config := &kubernetes.KubeClientConfig{
-		ClusterURL:        "http://api.myCluster",
-		BearerToken:       "myToken",
+		BaseURLProvider:   getDefaultURLProvider("http://api.myCluster", "myToken"),
 		UserNamespace:     userNamespace,
 		KubeRESTAPIGetter: fixture,
 		MetricsGetter:     fixture,
