@@ -19,6 +19,7 @@ func Recorder() goa.Middleware {
 			startTime := time.Now()
 			err := h(ctx, rw, req)
 			recordReqsTotal(ctx, req)
+			recordResSize(ctx, req)
 			recordReqDuration(ctx, req, startTime)
 			return err
 		}
@@ -27,6 +28,12 @@ func Recorder() goa.Middleware {
 
 func recordReqsTotal(ctx context.Context, req *http.Request) {
 	reportRequestsTotal(labelsVal(ctx, req))
+}
+
+func recordResSize(ctx context.Context, req *http.Request) {
+	method, entity, code := labelsVal(ctx, req)
+	resSize := goa.ContextResponse(ctx).Length
+	reportResponseSize(method, entity, code, resSize)
 }
 
 func recordReqDuration(ctx context.Context, req *http.Request, startTime time.Time) {
@@ -50,8 +57,7 @@ func methodVal(method string) string {
 }
 
 // ctrl=SpaceController -> entity=space
-func entityVal(ctrl string) string {
-	entity := ""
+func entityVal(ctrl string) (entity string) {
 	if strings.HasSuffix(ctrl, "Controller") {
 		entity = strings.ToLower(strings.TrimSuffix(ctrl, "Controller"))
 	}

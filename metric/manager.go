@@ -29,11 +29,20 @@ var (
 		Help:      "Bucketed histogram of processing time (s) of requests.",
 		Buckets:   prometheus.ExponentialBuckets(0.1, 2, 8),
 	}, reqLabels)
+
+	resSize = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace: namespace,
+		Subsystem: subsystem,
+		Name:      "response_size_bytes",
+		Help:      "Bucketed histogram of the HTTP response sizes in bytes.",
+		Buckets:   []float64{1000, 5000, 10000, 20000, 30000, 40000, 50000},
+	}, reqLabels)
 )
 
 func init() {
 	reqCnt = register(reqCnt, "requests_total").(*prometheus.CounterVec)
 	reqDuration = register(reqDuration, "request_duration_seconds").(*prometheus.HistogramVec)
+	resSize = register(resSize, "response_size_bytes").(*prometheus.HistogramVec)
 }
 
 func register(c prometheus.Collector, name string) prometheus.Collector {
@@ -59,5 +68,11 @@ func reportRequestsTotal(method, entity, code string) {
 func reportRequestDuration(method, entity, code string, startTime time.Time) {
 	if method != "" && entity != "" && code != "" && !startTime.IsZero() {
 		reqDuration.WithLabelValues(method, entity, code).Observe(time.Since(startTime).Seconds())
+	}
+}
+
+func reportResponseSize(method, entity, code string, size int) {
+	if method != "" && entity != "" && code != "" && size > 0 {
+		resSize.WithLabelValues(method, entity, code).Observe(float64(size))
 	}
 }
