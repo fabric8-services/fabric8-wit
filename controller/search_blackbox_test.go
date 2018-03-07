@@ -1070,60 +1070,6 @@ func (s *searchControllerTestSuite) TestSearchByJoinedData() {
 	})
 }
 
-// TestOrderOfExecution tests that workitems are ordered according to their
-// descending order-of-execution in search api with tree-view and without
-// tree-view filter
-
-// Suppose we have this topology:
-// Parent1
-// 	|_ Child1
-// Parent2
-//	|_ Child2
-//	|_ Child3
-// Parent3
-// Parent4
-// Parent5
-func (s *searchControllerTestSuite) TestOrderOfExecution() {
-	resetFn := s.DisableGormCallbacks()
-	defer resetFn()
-
-	fxt := tf.NewTestFixture(s.T(), s.DB,
-		tf.WorkItems(8, tf.SetWorkItemTitles("Parent1", "Parent2", "Parent3", "Parent4", "Parent5", "Child1", "Child2", "Child3")),
-		tf.WorkItemLinksCustom(3, tf.BuildLinks(
-			tf.L("Parent1", "Child1"),
-			tf.L("Parent2", "Child2"),
-			tf.L("Parent2", "Child3")),
-			func(fxt *tf.TestFixture, idx int) error {
-				fxt.WorkItemLinks[idx].LinkTypeID = link.SystemWorkItemLinkTypeParentChildID
-				return nil
-			},
-		),
-	)
-	spaceIDStr := fxt.Spaces[0].ID.String()
-
-	s.T().Run("with tree-view=false", func(t *testing.T) {
-		filter := fmt.Sprintf(`{"space": "%[1]s"}`, spaceIDStr)
-		_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
-		// then
-		require.NotEmpty(t, result.Data)
-		for i, wi := range result.Data {
-			j := len(result.Data) - 1 - i
-			assert.Equal(t, fxt.WorkItems[j].Fields[workitem.SystemOrder], wi.Attributes[workitem.SystemOrder])
-		}
-	})
-
-	s.T().Run("with tree-view=true", func(t *testing.T) {
-		filter := fmt.Sprintf(`{"space": "%[1]s", "$OPTS":{"%[2]s": true}}`, spaceIDStr, search.OptTreeViewKey)
-		_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
-		// then
-		require.NotEmpty(t, result.Data)
-		for i, wi := range result.Data {
-			j := len(result.Data) - 1 - i
-			assert.Equal(t, fxt.WorkItems[j].Fields[workitem.SystemOrder], wi.Attributes[workitem.SystemOrder])
-		}
-	})
-}
-
 // TestIncludedParents verifies the Included list of parents
 func (s *searchControllerTestSuite) TestIncludedParents() {
 	resetFn := s.DisableGormCallbacks()
@@ -1226,9 +1172,8 @@ func (s *searchControllerTestSuite) TestIncludedParents() {
 					}
 					includedData := make([]app.WorkItem, len(result.Included))
 					for i, v := range result.Included {
-						j := len(result.Included) - 1 - i
-						includedData[j].ID = v.(app.WorkItem).ID
-						assert.Equal(t, expectedOrder[j], *includedData[j].ID)
+						includedData[i].ID = v.(app.WorkItem).ID
+						assert.Equal(t, expectedOrder[i], *includedData[i].ID)
 					}
 				}
 
@@ -1567,4 +1512,54 @@ func (s SortableIncludedSpacesByID) Less(i, j int) bool {
 		return false
 	}
 	return strings.Compare(s[i].(app.Space).ID.String(), s[j].(app.Space).ID.String()) < 0
+}
+
+func TestWorkItemPtrSliceSort(t *testing.T) {
+	t.Run("by work item title", func(t *testing.T) {
+		// given
+		a := &app.WorkItem{Attributes: map[string]interface{}{workitem.SystemTitle: "A"}}
+		b := &app.WorkItem{Attributes: map[string]interface{}{workitem.SystemTitle: "B"}}
+		c := &app.WorkItem{Attributes: map[string]interface{}{workitem.SystemTitle: "C"}}
+		s := WorkItemPtrSlice{c, a, b}
+		// when
+		sort.Sort(s)
+		// then
+		require.Equal(t, WorkItemPtrSlice{a, b, c}, s)
+	})
+	t.Run("by work item ID", func(t *testing.T) {
+		// given
+		a := &app.WorkItem{ID: ptr.UUID(uuid.FromStringOrNil("00000000-0000-0000-0000-000000000001"))}
+		b := &app.WorkItem{ID: ptr.UUID(uuid.FromStringOrNil("00000000-0000-0000-0000-000000000001"))}
+		c := &app.WorkItem{ID: ptr.UUID(uuid.FromStringOrNil("00000000-0000-0000-0000-000000000003"))}
+		s := WorkItemPtrSlice{c, a, b}
+		// when
+		sort.Sort(s)
+		// then
+		require.Equal(t, WorkItemPtrSlice{a, b, c}, s)
+	})
+}
+
+func TestWorkItemInterfaceSliceSort(t *testing.T) {
+	t.Run("by work item title", func(t *testing.T) {
+		// given objects and pointers
+		var a interface{} = app.WorkItem{Attributes: map[string]interface{}{workitem.SystemTitle: "A"}}
+		var b interface{} = &app.WorkItem{Attributes: map[string]interface{}{workitem.SystemTitle: "B"}}
+		var c interface{} = app.WorkItem{Attributes: map[string]interface{}{workitem.SystemTitle: "C"}}
+		s := WorkItemInterfaceSlice{c, a, b}
+		// when
+		sort.Sort(s)
+		// then
+		require.Equal(t, WorkItemInterfaceSlice{a, b, c}, s)
+	})
+	t.Run("by work item ID", func(t *testing.T) {
+		// given objects and pointers
+		var a interface{} = app.WorkItem{ID: ptr.UUID(uuid.FromStringOrNil("00000000-0000-0000-0000-000000000001"))}
+		var b interface{} = &app.WorkItem{ID: ptr.UUID(uuid.FromStringOrNil("00000000-0000-0000-0000-000000000002"))}
+		var c interface{} = app.WorkItem{ID: ptr.UUID(uuid.FromStringOrNil("00000000-0000-0000-0000-000000000003"))}
+		s := WorkItemInterfaceSlice{c, a, b}
+		// when
+		sort.Sort(s)
+		// then
+		require.Equal(t, WorkItemInterfaceSlice{a, b, c}, s)
+	})
 }
