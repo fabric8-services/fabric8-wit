@@ -68,7 +68,7 @@ func (c *CodebaseController) Show(ctx *app.ShowCodebaseContext) error {
 	})
 }
 
-// Deprecated: ListWorkspaces action should be used instead.
+// Edit Deprecated: ListWorkspaces action should be used instead.
 func (c *CodebaseController) Edit(ctx *app.EditCodebaseContext) error {
 	listWorkspacesContext := app.ListWorkspacesCodebaseContext{ctx.Context, ctx.ResponseData, ctx.RequestData, ctx.CodebaseID}
 	return c.ListWorkspaces(&listWorkspacesContext)
