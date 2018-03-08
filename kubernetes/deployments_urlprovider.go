@@ -32,27 +32,30 @@ type BaseURLProvider interface {
 // there are several concrete instantiations:
 //
 // 1) the original Deployments implementation:
+//    - authURLProvider
 //    - access Auth and OSO directly
 //
 // 2) the interim implementation
+//    - authURLProvider
 //    - access Auth and OSO metrics directly,
 //    - use proxy for normal OSO API calls
 //
 // 3) final implementation
-//   - Access Tenant isntead of Auth
+//   - tenantURLProvider
+//   - access Tenant instead of Auth
 //   - use use proxy for normal OSO API calls
 //   - access OSO metrics directly (until proxy supports this)
 
-type originalURLProvider struct {
+type authURLProvider struct {
 	apiURL       string
 	apiToken     string
-	metricURL    string
-	metricsToken string
+	clusterURL   string
+	clusterToken string
 }
 
 // ensure kubeClient implements KubeClientInterface
-var _ BaseURLProvider = &originalURLProvider{}
-var _ BaseURLProvider = (*originalURLProvider)(nil)
+var _ BaseURLProvider = &authURLProvider{}
+var _ BaseURLProvider = (*authURLProvider)(nil)
 
 // NewURLProvider looks at what servers are available and create a BaseURLProvder that fits
 func NewURLProvider(ctx context.Context, config *configuration.Registry) (BaseURLProvider, error) {
@@ -62,15 +65,15 @@ func NewURLProvider(ctx context.Context, config *configuration.Registry) (BaseUR
 	if len(osProxyURL) == 0 {
 		return newAuthNoProxyURLProvider(ctx, config)
 	}
-	return newInterimAuthProxyFinalURLProvider(ctx, config, osProxyURL)
+	return newAuthProxyURLProvider(ctx, config, osProxyURL)
 }
 
 // using auth and proxy, access metrics directly
-func newInterimAuthProxyFinalURLProvider(ctx context.Context, config *configuration.Registry, osProxyURL string) (*originalURLProvider, error) {
+func newAuthProxyURLProvider(ctx context.Context, config *configuration.Registry, osProxyURL string) (*authURLProvider, error) {
 
 	// this is inefficient; we still need to get the cluster and OSO tokens so we can access metrics
 	// the console, log and API urls should come from Auth or Tenant services instead of calculating in this code.
-	p, err := newAuthNoProxyURLProvider(ctx, config)
+	p, err := newAuthURLProvider(ctx, config)
 	if err != nil {
 		return nil, err
 	}
@@ -82,23 +85,10 @@ func newInterimAuthProxyFinalURLProvider(ctx context.Context, config *configurat
 	return p, nil
 }
 
-// using auth and proxy, access metrics via proxy (somehow)
-func newFinalAuthProxyURLProvider(ctx context.Context, config *configuration.Registry, osProxyURL string) (*originalURLProvider, error) {
-
-	provider := &originalURLProvider{
-		apiURL:       osProxyURL,
-		apiToken:     goajwt.ContextJWT(ctx).Raw,
-		metricURL:    osProxyURL,
-		metricsToken: goajwt.ContextJWT(ctx).Raw,
-	}
-
-	return provider, nil
-}
-
 // using Auth and no proxy
-func newAuthNoProxyURLProvider(ctx context.Context, config *configuration.Registry) (*originalURLProvider, error) {
+func newAuthNoProxyURLProvider(ctx context.Context, config *configuration.Registry) (*authURLProvider, error) {
 
-	p, err := newOriginalURLProvider(ctx, config)
+	p, err := newAuthURLProvider(ctx, config)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +96,7 @@ func newAuthNoProxyURLProvider(ctx context.Context, config *configuration.Regist
 }
 
 // using Auth, no proxy (internal call)
-func newOriginalURLProvider(ctx context.Context, config *configuration.Registry) (*originalURLProvider, error) {
+func newAuthURLProvider(ctx context.Context, config *configuration.Registry) (*authURLProvider, error) {
 	// create Auth API client
 	authClient, err := auth.CreateClient(ctx, config)
 	if err != nil {
@@ -150,11 +140,11 @@ func newOriginalURLProvider(ctx context.Context, config *configuration.Registry)
 		return nil, errs.Wrapf(err, "error getting openshift credentials")
 	}
 
-	provider := &originalURLProvider{
+	provider := &authURLProvider{
 		apiURL:       *authUser.Data.Attributes.Cluster,
 		apiToken:     *osauth.AccessToken,
-		metricURL:    *authUser.Data.Attributes.Cluster,
-		metricsToken: *osauth.AccessToken,
+		clusterURL:   *authUser.Data.Attributes.Cluster,
+		clusterToken: *osauth.AccessToken,
 	}
 
 	return provider, nil
@@ -162,48 +152,44 @@ func newOriginalURLProvider(ctx context.Context, config *configuration.Registry)
 
 // NewTestURLProvider creates a provider with the same URL and token for both API and metrics
 func NewTestURLProvider(clusterURL string, token string) BaseURLProvider {
-	provider := &originalURLProvider{
+	provider := &authURLProvider{
 		apiURL:       clusterURL,
 		apiToken:     token,
-		metricURL:    clusterURL,
-		metricsToken: token,
+		clusterURL:   clusterURL,
+		clusterToken: token,
 	}
 
 	return provider
 }
 
 // NewTestURLWithMetricsProvider creates a provider with the different URL and token for API and metrics
-func NewTestURLWithMetricsProvider(clusterURL string, token string, metricsClusterURL string, metricsToken string) BaseURLProvider {
-	provider := &originalURLProvider{
-		apiURL:       clusterURL,
+func NewTestURLWithMetricsProvider(apiURL string, token string, clusterURL string, clusterToken string) BaseURLProvider {
+	provider := &authURLProvider{
+		apiURL:       apiURL,
 		apiToken:     token,
-		metricURL:    metricsClusterURL,
-		metricsToken: metricsToken,
+		clusterURL:   clusterURL,
+		clusterToken: clusterToken,
 	}
 
 	return provider
 }
 
-func (up *originalURLProvider) GetAPIToken() *string {
+func (up *authURLProvider) GetAPIToken() *string {
 	return &up.apiToken
 }
 
-func (up *originalURLProvider) GetMetricsToken() *string {
-	return &up.metricsToken
+func (up *authURLProvider) GetMetricsToken() *string {
+	return &up.clusterToken
 }
 
-func (up *originalURLProvider) GetClusterBaseURL() (*string, error) {
-	return &up.apiURL, nil
-}
-
-func (up *originalURLProvider) GetAPIURL() string {
+func (up *authURLProvider) GetAPIURL() string {
 	return up.apiURL
 }
 
-func (up *originalURLProvider) GetConsoleURL(envNS string) (*string, error) {
+func (up *authURLProvider) GetConsoleURL(envNS string) (*string, error) {
 	path := fmt.Sprintf("console/project/%s", envNS)
 	// Replace "api" prefix with "console" and append path
-	consoleURL, err := modifyURL(up.apiURL, "console", path)
+	consoleURL, err := modifyURL(up.clusterURL, "console", path)
 	if err != nil {
 		return nil, err
 	}
@@ -211,7 +197,7 @@ func (up *originalURLProvider) GetConsoleURL(envNS string) (*string, error) {
 	return &consoleURLStr, nil
 }
 
-func (up *originalURLProvider) GetLogURL(envNS string, deployName string) (*string, error) {
+func (up *authURLProvider) GetLogURL(envNS string, deployName string) (*string, error) {
 	consoleURL, err := up.GetConsoleURL(envNS)
 	if err != nil {
 		return nil, err
@@ -220,17 +206,16 @@ func (up *originalURLProvider) GetLogURL(envNS string, deployName string) (*stri
 	return &logURL, nil
 }
 
-func (up *originalURLProvider) GetMetricsURL() (*string, error) {
-
-	// In the absence of a better way to get the user's metrics URL,
+func (up *authURLProvider) GetMetricsURL() (*string, error) {
+	// metrics URL is taken from the cluster URL
+	// In the absence of a better way (i.e. tenant) to get the user's metrics URL,
 	// substitute "api" with "metrics" in user's cluster URL
-
-	metricsURL, err := modifyURL(up.metricURL, "metrics", "")
+	metricsURL, err := modifyURL(up.clusterURL, "metrics", "")
 	if err != nil {
 		return nil, err
 	}
-	urlstr := metricsURL.String()
-	return &urlstr, nil
+	mu := metricsURL.String()
+	return &mu, nil
 }
 
 func getTokenData(ctx context.Context, authClient authservice.Client, forService string) (*authservice.TokenData, error) {
