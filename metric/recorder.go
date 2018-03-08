@@ -19,6 +19,7 @@ func Recorder() goa.Middleware {
 			startTime := time.Now()
 			err := h(ctx, rw, req)
 			recordReqsTotal(ctx, req)
+			recordReqSize(ctx, req)
 			recordResSize(ctx, req)
 			recordReqDuration(ctx, req, startTime)
 			return err
@@ -30,10 +31,16 @@ func recordReqsTotal(ctx context.Context, req *http.Request) {
 	reportRequestsTotal(labelsVal(ctx, req))
 }
 
+func recordReqSize(ctx context.Context, req *http.Request) {
+	method, entity, code := labelsVal(ctx, req)
+	size := computeApproximateRequestSize(req)
+	reportRequestSize(method, entity, code, size)
+}
+
 func recordResSize(ctx context.Context, req *http.Request) {
 	method, entity, code := labelsVal(ctx, req)
-	resSize := goa.ContextResponse(ctx).Length
-	reportResponseSize(method, entity, code, resSize)
+	size := goa.ContextResponse(ctx).Length
+	reportResponseSize(method, entity, code, size)
 }
 
 func recordReqDuration(ctx context.Context, req *http.Request, startTime time.Time) {
@@ -68,4 +75,30 @@ func entityVal(ctrl string) (entity string) {
 func codeVal(status int) string {
 	code := (status - (status % 100)) / 100
 	return strconv.Itoa(code) + "xx"
+}
+
+func computeApproximateRequestSize(r *http.Request) int64 {
+	s := 0
+	if r.URL != nil {
+		s += len(r.URL.String())
+	}
+
+	s += len(r.Method)
+	s += len(r.Proto)
+	for name, values := range r.Header {
+		s += len(name)
+		for _, value := range values {
+			s += len(value)
+		}
+	}
+	s += len(r.Host)
+
+	// N.B. r.Form and r.MultipartForm are assumed to be included in r.URL.
+
+	var size int64
+	size = int64(s)
+	if r.ContentLength != -1 {
+		size += r.ContentLength
+	}
+	return size
 }
