@@ -305,8 +305,8 @@ AUTH_IMAGE_TAG ?= latest
 AUTH_IMAGE_URL=$(AUTH_IMAGE_DEFAULT):$(AUTH_IMAGE_TAG)
 
 .PHONY: dev-wit-openshift
-## Starts minishift and creates or uses a project named wit-openshift
-## Deploys DB, DB-AUTH, AUTH services from minishift/kedge/
+## Starts minishift and creates/uses a project named wit-openshift
+## Deploys DB, DB-AUTH, AUTH services from minishift/kedge/*.yml
 ## Runs WIT service on local machine
 dev-wit-openshift: prebuild-check deps generate $(FRESH_BIN)
 	minishift start
