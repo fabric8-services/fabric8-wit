@@ -381,7 +381,7 @@ func (kc *kubeClient) GetDeployment(spaceName string, appName string, envName st
 		return nil, err
 	}
 
-	logURL, err := kc.GetLogURL(envNS, deploy.current.Name)
+	logURL, err := kc.GetLoggingURL(envNS, deploy.current.Name)
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}

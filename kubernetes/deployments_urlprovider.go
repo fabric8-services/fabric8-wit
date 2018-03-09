@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/account/tenant"
 	"github.com/fabric8-services/fabric8-wit/auth"
 	"github.com/fabric8-services/fabric8-wit/auth/authservice"
 	"github.com/fabric8-services/fabric8-wit/configuration"
@@ -19,11 +21,13 @@ import (
 )
 
 // BaseURLProvider provides the BASE URL (minimal path) of several APIs used in Deployments
+// for true multicluster support, every API in this inteface should take an environment namespace name.
+// unfortunately, this concept is no implemented elsewhere in fabric8
 type BaseURLProvider interface {
 	GetAPIURL() string
 	GetMetricsURL() (*string, error)
 	GetConsoleURL(envNS string) (*string, error)
-	GetLogURL(envNS string, deploymentName string) (*string, error)
+	GetLoggingURL(envNS string, deploymentName string) (*string, error)
 
 	GetAPIToken() *string
 	GetMetricsToken() *string
@@ -53,19 +57,146 @@ type authURLProvider struct {
 	clusterToken string
 }
 
-// ensure kubeClient implements KubeClientInterface
+// ensure authURLProvider implements BaseURLProvider
 var _ BaseURLProvider = &authURLProvider{}
 var _ BaseURLProvider = (*authURLProvider)(nil)
+
+type tenantURLProvider struct {
+	apiURL     string
+	apiToken   string
+	tenant     *tenant.TenantAttributes
+	namespaces map[string]*tenant.NamespaceAttributes
+}
+
+// ensure tenantURLProvider implements BaseURLProvider
+var _ BaseURLProvider = &tenantURLProvider{}
+var _ BaseURLProvider = (*tenantURLProvider)(nil)
 
 // NewURLProvider looks at what servers are available and create a BaseURLProvder that fits
 func NewURLProvider(ctx context.Context, config *configuration.Registry) (BaseURLProvider, error) {
 
 	osProxyURL := config.GetOpenshiftProxyURL()
+	tenantURL := config.GetTenantServiceURL()
 
+	if len(tenantURL) != 0 {
+		if len(osProxyURL) == 0 {
+			return newTenantURLProvider(ctx, config)
+		}
+		return newTenantProxyURLProvider(ctx, config, osProxyURL)
+	}
 	if len(osProxyURL) == 0 {
 		return newAuthNoProxyURLProvider(ctx, config)
 	}
 	return newAuthProxyURLProvider(ctx, config, osProxyURL)
+}
+
+// using auth and proxy, access metrics directly
+func newTenantProxyURLProvider(ctx context.Context, config *configuration.Registry, osProxyURL string) (*tenantURLProvider, error) {
+
+	// this is inefficient; we still need to get the cluster and OSO tokens so we can access metrics
+	// the console, log and API urls should come from Auth or Tenant services instead of calculating in this code.
+	p, err := newTenantURLProvider(ctx, config)
+	if err != nil {
+		return nil, err
+	}
+
+	// all non-metric API calls go via the proxy
+	p.apiURL = osProxyURL
+	p.apiToken = goajwt.ContextJWT(ctx).Raw
+
+	return p, nil
+}
+
+// using Auth and no proxy
+func newTenantURLProvider(ctx context.Context, config *configuration.Registry) (*tenantURLProvider, error) {
+
+	// create Tenant API client
+	//tenantURL := config.GetTenantServiceURL()
+	tenantResponse, err := account.ShowTenant(ctx, config)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "error accessing Tenant server")
+		return nil, errs.Wrapf(err, "error creating Tenant client")
+	}
+	//fmt.Printf("tenant = %s\n", tostring(tenantResponse.Data.Attributes))
+	return newTenantURLProviderFromTenant(tenantResponse, goajwt.ContextJWT(ctx).Raw), nil
+}
+
+func newTenantURLProviderFromTenant(t *tenant.TenantSingle, token string) *tenantURLProvider {
+	namespaceMap := make(map[string]*tenant.NamespaceAttributes)
+	for i, namespace := range t.Data.Attributes.Namespaces {
+		namespaceMap[*namespace.Name] = t.Data.Attributes.Namespaces[i]
+	}
+
+	defaultClusterURL := ""
+	if len(t.Data.Attributes.Namespaces) == 0 {
+		log.Error(nil, map[string]interface{}{
+			"tenant": *t.Data.Attributes.Email,
+		}, "this tenant has no namespaces: %s", *t.Data.Attributes.Email)
+	} else {
+		defaultClusterURL = *t.Data.Attributes.Namespaces[0].ClusterURL
+	}
+
+	provider := &tenantURLProvider{
+		apiURL:     defaultClusterURL,
+		apiToken:   token,
+		tenant:     t.Data.Attributes,
+		namespaces: namespaceMap,
+	}
+	return provider
+}
+
+// NewTenantURLProviderFromTenant exposed for testing
+func NewTenantURLProviderFromTenant(t *tenant.TenantSingle, token string) BaseURLProvider {
+	return newTenantURLProviderFromTenant(t, token)
+}
+
+func (up *tenantURLProvider) GetAPIToken() *string {
+	return &up.apiToken
+}
+
+func (up *tenantURLProvider) GetMetricsToken() *string {
+	return &up.apiToken
+}
+
+func (up *tenantURLProvider) GetAPIURL() string {
+	return up.apiURL
+}
+
+func (up *tenantURLProvider) GetConsoleURL(envNS string) (*string, error) {
+	ns := up.namespaces[envNS]
+	if ns == nil {
+		return nil, errs.Errorf("Namespace '%s' is not in tenant '%s'", envNS, *up.tenant.Email)
+	}
+	consoleURL := fmt.Sprintf("%s/console/project/%s", *ns.ClusterConsoleURL, envNS)
+	return &consoleURL, nil
+}
+
+func (up *tenantURLProvider) GetLoggingURL(envNS string, deployName string) (*string, error) {
+	ns := up.namespaces[envNS]
+	if ns == nil {
+		return nil, errs.Errorf("Namespace '%s' is not in tenant '%s'", envNS, *up.tenant.Email)
+	}
+	loggingURL := fmt.Sprintf("%s/console/project/%s/browse/rc/%s?tab=logs", *ns.ClusterLoggingURL, envNS, deployName)
+	return &loggingURL, nil
+}
+
+func (up *tenantURLProvider) GetMetricsURL() (*string, error) {
+
+	// eventually all the code should be migrated to take an envNS instead of using namespaces[0]
+	metricsURL := up.tenant.Namespaces[0].ClusterMetricsURL
+	if metricsURL == nil || len(*metricsURL) == 0 {
+		// In the absence of a better way (i.e. tenant) to get the user's metrics URL,
+		// substitute "api" with "metrics" in user's cluster URL
+		mu, err := modifyURL(up.apiURL, "metrics", "")
+		if err != nil {
+			return nil, err
+		}
+		muStr := mu.String()
+		metricsURL = &muStr
+	}
+	return metricsURL, nil
 }
 
 // using auth and proxy, access metrics directly
@@ -197,7 +328,7 @@ func (up *authURLProvider) GetConsoleURL(envNS string) (*string, error) {
 	return &consoleURLStr, nil
 }
 
-func (up *authURLProvider) GetLogURL(envNS string, deployName string) (*string, error) {
+func (up *authURLProvider) GetLoggingURL(envNS string, deployName string) (*string, error) {
 	consoleURL, err := up.GetConsoleURL(envNS)
 	if err != nil {
 		return nil, err

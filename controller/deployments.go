@@ -8,7 +8,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/errors"
@@ -47,24 +46,17 @@ type ClientGetter interface {
 type defaultClientGetter struct {
 	config            *configuration.Registry
 	OpenshiftProxyURL string
-	TenantURL         *string
 }
 
 // NewDeploymentsController creates a deployments controller.
 func NewDeploymentsController(service *goa.Service, config *configuration.Registry) *DeploymentsController {
 	osproxy := config.GetOpenshiftProxyURL()
-	//tenant := config.GetTenantServiceURL()
-	//tenantURL := &tenant
-	//if len(tenant) == 0 {
-	//	tenantURL = nil
-	//}
 	return &DeploymentsController{
 		Controller: service.NewController("DeploymentsController"),
 		Config:     config,
 		ClientGetter: &defaultClientGetter{
 			config:            config,
 			OpenshiftProxyURL: osproxy,
-			//TenantURL:           tenantURL,
 		},
 	}
 }
@@ -155,20 +147,10 @@ func (g *defaultClientGetter) GetKubeClient(ctx context.Context) (kubernetes.Kub
 
 	kubeURL := g.OpenshiftProxyURL
 
-	if g.TenantURL != nil {
-		tenant, err := account.ShowTenant(ctx, g.config)
-		if err != nil {
-			log.Error(ctx, map[string]interface{}{
-				"err": err,
-			}, "error accessing Tenant server")
-			return nil, errs.Wrapf(err, "error creating Tenant client")
-		}
-
-		fmt.Printf("tenant = %s\n", tostring(tenant.Data.Attributes))
-
-	}
-
 	baseURLProvider, err := kubernetes.NewURLProvider(ctx, g.config)
+	if err != nil {
+		return nil, errs.Wrap(err, "could not retrieve tenant data")
+	}
 
 	kubeNamespaceName, err := g.getNamespaceName(ctx)
 	if err != nil {
