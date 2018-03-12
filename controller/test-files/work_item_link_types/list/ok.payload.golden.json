@@ -101,17 +101,6 @@
       "type": "workitemlinktypes"
     }
   ],
-  "included": [
-    {
-      "attributes": {
-        "description": "some description",
-        "name": "link category 00000000-0000-0000-0000-000000000008",
-        "version": 0
-      },
-      "id": "00000000-0000-0000-0000-000000000003",
-      "type": "workitemlinkcategories"
-    }
-  ],
   "meta": {
     "totalCount": 2
   }
