@@ -253,77 +253,46 @@ func (rest *TestAreaREST) createChildArea(name string, parent area.Area, svc *go
 	return created
 }
 
-func (rest *TestAreaREST) TestShowChildrenAreaOK() {
-	// given
+func (rest *TestAreaREST) TestShowChildrenArea() {
+	// Setup
 	sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
 	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
 	require.NoError(rest.T(), err)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
-	rest.createChildArea("TestShowChildrenAreaOK", parentArea, svc, ctrl)
-	// when
-	res, result := test.ShowChildrenAreaOK(rest.T(), svc.Context, svc, ctrl, parentArea.ID.String(), nil, nil)
-	//then
-	assert.Equal(rest.T(), 1, len(result.Data))
-	assertResponseHeaders(rest.T(), res)
-}
+	childArea := rest.createChildArea("TestShowChildrenArea", parentArea, svc, ctrl)
+	rest.T().Run("Success", func(t *testing.T) {
+		t.Run("OK", func(t *testing.T) {
+			res, result := test.ShowChildrenAreaOK(rest.T(), svc.Context, svc, ctrl, parentArea.ID.String(), nil, nil)
+			assert.Equal(rest.T(), 1, len(result.Data))
+			assertResponseHeaders(rest.T(), res)
+		})
+		t.Run("Using ExpiredIfModifedSince Header", func(t *testing.T) {
+			ifModifiedSince := app.ToHTTPTime(parentArea.UpdatedAt.Add(-1 * time.Hour))
+			res, result := test.ShowChildrenAreaOK(rest.T(), svc.Context, svc, ctrl, parentArea.ID.String(), &ifModifiedSince, nil)
+			assert.Equal(rest.T(), 1, len(result.Data))
+			assertResponseHeaders(rest.T(), res)
+		})
 
-func (rest *TestAreaREST) TestShowChildrenAreaOKUsingExpiredIfModifedSinceHeader() {
-	// given
-	sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
-	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
-	require.NoError(rest.T(), err)
-	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
-	rest.createChildArea("TestShowChildrenAreaOKUsingExpiredIfModifedSinceHeader", parentArea, svc, ctrl)
-	// when
-	ifModifiedSince := app.ToHTTPTime(parentArea.UpdatedAt.Add(-1 * time.Hour))
-	res, result := test.ShowChildrenAreaOK(rest.T(), svc.Context, svc, ctrl, parentArea.ID.String(), &ifModifiedSince, nil)
-	//then
-	assert.Equal(rest.T(), 1, len(result.Data))
-	assertResponseHeaders(rest.T(), res)
-}
+		t.Run("Using ExpiredIfNoneMatch Header", func(t *testing.T) {
+			ifNoneMatch := "foo"
+			res, result := test.ShowChildrenAreaOK(rest.T(), svc.Context, svc, ctrl, parentArea.ID.String(), nil, &ifNoneMatch)
+			assert.Equal(rest.T(), 1, len(result.Data))
+			assertResponseHeaders(rest.T(), res)
+		})
 
-func (rest *TestAreaREST) TestShowChildrenAreaOKUsingExpiredIfNoneMatchHeader() {
-	// given
-	sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
-	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
-	require.NoError(rest.T(), err)
-	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
-	rest.createChildArea("TestShowChildrenAreaOKUsingExpiredIfNoneMatchHeader", parentArea, svc, ctrl)
-	// when
-	ifNoneMatch := "foo"
-	res, result := test.ShowChildrenAreaOK(rest.T(), svc.Context, svc, ctrl, parentArea.ID.String(), nil, &ifNoneMatch)
-	//then
-	assert.Equal(rest.T(), 1, len(result.Data))
-	assertResponseHeaders(rest.T(), res)
-}
+		t.Run("Not Modified Using IfModifedSince Header", func(t *testing.T) {
+			ifModifiedSince := app.ToHTTPTime(*childArea.Data.Attributes.UpdatedAt)
+			res := test.ShowChildrenAreaNotModified(rest.T(), svc.Context, svc, ctrl, parentArea.ID.String(), &ifModifiedSince, nil)
+			assertResponseHeaders(rest.T(), res)
+		})
 
-func (rest *TestAreaREST) TestShowChildrenAreaNotModifiedUsingIfModifedSinceHeader() {
-	// given
-	sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
-	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
-	require.NoError(rest.T(), err)
-	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
-	childArea := rest.createChildArea("TestShowChildrenAreaNotModifiedUsingIfModifedSinceHeader", parentArea, svc, ctrl)
-	// when
-	ifModifiedSince := app.ToHTTPTime(*childArea.Data.Attributes.UpdatedAt)
-	res := test.ShowChildrenAreaNotModified(rest.T(), svc.Context, svc, ctrl, parentArea.ID.String(), &ifModifiedSince, nil)
-	//then
-	assertResponseHeaders(rest.T(), res)
-}
-
-func (rest *TestAreaREST) TestShowChildrenAreaNotModifiedIfNoneMatchHeader() {
-	// given
-	sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
-	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
-	require.NoError(rest.T(), err)
-	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
-	childArea := rest.createChildArea("TestShowChildrenAreaNotModifiedIfNoneMatchHeader", parentArea, svc, ctrl)
-	modelChildArea := ConvertAreaToModel(*childArea)
-	// when
-	ifNoneMatch := app.GenerateEntityTag(modelChildArea)
-	res := test.ShowChildrenAreaNotModified(rest.T(), svc.Context, svc, ctrl, parentArea.ID.String(), nil, &ifNoneMatch)
-	//then
-	assertResponseHeaders(rest.T(), res)
+		t.Run("Not Modified IfNoneMatch Header", func(t *testing.T) {
+			modelChildArea := convertAreaToModel(*childArea)
+			ifNoneMatch := app.GenerateEntityTag(modelChildArea)
+			res := test.ShowChildrenAreaNotModified(rest.T(), svc.Context, svc, ctrl, parentArea.ID.String(), nil, &ifNoneMatch)
+			assertResponseHeaders(rest.T(), res)
+		})
+	})
 }
 
 func ConvertAreaToModel(appArea app.AreaSingle) area.Area {
