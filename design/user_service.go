@@ -96,7 +96,7 @@ var _ = a.Resource("UserService", func() {
 			a.DELETE(""),
 		)
 		a.Params(func() {
-			a.Param("remove", d.Boolean, "Remove user services from provisioned cluster", func() {
+			a.Param("remove", d.Boolean, "Remove user services from provisioned cluster. Restricted to internal users.", func() {
 				a.Default(false)
 			})
 		})
