@@ -9,14 +9,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fabric8-services/fabric8-wit/id"
-
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
@@ -44,6 +43,7 @@ func TestSpaceTemplateSuite(t *testing.T) {
 }
 
 func (s *testSpaceTemplateSuite) SetupTest() {
+	s.DBTestSuite.SetupTest()
 	s.db = gormapplication.NewGormDB(s.DB)
 	s.testDir = filepath.Join("test-files", "space_templates")
 }
@@ -69,7 +69,7 @@ func (s *testSpaceTemplateSuite) TestSpaceTemplate_Show() {
 		require.Equal(t, strconv.Itoa(http.StatusNotFound), *jerr.Errors[0].Status)
 	})
 
-	s.T().Run("existing template", func(t *testing.T) {
+	s.T().Run("ok", func(t *testing.T) {
 		// given
 		svc, ctrl := s.SecuredController()
 		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1))
@@ -86,7 +86,6 @@ func (s *testSpaceTemplateSuite) TestSpaceTemplate_Show() {
 	})
 
 	s.T().Run("existing template (using expired If-Modified-Since header)", func(t *testing.T) {
-		t.Parallel()
 		// given
 		svc, ctrl := s.SecuredController()
 		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1))
@@ -102,7 +101,6 @@ func (s *testSpaceTemplateSuite) TestSpaceTemplate_Show() {
 	})
 
 	s.T().Run("not modified (using If-Modified-Since header)", func(t *testing.T) {
-		t.Parallel()
 		// given
 		svc, ctrl := s.SecuredController()
 		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1))
@@ -115,7 +113,6 @@ func (s *testSpaceTemplateSuite) TestSpaceTemplate_Show() {
 	})
 
 	s.T().Run("not modified (using If-None-Match header)", func(t *testing.T) {
-		t.Parallel()
 		// given
 		svc, ctrl := s.SecuredController()
 		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1))
@@ -157,7 +154,6 @@ func (s *testSpaceTemplateSuite) TestSpaceTemplate_List() {
 	})
 
 	s.T().Run("not modified (using expired If-Modified-Since header)", func(t *testing.T) {
-		t.Parallel()
 		// given
 		fxt := tf.NewTestFixture(s.T(), s.DB, tf.SpaceTemplates(3))
 		ifModifiedSince := app.ToHTTPTime(fxt.SpaceTemplates[0].UpdatedAt.Add(-1 * time.Hour))
@@ -169,7 +165,6 @@ func (s *testSpaceTemplateSuite) TestSpaceTemplate_List() {
 	})
 
 	s.T().Run("not modified (using If-Modified-Since header)", func(t *testing.T) {
-		t.Parallel()
 		// given
 		fxt := tf.NewTestFixture(s.T(), s.DB, tf.SpaceTemplates(3))
 		ifModifiedSince := app.ToHTTPTime(fxt.SpaceTemplates[0].UpdatedAt)
@@ -180,7 +175,6 @@ func (s *testSpaceTemplateSuite) TestSpaceTemplate_List() {
 	})
 
 	s.T().Run("not modified (using If-None-Match header)", func(t *testing.T) {
-		// t.Parallel() // this test must not be run in parallel
 		// given
 		_ = tf.NewTestFixture(s.T(), s.DB, tf.SpaceTemplates(3))
 		_, spaceTemplateList := test.ListSpaceTemplateOK(t, svc.Context, svc, ctrl, nil, nil)
