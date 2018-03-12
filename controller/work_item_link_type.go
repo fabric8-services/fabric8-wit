@@ -38,6 +38,7 @@ func NewWorkItemLinkTypeController(service *goa.Service, db application.DB, conf
 }
 
 // enrichLinkTypeSingle includes related resources in the single's "included" array
+// TODO(kwk): Adding of links in this function can be done during conversion.
 func enrichLinkTypeSingle(ctx *workItemLinkContext, single *app.WorkItemLinkTypeSingle) error {
 	// Add "links" element
 	relatedURL := rest.AbsoluteURL(ctx.Request, ctx.LinkFunc(*single.Data.ID))
@@ -45,39 +46,11 @@ func enrichLinkTypeSingle(ctx *workItemLinkContext, single *app.WorkItemLinkType
 		Self:    &relatedURL,
 		Related: &relatedURL,
 	}
-
-	// // Now include the optional link category data in the work item link type "included" array
-	// modelCategory, err := ctx.Application.WorkItemLinkCategories().Load(ctx.Context, single.Data.Relationships.LinkCategory.Data.ID)
-	// if err != nil {
-	// 	return err
-	// }
-	// appCategory := ConvertLinkCategoryFromModel(*modelCategory)
-	// single.Included = append(single.Included, appCategory.Data)
-
-	// Now include the system space in the work item link type "included" array
-	//
-	// NOTE: We always include the system space in order to not break the API
-	// now. Technically speaking a work item link type belongs to a space
-	// template and not to a space.
-	//
-	// TODO(kwk): Deprecate this.
-	// space, err := ctx.Application.Spaces().Load(ctx.Context, space.SystemSpace)
-	// if err != nil {
-	// 	return err
-	// }
-	// spaceData, err := ConvertSpaceFromModel(ctx.Request, *space, IncludeBacklogTotalCount(ctx.Context, ctx.DB))
-	// if err != nil {
-	// 	return err
-	// }
-	// spaceSingle := &app.SpaceSingle{
-	// 	Data: spaceData,
-	// }
-	// single.Included = append(single.Included, spaceSingle.Data)
-
 	return nil
 }
 
 // enrichLinkTypeList includes related resources in the list's "included" array
+// TODO(kwk): Adding of links in this function can be done during conversion.
 func enrichLinkTypeList(ctx *workItemLinkContext, list *app.WorkItemLinkTypeList) error {
 	// Add "links" element
 	for _, data := range list.Data {
@@ -87,40 +60,6 @@ func enrichLinkTypeList(ctx *workItemLinkContext, list *app.WorkItemLinkTypeList
 			Related: &relatedURL,
 		}
 	}
-	// // Build our "set" of distinct category IDs already converted as strings
-	// categoryIDMap := map[uuid.UUID]bool{}
-	// for _, typeData := range list.Data {
-	// 	categoryIDMap[typeData.Relationships.LinkCategory.Data.ID] = true
-	// }
-	// // Now include the optional link category data in the work item link type "included" array
-	// for categoryID := range categoryIDMap {
-	// 	modelCategory, err := ctx.Application.WorkItemLinkCategories().Load(ctx.Context, categoryID)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	appCategory := ConvertLinkCategoryFromModel(*modelCategory)
-	// 	list.Included = append(list.Included, appCategory.Data)
-	// }
-
-	// // Now include the system space in the work item link type "included" array
-	// //
-	// // NOTE: We always include the system space in order to not break the API
-	// // now. Technically speaking a work item link type belongs to a space
-	// // template and not to a space.
-	// //
-	// // TODO(kwk): Deprecate this.
-	// space, err := ctx.Application.Spaces().Load(ctx.Context, space.SystemSpace)
-	// if err != nil {
-	// 	return err
-	// }
-	// spaceData, err := ConvertSpaceFromModel(ctx.Request, *space, IncludeBacklogTotalCount(ctx.Context, ctx.DB))
-	// if err != nil {
-	// 	return err
-	// }
-	// spaceSingle := &app.SpaceSingle{
-	// 	Data: spaceData,
-	// }
-	// list.Included = append(list.Included, spaceSingle.Data)
 	return nil
 }
 
