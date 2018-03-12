@@ -1,0 +1,33 @@
+{
+  "data": {
+    "attributes": {
+      "created-at": "0001-01-01T00:00:00Z",
+      "description": "Description for space template 00000000-0000-0000-0000-000000000001",
+      "name": "space template 00000000-0000-0000-0000-000000000001",
+      "updated-at": "0001-01-01T00:00:00Z",
+      "version": 0
+    },
+    "id": "00000000-0000-0000-0000-000000000002",
+    "links": {
+      "self": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002"
+    },
+    "relationships": {
+      "workitemlinktypes": {
+        "links": {
+          "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemlinktypes"
+        }
+      },
+      "workitemtypegroups": {
+        "links": {
+          "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups"
+        }
+      },
+      "workitemtypes": {
+        "links": {
+          "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypes"
+        }
+      }
+    },
+    "type": "spacetemplates"
+  }
+}
