@@ -12,49 +12,52 @@ import (
 	"github.com/goadesign/goa"
 )
 
-// Recorder record metrics
+// Recorder record prometheus metrics related to http request and response.
 func Recorder() goa.Middleware {
+	registerMetrics()
+
 	return func(h goa.Handler) goa.Handler {
 		return func(ctx context.Context, rw http.ResponseWriter, req *http.Request) error {
 			startTime := time.Now()
 			err := h(ctx, rw, req)
-			recordReqsTotal(ctx, req)
-			recordReqSize(ctx, req)
-			recordResSize(ctx, req)
-			recordReqDuration(ctx, req, startTime)
+
+			// record metrics
+			method, entity, code := labelsVal(ctx)
+			recordReqsTotal(method, entity, code)
+			recordReqSize(method, entity, code, req)
+			recordResSize(method, entity, code, goa.ContextResponse(ctx))
+			recordReqDuration(method, entity, code, startTime)
+
 			return err
 		}
 	}
 }
 
-func recordReqsTotal(ctx context.Context, req *http.Request) {
-	reportRequestsTotal(labelsVal(ctx, req))
+func recordReqsTotal(method, entity, code string) {
+	reportRequestsTotal(method, entity, code)
 }
 
-func recordReqSize(ctx context.Context, req *http.Request) {
-	method, entity, code := labelsVal(ctx, req)
+func recordReqSize(method, entity, code string, req *http.Request) {
 	size := computeApproximateRequestSize(req)
 	reportRequestSize(method, entity, code, size)
 }
 
-func recordResSize(ctx context.Context, req *http.Request) {
-	method, entity, code := labelsVal(ctx, req)
-	size := goa.ContextResponse(ctx).Length
+func recordResSize(method, entity, code string, res *goa.ResponseData) {
+	size := res.Length
 	reportResponseSize(method, entity, code, size)
 }
 
-func recordReqDuration(ctx context.Context, req *http.Request, startTime time.Time) {
-	method, entity, code := labelsVal(ctx, req)
+func recordReqDuration(method, entity, code string, startTime time.Time) {
 	reportRequestDuration(method, entity, code, startTime)
 }
 
-func labelsVal(ctx context.Context, req *http.Request) (method, entity, code string) {
-	method = methodVal(req.Method)
+func labelsVal(ctx context.Context) (method, entity, code string) {
+	method = methodVal(goa.ContextRequest(ctx).Method)
 	ctrl := goa.ContextController(ctx)
 	entity = entityVal(ctrl)
 	status := goa.ContextResponse(ctx).Status
 	code = codeVal(status)
-	log.Debug(ctx, nil, "method=%s, ctrl=%s, entity=%s, status=%s, code=%s",
+	log.Debug(ctx, nil, "method=%s, ctrl=%s, entity=%s, status=%d, code=%s",
 		method, ctrl, entity, status, code)
 	return method, entity, code
 }
@@ -77,21 +80,24 @@ func codeVal(status int) string {
 	return strconv.Itoa(code) + "xx"
 }
 
+// TODO http2 request not supported
 func computeApproximateRequestSize(r *http.Request) int64 {
 	s := 0
 	if r.URL != nil {
 		s += len(r.URL.String())
 	}
-
 	s += len(r.Method)
 	s += len(r.Proto)
+	s += len(r.Host)
+
+	hs := 0
 	for name, values := range r.Header {
-		s += len(name)
+		hs += len(name)
 		for _, value := range values {
-			s += len(value)
+			hs += len(value)
 		}
 	}
-	s += len(r.Host)
+	s += hs
 
 	// N.B. r.Form and r.MultipartForm are assumed to be included in r.URL.
 
@@ -100,5 +106,8 @@ func computeApproximateRequestSize(r *http.Request) int64 {
 	if r.ContentLength != -1 {
 		size += r.ContentLength
 	}
+	log.Debug(nil, map[string]interface{}{
+		"header_size": hs, "body_size": r.ContentLength, "req_size": size},
+		"compute request size")
 	return size
 }

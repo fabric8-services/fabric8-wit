@@ -10,6 +10,7 @@ import (
 
 	"github.com/goadesign/goa"
 	dto "github.com/prometheus/client_model/go"
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -19,57 +20,48 @@ var (
 	getMethod  = "GET"
 )
 
-func TestReqsTotalMetric(t *testing.T) {
-	svc := goa.New("metric")
+var (
+	post  = "post"
+	get   = "get"
+	dummy = "dummy"
+	test  = "test"
+)
 
+func TestReqsTotalMetric(t *testing.T) {
 	// for dummy entity, POST=3 and GET=1
-	ctrl := svc.NewController(dummyCtrl)
-	ctx, req := creaeCtxAndReq(ctrl, postMethod, 201)
-	recordReqsTotal(ctx, req)
-	ctx, req = creaeCtxAndReq(ctrl, getMethod, 200)
-	recordReqsTotal(ctx, req)
-	ctx, req = creaeCtxAndReq(ctrl, postMethod, 201)
-	recordReqsTotal(ctx, req)
-	ctx, req = creaeCtxAndReq(ctrl, postMethod, 409)
-	recordReqsTotal(ctx, req)
+	recordReqsTotal(post, dummy, "2xx")
+	recordReqsTotal(get, dummy, "2xx")
+	recordReqsTotal(post, dummy, "2xx")
+	recordReqsTotal(post, dummy, "4xx")
 
 	// for test entity, POST=1 and GET=1
-	ctrl = svc.NewController(testCtrl)
-	ctx, req = creaeCtxAndReq(ctrl, postMethod, 201)
-	recordReqsTotal(ctx, req)
-	ctx, req = creaeCtxAndReq(ctrl, getMethod, 200)
-	recordReqsTotal(ctx, req)
+	recordReqsTotal(post, test, "2xx")
+	recordReqsTotal(get, test, "2xx")
 
 	// validate
-	checkCounter(t, postMethod, dummyCtrl, "2xx", 2)
-	checkCounter(t, getMethod, dummyCtrl, "2xx", 1)
-	checkCounter(t, postMethod, dummyCtrl, "4xx", 1)
-	checkCounter(t, postMethod, testCtrl, "2xx", 1)
-	checkCounter(t, getMethod, testCtrl, "2xx", 1)
+	checkCounter(t, post, dummy, "2xx", 2)
+	checkCounter(t, get, dummy, "2xx", 1)
+	checkCounter(t, post, dummy, "4xx", 1)
+	checkCounter(t, post, test, "2xx", 1)
+	checkCounter(t, get, test, "2xx", 1)
 }
 
 func TestReqDurationMetric(t *testing.T) {
-	reqTimes := []time.Duration{101, 201, 401, 801, 1601, 3201, 6401, 12801}
-	expectedBound := []float64{0.1, 0.2, 0.4, 0.8, 1.6, 3.2, 6.4, 12.8}
+	reqTimes := []time.Duration{51, 101, 201, 401, 801, 1601, 3201, 6401}
+	expectedBound := []float64{0.05, 0.1, 0.2, 0.4, 0.8, 1.6, 3.2, 6.4}
 	expectedCnt := []uint64{0, 1, 2, 3, 4, 5, 6, 7}
 
-	svc := goa.New("metric")
-
 	// add post method
-	ctrl := svc.NewController(dummyCtrl)
-	ctx, req := creaeCtxAndReq(ctrl, postMethod, 201)
 	for _, reqTime := range reqTimes {
 		startTime := time.Now().Add(time.Millisecond * -reqTime)
-		recordReqDuration(ctx, req, startTime)
+		recordReqDuration(post, dummy, "2xx", startTime)
 	}
 
 	// add get method to make sure that this should be filtered out
-	ctrl = svc.NewController(dummyCtrl)
-	ctx, req = creaeCtxAndReq(ctrl, getMethod, 200)
-	recordReqDuration(ctx, req, time.Now())
+	recordReqDuration(get, dummy, "2xx", time.Now())
 
 	// validate
-	reqMetric, _ := reqDuration.GetMetricWithLabelValues(methodVal(postMethod), entityVal(dummyCtrl), "2xx")
+	reqMetric, _ := reqDuration.GetMetricWithLabelValues(post, dummy, "2xx")
 	m := &dto.Metric{}
 	reqMetric.Write(m)
 	checkHistogram(t, m, uint64(len(reqTimes)), expectedBound, expectedCnt)
@@ -80,24 +72,18 @@ func TestResSizeMetric(t *testing.T) {
 	expectedBound := []float64{1000, 5000, 10000, 20000, 30000, 40000, 50000}
 	expectedCnt := []uint64{0, 1, 2, 3, 4, 5, 6}
 
-	svc := goa.New("metric")
-
 	// add get method for dummy entity
-	ctrl := svc.NewController(dummyCtrl)
-	ctx, req := creaeCtxAndReq(ctrl, getMethod, 200)
 	for _, size := range resSizes {
-		goa.ContextResponse(ctx).Length = size
-		recordResSize(ctx, req)
+		res := &goa.ResponseData{Length: size}
+		recordResSize(get, dummy, "2xx", res)
 	}
 
 	// add get method for test entity to make sure that this should be filtered out
-	ctrl = svc.NewController(testCtrl)
-	ctx, req = creaeCtxAndReq(ctrl, getMethod, 200)
-	goa.ContextResponse(ctx).Length = 1000
-	recordResSize(ctx, req)
+	res := &goa.ResponseData{Length: 1000}
+	recordResSize(get, test, "2xx", res)
 
 	// validate
-	reqMetric, _ := resSize.GetMetricWithLabelValues(methodVal(getMethod), entityVal(dummyCtrl), "2xx")
+	reqMetric, _ := resSize.GetMetricWithLabelValues(get, dummy, "2xx")
 	m := &dto.Metric{}
 	reqMetric.Write(m)
 	checkHistogram(t, m, uint64(len(resSizes)), expectedBound, expectedCnt)
@@ -108,27 +94,38 @@ func TestReqSizeMetric(t *testing.T) {
 	expectedBound := []float64{1000, 5000, 10000, 20000, 30000, 40000, 50000}
 	expectedCnt := []uint64{0, 1, 2, 3, 4, 5, 6}
 
-	svc := goa.New("metric")
-
 	// add post method for dummy entity
-	ctrl := svc.NewController(dummyCtrl)
-	ctx, req := creaeCtxAndReq(ctrl, postMethod, 201)
 	for _, size := range reqSizes {
-		req.ContentLength = size
-		recordReqSize(ctx, req)
+		req := &http.Request{ContentLength: size}
+		recordReqSize(post, dummy, "2xx", req)
 	}
 
 	// add post method for test entity to make sure that this should be filtered out
-	ctrl = svc.NewController(testCtrl)
-	ctx, req = creaeCtxAndReq(ctrl, postMethod, 201)
-	req.ContentLength = 1000
-	recordReqSize(ctx, req)
+	req := &http.Request{ContentLength: 1000}
+	recordReqSize(post, test, "2xx", req)
 
 	// validate
-	reqMetric, _ := reqSize.GetMetricWithLabelValues(methodVal(postMethod), entityVal(dummyCtrl), "2xx")
+	reqMetric, _ := reqSize.GetMetricWithLabelValues(post, dummy, "2xx")
 	m := &dto.Metric{}
 	reqMetric.Write(m)
 	checkHistogram(t, m, uint64(len(reqSizes)), expectedBound, expectedCnt)
+}
+
+func TestLabelsVal(t *testing.T) {
+	svc := goa.New("metric")
+	ctrl := svc.NewController(dummyCtrl)
+
+	ctx := createCtx(ctrl, getMethod, 200)
+	method, entity, code := labelsVal(ctx)
+	assert.Equal(t, "get", method)
+	assert.Equal(t, "dummy", entity)
+	assert.Equal(t, "2xx", code)
+
+	ctx = createCtx(ctrl, postMethod, 201)
+	method, entity, code = labelsVal(ctx)
+	assert.Equal(t, "post", method)
+	assert.Equal(t, "dummy", entity)
+	assert.Equal(t, "2xx", code)
 }
 
 func TestMethodVal(t *testing.T) {
@@ -206,18 +203,16 @@ func TestComputeApproximateRequestSize(t *testing.T) {
 	}
 }
 
-func creaeCtxAndReq(ctrl *goa.Controller, method string, code int) (context.Context, *http.Request) {
-	req := &http.Request{Host: "localhost", Method: method}
+func createCtx(ctrl *goa.Controller, reqMethod string, resCode int) context.Context {
+	req := &http.Request{Host: "localhost", Method: reqMethod}
 	rw := httptest.NewRecorder()
-	rw.WriteHeader(code)
+	rw.WriteHeader(resCode)
 	ctx := goa.NewContext(ctrl.Context, rw, req, url.Values{})
-	goa.ContextResponse(ctx).Status = code
-	return ctx, req
+	goa.ContextResponse(ctx).Status = resCode
+	return ctx
 }
 
 func checkCounter(t *testing.T, method, entity, code string, expected int64) {
-	method = methodVal(method)
-	entity = entityVal(entity)
 	reqMetric, _ := reqCnt.GetMetricWithLabelValues(method, entity, code)
 	m := &dto.Metric{}
 	reqMetric.Write(m)

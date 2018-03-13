@@ -1,9 +1,9 @@
 package metric
 
 import (
-	"log"
 	"time"
 
+	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -27,7 +27,7 @@ var (
 		Subsystem: subsystem,
 		Name:      "request_duration_seconds",
 		Help:      "Bucketed histogram of processing time (s) of requests.",
-		Buckets:   prometheus.ExponentialBuckets(0.1, 2, 8),
+		Buckets:   prometheus.ExponentialBuckets(0.05, 2, 8),
 	}, reqLabels)
 
 	resSize = prometheus.NewHistogramVec(prometheus.HistogramOpts{
@@ -47,11 +47,12 @@ var (
 	}, reqLabels)
 )
 
-func init() {
+func registerMetrics() {
 	reqCnt = register(reqCnt, "requests_total").(*prometheus.CounterVec)
 	reqDuration = register(reqDuration, "request_duration_seconds").(*prometheus.HistogramVec)
 	resSize = register(resSize, "response_size_bytes").(*prometheus.HistogramVec)
 	reqSize = register(reqSize, "request_size_bytes").(*prometheus.HistogramVec)
+	log.Info(nil, nil, "metrics registered successfully")
 }
 
 func register(c prometheus.Collector, name string) prometheus.Collector {
@@ -65,6 +66,9 @@ func register(c prometheus.Collector, name string) prometheus.Collector {
 			"err":         err,
 		}, "failed to register the prometheus metric")
 	}
+	log.Debug(nil, map[string]interface{}{
+		"metric_name": prometheus.BuildFQName(namespace, subsystem, name),
+	}, "metric registered successfully")
 	return c
 }
 
