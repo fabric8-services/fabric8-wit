@@ -1492,7 +1492,7 @@ func (kc *kubeClient) getRoutesByService(namespace string, routesByService map[s
 func (oc *openShiftAPIClient) GetRoutes(namespace string, labelSelector string) (map[string]interface{}, error) {
 	var routeURL string
 	if len(labelSelector) > 0 {
-		routeURL = fmt.Sprintf("/oapi/v1/namespaces/%s/routes?labelSelector=%s", routeURL, labelSelector)
+		routeURL = fmt.Sprintf("/oapi/v1/namespaces/%s/routes?labelSelector=%s", namespace, labelSelector)
 	} else {
 		routeURL = fmt.Sprintf("/oapi/v1/namespaces/%s/routes", namespace)
 	}
