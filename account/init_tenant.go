@@ -32,9 +32,9 @@ func NewUpdateTenant(config tenantConfig) func(context.Context) error {
 }
 
 // NewCleanTenant creates a new tenant service in oso
-func NewCleanTenant(config tenantConfig) func(context.Context) error {
-	return func(ctx context.Context) error {
-		return CleanTenant(ctx, config)
+func NewCleanTenant(config tenantConfig) func(context.Context, bool) error {
+	return func(ctx context.Context, remove bool) error {
+		return CleanTenant(ctx, config, remove)
 	}
 }
 
@@ -79,14 +79,14 @@ func UpdateTenant(ctx context.Context, config tenantConfig) error {
 }
 
 // CleanTenant cleans out a tenant in oso.
-func CleanTenant(ctx context.Context, config tenantConfig) error {
+func CleanTenant(ctx context.Context, config tenantConfig, remove bool) error {
 
 	c, err := createClient(ctx, config)
 	if err != nil {
 		return err
 	}
 
-	res, err := c.CleanTenant(goasupport.ForwardContextRequestID(ctx), tenant.CleanTenantPath())
+	res, err := c.CleanTenant(goasupport.ForwardContextRequestID(ctx), tenant.CleanTenantPath(), &remove)
 	if err != nil {
 		return err
 	}
