@@ -139,6 +139,15 @@ func getDefaultTenant() (*tenant.TenantSingle, error) {
 	return defaultTenant, nil
 }
 
+func getBadTenantProvider() (kubernetes.BaseURLProvider, error) {
+	t, err := getTenantFromFile("tenant-missingurls.json")
+	if err != nil {
+		fmt.Printf("error reading tenant: %s", err.Error())
+		return nil, err
+	}
+	return kubernetes.NewTenantURLProviderFromTenant(t, defaultAPIToken), nil
+}
+
 func getDefaultTenantProvider() (kubernetes.BaseURLProvider, error) {
 	t, err := getDefaultTenant()
 	if err != nil {
@@ -167,6 +176,17 @@ func TestTenantGetDefaultMetricsURL(t *testing.T) {
 	require.Equal(t, expected, *url, "GetMetricsURL() did not return the correct value from JSON")
 }
 
+func TestTenantGetMissingMetricsURL(t *testing.T) {
+	p, err := getBadTenantProvider()
+	require.NoError(t, err)
+	url, err := p.GetMetricsURL()
+	require.NoError(t, err, "GetMetricsURL() returned an error")
+	require.NotNil(t, url)
+	// converts leading "api" to leading "metrics"
+	apiMetricsURL := strings.Replace(strings.Replace(p.GetAPIURL(), "//api.", "//metrics.", 1), "/api", "", 1)
+	require.Equal(t, apiMetricsURL, *url, "empty or missing GetMetricsURL() must default to API URL")
+}
+
 func TestTenantGetConsoleURL(t *testing.T) {
 	const envNS = "someEnvNS"
 	p, err := getDefaultTenantProvider()
@@ -174,14 +194,25 @@ func TestTenantGetConsoleURL(t *testing.T) {
 	url, err := p.GetConsoleURL(envNS)
 	require.NoError(t, err, "GetConsoleURL() returned an error")
 	require.NotNil(t, url)
-
-	apiConsoleURL := strings.Replace(strings.Replace(p.GetAPIURL(), "//api.", "//console.", 1), "/api", "", 1) + "/console/project/" + envNS
+	// Note that the Auth/Tenant appends /console to the hostname for console/logging
+	apiConsoleURL := strings.Replace(strings.Replace(p.GetAPIURL(), "//api.", "//console.", 1), "/api", "", 1) + "/project/" + envNS
 	require.NotEqual(t, apiConsoleURL, *url, "GetConsoleURL() defaulted to API URL")
 	expected := *defaultTenant.Data.Attributes.Namespaces[0].ClusterConsoleURL
-	expected = expected + "/console/project/" + envNS
+	expected = expected + "/project/" + envNS
 	require.Equal(t, expected, *url, "GetConsoleURL() did not return the correct value from JSON")
 }
 
+func TestTenantGetMissingConsoleURL(t *testing.T) {
+	const envNS = "someEnvNS"
+	p, err := getBadTenantProvider()
+	require.NoError(t, err)
+	url, err := p.GetConsoleURL(envNS)
+	require.NoError(t, err, "GetConsoleURL() returned an error")
+	require.NotNil(t, url)
+	// Note that the Auth/Tenant appends /console to the hostname for console/logging - we have to to this here
+	apiConsoleURL := strings.Replace(strings.Replace(p.GetAPIURL(), "//api.", "//console.", 1), "/api", "", 1) + "/console/project/" + envNS
+	require.Equal(t, apiConsoleURL, *url, "GetConsoleURL()must default to API URL")
+}
 func TestTenantGetLoggingURL(t *testing.T) {
 	const envNS = "someEnvNS"
 	const deployName = "aDeployName"
@@ -191,12 +222,28 @@ func TestTenantGetLoggingURL(t *testing.T) {
 	require.NoError(t, err, "GetLoggingURL() returned an error")
 	require.NotNil(t, url)
 	// converts leading "api" to leading "metrics"
-	apiConsoleURL := strings.Replace(strings.Replace(p.GetAPIURL(), "//api.", "//console.", 1), "/api", "", 1) + "/console/project/" + envNS
+	// Note that the Auth/Tenant appends /console to the hostname for console/logging
+	apiConsoleURL := strings.Replace(strings.Replace(p.GetAPIURL(), "//api.", "//console.", 1), "/api", "", 1) + "/project/" + envNS
 	apiLoggingURL := fmt.Sprintf("%s/browse/rc/%s?tab=logs", apiConsoleURL, deployName)
 	require.NotEqual(t, apiLoggingURL, *url, "GetLoggingURL() defaulted to API URL")
 	expected := *defaultTenant.Data.Attributes.Namespaces[0].ClusterLoggingURL
-	expected = expected + "/console/project/" + envNS + "/browse/rc/" + deployName + "?tab=logs"
+	expected = expected + "/project/" + envNS + "/browse/rc/" + deployName + "?tab=logs"
 	require.Equal(t, expected, *url, "GetLoggingURL() did not return correct value")
+}
+
+func TestTenantGetMissingLoggingURL(t *testing.T) {
+	const envNS = "someEnvNS"
+	const deployName = "aDeployName"
+	p, err := getBadTenantProvider()
+	require.NoError(t, err)
+	url, err := p.GetLoggingURL(envNS, deployName)
+	require.NoError(t, err, "GetLoggingURL() returned an error")
+	require.NotNil(t, url)
+	// converts leading "api" to leading "metrics"
+	// Note that the Auth/Tenant appends /console to the hostname for console/logging - we have to to this here
+	apiConsoleURL := strings.Replace(strings.Replace(p.GetAPIURL(), "//api.", "//console.", 1), "/api", "", 1) + "/console/project/" + envNS
+	apiLoggingURL := fmt.Sprintf("%s/browse/rc/%s?tab=logs", apiConsoleURL, deployName)
+	require.Equal(t, apiLoggingURL, *url, "GetLoggingURL() must default to API URL")
 }
 
 func TestTenantGetAPIToken(t *testing.T) {

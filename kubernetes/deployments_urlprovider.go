@@ -22,7 +22,14 @@ import (
 
 // BaseURLProvider provides the BASE URL (minimal path) of several APIs used in Deployments
 // for true multicluster support, every API in this inteface should take an environment namespace name.
-// unfortunately, this concept is no implemented elsewhere in fabric8
+// unfortunately, this concept is not fully implemented
+
+/* typical URLS from tenant:
+"console-url":"https://console.starter-us-east-2a.openshift.com/console/",
+"logging-url":"https://console.starter-us-east-2a.openshift.com/console/",
+"metrics-url":"https://metrics.starter-us-east-2a.openshift.com/",
+*/
+
 type BaseURLProvider interface {
 	GetAPIURL() string
 	GetMetricsURL() (*string, error)
@@ -169,7 +176,18 @@ func (up *tenantURLProvider) GetConsoleURL(envNS string) (*string, error) {
 	if ns == nil {
 		return nil, errs.Errorf("Namespace '%s' is not in tenant '%s'", envNS, *up.tenant.Email)
 	}
-	consoleURL := fmt.Sprintf("%s/console/project/%s", *ns.ClusterConsoleURL, envNS)
+	// Note that the Auth/Tenant appends /console to the hostname for console/logging
+	baseURL := ns.ClusterConsoleURL
+	if baseURL == nil || len(*baseURL) == 0 {
+		// try frm apiURL
+		bu, err := modifyURL(up.apiURL, "console", "/console")
+		if err != nil {
+			return nil, err
+		}
+		buStr := bu.String()
+		baseURL = &buStr
+	}
+	consoleURL := fmt.Sprintf("%s/project/%s", *baseURL, envNS)
 	return &consoleURL, nil
 }
 
@@ -178,13 +196,24 @@ func (up *tenantURLProvider) GetLoggingURL(envNS string, deployName string) (*st
 	if ns == nil {
 		return nil, errs.Errorf("Namespace '%s' is not in tenant '%s'", envNS, *up.tenant.Email)
 	}
-	loggingURL := fmt.Sprintf("%s/console/project/%s/browse/rc/%s?tab=logs", *ns.ClusterLoggingURL, envNS, deployName)
+	// Note that the Auth/Tenant appends /console to the hostname for console/logging
+	baseURL := ns.ClusterLoggingURL
+	if baseURL == nil || len(*baseURL) == 0 {
+		// try frm apiURL
+		bu, err := modifyURL(up.apiURL, "console", "/console")
+		if err != nil {
+			return nil, err
+		}
+		buStr := bu.String()
+		baseURL = &buStr
+	}
+	loggingURL := fmt.Sprintf("%s/project/%s/browse/rc/%s?tab=logs", *baseURL, envNS, deployName)
 	return &loggingURL, nil
 }
 
 func (up *tenantURLProvider) GetMetricsURL() (*string, error) {
 
-	// eventually all the code should be migrated to take an envNS instead of using namespaces[0]
+	// this code should be migrated to take an envNS instead of using namespaces[0]
 	metricsURL := up.tenant.Namespaces[0].ClusterMetricsURL
 	if metricsURL == nil || len(*metricsURL) == 0 {
 		// In the absence of a better way (i.e. tenant) to get the user's metrics URL,

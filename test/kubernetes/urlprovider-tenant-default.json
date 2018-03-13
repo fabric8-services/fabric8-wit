@@ -16,6 +16,17 @@
                     "cluster-logging-url" : "https://lgging.host2.com/lll",
                     "cluster-metrics-url" : "https://mtrcs.host3.com/mmm",
                     "cluster-url" :         "https://api.hostname/api"
+                },
+                {
+                    "name": "someEnvNS2",
+                    "type": "",
+                    "_valid_type_values": "user|che|jenkins|stage|test|run",
+                    "state": "Running",
+                    "cluster-app-domain" : "",
+                    "cluster-console-url" : "https://cnsl.junk1.com/ccc",
+                    "cluster-logging-url" : "https://lgging.junk2.com/lll",
+                    "cluster-metrics-url" : "https://mtrcs.junk3.com/mmm",
+                    "cluster-url" :         "https://api.hostname2/api"
                 }
             ]
         }
