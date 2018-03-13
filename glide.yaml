@@ -3,7 +3,7 @@ homepage: https://github.com/fabric8-services/fabric8-wit
 license: Apache-2.0
 import:
 - package: github.com/fabric8-services/fabric8-tenant
-  version: be8f39326808024c29ef6946151273359ae3e472
+  version: e86c6ee8a68ea79062061eb9a8ed216f773aed34
   subpackages:
   - design
 - package: github.com/fabric8-services/fabric8-notification
