@@ -22,7 +22,8 @@ import (
 
 // BaseURLProvider provides the BASE URL (minimal path) of several APIs used in Deployments
 // for true multicluster support, every API in this inteface should take an environment namespace name.
-// unfortunately, this concept is not fully implemented
+// This hasn't been done, because the rest of fabric8 seems to assume the cluster is the same.
+// For most uses, the proxy server will hide this issue - but not for mertics/logging and console.
 
 /* typical URLS from tenant:
 "console-url":"https://console.starter-us-east-2a.openshift.com/console/",
@@ -30,6 +31,8 @@ import (
 "metrics-url":"https://metrics.starter-us-east-2a.openshift.com/",
 */
 
+// BaseURLProvider provides all URLS used by the deployments Kubernetes implementation
+// It takes into account proxies, Auth or Tenant services, etc.
 type BaseURLProvider interface {
 	GetAPIURL() string
 	GetMetricsURL() (*string, error)
@@ -97,11 +100,9 @@ func NewURLProvider(ctx context.Context, config *configuration.Registry) (BaseUR
 	return newAuthProxyURLProvider(ctx, config, osProxyURL)
 }
 
-// using auth and proxy, access metrics directly
+// using tenant and proxy, access metrics directly
 func newTenantProxyURLProvider(ctx context.Context, config *configuration.Registry, osProxyURL string) (*tenantURLProvider, error) {
 
-	// this is inefficient; we still need to get the cluster and OSO tokens so we can access metrics
-	// the console, log and API urls should come from Auth or Tenant services instead of calculating in this code.
 	p, err := newTenantURLProvider(ctx, config)
 	if err != nil {
 		return nil, err
@@ -114,11 +115,10 @@ func newTenantProxyURLProvider(ctx context.Context, config *configuration.Regist
 	return p, nil
 }
 
-// using Auth and no proxy
+// using Tenant and no proxy
 func newTenantURLProvider(ctx context.Context, config *configuration.Registry) (*tenantURLProvider, error) {
 
 	// create Tenant API client
-	//tenantURL := config.GetTenantServiceURL()
 	tenantResponse, err := account.ShowTenant(ctx, config)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -126,7 +126,6 @@ func newTenantURLProvider(ctx context.Context, config *configuration.Registry) (
 		}, "error accessing Tenant server")
 		return nil, errs.Wrapf(err, "error creating Tenant client")
 	}
-	//fmt.Printf("tenant = %s\n", tostring(tenantResponse.Data.Attributes))
 	return newTenantURLProviderFromTenant(tenantResponse, goajwt.ContextJWT(ctx).Raw), nil
 }
 
@@ -142,6 +141,9 @@ func newTenantURLProviderFromTenant(t *tenant.TenantSingle, token string) *tenan
 			"tenant": *t.Data.Attributes.Email,
 		}, "this tenant has no namespaces: %s", *t.Data.Attributes.Email)
 	} else {
+		// use the cluster of the first namespace as the default
+		// strictly speaking, there should be no default
+		// having a default allows the new code to work with an old Auth or Tenant server
 		defaultClusterURL = *t.Data.Attributes.Namespaces[0].ClusterURL
 	}
 
@@ -179,8 +181,8 @@ func (up *tenantURLProvider) GetConsoleURL(envNS string) (*string, error) {
 	// Note that the Auth/Tenant appends /console to the hostname for console/logging
 	baseURL := ns.ClusterConsoleURL
 	if baseURL == nil || len(*baseURL) == 0 {
-		// try frm apiURL
-		bu, err := modifyURL(up.apiURL, "console", "/console")
+		// if it's missing, modify the cluster URL
+		bu, err := modifyURL(*ns.ClusterURL, "console", "/console")
 		if err != nil {
 			return nil, err
 		}
@@ -199,8 +201,8 @@ func (up *tenantURLProvider) GetLoggingURL(envNS string, deployName string) (*st
 	// Note that the Auth/Tenant appends /console to the hostname for console/logging
 	baseURL := ns.ClusterLoggingURL
 	if baseURL == nil || len(*baseURL) == 0 {
-		// try frm apiURL
-		bu, err := modifyURL(up.apiURL, "console", "/console")
+		// if it's missing, modify the cluster URL
+		bu, err := modifyURL(*ns.ClusterURL, "console", "/console")
 		if err != nil {
 			return nil, err
 		}
@@ -218,7 +220,7 @@ func (up *tenantURLProvider) GetMetricsURL() (*string, error) {
 	if metricsURL == nil || len(*metricsURL) == 0 {
 		// In the absence of a better way (i.e. tenant) to get the user's metrics URL,
 		// substitute "api" with "metrics" in user's cluster URL
-		mu, err := modifyURL(up.apiURL, "metrics", "")
+		mu, err := modifyURL(*up.tenant.Namespaces[0].ClusterURL, "metrics", "")
 		if err != nil {
 			return nil, err
 		}
