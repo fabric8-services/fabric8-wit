@@ -243,8 +243,6 @@ func lookupWorkItemTypes(witCollection app.WorkItemTypeList, workItemTypes ...ap
 //-----------------------------------------------------------------------------
 
 func (s *workItemTypeSuite) TestCreate() {
-	resetFn := s.DisableGormCallbacks()
-	defer resetFn()
 
 	s.T().Run("ok", func(t *testing.T) {
 		res, animal := s.createWorkItemTypeAnimal()
@@ -257,8 +255,6 @@ func (s *workItemTypeSuite) TestCreate() {
 }
 
 func (s *workItemTypeSuite) TestCreateByNotOwnerForbidden() {
-	resetFn := s.DisableGormCallbacks()
-	defer resetFn()
 
 	s.T().Run("forbidden", func(t *testing.T) {
 		idn := &account.Identity{
@@ -345,8 +341,6 @@ func (s *workItemTypeSuite) TestValidate() {
 }
 
 func (s *workItemTypeSuite) TestShow() {
-	resetFn := s.DisableGormCallbacks()
-	defer resetFn()
 
 	// given
 	_, wit := s.createWorkItemTypeAnimal()
