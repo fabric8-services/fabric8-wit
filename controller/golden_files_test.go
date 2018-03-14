@@ -337,7 +337,7 @@ func TestGoldenCompareWithGolden(t *testing.T) {
 			// then
 			require.Error(t, err)
 			_, isPathError := errs.Cause(err).(*os.PathError)
-			require.False(t, isPathError)
+			require.True(t, isPathError)
 		})
 		t.Run("update golden file in a folder that does not yet exist", func(t *testing.T) {
 			// given
