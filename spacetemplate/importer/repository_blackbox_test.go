@@ -172,6 +172,31 @@ func (s *repoSuite) TestImport() {
 		})
 	})
 	s.T().Run("invalid", func(t *testing.T) {
+		t.Run("change in field type", func(t *testing.T) {
+			// Create fresh template
+			spaceTemplateID := uuid.NewV4()
+			witID := uuid.NewV4()
+			wiltID := uuid.NewV4()
+			witgID := uuid.NewV4()
+			oldTempl := getValidTestTemplateParsed(t, spaceTemplateID, witID, wiltID, witgID)
+			oldTempl.Template.Name = "old name for space template " + spaceTemplateID.String()
+			_, err := s.importerRepo.Import(s.Ctx, oldTempl)
+			require.NoError(t, err)
+			// Import it once more but this time with changes
+			templ := getValidTestTemplateParsed(t, spaceTemplateID, witID, wiltID, witgID)
+			templ.WITs[0].Fields["title"] = workitem.FieldDefinition{
+				Label:       "Title",
+				Description: "The title of the bug",
+				Required:    true,
+				Type: workitem.SimpleType{
+					Kind: workitem.KindInteger,
+				},
+			}
+			// when
+			_, err = s.importerRepo.Import(s.Ctx, templ)
+			// then
+			require.Error(t, err)
+		})
 		t.Run("WIT already exists", func(t *testing.T) {
 			// given old space template with new name, new ID, and new WILT ID
 			newWILTID := uuid.NewV4()

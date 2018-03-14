@@ -136,16 +136,23 @@ func (r *GormRepository) createOrUpdateWITs(ctx context.Context, s *ImportHelper
 			loadedWIT.Description = wit.Description
 			loadedWIT.Icon = wit.Icon
 
-			//-----------------------------------------------------------------
-			// Double check all existing fields are still present in new fields
-			//-----------------------------------------------------------------
-			toBeFoundFields := map[string]struct{}{}
-			for k := range loadedWIT.Fields {
-				toBeFoundFields[k] = struct{}{}
+			//--------------------------------------------------------------------------------
+			// Double check all existing fields are still present in new fields with same type
+			//--------------------------------------------------------------------------------
+			// verify that FieldTypes are same as loadedWIT
+			toBeFoundFields := map[string]workitem.FieldType{}
+			for k, fd := range loadedWIT.Fields {
+				toBeFoundFields[k] = fd.Type
 			}
 			// Remove fields directly defined in WIT
-			for k := range wit.Fields {
-				delete(toBeFoundFields, k)
+			for fieldName, fd := range wit.Fields {
+				// verify FieldType with original value
+				if originalType, ok := toBeFoundFields[fieldName]; ok {
+					if fd.Type.Equal(originalType) == false {
+						return errs.Errorf("type of the field %s changed from %s to %s", fieldName, originalType, fd.Type)
+					}
+				}
+				delete(toBeFoundFields, fieldName)
 			}
 			// Remove fields defined by extended type
 			var extendedType *workitem.WorkItemType
