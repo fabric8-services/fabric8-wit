@@ -60,109 +60,105 @@ func (rest *TestAreaREST) UnSecuredController() (*goa.Service, *AreaController) 
 	return svc, NewAreaController(svc, rest.db, rest.Configuration)
 }
 
-func (rest *TestAreaREST) TestSuccessCreateChildArea() {
-	// given
-	sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
-	parentID := parentArea.ID
-	ci := newCreateChildAreaPayload("TestSuccessCreateChildArea")
-	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
-	require.NoError(rest.T(), err)
-	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
-	// when
-	_, created := test.CreateChildAreaCreated(rest.T(), svc.Context, svc, ctrl, parentID.String(), ci)
-	// then
-	assert.Equal(rest.T(), *ci.Data.Attributes.Name, *created.Data.Attributes.Name)
-	fmt.Println(*created.Data.Relationships.Parent.Data.ID)
-	assert.Equal(rest.T(), parentID.String(), *created.Data.Relationships.Parent.Data.ID)
+func (rest *TestAreaREST) TestCreateChildArea() {
+	rest.T().Run("Success", func(t *testing.T) {
+		t.Run("OK", func(t *testing.T) {
+			// given
+			sp, parentArea := createSpaceAndArea(t, rest.db)
+			parentID := parentArea.ID
+			ca := newCreateChildAreaPayload("TestSuccessCreateChildArea")
+			owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
+			require.NoError(t, err)
+			svc, ctrl := rest.SecuredControllerWithIdentity(owner)
+			// when
+			_, created := test.CreateChildAreaCreated(t, svc.Context, svc, ctrl, parentID.String(), ca)
+			// then
+			assert.Equal(t, *ca.Data.Attributes.Name, *created.Data.Attributes.Name)
+			fmt.Println(*created.Data.Relationships.Parent.Data.ID)
+			assert.Equal(t, parentID.String(), *created.Data.Relationships.Parent.Data.ID)
 
-	// try creating child area with different identity: should fail
-	otherIdentity := &account.Identity{
-		Username:     "non-space-owner-identity",
-		ProviderType: account.KeycloakIDP,
-	}
-	errInCreateOther := rest.db.Identities().Create(context.Background(), otherIdentity)
-	require.NoError(rest.T(), errInCreateOther)
-	svc, ctrl = rest.SecuredControllerWithIdentity(otherIdentity)
-	test.CreateChildAreaForbidden(rest.T(), svc.Context, svc, ctrl, parentID.String(), ci)
-}
+			// try creating child area with different identity: should fail
+			otherIdentity := &account.Identity{
+				Username:     "non-space-owner-identity",
+				ProviderType: account.KeycloakIDP,
+			}
+			errInCreateOther := rest.db.Identities().Create(context.Background(), otherIdentity)
+			require.NoError(t, errInCreateOther)
+			svc, ctrl = rest.SecuredControllerWithIdentity(otherIdentity)
+			test.CreateChildAreaForbidden(t, svc.Context, svc, ctrl, parentID.String(), ca)
+		})
 
-func (rest *TestAreaREST) TestSuccessCreateMultiChildArea() {
-	/*
-		TestAreaREST ---> TestSuccessCreateMultiChildArea-0 ----> TestSuccessCreateMultiChildArea-0-0
-	*/
-	// given
-	sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
-	parentID := parentArea.ID
-	ci := newCreateChildAreaPayload("TestSuccessCreateMultiChildArea-0")
-	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
-	require.NoError(rest.T(), err)
-	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
-	// when
-	_, created := test.CreateChildAreaCreated(rest.T(), svc.Context, svc, ctrl, parentID.String(), ci)
-	// then
-	assert.Equal(rest.T(), *ci.Data.Attributes.Name, *created.Data.Attributes.Name)
-	assert.Equal(rest.T(), parentID.String(), *created.Data.Relationships.Parent.Data.ID)
-	// Create a child of the child created above.
-	ci = newCreateChildAreaPayload("TestSuccessCreateMultiChildArea-0-0")
-	newParentID := *created.Data.Relationships.Parent.Data.ID
-	// when
-	_, created = test.CreateChildAreaCreated(rest.T(), svc.Context, svc, ctrl, newParentID, ci)
-	// then
-	assert.Equal(rest.T(), *ci.Data.Attributes.Name, *created.Data.Attributes.Name)
-	assert.NotNil(rest.T(), *created.Data.Attributes.CreatedAt)
-	assert.NotNil(rest.T(), *created.Data.Attributes.Version)
-	assert.Equal(rest.T(), newParentID, *created.Data.Relationships.Parent.Data.ID)
-	assert.Contains(rest.T(), *created.Data.Relationships.Children.Links.Self, "children")
-}
+		t.Run("Multiple Children", func(t *testing.T) {
+			/*
+				TestAreaREST ---> TestSuccessCreateMultiChildArea-0 ----> TestSuccessCreateMultiChildArea-0-0
+			*/
+			// given
+			sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
+			parentID := parentArea.ID
+			ca := newCreateChildAreaPayload("TestSuccessCreateMultiChildArea-0")
+			owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
+			require.NoError(rest.T(), err)
+			svc, ctrl := rest.SecuredControllerWithIdentity(owner)
+			// when
+			_, created := test.CreateChildAreaCreated(rest.T(), svc.Context, svc, ctrl, parentID.String(), ca)
+			// then
+			assert.Equal(rest.T(), *ca.Data.Attributes.Name, *created.Data.Attributes.Name)
+			assert.Equal(rest.T(), parentID.String(), *created.Data.Relationships.Parent.Data.ID)
+			// Create a child of the child created above.
+			ca = newCreateChildAreaPayload("TestSuccessCreateMultiChildArea-0-0")
+			newParentID := *created.Data.Relationships.Parent.Data.ID
+			// when
+			_, created = test.CreateChildAreaCreated(rest.T(), svc.Context, svc, ctrl, newParentID, ca)
+			// then
+			assert.Equal(rest.T(), *ca.Data.Attributes.Name, *created.Data.Attributes.Name)
+			assert.NotNil(rest.T(), *created.Data.Attributes.CreatedAt)
+			assert.NotNil(rest.T(), *created.Data.Attributes.Version)
+			assert.Equal(rest.T(), newParentID, *created.Data.Relationships.Parent.Data.ID)
+			assert.Contains(rest.T(), *created.Data.Relationships.Children.Links.Self, "children")
+		})
+	})
 
-func (rest *TestAreaREST) TestConflictCreatDuplicateChildArea() {
-	// given
-	sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
-	parentID := parentArea.ID
-	ci := newCreateChildAreaPayload(uuid.NewV4().String())
-	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
-	require.NoError(rest.T(), err)
-	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
-	// when
-	_, created := test.CreateChildAreaCreated(rest.T(), svc.Context, svc, ctrl, parentID.String(), ci)
-	// then
-	assert.Equal(rest.T(), *ci.Data.Attributes.Name, *created.Data.Attributes.Name)
-	assert.Equal(rest.T(), parentID.String(), *created.Data.Relationships.Parent.Data.ID)
+	rest.T().Run("Failure", func(t *testing.T) {
+		// given
+		sp, parentArea := createSpaceAndArea(t, rest.db)
+		parentID := parentArea.ID
+		childAreaPayload := newCreateChildAreaPayload(uuid.NewV4().String())
+		owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
+		require.NoError(t, err)
+		svc, ctrl := rest.SecuredControllerWithIdentity(owner)
+		t.Run("Duplicate Child Area", func(t *testing.T) {
+			// when
+			_, created := test.CreateChildAreaCreated(t, svc.Context, svc, ctrl, parentID.String(), childAreaPayload)
+			// then
+			assert.Equal(t, *childAreaPayload.Data.Attributes.Name, *created.Data.Attributes.Name)
+			assert.Equal(t, parentID.String(), *created.Data.Relationships.Parent.Data.ID)
 
-	// try creating the same area again
-	test.CreateChildAreaConflict(rest.T(), svc.Context, svc, ctrl, parentID.String(), ci)
+			// try creating the same area again
+			test.CreateChildAreaConflict(t, svc.Context, svc, ctrl, parentID.String(), childAreaPayload)
 
-}
+		})
 
-func (rest *TestAreaREST) TestFailCreateChildAreaMissingName() {
-	// given
-	sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
-	parentID := parentArea.ID
-	createChildAreaPayload := newCreateChildAreaPayload("will remove below")
-	createChildAreaPayload.Data.Attributes.Name = nil
-	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
-	require.NoError(rest.T(), err)
-	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
-	// when/then
-	test.CreateChildAreaBadRequest(rest.T(), svc.Context, svc, ctrl, parentID.String(), createChildAreaPayload)
-}
+		t.Run("Missing Name", func(t *testing.T) {
+			// when
+			childAreaPayload.Data.Attributes.Name = nil
+			// then
+			test.CreateChildAreaBadRequest(t, svc.Context, svc, ctrl, parentID.String(), childAreaPayload)
+		})
 
-func (rest *TestAreaREST) TestFailCreateChildAreaWithInvalidsParent() {
-	// given
-	createChildAreaPayload := newCreateChildAreaPayload("TestFailCreateChildAreaWithInvalidsParent")
-	svc, ctrl := rest.SecuredController()
-	// when/then
-	test.CreateChildAreaNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4().String(), createChildAreaPayload)
-}
+		t.Run("Invalid Parent", func(t *testing.T) {
+			// when
+			createChildAreaPayload := newCreateChildAreaPayload("TestFailCreateChildAreaWithInvalidsParent")
+			// then
+			test.CreateChildAreaNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String(), createChildAreaPayload)
+		})
 
-func (rest *TestAreaREST) TestFailCreateChildAreaNotAuthorized() {
-	// given
-	_, parentArea := createSpaceAndArea(rest.T(), rest.db)
-	parentID := parentArea.ID
-	createChildAreaPayload := newCreateChildAreaPayload("TestFailCreateChildAreaNotAuthorized")
-	svc, ctrl := rest.UnSecuredController()
-	// when/then
-	test.CreateChildAreaUnauthorized(rest.T(), svc.Context, svc, ctrl, parentID.String(), createChildAreaPayload)
+		t.Run("Unauthorized", func(t *testing.T) {
+			// when
+			svc, ctrl := rest.UnSecuredController()
+			// then
+			test.CreateChildAreaUnauthorized(t, svc.Context, svc, ctrl, parentID.String(), childAreaPayload)
+		})
+	})
 }
 
 func (rest *TestAreaREST) TestShowArea() {
