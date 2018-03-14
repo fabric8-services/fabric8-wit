@@ -165,52 +165,59 @@ func (rest *TestAreaREST) TestFailCreateChildAreaNotAuthorized() {
 	test.CreateChildAreaUnauthorized(rest.T(), svc.Context, svc, ctrl, parentID.String(), createChildAreaPayload)
 }
 
-func (rest *TestAreaREST) TestFailValidationAreaNameLength() {
-	// given
-	ci := newCreateChildAreaPayload(testsupport.TestOversizedNameObj)
+func (rest *TestAreaREST) TestShowArea() {
+	rest.T().Run("Success", func(t *testing.T) {
+		// Setup
+		_, a := createSpaceAndArea(t, rest.db)
+		svc, ctrl := rest.SecuredController()
+		t.Run("OK", func(t *testing.T) {
+			// when
+			res, _ := test.ShowAreaOK(t, svc.Context, svc, ctrl, a.ID.String(), nil, nil)
+			//then
+			assertResponseHeaders(t, res)
+		})
 
-	err := ci.Validate()
-	// Validate payload function returns an error
-	assert.NotNil(rest.T(), err)
-	assert.Contains(rest.T(), err.Error(), "length of type.name must be less than or equal to 63")
-}
+		t.Run("Using ExpiredIfModifedSince Header", func(t *testing.T) {
+			// when
+			ifModifiedSince := app.ToHTTPTime(a.UpdatedAt.Add(-1 * time.Hour))
+			res, _ := test.ShowAreaOK(t, svc.Context, svc, ctrl, a.ID.String(), &ifModifiedSince, nil)
+			//then
+			assertResponseHeaders(t, res)
+		})
 
-func (rest *TestAreaREST) TestFailValidationAreaNameStartWith() {
-	// given
-	ci := newCreateChildAreaPayload("_TestSuccessCreateChildArea")
+		t.Run("Using ExpiredIfNoneMatch Header", func(t *testing.T) {
+			// when
+			ifNoneMatch := "foo"
+			res, _ := test.ShowAreaOK(t, svc.Context, svc, ctrl, a.ID.String(), nil, &ifNoneMatch)
+			//then
+			assertResponseHeaders(t, res)
+		})
 
-	err := ci.Validate()
-	// Validate payload function returns an error
-	assert.NotNil(rest.T(), err)
-	assert.Contains(rest.T(), err.Error(), "type.name must match the regexp")
-}
+		t.Run("Not Modified Using IfModifedSince Header", func(t *testing.T) {
+			// when
+			ifModifiedSince := app.ToHTTPTime(a.UpdatedAt)
+			res := test.ShowAreaNotModified(t, svc.Context, svc, ctrl, a.ID.String(), &ifModifiedSince, nil)
+			//then
+			assertResponseHeaders(t, res)
+		})
 
-func (rest *TestAreaREST) TestFailShowAreaNotFound() {
-	// given
-	svc, ctrl := rest.SecuredController()
-	// when/then
-	test.ShowAreaNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4().String(), nil, nil)
-}
+		t.Run("Not Modified IfNoneMatch Header", func(t *testing.T) {
+			// when
+			ifNoneMatch := app.GenerateEntityTag(a)
+			res := test.ShowAreaNotModified(t, svc.Context, svc, ctrl, a.ID.String(), nil, &ifNoneMatch)
+			//then
+			assertResponseHeaders(t, res)
+		})
+	})
 
-func (rest *TestAreaREST) TestShowAreaOK() {
-	// given
-	_, a := createSpaceAndArea(rest.T(), rest.db)
-	svc, ctrl := rest.SecuredController()
-	// when
-	res, _ := test.ShowAreaOK(rest.T(), svc.Context, svc, ctrl, a.ID.String(), nil, nil)
-	//then
-	assertResponseHeaders(rest.T(), res)
-}
-
-func (rest *TestAreaREST) TestShowAreaOKUsingExpiredIfModifedSinceHeader() {
-	// given
-	_, a := createSpaceAndArea(rest.T(), rest.db)
-	svc, ctrl := rest.SecuredController()
-	// when
-	ifModifiedSince := app.ToHTTPTime(a.UpdatedAt.Add(-1 * time.Hour))
-	res, _ := test.ShowAreaOK(rest.T(), svc.Context, svc, ctrl, a.ID.String(), &ifModifiedSince, nil)
-	//then
-	assertResponseHeaders(rest.T(), res)
+	rest.T().Run("Failure", func(t *testing.T) {
+		// Setup
+		svc, ctrl := rest.SecuredController()
+		t.Run("Not Found", func(t *testing.T) {
+			// when/then
+			test.ShowAreaNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String(), nil, nil)
+		})
+	})
 }
 
 func (rest *TestAreaREST) TestShowAreaOKUsingExpiredIfNoneMatchHeader() {
