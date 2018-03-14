@@ -1,4 +1,4 @@
-package kubernetes
+package controller
 
 import (
 	"context"
@@ -9,39 +9,16 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/fabric8-services/fabric8-wit/account"
-	"github.com/fabric8-services/fabric8-wit/account/tenant"
+	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/auth"
 	"github.com/fabric8-services/fabric8-wit/auth/authservice"
 	"github.com/fabric8-services/fabric8-wit/configuration"
+	"github.com/fabric8-services/fabric8-wit/kubernetes"
 	"github.com/fabric8-services/fabric8-wit/log"
 
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	errs "github.com/pkg/errors"
 )
-
-// BaseURLProvider provides the BASE URL (minimal path) of several APIs used in Deployments
-// for true multicluster support, every API in this inteface should take an environment namespace name.
-// This hasn't been done, because the rest of fabric8 seems to assume the cluster is the same.
-// For most uses, the proxy server will hide this issue - but not for mertics/logging and console.
-
-/* typical URLS from tenant:
-"console-url":"https://console.starter-us-east-2a.openshift.com/console/",
-"logging-url":"https://console.starter-us-east-2a.openshift.com/console/",
-"metrics-url":"https://metrics.starter-us-east-2a.openshift.com/",
-*/
-
-// BaseURLProvider provides all URLS used by the deployments Kubernetes implementation
-// It takes into account proxies, Auth or Tenant services, etc.
-type BaseURLProvider interface {
-	GetAPIURL() string
-	GetMetricsURL() (*string, error)
-	GetConsoleURL(envNS string) (*string, error)
-	GetLoggingURL(envNS string, deploymentName string) (*string, error)
-
-	GetAPIToken() *string
-	GetMetricsToken() *string
-}
 
 // there are several concrete instantiations:
 //
@@ -68,96 +45,89 @@ type authURLProvider struct {
 }
 
 // ensure authURLProvider implements BaseURLProvider
-var _ BaseURLProvider = &authURLProvider{}
-var _ BaseURLProvider = (*authURLProvider)(nil)
+var _ kubernetes.BaseURLProvider = &authURLProvider{}
+var _ kubernetes.BaseURLProvider = (*authURLProvider)(nil)
 
 type tenantURLProvider struct {
 	apiURL     string
 	apiToken   string
-	tenant     *tenant.TenantAttributes
-	namespaces map[string]*tenant.NamespaceAttributes
+	tenant     *app.UserService
+	namespaces map[string]*app.NamespaceAttributes
 }
 
 // ensure tenantURLProvider implements BaseURLProvider
-var _ BaseURLProvider = &tenantURLProvider{}
-var _ BaseURLProvider = (*tenantURLProvider)(nil)
+var _ kubernetes.BaseURLProvider = &tenantURLProvider{}
+var _ kubernetes.BaseURLProvider = (*tenantURLProvider)(nil)
 
 // NewURLProvider looks at what servers are available and create a BaseURLProvder that fits
-func NewURLProvider(ctx context.Context, config *configuration.Registry) (BaseURLProvider, error) {
+func NewURLProvider(ctx context.Context, config *configuration.Registry, osioclient OpenshiftIOClient) (kubernetes.BaseURLProvider, error) {
 
-	osProxyURL := config.GetOpenshiftProxyURL()
-	tenantURL := config.GetTenantServiceURL()
-
-	if len(tenantURL) != 0 {
-		if len(osProxyURL) == 0 {
-			return newTenantURLProvider(ctx, config)
-		}
-		return newTenantProxyURLProvider(ctx, config, osProxyURL)
+	p, err := osioclient.GetUserServices(ctx)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "error accessing Tenant API")
+		return nil, err
 	}
-	if len(osProxyURL) == 0 {
-		return newAuthNoProxyURLProvider(ctx, config)
-	}
-	return newAuthProxyURLProvider(ctx, config, osProxyURL)
-}
 
-// using tenant and proxy, access metrics directly
-func newTenantProxyURLProvider(ctx context.Context, config *configuration.Registry, osProxyURL string) (*tenantURLProvider, error) {
-
-	p, err := newTenantURLProvider(ctx, config)
+	up, err := newTenantURLProviderFromTenant(p, goajwt.ContextJWT(ctx).Raw)
 	if err != nil {
 		return nil, err
 	}
 
-	// all non-metric API calls go via the proxy
-	p.apiURL = osProxyURL
-	p.apiToken = goajwt.ContextJWT(ctx).Raw
+	osProxyURL := config.GetOpenshiftProxyURL()
 
-	return p, nil
-}
-
-// using Tenant and no proxy
-func newTenantURLProvider(ctx context.Context, config *configuration.Registry) (*tenantURLProvider, error) {
-
-	// create Tenant API client
-	tenantResponse, err := account.ShowTenant(ctx, config)
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"err": err,
-		}, "error accessing Tenant server")
-		return nil, errs.Wrapf(err, "error creating Tenant client")
+	if len(osProxyURL) != 0 {
+		// all non-metric API calls go via the proxy
+		up.apiURL = osProxyURL
+		up.apiToken = goajwt.ContextJWT(ctx).Raw
 	}
-	return newTenantURLProviderFromTenant(tenantResponse, goajwt.ContextJWT(ctx).Raw), nil
+	return up, nil
 }
 
-func newTenantURLProviderFromTenant(t *tenant.TenantSingle, token string) *tenantURLProvider {
-	namespaceMap := make(map[string]*tenant.NamespaceAttributes)
-	for i, namespace := range t.Data.Attributes.Namespaces {
-		namespaceMap[*namespace.Name] = t.Data.Attributes.Namespaces[i]
+// newTenantURLProviderFromTenant create a provider from a UserService object
+func newTenantURLProviderFromTenant(t *app.UserService, token string) (*tenantURLProvider, error) {
+
+	if t.ID == nil {
+		log.Error(nil, map[string]interface{}{}, "app.UserService is malformed: no ID field")
+		return nil, errs.New("app.UserService is malformed: no ID field")
+	}
+
+	if t.Attributes == nil {
+		log.Error(nil, map[string]interface{}{
+			"tenant": *t.ID,
+		}, "app.UserService is malformed: no Attribute field ID=%s", *t.ID)
+		return nil, errs.Errorf("app.UserService is malformed: no Attribute field (ID=%s)", *t.ID)
+	}
+
+	namespaceMap := make(map[string]*app.NamespaceAttributes)
+	for i, namespace := range t.Attributes.Namespaces {
+		namespaceMap[*namespace.Name] = t.Attributes.Namespaces[i]
 	}
 
 	defaultClusterURL := ""
-	if len(t.Data.Attributes.Namespaces) == 0 {
+	if len(t.Attributes.Namespaces) == 0 {
 		log.Error(nil, map[string]interface{}{
-			"tenant": *t.Data.Attributes.Email,
-		}, "this tenant has no namespaces: %s", *t.Data.Attributes.Email)
+			"tenant": *t.ID,
+		}, "this tenant has no namespaces: %s", *t.ID)
 	} else {
 		// use the cluster of the first namespace as the default
 		// strictly speaking, there should be no default
 		// having a default allows the new code to work with an old Auth or Tenant server
-		defaultClusterURL = *t.Data.Attributes.Namespaces[0].ClusterURL
+		defaultClusterURL = *t.Attributes.Namespaces[0].ClusterURL
 	}
 
 	provider := &tenantURLProvider{
 		apiURL:     defaultClusterURL,
 		apiToken:   token,
-		tenant:     t.Data.Attributes,
+		tenant:     t,
 		namespaces: namespaceMap,
 	}
-	return provider
+	return provider, nil
 }
 
-// NewTenantURLProviderFromTenant exposed for testing
-func NewTenantURLProviderFromTenant(t *tenant.TenantSingle, token string) BaseURLProvider {
+// NewTenantURLProviderFromTenant create a provider from a UserService object (exposed for testing)
+func NewTenantURLProviderFromTenant(t *app.UserService, token string) (kubernetes.BaseURLProvider, error) {
 	return newTenantURLProviderFromTenant(t, token)
 }
 
@@ -176,7 +146,7 @@ func (up *tenantURLProvider) GetAPIURL() string {
 func (up *tenantURLProvider) GetConsoleURL(envNS string) (*string, error) {
 	ns := up.namespaces[envNS]
 	if ns == nil {
-		return nil, errs.Errorf("Namespace '%s' is not in tenant '%s'", envNS, *up.tenant.Email)
+		return nil, errs.Errorf("Namespace '%s' is not in tenant '%s'", envNS, *up.tenant.ID)
 	}
 	// Note that the Auth/Tenant appends /console to the hostname for console/logging
 	baseURL := ns.ClusterConsoleURL
@@ -196,7 +166,7 @@ func (up *tenantURLProvider) GetConsoleURL(envNS string) (*string, error) {
 func (up *tenantURLProvider) GetLoggingURL(envNS string, deployName string) (*string, error) {
 	ns := up.namespaces[envNS]
 	if ns == nil {
-		return nil, errs.Errorf("Namespace '%s' is not in tenant '%s'", envNS, *up.tenant.Email)
+		return nil, errs.Errorf("Namespace '%s' is not in tenant '%s'", envNS, *up.tenant.ID)
 	}
 	// Note that the Auth/Tenant appends /console to the hostname for console/logging
 	baseURL := ns.ClusterLoggingURL
@@ -216,11 +186,11 @@ func (up *tenantURLProvider) GetLoggingURL(envNS string, deployName string) (*st
 func (up *tenantURLProvider) GetMetricsURL() (*string, error) {
 
 	// this code should be migrated to take an envNS instead of using namespaces[0]
-	metricsURL := up.tenant.Namespaces[0].ClusterMetricsURL
+	metricsURL := up.tenant.Attributes.Namespaces[0].ClusterMetricsURL
 	if metricsURL == nil || len(*metricsURL) == 0 {
 		// In the absence of a better way (i.e. tenant) to get the user's metrics URL,
 		// substitute "api" with "metrics" in user's cluster URL
-		mu, err := modifyURL(*up.tenant.Namespaces[0].ClusterURL, "metrics", "")
+		mu, err := modifyURL(*up.tenant.Attributes.Namespaces[0].ClusterURL, "metrics", "")
 		if err != nil {
 			return nil, err
 		}
@@ -228,6 +198,17 @@ func (up *tenantURLProvider) GetMetricsURL() (*string, error) {
 		metricsURL = &muStr
 	}
 	return metricsURL, nil
+}
+
+// NewAuthURLProvider looks at what servers are available and create a BaseURLProvder that fits
+func NewAuthURLProvider(ctx context.Context, config *configuration.Registry) (kubernetes.BaseURLProvider, error) {
+
+	osProxyURL := config.GetOpenshiftProxyURL()
+
+	if len(osProxyURL) == 0 {
+		return newAuthNoProxyURLProvider(ctx, config)
+	}
+	return newAuthProxyURLProvider(ctx, config, osProxyURL)
 }
 
 // using auth and proxy, access metrics directly
@@ -313,7 +294,7 @@ func newAuthURLProvider(ctx context.Context, config *configuration.Registry) (*a
 }
 
 // NewTestURLProvider creates a provider with the same URL and token for both API and metrics
-func NewTestURLProvider(clusterURL string, token string) BaseURLProvider {
+func NewTestURLProvider(clusterURL string, token string) kubernetes.BaseURLProvider {
 	provider := &authURLProvider{
 		apiURL:       clusterURL,
 		apiToken:     token,
@@ -325,7 +306,7 @@ func NewTestURLProvider(clusterURL string, token string) BaseURLProvider {
 }
 
 // NewTestURLWithMetricsProvider creates a provider with the different URL and token for API and metrics
-func NewTestURLWithMetricsProvider(apiURL string, token string, clusterURL string, clusterToken string) BaseURLProvider {
+func NewTestURLWithMetricsProvider(apiURL string, token string, clusterURL string, clusterToken string) kubernetes.BaseURLProvider {
 	provider := &authURLProvider{
 		apiURL:       apiURL,
 		apiToken:     token,
@@ -472,12 +453,4 @@ func modifyURL(apiURLStr string, prefix string, path string) (*url.URL, error) {
 		Path:   path,
 	}
 	return newURL, nil
-}
-
-func tostring(item interface{}) string {
-	bytes, err := json.MarshalIndent(item, "", "  ")
-	if err != nil {
-		return err.Error()
-	}
-	return string(bytes)
 }

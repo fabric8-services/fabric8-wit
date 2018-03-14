@@ -10,7 +10,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/kubernetes"
+
 	errs "github.com/pkg/errors"
 	resource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -65,7 +67,7 @@ var defaultDeploymentInput = deploymentInput{
 }
 
 func getDefaultURLProvider(baseurl string, token string) kubernetes.BaseURLProvider {
-	return kubernetes.NewTestURLProvider(baseurl, token)
+	return controller.NewTestURLProvider(baseurl, token)
 }
 
 func getDefaultKubeClient(fixture *testFixture, t *testing.T) kubernetes.KubeClientInterface {

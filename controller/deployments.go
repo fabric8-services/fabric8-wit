@@ -46,6 +46,7 @@ type ClientGetter interface {
 type defaultClientGetter struct {
 	config            *configuration.Registry
 	OpenshiftProxyURL string
+	osioClient        OpenshiftIOClient
 }
 
 // NewDeploymentsController creates a deployments controller.
@@ -69,7 +70,11 @@ func tostring(item interface{}) string {
 	return string(bytes)
 }
 
-func (*defaultClientGetter) GetAndCheckOSIOClient(ctx context.Context) (OpenshiftIOClient, error) {
+func (g *defaultClientGetter) GetAndCheckOSIOClient(ctx context.Context) (OpenshiftIOClient, error) {
+
+	if g.osioClient != nil {
+		return g.osioClient, nil
+	}
 
 	// defaults
 	host := "localhost"
@@ -101,6 +106,7 @@ func (*defaultClientGetter) GetAndCheckOSIOClient(ctx context.Context) (Openshif
 
 	oc := NewOSIOClient(ctx, scheme, host)
 
+	g.osioClient = oc
 	return oc, nil
 }
 
@@ -147,14 +153,19 @@ func (g *defaultClientGetter) GetKubeClient(ctx context.Context) (kubernetes.Kub
 
 	kubeURL := g.OpenshiftProxyURL
 
-	baseURLProvider, err := kubernetes.NewURLProvider(ctx, g.config)
-	if err != nil {
-		return nil, errs.Wrap(err, "could not retrieve tenant data")
-	}
-
 	kubeNamespaceName, err := g.getNamespaceName(ctx)
 	if err != nil {
 		return nil, errs.Wrap(err, "could not retrieve namespace name")
+	}
+
+	osioclient, err := g.GetAndCheckOSIOClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	baseURLProvider, err := NewURLProvider(ctx, g.config, osioclient)
+	if err != nil {
+		return nil, errs.Wrap(err, "could not retrieve tenant data")
 	}
 
 	// create the cluster API client
