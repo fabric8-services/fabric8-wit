@@ -220,37 +220,28 @@ func (rest *TestAreaREST) TestShowArea() {
 	})
 }
 
-func (rest *TestAreaREST) TestShowAreaOKUsingExpiredIfNoneMatchHeader() {
-	// given
-	_, a := createSpaceAndArea(rest.T(), rest.db)
-	svc, ctrl := rest.SecuredController()
-	// when
-	ifNoneMatch := "foo"
-	res, _ := test.ShowAreaOK(rest.T(), svc.Context, svc, ctrl, a.ID.String(), nil, &ifNoneMatch)
-	//then
-	assertResponseHeaders(rest.T(), res)
-}
+func (rest *TestAreaREST) TestAreaPayload() {
+	rest.T().Run("Failure", func(t *testing.T) {
+		t.Run("Validate Area name Length", func(t *testing.T) {
+			// given
+			ca := newCreateChildAreaPayload(testsupport.TestOversizedNameObj)
 
-func (rest *TestAreaREST) TestShowAreaNotModifiedUsingIfModifedSinceHeader() {
-	// given
-	_, a := createSpaceAndArea(rest.T(), rest.db)
-	svc, ctrl := rest.SecuredController()
-	// when
-	ifModifiedSince := app.ToHTTPTime(a.UpdatedAt)
-	res := test.ShowAreaNotModified(rest.T(), svc.Context, svc, ctrl, a.ID.String(), &ifModifiedSince, nil)
-	//then
-	assertResponseHeaders(rest.T(), res)
-}
+			err := ca.Validate()
+			// Validate payload function returns an error
+			assert.NotNil(t, err)
+			assert.Contains(t, err.Error(), "length of type.name must be less than or equal to 63")
+		})
 
-func (rest *TestAreaREST) TestShowAreaNotModifiedIfNoneMatchHeader() {
-	// given
-	_, a := createSpaceAndArea(rest.T(), rest.db)
-	svc, ctrl := rest.SecuredController()
-	// when
-	ifNoneMatch := app.GenerateEntityTag(a)
-	res := test.ShowAreaNotModified(rest.T(), svc.Context, svc, ctrl, a.ID.String(), nil, &ifNoneMatch)
-	//then
-	assertResponseHeaders(rest.T(), res)
+		t.Run("Validate Area name Start With", func(t *testing.T) {
+			// given
+			ca := newCreateChildAreaPayload("_TestSuccessCreateChildArea")
+
+			err := ca.Validate()
+			// Validate payload function returns an error
+			assert.NotNil(t, err)
+			assert.Contains(t, err.Error(), "type.name must match the regexp")
+		})
+	})
 }
 
 func (rest *TestAreaREST) createChildArea(name string, parent area.Area, svc *goa.Service, ctrl *AreaController) *app.AreaSingle {
