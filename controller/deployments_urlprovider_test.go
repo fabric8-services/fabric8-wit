@@ -18,96 +18,6 @@ import (
 const defaultAPIURL = "https://api.hostname/api"
 const defaultAPIToken = "token1"
 
-//////////////////////////////////////////////////////////////////////////////////////////////////
-
-// teting Auth-based URL provider
-
-func getDefaultProvider() kubernetes.BaseURLProvider {
-	return controller.NewTestURLProvider(defaultAPIURL, defaultAPIToken)
-}
-
-func getDefaultProviderWithMetrics(metricsurl string, metricstoken string) kubernetes.BaseURLProvider {
-	return controller.NewTestURLWithMetricsProvider(defaultAPIURL, defaultAPIToken, metricsurl, metricstoken)
-}
-
-func TestAPIURL(t *testing.T) {
-	p := getDefaultProvider()
-	require.Equal(t, defaultAPIURL, p.GetAPIURL(), "GetAPIURL() returned wrong value")
-}
-
-func TestGetDefaultMetricsURL(t *testing.T) {
-	p := getDefaultProvider()
-	url, err := p.GetMetricsURL()
-	require.NoError(t, err, "GetMetricsURL() returned an error")
-	require.NotNil(t, url)
-	// converts leading "api" to leading "metrics"
-	expected := strings.Replace(strings.Replace(p.GetAPIURL(), "//api.", "//metrics.", 1), "/api", "", 1)
-	require.Equal(t, expected, *url, "GetMetricsURL() did not default to API URL")
-}
-
-func TestGetNewMetricsURL(t *testing.T) {
-	const mURL = "https://api.fooo/api"
-	const mToken = "metricstoken"
-	p := getDefaultProviderWithMetrics(mURL, mToken)
-	url, err := p.GetMetricsURL()
-	require.NoError(t, err, "GetMetricsURL() returned an error")
-	require.NotNil(t, url)
-	expected := strings.Replace(strings.Replace(mURL, "//api.", "//metrics.", 1), "/api", "", 1)
-	require.Equal(t, expected, *url, "GetMetricsURL() did not return metrics URL")
-}
-
-func TestFailBadMetricsURL(t *testing.T) {
-	const badURL = "https://junk.fooo/api"
-	const mToken = "metricstoken"
-	p := getDefaultProviderWithMetrics(badURL, mToken)
-	url, err := p.GetMetricsURL()
-	require.Error(t, err, "GetMetricsURL() did not an error")
-	require.Nil(t, url)
-}
-
-func TestGetConsoleURL(t *testing.T) {
-	const envNS = "someEnvNS"
-	p := getDefaultProvider()
-	url, err := p.GetConsoleURL(envNS)
-	require.NoError(t, err, "GetConsoleURL() returned an error")
-	require.NotNil(t, url)
-	// converts leading "api" to leading "metrics"
-	expected := strings.Replace(strings.Replace(p.GetAPIURL(), "//api.", "//console.", 1), "/api", "", 1) + "/console/project/" + envNS
-	require.Equal(t, expected, *url, "GetConsoleURL() did not return correct value")
-}
-
-func TestGetLoggingURL(t *testing.T) {
-	const envNS = "someEnvNS"
-	const deployName = "aDeployName"
-	p := getDefaultProvider()
-	url, err := p.GetLoggingURL(envNS, deployName)
-	require.NoError(t, err, "GetLoggingURL() returned an error")
-	require.NotNil(t, url)
-	// converts leading "api" to leading "metrics"
-	expected := strings.Replace(strings.Replace(p.GetAPIURL(), "//api.", "//console.", 1), "/api", "", 1) + "/console/project/" + envNS
-	expected = fmt.Sprintf("%s/browse/rc/%s?tab=logs", expected, deployName)
-	require.Equal(t, expected, *url, "GetLoggingURL() did not return correct value")
-}
-
-func TestGetAPIToken(t *testing.T) {
-	p := getDefaultProvider()
-	require.Equal(t, defaultAPIToken, *p.GetAPIToken(), "GetAPIToken() did not return API token")
-}
-
-func TestGetDefaultMetricsToken(t *testing.T) {
-	p := getDefaultProvider()
-	require.Equal(t, defaultAPIToken, *p.GetMetricsToken(), "GetMetricsToken() did not default to API token")
-}
-
-func TestGetMetricsToken(t *testing.T) {
-	const mURL = "https://mm/m"
-	const mToken = "metricstoken"
-	p := getDefaultProviderWithMetrics(mURL, mToken)
-	require.Equal(t, mToken, *p.GetMetricsToken(), "GetMetricsToken() did not return metrics token")
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////
-
 // testing Tenant-based URL provider
 var defaultTenant *app.UserService
 
@@ -147,7 +57,7 @@ func getBadTenantProvider() (kubernetes.BaseURLProvider, error) {
 		fmt.Printf("error reading bad tenant: %s", err.Error())
 		return nil, err
 	}
-	return controller.NewTenantURLProviderFromTenant(t, defaultAPIToken)
+	return controller.NewTenantURLProviderFromTenant(t, defaultAPIToken, "")
 }
 
 func getDefaultTenantProvider() (kubernetes.BaseURLProvider, error) {
@@ -158,7 +68,7 @@ func getDefaultTenantProvider() (kubernetes.BaseURLProvider, error) {
 	if t == nil {
 		fmt.Printf("error reading default tenant: %s", err.Error())
 	}
-	return controller.NewTenantURLProviderFromTenant(t, defaultAPIToken)
+	return controller.NewTenantURLProviderFromTenant(t, defaultAPIToken, "")
 }
 
 func TestTenantAPIURL(t *testing.T) {
@@ -173,7 +83,7 @@ func TestTenantGetMalformedData(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNilf(t, us, "error reading test file %s", "tenant-malformed.json")
 
-	up, err := controller.NewTenantURLProviderFromTenant(us, defaultAPIToken)
+	up, err := controller.NewTenantURLProviderFromTenant(us, defaultAPIToken, "")
 	require.Nil(t, up)
 	require.Error(t, err)
 }

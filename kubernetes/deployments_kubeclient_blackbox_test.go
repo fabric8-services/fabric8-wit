@@ -2,15 +2,17 @@ package kubernetes_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
+	"net/url"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 
 	"github.com/fabric8-services/fabric8-wit/app"
-	"github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/kubernetes"
 
 	errs "github.com/pkg/errors"
@@ -66,8 +68,20 @@ var defaultDeploymentInput = deploymentInput{
 	routeInput: defaultRouteInput,
 }
 
+type testURLProvider struct {
+	apiURL       string
+	apiToken     string
+	clusterURL   string
+	clusterToken string
+}
+
 func getDefaultURLProvider(baseurl string, token string) kubernetes.BaseURLProvider {
-	return controller.NewTestURLProvider(baseurl, token)
+	return &testURLProvider{
+		apiURL:       baseurl,
+		apiToken:     token,
+		clusterURL:   baseurl,
+		clusterToken: token,
+	}
 }
 
 func getDefaultKubeClient(fixture *testFixture, t *testing.T) kubernetes.KubeClientInterface {
@@ -1689,4 +1703,69 @@ func verifyDeployment(dep *app.SimpleDeployment, testCase *deployTestData, t *te
 		require.NotNil(t, dep.Links.Logs, "Logs URL is nil")
 		require.Equal(t, testCase.expectLogURL, *dep.Links.Logs, "Logs URL is incorrect")
 	}
+}
+
+// code for test URL provider
+
+func (up *testURLProvider) GetAPIToken() *string {
+	return &up.apiToken
+}
+
+func (up *testURLProvider) GetMetricsToken() *string {
+	return &up.clusterToken
+}
+
+func (up *testURLProvider) GetAPIURL() string {
+	return up.apiURL
+}
+
+func (up *testURLProvider) GetConsoleURL(envNS string) (*string, error) {
+	path := fmt.Sprintf("console/project/%s", envNS)
+	// Replace "api" prefix with "console" and append path
+	consoleURL, err := modifyURL(up.clusterURL, "console", path)
+	if err != nil {
+		return nil, err
+	}
+	consoleURLStr := consoleURL.String()
+	return &consoleURLStr, nil
+}
+
+func (up *testURLProvider) GetLoggingURL(envNS string, deployName string) (*string, error) {
+	consoleURL, err := up.GetConsoleURL(envNS)
+	if err != nil {
+		return nil, err
+	}
+	logURL := fmt.Sprintf("%s/browse/rc/%s?tab=logs", *consoleURL, deployName)
+	return &logURL, nil
+}
+
+func (up *testURLProvider) GetMetricsURL() (*string, error) {
+	metricsURL, err := modifyURL(up.clusterURL, "metrics", "")
+	if err != nil {
+		return nil, err
+	}
+	mu := metricsURL.String()
+	return &mu, nil
+}
+
+func modifyURL(apiURLStr string, prefix string, path string) (*url.URL, error) {
+	// Parse as URL to give us easy access to the hostname
+	apiURL, err := url.Parse(apiURLStr)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get the hostname (without port) and replace api prefix with prefix arg
+	apiHostname := apiURL.Hostname()
+	if !strings.HasPrefix(apiHostname, "api") {
+		return nil, errs.Errorf("cluster URL does not begin with \"api\": %s", apiHostname)
+	}
+	newHostname := strings.Replace(apiHostname, "api", prefix, 1)
+	// Construct URL using just scheme from API URL, modified hostname and supplied path
+	newURL := &url.URL{
+		Scheme: apiURL.Scheme,
+		Host:   newHostname,
+		Path:   path,
+	}
+	return newURL, nil
 }
