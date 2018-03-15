@@ -166,8 +166,9 @@ func replaceUUIDs(str string) (string, error) {
 	return newStr, nil
 }
 
-// replaceTimes finds all RFC3339 times in the given string and replaces them
-// with "0001-01-01T00:00:00Z".
+// replaceTimes finds all RFC3339 times and RFC7232 (section 2.2) times in the
+// given string and replaces them with "0001-01-01T00:00:00Z" (for RFC3339) or
+// "Mon, 01 Jan 0001 00:00:00 GMT" (for RFC7232) respectively.
 func replaceTimes(str string) (string, error) {
 	year := "([0-9]+)"
 	month := "(0[1-9]|1[012])"
@@ -188,7 +189,23 @@ func replaceTimes(str string) (string, error) {
 	if err != nil {
 		return "", errs.Wrapf(err, "failed to compile RFC3339 regex pattern: %s", pattern)
 	}
-	return rfc3339Pattern.ReplaceAllString(str, `0001-01-01T00:00:00Z`), nil
+	res := rfc3339Pattern.ReplaceAllString(str, `0001-01-01T00:00:00Z`)
+
+	dayName := "(Mon|Tue|Wed|Thu|Fri|Sat|Sun)"
+	day = "[0-9]{2}"
+	month = "(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)"
+	year = "[0-9]{4}"
+	hour = "([01][0-9]|2[0-3])"
+	minute = "([0-5][0-9])"
+	second = "([0-5][0-9]|60)"
+	pattern = dayName + ", " + day + " " + month + " " + year + " " + hour + ":" + minute + ":" + second + " GMT"
+
+	lastModifiedPattern, err := regexp.Compile(pattern)
+	if err != nil {
+		return "", errs.Wrapf(err, "failed to compile RFC7232 last-modified regex pattern: %s", pattern)
+	}
+
+	return lastModifiedPattern.ReplaceAllString(res, `Mon, 01 Jan 0001 00:00:00 GMT`), nil
 }
 
 const testInputStr = `
@@ -309,11 +326,22 @@ const testTimesOutputStr = `
 
 func TestGoldenReplaceTimes(t *testing.T) {
 	t.Parallel()
-	t.Run("replace Times", func(t *testing.T) {
+	t.Run("rfc3339", func(t *testing.T) {
 		t.Parallel()
 		newStr, err := replaceTimes(testInputStr)
 		require.NoError(t, err)
 		require.Equal(t, testTimesOutputStr, newStr)
+	})
+	t.Run("rfc7232", func(t *testing.T) {
+		t.Parallel()
+		//given
+		str := `"last-modified": "Thu, 15 Mar 2018 09:23:37 GMT",`
+		expected := `"last-modified": "Mon, 01 Jan 0001 00:00:00 GMT",`
+		// when
+		actual, err := replaceTimes(str)
+		// then
+		require.NoError(t, err)
+		require.Equal(t, expected, actual)
 	})
 }
 
