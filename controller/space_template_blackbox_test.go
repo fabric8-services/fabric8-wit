@@ -82,6 +82,19 @@ func (s *testSpaceTemplateSuite) TestSpaceTemplate_Show() {
 		require.True(t, fxt.SpaceTemplates[0].Equal(actualModel))
 	})
 
+	s.T().Run("ok - Base Template", func(t *testing.T) {
+		// given
+		svc, ctrl := s.SecuredController()
+		// when
+		res, actual := test.ShowSpaceTemplateOK(t, svc.Context, svc, ctrl, spacetemplate.SystemBaseTemplateID, nil, nil)
+		// then
+		safeOverriteHeader(t, res, app.ETag, "m2MLfQTqVSfIsr8Dt9pjMQ==")
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "ok.payload.basetemplate.golden.json"), actual)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "ok.headers.golden.json"), res.Header())
+		require.NotNil(t, actual)
+		assertResponseHeaders(t, res)
+	})
+
 	s.T().Run("existing template (using expired If-Modified-Since header)", func(t *testing.T) {
 		// given
 		svc, ctrl := s.SecuredController()

@@ -3,6 +3,7 @@
     "attributes": {
       "created-at": "0001-01-01T00:00:00Z",
       "description": "Description for space template 00000000-0000-0000-0000-000000000001",
+      "isBaseTemplate": false,
       "name": "space template 00000000-0000-0000-0000-000000000001",
       "updated-at": "0001-01-01T00:00:00Z",
       "version": 0

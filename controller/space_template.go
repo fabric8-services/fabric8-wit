@@ -93,11 +93,12 @@ func ConvertSpaceTemplate(appl application.Application, request *http.Request, s
 		Type: APISpaceTemplates,
 		ID:   &st.ID,
 		Attributes: &app.SpaceTemplateAttributes{
-			Name:        &st.Name,
-			CreatedAt:   &st.CreatedAt,
-			UpdatedAt:   &st.UpdatedAt,
-			Version:     &st.Version,
-			Description: st.Description,
+			Name:           &st.Name,
+			CreatedAt:      &st.CreatedAt,
+			UpdatedAt:      &st.UpdatedAt,
+			Version:        &st.Version,
+			Description:    st.Description,
+			IsBaseTemplate: ptr.Bool(st.ID == spacetemplate.SystemBaseTemplateID),
 			// Template:    &template,
 		},
 		Relationships: &app.SpaceTemplateRelationships{

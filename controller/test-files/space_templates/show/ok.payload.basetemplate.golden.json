@@ -1,0 +1,34 @@
+{
+  "data": {
+    "attributes": {
+      "created-at": "0001-01-01T00:00:00Z",
+      "description": "This is template defines some of the key link types and other things that can be re-used by other space templates. For example, the \"related\" link type is defined here in order so that spaces that use a different space template can still create links between work items.\n",
+      "isBaseTemplate": true,
+      "name": "Openshift.io Base Space Template",
+      "updated-at": "0001-01-01T00:00:00Z",
+      "version": 0
+    },
+    "id": "00000000-0000-0000-0000-000000000001",
+    "links": {
+      "self": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000001"
+    },
+    "relationships": {
+      "workitemlinktypes": {
+        "links": {
+          "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000001/workitemlinktypes"
+        }
+      },
+      "workitemtypegroups": {
+        "links": {
+          "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000001/workitemtypegroups"
+        }
+      },
+      "workitemtypes": {
+        "links": {
+          "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000001/workitemtypes"
+        }
+      }
+    },
+    "type": "spacetemplates"
+  }
+}
