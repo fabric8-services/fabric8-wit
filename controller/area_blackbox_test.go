@@ -10,7 +10,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
-	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/area"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
@@ -19,9 +18,10 @@ import (
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
-	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/goadesign/goa"
+	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -64,7 +64,7 @@ func (rest *TestAreaREST) TestCreateChildArea() {
 	rest.T().Run("Success", func(t *testing.T) {
 		t.Run("OK", func(t *testing.T) {
 			// given
-			sp, parentArea := createSpaceAndArea(t, rest.db)
+			sp, parentArea := createSpaceAndArea(t, rest.DB)
 			parentID := parentArea.ID
 			ca := newCreateChildAreaPayload("TestSuccessCreateChildArea")
 			owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
@@ -93,34 +93,34 @@ func (rest *TestAreaREST) TestCreateChildArea() {
 				TestAreaREST ---> TestSuccessCreateMultiChildArea-0 ----> TestSuccessCreateMultiChildArea-0-0
 			*/
 			// given
-			sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
+			sp, parentArea := createSpaceAndArea(t, rest.DB)
 			parentID := parentArea.ID
 			ca := newCreateChildAreaPayload("TestSuccessCreateMultiChildArea-0")
 			owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
-			require.NoError(rest.T(), err)
+			require.NoError(t, err)
 			svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 			// when
-			_, created := test.CreateChildAreaCreated(rest.T(), svc.Context, svc, ctrl, parentID.String(), ca)
+			_, created := test.CreateChildAreaCreated(t, svc.Context, svc, ctrl, parentID.String(), ca)
 			// then
-			assert.Equal(rest.T(), *ca.Data.Attributes.Name, *created.Data.Attributes.Name)
-			assert.Equal(rest.T(), parentID.String(), *created.Data.Relationships.Parent.Data.ID)
+			assert.Equal(t, *ca.Data.Attributes.Name, *created.Data.Attributes.Name)
+			assert.Equal(t, parentID.String(), *created.Data.Relationships.Parent.Data.ID)
 			// Create a child of the child created above.
 			ca = newCreateChildAreaPayload("TestSuccessCreateMultiChildArea-0-0")
 			newParentID := *created.Data.Relationships.Parent.Data.ID
 			// when
-			_, created = test.CreateChildAreaCreated(rest.T(), svc.Context, svc, ctrl, newParentID, ca)
+			_, created = test.CreateChildAreaCreated(t, svc.Context, svc, ctrl, newParentID, ca)
 			// then
-			assert.Equal(rest.T(), *ca.Data.Attributes.Name, *created.Data.Attributes.Name)
-			assert.NotNil(rest.T(), *created.Data.Attributes.CreatedAt)
-			assert.NotNil(rest.T(), *created.Data.Attributes.Version)
-			assert.Equal(rest.T(), newParentID, *created.Data.Relationships.Parent.Data.ID)
-			assert.Contains(rest.T(), *created.Data.Relationships.Children.Links.Self, "children")
+			assert.Equal(t, *ca.Data.Attributes.Name, *created.Data.Attributes.Name)
+			assert.NotNil(t, *created.Data.Attributes.CreatedAt)
+			assert.NotNil(t, *created.Data.Attributes.Version)
+			assert.Equal(t, newParentID, *created.Data.Relationships.Parent.Data.ID)
+			assert.Contains(t, *created.Data.Relationships.Children.Links.Self, "children")
 		})
 	})
 
 	rest.T().Run("Failure", func(t *testing.T) {
 		// given
-		sp, parentArea := createSpaceAndArea(t, rest.db)
+		sp, parentArea := createSpaceAndArea(t, rest.DB)
 		parentID := parentArea.ID
 		childAreaPayload := newCreateChildAreaPayload(uuid.NewV4().String())
 		owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
@@ -164,7 +164,7 @@ func (rest *TestAreaREST) TestCreateChildArea() {
 func (rest *TestAreaREST) TestShowArea() {
 	rest.T().Run("Success", func(t *testing.T) {
 		// Setup
-		_, a := createSpaceAndArea(t, rest.db)
+		_, a := createSpaceAndArea(t, rest.DB)
 		svc, ctrl := rest.SecuredController()
 		t.Run("OK", func(t *testing.T) {
 			// when
@@ -249,7 +249,7 @@ func (rest *TestAreaREST) createChildArea(name string, parent area.Area, svc *go
 
 func (rest *TestAreaREST) TestShowChildrenArea() {
 	// Setup
-	sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
+	sp, parentArea := createSpaceAndArea(rest.T(), rest.DB)
 	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
 	require.NoError(rest.T(), err)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
@@ -311,33 +311,19 @@ func newCreateChildAreaPayload(name string) *app.CreateChildAreaPayload {
 	}
 }
 
-func createSpaceAndArea(t *testing.T, db *gormapplication.GormDB) (space.Space, area.Area) {
-	var areaObj area.Area
-	var spaceObj space.Space
-	application.Transactional(db, func(app application.Application) error {
-		owner := &account.Identity{
-			Username:     "new-space-owner-identity",
-			ProviderType: account.KeycloakIDP,
-		}
-		errCreateOwner := app.Identities().Create(context.Background(), owner)
-		require.NoError(t, errCreateOwner)
-
-		spaceObj = space.Space{
-			Name:            "TestAreaREST-" + uuid.NewV4().String(),
-			OwnerID:         owner.ID,
-			SpaceTemplateID: spacetemplate.SystemLegacyTemplateID,
-		}
-		_, err := app.Spaces().Create(context.Background(), &spaceObj)
-		require.NoError(t, err)
-		name := "Main Area-" + uuid.NewV4().String()
-		areaObj = area.Area{
-			Name:    name,
-			SpaceID: spaceObj.ID,
-		}
-		err = app.Areas().Create(context.Background(), &areaObj)
-		require.NoError(t, err)
-		return nil
-	})
+func createSpaceAndArea(t *testing.T, db *gorm.DB) (space.Space, area.Area) {
+	fxt := tf.NewTestFixture(t, db,
+		tf.Identities(1, tf.SetIdentityUsernames("new-space-owner-identity")),
+		tf.Spaces(1, func(fxt *tf.TestFixture, idx int) error {
+			fxt.Spaces[idx].Name = "Test Space-" + uuid.NewV4().String()
+			fxt.Spaces[idx].OwnerID = fxt.Identities[idx].ID
+			return nil
+		}), tf.Areas(1, func(fxt *tf.TestFixture, idx int) error {
+			fxt.Areas[idx].Name = "Area-" + uuid.NewV4().String()
+			fxt.Areas[idx].SpaceID = fxt.Spaces[idx].ID
+			return nil
+		}),
+	)
 	log.Info(nil, nil, "Space and root area created")
-	return spaceObj, areaObj
+	return *fxt.Spaces[0], *fxt.Areas[0]
 }

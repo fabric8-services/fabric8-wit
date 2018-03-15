@@ -1973,7 +1973,7 @@ func (s *WorkItem2Suite) TestWI2FailOnDelete() {
 
 func (s *WorkItem2Suite) TestWI2CreateWithArea() {
 	// given
-	_, areaInstance := createSpaceAndArea(s.T(), gormapplication.NewGormDB(s.DB))
+	_, areaInstance := createSpaceAndArea(s.T(), s.DB)
 	areaID := areaInstance.ID.String()
 	arType := area.APIStringTypeAreas
 	// when
@@ -1999,7 +1999,7 @@ func (s *WorkItem2Suite) TestWI2CreateWithArea() {
 
 func (s *WorkItem2Suite) TestWI2UpdateWithArea() {
 	// given
-	_, areaInstance := createSpaceAndArea(s.T(), gormapplication.NewGormDB(s.DB))
+	_, areaInstance := createSpaceAndArea(s.T(), s.DB)
 	areaID := areaInstance.ID.String()
 	arType := area.APIStringTypeAreas
 	c := minimumRequiredCreatePayload()
@@ -2046,7 +2046,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithArea() {
 
 func (s *WorkItem2Suite) TestWI2UpdateWithRootAreaIfMissing() {
 	// given
-	testSpace, rootArea := createSpaceAndArea(s.T(), gormapplication.NewGormDB(s.DB))
+	testSpace, rootArea := createSpaceAndArea(s.T(), s.DB)
 	log.Info(nil, nil, "creating child area...")
 	childArea := area.Area{
 		Name:    "Child Area of " + rootArea.Name,
