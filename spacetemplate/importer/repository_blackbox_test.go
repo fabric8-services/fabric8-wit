@@ -52,10 +52,6 @@ func diff(expectedStr, actualStr string) string {
 }
 
 func (s *repoSuite) TestImport() {
-	resource.Require(s.T(), resource.Database)
-	resetFn := s.DisableGormCallbacks()
-	defer resetFn()
-
 	// given
 	spaceTemplateID := uuid.NewV4()
 	witID := uuid.NewV4()
@@ -316,8 +312,6 @@ func (s *repoSuite) TestImport() {
 }
 
 func (s *repoSuite) TestExists() {
-	resource.Require(s.T(), resource.Database)
-
 	// given
 	spaceTemplateID := uuid.NewV4()
 	witID := uuid.NewV4()
@@ -346,8 +340,6 @@ func (s *repoSuite) TestExists() {
 }
 
 func (s *repoSuite) TestLoad() {
-	resource.Require(s.T(), resource.Database)
-
 	// given
 	spaceTemplateID := uuid.NewV4()
 	witID := uuid.NewV4()
@@ -379,8 +371,6 @@ func (s *repoSuite) TestLoad() {
 }
 
 func (s *repoSuite) TestRepository_List() {
-	resource.Require(s.T(), resource.Database)
-
 	s.T().Run("empty or filled", func(t *testing.T) {
 		// when
 		spaceTemplates, err := s.spaceTemplateRepo.List(s.Ctx)
