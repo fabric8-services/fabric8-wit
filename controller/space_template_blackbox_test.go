@@ -54,9 +54,6 @@ func (s *testSpaceTemplateSuite) SecuredController() (*goa.Service, *SpaceTempla
 }
 
 func (s *testSpaceTemplateSuite) TestSpaceTemplate_Show() {
-	resetFn := s.DisableGormCallbacks()
-	defer resetFn()
-
 	s.T().Run("non-existing template", func(t *testing.T) {
 		// given
 		svc, ctrl := s.SecuredController()
@@ -77,8 +74,8 @@ func (s *testSpaceTemplateSuite) TestSpaceTemplate_Show() {
 		res, actual := test.ShowSpaceTemplateOK(t, svc.Context, svc, ctrl, fxt.SpaceTemplates[0].ID, nil, nil)
 		// then
 		safeOverriteHeader(t, res, app.ETag, "m2MLfQTqVSfIsr8Dt9pjMQ==")
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "ok.payload.golden.json"), actual)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "ok.headers.golden.json"), res.Header())
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "ok.payload.golden.json"), actual)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "ok.headers.golden.json"), res.Header())
 		require.NotNil(t, actual)
 		assertResponseHeaders(t, res)
 		actualModel := convertSpaceTemplateSingleToModel(t, *actual)
@@ -142,8 +139,6 @@ func (s *testSpaceTemplateSuite) TestSpaceTemplate_List() {
 	}
 
 	s.T().Run("ok", func(t *testing.T) {
-		resetFn := s.DisableGormCallbacks()
-		defer resetFn()
 		// given
 		fxt := tf.NewTestFixture(s.T(), s.DB, tf.SpaceTemplates(3))
 		// when

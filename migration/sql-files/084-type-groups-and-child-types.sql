@@ -40,3 +40,7 @@ CREATE TABLE work_item_child_types (
 );
 
 CREATE UNIQUE INDEX work_item_child_types_uidx ON work_item_child_types (parent_work_item_type_id, child_work_item_type_id) WHERE deleted_at IS NULL;
+
+-- Only allow one work item link type with the same name for the same space
+-- template in existence.
+CREATE UNIQUE INDEX work_item_link_types_name_idx ON work_item_link_types (name, space_template_id) WHERE deleted_at IS NULL;

@@ -213,9 +213,6 @@ func (s *workItemTypesSuite) TestValidate() {
 
 func (s *workItemTypesSuite) TestList() {
 	s.T().Run("ok", func(t *testing.T) {
-		resetFn := s.DisableGormCallbacks()
-		defer resetFn()
-
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemTypes(3, tf.SetWorkItemTypeNames("task", "bug", "feature")))
 		// when
@@ -230,7 +227,7 @@ func (s *workItemTypesSuite) TestList() {
 		}
 		require.Empty(t, toBeFound, "failed to find these work item types: %+v", toBeFound)
 
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "list", "ok.res.payload.golden.json"), witCollection)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok.res.payload.golden.json"), witCollection)
 
 		require.NotNil(t, res.Header()[app.LastModified])
 		assert.Equal(t, app.ToHTTPTime(fxt.WorkItemTypes[0].UpdatedAt), res.Header()[app.LastModified][0])

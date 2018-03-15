@@ -120,9 +120,6 @@ func checkChildrenRelationship(t *testing.T, wi *app.WorkItem, expectedHasChildr
 
 func (s *workItemChildSuite) TestChildren() {
 	s.T().Run("ok", func(t *testing.T) {
-		resetFn := s.DisableGormCallbacks()
-		defer resetFn()
-
 		// given
 		fxt := tf.NewTestFixture(s.T(), s.DB,
 			tf.WorkItemLinkTypes(1, func(fxt *tf.TestFixture, idx int) error {
@@ -138,14 +135,14 @@ func (s *workItemChildSuite) TestChildren() {
 				// when
 				_, workItem := test.ShowWorkitemOK(t, s.svc.Context, s.svc, s.workItemCtrl, fxt.WorkItemByTitle("parent").ID, nil, nil)
 				// then
-				compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "ok.has_children.res.payload.golden.json"), workItem)
+				compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "ok.has_children.res.payload.golden.json"), workItem)
 				checkChildrenRelationship(t, workItem.Data, hasChildren)
 			})
 			t.Run("no children", func(t *testing.T) {
 				// when
 				_, workItem := test.ShowWorkitemOK(t, s.svc.Context, s.svc, s.workItemCtrl, fxt.WorkItemByTitle("child1").ID, nil, nil)
 				// then
-				compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "ok.has_no_children.res.payload.golden.json"), workItem)
+				compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "ok.has_no_children.res.payload.golden.json"), workItem)
 				checkChildrenRelationship(t, workItem.Data, hasNoChildren)
 			})
 		})
@@ -153,7 +150,7 @@ func (s *workItemChildSuite) TestChildren() {
 			// when
 			res, workItemList := test.ListChildrenWorkitemOK(t, s.svc.Context, s.svc, s.workItemCtrl, fxt.WorkItemByTitle("parent").ID, nil, nil, nil, nil)
 			// then
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "list_children", "ok.res.payload.golden.json"), workItemList)
+			compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list_children", "ok.res.payload.golden.json"), workItemList)
 			toBeFound := id.Slice{fxt.WorkItemByTitle("child1").ID, fxt.WorkItemByTitle("child2").ID}.ToMap()
 			for _, wi := range workItemList.Data {
 				_, ok := toBeFound[*wi.ID]

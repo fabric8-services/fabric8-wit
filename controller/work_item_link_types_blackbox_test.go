@@ -45,9 +45,6 @@ func TestNewWorkItemLinkTypesControllerDBNull(t *testing.T) {
 }
 
 func (s *workItemLinkTypesSuite) TestList() {
-	resetFn := s.DisableGormCallbacks()
-	defer resetFn()
-
 	// given
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItemLinkTypes(2))
 	wilt1 := fxt.WorkItemLinkTypes[0]
@@ -71,8 +68,8 @@ func (s *workItemLinkTypesSuite) TestList() {
 		res, linkTypes := test.ListWorkItemLinkTypesOK(t, nil, nil, s.linkTypeCtrl, fxt.SpaceTemplates[0].ID, nil, nil)
 		// then
 		safeOverriteHeader(t, res, app.ETag, "EZUYNwJobqN2yZeWw7GuZw==")
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "list", "ok.payload.golden.json"), linkTypes)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "list", "ok.headers.golden.json"), res.Header())
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok.payload.golden.json"), linkTypes)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok.headers.golden.json"), res.Header())
 		requireWILTsIncluded(t, linkTypes)
 		assertResponseHeaders(t, res)
 	})
@@ -83,7 +80,7 @@ func (s *workItemLinkTypesSuite) TestList() {
 		res, linkTypes := test.ListWorkItemLinkTypesOK(t, nil, nil, s.linkTypeCtrl, fxt.SpaceTemplates[0].ID, &ifModifiedSinceHeader, nil)
 		// then
 		safeOverriteHeader(t, res, app.ETag, "EZUYNwJobqN2yZeWw7GuZw==")
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "list", "ok_using_expired_ifmodifiedsince_header.headers.golden.json"), res.Header())
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok_using_expired_ifmodifiedsince_header.headers.golden.json"), res.Header())
 		requireWILTsIncluded(t, linkTypes)
 		assertResponseHeaders(t, res)
 	})
@@ -94,7 +91,7 @@ func (s *workItemLinkTypesSuite) TestList() {
 		res, linkTypes := test.ListWorkItemLinkTypesOK(t, nil, nil, s.linkTypeCtrl, fxt.SpaceTemplates[0].ID, nil, &ifNoneMatch)
 		// then
 		safeOverriteHeader(t, res, app.ETag, "IGos54TQC8+mZ70zZAWQQg==")
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "list", "ok_using_expired_ifnonematch_header.headers.golden.json"), res.Header())
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok_using_expired_ifnonematch_header.headers.golden.json"), res.Header())
 		requireWILTsIncluded(t, linkTypes)
 		assertResponseHeaders(t, res)
 	})
@@ -105,7 +102,7 @@ func (s *workItemLinkTypesSuite) TestList() {
 		res := test.ListWorkItemLinkTypesNotModified(t, nil, nil, s.linkTypeCtrl, fxt.SpaceTemplates[0].ID, &ifModifiedSinceHeader, nil)
 		// then
 		safeOverriteHeader(t, res, app.ETag, "IGos54TQC8+mZ70zZAWQQg==")
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "list", "not_modified_using_ifmodifiedsince_header.headers.golden.json"), res.Header())
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "not_modified_using_ifmodifiedsince_header.headers.golden.json"), res.Header())
 		assertResponseHeaders(t, res)
 	})
 
@@ -126,7 +123,7 @@ func (s *workItemLinkTypesSuite) TestList() {
 		ifNoneMatch := app.GenerateEntitiesTag(createdWorkItemLinkTypeModels)
 		res := test.ListWorkItemLinkTypesNotModified(t, nil, nil, s.linkTypeCtrl, fxt.SpaceTemplates[0].ID, nil, &ifNoneMatch)
 		safeOverriteHeader(t, res, app.ETag, "IGos54TQC8+mZ70zZAWQQg==")
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "list", "not_modified_using_ifnonematch_header.headers.golden.json"), res.Header())
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "not_modified_using_ifnonematch_header.headers.golden.json"), res.Header())
 		// then
 		assertResponseHeaders(t, res)
 	})

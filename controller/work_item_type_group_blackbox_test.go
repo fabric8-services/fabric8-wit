@@ -41,17 +41,14 @@ func (s *workItemTypeGroupSuite) SetupTest() {
 }
 
 func (s *workItemTypeGroupSuite) TestList() {
-	resetFn := s.DisableGormCallbacks()
-	defer resetFn()
-
 	s.T().Run("ok", func(t *testing.T) {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemTypeGroups(3))
 		// when
 		res, groups := test.ListWorkItemTypeGroupsOK(t, nil, s.svc, s.typeGroupsCtrl, fxt.SpaceTemplates[0].ID)
 		// then
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "list", "ok.witg.golden.json"), groups)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "list", "ok.headers.golden.json"), res.Header())
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok.witg.golden.json"), groups)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok.headers.golden.json"), res.Header())
 	})
 	s.T().Run("not found", func(t *testing.T) {
 		// given
@@ -61,23 +58,20 @@ func (s *workItemTypeGroupSuite) TestList() {
 		// then
 		ignoreMe := "IGNOREME"
 		jerrs.Errors[0].ID = &ignoreMe
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "list", "not_found.errors.golden.json"), jerrs)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "list", "not_found.headers.golden.json"), res.Header())
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "not_found.errors.golden.json"), jerrs)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "not_found.headers.golden.json"), res.Header())
 	})
 }
 
 func (s *workItemTypeGroupSuite) TestShow() {
-	resetFn := s.DisableGormCallbacks()
-	defer resetFn()
-
 	s.T().Run("ok", func(t *testing.T) {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemTypeGroups(1))
 		// when
 		res, group := test.ShowWorkItemTypeGroupOK(t, nil, s.svc, s.typeGroupCtrl, fxt.WorkItemTypeGroups[0].ID)
 		// then
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "ok.witg.golden.json"), group)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "ok.headers.golden.json"), res.Header())
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "ok.witg.golden.json"), group)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "ok.headers.golden.json"), res.Header())
 	})
 	s.T().Run("not found", func(t *testing.T) {
 		// given
@@ -87,7 +81,7 @@ func (s *workItemTypeGroupSuite) TestShow() {
 		// then
 		ignoreMe := "IGNOREME"
 		jerrs.Errors[0].ID = &ignoreMe
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "not_found.errors.golden.json"), jerrs)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "not_found.headers.golden.json"), res.Header())
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "not_found.errors.golden.json"), jerrs)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "not_found.headers.golden.json"), res.Header())
 	})
 }

@@ -159,14 +159,13 @@ func (s *workItemLinkSuite) SecuredController(identity account.Identity) (*goa.S
 }
 
 func (s *workItemLinkSuite) TestCreate() {
-	resetFn := s.DisableGormCallbacks()
-	defer resetFn()
+
 	s.T().Run(http.StatusText(http.StatusOK), func(t *testing.T) {
 		// helper function used in all ok-cases
 		createOK := func(t *testing.T, fxt *tf.TestFixture, svc *goa.Service, ctrl *WorkItemLinkController) {
 			// when
 			createPayload := newCreateWorkItemLinkPayload(fxt.WorkItems[0].ID, fxt.WorkItems[1].ID, fxt.WorkItemLinkTypes[0].ID)
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "create", "ok.req.payload.golden.json"), createPayload)
+			compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "ok.req.payload.golden.json"), createPayload)
 			res, workItemLink := test.CreateWorkItemLinkCreated(t, svc.Context, svc, ctrl, createPayload)
 			// then
 			require.NotNil(t, workItemLink)
@@ -200,9 +199,9 @@ func (s *workItemLinkSuite) TestCreate() {
 			}
 			require.Empty(t, 0, expectedIDs, "these elements where missing from the included objects: %+v", expectedIDs)
 
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "create", "ok.res.payload.golden.json"), workItemLink)
+			compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "ok.res.payload.golden.json"), workItemLink)
 			res.Header().Set("Etag", "0icd7ov5CqwDXN6Fx9z18g==") // overwrite Etag to always match
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "create", "ok.res.headers.golden.json"), res)
+			compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "ok.res.headers.golden.json"), res)
 		}
 
 		t.Run("as space owner", func(t *testing.T) {
@@ -335,8 +334,6 @@ func (s *workItemLinkSuite) TestDelete() {
 func (s *workItemLinkSuite) TestShow() {
 	s.T().Run(http.StatusText(http.StatusOK), func(t *testing.T) {
 		t.Run("normal", func(t *testing.T) {
-			resetFn := s.DisableGormCallbacks()
-			defer resetFn()
 
 			// given
 			fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItemLinks(1))
@@ -350,9 +347,9 @@ func (s *workItemLinkSuite) TestShow() {
 			require.Equal(t, fxt.WorkItemLinks[0].SourceID, actual.SourceID)
 			require.Equal(t, fxt.WorkItemLinks[0].TargetID, actual.TargetID)
 			require.Equal(t, fxt.WorkItemLinks[0].LinkTypeID, actual.LinkTypeID)
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "ok.res.payload.golden.json"), l)
+			compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "ok.res.payload.golden.json"), l)
 			res.Header().Set("Etag", "0icd7ov5CqwDXN6Fx9z18g==") // overwrite Etag to always match
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "ok.res.headers.golden.json"), res)
+			compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "ok.res.headers.golden.json"), res)
 		})
 		t.Run("using expired IfModifiedSince header", func(t *testing.T) {
 			// given
@@ -416,14 +413,13 @@ func (s *workItemLinkSuite) TestShow() {
 			_, jerrs := test.ShowWorkItemLinkNotFound(t, svc.Context, svc, ctrl, uuid.NewV4(), nil, nil)
 			ignoreMe := "IGNOREME"
 			jerrs.Errors[0].ID = &ignoreMe
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "not_found.res.errors.golden.json"), jerrs)
+			compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "not_found.res.errors.golden.json"), jerrs)
 		})
 	})
 }
 
 func (s *workItemLinkSuite) TestList() {
-	resetFn := s.DisableGormCallbacks()
-	defer resetFn()
+
 	// given
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItemLinks(1))
 	svc, _ := s.SecuredController(*fxt.Identities[0])
@@ -441,7 +437,7 @@ func (s *workItemLinkSuite) TestList() {
 				}
 			}
 			// then
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "list", "ok.res.paylpad.golden.json"), links)
+			compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok.res.paylpad.golden.json"), links)
 		})
 	})
 	s.T().Run(http.StatusText(http.StatusNotFound), func(t *testing.T) {

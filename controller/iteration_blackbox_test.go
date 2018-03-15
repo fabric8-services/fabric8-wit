@@ -92,8 +92,6 @@ func (s *DummySpaceAuthzService) Configuration() authz.AuthzConfiguration {
 }
 
 func (rest *TestIterationREST) TestCreateChildIteration() {
-	resetFn := rest.DisableGormCallbacks()
-	defer resetFn()
 
 	rest.T().Run("Ok", func(t *testing.T) {
 		t.Run("as space owner", func(t *testing.T) {
@@ -114,9 +112,9 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 			resp, created := test.CreateChildIterationCreated(t, svc.Context, svc, ctrl, childItr.ID.String(), ci)
 			// then
 			require.NotNil(t, created)
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child.res.iteration.golden.json"), created)
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child.headers.golden.json"), resp.Header())
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child.req.payload.golden.json"), ci)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child.res.iteration.golden.json"), created)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child.headers.golden.json"), resp.Header())
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child.req.payload.golden.json"), ci)
 		})
 		t.Run("as collaborator", func(t *testing.T) {
 			fxt := tf.NewTestFixture(t, rest.DB,
@@ -153,9 +151,9 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 			resp, created := test.CreateChildIterationCreated(t, svc.Context, svc, ctrl, childItr.ID.String(), ci)
 			// then
 			require.NotNil(t, created)
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child_with_ID_paylod.res.iteration.golden.json"), created)
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child_with_ID_paylod.headers.golden.json"), resp.Header())
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child_ID_paylod.req.payload.golden.json"), ci)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child_with_ID_paylod.res.iteration.golden.json"), created)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child_with_ID_paylod.headers.golden.json"), resp.Header())
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child_ID_paylod.req.payload.golden.json"), ci)
 			require.Equal(t, *ci.Data.ID, *created.Data.ID)
 		})
 	})
@@ -171,8 +169,8 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 			// overwrite service with Dummy Auth to treat user as non-collaborator
 			svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *notSpaceOwner, &DummySpaceAuthzService{rest})
 			_, jerrs := test.CreateChildIterationUnauthorized(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized_other_user.errors.golden.json"), jerrs)
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized_other_user.req.payload.golden.json"), ci)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized_other_user.errors.golden.json"), jerrs)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized_other_user.req.payload.golden.json"), ci)
 		})
 		t.Run("for non-collaborator", func(t *testing.T) {
 			fxt := tf.NewTestFixture(t, rest.DB,
@@ -184,7 +182,7 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 			// overwrite service with Dummy Auth to treat user as non-collaborator
 			svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *nonCollaborator, &DummySpaceAuthzService{rest})
 			_, jerrs := test.CreateChildIterationUnauthorized(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized_other_user.errors.golden.json"), jerrs)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized_other_user.errors.golden.json"), jerrs)
 		})
 	})
 
@@ -200,8 +198,8 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 		_, jerrs := test.CreateChildIterationConflict(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
 
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "conflict_for_same_name.res.errors.golden.json"), jerrs)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "conflict_for_same_name.req.payload.golden.json"), ci)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "conflict_for_same_name.res.errors.golden.json"), jerrs)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "conflict_for_same_name.req.payload.golden.json"), ci)
 	})
 
 	rest.T().Run("fail - create child iteration missing name", func(t *testing.T) {
@@ -211,8 +209,8 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 		_, jerrs := test.CreateChildIterationBadRequest(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
 
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "bad_request_missing_name.res.errors.golden.json"), jerrs)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "bad_request_missing_name.req.payload.golden.json"), ci)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "bad_request_missing_name.res.errors.golden.json"), jerrs)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "bad_request_missing_name.req.payload.golden.json"), ci)
 	})
 
 	rest.T().Run("fail - create child missing parent", func(t *testing.T) {
@@ -222,8 +220,8 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 		_, jerrs := test.CreateChildIterationNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String(), ci)
 		jerrs.Errors[0].ID = ptr.String("IGNORE_ME")
 
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "bad_request_unknown_parent.res.errors.golden.json"), jerrs)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "bad_request_unknown_parent.req.payload.golden.json"), ci)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "bad_request_unknown_parent.res.errors.golden.json"), jerrs)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "bad_request_unknown_parent.req.payload.golden.json"), ci)
 	})
 
 	rest.T().Run("unauthorized - create child iteration with unauthorized user", func(t *testing.T) {
@@ -232,8 +230,8 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 		svc, ctrl := rest.UnSecuredController()
 		_, jerrs := test.CreateChildIterationUnauthorized(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
 		jerrs.Errors[0].ID = ptr.String("IGNORE_ME")
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized.res.errors.golden.json"), jerrs)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized.req.payload.golden.json"), ci)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized.res.errors.golden.json"), jerrs)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized.req.payload.golden.json"), ci)
 	})
 }
 
@@ -266,8 +264,7 @@ func (rest *TestIterationREST) TestFailValidationIterationNameStartWith() {
 }
 
 func (rest *TestIterationREST) TestShowIterationOK() {
-	resetFn := rest.DisableGormCallbacks()
-	defer resetFn()
+
 	// given
 	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
 	itr := *fxt.Iterations[1]
@@ -279,7 +276,7 @@ func (rest *TestIterationREST) TestShowIterationOK() {
 	require.NotNil(rest.T(), created.Data.Relationships.Workitems.Meta)
 	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta[KeyTotalWorkItems])
 	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta[KeyClosedWorkItems])
-	compareWithGoldenUUIDAgnostic(rest.T(), filepath.Join(rest.testDir, "show", "ok.res.iteration.golden.json"), created)
+	compareWithGoldenAgnostic(rest.T(), filepath.Join(rest.testDir, "show", "ok.res.iteration.golden.json"), created)
 }
 
 func (rest *TestIterationREST) TestShowIterationOKUsingExpiredIfModifiedSinceHeader() {
@@ -1152,8 +1149,7 @@ func (rest *TestIterationREST) TestIterationDelete() {
 }
 
 func (rest *TestIterationREST) TestUpdateIteration() {
-	resetFn := rest.DisableGormCallbacks()
-	defer resetFn()
+
 	rest.T().Run("update success - iteration parent", func(t *testing.T) {
 		// build following structure
 		// 	root 0
@@ -1203,8 +1199,8 @@ func (rest *TestIterationREST) TestUpdateIteration() {
 		// when
 		resp, updatedItr := test.UpdateIterationOK(t, svc.Context, svc, ctrl, itr3.ID.String(), &payload)
 		require.NotNil(t, updatedItr)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "update", "ok_change_parent.res.iteration.golden.json"), updatedItr)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "update", "ok_change_parent.headers.golden.json"), resp.Header())
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "ok_change_parent.res.iteration.golden.json"), updatedItr)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "ok_change_parent.headers.golden.json"), resp.Header())
 		// then
 		require.NotNil(t, updatedItr.Data.Relationships.Parent)
 		assert.Equal(t, newParentIDStr, *updatedItr.Data.Relationships.Parent.Data.ID)

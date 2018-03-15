@@ -55,9 +55,6 @@ func safeOverriteHeader(t *testing.T, res http.ResponseWriter, key string, val s
 }
 
 func (s *workItemLinkTypeSuite) TestShow() {
-	resetFn := s.DisableGormCallbacks()
-	defer resetFn()
-
 	// given
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItemLinkTypes(1))
 	wilt := fxt.WorkItemLinkTypes[0]
@@ -67,8 +64,8 @@ func (s *workItemLinkTypeSuite) TestShow() {
 		res, shownWilt := test.ShowWorkItemLinkTypeOK(t, nil, nil, s.linkTypeCtrl, wilt.ID, nil, nil)
 		// then
 		safeOverriteHeader(t, res, app.ETag, "IGos54TQC8+mZ70zZAWQQg==")
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "ok.golden.json"), shownWilt)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "ok.headers.golden.json"), res.Header())
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "ok.golden.json"), shownWilt)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "ok.headers.golden.json"), res.Header())
 		// spew.Dump(res.Header())
 		assertResponseHeaders(t, res)
 	})
@@ -79,8 +76,8 @@ func (s *workItemLinkTypeSuite) TestShow() {
 		res, shownWilt := test.ShowWorkItemLinkTypeOK(t, nil, nil, s.linkTypeCtrl, wilt.ID, &ifModifiedSinceHeader, nil)
 		// then
 		safeOverriteHeader(t, res, app.ETag, "IGos54TQC8+mZ70zZAWQQg==")
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "ok_using_expired_ifmodifiedsince_header.golden.json"), shownWilt)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "ok_using_expired_ifmodifiedsince_header.headers.golden.json"), res.Header())
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "ok_using_expired_ifmodifiedsince_header.golden.json"), shownWilt)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "ok_using_expired_ifmodifiedsince_header.headers.golden.json"), res.Header())
 		assertResponseHeaders(t, res)
 	})
 
@@ -90,8 +87,8 @@ func (s *workItemLinkTypeSuite) TestShow() {
 		res, shownWilt := test.ShowWorkItemLinkTypeOK(t, nil, nil, s.linkTypeCtrl, wilt.ID, nil, &ifNoneMatch)
 		// then
 		safeOverriteHeader(t, res, app.ETag, "IGos54TQC8+mZ70zZAWQQg==")
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "ok_using_expired_ifnonematch_header.golden.json"), shownWilt)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "ok_using_expired_ifnonematch_header.headers.golden.json"), res.Header())
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "ok_using_expired_ifnonematch_header.golden.json"), shownWilt)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "ok_using_expired_ifnonematch_header.headers.golden.json"), res.Header())
 		assertResponseHeaders(t, res)
 	})
 
@@ -101,7 +98,7 @@ func (s *workItemLinkTypeSuite) TestShow() {
 		res := test.ShowWorkItemLinkTypeNotModified(t, nil, nil, s.linkTypeCtrl, wilt.ID, &ifModifiedSinceHeader, nil)
 		// then
 		safeOverriteHeader(t, res, app.ETag, "IGos54TQC8+mZ70zZAWQQg==")
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "not_modified_using_ifmodifiedsince_header.headers.golden.json"), res.Header())
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "not_modified_using_ifmodifiedsince_header.headers.golden.json"), res.Header())
 		assertResponseHeaders(t, res)
 	})
 
@@ -111,14 +108,14 @@ func (s *workItemLinkTypeSuite) TestShow() {
 		res := test.ShowWorkItemLinkTypeNotModified(t, nil, nil, s.linkTypeCtrl, wilt.ID, nil, &ifNoneMatch)
 		// then
 		safeOverriteHeader(t, res, app.ETag, "IGos54TQC8+mZ70zZAWQQg==")
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "not_modified_using_ifnonematch_header.headers.golden.json"), res.Header())
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "not_modified_using_ifnonematch_header.headers.golden.json"), res.Header())
 		assertResponseHeaders(t, res)
 	})
 
 	s.T().Run("not found", func(t *testing.T) {
 		res, jerrs := test.ShowWorkItemLinkTypeNotFound(t, nil, nil, s.linkTypeCtrl, uuid.FromStringOrNil("303badca-ea6b-440d-a964-1c925a174969"), nil, nil)
 		// then
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "not_found.headers.golden.json"), res.Header())
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "not_found.golden.json"), jerrs)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "not_found.headers.golden.json"), res.Header())
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "not_found.golden.json"), jerrs)
 	})
 }

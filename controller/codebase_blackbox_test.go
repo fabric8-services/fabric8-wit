@@ -112,8 +112,6 @@ func MockShowTenant() func(context.Context) (*tenant.TenantSingle, error) {
 }
 
 func (s *CodebaseControllerTestSuite) TestShowCodebase() {
-	resetFn := s.DisableGormCallbacks()
-	defer resetFn()
 
 	s.T().Run("success without stackId", func(t *testing.T) {
 		// given
@@ -123,7 +121,7 @@ func (s *CodebaseControllerTestSuite) TestShowCodebase() {
 		_, result := test.ShowCodebaseOK(t, svc.Context, svc, ctrl, fxt.Codebases[0].ID)
 		// then
 		require.NotNil(t, result)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "ok_without_stackId.golden.json"), result)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "ok_without_stackId.golden.json"), result)
 	})
 
 	s.T().Run("success with stackId", func(t *testing.T) {
@@ -137,13 +135,11 @@ func (s *CodebaseControllerTestSuite) TestShowCodebase() {
 		_, result := test.ShowCodebaseOK(t, svc.Context, svc, ctrl, fxt.Codebases[0].ID)
 		// then
 		require.NotNil(t, result)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "ok_with_stackId.golden.json"), result)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "ok_with_stackId.golden.json"), result)
 	})
 }
 
 func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
-	resetFn := s.DisableGormCallbacks()
-	defer resetFn()
 
 	s.T().Run("OK", func(t *testing.T) {
 		// given

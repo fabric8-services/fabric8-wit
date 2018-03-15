@@ -21,7 +21,7 @@ var spaceTemplate = a.Type("SpaceTemplate", func() {
 
 var spaceTemplateAttributes = a.Type("SpaceTemplateAttributes", func() {
 	a.Description(`JSONAPI store for all the "attributes" of a space template. See also see http://jsonapi.org/format/#document-resource-object-attributes`)
-	a.Attribute("name", d.String, "name of the space template", func() {
+	a.Attribute("name", d.String, mandatoryOnCreate("name of the space template"), func() {
 		a.Example("Issue Tracking")
 		a.MaxLength(62) // maximum space name length is 62 characters
 		a.MinLength(1)  // minimum space name length is 1 characters

@@ -99,8 +99,8 @@ func (t WorkItemLinkType) Equal(u convert.Equaler) bool {
 	return true
 }
 
-// CheckValidForCreation returns an error if the work item link type
-// cannot be used for the creation of a new work item link type.
+// CheckValidForCreation returns an error if the work item link type cannot be
+// used for the creation of a new work item link type.
 func (t *WorkItemLinkType) CheckValidForCreation() error {
 	if t.Name == "" {
 		return errors.NewBadParameterError("name", t.Name)
