@@ -134,7 +134,6 @@ func (s *typeRepoBlackBoxTest) TestLoad() {
 		// then
 		require.NoError(t, err)
 		require.NotNil(t, typ)
-		require.Equal(t, *fxt.WorkItemLinkTypes[0], *typ)
 		require.True(t, fxt.WorkItemLinkTypes[0].Equal(*typ))
 	})
 	s.T().Run("not found", func(t *testing.T) {
@@ -174,7 +173,6 @@ func (s *typeRepoBlackBoxTest) TestCreate() {
 		// check that loaded type is equal as well
 		loadedType, err := s.typeRepo.Load(s.Ctx, createdType.ID)
 		require.NoError(t, err)
-		require.Equal(t, typ, *loadedType)
 		require.True(t, typ.Equal(*loadedType))
 	})
 	s.T().Run("unknown topology (bad parameter error)", func(t *testing.T) {
