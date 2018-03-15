@@ -94,8 +94,6 @@ func (rest *TestLabelREST) TestCreateLabelWithWhiteSpace() {
 }
 
 func (rest *TestLabelREST) TestUpdate() {
-	resetFn := rest.DisableGormCallbacks()
-	defer resetFn()
 
 	testFxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Labels(1))
 	svc := testsupport.ServiceAsUser("Label-Service", *testFxt.Identities[0])
@@ -121,8 +119,8 @@ func (rest *TestLabelREST) TestUpdate() {
 		}
 		resp, updated := test.UpdateLabelOK(t, svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Labels[0].ID, &payload)
 		assert.Equal(t, newName, *updated.Data.Attributes.Name)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "update", "ok.label.golden.json"), updated)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "update", "ok.headers.golden.json"), resp)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "ok.label.golden.json"), updated)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "ok.headers.golden.json"), resp)
 
 		_, labels2 := test.ShowLabelOK(t, svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Labels[0].ID, nil, nil)
 		assertLabelLinking(t, labels2.Data)
@@ -148,7 +146,7 @@ func (rest *TestLabelREST) TestUpdate() {
 		require.Contains(t, jerrs.Errors[0].Detail, "version conflict")
 		ignoreString := "IGNORE_ME"
 		jerrs.Errors[0].ID = &ignoreString
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "update", "conflict.errors.golden.json"), jerrs)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "conflict.errors.golden.json"), jerrs)
 	})
 
 	rest.T().Run("update label with bad parameter", func(t *testing.T) {
@@ -165,7 +163,7 @@ func (rest *TestLabelREST) TestUpdate() {
 		require.Contains(t, jerrs.Errors[0].Detail, "Bad value for parameter 'data.attributes.version'")
 		ignoreString := "IGNORE_ME"
 		jerrs.Errors[0].ID = &ignoreString
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "update", "badparam_version.errors.golden.json"), jerrs)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "badparam_version.errors.golden.json"), jerrs)
 	})
 
 	rest.T().Run("update label with bad parameter - name", func(t *testing.T) {
@@ -188,7 +186,7 @@ func (rest *TestLabelREST) TestUpdate() {
 		require.Contains(t, jerrs.Errors[0].Detail, "Bad value for parameter 'label name cannot be empty string'")
 		ignoreString := "IGNORE_ME"
 		jerrs.Errors[0].ID = &ignoreString
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "update", "badparam_name.errors.golden.json"), jerrs)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "badparam_name.errors.golden.json"), jerrs)
 	})
 
 	rest.T().Run("update label with unauthorized", func(t *testing.T) {
@@ -210,7 +208,7 @@ func (rest *TestLabelREST) TestUpdate() {
 		require.Contains(t, jerrs.Errors[0].Detail, "Missing token manager")
 		ignoreString := "IGNORE_ME"
 		jerrs.Errors[0].ID = &ignoreString
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "update", "unauthorized.errors.golden.json"), jerrs)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "unauthorized.errors.golden.json"), jerrs)
 	})
 	rest.T().Run("update label not found", func(t *testing.T) {
 		newName := "Label New 1002"

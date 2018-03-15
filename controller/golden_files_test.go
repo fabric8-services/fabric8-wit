@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/resource"
@@ -34,7 +35,7 @@ func compareWithGolden(t *testing.T, goldenFile string, actualObj interface{}) {
 	}
 }
 
-// compareWithGoldenUUIDAgnostic does the same as compareWithGolden but after
+// compareWithGoldenAgnostic does the same as compareWithGolden but after
 // marshalling the given objects to a JSON string it replaces UUIDs in both
 // strings (the golden file as well as in the actual object) before comparing
 // the two strings. This should make the comparison UUID agnostic without
@@ -42,14 +43,17 @@ func compareWithGolden(t *testing.T, goldenFile string, actualObj interface{}) {
 // UUID with a more generic "00000000-0000-0000-0000-000000000001",
 // "00000000-0000-0000-0000-000000000002", ...,
 // "00000000-0000-0000-0000-00000000000N" value.
-func compareWithGoldenUUIDAgnostic(t *testing.T, goldenFile string, actualObj interface{}) {
+//
+// In addition to UUID replacement, we also replace all RFC3339 time strings
+// with "0001-01-01T00:00:00Z".
+func compareWithGoldenAgnostic(t *testing.T, goldenFile string, actualObj interface{}) {
 	err := testableCompareWithGolden(*updateGoldenFiles, goldenFile, actualObj, true)
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
 }
 
-func testableCompareWithGolden(update bool, goldenFile string, actualObj interface{}, uuidAgnostic bool) error {
+func testableCompareWithGolden(update bool, goldenFile string, actualObj interface{}, agnostic bool) error {
 	absPath, err := filepath.Abs(goldenFile)
 	if err != nil {
 		return errs.WithStack(err)
@@ -68,10 +72,14 @@ func testableCompareWithGolden(update bool, goldenFile string, actualObj interfa
 		tmp := string(actual)
 		// Eliminate concrete UUIDs if requested. This makes adding changes to
 		// golden files much more easy in git.
-		if uuidAgnostic {
+		if agnostic {
 			tmp, err = replaceUUIDs(tmp)
 			if err != nil {
-				return errs.Wrapf(err, "failed to replace UUIDs with more generic ones")
+				return errs.Wrap(err, "failed to replace UUIDs with more generic ones")
+			}
+			tmp, err = replaceTimes(tmp)
+			if err != nil {
+				return errs.Wrap(err, "failed to replace RFC3339 times with default time")
 			}
 		}
 		err = ioutil.WriteFile(absPath, []byte(tmp), os.ModePerm)
@@ -86,14 +94,22 @@ func testableCompareWithGolden(update bool, goldenFile string, actualObj interfa
 
 	expectedStr := string(expected)
 	actualStr := string(actual)
-	if uuidAgnostic {
+	if agnostic {
 		expectedStr, err = replaceUUIDs(expectedStr)
 		if err != nil {
 			return errs.Wrapf(err, "failed to replace UUIDs with more generic ones")
 		}
+		expectedStr, err = replaceTimes(expectedStr)
+		if err != nil {
+			return errs.Wrap(err, "failed to replace RFC3339 times with default time")
+		}
 		actualStr, err = replaceUUIDs(actualStr)
 		if err != nil {
 			return errs.Wrapf(err, "failed to replace UUIDs with more generic ones")
+		}
+		actualStr, err = replaceTimes(actualStr)
+		if err != nil {
+			return errs.Wrap(err, "failed to replace RFC3339 times with default time")
 		}
 	}
 	if expectedStr != actualStr {
@@ -114,7 +130,7 @@ func findUUIDs(str string) ([]uuid.UUID, error) {
 	pattern := "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}"
 	uuidRegexp, err := regexp.Compile(pattern)
 	if err != nil {
-		return nil, errs.Wrapf(err, "failed to compile UUID regex pattern %s", pattern)
+		return nil, errs.Wrapf(err, "failed to compile UUID regex pattern: %s", pattern)
 	}
 	uniqIDs := map[uuid.UUID]struct{}{}
 	var res []uuid.UUID
@@ -150,7 +166,134 @@ func replaceUUIDs(str string) (string, error) {
 	return newStr, nil
 }
 
+// replaceTimes finds all RFC3339 times and RFC7232 (section 2.2) times in the
+// given string and replaces them with "0001-01-01T00:00:00Z" (for RFC3339) or
+// "Mon, 01 Jan 0001 00:00:00 GMT" (for RFC7232) respectively.
+func replaceTimes(str string) (string, error) {
+	year := "([0-9]+)"
+	month := "(0[1-9]|1[012])"
+	day := "(0[1-9]|[12][0-9]|3[01])"
+	datePattern := year + "-" + month + "-" + day
+
+	hour := "([01][0-9]|2[0-3])"
+	minute := "([0-5][0-9])"
+	second := "([0-5][0-9]|60)"
+	subSecond := "(\\.[0-9]+)?"
+	timePattern := hour + ":" + minute + ":" + second + subSecond
+
+	timeZoneOffset := "(([Zz])|([\\+|\\-]([01][0-9]|2[0-3]):[0-5][0-9]))"
+
+	pattern := datePattern + "[Tt]" + timePattern + timeZoneOffset
+
+	rfc3339Pattern, err := regexp.Compile(pattern)
+	if err != nil {
+		return "", errs.Wrapf(err, "failed to compile RFC3339 regex pattern: %s", pattern)
+	}
+	res := rfc3339Pattern.ReplaceAllString(str, `0001-01-01T00:00:00Z`)
+
+	dayName := "(Mon|Tue|Wed|Thu|Fri|Sat|Sun)"
+	day = "[0-9]{2}"
+	month = "(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)"
+	year = "[0-9]{4}"
+	hour = "([01][0-9]|2[0-3])"
+	minute = "([0-5][0-9])"
+	second = "([0-5][0-9]|60)"
+	pattern = dayName + ", " + day + " " + month + " " + year + " " + hour + ":" + minute + ":" + second + " GMT"
+
+	lastModifiedPattern, err := regexp.Compile(pattern)
+	if err != nil {
+		return "", errs.Wrapf(err, "failed to compile RFC7232 last-modified regex pattern: %s", pattern)
+	}
+
+	return lastModifiedPattern.ReplaceAllString(res, `Mon, 01 Jan 0001 00:00:00 GMT`), nil
+}
+
 const testInputStr = `
+{
+	"data": {
+		"attributes": {
+		"createdAt": "2017-04-21T04:38:26.777609Z",
+		"last_used_workspace": "my-last-used-workspace",
+		"type": "git",
+		"url": "https://github.com/fabric8-services/fabric8-wit.git"
+		},
+		"id": "d7a282f6-1c10-459e-bb44-55a1a6d48bdd",
+		"links": {
+		"edit": "http:///api/codebases/d7a282f6-1c10-459e-bb44-55a1a6d48bdd/edit",
+		"related": "http:///api/codebases/d7a282f6-1c10-459e-bb44-55a1a6d48bdd",
+		"self": "http:///api/codebases/d7a282f6-1c10-459e-bb44-55a1a6d48bdd"
+		},
+		"relationships": {
+		"space": {
+			"data": {
+			"id": "a8bee527-12d2-4aff-9823-3511c1c8e6b9",
+			"type": "spaces"
+			},
+			"links": {
+			"related": "http:///api/spaces/a8bee527-12d2-4aff-9823-3511c1c8e6b9",
+			"self": "http:///api/spaces/a8bee527-12d2-4aff-9823-3511c1c8e6b9"
+			}
+		}
+		},
+		"type": "codebases"
+	}
+}`
+
+const testUUIDOutputStr = `
+{
+	"data": {
+		"attributes": {
+		"createdAt": "2017-04-21T04:38:26.777609Z",
+		"last_used_workspace": "my-last-used-workspace",
+		"type": "git",
+		"url": "https://github.com/fabric8-services/fabric8-wit.git"
+		},
+		"id": "00000000-0000-0000-0000-000000000001",
+		"links": {
+		"edit": "http:///api/codebases/00000000-0000-0000-0000-000000000001/edit",
+		"related": "http:///api/codebases/00000000-0000-0000-0000-000000000001",
+		"self": "http:///api/codebases/00000000-0000-0000-0000-000000000001"
+		},
+		"relationships": {
+		"space": {
+			"data": {
+			"id": "00000000-0000-0000-0000-000000000002",
+			"type": "spaces"
+			},
+			"links": {
+			"related": "http:///api/spaces/00000000-0000-0000-0000-000000000002",
+			"self": "http:///api/spaces/00000000-0000-0000-0000-000000000002"
+			}
+		}
+		},
+		"type": "codebases"
+	}
+}`
+
+func TestGoldenFindUUIDs(t *testing.T) {
+	t.Parallel()
+	t.Run("find UUIDs", func(t *testing.T) {
+		t.Parallel()
+		ids, err := findUUIDs(testInputStr)
+		require.NoError(t, err)
+		require.Equal(t, []uuid.UUID{
+			uuid.FromStringOrNil("d7a282f6-1c10-459e-bb44-55a1a6d48bdd"),
+			uuid.FromStringOrNil("a8bee527-12d2-4aff-9823-3511c1c8e6b9"),
+		}, ids)
+	})
+}
+
+func TestGoldenReplaceUUIDs(t *testing.T) {
+	t.Parallel()
+	t.Run("replace UUIDs", func(t *testing.T) {
+		t.Parallel()
+		newStr, err := replaceUUIDs(testInputStr)
+		require.NoError(t, err)
+		require.Equal(t, testUUIDOutputStr, newStr)
+	})
+}
+
+const testTimesOutputStr = `
 {
 	"data": {
 		"attributes": {
@@ -181,76 +324,44 @@ const testInputStr = `
 	}
 }`
 
-const testOutputStr = `
-{
-	"data": {
-		"attributes": {
-		"createdAt": "0001-01-01T00:00:00Z",
-		"last_used_workspace": "my-last-used-workspace",
-		"type": "git",
-		"url": "https://github.com/fabric8-services/fabric8-wit.git"
-		},
-		"id": "00000000-0000-0000-0000-000000000001",
-		"links": {
-		"edit": "http:///api/codebases/00000000-0000-0000-0000-000000000001/edit",
-		"related": "http:///api/codebases/00000000-0000-0000-0000-000000000001",
-		"self": "http:///api/codebases/00000000-0000-0000-0000-000000000001"
-		},
-		"relationships": {
-		"space": {
-			"data": {
-			"id": "00000000-0000-0000-0000-000000000002",
-			"type": "spaces"
-			},
-			"links": {
-			"related": "http:///api/spaces/00000000-0000-0000-0000-000000000002",
-			"self": "http:///api/spaces/00000000-0000-0000-0000-000000000002"
-			}
-		}
-		},
-		"type": "codebases"
-	}
-}`
-
-func TestFindUUIDs(t *testing.T) {
+func TestGoldenReplaceTimes(t *testing.T) {
 	t.Parallel()
-	t.Run("find UUIDs", func(t *testing.T) {
+	t.Run("rfc3339", func(t *testing.T) {
 		t.Parallel()
-		ids, err := findUUIDs(testInputStr)
+		newStr, err := replaceTimes(testInputStr)
 		require.NoError(t, err)
-		require.Equal(t, []uuid.UUID{
-			uuid.FromStringOrNil("d7a282f6-1c10-459e-bb44-55a1a6d48bdd"),
-			uuid.FromStringOrNil("a8bee527-12d2-4aff-9823-3511c1c8e6b9"),
-		}, ids)
+		require.Equal(t, testTimesOutputStr, newStr)
+	})
+	t.Run("rfc7232", func(t *testing.T) {
+		t.Parallel()
+		//given
+		str := `"last-modified": "Thu, 15 Mar 2018 09:23:37 GMT",`
+		expected := `"last-modified": "Mon, 01 Jan 0001 00:00:00 GMT",`
+		// when
+		actual, err := replaceTimes(str)
+		// then
+		require.NoError(t, err)
+		require.Equal(t, expected, actual)
 	})
 }
 
-func TestReplaceUUIDs(t *testing.T) {
-	t.Parallel()
-	t.Run("replace UUIDs", func(t *testing.T) {
-		t.Parallel()
-		newStr, err := replaceUUIDs(testInputStr)
-		require.NoError(t, err)
-		require.Equal(t, testOutputStr, newStr)
-	})
-}
-
-func TestCompareWithGolden(t *testing.T) {
+func TestGoldenCompareWithGolden(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
 	type Foo struct {
-		ID  uuid.UUID
-		Bar string
+		ID        uuid.UUID
+		Bar       string
+		CreatedAt time.Time
 	}
 	dummy := Foo{Bar: "hello world", ID: uuid.NewV4()}
 
-	uuidAgnosticVals := []bool{false, true}
-	for _, uuidAgnostic := range uuidAgnosticVals {
+	agnosticVals := []bool{false, true}
+	for _, agnostic := range agnosticVals {
 		t.Run("file not found", func(t *testing.T) {
 			// given
 			f := "not_existing_file.golden.json"
 			// when
-			err := testableCompareWithGolden(false, f, dummy, uuidAgnostic)
+			err := testableCompareWithGolden(false, f, dummy, agnostic)
 			// then
 			require.Error(t, err)
 			_, isPathError := errs.Cause(err).(*os.PathError)
@@ -260,7 +371,7 @@ func TestCompareWithGolden(t *testing.T) {
 			// given
 			f := "not/existing/folder/file.golden.json"
 			// when
-			err := testableCompareWithGolden(true, f, dummy, uuidAgnostic)
+			err := testableCompareWithGolden(true, f, dummy, agnostic)
 			// then
 			// then double check that file exists and no error occurred
 			require.NoError(t, err)
@@ -272,11 +383,12 @@ func TestCompareWithGolden(t *testing.T) {
 			// given
 			f := "test-files/codebase/show/ok_without_auth.golden.json"
 			// when
-			err := testableCompareWithGolden(false, f, dummy, uuidAgnostic)
+			err := testableCompareWithGolden(false, f, dummy, agnostic)
 			// then
 			require.Error(t, err)
 			_, isPathError := errs.Cause(err).(*os.PathError)
 			require.False(t, isPathError)
+
 		})
 	}
 
@@ -293,13 +405,13 @@ func TestCompareWithGolden(t *testing.T) {
 		}()
 
 		t.Run("comparing with the same object", func(t *testing.T) {
-			t.Run("not UUID agnostic", func(t *testing.T) {
+			t.Run("not agnostic", func(t *testing.T) {
 				// when
 				err = testableCompareWithGolden(false, f, dummy, false)
 				// then
 				require.NoError(t, err)
 			})
-			t.Run("UUID agnostic", func(t *testing.T) {
+			t.Run("agnostic", func(t *testing.T) {
 				// when
 				err = testableCompareWithGolden(false, f, dummy, true)
 				// then
@@ -308,13 +420,28 @@ func TestCompareWithGolden(t *testing.T) {
 		})
 		t.Run("comparing with the same object but modified its UUID", func(t *testing.T) {
 			dummy.ID = uuid.NewV4()
-			t.Run("not UUID agnostic", func(t *testing.T) {
+			t.Run("not agnostic", func(t *testing.T) {
 				// when
 				err = testableCompareWithGolden(false, f, dummy, false)
 				// then
 				require.Error(t, err)
 			})
-			t.Run("UUID agnostic", func(t *testing.T) {
+			t.Run("agnostic", func(t *testing.T) {
+				// when
+				err = testableCompareWithGolden(false, f, dummy, true)
+				// then
+				require.NoError(t, err)
+			})
+		})
+		t.Run("comparing with the same object but modified its time", func(t *testing.T) {
+			dummy.CreatedAt = time.Now()
+			t.Run("not agnostic", func(t *testing.T) {
+				// when
+				err = testableCompareWithGolden(false, f, dummy, false)
+				// then
+				require.Error(t, err)
+			})
+			t.Run("agnostic", func(t *testing.T) {
 				// when
 				err = testableCompareWithGolden(false, f, dummy, true)
 				// then
