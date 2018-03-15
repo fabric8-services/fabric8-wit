@@ -827,9 +827,6 @@ func (s *linkRepoBlackBoxTest) TestAncestorList() {
 }
 
 func (s *linkRepoBlackBoxTest) TestListChildLinks() {
-	resetFn := s.DisableGormCallbacks()
-	defer resetFn()
-
 	s.T().Run("ok", func(t *testing.T) {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB,
