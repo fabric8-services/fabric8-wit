@@ -168,7 +168,6 @@ func (s *typeRepoBlackBoxTest) TestCreate() {
 		require.NoError(t, err)
 		require.NotNil(t, createdType)
 		require.Equal(t, id, createdType.ID)
-		require.Equal(t, typ, *createdType)
 		require.True(t, typ.Equal(*createdType))
 		// check that loaded type is equal as well
 		loadedType, err := s.typeRepo.Load(s.Ctx, createdType.ID)
