@@ -930,26 +930,28 @@ func (s *WorkItem2Suite) TestWI2UpdateWithNonExistentID() {
 	test.UpdateWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.workitemCtrl, id, s.minimumPayload)
 }
 
-func (s *WorkItem2Suite) TestWI2UpdateSetBaseType() {
-	c := minimumRequiredCreateWithType(workitem.SystemBug)
-	c.Data.Attributes[workitem.SystemTitle] = "Test title"
-	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-
-	_, created := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, &c)
-	assert.Equal(s.T(), created.Data.Relationships.BaseType.Data.ID, workitem.SystemBug)
+func (s *WorkItem2Suite) TestWI2UpdateSetReadOnlyFields() {
+	// given
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(1), tf.WorkItemTypes(2))
 
 	u := minimumRequiredUpdatePayload()
 	u.Data.Attributes[workitem.SystemTitle] = "Test title"
-	u.Data.Attributes["version"] = created.Data.Attributes["version"]
-	u.Data.ID = created.Data.ID
+	u.Data.Attributes["version"] = fxt.WorkItems[0].Version
+	u.Data.Attributes[workitem.SystemNumber] = fxt.WorkItems[0].Number + 666
+	u.Data.ID = &fxt.WorkItems[0].ID
 	u.Data.Relationships = &app.WorkItemRelationships{
-		BaseType: newRelationBaseType(space.SystemSpace, workitem.SystemExperience),
+		BaseType: newRelationBaseType(fxt.Spaces[0].ID, fxt.WorkItemTypes[1].ID),
 	}
 
-	_, newWi := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *s.wi.ID, &u)
+	// when
+	_, updatedWI := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *s.wi.ID, &u)
 
-	// Ensure the type wasn't updated
-	require.Equal(s.T(), workitem.SystemBug, newWi.Data.Relationships.BaseType.Data.ID)
+	s.T().Run("ensure type was not updated", func(t *testing.T) {
+		require.Equal(t, workitem.SystemBug, updatedWI.Data.Relationships.BaseType.Data.ID)
+	})
+	s.T().Run("ensure number was not updated", func(t *testing.T) {
+		require.Equal(t, fxt.WorkItems[0].Number, updatedWI.Data.Attributes[workitem.SystemNumber])
+	})
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateOnlyLegacyDescription() {

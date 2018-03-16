@@ -116,13 +116,16 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to access the space"))
 	}
 	result := application.Transactional(c.db, func(appl application.Application) error {
-		// Type changes of WI are not allowed which is why we overwrite it the
-		// type with the old one after the WI has been converted.
+		// The Number and Type of a work item are not allowed to be changed
+		// which is why we overwrite it the those values with their old value
+		// after the work item was converted.
+		oldNumber := wi.Number
 		oldType := wi.Type
 		err = ConvertJSONAPIToWorkItem(ctx, ctx.Method, appl, *ctx.Payload.Data, wi, wi.SpaceID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
+		wi.Number = oldNumber
 		wi.Type = oldType
 		wi, err = appl.WorkItems().Save(ctx, wi.SpaceID, *wi, *currentUserIdentityID)
 		if err != nil {
