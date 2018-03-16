@@ -15,6 +15,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	"github.com/goadesign/goa"
@@ -86,8 +87,10 @@ func (rest *TestSpaceAreaREST) setupAreas() (area.Area, []uuid.UUID, []area.Area
 	*/
 	var createdAreas []area.Area
 	var createdAreaUuids []uuid.UUID
-	sp, parentArea := createSpaceAndArea(rest.T(), rest.DB)
-	createdAreas = append(createdAreas, parentArea)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Spaces(1), tf.Areas(1))
+	sp := fxt.Spaces[0]
+	parentArea := fxt.Areas[0]
+	createdAreas = append(createdAreas, *parentArea)
 	createdAreaUuids = append(createdAreaUuids, parentArea.ID)
 	parentID := parentArea.ID
 	ci := newCreateChildAreaPayload("TestListAreas  A")
@@ -110,8 +113,8 @@ func (rest *TestSpaceAreaREST) setupAreas() (area.Area, []uuid.UUID, []area.Area
 	assert.Equal(rest.T(), newParentID, *created.Data.Relationships.Parent.Data.ID)
 	assert.Contains(rest.T(), *created.Data.Relationships.Children.Links.Self, "children")
 	createdAreaUuids = append(createdAreaUuids, *created.Data.ID)
-	createdAreas = append(createdAreas, ConvertAreaToModel(*created))
-	return parentArea, createdAreaUuids, createdAreas
+	createdAreas = append(createdAreas, convertAreaToModel(*created))
+	return *parentArea, createdAreaUuids, createdAreas
 }
 
 func assertSpaceAreas(t *testing.T, areaList *app.AreaList, createdAreaUuids []uuid.UUID) {

@@ -1973,7 +1973,7 @@ func (s *WorkItem2Suite) TestWI2FailOnDelete() {
 
 func (s *WorkItem2Suite) TestWI2CreateWithArea() {
 	// given
-	_, areaInstance := createSpaceAndArea(s.T(), s.DB)
+	areaInstance := tf.NewTestFixture(s.T(), s.DB, tf.Areas(1)).Areas[0]
 	areaID := areaInstance.ID.String()
 	arType := area.APIStringTypeAreas
 	// when
@@ -1999,7 +1999,7 @@ func (s *WorkItem2Suite) TestWI2CreateWithArea() {
 
 func (s *WorkItem2Suite) TestWI2UpdateWithArea() {
 	// given
-	_, areaInstance := createSpaceAndArea(s.T(), s.DB)
+	areaInstance := tf.NewTestFixture(s.T(), s.DB, tf.Areas(1)).Areas[0]
 	areaID := areaInstance.ID.String()
 	arType := area.APIStringTypeAreas
 	c := minimumRequiredCreatePayload()
@@ -2046,7 +2046,9 @@ func (s *WorkItem2Suite) TestWI2UpdateWithArea() {
 
 func (s *WorkItem2Suite) TestWI2UpdateWithRootAreaIfMissing() {
 	// given
-	testSpace, rootArea := createSpaceAndArea(s.T(), s.DB)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1), tf.Areas(1))
+	testSpace := fxt.Spaces[0]
+	rootArea := fxt.Areas[0]
 	log.Info(nil, nil, "creating child area...")
 	childArea := area.Area{
 		Name:    "Child Area of " + rootArea.Name,

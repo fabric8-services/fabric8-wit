@@ -15,13 +15,10 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
-	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/resource"
-	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/goadesign/goa"
-	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -64,7 +61,9 @@ func (rest *TestAreaREST) TestCreateChildArea() {
 	rest.T().Run("Success", func(t *testing.T) {
 		t.Run("OK", func(t *testing.T) {
 			// given
-			sp, parentArea := createSpaceAndArea(t, rest.DB)
+			fxt := tf.NewTestFixture(t, rest.DB, tf.Spaces(1), tf.Areas(1))
+			sp := fxt.Spaces[0]
+			parentArea := fxt.Areas[0]
 			parentID := parentArea.ID
 			ca := newCreateChildAreaPayload("TestSuccessCreateChildArea")
 			owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
@@ -93,7 +92,9 @@ func (rest *TestAreaREST) TestCreateChildArea() {
 				TestAreaREST ---> TestSuccessCreateMultiChildArea-0 ----> TestSuccessCreateMultiChildArea-0-0
 			*/
 			// given
-			sp, parentArea := createSpaceAndArea(t, rest.DB)
+			fxt := tf.NewTestFixture(t, rest.DB, tf.Spaces(1), tf.Areas(1))
+			sp := fxt.Spaces[0]
+			parentArea := fxt.Areas[0]
 			parentID := parentArea.ID
 			ca := newCreateChildAreaPayload("TestSuccessCreateMultiChildArea-0")
 			owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
@@ -120,7 +121,9 @@ func (rest *TestAreaREST) TestCreateChildArea() {
 
 	rest.T().Run("Failure", func(t *testing.T) {
 		// given
-		sp, parentArea := createSpaceAndArea(t, rest.DB)
+		fxt := tf.NewTestFixture(t, rest.DB, tf.Spaces(1), tf.Areas(1))
+		sp := fxt.Spaces[0]
+		parentArea := fxt.Areas[0]
 		parentID := parentArea.ID
 		childAreaPayload := newCreateChildAreaPayload(uuid.NewV4().String())
 		owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
@@ -164,7 +167,7 @@ func (rest *TestAreaREST) TestCreateChildArea() {
 func (rest *TestAreaREST) TestShowArea() {
 	rest.T().Run("Success", func(t *testing.T) {
 		// Setup
-		_, a := createSpaceAndArea(t, rest.DB)
+		a := tf.NewTestFixture(t, rest.DB, tf.Areas(1)).Areas[0]
 		svc, ctrl := rest.SecuredController()
 		t.Run("OK", func(t *testing.T) {
 			// when
@@ -249,11 +252,13 @@ func (rest *TestAreaREST) createChildArea(name string, parent area.Area, svc *go
 
 func (rest *TestAreaREST) TestShowChildrenArea() {
 	// Setup
-	sp, parentArea := createSpaceAndArea(rest.T(), rest.DB)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Spaces(1), tf.Areas(1))
+	sp := fxt.Spaces[0]
+	parentArea := fxt.Areas[0]
 	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
 	require.NoError(rest.T(), err)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
-	childArea := rest.createChildArea("TestShowChildrenArea", parentArea, svc, ctrl)
+	childArea := rest.createChildArea("TestShowChildrenArea", *parentArea, svc, ctrl)
 	rest.T().Run("Success", func(t *testing.T) {
 		t.Run("OK", func(t *testing.T) {
 			res, result := test.ShowChildrenAreaOK(rest.T(), svc.Context, svc, ctrl, parentArea.ID.String(), nil, nil)
@@ -309,21 +314,4 @@ func newCreateChildAreaPayload(name string) *app.CreateChildAreaPayload {
 			},
 		},
 	}
-}
-
-func createSpaceAndArea(t *testing.T, db *gorm.DB) (space.Space, area.Area) {
-	fxt := tf.NewTestFixture(t, db,
-		tf.Identities(1, tf.SetIdentityUsernames("new-space-owner-identity")),
-		tf.Spaces(1, func(fxt *tf.TestFixture, idx int) error {
-			fxt.Spaces[idx].Name = "Test Space-" + uuid.NewV4().String()
-			fxt.Spaces[idx].OwnerID = fxt.Identities[idx].ID
-			return nil
-		}), tf.Areas(1, func(fxt *tf.TestFixture, idx int) error {
-			fxt.Areas[idx].Name = "Area-" + uuid.NewV4().String()
-			fxt.Areas[idx].SpaceID = fxt.Spaces[idx].ID
-			return nil
-		}),
-	)
-	log.Info(nil, nil, "Space and root area created")
-	return *fxt.Spaces[0], *fxt.Areas[0]
 }
