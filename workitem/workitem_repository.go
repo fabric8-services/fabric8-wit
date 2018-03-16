@@ -670,6 +670,9 @@ func ConvertWorkItemStorageToModel(wiType *WorkItemType, wi *WorkItemStorage) (*
 	if _, ok := wiType.Fields[SystemOrder]; ok {
 		result.Fields[SystemOrder] = wi.ExecutionOrder
 	}
+	if _, ok := wiType.Fields[SystemNumber]; ok {
+		result.Fields[SystemNumber] = wi.Number
+	}
 	return result, nil
 
 }
