@@ -932,7 +932,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithNonExistentID() {
 
 func (s *WorkItem2Suite) TestWI2UpdateSetReadOnlyFields() {
 	// given
-	fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(1), tf.WorkItemTypes(2))
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1), tf.WorkItemTypes(2))
 
 	u := minimumRequiredUpdatePayload()
 	u.Data.Attributes[workitem.SystemTitle] = "Test title"
@@ -944,10 +944,10 @@ func (s *WorkItem2Suite) TestWI2UpdateSetReadOnlyFields() {
 	}
 
 	// when
-	_, updatedWI := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *s.wi.ID, &u)
+	_, updatedWI := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[0].ID, &u)
 
 	s.T().Run("ensure type was not updated", func(t *testing.T) {
-		require.Equal(t, workitem.SystemBug, updatedWI.Data.Relationships.BaseType.Data.ID)
+		require.Equal(t, fxt.WorkItemTypes[0].ID, updatedWI.Data.Relationships.BaseType.Data.ID)
 	})
 	s.T().Run("ensure number was not updated", func(t *testing.T) {
 		require.Equal(t, fxt.WorkItems[0].Number, updatedWI.Data.Attributes[workitem.SystemNumber])
