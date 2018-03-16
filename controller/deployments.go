@@ -259,11 +259,15 @@ func (g *defaultClientGetter) GetKubeClient(ctx context.Context) (kubernetes.Kub
 		return nil, errs.Wrap(err, "could not retrieve namespace name")
 	}
 
+	// TODO replace with configurable timeout
+	const timeout time.Duration = 30 * time.Second
+
 	// create the cluster API client
 	kubeConfig := &kubernetes.KubeClientConfig{
 		ClusterURL:    kubeURL,
 		BearerToken:   kubeToken,
 		UserNamespace: *kubeNamespaceName,
+		Timeout:       timeout,
 	}
 	kc, err := kubernetes.NewKubeClient(kubeConfig)
 	if err != nil {

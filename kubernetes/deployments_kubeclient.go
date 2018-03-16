@@ -15,7 +15,6 @@ import (
 	resource "k8s.io/apimachinery/pkg/api/resource"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
-	kubernetes "k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	v1 "k8s.io/client-go/pkg/api/v1"
 	rest "k8s.io/client-go/rest"
@@ -88,6 +87,11 @@ type kubeClient struct {
 // KubeRESTAPI collects methods that call out to the Kubernetes API server over the network
 type KubeRESTAPI interface {
 	corev1.CoreV1Interface
+}
+
+type kubeAPIClient struct {
+	corev1.CoreV1Interface
+	restConfig *rest.Config
 }
 
 // OpenShiftRESTAPI collects methods that call out to the OpenShift API server over the network
@@ -190,17 +194,21 @@ func (*defaultGetter) GetKubeRESTAPI(config *KubeClientConfig) (KubeRESTAPI, err
 		BearerToken: config.BearerToken,
 		Timeout:     config.Timeout,
 	}
-	clientset, err := kubernetes.NewForConfig(restConfig)
+	coreV1Client, err := corev1.NewForConfig(restConfig)
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
-	return clientset.CoreV1(), nil
+	client := &kubeAPIClient{
+		CoreV1Interface: coreV1Client,
+		restConfig:      restConfig,
+	}
+	return client, nil
 }
 
 func (*defaultGetter) GetOpenShiftRESTAPI(config *KubeClientConfig) (OpenShiftRESTAPI, error) {
 	// Equivalent to http.DefaultClient with added timeout
 	httpClient := &http.Client{
-		Timeout: config.Timeout, // TODO test timeouts with whitebox tests
+		Timeout: config.Timeout,
 	}
 	client := &openShiftAPIClient{
 		config:     config,
