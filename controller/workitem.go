@@ -115,13 +115,16 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to access the space"))
 	}
 	result := application.Transactional(c.db, func(appl application.Application) error {
-		// Type changes of WI are not allowed which is why we overwrite it the
-		// type with the old one after the WI has been converted.
+		// The Number and Type of a work item are not allowed to be changed
+		// which is why we overwrite those values with their old value after the
+		// work item was converted.
+		oldNumber := wi.Number
 		oldType := wi.Type
 		err = ConvertJSONAPIToWorkItem(ctx, ctx.Method, appl, *ctx.Payload.Data, wi, wi.SpaceID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
+		wi.Number = oldNumber
 		wi.Type = oldType
 		wi, err = appl.WorkItems().Save(ctx, wi.SpaceID, *wi, *currentUserIdentityID)
 		if err != nil {
@@ -359,8 +362,9 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 	}
 
 	for key, val := range source.Attributes {
-		// convert legacy description to markup content
-		if key == workitem.SystemDescription {
+		switch key {
+		case workitem.SystemDescription:
+			// convert legacy description to markup content
 			if m := rendering.NewMarkupContentFromValue(val); m != nil {
 				// if no description existed before, set the new one
 				if target.Fields[key] == nil {
@@ -372,7 +376,7 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 					target.Fields[key] = existingDescription
 				}
 			}
-		} else if key == workitem.SystemDescriptionMarkup {
+		case workitem.SystemDescriptionMarkup:
 			markup := val.(string)
 			// if no description existed before, set the markup in a new one
 			if target.Fields[workitem.SystemDescription] == nil {
@@ -383,14 +387,14 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 				existingDescription.Markup = markup
 				target.Fields[workitem.SystemDescription] = existingDescription
 			}
-		} else if key == workitem.SystemCodebase {
-			if m, err := codebase.NewCodebaseContentFromValue(val); err == nil {
-				setupCodebase(appl, m, spaceID)
-				target.Fields[key] = *m
-			} else {
-				return err
+		case workitem.SystemCodebase:
+			m, err := codebase.NewCodebaseContentFromValue(val)
+			if err != nil {
+				return errs.Wrapf(err, "failed to create new codebase from value: %+v", val)
 			}
-		} else {
+			setupCodebase(appl, m, spaceID)
+			target.Fields[key] = *m
+		default:
 			target.Fields[key] = val
 		}
 	}
