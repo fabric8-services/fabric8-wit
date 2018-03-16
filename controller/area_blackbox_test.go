@@ -1,7 +1,6 @@
 package controller_test
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -61,13 +60,11 @@ func (rest *TestAreaREST) TestCreateChildArea() {
 	rest.T().Run("Success", func(t *testing.T) {
 		t.Run("OK", func(t *testing.T) {
 			// given
-			fxt := tf.NewTestFixture(t, rest.DB, tf.Spaces(1), tf.Areas(1))
-			sp := fxt.Spaces[0]
+			fxt := tf.NewTestFixture(t, rest.DB, tf.Identities(2), tf.Areas(1))
 			parentArea := fxt.Areas[0]
 			parentID := parentArea.ID
 			ca := newCreateChildAreaPayload("TestSuccessCreateChildArea")
-			owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
-			require.NoError(t, err)
+			owner := fxt.Identities[0]
 			svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 			// when
 			_, created := test.CreateChildAreaCreated(t, svc.Context, svc, ctrl, parentID.String(), ca)
@@ -77,12 +74,7 @@ func (rest *TestAreaREST) TestCreateChildArea() {
 			assert.Equal(t, parentID.String(), *created.Data.Relationships.Parent.Data.ID)
 
 			// try creating child area with different identity: should fail
-			otherIdentity := &account.Identity{
-				Username:     "non-space-owner-identity",
-				ProviderType: account.KeycloakIDP,
-			}
-			errInCreateOther := rest.db.Identities().Create(context.Background(), otherIdentity)
-			require.NoError(t, errInCreateOther)
+			otherIdentity := fxt.Identities[1]
 			svc, ctrl = rest.SecuredControllerWithIdentity(otherIdentity)
 			test.CreateChildAreaForbidden(t, svc.Context, svc, ctrl, parentID.String(), ca)
 		})
@@ -92,13 +84,11 @@ func (rest *TestAreaREST) TestCreateChildArea() {
 				TestAreaREST ---> TestSuccessCreateMultiChildArea-0 ----> TestSuccessCreateMultiChildArea-0-0
 			*/
 			// given
-			fxt := tf.NewTestFixture(t, rest.DB, tf.Spaces(1), tf.Areas(1))
-			sp := fxt.Spaces[0]
+			fxt := tf.NewTestFixture(t, rest.DB, tf.Areas(1))
 			parentArea := fxt.Areas[0]
 			parentID := parentArea.ID
 			ca := newCreateChildAreaPayload("TestSuccessCreateMultiChildArea-0")
-			owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
-			require.NoError(t, err)
+			owner := fxt.Identities[0]
 			svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 			// when
 			_, created := test.CreateChildAreaCreated(t, svc.Context, svc, ctrl, parentID.String(), ca)
@@ -121,13 +111,11 @@ func (rest *TestAreaREST) TestCreateChildArea() {
 
 	rest.T().Run("Failure", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(t, rest.DB, tf.Spaces(1), tf.Areas(1))
-		sp := fxt.Spaces[0]
+		fxt := tf.NewTestFixture(t, rest.DB, tf.Areas(1))
 		parentArea := fxt.Areas[0]
 		parentID := parentArea.ID
 		childAreaPayload := newCreateChildAreaPayload(uuid.NewV4().String())
-		owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
-		require.NoError(t, err)
+		owner := fxt.Identities[0]
 		svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 		t.Run("Duplicate Child Area", func(t *testing.T) {
 			// when
@@ -252,44 +240,42 @@ func (rest *TestAreaREST) createChildArea(name string, parent area.Area, svc *go
 
 func (rest *TestAreaREST) TestShowChildrenArea() {
 	// Setup
-	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Spaces(1), tf.Areas(1))
-	sp := fxt.Spaces[0]
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Areas(1))
 	parentArea := fxt.Areas[0]
-	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
-	require.NoError(rest.T(), err)
+	owner := fxt.Identities[0]
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	childArea := rest.createChildArea("TestShowChildrenArea", *parentArea, svc, ctrl)
 	rest.T().Run("Success", func(t *testing.T) {
 		t.Run("OK", func(t *testing.T) {
-			res, result := test.ShowChildrenAreaOK(rest.T(), svc.Context, svc, ctrl, parentArea.ID.String(), nil, nil)
-			assert.Equal(rest.T(), 1, len(result.Data))
-			assertResponseHeaders(rest.T(), res)
+			res, result := test.ShowChildrenAreaOK(t, svc.Context, svc, ctrl, parentArea.ID.String(), nil, nil)
+			assert.Equal(t, 1, len(result.Data))
+			assertResponseHeaders(t, res)
 		})
 		t.Run("Using ExpiredIfModifedSince Header", func(t *testing.T) {
 			ifModifiedSince := app.ToHTTPTime(parentArea.UpdatedAt.Add(-1 * time.Hour))
-			res, result := test.ShowChildrenAreaOK(rest.T(), svc.Context, svc, ctrl, parentArea.ID.String(), &ifModifiedSince, nil)
-			assert.Equal(rest.T(), 1, len(result.Data))
-			assertResponseHeaders(rest.T(), res)
+			res, result := test.ShowChildrenAreaOK(t, svc.Context, svc, ctrl, parentArea.ID.String(), &ifModifiedSince, nil)
+			assert.Equal(t, 1, len(result.Data))
+			assertResponseHeaders(t, res)
 		})
 
 		t.Run("Using ExpiredIfNoneMatch Header", func(t *testing.T) {
 			ifNoneMatch := "foo"
-			res, result := test.ShowChildrenAreaOK(rest.T(), svc.Context, svc, ctrl, parentArea.ID.String(), nil, &ifNoneMatch)
-			assert.Equal(rest.T(), 1, len(result.Data))
-			assertResponseHeaders(rest.T(), res)
+			res, result := test.ShowChildrenAreaOK(t, svc.Context, svc, ctrl, parentArea.ID.String(), nil, &ifNoneMatch)
+			assert.Equal(t, 1, len(result.Data))
+			assertResponseHeaders(t, res)
 		})
 
 		t.Run("Not Modified Using IfModifedSince Header", func(t *testing.T) {
 			ifModifiedSince := app.ToHTTPTime(*childArea.Data.Attributes.UpdatedAt)
-			res := test.ShowChildrenAreaNotModified(rest.T(), svc.Context, svc, ctrl, parentArea.ID.String(), &ifModifiedSince, nil)
-			assertResponseHeaders(rest.T(), res)
+			res := test.ShowChildrenAreaNotModified(t, svc.Context, svc, ctrl, parentArea.ID.String(), &ifModifiedSince, nil)
+			assertResponseHeaders(t, res)
 		})
 
 		t.Run("Not Modified IfNoneMatch Header", func(t *testing.T) {
 			modelChildArea := convertAreaToModel(*childArea)
 			ifNoneMatch := app.GenerateEntityTag(modelChildArea)
-			res := test.ShowChildrenAreaNotModified(rest.T(), svc.Context, svc, ctrl, parentArea.ID.String(), nil, &ifNoneMatch)
-			assertResponseHeaders(rest.T(), res)
+			res := test.ShowChildrenAreaNotModified(t, svc.Context, svc, ctrl, parentArea.ID.String(), nil, &ifNoneMatch)
+			assertResponseHeaders(t, res)
 		})
 	})
 }
