@@ -106,6 +106,12 @@ work_item_types:
         component_type:
           kind: label
       required: no
+    "system.number":
+      label: Number
+      description: The unique number that was given to this workitem within its space.
+      type:
+        kind: integer
+      required: no
 work_item_link_types:
 - id: "2CEA3C79-3B79-423B-90F4-1E59174C8F43"
   name: Blocker
