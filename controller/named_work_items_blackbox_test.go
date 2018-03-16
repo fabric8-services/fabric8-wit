@@ -4,16 +4,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabric8-services/fabric8-wit/account"
-	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
-	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
-	"github.com/fabric8-services/fabric8-wit/workitem"
-	"github.com/goadesign/goa"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -22,55 +18,31 @@ import (
 
 type TestNamedWorkItemsSuite struct {
 	gormtestsupport.DBTestSuite
-	db                 *gormapplication.GormDB
-	testIdentity       account.Identity
-	testSpace          app.Space
-	svc                *goa.Service
-	workitemsCtrl      *WorkitemsController
-	namedWorkItemsCtrl *NamedWorkItemsController
-	wi                 *app.WorkItemSingle
-	clean              func()
 }
 
 func TestNamedWorkItems(t *testing.T) {
 	suite.Run(t, &TestNamedWorkItemsSuite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
-func (s *TestNamedWorkItemsSuite) SetupTest() {
-	s.db = gormapplication.NewGormDB(s.DB)
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
-	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "TestUpdateWorkitemForSpaceCollaborator-"+uuid.NewV4().String(), "TestWI")
-	require.NoError(s.T(), err)
-	s.testIdentity = *testIdentity
-	s.svc = testsupport.ServiceAsSpaceUser("Collaborators-Service", s.testIdentity, &TestSpaceAuthzService{s.testIdentity, ""})
-	s.workitemsCtrl = NewWorkitemsController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-	s.namedWorkItemsCtrl = NewNamedWorkItemsController(s.svc, gormapplication.NewGormDB(s.DB))
-	s.testSpace = CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, s.testIdentity, "")
-}
-
-func (s *TestNamedWorkItemsSuite) TearDownTest() {
-	s.clean()
-}
-
-func (s *TestNamedWorkItemsSuite) createWorkItem() *app.WorkItemSingle {
-	payload := minimumRequiredCreateWithTypeAndSpace(workitem.SystemBug, *s.testSpace.ID)
-	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
-	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *s.testSpace.ID, &payload)
-	return wi
-}
-
-func (s *TestNamedWorkItemsSuite) TestLookupWorkItemByNamedSpaceAndNumberOK() {
+func (s *TestNamedWorkItemsSuite) TestShowNamedWorkItems() {
 	// given
-	wi := s.createWorkItem()
-	// when
-	res := test.ShowNamedWorkItemsTemporaryRedirect(s.T(), s.svc.Context, s.svc, s.namedWorkItemsCtrl, s.testIdentity.Username, *s.testSpace.Attributes.Name, wi.Data.Attributes[workitem.SystemNumber].(int))
-	// then
-	require.NotNil(s.T(), res.Header().Get("Location"))
-	assert.True(s.T(), strings.HasSuffix(res.Header().Get("Location"), "/workitems/"+wi.Data.ID.String()))
-}
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *fxt.Identities[0], &TestSpaceAuthzService{*fxt.Identities[0], ""})
+	namedWorkItemsCtrl := NewNamedWorkItemsController(svc, gormapplication.NewGormDB(s.DB))
 
-func (s *TestNamedWorkItemsSuite) TestLookupWorkItemByNamedSpaceAndNumberNotFound() {
-	// when/then
-	test.ShowNamedWorkItemsNotFound(s.T(), s.svc.Context, s.svc, s.namedWorkItemsCtrl, "foo", "bar", 0)
+	s.T().Run("ok", func(t *testing.T) {
+		// when
+		res := test.ShowNamedWorkItemsTemporaryRedirect(t, svc.Context, svc, namedWorkItemsCtrl, fxt.Identities[0].Username, fxt.Spaces[0].Name, fxt.WorkItems[0].Number)
+		// then
+		require.NotNil(t, res.Header().Get("Location"))
+		assert.True(t, strings.HasSuffix(res.Header().Get("Location"), "/workitems/"+fxt.WorkItems[0].ID.String()))
+	})
+	s.T().Run("not found", func(t *testing.T) {
+		// given
+		spaceName := uuid.NewV4().String()
+		username := uuid.NewV4().String()
+		wiNumber := 0
+		// when
+		test.ShowNamedWorkItemsNotFound(t, svc.Context, svc, namedWorkItemsCtrl, username, spaceName, wiNumber)
+	})
 }
