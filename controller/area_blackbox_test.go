@@ -244,8 +244,8 @@ func (rest *TestAreaREST) TestShowChildrenArea() {
 	parentArea := fxt.Areas[0]
 	owner := fxt.Identities[0]
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
-	childArea := rest.createChildArea("TestShowChildrenArea", *parentArea, svc, ctrl)
 	rest.T().Run("Success", func(t *testing.T) {
+		childArea := rest.createChildArea("TestShowChildrenArea", *parentArea, svc, ctrl)
 		t.Run("OK", func(t *testing.T) {
 			res, result := test.ShowChildrenAreaOK(t, svc.Context, svc, ctrl, parentArea.ID.String(), nil, nil)
 			assert.Equal(t, 1, len(result.Data))
@@ -276,6 +276,12 @@ func (rest *TestAreaREST) TestShowChildrenArea() {
 			ifNoneMatch := app.GenerateEntityTag(modelChildArea)
 			res := test.ShowChildrenAreaNotModified(t, svc.Context, svc, ctrl, parentArea.ID.String(), nil, &ifNoneMatch)
 			assertResponseHeaders(t, res)
+		})
+	})
+
+	rest.T().Run("Failure", func(t *testing.T) {
+		t.Run("Not Found", func(t *testing.T) {
+			test.ShowChildrenAreaNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String(), nil, nil)
 		})
 	})
 }
