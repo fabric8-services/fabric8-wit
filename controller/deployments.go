@@ -259,6 +259,9 @@ func (g *defaultClientGetter) GetKubeClient(ctx context.Context) (kubernetes.Kub
 		return nil, errs.Wrap(err, "could not retrieve namespace name")
 	}
 
+	/* Timeout used per HTTP request to Kubernetes/OpenShift API servers.
+	 * Communication with Hawkular currently uses a hard-coded 30 second
+	 * timeout per request, and does not use this parameter. */
 	// TODO replace with configurable timeout
 	const timeout time.Duration = 30 * time.Second
 
