@@ -10,7 +10,7 @@ objects:
       service: core
     name: core
   spec:
-    replicas: ${REPLICAS}
+    replicas: ${{REPLICAS}}
     selector:
       service: core
     strategy:
