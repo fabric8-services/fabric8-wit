@@ -198,3 +198,8 @@ objects:
 parameters:
 - name: IMAGE_TAG
   value: latest
+- description: Number of deployment replicas
+  displayName: Number of deployment replicas
+  required: true
+  name: REPLICAS
+  value: "1"  
