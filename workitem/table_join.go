@@ -34,6 +34,10 @@ type TableJoin struct {
 	// On is the ON part of the JOIN.
 	On string // e.g. `fields@> concat('{"system.iteration": "', iter.ID, '"}')::jsonb`
 
+	// Where defines what condition to place in the main WHERE clause of the
+	// query final query.
+	Where string
+
 	// PrefixActivators can hold a number of prefix strings that cause this join
 	// object to be activated.
 	PrefixActivators []string // e.g. []string{"iteration."}
@@ -57,6 +61,10 @@ type TableJoin struct {
 	// looks like. If you ask for "A" and that requires "B", then "B" is also
 	// added automatically.
 	ActivateOtherJoins []string
+
+	// All prefixes in the map keys that would normally be handled by this join
+	// will be handled by the join specified here (if any).
+	DelegateTo map[string]*TableJoin
 
 	// TODO(kwk): Maybe introduce a column mapping table here: ColumnMapping map[string]string
 }
@@ -112,6 +120,7 @@ func (j *TableJoin) TranslateFieldName(fieldName string) (string, error) {
 	for _, t := range j.PrefixActivators {
 		if strings.HasPrefix(fieldName, t) {
 			prefix = t
+			break
 		}
 	}
 	col := strings.TrimPrefix(fieldName, prefix)
@@ -127,17 +136,32 @@ func (j *TableJoin) TranslateFieldName(fieldName string) (string, error) {
 
 	// now we have the final column name
 
+	// Check if this field should be handled by another one table join
+	delegator := j
+	for prefix, dele := range j.DelegateTo {
+		if strings.HasPrefix(fieldName, prefix) {
+			if dele == nil {
+				return "", errs.Errorf(`delegated join "%s" for field "%s" must not point to nil`, prefix, fieldName)
+			}
+			delegator = dele
+			// ensure the other join is active (just to be safe) if it
+			// wasn't activated yet.
+			delegator.Active = true
+			break
+		}
+	}
+
 	// if no columns are explicitly allowed, then this column is allowed by
 	// default.
-	columnIsAllowed := (j.AllowedColumns == nil || len(j.AllowedColumns) == 0)
-	for _, c := range j.AllowedColumns {
+	columnIsAllowed := (delegator.AllowedColumns == nil || len(delegator.AllowedColumns) == 0)
+	for _, c := range delegator.AllowedColumns {
 		if c == col {
 			columnIsAllowed = true
 			break
 		}
 	}
 	// check if a column is explicitly disallowed
-	for _, c := range j.DisallowedColumns {
+	for _, c := range delegator.DisallowedColumns {
 		if c == col {
 			columnIsAllowed = false
 			break
@@ -149,9 +173,9 @@ func (j *TableJoin) TranslateFieldName(fieldName string) (string, error) {
 
 	// Remember what foreign columns where queried for. Later we can use
 	// Validate() to see if those columns do exist or not.
-	j.HandledFields = append(j.HandledFields, col)
+	delegator.HandledFields = append(delegator.HandledFields, col)
 
-	return Column(j.TableAlias, col), nil
+	return Column(delegator.TableAlias, col), nil
 }
 
 // TableJoinMap is used to store join in the expression compiler
@@ -182,5 +206,63 @@ func (joins *TableJoinMap) ActivateRequiredJoins() error {
 			}
 		}
 	}
+	return nil
+}
+
+// GetOrderdActivatedJoins returns a slice of activated joins in a proper order,
+// beginning with the join that activates no other join, and ending with the
+// join that activates another join but isn't activated by another join itself.
+func (joins *TableJoinMap) GetOrderdActivatedJoins() ([]*TableJoin, error) {
+	if err := joins.ActivateRequiredJoins(); err != nil {
+		return nil, errs.Wrap(err, "failed to get activate required joins")
+	}
+
+	orderer := activationOrderer{
+		m:              *joins,
+		alreadyVisited: map[*TableJoin]struct{}{},
+	}
+
+	for name := range *joins {
+		if err := orderer.visitDepthFirst(name); err != nil {
+			return nil, errs.Wrapf(err, `failed to visit "%s" join`, name)
+		}
+	}
+	return orderer.orderedActivatedJoins, nil
+}
+
+type activationOrderer struct {
+	m                     TableJoinMap
+	alreadyVisited        map[*TableJoin]struct{}
+	orderedActivatedJoins []*TableJoin
+}
+
+func (o *activationOrderer) visitDepthFirst(name string) error {
+	j, ok := o.m[name]
+	if !ok {
+		return errs.Errorf(`join "%s" not found`, name)
+	}
+
+	_, alreadyVisited := o.alreadyVisited[j]
+	if alreadyVisited {
+		return nil
+	}
+
+	o.alreadyVisited[j] = struct{}{}
+
+	if !j.Active {
+		return nil
+	}
+
+	for _, subJoinName := range j.ActivateOtherJoins {
+		if err := o.visitDepthFirst(subJoinName); err != nil {
+			return errs.Errorf(`failed to visit "%s" join`, subJoinName)
+		}
+	}
+
+	if o.orderedActivatedJoins == nil {
+		o.orderedActivatedJoins = []*TableJoin{}
+	}
+	o.orderedActivatedJoins = append(o.orderedActivatedJoins, j)
+
 	return nil
 }

@@ -305,6 +305,9 @@ AUTH_IMAGE_TAG ?= latest
 AUTH_IMAGE_URL=$(AUTH_IMAGE_DEFAULT):$(AUTH_IMAGE_TAG)
 
 .PHONY: dev-wit-openshift
+## Starts minishift and creates/uses a project named wit-openshift
+## Deploys DB, DB-AUTH, AUTH services from minishift/kedge/*.yml
+## Runs WIT service on local machine
 dev-wit-openshift: prebuild-check deps generate $(FRESH_BIN)
 	minishift start
 	./check_hosts.sh
@@ -320,6 +323,7 @@ dev-wit-openshift: prebuild-check deps generate $(FRESH_BIN)
 	$(FRESH_BIN)
 
 .PHONY: dev-wit-openshift-clean
+## Removes the project created by `make dev-wit-openshift`
 dev-wit-openshift-clean:
 	-eval `minishift oc-env` &&  oc login -u developer -p developer && oc delete project wit-openshift --force
 
@@ -338,8 +342,13 @@ $(INSTALL_PREFIX):
 $(TMP_PATH):
 	mkdir -p $(TMP_PATH)
 
+.PHONY: show-info
+show-info:
+	$(call log-info,"$(shell go version)")
+	$(call log-info,"$(shell go env)")
+
 .PHONY: prebuild-check
-prebuild-check: $(TMP_PATH) $(INSTALL_PREFIX) $(CHECK_GOPATH_BIN) check-glide-version
+prebuild-check: $(TMP_PATH) $(INSTALL_PREFIX) $(CHECK_GOPATH_BIN) show-info check-glide-version
 # Check that all tools where found
 ifndef GIT_BIN
 	$(error The "$(GIT_BIN_NAME)" executable could not be found in your PATH)

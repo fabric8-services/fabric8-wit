@@ -30,8 +30,6 @@ func TestRunFiltersREST(t *testing.T) {
 }
 
 func (rest *TestFiltersREST) TestListFiltersOK() {
-	resetFn := rest.DisableGormCallbacks()
-	defer resetFn()
 
 	// given
 	svc := goa.New("filterService")
@@ -39,6 +37,6 @@ func (rest *TestFiltersREST) TestListFiltersOK() {
 	// when
 	res, filters := test.ListFilterOK(rest.T(), svc.Context, svc, ctrl)
 	// then
-	compareWithGolden(rest.T(), filepath.Join("test-files", "filter", "list", "list_available_filters.golden.json"), filters)
+	compareWithGoldenAgnostic(rest.T(), filepath.Join("test-files", "filter", "list", "list_available_filters.golden.json"), filters)
 	assertResponseHeaders(rest.T(), res)
 }

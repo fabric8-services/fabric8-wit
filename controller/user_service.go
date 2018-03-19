@@ -14,7 +14,7 @@ import (
 type UserServiceController struct {
 	*goa.Controller
 	UpdateTenant func(context.Context) error
-	CleanTenant  func(context.Context) error
+	CleanTenant  func(context.Context, bool) error
 	ShowTenant   func(context.Context) (*tenant.TenantSingle, error)
 }
 
@@ -31,7 +31,7 @@ func (c *UserServiceController) Update(ctx *app.UpdateUserServiceContext) error 
 
 // Clean runs the clean action.
 func (c *UserServiceController) Clean(ctx *app.CleanUserServiceContext) error {
-	err := c.CleanTenant(ctx)
+	err := c.CleanTenant(ctx, ctx.Remove)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
