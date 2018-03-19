@@ -1711,7 +1711,7 @@ func (up *testURLProvider) GetAPIToken() *string {
 	return &up.apiToken
 }
 
-func (up *testURLProvider) GetMetricsToken() *string {
+func (up *testURLProvider) GetMetricsToken(envNS string) *string {
 	return &up.clusterToken
 }
 

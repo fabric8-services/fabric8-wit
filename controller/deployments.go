@@ -44,20 +44,17 @@ type ClientGetter interface {
 
 // Default implementation of KubeClientGetter and OSIOClientGetter used by NewDeploymentsController
 type defaultClientGetter struct {
-	config            *configuration.Registry
-	OpenshiftProxyURL string
-	osioClient        OpenshiftIOClient
+	config     *configuration.Registry
+	osioClient OpenshiftIOClient
 }
 
 // NewDeploymentsController creates a deployments controller.
 func NewDeploymentsController(service *goa.Service, config *configuration.Registry) *DeploymentsController {
-	osproxy := config.GetOpenshiftProxyURL()
 	return &DeploymentsController{
 		Controller: service.NewController("DeploymentsController"),
 		Config:     config,
 		ClientGetter: &defaultClientGetter{
-			config:            config,
-			OpenshiftProxyURL: osproxy,
+			config: config,
 		},
 	}
 }
@@ -151,8 +148,6 @@ func (g *defaultClientGetter) getNamespaceName(ctx context.Context) (*string, er
 // GetKubeClient creates a kube client for the appropriate cluster assigned to the current user
 func (g *defaultClientGetter) GetKubeClient(ctx context.Context) (kubernetes.KubeClientInterface, error) {
 
-	kubeURL := g.OpenshiftProxyURL
-
 	kubeNamespaceName, err := g.getNamespaceName(ctx)
 	if err != nil {
 		return nil, errs.Wrap(err, "could not retrieve namespace name")
@@ -175,10 +170,11 @@ func (g *defaultClientGetter) GetKubeClient(ctx context.Context) (kubernetes.Kub
 	}
 	kc, err := kubernetes.NewKubeClient(kubeConfig)
 	if err != nil {
+		url, _ := baseURLProvider.GetAPIURL()
 		log.Error(ctx, map[string]interface{}{
 			"err":            err,
 			"user_namespace": *kubeNamespaceName,
-			"cluster":        kubeURL,
+			"cluster":        *url,
 		}, "could not create Kubernetes client object")
 		return nil, errs.Wrap(err, "could not create Kubernetes client object")
 	}
@@ -315,7 +311,8 @@ func (c *DeploymentsController) ShowDeploymentStats(ctx *app.ShowDeploymentStats
 
 	deploymentStats, err := kc.GetDeploymentStats(*kubeSpaceName, ctx.AppName, ctx.DeployName, startTime)
 	if err != nil {
-		return errors.NewInternalError(ctx, errs.Wrapf(err, "could not retrieve deployment statistics for %s", ctx.DeployName))
+		//return errors.NewInternalError(ctx, errs.Wrapf(err, "could not retrieve deployment statistics for deployment '%s'", ctx.DeployName))
+		return err
 	}
 	if deploymentStats == nil {
 		return errors.NewNotFoundError("deployment", ctx.DeployName)

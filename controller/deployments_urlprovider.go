@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/auth"
 	"github.com/fabric8-services/fabric8-wit/auth/authservice"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/kubernetes"
@@ -30,6 +31,9 @@ type tenantURLProvider struct {
 	apiToken   string
 	tenant     *app.UserService
 	namespaces map[string]*app.NamespaceAttributes
+	tokens     map[string]string
+	authClient *authservice.Client
+	context    context.Context
 }
 
 // ensure tenantURLProvider implements BaseURLProvider
@@ -50,7 +54,23 @@ func NewURLProvider(ctx context.Context, config *configuration.Registry, osiocli
 	token := goajwt.ContextJWT(ctx).Raw
 	proxyURL := config.GetOpenshiftProxyURL()
 
-	return newTenantURLProviderFromTenant(userServices, token, proxyURL)
+	up, err := newTenantURLProviderFromTenant(userServices, token, proxyURL)
+	if err != nil {
+		return nil, err
+	}
+
+	// create Auth API client - rewuired to get OSO tokens
+	authClient, err := auth.CreateClient(ctx, config)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "error accessing Auth server")
+		return nil, errs.Wrap(err, "error creating Auth client")
+	}
+	up.authClient = authClient
+	up.context = ctx
+
+	return up, nil
 }
 
 // newTenantURLProviderFromTenant create a provider from a UserService object
@@ -97,6 +117,7 @@ func newTenantURLProviderFromTenant(t *app.UserService, token string, proxyURL s
 		apiToken:   token,
 		tenant:     t,
 		namespaces: namespaceMap,
+		authClient: nil,
 	}
 	return provider, nil
 }
@@ -106,16 +127,28 @@ func NewTenantURLProviderFromTenant(t *app.UserService, token string, proxyURL s
 	return newTenantURLProviderFromTenant(t, token, proxyURL)
 }
 
-func (up *tenantURLProvider) GetAPIToken() *string {
-	return &up.apiToken
+func (up *tenantURLProvider) GetAPIToken() (*string, error) {
+	return &up.apiToken, nil
 }
 
-func (up *tenantURLProvider) GetMetricsToken() *string {
-	return &up.apiToken
+func (up *tenantURLProvider) GetAPIURL() (*string, error) {
+	// TODO this may be different for every namespace if no proxy
+	return &up.apiURL, nil
 }
 
-func (up *tenantURLProvider) GetAPIURL() string {
-	return up.apiURL
+func (up *tenantURLProvider) GetMetricsToken(envNS string) (*string, error) {
+	// since metrics bypasses the proxy, this is the OSO cluster token
+	token := up.tokens[envNS]
+	if len(token) == 0 {
+		ns := up.namespaces[envNS]
+
+		tokenData, err := up.getTokenData(*ns.ClusterURL)
+		if err != nil {
+			return nil, err
+		}
+		token = *tokenData.AccessToken
+	}
+	return &token, nil
 }
 
 func (up *tenantURLProvider) GetConsoleURL(envNS string) (*string, error) {
@@ -158,26 +191,29 @@ func (up *tenantURLProvider) GetLoggingURL(envNS string, deployName string) (*st
 	return &loggingURL, nil
 }
 
-func (up *tenantURLProvider) GetMetricsURL() (*string, error) {
+func (up *tenantURLProvider) GetMetricsURL(envNS string) (*string, error) {
+	ns := up.namespaces[envNS]
+	if ns == nil {
+		return nil, errs.Errorf("Namespace '%s' is not in tenant '%s'", envNS, *up.tenant.ID)
+	}
 
-	// this code should be migrated to take an envNS instead of using namespaces[0]
-	metricsURL := up.tenant.Attributes.Namespaces[0].ClusterMetricsURL
-	if metricsURL == nil || len(*metricsURL) == 0 {
+	baseURL := ns.ClusterMetricsURL
+	if baseURL == nil || len(*baseURL) == 0 {
 		// In the absence of a better way (i.e. tenant) to get the user's metrics URL,
 		// substitute "api" with "metrics" in user's cluster URL
-		mu, err := modifyURL(*up.tenant.Attributes.Namespaces[0].ClusterURL, "metrics", "")
+		mu, err := modifyURL(*ns.ClusterURL, "metrics", "")
 		if err != nil {
 			return nil, err
 		}
 		muStr := mu.String()
-		metricsURL = &muStr
+		baseURL = &muStr
 	}
-	return metricsURL, nil
+	return baseURL, nil
 }
 
-func getTokenData(ctx context.Context, authClient authservice.Client, forService string) (*authservice.TokenData, error) {
+func (up *tenantURLProvider) getTokenData(forService string) (*authservice.TokenData, error) {
 
-	resp, err := authClient.RetrieveToken(ctx, authservice.RetrieveTokenPath(), forService, nil)
+	resp, err := up.authClient.RetrieveToken(up.context, authservice.RetrieveTokenPath(), forService, nil)
 	if err != nil {
 		return nil, errs.Wrapf(err, "unable to retrieve Auth token for '%s' service", forService)
 	}

@@ -180,7 +180,7 @@ func TestTenantGetAPIToken(t *testing.T) {
 func TestTenantGetDefaultMetricsToken(t *testing.T) {
 	p, err := getDefaultTenantProvider()
 	require.NoError(t, err)
-	require.Equal(t, defaultAPIToken, *p.GetMetricsToken(), "GetMetricsToken() did not default to API token")
+	require.Equal(t, defaultAPIToken, *p.GetMetricsToken("somenamespace"), "GetMetricsToken() did not default to API token")
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
