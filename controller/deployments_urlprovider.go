@@ -70,6 +70,16 @@ func NewURLProvider(ctx context.Context, config *configuration.Registry, osiocli
 	up.authClient = authClient
 	up.context = ctx
 
+	// if we're not using a proxy then the API URL is actually the cluster of namespace 0,
+	// so the apiToken should be the token for that cluster.
+	// there should be no defaults, but that's deferred later
+	if len(proxyURL) == 0 {
+		tokenData, err := up.getTokenData(up.apiURL)
+		if err != nil {
+			return nil, err
+		}
+		up.apiToken = *tokenData.AccessToken
+	}
 	return up, nil
 }
 
