@@ -100,6 +100,8 @@ func NewMetricsClient(config *MetricsClientConfig) (Metrics, error) {
 }
 
 func (*defaultGetter) GetHawkularRESTAPI(config *MetricsClientConfig) (HawkularRESTAPI, error) {
+	// Hawkular client uses a hard-coded timeout of 30s. See:
+	// https://github.com/hawkular/hawkular-client-go/blob/3ec6f27f0d339f9aee02ee4ad545581e52b40e19/metrics/client.go#L43
 	params := hawkular.Parameters{
 		Url:   config.MetricsURL,
 		Token: config.BearerToken,
