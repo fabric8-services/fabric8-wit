@@ -1072,8 +1072,6 @@ func (s *searchControllerTestSuite) TestSearchByJoinedData() {
 
 // TestIncludedParents verifies the Included list of parents
 func (s *searchControllerTestSuite) TestIncludedParents() {
-	resetFn := s.DisableGormCallbacks()
-	defer resetFn()
 
 	fxt := tf.NewTestFixture(s.T(), s.DB,
 		tf.WorkItems(5, tf.SetWorkItemTitles("A", "B", "C", "D", "E")),
@@ -1140,7 +1138,7 @@ func (s *searchControllerTestSuite) TestIncludedParents() {
 				// then
 				require.NotEmpty(t, result.Data)
 				assert.Len(t, result.Data, len(searchForTitles))
-				compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", strings.Replace("in topology A-B-C and A-D search for", " ", "_", -1), strings.Replace(testName+".res.golden.json", " ", "_", -1)), result)
+				compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", strings.Replace("in topology A-B-C and A-D search for", " ", "_", -1), strings.Replace(testName+".res.golden.json", " ", "_", -1)), result)
 
 				// test what's included in the "data" portion of the response
 				for _, wi := range result.Data {
@@ -1233,8 +1231,6 @@ func (s *searchControllerTestSuite) TestIncludedParents() {
 }
 
 func (s *searchControllerTestSuite) TestIncludedChildren() {
-	resetFn := s.DisableGormCallbacks()
-	defer resetFn()
 
 	// Suppose we have this topology:
 	//
@@ -1324,7 +1320,7 @@ func (s *searchControllerTestSuite) TestIncludedChildren() {
 			require.Empty(t, toBeFound, "failed to find these work items: %s", toBeFound.ToString(", ", func(ID uuid.UUID) string {
 				return fxt.WorkItemByID(ID).Fields[workitem.SystemTitle].(string)
 			}))
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", testFolder, "include_children.res.payload.golden.json"), result)
+			compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", testFolder, "include_children.res.payload.golden.json"), result)
 		})
 
 		t.Run("B,C with tree-view = false", func(t *testing.T) {
@@ -1348,14 +1344,12 @@ func (s *searchControllerTestSuite) TestIncludedChildren() {
 				return fxt.WorkItemByID(ID).Fields[workitem.SystemTitle].(string)
 			}))
 			// check "included" section
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", testFolder, "do_not_include_children.res.payload.golden.json"), result)
+			compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", testFolder, "do_not_include_children.res.payload.golden.json"), result)
 		})
 	})
 }
 
 func (s *searchControllerTestSuite) TestUpdateWorkItem() {
-	resetFn := s.DisableGormCallbacks()
-	defer resetFn()
 
 	s.T().Run("assignees", func(t *testing.T) {
 		// given
@@ -1386,10 +1380,10 @@ func (s *searchControllerTestSuite) TestUpdateWorkItem() {
 				wi.Attributes[workitem.SystemTitle] = "Updated Test WI"
 				payload2 := app.UpdateWorkitemPayload{Data: wi}
 				_, updated := test.UpdateWorkitemOK(t, s.svc.Context, s.svc, workitemCtrl, *wi.ID, &payload2)
-				compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "filter_assignee_null_update_work_item.golden.json"), updated)
+				compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "filter_assignee_null_update_work_item.golden.json"), updated)
 
 				_, result = test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
-				compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "filter_assignee_null_show_after_update_work_item.golden.json"), updated)
+				compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "filter_assignee_null_show_after_update_work_item.golden.json"), updated)
 				assert.Nil(s.T(), result.Data[0].Attributes[workitem.SystemAssignees])
 
 			})
@@ -1424,10 +1418,10 @@ func (s *searchControllerTestSuite) TestUpdateWorkItem() {
 				wi.Attributes[workitem.SystemTitle] = "Updated Test WI"
 				payload2 := app.UpdateWorkitemPayload{Data: wi}
 				_, updated := test.UpdateWorkitemOK(t, s.svc.Context, s.svc, workitemCtrl, *wi.ID, &payload2)
-				compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "filter_label_null_update_work_item.golden.json"), updated)
+				compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "filter_label_null_update_work_item.golden.json"), updated)
 
 				_, result = test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, nil)
-				compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "filter_label_null_show_after_update_work_item.golden.json"), updated)
+				compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "filter_label_null_show_after_update_work_item.golden.json"), updated)
 				assert.Nil(s.T(), result.Data[0].Attributes[workitem.SystemLabels])
 			})
 		})
@@ -1435,8 +1429,6 @@ func (s *searchControllerTestSuite) TestUpdateWorkItem() {
 }
 
 func (s *searchControllerTestSuite) TestSearchCodebases() {
-	resetFn := s.DisableGormCallbacks()
-	defer resetFn()
 
 	s.T().Run("Single match", func(t *testing.T) {
 		// given
@@ -1452,7 +1444,7 @@ func (s *searchControllerTestSuite) TestSearchCodebases() {
 		require.NotNil(t, codebaseList)
 		require.NotNil(t, codebaseList.Data)
 		require.Len(t, codebaseList.Data, 1)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "search_codebase_per_url_single_match.json"), codebaseList)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "search_codebase_per_url_single_match.json"), codebaseList)
 	})
 
 	s.T().Run("Multi-match", func(t *testing.T) {
@@ -1478,7 +1470,7 @@ func (s *searchControllerTestSuite) TestSearchCodebases() {
 		sort.Sort(SortableCodebasesByID(codebaseList.Data))
 		// for included spaces, we must sort the spaces by their ID
 		sort.Sort(SortableIncludedSpacesByID(codebaseList.Included))
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "search_codebase_per_url_multi_match.json"), codebaseList)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "search_codebase_per_url_multi_match.json"), codebaseList)
 	})
 }
 
