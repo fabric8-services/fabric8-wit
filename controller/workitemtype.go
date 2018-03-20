@@ -49,10 +49,10 @@ func NewWorkitemtypeController(service *goa.Service, db application.DB, config W
 
 // Show runs the show action.
 func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err := application.Transactional(c.db, func(appl application.Application) error {
 		witModel, err := appl.WorkItemTypes().Load(ctx.Context, ctx.SpaceID, ctx.WitID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		return ctx.ConditionalRequest(*witModel, c.config.GetCacheControlWorkItemType, func() error {
 			witData := ConvertWorkItemTypeFromModel(ctx.Request, witModel)
@@ -60,6 +60,10 @@ func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 			return ctx.OK(wit)
 		})
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }
 
 // Create runs the create action.
@@ -68,10 +72,10 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 	if err != nil {
 		jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err = application.Transactional(c.db, func(appl application.Application) error {
 		space, err := appl.Spaces().Load(ctx, ctx.SpaceID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		if !uuid.Equal(*currentUserIdentityID, space.OwnerID) {
 			log.Warn(ctx, map[string]interface{}{
@@ -79,7 +83,7 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 				"space_owner":  space.OwnerID,
 				"current_user": *currentUserIdentityID,
 			}, "user is not the space owner")
-			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the space owner"))
+			return errors.NewForbiddenError("user is not the space owner")
 		}
 		var fields = map[string]app.FieldDefinition{}
 		for key, fd := range ctx.Payload.Data.Attributes.Fields {
@@ -93,7 +97,7 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 		}
 		modelFields, err := ConvertFieldDefinitionsToModel(fields)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		witTypeModel, err := appl.WorkItemTypes().Create(
 			ctx.Context,
@@ -105,13 +109,17 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 			ctx.Payload.Data.Attributes.Icon,
 			modelFields)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		witData := ConvertWorkItemTypeFromModel(ctx.Request, witTypeModel)
 		wit := &app.WorkItemTypeSingle{Data: &witData}
 		ctx.ResponseData.Header().Set("Location", app.WorkitemtypeHref(*ctx.Payload.Data.Relationships.Space.Data.ID, wit.Data.ID))
 		return ctx.Created(wit)
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }
 
 // List runs the list action
@@ -121,10 +129,10 @@ func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Could not parse paging"))
 	}
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err = application.Transactional(c.db, func(appl application.Application) error {
 		witModelsOrig, err := appl.WorkItemTypes().List(ctx.Context, ctx.SpaceID, start, &limit)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work item types"))
+			return errs.Wrap(err, "Error listing work item types")
 		}
 		// Remove "planneritem" from the list of WITs
 		witModels := []workitem.WorkItemType{}
@@ -139,7 +147,7 @@ func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
 			if len(witModels) == 0 {
 				witModels, err = appl.WorkItemTypes().List(ctx.Context, space.SystemSpace, start, &limit)
 				if err != nil {
-					return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work item types"))
+					return errs.Wrap(err, "Error listing work item types")
 				}
 			}
 			// convert from model to app
@@ -152,6 +160,10 @@ func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
 			return ctx.OK(result)
 		})
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }
 
 // ConvertWorkItemTypeFromModel converts from models to app representation

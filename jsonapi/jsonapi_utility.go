@@ -141,33 +141,33 @@ type Conflict interface {
 // JSONErrorResponse auto maps the provided error to the correct response type
 // If all else fails, InternalServerError is returned
 func JSONErrorResponse(obj interface{}, err error) error {
-	x := obj.(InternalServerError)
-	c := obj.(context.Context)
-
-	jsonErr, status := ErrorToJSONAPIErrors(c, err)
+	ctx := obj.(context.Context)
+	jsonErr, status := ErrorToJSONAPIErrors(ctx, err)
 	switch status {
 	case http.StatusBadRequest:
-		if ctx, ok := x.(BadRequest); ok {
-			return errs.WithStack(ctx.BadRequest(jsonErr))
+		if ctx, ok := ctx.(BadRequest); ok {
+			return ctx.BadRequest(jsonErr)
 		}
 	case http.StatusNotFound:
-		if ctx, ok := x.(NotFound); ok {
-			return errs.WithStack(ctx.NotFound(jsonErr))
+		if ctx, ok := ctx.(NotFound); ok {
+			return ctx.NotFound(jsonErr)
 		}
 	case http.StatusUnauthorized:
-		if ctx, ok := x.(Unauthorized); ok {
-			return errs.WithStack(ctx.Unauthorized(jsonErr))
+		if ctx, ok := ctx.(Unauthorized); ok {
+			return ctx.Unauthorized(jsonErr)
 		}
 	case http.StatusForbidden:
-		if ctx, ok := x.(Forbidden); ok {
-			return errs.WithStack(ctx.Forbidden(jsonErr))
+		if ctx, ok := ctx.(Forbidden); ok {
+			return ctx.Forbidden(jsonErr)
 		}
 	case http.StatusConflict:
-		if ctx, ok := x.(Conflict); ok {
-			return errs.WithStack(ctx.Conflict(jsonErr))
+		if ctx, ok := ctx.(Conflict); ok {
+			return ctx.Conflict(jsonErr)
 		}
 	default:
-		return errs.WithStack(x.InternalServerError(jsonErr))
+		if ctx, ok := ctx.(InternalServerError); ok {
+			return ctx.InternalServerError(jsonErr)
+		}
 	}
-	return nil
+	return err
 }

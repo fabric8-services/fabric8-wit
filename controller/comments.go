@@ -57,11 +57,10 @@ func NewNotifyingCommentsController(service *goa.Service, db application.DB, not
 
 // Show runs the show action.
 func (c *CommentsController) Show(ctx *app.ShowCommentsContext) error {
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err := application.Transactional(c.db, func(appl application.Application) error {
 		cmt, err := appl.Comments().Load(ctx, ctx.CommentID)
 		if err != nil {
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrUnauthorized(err.Error()))
-			return ctx.NotFound(jerrors)
+			return goa.ErrNotFound(err.Error())
 		}
 		return ctx.ConditionalRequest(*cmt, c.config.GetCacheControlComment, func() error {
 			res := &app.CommentSingle{}
@@ -77,6 +76,10 @@ func (c *CommentsController) Show(ctx *app.ShowCommentsContext) error {
 			return ctx.OK(res)
 		})
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }
 
 // Update does PATCH comment
@@ -105,7 +108,7 @@ func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
 		return nil
 	})
 	if err != nil {
-		return err
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	// User is allowed to update if user is creator of the comment OR user is a space collaborator
 	if !editorIsCreator {
@@ -130,15 +133,13 @@ func (c *CommentsController) performUpdate(ctx *app.UpdateCommentsContext, cm *c
 		cm.Markup = rendering.NilSafeGetMarkup(ctx.Payload.Data.Attributes.Markup)
 		err := appl.Comments().Save(ctx.Context, cm, *identityID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
-
 		// This code should change if others type of parents than WI are allowed
 		includeParentWorkItem, err := CommentIncludeParentWorkItem(ctx, appl, cm)
 		if err != nil {
 			return errors.NewNotFoundError("comment parentID", cm.ParentID.String())
 		}
-
 		res := &app.CommentSingle{
 			Data: ConvertComment(ctx.Request, *cm, includeParentWorkItem),
 		}
@@ -159,24 +160,25 @@ func (c *CommentsController) Delete(ctx *app.DeleteCommentsContext) error {
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		cm, err = appl.Comments().Load(ctx.Context, ctx.CommentID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		if *identityID == cm.Creator {
 			userIsCreator = true
 			return nil
 		}
 		wi, err = appl.WorkItems().LoadByID(ctx.Context, cm.ParentID)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
-		return nil
+		return err
 	})
 	if err != nil {
-		return err
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	// User is allowed to delete if user is creator of the comment OR user is a space collaborator
 	if userIsCreator {
-		return c.performDelete(ctx, cm, identityID)
+		err = c.performDelete(ctx, cm, identityID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		return ctx.OK([]byte{})
 	}
 
 	authorized, err := authz.Authorize(ctx, wi.SpaceID.String())
@@ -186,16 +188,16 @@ func (c *CommentsController) Delete(ctx *app.DeleteCommentsContext) error {
 	if !authorized {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not a space collaborator"))
 	}
-	return c.performDelete(ctx, cm, identityID)
+	err = c.performDelete(ctx, cm, identityID)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return ctx.OK([]byte{})
 }
 
 func (c *CommentsController) performDelete(ctx *app.DeleteCommentsContext, cm *comment.Comment, identityID *uuid.UUID) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		err := appl.Comments().Delete(ctx.Context, cm.ID, *identityID)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
-		return ctx.OK([]byte{})
+		return appl.Comments().Delete(ctx.Context, cm.ID, *identityID)
 	})
 }
 

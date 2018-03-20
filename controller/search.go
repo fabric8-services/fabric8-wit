@@ -149,23 +149,20 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 	search.RegisterAsKnownURL(search.HostRegistrationKeyForBoardWI, urlRegexString)
 
 	if ctx.FilterExpression != nil {
-		return application.Transactional(c.db, func(appl application.Application) error {
+		err := application.Transactional(c.db, func(appl application.Application) error {
 			result, cnt, ancestors, childLinks, err := appl.SearchItems().Filter(ctx.Context, *ctx.FilterExpression, ctx.FilterParentexists, &offset, &limit)
 			count := int(cnt)
 			if err != nil {
 				cause := errs.Cause(err)
 				switch cause.(type) {
 				case errors.BadParameterError:
-					jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx,
-						goa.ErrBadRequest(fmt.Sprintf("error listing work items for expression '%s': %s", *ctx.FilterExpression, err)))
-					return ctx.BadRequest(jerrors)
+					return goa.ErrBadRequest(fmt.Sprintf("error listing work items for expression '%s': %s", *ctx.FilterExpression, err))
 				default:
 					log.Error(ctx, map[string]interface{}{
 						"err":               err,
 						"filter_expression": *ctx.FilterExpression,
 					}, "unable to list the work items")
-					jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInternal(fmt.Sprintf("unable to list the work items: %s", err)))
-					return ctx.InternalServerError(jerrors)
+					return goa.ErrInternal(fmt.Sprintf("unable to list the work items: %s", err))
 				}
 			}
 
@@ -235,13 +232,15 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 
 			return ctx.OK(&response)
 		})
-
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		return nil
 	}
-	return application.Transactional(c.db, func(appl application.Application) error {
+
+	err := application.Transactional(c.db, func(appl application.Application) error {
 		if ctx.Q == nil || *ctx.Q == "" {
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx,
-				goa.ErrBadRequest("empty search query not allowed"))
-			return ctx.BadRequest(jerrors)
+			return goa.ErrBadRequest("empty search query not allowed")
 		}
 
 		result, c, err := appl.SearchItems().SearchFullText(ctx.Context, *ctx.Q, &offset, &limit, ctx.SpaceID)
@@ -254,15 +253,13 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 					"err":        err,
 					"expression": *ctx.Q,
 				}, "unable to list the work items")
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrBadRequest(fmt.Sprintf("error listing work items for expression: %s: %s", *ctx.Q, err)))
-				return ctx.BadRequest(jerrors)
+				return goa.ErrBadRequest(fmt.Sprintf("error listing work items for expression: %s: %s", *ctx.Q, err))
 			default:
 				log.Error(ctx, map[string]interface{}{
 					"err":        err,
 					"expression": *ctx.Q,
 				}, "unable to list the work items")
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInternal(fmt.Sprintf("unable to list the work items expression: %s: %s", *ctx.Q, err)))
-				return ctx.InternalServerError(jerrors)
+				return goa.ErrInternal(fmt.Sprintf("unable to list the work items expression: %s: %s", *ctx.Q, err))
 			}
 		}
 
@@ -275,6 +272,10 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 		setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(result), offset, limit, count, "q="+*ctx.Q)
 		return ctx.OK(&response)
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }
 
 // Spaces runs the space search action.
@@ -292,7 +293,7 @@ func (c *SearchController) Spaces(ctx *app.SpacesSearchContext) error {
 
 	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
 
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err = application.Transactional(c.db, func(appl application.Application) error {
 		var resultCount uint64
 		result, resultCount, err = appl.Spaces().Search(ctx, &q, &offset, &limit)
 		count = int(resultCount)
@@ -306,7 +307,7 @@ func (c *SearchController) Spaces(ctx *app.SpacesSearchContext) error {
 					"limit":  limit,
 					"err":    err,
 				}, "unable to list spaces")
-				return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(fmt.Sprintf("error listing spaces for expression: %s: %s", q, err)))
+				return goa.ErrBadRequest(fmt.Sprintf("error listing spaces for expression: %s: %s", q, err))
 			default:
 				log.Error(ctx, map[string]interface{}{
 					"query":  q,
@@ -314,13 +315,13 @@ func (c *SearchController) Spaces(ctx *app.SpacesSearchContext) error {
 					"limit":  limit,
 					"err":    err,
 				}, "unable to list spaces")
-				return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(fmt.Sprintf("unable to list spaces for expression: %s: %s", q, err)))
+				return goa.ErrInternal(fmt.Sprintf("unable to list spaces for expression: %s: %s", q, err))
 			}
 		}
 
 		spaceData, err := ConvertSpacesFromModel(ctx.Request, result, IncludeBacklogTotalCount(ctx.Context, c.db))
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		response := app.SearchSpaceList{
 			Links: &app.PagingLinks{},
@@ -331,6 +332,11 @@ func (c *SearchController) Spaces(ctx *app.SpacesSearchContext) error {
 
 		return ctx.OK(&response)
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
+
 }
 
 // Users runs the user search action.
@@ -387,7 +393,7 @@ func (c *SearchController) Codebases(ctx *app.CodebasesSearchContext) error {
 	}
 	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
 
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err := application.Transactional(c.db, func(appl application.Application) error {
 		matchingCodebases, totalCount, err := appl.Codebases().SearchByURL(ctx, ctx.URL, &offset, &limit)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
@@ -396,13 +402,7 @@ func (c *SearchController) Codebases(ctx *app.CodebasesSearchContext) error {
 				"limit":  limit,
 				"err":    err,
 			}, "unable to search codebases by URL")
-			cause := errs.Cause(err)
-			switch cause.(type) {
-			case errors.BadParameterError:
-				return jsonapi.JSONErrorResponse(ctx, err)
-			default:
-				return jsonapi.JSONErrorResponse(ctx, err)
-			}
+			return err
 		}
 		// look-up the spaces of the matching codebases
 		spaceIDs := make([]uuid.UUID, len(matchingCodebases))
@@ -411,14 +411,14 @@ func (c *SearchController) Codebases(ctx *app.CodebasesSearchContext) error {
 		}
 		relatedSpaces, err := appl.Spaces().LoadMany(ctx, spaceIDs)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		// put all related spaces and associated owners in the `included` data
 		includedData := make([]interface{}, len(relatedSpaces))
 		for i, relatedSpace := range relatedSpaces {
 			appSpace, err := ConvertSpaceFromModel(ctx.Request, relatedSpace)
 			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, err)
+				return err
 			}
 			includedData[i] = *appSpace
 		}
@@ -432,4 +432,8 @@ func (c *SearchController) Codebases(ctx *app.CodebasesSearchContext) error {
 		setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(matchingCodebases), offset, limit, totalCount, "url="+ctx.URL)
 		return ctx.OK(&response)
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }

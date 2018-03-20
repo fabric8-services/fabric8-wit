@@ -33,26 +33,29 @@ func (c *NamedspacesController) Show(ctx *app.ShowNamedspacesContext) error {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound("not found, spaceName=%v", ctx.SpaceName))
 	}
 
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err := application.Transactional(c.db, func(appl application.Application) error {
 		identity, err := loadKeyCloakIdentityByUserName(ctx, appl, ctx.UserName)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound("not found, userName=%v", ctx.UserName))
+			return goa.ErrNotFound("not found, userName=%v", ctx.UserName)
 		}
 		s, err := appl.Spaces().LoadByOwnerAndName(ctx.Context, &identity.ID, &ctx.SpaceName)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 
 		spaceData, err := ConvertSpaceFromModel(ctx.Request, *s, IncludeBacklogTotalCount(ctx.Context, c.db))
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		resp := app.SpaceSingle{
 			Data: spaceData,
 		}
-
 		return ctx.OK(&resp)
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }
 
 func (c *NamedspacesController) List(ctx *app.ListNamedspacesContext) error {
@@ -61,20 +64,20 @@ func (c *NamedspacesController) List(ctx *app.ListNamedspacesContext) error {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(fmt.Sprintf("not found, userName=%v", ctx.UserName)))
 	}
 
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err := application.Transactional(c.db, func(appl application.Application) error {
 		identity, err := loadKeyCloakIdentityByUserName(ctx, appl, ctx.UserName)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(fmt.Sprintf("not found, userName=%v. %v", ctx.UserName, err.Error())))
+			return goa.ErrNotFound(fmt.Sprintf("not found, userName=%v. %v", ctx.UserName, err.Error()))
 		}
 		spaces, totalCnt, err := appl.Spaces().LoadByOwner(ctx.Context, &identity.ID, &offset, &limit)
 		totalCount := int(totalCnt)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 
 		spaceData, err := ConvertSpacesFromModel(ctx.Request, spaces, IncludeBacklogTotalCount(ctx.Context, c.db))
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		response := app.SpaceList{
 			Links: &app.PagingLinks{},
@@ -85,6 +88,11 @@ func (c *NamedspacesController) List(ctx *app.ListNamedspacesContext) error {
 
 		return ctx.OK(&response)
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
+
 }
 
 func loadKeyCloakIdentityByUserName(ctx context.Context, appl application.Application, username string) (*account.Identity, error) {

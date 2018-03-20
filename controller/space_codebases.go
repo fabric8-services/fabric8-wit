@@ -40,14 +40,14 @@ func (c *SpaceCodebasesController) Create(ctx *app.CreateSpaceCodebasesContext) 
 		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data.attributes.url", nil).Expected("not nil"))
 	}
 
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err = application.Transactional(c.db, func(appl application.Application) error {
 		space, err := appl.Spaces().Load(ctx, ctx.SpaceID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 
 		if *identityID != space.OwnerID {
-			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the space owner"))
+			return errors.NewForbiddenError("user is not the space owner")
 		}
 
 		newCodeBase := codebase.Codebase{
@@ -58,7 +58,7 @@ func (c *SpaceCodebasesController) Create(ctx *app.CreateSpaceCodebasesContext) 
 		}
 		err = appl.Codebases().Create(ctx, &newCodeBase)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 
 		res := &app.CodebaseSingle{
@@ -67,15 +67,19 @@ func (c *SpaceCodebasesController) Create(ctx *app.CreateSpaceCodebasesContext) 
 		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.CodebaseHref(res.Data.ID)))
 		return ctx.Created(res)
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }
 
 // List runs the list action.
 func (c *SpaceCodebasesController) List(ctx *app.ListSpaceCodebasesContext) error {
 	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err := application.Transactional(c.db, func(appl application.Application) error {
 		err := appl.Spaces().CheckExists(ctx, ctx.SpaceID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 
 		res := &app.CodebaseList{}
@@ -84,7 +88,7 @@ func (c *SpaceCodebasesController) List(ctx *app.ListSpaceCodebasesContext) erro
 		codebases, tc, err := appl.Codebases().List(ctx, ctx.SpaceID, &offset, &limit)
 		count := int(tc)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+			return goa.ErrInternal(err.Error())
 		}
 		res.Meta = &app.CodebaseListMeta{TotalCount: count}
 		res.Data = ConvertCodebases(ctx.Request, codebases)
@@ -93,4 +97,8 @@ func (c *SpaceCodebasesController) List(ctx *app.ListSpaceCodebasesContext) erro
 
 		return ctx.OK(res)
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }

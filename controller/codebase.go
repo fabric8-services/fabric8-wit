@@ -55,17 +55,20 @@ func NewCodebaseController(service *goa.Service, db application.DB, config codeb
 
 // Show runs the show action.
 func (c *CodebaseController) Show(ctx *app.ShowCodebaseContext) error {
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err := application.Transactional(c.db, func(appl application.Application) error {
 		c, err := appl.Codebases().Load(ctx, ctx.CodebaseID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+			return goa.ErrNotFound(err.Error())
 		}
-
 		res := &app.CodebaseSingle{}
 		res.Data = ConvertCodebase(ctx.Request, *c)
-
 		return ctx.OK(res)
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
+
 }
 
 // Edit Deprecated: ListWorkspaces action should be used instead.
@@ -86,7 +89,7 @@ func (c *CodebaseController) ListWorkspaces(ctx *app.ListWorkspacesCodebaseConte
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		cb, err = appl.Codebases().Load(ctx, ctx.CodebaseID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+			return goa.ErrNotFound(err.Error())
 		}
 		return nil
 	})
@@ -228,15 +231,12 @@ func (c *CodebaseController) Create(ctx *app.CreateCodebaseContext) error {
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		cb, err = appl.Codebases().Load(ctx, ctx.CodebaseID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+			return goa.ErrNotFound(err.Error())
 		}
 		return nil
 	})
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
-	}
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	ns, err := c.getCheNamespace(ctx)
 	if err != nil {
@@ -304,15 +304,12 @@ func (c *CodebaseController) Open(ctx *app.OpenCodebaseContext) error {
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		cb, err = appl.Codebases().Load(ctx, ctx.CodebaseID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+			return goa.ErrNotFound(err.Error())
 		}
 		return nil
 	})
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
-	}
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	ns, err := c.getCheNamespace(ctx)
 	if err != nil {
@@ -343,10 +340,13 @@ func (c *CodebaseController) Open(ctx *app.OpenCodebaseContext) error {
 		cb.LastUsedWorkspace = ctx.WorkspaceID
 		_, err = appl.Codebases().Save(ctx, cb)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+			return goa.ErrNotFound(err.Error())
 		}
 		return nil
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+	}
 
 	ideURL := workspaceResp.GetHrefByRelOfWorkspaceLink(che.IdeUrlRel)
 	resp := &app.WorkspaceOpen{

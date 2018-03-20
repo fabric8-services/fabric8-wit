@@ -48,10 +48,10 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data.attributes.name", nil).Expected("not nil"))
 	}
 
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err = application.Transactional(c.db, func(appl application.Application) error {
 		s, err := appl.Spaces().Load(ctx, ctx.SpaceID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+			return goa.ErrNotFound(err.Error())
 		}
 		if !uuid.Equal(*currentUser, s.OwnerID) {
 			log.Warn(ctx, map[string]interface{}{
@@ -59,12 +59,12 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 				"space_owner":  s.OwnerID,
 				"current_user": *currentUser,
 			}, "user is not the space owner")
-			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the space owner"))
+			return errors.NewForbiddenError("user is not the space owner")
 		}
 		// Put iteration under root iteration
 		rootIteration, err := appl.Iterations().Root(ctx, ctx.SpaceID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+			return goa.ErrNotFound(err.Error())
 		}
 		childPath := append(rootIteration.Path, rootIteration.ID)
 		newItr := iteration.Iteration{
@@ -79,7 +79,7 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 		}
 		err = appl.Iterations().Create(ctx, &newItr)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		// For create, count will always be zero hence no need to query
 		// by passing empty map, updateIterationsWithCounts will be able to put zero values
@@ -94,7 +94,7 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 			allParentsUUIDs := newItr.Path
 			iterations, error := appl.Iterations().LoadMultiple(ctx, allParentsUUIDs)
 			if error != nil {
-				return jsonapi.JSONErrorResponse(ctx, err)
+				return err
 			}
 			itrMap := make(iterationIDMap)
 			for _, itr := range iterations {
@@ -110,18 +110,22 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.IterationHref(res.Data.ID)))
 		return ctx.Created(res)
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }
 
 // List runs the list action.
 func (c *SpaceIterationsController) List(ctx *app.ListSpaceIterationsContext) error {
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err := application.Transactional(c.db, func(appl application.Application) error {
 		err := appl.Spaces().CheckExists(ctx, ctx.SpaceID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		iterations, err := appl.Iterations().List(ctx, ctx.SpaceID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		return ctx.ConditionalEntities(iterations, c.config.GetCacheControlIterations, func() error {
 			itrMap := make(iterationIDMap)
@@ -136,11 +140,15 @@ func (c *SpaceIterationsController) List(ctx *app.ListSpaceIterationsContext) er
 			}, "Retrieving wicounts for spaceID %s -> %v", ctx.SpaceID.String(), wiCounts)
 
 			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, err)
+				return err
 			}
 			res := &app.IterationList{}
 			res.Data = ConvertIterations(ctx.Request, iterations, updateIterationsWithCounts(wiCounts), parentPathResolver(itrMap))
 			return ctx.OK(res)
 		})
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }

@@ -47,10 +47,10 @@ func (c *QueryController) Create(ctx *app.CreateQueryContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err = application.Transactional(c.db, func(appl application.Application) error {
 		err = appl.Spaces().CheckExists(ctx, ctx.SpaceID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		q := query.Query{
 			SpaceID: ctx.SpaceID,
@@ -60,7 +60,7 @@ func (c *QueryController) Create(ctx *app.CreateQueryContext) error {
 		}
 		err = appl.Queries().Create(ctx, &q)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		res := &app.QuerySingle{
 			Data: ConvertQuery(appl, ctx.Request, q),
@@ -68,6 +68,10 @@ func (c *QueryController) Create(ctx *app.CreateQueryContext) error {
 		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.QueryHref(ctx.SpaceID, res.Data.ID)))
 		return ctx.Created(res)
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }
 
 // ConvertQuery converts from internal to external REST representation
@@ -129,14 +133,14 @@ func (c *QueryController) List(ctx *app.ListQueryContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err = application.Transactional(c.db, func(appl application.Application) error {
 		err = appl.Spaces().CheckExists(ctx, ctx.SpaceID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		queries, err := appl.Queries().ListByCreator(ctx, ctx.SpaceID, *currentUserIdentityID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		res := &app.QueryList{}
 		res.Data = ConvertQueries(appl, ctx.Request, queries)
@@ -145,6 +149,10 @@ func (c *QueryController) List(ctx *app.ListQueryContext) error {
 		}
 		return ctx.OK(res)
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }
 
 // Show runs the show action.
@@ -153,14 +161,14 @@ func (c *QueryController) Show(ctx *app.ShowQueryContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err = application.Transactional(c.db, func(appl application.Application) error {
 		err := appl.Spaces().CheckExists(ctx, ctx.SpaceID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		q, err := appl.Queries().Load(ctx, ctx.QueryID, ctx.SpaceID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		if *currentUserIdentityID != q.Creator {
 			log.Warn(ctx, map[string]interface{}{
@@ -168,13 +176,17 @@ func (c *QueryController) Show(ctx *app.ShowQueryContext) error {
 				"creator":      q.Creator,
 				"current_user": *currentUserIdentityID,
 			}, "user is not the query creator")
-			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the query creator"))
+			return errors.NewForbiddenError("user is not the query creator")
 		}
 		res := &app.QuerySingle{
 			Data: ConvertQuery(appl, ctx.Request, *q),
 		}
 		return ctx.OK(res)
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }
 
 // Delete runs the delete action.
@@ -194,11 +206,10 @@ func (c *QueryController) Delete(ctx *app.DeleteQueryContext) error {
 				"creator":      q.Creator,
 				"current_user": *currentUser,
 			}, "user is not the query creator")
-			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the query creator"))
+			return errors.NewForbiddenError("user is not the query creator")
 		}
 		return appl.Queries().Delete(ctx.Context, ctx.QueryID)
 	})
-
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}

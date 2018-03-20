@@ -76,10 +76,8 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 			return err
 		}
 		sp, err = appl.Spaces().Load(ctx, parent.SpaceID)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
-		return nil
+		return err // will be 'nil' of no error occurred
+
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
@@ -103,10 +101,10 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 		// But written following line to make it verbose 401 vs 403
 		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not allowed to create an iteration in this space"))
 	}
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err = application.Transactional(c.db, func(appl application.Application) error {
 		reqIter := ctx.Payload.Data
 		if reqIter.Attributes.Name == nil {
-			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data.attributes.name", nil).Expected("not nil"))
+			return errors.NewBadParameterError("data.attributes.name", nil).Expected("not nil")
 		}
 
 		childPath := append(parent.Path, parent.ID)
@@ -132,7 +130,7 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 		}
 		err = appl.Iterations().Create(ctx, &newItr)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		// For create, count will always be zero hence no need to query
 		// by passing empty map, updateIterationsWithCounts will be able to put zero values
@@ -141,7 +139,7 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 		allParentsUUIDs := newItr.Path
 		iterations, error := appl.Iterations().LoadMultiple(ctx, allParentsUUIDs)
 		if error != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		itrMap := make(iterationIDMap)
 		for _, itr := range iterations {
@@ -154,6 +152,10 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.IterationHref(res.Data.ID)))
 		return ctx.Created(res)
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }
 
 // Show runs the show action.
@@ -163,21 +165,21 @@ func (c *IterationController) Show(ctx *app.ShowIterationContext) error {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 	}
 
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err = application.Transactional(c.db, func(appl application.Application) error {
 		iter, err := appl.Iterations().Load(ctx, id)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		return ctx.ConditionalRequest(*iter, c.config.GetCacheControlIteration, func() error {
 			wiCounts, err := appl.WorkItems().GetCountsForIteration(ctx, iter)
 			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, err)
+				return err
 			}
 			var responseData *app.Iteration
 			allParentsUUIDs := iter.Path
 			iterations, error := appl.Iterations().LoadMultiple(ctx, allParentsUUIDs)
 			if error != nil {
-				return jsonapi.JSONErrorResponse(ctx, err)
+				return err
 			}
 			itrMap := make(iterationIDMap)
 			for _, itr := range iterations {
@@ -190,6 +192,10 @@ func (c *IterationController) Show(ctx *app.ShowIterationContext) error {
 			return ctx.OK(res)
 		})
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }
 
 // Update runs the update action.
@@ -238,7 +244,7 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 		// But written following line to make it verbose 401 vs 403
 		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not allowed to create an iteration in this space"))
 	}
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err = application.Transactional(c.db, func(appl application.Application) error {
 		if ctx.Payload.Data.Attributes.Name != nil {
 			itr.Name = *ctx.Payload.Data.Attributes.Name
 		}
@@ -255,7 +261,7 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 			if *ctx.Payload.Data.Attributes.State == iteration.StateStart.String() {
 				res, err := appl.Iterations().CanStart(ctx, itr)
 				if res == false && err != nil {
-					return jsonapi.JSONErrorResponse(ctx, err)
+					return err
 				}
 			}
 			itr.State = iteration.State(*ctx.Payload.Data.Attributes.State)
@@ -268,46 +274,44 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 			// update parent of Iteration
 			// do not allow root-iteraiton to update its parent
 			if itr.IsRoot(itr.SpaceID) {
-				return jsonapi.JSONErrorResponse(ctx,
-					errors.NewForbiddenError("Parent of root iteration can not be updated"))
+				return errors.NewForbiddenError("Parent of root iteration can not be updated")
 			}
 			newParentID := ctx.Payload.Data.Relationships.Parent.Data.ID
 			if newParentID == nil {
-				return jsonapi.JSONErrorResponse(ctx,
-					errors.NewBadParameterError("Data.Relationships.Parent.ID", newParentID).Expected("not nil"))
+				return errors.NewBadParameterError("Data.Relationships.Parent.ID", newParentID).Expected("not nil")
 			}
 			pid, err := uuid.FromString(*newParentID)
 			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("Data.Relationships.Parent.ID", newParentID))
+				return errors.NewBadParameterError("Data.Relationships.Parent.ID", newParentID)
 			}
 			// Iteration itself can not be parent of self
 			if pid == itr.ID {
-				return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("Parent must be different than subject iteration"))
+				return errors.NewForbiddenError("Parent must be different than subject iteration")
 			}
 			newParentIteration, err := appl.Iterations().Load(ctx.Context, pid)
 			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, err)
+				return err
 			}
 			// New parent iteraiton must be from same sapce as that of subject iteration
 			if newParentIteration.SpaceID != itr.SpaceID {
-				return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("Parent must be from same space"))
+				return errors.NewForbiddenError("Parent must be from same space")
 			}
 			// we need subtree to update later
 			oldSubtree, err = appl.Iterations().LoadChildren(ctx, itr.ID)
 			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, err)
+				return err
 			}
 			// New parent must not be one of existing children of subject iteration
 			for _, childItr := range oldSubtree {
 				if newParentIteration.ID == childItr.ID {
-					return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("Parent must not be existing child"))
+					return errors.NewForbiddenError("Parent must not be existing child")
 				}
 			}
 			itr.MakeChildOf(*newParentIteration)
 		}
 		itr, err = appl.Iterations().Save(ctx.Context, *itr)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		if ctx.Payload.Data.Relationships != nil && ctx.Payload.Data.Relationships.Parent != nil {
 			// update all child iterations's parent as well
@@ -319,19 +323,19 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 						"iteration_id": x.ID,
 						"err":          err.Error(),
 					}, "unable to update child iteration from subtree")
-					return jsonapi.JSONErrorResponse(ctx, err)
+					return err
 				}
 			}
 		}
 		wiCounts, err := appl.WorkItems().GetCountsForIteration(ctx, itr)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		var responseData *app.Iteration
 		allParentsUUIDs := itr.Path
 		iterations, error := appl.Iterations().LoadMultiple(ctx, allParentsUUIDs)
 		if error != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		itrMap := make(iterationIDMap)
 		for _, itr := range iterations {
@@ -343,6 +347,10 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 		}
 		return ctx.OK(res)
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }
 
 // Delete runs the delete action.
@@ -354,11 +362,11 @@ func (c *IterationController) Delete(ctx *app.DeleteIterationContext) error {
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		itr, err := appl.Iterations().Load(ctx.Context, ctx.IterationID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		s, err := appl.Spaces().Load(ctx, itr.SpaceID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+			return goa.ErrNotFound(err.Error())
 		}
 		if !uuid.Equal(*currentUser, s.OwnerID) {
 			errorMsg := fmt.Sprintf("only the space owner can delete an iteration and %s is not the space owner of %s",
@@ -368,23 +376,23 @@ func (c *IterationController) Delete(ctx *app.DeleteIterationContext) error {
 				"space_owner":  s.OwnerID,
 				"current_user": *currentUser,
 			}, errorMsg)
-			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError(errorMsg))
+			return errors.NewForbiddenError(errorMsg)
 		}
 		if itr.IsRoot(s.ID) {
 			log.Warn(ctx, map[string]interface{}{
 				"space_id":     s.ID,
 				"iteration_id": itr.ID,
 			}, "cannot delete root iteration")
-			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("can not delete root iteration"))
+			return errors.NewForbiddenError("can not delete root iteration")
 		}
 		subtree, err := appl.Iterations().LoadChildren(ctx, ctx.IterationID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		// Fetch parent iteration to which work items will get attached
 		parentID := itr.Parent()
 		if parentID == uuid.Nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound("can not find parent iteration"))
+			return goa.ErrNotFound("can not find parent iteration")
 		}
 		parentIteration, err := appl.Iterations().Load(ctx, parentID)
 		if err != nil {
@@ -392,7 +400,7 @@ func (c *IterationController) Delete(ctx *app.DeleteIterationContext) error {
 				"iteration_id": parentID,
 				"err":          err.Error(),
 			}, "unable to load parent iteration of iteration %s", parentID)
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		// delete all children along with given iteration
 		subtree = append(subtree, *itr)
@@ -400,7 +408,7 @@ func (c *IterationController) Delete(ctx *app.DeleteIterationContext) error {
 			// fetch associated work items
 			wis, err := appl.WorkItems().LoadByIteration(ctx, child.ID)
 			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, err)
+				return err
 			}
 			// update iteration on all associated work items
 			for _, wi := range wis {
@@ -412,7 +420,7 @@ func (c *IterationController) Delete(ctx *app.DeleteIterationContext) error {
 						"workitem_id": wi.ID,
 						"err":         err.Error(),
 					}, "unable to update iteration for work item")
-					return jsonapi.JSONErrorResponse(ctx, err)
+					return err
 				}
 			}
 			// now, remove the iteration
@@ -422,13 +430,13 @@ func (c *IterationController) Delete(ctx *app.DeleteIterationContext) error {
 					"iteration_id": child.ID,
 					"err":          err.Error(),
 				}, "unable to delete iteration")
-				return jsonapi.JSONErrorResponse(ctx, err)
+				return err
 			}
 		}
 		return nil
 	})
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	return ctx.NoContent()
 }

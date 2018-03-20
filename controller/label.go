@@ -38,16 +38,20 @@ func NewLabelController(service *goa.Service, db application.DB, config LabelCon
 
 // Show retrieve a single label
 func (c *LabelController) Show(ctx *app.ShowLabelContext) error {
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err := application.Transactional(c.db, func(appl application.Application) error {
 		lbl, err := appl.Labels().Load(ctx, ctx.LabelID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		res := &app.LabelSingle{
 			Data: ConvertLabel(appl, ctx.Request, *lbl),
 		}
 		return ctx.OK(res)
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }
 
 // Create runs the create action.
@@ -60,7 +64,7 @@ func (c *LabelController) Create(ctx *app.CreateLabelContext) error {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest("Name cannot be empty"))
 
 	}
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err = application.Transactional(c.db, func(appl application.Application) error {
 		lbl := label.Label{
 			SpaceID: ctx.SpaceID,
 			Name:    strings.TrimSpace(*ctx.Payload.Data.Attributes.Name),
@@ -76,7 +80,7 @@ func (c *LabelController) Create(ctx *app.CreateLabelContext) error {
 		}
 		err = appl.Labels().Create(ctx, &lbl)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		res := &app.LabelSingle{
 			Data: ConvertLabel(appl, ctx.Request, lbl),
@@ -84,6 +88,11 @@ func (c *LabelController) Create(ctx *app.CreateLabelContext) error {
 		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.LabelHref(ctx.SpaceID, res.Data.ID)))
 		return ctx.Created(res)
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
+
 }
 
 // ConvertLabel converts from internal to external REST representation
@@ -127,15 +136,19 @@ func ConvertLabel(appl application.Application, request *http.Request, lbl label
 
 // List runs the list action.
 func (c *LabelController) List(ctx *app.ListLabelContext) error {
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err := application.Transactional(c.db, func(appl application.Application) error {
 		labels, err := appl.Labels().List(ctx, ctx.SpaceID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		res := &app.LabelList{}
 		res.Data = ConvertLabels(appl, ctx.Request, labels)
 		return ctx.OK(res)
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }
 
 // ConvertLabels from internal to external REST representation
@@ -177,13 +190,13 @@ func (c *LabelController) Update(ctx *app.UpdateLabelContext) error {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data.attributes.version", nil).Expected("not nil"))
 	}
 
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err = application.Transactional(c.db, func(appl application.Application) error {
 		lbl, err := appl.Labels().Load(ctx.Context, ctx.LabelID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		if lbl.Version != *ctx.Payload.Data.Attributes.Version {
-			return jsonapi.JSONErrorResponse(ctx, errors.NewVersionConflictError("version conflict"))
+			return errors.NewVersionConflictError("version conflict")
 		}
 		if ctx.Payload.Data.Attributes.Name != nil {
 			lbl.Name = strings.TrimSpace(*ctx.Payload.Data.Attributes.Name)
@@ -199,7 +212,7 @@ func (c *LabelController) Update(ctx *app.UpdateLabelContext) error {
 		}
 		lbl, err = appl.Labels().Save(ctx, *lbl)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		res := &app.LabelSingle{
 			Data: ConvertLabel(appl, ctx.Request, *lbl),
@@ -207,4 +220,8 @@ func (c *LabelController) Update(ctx *app.UpdateLabelContext) error {
 		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.LabelHref(ctx.SpaceID, res.Data.ID)))
 		return ctx.OK(res)
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }

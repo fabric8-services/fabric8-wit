@@ -51,14 +51,14 @@ func (c *AreaController) ShowChildren(ctx *app.ShowChildrenAreaContext) error {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 	}
 
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err = application.Transactional(c.db, func(appl application.Application) error {
 		parentArea, err := appl.Areas().Load(ctx, id)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		children, err := appl.Areas().ListChildren(ctx, parentArea)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		return ctx.ConditionalEntities(children, c.config.GetCacheControlAreas, func() error {
 			res := &app.AreaList{}
@@ -66,6 +66,11 @@ func (c *AreaController) ShowChildren(ctx *app.ShowChildrenAreaContext) error {
 			return ctx.OK(res)
 		})
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
+
 }
 
 // CreateChild runs the create-child action.
@@ -78,14 +83,14 @@ func (c *AreaController) CreateChild(ctx *app.CreateChildAreaContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 	}
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err = application.Transactional(c.db, func(appl application.Application) error {
 		parent, err := appl.Areas().Load(ctx, parentID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+			return goa.ErrNotFound(err.Error())
 		}
 		s, err := appl.Spaces().Load(ctx, parent.SpaceID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+			return goa.ErrNotFound(err.Error())
 		}
 		if !uuid.Equal(*currentUser, s.OwnerID) {
 			log.Warn(ctx, map[string]interface{}{
@@ -93,12 +98,12 @@ func (c *AreaController) CreateChild(ctx *app.CreateChildAreaContext) error {
 				"space_owner":  s.OwnerID,
 				"current_user": *currentUser,
 			}, "user is not the space owner")
-			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the space owner"))
+			return errors.NewForbiddenError("user is not the space owner")
 		}
 
 		reqArea := ctx.Payload.Data
 		if reqArea.Attributes.Name == nil {
-			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data.attributes.name", nil).Expected("not nil"))
+			return errors.NewBadParameterError("data.attributes.name", nil).Expected("not nil")
 		}
 
 		childPath := append(parent.Path, parent.ID)
@@ -110,7 +115,7 @@ func (c *AreaController) CreateChild(ctx *app.CreateChildAreaContext) error {
 
 		err = appl.Areas().Create(ctx, &newArea)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 
 		res := &app.AreaSingle{
@@ -119,6 +124,10 @@ func (c *AreaController) CreateChild(ctx *app.CreateChildAreaContext) error {
 		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.AreaHref(res.Data.ID)))
 		return ctx.Created(res)
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }
 
 // Show runs the show action.
@@ -128,10 +137,10 @@ func (c *AreaController) Show(ctx *app.ShowAreaContext) error {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 	}
 
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err = application.Transactional(c.db, func(appl application.Application) error {
 		a, err := appl.Areas().Load(ctx, id)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		return ctx.ConditionalRequest(*a, c.config.GetCacheControlArea, func() error {
 			res := &app.AreaSingle{}
@@ -139,6 +148,10 @@ func (c *AreaController) Show(ctx *app.ShowAreaContext) error {
 			return ctx.OK(res)
 		})
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }
 
 // addResolvedPath resolves the path in the form of /area1/area2/area3

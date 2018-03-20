@@ -53,14 +53,14 @@ func NewNotifyingWorkItemCommentsController(service *goa.Service, db application
 // Create runs the create action.
 func (c *WorkItemCommentsController) Create(ctx *app.CreateWorkItemCommentsContext) error {
 	var newComment comment.Comment
-	result := application.Transactional(c.db, func(appl application.Application) error {
+	err := application.Transactional(c.db, func(appl application.Application) error {
 		_, err := appl.WorkItems().LoadByID(ctx, ctx.WiID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+			return goa.ErrNotFound(err.Error())
 		}
 		currentUserIdentityID, err := login.ContextIdentity(ctx)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
+			return goa.ErrUnauthorized(err.Error())
 		}
 
 		reqComment := ctx.Payload.Data
@@ -74,7 +74,7 @@ func (c *WorkItemCommentsController) Create(ctx *app.CreateWorkItemCommentsConte
 
 		err = appl.Comments().Create(ctx, &newComment, *currentUserIdentityID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+			return goa.ErrInternal(err.Error())
 		}
 
 		res := &app.CommentSingle{
@@ -82,24 +82,27 @@ func (c *WorkItemCommentsController) Create(ctx *app.CreateWorkItemCommentsConte
 		}
 		return ctx.OK(res)
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
 	if ctx.ResponseData.Status == 200 {
 		c.notification.Send(ctx, notification.NewCommentCreated(newComment.ID.String()))
 	}
-	return result
+	return nil
 }
 
 // List runs the list action.
 func (c *WorkItemCommentsController) List(ctx *app.ListWorkItemCommentsContext) error {
 	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
-	return application.Transactional(c.db, func(appl application.Application) error {
-		wi, err := appl.WorkItems().LoadByID(ctx, ctx.WiID)
+	err := application.Transactional(c.db, func(appl application.Application) error {
+		err := appl.WorkItems().CheckExists(ctx, ctx.WiID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+			return goa.ErrNotFound(err.Error())
 		}
-		comments, tc, err := appl.Comments().List(ctx, wi.ID, &offset, &limit)
+		comments, tc, err := appl.Comments().List(ctx, ctx.WiID, &offset, &limit)
 		count := int(tc)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+			return goa.ErrInternal(err.Error())
 		}
 		return ctx.ConditionalEntities(comments, c.config.GetCacheControlComments, func() error {
 			res := &app.CommentList{}
@@ -111,21 +114,25 @@ func (c *WorkItemCommentsController) List(ctx *app.ListWorkItemCommentsContext) 
 			return ctx.OK(res)
 		})
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }
 
 // Relations runs the relation action.
 // TODO: Should only return Resource Identifier Objects, not complete object (See List)
 func (c *WorkItemCommentsController) Relations(ctx *app.RelationsWorkItemCommentsContext) error {
 	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err := application.Transactional(c.db, func(appl application.Application) error {
 		wi, err := appl.WorkItems().LoadByID(ctx, ctx.WiID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+			return goa.ErrNotFound(err.Error())
 		}
 		comments, tc, err := appl.Comments().List(ctx, wi.ID, &offset, &limit)
 		count := int(tc)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+			return goa.ErrInternal(err.Error())
 		}
 		_ = wi
 		_ = comments
@@ -135,6 +142,10 @@ func (c *WorkItemCommentsController) Relations(ctx *app.RelationsWorkItemComment
 		res.Links = CreateCommentsRelationLinks(ctx.Request, wi)
 		return ctx.OK(res)
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }
 
 // workItemIncludeCommentsAndTotal adds relationship about comments to workitem (include totalCount)

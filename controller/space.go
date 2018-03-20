@@ -221,14 +221,14 @@ func (c *SpaceController) List(ctx *app.ListSpaceContext) error {
 
 // Show runs the show action.
 func (c *SpaceController) Show(ctx *app.ShowSpaceContext) error {
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err := application.Transactional(c.db, func(appl application.Application) error {
 		s, err := appl.Spaces().Load(ctx.Context, ctx.SpaceID)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"err":      err,
 				"space_id": ctx.SpaceID,
 			}, "unable to load the space by ID")
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		return ctx.ConditionalRequest(*s, c.config.GetCacheControlSpace, func() error {
 			spaceData, err := ConvertSpaceFromModel(ctx.Request, *s, IncludeBacklogTotalCount(ctx.Context, c.db))
@@ -237,7 +237,7 @@ func (c *SpaceController) Show(ctx *app.ShowSpaceContext) error {
 					"err":      err,
 					"space_id": ctx.SpaceID,
 				}, "unable to convert the space object")
-				return jsonapi.JSONErrorResponse(ctx, err)
+				return err
 			}
 			result := &app.SpaceSingle{
 				Data: spaceData,
@@ -245,6 +245,10 @@ func (c *SpaceController) Show(ctx *app.ShowSpaceContext) error {
 			return ctx.OK(result)
 		})
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }
 
 // Update runs the update action.

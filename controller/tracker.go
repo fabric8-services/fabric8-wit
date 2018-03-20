@@ -53,14 +53,14 @@ func (c *TrackerController) Create(ctx *app.CreateTrackerContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	result := application.Transactional(c.db, func(appl application.Application) error {
+	err = application.Transactional(c.db, func(appl application.Application) error {
 		tracker := remoteworkitem.Tracker{
 			URL:  ctx.Payload.Data.Attributes.URL,
 			Type: ctx.Payload.Data.Attributes.Type,
 		}
 		err := appl.Trackers().Create(ctx.Context, &tracker)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		res := &app.TrackerSingle{
 			Data: convertTracker(appl, ctx.Request, tracker),
@@ -68,9 +68,12 @@ func (c *TrackerController) Create(ctx *app.CreateTrackerContext) error {
 		ctx.ResponseData.Header().Set("Location", app.TrackerHref(res.Data.ID))
 		return ctx.Created(res)
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
 	accessTokens := GetAccessTokens(c.configuration) //configuration.GetGithubAuthToken()
 	c.scheduler.ScheduleAllQueries(ctx, accessTokens)
-	return result
+	return err
 }
 
 // Delete runs the delete action.
@@ -96,34 +99,41 @@ func (c *TrackerController) Delete(ctx *app.DeleteTrackerContext) error {
 
 // Show runs the show action.
 func (c *TrackerController) Show(ctx *app.ShowTrackerContext) error {
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err := application.Transactional(c.db, func(appl application.Application) error {
 		tracker, err := appl.Trackers().Load(ctx.Context, ctx.ID)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"err":        err,
 				"tracker_id": ctx.ID,
 			}, "unable to load the tracker by ID")
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		result := &app.TrackerSingle{
 			Data: convertTracker(appl, ctx.Request, *tracker),
 		}
 		return ctx.OK(result)
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }
 
 // List runs the list action.
 func (c *TrackerController) List(ctx *app.ListTrackerContext) error {
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err := application.Transactional(c.db, func(appl application.Application) error {
 		trackers, err := appl.Trackers().List(ctx)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		res := &app.TrackerList{}
 		res.Data = ConvertTrackers(appl, ctx.Request, trackers)
 		return ctx.OK(res)
 	})
-
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }
 
 // ConvertTrackers from internal to external REST representation
@@ -145,7 +155,7 @@ func (c *TrackerController) Update(ctx *app.UpdateTrackerContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	result := application.Transactional(c.db, func(appl application.Application) error {
+	err = application.Transactional(c.db, func(appl application.Application) error {
 		t, err := appl.Trackers().Load(ctx.Context, *ctx.Payload.Data.ID)
 		if err != nil {
 			return err
@@ -167,7 +177,7 @@ func (c *TrackerController) Update(ctx *app.UpdateTrackerContext) error {
 	})
 	accessTokens := GetAccessTokens(c.configuration) //configuration.GetGithubAuthToken()
 	c.scheduler.ScheduleAllQueries(ctx, accessTokens)
-	return result
+	return err
 }
 
 // ConvertTracker converts from internal to external REST representation

@@ -233,10 +233,14 @@ func (c *WorkItemLinkController) Create(ctx *app.CreateWorkItemLinkContext) erro
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err = application.Transactional(c.db, func(appl application.Application) error {
 		linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, app.WorkItemLinkHref, currentUserIdentityID)
 		return createWorkItemLink(linkCtx, ctx, ctx.Payload)
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }
 
 func (c *WorkItemLinkController) checkIfUserIsSpaceCollaboratorOrWorkItemCreator(ctx context.Context, linkID uuid.UUID, currentIdentityID uuid.UUID) (bool, error) {
@@ -314,28 +318,36 @@ func (c *WorkItemLinkController) Delete(ctx *app.DeleteWorkItemLinkContext) erro
 	if !authorized {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to delete the link"))
 	}
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err = application.Transactional(c.db, func(appl application.Application) error {
 		linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, app.WorkItemLinkHref, currentUserIdentityID)
 		return deleteWorkItemLink(linkCtx, ctx, ctx.LinkID)
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }
 
 // Show runs the show action.
 func (c *WorkItemLinkController) Show(ctx *app.ShowWorkItemLinkContext) error {
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err := application.Transactional(c.db, func(appl application.Application) error {
 		modelLink, err := appl.WorkItemLinks().Load(ctx.Context, ctx.LinkID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		return ctx.ConditionalRequest(*modelLink, c.config.GetCacheControlWorkItemLink, func() error {
 			// convert to rest representation
 			appLink := ConvertLinkFromModel(ctx.Request, *modelLink)
 			if err := enrichLinkSingle(ctx.Context, appl, ctx.Request, &appLink); err != nil {
-				return jsonapi.JSONErrorResponse(ctx, err)
+				return err
 			}
 			return ctx.OK(&appLink)
 		})
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }
 
 // ConvertLinkFromModel converts a work item from model to REST representation

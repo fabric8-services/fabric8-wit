@@ -115,7 +115,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	if !authorized {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to access the space"))
 	}
-	result := application.Transactional(c.db, func(appl application.Application) error {
+	err = application.Transactional(c.db, func(appl application.Application) error {
 		// The Number and Type of a work item are not allowed to be changed
 		// which is why we overwrite those values with their old value after the
 		// work item was converted.
@@ -123,13 +123,13 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 		oldType := wi.Type
 		err = ConvertJSONAPIToWorkItem(ctx, ctx.Method, appl, *ctx.Payload.Data, wi, wi.SpaceID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		wi.Number = oldNumber
 		wi.Type = oldType
 		wi, err = appl.WorkItems().Save(ctx, wi.SpaceID, *wi, *currentUserIdentityID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error updating work item"))
+			return errs.Wrap(err, "Error updating work item")
 		}
 		hasChildren := workItemIncludeHasChildren(ctx, appl)
 		wi2 := ConvertWorkItem(ctx.Request, *wi, hasChildren)
@@ -143,18 +143,21 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 		ctx.ResponseData.Header().Set("Last-Modified", lastModified(*wi))
 		return ctx.OK(resp)
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
 	if ctx.ResponseData.Status == 200 {
 		c.notification.Send(ctx, notification.NewWorkItemUpdated(ctx.Payload.Data.ID.String()))
 	}
-	return result
+	return nil
 }
 
 // Show does GET workitem
 func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err := application.Transactional(c.db, func(appl application.Application) error {
 		wi, err := appl.WorkItems().LoadByID(ctx, ctx.WiID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Fail to load work item with id %v", ctx.WiID)))
+			return errs.Wrap(err, fmt.Sprintf("Fail to load work item with id %v", ctx.WiID))
 		}
 		return ctx.ConditionalRequest(*wi, c.config.GetCacheControlWorkItem, func() error {
 			comments := workItemIncludeCommentsAndTotal(ctx, c.db, ctx.WiID)
@@ -167,6 +170,10 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 
 		})
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }
 
 // Delete does DELETE workitem
@@ -198,16 +205,20 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 	if !authorized {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to access the space"))
 	}
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err = application.Transactional(c.db, func(appl application.Application) error {
 		err := appl.WorkItems().Delete(ctx, ctx.WiID, *currentUserIdentityID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "error deleting work item %s", ctx.WiID))
+			return errs.Wrapf(err, "error deleting work item %s", ctx.WiID)
 		}
 		if err := appl.WorkItemLinks().DeleteRelatedLinks(ctx, ctx.WiID, *currentUserIdentityID); err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to delete work item links related to work item %s", ctx.WiID))
+			return errs.Wrapf(err, "failed to delete work item links related to work item %s", ctx.WiID)
 		}
 		return ctx.OK([]byte{})
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }
 
 // Time is default value if no UpdatedAt field is found
@@ -661,10 +672,10 @@ func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) 
 
 	var additionalQuery []string
 	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err := application.Transactional(c.db, func(appl application.Application) error {
 		result, tc, err := appl.WorkItemLinks().ListWorkItemChildren(ctx, ctx.WiID, &offset, &limit)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "unable to list work item children"))
+			return errs.Wrap(err, "unable to list work item children")
 		}
 		count := int(tc)
 		return ctx.ConditionalEntities(result, c.config.GetCacheControlWorkItems, func() error {
@@ -678,6 +689,10 @@ func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) 
 			return ctx.OK(&response)
 		})
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }
 
 // workItemIncludeChildren adds relationship about children to workitem (include totalCount)

@@ -30,10 +30,10 @@ func NewWorkItemRelationshipsLinksController(service *goa.Service, db applicatio
 
 // List runs the list action.
 func (c *WorkItemRelationshipsLinksController) List(ctx *app.ListWorkItemRelationshipsLinksContext) error {
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err := application.Transactional(c.db, func(appl application.Application) error {
 		modelLinks, err := appl.WorkItemLinks().ListByWorkItem(ctx.Context, ctx.WiID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		return ctx.ConditionalEntities(modelLinks, c.config.GetCacheControlWorkItemLinks, func() error {
 			appLinks := app.WorkItemLinkList{}
@@ -48,9 +48,13 @@ func (c *WorkItemRelationshipsLinksController) List(ctx *app.ListWorkItemRelatio
 				TotalCount: len(modelLinks),
 			}
 			if err := enrichLinkList(ctx.Context, appl, ctx.Request, &appLinks); err != nil {
-				return jsonapi.JSONErrorResponse(ctx, err)
+				return err
 			}
 			return ctx.OK(&appLinks)
 		})
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }
