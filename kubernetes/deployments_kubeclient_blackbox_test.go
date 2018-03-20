@@ -644,27 +644,41 @@ func TestGetMetrics(t *testing.T) {
 				KubeRESTAPIGetter: fixture,
 				MetricsGetter:     fixture,
 			}
-			_, err := kubernetes.NewKubeClient(config)
+			kc, err := kubernetes.NewKubeClient(config)
 			if testCase.shouldSucceed {
 				require.NoError(t, err, "Unexpected error")
-
+				require.NotNil(t, kc)
+				mm, err := kc.GetMetricsClient("myNamespace")
+				require.NoError(t, err)
+				require.NotNil(t, mm)
 				metricsConfig := fixture.metrics.config
 				require.NotNil(t, metricsConfig, "Metrics config is nil")
 				require.Equal(t, testCase.expectedURL, metricsConfig.MetricsURL, "Incorrect Metrics URL")
 				require.Equal(t, token, metricsConfig.BearerToken, "Incorrect bearer token")
 			} else {
-				require.Error(t, err, "Expected error, but was successful")
+				// bad URLs aren't detected until a metrics client tries to use themn
+				_, err := kc.GetMetricsClient("myNamespace")
+				require.Errorf(t, err, "URL %s should fail", testCase.clusterURL)
 			}
 		})
 	}
 }
 
+// ensure testFixture implements all of MetricsGetter
+var _ kubernetes.MetricsGetter = &testFixture{}
+var _ kubernetes.MetricsGetter = (*testFixture)(nil)
+
 func TestClose(t *testing.T) {
 	fixture := &testFixture{}
 	kc := getDefaultKubeClient(fixture, t)
 
+	mm, err := kc.GetMetricsClient("myNamespace")
+	require.NoError(t, err)
+	require.NotNil(t, mm)
+
 	// Check that KubeClientInterface.Close invokes MetricsInterface.Close
 	kc.Close()
+
 	require.True(t, fixture.metrics.closed, "Metrics client not closed")
 }
 
@@ -1707,16 +1721,16 @@ func verifyDeployment(dep *app.SimpleDeployment, testCase *deployTestData, t *te
 
 // code for test URL provider
 
-func (up *testURLProvider) GetAPIToken() *string {
-	return &up.apiToken
+func (up *testURLProvider) GetAPIToken() (*string, error) {
+	return &up.apiToken, nil
 }
 
-func (up *testURLProvider) GetMetricsToken(envNS string) *string {
-	return &up.clusterToken
+func (up *testURLProvider) GetMetricsToken(envNS string) (*string, error) {
+	return &up.clusterToken, nil
 }
 
-func (up *testURLProvider) GetAPIURL() string {
-	return up.apiURL
+func (up *testURLProvider) GetAPIURL() (*string, error) {
+	return &up.apiURL, nil
 }
 
 func (up *testURLProvider) GetConsoleURL(envNS string) (*string, error) {
@@ -1739,7 +1753,7 @@ func (up *testURLProvider) GetLoggingURL(envNS string, deployName string) (*stri
 	return &logURL, nil
 }
 
-func (up *testURLProvider) GetMetricsURL() (*string, error) {
+func (up *testURLProvider) GetMetricsURL(envNS string) (*string, error) {
 	metricsURL, err := modifyURL(up.clusterURL, "metrics", "")
 	if err != nil {
 		return nil, err

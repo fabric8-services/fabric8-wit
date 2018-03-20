@@ -6,7 +6,7 @@
         "profile": "",
         "namespaces": [
             {
-                "name": "someEnvNS",
+                "name": "myDefaultNS",
                 "type": "",
                 "_valid_type_values": "user|che|jenkins|stage|test|run",
                 "state": "Running",

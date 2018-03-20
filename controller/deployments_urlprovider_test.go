@@ -17,6 +17,7 @@ import (
 
 const defaultAPIURL = "https://api.hostname/api"
 const defaultAPIToken = "token1"
+const defaultNS = "myDefaultNS"
 
 // testing Tenant-based URL provider
 var defaultTenant *app.UserService
@@ -75,7 +76,10 @@ func TestTenantAPIURL(t *testing.T) {
 	p, err := getDefaultTenantProvider()
 	require.NoError(t, err)
 	require.NotNil(t, p)
-	require.Equal(t, defaultAPIURL, p.GetAPIURL(), "GetAPIURL() returned wrong value")
+	apiurl, err := p.GetAPIURL()
+	require.NoError(t, err)
+	require.NotNil(t, apiurl)
+	require.Equal(t, defaultAPIURL, *apiurl, "GetAPIURL() returned wrong value")
 }
 
 func TestTenantGetMalformedData(t *testing.T) {
@@ -91,82 +95,96 @@ func TestTenantGetMalformedData(t *testing.T) {
 func TestTenantGetDefaultMetricsURL(t *testing.T) {
 	p, err := getDefaultTenantProvider()
 	require.NoError(t, err)
-	url, err := p.GetMetricsURL()
+	murl, err := p.GetMetricsURL(defaultNS)
 	require.NoError(t, err, "GetMetricsURL() returned an error")
-	require.NotNil(t, url)
+	require.NotNil(t, murl)
+	apiurl, err := p.GetAPIURL()
+	require.NoError(t, err)
+	require.NotNil(t, apiurl)
 	// converts leading "api" to leading "metrics"
-	apiMetricsURL := strings.Replace(strings.Replace(p.GetAPIURL(), "//api.", "//metrics.", 1), "/api", "", 1)
-	require.NotEqual(t, apiMetricsURL, *url, "GetMetricsURL() defaulted to API URL")
+	apiMetricsURL := strings.Replace(strings.Replace(*apiurl, "//api.", "//metrics.", 1), "/api", "", 1)
+	require.NotEqual(t, apiMetricsURL, *murl, "GetMetricsURL() defaulted to API URL")
 	expected := *defaultTenant.Attributes.Namespaces[0].ClusterMetricsURL
-	require.Equal(t, expected, *url, "GetMetricsURL() did not return the correct value from JSON")
+	require.Equal(t, expected, *murl, "GetMetricsURL() did not return the correct value from JSON")
 }
 
 func TestTenantGetMissingMetricsURL(t *testing.T) {
 	p, err := getBadTenantProvider()
 	require.NoError(t, err)
-	url, err := p.GetMetricsURL()
+	murl, err := p.GetMetricsURL(defaultNS)
 	require.NoError(t, err, "GetMetricsURL() returned an error")
-	require.NotNil(t, url)
+	require.NotNil(t, murl)
+	apiurl, err := p.GetAPIURL()
+	require.NoError(t, err)
+	require.NotNil(t, apiurl)
 	// converts leading "api" to leading "metrics"
-	apiMetricsURL := strings.Replace(strings.Replace(p.GetAPIURL(), "//api.", "//metrics.", 1), "/api", "", 1)
-	require.Equal(t, apiMetricsURL, *url, "empty or missing GetMetricsURL() must default to API URL")
+	apiMetricsURL := strings.Replace(strings.Replace(*apiurl, "//api.", "//metrics.", 1), "/api", "", 1)
+	require.Equal(t, apiMetricsURL, *murl, "empty or missing GetMetricsURL() must default to API URL")
 }
 
 func TestTenantGetConsoleURL(t *testing.T) {
-	const envNS = "someEnvNS"
 	p, err := getDefaultTenantProvider()
 	require.NoError(t, err)
-	url, err := p.GetConsoleURL(envNS)
+	url, err := p.GetConsoleURL(defaultNS)
 	require.NoError(t, err, "GetConsoleURL() returned an error")
 	require.NotNil(t, url)
+	apiurl, err := p.GetAPIURL()
+	require.NoError(t, err)
+	require.NotNil(t, apiurl)
 	// Note that the Auth/Tenant appends /console to the hostname for console/logging
-	apiConsoleURL := strings.Replace(strings.Replace(p.GetAPIURL(), "//api.", "//console.", 1), "/api", "", 1) + "/project/" + envNS
+	apiConsoleURL := strings.Replace(strings.Replace(*apiurl, "//api.", "//console.", 1), "/api", "", 1) + "/project/" + defaultNS
 	require.NotEqual(t, apiConsoleURL, *url, "GetConsoleURL() defaulted to API URL")
 	expected := *defaultTenant.Attributes.Namespaces[0].ClusterConsoleURL
-	expected = expected + "/project/" + envNS
+	expected = expected + "/project/" + defaultNS
 	require.Equal(t, expected, *url, "GetConsoleURL() did not return the correct value from JSON")
 }
 
 func TestTenantGetMissingConsoleURL(t *testing.T) {
-	const envNS = "someEnvNS"
 	p, err := getBadTenantProvider()
 	require.NoError(t, err)
-	url, err := p.GetConsoleURL(envNS)
+	url, err := p.GetConsoleURL(defaultNS)
 	require.NoError(t, err, "GetConsoleURL() returned an error")
 	require.NotNil(t, url)
+	apiurl, err := p.GetAPIURL()
+	require.NoError(t, err)
+	require.NotNil(t, apiurl)
 	// Note that the Auth/Tenant appends /console to the hostname for console/logging - we have to to this here
-	apiConsoleURL := strings.Replace(strings.Replace(p.GetAPIURL(), "//api.", "//console.", 1), "/api", "", 1) + "/console/project/" + envNS
+	apiConsoleURL := strings.Replace(strings.Replace(*apiurl, "//api.", "//console.", 1), "/api", "", 1) + "/console/project/" + defaultNS
 	require.Equal(t, apiConsoleURL, *url, "GetConsoleURL()must default to API URL")
 }
 func TestTenantGetLoggingURL(t *testing.T) {
-	const envNS = "someEnvNS"
 	const deployName = "aDeployName"
 	p, err := getDefaultTenantProvider()
 	require.NoError(t, err)
-	url, err := p.GetLoggingURL(envNS, deployName)
+	url, err := p.GetLoggingURL(defaultNS, deployName)
 	require.NoError(t, err, "GetLoggingURL() returned an error")
 	require.NotNil(t, url)
+	apiurl, err := p.GetAPIURL()
+	require.NoError(t, err)
+	require.NotNil(t, apiurl)
 	// converts leading "api" to leading "metrics"
 	// Note that the Auth/Tenant appends /console to the hostname for console/logging
-	apiConsoleURL := strings.Replace(strings.Replace(p.GetAPIURL(), "//api.", "//console.", 1), "/api", "", 1) + "/project/" + envNS
+	apiConsoleURL := strings.Replace(strings.Replace(*apiurl, "//api.", "//console.", 1), "/api", "", 1) + "/project/" + defaultNS
 	apiLoggingURL := fmt.Sprintf("%s/browse/rc/%s?tab=logs", apiConsoleURL, deployName)
 	require.NotEqual(t, apiLoggingURL, *url, "GetLoggingURL() defaulted to API URL")
 	expected := *defaultTenant.Attributes.Namespaces[0].ClusterLoggingURL
-	expected = expected + "/project/" + envNS + "/browse/rc/" + deployName + "?tab=logs"
+	expected = expected + "/project/" + defaultNS + "/browse/rc/" + deployName + "?tab=logs"
 	require.Equal(t, expected, *url, "GetLoggingURL() did not return correct value")
 }
 
 func TestTenantGetMissingLoggingURL(t *testing.T) {
-	const envNS = "someEnvNS"
 	const deployName = "aDeployName"
 	p, err := getBadTenantProvider()
 	require.NoError(t, err)
-	url, err := p.GetLoggingURL(envNS, deployName)
+	url, err := p.GetLoggingURL(defaultNS, deployName)
 	require.NoError(t, err, "GetLoggingURL() returned an error")
 	require.NotNil(t, url)
+	apiurl, err := p.GetAPIURL()
+	require.NoError(t, err)
+	require.NotNil(t, apiurl)
 	// converts leading "api" to leading "metrics"
 	// Note that the Auth/Tenant appends /console to the hostname for console/logging - we have to to this here
-	apiConsoleURL := strings.Replace(strings.Replace(p.GetAPIURL(), "//api.", "//console.", 1), "/api", "", 1) + "/console/project/" + envNS
+	apiConsoleURL := strings.Replace(strings.Replace(*apiurl, "//api.", "//console.", 1), "/api", "", 1) + "/console/project/" + defaultNS
 	apiLoggingURL := fmt.Sprintf("%s/browse/rc/%s?tab=logs", apiConsoleURL, deployName)
 	require.Equal(t, apiLoggingURL, *url, "GetLoggingURL() must default to API URL")
 }
@@ -174,13 +192,27 @@ func TestTenantGetMissingLoggingURL(t *testing.T) {
 func TestTenantGetAPIToken(t *testing.T) {
 	p, err := getDefaultTenantProvider()
 	require.NoError(t, err)
-	require.Equal(t, defaultAPIToken, *p.GetAPIToken(), "GetAPIToken() did not return API token")
+	token, err := p.GetAPIToken()
+	require.NoError(t, err)
+	require.NotNil(t, token)
+	require.Equal(t, defaultAPIToken, *token, "GetAPIToken() did not return API token")
 }
 
 func TestTenantGetDefaultMetricsToken(t *testing.T) {
 	p, err := getDefaultTenantProvider()
 	require.NoError(t, err)
-	require.Equal(t, defaultAPIToken, *p.GetMetricsToken("somenamespace"), "GetMetricsToken() did not default to API token")
+	mtoken, err := p.GetMetricsToken(defaultNS)
+	require.NoError(t, err)
+	require.NotNil(t, mtoken)
+	require.Equal(t, defaultAPIToken, *mtoken, "GetMetricsToken() did not default to API token")
+}
+
+func TestTenantGetUnknownMetricsToken(t *testing.T) {
+	p, err := getDefaultTenantProvider()
+	require.NoError(t, err)
+	mtoken, err := p.GetMetricsToken("unknown NS")
+	require.Error(t, err)
+	require.Nil(t, mtoken)
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////

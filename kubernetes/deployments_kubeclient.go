@@ -69,7 +69,7 @@ type KubeClientInterface interface {
 	GetEnvironments() ([]*app.SimpleEnvironment, error)
 	GetEnvironment(envName string) (*app.SimpleEnvironment, error)
 	GetPodsInNamespace(nameSpace string, appName string) ([]v1.Pod, error)
-	GetMetrics(envNS string) (Metrics, error)
+	GetMetricsClient(envNS string) (Metrics, error)
 	Close()
 }
 
@@ -78,8 +78,9 @@ type kubeClient struct {
 	envMap map[string]string
 	BaseURLProvider
 	KubeRESTAPI
-	MetricsMap map[string]Metrics
+	metricsMap map[string]Metrics
 	OpenShiftRESTAPI
+	MetricsGetter
 }
 
 // KubeRESTAPI collects methods that call out to the Kubernetes API server over the network
@@ -182,7 +183,8 @@ func NewKubeClient(config *KubeClientConfig) (KubeClientInterface, error) {
 		BaseURLProvider:  config,
 		KubeRESTAPI:      kubeAPI,
 		OpenShiftRESTAPI: osAPI,
-		MetricsMap:       make(map[string]Metrics),
+		metricsMap:       make(map[string]Metrics),
+		MetricsGetter:    config.MetricsGetter,
 	}
 
 	return kubeClient, nil
@@ -227,10 +229,10 @@ func (*defaultGetter) GetMetrics(config *MetricsClientConfig) (Metrics, error) {
 	return NewMetricsClient(config)
 }
 
-func (kc *kubeClient) GetMetrics(envNS string) (Metrics, error) {
+func (kc *kubeClient) GetMetricsClient(envNS string) (Metrics, error) {
 
-	if kc.MetricsMap[envNS] != nil {
-		return kc.MetricsMap[envNS], nil
+	if kc.metricsMap[envNS] != nil {
+		return kc.metricsMap[envNS], nil
 	}
 
 	url, err := kc.GetMetricsURL(envNS)
@@ -247,18 +249,18 @@ func (kc *kubeClient) GetMetrics(envNS string) (Metrics, error) {
 		BearerToken: *token,
 	}
 
-	metrics, err := kc.config.MetricsGetter.GetMetrics(metricsConfig)
+	metrics, err := kc.GetMetrics(metricsConfig)
 	if err != nil {
 		return nil, err
 	}
-	kc.MetricsMap[envNS] = metrics
+	kc.metricsMap[envNS] = metrics
 	return metrics, nil
 }
 
 // Close releases any resources held by this KubeClientInterface
 func (kc *kubeClient) Close() {
 	// Metrics client needs to be closed to stop Hawkular go-routine from spinning
-	for _, m := range kc.MetricsMap {
+	for _, m := range kc.metricsMap {
 		m.Close()
 	}
 }
@@ -487,7 +489,7 @@ func (kc *kubeClient) GetDeploymentStats(spaceName string, appName string, envNa
 		return nil, errs.WithStack(err)
 	}
 
-	mc, err := kc.GetMetrics(envNS)
+	mc, err := kc.GetMetricsClient(envNS)
 	if err != nil {
 		return nil, err
 	}
@@ -547,7 +549,7 @@ func (kc *kubeClient) GetDeploymentStatSeries(spaceName string, appName string, 
 		return nil, errs.WithStack(err)
 	}
 
-	mc, err := kc.GetMetrics(envNS)
+	mc, err := kc.GetMetricsClient(envNS)
 	if err != nil {
 		return nil, err
 	}

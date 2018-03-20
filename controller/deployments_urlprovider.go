@@ -32,8 +32,54 @@ type tenantURLProvider struct {
 	tenant     *app.UserService
 	namespaces map[string]*app.NamespaceAttributes
 	tokens     map[string]string
+	TokenRetriever
+}
+
+type TokenRetriever interface {
+	TokenForService(serviceURL string) (*string, error)
+}
+
+type tokenRetriever struct {
 	authClient *authservice.Client
 	context    context.Context
+}
+
+func (tr *tokenRetriever) TokenForService(forService string) (*string, error) {
+
+	resp, err := tr.authClient.RetrieveToken(tr.context, authservice.RetrieveTokenPath(), forService, nil)
+	if err != nil {
+		return nil, errs.Wrapf(err, "unable to retrieve Auth token for '%s' service", forService)
+	}
+
+	defer resp.Body.Close()
+
+	respBody, err := ioutil.ReadAll(resp.Body)
+
+	status := resp.StatusCode
+	if status != http.StatusOK {
+		log.Error(nil, map[string]interface{}{
+			"err":          err,
+			"request_path": authservice.ShowUserPath(),
+			"for_service":  forService,
+			"http_status":  status,
+		}, "failed to GET token from auth service due to HTTP error %s", status)
+		return nil, errs.Errorf("failed to GET Auth token for '%s' service due to status code %d", forService, status)
+	}
+
+	var respType authservice.TokenData
+	err = json.Unmarshal(respBody, &respType)
+	if err != nil {
+		log.Error(nil, map[string]interface{}{
+			"err":           err,
+			"request_path":  authservice.ShowUserPath(),
+			"for_service":   forService,
+			"http_status":   status,
+			"response_body": respBody,
+		}, "unable to unmarshal Auth token")
+		return nil, errs.Wrapf(err, "unable to unmarshal Auth token for '%s' service from Auth service", forService)
+	}
+
+	return respType.AccessToken, nil
 }
 
 // ensure tenantURLProvider implements BaseURLProvider
@@ -67,18 +113,20 @@ func NewURLProvider(ctx context.Context, config *configuration.Registry, osiocli
 		}, "error accessing Auth server")
 		return nil, errs.Wrap(err, "error creating Auth client")
 	}
-	up.authClient = authClient
-	up.context = ctx
+	up.TokenRetriever = &tokenRetriever{
+		authClient: authClient,
+		context:    ctx,
+	}
 
 	// if we're not using a proxy then the API URL is actually the cluster of namespace 0,
 	// so the apiToken should be the token for that cluster.
 	// there should be no defaults, but that's deferred later
 	if len(proxyURL) == 0 {
-		tokenData, err := up.getTokenData(up.apiURL)
+		tokenData, err := up.TokenForService(up.apiURL)
 		if err != nil {
 			return nil, err
 		}
-		up.apiToken = *tokenData.AccessToken
+		up.apiToken = *tokenData
 	}
 	return up, nil
 }
@@ -127,7 +175,6 @@ func newTenantURLProviderFromTenant(t *app.UserService, token string, proxyURL s
 		apiToken:   token,
 		tenant:     t,
 		namespaces: namespaceMap,
-		authClient: nil,
 	}
 	return provider, nil
 }
@@ -151,12 +198,22 @@ func (up *tenantURLProvider) GetMetricsToken(envNS string) (*string, error) {
 	token := up.tokens[envNS]
 	if len(token) == 0 {
 		ns := up.namespaces[envNS]
-
-		tokenData, err := up.getTokenData(*ns.ClusterURL)
-		if err != nil {
-			return nil, err
+		if ns == nil {
+			return nil, errs.Errorf("Namespace '%s' is not in tenant '%s'", envNS, *up.tenant.ID)
 		}
-		token = *tokenData.AccessToken
+		if up.TokenRetriever != nil {
+			tokenData, err := up.TokenForService(*ns.ClusterURL)
+			if err != nil {
+				return nil, err
+			}
+			token = *tokenData
+		} else {
+			tokenData, err := up.GetAPIToken()
+			if err != nil {
+				return nil, err
+			}
+			token = *tokenData
+		}
 	}
 	return &token, nil
 }
@@ -224,43 +281,6 @@ func (up *tenantURLProvider) GetMetricsURL(envNS string) (*string, error) {
 		baseURL = &nurl
 	}
 	return baseURL, nil
-}
-
-func (up *tenantURLProvider) getTokenData(forService string) (*authservice.TokenData, error) {
-
-	resp, err := up.authClient.RetrieveToken(up.context, authservice.RetrieveTokenPath(), forService, nil)
-	if err != nil {
-		return nil, errs.Wrapf(err, "unable to retrieve Auth token for '%s' service", forService)
-	}
-
-	defer resp.Body.Close()
-
-	respBody, err := ioutil.ReadAll(resp.Body)
-
-	status := resp.StatusCode
-	if status != http.StatusOK {
-		log.Error(nil, map[string]interface{}{
-			"err":          err,
-			"request_path": authservice.ShowUserPath(),
-			"for_service":  forService,
-			"http_status":  status,
-		}, "failed to GET token from auth service due to HTTP error %s", status)
-		return nil, errs.Errorf("failed to GET Auth token for '%s' service due to status code %d", forService, status)
-	}
-
-	var respType authservice.TokenData
-	err = json.Unmarshal(respBody, &respType)
-	if err != nil {
-		log.Error(nil, map[string]interface{}{
-			"err":           err,
-			"request_path":  authservice.ShowUserPath(),
-			"for_service":   forService,
-			"http_status":   status,
-			"response_body": respBody,
-		}, "unable to unmarshal Auth token")
-		return nil, errs.Wrapf(err, "unable to unmarshal Auth token for '%s' service from Auth service", forService)
-	}
-	return &respType, nil
 }
 
 func modifyURL(apiURLStr string, prefix string, path string) (*url.URL, error) {
