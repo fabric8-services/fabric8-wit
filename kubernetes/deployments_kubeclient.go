@@ -162,24 +162,19 @@ func NewKubeClient(config *KubeClientConfig) (KubeClientInterface, error) {
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
-	fmt.Printf("XXXX 111\n")
 	osAPI, err := config.GetOpenShiftRESTAPI(config)
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
-	fmt.Printf("XXXX 222\n")
 	// Use default implementation if no MetricsGetter is specified
 	if config.MetricsGetter == nil {
 		config.MetricsGetter = &defaultGetter{}
 	}
-	fmt.Printf("XXXX 333\n")
 	// Get environments from config map
 	envMap, err := getEnvironmentsFromConfigMap(kubeAPI, config.UserNamespace)
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
-
-	fmt.Printf("XXXX envmap=\n%s\n", tostring(envMap))
 
 	kubeClient := &kubeClient{
 		config:           config,
@@ -251,7 +246,7 @@ func (kc *kubeClient) GetMetrics(envNS string) (Metrics, error) {
 		MetricsURL:  *url,
 		BearerToken: *token,
 	}
-	fmt.Printf("XXXX metricconfig = %s\n", tostring(metricsConfig))
+
 	metrics, err := kc.config.MetricsGetter.GetMetrics(metricsConfig)
 	if err != nil {
 		return nil, err

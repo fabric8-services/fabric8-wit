@@ -218,6 +218,11 @@ func (up *tenantURLProvider) GetMetricsURL(envNS string) (*string, error) {
 		muStr := mu.String()
 		baseURL = &muStr
 	}
+	// Hawkular implementation is sensitive and requires no trailing '/'
+	if strings.HasSuffix(*baseURL, "/") {
+		nurl := (*baseURL)[:len(*baseURL)-1]
+		baseURL = &nurl
+	}
 	return baseURL, nil
 }
 
