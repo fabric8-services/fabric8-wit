@@ -1,8 +1,8 @@
 package controller_test
 
 import (
-	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -14,6 +14,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
@@ -26,7 +27,8 @@ import (
 
 type TestAreaREST struct {
 	gormtestsupport.DBTestSuite
-	db *gormapplication.GormDB
+	db      *gormapplication.GormDB
+	testDir string
 }
 
 func TestRunAreaREST(t *testing.T) {
@@ -39,6 +41,7 @@ func TestRunAreaREST(t *testing.T) {
 func (rest *TestAreaREST) SetupTest() {
 	rest.DBTestSuite.SetupTest()
 	rest.db = gormapplication.NewGormDB(rest.DB)
+	rest.testDir = filepath.Join("test-files", "area")
 }
 
 func (rest *TestAreaREST) SecuredController() (*goa.Service, *AreaController) {
@@ -67,16 +70,18 @@ func (rest *TestAreaREST) TestCreateChildArea() {
 			owner := fxt.Identities[0]
 			svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 			// when
-			_, created := test.CreateChildAreaCreated(t, svc.Context, svc, ctrl, parentID.String(), ca)
+			resp, created := test.CreateChildAreaCreated(t, svc.Context, svc, ctrl, parentID.String(), ca)
 			// then
 			assert.Equal(t, *ca.Data.Attributes.Name, *created.Data.Attributes.Name)
-			fmt.Println(*created.Data.Relationships.Parent.Data.ID)
 			assert.Equal(t, parentID.String(), *created.Data.Relationships.Parent.Data.ID)
-
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok.golden.json"), created)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok.headers.golden.json"), resp.Header())
 			// try creating child area with different identity: should fail
 			otherIdentity := fxt.Identities[1]
 			svc, ctrl = rest.SecuredControllerWithIdentity(otherIdentity)
-			test.CreateChildAreaForbidden(t, svc.Context, svc, ctrl, parentID.String(), ca)
+			resp, err := test.CreateChildAreaForbidden(t, svc.Context, svc, ctrl, parentID.String(), ca)
+			compareWithGolden(t, filepath.Join(rest.testDir, "create", "forbidden.golden.json"), err)
+			compareWithGolden(t, filepath.Join(rest.testDir, "create", "failed.headers.golden.json"), resp.Header())
 		})
 
 		t.Run("Multiple Children", func(t *testing.T) {
@@ -91,21 +96,22 @@ func (rest *TestAreaREST) TestCreateChildArea() {
 			owner := fxt.Identities[0]
 			svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 			// when
-			_, created := test.CreateChildAreaCreated(t, svc.Context, svc, ctrl, parentID.String(), ca)
+			resp, created := test.CreateChildAreaCreated(t, svc.Context, svc, ctrl, parentID.String(), ca)
 			// then
 			assert.Equal(t, *ca.Data.Attributes.Name, *created.Data.Attributes.Name)
 			assert.Equal(t, parentID.String(), *created.Data.Relationships.Parent.Data.ID)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "multiple_child", "child1_ok.golden.json"), created)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "multiple_child", "ok.headers.golden.json"), resp.Header())
 			// Create a child of the child created above.
 			ca = newCreateChildAreaPayload("TestSuccessCreateMultiChildArea-0-0")
 			newParentID := *created.Data.Relationships.Parent.Data.ID
 			// when
-			_, created = test.CreateChildAreaCreated(t, svc.Context, svc, ctrl, newParentID, ca)
+			resp, created = test.CreateChildAreaCreated(t, svc.Context, svc, ctrl, newParentID, ca)
 			// then
 			assert.Equal(t, *ca.Data.Attributes.Name, *created.Data.Attributes.Name)
-			assert.NotNil(t, *created.Data.Attributes.CreatedAt)
-			assert.NotNil(t, *created.Data.Attributes.Version)
 			assert.Equal(t, newParentID, *created.Data.Relationships.Parent.Data.ID)
-			assert.Contains(t, *created.Data.Relationships.Children.Links.Self, "children")
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "multiple_child", "child2_ok.golden.json"), created)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "multiple_child", "ok.headers.golden.json"), resp.Header())
 		})
 	})
 
@@ -125,29 +131,40 @@ func (rest *TestAreaREST) TestCreateChildArea() {
 			assert.Equal(t, parentID.String(), *created.Data.Relationships.Parent.Data.ID)
 
 			// try creating the same area again
-			test.CreateChildAreaConflict(t, svc.Context, svc, ctrl, parentID.String(), childAreaPayload)
-
+			resp, errs := test.CreateChildAreaConflict(t, svc.Context, svc, ctrl, parentID.String(), childAreaPayload)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "conflict.golden.json"), errs)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "failed.headers.golden.json"), resp.Header())
 		})
 
 		t.Run("Missing Name", func(t *testing.T) {
 			// when
 			childAreaPayload.Data.Attributes.Name = nil
 			// then
-			test.CreateChildAreaBadRequest(t, svc.Context, svc, ctrl, parentID.String(), childAreaPayload)
+			resp, errs := test.CreateChildAreaBadRequest(t, svc.Context, svc, ctrl, parentID.String(), childAreaPayload)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "missing_name.golden.json"), errs)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "failed.headers.golden.json"), resp.Header())
 		})
 
 		t.Run("Invalid Parent", func(t *testing.T) {
 			// when
 			createChildAreaPayload := newCreateChildAreaPayload("TestFailCreateChildAreaWithInvalidsParent")
 			// then
-			test.CreateChildAreaNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String(), createChildAreaPayload)
+			resp, errs := test.CreateChildAreaNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String(), createChildAreaPayload)
+			// Ignore error ID
+			errs.Errors[0].ID = ptr.String("IGNORE_ME")
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "invalid_parent.golden.json"), errs)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "failed.headers.golden.json"), resp.Header())
 		})
 
 		t.Run("Unauthorized", func(t *testing.T) {
 			// when
 			svc, ctrl := rest.UnSecuredController()
 			// then
-			test.CreateChildAreaUnauthorized(t, svc.Context, svc, ctrl, parentID.String(), childAreaPayload)
+			resp, errs := test.CreateChildAreaUnauthorized(t, svc.Context, svc, ctrl, parentID.String(), childAreaPayload)
+			// Ignore error ID
+			errs.Errors[0].ID = ptr.String("IGNORE_ME")
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized.golden.json"), errs)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "failed.headers.golden.json"), resp.Header())
 		})
 	})
 }
