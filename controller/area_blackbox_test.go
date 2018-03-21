@@ -176,41 +176,49 @@ func (rest *TestAreaREST) TestShowArea() {
 		svc, ctrl := rest.SecuredController()
 		t.Run("OK", func(t *testing.T) {
 			// when
-			res, _ := test.ShowAreaOK(t, svc.Context, svc, ctrl, a.ID.String(), nil, nil)
+			res, area := test.ShowAreaOK(t, svc.Context, svc, ctrl, a.ID.String(), nil, nil)
+			res.Header().Set("Etag", "IGNORE_ME")
 			//then
-			assertResponseHeaders(t, res)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "ok.golden.json"), area)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "ok.headers.golden.json"), res.Header())
 		})
 
 		t.Run("Using ExpiredIfModifedSince Header", func(t *testing.T) {
 			// when
 			ifModifiedSince := app.ToHTTPTime(a.UpdatedAt.Add(-1 * time.Hour))
-			res, _ := test.ShowAreaOK(t, svc.Context, svc, ctrl, a.ID.String(), &ifModifiedSince, nil)
+			res, area := test.ShowAreaOK(t, svc.Context, svc, ctrl, a.ID.String(), &ifModifiedSince, nil)
+			res.Header().Set("Etag", "IGNORE_ME")
 			//then
-			assertResponseHeaders(t, res)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "expired_if_modified_since.golden.json"), area)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "ok.headers.golden.json"), res.Header())
 		})
 
 		t.Run("Using ExpiredIfNoneMatch Header", func(t *testing.T) {
 			// when
 			ifNoneMatch := "foo"
-			res, _ := test.ShowAreaOK(t, svc.Context, svc, ctrl, a.ID.String(), nil, &ifNoneMatch)
+			res, area := test.ShowAreaOK(t, svc.Context, svc, ctrl, a.ID.String(), nil, &ifNoneMatch)
+			res.Header().Set("Etag", "IGNORE_ME")
 			//then
-			assertResponseHeaders(t, res)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "expired_if_none_match.golden.json"), area)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "ok.headers.golden.json"), res.Header())
 		})
 
 		t.Run("Not Modified Using IfModifedSince Header", func(t *testing.T) {
 			// when
 			ifModifiedSince := app.ToHTTPTime(a.UpdatedAt)
-			res := test.ShowAreaNotModified(t, svc.Context, svc, ctrl, a.ID.String(), &ifModifiedSince, nil)
+			area := test.ShowAreaNotModified(t, svc.Context, svc, ctrl, a.ID.String(), &ifModifiedSince, nil)
+			area.Header().Set("Etag", "IGNORE_ME")
 			//then
-			assertResponseHeaders(t, res)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "if_modified_since_headers.golden.json"), area)
 		})
 
 		t.Run("Not Modified IfNoneMatch Header", func(t *testing.T) {
 			// when
 			ifNoneMatch := app.GenerateEntityTag(a)
-			res := test.ShowAreaNotModified(t, svc.Context, svc, ctrl, a.ID.String(), nil, &ifNoneMatch)
+			area := test.ShowAreaNotModified(t, svc.Context, svc, ctrl, a.ID.String(), nil, &ifNoneMatch)
+			area.Header().Set("Etag", "IGNORE_ME")
 			//then
-			assertResponseHeaders(t, res)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "if_none_match_headers.golden.json"), area)
 		})
 	})
 
@@ -218,8 +226,11 @@ func (rest *TestAreaREST) TestShowArea() {
 		// Setup
 		svc, ctrl := rest.SecuredController()
 		t.Run("Not Found", func(t *testing.T) {
-			// when/then
-			test.ShowAreaNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String(), nil, nil)
+			// when
+			resp, area := test.ShowAreaNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String(), nil, nil)
+			//then
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "not_found.golden.json"), area)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "not_found_headers.golden.json"), resp.Header())
 		})
 	})
 }

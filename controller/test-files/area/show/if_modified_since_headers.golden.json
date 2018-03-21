@@ -1,0 +1,16 @@
+{
+  "Code": 304,
+  "HeaderMap": {
+    "Cache-Control": [
+      "private,max-age=120"
+    ],
+    "Etag": [
+      "IGNORE_ME"
+    ],
+    "Last-Modified": [
+      "Mon, 01 Jan 0001 00:00:00 GMT"
+    ]
+  },
+  "Body": {},
+  "Flushed": false
+}
