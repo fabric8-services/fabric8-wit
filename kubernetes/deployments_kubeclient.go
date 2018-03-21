@@ -15,7 +15,6 @@ import (
 	resource "k8s.io/apimachinery/pkg/api/resource"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
-	kubernetes "k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	v1 "k8s.io/client-go/pkg/api/v1"
 	rest "k8s.io/client-go/rest"
@@ -32,6 +31,9 @@ type KubeClientConfig struct {
 	BaseURLProvider
 	// Kubernetes namespace in the cluster of type 'user'
 	UserNamespace string
+	// Timeout used for communicating with Kubernetes and OpenShift API servers,
+	// a value of zero indicates no timeout
+	Timeout time.Duration // TODO determine good timeout to set here, or possibly make configurable
 	// Provides access to the Kubernetes REST API, uses default implementation if not set
 	KubeRESTAPIGetter
 	// Provides access to the metrics API, uses default implementation if not set
@@ -88,6 +90,11 @@ type KubeRESTAPI interface {
 	corev1.CoreV1Interface
 }
 
+type kubeAPIClient struct {
+	corev1.CoreV1Interface
+	restConfig *rest.Config
+}
+
 // OpenShiftRESTAPI collects methods that call out to the OpenShift API server over the network
 type OpenShiftRESTAPI interface {
 	GetBuildConfigs(namespace string, labelSelector string) (map[string]interface{}, error)
@@ -100,7 +107,8 @@ type OpenShiftRESTAPI interface {
 }
 
 type openShiftAPIClient struct {
-	config *KubeClientConfig
+	config     *KubeClientConfig
+	httpClient *http.Client
 }
 
 type deployment struct {
@@ -190,14 +198,6 @@ func NewKubeClient(config *KubeClientConfig) (KubeClientInterface, error) {
 	return kubeClient, nil
 }
 
-func tostring(item interface{}) string {
-	bytes, err := json.MarshalIndent(item, "", "  ")
-	if err != nil {
-		return err.Error()
-	}
-	return string(bytes)
-}
-
 func (*defaultGetter) GetKubeRESTAPI(config *KubeClientConfig) (KubeRESTAPI, error) {
 	url, err := config.GetAPIURL()
 	if err != nil {
@@ -210,17 +210,27 @@ func (*defaultGetter) GetKubeRESTAPI(config *KubeClientConfig) (KubeRESTAPI, err
 	restConfig := &rest.Config{
 		Host:        *url,
 		BearerToken: *token,
+		Timeout:     config.Timeout,
 	}
-	clientset, err := kubernetes.NewForConfig(restConfig)
+	coreV1Client, err := corev1.NewForConfig(restConfig)
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
-	return clientset.CoreV1(), nil
+	client := &kubeAPIClient{
+		CoreV1Interface: coreV1Client,
+		restConfig:      restConfig,
+	}
+	return client, nil
 }
 
 func (*defaultGetter) GetOpenShiftRESTAPI(config *KubeClientConfig) (OpenShiftRESTAPI, error) {
+	// Equivalent to http.DefaultClient with added timeout
+	httpClient := &http.Client{
+		Timeout: config.Timeout,
+	}
 	client := &openShiftAPIClient{
-		config: config,
+		config:     config,
+		httpClient: httpClient,
 	}
 	return client, nil
 }
@@ -788,8 +798,7 @@ func (oc *openShiftAPIClient) sendResource(path string, method string, reqBody i
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Authorization", "Bearer "+*token)
 
-	client := http.DefaultClient
-	resp, err := client.Do(req)
+	resp, err := oc.httpClient.Do(req)
 	if err != nil {
 		log.Error(nil, map[string]interface{}{
 			"err":          err,
@@ -1762,8 +1771,7 @@ func (oc *openShiftAPIClient) getResource(path string, allowMissing bool) (map[s
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Authorization", "Bearer "+*token)
 
-	client := http.DefaultClient
-	resp, err := client.Do(req)
+	resp, err := oc.httpClient.Do(req)
 	if err != nil {
 		log.Error(nil, map[string]interface{}{
 			"err": err,
