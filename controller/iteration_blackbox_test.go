@@ -536,6 +536,36 @@ func (rest *TestIterationREST) TestSuccessUpdateIteration() {
 			assert.Equal(rest.T(), 0, updated.Data.Relationships.Workitems.Meta[KeyTotalWorkItems])
 			assert.Equal(rest.T(), 0, updated.Data.Relationships.Workitems.Meta[KeyClosedWorkItems])
 		})
+		t.Run("zero value for startAt endAt", func(t *testing.T) {
+			// given
+			fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Iterations(1, func(fxt *tf.TestFixture, idx int) error {
+				now := time.Now()
+				fxt.Iterations[idx].StartAt = &now
+				fxt.Iterations[idx].EndAt = &now
+				return nil
+			}))
+			itr := fxt.Iterations[0]
+			zeroTime := time.Time{}
+			// update iteration using Collaborator
+			payload := app.UpdateIterationPayload{
+				Data: &app.Iteration{
+					Attributes: &app.IterationAttributes{
+						StartAt: &zeroTime,
+						EndAt:   &zeroTime,
+					},
+					ID:   &itr.ID,
+					Type: iteration.APIStringTypeIteration,
+				},
+			}
+			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+			_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &payload)
+			// then
+			assert.Nil(rest.T(), updated.Data.Attributes.StartAt)
+			assert.Nil(rest.T(), updated.Data.Attributes.EndAt)
+			require.NotNil(rest.T(), updated.Data.Relationships.Workitems.Meta)
+			assert.Equal(rest.T(), 0, updated.Data.Relationships.Workitems.Meta[KeyTotalWorkItems])
+			assert.Equal(rest.T(), 0, updated.Data.Relationships.Workitems.Meta[KeyClosedWorkItems])
+		})
 	})
 }
 
