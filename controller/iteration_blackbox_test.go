@@ -546,7 +546,7 @@ func (rest *TestIterationREST) TestSuccessUpdateIteration() {
 			}))
 			itr := fxt.Iterations[0]
 			zeroTime := time.Time{}
-			// update iteration using Collaborator
+			// set zero value for StartAt and EndAt
 			payload := app.UpdateIterationPayload{
 				Data: &app.Iteration{
 					Attributes: &app.IterationAttributes{
