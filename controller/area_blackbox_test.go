@@ -240,21 +240,15 @@ func (rest *TestAreaREST) TestAreaPayload() {
 		t.Run("Validate Area name Length", func(t *testing.T) {
 			// given
 			ca := newCreateChildAreaPayload(testsupport.TestOversizedNameObj)
-
-			err := ca.Validate()
-			// Validate payload function returns an error
-			assert.NotNil(t, err)
-			assert.Contains(t, err.Error(), "length of type.name must be less than or equal to 63")
+			// then
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "payload", "invalid_name_length.golden.json"), ca)
 		})
 
 		t.Run("Validate Area name Start With", func(t *testing.T) {
 			// given
 			ca := newCreateChildAreaPayload("_TestSuccessCreateChildArea")
-
-			err := ca.Validate()
-			// Validate payload function returns an error
-			assert.NotNil(t, err)
-			assert.Contains(t, err.Error(), "type.name must match the regexp")
+			// then
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "payload", "invalid_name_start.golden.json"), ca)
 		})
 	})
 }
