@@ -120,11 +120,14 @@ func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
 			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not a space collaborator"))
 		}
 	}
-	result := c.performUpdate(ctx, cm, identityID)
+	err = c.performUpdate(ctx, cm, identityID)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
 	if ctx.ResponseData.Status == 200 {
 		c.notification.Send(ctx, notification.NewCommentUpdated(cm.ID.String()))
 	}
-	return result
+	return nil
 }
 
 func (c *CommentsController) performUpdate(ctx *app.UpdateCommentsContext, cm *comment.Comment, identityID *uuid.UUID) error {

@@ -140,8 +140,7 @@ type Conflict interface {
 
 // JSONErrorResponse auto maps the provided error to the correct response type
 // If all else fails, InternalServerError is returned
-func JSONErrorResponse(obj interface{}, err error) error {
-	ctx := obj.(context.Context)
+func JSONErrorResponse(ctx context.Context, err error) error {
 	jsonErr, status := ErrorToJSONAPIErrors(ctx, err)
 	switch status {
 	case http.StatusBadRequest:

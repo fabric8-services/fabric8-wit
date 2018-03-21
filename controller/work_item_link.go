@@ -194,6 +194,7 @@ func enrichLinkList(ctx context.Context, appl application.Application, req *http
 }
 
 type createWorkItemLinkFuncs interface {
+	context.Context
 	BadRequest(r *app.JSONAPIErrors) error
 	Created(r *app.WorkItemLinkSingle) error
 	InternalServerError(r *app.JSONAPIErrors) error
@@ -289,6 +290,7 @@ func (c *WorkItemLinkController) checkWorkItemCreatorOrSpaceOwner(ctx context.Co
 }
 
 type deleteWorkItemLinkFuncs interface {
+	context.Context
 	OK(resp []byte) error
 	BadRequest(r *app.JSONAPIErrors) error
 	NotFound(r *app.JSONAPIErrors) error
