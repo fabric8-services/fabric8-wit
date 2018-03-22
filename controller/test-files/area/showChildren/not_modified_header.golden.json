@@ -1,6 +1,6 @@
 {
   "Cache-Control": [
-    "private,max-age=120"
+    "max-age=2"
   ],
   "Etag": [
     "IGNORE_ME"

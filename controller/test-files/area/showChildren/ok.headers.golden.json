@@ -1,6 +1,9 @@
 {
   "Cache-Control": [
-    "private,max-age=120"
+    "max-age=2"
+  ],
+  "Content-Type": [
+    "application/vnd.api+json"
   ],
   "Etag": [
     "IGNORE_ME"
