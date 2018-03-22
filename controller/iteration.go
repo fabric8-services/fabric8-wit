@@ -144,7 +144,7 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	wiCounts := make(map[string]workitem.WICountsPerIteration)
-	responseData := convertIteration(ctx.Request, *itr, parentPathResolver(itrMap), updateIterationsWithCounts(wiCounts))
+	responseData := ConvertIteration(ctx.Request, *itr, parentPathResolver(itrMap), updateIterationsWithCounts(wiCounts))
 	res := &app.IterationSingle{
 		Data: responseData,
 	}
@@ -186,7 +186,7 @@ func (c *IterationController) Show(ctx *app.ShowIterationContext) error {
 			itrMap[itr.ID] = itr
 		}
 		return ctx.OK(&app.IterationSingle{
-			Data: convertIteration(ctx.Request, *itr, parentPathResolver(itrMap), updateIterationsWithCounts(wiCounts)),
+			Data: ConvertIteration(ctx.Request, *itr, parentPathResolver(itrMap), updateIterationsWithCounts(wiCounts)),
 		})
 	})
 }
@@ -334,7 +334,7 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 	for _, itr := range iterations {
 		itrMap[itr.ID] = itr
 	}
-	responseData := convertIteration(ctx.Request, *itr, parentPathResolver(itrMap), updateIterationsWithCounts(wiCounts))
+	responseData := ConvertIteration(ctx.Request, *itr, parentPathResolver(itrMap), updateIterationsWithCounts(wiCounts))
 	return ctx.OK(&app.IterationSingle{
 		Data: responseData,
 	})
@@ -432,17 +432,17 @@ func (c *IterationController) Delete(ctx *app.DeleteIterationContext) error {
 // conversion from internal to API
 type IterationConvertFunc func(*http.Request, *iteration.Iteration, *app.Iteration)
 
-// convertIterations converts between internal and external REST representation
-func convertIterations(request *http.Request, Iterations []iteration.Iteration, additional ...IterationConvertFunc) []*app.Iteration {
+// ConvertIterations converts between internal and external REST representation
+func ConvertIterations(request *http.Request, Iterations []iteration.Iteration, additional ...IterationConvertFunc) []*app.Iteration {
 	var is = []*app.Iteration{}
 	for _, i := range Iterations {
-		is = append(is, convertIteration(request, i, additional...))
+		is = append(is, ConvertIteration(request, i, additional...))
 	}
 	return is
 }
 
-// convertIteration converts between internal and external REST representation
-func convertIteration(request *http.Request, itr iteration.Iteration, additional ...IterationConvertFunc) *app.Iteration {
+// ConvertIteration converts between internal and external REST representation
+func ConvertIteration(request *http.Request, itr iteration.Iteration, additional ...IterationConvertFunc) *app.Iteration {
 	iterationType := iteration.APIStringTypeIteration
 	spaceID := itr.SpaceID.String()
 	relatedURL := rest.AbsoluteURL(request, app.IterationHref(itr.ID))
@@ -507,8 +507,8 @@ func convertIteration(request *http.Request, itr iteration.Iteration, additional
 	return i
 }
 
-// convertIterationSimple converts a simple Iteration ID into a Generic Reletionship
-func convertIterationSimple(request *http.Request, id interface{}) *app.GenericData {
+// ConvertIterationSimple converts a simple Iteration ID into a Generic Reletionship
+func ConvertIterationSimple(request *http.Request, id interface{}) *app.GenericData {
 	t := iteration.APIStringTypeIteration
 	i := fmt.Sprint(id)
 	return &app.GenericData{

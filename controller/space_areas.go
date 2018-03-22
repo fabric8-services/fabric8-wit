@@ -50,7 +50,7 @@ func (c *SpaceAreasController) List(ctx *app.ListSpaceAreasContext) error {
 	}
 	return ctx.ConditionalEntities(areas, c.config.GetCacheControlAreas, func() error {
 		res := &app.AreaList{}
-		res.Data = convertAreas(c.db, ctx.Request, areas, addResolvedPath)
+		res.Data = ConvertAreas(c.db, ctx.Request, areas, addResolvedPath)
 		return ctx.OK(res)
 	})
 }

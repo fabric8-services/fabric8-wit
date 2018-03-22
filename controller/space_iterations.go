@@ -100,9 +100,9 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 			for _, itr := range iterations {
 				itrMap[itr.ID] = itr
 			}
-			responseData = convertIteration(ctx.Request, newItr, parentPathResolver(itrMap), updateIterationsWithCounts(wiCounts))
+			responseData = ConvertIteration(ctx.Request, newItr, parentPathResolver(itrMap), updateIterationsWithCounts(wiCounts))
 		} else {
-			responseData = convertIteration(ctx.Request, newItr, updateIterationsWithCounts(wiCounts))
+			responseData = ConvertIteration(ctx.Request, newItr, updateIterationsWithCounts(wiCounts))
 		}
 		return nil
 	})
@@ -143,7 +143,7 @@ func (c *SpaceIterationsController) List(ctx *app.ListSpaceIterationsContext) er
 				return err
 			}
 			res := &app.IterationList{}
-			res.Data = convertIterations(ctx.Request, iterations, updateIterationsWithCounts(wiCounts), parentPathResolver(itrMap))
+			res.Data = ConvertIterations(ctx.Request, iterations, updateIterationsWithCounts(wiCounts), parentPathResolver(itrMap))
 			return ctx.OK(res)
 		})
 	})

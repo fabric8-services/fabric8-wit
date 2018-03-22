@@ -69,8 +69,8 @@ func (c *CommentsController) Show(ctx *app.ShowCommentsContext) error {
 	return ctx.ConditionalRequest(*cmt, c.config.GetCacheControlComment, func() error {
 		res := &app.CommentSingle{}
 		// This code should change if others type of parents than WI are allowed
-		includeParentWorkItem := commentIncludeParentWorkItem(ctx, cmt)
-		res.Data = convertComment(
+		includeParentWorkItem := CommentIncludeParentWorkItem(ctx, cmt)
+		res.Data = ConvertComment(
 			ctx.Request,
 			*cmt,
 			includeParentWorkItem)
@@ -104,7 +104,7 @@ func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
 	}
 	// This code should change if others type of parents than WI are allowed
 	res := &app.CommentSingle{
-		Data: convertComment(ctx.Request, *cm, commentIncludeParentWorkItem(ctx, cm)),
+		Data: ConvertComment(ctx.Request, *cm, CommentIncludeParentWorkItem(ctx, cm)),
 	}
 	c.notification.Send(ctx, notification.NewCommentUpdated(cm.ID.String()))
 	return ctx.OK(res)
@@ -168,30 +168,30 @@ func (c *CommentsController) Delete(ctx *app.DeleteCommentsContext) error {
 	return ctx.OK([]byte{})
 }
 
-// commentConvertFunc is a open ended function to add additional links/data/relations to a Comment during
+// CommentConvertFunc is a open ended function to add additional links/data/relations to a Comment during
 // conversion from internal to API
-type commentConvertFunc func(*http.Request, *comment.Comment, *app.Comment)
+type CommentConvertFunc func(*http.Request, *comment.Comment, *app.Comment)
 
-// convertComments converts between internal and external REST representation
-func convertComments(request *http.Request, comments []comment.Comment, additional ...commentConvertFunc) []*app.Comment {
+// ConvertComments converts between internal and external REST representation
+func ConvertComments(request *http.Request, comments []comment.Comment, additional ...CommentConvertFunc) []*app.Comment {
 	var cs = []*app.Comment{}
 	for _, c := range comments {
-		cs = append(cs, convertComment(request, c, additional...))
+		cs = append(cs, ConvertComment(request, c, additional...))
 	}
 	return cs
 }
 
-// convertCommentsResourceID converts between internal and external REST representation, ResourceIdentificationObject only
-func convertCommentsResourceID(request *http.Request, comments []comment.Comment, additional ...commentConvertFunc) []*app.Comment {
+// ConvertCommentsResourceID converts between internal and external REST representation, ResourceIdentificationObject only
+func ConvertCommentsResourceID(request *http.Request, comments []comment.Comment, additional ...CommentConvertFunc) []*app.Comment {
 	var cs = []*app.Comment{}
 	for _, c := range comments {
-		cs = append(cs, convertCommentResourceID(request, c, additional...))
+		cs = append(cs, ConvertCommentResourceID(request, c, additional...))
 	}
 	return cs
 }
 
-// convertCommentResourceID converts between internal and external REST representation, ResourceIdentificationObject only
-func convertCommentResourceID(request *http.Request, comment comment.Comment, additional ...commentConvertFunc) *app.Comment {
+// ConvertCommentResourceID converts between internal and external REST representation, ResourceIdentificationObject only
+func ConvertCommentResourceID(request *http.Request, comment comment.Comment, additional ...CommentConvertFunc) *app.Comment {
 	c := &app.Comment{
 		Type: "comments",
 		ID:   &comment.ID,
@@ -202,8 +202,8 @@ func convertCommentResourceID(request *http.Request, comment comment.Comment, ad
 	return c
 }
 
-// convertComment converts between internal and external REST representation
-func convertComment(request *http.Request, comment comment.Comment, additional ...commentConvertFunc) *app.Comment {
+// ConvertComment converts between internal and external REST representation
+func ConvertComment(request *http.Request, comment comment.Comment, additional ...CommentConvertFunc) *app.Comment {
 	relatedURL := rest.AbsoluteURL(request, app.CommentsHref(comment.ID))
 	relatedCreatorLink := rest.AbsoluteURL(request, fmt.Sprintf("%s/%s", usersEndpoint, comment.Creator))
 	c := &app.Comment{
@@ -247,21 +247,21 @@ func convertComment(request *http.Request, comment comment.Comment, additional .
 	return c
 }
 
-// hrefFunc generic function to greate a relative Href to a resource
-type hrefFunc func(id interface{}) string
+// HrefFunc generic function to greate a relative Href to a resource
+type HrefFunc func(id interface{}) string
 
-// commentIncludeParentWorkItem includes a "parent" relation to a WorkItem
-func commentIncludeParentWorkItem(ctx context.Context, c *comment.Comment) commentConvertFunc {
+// CommentIncludeParentWorkItem includes a "parent" relation to a WorkItem
+func CommentIncludeParentWorkItem(ctx context.Context, c *comment.Comment) CommentConvertFunc {
 	return func(request *http.Request, comment *comment.Comment, data *app.Comment) {
-		hrefFunc := func(obj interface{}) string {
+		HrefFunc := func(obj interface{}) string {
 			return fmt.Sprintf(app.WorkitemHref("%v"), obj)
 		}
-		commentIncludeParent(request, comment, data, hrefFunc, APIStringTypeWorkItem)
+		CommentIncludeParent(request, comment, data, HrefFunc, APIStringTypeWorkItem)
 	}
 }
 
 // CommentIncludeParent adds the "parent" relationship to this Comment
-func commentIncludeParent(request *http.Request, comment *comment.Comment, data *app.Comment, href hrefFunc, parentType string) {
+func CommentIncludeParent(request *http.Request, comment *comment.Comment, data *app.Comment, href HrefFunc, parentType string) {
 	data.Relationships.Parent = &app.RelationGeneric{
 		Data: &app.GenericData{
 			Type: &parentType,

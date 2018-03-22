@@ -55,7 +55,7 @@ func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 			return err
 		}
 		return ctx.ConditionalRequest(*witModel, c.config.GetCacheControlWorkItemType, func() error {
-			witData := convertWorkItemTypeFromModel(ctx.Request, witModel)
+			witData := ConvertWorkItemTypeFromModel(ctx.Request, witModel)
 			wit := &app.WorkItemTypeSingle{Data: &witData}
 			return ctx.OK(wit)
 		})
@@ -96,7 +96,7 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 			spaceSelfURL := rest.AbsoluteURL(ctx.Request, app.SpaceHref(ctx.SpaceID.String()))
 			ctx.Payload.Data.Relationships.Space = app.NewSpaceRelation(ctx.SpaceID, spaceSelfURL)
 		}
-		modelFields, err := convertFieldDefinitionsToModel(fields)
+		modelFields, err := ConvertFieldDefinitionsToModel(fields)
 		if err != nil {
 			return err
 		}
@@ -114,7 +114,7 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	witData := convertWorkItemTypeFromModel(ctx.Request, witModel)
+	witData := ConvertWorkItemTypeFromModel(ctx.Request, witModel)
 	wit := &app.WorkItemTypeSingle{Data: &witData}
 	ctx.ResponseData.Header().Set("Location", app.WorkitemtypeHref(*ctx.Payload.Data.Relationships.Space.Data.ID, wit.Data.ID))
 	return ctx.Created(wit)
@@ -163,15 +163,15 @@ func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
 		result := &app.WorkItemTypeList{}
 		result.Data = make([]*app.WorkItemTypeData, len(witModels))
 		for index, value := range witModels {
-			wit := convertWorkItemTypeFromModel(ctx.Request, &value)
+			wit := ConvertWorkItemTypeFromModel(ctx.Request, &value)
 			result.Data[index] = &wit
 		}
 		return ctx.OK(result)
 	})
 }
 
-// convertWorkItemTypeFromModel converts from models to app representation
-func convertWorkItemTypeFromModel(request *http.Request, t *workitem.WorkItemType) app.WorkItemTypeData {
+// ConvertWorkItemTypeFromModel converts from models to app representation
+func ConvertWorkItemTypeFromModel(request *http.Request, t *workitem.WorkItemType) app.WorkItemTypeData {
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(t.SpaceID.String()))
 	var converted = app.WorkItemTypeData{
 		Type: "workitemtypes",
@@ -190,7 +190,7 @@ func convertWorkItemTypeFromModel(request *http.Request, t *workitem.WorkItemTyp
 		},
 	}
 	for name, def := range t.Fields {
-		ct := convertFieldTypeFromModel(def.Type)
+		ct := ConvertFieldTypeFromModel(def.Type)
 		converted.Attributes.Fields[name] = &app.FieldDefinition{
 			Required:    def.Required,
 			Label:       def.Label,
@@ -228,7 +228,7 @@ func convertWorkItemTypeFromModel(request *http.Request, t *workitem.WorkItemTyp
 }
 
 // converts the field type from modesl to app representation
-func convertFieldTypeFromModel(t workitem.FieldType) app.FieldType {
+func ConvertFieldTypeFromModel(t workitem.FieldType) app.FieldType {
 	result := app.FieldType{}
 	result.Kind = string(t.GetKind())
 	switch t2 := t.(type) {
@@ -242,7 +242,7 @@ func convertFieldTypeFromModel(t workitem.FieldType) app.FieldType {
 	return result
 }
 
-func convertFieldTypeToModel(t app.FieldType) (workitem.FieldType, error) {
+func ConvertFieldTypeToModel(t app.FieldType) (workitem.FieldType, error) {
 	kind, err := workitem.ConvertStringToKind(t.Kind)
 	if err != nil {
 		return nil, errs.WithStack(err)
@@ -280,11 +280,11 @@ func convertFieldTypeToModel(t app.FieldType) (workitem.FieldType, error) {
 	}
 }
 
-func convertFieldDefinitionsToModel(fields map[string]app.FieldDefinition) (map[string]workitem.FieldDefinition, error) {
+func ConvertFieldDefinitionsToModel(fields map[string]app.FieldDefinition) (map[string]workitem.FieldDefinition, error) {
 	modelFields := map[string]workitem.FieldDefinition{}
 	// now process new fields, checking whether they are ok to add.
 	for field, definition := range fields {
-		ct, err := convertFieldTypeToModel(*definition.Type)
+		ct, err := ConvertFieldTypeToModel(*definition.Type)
 		if err != nil {
 			return nil, errs.WithStack(err)
 		}

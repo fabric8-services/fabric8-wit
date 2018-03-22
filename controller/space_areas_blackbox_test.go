@@ -98,7 +98,7 @@ func (rest *TestSpaceAreaREST) setupAreas() (area.Area, []uuid.UUID, []area.Area
 	assert.Equal(rest.T(), *ci.Data.Attributes.Name, *created.Data.Attributes.Name)
 	assert.Equal(rest.T(), parentID.String(), *created.Data.Relationships.Parent.Data.ID)
 	createdAreaUuids = append(createdAreaUuids, *created.Data.ID)
-	createdAreas = append(createdAreas, convertAreaToModel(*created))
+	createdAreas = append(createdAreas, ConvertAreaToModel(*created))
 
 	// Create a child of the child created above.
 	ci = newCreateChildAreaPayload("TestListAreas B")
@@ -110,7 +110,7 @@ func (rest *TestSpaceAreaREST) setupAreas() (area.Area, []uuid.UUID, []area.Area
 	assert.Equal(rest.T(), newParentID, *created.Data.Relationships.Parent.Data.ID)
 	assert.Contains(rest.T(), *created.Data.Relationships.Children.Links.Self, "children")
 	createdAreaUuids = append(createdAreaUuids, *created.Data.ID)
-	createdAreas = append(createdAreas, convertAreaToModel(*created))
+	createdAreas = append(createdAreas, ConvertAreaToModel(*created))
 	return parentArea, createdAreaUuids, createdAreas
 }
 

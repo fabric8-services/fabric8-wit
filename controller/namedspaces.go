@@ -46,7 +46,7 @@ func (c *NamedspacesController) Show(ctx *app.ShowNamedspacesContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	spaceData, err := convertSpaceFromModel(ctx.Request, *s, includeBacklogTotalCount(ctx.Context, c.db))
+	spaceData, err := ConvertSpaceFromModel(ctx.Request, *s, IncludeBacklogTotalCount(ctx.Context, c.db))
 	if err != nil {
 		return err
 	}
@@ -75,7 +75,7 @@ func (c *NamedspacesController) List(ctx *app.ListNamedspacesContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	spaceData, err := convertSpacesFromModel(ctx.Request, spaces, includeBacklogTotalCount(ctx.Context, c.db))
+	spaceData, err := ConvertSpacesFromModel(ctx.Request, spaces, IncludeBacklogTotalCount(ctx.Context, c.db))
 	if err != nil {
 		return err
 	}

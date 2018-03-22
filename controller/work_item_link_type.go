@@ -62,7 +62,7 @@ func enrichLinkTypeSingle(ctx *workItemLinkContext, single *app.WorkItemLinkType
 		return err
 	}
 
-	spaceData, err := convertSpaceFromModel(ctx.Request, *space, includeBacklogTotalCount(ctx.Context, ctx.DB))
+	spaceData, err := ConvertSpaceFromModel(ctx.Request, *space, IncludeBacklogTotalCount(ctx.Context, ctx.DB))
 	if err != nil {
 		return err
 	}
@@ -110,7 +110,7 @@ func enrichLinkTypeList(ctx *workItemLinkContext, list *app.WorkItemLinkTypeList
 		if err != nil {
 			return err
 		}
-		spaceData, err := convertSpaceFromModel(ctx.Request, *space, includeBacklogTotalCount(ctx.Context, ctx.DB))
+		spaceData, err := ConvertSpaceFromModel(ctx.Request, *space, IncludeBacklogTotalCount(ctx.Context, ctx.DB))
 		if err != nil {
 			return err
 		}
@@ -155,10 +155,10 @@ func (c *WorkItemLinkTypeController) Create(ctx *app.CreateWorkItemLinkTypeConte
 		}
 		appLinkType = ConvertWorkItemLinkTypeFromModel(ctx.Request, *createdModelLinkType)
 		// Enrich
-		hrefFunc := func(obj interface{}) string {
+		HrefFunc := func(obj interface{}) string {
 			return fmt.Sprintf(app.WorkItemLinkTypeHref(createdModelLinkType.SpaceID, "%v"), obj)
 		}
-		linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, hrefFunc, currentUserIdentityID)
+		linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, HrefFunc, currentUserIdentityID)
 		return enrichLinkTypeSingle(linkCtx, &appLinkType)
 	})
 	if err != nil {
@@ -212,11 +212,11 @@ func (c *WorkItemLinkTypeController) List(ctx *app.ListWorkItemLinkTypeContext) 
 			TotalCount: len(modelLinkTypes),
 		}
 		// Enrich
-		hrefFunc := func(obj interface{}) string {
+		HrefFunc := func(obj interface{}) string {
 			return fmt.Sprintf(app.WorkItemLinkTypeHref(ctx.SpaceID, "%v"), obj)
 		}
 		err := application.Transactional(c.db, func(appl application.Application) error {
-			linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, hrefFunc, nil)
+			linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, HrefFunc, nil)
 			return enrichLinkTypeList(linkCtx, &appLinkTypes)
 		})
 		if err != nil {
@@ -238,10 +238,10 @@ func (c *WorkItemLinkTypeController) Show(ctx *app.ShowWorkItemLinkTypeContext) 
 			appLinkType := ConvertWorkItemLinkTypeFromModel(ctx.Request, *modelLinkType)
 
 			// Enrich
-			hrefFunc := func(obj interface{}) string {
+			HrefFunc := func(obj interface{}) string {
 				return fmt.Sprintf(app.WorkItemLinkTypeHref(ctx.SpaceID, "%v"), obj)
 			}
-			linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, hrefFunc, nil)
+			linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, HrefFunc, nil)
 			err = enrichLinkTypeSingle(linkCtx, &appLinkType)
 			if err != nil {
 				return goa.ErrInternal("Failed to enrich link type: %s", err.Error())
@@ -283,10 +283,10 @@ func (c *WorkItemLinkTypeController) Update(ctx *app.UpdateWorkItemLinkTypeConte
 		}
 		appLinkType = ConvertWorkItemLinkTypeFromModel(ctx.Request, *modelLinkTypeSaved)
 		// Enrich
-		hrefFunc := func(obj interface{}) string {
+		HrefFunc := func(obj interface{}) string {
 			return fmt.Sprintf(app.WorkItemLinkTypeHref(ctx.SpaceID, "%v"), obj)
 		}
-		linkTypeCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, hrefFunc, currentUserIdentityID)
+		linkTypeCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, HrefFunc, currentUserIdentityID)
 		return enrichLinkTypeSingle(linkTypeCtx, &appLinkType)
 	})
 	if err != nil {
@@ -333,7 +333,7 @@ func ConvertWorkItemLinkTypeFromModel(request *http.Request, modelLinkType link.
 	return converted
 }
 
-// convertWorkItemLinkTypeToModel converts the incoming app representation of a work item link type to the model layout.
+// ConvertWorkItemLinkTypeToModel converts the incoming app representation of a work item link type to the model layout.
 // Values are only overwrriten if they are set in "in", otherwise the values in "out" remain.
 func ConvertWorkItemLinkTypeToModel(appLinkType app.WorkItemLinkTypeSingle) (*link.WorkItemLinkType, error) {
 	modelLinkType := link.WorkItemLinkType{}

@@ -78,7 +78,7 @@ func (c *WorkItemCommentsController) Create(ctx *app.CreateWorkItemCommentsConte
 		}
 
 		res := &app.CommentSingle{
-			Data: convertComment(ctx.Request, newComment),
+			Data: ConvertComment(ctx.Request, newComment),
 		}
 		return ctx.OK(res)
 	})
@@ -108,7 +108,7 @@ func (c *WorkItemCommentsController) List(ctx *app.ListWorkItemCommentsContext) 
 			res := &app.CommentList{}
 			res.Data = []*app.Comment{}
 			res.Meta = &app.CommentListMeta{TotalCount: count}
-			res.Data = convertComments(ctx.Request, comments)
+			res.Data = ConvertComments(ctx.Request, comments)
 			res.Links = &app.PagingLinks{}
 			setPagingLinks(res.Links, buildAbsoluteURL(ctx.Request), len(comments), offset, limit, count)
 			return ctx.OK(res)
@@ -138,7 +138,7 @@ func (c *WorkItemCommentsController) Relations(ctx *app.RelationsWorkItemComment
 		_ = comments
 		res := &app.CommentRelationshipList{}
 		res.Meta = &app.CommentListMeta{TotalCount: count}
-		res.Data = convertCommentsResourceID(ctx.Request, comments)
+		res.Data = ConvertCommentsResourceID(ctx.Request, comments)
 		res.Links = CreateCommentsRelationLinks(ctx.Request, wi)
 		return ctx.OK(res)
 	})
@@ -149,7 +149,7 @@ func (c *WorkItemCommentsController) Relations(ctx *app.RelationsWorkItemComment
 }
 
 // workItemIncludeCommentsAndTotal adds relationship about comments to workitem (include totalCount)
-func workItemIncludeCommentsAndTotal(ctx context.Context, db application.DB, parentID uuid.UUID) workItemConvertFunc {
+func workItemIncludeCommentsAndTotal(ctx context.Context, db application.DB, parentID uuid.UUID) WorkItemConvertFunc {
 	// TODO: Wrap ctx in a Timeout context?
 	count := make(chan int)
 	go func() {

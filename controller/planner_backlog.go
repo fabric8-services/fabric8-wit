@@ -60,7 +60,7 @@ func (c *PlannerBacklogController) List(ctx *app.ListPlannerBacklogContext) erro
 	}
 	return ctx.ConditionalEntities(result, c.config.GetCacheControlWorkItems, func() error {
 		response := app.WorkItemList{
-			Data:  convertWorkItems(ctx.Request, result),
+			Data:  ConvertWorkItems(ctx.Request, result),
 			Links: &app.PagingLinks{},
 			Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
 		}

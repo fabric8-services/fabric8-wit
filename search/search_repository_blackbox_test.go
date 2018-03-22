@@ -90,7 +90,7 @@ func (s *searchRepositoryBlackboxTest) TestSearchWithJoin() {
 			res, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
 			// then
 			require.NoError(t, err)
-			assert.Equal(t, int(7), count)
+			assert.Equal(t, 7, count)
 			toBeFound := id.Slice{
 				fxt.WorkItems[0].ID,
 				fxt.WorkItems[1].ID,
@@ -113,7 +113,7 @@ func (s *searchRepositoryBlackboxTest) TestSearchWithJoin() {
 			res, count, _, _, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
 			// then
 			require.NoError(t, err)
-			assert.Equal(t, int(7), count)
+			assert.Equal(t, 7, count)
 			toBeFound := id.Slice{
 				fxt.WorkItems[0].ID,
 				fxt.WorkItems[1].ID,
@@ -146,7 +146,7 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			res, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
 			// then
 			require.NoError(t, err)
-			assert.Equal(t, int(2), count)
+			assert.Equal(t, 2, count)
 			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[1], *fxt.WorkItems[0]))
 		})
 		s.T().Run("unmatching title", func(t *testing.T) {
@@ -158,7 +158,7 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			_, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
 			// then
 			require.NoError(t, err)
-			assert.Equal(t, int(0), count)
+			assert.Equal(t, 0, count)
 		})
 	})
 
@@ -173,7 +173,7 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			res, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
 			// then
 			require.NoError(t, err)
-			require.Equal(t, int(1), count)
+			require.Equal(t, 1, count)
 			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[0]))
 		})
 
@@ -186,7 +186,7 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			res, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
 			// then
 			require.NoError(t, err)
-			require.Equal(t, int(1), count)
+			require.Equal(t, 1, count)
 			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[1]))
 		})
 
@@ -199,7 +199,7 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			res, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
 			// then
 			require.NoError(t, err)
-			require.Equal(t, int(2), count)
+			require.Equal(t, 2, count)
 			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[1], *fxt.WorkItems[0]))
 		})
 
@@ -212,7 +212,7 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			res, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
 			// then
 			require.NoError(t, err)
-			assert.Equal(t, int(2), count)
+			assert.Equal(t, 2, count)
 			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[1], *fxt.WorkItems[0]))
 		})
 
@@ -225,7 +225,7 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			res, count, err := s.searchRepo.SearchFullText(context.Background(), query, nil, nil, &spaceID)
 			// then
 			require.NoError(t, err)
-			assert.Equal(t, int(2), count)
+			assert.Equal(t, 2, count)
 			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[1], *fxt.WorkItems[0]))
 		})
 	})
@@ -240,7 +240,7 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			res, count, ancestors, childLinks, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, nil)
 			// when
 			require.NoError(t, err)
-			assert.Equal(t, int(2), count)
+			assert.Equal(t, 2, count)
 			assert.Equal(t, 2, len(res))
 			assert.Empty(t, ancestors)
 			assert.Empty(t, childLinks)
@@ -255,7 +255,7 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			res, count, ancestors, childLinks, err := s.searchRepo.Filter(context.Background(), filter, nil, &start, nil)
 			// then
 			require.NoError(t, err)
-			assert.Equal(t, int(2), count)
+			assert.Equal(t, 2, count)
 			assert.Equal(t, 0, len(res))
 			assert.Empty(t, ancestors)
 			assert.Empty(t, childLinks)
@@ -270,7 +270,7 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			res, count, ancestors, childLinks, err := s.searchRepo.Filter(context.Background(), filter, nil, nil, &limit)
 			// then
 			require.NoError(s.T(), err)
-			assert.Equal(t, int(2), count)
+			assert.Equal(t, 2, count)
 			assert.Equal(t, 1, len(res))
 			assert.Empty(t, ancestors)
 			assert.Empty(t, childLinks)
@@ -288,7 +288,7 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			res, count, ancestors, childLinks, err := s.searchRepo.Filter(context.Background(), filter, &parentExists, nil, nil)
 			// then both work items should be returned
 			require.NoError(t, err)
-			assert.Equal(t, int(3), count)
+			assert.Equal(t, 3, count)
 			assert.Equal(t, 3, len(res))
 			assert.Empty(t, ancestors)
 			assert.Empty(t, childLinks)
@@ -311,7 +311,7 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			res, count, ancestors, childLinks, err := s.searchRepo.Filter(context.Background(), filter, &parentExists, nil, nil)
 			// then only parent work item should be returned
 			require.NoError(t, err)
-			assert.Equal(t, int(2), count)
+			assert.Equal(t, 2, count)
 			require.Equal(t, 2, len(res))
 			// item #0 is parent of #1 and item #2 is not linked to any otjer item
 			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[2], *fxt.WorkItems[0]))
@@ -339,7 +339,7 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			res, count, ancestors, childLinks, err := s.searchRepo.Filter(context.Background(), filter, &parentExists, nil, nil)
 			// then both work items should be returned
 			require.NoError(t, err)
-			assert.Equal(t, int(3), count)
+			assert.Equal(t, 3, count)
 			assert.Equal(t, 3, len(res))
 			assert.Empty(t, ancestors)
 			assert.Empty(t, childLinks)

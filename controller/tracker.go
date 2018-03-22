@@ -67,7 +67,7 @@ func (c *TrackerController) Create(ctx *app.CreateTrackerContext) error {
 	accessTokens := GetAccessTokens(c.configuration) //configuration.GetGithubAuthToken()
 	c.scheduler.ScheduleAllQueries(ctx, accessTokens)
 	res := &app.TrackerSingle{
-		Data: convertTracker(ctx.Request, *tracker),
+		Data: ConvertTracker(ctx.Request, *tracker),
 	}
 	ctx.ResponseData.Header().Set("Location", app.TrackerHref(res.Data.ID))
 	return ctx.Created(res)
@@ -112,7 +112,7 @@ func (c *TrackerController) Show(ctx *app.ShowTrackerContext) error {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	result := &app.TrackerSingle{
-		Data: convertTracker(ctx.Request, *trkr),
+		Data: ConvertTracker(ctx.Request, *trkr),
 	}
 	return ctx.OK(result)
 }
@@ -129,15 +129,15 @@ func (c *TrackerController) List(ctx *app.ListTrackerContext) error {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	res := &app.TrackerList{}
-	res.Data = convertTrackers(ctx.Request, trkrs)
+	res.Data = ConvertTrackers(ctx.Request, trkrs)
 	return ctx.OK(res)
 }
 
 // ConvertTrackers from internal to external REST representation
-func convertTrackers(request *http.Request, trackers []remoteworkitem.Tracker) []*app.Tracker {
+func ConvertTrackers(request *http.Request, trackers []remoteworkitem.Tracker) []*app.Tracker {
 	var ls = []*app.Tracker{}
 	for _, i := range trackers {
-		ls = append(ls, convertTracker(request, i))
+		ls = append(ls, ConvertTracker(request, i))
 	}
 	return ls
 }
@@ -170,13 +170,13 @@ func (c *TrackerController) Update(ctx *app.UpdateTrackerContext) error {
 	accessTokens := GetAccessTokens(c.configuration) //configuration.GetGithubAuthToken()
 	c.scheduler.ScheduleAllQueries(ctx, accessTokens)
 	res := &app.TrackerSingle{
-		Data: convertTracker(ctx.Request, *trkr),
+		Data: ConvertTracker(ctx.Request, *trkr),
 	}
 	return ctx.OK(res)
 }
 
 // ConvertTracker converts from internal to external REST representation
-func convertTracker(request *http.Request, tracker remoteworkitem.Tracker) *app.Tracker {
+func ConvertTracker(request *http.Request, tracker remoteworkitem.Tracker) *app.Tracker {
 	trackerStringType := remoteworkitem.APIStringTypeTrackers
 	selfURL := rest.AbsoluteURL(request, app.TrackerHref(tracker.ID))
 	t := &app.Tracker{

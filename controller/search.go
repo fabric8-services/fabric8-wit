@@ -183,7 +183,7 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 			Meta: &app.WorkItemListResponseMeta{
 				TotalCount: count,
 			},
-			Data: convertWorkItems(ctx.Request, result, hasChildren, includeParent),
+			Data: ConvertWorkItems(ctx.Request, result, hasChildren, includeParent),
 		}
 		c.enrichWorkItemList(ctx, ancestors, matchingWorkItemIDs, childLinks, &response, hasChildren) // append parentWI and ancestors (if not empty) in response
 		setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(result), offset, limit, count, "filter[expression]="+*ctx.FilterExpression)
@@ -269,7 +269,7 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 	response := app.SearchWorkItemList{
 		Links: &app.PagingLinks{},
 		Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
-		Data:  convertWorkItems(ctx.Request, result),
+		Data:  ConvertWorkItems(ctx.Request, result),
 	}
 	setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(result), offset, limit, count, "q="+*ctx.Q)
 	return ctx.OK(&response)
@@ -303,7 +303,7 @@ func (c *SearchController) Spaces(ctx *app.SpacesSearchContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	spaceData, err := convertSpacesFromModel(ctx.Request, result, includeBacklogTotalCount(ctx.Context, c.db))
+	spaceData, err := ConvertSpacesFromModel(ctx.Request, result, IncludeBacklogTotalCount(ctx.Context, c.db))
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
@@ -323,7 +323,7 @@ func (c *SearchController) Users(ctx *app.UsersSearchContext) error {
 
 // Iterate over the WI list and read parent IDs
 // Fetch and load Parent WI in the included list
-func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, ancestors link.AncestorList, matchingIDs id.Slice, childLinks link.WorkItemLinkList, res *app.SearchWorkItemList, hasChildren workItemConvertFunc) {
+func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, ancestors link.AncestorList, matchingIDs id.Slice, childLinks link.WorkItemLinkList, res *app.SearchWorkItemList, hasChildren WorkItemConvertFunc) {
 	parentIDs := id.Slice{}
 	for _, wi := range res.Data {
 		if wi.Relationships != nil && wi.Relationships.Parent != nil && wi.Relationships.Parent.Data != nil {
@@ -357,7 +357,7 @@ func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, ancest
 	}
 
 	for _, ele := range wis {
-		convertedWI := convertWorkItem(ctx.Request, *ele, hasChildren, includeParentWorkItem(ctx, ancestors, childLinks))
+		convertedWI := ConvertWorkItem(ctx.Request, *ele, hasChildren, includeParentWorkItem(ctx, ancestors, childLinks))
 		res.Included = append(res.Included, *convertedWI)
 	}
 }
@@ -397,13 +397,13 @@ func (c *SearchController) Codebases(ctx *app.CodebasesSearchContext) error {
 	// put all related spaces and associated owners in the `included` data
 	includedData := make([]interface{}, len(relatedSpaces))
 	for i, relatedSpace := range relatedSpaces {
-		appSpace, err := convertSpaceFromModel(ctx.Request, relatedSpace)
+		appSpace, err := ConvertSpaceFromModel(ctx.Request, relatedSpace)
 		if err != nil {
 			return err
 		}
 		includedData[i] = *appSpace
 	}
-	codebasesData := convertCodebases(ctx.Request, matchingCodebases)
+	codebasesData := ConvertCodebases(ctx.Request, matchingCodebases)
 	response := app.CodebaseList{
 		Links:    &app.PagingLinks{},
 		Meta:     &app.CodebaseListMeta{TotalCount: totalCount},

@@ -23,35 +23,35 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type LabelControllerTestSuite struct {
+type TestLabelREST struct {
 	gormtestsupport.DBTestSuite
 	db      *gormapplication.GormDB
 	testDir string
 }
 
-func TestLabelController(t *testing.T) {
+func TestRunLabelREST(t *testing.T) {
 	resource.Require(t, resource.Database)
 	pwd, err := os.Getwd()
 	require.NoError(t, err)
-	suite.Run(t, &LabelControllerTestSuite{DBTestSuite: gormtestsupport.NewDBTestSuite(pwd + "/../config.yaml")})
+	suite.Run(t, &TestLabelREST{DBTestSuite: gormtestsupport.NewDBTestSuite(pwd + "/../config.yaml")})
 }
 
-func (s *LabelControllerTestSuite) SetupTest() {
-	s.DBTestSuite.SetupTest()
-	s.db = gormapplication.NewGormDB(s.DB)
-	s.testDir = filepath.Join("test-files", "label")
+func (rest *TestLabelREST) SetupTest() {
+	rest.DBTestSuite.SetupTest()
+	rest.db = gormapplication.NewGormDB(rest.DB)
+	rest.testDir = filepath.Join("test-files", "label")
 }
 
-func (s *LabelControllerTestSuite) TestCreateLabel() {
-	c, err := tf.NewFixture(s.DB, tf.Spaces(1))
-	require.NoError(s.T(), err)
-	require.Nil(s.T(), c.Check())
-	i, err := tf.NewFixture(s.DB, tf.Identities(1))
-	require.NoError(s.T(), err)
-	require.Nil(s.T(), c.Check())
+func (rest *TestLabelREST) TestCreateLabel() {
+	c, err := tf.NewFixture(rest.DB, tf.Spaces(1))
+	require.NoError(rest.T(), err)
+	require.Nil(rest.T(), c.Check())
+	i, err := tf.NewFixture(rest.DB, tf.Identities(1))
+	require.NoError(rest.T(), err)
+	require.Nil(rest.T(), c.Check())
 	svc := testsupport.ServiceAsUser("Label-Service", *i.Identities[0])
 
-	ctrl := NewLabelController(svc, s.db, s.Configuration)
+	ctrl := NewLabelController(svc, rest.db, rest.Configuration)
 	color := "some color"
 	pl := app.CreateLabelPayload{
 		Data: &app.Label{
@@ -59,24 +59,24 @@ func (s *LabelControllerTestSuite) TestCreateLabel() {
 			Type:       label.APIStringTypeLabels,
 		},
 	}
-	_, created := test.CreateLabelCreated(s.T(), svc.Context, svc, ctrl, c.Spaces[0].ID, &pl)
-	assert.Equal(s.T(), pl.Data.Attributes.Name, created.Data.Attributes.Name)
-	assert.Equal(s.T(), "#000000", *created.Data.Attributes.TextColor)
-	assert.Equal(s.T(), "#FFFFFF", *created.Data.Attributes.BackgroundColor)
-	assert.Equal(s.T(), "#000000", *created.Data.Attributes.BorderColor)
-	assert.False(s.T(), created.Data.Attributes.CreatedAt.After(time.Now()), "Label was not created, CreatedAt after Now()")
+	_, created := test.CreateLabelCreated(rest.T(), svc.Context, svc, ctrl, c.Spaces[0].ID, &pl)
+	assert.Equal(rest.T(), pl.Data.Attributes.Name, created.Data.Attributes.Name)
+	assert.Equal(rest.T(), "#000000", *created.Data.Attributes.TextColor)
+	assert.Equal(rest.T(), "#FFFFFF", *created.Data.Attributes.BackgroundColor)
+	assert.Equal(rest.T(), "#000000", *created.Data.Attributes.BorderColor)
+	assert.False(rest.T(), created.Data.Attributes.CreatedAt.After(time.Now()), "Label was not created, CreatedAt after Now()")
 }
 
-func (s *LabelControllerTestSuite) TestCreateLabelWithWhiteSpace() {
-	c, err := tf.NewFixture(s.DB, tf.Spaces(1))
-	require.NoError(s.T(), err)
-	require.Nil(s.T(), c.Check())
-	i, err := tf.NewFixture(s.DB, tf.Identities(1))
-	require.NoError(s.T(), err)
-	require.Nil(s.T(), c.Check())
+func (rest *TestLabelREST) TestCreateLabelWithWhiteSpace() {
+	c, err := tf.NewFixture(rest.DB, tf.Spaces(1))
+	require.NoError(rest.T(), err)
+	require.Nil(rest.T(), c.Check())
+	i, err := tf.NewFixture(rest.DB, tf.Identities(1))
+	require.NoError(rest.T(), err)
+	require.Nil(rest.T(), c.Check())
 	svc := testsupport.ServiceAsUser("Label-Service", *i.Identities[0])
 
-	ctrl := NewLabelController(svc, s.db, s.Configuration)
+	ctrl := NewLabelController(svc, rest.db, rest.Configuration)
 	color := "	  some color  "
 	pl := app.CreateLabelPayload{
 		Data: &app.Label{
@@ -84,22 +84,22 @@ func (s *LabelControllerTestSuite) TestCreateLabelWithWhiteSpace() {
 			Type:       label.APIStringTypeLabels,
 		},
 	}
-	_, created := test.CreateLabelCreated(s.T(), svc.Context, svc, ctrl, c.Spaces[0].ID, &pl)
-	assertLabelLinking(s.T(), created.Data)
-	assert.Equal(s.T(), strings.TrimSpace(*pl.Data.Attributes.Name), *created.Data.Attributes.Name)
-	assert.Equal(s.T(), "#000000", *created.Data.Attributes.TextColor)
-	assert.Equal(s.T(), "#FFFFFF", *created.Data.Attributes.BackgroundColor)
-	assert.Equal(s.T(), "#000000", *created.Data.Attributes.BorderColor)
-	assert.False(s.T(), created.Data.Attributes.CreatedAt.After(time.Now()), "Label was not created, CreatedAt after Now()")
+	_, created := test.CreateLabelCreated(rest.T(), svc.Context, svc, ctrl, c.Spaces[0].ID, &pl)
+	assertLabelLinking(rest.T(), created.Data)
+	assert.Equal(rest.T(), strings.TrimSpace(*pl.Data.Attributes.Name), *created.Data.Attributes.Name)
+	assert.Equal(rest.T(), "#000000", *created.Data.Attributes.TextColor)
+	assert.Equal(rest.T(), "#FFFFFF", *created.Data.Attributes.BackgroundColor)
+	assert.Equal(rest.T(), "#000000", *created.Data.Attributes.BorderColor)
+	assert.False(rest.T(), created.Data.Attributes.CreatedAt.After(time.Now()), "Label was not created, CreatedAt after Now()")
 }
 
-func (s *LabelControllerTestSuite) TestUpdate() {
+func (rest *TestLabelREST) TestUpdate() {
 
-	testFxt := tf.NewTestFixture(s.T(), s.DB, tf.Labels(1))
+	testFxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Labels(1))
 	svc := testsupport.ServiceAsUser("Label-Service", *testFxt.Identities[0])
-	ctrl := NewLabelController(svc, s.db, s.Configuration)
+	ctrl := NewLabelController(svc, rest.db, rest.Configuration)
 
-	s.T().Run("update label", func(t *testing.T) {
+	rest.T().Run("update label", func(t *testing.T) {
 		newName := "Label New 1001"
 		textColor := "#dbe1f6"
 		backgroundColor := "#10b2f4"
@@ -119,8 +119,8 @@ func (s *LabelControllerTestSuite) TestUpdate() {
 		}
 		resp, updated := test.UpdateLabelOK(t, svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Labels[0].ID, &payload)
 		assert.Equal(t, newName, *updated.Data.Attributes.Name)
-		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "update", "ok.label.golden.json"), updated)
-		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "update", "ok.headers.golden.json"), resp)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "ok.label.golden.json"), updated)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "ok.headerrest.golden.json"), resp)
 
 		_, labels2 := test.ShowLabelOK(t, svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Labels[0].ID, nil, nil)
 		assertLabelLinking(t, labels2.Data)
@@ -128,7 +128,7 @@ func (s *LabelControllerTestSuite) TestUpdate() {
 		assert.Equal(t, newName, *labels2.Data.Attributes.Name)
 	})
 
-	s.T().Run("update label with version conflict", func(t *testing.T) {
+	rest.T().Run("update label with version conflict", func(t *testing.T) {
 		newVersion := testFxt.Labels[0].Version + 2
 		payload := app.UpdateLabelPayload{
 			Data: &app.Label{
@@ -146,10 +146,10 @@ func (s *LabelControllerTestSuite) TestUpdate() {
 		require.Contains(t, jerrs.Errors[0].Detail, "version conflict")
 		ignoreString := "IGNORE_ME"
 		jerrs.Errors[0].ID = &ignoreString
-		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "update", "conflict.errors.golden.json"), jerrs)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "conflict.errorrest.golden.json"), jerrs)
 	})
 
-	s.T().Run("update label with bad parameter", func(t *testing.T) {
+	rest.T().Run("update label with bad parameter", func(t *testing.T) {
 		payload := app.UpdateLabelPayload{
 			Data: &app.Label{
 				Attributes: &app.LabelAttributes{},
@@ -160,13 +160,13 @@ func (s *LabelControllerTestSuite) TestUpdate() {
 		_, jerrs := test.UpdateLabelBadRequest(t, svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Labels[0].ID, &payload)
 		require.NotNil(t, jerrs)
 		require.Len(t, jerrs.Errors, 1)
-		require.Contains(t, jerrs.Errors[0].Detail, "Bad value for parameter 'data.attributes.version'")
+		require.Contains(t, jerrs.Errors[0].Detail, "Bad value for parameter 'data.attributerest.version'")
 		ignoreString := "IGNORE_ME"
 		jerrs.Errors[0].ID = &ignoreString
-		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "update", "badparam_version.errors.golden.json"), jerrs)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "badparam_version.errorrest.golden.json"), jerrs)
 	})
 
-	s.T().Run("update label with bad parameter - name", func(t *testing.T) {
+	rest.T().Run("update label with bad parameter - name", func(t *testing.T) {
 		newName := " 	   " // tab & spaces
 		newVersion := testFxt.Labels[0].Version + 1
 		payload := app.UpdateLabelPayload{
@@ -186,12 +186,12 @@ func (s *LabelControllerTestSuite) TestUpdate() {
 		require.Contains(t, jerrs.Errors[0].Detail, "Bad value for parameter 'label name cannot be empty string'")
 		ignoreString := "IGNORE_ME"
 		jerrs.Errors[0].ID = &ignoreString
-		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "update", "badparam_name.errors.golden.json"), jerrs)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "badparam_name.errorrest.golden.json"), jerrs)
 	})
 
-	s.T().Run("update label with unauthorized", func(t *testing.T) {
+	rest.T().Run("update label with unauthorized", func(t *testing.T) {
 		svc := goa.New("Label-Service")
-		ctrl := NewLabelController(svc, s.db, s.Configuration)
+		ctrl := NewLabelController(svc, rest.db, rest.Configuration)
 
 		payload := app.UpdateLabelPayload{
 			Data: &app.Label{
@@ -208,9 +208,9 @@ func (s *LabelControllerTestSuite) TestUpdate() {
 		require.Contains(t, jerrs.Errors[0].Detail, "Missing token manager")
 		ignoreString := "IGNORE_ME"
 		jerrs.Errors[0].ID = &ignoreString
-		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "update", "unauthorized.errors.golden.json"), jerrs)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "unauthorized.errorrest.golden.json"), jerrs)
 	})
-	s.T().Run("update label not found", func(t *testing.T) {
+	rest.T().Run("update label not found", func(t *testing.T) {
 		newName := "Label New 1002"
 		newVersion := testFxt.Labels[0].Version + 1
 		id := uuid.NewV4()
@@ -228,19 +228,19 @@ func (s *LabelControllerTestSuite) TestUpdate() {
 	})
 }
 
-func (s *LabelControllerTestSuite) TestListLabel() {
-	c, err := tf.NewFixture(s.DB, tf.Spaces(1))
-	require.NoError(s.T(), err)
-	require.Nil(s.T(), c.Check())
-	i, err := tf.NewFixture(s.DB, tf.Identities(1))
-	require.NoError(s.T(), err)
-	require.Nil(s.T(), c.Check())
+func (rest *TestLabelREST) TestListLabel() {
+	c, err := tf.NewFixture(rest.DB, tf.Spaces(1))
+	require.NoError(rest.T(), err)
+	require.Nil(rest.T(), c.Check())
+	i, err := tf.NewFixture(rest.DB, tf.Identities(1))
+	require.NoError(rest.T(), err)
+	require.Nil(rest.T(), c.Check())
 	svc := testsupport.ServiceAsUser("Label-Service", *i.Identities[0])
 
-	ctrl := NewLabelController(svc, s.db, s.Configuration)
+	ctrl := NewLabelController(svc, rest.db, rest.Configuration)
 
-	_, labels := test.ListLabelOK(s.T(), svc.Context, svc, ctrl, c.Spaces[0].ID, nil, nil)
-	require.Empty(s.T(), labels.Data, "labels found")
+	_, labels := test.ListLabelOK(rest.T(), svc.Context, svc, ctrl, c.Spaces[0].ID, nil, nil)
+	require.Empty(rest.T(), labels.Data, "labels found")
 	color := "some color"
 	pl := app.CreateLabelPayload{
 		Data: &app.Label{
@@ -248,25 +248,25 @@ func (s *LabelControllerTestSuite) TestListLabel() {
 			Type:       label.APIStringTypeLabels,
 		},
 	}
-	test.CreateLabelCreated(s.T(), svc.Context, svc, ctrl, c.Spaces[0].ID, &pl)
-	_, labels2 := test.ListLabelOK(s.T(), svc.Context, svc, ctrl, c.Spaces[0].ID, nil, nil)
-	assertLabelLinking(s.T(), labels2.Data[0])
-	require.NotEmpty(s.T(), labels2.Data, "labels found")
-	require.Len(s.T(), labels2.Data, 1)
+	test.CreateLabelCreated(rest.T(), svc.Context, svc, ctrl, c.Spaces[0].ID, &pl)
+	_, labels2 := test.ListLabelOK(rest.T(), svc.Context, svc, ctrl, c.Spaces[0].ID, nil, nil)
+	assertLabelLinking(rest.T(), labels2.Data[0])
+	require.NotEmpty(rest.T(), labels2.Data, "labels found")
+	require.Len(rest.T(), labels2.Data, 1)
 }
 
-func (s *LabelControllerTestSuite) TestShowLabel() {
-	testFxt := tf.NewTestFixture(s.T(), s.DB, tf.Labels(1))
-	i, err := tf.NewFixture(s.DB, tf.Identities(1))
-	require.NoError(s.T(), err)
+func (rest *TestLabelREST) TestShowLabel() {
+	testFxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Labels(1))
+	i, err := tf.NewFixture(rest.DB, tf.Identities(1))
+	require.NoError(rest.T(), err)
 	svc := testsupport.ServiceAsUser("Label-Service", *i.Identities[0])
 
-	ctrl := NewLabelController(svc, s.db, s.Configuration)
+	ctrl := NewLabelController(svc, rest.db, rest.Configuration)
 
-	_, labels2 := test.ShowLabelOK(s.T(), svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Labels[0].ID, nil, nil)
-	assertLabelLinking(s.T(), labels2.Data)
-	require.NotEmpty(s.T(), labels2.Data, "labels found")
-	assert.Equal(s.T(), testFxt.Labels[0].Name, *labels2.Data.Attributes.Name)
+	_, labels2 := test.ShowLabelOK(rest.T(), svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Labels[0].ID, nil, nil)
+	assertLabelLinking(rest.T(), labels2.Data)
+	require.NotEmpty(rest.T(), labels2.Data, "labels found")
+	assert.Equal(rest.T(), testFxt.Labels[0].Name, *labels2.Data.Attributes.Name)
 }
 
 func assertLabelLinking(t *testing.T, target *app.Label) {

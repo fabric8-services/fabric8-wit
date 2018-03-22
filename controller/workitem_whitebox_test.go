@@ -119,7 +119,7 @@ func TestConvertWorkItemWithDescription(t *testing.T) {
 		Fields:  fields,
 		SpaceID: space.SystemSpace,
 	}
-	wi2 := convertWorkItem(request, wi)
+	wi2 := ConvertWorkItem(request, wi)
 	assert.Equal(t, "title", wi2.Attributes[workitem.SystemTitle])
 	assert.Equal(t, "description", wi2.Attributes[workitem.SystemDescription])
 }
@@ -132,7 +132,7 @@ func TestConvertWorkItemWithoutDescription(t *testing.T) {
 		},
 		SpaceID: space.SystemSpace,
 	}
-	wi2 := convertWorkItem(request, wi)
+	wi2 := ConvertWorkItem(request, wi)
 	assert.Equal(t, "title", wi2.Attributes[workitem.SystemTitle])
 	assert.Nil(t, wi2.Attributes[workitem.SystemDescription])
 }
@@ -177,7 +177,7 @@ func prepareWI2(attributes map[string]interface{}) app.WorkItem {
 	}
 }
 
-func (rest *TestWorkItemREST) TestconvertJSONAPIToWorkItemWithLegacyDescription() {
+func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithLegacyDescription() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 	//given
@@ -189,7 +189,7 @@ func (rest *TestWorkItemREST) TestconvertJSONAPIToWorkItemWithLegacyDescription(
 	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
 
 	err := application.Transactional(rest.db, func(app application.Application) error {
-		return convertJSONAPIToWorkItem(context.Background(), "", app, source, target, space.SystemSpace)
+		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, space.SystemSpace)
 	})
 	// assert
 	require.NoError(t, err)
@@ -201,7 +201,7 @@ func (rest *TestWorkItemREST) TestconvertJSONAPIToWorkItemWithLegacyDescription(
 
 }
 
-func (rest *TestWorkItemREST) TestconvertJSONAPIToWorkItemWithDescriptionContentNoMarkup() {
+func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithDescriptionContentNoMarkup() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 	//given
@@ -212,7 +212,7 @@ func (rest *TestWorkItemREST) TestconvertJSONAPIToWorkItemWithDescriptionContent
 	source := prepareWI2(attributes)
 	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
 	err := application.Transactional(rest.db, func(app application.Application) error {
-		return convertJSONAPIToWorkItem(context.Background(), "", app, source, target, space.SystemSpace)
+		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, space.SystemSpace)
 	})
 	require.NoError(t, err)
 	require.NotNil(t, target)
@@ -222,7 +222,7 @@ func (rest *TestWorkItemREST) TestconvertJSONAPIToWorkItemWithDescriptionContent
 	assert.Equal(t, expectedDescription, target.Fields[workitem.SystemDescription])
 }
 
-func (rest *TestWorkItemREST) TestconvertJSONAPIToWorkItemWithDescriptionContentAndMarkup() {
+func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithDescriptionContentAndMarkup() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 	//given
@@ -233,7 +233,7 @@ func (rest *TestWorkItemREST) TestconvertJSONAPIToWorkItemWithDescriptionContent
 	source := prepareWI2(attributes)
 	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
 	err := application.Transactional(rest.db, func(app application.Application) error {
-		return convertJSONAPIToWorkItem(context.Background(), "", app, source, target, space.SystemSpace)
+		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, space.SystemSpace)
 	})
 	require.NoError(t, err)
 	require.NotNil(t, target)
@@ -243,7 +243,7 @@ func (rest *TestWorkItemREST) TestconvertJSONAPIToWorkItemWithDescriptionContent
 	assert.Equal(t, expectedDescription, target.Fields[workitem.SystemDescription])
 }
 
-func (rest *TestWorkItemREST) TestconvertJSONAPIToWorkItemWithTitle() {
+func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithTitle() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 	//given
@@ -254,7 +254,7 @@ func (rest *TestWorkItemREST) TestconvertJSONAPIToWorkItemWithTitle() {
 	source := prepareWI2(attributes)
 	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
 	err := application.Transactional(rest.db, func(app application.Application) error {
-		return convertJSONAPIToWorkItem(context.Background(), "", app, source, target, space.SystemSpace)
+		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, space.SystemSpace)
 	})
 	require.NoError(t, err)
 	require.NotNil(t, target)
@@ -263,7 +263,7 @@ func (rest *TestWorkItemREST) TestconvertJSONAPIToWorkItemWithTitle() {
 	assert.Equal(t, title, target.Fields[workitem.SystemTitle])
 }
 
-func (rest *TestWorkItemREST) TestconvertJSONAPIToWorkItemWithMissingTitle() {
+func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithMissingTitle() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 	//given
@@ -273,13 +273,13 @@ func (rest *TestWorkItemREST) TestconvertJSONAPIToWorkItemWithMissingTitle() {
 	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
 	// when
 	err := application.Transactional(rest.db, func(app application.Application) error {
-		return convertJSONAPIToWorkItem(context.Background(), "", app, source, target, space.SystemSpace)
+		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, space.SystemSpace)
 	})
 	// then: no error expected at this level, even though the title is missing
 	require.NoError(t, err)
 }
 
-func (rest *TestWorkItemREST) TestconvertJSONAPIToWorkItemWithEmptyTitle() {
+func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithEmptyTitle() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 	// given
@@ -290,7 +290,7 @@ func (rest *TestWorkItemREST) TestconvertJSONAPIToWorkItemWithEmptyTitle() {
 	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
 	// when
 	err := application.Transactional(rest.db, func(app application.Application) error {
-		return convertJSONAPIToWorkItem(context.Background(), "", app, source, target, space.SystemSpace)
+		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, space.SystemSpace)
 	})
 	// then: no error expected at this level, even though the title is missing
 	require.NoError(t, err)

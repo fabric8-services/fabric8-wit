@@ -65,7 +65,7 @@ func (c *CodebaseController) Show(ctx *app.ShowCodebaseContext) error {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	return ctx.OK(&app.CodebaseSingle{
-		Data: convertCodebase(ctx.Request, *cdb),
+		Data: ConvertCodebase(ctx.Request, *cdb),
 	})
 
 }
@@ -342,17 +342,17 @@ func (c *CodebaseController) Open(ctx *app.OpenCodebaseContext) error {
 // convertion from internal to API
 type CodebaseConvertFunc func(*http.Request, codebase.Codebase, *app.Codebase)
 
-// convertCodebases converts between internal and external REST representation
-func convertCodebases(request *http.Request, codebases []codebase.Codebase, options ...CodebaseConvertFunc) []*app.Codebase {
+// ConvertCodebases converts between internal and external REST representation
+func ConvertCodebases(request *http.Request, codebases []codebase.Codebase, options ...CodebaseConvertFunc) []*app.Codebase {
 	result := make([]*app.Codebase, len(codebases))
 	for i, c := range codebases {
-		result[i] = convertCodebase(request, c, options...)
+		result[i] = ConvertCodebase(request, c, options...)
 	}
 	return result
 }
 
-// convertCodebase converts between internal and external REST representation
-func convertCodebase(request *http.Request, codebase codebase.Codebase, options ...CodebaseConvertFunc) *app.Codebase {
+// ConvertCodebase converts between internal and external REST representation
+func ConvertCodebase(request *http.Request, codebase codebase.Codebase, options ...CodebaseConvertFunc) *app.Codebase {
 	relatedURL := rest.AbsoluteURL(request, app.CodebaseHref(codebase.ID))
 	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(codebase.SpaceID))
 	workspacesRelatedURL := rest.AbsoluteURL(request, app.CodebaseHref(codebase.ID)+"/workspaces")

@@ -122,7 +122,7 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 		c.rollBackSpaceCreation(ctx, spaceID)
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	spaceData, err := convertSpaceFromModel(ctx.Request, *rSpace, includeBacklogTotalCount(ctx.Context, c.db))
+	spaceData, err := ConvertSpaceFromModel(ctx.Request, *rSpace, IncludeBacklogTotalCount(ctx.Context, c.db))
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
@@ -194,7 +194,7 @@ func (c *SpaceController) List(ctx *app.ListSpaceContext) error {
 		}
 		entityErr := ctx.ConditionalEntities(spaces, c.config.GetCacheControlSpaces, func() error {
 			count := int(cnt)
-			spaceData, err := convertSpacesFromModel(ctx.Request, spaces, includeBacklogTotalCount(ctx.Context, c.db))
+			spaceData, err := ConvertSpacesFromModel(ctx.Request, spaces, IncludeBacklogTotalCount(ctx.Context, c.db))
 			if err != nil {
 				return err
 			}
@@ -236,7 +236,7 @@ func (c *SpaceController) Show(ctx *app.ShowSpaceContext) error {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	return ctx.ConditionalRequest(*s, c.config.GetCacheControlSpace, func() error {
-		spaceData, err := convertSpaceFromModel(ctx.Request, *s, includeBacklogTotalCount(ctx.Context, c.db))
+		spaceData, err := ConvertSpaceFromModel(ctx.Request, *s, IncludeBacklogTotalCount(ctx.Context, c.db))
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"err":      err,
@@ -289,7 +289,7 @@ func (c *SpaceController) Update(ctx *app.UpdateSpaceContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	spaceData, err := convertSpaceFromModel(ctx.Request, *s, includeBacklogTotalCount(ctx.Context, c.db))
+	spaceData, err := ConvertSpaceFromModel(ctx.Request, *s, IncludeBacklogTotalCount(ctx.Context, c.db))
 	if err != nil {
 		return err
 	}
@@ -361,11 +361,11 @@ func ConvertSpaceToModel(appSpace app.Space) space.Space {
 
 // SpaceConvertFunc is a open ended function to add additional links/data/relations to a Space during
 // conversion from internal to API
-type spaceConvertFunc func(*http.Request, *space.Space, *app.Space) error
+type SpaceConvertFunc func(*http.Request, *space.Space, *app.Space) error
 
 // IncludeBacklog returns a SpaceConvertFunc that includes the a link to the backlog
 // along with the total count of items in the backlog of the current space
-func includeBacklogTotalCount(ctx context.Context, db application.DB) spaceConvertFunc {
+func IncludeBacklogTotalCount(ctx context.Context, db application.DB) SpaceConvertFunc {
 	return func(req *http.Request, modelSpace *space.Space, appSpace *app.Space) error {
 		count, err := countBacklogItems(ctx, db, modelSpace.ID)
 		if err != nil {
@@ -377,11 +377,11 @@ func includeBacklogTotalCount(ctx context.Context, db application.DB) spaceConve
 	}
 }
 
-// convertSpacesFromModel converts between internal and external REST representation
-func convertSpacesFromModel(request *http.Request, spaces []space.Space, additional ...spaceConvertFunc) ([]*app.Space, error) {
+// ConvertSpacesFromModel converts between internal and external REST representation
+func ConvertSpacesFromModel(request *http.Request, spaces []space.Space, additional ...SpaceConvertFunc) ([]*app.Space, error) {
 	var result = make([]*app.Space, len(spaces))
 	for i, p := range spaces {
-		spaceData, err := convertSpaceFromModel(request, p, additional...)
+		spaceData, err := ConvertSpaceFromModel(request, p, additional...)
 		if err != nil {
 			return nil, err
 		}
@@ -390,8 +390,8 @@ func convertSpacesFromModel(request *http.Request, spaces []space.Space, additio
 	return result, nil
 }
 
-// convertSpaceFromModel converts between internal and external REST representation
-func convertSpaceFromModel(request *http.Request, sp space.Space, options ...spaceConvertFunc) (*app.Space, error) {
+// ConvertSpaceFromModel converts between internal and external REST representation
+func ConvertSpaceFromModel(request *http.Request, sp space.Space, options ...SpaceConvertFunc) (*app.Space, error) {
 	selfURL := rest.AbsoluteURL(request, app.SpaceHref(sp.ID))
 	spaceIDStr := sp.ID.String()
 	relatedIterations := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/iterations", spaceIDStr))

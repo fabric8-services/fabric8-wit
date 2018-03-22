@@ -66,14 +66,14 @@ func (c *QueryController) Create(ctx *app.CreateQueryContext) error {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	res := &app.QuerySingle{
-		Data: convertQuery(ctx.Request, q),
+		Data: ConvertQuery(ctx.Request, q),
 	}
 	ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.QueryHref(ctx.SpaceID, res.Data.ID)))
 	return ctx.Created(res)
 }
 
 // ConvertQuery converts from internal to external REST representation
-func convertQuery(request *http.Request, q query.Query) *app.Query {
+func ConvertQuery(request *http.Request, q query.Query) *app.Query {
 	spaceID := q.SpaceID.String()
 	relatedURL := rest.AbsoluteURL(request, app.QueryHref(spaceID, q.ID))
 	creatorID := q.Creator.String()
@@ -116,11 +116,11 @@ func convertQuery(request *http.Request, q query.Query) *app.Query {
 	return appQuery
 }
 
-// convertQueries from internal to external REST representation
-func convertQueries(request *http.Request, queries []query.Query) []*app.Query {
+// ConvertQueries from internal to external REST representation
+func ConvertQueries(request *http.Request, queries []query.Query) []*app.Query {
 	var ls = []*app.Query{}
 	for _, q := range queries {
-		ls = append(ls, convertQuery(request, q))
+		ls = append(ls, ConvertQuery(request, q))
 	}
 	return ls
 }
@@ -144,7 +144,7 @@ func (c *QueryController) List(ctx *app.ListQueryContext) error {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	res := &app.QueryList{}
-	res.Data = convertQueries(ctx.Request, queries)
+	res.Data = ConvertQueries(ctx.Request, queries)
 	res.Meta = &app.WorkItemListResponseMeta{
 		TotalCount: len(res.Data),
 	}
@@ -178,7 +178,7 @@ func (c *QueryController) Show(ctx *app.ShowQueryContext) error {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the query creator"))
 	}
 	res := &app.QuerySingle{
-		Data: convertQuery(ctx.Request, *q),
+		Data: ConvertQuery(ctx.Request, *q),
 	}
 	return ctx.OK(res)
 }

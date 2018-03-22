@@ -130,7 +130,7 @@ func getWorkItemsOfLinks(ctx context.Context, appl application.Application, req 
 		if err != nil {
 			return nil, errs.WithStack(err)
 		}
-		res = append(res, convertWorkItem(req, *wi))
+		res = append(res, ConvertWorkItem(req, *wi))
 	}
 	return res, nil
 }
@@ -151,14 +151,14 @@ func enrichLinkSingle(ctx context.Context, appl application.Application, req *ht
 	if err != nil {
 		return errs.WithStack(err)
 	}
-	appLinks.Included = append(appLinks.Included, convertWorkItem(req, *sourceWi))
+	appLinks.Included = append(appLinks.Included, ConvertWorkItem(req, *sourceWi))
 
 	// Include target work item
 	targetWi, err := appl.WorkItems().LoadByID(ctx, appLinks.Data.Relationships.Target.Data.ID)
 	if err != nil {
 		return errs.WithStack(err)
 	}
-	appLinks.Included = append(appLinks.Included, convertWorkItem(req, *targetWi))
+	appLinks.Included = append(appLinks.Included, ConvertWorkItem(req, *targetWi))
 	return nil
 }
 
@@ -326,7 +326,7 @@ func (c *WorkItemLinkController) Show(ctx *app.ShowWorkItemLinkContext) error {
 	})
 }
 
-// convertLinkFromModel converts a work item from model to REST representation
+// ConvertLinkFromModel converts a work item from model to REST representation
 func ConvertLinkFromModel(request *http.Request, t link.WorkItemLink) app.WorkItemLinkSingle {
 	linkSelfURL := rest.AbsoluteURL(request, app.WorkItemLinkHref(t.ID.String()))
 	linkTypeRelatedURL := rest.AbsoluteURL(request, app.WorkItemLinkTypeHref(space.SystemSpace, t.LinkTypeID.String()))
@@ -380,7 +380,7 @@ func ConvertLinkFromModel(request *http.Request, t link.WorkItemLink) app.WorkIt
 	return converted
 }
 
-// convertLinkToModel converts the incoming app representation of a work item link to the model layout.
+// ConvertLinkToModel converts the incoming app representation of a work item link to the model layout.
 // Values are only overwrriten if they are set in "in", otherwise the values in "out" remain.
 // NOTE: Only the LinkTypeID, SourceID, and TargetID fields will be set.
 //       You need to preload the elements after calling this function.

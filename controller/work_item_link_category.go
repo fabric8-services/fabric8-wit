@@ -60,7 +60,7 @@ func (c *WorkItemLinkCategoryController) Create(ctx *app.CreateWorkItemLinkCateg
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
-	modelCategory := convertLinkCategoryToModel(app.WorkItemLinkCategorySingle{Data: ctx.Payload.Data})
+	modelCategory := ConvertLinkCategoryToModel(app.WorkItemLinkCategorySingle{Data: ctx.Payload.Data})
 	var appCategory app.WorkItemLinkCategorySingle
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		_, err := appl.WorkItemLinkCategories().Create(ctx.Context, &modelCategory)
@@ -174,7 +174,7 @@ func (c *WorkItemLinkCategoryController) Update(ctx *app.UpdateWorkItemLinkCateg
 	if appCategory.Data.Attributes.Name == nil || *appCategory.Data.Attributes.Name == "" {
 		return errors.NewBadParameterError("data.attributes.name", "nil or empty")
 	}
-	modelCategory := convertLinkCategoryToModel(appCategory)
+	modelCategory := ConvertLinkCategoryToModel(appCategory)
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		savedModelCategory, err := appl.WorkItemLinkCategories().Save(ctx.Context, modelCategory)
 		if err != nil {
@@ -196,7 +196,7 @@ func (c *WorkItemLinkCategoryController) Update(ctx *app.UpdateWorkItemLinkCateg
 	return nil
 }
 
-// convertLinkCategoryFromModel converts work item link category from model to app representation
+// ConvertLinkCategoryFromModel converts work item link category from model to app representation
 func ConvertLinkCategoryFromModel(t link.WorkItemLinkCategory) app.WorkItemLinkCategorySingle {
 	var converted = app.WorkItemLinkCategorySingle{
 		Data: &app.WorkItemLinkCategoryData{
@@ -212,8 +212,8 @@ func ConvertLinkCategoryFromModel(t link.WorkItemLinkCategory) app.WorkItemLinkC
 	return converted
 }
 
-// convertLinkCategoryToModel converts work item link category from app to app representation
-func convertLinkCategoryToModel(t app.WorkItemLinkCategorySingle) link.WorkItemLinkCategory {
+// ConvertLinkCategoryToModel converts work item link category from app to app representation
+func ConvertLinkCategoryToModel(t app.WorkItemLinkCategorySingle) link.WorkItemLinkCategory {
 	var converted = link.WorkItemLinkCategory{}
 	if t.Data.ID != nil {
 		converted.ID = *t.Data.ID

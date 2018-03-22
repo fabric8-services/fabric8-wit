@@ -102,7 +102,7 @@ func TestConvertTypeFromModel(t *testing.T) {
 		},
 	}
 	// when
-	result := convertWorkItemTypeFromModel(reqLong, &a)
+	result := ConvertWorkItemTypeFromModel(reqLong, &a)
 	// then
 	require.NotNil(t, result.ID)
 	assert.True(t, uuid.Equal(*expected.Data.ID, *result.ID))
@@ -134,8 +134,8 @@ func TestConvertFieldTypes(t *testing.T) {
 }
 
 func testConvertFieldType(original workitem.FieldType) error {
-	converted := convertFieldTypeFromModel(original)
-	reconverted, _ := convertFieldTypeToModel(converted)
+	converted := ConvertFieldTypeFromModel(original)
+	reconverted, _ := ConvertFieldTypeToModel(converted)
 	if !reflect.DeepEqual(original, reconverted) {
 		return fmt.Errorf("reconverted should be %v, but is %v", original, reconverted)
 	}
@@ -163,6 +163,6 @@ func TestConvertFieldTypeToModel(t *testing.T) {
 		Kind:     "DefinitivelyNotAType",
 		Values:   typeEnum,
 	}
-	_, err := convertFieldTypeToModel(app.FieldType{Kind: "DefinitivelyNotAType"})
+	_, err := ConvertFieldTypeToModel(app.FieldType{Kind: "DefinitivelyNotAType"})
 	assert.NotNil(t, err)
 }

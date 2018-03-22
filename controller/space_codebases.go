@@ -60,7 +60,7 @@ func (c *SpaceCodebasesController) Create(ctx *app.CreateSpaceCodebasesContext) 
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	res := &app.CodebaseSingle{
-		Data: convertCodebase(ctx.Request, *cdb),
+		Data: ConvertCodebase(ctx.Request, *cdb),
 	}
 	ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.CodebaseHref(res.Data.ID)))
 	return ctx.Created(res)
@@ -84,7 +84,7 @@ func (c *SpaceCodebasesController) List(ctx *app.ListSpaceCodebasesContext) erro
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	res := &app.CodebaseList{
-		Data:  convertCodebases(ctx.Request, codebases),
+		Data:  ConvertCodebases(ctx.Request, codebases),
 		Meta:  &app.CodebaseListMeta{TotalCount: count},
 		Links: &app.PagingLinks{},
 	}

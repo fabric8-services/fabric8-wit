@@ -48,7 +48,7 @@ func (c *LabelController) Show(ctx *app.ShowLabelContext) error {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	return ctx.OK(&app.LabelSingle{
-		Data: convertLabel(ctx.Request, *lbl),
+		Data: ConvertLabel(ctx.Request, *lbl),
 	})
 }
 
@@ -81,14 +81,14 @@ func (c *LabelController) Create(ctx *app.CreateLabelContext) error {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	result := &app.LabelSingle{
-		Data: convertLabel(ctx.Request, *lbl),
+		Data: ConvertLabel(ctx.Request, *lbl),
 	}
 	ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.LabelHref(ctx.SpaceID, result.Data.ID)))
 	return ctx.Created(result)
 }
 
 // ConvertLabel converts from internal to external REST representation
-func convertLabel(request *http.Request, lbl label.Label) *app.Label {
+func ConvertLabel(request *http.Request, lbl label.Label) *app.Label {
 	labelType := label.APIStringTypeLabels
 	spaceID := lbl.SpaceID.String()
 	relatedURL := rest.AbsoluteURL(request, app.LabelHref(spaceID, lbl.ID))
@@ -147,7 +147,7 @@ func (c *LabelController) List(ctx *app.ListLabelContext) error {
 func ConvertLabels(appl application.Application, request *http.Request, labels []label.Label) []*app.Label {
 	var ls = []*app.Label{}
 	for _, i := range labels {
-		ls = append(ls, convertLabel(request, i))
+		ls = append(ls, ConvertLabel(request, i))
 	}
 	return ls
 }
@@ -209,7 +209,7 @@ func (c *LabelController) Update(ctx *app.UpdateLabelContext) error {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	result := &app.LabelSingle{
-		Data: convertLabel(ctx.Request, *lbl),
+		Data: ConvertLabel(ctx.Request, *lbl),
 	}
 	ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.LabelHref(ctx.SpaceID, result.Data.ID)))
 	return ctx.OK(result)
