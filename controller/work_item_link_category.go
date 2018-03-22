@@ -71,8 +71,8 @@ func (c *WorkItemLinkCategoryController) Create(ctx *app.CreateWorkItemLinkCateg
 		linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, app.WorkItemLinkCategoryHref, currentUserIdentityID)
 		err = enrichLinkCategorySingle(linkCtx, appCategory)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx,
-				goa.ErrInternal("Failed to enrich link category: %s", err.Error()))
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInternal("Failed to enrich link category: %s", err.Error()))
+			return ctx.InternalServerError(jerrors)
 		}
 		ctx.ResponseData.Header().Set("Location", app.WorkItemLinkCategoryHref(appCategory.Data.ID))
 		return ctx.Created(&appCategory)
@@ -91,8 +91,8 @@ func (c *WorkItemLinkCategoryController) Show(ctx *app.ShowWorkItemLinkCategoryC
 		linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, app.WorkItemLinkCategoryHref, nil)
 		err = enrichLinkCategorySingle(linkCtx, appCategory)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx,
-				goa.ErrInternal("Failed to enrich link category: %s", err.Error()))
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInternal("Failed to enrich link category: %s", err.Error()))
+			return ctx.InternalServerError(jerrors)
 		}
 		return ctx.OK(&appCategory)
 	})
@@ -122,8 +122,8 @@ func (c *WorkItemLinkCategoryController) List(ctx *app.ListWorkItemLinkCategoryC
 		linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, app.WorkItemLinkCategoryHref, nil)
 		err = enrichLinkCategoryList(linkCtx, &appCategories)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx,
-				goa.ErrInternal("Failed to enrich link categories: %s", err.Error()))
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInternal("Failed to enrich link categories: %s", err.Error()))
+			return ctx.InternalServerError(jerrors)
 		}
 		return ctx.OK(&appCategories)
 	})
@@ -176,8 +176,8 @@ func (c *WorkItemLinkCategoryController) Update(ctx *app.UpdateWorkItemLinkCateg
 		linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, app.WorkItemLinkCategoryHref, currentUserIdentityID)
 		err = enrichLinkCategorySingle(linkCtx, savedAppCategory)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx,
-				goa.ErrInternal("Failed to enrich link category: %s", err.Error()))
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInternal("Failed to enrich link category: %s", err.Error()))
+			return ctx.InternalServerError(jerrors)
 		}
 		return ctx.OK(&savedAppCategory)
 	})

@@ -60,7 +60,8 @@ func (c *CommentsController) Show(ctx *app.ShowCommentsContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		cmt, err := appl.Comments().Load(ctx, ctx.CommentID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errors.NewNotFoundError(err.Error(), ctx.CommentID.String()))
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrUnauthorized(err.Error()))
+			return ctx.NotFound(jerrors)
 		}
 		return ctx.ConditionalRequest(*cmt, c.config.GetCacheControlComment, func() error {
 			res := &app.CommentSingle{}
