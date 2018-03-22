@@ -60,6 +60,7 @@ var workspace = a.Type("Workspace", func() {
 	})
 	a.Attribute("attributes", workspaceAttributes)
 	a.Attribute("links", workspaceLinks)
+	a.Attribute("relationships", workspaceRelationships)
 	a.Required("type", "attributes")
 })
 
@@ -77,6 +78,10 @@ var workspaceAttributes = a.Type("WorkspaceAttributes", func() {
 	a.Attribute("status", d.String, "The workspace status", func() {
 		a.Example("STOPPED");
 	})
+})
+
+var workspaceRelationships = a.Type("WorkspaceRelations", func() {
+	a.Attribute("codebase", relationGeneric, "This defines the owning codebase")
 })
 
 var workspaceLinks = a.Type("WorkspaceLinks", func() {
