@@ -2,6 +2,7 @@
   "data": [
     {
       "attributes": {
+        "can-construct": true,
         "created-at": "0001-01-01T00:00:00Z",
         "description": "this work item type was automatically generated",
         "fields": {
@@ -160,6 +161,7 @@
     },
     {
       "attributes": {
+        "can-construct": true,
         "created-at": "0001-01-01T00:00:00Z",
         "description": "this work item type was automatically generated",
         "fields": {
@@ -318,6 +320,7 @@
     },
     {
       "attributes": {
+        "can-construct": true,
         "created-at": "0001-01-01T00:00:00Z",
         "description": "this work item type was automatically generated",
         "fields": {
