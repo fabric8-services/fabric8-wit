@@ -61,7 +61,7 @@ func (r *GormWorkItemEventRepository) List(ctx context.Context, wiID uuid.UUID) 
 		if err != nil {
 			return nil, errs.Wrapf(err, "error during fetching event list")
 		}
-		for fieldName, _ := range wiType.Fields {
+		for fieldName := range wiType.Fields {
 			var previousAssignees interface{}
 			var newAssignees interface{}
 			switch fieldName {
