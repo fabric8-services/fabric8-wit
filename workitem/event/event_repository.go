@@ -11,6 +11,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/workitem"
 )
 
+// APIStringTypeEvents is the name of event type
 const APIStringTypeEvents = "events"
 
 // WorkItemEventRepository encapsulates retrieval of work item events
@@ -30,6 +31,7 @@ func NewWorkItemEventRepository(db *gorm.DB) *GormWorkItemEventRepository {
 	}
 }
 
+// GormWorkItemEventRepository represents the Gorm model
 type GormWorkItemEventRepository struct {
 	db               *gorm.DB
 	workItemRepo     *workitem.GormWorkItemRepository
@@ -38,6 +40,7 @@ type GormWorkItemEventRepository struct {
 	identityRepo     *account.GormIdentityRepository
 }
 
+// List return the events
 func (r *GormWorkItemEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]WorkItemEvent, error) {
 	revisionList, err := r.wiRevisionRepo.List(ctx, wiID)
 	if err != nil {
