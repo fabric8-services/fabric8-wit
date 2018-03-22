@@ -1274,6 +1274,58 @@ func TestGetDeployment(t *testing.T) {
 				routeInput: defaultRouteInput,
 			},
 		},
+		{
+			// Tests handling of a deployment config with missing space label
+			// FIXME When our workaround is no longer needed, we should expect
+			// an error
+			testName:      "No Space Label",
+			spaceName:     "mySpace",
+			appName:       "myApp",
+			envName:       "run",
+			envNS:         "my-run",
+			expectVersion: "1.0.2",
+			expectPodStatus: [][]string{
+				{"Running", "2"},
+			},
+			expectPodsTotal:         2,
+			expectPodsQuotaCpucores: 0.976,
+			expectPodsQuotaMemory:   524288000,
+			expectConsoleURL:        "http://console.myCluster/console/project/my-run",
+			expectLogURL:            "http://console.myCluster/console/project/my-run/browse/rc/myApp-1?tab=logs",
+			expectAppURL:            "http://myApp-my-run.example.com",
+			deploymentInput: deploymentInput{
+				dcInput: deploymentConfigInput{
+					"myApp": {
+						"my-run": "deploymentconfig-nospace.json",
+					},
+				},
+				rcInput:    defaultReplicationControllerInput,
+				podInput:   defaultPodInput,
+				svcInput:   defaultServiceInput,
+				routeInput: defaultRouteInput,
+			},
+		},
+		{
+			// Tests that we don't accept deployment configs with a space
+			// label different from the argument passed to GetDeployment
+			testName:  "Wrong Space Label",
+			spaceName: "mySpace",
+			appName:   "myApp",
+			envName:   "run",
+			envNS:     "my-run",
+			deploymentInput: deploymentInput{
+				dcInput: deploymentConfigInput{
+					"myApp": {
+						"my-run": "deploymentconfig-wrongspace.json",
+					},
+				},
+				rcInput:    defaultReplicationControllerInput,
+				podInput:   defaultPodInput,
+				svcInput:   defaultServiceInput,
+				routeInput: defaultRouteInput,
+			},
+			shouldFail: true,
+		},
 	}
 
 	fixture := &testFixture{}
