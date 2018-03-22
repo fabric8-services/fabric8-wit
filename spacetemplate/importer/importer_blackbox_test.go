@@ -90,6 +90,31 @@ func Test_ImportHelper_Validate(t *testing.T) {
 			require.NoError(t, templ.Validate())
 		})
 
+		t.Run("scrum template", func(t *testing.T) {
+			t.Parallel()
+			// given
+			templ, err := importer.ScrumTemplate()
+			// then
+			require.NoError(t, err)
+			require.Equal(t, spacetemplate.SystemScrumTemplateID, templ.Template.ID)
+			witsToBeFound := map[string]struct{}{
+				"Scrum Common Type":    {},
+				"Bug":                  {},
+				"Task":                 {},
+				"Epic":                 {},
+				"Feature":              {},
+				"Impediment":           {},
+				"Product Backlog Item": {},
+			}
+			for _, wit := range templ.WITs {
+				_, ok := witsToBeFound[wit.Name]
+				require.True(t, ok, "found unexpected work item type: %s", wit.Name)
+				delete(witsToBeFound, wit.Name)
+			}
+			require.Len(t, witsToBeFound, 0, "these work item types where not found in the scrum template: %+v", witsToBeFound)
+			require.NoError(t, templ.Validate())
+		})
+
 		t.Run("test template", func(t *testing.T) {
 			t.Parallel()
 			// given

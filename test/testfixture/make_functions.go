@@ -266,12 +266,13 @@ func makeWorkItemTypes(fxt *TestFixture) error {
 	witRepo := workitem.NewWorkItemTypeRepository(fxt.db)
 	for i := range fxt.WorkItemTypes {
 		fxt.WorkItemTypes[i] = &workitem.WorkItemType{
-			ID:          uuid.NewV4(),
-			Name:        testsupport.CreateRandomValidTestName("work item type "),
-			Description: ptr.String("this work item type was automatically generated"),
-			Icon:        "fa-bug",
-			Extends:     workitem.SystemPlannerItem,
-			Fields:      workitem.FieldDefinitions{},
+			ID:           uuid.NewV4(),
+			Name:         testsupport.CreateRandomValidTestName("work item type "),
+			Description:  ptr.String("this work item type was automatically generated"),
+			Icon:         "fa-bug",
+			Extends:      workitem.SystemPlannerItem,
+			CanConstruct: true,
+			Fields:       workitem.FieldDefinitions{},
 		}
 		if !fxt.isolatedCreation {
 			fxt.WorkItemTypes[i].SpaceTemplateID = fxt.SpaceTemplates[0].ID
@@ -285,7 +286,7 @@ func makeWorkItemTypes(fxt *TestFixture) error {
 			}
 		}
 		m := fxt.WorkItemTypes[i]
-		wit, err := witRepo.Create(fxt.ctx, m.SpaceTemplateID, &m.ID, &m.Extends, m.Name, m.Description, m.Icon, m.Fields)
+		wit, err := witRepo.Create(fxt.ctx, m.SpaceTemplateID, &m.ID, &m.Extends, m.Name, m.Description, m.Icon, m.Fields, m.CanConstruct)
 		if err != nil {
 			return errs.Wrapf(err, "failed to create work item type %+v", fxt.WorkItemTypes[i])
 		}

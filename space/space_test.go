@@ -270,6 +270,7 @@ func (s *SpaceRepositoryTestSuite) TestLoadByOwnerAndName() {
 }
 
 func (s *SpaceRepositoryTestSuite) TestLoadMany() {
+
 	s.T().Run("ok", func(t *testing.T) {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(2))
@@ -283,6 +284,7 @@ func (s *SpaceRepositoryTestSuite) TestLoadMany() {
 		require.NoError(t, err)
 		assert.Condition(t, containsAllSpaces(t, fxt.Spaces, result...))
 	})
+
 	s.T().Run("ok with duplicates", func(t *testing.T) {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(10))
@@ -297,6 +299,16 @@ func (s *SpaceRepositoryTestSuite) TestLoadMany() {
 		// then make sure the result does not contain duplicates
 		require.NoError(t, err)
 		assert.Condition(t, containsAllSpaces(t, fxt.Spaces, result...))
+	})
+
+	s.T().Run("ok with none", func(t *testing.T) {
+		// given
+		ids := make([]uuid.UUID, 0)
+		// when listing
+		result, err := s.repo.LoadMany(s.Ctx, ids)
+		// then make sure the result does not contain duplicates
+		require.NoError(t, err)
+		assert.Empty(t, result)
 	})
 }
 

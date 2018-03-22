@@ -97,6 +97,25 @@ func (s *workItemRepoBlackBoxTest) TestLoadID() {
 }
 
 func (s *workItemRepoBlackBoxTest) TestCreate() {
+	s.T().Run("disallow creation if WIT cannot create WIs", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.Spaces(1),
+			tf.WorkItemTypes(1, func(fxt *tf.TestFixture, idx int) error {
+				fxt.WorkItemTypes[idx].CanConstruct = false
+				return nil
+			}),
+		)
+		wi, err := s.repo.Create(
+			s.Ctx, fxt.Spaces[0].ID, fxt.WorkItemTypes[0].ID,
+			map[string]interface{}{
+				workitem.SystemTitle: "some title",
+				workitem.SystemState: workitem.SystemStateNew,
+			}, fxt.Identities[0].ID)
+		require.Error(t, err)
+		require.IsType(t, errors.ForbiddenError{}, err)
+		require.Nil(t, wi)
+	})
+
 	s.T().Run("create work item without assignees & labels", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemTypes(1), tf.Spaces(1))
 		wi, err := s.repo.Create(

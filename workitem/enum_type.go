@@ -8,9 +8,10 @@ import (
 )
 
 type EnumType struct {
-	SimpleType `json:"simple_type"`
-	BaseType   SimpleType    `json:"base_type"`
-	Values     []interface{} `json:"values"`
+	SimpleType       `json:"simple_type"`
+	BaseType         SimpleType    `json:"base_type"`
+	Values           []interface{} `json:"values"`
+	RewritableValues bool          `json:"rewritable_values"`
 }
 
 // Ensure EnumType implements the Equaler interface
@@ -29,7 +30,10 @@ func (t EnumType) Equal(u convert.Equaler) bool {
 	if !t.BaseType.Equal(other.BaseType) {
 		return false
 	}
-	return reflect.DeepEqual(t.Values, other.Values)
+	if !t.RewritableValues {
+		return reflect.DeepEqual(t.Values, other.Values)
+	}
+	return true
 }
 
 func (t EnumType) ConvertToModel(value interface{}) (interface{}, error) {

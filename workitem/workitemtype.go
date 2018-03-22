@@ -102,6 +102,10 @@ type WorkItemType struct {
 	// type of this work item. This field is filled upon loading the work item
 	// type from the DB.
 	ChildTypeIDs []uuid.UUID `gorm:"-" json:"child_types,omitempty"`
+
+	// CanConstruct is true when you can create work items from this work item
+	// type.
+	CanConstruct bool `gorm:"can_construct" json:"can_construct,omitempty"`
 }
 
 // GetTypePathSeparator returns the work item type's path separator "."
@@ -197,6 +201,9 @@ func (wit WorkItemType) Equal(u convert.Equaler) bool {
 		}
 	}
 	if wit.SpaceTemplateID != other.SpaceTemplateID {
+		return false
+	}
+	if wit.CanConstruct != other.CanConstruct {
 		return false
 	}
 	return true

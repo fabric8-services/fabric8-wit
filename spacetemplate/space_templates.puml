@@ -1,6 +1,10 @@
 @startuml space_templates
 
 ' This is a PlantUML class diagram.
+'
+' For on-the-fly rendering of the latest version of this diagram, please visit:
+' http://www.plantuml.com/plantuml/proxy?idx=0&src=https://raw.githubusercontent.com/fabric8-services/fabric8-wit/master/spacetemplate/space_templates.puml&fmt=svg
+'
 ' To generate a PNG diagram from this file follow these steps:
 ' $ wget -o plantuml.jar http://sourceforge.net/projects/plantuml/files/plantuml.jar/download
 ' $ java -jar plantuml.jar -verbose space_templates.puml

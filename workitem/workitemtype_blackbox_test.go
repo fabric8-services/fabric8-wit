@@ -105,6 +105,7 @@ func TestWorkItemType_Equal(t *testing.T) {
 			"aListType": fd,
 		},
 		ChildTypeIDs: []uuid.UUID{uuid.NewV4(), uuid.NewV4()},
+		CanConstruct: false,
 	}
 	t.Run("equality", func(t *testing.T) {
 		t.Parallel()
@@ -199,6 +200,12 @@ func TestWorkItemType_Equal(t *testing.T) {
 		t.Parallel()
 		b := a
 		b.Icon = "fa-cog"
+		assert.False(t, a.Equal(b))
+	})
+	t.Run("can create", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.CanConstruct = true
 		assert.False(t, a.Equal(b))
 	})
 }

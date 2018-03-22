@@ -1,4 +1,5 @@
 space_template:
+
   id: "1f48b7bf-bc51-4823-8101-9f10039035ba"
   name: Openshift.io Base Space Template
   description: >
@@ -6,11 +7,14 @@ space_template:
     can be re-used by other space templates. For example, the "related" link
     type is defined here in order so that spaces that use a different space
     template can still create links between work items.
+
 work_item_types:
+
 - id: "86af5178-9b41-469b-9096-57e5155c3f31"
   name: Planner Item
   description: Description for Planner Item
   icon: fa fa-bookmark
+  can_construct: no
   fields:
     "system.area": 
       label: Area
@@ -24,7 +28,7 @@ work_item_types:
       type:
         kind: float
       required: no
-    "system.state": 
+    "system.state":
       label: State
       description: The state of the work item
       required: yes
@@ -33,7 +37,8 @@ work_item_types:
           kind: enum
         base_type:
           kind: string
-        # First state in this ordered map is implicitly the default state
+        # This will allow other WITs to overwrite the values of the state.
+        rewritable_values: yes
         values: 
         - new
         - open
@@ -112,19 +117,23 @@ work_item_types:
       type:
         kind: integer
       required: no
+
 work_item_link_types:
+
 - id: "2CEA3C79-3B79-423B-90F4-1E59174C8F43"
   name: Blocker
   description: One work item item blocks another one
   forward_name: blocks
   reverse_name: blocked by
   topology: network
+
 - id: "9B631885-83B1-4ABB-A340-3A9EDE8493FA"
   name: Related
   description: One work item relates to another one.
   forward_name: relates to
   reverse_name: is related to
   topology: network
+
 - id: "25C326A7-6D03-4F5A-B23B-86A9EE4171E9"
   name: Parenting
   description: One work item is the parent of another one.

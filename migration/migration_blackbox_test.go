@@ -129,8 +129,8 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration80", testMigration80)
 	t.Run("TestMigration81", testMigration81)
 	t.Run("TestMigration82", testMigration82)
-	t.Run("TestMigration83", testMigration83SpaceTemplates) // space templates
-	t.Run("TestMigration83", testMigration84TypeGroups)     // type groups
+	t.Run("TestMigration84", testMigration84SpaceTemplates) // space templates
+	t.Run("TestMigration85", testMigration85TypeGroups)     // type groups
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -688,16 +688,16 @@ func testMigration82(t *testing.T) {
 	assert.Equal(t, updatedAt.String(), relationshipsChangedAt.String())
 }
 
-func testMigration83SpaceTemplates(t *testing.T) {
-	migrateToVersion(t, sqlDB, migrations[:84], 84)
+func testMigration84SpaceTemplates(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:85], 85)
 	assert.True(t, dialect.HasTable("space_templates"))
 	assert.True(t, dialect.HasColumn("spaces", "space_template_id"))
 	assert.True(t, dialect.HasColumn("work_item_types", "space_template_id"))
 	assert.True(t, dialect.HasColumn("work_item_link_types", "space_template_id"))
 }
 
-func testMigration84TypeGroups(t *testing.T) {
-	migrateToVersion(t, sqlDB, migrations[:85], 85)
+func testMigration85TypeGroups(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:86], 86)
 	assert.True(t, dialect.HasTable("work_item_type_groups"))
 	assert.True(t, dialect.HasTable("work_item_type_group_members"))
 	assert.True(t, dialect.HasTable("work_item_child_types"))

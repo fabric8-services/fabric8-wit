@@ -1,6 +1,7 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 SET LOCAL idx.space_template_id = '{{index . 0}}';
+SET LOCAL idx.planner_item_type_id = '{{index . 1}}';
 
 -- Remove space_id field from link types (WILTs) and work item types (WITs) This
 -- can be done because all WILTs and WITs exist in the system space anyway. So
@@ -41,3 +42,11 @@ ALTER TABLE work_item_types ALTER COLUMN space_template_id SET NOT NULL;
 ALTER TABLE work_item_link_types ADD COLUMN space_template_id uuid REFERENCES space_templates(id) ON DELETE CASCADE;
 UPDATE work_item_link_types SET space_template_id = current_setting('idx.space_template_id')::uuid;
 ALTER TABLE work_item_link_types ALTER COLUMN space_template_id SET NOT NULL;
+
+-- Add boolean can_construct field to work item type table and make it default
+-- to TRUE.
+ALTER TABLE work_item_types ADD COLUMN can_construct boolean;
+UPDATE work_item_types SET can_construct = TRUE;
+UPDATE work_item_types SET can_construct = FALSE WHERE id = current_setting('idx.planner_item_type_id')::uuid;
+ALTER TABLE work_item_types ALTER can_construct SET DEFAULT TRUE;
+ALTER TABLE work_item_types ALTER COLUMN can_construct SET NOT NULL;

@@ -109,7 +109,7 @@ func (s *workItemTypeSuite) createWorkItemTypeAnimal() *app.WorkItemTypeSingle {
 			Label:       "Color",
 			Type:        &workitem.SimpleType{Kind: workitem.KindString},
 		},
-	})
+	}, true)
 	require.Nil(s.T(), err)
 	reqLong := &http.Request{Host: "api.service.domain.org"}
 	witData := ConvertWorkItemTypeFromModel(reqLong, wit)
@@ -129,7 +129,7 @@ func (s *workItemTypeSuite) createWorkItemTypePerson() *app.WorkItemTypeSingle {
 			Label:       "Name",
 			Type:        &workitem.SimpleType{Kind: workitem.KindString},
 		},
-	})
+	}, true)
 	require.Nil(s.T(), err)
 	reqLong := &http.Request{Host: "api.service.domain.org"}
 	witData := ConvertWorkItemTypeFromModel(reqLong, wit)

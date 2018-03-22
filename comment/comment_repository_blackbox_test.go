@@ -119,16 +119,32 @@ func (s *TestCommentRepository) TestSaveCommentWithoutMarkup() {
 }
 
 func (s *TestCommentRepository) TestDeleteComment() {
-	// given
-	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Comments(1, func(fxt *tf.TestFixture, idx int) error {
-		fxt.Comments[idx].Markup = rendering.SystemMarkupPlainText
-		return nil
-	}))
-	c := fxt.Comments[0]
-	// when
-	err := s.repo.Delete(s.Ctx, c.ID, c.Creator)
-	// then
-	require.NoError(s.T(), err)
+	s.T().Run("Delete single", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Comments(1, func(fxt *tf.TestFixture, idx int) error {
+			fxt.Comments[idx].Markup = rendering.SystemMarkupPlainText
+			return nil
+		}))
+		c := fxt.Comments[0]
+		// when
+		err := s.repo.Delete(s.Ctx, c.ID, c.Creator)
+		// then
+		require.NoError(t, err)
+	})
+
+	s.T().Run("Delete missing", func(t *testing.T) {
+		numComments := 4
+		// given
+		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Comments(numComments))
+		c := fxt.Comments[0]
+		// when
+		err := s.repo.Delete(s.Ctx, uuid.NewV4(), c.Creator)
+		// then
+		require.Error(t, err)
+		comments, _, err := s.repo.List(s.Ctx, fxt.WorkItems[0].ID, nil, nil)
+		require.NoError(t, err)
+		require.True(t, len(comments) >= numComments)
+	})
 }
 
 func (s *TestCommentRepository) TestCountComments() {

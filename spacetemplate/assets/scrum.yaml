@@ -1,0 +1,380 @@
+space_template:
+
+  id: "cfff59dc-007a-4fa5-acf7-376d5345aef2"
+  name: Scrum
+  description: >
+    An iterative and incremental agile software development framework for
+    managing product development.
+
+work_item_types:
+
+- id: &scrumCommonTypeID "d3f48c61-b3d6-4971-b8b3-28d90543223f"
+  extends: "86af5178-9b41-469b-9096-57e5155c3f31"
+  name: Scrum Common Type
+  can_construct: no
+  description: >
+    This is the work item type that defines the common fields that are shared
+    among all for all work item types of the scrum template. It extends the
+    planner item type and thereby already provides a great deal of common
+    fields.
+  icon: fa fa-question
+  fields:
+    "resolution":
+      label: Resolution
+      description: >
+        The reason why this work item's state was last changed.
+      required: no
+      type:
+        simple_type:
+          kind: enum
+        base_type:
+          kind: string
+        values: 
+        - Done
+        - Rejected
+        - Duplicate
+        - Incomplete Description
+        - Cannot Reproduce
+        - Partially Completed
+        - Deferred
+        - Won't Fix
+        - Won't Do
+        - Out of Date
+        - Explained
+        - Verified
+      "priority":
+        label: Priority
+        description: TBD
+        required: no
+        type:
+          simple_type:
+            kind: enum
+          base_type:
+            kind: string
+          values:
+          - Blocker
+          - Critical
+          - Minor
+          - Optional
+          - Trivial
+
+
+- id: &impedimentID "ec6918d6-f732-4fc0-a902-6571415aa73c"
+  extends: *scrumCommonTypeID
+  name: Impediment
+  can_construct: yes
+  description: >
+    Note that this is never part of a backlog. It is simply associated with
+    other work items to indicate impediments blocking that work item.
+  icon: fa fa-question
+  fields:
+    "system.state":
+      label: State
+      description: The state of the impediment.
+      required: yes
+      type:
+        simple_type:
+          kind: enum
+        base_type:
+          kind: string
+        values:
+        - Open
+        - Closed
+        - Removed
+
+- id: &bugID "90e961d1-0de8-49f4-b197-ba13418c20a8"
+  extends: *scrumCommonTypeID
+  name: Bug
+  can_construct: yes
+  description: TBD
+  icon: fa fa-bug
+  fields:
+    "system.state":
+      label: State
+      description: The state of the Bug.
+      required: yes
+      type:
+        simple_type:
+          kind: enum
+        base_type:
+          kind: string
+        values: 
+        - New
+        - Approved
+        - Committed
+        - Done
+        - Removed
+    "effort":
+      label: Effort
+      description: TBD
+      required: no
+      type:
+        kind: float
+    "system_info":
+      label: System Info
+      description: TBD
+      required: no
+      type:
+        kind: markup
+    "repro_steps":
+      label: Steps to reproduce
+      description: TBD
+      required: no
+      type:
+        kind: markup
+    "remaining_work":
+      label: Remaining work
+      description: TBD
+      required: no
+      type:
+        kind: float
+    "acceptance_criteria":
+      label: Acceptance criteria
+      description: TBD
+      required: no
+      type:
+        kind: markup
+    "severity":
+      label: Severity
+      description: TBD
+      required: no
+      type:
+        simple_type:
+          kind: enum
+        base_type:
+          kind: string
+        values:
+        - Critical
+        - High
+        - Medium
+        - Low
+    "found_in":
+      label: Found in
+      description: >
+        Good place for both users and automated tools to indicate where they
+        found the bug (e.g. perhaps a build number).
+      required: no
+      type:
+        kind: string
+  child_types:
+  - *impedimentID
+
+- id: &taskID "db906e00-a5fa-4a86-8ef7-772c89f703ac"
+  extends: *scrumCommonTypeID
+  name: Task
+  can_construct: yes
+  description: TBD
+  icon: fa fa-tasks
+  fields:
+    "system.state":
+      label: State
+      description: The state of the Task.
+      required: yes
+      type:
+        simple_type:
+          kind: enum
+        base_type:
+          kind: string
+        values:
+        - To Do
+        - In Progress
+        - Done
+        - Removed
+    "remaining_work":
+      label: Remaining work
+      description: TBD
+      required: no
+      type:
+        kind: float
+  child_types:
+  - *taskID
+  - *impedimentID
+
+- id: &productBacklogItemID "23b1dfd5-f497-4843-97c3-e3eefdc9930e"
+  extends: *scrumCommonTypeID
+  name: Product Backlog Item
+  can_construct: yes
+  description: TBD
+  icon: fa fa-question
+  fields:
+    "system.state":
+      label: State
+      description: The state of the product backlog item.
+      required: yes
+      type:
+        simple_type:
+          kind: enum
+        base_type:
+          kind: string
+        values:
+        - New
+        - Approved
+        - Committed
+        - Done
+        - Removed
+    "effort":
+      label: Effort
+      description: TBD
+      required: no
+      type:
+        kind: float
+    "business_value": 
+      label: Business value
+      description: TBD
+      required: no
+      type:
+        kind: integer
+    "acceptance_criteria": 
+      label: Acceptance criteria
+      description: TBD
+      required: no
+      type:
+        kind: markup
+  child_types:
+  - *taskID
+  - *productBacklogItemID
+  - *impedimentID
+
+- id: &featureID "83852318-a69a-4092-a412-bb67527c4ba6"
+  extends: *scrumCommonTypeID
+  name: Feature
+  can_construct: yes
+  description: TBD
+  icon: fa fa-puzzle-piece
+  fields:
+    "system.state":
+      label: State
+      description: The state of the feature.
+      required: yes
+      type:
+        simple_type:
+          kind: enum
+        base_type:
+          kind: string
+        values:
+        - New
+        - In Progress
+        - Done
+        - Removed
+    "effort":
+      label: Effort
+      description: TBD
+      required: no
+      type:
+        kind: float
+    "target_date": 
+      label: Target date
+      description: TBD
+      required: no
+      type:
+        kind: instant
+    "business_value": 
+      label: Business value
+      description: TBD
+      required: no
+      type:
+        kind: integer
+    "time_criticality": 
+      label: Time criticality
+      description: >
+        Time Criticality captures how the business value decreases over time for
+        a Feature or Epic. Higher values indicate that the item is inherently
+        more time critical than those items with lower values.
+      required: no
+      type:
+        kind: float
+    "acceptance_criteria": 
+      label: Acceptance criteria
+      description: TBD
+      required: no
+      type:
+        kind: markup
+  child_types:
+  - *bugID
+  - *productBacklogItemID
+  - *impedimentID
+
+- id: &epicID "f450d7d0-3d38-4887-83ca-38d27c109b59"
+  extends: *scrumCommonTypeID
+  name: Epic
+  can_construct: yes
+  description: TBD
+  icon: fa fa-bolt
+  fields:
+    "system.state":
+      label: State
+      description: The state of the Epic.
+      required: yes
+      type:
+        simple_type:
+          kind: enum
+        base_type:
+          kind: string
+        values:
+        - New
+        - In Progress
+        - Done
+        - Removed
+    "effort":
+      label: Effort
+      description: TBD
+      required: no
+      type:
+        kind: float
+    "target_date": 
+      label: Target date
+      description: TBD
+      required: no
+      type:
+        kind: instant
+    "business_value": 
+      label: Business value
+      description: TBD
+      required: no
+      type:
+        kind: integer
+    "time_criticality": 
+      label: Time criticality
+      description: >
+        Time Criticality captures how the business value decreases over time for
+        a Feature or Epic. Higher values indicate that the item is inherently
+        more time critical than those items with lower values.
+      required: no
+      type:
+        kind: float
+    "acceptance_criteria": 
+      label: Acceptance criteria
+      description: TBD
+      required: no
+      type:
+        kind: markup
+  child_types:
+  - *featureID
+  - *impedimentID
+
+work_item_type_groups:
+
+- name: Epics
+  type_list:
+  - *epicID
+  bucket: portfolio
+  icon: fa fa-bolt
+
+- name: Features
+  type_list:
+  - *featureID
+  - *bugID
+  bucket: portfolio
+  icon: fa fa-puzzle-piece
+
+- name: Backlog items
+  type_list:
+  - *productBacklogItemID
+  bucket: requirement
+  icon: fa fa-question
+
+- name: Execution
+  type_list:
+  - *taskID
+  bucket: iteration
+  icon: fa fa-tasks

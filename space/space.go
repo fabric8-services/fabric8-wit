@@ -137,12 +137,16 @@ func (r *GormRepository) Load(ctx context.Context, ID uuid.UUID) (*Space, error)
 // returns NotFoundError or InternalError
 func (r *GormRepository) LoadMany(ctx context.Context, IDs []uuid.UUID) ([]Space, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "space", "loadMany"}, time.Now())
+	// no need to run the query if the list of IDs is empty :)
+	var result []Space
+	if len(IDs) == 0 {
+		return result, nil
+	}
 	strIDs := make([]string, len(IDs))
 	for i, ID := range IDs {
 		strIDs[i] = fmt.Sprintf("'%s'", ID.String())
 	}
 
-	var result []Space
 	db := r.db.Model(Space{}).Select("distinct *").Where(fmt.Sprintf("ID in (%s)", strings.Join(strIDs, ", ")))
 	rows, err := db.Rows()
 	if err != nil {

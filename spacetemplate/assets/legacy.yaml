@@ -1,71 +1,91 @@
 space_template:
+
   id: "929c963a-174c-4c37-b487-272067e88bd4"
   name: Openshift.io Legacy Template
   description: >
     This is a development methodology inspired by Scenario-Driven-Planning but
     this is not the real thing.
+
 work_item_types:
+
 - id: &taskID "bbf35418-04b6-426c-a60b-7f80beb0b624"
   extends: "86af5178-9b41-469b-9096-57e5155c3f31"
   name: Task
+  can_construct: yes
   description: TBD
   icon: fa fa-tasks
+
 - id: &bugID "26787039-b68f-4e28-8814-c2f93be1ef4e"
   extends: "86af5178-9b41-469b-9096-57e5155c3f31"
   name: Bug
+  can_construct: yes
   description: TBD
   icon: fa fa-bug
   child_types:
   - *taskID
+
 - id: &featureID "0a24d3c2-e0a6-4686-8051-ec0ea1915a28"
   extends: "86af5178-9b41-469b-9096-57e5155c3f31"
   name: Feature
+  can_construct: yes
   description: TBD
   icon: fa fa-puzzle-piece
   child_types:
   - *taskID
   - *bugID
+
 - id: &experienceID "b9a71831-c803-4f66-8774-4193fffd1311"
   extends: "86af5178-9b41-469b-9096-57e5155c3f31"
   name: Experience
+  can_construct: yes
   description: TBD
   icon: pficon pficon-infrastructure
   child_types:
   - *featureID
   - *bugID
+
 - id: &valuePropositionID "3194ab60-855b-4155-9005-9dce4a05f1eb"
   extends: "86af5178-9b41-469b-9096-57e5155c3f31"
   name: Value Proposition
+  can_construct: yes
   description: TBD
   icon: fa fa-diamond
   child_types:
   - *featureID
   - *bugID
+
 - id: &scenarioID "71171e90-6d35-498f-a6a7-2083b5267c18"
   extends: "86af5178-9b41-469b-9096-57e5155c3f31"
   name: Scenario
+  can_construct: yes
   description: TBD
   icon: fa fa-bullseye
   child_types:
   - *experienceID
   - *valuePropositionID
+
 - id: &fundamentalID "ee7ca005-f81d-4eea-9b9b-1965df0988d0"
   extends: "86af5178-9b41-469b-9096-57e5155c3f31"
   name: Fundamental
+  can_construct: yes
   description: TBD
   icon: fa fa-university
   child_types:
   - *experienceID
   - *valuePropositionID
+
 - id: &papercutsID "6d603ab4-7c5e-4c5f-bba8-a3ba9d370985"
   extends: "86af5178-9b41-469b-9096-57e5155c3f31"
   name: Papercuts
+  can_construct: yes
   description: TBD
   icon: fa fa-scissors
   child_types:
   - *experienceID
   - *valuePropositionID
+
 work_item_type_groups:
+
 - name: Scenarios
   type_list:
   - *scenarioID
@@ -73,18 +93,21 @@ work_item_type_groups:
   - *papercutsID
   bucket: portfolio
   icon: fa fa-bullseye
+
 - name: Experiences
   type_list:
   - *experienceID
   - *valuePropositionID
   bucket: portfolio
   icon: pficon pficon-infrastructure
+
 - name: Requirements
   type_list:
   - *featureID
   - *bugID
   bucket: requirement
   icon: fa fa-list-ul
+
 - name: Execution
   type_list:
   - *taskID

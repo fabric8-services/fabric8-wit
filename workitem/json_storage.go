@@ -7,7 +7,7 @@ import (
 	"reflect"
 
 	"github.com/fabric8-services/fabric8-wit/convert"
-	"github.com/pkg/errors"
+	errs "github.com/pkg/errors"
 )
 
 type Fields map[string]interface{}
@@ -76,7 +76,7 @@ func fromBytes(src interface{}, target interface{}) error {
 	}
 	s, ok := src.([]byte)
 	if !ok {
-		return errors.New("Scan source was not string")
+		return errs.Errorf("scan source was not a string")
 	}
 	return json.Unmarshal(s, target)
 }

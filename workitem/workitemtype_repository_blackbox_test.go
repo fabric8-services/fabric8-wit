@@ -92,12 +92,12 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreate() {
 					SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
 					ComponentType: workitem.SimpleType{Kind: workitem.KindString}},
 			},
-		})
+		}, true)
 
 		require.NoError(t, err)
 		require.NotNil(t, baseWit)
 		require.NotNil(t, baseWit.ID)
-		extendedWit, err := s.repo.Create(s.Ctx, fxt.SpaceTemplates[0].ID, nil, &baseWit.ID, "foo.baz", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
+		extendedWit, err := s.repo.Create(s.Ctx, fxt.SpaceTemplates[0].ID, nil, &baseWit.ID, "foo.baz", nil, "fa-bomb", map[string]workitem.FieldDefinition{}, true)
 		require.NoError(t, err)
 		require.NotNil(t, extendedWit)
 		require.NotNil(t, extendedWit.Fields)
@@ -108,7 +108,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreate() {
 	s.T().Run("fail - WIT with missing base type", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1))
 		baseTypeID := uuid.NewV4()
-		extendedWit, err := s.repo.Create(s.Ctx, fxt.SpaceTemplates[0].ID, nil, &baseTypeID, "foo.baz", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
+		extendedWit, err := s.repo.Create(s.Ctx, fxt.SpaceTemplates[0].ID, nil, &baseTypeID, "foo.baz", nil, "fa-bomb", map[string]workitem.FieldDefinition{}, true)
 		// expect an error as the given base type does not exist
 		require.Error(t, err)
 		require.Nil(t, extendedWit)

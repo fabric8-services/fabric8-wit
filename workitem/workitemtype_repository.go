@@ -22,7 +22,7 @@ var cache = NewWorkItemTypeCache()
 type WorkItemTypeRepository interface {
 	repository.Exister
 	Load(ctx context.Context, id uuid.UUID) (*WorkItemType, error)
-	Create(ctx context.Context, spaceTemplateID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields FieldDefinitions) (*WorkItemType, error)
+	Create(ctx context.Context, spaceTemplateID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields FieldDefinitions, canConstruct bool) (*WorkItemType, error)
 	List(ctx context.Context, spaceTemplateID uuid.UUID, start *int, length *int) ([]WorkItemType, error)
 	ListPlannerItemTypes(ctx context.Context, spaceTemplateID uuid.UUID) ([]WorkItemType, error)
 	AddChildTypes(ctx context.Context, parentTypeID uuid.UUID, childTypeIDs []uuid.UUID) error
@@ -93,7 +93,7 @@ func ClearGlobalWorkItemTypeCache() {
 
 // Create creates a new work item type in the repository
 // returns BadParameterError, ConversionError or InternalError
-func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceTemplateID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields FieldDefinitions) (*WorkItemType, error) {
+func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceTemplateID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields FieldDefinitions, canConstruct bool) (*WorkItemType, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitemtype", "create"}, time.Now())
 	// Make sure this WIT has an ID
 	if id == nil {
@@ -136,6 +136,7 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceTemplateID
 		Path:            path,
 		Fields:          allFields,
 		SpaceTemplateID: spaceTemplateID,
+		CanConstruct:    canConstruct,
 	}
 
 	db := r.db.Create(&model)

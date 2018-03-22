@@ -176,3 +176,17 @@ func LegacyTemplate() (*ImportHelper, error) {
 	s.SetID(spacetemplate.SystemLegacyTemplateID)
 	return s, nil
 }
+
+// ScrumTemplate returns the scrum template as it is known to the system
+func ScrumTemplate() (*ImportHelper, error) {
+	bs, err := spacetemplate.Asset("scrum.yaml")
+	if err != nil {
+		return nil, errs.Wrap(err, "failed to load scrum template")
+	}
+	s, err := FromString(string(bs))
+	if err != nil {
+		return nil, errs.WithStack(err)
+	}
+	s.SetID(spacetemplate.SystemScrumTemplateID)
+	return s, nil
+}

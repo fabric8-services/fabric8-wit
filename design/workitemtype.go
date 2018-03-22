@@ -41,6 +41,7 @@ var workItemTypeAttributes = a.Type("WorkItemTypeAttributes", func() {
 	a.Attribute("description", d.String, "A human readable description for the work item type", func() {
 		a.Example(`A user story encapsulates the action of one function making it possible for software developers to create a vertical slice of their work.`)
 	})
+	a.Attribute("can-construct", d.Boolean, "Whether or not this work item type is supposed to be used for creating work items directly.")
 	a.Attribute("fields", a.HashOf(d.String, fieldDefinition), "Definitions of fields in this work item type", func() {
 		a.Example(map[string]interface{}{
 			"system.administrator": map[string]interface{}{

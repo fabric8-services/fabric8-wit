@@ -213,7 +213,7 @@ func (f *FieldDefinition) UnmarshalJSON(bytes []byte) error {
 func ConvertAnyToKind(any interface{}) (*Kind, error) {
 	k, ok := any.(string)
 	if !ok {
-		return nil, fmt.Errorf("kind is not a string value %v", any)
+		return nil, errs.Errorf("kind is not a string value %v", any)
 	}
 	return ConvertStringToKind(k)
 }
@@ -225,7 +225,7 @@ func ConvertStringToKind(k string) (*Kind, error) {
 	case KindString, KindInteger, KindFloat, KindInstant, KindDuration, KindURL, KindUser, KindEnum, KindList, KindIteration, KindMarkup, KindArea, KindCodebase, KindLabel, KindBoolean:
 		return &kind, nil
 	}
-	return nil, fmt.Errorf("kind '%s' is not a simple type", k)
+	return nil, errs.Errorf("kind '%s' is not a simple type", k)
 }
 
 // compatibleFields returns true if the existing and new field are compatible;
@@ -235,5 +235,5 @@ func compatibleFields(existing FieldDefinition, new FieldDefinition) bool {
 	if existing.Required != new.Required {
 		return false
 	}
-	return reflect.DeepEqual(existing.Type, new.Type)
+	return existing.Type.Equal(new.Type)
 }

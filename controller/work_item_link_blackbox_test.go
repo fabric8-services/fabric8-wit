@@ -98,7 +98,7 @@ func createWorkItemType(t *testing.T, db application.DB, id, spaceTemplateID uui
 			Required: false,
 			Type:     &workitem.SimpleType{Kind: "string"},
 		},
-	})
+	}, true)
 	require.Nil(t, err)
 	return wit
 }

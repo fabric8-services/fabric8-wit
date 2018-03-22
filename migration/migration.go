@@ -377,10 +377,16 @@ func GetMigrations() Migrations {
 	m = append(m, steps{ExecuteSQLFile("082-iteration-related-changes.sql")})
 
 	// Version 83
-	m = append(m, steps{ExecuteSQLFile("083-space-templates.sql", spacetemplate.SystemLegacyTemplateID.String())})
+	m = append(m, steps{ExecuteSQLFile("083-index-comments-parent.sql")})
 
 	// Version 84
-	m = append(m, steps{ExecuteSQLFile("084-type-groups-and-child-types.sql")})
+	m = append(m, steps{ExecuteSQLFile("084-space-templates.sql",
+		spacetemplate.SystemLegacyTemplateID.String(),
+		workitem.SystemPlannerItem.String(),
+	)})
+
+	// Version 85
+	m = append(m, steps{ExecuteSQLFile("085-type-groups-and-child-types.sql")})
 
 	// Version N
 	//
@@ -598,9 +604,7 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB) error {
 	templateFunctions := []func() (*importer.ImportHelper, error){
 		importer.BaseTemplate,
 		importer.LegacyTemplate,
-		//"scrum": importer.ScrumTemplate,
-		//"issue-tracking": importer.IssueTrackingTemplate,
-		//"scenario-driven-planning": importer.ScenarioDrivenPlanningTemplate,
+		importer.ScrumTemplate,
 	}
 	importRepo := importer.NewRepository(db)
 	for idx, loadFunction := range templateFunctions {

@@ -118,12 +118,12 @@ func (r *GormRepository) createOrUpdateWITs(ctx context.Context, s *ImportHelper
 			switch cause.(type) {
 			case errors.NotFoundError:
 				// Create WIT
-				_, err := witRepo.Create(ctx, s.Template.ID, &wit.ID, &wit.Extends, wit.Name, wit.Description, wit.Icon, wit.Fields)
+				_, err := witRepo.Create(ctx, s.Template.ID, &wit.ID, &wit.Extends, wit.Name, wit.Description, wit.Icon, wit.Fields, wit.CanConstruct)
 				if err != nil {
 					return errs.Wrapf(err, "failed to create work item type '%s' from space template '%s'", wit.Name, s.Template.ID)
 				}
 			default:
-				log.Error(ctx, map[string]interface{}{"wit_id": wit.ID.String(), "err": err}, "failed to work item type")
+				log.Error(ctx, map[string]interface{}{"wit_id": wit.ID.String(), "err": err}, "failed to load work item type")
 				return errs.Wrapf(err, "failed to load work item type %s", wit.ID)
 			}
 		} else {
