@@ -143,6 +143,28 @@ var cheServerState = a.MediaType("CheServerState", func() {
 	})
 })
 
+var createWorkspace = a.MediaType("application/vnd.createworkspace+json", func() {
+	a.UseTrait("jsonapi-media-type")
+	a.TypeName("CreateWorkspace")
+	a.Description("Create Workspace")
+	a.Attributes(func() {
+		a.Attribute("data", createWorkspaceData)
+		a.Required("data")
+	})
+	a.View("default", func() {
+		a.Attribute("data")
+		a.Required("data")
+	})
+})
+
+var createWorkspaceData = a.Type("CreateWorkspaceData", func() {
+	a.Attribute("attributes", createWorkspaceDataAttributes, "Attributes of the workspace")
+})
+
+var createWorkspaceDataAttributes = a.Type("CreateWorkspaceDataAttributes", func() {
+	a.Attribute("branch", d.String, "The workspace branch")
+})
+
 // new version of "list" for migration
 var _ = a.Resource("codebase", func() {
 	a.BasePath("/codebases")
@@ -221,6 +243,7 @@ var _ = a.Resource("codebase", func() {
 		a.Params(func() {
 			a.Param("codebaseID", d.UUID, "Codebase Identifier")
 		})
+		a.OptionalPayload(createWorkspace)
 		a.Response(d.OK, func() {
 			a.Media(workspaceOpen)
 		})
