@@ -45,7 +45,6 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		require.NoError(t, err)
 		require.Empty(t, eventList)
 	})
-
 	s.T().Run("event assignee - previous assignee nil", func(t *testing.T) {
 
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1))
@@ -94,5 +93,16 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		require.Len(t, eventList, 2)
 		assert.Equal(t, eventList[1].Name, "assigned")
 		assert.Empty(t, eventList[1].NewAssignees)
+	})
+	s.T().Run("state change from new to open", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1))
+		fxt.WorkItems[0].Fields[workitem.SystemState] = workitem.SystemStateResolved
+		wiNew, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		require.NoError(t, err)
+		require.Equal(t, workitem.SystemStateResolved, wiNew.Fields[workitem.SystemState])
+		eventList, err := s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
+		require.NoError(t, err)
+		require.NotEmpty(t, eventList)
+		require.Len(t, eventList, 1)
 	})
 }

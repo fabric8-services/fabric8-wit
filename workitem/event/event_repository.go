@@ -65,19 +65,13 @@ func (r *GormWorkItemEventRepository) List(ctx context.Context, wiID uuid.UUID) 
 			return nil, errs.Wrapf(err, "error during fetching event list")
 		}
 		for fieldName := range wiType.Fields {
-			var previousAssignees interface{}
-			var newAssignees interface{}
 			switch fieldName {
 			case workitem.SystemAssignees:
 				var p []string
 				var n []string
 
-				if k == 0 {
-					previousAssignees = nil
-				} else {
-					previousAssignees = revisionList[k-1].WorkItemFields[workitem.SystemAssignees]
-				}
-				newAssignees = revisionList[k].WorkItemFields[workitem.SystemAssignees]
+				previousAssignees := revisionList[k-1].WorkItemFields[workitem.SystemAssignees]
+				newAssignees := revisionList[k].WorkItemFields[workitem.SystemAssignees]
 				switch previousAssignees.(type) {
 				case nil:
 					p = []string{}
@@ -106,14 +100,29 @@ func (r *GormWorkItemEventRepository) List(ctx context.Context, wiID uuid.UUID) 
 					}
 
 				}
-				wie := WorkItemEvent{
-					ID:                revisionList[k].ID,
-					Name:              "assigned",
-					Modifier:          modifierID.Username,
-					PreviousAssignees: p,
-					NewAssignees:      n,
+				if len(p) != 0 || len(n) != 0 {
+					wie := WorkItemEvent{
+						ID:                revisionList[k].ID,
+						Name:              "assigned",
+						Modifier:          modifierID.Username,
+						PreviousAssignees: p,
+						NewAssignees:      n,
+					}
+					eventList = append(eventList, wie)
 				}
-				eventList = append(eventList, wie)
+			case workitem.SystemState:
+				previousState := revisionList[k-1].WorkItemFields[workitem.SystemState].(string)
+				newState := revisionList[k].WorkItemFields[workitem.SystemState].(string)
+				if previousState != newState {
+					wie := WorkItemEvent{
+						ID:            revisionList[k].ID,
+						Name:          "state_changed",
+						Modifier:      modifierID.Username,
+						PreviousState: &previousState,
+						NewState:      &newState,
+					}
+					eventList = append(eventList, wie)
+				}
 			}
 		}
 	}
