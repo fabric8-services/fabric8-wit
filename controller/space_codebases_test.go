@@ -25,84 +25,84 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type TestSpaceCodebaseREST struct {
+type SpaceCodebaseControllerTestSuite struct {
 	gormtestsupport.DBTestSuite
 	db *gormapplication.GormDB
 }
 
-func TestRunSpaceCodebaseREST(t *testing.T) {
+func TestSpaceCodebaseController(t *testing.T) {
 	pwd, err := os.Getwd()
 	if err != nil {
 		require.NoError(t, err)
 	}
-	suite.Run(t, &TestSpaceCodebaseREST{DBTestSuite: gormtestsupport.NewDBTestSuite(pwd + "/../config.yaml")})
+	suite.Run(t, &SpaceCodebaseControllerTestSuite{DBTestSuite: gormtestsupport.NewDBTestSuite(pwd + "/../config.yaml")})
 }
 
-func (rest *TestSpaceCodebaseREST) SetupTest() {
-	rest.DBTestSuite.SetupTest()
-	rest.db = gormapplication.NewGormDB(rest.DB)
+func (s *SpaceCodebaseControllerTestSuite) SetupTest() {
+	s.DBTestSuite.SetupTest()
+	s.db = gormapplication.NewGormDB(s.DB)
 }
 
-func (rest *TestSpaceCodebaseREST) SecuredController() (*goa.Service, *SpaceCodebasesController) {
+func (s *SpaceCodebaseControllerTestSuite) SecuredController() (*goa.Service, *SpaceCodebasesController) {
 	svc := testsupport.ServiceAsUser("SpaceCodebase-Service", testsupport.TestIdentity)
-	return svc, NewSpaceCodebasesController(svc, rest.db)
+	return svc, NewSpaceCodebasesController(svc, s.db)
 }
 
-func (rest *TestSpaceCodebaseREST) UnSecuredController() (*goa.Service, *SpaceCodebasesController) {
+func (s *SpaceCodebaseControllerTestSuite) UnSecuredController() (*goa.Service, *SpaceCodebasesController) {
 	svc := goa.New("SpaceCodebase-Service")
-	return svc, NewSpaceCodebasesController(svc, rest.db)
+	return svc, NewSpaceCodebasesController(svc, s.db)
 }
 
-func (rest *TestSpaceCodebaseREST) TestCreateCodebaseCreated() {
-	s := rest.createSpace(testsupport.TestIdentity.ID)
+func (s *SpaceCodebaseControllerTestSuite) TestCreateCodebaseCreated() {
+	sp := s.createSpace(testsupport.TestIdentity.ID)
 	stackId := "stackId"
 	ci := createSpaceCodebase("https://github.com/fabric8-services/fabric8-wit.git", &stackId)
 
-	svc, ctrl := rest.SecuredController()
-	_, c := test.CreateSpaceCodebasesCreated(rest.T(), svc.Context, svc, ctrl, s.ID, ci)
-	require.NotNil(rest.T(), c.Data.ID)
-	require.NotNil(rest.T(), c.Data.Relationships.Space)
-	assert.Equal(rest.T(), s.ID.String(), *c.Data.Relationships.Space.Data.ID)
-	assert.Equal(rest.T(), "https://github.com/fabric8-services/fabric8-wit.git", *c.Data.Attributes.URL)
-	assert.Equal(rest.T(), "stackId", *c.Data.Attributes.StackID)
+	svc, ctrl := s.SecuredController()
+	_, c := test.CreateSpaceCodebasesCreated(s.T(), svc.Context, svc, ctrl, sp.ID, ci)
+	require.NotNil(s.T(), c.Data.ID)
+	require.NotNil(s.T(), c.Data.Relationships.Space)
+	assert.Equal(s.T(), sp.ID.String(), *c.Data.Relationships.Space.Data.ID)
+	assert.Equal(s.T(), "https://github.com/fabric8-services/fabric8-wit.git", *c.Data.Attributes.URL)
+	assert.Equal(s.T(), "stackId", *c.Data.Attributes.StackID)
 }
 
-func (rest *TestSpaceCodebaseREST) TestCreateCodebaseWithNoStackIdCreated() {
-	s := rest.createSpace(testsupport.TestIdentity.ID)
+func (s *SpaceCodebaseControllerTestSuite) TestCreateCodebaseWithNoStackIdCreated() {
+	sp := s.createSpace(testsupport.TestIdentity.ID)
 	ci := createSpaceCodebase("https://github.com/fabric8-services/fabric8-wit.git", nil)
 
-	svc, ctrl := rest.SecuredController()
-	_, c := test.CreateSpaceCodebasesCreated(rest.T(), svc.Context, svc, ctrl, s.ID, ci)
-	require.NotNil(rest.T(), c.Data.ID)
-	require.NotNil(rest.T(), c.Data.Relationships.Space)
-	assert.Equal(rest.T(), s.ID.String(), *c.Data.Relationships.Space.Data.ID)
-	assert.Equal(rest.T(), "https://github.com/fabric8-services/fabric8-wit.git", *c.Data.Attributes.URL)
-	assert.Nil(rest.T(), c.Data.Attributes.StackID)
+	svc, ctrl := s.SecuredController()
+	_, c := test.CreateSpaceCodebasesCreated(s.T(), svc.Context, svc, ctrl, sp.ID, ci)
+	require.NotNil(s.T(), c.Data.ID)
+	require.NotNil(s.T(), c.Data.Relationships.Space)
+	assert.Equal(s.T(), sp.ID.String(), *c.Data.Relationships.Space.Data.ID)
+	assert.Equal(s.T(), "https://github.com/fabric8-services/fabric8-wit.git", *c.Data.Attributes.URL)
+	assert.Nil(s.T(), c.Data.Attributes.StackID)
 }
 
-func (rest *TestSpaceCodebaseREST) TestCreateCodebaseForbidden() {
-	s := rest.createSpace(testsupport.TestIdentity2.ID)
+func (s *SpaceCodebaseControllerTestSuite) TestCreateCodebaseForbidden() {
+	sp := s.createSpace(testsupport.TestIdentity2.ID)
 	stackId := "stackId"
 	ci := createSpaceCodebase("https://github.com/fabric8-services/fabric8-wit.git", &stackId)
 
-	svc, ctrl := rest.SecuredController()
+	svc, ctrl := s.SecuredController()
 	// Codebase creation is forbidden if the user is not the space owner
-	test.CreateSpaceCodebasesForbidden(rest.T(), svc.Context, svc, ctrl, s.ID, ci)
+	test.CreateSpaceCodebasesForbidden(s.T(), svc.Context, svc, ctrl, sp.ID, ci)
 }
 
-func (rest *TestSpaceCodebaseREST) TestListCodebase() {
-	t := rest.T()
+func (s *SpaceCodebaseControllerTestSuite) TestListCodebase() {
+	t := s.T()
 	resource.Require(t, resource.Database)
 
 	// Create a new space where we'll create 3 codebase
-	s := rest.createSpace(testsupport.TestIdentity.ID)
+	sp := s.createSpace(testsupport.TestIdentity.ID)
 	// Create another space where we'll create 1 codebase.
-	anotherSpace := rest.createSpace(testsupport.TestIdentity.ID)
+	anotherSpace := s.createSpace(testsupport.TestIdentity.ID)
 
 	repo := "https://github.com/fabric8-services/fabric8-wit.git"
 
-	svc, ctrl := rest.SecuredController()
-	spaceId := s.ID
+	svc, ctrl := s.SecuredController()
+	spaceId := sp.ID
 	anotherSpaceId := anotherSpace.ID
 	var createdSpacesUuids1 []uuid.UUID
 
@@ -125,7 +125,7 @@ func (rest *TestSpaceCodebaseREST) TestListCodebase() {
 	offset := "0"
 	limit := 100
 
-	svc, ctrl = rest.UnSecuredController()
+	svc, ctrl = s.UnSecuredController()
 	_, codebaseList := test.ListSpaceCodebasesOK(t, svc.Context, svc, ctrl, spaceId, &limit, &offset)
 	assert.Len(t, codebaseList.Data, 3)
 	for i := 0; i < len(createdSpacesUuids1); i++ {
@@ -138,36 +138,36 @@ func (rest *TestSpaceCodebaseREST) TestListCodebase() {
 
 }
 
-func (rest *TestSpaceCodebaseREST) TestCreateCodebaseMissingSpace() {
-	t := rest.T()
+func (s *SpaceCodebaseControllerTestSuite) TestCreateCodebaseMissingSpace() {
+	t := s.T()
 	resource.Require(t, resource.Database)
 	stackId := "stackId"
 
 	ci := createSpaceCodebase("https://github.com/fabric8io/fabric8-planner.git", &stackId)
 
-	svc, ctrl := rest.SecuredController()
+	svc, ctrl := s.SecuredController()
 	test.CreateSpaceCodebasesNotFound(t, svc.Context, svc, ctrl, uuid.NewV4(), ci)
 }
 
-func (rest *TestSpaceCodebaseREST) TestFailCreateCodebaseNotAuthorized() {
-	t := rest.T()
+func (s *SpaceCodebaseControllerTestSuite) TestFailCreateCodebaseNotAuthorized() {
+	t := s.T()
 	resource.Require(t, resource.Database)
 	stackId := "stackId"
 
 	ci := createSpaceCodebase("https://github.com/fabric8io/fabric8-planner.git", &stackId)
 
-	svc, ctrl := rest.UnSecuredController()
+	svc, ctrl := s.UnSecuredController()
 	test.CreateSpaceCodebasesUnauthorized(t, svc.Context, svc, ctrl, uuid.NewV4(), ci)
 }
 
-func (rest *TestSpaceCodebaseREST) TestFailListCodebaseByMissingSpace() {
-	t := rest.T()
+func (s *SpaceCodebaseControllerTestSuite) TestFailListCodebaseByMissingSpace() {
+	t := s.T()
 	resource.Require(t, resource.Database)
 
 	offset := "0"
 	limit := 100
 
-	svc, ctrl := rest.UnSecuredController()
+	svc, ctrl := s.UnSecuredController()
 	test.ListSpaceCodebasesNotFound(t, svc.Context, svc, ctrl, uuid.NewV4(), &limit, &offset)
 }
 
@@ -194,20 +194,18 @@ func createSpaceCodebase(url string, stackId *string) *app.CreateSpaceCodebasesP
 	}
 }
 
-func (rest *TestSpaceCodebaseREST) createSpace(ownerID uuid.UUID) *space.Space {
-	resource.Require(rest.T(), resource.Database)
-
-	var s *space.Space
+func (s *SpaceCodebaseControllerTestSuite) createSpace(ownerID uuid.UUID) *space.Space {
+	var sp *space.Space
 	var err error
-	err = application.Transactional(rest.db, func(app application.Application) error {
+	err = application.Transactional(s.db, func(app application.Application) error {
 		repo := app.Spaces()
 		newSpace := &space.Space{
 			Name:    "TestSpaceCodebase " + uuid.NewV4().String(),
 			OwnerID: ownerID,
 		}
-		s, err = repo.Create(context.Background(), newSpace)
+		sp, err = repo.Create(context.Background(), newSpace)
 		return err
 	})
-	require.NoError(rest.T(), err)
-	return s
+	require.NoError(s.T(), err)
+	return sp
 }

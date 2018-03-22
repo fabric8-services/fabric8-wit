@@ -102,7 +102,7 @@ func TestConvertTypeFromModel(t *testing.T) {
 		},
 	}
 	// when
-	result := ConvertWorkItemTypeFromModel(reqLong, &a)
+	result := convertWorkItemTypeFromModel(reqLong, &a)
 	// then
 	require.NotNil(t, result.ID)
 	assert.True(t, uuid.Equal(*expected.Data.ID, *result.ID))

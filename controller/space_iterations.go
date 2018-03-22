@@ -48,6 +48,7 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data.attributes.name", nil).Expected("not nil"))
 	}
 
+	var responseData *app.Iteration
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		s, err := appl.Spaces().Load(ctx, ctx.SpaceID)
 		if err != nil {
@@ -89,7 +90,6 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 			"wiCounts":     wiCounts,
 		}, "wicounts for created iteration %s -> %v", newItr.ID.String(), wiCounts)
 
-		var responseData *app.Iteration
 		if newItr.Path.IsEmpty() == false {
 			allParentsUUIDs := newItr.Path
 			iterations, error := appl.Iterations().LoadMultiple(ctx, allParentsUUIDs)
@@ -100,20 +100,20 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 			for _, itr := range iterations {
 				itrMap[itr.ID] = itr
 			}
-			responseData = ConvertIteration(ctx.Request, newItr, parentPathResolver(itrMap), updateIterationsWithCounts(wiCounts))
+			responseData = convertIteration(ctx.Request, newItr, parentPathResolver(itrMap), updateIterationsWithCounts(wiCounts))
 		} else {
-			responseData = ConvertIteration(ctx.Request, newItr, updateIterationsWithCounts(wiCounts))
+			responseData = convertIteration(ctx.Request, newItr, updateIterationsWithCounts(wiCounts))
 		}
-		res := &app.IterationSingle{
-			Data: responseData,
-		}
-		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.IterationHref(res.Data.ID)))
-		return ctx.Created(res)
+		return nil
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	return nil
+	res := &app.IterationSingle{
+		Data: responseData,
+	}
+	ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.IterationHref(res.Data.ID)))
+	return ctx.Created(res)
 }
 
 // List runs the list action.
@@ -143,7 +143,7 @@ func (c *SpaceIterationsController) List(ctx *app.ListSpaceIterationsContext) er
 				return err
 			}
 			res := &app.IterationList{}
-			res.Data = ConvertIterations(ctx.Request, iterations, updateIterationsWithCounts(wiCounts), parentPathResolver(itrMap))
+			res.Data = convertIterations(ctx.Request, iterations, updateIterationsWithCounts(wiCounts), parentPathResolver(itrMap))
 			return ctx.OK(res)
 		})
 	})

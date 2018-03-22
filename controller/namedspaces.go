@@ -9,6 +9,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/goadesign/goa"
 )
 
@@ -33,29 +34,26 @@ func (c *NamedspacesController) Show(ctx *app.ShowNamedspacesContext) error {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound("not found, spaceName=%v", ctx.SpaceName))
 	}
 
+	var s *space.Space
 	err := application.Transactional(c.db, func(appl application.Application) error {
 		identity, err := loadKeyCloakIdentityByUserName(ctx, appl, ctx.UserName)
 		if err != nil {
 			return goa.ErrNotFound("not found, userName=%v", ctx.UserName)
 		}
-		s, err := appl.Spaces().LoadByOwnerAndName(ctx.Context, &identity.ID, &ctx.SpaceName)
-		if err != nil {
-			return err
-		}
-
-		spaceData, err := ConvertSpaceFromModel(ctx.Request, *s, IncludeBacklogTotalCount(ctx.Context, c.db))
-		if err != nil {
-			return err
-		}
-		resp := app.SpaceSingle{
-			Data: spaceData,
-		}
-		return ctx.OK(&resp)
+		s, err = appl.Spaces().LoadByOwnerAndName(ctx.Context, &identity.ID, &ctx.SpaceName)
+		return err
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	return nil
+	spaceData, err := convertSpaceFromModel(ctx.Request, *s, includeBacklogTotalCount(ctx.Context, c.db))
+	if err != nil {
+		return err
+	}
+	resp := app.SpaceSingle{
+		Data: spaceData,
+	}
+	return ctx.OK(&resp)
 }
 
 func (c *NamedspacesController) List(ctx *app.ListNamedspacesContext) error {
@@ -64,34 +62,30 @@ func (c *NamedspacesController) List(ctx *app.ListNamedspacesContext) error {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(fmt.Sprintf("not found, userName=%v", ctx.UserName)))
 	}
 
+	var spaces []space.Space
+	var count int
 	err := application.Transactional(c.db, func(appl application.Application) error {
 		identity, err := loadKeyCloakIdentityByUserName(ctx, appl, ctx.UserName)
 		if err != nil {
 			return goa.ErrNotFound(fmt.Sprintf("not found, userName=%v. %v", ctx.UserName, err.Error()))
 		}
-		spaces, totalCnt, err := appl.Spaces().LoadByOwner(ctx.Context, &identity.ID, &offset, &limit)
-		totalCount := int(totalCnt)
-		if err != nil {
-			return err
-		}
-
-		spaceData, err := ConvertSpacesFromModel(ctx.Request, spaces, IncludeBacklogTotalCount(ctx.Context, c.db))
-		if err != nil {
-			return err
-		}
-		response := app.SpaceList{
-			Links: &app.PagingLinks{},
-			Meta:  &app.SpaceListMeta{TotalCount: totalCount},
-			Data:  spaceData,
-		}
-		setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(spaces), offset, limit, totalCount)
-
-		return ctx.OK(&response)
+		spaces, count, err = appl.Spaces().LoadByOwner(ctx.Context, &identity.ID, &offset, &limit)
+		return err
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	return nil
+	spaceData, err := convertSpacesFromModel(ctx.Request, spaces, includeBacklogTotalCount(ctx.Context, c.db))
+	if err != nil {
+		return err
+	}
+	response := app.SpaceList{
+		Links: &app.PagingLinks{},
+		Meta:  &app.SpaceListMeta{TotalCount: count},
+		Data:  spaceData,
+	}
+	setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(spaces), offset, limit, count)
+	return ctx.OK(&response)
 
 }
 

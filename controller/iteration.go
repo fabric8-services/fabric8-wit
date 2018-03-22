@@ -68,28 +68,27 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 	}
-	var parent *iteration.Iteration
-	var sp *space.Space
+	var parentItr *iteration.Iteration
+	var itrSpace *space.Space
 	err = application.Transactional(c.db, func(appl application.Application) error {
-		parent, err = appl.Iterations().Load(ctx, parentID)
+		parentItr, err = appl.Iterations().Load(ctx, parentID)
 		if err != nil {
 			return err
 		}
-		sp, err = appl.Spaces().Load(ctx, parent.SpaceID)
-		return err // will be 'nil' of no error occurred
-
+		itrSpace, err = appl.Spaces().Load(ctx, parentItr.SpaceID)
+		return err
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	authorized, spaceOwner, err := verifyUser(ctx, *currentUser, sp)
+	authorized, spaceOwner, err := verifyUser(ctx, *currentUser, itrSpace)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
 	if !authorized && !spaceOwner {
 		log.Error(ctx, map[string]interface{}{
-			"space_id":     sp.ID,
-			"space_owner":  sp.OwnerID,
+			"space_id":     itrSpace.ID,
+			"space_owner":  itrSpace.OwnerID,
 			"current_user": *currentUser,
 		}, "user is not the space owner")
 		if !authorized {
@@ -101,61 +100,56 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 		// But written following line to make it verbose 401 vs 403
 		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not allowed to create an iteration in this space"))
 	}
+	reqItr := ctx.Payload.Data
+	if reqItr.Attributes.Name == nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data.attributes.name", nil).Expected("not nil"))
+	}
+	childPath := append(parentItr.Path, parentItr.ID)
+	if ctx.Payload.Data.Attributes.UserActive != nil {
+		reqItr.Attributes.UserActive = ctx.Payload.Data.Attributes.UserActive
+	} else {
+		userActive := false
+		reqItr.Attributes.UserActive = &userActive
+	}
+	itr := &iteration.Iteration{
+		SpaceID:     parentItr.SpaceID,
+		Path:        childPath,
+		Name:        *reqItr.Attributes.Name,
+		Description: reqItr.Attributes.Description,
+		StartAt:     reqItr.Attributes.StartAt,
+		EndAt:       reqItr.Attributes.EndAt,
+		UserActive:  *reqItr.Attributes.UserActive,
+	}
+	if reqItr.ID != nil {
+		itr.ID = *reqItr.ID
+	}
+	itrMap := make(iterationIDMap)
 	err = application.Transactional(c.db, func(appl application.Application) error {
-		reqIter := ctx.Payload.Data
-		if reqIter.Attributes.Name == nil {
-			return errors.NewBadParameterError("data.attributes.name", nil).Expected("not nil")
-		}
-
-		childPath := append(parent.Path, parent.ID)
-
-		if ctx.Payload.Data.Attributes.UserActive != nil {
-			reqIter.Attributes.UserActive = ctx.Payload.Data.Attributes.UserActive
-		} else {
-			userActive := false
-			reqIter.Attributes.UserActive = &userActive
-		}
-
-		newItr := iteration.Iteration{
-			SpaceID:     parent.SpaceID,
-			Path:        childPath,
-			Name:        *reqIter.Attributes.Name,
-			Description: reqIter.Attributes.Description,
-			StartAt:     reqIter.Attributes.StartAt,
-			EndAt:       reqIter.Attributes.EndAt,
-			UserActive:  *reqIter.Attributes.UserActive,
-		}
-		if reqIter.ID != nil {
-			newItr.ID = *reqIter.ID
-		}
-		err = appl.Iterations().Create(ctx, &newItr)
+		err = appl.Iterations().Create(ctx, itr)
 		if err != nil {
 			return err
 		}
 		// For create, count will always be zero hence no need to query
 		// by passing empty map, updateIterationsWithCounts will be able to put zero values
-		wiCounts := make(map[string]workitem.WICountsPerIteration)
-		var responseData *app.Iteration
-		allParentsUUIDs := newItr.Path
-		iterations, error := appl.Iterations().LoadMultiple(ctx, allParentsUUIDs)
-		if error != nil {
+		parentItrs, err := appl.Iterations().LoadMultiple(ctx, itr.Path)
+		if err != nil {
 			return err
 		}
-		itrMap := make(iterationIDMap)
-		for _, itr := range iterations {
+		for _, itr := range parentItrs {
 			itrMap[itr.ID] = itr
 		}
-		responseData = ConvertIteration(ctx.Request, newItr, parentPathResolver(itrMap), updateIterationsWithCounts(wiCounts))
-		res := &app.IterationSingle{
-			Data: responseData,
-		}
-		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.IterationHref(res.Data.ID)))
-		return ctx.Created(res)
+		return nil
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	return nil
+	wiCounts := make(map[string]workitem.WICountsPerIteration)
+	responseData := convertIteration(ctx.Request, *itr, parentPathResolver(itrMap), updateIterationsWithCounts(wiCounts))
+	res := &app.IterationSingle{
+		Data: responseData,
+	}
+	ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.IterationHref(res.Data.ID)))
+	return ctx.Created(res)
 }
 
 // Show runs the show action.
@@ -164,38 +158,37 @@ func (c *IterationController) Show(ctx *app.ShowIterationContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 	}
-
+	var itr *iteration.Iteration
 	err = application.Transactional(c.db, func(appl application.Application) error {
-		iter, err := appl.Iterations().Load(ctx, id)
-		if err != nil {
-			return err
-		}
-		return ctx.ConditionalRequest(*iter, c.config.GetCacheControlIteration, func() error {
-			wiCounts, err := appl.WorkItems().GetCountsForIteration(ctx, iter)
-			if err != nil {
-				return err
-			}
-			var responseData *app.Iteration
-			allParentsUUIDs := iter.Path
-			iterations, error := appl.Iterations().LoadMultiple(ctx, allParentsUUIDs)
-			if error != nil {
-				return err
-			}
-			itrMap := make(iterationIDMap)
-			for _, itr := range iterations {
-				itrMap[itr.ID] = itr
-			}
-			responseData = ConvertIteration(ctx.Request, *iter, parentPathResolver(itrMap), updateIterationsWithCounts(wiCounts))
-			res := &app.IterationSingle{
-				Data: responseData,
-			}
-			return ctx.OK(res)
-		})
+		itr, err = appl.Iterations().Load(ctx, id)
+		return err
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	return nil
+	return ctx.ConditionalRequest(*itr, c.config.GetCacheControlIteration, func() error {
+		var wiCounts map[string]workitem.WICountsPerIteration
+		var parentItrs []iteration.Iteration
+		err := application.Transactional(c.db, func(appl application.Application) error {
+			var err error
+			wiCounts, err = appl.WorkItems().GetCountsForIteration(ctx, itr)
+			if err != nil {
+				return err
+			}
+			parentItrs, err = appl.Iterations().LoadMultiple(ctx, itr.Path)
+			return err
+		})
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		itrMap := make(iterationIDMap)
+		for _, itr := range parentItrs {
+			itrMap[itr.ID] = itr
+		}
+		return ctx.OK(&app.IterationSingle{
+			Data: convertIteration(ctx.Request, *itr, parentPathResolver(itrMap), updateIterationsWithCounts(wiCounts)),
+		})
+	})
 }
 
 // Update runs the update action.
@@ -217,10 +210,7 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 			return err
 		}
 		sp, err = appl.Spaces().Load(ctx, itr.SpaceID)
-		if err != nil {
-			return err
-		}
-		return nil
+		return err
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
@@ -244,6 +234,8 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 		// But written following line to make it verbose 401 vs 403
 		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not allowed to create an iteration in this space"))
 	}
+	var iterations []iteration.Iteration
+	var wiCounts map[string]workitem.WICountsPerIteration
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		if ctx.Payload.Data.Attributes.Name != nil {
 			itr.Name = *ctx.Payload.Data.Attributes.Name
@@ -327,30 +319,25 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 				}
 			}
 		}
-		wiCounts, err := appl.WorkItems().GetCountsForIteration(ctx, itr)
+		wiCounts, err = appl.WorkItems().GetCountsForIteration(ctx, itr)
 		if err != nil {
 			return err
 		}
-		var responseData *app.Iteration
 		allParentsUUIDs := itr.Path
-		iterations, error := appl.Iterations().LoadMultiple(ctx, allParentsUUIDs)
-		if error != nil {
-			return err
-		}
-		itrMap := make(iterationIDMap)
-		for _, itr := range iterations {
-			itrMap[itr.ID] = itr
-		}
-		responseData = ConvertIteration(ctx.Request, *itr, parentPathResolver(itrMap), updateIterationsWithCounts(wiCounts))
-		res := &app.IterationSingle{
-			Data: responseData,
-		}
-		return ctx.OK(res)
+		iterations, err = appl.Iterations().LoadMultiple(ctx, allParentsUUIDs)
+		return err
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	return nil
+	itrMap := make(iterationIDMap)
+	for _, itr := range iterations {
+		itrMap[itr.ID] = itr
+	}
+	responseData := convertIteration(ctx.Request, *itr, parentPathResolver(itrMap), updateIterationsWithCounts(wiCounts))
+	return ctx.OK(&app.IterationSingle{
+		Data: responseData,
+	})
 }
 
 // Delete runs the delete action.
@@ -445,17 +432,17 @@ func (c *IterationController) Delete(ctx *app.DeleteIterationContext) error {
 // conversion from internal to API
 type IterationConvertFunc func(*http.Request, *iteration.Iteration, *app.Iteration)
 
-// ConvertIterations converts between internal and external REST representation
-func ConvertIterations(request *http.Request, Iterations []iteration.Iteration, additional ...IterationConvertFunc) []*app.Iteration {
+// convertIterations converts between internal and external REST representation
+func convertIterations(request *http.Request, Iterations []iteration.Iteration, additional ...IterationConvertFunc) []*app.Iteration {
 	var is = []*app.Iteration{}
 	for _, i := range Iterations {
-		is = append(is, ConvertIteration(request, i, additional...))
+		is = append(is, convertIteration(request, i, additional...))
 	}
 	return is
 }
 
-// ConvertIteration converts between internal and external REST representation
-func ConvertIteration(request *http.Request, itr iteration.Iteration, additional ...IterationConvertFunc) *app.Iteration {
+// convertIteration converts between internal and external REST representation
+func convertIteration(request *http.Request, itr iteration.Iteration, additional ...IterationConvertFunc) *app.Iteration {
 	iterationType := iteration.APIStringTypeIteration
 	spaceID := itr.SpaceID.String()
 	relatedURL := rest.AbsoluteURL(request, app.IterationHref(itr.ID))
@@ -520,8 +507,8 @@ func ConvertIteration(request *http.Request, itr iteration.Iteration, additional
 	return i
 }
 
-// ConvertIterationSimple converts a simple Iteration ID into a Generic Reletionship
-func ConvertIterationSimple(request *http.Request, id interface{}) *app.GenericData {
+// convertIterationSimple converts a simple Iteration ID into a Generic Reletionship
+func convertIterationSimple(request *http.Request, id interface{}) *app.GenericData {
 	t := iteration.APIStringTypeIteration
 	i := fmt.Sprint(id)
 	return &app.GenericData{

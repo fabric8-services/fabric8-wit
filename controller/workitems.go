@@ -55,7 +55,6 @@ func (c *WorkitemsController) Create(ctx *app.CreateWorkitemsContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
-
 	var space *space.Space
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		// verify spaceID:
@@ -119,7 +118,7 @@ func (c *WorkitemsController) Create(ctx *app.CreateWorkitemsContext) error {
 			return err
 		}
 
-		err = ConvertJSONAPIToWorkItem(ctx, ctx.Method, appl, *ctx.Payload.Data, wi, ctx.SpaceID)
+		err = convertJSONAPIToWorkItem(ctx, ctx.Method, appl, *ctx.Payload.Data, wi, ctx.SpaceID)
 		if err != nil {
 			return errs.Wrap(err, fmt.Sprintf("Error creating work item"))
 		}
@@ -128,25 +127,23 @@ func (c *WorkitemsController) Create(ctx *app.CreateWorkitemsContext) error {
 		if err != nil {
 			return errs.Wrap(err, fmt.Sprintf("Error creating work item"))
 		}
-		hasChildren := workItemIncludeHasChildren(ctx, appl)
-		wi2 := ConvertWorkItem(ctx.Request, *wi, hasChildren)
-		resp := &app.WorkItemSingle{
-			Data: wi2,
-			Links: &app.WorkItemLinks{
-				Self: buildAbsoluteURL(ctx.Request),
-			},
-		}
-		ctx.ResponseData.Header().Set("Last-Modified", lastModified(*wi))
-		ctx.ResponseData.Header().Set("Location", app.WorkitemHref(wi2.ID))
-		return ctx.Created(resp)
+		return nil
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	if ctx.ResponseData.Status == 201 {
-		c.notification.Send(ctx, notification.NewWorkItemCreated(wi.ID.String()))
+	hasChildren := workItemIncludeHasChildren(ctx, c.db)
+	wi2 := convertWorkItem(ctx.Request, *wi, hasChildren)
+	resp := &app.WorkItemSingle{
+		Data: wi2,
+		Links: &app.WorkItemLinks{
+			Self: buildAbsoluteURL(ctx.Request),
+		},
 	}
-	return nil
+	ctx.ResponseData.Header().Set("Last-Modified", lastModified(*wi))
+	ctx.ResponseData.Header().Set("Location", app.WorkitemHref(wi2.ID))
+	c.notification.Send(ctx, notification.NewWorkItemCreated(wi.ID.String()))
+	return ctx.Created(resp)
 }
 
 // List runs the list action.
@@ -219,28 +216,30 @@ func (c *WorkitemsController) List(ctx *app.ListWorkitemsContext) error {
 	}
 
 	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
+	var workitems []workitem.WorkItem
+	var count int
 	err = application.Transactional(c.db, func(tx application.Application) error {
-		workitems, tc, err := tx.WorkItems().List(ctx.Context, ctx.SpaceID, exp, ctx.FilterParentexists, &offset, &limit)
-		count := int(tc)
+		var err error
+		workitems, count, err = tx.WorkItems().List(ctx.Context, ctx.SpaceID, exp, ctx.FilterParentexists, &offset, &limit)
 		if err != nil {
 			return errs.Wrap(err, "Error listing work items")
 		}
-		return ctx.ConditionalEntities(workitems, c.config.GetCacheControlWorkItems, func() error {
-			hasChildren := workItemIncludeHasChildren(ctx, tx)
-			response := app.WorkItemList{
-				Links: &app.PagingLinks{},
-				Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
-				Data:  ConvertWorkItems(ctx.Request, workitems, hasChildren),
-			}
-			setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(workitems), offset, limit, count, additionalQuery...)
-			addFilterLinks(response.Links, ctx.Request)
-			return ctx.OK(&response)
-		})
+		return nil
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	return nil
+	return ctx.ConditionalEntities(workitems, c.config.GetCacheControlWorkItems, func() error {
+		hasChildren := workItemIncludeHasChildren(ctx, c.db)
+		response := app.WorkItemList{
+			Links: &app.PagingLinks{},
+			Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
+			Data:  convertWorkItems(ctx.Request, workitems, hasChildren),
+		}
+		setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(workitems), offset, limit, count, additionalQuery...)
+		addFilterLinks(response.Links, ctx.Request)
+		return ctx.OK(&response)
+	})
 }
 
 // Reorder does PATCH workitem
@@ -256,12 +255,11 @@ func (c *WorkitemsController) Reorder(ctx *app.ReorderWorkitemsContext) error {
 	if !authorized {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to access the space"))
 	}
+	if ctx.Payload == nil || ctx.Payload.Data == nil || ctx.Payload.Position == nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("missing payload element in request", nil))
+	}
+	var dataArray []*app.WorkItem
 	err = application.Transactional(c.db, func(appl application.Application) error {
-		var dataArray []*app.WorkItem
-		if ctx.Payload == nil || ctx.Payload.Data == nil || ctx.Payload.Position == nil {
-			return errors.NewBadParameterError("missing payload element in request", nil)
-		}
-
 		// Reorder workitems in the array one by one
 		for i := 0; i < len(ctx.Payload.Data); i++ {
 			wi, err := appl.WorkItems().LoadByID(ctx, *ctx.Payload.Data[i].ID)
@@ -279,7 +277,7 @@ func (c *WorkitemsController) Reorder(ctx *app.ReorderWorkitemsContext) error {
 				return errors.NewNotFoundError("work item", strconv.Itoa(wi.Number))
 			}
 
-			err = ConvertJSONAPIToWorkItem(ctx, ctx.Method, appl, *ctx.Payload.Data[i], wi, ctx.SpaceID)
+			err = convertJSONAPIToWorkItem(ctx, ctx.Method, appl, *ctx.Payload.Data[i], wi, ctx.SpaceID)
 			if err != nil {
 				return errs.Wrap(err, "failed to reorder work item")
 			}
@@ -287,18 +285,18 @@ func (c *WorkitemsController) Reorder(ctx *app.ReorderWorkitemsContext) error {
 			if err != nil {
 				return err
 			}
-			hasChildren := workItemIncludeHasChildren(ctx, appl)
-			wi2 := ConvertWorkItem(ctx.Request, *wi, hasChildren)
+			hasChildren := workItemIncludeHasChildren(ctx, c.db)
+			wi2 := convertWorkItem(ctx.Request, *wi, hasChildren)
 			dataArray = append(dataArray, wi2)
 		}
 		log.Debug(ctx, nil, "Reordered items: %d", len(dataArray))
-		resp := &app.WorkItemReorder{
-			Data: dataArray,
-		}
-		return ctx.OK(resp)
+		return nil
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	return nil
+	resp := &app.WorkItemReorder{
+		Data: dataArray,
+	}
+	return ctx.OK(resp)
 }

@@ -55,7 +55,7 @@ func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 			return err
 		}
 		return ctx.ConditionalRequest(*witModel, c.config.GetCacheControlWorkItemType, func() error {
-			witData := ConvertWorkItemTypeFromModel(ctx.Request, witModel)
+			witData := convertWorkItemTypeFromModel(ctx.Request, witModel)
 			wit := &app.WorkItemTypeSingle{Data: &witData}
 			return ctx.OK(wit)
 		})
@@ -72,6 +72,7 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 	if err != nil {
 		jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
+	var witModel *workitem.WorkItemType
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		space, err := appl.Spaces().Load(ctx, ctx.SpaceID)
 		if err != nil {
@@ -95,11 +96,11 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 			spaceSelfURL := rest.AbsoluteURL(ctx.Request, app.SpaceHref(ctx.SpaceID.String()))
 			ctx.Payload.Data.Relationships.Space = app.NewSpaceRelation(ctx.SpaceID, spaceSelfURL)
 		}
-		modelFields, err := ConvertFieldDefinitionsToModel(fields)
+		modelFields, err := convertFieldDefinitionsToModel(fields)
 		if err != nil {
 			return err
 		}
-		witTypeModel, err := appl.WorkItemTypes().Create(
+		witModel, err = appl.WorkItemTypes().Create(
 			ctx.Context,
 			*ctx.Payload.Data.Relationships.Space.Data.ID,
 			ctx.Payload.Data.ID,
@@ -108,18 +109,15 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 			ctx.Payload.Data.Attributes.Description,
 			ctx.Payload.Data.Attributes.Icon,
 			modelFields)
-		if err != nil {
-			return err
-		}
-		witData := ConvertWorkItemTypeFromModel(ctx.Request, witTypeModel)
-		wit := &app.WorkItemTypeSingle{Data: &witData}
-		ctx.ResponseData.Header().Set("Location", app.WorkitemtypeHref(*ctx.Payload.Data.Relationships.Space.Data.ID, wit.Data.ID))
-		return ctx.Created(wit)
+		return err
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	return nil
+	witData := convertWorkItemTypeFromModel(ctx.Request, witModel)
+	wit := &app.WorkItemTypeSingle{Data: &witData}
+	ctx.ResponseData.Header().Set("Location", app.WorkitemtypeHref(*ctx.Payload.Data.Relationships.Space.Data.ID, wit.Data.ID))
+	return ctx.Created(wit)
 }
 
 // List runs the list action
@@ -129,45 +127,51 @@ func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Could not parse paging"))
 	}
+	witModels := []workitem.WorkItemType{}
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		witModelsOrig, err := appl.WorkItemTypes().List(ctx.Context, ctx.SpaceID, start, &limit)
 		if err != nil {
 			return errs.Wrap(err, "Error listing work item types")
 		}
 		// Remove "planneritem" from the list of WITs
-		witModels := []workitem.WorkItemType{}
 		for _, wit := range witModelsOrig {
 			if wit.ID != workitem.SystemPlannerItem {
 				witModels = append(witModels, wit)
 			}
 		}
-		return ctx.ConditionalEntities(witModels, c.config.GetCacheControlWorkItemTypes, func() error {
-			// TEMP!!!!! Until Space Template can setup a Space, redirect to SystemSpace WITs if non are found
-			// for the space.
+		return nil
+	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return ctx.ConditionalEntities(witModels, c.config.GetCacheControlWorkItemTypes, func() error {
+		// TEMP!!!!! Until Space Template can setup a Space, redirect to SystemSpace WITs if non are found
+		// for the space.
+		err = application.Transactional(c.db, func(appl application.Application) error {
 			if len(witModels) == 0 {
 				witModels, err = appl.WorkItemTypes().List(ctx.Context, space.SystemSpace, start, &limit)
 				if err != nil {
 					return errs.Wrap(err, "Error listing work item types")
 				}
 			}
-			// convert from model to app
-			result := &app.WorkItemTypeList{}
-			result.Data = make([]*app.WorkItemTypeData, len(witModels))
-			for index, value := range witModels {
-				wit := ConvertWorkItemTypeFromModel(ctx.Request, &value)
-				result.Data[index] = &wit
-			}
-			return ctx.OK(result)
+			return nil
 		})
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		// convert from model to app
+		result := &app.WorkItemTypeList{}
+		result.Data = make([]*app.WorkItemTypeData, len(witModels))
+		for index, value := range witModels {
+			wit := convertWorkItemTypeFromModel(ctx.Request, &value)
+			result.Data[index] = &wit
+		}
+		return ctx.OK(result)
 	})
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
-	}
-	return nil
 }
 
-// ConvertWorkItemTypeFromModel converts from models to app representation
-func ConvertWorkItemTypeFromModel(request *http.Request, t *workitem.WorkItemType) app.WorkItemTypeData {
+// convertWorkItemTypeFromModel converts from models to app representation
+func convertWorkItemTypeFromModel(request *http.Request, t *workitem.WorkItemType) app.WorkItemTypeData {
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(t.SpaceID.String()))
 	var converted = app.WorkItemTypeData{
 		Type: "workitemtypes",
@@ -276,7 +280,7 @@ func convertFieldTypeToModel(t app.FieldType) (workitem.FieldType, error) {
 	}
 }
 
-func ConvertFieldDefinitionsToModel(fields map[string]app.FieldDefinition) (map[string]workitem.FieldDefinition, error) {
+func convertFieldDefinitionsToModel(fields map[string]app.FieldDefinition) (map[string]workitem.FieldDefinition, error) {
 	modelFields := map[string]workitem.FieldDefinition{}
 	// now process new fields, checking whether they are ok to add.
 	for field, definition := range fields {

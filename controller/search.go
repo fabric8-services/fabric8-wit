@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/fabric8-services/fabric8-wit/codebase"
+
 	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 
@@ -132,12 +134,7 @@ var _ sort.Interface = (*WorkItemInterfaceSlice)(nil)
 
 // Show runs the show action.
 func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
-
-	var offset int
-	var limit int
-
-	offset, limit = computePagingLimits(ctx.PageOffset, ctx.PageLimit)
-
+	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
 	// TODO: Keep URL registeration central somehow.
 	hostString := ctx.Request.Host
 	if hostString == "" {
@@ -149,9 +146,13 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 	search.RegisterAsKnownURL(search.HostRegistrationKeyForBoardWI, urlRegexString)
 
 	if ctx.FilterExpression != nil {
+		var result []workitem.WorkItem
+		var count int
+		var ancestors link.AncestorList
+		var childLinks link.WorkItemLinkList
 		err := application.Transactional(c.db, func(appl application.Application) error {
-			result, cnt, ancestors, childLinks, err := appl.SearchItems().Filter(ctx.Context, *ctx.FilterExpression, ctx.FilterParentexists, &offset, &limit)
-			count := int(cnt)
+			var err error
+			result, count, ancestors, childLinks, err = appl.SearchItems().Filter(ctx.Context, *ctx.FilterExpression, ctx.FilterParentexists, &offset, &limit)
 			if err != nil {
 				cause := errs.Cause(err)
 				switch cause.(type) {
@@ -165,86 +166,84 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 					return goa.ErrInternal(fmt.Sprintf("unable to list the work items: %s", err))
 				}
 			}
+			return nil
 
-			matchingWorkItemIDs := make(id.Slice, len(result))
-			for i, wi := range result {
-				matchingWorkItemIDs[i] = wi.ID
-			}
-
-			hasChildren := workItemIncludeHasChildren(ctx, appl, childLinks)
-			includeParent := includeParentWorkItem(ctx, ancestors, childLinks)
-			response := app.SearchWorkItemList{
-				Links: &app.PagingLinks{},
-				Meta: &app.WorkItemListResponseMeta{
-					TotalCount: count,
-				},
-				Data: ConvertWorkItems(ctx.Request, result, hasChildren, includeParent),
-			}
-			c.enrichWorkItemList(ctx, ancestors, matchingWorkItemIDs, childLinks, &response, hasChildren) // append parentWI and ancestors (if not empty) in response
-			setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(result), offset, limit, count, "filter[expression]="+*ctx.FilterExpression)
-
-			// Sort "data" by name or ID if no title given
-			var data WorkItemPtrSlice = response.Data
-			sort.Sort(data)
-			response.Data = data
-
-			// Sort work items in the "included" array by ID or title
-			var included WorkItemInterfaceSlice = response.Included
-			sort.Sort(included)
-			response.Included = included
-
-			// build up list of sorted ancestor IDs from already sorted work items
-			ancestorIDs := ancestors.GetDistinctAncestorIDs().ToMap()
-			sortedAncestorIDs := make(id.Slice, len(ancestorIDs))
-			i := 0
-			for _, wi := range response.Data {
-				if len(ancestorIDs) <= 0 {
-					break
-				}
-				_, ok := ancestorIDs[*wi.ID]
-				if ok {
-					sortedAncestorIDs[i] = *wi.ID
-					i++
-					delete(ancestorIDs, *wi.ID)
-				}
-			}
-			for _, ifObj := range response.Included {
-				if len(ancestorIDs) <= 0 {
-					break
-				}
-				var wi *app.WorkItem
-				switch v := ifObj.(type) {
-				case app.WorkItem:
-					wi = &v
-				case *app.WorkItem:
-					wi = v
-				default:
-					continue
-				}
-				_, ok := ancestorIDs[*wi.ID]
-				if ok {
-					sortedAncestorIDs[i] = *wi.ID
-					i++
-					delete(ancestorIDs, *wi.ID)
-				}
-			}
-			response.Meta.AncestorIDs = sortedAncestorIDs
-
-			return ctx.OK(&response)
 		})
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		return nil
-	}
+		matchingWorkItemIDs := make(id.Slice, len(result))
+		for i, wi := range result {
+			matchingWorkItemIDs[i] = wi.ID
+		}
+		hasChildren := workItemIncludeHasChildren(ctx, c.db, childLinks)
+		includeParent := includeParentWorkItem(ctx, ancestors, childLinks)
+		response := app.SearchWorkItemList{
+			Links: &app.PagingLinks{},
+			Meta: &app.WorkItemListResponseMeta{
+				TotalCount: count,
+			},
+			Data: convertWorkItems(ctx.Request, result, hasChildren, includeParent),
+		}
+		c.enrichWorkItemList(ctx, ancestors, matchingWorkItemIDs, childLinks, &response, hasChildren) // append parentWI and ancestors (if not empty) in response
+		setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(result), offset, limit, count, "filter[expression]="+*ctx.FilterExpression)
 
+		// Sort "data" by name or ID if no title given
+		var data WorkItemPtrSlice = response.Data
+		sort.Sort(data)
+		response.Data = data
+
+		// Sort work items in the "included" array by ID or title
+		var included WorkItemInterfaceSlice = response.Included
+		sort.Sort(included)
+		response.Included = included
+
+		// build up list of sorted ancestor IDs from already sorted work items
+		ancestorIDs := ancestors.GetDistinctAncestorIDs().ToMap()
+		sortedAncestorIDs := make(id.Slice, len(ancestorIDs))
+		i := 0
+		for _, wi := range response.Data {
+			if len(ancestorIDs) <= 0 {
+				break
+			}
+			_, ok := ancestorIDs[*wi.ID]
+			if ok {
+				sortedAncestorIDs[i] = *wi.ID
+				i++
+				delete(ancestorIDs, *wi.ID)
+			}
+		}
+		for _, ifObj := range response.Included {
+			if len(ancestorIDs) <= 0 {
+				break
+			}
+			var wi *app.WorkItem
+			switch v := ifObj.(type) {
+			case app.WorkItem:
+				wi = &v
+			case *app.WorkItem:
+				wi = v
+			default:
+				continue
+			}
+			_, ok := ancestorIDs[*wi.ID]
+			if ok {
+				sortedAncestorIDs[i] = *wi.ID
+				i++
+				delete(ancestorIDs, *wi.ID)
+			}
+		}
+		response.Meta.AncestorIDs = sortedAncestorIDs
+		return ctx.OK(&response)
+	}
+	var result []workitem.WorkItem
+	var count int
 	err := application.Transactional(c.db, func(appl application.Application) error {
 		if ctx.Q == nil || *ctx.Q == "" {
 			return goa.ErrBadRequest("empty search query not allowed")
 		}
-
-		result, c, err := appl.SearchItems().SearchFullText(ctx.Context, *ctx.Q, &offset, &limit, ctx.SpaceID)
-		count := int(c)
+		var err error
+		result, count, err = appl.SearchItems().SearchFullText(ctx.Context, *ctx.Q, &offset, &limit, ctx.SpaceID)
 		if err != nil {
 			cause := errs.Cause(err)
 			switch cause.(type) {
@@ -262,20 +261,18 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 				return goa.ErrInternal(fmt.Sprintf("unable to list the work items expression: %s: %s", *ctx.Q, err))
 			}
 		}
-
-		response := app.SearchWorkItemList{
-			Links: &app.PagingLinks{},
-			Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
-			Data:  ConvertWorkItems(ctx.Request, result),
-		}
-
-		setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(result), offset, limit, count, "q="+*ctx.Q)
-		return ctx.OK(&response)
+		return nil
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	return nil
+	response := app.SearchWorkItemList{
+		Links: &app.PagingLinks{},
+		Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
+		Data:  convertWorkItems(ctx.Request, result),
+	}
+	setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(result), offset, limit, count, "q="+*ctx.Q)
+	return ctx.OK(&response)
 }
 
 // Spaces runs the space search action.
@@ -290,53 +287,33 @@ func (c *SearchController) Spaces(ctx *app.SpacesSearchContext) error {
 	var result []space.Space
 	var count int
 	var err error
-
 	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
-
 	err = application.Transactional(c.db, func(appl application.Application) error {
-		var resultCount uint64
-		result, resultCount, err = appl.Spaces().Search(ctx, &q, &offset, &limit)
-		count = int(resultCount)
+		result, count, err = appl.Spaces().Search(ctx, &q, &offset, &limit)
 		if err != nil {
-			cause := errs.Cause(err)
-			switch cause.(type) {
-			case errors.BadParameterError:
-				log.Error(ctx, map[string]interface{}{
-					"query":  q,
-					"offset": offset,
-					"limit":  limit,
-					"err":    err,
-				}, "unable to list spaces")
-				return goa.ErrBadRequest(fmt.Sprintf("error listing spaces for expression: %s: %s", q, err))
-			default:
-				log.Error(ctx, map[string]interface{}{
-					"query":  q,
-					"offset": offset,
-					"limit":  limit,
-					"err":    err,
-				}, "unable to list spaces")
-				return goa.ErrInternal(fmt.Sprintf("unable to list spaces for expression: %s: %s", q, err))
-			}
+			log.Error(ctx, map[string]interface{}{
+				"query":  q,
+				"offset": offset,
+				"limit":  limit,
+				"err":    err,
+			}, "unable to list spaces")
 		}
-
-		spaceData, err := ConvertSpacesFromModel(ctx.Request, result, IncludeBacklogTotalCount(ctx.Context, c.db))
-		if err != nil {
-			return err
-		}
-		response := app.SearchSpaceList{
-			Links: &app.PagingLinks{},
-			Meta:  &app.SpaceListMeta{TotalCount: count},
-			Data:  spaceData,
-		}
-		setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(result), offset, limit, count, "q="+q)
-
-		return ctx.OK(&response)
+		return err
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	return nil
-
+	spaceData, err := convertSpacesFromModel(ctx.Request, result, includeBacklogTotalCount(ctx.Context, c.db))
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	response := app.SearchSpaceList{
+		Links: &app.PagingLinks{},
+		Meta:  &app.SpaceListMeta{TotalCount: count},
+		Data:  spaceData,
+	}
+	setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(result), offset, limit, count, "q="+q)
+	return ctx.OK(&response)
 }
 
 // Users runs the user search action.
@@ -346,8 +323,7 @@ func (c *SearchController) Users(ctx *app.UsersSearchContext) error {
 
 // Iterate over the WI list and read parent IDs
 // Fetch and load Parent WI in the included list
-func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, ancestors link.AncestorList, matchingIDs id.Slice, childLinks link.WorkItemLinkList, res *app.SearchWorkItemList, hasChildren WorkItemConvertFunc) {
-
+func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, ancestors link.AncestorList, matchingIDs id.Slice, childLinks link.WorkItemLinkList, res *app.SearchWorkItemList, hasChildren workItemConvertFunc) {
 	parentIDs := id.Slice{}
 	for _, wi := range res.Data {
 		if wi.Relationships != nil && wi.Relationships.Parent != nil && wi.Relationships.Parent.Data != nil {
@@ -381,7 +357,7 @@ func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, ancest
 	}
 
 	for _, ele := range wis {
-		convertedWI := ConvertWorkItem(ctx.Request, *ele, hasChildren, includeParentWorkItem(ctx, ancestors, childLinks))
+		convertedWI := convertWorkItem(ctx.Request, *ele, hasChildren, includeParentWorkItem(ctx, ancestors, childLinks))
 		res.Included = append(res.Included, *convertedWI)
 	}
 }
@@ -392,9 +368,12 @@ func (c *SearchController) Codebases(ctx *app.CodebasesSearchContext) error {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest("empty search query not allowed"))
 	}
 	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
-
+	var matchingCodebases []codebase.Codebase
+	var relatedSpaces []space.Space
+	var totalCount int
 	err := application.Transactional(c.db, func(appl application.Application) error {
-		matchingCodebases, totalCount, err := appl.Codebases().SearchByURL(ctx, ctx.URL, &offset, &limit)
+		var err error
+		matchingCodebases, totalCount, err = appl.Codebases().SearchByURL(ctx, ctx.URL, &offset, &limit)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"url":    ctx.URL,
@@ -409,31 +388,28 @@ func (c *SearchController) Codebases(ctx *app.CodebasesSearchContext) error {
 		for i, c := range matchingCodebases {
 			spaceIDs[i] = c.SpaceID
 		}
-		relatedSpaces, err := appl.Spaces().LoadMany(ctx, spaceIDs)
-		if err != nil {
-			return err
-		}
-		// put all related spaces and associated owners in the `included` data
-		includedData := make([]interface{}, len(relatedSpaces))
-		for i, relatedSpace := range relatedSpaces {
-			appSpace, err := ConvertSpaceFromModel(ctx.Request, relatedSpace)
-			if err != nil {
-				return err
-			}
-			includedData[i] = *appSpace
-		}
-		codebasesData := ConvertCodebases(ctx.Request, matchingCodebases)
-		response := app.CodebaseList{
-			Links:    &app.PagingLinks{},
-			Meta:     &app.CodebaseListMeta{TotalCount: totalCount},
-			Data:     codebasesData,
-			Included: includedData,
-		}
-		setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(matchingCodebases), offset, limit, totalCount, "url="+ctx.URL)
-		return ctx.OK(&response)
+		relatedSpaces, err = appl.Spaces().LoadMany(ctx, spaceIDs)
+		return err
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	return nil
+	// put all related spaces and associated owners in the `included` data
+	includedData := make([]interface{}, len(relatedSpaces))
+	for i, relatedSpace := range relatedSpaces {
+		appSpace, err := convertSpaceFromModel(ctx.Request, relatedSpace)
+		if err != nil {
+			return err
+		}
+		includedData[i] = *appSpace
+	}
+	codebasesData := convertCodebases(ctx.Request, matchingCodebases)
+	response := app.CodebaseList{
+		Links:    &app.PagingLinks{},
+		Meta:     &app.CodebaseListMeta{TotalCount: totalCount},
+		Data:     codebasesData,
+		Included: includedData,
+	}
+	setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(matchingCodebases), offset, limit, totalCount, "url="+ctx.URL)
+	return ctx.OK(&response)
 }

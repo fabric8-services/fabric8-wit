@@ -4,6 +4,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
+	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	"github.com/goadesign/goa"
 )
 
@@ -30,31 +31,30 @@ func NewWorkItemRelationshipsLinksController(service *goa.Service, db applicatio
 
 // List runs the list action.
 func (c *WorkItemRelationshipsLinksController) List(ctx *app.ListWorkItemRelationshipsLinksContext) error {
+	var modelLinks []link.WorkItemLink
 	err := application.Transactional(c.db, func(appl application.Application) error {
-		modelLinks, err := appl.WorkItemLinks().ListByWorkItem(ctx.Context, ctx.WiID)
-		if err != nil {
-			return err
-		}
-		return ctx.ConditionalEntities(modelLinks, c.config.GetCacheControlWorkItemLinks, func() error {
-			appLinks := app.WorkItemLinkList{}
-			appLinks.Data = make([]*app.WorkItemLinkData, len(modelLinks))
-			for index, modelLink := range modelLinks {
-				appLink := ConvertLinkFromModel(ctx.Request, modelLink)
-				appLinks.Data[index] = appLink.Data
-			}
-			// TODO: When adding pagination, this must not be len(rows) but
-			// the overall total number of elements from all pages.
-			appLinks.Meta = &app.WorkItemLinkListMeta{
-				TotalCount: len(modelLinks),
-			}
-			if err := enrichLinkList(ctx.Context, appl, ctx.Request, &appLinks); err != nil {
-				return err
-			}
-			return ctx.OK(&appLinks)
-		})
+		var err error
+		modelLinks, err = appl.WorkItemLinks().ListByWorkItem(ctx.Context, ctx.WiID)
+		return err
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	return nil
+	return ctx.ConditionalEntities(modelLinks, c.config.GetCacheControlWorkItemLinks, func() error {
+		appLinks := app.WorkItemLinkList{}
+		appLinks.Data = make([]*app.WorkItemLinkData, len(modelLinks))
+		for index, modelLink := range modelLinks {
+			appLink := ConvertLinkFromModel(ctx.Request, modelLink)
+			appLinks.Data[index] = appLink.Data
+		}
+		// TODO: When adding pagination, this must not be len(rows) but
+		// the overall total number of elements from all pages.
+		appLinks.Meta = &app.WorkItemLinkListMeta{
+			TotalCount: len(modelLinks),
+		}
+		if err := enrichLinkList(ctx.Context, c.db, ctx.Request, &appLinks); err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		return ctx.OK(&appLinks)
+	})
 }

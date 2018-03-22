@@ -38,20 +38,18 @@ func NewLabelController(service *goa.Service, db application.DB, config LabelCon
 
 // Show retrieve a single label
 func (c *LabelController) Show(ctx *app.ShowLabelContext) error {
+	var lbl *label.Label
 	err := application.Transactional(c.db, func(appl application.Application) error {
-		lbl, err := appl.Labels().Load(ctx, ctx.LabelID)
-		if err != nil {
-			return err
-		}
-		res := &app.LabelSingle{
-			Data: ConvertLabel(appl, ctx.Request, *lbl),
-		}
-		return ctx.OK(res)
+		var err error
+		lbl, err = appl.Labels().Load(ctx, ctx.LabelID)
+		return err
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	return nil
+	return ctx.OK(&app.LabelSingle{
+		Data: convertLabel(ctx.Request, *lbl),
+	})
 }
 
 // Create runs the create action.
@@ -62,41 +60,35 @@ func (c *LabelController) Create(ctx *app.CreateLabelContext) error {
 	}
 	if ctx.Payload.Data.Attributes.Name == nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest("Name cannot be empty"))
-
+	}
+	lbl := &label.Label{
+		SpaceID: ctx.SpaceID,
+		Name:    strings.TrimSpace(*ctx.Payload.Data.Attributes.Name),
+	}
+	if ctx.Payload.Data.Attributes.TextColor != nil {
+		lbl.TextColor = *ctx.Payload.Data.Attributes.TextColor
+	}
+	if ctx.Payload.Data.Attributes.BackgroundColor != nil {
+		lbl.BackgroundColor = *ctx.Payload.Data.Attributes.BackgroundColor
+	}
+	if ctx.Payload.Data.Attributes.BorderColor != nil {
+		lbl.BorderColor = *ctx.Payload.Data.Attributes.BorderColor
 	}
 	err = application.Transactional(c.db, func(appl application.Application) error {
-		lbl := label.Label{
-			SpaceID: ctx.SpaceID,
-			Name:    strings.TrimSpace(*ctx.Payload.Data.Attributes.Name),
-		}
-		if ctx.Payload.Data.Attributes.TextColor != nil {
-			lbl.TextColor = *ctx.Payload.Data.Attributes.TextColor
-		}
-		if ctx.Payload.Data.Attributes.BackgroundColor != nil {
-			lbl.BackgroundColor = *ctx.Payload.Data.Attributes.BackgroundColor
-		}
-		if ctx.Payload.Data.Attributes.BorderColor != nil {
-			lbl.BorderColor = *ctx.Payload.Data.Attributes.BorderColor
-		}
-		err = appl.Labels().Create(ctx, &lbl)
-		if err != nil {
-			return err
-		}
-		res := &app.LabelSingle{
-			Data: ConvertLabel(appl, ctx.Request, lbl),
-		}
-		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.LabelHref(ctx.SpaceID, res.Data.ID)))
-		return ctx.Created(res)
+		return appl.Labels().Create(ctx, lbl)
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	return nil
-
+	result := &app.LabelSingle{
+		Data: convertLabel(ctx.Request, *lbl),
+	}
+	ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.LabelHref(ctx.SpaceID, result.Data.ID)))
+	return ctx.Created(result)
 }
 
 // ConvertLabel converts from internal to external REST representation
-func ConvertLabel(appl application.Application, request *http.Request, lbl label.Label) *app.Label {
+func convertLabel(request *http.Request, lbl label.Label) *app.Label {
 	labelType := label.APIStringTypeLabels
 	spaceID := lbl.SpaceID.String()
 	relatedURL := rest.AbsoluteURL(request, app.LabelHref(spaceID, lbl.ID))
@@ -155,7 +147,7 @@ func (c *LabelController) List(ctx *app.ListLabelContext) error {
 func ConvertLabels(appl application.Application, request *http.Request, labels []label.Label) []*app.Label {
 	var ls = []*app.Label{}
 	for _, i := range labels {
-		ls = append(ls, ConvertLabel(appl, request, i))
+		ls = append(ls, convertLabel(request, i))
 	}
 	return ls
 }
@@ -185,13 +177,13 @@ func (c *LabelController) Update(ctx *app.UpdateLabelContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
-
 	if ctx.Payload.Data.Attributes.Version == nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data.attributes.version", nil).Expected("not nil"))
 	}
-
+	var lbl *label.Label
 	err = application.Transactional(c.db, func(appl application.Application) error {
-		lbl, err := appl.Labels().Load(ctx.Context, ctx.LabelID)
+		var err error
+		lbl, err = appl.Labels().Load(ctx.Context, ctx.LabelID)
 		if err != nil {
 			return err
 		}
@@ -211,17 +203,14 @@ func (c *LabelController) Update(ctx *app.UpdateLabelContext) error {
 			lbl.BorderColor = *ctx.Payload.Data.Attributes.BorderColor
 		}
 		lbl, err = appl.Labels().Save(ctx, *lbl)
-		if err != nil {
-			return err
-		}
-		res := &app.LabelSingle{
-			Data: ConvertLabel(appl, ctx.Request, *lbl),
-		}
-		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.LabelHref(ctx.SpaceID, res.Data.ID)))
-		return ctx.OK(res)
+		return err
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	return nil
+	result := &app.LabelSingle{
+		Data: convertLabel(ctx.Request, *lbl),
+	}
+	ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.LabelHref(ctx.SpaceID, result.Data.ID)))
+	return ctx.OK(result)
 }

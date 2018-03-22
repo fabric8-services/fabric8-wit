@@ -3,6 +3,7 @@ package controller
 import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/area"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
 
@@ -32,26 +33,24 @@ func NewSpaceAreasController(service *goa.Service, db application.DB, config Spa
 
 // List runs the list action.
 func (c *SpaceAreasController) List(ctx *app.ListSpaceAreasContext) error {
+	var areas []area.Area
 	err := application.Transactional(c.db, func(appl application.Application) error {
-		if err := appl.Spaces().CheckExists(ctx, ctx.SpaceID); err != nil {
-			return err
-		}
-		areas, err := appl.Areas().List(ctx, ctx.SpaceID)
+		err := appl.Spaces().CheckExists(ctx, ctx.SpaceID)
 		if err != nil {
 			return err
 		}
-		for _, a := range areas {
-			log.Info(ctx, map[string]interface{}{"area_id": a.ID}, "Found space area with id %s", a.ID)
-		}
-		return ctx.ConditionalEntities(areas, c.config.GetCacheControlAreas, func() error {
-			res := &app.AreaList{}
-			res.Data = ConvertAreas(appl, ctx.Request, areas, addResolvedPath)
-			return ctx.OK(res)
-		})
+		areas, err = appl.Areas().List(ctx, ctx.SpaceID)
+		return err
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	return nil
-
+	for _, a := range areas {
+		log.Info(ctx, map[string]interface{}{"area_id": a.ID}, "Found space area with id %s", a.ID)
+	}
+	return ctx.ConditionalEntities(areas, c.config.GetCacheControlAreas, func() error {
+		res := &app.AreaList{}
+		res.Data = convertAreas(c.db, ctx.Request, areas, addResolvedPath)
+		return ctx.OK(res)
+	})
 }

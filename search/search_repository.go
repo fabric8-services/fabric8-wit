@@ -621,7 +621,7 @@ func generateSQLSearchInfo(keywords searchKeyword) (sqlParameter string) {
 
 // extracted this function from List() in order to close the rows object with "defer" for more readability
 // workaround for https://github.com/lib/pq/issues/81
-func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParameter string, workItemTypes []uuid.UUID, start *int, limit *int, spaceID *string) ([]workitem.WorkItemStorage, uint64, error) {
+func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParameter string, workItemTypes []uuid.UUID, start *int, limit *int, spaceID *string) ([]workitem.WorkItemStorage, int, error) {
 	db := r.db.Model(workitem.WorkItemStorage{}).Where("tsv @@ query")
 	if start != nil {
 		if *start < 0 {
@@ -668,7 +668,7 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 	}
 
 	// need to set up a result for Scan() in order to extract total count.
-	var count uint64
+	var count int
 	var ignore interface{}
 	columnValues := make([]interface{}, len(columns))
 
@@ -702,7 +702,7 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 }
 
 // SearchFullText Search returns work items for the given query
-func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchString string, start *int, limit *int, spaceID *string) ([]workitem.WorkItem, uint64, error) {
+func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchString string, start *int, limit *int, spaceID *string) ([]workitem.WorkItem, int, error) {
 	// parse
 	// generateSearchQuery
 	// ....
@@ -742,7 +742,7 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 	return result, count, nil
 }
 
-func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria criteria.Expression, parentExists *bool, start *int, limit *int) ([]workitem.WorkItemStorage, uint64, error) {
+func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria criteria.Expression, parentExists *bool, start *int, limit *int) ([]workitem.WorkItemStorage, int, error) {
 	where, parameters, joins, compileError := workitem.Compile(criteria)
 	if compileError != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -801,7 +801,7 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 	}
 
 	// need to set up a result for Scan() in order to extract total count.
-	var count uint64
+	var count int
 	var ignore interface{}
 	columnValues := make([]interface{}, len(columns))
 
@@ -847,7 +847,7 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 // order to list the parent of each matching work item up to its root work item.
 // The child links are there in order to know what siblings to load for matching
 // work items.
-func (r *GormSearchRepository) Filter(ctx context.Context, rawFilterString string, parentExists *bool, start *int, limit *int) (matches []workitem.WorkItem, count uint64, ancestors link.AncestorList, childLinks link.WorkItemLinkList, err error) {
+func (r *GormSearchRepository) Filter(ctx context.Context, rawFilterString string, parentExists *bool, start *int, limit *int) (matches []workitem.WorkItem, count int, ancestors link.AncestorList, childLinks link.WorkItemLinkList, err error) {
 	// parse
 	// generateSearchQuery
 	// ....

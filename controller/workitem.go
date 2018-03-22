@@ -92,14 +92,10 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
-
 	var wi *workitem.WorkItem
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		wi, err = appl.WorkItems().LoadByID(ctx, *ctx.Payload.Data.ID)
-		if err != nil {
-			return errs.Wrap(err, fmt.Sprintf("Failed to load work item with id %v", *ctx.Payload.Data.ID))
-		}
-		return nil
+		return err
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
@@ -121,7 +117,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 		// work item was converted.
 		oldNumber := wi.Number
 		oldType := wi.Type
-		err = ConvertJSONAPIToWorkItem(ctx, ctx.Method, appl, *ctx.Payload.Data, wi, wi.SpaceID)
+		err = convertJSONAPIToWorkItem(ctx, ctx.Method, appl, *ctx.Payload.Data, wi, wi.SpaceID)
 		if err != nil {
 			return err
 		}
@@ -131,54 +127,46 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 		if err != nil {
 			return errs.Wrap(err, "Error updating work item")
 		}
-		hasChildren := workItemIncludeHasChildren(ctx, appl)
-		wi2 := ConvertWorkItem(ctx.Request, *wi, hasChildren)
-		resp := &app.WorkItemSingle{
-			Data: wi2,
-			Links: &app.WorkItemLinks{
-				Self: buildAbsoluteURL(ctx.Request),
-			},
-		}
-
-		ctx.ResponseData.Header().Set("Last-Modified", lastModified(*wi))
-		return ctx.OK(resp)
+		return nil
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	if ctx.ResponseData.Status == 200 {
-		c.notification.Send(ctx, notification.NewWorkItemUpdated(ctx.Payload.Data.ID.String()))
+	c.notification.Send(ctx, notification.NewWorkItemUpdated(ctx.Payload.Data.ID.String()))
+	resp := &app.WorkItemSingle{
+		Data: convertWorkItem(ctx.Request, *wi, workItemIncludeHasChildren(ctx, c.db)),
+		Links: &app.WorkItemLinks{
+			Self: buildAbsoluteURL(ctx.Request),
+		},
 	}
-	return nil
+	ctx.ResponseData.Header().Set("Last-Modified", lastModified(*wi))
+	return ctx.OK(resp)
 }
 
 // Show does GET workitem
 func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
+	var wi *workitem.WorkItem
 	err := application.Transactional(c.db, func(appl application.Application) error {
-		wi, err := appl.WorkItems().LoadByID(ctx, ctx.WiID)
-		if err != nil {
-			return errs.Wrap(err, fmt.Sprintf("Fail to load work item with id %v", ctx.WiID))
-		}
-		return ctx.ConditionalRequest(*wi, c.config.GetCacheControlWorkItem, func() error {
-			comments := workItemIncludeCommentsAndTotal(ctx, c.db, ctx.WiID)
-			hasChildren := workItemIncludeHasChildren(ctx, appl)
-			wi2 := ConvertWorkItem(ctx.Request, *wi, comments, hasChildren)
-			resp := &app.WorkItemSingle{
-				Data: wi2,
-			}
-			return ctx.OK(resp)
-
-		})
+		var err error
+		wi, err = appl.WorkItems().LoadByID(ctx, ctx.WiID)
+		return errs.Wrap(err, fmt.Sprintf("Fail to load work item with id %v", ctx.WiID))
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	return nil
+	return ctx.ConditionalRequest(*wi, c.config.GetCacheControlWorkItem, func() error {
+		comments := workItemIncludeCommentsAndTotal(ctx, c.db, ctx.WiID)
+		hasChildren := workItemIncludeHasChildren(ctx, c.db)
+		wi2 := convertWorkItem(ctx.Request, *wi, comments, hasChildren)
+		resp := &app.WorkItemSingle{
+			Data: wi2,
+		}
+		return ctx.OK(resp)
+	})
 }
 
 // Delete does DELETE workitem
 func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
-
 	// Temporarly disabled, See https://github.com/fabric8-services/fabric8-wit/issues/1036
 	if true {
 		return ctx.MethodNotAllowed()
@@ -206,19 +194,18 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to access the space"))
 	}
 	err = application.Transactional(c.db, func(appl application.Application) error {
-		err := appl.WorkItems().Delete(ctx, ctx.WiID, *currentUserIdentityID)
-		if err != nil {
+		if err := appl.WorkItems().Delete(ctx, ctx.WiID, *currentUserIdentityID); err != nil {
 			return errs.Wrapf(err, "error deleting work item %s", ctx.WiID)
 		}
 		if err := appl.WorkItemLinks().DeleteRelatedLinks(ctx, ctx.WiID, *currentUserIdentityID); err != nil {
 			return errs.Wrapf(err, "failed to delete work item links related to work item %s", ctx.WiID)
 		}
-		return ctx.OK([]byte{})
+		return nil
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	return nil
+	return ctx.OK([]byte{})
 }
 
 // Time is default value if no UpdatedAt field is found
@@ -249,9 +236,9 @@ func findLastModified(wis []workitem.WorkItem) time.Time {
 	return t
 }
 
-// ConvertJSONAPIToWorkItem is responsible for converting given WorkItem model object into a
+// convertJSONAPIToWorkItem is responsible for converting given WorkItem model object into a
 // response resource object by jsonapi.org specifications
-func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl application.Application, source app.WorkItem, target *workitem.WorkItem, spaceID uuid.UUID) error {
+func convertJSONAPIToWorkItem(ctx context.Context, method string, appl application.Application, source app.WorkItem, target *workitem.WorkItem, spaceID uuid.UUID) error {
 	// construct default values from input WI
 	version, err := getVersion(source.Attributes["version"])
 	if err != nil {
@@ -459,21 +446,21 @@ func getVersion(version interface{}) (int, error) {
 
 // WorkItemConvertFunc is a open ended function to add additional links/data/relations to a Comment during
 // conversion from internal to API
-type WorkItemConvertFunc func(*http.Request, *workitem.WorkItem, *app.WorkItem)
+type workItemConvertFunc func(*http.Request, *workitem.WorkItem, *app.WorkItem)
 
-// ConvertWorkItems is responsible for converting given []WorkItem model object into a
+// convertWorkItems is responsible for converting given []WorkItem model object into a
 // response resource object by jsonapi.org specifications
-func ConvertWorkItems(request *http.Request, wis []workitem.WorkItem, additional ...WorkItemConvertFunc) []*app.WorkItem {
+func convertWorkItems(request *http.Request, wis []workitem.WorkItem, additional ...workItemConvertFunc) []*app.WorkItem {
 	ops := []*app.WorkItem{}
 	for _, wi := range wis {
-		ops = append(ops, ConvertWorkItem(request, wi, additional...))
+		ops = append(ops, convertWorkItem(request, wi, additional...))
 	}
 	return ops
 }
 
 // ConvertWorkItem is responsible for converting given WorkItem model object into a
 // response resource object by jsonapi.org specifications
-func ConvertWorkItem(request *http.Request, wi workitem.WorkItem, additional ...WorkItemConvertFunc) *app.WorkItem {
+func convertWorkItem(request *http.Request, wi workitem.WorkItem, additional ...workItemConvertFunc) *app.WorkItem {
 	// construct default values from input WI
 	relatedURL := rest.AbsoluteURL(request, app.WorkitemHref(wi.ID))
 	labelsRelated := relatedURL + "/labels"
@@ -541,14 +528,14 @@ func ConvertWorkItem(request *http.Request, wi workitem.WorkItem, additional ...
 			if val != nil {
 				valStr := val.(string)
 				op.Relationships.Iteration = &app.RelationGeneric{
-					Data: ConvertIterationSimple(request, valStr),
+					Data: convertIterationSimple(request, valStr),
 				}
 			}
 		case workitem.SystemArea:
 			if val != nil {
 				valStr := val.(string)
 				op.Relationships.Area = &app.RelationGeneric{
-					Data: ConvertAreaSimple(request, valStr),
+					Data: convertAreaSimple(request, valStr),
 				}
 			}
 
@@ -595,7 +582,7 @@ func ConvertWorkItem(request *http.Request, wi workitem.WorkItem, additional ...
 }
 
 // workItemIncludeHasChildren adds meta information about existing children
-func workItemIncludeHasChildren(ctx context.Context, appl application.Application, childLinks ...link.WorkItemLinkList) WorkItemConvertFunc {
+func workItemIncludeHasChildren(ctx context.Context, appl application.Application, childLinks ...link.WorkItemLinkList) workItemConvertFunc {
 	// TODO: Wrap ctx in a Timeout context?
 	return func(request *http.Request, wi *workitem.WorkItem, wi2 *app.WorkItem) {
 		var hasChildren bool
@@ -635,7 +622,7 @@ func workItemIncludeHasChildren(ctx context.Context, appl application.Applicatio
 }
 
 // includeParentWorkItem adds the parent of given WI to relationships & included object
-func includeParentWorkItem(ctx context.Context, ancestors link.AncestorList, childLinks link.WorkItemLinkList) WorkItemConvertFunc {
+func includeParentWorkItem(ctx context.Context, ancestors link.AncestorList, childLinks link.WorkItemLinkList) workItemConvertFunc {
 	return func(request *http.Request, wi *workitem.WorkItem, wi2 *app.WorkItem) {
 		var parentID *uuid.UUID
 		// If we have an ancestry we can lookup the parent in no time.
@@ -668,31 +655,34 @@ func includeParentWorkItem(ctx context.Context, ancestors link.AncestorList, chi
 
 // ListChildren runs the list action.
 func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) error {
-	// WorkItemChildrenController_List: start_implement
-
-	var additionalQuery []string
 	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
+	var result []workitem.WorkItem
+	var count int
 	err := application.Transactional(c.db, func(appl application.Application) error {
-		result, tc, err := appl.WorkItemLinks().ListWorkItemChildren(ctx, ctx.WiID, &offset, &limit)
+		var err error
+		result, count, err = appl.WorkItemLinks().ListWorkItemChildren(ctx, ctx.WiID, &offset, &limit)
 		if err != nil {
 			return errs.Wrap(err, "unable to list work item children")
 		}
-		count := int(tc)
-		return ctx.ConditionalEntities(result, c.config.GetCacheControlWorkItems, func() error {
-			hasChildren := workItemIncludeHasChildren(ctx, appl)
-			response := app.WorkItemList{
-				Links: &app.PagingLinks{},
-				Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
-				Data:  ConvertWorkItems(ctx.Request, result, hasChildren),
-			}
-			setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(result), offset, limit, count, additionalQuery...)
-			return ctx.OK(&response)
-		})
+		return nil
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	return nil
+	return ctx.ConditionalEntities(result, c.config.GetCacheControlWorkItems, func() error {
+		var response app.WorkItemList
+		application.Transactional(c.db, func(appl application.Application) error {
+			hasChildren := workItemIncludeHasChildren(ctx, appl)
+			response = app.WorkItemList{
+				Links: &app.PagingLinks{},
+				Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
+				Data:  convertWorkItems(ctx.Request, result, hasChildren),
+			}
+			return nil
+		})
+		setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(result), offset, limit, count)
+		return ctx.OK(&response)
+	})
 }
 
 // workItemIncludeChildren adds relationship about children to workitem (include totalCount)

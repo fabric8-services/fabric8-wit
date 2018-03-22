@@ -3,7 +3,6 @@ package controller
 import (
 	"context"
 	"net/http"
-	"reflect"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
@@ -131,7 +130,7 @@ func getWorkItemsOfLinks(ctx context.Context, appl application.Application, req 
 		if err != nil {
 			return nil, errs.WithStack(err)
 		}
-		res = append(res, ConvertWorkItem(req, *wi))
+		res = append(res, convertWorkItem(req, *wi))
 	}
 	return res, nil
 }
@@ -152,15 +151,14 @@ func enrichLinkSingle(ctx context.Context, appl application.Application, req *ht
 	if err != nil {
 		return errs.WithStack(err)
 	}
-	appLinks.Included = append(appLinks.Included, ConvertWorkItem(req, *sourceWi))
+	appLinks.Included = append(appLinks.Included, convertWorkItem(req, *sourceWi))
 
 	// Include target work item
 	targetWi, err := appl.WorkItems().LoadByID(ctx, appLinks.Data.Relationships.Target.Data.ID)
 	if err != nil {
 		return errs.WithStack(err)
 	}
-	appLinks.Included = append(appLinks.Included, ConvertWorkItem(req, *targetWi))
-
+	appLinks.Included = append(appLinks.Included, convertWorkItem(req, *targetWi))
 	return nil
 }
 
@@ -181,7 +179,7 @@ func enrichLinkList(ctx context.Context, appl application.Application, req *http
 	// TODO(kwk): Include WIs from source and target
 	workItemDataArr, err := getWorkItemsOfLinks(ctx, appl, req, linkArr.Data)
 	if err != nil {
-		return errs.WithStack(err)
+		return err
 	}
 	// Convert slice of objects to slice of interface (see https://golang.org/doc/faq#convert_slice_of_interface)
 	interfaceArr = make([]interface{}, len(workItemDataArr))
@@ -189,7 +187,6 @@ func enrichLinkList(ctx context.Context, appl application.Application, req *http
 		interfaceArr[i] = v
 	}
 	linkArr.Included = append(linkArr.Included, interfaceArr...)
-
 	return nil
 }
 
@@ -201,47 +198,34 @@ type createWorkItemLinkFuncs interface {
 	Unauthorized(r *app.JSONAPIErrors) error
 }
 
-func createWorkItemLink(ctx *workItemLinkContext, httpFuncs createWorkItemLinkFuncs, payload *app.CreateWorkItemLinkPayload) error {
-	// Convert payload from app to model representation
-	in := app.WorkItemLinkSingle{
-		Data: payload.Data,
-	}
-	modelLink, err := ConvertLinkToModel(in)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(httpFuncs, err)
-	}
-	createdModelLink, err := ctx.Application.WorkItemLinks().Create(ctx.Context, modelLink.SourceID, modelLink.TargetID, modelLink.LinkTypeID, *ctx.CurrentUserIdentityID)
-	if err != nil {
-		switch reflect.TypeOf(err) {
-		case reflect.TypeOf(&goa.ErrorResponse{}):
-			return jsonapi.JSONErrorResponse(httpFuncs, goa.ErrBadRequest(err.Error()))
-		default:
-			return jsonapi.JSONErrorResponse(httpFuncs, err)
-		}
-	}
-	// convert from model to rest representation
-	createdAppLink := ConvertLinkFromModel(ctx.Request, *createdModelLink)
-	if err := enrichLinkSingle(ctx.Context, ctx.Application, ctx.Request, &createdAppLink); err != nil {
-		return jsonapi.JSONErrorResponse(httpFuncs, err)
-	}
-	ctx.ResponseWriter.Header().Set("Location", app.WorkItemLinkHref(createdAppLink.Data.ID))
-	return httpFuncs.Created(&createdAppLink)
-}
-
 // Create runs the create action.
 func (c *WorkItemLinkController) Create(ctx *app.CreateWorkItemLinkContext) error {
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
-	err = application.Transactional(c.db, func(appl application.Application) error {
-		linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, app.WorkItemLinkHref, currentUserIdentityID)
-		return createWorkItemLink(linkCtx, ctx, ctx.Payload)
+	modelLink, err := ConvertLinkToModel(app.WorkItemLinkSingle{
+		Data: ctx.Payload.Data,
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	return nil
+	var createdModelLink *link.WorkItemLink
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		var err error
+		createdModelLink, err = appl.WorkItemLinks().Create(ctx.Context, modelLink.SourceID, modelLink.TargetID, modelLink.LinkTypeID, *currentUserIdentityID)
+		return err
+	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	// convert from model to rest representation
+	createdAppLink := ConvertLinkFromModel(ctx.Request, *createdModelLink)
+	if err := enrichLinkSingle(ctx.Context, c.db, ctx.Request, &createdAppLink); err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	ctx.ResponseWriter.Header().Set("Location", app.WorkItemLinkHref(createdAppLink.Data.ID))
+	return ctx.Created(&createdAppLink)
 }
 
 func (c *WorkItemLinkController) checkIfUserIsSpaceCollaboratorOrWorkItemCreator(ctx context.Context, linkID uuid.UUID, currentIdentityID uuid.UUID) (bool, error) {
@@ -298,14 +282,6 @@ type deleteWorkItemLinkFuncs interface {
 	InternalServerError(r *app.JSONAPIErrors) error
 }
 
-func deleteWorkItemLink(ctx *workItemLinkContext, httpFuncs deleteWorkItemLinkFuncs, linkID uuid.UUID) error {
-	err := ctx.Application.WorkItemLinks().Delete(ctx.Context, linkID, *ctx.CurrentUserIdentityID)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(httpFuncs, err)
-	}
-	return httpFuncs.OK([]byte{})
-}
-
 //
 // Delete runs the delete action
 func (c *WorkItemLinkController) Delete(ctx *app.DeleteWorkItemLinkContext) error {
@@ -321,38 +297,36 @@ func (c *WorkItemLinkController) Delete(ctx *app.DeleteWorkItemLinkContext) erro
 		return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not authorized to delete the link"))
 	}
 	err = application.Transactional(c.db, func(appl application.Application) error {
-		linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, app.WorkItemLinkHref, currentUserIdentityID)
-		return deleteWorkItemLink(linkCtx, ctx, ctx.LinkID)
+		return appl.WorkItemLinks().Delete(ctx.Context, ctx.LinkID, *currentUserIdentityID)
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	return nil
+	return ctx.OK([]byte{})
 }
 
 // Show runs the show action.
 func (c *WorkItemLinkController) Show(ctx *app.ShowWorkItemLinkContext) error {
+	var modelLink *link.WorkItemLink
 	err := application.Transactional(c.db, func(appl application.Application) error {
-		modelLink, err := appl.WorkItemLinks().Load(ctx.Context, ctx.LinkID)
-		if err != nil {
-			return err
-		}
-		return ctx.ConditionalRequest(*modelLink, c.config.GetCacheControlWorkItemLink, func() error {
-			// convert to rest representation
-			appLink := ConvertLinkFromModel(ctx.Request, *modelLink)
-			if err := enrichLinkSingle(ctx.Context, appl, ctx.Request, &appLink); err != nil {
-				return err
-			}
-			return ctx.OK(&appLink)
-		})
+		var err error
+		modelLink, err = appl.WorkItemLinks().Load(ctx.Context, ctx.LinkID)
+		return err
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	return nil
+	return ctx.ConditionalRequest(*modelLink, c.config.GetCacheControlWorkItemLink, func() error {
+		// convert to rest representation
+		appLink := ConvertLinkFromModel(ctx.Request, *modelLink)
+		if err := enrichLinkSingle(ctx.Context, c.db, ctx.Request, &appLink); err != nil {
+			return err
+		}
+		return ctx.OK(&appLink)
+	})
 }
 
-// ConvertLinkFromModel converts a work item from model to REST representation
+// convertLinkFromModel converts a work item from model to REST representation
 func ConvertLinkFromModel(request *http.Request, t link.WorkItemLink) app.WorkItemLinkSingle {
 	linkSelfURL := rest.AbsoluteURL(request, app.WorkItemLinkHref(t.ID.String()))
 	linkTypeRelatedURL := rest.AbsoluteURL(request, app.WorkItemLinkTypeHref(space.SystemSpace, t.LinkTypeID.String()))
@@ -406,7 +380,7 @@ func ConvertLinkFromModel(request *http.Request, t link.WorkItemLink) app.WorkIt
 	return converted
 }
 
-// ConvertLinkToModel converts the incoming app representation of a work item link to the model layout.
+// convertLinkToModel converts the incoming app representation of a work item link to the model layout.
 // Values are only overwrriten if they are set in "in", otherwise the values in "out" remain.
 // NOTE: Only the LinkTypeID, SourceID, and TargetID fields will be set.
 //       You need to preload the elements after calling this function.

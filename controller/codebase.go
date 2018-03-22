@@ -55,19 +55,18 @@ func NewCodebaseController(service *goa.Service, db application.DB, config codeb
 
 // Show runs the show action.
 func (c *CodebaseController) Show(ctx *app.ShowCodebaseContext) error {
+	var cdb *codebase.Codebase
 	err := application.Transactional(c.db, func(appl application.Application) error {
-		c, err := appl.Codebases().Load(ctx, ctx.CodebaseID)
-		if err != nil {
-			return goa.ErrNotFound(err.Error())
-		}
-		res := &app.CodebaseSingle{}
-		res.Data = ConvertCodebase(ctx.Request, *c)
-		return ctx.OK(res)
+		var err error
+		cdb, err = appl.Codebases().Load(ctx, ctx.CodebaseID)
+		return err
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	return nil
+	return ctx.OK(&app.CodebaseSingle{
+		Data: convertCodebase(ctx.Request, *cdb),
+	})
 
 }
 
@@ -83,15 +82,10 @@ func (c *CodebaseController) ListWorkspaces(ctx *app.ListWorkspacesCodebaseConte
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
-
 	var cb *codebase.Codebase
-
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		cb, err = appl.Codebases().Load(ctx, ctx.CodebaseID)
-		if err != nil {
-			return goa.ErrNotFound(err.Error())
-		}
-		return nil
+		return err
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
@@ -156,7 +150,6 @@ func (c *CodebaseController) Delete(ctx *app.DeleteCodebaseContext) error {
 	var cb *codebase.Codebase
 	var cbSpace *space.Space
 	err = application.Transactional(c.db, func(appl application.Application) error {
-		var err error
 		cb, err = appl.Codebases().Load(ctx.Context, ctx.CodebaseID)
 		if err != nil {
 			return err
@@ -230,10 +223,7 @@ func (c *CodebaseController) Create(ctx *app.CreateCodebaseContext) error {
 	var cb *codebase.Codebase
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		cb, err = appl.Codebases().Load(ctx, ctx.CodebaseID)
-		if err != nil {
-			return goa.ErrNotFound(err.Error())
-		}
-		return nil
+		return err
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
@@ -275,11 +265,8 @@ func (c *CodebaseController) Create(ctx *app.CreateCodebaseContext) error {
 
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		cb.LastUsedWorkspace = workspaceResp.Config.Name
-		_, err = appl.Codebases().Save(ctx, cb)
-		if err != nil {
-			return err
-		}
-		return nil
+		_, err := appl.Codebases().Save(ctx, cb)
+		return err
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
@@ -303,10 +290,7 @@ func (c *CodebaseController) Open(ctx *app.OpenCodebaseContext) error {
 	var cb *codebase.Codebase
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		cb, err = appl.Codebases().Load(ctx, ctx.CodebaseID)
-		if err != nil {
-			return goa.ErrNotFound(err.Error())
-		}
-		return nil
+		return err
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
@@ -338,11 +322,8 @@ func (c *CodebaseController) Open(ctx *app.OpenCodebaseContext) error {
 
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		cb.LastUsedWorkspace = ctx.WorkspaceID
-		_, err = appl.Codebases().Save(ctx, cb)
-		if err != nil {
-			return goa.ErrNotFound(err.Error())
-		}
-		return nil
+		_, err := appl.Codebases().Save(ctx, cb)
+		return err
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
@@ -361,17 +342,17 @@ func (c *CodebaseController) Open(ctx *app.OpenCodebaseContext) error {
 // convertion from internal to API
 type CodebaseConvertFunc func(*http.Request, codebase.Codebase, *app.Codebase)
 
-// ConvertCodebases converts between internal and external REST representation
-func ConvertCodebases(request *http.Request, codebases []codebase.Codebase, options ...CodebaseConvertFunc) []*app.Codebase {
+// convertCodebases converts between internal and external REST representation
+func convertCodebases(request *http.Request, codebases []codebase.Codebase, options ...CodebaseConvertFunc) []*app.Codebase {
 	result := make([]*app.Codebase, len(codebases))
 	for i, c := range codebases {
-		result[i] = ConvertCodebase(request, c, options...)
+		result[i] = convertCodebase(request, c, options...)
 	}
 	return result
 }
 
-// ConvertCodebase converts between internal and external REST representation
-func ConvertCodebase(request *http.Request, codebase codebase.Codebase, options ...CodebaseConvertFunc) *app.Codebase {
+// convertCodebase converts between internal and external REST representation
+func convertCodebase(request *http.Request, codebase codebase.Codebase, options ...CodebaseConvertFunc) *app.Codebase {
 	relatedURL := rest.AbsoluteURL(request, app.CodebaseHref(codebase.ID))
 	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(codebase.SpaceID))
 	workspacesRelatedURL := rest.AbsoluteURL(request, app.CodebaseHref(codebase.ID)+"/workspaces")

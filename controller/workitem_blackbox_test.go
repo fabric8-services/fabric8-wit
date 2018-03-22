@@ -2715,7 +2715,7 @@ func (s *WorkItem2Suite) TestWI2FilterExpressionRedirection() {
 	assert.Contains(s.T(), location, expectedLocation)
 }
 
-func (s *WorkItem2Suite) TestNotificationSendOnCreate() {
+func (s *WorkItem2Suite) TestNotificationSentOnCreate() {
 	// given
 	// Default created WI in setupTest
 	// when

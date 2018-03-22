@@ -8,6 +8,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/criteria"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
+	"github.com/fabric8-services/fabric8-wit/log"
 	query "github.com/fabric8-services/fabric8-wit/query/simple"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 
@@ -59,7 +60,7 @@ func (c *PlannerBacklogController) List(ctx *app.ListPlannerBacklogContext) erro
 	}
 	return ctx.ConditionalEntities(result, c.config.GetCacheControlWorkItems, func() error {
 		response := app.WorkItemList{
-			Data:  ConvertWorkItems(ctx.Request, result),
+			Data:  convertWorkItems(ctx.Request, result),
 			Links: &app.PagingLinks{},
 			Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
 		}
@@ -77,13 +78,15 @@ func generateBacklogExpression(ctx context.Context, db application.DB, spaceID u
 		exp = criteria.Not(criteria.Field(workitem.SystemState), criteria.Literal(workitem.SystemStateClosed))
 	}
 
+	log.Debug(ctx, map[string]interface{}{"space_id": spaceID, "db": db}, "generating backlog expression")
 	err := application.Transactional(db, func(appl application.Application) error {
 		// Get the root iteration
-		iteration, err := appl.Iterations().Root(ctx, spaceID)
+		itr, err := appl.Iterations().Root(ctx, spaceID)
 		if err != nil {
+			log.Error(ctx, map[string]interface{}{"space_id": spaceID, "err": err}, "failed to locate root iteration")
 			return errs.Wrap(err, "unable to fetch root iteration")
 		}
-		exp = criteria.Equals(criteria.Field(workitem.SystemIteration), criteria.Literal(iteration.ID.String()))
+		exp = criteria.Equals(criteria.Field(workitem.SystemIteration), criteria.Literal(itr.ID.String()))
 
 		// Get the list of work item types that derive of PlannerItem in the space
 		var expWits criteria.Expression
@@ -153,6 +156,5 @@ func countBacklogItems(ctx context.Context, db application.DB, spaceID uuid.UUID
 	if err != nil {
 		return count, err
 	}
-
 	return count, nil
 }
