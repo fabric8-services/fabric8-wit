@@ -115,6 +115,7 @@ type BadRequest interface {
 
 // InternalServerError represent a Context that can return a InternalServerError HTTP status
 type InternalServerError interface {
+	context.Context
 	InternalServerError(*app.JSONAPIErrors) error
 }
 
@@ -140,7 +141,7 @@ type Conflict interface {
 
 // JSONErrorResponse auto maps the provided error to the correct response type
 // If all else fails, InternalServerError is returned
-func JSONErrorResponse(ctx context.Context, err error) error {
+func JSONErrorResponse(ctx InternalServerError, err error) error {
 	jsonErr, status := ErrorToJSONAPIErrors(ctx, err)
 	switch status {
 	case http.StatusBadRequest:
@@ -163,10 +164,6 @@ func JSONErrorResponse(ctx context.Context, err error) error {
 		if ctx, ok := ctx.(Conflict); ok {
 			return ctx.Conflict(jsonErr)
 		}
-	default:
-		if ctx, ok := ctx.(InternalServerError); ok {
-			return ctx.InternalServerError(jsonErr)
-		}
 	}
-	return err
+	return ctx.InternalServerError(jsonErr)
 }

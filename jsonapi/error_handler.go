@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	// Media type for errors returned by the JSON API error handler middleware
+	// ErrorMediaIdentifier type for errors returned by the JSON API error handler middleware
 	ErrorMediaIdentifier = "application/vnd.api+json"
 )
 
