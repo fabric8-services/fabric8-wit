@@ -136,5 +136,7 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		require.NoError(t, err)
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList, 1)
+		assert.Equal(t, eventList[0].Name, event.State)
+		assert.Equal(t, workitem.SystemStateResolved, eventList[0].New)
 	})
 }
