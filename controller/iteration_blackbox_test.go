@@ -347,13 +347,7 @@ func (rest *TestIterationREST) createWorkItem(parentSpace space.Space) workitem.
 
 func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHeaderAfterWorkItemLinking() {
 	// given
-	fxt := tf.NewTestFixture(rest.T(), rest.DB,
-		append(createSpaceAndRootAreaAndIterations(),
-			tf.WorkItems(1,
-				tf.SetWorkItemField(workitem.SystemState, workitem.SystemStateNew),
-			),
-		)...,
-	)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, append(createSpaceAndRootAreaAndIterations(), tf.WorkItems(1))...)
 	itr := *fxt.Iterations[1]
 	parentSpace := *fxt.Spaces[0]
 	testWI := *fxt.WorkItems[0]
