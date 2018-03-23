@@ -26,16 +26,16 @@ var eventAttributes = a.Type("EventAttributes", func() {
 	a.Attribute("name", d.String, "The name of the event occured", func() {
 		a.Example("closed")
 	})
-	a.Attribute("modifier", d.String, "The labels IDs. Only for `labeled` & `unlabeled` events.", func() {
-		a.Example("UUID1,UUID2\n")
+	a.Attribute("modifier", d.UUID, "The labels IDs. Only for `labeled` & `unlabeled` events.", func() {
+		a.Example("813a456e-1c8a-48df-ac15-84065ee039f7")
 	})
-	a.Attribute("previousAssignees", a.ArrayOf(d.String), "The user who was assigned to (or unassigned from). Only for 'assigned' and 'unassigned' events.", func() {
-		//a.Example("john")
+	a.Attribute("old", d.String, "The user who was assigned to (or unassigned from). Only for 'assigned' and 'unassigned' events.", func() {
+		a.Example("813a456e-1c8a-48df-ac15-84065ee039f7")
 	})
-	a.Attribute("newAssignees", a.ArrayOf(d.String), "The user who performed the assignment (or unassignment). Only for 'assigned' and 'unassigned' events..", func() {
-		//a.Example("david")
+	a.Attribute("new", d.String, "The user who performed the assignment (or unassignment). Only for 'assigned' and 'unassigned' events..", func() {
+		a.Example("813a456e-1c8a-48df-ac15-84065ee039f7")
 	})
-	a.Required("name", "modifier")
+	a.Required("timestamp", "name", "modifier")
 })
 
 var eventList = JSONList(

@@ -2,6 +2,7 @@ package event
 
 import (
 	"context"
+	"strings"
 
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
@@ -60,7 +61,7 @@ func (r *GormWorkItemEventRepository) List(ctx context.Context, wiID uuid.UUID) 
 
 	eventList := []WorkItemEvent{}
 	for k := 1; k < len(revisionList); k++ {
-		modifierID, err := r.identityRepo.Load(ctx, revisionList[1].ModifierIdentity)
+		modifierID, err := r.identityRepo.Load(ctx, revisionList[k].ModifierIdentity)
 		if err != nil {
 			return nil, errs.Wrapf(err, "error during fetching event list")
 		}
@@ -77,12 +78,7 @@ func (r *GormWorkItemEventRepository) List(ctx context.Context, wiID uuid.UUID) 
 					p = []string{}
 				case []interface{}:
 					for _, v := range previousAssignees.([]interface{}) {
-						prev := uuid.FromStringOrNil(v.(string))
-						pAssignee, err := r.identityRepo.Load(ctx, prev)
-						if err != nil {
-							return nil, errs.Wrapf(err, "error during fetching event list")
-						}
-						p = append(p, pAssignee.Username)
+						p = append(p, v.(string))
 					}
 				}
 
@@ -91,22 +87,18 @@ func (r *GormWorkItemEventRepository) List(ctx context.Context, wiID uuid.UUID) 
 					n = []string{}
 				case []interface{}:
 					for _, v := range newAssignees.([]interface{}) {
-						new := uuid.FromStringOrNil(v.(string))
-						nAssignee, err := r.identityRepo.Load(ctx, new)
-						if err != nil {
-							return nil, errs.Wrapf(err, "error during fetching event list")
-						}
-						n = append(n, nAssignee.Username)
+						n = append(n, v.(string))
 					}
 
 				}
 				if len(p) != 0 || len(n) != 0 {
 					wie := WorkItemEvent{
-						ID:                revisionList[k].ID,
-						Name:              "assigned",
-						Modifier:          modifierID.Username,
-						PreviousAssignees: p,
-						NewAssignees:      n,
+						ID:        revisionList[k].ID,
+						Name:      "assignees",
+						Timestamp: revisionList[k].Time,
+						Modifier:  modifierID.ID,
+						Old:       strings.Join(p, ","),
+						New:       strings.Join(n, ","),
 					}
 					eventList = append(eventList, wie)
 				}
@@ -115,11 +107,12 @@ func (r *GormWorkItemEventRepository) List(ctx context.Context, wiID uuid.UUID) 
 				newState := revisionList[k].WorkItemFields[workitem.SystemState].(string)
 				if previousState != newState {
 					wie := WorkItemEvent{
-						ID:            revisionList[k].ID,
-						Name:          "state_changed",
-						Modifier:      modifierID.Username,
-						PreviousState: &previousState,
-						NewState:      &newState,
+						ID:        revisionList[k].ID,
+						Name:      "state",
+						Timestamp: revisionList[k].Time,
+						Modifier:  modifierID.ID,
+						Old:       previousState,
+						New:       newState,
 					}
 					eventList = append(eventList, wie)
 				}

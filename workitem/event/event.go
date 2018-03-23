@@ -8,12 +8,10 @@ import (
 
 // WorkItemEvent represents work item event
 type WorkItemEvent struct {
-	ID                uuid.UUID
-	Name              string
-	Timestamp         time.Time
-	Modifier          string
-	PreviousAssignees []string
-	NewAssignees      []string
-	PreviousState     *string
-	NewState          *string
+	ID        uuid.UUID
+	Name      string
+	Timestamp time.Time
+	Modifier  uuid.UUID
+	Old       string
+	New       string
 }

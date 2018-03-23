@@ -2,7 +2,6 @@ package controller_test
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -54,7 +53,6 @@ func (s *TestEvent) TestListEvent() {
 		require.NoError(t, err)
 		_, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID)
 		require.NotEmpty(t, eventList)
-		fmt.Println(eventList)
 		require.Len(t, eventList.Data, 1)
 		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok.res.errors.golden.json"), eventList)
 	})
