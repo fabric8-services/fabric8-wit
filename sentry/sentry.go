@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 
+	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/token"
 
 	"github.com/getsentry/raven-go"
@@ -84,12 +85,19 @@ func (c *client) CaptureError(ctx context.Context, err error) {
 	// Extract user information. Ignoring error here but then before using the
 	// object user make sure to check if it wasn't nil.
 	user, _ := extractUserInfo(ctx)
+	reqID := log.ExtractRequestID(ctx)
 
 	c.sendErr <- func() {
 		if user != nil {
 			c.c.SetUserContext(user)
 		}
-		c.c.CaptureError(err, nil)
+
+		additionalContext := make(map[string]string)
+		if reqID != "" {
+			additionalContext["req_ID"] = reqID
+		}
+
+		c.c.CaptureError(err, additionalContext)
 		c.c.ClearContext()
 	}
 }
