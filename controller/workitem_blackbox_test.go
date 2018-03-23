@@ -2325,6 +2325,8 @@ func (s *WorkItem2Suite) TestCreateWIWithCodebase() {
 // this test aims at checking different codebaseIDs for
 // two CodebaseContent with same Repository but in two different spaces
 func (s *WorkItem2Suite) TestCodebaseWithSameRepoAcrossSpace() {
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1), tf.WorkItemTypes(1))
+
 	// create one space
 	spaceInstance, _, _ := createSpaceWithDefaults(s.svc.Context, s.DB)
 	space1ID := spaceInstance.ID
@@ -2336,7 +2338,7 @@ func (s *WorkItem2Suite) TestCodebaseWithSameRepoAcrossSpace() {
 	title := "Solution on global warming"
 	c.Data.Attributes[workitem.SystemTitle] = title
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemPlannerItem)
+	c.Data.Relationships.BaseType = newRelationBaseType(fxt.Spaces[0].ID, fxt.WorkItemTypes[0].ID)
 	c.Data.Relationships.Space = app.NewSpaceRelation(space1ID, "")
 	branch := "earth-recycle-101"
 	repo := "https://github.com/pranavgore09/go-tutorial.git"
@@ -2367,7 +2369,7 @@ func (s *WorkItem2Suite) TestCodebaseWithSameRepoAcrossSpace() {
 	branch = "earth-recycle-102"
 	c.Data.Attributes[workitem.SystemTitle] = title
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemPlannerItem)
+	c.Data.Relationships.BaseType = newRelationBaseType(fxt.Spaces[0].ID, fxt.WorkItemTypes[0].ID)
 	c.Data.Relationships.Space = &app.RelationSpaces{Data: &app.RelationSpacesData{
 		ID: &space2ID,
 	}}
@@ -2393,7 +2395,7 @@ func (s *WorkItem2Suite) TestCodebaseWithSameRepoAcrossSpace() {
 	title = "One antoher solution on global warming"
 	c.Data.Attributes[workitem.SystemTitle] = title
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemPlannerItem)
+	c.Data.Relationships.BaseType = newRelationBaseType(fxt.Spaces[0].ID, fxt.WorkItemTypes[0].ID)
 	c.Data.Relationships.Space = &app.RelationSpaces{Data: &app.RelationSpacesData{
 		ID: &space1ID,
 	}}
@@ -2412,12 +2414,14 @@ func (s *WorkItem2Suite) TestCodebaseWithSameRepoAcrossSpace() {
 }
 
 func (s *WorkItem2Suite) TestFailToCreateWIWithCodebase() {
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1), tf.WorkItemTypes(1))
+
 	// try creating WI without `Repo` : should fail
 	c := minimumRequiredCreatePayload()
 	title := "Solution on global warming"
 	c.Data.Attributes[workitem.SystemTitle] = title
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemPlannerItem)
+	c.Data.Relationships.BaseType = newRelationBaseType(fxt.Spaces[0].ID, fxt.WorkItemTypes[0].ID)
 	branch := "earth-recycle-101"
 	cbase := codebase.Content{
 		Branch: branch,
@@ -2430,7 +2434,7 @@ func (s *WorkItem2Suite) TestFailToCreateWIWithCodebase() {
 	title2 := "Solution on global warming"
 	c2.Data.Attributes[workitem.SystemTitle] = title2
 	c2.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c2.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemPlannerItem)
+	c2.Data.Relationships.BaseType = newRelationBaseType(fxt.Spaces[0].ID, fxt.WorkItemTypes[0].ID)
 	branch2 := "earth-recycle-101"
 	repo2 := "git://non-git.com/pranav/someproject"
 	cbase2 := codebase.Content{
