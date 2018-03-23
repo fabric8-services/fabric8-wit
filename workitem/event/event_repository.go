@@ -12,8 +12,14 @@ import (
 	"github.com/fabric8-services/fabric8-wit/workitem"
 )
 
-// APIStringTypeEvents is the name of event type
-const APIStringTypeEvents = "events"
+const (
+
+	// APIStringTypeEvents is the name of event type
+	APIStringTypeEvents = "events"
+
+	Assignees = "assignees"
+	State     = "state"
+)
 
 // WorkItemEventRepository encapsulates retrieval of work item events
 type WorkItemEventRepository interface {
@@ -94,7 +100,7 @@ func (r *GormWorkItemEventRepository) List(ctx context.Context, wiID uuid.UUID) 
 				if len(p) != 0 || len(n) != 0 {
 					wie := WorkItemEvent{
 						ID:        revisionList[k].ID,
-						Name:      "assignees",
+						Name:      Assignees,
 						Timestamp: revisionList[k].Time,
 						Modifier:  modifierID.ID,
 						Old:       strings.Join(p, ","),
@@ -108,7 +114,7 @@ func (r *GormWorkItemEventRepository) List(ctx context.Context, wiID uuid.UUID) 
 				if previousState != newState {
 					wie := WorkItemEvent{
 						ID:        revisionList[k].ID,
-						Name:      "state",
+						Name:      State,
 						Timestamp: revisionList[k].Time,
 						Modifier:  modifierID.ID,
 						Old:       previousState,

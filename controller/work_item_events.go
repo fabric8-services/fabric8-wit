@@ -59,7 +59,7 @@ func ConvertEvent(appl application.Application, request *http.Request, wiEvent e
 	var eventAttributes *app.EventAttributes
 	eventType := event.APIStringTypeEvents
 	switch wiEvent.Name {
-	case "assignees":
+	case event.Assignees:
 		eventAttributes = &app.EventAttributes{
 			Name:      wiEvent.Name,
 			Modifier:  wiEvent.Modifier,
