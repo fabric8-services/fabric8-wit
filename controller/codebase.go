@@ -112,6 +112,7 @@ func (c *CodebaseController) ListWorkspaces(ctx *app.ListWorkspacesCodebaseConte
 
 	var existingWorkspaces []*app.Workspace
 	for _, workspace := range workspaces {
+		codebaseRelatedLink := rest.AbsoluteURL(ctx.Request, fmt.Sprintf(app.CodebaseHref(cb.ID)))
 		openLink := rest.AbsoluteURL(ctx.Request, fmt.Sprintf(app.CodebaseHref(cb.ID)+"/open/%v", workspace.Config.Name))
 
 		ideLink := workspace.GetHrefByRelOfWorkspaceLink(che.IdeUrlRel)
@@ -129,6 +130,14 @@ func (c *CodebaseController) ListWorkspaces(ctx *app.ListWorkspacesCodebaseConte
 				Open: &openLink,
 				Self: &selfLink,
 				Ide:  &ideLink,
+			},
+			Relationships: &app.WorkspaceRelations{
+				Codebase: &app.RelationGeneric{
+					Links: &app.GenericLinks{
+						Related: &codebaseRelatedLink,
+					},
+					Meta: map[string]interface{}{"branch": getBranch(workspace.Config.Projects, cb.URL)},
+				},
 			},
 		})
 	}
@@ -251,8 +260,9 @@ func (c *CodebaseController) Create(ctx *app.CreateCodebaseContext) error {
 	if cb.StackID != nil && *cb.StackID != "" {
 		stackID = *cb.StackID
 	}
+
 	workspace := che.WorkspaceRequest{
-		Branch:     "master",
+		Branch:     getWorkspaceBranch(ctx),
 		StackID:    stackID,
 		Repository: cb.URL,
 	}
@@ -368,6 +378,16 @@ func ConvertCodebases(request *http.Request, codebases []codebase.Codebase, opti
 		result[i] = ConvertCodebase(request, c, options...)
 	}
 	return result
+}
+
+// GetBranch return branch of the Che project which location matches codebase URL
+func getBranch(projects []che.WorkspaceProject, codebaseURL string) string {
+	for _, p := range projects {
+		if p.Source.Location == codebaseURL {
+			return p.Source.Parameters.Branch
+		}
+	}
+	return ""
 }
 
 // ConvertCodebase converts between internal and external REST representation
@@ -512,4 +532,13 @@ func NewDefaultCheClient(config codebaseConfiguration) CodebaseCheClientProvider
 		cheClient := che.NewStarterClient(config.GetCheStarterURL(), config.GetOpenshiftTenantMasterURL(), ns, http.DefaultClient)
 		return cheClient, nil
 	}
+}
+
+// getWorkspaceBranch returns the branch defined in the request payload ('master' is used by default)
+func getWorkspaceBranch(ctx *app.CreateCodebaseContext) string {
+	branch := "master"
+	if ctx.Payload != nil && ctx.Payload.Data != nil && ctx.Payload.Data.Attributes != nil && ctx.Payload.Data.Attributes.Branch != nil && *ctx.Payload.Data.Attributes.Branch != "" {
+		branch = *ctx.Payload.Data.Attributes.Branch
+	}
+	return branch
 }

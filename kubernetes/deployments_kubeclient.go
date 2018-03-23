@@ -70,7 +70,6 @@ type KubeClientInterface interface {
 	DeleteDeployment(spaceName string, appName string, envName string) error
 	GetEnvironments() ([]*app.SimpleEnvironment, error)
 	GetEnvironment(envName string) (*app.SimpleEnvironment, error)
-	GetPodsInNamespace(nameSpace string, appName string) ([]v1.Pod, error)
 	GetMetricsClient(envNS string) (Metrics, error)
 	Close()
 }
@@ -1111,18 +1110,6 @@ func quantityToFloat64(q resource.Quantity) (float64, error) {
 		result = float64(val64) * math.Pow10(-int(valDec.Scale()))
 	}
 	return result, nil
-}
-
-// GetPodsInNamespace - return all pods in namepsace 'nameSpace' and application 'appName'
-func (kc *kubeClient) GetPodsInNamespace(nameSpace string, appName string) ([]v1.Pod, error) {
-	listOptions := metaV1.ListOptions{
-		LabelSelector: "app=" + appName,
-	}
-	pods, err := kc.Pods(nameSpace).List(listOptions)
-	if err != nil {
-		return nil, errs.WithStack(err)
-	}
-	return pods.Items, nil
 }
 
 func (kc *kubeClient) getPods(namespace string, uid types.UID) ([]*v1.Pod, error) {
