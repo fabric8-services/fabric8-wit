@@ -85,14 +85,10 @@ func findBadCalls(filename string, src interface{}) []error {
 	for node, ancestors := range foundCallsAndAncestors {
 		ilog.Indent()
 		for _, ancestor := range ancestors {
-			if selectorExpr, ok := ancestor.(*ast.SelectorExpr); ok {
-				if identPkg, ok := selectorExpr.X.(*ast.Ident); ok {
-					if identPkg.Name == applicationImportedAs && selectorExpr.Sel.Name == transactionalFuncName {
-						err := errs.Errorf("%s.%s called at %s from within %s which was started at %s", badPkgName, badFuncName, fset.Position(node.Pos()), transactionalFuncName, fset.Position(selectorExpr.Pos()))
-						ilog.Println("ERROR:", err)
-						errors = append(errors, err)
-					}
-				}
+			if isSelectorExprTo(ancestor, applicationImportedAs, transactionalFuncName) {
+				err := errs.Errorf("%s.%s called at %s from within %s which was started at %s", badPkgName, badFuncName, fset.Position(node.Pos()), transactionalFuncName, fset.Position(ancestor.Pos()))
+				ilog.Println("ERROR:", err)
+				errors = append(errors, err)
 			}
 		}
 		ilog.Outdent()
@@ -104,17 +100,24 @@ func findBadCalls(filename string, src interface{}) []error {
 	return nil
 }
 
+// isSelectorExprTo returns true if the given node is a selector expression to
+// pkgName.funcName; otherwise false is returned
+func isSelectorExprTo(node ast.Node, pkgName, funcName string) bool {
+	if selectorExpr, ok := node.(*ast.SelectorExpr); ok {
+		if identPkg, ok := selectorExpr.X.(*ast.Ident); ok {
+			if identPkg.Name == pkgName && selectorExpr.Sel.Name == funcName {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // isCallExprTo returns true if the given node is a function call to
 // pkgName.funcName; otherwise false is returned
 func isCallExprTo(node ast.Node, pkgName, funcName string) bool {
 	if callExpr, ok := node.(*ast.CallExpr); ok {
-		if selectorExpr, ok := callExpr.Fun.(*ast.SelectorExpr); ok {
-			if identPkg, ok := selectorExpr.X.(*ast.Ident); ok {
-				if identPkg.Name == pkgName && selectorExpr.Sel.Name == funcName {
-					return true
-				}
-			}
-		}
+		return isSelectorExprTo(callExpr.Fun, pkgName, funcName)
 	}
 	return false
 }
