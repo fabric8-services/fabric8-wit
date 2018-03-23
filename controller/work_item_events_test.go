@@ -39,11 +39,11 @@ func (s *TestEvent) SetupTest() {
 }
 
 func (s *TestEvent) TestListEvent() {
-	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
-	svc := testsupport.ServiceAsSpaceUser("Event-Service", *fxt.Identities[0], &TestSpaceAuthzService{*fxt.Identities[0], ""})
-	EventCtrl := NewWorkItemEventsController(svc, s.db, s.Configuration)
 
 	s.T().Run("event list ok - assigned", func(t *testing.T) {
+		fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+		svc := testsupport.ServiceAsSpaceUser("Event-Service", *fxt.Identities[0], &TestSpaceAuthzService{*fxt.Identities[0], ""})
+		EventCtrl := NewWorkItemEventsController(svc, s.db, s.Configuration)
 		assignee := []string{fxt.Identities[0].ID.String()}
 		fxt.WorkItems[0].Fields[workitem.SystemAssignees] = assignee
 		err := application.Transactional(s.db, func(app application.Application) error {
@@ -54,10 +54,30 @@ func (s *TestEvent) TestListEvent() {
 		_, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID)
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList.Data, 1)
-		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok.res.errors.golden.json"), eventList)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok-assignees.res.golden.json"), eventList)
+	})
+
+	s.T().Run("event list ok - label", func(t *testing.T) {
+		fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+		svc := testsupport.ServiceAsSpaceUser("Event-Service", *fxt.Identities[0], &TestSpaceAuthzService{*fxt.Identities[0], ""})
+		EventCtrl := NewWorkItemEventsController(svc, s.db, s.Configuration)
+		label := []string{"label1"}
+		fxt.WorkItems[0].Fields[workitem.SystemLabels] = label
+		err := application.Transactional(s.db, func(app application.Application) error {
+			_, err := app.WorkItems().Save(context.Background(), fxt.Spaces[0].ID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+			return err
+		})
+		require.NoError(t, err)
+		_, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID)
+		require.NotEmpty(t, eventList)
+		require.Len(t, eventList.Data, 1)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok-labels.res.golden.json"), eventList)
 	})
 
 	s.T().Run("event list - empty", func(t *testing.T) {
+		fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+		svc := testsupport.ServiceAsSpaceUser("Event-Service", *fxt.Identities[0], &TestSpaceAuthzService{*fxt.Identities[0], ""})
+		EventCtrl := NewWorkItemEventsController(svc, s.db, s.Configuration)
 		_, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID)
 		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok-no-event.res.errors.golden.json"), eventList)
 	})

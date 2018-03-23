@@ -139,4 +139,84 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		assert.Equal(t, eventList[0].Name, event.State)
 		assert.Equal(t, workitem.SystemStateResolved, eventList[0].New)
 	})
+	s.T().Run("event label", func(t *testing.T) {
+
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1))
+
+		label := []string{"label1"}
+
+		fxt.WorkItems[0].Fields[workitem.SystemLabels] = label
+		wiNew, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		require.NoError(t, err)
+		require.Len(t, wiNew.Fields[workitem.SystemLabels].([]interface{}), 1)
+		eventList, err := s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
+		require.NoError(t, err)
+		require.NotEmpty(t, eventList)
+		require.Len(t, eventList, 1)
+		assert.Equal(t, eventList[0].Name, event.Labels)
+		assert.Empty(t, eventList[0].Old)
+		assert.Equal(t, "label1", strings.Split(eventList[0].New, ",")[0])
+
+		label = []string{"label2"}
+		wiNew.Fields[workitem.SystemLabels] = label
+		wiNew.Version = fxt.WorkItems[0].Version + 1
+		wiNew, err = s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *wiNew, fxt.Identities[0].ID)
+		require.NoError(t, err)
+		require.Len(t, wiNew.Fields[workitem.SystemLabels].([]interface{}), 1)
+		eventList, err = s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
+		require.NotEmpty(t, eventList)
+		require.Len(t, eventList, 2)
+		assert.Equal(t, eventList[1].Name, event.Labels)
+		assert.NotEmpty(t, eventList[1].Old)
+		assert.NotEmpty(t, eventList[1].New)
+		assert.Equal(t, "label1", strings.Split(eventList[0].New, ",")[0])
+		assert.Equal(t, "label2", strings.Split(eventList[1].New, ",")[0])
+	})
+
+	s.T().Run("event label - previous label nil", func(t *testing.T) {
+
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1))
+
+		label := []string{"label1"}
+
+		fxt.WorkItems[0].Fields[workitem.SystemLabels] = label
+		wiNew, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		require.NoError(t, err)
+		require.Len(t, wiNew.Fields[workitem.SystemLabels].([]interface{}), 1)
+		eventList, err := s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
+		require.NoError(t, err)
+		require.NotEmpty(t, eventList)
+		require.Len(t, eventList, 1)
+		assert.Equal(t, eventList[0].Name, event.Labels)
+		assert.Empty(t, eventList[0].Old)
+	})
+
+	s.T().Run("event label - new label nil", func(t *testing.T) {
+
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1))
+
+		label := []string{"label1"}
+
+		fxt.WorkItems[0].Fields[workitem.SystemLabels] = label
+		wiNew, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		require.NoError(t, err)
+		require.Len(t, wiNew.Fields[workitem.SystemLabels].([]interface{}), 1)
+		eventList, err := s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
+		require.NoError(t, err)
+		require.NotEmpty(t, eventList)
+		require.Len(t, eventList, 1)
+		assert.Equal(t, eventList[0].Name, event.Labels)
+		assert.Empty(t, eventList[0].Old)
+
+		wiNew.Fields[workitem.SystemLabels] = []string{}
+		wiNew.Version = fxt.WorkItems[0].Version + 1
+		wiNew, err = s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *wiNew, fxt.Identities[0].ID)
+		require.NoError(t, err)
+		require.Len(t, wiNew.Fields[workitem.SystemLabels].([]interface{}), 0)
+		eventList, err = s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
+		require.NotEmpty(t, eventList)
+		require.Len(t, eventList, 2)
+		assert.Equal(t, eventList[1].Name, event.Labels)
+		assert.Empty(t, eventList[1].New)
+	})
 }

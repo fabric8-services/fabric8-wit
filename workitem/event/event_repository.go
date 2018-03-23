@@ -19,6 +19,7 @@ const (
 
 	Assignees = "assignees"
 	State     = "state"
+	Labels    = "labels"
 )
 
 // WorkItemEventRepository encapsulates retrieval of work item events
@@ -119,6 +120,41 @@ func (r *GormWorkItemEventRepository) List(ctx context.Context, wiID uuid.UUID) 
 						Modifier:  modifierID.ID,
 						Old:       previousState,
 						New:       newState,
+					}
+					eventList = append(eventList, wie)
+				}
+			case workitem.SystemLabels:
+				var p []string
+				var n []string
+
+				previousLabels := revisionList[k-1].WorkItemFields[workitem.SystemLabels]
+				newLabels := revisionList[k].WorkItemFields[workitem.SystemLabels]
+				switch previousLabels.(type) {
+				case nil:
+					p = []string{}
+				case []interface{}:
+					for _, v := range previousLabels.([]interface{}) {
+						p = append(p, v.(string))
+					}
+				}
+
+				switch newLabels.(type) {
+				case nil:
+					n = []string{}
+				case []interface{}:
+					for _, v := range newLabels.([]interface{}) {
+						n = append(n, v.(string))
+					}
+
+				}
+				if len(p) != 0 || len(n) != 0 {
+					wie := WorkItemEvent{
+						ID:        revisionList[k].ID,
+						Name:      Labels,
+						Timestamp: revisionList[k].Time,
+						Modifier:  modifierID.ID,
+						Old:       strings.Join(p, ","),
+						New:       strings.Join(n, ","),
 					}
 					eventList = append(eventList, wie)
 				}
