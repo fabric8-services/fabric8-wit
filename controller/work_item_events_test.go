@@ -74,6 +74,22 @@ func (s *TestEvent) TestListEvent() {
 		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok-labels.res.golden.json"), eventList)
 	})
 
+	s.T().Run("event list ok - iteration", func(t *testing.T) {
+		fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+		svc := testsupport.ServiceAsSpaceUser("Event-Service", *fxt.Identities[0], &TestSpaceAuthzService{*fxt.Identities[0], ""})
+		EventCtrl := NewWorkItemEventsController(svc, s.db, s.Configuration)
+		fxt.WorkItems[0].Fields[workitem.SystemIteration] = fxt.Iterations[0].ID.String()
+		err := application.Transactional(s.db, func(app application.Application) error {
+			_, err := app.WorkItems().Save(context.Background(), fxt.Spaces[0].ID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+			return err
+		})
+		require.NoError(t, err)
+		_, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID)
+		require.NotEmpty(t, eventList)
+		require.Len(t, eventList.Data, 1)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok-iteration.res.golden.json"), eventList)
+	})
+
 	s.T().Run("event list - empty", func(t *testing.T) {
 		fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
 		svc := testsupport.ServiceAsSpaceUser("Event-Service", *fxt.Identities[0], &TestSpaceAuthzService{*fxt.Identities[0], ""})

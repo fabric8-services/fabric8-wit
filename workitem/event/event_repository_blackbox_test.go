@@ -219,4 +219,26 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		assert.Equal(t, eventList[1].Name, event.Labels)
 		assert.Empty(t, eventList[1].New)
 	})
+
+	s.T().Run("iteration changed", func(t *testing.T) {
+
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1), tf.Iterations(2))
+		fxt.WorkItems[0].Fields[workitem.SystemIteration] = fxt.Iterations[0].ID.String()
+		wiNew, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		require.NoError(t, err)
+		eventList, err := s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
+		require.NoError(t, err)
+		require.NotEmpty(t, eventList)
+		require.Len(t, eventList, 1)
+		assert.Equal(t, eventList[0].Name, event.Iteration)
+		assert.Empty(t, eventList[0].Old)
+
+		wiNew.Fields[workitem.SystemIteration] = fxt.Iterations[1].ID.String()
+		wiNew.Version = fxt.WorkItems[0].Version + 1
+		wiNew, err = s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *wiNew, fxt.Identities[0].ID)
+		require.NoError(t, err)
+		eventList, err = s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
+		require.Len(t, eventList, 2)
+		assert.Equal(t, eventList[1].Name, event.Iteration)
+	})
 }
