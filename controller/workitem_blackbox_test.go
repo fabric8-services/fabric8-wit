@@ -2286,11 +2286,12 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateAndPreventJavascriptInjectionWithMa
 
 func (s *WorkItem2Suite) TestCreateWIWithCodebase() {
 	// given
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1), tf.WorkItemTypes(1))
 	c := minimumRequiredCreatePayload()
 	title := "Solution on global warming"
 	c.Data.Attributes[workitem.SystemTitle] = title
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemPlannerItem)
+	c.Data.Relationships.BaseType = newRelationBaseType(fxt.Spaces[0].ID, fxt.WorkItemTypes[0].ID)
 	branch := "earth-recycle-101"
 	repo := "https://github.com/pranavgore09/go-tutorial.git"
 	file := "main.go"
