@@ -15,8 +15,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/ptr"
 
-	// "github.com/fabric8-services/fabric8-wit/codebase"
-	// "github.com/fabric8-services/fabric8-wit/controller"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
