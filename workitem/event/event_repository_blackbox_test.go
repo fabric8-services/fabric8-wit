@@ -44,6 +44,40 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		require.Empty(t, eventList)
 	})
 
+	s.T().Run("event assignee", func(t *testing.T) {
+
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1), tf.Identities(2))
+
+		assignee := []string{fxt.Identities[0].ID.String()}
+
+		fxt.WorkItems[0].Fields[workitem.SystemAssignees] = assignee
+		wiNew, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		require.NoError(t, err)
+		require.Len(t, wiNew.Fields[workitem.SystemAssignees].([]interface{}), 1)
+		eventList, err := s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
+		require.NoError(t, err)
+		require.NotEmpty(t, eventList)
+		require.Len(t, eventList, 1)
+		assert.Equal(t, eventList[0].Name, "assignees")
+		assert.Empty(t, eventList[0].Old)
+		assert.Equal(t, fxt.Identities[0].ID.String(), strings.Split(eventList[0].New, ",")[0])
+
+		assignee = []string{fxt.Identities[1].ID.String()}
+		wiNew.Fields[workitem.SystemAssignees] = assignee
+		wiNew.Version = fxt.WorkItems[0].Version + 1
+		wiNew, err = s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *wiNew, fxt.Identities[0].ID)
+		require.NoError(t, err)
+		require.Len(t, wiNew.Fields[workitem.SystemAssignees].([]interface{}), 1)
+		eventList, err = s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
+		require.NotEmpty(t, eventList)
+		require.Len(t, eventList, 2)
+		assert.Equal(t, eventList[1].Name, "assignees")
+		assert.NotEmpty(t, eventList[1].Old)
+		assert.NotEmpty(t, eventList[1].New)
+		assert.Equal(t, fxt.Identities[0].ID.String(), strings.Split(eventList[0].New, ",")[0])
+		assert.Equal(t, fxt.Identities[1].ID.String(), strings.Split(eventList[1].New, ",")[0])
+	})
+
 	s.T().Run("event assignee - previous assignee nil", func(t *testing.T) {
 
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1))
