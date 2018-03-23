@@ -58,15 +58,12 @@ func ConvertEvents(appl application.Application, request *http.Request, eventLis
 func ConvertEvent(appl application.Application, request *http.Request, wiEvent event.WorkItemEvent, wiID uuid.UUID) *app.Event {
 	var eventAttributes *app.EventAttributes
 	eventType := event.APIStringTypeEvents
-	switch wiEvent.Name {
-	case event.Assignees:
-		eventAttributes = &app.EventAttributes{
-			Name:      wiEvent.Name,
-			Modifier:  wiEvent.Modifier,
-			Timestamp: wiEvent.Timestamp,
-			Old:       &wiEvent.Old,
-			New:       &wiEvent.New,
-		}
+	eventAttributes = &app.EventAttributes{
+		Name:      wiEvent.Name,
+		Modifier:  wiEvent.Modifier,
+		Timestamp: wiEvent.Timestamp,
+		Old:       &wiEvent.Old,
+		New:       &wiEvent.New,
 	}
 	e := &app.Event{
 		Type:       eventType,
