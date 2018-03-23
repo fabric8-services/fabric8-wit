@@ -35,6 +35,7 @@ type tenantURLProvider struct {
 	TokenRetriever
 }
 
+// TokenRetriever is a service that will respond with an authorization token, given a service endpoint or name
 type TokenRetriever interface {
 	TokenForService(serviceURL string) (*string, error)
 }
@@ -105,7 +106,7 @@ func NewURLProvider(ctx context.Context, config *configuration.Registry, osiocli
 		return nil, err
 	}
 
-	// create Auth API client - rewuired to get OSO tokens
+	// create Auth API client - required to get OSO tokens
 	authClient, err := auth.CreateClient(ctx, config)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -146,28 +147,27 @@ func newTenantURLProviderFromTenant(t *app.UserService, token string, proxyURL s
 		return nil, errs.Errorf("app.UserService is malformed: no Attribute field (ID=%s)", *t.ID)
 	}
 
+	if len(t.Attributes.Namespaces) == 0 {
+		log.Error(nil, map[string]interface{}{
+			"tenant": *t.ID,
+		}, "this tenant has no namespaces: %s", *t.ID)
+		return nil, errs.Errorf("app.UserService is malformed: no Namespaces (ID=%s)", *t.ID)
+	}
+
+	defaultNamespace := t.Attributes.Namespaces[0]
 	namespaceMap := make(map[string]*app.NamespaceAttributes)
 	for i, namespace := range t.Attributes.Namespaces {
 		namespaceMap[*namespace.Name] = t.Attributes.Namespaces[i]
+		if *namespace.Type == "user" {
+			defaultNamespace = namespace
+		}
 	}
 
-	defaultClusterURL := ""
+	defaultClusterURL := *defaultNamespace.ClusterURL
 
 	if len(proxyURL) != 0 {
 		// all non-metric API calls go via the proxy
 		defaultClusterURL = proxyURL
-	} else {
-		if len(t.Attributes.Namespaces) == 0 {
-			log.Error(nil, map[string]interface{}{
-				"tenant": *t.ID,
-			}, "this tenant has no namespaces: %s", *t.ID)
-			return nil, errs.Errorf("app.UserService is malformed: no Namespaces (ID=%s)", *t.ID)
-		} else {
-			// use the cluster of the first namespace as the default
-			// strictly speaking, there should be no default
-			// having a default allows the new code to work with an old Auth or Tenant server
-			defaultClusterURL = *t.Attributes.Namespaces[0].ClusterURL
-		}
 	}
 
 	provider := &tenantURLProvider{

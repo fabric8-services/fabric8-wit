@@ -127,19 +127,10 @@ type route struct {
 	isCustomHost         bool
 }
 
-// BaseURLProvider provides the BASE URL (minimal path) of several APIs used in Deployments
-// for true multicluster support, every API in this inteface should take an environment namespace name.
+// BaseURLProvider provides the BASE URL (minimal path) of several APIs used in Deployments.
+// For true multicluster support, every API in this inteface should take an environment namespace name.
 // This hasn't been done, because the rest of fabric8 seems to assume the cluster is the same.
-// For most uses, the proxy server will hide this issue - but not for mertics/logging and console.
-
-/* typical URLS from tenant:
-"console-url":"https://console.starter-us-east-2a.openshift.com/console/",
-"logging-url":"https://console.starter-us-east-2a.openshift.com/console/",
-"metrics-url":"https://metrics.starter-us-east-2a.openshift.com/",
-*/
-
-// BaseURLProvider provides all URLS used by the deployments Kubernetes implementation
-// It takes into account proxies, Auth or Tenant services, etc.
+// For most uses, the proxy server will hide this issue - but not for metrics/logging and console.
 type BaseURLProvider interface {
 	GetAPIURL() (*string, error)
 	GetMetricsURL(envNS string) (*string, error)

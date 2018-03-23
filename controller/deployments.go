@@ -23,7 +23,7 @@ import (
 /*
  The deployments API can operate directly talking to Auth and OSO,
  or it can use the fabric8-tenant service as a replacement for fabric8-auth
- and the fabric8-froxy service as a replacement for direct OpenShift API calls.int64
+ and the fabric8-froxy service as a replacement for direct OpenShift API calls.
 
  If the tenant service is available, it will be used in place of auth.
  If the proxy service is available, it will be used in place of direct calls.
@@ -318,8 +318,8 @@ func (c *DeploymentsController) ShowDeploymentStats(ctx *app.ShowDeploymentStats
 
 	deploymentStats, err := kc.GetDeploymentStats(*kubeSpaceName, ctx.AppName, ctx.DeployName, startTime)
 	if err != nil {
-		//return errors.NewInternalError(ctx, errs.Wrapf(err, "could not retrieve deployment statistics for deployment '%s'", ctx.DeployName))
-		return err
+		return errors.NewInternalError(ctx,
+			errs.Wrapf(err, "could not retrieve deployment statistics for deployment '%s' in space '%s'", ctx.DeployName, *kubeSpaceName))
 	}
 	if deploymentStats == nil {
 		return errors.NewNotFoundError("deployment", ctx.DeployName)
