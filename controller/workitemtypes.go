@@ -40,6 +40,7 @@ func (c *WorkitemtypesController) List(ctx *app.ListWorkitemtypesContext) error 
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work item types"))
 		}
 		// Remove "planneritem" from the list of WITs
+		// TODO(kwk): This workaround can be removed because we have wit.CanConstruct now and the UI can filter on it.
 		witModels := []workitem.WorkItemType{}
 		for _, wit := range witModelsOrig {
 			if wit.ID != workitem.SystemPlannerItem {
@@ -47,6 +48,7 @@ func (c *WorkitemtypesController) List(ctx *app.ListWorkitemtypesContext) error 
 			}
 		}
 		return ctx.ConditionalEntities(witModels, c.config.GetCacheControlWorkItemTypes, func() error {
+			// TODO(kwk): Work item types are associated with space template, so use that here to list
 			// TEMP!!!!! Until Space Template can setup a Space, redirect to SystemSpace WITs if non are found
 			// for the space.
 			if len(witModels) == 0 {

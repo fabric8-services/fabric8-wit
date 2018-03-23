@@ -18,7 +18,9 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/rest"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -147,6 +149,39 @@ func (s *SpaceControllerTestSuite) TestCreateSpace() {
 		assert.NotNil(t, created.Data.Links.Self)
 		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "ok.payload.res.golden.json"), created)
 		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "ok.headers.res.golden.json"), res.Header())
+	})
+
+	s.T().Run("ok (with explicit template)", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1))
+		name := testsupport.CreateRandomValidTestName("TestSuccessCreateSpace-")
+		p := newCreateSpacePayload(&name, nil)
+
+		if p.Data.Relationships == nil {
+			p.Data.Relationships = &app.SpaceRelationships{}
+		}
+		p.Data.Relationships.SpaceTemplate = app.NewSpaceTemplateRelation(
+			fxt.SpaceTemplates[0].ID,
+			rest.AbsoluteURL(
+				&http.Request{Host: "api.service.domain.org"},
+				app.SpaceTemplateHref(fxt.SpaceTemplates[0].ID.String()),
+			),
+		)
+		svc, ctrl := s.SecuredController(testsupport.TestIdentity)
+		// when
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "ok_with_explicit_template.payload.req.golden.json"), p)
+		res, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
+		// then
+		require.NotNil(t, created.Data)
+		require.NotNil(t, created.Data.Attributes)
+		assert.NotNil(t, created.Data.Attributes.CreatedAt)
+		assert.NotNil(t, created.Data.Attributes.UpdatedAt)
+		require.NotNil(t, created.Data.Attributes.Name)
+		assert.Equal(t, name, *created.Data.Attributes.Name)
+		require.NotNil(t, created.Data.Links)
+		assert.NotNil(t, created.Data.Links.Self)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "ok_with_explicit_template.payload.res.golden.json"), created)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "ok_with_explicit_template.headers.res.golden.json"), res.Header())
 	})
 
 	s.T().Run("ok with default area", func(t *testing.T) {
