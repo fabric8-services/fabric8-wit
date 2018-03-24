@@ -630,7 +630,10 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 		var err error
 		wi.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
 		if err != nil {
-			return nil, errors.NewBadParameterError(fieldName, fieldValue)
+			if fieldDef.Required {
+				return nil, errors.NewBadParameterError(fieldName, fieldValue)
+			}
+			continue
 		}
 		if (fieldName == SystemAssignees || fieldName == SystemLabels) && fieldValue == nil {
 			delete(wi.Fields, fieldName)

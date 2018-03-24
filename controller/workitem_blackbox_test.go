@@ -2919,3 +2919,55 @@ func createSpaceWithDefaults(ctx context.Context, db *gorm.DB) (*space.Space, *i
 	}
 	return sp, itr, ar
 }
+
+func (s *WorkItem2Suite) TestCreateWorkItemForEveryWIT() {
+	// given one space created from each space template that can construct spaces
+	spaceTemplateRepo := spacetemplate.NewRepository(s.DB)
+	templates, err := spaceTemplateRepo.List(s.Ctx)
+	require.NoError(s.T(), err)
+
+	// within each space, create a work item of each constructable WIT available
+	// for that space's template
+	for _, templ := range templates {
+		s.T().Run(templ.Name, func(t *testing.T) {
+			if !templ.CanConstruct {
+				t.Skipf("skipping space template \"%s\" because it cannot construct spaces", templ.Name)
+			}
+			witRepo := workitem.NewWorkItemTypeRepository(s.DB)
+			fxt := tf.NewTestFixture(s.T(), s.DB,
+				tf.CreateWorkItemEnvironment(),
+				tf.Spaces(1, func(fxt *tf.TestFixture, idx int) error {
+					fxt.Spaces[idx].SpaceTemplateID = templ.ID
+					return nil
+				}),
+			)
+			wits, err := witRepo.List(s.Ctx, fxt.Spaces[0].SpaceTemplateID, nil, nil)
+			require.NoError(t, err)
+			for _, wit := range wits {
+				t.Run(wit.Name, func(t *testing.T) {
+					if !wit.CanConstruct {
+						t.Skipf("skipping WIT \"%s\" because it cannot construct WIs", wit.Name)
+					}
+					c := minimumRequiredCreateWithType(wit.ID)
+					c.Data.Attributes[workitem.SystemTitle] = "WI of type " + wit.Name
+					stateDef, ok := wit.Fields[workitem.SystemState]
+					require.True(t, ok, "failed to get state definition")
+					stateEnum, ok := stateDef.Type.(workitem.EnumType)
+					require.True(t, ok, "failed to get state enum from field definition")
+					require.NotEmpty(t, stateEnum.Values)
+					initialState, ok := stateEnum.Values[0].(string)
+					require.True(t, ok, "failed to get values from state enum")
+					c.Data.Attributes[workitem.SystemState] = initialState
+					// set custom space and see if WI gets custom space
+					c.Data.Relationships.Space.Data.ID = &fxt.Spaces[0].ID
+					_, item := test.CreateWorkitemsCreated(t, s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, &c)
+					require.NotNil(t, item)
+					require.NotNil(t, item.Data.Relationships)
+					require.NotNil(t, item.Data.Relationships.BaseType)
+					require.NotNil(t, item.Data.Relationships.BaseType.Data)
+					require.Equal(t, wit.ID, item.Data.Relationships.BaseType.Data.ID)
+				})
+			}
+		})
+	}
+}
