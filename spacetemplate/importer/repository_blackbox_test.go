@@ -144,7 +144,7 @@ func (s *repoSuite) TestImport() {
 				require.NoError(t, err)
 				require.Equal(t, templ.Template.Name, st.Name)
 				require.Equal(t, templ.Template.Description, st.Description)
-				require.Equal(t, templ.Template.CanConstruct, st.Description)
+				require.Equal(t, templ.Template.CanConstruct, st.CanConstruct)
 			})
 			t.Run("WIT has changed", func(t *testing.T) {
 				wit, err := s.witRepo.Load(s.Ctx, templ.WITs[0].ID)
