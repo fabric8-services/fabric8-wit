@@ -17,7 +17,8 @@ CREATE TABLE space_templates (
     id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     version integer DEFAULT 0 NOT NULL,
     name text NOT NULL CHECK(name <> ''),
-    description text
+    description text,
+    can_construct boolean DEFAULT TRUE NOT NULL
 );
 CREATE UNIQUE INDEX space_templates_name_uidx ON space_templates (name) WHERE deleted_at IS NULL;
 

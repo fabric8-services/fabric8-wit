@@ -212,9 +212,10 @@ func convertSpaceTemplateToModel(t *testing.T, appSpaceTemplate app.SpaceTemplat
 	// require.Nil(t, err, "failed to decode template from base64")
 
 	return spacetemplate.SpaceTemplate{
-		ID:          *appSpaceTemplate.ID,
-		Name:        *appSpaceTemplate.Attributes.Name,
-		Description: &desc,
+		ID:           *appSpaceTemplate.ID,
+		Name:         *appSpaceTemplate.Attributes.Name,
+		Description:  &desc,
+		CanConstruct: *appSpaceTemplate.Attributes.CanConstruct,
 		// Template:    string(bs),
 		Version: *appSpaceTemplate.Attributes.Version,
 		Lifecycle: gormsupport.Lifecycle{

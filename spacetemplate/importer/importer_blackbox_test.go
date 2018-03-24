@@ -66,12 +66,40 @@ func Test_ImportHelper_Validate(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
 	t.Run("valid", func(t *testing.T) {
+		t.Run("base template", func(t *testing.T) {
+			t.Parallel()
+			// given
+			templ, err := importer.BaseTemplate()
+			// then
+			require.NoError(t, err)
+			require.False(t, templ.Template.CanConstruct)
+			require.Equal(t, spacetemplate.SystemBaseTemplateID, templ.Template.ID)
+			witsToBeFound := id.Map{
+				workitem.SystemPlannerItem: {},
+			}
+			for _, wit := range templ.WITs {
+				delete(witsToBeFound, wit.ID)
+			}
+			require.Len(t, witsToBeFound, 0, "these work item types where not found in the base template: %+v", witsToBeFound)
+			wiltsToBeFound := id.Map{
+				link.SystemWorkItemLinkPlannerItemRelatedID: {},
+				link.SystemWorkItemLinkTypeBugBlockerID:     {},
+				link.SystemWorkItemLinkTypeParentChildID:    {},
+			}
+			for _, wilt := range templ.WILTs {
+				delete(wiltsToBeFound, wilt.ID)
+			}
+			require.Len(t, wiltsToBeFound, 0, "these work item link types where not found in the base template: %+v", wiltsToBeFound)
+			require.NoError(t, templ.Validate())
+		})
+
 		t.Run("legacy template", func(t *testing.T) {
 			t.Parallel()
 			// given
 			templ, err := importer.LegacyTemplate()
 			// then
 			require.NoError(t, err)
+			require.True(t, templ.Template.CanConstruct)
 			require.Equal(t, spacetemplate.SystemLegacyTemplateID, templ.Template.ID)
 			witsToBeFound := id.Map{
 				workitem.SystemTask:             {},
@@ -87,6 +115,16 @@ func Test_ImportHelper_Validate(t *testing.T) {
 				delete(witsToBeFound, wit.ID)
 			}
 			require.Len(t, witsToBeFound, 0, "these work item types where not found in the legacy template: %+v", witsToBeFound)
+			witgsToBeFound := map[string]struct{}{
+				"Scenarios":    {},
+				"Experiences":  {},
+				"Requirements": {},
+				"Execution":    {},
+			}
+			for _, witg := range templ.WITGs {
+				delete(witgsToBeFound, witg.Name)
+			}
+			require.Len(t, witgsToBeFound, 0, "these work item type groups where not found in the legacy template: %+v", witgsToBeFound)
 			require.NoError(t, templ.Validate())
 		})
 
@@ -96,6 +134,7 @@ func Test_ImportHelper_Validate(t *testing.T) {
 			templ, err := importer.ScrumTemplate()
 			// then
 			require.NoError(t, err)
+			require.True(t, templ.Template.CanConstruct)
 			require.Equal(t, spacetemplate.SystemScrumTemplateID, templ.Template.ID)
 			witsToBeFound := map[string]struct{}{
 				"Scrum Common Type":    {},
@@ -112,6 +151,16 @@ func Test_ImportHelper_Validate(t *testing.T) {
 				delete(witsToBeFound, wit.Name)
 			}
 			require.Len(t, witsToBeFound, 0, "these work item types where not found in the scrum template: %+v", witsToBeFound)
+			witgsToBeFound := map[string]struct{}{
+				"Epics":         {},
+				"Features":      {},
+				"Backlog items": {},
+				"Execution":     {},
+			}
+			for _, witg := range templ.WITGs {
+				delete(witgsToBeFound, witg.Name)
+			}
+			require.Len(t, witgsToBeFound, 0, "these work item type groups where not found in the scrum template: %+v", witgsToBeFound)
 			require.NoError(t, templ.Validate())
 		})
 
@@ -128,6 +177,7 @@ func Test_ImportHelper_Validate(t *testing.T) {
 			actual, err := importer.FromString(yaml)
 			// then
 			require.NoError(t, err)
+			require.True(t, actual.Template.CanConstruct)
 			require.Equal(t, spaceTemplateID, actual.Template.ID)
 			require.NoError(t, actual.Validate())
 			expected := getValidTestTemplateParsed(t, spaceTemplateID, witID, wiltID, witgID)
@@ -179,6 +229,7 @@ space_template:
   id: "` + spaceTemplateID.String() + `"
   name: test template
   description: test template description
+  can_construct: yes
 work_item_types:
 - id: "` + witID.String() + `"
   description: a basic work item type
@@ -238,9 +289,10 @@ work_item_type_groups:
 func getValidTestTemplateParsed(t *testing.T, spaceTemplateID, witID, wiltID uuid.UUID, witgID uuid.UUID) importer.ImportHelper {
 	expected := importer.ImportHelper{
 		Template: spacetemplate.SpaceTemplate{
-			ID:          spaceTemplateID,
-			Name:        "test template",
-			Description: ptr.String("test template description"),
+			ID:           spaceTemplateID,
+			Name:         "test template",
+			Description:  ptr.String("test template description"),
+			CanConstruct: true,
 		},
 		WITs: []*workitem.WorkItemType{
 			{

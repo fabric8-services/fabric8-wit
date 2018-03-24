@@ -26,7 +26,7 @@ type SpaceTemplate struct {
 	Version               int       `json:"version"`
 	Name                  string    `json:"name"`
 	Description           *string   `json:"description,omitempty"`
-	// TODO(kwk): Add field to indicate that this space template should not appear in the UI? (for the Base template)
+	CanConstruct          bool      `gorm:"can_construct" json:"can_construct"`
 }
 
 // Validate ensures that all inner-document references of the given space
@@ -76,6 +76,9 @@ func (s SpaceTemplate) Equal(u convert.Equaler) bool {
 		return false
 	}
 	if s.Version != other.Version {
+		return false
+	}
+	if s.CanConstruct != other.CanConstruct {
 		return false
 	}
 	if s.Description == nil && other.Description == nil {

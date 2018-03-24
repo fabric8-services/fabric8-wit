@@ -116,11 +116,13 @@ func (s *repoSuite) TestImport() {
 			witgID := uuid.NewV4()
 			oldTempl := getValidTestTemplateParsed(t, spaceTemplateID, witID, wiltID, witgID)
 			oldTempl.Template.Name = "old name for space template " + spaceTemplateID.String()
+			templ.Template.CanConstruct = true
 			_, err := s.importerRepo.Import(s.Ctx, oldTempl)
 			require.NoError(t, err)
 			// Import it once more but this time with changes
 			templ := getValidTestTemplateParsed(t, spaceTemplateID, witID, wiltID, witgID)
 			templ.Template.Name = "new name for space template " + spaceTemplateID.String()
+			templ.Template.CanConstruct = false
 			templ.Template.Description = ptr.String("new description")
 			templ.WITs[0].Name = "new name for WIT " + templ.WITs[0].ID.String()
 			templ.WILTs[0].Name = "new name for WILT " + templ.WILTs[0].ID.String()
@@ -137,11 +139,12 @@ func (s *repoSuite) TestImport() {
 			_, err = s.importerRepo.Import(s.Ctx, templ)
 			// then
 			require.NoError(t, err)
-			t.Run("template name and description has changed", func(t *testing.T) {
+			t.Run("template name, description and can_construct has changed", func(t *testing.T) {
 				st, err := s.spaceTemplateRepo.Load(s.Ctx, templ.Template.ID)
 				require.NoError(t, err)
 				require.Equal(t, templ.Template.Name, st.Name)
 				require.Equal(t, templ.Template.Description, st.Description)
+				require.Equal(t, templ.Template.CanConstruct, st.Description)
 			})
 			t.Run("WIT has changed", func(t *testing.T) {
 				wit, err := s.witRepo.Load(s.Ctx, templ.WITs[0].ID)

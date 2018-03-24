@@ -77,6 +77,27 @@ func (s *SpaceRepositoryTestSuite) TestCreate() {
 		require.Nil(t, sp)
 		require.IsType(t, errors.DataConflictError{}, err, "error was %v", err)
 	})
+	s.T().Run("fail - template cannot create space", func(t *testing.T) {
+		// given a space template that cannot create spaces
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.Identities(1),
+			tf.SpaceTemplates(1, func(fxt *tf.TestFixture, idx int) error {
+				fxt.SpaceTemplates[idx].CanConstruct = false
+				return nil
+			}))
+		// when
+		newSpace := space.Space{
+			ID:              uuid.NewV4(),
+			Name:            testsupport.CreateRandomValidTestName("test space"),
+			OwnerID:         fxt.Identities[0].ID,
+			SpaceTemplateID: fxt.SpaceTemplates[0].ID,
+		}
+		// then
+		sp, err := s.repo.Create(context.Background(), &newSpace)
+		require.Error(t, err)
+		require.IsType(t, errors.ForbiddenError{}, err)
+		require.Nil(t, sp)
+	})
 }
 
 func (s *SpaceRepositoryTestSuite) TestLoad() {

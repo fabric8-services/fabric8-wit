@@ -5,6 +5,7 @@ space_template:
   description: >
     This is a development methodology inspired by Scenario-Driven-Planning but
     this is not the real thing.
+  can_construct: yes
 
 work_item_types:
 

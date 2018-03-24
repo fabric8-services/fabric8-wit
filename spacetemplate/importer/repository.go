@@ -67,6 +67,7 @@ func (r *GormRepository) Import(ctx context.Context, s ImportHelper) (*ImportHel
 		// Update space template
 		loadedSpaceTemplate.Name = s.Template.Name
 		loadedSpaceTemplate.Description = s.Template.Description
+		loadedSpaceTemplate.CanConstruct = s.Template.CanConstruct
 		if err := loadedSpaceTemplate.Validate(); err != nil {
 			log.Error(ctx, map[string]interface{}{"space_template": loadedSpaceTemplate, "err": err}, "update space template is not valid")
 			return nil, errs.Wrapf(err, "update space template is not valid %s", s.Template.ID)

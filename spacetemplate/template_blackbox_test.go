@@ -18,9 +18,10 @@ func Test_SpaceTemplate_Equal(t *testing.T) {
 
 	expectedID := uuid.FromStringOrNil("83a6b035-8cb2-4952-b0a2-f4831099726c")
 	expected := spacetemplate.SpaceTemplate{
-		ID:          expectedID,
-		Name:        "empty template " + expectedID.String(),
-		Description: ptr.String("description for empty template " + expectedID.String()),
+		ID:           expectedID,
+		Name:         "empty template " + expectedID.String(),
+		Description:  ptr.String("description for empty template " + expectedID.String()),
+		CanConstruct: true,
 	}
 
 	t.Run("different types", func(t *testing.T) {
@@ -46,6 +47,13 @@ func Test_SpaceTemplate_Equal(t *testing.T) {
 		t.Parallel()
 		actual := expected
 		actual.Name = "something else"
+		assert.False(t, expected.Equal(actual))
+	})
+
+	t.Run("can construct", func(t *testing.T) {
+		t.Parallel()
+		actual := expected
+		actual.CanConstruct = false
 		assert.False(t, expected.Equal(actual))
 	})
 

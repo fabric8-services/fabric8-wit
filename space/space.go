@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fabric8-services/fabric8-wit/spacetemplate"
+
 	"github.com/fabric8-services/fabric8-wit/application/repository"
 	"github.com/fabric8-services/fabric8-wit/convert"
 	"github.com/fabric8-services/fabric8-wit/errors"
@@ -260,6 +262,16 @@ func (r *GormRepository) Create(ctx context.Context, space *Space) (*Space, erro
 	// We might want to create a space with a specific ID, e.g. space.SystemSpace
 	if space.ID == uuid.Nil {
 		space.ID = uuid.NewV4()
+	}
+
+	// Check if the used space template can create spaces
+	spaceTemplateRepo := spacetemplate.NewRepository(r.db)
+	templ, err := spaceTemplateRepo.Load(ctx, space.SpaceTemplateID)
+	if err != nil {
+		return nil, errors.NewNotFoundError("space template", space.SpaceTemplateID.String())
+	}
+	if !templ.CanConstruct {
+		return nil, errors.NewForbiddenError(fmt.Sprintf("space template \"%s\" (ID: %s) cannot create spaces", templ.Name, templ.ID))
 	}
 
 	tx := r.db.Create(space)

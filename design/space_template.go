@@ -49,7 +49,7 @@ var spaceTemplateAttributes = a.Type("SpaceTemplateAttributes", func() {
 	a.Attribute("version", d.Integer, "version for optimistic concurrency control (optional during creating)", func() {
 		a.Example(23)
 	})
-	a.Attribute("isBaseTemplate", d.Boolean, "Boolean value denoting if this is a Base Template")
+	a.Attribute("can-construct", d.Boolean, "Whether or not this space template type is supposed to be used for creating spaces directly.")
 })
 
 var spaceTemplateRelationships = a.Type("SpaceTemplateRelationships", func() {
