@@ -67,8 +67,8 @@ func ConvertEvent(appl application.Application, request *http.Request, wiEvent e
 		Name:      wiEvent.Name,
 		Modifier:  wiEvent.Modifier,
 		Timestamp: wiEvent.Timestamp,
-		Old:       &wiEvent.Old,
-		New:       &wiEvent.New,
+		OldValue:  &wiEvent.Old,
+		NewValue:  &wiEvent.New,
 	}
 	e := &app.Event{
 		Type:       eventType,

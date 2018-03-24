@@ -29,10 +29,10 @@ var eventAttributes = a.Type("EventAttributes", func() {
 	a.Attribute("modifier", d.UUID, "The labels IDs. Only for `labeled` & `unlabeled` events.", func() {
 		a.Example("813a456e-1c8a-48df-ac15-84065ee039f7")
 	})
-	a.Attribute("old", d.String, "The user who was assigned to (or unassigned from). Only for 'assigned' and 'unassigned' events.", func() {
+	a.Attribute("oldValue", d.String, "The user who was assigned to (or unassigned from). Only for 'assigned' and 'unassigned' events.", func() {
 		a.Example("813a456e-1c8a-48df-ac15-84065ee039f7")
 	})
-	a.Attribute("new", d.String, "The user who performed the assignment (or unassignment). Only for 'assigned' and 'unassigned' events..", func() {
+	a.Attribute("newValue", d.String, "The user who performed the assignment (or unassignment). Only for 'assigned' and 'unassigned' events..", func() {
 		a.Example("813a456e-1c8a-48df-ac15-84065ee039f7")
 	})
 	a.Required("timestamp", "name", "modifier")
