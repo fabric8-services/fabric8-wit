@@ -2,13 +2,23 @@
   "data": [
     {
       "attributes": {
-        "modifier": "00000000-0000-0000-0000-000000000001",
         "name": "assignees",
         "newValue": "00000000-0000-0000-0000-000000000001",
         "oldValue": "",
         "timestamp": "0001-01-01T00:00:00Z"
       },
       "id": "00000000-0000-0000-0000-000000000002",
+      "relationships": {
+        "modifier": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000001",
+            "links": {
+              "related": "http:///api/users/00000000-0000-0000-0000-000000000001"
+            },
+            "type": "identities"
+          }
+        }
+      },
       "type": "events"
     }
   ]

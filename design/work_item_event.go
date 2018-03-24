@@ -14,6 +14,7 @@ var event = a.Type("Event", func() {
 		a.Example("40bbdd3d-8b5d-4fd6-ac90-7236b669af04")
 	})
 	a.Attribute("attributes", eventAttributes)
+	a.Attribute("relationships", eventRelationships)
 	a.Attribute("links", genericLinks)
 	a.Required("type")
 })
@@ -26,16 +27,17 @@ var eventAttributes = a.Type("EventAttributes", func() {
 	a.Attribute("name", d.String, "The name of the event occured", func() {
 		a.Example("closed")
 	})
-	a.Attribute("modifier", d.UUID, "The labels IDs. Only for `labeled` & `unlabeled` events.", func() {
-		a.Example("813a456e-1c8a-48df-ac15-84065ee039f7")
-	})
 	a.Attribute("oldValue", d.String, "The user who was assigned to (or unassigned from). Only for 'assigned' and 'unassigned' events.", func() {
 		a.Example("813a456e-1c8a-48df-ac15-84065ee039f7")
 	})
 	a.Attribute("newValue", d.String, "The user who performed the assignment (or unassignment). Only for 'assigned' and 'unassigned' events..", func() {
 		a.Example("813a456e-1c8a-48df-ac15-84065ee039f7")
 	})
-	a.Required("timestamp", "name", "modifier")
+	a.Required("timestamp", "name")
+})
+
+var eventRelationships = a.Type("EventRelations", func() {
+	a.Attribute("modifier", relationGeneric, "This defines the modifier of the event")
 })
 
 var eventList = JSONList(

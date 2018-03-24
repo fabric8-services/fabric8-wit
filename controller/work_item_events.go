@@ -1,11 +1,14 @@
 package controller
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
+	"github.com/fabric8-services/fabric8-wit/ptr"
+	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/workitem/event"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
@@ -65,15 +68,26 @@ func ConvertEvent(appl application.Application, request *http.Request, wiEvent e
 	eventType := event.APIStringTypeEvents
 	eventAttributes = &app.EventAttributes{
 		Name:      wiEvent.Name,
-		Modifier:  wiEvent.Modifier,
 		Timestamp: wiEvent.Timestamp,
 		OldValue:  &wiEvent.Old,
 		NewValue:  &wiEvent.New,
 	}
+	relatedCreatorLink := rest.AbsoluteURL(request, fmt.Sprintf("%s/%s", usersEndpoint, wiEvent.Modifier.String()))
 	e := &app.Event{
 		Type:       eventType,
 		ID:         &wiEvent.ID,
 		Attributes: eventAttributes,
+		Relationships: &app.EventRelations{
+			Modifier: &app.RelationGeneric{
+				Data: &app.GenericData{
+					Type: ptr.String(APIStringTypeUser),
+					ID:   ptr.String(wiEvent.Modifier.String()),
+					Links: &app.GenericLinks{
+						Related: &relatedCreatorLink,
+					},
+				},
+			},
+		},
 	}
 	return e
 }
