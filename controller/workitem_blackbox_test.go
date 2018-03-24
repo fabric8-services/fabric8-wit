@@ -2920,7 +2920,7 @@ func createSpaceWithDefaults(ctx context.Context, db *gorm.DB) (*space.Space, *i
 	return sp, itr, ar
 }
 
-func (s *WorkItem2Suite) TestCreateWorkItemForEveryWIT() {
+func (s *WorkItem2Suite) TestCreateAndUpdateWorkItemForEveryWIT() {
 	// given one space created from each space template that can construct spaces
 	spaceTemplateRepo := spacetemplate.NewRepository(s.DB)
 	templates, err := spaceTemplateRepo.List(s.Ctx)
@@ -2948,6 +2948,7 @@ func (s *WorkItem2Suite) TestCreateWorkItemForEveryWIT() {
 					if !wit.CanConstruct {
 						t.Skipf("skipping WIT \"%s\" because it cannot construct WIs", wit.Name)
 					}
+					var id uuid.UUID
 					c := minimumRequiredCreateWithType(wit.ID)
 					c.Data.Attributes[workitem.SystemTitle] = "WI of type " + wit.Name
 					stateDef, ok := wit.Fields[workitem.SystemState]
@@ -2966,6 +2967,13 @@ func (s *WorkItem2Suite) TestCreateWorkItemForEveryWIT() {
 					require.NotNil(t, item.Data.Relationships.BaseType)
 					require.NotNil(t, item.Data.Relationships.BaseType.Data)
 					require.Equal(t, wit.ID, item.Data.Relationships.BaseType.Data.ID)
+					id = *item.Data.ID
+					updatePayload := minimumRequiredUpdatePayload()
+					updatePayload.Data.ID = &id
+					updatePayload.Data.Attributes = item.Data.Attributes
+					updatePayload.Data.Attributes[workitem.SystemTitle] = "NEW TITLE"
+					_, updated := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, id, &updatePayload)
+					require.NotNil(t, updated)
 				})
 			}
 		})
