@@ -15,13 +15,13 @@ import (
 type WorkitemtypesController struct {
 	*goa.Controller
 	db     application.DB
-	config WorkItemControllerConfiguration
+	config WorkItemTypeControllerConfiguration
 }
 
 // NewWorkitemtypesController creates a workitemtype controller.
-func NewWorkitemtypesController(service *goa.Service, db application.DB, config WorkItemControllerConfiguration) *WorkitemtypesController {
+func NewWorkitemtypesController(service *goa.Service, db application.DB, config WorkItemTypeControllerConfiguration) *WorkitemtypesController {
 	return &WorkitemtypesController{
-		Controller: service.NewController("WorkitemtypeController"),
+		Controller: service.NewController("WorkitemtypesController"),
 		db:         db,
 		config:     config,
 	}

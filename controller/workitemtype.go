@@ -19,16 +19,16 @@ import (
 type WorkitemtypeController struct {
 	*goa.Controller
 	db     application.DB
-	config WorkItemControllerConfiguration
+	config WorkItemTypeControllerConfiguration
 }
 
-type WorkItemControllerConfiguration interface {
+type WorkItemTypeControllerConfiguration interface {
 	GetCacheControlWorkItemTypes() string
 	GetCacheControlWorkItemType() string
 }
 
 // NewWorkitemtypeController creates a workitemtype controller.
-func NewWorkitemtypeController(service *goa.Service, db application.DB, config WorkItemControllerConfiguration) *WorkitemtypeController {
+func NewWorkitemtypeController(service *goa.Service, db application.DB, config WorkItemTypeControllerConfiguration) *WorkitemtypeController {
 	return &WorkitemtypeController{
 		Controller: service.NewController("WorkitemtypeController"),
 		db:         db,

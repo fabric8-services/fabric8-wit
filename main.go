@@ -214,6 +214,10 @@ func main() {
 	workitemtypeCtrl := controller.NewWorkitemtypeController(service, appDB, config)
 	app.MountWorkitemtypeController(service, workitemtypeCtrl)
 
+	// Mount "workitemtypes" controller
+	workitemtypesCtrl := controller.NewWorkitemtypesController(service, appDB, config)
+	app.MountWorkitemtypesController(service, workitemtypesCtrl)
+
 	// Mount "work item link category" controller
 	workItemLinkCategoryCtrl := controller.NewWorkItemLinkCategoryController(service, appDB)
 	app.MountWorkItemLinkCategoryController(service, workItemLinkCategoryCtrl)
@@ -221,6 +225,10 @@ func main() {
 	// Mount "work item link type" controller
 	workItemLinkTypeCtrl := controller.NewWorkItemLinkTypeController(service, appDB, config)
 	app.MountWorkItemLinkTypeController(service, workItemLinkTypeCtrl)
+
+	// Mount "work item link types" controller
+	workItemLinkTypesCtrl := controller.NewWorkItemLinkTypesController(service, appDB, config)
+	app.MountWorkItemLinkTypesController(service, workItemLinkTypesCtrl)
 
 	// Mount "work item link" controller
 	workItemLinkCtrl := controller.NewWorkItemLinkController(service, appDB, config)
