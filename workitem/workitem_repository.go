@@ -627,10 +627,6 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 			continue
 		}
 		fieldValue := fields[fieldName]
-		// It is okay to not specify a field if it is not required.
-		if fieldValue == nil && !fieldDef.Required {
-			continue
-		}
 		var err error
 		wi.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
 		if err != nil {

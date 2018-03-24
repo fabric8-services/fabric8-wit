@@ -93,6 +93,9 @@ func (f FieldDefinition) Equal(u convert.Equaler) bool {
 
 // ConvertToModel converts a field value for use in the persistence layer
 func (f FieldDefinition) ConvertToModel(name string, value interface{}) (interface{}, error) {
+	if !f.Required && value == nil {
+		return nil, nil
+	}
 	if f.Required {
 		if value == nil {
 			return nil, fmt.Errorf("Value %s must not be nil", name)
