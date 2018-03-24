@@ -137,8 +137,8 @@ func (g *GormBase) Labels() label.Repository {
 }
 
 // Events returns a events repository
-func (g *GormBase) Events() event.WorkItemEventRepository {
-	return event.NewWorkItemEventRepository(g.db)
+func (g *GormBase) Events() event.Repository {
+	return event.NewEventRepository(g.db)
 }
 
 // Queries returns a queries repository

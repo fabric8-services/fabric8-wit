@@ -11,42 +11,47 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-// WorkItemEventsController implements the work_item_events resource.
-type WorkItemEventsController struct {
+// EventsController implements the work_item_events resource.
+type EventsController struct {
 	*goa.Controller
 	db     application.DB
-	config WorkItemEventsControllerConfig
+	config EventsControllerConfig
 }
 
-// WorkItemEventsControllerConfig the config interface for the WorkitemEventsController
-type WorkItemEventsControllerConfig interface {
-	//GetCacheControlWorkItemEvents() string
-	//GetCacheControlWorkItemEvent() string
+// EventsControllerConfig the config interface for the WorkitemEventsController
+type EventsControllerConfig interface {
+	GetCacheControlEvents() string
+	//GetCacheControlEvent() string
 }
 
-// NewWorkItemEventsController creates a work_item_events controller.
-func NewWorkItemEventsController(service *goa.Service, db application.DB, config WorkItemEventsControllerConfig) *WorkItemEventsController {
-	return &WorkItemEventsController{
-		Controller: service.NewController("WorkItemEventsController"),
+// NewEventsController creates a work_item_events controller.
+func NewEventsController(service *goa.Service, db application.DB, config EventsControllerConfig) *EventsController {
+	return &EventsController{
+		Controller: service.NewController("EventsController"),
 		db:         db,
 		config:     config}
 }
 
 // List runs the list action.
-func (c *WorkItemEventsController) List(ctx *app.ListWorkItemEventsContext) error {
-	return application.Transactional(c.db, func(appl application.Application) error {
-		eventList, err := appl.Events().List(ctx, ctx.WiID)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
+func (c *EventsController) List(ctx *app.ListWorkItemEventsContext) error {
+	var eventList []event.Event
+	err := application.Transactional(c.db, func(appl application.Application) error {
+		var err error
+		eventList, err = appl.Events().List(ctx, ctx.WiID)
+		return err
+	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return ctx.ConditionalEntities(eventList, c.config.GetCacheControlEvents, func() error {
 		res := &app.EventList{}
-		res.Data = ConvertEvents(appl, ctx.Request, eventList, ctx.WiID)
+		res.Data = ConvertEvents(c.db, ctx.Request, eventList, ctx.WiID)
 		return ctx.OK(res)
 	})
 }
 
 // ConvertEvents from internal to external REST representation
-func ConvertEvents(appl application.Application, request *http.Request, eventList []event.WorkItemEvent, wiID uuid.UUID) []*app.Event {
+func ConvertEvents(appl application.Application, request *http.Request, eventList []event.Event, wiID uuid.UUID) []*app.Event {
 	var ls = []*app.Event{}
 	for _, i := range eventList {
 		ls = append(ls, ConvertEvent(appl, request, i, wiID))
@@ -55,7 +60,7 @@ func ConvertEvents(appl application.Application, request *http.Request, eventLis
 }
 
 // ConvertEvent converts from internal to external REST representation
-func ConvertEvent(appl application.Application, request *http.Request, wiEvent event.WorkItemEvent, wiID uuid.UUID) *app.Event {
+func ConvertEvent(appl application.Application, request *http.Request, wiEvent event.Event, wiID uuid.UUID) *app.Event {
 	var eventAttributes *app.EventAttributes
 	eventType := event.APIStringTypeEvents
 	eventAttributes = &app.EventAttributes{

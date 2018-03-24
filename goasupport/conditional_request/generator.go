@@ -83,6 +83,7 @@ func init() {
 		"commentdsl":      "github.com/fabric8-services/fabric8-wit/comment",
 		"labeldsl":        "github.com/fabric8-services/fabric8-wit/label",
 		"querydsl":        "github.com/fabric8-services/fabric8-wit/query",
+		"eventdsl":        "github.com/fabric8-services/fabric8-wit/workitem/event",
 	}
 	// model structures and their corresponding package alias
 	structPackages = map[string]string{
@@ -98,6 +99,7 @@ func init() {
 		"Comment":          "commentdsl",
 		"Label":            "labeldsl",
 		"Query":            "querydsl",
+		"Event":            "eventdsl",
 	}
 	// structures to ignore during code generation (mostly because they correspond to model structures which were already taken into account)
 	ignoredStructs = []string{

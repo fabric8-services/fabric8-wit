@@ -17,7 +17,7 @@ import (
 type eventRepoBlackBoxTest struct {
 	gormtestsupport.DBTestSuite
 	wiRepo      workitem.WorkItemRepository
-	wiEventRepo event.WorkItemEventRepository
+	wiEventRepo event.Repository
 }
 
 func TestRunEventRepoBlackBoxTest(t *testing.T) {
@@ -30,7 +30,7 @@ func TestRunEventRepoBlackBoxTest(t *testing.T) {
 func (s *eventRepoBlackBoxTest) SetupTest() {
 	s.DBTestSuite.SetupTest()
 	s.wiRepo = workitem.NewWorkItemRepository(s.DB)
-	s.wiEventRepo = event.NewWorkItemEventRepository(s.DB)
+	s.wiEventRepo = event.NewEventRepository(s.DB)
 }
 
 func (s *eventRepoBlackBoxTest) TestList() {

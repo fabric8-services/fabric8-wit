@@ -34,7 +34,7 @@ type Application interface {
 	Codebases() codebase.Repository
 	Labels() label.Repository
 	Queries() query.Repository
-	Events() event.WorkItemEventRepository
+	Events() event.Repository
 }
 
 // A Transaction abstracts a database transaction. The repositories created for the transaction object make changes inside the the transaction

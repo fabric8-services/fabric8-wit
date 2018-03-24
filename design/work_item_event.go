@@ -45,16 +45,41 @@ var eventList = JSONList(
 	nil,
 )
 
+var eventSingle = JSONSingle(
+	"Event", "Holds a single Event",
+	event,
+	nil)
+
+var _ = a.Resource("events", func() {
+	a.BasePath("/events")
+
+	a.Action("show", func() {
+		a.Routing(
+			a.GET("/:eventId"),
+		)
+		a.Params(func() {
+			a.Param("eventId", d.UUID, "ID of the event")
+		})
+		a.Description("Retrieve event for the given id.")
+		a.UseTrait("conditional")
+		a.Response(d.OK, eventSingle)
+		a.Response(d.NotModified)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+	})
+
+})
+
 var _ = a.Resource("work_item_events", func() {
 	a.Parent("workitem")
-	a.BasePath("events")
 
 	a.Action("list", func() {
 		a.Routing(
-			a.GET(""),
+			a.GET("events"),
 		)
 		a.Description("List events associated with the given work item")
-		//a.UseTrait("conditional") // Refer: goasupport/conditional_request/generator.go
+		a.UseTrait("conditional") // Refer: goasupport/conditional_request/generator.go
 		a.Response(d.OK, eventList)
 		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)

@@ -12,9 +12,8 @@ import (
 	"github.com/fabric8-services/fabric8-wit/workitem"
 )
 
+// event types
 const (
-
-	// APIStringTypeEvents is the name of event type
 	APIStringTypeEvents = "events"
 
 	Assignees = "assignees"
@@ -23,15 +22,15 @@ const (
 	Iteration = "iteration"
 )
 
-// WorkItemEventRepository encapsulates retrieval of work item events
-type WorkItemEventRepository interface {
+// Repository encapsulates retrieval of work item events
+type Repository interface {
 	//repository.Exister
-	List(ctx context.Context, wiID uuid.UUID) ([]WorkItemEvent, error)
+	List(ctx context.Context, wiID uuid.UUID) ([]Event, error)
 }
 
-// NewWorkItemEventRepository creates a work item event repository based on gorm
-func NewWorkItemEventRepository(db *gorm.DB) *GormWorkItemEventRepository {
-	return &GormWorkItemEventRepository{
+// NewEventRepository creates a work item event repository based on gorm
+func NewEventRepository(db *gorm.DB) *GormEventRepository {
+	return &GormEventRepository{
 		db:               db,
 		workItemRepo:     workitem.NewWorkItemRepository(db),
 		wiRevisionRepo:   workitem.NewRevisionRepository(db),
@@ -40,8 +39,8 @@ func NewWorkItemEventRepository(db *gorm.DB) *GormWorkItemEventRepository {
 	}
 }
 
-// GormWorkItemEventRepository represents the Gorm model
-type GormWorkItemEventRepository struct {
+// GormEventRepository represents the Gorm model
+type GormEventRepository struct {
 	db               *gorm.DB
 	workItemRepo     *workitem.GormWorkItemRepository
 	wiRevisionRepo   *workitem.GormRevisionRepository
@@ -50,13 +49,13 @@ type GormWorkItemEventRepository struct {
 }
 
 // List return the events
-func (r *GormWorkItemEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]WorkItemEvent, error) {
+func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event, error) {
 	revisionList, err := r.wiRevisionRepo.List(ctx, wiID)
 	if err != nil {
 		return nil, errs.Wrapf(err, "error during fetching event list")
 	}
 	if revisionList == nil {
-		return []WorkItemEvent{}, nil
+		return []Event{}, nil
 	}
 	wi, err := r.workItemRepo.LoadByID(ctx, wiID)
 	if err != nil {
@@ -67,7 +66,7 @@ func (r *GormWorkItemEventRepository) List(ctx context.Context, wiID uuid.UUID) 
 		return nil, errs.Wrapf(err, "error during fetching event list")
 	}
 
-	eventList := []WorkItemEvent{}
+	eventList := []Event{}
 	for k := 1; k < len(revisionList); k++ {
 		modifierID, err := r.identityRepo.Load(ctx, revisionList[k].ModifierIdentity)
 		if err != nil {
@@ -100,7 +99,7 @@ func (r *GormWorkItemEventRepository) List(ctx context.Context, wiID uuid.UUID) 
 
 				}
 				if len(p) != 0 || len(n) != 0 {
-					wie := WorkItemEvent{
+					wie := Event{
 						ID:        revisionList[k].ID,
 						Name:      Assignees,
 						Timestamp: revisionList[k].Time,
@@ -114,7 +113,7 @@ func (r *GormWorkItemEventRepository) List(ctx context.Context, wiID uuid.UUID) 
 				previousState := revisionList[k-1].WorkItemFields[workitem.SystemState].(string)
 				newState := revisionList[k].WorkItemFields[workitem.SystemState].(string)
 				if previousState != newState {
-					wie := WorkItemEvent{
+					wie := Event{
 						ID:        revisionList[k].ID,
 						Name:      State,
 						Timestamp: revisionList[k].Time,
@@ -149,7 +148,7 @@ func (r *GormWorkItemEventRepository) List(ctx context.Context, wiID uuid.UUID) 
 
 				}
 				if len(p) != 0 || len(n) != 0 {
-					wie := WorkItemEvent{
+					wie := Event{
 						ID:        revisionList[k].ID,
 						Name:      Labels,
 						Timestamp: revisionList[k].Time,
@@ -180,7 +179,7 @@ func (r *GormWorkItemEventRepository) List(ctx context.Context, wiID uuid.UUID) 
 					n = newIteration.(string)
 				}
 				if previousIteration != newIteration {
-					wie := WorkItemEvent{
+					wie := Event{
 						ID:        revisionList[k].ID,
 						Name:      Iteration,
 						Timestamp: revisionList[k].Time,
