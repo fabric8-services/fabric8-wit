@@ -116,7 +116,7 @@ func (s *repoSuite) TestImport() {
 			witgID := uuid.NewV4()
 			oldTempl := getValidTestTemplateParsed(t, spaceTemplateID, witID, wiltID, witgID)
 			oldTempl.Template.Name = "old name for space template " + spaceTemplateID.String()
-			templ.Template.CanConstruct = true
+			oldTempl.Template.CanConstruct = true
 			_, err := s.importerRepo.Import(s.Ctx, oldTempl)
 			require.NoError(t, err)
 			// Import it once more but this time with changes
