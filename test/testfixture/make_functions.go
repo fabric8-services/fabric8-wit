@@ -33,7 +33,7 @@ func makeIdentities(fxt *TestFixture) error {
 	for i := range fxt.Identities {
 		fxt.Identities[i] = &account.Identity{
 			Username:     testsupport.CreateRandomValidTestName("John Doe "),
-			ProviderType: "test provider", // alternatively: account.KeycloakIDP
+			ProviderType: account.KeycloakIDP,
 		}
 		if err := fxt.runCustomizeEntityFuncs(i, kindIdentities); err != nil {
 			return errs.WithStack(err)
