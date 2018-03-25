@@ -16,21 +16,24 @@ import (
 const (
 	APIStringTypeEvents = "events"
 
-	Assignees = "assignees"
-	State     = "state"
-	Labels    = "labels"
-	Iteration = "iteration"
+	Assignees   = "assignees"
+	State       = "state"
+	Labels      = "labels"
+	Iteration   = "iteration"
+	Title       = "title"
+	Area        = "area"
+	Description = "description"
 )
 
 // EventNameMap maps system key to a normal string
 var EventNameMap = map[string]string{
-	workitem.SystemAssignees:   "assignees",
-	workitem.SystemLabels:      "labels",
-	workitem.SystemState:       "state",
-	workitem.SystemIteration:   "iteration",
-	workitem.SystemTitle:       "title",
-	workitem.SystemArea:        "area",
-	workitem.SystemDescription: "description",
+	workitem.SystemAssignees:   Assignees,
+	workitem.SystemLabels:      Labels,
+	workitem.SystemState:       State,
+	workitem.SystemIteration:   Iteration,
+	workitem.SystemTitle:       Title,
+	workitem.SystemArea:        Area,
+	workitem.SystemDescription: Description,
 }
 
 // Repository encapsulates retrieval of work item events
