@@ -577,6 +577,7 @@ func ConvertWorkItem(request *http.Request, wi workitem.WorkItem, additional ...
 	// Always include Comments Link, but optionally use workItemIncludeCommentsAndTotal
 	workItemIncludeComments(request, &wi, op)
 	workItemIncludeChildren(request, &wi, op)
+	workItemIncludeEvents(request, &wi, op)
 	for _, add := range additional {
 		add(request, &wi, op)
 	}
@@ -688,5 +689,16 @@ func workItemIncludeChildren(request *http.Request, wi *workitem.WorkItem, wi2 *
 	}
 	wi2.Relationships.Children.Links = &app.GenericLinks{
 		Related: &childrenRelated,
+	}
+}
+
+// workItemIncludeEvents adds relationship about events to workitem (include totalCount)
+func workItemIncludeEvents(request *http.Request, wi *workitem.WorkItem, wi2 *app.WorkItem) {
+	eventsRelated := rest.AbsoluteURL(request, app.WorkitemHref(wi.ID)) + "/events"
+	if wi2.Relationships.Events == nil {
+		wi2.Relationships.Events = &app.RelationGeneric{}
+	}
+	wi2.Relationships.Events.Links = &app.GenericLinks{
+		Related: &eventsRelated,
 	}
 }
