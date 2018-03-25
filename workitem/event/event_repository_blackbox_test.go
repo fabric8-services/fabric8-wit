@@ -241,4 +241,22 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		require.Len(t, eventList, 2)
 		assert.Equal(t, eventList[1].Name, event.Iteration)
 	})
+
+	s.T().Run("multiple events", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1))
+		label := []string{"label1"}
+		fxt.WorkItems[0].Fields[workitem.SystemLabels] = label
+		fxt.WorkItems[0].Fields[workitem.SystemState] = workitem.SystemStateResolved
+		_, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		require.NoError(t, err)
+		eventList, err := s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
+		require.NoError(t, err)
+		require.NotEmpty(t, eventList)
+		require.Len(t, eventList, 2)
+		assert.Equal(t, event.State, eventList[0].Name)
+		assert.Equal(t, "new", eventList[0].Old)
+		assert.Equal(t, event.Labels, eventList[1].Name)
+		assert.Empty(t, eventList[1].Old)
+		assert.Equal(t, eventList[1].ID, eventList[0].ID)
+	})
 }
