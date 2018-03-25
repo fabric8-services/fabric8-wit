@@ -22,6 +22,17 @@ const (
 	Iteration = "iteration"
 )
 
+// EventNameMap maps system key to a normal string
+var EventNameMap = map[string]string{
+	workitem.SystemAssignees:   "assignees",
+	workitem.SystemLabels:      "labels",
+	workitem.SystemState:       "state",
+	workitem.SystemIteration:   "iteration",
+	workitem.SystemTitle:       "title",
+	workitem.SystemArea:        "area",
+	workitem.SystemDescription: "description",
+}
+
 // Repository encapsulates retrieval of work item events
 type Repository interface {
 	//repository.Exister
@@ -74,26 +85,26 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 		}
 		for fieldName := range wiType.Fields {
 			switch fieldName {
-			case workitem.SystemAssignees:
+			case workitem.SystemAssignees, workitem.SystemLabels:
 				var p []string
 				var n []string
 
-				previousAssignees := revisionList[k-1].WorkItemFields[workitem.SystemAssignees]
-				newAssignees := revisionList[k].WorkItemFields[workitem.SystemAssignees]
-				switch previousAssignees.(type) {
+				previousValues := revisionList[k-1].WorkItemFields[fieldName]
+				newValues := revisionList[k].WorkItemFields[fieldName]
+				switch previousValues.(type) {
 				case nil:
 					p = []string{}
 				case []interface{}:
-					for _, v := range previousAssignees.([]interface{}) {
+					for _, v := range previousValues.([]interface{}) {
 						p = append(p, v.(string))
 					}
 				}
 
-				switch newAssignees.(type) {
+				switch newValues.(type) {
 				case nil:
 					n = []string{}
 				case []interface{}:
-					for _, v := range newAssignees.([]interface{}) {
+					for _, v := range newValues.([]interface{}) {
 						n = append(n, v.(string))
 					}
 
@@ -101,7 +112,7 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 				if len(p) != 0 || len(n) != 0 {
 					wie := Event{
 						ID:        revisionList[k].ID,
-						Name:      Assignees,
+						Name:      EventNameMap[fieldName],
 						Timestamp: revisionList[k].Time,
 						Modifier:  modifierID.ID,
 						Old:       strings.Join(p, ","),
@@ -109,79 +120,32 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 					}
 					eventList = append(eventList, wie)
 				}
-			case workitem.SystemState:
-				previousState := revisionList[k-1].WorkItemFields[workitem.SystemState].(string)
-				newState := revisionList[k].WorkItemFields[workitem.SystemState].(string)
-				if previousState != newState {
-					wie := Event{
-						ID:        revisionList[k].ID,
-						Name:      State,
-						Timestamp: revisionList[k].Time,
-						Modifier:  modifierID.ID,
-						Old:       previousState,
-						New:       newState,
-					}
-					eventList = append(eventList, wie)
-				}
-			case workitem.SystemLabels:
-				var p []string
-				var n []string
-
-				previousLabels := revisionList[k-1].WorkItemFields[workitem.SystemLabels]
-				newLabels := revisionList[k].WorkItemFields[workitem.SystemLabels]
-				switch previousLabels.(type) {
-				case nil:
-					p = []string{}
-				case []interface{}:
-					for _, v := range previousLabels.([]interface{}) {
-						p = append(p, v.(string))
-					}
-				}
-
-				switch newLabels.(type) {
-				case nil:
-					n = []string{}
-				case []interface{}:
-					for _, v := range newLabels.([]interface{}) {
-						n = append(n, v.(string))
-					}
-
-				}
-				if len(p) != 0 || len(n) != 0 {
-					wie := Event{
-						ID:        revisionList[k].ID,
-						Name:      Labels,
-						Timestamp: revisionList[k].Time,
-						Modifier:  modifierID.ID,
-						Old:       strings.Join(p, ","),
-						New:       strings.Join(n, ","),
-					}
-					eventList = append(eventList, wie)
-				}
-			case workitem.SystemIteration:
+			default:
 				var p string
 				var n string
 
-				previousIteration := revisionList[k-1].WorkItemFields[workitem.SystemIteration]
-				newIteration := revisionList[k].WorkItemFields[workitem.SystemIteration]
+				previousValue := revisionList[k-1].WorkItemFields[fieldName]
+				newValue := revisionList[k].WorkItemFields[fieldName]
 
-				switch previousIteration.(type) {
+				switch previousValue.(type) {
 				case nil:
 					p = ""
 				case interface{}:
-					p = previousIteration.(string)
+					p = previousValue.(string)
 				}
 
-				switch newIteration.(type) {
+				switch newValue.(type) {
 				case nil:
 					n = ""
 				case interface{}:
-					n = newIteration.(string)
+					n = newValue.(string)
+
 				}
-				if previousIteration != newIteration {
+
+				if previousValue != newValue {
 					wie := Event{
 						ID:        revisionList[k].ID,
-						Name:      Iteration,
+						Name:      EventNameMap[fieldName],
 						Timestamp: revisionList[k].Time,
 						Modifier:  modifierID.ID,
 						Old:       p,
