@@ -32,7 +32,7 @@ work_item_types:
     "system.state":
       label: State
       description: The state of the work item
-      required: yes
+      required: no
       type:
         simple_type:
           kind: enum

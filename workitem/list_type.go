@@ -13,6 +13,10 @@ type ListType struct {
 	ComponentType SimpleType `json:"component_type"`
 }
 
+// Ensure ListType implements the FieldType interface
+var _ FieldType = ListType{}
+var _ FieldType = (*ListType)(nil)
+
 // Ensure ListType implements the Equaler interface
 var _ convert.Equaler = ListType{}
 var _ convert.Equaler = (*ListType)(nil)
@@ -27,6 +31,11 @@ func (t ListType) Equal(u convert.Equaler) bool {
 		return false
 	}
 	return t.ComponentType.Equal(other.ComponentType)
+}
+
+// DefaultValue implementes FieldType
+func (t ListType) DefaultValue(value interface{}) (interface{}, error) {
+	return value, nil
 }
 
 // ConvertToModel implements the FieldType interface

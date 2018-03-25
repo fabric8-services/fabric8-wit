@@ -53,6 +53,10 @@ type FieldType interface {
 	ConvertFromModel(value interface{}) (interface{}, error)
 	// Implement the Equaler interface
 	Equal(u convert.Equaler) bool
+	// DefaultValue is called if a non-required field is not specified. In it's
+	// simplest form the DefaultValue returns the gicen input value without any
+	// conversion.
+	DefaultValue(value interface{}) (interface{}, error)
 }
 
 // FieldDefinition describes type & other restrictions of a field
@@ -110,7 +114,7 @@ func (f FieldDefinition) ConvertToModel(name string, value interface{}) (interfa
 	v, err := f.Type.ConvertToModel(value)
 	if err != nil {
 		if !f.Required && value == nil {
-			return nil, nil
+			return f.Type.DefaultValue(value)
 		}
 		return nil, err
 	}

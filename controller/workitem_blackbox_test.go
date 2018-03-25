@@ -2958,11 +2958,12 @@ func (s *WorkItem2Suite) TestCreateAndUpdateWorkItemForEveryWIT() {
 					require.NotEmpty(t, stateEnum.Values)
 					initialState, ok := stateEnum.Values[0].(string)
 					require.True(t, ok, "failed to get values from state enum")
-					c.Data.Attributes[workitem.SystemState] = initialState
+					// c.Data.Attributes[workitem.SystemState] = initialState
 					// set custom space and see if WI gets custom space
 					c.Data.Relationships.Space.Data.ID = &fxt.Spaces[0].ID
 					_, item := test.CreateWorkitemsCreated(t, s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, &c)
 					require.NotNil(t, item)
+					require.Equal(t, initialState, item.Data.Attributes[workitem.SystemState])
 					require.NotNil(t, item.Data.Relationships)
 					require.NotNil(t, item.Data.Relationships.BaseType)
 					require.NotNil(t, item.Data.Relationships.BaseType.Data)

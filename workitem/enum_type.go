@@ -5,6 +5,7 @@ import (
 	"reflect"
 
 	"github.com/fabric8-services/fabric8-wit/convert"
+	errs "github.com/pkg/errors"
 )
 
 type EnumType struct {
@@ -13,6 +14,10 @@ type EnumType struct {
 	Values           []interface{} `json:"values"`
 	RewritableValues bool          `json:"rewritable_values"`
 }
+
+// Ensure EnumType implements the FieldType interface
+var _ FieldType = EnumType{}
+var _ FieldType = (*EnumType)(nil)
 
 // Ensure EnumType implements the Equaler interface
 var _ convert.Equaler = EnumType{}
@@ -34,6 +39,17 @@ func (t EnumType) Equal(u convert.Equaler) bool {
 		return reflect.DeepEqual(t.Values, other.Values)
 	}
 	return true
+}
+
+// DefaultValue implementes FieldType
+func (t EnumType) DefaultValue(value interface{}) (interface{}, error) {
+	if value != nil {
+		return value, nil
+	}
+	if len(t.Values) <= 0 {
+		return nil, errs.Errorf("enum has no values")
+	}
+	return t.Values[0], nil
 }
 
 func (t EnumType) ConvertToModel(value interface{}) (interface{}, error) {

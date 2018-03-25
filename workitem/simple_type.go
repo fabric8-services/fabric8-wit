@@ -17,6 +17,10 @@ type SimpleType struct {
 	Kind Kind `json:"kind"`
 }
 
+// Ensure SimpleType implements the FieldType interface
+var _ FieldType = SimpleType{}
+var _ FieldType = (*SimpleType)(nil)
+
 // Ensure SimpleType implements the Equaler interface
 var _ convert.Equaler = SimpleType{}
 var _ convert.Equaler = (*SimpleType)(nil)
@@ -28,6 +32,11 @@ func (t SimpleType) Equal(u convert.Equaler) bool {
 		return false
 	}
 	return t.Kind == other.Kind
+}
+
+// DefaultValue implementes FieldType
+func (t SimpleType) DefaultValue(value interface{}) (interface{}, error) {
+	return value, nil
 }
 
 // GetKind implements FieldType
