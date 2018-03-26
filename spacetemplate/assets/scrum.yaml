@@ -72,7 +72,7 @@ work_item_types:
     "system.state":
       label: State
       description: The state of the impediment.
-      required: no
+      required: yes
       type:
         simple_type:
           kind: enum
@@ -93,7 +93,7 @@ work_item_types:
     "system.state":
       label: State
       description: The state of the Bug.
-      required: no
+      required: yes
       type:
         simple_type:
           kind: enum
@@ -170,7 +170,7 @@ work_item_types:
     "system.state":
       label: State
       description: The state of the Task.
-      required: no
+      required: yes
       type:
         simple_type:
           kind: enum
@@ -201,7 +201,7 @@ work_item_types:
     "system.state":
       label: State
       description: The state of the product backlog item.
-      required: no
+      required: yes
       type:
         simple_type:
           kind: enum
@@ -246,7 +246,7 @@ work_item_types:
     "system.state":
       label: State
       description: The state of the feature.
-      required: no
+      required: yes
       type:
         simple_type:
           kind: enum
@@ -305,7 +305,7 @@ work_item_types:
     "system.state":
       label: State
       description: The state of the Epic.
-      required: no
+      required: yes
       type:
         simple_type:
           kind: enum

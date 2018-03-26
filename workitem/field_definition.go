@@ -97,9 +97,17 @@ func (f FieldDefinition) Equal(u convert.Equaler) bool {
 
 // ConvertToModel converts a field value for use in the persistence layer
 func (f FieldDefinition) ConvertToModel(name string, value interface{}) (interface{}, error) {
+	// Overwrite value if default value if none was provided
+	if value == nil {
+		defValue, err := f.Type.DefaultValue(value)
+		if err != nil {
+			return nil, errs.Wrapf(err, "failed to get default value for field \"%s\"", name)
+		}
+		value = defValue
+	}
 	if f.Required {
 		if value == nil {
-			return nil, fmt.Errorf("Value %s must not be nil", name)
+			return nil, fmt.Errorf("value for field \"%s\" must not be nil", name)
 		}
 		if f.Type.GetKind() == KindString {
 			sVal, ok := value.(string)
@@ -107,18 +115,11 @@ func (f FieldDefinition) ConvertToModel(name string, value interface{}) (interfa
 				return nil, errs.Errorf("failed to convert '%+v' to string", spew.Sdump(value))
 			}
 			if strings.TrimSpace(sVal) == "" {
-				return nil, errs.Errorf("Value '%s' must not be empty: \"%+v\"", name, value)
+				return nil, errs.Errorf("value for field \"%s\" must not be empty: \"%+v\"", name, value)
 			}
 		}
 	}
-	v, err := f.Type.ConvertToModel(value)
-	if err != nil {
-		if !f.Required && value == nil {
-			return f.Type.DefaultValue(value)
-		}
-		return nil, err
-	}
-	return v, nil
+	return f.Type.ConvertToModel(value)
 }
 
 // ConvertFromModel converts a field value for use in the REST API layer
