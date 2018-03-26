@@ -12,29 +12,8 @@ import (
 	"github.com/fabric8-services/fabric8-wit/workitem"
 )
 
-// event types
-const (
-	APIStringTypeEvents = "events"
-
-	Assignees   = "assignees"
-	State       = "state"
-	Labels      = "labels"
-	Iteration   = "iteration"
-	Title       = "title"
-	Area        = "area"
-	Description = "description"
-)
-
-// EventNameMap maps system key to a normal string
-var EventNameMap = map[string]string{
-	workitem.SystemAssignees:   Assignees,
-	workitem.SystemLabels:      Labels,
-	workitem.SystemState:       State,
-	workitem.SystemIteration:   Iteration,
-	workitem.SystemTitle:       Title,
-	workitem.SystemArea:        Area,
-	workitem.SystemDescription: Description,
-}
+// APIStringTypeEvents represent the type of event
+const APIStringTypeEvents = "events"
 
 // Repository encapsulates retrieval of work item events
 type Repository interface {
@@ -115,7 +94,7 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 				if len(p) != 0 || len(n) != 0 {
 					wie := Event{
 						ID:        revisionList[k].ID,
-						Name:      EventNameMap[fieldName],
+						Name:      fieldName,
 						Timestamp: revisionList[k].Time,
 						Modifier:  modifierID.ID,
 						Old:       strings.Join(p, ","),
@@ -148,7 +127,7 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 				if previousValue != newValue {
 					wie := Event{
 						ID:        revisionList[k].ID,
-						Name:      EventNameMap[fieldName],
+						Name:      fieldName,
 						Timestamp: revisionList[k].Time,
 						Modifier:  modifierID.ID,
 						Old:       p,

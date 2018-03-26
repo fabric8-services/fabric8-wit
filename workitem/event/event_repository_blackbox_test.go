@@ -58,7 +58,7 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		require.NoError(t, err)
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList, 1)
-		assert.Equal(t, eventList[0].Name, event.Assignees)
+		assert.Equal(t, eventList[0].Name, workitem.SystemAssignees)
 		assert.Empty(t, eventList[0].Old)
 		assert.Equal(t, fxt.Identities[0].ID.String(), strings.Split(eventList[0].New, ",")[0])
 
@@ -71,7 +71,7 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		eventList, err = s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList, 2)
-		assert.Equal(t, eventList[1].Name, event.Assignees)
+		assert.Equal(t, eventList[1].Name, workitem.SystemAssignees)
 		assert.NotEmpty(t, eventList[1].Old)
 		assert.NotEmpty(t, eventList[1].New)
 		assert.Equal(t, fxt.Identities[0].ID.String(), strings.Split(eventList[0].New, ",")[0])
@@ -92,7 +92,7 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		require.NoError(t, err)
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList, 1)
-		assert.Equal(t, eventList[0].Name, event.Assignees)
+		assert.Equal(t, eventList[0].Name, workitem.SystemAssignees)
 		assert.Empty(t, eventList[0].Old)
 		assert.Equal(t, fxt.Identities[0].ID.String(), strings.Split(eventList[0].New, ",")[0])
 	})
@@ -110,7 +110,7 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		require.NoError(t, err)
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList, 1)
-		assert.Equal(t, eventList[0].Name, event.Assignees)
+		assert.Equal(t, eventList[0].Name, workitem.SystemAssignees)
 		assert.Empty(t, eventList[0].Old)
 		assert.Equal(t, fxt.Identities[0].ID.String(), strings.Split(eventList[0].New, ",")[0])
 
@@ -122,7 +122,7 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		eventList, err = s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList, 2)
-		assert.Equal(t, eventList[1].Name, event.Assignees)
+		assert.Equal(t, eventList[1].Name, workitem.SystemAssignees)
 		assert.Empty(t, eventList[1].New)
 	})
 
@@ -136,7 +136,7 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		require.NoError(t, err)
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList, 1)
-		assert.Equal(t, eventList[0].Name, event.State)
+		assert.Equal(t, eventList[0].Name, workitem.SystemState)
 		assert.Equal(t, workitem.SystemStateResolved, eventList[0].New)
 	})
 	s.T().Run("event label", func(t *testing.T) {
@@ -153,7 +153,7 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		require.NoError(t, err)
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList, 1)
-		assert.Equal(t, eventList[0].Name, event.Labels)
+		assert.Equal(t, eventList[0].Name, workitem.SystemLabels)
 		assert.Empty(t, eventList[0].Old)
 		assert.Equal(t, "label1", strings.Split(eventList[0].New, ",")[0])
 
@@ -166,7 +166,7 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		eventList, err = s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList, 2)
-		assert.Equal(t, eventList[1].Name, event.Labels)
+		assert.Equal(t, eventList[1].Name, workitem.SystemLabels)
 		assert.NotEmpty(t, eventList[1].Old)
 		assert.NotEmpty(t, eventList[1].New)
 		assert.Equal(t, "label1", strings.Split(eventList[0].New, ",")[0])
@@ -187,7 +187,7 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		require.NoError(t, err)
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList, 1)
-		assert.Equal(t, eventList[0].Name, event.Labels)
+		assert.Equal(t, eventList[0].Name, workitem.SystemLabels)
 		assert.Empty(t, eventList[0].Old)
 	})
 
@@ -205,7 +205,7 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		require.NoError(t, err)
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList, 1)
-		assert.Equal(t, eventList[0].Name, event.Labels)
+		assert.Equal(t, eventList[0].Name, workitem.SystemLabels)
 		assert.Empty(t, eventList[0].Old)
 
 		wiNew.Fields[workitem.SystemLabels] = []string{}
@@ -216,7 +216,7 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		eventList, err = s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList, 2)
-		assert.Equal(t, eventList[1].Name, event.Labels)
+		assert.Equal(t, eventList[1].Name, workitem.SystemLabels)
 		assert.Empty(t, eventList[1].New)
 	})
 
@@ -230,7 +230,7 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		require.NoError(t, err)
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList, 1)
-		assert.Equal(t, eventList[0].Name, event.Iteration)
+		assert.Equal(t, eventList[0].Name, workitem.SystemIteration)
 		assert.Empty(t, eventList[0].Old)
 
 		wiNew.Fields[workitem.SystemIteration] = fxt.Iterations[1].ID.String()
@@ -239,7 +239,7 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		require.NoError(t, err)
 		eventList, err = s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
 		require.Len(t, eventList, 2)
-		assert.Equal(t, eventList[1].Name, event.Iteration)
+		assert.Equal(t, eventList[1].Name, workitem.SystemIteration)
 	})
 
 	s.T().Run("multiple events", func(t *testing.T) {
@@ -253,9 +253,9 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		require.NoError(t, err)
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList, 2)
-		assert.Equal(t, event.State, eventList[0].Name)
+		assert.Equal(t, workitem.SystemState, eventList[0].Name)
 		assert.Equal(t, "new", eventList[0].Old)
-		assert.Equal(t, event.Labels, eventList[1].Name)
+		assert.Equal(t, workitem.SystemLabels, eventList[1].Name)
 		assert.Empty(t, eventList[1].Old)
 		assert.Equal(t, eventList[1].ID, eventList[0].ID)
 	})
