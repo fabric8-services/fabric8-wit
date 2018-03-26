@@ -114,6 +114,16 @@ objects:
               configMapKeyRef:
                 name: core
                 key: toggles.serviceurl
+          - name: F8_DEPLOYMENTS_SERVICEURL
+            valueFrom:
+              configMapKeyRef:
+                name: core
+                key: deployments.serviceurl
+          - name: F8_CODEBASE_SERVICEURL
+            valueFrom:
+              configMapKeyRef:
+                name: core
+                key: codebase.serviceurl
           - name: F8_REDIRECT_VALID
             valueFrom:
               configMapKeyRef:

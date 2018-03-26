@@ -4,21 +4,27 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-
-	"github.com/fabric8-services/fabric8-wit/spacetemplate"
+	"net/url"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/area"
 	"github.com/fabric8-services/fabric8-wit/auth"
+	"github.com/fabric8-services/fabric8-wit/client"
+	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/goasupport"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space"
+	"github.com/fabric8-services/fabric8-wit/spacetemplate"
+
 	"github.com/goadesign/goa"
+	goaclient "github.com/goadesign/goa/client"
+	goauuid "github.com/goadesign/goa/uuid"
 	errs "github.com/pkg/errors"
 	"github.com/satori/go.uuid"
 )
@@ -37,14 +43,28 @@ type SpaceConfiguration interface {
 // SpaceController implements the space resource.
 type SpaceController struct {
 	*goa.Controller
-	db              application.DB
-	config          SpaceConfiguration
-	resourceManager auth.ResourceManager
+	db                application.DB
+	config            SpaceConfiguration
+	resourceManager   auth.ResourceManager
+	DeploymentsClient *http.Client
+	CodebaseClient    *http.Client
 }
 
 // NewSpaceController creates a space controller.
-func NewSpaceController(service *goa.Service, db application.DB, config SpaceConfiguration, resourceManager auth.ResourceManager) *SpaceController {
-	return &SpaceController{Controller: service.NewController("SpaceController"), db: db, config: config, resourceManager: resourceManager}
+func NewSpaceController(
+	service *goa.Service,
+	db application.DB,
+	config SpaceConfiguration,
+	resourceManager auth.ResourceManager) *SpaceController {
+
+	return &SpaceController{
+		Controller:        service.NewController("SpaceController"),
+		db:                db,
+		config:            config,
+		resourceManager:   resourceManager,
+		DeploymentsClient: http.DefaultClient,
+		CodebaseClient:    http.DefaultClient,
+	}
 }
 
 // Create runs the create action.
@@ -164,6 +184,39 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
+
+	spaceDeletionErrorExternal := fmt.Errorf("could not delete space")
+	spaceID, err := goauuid.FromString(ctx.SpaceID.String())
+	if err != nil {
+		log.Error(ctx.Context, map[string]interface{}{
+			"space_id": ctx.SpaceID,
+			"error":    err,
+		}, "could not convert the UUID of type github.com/satori/go.uuid to github.com/goadesign/goa/uuid")
+		return jsonapi.JSONErrorResponse(
+			ctx, goa.ErrInternal(spaceDeletionErrorExternal))
+	}
+
+	// extract config in it's generic form to be utilized elsewhere
+	config, ok := c.config.(*configuration.Registry)
+	if !ok {
+		log.Error(ctx.Context, map[string]interface{}{
+			"space_id": spaceID,
+		}, "no configuation found in SpaceController object")
+		return jsonapi.JSONErrorResponse(
+			ctx, goa.ErrInternal(spaceDeletionErrorExternal))
+	}
+
+	// delete all the codebases associated with this space
+	err = deleteCodebases(c.CodebaseClient, config, ctx.Context, spaceID)
+	if err != nil {
+		log.Error(ctx.Context, map[string]interface{}{
+			"space_id": spaceID,
+			"error":    err,
+		}, "could not delete codebases")
+		return jsonapi.JSONErrorResponse(
+			ctx, goa.ErrInternal(spaceDeletionErrorExternal))
+	}
+
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		s, err := appl.Spaces().Load(ctx.Context, ctx.SpaceID)
 		if err != nil {
@@ -179,7 +232,6 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 		}
 		return appl.Spaces().Delete(ctx.Context, ctx.SpaceID)
 	})
-
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
@@ -187,7 +239,160 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
+
+	// now delete the OpenShift resources associated with this space on an
+	// OpenShift cluster
+	err = deleteOpenShiftResource(c.DeploymentsClient, config, ctx.Context, spaceID)
+	if err != nil {
+		log.Error(ctx.Context, map[string]interface{}{
+			"space_id": spaceID,
+			"error":    err,
+		}, "could not delete OpenShift resources")
+		return jsonapi.JSONErrorResponse(
+			ctx, goa.ErrInternal(spaceDeletionErrorExternal))
+	}
+
 	return ctx.OK([]byte{})
+}
+
+// deleteCodebases deletes all the codebases that are associated with this space
+func deleteCodebases(
+	httpClient *http.Client,
+	config *configuration.Registry,
+	ctx context.Context,
+	spaceID goauuid.UUID) error {
+
+	u, err := url.Parse(config.GetCodebaseServiceURL())
+	if err != nil {
+		return errs.Wrapf(err, "malformed codebase service URL: %s", config.GetCodebaseServiceURL())
+	}
+
+	cl := client.New(goaclient.HTTPClientDoer(httpClient))
+	cl.Host = u.Host
+	cl.Scheme = u.Scheme
+	cl.SetJWTSigner(goasupport.NewForwardSigner(ctx))
+
+	// list all the codebases associated with the space
+	path := client.ListSpaceCodebasesPath(spaceID)
+	resp, err := cl.ListSpaceCodebases(ctx, path, nil, nil)
+	if err != nil {
+		return errs.Wrap(err, "could not list codebases")
+	}
+	if resp.StatusCode != http.StatusOK {
+		formattedErrors, err := cl.DecodeJSONAPIErrors(resp)
+		if err != nil {
+			return errs.Wrap(err, "could not decode JSON formatted errors returned while listing codebases")
+		}
+		return formattedErrors.Validate()
+	}
+	codebases, err := cl.DecodeCodebaseList(resp)
+	if err != nil {
+		return errs.Wrap(err, "could not decode the codebase list")
+	}
+
+	// iterate on all the codebases and delete them
+	var errors []error
+	for _, cb := range codebases.Data {
+		path = client.DeleteCodebasePath(*cb.ID)
+		resp, err := cl.DeleteCodebase(ctx, path)
+		if err != nil {
+			errors = append(errors,
+				errs.Wrapf(err, "could not delete codebase %s", cb.ID))
+			continue
+		}
+		if resp.StatusCode != http.StatusOK {
+			formattedErrors, err := cl.DecodeJSONAPIErrors(resp)
+			if err != nil {
+				errors = append(errors,
+					errs.Wrapf(err, "could not decode JSON formatted errors returned while deleting codebase %s", cb.ID))
+				continue
+			}
+			errors = append(errors, formattedErrors.Validate())
+		}
+	}
+	if len(errors) != 0 {
+		var errString string
+		for _, err = range errors {
+			errString += fmt.Sprintf("%s\n", err)
+		}
+		return fmt.Errorf(errString)
+	}
+
+	return nil
+}
+
+// deleteOpenShiftResource deletes all the openshift resources present in the
+// OpenShift online cluster corresponding to the given spaceID
+// TODO: fix all the errors, return appropriate errors
+func deleteOpenShiftResource(
+	httpClient *http.Client,
+	config *configuration.Registry,
+	ctx context.Context,
+	spaceID goauuid.UUID) error {
+
+	u, err := url.Parse(config.GetDeploymentsServiceURL())
+	if err != nil {
+		return errs.Wrapf(err, "malformed deployments service URL: %s",
+			config.GetDeploymentsServiceURL())
+	}
+
+	cl := client.New(goaclient.HTTPClientDoer(httpClient))
+	cl.Host = u.Host
+	cl.Scheme = u.Scheme
+	cl.SetJWTSigner(goasupport.NewForwardSigner(ctx))
+
+	// get all the apps and envs
+	path := client.ShowSpaceDeploymentsPath(spaceID)
+	resp, err := cl.ShowSpaceDeployments(ctx, path)
+	if err != nil {
+		return errs.Wrap(err, "could not get deployments")
+	}
+	if resp.StatusCode != http.StatusOK {
+		formattedErrors, err := cl.DecodeJSONAPIErrors(resp)
+		if err != nil {
+			return errs.Wrapf(err, "could not decode JSON formatted errors returned while listing deployments")
+		}
+		return formattedErrors.Validate()
+	}
+	space, err := cl.DecodeSimpleSpaceSingle(resp)
+	if err != nil {
+		return errs.Wrapf(err, "could not decode deployments")
+	}
+
+	// iterate over all the applications
+	var errors []error
+	for _, app := range space.Data.Attributes.Applications {
+		for _, env := range app.Attributes.Deployments {
+			path = client.DeleteDeploymentDeploymentsPath(
+				spaceID,
+				app.Attributes.Name,
+				env.Attributes.Name,
+			)
+			resp, err = cl.DeleteDeploymentDeployments(ctx, path)
+			if err != nil {
+				errors = append(errors,
+					errs.Wrapf(err, "could not delete deployment for space=%s, app=%s, env=%s", spaceID, app.Attributes.Name, env.Attributes.Name))
+				continue
+			}
+			if resp.StatusCode != http.StatusOK {
+				formattedErrors, err := cl.DecodeJSONAPIErrors(resp)
+				if err != nil {
+					errors = append(errors,
+						errs.Wrapf(err, "could not decode JSON formatted errors returned while deleting deployment for space=%s, app=%s, env=%s", spaceID, app.Attributes.Name, env.Attributes.Name))
+					continue
+				}
+				errors = append(errors, formattedErrors.Validate())
+			}
+		}
+	}
+	if len(errors) != 0 {
+		var errString string
+		for _, err = range errors {
+			errString += fmt.Sprintf("%s\n", err)
+		}
+		return fmt.Errorf(errString)
+	}
+	return nil
 }
 
 // List runs the list action.
