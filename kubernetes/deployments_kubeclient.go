@@ -15,7 +15,6 @@ import (
 	resource "k8s.io/apimachinery/pkg/api/resource"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
-	kubernetes "k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	v1 "k8s.io/client-go/pkg/api/v1"
 	rest "k8s.io/client-go/rest"
@@ -34,6 +33,9 @@ type KubeClientConfig struct {
 	BearerToken string
 	// Kubernetes namespace in the cluster of type 'user'
 	UserNamespace string
+	// Timeout used for communicating with Kubernetes and OpenShift API servers,
+	// a value of zero indicates no timeout
+	Timeout time.Duration // TODO determine good timeout to set here, or possibly make configurable
 	// Provides access to the Kubernetes REST API, uses default implementation if not set
 	KubeRESTAPIGetter
 	// Provides access to the metrics API, uses default implementation if not set
@@ -70,7 +72,6 @@ type KubeClientInterface interface {
 	DeleteDeployment(spaceName string, appName string, envName string) error
 	GetEnvironments() ([]*app.SimpleEnvironment, error)
 	GetEnvironment(envName string) (*app.SimpleEnvironment, error)
-	GetPodsInNamespace(nameSpace string, appName string) ([]v1.Pod, error)
 	Close()
 }
 
@@ -87,6 +88,11 @@ type KubeRESTAPI interface {
 	corev1.CoreV1Interface
 }
 
+type kubeAPIClient struct {
+	corev1.CoreV1Interface
+	restConfig *rest.Config
+}
+
 // OpenShiftRESTAPI collects methods that call out to the OpenShift API server over the network
 type OpenShiftRESTAPI interface {
 	GetBuildConfigs(namespace string, labelSelector string) (map[string]interface{}, error)
@@ -99,7 +105,8 @@ type OpenShiftRESTAPI interface {
 }
 
 type openShiftAPIClient struct {
-	config *KubeClientConfig
+	config     *KubeClientConfig
+	httpClient *http.Client
 }
 
 type deployment struct {
@@ -184,17 +191,27 @@ func (*defaultGetter) GetKubeRESTAPI(config *KubeClientConfig) (KubeRESTAPI, err
 	restConfig := &rest.Config{
 		Host:        config.ClusterURL,
 		BearerToken: config.BearerToken,
+		Timeout:     config.Timeout,
 	}
-	clientset, err := kubernetes.NewForConfig(restConfig)
+	coreV1Client, err := corev1.NewForConfig(restConfig)
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
-	return clientset.CoreV1(), nil
+	client := &kubeAPIClient{
+		CoreV1Interface: coreV1Client,
+		restConfig:      restConfig,
+	}
+	return client, nil
 }
 
 func (*defaultGetter) GetOpenShiftRESTAPI(config *KubeClientConfig) (OpenShiftRESTAPI, error) {
+	// Equivalent to http.DefaultClient with added timeout
+	httpClient := &http.Client{
+		Timeout: config.Timeout,
+	}
 	client := &openShiftAPIClient{
-		config: config,
+		config:     config,
+		httpClient: httpClient,
 	}
 	return client, nil
 }
@@ -763,8 +780,7 @@ func (oc *openShiftAPIClient) sendResource(url string, method string, reqBody in
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Authorization", "Bearer "+oc.config.BearerToken)
 
-	client := http.DefaultClient
-	resp, err := client.Do(req)
+	resp, err := oc.httpClient.Do(req)
 	if err != nil {
 		log.Error(nil, map[string]interface{}{
 			"err":          err,
@@ -823,11 +839,22 @@ func (kc *kubeClient) getDeploymentConfig(namespace string, appName string, spac
 	if !ok {
 		return nil, errs.Errorf("labels missing from deployment config for application %s: %+v", appName, metadata)
 	}
-	spaceLabel, ok := labels["space"].(string)
-	if !ok || len(spaceLabel) == 0 {
-		return nil, errs.Errorf("space label missing from deployment config for application %s: %+v", appName, metadata)
+	/* FIXME Not all projects will have the space label defined due to the requirement that
+	 * fabric8-maven-plugin is called from the project's POM and not that of its parent.
+	 * This requirement is not always satisfied. For now, we work around the issue by logging
+	 * a warning and waiving the space label check, if missing.
+	 */
+	spaceLabel, err := getOptionalStringValue(labels, "space")
+	if err != nil {
+		return nil, err
 	}
-	if spaceLabel != space {
+	if len(spaceLabel) == 0 {
+		log.Warn(nil, map[string]interface{}{
+			"namespace": namespace,
+			"app_name":  appName,
+			"space":     space,
+		}, "space label missing from deployment config")
+	} else if spaceLabel != space {
 		return nil, errs.Errorf("deployment config %s is part of space %s, expected space %s", appName, spaceLabel, space)
 	}
 	// Get UID from deployment config
@@ -1075,18 +1102,6 @@ func quantityToFloat64(q resource.Quantity) (float64, error) {
 		result = float64(val64) * math.Pow10(-int(valDec.Scale()))
 	}
 	return result, nil
-}
-
-// GetPodsInNamespace - return all pods in namepsace 'nameSpace' and application 'appName'
-func (kc *kubeClient) GetPodsInNamespace(nameSpace string, appName string) ([]v1.Pod, error) {
-	listOptions := metaV1.ListOptions{
-		LabelSelector: "app=" + appName,
-	}
-	pods, err := kc.Pods(nameSpace).List(listOptions)
-	if err != nil {
-		return nil, errs.WithStack(err)
-	}
-	return pods.Items, nil
 }
 
 func (kc *kubeClient) getPods(namespace string, uid types.UID) ([]*v1.Pod, error) {
@@ -1726,8 +1741,7 @@ func (oc *openShiftAPIClient) getResource(url string, allowMissing bool) (map[st
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Authorization", "Bearer "+oc.config.BearerToken)
 
-	client := http.DefaultClient
-	resp, err := client.Do(req)
+	resp, err := oc.httpClient.Do(req)
 	if err != nil {
 		log.Error(nil, map[string]interface{}{
 			"err": err,
