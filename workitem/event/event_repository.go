@@ -78,7 +78,8 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 					p = []string{}
 				case []interface{}:
 					for _, v := range previousValues.([]interface{}) {
-						p = append(p, v.(string))
+						vs, _ := v.(string)
+						p = append(p, vs)
 					}
 				}
 
@@ -87,7 +88,8 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 					n = []string{}
 				case []interface{}:
 					for _, v := range newValues.([]interface{}) {
-						n = append(n, v.(string))
+						vs, _ := v.(string)
+						n = append(n, vs)
 					}
 
 				}
@@ -113,14 +115,14 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 				case nil:
 					p = ""
 				case interface{}:
-					p = previousValue.(string)
+					p, _ = previousValue.(string)
 				}
 
 				switch newValue.(type) {
 				case nil:
 					n = ""
 				case interface{}:
-					n = newValue.(string)
+					n, _ = newValue.(string)
 
 				}
 
