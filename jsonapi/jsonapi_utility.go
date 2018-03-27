@@ -171,6 +171,6 @@ func JSONErrorResponse(ctx InternalServerErrorContext, err error) error {
 			return ctx.Conflict(jsonErr)
 		}
 	}
-  sentry.Sentry().CaptureError(c, err)
+	sentry.Sentry().CaptureError(ctx, err)
 	return ctx.InternalServerError(jsonErr)
 }
