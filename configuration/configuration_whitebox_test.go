@@ -180,3 +180,21 @@ func validateRedirectURL(t *testing.T, request string, redirect string) bool {
 	require.NoError(t, err)
 	return matched
 }
+
+func TestDeploymentsTimeoutIsAlwaysPositive(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+
+	// We emulate the config being set to another valid positive number.
+	timeoutValue := 8
+	durationTimeoutValue := time.Duration(timeoutValue) * time.Second
+	config.v.Set(varDeploymentsHTTPTimeout, timeoutValue)
+	assert.Equal(t, durationTimeoutValue, config.GetDeploymentsHTTPTimeoutSeconds())
+
+	// It should not be allowed to be negative, and if so then default to a
+	// positive small number.
+	minDeploySeconds := time.Duration(minimumDeploymentsHTTPTimeout) * time.Second
+	config.v.Set(varDeploymentsHTTPTimeout, -5)
+	assert.Equal(t, minDeploySeconds, config.GetDeploymentsHTTPTimeoutSeconds())
+
+	resetConfiguration()
+}

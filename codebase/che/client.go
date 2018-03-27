@@ -393,7 +393,6 @@ func (cs *StarterClient) StartCheServer(ctx context.Context) (*ServerStateRespon
 
 // WorkspaceRequest represents a create workspace request body
 type WorkspaceRequest struct {
-	//ID          string `json:"id,omitempty"`
 	Branch      string `json:"branch,omitempty"`
 	Description string `json:"description,omitempty"`
 	Name        string `json:"config.name,omitempty"`
@@ -403,21 +402,33 @@ type WorkspaceRequest struct {
 
 // WorkspaceResponse represents a create workspace response body
 type WorkspaceResponse struct {
-	ID string `json:"id,omitempty"`
-	//	Branch          string `json:"branch"`
-	Description string `json:"description,omitempty"`
-	//	Location        string `json:"location"`
-	//	Login           string `json:"login"`
-	Config WorkspaceConfig `json:"config,omitempty"`
-	//	Repository      string `json:"repository"`
-	Status string `json:"status,omitempty"`
-	//	WorkspaceIDEURL string `json:"workspaceIdeUrl"`
-	Links []WorkspaceLink `json:"links,omitempty"`
+	ID          string          `json:"id,omitempty"`
+	Description string          `json:"description,omitempty"`
+	Config      WorkspaceConfig `json:"config,omitempty"`
+	Status      string          `json:"status,omitempty"`
+	Links       []WorkspaceLink `json:"links,omitempty"`
 }
 
 // WorkspaceConfig represents the workspace config
 type WorkspaceConfig struct {
-	Name string `json:"name"`
+	Name     string             `json:"name"`
+	Projects []WorkspaceProject `json:"projects,omitempty"`
+}
+
+// WorkspaceProject represents workspace project
+type WorkspaceProject struct {
+	Source ProjectSource `json:"source,omitempty"`
+}
+
+// ProjectSource represents project source of workspace
+type ProjectSource struct {
+	Location   string                  `json:"location,omitempty"`
+	Parameters ProjectSourceParameters `json:"parameters,omitempty"`
+}
+
+// ProjectSourceParameters represent project source parameters e.g. branch
+type ProjectSourceParameters struct {
+	Branch string `json:"branch,omitempty"`
 }
 
 // GetHrefByRel return the 'href' of 'rel' of WorkspaceLink

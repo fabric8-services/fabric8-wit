@@ -64,6 +64,11 @@ objects:
               secretKeyRef:
                 name: core
                 key: keycloak.secret
+          - name: SENTRY_DSN
+            valueFrom:
+              secretKeyRef:
+                name: core
+                key: sentry.dsn
           - name: F8_POSTGRES_SSLMODE
             valueFrom:
               configMapKeyRef:

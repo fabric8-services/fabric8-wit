@@ -72,7 +72,6 @@ type KubeClientInterface interface {
 	DeleteDeployment(spaceName string, appName string, envName string) error
 	GetEnvironments() ([]*app.SimpleEnvironment, error)
 	GetEnvironment(envName string) (*app.SimpleEnvironment, error)
-	GetPodsInNamespace(nameSpace string, appName string) ([]v1.Pod, error)
 	Close()
 }
 
@@ -840,11 +839,22 @@ func (kc *kubeClient) getDeploymentConfig(namespace string, appName string, spac
 	if !ok {
 		return nil, errs.Errorf("labels missing from deployment config for application %s: %+v", appName, metadata)
 	}
-	spaceLabel, ok := labels["space"].(string)
-	if !ok || len(spaceLabel) == 0 {
-		return nil, errs.Errorf("space label missing from deployment config for application %s: %+v", appName, metadata)
+	/* FIXME Not all projects will have the space label defined due to the requirement that
+	 * fabric8-maven-plugin is called from the project's POM and not that of its parent.
+	 * This requirement is not always satisfied. For now, we work around the issue by logging
+	 * a warning and waiving the space label check, if missing.
+	 */
+	spaceLabel, err := getOptionalStringValue(labels, "space")
+	if err != nil {
+		return nil, err
 	}
-	if spaceLabel != space {
+	if len(spaceLabel) == 0 {
+		log.Warn(nil, map[string]interface{}{
+			"namespace": namespace,
+			"app_name":  appName,
+			"space":     space,
+		}, "space label missing from deployment config")
+	} else if spaceLabel != space {
 		return nil, errs.Errorf("deployment config %s is part of space %s, expected space %s", appName, spaceLabel, space)
 	}
 	// Get UID from deployment config
@@ -1092,18 +1102,6 @@ func quantityToFloat64(q resource.Quantity) (float64, error) {
 		result = float64(val64) * math.Pow10(-int(valDec.Scale()))
 	}
 	return result, nil
-}
-
-// GetPodsInNamespace - return all pods in namepsace 'nameSpace' and application 'appName'
-func (kc *kubeClient) GetPodsInNamespace(nameSpace string, appName string) ([]v1.Pod, error) {
-	listOptions := metaV1.ListOptions{
-		LabelSelector: "app=" + appName,
-	}
-	pods, err := kc.Pods(nameSpace).List(listOptions)
-	if err != nil {
-		return nil, errs.WithStack(err)
-	}
-	return pods.Items, nil
 }
 
 func (kc *kubeClient) getPods(namespace string, uid types.UID) ([]*v1.Pod, error) {

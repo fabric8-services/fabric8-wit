@@ -8,6 +8,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/sentry"
 
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
@@ -170,5 +171,6 @@ func JSONErrorResponse(ctx InternalServerErrorContext, err error) error {
 			return ctx.Conflict(jsonErr)
 		}
 	}
+  sentry.Sentry().CaptureError(c, err)
 	return ctx.InternalServerError(jsonErr)
 }

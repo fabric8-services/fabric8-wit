@@ -17,6 +17,7 @@ objects:
     keycloak.secret: Cg==
     token.publickey: Cg==
     tenantsvc.url: aHR0cDovL2Y4dGVuYW50Ojgw
+    sentry.dsn: aHR0cDovL2I2YzBlZTdjN2ZhNTQ0MzU5YmUzZTU1Zjk0YzJmODg5OjkzMGExZWQ0OWFmYzQzNjZhMTM2OWIwYzUyYmI4YmZkQHNlbnRyeS5zZW50cnk6OTAwMC8y
 - apiVersion: v1
   kind: ConfigMap
   metadata:

@@ -111,25 +111,9 @@ func TestAPIMethodsCloseKube(t *testing.T) {
 			ctx := &app.ShowDeploymentStatsDeploymentsContext{}
 			return ctrl.ShowDeploymentStats(ctx)
 		}},
-		{"ShowEnvironment", func(ctrl *controller.DeploymentsController) error {
-			ctx := &app.ShowEnvironmentDeploymentsContext{}
-			return ctrl.ShowEnvironment(ctx)
-		}},
 		{"ShowSpace", func(ctrl *controller.DeploymentsController) error {
 			ctx := &app.ShowSpaceDeploymentsContext{}
 			return ctrl.ShowSpace(ctx)
-		}},
-		{"ShowSpaceApp", func(ctrl *controller.DeploymentsController) error {
-			ctx := &app.ShowSpaceAppDeploymentsContext{}
-			return ctrl.ShowSpaceApp(ctx)
-		}},
-		{"ShowSpaceAppDeployment", func(ctrl *controller.DeploymentsController) error {
-			ctx := &app.ShowSpaceAppDeploymentDeploymentsContext{}
-			return ctrl.ShowSpaceAppDeployment(ctx)
-		}},
-		{"ShowEnvAppPods", func(ctrl *controller.DeploymentsController) error {
-			ctx := &app.ShowEnvAppPodsDeploymentsContext{}
-			return ctrl.ShowEnvAppPods(ctx)
 		}},
 		{"ShowSpaceEnvironments", func(ctrl *controller.DeploymentsController) error {
 			ctx := &app.ShowSpaceEnvironmentsDeploymentsContext{}
