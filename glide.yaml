@@ -118,6 +118,7 @@ import:
 - package: github.com/xeipuuv/gojsonreference
 - package: github.com/xeipuuv/gojsonpointer
 - package: github.com/prometheus/client_golang
+  version: ^0.8.0
 - package: github.com/google/gops
 - package: gopkg.in/alecthomas/kingpin.v2
   version: ^2.2.6

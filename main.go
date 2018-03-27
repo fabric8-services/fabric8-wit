@@ -8,8 +8,10 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/fabric8-services/fabric8-wit/metric"
+
 	"github.com/google/gops/agent"
-	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"context"
 
@@ -198,6 +200,8 @@ func main() {
 
 	spaceAuthzService := authz.NewAuthzService(config)
 	service.Use(authz.InjectAuthzService(spaceAuthzService))
+
+	service.Use(metric.Recorder())
 
 	loginService := login.NewKeycloakOAuthProvider(identityRepository, userRepository, tokenManager, appDB)
 	loginCtrl := controller.NewLoginController(service, loginService, config, identityRepository)
@@ -401,11 +405,11 @@ func main() {
 
 	// Start/mount metrics http
 	if config.GetHTTPAddress() == config.GetMetricsHTTPAddress() {
-		http.Handle("/metrics", prometheus.Handler())
+		http.Handle("/metrics", promhttp.Handler())
 	} else {
 		go func(metricAddress string) {
 			mx := http.NewServeMux()
-			mx.Handle("/metrics", prometheus.Handler())
+			mx.Handle("/metrics", promhttp.Handler())
 			if err := http.ListenAndServe(metricAddress, mx); err != nil {
 				log.Error(nil, map[string]interface{}{
 					"addr": metricAddress,
