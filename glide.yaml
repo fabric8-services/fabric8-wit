@@ -149,9 +149,12 @@ import:
   - pkg/api/v1
 - package: github.com/ajg/form
   version: ^1.5.0
+- package: github.com/getsentry/raven-go
+  version: 563b81fc02b75d664e54da31f787c2cc2186780b
+- package: github.com/certifi/gocertifi
+  version: deb3ae2ef2610fde3330947281941c562861188b
 testImports:
 - package: github.com/dnaeon/go-vcr
   version: b68d3628568e385c2f706bf3f0db84f9c32fe610
   subpackages:
   - recorder
-

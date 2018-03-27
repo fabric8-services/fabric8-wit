@@ -1,16 +1,16 @@
 package jsonapi
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
 
-	"context"
-
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/log"
+
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 )
