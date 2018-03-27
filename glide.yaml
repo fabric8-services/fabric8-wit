@@ -100,10 +100,6 @@ import:
 - package: github.com/spf13/cast
 - package: github.com/spf13/jwalterweatherman
 - package: golang.org/x/oauth2
-- package: github.com/dnaeon/go-vcr
-  version: 9d71b8a6df86e00127f96bc8dabc09856ab8afdb
-  subpackages:
-  - recorder
 - package: github.com/russross/blackfriday
 - package: github.com/microcosm-cc/bluemonday
 - package: github.com/shurcooL/sanitized_anchor_name
@@ -153,3 +149,9 @@ import:
   - pkg/api/v1
 - package: github.com/ajg/form
   version: ^1.5.0
+testImports:
+- package: github.com/dnaeon/go-vcr
+  version: b68d3628568e385c2f706bf3f0db84f9c32fe610
+  subpackages:
+  - recorder
+

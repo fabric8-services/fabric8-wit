@@ -1,7 +1,9 @@
 package kubernetes
 
 import (
+	"reflect"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -90,5 +92,44 @@ func createRC(name string, version string) *v1.ReplicationController {
 			Name:        name,
 			Annotations: annotations,
 		},
+	}
+}
+
+func TestGetKubeRESTAPI(t *testing.T) {
+	config := getKubeConfigWithTimeout()
+	getter := &defaultGetter{}
+	restAPI, err := getter.GetKubeRESTAPI(config)
+	require.NoError(t, err, "Error occurred getting Kubernetes REST API")
+
+	// Get config from underlying kubeAPIClient struct
+	client, ok := restAPI.(*kubeAPIClient)
+	require.True(t, ok, "GetKubeRESTAPI returned %s instead of *kubeAPIClient", reflect.TypeOf(client))
+	restConfig := client.restConfig
+	require.NotNil(t, restConfig, "rest.Config was not stored in kubeAPIClient")
+	require.Equal(t, config.ClusterURL, restConfig.Host, "Host config is not set to cluster URL")
+	require.Equal(t, config.BearerToken, restConfig.BearerToken, "Bearer tokens do not match")
+	require.Equal(t, config.Timeout, restConfig.Timeout, "Timeouts do not match")
+}
+
+func TestGetOpenShiftRESTAPI(t *testing.T) {
+	config := getKubeConfigWithTimeout()
+	getter := &defaultGetter{}
+	restAPI, err := getter.GetOpenShiftRESTAPI(config)
+	require.NoError(t, err, "Error occurred getting OpenShift REST API")
+
+	// Check that fields are correct in underlying openShiftAPIClient struct
+	client, ok := restAPI.(*openShiftAPIClient)
+	require.True(t, ok, "GetOpenShiftRESTAPI returned %s instead of *openShiftAPIClient", reflect.TypeOf(client))
+	require.Equal(t, config, client.config, "KubeClientConfig in OpenShift client does not match")
+	require.NotNil(t, client.httpClient, "No HTTP client present in OpenShift client")
+	require.Equal(t, config.Timeout, client.httpClient.Timeout, "Timeouts do not match")
+}
+
+func getKubeConfigWithTimeout() *KubeClientConfig {
+	return &KubeClientConfig{
+		ClusterURL:    "http://api.myCluster",
+		BearerToken:   "myToken",
+		UserNamespace: "myNamespace",
+		Timeout:       30 * time.Second,
 	}
 }

@@ -1,6 +1,10 @@
 @startuml link_creation
 
 ' This is a PlantUML activity diagram.
+'
+' For on-the-fly rendering of the latest version of this diagram, please visit:
+' http://www.plantuml.com/plantuml/proxy?idx=0&src=https://raw.githubusercontent.com/fabric8-services/fabric8-wit/master/workitem/link/link_creation.puml&fmt=svg
+'
 ' To generate a PNG diagram from this file follow these steps:
 ' $ wget -o plantuml.jar http://sourceforge.net/projects/plantuml/files/plantuml.jar/download
 ' $ java -jar plantuml.jar -verbose link_creation.puml

@@ -3,7 +3,6 @@ package controller
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -259,11 +258,15 @@ func (g *defaultClientGetter) GetKubeClient(ctx context.Context) (kubernetes.Kub
 		return nil, errs.Wrap(err, "could not retrieve namespace name")
 	}
 
+	/* Timeout used per HTTP request to Kubernetes/OpenShift API servers.
+	 * Communication with Hawkular currently uses a hard-coded 30 second
+	 * timeout per request, and does not use this parameter. */
 	// create the cluster API client
 	kubeConfig := &kubernetes.KubeClientConfig{
 		ClusterURL:    kubeURL,
 		BearerToken:   kubeToken,
 		UserNamespace: *kubeNamespaceName,
+		Timeout:       g.config.GetDeploymentsHTTPTimeoutSeconds(),
 	}
 	kc, err := kubernetes.NewKubeClient(kubeConfig)
 	if err != nil {
@@ -422,32 +425,6 @@ func (c *DeploymentsController) ShowDeploymentStats(ctx *app.ShowDeploymentStats
 	return ctx.OK(res)
 }
 
-// ShowEnvironment runs the showEnvironment action.
-func (c *DeploymentsController) ShowEnvironment(ctx *app.ShowEnvironmentDeploymentsContext) error {
-
-	kc, err := c.GetKubeClient(ctx)
-	defer cleanup(kc)
-	if err != nil {
-		return errors.NewUnauthorizedError("openshift token")
-	}
-
-	env, err := kc.GetEnvironment(ctx.EnvName)
-	if err != nil {
-		return errors.NewInternalError(ctx, errs.Wrapf(err, "could not retrieve environment %s", ctx.EnvName))
-	}
-	if env == nil {
-		return errors.NewNotFoundError("environment", ctx.EnvName)
-	}
-
-	env.ID = *env.Attributes.Name
-
-	res := &app.SimpleEnvironmentSingle{
-		Data: env,
-	}
-
-	return ctx.OK(res)
-}
-
 // ShowSpace runs the showSpace action.
 func (c *DeploymentsController) ShowSpace(ctx *app.ShowSpaceDeploymentsContext) error {
 
@@ -479,90 +456,6 @@ func (c *DeploymentsController) ShowSpace(ctx *app.ShowSpaceDeploymentsContext) 
 	}
 
 	return ctx.OK(res)
-}
-
-// ShowSpaceApp runs the showSpaceApp action.
-func (c *DeploymentsController) ShowSpaceApp(ctx *app.ShowSpaceAppDeploymentsContext) error {
-
-	kc, err := c.GetKubeClient(ctx)
-	defer cleanup(kc)
-	if err != nil {
-		return errors.NewUnauthorizedError("openshift token")
-	}
-
-	kubeSpaceName, err := c.getSpaceNameFromSpaceID(ctx, ctx.SpaceID)
-	if err != nil {
-		return errors.NewNotFoundError("osio space", ctx.SpaceID.String())
-	}
-
-	theapp, err := kc.GetApplication(*kubeSpaceName, ctx.AppName)
-	if err != nil {
-		return errors.NewInternalError(ctx, errs.Wrapf(err, "could not retrieve application %s", ctx.AppName))
-	}
-	if theapp == nil {
-		return errors.NewNotFoundError("application", ctx.AppName)
-	}
-
-	theapp.ID = theapp.Attributes.Name
-
-	res := &app.SimpleApplicationSingle{
-		Data: theapp,
-	}
-
-	return ctx.OK(res)
-}
-
-// ShowSpaceAppDeployment runs the showSpaceAppDeployment action.
-func (c *DeploymentsController) ShowSpaceAppDeployment(ctx *app.ShowSpaceAppDeploymentDeploymentsContext) error {
-
-	kc, err := c.GetKubeClient(ctx)
-	defer cleanup(kc)
-	if err != nil {
-		return errors.NewUnauthorizedError("openshift token")
-	}
-
-	kubeSpaceName, err := c.getSpaceNameFromSpaceID(ctx, ctx.SpaceID)
-	if err != nil {
-		return errors.NewNotFoundError("osio space", ctx.SpaceID.String())
-	}
-
-	deploymentStats, err := kc.GetDeployment(*kubeSpaceName, ctx.AppName, ctx.DeployName)
-	if err != nil {
-		return errors.NewInternalError(ctx, errs.Wrapf(err, "error retrieving deployment %s", ctx.DeployName))
-	}
-	if deploymentStats == nil {
-		return errors.NewNotFoundError("deployment statistics", ctx.DeployName)
-	}
-
-	deploymentStats.ID = deploymentStats.Attributes.Name
-
-	res := &app.SimpleDeploymentSingle{
-		Data: deploymentStats,
-	}
-
-	return ctx.OK(res)
-}
-
-// ShowEnvAppPods runs the showEnvAppPods action.
-func (c *DeploymentsController) ShowEnvAppPods(ctx *app.ShowEnvAppPodsDeploymentsContext) error {
-
-	kc, err := c.GetKubeClient(ctx)
-	defer cleanup(kc)
-	if err != nil {
-		return errors.NewUnauthorizedError("openshift token")
-	}
-
-	pods, err := kc.GetPodsInNamespace(ctx.EnvName, ctx.AppName)
-	if err != nil {
-		return errors.NewInternalError(ctx, errs.Wrapf(err, "error retrieving pods from namespace %s/%s", ctx.EnvName, ctx.AppName))
-	}
-	if pods == nil || len(pods) == 0 {
-		return errors.NewNotFoundError("pods", ctx.AppName)
-	}
-
-	jsonresp := fmt.Sprintf("{\"data\":{\"attributes\":{\"environment\":\"%s\",\"application\":\"%s\",\"pods\":%s}}}", ctx.EnvName, ctx.AppName, tostring(pods))
-
-	return ctx.OK([]byte(jsonresp))
 }
 
 // ShowSpaceEnvironments runs the showSpaceEnvironments action.
