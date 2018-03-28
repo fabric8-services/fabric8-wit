@@ -93,6 +93,6 @@ var _ = a.Resource("search", func() {
 			a.Media(d.ErrorMedia)
 		})
 
-		a.Response(d.InternalServerError)
+		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 })

@@ -1,12 +1,10 @@
 package controller
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/auth"
-	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/rest/proxy"
 	"github.com/goadesign/goa"
 )
@@ -21,11 +19,6 @@ type CollaboratorsConfiguration interface {
 	auth.ServiceConfiguration
 	GetKeycloakEndpointEntitlement(*http.Request) (string, error)
 	GetCacheControlCollaborators() string
-}
-
-type collaboratorContext interface {
-	context.Context
-	jsonapi.InternalServerError
 }
 
 // NewCollaboratorsController creates a collaborators controller.
