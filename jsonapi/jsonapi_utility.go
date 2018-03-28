@@ -110,66 +110,67 @@ func ErrorToJSONAPIErrors(ctx context.Context, err error) (*app.JSONAPIErrors, i
 }
 
 // BadRequest represent a Context that can return a BadRequest HTTP status
-type BadRequest interface {
+type BadRequestContext interface {
+	context.Context
 	BadRequest(*app.JSONAPIErrors) error
 }
 
-// InternalServerError represent a Context that can return a InternalServerError HTTP status
-type InternalServerError interface {
+// InternalServerErrorContext represent a Context that can return a InternalServerError HTTP status
+type InternalServerErrorContext interface {
+	context.Context
 	InternalServerError(*app.JSONAPIErrors) error
 }
 
 // NotFound represent a Context that can return a NotFound HTTP status
-type NotFound interface {
+type NotFoundContext interface {
+	context.Context
 	NotFound(*app.JSONAPIErrors) error
 }
 
 // Unauthorized represent a Context that can return a Unauthorized HTTP status
-type Unauthorized interface {
+type UnauthorizedContext interface {
+	context.Context
 	Unauthorized(*app.JSONAPIErrors) error
 }
 
 // Forbidden represent a Context that can return a Unauthorized HTTP status
-type Forbidden interface {
+type ForbiddenContext interface {
+	context.Context
 	Forbidden(*app.JSONAPIErrors) error
 }
 
 // Conflict represent a Context that can return a Conflict HTTP status
-type Conflict interface {
+type ConflictContext interface {
+	context.Context
 	Conflict(*app.JSONAPIErrors) error
 }
 
 // JSONErrorResponse auto maps the provided error to the correct response type
 // If all else fails, InternalServerError is returned
-func JSONErrorResponse(obj interface{}, err error) error {
-	x := obj.(InternalServerError)
-	c := obj.(context.Context)
-
-	jsonErr, status := ErrorToJSONAPIErrors(c, err)
+func JSONErrorResponse(ctx InternalServerErrorContext, err error) error {
+	jsonErr, status := ErrorToJSONAPIErrors(ctx, err)
 	switch status {
 	case http.StatusBadRequest:
-		if ctx, ok := x.(BadRequest); ok {
-			return errs.WithStack(ctx.BadRequest(jsonErr))
+		if ctx, ok := ctx.(BadRequestContext); ok {
+			return ctx.BadRequest(jsonErr)
 		}
 	case http.StatusNotFound:
-		if ctx, ok := x.(NotFound); ok {
-			return errs.WithStack(ctx.NotFound(jsonErr))
+		if ctx, ok := ctx.(NotFoundContext); ok {
+			return ctx.NotFound(jsonErr)
 		}
 	case http.StatusUnauthorized:
-		if ctx, ok := x.(Unauthorized); ok {
-			return errs.WithStack(ctx.Unauthorized(jsonErr))
+		if ctx, ok := ctx.(UnauthorizedContext); ok {
+			return ctx.Unauthorized(jsonErr)
 		}
 	case http.StatusForbidden:
-		if ctx, ok := x.(Forbidden); ok {
-			return errs.WithStack(ctx.Forbidden(jsonErr))
+		if ctx, ok := ctx.(ForbiddenContext); ok {
+			return ctx.Forbidden(jsonErr)
 		}
 	case http.StatusConflict:
-		if ctx, ok := x.(Conflict); ok {
-			return errs.WithStack(ctx.Conflict(jsonErr))
+		if ctx, ok := ctx.(ConflictContext); ok {
+			return ctx.Conflict(jsonErr)
 		}
-	default:
-		sentry.Sentry().CaptureError(c, err)
-		return errs.WithStack(x.InternalServerError(jsonErr))
 	}
-	return nil
+	sentry.Sentry().CaptureError(ctx, err)
+	return ctx.InternalServerError(jsonErr)
 }

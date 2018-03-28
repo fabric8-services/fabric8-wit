@@ -35,7 +35,7 @@ func Transactional(db DB, todo func(f Application) error) error {
 		go func(tx Transaction) {
 			defer func() {
 				if err := recover(); err != nil {
-					errorChan <- errors.Errorf("Unknown error: %v", err)
+					errorChan <- errors.Errorf("recovered %v", err)
 				}
 			}()
 			errorChan <- todo(tx)
@@ -44,7 +44,7 @@ func Transactional(db DB, todo func(f Application) error) error {
 		select {
 		case err := <-errorChan:
 			if err != nil {
-				log.Debug(nil, nil, "Rolling back the transaction...")
+				log.Debug(nil, map[string]interface{}{"error": err}, "Rolling back the transaction...")
 				tx.Rollback()
 				log.Error(nil, map[string]interface{}{
 					"err": err,
