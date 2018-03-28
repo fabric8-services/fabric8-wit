@@ -370,7 +370,7 @@ func (c *Registry) GetEnvironment() string {
 	// needed after that
 	authURL := c.GetAuthServiceURL()
 	if strings.Contains(authURL, "prod-preview.openshift.io") {
-		return "preview"
+		return "prod-preview"
 	} else if strings.HasSuffix(authURL, "openshift.io") {
 		return "production"
 	}
