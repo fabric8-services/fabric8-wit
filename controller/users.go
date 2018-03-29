@@ -203,21 +203,21 @@ func (c *UsersController) updateUserInDB(id *uuid.UUID, ctx *app.UpdateUserAsSer
 	// We'll refactor the old Users update API to be redirected to Auth service in the near future.
 	// Hence, not spending time in refactoring that to consume this function.
 
-	returnResponse := application.Transactional(c.db, func(appl application.Application) error {
+	err := application.Transactional(c.db, func(appl application.Application) error {
 		identity, err := appl.Identities().Load(ctx, *id)
 		if err != nil || identity == nil {
 			log.Error(ctx, map[string]interface{}{
 				"identity_id": id,
 				"err":         err,
 			}, "id %s is unknown or error running query", *id)
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 
 		var user *account.User
 		if identity.UserID.Valid {
 			user, err = appl.Users().Load(ctx.Context, identity.UserID.UUID)
 			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Can't load user with id %s", identity.UserID.UUID)))
+				return errs.Wrap(err, fmt.Sprintf("Can't load user with id %s", identity.UserID.UUID))
 			}
 		}
 
@@ -274,17 +274,19 @@ func (c *UsersController) updateUserInDB(id *uuid.UUID, ctx *app.UpdateUserAsSer
 
 		err = appl.Users().Save(ctx, user)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 
 		err = appl.Identities().Save(ctx, identity)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		return ctx.OK([]byte{})
 	})
-
-	return returnResponse
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }
 
 // Update updates the authorized user based on the provided Token

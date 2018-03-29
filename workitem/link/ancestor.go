@@ -6,10 +6,10 @@ import (
 )
 
 const (
-	AncestorLevelAll              int64 = -1
-	AncestorLevelParent           int64 = 1
-	AncestorLevelGrandParent      int64 = 2
-	AncestorLevelGreatGrandParent int64 = 3
+	AncestorLevelAll              int = -1
+	AncestorLevelParent           int = 1
+	AncestorLevelGrandParent      int = 2
+	AncestorLevelGreatGrandParent int = 3
 )
 
 // Ancestor is essentially an annotated work item ID. Each Ancestor knows for

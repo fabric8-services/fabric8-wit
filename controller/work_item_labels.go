@@ -34,10 +34,10 @@ func NewWorkItemLabelsController(service *goa.Service, db application.DB, config
 
 // List runs the list action.
 func (c *WorkItemLabelsController) List(ctx *app.ListWorkItemLabelsContext) error {
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err := application.Transactional(c.db, func(appl application.Application) error {
 		wi, err := appl.WorkItems().LoadByID(ctx, ctx.WiID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+			return goa.ErrNotFound(err.Error())
 		}
 		labelIDs := wi.Fields[workitem.SystemLabels].([]interface{})
 		ls := make([]label.Label, 0, len(labelIDs))
@@ -49,7 +49,7 @@ func (c *WorkItemLabelsController) List(ctx *app.ListWorkItemLabelsContext) erro
 					"label_id": lblStr,
 					"err":      err,
 				}, "error in converting string to UUID")
-				return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+				return goa.ErrNotFound(err.Error())
 			}
 			l, err := appl.Labels().Load(ctx, id)
 			if err != nil {
@@ -57,7 +57,7 @@ func (c *WorkItemLabelsController) List(ctx *app.ListWorkItemLabelsContext) erro
 					"label_id": id,
 					"err":      err,
 				}, "error in loading label")
-				return jsonapi.JSONErrorResponse(ctx, err)
+				return err
 			}
 			ls = append(ls, *l)
 		}
@@ -71,4 +71,8 @@ func (c *WorkItemLabelsController) List(ctx *app.ListWorkItemLabelsContext) erro
 			return ctx.OK(res)
 		})
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }

@@ -15,7 +15,7 @@ var _ = a.Resource("userspace", func() {
 		a.Description("Data dump endpoint ")
 		a.Payload(a.HashOf(d.String, d.Any))
 		a.Response(d.NoContent)
-		a.Response(d.InternalServerError)
+		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 	a.Action("show", func() {
 		a.Routing(
@@ -23,7 +23,7 @@ var _ = a.Resource("userspace", func() {
 		)
 		a.Description("Data dump endpoint ")
 		a.Response(d.OK, a.HashOf(d.String, d.Any))
-		a.Response(d.InternalServerError)
+		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound)
 	})
 })

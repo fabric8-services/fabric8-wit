@@ -1,10 +1,10 @@
 package controller
 
 import (
-	"fmt"
-
 	"github.com/fabric8-services/fabric8-wit/app"
+	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
+	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/models"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/goadesign/goa"
@@ -40,33 +40,24 @@ func NewUserspaceController(service *goa.Service, db *gorm.DB) *UserspaceControl
 
 // Create runs the create action.
 func (c *UserspaceController) Create(ctx *app.CreateUserspaceContext) error {
-	return models.Transactional(c.db, func(db *gorm.DB) error {
-
+	err := models.Transactional(c.db, func(db *gorm.DB) error {
 		path := ctx.RequestURI
-
 		data := Data{}
 		err := c.db.Where("path = ?", path).First(&data).Error
-		fmt.Println(err)
 		if err != nil {
 			data = Data{
 				ID:   uuid.NewV4(),
 				Path: ctx.RequestURI,
 				Data: workitem.Fields(ctx.Payload),
 			}
-			err := c.db.Create(&data).Error
-			if err != nil {
-				goa.LogError(ctx, "error adding data", "error", err.Error())
-				return ctx.InternalServerError()
-			}
-		} else {
-			err := c.db.Model(&data).Update("data", workitem.Fields(ctx.Payload)).Error
-			if err != nil {
-				goa.LogError(ctx, "error updating data", "error", err.Error())
-				return ctx.InternalServerError()
-			}
+			return c.db.Create(&data).Error
 		}
-		return ctx.NoContent()
+		return c.db.Model(&data).Update("data", workitem.Fields(ctx.Payload)).Error
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, err))
+	}
+	return ctx.NoContent()
 }
 
 // Show shows the record

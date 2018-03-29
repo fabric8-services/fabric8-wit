@@ -122,7 +122,6 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 		c.rollBackSpaceCreation(ctx, spaceID)
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-
 	spaceData, err := ConvertSpaceFromModel(ctx.Request, *rSpace, IncludeBacklogTotalCount(ctx.Context, c.db))
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
@@ -221,29 +220,34 @@ func (c *SpaceController) List(ctx *app.ListSpaceContext) error {
 
 // Show runs the show action.
 func (c *SpaceController) Show(ctx *app.ShowSpaceContext) error {
-	return application.Transactional(c.db, func(appl application.Application) error {
-		s, err := appl.Spaces().Load(ctx.Context, ctx.SpaceID)
+	var s *space.Space
+	err := application.Transactional(c.db, func(appl application.Application) error {
+		var err error
+		s, err = appl.Spaces().Load(ctx.Context, ctx.SpaceID)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"err":      err,
 				"space_id": ctx.SpaceID,
 			}, "unable to load the space by ID")
-			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		return ctx.ConditionalRequest(*s, c.config.GetCacheControlSpace, func() error {
-			spaceData, err := ConvertSpaceFromModel(ctx.Request, *s, IncludeBacklogTotalCount(ctx.Context, c.db))
-			if err != nil {
-				log.Error(ctx, map[string]interface{}{
-					"err":      err,
-					"space_id": ctx.SpaceID,
-				}, "unable to convert the space object")
-				return jsonapi.JSONErrorResponse(ctx, err)
-			}
-			result := &app.SpaceSingle{
-				Data: spaceData,
-			}
-			return ctx.OK(result)
-		})
+		return err
+	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return ctx.ConditionalRequest(*s, c.config.GetCacheControlSpace, func() error {
+		spaceData, err := ConvertSpaceFromModel(ctx.Request, *s, IncludeBacklogTotalCount(ctx.Context, c.db))
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"err":      err,
+				"space_id": ctx.SpaceID,
+			}, "unable to convert the space object")
+			return err
+		}
+		result := &app.SpaceSingle{
+			Data: spaceData,
+		}
+		return ctx.OK(result)
 	})
 }
 
@@ -257,10 +261,10 @@ func (c *SpaceController) Update(ctx *app.UpdateSpaceContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-
-	var response app.SpaceSingle
-	txnErr := application.Transactional(c.db, func(appl application.Application) error {
-		s, err := appl.Spaces().Load(ctx.Context, ctx.SpaceID)
+	var s *space.Space
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		var err error
+		s, err = appl.Spaces().Load(ctx.Context, ctx.SpaceID)
 		if err != nil {
 			return err
 		}
@@ -279,23 +283,19 @@ func (c *SpaceController) Update(ctx *app.UpdateSpaceContext) error {
 		}
 
 		s, err = appl.Spaces().Save(ctx.Context, s)
-		if err != nil {
-			return err
-		}
+		return err
 
-		spaceData, err := ConvertSpaceFromModel(ctx.Request, *s, IncludeBacklogTotalCount(ctx.Context, c.db))
-		if err != nil {
-			return err
-		}
-		response = app.SpaceSingle{
-			Data: spaceData,
-		}
-		return nil
 	})
-	if txnErr != nil {
-		return jsonapi.JSONErrorResponse(ctx, txnErr)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-
+	spaceData, err := ConvertSpaceFromModel(ctx.Request, *s, IncludeBacklogTotalCount(ctx.Context, c.db))
+	if err != nil {
+		return err
+	}
+	response := app.SpaceSingle{
+		Data: spaceData,
+	}
 	return ctx.OK(&response)
 }
 

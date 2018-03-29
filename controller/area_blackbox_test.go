@@ -317,7 +317,7 @@ func (rest *TestAreaREST) TestShowChildrenAreaNotModifiedIfNoneMatchHeader() {
 	require.NoError(rest.T(), err)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	childArea := rest.createChildArea("TestShowChildrenAreaNotModifiedIfNoneMatchHeader", parentArea, svc, ctrl)
-	modelChildArea := convertAreaToModel(*childArea)
+	modelChildArea := ConvertAreaToModel(*childArea)
 	// when
 	ifNoneMatch := app.GenerateEntityTag(modelChildArea)
 	res := test.ShowChildrenAreaNotModified(rest.T(), svc.Context, svc, ctrl, parentArea.ID.String(), nil, &ifNoneMatch)
@@ -325,7 +325,7 @@ func (rest *TestAreaREST) TestShowChildrenAreaNotModifiedIfNoneMatchHeader() {
 	assertResponseHeaders(rest.T(), res)
 }
 
-func convertAreaToModel(appArea app.AreaSingle) area.Area {
+func ConvertAreaToModel(appArea app.AreaSingle) area.Area {
 	return area.Area{
 		ID:      *appArea.Data.ID,
 		Version: *appArea.Data.Attributes.Version,

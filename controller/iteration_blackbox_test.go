@@ -393,6 +393,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHead
 		updatedItr = i
 		return err
 	})
+	require.NoError(rest.T(), err)
 	ifModifiedSinceHeader := app.ToHTTPTime(updatedItr.GetLastModified())
 	// now, unlink the work item from the iteration
 	// need to wait at least 1s because HTTP date time does not include microseconds, hence `Last-Modified` vs `If-Modified-Since` comparison may fail
@@ -452,6 +453,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAf
 		updatedItr = i
 		return err
 	})
+	require.NoError(rest.T(), err)
 	ifNoneMatch := app.GenerateEntityTag(*updatedItr)
 	// now, unlink the work item from the iteration
 	// need to wait at least 1s because HTTP date time does not include microseconds, hence `Last-Modified` vs `If-Modified-Since` comparison may fail
