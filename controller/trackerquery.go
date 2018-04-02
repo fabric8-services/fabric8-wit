@@ -40,30 +40,31 @@ func NewTrackerqueryController(service *goa.Service, db application.DB, schedule
 
 // Create runs the create action.
 func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) error {
-	result := application.Transactional(c.db, func(appl application.Application) error {
+	err := application.Transactional(c.db, func(appl application.Application) error {
 		tq, err := appl.TrackerQueries().Create(ctx.Context, ctx.Payload.Query, ctx.Payload.Schedule, ctx.Payload.TrackerID, *ctx.Payload.Relationships.Space.Data.ID)
 		if err != nil {
 			cause := errs.Cause(err)
 			switch cause.(type) {
 			case remoteworkitem.BadParameterError, remoteworkitem.ConversionError:
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrBadRequest(err.Error()))
-				return ctx.BadRequest(jerrors)
+				return goa.ErrBadRequest(err.Error())
 			default:
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInternal(err.Error()))
-				return ctx.InternalServerError(jerrors)
+				return goa.ErrInternal(err.Error())
 			}
 		}
 		ctx.ResponseData.Header().Set("Location", app.TrackerqueryHref(tq.ID))
 		return ctx.Created(tq)
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
 	accessTokens := getAccessTokensForTrackerQuery(c.configuration) //configuration.GetGithubAuthToken()
 	c.scheduler.ScheduleAllQueries(ctx, accessTokens)
-	return result
+	return nil
 }
 
 // Show runs the show action.
 func (c *TrackerqueryController) Show(ctx *app.ShowTrackerqueryContext) error {
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err := application.Transactional(c.db, func(appl application.Application) error {
 		tq, err := appl.TrackerQueries().Load(ctx.Context, ctx.ID)
 		if err != nil {
 			cause := errs.Cause(err)
@@ -72,19 +73,22 @@ func (c *TrackerqueryController) Show(ctx *app.ShowTrackerqueryContext) error {
 				log.Error(ctx, map[string]interface{}{
 					"tracker_id": ctx.ID,
 				}, "tracker query controller not found")
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrNotFound(err.Error()))
-				return ctx.NotFound(jerrors)
+				return goa.ErrNotFound(err.Error())
 			default:
 				return errs.WithStack(err)
 			}
 		}
 		return ctx.OK(tq)
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }
 
 // Update runs the update action.
 func (c *TrackerqueryController) Update(ctx *app.UpdateTrackerqueryContext) error {
-	result := application.Transactional(c.db, func(appl application.Application) error {
+	err := application.Transactional(c.db, func(appl application.Application) error {
 
 		toSave := app.TrackerQuery{
 			ID:            ctx.ID,
@@ -99,51 +103,55 @@ func (c *TrackerqueryController) Update(ctx *app.UpdateTrackerqueryContext) erro
 			cause := errs.Cause(err)
 			switch cause.(type) {
 			case remoteworkitem.BadParameterError, remoteworkitem.ConversionError:
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrBadRequest(err.Error()))
-				return ctx.BadRequest(jerrors)
+				return goa.ErrBadRequest(err.Error())
 			default:
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInternal(err.Error()))
-				return ctx.InternalServerError(jerrors)
+				return goa.ErrInternal(err.Error())
 			}
 		}
 		return ctx.OK(tq)
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
 	accessTokens := getAccessTokensForTrackerQuery(c.configuration) //configuration.GetGithubAuthToken()
 	c.scheduler.ScheduleAllQueries(ctx, accessTokens)
-	return result
+	return nil
 }
 
 // Delete runs the delete action.
 func (c *TrackerqueryController) Delete(ctx *app.DeleteTrackerqueryContext) error {
-	result := application.Transactional(c.db, func(appl application.Application) error {
+	err := application.Transactional(c.db, func(appl application.Application) error {
 		err := appl.TrackerQueries().Delete(ctx.Context, ctx.ID)
 		if err != nil {
 			cause := errs.Cause(err)
 			switch cause.(type) {
 			case remoteworkitem.NotFoundError:
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrNotFound(err.Error()))
-				return ctx.NotFound(jerrors)
+				return goa.ErrNotFound(err.Error())
 			default:
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInternal(err.Error()))
-				return ctx.InternalServerError(jerrors)
+				return goa.ErrInternal(err.Error())
 			}
 		}
 		return ctx.OK([]byte{})
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
 	accessTokens := getAccessTokensForTrackerQuery(c.configuration) //configuration.GetGithubAuthToken()
 	c.scheduler.ScheduleAllQueries(ctx, accessTokens)
-	return result
+	return nil
 }
 
 // List runs the list action.
 func (c *TrackerqueryController) List(ctx *app.ListTrackerqueryContext) error {
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err := application.Transactional(c.db, func(appl application.Application) error {
 		result, err := appl.TrackerQueries().List(ctx.Context)
 		if err != nil {
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrInternal(fmt.Sprintf("Error listing tracker queries: %s", err.Error())))
-			return ctx.InternalServerError(jerrors)
+			return goa.ErrInternal(fmt.Sprintf("Error listing tracker queries: %s", err.Error()))
 		}
 		return ctx.OK(result)
 	})
-
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }

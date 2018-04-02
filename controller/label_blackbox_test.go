@@ -94,12 +94,12 @@ func (rest *TestLabelREST) TestCreateLabelWithWhiteSpace() {
 }
 
 func (rest *TestLabelREST) TestUpdate() {
-
-	testFxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Labels(1))
+	testFxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Identities(1))
 	svc := testsupport.ServiceAsUser("Label-Service", *testFxt.Identities[0])
 	ctrl := NewLabelController(svc, rest.db, rest.Configuration)
 
 	rest.T().Run("update label", func(t *testing.T) {
+		testFxt := tf.NewTestFixture(t, rest.DB, tf.Labels(1)) // 1 for each test, without conflict of changes during each test execution, isolated or not :)
 		newName := "Label New 1001"
 		textColor := "#dbe1f6"
 		backgroundColor := "#10b2f4"
@@ -129,6 +129,7 @@ func (rest *TestLabelREST) TestUpdate() {
 	})
 
 	rest.T().Run("update label with version conflict", func(t *testing.T) {
+		testFxt := tf.NewTestFixture(t, rest.DB, tf.Labels(1))
 		newVersion := testFxt.Labels[0].Version + 2
 		payload := app.UpdateLabelPayload{
 			Data: &app.Label{
@@ -150,6 +151,7 @@ func (rest *TestLabelREST) TestUpdate() {
 	})
 
 	rest.T().Run("update label with bad parameter", func(t *testing.T) {
+		testFxt := tf.NewTestFixture(t, rest.DB, tf.Labels(1))
 		payload := app.UpdateLabelPayload{
 			Data: &app.Label{
 				Attributes: &app.LabelAttributes{},
@@ -167,8 +169,9 @@ func (rest *TestLabelREST) TestUpdate() {
 	})
 
 	rest.T().Run("update label with bad parameter - name", func(t *testing.T) {
+		testFxt := tf.NewTestFixture(t, rest.DB, tf.Labels(1))
 		newName := " 	   " // tab & spaces
-		newVersion := testFxt.Labels[0].Version + 1
+		newVersion := testFxt.Labels[0].Version
 		payload := app.UpdateLabelPayload{
 			Data: &app.Label{
 				Attributes: &app.LabelAttributes{
@@ -190,6 +193,7 @@ func (rest *TestLabelREST) TestUpdate() {
 	})
 
 	rest.T().Run("update label with unauthorized", func(t *testing.T) {
+		testFxt := tf.NewTestFixture(t, rest.DB, tf.Labels(1))
 		svc := goa.New("Label-Service")
 		ctrl := NewLabelController(svc, rest.db, rest.Configuration)
 
@@ -211,6 +215,7 @@ func (rest *TestLabelREST) TestUpdate() {
 		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "unauthorized.errors.golden.json"), jerrs)
 	})
 	rest.T().Run("update label not found", func(t *testing.T) {
+		testFxt := tf.NewTestFixture(t, rest.DB, tf.Labels(1))
 		newName := "Label New 1002"
 		newVersion := testFxt.Labels[0].Version + 1
 		id := uuid.NewV4()

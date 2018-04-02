@@ -66,6 +66,7 @@ const (
 	varKeycloakURL                  = "keycloak.url"
 	varAuthNotApprovedRedirect      = "auth.notapproved.redirect"
 	varHeaderMaxLength              = "header.maxlength"
+	varEnvironment                  = "environment"
 
 	// cache control settings for a list of resources
 	varCacheControlWorkItems         = "cachecontrol.workitems"
@@ -356,6 +357,26 @@ func (c *Registry) GetDiagnoseHTTPAddress() string {
 // For example it can be used to limit the size of bearer tokens returned by the api service
 func (c *Registry) GetHeaderMaxLength() int64 {
 	return c.v.GetInt64(varHeaderMaxLength)
+}
+
+// GetEnvironment returns the current environment application is deployed in
+// like 'prod', 'preview', 'local', etc as the value of environment variable
+// `F8_ENVIRONMENT` is set.
+func (c *Registry) GetEnvironment() string {
+	if c.v.IsSet(varEnvironment) {
+		return c.v.GetString(varEnvironment)
+	}
+
+	// TODO (@surajssd): remove this part of code once above environment
+	// variable is set in all configuration, following workaround ain't
+	// needed after that
+	authURL := c.GetAuthServiceURL()
+	if strings.Contains(authURL, "prod-preview.openshift.io") {
+		return "preview"
+	} else if strings.HasSuffix(authURL, "openshift.io") {
+		return "prod"
+	}
+	return "local"
 }
 
 // IsPostgresDeveloperModeEnabled returns if development related features (as set via default, config file, or environment variable),
