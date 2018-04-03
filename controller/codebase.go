@@ -55,17 +55,19 @@ func NewCodebaseController(service *goa.Service, db application.DB, config codeb
 
 // Show runs the show action.
 func (c *CodebaseController) Show(ctx *app.ShowCodebaseContext) error {
-	return application.Transactional(c.db, func(appl application.Application) error {
-		c, err := appl.Codebases().Load(ctx, ctx.CodebaseID)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-		}
-
-		res := &app.CodebaseSingle{}
-		res.Data = ConvertCodebase(ctx.Request, *c)
-
-		return ctx.OK(res)
+	var cdb *codebase.Codebase
+	err := application.Transactional(c.db, func(appl application.Application) error {
+		var err error
+		cdb, err = appl.Codebases().Load(ctx, ctx.CodebaseID)
+		return err
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return ctx.OK(&app.CodebaseSingle{
+		Data: ConvertCodebase(ctx.Request, *cdb),
+	})
+
 }
 
 // Edit Deprecated: ListWorkspaces action should be used instead.
@@ -80,15 +82,10 @@ func (c *CodebaseController) ListWorkspaces(ctx *app.ListWorkspacesCodebaseConte
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
-
 	var cb *codebase.Codebase
-
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		cb, err = appl.Codebases().Load(ctx, ctx.CodebaseID)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-		}
-		return nil
+		return err
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
@@ -162,7 +159,6 @@ func (c *CodebaseController) Delete(ctx *app.DeleteCodebaseContext) error {
 	var cb *codebase.Codebase
 	var cbSpace *space.Space
 	err = application.Transactional(c.db, func(appl application.Application) error {
-		var err error
 		cb, err = appl.Codebases().Load(ctx.Context, ctx.CodebaseID)
 		if err != nil {
 			return err
@@ -236,16 +232,10 @@ func (c *CodebaseController) Create(ctx *app.CreateCodebaseContext) error {
 	var cb *codebase.Codebase
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		cb, err = appl.Codebases().Load(ctx, ctx.CodebaseID)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-		}
-		return nil
+		return err
 	})
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
-	}
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	ns, err := c.getCheNamespace(ctx)
 	if err != nil {
@@ -285,11 +275,8 @@ func (c *CodebaseController) Create(ctx *app.CreateCodebaseContext) error {
 
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		cb.LastUsedWorkspace = workspaceResp.Config.Name
-		_, err = appl.Codebases().Save(ctx, cb)
-		if err != nil {
-			return err
-		}
-		return nil
+		_, err := appl.Codebases().Save(ctx, cb)
+		return err
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
@@ -313,16 +300,10 @@ func (c *CodebaseController) Open(ctx *app.OpenCodebaseContext) error {
 	var cb *codebase.Codebase
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		cb, err = appl.Codebases().Load(ctx, ctx.CodebaseID)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-		}
-		return nil
+		return err
 	})
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
-	}
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	ns, err := c.getCheNamespace(ctx)
 	if err != nil {
@@ -351,12 +332,12 @@ func (c *CodebaseController) Open(ctx *app.OpenCodebaseContext) error {
 
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		cb.LastUsedWorkspace = ctx.WorkspaceID
-		_, err = appl.Codebases().Save(ctx, cb)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-		}
-		return nil
+		_, err := appl.Codebases().Save(ctx, cb)
+		return err
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+	}
 
 	ideURL := workspaceResp.GetHrefByRelOfWorkspaceLink(che.IdeUrlRel)
 	resp := &app.WorkspaceOpen{

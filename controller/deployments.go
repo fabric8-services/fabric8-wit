@@ -165,14 +165,11 @@ func (g *defaultClientGetter) GetKubeClient(ctx context.Context) (kubernetes.Kub
 	/* Timeout used per HTTP request to Kubernetes/OpenShift API servers.
 	 * Communication with Hawkular currently uses a hard-coded 30 second
 	 * timeout per request, and does not use this parameter. */
-	// TODO replace with configurable timeout
-	const timeout time.Duration = 30 * time.Second
-
 	// create the cluster API client
 	kubeConfig := &kubernetes.KubeClientConfig{
 		BaseURLProvider: baseURLProvider,
 		UserNamespace:   *kubeNamespaceName,
-		Timeout:         timeout,
+		Timeout:         g.config.GetDeploymentsHTTPTimeoutSeconds(),
 	}
 	kc, err := kubernetes.NewKubeClient(kubeConfig)
 	if err != nil {

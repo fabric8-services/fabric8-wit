@@ -149,7 +149,7 @@ func (rest *TestCommentREST) TestSuccessCreateSingleCommentWithDefaultMarkup() {
 	assertComment(rest.T(), c.Data, rest.testIdentity, "Test", rendering.SystemMarkupDefault)
 }
 
-func (rest *TestCommentREST) TestNotificationSendOnCreate() {
+func (rest *TestCommentREST) TestNotificationSentOnCreate() {
 	// given
 	wi := rest.createDefaultWorkItem()
 	// when
