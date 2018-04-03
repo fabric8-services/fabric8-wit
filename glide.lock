@@ -1,5 +1,5 @@
-hash: 0b19caa71f884cfee100b1be46b2d6430fbeee0508227c3dcf025a7836d9412a
-updated: 2018-03-27T15:55:09.1306754+05:30
+hash: 066a5378400454de361023c1d62623373ba61ff12a9c84d342c06dfa1faab8b9
+updated: 2018-04-03T19:51:42.755992218+02:00
 imports:
 - name: github.com/ajg/form
   version: cc2954064ec9ea8d93917f0f87456e11d7b881ad
@@ -71,7 +71,7 @@ imports:
 - name: github.com/getsentry/raven-go
   version: 563b81fc02b75d664e54da31f787c2cc2186780b
 - name: github.com/ghodss/yaml
-  version: 73d445a93680fa1a78ae23a5839bad48f32ba1ee
+  version: 0ca9ea5df5451ffdf184b4428c902747c2c11cd7
 - name: github.com/go-openapi/jsonpointer
   version: 46af16f9f7b149af66e5d1bd010e3574dc06de98
 - name: github.com/go-openapi/jsonreference
@@ -354,7 +354,7 @@ imports:
 - name: gopkg.in/inf.v0
   version: 3887ee99ecf07df5b447e9b00d9c0b2adaa9f3e4
 - name: gopkg.in/square/go-jose.v2
-  version: 552e98edab5d620205ff1a8960bf52a5a10aad03
+  version: 76dd09796242edb5b897103a75df2645c028c960
   subpackages:
   - cipher
   - json

@@ -134,8 +134,8 @@ func (s *searchRepositoryBlackboxTest) TestSearchWithJoin() {
 				fxt.WorkItems[0].ID,
 				fxt.WorkItems[1].ID,
 				fxt.WorkItems[2].ID,
-			})#
-			assert.Equal(t, uint64(len(toBeFound)), count)
+			})
+			assert.Equal(t, len(toBeFound), count)
 			for _, wi := range res {
 				_, ok := toBeFound[wi.ID]
 				require.True(t, ok, "unknown work item found: %s", wi.ID)
