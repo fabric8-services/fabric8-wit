@@ -1,12 +1,14 @@
 package jsonerrorresponsewithintx
 
 import (
+	"bytes"
 	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
 	"path"
 
+	"github.com/fabric8-services/fabric8-wit/staticanalysers/indentlogger"
 	errs "github.com/pkg/errors"
 )
 
@@ -17,16 +19,24 @@ const (
 	jsonErrorResponseFunceName = "JSONErrorResponse"
 )
 
-// findBadCalls searches for calls to jsonapi.JSONErrorResponses that are being
+// TODO(kwk): Make thread-safe when needed
+var logBuf = bytes.Buffer{}
+var ilog = indentlogger.New(&logBuf, "[staticanalysers/jsonerrorresponsewithintx] ", 0, "  ")
+
+// FindBadCalls searches for calls to jsonapi.JSONErrorResponses that are being
 // made from within an application.Transactional call. It prints the logs and
 // returns each error that it prints as well.
-func findBadCalls(filename string, src interface{}) []error {
+func FindBadCalls(filename string, src interface{}, outputOnNoError bool) (badCallErrors []error) {
 	ilog.Printf("Scanning file %s\n", filename)
 	ilog.Indent()
 	defer func() {
 		ilog.Outdent()
+
 		// flush the buffer at the end of this function for examples to pick it up
-		fmt.Print(&logBuf)
+		if len(badCallErrors) > 0 || outputOnNoError {
+			fmt.Print(&logBuf)
+		}
+		logBuf = bytes.Buffer{}
 	}()
 
 	fset := token.NewFileSet()

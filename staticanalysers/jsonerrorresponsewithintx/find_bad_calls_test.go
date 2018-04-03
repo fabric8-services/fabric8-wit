@@ -1,14 +1,11 @@
 package jsonerrorresponsewithintx
 
 import (
-	"bytes"
-
-	"github.com/fabric8-services/fabric8-wit/staticanalysers"
+	"github.com/fabric8-services/fabric8-wit/staticanalysers/indentlogger"
 )
 
 func Example_findBadCalls_bad_call() {
-	logBuf = bytes.Buffer{}
-	ilog = staticanalysers.NewIndentLogger(&logBuf, "", 0, "  ")
+	ilog = indentlogger.New(&logBuf, "", 0, "  ")
 	src := `
 	package main
 
@@ -29,7 +26,7 @@ func Example_findBadCalls_bad_call() {
 		}
 	}`
 
-	findBadCalls("bad_call.go", src)
+	FindBadCalls("bad_call.go", src, true)
 	// Output:
 	// Scanning file bad_call.go
 	//   Scanning imports
@@ -43,7 +40,6 @@ func Example_findBadCalls_bad_call() {
 }
 
 func Example_findBadCalls_bad_call_deeply_nested() {
-	logBuf = bytes.Buffer{}
 	src := `
 	package main
 
@@ -69,7 +65,7 @@ func Example_findBadCalls_bad_call_deeply_nested() {
 		}
 	}`
 
-	findBadCalls("bad_call_deeply_nested.go", src)
+	FindBadCalls("bad_call_deeply_nested.go", src, true)
 	// Output:
 	// Scanning file bad_call_deeply_nested.go
 	//   Scanning imports
@@ -83,7 +79,6 @@ func Example_findBadCalls_bad_call_deeply_nested() {
 }
 
 func Example_findBadCalls_no_problem() {
-	logBuf = bytes.Buffer{}
 	src := `
 	package main
 
@@ -102,7 +97,7 @@ func Example_findBadCalls_no_problem() {
 		}
 	}`
 
-	findBadCalls("no_problem.go", src)
+	FindBadCalls("no_problem.go", src, true)
 	// Output:
 	// Scanning file no_problem.go
 	//   Scanning imports
@@ -114,7 +109,6 @@ func Example_findBadCalls_no_problem() {
 }
 
 func Example_findBadCalls_application_not_imported() {
-	logBuf = bytes.Buffer{}
 	src := `
 	package main
 
@@ -126,7 +120,7 @@ func Example_findBadCalls_application_not_imported() {
 		jsonapi.JSONErrorResponse(a, nil)
 	}`
 
-	findBadCalls("application_not_imported.go", src)
+	FindBadCalls("application_not_imported.go", src, true)
 	// Output:
 	// Scanning file application_not_imported.go
 	//   Scanning imports
@@ -135,7 +129,6 @@ func Example_findBadCalls_application_not_imported() {
 }
 
 func Example_findBadCalls_jsonapi_not_imported() {
-	logBuf = bytes.Buffer{}
 	src := `
 	package main
 
@@ -152,7 +145,7 @@ func Example_findBadCalls_jsonapi_not_imported() {
 		}
 	}`
 
-	findBadCalls("jsonapi_not_imported.go", src)
+	FindBadCalls("jsonapi_not_imported.go", src, true)
 	// Output:
 	// Scanning file jsonapi_not_imported.go
 	//   Scanning imports
@@ -161,14 +154,13 @@ func Example_findBadCalls_jsonapi_not_imported() {
 }
 
 func Example_findBadCalls_parse_error() {
-	logBuf = bytes.Buffer{}
 	src := `
 	package main
 
 	func main() 
 	}`
 
-	findBadCalls("parse_error.go", src)
+	FindBadCalls("parse_error.go", src, true)
 	// Output:
 	// Scanning file parse_error.go
 	//   ERROR: failed to parse file "parse_error.go" with: parse_error.go:5:2: expected declaration, found '}'

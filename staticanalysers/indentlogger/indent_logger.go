@@ -1,4 +1,4 @@
-package staticanalysers
+package indentlogger
 
 import (
 	"io"
@@ -16,8 +16,8 @@ type IndentLogger struct {
 	indentBy       string
 }
 
-// NewIndentLogger creates a logger that can indent and outdent its output.
-func NewIndentLogger(out io.Writer, prefix string, flag int, indentBy string) *IndentLogger {
+// New creates a logger that can indent and outdent its output.
+func New(out io.Writer, prefix string, flag int, indentBy string) *IndentLogger {
 	l := &IndentLogger{
 		Logger:         log.New(out, prefix, flag),
 		originalPrefix: prefix,
