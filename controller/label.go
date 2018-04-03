@@ -38,15 +38,17 @@ func NewLabelController(service *goa.Service, db application.DB, config LabelCon
 
 // Show retrieve a single label
 func (c *LabelController) Show(ctx *app.ShowLabelContext) error {
-	return application.Transactional(c.db, func(appl application.Application) error {
-		lbl, err := appl.Labels().Load(ctx, ctx.LabelID)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
-		res := &app.LabelSingle{
-			Data: ConvertLabel(appl, ctx.Request, *lbl),
-		}
-		return ctx.OK(res)
+	var lbl *label.Label
+	err := application.Transactional(c.db, func(appl application.Application) error {
+		var err error
+		lbl, err = appl.Labels().Load(ctx, ctx.LabelID)
+		return err
+	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return ctx.OK(&app.LabelSingle{
+		Data: ConvertLabel(ctx.Request, *lbl),
 	})
 }
 
@@ -58,36 +60,35 @@ func (c *LabelController) Create(ctx *app.CreateLabelContext) error {
 	}
 	if ctx.Payload.Data.Attributes.Name == nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest("Name cannot be empty"))
-
 	}
-	return application.Transactional(c.db, func(appl application.Application) error {
-		lbl := label.Label{
-			SpaceID: ctx.SpaceID,
-			Name:    strings.TrimSpace(*ctx.Payload.Data.Attributes.Name),
-		}
-		if ctx.Payload.Data.Attributes.TextColor != nil {
-			lbl.TextColor = *ctx.Payload.Data.Attributes.TextColor
-		}
-		if ctx.Payload.Data.Attributes.BackgroundColor != nil {
-			lbl.BackgroundColor = *ctx.Payload.Data.Attributes.BackgroundColor
-		}
-		if ctx.Payload.Data.Attributes.BorderColor != nil {
-			lbl.BorderColor = *ctx.Payload.Data.Attributes.BorderColor
-		}
-		err = appl.Labels().Create(ctx, &lbl)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
-		res := &app.LabelSingle{
-			Data: ConvertLabel(appl, ctx.Request, lbl),
-		}
-		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.LabelHref(ctx.SpaceID, res.Data.ID)))
-		return ctx.Created(res)
+	lbl := &label.Label{
+		SpaceID: ctx.SpaceID,
+		Name:    strings.TrimSpace(*ctx.Payload.Data.Attributes.Name),
+	}
+	if ctx.Payload.Data.Attributes.TextColor != nil {
+		lbl.TextColor = *ctx.Payload.Data.Attributes.TextColor
+	}
+	if ctx.Payload.Data.Attributes.BackgroundColor != nil {
+		lbl.BackgroundColor = *ctx.Payload.Data.Attributes.BackgroundColor
+	}
+	if ctx.Payload.Data.Attributes.BorderColor != nil {
+		lbl.BorderColor = *ctx.Payload.Data.Attributes.BorderColor
+	}
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		return appl.Labels().Create(ctx, lbl)
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	result := &app.LabelSingle{
+		Data: ConvertLabel(ctx.Request, *lbl),
+	}
+	ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.LabelHref(ctx.SpaceID, result.Data.ID)))
+	return ctx.Created(result)
 }
 
 // ConvertLabel converts from internal to external REST representation
-func ConvertLabel(appl application.Application, request *http.Request, lbl label.Label) *app.Label {
+func ConvertLabel(request *http.Request, lbl label.Label) *app.Label {
 	labelType := label.APIStringTypeLabels
 	spaceID := lbl.SpaceID.String()
 	relatedURL := rest.AbsoluteURL(request, app.LabelHref(spaceID, lbl.ID))
@@ -127,22 +128,26 @@ func ConvertLabel(appl application.Application, request *http.Request, lbl label
 
 // List runs the list action.
 func (c *LabelController) List(ctx *app.ListLabelContext) error {
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err := application.Transactional(c.db, func(appl application.Application) error {
 		labels, err := appl.Labels().List(ctx, ctx.SpaceID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		res := &app.LabelList{}
 		res.Data = ConvertLabels(appl, ctx.Request, labels)
 		return ctx.OK(res)
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }
 
 // ConvertLabels from internal to external REST representation
 func ConvertLabels(appl application.Application, request *http.Request, labels []label.Label) []*app.Label {
 	var ls = []*app.Label{}
 	for _, i := range labels {
-		ls = append(ls, ConvertLabel(appl, request, i))
+		ls = append(ls, ConvertLabel(request, i))
 	}
 	return ls
 }
@@ -172,18 +177,18 @@ func (c *LabelController) Update(ctx *app.UpdateLabelContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
-
 	if ctx.Payload.Data.Attributes.Version == nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data.attributes.version", nil).Expected("not nil"))
 	}
-
-	return application.Transactional(c.db, func(appl application.Application) error {
-		lbl, err := appl.Labels().Load(ctx.Context, ctx.LabelID)
+	var lbl *label.Label
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		var err error
+		lbl, err = appl.Labels().Load(ctx.Context, ctx.LabelID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		if lbl.Version != *ctx.Payload.Data.Attributes.Version {
-			return jsonapi.JSONErrorResponse(ctx, errors.NewVersionConflictError("version conflict"))
+			return errors.NewVersionConflictError("version conflict")
 		}
 		if ctx.Payload.Data.Attributes.Name != nil {
 			lbl.Name = strings.TrimSpace(*ctx.Payload.Data.Attributes.Name)
@@ -198,13 +203,14 @@ func (c *LabelController) Update(ctx *app.UpdateLabelContext) error {
 			lbl.BorderColor = *ctx.Payload.Data.Attributes.BorderColor
 		}
 		lbl, err = appl.Labels().Save(ctx, *lbl)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
-		res := &app.LabelSingle{
-			Data: ConvertLabel(appl, ctx.Request, *lbl),
-		}
-		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.LabelHref(ctx.SpaceID, res.Data.ID)))
-		return ctx.OK(res)
+		return err
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	result := &app.LabelSingle{
+		Data: ConvertLabel(ctx.Request, *lbl),
+	}
+	ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.LabelHref(ctx.SpaceID, result.Data.ID)))
+	return ctx.OK(result)
 }
