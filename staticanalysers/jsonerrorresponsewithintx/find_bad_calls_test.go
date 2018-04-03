@@ -4,6 +4,41 @@ import (
 	"github.com/fabric8-services/fabric8-wit/staticanalysers/indentlogger"
 )
 
+func Example_findBadCalls_false_positive() {
+	ilog = indentlogger.New(&logBuf, "", 0, "  ")
+	src := `
+	package main
+
+	import (
+		foo1 "github.com/fabric8-services/fabric8-wit/jsonapi"
+		myapp "github.com/fabric8-services/fabric8-wit/application"
+	)
+
+	func main() {
+		err := myapp.Transactional(c.db, func(appl application.Application) error {
+			// this call is not okay
+			return nil
+		})
+		// this one is okay
+		foo1.JSONErrorResponse(a, nil)
+		if err != nil {
+			panic(err)
+		}
+	}`
+
+	FindBadCalls("bad_call.go", src, true)
+	// Output:
+	// Scanning file bad_call.go
+	//   Scanning imports
+	//     Package "github.com/fabric8-services/fabric8-wit/jsonapi" imported as "foo1"
+	//     Package "github.com/fabric8-services/fabric8-wit/application" imported as "myapp"
+	//   Find calls to foo1.JSONErrorResponse
+	//     found call to foo1.JSONErrorResponse at bad_call.go:12:11
+	//     found call to foo1.JSONErrorResponse at bad_call.go:15:3
+	//   Traversing up AST to find transactional contexts
+	//     ERROR: foo1.JSONErrorResponse called at bad_call.go:12:11 from within Transactional which was started at bad_call.go:10:10
+}
+
 func Example_findBadCalls_bad_call() {
 	ilog = indentlogger.New(&logBuf, "", 0, "  ")
 	src := `
