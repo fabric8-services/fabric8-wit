@@ -190,7 +190,7 @@ func assertComment(t *testing.T, resultData *app.Comment, expectedIdentity accou
 	assert.True(t, strings.Contains(*resultData.Relationships.Creator.Data.ID, *resultData.Relationships.Creator.Data.ID), "Link not found")
 }
 
-func convertCommentToModel(c app.CommentSingle) comment.Comment {
+func ConvertCommentToModel(c app.CommentSingle) comment.Comment {
 	return comment.Comment{
 		ID: *c.Data.ID,
 		Lifecycle: gormsupport.Lifecycle{
@@ -264,7 +264,7 @@ func (s *CommentsSuite) TestShowCommentWithoutAuthNotModifiedUsingIfNoneMatchHea
 	wiID := s.createWorkItem(s.testIdentity)
 	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &markdownMarkup)
 	// when
-	commentModel := convertCommentToModel(c)
+	commentModel := ConvertCommentToModel(c)
 	ifNoneMatch := app.GenerateEntityTag(commentModel)
 	userSvc, commentsCtrl := s.unsecuredController()
 	res := test.ShowCommentsNotModified(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID, nil, &ifNoneMatch)

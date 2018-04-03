@@ -19,7 +19,7 @@ var _ = a.Resource("features", func() {
 		a.Response(d.OK)
 		a.Response(d.BadRequest)
 		a.Response(d.NotFound)
-		a.Response(d.InternalServerError)
+		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.Unauthorized)
 	})
 
@@ -31,7 +31,7 @@ var _ = a.Resource("features", func() {
 		a.Response(d.OK)
 		a.Response(d.BadRequest)
 		a.Response(d.NotFound)
-		a.Response(d.InternalServerError)
+		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.Unauthorized)
 	})
 })

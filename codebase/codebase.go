@@ -140,7 +140,7 @@ type Repository interface {
 	Create(ctx context.Context, u *Codebase) error
 	Delete(ctx context.Context, ID uuid.UUID) error
 	Save(ctx context.Context, codebase *Codebase) (*Codebase, error)
-	List(ctx context.Context, spaceID uuid.UUID, start *int, limit *int) ([]Codebase, uint64, error)
+	List(ctx context.Context, spaceID uuid.UUID, start *int, limit *int) ([]Codebase, int, error)
 	Load(ctx context.Context, id uuid.UUID) (*Codebase, error)
 	LoadByRepo(ctx context.Context, spaceID uuid.UUID, repository string) (*Codebase, error)
 	SearchByURL(ctx context.Context, url string, start *int, limit *int) ([]Codebase, int, error)
@@ -221,7 +221,7 @@ func (m *GormCodebaseRepository) Save(ctx context.Context, codebase *Codebase) (
 }
 
 // List all codebases related to a single item
-func (m *GormCodebaseRepository) List(ctx context.Context, spaceID uuid.UUID, start *int, limit *int) ([]Codebase, uint64, error) {
+func (m *GormCodebaseRepository) List(ctx context.Context, spaceID uuid.UUID, start *int, limit *int) ([]Codebase, int, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "codebase", "list"}, time.Now())
 
 	db := m.db.Model(&Codebase{}).Where("space_id = ?", spaceID)
@@ -253,7 +253,7 @@ func (m *GormCodebaseRepository) List(ctx context.Context, spaceID uuid.UUID, st
 	}
 
 	// need to set up a result for Scan() in order to extract total count.
-	var count uint64
+	var count int
 	var ignore interface{}
 	columnValues := make([]interface{}, len(columns))
 

@@ -38,10 +38,10 @@ func NewWorkitemtypeController(service *goa.Service, db application.DB, config W
 
 // Show runs the show action.
 func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err := application.Transactional(c.db, func(appl application.Application) error {
 		witModel, err := appl.WorkItemTypes().Load(ctx.Context, ctx.WitID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		return ctx.ConditionalRequest(*witModel, c.config.GetCacheControlWorkItemType, func() error {
 			witData := ConvertWorkItemTypeFromModel(ctx.Request, witModel)
@@ -49,6 +49,10 @@ func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 			return ctx.OK(wit)
 		})
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }
 
 // ConvertWorkItemTypeFromModel converts from models to app representation
@@ -75,7 +79,7 @@ func ConvertWorkItemTypeFromModel(request *http.Request, t *workitem.WorkItemTyp
 		},
 	}
 	for name, def := range t.Fields {
-		ct := convertFieldTypeFromModel(def.Type)
+		ct := ConvertFieldTypeFromModel(def.Type)
 		converted.Attributes.Fields[name] = &app.FieldDefinition{
 			Required:    def.Required,
 			Label:       def.Label,
@@ -98,7 +102,7 @@ func ConvertWorkItemTypeFromModel(request *http.Request, t *workitem.WorkItemTyp
 }
 
 // converts the field type from modesl to app representation
-func convertFieldTypeFromModel(t workitem.FieldType) app.FieldType {
+func ConvertFieldTypeFromModel(t workitem.FieldType) app.FieldType {
 	result := app.FieldType{}
 	result.Kind = string(t.GetKind())
 	switch t2 := t.(type) {
@@ -112,7 +116,7 @@ func convertFieldTypeFromModel(t workitem.FieldType) app.FieldType {
 	return result
 }
 
-func convertFieldTypeToModel(t app.FieldType) (workitem.FieldType, error) {
+func ConvertFieldTypeToModel(t app.FieldType) (workitem.FieldType, error) {
 	kind, err := workitem.ConvertStringToKind(t.Kind)
 	if err != nil {
 		return nil, errs.WithStack(err)
@@ -158,7 +162,7 @@ func ConvertFieldDefinitionsToModel(fields map[string]app.FieldDefinition) (map[
 	modelFields := map[string]workitem.FieldDefinition{}
 	// now process new fields, checking whether they are ok to add.
 	for field, definition := range fields {
-		ct, err := convertFieldTypeToModel(*definition.Type)
+		ct, err := ConvertFieldTypeToModel(*definition.Type)
 		if err != nil {
 			return nil, errs.WithStack(err)
 		}

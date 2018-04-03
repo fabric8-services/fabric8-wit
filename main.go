@@ -20,10 +20,12 @@ import (
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/login"
+	"github.com/fabric8-services/fabric8-wit/metric"
 	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/models"
 	"github.com/fabric8-services/fabric8-wit/notification"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
+	"github.com/fabric8-services/fabric8-wit/sentry"
 	"github.com/fabric8-services/fabric8-wit/space/authz"
 	"github.com/fabric8-services/fabric8-wit/token"
 	"github.com/goadesign/goa"
@@ -34,7 +36,7 @@ import (
 	"github.com/google/gops/agent"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
-	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
@@ -78,6 +80,18 @@ func main() {
 
 	// Initialized developer mode flag and log level for the logger
 	log.InitializeLogger(config.IsLogJSON(), config.GetLogLevel())
+
+	// Initialize sentry client
+	haltSentry, err := sentry.InitializeSentryClient(
+		sentry.WithRelease(controller.Commit),
+		sentry.WithEnvironment(config.GetEnvironment()),
+	)
+	if err != nil {
+		log.Panic(nil, map[string]interface{}{
+			"err": err,
+		}, "failed to setup the sentry client")
+	}
+	defer haltSentry()
 
 	printUserInfo()
 
@@ -184,6 +198,8 @@ func main() {
 
 	spaceAuthzService := authz.NewAuthzService(config)
 	service.Use(authz.InjectAuthzService(spaceAuthzService))
+
+	service.Use(metric.Recorder())
 
 	loginService := login.NewKeycloakOAuthProvider(identityRepository, userRepository, tokenManager, appDB)
 	loginCtrl := controller.NewLoginController(service, loginService, config, identityRepository)
@@ -395,11 +411,11 @@ func main() {
 
 	// Start/mount metrics http
 	if config.GetHTTPAddress() == config.GetMetricsHTTPAddress() {
-		http.Handle("/metrics", prometheus.Handler())
+		http.Handle("/metrics", promhttp.Handler())
 	} else {
 		go func(metricAddress string) {
 			mx := http.NewServeMux()
-			mx.Handle("/metrics", prometheus.Handler())
+			mx.Handle("/metrics", promhttp.Handler())
 			if err := http.ListenAndServe(metricAddress, mx); err != nil {
 				log.Error(nil, map[string]interface{}{
 					"addr": metricAddress,

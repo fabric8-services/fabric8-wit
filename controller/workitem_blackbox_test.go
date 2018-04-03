@@ -1623,7 +1623,7 @@ func (s *WorkItem2Suite) TestWI2ListByAreaFilterNotModifiedUsingIfNoneMatchHeade
 	// given
 	spaceID, areaID, wi := s.setupAreaWorkItem(true)
 	// when
-	ifNoneMatch := app.GenerateEntityTag(convertWorkItemToConditionalRequestEntity(*wi))
+	ifNoneMatch := app.GenerateEntityTag(ConvertWorkItemToConditionalRequestEntity(*wi))
 	res := test.ListWorkitemsNotModified(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil, nil, &ifNoneMatch)
 	// then
 	assertResponseHeaders(s.T(), res)
@@ -1788,7 +1788,7 @@ func (s *WorkItem2Suite) TestWI2ShowNotModifiedUsingIfNoneMatchHeader() {
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 	_, createdWI := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, &c)
 	// when
-	ifNoneMatch := app.GenerateEntityTag(convertWorkItemToConditionalRequestEntity(*createdWI))
+	ifNoneMatch := app.GenerateEntityTag(ConvertWorkItemToConditionalRequestEntity(*createdWI))
 	res := test.ShowWorkitemNotModified(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *createdWI.Data.ID, nil, &ifNoneMatch)
 	// then
 	assertResponseHeaders(s.T(), res)
@@ -2731,7 +2731,7 @@ func (s *WorkItem2Suite) TestWI2FilterExpressionRedirection() {
 	assert.Contains(s.T(), location, expectedLocation)
 }
 
-func (s *WorkItem2Suite) TestNotificationSendOnCreate() {
+func (s *WorkItem2Suite) TestNotificationSentOnCreate() {
 	// given
 	// Default created WI in setupTest
 	// when
@@ -2864,7 +2864,7 @@ func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	test.ReorderWorkitemsForbidden(s.T(), svcNotAuthorized.Context, svcNotAuthorized, workitemsCtrlNotAuthorized, *space.ID, &payload5)
 }
 
-func convertWorkItemToConditionalRequestEntity(appWI app.WorkItemSingle) app.ConditionalRequestEntity {
+func ConvertWorkItemToConditionalRequestEntity(appWI app.WorkItemSingle) app.ConditionalRequestEntity {
 	return workitem.WorkItem{
 		ID:      *appWI.Data.ID,
 		Version: appWI.Data.Attributes["version"].(int),

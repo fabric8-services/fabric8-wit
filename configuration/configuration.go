@@ -66,6 +66,7 @@ const (
 	varKeycloakURL                  = "keycloak.url"
 	varAuthNotApprovedRedirect      = "auth.notapproved.redirect"
 	varHeaderMaxLength              = "header.maxlength"
+	varEnvironment                  = "environment"
 
 	// cache control settings for a list of resources
 	varCacheControlWorkItems         = "cachecontrol.workitems"
@@ -105,6 +106,7 @@ const (
 	varTenantServiceURL         = "tenant.serviceurl"
 	varNotificationServiceURL   = "notification.serviceurl"
 	varTogglesServiceURL        = "toggles.serviceurl"
+	varDeploymentsHTTPTimeout   = "deployments.http.timeout"
 )
 
 // Registry encapsulates the Viper configuration registry which stores the
@@ -242,6 +244,7 @@ func (c *Registry) setConfigDefaults() {
 	c.v.SetDefault(varOpenshiftTenantMasterURL, defaultOpenshiftTenantMasterURL)
 	c.v.SetDefault(varCheStarterURL, defaultCheStarterURL)
 	c.v.SetDefault(varTogglesServiceURL, defaultTogglesServiceURL)
+	c.v.SetDefault(varDeploymentsHTTPTimeout, defaultDeploymentsHTTPTimeout)
 }
 
 // GetPostgresHost returns the postgres host as set via default, config file, or environment variable
@@ -354,6 +357,26 @@ func (c *Registry) GetDiagnoseHTTPAddress() string {
 // For example it can be used to limit the size of bearer tokens returned by the api service
 func (c *Registry) GetHeaderMaxLength() int64 {
 	return c.v.GetInt64(varHeaderMaxLength)
+}
+
+// GetEnvironment returns the current environment application is deployed in
+// like 'prod', 'preview', 'local', etc as the value of environment variable
+// `F8_ENVIRONMENT` is set.
+func (c *Registry) GetEnvironment() string {
+	if c.v.IsSet(varEnvironment) {
+		return c.v.GetString(varEnvironment)
+	}
+
+	// TODO (@surajssd): remove this part of code once above environment
+	// variable is set in all configuration, following workaround ain't
+	// needed after that
+	authURL := c.GetAuthServiceURL()
+	if strings.Contains(authURL, "prod-preview.openshift.io") {
+		return "preview"
+	} else if strings.HasSuffix(authURL, "openshift.io") {
+		return "prod"
+	}
+	return "local"
 }
 
 // IsPostgresDeveloperModeEnabled returns if development related features (as set via default, config file, or environment variable),
@@ -819,6 +842,15 @@ func (c *Registry) GetTogglesServiceURL() string {
 	return c.v.GetString(varTogglesServiceURL)
 }
 
+// GetDeploymentsTimeout returns the amount of seconds until it should timeout.
+func (c *Registry) GetDeploymentsHTTPTimeoutSeconds() time.Duration {
+	timeout := c.v.GetInt(varDeploymentsHTTPTimeout)
+	if timeout < minimumDeploymentsHTTPTimeout {
+		timeout = minimumDeploymentsHTTPTimeout
+	}
+	return time.Duration(timeout) * time.Second
+}
+
 const (
 	defaultHeaderMaxLength = 5000 // bytes
 
@@ -848,6 +880,8 @@ const (
 	defaultOpenshiftTenantMasterURL = "https://tsrv.devshift.net:8443"
 	defaultTogglesServiceURL        = "http://f8toggles-service"
 	defaultCheStarterURL            = "che-server"
+	minimumDeploymentsHTTPTimeout   = 1
+	defaultDeploymentsHTTPTimeout   = 30
 
 	// DefaultValidRedirectURLs is a regex to be used to whitelist redirect URL for auth
 	// If the F8_REDIRECT_VALID env var is not set then in Dev Mode all redirects allowed - *

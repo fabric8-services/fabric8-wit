@@ -100,10 +100,6 @@ import:
 - package: github.com/spf13/cast
 - package: github.com/spf13/jwalterweatherman
 - package: golang.org/x/oauth2
-- package: github.com/dnaeon/go-vcr
-  version: 9d71b8a6df86e00127f96bc8dabc09856ab8afdb
-  subpackages:
-  - recorder
 - package: github.com/russross/blackfriday
 - package: github.com/microcosm-cc/bluemonday
 - package: github.com/shurcooL/sanitized_anchor_name
@@ -122,6 +118,7 @@ import:
 - package: github.com/xeipuuv/gojsonreference
 - package: github.com/xeipuuv/gojsonpointer
 - package: github.com/prometheus/client_golang
+  version: ^0.8.0
 - package: github.com/google/gops
 - package: gopkg.in/alecthomas/kingpin.v2
   version: ^2.2.6
@@ -154,3 +151,12 @@ import:
   version: ^1.5.0
 - package: github.com/ghodss/yaml
   version: =1.0.0
+- package: github.com/getsentry/raven-go
+  version: 563b81fc02b75d664e54da31f787c2cc2186780b
+- package: github.com/certifi/gocertifi
+  version: deb3ae2ef2610fde3330947281941c562861188b
+testImports:
+- package: github.com/dnaeon/go-vcr
+  version: b68d3628568e385c2f706bf3f0db84f9c32fe610
+  subpackages:
+  - recorder
