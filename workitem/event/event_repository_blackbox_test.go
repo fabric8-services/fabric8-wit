@@ -1,7 +1,6 @@
 package event_test
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
@@ -43,7 +42,6 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		require.NoError(t, err)
 		require.Empty(t, eventList)
 	})
-
 	s.T().Run("event assignee", func(t *testing.T) {
 
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1), tf.Identities(2))
@@ -60,7 +58,7 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		require.Len(t, eventList, 1)
 		assert.Equal(t, eventList[0].Name, workitem.SystemAssignees)
 		assert.Empty(t, eventList[0].Old)
-		assert.Equal(t, fxt.Identities[0].ID.String(), strings.Split(eventList[0].New, ",")[0])
+		assert.Equal(t, fxt.Identities[0].ID.String(), eventList[0].New.([]interface{})[0])
 
 		assignee = []string{fxt.Identities[1].ID.String()}
 		wiNew.Fields[workitem.SystemAssignees] = assignee
@@ -74,8 +72,8 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		assert.Equal(t, eventList[1].Name, workitem.SystemAssignees)
 		assert.NotEmpty(t, eventList[1].Old)
 		assert.NotEmpty(t, eventList[1].New)
-		assert.Equal(t, fxt.Identities[0].ID.String(), strings.Split(eventList[0].New, ",")[0])
-		assert.Equal(t, fxt.Identities[1].ID.String(), strings.Split(eventList[1].New, ",")[0])
+		assert.Equal(t, fxt.Identities[0].ID.String(), eventList[0].New.([]interface{})[0])
+		assert.Equal(t, fxt.Identities[1].ID.String(), eventList[1].New.([]interface{})[0])
 	})
 
 	s.T().Run("event assignee - previous assignee nil", func(t *testing.T) {
@@ -94,7 +92,7 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		require.Len(t, eventList, 1)
 		assert.Equal(t, eventList[0].Name, workitem.SystemAssignees)
 		assert.Empty(t, eventList[0].Old)
-		assert.Equal(t, fxt.Identities[0].ID.String(), strings.Split(eventList[0].New, ",")[0])
+		assert.Equal(t, fxt.Identities[0].ID.String(), eventList[0].New.([]interface{})[0])
 	})
 
 	s.T().Run("event assignee - new assignee nil", func(t *testing.T) {
@@ -112,7 +110,7 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		require.Len(t, eventList, 1)
 		assert.Equal(t, eventList[0].Name, workitem.SystemAssignees)
 		assert.Empty(t, eventList[0].Old)
-		assert.Equal(t, fxt.Identities[0].ID.String(), strings.Split(eventList[0].New, ",")[0])
+		assert.Equal(t, fxt.Identities[0].ID.String(), eventList[0].New.([]interface{})[0])
 
 		wiNew.Fields[workitem.SystemAssignees] = []string{}
 		wiNew.Version = fxt.WorkItems[0].Version + 1
@@ -139,6 +137,7 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		assert.Equal(t, eventList[0].Name, workitem.SystemState)
 		assert.Equal(t, workitem.SystemStateResolved, eventList[0].New)
 	})
+
 	s.T().Run("event label", func(t *testing.T) {
 
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1))
@@ -155,7 +154,7 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		require.Len(t, eventList, 1)
 		assert.Equal(t, eventList[0].Name, workitem.SystemLabels)
 		assert.Empty(t, eventList[0].Old)
-		assert.Equal(t, "label1", strings.Split(eventList[0].New, ",")[0])
+		assert.Equal(t, "label1", eventList[0].New.([]interface{})[0])
 
 		label = []string{"label2"}
 		wiNew.Fields[workitem.SystemLabels] = label
@@ -169,8 +168,8 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		assert.Equal(t, eventList[1].Name, workitem.SystemLabels)
 		assert.NotEmpty(t, eventList[1].Old)
 		assert.NotEmpty(t, eventList[1].New)
-		assert.Equal(t, "label1", strings.Split(eventList[0].New, ",")[0])
-		assert.Equal(t, "label2", strings.Split(eventList[1].New, ",")[0])
+		assert.Equal(t, "label1", eventList[0].New.([]interface{})[0])
+		assert.Equal(t, "label2", eventList[1].New.([]interface{})[0])
 	})
 
 	s.T().Run("event label - previous label nil", func(t *testing.T) {
@@ -219,7 +218,6 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		assert.Equal(t, eventList[1].Name, workitem.SystemLabels)
 		assert.Empty(t, eventList[1].New)
 	})
-
 	s.T().Run("iteration changed", func(t *testing.T) {
 
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1), tf.Iterations(2))
@@ -253,10 +251,15 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		require.NoError(t, err)
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList, 2)
-		assert.Equal(t, workitem.SystemState, eventList[0].Name)
-		assert.Equal(t, "new", eventList[0].Old)
-		assert.Equal(t, workitem.SystemLabels, eventList[1].Name)
-		assert.Empty(t, eventList[1].Old)
-		assert.Equal(t, eventList[1].ID, eventList[0].ID)
+		c := 0
+		for _, k := range eventList {
+			switch k.Name {
+			case workitem.SystemState:
+				c = c + 1
+			case workitem.SystemLabels:
+				c = c + 1
+			}
+		}
+		assert.Equal(t, 2, c)
 	})
 }

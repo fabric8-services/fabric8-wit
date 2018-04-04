@@ -9,6 +9,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/event"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
@@ -64,30 +65,139 @@ func ConvertEvents(appl application.Application, request *http.Request, eventLis
 
 // ConvertEvent converts from internal to external REST representation
 func ConvertEvent(appl application.Application, request *http.Request, wiEvent event.Event, wiID uuid.UUID) *app.Event {
-	var eventAttributes *app.EventAttributes
-	eventType := event.APIStringTypeEvents
-	eventAttributes = &app.EventAttributes{
-		Name:      wiEvent.Name,
-		Timestamp: wiEvent.Timestamp,
-		OldValue:  &wiEvent.Old,
-		NewValue:  &wiEvent.New,
-	}
 	relatedCreatorLink := rest.AbsoluteURL(request, fmt.Sprintf("%s/%s", usersEndpoint, wiEvent.Modifier.String()))
-	e := &app.Event{
-		Type:       eventType,
-		ID:         &wiEvent.ID,
-		Attributes: eventAttributes,
-		Relationships: &app.EventRelations{
-			Modifier: &app.RelationGeneric{
-				Data: &app.GenericData{
-					Type: ptr.String(APIStringTypeUser),
-					ID:   ptr.String(wiEvent.Modifier.String()),
+	relatedURL := rest.AbsoluteURL(request, app.WorkitemHref(wiID))
+	labelsRelated := relatedURL + "/labels"
+	modifier := &app.RelationGeneric{
+		Data: &app.GenericData{
+			Type: ptr.String(APIStringTypeUser),
+			ID:   ptr.String(wiEvent.Modifier.String()),
+			Links: &app.GenericLinks{
+				Related: &relatedCreatorLink,
+			},
+		},
+	}
+
+	var e *app.Event
+	switch wiEvent.Name {
+	case workitem.SystemState, workitem.SystemTitle:
+		e = &app.Event{
+			Type: event.APIStringTypeEvents,
+			ID:   &wiEvent.ID,
+			Attributes: map[string]interface{}{
+				"name":      wiEvent.Name,
+				"new":       wiEvent.New,
+				"old":       wiEvent.Old,
+				"timestamp": wiEvent.Timestamp,
+			},
+
+			Relationships: &app.EventRelations{
+				Modifier: modifier,
+			},
+		}
+	case workitem.SystemDescription:
+		e = &app.Event{
+			Type: event.APIStringTypeEvents,
+			ID:   &wiEvent.ID,
+			Attributes: map[string]interface{}{
+				"name":      wiEvent.Name,
+				"new":       nil,
+				"old":       nil,
+				"timestamp": wiEvent.Timestamp,
+			},
+
+			Relationships: &app.EventRelations{
+				Modifier: modifier,
+			},
+		}
+	case workitem.SystemArea:
+		e = &app.Event{
+			Type: event.APIStringTypeEvents,
+			ID:   &wiEvent.ID,
+			Attributes: map[string]interface{}{
+				"name":      wiEvent.Name,
+				"new":       nil,
+				"old":       nil,
+				"timestamp": wiEvent.Timestamp,
+			},
+
+			Relationships: &app.EventRelations{
+				Modifier: modifier,
+				OldArea: &app.RelationGeneric{
+					Data: ConvertAreaSimple(request, wiEvent.Old),
+				},
+				NewArea: &app.RelationGeneric{
+					Data: ConvertAreaSimple(request, wiEvent.New),
+				},
+			},
+		}
+	case workitem.SystemIteration:
+		e = &app.Event{
+			Type: event.APIStringTypeEvents,
+			ID:   &wiEvent.ID,
+			Attributes: map[string]interface{}{
+				"name":      wiEvent.Name,
+				"new":       nil,
+				"old":       nil,
+				"timestamp": wiEvent.Timestamp,
+			},
+
+			Relationships: &app.EventRelations{
+				Modifier: modifier,
+				OldIteration: &app.RelationGeneric{
+					Data: ConvertIterationSimple(request, wiEvent.Old),
+				},
+				NewIteration: &app.RelationGeneric{
+					Data: ConvertIterationSimple(request, wiEvent.New),
+				},
+			},
+		}
+	case workitem.SystemAssignees:
+		e = &app.Event{
+			Type: event.APIStringTypeEvents,
+			ID:   &wiEvent.ID,
+			Attributes: map[string]interface{}{
+				"name":      wiEvent.Name,
+				"new":       nil,
+				"old":       nil,
+				"timestamp": wiEvent.Timestamp,
+			},
+			Relationships: &app.EventRelations{
+				Modifier: modifier,
+				OldAssignees: &app.RelationGenericList{
+					Data: ConvertUsersSimple(request, wiEvent.Old.([]interface{})),
+				},
+				NewAssignees: &app.RelationGenericList{
+					Data: ConvertUsersSimple(request, wiEvent.New.([]interface{})),
+				},
+			},
+		}
+	case workitem.SystemLabels:
+		e = &app.Event{
+			Type: event.APIStringTypeEvents,
+			ID:   &wiEvent.ID,
+			Attributes: map[string]interface{}{
+				"name":      wiEvent.Name,
+				"new":       nil,
+				"old":       nil,
+				"timestamp": wiEvent.Timestamp,
+			},
+			Relationships: &app.EventRelations{
+				Modifier: modifier,
+				OldLabels: &app.RelationGenericList{
+					Data: ConvertLabelsSimple(request, wiEvent.Old.([]interface{})),
 					Links: &app.GenericLinks{
-						Related: &relatedCreatorLink,
+						Related: &labelsRelated,
+					},
+				},
+				NewLabels: &app.RelationGenericList{
+					Data: ConvertLabelsSimple(request, wiEvent.New.([]interface{})),
+					Links: &app.GenericLinks{
+						Related: &labelsRelated,
 					},
 				},
 			},
-		},
+		}
 	}
 	return e
 }

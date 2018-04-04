@@ -12,8 +12,8 @@ type Event struct {
 	Name      string
 	Timestamp time.Time
 	Modifier  uuid.UUID
-	Old       string
-	New       string
+	Old       interface{}
+	New       interface{}
 }
 
 // GetETagData returns the field values to use to generate the ETag

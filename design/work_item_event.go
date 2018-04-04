@@ -13,7 +13,9 @@ var event = a.Type("Event", func() {
 	a.Attribute("id", d.UUID, "ID of event", func() {
 		a.Example("40bbdd3d-8b5d-4fd6-ac90-7236b669af04")
 	})
-	a.Attribute("attributes", eventAttributes)
+	a.Attribute("attributes", a.HashOf(d.String, d.Any), func() {
+		a.Example(map[string]interface{}{"version": "1", "system.state": "new", "system.title": "Example story"})
+	})
 	a.Attribute("relationships", eventRelationships)
 	a.Attribute("links", genericLinks)
 	a.Required("type")
@@ -38,6 +40,14 @@ var eventAttributes = a.Type("EventAttributes", func() {
 
 var eventRelationships = a.Type("EventRelations", func() {
 	a.Attribute("modifier", relationGeneric, "This defines the modifier of the event")
+	a.Attribute("oldAssignees", relationGenericList, "This defines assignees of the Work Item")
+	a.Attribute("newAssignees", relationGenericList, "This defines assignees of the Work Item")
+	a.Attribute("oldLabels", relationGenericList, "List of labels attached to the Work Item")
+	a.Attribute("newLabels", relationGenericList, "List of labels attached to the Work Item")
+	a.Attribute("oldArea", relationGeneric, "This defines the area this work item belongs to")
+	a.Attribute("newArea", relationGeneric, "This defines the area this work item belongs to")
+	a.Attribute("oldIteration", relationGeneric, "This defines the iteration this work item belong to")
+	a.Attribute("newIteration", relationGeneric, "This defines the iteration this work item belong to")
 })
 
 var eventList = JSONList(

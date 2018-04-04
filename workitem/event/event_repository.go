@@ -2,13 +2,14 @@ package event
 
 import (
 	"context"
-	"strings"
+	"fmt"
 
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 
 	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 )
 
@@ -65,46 +66,53 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 		if err != nil {
 			return nil, errs.Wrapf(err, "error during fetching event list")
 		}
-		for fieldName := range wiType.Fields {
-			switch fieldName {
-			case workitem.SystemAssignees, workitem.SystemLabels:
-				var p []string
-				var n []string
+		for fieldName, field := range wiType.Fields {
+			switch fieldType := field.Type.(type) {
+			case workitem.ListType:
+				switch fieldType.ComponentType.Kind {
+				case workitem.KindLabel, workitem.KindUser:
+					var p []interface{}
+					var n []interface{}
 
-				previousValues := revisionList[k-1].WorkItemFields[fieldName]
-				newValues := revisionList[k].WorkItemFields[fieldName]
-				switch previousValues.(type) {
-				case nil:
-					p = []string{}
-				case []interface{}:
-					for _, v := range previousValues.([]interface{}) {
-						vs, _ := v.(string)
-						p = append(p, vs)
-					}
-				}
-
-				switch newValues.(type) {
-				case nil:
-					n = []string{}
-				case []interface{}:
-					for _, v := range newValues.([]interface{}) {
-						vs, _ := v.(string)
-						n = append(n, vs)
+					previousValues := revisionList[k-1].WorkItemFields[fieldName]
+					newValues := revisionList[k].WorkItemFields[fieldName]
+					switch previousValues.(type) {
+					case nil:
+						p = []interface{}{}
+					case []interface{}:
+						for _, v := range previousValues.([]interface{}) {
+							p = append(p, v)
+						}
 					}
 
-				}
-				if len(p) != 0 || len(n) != 0 {
-					wie := Event{
-						ID:        revisionList[k].ID,
-						Name:      fieldName,
-						Timestamp: revisionList[k].Time,
-						Modifier:  modifierID.ID,
-						Old:       strings.Join(p, ","),
-						New:       strings.Join(n, ","),
+					switch newValues.(type) {
+					case nil:
+						n = []interface{}{}
+					case []interface{}:
+						for _, v := range newValues.([]interface{}) {
+							n = append(n, v)
+						}
+
 					}
-					eventList = append(eventList, wie)
+
+					// Avoid duplicate entries for empty labels or assignees
+					if len(p) != 0 || len(n) != 0 {
+						fmt.Println("label", fieldName)
+						wie := Event{
+							ID:        uuid.NewV4(),
+							Name:      fieldName,
+							Timestamp: revisionList[k].Time,
+							Modifier:  modifierID.ID,
+							Old:       p,
+							New:       n,
+						}
+						eventList = append(eventList, wie)
+					}
+				default:
+					return nil, errors.NewNotFoundError("Unkown field:", fieldName)
+
 				}
-			default:
+			case workitem.EnumType, workitem.SimpleType:
 				var p string
 				var n string
 
@@ -137,9 +145,11 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 					}
 					eventList = append(eventList, wie)
 				}
+
+			default:
+				return nil, errors.NewNotFoundError("Unkown field:", fieldName)
 			}
 		}
 	}
-
 	return eventList, nil
 }
