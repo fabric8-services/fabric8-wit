@@ -27,11 +27,9 @@ RUN test -n $USE_GO_VERSION_FROM_WEBSITE \
     && rm -f go1.10.linux-amd64.tar.gz
 ENV PATH=$PATH:/usr/local/go/bin
 
-# Get glide for Go package management
-RUN cd /tmp \
-    && wget --no-verbose https://github.com/Masterminds/glide/releases/download/v0.13.1/glide-v0.13.1-linux-amd64.tar.gz \
-    && tar xzf glide-v*.tar.gz \
-    && mv linux-amd64/glide /usr/bin \
-    && rm -rfv glide-v* linux-amd64
+# Get dep for Go package management and make sure the directory has full rwz permissions for non-root users
+RUN mkdir -p /tmp/go/bin && chmod a+rwx /tmp/go
+ENV GOPATH /tmp/go
+RUN curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh && mv /tmp/go/bin/dep /usr/bin
 
 ENTRYPOINT ["/bin/bash"]
