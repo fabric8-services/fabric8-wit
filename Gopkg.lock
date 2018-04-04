@@ -13,6 +13,12 @@
   revision = "5bd2802263f21d8788851d5305584c82a5c75d7e"
 
 [[projects]]
+  name = "github.com/ajg/form"
+  packages = ["."]
+  revision = "cc2954064ec9ea8d93917f0f87456e11d7b881ad"
+  version = "v1.5"
+
+[[projects]]
   name = "github.com/andygrunwald/go-jira"
   packages = ["."]
   revision = "9d1f282f93af41553ddb53b0116a8cdb75b4837a"
@@ -78,6 +84,11 @@
   revision = "cd27f179f2c10c5d300e6d09025b538c475b0d51"
 
 [[projects]]
+  name = "github.com/elazarl/go-bindata-assetfs"
+  packages = ["go-bindata-assetfs"]
+  revision = "master"
+
+[[projects]]
   name = "github.com/emicklei/go-restful"
   packages = [
     ".",
@@ -90,6 +101,7 @@
   packages = [
     "auth",
     "convert",
+    "design",
     "errors",
     "gormsupport",
     "log",
@@ -97,7 +109,17 @@
     "rest",
     "token"
   ]
-  revision = "a801d184afb23ed62e5d1762778b0a5283407c42"
+  revision = "master"
+
+[[projects]]
+  name = "github.com/fabric8-services/fabric8-notification"
+  packages = ["design"]
+  revision = "master"
+
+[[projects]]
+  name = "github.com/fabric8-services/fabric8-tenant"
+  packages = ["design"]
+  revision = "master"
 
 [[projects]]
   name = "github.com/fatih/structs"
@@ -150,10 +172,22 @@
   packages = [
     ".",
     "client",
+    "cors",
     "design",
     "design/apidsl",
     "dslengine",
+    "encoding/form",
+    "goagen",
     "goagen/codegen",
+    "goagen/gen_app",
+    "goagen/gen_client",
+    "goagen/gen_controller",
+    "goagen/gen_js",
+    "goagen/gen_main",
+    "goagen/gen_schema",
+    "goagen/gen_swagger",
+    "goagen/meta",
+    "goagen/utils",
     "goatest",
     "logging/logrus",
     "middleware",
@@ -258,6 +292,14 @@
   name = "github.com/jinzhu/inflection"
   packages = ["."]
   revision = "74387dc39a75e970e7a3ae6a3386b5bd2e5c5cff"
+
+[[projects]]
+  name = "github.com/jteeuwen/go-bindata"
+  packages = [
+    ".",
+    "go-bindata"
+  ]
+  revision = "v3.0.7"
 
 [[projects]]
   name = "github.com/juju/ratelimit"
@@ -701,6 +743,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "cfbdf2ba29469a85c399b0aeb7902d54e204ed581df312a64dad851fc03d4ba9"
+  inputs-digest = "a8e9e5c9a69b98517332a9e66db56af348ee2dc09fa7147e6df7e9667c781ed3"
   solver-name = "gps-cdcl"
   solver-version = 1
