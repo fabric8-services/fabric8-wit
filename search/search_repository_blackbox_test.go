@@ -310,14 +310,12 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 		t.Run("link created", func(t *testing.T) {
 			// given
 			fxt := tf.NewTestFixture(t, s.DB,
-				tf.WorkItemLinkTypes(1, func(fxt *tf.TestFixture, idx int) error {
-					// need an explicit 'parent-of' type of link
-					fxt.WorkItemLinkTypes[idx].ForwardName = link.TypeParentOf
-					fxt.WorkItemLinkTypes[idx].Topology = link.TopologyTree
+				tf.WorkItems(3),
+				tf.WorkItemLinks(1, func(fxt *tf.TestFixture, idx int) error {
+					fxt.WorkItemLinks[idx].LinkTypeID = link.SystemWorkItemLinkTypeParentChildID
 					return nil
 				}),
-				tf.WorkItems(3),
-				tf.WorkItemLinks(1))
+			)
 			// when
 			filter := fmt.Sprintf(`{"$AND": [{"space": "%s"}]}`, fxt.Spaces[0].ID)
 			parentExists := false
@@ -335,14 +333,12 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 		t.Run("link deleted", func(t *testing.T) {
 			// given
 			fxt := tf.NewTestFixture(t, s.DB,
-				tf.WorkItemLinkTypes(1, func(fxt *tf.TestFixture, idx int) error {
-					// need an explicit 'parent-of' type of link
-					fxt.WorkItemLinkTypes[idx].ForwardName = link.TypeParentOf
-					fxt.WorkItemLinkTypes[idx].Topology = link.TopologyTree
+				tf.WorkItems(3),
+				tf.WorkItemLinks(1, func(fxt *tf.TestFixture, idx int) error {
+					fxt.WorkItemLinks[idx].LinkTypeID = link.SystemWorkItemLinkTypeParentChildID
 					return nil
 				}),
-				tf.WorkItems(3),
-				tf.WorkItemLinks(1))
+			)
 			linkRepo := link.NewWorkItemLinkRepository(s.DB)
 			err := linkRepo.Delete(context.Background(), fxt.WorkItemLinks[0].ID, fxt.Identities[0].ID)
 			require.NoError(t, err)

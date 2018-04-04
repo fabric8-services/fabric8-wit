@@ -685,10 +685,10 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 	if parentExists != nil && !*parentExists {
 		where += fmt.Sprintf(` AND
 			NOT EXISTS (
-				SELECT wil.target_id FROM work_item_links wil, work_item_link_types wilt
-				WHERE wil.link_type_id = wilt.id AND wilt.forward_name = '%[1]s' 
+				SELECT wil.target_id FROM work_item_links wil
+				WHERE wil.link_type_id = '%[1]s'
 				AND wil.target_id = work_items.id
-				AND wil.deleted_at IS NULL)`, link.TypeParentOf)
+				AND wil.deleted_at IS NULL)`, link.SystemWorkItemLinkTypeParentChildID)
 	}
 
 	db := r.db.Model(&workitem.WorkItemStorage{}).Where(where, parameters...)

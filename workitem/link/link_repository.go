@@ -426,11 +426,9 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 	where := fmt.Sprintf(`
 	id in (
 		SELECT target_id FROM %s
-		WHERE source_id = ? AND link_type_id IN (
-			SELECT id FROM %s WHERE forward_name = 'parent of'
-		)
-	)`, WorkItemLink{}.TableName(), WorkItemLinkType{}.TableName())
-	db := r.db.Model(&workitem.WorkItemStorage{}).Where(where, parentID.String())
+		WHERE source_id = $1 AND link_type_id = $2
+	)`, WorkItemLink{}.TableName())
+	db := r.db.Model(&workitem.WorkItemStorage{}).Where(where, parentID.String(), SystemWorkItemLinkTypeParentChildID.String())
 	if start != nil {
 		if *start < 0 {
 			return nil, 0, errors.NewBadParameterError("start", *start)
@@ -519,15 +517,11 @@ func (r *GormWorkItemLinkRepository) WorkItemHasChildren(ctx context.Context, pa
 		SELECT EXISTS (
 			SELECT 1 FROM %[1]s WHERE id in (
 				SELECT target_id FROM %[2]s
-				WHERE source_id = $1 AND deleted_at IS NULL AND link_type_id IN (
-					SELECT id FROM %[3]s WHERE forward_name = '%[4]s'
-				)
+				WHERE source_id = $1 AND deleted_at IS NULL AND link_type_id = $2
 			)
 		)`,
 		workitem.WorkItemStorage{}.TableName(),
-		WorkItemLink{}.TableName(),
-		WorkItemLinkType{}.TableName(),
-		TypeParentOf)
+		WorkItemLink{}.TableName())
 	var hasChildren bool
 	db := r.db.CommonDB()
 	stmt, err := db.Prepare(query)
@@ -535,7 +529,7 @@ func (r *GormWorkItemLinkRepository) WorkItemHasChildren(ctx context.Context, pa
 		return false, errs.Wrapf(err, "failed prepare statement: %s", query)
 	}
 	defer stmt.Close()
-	err = stmt.QueryRow(parentID.String()).Scan(&hasChildren)
+	err = stmt.QueryRow(parentID.String(), SystemWorkItemLinkTypeParentChildID.String()).Scan(&hasChildren)
 	if err != nil {
 		return false, errs.Wrapf(err, "failed to check if work item %s has children: %s", parentID.String(), query)
 	}

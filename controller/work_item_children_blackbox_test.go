@@ -60,11 +60,6 @@ func (s *workItemChildSuite) SetupTest() {
 	s.fxt = tf.NewTestFixture(s.T(), s.DB,
 		tf.Spaces(1),
 		tf.WorkItems(3, tf.SetWorkItemTitles("bug1", "bug2", "bug3")),
-		tf.WorkItemLinkTypes(1, func(fxt *tf.TestFixture, idx int) error {
-			fxt.WorkItemLinkTypes[idx].Topology = link.TopologyTree
-			fxt.WorkItemLinkTypes[idx].ForwardName = link.TypeParentOf
-			return nil
-		}),
 	)
 
 	svc := testsupport.ServiceAsUser("WorkItemLink-Service", *s.fxt.Identities[0])
@@ -95,7 +90,7 @@ func (s *workItemChildSuite) linkWorkItems(t *testing.T, sourceTitle, targetTitl
 	require.NotNil(t, src)
 	tgt := s.fxt.WorkItemByTitle(targetTitle)
 	require.NotNil(t, tgt)
-	l, err := linkRepo.Create(s.svc.Context, src.ID, tgt.ID, s.fxt.WorkItemLinkTypes[0].ID, s.fxt.Identities[0].ID)
+	l, err := linkRepo.Create(s.svc.Context, src.ID, tgt.ID, link.SystemWorkItemLinkTypeParentChildID, s.fxt.Identities[0].ID)
 	require.NoError(t, err)
 	return *l
 }
@@ -122,13 +117,14 @@ func (s *workItemChildSuite) TestChildren() {
 	s.T().Run("ok", func(t *testing.T) {
 		// given
 		fxt := tf.NewTestFixture(s.T(), s.DB,
-			tf.WorkItemLinkTypes(1, func(fxt *tf.TestFixture, idx int) error {
-				fxt.WorkItemLinkTypes[idx].Topology = link.TopologyTree
-				fxt.WorkItemLinkTypes[idx].ForwardName = link.TypeParentOf
+			tf.WorkItems(3, tf.SetWorkItemTitles("parent", "child1", "child2")),
+			tf.WorkItemLinks(2, func(fxt *tf.TestFixture, idx int) error {
+				l := fxt.WorkItemLinks[idx]
+				l.LinkTypeID = link.SystemWorkItemLinkTypeParentChildID
+				l.SourceID = fxt.WorkItems[0].ID
+				l.TargetID = fxt.WorkItems[idx+1].ID
 				return nil
 			}),
-			tf.WorkItems(3, tf.SetWorkItemTitles("parent", "child1", "child2")),
-			tf.WorkItemLinksCustom(2, tf.BuildLinks(append(tf.LinkChain("parent", "child1"), tf.LinkChain("parent", "child2")...)...)),
 		)
 		t.Run("show", func(t *testing.T) {
 			t.Run("has children", func(t *testing.T) {
@@ -164,13 +160,14 @@ func (s *workItemChildSuite) TestChildren() {
 	s.T().Run("timing concerned tests", func(t *testing.T) {
 		// given
 		fxt := tf.NewTestFixture(s.T(), s.DB,
-			tf.WorkItemLinkTypes(1, func(fxt *tf.TestFixture, idx int) error {
-				fxt.WorkItemLinkTypes[idx].Topology = link.TopologyTree
-				fxt.WorkItemLinkTypes[idx].ForwardName = link.TypeParentOf
+			tf.WorkItems(3, tf.SetWorkItemTitles("parent", "child1", "child2")),
+			tf.WorkItemLinks(2, func(fxt *tf.TestFixture, idx int) error {
+				l := fxt.WorkItemLinks[idx]
+				l.LinkTypeID = link.SystemWorkItemLinkTypeParentChildID
+				l.SourceID = fxt.WorkItems[0].ID
+				l.TargetID = fxt.WorkItems[idx+1].ID
 				return nil
 			}),
-			tf.WorkItems(3, tf.SetWorkItemTitles("parent", "child1", "child2")),
-			tf.WorkItemLinksCustom(2, tf.BuildLinks(append(tf.LinkChain("parent", "child1"), tf.LinkChain("parent", "child2")...)...)),
 		)
 
 		t.Run("using expired if modified since header", func(t *testing.T) {
@@ -226,13 +223,14 @@ func (s *workItemChildSuite) TestChildren() {
 func (s *workItemChildSuite) TestWorkItemListFilterByNoParents() {
 	// given
 	fxt := tf.NewTestFixture(s.T(), s.DB,
-		tf.WorkItemLinkTypes(1, func(fxt *tf.TestFixture, idx int) error {
-			fxt.WorkItemLinkTypes[idx].Topology = link.TopologyTree
-			fxt.WorkItemLinkTypes[idx].ForwardName = link.TypeParentOf
+		tf.WorkItems(3, tf.SetWorkItemTitles("parent", "child1", "child2")),
+		tf.WorkItemLinksCustom(2, func(fxt *tf.TestFixture, idx int) error {
+			l := fxt.WorkItemLinks[idx]
+			l.LinkTypeID = link.SystemWorkItemLinkTypeParentChildID
+			l.SourceID = fxt.WorkItems[0].ID
+			l.TargetID = fxt.WorkItems[idx+1].ID
 			return nil
 		}),
-		tf.WorkItems(3, tf.SetWorkItemTitles("parent", "child1", "child2")),
-		tf.WorkItemLinksCustom(2, tf.BuildLinks(append(tf.LinkChain("parent", "child1"), tf.LinkChain("parent", "child2")...)...)),
 	)
 
 	s.T().Run("without parentexists filter", func(t *testing.T) {
@@ -244,7 +242,7 @@ func (s *workItemChildSuite) TestWorkItemListFilterByNoParents() {
 		toBeFound := id.Slice{fxt.WorkItemByTitle("parent").ID, fxt.WorkItemByTitle("child1").ID, fxt.WorkItemByTitle("child2").ID}.ToMap()
 		for _, wi := range result.Data {
 			_, ok := toBeFound[*wi.ID]
-			require.True(t, ok, "found unexpected work item: %+v", *wi.ID)
+			require.True(t, ok, "found unexpected work item: %s", wi.Attributes[workitem.SystemTitle].(string))
 			delete(toBeFound, *wi.ID)
 		}
 		require.Empty(t, toBeFound, "failed to find work items: %+v", toBeFound)

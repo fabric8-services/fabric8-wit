@@ -694,13 +694,14 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, spaceID uu
 
 	if parentExists != nil && !*parentExists {
 		where += ` AND
-			id not in (
+			id NOT IN (
 				SELECT target_id FROM work_item_links
-				WHERE link_type_id IN (
-					SELECT id FROM work_item_link_types WHERE forward_name = 'parent of'
-				)
+				WHERE link_type_id IN = ?
 			)`
-
+		// TODO(kwk): This ID should be replaced with
+		// link.SystemWorkItemLinkTypeParentChildID but that would cause an
+		// import cycle
+		parameters = append(parameters, uuid.FromStringOrNil("25C326A7-6D03-4F5A-B23B-86A9EE4171E9").String())
 	}
 	db := r.db.Model(&WorkItemStorage{}).Where(where, parameters...)
 
