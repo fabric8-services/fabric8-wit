@@ -2,12 +2,13 @@ package token
 
 import (
 	"crypto/rsa"
+	"fmt"
 	"time"
 
-	"fmt"
-	"github.com/dgrijalva/jwt-go"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/token"
+
+	"github.com/dgrijalva/jwt-go"
 	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"
 )
@@ -21,7 +22,7 @@ func init() {
 }
 
 // GenerateToken generates a JWT token and signs it using the given private key
-func GenerateToken(identityID string, identityUsername string, privateKey *rsa.PrivateKey) (string, error) {
+func GenerateTokenObject(identityID string, identityUsername string, privateKey *rsa.PrivateKey) (*jwt.Token, error) {
 	token := jwt.New(jwt.SigningMethodRS256)
 	token.Claims.(jwt.MapClaims)["uuid"] = identityID
 	token.Claims.(jwt.MapClaims)["preferred_username"] = identityUsername
@@ -43,11 +44,21 @@ func GenerateToken(identityID string, identityUsername string, privateKey *rsa.P
 	token.Claims.(jwt.MapClaims)["email"] = fmt.Sprintf("%s@email.com", identityUsername)
 
 	token.Header["kid"] = "test-key"
-	tokenStr, err := token.SignedString(privateKey)
+	var err error
+	token.Raw, err = token.SignedString(privateKey)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	return token, nil
+}
+
+// GenerateToken generates a JWT token and signs it using the given private key
+func GenerateToken(identityID string, identityUsername string, privateKey *rsa.PrivateKey) (string, error) {
+	token, err := GenerateTokenObject(identityID, identityUsername, privateKey)
 	if err != nil {
 		return "", errors.WithStack(err)
 	}
-	return tokenStr, nil
+	return token.Raw, nil
 }
 
 // NewManager returns a new token Manager for handling tokens

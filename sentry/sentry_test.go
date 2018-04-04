@@ -2,14 +2,12 @@ package sentry
 
 import (
 	"context"
-	"crypto/rsa"
 	"reflect"
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/account"
-	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/login/tokencontext"
-	"github.com/fabric8-services/fabric8-wit/token"
+	testtoken "github.com/fabric8-services/fabric8-wit/test/token"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/getsentry/raven-go"
@@ -53,6 +51,7 @@ func Test_extractUserInfo(t *testing.T) {
 			want: &raven.User{
 				Username: identity.Username,
 				ID:       identity.ID.String(),
+				Email:    identity.Username + "@email.com",
 			},
 		},
 	}
@@ -71,22 +70,15 @@ func Test_extractUserInfo(t *testing.T) {
 }
 
 func failOnNoToken(t *testing.T) context.Context {
-	config, err := configuration.New("")
-	if err != nil {
-		t.Errorf("failed to create new config: %v", err)
-	}
-
-	m, err := token.NewFakeManager(config)
-	if err != nil {
-		t.Errorf("failed to create new manager: %v", err)
-	}
-
+	// this is just normal context object with no, token
+	// so this should fail saying no token available
+	m := testtoken.NewManager()
 	return tokencontext.ContextWithTokenManager(context.Background(), m)
 }
 
 func failOnParsingToken(t *testing.T) context.Context {
 	ctx := failOnNoToken(t)
-	// Here we add a token which is not complete
+	// Here we add a token which is incomplete
 	token := jwt.New(jwt.GetSigningMethod("RS256"))
 	ctx = goajwt.WithJWT(ctx, token)
 	return ctx
@@ -94,34 +86,11 @@ func failOnParsingToken(t *testing.T) context.Context {
 
 func validToken(t *testing.T, identityID string, identityUsername string) context.Context {
 	ctx := failOnNoToken(t)
-	token := GenerateToken(t, identityID, identityUsername)
+	// Here we add a token that is perfectly valid
+	token, err := testtoken.GenerateTokenObject(identityID, identityUsername, testtoken.PrivateKey())
+	if err != nil {
+		t.Fatalf("could not generate token: %v", errors.WithStack(err))
+	}
 	ctx = goajwt.WithJWT(ctx, token)
 	return ctx
-}
-
-// GenerateToken generates a JWT token and signs it using the default private key
-func GenerateToken(t *testing.T, identityID string, identityUsername string) *jwt.Token {
-	token := jwt.New(jwt.SigningMethodRS256)
-	token.Claims.(jwt.MapClaims)["uuid"] = identityID
-	token.Claims.(jwt.MapClaims)["preferred_username"] = identityUsername
-	token.Claims.(jwt.MapClaims)["sub"] = identityID
-
-	key, kid, err := privateKey()
-	if err != nil {
-		t.Fatalf("could not retrieve private keys: %v", errors.WithStack(err))
-	}
-
-	token.Header["kid"] = kid
-	token.Raw, err = token.SignedString(key)
-	if err != nil {
-		t.Fatalf("could not extract signed string: %v", errors.WithStack(err))
-	}
-
-	return token
-}
-
-func privateKey() (*rsa.PrivateKey, string, error) {
-	key, kid := []byte(configuration.DefaultUserAccountPrivateKey), configuration.DefaultUserAccountPrivateKeyID
-	pk, err := jwt.ParseRSAPrivateKeyFromPEM(key)
-	return pk, kid, err
 }

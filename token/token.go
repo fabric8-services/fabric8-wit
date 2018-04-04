@@ -122,23 +122,6 @@ func NewManager(config tokenManagerConfiguration) (Manager, error) {
 	return tm, nil
 }
 
-// NewFakeManager returns a new fake token Manager for handling fake tokens
-func NewFakeManager(config tokenManagerConfiguration) (Manager, error) {
-	// Load public keys from Auth service and add them to the manager
-	tm := &tokenManager{
-		publicKeysMap: map[string]*rsa.PublicKey{},
-	}
-
-	// Put the public key in the map of known public keys
-	key, kid := []byte(configuration.DefaultUserAccountPrivateKey), configuration.DefaultUserAccountPrivateKeyID
-	pk, err := jwt.ParseRSAPrivateKeyFromPEM(key)
-	if err != nil {
-		return nil, err
-	}
-	tm.publicKeysMap[kid] = &pk.PublicKey
-	return tm, nil
-}
-
 // NewManagerWithPublicKey returns a new token Manager for handling tokens with the only public key
 func NewManagerWithPublicKey(id string, key *rsa.PublicKey) Manager {
 	return &tokenManager{
