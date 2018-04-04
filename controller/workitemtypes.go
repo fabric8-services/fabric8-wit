@@ -5,7 +5,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
-	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
@@ -48,15 +47,6 @@ func (c *WorkitemtypesController) List(ctx *app.ListWorkitemtypesContext) error 
 			}
 		}
 		return ctx.ConditionalEntities(witModels, c.config.GetCacheControlWorkItemTypes, func() error {
-			// TODO(kwk): Work item types are associated with space template, so use that here to list
-			// TEMP!!!!! Until Space Template can setup a Space, redirect to SystemSpace WITs if non are found
-			// for the space.
-			if len(witModels) == 0 {
-				witModels, err = appl.WorkItemTypes().List(ctx.Context, space.SystemSpace, start, &limit)
-				if err != nil {
-					return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work item types"))
-				}
-			}
 			// convert from model to app
 			result := &app.WorkItemTypeList{}
 			result.Data = make([]*app.WorkItemTypeData, len(witModels))
