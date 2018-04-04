@@ -15,19 +15,11 @@ DESIGNS := $(shell find $(SOURCE_DIR)/$(DESIGN_DIR) -path $(SOURCE_DIR)/vendor -
 
 # Find all required tools:
 GIT_BIN := $(shell command -v $(GIT_BIN_NAME) 2> /dev/null)
-GLIDE_BIN := $(shell command -v $(GLIDE_BIN_NAME) 2> /dev/null)
+DEP_BIN := $(GOPATH)/bin/$(DEP_BIN_NAME)
 GO_BIN := $(shell command -v $(GO_BIN_NAME) 2> /dev/null)
 HG_BIN := $(shell command -v $(HG_BIN_NAME) 2> /dev/null)
 DOCKER_COMPOSE_BIN := $(shell command -v $(DOCKER_COMPOSE_BIN_NAME) 2> /dev/null)
 DOCKER_BIN := $(shell command -v $(DOCKER_BIN_NAME) 2> /dev/null)
-
-GLIDE_VERSION := $(shell ${GLIDE_BIN} --version | sed -En 's/([^0-9.]*)([0-9]*\.[0-9]*)(.*)/\2/p')
-DESIRED_GLIDE_VERSION := 0.12
-
-check-glide-version :
-	@if [ `echo "${GLIDE_VERSION} < ${DESIRED_GLIDE_VERSION}" | bc -l` -eq 1 ] ; then \
-	 echo Warning: Glide version ${GLIDE_VERSION} is less than desired Glide version ${DESIRED_GLIDE_VERSION};\
-	fi
 
 # This is a fix for a non-existing user in passwd file when running in a docker
 # container and trying to clone repos of dependencies
@@ -235,19 +227,19 @@ CLEAN_TARGETS += clean-vendor
 clean-vendor:
 	-rm -rf $(VENDOR_DIR)
 
-CLEAN_TARGETS += clean-glide-cache
-.PHONY: clean-glide-cache
-## Removes the ./glide directory.
-clean-glide-cache:
-	-rm -rf ./.glide
-
-$(VENDOR_DIR): glide.lock glide.yaml
-	$(GLIDE_BIN) --quiet install --strip-vendor
-	touch $(VENDOR_DIR)
-
 .PHONY: deps
 ## Download build dependencies.
-deps: $(VENDOR_DIR)
+deps: $(DEP_BIN) $(VENDOR_DIR)
+
+# install dep (see https://golang.github.io/dep/docs/installation.html)
+$(DEP_BIN):
+	@echo "Installing 'dep' in $(GOPATH)/bin"
+	@mkdir -p $(GOPATH)/bin
+	curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+
+$(VENDOR_DIR):
+	@echo "checking dependencies..."
+	$(GOPATH)/bin/dep ensure -v 
 
 app/controllers.go: $(DESIGNS) $(GOAGEN_BIN) $(VENDOR_DIR)
 	$(GOAGEN_BIN) app -d ${PACKAGE_NAME}/${DESIGN_DIR}
@@ -348,7 +340,7 @@ show-info:
 	$(call log-info,"$(shell go env)")
 
 .PHONY: prebuild-check
-prebuild-check: $(TMP_PATH) $(INSTALL_PREFIX) $(CHECK_GOPATH_BIN) show-info check-glide-version
+prebuild-check: $(TMP_PATH) $(INSTALL_PREFIX) $(CHECK_GOPATH_BIN) show-info
 # Check that all tools where found
 ifndef GIT_BIN
 	$(error The "$(GIT_BIN_NAME)" executable could not be found in your PATH)
