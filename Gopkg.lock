@@ -111,6 +111,11 @@
   version = "v1.4.7"
 
 [[projects]]
+  name = "github.com/fzipp/gocyclo"
+  packages = ["."]
+  revision = "master"
+
+[[projects]]
   name = "github.com/getsentry/raven-go"
   packages = ["."]
   revision = "563b81fc02b75d664e54da31f787c2cc2186780b"
@@ -172,6 +177,11 @@
   name = "github.com/golang/glog"
   packages = ["."]
   revision = "44145f04b68cf362d9c4df2182967c2275eaefed"
+
+[[projects]]
+  name = "github.com/golang/lint"
+  packages = ["golint"]
+  revision = "master"
 
 [[projects]]
   name = "github.com/golang/protobuf"
@@ -482,6 +492,12 @@
   revision = "d172538b2cfce0c13cee31e647d0367aa8cd2486"
 
 [[projects]]
+  branch = "master"
+  name = "golang.org/x/lint"
+  packages = ["."]
+  revision = "85993ffd0a6cd043291f3f63d45d656d97b165bd"
+
+[[projects]]
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -531,7 +547,11 @@
 
 [[projects]]
   name = "golang.org/x/tools"
-  packages = ["go/ast/astutil"]
+  packages = [
+    "go/ast/astutil",
+    "go/gcexportdata",
+    "go/gcimporter15"
+  ]
   revision = "a888bfdffa4526cc6987572bca9a2c6b7758290f"
 
 [[projects]]
@@ -681,6 +701,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "820124506d2fb08aa9527ec2f6f9108e4c3cf20893e47b73c012d41c06ef5aa7"
+  inputs-digest = "cfbdf2ba29469a85c399b0aeb7902d54e204ed581df312a64dad851fc03d4ba9"
   solver-name = "gps-cdcl"
   solver-version = 1

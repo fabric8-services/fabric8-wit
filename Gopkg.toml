@@ -25,6 +25,11 @@
 #   unused-packages = true
 
 
+required = [
+  "github.com/golang/lint/golint",
+  "github.com/fzipp/gocyclo",
+]
+
 [[constraint]]
   name = "github.com/asaskevich/govalidator"
   version = "5.0.0"
@@ -72,6 +77,14 @@
 [[constraint]]
   name = "k8s.io/client-go"
   version = "4.0.0"
+
+[[constraint]]
+  name = "github.com/golang/lint"
+  revision = "master"
+  
+[[constraint]]
+  name = "github.com/fzipp/gocyclo"
+  revision = "master"
 
 [prune]
   go-tests = true
