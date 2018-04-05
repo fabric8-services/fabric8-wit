@@ -812,39 +812,37 @@ func TestGetEnvironment(t *testing.T) {
 }
 
 type spaceTestData struct {
-	testName        string
-	spaceName       string
-	shouldFail      bool
-	bcJson          string
-	appTestData     map[string]*appTestData // Keys are app names
-	deploymentInput                         // FIXME remove
+	testName     string
+	spaceName    string
+	shouldFail   bool
+	bcJson       string
+	appTestData  map[string]*appTestData // Keys are app names
+	cassetteName string
 }
 
 var defaultSpaceTestData = &spaceTestData{
-	testName:        "Basic",
-	spaceName:       "mySpace",
-	bcJson:          "buildconfigs-one.json",
-	appTestData:     map[string]*appTestData{"myApp": defaultAppTestData},
-	deploymentInput: defaultDeploymentInput,
+	testName:     "Basic",
+	spaceName:    "mySpace",
+	bcJson:       "buildconfigs-one.json",
+	appTestData:  map[string]*appTestData{"myApp": defaultAppTestData},
+	cassetteName: "getspace",
 }
 
 type appTestData struct {
-	testName        string
-	spaceName       string
-	appName         string
-	shouldFail      bool
-	deployTestData  map[string]*deployTestData // Keys are environment names
-	cassetteName    string
-	deploymentInput // FIXME remove
+	testName       string
+	spaceName      string
+	appName        string
+	shouldFail     bool
+	deployTestData map[string]*deployTestData // Keys are environment names
+	cassetteName   string
 }
 
 var defaultAppTestData = &appTestData{
-	testName:        "Basic",
-	spaceName:       "mySpace",
-	appName:         "myApp",
-	deployTestData:  map[string]*deployTestData{"run": defaultDeployTestData},
-	cassetteName:    "getdeployment",
-	deploymentInput: defaultDeploymentInput,
+	testName:       "Basic",
+	spaceName:      "mySpace",
+	appName:        "myApp",
+	deployTestData: map[string]*deployTestData{"run": defaultDeployTestData},
+	cassetteName:   "getdeployment",
 }
 
 type deployTestData struct {
@@ -863,7 +861,6 @@ type deployTestData struct {
 	expectAppURL            string
 	shouldFail              bool
 	cassetteName            string
-	deploymentInput         // FIXME remove
 }
 
 var defaultDeployTestData = &deployTestData{
@@ -883,7 +880,6 @@ var defaultDeployTestData = &deployTestData{
 	expectLogURL:            "http://console.myCluster/console/project/my-run/browse/rc/myApp-1?tab=logs",
 	expectAppURL:            "http://myApp-my-run.example.com",
 	cassetteName:            "getdeployment",
-	deploymentInput:         defaultDeploymentInput,
 }
 
 type deployStatsTestData struct {
@@ -934,44 +930,51 @@ func TestGetSpace(t *testing.T) {
 	testCases := []*spaceTestData{
 		defaultSpaceTestData,
 		{
-			testName:  "Empty List",
-			spaceName: "mySpace",
-			bcJson:    "buildconfigs-emptylist.json",
+			testName:     "Empty List",
+			spaceName:    "mySpace",
+			bcJson:       "buildconfigs-emptylist.json",
+			cassetteName: "getspace-empty-bc",
 		},
 		{
-			testName:   "Wrong List",
-			spaceName:  "mySpace",
-			bcJson:     "buildconfigs-wronglist.json",
-			shouldFail: true,
+			testName:     "Wrong List",
+			spaceName:    "mySpace",
+			bcJson:       "buildconfigs-wronglist.json",
+			cassetteName: "getspace-wrong-list",
+			shouldFail:   true,
 		},
 		{
-			testName:   "No Items",
-			spaceName:  "mySpace",
-			bcJson:     "buildconfigs-noitems.json",
-			shouldFail: true,
+			testName:     "No Items",
+			spaceName:    "mySpace",
+			bcJson:       "buildconfigs-noitems.json",
+			cassetteName: "getspace-no-items",
+			shouldFail:   true,
 		},
 		{
-			testName:   "Not Object",
-			spaceName:  "mySpace",
-			bcJson:     "buildconfigs-notobject.json",
-			shouldFail: true,
+			testName:     "Not Object",
+			spaceName:    "mySpace",
+			bcJson:       "buildconfigs-notobject.json",
+			cassetteName: "getspace-not-object",
+			shouldFail:   true,
 		},
 		{
-			testName:   "No Metadata",
-			spaceName:  "mySpace",
-			bcJson:     "buildconfigs-nometadata.json",
-			shouldFail: true,
+			testName:     "No Metadata",
+			spaceName:    "mySpace",
+			bcJson:       "buildconfigs-nometadata.json",
+			cassetteName: "getspace-no-metadata",
+			shouldFail:   true,
 		},
 		{
-			testName:   "No Name",
-			spaceName:  "mySpace",
-			bcJson:     "buildconfigs-noname.json",
-			shouldFail: true,
+			testName:     "No Name",
+			spaceName:    "mySpace",
+			bcJson:       "buildconfigs-noname.json",
+			cassetteName: "getspace-no-name",
+			shouldFail:   true,
 		},
 		{
-			testName:  "Two Apps One Deployed",
-			spaceName: "mySpace", // Test two BCs, but only one DC
-			bcJson:    "buildconfigs-two.json",
+			testName:     "Two Apps One Deployed",
+			spaceName:    "mySpace", // Test two BCs, but only one DC
+			bcJson:       "buildconfigs-two.json",
+			cassetteName: "getspace-two-apps-one-deploy",
 			appTestData: map[string]*appTestData{
 				"myApp": defaultAppTestData,
 				"myOtherApp": {
@@ -979,12 +982,12 @@ func TestGetSpace(t *testing.T) {
 					appName:   "myOtherApp",
 				},
 			},
-			deploymentInput: defaultDeploymentInput,
 		},
 		{
-			testName:  "Two Apps Both Deployed",
-			spaceName: "mySpace", // Test two deployed applications, with two environments
-			bcJson:    "buildconfigs-two.json",
+			testName:     "Two Apps Both Deployed",
+			spaceName:    "mySpace", // Test two deployed applications, with two environments
+			bcJson:       "buildconfigs-two.json",
+			cassetteName: "getspace-two-apps-two-deploy",
 			appTestData: map[string]*appTestData{
 				"myApp": {
 					spaceName: "mySpace",
@@ -1047,43 +1050,26 @@ func TestGetSpace(t *testing.T) {
 					},
 				},
 			},
-			deploymentInput: deploymentInput{
-				dcInput: deploymentConfigInput{
-					"myApp": {
-						"my-run":   "deploymentconfig-one.json",
-						"my-stage": "deploymentconfig-one-stage.json",
-					},
-					"myOtherApp": {
-						"my-run": "deploymentconfig-other.json",
-					},
-				},
-				rcInput: map[string]string{
-					"my-run":   "replicationcontroller-two.json",
-					"my-stage": "replicationcontroller.json",
-				},
-				podInput: map[string]string{
-					"my-run":   "pods-two-apps.json",
-					"my-stage": "pods-one-stopped.json",
-				},
-				svcInput: map[string]string{
-					"my-run":   "services-two.json",
-					"my-stage": "services-zero.json",
-				},
-				routeInput: map[string]string{
-					"my-run":   "routes-two.json",
-					"my-stage": "routes-zero.json",
-				},
-			},
 		},
 	}
 
-	fixture := &testFixture{}
-	kc := getDefaultKubeClient(fixture, t)
-
 	for _, testCase := range testCases {
 		t.Run(testCase.testName, func(t *testing.T) {
-			fixture.bcInput = testCase.bcJson
-			fixture.deploymentInput = testCase.deploymentInput
+			r, err := recorder.New(pathToTestJSON + testCase.cassetteName)
+			require.NoError(t, err, "Failed to open cassette")
+			defer r.Stop()
+
+			fixture := &testFixture{}
+			config := &kubernetes.KubeClientConfig{ // TODO refactor
+				ClusterURL:    "http://api.myCluster",
+				BearerToken:   "myToken",
+				UserNamespace: "myNamespace",
+				Transport:     r.Transport,
+				MetricsGetter: fixture,
+			}
+
+			kc, err := kubernetes.NewKubeClient(config)
+			require.NoError(t, err)
 
 			space, err := kc.GetSpace(testCase.spaceName)
 			if testCase.shouldFail {
@@ -1094,6 +1080,7 @@ func TestGetSpace(t *testing.T) {
 				require.NotNil(t, space.Attributes, "Space attributes are nil")
 				require.Equal(t, testCase.spaceName, space.Attributes.Name, "Space name is incorrect")
 				require.NotNil(t, space.Attributes.Applications, "Applications are nil")
+				require.Equal(t, len(testCase.appTestData), len(space.Attributes.Applications), "Wrong number of applications")
 				for _, app := range space.Attributes.Applications {
 					var appInput *appTestData
 					if app != nil {
