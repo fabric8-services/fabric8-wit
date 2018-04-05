@@ -182,8 +182,6 @@ $(GOAGEN_BIN): $(VENDOR_DIR)
 	cd $(VENDOR_DIR)/github.com/goadesign/goa/goagen && go build -v
 $(GO_BINDATA_BIN): $(VENDOR_DIR)
 	cd $(VENDOR_DIR)/github.com/jteeuwen/go-bindata/go-bindata && go build -v
-$(GO_BINDATA_ASSETFS_BIN): $(VENDOR_DIR)
-	cd $(VENDOR_DIR)/github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs && go build -v
 $(FRESH_BIN): $(VENDOR_DIR)
 	cd $(VENDOR_DIR)/github.com/pilu/fresh && go build -v
 $(GO_JUNIT_BIN): $(VENDOR_DIR)
@@ -237,9 +235,9 @@ $(DEP_BIN):
 	@mkdir -p $(GOPATH)/bin
 	curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
 
-$(VENDOR_DIR):
+$(VENDOR_DIR): Gopkg.toml Gopkg.lock
 	@echo "checking dependencies..."
-	$(GOPATH)/bin/dep ensure -v 
+	$(DEP_BIN) ensure -v 
 
 app/controllers.go: $(DESIGNS) $(GOAGEN_BIN) $(VENDOR_DIR)
 	$(GOAGEN_BIN) app -d ${PACKAGE_NAME}/${DESIGN_DIR}
@@ -253,12 +251,6 @@ app/controllers.go: $(DESIGNS) $(GOAGEN_BIN) $(VENDOR_DIR)
 	$(GOAGEN_BIN) client -d github.com/fabric8-services/fabric8-auth/design --notool --pkg authservice -o auth
 
 
-assets/js/client.js: $(DESIGNS) $(GOAGEN_BIN) $(VENDOR_DIR)
-	$(GOAGEN_BIN) js -d ${PACKAGE_NAME}/${DESIGN_DIR} -o assets/ --noexample
-
-bindata_assetfs.go: $(DESIGNS) $(GO_BINDATA_ASSETFS_BIN) $(GO_BINDATA_BIN) $(VENDOR_DIR)
-	PATH="$$PATH:$(EXTRA_PATH)" $(GO_BINDATA_ASSETFS_BIN) -debug assets/...
-
 .PHONY: migrate-database
 ## Compiles the server and runs the database migration with it
 migrate-database: $(BINARY_SERVER_BIN)
@@ -266,7 +258,7 @@ migrate-database: $(BINARY_SERVER_BIN)
 
 .PHONY: generate
 ## Generate GOA sources. Only necessary after clean of if changed `design` folder.
-generate: app/controllers.go assets/js/client.js bindata_assetfs.go migration/sqlbindata.go
+generate: app/controllers.go migration/sqlbindata.go
 
 .PHONY: regenerate
 ## Runs the "clean-generated" and the "generate" target

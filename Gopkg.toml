@@ -42,7 +42,6 @@ required = [
   "github.com/fabric8-services/fabric8-auth/design",
   "github.com/fabric8-services/fabric8-notification/design",
   "github.com/fabric8-services/fabric8-tenant/design",
-  "github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs",
   "github.com/jteeuwen/go-bindata/go-bindata",
     
 ]
@@ -101,10 +100,6 @@ required = [
   
 [[constraint]]
   name = "github.com/fzipp/gocyclo"
-  revision = "master"
-
-[[constraint]]
-  name = "github.com/elazarl/go-bindata-assetfs"
   revision = "master"
 
 [[constraint]]

@@ -1,0 +1,5 @@
+bin
+vendor
+tmp
+*.test
+.git
