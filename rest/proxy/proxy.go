@@ -17,20 +17,20 @@ import (
 	"github.com/pkg/errors"
 )
 
-// RouteHTTP uses a reverse proxy to route the http request to the scheme, host provided in targetHost
+// RouteHTTPToPath uses a reverse proxy to route the http request to the scheme, host provided in targetHost
 // and path provided in targetPath.
-func RouteHTTPToPath(ctx context.Context, targetHost string, targetPath string) error {
+func RouteHTTPToPath(ctx jsonapi.InternalServerErrorContext, targetHost string, targetPath string) error {
 	return route(ctx, targetHost, &targetPath)
 }
 
 // RouteHTTP uses a reverse proxy to route the http request to the scheme, host, and base path provided in target.
 // If the target's path is "/base" and the incoming request was for "/dir",
 // the target request will be for /base/dir.
-func RouteHTTP(ctx context.Context, target string) error {
+func RouteHTTP(ctx jsonapi.InternalServerErrorContext, target string) error {
 	return route(ctx, target, nil)
 }
 
-func route(ctx context.Context, targetHost string, targetPath *string) error {
+func route(ctx jsonapi.InternalServerErrorContext, targetHost string, targetPath *string) error {
 	rw := goa.ContextResponse(ctx)
 	if rw == nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.New("unable to get response from context"))

@@ -18,6 +18,7 @@ var _ = a.Resource("status", func() {
 		a.Response(d.OK)
 		a.Response(d.ServiceUnavailable, WITStatus)
 	})
+
 })
 
 var _ = a.Resource("trackerquery", func() {

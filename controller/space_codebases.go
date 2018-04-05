@@ -39,58 +39,55 @@ func (c *SpaceCodebasesController) Create(ctx *app.CreateSpaceCodebasesContext) 
 	if reqIter.Attributes.URL == nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data.attributes.url", nil).Expected("not nil"))
 	}
-
-	return application.Transactional(c.db, func(appl application.Application) error {
-		space, err := appl.Spaces().Load(ctx, ctx.SpaceID)
+	var cdb *codebase.Codebase
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		sp, err := appl.Spaces().Load(ctx, ctx.SpaceID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
-
-		if *identityID != space.OwnerID {
-			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the space owner"))
+		if *identityID != sp.OwnerID {
+			return errors.NewForbiddenError("user is not the space owner")
 		}
-
-		newCodeBase := codebase.Codebase{
+		cdb = &codebase.Codebase{
 			SpaceID: ctx.SpaceID,
 			Type:    *reqIter.Attributes.Type,
 			URL:     *reqIter.Attributes.URL,
 			StackID: reqIter.Attributes.StackID,
 		}
-		err = appl.Codebases().Create(ctx, &newCodeBase)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
-
-		res := &app.CodebaseSingle{
-			Data: ConvertCodebase(ctx.Request, newCodeBase),
-		}
-		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.CodebaseHref(res.Data.ID)))
-		return ctx.Created(res)
+		return appl.Codebases().Create(ctx, cdb)
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	res := &app.CodebaseSingle{
+		Data: ConvertCodebase(ctx.Request, *cdb),
+	}
+	ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.CodebaseHref(res.Data.ID)))
+	return ctx.Created(res)
 }
 
 // List runs the list action.
 func (c *SpaceCodebasesController) List(ctx *app.ListSpaceCodebasesContext) error {
 	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
-	return application.Transactional(c.db, func(appl application.Application) error {
+	var codebases []codebase.Codebase
+	var count int
+	err := application.Transactional(c.db, func(appl application.Application) error {
 		err := appl.Spaces().CheckExists(ctx, ctx.SpaceID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 
-		res := &app.CodebaseList{}
-		res.Data = []*app.Codebase{}
-
-		codebases, tc, err := appl.Codebases().List(ctx, ctx.SpaceID, &offset, &limit)
-		count := int(tc)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
-		}
-		res.Meta = &app.CodebaseListMeta{TotalCount: count}
-		res.Data = ConvertCodebases(ctx.Request, codebases)
-		res.Links = &app.PagingLinks{}
-		setPagingLinks(res.Links, buildAbsoluteURL(ctx.Request), len(codebases), offset, limit, count)
-
-		return ctx.OK(res)
+		codebases, count, err = appl.Codebases().List(ctx, ctx.SpaceID, &offset, &limit)
+		return err
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	res := &app.CodebaseList{
+		Data:  ConvertCodebases(ctx.Request, codebases),
+		Meta:  &app.CodebaseListMeta{TotalCount: count},
+		Links: &app.PagingLinks{},
+	}
+	setPagingLinks(res.Links, buildAbsoluteURL(ctx.Request), len(codebases), offset, limit, count)
+	return ctx.OK(res)
 }

@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -26,7 +25,7 @@ type loginConfiguration interface {
 }
 
 type redirectContext interface {
-	context.Context
+	jsonapi.InternalServerErrorContext
 	TemporaryRedirect() error
 }
 
