@@ -84,10 +84,13 @@ func Test_extractUserInfo(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := extractUserInfo(tt.ctx)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("extractUserInfo() error = %v, wantErr %v", err, tt.wantErr)
+			if tt.wantErr {
+				require.Error(t, err)
+				// if above assertion passes we don't need to continue
+				// to check if objects match
 				return
 			}
+			require.NoError(t, err)
 			require.Equalf(t, tt.want, got, "extractUserInfo() = %v, want %v", got, tt.want)
 		})
 	}
