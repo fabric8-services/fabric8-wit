@@ -16,7 +16,6 @@ import (
 )
 
 // SpaceIterationsControllerConfiguration configuration for the SpaceIterationsController
-
 type SpaceIterationsControllerConfiguration interface {
 	GetCacheControlIterations() string
 }
@@ -68,12 +67,18 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 			return goa.ErrNotFound(err.Error())
 		}
 		childPath := append(rootIteration.Path, rootIteration.ID)
+
+		userActive := false
+		if reqIter.Attributes.UserActive != nil {
+			userActive = *reqIter.Attributes.UserActive
+		}
 		newItr := iteration.Iteration{
-			SpaceID: ctx.SpaceID,
-			Name:    *reqIter.Attributes.Name,
-			StartAt: reqIter.Attributes.StartAt,
-			EndAt:   reqIter.Attributes.EndAt,
-			Path:    childPath,
+			SpaceID:    ctx.SpaceID,
+			Name:       *reqIter.Attributes.Name,
+			StartAt:    reqIter.Attributes.StartAt,
+			EndAt:      reqIter.Attributes.EndAt,
+			Path:       childPath,
+			UserActive: userActive,
 		}
 		if reqIter.Attributes.Description != nil {
 			newItr.Description = reqIter.Attributes.Description

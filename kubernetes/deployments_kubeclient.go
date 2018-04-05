@@ -147,7 +147,8 @@ var _ KubeClientInterface = (*kubeClient)(nil)
 // Receiver for default implementation of KubeRESTAPIGetter and MetricsGetter
 type defaultGetter struct{}
 
-// NewKubeClient creates a KubeClientInterface given a configuration
+// NewKubeClient creates a KubeClientInterface given a configuration. The returned
+// KubeClientInterface must be closed using the Close method, when no longer needed.
 func NewKubeClient(config *KubeClientConfig) (KubeClientInterface, error) {
 	// Use default implementation if no KubernetesGetter is specified
 	if config.KubeRESTAPIGetter == nil {
@@ -172,6 +173,8 @@ func NewKubeClient(config *KubeClientConfig) (KubeClientInterface, error) {
 	// Get environments from config map
 	envMap, err := getEnvironmentsFromConfigMap(kubeAPI, config.UserNamespace)
 	if err != nil {
+		// Close metrics client opened above
+		metrics.Close()
 		return nil, errs.WithStack(err)
 	}
 
