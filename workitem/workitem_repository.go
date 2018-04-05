@@ -696,7 +696,7 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, spaceID uu
 		where += ` AND
 			id NOT IN (
 				SELECT target_id FROM work_item_links
-				WHERE link_type_id IN = ?
+				WHERE link_type_id = ?
 			)`
 		// TODO(kwk): This ID should be replaced with
 		// link.SystemWorkItemLinkTypeParentChildID but that would cause an
