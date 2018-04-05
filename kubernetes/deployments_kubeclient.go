@@ -35,7 +35,10 @@ type KubeClientConfig struct {
 	UserNamespace string
 	// Timeout used for communicating with Kubernetes and OpenShift API servers,
 	// a value of zero indicates no timeout
-	Timeout time.Duration // TODO determine good timeout to set here, or possibly make configurable
+	Timeout time.Duration
+	// Specifies a non-default HTTP transport to use when sending requests to
+	// Kubernetes and OpenShift API servers
+	Transport http.RoundTripper
 	// Provides access to the Kubernetes REST API, uses default implementation if not set
 	KubeRESTAPIGetter
 	// Provides access to the metrics API, uses default implementation if not set
@@ -195,6 +198,7 @@ func (*defaultGetter) GetKubeRESTAPI(config *KubeClientConfig) (KubeRESTAPI, err
 		Host:        config.ClusterURL,
 		BearerToken: config.BearerToken,
 		Timeout:     config.Timeout,
+		Transport:   config.Transport, // TODO Test
 	}
 	coreV1Client, err := corev1.NewForConfig(restConfig)
 	if err != nil {
@@ -208,9 +212,10 @@ func (*defaultGetter) GetKubeRESTAPI(config *KubeClientConfig) (KubeRESTAPI, err
 }
 
 func (*defaultGetter) GetOpenShiftRESTAPI(config *KubeClientConfig) (OpenShiftRESTAPI, error) {
-	// Equivalent to http.DefaultClient with added timeout
+	// Equivalent to http.DefaultClient with added timeout and transport
 	httpClient := &http.Client{
-		Timeout: config.Timeout,
+		Timeout:   config.Timeout,
+		Transport: config.Transport, // TODO Test
 	}
 	client := &openShiftAPIClient{
 		config:     config,

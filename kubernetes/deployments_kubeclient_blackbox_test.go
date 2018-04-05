@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dnaeon/go-vcr/recorder"
+
 	"github.com/stretchr/testify/require"
 
 	"github.com/fabric8-services/fabric8-wit/app"
@@ -810,12 +812,12 @@ func TestGetEnvironment(t *testing.T) {
 }
 
 type spaceTestData struct {
-	testName    string
-	spaceName   string
-	shouldFail  bool
-	bcJson      string
-	appTestData map[string]*appTestData // Keys are app names
-	deploymentInput
+	testName        string
+	spaceName       string
+	shouldFail      bool
+	bcJson          string
+	appTestData     map[string]*appTestData // Keys are app names
+	deploymentInput                         // FIXME remove
 }
 
 var defaultSpaceTestData = &spaceTestData{
@@ -827,12 +829,13 @@ var defaultSpaceTestData = &spaceTestData{
 }
 
 type appTestData struct {
-	testName       string
-	spaceName      string
-	appName        string
-	shouldFail     bool
-	deployTestData map[string]*deployTestData // Keys are environment names
-	deploymentInput
+	testName        string
+	spaceName       string
+	appName         string
+	shouldFail      bool
+	deployTestData  map[string]*deployTestData // Keys are environment names
+	cassetteName    string
+	deploymentInput // FIXME remove
 }
 
 var defaultAppTestData = &appTestData{
@@ -840,6 +843,7 @@ var defaultAppTestData = &appTestData{
 	spaceName:       "mySpace",
 	appName:         "myApp",
 	deployTestData:  map[string]*deployTestData{"run": defaultDeployTestData},
+	cassetteName:    "getdeployment",
 	deploymentInput: defaultDeploymentInput,
 }
 
@@ -858,7 +862,8 @@ type deployTestData struct {
 	expectLogURL            string
 	expectAppURL            string
 	shouldFail              bool
-	deploymentInput
+	cassetteName            string
+	deploymentInput         // FIXME remove
 }
 
 var defaultDeployTestData = &deployTestData{
@@ -877,6 +882,7 @@ var defaultDeployTestData = &deployTestData{
 	expectConsoleURL:        "http://console.myCluster/console/project/my-run",
 	expectLogURL:            "http://console.myCluster/console/project/my-run/browse/rc/myApp-1?tab=logs",
 	expectAppURL:            "http://myApp-my-run.example.com",
+	cassetteName:            "getdeployment",
 	deploymentInput:         defaultDeploymentInput,
 }
 
@@ -1102,28 +1108,6 @@ func TestGetSpace(t *testing.T) {
 }
 
 func TestGetApplication(t *testing.T) {
-	dcInput := deploymentConfigInput{
-		"myApp": {
-			"my-run":   "deploymentconfig-one.json",
-			"my-stage": "deploymentconfig-one-stage.json",
-		},
-	}
-	rcInput := map[string]string{
-		"my-run":   "replicationcontroller.json",
-		"my-stage": "replicationcontroller.json",
-	}
-	podInput := map[string]string{
-		"my-run":   "pods.json",
-		"my-stage": "pods-one-stopped.json",
-	}
-	svcInput := map[string]string{
-		"my-run":   "services-two.json",
-		"my-stage": "services-zero.json",
-	}
-	routeInput := map[string]string{
-		"my-run":   "routes-two.json",
-		"my-stage": "routes-zero.json",
-	}
 	testCases := []*appTestData{
 		defaultAppTestData,
 		{
@@ -1149,13 +1133,7 @@ func TestGetApplication(t *testing.T) {
 					expectLogURL:            "http://console.myCluster/console/project/my-stage/browse/rc/myApp-1?tab=logs",
 				},
 			},
-			deploymentInput: deploymentInput{
-				dcInput:    dcInput,
-				rcInput:    rcInput,
-				podInput:   podInput,
-				svcInput:   svcInput,
-				routeInput: routeInput,
-			},
+			cassetteName: "getapplication",
 		},
 		{
 			testName:  "No Pods",
@@ -1171,28 +1149,27 @@ func TestGetApplication(t *testing.T) {
 					expectAppURL:     "http://myOtherApp-my-run.example.com",
 				},
 			},
-			deploymentInput: deploymentInput{
-				dcInput: deploymentConfigInput{
-					"myOtherApp": {
-						"my-run": "deploymentconfig-other.json",
-					},
-				},
-				rcInput: map[string]string{
-					"my-run": "replicationcontroller-two.json",
-				},
-				podInput:   defaultPodInput,
-				svcInput:   svcInput,
-				routeInput: routeInput,
-			},
+			cassetteName: "getapplication-nopods",
 		},
 	}
 
-	fixture := &testFixture{}
-	kc := getDefaultKubeClient(fixture, t)
-
 	for _, testCase := range testCases {
 		t.Run(testCase.testName, func(t *testing.T) {
-			fixture.deploymentInput = testCase.deploymentInput
+			r, err := recorder.New(pathToTestJSON + testCase.cassetteName)
+			require.NoError(t, err, "Failed to open cassette")
+			defer r.Stop()
+
+			fixture := &testFixture{}
+			config := &kubernetes.KubeClientConfig{ // TODO refactor
+				ClusterURL:    "http://api.myCluster",
+				BearerToken:   "myToken",
+				UserNamespace: "myNamespace",
+				Transport:     r.Transport,
+				MetricsGetter: fixture,
+			}
+
+			kc, err := kubernetes.NewKubeClient(config)
+			require.NoError(t, err)
 
 			app, err := kc.GetApplication(testCase.spaceName, testCase.appName)
 			if testCase.shouldFail {
@@ -1209,12 +1186,12 @@ func TestGetDeployment(t *testing.T) {
 	testCases := []*deployTestData{
 		defaultDeployTestData,
 		{
-			testName:        "Bad Environment",
-			spaceName:       "mySpace",
-			appName:         "myApp",
-			envName:         "doesNotExist",
-			deploymentInput: defaultDeploymentInput,
-			shouldFail:      true,
+			testName:     "Bad Environment",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "doesNotExist",
+			cassetteName: "getdeployment",
+			shouldFail:   true,
 		},
 		{
 			// Verifies that a newer scaled down deployment is favoured over
@@ -1230,17 +1207,9 @@ func TestGetDeployment(t *testing.T) {
 			expectConsoleURL: "http://console.myCluster/console/project/my-run",
 			expectLogURL:     "http://console.myCluster/console/project/my-run/browse/rc/myApp-2?tab=logs",
 			expectAppURL:     "http://myApp-my-run.example.com",
-			deploymentInput: deploymentInput{
-				dcInput: defaultDeploymentConfigInput,
-				rcInput: map[string]string{
-					// List containing RCs in ascending deployment version:
-					// 1. Visible 2. Scaled-down "active" 3. Failed
-					"my-run": "replicationcontroller-scaled-down.json",
-				},
-				podInput:   defaultPodInput,
-				svcInput:   defaultServiceInput,
-				routeInput: defaultRouteInput,
-			},
+			// Contains RCs in ascending deployment version:
+			// 1. Visible 2. Scaled-down "active" 3. Failed
+			cassetteName: "getdeployment-scaled-down",
 		},
 		{
 			// Tests handling of a deployment config with missing space label
@@ -1261,47 +1230,38 @@ func TestGetDeployment(t *testing.T) {
 			expectConsoleURL:        "http://console.myCluster/console/project/my-run",
 			expectLogURL:            "http://console.myCluster/console/project/my-run/browse/rc/myApp-1?tab=logs",
 			expectAppURL:            "http://myApp-my-run.example.com",
-			deploymentInput: deploymentInput{
-				dcInput: deploymentConfigInput{
-					"myApp": {
-						"my-run": "deploymentconfig-nospace.json",
-					},
-				},
-				rcInput:    defaultReplicationControllerInput,
-				podInput:   defaultPodInput,
-				svcInput:   defaultServiceInput,
-				routeInput: defaultRouteInput,
-			},
+			cassetteName:            "getdeployment-nospace",
 		},
 		{
 			// Tests that we don't accept deployment configs with a space
 			// label different from the argument passed to GetDeployment
-			testName:  "Wrong Space Label",
-			spaceName: "mySpace",
-			appName:   "myApp",
-			envName:   "run",
-			envNS:     "my-run",
-			deploymentInput: deploymentInput{
-				dcInput: deploymentConfigInput{
-					"myApp": {
-						"my-run": "deploymentconfig-wrongspace.json",
-					},
-				},
-				rcInput:    defaultReplicationControllerInput,
-				podInput:   defaultPodInput,
-				svcInput:   defaultServiceInput,
-				routeInput: defaultRouteInput,
-			},
-			shouldFail: true,
+			testName:     "Wrong Space Label",
+			spaceName:    "myWrongSpace",
+			appName:      "myApp",
+			envName:      "run",
+			envNS:        "my-run",
+			cassetteName: "getdeployment",
+			shouldFail:   true,
 		},
 	}
 
-	fixture := &testFixture{}
-	kc := getDefaultKubeClient(fixture, t)
-
 	for _, testCase := range testCases {
 		t.Run(testCase.testName, func(t *testing.T) {
-			fixture.deploymentInput = testCase.deploymentInput
+			r, err := recorder.New(pathToTestJSON + testCase.cassetteName)
+			require.NoError(t, err, "Failed to open cassette")
+			defer r.Stop()
+
+			fixture := &testFixture{}
+			config := &kubernetes.KubeClientConfig{ // TODO refactor
+				ClusterURL:    "http://api.myCluster",
+				BearerToken:   "myToken",
+				UserNamespace: "myNamespace",
+				Transport:     r.Transport,
+				MetricsGetter: fixture,
+			}
+
+			kc, err := kubernetes.NewKubeClient(config)
+			require.NoError(t, err)
 
 			dep, err := kc.GetDeployment(testCase.spaceName, testCase.appName, testCase.envName)
 			if testCase.shouldFail {
