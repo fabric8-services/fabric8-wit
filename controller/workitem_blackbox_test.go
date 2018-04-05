@@ -2051,7 +2051,7 @@ func (s *WorkItem2Suite) TestWI2CreateUnknownArea() {
 
 func (s *WorkItem2Suite) TestWI2CreateWithIteration() {
 	// given
-	fxt := createSpaceAndRootAreaAndIterations(s.T(), s.DB)
+	fxt := tf.NewTestFixture(s.T(), s.DB, createSpaceAndRootAreaAndIterations()...)
 	iterationInstance := *fxt.Iterations[1]
 	iterationID := iterationInstance.ID.String()
 	itType := iteration.APIStringTypeIteration
@@ -2078,7 +2078,7 @@ func (s *WorkItem2Suite) TestWI2CreateWithIteration() {
 
 func (s *WorkItem2Suite) TestWI2UpdateWithIteration() {
 	// given
-	fxt := createSpaceAndRootAreaAndIterations(s.T(), s.DB)
+	fxt := tf.NewTestFixture(s.T(), s.DB, createSpaceAndRootAreaAndIterations()...)
 	iterationInstance := *fxt.Iterations[1]
 	iterationID := iterationInstance.ID.String()
 	itType := iteration.APIStringTypeIteration
@@ -2116,7 +2116,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithIteration() {
 
 func (s *WorkItem2Suite) TestWI2UpdateWithRootIterationIfMissing() {
 	// given
-	fxt := createSpaceAndRootAreaAndIterations(s.T(), s.DB)
+	fxt := tf.NewTestFixture(s.T(), s.DB, createSpaceAndRootAreaAndIterations()...)
 	otherIteration := *fxt.Iterations[1]
 	rootIteration := *fxt.Iterations[0]
 	testSpace := *fxt.Spaces[0]
@@ -2175,7 +2175,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithRootIterationIfMissing() {
 func (s *WorkItem2Suite) TestWI2UpdateRemoveIteration() {
 	s.T().Skip("iteration.data can't be sent as nil from client libs since it's optionall and is removed during json encoding")
 	// given
-	fxt := createSpaceAndRootAreaAndIterations(s.T(), s.DB)
+	fxt := tf.NewTestFixture(s.T(), s.DB, createSpaceAndRootAreaAndIterations()...)
 	iterationInstance := *fxt.Iterations[1]
 	iterationID := iterationInstance.ID.String()
 	itType := iteration.APIStringTypeIteration
@@ -2525,7 +2525,7 @@ func (s *WorkItem2Suite) TestDefaultSpaceAndIterationRelations() {
 // Following test verifies that UPDATE on WI by setting AREA & Iteration
 // works as expected and do not alter previously set values
 func (s *WorkItem2Suite) TestWI2UpdateWithAreaIterationSuccessively() {
-	fxt := createSpaceAndRootAreaAndIterations(s.T(), s.DB)
+	fxt := tf.NewTestFixture(s.T(), s.DB, createSpaceAndRootAreaAndIterations()...)
 	iterationInstance := *fxt.Iterations[1]
 	rootIteration := *fxt.Iterations[0]
 	areaInstance := *fxt.Areas[1]
