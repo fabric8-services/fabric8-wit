@@ -53,6 +53,20 @@ func (s Slice) Unique() Slice {
 	return MapFromSlice(s).ToSlice()
 }
 
+// ToMap creates an ID map with the slice elements as keys.
+func (s Slice) ToMap() Map {
+	return MapFromSlice(s)
+}
+
+// ToStringSlice returns a string slice with all IDs as string in it.
+func (s Slice) ToStringSlice() []string {
+	res := make([]string, len(s))
+	for i, ID := range s {
+		res[i] = ID.String()
+	}
+	return res
+}
+
 // ToString returns all IDs as a string separated by the given separation
 // string. If a callback is specified that callback will be called for every ID
 // to generate a custom output string for that element.
@@ -68,11 +82,6 @@ func (s Slice) ToString(sep string, fn ...func(ID uuid.UUID) string) string {
 		i++
 	}
 	return strings.Join(res, sep)
-}
-
-// ToMap returns the slice elements as a map using MapFromSlice()
-func (s Slice) ToMap() Map {
-	return MapFromSlice(s)
 }
 
 // String returns all IDs separated by ", ".
