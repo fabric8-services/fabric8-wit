@@ -27,8 +27,8 @@ RUN test -n $USE_GO_VERSION_FROM_WEBSITE \
     && rm -f go1.10.linux-amd64.tar.gz
 ENV PATH=$PATH:/usr/local/go/bin
 
-# Get dep for Go package management and make sure the directory has full rwz permissions for non-root users
-RUN mkdir -p /tmp/go/bin && chmod a+rwx /tmp/go
+# Get dep for Go package management 
+RUN mkdir -p /tmp/go/bin
 ENV GOPATH /tmp/go
 RUN curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh && mv /tmp/go/bin/dep /usr/bin
 
