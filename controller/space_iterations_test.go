@@ -85,7 +85,7 @@ func (rest *TestSpaceIterationREST) TestCreate() {
 			// when
 			resp, iter := test.CreateSpaceIterationsCreated(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, ci)
 			// then
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok.playload.res.golden.json"), iter)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok.payload.res.golden.json"), iter)
 			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok.headers.res.golden.json"), resp)
 		})
 		t.Run("with force active", func(t *testing.T) {
@@ -98,7 +98,7 @@ func (rest *TestSpaceIterationREST) TestCreate() {
 			// when
 			resp, iter := test.CreateSpaceIterationsCreated(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, ci)
 			// then
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok_with_force_active.playload.res.golden.json"), iter)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok_with_force_active.payload.res.golden.json"), iter)
 			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok_with_force_active.headers.res.golden.json"), resp)
 		})
 	})
