@@ -20,6 +20,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/iteration"
+	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
@@ -103,6 +104,49 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIteration() {
 	require.NotNil(rest.T(), c.Data.Relationships.Space)
 	assert.Equal(rest.T(), p.ID.String(), *c.Data.Relationships.Space.Data.ID)
 	assert.Equal(rest.T(), iteration.StateNew.String(), *c.Data.Attributes.State)
+	assert.False(rest.T(), *c.Data.Attributes.UserActive)
+	assert.Equal(rest.T(), "/"+rootItr.ID.String(), *c.Data.Attributes.ParentPath)
+	require.NotNil(rest.T(), c.Data.Relationships.Workitems.Meta)
+	assert.Equal(rest.T(), 0, c.Data.Relationships.Workitems.Meta[KeyTotalWorkItems])
+	assert.Equal(rest.T(), 0, c.Data.Relationships.Workitems.Meta[KeyClosedWorkItems])
+}
+
+func (rest *TestSpaceIterationREST) TestSuccessCreateIterationWithForceActive() {
+	// given
+	var p *space.Space
+	var rootItr *iteration.Iteration
+	ci := createSpaceIteration("Sprint #21", nil)
+	ci.Data.Attributes.UserActive = ptr.Bool(true)
+	err := application.Transactional(rest.db, func(app application.Application) error {
+		repo := app.Spaces()
+		newSpace := space.Space{
+			Name:    "TestSuccessCreateIteration" + uuid.NewV4().String(),
+			OwnerID: testsupport.TestIdentity.ID,
+		}
+		createdSpace, err := repo.Create(rest.Ctx, &newSpace)
+		p = createdSpace
+		if err != nil {
+			return err
+		}
+		// create Root iteration for above space
+		rootItr = &iteration.Iteration{
+			SpaceID: newSpace.ID,
+			Name:    newSpace.Name,
+		}
+		iterationRepo := app.Iterations()
+		err = iterationRepo.Create(rest.Ctx, rootItr)
+		return err
+	})
+	require.NoError(rest.T(), err)
+	svc, ctrl := rest.SecuredController()
+	// when
+	_, c := test.CreateSpaceIterationsCreated(rest.T(), svc.Context, svc, ctrl, p.ID, ci)
+	// then
+	require.NotNil(rest.T(), c.Data.ID)
+	require.NotNil(rest.T(), c.Data.Relationships.Space)
+	assert.Equal(rest.T(), p.ID.String(), *c.Data.Relationships.Space.Data.ID)
+	assert.Equal(rest.T(), iteration.StateNew.String(), *c.Data.Attributes.State)
+	assert.True(rest.T(), *c.Data.Attributes.UserActive)
 	assert.Equal(rest.T(), "/"+rootItr.ID.String(), *c.Data.Attributes.ParentPath)
 	require.NotNil(rest.T(), c.Data.Relationships.Workitems.Meta)
 	assert.Equal(rest.T(), 0, c.Data.Relationships.Workitems.Meta[KeyTotalWorkItems])
