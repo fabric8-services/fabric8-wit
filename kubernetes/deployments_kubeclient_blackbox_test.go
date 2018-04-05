@@ -714,6 +714,7 @@ func TestConfigMapEnvironments(t *testing.T) {
 			_, err := kubernetes.NewKubeClient(config)
 			if testCase.shouldFail {
 				require.Error(t, err, "Expected an error")
+				require.True(t, fixture.metrics.closed, "Metrics not closed after error")
 			} else {
 				require.NoError(t, err)
 				configMapHolder := fixture.kube.configMapHolder
