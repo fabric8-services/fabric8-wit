@@ -206,3 +206,12 @@ func checkGetKeycloakEndpointSetByEnvVaribaleOK(t *testing.T, envName string, ge
 	require.NoError(t, err)
 	require.Equal(t, envValue, url)
 }
+
+func TestGetDeploymentsTimeoutDefault(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	viperValue := config.GetDeploymentsHTTPTimeoutSeconds()
+	require.NotNil(t, viperValue)
+
+	expectedTimeSeconds := time.Duration(30) * time.Second
+	assert.Equal(t, expectedTimeSeconds, viperValue)
+}

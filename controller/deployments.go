@@ -3,7 +3,6 @@ package controller
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -15,6 +14,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/auth/authservice"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/kubernetes"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/goadesign/goa"
@@ -26,16 +26,17 @@ import (
 type DeploymentsController struct {
 	*goa.Controller
 	Config *configuration.Registry
-	KubeClientGetter
+	ClientGetter
 }
 
-// KubeClientGetter creates an instance of KubeClientInterface
-type KubeClientGetter interface {
+// ClientGetter creates an instances of clients used by this controller
+type ClientGetter interface {
 	GetKubeClient(ctx context.Context) (kubernetes.KubeClientInterface, error)
+	GetAndCheckOSIOClient(ctx context.Context) (OpenshiftIOClient, error)
 }
 
-// Default implementation of KubeClientGetter used by NewDeploymentsController
-type defaultKubeClientGetter struct {
+// Default implementation of KubeClientGetter and OSIOClientGetter used by NewDeploymentsController
+type defaultClientGetter struct {
 	config *configuration.Registry
 }
 
@@ -44,7 +45,7 @@ func NewDeploymentsController(service *goa.Service, config *configuration.Regist
 	return &DeploymentsController{
 		Controller: service.NewController("DeploymentsController"),
 		Config:     config,
-		KubeClientGetter: &defaultKubeClientGetter{
+		ClientGetter: &defaultClientGetter{
 			config: config,
 		},
 	}
@@ -58,7 +59,7 @@ func tostring(item interface{}) string {
 	return string(bytes)
 }
 
-func getAndCheckOSIOClient(ctx context.Context) (*OSIOClient, error) {
+func (*defaultClientGetter) GetAndCheckOSIOClient(ctx context.Context) (OpenshiftIOClient, error) {
 
 	// defaults
 	host := "localhost"
@@ -98,7 +99,7 @@ func getAndCheckOSIOClient(ctx context.Context) (*OSIOClient, error) {
 func (c *DeploymentsController) getSpaceNameFromSpaceID(ctx context.Context, spaceID uuid.UUID) (*string, error) {
 	// TODO - add a cache in DeploymentsController - but will break if user can change space name
 	// use WIT API to convert Space UUID to Space name
-	osioclient, err := getAndCheckOSIOClient(ctx)
+	osioclient, err := c.GetAndCheckOSIOClient(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -113,9 +114,9 @@ func (c *DeploymentsController) getSpaceNameFromSpaceID(ctx context.Context, spa
 	return osioSpace.Attributes.Name, nil
 }
 
-func getNamespaceName(ctx context.Context) (*string, error) {
+func (g *defaultClientGetter) getNamespaceName(ctx context.Context) (*string, error) {
 
-	osioclient, err := getAndCheckOSIOClient(ctx)
+	osioclient, err := g.GetAndCheckOSIOClient(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +205,7 @@ func getTokenData(ctx context.Context, authClient authservice.Client, forService
 }
 
 // GetKubeClient creates a kube client for the appropriate cluster assigned to the current user
-func (g *defaultKubeClientGetter) GetKubeClient(ctx context.Context) (kubernetes.KubeClientInterface, error) {
+func (g *defaultClientGetter) GetKubeClient(ctx context.Context) (kubernetes.KubeClientInterface, error) {
 
 	// create Auth API client
 	authClient, err := auth.CreateClient(ctx, g.config)
@@ -252,16 +253,20 @@ func (g *defaultKubeClientGetter) GetKubeClient(ctx context.Context) (kubernetes
 	kubeURL := *authUser.Data.Attributes.Cluster
 	kubeToken := *osauth.AccessToken
 
-	kubeNamespaceName, err := getNamespaceName(ctx)
+	kubeNamespaceName, err := g.getNamespaceName(ctx)
 	if err != nil {
 		return nil, errs.Wrap(err, "could not retrieve namespace name")
 	}
 
+	/* Timeout used per HTTP request to Kubernetes/OpenShift API servers.
+	 * Communication with Hawkular currently uses a hard-coded 30 second
+	 * timeout per request, and does not use this parameter. */
 	// create the cluster API client
 	kubeConfig := &kubernetes.KubeClientConfig{
 		ClusterURL:    kubeURL,
 		BearerToken:   kubeToken,
 		UserNamespace: *kubeNamespaceName,
+		Timeout:       g.config.GetDeploymentsHTTPTimeoutSeconds(),
 	}
 	kc, err := kubernetes.NewKubeClient(kubeConfig)
 	if err != nil {
@@ -298,6 +303,31 @@ func (c *DeploymentsController) SetDeployment(ctx *app.SetDeploymentDeploymentsC
 	_ /*oldCount*/, err = kc.ScaleDeployment(*kubeSpaceName, ctx.AppName, ctx.DeployName, *ctx.PodCount)
 	if err != nil {
 		return errors.NewInternalError(ctx, errs.Wrapf(err, "error scaling deployment %s", ctx.DeployName))
+	}
+
+	return ctx.OK([]byte{})
+}
+
+// DeleteDeployment runs the deleteDeployment action.
+func (c *DeploymentsController) DeleteDeployment(ctx *app.DeleteDeploymentDeploymentsContext) error {
+	kc, err := c.GetKubeClient(ctx)
+	defer cleanup(kc)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
+	}
+
+	kubeSpaceName, err := c.getSpaceNameFromSpaceID(ctx, ctx.SpaceID)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+	}
+
+	err = kc.DeleteDeployment(*kubeSpaceName, ctx.AppName, ctx.DeployName)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err":        err,
+			"space_name": *kubeSpaceName,
+		}, "error deleting deployment")
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 	}
 
 	return ctx.OK([]byte{})
@@ -395,32 +425,6 @@ func (c *DeploymentsController) ShowDeploymentStats(ctx *app.ShowDeploymentStats
 	return ctx.OK(res)
 }
 
-// ShowEnvironment runs the showEnvironment action.
-func (c *DeploymentsController) ShowEnvironment(ctx *app.ShowEnvironmentDeploymentsContext) error {
-
-	kc, err := c.GetKubeClient(ctx)
-	defer cleanup(kc)
-	if err != nil {
-		return errors.NewUnauthorizedError("openshift token")
-	}
-
-	env, err := kc.GetEnvironment(ctx.EnvName)
-	if err != nil {
-		return errors.NewInternalError(ctx, errs.Wrapf(err, "could not retrieve environment %s", ctx.EnvName))
-	}
-	if env == nil {
-		return errors.NewNotFoundError("environment", ctx.EnvName)
-	}
-
-	env.ID = *env.Attributes.Name
-
-	res := &app.SimpleEnvironmentSingle{
-		Data: env,
-	}
-
-	return ctx.OK(res)
-}
-
 // ShowSpace runs the showSpace action.
 func (c *DeploymentsController) ShowSpace(ctx *app.ShowSpaceDeploymentsContext) error {
 
@@ -452,90 +456,6 @@ func (c *DeploymentsController) ShowSpace(ctx *app.ShowSpaceDeploymentsContext) 
 	}
 
 	return ctx.OK(res)
-}
-
-// ShowSpaceApp runs the showSpaceApp action.
-func (c *DeploymentsController) ShowSpaceApp(ctx *app.ShowSpaceAppDeploymentsContext) error {
-
-	kc, err := c.GetKubeClient(ctx)
-	defer cleanup(kc)
-	if err != nil {
-		return errors.NewUnauthorizedError("openshift token")
-	}
-
-	kubeSpaceName, err := c.getSpaceNameFromSpaceID(ctx, ctx.SpaceID)
-	if err != nil {
-		return errors.NewNotFoundError("osio space", ctx.SpaceID.String())
-	}
-
-	theapp, err := kc.GetApplication(*kubeSpaceName, ctx.AppName)
-	if err != nil {
-		return errors.NewInternalError(ctx, errs.Wrapf(err, "could not retrieve application %s", ctx.AppName))
-	}
-	if theapp == nil {
-		return errors.NewNotFoundError("application", ctx.AppName)
-	}
-
-	theapp.ID = theapp.Attributes.Name
-
-	res := &app.SimpleApplicationSingle{
-		Data: theapp,
-	}
-
-	return ctx.OK(res)
-}
-
-// ShowSpaceAppDeployment runs the showSpaceAppDeployment action.
-func (c *DeploymentsController) ShowSpaceAppDeployment(ctx *app.ShowSpaceAppDeploymentDeploymentsContext) error {
-
-	kc, err := c.GetKubeClient(ctx)
-	defer cleanup(kc)
-	if err != nil {
-		return errors.NewUnauthorizedError("openshift token")
-	}
-
-	kubeSpaceName, err := c.getSpaceNameFromSpaceID(ctx, ctx.SpaceID)
-	if err != nil {
-		return errors.NewNotFoundError("osio space", ctx.SpaceID.String())
-	}
-
-	deploymentStats, err := kc.GetDeployment(*kubeSpaceName, ctx.AppName, ctx.DeployName)
-	if err != nil {
-		return errors.NewInternalError(ctx, errs.Wrapf(err, "error retrieving deployment %s", ctx.DeployName))
-	}
-	if deploymentStats == nil {
-		return errors.NewNotFoundError("deployment statistics", ctx.DeployName)
-	}
-
-	deploymentStats.ID = deploymentStats.Attributes.Name
-
-	res := &app.SimpleDeploymentSingle{
-		Data: deploymentStats,
-	}
-
-	return ctx.OK(res)
-}
-
-// ShowEnvAppPods runs the showEnvAppPods action.
-func (c *DeploymentsController) ShowEnvAppPods(ctx *app.ShowEnvAppPodsDeploymentsContext) error {
-
-	kc, err := c.GetKubeClient(ctx)
-	defer cleanup(kc)
-	if err != nil {
-		return errors.NewUnauthorizedError("openshift token")
-	}
-
-	pods, err := kc.GetPodsInNamespace(ctx.EnvName, ctx.AppName)
-	if err != nil {
-		return errors.NewInternalError(ctx, errs.Wrapf(err, "error retrieving pods from namespace %s/%s", ctx.EnvName, ctx.AppName))
-	}
-	if pods == nil || len(pods) == 0 {
-		return errors.NewNotFoundError("pods", ctx.AppName)
-	}
-
-	jsonresp := fmt.Sprintf("{\"data\":{\"attributes\":{\"environment\":\"%s\",\"application\":\"%s\",\"pods\":%s}}}", ctx.EnvName, ctx.AppName, tostring(pods))
-
-	return ctx.OK([]byte(jsonresp))
 }
 
 // ShowSpaceEnvironments runs the showSpaceEnvironments action.

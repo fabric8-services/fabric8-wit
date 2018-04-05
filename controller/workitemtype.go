@@ -49,10 +49,10 @@ func NewWorkitemtypeController(service *goa.Service, db application.DB, config W
 
 // Show runs the show action.
 func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
-	return application.Transactional(c.db, func(appl application.Application) error {
+	err := application.Transactional(c.db, func(appl application.Application) error {
 		witModel, err := appl.WorkItemTypes().Load(ctx.Context, ctx.SpaceID, ctx.WitID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		return ctx.ConditionalRequest(*witModel, c.config.GetCacheControlWorkItemType, func() error {
 			witData := ConvertWorkItemTypeFromModel(ctx.Request, witModel)
@@ -60,6 +60,10 @@ func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 			return ctx.OK(wit)
 		})
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }
 
 // Create runs the create action.
@@ -68,10 +72,11 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 	if err != nil {
 		jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
-	return application.Transactional(c.db, func(appl application.Application) error {
+	var witModel *workitem.WorkItemType
+	err = application.Transactional(c.db, func(appl application.Application) error {
 		space, err := appl.Spaces().Load(ctx, ctx.SpaceID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		if !uuid.Equal(*currentUserIdentityID, space.OwnerID) {
 			log.Warn(ctx, map[string]interface{}{
@@ -79,7 +84,7 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 				"space_owner":  space.OwnerID,
 				"current_user": *currentUserIdentityID,
 			}, "user is not the space owner")
-			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the space owner"))
+			return errors.NewForbiddenError("user is not the space owner")
 		}
 		var fields = map[string]app.FieldDefinition{}
 		for key, fd := range ctx.Payload.Data.Attributes.Fields {
@@ -93,9 +98,9 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 		}
 		modelFields, err := ConvertFieldDefinitionsToModel(fields)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
-		witTypeModel, err := appl.WorkItemTypes().Create(
+		witModel, err = appl.WorkItemTypes().Create(
 			ctx.Context,
 			*ctx.Payload.Data.Relationships.Space.Data.ID,
 			ctx.Payload.Data.ID,
@@ -104,14 +109,15 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 			ctx.Payload.Data.Attributes.Description,
 			ctx.Payload.Data.Attributes.Icon,
 			modelFields)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
-		witData := ConvertWorkItemTypeFromModel(ctx.Request, witTypeModel)
-		wit := &app.WorkItemTypeSingle{Data: &witData}
-		ctx.ResponseData.Header().Set("Location", app.WorkitemtypeHref(*ctx.Payload.Data.Relationships.Space.Data.ID, wit.Data.ID))
-		return ctx.Created(wit)
+		return err
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	witData := ConvertWorkItemTypeFromModel(ctx.Request, witModel)
+	wit := &app.WorkItemTypeSingle{Data: &witData}
+	ctx.ResponseData.Header().Set("Location", app.WorkitemtypeHref(*ctx.Payload.Data.Relationships.Space.Data.ID, wit.Data.ID))
+	return ctx.Created(wit)
 }
 
 // List runs the list action
@@ -121,36 +127,46 @@ func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Could not parse paging"))
 	}
-	return application.Transactional(c.db, func(appl application.Application) error {
+	witModels := []workitem.WorkItemType{}
+	err = application.Transactional(c.db, func(appl application.Application) error {
 		witModelsOrig, err := appl.WorkItemTypes().List(ctx.Context, ctx.SpaceID, start, &limit)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work item types"))
+			return errs.Wrap(err, "Error listing work item types")
 		}
 		// Remove "planneritem" from the list of WITs
-		witModels := []workitem.WorkItemType{}
 		for _, wit := range witModelsOrig {
 			if wit.ID != workitem.SystemPlannerItem {
 				witModels = append(witModels, wit)
 			}
 		}
-		return ctx.ConditionalEntities(witModels, c.config.GetCacheControlWorkItemTypes, func() error {
-			// TEMP!!!!! Until Space Template can setup a Space, redirect to SystemSpace WITs if non are found
-			// for the space.
+		return nil
+	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return ctx.ConditionalEntities(witModels, c.config.GetCacheControlWorkItemTypes, func() error {
+		// TEMP!!!!! Until Space Template can setup a Space, redirect to SystemSpace WITs if non are found
+		// for the space.
+		err = application.Transactional(c.db, func(appl application.Application) error {
 			if len(witModels) == 0 {
 				witModels, err = appl.WorkItemTypes().List(ctx.Context, space.SystemSpace, start, &limit)
 				if err != nil {
-					return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work item types"))
+					return errs.Wrap(err, "Error listing work item types")
 				}
 			}
-			// convert from model to app
-			result := &app.WorkItemTypeList{}
-			result.Data = make([]*app.WorkItemTypeData, len(witModels))
-			for index, value := range witModels {
-				wit := ConvertWorkItemTypeFromModel(ctx.Request, &value)
-				result.Data[index] = &wit
-			}
-			return ctx.OK(result)
+			return nil
 		})
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		// convert from model to app
+		result := &app.WorkItemTypeList{}
+		result.Data = make([]*app.WorkItemTypeData, len(witModels))
+		for index, value := range witModels {
+			wit := ConvertWorkItemTypeFromModel(ctx.Request, &value)
+			result.Data[index] = &wit
+		}
+		return ctx.OK(result)
 	})
 }
 
@@ -174,7 +190,7 @@ func ConvertWorkItemTypeFromModel(request *http.Request, t *workitem.WorkItemTyp
 		},
 	}
 	for name, def := range t.Fields {
-		ct := convertFieldTypeFromModel(def.Type)
+		ct := ConvertFieldTypeFromModel(def.Type)
 		converted.Attributes.Fields[name] = &app.FieldDefinition{
 			Required:    def.Required,
 			Label:       def.Label,
@@ -212,7 +228,7 @@ func ConvertWorkItemTypeFromModel(request *http.Request, t *workitem.WorkItemTyp
 }
 
 // converts the field type from modesl to app representation
-func convertFieldTypeFromModel(t workitem.FieldType) app.FieldType {
+func ConvertFieldTypeFromModel(t workitem.FieldType) app.FieldType {
 	result := app.FieldType{}
 	result.Kind = string(t.GetKind())
 	switch t2 := t.(type) {
@@ -226,7 +242,7 @@ func convertFieldTypeFromModel(t workitem.FieldType) app.FieldType {
 	return result
 }
 
-func convertFieldTypeToModel(t app.FieldType) (workitem.FieldType, error) {
+func ConvertFieldTypeToModel(t app.FieldType) (workitem.FieldType, error) {
 	kind, err := workitem.ConvertStringToKind(t.Kind)
 	if err != nil {
 		return nil, errs.WithStack(err)
@@ -268,7 +284,7 @@ func ConvertFieldDefinitionsToModel(fields map[string]app.FieldDefinition) (map[
 	modelFields := map[string]workitem.FieldDefinition{}
 	// now process new fields, checking whether they are ok to add.
 	for field, definition := range fields {
-		ct, err := convertFieldTypeToModel(*definition.Type)
+		ct, err := ConvertFieldTypeToModel(*definition.Type)
 		if err != nil {
 			return nil, errs.WithStack(err)
 		}

@@ -534,7 +534,12 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 	wiStorage.Version = wiStorage.Version + 1
 	wiStorage.Type = updatedWorkItem.Type
 	wiStorage.Fields = Fields{}
-	wiStorage.ExecutionOrder = updatedWorkItem.Fields[SystemOrder].(float64)
+
+	var convOk bool
+	wiStorage.ExecutionOrder, convOk = updatedWorkItem.Fields[SystemOrder].(float64)
+	if !convOk {
+		return nil, errors.NewConversionError(fmt.Sprintf("failed to convert field %s to float: %+v", SystemOrder, updatedWorkItem))
+	}
 	for fieldName, fieldDef := range wiType.Fields {
 		if fieldName == SystemCreatedAt || fieldName == SystemUpdatedAt || fieldName == SystemOrder {
 			continue
@@ -664,6 +669,9 @@ func ConvertWorkItemStorageToModel(wiType *WorkItemType, wi *WorkItemStorage) (*
 	}
 	if _, ok := wiType.Fields[SystemOrder]; ok {
 		result.Fields[SystemOrder] = wi.ExecutionOrder
+	}
+	if _, ok := wiType.Fields[SystemNumber]; ok {
+		result.Fields[SystemNumber] = wi.Number
 	}
 	return result, nil
 

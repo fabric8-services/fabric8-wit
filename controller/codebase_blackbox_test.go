@@ -110,8 +110,6 @@ func MockShowTenant() func(context.Context) (*tenant.TenantSingle, error) {
 }
 
 func (s *CodebaseControllerTestSuite) TestShowCodebase() {
-	resetFn := s.DisableGormCallbacks()
-	defer resetFn()
 
 	s.T().Run("success without stackId", func(t *testing.T) {
 		// given
@@ -121,7 +119,7 @@ func (s *CodebaseControllerTestSuite) TestShowCodebase() {
 		_, result := test.ShowCodebaseOK(t, svc.Context, svc, ctrl, fxt.Codebases[0].ID)
 		// then
 		require.NotNil(t, result)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "ok_without_stackId.golden.json"), result)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "ok_without_stackId.golden.json"), result)
 	})
 
 	s.T().Run("success with stackId", func(t *testing.T) {
@@ -135,13 +133,11 @@ func (s *CodebaseControllerTestSuite) TestShowCodebase() {
 		_, result := test.ShowCodebaseOK(t, svc.Context, svc, ctrl, fxt.Codebases[0].ID)
 		// then
 		require.NotNil(t, result)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show", "ok_with_stackId.golden.json"), result)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "ok_with_stackId.golden.json"), result)
 	})
 }
 
 func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
-	resetFn := s.DisableGormCallbacks()
-	defer resetFn()
 
 	s.T().Run("OK", func(t *testing.T) {
 		// given
@@ -282,4 +278,40 @@ func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
 		require.NoError(t, err)
 	})
 
+}
+
+func (s *CodebaseControllerTestSuite) TestListWorkspaces() {
+
+	s.T().Run("OK", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.Spaces(1, func(fxt *tf.TestFixture, idx int) error {
+				fxt.Spaces[idx].OwnerID = testsupport.TestIdentity.ID
+				return nil
+			}),
+			tf.Codebases(1, func(fxt *tf.TestFixture, idx int) error {
+				fxt.Codebases[idx].URL = "git@github.com:bar/foo"
+				return nil
+			}))
+		// setup the mock client for Che
+		r, err := recorder.New("../test/data/che/che_list_codebase_workspaces.ok")
+		require.NoError(t, err)
+		defer r.Stop()
+		m := httpmonitor.NewTransportMonitor(r.Transport)
+		svc, ctrl := s.SecuredControllers(testsupport.TestIdentity, withCheClient(NewMockCheClient(m, s.Configuration)), withShowTenant(MockShowTenant()))
+		// when
+		_, workspaces := test.ListWorkspacesCodebaseOK(t, svc.Context, svc, ctrl, fxt.Codebases[0].ID)
+
+		// verify that a `List workspaces` request was sent by the Che client
+		err = m.ValidateExchanges(
+			httpmonitor.Exchange{
+				RequestMethod: "GET",
+				RequestURL:    "che-server/workspace?masterUrl=https://tsrv.devshift.net:8443&namespace=foo&repository=git@github.com:bar/foo",
+				StatusCode:    200,
+			})
+		require.NoError(t, err)
+
+		codebaseBranch := workspaces.Data[0].Relationships.Codebase.Meta["branch"]
+		require.Equal(t, "foo", codebaseBranch)
+	})
 }

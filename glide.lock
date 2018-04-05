@@ -1,5 +1,5 @@
-hash: ca397fe1a2f352c850c51423f47b00a17afa36df9707d08a63c9fee28cddaf90
-updated: 2018-03-01T12:51:32.500844863-05:00
+hash: 0b19caa71f884cfee100b1be46b2d6430fbeee0508227c3dcf025a7836d9412a
+updated: 2018-03-27T15:55:09.1306754+05:30
 imports:
 - name: github.com/ajg/form
   version: cc2954064ec9ea8d93917f0f87456e11d7b881ad
@@ -17,21 +17,18 @@ imports:
   version: 3ac7bf7a47d159a033b107610db8a1b6575507a4
   subpackages:
   - quantile
+- name: github.com/certifi/gocertifi
+  version: deb3ae2ef2610fde3330947281941c562861188b
 - name: github.com/davecgh/go-spew
   version: adab96458c51a58dc1783b3335dcce5461522e75
   subpackages:
   - spew
 - name: github.com/dgrijalva/jwt-go
-  version: dbeaa9332f19a944acb5736b4456cfcc02140e29
+  version: 06ea1031745cb8b3dab3f6a236daf2b0aa468b7e
 - name: github.com/dimfeld/httppath
   version: c8e499c3ef3c3e272ed8bdcc1ccf39f73c88debc
 - name: github.com/dimfeld/httptreemux
   version: 13dde8a00d96b369e7398490fd8a3af9ca114b84
-- name: github.com/dnaeon/go-vcr
-  version: 9d71b8a6df86e00127f96bc8dabc09856ab8afdb
-  subpackages:
-  - cassette
-  - recorder
 - name: github.com/docker/distribution
   version: cd27f179f2c10c5d300e6d09025b538c475b0d51
   subpackages:
@@ -45,8 +42,6 @@ imports:
   version: ff4f55a206334ef123e4f79bbf348980da81ca46
   subpackages:
   - log
-- name: github.com/emicklei/go-restful-swagger12
-  version: dcef7f55730566d41eae5db10e7d6981829720f6
 - name: github.com/fabric8-services/fabric8-auth
   version: a801d184afb23ed62e5d1762778b0a5283407c42
   subpackages:
@@ -60,11 +55,11 @@ imports:
   - rest
   - token
 - name: github.com/fabric8-services/fabric8-notification
-  version: a3c7adb29a8ec1e0aab2af4f9a2d3c852d0daaef
+  version: 354d927ae7651802c0bc85fd6c9adf0cac736edb
   subpackages:
   - design
 - name: github.com/fabric8-services/fabric8-tenant
-  version: be8f39326808024c29ef6946151273359ae3e472
+  version: e86c6ee8a68ea79062061eb9a8ed216f773aed34
   subpackages:
   - design
 - name: github.com/fatih/structs
@@ -73,16 +68,14 @@ imports:
   version: c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9
 - name: github.com/fzipp/gocyclo
   version: 6acd4345c835499920e8426c7e4e8d7a34f1bb83
+- name: github.com/getsentry/raven-go
+  version: 563b81fc02b75d664e54da31f787c2cc2186780b
 - name: github.com/ghodss/yaml
   version: 73d445a93680fa1a78ae23a5839bad48f32ba1ee
-- name: github.com/go-openapi/analysis
-  version: b44dc874b601d9e4e2f6e19140e794ba24bead3b
 - name: github.com/go-openapi/jsonpointer
   version: 46af16f9f7b149af66e5d1bd010e3574dc06de98
 - name: github.com/go-openapi/jsonreference
   version: 13c6e3589ad90f49bd3e3bbe2c2cb3d7a4142272
-- name: github.com/go-openapi/loads
-  version: 18441dfa706d924a39a030ee2c3b1d8d81917b38
 - name: github.com/go-openapi/spec
   version: 6aced65f8501fe1217321abf0749d354824ba2ff
 - name: github.com/go-openapi/swag
@@ -226,15 +219,16 @@ imports:
   subpackages:
   - difflib
 - name: github.com/prometheus/client_golang
-  version: e51041b3fa41cece0dca035740ba6411905be473
+  version: c5b7fccd204277076155f10851dad72b76a49317
   subpackages:
   - prometheus
+  - prometheus/promhttp
 - name: github.com/prometheus/client_model
   version: fa8ad6fec33561be4280a8f0514318c79d7f6cb6
   subpackages:
   - go
 - name: github.com/prometheus/common
-  version: 2e54d0b93cba2fd133edc32211dcc32c06ef72ca
+  version: a6ab08426bb262e2d190097751f5cfd1cfdfd17d
   subpackages:
   - expfmt
   - internal/bitbucket.org/ww/goautoneg
@@ -258,7 +252,7 @@ imports:
 - name: github.com/shurcooL/sanitized_anchor_name
   version: 1dba4b3954bc059efc3991ec364f9f9a35f597d2
 - name: github.com/sirupsen/logrus
-  version: d682213848ed68c0a260ca37d6dd5ace8423f5ba
+  version: c078b1e43f58d563c74cebe63c85789e76ddb627
 - name: github.com/sourcegraph/annotate
   version: f4cad6c6324d3f584e1743d8b3e0e017a5f3a636
 - name: github.com/sourcegraph/syntaxhighlight
@@ -323,7 +317,7 @@ imports:
   subpackages:
   - internal
 - name: golang.org/x/sys
-  version: 8f0908ab3b2457e2e15403d3697c9ef5cb4b57a9
+  version: 478fcf54317e52ab69f40bb4c7a1520288d7f7ea
   subpackages:
   - unix
 - name: golang.org/x/text
@@ -360,7 +354,7 @@ imports:
 - name: gopkg.in/inf.v0
   version: 3887ee99ecf07df5b447e9b00d9c0b2adaa9f3e4
 - name: gopkg.in/square/go-jose.v2
-  version: 6ee92191fea850cdcab9a18867abf5f521cdbadb
+  version: 552e98edab5d620205ff1a8960bf52a5a10aad03
   subpackages:
   - cipher
   - json
@@ -415,29 +409,9 @@ imports:
 - name: k8s.io/client-go
   version: d92e8497f71b7b4e0494e5bd204b48d34bd6f254
   subpackages:
-  - discovery
   - kubernetes
   - kubernetes/scheme
-  - kubernetes/typed/admissionregistration/v1alpha1
-  - kubernetes/typed/apps/v1beta1
-  - kubernetes/typed/authentication/v1
-  - kubernetes/typed/authentication/v1beta1
-  - kubernetes/typed/authorization/v1
-  - kubernetes/typed/authorization/v1beta1
-  - kubernetes/typed/autoscaling/v1
-  - kubernetes/typed/autoscaling/v2alpha1
-  - kubernetes/typed/batch/v1
-  - kubernetes/typed/batch/v2alpha1
-  - kubernetes/typed/certificates/v1beta1
   - kubernetes/typed/core/v1
-  - kubernetes/typed/extensions/v1beta1
-  - kubernetes/typed/networking/v1
-  - kubernetes/typed/policy/v1beta1
-  - kubernetes/typed/rbac/v1alpha1
-  - kubernetes/typed/rbac/v1beta1
-  - kubernetes/typed/settings/v1alpha1
-  - kubernetes/typed/storage/v1
-  - kubernetes/typed/storage/v1beta1
   - pkg/api
   - pkg/api/v1
   - pkg/api/v1/ref
@@ -484,4 +458,9 @@ imports:
   - util/cert
   - util/flowcontrol
   - util/integer
-testImports: []
+testImports:
+- name: github.com/dnaeon/go-vcr
+  version: 9d71b8a6df86e00127f96bc8dabc09856ab8afdb
+  subpackages:
+  - cassette
+  - recorder

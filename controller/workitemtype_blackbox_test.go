@@ -243,22 +243,18 @@ func lookupWorkItemTypes(witCollection app.WorkItemTypeList, workItemTypes ...ap
 //-----------------------------------------------------------------------------
 
 func (s *workItemTypeSuite) TestCreate() {
-	resetFn := s.DisableGormCallbacks()
-	defer resetFn()
 
 	s.T().Run("ok", func(t *testing.T) {
 		res, animal := s.createWorkItemTypeAnimal()
-		compareWithGolden(t, filepath.Join(s.testDir, "create", "animal.wit.golden.json"), animal)
-		compareWithGolden(t, filepath.Join(s.testDir, "create", "animal.headers.golden.json"), res.Header())
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "animal.wit.golden.json"), animal)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "animal.headers.golden.json"), res.Header())
 		res, person := s.createWorkItemTypePerson()
-		compareWithGolden(t, filepath.Join(s.testDir, "create", "person.golden.json"), person)
-		compareWithGolden(t, filepath.Join(s.testDir, "create", "person.headers.golden.json"), res.Header())
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "person.golden.json"), person)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "person.headers.golden.json"), res.Header())
 	})
 }
 
 func (s *workItemTypeSuite) TestCreateByNotOwnerForbidden() {
-	resetFn := s.DisableGormCallbacks()
-	defer resetFn()
 
 	s.T().Run("forbidden", func(t *testing.T) {
 		idn := &account.Identity{
@@ -326,7 +322,7 @@ func (s *workItemTypeSuite) TestValidate() {
 		gerr, ok := err.(*goa.ErrorResponse)
 		require.True(t, ok)
 		gerr.ID = "IGNORE_ME"
-		compareWithGolden(t, filepath.Join(s.testDir, "validate", "invalid_oversized_name.golden.json"), gerr)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "validate", "invalid_oversized_name.golden.json"), gerr)
 	})
 
 	s.T().Run("invalid - name starts with underscore", func(t *testing.T) {
@@ -340,13 +336,11 @@ func (s *workItemTypeSuite) TestValidate() {
 		gerr, ok := err.(*goa.ErrorResponse)
 		require.True(t, ok)
 		gerr.ID = "IGNORE_ME"
-		compareWithGolden(t, filepath.Join(s.testDir, "validate", "invalid_name_starts_with_underscore.golden.json"), gerr)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "validate", "invalid_name_starts_with_underscore.golden.json"), gerr)
 	})
 }
 
 func (s *workItemTypeSuite) TestShow() {
-	resetFn := s.DisableGormCallbacks()
-	defer resetFn()
 
 	// given
 	_, wit := s.createWorkItemTypeAnimal()
@@ -359,8 +353,8 @@ func (s *workItemTypeSuite) TestShow() {
 		res, actual := test.ShowWorkitemtypeOK(t, nil, nil, s.typeCtrl, *wit.Data.Relationships.Space.Data.ID, *wit.Data.ID, nil, nil)
 		// then
 		require.NotNil(t, actual)
-		compareWithGolden(t, filepath.Join(s.testDir, "show", "ok.wit.golden.json"), actual)
-		compareWithGolden(t, filepath.Join(s.testDir, "show", "ok.headers.golden.json"), res.Header())
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "ok.wit.golden.json"), actual)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "ok.headers.golden.json"), res.Header())
 	})
 
 	s.T().Run("ok - using expired IfModifiedSince header", func(t *testing.T) {
@@ -369,8 +363,8 @@ func (s *workItemTypeSuite) TestShow() {
 		res, actual := test.ShowWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, *wit.Data.ID, &lastModified, nil)
 		// then
 		require.NotNil(t, actual)
-		compareWithGolden(t, filepath.Join(s.testDir, "show", "ok_using_expired_lastmodified_header.wit.golden.json"), actual)
-		compareWithGolden(t, filepath.Join(s.testDir, "show", "ok_using_expired_lastmodified_header.headers.golden.json"), res.Header())
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "ok_using_expired_lastmodified_header.wit.golden.json"), actual)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "ok_using_expired_lastmodified_header.headers.golden.json"), res.Header())
 	})
 
 	s.T().Run("ok - using IfNoneMatch header", func(t *testing.T) {
@@ -379,8 +373,8 @@ func (s *workItemTypeSuite) TestShow() {
 		res, actual := test.ShowWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, *wit.Data.Relationships.Space.Data.ID, *wit.Data.ID, nil, &ifNoneMatch)
 		// then
 		require.NotNil(t, actual)
-		compareWithGolden(t, filepath.Join(s.testDir, "show", "ok_using_expired_etag_header.wit.golden.json"), actual)
-		compareWithGolden(t, filepath.Join(s.testDir, "show", "ok_using_expired_etag_header.headers.golden.json"), res.Header())
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "ok_using_expired_etag_header.wit.golden.json"), actual)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "ok_using_expired_etag_header.headers.golden.json"), res.Header())
 	})
 
 	s.T().Run("not modified - using IfModifiedSince header", func(t *testing.T) {
@@ -388,7 +382,7 @@ func (s *workItemTypeSuite) TestShow() {
 		lastModified := app.ToHTTPTime(time.Now().Add(119 * time.Second))
 		res := test.ShowWorkitemtypeNotModified(s.T(), nil, nil, s.typeCtrl, *wit.Data.Relationships.Space.Data.ID, *wit.Data.ID, &lastModified, nil)
 		// then
-		compareWithGolden(t, filepath.Join(s.testDir, "show", "not_modified_using_if_modified_since_header.headers.golden.json"), res.Header())
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "not_modified_using_if_modified_since_header.headers.golden.json"), res.Header())
 	})
 
 	s.T().Run("not modified - using IfNoneMatch header", func(t *testing.T) {
@@ -396,7 +390,7 @@ func (s *workItemTypeSuite) TestShow() {
 		etag := generateWorkItemTypeTag(*wit)
 		res := test.ShowWorkitemtypeNotModified(s.T(), nil, nil, s.typeCtrl, *wit.Data.Relationships.Space.Data.ID, *wit.Data.ID, nil, &etag)
 		// then
-		compareWithGolden(t, filepath.Join(s.testDir, "show", "not_modified_using_ifnonematch_header.headers.golden.json"), res.Header())
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "not_modified_using_ifnonematch_header.headers.golden.json"), res.Header())
 	})
 }
 
@@ -525,7 +519,7 @@ func (s *workItemTypeSuite) createWorkitemtypeLinks() (app.WorkItemLinkTypeSingl
 }
 
 // used for testing purpose only
-func convertWorkItemTypeToModel(data app.WorkItemTypeData) workitem.WorkItemType {
+func ConvertWorkItemTypeToModel(data app.WorkItemTypeData) workitem.WorkItemType {
 	return workitem.WorkItemType{
 		ID:      *data.ID,
 		Version: *data.Attributes.Version,
@@ -535,13 +529,13 @@ func convertWorkItemTypeToModel(data app.WorkItemTypeData) workitem.WorkItemType
 func generateWorkItemTypesTag(entities app.WorkItemTypeList) string {
 	modelEntities := make([]app.ConditionalRequestEntity, len(entities.Data))
 	for i, entityData := range entities.Data {
-		modelEntities[i] = convertWorkItemTypeToModel(*entityData)
+		modelEntities[i] = ConvertWorkItemTypeToModel(*entityData)
 	}
 	return app.GenerateEntitiesTag(modelEntities)
 }
 
 func generateWorkItemTypeTag(entity app.WorkItemTypeSingle) string {
-	return app.GenerateEntityTag(convertWorkItemTypeToModel(*entity.Data))
+	return app.GenerateEntityTag(ConvertWorkItemTypeToModel(*entity.Data))
 }
 
 func generateWorkItemLinkTypesTag(entities app.WorkItemLinkTypeList) string {
@@ -558,10 +552,10 @@ func generateWorkItemLinkTypeTag(entity app.WorkItemLinkTypeSingle) string {
 	return app.GenerateEntityTag(e)
 }
 
-func convertWorkItemTypesToConditionalEntities(workItemTypeList app.WorkItemTypeList) []app.ConditionalRequestEntity {
+func ConvertWorkItemTypesToConditionalEntities(workItemTypeList app.WorkItemTypeList) []app.ConditionalRequestEntity {
 	conditionalWorkItemTypes := make([]app.ConditionalRequestEntity, len(workItemTypeList.Data))
 	for i, data := range workItemTypeList.Data {
-		conditionalWorkItemTypes[i] = convertWorkItemTypeToModel(*data)
+		conditionalWorkItemTypes[i] = ConvertWorkItemTypeToModel(*data)
 	}
 	return conditionalWorkItemTypes
 }

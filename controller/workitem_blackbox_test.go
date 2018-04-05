@@ -833,72 +833,6 @@ func minimumRequiredCreatePayload(spaceIDOptional ...uuid.UUID) app.CreateWorkit
 	}
 }
 
-func createOneRandomUserIdentity(ctx context.Context, db *gorm.DB) *account.Identity {
-	newUserUUID := uuid.NewV4()
-	identityRepo := account.NewIdentityRepository(db)
-	identity := account.Identity{
-		Username: "Test User Integration Random",
-		ID:       newUserUUID,
-	}
-	err := identityRepo.Create(ctx, &identity)
-	if err != nil {
-		fmt.Println("should not happen off.")
-		return nil
-	}
-	return &identity
-}
-
-func createOneRandomIteration(ctx context.Context, db *gorm.DB) *iteration.Iteration {
-	iterationRepo := iteration.NewIterationRepository(db)
-	spaceRepo := space.NewRepository(db)
-
-	// added timestmap to the space in order to make this function usable for more than one test
-	// else it fails with - (pq: duplicate key value violates unique constraint "spaces_name_idx")
-	newSpace := space.Space{
-		Name: "Space iteration " + time.Now().String(),
-	}
-	space, err := spaceRepo.Create(ctx, &newSpace)
-	if err != nil {
-		fmt.Println("Failed to create space for iteration.")
-		return nil
-	}
-
-	itr := iteration.Iteration{
-		Name:    "Sprint 101",
-		SpaceID: space.ID,
-	}
-	err = iterationRepo.Create(ctx, &itr)
-	if err != nil {
-		fmt.Println("Failed to create iteration.")
-		return nil
-	}
-	return &itr
-}
-
-func createOneRandomArea(ctx context.Context, db *gorm.DB) *area.Area {
-	areaRepo := area.NewAreaRepository(db)
-	spaceRepo := space.NewRepository(db)
-
-	newSpace := space.Space{
-		Name: fmt.Sprintf("Space area %v", uuid.NewV4()),
-	}
-	space, err := spaceRepo.Create(ctx, &newSpace)
-	if err != nil {
-		fmt.Println("Failed to create space for area.")
-		return nil
-	}
-	ar := area.Area{
-		Name:    "Area 51",
-		SpaceID: space.ID,
-	}
-	err = areaRepo.Create(ctx, &ar)
-	if err != nil {
-		fmt.Println("Failed to create area.")
-		return nil
-	}
-	return &ar
-}
-
 func newChildIteration(ctx context.Context, db *gorm.DB, parentIteration *iteration.Iteration) *iteration.Iteration {
 	iterationRepo := iteration.NewIterationRepository(db)
 
@@ -996,26 +930,28 @@ func (s *WorkItem2Suite) TestWI2UpdateWithNonExistentID() {
 	test.UpdateWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.workitemCtrl, id, s.minimumPayload)
 }
 
-func (s *WorkItem2Suite) TestWI2UpdateSetBaseType() {
-	c := minimumRequiredCreateWithType(workitem.SystemBug)
-	c.Data.Attributes[workitem.SystemTitle] = "Test title"
-	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-
-	_, created := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, &c)
-	assert.Equal(s.T(), created.Data.Relationships.BaseType.Data.ID, workitem.SystemBug)
+func (s *WorkItem2Suite) TestWI2UpdateSetReadOnlyFields() {
+	// given
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1), tf.WorkItemTypes(2))
 
 	u := minimumRequiredUpdatePayload()
 	u.Data.Attributes[workitem.SystemTitle] = "Test title"
-	u.Data.Attributes["version"] = created.Data.Attributes["version"]
-	u.Data.ID = created.Data.ID
+	u.Data.Attributes["version"] = fxt.WorkItems[0].Version
+	u.Data.Attributes[workitem.SystemNumber] = fxt.WorkItems[0].Number + 666
+	u.Data.ID = &fxt.WorkItems[0].ID
 	u.Data.Relationships = &app.WorkItemRelationships{
-		BaseType: newRelationBaseType(space.SystemSpace, workitem.SystemExperience),
+		BaseType: newRelationBaseType(fxt.Spaces[0].ID, fxt.WorkItemTypes[1].ID),
 	}
 
-	_, newWi := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *s.wi.ID, &u)
+	// when
+	_, updatedWI := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[0].ID, &u)
 
-	// Ensure the type wasn't updated
-	require.Equal(s.T(), workitem.SystemBug, newWi.Data.Relationships.BaseType.Data.ID)
+	s.T().Run("ensure type was not updated", func(t *testing.T) {
+		require.Equal(t, fxt.WorkItemTypes[0].ID, updatedWI.Data.Relationships.BaseType.Data.ID)
+	})
+	s.T().Run("ensure number was not updated", func(t *testing.T) {
+		require.Equal(t, fxt.WorkItems[0].Number, updatedWI.Data.Attributes[workitem.SystemNumber])
+	})
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateOnlyLegacyDescription() {
@@ -1100,7 +1036,8 @@ func (s *WorkItem2Suite) TestWI2UpdateMultipleScenarios() {
 	s.minimumPayload.Data.Attributes["version"] = updatedWI.Data.Attributes["version"]
 
 	// update assignee relationship and verify
-	newUser := createOneRandomUserIdentity(s.svc.Context, s.DB)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(1))
+	newUser := fxt.Identities[0]
 	require.NotNil(s.T(), newUser)
 
 	newUserUUID := newUser.ID.String()
@@ -1315,7 +1252,8 @@ func (s *WorkItem2Suite) TestWI2FailCreateWithEmptyTitle() {
 func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneeRelation() {
 	// given
 	userType := APIStringTypeUser
-	newUser := createOneRandomUserIdentity(s.svc.Context, s.DB)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(1))
+	newUser := fxt.Identities[0]
 	newUserID := newUser.ID.String()
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
@@ -1341,9 +1279,10 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneeRelation() {
 
 func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneesRelation() {
 	// given
-	newUser := createOneRandomUserIdentity(s.svc.Context, s.DB)
-	newUser2 := createOneRandomUserIdentity(s.svc.Context, s.DB)
-	newUser3 := createOneRandomUserIdentity(s.svc.Context, s.DB)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(3))
+	newUser := fxt.Identities[0]
+	newUser2 := fxt.Identities[1]
+	newUser3 := fxt.Identities[2]
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
@@ -1385,7 +1324,8 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneesRelation() {
 
 func (s *WorkItem2Suite) TestWI2ListByAssigneeFilter() {
 	// given
-	newUser := createOneRandomUserIdentity(s.svc.Context, s.DB)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(1))
+	newUser := fxt.Identities[0]
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
@@ -1414,7 +1354,8 @@ func (s *WorkItem2Suite) TestWI2ListByAssigneeFilter() {
 func (s *WorkItem2Suite) TestWI2ListByNoAssigneeFilter() {
 	// given
 	userType := APIStringTypeUser
-	newUser := createOneRandomUserIdentity(s.svc.Context, s.DB)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(1))
+	newUser := fxt.Identities[0]
 	newUserID := newUser.ID.String()
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
@@ -1584,7 +1525,8 @@ func (s *WorkItem2Suite) TestWI2ListByStateFilterOKModifiedUsingIfNoneMatchIfMod
 }
 
 func (s *WorkItem2Suite) setupAreaWorkItem(createWorkItem bool) (uuid.UUID, string, *app.WorkItemSingle) {
-	tempArea := createOneRandomArea(s.svc.Context, s.DB)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Areas(1))
+	tempArea := fxt.Areas[0]
 	require.NotNil(s.T(), tempArea)
 	areaID := tempArea.ID.String()
 	c := minimumRequiredCreatePayload()
@@ -1680,14 +1622,15 @@ func (s *WorkItem2Suite) TestWI2ListByAreaFilterNotModifiedUsingIfNoneMatchHeade
 	// given
 	spaceID, areaID, wi := s.setupAreaWorkItem(true)
 	// when
-	ifNoneMatch := app.GenerateEntityTag(convertWorkItemToConditionalRequestEntity(*wi))
+	ifNoneMatch := app.GenerateEntityTag(ConvertWorkItemToConditionalRequestEntity(*wi))
 	res := test.ListWorkitemsNotModified(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil, nil, &ifNoneMatch)
 	// then
 	assertResponseHeaders(s.T(), res)
 }
 
 func (s *WorkItem2Suite) TestWI2ListByIterationFilter() {
-	tempIteration := createOneRandomIteration(s.svc.Context, s.DB)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Iterations(1))
+	tempIteration := fxt.Iterations[0]
 	require.NotNil(s.T(), tempIteration)
 	iterationID := tempIteration.ID.String()
 	c := minimumRequiredCreatePayload()
@@ -1729,7 +1672,8 @@ func (s *WorkItem2Suite) TestWI2FailCreateInvalidAssignees() {
 }
 
 func (s *WorkItem2Suite) TestWI2FailUpdateInvalidAssignees() {
-	newUser := createOneRandomUserIdentity(s.svc.Context, s.DB)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(1))
+	newUser := fxt.Identities[0]
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
@@ -1756,8 +1700,9 @@ func (s *WorkItem2Suite) TestWI2FailUpdateInvalidAssignees() {
 }
 
 func (s *WorkItem2Suite) TestWI2SuccessUpdateWithAssigneesRelation() {
-	newUser := createOneRandomUserIdentity(s.svc.Context, s.DB)
-	newUser2 := createOneRandomUserIdentity(s.svc.Context, s.DB)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(2))
+	newUser := fxt.Identities[0]
+	newUser2 := fxt.Identities[1]
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
@@ -1842,7 +1787,7 @@ func (s *WorkItem2Suite) TestWI2ShowNotModifiedUsingIfNoneMatchHeader() {
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 	_, createdWI := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, &c)
 	// when
-	ifNoneMatch := app.GenerateEntityTag(convertWorkItemToConditionalRequestEntity(*createdWI))
+	ifNoneMatch := app.GenerateEntityTag(ConvertWorkItemToConditionalRequestEntity(*createdWI))
 	res := test.ShowWorkitemNotModified(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *createdWI.Data.ID, nil, &ifNoneMatch)
 	// then
 	assertResponseHeaders(s.T(), res)
@@ -2106,7 +2051,8 @@ func (s *WorkItem2Suite) TestWI2CreateUnknownArea() {
 
 func (s *WorkItem2Suite) TestWI2CreateWithIteration() {
 	// given
-	_, _, _, _, iterationInstance := createSpaceAndRootAreaAndIterations(s.T(), gormapplication.NewGormDB(s.DB))
+	fxt := createSpaceAndRootAreaAndIterations(s.T(), s.DB)
+	iterationInstance := *fxt.Iterations[1]
 	iterationID := iterationInstance.ID.String()
 	itType := iteration.APIStringTypeIteration
 	// when
@@ -2132,7 +2078,8 @@ func (s *WorkItem2Suite) TestWI2CreateWithIteration() {
 
 func (s *WorkItem2Suite) TestWI2UpdateWithIteration() {
 	// given
-	_, _, _, _, iterationInstance := createSpaceAndRootAreaAndIterations(s.T(), gormapplication.NewGormDB(s.DB))
+	fxt := createSpaceAndRootAreaAndIterations(s.T(), s.DB)
+	iterationInstance := *fxt.Iterations[1]
 	iterationID := iterationInstance.ID.String()
 	itType := iteration.APIStringTypeIteration
 	c := minimumRequiredCreatePayload()
@@ -2169,7 +2116,10 @@ func (s *WorkItem2Suite) TestWI2UpdateWithIteration() {
 
 func (s *WorkItem2Suite) TestWI2UpdateWithRootIterationIfMissing() {
 	// given
-	testSpace, _, rootIteration, _, otherIteration := createSpaceAndRootAreaAndIterations(s.T(), gormapplication.NewGormDB(s.DB))
+	fxt := createSpaceAndRootAreaAndIterations(s.T(), s.DB)
+	otherIteration := *fxt.Iterations[1]
+	rootIteration := *fxt.Iterations[0]
+	testSpace := *fxt.Spaces[0]
 	iterationID := otherIteration.ID.String()
 	iterationType := iteration.APIStringTypeIteration
 	payload := app.CreateWorkitemsPayload{
@@ -2225,7 +2175,8 @@ func (s *WorkItem2Suite) TestWI2UpdateWithRootIterationIfMissing() {
 func (s *WorkItem2Suite) TestWI2UpdateRemoveIteration() {
 	s.T().Skip("iteration.data can't be sent as nil from client libs since it's optionall and is removed during json encoding")
 	// given
-	_, _, _, _, iterationInstance := createSpaceAndRootAreaAndIterations(s.T(), gormapplication.NewGormDB(s.DB))
+	fxt := createSpaceAndRootAreaAndIterations(s.T(), s.DB)
+	iterationInstance := *fxt.Iterations[1]
 	iterationID := iterationInstance.ID.String()
 	itType := iteration.APIStringTypeIteration
 	// when
@@ -2574,7 +2525,13 @@ func (s *WorkItem2Suite) TestDefaultSpaceAndIterationRelations() {
 // Following test verifies that UPDATE on WI by setting AREA & Iteration
 // works as expected and do not alter previously set values
 func (s *WorkItem2Suite) TestWI2UpdateWithAreaIterationSuccessively() {
-	sp, rootArea, rootIteration, areaInstance, iterationInstance := createSpaceAndRootAreaAndIterations(s.T(), gormapplication.NewGormDB(s.DB))
+	fxt := createSpaceAndRootAreaAndIterations(s.T(), s.DB)
+	iterationInstance := *fxt.Iterations[1]
+	rootIteration := *fxt.Iterations[0]
+	areaInstance := *fxt.Areas[1]
+	rootArea := *fxt.Areas[0]
+	sp := *fxt.Spaces[0]
+
 	iterationID := iterationInstance.ID.String()
 	areaID := areaInstance.ID.String()
 	itType := iteration.APIStringTypeIteration
@@ -2670,8 +2627,8 @@ func (s *WorkItem2Suite) xTestWI2IfModifiedSince() {
 }
 
 func (s *WorkItem2Suite) TestWI2ListForChildIteration() {
-	grandParentIteration := createOneRandomIteration(s.svc.Context, s.DB)
-	require.NotNil(s.T(), grandParentIteration)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Iterations(1))
+	grandParentIteration := fxt.Iterations[0]
 
 	parentIteration := newChildIteration(s.svc.Context, s.DB, grandParentIteration)
 	require.NotNil(s.T(), parentIteration)
@@ -2758,7 +2715,7 @@ func (s *WorkItem2Suite) TestWI2FilterExpressionRedirection() {
 	assert.Contains(s.T(), location, expectedLocation)
 }
 
-func (s *WorkItem2Suite) TestNotificationSendOnCreate() {
+func (s *WorkItem2Suite) TestNotificationSentOnCreate() {
 	// given
 	// Default created WI in setupTest
 	// when
@@ -2891,7 +2848,7 @@ func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	test.ReorderWorkitemsForbidden(s.T(), svcNotAuthorized.Context, svcNotAuthorized, workitemsCtrlNotAuthorized, *space.ID, &payload5)
 }
 
-func convertWorkItemToConditionalRequestEntity(appWI app.WorkItemSingle) app.ConditionalRequestEntity {
+func ConvertWorkItemToConditionalRequestEntity(appWI app.WorkItemSingle) app.ConditionalRequestEntity {
 	return workitem.WorkItem{
 		ID:      *appWI.Data.ID,
 		Version: appWI.Data.Attributes["version"].(int),

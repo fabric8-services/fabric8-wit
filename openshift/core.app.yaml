@@ -10,13 +10,10 @@ objects:
       service: core
     name: core
   spec:
-    replicas: 4
+    replicas: ${{REPLICAS}}
     selector:
       service: core
     strategy:
-      resources:
-        limits:
-          memory: 1.5Gi
       rollingParams:
         intervalSeconds: 1
         maxSurge: 25%
@@ -67,6 +64,11 @@ objects:
               secretKeyRef:
                 name: core
                 key: keycloak.secret
+          - name: SENTRY_DSN
+            valueFrom:
+              secretKeyRef:
+                name: core
+                key: sentry.dsn
           - name: F8_POSTGRES_SSLMODE
             valueFrom:
               configMapKeyRef:
@@ -158,6 +160,9 @@ objects:
             periodSeconds: 10
             successThreshold: 1
             timeoutSeconds: 1
+          resources:
+            limits:
+              memory: 1.5Gi
           terminationMessagePath: /dev/termination-log
         dnsPolicy: ClusterFirst
         restartPolicy: Always
@@ -198,3 +203,8 @@ objects:
 parameters:
 - name: IMAGE_TAG
   value: latest
+- description: Number of deployment replicas
+  displayName: Number of deployment replicas
+  required: true
+  name: REPLICAS
+  value: '1'

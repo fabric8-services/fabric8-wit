@@ -36,7 +36,7 @@ func TestProxy(t *testing.T) {
 
 	ctx := context.Background()
 	goaCtx := goa.NewContext(goa.WithAction(ctx, "ProxyTest"), rw, req, url.Values{})
-	statusCtx, err := app.NewShowStatusContext(goaCtx, req, goa.New("StatusService"))
+	statusCtx, err := app.NewShowAreaContext(goaCtx, req, goa.New("StatusService")) // needs a context matching an endpoint that support the `InternalServerError` response type
 	require.NoError(t, err)
 	statusCtx.Request.Header.Del("Accept-Encoding")
 
@@ -55,7 +55,7 @@ func TestProxy(t *testing.T) {
 
 	ctx = context.Background()
 	goaCtx = goa.NewContext(goa.WithAction(ctx, "ProxyTest"), rw, req, url.Values{})
-	statusCtx, err = app.NewShowStatusContext(goaCtx, req, goa.New("StatusService"))
+	statusCtx, err = app.NewShowAreaContext(goaCtx, req, goa.New("StatusService"))
 	require.NoError(t, err)
 	statusCtx.Request.Header.Set("Accept-Encoding", "gzip")
 
