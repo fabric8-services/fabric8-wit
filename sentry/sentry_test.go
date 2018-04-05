@@ -2,11 +2,11 @@ package sentry
 
 import (
 	"context"
-	"reflect"
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/login/tokencontext"
+	"github.com/fabric8-services/fabric8-wit/resource"
 	testtoken "github.com/fabric8-services/fabric8-wit/test/token"
 
 	"github.com/dgrijalva/jwt-go"
@@ -14,9 +14,35 @@ import (
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
+	"github.com/stretchr/testify/require"
 )
 
+func failOnNoToken(t *testing.T) context.Context {
+	// this is just normal context object with no, token
+	// so this should fail saying no token available
+	m := testtoken.NewManager()
+	return tokencontext.ContextWithTokenManager(context.Background(), m)
+}
+
+func failOnParsingToken(t *testing.T) context.Context {
+	ctx := failOnNoToken(t)
+	// Here we add a token which is incomplete
+	token := jwt.New(jwt.GetSigningMethod("RS256"))
+	ctx = goajwt.WithJWT(ctx, token)
+	return ctx
+}
+
+func validToken(t *testing.T, identityID string, identityUsername string) context.Context {
+	ctx := failOnNoToken(t)
+	// Here we add a token that is perfectly valid
+	token, err := testtoken.GenerateTokenObject(identityID, identityUsername, testtoken.PrivateKey())
+	require.Nilf(t, err, "could not generate token: %v", errors.WithStack(err))
+
+	ctx = goajwt.WithJWT(ctx, token)
+	return ctx
+}
 func Test_extractUserInfo(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
 
 	identity := account.Identity{
 		ID:       uuid.NewV4(),
@@ -62,35 +88,7 @@ func Test_extractUserInfo(t *testing.T) {
 				t.Errorf("extractUserInfo() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("extractUserInfo() = %v, want %v", got, tt.want)
-			}
+			require.Equalf(t, tt.want, got, "extractUserInfo() = %v, want %v", got, tt.want)
 		})
 	}
-}
-
-func failOnNoToken(t *testing.T) context.Context {
-	// this is just normal context object with no, token
-	// so this should fail saying no token available
-	m := testtoken.NewManager()
-	return tokencontext.ContextWithTokenManager(context.Background(), m)
-}
-
-func failOnParsingToken(t *testing.T) context.Context {
-	ctx := failOnNoToken(t)
-	// Here we add a token which is incomplete
-	token := jwt.New(jwt.GetSigningMethod("RS256"))
-	ctx = goajwt.WithJWT(ctx, token)
-	return ctx
-}
-
-func validToken(t *testing.T, identityID string, identityUsername string) context.Context {
-	ctx := failOnNoToken(t)
-	// Here we add a token that is perfectly valid
-	token, err := testtoken.GenerateTokenObject(identityID, identityUsername, testtoken.PrivateKey())
-	if err != nil {
-		t.Fatalf("could not generate token: %v", errors.WithStack(err))
-	}
-	ctx = goajwt.WithJWT(ctx, token)
-	return ctx
 }

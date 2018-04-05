@@ -21,7 +21,7 @@ func init() {
 	TokenManager = NewManager()
 }
 
-// GenerateToken generates a JWT token and signs it using the given private key
+// GenerateTokenObject generates a JWT token and signs it using the given private key
 func GenerateTokenObject(identityID string, identityUsername string, privateKey *rsa.PrivateKey) (*jwt.Token, error) {
 	token := jwt.New(jwt.SigningMethodRS256)
 	token.Claims.(jwt.MapClaims)["uuid"] = identityID
