@@ -151,6 +151,7 @@ func (r *GormRepository) LoadMany(ctx context.Context, IDs []uuid.UUID) ([]Space
 		}, "unable to load multiple spaces by their IDs")
 		return nil, errors.NewInternalError(ctx, err)
 	}
+	defer rows.Close()
 	// scan the results
 	for rows.Next() {
 		s := Space{}
