@@ -389,9 +389,7 @@ func (m *GormCodebaseRepository) SearchByURL(ctx context.Context, url string, st
 		// means 0 rows were returned from the first query (maybe becaus of offset outside of total count),
 		// need to do a count(*) to find out total
 		countRow, err := m.db.Model(&Codebase{}).Select("count(*)").Where("url = ?", url).Rows()
-		defer func() {
-			closeable.Close(ctx, countRow)
-		}()
+		defer closeable.Close(ctx, countRow)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{"url": url}, "error while counting total results only: ", err.Error())
 			return nil, 0, errors.NewInternalError(ctx, err)
