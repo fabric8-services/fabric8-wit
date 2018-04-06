@@ -446,10 +446,14 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 	db = db.Select("count(*) over () as cnt2 , *").Order("execution_order desc")
 
 	rows, err := db.Rows()
+	defer func() {
+		if rows != nil {
+			rows.Close()
+		}
+	}()
 	if err != nil {
 		return nil, 0, err
 	}
-	defer rows.Close()
 	result := []workitem.WorkItemStorage{}
 
 	columns, err := rows.Columns()
@@ -486,10 +490,14 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 		// total
 		db := db.Select("count(*)")
 		rows2, err := db.Rows()
+		defer func() {
+			if rows2 != nil {
+				rows2.Close()
+			}
+		}()
 		if err != nil {
 			return nil, 0, errs.WithStack(err)
 		}
-		defer rows2.Close()
 		rows2.Next() // count(*) will always return a row
 		rows2.Scan(&count)
 	}

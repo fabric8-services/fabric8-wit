@@ -360,10 +360,14 @@ func (m *GormIdentityRepository) Search(ctx context.Context, q string, start int
 	//db = db.Preload("user")
 
 	rows, err := db.Rows()
+	defer func() {
+		if rows != nil {
+			rows.Close()
+		}
+	}()
 	if err != nil {
 		return nil, 0, err
 	}
-	defer rows.Close()
 
 	result := []Identity{}
 	value := Identity{}

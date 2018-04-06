@@ -725,10 +725,14 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, spaceID uu
 	db = db.Select("count(*) over () as cnt2 , *").Order("execution_order desc")
 
 	rows, err := db.Rows()
+	defer func() {
+		if rows != nil {
+			rows.Close()
+		}
+	}()
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
 	}
-	defer rows.Close()
 
 	result := []WorkItemStorage{}
 	columns, err := rows.Columns()
@@ -764,7 +768,11 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, spaceID uu
 		// need to do a count(*) to find out total
 		orgDB := orgDB.Select("count(*)")
 		rows2, err := orgDB.Rows()
-		defer rows2.Close()
+		defer func() {
+			if rows2 != nil {
+				rows2.Close()
+			}
+		}()
 		if err != nil {
 			return nil, 0, errs.WithStack(err)
 		}
