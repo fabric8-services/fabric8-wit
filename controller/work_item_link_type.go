@@ -8,7 +8,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
-	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	errs "github.com/pkg/errors"
@@ -122,71 +121,6 @@ func enrichLinkTypeList(ctx *workItemLinkContext, list *app.WorkItemLinkTypeList
 	return nil
 }
 
-// Create runs the create action.
-func (c *WorkItemLinkTypeController) Create(ctx *app.CreateWorkItemLinkTypeContext) error {
-	// Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
-	if true {
-		return ctx.MethodNotAllowed()
-	}
-	// Convert payload from app to model representation
-	appLinkType := app.WorkItemLinkTypeSingle{
-		Data: ctx.Payload.Data,
-	}
-	// Set the space to the Payload
-	if ctx.Payload.Data != nil && ctx.Payload.Data.Relationships != nil {
-		// We overwrite or use the space ID in the URL to set the space of this WI
-		spaceSelfURL := rest.AbsoluteURL(ctx.Request, app.SpaceHref(ctx.SpaceID.String()))
-		ctx.Payload.Data.Relationships.Space = app.NewSpaceRelation(ctx.SpaceID, spaceSelfURL)
-	}
-	modelLinkType, err := ConvertWorkItemLinkTypeToModel(appLinkType)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(err.Error()))
-	}
-	modelLinkType.SpaceID = ctx.SpaceID
-	currentUserIdentityID, err := login.ContextIdentity(ctx)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
-	}
-	var createdModelLinkType *link.WorkItemLinkType
-	err = application.Transactional(c.db, func(appl application.Application) error {
-		createdModelLinkType, err = appl.WorkItemLinkTypes().Create(ctx.Context, modelLinkType)
-		if err != nil {
-			return err
-		}
-		appLinkType = ConvertWorkItemLinkTypeFromModel(ctx.Request, *createdModelLinkType)
-		// Enrich
-		HrefFunc := func(obj interface{}) string {
-			return fmt.Sprintf(app.WorkItemLinkTypeHref(createdModelLinkType.SpaceID, "%v"), obj)
-		}
-		linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, HrefFunc, currentUserIdentityID)
-		return enrichLinkTypeSingle(linkCtx, &appLinkType)
-	})
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
-	}
-	ctx.ResponseData.Header().Set("Location", app.WorkItemLinkTypeHref(createdModelLinkType.SpaceID, appLinkType.Data.ID))
-	return ctx.Created(&appLinkType)
-}
-
-// Delete runs the delete action.
-func (c *WorkItemLinkTypeController) Delete(ctx *app.DeleteWorkItemLinkTypeContext) error {
-	// Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
-	if true {
-		return ctx.MethodNotAllowed()
-	}
-	err := application.Transactional(c.db, func(appl application.Application) error {
-		err := appl.WorkItemLinkTypes().Delete(ctx.Context, ctx.SpaceID, ctx.WiltID)
-		if err != nil {
-			return err
-		}
-		return ctx.OK([]byte{})
-	})
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
-	}
-	return nil
-}
-
 // List runs the list action.
 func (c *WorkItemLinkTypeController) List(ctx *app.ListWorkItemLinkTypeContext) error {
 	var modelLinkTypes []link.WorkItemLinkType
@@ -253,46 +187,6 @@ func (c *WorkItemLinkTypeController) Show(ctx *app.ShowWorkItemLinkTypeContext) 
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	return nil
-}
-
-// Update runs the update action.
-func (c *WorkItemLinkTypeController) Update(ctx *app.UpdateWorkItemLinkTypeContext) error {
-	// Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
-	if true {
-		return ctx.MethodNotAllowed()
-	}
-	currentUserIdentityID, err := login.ContextIdentity(ctx)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
-	}
-	var appLinkType app.WorkItemLinkTypeSingle
-	err = application.Transactional(c.db, func(appl application.Application) error {
-		toSave := app.WorkItemLinkTypeSingle{
-			Data: ctx.Payload.Data,
-		}
-		if toSave.Data.ID == nil {
-			return errors.NewBadParameterError("work item link type", nil)
-		}
-		modelLinkTypeToSave, err := ConvertWorkItemLinkTypeToModel(toSave)
-		if err != nil {
-			return err
-		}
-		modelLinkTypeSaved, err := appl.WorkItemLinkTypes().Save(ctx.Context, *modelLinkTypeToSave)
-		if err != nil {
-			return err
-		}
-		appLinkType = ConvertWorkItemLinkTypeFromModel(ctx.Request, *modelLinkTypeSaved)
-		// Enrich
-		HrefFunc := func(obj interface{}) string {
-			return fmt.Sprintf(app.WorkItemLinkTypeHref(ctx.SpaceID, "%v"), obj)
-		}
-		linkTypeCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, HrefFunc, currentUserIdentityID)
-		return enrichLinkTypeSingle(linkTypeCtx, &appLinkType)
-	})
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
-	}
-	return ctx.OK(&appLinkType)
 }
 
 // ConvertWorkItemLinkTypeFromModel converts a work item link type from model to REST representation
