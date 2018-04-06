@@ -36,40 +36,47 @@ func NewSpaceTemplateController(service *goa.Service, db application.DB, config 
 
 // List runs the list action.
 func (c *SpaceTemplateController) List(ctx *app.ListSpaceTemplateContext) error {
-	return application.Transactional(c.db, func(appl application.Application) error {
+	res := &app.SpaceTemplateList{}
+	err := application.Transactional(c.db, func(appl application.Application) error {
 		templates, err := appl.SpaceTemplates().List(ctx)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"err": err,
 			}, "failed to list space templates")
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
-		err = ctx.ConditionalEntities(templates, c.config.GetCacheControlSpaceTemplates, func() error {
-			res := &app.SpaceTemplateList{}
+		return ctx.ConditionalEntities(templates, c.config.GetCacheControlSpaceTemplates, func() error {
 			res.Data = ConvertSpaceTemplates(appl, ctx.Request, templates)
-			return ctx.OK(res)
+			return nil
 		})
-		return err
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return ctx.OK(res)
 }
 
 // Show runs the show action.
 func (c *SpaceTemplateController) Show(ctx *app.ShowSpaceTemplateContext) error {
-	return application.Transactional(c.db, func(appl application.Application) error {
+	res := &app.SpaceTemplateSingle{}
+	err := application.Transactional(c.db, func(appl application.Application) error {
 		st, err := appl.SpaceTemplates().Load(ctx, ctx.SpaceTemplateID)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"err":               err,
 				"space_template_id": ctx.SpaceTemplateID,
 			}, "failed to load space template")
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		return ctx.ConditionalRequest(*st, c.config.GetCacheControlSpaceTemplates, func() error {
-			res := &app.SpaceTemplateSingle{}
 			res.Data = ConvertSpaceTemplate(appl, ctx.Request, *st)
-			return ctx.OK(res)
+			return nil
 		})
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return ctx.OK(res)
 }
 
 // SpaceTemplateConvertFunc is a open ended function to add additional links/data/relations to a space template during
