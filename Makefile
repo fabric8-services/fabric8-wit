@@ -248,8 +248,10 @@ app/controllers.go: $(DESIGNS) $(GOAGEN_BIN) $(VENDOR_DIR)
 	$(GOAGEN_BIN) client -d ${PACKAGE_NAME}/${DESIGN_DIR}
 	$(GOAGEN_BIN) swagger -d ${PACKAGE_NAME}/${DESIGN_DIR}
 	$(GOAGEN_BIN) client -d github.com/fabric8-services/fabric8-tenant/design --notool --pkg tenant -o account
+	$(GOAGEN_BIN) client -d github.com/fabric8-services/fabric8-tenant/design --notool --pkg tenant -o vendor/github.com/fabric8-services/fabric8-auth/account
 	$(GOAGEN_BIN) client -d github.com/fabric8-services/fabric8-notification/design --notool --pkg client -o notification
 	$(GOAGEN_BIN) client -d github.com/fabric8-services/fabric8-auth/design --notool --pkg authservice -o auth
+
 
 
 .PHONY: migrate-database
@@ -338,8 +340,8 @@ prebuild-check: $(TMP_PATH) $(INSTALL_PREFIX) $(CHECK_GOPATH_BIN) show-info
 ifndef GIT_BIN
 	$(error The "$(GIT_BIN_NAME)" executable could not be found in your PATH)
 endif
-ifndef GLIDE_BIN
-	$(error The "$(GLIDE_BIN_NAME)" executable could not be found in your PATH)
+ifndef DEP_BIN
+	$(error The "$(DEP_BIN_NAME)" executable could not be found in your PATH)
 endif
 ifndef HG_BIN
 	$(error The "$(HG_BIN_NAME)" executable could not be found in your PATH)

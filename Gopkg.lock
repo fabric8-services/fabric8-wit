@@ -94,10 +94,15 @@
 [[projects]]
   name = "github.com/fabric8-services/fabric8-auth"
   packages = [
+    "account",
+    "application/repository",
     "auth",
+    "authorization/resource/repository",
+    "authorization/resourcetype/repository",
     "convert",
     "design",
     "errors",
+    "goasupport",
     "gormsupport",
     "log",
     "login/tokencontext",
@@ -738,6 +743,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "34ef843999efe4f00d994e87f0248825f473bf9ca07f6fb46b5152393a1f0c2c"
+  inputs-digest = "caa86d48d9f58c2527b3024768a6440017aedc25ef4c0ec800779f8302c164dc"
   solver-name = "gps-cdcl"
   solver-version = 1
