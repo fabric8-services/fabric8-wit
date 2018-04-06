@@ -44,6 +44,7 @@ required = [
   "github.com/fabric8-services/fabric8-notification/design",
   "github.com/fabric8-services/fabric8-tenant/design",
   "github.com/jteeuwen/go-bindata/go-bindata",
+  "github.com/jstemmer/go-junit-report",
 ]
     
 ignored = [
@@ -120,6 +121,10 @@ ignored = [
 
 [[constraint]]
   name = "github.com/fabric8-services/fabric8-tenant"
+  revision = "master"
+
+[[constraint]]
+  name = "github.com/jstemmer/go-junit-report"
   revision = "master"
 
 [prune]
