@@ -7,6 +7,8 @@ import (
 	"hash/fnv"
 	"time"
 
+	"github.com/fabric8-services/fabric8-wit/closeable"
+
 	"github.com/fabric8-services/fabric8-wit/application/repository"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
@@ -446,11 +448,7 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 	db = db.Select("count(*) over () as cnt2 , *").Order("execution_order desc")
 
 	rows, err := db.Rows()
-	defer func() {
-		if rows != nil {
-			rows.Close()
-		}
-	}()
+	defer closeable.Close(ctx, rows)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -490,11 +488,7 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 		// total
 		db := db.Select("count(*)")
 		rows2, err := db.Rows()
-		defer func() {
-			if rows2 != nil {
-				rows2.Close()
-			}
-		}()
+		defer closeable.Close(ctx, rows2)
 		if err != nil {
 			return nil, 0, errs.WithStack(err)
 		}
@@ -540,7 +534,7 @@ func (r *GormWorkItemLinkRepository) WorkItemHasChildren(ctx context.Context, pa
 	if err != nil {
 		return false, errs.Wrapf(err, "failed prepare statement: %s", query)
 	}
-	defer stmt.Close()
+	defer closeable.Close(ctx, stmt)
 	err = stmt.QueryRow(parentID.String()).Scan(&hasChildren)
 	if err != nil {
 		return false, errs.Wrapf(err, "failed to check if work item %s has children: %s", parentID.String(), query)

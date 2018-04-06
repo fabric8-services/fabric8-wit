@@ -5,6 +5,8 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/fabric8-services/fabric8-wit/closeable"
+
 	"github.com/fabric8-services/fabric8-wit/application/repository"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
@@ -242,9 +244,7 @@ func (m *GormCodebaseRepository) List(ctx context.Context, spaceID uuid.UUID, st
 
 	rows, err := db.Rows()
 	defer func() {
-		if rows != nil {
-			rows.Close()
-		}
+		closeable.Close(ctx, rows)
 	}()
 	if err != nil {
 		return nil, 0, err
@@ -285,9 +285,7 @@ func (m *GormCodebaseRepository) List(ctx context.Context, spaceID uuid.UUID, st
 		orgDB := orgDB.Select("count(*)")
 		rows2, err := orgDB.Rows()
 		defer func() {
-			if rows2 != nil {
-				rows2.Close()
-			}
+			closeable.Close(ctx, rows2)
 		}()
 		if err != nil {
 			return nil, 0, err
@@ -353,9 +351,7 @@ func (m *GormCodebaseRepository) SearchByURL(ctx context.Context, url string, st
 	db = db.Select("count(*) over () as cnt2 , *")
 	rows, err := db.Rows()
 	defer func() {
-		if rows != nil {
-			rows.Close()
-		}
+		closeable.Close(ctx, rows)
 	}()
 	if err != nil {
 		return nil, 0, err
@@ -394,9 +390,7 @@ func (m *GormCodebaseRepository) SearchByURL(ctx context.Context, url string, st
 		// need to do a count(*) to find out total
 		countRow, err := m.db.Model(&Codebase{}).Select("count(*)").Where("url = ?", url).Rows()
 		defer func() {
-			if countRow != nil {
-				countRow.Close()
-			}
+			closeable.Close(ctx, countRow)
 		}()
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{"url": url}, "error while counting total results only: ", err.Error())

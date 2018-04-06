@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fabric8-services/fabric8-wit/closeable"
+
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/application/repository"
 	"github.com/fabric8-services/fabric8-wit/criteria"
@@ -725,11 +727,7 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, spaceID uu
 	db = db.Select("count(*) over () as cnt2 , *").Order("execution_order desc")
 
 	rows, err := db.Rows()
-	defer func() {
-		if rows != nil {
-			rows.Close()
-		}
-	}()
+	defer closeable.Close(ctx, rows)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
 	}
@@ -768,11 +766,7 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, spaceID uu
 		// need to do a count(*) to find out total
 		orgDB := orgDB.Select("count(*)")
 		rows2, err := orgDB.Rows()
-		defer func() {
-			if rows2 != nil {
-				rows2.Close()
-			}
-		}()
+		defer closeable.Close(ctx, rows2)
 		if err != nil {
 			return nil, 0, errs.WithStack(err)
 		}

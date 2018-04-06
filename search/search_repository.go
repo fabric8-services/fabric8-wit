@@ -9,6 +9,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/fabric8-services/fabric8-wit/closeable"
+
 	"github.com/asaskevich/govalidator"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/fabric8-services/fabric8-wit/criteria"
@@ -652,11 +654,7 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 	db = db.Order(fmt.Sprintf("rank desc,%s.updated_at desc", workitem.WorkItemStorage{}.TableName()))
 
 	rows, err := db.Rows()
-	defer func() {
-		if rows != nil {
-			rows.Close()
-		}
-	}()
+	defer closeable.Close(ctx, rows)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
 	}
@@ -790,15 +788,10 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 	db = db.Select("count(*) over () as cnt2 , *").Order("execution_order desc")
 
 	rows, err := db.Rows()
-	defer func() {
-		if rows != nil {
-			rows.Close()
-		}
-	}()
+	defer closeable.Close(ctx, rows)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
 	}
-	defer rows.Close()
 
 	result := []workitem.WorkItemStorage{}
 	columns, err := rows.Columns()
@@ -840,11 +833,7 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 		// need to do a count(*) to find out total
 		orgDB := orgDB.Select("count(*)")
 		rows2, err := orgDB.Rows()
-		defer func() {
-			if rows2 != nil {
-				rows2.Close()
-			}
-		}()
+		defer closeable.Close(ctx, rows2)
 		if err != nil {
 			return nil, 0, errs.WithStack(err)
 		}
