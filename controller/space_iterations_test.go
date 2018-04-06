@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"path/filepath"
 	"strconv"
 	"testing"
 	"time"
@@ -36,6 +37,7 @@ type TestSpaceIterationREST struct {
 	gormtestsupport.DBTestSuite
 	db           *gormapplication.GormDB
 	testIdentity account.Identity
+	testDir      string
 }
 
 func TestRunSpaceIterationREST(t *testing.T) {
@@ -52,6 +54,7 @@ func (rest *TestSpaceIterationREST) SetupTest() {
 	req := &http.Request{Host: "localhost"}
 	params := url.Values{}
 	rest.Ctx = goa.NewContext(context.Background(), nil, req, params)
+	rest.testDir = filepath.Join("test-files", "space_iterations")
 }
 
 func (rest *TestSpaceIterationREST) SecuredController(identity ...account.Identity) (*goa.Service, *SpaceIterationsController) {
@@ -73,88 +76,34 @@ func (rest *TestSpaceIterationREST) UnSecuredController() (*goa.Service, *SpaceI
 	return svc, NewSpaceIterationsController(svc, rest.db, rest.Configuration)
 }
 
-func (rest *TestSpaceIterationREST) TestSuccessCreateIteration() {
-	// given
-	var p *space.Space
-	var rootItr *iteration.Iteration
-	ci := createSpaceIteration("Sprint #21", nil)
-	err := application.Transactional(rest.db, func(app application.Application) error {
-		repo := app.Spaces()
-		newSpace := space.Space{
-			Name:            testsupport.CreateRandomValidTestName("TestSuccessCreateIteration-"),
-			OwnerID:         testsupport.TestIdentity.ID,
-			SpaceTemplateID: spacetemplate.SystemLegacyTemplateID,
-		}
-		createdSpace, err := repo.Create(rest.Ctx, &newSpace)
-		p = createdSpace
-		if err != nil {
-			return err
-		}
-		// create Root iteration for above space
-		rootItr = &iteration.Iteration{
-			SpaceID: newSpace.ID,
-			Name:    newSpace.Name,
-		}
-		iterationRepo := app.Iterations()
-		err = iterationRepo.Create(rest.Ctx, rootItr)
-		return err
+func (rest *TestSpaceIterationREST) TestCreate() {
+	rest.T().Run("success", func(t *testing.T) {
+		t.Run("ok", func(t *testing.T) {
+			// given
+			ci := createSpaceIteration("Sprint #42", nil)
+			fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment())
+			svc := testsupport.ServiceAsUser("Iteration-Service", *fxt.Identities[0])
+			ctrl := NewSpaceIterationsController(svc, rest.db, rest.Configuration)
+			// when
+			resp, iter := test.CreateSpaceIterationsCreated(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, ci)
+			// then
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok.payload.res.golden.json"), iter)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok.headers.res.golden.json"), resp)
+		})
+		t.Run("with force active", func(t *testing.T) {
+			// given
+			ci := createSpaceIteration("Sprint #43", nil)
+			ci.Data.Attributes.UserActive = ptr.Bool(true)
+			fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment())
+			svc := testsupport.ServiceAsUser("Iteration-Service", *fxt.Identities[0])
+			ctrl := NewSpaceIterationsController(svc, rest.db, rest.Configuration)
+			// when
+			resp, iter := test.CreateSpaceIterationsCreated(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, ci)
+			// then
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok_with_force_active.payload.res.golden.json"), iter)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok_with_force_active.headers.res.golden.json"), resp)
+		})
 	})
-	require.NoError(rest.T(), err)
-	svc, ctrl := rest.SecuredController()
-	// when
-	_, c := test.CreateSpaceIterationsCreated(rest.T(), svc.Context, svc, ctrl, p.ID, ci)
-	// then
-	require.NotNil(rest.T(), c.Data.ID)
-	require.NotNil(rest.T(), c.Data.Relationships.Space)
-	assert.Equal(rest.T(), p.ID.String(), *c.Data.Relationships.Space.Data.ID)
-	assert.Equal(rest.T(), iteration.StateNew.String(), *c.Data.Attributes.State)
-	assert.False(rest.T(), *c.Data.Attributes.UserActive)
-	assert.Equal(rest.T(), "/"+rootItr.ID.String(), *c.Data.Attributes.ParentPath)
-	require.NotNil(rest.T(), c.Data.Relationships.Workitems.Meta)
-	assert.Equal(rest.T(), 0, c.Data.Relationships.Workitems.Meta[KeyTotalWorkItems])
-	assert.Equal(rest.T(), 0, c.Data.Relationships.Workitems.Meta[KeyClosedWorkItems])
-}
-
-func (rest *TestSpaceIterationREST) TestSuccessCreateIterationWithForceActive() {
-	// given
-	var p *space.Space
-	var rootItr *iteration.Iteration
-	ci := createSpaceIteration("Sprint #21", nil)
-	ci.Data.Attributes.UserActive = ptr.Bool(true)
-	err := application.Transactional(rest.db, func(app application.Application) error {
-		repo := app.Spaces()
-		newSpace := space.Space{
-			Name:    "TestSuccessCreateIteration" + uuid.NewV4().String(),
-			OwnerID: testsupport.TestIdentity.ID,
-		}
-		createdSpace, err := repo.Create(rest.Ctx, &newSpace)
-		p = createdSpace
-		if err != nil {
-			return err
-		}
-		// create Root iteration for above space
-		rootItr = &iteration.Iteration{
-			SpaceID: newSpace.ID,
-			Name:    newSpace.Name,
-		}
-		iterationRepo := app.Iterations()
-		err = iterationRepo.Create(rest.Ctx, rootItr)
-		return err
-	})
-	require.NoError(rest.T(), err)
-	svc, ctrl := rest.SecuredController()
-	// when
-	_, c := test.CreateSpaceIterationsCreated(rest.T(), svc.Context, svc, ctrl, p.ID, ci)
-	// then
-	require.NotNil(rest.T(), c.Data.ID)
-	require.NotNil(rest.T(), c.Data.Relationships.Space)
-	assert.Equal(rest.T(), p.ID.String(), *c.Data.Relationships.Space.Data.ID)
-	assert.Equal(rest.T(), iteration.StateNew.String(), *c.Data.Attributes.State)
-	assert.True(rest.T(), *c.Data.Attributes.UserActive)
-	assert.Equal(rest.T(), "/"+rootItr.ID.String(), *c.Data.Attributes.ParentPath)
-	require.NotNil(rest.T(), c.Data.Relationships.Workitems.Meta)
-	assert.Equal(rest.T(), 0, c.Data.Relationships.Workitems.Meta[KeyTotalWorkItems])
-	assert.Equal(rest.T(), 0, c.Data.Relationships.Workitems.Meta[KeyClosedWorkItems])
 }
 
 func (rest *TestSpaceIterationREST) TestSuccessCreateIterationWithOptionalValues() {

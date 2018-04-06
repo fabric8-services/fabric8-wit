@@ -485,10 +485,10 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 		// total
 		db := db.Select("count(*)")
 		rows2, err := db.Rows()
-		defer rows2.Close()
 		if err != nil {
 			return nil, 0, errs.WithStack(err)
 		}
+		defer rows2.Close()
 		rows2.Next() // count(*) will always return a row
 		rows2.Scan(&count)
 	}
