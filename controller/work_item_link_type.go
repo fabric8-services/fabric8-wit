@@ -8,13 +8,11 @@ import (
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
-	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	errs "github.com/pkg/errors"
 
 	"github.com/goadesign/goa"
-	uuid "github.com/satori/go.uuid"
 )
 
 // WorkItemLinkTypeController implements the work-item-link-type resource.
@@ -47,30 +45,6 @@ func enrichLinkTypeSingle(ctx *workItemLinkContext, single *app.WorkItemLinkType
 		Self:    &relatedURL,
 		Related: &relatedURL,
 	}
-
-	// Now include the optional link category data in the work item link type "included" array
-	modelCategory, err := ctx.Application.WorkItemLinkCategories().Load(ctx.Context, single.Data.Relationships.LinkCategory.Data.ID)
-	if err != nil {
-		return err
-	}
-	appCategory := ConvertLinkCategoryFromModel(*modelCategory)
-	single.Included = append(single.Included, appCategory.Data)
-
-	// Now include the optional link space data in the work item link type "included" array
-	space, err := ctx.Application.Spaces().Load(ctx.Context, *single.Data.Relationships.Space.Data.ID)
-	if err != nil {
-		return err
-	}
-
-	spaceData, err := ConvertSpaceFromModel(ctx.Request, *space, IncludeBacklogTotalCount(ctx.Context, ctx.DB))
-	if err != nil {
-		return err
-	}
-	spaceSingle := &app.SpaceSingle{
-		Data: spaceData,
-	}
-	single.Included = append(single.Included, spaceSingle.Data)
-
 	return nil
 }
 
@@ -83,106 +57,6 @@ func enrichLinkTypeList(ctx *workItemLinkContext, list *app.WorkItemLinkTypeList
 			Self:    &relatedURL,
 			Related: &relatedURL,
 		}
-	}
-	// Build our "set" of distinct category IDs already converted as strings
-	categoryIDMap := map[uuid.UUID]bool{}
-	for _, typeData := range list.Data {
-		categoryIDMap[typeData.Relationships.LinkCategory.Data.ID] = true
-	}
-	// Now include the optional link category data in the work item link type "included" array
-	for categoryID := range categoryIDMap {
-		modelCategory, err := ctx.Application.WorkItemLinkCategories().Load(ctx.Context, categoryID)
-		if err != nil {
-			return err
-		}
-		appCategory := ConvertLinkCategoryFromModel(*modelCategory)
-		list.Included = append(list.Included, appCategory.Data)
-	}
-
-	// Build our "set" of distinct space IDs already converted as strings
-	spaceIDMap := map[uuid.UUID]bool{}
-	for _, typeData := range list.Data {
-		spaceIDMap[*typeData.Relationships.Space.Data.ID] = true
-	}
-	// Now include the optional link space data in the work item link type "included" array
-	for spaceID := range spaceIDMap {
-		space, err := ctx.Application.Spaces().Load(ctx.Context, spaceID)
-		if err != nil {
-			return err
-		}
-		spaceData, err := ConvertSpaceFromModel(ctx.Request, *space, IncludeBacklogTotalCount(ctx.Context, ctx.DB))
-		if err != nil {
-			return err
-		}
-		spaceSingle := &app.SpaceSingle{
-			Data: spaceData,
-		}
-		list.Included = append(list.Included, spaceSingle.Data)
-	}
-	return nil
-}
-
-// Create runs the create action.
-func (c *WorkItemLinkTypeController) Create(ctx *app.CreateWorkItemLinkTypeContext) error {
-	// Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
-	if true {
-		return ctx.MethodNotAllowed()
-	}
-	// Convert payload from app to model representation
-	appLinkType := app.WorkItemLinkTypeSingle{
-		Data: ctx.Payload.Data,
-	}
-	// Set the space to the Payload
-	if ctx.Payload.Data != nil && ctx.Payload.Data.Relationships != nil {
-		// We overwrite or use the space ID in the URL to set the space of this WI
-		spaceSelfURL := rest.AbsoluteURL(ctx.Request, app.SpaceHref(ctx.SpaceID.String()))
-		ctx.Payload.Data.Relationships.Space = app.NewSpaceRelation(ctx.SpaceID, spaceSelfURL)
-	}
-	modelLinkType, err := ConvertWorkItemLinkTypeToModel(appLinkType)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(err.Error()))
-	}
-	modelLinkType.SpaceID = ctx.SpaceID
-	currentUserIdentityID, err := login.ContextIdentity(ctx)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
-	}
-	var createdModelLinkType *link.WorkItemLinkType
-	err = application.Transactional(c.db, func(appl application.Application) error {
-		createdModelLinkType, err = appl.WorkItemLinkTypes().Create(ctx.Context, modelLinkType)
-		if err != nil {
-			return err
-		}
-		appLinkType = ConvertWorkItemLinkTypeFromModel(ctx.Request, *createdModelLinkType)
-		// Enrich
-		HrefFunc := func(obj interface{}) string {
-			return fmt.Sprintf(app.WorkItemLinkTypeHref(createdModelLinkType.SpaceID, "%v"), obj)
-		}
-		linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, HrefFunc, currentUserIdentityID)
-		return enrichLinkTypeSingle(linkCtx, &appLinkType)
-	})
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
-	}
-	ctx.ResponseData.Header().Set("Location", app.WorkItemLinkTypeHref(createdModelLinkType.SpaceID, appLinkType.Data.ID))
-	return ctx.Created(&appLinkType)
-}
-
-// Delete runs the delete action.
-func (c *WorkItemLinkTypeController) Delete(ctx *app.DeleteWorkItemLinkTypeContext) error {
-	// Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
-	if true {
-		return ctx.MethodNotAllowed()
-	}
-	err := application.Transactional(c.db, func(appl application.Application) error {
-		err := appl.WorkItemLinkTypes().Delete(ctx.Context, ctx.SpaceID, ctx.WiltID)
-		if err != nil {
-			return err
-		}
-		return ctx.OK([]byte{})
-	})
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	return nil
 }
@@ -253,46 +127,6 @@ func (c *WorkItemLinkTypeController) Show(ctx *app.ShowWorkItemLinkTypeContext) 
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	return nil
-}
-
-// Update runs the update action.
-func (c *WorkItemLinkTypeController) Update(ctx *app.UpdateWorkItemLinkTypeContext) error {
-	// Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
-	if true {
-		return ctx.MethodNotAllowed()
-	}
-	currentUserIdentityID, err := login.ContextIdentity(ctx)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
-	}
-	var appLinkType app.WorkItemLinkTypeSingle
-	err = application.Transactional(c.db, func(appl application.Application) error {
-		toSave := app.WorkItemLinkTypeSingle{
-			Data: ctx.Payload.Data,
-		}
-		if toSave.Data.ID == nil {
-			return errors.NewBadParameterError("work item link type", nil)
-		}
-		modelLinkTypeToSave, err := ConvertWorkItemLinkTypeToModel(toSave)
-		if err != nil {
-			return err
-		}
-		modelLinkTypeSaved, err := appl.WorkItemLinkTypes().Save(ctx.Context, *modelLinkTypeToSave)
-		if err != nil {
-			return err
-		}
-		appLinkType = ConvertWorkItemLinkTypeFromModel(ctx.Request, *modelLinkTypeSaved)
-		// Enrich
-		HrefFunc := func(obj interface{}) string {
-			return fmt.Sprintf(app.WorkItemLinkTypeHref(ctx.SpaceID, "%v"), obj)
-		}
-		linkTypeCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, HrefFunc, currentUserIdentityID)
-		return enrichLinkTypeSingle(linkTypeCtx, &appLinkType)
-	})
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
-	}
-	return ctx.OK(&appLinkType)
 }
 
 // ConvertWorkItemLinkTypeFromModel converts a work item link type from model to REST representation
