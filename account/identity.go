@@ -362,9 +362,7 @@ func (m *GormIdentityRepository) Search(ctx context.Context, q string, start int
 	//db = db.Preload("user")
 
 	rows, err := db.Rows()
-	defer func() {
-		closeable.Close(ctx, rows)
-	}()
+	defer closeable.Close(ctx, rows)
 	if err != nil {
 		return nil, 0, err
 	}

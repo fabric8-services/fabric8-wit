@@ -151,9 +151,7 @@ func (m *GormCommentRepository) List(ctx context.Context, parentID uuid.UUID, st
 	db = db.Select("count(*) over () as cnt2 , *").Order("created_at desc")
 
 	rows, err := db.Rows()
-	defer func() {
-		closeable.Close(ctx, rows)
-	}()
+	defer closeable.Close(ctx, rows)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -191,9 +189,7 @@ func (m *GormCommentRepository) List(ctx context.Context, parentID uuid.UUID, st
 		// need to do a count(*) to find out total
 		orgDB := orgDB.Select("count(*)")
 		rows2, err := orgDB.Rows()
-		defer func() {
-			closeable.Close(ctx, rows2)
-		}()
+		defer closeable.Close(ctx, rows2)
 		if err != nil {
 			return nil, 0, err
 		}
