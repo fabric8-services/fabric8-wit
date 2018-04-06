@@ -9,6 +9,8 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/fabric8-services/fabric8-wit/closeable"
+
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
@@ -108,7 +110,7 @@ func main() {
 			log.Logger().Infof("Retrying to connect in %v...", config.GetPostgresConnectionRetrySleep())
 			time.Sleep(config.GetPostgresConnectionRetrySleep())
 		} else {
-			defer db.Close()
+			defer closeable.Close(context.Background(), db)
 			break
 		}
 	}

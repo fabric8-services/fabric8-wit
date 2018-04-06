@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/fabric8-services/fabric8-wit/closeable"
+
 	"github.com/fabric8-services/fabric8-wit/application/repository"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/log"
@@ -149,10 +151,10 @@ func (m *GormCommentRepository) List(ctx context.Context, parentID uuid.UUID, st
 	db = db.Select("count(*) over () as cnt2 , *").Order("created_at desc")
 
 	rows, err := db.Rows()
+	defer closeable.Close(ctx, rows)
 	if err != nil {
 		return nil, 0, err
 	}
-	defer rows.Close()
 
 	result := []Comment{}
 	columns, err := rows.Columns()
@@ -187,7 +189,7 @@ func (m *GormCommentRepository) List(ctx context.Context, parentID uuid.UUID, st
 		// need to do a count(*) to find out total
 		orgDB := orgDB.Select("count(*)")
 		rows2, err := orgDB.Rows()
-		defer rows2.Close()
+		defer closeable.Close(ctx, rows2)
 		if err != nil {
 			return nil, 0, err
 		}

@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fabric8-services/fabric8-wit/closeable"
+
 	"github.com/fabric8-services/fabric8-wit/application/repository"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
@@ -360,10 +362,10 @@ func (m *GormIdentityRepository) Search(ctx context.Context, q string, start int
 	//db = db.Preload("user")
 
 	rows, err := db.Rows()
+	defer closeable.Close(ctx, rows)
 	if err != nil {
 		return nil, 0, err
 	}
-	defer rows.Close()
 
 	result := []Identity{}
 	value := Identity{}

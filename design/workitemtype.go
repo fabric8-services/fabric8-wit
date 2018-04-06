@@ -129,21 +129,6 @@ var _ = a.Resource("workitemtype", func() {
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
-	a.Action("create", func() {
-		a.Security("jwt")
-		a.Routing(
-			a.POST(""),
-		)
-		a.Description("Create work item type.")
-		a.Payload(workItemTypeSingle)
-		a.Response(d.Created, "/workitemtypes/.*", func() {
-			a.Media(workItemTypeSingle)
-		})
-		a.Response(d.BadRequest, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-		a.Response(d.Unauthorized, JSONAPIErrors)
-		a.Response(d.Forbidden, JSONAPIErrors)
-	})
 	a.Action("list", func() {
 		a.Routing(
 			a.GET(""),
