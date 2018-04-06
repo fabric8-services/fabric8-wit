@@ -1837,66 +1837,6 @@ func (s *WorkItem2Suite) TestWI2FailOnDelete() {
 	test.DeleteWorkitemMethodNotAllowed(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *createdWI.Data.ID)
 }
 
-// Temporarly disabled, See https://github.com/fabric8-services/fabric8-wit/issues/1036
-func (s *WorkItem2Suite) xTestWI2SuccessDelete() {
-	c := minimumRequiredCreatePayload()
-	c.Data.Attributes[workitem.SystemTitle] = "Title"
-	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
-
-	_, createdWI := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, &c)
-	test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *createdWI.Data.ID, nil, nil)
-	test.DeleteWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *createdWI.Data.ID)
-	test.ShowWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *createdWI.Data.ID, nil, nil)
-}
-
-// // TestWI2DeleteLinksOnWIDeletionOK creates two work items (WI1 and WI2) and
-// // creates a link between them. When one of the work items is deleted, the
-// // link shall be gone as well.
-// // Temporarly disabled, See https://github.com/fabric8-services/fabric8-wit/issues/1036
-// func (s *WorkItem2Suite) xTestWI2DeleteLinksOnWIDeletionOK() {
-// 	// Create two work items (wi1 and wi2)
-// 	c := minimumRequiredCreatePayload()
-// 	c.Data.Attributes[workitem.SystemTitle] = "WI1"
-// 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-// 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
-// 	_, wi1 := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, &c)
-// 	require.NotNil(s.T(), wi1)
-// 	c.Data.Attributes[workitem.SystemTitle] = "WI2"
-// 	_, wi2 := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, &c)
-// 	require.NotNil(s.T(), wi2)
-
-// 	// Create link category
-// 	linkCatPayload := newCreateWorkItemLinkCategoryPayload("test-user")
-// 	_, linkCat := test.CreateWorkItemLinkCategoryCreated(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, linkCatPayload)
-// 	require.NotNil(s.T(), linkCat)
-
-// 	// Create link space
-// 	spaceName := "test-space" + uuid.NewV4().String()
-// 	spaceDescription := "description"
-// 	spacePayload := newCreateSpacePayload(&spaceName, &spaceDescription)
-// 	_, space := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, spacePayload)
-
-// 	// Create work item link type payload
-// 	linkTypePayload := newCreateWorkItemLinkTypePayload("MyLinkType", *linkCat.Data.ID, *space.Data.ID)
-// 	_, linkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *space.Data.ID, linkTypePayload)
-// 	require.NotNil(s.T(), linkType)
-
-// 	// Create link between wi1 and wi2
-// 	linkPayload := newCreateWorkItemLinkPayload(*wi1.Data.ID, *wi2.Data.ID, *linkType.Data.ID)
-// 	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.linkCtrl, linkPayload)
-// 	require.NotNil(s.T(), workItemLink)
-
-// 	// Delete work item wi1
-// 	test.DeleteWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *wi1.Data.ID)
-
-// 	// Check that the link was deleted by deleting wi1
-// 	test.ShowWorkItemLinkNotFound(s.T(), s.svc.Context, s.svc, s.linkCtrl, *workItemLink.Data.ID, nil, nil)
-
-// 	// Check that we can query for wi2 without problems
-// 	test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *wi2.Data.ID, nil, nil)
-// }
-
 func (s *WorkItem2Suite) TestWI2CreateWithArea() {
 	// given
 	_, areaInstance := createSpaceAndArea(s.T(), gormapplication.NewGormDB(s.DB))

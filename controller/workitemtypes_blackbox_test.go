@@ -2,7 +2,6 @@ package controller_test
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"path/filepath"
 	"testing"
@@ -14,11 +13,9 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/id"
-	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/rest"
-	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
@@ -78,7 +75,6 @@ func (s *workItemTypesSuite) SetupTest() {
 	s.typesCtrl = NewWorkitemtypesController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.linkTypeCtrl = NewWorkItemLinkTypeController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(s.DB))
-
 }
 
 //-----------------------------------------------------------------------------
@@ -212,25 +208,28 @@ func (s *workItemTypesSuite) TestValidate() {
 }
 
 func (s *workItemTypesSuite) TestList() {
+	// given
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItemTypes(2))
+
 	s.T().Run("ok", func(t *testing.T) {
-		// given
-		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemTypes(3, tf.SetWorkItemTypeNames("task", "bug", "feature")))
 		// when
 		// Paging in the format <start>,<limit>"
 		page := "0,-1"
 		res, witCollection := test.ListWorkitemtypesOK(t, nil, nil, s.typesCtrl, fxt.SpaceTemplates[0].ID, &page, nil, nil)
 		// then
 		require.NotNil(t, witCollection)
-		toBeFound := id.Slice{fxt.WorkItemTypes[0].ID, fxt.WorkItemTypes[1].ID, fxt.WorkItemTypes[2].ID}.ToMap()
+		require.Nil(t, witCollection.Validate())
+
+		toBeFound := id.Slice{fxt.WorkItemTypes[0].ID, fxt.WorkItemTypes[1].ID}.ToMap()
 		for _, wit := range witCollection.Data {
+			_, ok := toBeFound[*wit.ID]
+			assert.True(t, ok, "failed to find work item type %s in expected list", *wit.ID)
 			delete(toBeFound, *wit.ID)
 		}
-		require.Empty(t, toBeFound, "failed to find these work item types: %+v", toBeFound)
-
-		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok.res.payload.golden.json"), witCollection)
+		require.Empty(t, toBeFound, "failed to find these expected work item types: %v", toBeFound)
 
 		require.NotNil(t, res.Header()[app.LastModified])
-		assert.Equal(t, app.ToHTTPTime(fxt.WorkItemTypes[0].UpdatedAt), res.Header()[app.LastModified][0])
+		assert.Equal(t, app.ToHTTPTime(fxt.WorkItemTypes[1].UpdatedAt), res.Header()[app.LastModified][0])
 		require.NotNil(t, res.Header()[app.CacheControl])
 		assert.NotNil(t, res.Header()[app.CacheControl][0])
 		require.NotNil(t, res.Header()[app.ETag])
@@ -238,8 +237,6 @@ func (s *workItemTypesSuite) TestList() {
 	})
 
 	s.T().Run("ok - using expired IfModifiedSince header", func(t *testing.T) {
-		// given
-		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemTypes(1, tf.SetWorkItemTypeNames("bug")))
 		// when
 		// Paging in the format <start>,<limit>"
 		lastModified := app.ToHTTPTime(time.Now().Add(-1 * time.Hour))
@@ -247,10 +244,18 @@ func (s *workItemTypesSuite) TestList() {
 		res, witCollection := test.ListWorkitemtypesOK(t, nil, nil, s.typesCtrl, fxt.SpaceTemplates[0].ID, &page, &lastModified, nil)
 		// then
 		require.NotNil(t, witCollection)
-		require.NotNil(t, witCollection.Data[0].ID)
-		require.Equal(t, fxt.WorkItemTypes[0].ID, *witCollection.Data[0].ID)
+		require.Nil(t, witCollection.Validate())
+
+		toBeFound := id.Slice{fxt.WorkItemTypes[0].ID, fxt.WorkItemTypes[1].ID}.ToMap()
+		for _, wit := range witCollection.Data {
+			_, ok := toBeFound[*wit.ID]
+			assert.True(t, ok, "failed to find work item type %s in expected list", *wit.ID)
+			delete(toBeFound, *wit.ID)
+		}
+		require.Empty(t, toBeFound, "failed to find these expected work item types: %v", toBeFound)
+
 		require.NotNil(t, res.Header()[app.LastModified])
-		assert.Equal(t, app.ToHTTPTime(fxt.WorkItemTypes[0].UpdatedAt), res.Header()[app.LastModified][0])
+		assert.Equal(t, app.ToHTTPTime(fxt.WorkItemTypes[1].UpdatedAt), res.Header()[app.LastModified][0])
 		require.NotNil(t, res.Header()[app.CacheControl])
 		assert.NotNil(t, res.Header()[app.CacheControl][0])
 		require.NotNil(t, res.Header()[app.ETag])
@@ -258,8 +263,6 @@ func (s *workItemTypesSuite) TestList() {
 	})
 
 	s.T().Run("ok - using IfNoneMatch header", func(t *testing.T) {
-		// given
-		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemTypes(3))
 		// when
 		// Paging in the format <start>,<limit>"
 		etag := "foo"
@@ -267,14 +270,18 @@ func (s *workItemTypesSuite) TestList() {
 		res, witCollection := test.ListWorkitemtypesOK(t, nil, nil, s.typesCtrl, fxt.SpaceTemplates[0].ID, &page, nil, &etag)
 		// then
 		require.NotNil(t, witCollection)
-		toBeFound := id.Slice{fxt.WorkItemTypes[0].ID, fxt.WorkItemTypes[1].ID, fxt.WorkItemTypes[2].ID}.ToMap()
+		require.Nil(t, witCollection.Validate())
+
+		toBeFound := id.Slice{fxt.WorkItemTypes[0].ID, fxt.WorkItemTypes[1].ID}.ToMap()
 		for _, wit := range witCollection.Data {
+			_, ok := toBeFound[*wit.ID]
+			assert.True(t, ok, "failed to find work item type %s in expected list", *wit.ID)
 			delete(toBeFound, *wit.ID)
 		}
-		require.Empty(t, toBeFound, "failed to find these work item types: %+v", toBeFound)
+		require.Empty(t, toBeFound, "failed to find these expected work item types: %v", toBeFound)
 
 		require.NotNil(t, res.Header()[app.LastModified])
-		assert.Equal(t, app.ToHTTPTime(fxt.WorkItemTypes[0].UpdatedAt), res.Header()[app.LastModified][0])
+		assert.Equal(t, app.ToHTTPTime(fxt.WorkItemTypes[1].UpdatedAt), res.Header()[app.LastModified][0])
 		require.NotNil(t, res.Header()[app.CacheControl])
 		assert.NotNil(t, res.Header()[app.CacheControl][0])
 		require.NotNil(t, res.Header()[app.ETag])
@@ -282,18 +289,15 @@ func (s *workItemTypesSuite) TestList() {
 	})
 
 	s.T().Run("not modified - using IfModifiedSince header", func(t *testing.T) {
-		// given
-		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemTypes(1))
 		// when/then
 		// Paging in the format <start>,<limit>"
-		lastModified := app.ToHTTPTime(fxt.WorkItemTypes[0].UpdatedAt)
+		lastModified := app.ToHTTPTime(fxt.WorkItemTypes[1].UpdatedAt)
 		page := "0,-1"
 		test.ListWorkitemtypesNotModified(t, nil, nil, s.typesCtrl, fxt.SpaceTemplates[0].ID, &page, &lastModified, nil)
 	})
 
 	s.T().Run("not modified - using IfNoneMatch header", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemTypes(1))
 		// Paging in the format <start>,<limit>"
 		page := "0,-1"
 		_, witCollection := test.ListWorkitemtypesOK(t, nil, nil, s.typesCtrl, fxt.SpaceTemplates[0].ID, &page, nil, nil)
@@ -302,50 +306,4 @@ func (s *workItemTypesSuite) TestList() {
 		ifNoneMatch := generateWorkItemTypesTag(*witCollection)
 		test.ListWorkitemtypesNotModified(t, nil, nil, s.typesCtrl, fxt.SpaceTemplates[0].ID, &page, nil, &ifNoneMatch)
 	})
-}
-
-//-----------------------------------------------------------------------------
-// Test on work item type authorization
-//-----------------------------------------------------------------------------
-
-// This test case will check authorized access to Create/Update/Delete APIs
-func (s *workItemTypesSuite) TestUnauthorizeWorkItemTypeCreate() {
-	UnauthorizeCreateUpdateDeleteTest(s.T(), s.getWorkItemTypeTestDataFunc(), func() *goa.Service {
-		return goa.New("TestUnauthorizedCreateWIT-Service")
-	}, func(service *goa.Service) error {
-		controller := NewWorkitemtypeController(service, gormapplication.NewGormDB(s.DB), s.Configuration)
-		app.MountWorkitemtypeController(service, controller)
-		return nil
-	})
-}
-
-func (s *workItemTypesSuite) getWorkItemTypeTestDataFunc() func(*testing.T) []testSecureAPI {
-	return func(t *testing.T) []testSecureAPI {
-		return []testSecureAPI{
-			// Try fetching a random work Item Type
-			// We do not have security on GET hence this should return 404 not found
-			{
-				method:             http.MethodGet,
-				url:                fmt.Sprintf(endpointWorkItemTypes, space.SystemSpace.String()) + "/2e889d4e-49a9-463b-8cd4-6a3a95155103",
-				expectedStatusCode: http.StatusNotFound,
-				expectedErrorCode:  jsonapi.ErrorCodeNotFound,
-				payload:            nil,
-				jwtToken:           "",
-			}, {
-				method:             http.MethodGet,
-				url:                fmt.Sprintf(endpointWorkItemTypesSourceLinkTypes, space.SystemSpace, "2e889d4e-49a9-463b-8cd4-6a3a95155103"),
-				expectedStatusCode: http.StatusNotFound,
-				expectedErrorCode:  jsonapi.ErrorCodeNotFound,
-				payload:            nil,
-				jwtToken:           "",
-			}, {
-				method:             http.MethodGet,
-				url:                fmt.Sprintf(endpointWorkItemTypesTargetLinkTypes, space.SystemSpace, "2e889d4e-49a9-463b-8cd4-6a3a95155103"),
-				expectedStatusCode: http.StatusNotFound,
-				expectedErrorCode:  jsonapi.ErrorCodeNotFound,
-				payload:            nil,
-				jwtToken:           "",
-			},
-		}
-	}
 }
