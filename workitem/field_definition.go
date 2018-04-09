@@ -55,19 +55,29 @@ type FieldType interface {
 	ConvertFromModel(value interface{}) (interface{}, error)
 	// Implement the Equaler interface
 	Equal(u convert.Equaler) bool
+	// DefaultValue is called if a non-required field is not specified. In it's
+	// simplest form the DefaultValue returns the gicen input value without any
+	// conversion.
+	DefaultValue(value interface{}) (interface{}, error)
 }
 
 // FieldDefinition describes type & other restrictions of a field
 type FieldDefinition struct {
-	Required    bool
-	Label       string
-	Description string
-	Type        FieldType
+	Required    bool      `json:"required"`
+	Label       string    `json:"label"`
+	Description string    `json:"description"`
+	Type        FieldType `json:"type"`
 }
 
 // Ensure FieldDefinition implements the Equaler interface
 var _ convert.Equaler = FieldDefinition{}
 var _ convert.Equaler = (*FieldDefinition)(nil)
+
+// Ensure FieldDefinition implements the json.Unmarshaler interface
+var _ json.Unmarshaler = (*FieldDefinition)(nil)
+
+// // Ensure FieldDefinition implements the yaml.Unmarshaler interface
+// var _ yaml.Unmarshaler = (*FieldDefinition)(nil)
 
 // Equal returns true if two FieldDefinition objects are equal; otherwise false is returned.
 func (f FieldDefinition) Equal(u convert.Equaler) bool {
@@ -89,9 +99,18 @@ func (f FieldDefinition) Equal(u convert.Equaler) bool {
 
 // ConvertToModel converts a field value for use in the persistence layer
 func (f FieldDefinition) ConvertToModel(name string, value interface{}) (interface{}, error) {
+	// Overwrite value if default value if none was provided
+	if value == nil {
+		defValue, err := f.Type.DefaultValue(value)
+		if err != nil {
+			return nil, errs.Wrapf(err, "failed to get default value for field \"%s\"", name)
+		}
+		value = defValue
+	}
+
 	if f.Required {
 		if value == nil {
-			return nil, fmt.Errorf("Value %s must not be nil", name)
+			return nil, fmt.Errorf("value for field \"%s\" must not be nil", name)
 		}
 		if f.Type.GetKind() == KindString {
 			sVal, ok := value.(string)
@@ -99,7 +118,7 @@ func (f FieldDefinition) ConvertToModel(name string, value interface{}) (interfa
 				return nil, errs.Errorf("failed to convert '%+v' to string", spew.Sdump(value))
 			}
 			if strings.TrimSpace(sVal) == "" {
-				return nil, errs.Errorf("Value '%s' must not be empty: \"%+v\"", name, value)
+				return nil, errs.Errorf("value for field \"%s\" must not be empty: \"%+v\"", name, value)
 			}
 		}
 	}
@@ -155,14 +174,30 @@ func (f *FieldDefinition) UnmarshalJSON(bytes []byte) error {
 
 	err := json.Unmarshal(bytes, &temp)
 	if err != nil {
-		return errs.WithStack(err)
+		return errs.Wrapf(err, "failed to unmarshall field definition into rawFieldDef")
 	}
 	rawType := map[string]interface{}{}
-	json.Unmarshal(*temp.Type, &rawType)
-	kind, err := ConvertAnyToKind(rawType["Kind"])
+	err = json.Unmarshal(*temp.Type, &rawType)
+	if err != nil {
+		return errs.Wrapf(err, "failed to unmarshall from json.RawMessage to a map: %+v", *temp.Type)
+	}
+
+	var rawKind interface{}
+	rawKind, hasRawKind := rawType["kind"]
+	if !hasRawKind {
+		simpleType, hasSimpleType := rawType["simple_type"]
+		if hasSimpleType {
+			simpleTypeMap, ok := simpleType.(map[string]interface{})
+			if ok {
+				rawKind = simpleTypeMap["kind"]
+			}
+		}
+	}
+	kind, err := ConvertAnyToKind(rawKind)
 
 	if err != nil {
-		return errs.WithStack(err)
+		// return the first error anyway
+		return errs.Wrapf(err, "failed to convert any '%+v' to kind", rawKind)
 	}
 	switch *kind {
 	case KindList:
@@ -193,7 +228,7 @@ func (f *FieldDefinition) UnmarshalJSON(bytes []byte) error {
 func ConvertAnyToKind(any interface{}) (*Kind, error) {
 	k, ok := any.(string)
 	if !ok {
-		return nil, fmt.Errorf("kind is not a string value %v", any)
+		return nil, errs.Errorf("kind is not a string value %v", any)
 	}
 	return ConvertStringToKind(k)
 }
@@ -205,7 +240,7 @@ func ConvertStringToKind(k string) (*Kind, error) {
 	case KindString, KindInteger, KindFloat, KindInstant, KindDuration, KindURL, KindUser, KindEnum, KindList, KindIteration, KindMarkup, KindArea, KindCodebase, KindLabel, KindBoolean:
 		return &kind, nil
 	}
-	return nil, fmt.Errorf("kind '%s' is not a simple type", k)
+	return nil, errs.Errorf("kind '%s' is not a simple type", k)
 }
 
 // compatibleFields returns true if the existing and new field are compatible;
@@ -215,5 +250,5 @@ func compatibleFields(existing FieldDefinition, new FieldDefinition) bool {
 	if existing.Required != new.Required {
 		return false
 	}
-	return reflect.DeepEqual(existing.Type, new.Type)
+	return existing.Type.Equal(new.Type)
 }

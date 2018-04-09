@@ -9,13 +9,22 @@ import (
 
 //ListType describes a list of SimpleType values
 type ListType struct {
-	SimpleType
-	ComponentType SimpleType
+	SimpleType    `json:"simple_type"`
+	ComponentType SimpleType `json:"component_type"`
 }
+
+// Ensure ListType implements the FieldType interface
+var _ FieldType = ListType{}
+var _ FieldType = (*ListType)(nil)
 
 // Ensure ListType implements the Equaler interface
 var _ convert.Equaler = ListType{}
 var _ convert.Equaler = (*ListType)(nil)
+
+// DefaultValue implementes FieldType
+func (t ListType) DefaultValue(value interface{}) (interface{}, error) {
+	return value, nil
+}
 
 // Equal returns true if two ListType objects are equal; otherwise false is returned.
 func (t ListType) Equal(u convert.Equaler) bool {
