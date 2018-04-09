@@ -25,7 +25,7 @@ import (
 )
 
 // Used for equality comparisons between float64s
-const fltEpsilon = 0.00000001
+const fltDelta = 0.00000001
 
 // Path to JSON resources
 const pathToTestJSON = "../test/kubernetes/"
@@ -727,85 +727,158 @@ func TestConfigMapEnvironments(t *testing.T) {
 	}
 }
 
-func TestGetEnvironment(t *testing.T) {
+type envTestData struct {
+	envName string
+	cpuUsed float64
+	cpuHard float64
+	memUsed float64
+	memHard float64
+}
+
+func TestGetEnvironments(t *testing.T) {
 	testCases := []struct {
-		testName   string
-		input      *resourceQuotaInput
-		shouldFail bool
+		testName     string
+		cassetteName string
+		shouldFail   bool
+		data         map[string]*envTestData
 	}{
 		{
-			testName: "Basic",
-			input: &resourceQuotaInput{
-				name:      "run",
-				namespace: "my-run",
-				hard: map[v1.ResourceName]float64{
-					v1.ResourceLimitsCPU:    0.7,
-					v1.ResourceLimitsMemory: 1024,
+			testName:     "Basic",
+			cassetteName: "getenvironments",
+			data: map[string]*envTestData{
+				"run": {
+					envName: "run",
+					cpuUsed: 0.488,
+					cpuHard: 2.0,
+					memUsed: 262144000.0,
+					memHard: 1073741824.0,
 				},
-				used: map[v1.ResourceName]float64{
-					v1.ResourceLimitsCPU:    0.4,
-					v1.ResourceLimitsMemory: 512,
+				"stage": {
+					envName: "stage",
+					cpuUsed: 1.488,
+					cpuHard: 2.0,
+					memUsed: 799014912.0,
+					memHard: 1073741824.0,
+				},
+				"test": {
+					envName: "test",
+					cpuUsed: 0.0,
+					cpuHard: 2.0,
+					memUsed: 0.0,
+					memHard: 1073741824.0,
 				},
 			},
 		},
 		{
-			testName: "Bad Environment",
-			input: &resourceQuotaInput{
-				name:      "doesNotExist",
-				namespace: "my-run",
-				hard: map[v1.ResourceName]float64{
-					v1.ResourceLimitsCPU:    0.7,
-					v1.ResourceLimitsMemory: 1024,
-				},
-				used: map[v1.ResourceName]float64{
-					v1.ResourceLimitsCPU:    0.4,
-					v1.ResourceLimitsMemory: 512,
-				},
-			},
-			shouldFail: true,
-		},
-		{
-			testName: "Missing Quota",
-			input: &resourceQuotaInput{
-				name:      "run",
-				namespace: "my-run",
-			},
-			shouldFail: true, // No quantities, so our test impl returns nil
+			testName:     "Missing Quota",
+			cassetteName: "getenvironments-missingquota",
+			shouldFail:   true,
 		},
 	}
-	fixture := &testFixture{}
-	kc := getDefaultKubeClient(fixture, nil, t)
 
 	for _, testCase := range testCases {
 		t.Run(testCase.testName, func(t *testing.T) {
-			input := testCase.input
-			fixture.rqInput = input
+			r, err := recorder.New(pathToTestJSON + testCase.cassetteName)
+			require.NoError(t, err, "Failed to open cassette")
+			defer r.Stop()
 
-			env, err := kc.GetEnvironment(input.name)
+			fixture := &testFixture{}
+			kc := getDefaultKubeClient(fixture, r.Transport, t)
+
+			envs, err := kc.GetEnvironments()
 			if testCase.shouldFail {
 				require.Error(t, err, "Expected an error")
 			} else {
 				require.NoError(t, err, "Unexpected error occurred")
 
-				quotaHolder := fixture.kube.quotaHolder
-				require.NotNil(t, quotaHolder, "No ResourceQuota created by test")
-				require.Equal(t, input.namespace, quotaHolder.namespace, "Quota retrieved from wrong namespace")
-				quota := quotaHolder.quota
-				require.NotNil(t, quota, "Never sent ResourceQuota GET")
-				require.Equal(t, "compute-resources", quota.Name, "Wrong ResourceQuota name")
-				require.NotNil(t, env.Attributes, "Environment attributes are nil")
-				require.Equal(t, input.name, *env.Attributes.Name, "Wrong environment name")
+				require.Equal(t, len(testCase.data), len(envs), "Wrong number of environments returned")
+				for _, env := range envs {
+					require.NotNil(t, env, "Environment must not be nil")
+					require.NotNil(t, env.Attributes, "Environment attributes are nil")
+					require.NotNil(t, env.Attributes.Name, "Environment name must not be nil")
 
-				cpuQuota := env.Attributes.Quota.Cpucores
-				require.InEpsilon(t, input.hard[v1.ResourceLimitsCPU], *cpuQuota.Quota, fltEpsilon, "Incorrect CPU quota")
-				require.InEpsilon(t, input.used[v1.ResourceLimitsCPU], *cpuQuota.Used, fltEpsilon, "Incorrect CPU usage")
-
-				memQuota := env.Attributes.Quota.Memory
-				require.InEpsilon(t, input.hard[v1.ResourceLimitsMemory], *memQuota.Quota, fltEpsilon, "Incorrect memory quota")
-				require.InEpsilon(t, input.used[v1.ResourceLimitsMemory], *memQuota.Used, fltEpsilon, "Incorrect memory usage")
+					envName := *env.Attributes.Name
+					envData := testCase.data[envName]
+					require.NotNil(t, envData, "Unknown app: "+envName)
+					require.Equal(t, envData.envName, envName, "Wrong environment name")
+					verifyEnvironment(env, envData, t)
+				}
 			}
 		})
 	}
+}
+
+func TestGetEnvironment(t *testing.T) {
+	testCases := []struct {
+		testName     string
+		cassetteName string
+		shouldFail   bool
+		envTestData
+	}{
+		{
+			testName:     "Basic",
+			cassetteName: "getenvironments",
+			envTestData: envTestData{
+				envName: "run",
+				cpuUsed: 0.488,
+				cpuHard: 2.0,
+				memUsed: 262144000.0,
+				memHard: 1073741824.0,
+			},
+		},
+		{
+			testName:     "Bad Environment",
+			cassetteName: "getenvironments",
+			envTestData: envTestData{
+				envName: "doesNotExist",
+			},
+			shouldFail: true,
+		},
+		{
+			testName:     "Missing Quota",
+			cassetteName: "getenvironments-missingquota",
+			envTestData: envTestData{
+				envName: "run",
+			},
+			shouldFail: true,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.testName, func(t *testing.T) {
+			r, err := recorder.New(pathToTestJSON + testCase.cassetteName)
+			require.NoError(t, err, "Failed to open cassette")
+			defer r.Stop()
+
+			fixture := &testFixture{}
+			kc := getDefaultKubeClient(fixture, r.Transport, t)
+
+			env, err := kc.GetEnvironment(testCase.envName)
+			if testCase.shouldFail {
+				require.Error(t, err, "Expected an error")
+			} else {
+				require.NoError(t, err, "Unexpected error occurred")
+
+				require.NotNil(t, env, "Environment must not be nil")
+				require.NotNil(t, env.Attributes, "Environment attributes are nil")
+				require.NotNil(t, env.Attributes.Name, "Environment name must not be nil")
+
+				verifyEnvironment(env, &testCase.envTestData, t)
+			}
+		})
+	}
+}
+
+func verifyEnvironment(env *app.SimpleEnvironment, testCase *envTestData, t *testing.T) {
+	require.Equal(t, testCase.envName, *env.Attributes.Name, "Wrong environment name")
+
+	cpuQuota := env.Attributes.Quota.Cpucores
+	require.InDelta(t, testCase.cpuHard, *cpuQuota.Quota, fltDelta, "Incorrect CPU quota for %s", testCase.envName)
+	require.InDelta(t, testCase.cpuUsed, *cpuQuota.Used, fltDelta, "Incorrect CPU usage for %s", testCase.envName)
+
+	memQuota := env.Attributes.Quota.Memory
+	require.InDelta(t, testCase.memHard, *memQuota.Quota, fltDelta, "Incorrect memory quota for %s", testCase.envName)
+	require.InDelta(t, testCase.memUsed, *memQuota.Used, fltDelta, "Incorrect memory usage for %s", testCase.envName)
 }
 
 type spaceTestData struct {
@@ -1470,17 +1543,23 @@ func TestGetDeploymentStats(t *testing.T) {
 
 				// Check each metric type
 				require.NotNil(t, stats.Attributes, "Stat attributes are nil")
-				require.Equal(t, testCase.metricsInput.cpu[0], stats.Attributes.Cores, "Incorrect CPU metrics returned")
+				verifyNumberTuple(testCase.metricsInput.cpu[0], stats.Attributes.Cores, t, "CPU")
 				verifyMetricsParams(testCase, result.cpuParams, t, "CPU metrics")
-				require.Equal(t, testCase.metricsInput.memory[0], stats.Attributes.Memory, "Incorrect memory metrics returned")
+				verifyNumberTuple(testCase.metricsInput.memory[0], stats.Attributes.Memory, t, "memory")
 				verifyMetricsParams(testCase, result.memParams, t, "Memory metrics")
-				require.Equal(t, testCase.metricsInput.netTx[0], stats.Attributes.NetTx, "Incorrect network sent metrics returned")
+				verifyNumberTuple(testCase.metricsInput.netTx[0], stats.Attributes.NetTx, t, "network sent")
 				verifyMetricsParams(testCase, result.netTxParams, t, "Network sent metrics")
-				require.Equal(t, testCase.metricsInput.netRx[0], stats.Attributes.NetRx, "Incorrect network received metrics returned")
+				verifyNumberTuple(testCase.metricsInput.netRx[0], stats.Attributes.NetRx, t, "network received")
 				verifyMetricsParams(testCase, result.netRxParams, t, "Network received metrics")
 			}
 		})
 	}
+}
+
+func verifyNumberTuple(expected *app.TimedNumberTuple, actual *app.TimedNumberTuple, t *testing.T, metricName string) {
+	require.NotNil(t, actual, "%s metric is nil", metricName)
+	require.InDelta(t, *expected.Time, *actual.Time, fltDelta, "Incorrect %s timestamp", metricName)
+	require.InDelta(t, *expected.Value, *actual.Value, fltDelta, "Incorrect %s value", metricName)
 }
 
 func TestGetDeploymentStatSeries(t *testing.T) {
@@ -1519,13 +1598,13 @@ func TestGetDeploymentStatSeries(t *testing.T) {
 				require.NotNil(t, result, "Metrics API not called")
 
 				// Check each metric type
-				require.Equal(t, testCase.metricsInput.cpu, stats.Cores, "Incorrect CPU metrics returned")
+				verifyNumberTuples(testCase.metricsInput.cpu, stats.Cores, t, "CPU")
 				verifyMetricsParams(testCase, result.cpuParams, t, "CPU metrics")
-				require.Equal(t, testCase.metricsInput.memory, stats.Memory, "Incorrect memory metrics returned")
+				verifyNumberTuples(testCase.metricsInput.memory, stats.Memory, t, "memory")
 				verifyMetricsParams(testCase, result.memParams, t, "Memory metrics")
-				require.Equal(t, testCase.metricsInput.netTx, stats.NetTx, "Incorrect network sent metrics returned")
+				verifyNumberTuples(testCase.metricsInput.netTx, stats.NetTx, t, "network sent")
 				verifyMetricsParams(testCase, result.netTxParams, t, "Network sent metrics")
-				require.Equal(t, testCase.metricsInput.netRx, stats.NetRx, "Incorrect network received metrics returned")
+				verifyNumberTuples(testCase.metricsInput.netRx, stats.NetRx, t, "network received")
 				verifyMetricRangeParams(testCase, result.netRxParams, t, "Network received metrics")
 
 				// Check time range
@@ -1533,6 +1612,13 @@ func TestGetDeploymentStatSeries(t *testing.T) {
 				require.Equal(t, testCase.expectEnd, int64(*stats.End), "Incorrect end time")
 			}
 		})
+	}
+}
+
+func verifyNumberTuples(expected []*app.TimedNumberTuple, actual []*app.TimedNumberTuple, t *testing.T, metricName string) {
+	require.Equal(t, len(expected), len(actual), "Wrong number of %s metrics", metricName)
+	for idx := range expected {
+		verifyNumberTuple(expected[idx], actual[idx], t, metricName)
 	}
 }
 
