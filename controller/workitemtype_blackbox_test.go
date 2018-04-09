@@ -21,12 +21,6 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-//-----------------------------------------------------------------------------
-// Test Suite setup
-//-----------------------------------------------------------------------------
-
-// The WorkItemTypeTestSuite has state the is relevant to all tests.
-// It implements these interfaces from the suite package: SetupAllSuite, SetupTestSuite, TearDownAllSuite, TearDownTestSuite
 type workItemTypeSuite struct {
 	gormtestsupport.DBTestSuite
 	typeCtrl     *WorkitemtypeController
@@ -37,8 +31,6 @@ type workItemTypeSuite struct {
 	testDir      string
 }
 
-// In order for 'go test' to run this suite, we need to create
-// a normal test function and pass our suite to suite.Run
 func TestSuiteWorkItemType(t *testing.T) {
 	resource.Require(t, resource.Database)
 	suite.Run(t, &workItemTypeSuite{
@@ -46,19 +38,11 @@ func TestSuiteWorkItemType(t *testing.T) {
 	})
 }
 
-// The SetupSuite method will run before the tests in the suite are run.
-// It sets up a database connection for all the tests in this suite without polluting global space.
 func (s *workItemTypeSuite) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
 	s.testDir = filepath.Join("test-files", "work_item_type")
 }
 
-var (
-	animalID = uuid.FromStringOrNil("729431f2-bca4-4062-9087-c751807b569f")
-	personID = uuid.FromStringOrNil("22a1e4f1-7e9d-4ce8-ac87-fe7c79356b16")
-)
-
-// The SetupTest method will be run before every test in the suite.
 func (s *workItemTypeSuite) SetupTest() {
 	s.DBTestSuite.SetupTest()
 	idn := &account.Identity{
@@ -126,10 +110,6 @@ func (s *workItemTypeSuite) TestShow() {
 		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "not_modified_using_ifnonematch_header.headers.golden.json"), res.Header())
 	})
 }
-
-//-----------------------------------------------------------------------------
-// Test on work item type links retrieval
-//-----------------------------------------------------------------------------
 
 // used for testing purpose only
 func ConvertWorkItemTypeToModel(data app.WorkItemTypeData) workitem.WorkItemType {

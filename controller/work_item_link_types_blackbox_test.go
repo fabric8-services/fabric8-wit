@@ -13,118 +13,112 @@ import (
 	"github.com/fabric8-services/fabric8-wit/resource"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/goadesign/goa"
+	uuid "github.com/satori/go.uuid"
+
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
 func TestSuiteWorkItemLinkTypes(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, new(workItemLinkTypesSuite))
-}
-
-type workItemLinkTypesSuite struct {
-	gormtestsupport.DBTestSuite
-	linkTypeCtrl *WorkItemLinkTypesController
-	svc          *goa.Service
-	testDir      string
-}
-
-func (s *workItemLinkTypesSuite) SetupTest() {
-	s.DBTestSuite.SetupTest()
-	svc := goa.New("workItemLinkTypesSuite-Service")
-	require.NotNil(s.T(), svc)
-	s.linkTypeCtrl = NewWorkItemLinkTypesController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-	require.NotNil(s.T(), s.linkTypeCtrl)
-	s.testDir = filepath.Join("test-files", "work_item_link_types")
+	suite.Run(t, &workItemLinkTypesSuite{
+		DBTestSuite: gormtestsupport.NewDBTestSuite(""),
+	})
 }
 
 func TestNewWorkItemLinkTypesControllerDBNull(t *testing.T) {
 	require.Panics(t, func() {
-		NewWorkItemLinkTypeController(nil, nil, nil)
+		NewWorkItemLinkTypesController(nil, nil, nil)
 	})
+}
+
+type workItemLinkTypesSuite struct {
+	gormtestsupport.DBTestSuite
+	testDir string
+}
+
+func (s *workItemLinkTypesSuite) SetupSuite() {
+	s.DBTestSuite.SetupSuite()
+	s.testDir = filepath.Join("test-files", "work_item_link_type")
+}
+
+func (s *workItemLinkTypesSuite) UnSecuredController() (*goa.Service, *WorkItemLinkTypesController) {
+	svc := goa.New("WorkItemLinkTypes-Service")
+	return svc, NewWorkItemLinkTypesController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 }
 
 func (s *workItemLinkTypesSuite) TestList() {
 	// given
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItemLinkTypes(2))
-	wilt1 := fxt.WorkItemLinkTypes[0]
-	wilt2 := fxt.WorkItemLinkTypes[0]
-	requireWILTsIncluded := func(t *testing.T, linkTypes *app.WorkItemLinkTypeList) {
-		var found1, found2 bool
-		for _, wilt := range linkTypes.Data {
-			if *wilt.ID == wilt1.ID {
-				found1 = true
-			}
-			if *wilt.ID == wilt2.ID {
-				found2 = true
-			}
-		}
-		require.True(t, found1, "failed to find work item link type 1: %+v", wilt1)
-		require.True(t, found2, "failed to find work item link type 2: %+v", wilt2)
-	}
+	_, ctrl := s.UnSecuredController()
 
 	s.T().Run("ok", func(t *testing.T) {
 		// when
-		res, linkTypes := test.ListWorkItemLinkTypesOK(t, nil, nil, s.linkTypeCtrl, fxt.SpaceTemplates[0].ID, nil, nil)
+		res, wilts := test.ListWorkItemLinkTypesOK(t, nil, nil, ctrl, fxt.SpacesTemplates[0].ID, nil, nil)
 		// then
-		safeOverriteHeader(t, res, app.ETag, "EZUYNwJobqN2yZeWw7GuZw==")
-		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok.payload.golden.json"), linkTypes)
-		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok.headers.golden.json"), res.Header())
-		requireWILTsIncluded(t, linkTypes)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok.res.payload.golden.json"), wilts)
+		safeOverriteHeader(t, res, "Etag", "0icd7ov5CqwDXN6Fx9z18g==")
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok.res.headers.golden.json"), res.Header())
+		assertResponseHeaders(t, res)
+	})
+
+	s.T().Run("ok for non-existing-space", func(t *testing.T) {
+		// given
+		spaceID := uuid.NewV4()
+		// when
+		res, wilts := test.ListWorkItemLinkTypesOK(t, nil, nil, ctrl, spaceID, nil, nil)
+		// then
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok_for_non_existing_space_id.res.payload.golden.json"), wilts)
+		safeOverriteHeader(t, res, "Etag", "0icd7ov5CqwDXN6Fx9z18g==")
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok_for_non_existing_space_id.res.headers.golden.json"), res.Header())
 		assertResponseHeaders(t, res)
 	})
 
 	s.T().Run("ok using expired IfModifiedSince header", func(t *testing.T) {
-		// when fetching all work item link type in a give space
-		ifModifiedSinceHeader := app.ToHTTPTime(wilt1.UpdatedAt.Add(-1 * time.Hour))
-		res, linkTypes := test.ListWorkItemLinkTypesOK(t, nil, nil, s.linkTypeCtrl, fxt.SpaceTemplates[0].ID, &ifModifiedSinceHeader, nil)
+		// given
+		ifModifiedSinceHeader := app.ToHTTPTime(fxt.WorkItemLinkTypes[1].UpdatedAt.Add(-1 * time.Hour))
+		// when
+		res, wilts := test.ListWorkItemLinkTypesOK(t, nil, nil, ctrl, fxt.SpacesTemplates[0].ID, &ifModifiedSinceHeader, nil)
 		// then
-		safeOverriteHeader(t, res, app.ETag, "EZUYNwJobqN2yZeWw7GuZw==")
-		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok_using_expired_ifmodifiedsince_header.headers.golden.json"), res.Header())
-		requireWILTsIncluded(t, linkTypes)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok_using_expired_ifmodifiedsince_header.res.payload.golden.json"), wilts)
+		safeOverriteHeader(t, res, "Etag", "0icd7ov5CqwDXN6Fx9z18g==")
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok_using_expired_ifmodifiedsince_header.res.headers.golden.json"), res.Header())
 		assertResponseHeaders(t, res)
 	})
 
 	s.T().Run("ok using expired IfNoneMatch header", func(t *testing.T) {
-		// when fetching all work item link type in a give space
+		// given
 		ifNoneMatch := "foo"
-		res, linkTypes := test.ListWorkItemLinkTypesOK(t, nil, nil, s.linkTypeCtrl, fxt.SpaceTemplates[0].ID, nil, &ifNoneMatch)
+		// when
+		res, wilts := test.ListWorkItemLinkTypesOK(t, nil, nil, ctrl, fxt.SpacesTemplates[0].ID, nil, &ifNoneMatch)
 		// then
-		safeOverriteHeader(t, res, app.ETag, "IGos54TQC8+mZ70zZAWQQg==")
-		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok_using_expired_ifnonematch_header.headers.golden.json"), res.Header())
-		requireWILTsIncluded(t, linkTypes)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok_using_expired_ifnonematch_header.res.payload.golden.json"), wilts)
+		safeOverriteHeader(t, res, "Etag", "0icd7ov5CqwDXN6Fx9z18g==")
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok_using_expired_ifnonematch_header.res.headers.golden.json"), res.Header())
 		assertResponseHeaders(t, res)
 	})
 
 	s.T().Run("not modified using IfModifiedSince header", func(t *testing.T) {
-		// when fetching all work item link type in a give space
-		ifModifiedSinceHeader := app.ToHTTPTime(wilt1.UpdatedAt)
-		res := test.ListWorkItemLinkTypesNotModified(t, nil, nil, s.linkTypeCtrl, fxt.SpaceTemplates[0].ID, &ifModifiedSinceHeader, nil)
+		// given
+		ifModifiedSinceHeader := app.ToHTTPTime(fxt.WorkItemLinkTypes[1].UpdatedAt)
+		// when
+		res := test.ListWorkItemLinkTypesNotModified(t, nil, nil, ctrl, fxt.SpacesTemplates[0].ID, &ifModifiedSinceHeader, nil)
 		// then
-		safeOverriteHeader(t, res, app.ETag, "IGos54TQC8+mZ70zZAWQQg==")
-		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "not_modified_using_ifmodifiedsince_header.headers.golden.json"), res.Header())
+		safeOverriteHeader(t, res, "Etag", "0icd7ov5CqwDXN6Fx9z18g==")
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "not_modified_using_ifmodifiedsince_header.res.headers.golden.json"), res.Header())
 		assertResponseHeaders(t, res)
 	})
 
 	s.T().Run("not modified using IfNoneMatch header", func(t *testing.T) {
+		// given
+		_, witCollection := test.ListWorkItemLinkTypesNotModifiedOK(t, nil, nil, ctrl, fxt.Spaces[0].ID, nil, nil)
+		require.NotNil(t, witCollection)
+		ifNoneMatch := generateWorkItemTypesTag(*witCollection)
 		// when
-		_, existingLinkTypes := test.ListWorkItemLinkTypesOK(t, nil, nil, s.linkTypeCtrl, fxt.SpaceTemplates[0].ID, nil, nil)
-		// when fetching all work item link type in a give space
-		createdWorkItemLinkTypeModels := make([]app.ConditionalRequestEntity, len(existingLinkTypes.Data))
-		for i, linkTypeData := range existingLinkTypes.Data {
-			createdWorkItemLinkTypeModel, err := ConvertWorkItemLinkTypeToModel(
-				app.WorkItemLinkTypeSingle{
-					Data: linkTypeData,
-				},
-			)
-			require.Nil(t, err)
-			createdWorkItemLinkTypeModels[i] = *createdWorkItemLinkTypeModel
-		}
-		ifNoneMatch := app.GenerateEntitiesTag(createdWorkItemLinkTypeModels)
-		res := test.ListWorkItemLinkTypesNotModified(t, nil, nil, s.linkTypeCtrl, fxt.SpaceTemplates[0].ID, nil, &ifNoneMatch)
-		safeOverriteHeader(t, res, app.ETag, "IGos54TQC8+mZ70zZAWQQg==")
-		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "not_modified_using_ifnonematch_header.headers.golden.json"), res.Header())
+		res := test.ListWorkItemLinkTypesNotModified(t, nil, nil, ctrl, fxt.SpacesTemplates[0].ID, nil, &ifNoneMatch)
 		// then
+		safeOverriteHeader(t, res, "Etag", "0icd7ov5CqwDXN6Fx9z18g==")
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "not_modified_using_ifmodifiedsince_header.res.headers.golden.json"), res.Header())
 		assertResponseHeaders(t, res)
 	})
 }

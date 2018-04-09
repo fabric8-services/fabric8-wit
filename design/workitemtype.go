@@ -111,10 +111,10 @@ var workItemTypeSingle = JSONSingle(
 	workItemTypeData,
 	workItemTypeLinks)
 
-var _ = a.Resource("workitemtypes", func() {
-	a.Parent("space_template")
+var _ = a.Resource("workitemtype", func() {
 	a.BasePath("/workitemtypes")
-	a.Action("list", func() {
+
+	a.Action("show", func() {
 		a.Routing(
 			a.GET(""),
 		)
@@ -131,9 +131,11 @@ var _ = a.Resource("workitemtypes", func() {
 	})
 })
 
-var _ = a.Resource("workitemtype", func() {
+var _ = a.Resource("workitemtypes", func() {
+	a.Parent("spacetemplate")
 	a.BasePath("/workitemtypes")
-	a.Action("show", func() {
+
+	a.Action("list", func() {
 		a.Routing(
 			a.GET("/:witID"),
 		)

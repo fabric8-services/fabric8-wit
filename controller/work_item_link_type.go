@@ -76,7 +76,7 @@ func (c *WorkItemLinkTypeController) Show(ctx *app.ShowWorkItemLinkTypeContext) 
 
 			// Enrich
 			HrefFunc := func(obj interface{}) string {
-				return fmt.Sprintf(app.WorkItemLinkTypeHref("%v"), obj)
+				return fmt.Sprintf(app.WorkItemLinkTypeHref("%s"), obj)
 			}
 			linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, HrefFunc, nil)
 			err = enrichLinkTypeSingle(linkCtx, &appLinkType)

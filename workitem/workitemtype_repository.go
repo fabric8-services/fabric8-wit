@@ -54,7 +54,7 @@ func (r *GormWorkItemTypeRepository) Load(ctx context.Context, id uuid.UUID) (*W
 
 		db := r.db.Model(&res).Where("id=?", id).First(&res)
 		if db.RecordNotFound() {
-			log.Info(ctx, map[string]interface{}{
+			log.Error(ctx, map[string]interface{}{
 				"wit_id": id,
 			}, "work item type not found")
 			return nil, errors.NewNotFoundError("work item type", id.String())

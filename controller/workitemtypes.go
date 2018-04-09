@@ -9,15 +9,15 @@ import (
 	errs "github.com/pkg/errors"
 )
 
-// WorkitemtypesController implements the workitemtypes resource.
+// WorkitemtypesController implements the workitemtype resource.
 type WorkitemtypesController struct {
 	*goa.Controller
 	db     application.DB
-	config WorkItemTypeControllerConfiguration
+	config WorkItemControllerConfiguration
 }
 
 // NewWorkitemtypesController creates a workitemtype controller.
-func NewWorkitemtypesController(service *goa.Service, db application.DB, config WorkItemTypeControllerConfiguration) *WorkitemtypesController {
+func NewWorkitemtypesController(service *goa.Service, db application.DB, config WorkItemControllerConfiguration) *WorkitemtypesController {
 	return &WorkitemtypesController{
 		Controller: service.NewController("WorkitemtypesController"),
 		db:         db,
