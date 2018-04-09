@@ -157,7 +157,7 @@ func (rest *TestWorkItemREST) SetupTest() {
 
 func prepareWI2(attributes map[string]interface{}) app.WorkItem {
 	spaceRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(space.SystemSpace.String()))
-	witRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.WorkitemtypeHref(space.SystemSpace.String(), workitem.SystemBug.String()))
+	witRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.WorkitemtypeHref(workitem.SystemBug.String()))
 	return app.WorkItem{
 		Type: "workitems",
 		Relationships: &app.WorkItemRelationships{
