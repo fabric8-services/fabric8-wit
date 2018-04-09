@@ -4,7 +4,7 @@
       "attributes": {
         "description": "The system category is reserved for link types that are to be manipulated by the system only.",
         "name": "system",
-        "version": 30
+        "version": 0
       },
       "id": "00000000-0000-0000-0000-000000000001",
       "links": {
@@ -17,7 +17,7 @@
       "attributes": {
         "description": "The user category is reserved for link types that can to be manipulated by the user.",
         "name": "user",
-        "version": 30
+        "version": 0
       },
       "id": "00000000-0000-0000-0000-000000000002",
       "links": {

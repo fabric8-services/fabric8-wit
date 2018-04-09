@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"net/http"
 	"net/url"
+	"reflect"
 	"sync"
 	"text/template"
 
@@ -567,10 +568,12 @@ func createOrUpdateWorkItemLinkCategory(ctx context.Context, linkCatRepo *link.G
 			"category": linkCat,
 		}, "Work item link category %s exists, will update/overwrite the description", linkCat.Name)
 
-		cat.Description = linkCat.Description
-		cat, err = linkCatRepo.Save(ctx, *cat)
-		if err != nil {
-			return nil, errs.WithStack(err)
+		if !reflect.DeepEqual(cat.Description, linkCat.Description) {
+			cat.Description = linkCat.Description
+			cat, err = linkCatRepo.Save(ctx, *cat)
+			if err != nil {
+				return nil, errs.WithStack(err)
+			}
 		}
 	}
 	return cat, nil
