@@ -67,9 +67,7 @@ func (s *workItemTypesSuite) TestList() {
 
 	s.T().Run("ok", func(t *testing.T) {
 		// when
-		// Paging in the format <start>,<limit>"
-		page := "0,-1"
-		res, witCollection := test.ListWorkitemtypesOK(t, nil, nil, s.typeCtrl, fxt.Spaces[0].ID, &page, nil, nil)
+		res, witCollection := test.ListWorkitemtypesOK(t, nil, nil, s.typeCtrl, fxt.Spaces[0].ID, nil, nil)
 		// then
 		require.NotNil(t, witCollection)
 		require.Nil(t, witCollection.Validate())
@@ -92,10 +90,8 @@ func (s *workItemTypesSuite) TestList() {
 
 	s.T().Run("ok - using expired IfModifiedSince header", func(t *testing.T) {
 		// when
-		// Paging in the format <start>,<limit>"
 		lastModified := app.ToHTTPTime(time.Now().Add(-1 * time.Hour))
-		page := "0,-1"
-		res, witCollection := test.ListWorkitemtypesOK(t, nil, nil, s.typeCtrl, fxt.Spaces[0].ID, &page, &lastModified, nil)
+		res, witCollection := test.ListWorkitemtypesOK(t, nil, nil, s.typeCtrl, fxt.Spaces[0].ID, &lastModified, nil)
 		// then
 		require.NotNil(t, witCollection)
 		require.Nil(t, witCollection.Validate())
@@ -118,10 +114,8 @@ func (s *workItemTypesSuite) TestList() {
 
 	s.T().Run("ok - using IfNoneMatch header", func(t *testing.T) {
 		// when
-		// Paging in the format <start>,<limit>"
 		etag := "foo"
-		page := "0,-1"
-		res, witCollection := test.ListWorkitemtypesOK(t, nil, nil, s.typeCtrl, fxt.Spaces[0].ID, &page, nil, &etag)
+		res, witCollection := test.ListWorkitemtypesOK(t, nil, nil, s.typeCtrl, fxt.Spaces[0].ID, nil, &etag)
 		// then
 		require.NotNil(t, witCollection)
 		require.Nil(t, witCollection.Validate())
@@ -144,20 +138,16 @@ func (s *workItemTypesSuite) TestList() {
 
 	s.T().Run("not modified - using IfModifiedSince header", func(t *testing.T) {
 		// when/then
-		// Paging in the format <start>,<limit>"
 		lastModified := app.ToHTTPTime(fxt.WorkItemTypes[1].UpdatedAt)
-		page := "0,-1"
-		test.ListWorkitemtypesNotModified(t, nil, nil, s.typeCtrl, fxt.Spaces[0].ID, &page, &lastModified, nil)
+		test.ListWorkitemtypesNotModified(t, nil, nil, s.typeCtrl, fxt.Spaces[0].ID, &lastModified, nil)
 	})
 
 	s.T().Run("not modified - using IfNoneMatch header", func(t *testing.T) {
 		// given
-		// Paging in the format <start>,<limit>"
-		page := "0,-1"
-		_, witCollection := test.ListWorkitemtypesOK(t, nil, nil, s.typeCtrl, fxt.Spaces[0].ID, &page, nil, nil)
+		_, witCollection := test.ListWorkitemtypesOK(t, nil, nil, s.typeCtrl, fxt.Spaces[0].ID, nil, nil)
 		require.NotNil(t, witCollection)
 		// when/then
 		ifNoneMatch := generateWorkItemTypesTag(*witCollection)
-		test.ListWorkitemtypesNotModified(t, nil, nil, s.typeCtrl, fxt.Spaces[0].ID, &page, nil, &ifNoneMatch)
+		test.ListWorkitemtypesNotModified(t, nil, nil, s.typeCtrl, fxt.Spaces[0].ID, nil, &ifNoneMatch)
 	})
 }

@@ -30,13 +30,9 @@ func NewWorkitemtypesController(service *goa.Service, db application.DB, config 
 // List runs the list action
 func (c *WorkitemtypesController) List(ctx *app.ListWorkitemtypesContext) error {
 	log.Debug(ctx, map[string]interface{}{"space_id": ctx.SpaceID}, "Listing work item types per space")
-	start, limit, err := parseLimit(ctx.Page)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Could not parse paging"))
-	}
 	witModels := []workitem.WorkItemType{}
-	err = application.Transactional(c.db, func(appl application.Application) error {
-		witModelsOrig, err := appl.WorkItemTypes().List(ctx.Context, ctx.SpaceID, start, &limit)
+	err := application.Transactional(c.db, func(appl application.Application) error {
+		witModelsOrig, err := appl.WorkItemTypes().List(ctx.Context, ctx.SpaceID)
 		if err != nil {
 			return errs.Wrap(err, "Error listing work item types")
 		}
@@ -56,7 +52,7 @@ func (c *WorkitemtypesController) List(ctx *app.ListWorkitemtypesContext) error 
 		// for the space.
 		err = application.Transactional(c.db, func(appl application.Application) error {
 			if len(witModels) == 0 {
-				witModels, err = appl.WorkItemTypes().List(ctx.Context, space.SystemSpace, start, &limit)
+				witModels, err = appl.WorkItemTypes().List(ctx.Context, space.SystemSpace)
 				if err != nil {
 					return errs.Wrap(err, "Error listing work item types")
 				}
