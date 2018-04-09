@@ -66,12 +66,10 @@ func (s *workItemLinkTypesSuite) TestList() {
 		// given
 		spaceID := uuid.NewV4()
 		// when
-		res, wilts := test.ListWorkItemLinkTypesOK(t, nil, nil, ctrl, spaceID, nil, nil)
+		res, wilts := test.ListWorkItemLinkTypesNotFound(t, nil, nil, ctrl, spaceID, nil, nil)
 		// then
-		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok_for_non_existing_space_id.res.payload.golden.json"), wilts)
-		safeOverriteHeader(t, res, "Etag", "0icd7ov5CqwDXN6Fx9z18g==")
-		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok_for_non_existing_space_id.res.headers.golden.json"), res.Header())
-		assertResponseHeaders(t, res)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "not_found_for_non_existing_space_id.res.payload.golden.json"), wilts)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "not_found_for_non_existing_space_id.res.headers.golden.json"), res.Header())
 	})
 
 	s.T().Run("ok using expired IfModifiedSince header", func(t *testing.T) {
