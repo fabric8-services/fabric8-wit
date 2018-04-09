@@ -116,27 +116,6 @@ var _ = a.Resource("workitemtype", func() {
 
 	a.Action("show", func() {
 		a.Routing(
-			a.GET(""),
-		)
-		a.Description("List work item types.")
-		a.Params(func() {
-			a.Param("page", d.String, "Paging in the format <start>,<limit>")
-			// TODO: Support same params as in work item list-action?
-		})
-		a.UseTrait("conditional")
-		a.Response(d.OK, workItemTypeList)
-		a.Response(d.NotModified)
-		a.Response(d.BadRequest, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-	})
-})
-
-var _ = a.Resource("workitemtypes", func() {
-	a.Parent("spacetemplate")
-	a.BasePath("/workitemtypes")
-
-	a.Action("list", func() {
-		a.Routing(
 			a.GET("/:witID"),
 		)
 		a.Description("Retrieve work item type with given ID.")
@@ -148,6 +127,27 @@ var _ = a.Resource("workitemtypes", func() {
 		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+	})
+})
+
+var _ = a.Resource("workitemtypes", func() {
+	a.Parent("space_template")
+	a.BasePath("/workitemtypes")
+
+	a.Action("list", func() {
+		a.Routing(
+			a.GET(""),
+		)
+		a.Description("List work item types.")
+		a.Params(func() {
+			a.Param("page", d.String, "Paging in the format <start>,<limit>")
+			// TODO: Support same params as in work item list-action?
+		})
+		a.UseTrait("conditional")
+		a.Response(d.OK, workItemTypeList)
+		a.Response(d.NotModified)
+		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 })

@@ -9,6 +9,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
@@ -18,16 +19,16 @@ import (
 type WorkitemtypeController struct {
 	*goa.Controller
 	db     application.DB
-	config WorkItemTypeControllerConfiguration
+	config workItemTypeControllerConfiguration
 }
 
-type WorkItemTypeControllerConfiguration interface {
+type workItemTypeControllerConfiguration interface {
 	GetCacheControlWorkItemTypes() string
 	GetCacheControlWorkItemType() string
 }
 
 // NewWorkitemtypeController creates a workitemtype controller.
-func NewWorkitemtypeController(service *goa.Service, db application.DB, config WorkItemTypeControllerConfiguration) *WorkitemtypeController {
+func NewWorkitemtypeController(service *goa.Service, db application.DB, config workItemTypeControllerConfiguration) *WorkitemtypeController {
 	return &WorkitemtypeController{
 		Controller: service.NewController("WorkitemtypeController"),
 		db:         db,

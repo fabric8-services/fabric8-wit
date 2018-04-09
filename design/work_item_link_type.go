@@ -178,6 +178,7 @@ var _ = a.Resource("work_item_link_types", func() {
 		a.Response(d.OK, workItemLinkTypeList)
 		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 })

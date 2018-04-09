@@ -1,6 +1,7 @@
 package controller_test
 
 import (
+	"net/http"
 	"path/filepath"
 	"testing"
 
@@ -12,6 +13,8 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 
@@ -158,16 +161,14 @@ func (s *workItemTypesSuite) TestList() {
 		require.NotNil(t, witCollection)
 		// when/then
 		ifNoneMatch := generateWorkItemTypesTag(*witCollection)
-		test.ListWorkitemtypesNotModified(t, nil, nil, s.typeCtrl, fxt.Spaces[0].ID, &page, nil, &ifNoneMatch)
+		test.ListWorkitemtypesNotModified(t, nil, nil, s.typeCtrl, fxt.SpaceTemplates[0].ID, &page, nil, &ifNoneMatch)
 	})
 }
-
-----------------------------------------------------------
 
 func (s *workItemTypesSuite) TestValidate() {
 	// given
 	desc := "Description for 'person'"
-	id := personID
+	id := uuid.NewV4()
 	reqLong := &http.Request{Host: "api.service.domain.org"}
 	//spaceSelfURL := rest.AbsoluteURL(reqLong, app.SpaceHref(space.SystemSpace.String()))
 	spaceTemplateID := spacetemplate.SystemLegacyTemplateID
