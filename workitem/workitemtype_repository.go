@@ -21,7 +21,7 @@ var cache = NewWorkItemTypeCache()
 // WorkItemTypeRepository encapsulates storage & retrieval of work item types
 type WorkItemTypeRepository interface {
 	repository.Exister
-	Load(ctx context.Context, spaceID uuid.UUID, id uuid.UUID) (*WorkItemType, error)
+	Load(ctx context.Context, id uuid.UUID) (*WorkItemType, error)
 	Create(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]FieldDefinition) (*WorkItemType, error)
 	CreateFromModel(ctx context.Context, model *WorkItemType) (*WorkItemType, error)
 	List(ctx context.Context, spaceID uuid.UUID, start *int, length *int) ([]WorkItemType, error)
@@ -38,37 +38,24 @@ type GormWorkItemTypeRepository struct {
 	db *gorm.DB
 }
 
-// LoadByID returns the work item for the given id
-// returns NotFoundError, InternalError
-func (r *GormWorkItemTypeRepository) LoadByID(ctx context.Context, id uuid.UUID) (*WorkItemType, error) {
-	res, err := r.LoadTypeFromDB(ctx, id)
-	if err != nil {
-		return nil, errs.WithStack(err)
-	}
-	return res, nil
-}
-
 // Load returns the work item for the given spaceID and id
 // returns NotFoundError, InternalError
-func (r *GormWorkItemTypeRepository) Load(ctx context.Context, spaceID uuid.UUID, id uuid.UUID) (*WorkItemType, error) {
+func (r *GormWorkItemTypeRepository) Load(ctx context.Context, id uuid.UUID) (*WorkItemType, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitemtype", "load"}, time.Now())
 	log.Debug(ctx, map[string]interface{}{
-		"wit_id":   id,
-		"space_id": spaceID,
+		"wit_id": id,
 	}, "Loading work item type")
 	res, ok := cache.Get(id)
 	if !ok {
 		log.Info(ctx, map[string]interface{}{
-			"wit_id":   id,
-			"space_id": spaceID,
+			"wit_id": id,
 		}, "Work item type doesn't exist in the cache. Loading from DB...")
 		res = WorkItemType{}
 
-		db := r.db.Model(&res).Where("id=? AND space_id=?", id, spaceID).First(&res)
+		db := r.db.Model(&res).Where("id=?", id).First(&res)
 		if db.RecordNotFound() {
 			log.Error(ctx, map[string]interface{}{
-				"wit_id":   id,
-				"space_id": spaceID,
+				"wit_id": id,
 			}, "work item type not found")
 			return nil, errors.NewNotFoundError("work item type", id.String())
 		}
