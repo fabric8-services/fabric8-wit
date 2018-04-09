@@ -35,24 +35,6 @@ func (r *BenchWorkItemTypeRepository) BenchmarkLoad() {
 	r.B().ReportAllocs()
 	for n := 0; n < r.B().N; n++ {
 		res := workitem.WorkItemType{}
-		db := r.DB.Model(&res).Where("id=? AND space_id=?", fxt.WorkItemTypes[0].ID, fxt.WorkItemTypes[0].SpaceID).First(&res)
-		if db.RecordNotFound() {
-			r.B().Fail()
-		}
-		if err := db.Error; err != nil {
-			r.B().Fail()
-		}
-	}
-}
-
-func (r *BenchWorkItemTypeRepository) BenchmarkLoadTypeFromDB() {
-	// given
-	fxt := tf.NewTestFixture(r.B(), r.DB, tf.WorkItemTypes(1))
-
-	r.B().ResetTimer()
-	r.B().ReportAllocs()
-	for n := 0; n < r.B().N; n++ {
-		res := workitem.WorkItemType{}
 		db := r.DB.Model(&res).Where("id=?", fxt.WorkItemTypes[0].ID).First(&res)
 		if db.RecordNotFound() {
 			r.B().Fail()
@@ -70,7 +52,7 @@ func (r *BenchWorkItemTypeRepository) BenchmarkLoadWorkItemType() {
 	r.B().ResetTimer()
 	r.B().ReportAllocs()
 	for n := 0; n < r.B().N; n++ {
-		if s, err := r.repo.Load(context.Background(), fxt.WorkItemTypes[0].SpaceID, fxt.WorkItemTypes[0].ID); err != nil || (err == nil && s == nil) {
+		if s, err := r.repo.Load(context.Background(), fxt.WorkItemTypes[0].ID); err != nil || (err == nil && s == nil) {
 			r.B().Fail()
 		}
 	}

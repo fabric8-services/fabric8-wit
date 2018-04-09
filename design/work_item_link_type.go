@@ -148,7 +148,6 @@ var workItemLinkTypeList = JSONList(
 
 var _ = a.Resource("work_item_link_type", func() {
 	a.BasePath("/workitemlinktypes")
-	a.Parent("space")
 
 	a.Action("show", func() {
 		a.Routing(
@@ -165,6 +164,11 @@ var _ = a.Resource("work_item_link_type", func() {
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 	})
+})
+
+var _ = a.Resource("work_item_link_types", func() {
+	a.BasePath("/workitemlinktypes")
+	a.Parent("space")
 
 	a.Action("list", func() {
 		a.Routing(
