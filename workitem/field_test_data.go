@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// given a bunch of tests with expected error results for each work item
-// type field kind, a work item type for each kind...
+// ValidInvalid given a bunch of tests with expected error results for each work
+// item type field kind, a work item type for each kind...
 type ValidInvalid struct {
 	Valid   []interface{}
 	Invalid []interface{}
