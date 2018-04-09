@@ -900,6 +900,10 @@ func (kc *kubeClient) deleteDeploymentConfig(spaceName string, appName string, n
 	// Delete all dependent objects and then this DC
 	policy := metaV1.DeletePropagationForeground
 	opts := &metaV1.DeleteOptions{
+		TypeMeta: metaV1.TypeMeta{ // Normally set automatically by k8s client-go
+			Kind:       "DeleteOptions",
+			APIVersion: "v1",
+		},
 		PropagationPolicy: &policy,
 	}
 	err = kc.DeleteDeploymentConfig(namespace, appName, opts)
@@ -1690,6 +1694,10 @@ func (kc *kubeClient) deleteRoutes(appName string, envNS string) error {
 	// Delete all dependent objects before deleting the route
 	policy := metaV1.DeletePropagationForeground
 	opts := &metaV1.DeleteOptions{
+		TypeMeta: metaV1.TypeMeta{ // Normally set automatically by k8s client-go
+			Kind:       "DeleteOptions",
+			APIVersion: "v1",
+		},
 		PropagationPolicy: &policy,
 	}
 
