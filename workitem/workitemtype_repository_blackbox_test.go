@@ -107,7 +107,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestListPlannerItemTypes() {
 		// given
 		id := uuid.NewV4()
 		// when
-		wits, err := s.repo.List(s.Ctx, id)
+		wits, err := s.repo.ListPlannerItemTypes(s.Ctx, id)
 		// then
 		require.Error(t, err)
 		require.IsType(t, errors.NotFoundError{}, err)
