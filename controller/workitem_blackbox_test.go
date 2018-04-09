@@ -803,7 +803,7 @@ func minimumRequiredCreateWithTypeAndSpace(witID uuid.UUID, spaceID uuid.UUID) a
 }
 
 func newRelationBaseType(spaceID, wit uuid.UUID) *app.RelationBaseType {
-	witRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.WorkitemtypeHref(spaceID.String(), wit.String()))
+	witRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.WorkitemtypeHref(wit.String()))
 	return &app.RelationBaseType{
 		Data: &app.BaseTypeData{
 			Type: "workitemtypes",
