@@ -173,8 +173,6 @@ func NewKubeClient(config *KubeClientConfig) (KubeClientInterface, error) {
 	// Get environments from config map
 	envMap, err := getEnvironmentsFromConfigMap(kubeAPI, config.UserNamespace)
 	if err != nil {
-		// Close metrics client opened above
-		metrics.Close()
 		return nil, errs.WithStack(err)
 	}
 
