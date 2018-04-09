@@ -124,6 +124,7 @@ func (s *typeRepoBlackBoxTest) TestList() {
 		types, err := s.typeRepo.List(s.Ctx, spaceID)
 		// then
 		require.Error(t, err)
+		require.IsType(t, errors.NotFoundError{}, err)
 		require.Empty(t, types)
 	})
 }
