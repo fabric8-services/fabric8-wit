@@ -45,6 +45,7 @@ required = [
   "github.com/fabric8-services/fabric8-tenant/design",
   "github.com/jteeuwen/go-bindata/go-bindata",
   "github.com/jstemmer/go-junit-report",
+  "github.com/wadey/gocovmerge",
 ]
     
 ignored = [
@@ -125,6 +126,10 @@ ignored = [
 
 [[constraint]]
   name = "github.com/jstemmer/go-junit-report"
+  revision = "master"
+
+[[constraint]]
+  name = "github.com/wadey/gocovmerge"
   revision = "master"
 
 [prune]
