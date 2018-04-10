@@ -826,7 +826,7 @@ func createOrUpdatePlannerItemExtension(ctx context.Context, typeID uuid.UUID, n
 
 func createOrUpdateType(ctx context.Context, typeID uuid.UUID, spaceID uuid.UUID, name string, description string, extendedTypeID *uuid.UUID, fields map[string]workitem.FieldDefinition, icon string, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB) error {
 	log.Info(ctx, nil, "Creating or updating planner item types...")
-	wit, err := witr.LoadTypeFromDB(ctx, typeID)
+	err := witr.CheckExists(ctx, typeID)
 	cause := errs.Cause(err)
 	switch cause.(type) {
 	case errors.NotFoundError:
@@ -862,11 +862,15 @@ func createOrUpdateType(ctx context.Context, typeID uuid.UUID, spaceID uuid.UUID
 		if err != nil {
 			return errs.WithStack(err)
 		}
-		wit.Name = name
-		wit.Description = &description
-		wit.Icon = icon
-		wit.Fields = fields
-		wit.Path = path
+		wit := workitem.WorkItemType{
+			ID:          typeID,
+			SpaceID:     spaceID,
+			Name:        name,
+			Description: &description,
+			Icon:        icon,
+			Fields:      fields,
+			Path:        path,
+		}
 		db = db.Save(wit)
 		return db.Error
 	}
