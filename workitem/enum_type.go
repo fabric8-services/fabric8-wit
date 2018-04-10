@@ -24,7 +24,7 @@ func (t EnumType) DefaultValue(value interface{}) (interface{}, error) {
 	if value != nil {
 		return value, nil
 	}
-	if len(t.Values) <= 0 {
+	if t.Values == nil || len(t.Values) <= 0 {
 		return nil, errs.Errorf("enum has no values")
 	}
 	return t.Values[0], nil
