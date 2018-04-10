@@ -9,6 +9,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/path"
+	"github.com/fabric8-services/fabric8-wit/space"
 
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -24,8 +25,8 @@ type WorkItemTypeRepository interface {
 	Load(ctx context.Context, id uuid.UUID) (*WorkItemType, error)
 	Create(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]FieldDefinition) (*WorkItemType, error)
 	CreateFromModel(ctx context.Context, model *WorkItemType) (*WorkItemType, error)
-	List(ctx context.Context, spaceID uuid.UUID, start *int, length *int) ([]WorkItemType, error)
-	ListPlannerItems(ctx context.Context, spaceID uuid.UUID) ([]WorkItemType, error)
+	List(ctx context.Context, spaceID uuid.UUID) ([]WorkItemType, error)
+	ListPlannerItemTypes(ctx context.Context, spaceID uuid.UUID) ([]WorkItemType, error)
 }
 
 // NewWorkItemTypeRepository creates a wi type repository based on gorm
@@ -183,11 +184,17 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UU
 }
 
 // List returns work item types that derives from PlannerItem type
-func (r *GormWorkItemTypeRepository) ListPlannerItems(ctx context.Context, spaceID uuid.UUID) ([]WorkItemType, error) {
-	defer goa.MeasureSince([]string{"goa", "db", "workitemtype", "listPlannerItems"}, time.Now())
+func (r *GormWorkItemTypeRepository) ListPlannerItemTypes(ctx context.Context, spaceID uuid.UUID) ([]WorkItemType, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemtype", "listPlannerItemTypes"}, time.Now())
+
+	// check space exists
+	if err := space.NewRepository(r.db).CheckExists(ctx, spaceID); err != nil {
+		return nil, errors.NewNotFoundError("space", spaceID.String())
+	}
+
 	var rows []WorkItemType
 	path := path.Path{}
-	db := r.db.Select("id").Where("space_id = ? AND path::text LIKE '"+path.ConvertToLtree(SystemPlannerItem)+".%'", spaceID.String())
+	db := r.db.Select("id").Where("space_id = ? AND path::text LIKE '"+path.ConvertToLtree(SystemPlannerItem)+".%'", spaceID.String()).Order("created_at")
 
 	if err := db.Find(&rows).Error; err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -201,18 +208,16 @@ func (r *GormWorkItemTypeRepository) ListPlannerItems(ctx context.Context, space
 
 // List returns work item types selected by the given criteria.Expression,
 // starting with start (zero-based) and returning at most "limit" item types.
-func (r *GormWorkItemTypeRepository) List(ctx context.Context, spaceID uuid.UUID, start *int, limit *int) ([]WorkItemType, error) {
+func (r *GormWorkItemTypeRepository) List(ctx context.Context, spaceID uuid.UUID) ([]WorkItemType, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitemtype", "list"}, time.Now())
-	// Currently we don't implement filtering here, so leave this empty
-	// TODO: (kwk) implement criteria parsing just like for work items
+
+	// check space exists
+	if err := space.NewRepository(r.db).CheckExists(ctx, spaceID); err != nil {
+		return nil, errors.NewNotFoundError("space", spaceID.String())
+	}
+
 	var rows []WorkItemType
-	db := r.db.Where("space_id = ?", spaceID)
-	if start != nil {
-		db = db.Offset(*start)
-	}
-	if limit != nil {
-		db = db.Limit(*limit)
-	}
+	db := r.db.Where("space_id = ?", spaceID).Order("created_at")
 	if err := db.Find(&rows).Error; err != nil {
 		return nil, errs.WithStack(err)
 	}

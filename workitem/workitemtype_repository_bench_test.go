@@ -65,7 +65,7 @@ func (r *BenchWorkItemTypeRepository) BenchmarkListWorkItemTypes() {
 	r.B().ResetTimer()
 	r.B().ReportAllocs()
 	for n := 0; n < r.B().N; n++ {
-		if s, err := r.repo.List(context.Background(), fxt.WorkItemTypes[0].SpaceID, nil, nil); err != nil || (err == nil && s == nil) {
+		if s, err := r.repo.List(context.Background(), fxt.WorkItemTypes[0].SpaceID); err != nil || (err == nil && s == nil) {
 			r.B().Fail()
 		}
 	}
@@ -79,7 +79,7 @@ func (r *BenchWorkItemTypeRepository) BenchmarkListWorkItemTypesTransaction() {
 	r.B().ReportAllocs()
 	for n := 0; n < r.B().N; n++ {
 		if err := application.Transactional(gormapplication.NewGormDB(r.DB), func(app application.Application) error {
-			_, err := r.repo.List(context.Background(), fxt.WorkItemTypes[0].SpaceID, nil, nil)
+			_, err := r.repo.List(context.Background(), fxt.WorkItemTypes[0].SpaceID)
 			return err
 		}); err != nil {
 			r.B().Fail()
