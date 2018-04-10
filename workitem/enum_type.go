@@ -5,12 +5,29 @@ import (
 	"reflect"
 
 	"github.com/fabric8-services/fabric8-wit/convert"
+	errs "github.com/pkg/errors"
 )
 
 type EnumType struct {
-	SimpleType
-	BaseType SimpleType
-	Values   []interface{}
+	SimpleType       `json:"simple_type"`
+	BaseType         SimpleType    `json:"base_type"`
+	Values           []interface{} `json:"values"`
+	RewritableValues bool          `json:"rewritable_values"`
+}
+
+// Ensure EnumType implements the FieldType interface
+var _ FieldType = EnumType{}
+var _ FieldType = (*EnumType)(nil)
+
+// DefaultValue implementes FieldType
+func (t EnumType) DefaultValue(value interface{}) (interface{}, error) {
+	if value != nil {
+		return value, nil
+	}
+	if t.Values == nil || len(t.Values) <= 0 {
+		return nil, errs.Errorf("enum has no values")
+	}
+	return t.Values[0], nil
 }
 
 // Ensure EnumType implements the Equaler interface
@@ -29,7 +46,10 @@ func (t EnumType) Equal(u convert.Equaler) bool {
 	if !t.BaseType.Equal(other.BaseType) {
 		return false
 	}
-	return reflect.DeepEqual(t.Values, other.Values)
+	if !t.RewritableValues {
+		return reflect.DeepEqual(t.Values, other.Values)
+	}
+	return true
 }
 
 func (t EnumType) ConvertToModel(value interface{}) (interface{}, error) {

@@ -219,7 +219,7 @@ func (s *searchControllerTestSuite) TestUnwantedCharactersRelatedToSearchLogic()
 func (s *searchControllerTestSuite) getWICreatePayload() *app.CreateWorkitemsPayload {
 	spaceID := space.SystemSpace
 	spaceRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(spaceID.String()))
-	witRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.WorkitemtypeHref(spaceID.String(), workitem.SystemTask.String()))
+	witRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.WorkitemtypeHref(workitem.SystemTask.String()))
 	c := app.CreateWorkitemsPayload{
 		Data: &app.WorkItem{
 			Type:       APIStringTypeWorkItem,

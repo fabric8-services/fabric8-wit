@@ -148,7 +148,6 @@ var workItemLinkTypeList = JSONList(
 
 var _ = a.Resource("work_item_link_type", func() {
 	a.BasePath("/workitemlinktypes")
-	a.Parent("space")
 
 	a.Action("show", func() {
 		a.Routing(
@@ -165,6 +164,11 @@ var _ = a.Resource("work_item_link_type", func() {
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 	})
+})
+
+var _ = a.Resource("work_item_link_types", func() {
+	a.BasePath("/workitemlinktypes")
+	a.Parent("space")
 
 	a.Action("list", func() {
 		a.Routing(
@@ -175,59 +179,7 @@ var _ = a.Resource("work_item_link_type", func() {
 		a.Response(d.OK, workItemLinkTypeList)
 		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-	})
-
-	a.Action("create", func() {
-		a.Security("jwt")
-		a.Routing(
-			a.POST(""),
-		)
-		a.Description("Create a work item link type")
-		a.Payload(createWorkItemLinkTypePayload)
-		a.Response(d.MethodNotAllowed)
-		a.Response(d.Created, "/workitemlinktypes/.*", func() {
-			a.Media(workItemLinkType)
-		})
-		a.Response(d.BadRequest, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-		a.Response(d.Unauthorized, JSONAPIErrors)
-		a.Response(d.Conflict, JSONAPIErrors)
-	})
-
-	a.Action("delete", func() {
-		a.Security("jwt")
-		a.Routing(
-			a.DELETE("/:wiltID"),
-		)
-		a.Description("Delete work item link type with given id.")
-		a.Params(func() {
-			a.Param("wiltID", d.UUID, "wiltID")
-		})
-		a.Response(d.MethodNotAllowed)
-		a.Response(d.OK)
-		a.Response(d.BadRequest, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
-		a.Response(d.Unauthorized, JSONAPIErrors)
-	})
-
-	a.Action("update", func() {
-		a.Security("jwt")
-		a.Routing(
-			a.PATCH("/:wiltID"),
-		)
-		a.Description("Update the given work item link type with given id.")
-		a.Params(func() {
-			a.Param("wiltID", d.UUID, "wiltID")
-		})
-		a.Payload(updateWorkItemLinkTypePayload)
-		a.Response(d.MethodNotAllowed)
-		a.Response(d.OK, workItemLinkType)
-		a.Response(d.BadRequest, JSONAPIErrors)
-		a.Response(d.Conflict, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
-		a.Response(d.NotFound, JSONAPIErrors)
-		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 })

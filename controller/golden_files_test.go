@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -449,4 +450,12 @@ func TestGoldenCompareWithGolden(t *testing.T) {
 			})
 		})
 	})
+}
+
+// safeOverriteHeader checks if an header entry with the given key is present
+// and only then sets it to the given value
+func safeOverriteHeader(t *testing.T, res http.ResponseWriter, key string, val string) {
+	obj := res.Header()[key]
+	require.NotEmpty(t, obj, `response header entry "%s" is empty or not set`, key)
+	res.Header().Set(key, val)
 }

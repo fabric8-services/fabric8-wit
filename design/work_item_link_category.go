@@ -59,12 +59,6 @@ See also http://jsonapi.org/format/#document-resource-object-attributes`)
 	a.Attribute("version", d.Integer, "Version for optimistic concurrency control (optional during creating)", func() {
 		a.Example(0)
 	})
-
-	// IMPORTANT: We cannot require any field here because these "attributes" will be used
-	// during the creation as well as the update of a work item link category.
-	// During creation, the "name" field is required but not during update.
-	// The repository methods need to check for required fields.
-	//a.Required("name")
 })
 
 // relationWorkItemLinkCategory is the JSONAPI store for the links
@@ -143,60 +137,5 @@ var _ = a.Resource("work_item_link_category", func() {
 		})
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
-	})
-
-	a.Action("create", func() {
-		a.Security("jwt")
-		a.Routing(
-			a.POST(""),
-		)
-		a.Description("Create a work item link category")
-		a.Payload(createWorkItemLinkCategoryPayload)
-		a.Response(d.MethodNotAllowed)
-		a.Response(d.Created, "/workitemlinkcategories/.*", func() {
-			a.Media(workItemLinkCategory)
-		})
-		a.Response(d.BadRequest, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-		a.Response(d.Unauthorized, JSONAPIErrors)
-		a.Response(d.Conflict, JSONAPIErrors)
-	})
-
-	a.Action("delete", func() {
-		a.Security("jwt")
-		a.Routing(
-			a.DELETE("/:id"),
-		)
-		a.Description("Delete work item link category with given id.")
-		a.Params(func() {
-			a.Param("id", d.UUID, "id")
-		})
-		a.Response(d.MethodNotAllowed)
-		a.Response(d.OK)
-		a.Response(d.BadRequest, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-		a.Response(d.NotFound, JSONAPIErrors)
-		a.Response(d.Unauthorized, JSONAPIErrors)
-	})
-
-	a.Action("update", func() {
-		a.Security("jwt")
-		a.Routing(
-			a.PATCH("/:id"),
-		)
-		a.Description("Update the given work item link category with given id.")
-		a.Params(func() {
-			a.Param("id", d.UUID, "id")
-		})
-		a.Payload(updateWorkItemLinkCategoryPayload)
-		a.Response(d.MethodNotAllowed)
-		a.Response(d.OK, func() {
-			a.Media(workItemLinkCategory)
-		})
-		a.Response(d.BadRequest, JSONAPIErrors)
-		a.Response(d.Conflict, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-		a.Response(d.NotFound, JSONAPIErrors)
-		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 })

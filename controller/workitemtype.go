@@ -6,13 +6,9 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
-	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
-	"github.com/fabric8-services/fabric8-wit/log"
-	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/rest"
-	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
@@ -50,7 +46,7 @@ func NewWorkitemtypeController(service *goa.Service, db application.DB, config W
 // Show runs the show action.
 func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 	err := application.Transactional(c.db, func(appl application.Application) error {
-		witModel, err := appl.WorkItemTypes().Load(ctx.Context, ctx.SpaceID, ctx.WitID)
+		witModel, err := appl.WorkItemTypes().Load(ctx.Context, ctx.WitID)
 		if err != nil {
 			return err
 		}
@@ -64,110 +60,6 @@ func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	return nil
-}
-
-// Create runs the create action.
-func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) error {
-	currentUserIdentityID, err := login.ContextIdentity(ctx)
-	if err != nil {
-		jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
-	}
-	var witModel *workitem.WorkItemType
-	err = application.Transactional(c.db, func(appl application.Application) error {
-		space, err := appl.Spaces().Load(ctx, ctx.SpaceID)
-		if err != nil {
-			return err
-		}
-		if !uuid.Equal(*currentUserIdentityID, space.OwnerID) {
-			log.Warn(ctx, map[string]interface{}{
-				"space_id":     ctx.SpaceID,
-				"space_owner":  space.OwnerID,
-				"current_user": *currentUserIdentityID,
-			}, "user is not the space owner")
-			return errors.NewForbiddenError("user is not the space owner")
-		}
-		var fields = map[string]app.FieldDefinition{}
-		for key, fd := range ctx.Payload.Data.Attributes.Fields {
-			fields[key] = *fd
-		}
-		// Set the space to the Payload
-		if ctx.Payload.Data != nil && ctx.Payload.Data.Relationships != nil {
-			// We overwrite or use the space ID in the URL to set the space of this WI
-			spaceSelfURL := rest.AbsoluteURL(ctx.Request, app.SpaceHref(ctx.SpaceID.String()))
-			ctx.Payload.Data.Relationships.Space = app.NewSpaceRelation(ctx.SpaceID, spaceSelfURL)
-		}
-		modelFields, err := ConvertFieldDefinitionsToModel(fields)
-		if err != nil {
-			return err
-		}
-		witModel, err = appl.WorkItemTypes().Create(
-			ctx.Context,
-			*ctx.Payload.Data.Relationships.Space.Data.ID,
-			ctx.Payload.Data.ID,
-			ctx.Payload.Data.Attributes.ExtendedTypeName,
-			ctx.Payload.Data.Attributes.Name,
-			ctx.Payload.Data.Attributes.Description,
-			ctx.Payload.Data.Attributes.Icon,
-			modelFields)
-		return err
-	})
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
-	}
-	witData := ConvertWorkItemTypeFromModel(ctx.Request, witModel)
-	wit := &app.WorkItemTypeSingle{Data: &witData}
-	ctx.ResponseData.Header().Set("Location", app.WorkitemtypeHref(*ctx.Payload.Data.Relationships.Space.Data.ID, wit.Data.ID))
-	return ctx.Created(wit)
-}
-
-// List runs the list action
-func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
-	log.Debug(ctx, map[string]interface{}{"space_id": ctx.SpaceID}, "Listing work item types per space")
-	start, limit, err := parseLimit(ctx.Page)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Could not parse paging"))
-	}
-	witModels := []workitem.WorkItemType{}
-	err = application.Transactional(c.db, func(appl application.Application) error {
-		witModelsOrig, err := appl.WorkItemTypes().List(ctx.Context, ctx.SpaceID, start, &limit)
-		if err != nil {
-			return errs.Wrap(err, "Error listing work item types")
-		}
-		// Remove "planneritem" from the list of WITs
-		for _, wit := range witModelsOrig {
-			if wit.ID != workitem.SystemPlannerItem {
-				witModels = append(witModels, wit)
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
-	}
-	return ctx.ConditionalEntities(witModels, c.config.GetCacheControlWorkItemTypes, func() error {
-		// TEMP!!!!! Until Space Template can setup a Space, redirect to SystemSpace WITs if non are found
-		// for the space.
-		err = application.Transactional(c.db, func(appl application.Application) error {
-			if len(witModels) == 0 {
-				witModels, err = appl.WorkItemTypes().List(ctx.Context, space.SystemSpace, start, &limit)
-				if err != nil {
-					return errs.Wrap(err, "Error listing work item types")
-				}
-			}
-			return nil
-		})
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
-		// convert from model to app
-		result := &app.WorkItemTypeList{}
-		result.Data = make([]*app.WorkItemTypeData, len(witModels))
-		for index, value := range witModels {
-			wit := ConvertWorkItemTypeFromModel(ctx.Request, &value)
-			result.Data[index] = &wit
-		}
-		return ctx.OK(result)
-	})
 }
 
 // ConvertWorkItemTypeFromModel converts from models to app representation
@@ -274,7 +166,13 @@ func ConvertFieldTypeToModel(t app.FieldType) (workitem.FieldType, error) {
 		if err != nil {
 			return nil, errs.WithStack(err)
 		}
-		return workitem.EnumType{workitem.SimpleType{*kind}, baseType, converted}, nil
+		return workitem.EnumType{
+			SimpleType: workitem.SimpleType{
+				Kind: *kind,
+			},
+			BaseType: baseType,
+			Values:   converted,
+		}, nil
 	default:
 		return workitem.SimpleType{*kind}, nil
 	}

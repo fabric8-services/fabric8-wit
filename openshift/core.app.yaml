@@ -191,15 +191,6 @@ objects:
       service: core
     type: ClusterIP
     sessionAffinity: null
-- kind: Route
-  apiVersion: v1
-  metadata:
-    name: core
-  spec:
-    host: ''
-    to:
-      kind: Service
-      name: core
 parameters:
 - name: IMAGE_TAG
   value: latest
