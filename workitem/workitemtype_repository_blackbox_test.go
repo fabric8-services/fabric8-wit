@@ -69,7 +69,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestList() {
 			fxt.WorkItemTypes[0].ID,
 			fxt.WorkItemTypes[1].ID,
 			fxt.WorkItemTypes[2].ID,
-			// NOTE: We're not listing the non-planner item based type.
+			// NOTE: We ARE listing the non-planner item based type.
 			fxt.WorkItemTypes[3].ID,
 		}.ToMap()
 		for _, wit := range wits {
@@ -112,7 +112,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestListPlannerItemTypes() {
 			fxt.WorkItemTypes[0].ID,
 			fxt.WorkItemTypes[1].ID,
 			fxt.WorkItemTypes[2].ID,
-			// NOTE: We ARE listing the non-planner item based type.
+			// NOTE: We're NOT listing the non-planner item based type.
 		}.ToMap()
 		for _, wit := range wits {
 			_, ok := toBeFound[wit.ID]
