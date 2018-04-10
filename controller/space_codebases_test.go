@@ -1,23 +1,24 @@
 package controller_test
 
 import (
+	"context"
 	"os"
 	"strconv"
 	"strings"
 	"testing"
 
-	"context"
-
+	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	"github.com/fabric8-services/fabric8-wit/application"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
-
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
+
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -41,6 +42,11 @@ func TestRunSpaceCodebaseREST(t *testing.T) {
 func (rest *TestSpaceCodebaseREST) SetupTest() {
 	rest.DBTestSuite.SetupTest()
 	rest.db = gormapplication.NewGormDB(rest.DB)
+}
+
+func (rest *TestSpaceCodebaseREST) SecuredControllerWithIdentity(idn *account.Identity) (*goa.Service, *SpaceCodebasesController) {
+	svc := testsupport.ServiceAsUser("SpaceCodebase-Service", *idn)
+	return svc, NewSpaceCodebasesController(svc, rest.db)
 }
 
 func (rest *TestSpaceCodebaseREST) SecuredController() (*goa.Service, *SpaceCodebasesController) {
@@ -107,7 +113,7 @@ func (rest *TestSpaceCodebaseREST) TestListCodebase() {
 	var createdSpacesUuids1 []uuid.UUID
 
 	for i := 0; i < 3; i++ {
-		repoURL := strings.Replace(repo, "core", "core"+strconv.Itoa(i), -1)
+		repoURL := strings.Replace(repo, "wit", "wit"+strconv.Itoa(i), -1)
 		stackId := "stackId"
 		spaceCodebaseContext := createSpaceCodebase(repoURL, &stackId)
 		_, c := test.CreateSpaceCodebasesCreated(t, svc.Context, svc, ctrl, spaceId, spaceCodebaseContext)
@@ -158,6 +164,22 @@ func (rest *TestSpaceCodebaseREST) TestFailCreateCodebaseNotAuthorized() {
 
 	svc, ctrl := rest.UnSecuredController()
 	test.CreateSpaceCodebasesUnauthorized(t, svc.Context, svc, ctrl, uuid.NewV4(), ci)
+}
+
+func (rest *TestSpaceCodebaseREST) TestFailCreateCodebaseExistingCodebase() {
+	t := rest.T()
+	resource.Require(t, resource.Database)
+
+	// Create first codebase
+	fxt := tf.NewTestFixture(t, rest.DB, tf.Codebases(1))
+
+	svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+
+	// add another codebase with same url, should fail
+	spaceCodebaseContext := createSpaceCodebase(fxt.Codebases[0].URL, fxt.Codebases[0].StackID)
+	_, err := test.CreateSpaceCodebasesConflict(t, svc.Context, svc, ctrl,
+		fxt.Codebases[0].SpaceID, spaceCodebaseContext)
+	require.NotNil(t, err)
 }
 
 func (rest *TestSpaceCodebaseREST) TestFailListCodebaseByMissingSpace() {
