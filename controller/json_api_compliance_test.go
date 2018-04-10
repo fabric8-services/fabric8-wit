@@ -47,14 +47,13 @@ func (s *JSONComplianceTestSuite) SetupSuite() {
 func (s *JSONComplianceTestSuite) Validate(response interface{}) {
 	marshalledResponse, err := json.MarshalIndent(response, "", "  ")
 	require.NoError(s.T(), err)
-	s.T().Logf("JSON response:\n%s\n", string(marshalledResponse))
-	require.NoError(s.T(), err)
 	documentLoader := gojsonschema.NewBytesLoader(marshalledResponse)
 	result, err := s.jsonapiSchema.Validate(documentLoader)
 	require.NoError(s.T(), err)
 	if result.Valid() {
 		s.T().Logf("The document is valid\n")
 	} else {
+		s.T().Logf("JSON response:\n%s\n", string(marshalledResponse))
 		s.T().Logf("The document is not valid. see errors :\n")
 		for _, desc := range result.Errors() {
 			s.T().Logf("- %s\n", desc)
