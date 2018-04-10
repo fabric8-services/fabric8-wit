@@ -1,10 +1,12 @@
 package workitem
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCompatibleFields(t *testing.T) {
@@ -65,5 +67,120 @@ func TestCompatibleFields(t *testing.T) {
 		}
 		// then
 		assert.False(t, compatibleFields(a, d), "fields %+v and %+v are not detected as being incompatible", a, d)
+	})
+}
+
+func TestFieldDefinition_Equal(t *testing.T) {
+	t.Parallel()
+	resource.Require(t, resource.UnitTest)
+
+	// given
+	a := FieldDefinition{
+		Label:       "a",
+		Description: "description for 'a'",
+		Required:    true,
+		IsReadOnly:  false,
+		Type: ListType{
+			SimpleType:    SimpleType{Kind: KindList},
+			ComponentType: SimpleType{Kind: KindString},
+		},
+	}
+
+	t.Run("equality", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		require.True(t, a.Equal(b))
+		require.True(t, b.Equal(a))
+	})
+	t.Run("label", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.Label = "b"
+		require.False(t, a.Equal(b))
+		require.False(t, b.Equal(a))
+	})
+	t.Run("description", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.Description = "description for b"
+		require.False(t, a.Equal(b))
+		require.False(t, b.Equal(a))
+	})
+	t.Run("required", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.Required = !a.Required
+		require.False(t, a.Equal(b))
+		require.False(t, b.Equal(a))
+	})
+	t.Run("is read-only", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.IsReadOnly = !a.IsReadOnly
+		require.False(t, a.Equal(b))
+		require.False(t, b.Equal(a))
+	})
+	t.Run("type", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.Type = SimpleType{Kind: KindInteger}
+		require.False(t, a.Equal(b))
+		require.False(t, b.Equal(a))
+	})
+}
+
+func TestRawFieldDef_Equal(t *testing.T) {
+	t.Parallel()
+	resource.Require(t, resource.UnitTest)
+
+	// given
+	a := rawFieldDef{
+		Label:       "a",
+		Description: "description for 'a'",
+		Required:    true,
+		IsReadOnly:  false,
+		Type:        &json.RawMessage{},
+	}
+
+	t.Run("equality", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		require.True(t, a.Equal(b))
+		require.True(t, b.Equal(a))
+	})
+	t.Run("label", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.Label = "b"
+		require.False(t, a.Equal(b))
+		require.False(t, b.Equal(a))
+	})
+	t.Run("description", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.Description = "description for b"
+		require.False(t, a.Equal(b))
+		require.False(t, b.Equal(a))
+	})
+	t.Run("required", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.Required = !a.Required
+		require.False(t, a.Equal(b))
+		require.False(t, b.Equal(a))
+	})
+	t.Run("is read-only", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.IsReadOnly = !a.IsReadOnly
+		require.False(t, a.Equal(b))
+		require.False(t, b.Equal(a))
+	})
+	t.Run("type", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.Type = nil
+		require.False(t, a.Equal(b))
+		require.False(t, b.Equal(a))
 	})
 }

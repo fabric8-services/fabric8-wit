@@ -63,6 +63,7 @@ type FieldType interface {
 // FieldDefinition describes type & other restrictions of a field
 type FieldDefinition struct {
 	Required    bool      `json:"required"`
+	IsReadOnly  bool      `json:"is_read_only"`
 	Label       string    `json:"label"`
 	Description string    `json:"description"`
 	Type        FieldType `json:"type"`
@@ -85,6 +86,9 @@ func (f FieldDefinition) Equal(u convert.Equaler) bool {
 		return false
 	}
 	if f.Required != other.Required {
+		return false
+	}
+	if f.IsReadOnly != other.IsReadOnly {
 		return false
 	}
 	if f.Label != other.Label {
@@ -134,6 +138,7 @@ func (f FieldDefinition) ConvertFromModel(name string, value interface{}) (inter
 
 type rawFieldDef struct {
 	Required    bool
+	IsReadOnly  bool
 	Label       string
 	Description string
 	Type        *json.RawMessage
@@ -150,6 +155,9 @@ func (f rawFieldDef) Equal(u convert.Equaler) bool {
 		return false
 	}
 	if f.Required != other.Required {
+		return false
+	}
+	if f.IsReadOnly != other.IsReadOnly {
 		return false
 	}
 	if f.Label != other.Label {
