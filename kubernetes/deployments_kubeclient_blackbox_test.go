@@ -649,79 +649,57 @@ func TestClose(t *testing.T) {
 
 func TestConfigMapEnvironments(t *testing.T) {
 	testCases := []struct {
-		name       string
-		input      *configMapInput
-		shouldFail bool
+		name         string
+		cassetteName string
+		shouldFail   bool
 	}{
 		{
-			name: "Basic",
-			input: &configMapInput{
-				labels: map[string]string{"provider": "fabric8"},
-				data: map[string]string{
-					"run":   "name: Run\nnamespace: my-run\norder: 1",
-					"stage": "name: Stage\nnamespace: my-stage\norder: 0",
-				},
-			},
+			name:         "Basic",
+			cassetteName: "newkubeclient",
 		},
 		{
-			name: "Empty Data",
-			input: &configMapInput{
-				labels: map[string]string{"provider": "fabric8"},
-				data:   map[string]string{},
-			},
+			name:         "Empty Data",
+			cassetteName: "newkubeclient-empty",
 		},
 		{
-			name: "Missing Colon",
-			input: &configMapInput{
-				labels: map[string]string{"provider": "fabric8"},
-				data: map[string]string{
-					"run": "name: Run\nnamespace my-run\norder: 1",
-				},
-			},
-			shouldFail: true,
+			name:         "Missing Colon",
+			cassetteName: "newkubeclient-nocolon",
+			shouldFail:   true,
 		},
 		{
-			name: "Missing Namespace",
-			input: &configMapInput{
-				labels: map[string]string{"provider": "fabric8"},
-				data: map[string]string{
-					"run": "name: Run\nns: my-run\norder: 1",
-				},
-			},
-			shouldFail: true,
+			name:         "Missing Namespace",
+			cassetteName: "newkubeclient-nonamespace",
+			shouldFail:   true,
 		},
 		{
-			name:       "No Provider",
-			input:      &configMapInput{},
-			shouldFail: true,
+			name:         "No Provider",
+			cassetteName: "newkubeclient-noprovider",
+			shouldFail:   true,
 		},
-	}
-	fixture := &testFixture{}
-	userNamespace := "myNamespace"
-	config := &kubernetes.KubeClientConfig{
-		ClusterURL:        "http://api.myCluster",
-		BearerToken:       "myToken",
-		UserNamespace:     userNamespace,
-		KubeRESTAPIGetter: fixture,
-		MetricsGetter:     fixture,
 	}
 
-	expectedName := "fabric8-environments"
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			fixture.cmInput = testCase.input
-			_, err := kubernetes.NewKubeClient(config)
+			r, err := recorder.New(pathToTestJSON + testCase.cassetteName)
+			require.NoError(t, err, "Failed to open cassette")
+			defer r.Stop()
+
+			fixture := &testFixture{}
+			config := &kubernetes.KubeClientConfig{
+				ClusterURL:    "http://api.myCluster",
+				BearerToken:   "myToken",
+				UserNamespace: "myNamespace",
+				Transport:     r.Transport,
+				MetricsGetter: fixture,
+			}
+
+			kc, err := kubernetes.NewKubeClient(config)
 			if testCase.shouldFail {
 				require.Error(t, err, "Expected an error")
 				require.True(t, fixture.metrics.closed, "Metrics must be closed after error")
 			} else {
 				require.NoError(t, err)
-				configMapHolder := fixture.kube.configMapHolder
-				require.NotNil(t, configMapHolder, "No ConfigMap created by test")
-				require.Equal(t, userNamespace, configMapHolder.namespace, "ConfigMap obtained from wrong namespace")
-				configMap := configMapHolder.configMap
-				require.NotNil(t, configMap, "Never sent ConfigMap GET")
-				require.Equal(t, expectedName, configMap.Name, "Incorrect ConfigMap name")
+				require.NotNil(t, kc, "KubeClient must not be nil")
 			}
 		})
 	}
