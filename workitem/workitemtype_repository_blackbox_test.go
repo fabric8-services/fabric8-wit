@@ -52,7 +52,15 @@ func (s *workItemTypeRepoBlackBoxTest) TestExists() {
 func (s *workItemTypeRepoBlackBoxTest) TestList() {
 	s.T().Run("ok", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemTypes(3))
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemTypes(4,
+			func(fxt *tf.TestFixture, idx int) error {
+				// Have one non-planner item based work item type
+				if idx == 3 {
+					fxt.WorkItemTypes[idx].Path = workitem.LtreeSafeID(fxt.WorkItemTypes[idx].ID)
+				}
+				return nil
+			}),
+		)
 		// when
 		wits, err := s.repo.List(s.Ctx, fxt.Spaces[0].ID)
 		// then
@@ -61,6 +69,8 @@ func (s *workItemTypeRepoBlackBoxTest) TestList() {
 			fxt.WorkItemTypes[0].ID,
 			fxt.WorkItemTypes[1].ID,
 			fxt.WorkItemTypes[2].ID,
+			// NOTE: We're not listing the non-planner item based type.
+			fxt.WorkItemTypes[3].ID,
 		}.ToMap()
 		for _, wit := range wits {
 			_, ok := toBeFound[wit.ID]
@@ -85,7 +95,15 @@ func (s *workItemTypeRepoBlackBoxTest) TestList() {
 func (s *workItemTypeRepoBlackBoxTest) TestListPlannerItemTypes() {
 	s.T().Run("ok", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemTypes(3))
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemTypes(4,
+			func(fxt *tf.TestFixture, idx int) error {
+				// Have one non-planner item based work item type
+				if idx == 3 {
+					fxt.WorkItemTypes[idx].Path = workitem.LtreeSafeID(fxt.WorkItemTypes[idx].ID)
+				}
+				return nil
+			}),
+		)
 		// when
 		wits, err := s.repo.ListPlannerItemTypes(s.Ctx, fxt.Spaces[0].ID)
 		// then
@@ -94,6 +112,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestListPlannerItemTypes() {
 			fxt.WorkItemTypes[0].ID,
 			fxt.WorkItemTypes[1].ID,
 			fxt.WorkItemTypes[2].ID,
+			// NOTE: We're NOT listing the non-planner item based type.
 		}.ToMap()
 		for _, wit := range wits {
 			_, ok := toBeFound[wit.ID]
