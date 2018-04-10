@@ -166,7 +166,13 @@ func ConvertFieldTypeToModel(t app.FieldType) (workitem.FieldType, error) {
 		if err != nil {
 			return nil, errs.WithStack(err)
 		}
-		return workitem.EnumType{workitem.SimpleType{*kind}, baseType, converted}, nil
+		return workitem.EnumType{
+			SimpleType: workitem.SimpleType{
+				Kind: *kind,
+			},
+			BaseType: baseType,
+			Values:   converted,
+		}, nil
 	default:
 		return workitem.SimpleType{*kind}, nil
 	}
