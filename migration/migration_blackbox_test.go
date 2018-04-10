@@ -129,6 +129,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration80", testMigration80)
 	t.Run("TestMigration81", testMigration81)
 	t.Run("TestMigration82", testMigration82)
+	t.Run("TestMigration84", testMigration84)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -699,6 +700,10 @@ func testMigration84(t *testing.T) {
 
 	// try to add duplicate entry, which should fail
 	assert.NotNil(t, runSQLscript(sqlDB, "084-codebases-spaceid-url-idx-violate.sql"))
+
+	// see that the existing space is not the deleted one but the one that is
+	// available in the valid one
+	assert.Nil(t, runSQLscript(sqlDB, "084-codebases-spaceid-url-idx-test.sql"))
 
 	// cleanup
 	assert.Nil(t, runSQLscript(sqlDB, "084-codebases-spaceid-url-idx-cleanup.sql"))

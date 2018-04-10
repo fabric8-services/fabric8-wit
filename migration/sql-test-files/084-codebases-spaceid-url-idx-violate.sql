@@ -3,4 +3,4 @@ INSERT INTO
     codebases(url, space_id)
 VALUES
     ('https://github.com/fabric8-services/fabric8-wit/',
-     '86af5178-9b41-469b-9096-57e5155c3f31');
+     '48d8987f-d7c2-454f-b67c-4cad74199b26');

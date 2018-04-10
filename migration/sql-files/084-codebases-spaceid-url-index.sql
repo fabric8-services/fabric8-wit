@@ -4,7 +4,7 @@ DELETE FROM codebases
 WHERE id IN (
     SELECT id
     FROM (
-        SELECT id, ROW_NUMBER() OVER (partition BY url, space_id ORDER BY id) AS rnum
+        SELECT id, ROW_NUMBER() OVER (partition BY url, space_id ORDER BY deleted_at DESC) AS rnum
         FROM codebases
     ) t
     WHERE t.rnum > 1
