@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-	"strconv"
 	"testing"
 	"time"
 
@@ -17,10 +16,7 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/kubernetes"
-	errs "github.com/pkg/errors"
-	resource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	v1 "k8s.io/client-go/pkg/api/v1"
 )
 
@@ -30,44 +26,9 @@ const fltDelta = 0.00000001
 // Path to JSON resources
 const pathToTestJSON = "../test/kubernetes/"
 
-type testKube struct {
-	kubernetes.KubeRESTAPI // Allows us to only implement methods we'll use
-	fixture                *testFixture
-	configMapHolder        *testConfigMap
-	quotaHolder            *testResourceQuota
-	rcHolder               *testReplicationController
-	podHolder              *testPod
-	svcHolder              *testService
-	svcDelHolder           []*testDeleteByName
-}
-
 type testFixture struct {
-	cmInput      *configMapInput
-	rqInput      *resourceQuotaInput
-	bcInput      string                // BC json file
-	scaleInput   deploymentConfigInput // app name -> namespace -> DC scale json file
 	metricsInput *metricsInput
-	kube         *testKube
-	os           *testOpenShift
 	metrics      *testMetrics
-	deploymentInput
-}
-
-// Collects input data necessary to retrieve a deployment
-type deploymentInput struct {
-	dcInput    deploymentConfigInput // app name -> namespace -> DC json file
-	rcInput    map[string]string     // namespace -> RC JSON file
-	podInput   map[string]string     // namespace -> pod JSON file
-	svcInput   map[string]string     // namespace -> service JSON file
-	routeInput map[string]string     // namespace -> route JSON file
-}
-
-var defaultDeploymentInput = deploymentInput{
-	dcInput:    defaultDeploymentConfigInput,
-	rcInput:    defaultReplicationControllerInput,
-	podInput:   defaultPodInput,
-	svcInput:   defaultServiceInput,
-	routeInput: defaultRouteInput,
 }
 
 func getDefaultKubeClient(fixture *testFixture, transport http.RoundTripper, t *testing.T) kubernetes.KubeClientInterface {
@@ -82,250 +43,6 @@ func getDefaultKubeClient(fixture *testFixture, transport http.RoundTripper, t *
 	kc, err := kubernetes.NewKubeClient(config)
 	require.NoError(t, err)
 	return kc
-}
-
-// Config Maps fakes
-
-type configMapInput struct {
-	data   map[string]string
-	labels map[string]string
-}
-
-var defaultConfigMapInput *configMapInput = &configMapInput{
-	labels: map[string]string{"provider": "fabric8"},
-	data: map[string]string{
-		"run":   "name: Run\nnamespace: my-run\norder: 1",
-		"stage": "name: Stage\nnamespace: my-stage\norder: 0",
-	},
-}
-
-type testConfigMap struct {
-	corev1.ConfigMapInterface
-	input     *configMapInput
-	namespace string
-	configMap *v1.ConfigMap
-}
-
-func (tk *testKube) ConfigMaps(ns string) corev1.ConfigMapInterface {
-	input := tk.fixture.cmInput
-	if input == nil {
-		input = defaultConfigMapInput
-	}
-	result := &testConfigMap{
-		input:     input,
-		namespace: ns,
-	}
-	tk.configMapHolder = result
-	return result
-}
-
-func (cm *testConfigMap) Get(name string, options metav1.GetOptions) (*v1.ConfigMap, error) {
-	result := &v1.ConfigMap{
-		Data: cm.input.data,
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   name,
-			Labels: cm.input.labels,
-		},
-	}
-	cm.configMap = result
-	return result, nil
-}
-
-// Resource Quota fakes
-
-type resourceQuotaInput struct {
-	name       string
-	namespace  string
-	hard       map[v1.ResourceName]float64
-	used       map[v1.ResourceName]float64
-	shouldFail bool
-}
-
-var defaultResourceQuotaInput *resourceQuotaInput = &resourceQuotaInput{
-	name:      "run",
-	namespace: "my-run",
-	hard: map[v1.ResourceName]float64{
-		v1.ResourceLimitsCPU:    0.7,
-		v1.ResourceLimitsMemory: 1024,
-	},
-	used: map[v1.ResourceName]float64{
-		v1.ResourceLimitsCPU:    0.4,
-		v1.ResourceLimitsMemory: 512,
-	},
-}
-
-type testResourceQuota struct {
-	corev1.ResourceQuotaInterface
-	input     *resourceQuotaInput
-	namespace string
-	quota     *v1.ResourceQuota
-}
-
-func (tk *testKube) ResourceQuotas(ns string) corev1.ResourceQuotaInterface {
-	input := tk.fixture.rqInput
-	if input == nil {
-		input = defaultResourceQuotaInput
-	}
-	result := &testResourceQuota{
-		input:     input,
-		namespace: ns,
-	}
-	tk.quotaHolder = result
-	return result
-}
-
-func (rq *testResourceQuota) Get(name string, options metav1.GetOptions) (*v1.ResourceQuota, error) {
-	if rq.input.hard == nil || rq.input.used == nil { // Used to indicate no quota object
-		return nil, nil
-	}
-	hardQuantity, err := stringToQuantityMap(rq.input.hard)
-	if err != nil {
-		return nil, errs.WithStack(err)
-	}
-	usedQuantity, err := stringToQuantityMap(rq.input.used)
-	if err != nil {
-		return nil, errs.WithStack(err)
-	}
-	result := &v1.ResourceQuota{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
-		Status: v1.ResourceQuotaStatus{
-			Hard: hardQuantity,
-			Used: usedQuantity,
-		},
-	}
-	rq.quota = result
-	return result, nil
-}
-
-func stringToQuantityMap(input map[v1.ResourceName]float64) (v1.ResourceList, error) {
-	result := make(map[v1.ResourceName]resource.Quantity)
-	for k, v := range input {
-		strVal := strconv.FormatFloat(v, 'f', -1, 64)
-		q, err := resource.ParseQuantity(strVal)
-		if err != nil {
-			return nil, errs.WithStack(err)
-		}
-		result[k] = q
-	}
-	return result, nil
-}
-
-// Replication Controller fakes
-
-var defaultReplicationControllerInput = map[string]string{
-	"my-run": "replicationcontroller.json",
-}
-
-type testReplicationController struct {
-	corev1.ReplicationControllerInterface
-	inputFile string
-	namespace string
-}
-
-func (tk *testKube) ReplicationControllers(ns string) corev1.ReplicationControllerInterface {
-	input := tk.fixture.rcInput[ns]
-	result := &testReplicationController{
-		inputFile: input,
-		namespace: ns,
-	}
-	tk.rcHolder = result
-	return result
-}
-
-func (rc *testReplicationController) List(options metav1.ListOptions) (*v1.ReplicationControllerList, error) {
-	var result v1.ReplicationControllerList
-	if len(rc.inputFile) == 0 {
-		// No matching RC
-		return &result, nil
-	}
-	err := readJSON(rc.inputFile, &result)
-	return &result, err
-}
-
-// Pod fakes
-
-var defaultPodInput = map[string]string{
-	"my-run": "pods.json",
-}
-
-type testPod struct {
-	corev1.PodInterface
-	inputFile string
-	namespace string
-}
-
-func (tk *testKube) Pods(ns string) corev1.PodInterface {
-	input := tk.fixture.podInput[ns]
-	result := &testPod{
-		inputFile: input,
-		namespace: ns,
-	}
-	tk.podHolder = result
-	return result
-}
-
-func (pod *testPod) List(options metav1.ListOptions) (*v1.PodList, error) {
-	var result v1.PodList
-	if len(pod.inputFile) == 0 {
-		// No matching pods
-		return &result, nil
-	}
-	err := readJSON(pod.inputFile, &result)
-	return &result, err
-}
-
-func (fixture *testFixture) GetKubeRESTAPI(config *kubernetes.KubeClientConfig) (kubernetes.KubeRESTAPI, error) {
-	mock := &testKube{
-		fixture: fixture,
-	}
-	fixture.kube = mock
-	return mock, nil
-}
-
-// Service fakes
-
-var defaultServiceInput = map[string]string{
-	"my-run": "services-two.json",
-}
-
-type testService struct {
-	corev1.ServiceInterface
-	inputFile string
-	namespace string
-	kube      *testKube
-}
-
-func (tk *testKube) Services(ns string) corev1.ServiceInterface {
-	input := tk.fixture.svcInput[ns]
-	result := &testService{
-		inputFile: input,
-		namespace: ns,
-		kube:      tk,
-	}
-	tk.svcHolder = result
-	return result
-}
-
-func (svc *testService) List(options metav1.ListOptions) (*v1.ServiceList, error) {
-	var result v1.ServiceList
-	if len(svc.inputFile) == 0 {
-		// No matching service
-		return &result, nil
-	}
-	err := readJSON(svc.inputFile, &result)
-	return &result, err
-}
-
-func (svc *testService) Delete(name string, options *metav1.DeleteOptions) error {
-	delHolder := &testDeleteByName{
-		namespace: svc.namespace,
-		name:      name,
-		opts:      options,
-	}
-	svc.kube.svcDelHolder = append(svc.kube.svcDelHolder, delHolder)
-	return nil
 }
 
 // Metrics fakes
@@ -450,154 +167,6 @@ func (tm *testMetrics) getManyMetrics(metrics []*app.TimedNumberTuple, pods []*v
 		limit:     limit,
 	}
 	return metrics, nil
-}
-
-// OpenShift API fakes
-
-type testOpenShift struct {
-	fixture        *testFixture
-	scaleHolder    *testScale
-	routeHolder    *testGetResult
-	delDCHolder    *testDeleteByName
-	delRouteHolder []*testDeleteByName
-}
-
-type testScale struct {
-	scaleOutput map[string]interface{}
-	namespace   string
-	dcName      string
-}
-
-type testGetResult struct {
-	namespace     string
-	labelSelector string
-}
-
-type testDeleteByName struct {
-	namespace string
-	name      string
-	opts      *metav1.DeleteOptions
-}
-
-func (fixture *testFixture) GetOpenShiftRESTAPI(config *kubernetes.KubeClientConfig) (kubernetes.OpenShiftRESTAPI, error) {
-	oapi := &testOpenShift{
-		fixture: fixture,
-	}
-	fixture.os = oapi
-	return oapi, nil
-}
-
-func (to *testOpenShift) GetBuildConfigs(namespace string, labelSelector string) (map[string]interface{}, error) {
-	var result map[string]interface{}
-	input := to.fixture.bcInput
-	if len(input) == 0 {
-		// No matching BCs
-		return result, nil
-	}
-	err := readJSON(input, &result)
-	return result, err
-}
-
-type deploymentConfigInput map[string]map[string]string
-
-var defaultDeploymentConfigInput = deploymentConfigInput{
-	"myApp": {
-		"my-run": "deploymentconfig-one.json",
-	},
-}
-
-func (input deploymentConfigInput) getInput(appName string, envNS string) *string {
-	inputForApp, pres := input[appName]
-	if !pres {
-		return nil
-	}
-	inputForEnv, pres := inputForApp[envNS]
-	if !pres {
-		return nil
-	}
-	return &inputForEnv
-}
-
-func (to *testOpenShift) GetDeploymentConfig(namespace string, name string) (map[string]interface{}, error) {
-	input := to.fixture.dcInput.getInput(name, namespace)
-	if input == nil {
-		// No matching DC
-		return nil, nil
-	}
-	var result map[string]interface{}
-	err := readJSON(*input, &result)
-	return result, err
-}
-
-func (to *testOpenShift) DeleteDeploymentConfig(namespace string, name string, opts *metav1.DeleteOptions) error {
-	to.delDCHolder = &testDeleteByName{
-		namespace: namespace,
-		name:      name,
-		opts:      opts,
-	}
-	return nil
-}
-
-func (to *testOpenShift) GetDeploymentConfigScale(namespace string, name string) (map[string]interface{}, error) {
-	input := to.fixture.scaleInput.getInput(name, namespace)
-	if input == nil {
-		// No matching DC scale
-		return nil, nil
-	}
-	var result map[string]interface{}
-	err := readJSON(*input, &result)
-	return result, err
-}
-
-func (to *testOpenShift) SetDeploymentConfigScale(namespace string, name string, scale map[string]interface{}) error {
-	to.scaleHolder = &testScale{
-		namespace:   namespace,
-		dcName:      name,
-		scaleOutput: scale,
-	}
-	return nil
-}
-
-var defaultRouteInput = map[string]string{
-	"my-run": "routes-two.json",
-}
-
-func (to *testOpenShift) GetRoutes(namespace string, labelSelector string) (map[string]interface{}, error) {
-	var result map[string]interface{}
-	input := to.fixture.routeInput[namespace]
-	if len(input) == 0 {
-		// No matching routes
-		return result, nil
-	}
-	to.routeHolder = &testGetResult{
-		namespace:     namespace,
-		labelSelector: labelSelector,
-	}
-	err := readJSON(input, &result)
-	return result, err
-}
-
-func (to *testOpenShift) DeleteRoute(namespace string, name string, opts *metav1.DeleteOptions) error {
-	delHolder := &testDeleteByName{
-		namespace: namespace,
-		name:      name,
-		opts:      opts,
-	}
-	to.delRouteHolder = append(to.delRouteHolder, delHolder)
-	return nil
-}
-
-func readJSON(filename string, dest interface{}) error {
-	path := pathToTestJSON + filename
-	jsonBytes, err := ioutil.ReadFile(path)
-	if err != nil {
-		return errs.WithStack(err)
-	}
-	err = json.Unmarshal(jsonBytes, dest)
-	if err != nil {
-		return errs.WithStack(err)
-	}
-	return nil
 }
 
 func TestGetMetrics(t *testing.T) {
@@ -873,7 +442,6 @@ type spaceTestData struct {
 	testName     string
 	spaceName    string
 	shouldFail   bool
-	bcJson       string
 	appTestData  map[string]*appTestData // Keys are app names
 	cassetteName string
 }
@@ -881,7 +449,6 @@ type spaceTestData struct {
 var defaultSpaceTestData = &spaceTestData{
 	testName:     "Basic",
 	spaceName:    "mySpace",
-	bcJson:       "buildconfigs-one.json",
 	appTestData:  map[string]*appTestData{"myApp": defaultAppTestData},
 	cassetteName: "getspace",
 }
@@ -986,48 +553,41 @@ func TestGetSpace(t *testing.T) {
 		{
 			testName:     "Empty List",
 			spaceName:    "mySpace",
-			bcJson:       "buildconfigs-emptylist.json",
 			cassetteName: "getspace-empty-bc",
 		},
 		{
 			testName:     "Wrong List",
 			spaceName:    "mySpace",
-			bcJson:       "buildconfigs-wronglist.json",
 			cassetteName: "getspace-wrong-list",
 			shouldFail:   true,
 		},
 		{
 			testName:     "No Items",
 			spaceName:    "mySpace",
-			bcJson:       "buildconfigs-noitems.json",
 			cassetteName: "getspace-no-items",
 			shouldFail:   true,
 		},
 		{
 			testName:     "Not Object",
 			spaceName:    "mySpace",
-			bcJson:       "buildconfigs-notobject.json",
 			cassetteName: "getspace-not-object",
 			shouldFail:   true,
 		},
 		{
 			testName:     "No Metadata",
 			spaceName:    "mySpace",
-			bcJson:       "buildconfigs-nometadata.json",
 			cassetteName: "getspace-no-metadata",
 			shouldFail:   true,
 		},
 		{
 			testName:     "No Name",
 			spaceName:    "mySpace",
-			bcJson:       "buildconfigs-noname.json",
 			cassetteName: "getspace-no-name",
 			shouldFail:   true,
 		},
 		{
 			testName:     "Two Apps One Deployed",
 			spaceName:    "mySpace", // Test two BCs, but only one DC
-			bcJson:       "buildconfigs-two.json",
 			cassetteName: "getspace-two-apps-one-deploy",
 			appTestData: map[string]*appTestData{
 				"myApp": defaultAppTestData,
@@ -1040,7 +600,6 @@ func TestGetSpace(t *testing.T) {
 		{
 			testName:     "Two Apps Both Deployed",
 			spaceName:    "mySpace", // Test two deployed applications, with two environments
-			bcJson:       "buildconfigs-two.json",
 			cassetteName: "getspace-two-apps-two-deploy",
 			appTestData: map[string]*appTestData{
 				"myApp": {
@@ -1389,7 +948,6 @@ func TestDeleteDeployment(t *testing.T) {
 		cassetteName string
 		expectNS     string
 		shouldFail   bool
-		deploymentInput
 	}{
 		{
 			testName:     "Basic",
@@ -1484,15 +1042,6 @@ func TestDeleteDeployment(t *testing.T) {
 			}
 		})
 	}
-}
-
-func createSet(values ...string) map[string]struct{} {
-	result := make(map[string]struct{}, len(values))
-	var empty struct{}
-	for _, value := range values {
-		result[value] = empty
-	}
-	return result
 }
 
 func TestGetDeploymentStats(t *testing.T) {
