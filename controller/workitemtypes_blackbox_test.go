@@ -65,6 +65,16 @@ func (s *workItemTypesSuite) TestList() {
 	// given
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItemTypes(2), tf.Spaces(1))
 
+	s.T().Run("not found using non existing space", func(t *testing.T) {
+		// given
+		spaceID := uuid.NewV4()
+		// when
+		res, jerrs := test.ListWorkitemtypesNotFound(t, nil, nil, s.typeCtrl, spaceID, nil, nil)
+		// then
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "not_found_using_non_existing_space.res.payload.golden.json"), jerrs)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "not_found_using_non_existing_space.res.headers.golden.json"), res.Header())
+	})
+
 	s.T().Run("ok", func(t *testing.T) {
 		// when
 		res, witCollection := test.ListWorkitemtypesOK(t, nil, nil, s.typeCtrl, fxt.Spaces[0].ID, nil, nil)
@@ -86,6 +96,11 @@ func (s *workItemTypesSuite) TestList() {
 		assert.NotNil(t, res.Header()[app.CacheControl][0])
 		require.NotNil(t, res.Header()[app.ETag])
 		assert.Equal(t, generateWorkItemTypesTag(*witCollection), res.Header()[app.ETag][0])
+
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok.res.payload.golden.json"), witCollection)
+		safeOverriteHeader(t, res, "Etag", "0icd7ov5CqwDXN6Fx9z18g==")
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok.res.headers.golden.json"), res.Header())
+		assertResponseHeaders(t, res)
 	})
 
 	s.T().Run("ok - using expired IfModifiedSince header", func(t *testing.T) {
@@ -110,6 +125,11 @@ func (s *workItemTypesSuite) TestList() {
 		assert.NotNil(t, res.Header()[app.CacheControl][0])
 		require.NotNil(t, res.Header()[app.ETag])
 		assert.Equal(t, generateWorkItemTypesTag(*witCollection), res.Header()[app.ETag][0])
+
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok_using_expired_ifmodifiedsince_header.res.payload.golden.json"), witCollection)
+		safeOverriteHeader(t, res, "Etag", "0icd7ov5CqwDXN6Fx9z18g==")
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok_using_expired_ifmodifiedsince_header.res.headers.golden.json"), res.Header())
+		assertResponseHeaders(t, res)
 	})
 
 	s.T().Run("ok - using IfNoneMatch header", func(t *testing.T) {
@@ -134,20 +154,31 @@ func (s *workItemTypesSuite) TestList() {
 		assert.NotNil(t, res.Header()[app.CacheControl][0])
 		require.NotNil(t, res.Header()[app.ETag])
 		assert.Equal(t, generateWorkItemTypesTag(*witCollection), res.Header()[app.ETag][0])
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok_using_expired_ifnonematch_header.res.payload.golden.json"), witCollection)
+		safeOverriteHeader(t, res, "Etag", "0icd7ov5CqwDXN6Fx9z18g==")
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok_using_expired_ifnonematch_header.res.headers.golden.json"), res.Header())
+		assertResponseHeaders(t, res)
 	})
 
 	s.T().Run("not modified - using IfModifiedSince header", func(t *testing.T) {
-		// when/then
+		// given
 		lastModified := app.ToHTTPTime(fxt.WorkItemTypes[1].UpdatedAt)
-		test.ListWorkitemtypesNotModified(t, nil, nil, s.typeCtrl, fxt.Spaces[0].ID, &lastModified, nil)
+		// when
+		res := test.ListWorkitemtypesNotModified(t, nil, nil, s.typeCtrl, fxt.Spaces[0].ID, &lastModified, nil)
+		// then
+		safeOverriteHeader(t, res, "Etag", "0icd7ov5CqwDXN6Fx9z18g==")
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "not_modified_using_ifmodifiedsince_header.res.headers.golden.json"), res.Header())
 	})
 
 	s.T().Run("not modified - using IfNoneMatch header", func(t *testing.T) {
 		// given
 		_, witCollection := test.ListWorkitemtypesOK(t, nil, nil, s.typeCtrl, fxt.Spaces[0].ID, nil, nil)
 		require.NotNil(t, witCollection)
-		// when/then
+		// when
 		ifNoneMatch := generateWorkItemTypesTag(*witCollection)
-		test.ListWorkitemtypesNotModified(t, nil, nil, s.typeCtrl, fxt.Spaces[0].ID, nil, &ifNoneMatch)
+		res := test.ListWorkitemtypesNotModified(t, nil, nil, s.typeCtrl, fxt.Spaces[0].ID, nil, &ifNoneMatch)
+		// then
+		safeOverriteHeader(t, res, "Etag", "0icd7ov5CqwDXN6Fx9z18g==")
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "not_modified_using_ifnonematch_header.res.headers.golden.json"), res.Header())
 	})
 }

@@ -194,7 +194,7 @@ func (r *GormWorkItemTypeRepository) ListPlannerItemTypes(ctx context.Context, s
 
 	var rows []WorkItemType
 	path := path.Path{}
-	db := r.db.Select("id").Where("space_id = ? AND path::text LIKE '"+path.ConvertToLtree(SystemPlannerItem)+".%'", spaceID.String())
+	db := r.db.Select("id").Where("space_id = ? AND path::text LIKE '"+path.ConvertToLtree(SystemPlannerItem)+".%'", spaceID.String()).Order("created_at")
 
 	if err := db.Find(&rows).Error; err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -217,7 +217,7 @@ func (r *GormWorkItemTypeRepository) List(ctx context.Context, spaceID uuid.UUID
 	}
 
 	var rows []WorkItemType
-	db := r.db.Where("space_id = ?", spaceID)
+	db := r.db.Where("space_id = ?", spaceID).Order("created_at")
 	if err := db.Find(&rows).Error; err != nil {
 		return nil, errs.WithStack(err)
 	}
