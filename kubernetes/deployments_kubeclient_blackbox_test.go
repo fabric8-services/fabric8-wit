@@ -601,31 +601,37 @@ func readJSON(filename string, dest interface{}) error {
 }
 
 func TestGetMetrics(t *testing.T) {
-	fixture := &testFixture{}
-
 	token := "myToken"
 	testCases := []struct {
 		name          string
 		clusterURL    string
 		expectedURL   string
+		cassetteName  string
 		shouldSucceed bool
 	}{
-		{"Basic", "https://api.myCluster.url:443/cluster", "https://metrics.myCluster.url", true},
-		{"Bad URL", "https://myCluster.url:443/cluster", "", false},
+		{"Basic", "https://api.myCluster.url:443/cluster", "https://metrics.myCluster.url", "newkubeclient-withport", true},
+		{"Bad URL", "https://myCluster.url:443/cluster", "", "newkubeclient-badurl", false},
 	}
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
+			r, err := recorder.New(pathToTestJSON + testCase.cassetteName)
+			require.NoError(t, err, "Failed to open cassette")
+			defer r.Stop()
+
+			fixture := &testFixture{}
 			config := &kubernetes.KubeClientConfig{
-				ClusterURL:        testCase.clusterURL,
-				BearerToken:       token,
-				UserNamespace:     "myNamespace",
-				KubeRESTAPIGetter: fixture,
-				MetricsGetter:     fixture,
+				ClusterURL:    testCase.clusterURL,
+				BearerToken:   token,
+				UserNamespace: "myNamespace",
+				Transport:     r.Transport,
+				MetricsGetter: fixture,
 			}
-			_, err := kubernetes.NewKubeClient(config)
+
+			kc, err := kubernetes.NewKubeClient(config)
 			if testCase.shouldSucceed {
 				require.NoError(t, err, "Unexpected error")
+				require.NotNil(t, kc, "KubeClient must not be nil")
 
 				metricsConfig := fixture.metrics.config
 				require.NotNil(t, metricsConfig, "Metrics config is nil")
@@ -639,8 +645,12 @@ func TestGetMetrics(t *testing.T) {
 }
 
 func TestClose(t *testing.T) {
+	r, err := recorder.New(pathToTestJSON + "newkubeclient")
+	require.NoError(t, err, "Failed to open cassette")
+	defer r.Stop()
+
 	fixture := &testFixture{}
-	kc := getDefaultKubeClient(fixture, nil, t)
+	kc := getDefaultKubeClient(fixture, r.Transport, t)
 
 	// Check that KubeClientInterface.Close invokes MetricsInterface.Close
 	kc.Close()
