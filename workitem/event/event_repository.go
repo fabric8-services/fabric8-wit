@@ -55,7 +55,7 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 	if err != nil {
 		return nil, errs.Wrapf(err, "error during fetching event list")
 	}
-	wiType, err := r.workItemTypeRepo.LoadByID(ctx, wi.Type)
+	wiType, err := r.workItemTypeRepo.Load(ctx, wi.Type)
 	if err != nil {
 		return nil, errs.Wrapf(err, "error during fetching event list")
 	}
