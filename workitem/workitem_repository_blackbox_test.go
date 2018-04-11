@@ -74,19 +74,21 @@ func (s *workItemRepoBlackBoxTest) TestSave() {
 		assert.Equal(t, oldDate.UTC(), newTime.UTC())
 	})
 
-	s.T().Run("ok - ignore or accept read-only fields", func(t *testing.T) {
+	s.T().Run("ok - ignore read-only fields", func(t *testing.T) {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1))
 		var origCreatedAt, origUpdatedAt time.Time
+		var origOrder float64
 		origNumber := fxt.WorkItems[0].Number
 		require.NotPanics(t, func() { origCreatedAt = fxt.WorkItems[0].Fields[workitem.SystemCreatedAt].(time.Time) })
 		require.NotPanics(t, func() { origUpdatedAt = fxt.WorkItems[0].Fields[workitem.SystemUpdatedAt].(time.Time) })
+		require.NotPanics(t, func() { origOrder = fxt.WorkItems[0].Fields[workitem.SystemOrder].(float64) })
 		// Update read-only fields to user-defined values and check that they're
 		// not overwritten.
 		updatedWI := *fxt.WorkItems[0]
 		updatedWI.Fields[workitem.SystemCreatedAt] = time.Now() // this is a read-only field, changes should be ignored
 		updatedWI.Fields[workitem.SystemCreatedAt] = time.Now() // this is a read-only field, changes should be ignored
-		updatedWI.Fields[workitem.SystemOrder] = float64(6543)  // this is NOT a read-only field, changes should be ACCEPTED
+		updatedWI.Fields[workitem.SystemOrder] = float64(6543)  // this is a read-only field, changes should be ignored
 		updatedWI.Fields[workitem.SystemNumber] = 1234          // this is a read-only field, changes should be ignored
 		// when
 		wiNew, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, updatedWI, fxt.Identities[0].ID)
@@ -94,7 +96,7 @@ func (s *workItemRepoBlackBoxTest) TestSave() {
 		require.NoError(t, err)
 		require.NotPanics(t, func() {
 			require.Equal(t, origCreatedAt.UTC(), wiNew.Fields[workitem.SystemCreatedAt].(time.Time).UTC(), "created-at should not have changed")
-			require.Equal(t, float64(6543), wiNew.Fields[workitem.SystemOrder].(float64), "order should not have changed")
+			require.Equal(t, origOrder, wiNew.Fields[workitem.SystemOrder].(float64), "order should not have changed")
 			require.Equal(t, origNumber, wiNew.Fields[workitem.SystemNumber].(int), "number should not have changed")
 			// the updated time must not be the old time but it also must not be the one that the user defined
 			require.NotEqual(t, origUpdatedAt.UTC(), wiNew.Fields[workitem.SystemUpdatedAt].(time.Time), "updated-at should be different to original updated-at")

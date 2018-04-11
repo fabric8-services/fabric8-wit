@@ -537,11 +537,6 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 	wiStorage.Type = updatedWorkItem.Type
 	wiStorage.Fields = Fields{}
 
-	var convOk bool
-	wiStorage.ExecutionOrder, convOk = updatedWorkItem.Fields[SystemOrder].(float64)
-	if !convOk {
-		return nil, errors.NewConversionError(fmt.Sprintf("failed to convert field %s to float: %+v", SystemOrder, updatedWorkItem))
-	}
 	for fieldName, fieldDef := range wiType.Fields {
 		if fieldDef.ReadOnly {
 			continue
