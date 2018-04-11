@@ -17,26 +17,29 @@ func TestCloseable(t *testing.T) {
 		// given
 		c := &Rows{}
 		require.NotNil(t, c)
-		// when
-		closeable.Close(context.Background(), c)
-		// then it should not fail
+		// when, then it should not fail
+		require.NotPanics(t, func() {
+			closeable.Close(context.Background(), c)
+		})
 	})
 
 	t.Run("nil", func(t *testing.T) {
 		// given
 		var c io.Closer
 		require.Nil(t, c)
-		// when
-		closeable.Close(context.Background(), c)
-		// then it should not fail
+		// when, then it should not fail
+		require.NotPanics(t, func() {
+			closeable.Close(context.Background(), c)
+		})
 	})
 
 	t.Run("non nil with nil value", func(t *testing.T) {
 		// given
 		c := newCloseable()
-		// when
-		closeable.Close(context.Background(), c)
-		// then it should not fail
+		// when, then it should not fail
+		require.NotPanics(t, func() {
+			closeable.Close(context.Background(), c)
+		})
 	})
 }
 
