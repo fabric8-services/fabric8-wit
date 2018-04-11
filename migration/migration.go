@@ -382,6 +382,9 @@ func GetMigrations() Migrations {
 	// Version 84
 	m = append(m, steps{ExecuteSQLFile("084-codebases-spaceid-url-index.sql")})
 
+	// Version 85
+	m = append(m, steps{ExecuteSQLFile("085-delete-system.number-json-field.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
