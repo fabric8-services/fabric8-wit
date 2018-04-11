@@ -12,6 +12,9 @@ func Interface(o interface{}) *interface{} { return &o }
 // String returns the pointer to the given string.
 func String(o string) *string { return &o }
 
+// Bool returns the pointer to the given bool.
+func Bool(o bool) *bool { return &o }
+
 // Time returns the pointer to the given time.Time.
 func Time(o time.Time) *time.Time { return &o }
 
