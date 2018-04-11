@@ -137,11 +137,11 @@ func (f FieldDefinition) ConvertFromModel(name string, value interface{}) (inter
 }
 
 type rawFieldDef struct {
-	Required    bool
-	ReadOnly    bool
-	Label       string
-	Description string
-	Type        *json.RawMessage
+	Required    bool             `json:"required"`
+	ReadOnly    bool             `json:"is_read_only"`
+	Label       string           `json:"label"`
+	Description string           `json:"description"`
+	Type        *json.RawMessage `json:"type"`
 }
 
 // Ensure rawFieldDef implements the Equaler interface

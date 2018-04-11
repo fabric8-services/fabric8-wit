@@ -379,6 +379,9 @@ func GetMigrations() Migrations {
 	// Version 83
 	m = append(m, steps{ExecuteSQLFile("083-index-comments-parent.sql")})
 
+	// Version 84
+	m = append(m, steps{ExecuteSQLFile("084-codebases-spaceid-url-index.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -772,7 +775,7 @@ func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.Gor
 		workitem.SystemRemoteItemID: {Type: workitem.SimpleType{Kind: "string"}, Required: false, Label: "Remote item", Description: "The ID of the remote work item"},
 		workitem.SystemCreatedAt:    {Type: workitem.SimpleType{Kind: "instant"}, Required: false, ReadOnly: true, Label: "Created at", Description: "The date and time when the work item was created"},
 		workitem.SystemUpdatedAt:    {Type: workitem.SimpleType{Kind: "instant"}, Required: false, ReadOnly: true, Label: "Updated at", Description: "The date and time when the work item was last updated"},
-		workitem.SystemOrder:        {Type: workitem.SimpleType{Kind: "float"}, Required: false, ReadOnly: true, Label: "Execution Order", Description: "Execution Order of the workitem."},
+		workitem.SystemOrder:        {Type: workitem.SimpleType{Kind: "float"}, Required: false, Label: "Execution Order", Description: "Execution Order of the workitem."},
 		workitem.SystemNumber:       {Type: workitem.SimpleType{Kind: "integer"}, Required: false, ReadOnly: true, Label: "Number", Description: "The unique number that was given to this workitem within its space."},
 		workitem.SystemIteration:    {Type: workitem.SimpleType{Kind: "iteration"}, Required: false, Label: "Iteration", Description: "The iteration to which the work item belongs"},
 		workitem.SystemArea:         {Type: workitem.SimpleType{Kind: "area"}, Required: false, Label: "Area", Description: "The area to which the work item belongs"},
@@ -823,7 +826,7 @@ func createOrUpdatePlannerItemExtension(ctx context.Context, typeID uuid.UUID, n
 
 func createOrUpdateType(ctx context.Context, typeID uuid.UUID, spaceID uuid.UUID, name string, description string, extendedTypeID *uuid.UUID, fields map[string]workitem.FieldDefinition, icon string, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB) error {
 	log.Info(ctx, nil, "Creating or updating planner item types...")
-	wit, err := witr.LoadTypeFromDB(ctx, typeID)
+	err := witr.CheckExists(ctx, typeID)
 	cause := errs.Cause(err)
 	switch cause.(type) {
 	case errors.NotFoundError:
@@ -859,11 +862,15 @@ func createOrUpdateType(ctx context.Context, typeID uuid.UUID, spaceID uuid.UUID
 		if err != nil {
 			return errs.WithStack(err)
 		}
-		wit.Name = name
-		wit.Description = &description
-		wit.Icon = icon
-		wit.Fields = fields
-		wit.Path = path
+		wit := workitem.WorkItemType{
+			ID:          typeID,
+			SpaceID:     spaceID,
+			Name:        name,
+			Description: &description,
+			Icon:        icon,
+			Fields:      fields,
+			Path:        path,
+		}
 		db = db.Save(wit)
 		return db.Error
 	}

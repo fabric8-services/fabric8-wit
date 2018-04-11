@@ -140,14 +140,11 @@ var _ = a.Resource("workitemtypes", func() {
 			a.GET(""),
 		)
 		a.Description("List work item types.")
-		a.Params(func() {
-			a.Param("page", d.String, "Paging in the format <start>,<limit>")
-			// TODO: Support same params as in work item list-action?
-		})
 		a.UseTrait("conditional")
 		a.Response(d.OK, workItemTypeList)
 		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 })

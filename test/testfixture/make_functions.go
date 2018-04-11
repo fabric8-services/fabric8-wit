@@ -250,7 +250,7 @@ func makeWorkItemTypes(fxt *TestFixture) error {
 				workitem.SystemRemoteItemID: {Type: workitem.SimpleType{Kind: workitem.KindString}, Required: false, Label: "Remote item", Description: "The ID of the remote work item"},
 				workitem.SystemCreatedAt:    {Type: workitem.SimpleType{Kind: workitem.KindInstant}, Required: false, ReadOnly: true, Label: "Created at", Description: "The date and time when the work item was created"},
 				workitem.SystemUpdatedAt:    {Type: workitem.SimpleType{Kind: workitem.KindInstant}, Required: false, ReadOnly: true, Label: "Updated at", Description: "The date and time when the work item was last updated"},
-				workitem.SystemOrder:        {Type: workitem.SimpleType{Kind: workitem.KindFloat}, Required: false, ReadOnly: true, Label: "Execution Order", Description: "Execution Order of the workitem."},
+				workitem.SystemOrder:        {Type: workitem.SimpleType{Kind: workitem.KindFloat}, Required: false, Label: "Execution Order", Description: "Execution Order of the workitem."},
 				workitem.SystemNumber:       {Type: workitem.SimpleType{Kind: "integer"}, Required: false, ReadOnly: true, Label: "Number", Description: "The unique number that was given to this workitem within its space."},
 				workitem.SystemIteration:    {Type: workitem.SimpleType{Kind: workitem.KindIteration}, Required: false, Label: "Iteration", Description: "The iteration to which the work item belongs"},
 				workitem.SystemArea:         {Type: workitem.SimpleType{Kind: workitem.KindArea}, Required: false, Label: "Area", Description: "The area to which the work item belongs"},
