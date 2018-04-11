@@ -586,6 +586,35 @@ func expectEqualExpr(t *testing.T, expectedExpr, actualExpr c.Expression) {
 	require.Equal(t, expectedJoins, actualJoins, "joins differ")
 }
 
+func TestWorkItemNumber(t *testing.T) {
+	t.Run("search by number", func(t *testing.T) {
+		// given
+		spaceName := "openshiftio"
+		wiNumber := "1"
+		q := Query{
+			Name: AND,
+			Children: []Query{
+				{Name: "space", Value: &spaceName},
+				{Name: "number", Value: &wiNumber},
+			},
+		}
+		// when
+		actualExpr, _ := q.generateExpression()
+		// then
+		expectedExpr := c.And(
+			c.Equals(
+				c.Field("SpaceID"),
+				c.Literal(spaceName),
+			),
+			c.Equals(
+				c.Field("system.number"),
+				c.Literal(&wiNumber),
+			),
+		)
+		expectEqualExpr(t, expectedExpr, actualExpr)
+	})
+}
+
 func TestGenerateExpressionWithNonExistingKey(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
