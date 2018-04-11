@@ -9,9 +9,7 @@ import (
 	"time"
 
 	"github.com/dnaeon/go-vcr/cassette"
-
 	"github.com/dnaeon/go-vcr/recorder"
-
 	"github.com/stretchr/testify/require"
 
 	"github.com/fabric8-services/fabric8-wit/app"
@@ -475,7 +473,6 @@ type deployTestData struct {
 	spaceName               string
 	appName                 string
 	envName                 string
-	envNS                   string
 	expectVersion           string
 	expectPodStatus         [][]string
 	expectPodsTotal         int
@@ -493,7 +490,6 @@ var defaultDeployTestData = &deployTestData{
 	spaceName:     "mySpace",
 	appName:       "myApp",
 	envName:       "run",
-	envNS:         "my-run",
 	expectVersion: "1.0.2",
 	expectPodStatus: [][]string{
 		{"Running", "2"},
@@ -610,7 +606,6 @@ func TestGetSpace(t *testing.T) {
 							spaceName:     "mySpace",
 							appName:       "myApp",
 							envName:       "run",
-							envNS:         "my-run",
 							expectVersion: "1.0.2",
 							expectPodStatus: [][]string{
 								{"Running", "2"},
@@ -626,7 +621,6 @@ func TestGetSpace(t *testing.T) {
 							spaceName:     "mySpace",
 							appName:       "myApp",
 							envName:       "stage",
-							envNS:         "my-stage",
 							expectVersion: "1.0.3",
 							expectPodStatus: [][]string{
 								{"Running", "1"},
@@ -648,7 +642,6 @@ func TestGetSpace(t *testing.T) {
 							spaceName:     "mySpace",
 							appName:       "myOtherApp",
 							envName:       "run",
-							envNS:         "my-run",
 							expectVersion: "1.0.1",
 							expectPodStatus: [][]string{
 								{"Running", "1"},
@@ -711,7 +704,6 @@ func TestGetApplication(t *testing.T) {
 					spaceName:     "mySpace",
 					appName:       "myApp",
 					envName:       "stage",
-					envNS:         "my-stage",
 					expectVersion: "1.0.3",
 					expectPodStatus: [][]string{
 						{"Running", "1"},
@@ -733,7 +725,6 @@ func TestGetApplication(t *testing.T) {
 			deployTestData: map[string]*deployTestData{
 				"run": {
 					envName:          "run",
-					envNS:            "my-run",
 					expectVersion:    "1.0.1",
 					expectConsoleURL: "http://console.myCluster/console/project/my-run",
 					expectLogURL:     "http://console.myCluster/console/project/my-run/browse/rc/myOtherApp-1?tab=logs",
@@ -782,7 +773,6 @@ func TestGetDeployment(t *testing.T) {
 			spaceName:        "mySpace",
 			appName:          "myApp",
 			envName:          "run",
-			envNS:            "my-run",
 			expectVersion:    "1.0.2",
 			expectPodStatus:  [][]string{},
 			expectPodsTotal:  0,
@@ -801,7 +791,6 @@ func TestGetDeployment(t *testing.T) {
 			spaceName:     "mySpace",
 			appName:       "myApp",
 			envName:       "run",
-			envNS:         "my-run",
 			expectVersion: "1.0.2",
 			expectPodStatus: [][]string{
 				{"Running", "2"},
@@ -821,7 +810,6 @@ func TestGetDeployment(t *testing.T) {
 			spaceName:    "myWrongSpace",
 			appName:      "myApp",
 			envName:      "run",
-			envNS:        "my-run",
 			cassetteName: "getdeployment",
 			shouldFail:   true,
 		},
