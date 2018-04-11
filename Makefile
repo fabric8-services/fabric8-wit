@@ -232,8 +232,8 @@ deps: $(DEP_BIN) $(VENDOR_DIR)
 
 # install dep (see https://golang.github.io/dep/docs/installation.html)
 $(DEP_BIN):
-	@echo "Installing 'dep' in $(GOPATH)/bin"
-	@mkdir -p $(GOPATH)/bin
+	@echo "Installing 'dep' in ./tmp/bin"
+	@mkdir -p ./tmp/bin
 	curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
 
 $(VENDOR_DIR): Gopkg.toml Gopkg.lock

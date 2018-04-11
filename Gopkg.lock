@@ -516,6 +516,11 @@
   revision = "ded73eae5db7e7a0ef6f55aace87a2873c5d2b74"
 
 [[projects]]
+  name = "github.com/wadey/gocovmerge"
+  packages = ["."]
+  revision = "master"
+
+[[projects]]
   name = "github.com/xeipuuv/gojsonpointer"
   packages = ["."]
   revision = "6fe8760cad3569743d51ddbb243b26f8456742dc"
@@ -601,6 +606,7 @@
 [[projects]]
   name = "golang.org/x/tools"
   packages = [
+    "cover",
     "go/ast/astutil",
     "go/gcexportdata",
     "go/gcimporter15"
@@ -754,6 +760,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "bd9b70bd0f06d28130f498c8d40381e19ee8040c66fc22ba4542606edc571d66"
+  inputs-digest = "9a7c235e7a543119c6d66a00b18952d2be8f5fb0b9189031f35199dfa4b0c55e"
   solver-name = "gps-cdcl"
   solver-version = 1
