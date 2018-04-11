@@ -849,41 +849,45 @@ func TestGetDeployment(t *testing.T) {
 
 func TestScaleDeployment(t *testing.T) {
 	testCases := []struct {
-		testName     string
-		spaceName    string
-		appName      string
-		envName      string
-		expectedNS   string
-		cassetteName string
-		newReplicas  int
-		oldReplicas  int
-		shouldFail   bool
+		testName      string
+		spaceName     string
+		appName       string
+		envName       string
+		expectPutURLs map[string]struct{}
+		cassetteName  string
+		newReplicas   int
+		oldReplicas   int
+		shouldFail    bool
 	}{
 		{
 			testName:     "Basic",
 			spaceName:    "mySpace",
 			appName:      "myApp",
 			envName:      "run",
-			expectedNS:   "my-run",
 			cassetteName: "scaledeployment",
-			newReplicas:  3,
-			oldReplicas:  2,
+			expectPutURLs: map[string]struct{}{
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myApp/scale": {},
+			},
+			newReplicas: 3,
+			oldReplicas: 2,
 		},
 		{
 			testName:     "Zero Replicas",
 			spaceName:    "mySpace",
 			appName:      "myApp",
 			envName:      "run",
-			expectedNS:   "my-run",
 			cassetteName: "scaledeployment-zero",
-			newReplicas:  1,
-			oldReplicas:  0,
+			expectPutURLs: map[string]struct{}{
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myApp/scale": {},
+			},
+			newReplicas: 1,
+			oldReplicas: 0,
 		},
 	}
 
 	for _, testCase := range testCases {
 		t.Run(testCase.testName, func(t *testing.T) {
-			r, err := recorder.New(pathToTestJSON + testCase.cassetteName) // TODO check all interactions occurred?
+			r, err := recorder.New(pathToTestJSON + testCase.cassetteName)
 			r.SetMatcher(func(actual *http.Request, expected cassette.Request) bool {
 				if cassette.DefaultMatcher(actual, expected) {
 					// Check scale request body when sending PUT
@@ -893,6 +897,12 @@ func TestScaleDeployment(t *testing.T) {
 						_, err := buf.ReadFrom(reqBody)
 						require.NoError(t, err, "Error reading request body")
 						defer reqBody.Close()
+
+						// Mark interaction as seen
+						reqURL := actual.URL.String()
+						_, pres := testCase.expectPutURLs[reqURL]
+						require.True(t, pres, "Unexpected PUT request %s", reqURL)
+						delete(testCase.expectPutURLs, reqURL)
 
 						// Check spec/replicas modified correctly
 						var scaleOutput map[string]interface{}
@@ -925,6 +935,9 @@ func TestScaleDeployment(t *testing.T) {
 				require.NotNil(t, old, "Previous replicas are nil")
 				require.Equal(t, testCase.oldReplicas, *old, "Wrong number of previous replicas")
 			}
+
+			// Check we saw all expected PUT requests
+			require.Empty(t, testCase.expectPutURLs, "Not all PUT requests sent: %v", testCase.expectPutURLs)
 		})
 	}
 }
@@ -941,13 +954,13 @@ func TestDeleteDeployment(t *testing.T) {
 	}
 
 	testCases := []struct {
-		testName     string
-		spaceName    string
-		appName      string
-		envName      string
-		cassetteName string
-		expectNS     string
-		shouldFail   bool
+		testName         string
+		spaceName        string
+		appName          string
+		envName          string
+		cassetteName     string
+		expectDeleteURLs map[string]struct{}
+		shouldFail       bool
 	}{
 		{
 			testName:     "Basic",
@@ -955,16 +968,20 @@ func TestDeleteDeployment(t *testing.T) {
 			appName:      "myApp",
 			envName:      "run",
 			cassetteName: "deletedeployment",
-			expectNS:     "my-run",
+			expectDeleteURLs: map[string]struct{}{
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myApp": {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myApp":            {},
+				"http://api.myCluster/api/v1/namespaces/my-run/services/myApp":           {},
+			},
 		},
 		{
-			testName:     "Bad Environment",
-			spaceName:    "mySpace",
-			appName:      "myApp",
-			envName:      "doesNotExist",
-			cassetteName: "deletedeployment",
-			expectNS:     "my-run",
-			shouldFail:   true,
+			testName:         "Bad Environment",
+			spaceName:        "mySpace",
+			appName:          "myApp",
+			envName:          "doesNotExist",
+			cassetteName:     "deletedeployment",
+			expectDeleteURLs: map[string]struct{}{},
+			shouldFail:       true,
 		},
 		{
 			testName:     "Wrong Space",
@@ -972,8 +989,11 @@ func TestDeleteDeployment(t *testing.T) {
 			appName:      "myApp",
 			envName:      "run",
 			cassetteName: "deletedeployment",
-			expectNS:     "my-run",
-			shouldFail:   true,
+			expectDeleteURLs: map[string]struct{}{
+				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myApp":  {},
+				"http://api.myCluster/api/v1/namespaces/my-run/services/myApp": {},
+			},
+			shouldFail: true,
 		},
 		{
 			testName:     "No Routes",
@@ -981,7 +1001,10 @@ func TestDeleteDeployment(t *testing.T) {
 			appName:      "myApp",
 			envName:      "run",
 			cassetteName: "deletedeployment-noroutes",
-			expectNS:     "my-run",
+			expectDeleteURLs: map[string]struct{}{
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myApp": {},
+				"http://api.myCluster/api/v1/namespaces/my-run/services/myApp":           {},
+			},
 		},
 		{
 			testName:     "No Services",
@@ -989,7 +1012,10 @@ func TestDeleteDeployment(t *testing.T) {
 			appName:      "myApp",
 			envName:      "run",
 			cassetteName: "deletedeployment-noservices",
-			expectNS:     "my-run",
+			expectDeleteURLs: map[string]struct{}{
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myApp": {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myApp":            {},
+			},
 		},
 		{
 			testName:     "No DeploymentConfig",
@@ -997,8 +1023,11 @@ func TestDeleteDeployment(t *testing.T) {
 			appName:      "myApp",
 			envName:      "run",
 			cassetteName: "deletedeployment-nodc",
-			expectNS:     "my-run",
-			shouldFail:   true,
+			expectDeleteURLs: map[string]struct{}{
+				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myApp":  {},
+				"http://api.myCluster/api/v1/namespaces/my-run/services/myApp": {},
+			},
+			shouldFail: true,
 		},
 	}
 
@@ -1015,6 +1044,12 @@ func TestDeleteDeployment(t *testing.T) {
 						_, err := buf.ReadFrom(reqBody)
 						require.NoError(t, err, "Error reading request body")
 						defer reqBody.Close()
+
+						// Mark interaction as seen
+						reqURL := actual.URL.String()
+						_, pres := testCase.expectDeleteURLs[reqURL]
+						require.True(t, pres, "Unexpected DELETE request %s", reqURL)
+						delete(testCase.expectDeleteURLs, reqURL)
 
 						// Check delete options are correct
 						var deleteOutput metav1.DeleteOptions
@@ -1040,6 +1075,9 @@ func TestDeleteDeployment(t *testing.T) {
 			} else {
 				require.NoError(t, err, "Unexpected error occurred")
 			}
+
+			// Check we saw all expected DELETE requests
+			require.Empty(t, testCase.expectDeleteURLs, "Not all DELETE requests sent: %v", testCase.expectDeleteURLs)
 		})
 	}
 }
