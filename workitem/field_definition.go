@@ -63,7 +63,7 @@ type FieldType interface {
 // FieldDefinition describes type & other restrictions of a field
 type FieldDefinition struct {
 	Required    bool      `json:"required"`
-	IsReadOnly  bool      `json:"is_read_only"`
+	ReadOnly    bool      `json:"is_read_only"`
 	Label       string    `json:"label"`
 	Description string    `json:"description"`
 	Type        FieldType `json:"type"`
@@ -88,7 +88,7 @@ func (f FieldDefinition) Equal(u convert.Equaler) bool {
 	if f.Required != other.Required {
 		return false
 	}
-	if f.IsReadOnly != other.IsReadOnly {
+	if f.ReadOnly != other.ReadOnly {
 		return false
 	}
 	if f.Label != other.Label {
@@ -138,7 +138,7 @@ func (f FieldDefinition) ConvertFromModel(name string, value interface{}) (inter
 
 type rawFieldDef struct {
 	Required    bool
-	IsReadOnly  bool
+	ReadOnly    bool
 	Label       string
 	Description string
 	Type        *json.RawMessage
@@ -157,7 +157,7 @@ func (f rawFieldDef) Equal(u convert.Equaler) bool {
 	if f.Required != other.Required {
 		return false
 	}
-	if f.IsReadOnly != other.IsReadOnly {
+	if f.ReadOnly != other.ReadOnly {
 		return false
 	}
 	if f.Label != other.Label {
@@ -213,21 +213,21 @@ func (f *FieldDefinition) UnmarshalJSON(bytes []byte) error {
 		if err != nil {
 			return errs.WithStack(err)
 		}
-		*f = FieldDefinition{Type: theType, Required: temp.Required, Label: temp.Label, Description: temp.Description}
+		*f = FieldDefinition{Type: theType, Required: temp.Required, ReadOnly: temp.ReadOnly, Label: temp.Label, Description: temp.Description}
 	case KindEnum:
 		theType := EnumType{}
 		err = json.Unmarshal(*temp.Type, &theType)
 		if err != nil {
 			return errs.WithStack(err)
 		}
-		*f = FieldDefinition{Type: theType, Required: temp.Required, Label: temp.Label, Description: temp.Description}
+		*f = FieldDefinition{Type: theType, Required: temp.Required, ReadOnly: temp.ReadOnly, Label: temp.Label, Description: temp.Description}
 	default:
 		theType := SimpleType{}
 		err = json.Unmarshal(*temp.Type, &theType)
 		if err != nil {
 			return errs.WithStack(err)
 		}
-		*f = FieldDefinition{Type: theType, Required: temp.Required, Label: temp.Label, Description: temp.Description}
+		*f = FieldDefinition{Type: theType, Required: temp.Required, ReadOnly: temp.ReadOnly, Label: temp.Label, Description: temp.Description}
 	}
 	return nil
 }

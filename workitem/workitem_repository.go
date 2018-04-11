@@ -497,7 +497,7 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, spaceID uuid.UUID,
 	res.ExecutionOrder = order
 
 	for fieldName, fieldDef := range wiType.Fields {
-		if fieldDef.IsReadOnly {
+		if fieldDef.ReadOnly {
 			continue
 		}
 		fieldValue := wi.Fields[fieldName]
@@ -543,7 +543,8 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 		return nil, errors.NewConversionError(fmt.Sprintf("failed to convert field %s to float: %+v", SystemOrder, updatedWorkItem))
 	}
 	for fieldName, fieldDef := range wiType.Fields {
-		if fieldDef.IsReadOnly {
+		fmt.Printf("FIELD %s IS READONLY (SAVE): %v\n\n", fieldName, fieldDef.ReadOnly)
+		if fieldDef.ReadOnly {
 			continue
 		}
 		fieldValue := updatedWorkItem.Fields[fieldName]
@@ -621,7 +622,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 	}
 	fields[SystemCreator] = creatorID.String()
 	for fieldName, fieldDef := range wiType.Fields {
-		if fieldDef.IsReadOnly {
+		if fieldDef.ReadOnly {
 			continue
 		}
 		fieldValue := fields[fieldName]

@@ -3,6 +3,8 @@ package workitem
 import (
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
+
 	"context"
 
 	"github.com/fabric8-services/fabric8-wit/application/repository"
@@ -124,6 +126,7 @@ func (r *GormWorkItemTypeRepository) CreateFromModel(ctx context.Context, model 
 		model.ID = uuid.NewV4()
 	}
 
+	spew.Dump(model.Fields)
 	if err := r.db.Create(&model).Error; err != nil {
 		return nil, errors.NewInternalError(ctx, errs.Wrap(err, "failed to create work item type"))
 	}

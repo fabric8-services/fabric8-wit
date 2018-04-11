@@ -79,7 +79,7 @@ func TestFieldDefinition_Equal(t *testing.T) {
 		Label:       "a",
 		Description: "description for 'a'",
 		Required:    true,
-		IsReadOnly:  false,
+		ReadOnly:    false,
 		Type: ListType{
 			SimpleType:    SimpleType{Kind: KindList},
 			ComponentType: SimpleType{Kind: KindString},
@@ -113,10 +113,10 @@ func TestFieldDefinition_Equal(t *testing.T) {
 		require.False(t, a.Equal(b))
 		require.False(t, b.Equal(a))
 	})
-	t.Run("is read-only", func(t *testing.T) {
+	t.Run("read-only", func(t *testing.T) {
 		t.Parallel()
 		b := a
-		b.IsReadOnly = !a.IsReadOnly
+		b.ReadOnly = !a.ReadOnly
 		require.False(t, a.Equal(b))
 		require.False(t, b.Equal(a))
 	})
@@ -138,7 +138,7 @@ func TestRawFieldDef_Equal(t *testing.T) {
 		Label:       "a",
 		Description: "description for 'a'",
 		Required:    true,
-		IsReadOnly:  false,
+		ReadOnly:    false,
 		Type:        &json.RawMessage{},
 	}
 
@@ -172,7 +172,7 @@ func TestRawFieldDef_Equal(t *testing.T) {
 	t.Run("is read-only", func(t *testing.T) {
 		t.Parallel()
 		b := a
-		b.IsReadOnly = !a.IsReadOnly
+		b.ReadOnly = !a.ReadOnly
 		require.False(t, a.Equal(b))
 		require.False(t, b.Equal(a))
 	})

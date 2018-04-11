@@ -39,53 +39,83 @@ func (s *workItemRepoBlackBoxTest) SetupTest() {
 }
 
 func (s *workItemRepoBlackBoxTest) TestSave() {
-	s.T().Run("save work item without assignees & labels", func(t *testing.T) {
-		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
-			fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "some title"
-			fxt.WorkItems[idx].Fields[workitem.SystemState] = workitem.SystemStateNew
-			return nil
-		}))
-		wiNew, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
-		require.NoError(t, err)
-		require.Len(t, wiNew.Fields[workitem.SystemAssignees].([]interface{}), 0)
-		require.Len(t, wiNew.Fields[workitem.SystemLabels].([]interface{}), 0)
-	})
+	// s.T().Run("save work item without assignees & labels", func(t *testing.T) {
+	// 	fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
+	// 		fxt.WorkItems[idx].Fields[workitem.SystemTitle] = "some title"
+	// 		fxt.WorkItems[idx].Fields[workitem.SystemState] = workitem.SystemStateNew
+	// 		return nil
+	// 	}))
+	// 	wiNew, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+	// 	require.NoError(t, err)
+	// 	require.Len(t, wiNew.Fields[workitem.SystemAssignees].([]interface{}), 0)
+	// 	require.Len(t, wiNew.Fields[workitem.SystemLabels].([]interface{}), 0)
+	// })
 
-	s.T().Run("fail - save nil number", func(t *testing.T) {
-		// given at least 1 item to avoid RowsEffectedCheck
-		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1))
-		// when
-		fxt.WorkItems[0].Number = 0
-		_, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
-		// then
-		assert.IsType(t, errors.NotFoundError{}, errs.Cause(err))
-	})
+	// s.T().Run("fail - save nil number", func(t *testing.T) {
+	// 	// given at least 1 item to avoid RowsEffectedCheck
+	// 	fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1))
+	// 	// when
+	// 	fxt.WorkItems[0].Number = 0
+	// 	_, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+	// 	// then
+	// 	assert.IsType(t, errors.NotFoundError{}, errs.Cause(err))
+	// })
 
-	s.T().Run("ok - save for unchanged created date", func(t *testing.T) {
+	// s.T().Run("ok - save for unchanged created date", func(t *testing.T) {
+	// 	// given
+	// 	fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1))
+	// 	oldDate, ok := fxt.WorkItems[0].Fields[workitem.SystemCreatedAt].(time.Time)
+	// 	require.True(t, ok, "failed to convert interface{} to time.Time")
+	// 	wiNew, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+	// 	newTime, ok := wiNew.Fields[workitem.SystemCreatedAt].(time.Time)
+	// 	require.True(t, ok, "failed to convert interface{} to time.Time")
+	// 	// then
+	// 	require.NoError(t, err)
+	// 	assert.Equal(t, oldDate.UTC(), newTime.UTC())
+	// })
+
+	s.T().Run("ok - ignore read-only fields", func(t *testing.T) {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1))
-		oldDate, ok := fxt.WorkItems[0].Fields[workitem.SystemCreatedAt].(time.Time)
-		require.True(t, ok, "failed to convert interface{} to time.Time")
+		var origCreatedAt, origUpdatedAt time.Time
+		var origOrder float64
+		origNumber := fxt.WorkItems[0].Number
+		require.NotPanics(t, func() { origCreatedAt = fxt.WorkItems[0].Fields[workitem.SystemCreatedAt].(time.Time) })
+		require.NotPanics(t, func() { origUpdatedAt = fxt.WorkItems[0].Fields[workitem.SystemUpdatedAt].(time.Time) })
+		require.NotPanics(t, func() { origOrder = fxt.WorkItems[0].Fields[workitem.SystemOrder].(float64) })
+		// Update read-only fields to user-defined values and check that they're
+		// not overwritten.
+		updatedWI := *fxt.WorkItems[0]
+		updatedWI.Fields[workitem.SystemCreatedAt] = time.Now()
+		updatedWI.Fields[workitem.SystemCreatedAt] = time.Now()
+		updatedWI.Fields[workitem.SystemOrder] = float64(6543)
+		updatedWI.Fields[workitem.SystemNumber] = 1234
+		// when
 		wiNew, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
-		newTime, ok := wiNew.Fields[workitem.SystemCreatedAt].(time.Time)
-		require.True(t, ok, "failed to convert interface{} to time.Time")
 		// then
 		require.NoError(t, err)
-		assert.Equal(t, oldDate.UTC(), newTime.UTC())
+		require.NotPanics(t, func() {
+			require.Equal(t, origCreatedAt.UTC(), wiNew.Fields[workitem.SystemCreatedAt].(time.Time).UTC(), "created-at should not have changed")
+			require.Equal(t, origOrder, wiNew.Fields[workitem.SystemOrder].(float64), "order should not have changed")
+			require.Equal(t, origNumber, wiNew.Fields[workitem.SystemNumber].(int), "number should not have changed")
+			// the updated time must not be the old time but it also must not be the one that the user defined
+			require.NotEqual(t, origUpdatedAt.UTC(), wiNew.Fields[workitem.SystemUpdatedAt].(time.Time), "updated-at should be different to original updated-at")
+			require.NotEqual(t, updatedWI.Fields[workitem.SystemUpdatedAt].(time.Time).UTC(), wiNew.Fields[workitem.SystemUpdatedAt].(time.Time).UTC(), "updated-at should be different to user-specified updated-at")
+		})
 	})
 
-	s.T().Run("change is not prohibited", func(t *testing.T) {
-		// tests that you can change the type of a work item. NOTE: This
-		// functionality only works on the DB layer and is not exposed to REST.
-		// given
-		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1), tf.WorkItemTypes(2))
-		// when
-		fxt.WorkItems[0].Type = fxt.WorkItemTypes[1].ID
-		newWi, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
-		// then
-		require.NoError(s.T(), err)
-		assert.Equal(s.T(), fxt.WorkItemTypes[1].ID, newWi.Type)
-	})
+	// s.T().Run("change is not prohibited", func(t *testing.T) {
+	// 	// tests that you can change the type of a work item. NOTE: This
+	// 	// functionality only works on the DB layer and is not exposed to REST.
+	// 	// given
+	// 	fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1), tf.WorkItemTypes(2))
+	// 	// when
+	// 	fxt.WorkItems[0].Type = fxt.WorkItemTypes[1].ID
+	// 	newWi, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+	// 	// then
+	// 	require.NoError(s.T(), err)
+	// 	assert.Equal(s.T(), fxt.WorkItemTypes[1].ID, newWi.Type)
+	// })
 }
 
 func (s *workItemRepoBlackBoxTest) TestLoadID() {

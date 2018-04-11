@@ -770,10 +770,10 @@ func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.Gor
 		workitem.SystemDescription:  {Type: workitem.SimpleType{Kind: "markup"}, Required: false, Label: "Description", Description: "A descriptive text of the work item"},
 		workitem.SystemCreator:      {Type: workitem.SimpleType{Kind: "user"}, Required: true, Label: "Creator", Description: "The user that created the work item"},
 		workitem.SystemRemoteItemID: {Type: workitem.SimpleType{Kind: "string"}, Required: false, Label: "Remote item", Description: "The ID of the remote work item"},
-		workitem.SystemCreatedAt:    {Type: workitem.SimpleType{Kind: "instant"}, Required: false, IsReadOnly: true, Label: "Created at", Description: "The date and time when the work item was created"},
-		workitem.SystemUpdatedAt:    {Type: workitem.SimpleType{Kind: "instant"}, Required: false, IsReadOnly: true, Label: "Updated at", Description: "The date and time when the work item was last updated"},
-		workitem.SystemOrder:        {Type: workitem.SimpleType{Kind: "float"}, Required: false, IsReadOnly: true, Label: "Execution Order", Description: "Execution Order of the workitem."},
-		workitem.SystemNumber:       {Type: workitem.SimpleType{Kind: "integer"}, Required: false, IsReadOnly: true, Label: "Number", Description: "The unique number that was given to this workitem within its space."},
+		workitem.SystemCreatedAt:    {Type: workitem.SimpleType{Kind: "instant"}, Required: false, ReadOnly: true, Label: "Created at", Description: "The date and time when the work item was created"},
+		workitem.SystemUpdatedAt:    {Type: workitem.SimpleType{Kind: "instant"}, Required: false, ReadOnly: true, Label: "Updated at", Description: "The date and time when the work item was last updated"},
+		workitem.SystemOrder:        {Type: workitem.SimpleType{Kind: "float"}, Required: false, ReadOnly: true, Label: "Execution Order", Description: "Execution Order of the workitem."},
+		workitem.SystemNumber:       {Type: workitem.SimpleType{Kind: "integer"}, Required: false, ReadOnly: true, Label: "Number", Description: "The unique number that was given to this workitem within its space."},
 		workitem.SystemIteration:    {Type: workitem.SimpleType{Kind: "iteration"}, Required: false, Label: "Iteration", Description: "The iteration to which the work item belongs"},
 		workitem.SystemArea:         {Type: workitem.SimpleType{Kind: "area"}, Required: false, Label: "Area", Description: "The area to which the work item belongs"},
 		workitem.SystemCodebase:     {Type: workitem.SimpleType{Kind: "codebase"}, Required: false, Label: "Codebase", Description: "Contains codebase attributes to which this WI belongs to"},
@@ -883,6 +883,7 @@ func loadFields(ctx context.Context, wit *workitem.WorkItemType, into workitem.F
 				Label:       value.Label,
 				Description: value.Description,
 				Required:    into[key].Required,
+				ReadOnly:    into[key].ReadOnly,
 				Type:        into[key].Type,
 			}
 		}
