@@ -198,7 +198,7 @@ func (*defaultGetter) GetKubeRESTAPI(config *KubeClientConfig) (KubeRESTAPI, err
 		Host:        config.ClusterURL,
 		BearerToken: config.BearerToken,
 		Timeout:     config.Timeout,
-		Transport:   config.Transport, // TODO Test
+		Transport:   config.Transport,
 	}
 	coreV1Client, err := corev1.NewForConfig(restConfig)
 	if err != nil {
@@ -215,7 +215,7 @@ func (*defaultGetter) GetOpenShiftRESTAPI(config *KubeClientConfig) (OpenShiftRE
 	// Equivalent to http.DefaultClient with added timeout and transport
 	httpClient := &http.Client{
 		Timeout:   config.Timeout,
-		Transport: config.Transport, // TODO Test
+		Transport: config.Transport,
 	}
 	client := &openShiftAPIClient{
 		config:     config,
