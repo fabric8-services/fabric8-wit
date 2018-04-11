@@ -591,6 +591,7 @@ func TestWorkItemNumber(t *testing.T) {
 		// given
 		spaceName := "openshiftio"
 		wiNumber := "1"
+
 		q := Query{
 			Name: AND,
 			Children: []Query{
@@ -607,8 +608,8 @@ func TestWorkItemNumber(t *testing.T) {
 				c.Literal(spaceName),
 			),
 			c.Equals(
-				c.Field("system.number"),
-				c.Literal(&wiNumber),
+				c.Field("Number"),
+				c.Literal(wiNumber),
 			),
 		)
 		expectEqualExpr(t, expectedExpr, actualExpr)

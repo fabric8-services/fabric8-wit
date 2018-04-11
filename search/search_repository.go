@@ -394,7 +394,7 @@ var searchKeyMap = map[string]string{
 	"type":         "Type",
 	"workitemtype": "Type", // same as 'type' - added for compatibility. (Ref. #1564)
 	"space":        "SpaceID",
-	"number":       workitem.SystemNumber,
+	"number":       "Number",
 }
 
 func (q Query) determineLiteralType(key string, val string) criteria.Expression {
