@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fabric8-services/fabric8-wit/closeable"
+
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/application/repository"
 	"github.com/fabric8-services/fabric8-wit/criteria"
@@ -495,7 +497,7 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, spaceID uuid.UUID,
 	res.ExecutionOrder = order
 
 	for fieldName, fieldDef := range wiType.Fields {
-		if fieldName == SystemCreatedAt || fieldName == SystemUpdatedAt || fieldName == SystemOrder {
+		if fieldDef.ReadOnly {
 			continue
 		}
 		fieldValue := wi.Fields[fieldName]
@@ -535,13 +537,8 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 	wiStorage.Type = updatedWorkItem.Type
 	wiStorage.Fields = Fields{}
 
-	var convOk bool
-	wiStorage.ExecutionOrder, convOk = updatedWorkItem.Fields[SystemOrder].(float64)
-	if !convOk {
-		return nil, errors.NewConversionError(fmt.Sprintf("failed to convert field %s to float: %+v", SystemOrder, updatedWorkItem))
-	}
 	for fieldName, fieldDef := range wiType.Fields {
-		if fieldName == SystemCreatedAt || fieldName == SystemUpdatedAt || fieldName == SystemOrder {
+		if fieldDef.ReadOnly {
 			continue
 		}
 		fieldValue := updatedWorkItem.Fields[fieldName]
@@ -619,7 +616,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 	}
 	fields[SystemCreator] = creatorID.String()
 	for fieldName, fieldDef := range wiType.Fields {
-		if fieldName == SystemCreatedAt || fieldName == SystemUpdatedAt || fieldName == SystemOrder {
+		if fieldDef.ReadOnly {
 			continue
 		}
 		fieldValue := fields[fieldName]
@@ -725,10 +722,10 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, spaceID uu
 	db = db.Select("count(*) over () as cnt2 , *").Order("execution_order desc")
 
 	rows, err := db.Rows()
+	defer closeable.Close(ctx, rows)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
 	}
-	defer rows.Close()
 
 	result := []WorkItemStorage{}
 	columns, err := rows.Columns()
@@ -764,7 +761,7 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, spaceID uu
 		// need to do a count(*) to find out total
 		orgDB := orgDB.Select("count(*)")
 		rows2, err := orgDB.Rows()
-		defer rows2.Close()
+		defer closeable.Close(ctx, rows2)
 		if err != nil {
 			return nil, 0, errs.WithStack(err)
 		}

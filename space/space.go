@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fabric8-services/fabric8-wit/closeable"
+
 	"github.com/fabric8-services/fabric8-wit/application/repository"
 	"github.com/fabric8-services/fabric8-wit/convert"
 	"github.com/fabric8-services/fabric8-wit/errors"
@@ -145,6 +147,7 @@ func (r *GormRepository) LoadMany(ctx context.Context, IDs []uuid.UUID) ([]Space
 
 	db := r.db.Model(Space{}).Select("distinct *").Where(fmt.Sprintf("ID in (%s)", strings.Join(strIDs, ", ")))
 	rows, err := db.Rows()
+	defer closeable.Close(ctx, rows)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err.Error(),
@@ -307,10 +310,10 @@ func (r *GormRepository) listSpaceFromDB(ctx context.Context, q *string, userID 
 	// ensure that the result list is always ordered in the same manner
 	db = db.Order("spaces.updated_at DESC")
 	rows, err := db.Rows()
+	defer closeable.Close(ctx, rows)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
 	}
-	defer rows.Close()
 
 	result := []Space{}
 	columns, err := rows.Columns()
@@ -356,7 +359,7 @@ func (r *GormRepository) listSpaceFromDB(ctx context.Context, q *string, userID 
 			// need to do a count(*) to find out total
 			orgDB := orgDB.Select("count(*)")
 			rows2, err := orgDB.Rows()
-			defer rows2.Close()
+			defer closeable.Close(ctx, rows2)
 			if err != nil {
 				return nil, 0, errs.WithStack(err)
 			}

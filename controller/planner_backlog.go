@@ -90,7 +90,7 @@ func generateBacklogExpression(ctx context.Context, db application.DB, spaceID u
 
 		// Get the list of work item types that derive of PlannerItem in the space
 		var expWits criteria.Expression
-		wits, err := appl.WorkItemTypes().ListPlannerItems(ctx, spaceID)
+		wits, err := appl.WorkItemTypes().ListPlannerItemTypes(ctx, spaceID)
 		if err != nil {
 			return errs.Wrap(err, "unable to fetch work item types that derive from planner item")
 		}

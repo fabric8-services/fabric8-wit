@@ -14,12 +14,21 @@ import (
 
 // SimpleType is an unstructured FieldType
 type SimpleType struct {
-	Kind Kind
+	Kind Kind `json:"kind"`
 }
+
+// Ensure SimpleType implements the FieldType interface
+var _ FieldType = SimpleType{}
+var _ FieldType = (*SimpleType)(nil)
 
 // Ensure SimpleType implements the Equaler interface
 var _ convert.Equaler = SimpleType{}
 var _ convert.Equaler = (*SimpleType)(nil)
+
+// DefaultValue implements FieldType
+func (t SimpleType) DefaultValue(value interface{}) (interface{}, error) {
+	return value, nil
+}
 
 // Equal returns true if two SimpleType objects are equal; otherwise false is returned.
 func (t SimpleType) Equal(u convert.Equaler) bool {
