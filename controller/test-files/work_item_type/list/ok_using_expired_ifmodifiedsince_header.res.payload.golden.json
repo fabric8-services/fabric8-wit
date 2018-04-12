@@ -71,6 +71,14 @@
               "kind": "list"
             }
           },
+          "system.number": {
+            "description": "The unique number that was given to this workitem within its space.",
+            "label": "Number",
+            "required": false,
+            "type": {
+              "kind": "integer"
+            }
+          },
           "system.order": {
             "description": "Execution Order of the workitem.",
             "label": "Execution Order",
@@ -209,6 +217,14 @@
             "type": {
               "componentType": "label",
               "kind": "list"
+            }
+          },
+          "system.number": {
+            "description": "The unique number that was given to this workitem within its space.",
+            "label": "Number",
+            "required": false,
+            "type": {
+              "kind": "integer"
             }
           },
           "system.order": {
