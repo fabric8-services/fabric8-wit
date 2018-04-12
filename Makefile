@@ -232,20 +232,26 @@ clean-vendor:
 ## Download build dependencies.
 deps: $(DEP_BIN) $(VENDOR_DIR)
 
-# install dep (see https://golang.github.io/dep/docs/installation.html)
+# install dep 
 $(DEP_BIN):
-	@echo "Installing 'dep' at $(DEP_BIN)"
+	@echo "Installing 'dep' at '$(DEP_BIN)'..."
 	@mkdir -p $(DEP_BIN_DIR)
 ifeq ($(UNAME_S),Darwin)
-	curl -L -s https://github.com/golang/dep/releases/download/v${DEP_VERSION}/dep-darwin-amd64 -o $(DEP_BIN)
+	@curl -L -s https://github.com/golang/dep/releases/download/v${DEP_VERSION}/dep-darwin-amd64 -o $(DEP_BIN)
+	@cd $(DEP_BIN_DIR) \
+	echo "f170008e2bf8b196779c361a4eaece1b03450d23bbf32d1a0beaa9b00b6a5ab4  dep" > dep-darwin-amd64.sha256 \
+	shasum -a 256 --check dep-darwin-amd64.sha256
 else
-	curl -L -s https://github.com/golang/dep/releases/download/v${DEP_VERSION}/dep-linux-amd64 -o $(DEP_BIN)
+	@curl -L -s https://github.com/golang/dep/releases/download/v${DEP_VERSION}/dep-linux-amd64 -o $(DEP_BIN)
+	@cd $(DEP_BIN_DIR) \
+	echo "31144e465e52ffbc0035248a10ddea61a09bf28b00784fd3fdd9882c8cbb2315  dep" > dep-linux-amd64.sha256 \
+	sha256sum -c checksum
 endif
 	@chmod +x $(DEP_BIN)
 
 $(VENDOR_DIR): Gopkg.toml Gopkg.lock
 	@echo "checking dependencies..."
-	$(DEP_BIN) ensure -v 
+	@$(DEP_BIN) ensure -v 
 
 app/controllers.go: $(DESIGNS) $(GOAGEN_BIN) $(VENDOR_DIR)
 	$(GOAGEN_BIN) app -d ${PACKAGE_NAME}/${DESIGN_DIR}
