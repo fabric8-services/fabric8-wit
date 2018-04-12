@@ -16,7 +16,9 @@ DESIGNS := $(shell find $(SOURCE_DIR)/$(DESIGN_DIR) -path $(SOURCE_DIR)/vendor -
 # Find all required tools:
 GIT_BIN := $(shell command -v $(GIT_BIN_NAME) 2> /dev/null)
 DEP_BIN_NAME := dep
-DEP_BIN := $(GOPATH)/bin/$(DEP_BIN_NAME)
+DEP_BIN_DIR := ./tmp/bin
+DEP_BIN := $(DEP_BIN_DIR)/$(DEP_BIN_NAME)
+DEP_VERSION="0.4.1"
 GO_BIN := $(shell command -v $(GO_BIN_NAME) 2> /dev/null)
 HG_BIN := $(shell command -v $(HG_BIN_NAME) 2> /dev/null)
 DOCKER_COMPOSE_BIN := $(shell command -v $(DOCKER_COMPOSE_BIN_NAME) 2> /dev/null)
@@ -232,9 +234,14 @@ deps: $(DEP_BIN) $(VENDOR_DIR)
 
 # install dep (see https://golang.github.io/dep/docs/installation.html)
 $(DEP_BIN):
-	@echo "Installing 'dep' in ./tmp/bin"
-	@mkdir -p ./tmp/bin
-	curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+	@echo "Installing 'dep' at $(DEP_BIN)"
+	@mkdir -p $(DEP_BIN_DIR)
+ifeq ($(UNAME_S),Darwin)
+	curl -L -s https://github.com/golang/dep/releases/download/v${DEP_VERSION}/dep-darwin-amd64 -o $(DEP_BIN)
+else
+	curl -L -s https://github.com/golang/dep/releases/download/v${DEP_VERSION}/dep-linux-amd64 -o $(DEP_BIN)
+endif
+	@chmod +x $(DEP_BIN)
 
 $(VENDOR_DIR): Gopkg.toml Gopkg.lock
 	@echo "checking dependencies..."
