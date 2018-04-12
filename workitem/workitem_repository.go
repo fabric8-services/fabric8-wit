@@ -120,7 +120,7 @@ func (r *GormWorkItemRepository) LoadByID(ctx context.Context, id uuid.UUID) (*W
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
-	wiType, err := r.witr.LoadTypeFromDB(ctx, res.Type)
+	wiType, err := r.witr.Load(ctx, res.Type)
 	if err != nil {
 		return nil, errors.NewInternalError(ctx, err)
 	}
@@ -136,7 +136,7 @@ func (r *GormWorkItemRepository) LoadBatchByID(ctx context.Context, ids []uuid.U
 	}
 	workitems := []*WorkItem{}
 	for _, ele := range res {
-		wiType, err := r.witr.LoadTypeFromDB(ctx, ele.Type)
+		wiType, err := r.witr.Load(ctx, ele.Type)
 		if err != nil {
 			log.Error(nil, map[string]interface{}{
 				"wit_id": ele.Type,
@@ -240,7 +240,7 @@ func (r *GormWorkItemRepository) loadWorkItemStorage(ctx context.Context, spaceI
 	if tx.Error != nil {
 		return nil, nil, errors.NewInternalError(ctx, tx.Error)
 	}
-	wiType, err := r.witr.LoadTypeFromDB(ctx, wiStorage.Type)
+	wiType, err := r.witr.Load(ctx, wiStorage.Type)
 	if err != nil {
 		return nil, nil, errors.NewInternalError(ctx, err)
 	}
@@ -259,7 +259,7 @@ func (r *GormWorkItemRepository) LoadTopWorkitem(ctx context.Context, spaceID uu
 	if db.Error != nil && !db.RecordNotFound() {
 		return nil, errors.NewInternalError(ctx, db.Error)
 	}
-	wiType, err := r.witr.LoadTypeFromDB(ctx, res.Type)
+	wiType, err := r.witr.Load(ctx, res.Type)
 	if err != nil {
 		return nil, errors.NewInternalError(ctx, err)
 	}
@@ -278,7 +278,7 @@ func (r *GormWorkItemRepository) LoadBottomWorkitem(ctx context.Context, spaceID
 	if db.Error != nil && !db.RecordNotFound() {
 		return nil, errors.NewInternalError(ctx, db.Error)
 	}
-	wiType, err := r.witr.LoadTypeFromDB(ctx, res.Type)
+	wiType, err := r.witr.Load(ctx, res.Type)
 	if err != nil {
 		return nil, errors.NewInternalError(ctx, err)
 	}
@@ -404,7 +404,7 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, spaceID uuid.UUID,
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
 
-	wiType, err := r.witr.LoadTypeFromDB(ctx, wi.Type)
+	wiType, err := r.witr.Load(ctx, wi.Type)
 	if err != nil {
 		return nil, errors.NewBadParameterError("Type", wi.Type)
 	}
@@ -592,9 +592,14 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*WorkItem, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitem", "create"}, time.Now())
 
-	wiType, err := r.witr.LoadTypeFromDB(ctx, typeID)
+	wiType, err := r.witr.Load(ctx, typeID)
 	if err != nil {
 		return nil, errors.NewBadParameterError("typeID", typeID)
+	}
+
+	// Prohibit creation of work items from a base type.
+	if !wiType.CanConstruct {
+		return nil, errors.NewForbiddenError(fmt.Sprintf("cannot construct work items from \"%s\" (%s)", wiType.Name, wiType.ID))
 	}
 
 	// The order of workitems are spaced by a factor of 1000.
@@ -780,7 +785,7 @@ func (r *GormWorkItemRepository) List(ctx context.Context, spaceID uuid.UUID, cr
 	}
 	res := make([]WorkItem, len(result))
 	for index, value := range result {
-		wiType, err := r.witr.LoadTypeFromDB(ctx, value.Type)
+		wiType, err := r.witr.Load(ctx, value.Type)
 		if err != nil {
 			return nil, 0, errors.NewInternalError(ctx, err)
 		}
@@ -1040,7 +1045,7 @@ func (r *GormWorkItemRepository) LoadByIteration(ctx context.Context, iterationI
 	}
 	workitems := []*WorkItem{}
 	for _, ele := range res {
-		wiType, err := r.witr.LoadTypeFromDB(ctx, ele.Type)
+		wiType, err := r.witr.Load(ctx, ele.Type)
 		if err != nil {
 			log.Error(nil, map[string]interface{}{
 				"wit_id": ele.Type,

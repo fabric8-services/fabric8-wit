@@ -11,6 +11,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/comment"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/label"
+	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/query"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/rendering"
@@ -234,62 +235,14 @@ func makeWorkItemTypes(fxt *TestFixture) error {
 	fxt.WorkItemTypes = make([]*workitem.WorkItemType, fxt.info[kindWorkItemTypes].numInstances)
 	witRepo := workitem.NewWorkItemTypeRepository(fxt.db)
 	for i := range fxt.WorkItemTypes {
-		desc := "this work item type was automatically generated"
-		id := uuid.NewV4()
-		path := workitem.LtreeSafeID(workitem.SystemPlannerItem) + workitem.GetTypePathSeparator() + workitem.LtreeSafeID(id)
 		fxt.WorkItemTypes[i] = &workitem.WorkItemType{
-			ID:          id,
-			Name:        testsupport.CreateRandomValidTestName("work item type "),
-			Description: &desc,
-			Path:        path,
-			Icon:        "fa-bug",
-			Fields: map[string]workitem.FieldDefinition{
-				workitem.SystemTitle:        {Type: workitem.SimpleType{Kind: workitem.KindString}, Required: true, Label: "Title", Description: "The title text of the work item"},
-				workitem.SystemDescription:  {Type: workitem.SimpleType{Kind: workitem.KindMarkup}, Required: false, Label: "Description", Description: "A descriptive text of the work item"},
-				workitem.SystemCreator:      {Type: workitem.SimpleType{Kind: workitem.KindUser}, Required: true, Label: "Creator", Description: "The user that created the work item"},
-				workitem.SystemRemoteItemID: {Type: workitem.SimpleType{Kind: workitem.KindString}, Required: false, Label: "Remote item", Description: "The ID of the remote work item"},
-				workitem.SystemCreatedAt:    {Type: workitem.SimpleType{Kind: workitem.KindInstant}, Required: false, ReadOnly: true, Label: "Created at", Description: "The date and time when the work item was created"},
-				workitem.SystemUpdatedAt:    {Type: workitem.SimpleType{Kind: workitem.KindInstant}, Required: false, ReadOnly: true, Label: "Updated at", Description: "The date and time when the work item was last updated"},
-				workitem.SystemOrder:        {Type: workitem.SimpleType{Kind: workitem.KindFloat}, Required: false, ReadOnly: true, Label: "Execution Order", Description: "Execution Order of the workitem."},
-				workitem.SystemNumber:       {Type: workitem.SimpleType{Kind: "integer"}, Required: false, ReadOnly: true, Label: "Number", Description: "The unique number that was given to this workitem within its space."},
-				workitem.SystemIteration:    {Type: workitem.SimpleType{Kind: workitem.KindIteration}, Required: false, Label: "Iteration", Description: "The iteration to which the work item belongs"},
-				workitem.SystemArea:         {Type: workitem.SimpleType{Kind: workitem.KindArea}, Required: false, Label: "Area", Description: "The area to which the work item belongs"},
-				workitem.SystemCodebase:     {Type: workitem.SimpleType{Kind: workitem.KindCodebase}, Required: false, Label: "Codebase", Description: "Contains codebase attributes to which this WI belongs to"},
-				workitem.SystemAssignees: {
-					Type: &workitem.ListType{
-						SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
-						ComponentType: workitem.SimpleType{Kind: workitem.KindUser}},
-					Required:    false,
-					Label:       "Assignees",
-					Description: "The users that are assigned to the work item",
-				},
-				workitem.SystemLabels: {
-					Type: &workitem.ListType{
-						SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
-						ComponentType: workitem.SimpleType{Kind: workitem.KindLabel},
-					},
-					Required:    false,
-					Label:       "Labels",
-					Description: "List of labels attached to the work item",
-				},
-				workitem.SystemState: {
-					Type: &workitem.EnumType{
-						SimpleType: workitem.SimpleType{Kind: workitem.KindEnum},
-						BaseType:   workitem.SimpleType{Kind: workitem.KindString},
-						Values: []interface{}{
-							workitem.SystemStateNew,
-							workitem.SystemStateOpen,
-							workitem.SystemStateInProgress,
-							workitem.SystemStateResolved,
-							workitem.SystemStateClosed,
-						},
-					},
-
-					Required:    true,
-					Label:       "State",
-					Description: "The state of the work item",
-				},
-			},
+			ID:           uuid.NewV4(),
+			Name:         testsupport.CreateRandomValidTestName("work item type "),
+			Description:  ptr.String("this work item type was automatically generated"),
+			Icon:         "fa-bug",
+			Extends:      workitem.SystemPlannerItem,
+			CanConstruct: true,
+			Fields:       workitem.FieldDefinitions{},
 		}
 		if !fxt.isolatedCreation {
 			fxt.WorkItemTypes[i].SpaceID = fxt.Spaces[0].ID
@@ -302,10 +255,12 @@ func makeWorkItemTypes(fxt *TestFixture) error {
 				return errs.New("you must specify a space ID for each work item type")
 			}
 		}
-		_, err := witRepo.CreateFromModel(fxt.ctx, fxt.WorkItemTypes[i])
+		m := fxt.WorkItemTypes[i]
+		wit, err := witRepo.Create(fxt.ctx, m.SpaceID, &m.ID, &m.Extends, m.Name, m.Description, m.Icon, m.Fields, m.CanConstruct)
 		if err != nil {
 			return errs.Wrapf(err, "failed to create work item type %+v", fxt.WorkItemTypes[i])
 		}
+		fxt.WorkItemTypes[i] = wit
 	}
 	return nil
 }
