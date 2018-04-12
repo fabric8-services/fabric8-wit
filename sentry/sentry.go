@@ -2,6 +2,7 @@ package sentry
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/fabric8-services/fabric8-wit/log"
@@ -112,6 +113,9 @@ func extractUserInfo(ctx context.Context) (*raven.User, error) {
 
 	q := *m
 	token := goajwt.ContextJWT(ctx)
+	if token == nil {
+		return nil, fmt.Errorf("no token found in context")
+	}
 	t, err := q.ParseToken(ctx, token.Raw)
 	if err != nil {
 		return nil, err
@@ -120,6 +124,6 @@ func extractUserInfo(ctx context.Context) (*raven.User, error) {
 	return &raven.User{
 		Username: t.Username,
 		Email:    t.Email,
-		ID:       t.Id,
+		ID:       t.Subject,
 	}, nil
 }

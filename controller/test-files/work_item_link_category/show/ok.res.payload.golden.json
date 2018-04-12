@@ -1,0 +1,15 @@
+{
+  "data": {
+    "attributes": {
+      "description": "some description",
+      "name": "link category 00000000-0000-0000-0000-000000000001",
+      "version": 0
+    },
+    "id": "00000000-0000-0000-0000-000000000002",
+    "links": {
+      "related": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000002",
+      "self": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000002"
+    },
+    "type": "workitemlinkcategories"
+  }
+}

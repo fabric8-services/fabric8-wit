@@ -480,7 +480,7 @@ func ConvertWorkItem(request *http.Request, wi workitem.WorkItem, additional ...
 					Type: APIStringTypeWorkItemType,
 				},
 				Links: &app.GenericLinks{
-					Self: ptr.String(rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.SpaceID.String(), wi.Type))),
+					Self: ptr.String(rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.Type))),
 				},
 			},
 			Space: app.NewSpaceRelation(wi.SpaceID, rest.AbsoluteURL(request, app.SpaceHref(wi.SpaceID.String()))),

@@ -3,9 +3,7 @@ package controller
 import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
-	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
-	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	"github.com/goadesign/goa"
@@ -48,37 +46,6 @@ func enrichLinkCategoryList(ctx *workItemLinkContext, list *app.WorkItemLinkCate
 		}
 	}
 	return nil
-}
-
-// Create runs the create action.
-func (c *WorkItemLinkCategoryController) Create(ctx *app.CreateWorkItemLinkCategoryContext) error {
-	// Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
-	if true {
-		return ctx.MethodNotAllowed()
-	}
-	currentUserIdentityID, err := login.ContextIdentity(ctx)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
-	}
-	modelCategory := ConvertLinkCategoryToModel(app.WorkItemLinkCategorySingle{Data: ctx.Payload.Data})
-	var appCategory app.WorkItemLinkCategorySingle
-	err = application.Transactional(c.db, func(appl application.Application) error {
-		_, err := appl.WorkItemLinkCategories().Create(ctx.Context, &modelCategory)
-		if err != nil {
-			return err
-		}
-		appCategory = ConvertLinkCategoryFromModel(modelCategory)
-		linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, app.WorkItemLinkCategoryHref, currentUserIdentityID)
-		return enrichLinkCategorySingle(linkCtx, appCategory)
-	})
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
-	}
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
-	}
-	ctx.ResponseData.Header().Set("Location", app.WorkItemLinkCategoryHref(appCategory.Data.ID))
-	return ctx.Created(&appCategory)
 }
 
 // Show runs the show action.
@@ -129,66 +96,6 @@ func (c *WorkItemLinkCategoryController) List(ctx *app.ListWorkItemLinkCategoryC
 			return goa.ErrInternal("Failed to enrich link categories: %s", err.Error())
 		}
 		return ctx.OK(&appCategories)
-	})
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
-	}
-	return nil
-}
-
-// Delete runs the delete action.
-func (c *WorkItemLinkCategoryController) Delete(ctx *app.DeleteWorkItemLinkCategoryContext) error {
-	// Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
-	if true {
-		return ctx.MethodNotAllowed()
-	}
-	err := application.Transactional(c.db, func(appl application.Application) error {
-		err := appl.WorkItemLinkCategories().Delete(ctx.Context, ctx.ID)
-		if err != nil {
-			return err
-		}
-		return ctx.OK([]byte{})
-	})
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
-	}
-	return nil
-}
-
-// Update runs the update action.
-func (c *WorkItemLinkCategoryController) Update(ctx *app.UpdateWorkItemLinkCategoryContext) error {
-	// Currently not used. Disabled as part of https://github.com/fabric8-services/fabric8-wit/issues/1299
-	if true {
-		return ctx.MethodNotAllowed()
-	}
-	currentUserIdentityID, err := login.ContextIdentity(ctx)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
-	}
-	appCategory := app.WorkItemLinkCategorySingle{
-		Data: ctx.Payload.Data,
-	}
-	if appCategory.Data.ID == nil {
-		return errors.NewBadParameterError("data.id", appCategory.Data.ID)
-	}
-	if appCategory.Data.Attributes.Name == nil || *appCategory.Data.Attributes.Name == "" {
-		return errors.NewBadParameterError("data.attributes.name", "nil or empty")
-	}
-	modelCategory := ConvertLinkCategoryToModel(appCategory)
-	err = application.Transactional(c.db, func(appl application.Application) error {
-		savedModelCategory, err := appl.WorkItemLinkCategories().Save(ctx.Context, modelCategory)
-		if err != nil {
-			return err
-		}
-		// convert to app representation
-		savedAppCategory := ConvertLinkCategoryFromModel(*savedModelCategory)
-		// Enrich
-		linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, app.WorkItemLinkCategoryHref, currentUserIdentityID)
-		err = enrichLinkCategorySingle(linkCtx, savedAppCategory)
-		if err != nil {
-			return goa.ErrInternal("Failed to enrich link category: %s", err.Error())
-		}
-		return ctx.OK(&savedAppCategory)
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)

@@ -9,6 +9,8 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/fabric8-services/fabric8-wit/closeable"
+
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
@@ -108,7 +110,7 @@ func main() {
 			log.Logger().Infof("Retrying to connect in %v...", config.GetPostgresConnectionRetrySleep())
 			time.Sleep(config.GetPostgresConnectionRetrySleep())
 		} else {
-			defer db.Close()
+			defer closeable.Close(context.Background(), db)
 			break
 		}
 	}
@@ -241,6 +243,10 @@ func main() {
 	workitemtypeCtrl := controller.NewWorkitemtypeController(service, appDB, config)
 	app.MountWorkitemtypeController(service, workitemtypeCtrl)
 
+	// Mount "workitemtypes" controller
+	workitemtypesCtrl := controller.NewWorkitemtypesController(service, appDB, config)
+	app.MountWorkitemtypesController(service, workitemtypesCtrl)
+
 	// Mount "work item link category" controller
 	workItemLinkCategoryCtrl := controller.NewWorkItemLinkCategoryController(service, appDB)
 	app.MountWorkItemLinkCategoryController(service, workItemLinkCategoryCtrl)
@@ -248,6 +254,10 @@ func main() {
 	// Mount "work item link type" controller
 	workItemLinkTypeCtrl := controller.NewWorkItemLinkTypeController(service, appDB, config)
 	app.MountWorkItemLinkTypeController(service, workItemLinkTypeCtrl)
+
+	// Mount "work item link types" controller
+	workItemLinkTypesCtrl := controller.NewWorkItemLinkTypesController(service, appDB, config)
+	app.MountWorkItemLinkTypesController(service, workItemLinkTypesCtrl)
 
 	// Mount "work item link" controller
 	workItemLinkCtrl := controller.NewWorkItemLinkController(service, appDB, config)
