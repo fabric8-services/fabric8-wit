@@ -21,7 +21,7 @@ var _ FieldType = (*ListType)(nil)
 var _ convert.Equaler = ListType{}
 var _ convert.Equaler = (*ListType)(nil)
 
-// DefaultValue implementes FieldType
+// DefaultValue implements FieldType
 func (t ListType) DefaultValue(value interface{}) (interface{}, error) {
 	return value, nil
 }
