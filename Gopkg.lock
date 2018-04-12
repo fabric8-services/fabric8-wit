@@ -106,11 +106,12 @@
     "goasupport",
     "gormsupport",
     "log",
-    "login/tokencontext",
     "rest",
-    "token"
+    "token",
+    "token/jwk",
+    "token/tokencontext"
   ]
-  revision = "master"
+  revision = "f717b4f4244a9d6fd31a54e7231a11eff14fa695"
 
 [[projects]]
   name = "github.com/fabric8-services/fabric8-notification"
@@ -760,6 +761,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9a7c235e7a543119c6d66a00b18952d2be8f5fb0b9189031f35199dfa4b0c55e"
+  inputs-digest = "8e0dd117d34f840a7053ec867cd40445019e6fe0f6ad628fa8f3d9506a320ad7"
   solver-name = "gps-cdcl"
   solver-version = 1

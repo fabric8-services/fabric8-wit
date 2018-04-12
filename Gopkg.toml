@@ -39,8 +39,8 @@ required = [
   "github.com/goadesign/goa/goagen/gen_js",
   "github.com/goadesign/goa/goagen/utils",
   "github.com/goadesign/goa/goatest",
-  "github.com/fabric8-services/fabric8-auth/account",
   "github.com/fabric8-services/fabric8-auth/design",
+  "github.com/fabric8-services/fabric8-auth/token/jwk",
   "github.com/fabric8-services/fabric8-notification/design",
   "github.com/fabric8-services/fabric8-tenant/design",
   "github.com/jteeuwen/go-bindata/go-bindata",
@@ -114,7 +114,7 @@ ignored = [
 
 [[constraint]]
   name = "github.com/fabric8-services/fabric8-auth"
-  revision = "master"
+  revision = "f717b4f4244a9d6fd31a54e7231a11eff14fa695"
 
 [[constraint]]
   name = "github.com/fabric8-services/fabric8-notification"
