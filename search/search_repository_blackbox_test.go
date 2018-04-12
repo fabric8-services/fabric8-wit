@@ -45,13 +45,12 @@ func (s *searchRepositoryBlackboxTest) getTestFixture() *tf.TestFixture {
 			switch idx {
 			case 0:
 				wit.Name = "base"
-				wit.Path = workitem.LtreeSafeID(wit.ID)
 			case 1:
 				wit.Name = "sub1"
-				wit.Path = fxt.WorkItemTypes[0].Path + workitem.GetTypePathSeparator() + workitem.LtreeSafeID(wit.ID)
+				wit.Extends = fxt.WorkItemTypeByName("base").ID
 			case 2:
 				wit.Name = "sub2"
-				wit.Path = fxt.WorkItemTypes[0].Path + workitem.GetTypePathSeparator() + workitem.LtreeSafeID(wit.ID)
+				wit.Extends = fxt.WorkItemTypeByName("base").ID
 			}
 			return nil
 		}),
