@@ -130,6 +130,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration81", testMigration81)
 	t.Run("TestMigration82", testMigration82)
 	t.Run("TestMigration84", testMigration84)
+	t.Run("TestMigration85", testMigration85)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -707,6 +708,31 @@ func testMigration84(t *testing.T) {
 
 	// cleanup
 	assert.Nil(t, runSQLscript(sqlDB, "084-codebases-spaceid-url-idx-cleanup.sql"))
+}
+
+func testMigration85(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:85], 85)
+
+	expectWorkItemFieldsToBe := func(t *testing.T, witID uuid.UUID, expectedFields string) {
+		row := sqlDB.QueryRow("SELECT fields FROM work_items WHERE id = $1", witID.String())
+		require.NotNil(t, row)
+		var actualFields string
+		err := row.Scan(&actualFields)
+		require.NoError(t, err)
+		require.Equal(t, expectedFields, actualFields)
+	}
+
+	// create two work items, one with the 'system.number' field and one without
+	// and check that they've been created as expected.
+	assert.Nil(t, runSQLscript(sqlDB, "085-delete-system.number-json-field.sql"))
+	expectWorkItemFieldsToBe(t, uuid.FromStringOrNil("27adc1a2-1ded-43b8-a125-12777139496c"), `{"system.title": "Work item 1", "system.number": 1234}`)
+	expectWorkItemFieldsToBe(t, uuid.FromStringOrNil("c106c056-2fec-4e56-83f0-cac31bb7ac1f"), `{"system.title": "Work item 2"}`)
+
+	// migrate to current version, which removes the 'system.number' field from
+	// work items and check that no work item has it.
+	migrateToVersion(t, sqlDB, migrations[:86], 86)
+	expectWorkItemFieldsToBe(t, uuid.FromStringOrNil("27adc1a2-1ded-43b8-a125-12777139496c"), `{"system.title": "Work item 1"}`)
+	expectWorkItemFieldsToBe(t, uuid.FromStringOrNil("c106c056-2fec-4e56-83f0-cac31bb7ac1f"), `{"system.title": "Work item 2"}`)
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and
