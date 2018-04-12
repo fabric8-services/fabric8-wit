@@ -131,6 +131,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration82", testMigration82)
 	t.Run("TestMigration84", testMigration84)
 	t.Run("TestMigration85", testMigration85)
+	t.Run("TestMigration86", testMigration86)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -733,6 +734,11 @@ func testMigration85(t *testing.T) {
 	migrateToVersion(t, sqlDB, migrations[:86], 86)
 	expectWorkItemFieldsToBe(t, uuid.FromStringOrNil("27adc1a2-1ded-43b8-a125-12777139496c"), `{"system.title": "Work item 1"}`)
 	expectWorkItemFieldsToBe(t, uuid.FromStringOrNil("c106c056-2fec-4e56-83f0-cac31bb7ac1f"), `{"system.title": "Work item 2"}`)
+}
+
+func testMigration86(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:87], 87)
+	require.True(t, dialect.HasColumn("work_item_types", "can_construct"))
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and
