@@ -382,6 +382,14 @@ func GetMigrations() Migrations {
 	// Version 84
 	m = append(m, steps{ExecuteSQLFile("084-codebases-spaceid-url-index.sql")})
 
+	// Version 85
+	m = append(m, steps{ExecuteSQLFile("085-delete-system.number-json-field.sql")})
+
+	// Version 86
+	m = append(m, steps{ExecuteSQLFile("086-add-can-construct-to-wit.sql",
+		workitem.SystemPlannerItem.String(),
+	)})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -773,10 +781,10 @@ func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.Gor
 		workitem.SystemDescription:  {Type: workitem.SimpleType{Kind: "markup"}, Required: false, Label: "Description", Description: "A descriptive text of the work item"},
 		workitem.SystemCreator:      {Type: workitem.SimpleType{Kind: "user"}, Required: true, Label: "Creator", Description: "The user that created the work item"},
 		workitem.SystemRemoteItemID: {Type: workitem.SimpleType{Kind: "string"}, Required: false, Label: "Remote item", Description: "The ID of the remote work item"},
-		workitem.SystemCreatedAt:    {Type: workitem.SimpleType{Kind: "instant"}, Required: false, Label: "Created at", Description: "The date and time when the work item was created"},
-		workitem.SystemUpdatedAt:    {Type: workitem.SimpleType{Kind: "instant"}, Required: false, Label: "Updated at", Description: "The date and time when the work item was last updated"},
-		workitem.SystemOrder:        {Type: workitem.SimpleType{Kind: "float"}, Required: false, Label: "Execution Order", Description: "Execution Order of the workitem."},
-		workitem.SystemNumber:       {Type: workitem.SimpleType{Kind: "integer"}, Required: false, Label: "Number", Description: "The unique number that was given to this workitem within its space."},
+		workitem.SystemCreatedAt:    {Type: workitem.SimpleType{Kind: "instant"}, Required: false, ReadOnly: true, Label: "Created at", Description: "The date and time when the work item was created"},
+		workitem.SystemUpdatedAt:    {Type: workitem.SimpleType{Kind: "instant"}, Required: false, ReadOnly: true, Label: "Updated at", Description: "The date and time when the work item was last updated"},
+		workitem.SystemOrder:        {Type: workitem.SimpleType{Kind: "float"}, Required: false, ReadOnly: true, Label: "Execution Order", Description: "Execution Order of the workitem."},
+		workitem.SystemNumber:       {Type: workitem.SimpleType{Kind: "integer"}, Required: false, ReadOnly: true, Label: "Number", Description: "The unique number that was given to this workitem within its space."},
 		workitem.SystemIteration:    {Type: workitem.SimpleType{Kind: "iteration"}, Required: false, Label: "Iteration", Description: "The iteration to which the work item belongs"},
 		workitem.SystemArea:         {Type: workitem.SimpleType{Kind: "area"}, Required: false, Label: "Area", Description: "The area to which the work item belongs"},
 		workitem.SystemCodebase:     {Type: workitem.SimpleType{Kind: "codebase"}, Required: false, Label: "Codebase", Description: "Contains codebase attributes to which this WI belongs to"},
@@ -815,22 +823,22 @@ func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.Gor
 			Description: "The state of the work item",
 		},
 	}
-	return createOrUpdateType(ctx, typeID, spaceID, typeName, description, nil, workItemTypeFields, icon, witr, db)
+	return createOrUpdateType(ctx, typeID, spaceID, typeName, description, nil, workItemTypeFields, icon, false, witr, db)
 }
 
 func createOrUpdatePlannerItemExtension(ctx context.Context, typeID uuid.UUID, name string, description string, icon string, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB, spaceID uuid.UUID) error {
 	workItemTypeFields := map[string]workitem.FieldDefinition{}
 	extTypeName := workitem.SystemPlannerItem
-	return createOrUpdateType(ctx, typeID, spaceID, name, description, &extTypeName, workItemTypeFields, icon, witr, db)
+	return createOrUpdateType(ctx, typeID, spaceID, name, description, &extTypeName, workItemTypeFields, icon, true, witr, db)
 }
 
-func createOrUpdateType(ctx context.Context, typeID uuid.UUID, spaceID uuid.UUID, name string, description string, extendedTypeID *uuid.UUID, fields map[string]workitem.FieldDefinition, icon string, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB) error {
+func createOrUpdateType(ctx context.Context, typeID uuid.UUID, spaceID uuid.UUID, name string, description string, extendedTypeID *uuid.UUID, fields map[string]workitem.FieldDefinition, icon string, canConstruct bool, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB) error {
 	log.Info(ctx, nil, "Creating or updating planner item types...")
 	err := witr.CheckExists(ctx, typeID)
 	cause := errs.Cause(err)
 	switch cause.(type) {
 	case errors.NotFoundError:
-		_, err := witr.Create(ctx, spaceID, &typeID, extendedTypeID, name, &description, icon, fields)
+		_, err := witr.Create(ctx, spaceID, &typeID, extendedTypeID, name, &description, icon, fields, canConstruct)
 		if err != nil {
 			return errs.WithStack(err)
 		}
@@ -846,7 +854,7 @@ func createOrUpdateType(ctx context.Context, typeID uuid.UUID, spaceID uuid.UUID
 				"extended_type_id": *extendedTypeID,
 			}, "Work item type %v extends another type %v will copy fields from the extended type", typeID, *extendedTypeID)
 
-			extendedWit, err := witr.LoadTypeFromDB(ctx, *extendedTypeID)
+			extendedWit, err := witr.Load(ctx, *extendedTypeID)
 			if err != nil {
 				return errs.WithStack(err)
 			}
@@ -863,13 +871,14 @@ func createOrUpdateType(ctx context.Context, typeID uuid.UUID, spaceID uuid.UUID
 			return errs.WithStack(err)
 		}
 		wit := workitem.WorkItemType{
-			ID:          typeID,
-			SpaceID:     spaceID,
-			Name:        name,
-			Description: &description,
-			Icon:        icon,
-			Fields:      fields,
-			Path:        path,
+			ID:           typeID,
+			SpaceID:      spaceID,
+			Name:         name,
+			Description:  &description,
+			CanConstruct: canConstruct,
+			Icon:         icon,
+			Fields:       fields,
+			Path:         path,
 		}
 		db = db.Save(wit)
 		return db.Error
@@ -890,6 +899,7 @@ func loadFields(ctx context.Context, wit *workitem.WorkItemType, into workitem.F
 				Label:       value.Label,
 				Description: value.Description,
 				Required:    into[key].Required,
+				ReadOnly:    into[key].ReadOnly,
 				Type:        into[key].Type,
 			}
 		}
