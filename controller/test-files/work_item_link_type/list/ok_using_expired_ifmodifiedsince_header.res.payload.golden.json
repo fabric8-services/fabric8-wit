@@ -3,38 +3,118 @@
     {
       "attributes": {
         "created-at": "0001-01-01T00:00:00Z",
-        "description": "some description",
-        "forward_name": "forward name (e.g. blocks)",
-        "name": "work item link type 00000000-0000-0000-0000-000000000001",
-        "reverse_name": "reverse name (e.g. blocked by)",
-        "topology": "tree",
+        "description": "One bug blocks a planner item.",
+        "forward_name": "blocks",
+        "name": "Bug blocker",
+        "reverse_name": "blocked by",
+        "topology": "network",
         "updated-at": "0001-01-01T00:00:00Z",
-        "version": 0
+        "version": 54
       },
-      "id": "00000000-0000-0000-0000-000000000002",
+      "id": "00000000-0000-0000-0000-000000000001",
       "links": {
-        "related": "http:///api/workitemlinktypes/00000000-0000-0000-0000-000000000002",
-        "self": "http:///api/workitemlinktypes/00000000-0000-0000-0000-000000000002"
+        "related": "http:///api/workitemlinktypes/00000000-0000-0000-0000-000000000001",
+        "self": "http:///api/workitemlinktypes/00000000-0000-0000-0000-000000000001"
       },
       "relationships": {
         "link_category": {
           "data": {
-            "id": "00000000-0000-0000-0000-000000000003",
+            "id": "00000000-0000-0000-0000-000000000002",
             "type": "workitemlinkcategories"
           },
           "links": {
-            "related": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000003",
-            "self": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000003"
+            "related": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000002",
+            "self": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000002"
           }
         },
         "space": {
           "data": {
-            "id": "00000000-0000-0000-0000-000000000004",
+            "id": "00000000-0000-0000-0000-000000000003",
             "type": "spaces"
           },
           "links": {
-            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000004",
-            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000004"
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000003",
+            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000003"
+          }
+        }
+      },
+      "type": "workitemlinktypes"
+    },
+    {
+      "attributes": {
+        "created-at": "0001-01-01T00:00:00Z",
+        "description": "One planner item or a subtype of it relates to another one.",
+        "forward_name": "relates to",
+        "name": "Related planner item",
+        "reverse_name": "is related to",
+        "topology": "network",
+        "updated-at": "0001-01-01T00:00:00Z",
+        "version": 54
+      },
+      "id": "00000000-0000-0000-0000-000000000004",
+      "links": {
+        "related": "http:///api/workitemlinktypes/00000000-0000-0000-0000-000000000004",
+        "self": "http:///api/workitemlinktypes/00000000-0000-0000-0000-000000000004"
+      },
+      "relationships": {
+        "link_category": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000002",
+            "type": "workitemlinkcategories"
+          },
+          "links": {
+            "related": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000002",
+            "self": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000002"
+          }
+        },
+        "space": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000003",
+            "type": "spaces"
+          },
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000003",
+            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000003"
+          }
+        }
+      },
+      "type": "workitemlinktypes"
+    },
+    {
+      "attributes": {
+        "created-at": "0001-01-01T00:00:00Z",
+        "description": "One planner item or a subtype of it which is a parent of another one.",
+        "forward_name": "parent of",
+        "name": "Parent child item",
+        "reverse_name": "child of",
+        "topology": "tree",
+        "updated-at": "0001-01-01T00:00:00Z",
+        "version": 54
+      },
+      "id": "00000000-0000-0000-0000-000000000005",
+      "links": {
+        "related": "http:///api/workitemlinktypes/00000000-0000-0000-0000-000000000005",
+        "self": "http:///api/workitemlinktypes/00000000-0000-0000-0000-000000000005"
+      },
+      "relationships": {
+        "link_category": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000002",
+            "type": "workitemlinkcategories"
+          },
+          "links": {
+            "related": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000002",
+            "self": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000002"
+          }
+        },
+        "space": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000003",
+            "type": "spaces"
+          },
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000003",
+            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000003"
           }
         }
       },
@@ -45,36 +125,76 @@
         "created-at": "0001-01-01T00:00:00Z",
         "description": "some description",
         "forward_name": "forward name (e.g. blocks)",
-        "name": "work item link type 00000000-0000-0000-0000-000000000005",
+        "name": "work item link type 00000000-0000-0000-0000-000000000006",
         "reverse_name": "reverse name (e.g. blocked by)",
         "topology": "tree",
         "updated-at": "0001-01-01T00:00:00Z",
         "version": 0
       },
-      "id": "00000000-0000-0000-0000-000000000006",
+      "id": "00000000-0000-0000-0000-000000000007",
       "links": {
-        "related": "http:///api/workitemlinktypes/00000000-0000-0000-0000-000000000006",
-        "self": "http:///api/workitemlinktypes/00000000-0000-0000-0000-000000000006"
+        "related": "http:///api/workitemlinktypes/00000000-0000-0000-0000-000000000007",
+        "self": "http:///api/workitemlinktypes/00000000-0000-0000-0000-000000000007"
       },
       "relationships": {
         "link_category": {
           "data": {
-            "id": "00000000-0000-0000-0000-000000000003",
+            "id": "00000000-0000-0000-0000-000000000008",
             "type": "workitemlinkcategories"
           },
           "links": {
-            "related": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000003",
-            "self": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000003"
+            "related": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000008",
+            "self": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000008"
           }
         },
         "space": {
           "data": {
-            "id": "00000000-0000-0000-0000-000000000004",
+            "id": "00000000-0000-0000-0000-000000000009",
             "type": "spaces"
           },
           "links": {
-            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000004",
-            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000004"
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000009",
+            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000009"
+          }
+        }
+      },
+      "type": "workitemlinktypes"
+    },
+    {
+      "attributes": {
+        "created-at": "0001-01-01T00:00:00Z",
+        "description": "some description",
+        "forward_name": "forward name (e.g. blocks)",
+        "name": "work item link type 00000000-0000-0000-0000-000000000010",
+        "reverse_name": "reverse name (e.g. blocked by)",
+        "topology": "tree",
+        "updated-at": "0001-01-01T00:00:00Z",
+        "version": 0
+      },
+      "id": "00000000-0000-0000-0000-000000000011",
+      "links": {
+        "related": "http:///api/workitemlinktypes/00000000-0000-0000-0000-000000000011",
+        "self": "http:///api/workitemlinktypes/00000000-0000-0000-0000-000000000011"
+      },
+      "relationships": {
+        "link_category": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000008",
+            "type": "workitemlinkcategories"
+          },
+          "links": {
+            "related": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000008",
+            "self": "http:///api/workitemlinkcategories/00000000-0000-0000-0000-000000000008"
+          }
+        },
+        "space": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000009",
+            "type": "spaces"
+          },
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000009",
+            "self": "http:///api/spaces/00000000-0000-0000-0000-000000000009"
           }
         }
       },
@@ -82,6 +202,6 @@
     }
   ],
   "meta": {
-    "totalCount": 2
+    "totalCount": 5
   }
 }
