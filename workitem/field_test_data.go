@@ -3,6 +3,7 @@ package workitem
 import (
 	"fmt"
 	"math"
+	"sort"
 	"testing"
 	"time"
 
@@ -14,18 +15,38 @@ import (
 // ValidInvalid given a bunch of tests with expected error results for each work
 // item type field kind, a work item type for each kind...
 type ValidInvalid struct {
+	// Valid should contain more than one valid examples so a test function can
+	// properly handle work item creation and updating
 	Valid   []interface{}
 	Invalid []interface{}
-	// When the actual value is a zero (0), it will be interpreted as a
-	// float64 rather than an int. To compensate for that ambiguity, a
-	// kind can opt-in to provide an construction function that returns
-	// the correct value.
+	// When the actual value is a zero (0), it will be interpreted as a float64
+	// rather than an int. To compensate for that ambiguity, a kind can opt-in
+	// to provide a construction function that returns the correct value.
 	Compensate func(interface{}) interface{}
+}
+
+// FieldTypeTestDataMap defines a map with additional functionality on it.
+type FieldTypeTestDataMap map[Kind]ValidInvalid
+
+// GetKinds returns the keys of the test data map in sorted order.
+func (s FieldTypeTestDataMap) GetKinds() []Kind {
+	strArr := make([]string, len(s))
+	kinds := make([]Kind, len(s))
+	i := 0
+	for k := range s {
+		strArr[i] = k.String()
+		i++
+	}
+	sort.Strings(strArr)
+	for i := 0; i < len(strArr); i++ {
+		kinds[i] = Kind(strArr[i])
+	}
+	return kinds
 }
 
 // GetFieldTypeTestData returns a list of legal and illegal values to be used
 // with a given field type (here: the map key).
-func GetFieldTypeTestData(t *testing.T) map[Kind]ValidInvalid {
+func GetFieldTypeTestData(t *testing.T) FieldTypeTestDataMap {
 	// helper function to convert a string into a duration and handling the
 	// error
 	validDuration := func(s string) time.Duration {
@@ -36,10 +57,11 @@ func GetFieldTypeTestData(t *testing.T) map[Kind]ValidInvalid {
 		return d
 	}
 
-	return map[Kind]ValidInvalid{
+	res := FieldTypeTestDataMap{
 		KindString: {
 			Valid: []interface{}{
 				"foo",
+				"bar",
 			},
 			Invalid: []interface{}{
 				"", // NOTE: an empty string is not allowed in a required field.
@@ -52,7 +74,8 @@ func GetFieldTypeTestData(t *testing.T) map[Kind]ValidInvalid {
 		KindUser: {
 			Valid: []interface{}{
 				"jane doe", // TODO(kwk): do we really allow usernames with spaces?
-				"",         // TODO(kwk): do we really allow empty usernames?
+				"john doe",
+				"", // TODO(kwk): do we really allow empty usernames?
 			},
 			Invalid: []interface{}{
 				nil,
@@ -64,6 +87,7 @@ func GetFieldTypeTestData(t *testing.T) map[Kind]ValidInvalid {
 		KindIteration: {
 			Valid: []interface{}{
 				"some iteration name",
+				"some other iteration name",
 				"", // TODO(kwk): do we really allow empty iteration names?
 			},
 			Invalid: []interface{}{
@@ -75,7 +99,8 @@ func GetFieldTypeTestData(t *testing.T) map[Kind]ValidInvalid {
 		},
 		KindArea: {
 			Valid: []interface{}{
-				"some are name",
+				"some area name",
+				"some other area name",
 				"", // TODO(kwk): do we really allow empty area names?
 			},
 			Invalid: []interface{}{
@@ -88,6 +113,7 @@ func GetFieldTypeTestData(t *testing.T) map[Kind]ValidInvalid {
 		KindLabel: {
 			Valid: []interface{}{
 				"some label name",
+				"some label name2",
 				"", // TODO(kwk): do we really allow empty label names?
 			},
 			Invalid: []interface{}{
@@ -201,6 +227,11 @@ func GetFieldTypeTestData(t *testing.T) map[Kind]ValidInvalid {
 					require.NoError(t, err)
 					return v.UTC()
 				}(),
+				func() interface{} {
+					v, err := time.Parse("02 Jan 06 15:04 -0700", "03 Jan 06 15:04 -0700")
+					require.NoError(t, err)
+					return v.UTC()
+				}(),
 				// time.Now().UTC(), // TODO(kwk): Somehow this fails due to different nsec
 			},
 			Invalid: []interface{}{
@@ -243,6 +274,13 @@ func GetFieldTypeTestData(t *testing.T) map[Kind]ValidInvalid {
 					LineNumber: 10,
 					CodebaseID: "dunno",
 				},
+				codebase.Content{
+					Repository: "git://github.com/pkg/error.git",
+					Branch:     "master",
+					FileName:   "main.go",
+					LineNumber: 15,
+					CodebaseID: "dunno",
+				},
 			},
 			Invalid: []interface{}{
 				// empty repository (see codebase.Content.IsValid())
@@ -276,4 +314,14 @@ func GetFieldTypeTestData(t *testing.T) map[Kind]ValidInvalid {
 		//KindEnum:  {}, // TODO(kwk): Add test for KindEnum
 		//KindList:  {}, // TODO(kwk): Add test for KindList
 	}
+
+	for k, iv := range res {
+		if len(iv.Valid) < 2 {
+			t.Fatalf("at least two valid examples required for kind %s but only %d given", k, len(iv.Valid))
+		}
+		if len(iv.Invalid) < 1 {
+			t.Fatalf("at least one invalid example is required for kind %s but only %d given", k, len(iv.Invalid))
+		}
+	}
+	return res
 }

@@ -5,6 +5,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/label"
 	"github.com/fabric8-services/fabric8-wit/query"
+	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	errs "github.com/pkg/errors"
@@ -53,6 +54,16 @@ func (fxt *TestFixture) WorkItemTypeByName(name string, spaceID ...uuid.UUID) *w
 	return nil
 }
 
+// SpaceByName returns the first space type that has the given name (if any).
+func (fxt *TestFixture) SpaceByName(name string) *space.Space {
+	for _, s := range fxt.Spaces {
+		if s.Name == name {
+			return s
+		}
+	}
+	return nil
+}
+
 // WorkItemTypeByID returns the work item type that has the given ID (if any).
 func (fxt *TestFixture) WorkItemTypeByID(id uuid.UUID) *workitem.WorkItemType {
 	for _, wit := range fxt.WorkItemTypes {
@@ -81,7 +92,7 @@ func (fxt *TestFixture) WorkItemByTitle(title string, spaceID ...uuid.UUID) *wor
 	for _, wi := range fxt.WorkItems {
 		v, ok := wi.Fields[workitem.SystemTitle]
 		if !ok {
-			panic(errs.Errorf("failed to find work item with title '%s'", title))
+			panic(errs.Errorf("failed to find work item with title '%s' (field '%s' does not exist in work item title)", title, workitem.SystemTitle))
 		}
 		if v == title && len(spaceID) > 0 && wi.SpaceID == spaceID[0] {
 			return wi
