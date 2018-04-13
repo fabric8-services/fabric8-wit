@@ -118,7 +118,7 @@ func (osioclient *OSIOClient) GetUserServices(ctx context.Context) (*app.UserSer
 			"err":         err,
 			"path":        witclient.ShowUserServicePath(),
 			"http_status": status,
-		}, "failed to user service from WIT service due to HTTP error %s", status)
+		}, "failed to user service from WIT service due to HTTP error %d", status)
 		return nil, errs.Errorf("failed to GET %s due to status code %d", witclient.ShowUserServicePath(), status)
 	}
 

@@ -2,4 +2,5 @@ bindata_assetfs\.go
 sqlbindata
 design/.*
 .*exported
+migration/sqlbindata\.go
 EOF

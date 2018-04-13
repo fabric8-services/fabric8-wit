@@ -5,6 +5,7 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/id"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	uuid "github.com/satori/go.uuid"
@@ -47,6 +48,92 @@ func (s *workItemTypeRepoBlackBoxTest) TestExists() {
 		require.IsType(t, errors.NotFoundError{}, err)
 	})
 }
+
+func (s *workItemTypeRepoBlackBoxTest) TestList() {
+	s.T().Run("ok", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemTypes(4,
+			func(fxt *tf.TestFixture, idx int) error {
+				// Have one non-planner item based work item type
+				if idx == 3 {
+					fxt.WorkItemTypes[idx].Path = workitem.LtreeSafeID(fxt.WorkItemTypes[idx].ID)
+				}
+				return nil
+			}),
+		)
+		// when
+		wits, err := s.repo.List(s.Ctx, fxt.Spaces[0].ID)
+		// then
+		require.NoError(t, err)
+		toBeFound := id.Slice{
+			fxt.WorkItemTypes[0].ID,
+			fxt.WorkItemTypes[1].ID,
+			fxt.WorkItemTypes[2].ID,
+			// NOTE: We ARE listing the non-planner item based type.
+			fxt.WorkItemTypes[3].ID,
+		}.ToMap()
+		for _, wit := range wits {
+			_, ok := toBeFound[wit.ID]
+			assert.True(t, ok, "found unexpected work item type %s", wit.ID)
+			delete(toBeFound, wit.ID)
+		}
+		require.Empty(t, toBeFound, "failed to find work item types: %s", toBeFound)
+	})
+
+	s.T().Run("not found for non-existing space", func(t *testing.T) {
+		// given
+		id := uuid.NewV4()
+		// when
+		wits, err := s.repo.List(s.Ctx, id)
+		// then
+		require.Error(t, err)
+		require.IsType(t, errors.NotFoundError{}, err)
+		require.Nil(t, wits)
+	})
+}
+
+func (s *workItemTypeRepoBlackBoxTest) TestListPlannerItemTypes() {
+	s.T().Run("ok", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemTypes(4,
+			func(fxt *tf.TestFixture, idx int) error {
+				// Have one non-planner item based work item type
+				if idx == 3 {
+					fxt.WorkItemTypes[idx].Extends = uuid.Nil
+				}
+				return nil
+			}),
+		)
+		// when
+		wits, err := s.repo.ListPlannerItemTypes(s.Ctx, fxt.Spaces[0].ID)
+		// then
+		require.NoError(t, err)
+		toBeFound := id.Slice{
+			fxt.WorkItemTypes[0].ID,
+			fxt.WorkItemTypes[1].ID,
+			fxt.WorkItemTypes[2].ID,
+			// NOTE: We're NOT listing the non-planner item based type.
+		}.ToMap()
+		for _, wit := range wits {
+			_, ok := toBeFound[wit.ID]
+			assert.True(t, ok, "found unexpected work item type %s", wit.ID)
+			delete(toBeFound, wit.ID)
+		}
+		require.Empty(t, toBeFound, "failed to find work item types: %s", toBeFound)
+	})
+
+	s.T().Run("not found for non-existing space", func(t *testing.T) {
+		// given
+		id := uuid.NewV4()
+		// when
+		wits, err := s.repo.ListPlannerItemTypes(s.Ctx, id)
+		// then
+		require.Error(t, err)
+		require.IsType(t, errors.NotFoundError{}, err)
+		require.Nil(t, wits)
+	})
+}
+
 func (s *workItemTypeRepoBlackBoxTest) TestCreate() {
 	s.T().Run("create and load", func(t *testing.T) {
 		// Test that we can create two WITs with the same name, the second has a
@@ -88,12 +175,12 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreate() {
 					SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
 					ComponentType: workitem.SimpleType{Kind: workitem.KindString}},
 			},
-		})
+		}, true)
 
 		require.NoError(t, err)
 		require.NotNil(t, baseWit)
 		require.NotNil(t, baseWit.ID)
-		extendedWit, err := s.repo.Create(s.Ctx, fxt.Spaces[0].ID, nil, &baseWit.ID, "foo.baz", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
+		extendedWit, err := s.repo.Create(s.Ctx, fxt.Spaces[0].ID, nil, &baseWit.ID, "foo.baz", nil, "fa-bomb", map[string]workitem.FieldDefinition{}, true)
 		require.NoError(t, err)
 		require.NotNil(t, extendedWit)
 		require.NotNil(t, extendedWit.Fields)
@@ -103,8 +190,8 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreate() {
 
 	s.T().Run("fail - WIT with missing base type", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1))
-		baseTypeID := uuid.Nil
-		extendedWit, err := s.repo.Create(s.Ctx, fxt.Spaces[0].ID, nil, &baseTypeID, "foo.baz", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
+		baseTypeID := uuid.NewV4()
+		extendedWit, err := s.repo.Create(s.Ctx, fxt.Spaces[0].ID, nil, &baseTypeID, "foo.baz", nil, "fa-bomb", map[string]workitem.FieldDefinition{}, true)
 		// expect an error as the given base type does not exist
 		require.Error(t, err)
 		require.Nil(t, extendedWit)

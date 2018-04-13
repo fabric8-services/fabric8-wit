@@ -69,13 +69,14 @@ func ConvertWorkItemTypeFromModel(request *http.Request, t *workitem.WorkItemTyp
 		Type: "workitemtypes",
 		ID:   ptr.UUID(t.ID),
 		Attributes: &app.WorkItemTypeAttributes{
-			CreatedAt:   ptr.Time(t.CreatedAt.UTC()),
-			UpdatedAt:   ptr.Time(t.UpdatedAt.UTC()),
-			Version:     &t.Version,
-			Description: t.Description,
-			Icon:        t.Icon,
-			Name:        t.Name,
-			Fields:      map[string]*app.FieldDefinition{},
+			CreatedAt:    ptr.Time(t.CreatedAt.UTC()),
+			UpdatedAt:    ptr.Time(t.UpdatedAt.UTC()),
+			Version:      &t.Version,
+			Description:  t.Description,
+			Icon:         t.Icon,
+			Name:         t.Name,
+			Fields:       map[string]*app.FieldDefinition{},
+			CanConstruct: ptr.Bool(t.CanConstruct),
 		},
 		Relationships: &app.WorkItemTypeRelationships{
 			Space: app.NewSpaceRelation(t.SpaceID, spaceSelfURL),
@@ -166,7 +167,13 @@ func ConvertFieldTypeToModel(t app.FieldType) (workitem.FieldType, error) {
 		if err != nil {
 			return nil, errs.WithStack(err)
 		}
-		return workitem.EnumType{workitem.SimpleType{*kind}, baseType, converted}, nil
+		return workitem.EnumType{
+			SimpleType: workitem.SimpleType{
+				Kind: *kind,
+			},
+			BaseType: baseType,
+			Values:   converted,
+		}, nil
 	default:
 		return workitem.SimpleType{*kind}, nil
 	}

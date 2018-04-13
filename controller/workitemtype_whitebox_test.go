@@ -119,10 +119,18 @@ func TestConvertTypeFromModel(t *testing.T) {
 func TestConvertFieldTypes(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
+
 	types := []workitem.FieldType{
 		workitem.SimpleType{Kind: workitem.KindInteger},
-		workitem.ListType{workitem.SimpleType{Kind: workitem.KindList}, workitem.SimpleType{Kind: workitem.KindString}},
-		workitem.EnumType{workitem.SimpleType{Kind: workitem.KindEnum}, workitem.SimpleType{Kind: workitem.KindString}, []interface{}{"foo", "bar"}},
+		workitem.ListType{
+			SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
+			ComponentType: workitem.SimpleType{Kind: workitem.KindString},
+		},
+		workitem.EnumType{
+			SimpleType: workitem.SimpleType{Kind: workitem.KindEnum},
+			BaseType:   workitem.SimpleType{Kind: workitem.KindString},
+			Values:     []interface{}{"foo", "bar"},
+		},
 	}
 
 	for _, theType := range types {

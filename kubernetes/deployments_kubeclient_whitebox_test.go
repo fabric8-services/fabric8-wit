@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"net/http"
 	"reflect"
 	"testing"
 	"time"
@@ -115,6 +116,7 @@ func TestGetKubeRESTAPI(t *testing.T) {
 	require.Equal(t, *apiURL, restConfig.Host, "Host config is not set to cluster URL")
 	require.Equal(t, *apiToken, restConfig.BearerToken, "Bearer tokens do not match")
 	require.Equal(t, config.Timeout, restConfig.Timeout, "Timeouts do not match")
+	require.Equal(t, config.Transport, restConfig.Transport, "HTTP Transports do not match")
 }
 
 func TestGetOpenShiftRESTAPI(t *testing.T) {
@@ -129,6 +131,7 @@ func TestGetOpenShiftRESTAPI(t *testing.T) {
 	require.Equal(t, config, client.config, "KubeClientConfig in OpenShift client does not match")
 	require.NotNil(t, client.httpClient, "No HTTP client present in OpenShift client")
 	require.Equal(t, config.Timeout, client.httpClient.Timeout, "Timeouts do not match")
+	require.Equal(t, config.Transport, client.httpClient.Transport, "HTTP Transports do not match")
 }
 
 func getKubeConfigWithTimeout() *KubeClientConfig {
@@ -137,6 +140,7 @@ func getKubeConfigWithTimeout() *KubeClientConfig {
 		BaseURLProvider: urlProvider,
 		UserNamespace:   "myNamespace",
 		Timeout:         30 * time.Second,
+		Transport:       &http.Transport{},
 	}
 }
 

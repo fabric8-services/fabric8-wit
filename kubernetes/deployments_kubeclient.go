@@ -33,7 +33,10 @@ type KubeClientConfig struct {
 	UserNamespace string
 	// Timeout used for communicating with Kubernetes and OpenShift API servers,
 	// a value of zero indicates no timeout
-	Timeout time.Duration // TODO determine good timeout to set here, or possibly make configurable
+	Timeout time.Duration
+	// Specifies a non-default HTTP transport to use when sending requests to
+	// Kubernetes and OpenShift API servers
+	Transport http.RoundTripper
 	// Provides access to the Kubernetes REST API, uses default implementation if not set
 	KubeRESTAPIGetter
 	// Provides access to the metrics API, uses default implementation if not set
@@ -202,6 +205,7 @@ func (*defaultGetter) GetKubeRESTAPI(config *KubeClientConfig) (KubeRESTAPI, err
 		Host:        *url,
 		BearerToken: *token,
 		Timeout:     config.Timeout,
+		Transport:   config.Transport,
 	}
 	coreV1Client, err := corev1.NewForConfig(restConfig)
 	if err != nil {
@@ -215,9 +219,10 @@ func (*defaultGetter) GetKubeRESTAPI(config *KubeClientConfig) (KubeRESTAPI, err
 }
 
 func (*defaultGetter) GetOpenShiftRESTAPI(config *KubeClientConfig) (OpenShiftRESTAPI, error) {
-	// Equivalent to http.DefaultClient with added timeout
+	// Equivalent to http.DefaultClient with added timeout and transport
 	httpClient := &http.Client{
-		Timeout: config.Timeout,
+		Timeout:   config.Timeout,
+		Transport: config.Transport,
 	}
 	client := &openShiftAPIClient{
 		config:     config,
@@ -901,6 +906,10 @@ func (kc *kubeClient) deleteDeploymentConfig(spaceName string, appName string, n
 	// Delete all dependent objects and then this DC
 	policy := metaV1.DeletePropagationForeground
 	opts := &metaV1.DeleteOptions{
+		TypeMeta: metaV1.TypeMeta{ // Normally set automatically by k8s client-go
+			Kind:       "DeleteOptions",
+			APIVersion: "v1",
+		},
 		PropagationPolicy: &policy,
 	}
 	err = kc.DeleteDeploymentConfig(namespace, appName, opts)
@@ -1691,6 +1700,10 @@ func (kc *kubeClient) deleteRoutes(appName string, envNS string) error {
 	// Delete all dependent objects before deleting the route
 	policy := metaV1.DeletePropagationForeground
 	opts := &metaV1.DeleteOptions{
+		TypeMeta: metaV1.TypeMeta{ // Normally set automatically by k8s client-go
+			Kind:       "DeleteOptions",
+			APIVersion: "v1",
+		},
 		PropagationPolicy: &policy,
 	}
 
