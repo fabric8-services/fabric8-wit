@@ -1,0 +1,371 @@
+---
+version: 1
+interactions:
+  # Environments ConfigMap
+- request:
+    body: ""
+    form: {}
+    headers:
+      Content-Type:
+      - application/json
+    url: http://api.myCluster/api/v1/namespaces/myNamespace/configmaps/fabric8-environments
+    method: GET
+  response:
+    body: |
+        {
+            "apiVersion": "v1",
+            "data": {
+                "run": "name: Run\nnamespace: my-run\norder: 2",
+                "stage": "name: Stage\nnamespace: my-stage\norder: 1",
+                "test": "name: Test\nnamespace: myNamespace\norder: 0"
+            },
+            "kind": "ConfigMap",
+            "metadata": {
+                "annotations": {
+                    "description": "Defines the environments used by your Continuous Delivery pipelines.",
+                    "fabric8.console/iconUrl": "https://cdn.rawgit.com/fabric8io/fabric8-console/master/app-kubernetes/src/main/fabric8/icon.svg",
+                    "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"data\":{\"run\":\"name: Run\\nnamespace: my-run\\norder: 2\",\"stage\":\"name: Stage\\nnamespace: my-stage\\norder: 1\",\"test\":\"name: Test\\nnamespace: myNamespace\\norder: 0\"},\"kind\":\"ConfigMap\",\"metadata\":{\"annotations\":{\"description\":\"Defines the environments used by your Continuous Delivery pipelines.\",\"fabric8.console/iconUrl\":\"https://cdn.rawgit.com/fabric8io/fabric8-console/master/app-kubernetes/src/main/fabric8/icon.svg\"},\"labels\":{\"app\":\"fabric8-tenant-team\",\"group\":\"io.fabric8.tenant.packages\",\"kind\":\"environments\",\"provider\":\"fabric8\",\"version\":\"2.0.11\"},\"name\":\"fabric8-environments\",\"namespace\":\"myNamespace\"}}\n"
+                },
+                "creationTimestamp": "2018-02-26T18:00:45Z",
+                "labels": {
+                    "app": "fabric8-tenant-team",
+                    "group": "io.fabric8.tenant.packages",
+                    "kind": "environments",
+                    "provider": "fabric8",
+                    "version": "2.0.11"
+                },
+                "name": "fabric8-environments",
+                "namespace": "myNamespace",
+                "resourceVersion": "996068051",
+                "selfLink": "/api/v1/namespaces/myNamespace/configmaps/fabric8-environments",
+                "uid": "f808e2e2-1b1e-11e8-ae91-0233cba325d9"
+            }
+        }
+    headers:
+      Content-Type:
+      - application/json;charset=UTF-8
+    status: 200 OK
+    code: 200
+  # Deployment Configs
+- request:
+    body: ""
+    form: {}
+    headers:
+      Content-Type:
+      - application/json
+    url: http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myApp
+    method: GET
+  response:
+    body: |
+        {
+            "apiVersion": "v1",
+            "kind": "DeploymentConfig",
+            "metadata": {
+                "annotations": {
+                    "fabric8.io/git-branch": "myUser/myApp/master-1.0.2",
+                    "fabric8.io/git-commit": "55ca6286e3e4f4fba5d0448333fa99fc5a404a73",
+                    "fabric8.io/iconUrl": "img/icon.svg",
+                    "fabric8.io/metrics-path": "dashboard/file/kubernetes-pods.json/?var-project=myApp\u0026var-version=1.0.2",
+                    "fabric8.io/scm-con-url": "scm:git:https://example.com/myApp",
+                    "fabric8.io/scm-devcon-url": "scm:git:git:@example.com:myApp",
+                    "fabric8.io/scm-tag": "myTag",
+                    "fabric8.io/scm-url": "https://example.com/myApp"
+                },
+                "creationTimestamp": "2018-01-25T16:33:02Z",
+                "generation": 3,
+                "labels": {
+                    "app": "myApp",
+                    "group": "myGroup",
+                    "provider": "fabric8",
+                    "space": "mySpace",
+                    "version": "1.0.2"
+                },
+                "name": "myApp",
+                "namespace": "my-run",
+                "resourceVersion": "838024578",
+                "selfLink": "/oapi/v1/namespaces/my-run/deploymentconfigs/myApp",
+                "uid": "8db1c9ba-91b5-46c6-be99-576245f42b3b"
+            },
+            "spec": {
+                "replicas": 2,
+                "revisionHistoryLimit": 2,
+                "selector": {
+                    "app": "myApp",
+                    "group": "myGroup",
+                    "provider": "fabric8"
+                },
+                "strategy": {
+                    "activeDeadlineSeconds": 21600,
+                    "resources": {},
+                    "rollingParams": {
+                        "intervalSeconds": 1,
+                        "maxSurge": "25%",
+                        "maxUnavailable": "25%",
+                        "timeoutSeconds": 3600,
+                        "updatePeriodSeconds": 1
+                    },
+                    "type": "Rolling"
+                },
+                "template": {
+                    "metadata": {
+                        "annotations": {
+                            "fabric8.io/git-branch": "myUser/myApp/master-1.0.2",
+                            "fabric8.io/git-commit": "55ca6286e3e4f4fba5d0448333fa99fc5a404a73",
+                            "fabric8.io/iconUrl": "img/icon.svg",
+                            "fabric8.io/metrics-path": "dashboard/file/kubernetes-pods.json/?var-project=myApp\u0026var-version=1.0.2",
+                            "fabric8.io/scm-con-url": "scm:git:https://example.com/myApp",
+                            "fabric8.io/scm-devcon-url": "scm:git:git:@example.com:myApp",
+                            "fabric8.io/scm-tag": "myTag",
+                            "fabric8.io/scm-url": "https://example.com/myApp"
+                        },
+                        "creationTimestamp": null,
+                        "labels": {
+                            "app": "myApp",
+                            "group": "myGroup",
+                            "provider": "fabric8",
+                            "space": "mySpace",
+                            "version": "1.0.2"
+                        }
+                    },
+                    "spec": {
+                        "containers": [
+                            {
+                                "env": [
+                                    {
+                                        "name": "KUBERNETES_NAMESPACE",
+                                        "valueFrom": {
+                                            "fieldRef": {
+                                                "apiVersion": "v1",
+                                                "fieldPath": "metadata.namespace"
+                                            }
+                                        }
+                                    }
+                                ],
+                                "image": "127.0.0.1:5000/my-run/myApp@sha256:98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4",
+                                "imagePullPolicy": "IfNotPresent",
+                                "livenessProbe": {
+                                    "failureThreshold": 3,
+                                    "httpGet": {
+                                        "path": "/",
+                                        "port": 8080,
+                                        "scheme": "HTTP"
+                                    },
+                                    "initialDelaySeconds": 180,
+                                    "periodSeconds": 10,
+                                    "successThreshold": 1,
+                                    "timeoutSeconds": 1
+                                },
+                                "name": "myApp",
+                                "ports": [
+                                    {
+                                        "containerPort": 8080,
+                                        "name": "http",
+                                        "protocol": "TCP"
+                                    },
+                                    {
+                                        "containerPort": 9779,
+                                        "name": "prometheus",
+                                        "protocol": "TCP"
+                                    },
+                                    {
+                                        "containerPort": 8778,
+                                        "name": "jolokia",
+                                        "protocol": "TCP"
+                                    }
+                                ],
+                                "readinessProbe": {
+                                    "failureThreshold": 3,
+                                    "httpGet": {
+                                        "path": "/",
+                                        "port": 8080,
+                                        "scheme": "HTTP"
+                                    },
+                                    "initialDelaySeconds": 10,
+                                    "periodSeconds": 10,
+                                    "successThreshold": 1,
+                                    "timeoutSeconds": 1
+                                },
+                                "resources": {
+                                    "limits": {
+                                        "memory": "250Mi"
+                                    }
+                                },
+                                "securityContext": {
+                                    "privileged": false
+                                },
+                                "terminationMessagePath": "/dev/termination-log",
+                                "terminationMessagePolicy": "File"
+                            }
+                        ],
+                        "dnsPolicy": "ClusterFirst",
+                        "restartPolicy": "Always",
+                        "schedulerName": "default-scheduler",
+                        "securityContext": {},
+                        "terminationGracePeriodSeconds": 30
+                    }
+                },
+                "test": false,
+                "triggers": [
+                    {
+                        "type": "ConfigChange"
+                    },
+                    {
+                        "imageChangeParams": {
+                            "automatic": true,
+                            "containerNames": [
+                                "myApp"
+                            ],
+                            "from": {
+                                "kind": "ImageStreamTag",
+                                "name": "myApp:1.0.2",
+                                "namespace": "my-run"
+                            },
+                            "lastTriggeredImage": "127.0.0.1:5000/my-run/myApp@sha256:98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4"
+                        },
+                        "type": "ImageChange"
+                    }
+                ]
+            },
+            "status": {
+                "availableReplicas": 2,
+                "conditions": [
+                    {
+                        "lastTransitionTime": "2018-01-25T16:33:06Z",
+                        "lastUpdateTime": "2018-01-25T16:33:27Z",
+                        "message": "replication controller \"myApp-1\" successfully rolled out",
+                        "reason": "NewReplicationControllerAvailable",
+                        "status": "True",
+                        "type": "Progressing"
+                    },
+                    {
+                        "lastTransitionTime": "2018-01-25T20:40:25Z",
+                        "lastUpdateTime": "2018-01-25T20:40:25Z",
+                        "message": "Deployment config has minimum availability.",
+                        "status": "True",
+                        "type": "Available"
+                    }
+                ],
+                "details": {
+                    "causes": [
+                        {
+                            "type": "ConfigChange"
+                        }
+                    ],
+                    "message": "config change"
+                },
+                "latestVersion": 1,
+                "observedGeneration": 3,
+                "readyReplicas": 2,
+                "replicas": 2,
+                "unavailableReplicas": 0,
+                "updatedReplicas": 2
+            }
+        }
+    headers:
+      Content-Type:
+      - application/json;charset=UTF-8
+    status: 200 OK
+    code: 200
+# Deployment Config Scale
+- request:
+    body: ""
+    form: {}
+    headers:
+      Content-Type:
+      - application/json
+    url: http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myApp/scale
+    method: GET
+  response:
+    body: |
+        {
+            "kind": "Scale",
+            "apiVersion": "extensions/v1beta1",
+            "metadata": {
+                "name": "myApp",
+                "namespace": "my-run",
+                "selfLink": "/oapi/v1/namespaces/my-run/deploymentconfigs/myApp/scale",
+                "uid": "8db1c9ba-91b5-46c6-be99-576245f42b3b",
+                "resourceVersion": "838024578",
+                "creationTimestamp": "2018-01-25T16:33:02Z"
+            },
+            "spec": {
+                "replicas": 2
+            },
+            "status": {
+                "replicas": 2,
+                "selector": {
+                "app": "myApp",
+                "group": "myGroup",
+                "provider": "fabric8"
+                },
+                "targetSelector": "app=myApp,group=myGroup,provider=fabric8"
+            }
+        }
+    headers:
+      Content-Type:
+      - application/json;charset=UTF-8
+    status: 200 OK
+    code: 200
+- request:
+    body: |
+        {
+            "kind": "Scale",
+            "apiVersion": "extensions/v1beta1",
+            "metadata": {
+                "name": "myApp",
+                "namespace": "my-run",
+                "selfLink": "/oapi/v1/namespaces/my-run/deploymentconfigs/myApp/scale",
+                "uid": "8db1c9ba-91b5-46c6-be99-576245f42b3b",
+                "resourceVersion": "838024578",
+                "creationTimestamp": "2018-01-25T16:33:02Z"
+            },
+            "spec": {
+                "replicas": 3
+            },
+            "status": {
+                "replicas": 2,
+                "selector": {
+                "app": "myApp",
+                "group": "myGroup",
+                "provider": "fabric8"
+                },
+                "targetSelector": "app=myApp,group=myGroup,provider=fabric8"
+            }
+        }
+    form: {}
+    headers:
+      Content-Type:
+      - application/json
+    url: http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myApp/scale
+    method: PUT
+  response:
+    body: |
+        {
+            "kind": "Scale",
+            "apiVersion": "extensions/v1beta1",
+            "metadata": {
+                "name": "myApp",
+                "namespace": "my-run",
+                "selfLink": "/oapi/v1/namespaces/my-run/deploymentconfigs/myApp/scale",
+                "uid": "8db1c9ba-91b5-46c6-be99-576245f42b3b",
+                "resourceVersion": "838024578",
+                "creationTimestamp": "2018-01-25T16:33:02Z"
+            },
+            "spec": {
+                "replicas": 3
+            },
+            "status": {
+                "replicas": 2,
+                "selector": {
+                "app": "myApp",
+                "group": "myGroup",
+                "provider": "fabric8"
+                },
+                "targetSelector": "app=myApp,group=myGroup,provider=fabric8"
+            }
+        }
+    headers:
+      Content-Type:
+      - application/json;charset=UTF-8
+    status: 200 OK
+    code: 200
