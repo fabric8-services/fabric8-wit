@@ -30,8 +30,8 @@ ENV PATH=$PATH:/usr/local/go/bin
 # Get dep for Go package management and make sure the directory has full rwz permissions for non-root users
 RUN mkdir -p /tmp/go/bin && chmod a+rwx /tmp/go
 ENV GOPATH /tmp/go
-RUN curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh && mv /tmp/go/bin/dep /usr/bin
-RUN cd $GOPATH/bin \
+RUN DEP_VERSION=0.4.1 \
+    cd $GOPATH/bin \
 	curl -L -s https://github.com/golang/dep/releases/download/v${DEP_VERSION}/dep-linux-amd64 -o dep \
 	echo "31144e465e52ffbc0035248a10ddea61a09bf28b00784fd3fdd9882c8cbb2315  dep" > dep-linux-amd64.sha256 \
 	sha256sum -c checksum
