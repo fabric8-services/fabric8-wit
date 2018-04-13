@@ -34,5 +34,5 @@ RUN DEP_VERSION=0.4.1 \
     cd $GOPATH/bin \
 	curl -L -s https://github.com/golang/dep/releases/download/v${DEP_VERSION}/dep-linux-amd64 -o dep \
 	echo "31144e465e52ffbc0035248a10ddea61a09bf28b00784fd3fdd9882c8cbb2315  dep" > dep-linux-amd64.sha256 \
-	sha256sum -c checksum
+	sha256sum -c dep-linux-amd64.sha256
 ENTRYPOINT ["/bin/bash"]
