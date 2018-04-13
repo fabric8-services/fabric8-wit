@@ -74,6 +74,36 @@ func (s *workItemRepoBlackBoxTest) TestSave() {
 		assert.Equal(t, oldDate.UTC(), newTime.UTC())
 	})
 
+	s.T().Run("ok - ignore read-only fields", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1))
+		var origCreatedAt, origUpdatedAt time.Time
+		var origOrder float64
+		origNumber := fxt.WorkItems[0].Number
+		require.NotPanics(t, func() { origCreatedAt = fxt.WorkItems[0].Fields[workitem.SystemCreatedAt].(time.Time) })
+		require.NotPanics(t, func() { origUpdatedAt = fxt.WorkItems[0].Fields[workitem.SystemUpdatedAt].(time.Time) })
+		require.NotPanics(t, func() { origOrder = fxt.WorkItems[0].Fields[workitem.SystemOrder].(float64) })
+		// Update read-only fields to user-defined values and check that they're
+		// not overwritten.
+		updatedWI := *fxt.WorkItems[0]
+		updatedWI.Fields[workitem.SystemCreatedAt] = time.Now() // this is a read-only field, changes should be ignored
+		updatedWI.Fields[workitem.SystemCreatedAt] = time.Now() // this is a read-only field, changes should be ignored
+		updatedWI.Fields[workitem.SystemOrder] = float64(6543)  // this is a read-only field, changes should be ignored
+		updatedWI.Fields[workitem.SystemNumber] = 1234          // this is a read-only field, changes should be ignored
+		// when
+		wiNew, err := s.repo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, updatedWI, fxt.Identities[0].ID)
+		// then
+		require.NoError(t, err)
+		require.NotPanics(t, func() {
+			require.Equal(t, origCreatedAt.UTC(), wiNew.Fields[workitem.SystemCreatedAt].(time.Time).UTC(), "created-at should not have changed")
+			require.Equal(t, origOrder, wiNew.Fields[workitem.SystemOrder].(float64), "order should not have changed")
+			require.Equal(t, origNumber, wiNew.Fields[workitem.SystemNumber].(int), "number should not have changed")
+			// the updated time must not be the old time but it also must not be the one that the user defined
+			require.NotEqual(t, origUpdatedAt.UTC(), wiNew.Fields[workitem.SystemUpdatedAt].(time.Time), "updated-at should be different to original updated-at")
+			require.NotEqual(t, updatedWI.Fields[workitem.SystemUpdatedAt].(time.Time).UTC(), wiNew.Fields[workitem.SystemUpdatedAt].(time.Time).UTC(), "updated-at should be different to user-specified updated-at")
+		})
+	})
+
 	s.T().Run("change is not prohibited", func(t *testing.T) {
 		// tests that you can change the type of a work item. NOTE: This
 		// functionality only works on the DB layer and is not exposed to REST.
@@ -97,6 +127,25 @@ func (s *workItemRepoBlackBoxTest) TestLoadID() {
 }
 
 func (s *workItemRepoBlackBoxTest) TestCreate() {
+	s.T().Run("disallow creation if WIT cannot create WIs", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.Spaces(1),
+			tf.WorkItemTypes(1, func(fxt *tf.TestFixture, idx int) error {
+				fxt.WorkItemTypes[idx].CanConstruct = false
+				return nil
+			}),
+		)
+		wi, err := s.repo.Create(
+			s.Ctx, fxt.Spaces[0].ID, fxt.WorkItemTypes[0].ID,
+			map[string]interface{}{
+				workitem.SystemTitle: "some title",
+				workitem.SystemState: workitem.SystemStateNew,
+			}, fxt.Identities[0].ID)
+		require.Error(t, err)
+		require.IsType(t, errors.ForbiddenError{}, err)
+		require.Nil(t, wi)
+	})
+
 	s.T().Run("create work item without assignees & labels", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemTypes(1))
 		wi, err := s.repo.Create(
@@ -220,6 +269,7 @@ func (s *workItemRepoBlackBoxTest) TestCreate() {
 		fxt := tf.NewTestFixture(t, s.DB,
 			tf.WorkItemTypes(len(kinds), func(fxt *tf.TestFixture, idx int) error {
 				fxt.WorkItemTypes[idx].Name = kinds[idx].String()
+				fxt.WorkItemTypes[idx].Extends = uuid.Nil
 				fxt.WorkItemTypes[idx].Fields = map[string]workitem.FieldDefinition{
 					fieldName: {
 						Required:    true,

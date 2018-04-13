@@ -498,7 +498,7 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 
 	res := make([]workitem.WorkItem, len(result))
 	for index, value := range result {
-		wiType, err := r.workItemTypeRepo.LoadTypeFromDB(ctx, value.Type)
+		wiType, err := r.workItemTypeRepo.Load(ctx, value.Type)
 		if err != nil {
 			return nil, 0, errors.NewInternalError(ctx, err)
 		}

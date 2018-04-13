@@ -45,13 +45,12 @@ func (s *searchRepositoryBlackboxTest) getTestFixture() *tf.TestFixture {
 			switch idx {
 			case 0:
 				wit.Name = "base"
-				wit.Path = workitem.LtreeSafeID(wit.ID)
 			case 1:
 				wit.Name = "sub1"
-				wit.Path = fxt.WorkItemTypes[0].Path + workitem.GetTypePathSeparator() + workitem.LtreeSafeID(wit.ID)
+				wit.Extends = fxt.WorkItemTypeByName("base").ID
 			case 2:
 				wit.Name = "sub2"
-				wit.Path = fxt.WorkItemTypes[0].Path + workitem.GetTypePathSeparator() + workitem.LtreeSafeID(wit.ID)
+				wit.Extends = fxt.WorkItemTypeByName("base").ID
 			}
 			return nil
 		}),
@@ -148,6 +147,8 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			require.NoError(t, err)
 			assert.Equal(t, 2, count)
 			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[1], *fxt.WorkItems[0]))
+			assert.NotNil(t, res[0].Fields[workitem.SystemNumber])
+			assert.NotNil(t, res[1].Fields[workitem.SystemNumber])
 		})
 		s.T().Run("unmatching title", func(t *testing.T) {
 			// given

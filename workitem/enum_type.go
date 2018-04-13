@@ -19,7 +19,7 @@ type EnumType struct {
 var _ FieldType = EnumType{}
 var _ FieldType = (*EnumType)(nil)
 
-// DefaultValue implementes FieldType
+// DefaultValue implements FieldType
 func (t EnumType) DefaultValue(value interface{}) (interface{}, error) {
 	if value != nil {
 		return value, nil

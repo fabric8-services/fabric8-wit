@@ -25,7 +25,7 @@ var _ FieldType = (*SimpleType)(nil)
 var _ convert.Equaler = SimpleType{}
 var _ convert.Equaler = (*SimpleType)(nil)
 
-// DefaultValue implementes FieldType
+// DefaultValue implements FieldType
 func (t SimpleType) DefaultValue(value interface{}) (interface{}, error) {
 	return value, nil
 }

@@ -2,6 +2,7 @@ package codebase
 
 import (
 	"context"
+	"fmt"
 	"regexp"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
+
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
@@ -166,6 +168,18 @@ func (m *GormCodebaseRepository) Create(ctx context.Context, codebase *Codebase)
 	}
 
 	if err := m.db.Create(codebase).Error; err != nil {
+		// if codebase already exists in the space
+		if gormsupport.IsUniqueViolation(err, "codebases_spaceid_url_idx") {
+			log.Error(ctx, map[string]interface{}{
+				"err":      err,
+				"URL":      codebase.URL,
+				"space_id": codebase.SpaceID,
+			},
+				"unable to create codebase because the codebase with same URL already exists in space")
+			errStr := fmt.Sprintf("codebase already exists with URL = %s, space_id = %s",
+				codebase.URL, codebase.SpaceID)
+			return errors.NewDataConflictError(errStr)
+		}
 		goa.LogError(ctx, "error adding Codebase", "error", err.Error())
 		return errs.WithStack(err)
 	}
