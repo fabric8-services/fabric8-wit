@@ -95,6 +95,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItems() {
 	require.NotEmpty(s.T(), sr.Data)
 	r := sr.Data[0]
 	assert.Equal(s.T(), q, r.Attributes[workitem.SystemTitle])
+	assert.Equal(s.T(), fxt.WorkItems[0].Fields[workitem.SystemNumber], r.Attributes[workitem.SystemNumber])
 }
 
 func (s *searchControllerTestSuite) TestSearchPagination() {
