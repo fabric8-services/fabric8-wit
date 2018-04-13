@@ -7,6 +7,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/convert"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 
+	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -187,6 +188,33 @@ func (wit WorkItemType) Equal(u convert.Equaler) bool {
 		}
 	}
 	return wit.SpaceID == other.SpaceID
+}
+
+// ConvertWorkItemStorageToModel converts a workItem from the storage/persistence layer into a workItem of the model domain layer
+func (wit WorkItemType) ConvertWorkItemStorageToModel(workItem WorkItemStorage) (*WorkItem, error) {
+	result := WorkItem{
+		ID:                     workItem.ID,
+		Number:                 workItem.Number,
+		Type:                   workItem.Type,
+		Version:                workItem.Version,
+		Fields:                 map[string]interface{}{},
+		SpaceID:                workItem.SpaceID,
+		relationShipsChangedAt: workItem.RelationShipsChangedAt,
+	}
+
+	for name, field := range wit.Fields {
+		var err error
+		if name == SystemCreatedAt {
+			continue
+		}
+		result.Fields[name], err = field.ConvertFromModel(name, workItem.Fields[name])
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		result.Fields[SystemOrder] = workItem.ExecutionOrder
+	}
+
+	return &result, nil
 }
 
 // IsTypeOrSubtypeOf returns true if the work item type with the given type ID,
