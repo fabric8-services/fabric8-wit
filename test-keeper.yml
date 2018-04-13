@@ -1,4 +1,8 @@
 skip_validation_for: 
   - 'Makefile'
-  - 'Gopkg.toml'
-  - 'Gopkg.lock'
+  - '.make/*'
+  - 'regex{{Gopkg.*}}'
+  - 'regex{{glide.*}}'
+  - '.dockerignore'
+  - 'Dockerfile.*'
+  - 'docker-compose.*'
