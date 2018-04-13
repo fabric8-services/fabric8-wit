@@ -735,7 +735,7 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 			spew.Dump(value)
 			return nil, 0, errors.NewInternalError(ctx, errs.Wrap(err, "failed to load work item type"))
 		}
-		wiModel, err := wiType.ConvertWorkItemStorageToModel(value)
+		wiModel, err := workitem.ConvertWorkItemStorageToModel(wiType, &value)
 		if err != nil {
 			return nil, 0, errors.NewConversionError(err.Error())
 		}
