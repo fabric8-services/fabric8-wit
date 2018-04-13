@@ -12,10 +12,10 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/iteration"
-	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	"github.com/goadesign/goa"
@@ -49,55 +49,45 @@ func (rest *TestPlannerBacklogBlackboxREST) UnSecuredController() (*goa.Service,
 }
 
 func (rest *TestPlannerBacklogBlackboxREST) setupPlannerBacklogWorkItems() (testSpace *space.Space, parentIteration *iteration.Iteration, createdWI *workitem.WorkItem) {
-	application.Transactional(gormapplication.NewGormDB(rest.DB), func(app application.Application) error {
-		spacesRepo := app.Spaces()
-		testSpace = &space.Space{
-			Name: "PlannerBacklogWorkItems-" + uuid.NewV4().String(),
-		}
-		_, err := spacesRepo.Create(rest.Ctx, testSpace)
-		require.NoError(rest.T(), err)
-		require.NotNil(rest.T(), testSpace.ID)
-		log.Info(nil, map[string]interface{}{"space_id": testSpace.ID}, "created space")
-		workitemTypesRepo := app.WorkItemTypes()
-		workitemType, err := workitemTypesRepo.Create(rest.Ctx, testSpace.ID, nil, &workitem.SystemPlannerItem, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
-		require.NoError(rest.T(), err)
-		log.Info(nil, map[string]interface{}{"wit_id": workitemType.ID}, "created workitem type")
-
-		iterationsRepo := app.Iterations()
-		parentIteration = &iteration.Iteration{
-			Name:    "Parent Iteration",
-			SpaceID: testSpace.ID,
-			State:   iteration.StateNew,
-		}
-		iterationsRepo.Create(rest.Ctx, parentIteration)
-		log.Info(nil, map[string]interface{}{"parent_iteration_id": parentIteration.ID}, "created parent iteration")
-
-		childIteration := &iteration.Iteration{
-			Name:    "Child Iteration",
-			SpaceID: testSpace.ID,
-			Path:    append(parentIteration.Path, parentIteration.ID),
-			State:   iteration.StateStart,
-		}
-		iterationsRepo.Create(rest.Ctx, childIteration)
-		log.Info(nil, map[string]interface{}{"child_iteration_id": childIteration.ID}, "created child iteration")
-
-		fields := map[string]interface{}{
-			workitem.SystemTitle:     "parentIteration Test",
-			workitem.SystemState:     "new",
-			workitem.SystemIteration: parentIteration.ID.String(),
-		}
-		app.WorkItems().Create(rest.Ctx, testSpace.ID, workitemType.ID, fields, rest.testIdentity.ID)
-
-		fields2 := map[string]interface{}{
-			workitem.SystemTitle:     "childIteration Test",
-			workitem.SystemState:     "closed",
-			workitem.SystemIteration: childIteration.ID.String(),
-		}
-		createdWI, err = app.WorkItems().Create(rest.Ctx, testSpace.ID, workitemType.ID, fields2, rest.testIdentity.ID)
-		require.NoError(rest.T(), err)
-		return nil
-	})
-	return
+	fxt := tf.NewTestFixture(rest.T(), rest.DB,
+		tf.Spaces(1),
+		tf.Iterations(2, func(fxt *tf.TestFixture, idx int) error {
+			i := fxt.Iterations[idx]
+			switch idx {
+			case 0:
+				i.Name = "parent"
+				i.State = iteration.StateNew
+			case 1:
+				i.Name = "child"
+				i.Path = append(fxt.Iterations[0].Path, fxt.Iterations[0].ID)
+				i.State = iteration.StateStart
+			}
+			return nil
+		}),
+		tf.WorkItems(2, func(fxt *tf.TestFixture, idx int) error {
+			wi := fxt.WorkItems[idx]
+			switch idx {
+			case 0:
+				wi.Fields[workitem.SystemTitle] = "parentIteration Test"
+				wi.Fields[workitem.SystemState] = workitem.SystemStateNew
+				wi.Fields[workitem.SystemIteration] = fxt.IterationByName("parent").ID.String()
+				// wi.Type = workitem.SystemPlannerItem
+			case 1:
+				wi.Fields[workitem.SystemTitle] = "childIteration Test"
+				wi.Fields[workitem.SystemState] = workitem.SystemStateClosed
+				wi.Fields[workitem.SystemIteration] = fxt.IterationByName("child").ID.String()
+				// wi.Type = workitem.SystemPlannerItem
+			}
+			return nil
+		}),
+	)
+	testSpace = fxt.Spaces[0]
+	parentIteration = fxt.IterationByName("parent")
+	createdWI = fxt.WorkItemByTitle("childIteration Test")
+	require.NotNil(rest.T(), testSpace)
+	require.NotNil(rest.T(), parentIteration)
+	require.NotNil(rest.T(), createdWI)
+	return testSpace, parentIteration, createdWI
 }
 
 func assertPlannerBacklogWorkItems(t *testing.T, workitems *app.WorkItemList, testSpace *space.Space, parentIteration *iteration.Iteration) {

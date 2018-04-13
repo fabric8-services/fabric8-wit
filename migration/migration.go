@@ -385,6 +385,11 @@ func GetMigrations() Migrations {
 	// Version 85
 	m = append(m, steps{ExecuteSQLFile("085-delete-system.number-json-field.sql")})
 
+	// Version 86
+	m = append(m, steps{ExecuteSQLFile("086-add-can-construct-to-wit.sql",
+		workitem.SystemPlannerItem.String(),
+	)})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -818,22 +823,22 @@ func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.Gor
 			Description: "The state of the work item",
 		},
 	}
-	return createOrUpdateType(ctx, typeID, spaceID, typeName, description, nil, workItemTypeFields, icon, witr, db)
+	return createOrUpdateType(ctx, typeID, spaceID, typeName, description, nil, workItemTypeFields, icon, false, witr, db)
 }
 
 func createOrUpdatePlannerItemExtension(ctx context.Context, typeID uuid.UUID, name string, description string, icon string, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB, spaceID uuid.UUID) error {
 	workItemTypeFields := map[string]workitem.FieldDefinition{}
 	extTypeName := workitem.SystemPlannerItem
-	return createOrUpdateType(ctx, typeID, spaceID, name, description, &extTypeName, workItemTypeFields, icon, witr, db)
+	return createOrUpdateType(ctx, typeID, spaceID, name, description, &extTypeName, workItemTypeFields, icon, true, witr, db)
 }
 
-func createOrUpdateType(ctx context.Context, typeID uuid.UUID, spaceID uuid.UUID, name string, description string, extendedTypeID *uuid.UUID, fields map[string]workitem.FieldDefinition, icon string, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB) error {
+func createOrUpdateType(ctx context.Context, typeID uuid.UUID, spaceID uuid.UUID, name string, description string, extendedTypeID *uuid.UUID, fields map[string]workitem.FieldDefinition, icon string, canConstruct bool, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB) error {
 	log.Info(ctx, nil, "Creating or updating planner item types...")
 	err := witr.CheckExists(ctx, typeID)
 	cause := errs.Cause(err)
 	switch cause.(type) {
 	case errors.NotFoundError:
-		_, err := witr.Create(ctx, spaceID, &typeID, extendedTypeID, name, &description, icon, fields)
+		_, err := witr.Create(ctx, spaceID, &typeID, extendedTypeID, name, &description, icon, fields, canConstruct)
 		if err != nil {
 			return errs.WithStack(err)
 		}
@@ -849,7 +854,7 @@ func createOrUpdateType(ctx context.Context, typeID uuid.UUID, spaceID uuid.UUID
 				"extended_type_id": *extendedTypeID,
 			}, "Work item type %v extends another type %v will copy fields from the extended type", typeID, *extendedTypeID)
 
-			extendedWit, err := witr.LoadTypeFromDB(ctx, *extendedTypeID)
+			extendedWit, err := witr.Load(ctx, *extendedTypeID)
 			if err != nil {
 				return errs.WithStack(err)
 			}
@@ -866,13 +871,14 @@ func createOrUpdateType(ctx context.Context, typeID uuid.UUID, spaceID uuid.UUID
 			return errs.WithStack(err)
 		}
 		wit := workitem.WorkItemType{
-			ID:          typeID,
-			SpaceID:     spaceID,
-			Name:        name,
-			Description: &description,
-			Icon:        icon,
-			Fields:      fields,
-			Path:        path,
+			ID:           typeID,
+			SpaceID:      spaceID,
+			Name:         name,
+			Description:  &description,
+			CanConstruct: canConstruct,
+			Icon:         icon,
+			Fields:       fields,
+			Path:         path,
 		}
 		db = db.Save(wit)
 		return db.Error
