@@ -659,10 +659,28 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 
 // ConvertWorkItemStorageToModel convert work item model to app WI
 func ConvertWorkItemStorageToModel(wiType *WorkItemType, wi *WorkItemStorage) (*WorkItem, error) {
-	result, err := wiType.ConvertWorkItemStorageToModel(*wi)
-	if err != nil {
-		return nil, errors.NewConversionError(err.Error())
+	result := &WorkItem{
+		ID:                     wi.ID,
+		Number:                 wi.Number,
+		Type:                   wi.Type,
+		Version:                wi.Version,
+		Fields:                 map[string]interface{}{},
+		SpaceID:                wi.SpaceID,
+		relationShipsChangedAt: wi.RelationShipsChangedAt,
 	}
+
+	for name, field := range wiType.Fields {
+		var err error
+		if name == SystemCreatedAt {
+			continue
+		}
+		result.Fields[name], err = field.ConvertFromModel(name, wi.Fields[name])
+		if err != nil {
+			return nil, err
+		}
+		result.Fields[SystemOrder] = wi.ExecutionOrder
+	}
+
 	if _, ok := wiType.Fields[SystemCreatedAt]; ok {
 		result.Fields[SystemCreatedAt] = wi.CreatedAt
 	}
