@@ -34,7 +34,7 @@ Run the following command to find out your Go version.
 $ go version
 ----
 
-*You must at least have Go version 1.9.*
+*You must at least have Go version 1.8.*
 
 See <<fetch-dependencies>> to see an explanaition on how we deal with
 dependencies.
