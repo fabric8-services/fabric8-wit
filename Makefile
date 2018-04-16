@@ -15,19 +15,14 @@ DESIGNS := $(shell find $(SOURCE_DIR)/$(DESIGN_DIR) -path $(SOURCE_DIR)/vendor -
 
 # Find all required tools:
 GIT_BIN := $(shell command -v $(GIT_BIN_NAME) 2> /dev/null)
-GLIDE_BIN := $(shell command -v $(GLIDE_BIN_NAME) 2> /dev/null)
+DEP_BIN_NAME := dep
+DEP_BIN_DIR := ./tmp/bin
+DEP_BIN := $(DEP_BIN_DIR)/$(DEP_BIN_NAME)
+DEP_VERSION=v0.4.1
 GO_BIN := $(shell command -v $(GO_BIN_NAME) 2> /dev/null)
 HG_BIN := $(shell command -v $(HG_BIN_NAME) 2> /dev/null)
 DOCKER_COMPOSE_BIN := $(shell command -v $(DOCKER_COMPOSE_BIN_NAME) 2> /dev/null)
 DOCKER_BIN := $(shell command -v $(DOCKER_BIN_NAME) 2> /dev/null)
-
-GLIDE_VERSION := $(shell ${GLIDE_BIN} --version | sed -En 's/([^0-9.]*)([0-9]*\.[0-9]*)(.*)/\2/p')
-DESIRED_GLIDE_VERSION := 0.12
-
-check-glide-version :
-	@if [ `echo "${GLIDE_VERSION} < ${DESIRED_GLIDE_VERSION}" | bc -l` -eq 1 ] ; then \
-	 echo Warning: Glide version ${GLIDE_VERSION} is less than desired Glide version ${DESIRED_GLIDE_VERSION};\
-	fi
 
 # This is a fix for a non-existing user in passwd file when running in a docker
 # container and trying to clone repos of dependencies
@@ -190,8 +185,6 @@ $(GOAGEN_BIN): $(VENDOR_DIR)
 	cd $(VENDOR_DIR)/github.com/goadesign/goa/goagen && go build -v
 $(GO_BINDATA_BIN): $(VENDOR_DIR)
 	cd $(VENDOR_DIR)/github.com/jteeuwen/go-bindata/go-bindata && go build -v
-$(GO_BINDATA_ASSETFS_BIN): $(VENDOR_DIR)
-	cd $(VENDOR_DIR)/github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs && go build -v
 $(FRESH_BIN): $(VENDOR_DIR)
 	cd $(VENDOR_DIR)/github.com/pilu/fresh && go build -v
 $(GO_JUNIT_BIN): $(VENDOR_DIR)
@@ -235,19 +228,30 @@ CLEAN_TARGETS += clean-vendor
 clean-vendor:
 	-rm -rf $(VENDOR_DIR)
 
-CLEAN_TARGETS += clean-glide-cache
-.PHONY: clean-glide-cache
-## Removes the ./glide directory.
-clean-glide-cache:
-	-rm -rf ./.glide
-
-$(VENDOR_DIR): glide.lock glide.yaml
-	$(GLIDE_BIN) --quiet install --strip-vendor
-	touch $(VENDOR_DIR)
-
 .PHONY: deps
 ## Download build dependencies.
-deps: $(VENDOR_DIR)
+deps: $(DEP_BIN) $(VENDOR_DIR)
+
+# install dep in a the tmp/bin dir of the repo
+$(DEP_BIN):
+	@echo "Installing 'dep' $(DEP_VERSION) at '$(DEP_BIN_DIR)'..."
+	mkdir -p $(DEP_BIN_DIR)
+ifeq ($(UNAME_S),Darwin)
+	@curl -L -s https://github.com/golang/dep/releases/download/$(DEP_VERSION)/dep-darwin-amd64 -o $(DEP_BIN) 
+	@cd $(DEP_BIN_DIR) && \
+	echo "f170008e2bf8b196779c361a4eaece1b03450d23bbf32d1a0beaa9b00b6a5ab4  dep" > dep-darwin-amd64.sha256 && \
+	shasum -a 256 --check dep-darwin-amd64.sha256
+else
+	@curl -L -s https://github.com/golang/dep/releases/download/$(DEP_VERSION)/dep-linux-amd64 -o $(DEP_BIN)
+	@cd $(DEP_BIN_DIR) && \
+	echo "31144e465e52ffbc0035248a10ddea61a09bf28b00784fd3fdd9882c8cbb2315  dep" > dep-linux-amd64.sha256 && \
+	sha256sum -c dep-linux-amd64.sha256
+endif
+	@chmod +x $(DEP_BIN)
+
+$(VENDOR_DIR): Gopkg.toml Gopkg.lock
+	@echo "checking dependencies..."
+	@$(DEP_BIN) ensure -v 
 
 app/controllers.go: $(DESIGNS) $(GOAGEN_BIN) $(VENDOR_DIR) goasupport/jsonapi_errors_stringer/generator.go goasupport/conditional_request/generator.go goasupport/helper_function/generator.go
 	$(GOAGEN_BIN) app -d ${PACKAGE_NAME}/${DESIGN_DIR}
@@ -258,15 +262,11 @@ app/controllers.go: $(DESIGNS) $(GOAGEN_BIN) $(VENDOR_DIR) goasupport/jsonapi_er
 	$(GOAGEN_BIN) client -d ${PACKAGE_NAME}/${DESIGN_DIR}
 	$(GOAGEN_BIN) swagger -d ${PACKAGE_NAME}/${DESIGN_DIR}
 	$(GOAGEN_BIN) client -d github.com/fabric8-services/fabric8-tenant/design --notool --pkg tenant -o account
+	$(GOAGEN_BIN) client -d github.com/fabric8-services/fabric8-tenant/design --notool --pkg tenant -o vendor/github.com/fabric8-services/fabric8-auth/account
 	$(GOAGEN_BIN) client -d github.com/fabric8-services/fabric8-notification/design --notool --pkg client -o notification
 	$(GOAGEN_BIN) client -d github.com/fabric8-services/fabric8-auth/design --notool --pkg authservice -o auth
 
 
-assets/js/client.js: $(DESIGNS) $(GOAGEN_BIN) $(VENDOR_DIR)
-	$(GOAGEN_BIN) js -d ${PACKAGE_NAME}/${DESIGN_DIR} -o assets/ --noexample
-
-bindata_assetfs.go: $(DESIGNS) $(GO_BINDATA_ASSETFS_BIN) $(GO_BINDATA_BIN) $(VENDOR_DIR)
-	PATH="$$PATH:$(EXTRA_PATH)" $(GO_BINDATA_ASSETFS_BIN) -debug assets/...
 
 .PHONY: migrate-database
 ## Compiles the server and runs the database migration with it
@@ -275,7 +275,7 @@ migrate-database: $(BINARY_SERVER_BIN)
 
 .PHONY: generate
 ## Generate GOA sources. Only necessary after clean of if changed `design` folder.
-generate: app/controllers.go assets/js/client.js bindata_assetfs.go migration/sqlbindata.go
+generate: app/controllers.go migration/sqlbindata.go
 
 .PHONY: regenerate
 ## Runs the "clean-generated" and the "generate" target
@@ -349,13 +349,13 @@ show-info:
 	$(call log-info,"$(shell go env)")
 
 .PHONY: prebuild-check
-prebuild-check: $(TMP_PATH) $(INSTALL_PREFIX) $(CHECK_GOPATH_BIN) show-info check-glide-version
+prebuild-check: $(TMP_PATH) $(INSTALL_PREFIX) $(CHECK_GOPATH_BIN) show-info
 # Check that all tools where found
 ifndef GIT_BIN
 	$(error The "$(GIT_BIN_NAME)" executable could not be found in your PATH)
 endif
-ifndef GLIDE_BIN
-	$(error The "$(GLIDE_BIN_NAME)" executable could not be found in your PATH)
+ifndef DEP_BIN
+	$(error The "$(DEP_BIN_NAME)" executable could not be found in your PATH)
 endif
 ifndef HG_BIN
 	$(error The "$(HG_BIN_NAME)" executable could not be found in your PATH)
