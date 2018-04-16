@@ -81,7 +81,7 @@ func (fxt *TestFixture) WorkItemByTitle(title string, spaceID ...uuid.UUID) *wor
 	for _, wi := range fxt.WorkItems {
 		v, ok := wi.Fields[workitem.SystemTitle]
 		if !ok {
-			panic(errs.Errorf("failed to find work item with title '%s'", title))
+			panic(errs.Errorf("failed to find work item with title '%s' (field '%s' does not exist in work item title)", title, workitem.SystemTitle))
 		}
 		if v == title && len(spaceID) > 0 && wi.SpaceID == spaceID[0] {
 			return wi
