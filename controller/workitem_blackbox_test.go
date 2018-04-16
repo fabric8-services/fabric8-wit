@@ -40,7 +40,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	errs "github.com/pkg/errors"
 
-	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
@@ -2980,7 +2979,7 @@ func (s *WorkItem2Suite) TestCreateAndUpdateWorkItemForEveryWIT() {
 					return nil
 				}),
 			)
-			wits, err := witRepo.List(s.Ctx, fxt.Spaces[0].SpaceTemplateID, nil, nil)
+			wits, err := witRepo.List(s.Ctx, fxt.Spaces[0].SpaceTemplateID)
 			require.NoError(t, err)
 			for _, wit := range wits {
 				t.Run(wit.Name, func(t *testing.T) {

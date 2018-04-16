@@ -25,7 +25,7 @@ type WorkItemTypeRepository interface {
 	repository.Exister
 	Load(ctx context.Context, id uuid.UUID) (*WorkItemType, error)
 	Create(ctx context.Context, spaceTemplateID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields FieldDefinitions, canConstruct bool) (*WorkItemType, error)
-	List(ctx context.Context, spaceTemplateID uuid.UUID, start *int, length *int) ([]WorkItemType, error)
+	List(ctx context.Context, spaceTemplateID uuid.UUID) ([]WorkItemType, error)
 	ListPlannerItemTypes(ctx context.Context, spaceTemplateID uuid.UUID) ([]WorkItemType, error)
 	AddChildTypes(ctx context.Context, parentTypeID uuid.UUID, childTypeIDs []uuid.UUID) error
 }

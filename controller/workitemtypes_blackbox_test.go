@@ -138,7 +138,6 @@ func (s *workItemTypesSuite) TestList() {
 	s.T().Run("ok - using IfNoneMatch header", func(t *testing.T) {
 		// when
 		etag := "foo"
-		page := "0,-1"
 		res, witCollection := test.ListWorkitemtypesOK(t, nil, nil, s.typeCtrl, fxt.SpaceTemplates[0].ID, nil, &etag)
 		// then
 		require.NotNil(t, witCollection)

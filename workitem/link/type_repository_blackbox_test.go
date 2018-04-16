@@ -5,9 +5,7 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/id"
-	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/ptr"
-	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -36,7 +34,7 @@ func TestRunTypeRepoBlackBoxTest(t *testing.T) {
 func (s *typeRepoBlackBoxTest) SetupTest() {
 	s.DBTestSuite.SetupTest()
 	s.typeRepo = link.NewWorkItemLinkTypeRepository(s.DB)
-	migration.BootstrapWorkItemLinking(s.Ctx, link.NewWorkItemLinkCategoryRepository(s.DB), space.NewRepository(s.DB), s.typeRepo)
+	// migration.BootstrapWorkItemLinking(s.Ctx, link.NewWorkItemLinkCategoryRepository(s.DB), space.NewRepository(s.DB), s.typeRepo)
 }
 
 func (s *typeRepoBlackBoxTest) TestList() {
@@ -201,7 +199,7 @@ func (s *typeRepoBlackBoxTest) TestCreate() {
 	})
 	s.T().Run("empty name (bad parameter error)", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplate(1), tf.WorkItemLinkCategories(1))
+		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1), tf.WorkItemLinkCategories(1))
 		id := uuid.NewV4()
 		typ := link.WorkItemLinkType{
 			ID:              id,
@@ -270,7 +268,7 @@ func (s *typeRepoBlackBoxTest) TestSave() {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemLinkTypes(1), tf.SpaceTemplates(2))
 		modelToSave := *fxt.WorkItemLinkTypes[0]
-		modelToSave.SpaceID = fxt.SpaceTemplates[1].ID
+		modelToSave.SpaceTemplateID = fxt.SpaceTemplates[1].ID
 		// when
 		savedModel, err := s.typeRepo.Save(s.Ctx, modelToSave)
 		// then
