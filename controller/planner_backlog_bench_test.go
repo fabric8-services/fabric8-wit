@@ -55,6 +55,7 @@ func (rest *BenchPlannerBacklogREST) setupPlannerBacklogWorkItems() (testSpace *
 			return nil
 		}),
 	)
+
 	return fxt.Spaces[0], fxt.Iterations[0], fxt.WorkItems[1]
 }
 

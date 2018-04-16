@@ -1,326 +1,46 @@
 package kubernetes_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"io/ioutil"
-	"strconv"
+	"net/http"
 	"testing"
 	"time"
 
+	"github.com/dnaeon/go-vcr/cassette"
+	"github.com/dnaeon/go-vcr/recorder"
 	"github.com/stretchr/testify/require"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/kubernetes"
-	errs "github.com/pkg/errors"
-	resource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	v1 "k8s.io/client-go/pkg/api/v1"
 )
 
 // Used for equality comparisons between float64s
-const fltEpsilon = 0.00000001
+const fltDelta = 0.00000001
 
 // Path to JSON resources
 const pathToTestJSON = "../test/kubernetes/"
 
-type testKube struct {
-	kubernetes.KubeRESTAPI // Allows us to only implement methods we'll use
-	fixture                *testFixture
-	configMapHolder        *testConfigMap
-	quotaHolder            *testResourceQuota
-	rcHolder               *testReplicationController
-	podHolder              *testPod
-	svcHolder              *testService
-	svcDelHolder           []*testDeleteByName
-}
-
 type testFixture struct {
-	cmInput      *configMapInput
-	rqInput      *resourceQuotaInput
-	bcInput      string                // BC json file
-	scaleInput   deploymentConfigInput // app name -> namespace -> DC scale json file
 	metricsInput *metricsInput
-	kube         *testKube
-	os           *testOpenShift
 	metrics      *testMetrics
-	deploymentInput
 }
 
-// Collects input data necessary to retrieve a deployment
-type deploymentInput struct {
-	dcInput    deploymentConfigInput // app name -> namespace -> DC json file
-	rcInput    map[string]string     // namespace -> RC JSON file
-	podInput   map[string]string     // namespace -> pod JSON file
-	svcInput   map[string]string     // namespace -> service JSON file
-	routeInput map[string]string     // namespace -> route JSON file
-}
-
-var defaultDeploymentInput = deploymentInput{
-	dcInput:    defaultDeploymentConfigInput,
-	rcInput:    defaultReplicationControllerInput,
-	podInput:   defaultPodInput,
-	svcInput:   defaultServiceInput,
-	routeInput: defaultRouteInput,
-}
-
-func getDefaultKubeClient(fixture *testFixture, t *testing.T) kubernetes.KubeClientInterface {
+func getDefaultKubeClient(fixture *testFixture, transport http.RoundTripper, t *testing.T) kubernetes.KubeClientInterface {
 	config := &kubernetes.KubeClientConfig{
-		ClusterURL:             "http://api.myCluster",
-		BearerToken:            "myToken",
-		UserNamespace:          "myNamespace",
-		KubeRESTAPIGetter:      fixture,
-		MetricsGetter:          fixture,
-		OpenShiftRESTAPIGetter: fixture,
+		ClusterURL:    "http://api.myCluster",
+		BearerToken:   "myToken",
+		UserNamespace: "myNamespace",
+		Transport:     transport,
+		MetricsGetter: fixture,
 	}
 
 	kc, err := kubernetes.NewKubeClient(config)
 	require.NoError(t, err)
 	return kc
-}
-
-// Config Maps fakes
-
-type configMapInput struct {
-	data   map[string]string
-	labels map[string]string
-}
-
-var defaultConfigMapInput *configMapInput = &configMapInput{
-	labels: map[string]string{"provider": "fabric8"},
-	data: map[string]string{
-		"run":   "name: Run\nnamespace: my-run\norder: 1",
-		"stage": "name: Stage\nnamespace: my-stage\norder: 0",
-	},
-}
-
-type testConfigMap struct {
-	corev1.ConfigMapInterface
-	input     *configMapInput
-	namespace string
-	configMap *v1.ConfigMap
-}
-
-func (tk *testKube) ConfigMaps(ns string) corev1.ConfigMapInterface {
-	input := tk.fixture.cmInput
-	if input == nil {
-		input = defaultConfigMapInput
-	}
-	result := &testConfigMap{
-		input:     input,
-		namespace: ns,
-	}
-	tk.configMapHolder = result
-	return result
-}
-
-func (cm *testConfigMap) Get(name string, options metav1.GetOptions) (*v1.ConfigMap, error) {
-	result := &v1.ConfigMap{
-		Data: cm.input.data,
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   name,
-			Labels: cm.input.labels,
-		},
-	}
-	cm.configMap = result
-	return result, nil
-}
-
-// Resource Quota fakes
-
-type resourceQuotaInput struct {
-	name       string
-	namespace  string
-	hard       map[v1.ResourceName]float64
-	used       map[v1.ResourceName]float64
-	shouldFail bool
-}
-
-var defaultResourceQuotaInput *resourceQuotaInput = &resourceQuotaInput{
-	name:      "run",
-	namespace: "my-run",
-	hard: map[v1.ResourceName]float64{
-		v1.ResourceLimitsCPU:    0.7,
-		v1.ResourceLimitsMemory: 1024,
-	},
-	used: map[v1.ResourceName]float64{
-		v1.ResourceLimitsCPU:    0.4,
-		v1.ResourceLimitsMemory: 512,
-	},
-}
-
-type testResourceQuota struct {
-	corev1.ResourceQuotaInterface
-	input     *resourceQuotaInput
-	namespace string
-	quota     *v1.ResourceQuota
-}
-
-func (tk *testKube) ResourceQuotas(ns string) corev1.ResourceQuotaInterface {
-	input := tk.fixture.rqInput
-	if input == nil {
-		input = defaultResourceQuotaInput
-	}
-	result := &testResourceQuota{
-		input:     input,
-		namespace: ns,
-	}
-	tk.quotaHolder = result
-	return result
-}
-
-func (rq *testResourceQuota) Get(name string, options metav1.GetOptions) (*v1.ResourceQuota, error) {
-	if rq.input.hard == nil || rq.input.used == nil { // Used to indicate no quota object
-		return nil, nil
-	}
-	hardQuantity, err := stringToQuantityMap(rq.input.hard)
-	if err != nil {
-		return nil, errs.WithStack(err)
-	}
-	usedQuantity, err := stringToQuantityMap(rq.input.used)
-	if err != nil {
-		return nil, errs.WithStack(err)
-	}
-	result := &v1.ResourceQuota{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
-		Status: v1.ResourceQuotaStatus{
-			Hard: hardQuantity,
-			Used: usedQuantity,
-		},
-	}
-	rq.quota = result
-	return result, nil
-}
-
-func stringToQuantityMap(input map[v1.ResourceName]float64) (v1.ResourceList, error) {
-	result := make(map[v1.ResourceName]resource.Quantity)
-	for k, v := range input {
-		strVal := strconv.FormatFloat(v, 'f', -1, 64)
-		q, err := resource.ParseQuantity(strVal)
-		if err != nil {
-			return nil, errs.WithStack(err)
-		}
-		result[k] = q
-	}
-	return result, nil
-}
-
-// Replication Controller fakes
-
-var defaultReplicationControllerInput = map[string]string{
-	"my-run": "replicationcontroller.json",
-}
-
-type testReplicationController struct {
-	corev1.ReplicationControllerInterface
-	inputFile string
-	namespace string
-}
-
-func (tk *testKube) ReplicationControllers(ns string) corev1.ReplicationControllerInterface {
-	input := tk.fixture.rcInput[ns]
-	result := &testReplicationController{
-		inputFile: input,
-		namespace: ns,
-	}
-	tk.rcHolder = result
-	return result
-}
-
-func (rc *testReplicationController) List(options metav1.ListOptions) (*v1.ReplicationControllerList, error) {
-	var result v1.ReplicationControllerList
-	if len(rc.inputFile) == 0 {
-		// No matching RC
-		return &result, nil
-	}
-	err := readJSON(rc.inputFile, &result)
-	return &result, err
-}
-
-// Pod fakes
-
-var defaultPodInput = map[string]string{
-	"my-run": "pods.json",
-}
-
-type testPod struct {
-	corev1.PodInterface
-	inputFile string
-	namespace string
-}
-
-func (tk *testKube) Pods(ns string) corev1.PodInterface {
-	input := tk.fixture.podInput[ns]
-	result := &testPod{
-		inputFile: input,
-		namespace: ns,
-	}
-	tk.podHolder = result
-	return result
-}
-
-func (pod *testPod) List(options metav1.ListOptions) (*v1.PodList, error) {
-	var result v1.PodList
-	if len(pod.inputFile) == 0 {
-		// No matching pods
-		return &result, nil
-	}
-	err := readJSON(pod.inputFile, &result)
-	return &result, err
-}
-
-func (fixture *testFixture) GetKubeRESTAPI(config *kubernetes.KubeClientConfig) (kubernetes.KubeRESTAPI, error) {
-	mock := &testKube{
-		fixture: fixture,
-	}
-	fixture.kube = mock
-	return mock, nil
-}
-
-// Service fakes
-
-var defaultServiceInput = map[string]string{
-	"my-run": "services-two.json",
-}
-
-type testService struct {
-	corev1.ServiceInterface
-	inputFile string
-	namespace string
-	kube      *testKube
-}
-
-func (tk *testKube) Services(ns string) corev1.ServiceInterface {
-	input := tk.fixture.svcInput[ns]
-	result := &testService{
-		inputFile: input,
-		namespace: ns,
-		kube:      tk,
-	}
-	tk.svcHolder = result
-	return result
-}
-
-func (svc *testService) List(options metav1.ListOptions) (*v1.ServiceList, error) {
-	var result v1.ServiceList
-	if len(svc.inputFile) == 0 {
-		// No matching service
-		return &result, nil
-	}
-	err := readJSON(svc.inputFile, &result)
-	return &result, err
-}
-
-func (svc *testService) Delete(name string, options *metav1.DeleteOptions) error {
-	delHolder := &testDeleteByName{
-		namespace: svc.namespace,
-		name:      name,
-		opts:      options,
-	}
-	svc.kube.svcDelHolder = append(svc.kube.svcDelHolder, delHolder)
-	return nil
 }
 
 // Metrics fakes
@@ -447,186 +167,38 @@ func (tm *testMetrics) getManyMetrics(metrics []*app.TimedNumberTuple, pods []*v
 	return metrics, nil
 }
 
-// OpenShift API fakes
-
-type testOpenShift struct {
-	fixture        *testFixture
-	scaleHolder    *testScale
-	routeHolder    *testGetResult
-	delDCHolder    *testDeleteByName
-	delRouteHolder []*testDeleteByName
-}
-
-type testScale struct {
-	scaleOutput map[string]interface{}
-	namespace   string
-	dcName      string
-}
-
-type testGetResult struct {
-	namespace     string
-	labelSelector string
-}
-
-type testDeleteByName struct {
-	namespace string
-	name      string
-	opts      *metav1.DeleteOptions
-}
-
-func (fixture *testFixture) GetOpenShiftRESTAPI(config *kubernetes.KubeClientConfig) (kubernetes.OpenShiftRESTAPI, error) {
-	oapi := &testOpenShift{
-		fixture: fixture,
-	}
-	fixture.os = oapi
-	return oapi, nil
-}
-
-func (to *testOpenShift) GetBuildConfigs(namespace string, labelSelector string) (map[string]interface{}, error) {
-	var result map[string]interface{}
-	input := to.fixture.bcInput
-	if len(input) == 0 {
-		// No matching BCs
-		return result, nil
-	}
-	err := readJSON(input, &result)
-	return result, err
-}
-
-type deploymentConfigInput map[string]map[string]string
-
-var defaultDeploymentConfigInput = deploymentConfigInput{
-	"myApp": {
-		"my-run": "deploymentconfig-one.json",
-	},
-}
-
-var defaultDeploymentScaleInput = deploymentConfigInput{
-	"myApp": {
-		"my-run": "deployment-scale.json",
-	},
-}
-
-func (input deploymentConfigInput) getInput(appName string, envNS string) *string {
-	inputForApp, pres := input[appName]
-	if !pres {
-		return nil
-	}
-	inputForEnv, pres := inputForApp[envNS]
-	if !pres {
-		return nil
-	}
-	return &inputForEnv
-}
-
-func (to *testOpenShift) GetDeploymentConfig(namespace string, name string) (map[string]interface{}, error) {
-	input := to.fixture.dcInput.getInput(name, namespace)
-	if input == nil {
-		// No matching DC
-		return nil, nil
-	}
-	var result map[string]interface{}
-	err := readJSON(*input, &result)
-	return result, err
-}
-
-func (to *testOpenShift) DeleteDeploymentConfig(namespace string, name string, opts *metav1.DeleteOptions) error {
-	to.delDCHolder = &testDeleteByName{
-		namespace: namespace,
-		name:      name,
-		opts:      opts,
-	}
-	return nil
-}
-
-func (to *testOpenShift) GetDeploymentConfigScale(namespace string, name string) (map[string]interface{}, error) {
-	input := to.fixture.scaleInput.getInput(name, namespace)
-	if input == nil {
-		// No matching DC scale
-		return nil, nil
-	}
-	var result map[string]interface{}
-	err := readJSON(*input, &result)
-	return result, err
-}
-
-func (to *testOpenShift) SetDeploymentConfigScale(namespace string, name string, scale map[string]interface{}) error {
-	to.scaleHolder = &testScale{
-		namespace:   namespace,
-		dcName:      name,
-		scaleOutput: scale,
-	}
-	return nil
-}
-
-var defaultRouteInput = map[string]string{
-	"my-run": "routes-two.json",
-}
-
-func (to *testOpenShift) GetRoutes(namespace string, labelSelector string) (map[string]interface{}, error) {
-	var result map[string]interface{}
-	input := to.fixture.routeInput[namespace]
-	if len(input) == 0 {
-		// No matching routes
-		return result, nil
-	}
-	to.routeHolder = &testGetResult{
-		namespace:     namespace,
-		labelSelector: labelSelector,
-	}
-	err := readJSON(input, &result)
-	return result, err
-}
-
-func (to *testOpenShift) DeleteRoute(namespace string, name string, opts *metav1.DeleteOptions) error {
-	delHolder := &testDeleteByName{
-		namespace: namespace,
-		name:      name,
-		opts:      opts,
-	}
-	to.delRouteHolder = append(to.delRouteHolder, delHolder)
-	return nil
-}
-
-func readJSON(filename string, dest interface{}) error {
-	path := pathToTestJSON + filename
-	jsonBytes, err := ioutil.ReadFile(path)
-	if err != nil {
-		return errs.WithStack(err)
-	}
-	err = json.Unmarshal(jsonBytes, dest)
-	if err != nil {
-		return errs.WithStack(err)
-	}
-	return nil
-}
-
 func TestGetMetrics(t *testing.T) {
-	fixture := &testFixture{}
-
 	token := "myToken"
 	testCases := []struct {
 		name          string
 		clusterURL    string
 		expectedURL   string
+		cassetteName  string
 		shouldSucceed bool
 	}{
-		{"Basic", "https://api.myCluster.url:443/cluster", "https://metrics.myCluster.url", true},
-		{"Bad URL", "https://myCluster.url:443/cluster", "", false},
+		{"Basic", "https://api.myCluster.url:443/cluster", "https://metrics.myCluster.url", "newkubeclient-withport", true},
+		{"Bad URL", "https://myCluster.url:443/cluster", "", "newkubeclient-badurl", false},
 	}
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
+			r, err := recorder.New(pathToTestJSON + testCase.cassetteName)
+			require.NoError(t, err, "Failed to open cassette")
+			defer r.Stop()
+
+			fixture := &testFixture{}
 			config := &kubernetes.KubeClientConfig{
-				ClusterURL:        testCase.clusterURL,
-				BearerToken:       token,
-				UserNamespace:     "myNamespace",
-				KubeRESTAPIGetter: fixture,
-				MetricsGetter:     fixture,
+				ClusterURL:    testCase.clusterURL,
+				BearerToken:   token,
+				UserNamespace: "myNamespace",
+				Transport:     r.Transport,
+				MetricsGetter: fixture,
 			}
-			_, err := kubernetes.NewKubeClient(config)
+
+			kc, err := kubernetes.NewKubeClient(config)
 			if testCase.shouldSucceed {
 				require.NoError(t, err, "Unexpected error")
+				require.NotNil(t, kc, "KubeClient must not be nil")
 
 				metricsConfig := fixture.metrics.config
 				require.NotNil(t, metricsConfig, "Metrics config is nil")
@@ -640,8 +212,12 @@ func TestGetMetrics(t *testing.T) {
 }
 
 func TestClose(t *testing.T) {
+	r, err := recorder.New(pathToTestJSON + "newkubeclient")
+	require.NoError(t, err, "Failed to open cassette")
+	defer r.Stop()
+
 	fixture := &testFixture{}
-	kc := getDefaultKubeClient(fixture, t)
+	kc := getDefaultKubeClient(fixture, r.Transport, t)
 
 	// Check that KubeClientInterface.Close invokes MetricsInterface.Close
 	kc.Close()
@@ -650,79 +226,138 @@ func TestClose(t *testing.T) {
 
 func TestConfigMapEnvironments(t *testing.T) {
 	testCases := []struct {
-		name       string
-		input      *configMapInput
-		shouldFail bool
+		name         string
+		cassetteName string
+		shouldFail   bool
 	}{
 		{
-			name: "Basic",
-			input: &configMapInput{
-				labels: map[string]string{"provider": "fabric8"},
-				data: map[string]string{
-					"run":   "name: Run\nnamespace: my-run\norder: 1",
-					"stage": "name: Stage\nnamespace: my-stage\norder: 0",
-				},
-			},
+			name:         "Basic",
+			cassetteName: "newkubeclient",
 		},
 		{
-			name: "Empty Data",
-			input: &configMapInput{
-				labels: map[string]string{"provider": "fabric8"},
-				data:   map[string]string{},
-			},
+			name:         "Empty Data",
+			cassetteName: "newkubeclient-empty",
 		},
 		{
-			name: "Missing Colon",
-			input: &configMapInput{
-				labels: map[string]string{"provider": "fabric8"},
-				data: map[string]string{
-					"run": "name: Run\nnamespace my-run\norder: 1",
-				},
-			},
-			shouldFail: true,
+			name:         "Missing Colon",
+			cassetteName: "newkubeclient-nocolon",
+			shouldFail:   true,
 		},
 		{
-			name: "Missing Namespace",
-			input: &configMapInput{
-				labels: map[string]string{"provider": "fabric8"},
-				data: map[string]string{
-					"run": "name: Run\nns: my-run\norder: 1",
-				},
-			},
-			shouldFail: true,
+			name:         "Missing Namespace",
+			cassetteName: "newkubeclient-nonamespace",
+			shouldFail:   true,
 		},
 		{
-			name:       "No Provider",
-			input:      &configMapInput{},
-			shouldFail: true,
+			name:         "No Provider",
+			cassetteName: "newkubeclient-noprovider",
+			shouldFail:   true,
 		},
-	}
-	fixture := &testFixture{}
-	userNamespace := "myNamespace"
-	config := &kubernetes.KubeClientConfig{
-		ClusterURL:        "http://api.myCluster",
-		BearerToken:       "myToken",
-		UserNamespace:     userNamespace,
-		KubeRESTAPIGetter: fixture,
-		MetricsGetter:     fixture,
 	}
 
-	expectedName := "fabric8-environments"
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			fixture.cmInput = testCase.input
-			_, err := kubernetes.NewKubeClient(config)
+			r, err := recorder.New(pathToTestJSON + testCase.cassetteName)
+			require.NoError(t, err, "Failed to open cassette")
+			defer r.Stop()
+
+			fixture := &testFixture{}
+			config := &kubernetes.KubeClientConfig{
+				ClusterURL:    "http://api.myCluster",
+				BearerToken:   "myToken",
+				UserNamespace: "myNamespace",
+				Transport:     r.Transport,
+				MetricsGetter: fixture,
+			}
+
+			kc, err := kubernetes.NewKubeClient(config)
 			if testCase.shouldFail {
 				require.Error(t, err, "Expected an error")
 				require.True(t, fixture.metrics.closed, "Metrics must be closed after error")
 			} else {
 				require.NoError(t, err)
-				configMapHolder := fixture.kube.configMapHolder
-				require.NotNil(t, configMapHolder, "No ConfigMap created by test")
-				require.Equal(t, userNamespace, configMapHolder.namespace, "ConfigMap obtained from wrong namespace")
-				configMap := configMapHolder.configMap
-				require.NotNil(t, configMap, "Never sent ConfigMap GET")
-				require.Equal(t, expectedName, configMap.Name, "Incorrect ConfigMap name")
+				require.NotNil(t, kc, "KubeClient must not be nil")
+			}
+		})
+	}
+}
+
+type envTestData struct {
+	envName string
+	cpuUsed float64
+	cpuHard float64
+	memUsed float64
+	memHard float64
+}
+
+func TestGetEnvironments(t *testing.T) {
+	testCases := []struct {
+		testName     string
+		cassetteName string
+		shouldFail   bool
+		data         map[string]*envTestData
+	}{
+		{
+			testName:     "Basic",
+			cassetteName: "getenvironments",
+			data: map[string]*envTestData{
+				"run": {
+					envName: "run",
+					cpuUsed: 0.488,
+					cpuHard: 2.0,
+					memUsed: 262144000.0,
+					memHard: 1073741824.0,
+				},
+				"stage": {
+					envName: "stage",
+					cpuUsed: 1.488,
+					cpuHard: 2.0,
+					memUsed: 799014912.0,
+					memHard: 1073741824.0,
+				},
+				"test": {
+					envName: "test",
+					cpuUsed: 0.0,
+					cpuHard: 2.0,
+					memUsed: 0.0,
+					memHard: 1073741824.0,
+				},
+			},
+		},
+		{
+			testName:     "Missing Quota",
+			cassetteName: "getenvironments-missingquota",
+			shouldFail:   true,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.testName, func(t *testing.T) {
+			r, err := recorder.New(pathToTestJSON + testCase.cassetteName)
+			require.NoError(t, err, "Failed to open cassette")
+			defer r.Stop()
+
+			fixture := &testFixture{}
+			kc := getDefaultKubeClient(fixture, r.Transport, t)
+
+			envs, err := kc.GetEnvironments()
+			if testCase.shouldFail {
+				require.Error(t, err, "Expected an error")
+			} else {
+				require.NoError(t, err, "Unexpected error occurred")
+
+				require.Equal(t, len(testCase.data), len(envs), "Wrong number of environments returned")
+				for _, env := range envs {
+					require.NotNil(t, env, "Environment must not be nil")
+					require.NotNil(t, env.Attributes, "Environment attributes are nil")
+					require.NotNil(t, env.Attributes.Name, "Environment name must not be nil")
+
+					envName := *env.Attributes.Name
+					envData := testCase.data[envName]
+					require.NotNil(t, envData, "Unknown app: "+envName)
+					require.Equal(t, envData.envName, envName, "Wrong environment name")
+					verifyEnvironment(env, envData, t)
+				}
 			}
 		})
 	}
@@ -730,100 +365,90 @@ func TestConfigMapEnvironments(t *testing.T) {
 
 func TestGetEnvironment(t *testing.T) {
 	testCases := []struct {
-		testName   string
-		input      *resourceQuotaInput
-		shouldFail bool
+		testName     string
+		cassetteName string
+		shouldFail   bool
+		envTestData
 	}{
 		{
-			testName: "Basic",
-			input: &resourceQuotaInput{
-				name:      "run",
-				namespace: "my-run",
-				hard: map[v1.ResourceName]float64{
-					v1.ResourceLimitsCPU:    0.7,
-					v1.ResourceLimitsMemory: 1024,
-				},
-				used: map[v1.ResourceName]float64{
-					v1.ResourceLimitsCPU:    0.4,
-					v1.ResourceLimitsMemory: 512,
-				},
+			testName:     "Basic",
+			cassetteName: "getenvironments",
+			envTestData: envTestData{
+				envName: "run",
+				cpuUsed: 0.488,
+				cpuHard: 2.0,
+				memUsed: 262144000.0,
+				memHard: 1073741824.0,
 			},
 		},
 		{
-			testName: "Bad Environment",
-			input: &resourceQuotaInput{
-				name:      "doesNotExist",
-				namespace: "my-run",
-				hard: map[v1.ResourceName]float64{
-					v1.ResourceLimitsCPU:    0.7,
-					v1.ResourceLimitsMemory: 1024,
-				},
-				used: map[v1.ResourceName]float64{
-					v1.ResourceLimitsCPU:    0.4,
-					v1.ResourceLimitsMemory: 512,
-				},
+			testName:     "Bad Environment",
+			cassetteName: "getenvironments",
+			envTestData: envTestData{
+				envName: "doesNotExist",
 			},
 			shouldFail: true,
 		},
 		{
-			testName: "Missing Quota",
-			input: &resourceQuotaInput{
-				name:      "run",
-				namespace: "my-run",
+			testName:     "Missing Quota",
+			cassetteName: "getenvironments-missingquota",
+			envTestData: envTestData{
+				envName: "run",
 			},
-			shouldFail: true, // No quantities, so our test impl returns nil
+			shouldFail: true,
 		},
 	}
-	fixture := &testFixture{}
-	kc := getDefaultKubeClient(fixture, t)
 
 	for _, testCase := range testCases {
 		t.Run(testCase.testName, func(t *testing.T) {
-			input := testCase.input
-			fixture.rqInput = input
+			r, err := recorder.New(pathToTestJSON + testCase.cassetteName)
+			require.NoError(t, err, "Failed to open cassette")
+			defer r.Stop()
 
-			env, err := kc.GetEnvironment(input.name)
+			fixture := &testFixture{}
+			kc := getDefaultKubeClient(fixture, r.Transport, t)
+
+			env, err := kc.GetEnvironment(testCase.envName)
 			if testCase.shouldFail {
 				require.Error(t, err, "Expected an error")
 			} else {
 				require.NoError(t, err, "Unexpected error occurred")
 
-				quotaHolder := fixture.kube.quotaHolder
-				require.NotNil(t, quotaHolder, "No ResourceQuota created by test")
-				require.Equal(t, input.namespace, quotaHolder.namespace, "Quota retrieved from wrong namespace")
-				quota := quotaHolder.quota
-				require.NotNil(t, quota, "Never sent ResourceQuota GET")
-				require.Equal(t, "compute-resources", quota.Name, "Wrong ResourceQuota name")
+				require.NotNil(t, env, "Environment must not be nil")
 				require.NotNil(t, env.Attributes, "Environment attributes are nil")
-				require.Equal(t, input.name, *env.Attributes.Name, "Wrong environment name")
+				require.NotNil(t, env.Attributes.Name, "Environment name must not be nil")
 
-				cpuQuota := env.Attributes.Quota.Cpucores
-				require.InEpsilon(t, input.hard[v1.ResourceLimitsCPU], *cpuQuota.Quota, fltEpsilon, "Incorrect CPU quota")
-				require.InEpsilon(t, input.used[v1.ResourceLimitsCPU], *cpuQuota.Used, fltEpsilon, "Incorrect CPU usage")
-
-				memQuota := env.Attributes.Quota.Memory
-				require.InEpsilon(t, input.hard[v1.ResourceLimitsMemory], *memQuota.Quota, fltEpsilon, "Incorrect memory quota")
-				require.InEpsilon(t, input.used[v1.ResourceLimitsMemory], *memQuota.Used, fltEpsilon, "Incorrect memory usage")
+				verifyEnvironment(env, &testCase.envTestData, t)
 			}
 		})
 	}
 }
 
+func verifyEnvironment(env *app.SimpleEnvironment, testCase *envTestData, t *testing.T) {
+	require.Equal(t, testCase.envName, *env.Attributes.Name, "Wrong environment name")
+
+	cpuQuota := env.Attributes.Quota.Cpucores
+	require.InDelta(t, testCase.cpuHard, *cpuQuota.Quota, fltDelta, "Incorrect CPU quota for %s", testCase.envName)
+	require.InDelta(t, testCase.cpuUsed, *cpuQuota.Used, fltDelta, "Incorrect CPU usage for %s", testCase.envName)
+
+	memQuota := env.Attributes.Quota.Memory
+	require.InDelta(t, testCase.memHard, *memQuota.Quota, fltDelta, "Incorrect memory quota for %s", testCase.envName)
+	require.InDelta(t, testCase.memUsed, *memQuota.Used, fltDelta, "Incorrect memory usage for %s", testCase.envName)
+}
+
 type spaceTestData struct {
-	testName    string
-	spaceName   string
-	shouldFail  bool
-	bcJson      string
-	appTestData map[string]*appTestData // Keys are app names
-	deploymentInput
+	testName     string
+	spaceName    string
+	shouldFail   bool
+	appTestData  map[string]*appTestData // Keys are app names
+	cassetteName string
 }
 
 var defaultSpaceTestData = &spaceTestData{
-	testName:        "Basic",
-	spaceName:       "mySpace",
-	bcJson:          "buildconfigs-one.json",
-	appTestData:     map[string]*appTestData{"myApp": defaultAppTestData},
-	deploymentInput: defaultDeploymentInput,
+	testName:     "Basic",
+	spaceName:    "mySpace",
+	appTestData:  map[string]*appTestData{"myApp": defaultAppTestData},
+	cassetteName: "getspace",
 }
 
 type appTestData struct {
@@ -832,15 +457,15 @@ type appTestData struct {
 	appName        string
 	shouldFail     bool
 	deployTestData map[string]*deployTestData // Keys are environment names
-	deploymentInput
+	cassetteName   string
 }
 
 var defaultAppTestData = &appTestData{
-	testName:        "Basic",
-	spaceName:       "mySpace",
-	appName:         "myApp",
-	deployTestData:  map[string]*deployTestData{"run": defaultDeployTestData},
-	deploymentInput: defaultDeploymentInput,
+	testName:       "Basic",
+	spaceName:      "mySpace",
+	appName:        "myApp",
+	deployTestData: map[string]*deployTestData{"run": defaultDeployTestData},
+	cassetteName:   "getdeployment",
 }
 
 type deployTestData struct {
@@ -848,7 +473,6 @@ type deployTestData struct {
 	spaceName               string
 	appName                 string
 	envName                 string
-	envNS                   string
 	expectVersion           string
 	expectPodStatus         [][]string
 	expectPodsTotal         int
@@ -858,7 +482,7 @@ type deployTestData struct {
 	expectLogURL            string
 	expectAppURL            string
 	shouldFail              bool
-	deploymentInput
+	cassetteName            string
 }
 
 var defaultDeployTestData = &deployTestData{
@@ -866,7 +490,6 @@ var defaultDeployTestData = &deployTestData{
 	spaceName:     "mySpace",
 	appName:       "myApp",
 	envName:       "run",
-	envNS:         "my-run",
 	expectVersion: "1.0.2",
 	expectPodStatus: [][]string{
 		{"Running", "2"},
@@ -877,7 +500,7 @@ var defaultDeployTestData = &deployTestData{
 	expectConsoleURL:        "http://console.myCluster/console/project/my-run",
 	expectLogURL:            "http://console.myCluster/console/project/my-run/browse/rc/myApp-1?tab=logs",
 	expectAppURL:            "http://myApp-my-run.example.com",
-	deploymentInput:         defaultDeploymentInput,
+	cassetteName:            "getdeployment",
 }
 
 type deployStatsTestData struct {
@@ -886,6 +509,7 @@ type deployStatsTestData struct {
 	appName       string
 	envName       string
 	envNS         string
+	cassetteName  string
 	shouldFail    bool
 	metricsInput  *metricsInput
 	startTime     time.Time
@@ -894,30 +518,25 @@ type deployStatsTestData struct {
 	expectEnd     int64
 	expectPodUIDs []string
 	limit         int
-	dcInput       deploymentConfigInput
-	rcInput       map[string]string
-	podInput      map[string]string
 }
 
 var defaultDeployStatsTestData = &deployStatsTestData{
-	testName:    "Basic",
-	spaceName:   "mySpace",
-	appName:     "myApp",
-	envName:     "run",
-	envNS:       "my-run",
-	startTime:   convertToTime(1517867603000),
-	endTime:     convertToTime(1517867643000),
-	expectStart: 1517867612000,
-	expectEnd:   1517867613000,
+	testName:     "Basic",
+	spaceName:    "mySpace",
+	appName:      "myApp",
+	envName:      "run",
+	envNS:        "my-run",
+	cassetteName: "getdeployment",
+	startTime:    convertToTime(1517867603000),
+	endTime:      convertToTime(1517867643000),
+	expectStart:  1517867612000,
+	expectEnd:    1517867613000,
 	expectPodUIDs: []string{
 		"f04e8f3b-5c4a-4ffd-94ec-0e8bcbc7b468",
 		"447b7d6f-7072-4e9a-8cba-7e29c2f53761",
 	},
 	limit:        10,
 	metricsInput: defaultMetricsInput,
-	dcInput:      defaultDeploymentConfigInput,
-	rcInput:      defaultReplicationControllerInput,
-	podInput:     defaultPodInput,
 }
 
 func convertToTime(unixMillis int64) time.Time {
@@ -928,44 +547,44 @@ func TestGetSpace(t *testing.T) {
 	testCases := []*spaceTestData{
 		defaultSpaceTestData,
 		{
-			testName:  "Empty List",
-			spaceName: "mySpace",
-			bcJson:    "buildconfigs-emptylist.json",
+			testName:     "Empty List",
+			spaceName:    "mySpace",
+			cassetteName: "getspace-empty-bc",
 		},
 		{
-			testName:   "Wrong List",
-			spaceName:  "mySpace",
-			bcJson:     "buildconfigs-wronglist.json",
-			shouldFail: true,
+			testName:     "Wrong List",
+			spaceName:    "mySpace",
+			cassetteName: "getspace-wrong-list",
+			shouldFail:   true,
 		},
 		{
-			testName:   "No Items",
-			spaceName:  "mySpace",
-			bcJson:     "buildconfigs-noitems.json",
-			shouldFail: true,
+			testName:     "No Items",
+			spaceName:    "mySpace",
+			cassetteName: "getspace-no-items",
+			shouldFail:   true,
 		},
 		{
-			testName:   "Not Object",
-			spaceName:  "mySpace",
-			bcJson:     "buildconfigs-notobject.json",
-			shouldFail: true,
+			testName:     "Not Object",
+			spaceName:    "mySpace",
+			cassetteName: "getspace-not-object",
+			shouldFail:   true,
 		},
 		{
-			testName:   "No Metadata",
-			spaceName:  "mySpace",
-			bcJson:     "buildconfigs-nometadata.json",
-			shouldFail: true,
+			testName:     "No Metadata",
+			spaceName:    "mySpace",
+			cassetteName: "getspace-no-metadata",
+			shouldFail:   true,
 		},
 		{
-			testName:   "No Name",
-			spaceName:  "mySpace",
-			bcJson:     "buildconfigs-noname.json",
-			shouldFail: true,
+			testName:     "No Name",
+			spaceName:    "mySpace",
+			cassetteName: "getspace-no-name",
+			shouldFail:   true,
 		},
 		{
-			testName:  "Two Apps One Deployed",
-			spaceName: "mySpace", // Test two BCs, but only one DC
-			bcJson:    "buildconfigs-two.json",
+			testName:     "Two Apps One Deployed",
+			spaceName:    "mySpace", // Test two BCs, but only one DC
+			cassetteName: "getspace-two-apps-one-deploy",
 			appTestData: map[string]*appTestData{
 				"myApp": defaultAppTestData,
 				"myOtherApp": {
@@ -973,12 +592,11 @@ func TestGetSpace(t *testing.T) {
 					appName:   "myOtherApp",
 				},
 			},
-			deploymentInput: defaultDeploymentInput,
 		},
 		{
-			testName:  "Two Apps Both Deployed",
-			spaceName: "mySpace", // Test two deployed applications, with two environments
-			bcJson:    "buildconfigs-two.json",
+			testName:     "Two Apps Both Deployed",
+			spaceName:    "mySpace", // Test two deployed applications, with two environments
+			cassetteName: "getspace-two-apps-two-deploy",
 			appTestData: map[string]*appTestData{
 				"myApp": {
 					spaceName: "mySpace",
@@ -988,7 +606,6 @@ func TestGetSpace(t *testing.T) {
 							spaceName:     "mySpace",
 							appName:       "myApp",
 							envName:       "run",
-							envNS:         "my-run",
 							expectVersion: "1.0.2",
 							expectPodStatus: [][]string{
 								{"Running", "2"},
@@ -1004,7 +621,6 @@ func TestGetSpace(t *testing.T) {
 							spaceName:     "mySpace",
 							appName:       "myApp",
 							envName:       "stage",
-							envNS:         "my-stage",
 							expectVersion: "1.0.3",
 							expectPodStatus: [][]string{
 								{"Running", "1"},
@@ -1026,7 +642,6 @@ func TestGetSpace(t *testing.T) {
 							spaceName:     "mySpace",
 							appName:       "myOtherApp",
 							envName:       "run",
-							envNS:         "my-run",
 							expectVersion: "1.0.1",
 							expectPodStatus: [][]string{
 								{"Running", "1"},
@@ -1041,43 +656,17 @@ func TestGetSpace(t *testing.T) {
 					},
 				},
 			},
-			deploymentInput: deploymentInput{
-				dcInput: deploymentConfigInput{
-					"myApp": {
-						"my-run":   "deploymentconfig-one.json",
-						"my-stage": "deploymentconfig-one-stage.json",
-					},
-					"myOtherApp": {
-						"my-run": "deploymentconfig-other.json",
-					},
-				},
-				rcInput: map[string]string{
-					"my-run":   "replicationcontroller-two.json",
-					"my-stage": "replicationcontroller.json",
-				},
-				podInput: map[string]string{
-					"my-run":   "pods-two-apps.json",
-					"my-stage": "pods-one-stopped.json",
-				},
-				svcInput: map[string]string{
-					"my-run":   "services-two.json",
-					"my-stage": "services-zero.json",
-				},
-				routeInput: map[string]string{
-					"my-run":   "routes-two.json",
-					"my-stage": "routes-zero.json",
-				},
-			},
 		},
 	}
 
-	fixture := &testFixture{}
-	kc := getDefaultKubeClient(fixture, t)
-
 	for _, testCase := range testCases {
 		t.Run(testCase.testName, func(t *testing.T) {
-			fixture.bcInput = testCase.bcJson
-			fixture.deploymentInput = testCase.deploymentInput
+			r, err := recorder.New(pathToTestJSON + testCase.cassetteName)
+			require.NoError(t, err, "Failed to open cassette")
+			defer r.Stop()
+
+			fixture := &testFixture{}
+			kc := getDefaultKubeClient(fixture, r.Transport, t)
 
 			space, err := kc.GetSpace(testCase.spaceName)
 			if testCase.shouldFail {
@@ -1088,6 +677,7 @@ func TestGetSpace(t *testing.T) {
 				require.NotNil(t, space.Attributes, "Space attributes are nil")
 				require.Equal(t, testCase.spaceName, space.Attributes.Name, "Space name is incorrect")
 				require.NotNil(t, space.Attributes.Applications, "Applications are nil")
+				require.Equal(t, len(testCase.appTestData), len(space.Attributes.Applications), "Wrong number of applications")
 				for _, app := range space.Attributes.Applications {
 					var appInput *appTestData
 					if app != nil {
@@ -1102,28 +692,6 @@ func TestGetSpace(t *testing.T) {
 }
 
 func TestGetApplication(t *testing.T) {
-	dcInput := deploymentConfigInput{
-		"myApp": {
-			"my-run":   "deploymentconfig-one.json",
-			"my-stage": "deploymentconfig-one-stage.json",
-		},
-	}
-	rcInput := map[string]string{
-		"my-run":   "replicationcontroller.json",
-		"my-stage": "replicationcontroller.json",
-	}
-	podInput := map[string]string{
-		"my-run":   "pods.json",
-		"my-stage": "pods-one-stopped.json",
-	}
-	svcInput := map[string]string{
-		"my-run":   "services-two.json",
-		"my-stage": "services-zero.json",
-	}
-	routeInput := map[string]string{
-		"my-run":   "routes-two.json",
-		"my-stage": "routes-zero.json",
-	}
 	testCases := []*appTestData{
 		defaultAppTestData,
 		{
@@ -1136,7 +704,6 @@ func TestGetApplication(t *testing.T) {
 					spaceName:     "mySpace",
 					appName:       "myApp",
 					envName:       "stage",
-					envNS:         "my-stage",
 					expectVersion: "1.0.3",
 					expectPodStatus: [][]string{
 						{"Running", "1"},
@@ -1149,13 +716,7 @@ func TestGetApplication(t *testing.T) {
 					expectLogURL:            "http://console.myCluster/console/project/my-stage/browse/rc/myApp-1?tab=logs",
 				},
 			},
-			deploymentInput: deploymentInput{
-				dcInput:    dcInput,
-				rcInput:    rcInput,
-				podInput:   podInput,
-				svcInput:   svcInput,
-				routeInput: routeInput,
-			},
+			cassetteName: "getapplication",
 		},
 		{
 			testName:  "No Pods",
@@ -1164,35 +725,24 @@ func TestGetApplication(t *testing.T) {
 			deployTestData: map[string]*deployTestData{
 				"run": {
 					envName:          "run",
-					envNS:            "my-run",
 					expectVersion:    "1.0.1",
 					expectConsoleURL: "http://console.myCluster/console/project/my-run",
 					expectLogURL:     "http://console.myCluster/console/project/my-run/browse/rc/myOtherApp-1?tab=logs",
 					expectAppURL:     "http://myOtherApp-my-run.example.com",
 				},
 			},
-			deploymentInput: deploymentInput{
-				dcInput: deploymentConfigInput{
-					"myOtherApp": {
-						"my-run": "deploymentconfig-other.json",
-					},
-				},
-				rcInput: map[string]string{
-					"my-run": "replicationcontroller-two.json",
-				},
-				podInput:   defaultPodInput,
-				svcInput:   svcInput,
-				routeInput: routeInput,
-			},
+			cassetteName: "getapplication-nopods",
 		},
 	}
 
-	fixture := &testFixture{}
-	kc := getDefaultKubeClient(fixture, t)
-
 	for _, testCase := range testCases {
 		t.Run(testCase.testName, func(t *testing.T) {
-			fixture.deploymentInput = testCase.deploymentInput
+			r, err := recorder.New(pathToTestJSON + testCase.cassetteName)
+			require.NoError(t, err, "Failed to open cassette")
+			defer r.Stop()
+
+			fixture := &testFixture{}
+			kc := getDefaultKubeClient(fixture, r.Transport, t)
 
 			app, err := kc.GetApplication(testCase.spaceName, testCase.appName)
 			if testCase.shouldFail {
@@ -1209,12 +759,12 @@ func TestGetDeployment(t *testing.T) {
 	testCases := []*deployTestData{
 		defaultDeployTestData,
 		{
-			testName:        "Bad Environment",
-			spaceName:       "mySpace",
-			appName:         "myApp",
-			envName:         "doesNotExist",
-			deploymentInput: defaultDeploymentInput,
-			shouldFail:      true,
+			testName:     "Bad Environment",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "doesNotExist",
+			cassetteName: "getdeployment",
+			shouldFail:   true,
 		},
 		{
 			// Verifies that a newer scaled down deployment is favoured over
@@ -1223,24 +773,15 @@ func TestGetDeployment(t *testing.T) {
 			spaceName:        "mySpace",
 			appName:          "myApp",
 			envName:          "run",
-			envNS:            "my-run",
 			expectVersion:    "1.0.2",
 			expectPodStatus:  [][]string{},
 			expectPodsTotal:  0,
 			expectConsoleURL: "http://console.myCluster/console/project/my-run",
 			expectLogURL:     "http://console.myCluster/console/project/my-run/browse/rc/myApp-2?tab=logs",
 			expectAppURL:     "http://myApp-my-run.example.com",
-			deploymentInput: deploymentInput{
-				dcInput: defaultDeploymentConfigInput,
-				rcInput: map[string]string{
-					// List containing RCs in ascending deployment version:
-					// 1. Visible 2. Scaled-down "active" 3. Failed
-					"my-run": "replicationcontroller-scaled-down.json",
-				},
-				podInput:   defaultPodInput,
-				svcInput:   defaultServiceInput,
-				routeInput: defaultRouteInput,
-			},
+			// Contains RCs in ascending deployment version:
+			// 1. Visible 2. Scaled-down "active" 3. Failed
+			cassetteName: "getdeployment-scaled-down",
 		},
 		{
 			// Tests handling of a deployment config with missing space label
@@ -1250,7 +791,6 @@ func TestGetDeployment(t *testing.T) {
 			spaceName:     "mySpace",
 			appName:       "myApp",
 			envName:       "run",
-			envNS:         "my-run",
 			expectVersion: "1.0.2",
 			expectPodStatus: [][]string{
 				{"Running", "2"},
@@ -1261,47 +801,28 @@ func TestGetDeployment(t *testing.T) {
 			expectConsoleURL:        "http://console.myCluster/console/project/my-run",
 			expectLogURL:            "http://console.myCluster/console/project/my-run/browse/rc/myApp-1?tab=logs",
 			expectAppURL:            "http://myApp-my-run.example.com",
-			deploymentInput: deploymentInput{
-				dcInput: deploymentConfigInput{
-					"myApp": {
-						"my-run": "deploymentconfig-nospace.json",
-					},
-				},
-				rcInput:    defaultReplicationControllerInput,
-				podInput:   defaultPodInput,
-				svcInput:   defaultServiceInput,
-				routeInput: defaultRouteInput,
-			},
+			cassetteName:            "getdeployment-nospace",
 		},
 		{
 			// Tests that we don't accept deployment configs with a space
 			// label different from the argument passed to GetDeployment
-			testName:  "Wrong Space Label",
-			spaceName: "mySpace",
-			appName:   "myApp",
-			envName:   "run",
-			envNS:     "my-run",
-			deploymentInput: deploymentInput{
-				dcInput: deploymentConfigInput{
-					"myApp": {
-						"my-run": "deploymentconfig-wrongspace.json",
-					},
-				},
-				rcInput:    defaultReplicationControllerInput,
-				podInput:   defaultPodInput,
-				svcInput:   defaultServiceInput,
-				routeInput: defaultRouteInput,
-			},
-			shouldFail: true,
+			testName:     "Wrong Space Label",
+			spaceName:    "myWrongSpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "getdeployment",
+			shouldFail:   true,
 		},
 	}
 
-	fixture := &testFixture{}
-	kc := getDefaultKubeClient(fixture, t)
-
 	for _, testCase := range testCases {
 		t.Run(testCase.testName, func(t *testing.T) {
-			fixture.deploymentInput = testCase.deploymentInput
+			r, err := recorder.New(pathToTestJSON + testCase.cassetteName)
+			require.NoError(t, err, "Failed to open cassette")
+			defer r.Stop()
+
+			fixture := &testFixture{}
+			kc := getDefaultKubeClient(fixture, r.Transport, t)
 
 			dep, err := kc.GetDeployment(testCase.spaceName, testCase.appName, testCase.envName)
 			if testCase.shouldFail {
@@ -1316,52 +837,83 @@ func TestGetDeployment(t *testing.T) {
 
 func TestScaleDeployment(t *testing.T) {
 	testCases := []struct {
-		testName    string
-		spaceName   string
-		appName     string
-		envName     string
-		expectedNS  string
-		dcInput     deploymentConfigInput
-		scaleInput  deploymentConfigInput
-		newReplicas int
-		oldReplicas int
-		shouldFail  bool
+		testName      string
+		spaceName     string
+		appName       string
+		envName       string
+		expectPutURLs map[string]struct{}
+		cassetteName  string
+		newReplicas   int
+		oldReplicas   int
+		shouldFail    bool
 	}{
 		{
-			testName:    "Basic",
-			spaceName:   "mySpace",
-			appName:     "myApp",
-			envName:     "run",
-			expectedNS:  "my-run",
-			dcInput:     defaultDeploymentConfigInput,
-			scaleInput:  defaultDeploymentScaleInput,
+			testName:     "Basic",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "scaledeployment",
+			expectPutURLs: map[string]struct{}{
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myApp/scale": {},
+			},
 			newReplicas: 3,
 			oldReplicas: 2,
 		},
 		{
-			testName:   "Zero Replicas",
-			spaceName:  "mySpace",
-			appName:    "myApp",
-			envName:    "run",
-			expectedNS: "my-run",
-			dcInput:    defaultDeploymentConfigInput,
-			scaleInput: deploymentConfigInput{
-				"myApp": {
-					"my-run": "deployment-scale-zero.json",
-				},
+			testName:     "Zero Replicas",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "scaledeployment-zero",
+			expectPutURLs: map[string]struct{}{
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myApp/scale": {},
 			},
 			newReplicas: 1,
 			oldReplicas: 0,
 		},
 	}
 
-	fixture := &testFixture{}
-	kc := getDefaultKubeClient(fixture, t)
-
 	for _, testCase := range testCases {
 		t.Run(testCase.testName, func(t *testing.T) {
-			fixture.dcInput = testCase.dcInput
-			fixture.scaleInput = testCase.scaleInput
+			r, err := recorder.New(pathToTestJSON + testCase.cassetteName)
+			r.SetMatcher(func(actual *http.Request, expected cassette.Request) bool {
+				if cassette.DefaultMatcher(actual, expected) {
+					// Check scale request body when sending PUT
+					if actual.Method == "PUT" {
+						var buf bytes.Buffer
+						reqBody := actual.Body
+						_, err := buf.ReadFrom(reqBody)
+						require.NoError(t, err, "Error reading request body")
+						defer reqBody.Close()
+
+						// Mark interaction as seen
+						reqURL := actual.URL.String()
+						_, pres := testCase.expectPutURLs[reqURL]
+						require.True(t, pres, "Unexpected PUT request %s", reqURL)
+						delete(testCase.expectPutURLs, reqURL)
+
+						// Check spec/replicas modified correctly
+						var scaleOutput map[string]interface{}
+						err = json.Unmarshal(buf.Bytes(), &scaleOutput)
+						require.NoError(t, err, "Request body must be JSON object")
+						spec, ok := scaleOutput["spec"].(map[string]interface{})
+						require.True(t, ok, "Spec property is missing or invalid")
+						newReplicas, ok := spec["replicas"].(float64)
+						require.True(t, ok, "Replicas property is missing or invalid")
+						require.Equal(t, testCase.newReplicas, int(newReplicas), "Wrong modified number of replicas")
+
+						// Replace body
+						actual.Body = ioutil.NopCloser(&buf)
+					}
+					return true
+				}
+				return false
+			})
+			require.NoError(t, err, "Failed to open cassette")
+			defer r.Stop()
+
+			fixture := &testFixture{}
+			kc := getDefaultKubeClient(fixture, r.Transport, t)
 
 			old, err := kc.ScaleDeployment(testCase.spaceName, testCase.appName, testCase.envName, testCase.newReplicas)
 			if testCase.shouldFail {
@@ -1370,17 +922,10 @@ func TestScaleDeployment(t *testing.T) {
 				require.NoError(t, err, "Unexpected error occurred")
 				require.NotNil(t, old, "Previous replicas are nil")
 				require.Equal(t, testCase.oldReplicas, *old, "Wrong number of previous replicas")
-				scaleHolder := fixture.os.scaleHolder
-				require.NotNil(t, scaleHolder, "No scale results available")
-				require.Equal(t, testCase.expectedNS, scaleHolder.namespace, "Wrong namespace")
-				require.Equal(t, testCase.appName, scaleHolder.dcName, "Wrong deployment config name")
-				// Check spec/replicas modified correctly
-				spec, ok := scaleHolder.scaleOutput["spec"].(map[string]interface{})
-				require.True(t, ok, "Spec property is missing or invalid")
-				newReplicas, ok := spec["replicas"].(int)
-				require.True(t, ok, "Replicas property is missing or invalid")
-				require.Equal(t, testCase.newReplicas, newReplicas, "Wrong modified number of replicas")
 			}
+
+			// Check we saw all expected PUT requests
+			require.Empty(t, testCase.expectPutURLs, "Not all PUT requests sent: %v", testCase.expectPutURLs)
 		})
 	}
 }
@@ -1388,111 +933,87 @@ func TestScaleDeployment(t *testing.T) {
 func TestDeleteDeployment(t *testing.T) {
 	// DeleteOptions do not change
 	policy := metav1.DeletePropagationForeground
-	expectOpts := &metav1.DeleteOptions{
+	expectOpts := metav1.DeleteOptions{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "DeleteOptions",
+			APIVersion: "v1",
+		},
 		PropagationPolicy: &policy,
 	}
-	expectServices := []string{"myApp", "myOtherApp"} // Test impl doesn't check labels
-	expectRoutes := expectServices                    // Our routes use the same names as their services
+
 	testCases := []struct {
-		testName       string
-		spaceName      string
-		appName        string
-		envName        string
-		expectNS       string
-		expectSelector string
-		expectServices []string
-		expectRoutes   []string
-		shouldFail     bool
-		deploymentInput
+		testName         string
+		spaceName        string
+		appName          string
+		envName          string
+		cassetteName     string
+		expectDeleteURLs map[string]struct{}
+		shouldFail       bool
 	}{
 		{
-			testName:        "Basic",
-			spaceName:       "mySpace",
-			appName:         "myApp",
-			envName:         "run",
-			expectNS:        "my-run",
-			expectSelector:  "app%3DmyApp",
-			expectServices:  expectServices,
-			expectRoutes:    expectRoutes,
-			deploymentInput: defaultDeploymentInput,
-		},
-		{
-			testName:        "Bad Environment",
-			spaceName:       "mySpace",
-			appName:         "myApp",
-			envName:         "doesNotExist",
-			expectNS:        "my-run",
-			expectSelector:  "app%3DmyApp",
-			expectServices:  expectServices,
-			expectRoutes:    expectRoutes,
-			deploymentInput: defaultDeploymentInput,
-			shouldFail:      true,
-		},
-		{
-			testName:        "Wrong Space",
-			spaceName:       "otherSpace",
-			appName:         "myApp",
-			envName:         "run",
-			expectNS:        "my-run",
-			expectSelector:  "app%3DmyApp",
-			expectServices:  expectServices,
-			expectRoutes:    expectRoutes,
-			deploymentInput: defaultDeploymentInput,
-			shouldFail:      true,
-		},
-		{
-			testName:       "No Routes",
-			spaceName:      "mySpace",
-			appName:        "myApp",
-			envName:        "run",
-			expectNS:       "my-run",
-			expectSelector: "app%3DmyApp",
-			expectServices: expectServices,
-			expectRoutes:   []string{},
-			deploymentInput: deploymentInput{
-				dcInput:  defaultDeploymentConfigInput,
-				rcInput:  defaultReplicationControllerInput,
-				podInput: defaultPodInput,
-				svcInput: defaultServiceInput,
-				routeInput: map[string]string{
-					"my-run": "routes-zero.json",
-				},
+			testName:     "Basic",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "deletedeployment",
+			expectDeleteURLs: map[string]struct{}{
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myApp": {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myApp":            {},
+				"http://api.myCluster/api/v1/namespaces/my-run/services/myApp":           {},
 			},
 		},
 		{
-			testName:       "No Services",
-			spaceName:      "mySpace",
-			appName:        "myApp",
-			envName:        "run",
-			expectNS:       "my-run",
-			expectSelector: "app%3DmyApp",
-			expectServices: []string{},
-			expectRoutes:   expectRoutes,
-			deploymentInput: deploymentInput{
-				dcInput:  defaultDeploymentConfigInput,
-				rcInput:  defaultReplicationControllerInput,
-				podInput: defaultPodInput,
-				svcInput: map[string]string{
-					"my-run": "services-zero.json",
-				},
-				routeInput: defaultRouteInput,
+			testName:         "Bad Environment",
+			spaceName:        "mySpace",
+			appName:          "myApp",
+			envName:          "doesNotExist",
+			cassetteName:     "deletedeployment",
+			expectDeleteURLs: map[string]struct{}{},
+			shouldFail:       true,
+		},
+		{
+			testName:     "Wrong Space",
+			spaceName:    "otherSpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "deletedeployment",
+			expectDeleteURLs: map[string]struct{}{
+				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myApp":  {},
+				"http://api.myCluster/api/v1/namespaces/my-run/services/myApp": {},
+			},
+			shouldFail: true,
+		},
+		{
+			testName:     "No Routes",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "deletedeployment-noroutes",
+			expectDeleteURLs: map[string]struct{}{
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myApp": {},
+				"http://api.myCluster/api/v1/namespaces/my-run/services/myApp":           {},
 			},
 		},
 		{
-			testName:       "No DeploymentConfig",
-			spaceName:      "mySpace",
-			appName:        "myApp",
-			envName:        "run",
-			expectNS:       "my-run",
-			expectSelector: "app%3DmyApp",
-			expectServices: expectServices,
-			expectRoutes:   expectRoutes,
-			deploymentInput: deploymentInput{
-				dcInput:    deploymentConfigInput{}, // Empty
-				rcInput:    defaultReplicationControllerInput,
-				podInput:   defaultPodInput,
-				svcInput:   defaultServiceInput,
-				routeInput: defaultRouteInput,
+			testName:     "No Services",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "deletedeployment-noservices",
+			expectDeleteURLs: map[string]struct{}{
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myApp": {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myApp":            {},
+			},
+		},
+		{
+			testName:     "No DeploymentConfig",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "deletedeployment-nodc",
+			expectDeleteURLs: map[string]struct{}{
+				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myApp":  {},
+				"http://api.myCluster/api/v1/namespaces/my-run/services/myApp": {},
 			},
 			shouldFail: true,
 		},
@@ -1500,62 +1021,53 @@ func TestDeleteDeployment(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.testName, func(t *testing.T) {
-			fixture := &testFixture{}
-			fixture.deploymentInput = testCase.deploymentInput
+			r, err := recorder.New(pathToTestJSON + testCase.cassetteName)
+			require.NoError(t, err, "Failed to open cassette")
+			r.SetMatcher(func(actual *http.Request, expected cassette.Request) bool {
+				if cassette.DefaultMatcher(actual, expected) {
+					// Check request body when sending DELETE
+					if actual.Method == "DELETE" {
+						var buf bytes.Buffer
+						reqBody := actual.Body
+						_, err := buf.ReadFrom(reqBody)
+						require.NoError(t, err, "Error reading request body")
+						defer reqBody.Close()
 
-			kc := getDefaultKubeClient(fixture, t)
-			err := kc.DeleteDeployment(testCase.spaceName, testCase.appName, testCase.envName)
+						// Mark interaction as seen
+						reqURL := actual.URL.String()
+						_, pres := testCase.expectDeleteURLs[reqURL]
+						require.True(t, pres, "Unexpected DELETE request %s", reqURL)
+						delete(testCase.expectDeleteURLs, reqURL)
+
+						// Check delete options are correct
+						var deleteOutput metav1.DeleteOptions
+						err = json.Unmarshal(buf.Bytes(), &deleteOutput)
+						require.NoError(t, err, "Request body must be DeleteOptions")
+						require.Equal(t, expectOpts, deleteOutput, "DeleteOptions do not match")
+
+						// Replace body
+						actual.Body = ioutil.NopCloser(&buf)
+					}
+					return true
+				}
+				return false
+			})
+			defer r.Stop()
+
+			fixture := &testFixture{}
+			kc := getDefaultKubeClient(fixture, r.Transport, t)
+
+			err = kc.DeleteDeployment(testCase.spaceName, testCase.appName, testCase.envName)
 			if testCase.shouldFail {
 				require.Error(t, err, "Expected an error")
 			} else {
 				require.NoError(t, err, "Unexpected error occurred")
-
-				// Check route list
-				require.NotNil(t, fixture.os.routeHolder, "Route list was never retrieved")
-				routeHolder := fixture.os.routeHolder
-				require.Equal(t, testCase.expectSelector, routeHolder.labelSelector, "Incorrect label selector for routes")
-				require.Equal(t, testCase.expectNS, routeHolder.namespace, "Routes retrieved from wrong namespace")
-
-				// Check routes deleted
-				expectedRoutes := createSet(testCase.expectRoutes...)
-				for _, route := range fixture.os.delRouteHolder {
-					_, pres := expectedRoutes[route.name]
-					require.True(t, pres, "Found unexpected route %s", route.name)
-					require.Equal(t, testCase.expectNS, route.namespace, "Routes deleted in wrong namespace")
-					require.Equal(t, expectOpts, route.opts, "Delete options for routes are incorrect")
-					delete(expectedRoutes, route.name)
-				}
-				require.Empty(t, expectedRoutes, "Some expected routes were not found: %v", expectedRoutes)
-
-				// Check services deleted
-				expectedServices := createSet(testCase.expectServices...)
-				for _, svc := range fixture.kube.svcDelHolder {
-					_, pres := expectedServices[svc.name]
-					require.True(t, pres, "Found unexpected service %s", svc.name)
-					require.Equal(t, testCase.expectNS, svc.namespace, "Service deleted in wrong namespace")
-					require.Equal(t, expectOpts, svc.opts, "Delete options for services are incorrect")
-					delete(expectedServices, svc.name)
-				}
-				require.Empty(t, expectedServices, "Some expected services were not found: %v", expectedServices)
-
-				// Check deployment config deleted
-				dcHolder := fixture.os.delDCHolder
-				require.NotNil(t, dcHolder, "Deployment config not deleted")
-				require.Equal(t, testCase.appName, dcHolder.name, "Wrong deployment config deleted")
-				require.Equal(t, testCase.expectNS, dcHolder.namespace, "Deployment config deleted in wrong namespace")
-				require.Equal(t, expectOpts, dcHolder.opts, "Delete options for DC are incorrect")
 			}
+
+			// Check we saw all expected DELETE requests
+			require.Empty(t, testCase.expectDeleteURLs, "Not all DELETE requests sent: %v", testCase.expectDeleteURLs)
 		})
 	}
-}
-
-func createSet(values ...string) map[string]struct{} {
-	result := make(map[string]struct{}, len(values))
-	var empty struct{}
-	for _, value := range values {
-		result[value] = empty
-	}
-	return result
 }
 
 func TestGetDeploymentStats(t *testing.T) {
@@ -1566,23 +1078,21 @@ func TestGetDeploymentStats(t *testing.T) {
 			spaceName:    "mySpace",
 			appName:      "myApp",
 			envName:      "doesNotExist",
+			cassetteName: "getdeployment",
 			metricsInput: defaultMetricsInput,
-			dcInput:      defaultDeploymentConfigInput,
-			rcInput:      defaultReplicationControllerInput,
-			podInput:     defaultPodInput,
 			shouldFail:   true,
 		},
 	}
 
-	fixture := &testFixture{}
-	kc := getDefaultKubeClient(fixture, t)
-
 	for _, testCase := range testCases {
 		t.Run(testCase.testName, func(t *testing.T) {
-			fixture.dcInput = testCase.dcInput
-			fixture.rcInput = testCase.rcInput
-			fixture.podInput = testCase.podInput
+			r, err := recorder.New(pathToTestJSON + testCase.cassetteName)
+			require.NoError(t, err, "Failed to open cassette")
+			defer r.Stop()
+
+			fixture := &testFixture{}
 			fixture.metricsInput = testCase.metricsInput
+			kc := getDefaultKubeClient(fixture, r.Transport, t)
 
 			stats, err := kc.GetDeploymentStats(testCase.spaceName, testCase.appName, testCase.envName, testCase.startTime)
 			if testCase.shouldFail {
@@ -1596,17 +1106,23 @@ func TestGetDeploymentStats(t *testing.T) {
 
 				// Check each metric type
 				require.NotNil(t, stats.Attributes, "Stat attributes are nil")
-				require.Equal(t, testCase.metricsInput.cpu[0], stats.Attributes.Cores, "Incorrect CPU metrics returned")
+				verifyNumberTuple(testCase.metricsInput.cpu[0], stats.Attributes.Cores, t, "CPU")
 				verifyMetricsParams(testCase, result.cpuParams, t, "CPU metrics")
-				require.Equal(t, testCase.metricsInput.memory[0], stats.Attributes.Memory, "Incorrect memory metrics returned")
+				verifyNumberTuple(testCase.metricsInput.memory[0], stats.Attributes.Memory, t, "memory")
 				verifyMetricsParams(testCase, result.memParams, t, "Memory metrics")
-				require.Equal(t, testCase.metricsInput.netTx[0], stats.Attributes.NetTx, "Incorrect network sent metrics returned")
+				verifyNumberTuple(testCase.metricsInput.netTx[0], stats.Attributes.NetTx, t, "network sent")
 				verifyMetricsParams(testCase, result.netTxParams, t, "Network sent metrics")
-				require.Equal(t, testCase.metricsInput.netRx[0], stats.Attributes.NetRx, "Incorrect network received metrics returned")
+				verifyNumberTuple(testCase.metricsInput.netRx[0], stats.Attributes.NetRx, t, "network received")
 				verifyMetricsParams(testCase, result.netRxParams, t, "Network received metrics")
 			}
 		})
 	}
+}
+
+func verifyNumberTuple(expected *app.TimedNumberTuple, actual *app.TimedNumberTuple, t *testing.T, metricName string) {
+	require.NotNil(t, actual, "%s metric is nil", metricName)
+	require.InDelta(t, *expected.Time, *actual.Time, fltDelta, "Incorrect %s timestamp", metricName)
+	require.InDelta(t, *expected.Value, *actual.Value, fltDelta, "Incorrect %s value", metricName)
 }
 
 func TestGetDeploymentStatSeries(t *testing.T) {
@@ -1618,22 +1134,20 @@ func TestGetDeploymentStatSeries(t *testing.T) {
 			appName:      "myApp",
 			envName:      "doesNotExist",
 			metricsInput: defaultMetricsInput,
-			dcInput:      defaultDeploymentConfigInput,
-			rcInput:      defaultReplicationControllerInput,
-			podInput:     defaultPodInput,
+			cassetteName: "getdeployment",
 			shouldFail:   true,
 		},
 	}
 
-	fixture := &testFixture{}
-	kc := getDefaultKubeClient(fixture, t)
-
 	for _, testCase := range testCases {
 		t.Run(testCase.testName, func(t *testing.T) {
-			fixture.dcInput = testCase.dcInput
-			fixture.rcInput = testCase.rcInput
-			fixture.podInput = testCase.podInput
+			r, err := recorder.New(pathToTestJSON + testCase.cassetteName)
+			require.NoError(t, err, "Failed to open cassette")
+			defer r.Stop()
+
+			fixture := &testFixture{}
 			fixture.metricsInput = testCase.metricsInput
+			kc := getDefaultKubeClient(fixture, r.Transport, t)
 
 			stats, err := kc.GetDeploymentStatSeries(testCase.spaceName, testCase.appName, testCase.envName,
 				testCase.startTime, testCase.endTime, testCase.limit)
@@ -1647,13 +1161,13 @@ func TestGetDeploymentStatSeries(t *testing.T) {
 				require.NotNil(t, result, "Metrics API not called")
 
 				// Check each metric type
-				require.Equal(t, testCase.metricsInput.cpu, stats.Cores, "Incorrect CPU metrics returned")
+				verifyNumberTuples(testCase.metricsInput.cpu, stats.Cores, t, "CPU")
 				verifyMetricsParams(testCase, result.cpuParams, t, "CPU metrics")
-				require.Equal(t, testCase.metricsInput.memory, stats.Memory, "Incorrect memory metrics returned")
+				verifyNumberTuples(testCase.metricsInput.memory, stats.Memory, t, "memory")
 				verifyMetricsParams(testCase, result.memParams, t, "Memory metrics")
-				require.Equal(t, testCase.metricsInput.netTx, stats.NetTx, "Incorrect network sent metrics returned")
+				verifyNumberTuples(testCase.metricsInput.netTx, stats.NetTx, t, "network sent")
 				verifyMetricsParams(testCase, result.netTxParams, t, "Network sent metrics")
-				require.Equal(t, testCase.metricsInput.netRx, stats.NetRx, "Incorrect network received metrics returned")
+				verifyNumberTuples(testCase.metricsInput.netRx, stats.NetRx, t, "network received")
 				verifyMetricRangeParams(testCase, result.netRxParams, t, "Network received metrics")
 
 				// Check time range
@@ -1661,6 +1175,13 @@ func TestGetDeploymentStatSeries(t *testing.T) {
 				require.Equal(t, testCase.expectEnd, int64(*stats.End), "Incorrect end time")
 			}
 		})
+	}
+}
+
+func verifyNumberTuples(expected []*app.TimedNumberTuple, actual []*app.TimedNumberTuple, t *testing.T, metricName string) {
+	require.Equal(t, len(expected), len(actual), "Wrong number of %s metrics", metricName)
+	for idx := range expected {
+		verifyNumberTuple(expected[idx], actual[idx], t, metricName)
 	}
 }
 

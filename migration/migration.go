@@ -381,13 +381,24 @@ func GetMigrations() Migrations {
 	m = append(m, steps{ExecuteSQLFile("083-index-comments-parent.sql")})
 
 	// Version 84
-	m = append(m, steps{ExecuteSQLFile("084-space-templates.sql",
+	m = append(m, steps{ExecuteSQLFile("084-codebases-spaceid-url-index.sql")})
+
+	// Version 85
+	m = append(m, steps{ExecuteSQLFile("085-delete-system.number-json-field.sql")})
+
+	// Version 86
+	m = append(m, steps{ExecuteSQLFile("086-add-can-construct-to-wit.sql",
+		workitem.SystemPlannerItem.String(),
+	)})
+
+	// Version 87
+	m = append(m, steps{ExecuteSQLFile("087-space-templates.sql",
 		spacetemplate.SystemLegacyTemplateID.String(),
 		workitem.SystemPlannerItem.String(),
 	)})
 
-	// Version 85
-	m = append(m, steps{ExecuteSQLFile("085-type-groups-and-child-types.sql")})
+	// Version 88
+	m = append(m, steps{ExecuteSQLFile("088-type-groups-and-child-types.sql")})
 
 	// Version N
 	//

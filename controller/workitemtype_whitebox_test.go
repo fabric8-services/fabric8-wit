@@ -120,6 +120,7 @@ func TestConvertTypeFromModel(t *testing.T) {
 func TestConvertFieldTypes(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
+
 	types := []workitem.FieldType{
 		workitem.SimpleType{Kind: workitem.KindInteger},
 		workitem.ListType{

@@ -84,7 +84,6 @@ func TestMarshalEnumType(t *testing.T) {
 		t.Errorf("Unmarshalled work item type: \n %v \n has not the same type as \"normal\" workitem type: \n %v \n", parsedWIT, expectedWIT)
 	}
 }
-
 func TestWorkItemType_Equal(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
@@ -98,9 +97,10 @@ func TestWorkItemType_Equal(t *testing.T) {
 	}
 	desc := "some description"
 	a := workitem.WorkItemType{
-		Name:        "foo",
-		Description: &desc,
-		Icon:        "fa-bug",
+		SpaceTemplateID: uuid.NewV4(),
+		Name:            "foo",
+		Description:     &desc,
+		Icon:            "fa-bug",
 		Fields: map[string]workitem.FieldDefinition{
 			"aListType": fd,
 		},
@@ -111,6 +111,12 @@ func TestWorkItemType_Equal(t *testing.T) {
 		t.Parallel()
 		b := a
 		assert.True(t, a.Equal(b))
+	})
+	t.Run("space template ID", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		b.SpaceTemplateID = uuid.NewV4()
+		assert.False(t, a.Equal(b))
 	})
 	t.Run("type", func(t *testing.T) {
 		t.Parallel()
@@ -192,9 +198,17 @@ func TestWorkItemType_Equal(t *testing.T) {
 	})
 	t.Run("description", func(t *testing.T) {
 		t.Parallel()
-		b := a
-		b.Description = ptr.String("some other description")
-		assert.False(t, a.Equal(b))
+		t.Run("different value", func(t *testing.T) {
+			b := a
+			b.Description = ptr.String("some other description")
+			assert.False(t, a.Equal(b))
+		})
+		t.Run("different pointer but same value", func(t *testing.T) {
+			b := a
+			desc2 := desc
+			b.Description = &desc2
+			assert.True(t, a.Equal(b))
+		})
 	})
 	t.Run("icon", func(t *testing.T) {
 		t.Parallel()
@@ -202,14 +216,13 @@ func TestWorkItemType_Equal(t *testing.T) {
 		b.Icon = "fa-cog"
 		assert.False(t, a.Equal(b))
 	})
-	t.Run("can create", func(t *testing.T) {
+	t.Run("can construct", func(t *testing.T) {
 		t.Parallel()
 		b := a
 		b.CanConstruct = true
 		assert.False(t, a.Equal(b))
 	})
 }
-
 func TestMarshalFieldDef(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)

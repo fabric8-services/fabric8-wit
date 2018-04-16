@@ -161,6 +161,8 @@ func (s *searchRepositoryBlackboxTest) TestSearchFullText() {
 			require.NoError(t, err)
 			assert.Equal(t, 2, count)
 			assert.Condition(t, containsAllWorkItems(res, *fxt.WorkItems[1], *fxt.WorkItems[0]))
+			assert.NotNil(t, res[0].Fields[workitem.SystemNumber])
+			assert.NotNil(t, res[1].Fields[workitem.SystemNumber])
 		})
 		s.T().Run("unmatching title", func(t *testing.T) {
 			// given

@@ -60,20 +60,20 @@ var (
 
 // WorkItemType represents a work item type as it is stored in the db
 type WorkItemType struct {
-	gormsupport.Lifecycle `json:"lifecycle"`
+	gormsupport.Lifecycle `json:"lifecycle,omitempty"`
 
 	// ID is the primary key of a work item type.
-	ID uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key" json:"id"`
+	ID uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key" json:"id,omitempty"`
 
 	// Name is a human readable name of this work item type.
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 
 	// Description is an optional description of the work item type.
 	Description *string `json:"description,omitempty"`
 
 	// Icon contains the CSS icon class(es) to render an icon for the work item
 	// type.
-	Icon string `json:"icon"`
+	Icon string `json:"icon,omitempty"`
 
 	// Version contains the revision number of this work item type and is used
 	// for optimistic concurrency control.
@@ -87,7 +87,7 @@ type WorkItemType struct {
 
 	// Fields contains the definitions of the fields this work item type
 	// supports.
-	Fields FieldDefinitions `sql:"type:jsonb" json:"fields"`
+	Fields FieldDefinitions `sql:"type:jsonb" json:"fields,omitempty"`
 
 	// SpaceTemplateID refers to the space template to which this work item type
 	// belongs.
@@ -96,16 +96,16 @@ type WorkItemType struct {
 	// Extends is a helper ID to support "extends" attribute of WIT in a space
 	// template. This field is not filled when you load a work item type from
 	// the DB. Instead the Path member contains the information.
-	Extends uuid.UUID `gorm:"-" json:"extends"`
+	Extends uuid.UUID `gorm:"-" json:"extends,omitempty"`
+
+	// CanConstruct is true when you can create work items from this work item
+	// type.
+	CanConstruct bool `gorm:"can_construct" json:"can_construct,omitempty"`
 
 	// ChildTypeIDs is a list of work item type IDs that can be used as child
 	// type of this work item. This field is filled upon loading the work item
 	// type from the DB.
 	ChildTypeIDs []uuid.UUID `gorm:"-" json:"child_types,omitempty"`
-
-	// CanConstruct is true when you can create work items from this work item
-	// type.
-	CanConstruct bool `gorm:"can_construct" json:"can_construct,omitempty"`
 }
 
 // GetTypePathSeparator returns the work item type's path separator "."
@@ -171,6 +171,9 @@ func (wit WorkItemType) Equal(u convert.Equaler) bool {
 	if wit.Extends != other.Extends {
 		return false
 	}
+	if wit.CanConstruct != other.CanConstruct {
+		return false
+	}
 	if !strPtrIsNilOrContentIsEqual(wit.Description, other.Description) {
 		return false
 	}
@@ -201,9 +204,6 @@ func (wit WorkItemType) Equal(u convert.Equaler) bool {
 		}
 	}
 	if wit.SpaceTemplateID != other.SpaceTemplateID {
-		return false
-	}
-	if wit.CanConstruct != other.CanConstruct {
 		return false
 	}
 	return true

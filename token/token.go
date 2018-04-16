@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/dgrijalva/jwt-go"
-	authclient "github.com/fabric8-services/fabric8-auth/token"
+	authjwk "github.com/fabric8-services/fabric8-auth/token/jwk"
 	"github.com/fabric8-services/fabric8-wit/auth/authservice"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/log"
@@ -74,7 +74,7 @@ func NewManager(config tokenManagerConfiguration) (Manager, error) {
 	}
 
 	keysEndpoint := fmt.Sprintf("%s%s", config.GetAuthServiceURL(), authservice.KeysTokenPath())
-	remoteKeys, err := authclient.FetchKeys(keysEndpoint)
+	remoteKeys, err := authjwk.FetchKeys(keysEndpoint)
 	if err != nil {
 		log.Error(nil, map[string]interface{}{
 			"err":      err,
@@ -92,7 +92,7 @@ func NewManager(config tokenManagerConfiguration) (Manager, error) {
 
 	devModeURL := config.GetKeycloakDevModeURL()
 	if devModeURL != "" {
-		remoteKeys, err = authclient.FetchKeys(fmt.Sprintf("%s/protocol/openid-connect/certs", devModeURL))
+		remoteKeys, err = authjwk.FetchKeys(fmt.Sprintf("%s/protocol/openid-connect/certs", devModeURL))
 		if err != nil {
 			log.Error(nil, map[string]interface{}{
 				"err":      err,

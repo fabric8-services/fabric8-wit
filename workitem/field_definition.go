@@ -53,15 +53,15 @@ type FieldType interface {
 	ConvertFromModel(value interface{}) (interface{}, error)
 	// Implement the Equaler interface
 	Equal(u convert.Equaler) bool
-	// DefaultValue is called if a non-required field is not specified. In it's
-	// simplest form the DefaultValue returns the gicen input value without any
-	// conversion.
+	// DefaultValue is called if a field is not specified. In it's simplest form
+	// the DefaultValue returns the given input value without any conversion.
 	DefaultValue(value interface{}) (interface{}, error)
 }
 
 // FieldDefinition describes type & other restrictions of a field
 type FieldDefinition struct {
 	Required    bool      `json:"required"`
+	ReadOnly    bool      `json:"read_only"`
 	Label       string    `json:"label"`
 	Description string    `json:"description"`
 	Type        FieldType `json:"type"`
@@ -86,6 +86,9 @@ func (f FieldDefinition) Equal(u convert.Equaler) bool {
 	if f.Required != other.Required {
 		return false
 	}
+	if f.ReadOnly != other.ReadOnly {
+		return false
+	}
 	if f.Label != other.Label {
 		return false
 	}
@@ -105,6 +108,7 @@ func (f FieldDefinition) ConvertToModel(name string, value interface{}) (interfa
 		}
 		value = defValue
 	}
+
 	if f.Required {
 		if value == nil {
 			return nil, fmt.Errorf("value for field \"%s\" must not be nil", name)
@@ -131,10 +135,11 @@ func (f FieldDefinition) ConvertFromModel(name string, value interface{}) (inter
 }
 
 type rawFieldDef struct {
-	Required    bool
-	Label       string
-	Description string
-	Type        *json.RawMessage
+	Required    bool             `json:"required"`
+	ReadOnly    bool             `json:"read_only"`
+	Label       string           `json:"label"`
+	Description string           `json:"description"`
+	Type        *json.RawMessage `json:"type"`
 }
 
 // Ensure rawFieldDef implements the Equaler interface
@@ -148,6 +153,9 @@ func (f rawFieldDef) Equal(u convert.Equaler) bool {
 		return false
 	}
 	if f.Required != other.Required {
+		return false
+	}
+	if f.ReadOnly != other.ReadOnly {
 		return false
 	}
 	if f.Label != other.Label {
@@ -203,21 +211,21 @@ func (f *FieldDefinition) UnmarshalJSON(bytes []byte) error {
 		if err != nil {
 			return errs.WithStack(err)
 		}
-		*f = FieldDefinition{Type: theType, Required: temp.Required, Label: temp.Label, Description: temp.Description}
+		*f = FieldDefinition{Type: theType, Required: temp.Required, ReadOnly: temp.ReadOnly, Label: temp.Label, Description: temp.Description}
 	case KindEnum:
 		theType := EnumType{}
 		err = json.Unmarshal(*temp.Type, &theType)
 		if err != nil {
 			return errs.WithStack(err)
 		}
-		*f = FieldDefinition{Type: theType, Required: temp.Required, Label: temp.Label, Description: temp.Description}
+		*f = FieldDefinition{Type: theType, Required: temp.Required, ReadOnly: temp.ReadOnly, Label: temp.Label, Description: temp.Description}
 	default:
 		theType := SimpleType{}
 		err = json.Unmarshal(*temp.Type, &theType)
 		if err != nil {
 			return errs.WithStack(err)
 		}
-		*f = FieldDefinition{Type: theType, Required: temp.Required, Label: temp.Label, Description: temp.Description}
+		*f = FieldDefinition{Type: theType, Required: temp.Required, ReadOnly: temp.ReadOnly, Label: temp.Label, Description: temp.Description}
 	}
 	return nil
 }

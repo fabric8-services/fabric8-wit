@@ -343,9 +343,9 @@ func verifyMetrics(metrics []*app.TimedNumberTuple, testCase *testMetricsInput, 
 		metric := metrics[numMetrics-1-i]
 		bucket := testCase.buckets[len(testCase.buckets)-1-i]
 		require.NotNil(t, metric.Value, "Nil value in network metric")
-		require.InEpsilon(t, bucket.Avg, *metric.Value, fltEpsilon, "Incorrect value in network metric")
+		require.InDelta(t, bucket.Avg, *metric.Value, fltDelta, "Incorrect value in network metric")
 		require.NotNil(t, metric.Time, "Nil time in network metric")
-		require.InEpsilon(t, hawkular.ToUnixMilli(bucket.Start), *metric.Time, fltEpsilon, "Incorrect time in network metric")
+		require.InDelta(t, hawkular.ToUnixMilli(bucket.Start), *metric.Time, fltDelta, "Incorrect time in network metric")
 	}
 
 	// Check that ReadBuckets was called with the correct inputs

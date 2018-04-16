@@ -5,7 +5,9 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/id"
+	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/ptr"
+	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -28,16 +30,17 @@ type typeRepoBlackBoxTest struct {
 func TestRunTypeRepoBlackBoxTest(t *testing.T) {
 	resource.Require(t, resource.Database)
 	suite.Run(t, &typeRepoBlackBoxTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../../config.yaml")})
+
 }
 
 func (s *typeRepoBlackBoxTest) SetupTest() {
 	s.DBTestSuite.SetupTest()
 	s.typeRepo = link.NewWorkItemLinkTypeRepository(s.DB)
+	migration.BootstrapWorkItemLinking(s.Ctx, link.NewWorkItemLinkCategoryRepository(s.DB), space.NewRepository(s.DB), s.typeRepo)
 }
 
 func (s *typeRepoBlackBoxTest) TestList() {
-	s.T().Run("link types from base template", func(t *testing.T) {
-		// load all work item link types from base template
+	s.T().Run("link types from base space template", func(t *testing.T) {
 		baseLinkTypes, err := s.typeRepo.List(s.Ctx, spacetemplate.SystemBaseTemplateID)
 		require.NoError(t, err)
 		require.NotEmpty(t, baseLinkTypes)
@@ -79,7 +82,7 @@ func (s *typeRepoBlackBoxTest) TestList() {
 				fxt.WorkItemLinkTypes[1].ID,
 				fxt.WorkItemLinkTypes[2].ID,
 				fxt.WorkItemLinkTypes[3].ID,
-				// link types from base template
+				// link types from base space template
 				link.SystemWorkItemLinkTypeBugBlockerID,
 				link.SystemWorkItemLinkPlannerItemRelatedID,
 				link.SystemWorkItemLinkTypeParentChildID,
@@ -91,7 +94,7 @@ func (s *typeRepoBlackBoxTest) TestList() {
 			}
 			require.Empty(t, toBeFound, "failed to find these work item link types: %s", toBeFound)
 		})
-		t.Run("list by 2nd space template", func(t *testing.T) {
+		t.Run("list by 2nd space", func(t *testing.T) {
 			// when
 			types, err := s.typeRepo.List(s.Ctx, fxt.SpaceTemplates[1].ID)
 			// then
@@ -100,7 +103,7 @@ func (s *typeRepoBlackBoxTest) TestList() {
 			toBeFound := id.MapFromSlice(id.Slice{
 				fxt.WorkItemLinkTypes[4].ID,
 				fxt.WorkItemLinkTypes[5].ID,
-				// link types from base template
+				// link types from base space template
 				link.SystemWorkItemLinkTypeBugBlockerID,
 				link.SystemWorkItemLinkPlannerItemRelatedID,
 				link.SystemWorkItemLinkTypeParentChildID,
@@ -121,6 +124,7 @@ func (s *typeRepoBlackBoxTest) TestList() {
 		types, err := s.typeRepo.List(s.Ctx, spaceTemplateID)
 		// then
 		require.Error(t, err)
+		require.IsType(t, errors.NotFoundError{}, err)
 		require.Empty(t, types)
 	})
 }
@@ -150,7 +154,7 @@ func (s *typeRepoBlackBoxTest) TestLoad() {
 func (s *typeRepoBlackBoxTest) TestCreate() {
 	s.T().Run("ok", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1))
+		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1), tf.WorkItemLinkCategories(1))
 		id := uuid.NewV4()
 		typ := link.WorkItemLinkType{
 			ID:              id,
@@ -159,7 +163,7 @@ func (s *typeRepoBlackBoxTest) TestCreate() {
 			ReverseName:     "reverse name",
 			ForwardName:     "forward name",
 			Topology:        link.TopologyTree,
-			LinkCategoryID:  link.SystemWorkItemLinkCategoryUserID,
+			LinkCategoryID:  fxt.WorkItemLinkCategories[0].ID,
 			SpaceTemplateID: fxt.SpaceTemplates[0].ID,
 		}
 		// when
@@ -176,7 +180,7 @@ func (s *typeRepoBlackBoxTest) TestCreate() {
 	})
 	s.T().Run("unknown topology (bad parameter error)", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1))
+		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1), tf.WorkItemLinkCategories(1))
 		id := uuid.NewV4()
 		typ := link.WorkItemLinkType{
 			ID:              id,
@@ -185,7 +189,7 @@ func (s *typeRepoBlackBoxTest) TestCreate() {
 			ReverseName:     "reverse name",
 			ForwardName:     "forward name",
 			Topology:        link.Topology("foobar"),
-			LinkCategoryID:  link.SystemWorkItemLinkCategoryUserID,
+			LinkCategoryID:  fxt.WorkItemLinkCategories[0].ID,
 			SpaceTemplateID: fxt.SpaceTemplates[0].ID,
 		}
 		// when
@@ -197,7 +201,7 @@ func (s *typeRepoBlackBoxTest) TestCreate() {
 	})
 	s.T().Run("empty name (bad parameter error)", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1))
+		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplate(1), tf.WorkItemLinkCategories(1))
 		id := uuid.NewV4()
 		typ := link.WorkItemLinkType{
 			ID:              id,
@@ -206,7 +210,7 @@ func (s *typeRepoBlackBoxTest) TestCreate() {
 			ReverseName:     "reverse name",
 			ForwardName:     "forward name",
 			Topology:        link.Topology("foobar"),
-			LinkCategoryID:  link.SystemWorkItemLinkCategoryUserID,
+			LinkCategoryID:  fxt.WorkItemLinkCategories[0].ID,
 			SpaceTemplateID: fxt.SpaceTemplates[0].ID,
 		}
 		// when
@@ -266,7 +270,7 @@ func (s *typeRepoBlackBoxTest) TestSave() {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemLinkTypes(1), tf.SpaceTemplates(2))
 		modelToSave := *fxt.WorkItemLinkTypes[0]
-		modelToSave.SpaceTemplateID = fxt.SpaceTemplates[1].ID
+		modelToSave.SpaceID = fxt.SpaceTemplates[1].ID
 		// when
 		savedModel, err := s.typeRepo.Save(s.Ctx, modelToSave)
 		// then
@@ -276,7 +280,7 @@ func (s *typeRepoBlackBoxTest) TestSave() {
 	})
 	s.T().Run("link type not found", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1))
+		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1), tf.WorkItemLinkCategories(1))
 		id := uuid.NewV4()
 		modelToSave := link.WorkItemLinkType{
 			ID:              id,
@@ -285,7 +289,7 @@ func (s *typeRepoBlackBoxTest) TestSave() {
 			ReverseName:     "reverse name",
 			ForwardName:     "forward name",
 			Topology:        link.TopologyTree,
-			LinkCategoryID:  link.SystemWorkItemLinkCategoryUserID,
+			LinkCategoryID:  fxt.WorkItemLinkCategories[0].ID,
 			SpaceTemplateID: fxt.SpaceTemplates[0].ID,
 		}
 		// when

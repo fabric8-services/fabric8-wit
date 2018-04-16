@@ -148,10 +148,12 @@ func ConvertFieldTypeToModel(t app.FieldType) (workitem.FieldType, error) {
 		if err != nil {
 			return nil, errs.WithStack(err)
 		}
-		return workitem.EnumType{
-			SimpleType: workitem.SimpleType{*kind},
-			BaseType:   baseType,
-			Values:     converted,
+		return workitem.EnumType{ // TODO(kwk): handle RewritableValues here?
+			SimpleType: workitem.SimpleType{
+				Kind: *kind,
+			},
+			BaseType: baseType,
+			Values:   converted,
 		}, nil
 	default:
 		return workitem.SimpleType{*kind}, nil

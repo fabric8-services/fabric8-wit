@@ -21,6 +21,11 @@ var _ FieldType = (*ListType)(nil)
 var _ convert.Equaler = ListType{}
 var _ convert.Equaler = (*ListType)(nil)
 
+// DefaultValue implements FieldType
+func (t ListType) DefaultValue(value interface{}) (interface{}, error) {
+	return value, nil
+}
+
 // Equal returns true if two ListType objects are equal; otherwise false is returned.
 func (t ListType) Equal(u convert.Equaler) bool {
 	other, ok := u.(ListType)

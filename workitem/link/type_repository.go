@@ -9,6 +9,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -126,6 +127,11 @@ func (r *GormWorkItemLinkTypeRepository) List(ctx context.Context, spaceTemplate
 		return nil, errors.NewNotFoundError("space template", spaceTemplateID.String())
 	}
 
+	// check space exists
+	if err := space.NewRepository(r.db).CheckExists(ctx, spaceID); err != nil {
+		return nil, errors.NewNotFoundError("space", spaceID.String())
+	}
+
 	// We don't have any where clause or paging at the moment.
 	var modelLinkTypes []WorkItemLinkType
 	db := r.db.Where("space_template_id IN (?, ?)", spaceTemplateID, spacetemplate.SystemBaseTemplateID).Order("created_at")
@@ -168,6 +174,19 @@ func (r *GormWorkItemLinkTypeRepository) Save(ctx context.Context, modelToSave W
 	if existingModel.Version != modelToSave.Version {
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
+	if existingModel.SpaceID != modelToSave.SpaceID {
+		log.Error(ctx, map[string]interface{}{
+			"wilt_id": modelToSave.ID,
+		}, "you must not change the link types association to a space")
+		return nil, errors.NewForbiddenError("you must not change the link types association to a space")
+	}
+	if err := modelToSave.Topology.CheckValid(); err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"wilt_id": modelToSave.ID,
+			"err":     err,
+		}, "cannot update link type's topology to %s", modelToSave.Topology)
+		return nil, errors.NewBadParameterError("topology", modelToSave.Topology)
+	}
 	modelToSave.Version = modelToSave.Version + 1
 	if existingModel.SpaceTemplateID != modelToSave.SpaceTemplateID {
 		return nil, errors.NewForbiddenError("one must not change the space template reference in a work item link")
@@ -176,12 +195,12 @@ func (r *GormWorkItemLinkTypeRepository) Save(ctx context.Context, modelToSave W
 	if db.Error != nil {
 		if gormsupport.IsUniqueViolation(db.Error, "work_item_link_types_name_idx") {
 			log.Error(ctx, map[string]interface{}{
-				"err":               db.Error,
-				"space_template_id": existingModel.SpaceTemplateID,
-				"wilt_name":         existingModel.Name,
-				"wilt_id":           existingModel.ID,
+				"err":       db.Error,
+				"space_id":  existingModel.SpaceID,
+				"wilt_name": existingModel.Name,
+				"wilt_id":   existingModel.ID,
 			}, "unable to save work item link type because a link already exists with the same space_template_id and name")
-			return nil, errors.NewDataConflictError(fmt.Sprintf("work item link type already exists with the same space_template_id: %s; name: %s ", existingModel.SpaceTemplateID, existingModel.Name))
+			return nil, errors.NewDataConflictError(fmt.Sprintf("work item link type already exists within the same space: %s; name: %s", existingModel.SpaceID, existingModel.Name))
 		}
 		log.Error(ctx, map[string]interface{}{
 			"wilt_id": existingModel.ID,

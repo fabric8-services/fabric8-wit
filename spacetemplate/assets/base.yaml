@@ -26,6 +26,7 @@ work_item_types:
     "system.order": 
       label: Execution Order
       description: Execution Order of the workitem
+      read_only: yes
       type:
         kind: float
       required: no
@@ -82,12 +83,14 @@ work_item_types:
     "system.created_at": 
       label: Created at
       description: The date and time when the work item was created
+      read_only: yes
       type:
         kind: instant
       required: no
     "system.updated_at": 
       label: Updated at
       description: The date and time when the work item was last updated
+      read_only: yes
       type:
         kind: instant
       required: no
@@ -115,6 +118,7 @@ work_item_types:
     "system.number":
       label: Number
       description: The unique number that was given to this workitem within its space.
+      read_only: yes
       type:
         kind: integer
       required: no

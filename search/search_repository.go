@@ -395,6 +395,7 @@ var searchKeyMap = map[string]string{
 	"type":         "Type",
 	"workitemtype": "Type", // same as 'type' - added for compatibility. (Ref. #1564)
 	"space":        "SpaceID",
+	"number":       "Number",
 }
 
 func (q Query) determineLiteralType(key string, val string) criteria.Expression {
@@ -664,7 +665,7 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 			spew.Dump(value)
 			return nil, 0, errors.NewInternalError(ctx, errs.Wrap(err, "failed to load work item type"))
 		}
-		wiModel, err := wiType.ConvertWorkItemStorageToModel(value)
+		wiModel, err := workitem.ConvertWorkItemStorageToModel(wiType, &value)
 		if err != nil {
 			return nil, 0, errors.NewConversionError(err.Error())
 		}

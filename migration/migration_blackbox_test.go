@@ -129,8 +129,11 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration80", testMigration80)
 	t.Run("TestMigration81", testMigration81)
 	t.Run("TestMigration82", testMigration82)
-	t.Run("TestMigration84", testMigration84SpaceTemplates) // space templates
-	t.Run("TestMigration85", testMigration85TypeGroups)     // type groups
+	t.Run("TestMigration84", testMigration84)
+	t.Run("TestMigration85", testMigration85)
+	t.Run("TestMigration86", testMigration86)
+	t.Run("TestMigration87", testMigration87SpaceTemplates) // space templates
+	t.Run("TestMigration88", testMigration88TypeGroups)     // type groups
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -688,7 +691,59 @@ func testMigration82(t *testing.T) {
 	assert.Equal(t, updatedAt.String(), relationshipsChangedAt.String())
 }
 
-func testMigration84SpaceTemplates(t *testing.T) {
+func testMigration84(t *testing.T) {
+	// migrate to version so that we create duplicate data
+	migrateToVersion(t, sqlDB, migrations[:84], 84)
+
+	// create dummy space and add entry in codebases that are duplicate
+	assert.Nil(t, runSQLscript(sqlDB, "084-codebases-spaceid-url-idx-setup.sql"))
+
+	// migrate to current version, which applies unique index
+	// and removes duplicate
+	migrateToVersion(t, sqlDB, migrations[:85], 85)
+
+	// try to add duplicate entry, which should fail
+	assert.NotNil(t, runSQLscript(sqlDB, "084-codebases-spaceid-url-idx-violate.sql"))
+
+	// see that the existing space is not the deleted one but the one that is
+	// available in the valid one
+	assert.Nil(t, runSQLscript(sqlDB, "084-codebases-spaceid-url-idx-test.sql"))
+
+	// cleanup
+	assert.Nil(t, runSQLscript(sqlDB, "084-codebases-spaceid-url-idx-cleanup.sql"))
+}
+
+func testMigration85(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:85], 85)
+
+	expectWorkItemFieldsToBe := func(t *testing.T, witID uuid.UUID, expectedFields string) {
+		row := sqlDB.QueryRow("SELECT fields FROM work_items WHERE id = $1", witID.String())
+		require.NotNil(t, row)
+		var actualFields string
+		err := row.Scan(&actualFields)
+		require.NoError(t, err)
+		require.Equal(t, expectedFields, actualFields)
+	}
+
+	// create two work items, one with the 'system.number' field and one without
+	// and check that they've been created as expected.
+	assert.Nil(t, runSQLscript(sqlDB, "085-delete-system.number-json-field.sql"))
+	expectWorkItemFieldsToBe(t, uuid.FromStringOrNil("27adc1a2-1ded-43b8-a125-12777139496c"), `{"system.title": "Work item 1", "system.number": 1234}`)
+	expectWorkItemFieldsToBe(t, uuid.FromStringOrNil("c106c056-2fec-4e56-83f0-cac31bb7ac1f"), `{"system.title": "Work item 2"}`)
+
+	// migrate to current version, which removes the 'system.number' field from
+	// work items and check that no work item has it.
+	migrateToVersion(t, sqlDB, migrations[:86], 86)
+	expectWorkItemFieldsToBe(t, uuid.FromStringOrNil("27adc1a2-1ded-43b8-a125-12777139496c"), `{"system.title": "Work item 1"}`)
+	expectWorkItemFieldsToBe(t, uuid.FromStringOrNil("c106c056-2fec-4e56-83f0-cac31bb7ac1f"), `{"system.title": "Work item 2"}`)
+}
+
+func testMigration86(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:87], 87)
+	require.True(t, dialect.HasColumn("work_item_types", "can_construct"))
+}
+
+func testMigration87SpaceTemplates(t *testing.T) {
 	migrateToVersion(t, sqlDB, migrations[:85], 85)
 	assert.True(t, dialect.HasTable("space_templates"))
 	assert.True(t, dialect.HasColumn("spaces", "space_template_id"))
@@ -696,7 +751,7 @@ func testMigration84SpaceTemplates(t *testing.T) {
 	assert.True(t, dialect.HasColumn("work_item_link_types", "space_template_id"))
 }
 
-func testMigration85TypeGroups(t *testing.T) {
+func testMigration88TypeGroups(t *testing.T) {
 	migrateToVersion(t, sqlDB, migrations[:86], 86)
 	assert.True(t, dialect.HasTable("work_item_type_groups"))
 	assert.True(t, dialect.HasTable("work_item_type_group_members"))
