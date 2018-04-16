@@ -253,11 +253,12 @@ $(VENDOR_DIR): Gopkg.toml Gopkg.lock
 	@echo "checking dependencies..."
 	@$(DEP_BIN) ensure -v 
 
-app/controllers.go: $(DESIGNS) $(GOAGEN_BIN) $(VENDOR_DIR)
+app/controllers.go: $(DESIGNS) $(GOAGEN_BIN) $(VENDOR_DIR) goasupport/jsonapi_errors_stringer/generator.go goasupport/conditional_request/generator.go goasupport/helper_function/generator.go
 	$(GOAGEN_BIN) app -d ${PACKAGE_NAME}/${DESIGN_DIR}
 	$(GOAGEN_BIN) controller -d ${PACKAGE_NAME}/${DESIGN_DIR} -o controller/ --pkg controller --app-pkg ${PACKAGE_NAME}/app
 	$(GOAGEN_BIN) gen -d ${PACKAGE_NAME}/${DESIGN_DIR} --pkg-path=${PACKAGE_NAME}/goasupport/conditional_request --out app
 	$(GOAGEN_BIN) gen -d ${PACKAGE_NAME}/${DESIGN_DIR} --pkg-path=${PACKAGE_NAME}/goasupport/helper_function --out app
+	$(GOAGEN_BIN) gen -d ${PACKAGE_NAME}/${DESIGN_DIR} --pkg-path=${PACKAGE_NAME}/goasupport/jsonapi_errors_stringer --out app
 	$(GOAGEN_BIN) client -d ${PACKAGE_NAME}/${DESIGN_DIR}
 	$(GOAGEN_BIN) swagger -d ${PACKAGE_NAME}/${DESIGN_DIR}
 	$(GOAGEN_BIN) client -d github.com/fabric8-services/fabric8-tenant/design --notool --pkg tenant -o account
