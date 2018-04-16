@@ -28,8 +28,8 @@ RUN test -n $USE_GO_VERSION_FROM_WEBSITE \
 ENV PATH=$PATH:/usr/local/go/bin
 
 # Get dep for Go package management and make sure the directory has full rwz permissions for non-root users
-RUN mkdir -p /tmp/go/bin && chmod a+rwx /tmp/go
 ENV GOPATH /tmp/go
+RUN mkdir -p $GOPATH/bin && chmod a+rwx $GOPATH
 RUN cd $GOPATH/bin \
 	curl -L -s https://github.com/golang/dep/releases/download/v0.4.1/dep-linux-amd64 -o dep \
 	echo "31144e465e52ffbc0035248a10ddea61a09bf28b00784fd3fdd9882c8cbb2315  dep" > dep-linux-amd64.sha256 \
