@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/query"
 	"github.com/fabric8-services/fabric8-wit/resource"
@@ -54,18 +55,21 @@ func (s *TestQueryRepository) TestCreate() {
 	s.T().Run("fail", func(t *testing.T) {
 		t.Run("empty title", func(t *testing.T) {
 			title := ""
-			qs := `{"hello": "world"}`
+			qs := `{"assignee": "3dde4657-1c71-4fe7-b4c3-8b88accc03dd"}`
 			// given
 			fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1))
 			q := query.Query{
 				Title:   title,
 				Fields:  qs,
 				SpaceID: fxt.Spaces[0].ID,
+				Creator: fxt.Identities[0].ID,
 			}
 			// when
 			err := repo.Create(context.Background(), &q)
 			// then
 			require.Error(t, err)
+			require.IsType(t, errors.BadParameterError{}, err, "error was %v", err)
+			require.Contains(t, err.Error(), "'Title': '' (expected: 'not empty')")
 		})
 		t.Run("invalid query json", func(t *testing.T) {
 			title := "My WI for sprint #101"

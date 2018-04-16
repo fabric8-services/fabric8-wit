@@ -92,6 +92,9 @@ func (r *GormQueryRepository) Create(ctx context.Context, q *Query) error {
 	}
 	err = r.db.Create(q).Error
 	if err != nil {
+		if gormsupport.IsCheckViolation(err, "queries_title_check") {
+			return errors.NewBadParameterError("Title", q.Title).Expected("not empty")
+		}
 		// combination of title, space ID and creator should be unique
 		if gormsupport.IsUniqueViolation(err, "queries_title_space_id_creator_unique") {
 			log.Error(ctx, map[string]interface{}{
