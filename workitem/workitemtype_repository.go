@@ -9,7 +9,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/path"
-	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 
 	"github.com/goadesign/goa"
@@ -152,8 +151,8 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceTemplateID
 func (r *GormWorkItemTypeRepository) ListPlannerItemTypes(ctx context.Context, spaceTemplateID uuid.UUID) ([]WorkItemType, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitemtype", "listPlannerItemTypes"}, time.Now())
 
-	// check space exists
-	if err := space.NewRepository(r.db).CheckExists(ctx, spaceTemplateID); err != nil {
+	// check space template exists
+	if err := spacetemplate.NewRepository(r.db).CheckExists(ctx, spaceTemplateID); err != nil {
 		return nil, errors.NewNotFoundError("space template", spaceTemplateID.String())
 	}
 
