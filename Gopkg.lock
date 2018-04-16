@@ -147,7 +147,8 @@
 [[projects]]
   name = "github.com/ghodss/yaml"
   packages = ["."]
-  revision = "73d445a93680fa1a78ae23a5839bad48f32ba1ee"
+  revision = "0ca9ea5df5451ffdf184b4428c902747c2c11cd7"
+  version = "v1.0.0"
 
 [[projects]]
   name = "github.com/go-openapi/jsonpointer"
@@ -761,6 +762,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "ee7afcb60dc6a15293f1d99dfb830e0d7b370f7e0ae478ed80a8b23cd0f5095c"
+  inputs-digest = "5c55d494953208607b07c6b23f435f0b8eea954aa08a4d3c01efa9c7802a0026"
   solver-name = "gps-cdcl"
   solver-version = 1
