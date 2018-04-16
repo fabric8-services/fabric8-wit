@@ -744,7 +744,7 @@ func testMigration86(t *testing.T) {
 }
 
 func testMigration87SpaceTemplates(t *testing.T) {
-	migrateToVersion(t, sqlDB, migrations[:85], 85)
+	migrateToVersion(t, sqlDB, migrations[:88], 88)
 	assert.True(t, dialect.HasTable("space_templates"))
 	assert.True(t, dialect.HasColumn("spaces", "space_template_id"))
 	assert.True(t, dialect.HasColumn("work_item_types", "space_template_id"))
@@ -752,7 +752,7 @@ func testMigration87SpaceTemplates(t *testing.T) {
 }
 
 func testMigration88TypeGroups(t *testing.T) {
-	migrateToVersion(t, sqlDB, migrations[:86], 86)
+	migrateToVersion(t, sqlDB, migrations[:89], 89)
 	assert.True(t, dialect.HasTable("work_item_type_groups"))
 	assert.True(t, dialect.HasTable("work_item_type_group_members"))
 	assert.True(t, dialect.HasTable("work_item_child_types"))
