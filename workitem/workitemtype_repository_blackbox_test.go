@@ -62,7 +62,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestList() {
 			}),
 		)
 		// when
-		wits, err := s.repo.List(s.Ctx, fxt.Spaces[0].ID)
+		wits, err := s.repo.List(s.Ctx, fxt.SpaceTemplates[0].ID)
 		// then
 		require.NoError(t, err)
 		toBeFound := id.Slice{
@@ -105,7 +105,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestListPlannerItemTypes() {
 			}),
 		)
 		// when
-		wits, err := s.repo.ListPlannerItemTypes(s.Ctx, fxt.Spaces[0].ID)
+		wits, err := s.repo.ListPlannerItemTypes(s.Ctx, fxt.SpaceTemplates[0].ID)
 		// then
 		require.NoError(t, err)
 		toBeFound := id.Slice{
