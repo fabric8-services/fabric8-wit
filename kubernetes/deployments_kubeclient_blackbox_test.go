@@ -55,8 +55,8 @@ func getDefaultKubeClient(fixture *testFixture, transport http.RoundTripper, t *
 	config := &kubernetes.KubeClientConfig{
 		BaseURLProvider: getDefaultURLProvider("http://api.myCluster", "myToken"),
 		UserNamespace:   "myNamespace",
-		MetricsGetter: fixture,
-		Transport: transport,
+		MetricsGetter:   fixture,
+		Transport:       transport,
 	}
 
 	kc, err := kubernetes.NewKubeClient(config)
@@ -212,8 +212,8 @@ func TestGetMetrics(t *testing.T) {
 			config := &kubernetes.KubeClientConfig{
 				BaseURLProvider: getDefaultURLProvider(testCase.clusterURL, token),
 				UserNamespace:   "myNamespace",
-				MetricsGetter: fixture,
-				Transport:     r.Transport,
+				MetricsGetter:   fixture,
+				Transport:       r.Transport,
 			}
 			kc, err := kubernetes.NewKubeClient(config)
 			if testCase.shouldSucceed {
@@ -292,7 +292,7 @@ func TestConfigMapEnvironments(t *testing.T) {
 	config := &kubernetes.KubeClientConfig{
 		BaseURLProvider: getDefaultURLProvider("http://api.myCluster", "myToken"),
 		UserNamespace:   userNamespace,
-		MetricsGetter: fixture,
+		MetricsGetter:   fixture,
 	}
 
 	for _, testCase := range testCases {
