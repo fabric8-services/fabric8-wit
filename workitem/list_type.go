@@ -38,11 +38,6 @@ func (t ListType) Equal(u convert.Equaler) bool {
 	return t.ComponentType.Equal(other.ComponentType)
 }
 
-// DefaultValue implementes FieldType
-func (t ListType) DefaultValue(value interface{}) (interface{}, error) {
-	return value, nil
-}
-
 // ConvertToModel implements the FieldType interface
 func (t ListType) ConvertToModel(value interface{}) (interface{}, error) {
 	// the assumption is that work item types do not change over time...only new ones can be created

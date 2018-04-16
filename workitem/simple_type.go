@@ -39,11 +39,6 @@ func (t SimpleType) Equal(u convert.Equaler) bool {
 	return t.Kind == other.Kind
 }
 
-// DefaultValue implementes FieldType
-func (t SimpleType) DefaultValue(value interface{}) (interface{}, error) {
-	return value, nil
-}
-
 // GetKind implements FieldType
 func (t SimpleType) GetKind() Kind {
 	return t.Kind
