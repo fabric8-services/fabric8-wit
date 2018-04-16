@@ -18,7 +18,7 @@ GIT_BIN := $(shell command -v $(GIT_BIN_NAME) 2> /dev/null)
 DEP_BIN_NAME := dep
 DEP_BIN_DIR := ./tmp/bin
 DEP_BIN := $(DEP_BIN_DIR)/$(DEP_BIN_NAME)
-DEP_VERSION=v0.4.1 
+DEP_VERSION=v0.4.1
 GO_BIN := $(shell command -v $(GO_BIN_NAME) 2> /dev/null)
 HG_BIN := $(shell command -v $(HG_BIN_NAME) 2> /dev/null)
 DOCKER_COMPOSE_BIN := $(shell command -v $(DOCKER_COMPOSE_BIN_NAME) 2> /dev/null)
@@ -234,11 +234,11 @@ deps: $(DEP_BIN) $(VENDOR_DIR)
 
 # install dep in a the tmp/bin dir of the repo
 $(DEP_BIN):
-	@echo "Installing 'dep' at '$(DEP_BIN)'..."
-	@mkdir -p $(DEP_BIN_DIR)
+	@echo "Installing 'dep' $(DEP_VERSION) at '$(DEP_BIN_DIR)'..."
+	mkdir -p $(DEP_BIN_DIR)
 ifeq ($(UNAME_S),Darwin)
-	curl -L -s https://github.com/golang/dep/releases/download/${DEP_VERSION}/dep-darwin-amd64 -o $(DEP_BIN) 
-	cd $(DEP_BIN_DIR) && \
+	@curl -L -s https://github.com/golang/dep/releases/download/$(DEP_VERSION)/dep-darwin-amd64 -o $(DEP_BIN) 
+	@cd $(DEP_BIN_DIR) && \
 	echo "f170008e2bf8b196779c361a4eaece1b03450d23bbf32d1a0beaa9b00b6a5ab4  dep" > dep-darwin-amd64.sha256 && \
 	shasum -a 256 --check dep-darwin-amd64.sha256
 else
