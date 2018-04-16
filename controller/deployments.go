@@ -19,15 +19,6 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-/*
- The deployments API can operate directly talking to Auth and OSO,
- or it can use the fabric8-tenant service as a replacement for fabric8-auth
- and the fabric8-froxy service as a replacement for direct OpenShift API calls.
-
- If the tenant service is available, it will be used in place of auth.
- If the proxy service is available, it will be used in place of direct calls.
-*/
-
 // DeploymentsController implements the deployments resource.
 type DeploymentsController struct {
 	*goa.Controller
