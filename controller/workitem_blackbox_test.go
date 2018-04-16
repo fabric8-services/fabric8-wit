@@ -960,7 +960,7 @@ func (s *WorkItem2Suite) TestWI2UpdateSetReadOnlyFields() {
 	})
 }
 
-func (s *WorkItem2Suite) TestWI2UpdateFieldOfDifferentTypes() {
+func (s *WorkItem2Suite) TestWI2UpdateFieldOfDifferentSimpleTypes() {
 	s.T().Run("field types", func(t *testing.T) {
 		vals := workitem.GetFieldTypeTestData(t)
 		kinds := vals.GetKinds()

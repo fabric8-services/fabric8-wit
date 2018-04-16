@@ -166,8 +166,8 @@ func GetFieldTypeTestData(t *testing.T) FieldTypeTestDataMap {
 		KindFloat: {
 			Valid: []interface{}{
 				0.1,
-				-1111.0,
-				+555.0,
+				-1111.1,
+				+555.2,
 			},
 			Invalid: []interface{}{
 				1,

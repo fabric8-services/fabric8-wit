@@ -1,0 +1,22 @@
+{
+  "data": {
+    "attributes": {
+      "url_field": "ftp://url.with.port.and.different.protocol.port.and.parameters.com:8080/fooo?arg=bar\u0026key=value",
+      "version": 2
+    },
+    "id": "00000000-0000-0000-0000-000000000001",
+    "relationships": {
+      "space": {
+        "data": {
+          "id": "00000000-0000-0000-0000-000000000002",
+          "type": "spaces"
+        },
+        "links": {
+          "related": "http://api.service.domain.org/api/spaces/00000000-0000-0000-0000-000000000002",
+          "self": "http://api.service.domain.org/api/spaces/00000000-0000-0000-0000-000000000002"
+        }
+      }
+    },
+    "type": "workitems"
+  }
+}
