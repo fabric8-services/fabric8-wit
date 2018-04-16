@@ -9,7 +9,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
-	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -124,11 +123,6 @@ func (r *GormWorkItemLinkTypeRepository) List(ctx context.Context, spaceTemplate
 
 	// check space template exists
 	if err := spacetemplate.NewRepository(r.db).CheckExists(ctx, spaceTemplateID); err != nil {
-		return nil, errors.NewNotFoundError("space template", spaceTemplateID.String())
-	}
-
-	// check space exists
-	if err := space.NewRepository(r.db).CheckExists(ctx, spaceTemplateID); err != nil {
 		return nil, errors.NewNotFoundError("space template", spaceTemplateID.String())
 	}
 
