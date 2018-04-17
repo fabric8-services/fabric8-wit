@@ -152,7 +152,7 @@ function deploy_snapshot() {
 
   tag_push ${REGISTRY}/fabric8-services/fabric8-wit:$TAG
   tag_push ${REGISTRY}/fabric8-services/fabric8-wit:latest
-  echo 'CICO: Image pushed, ready to update deployed app'
+  echo 'CICO: Snapshot image pushed, ready to update deployed app'
 }
 
 function cico_setup() {
