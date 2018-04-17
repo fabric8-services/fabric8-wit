@@ -259,11 +259,7 @@ func (s *workItemRepoBlackBoxTest) TestCreate() {
 
 	s.T().Run("field types", func(t *testing.T) {
 		vals := workitem.GetFieldTypeTestData(t)
-		// Get keys from the map above
-		kinds := []workitem.Kind{}
-		for k := range vals {
-			kinds = append(kinds, k)
-		}
+		kinds := vals.GetKinds()
 		fieldName := "fieldundertest"
 		// Create a work item type for each kind
 		fxt := tf.NewTestFixture(t, s.DB,
