@@ -46,6 +46,7 @@ required = [
   "github.com/jteeuwen/go-bindata/go-bindata",
   "github.com/jstemmer/go-junit-report",
   "github.com/wadey/gocovmerge",
+  "github.com/pilu/fresh",
 ]
     
 ignored = [
@@ -131,6 +132,10 @@ ignored = [
 [[constraint]]
   name = "github.com/wadey/gocovmerge"
   revision = "master"
+
+[[constraint]]
+  name = "github.com/pilu/fresh"
+  revision = "9c0092493eff2825c3abf64e087b3383dec939c3"
 
 [prune]
   go-tests = true
