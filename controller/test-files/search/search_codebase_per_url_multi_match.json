@@ -180,6 +180,93 @@
         "updated-at": "0001-01-01T00:00:00Z",
         "version": 0
       },
+      "id": "00000000-0000-0000-0000-000000000008",
+      "links": {
+        "backlog": {
+          "self": "http:///api/spaces/00000000-0000-0000-0000-000000000008/backlog"
+        },
+        "filters": "http:///api/filters",
+        "related": "http:///api/spaces/00000000-0000-0000-0000-000000000008",
+        "self": "http:///api/spaces/00000000-0000-0000-0000-000000000008",
+        "workitemlinktypes": "http:///api/spaces/00000000-0000-0000-0000-000000000008/workitemlinktypes",
+        "workitemtypes": "http:///api/spaces/00000000-0000-0000-0000-000000000008/workitemtypes"
+      },
+      "relationships": {
+        "areas": {
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000008/areas"
+          }
+        },
+        "backlog": {
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000008/backlog"
+          }
+        },
+        "codebases": {
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000008/codebases"
+          }
+        },
+        "collaborators": {
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000008/collaborators"
+          }
+        },
+        "filters": {
+          "links": {
+            "related": "http:///api/filters"
+          }
+        },
+        "iterations": {
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000008/iterations"
+          }
+        },
+        "labels": {
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000008/labels"
+          }
+        },
+        "owned-by": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000012",
+            "type": "identities"
+          },
+          "links": {
+            "related": "http:///api/users/00000000-0000-0000-0000-000000000012"
+          }
+        },
+        "workitemlinktypes": {
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000008/workitemlinktypes"
+          }
+        },
+        "workitems": {
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000008/workitems"
+          }
+        },
+        "workitemtypegroups": {
+          "links": {
+            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000008/workitemtypegroups"
+          }
+        },
+        "workitemtypes": {
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000008/workitemtypes"
+          }
+        }
+      },
+      "type": "spaces"
+    },
+    {
+      "attributes": {
+        "created-at": "0001-01-01T00:00:00Z",
+        "description": "Some description",
+        "name": "space 00000000-0000-0000-0000-000000000013",
+        "updated-at": "0001-01-01T00:00:00Z",
+        "version": 0
+      },
       "id": "00000000-0000-0000-0000-000000000002",
       "links": {
         "backlog": {
@@ -263,7 +350,94 @@
       "attributes": {
         "created-at": "0001-01-01T00:00:00Z",
         "description": "Some description",
-        "name": "space 00000000-0000-0000-0000-000000000013",
+        "name": "space 00000000-0000-0000-0000-000000000014",
+        "updated-at": "0001-01-01T00:00:00Z",
+        "version": 0
+      },
+      "id": "00000000-0000-0000-0000-000000000010",
+      "links": {
+        "backlog": {
+          "self": "http:///api/spaces/00000000-0000-0000-0000-000000000010/backlog"
+        },
+        "filters": "http:///api/filters",
+        "related": "http:///api/spaces/00000000-0000-0000-0000-000000000010",
+        "self": "http:///api/spaces/00000000-0000-0000-0000-000000000010",
+        "workitemlinktypes": "http:///api/spaces/00000000-0000-0000-0000-000000000010/workitemlinktypes",
+        "workitemtypes": "http:///api/spaces/00000000-0000-0000-0000-000000000010/workitemtypes"
+      },
+      "relationships": {
+        "areas": {
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000010/areas"
+          }
+        },
+        "backlog": {
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000010/backlog"
+          }
+        },
+        "codebases": {
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000010/codebases"
+          }
+        },
+        "collaborators": {
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000010/collaborators"
+          }
+        },
+        "filters": {
+          "links": {
+            "related": "http:///api/filters"
+          }
+        },
+        "iterations": {
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000010/iterations"
+          }
+        },
+        "labels": {
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000010/labels"
+          }
+        },
+        "owned-by": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000012",
+            "type": "identities"
+          },
+          "links": {
+            "related": "http:///api/users/00000000-0000-0000-0000-000000000012"
+          }
+        },
+        "workitemlinktypes": {
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000010/workitemlinktypes"
+          }
+        },
+        "workitems": {
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000010/workitems"
+          }
+        },
+        "workitemtypegroups": {
+          "links": {
+            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000010/workitemtypegroups"
+          }
+        },
+        "workitemtypes": {
+          "links": {
+            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000010/workitemtypes"
+          }
+        }
+      },
+      "type": "spaces"
+    },
+    {
+      "attributes": {
+        "created-at": "0001-01-01T00:00:00Z",
+        "description": "Some description",
+        "name": "space 00000000-0000-0000-0000-000000000015",
         "updated-at": "0001-01-01T00:00:00Z",
         "version": 0
       },
@@ -350,7 +524,7 @@
       "attributes": {
         "created-at": "0001-01-01T00:00:00Z",
         "description": "Some description",
-        "name": "space 00000000-0000-0000-0000-000000000014",
+        "name": "space 00000000-0000-0000-0000-000000000016",
         "updated-at": "0001-01-01T00:00:00Z",
         "version": 0
       },
@@ -428,180 +602,6 @@
         "workitemtypes": {
           "links": {
             "related": "http:///api/spaces/00000000-0000-0000-0000-000000000006/workitemtypes"
-          }
-        }
-      },
-      "type": "spaces"
-    },
-    {
-      "attributes": {
-        "created-at": "0001-01-01T00:00:00Z",
-        "description": "Some description",
-        "name": "space 00000000-0000-0000-0000-000000000015",
-        "updated-at": "0001-01-01T00:00:00Z",
-        "version": 0
-      },
-      "id": "00000000-0000-0000-0000-000000000008",
-      "links": {
-        "backlog": {
-          "self": "http:///api/spaces/00000000-0000-0000-0000-000000000008/backlog"
-        },
-        "filters": "http:///api/filters",
-        "related": "http:///api/spaces/00000000-0000-0000-0000-000000000008",
-        "self": "http:///api/spaces/00000000-0000-0000-0000-000000000008",
-        "workitemlinktypes": "http:///api/spaces/00000000-0000-0000-0000-000000000008/workitemlinktypes",
-        "workitemtypes": "http:///api/spaces/00000000-0000-0000-0000-000000000008/workitemtypes"
-      },
-      "relationships": {
-        "areas": {
-          "links": {
-            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000008/areas"
-          }
-        },
-        "backlog": {
-          "links": {
-            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000008/backlog"
-          }
-        },
-        "codebases": {
-          "links": {
-            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000008/codebases"
-          }
-        },
-        "collaborators": {
-          "links": {
-            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000008/collaborators"
-          }
-        },
-        "filters": {
-          "links": {
-            "related": "http:///api/filters"
-          }
-        },
-        "iterations": {
-          "links": {
-            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000008/iterations"
-          }
-        },
-        "labels": {
-          "links": {
-            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000008/labels"
-          }
-        },
-        "owned-by": {
-          "data": {
-            "id": "00000000-0000-0000-0000-000000000012",
-            "type": "identities"
-          },
-          "links": {
-            "related": "http:///api/users/00000000-0000-0000-0000-000000000012"
-          }
-        },
-        "workitemlinktypes": {
-          "links": {
-            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000008/workitemlinktypes"
-          }
-        },
-        "workitems": {
-          "links": {
-            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000008/workitems"
-          }
-        },
-        "workitemtypegroups": {
-          "links": {
-            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000008/workitemtypegroups"
-          }
-        },
-        "workitemtypes": {
-          "links": {
-            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000008/workitemtypes"
-          }
-        }
-      },
-      "type": "spaces"
-    },
-    {
-      "attributes": {
-        "created-at": "0001-01-01T00:00:00Z",
-        "description": "Some description",
-        "name": "space 00000000-0000-0000-0000-000000000016",
-        "updated-at": "0001-01-01T00:00:00Z",
-        "version": 0
-      },
-      "id": "00000000-0000-0000-0000-000000000010",
-      "links": {
-        "backlog": {
-          "self": "http:///api/spaces/00000000-0000-0000-0000-000000000010/backlog"
-        },
-        "filters": "http:///api/filters",
-        "related": "http:///api/spaces/00000000-0000-0000-0000-000000000010",
-        "self": "http:///api/spaces/00000000-0000-0000-0000-000000000010",
-        "workitemlinktypes": "http:///api/spaces/00000000-0000-0000-0000-000000000010/workitemlinktypes",
-        "workitemtypes": "http:///api/spaces/00000000-0000-0000-0000-000000000010/workitemtypes"
-      },
-      "relationships": {
-        "areas": {
-          "links": {
-            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000010/areas"
-          }
-        },
-        "backlog": {
-          "links": {
-            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000010/backlog"
-          }
-        },
-        "codebases": {
-          "links": {
-            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000010/codebases"
-          }
-        },
-        "collaborators": {
-          "links": {
-            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000010/collaborators"
-          }
-        },
-        "filters": {
-          "links": {
-            "related": "http:///api/filters"
-          }
-        },
-        "iterations": {
-          "links": {
-            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000010/iterations"
-          }
-        },
-        "labels": {
-          "links": {
-            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000010/labels"
-          }
-        },
-        "owned-by": {
-          "data": {
-            "id": "00000000-0000-0000-0000-000000000012",
-            "type": "identities"
-          },
-          "links": {
-            "related": "http:///api/users/00000000-0000-0000-0000-000000000012"
-          }
-        },
-        "workitemlinktypes": {
-          "links": {
-            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000010/workitemlinktypes"
-          }
-        },
-        "workitems": {
-          "links": {
-            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000010/workitems"
-          }
-        },
-        "workitemtypegroups": {
-          "links": {
-            "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000010/workitemtypegroups"
-          }
-        },
-        "workitemtypes": {
-          "links": {
-            "related": "http:///api/spaces/00000000-0000-0000-0000-000000000010/workitemtypes"
           }
         }
       },
