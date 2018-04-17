@@ -280,6 +280,12 @@
   version = "v0.6.1"
 
 [[projects]]
+  name = "github.com/howeyc/fsnotify"
+  packages = ["."]
+  revision = "441bbc86b167f3c1f4786afae9931403b99fdacf"
+  version = "v0.9.0"
+
+[[projects]]
   name = "github.com/inconshreveable/mousetrap"
   packages = ["."]
   revision = "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
@@ -353,6 +359,18 @@
   revision = "717f7cf83fb78669bfab612749c2e8ff63d5be11"
 
 [[projects]]
+  name = "github.com/mattn/go-colorable"
+  packages = ["."]
+  revision = "167de6bfdfba052fa6b2d3664c8f5272e23c9072"
+  version = "v0.0.9"
+
+[[projects]]
+  name = "github.com/mattn/go-isatty"
+  packages = ["."]
+  revision = "0360b2af4f38e8d38c7fce2a9f4e702702d73a39"
+  version = "v0.0.3"
+
+[[projects]]
   name = "github.com/matttproud/golang_protobuf_extensions"
   packages = ["pbutil"]
   revision = "fc2b8d3a73c4867e51861bbdd5ae3c1f0869dd6a"
@@ -378,6 +396,20 @@
   packages = ["."]
   revision = "13d49d4606eb801b8f01ae542b4afc4c6ee3d84a"
   version = "v0.5.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/pilu/config"
+  packages = ["."]
+  revision = "3eb99e6c0b9a2dae0f56f05552c06ca5a643919b"
+
+[[projects]]
+  name = "github.com/pilu/fresh"
+  packages = [
+    ".",
+    "runner"
+  ]
+  revision = "9c0092493eff2825c3abf64e087b3383dec939c3"
 
 [[projects]]
   name = "github.com/pkg/errors"
@@ -761,6 +793,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "ee7afcb60dc6a15293f1d99dfb830e0d7b370f7e0ae478ed80a8b23cd0f5095c"
+  inputs-digest = "adfbd3c9cedaa00f622b304ae0446e4fdb71d7fd792c36ac4382f511b9bc95a9"
   solver-name = "gps-cdcl"
   solver-version = 1
