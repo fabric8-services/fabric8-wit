@@ -137,6 +137,24 @@ function deploy() {
   echo 'CICO: Image pushed, ready to update deployed app'
 }
 
+function deploy_snapshot() {
+  # Let's deploy snapshot
+  make docker-image-deploy
+
+  TAG="SNAPSHOT-PR-${ghprbPullId}"
+  REGISTRY="push.registry.devshift.net"
+
+  if [ -n "${DEVSHIFT_USERNAME}" -a -n "${DEVSHIFT_PASSWORD}" ]; then
+    docker login -u ${DEVSHIFT_USERNAME} -p ${DEVSHIFT_PASSWORD} ${REGISTRY}
+  else
+    echo "Could not login, missing credentials for the registry"
+  fi
+
+  tag_push ${REGISTRY}/fabric8-services/fabric8-wit:$TAG
+  tag_push ${REGISTRY}/fabric8-services/fabric8-wit:latest
+  echo 'CICO: Image pushed, ready to update deployed app'
+}
+
 function cico_setup() {
   load_jenkins_vars;
   install_deps;
