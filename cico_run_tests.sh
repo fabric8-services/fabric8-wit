@@ -6,4 +6,4 @@ cico_setup;
 
 run_tests_without_coverage;
 
-deploy_snapshot;
+deploy SNAPSHOT-PR-${ghprbPullId} false;
