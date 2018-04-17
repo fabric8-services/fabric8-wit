@@ -900,7 +900,7 @@ func (s *WorkItem2Suite) SetupTest() {
 	s.linkCtrl = NewWorkItemLinkController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.spaceCtrl = NewSpaceController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration, &DummyResourceManager{})
 
-	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1), tf.WorkItemTypes(1))
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.Spaces(1), tf.WorkItemTypes(1))
 	//payload := minimumRequiredCreateWithType(workitem.SystemBug)
 	payload := minimumRequiredCreateWithTypeAndSpace(fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
@@ -2961,65 +2961,68 @@ func createSpaceWithDefaults(ctx context.Context, db *gorm.DB) (*space.Space, *i
 	return sp, itr, ar
 }
 
+// TestCreateAndUpdateWorkItemForEveryWIT does this:
+//
+// For each space template that can construct spaces, create a space based-off
+// of that template. Then construct a work item of each work item type that can
+// construct work items. Then instantiate a work item with only the title set in
+// the payload (this is all the UI can do when creating a work item with the
+// quick add). Then check that the created work item has the individual initial
+// state as it was defined for the work item type of that work item.
 func (s *WorkItem2Suite) TestCreateAndUpdateWorkItemForEveryWIT() {
-	// // given one space created from each space template that can construct spaces
-	// spaceTemplateRepo := spacetemplate.NewRepository(s.DB)
-	// templates, err := spaceTemplateRepo.List(s.Ctx)
-	// require.NoError(s.T(), err)
+	spaceTemplateRepo := spacetemplate.NewRepository(s.DB)
+	templates, err := spaceTemplateRepo.List(s.Ctx)
+	require.NoError(s.T(), err)
 
-	// // within each space, create a work item of each constructable WIT available
-	// // for that space's template
-	// for _, templ := range templates {
-	// 	s.T().Run(templ.Name, func(t *testing.T) {
-	// 		if !templ.CanConstruct {
-	// 			t.Skipf("skipping space template \"%s\" because it cannot construct spaces", templ.Name)
-	// 		}
-	// 		witRepo := workitem.NewWorkItemTypeRepository(s.DB)
-	// 		fxt := tf.NewTestFixture(s.T(), s.DB,
-	// 			tf.CreateWorkItemEnvironment(),
-	// 			tf.Spaces(1, func(fxt *tf.TestFixture, idx int) error {
-	// 				fxt.Spaces[idx].SpaceTemplateID = templ.ID
-	// 				return nil
-	// 			}),
-	// 		)
-	// 		wits, err := witRepo.List(s.Ctx, fxt.Spaces[0].SpaceTemplateID)
-	// 		require.NoError(t, err)
-	// 		for _, wit := range wits {
-	// 			t.Run(wit.Name, func(t *testing.T) {
-	// 				if !wit.CanConstruct {
-	// 					t.Skipf("skipping WIT \"%s\" because it cannot construct WIs", wit.Name)
-	// 				}
-	// 				var id uuid.UUID
-	// 				_ = id
-	// 				c := minimumRequiredCreateWithType(wit.ID)
-	// 				c.Data.Attributes[workitem.SystemTitle] = "WI of type " + wit.Name
-	// 				stateDef, ok := wit.Fields[workitem.SystemState]
-	// 				require.True(t, ok, "failed to get state definition from %+v", spew.Sdump(wit))
-	// 				stateEnum, ok := stateDef.Type.(workitem.EnumType)
-	// 				require.True(t, ok, "failed to get state enum from field definition")
-	// 				require.NotEmpty(t, stateEnum.Values)
-	// 				initialState, ok := stateEnum.Values[0].(string)
-	// 				_ = initialState
-	// 				require.True(t, ok, "failed to get values from state enum")
-	// 				// c.Data.Attributes[workitem.SystemState] = initialState
-	// 				// set custom space and see if WI gets custom space
-	// 				c.Data.Relationships.Space.Data.ID = &fxt.Spaces[0].ID
-	// 				// _, item := test.CreateWorkitemsCreated(t, s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, &c)
-	// 				// require.NotNil(t, item)
-	// 				// require.Equal(t, initialState, item.Data.Attributes[workitem.SystemState])
-	// 				// require.NotNil(t, item.Data.Relationships)
-	// 				// require.NotNil(t, item.Data.Relationships.BaseType)
-	// 				// require.NotNil(t, item.Data.Relationships.BaseType.Data)
-	// 				// require.Equal(t, wit.ID, item.Data.Relationships.BaseType.Data.ID)
-	// 				// id = *item.Data.ID
-	// 				// updatePayload := minimumRequiredUpdatePayload()
-	// 				// updatePayload.Data.ID = &id
-	// 				// updatePayload.Data.Attributes = item.Data.Attributes
-	// 				// updatePayload.Data.Attributes[workitem.SystemTitle] = "NEW TITLE"
-	// 				// _, updated := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, id, &updatePayload)
-	// 				// require.NotNil(t, updated)
-	// 			})
-	// 		}
-	// 	})
-	// }
+	for _, templ := range templates {
+		s.T().Run(templ.Name, func(t *testing.T) {
+			if !templ.CanConstruct {
+				t.Skipf("skipping space template \"%s\" because it is marked as: \"cannot construct spaces\"", templ.Name)
+			}
+			witRepo := workitem.NewWorkItemTypeRepository(s.DB)
+			fxt := tf.NewTestFixture(s.T(), s.DB,
+				tf.CreateWorkItemEnvironment(),
+				tf.Spaces(1, func(fxt *tf.TestFixture, idx int) error {
+					fxt.Spaces[idx].SpaceTemplateID = templ.ID
+					return nil
+				}),
+			)
+			wits, err := witRepo.List(s.Ctx, fxt.Spaces[0].SpaceTemplateID)
+			require.NoError(t, err)
+			for _, wit := range wits {
+				t.Run(wit.Name, func(t *testing.T) {
+					if !wit.CanConstruct {
+						t.Skipf("skipping WIT \"%s\" because it is marked as: \" cannot construct work items\"", wit.Name)
+					}
+					var id uuid.UUID
+					c := minimumRequiredCreateWithType(wit.ID)
+					c.Data.Attributes[workitem.SystemTitle] = "WI of type " + wit.Name
+					stateDef, ok := wit.Fields[workitem.SystemState]
+					require.True(t, ok, "failed to get state definition from %+v", spew.Sdump(wit))
+					stateEnum, ok := stateDef.Type.(workitem.EnumType)
+					require.True(t, ok, "failed to get state enum from field definition")
+					require.NotEmpty(t, stateEnum.Values)
+					initialState, ok := stateEnum.Values[0].(string)
+					require.True(t, ok, "failed to get values from state enum")
+					// set custom space and see if WI gets custom space
+					c.Data.Relationships.Space.Data.ID = &fxt.Spaces[0].ID
+					_, item := test.CreateWorkitemsCreated(t, s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, &c)
+					require.NotNil(t, item)
+					require.Equal(t, initialState, item.Data.Attributes[workitem.SystemState])
+					require.NotNil(t, item.Data.Relationships)
+					require.NotNil(t, item.Data.Relationships.BaseType)
+					require.NotNil(t, item.Data.Relationships.BaseType.Data)
+					require.Equal(t, wit.ID, item.Data.Relationships.BaseType.Data.ID)
+
+					id = *item.Data.ID
+					updatePayload := minimumRequiredUpdatePayload()
+					updatePayload.Data.ID = &id
+					updatePayload.Data.Attributes = item.Data.Attributes
+					updatePayload.Data.Attributes[workitem.SystemTitle] = "NEW TITLE"
+					_, updated := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, id, &updatePayload)
+					require.NotNil(t, updated)
+				})
+			}
+		})
+	}
 }
