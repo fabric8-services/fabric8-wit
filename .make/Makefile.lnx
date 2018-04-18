@@ -20,7 +20,6 @@ GO_JUNIT_BIN=$(VENDOR_DIR)/github.com/jstemmer/go-junit-report/go-junit-report
 GIT_BIN_NAME := git
 GLIDE_BIN_NAME := glide
 GO_BIN_NAME := go
-HG_BIN_NAME := hg
 
 CHECK_GOPATH_BIN := $(INSTALL_PREFIX)/check_gopath
 
