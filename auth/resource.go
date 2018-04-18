@@ -71,8 +71,8 @@ func (m *AuthzResourceManager) CreateSpace(ctx context.Context, request *http.Re
 	}
 	defer rest.CloseResponse(res)
 
-	responseBody := rest.ReadBody(res.Body)
 	if res.StatusCode != http.StatusOK {
+		responseBody := rest.ReadBody(res.Body)
 		log.Error(ctx, map[string]interface{}{
 			"space_id":        spaceID,
 			"response_status": res.Status,
@@ -86,12 +86,11 @@ func (m *AuthzResourceManager) CreateSpace(ctx context.Context, request *http.Re
 	resource, err := c.DecodeSpaceResource(res)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"err":           err,
-			"space_id":      spaceID,
-			"response_body": rest.ReadBody(res.Body),
+			"err":      err,
+			"space_id": spaceID,
 		}, "unable to decode the create space resource request result")
 
-		return nil, errs.Wrapf(err, "unable to decode the create space resource request result %s ", rest.ReadBody(res.Body))
+		return nil, errs.Wrapf(err, "unable to decode the create space resource request result")
 	}
 
 	log.Debug(ctx, map[string]interface{}{
