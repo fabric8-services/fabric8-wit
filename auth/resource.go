@@ -9,6 +9,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/goasupport"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/rest/proxy"
 	goaclient "github.com/goadesign/goa/client"
 	goauuid "github.com/goadesign/goa/uuid"
 	errs "github.com/pkg/errors"
@@ -76,7 +77,9 @@ func (m *AuthzResourceManager) CreateSpace(ctx context.Context, request *http.Re
 			"response_status": res.Status,
 			"response_body":   rest.ReadBody(res.Body),
 		}, "unable to create a space resource via auth service")
-		return nil, errs.Errorf("unable to create a space resource via auth service. Response status: %s. Response body: %s", res.Status, rest.ReadBody(res.Body))
+		// Proxy-back back the response as in -
+		// WIT acts as a gateway to Auth, who would send the appropriate response.
+		return nil, proxy.ConvertHTTPErrorCode(ctx, res.StatusCode, rest.ReadBody(res.Body))
 	}
 
 	resource, err := c.DecodeSpaceResource(res)
@@ -131,7 +134,9 @@ func (m *AuthzResourceManager) DeleteSpace(ctx context.Context, request *http.Re
 			"response_status": res.Status,
 			"response_body":   rest.ReadBody(res.Body),
 		}, "unable to delete a space resource via auth service")
-		return errs.Errorf("unable to delete a space resource via auth service. Response status: %s. Response body: %s", res.Status, rest.ReadBody(res.Body))
+		// Proxy-back back the response as in -
+		// WIT acts as a gateway to Auth, who would send the appropriate response.
+		return proxy.ConvertHTTPErrorCode(ctx, res.StatusCode, rest.ReadBody(res.Body))
 	}
 
 	log.Debug(ctx, map[string]interface{}{

@@ -15,6 +15,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/auth/authservice"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	. "github.com/fabric8-services/fabric8-wit/controller"
+	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/iteration"
@@ -30,9 +31,19 @@ import (
 var spaceConfiguration *configuration.Registry
 
 type DummyResourceManager struct {
+	httpResponseCode int
 }
 
 func (m *DummyResourceManager) CreateSpace(ctx context.Context, request *http.Request, spaceID string) (*authservice.SpaceResource, error) {
+	if m.httpResponseCode == 400 {
+		return nil, errors.NewBadParameterErrorFromString("auth returned a 400")
+	}
+	if m.httpResponseCode == 401 {
+		return nil, errors.NewUnauthorizedError("auth returned a 401")
+	}
+	if m.httpResponseCode == 500 {
+		return nil, errors.NewInternalErrorFromString("auth returned a 500")
+	}
 	return &authservice.SpaceResource{Data: &authservice.SpaceResourceData{ResourceID: uuid.NewV4().String(), PermissionID: uuid.NewV4().String(), PolicyID: uuid.NewV4().String()}}, nil
 }
 
@@ -70,6 +81,11 @@ func (s *SpaceControllerTestSuite) SetupTest() {
 func (s *SpaceControllerTestSuite) SecuredController(identity account.Identity) (*goa.Service, *SpaceController) {
 	svc := testsupport.ServiceAsUser("Space-Service", identity)
 	return svc, NewSpaceController(svc, s.db, spaceConfiguration, &DummyResourceManager{})
+}
+
+func (s *SpaceControllerTestSuite) SecuredControllerWithDummyResourceManager(identity account.Identity, dummyResourceManager DummyResourceManager) (*goa.Service, *SpaceController) {
+	svc := testsupport.ServiceAsUser("Space-Service", identity)
+	return svc, NewSpaceController(svc, s.db, spaceConfiguration, &dummyResourceManager)
 }
 
 func (s *SpaceControllerTestSuite) UnSecuredController() (*goa.Service, *SpaceController) {
@@ -128,6 +144,39 @@ func (s *SpaceControllerTestSuite) TestCreateSpace() {
 		svc, ctrl := s.UnSecuredController()
 		// when/then
 		test.CreateSpaceUnauthorized(t, svc.Context, svc, ctrl, p)
+	})
+
+	s.T().Run("Fail - auth returned 400", func(t *testing.T) {
+		// given
+		p := newCreateSpacePayload(nil, nil)
+		r := DummyResourceManager{
+			httpResponseCode: 400,
+		}
+		svc, ctrl := s.SecuredControllerWithDummyResourceManager(testsupport.TestIdentity, r)
+		// when/then
+		test.CreateSpaceBadRequest(t, svc.Context, svc, ctrl, p)
+	})
+	s.T().Run("Fail - auth returned 401", func(t *testing.T) {
+		// given
+		spaceName := uuid.NewV4().String()
+		p := newCreateSpacePayload(&spaceName, nil)
+		r := DummyResourceManager{
+			httpResponseCode: 401,
+		}
+		svc, ctrl := s.SecuredControllerWithDummyResourceManager(testsupport.TestIdentity, r)
+		// when/then
+		test.CreateSpaceUnauthorized(t, svc.Context, svc, ctrl, p)
+	})
+	s.T().Run("Fail - auth returned 500", func(t *testing.T) {
+		// given
+		spaceName := uuid.NewV4().String()
+		p := newCreateSpacePayload(&spaceName, nil)
+		r := DummyResourceManager{
+			httpResponseCode: 500,
+		}
+		svc, ctrl := s.SecuredControllerWithDummyResourceManager(testsupport.TestIdentity, r)
+		// when/then
+		test.CreateSpaceInternalServerError(t, svc.Context, svc, ctrl, p)
 	})
 
 	s.T().Run("ok", func(t *testing.T) {
