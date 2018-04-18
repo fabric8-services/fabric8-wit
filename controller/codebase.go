@@ -55,20 +55,22 @@ func NewCodebaseController(service *goa.Service, db application.DB, config codeb
 
 // Show runs the show action.
 func (c *CodebaseController) Show(ctx *app.ShowCodebaseContext) error {
-	return application.Transactional(c.db, func(appl application.Application) error {
-		c, err := appl.Codebases().Load(ctx, ctx.CodebaseID)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-		}
-
-		res := &app.CodebaseSingle{}
-		res.Data = ConvertCodebase(ctx.Request, *c)
-
-		return ctx.OK(res)
+	var cdb *codebase.Codebase
+	err := application.Transactional(c.db, func(appl application.Application) error {
+		var err error
+		cdb, err = appl.Codebases().Load(ctx, ctx.CodebaseID)
+		return err
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return ctx.OK(&app.CodebaseSingle{
+		Data: ConvertCodebase(ctx.Request, *cdb),
+	})
+
 }
 
-// Deprecated: ListWorkspaces action should be used instead.
+// Edit Deprecated: ListWorkspaces action should be used instead.
 func (c *CodebaseController) Edit(ctx *app.EditCodebaseContext) error {
 	listWorkspacesContext := app.ListWorkspacesCodebaseContext{ctx.Context, ctx.ResponseData, ctx.RequestData, ctx.CodebaseID}
 	return c.ListWorkspaces(&listWorkspacesContext)
@@ -80,15 +82,10 @@ func (c *CodebaseController) ListWorkspaces(ctx *app.ListWorkspacesCodebaseConte
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
-
 	var cb *codebase.Codebase
-
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		cb, err = appl.Codebases().Load(ctx, ctx.CodebaseID)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-		}
-		return nil
+		return err
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
@@ -112,6 +109,7 @@ func (c *CodebaseController) ListWorkspaces(ctx *app.ListWorkspacesCodebaseConte
 
 	var existingWorkspaces []*app.Workspace
 	for _, workspace := range workspaces {
+		codebaseRelatedLink := rest.AbsoluteURL(ctx.Request, fmt.Sprintf(app.CodebaseHref(cb.ID)))
 		openLink := rest.AbsoluteURL(ctx.Request, fmt.Sprintf(app.CodebaseHref(cb.ID)+"/open/%v", workspace.Config.Name))
 
 		ideLink := workspace.GetHrefByRelOfWorkspaceLink(che.IdeUrlRel)
@@ -129,6 +127,14 @@ func (c *CodebaseController) ListWorkspaces(ctx *app.ListWorkspacesCodebaseConte
 				Open: &openLink,
 				Self: &selfLink,
 				Ide:  &ideLink,
+			},
+			Relationships: &app.WorkspaceRelations{
+				Codebase: &app.RelationGeneric{
+					Links: &app.GenericLinks{
+						Related: &codebaseRelatedLink,
+					},
+					Meta: map[string]interface{}{"branch": getBranch(workspace.Config.Projects, cb.URL)},
+				},
 			},
 		})
 	}
@@ -153,7 +159,6 @@ func (c *CodebaseController) Delete(ctx *app.DeleteCodebaseContext) error {
 	var cb *codebase.Codebase
 	var cbSpace *space.Space
 	err = application.Transactional(c.db, func(appl application.Application) error {
-		var err error
 		cb, err = appl.Codebases().Load(ctx.Context, ctx.CodebaseID)
 		if err != nil {
 			return err
@@ -227,16 +232,10 @@ func (c *CodebaseController) Create(ctx *app.CreateCodebaseContext) error {
 	var cb *codebase.Codebase
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		cb, err = appl.Codebases().Load(ctx, ctx.CodebaseID)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-		}
-		return nil
+		return err
 	})
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
-	}
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	ns, err := c.getCheNamespace(ctx)
 	if err != nil {
@@ -251,8 +250,9 @@ func (c *CodebaseController) Create(ctx *app.CreateCodebaseContext) error {
 	if cb.StackID != nil && *cb.StackID != "" {
 		stackID = *cb.StackID
 	}
+
 	workspace := che.WorkspaceRequest{
-		Branch:     "master",
+		Branch:     getWorkspaceBranch(ctx),
 		StackID:    stackID,
 		Repository: cb.URL,
 	}
@@ -275,11 +275,8 @@ func (c *CodebaseController) Create(ctx *app.CreateCodebaseContext) error {
 
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		cb.LastUsedWorkspace = workspaceResp.Config.Name
-		_, err = appl.Codebases().Save(ctx, cb)
-		if err != nil {
-			return err
-		}
-		return nil
+		_, err := appl.Codebases().Save(ctx, cb)
+		return err
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
@@ -303,16 +300,10 @@ func (c *CodebaseController) Open(ctx *app.OpenCodebaseContext) error {
 	var cb *codebase.Codebase
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		cb, err = appl.Codebases().Load(ctx, ctx.CodebaseID)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-		}
-		return nil
+		return err
 	})
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
-	}
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	ns, err := c.getCheNamespace(ctx)
 	if err != nil {
@@ -341,12 +332,12 @@ func (c *CodebaseController) Open(ctx *app.OpenCodebaseContext) error {
 
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		cb.LastUsedWorkspace = ctx.WorkspaceID
-		_, err = appl.Codebases().Save(ctx, cb)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-		}
-		return nil
+		_, err := appl.Codebases().Save(ctx, cb)
+		return err
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+	}
 
 	ideURL := workspaceResp.GetHrefByRelOfWorkspaceLink(che.IdeUrlRel)
 	resp := &app.WorkspaceOpen{
@@ -368,6 +359,16 @@ func ConvertCodebases(request *http.Request, codebases []codebase.Codebase, opti
 		result[i] = ConvertCodebase(request, c, options...)
 	}
 	return result
+}
+
+// GetBranch return branch of the Che project which location matches codebase URL
+func getBranch(projects []che.WorkspaceProject, codebaseURL string) string {
+	for _, p := range projects {
+		if p.Source.Location == codebaseURL {
+			return p.Source.Parameters.Branch
+		}
+	}
+	return ""
 }
 
 // ConvertCodebase converts between internal and external REST representation
@@ -512,4 +513,13 @@ func NewDefaultCheClient(config codebaseConfiguration) CodebaseCheClientProvider
 		cheClient := che.NewStarterClient(config.GetCheStarterURL(), config.GetOpenshiftTenantMasterURL(), ns, http.DefaultClient)
 		return cheClient, nil
 	}
+}
+
+// getWorkspaceBranch returns the branch defined in the request payload ('master' is used by default)
+func getWorkspaceBranch(ctx *app.CreateCodebaseContext) string {
+	branch := "master"
+	if ctx.Payload != nil && ctx.Payload.Data != nil && ctx.Payload.Data.Attributes != nil && ctx.Payload.Data.Attributes.Branch != nil && *ctx.Payload.Data.Attributes.Branch != "" {
+		branch = *ctx.Payload.Data.Attributes.Branch
+	}
+	return branch
 }

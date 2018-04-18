@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -36,6 +37,7 @@ import (
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/test/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
+	errs "github.com/pkg/errors"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
@@ -262,11 +264,7 @@ func (s *WorkItemSuite) TestCreateWI() {
 
 	s.T().Run("field types", func(t *testing.T) {
 		vals := workitem.GetFieldTypeTestData(t)
-		// Get keys from the map above
-		kinds := []workitem.Kind{}
-		for k := range vals {
-			kinds = append(kinds, k)
-		}
+		kinds := vals.GetKinds()
 		fieldName := "fieldundertest"
 		// Create a work item type for each kind
 		fxt := tf.NewTestFixture(t, s.DB,
@@ -769,13 +767,17 @@ func getMinimumRequiredUpdatePayload(wi *app.WorkItem) *app.UpdateWorkitemPayloa
 }
 
 func minimumRequiredUpdatePayload() app.UpdateWorkitemPayload {
-	spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(space.SystemSpace.String()))
+	return minimumRequiredUpdatePayloadWithSpace(space.SystemSpace)
+}
+
+func minimumRequiredUpdatePayloadWithSpace(spaceID uuid.UUID) app.UpdateWorkitemPayload {
+	spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(spaceID.String()))
 	return app.UpdateWorkitemPayload{
 		Data: &app.WorkItem{
 			Type:       APIStringTypeWorkItem,
 			Attributes: map[string]interface{}{},
 			Relationships: &app.WorkItemRelationships{
-				Space: app.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
+				Space: app.NewSpaceRelation(spaceID, spaceSelfURL),
 			},
 		},
 	}
@@ -803,7 +805,7 @@ func minimumRequiredCreateWithTypeAndSpace(witID uuid.UUID, spaceID uuid.UUID) a
 }
 
 func newRelationBaseType(spaceID, wit uuid.UUID) *app.RelationBaseType {
-	witRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.WorkitemtypeHref(spaceID.String(), wit.String()))
+	witRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.WorkitemtypeHref(wit.String()))
 	return &app.RelationBaseType{
 		Data: &app.BaseTypeData{
 			Type: "workitemtypes",
@@ -831,72 +833,6 @@ func minimumRequiredCreatePayload(spaceIDOptional ...uuid.UUID) app.CreateWorkit
 			},
 		},
 	}
-}
-
-func createOneRandomUserIdentity(ctx context.Context, db *gorm.DB) *account.Identity {
-	newUserUUID := uuid.NewV4()
-	identityRepo := account.NewIdentityRepository(db)
-	identity := account.Identity{
-		Username: "Test User Integration Random",
-		ID:       newUserUUID,
-	}
-	err := identityRepo.Create(ctx, &identity)
-	if err != nil {
-		fmt.Println("should not happen off.")
-		return nil
-	}
-	return &identity
-}
-
-func createOneRandomIteration(ctx context.Context, db *gorm.DB) *iteration.Iteration {
-	iterationRepo := iteration.NewIterationRepository(db)
-	spaceRepo := space.NewRepository(db)
-
-	// added timestmap to the space in order to make this function usable for more than one test
-	// else it fails with - (pq: duplicate key value violates unique constraint "spaces_name_idx")
-	newSpace := space.Space{
-		Name: "Space iteration " + time.Now().String(),
-	}
-	space, err := spaceRepo.Create(ctx, &newSpace)
-	if err != nil {
-		fmt.Println("Failed to create space for iteration.")
-		return nil
-	}
-
-	itr := iteration.Iteration{
-		Name:    "Sprint 101",
-		SpaceID: space.ID,
-	}
-	err = iterationRepo.Create(ctx, &itr)
-	if err != nil {
-		fmt.Println("Failed to create iteration.")
-		return nil
-	}
-	return &itr
-}
-
-func createOneRandomArea(ctx context.Context, db *gorm.DB) *area.Area {
-	areaRepo := area.NewAreaRepository(db)
-	spaceRepo := space.NewRepository(db)
-
-	newSpace := space.Space{
-		Name: fmt.Sprintf("Space area %v", uuid.NewV4()),
-	}
-	space, err := spaceRepo.Create(ctx, &newSpace)
-	if err != nil {
-		fmt.Println("Failed to create space for area.")
-		return nil
-	}
-	ar := area.Area{
-		Name:    "Area 51",
-		SpaceID: space.ID,
-	}
-	err = areaRepo.Create(ctx, &ar)
-	if err != nil {
-		fmt.Println("Failed to create area.")
-		return nil
-	}
-	return &ar
 }
 
 func newChildIteration(ctx context.Context, db *gorm.DB, parentIteration *iteration.Iteration) *iteration.Iteration {
@@ -936,6 +872,7 @@ type WorkItem2Suite struct {
 	gormtestsupport.DBTestSuite
 	workitemCtrl   app.WorkitemController
 	workitemsCtrl  app.WorkitemsController
+	witCtrl        app.WorkitemtypeController
 	linkCtrl       app.WorkItemLinkController
 	linkCatCtrl    app.WorkItemLinkCategoryController
 	linkTypeCtrl   app.WorkItemLinkTypeController
@@ -944,6 +881,7 @@ type WorkItem2Suite struct {
 	wi             *app.WorkItem
 	minimumPayload *app.UpdateWorkitemPayload
 	notification   notificationsupport.FakeNotificationChannel
+	testDir        string
 }
 
 func (s *WorkItem2Suite) SetupTest() {
@@ -955,6 +893,7 @@ func (s *WorkItem2Suite) SetupTest() {
 	s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", *testIdentity)
 	s.workitemCtrl = NewNotifyingWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), &s.notification, s.Configuration)
 	s.workitemsCtrl = NewNotifyingWorkitemsController(s.svc, gormapplication.NewGormDB(s.DB), &s.notification, s.Configuration)
+	s.witCtrl = NewWorkitemtypeController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(s.DB))
 	s.linkTypeCtrl = NewWorkItemLinkTypeController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.linkCtrl = NewWorkItemLinkController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
@@ -967,6 +906,7 @@ func (s *WorkItem2Suite) SetupTest() {
 	s.wi = wi.Data
 	s.minimumPayload = getMinimumRequiredUpdatePayload(s.wi)
 	//s.minimumReorderPayload = getMinimumRequiredReorderPayload(s.wi)
+	s.testDir = filepath.Join("test-files", "work_item")
 }
 
 // ========== Actual Test functions ==========
@@ -996,26 +936,132 @@ func (s *WorkItem2Suite) TestWI2UpdateWithNonExistentID() {
 	test.UpdateWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.workitemCtrl, id, s.minimumPayload)
 }
 
-func (s *WorkItem2Suite) TestWI2UpdateSetBaseType() {
-	c := minimumRequiredCreateWithType(workitem.SystemBug)
-	c.Data.Attributes[workitem.SystemTitle] = "Test title"
-	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-
-	_, created := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, &c)
-	assert.Equal(s.T(), created.Data.Relationships.BaseType.Data.ID, workitem.SystemBug)
+func (s *WorkItem2Suite) TestWI2UpdateSetReadOnlyFields() {
+	// given
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1), tf.WorkItemTypes(2))
 
 	u := minimumRequiredUpdatePayload()
 	u.Data.Attributes[workitem.SystemTitle] = "Test title"
-	u.Data.Attributes["version"] = created.Data.Attributes["version"]
-	u.Data.ID = created.Data.ID
+	u.Data.Attributes["version"] = fxt.WorkItems[0].Version
+	u.Data.Attributes[workitem.SystemNumber] = fxt.WorkItems[0].Number + 666
+	u.Data.ID = &fxt.WorkItems[0].ID
 	u.Data.Relationships = &app.WorkItemRelationships{
-		BaseType: newRelationBaseType(space.SystemSpace, workitem.SystemExperience),
+		BaseType: newRelationBaseType(fxt.Spaces[0].ID, fxt.WorkItemTypes[1].ID),
 	}
 
-	_, newWi := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *s.wi.ID, &u)
+	// when
+	_, updatedWI := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[0].ID, &u)
 
-	// Ensure the type wasn't updated
-	require.Equal(s.T(), workitem.SystemBug, newWi.Data.Relationships.BaseType.Data.ID)
+	s.T().Run("ensure type was not updated", func(t *testing.T) {
+		require.Equal(t, fxt.WorkItemTypes[0].ID, updatedWI.Data.Relationships.BaseType.Data.ID)
+	})
+	s.T().Run("ensure number was not updated", func(t *testing.T) {
+		require.Equal(t, fxt.WorkItems[0].Number, updatedWI.Data.Attributes[workitem.SystemNumber])
+	})
+}
+
+func (s *WorkItem2Suite) TestWI2UpdateFieldOfDifferentSimpleTypes() {
+	s.T().Run("field types", func(t *testing.T) {
+		vals := workitem.GetFieldTypeTestData(t)
+		kinds := vals.GetKinds()
+		numKinds := len(kinds)
+		// Create a work item type and a work item for each kind and initialize
+		// it with the first valid value.
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.CreateWorkItemEnvironment(),
+			// we need these many spaces because they the WI numbers are tigt to
+			// the space.
+			tf.WorkItemTypes(numKinds, func(fxt *tf.TestFixture, idx int) error {
+				kind := kinds[idx]
+				fxt.WorkItemTypes[idx].Name = kind.String() + "_wit"
+				// Add one field that is used for testing
+				fxt.WorkItemTypes[idx].Fields[kind.String()+"_field"] = workitem.FieldDefinition{
+					Required:    true,
+					Label:       kind.String(),
+					Description: fmt.Sprintf("This field is used for testing values for the field kind '%s'", kind),
+					Type: workitem.SimpleType{
+						Kind: kind,
+					},
+				}
+				return nil
+			}),
+			tf.WorkItems(numKinds, func(fxt *tf.TestFixture, idx int) error {
+				kind := kinds[idx]
+				if len(vals[kind].Valid) < 2 {
+					return errs.Errorf("test map for kind %s needs to have more than one value, one for creation and one for updating", kind)
+				}
+				fxt.WorkItems[idx].Fields[workitem.SystemTitle] = kind.String() + "_wi"
+				fxt.WorkItems[idx].Fields[kind.String()+"_field"] = vals[kind].Valid[0]
+				fxt.WorkItems[idx].Type = fxt.WorkItemTypes[idx].ID
+				fxt.WorkItems[idx].Number = idx
+				return nil
+			}),
+		)
+
+		// when
+		for kind, iv := range vals {
+			t.Run(kind.String(), func(t *testing.T) {
+				kindSpace := fxt.Spaces[0]
+				require.NotNil(t, kindSpace)
+
+				// dump the wit as a golden file for reference
+				wit := fxt.WorkItemTypeByName(kind.String()+"_wit", kindSpace.ID)
+				require.NotNil(t, wit)
+				_, witApp := test.ShowWorkitemtypeOK(t, s.svc.Context, s.svc, s.witCtrl, wit.ID, nil, nil)
+				compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "update", kind.String(), kind.String()+"_wit.res.payload.golden.json"), witApp)
+
+				wi := fxt.WorkItemByTitle(kind.String()+"_wi", kindSpace.ID)
+				require.NotNil(t, wi)
+				version := wi.Version
+
+				// Handle cases where the conversion is supposed to work
+				for i := 1; i < len(iv.Valid); i++ {
+					newValue := iv.Valid[i]
+					t.Run(fmt.Sprintf("legal sample %d", i), func(t *testing.T) {
+						// construct an update request
+						u := minimumRequiredUpdatePayloadWithSpace(kindSpace.ID)
+						u.Data.Attributes["version"] = version
+						u.Data.Attributes[kind.String()+"_field"] = newValue
+						u.Data.ID = &wi.ID
+						// when
+						compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "update", kind.String(), fmt.Sprintf("valid_sample_%d", i)+".req.payload.golden.json"), u)
+						// Update the work item
+						res, updatedWI := test.UpdateWorkitemOK(t, s.svc.Context, s.svc, s.workitemCtrl, wi.ID, &u)
+						// Check for updated value
+						compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "update", kind.String(), fmt.Sprintf("valid_sample_%d", i)+".res.payload.golden.json"), updatedWI)
+						compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "update", kind.String(), fmt.Sprintf("valid_sample_%d", i)+".res.headers.golden.json"), res.Header())
+						_, loadedWi := test.ShowWorkitemOK(t, s.svc.Context, s.svc, s.workitemCtrl, *updatedWI.Data.ID, nil, nil)
+						require.NotNil(t, loadedWi)
+						// compensate for errors when interpreting ambigous actual values
+						actual := loadedWi.Data.Attributes[kind.String()+"_field"]
+						if iv.Compensate != nil {
+							actual = iv.Compensate(actual)
+						}
+						require.Equal(t, newValue, actual, "expected no error when loading and comparing the workitem with a '%s' kind: %#v", kind, spew.Sdump(newValue))
+
+						var ok bool
+						version, ok = loadedWi.Data.Attributes[workitem.SystemVersion].(int)
+						require.True(t, ok, "failed to get updated version")
+					})
+				}
+				// Handle cases where the conversion is supposed to NOT work
+				for i := 0; i < len(iv.Invalid); i++ {
+					newValue := iv.Invalid[i]
+					t.Run(fmt.Sprintf("illegal sample %d", i), func(t *testing.T) {
+						// construct an update request
+						u := minimumRequiredUpdatePayloadWithSpace(kindSpace.ID)
+						u.Data.Attributes["version"] = version
+						u.Data.Attributes[kind.String()+"_field"] = newValue
+						u.Data.ID = &wi.ID
+						// when
+						_, jerrs := test.UpdateWorkitemBadRequest(t, s.svc.Context, s.svc, s.workitemCtrl, wi.ID, &u)
+						// then
+						require.NotNil(t, jerrs, "expected an error when assigning this value to a '%s' field during work item update: %#v", kind, spew.Sdump(newValue))
+					})
+				}
+			})
+		}
+	})
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateOnlyLegacyDescription() {
@@ -1100,7 +1146,8 @@ func (s *WorkItem2Suite) TestWI2UpdateMultipleScenarios() {
 	s.minimumPayload.Data.Attributes["version"] = updatedWI.Data.Attributes["version"]
 
 	// update assignee relationship and verify
-	newUser := createOneRandomUserIdentity(s.svc.Context, s.DB)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(1))
+	newUser := fxt.Identities[0]
 	require.NotNil(s.T(), newUser)
 
 	newUserUUID := newUser.ID.String()
@@ -1315,7 +1362,8 @@ func (s *WorkItem2Suite) TestWI2FailCreateWithEmptyTitle() {
 func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneeRelation() {
 	// given
 	userType := APIStringTypeUser
-	newUser := createOneRandomUserIdentity(s.svc.Context, s.DB)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(1))
+	newUser := fxt.Identities[0]
 	newUserID := newUser.ID.String()
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
@@ -1341,9 +1389,10 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneeRelation() {
 
 func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneesRelation() {
 	// given
-	newUser := createOneRandomUserIdentity(s.svc.Context, s.DB)
-	newUser2 := createOneRandomUserIdentity(s.svc.Context, s.DB)
-	newUser3 := createOneRandomUserIdentity(s.svc.Context, s.DB)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(3))
+	newUser := fxt.Identities[0]
+	newUser2 := fxt.Identities[1]
+	newUser3 := fxt.Identities[2]
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
@@ -1385,7 +1434,8 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneesRelation() {
 
 func (s *WorkItem2Suite) TestWI2ListByAssigneeFilter() {
 	// given
-	newUser := createOneRandomUserIdentity(s.svc.Context, s.DB)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(1))
+	newUser := fxt.Identities[0]
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
@@ -1414,7 +1464,8 @@ func (s *WorkItem2Suite) TestWI2ListByAssigneeFilter() {
 func (s *WorkItem2Suite) TestWI2ListByNoAssigneeFilter() {
 	// given
 	userType := APIStringTypeUser
-	newUser := createOneRandomUserIdentity(s.svc.Context, s.DB)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(1))
+	newUser := fxt.Identities[0]
 	newUserID := newUser.ID.String()
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
@@ -1584,7 +1635,8 @@ func (s *WorkItem2Suite) TestWI2ListByStateFilterOKModifiedUsingIfNoneMatchIfMod
 }
 
 func (s *WorkItem2Suite) setupAreaWorkItem(createWorkItem bool) (uuid.UUID, string, *app.WorkItemSingle) {
-	tempArea := createOneRandomArea(s.svc.Context, s.DB)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Areas(1))
+	tempArea := fxt.Areas[0]
 	require.NotNil(s.T(), tempArea)
 	areaID := tempArea.ID.String()
 	c := minimumRequiredCreatePayload()
@@ -1680,14 +1732,15 @@ func (s *WorkItem2Suite) TestWI2ListByAreaFilterNotModifiedUsingIfNoneMatchHeade
 	// given
 	spaceID, areaID, wi := s.setupAreaWorkItem(true)
 	// when
-	ifNoneMatch := app.GenerateEntityTag(convertWorkItemToConditionalRequestEntity(*wi))
+	ifNoneMatch := app.GenerateEntityTag(ConvertWorkItemToConditionalRequestEntity(*wi))
 	res := test.ListWorkitemsNotModified(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil, nil, &ifNoneMatch)
 	// then
 	assertResponseHeaders(s.T(), res)
 }
 
 func (s *WorkItem2Suite) TestWI2ListByIterationFilter() {
-	tempIteration := createOneRandomIteration(s.svc.Context, s.DB)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Iterations(1))
+	tempIteration := fxt.Iterations[0]
 	require.NotNil(s.T(), tempIteration)
 	iterationID := tempIteration.ID.String()
 	c := minimumRequiredCreatePayload()
@@ -1729,7 +1782,8 @@ func (s *WorkItem2Suite) TestWI2FailCreateInvalidAssignees() {
 }
 
 func (s *WorkItem2Suite) TestWI2FailUpdateInvalidAssignees() {
-	newUser := createOneRandomUserIdentity(s.svc.Context, s.DB)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(1))
+	newUser := fxt.Identities[0]
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
@@ -1756,8 +1810,9 @@ func (s *WorkItem2Suite) TestWI2FailUpdateInvalidAssignees() {
 }
 
 func (s *WorkItem2Suite) TestWI2SuccessUpdateWithAssigneesRelation() {
-	newUser := createOneRandomUserIdentity(s.svc.Context, s.DB)
-	newUser2 := createOneRandomUserIdentity(s.svc.Context, s.DB)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(2))
+	newUser := fxt.Identities[0]
+	newUser2 := fxt.Identities[1]
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
@@ -1842,7 +1897,7 @@ func (s *WorkItem2Suite) TestWI2ShowNotModifiedUsingIfNoneMatchHeader() {
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 	_, createdWI := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, &c)
 	// when
-	ifNoneMatch := app.GenerateEntityTag(convertWorkItemToConditionalRequestEntity(*createdWI))
+	ifNoneMatch := app.GenerateEntityTag(ConvertWorkItemToConditionalRequestEntity(*createdWI))
 	res := test.ShowWorkitemNotModified(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *createdWI.Data.ID, nil, &ifNoneMatch)
 	// then
 	assertResponseHeaders(s.T(), res)
@@ -1887,66 +1942,6 @@ func (s *WorkItem2Suite) TestWI2FailOnDelete() {
 	_, createdWI := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, &c)
 	test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *createdWI.Data.ID, nil, nil)
 	test.DeleteWorkitemMethodNotAllowed(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *createdWI.Data.ID)
-}
-
-// Temporarly disabled, See https://github.com/fabric8-services/fabric8-wit/issues/1036
-func (s *WorkItem2Suite) xTestWI2SuccessDelete() {
-	c := minimumRequiredCreatePayload()
-	c.Data.Attributes[workitem.SystemTitle] = "Title"
-	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
-
-	_, createdWI := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, &c)
-	test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *createdWI.Data.ID, nil, nil)
-	test.DeleteWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *createdWI.Data.ID)
-	test.ShowWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *createdWI.Data.ID, nil, nil)
-}
-
-// TestWI2DeleteLinksOnWIDeletionOK creates two work items (WI1 and WI2) and
-// creates a link between them. When one of the work items is deleted, the
-// link shall be gone as well.
-// Temporarly disabled, See https://github.com/fabric8-services/fabric8-wit/issues/1036
-func (s *WorkItem2Suite) xTestWI2DeleteLinksOnWIDeletionOK() {
-	// Create two work items (wi1 and wi2)
-	c := minimumRequiredCreatePayload()
-	c.Data.Attributes[workitem.SystemTitle] = "WI1"
-	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
-	_, wi1 := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, &c)
-	require.NotNil(s.T(), wi1)
-	c.Data.Attributes[workitem.SystemTitle] = "WI2"
-	_, wi2 := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, &c)
-	require.NotNil(s.T(), wi2)
-
-	// Create link category
-	linkCatPayload := newCreateWorkItemLinkCategoryPayload("test-user")
-	_, linkCat := test.CreateWorkItemLinkCategoryCreated(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, linkCatPayload)
-	require.NotNil(s.T(), linkCat)
-
-	// Create link space
-	spaceName := "test-space" + uuid.NewV4().String()
-	spaceDescription := "description"
-	spacePayload := newCreateSpacePayload(&spaceName, &spaceDescription)
-	_, space := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, spacePayload)
-
-	// Create work item link type payload
-	linkTypePayload := newCreateWorkItemLinkTypePayload("MyLinkType", *linkCat.Data.ID, *space.Data.ID)
-	_, linkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *space.Data.ID, linkTypePayload)
-	require.NotNil(s.T(), linkType)
-
-	// Create link between wi1 and wi2
-	linkPayload := newCreateWorkItemLinkPayload(*wi1.Data.ID, *wi2.Data.ID, *linkType.Data.ID)
-	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.linkCtrl, linkPayload)
-	require.NotNil(s.T(), workItemLink)
-
-	// Delete work item wi1
-	test.DeleteWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *wi1.Data.ID)
-
-	// Check that the link was deleted by deleting wi1
-	test.ShowWorkItemLinkNotFound(s.T(), s.svc.Context, s.svc, s.linkCtrl, *workItemLink.Data.ID, nil, nil)
-
-	// Check that we can query for wi2 without problems
-	test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *wi2.Data.ID, nil, nil)
 }
 
 func (s *WorkItem2Suite) TestWI2CreateWithArea() {
@@ -2106,7 +2101,8 @@ func (s *WorkItem2Suite) TestWI2CreateUnknownArea() {
 
 func (s *WorkItem2Suite) TestWI2CreateWithIteration() {
 	// given
-	_, _, _, _, iterationInstance := createSpaceAndRootAreaAndIterations(s.T(), gormapplication.NewGormDB(s.DB))
+	fxt := tf.NewTestFixture(s.T(), s.DB, createSpaceAndRootAreaAndIterations()...)
+	iterationInstance := *fxt.Iterations[1]
 	iterationID := iterationInstance.ID.String()
 	itType := iteration.APIStringTypeIteration
 	// when
@@ -2132,7 +2128,8 @@ func (s *WorkItem2Suite) TestWI2CreateWithIteration() {
 
 func (s *WorkItem2Suite) TestWI2UpdateWithIteration() {
 	// given
-	_, _, _, _, iterationInstance := createSpaceAndRootAreaAndIterations(s.T(), gormapplication.NewGormDB(s.DB))
+	fxt := tf.NewTestFixture(s.T(), s.DB, createSpaceAndRootAreaAndIterations()...)
+	iterationInstance := *fxt.Iterations[1]
 	iterationID := iterationInstance.ID.String()
 	itType := iteration.APIStringTypeIteration
 	c := minimumRequiredCreatePayload()
@@ -2169,7 +2166,10 @@ func (s *WorkItem2Suite) TestWI2UpdateWithIteration() {
 
 func (s *WorkItem2Suite) TestWI2UpdateWithRootIterationIfMissing() {
 	// given
-	testSpace, _, rootIteration, _, otherIteration := createSpaceAndRootAreaAndIterations(s.T(), gormapplication.NewGormDB(s.DB))
+	fxt := tf.NewTestFixture(s.T(), s.DB, createSpaceAndRootAreaAndIterations()...)
+	otherIteration := *fxt.Iterations[1]
+	rootIteration := *fxt.Iterations[0]
+	testSpace := *fxt.Spaces[0]
 	iterationID := otherIteration.ID.String()
 	iterationType := iteration.APIStringTypeIteration
 	payload := app.CreateWorkitemsPayload{
@@ -2225,7 +2225,8 @@ func (s *WorkItem2Suite) TestWI2UpdateWithRootIterationIfMissing() {
 func (s *WorkItem2Suite) TestWI2UpdateRemoveIteration() {
 	s.T().Skip("iteration.data can't be sent as nil from client libs since it's optionall and is removed during json encoding")
 	// given
-	_, _, _, _, iterationInstance := createSpaceAndRootAreaAndIterations(s.T(), gormapplication.NewGormDB(s.DB))
+	fxt := tf.NewTestFixture(s.T(), s.DB, createSpaceAndRootAreaAndIterations()...)
+	iterationInstance := *fxt.Iterations[1]
 	iterationID := iterationInstance.ID.String()
 	itType := iteration.APIStringTypeIteration
 	// when
@@ -2331,11 +2332,12 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateAndPreventJavascriptInjectionWithMa
 
 func (s *WorkItem2Suite) TestCreateWIWithCodebase() {
 	// given
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1), tf.WorkItemTypes(1))
 	c := minimumRequiredCreatePayload()
 	title := "Solution on global warming"
 	c.Data.Attributes[workitem.SystemTitle] = title
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemPlannerItem)
+	c.Data.Relationships.BaseType = newRelationBaseType(fxt.Spaces[0].ID, fxt.WorkItemTypes[0].ID)
 	branch := "earth-recycle-101"
 	repo := "https://github.com/pranavgore09/go-tutorial.git"
 	file := "main.go"
@@ -2370,6 +2372,8 @@ func (s *WorkItem2Suite) TestCreateWIWithCodebase() {
 // this test aims at checking different codebaseIDs for
 // two CodebaseContent with same Repository but in two different spaces
 func (s *WorkItem2Suite) TestCodebaseWithSameRepoAcrossSpace() {
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1), tf.WorkItemTypes(1))
+
 	// create one space
 	spaceInstance, _, _ := createSpaceWithDefaults(s.svc.Context, s.DB)
 	space1ID := spaceInstance.ID
@@ -2381,7 +2385,7 @@ func (s *WorkItem2Suite) TestCodebaseWithSameRepoAcrossSpace() {
 	title := "Solution on global warming"
 	c.Data.Attributes[workitem.SystemTitle] = title
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemPlannerItem)
+	c.Data.Relationships.BaseType = newRelationBaseType(fxt.Spaces[0].ID, fxt.WorkItemTypes[0].ID)
 	c.Data.Relationships.Space = app.NewSpaceRelation(space1ID, "")
 	branch := "earth-recycle-101"
 	repo := "https://github.com/pranavgore09/go-tutorial.git"
@@ -2412,7 +2416,7 @@ func (s *WorkItem2Suite) TestCodebaseWithSameRepoAcrossSpace() {
 	branch = "earth-recycle-102"
 	c.Data.Attributes[workitem.SystemTitle] = title
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemPlannerItem)
+	c.Data.Relationships.BaseType = newRelationBaseType(fxt.Spaces[0].ID, fxt.WorkItemTypes[0].ID)
 	c.Data.Relationships.Space = &app.RelationSpaces{Data: &app.RelationSpacesData{
 		ID: &space2ID,
 	}}
@@ -2438,7 +2442,7 @@ func (s *WorkItem2Suite) TestCodebaseWithSameRepoAcrossSpace() {
 	title = "One antoher solution on global warming"
 	c.Data.Attributes[workitem.SystemTitle] = title
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemPlannerItem)
+	c.Data.Relationships.BaseType = newRelationBaseType(fxt.Spaces[0].ID, fxt.WorkItemTypes[0].ID)
 	c.Data.Relationships.Space = &app.RelationSpaces{Data: &app.RelationSpacesData{
 		ID: &space1ID,
 	}}
@@ -2574,7 +2578,13 @@ func (s *WorkItem2Suite) TestDefaultSpaceAndIterationRelations() {
 // Following test verifies that UPDATE on WI by setting AREA & Iteration
 // works as expected and do not alter previously set values
 func (s *WorkItem2Suite) TestWI2UpdateWithAreaIterationSuccessively() {
-	sp, rootArea, rootIteration, areaInstance, iterationInstance := createSpaceAndRootAreaAndIterations(s.T(), gormapplication.NewGormDB(s.DB))
+	fxt := tf.NewTestFixture(s.T(), s.DB, createSpaceAndRootAreaAndIterations()...)
+	iterationInstance := *fxt.Iterations[1]
+	rootIteration := *fxt.Iterations[0]
+	areaInstance := *fxt.Areas[1]
+	rootArea := *fxt.Areas[0]
+	sp := *fxt.Spaces[0]
+
 	iterationID := iterationInstance.ID.String()
 	areaID := areaInstance.ID.String()
 	itType := iteration.APIStringTypeIteration
@@ -2670,8 +2680,8 @@ func (s *WorkItem2Suite) xTestWI2IfModifiedSince() {
 }
 
 func (s *WorkItem2Suite) TestWI2ListForChildIteration() {
-	grandParentIteration := createOneRandomIteration(s.svc.Context, s.DB)
-	require.NotNil(s.T(), grandParentIteration)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Iterations(1))
+	grandParentIteration := fxt.Iterations[0]
 
 	parentIteration := newChildIteration(s.svc.Context, s.DB, grandParentIteration)
 	require.NotNil(s.T(), parentIteration)
@@ -2758,7 +2768,7 @@ func (s *WorkItem2Suite) TestWI2FilterExpressionRedirection() {
 	assert.Contains(s.T(), location, expectedLocation)
 }
 
-func (s *WorkItem2Suite) TestNotificationSendOnCreate() {
+func (s *WorkItem2Suite) TestNotificationSentOnCreate() {
 	// given
 	// Default created WI in setupTest
 	// when
@@ -2791,19 +2801,6 @@ func (s *WorkItem2Suite) TestNotificationSendOnUpdate() {
 func minimumRequiredCreatePayloadWithSpace(spaceID uuid.UUID) app.CreateWorkitemsPayload {
 	spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(spaceID.String()))
 	return app.CreateWorkitemsPayload{
-		Data: &app.WorkItem{
-			Type:       APIStringTypeWorkItem,
-			Attributes: map[string]interface{}{},
-			Relationships: &app.WorkItemRelationships{
-				Space: app.NewSpaceRelation(spaceID, spaceSelfURL),
-			},
-		},
-	}
-}
-
-func minimumRequiredUpdatePayloadWithSpace(spaceID uuid.UUID) app.UpdateWorkitemPayload {
-	spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(spaceID.String()))
-	return app.UpdateWorkitemPayload{
 		Data: &app.WorkItem{
 			Type:       APIStringTypeWorkItem,
 			Attributes: map[string]interface{}{},
@@ -2891,7 +2888,7 @@ func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	test.ReorderWorkitemsForbidden(s.T(), svcNotAuthorized.Context, svcNotAuthorized, workitemsCtrlNotAuthorized, *space.ID, &payload5)
 }
 
-func convertWorkItemToConditionalRequestEntity(appWI app.WorkItemSingle) app.ConditionalRequestEntity {
+func ConvertWorkItemToConditionalRequestEntity(appWI app.WorkItemSingle) app.ConditionalRequestEntity {
 	return workitem.WorkItem{
 		ID:      *appWI.Data.ID,
 		Version: appWI.Data.Attributes["version"].(int),

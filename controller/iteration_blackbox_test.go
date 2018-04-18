@@ -16,11 +16,9 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	"github.com/fabric8-services/fabric8-wit/application"
-	"github.com/fabric8-services/fabric8-wit/area"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
-	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/ptr"
@@ -94,8 +92,6 @@ func (s *DummySpaceAuthzService) Configuration() authz.AuthzConfiguration {
 }
 
 func (rest *TestIterationREST) TestCreateChildIteration() {
-	resetFn := rest.DisableGormCallbacks()
-	defer resetFn()
 
 	rest.T().Run("Ok", func(t *testing.T) {
 		t.Run("as space owner", func(t *testing.T) {
@@ -116,9 +112,9 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 			resp, created := test.CreateChildIterationCreated(t, svc.Context, svc, ctrl, childItr.ID.String(), ci)
 			// then
 			require.NotNil(t, created)
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child.res.iteration.golden.json"), created)
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child.headers.golden.json"), resp.Header())
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child.req.payload.golden.json"), ci)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child.res.iteration.golden.json"), created)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child.headers.golden.json"), resp.Header())
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child.req.payload.golden.json"), ci)
 		})
 		t.Run("as collaborator", func(t *testing.T) {
 			fxt := tf.NewTestFixture(t, rest.DB,
@@ -155,9 +151,9 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 			resp, created := test.CreateChildIterationCreated(t, svc.Context, svc, ctrl, childItr.ID.String(), ci)
 			// then
 			require.NotNil(t, created)
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child_with_ID_paylod.res.iteration.golden.json"), created)
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child_with_ID_paylod.headers.golden.json"), resp.Header())
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child_ID_paylod.req.payload.golden.json"), ci)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child_with_ID_paylod.res.iteration.golden.json"), created)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child_with_ID_paylod.headers.golden.json"), resp.Header())
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create_child_ID_paylod.req.payload.golden.json"), ci)
 			require.Equal(t, *ci.Data.ID, *created.Data.ID)
 		})
 	})
@@ -173,8 +169,8 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 			// overwrite service with Dummy Auth to treat user as non-collaborator
 			svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *notSpaceOwner, &DummySpaceAuthzService{rest})
 			_, jerrs := test.CreateChildIterationUnauthorized(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized_other_user.errors.golden.json"), jerrs)
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized_other_user.req.payload.golden.json"), ci)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized_other_user.errors.golden.json"), jerrs)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized_other_user.req.payload.golden.json"), ci)
 		})
 		t.Run("for non-collaborator", func(t *testing.T) {
 			fxt := tf.NewTestFixture(t, rest.DB,
@@ -186,7 +182,7 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 			// overwrite service with Dummy Auth to treat user as non-collaborator
 			svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *nonCollaborator, &DummySpaceAuthzService{rest})
 			_, jerrs := test.CreateChildIterationUnauthorized(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized_other_user.errors.golden.json"), jerrs)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized_other_user.errors.golden.json"), jerrs)
 		})
 	})
 
@@ -202,8 +198,8 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 		_, jerrs := test.CreateChildIterationConflict(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
 
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "conflict_for_same_name.res.errors.golden.json"), jerrs)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "conflict_for_same_name.req.payload.golden.json"), ci)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "conflict_for_same_name.res.errors.golden.json"), jerrs)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "conflict_for_same_name.req.payload.golden.json"), ci)
 	})
 
 	rest.T().Run("fail - create child iteration missing name", func(t *testing.T) {
@@ -213,8 +209,8 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 		_, jerrs := test.CreateChildIterationBadRequest(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
 
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "bad_request_missing_name.res.errors.golden.json"), jerrs)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "bad_request_missing_name.req.payload.golden.json"), ci)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "bad_request_missing_name.res.errors.golden.json"), jerrs)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "bad_request_missing_name.req.payload.golden.json"), ci)
 	})
 
 	rest.T().Run("fail - create child missing parent", func(t *testing.T) {
@@ -224,8 +220,8 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 		_, jerrs := test.CreateChildIterationNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String(), ci)
 		jerrs.Errors[0].ID = ptr.String("IGNORE_ME")
 
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "bad_request_unknown_parent.res.errors.golden.json"), jerrs)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "bad_request_unknown_parent.req.payload.golden.json"), ci)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "bad_request_unknown_parent.res.errors.golden.json"), jerrs)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "bad_request_unknown_parent.req.payload.golden.json"), ci)
 	})
 
 	rest.T().Run("unauthorized - create child iteration with unauthorized user", func(t *testing.T) {
@@ -234,14 +230,15 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 		svc, ctrl := rest.UnSecuredController()
 		_, jerrs := test.CreateChildIterationUnauthorized(t, svc.Context, svc, ctrl, fxt.Iterations[0].ID.String(), ci)
 		jerrs.Errors[0].ID = ptr.String("IGNORE_ME")
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized.res.errors.golden.json"), jerrs)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized.req.payload.golden.json"), ci)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized.res.errors.golden.json"), jerrs)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized.req.payload.golden.json"), ci)
 	})
 }
 
 func (rest *TestIterationREST) TestFailValidationIterationNameLength() {
 	// given
-	_, _, _, _, parent := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
+	parent := *fxt.Iterations[1]
 	_, err := rest.db.Iterations().Root(context.Background(), parent.SpaceID)
 	require.NoError(rest.T(), err)
 	ci := getChildIterationPayload(testsupport.TestOversizedNameObj)
@@ -254,7 +251,8 @@ func (rest *TestIterationREST) TestFailValidationIterationNameLength() {
 
 func (rest *TestIterationREST) TestFailValidationIterationNameStartWith() {
 	// given
-	_, _, _, _, parent := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
+	parent := *fxt.Iterations[1]
 	_, err := rest.db.Iterations().Root(context.Background(), parent.SpaceID)
 	require.NoError(rest.T(), err)
 	ci := getChildIterationPayload("_Sprint #21")
@@ -266,10 +264,10 @@ func (rest *TestIterationREST) TestFailValidationIterationNameStartWith() {
 }
 
 func (rest *TestIterationREST) TestShowIterationOK() {
-	resetFn := rest.DisableGormCallbacks()
-	defer resetFn()
+
 	// given
-	_, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
+	itr := *fxt.Iterations[1]
 	svc, ctrl := rest.SecuredController()
 	// when
 	_, created := test.ShowIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), nil, nil)
@@ -278,12 +276,13 @@ func (rest *TestIterationREST) TestShowIterationOK() {
 	require.NotNil(rest.T(), created.Data.Relationships.Workitems.Meta)
 	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta[KeyTotalWorkItems])
 	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta[KeyClosedWorkItems])
-	compareWithGoldenUUIDAgnostic(rest.T(), filepath.Join(rest.testDir, "show", "ok.res.iteration.golden.json"), created)
+	compareWithGoldenAgnostic(rest.T(), filepath.Join(rest.testDir, "show", "ok.res.iteration.golden.json"), created)
 }
 
 func (rest *TestIterationREST) TestShowIterationOKUsingExpiredIfModifiedSinceHeader() {
 	// given
-	_, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
+	itr := *fxt.Iterations[1]
 	svc, ctrl := rest.SecuredController()
 	// when
 	ifModifiedSinceHeader := app.ToHTTPTime(itr.UpdatedAt.Add(-1 * time.Hour))
@@ -297,7 +296,8 @@ func (rest *TestIterationREST) TestShowIterationOKUsingExpiredIfModifiedSinceHea
 
 func (rest *TestIterationREST) TestShowIterationOKUsingExpiredIfNoneMatchHeader() {
 	// given
-	_, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
+	itr := *fxt.Iterations[1]
 	svc, ctrl := rest.SecuredController()
 	// when
 	ifNoneMatch := "foo"
@@ -311,7 +311,8 @@ func (rest *TestIterationREST) TestShowIterationOKUsingExpiredIfNoneMatchHeader(
 
 func (rest *TestIterationREST) TestShowIterationNotModifiedUsingIfModifiedSinceHeader() {
 	// given
-	_, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
+	itr := *fxt.Iterations[1]
 	svc, ctrl := rest.SecuredController()
 	// when/then
 	rest.T().Log("Iteration:", itr, " updatedAt: ", itr.UpdatedAt)
@@ -321,7 +322,8 @@ func (rest *TestIterationREST) TestShowIterationNotModifiedUsingIfModifiedSinceH
 
 func (rest *TestIterationREST) TestShowIterationNotModifiedUsingIfNoneMatchHeader() {
 	// given
-	_, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
+	itr := *fxt.Iterations[1]
 	svc, ctrl := rest.SecuredController()
 	// when/then
 	ifNoneMatch := app.GenerateEntityTag(itr)
@@ -345,11 +347,13 @@ func (rest *TestIterationREST) createWorkItem(parentSpace space.Space) workitem.
 
 func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHeaderAfterWorkItemLinking() {
 	// given
-	parentSpace, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, append(createSpaceAndRootAreaAndIterations(), tf.WorkItems(1))...)
+	itr := *fxt.Iterations[1]
+	parentSpace := *fxt.Spaces[0]
+	testWI := *fxt.WorkItems[0]
 	svc, ctrl := rest.SecuredController()
 	rest.T().Logf("Iteration: %s: updatedAt: %s", itr.ID.String(), itr.UpdatedAt.String())
 	ifModifiedSinceHeader := app.ToHTTPTime(itr.UpdatedAt)
-	testWI := rest.createWorkItem(parentSpace)
 	testWI.Fields[workitem.SystemIteration] = itr.ID.String()
 	// need to wait at least 1s because HTTP date time does not include microseconds, hence `Last-Modified` vs `If-Modified-Since` comparison may fail
 	time.Sleep(1 * time.Second)
@@ -364,7 +368,9 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHead
 
 func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHeaderAfterWorkItemUnlinking() {
 	// given
-	parentSpace, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
+	itr := *fxt.Iterations[1]
+	parentSpace := *fxt.Spaces[0]
 	svc, ctrl := rest.SecuredController()
 	rest.T().Logf("Iteration: %s: updatedAt: %s", itr.ID.String(), itr.UpdatedAt.String())
 	testWI := rest.createWorkItem(parentSpace)
@@ -386,6 +392,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHead
 		updatedItr = i
 		return err
 	})
+	require.NoError(rest.T(), err)
 	ifModifiedSinceHeader := app.ToHTTPTime(updatedItr.GetLastModified())
 	// now, unlink the work item from the iteration
 	// need to wait at least 1s because HTTP date time does not include microseconds, hence `Last-Modified` vs `If-Modified-Since` comparison may fail
@@ -402,7 +409,9 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfModifiedSinceHead
 
 func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAfterWorkItemLinking() {
 	// given
-	parentSpace, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
+	itr := *fxt.Iterations[1]
+	parentSpace := *fxt.Spaces[0]
 	svc, ctrl := rest.SecuredController()
 	ifNoneMatch := app.GenerateEntityTag(itr)
 	// now, create and attach a work item to the iteration
@@ -419,7 +428,9 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAf
 
 func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAfterWorkItemUnlinking() {
 	// given
-	parentSpace, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
+	itr := *fxt.Iterations[1]
+	parentSpace := *fxt.Spaces[0]
 	svc, ctrl := rest.SecuredController()
 	rest.T().Logf("Iteration: %s: updatedAt: %s", itr.ID.String(), itr.UpdatedAt.String())
 	testWI := rest.createWorkItem(parentSpace)
@@ -441,6 +452,7 @@ func (rest *TestIterationREST) TestShowIterationModifiedUsingIfNoneMatchHeaderAf
 		updatedItr = i
 		return err
 	})
+	require.NoError(rest.T(), err)
 	ifNoneMatch := app.GenerateEntityTag(*updatedItr)
 	// now, unlink the work item from the iteration
 	// need to wait at least 1s because HTTP date time does not include microseconds, hence `Last-Modified` vs `If-Modified-Since` comparison may fail
@@ -530,7 +542,9 @@ func (rest *TestIterationREST) TestSuccessUpdateIteration() {
 
 func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 	// given
-	sp, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
+	itr := *fxt.Iterations[1]
+	sp := *fxt.Spaces[0]
 	newName := "Sprint 1001"
 	newDesc := "New Description"
 	payload := app.UpdateIterationPayload{
@@ -591,7 +605,8 @@ func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 
 func (rest *TestIterationREST) TestFailUpdateIterationNotFound() {
 	// given
-	_, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
+	itr := *fxt.Iterations[1]
 	itr.ID = uuid.NewV4()
 	payload := app.UpdateIterationPayload{
 		Data: &app.Iteration{
@@ -607,7 +622,8 @@ func (rest *TestIterationREST) TestFailUpdateIterationNotFound() {
 
 func (rest *TestIterationREST) TestFailUpdateIterationUnauthorized() {
 	// given
-	_, _, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
+	itr := *fxt.Iterations[1]
 	payload := app.UpdateIterationPayload{
 		Data: &app.Iteration{
 			Attributes: &app.IterationAttributes{},
@@ -622,7 +638,9 @@ func (rest *TestIterationREST) TestFailUpdateIterationUnauthorized() {
 
 func (rest *TestIterationREST) TestIterationStateTransitions() {
 	// given
-	sp, _, _, _, itr1 := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
+	itr1 := *fxt.Iterations[1]
+	sp := *fxt.Spaces[0]
 	assert.Equal(rest.T(), iteration.StateNew, itr1.State)
 	startState := iteration.StateStart
 	payload := app.UpdateIterationPayload{
@@ -669,7 +687,9 @@ func (rest *TestIterationREST) TestIterationStateTransitions() {
 
 func (rest *TestIterationREST) TestRootIterationCanNotStart() {
 	// given
-	sp, _, _, _, itr1 := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
+	itr1 := *fxt.Iterations[1]
+	sp := *fxt.Spaces[0]
 	var ri *iteration.Iteration
 	err := application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Iterations()
@@ -697,7 +717,9 @@ func (rest *TestIterationREST) TestRootIterationCanNotStart() {
 }
 
 func (rest *TestIterationREST) createIterations() (*app.IterationSingle, *account.Identity) {
-	sp, _, _, _, parent := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
+	parent := *fxt.Iterations[1]
+	sp := *fxt.Spaces[0]
 	_, err := rest.db.Iterations().Root(context.Background(), parent.SpaceID)
 	require.NoError(rest.T(), err)
 	parentID := parent.ID
@@ -782,74 +804,24 @@ func getChildIterationPayload(name string) *app.CreateChildIterationPayload {
 
 // following helper function creates a space , root area, root iteration for that space.
 // Also creates a new iteration and new area in the same space
-func createSpaceAndRootAreaAndIterations(t *testing.T, db application.DB) (space.Space, area.Area, iteration.Iteration, area.Area, iteration.Iteration) {
-	var (
-		spaceObj          space.Space
-		rootAreaObj       area.Area
-		rootIterationObj  iteration.Iteration
-		otherIterationObj iteration.Iteration
-		otherAreaObj      area.Area
-	)
-
-	application.Transactional(db, func(app application.Application) error {
-		owner := &account.Identity{
-			Username:     "new-space-owner-identity",
-			ProviderType: account.KeycloakIDP,
-		}
-		errCreateOwner := app.Identities().Create(context.Background(), owner)
-		require.NoError(t, errCreateOwner)
-		spaceObj = space.Space{
-			Name:    testsupport.CreateRandomValidTestName("foo-"),
-			OwnerID: owner.ID,
-		}
-		_, err := app.Spaces().Create(context.Background(), &spaceObj)
-		require.NoError(t, err)
-		// create the root area
-		rootAreaObj = area.Area{
-			Name:    spaceObj.Name,
-			SpaceID: spaceObj.ID,
-		}
-		err = app.Areas().Create(context.Background(), &rootAreaObj)
-		require.NoError(t, err)
-		// above space should have a root iteration for itself
-		rootIterationObj = iteration.Iteration{
-			Name:    spaceObj.Name,
-			SpaceID: spaceObj.ID,
-		}
-		err = app.Iterations().Create(context.Background(), &rootIterationObj)
-		require.NoError(t, err)
-		start, err := time.Parse(time.RFC822, "02 Jan 06 15:04 MST")
-		require.NoError(t, err)
-		end := start.Add(time.Hour * 24 * 365 * 100)
-		otherIterationObj = iteration.Iteration{
-			Lifecycle: gormsupport.Lifecycle{
-				CreatedAt: spaceObj.CreatedAt,
-				UpdatedAt: spaceObj.UpdatedAt,
-			},
-			Name:    "Sprint #2",
-			SpaceID: spaceObj.ID,
-			StartAt: &start,
-			EndAt:   &end,
-			Path:    append(rootIterationObj.Path, rootIterationObj.ID),
-		}
-		err = app.Iterations().Create(context.Background(), &otherIterationObj)
-		require.NoError(t, err)
-
-		otherAreaObj = area.Area{
-			Lifecycle: gormsupport.Lifecycle{
-				CreatedAt: spaceObj.CreatedAt,
-				UpdatedAt: spaceObj.UpdatedAt,
-			},
-			Name:    "Area #2",
-			SpaceID: spaceObj.ID,
-			Path:    append(rootAreaObj.Path, rootAreaObj.ID),
-		}
-		err = app.Areas().Create(context.Background(), &otherAreaObj)
-		require.NoError(t, err)
-		return nil
-	})
-	t.Log("Created space with ID=", spaceObj.ID.String(), "name=", spaceObj.Name)
-	return spaceObj, rootAreaObj, rootIterationObj, otherAreaObj, otherIterationObj
+func createSpaceAndRootAreaAndIterations() []tf.RecipeFunction {
+	return []tf.RecipeFunction{
+		tf.CreateWorkItemEnvironment(),
+		tf.Iterations(2, func(fxt *tf.TestFixture, idx int) error {
+			switch idx {
+			case 1:
+				start, err := time.Parse(time.RFC822, "02 Jan 06 15:04 MST")
+				if err != nil {
+					return err
+				}
+				end := start.Add(time.Hour * 24 * 365 * 100)
+				fxt.Iterations[idx].StartAt = &start
+				fxt.Iterations[idx].EndAt = &end
+			}
+			return nil
+		}),
+		tf.Areas(2),
+	}
 }
 
 func assertIterationLinking(t *testing.T, target *app.Iteration) {
@@ -1173,8 +1145,7 @@ func (rest *TestIterationREST) TestIterationDelete() {
 }
 
 func (rest *TestIterationREST) TestUpdateIteration() {
-	resetFn := rest.DisableGormCallbacks()
-	defer resetFn()
+
 	rest.T().Run("update success - iteration parent", func(t *testing.T) {
 		// build following structure
 		// 	root 0
@@ -1206,7 +1177,9 @@ func (rest *TestIterationREST) TestUpdateIteration() {
 						itr.MakeChildOf(*fxt.IterationByName("root"))
 					}
 					return nil
-				}))
+				},
+			),
+		)
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 		itr1 := fxt.IterationByName("iteration 1")
 		itr2 := fxt.IterationByName("iteration 2")
@@ -1222,8 +1195,8 @@ func (rest *TestIterationREST) TestUpdateIteration() {
 		// when
 		resp, updatedItr := test.UpdateIterationOK(t, svc.Context, svc, ctrl, itr3.ID.String(), &payload)
 		require.NotNil(t, updatedItr)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "update", "ok_change_parent.res.iteration.golden.json"), updatedItr)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "update", "ok_change_parent.headers.golden.json"), resp.Header())
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "ok_change_parent.res.iteration.golden.json"), updatedItr)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "ok_change_parent.headers.golden.json"), resp.Header())
 		// then
 		require.NotNil(t, updatedItr.Data.Relationships.Parent)
 		assert.Equal(t, newParentIDStr, *updatedItr.Data.Relationships.Parent.Data.ID)

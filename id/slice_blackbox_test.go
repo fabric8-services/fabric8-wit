@@ -170,3 +170,11 @@ func TestSliceSort(t *testing.T) {
 	// then
 	require.Equal(t, id.Slice{c, b, a}, s)
 }
+
+func TestToStringSlice(t *testing.T) {
+	a := uuid.FromStringOrNil("9afc7d5c-9f4e-4a04-8359-71d72e5eed94")
+	b := uuid.FromStringOrNil("4ce8076c-4997-4565-8272-9a3cb4d7a1a8")
+	c := uuid.FromStringOrNil("0403d2cb-02d9-466f-88cd-65dc9247f809")
+	s := id.Slice{a, b, c}
+	require.Equal(t, []string{a.String(), b.String(), c.String()}, s.ToStringSlice())
+}

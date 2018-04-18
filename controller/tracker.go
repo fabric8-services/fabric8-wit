@@ -53,24 +53,24 @@ func (c *TrackerController) Create(ctx *app.CreateTrackerContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	result := application.Transactional(c.db, func(appl application.Application) error {
-		tracker := remoteworkitem.Tracker{
+	var tracker *remoteworkitem.Tracker
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		tracker = &remoteworkitem.Tracker{
 			URL:  ctx.Payload.Data.Attributes.URL,
 			Type: ctx.Payload.Data.Attributes.Type,
 		}
-		err := appl.Trackers().Create(ctx.Context, &tracker)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
-		res := &app.TrackerSingle{
-			Data: convertTracker(appl, ctx.Request, tracker),
-		}
-		ctx.ResponseData.Header().Set("Location", app.TrackerHref(res.Data.ID))
-		return ctx.Created(res)
+		return appl.Trackers().Create(ctx.Context, tracker)
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
 	accessTokens := GetAccessTokens(c.configuration) //configuration.GetGithubAuthToken()
 	c.scheduler.ScheduleAllQueries(ctx, accessTokens)
-	return result
+	res := &app.TrackerSingle{
+		Data: ConvertTracker(ctx.Request, *tracker),
+	}
+	ctx.ResponseData.Header().Set("Location", app.TrackerHref(res.Data.ID))
+	return ctx.Created(res)
 }
 
 // Delete runs the delete action.
@@ -96,41 +96,48 @@ func (c *TrackerController) Delete(ctx *app.DeleteTrackerContext) error {
 
 // Show runs the show action.
 func (c *TrackerController) Show(ctx *app.ShowTrackerContext) error {
-	return application.Transactional(c.db, func(appl application.Application) error {
-		tracker, err := appl.Trackers().Load(ctx.Context, ctx.ID)
+	var trkr *remoteworkitem.Tracker
+	err := application.Transactional(c.db, func(appl application.Application) error {
+		var err error
+		trkr, err = appl.Trackers().Load(ctx.Context, ctx.ID)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"err":        err,
 				"tracker_id": ctx.ID,
 			}, "unable to load the tracker by ID")
-			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		result := &app.TrackerSingle{
-			Data: convertTracker(appl, ctx.Request, *tracker),
-		}
-		return ctx.OK(result)
+		return err
 	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	result := &app.TrackerSingle{
+		Data: ConvertTracker(ctx.Request, *trkr),
+	}
+	return ctx.OK(result)
 }
 
 // List runs the list action.
 func (c *TrackerController) List(ctx *app.ListTrackerContext) error {
-	return application.Transactional(c.db, func(appl application.Application) error {
-		trackers, err := appl.Trackers().List(ctx)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
-		res := &app.TrackerList{}
-		res.Data = ConvertTrackers(appl, ctx.Request, trackers)
-		return ctx.OK(res)
+	var trkrs []remoteworkitem.Tracker
+	err := application.Transactional(c.db, func(appl application.Application) error {
+		var err error
+		trkrs, err = appl.Trackers().List(ctx)
+		return err
 	})
-
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	res := &app.TrackerList{}
+	res.Data = ConvertTrackers(ctx.Request, trkrs)
+	return ctx.OK(res)
 }
 
 // ConvertTrackers from internal to external REST representation
-func ConvertTrackers(appl application.Application, request *http.Request, trackers []remoteworkitem.Tracker) []*app.Tracker {
+func ConvertTrackers(request *http.Request, trackers []remoteworkitem.Tracker) []*app.Tracker {
 	var ls = []*app.Tracker{}
 	for _, i := range trackers {
-		ls = append(ls, convertTracker(appl, request, i))
+		ls = append(ls, ConvertTracker(request, i))
 	}
 	return ls
 }
@@ -145,33 +152,31 @@ func (c *TrackerController) Update(ctx *app.UpdateTrackerContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	result := application.Transactional(c.db, func(appl application.Application) error {
-		t, err := appl.Trackers().Load(ctx.Context, *ctx.Payload.Data.ID)
+	var trkr *remoteworkitem.Tracker
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		trkr, err = appl.Trackers().Load(ctx.Context, *ctx.Payload.Data.ID)
 		if err != nil {
 			return err
 		}
 		if &ctx.Payload.Data.Attributes.URL != nil {
-			t.URL = ctx.Payload.Data.Attributes.URL
+			trkr.URL = ctx.Payload.Data.Attributes.URL
 		}
 		if &ctx.Payload.Data.Attributes.Type != nil {
-			t.Type = ctx.Payload.Data.Attributes.Type
+			trkr.Type = ctx.Payload.Data.Attributes.Type
 		}
-		_, err = appl.Trackers().Save(ctx.Context, t)
-		if err != nil {
-			return err
-		}
-		res := &app.TrackerSingle{
-			Data: convertTracker(appl, ctx.Request, *t),
-		}
-		return ctx.OK(res)
+		_, err = appl.Trackers().Save(ctx.Context, trkr)
+		return err
 	})
 	accessTokens := GetAccessTokens(c.configuration) //configuration.GetGithubAuthToken()
 	c.scheduler.ScheduleAllQueries(ctx, accessTokens)
-	return result
+	res := &app.TrackerSingle{
+		Data: ConvertTracker(ctx.Request, *trkr),
+	}
+	return ctx.OK(res)
 }
 
 // ConvertTracker converts from internal to external REST representation
-func convertTracker(appl application.Application, request *http.Request, tracker remoteworkitem.Tracker) *app.Tracker {
+func ConvertTracker(request *http.Request, tracker remoteworkitem.Tracker) *app.Tracker {
 	trackerStringType := remoteworkitem.APIStringTypeTrackers
 	selfURL := rest.AbsoluteURL(request, app.TrackerHref(tracker.ID))
 	t := &app.Tracker{

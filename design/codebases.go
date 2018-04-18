@@ -60,6 +60,7 @@ var workspace = a.Type("Workspace", func() {
 	})
 	a.Attribute("attributes", workspaceAttributes)
 	a.Attribute("links", workspaceLinks)
+	a.Attribute("relationships", workspaceRelationships)
 	a.Required("type", "attributes")
 })
 
@@ -75,8 +76,12 @@ var workspaceAttributes = a.Type("WorkspaceAttributes", func() {
 		a.Example("")
 	})
 	a.Attribute("status", d.String, "The workspace status", func() {
-		a.Example("STOPPED");
+		a.Example("STOPPED")
 	})
+})
+
+var workspaceRelationships = a.Type("WorkspaceRelations", func() {
+	a.Attribute("codebase", relationGeneric, "This defines the owning codebase")
 })
 
 var workspaceLinks = a.Type("WorkspaceLinks", func() {
@@ -136,6 +141,28 @@ var cheServerState = a.MediaType("CheServerState", func() {
 		a.Attribute("running")
 		a.Attribute("multiTenant")
 	})
+})
+
+var createWorkspace = a.MediaType("application/vnd.createworkspace+json", func() {
+	a.UseTrait("jsonapi-media-type")
+	a.TypeName("CreateWorkspace")
+	a.Description("Create Workspace")
+	a.Attributes(func() {
+		a.Attribute("data", createWorkspaceData)
+		a.Required("data")
+	})
+	a.View("default", func() {
+		a.Attribute("data")
+		a.Required("data")
+	})
+})
+
+var createWorkspaceData = a.Type("CreateWorkspaceData", func() {
+	a.Attribute("attributes", createWorkspaceDataAttributes, "Attributes of the workspace")
+})
+
+var createWorkspaceDataAttributes = a.Type("CreateWorkspaceDataAttributes", func() {
+	a.Attribute("branch", d.String, "The workspace branch")
 })
 
 // new version of "list" for migration
@@ -216,6 +243,7 @@ var _ = a.Resource("codebase", func() {
 		a.Params(func() {
 			a.Param("codebaseID", d.UUID, "Codebase Identifier")
 		})
+		a.OptionalPayload(createWorkspace)
 		a.Response(d.OK, func() {
 			a.Media(workspaceOpen)
 		})
@@ -308,5 +336,6 @@ var _ = a.Resource("space_codebases", func() {
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.Forbidden, JSONAPIErrors)
+		a.Response(d.Conflict, JSONAPIErrors)
 	})
 })

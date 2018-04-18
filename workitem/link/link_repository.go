@@ -7,6 +7,8 @@ import (
 	"hash/fnv"
 	"time"
 
+	"github.com/fabric8-services/fabric8-wit/closeable"
+
 	"github.com/fabric8-services/fabric8-wit/application/repository"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
@@ -39,10 +41,10 @@ type WorkItemLinkRepository interface {
 	DeleteRelatedLinks(ctx context.Context, wiID uuid.UUID, suppressorID uuid.UUID) error
 	Delete(ctx context.Context, ID uuid.UUID, suppressorID uuid.UUID) error
 	ListChildLinks(ctx context.Context, linkTypeID uuid.UUID, parentIDs ...uuid.UUID) (WorkItemLinkList, error)
-	ListWorkItemChildren(ctx context.Context, parentID uuid.UUID, start *int, limit *int) ([]workitem.WorkItem, uint64, error)
+	ListWorkItemChildren(ctx context.Context, parentID uuid.UUID, start *int, limit *int) ([]workitem.WorkItem, int, error)
 	WorkItemHasChildren(ctx context.Context, parentID uuid.UUID) (bool, error)
 	// GetAncestors returns all ancestors for the given work items.
-	GetAncestors(ctx context.Context, linkTypeID uuid.UUID, upToLevel int64, workItemIDs ...uuid.UUID) (ancestors AncestorList, err error)
+	GetAncestors(ctx context.Context, linkTypeID uuid.UUID, upToLevel int, workItemIDs ...uuid.UUID) (ancestors AncestorList, err error)
 }
 
 // NewWorkItemLinkRepository creates a work item link repository based on gorm
@@ -421,7 +423,7 @@ func (r *GormWorkItemLinkRepository) ListChildLinks(ctx context.Context, linkTyp
 }
 
 // ListWorkItemChildren get all child work items
-func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, parentID uuid.UUID, start *int, limit *int) ([]workitem.WorkItem, uint64, error) {
+func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, parentID uuid.UUID, start *int, limit *int) ([]workitem.WorkItem, int, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "children", "query"}, time.Now())
 	where := fmt.Sprintf(`
 	id in (
@@ -446,10 +448,10 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 	db = db.Select("count(*) over () as cnt2 , *").Order("execution_order desc")
 
 	rows, err := db.Rows()
+	defer closeable.Close(ctx, rows)
 	if err != nil {
 		return nil, 0, err
 	}
-	defer rows.Close()
 	result := []workitem.WorkItemStorage{}
 
 	columns, err := rows.Columns()
@@ -457,7 +459,7 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 		return nil, 0, errors.NewInternalError(ctx, err)
 	}
 
-	var count uint64
+	var count int
 	var ignore interface{}
 	columnValues := make([]interface{}, len(columns))
 
@@ -486,7 +488,7 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 		// total
 		db := db.Select("count(*)")
 		rows2, err := db.Rows()
-		defer rows2.Close()
+		defer closeable.Close(ctx, rows2)
 		if err != nil {
 			return nil, 0, errs.WithStack(err)
 		}
@@ -496,7 +498,7 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 
 	res := make([]workitem.WorkItem, len(result))
 	for index, value := range result {
-		wiType, err := r.workItemTypeRepo.LoadTypeFromDB(ctx, value.Type)
+		wiType, err := r.workItemTypeRepo.Load(ctx, value.Type)
 		if err != nil {
 			return nil, 0, errors.NewInternalError(ctx, err)
 		}
@@ -532,7 +534,7 @@ func (r *GormWorkItemLinkRepository) WorkItemHasChildren(ctx context.Context, pa
 	if err != nil {
 		return false, errs.Wrapf(err, "failed prepare statement: %s", query)
 	}
-	defer stmt.Close()
+	defer closeable.Close(ctx, stmt)
 	err = stmt.QueryRow(parentID.String()).Scan(&hasChildren)
 	if err != nil {
 		return false, errs.Wrapf(err, "failed to check if work item %s has children: %s", parentID.String(), query)
@@ -547,7 +549,7 @@ func (r *GormWorkItemLinkRepository) WorkItemHasChildren(ctx context.Context, pa
 // NOTE: In case the given link type doesn't have a tree topology a work item
 // might have more than one root item. That is why the root IDs is keyed by the
 // the given work item and mapped to an array of root IDs.
-func (r *GormWorkItemLinkRepository) GetAncestors(ctx context.Context, linkTypeID uuid.UUID, upToLevel int64, workItemIDs ...uuid.UUID) (ancestors AncestorList, err error) {
+func (r *GormWorkItemLinkRepository) GetAncestors(ctx context.Context, linkTypeID uuid.UUID, upToLevel int, workItemIDs ...uuid.UUID) (ancestors AncestorList, err error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitemlink", "get", "ancestors"}, time.Now())
 
 	if len(workItemIDs) < 1 {

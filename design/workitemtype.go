@@ -41,6 +41,7 @@ var workItemTypeAttributes = a.Type("WorkItemTypeAttributes", func() {
 	a.Attribute("description", d.String, "A human readable description for the work item type", func() {
 		a.Example(`A user story encapsulates the action of one function making it possible for software developers to create a vertical slice of their work.`)
 	})
+	a.Attribute("can-construct", d.Boolean, "Whether or not this work item type is supposed to be used for creating work items directly.")
 	a.Attribute("fields", a.HashOf(d.String, fieldDefinition), "Definitions of fields in this work item type", func() {
 		a.Example(map[string]interface{}{
 			"system.administrator": map[string]interface{}{
@@ -112,8 +113,8 @@ var workItemTypeSingle = JSONSingle(
 	workItemTypeLinks)
 
 var _ = a.Resource("workitemtype", func() {
-	a.Parent("space")
 	a.BasePath("/workitemtypes")
+
 	a.Action("show", func() {
 		a.Routing(
 			a.GET("/:witID"),
@@ -129,34 +130,22 @@ var _ = a.Resource("workitemtype", func() {
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
-	a.Action("create", func() {
-		a.Security("jwt")
-		a.Routing(
-			a.POST(""),
-		)
-		a.Description("Create work item type.")
-		a.Payload(workItemTypeSingle)
-		a.Response(d.Created, "/workitemtypes/.*", func() {
-			a.Media(workItemTypeSingle)
-		})
-		a.Response(d.BadRequest, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-		a.Response(d.Unauthorized, JSONAPIErrors)
-		a.Response(d.Forbidden, JSONAPIErrors)
-	})
+})
+
+var _ = a.Resource("workitemtypes", func() {
+	a.Parent("space")
+	a.BasePath("/workitemtypes")
+
 	a.Action("list", func() {
 		a.Routing(
 			a.GET(""),
 		)
 		a.Description("List work item types.")
-		a.Params(func() {
-			a.Param("page", d.String, "Paging in the format <start>,<limit>")
-			// TODO: Support same params as in work item list-action?
-		})
 		a.UseTrait("conditional")
 		a.Response(d.OK, workItemTypeList)
 		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 })

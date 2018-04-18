@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"net/http"
 	"os"
@@ -8,13 +9,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/google/gops/agent"
-	"github.com/prometheus/client_golang/prometheus"
-
-	"context"
-
-	"github.com/jinzhu/gorm"
-	_ "github.com/lib/pq"
+	"github.com/fabric8-services/fabric8-wit/closeable"
 
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
@@ -27,10 +22,12 @@ import (
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/login"
+	"github.com/fabric8-services/fabric8-wit/metric"
 	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/models"
 	"github.com/fabric8-services/fabric8-wit/notification"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
+	"github.com/fabric8-services/fabric8-wit/sentry"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/space/authz"
 	"github.com/fabric8-services/fabric8-wit/token"
@@ -42,6 +39,10 @@ import (
 	"github.com/goadesign/goa/middleware"
 	"github.com/goadesign/goa/middleware/gzip"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
+	"github.com/google/gops/agent"
+	"github.com/jinzhu/gorm"
+	_ "github.com/lib/pq"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
@@ -86,6 +87,18 @@ func main() {
 	// Initialized developer mode flag and log level for the logger
 	log.InitializeLogger(config.IsLogJSON(), config.GetLogLevel())
 
+	// Initialize sentry client
+	haltSentry, err := sentry.InitializeSentryClient(
+		sentry.WithRelease(controller.Commit),
+		sentry.WithEnvironment(config.GetEnvironment()),
+	)
+	if err != nil {
+		log.Panic(nil, map[string]interface{}{
+			"err": err,
+		}, "failed to setup the sentry client")
+	}
+	defer haltSentry()
+
 	printUserInfo()
 
 	var db *gorm.DB
@@ -97,7 +110,7 @@ func main() {
 			log.Logger().Infof("Retrying to connect in %v...", config.GetPostgresConnectionRetrySleep())
 			time.Sleep(config.GetPostgresConnectionRetrySleep())
 		} else {
-			defer db.Close()
+			defer closeable.Close(context.Background(), db)
 			break
 		}
 	}
@@ -199,6 +212,8 @@ func main() {
 	spaceAuthzService := authz.NewAuthzService(config)
 	service.Use(authz.InjectAuthzService(spaceAuthzService))
 
+	service.Use(metric.Recorder())
+
 	loginService := login.NewKeycloakOAuthProvider(identityRepository, userRepository, tokenManager, appDB)
 	loginCtrl := controller.NewLoginController(service, loginService, config, identityRepository)
 	app.MountLoginController(service, loginCtrl)
@@ -228,6 +243,10 @@ func main() {
 	workitemtypeCtrl := controller.NewWorkitemtypeController(service, appDB, config)
 	app.MountWorkitemtypeController(service, workitemtypeCtrl)
 
+	// Mount "workitemtypes" controller
+	workitemtypesCtrl := controller.NewWorkitemtypesController(service, appDB, config)
+	app.MountWorkitemtypesController(service, workitemtypesCtrl)
+
 	// Mount "work item link category" controller
 	workItemLinkCategoryCtrl := controller.NewWorkItemLinkCategoryController(service, appDB)
 	app.MountWorkItemLinkCategoryController(service, workItemLinkCategoryCtrl)
@@ -235,6 +254,10 @@ func main() {
 	// Mount "work item link type" controller
 	workItemLinkTypeCtrl := controller.NewWorkItemLinkTypeController(service, appDB, config)
 	app.MountWorkItemLinkTypeController(service, workItemLinkTypeCtrl)
+
+	// Mount "work item link types" controller
+	workItemLinkTypesCtrl := controller.NewWorkItemLinkTypesController(service, appDB, config)
+	app.MountWorkItemLinkTypesController(service, workItemLinkTypesCtrl)
 
 	// Mount "work item link" controller
 	workItemLinkCtrl := controller.NewWorkItemLinkController(service, appDB, config)
@@ -401,11 +424,11 @@ func main() {
 
 	// Start/mount metrics http
 	if config.GetHTTPAddress() == config.GetMetricsHTTPAddress() {
-		http.Handle("/metrics", prometheus.Handler())
+		http.Handle("/metrics", promhttp.Handler())
 	} else {
 		go func(metricAddress string) {
 			mx := http.NewServeMux()
-			mx.Handle("/metrics", prometheus.Handler())
+			mx.Handle("/metrics", promhttp.Handler())
 			if err := http.ListenAndServe(metricAddress, mx); err != nil {
 				log.Error(nil, map[string]interface{}{
 					"addr": metricAddress,

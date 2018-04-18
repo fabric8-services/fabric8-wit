@@ -164,23 +164,39 @@ func TestRunCodebaseRepository(t *testing.T) {
 
 func (test *TestCodebaseRepository) TestListCodebases() {
 	// given
+	repoUrls := []string{
+		"git@github.com:fabric8-services/fabric8-wit.git",
+		"git@github.com:aslakknutsen/fabric8-wit.git",
+	}
 	fxt := tf.NewTestFixture(test.T(), test.DB,
 		tf.Codebases(2, func(fxt *tf.TestFixture, idx int) error {
-			fxt.Codebases[idx].URL = "git@github.com:fabric8-services/fabric8-wit.git"
+			fxt.Codebases[idx].URL = repoUrls[0]
 			if idx == 1 {
-				fxt.Codebases[idx].URL = "git@github.com:aslakknutsen/fabric8-wit.git"
+				fxt.Codebases[idx].URL = repoUrls[1]
 			}
 			return nil
 		}),
 	)
 	// when
 	offset := 0
-	limit := 1
+	limit := 2
 	codebases, _, err := codebase.NewCodebaseRepository(test.DB).List(context.Background(), fxt.Codebases[0].SpaceID, &offset, &limit)
 	// then
 	require.NoError(test.T(), err)
-	require.Len(test.T(), codebases, 1)
-	require.Equal(test.T(), fxt.Codebases[0].URL, codebases[0].URL)
+	require.Len(test.T(), codebases, 2)
+
+	// convert the urls slice to map
+	expectedURLs := make(map[string]interface{})
+	for _, u := range repoUrls {
+		expectedURLs[u] = nil
+	}
+
+	// delete the URL we got in result from expectedURLs
+	for _, v := range codebases {
+		delete(expectedURLs, v.URL)
+	}
+	// we need to make sure we found all the URLs that we sent while creation
+	assert.Empty(test.T(), expectedURLs)
 }
 
 func (test *TestCodebaseRepository) TestExistsCodebase() {

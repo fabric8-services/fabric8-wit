@@ -119,10 +119,18 @@ func TestConvertTypeFromModel(t *testing.T) {
 func TestConvertFieldTypes(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
+
 	types := []workitem.FieldType{
 		workitem.SimpleType{Kind: workitem.KindInteger},
-		workitem.ListType{workitem.SimpleType{Kind: workitem.KindList}, workitem.SimpleType{Kind: workitem.KindString}},
-		workitem.EnumType{workitem.SimpleType{Kind: workitem.KindEnum}, workitem.SimpleType{Kind: workitem.KindString}, []interface{}{"foo", "bar"}},
+		workitem.ListType{
+			SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
+			ComponentType: workitem.SimpleType{Kind: workitem.KindString},
+		},
+		workitem.EnumType{
+			SimpleType: workitem.SimpleType{Kind: workitem.KindEnum},
+			BaseType:   workitem.SimpleType{Kind: workitem.KindString},
+			Values:     []interface{}{"foo", "bar"},
+		},
 	}
 
 	for _, theType := range types {
@@ -134,8 +142,8 @@ func TestConvertFieldTypes(t *testing.T) {
 }
 
 func testConvertFieldType(original workitem.FieldType) error {
-	converted := convertFieldTypeFromModel(original)
-	reconverted, _ := convertFieldTypeToModel(converted)
+	converted := ConvertFieldTypeFromModel(original)
+	reconverted, _ := ConvertFieldTypeToModel(converted)
 	if !reflect.DeepEqual(original, reconverted) {
 		return fmt.Errorf("reconverted should be %v, but is %v", original, reconverted)
 	}
@@ -163,6 +171,6 @@ func TestConvertFieldTypeToModel(t *testing.T) {
 		Kind:     "DefinitivelyNotAType",
 		Values:   typeEnum,
 	}
-	_, err := convertFieldTypeToModel(app.FieldType{Kind: "DefinitivelyNotAType"})
+	_, err := ConvertFieldTypeToModel(app.FieldType{Kind: "DefinitivelyNotAType"})
 	assert.NotNil(t, err)
 }

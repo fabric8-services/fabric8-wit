@@ -70,8 +70,15 @@ var simpleDeploymentAttributes = a.Type("SimpleDeploymentAttributes", func() {
 	a.Attribute("version", d.String)
 	a.Attribute("pods", a.ArrayOf(a.ArrayOf(d.String)))
 	a.Attribute("pod_total", d.Integer)
+	a.Attribute("pods_quota", podsQuota)
 	a.Required("name")
 	a.Required("pods")
+})
+
+var podsQuota = a.Type("PodsQuota", func() {
+	a.Description(`resource quotas for pods of a deployment`)
+	a.Attribute("cpucores", d.Number)
+	a.Attribute("memory", d.Number)
 })
 
 var simpleEnvironment = a.Type("SimpleEnvironment", func() {
@@ -148,36 +155,10 @@ var simpleSpaceSingle = JSONSingle(
 	simpleSpace,
 	nil)
 
-var simpleAppSingle = JSONSingle(
-	"SimpleApplication", "Holds a single response to a space/application request",
-	simpleApp,
-	nil)
-
-var simpleEnvironmentSingle = JSONSingle(
-	"SimpleEnvironment", "Holds a single response to a space/environment request",
-	simpleEnvironment,
-	nil)
-
 var simpleEnvironmentMultiple = JSONList(
 	"SimpleEnvironment", "Holds a response to a space/environment request",
 	simpleEnvironment,
 	nil,
-	nil)
-
-var simplePod = a.Type("SimplePod", func() {
-	a.Description("wrapper for a kubernetes Pod")
-	a.Attribute("pod", d.Any)
-})
-
-var simplePodMultiple = JSONList(
-	"SimplePod", "Holds a list of pods",
-	simplePod,
-	nil,
-	nil)
-
-var simpleDeploymentSingle = JSONSingle(
-	"SimpleDeployment", "Holds a single response to a space/application/deployment request",
-	simpleDeployment,
 	nil)
 
 var simpleDeploymentStatsSingle = JSONSingle(
@@ -186,13 +167,8 @@ var simpleDeploymentStatsSingle = JSONSingle(
 	nil)
 
 var simpleDeploymentStatSeriesSingle = JSONSingle(
-	"SimpleDeploymentStatSeries", "HOlds a response to a stat series query",
+	"SimpleDeploymentStatSeries", "Holds a response to a stat series query",
 	simpleDeploymentStatSeries,
-	nil)
-
-var simpleEnvironmentStatSingle = JSONSingle(
-	"EnvStats", "Holds a single response to a pipeline/stats request",
-	envStats,
 	nil)
 
 var _ = a.Resource("deployments", func() {
@@ -210,37 +186,6 @@ var _ = a.Resource("deployments", func() {
 			a.Param("spaceID", d.UUID, "ID of the space")
 		})
 		a.Response(d.OK, simpleSpaceSingle)
-		a.Response(d.Unauthorized, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-		a.Response(d.NotFound, JSONAPIErrors)
-	})
-
-	a.Action("showSpaceApp", func() {
-		a.Routing(
-			a.GET("/spaces/:spaceID/applications/:appName"),
-		)
-		a.Description("list application")
-		a.Params(func() {
-			a.Param("spaceID", d.UUID, "ID of the space")
-			a.Param("appName", d.String, "Name of the application")
-		})
-		a.Response(d.OK, simpleAppSingle)
-		a.Response(d.Unauthorized, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-		a.Response(d.NotFound, JSONAPIErrors)
-	})
-
-	a.Action("showSpaceAppDeployment", func() {
-		a.Routing(
-			a.GET("/spaces/:spaceID/applications/:appName/deployments/:deployName"),
-		)
-		a.Description("list deployment")
-		a.Params(func() {
-			a.Param("spaceID", d.UUID, "ID of the space")
-			a.Param("appName", d.String, "Name of the application")
-			a.Param("deployName", d.String, "Name of the deployment")
-		})
-		a.Response(d.OK, simpleDeploymentSingle)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
@@ -299,6 +244,22 @@ var _ = a.Resource("deployments", func() {
 		a.Response(d.NotFound, JSONAPIErrors)
 	})
 
+	a.Action("deleteDeployment", func() {
+		a.Routing(
+			a.DELETE("/spaces/:spaceID/applications/:appName/deployments/:deployName"),
+		)
+		a.Description("Delete a deployment of an application")
+		a.Params(func() {
+			a.Param("spaceID", d.UUID, "ID of the space")
+			a.Param("appName", d.String, "Name of the application")
+			a.Param("deployName", d.String, "Name of the deployment")
+		})
+		a.Response(d.OK)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+	})
+
 	a.Action("showSpaceEnvironments", func() {
 		a.Routing(
 			a.GET("/spaces/:spaceID/environments"),
@@ -312,36 +273,4 @@ var _ = a.Resource("deployments", func() {
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 	})
-
-	a.Action("showEnvironment", func() {
-		a.Routing(
-			a.GET("/environments/:envName"),
-		)
-		a.Description("list environment")
-		a.Params(func() {
-			a.Param("envName", d.String, "Name of the environment")
-		})
-		a.Response(d.OK, simpleEnvironmentSingle)
-		a.Response(d.Unauthorized, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-		a.Response(d.NotFound, JSONAPIErrors)
-	})
-
-	a.Action("showEnvAppPods", func() {
-		a.Routing(
-			a.GET("/environments/:envName/applications/:appName/pods"),
-		)
-		a.Description("list application pods")
-		a.Params(func() {
-			a.Param("envName", d.String, "Name of the environment")
-			a.Param("appName", d.String, "Name of the application")
-		})
-		// TODO - find a way to use predefined structs in goa DSL
-		// until then, hand code JSON response here instead of []v1.Pod
-		a.Response(d.OK, "application/json")
-		a.Response(d.Unauthorized, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-		a.Response(d.NotFound, JSONAPIErrors)
-	})
-
 })

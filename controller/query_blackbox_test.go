@@ -77,8 +77,6 @@ func getQueryCreatePayload(title string, qs *string) *app.CreateQueryPayload {
 }
 
 func (rest *TestQueryREST) TestCreate() {
-	resetFn := rest.DisableGormCallbacks()
-	defer resetFn()
 
 	rest.T().Run("success", func(t *testing.T) {
 		t.Run("ok", func(t *testing.T) {
@@ -91,9 +89,9 @@ func (rest *TestQueryREST) TestCreate() {
 			// then
 			require.NotNil(t, created)
 			require.Equal(t, fxt.Identities[0].ID.String(), *created.Data.Relationships.Creator.Data.ID)
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create.res.query.golden.json"), created)
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create.headers.golden.json"), resp.Header())
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create.req.payload.golden.json"), cq)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create.res.query.golden.json"), created)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create.headers.golden.json"), resp.Header())
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create.req.payload.golden.json"), cq)
 		})
 		t.Run("same title with different spaceID", func(t *testing.T) {
 			fxt := tf.NewTestFixture(t, rest.DB,
@@ -106,9 +104,9 @@ func (rest *TestQueryREST) TestCreate() {
 			// then
 			require.NotNil(t, created)
 			require.Equal(t, fxt.Identities[0].ID.String(), *created.Data.Relationships.Creator.Data.ID)
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create.res.query.golden.json"), created)
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create.headers.golden.json"), resp.Header())
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create.req.payload.golden.json"), cq)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create.res.query.golden.json"), created)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create.headers.golden.json"), resp.Header())
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create.req.payload.golden.json"), cq)
 		})
 		t.Run("same object after delete", func(t *testing.T) {
 			queryTitle := "query 1"
@@ -128,9 +126,9 @@ func (rest *TestQueryREST) TestCreate() {
 			// then
 			require.NotNil(t, created)
 			require.Equal(t, fxt.Identities[0].ID.String(), *created.Data.Relationships.Creator.Data.ID)
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create.res.query.golden.json"), created)
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create.headers.golden.json"), resp.Header())
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create.req.payload.golden.json"), cq)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create.res.query.golden.json"), created)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create.headers.golden.json"), resp.Header())
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok_create.req.payload.golden.json"), cq)
 		})
 	})
 
@@ -148,6 +146,14 @@ func (rest *TestQueryREST) TestCreate() {
 				tf.CreateWorkItemEnvironment())
 			cq := getQueryCreatePayload("query 1", nil)
 			cq.Data.Attributes.Fields = `{"invalid: json"}`
+			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+			// when
+			test.CreateQueryBadRequest(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, cq)
+		})
+		t.Run("invalid query - empty title", func(t *testing.T) {
+			fxt := tf.NewTestFixture(t, rest.DB,
+				tf.CreateWorkItemEnvironment())
+			cq := getQueryCreatePayload(" ", nil)
 			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 			// when
 			test.CreateQueryBadRequest(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, cq)
@@ -173,8 +179,6 @@ func (rest *TestQueryREST) TestCreate() {
 }
 
 func (rest *TestQueryREST) TestList() {
-	resetFn := rest.DisableGormCallbacks()
-	defer resetFn()
 
 	rest.T().Run("success", func(t *testing.T) {
 		t.Run("ok", func(t *testing.T) {
@@ -239,8 +243,6 @@ func (rest *TestQueryREST) TestList() {
 }
 
 func (rest *TestQueryREST) TestShow() {
-	resetFn := rest.DisableGormCallbacks()
-	defer resetFn()
 
 	rest.T().Run("success", func(t *testing.T) {
 		t.Run("ok with identity", func(t *testing.T) {
@@ -253,8 +255,8 @@ func (rest *TestQueryREST) TestShow() {
 			resp, queryObj := test.ShowQueryOK(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, q.ID, nil, nil)
 			// then
 			require.NotNil(t, queryObj)
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "show", "ok_show.res.query.golden.json"), queryObj)
-			compareWithGoldenUUIDAgnostic(t, filepath.Join(rest.testDir, "show", "ok_show.headers.golden.json"), resp.Header())
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "ok_show.res.query.golden.json"), queryObj)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "ok_show.headers.golden.json"), resp.Header())
 		})
 	})
 
@@ -301,8 +303,6 @@ func (rest *TestQueryREST) TestShow() {
 }
 
 func (rest *TestQueryREST) TestDelete() {
-	resetFn := rest.DisableGormCallbacks()
-	defer resetFn()
 
 	rest.T().Run("success", func(t *testing.T) {
 		t.Run("ok with identity", func(t *testing.T) {

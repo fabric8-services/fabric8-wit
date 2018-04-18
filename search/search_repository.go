@@ -9,6 +9,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/fabric8-services/fabric8-wit/closeable"
+
 	"github.com/asaskevich/govalidator"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/fabric8-services/fabric8-wit/criteria"
@@ -36,6 +38,9 @@ const (
 	SUBSTR   = "$SUBSTR"
 	WITGROUP = "$WITGROUP"
 	OPTS     = "$OPTS"
+
+	// This is the replacement for $WITGROUP in the upcoming changes.
+	TypeGroupName = "typegroup.name"
 
 	OptParentExistsKey = "parent-exists"
 	OptTreeViewKey     = "tree-view"
@@ -391,6 +396,7 @@ var searchKeyMap = map[string]string{
 	"type":         "Type",
 	"workitemtype": "Type", // same as 'type' - added for compatibility. (Ref. #1564)
 	"space":        "SpaceID",
+	"number":       "Number",
 }
 
 func (q Query) determineLiteralType(key string, val string) criteria.Expression {
@@ -402,32 +408,34 @@ func (q Query) determineLiteralType(key string, val string) criteria.Expression 
 	}
 }
 
-// handleWitGroup Here we handle the "$WITGROUP" query parameter which we translate from a
-// simple
+// handleWitGroup Here we handle the "$WITGROUP" and "typegroup.name" query
+// parameter which we translate from a simple
 //
-// "$WITGROUP = y"
+// "$WITGROUP = y" or "typegroup.name = y"
 //
 // expression into an
 //
 // "Type in (y1, y2, y3, ... ,yn)"
 //
-// expression where yi represents the i-th work item type associated with
-// the work item type group y.
+// expression where yi represents the i-th work item type associated with the
+// work item type group y.
 func handleWitGroup(q Query, expArr *[]criteria.Expression) error {
-	if q.Name != WITGROUP {
+	if q.Name != WITGROUP && q.Name != TypeGroupName {
 		return nil
 	}
 	if expArr == nil {
 		return errs.New("expression array must not be nil")
 	}
 
+	paramName := q.Name
+
 	typeGroupName := q.Value
 	if typeGroupName == nil {
-		return errors.NewBadParameterError(WITGROUP, typeGroupName).Expected("not nil")
+		return errors.NewBadParameterError(paramName, typeGroupName).Expected("not nil")
 	}
 	typeGroup := workitem.TypeGroupByName(*typeGroupName)
 	if typeGroup == nil {
-		return errors.NewBadParameterError(WITGROUP, *typeGroupName).Expected("existing " + WITGROUP)
+		return errors.NewBadParameterError(paramName, *typeGroupName).Expected("existing " + paramName)
 	}
 	var e criteria.Expression
 	if !q.Negate {
@@ -463,7 +471,7 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 	var myexpr []criteria.Expression
 	currentOperator := q.Name
 
-	if q.Name == WITGROUP {
+	if q.Name == WITGROUP || q.Name == TypeGroupName {
 		err := handleWitGroup(q, &myexpr)
 		if err != nil {
 			return nil, errs.Wrap(err, "failed to handle hierarchy in top-level element")
@@ -509,10 +517,10 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 				return nil, err
 			}
 			myexpr = append(myexpr, exp)
-		} else if child.Name == WITGROUP {
+		} else if child.Name == WITGROUP || child.Name == TypeGroupName {
 			err := handleWitGroup(child, &myexpr)
 			if err != nil {
-				return nil, errs.Wrap(err, "failed to handle "+WITGROUP+" in child element")
+				return nil, errs.Wrap(err, "failed to handle "+child.Name+" in child element")
 			}
 		} else {
 			key, ok := searchKeyMap[child.Name]
@@ -616,7 +624,7 @@ func generateSQLSearchInfo(keywords searchKeyword) (sqlParameter string) {
 
 // extracted this function from List() in order to close the rows object with "defer" for more readability
 // workaround for https://github.com/lib/pq/issues/81
-func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParameter string, workItemTypes []uuid.UUID, start *int, limit *int, spaceID *string) ([]workitem.WorkItemStorage, uint64, error) {
+func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParameter string, workItemTypes []uuid.UUID, start *int, limit *int, spaceID *string) ([]workitem.WorkItemStorage, int, error) {
 	db := r.db.Model(workitem.WorkItemStorage{}).Where("tsv @@ query")
 	if start != nil {
 		if *start < 0 {
@@ -647,10 +655,10 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 	db = db.Order(fmt.Sprintf("rank desc,%s.updated_at desc", workitem.WorkItemStorage{}.TableName()))
 
 	rows, err := db.Rows()
+	defer closeable.Close(ctx, rows)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
 	}
-	defer rows.Close()
 
 	result := []workitem.WorkItemStorage{}
 	value := workitem.WorkItemStorage{}
@@ -663,7 +671,7 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 	}
 
 	// need to set up a result for Scan() in order to extract total count.
-	var count uint64
+	var count int
 	var ignore interface{}
 	columnValues := make([]interface{}, len(columns))
 
@@ -697,7 +705,7 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 }
 
 // SearchFullText Search returns work items for the given query
-func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchString string, start *int, limit *int, spaceID *string) ([]workitem.WorkItem, uint64, error) {
+func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchString string, start *int, limit *int, spaceID *string) ([]workitem.WorkItem, int, error) {
 	// parse
 	// generateSearchQuery
 	// ....
@@ -718,7 +726,7 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 	for index, value := range rows {
 		var err error
 		// FIXME: Against best practice http://go-database-sql.org/retrieving.html
-		wiType, err := r.witr.LoadTypeFromDB(ctx, value.Type)
+		wiType, err := r.witr.Load(ctx, value.Type)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"err": err,
@@ -727,7 +735,7 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 			spew.Dump(value)
 			return nil, 0, errors.NewInternalError(ctx, errs.Wrap(err, "failed to load work item type"))
 		}
-		wiModel, err := wiType.ConvertWorkItemStorageToModel(value)
+		wiModel, err := workitem.ConvertWorkItemStorageToModel(wiType, &value)
 		if err != nil {
 			return nil, 0, errors.NewConversionError(err.Error())
 		}
@@ -737,7 +745,7 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 	return result, count, nil
 }
 
-func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria criteria.Expression, parentExists *bool, start *int, limit *int) ([]workitem.WorkItemStorage, uint64, error) {
+func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria criteria.Expression, parentExists *bool, start *int, limit *int) ([]workitem.WorkItemStorage, int, error) {
 	where, parameters, joins, compileError := workitem.Compile(criteria)
 	if compileError != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -781,10 +789,10 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 	db = db.Select("count(*) over () as cnt2 , *").Order("execution_order desc")
 
 	rows, err := db.Rows()
+	defer closeable.Close(ctx, rows)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
 	}
-	defer rows.Close()
 
 	result := []workitem.WorkItemStorage{}
 	columns, err := rows.Columns()
@@ -796,7 +804,7 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 	}
 
 	// need to set up a result for Scan() in order to extract total count.
-	var count uint64
+	var count int
 	var ignore interface{}
 	columnValues := make([]interface{}, len(columns))
 
@@ -826,7 +834,7 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 		// need to do a count(*) to find out total
 		orgDB := orgDB.Select("count(*)")
 		rows2, err := orgDB.Rows()
-		defer rows2.Close()
+		defer closeable.Close(ctx, rows2)
 		if err != nil {
 			return nil, 0, errs.WithStack(err)
 		}
@@ -842,7 +850,7 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 // order to list the parent of each matching work item up to its root work item.
 // The child links are there in order to know what siblings to load for matching
 // work items.
-func (r *GormSearchRepository) Filter(ctx context.Context, rawFilterString string, parentExists *bool, start *int, limit *int) (matches []workitem.WorkItem, count uint64, ancestors link.AncestorList, childLinks link.WorkItemLinkList, err error) {
+func (r *GormSearchRepository) Filter(ctx context.Context, rawFilterString string, parentExists *bool, start *int, limit *int) (matches []workitem.WorkItem, count int, ancestors link.AncestorList, childLinks link.WorkItemLinkList, err error) {
 	// parse
 	// generateSearchQuery
 	// ....
@@ -917,7 +925,7 @@ func (r *GormSearchRepository) Filter(ctx context.Context, rawFilterString strin
 
 	matches = make([]workitem.WorkItem, len(result))
 	for index, value := range result {
-		wiType, err := r.witr.LoadTypeFromDB(ctx, value.Type)
+		wiType, err := r.witr.Load(ctx, value.Type)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"err": err,

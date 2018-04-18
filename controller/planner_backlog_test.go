@@ -56,7 +56,7 @@ func (rest *TestPlannerBacklogREST) setupPlannerBacklogWorkItems() (testSpace *s
 		require.NotNil(rest.T(), testSpace.ID)
 		log.Info(nil, map[string]interface{}{"space_id": testSpace.ID}, "created space")
 		workitemTypesRepo := app.WorkItemTypes()
-		workitemType, err := workitemTypesRepo.Create(rest.Ctx, testSpace.ID, nil, &workitem.SystemPlannerItem, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
+		workitemType, err := workitemTypesRepo.Create(rest.Ctx, testSpace.ID, nil, &workitem.SystemPlannerItem, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{}, true)
 		require.NoError(rest.T(), err)
 		log.Info(nil, map[string]interface{}{"wit_id": workitemType.ID}, "created workitem type")
 

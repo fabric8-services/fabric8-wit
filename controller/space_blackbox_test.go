@@ -554,8 +554,6 @@ func (s *SpaceControllerTestSuite) TestUpdateSpace() {
 func (s *SpaceControllerTestSuite) TestShowSpace() {
 
 	// needed to valid comparison with golden files
-	resetFn := s.DisableGormCallbacks()
-	defer resetFn()
 
 	s.T().Run("ok", func(t *testing.T) {
 		// given
@@ -570,7 +568,7 @@ func (s *SpaceControllerTestSuite) TestShowSpace() {
 		eTag, lastModified, _ := assertResponseHeaders(t, res)
 		assert.Equal(t, app.ToHTTPTime(getSpaceUpdatedAt(*created)), lastModified)
 		assert.Equal(t, generateSpaceTag(*created), eTag)
-		compareWithGoldenUUIDAgnostic(t, filepath.Join(s.testDir, "show_space_ok.golden.json"), fetched)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show_space_ok.golden.json"), fetched)
 	})
 
 	s.T().Run("conditional request", func(t *testing.T) {
