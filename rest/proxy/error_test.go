@@ -1,7 +1,6 @@
 package proxy_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/errors"
