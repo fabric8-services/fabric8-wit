@@ -298,7 +298,7 @@ func (rest *TestAreaREST) TestShowChildrenArea() {
 		})
 
 		t.Run("Not Modified IfNoneMatch Header", func(t *testing.T) {
-			modelChildArea := convertAreaToModel(*childArea)
+			modelChildArea := ConvertAreaToModel(*childArea)
 			ifNoneMatch := app.GenerateEntityTag(modelChildArea)
 			res := test.ShowChildrenAreaNotModified(t, svc.Context, svc, ctrl, parentArea.ID.String(), nil, &ifNoneMatch)
 			res.Header().Set("Etag", "IGNORE_ME")
