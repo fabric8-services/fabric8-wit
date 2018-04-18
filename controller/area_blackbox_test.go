@@ -74,14 +74,14 @@ func (rest *TestAreaREST) TestCreateChildArea() {
 			// then
 			assert.Equal(t, *ca.Data.Attributes.Name, *created.Data.Attributes.Name)
 			assert.Equal(t, parentID.String(), *created.Data.Relationships.Parent.Data.ID)
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok.golden.json"), created)
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok.headers.golden.json"), resp.Header())
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok.res.golden.json"), created)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok.res.headers.golden.json"), resp.Header())
 			// try creating child area with different identity: should fail
 			otherIdentity := fxt.Identities[1]
 			svc, ctrl = rest.SecuredControllerWithIdentity(otherIdentity)
 			resp, err := test.CreateChildAreaForbidden(t, svc.Context, svc, ctrl, parentID.String(), ca)
-			compareWithGolden(t, filepath.Join(rest.testDir, "create", "forbidden.golden.json"), err)
-			compareWithGolden(t, filepath.Join(rest.testDir, "create", "failed.headers.golden.json"), resp.Header())
+			compareWithGolden(t, filepath.Join(rest.testDir, "create", "forbidden.res.golden.json"), err)
+			compareWithGolden(t, filepath.Join(rest.testDir, "create", "forbidden.res.headers.golden.json"), resp.Header())
 		})
 
 		t.Run("Multiple Children", func(t *testing.T) {
@@ -100,8 +100,8 @@ func (rest *TestAreaREST) TestCreateChildArea() {
 			// then
 			assert.Equal(t, *ca.Data.Attributes.Name, *created.Data.Attributes.Name)
 			assert.Equal(t, parentID.String(), *created.Data.Relationships.Parent.Data.ID)
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "multiple_child", "child1_ok.golden.json"), created)
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "multiple_child", "ok.headers.golden.json"), resp.Header())
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok.child1_ok.res.golden.json"), created)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok.res.headers.golden.json"), resp.Header())
 			// Create a child of the child created above.
 			ca = newCreateChildAreaPayload("TestSuccessCreateMultiChildArea-0-0")
 			newParentID := *created.Data.Relationships.Parent.Data.ID
@@ -110,8 +110,8 @@ func (rest *TestAreaREST) TestCreateChildArea() {
 			// then
 			assert.Equal(t, *ca.Data.Attributes.Name, *created.Data.Attributes.Name)
 			assert.Equal(t, newParentID, *created.Data.Relationships.Parent.Data.ID)
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "multiple_child", "child2_ok.golden.json"), created)
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "multiple_child", "ok.headers.golden.json"), resp.Header())
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok.child2_ok.res.golden.json"), created)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok.res.headers.golden.json"), resp.Header())
 		})
 	})
 
@@ -132,8 +132,8 @@ func (rest *TestAreaREST) TestCreateChildArea() {
 
 			// try creating the same area again
 			resp, errs := test.CreateChildAreaConflict(t, svc.Context, svc, ctrl, parentID.String(), childAreaPayload)
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "conflict.golden.json"), errs)
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "failed.headers.golden.json"), resp.Header())
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "conflict.res.golden.json"), errs)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "conflict.res.headers.golden.json"), resp.Header())
 		})
 
 		t.Run("Missing Name", func(t *testing.T) {
@@ -141,8 +141,8 @@ func (rest *TestAreaREST) TestCreateChildArea() {
 			childAreaPayload.Data.Attributes.Name = nil
 			// then
 			resp, errs := test.CreateChildAreaBadRequest(t, svc.Context, svc, ctrl, parentID.String(), childAreaPayload)
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "missing_name.golden.json"), errs)
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "failed.headers.golden.json"), resp.Header())
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "missing_name.res.golden.json"), errs)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "missing_name.res.headers.golden.json"), resp.Header())
 		})
 
 		t.Run("Invalid Parent", func(t *testing.T) {
@@ -152,8 +152,8 @@ func (rest *TestAreaREST) TestCreateChildArea() {
 			resp, errs := test.CreateChildAreaNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String(), createChildAreaPayload)
 			// Ignore error ID
 			errs.Errors[0].ID = ptr.String("IGNORE_ME")
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "invalid_parent.golden.json"), errs)
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "failed.headers.golden.json"), resp.Header())
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "invalid_parent.res.golden.json"), errs)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "invalid_parent.res.headers.golden.json"), resp.Header())
 		})
 
 		t.Run("Unauthorized", func(t *testing.T) {
@@ -163,8 +163,8 @@ func (rest *TestAreaREST) TestCreateChildArea() {
 			resp, errs := test.CreateChildAreaUnauthorized(t, svc.Context, svc, ctrl, parentID.String(), childAreaPayload)
 			// Ignore error ID
 			errs.Errors[0].ID = ptr.String("IGNORE_ME")
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized.golden.json"), errs)
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "failed.headers.golden.json"), resp.Header())
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized.res.golden.json"), errs)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized.res.headers.golden.json"), resp.Header())
 		})
 	})
 }
@@ -179,8 +179,8 @@ func (rest *TestAreaREST) TestShowArea() {
 			res, area := test.ShowAreaOK(t, svc.Context, svc, ctrl, a.ID.String(), nil, nil)
 			res.Header().Set("Etag", "IGNORE_ME")
 			//then
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "ok.golden.json"), area)
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "ok.headers.golden.json"), res.Header())
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "ok.res.golden.json"), area)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "ok.res.headers.golden.json"), res.Header())
 		})
 
 		t.Run("Using ExpiredIfModifedSince Header", func(t *testing.T) {
@@ -189,8 +189,8 @@ func (rest *TestAreaREST) TestShowArea() {
 			res, area := test.ShowAreaOK(t, svc.Context, svc, ctrl, a.ID.String(), &ifModifiedSince, nil)
 			res.Header().Set("Etag", "IGNORE_ME")
 			//then
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "expired_if_modified_since.golden.json"), area)
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "ok.headers.golden.json"), res.Header())
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "expired_if_modified_since.res.golden.json"), area)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "ok.res.headers.golden.json"), res.Header())
 		})
 
 		t.Run("Using ExpiredIfNoneMatch Header", func(t *testing.T) {
@@ -199,8 +199,8 @@ func (rest *TestAreaREST) TestShowArea() {
 			res, area := test.ShowAreaOK(t, svc.Context, svc, ctrl, a.ID.String(), nil, &ifNoneMatch)
 			res.Header().Set("Etag", "IGNORE_ME")
 			//then
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "expired_if_none_match.golden.json"), area)
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "ok.headers.golden.json"), res.Header())
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "expired_if_none_match.res.golden.json"), area)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "ok.res.headers.golden.json"), res.Header())
 		})
 
 		t.Run("Not Modified Using IfModifedSince Header", func(t *testing.T) {
@@ -209,7 +209,7 @@ func (rest *TestAreaREST) TestShowArea() {
 			area := test.ShowAreaNotModified(t, svc.Context, svc, ctrl, a.ID.String(), &ifModifiedSince, nil)
 			area.Header().Set("Etag", "IGNORE_ME")
 			//then
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "if_modified_since_headers.golden.json"), area.Header())
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "if_modified_since_headers.res.headers.golden.json"), area.Header())
 		})
 
 		t.Run("Not Modified IfNoneMatch Header", func(t *testing.T) {
@@ -218,7 +218,7 @@ func (rest *TestAreaREST) TestShowArea() {
 			area := test.ShowAreaNotModified(t, svc.Context, svc, ctrl, a.ID.String(), nil, &ifNoneMatch)
 			area.Header().Set("Etag", "IGNORE_ME")
 			//then
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "if_none_match_headers.golden.json"), area.Header())
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "if_none_match_headers.res.headers.golden.json"), area.Header())
 		})
 	})
 
@@ -229,8 +229,8 @@ func (rest *TestAreaREST) TestShowArea() {
 			// when
 			resp, area := test.ShowAreaNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String(), nil, nil)
 			//then
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "not_found.golden.json"), area)
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "not_found_headers.golden.json"), resp.Header())
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "not_found.res.golden.json"), area)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "not_found.res.headers.golden.json"), resp.Header())
 		})
 	})
 }
@@ -271,30 +271,30 @@ func (rest *TestAreaREST) TestShowChildrenArea() {
 		t.Run("OK", func(t *testing.T) {
 			res, result := test.ShowChildrenAreaOK(t, svc.Context, svc, ctrl, parentArea.ID.String(), nil, nil)
 			res.Header().Set("Etag", "IGNORE_ME")
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "showChildren", "ok.golden.json"), result)
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "showChildren", "ok.headers.golden.json"), res.Header())
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "showChildren", "ok.res.golden.json"), result)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "showChildren", "ok.res.headers.golden.json"), res.Header())
 		})
 		t.Run("Using ExpiredIfModifedSince Header", func(t *testing.T) {
 			ifModifiedSince := app.ToHTTPTime(parentArea.UpdatedAt.Add(-1 * time.Hour))
 			res, result := test.ShowChildrenAreaOK(t, svc.Context, svc, ctrl, parentArea.ID.String(), &ifModifiedSince, nil)
 			res.Header().Set("Etag", "IGNORE_ME")
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "showChildren", "ok.golden.json"), result)
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "showChildren", "ok.headers.golden.json"), res.Header())
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "showChildren", "ok.res.golden.json"), result)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "showChildren", "ok.res.headers.golden.json"), res.Header())
 		})
 
 		t.Run("Using ExpiredIfNoneMatch Header", func(t *testing.T) {
 			ifNoneMatch := "foo"
 			res, result := test.ShowChildrenAreaOK(t, svc.Context, svc, ctrl, parentArea.ID.String(), nil, &ifNoneMatch)
 			res.Header().Set("Etag", "IGNORE_ME")
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "showChildren", "ok.golden.json"), result)
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "showChildren", "ok.headers.golden.json"), res.Header())
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "showChildren", "ok.res.golden.json"), result)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "showChildren", "ok.res.headers.golden.json"), res.Header())
 		})
 
 		t.Run("Not Modified Using IfModifedSince Header", func(t *testing.T) {
 			ifModifiedSince := app.ToHTTPTime(*childArea.Data.Attributes.UpdatedAt)
 			res := test.ShowChildrenAreaNotModified(t, svc.Context, svc, ctrl, parentArea.ID.String(), &ifModifiedSince, nil)
 			res.Header().Set("Etag", "IGNORE_ME")
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "showChildren", "not_modified_header.golden.json"), res.Header())
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "showChildren", "not_modified_header.res.headers.golden.json"), res.Header())
 		})
 
 		t.Run("Not Modified IfNoneMatch Header", func(t *testing.T) {
@@ -302,7 +302,7 @@ func (rest *TestAreaREST) TestShowChildrenArea() {
 			ifNoneMatch := app.GenerateEntityTag(modelChildArea)
 			res := test.ShowChildrenAreaNotModified(t, svc.Context, svc, ctrl, parentArea.ID.String(), nil, &ifNoneMatch)
 			res.Header().Set("Etag", "IGNORE_ME")
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "showChildren", "not_modified_header.golden.json"), res.Header())
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "showChildren", "not_modified_header.res.headers.golden.json"), res.Header())
 		})
 	})
 
@@ -310,8 +310,8 @@ func (rest *TestAreaREST) TestShowChildrenArea() {
 		t.Run("Not Found", func(t *testing.T) {
 			res, result := test.ShowChildrenAreaNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String(), nil, nil)
 			res.Header().Set("Etag", "IGNORE_ME")
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "showChildren", "not_found.golden.json"), result)
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "showChildren", "not_found.header.golden.json"), res.Header())
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "showChildren", "not_found.res.golden.json"), result)
+			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "showChildren", "not_found.res.header.golden.json"), res.Header())
 		})
 	})
 }
