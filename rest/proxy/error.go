@@ -1,13 +1,12 @@
 package proxy
 
 import (
-	"context"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"net/http"
 )
 
 // ConvertHTTPErrorCode converts an http status code to an instance of type error
-func ConvertHTTPErrorCode(ctx context.Context, statusCode int, responseBody string) error {
+func ConvertHTTPErrorCode(statusCode int, responseBody string) error {
 
 	switch statusCode {
 

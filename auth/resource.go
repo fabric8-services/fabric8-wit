@@ -80,7 +80,7 @@ func (m *AuthzResourceManager) CreateSpace(ctx context.Context, request *http.Re
 		}, "unable to create a space resource via auth service")
 		// Proxy-back back the response as is -
 		// WIT acts as a gateway to Auth, who would send the appropriate response.
-		return nil, proxy.ConvertHTTPErrorCode(ctx, res.StatusCode, responseBody)
+		return nil, proxy.ConvertHTTPErrorCode(res.StatusCode, responseBody)
 	}
 
 	resource, err := c.DecodeSpaceResource(res)
@@ -138,7 +138,7 @@ func (m *AuthzResourceManager) DeleteSpace(ctx context.Context, request *http.Re
 		}, "unable to delete a space resource via auth service")
 		// Proxy-back back the response as in -
 		// WIT acts as a gateway to Auth, who would send the appropriate response.
-		return proxy.ConvertHTTPErrorCode(ctx, res.StatusCode, responseBody)
+		return proxy.ConvertHTTPErrorCode(res.StatusCode, responseBody)
 	}
 
 	log.Debug(ctx, map[string]interface{}{
