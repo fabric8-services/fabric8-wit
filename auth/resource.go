@@ -9,6 +9,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/goasupport"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/rest/proxy"
 	goaclient "github.com/goadesign/goa/client"
 	goauuid "github.com/goadesign/goa/uuid"
 	errs "github.com/pkg/errors"
@@ -70,13 +71,16 @@ func (m *AuthzResourceManager) CreateSpace(ctx context.Context, request *http.Re
 	}
 	defer rest.CloseResponse(res)
 
+	responseBody := rest.ReadBody(res.Body)
 	if res.StatusCode != http.StatusOK {
 		log.Error(ctx, map[string]interface{}{
 			"space_id":        spaceID,
 			"response_status": res.Status,
-			"response_body":   rest.ReadBody(res.Body),
+			"response_body":   responseBody,
 		}, "unable to create a space resource via auth service")
-		return nil, errs.Errorf("unable to create a space resource via auth service. Response status: %s. Response body: %s", res.Status, rest.ReadBody(res.Body))
+		// Proxy-back back the response as is -
+		// WIT acts as a gateway to Auth, who would send the appropriate response.
+		return nil, proxy.ConvertHTTPErrorCode(res.StatusCode, responseBody)
 	}
 
 	resource, err := c.DecodeSpaceResource(res)
@@ -125,13 +129,16 @@ func (m *AuthzResourceManager) DeleteSpace(ctx context.Context, request *http.Re
 	}
 	defer rest.CloseResponse(res)
 
+	responseBody := rest.ReadBody(res.Body)
 	if res.StatusCode != http.StatusOK {
 		log.Error(ctx, map[string]interface{}{
 			"space_id":        spaceID,
 			"response_status": res.Status,
-			"response_body":   rest.ReadBody(res.Body),
+			"response_body":   responseBody,
 		}, "unable to delete a space resource via auth service")
-		return errs.Errorf("unable to delete a space resource via auth service. Response status: %s. Response body: %s", res.Status, rest.ReadBody(res.Body))
+		// Proxy-back back the response as in -
+		// WIT acts as a gateway to Auth, who would send the appropriate response.
+		return proxy.ConvertHTTPErrorCode(res.StatusCode, responseBody)
 	}
 
 	log.Debug(ctx, map[string]interface{}{

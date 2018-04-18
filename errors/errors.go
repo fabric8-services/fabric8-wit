@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"errors"
 	errs "github.com/pkg/errors"
 )
 
@@ -29,6 +30,11 @@ func (err simpleError) Error() string {
 // NewInternalError returns the custom defined error of type InternalError.
 func NewInternalError(ctx context.Context, err error) InternalError {
 	return InternalError{err}
+}
+
+// NewInternalErrorFromString returns the custom defined error of type InternalError.
+func NewInternalErrorFromString(errorMessage string) InternalError {
+	return InternalError{errors.New(errorMessage)}
 }
 
 // IsInternalError returns true if the cause of the given error can be
@@ -132,16 +138,20 @@ func IsVersionConflictError(err error) (bool, error) {
 
 // BadParameterError means that a parameter was not as required
 type BadParameterError struct {
-	parameter        string
-	value            interface{}
-	expectedValue    interface{}
-	hasExpectedValue bool
+	parameter              string
+	value                  interface{}
+	expectedValue          interface{}
+	hasExpectedValue       bool
+	preDefinedErrorMessage *string
 }
 
 // Error implements the error interface
 func (err BadParameterError) Error() string {
 	if err.hasExpectedValue {
 		return fmt.Sprintf(stBadParameterErrorExpectedMsg, err.parameter, err.value, err.expectedValue)
+	}
+	if err.preDefinedErrorMessage != nil {
+		return *err.preDefinedErrorMessage
 	}
 	return fmt.Sprintf(stBadParameterErrorMsg, err.parameter, err.value)
 
@@ -157,6 +167,11 @@ func (err BadParameterError) Expected(expexcted interface{}) BadParameterError {
 // NewBadParameterError returns the custom defined error of type NewBadParameterError.
 func NewBadParameterError(param string, actual interface{}) BadParameterError {
 	return BadParameterError{parameter: param, value: actual}
+}
+
+// NewBadParameterErrorFromString returned a pre-defined error message from a string.
+func NewBadParameterErrorFromString(errMessage string) BadParameterError {
+	return BadParameterError{preDefinedErrorMessage: &errMessage}
 }
 
 // IsBadParameterError returns true if the cause of the given error can be
@@ -191,17 +206,26 @@ type ConversionError struct {
 
 // NotFoundError means the object specified for the operation does not exist
 type NotFoundError struct {
-	entity string
-	ID     string
+	entity                 string
+	ID                     string
+	preDefinedErrorMessage *string
 }
 
 func (err NotFoundError) Error() string {
+	if err.preDefinedErrorMessage != nil {
+		return *err.preDefinedErrorMessage
+	}
 	return fmt.Sprintf(stNotFoundErrorMsg, err.entity, err.ID)
 }
 
 // NewNotFoundError returns the custom defined error of type NewNotFoundError.
 func NewNotFoundError(entity string, id string) NotFoundError {
 	return NotFoundError{entity: entity, ID: id}
+}
+
+// NewNotFoundErrorFromString returns the custom defined error of type NewNotFoundError.
+func NewNotFoundErrorFromString(errorMessage string) NotFoundError {
+	return NotFoundError{preDefinedErrorMessage: &errorMessage}
 }
 
 // IsNotFoundError returns true if the cause of the given error can be
