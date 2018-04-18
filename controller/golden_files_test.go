@@ -199,7 +199,8 @@ func replaceTimes(str string) (string, error) {
 	hour = "([01][0-9]|2[0-3])"
 	minute = "([0-5][0-9])"
 	second = "([0-5][0-9]|60)"
-	pattern = dayName + ", " + day + " " + month + " " + year + " " + hour + ":" + minute + ":" + second + " GMT"
+	tz := "(GMT|CEST|UTC)"
+	pattern = dayName + ", " + day + " " + month + " " + year + " " + hour + ":" + minute + ":" + second + " " + tz
 
 	lastModifiedPattern, err := regexp.Compile(pattern)
 	if err != nil {
@@ -344,6 +345,18 @@ func TestGoldenReplaceTimes(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, expected, actual)
 	})
+	t.Run("arbitrary date", func(t *testing.T) {
+		t.Parallel()
+		//given
+		str := `"last-modified": "Fri, 13 Apr 2018 16:21:50 CEST",`
+		expected := `"last-modified": "Mon, 01 Jan 0001 00:00:00 GMT",`
+		// when
+		actual, err := replaceTimes(str)
+		// then
+		require.NoError(t, err)
+		require.Equal(t, expected, actual)
+	})
+
 }
 
 func TestGoldenCompareWithGolden(t *testing.T) {
