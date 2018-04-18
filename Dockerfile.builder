@@ -10,7 +10,6 @@ RUN yum --enablerepo=centosplus install -y --quiet \
       git \
       $(test -z $USE_GO_VERSION_FROM_WEBSITE && echo "golang") \
       make \
-      mercurial \
       procps-ng \
       tar \
       wget \
