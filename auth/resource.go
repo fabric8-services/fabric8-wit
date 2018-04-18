@@ -77,7 +77,7 @@ func (m *AuthzResourceManager) CreateSpace(ctx context.Context, request *http.Re
 			"response_status": res.Status,
 			"response_body":   rest.ReadBody(res.Body),
 		}, "unable to create a space resource via auth service")
-		// Proxy-back back the response as in -
+		// Proxy-back back the response as is -
 		// WIT acts as a gateway to Auth, who would send the appropriate response.
 		return nil, proxy.ConvertHTTPErrorCode(ctx, res.StatusCode, rest.ReadBody(res.Body))
 	}
