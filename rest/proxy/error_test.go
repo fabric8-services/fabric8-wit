@@ -32,7 +32,7 @@ func TestConvertHTTPErrorToTypeError(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			returnedErr := proxy.ConvertHTTPErrorCode(context.Background(), tc.statusCode, tc.responseBody)
+			returnedErr := proxy.ConvertHTTPErrorCode(tc.statusCode, tc.responseBody)
 			require.IsType(t, tc.expectedResult, returnedErr)
 		})
 	}
