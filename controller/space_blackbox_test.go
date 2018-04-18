@@ -12,7 +12,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
-	"github.com/fabric8-services/fabric8-wit/auth/authservice"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/errors"
@@ -34,17 +33,17 @@ type DummyResourceManager struct {
 	httpResponseCode int
 }
 
-func (m *DummyResourceManager) CreateSpace(ctx context.Context, request *http.Request, spaceID string) (*authservice.SpaceResource, error) {
+func (m *DummyResourceManager) CreateSpace(ctx context.Context, request *http.Request, spaceID string) error {
 	if m.httpResponseCode == 400 {
-		return nil, errors.NewBadParameterErrorFromString("auth returned a 400")
+		return errors.NewBadParameterErrorFromString("auth returned a 400")
 	}
 	if m.httpResponseCode == 401 {
-		return nil, errors.NewUnauthorizedError("auth returned a 401")
+		return errors.NewUnauthorizedError("auth returned a 401")
 	}
 	if m.httpResponseCode == 500 {
-		return nil, errors.NewInternalErrorFromString("auth returned a 500")
+		return errors.NewInternalErrorFromString("auth returned a 500")
 	}
-	return &authservice.SpaceResource{Data: &authservice.SpaceResourceData{ResourceID: uuid.NewV4().String(), PermissionID: uuid.NewV4().String(), PolicyID: uuid.NewV4().String()}}, nil
+	return nil
 }
 
 func (m *DummyResourceManager) DeleteSpace(ctx context.Context, request *http.Request, spaceID string) error {
