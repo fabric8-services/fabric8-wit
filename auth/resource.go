@@ -71,15 +71,16 @@ func (m *AuthzResourceManager) CreateSpace(ctx context.Context, request *http.Re
 	}
 	defer rest.CloseResponse(res)
 
+	responseBody := rest.ReadBody(res.Body)
 	if res.StatusCode != http.StatusOK {
 		log.Error(ctx, map[string]interface{}{
 			"space_id":        spaceID,
 			"response_status": res.Status,
-			"response_body":   rest.ReadBody(res.Body),
+			"response_body":   responseBody,
 		}, "unable to create a space resource via auth service")
 		// Proxy-back back the response as is -
 		// WIT acts as a gateway to Auth, who would send the appropriate response.
-		return nil, proxy.ConvertHTTPErrorCode(ctx, res.StatusCode, rest.ReadBody(res.Body))
+		return nil, proxy.ConvertHTTPErrorCode(ctx, res.StatusCode, responseBody)
 	}
 
 	resource, err := c.DecodeSpaceResource(res)
@@ -128,15 +129,16 @@ func (m *AuthzResourceManager) DeleteSpace(ctx context.Context, request *http.Re
 	}
 	defer rest.CloseResponse(res)
 
+	responseBody := rest.ReadBody(res.Body)
 	if res.StatusCode != http.StatusOK {
 		log.Error(ctx, map[string]interface{}{
 			"space_id":        spaceID,
 			"response_status": res.Status,
-			"response_body":   rest.ReadBody(res.Body),
+			"response_body":   responseBody,
 		}, "unable to delete a space resource via auth service")
 		// Proxy-back back the response as in -
 		// WIT acts as a gateway to Auth, who would send the appropriate response.
-		return proxy.ConvertHTTPErrorCode(ctx, res.StatusCode, rest.ReadBody(res.Body))
+		return proxy.ConvertHTTPErrorCode(ctx, res.StatusCode, responseBody)
 	}
 
 	log.Debug(ctx, map[string]interface{}{
