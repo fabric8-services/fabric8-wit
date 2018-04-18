@@ -48,6 +48,22 @@ func (m *DummyResourceManager) CreateSpace(ctx context.Context, request *http.Re
 }
 
 func (m *DummyResourceManager) DeleteSpace(ctx context.Context, request *http.Request, spaceID string) error {
+	if m.httpResponseCode == 400 {
+		return errors.NewBadParameterErrorFromString("auth returned a 400")
+	}
+	if m.httpResponseCode == 401 {
+		return errors.NewUnauthorizedError("auth returned a 401")
+	}
+	if m.httpResponseCode == 404 {
+		return errors.NewNotFoundErrorFromString("auth returned a 404")
+	}
+
+	if m.httpResponseCode == 403 {
+		return errors.NewForbiddenError("auth returned a 403")
+	}
+	if m.httpResponseCode == 500 {
+		return errors.NewInternalErrorFromString("auth returned a 500")
+	}
 	return nil
 }
 
@@ -148,7 +164,8 @@ func (s *SpaceControllerTestSuite) TestCreateSpace() {
 
 	s.T().Run("Fail - auth returned 400", func(t *testing.T) {
 		// given
-		p := newCreateSpacePayload(nil, nil)
+		spaceName := uuid.NewV4().String()
+		p := newCreateSpacePayload(&spaceName, nil)
 		r := DummyResourceManager{
 			httpResponseCode: 400,
 		}
@@ -318,6 +335,70 @@ func (s *SpaceControllerTestSuite) TestDeleteSpace() {
 		// when
 		svc2, ctrl2 := s.SecuredController(testsupport.TestIdentity)
 		test.DeleteSpaceOK(t, svc2.Context, svc2, ctrl2, *created.Data.ID)
+	})
+
+	s.T().Run("delete space - auth returns 401", func(t *testing.T) {
+		// given
+		name := testsupport.CreateRandomValidTestName("TestFailDeleteSpaceDifferentOwner-")
+		description := "Space for TestFailDeleteSpaceDifferentOwner"
+		p := newCreateSpacePayload(&name, &description)
+		svc, ctrl := s.SecuredController(testsupport.TestIdentity)
+		_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
+		// when
+		r := DummyResourceManager{
+			httpResponseCode: 401,
+		}
+		svc2, ctrl2 := s.SecuredControllerWithDummyResourceManager(testsupport.TestIdentity, r)
+		test.DeleteSpaceUnauthorized(t, svc2.Context, svc2, ctrl2, *created.Data.ID)
+
+	})
+
+	s.T().Run("delete space - auth returns 403", func(t *testing.T) {
+		// given
+		name := testsupport.CreateRandomValidTestName("TestFailDeleteSpaceDifferentOwner-")
+		description := "Space for TestFailDeleteSpaceDifferentOwner"
+		p := newCreateSpacePayload(&name, &description)
+		svc, ctrl := s.SecuredController(testsupport.TestIdentity)
+		_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
+		// when
+		r := DummyResourceManager{
+			httpResponseCode: 403,
+		}
+		svc2, ctrl2 := s.SecuredControllerWithDummyResourceManager(testsupport.TestIdentity, r)
+		test.DeleteSpaceForbidden(t, svc2.Context, svc2, ctrl2, *created.Data.ID)
+
+	})
+
+	s.T().Run("delete space - auth returns 404", func(t *testing.T) {
+		// given
+		name := testsupport.CreateRandomValidTestName("TestFailDeleteSpaceDifferentOwner-")
+		description := "Space for TestFailDeleteSpaceDifferentOwner"
+		p := newCreateSpacePayload(&name, &description)
+		svc, ctrl := s.SecuredController(testsupport.TestIdentity)
+		_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
+		// when
+		r := DummyResourceManager{
+			httpResponseCode: 404,
+		}
+		svc2, ctrl2 := s.SecuredControllerWithDummyResourceManager(testsupport.TestIdentity, r)
+		test.DeleteSpaceNotFound(t, svc2.Context, svc2, ctrl2, *created.Data.ID)
+
+	})
+
+	s.T().Run("delete space - auth returns 500", func(t *testing.T) {
+		// given
+		name := testsupport.CreateRandomValidTestName("TestFailDeleteSpaceDifferentOwner-")
+		description := "Space for TestFailDeleteSpaceDifferentOwner"
+		p := newCreateSpacePayload(&name, &description)
+		svc, ctrl := s.SecuredController(testsupport.TestIdentity)
+		_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
+		// when
+		r := DummyResourceManager{
+			httpResponseCode: 500,
+		}
+		svc2, ctrl2 := s.SecuredControllerWithDummyResourceManager(testsupport.TestIdentity, r)
+		test.DeleteSpaceInternalServerError(t, svc2.Context, svc2, ctrl2, *created.Data.ID)
+
 	})
 
 	s.T().Run("fail - different owner", func(t *testing.T) {
