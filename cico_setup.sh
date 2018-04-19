@@ -28,6 +28,7 @@ function install_deps() {
     make \
     git \
     curl
+  go get github.com/KyleBanks/depth/cmd/depth
 
   service docker start
 
@@ -46,6 +47,8 @@ function prepare() {
   make docker-start
   make docker-check-go-format
   make docker-deps
+  depth -internal -json .
+  glide tree
   make docker-analyze-go-code
   make docker-generate
   make docker-build
