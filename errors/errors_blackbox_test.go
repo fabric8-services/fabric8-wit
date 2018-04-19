@@ -40,6 +40,10 @@ func TestNewBadParameterError(t *testing.T) {
 	assert.Equal(t, fmt.Sprintf("Bad value for parameter '%s': '%v'", param, value), err.Error())
 	err = errors.NewBadParameterError(param, value).Expected(expectedValue)
 	assert.Equal(t, fmt.Sprintf("Bad value for parameter '%s': '%v' (expected: '%v')", param, value, expectedValue), err.Error())
+
+	msg := "this is my predefined message returned from an external source"
+	err = errors.NewBadParameterErrorFromString(msg)
+	assert.Equal(t, msg, err.Error())
 }
 
 func TestNewNotFoundError(t *testing.T) {
