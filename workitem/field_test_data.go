@@ -101,7 +101,7 @@ func GetFieldTypeTestData(t *testing.T) FieldTypeTestDataMap {
 			Valid: []interface{}{
 				"dde919b1-3c61-4d3a-8cda-941c62813749",
 				"8aab8647-35e0-4f18-9468-f5c2fbc02b3d",
-				"", // TODO(kwk): do we really allow empty area names?
+				//"", // TODO(kwk): do we really allow empty area names?
 			},
 			Invalid: []interface{}{
 				nil,

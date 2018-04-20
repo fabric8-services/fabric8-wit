@@ -1469,14 +1469,14 @@ func (s *WorkItem2Suite) TestWI2ListByAssigneeFilter() {
 
 func (s *WorkItem2Suite) TestWI2ListByNoAssigneeFilter() {
 	// given
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(3))
 	userType := APIStringTypeUser
-	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(1))
 	newUser := fxt.Identities[0]
 	newUserID := newUser.ID.String()
-	c := minimumRequiredCreatePayload()
+	c := minimumRequiredCreatePayloadWithSpace(fxt.Spaces[0].ID)
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = newRelationBaseType(workitem.SystemBug)
+	c.Data.Relationships.BaseType = newRelationBaseType(fxt.WorkItemTypes[0].ID)
 	c.Data.Relationships.Assignees = &app.RelationGenericList{
 		Data: []*app.GenericData{
 			{
@@ -1489,7 +1489,7 @@ func (s *WorkItem2Suite) TestWI2ListByNoAssigneeFilter() {
 	s.T().Run("default work item created in fixture", func(t *testing.T) {
 		_, list0 := test.ListWorkitemsOK(t, s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, nil, nil, &assignee, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 		// data coming from test fixture
-		assert.Len(t, list0.Data, 1)
+		assert.Len(t, list0.Data, 3)
 		assert.True(t, strings.Contains(*list0.Links.First, "filter[assignee]=none"))
 	})
 
@@ -1511,13 +1511,13 @@ func (s *WorkItem2Suite) TestWI2ListByNoAssigneeFilter() {
 
 	s.T().Run("work item with assignee value as none", func(t *testing.T) {
 		_, list2 := test.ListWorkitemsOK(t, s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, nil, nil, &assignee, nil, nil, nil, nil, nil, nil, nil, nil, nil)
-		assert.Len(t, list2.Data, 1)
+		assert.Len(t, list2.Data, 3)
 		assert.True(t, strings.Contains(*list2.Links.First, "filter[assignee]=none"))
 	})
 
 	s.T().Run("work item without specifying assignee", func(t *testing.T) {
 		_, list3 := test.ListWorkitemsOK(t, s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
-		assert.Len(t, list3.Data, 2)
+		assert.Len(t, list3.Data, 4)
 		assert.False(t, strings.Contains(*list3.Links.First, "filter[assignee]=none"))
 	})
 }
