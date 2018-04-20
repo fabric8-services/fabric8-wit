@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	yaml "gopkg.in/yaml.v2"
 	resource "k8s.io/apimachinery/pkg/api/resource"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -100,6 +101,7 @@ type kubeAPIClient struct {
 // OpenShiftRESTAPI collects methods that call out to the OpenShift API server over the network
 type OpenShiftRESTAPI interface {
 	GetBuildConfigs(namespace string, labelSelector string) (map[string]interface{}, error)
+	GetBuilds(namespace string, labelSelector string) (map[string]interface{}, error)
 	GetDeploymentConfig(namespace string, name string) (map[string]interface{}, error)
 	DeleteDeploymentConfig(namespace string, name string, opts *metaV1.DeleteOptions) error
 	GetDeploymentConfigScale(namespace string, name string) (map[string]interface{}, error)
@@ -334,8 +336,18 @@ func (kc *kubeClient) ScaleDeployment(spaceName string, appName string, envName 
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
+
+	// Deployment Config name does not always match the application name, look up
+	// DC name using available metadata
+	dcName, err := kc.getDeploymentConfigNameForApp(envNS, appName, spaceName)
+	if err != nil {
+		return nil, err
+	} else if len(dcName) == 0 {
+		return nil, errs.Errorf("could not find Deployment Config for %s in %s with space %s", appName, envNS, spaceName)
+	}
+
 	// Look up the Scale for the DeploymentConfig corresponding to the application name in the provided environment
-	scale, err := kc.GetDeploymentConfigScale(envNS, appName)
+	scale, err := kc.GetDeploymentConfigScale(envNS, dcName)
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
@@ -362,7 +374,7 @@ func (kc *kubeClient) ScaleDeployment(spaceName string, appName string, envName 
 	}
 	spec["replicas"] = deployNumber
 
-	err = kc.SetDeploymentConfigScale(envNS, appName, scale)
+	err = kc.SetDeploymentConfigScale(envNS, dcName, scale)
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
@@ -668,12 +680,14 @@ func getTimestampEndpoints(metricsSeries ...[]*app.TimedNumberTuple) (minTime, m
 	return minTime, maxTime
 }
 
+const spaceLabelName = "space"
+
 func (kc *kubeClient) getBuildConfigsForSpace(space string) ([]string, error) {
 	// BuildConfigs are OpenShift objects, so access REST API using HTTP directly until
 	// there is a Go client for OpenShift
 
 	// BuildConfigs created by fabric8 have a "space" label indicating the space they belong to
-	escapedSelector := url.QueryEscape("space=" + space)
+	escapedSelector := url.QueryEscape(spaceLabelName + "=" + space)
 	result, err := kc.GetBuildConfigs(kc.config.UserNamespace, escapedSelector)
 	if err != nil {
 		return nil, errs.WithStack(err)
@@ -832,7 +846,16 @@ func (oc *openShiftAPIClient) sendResource(path string, method string, reqBody i
 }
 
 func (kc *kubeClient) getDeploymentConfig(namespace string, appName string, space string) (*deployment, error) {
-	result, err := kc.GetDeploymentConfig(namespace, appName)
+	// Deployment Config name does not always match the application name, look up
+	// DC name using available metadata
+	dcName, err := kc.getDeploymentConfigNameForApp(namespace, appName, space)
+	if err != nil {
+		return nil, err
+	} else if len(dcName) == 0 {
+		return nil, nil
+	}
+
+	result, err := kc.GetDeploymentConfig(namespace, dcName)
 	if err != nil {
 		return nil, errs.WithStack(err)
 	} else if result == nil {
@@ -858,7 +881,7 @@ func (kc *kubeClient) getDeploymentConfig(namespace string, appName string, spac
 	 * This requirement is not always satisfied. For now, we work around the issue by logging
 	 * a warning and waiving the space label check, if missing.
 	 */
-	spaceLabel, err := getOptionalStringValue(labels, "space")
+	spaceLabel, err := getOptionalStringValue(labels, spaceLabelName)
 	if err != nil {
 		return nil, err
 	}
@@ -892,6 +915,96 @@ func (kc *kubeClient) getDeploymentConfig(namespace string, appName string, spac
 func (oc *openShiftAPIClient) GetDeploymentConfig(namespace string, name string) (map[string]interface{}, error) {
 	dcURL := fmt.Sprintf("/oapi/v1/namespaces/%s/deploymentconfigs/%s", namespace, name)
 	return oc.getResource(dcURL, true)
+}
+
+const buildConfigLabelName = "openshift.io/build-config.name"
+const envServicesAnnotationPrefix = "environment.services.fabric8.io"
+const envServicesDeploymentVersions = "deploymentVersions"
+
+func (kc *kubeClient) getDeploymentConfigNameForApp(namespace string, appName string, spaceName string) (string, error) {
+	// Look up builds with config name matching appName, this will be the one created by the launcher
+	labelSelector := fmt.Sprintf("%s=%s,%s=%s", buildConfigLabelName, appName, spaceLabelName, spaceName)
+	escapedSelector := url.QueryEscape(labelSelector)
+
+	// Builds are located in the user's namespace of type "user"
+	resp, err := kc.GetBuilds(kc.config.UserNamespace, escapedSelector)
+	if err != nil {
+		return "", err
+	}
+
+	// Parse builds from response
+	kind, ok := resp["kind"].(string)
+	if !ok || kind != "BuildList" {
+		return "", errs.New("no builds returned from endpoint")
+	}
+	items, ok := resp["items"].([]interface{})
+	if !ok {
+		return "", errs.New("malformed response from endpoint")
+	}
+
+	// Look for a matching deployment config within builds
+	for _, item := range items {
+		build, ok := item.(map[string]interface{})
+		if !ok {
+			return "", errs.New("malformed build object")
+		}
+		metadata, ok := build["metadata"].(map[string]interface{})
+		if !ok {
+			return "", errs.New("metadata missing from build object")
+		}
+		annotations, ok := metadata["annotations"].(map[string]interface{})
+		if ok {
+			envAnnotationName := fmt.Sprintf(envServicesAnnotationPrefix+"/%s", namespace)
+			envServices, pres := annotations[envAnnotationName]
+			if pres {
+				envServicesStr, ok := envServices.(string)
+				if !ok {
+					log.Warn(nil, map[string]interface{}{
+						"namespace":   namespace,
+						"appName":     appName,
+						"spaceName":   spaceName,
+						"envServices": envServicesStr,
+					}, "%s annotation does not contain a string", envServicesAnnotationPrefix)
+				} else {
+					// Parse YAML annotation value
+					var envServicesYaml map[interface{}]interface{}
+					err = yaml.Unmarshal([]byte(envServicesStr), &envServicesYaml)
+					if err != nil {
+						return "", errs.Errorf("Failed to unmarshal %s/%s YAML: %s", envServicesAnnotationPrefix,
+							namespace, envServicesStr)
+					}
+					// Look for deployment versions
+					deployVersionsYaml, pres := envServicesYaml[envServicesDeploymentVersions]
+					if pres {
+						deployVersions, ok := deployVersionsYaml.(map[interface{}]interface{})
+						if ok {
+							// TODO what to do with more than one result?
+							for nameYaml := range deployVersions {
+								depName, ok := nameYaml.(string)
+								if !ok {
+									log.Warn(nil, map[string]interface{}{
+										"namespace":   namespace,
+										"appName":     appName,
+										"spaceName":   spaceName,
+										"envServices": envServicesStr,
+									}, "%s does not contain a string", envServicesDeploymentVersions)
+								} else {
+									return depName, nil
+								}
+							}
+						}
+					}
+				}
+			}
+			// TODO look for latest completionTimestamp and phase == "Complete"
+		}
+	}
+	return "", nil
+}
+
+func (oc *openShiftAPIClient) GetBuilds(namespace string, labelSelector string) (map[string]interface{}, error) {
+	bcURL := fmt.Sprintf("/oapi/v1/namespaces/%s/builds?labelSelector=%s", namespace, labelSelector)
+	return oc.getResource(bcURL, false)
 }
 
 func (kc *kubeClient) deleteDeploymentConfig(spaceName string, appName string, namespace string) error {
