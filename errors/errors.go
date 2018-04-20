@@ -136,35 +136,21 @@ type BadParameterError struct {
 	value            interface{}
 	expectedValue    interface{}
 	hasExpectedValue bool
-	errorDetail      error
-	hasErrorDetail   bool
 }
 
 // Error implements the error interface
 func (err BadParameterError) Error() string {
-	res := ""
 	if err.hasExpectedValue {
-		res = fmt.Sprintf(stBadParameterErrorExpectedMsg, err.parameter, err.value, err.expectedValue)
-	} else {
-		res = fmt.Sprintf(stBadParameterErrorMsg, err.parameter, err.value)
+		return fmt.Sprintf(stBadParameterErrorExpectedMsg, err.parameter, err.value, err.expectedValue)
 	}
-	if err.hasErrorDetail {
-		res += fmt.Sprintf(": error detail: %+v", err.errorDetail)
-	}
-	return res
+	return fmt.Sprintf(stBadParameterErrorMsg, err.parameter, err.value)
+
 }
 
 // Expected sets the optional expectedValue parameter on the BadParameterError
 func (err BadParameterError) Expected(expexcted interface{}) BadParameterError {
 	err.expectedValue = expexcted
 	err.hasExpectedValue = true
-	return err
-}
-
-// ErrorDetail sets any error that let to the bad parameter error
-func (err BadParameterError) ErrorDetail(errorDetail error) BadParameterError {
-	err.errorDetail = errorDetail
-	err.hasErrorDetail = true
 	return err
 }
 
