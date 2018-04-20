@@ -95,6 +95,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItems() {
 	require.NotEmpty(s.T(), sr.Data)
 	r := sr.Data[0]
 	assert.Equal(s.T(), q, r.Attributes[workitem.SystemTitle])
+	assert.Equal(s.T(), fxt.WorkItems[0].Number, r.Attributes[workitem.SystemNumber])
 }
 
 func (s *searchControllerTestSuite) TestSearchPagination() {
@@ -808,7 +809,7 @@ func (s *searchControllerTestSuite) TestSearchQueryScenarioDriven() {
 				]}`,
 			spaceIDStr, workitem.SystemStateOpen, fakeIterationID)
 		_, result := test.ShowSearchOK(t, nil, nil, s.controller, &filter, nil, nil, nil, nil, &spaceIDStr)
-		assert.Empty(t, result.Data) // all items are other than open state & in other thatn fake itr
+		assert.Empty(t, result.Data)
 	})
 
 	s.T().Run("space=ID AND (state!=open AND iteration!=fake-iterationID) using NE", func(t *testing.T) {

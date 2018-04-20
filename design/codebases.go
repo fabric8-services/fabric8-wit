@@ -76,7 +76,7 @@ var workspaceAttributes = a.Type("WorkspaceAttributes", func() {
 		a.Example("")
 	})
 	a.Attribute("status", d.String, "The workspace status", func() {
-		a.Example("STOPPED");
+		a.Example("STOPPED")
 	})
 })
 
@@ -336,5 +336,6 @@ var _ = a.Resource("space_codebases", func() {
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.Forbidden, JSONAPIErrors)
+		a.Response(d.Conflict, JSONAPIErrors)
 	})
 })

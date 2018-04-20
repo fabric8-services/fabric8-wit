@@ -150,6 +150,14 @@ func (rest *TestQueryREST) TestCreate() {
 			// when
 			test.CreateQueryBadRequest(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, cq)
 		})
+		t.Run("invalid query - empty title", func(t *testing.T) {
+			fxt := tf.NewTestFixture(t, rest.DB,
+				tf.CreateWorkItemEnvironment())
+			cq := getQueryCreatePayload(" ", nil)
+			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
+			// when
+			test.CreateQueryBadRequest(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, cq)
+		})
 		t.Run("conflict same title, spaceID, creator", func(t *testing.T) {
 			fxt := tf.NewTestFixture(t, rest.DB,
 				tf.CreateWorkItemEnvironment(),

@@ -99,7 +99,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestListPlannerItemTypes() {
 			func(fxt *tf.TestFixture, idx int) error {
 				// Have one non-planner item based work item type
 				if idx == 3 {
-					fxt.WorkItemTypes[idx].Path = workitem.LtreeSafeID(fxt.WorkItemTypes[idx].ID)
+					fxt.WorkItemTypes[idx].Extends = uuid.Nil
 				}
 				return nil
 			}),
@@ -175,12 +175,12 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreate() {
 					SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
 					ComponentType: workitem.SimpleType{Kind: workitem.KindString}},
 			},
-		})
+		}, true)
 
 		require.NoError(t, err)
 		require.NotNil(t, baseWit)
 		require.NotNil(t, baseWit.ID)
-		extendedWit, err := s.repo.Create(s.Ctx, fxt.Spaces[0].ID, nil, &baseWit.ID, "foo.baz", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
+		extendedWit, err := s.repo.Create(s.Ctx, fxt.Spaces[0].ID, nil, &baseWit.ID, "foo.baz", nil, "fa-bomb", map[string]workitem.FieldDefinition{}, true)
 		require.NoError(t, err)
 		require.NotNil(t, extendedWit)
 		require.NotNil(t, extendedWit.Fields)
@@ -190,8 +190,8 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreate() {
 
 	s.T().Run("fail - WIT with missing base type", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1))
-		baseTypeID := uuid.Nil
-		extendedWit, err := s.repo.Create(s.Ctx, fxt.Spaces[0].ID, nil, &baseTypeID, "foo.baz", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
+		baseTypeID := uuid.NewV4()
+		extendedWit, err := s.repo.Create(s.Ctx, fxt.Spaces[0].ID, nil, &baseTypeID, "foo.baz", nil, "fa-bomb", map[string]workitem.FieldDefinition{}, true)
 		// expect an error as the given base type does not exist
 		require.Error(t, err)
 		require.Nil(t, extendedWit)

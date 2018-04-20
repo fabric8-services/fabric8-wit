@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -36,6 +37,7 @@ import (
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/test/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
+	errs "github.com/pkg/errors"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
@@ -262,11 +264,7 @@ func (s *WorkItemSuite) TestCreateWI() {
 
 	s.T().Run("field types", func(t *testing.T) {
 		vals := workitem.GetFieldTypeTestData(t)
-		// Get keys from the map above
-		kinds := []workitem.Kind{}
-		for k := range vals {
-			kinds = append(kinds, k)
-		}
+		kinds := vals.GetKinds()
 		fieldName := "fieldundertest"
 		// Create a work item type for each kind
 		fxt := tf.NewTestFixture(t, s.DB,
@@ -769,13 +767,17 @@ func getMinimumRequiredUpdatePayload(wi *app.WorkItem) *app.UpdateWorkitemPayloa
 }
 
 func minimumRequiredUpdatePayload() app.UpdateWorkitemPayload {
-	spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(space.SystemSpace.String()))
+	return minimumRequiredUpdatePayloadWithSpace(space.SystemSpace)
+}
+
+func minimumRequiredUpdatePayloadWithSpace(spaceID uuid.UUID) app.UpdateWorkitemPayload {
+	spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(spaceID.String()))
 	return app.UpdateWorkitemPayload{
 		Data: &app.WorkItem{
 			Type:       APIStringTypeWorkItem,
 			Attributes: map[string]interface{}{},
 			Relationships: &app.WorkItemRelationships{
-				Space: app.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
+				Space: app.NewSpaceRelation(spaceID, spaceSelfURL),
 			},
 		},
 	}
@@ -870,6 +872,7 @@ type WorkItem2Suite struct {
 	gormtestsupport.DBTestSuite
 	workitemCtrl   app.WorkitemController
 	workitemsCtrl  app.WorkitemsController
+	witCtrl        app.WorkitemtypeController
 	linkCtrl       app.WorkItemLinkController
 	linkCatCtrl    app.WorkItemLinkCategoryController
 	linkTypeCtrl   app.WorkItemLinkTypeController
@@ -878,6 +881,7 @@ type WorkItem2Suite struct {
 	wi             *app.WorkItem
 	minimumPayload *app.UpdateWorkitemPayload
 	notification   notificationsupport.FakeNotificationChannel
+	testDir        string
 }
 
 func (s *WorkItem2Suite) SetupTest() {
@@ -889,6 +893,7 @@ func (s *WorkItem2Suite) SetupTest() {
 	s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", *testIdentity)
 	s.workitemCtrl = NewNotifyingWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), &s.notification, s.Configuration)
 	s.workitemsCtrl = NewNotifyingWorkitemsController(s.svc, gormapplication.NewGormDB(s.DB), &s.notification, s.Configuration)
+	s.witCtrl = NewWorkitemtypeController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(s.DB))
 	s.linkTypeCtrl = NewWorkItemLinkTypeController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.linkCtrl = NewWorkItemLinkController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
@@ -901,6 +906,7 @@ func (s *WorkItem2Suite) SetupTest() {
 	s.wi = wi.Data
 	s.minimumPayload = getMinimumRequiredUpdatePayload(s.wi)
 	//s.minimumReorderPayload = getMinimumRequiredReorderPayload(s.wi)
+	s.testDir = filepath.Join("test-files", "work_item")
 }
 
 // ========== Actual Test functions ==========
@@ -951,6 +957,110 @@ func (s *WorkItem2Suite) TestWI2UpdateSetReadOnlyFields() {
 	})
 	s.T().Run("ensure number was not updated", func(t *testing.T) {
 		require.Equal(t, fxt.WorkItems[0].Number, updatedWI.Data.Attributes[workitem.SystemNumber])
+	})
+}
+
+func (s *WorkItem2Suite) TestWI2UpdateFieldOfDifferentSimpleTypes() {
+	s.T().Run("field types", func(t *testing.T) {
+		vals := workitem.GetFieldTypeTestData(t)
+		kinds := vals.GetKinds()
+		numKinds := len(kinds)
+		// Create a work item type and a work item for each kind and initialize
+		// it with the first valid value.
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.CreateWorkItemEnvironment(),
+			// we need these many spaces because they the WI numbers are tigt to
+			// the space.
+			tf.WorkItemTypes(numKinds, func(fxt *tf.TestFixture, idx int) error {
+				kind := kinds[idx]
+				fxt.WorkItemTypes[idx].Name = kind.String() + "_wit"
+				// Add one field that is used for testing
+				fxt.WorkItemTypes[idx].Fields[kind.String()+"_field"] = workitem.FieldDefinition{
+					Required:    true,
+					Label:       kind.String(),
+					Description: fmt.Sprintf("This field is used for testing values for the field kind '%s'", kind),
+					Type: workitem.SimpleType{
+						Kind: kind,
+					},
+				}
+				return nil
+			}),
+			tf.WorkItems(numKinds, func(fxt *tf.TestFixture, idx int) error {
+				kind := kinds[idx]
+				if len(vals[kind].Valid) < 2 {
+					return errs.Errorf("test map for kind %s needs to have more than one value, one for creation and one for updating", kind)
+				}
+				fxt.WorkItems[idx].Fields[workitem.SystemTitle] = kind.String() + "_wi"
+				fxt.WorkItems[idx].Fields[kind.String()+"_field"] = vals[kind].Valid[0]
+				fxt.WorkItems[idx].Type = fxt.WorkItemTypes[idx].ID
+				fxt.WorkItems[idx].Number = idx
+				return nil
+			}),
+		)
+
+		// when
+		for kind, iv := range vals {
+			t.Run(kind.String(), func(t *testing.T) {
+				kindSpace := fxt.Spaces[0]
+				require.NotNil(t, kindSpace)
+
+				// dump the wit as a golden file for reference
+				wit := fxt.WorkItemTypeByName(kind.String()+"_wit", kindSpace.ID)
+				require.NotNil(t, wit)
+				_, witApp := test.ShowWorkitemtypeOK(t, s.svc.Context, s.svc, s.witCtrl, wit.ID, nil, nil)
+				compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "update", kind.String(), kind.String()+"_wit.res.payload.golden.json"), witApp)
+
+				wi := fxt.WorkItemByTitle(kind.String()+"_wi", kindSpace.ID)
+				require.NotNil(t, wi)
+				version := wi.Version
+
+				// Handle cases where the conversion is supposed to work
+				for i := 1; i < len(iv.Valid); i++ {
+					newValue := iv.Valid[i]
+					t.Run(fmt.Sprintf("legal sample %d", i), func(t *testing.T) {
+						// construct an update request
+						u := minimumRequiredUpdatePayloadWithSpace(kindSpace.ID)
+						u.Data.Attributes["version"] = version
+						u.Data.Attributes[kind.String()+"_field"] = newValue
+						u.Data.ID = &wi.ID
+						// when
+						compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "update", kind.String(), fmt.Sprintf("valid_sample_%d", i)+".req.payload.golden.json"), u)
+						// Update the work item
+						res, updatedWI := test.UpdateWorkitemOK(t, s.svc.Context, s.svc, s.workitemCtrl, wi.ID, &u)
+						// Check for updated value
+						compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "update", kind.String(), fmt.Sprintf("valid_sample_%d", i)+".res.payload.golden.json"), updatedWI)
+						compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "update", kind.String(), fmt.Sprintf("valid_sample_%d", i)+".res.headers.golden.json"), res.Header())
+						_, loadedWi := test.ShowWorkitemOK(t, s.svc.Context, s.svc, s.workitemCtrl, *updatedWI.Data.ID, nil, nil)
+						require.NotNil(t, loadedWi)
+						// compensate for errors when interpreting ambigous actual values
+						actual := loadedWi.Data.Attributes[kind.String()+"_field"]
+						if iv.Compensate != nil {
+							actual = iv.Compensate(actual)
+						}
+						require.Equal(t, newValue, actual, "expected no error when loading and comparing the workitem with a '%s' kind: %#v", kind, spew.Sdump(newValue))
+
+						var ok bool
+						version, ok = loadedWi.Data.Attributes[workitem.SystemVersion].(int)
+						require.True(t, ok, "failed to get updated version")
+					})
+				}
+				// Handle cases where the conversion is supposed to NOT work
+				for i := 0; i < len(iv.Invalid); i++ {
+					newValue := iv.Invalid[i]
+					t.Run(fmt.Sprintf("illegal sample %d", i), func(t *testing.T) {
+						// construct an update request
+						u := minimumRequiredUpdatePayloadWithSpace(kindSpace.ID)
+						u.Data.Attributes["version"] = version
+						u.Data.Attributes[kind.String()+"_field"] = newValue
+						u.Data.ID = &wi.ID
+						// when
+						_, jerrs := test.UpdateWorkitemBadRequest(t, s.svc.Context, s.svc, s.workitemCtrl, wi.ID, &u)
+						// then
+						require.NotNil(t, jerrs, "expected an error when assigning this value to a '%s' field during work item update: %#v", kind, spew.Sdump(newValue))
+					})
+				}
+			})
+		}
 	})
 }
 
@@ -2222,11 +2332,12 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateAndPreventJavascriptInjectionWithMa
 
 func (s *WorkItem2Suite) TestCreateWIWithCodebase() {
 	// given
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1), tf.WorkItemTypes(1))
 	c := minimumRequiredCreatePayload()
 	title := "Solution on global warming"
 	c.Data.Attributes[workitem.SystemTitle] = title
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemPlannerItem)
+	c.Data.Relationships.BaseType = newRelationBaseType(fxt.Spaces[0].ID, fxt.WorkItemTypes[0].ID)
 	branch := "earth-recycle-101"
 	repo := "https://github.com/pranavgore09/go-tutorial.git"
 	file := "main.go"
@@ -2261,6 +2372,8 @@ func (s *WorkItem2Suite) TestCreateWIWithCodebase() {
 // this test aims at checking different codebaseIDs for
 // two CodebaseContent with same Repository but in two different spaces
 func (s *WorkItem2Suite) TestCodebaseWithSameRepoAcrossSpace() {
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1), tf.WorkItemTypes(1))
+
 	// create one space
 	spaceInstance, _, _ := createSpaceWithDefaults(s.svc.Context, s.DB)
 	space1ID := spaceInstance.ID
@@ -2272,7 +2385,7 @@ func (s *WorkItem2Suite) TestCodebaseWithSameRepoAcrossSpace() {
 	title := "Solution on global warming"
 	c.Data.Attributes[workitem.SystemTitle] = title
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemPlannerItem)
+	c.Data.Relationships.BaseType = newRelationBaseType(fxt.Spaces[0].ID, fxt.WorkItemTypes[0].ID)
 	c.Data.Relationships.Space = app.NewSpaceRelation(space1ID, "")
 	branch := "earth-recycle-101"
 	repo := "https://github.com/pranavgore09/go-tutorial.git"
@@ -2303,7 +2416,7 @@ func (s *WorkItem2Suite) TestCodebaseWithSameRepoAcrossSpace() {
 	branch = "earth-recycle-102"
 	c.Data.Attributes[workitem.SystemTitle] = title
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemPlannerItem)
+	c.Data.Relationships.BaseType = newRelationBaseType(fxt.Spaces[0].ID, fxt.WorkItemTypes[0].ID)
 	c.Data.Relationships.Space = &app.RelationSpaces{Data: &app.RelationSpacesData{
 		ID: &space2ID,
 	}}
@@ -2329,7 +2442,7 @@ func (s *WorkItem2Suite) TestCodebaseWithSameRepoAcrossSpace() {
 	title = "One antoher solution on global warming"
 	c.Data.Attributes[workitem.SystemTitle] = title
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemPlannerItem)
+	c.Data.Relationships.BaseType = newRelationBaseType(fxt.Spaces[0].ID, fxt.WorkItemTypes[0].ID)
 	c.Data.Relationships.Space = &app.RelationSpaces{Data: &app.RelationSpacesData{
 		ID: &space1ID,
 	}}
@@ -2688,19 +2801,6 @@ func (s *WorkItem2Suite) TestNotificationSendOnUpdate() {
 func minimumRequiredCreatePayloadWithSpace(spaceID uuid.UUID) app.CreateWorkitemsPayload {
 	spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(spaceID.String()))
 	return app.CreateWorkitemsPayload{
-		Data: &app.WorkItem{
-			Type:       APIStringTypeWorkItem,
-			Attributes: map[string]interface{}{},
-			Relationships: &app.WorkItemRelationships{
-				Space: app.NewSpaceRelation(spaceID, spaceSelfURL),
-			},
-		},
-	}
-}
-
-func minimumRequiredUpdatePayloadWithSpace(spaceID uuid.UUID) app.UpdateWorkitemPayload {
-	spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(spaceID.String()))
-	return app.UpdateWorkitemPayload{
 		Data: &app.WorkItem{
 			Type:       APIStringTypeWorkItem,
 			Attributes: map[string]interface{}{},
