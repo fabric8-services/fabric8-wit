@@ -86,8 +86,8 @@ func GetFieldTypeTestData(t *testing.T) FieldTypeTestDataMap {
 		},
 		KindIteration: {
 			Valid: []interface{}{
-				"some iteration name",
-				"some other iteration name",
+				"63b792d8-eede-40d9-b311-b43f84285e98",
+				"058c9b12-39a9-4495-b24b-b053514a7edb",
 				"", // TODO(kwk): do we really allow empty iteration names?
 			},
 			Invalid: []interface{}{
@@ -99,8 +99,8 @@ func GetFieldTypeTestData(t *testing.T) FieldTypeTestDataMap {
 		},
 		KindArea: {
 			Valid: []interface{}{
-				"some area name",
-				"some other area name",
+				"dde919b1-3c61-4d3a-8cda-941c62813749",
+				"8aab8647-35e0-4f18-9468-f5c2fbc02b3d",
 				"", // TODO(kwk): do we really allow empty area names?
 			},
 			Invalid: []interface{}{
@@ -112,8 +112,8 @@ func GetFieldTypeTestData(t *testing.T) FieldTypeTestDataMap {
 		},
 		KindLabel: {
 			Valid: []interface{}{
-				"some label name",
-				"some label name2",
+				"8eea6cf3-ddf2-4b93-ade2-13c6b75de1df",
+				"6efaad81-b35a-44bc-898a-6c66336c7cff",
 				"", // TODO(kwk): do we really allow empty label names?
 			},
 			Invalid: []interface{}{
