@@ -128,7 +128,9 @@ function tag_push() {
   docker push ${target}
 }
 
-# deploy builds a deployable docker image and tags it according to the given tag. If the  
+# deploy builds a deployable docker image and tags it according to
+# the given tag. If the second parameter is true, it will push the
+# image to a registry.
 function deploy() {
   local tag=$1
   local push_latest=$2
@@ -145,7 +147,7 @@ function deploy() {
   fi
 
   tag_push ${registry}/fabric8-services/fabric8-wit:${tag}
-  if [ -n "${push_latest}" ] ; then
+  if ( ${push_latest} ); then
     tag_push ${registry}/fabric8-services/fabric8-wit:latest
   fi
   echo 'CICO: Image pushed, ready to update deployed app'
