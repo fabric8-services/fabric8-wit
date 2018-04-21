@@ -123,7 +123,7 @@ function run_tests_with_coverage() {
 }
 
 function tag_push() {
-  local taget=$1
+  local target=$1
   docker tag fabric8-wit-deploy ${target}
   docker push ${target}
 }
