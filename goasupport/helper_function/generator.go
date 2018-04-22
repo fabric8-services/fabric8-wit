@@ -38,20 +38,24 @@ func writeFunctions(api *design.APIDefinition, outDir string) ([]string, error) 
 	title := fmt.Sprintf("%s: Helper functions - See goasupport/helper_function/generator.go", api.Context())
 	imports := []*codegen.ImportSpec{
 		codegen.NewImport("uuid", "github.com/satori/go.uuid"),
+		codegen.NewImport("", "github.com/fabric8-services/fabric8-wit/ptr"),
 	}
 	ctxWr.WriteHeader(title, "app", imports)
 	if err := ctxWr.ExecuteTemplate("newSpaceRelation", newSpaceRelation, nil, nil); err != nil {
+		return nil, err
+	}
+	if err := ctxWr.ExecuteTemplate("newSpaceTemplateRelation", newSpaceTemplateRelation, nil, nil); err != nil {
 		return nil, err
 	}
 	return []string{ctxFile}, nil
 }
 
 const (
-	newSpaceRelation = `func NewSpaceRelation(id uuid.UUID, relatedURL string) *RelationSpaces {
-	spaceType := "spaces"
+	newSpaceRelation = `
+func NewSpaceRelation(id uuid.UUID, relatedURL string) *RelationSpaces {
 	return &RelationSpaces{
 		Data: &RelationSpacesData{
-			Type: &spaceType,
+			Type: ptr.String("spaces"),
 			ID:   &id,
 		},
 		Links: &GenericLinks{
@@ -59,5 +63,21 @@ const (
 			Related: &relatedURL,
 		},
 	}
-}`
+}
+`
+
+	newSpaceTemplateRelation = `
+func NewSpaceTemplateRelation(id uuid.UUID, relatedURL string) *SpaceTemplateRelation {
+	return &SpaceTemplateRelation{
+		Data: &SpaceTemplateRelationData{
+			Type: "spacetemplates",
+			ID:   id,
+		},
+		Links: &GenericLinks{
+			Self: &relatedURL,
+			Related: &relatedURL,
+		},
+	}
+}
+`
 )

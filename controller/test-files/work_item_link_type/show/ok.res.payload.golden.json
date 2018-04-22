@@ -35,6 +35,16 @@
           "related": "http:///api/spaces/00000000-0000-0000-0000-000000000004",
           "self": "http:///api/spaces/00000000-0000-0000-0000-000000000004"
         }
+      },
+      "space_template": {
+        "data": {
+          "id": "00000000-0000-0000-0000-000000000005",
+          "type": "spacetemplates"
+        },
+        "links": {
+          "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000005",
+          "self": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000005"
+        }
       }
     },
     "type": "workitemlinktypes"

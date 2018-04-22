@@ -88,6 +88,7 @@ migration/sqlbindata.go
 migration/sqlbindata_test.go
 account/tenant
 auth/authservice
+spacetemplate/template_assets.go
 
 # Ignore artifacts directory
 bin/
