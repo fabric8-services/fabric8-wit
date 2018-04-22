@@ -23,6 +23,7 @@ import (
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
@@ -1524,24 +1525,19 @@ func (s *WorkItem2Suite) TestWI2ListByNoAssigneeFilter() {
 
 func (s *WorkItem2Suite) TestWI2ListByTypeFilter() {
 	// given
-	c := minimumRequiredCreatePayload()
-	c.Data.Attributes[workitem.SystemTitle] = "Title"
-	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = newRelationBaseType(workitem.SystemBug)
+	fxt := tf.NewTestFixture(s.T(), s.DB,
+		tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
+			fxt.WorkItems[idx].Fields[workitem.SystemState] = workitem.SystemStateNew
+			return nil
+		}),
+	)
 	// when
-	_, expected := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, &c)
+	_, actual := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, nil, nil, nil, nil, nil, nil, nil, &fxt.WorkItemTypes[0].ID, nil, nil, nil, nil)
 	// then
-	assert.NotNil(s.T(), expected.Data)
-	require.NotNil(s.T(), expected.Data.ID)
-	require.NotNil(s.T(), expected.Data.Type)
-	_, actual := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, nil, &workitem.SystemBug, nil, nil, nil, nil)
 	require.NotNil(s.T(), actual)
-	require.True(s.T(), len(actual.Data) > 1)
-	assert.Contains(s.T(), *actual.Links.First, fmt.Sprintf("filter[workitemtype]=%s", workitem.SystemBug))
-	for _, actualWI := range actual.Data {
-		assert.Equal(s.T(), expected.Data.Type, actualWI.Type)
-		require.NotNil(s.T(), actualWI.ID)
-	}
+	require.Len(s.T(), actual.Data, 1)
+	assert.Contains(s.T(), *actual.Links.First, fmt.Sprintf("filter[workitemtype]=%s", fxt.WorkItemTypes[0].ID))
+	require.Equal(s.T(), fxt.WorkItems[0].ID, *actual.Data[0].ID)
 }
 
 func (s *WorkItem2Suite) createWorkItem(title, state string) app.WorkItemSingle {
@@ -1559,43 +1555,55 @@ func (s *WorkItem2Suite) createWorkItem(title, state string) app.WorkItemSingle 
 
 func (s *WorkItem2Suite) TestWI2ListByStateFilterOK() {
 	// given
-	_ = s.createWorkItem("title", workitem.SystemStateNew)
-	inprogressWI := s.createWorkItem("title", workitem.SystemStateInProgress)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(2, func(fxt *tf.TestFixture, idx int) error {
+		switch idx {
+		case 0:
+			fxt.WorkItems[idx].Fields[workitem.SystemState] = workitem.SystemStateNew
+		case 1:
+			fxt.WorkItems[idx].Fields[workitem.SystemState] = workitem.SystemStateInProgress
+		}
+		return nil
+	}))
 	// when
 	stateNew := workitem.SystemStateNew
-	_, actualWIs := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, nil, nil)
+	_, actualWIs := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, nil, nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, nil, nil)
 	// then
 	require.NotNil(s.T(), actualWIs)
-	require.True(s.T(), len(actualWIs.Data) > 1)
+	require.Len(s.T(), actualWIs.Data, 1)
 	assert.Contains(s.T(), *actualWIs.Links.First, fmt.Sprintf("filter[workitemstate]=%s", workitem.SystemStateNew))
-	for _, actualWI := range actualWIs.Data {
-		require.NotNil(s.T(), actualWI.Attributes[workitem.SystemState])
-		assert.Equal(s.T(), stateNew, actualWI.Attributes[workitem.SystemState])
-		assert.NotEqual(s.T(), *inprogressWI.Data.ID, *actualWI.ID)
-	}
+	require.NotNil(s.T(), actualWIs.Data[0].Attributes[workitem.SystemState])
+	assert.Equal(s.T(), stateNew, actualWIs.Data[0].Attributes[workitem.SystemState])
+	assert.Equal(s.T(), fxt.WorkItems[0].ID, *actualWIs.Data[0].ID)
 }
 
 // see https://github.com/fabric8-services/fabric8-wit/issues/1268
 func (s *WorkItem2Suite) TestWI2ListByStateFilterNotModifiedUsingIfNoneMatchIfModifiedSinceHeaders() {
 	// given
-	_ = s.createWorkItem("title", workitem.SystemStateNew)
-	inprogressWI := s.createWorkItem("title", workitem.SystemStateInProgress)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItems(2, func(fxt *tf.TestFixture, idx int) error {
+		switch idx {
+		case 0:
+			fxt.WorkItems[idx].Fields[workitem.SystemState] = workitem.SystemStateNew
+		case 1:
+			fxt.WorkItems[idx].Fields[workitem.SystemState] = workitem.SystemStateInProgress
+		}
+		return nil
+	}))
+	// _ = s.createWorkItem("title", workitem.SystemStateNew)
+	// inprogressWI := s.createWorkItem("title", workitem.SystemStateInProgress)
 	// when
 	stateNew := workitem.SystemStateNew
-	res, actualWIs := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, nil, nil)
+	res, actualWIs := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, nil, nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, nil, nil)
 	// then
 	require.NotNil(s.T(), actualWIs)
-	require.True(s.T(), len(actualWIs.Data) > 1)
+	require.Len(s.T(), actualWIs.Data, 1)
 	assert.Contains(s.T(), *actualWIs.Links.First, fmt.Sprintf("filter[workitemstate]=%s", workitem.SystemStateNew))
-	for _, actualWI := range actualWIs.Data {
-		require.NotNil(s.T(), actualWI.Attributes[workitem.SystemState])
-		assert.Equal(s.T(), stateNew, actualWI.Attributes[workitem.SystemState])
-		assert.NotEqual(s.T(), *inprogressWI.Data.ID, *actualWI.ID)
-	}
+	require.NotNil(s.T(), actualWIs.Data[0].Attributes[workitem.SystemState])
+	assert.Equal(s.T(), stateNew, actualWIs.Data[0].Attributes[workitem.SystemState])
+
 	// retain conditional headers in response and submit the request again
 	etag, lastModified, _ := assertResponseHeaders(s.T(), res)
 	// when calling again
-	res = test.ListWorkitemsNotModified(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, &lastModified, &etag)
+	res = test.ListWorkitemsNotModified(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, nil, nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, &lastModified, &etag)
 	// then
 	assertResponseHeaders(s.T(), res)
 }
@@ -1603,41 +1611,52 @@ func (s *WorkItem2Suite) TestWI2ListByStateFilterNotModifiedUsingIfNoneMatchIfMo
 // see https://github.com/fabric8-services/fabric8-wit/issues/1268
 func (s *WorkItem2Suite) TestWI2ListByStateFilterOKModifiedUsingIfNoneMatchIfModifiedSinceHeaders() {
 	// given
-	_ = s.createWorkItem("title", workitem.SystemStateNew)
-	inprogressWI := s.createWorkItem("title", workitem.SystemStateInProgress)
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(2, func(fxt *tf.TestFixture, idx int) error {
+		switch idx {
+		case 0:
+			fxt.WorkItems[idx].Fields[workitem.SystemState] = workitem.SystemStateNew
+		case 1:
+			fxt.WorkItems[idx].Fields[workitem.SystemState] = workitem.SystemStateInProgress
+		}
+		return nil
+	}))
 	// when
 	stateNew := workitem.SystemStateNew
-	res, actualWIs := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, nil, nil)
+	res, actualWIs := test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, nil, nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, nil, nil)
 	// then
 	require.NotNil(s.T(), actualWIs)
-	require.True(s.T(), len(actualWIs.Data) > 1)
+	require.Len(s.T(), actualWIs.Data, 1)
 	assert.Contains(s.T(), *actualWIs.Links.First, fmt.Sprintf("filter[workitemstate]=%s", workitem.SystemStateNew))
-	for _, actualWI := range actualWIs.Data {
-		require.NotNil(s.T(), actualWI.Attributes[workitem.SystemState])
-		assert.Equal(s.T(), stateNew, actualWI.Attributes[workitem.SystemState])
-		assert.NotEqual(s.T(), *inprogressWI.Data.ID, *actualWI.ID)
-	}
+	require.NotNil(s.T(), actualWIs.Data[0].Attributes[workitem.SystemState])
+	assert.Equal(s.T(), stateNew, actualWIs.Data[0].Attributes[workitem.SystemState])
+	assert.Equal(s.T(), fxt.WorkItems[0].ID, *actualWIs.Data[0].ID)
+
 	// retain conditional headers in response and submit the request again
 	etag, lastModified, _ := assertResponseHeaders(s.T(), res)
 	// modify the state of the inprogressWI
-	update := minimumRequiredUpdatePayload()
-	update.Data.ID = inprogressWI.Data.ID
-	update.Data.Type = inprogressWI.Data.Type
-	update.Data.Attributes[workitem.SystemTitle] = inprogressWI.Data.Attributes[workitem.SystemTitle]
+	update := minimumRequiredUpdatePayloadWithSpace(fxt.Spaces[0].ID)
+	update.Data.ID = &fxt.WorkItems[1].ID
+	update.Data.Type = APIStringTypeWorkItem
+	update.Data.Attributes[workitem.SystemTitle] = fxt.WorkItems[1].Fields[workitem.SystemTitle]
 	update.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	update.Data.Attributes["version"] = inprogressWI.Data.Attributes["version"]
-	test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *inprogressWI.Data.ID, &update)
+	update.Data.Attributes["version"] = fxt.WorkItems[1].Version
+	test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.workitemCtrl, fxt.WorkItems[1].ID, &update)
 	// when calling again (with expired validation headers)
-	res, actualWIs = test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, nil, nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, &lastModified, &etag)
+	res, actualWIs = test.ListWorkitemsOK(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, fxt.Spaces[0].ID, nil, nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, &lastModified, &etag)
 	// then expect the new data
 	assertResponseHeaders(s.T(), res)
 	require.NotNil(s.T(), actualWIs)
-	require.True(s.T(), len(actualWIs.Data) > 2)
+	require.Len(s.T(), actualWIs.Data, 2)
 	assert.Contains(s.T(), *actualWIs.Links.First, fmt.Sprintf("filter[workitemstate]=%s", workitem.SystemStateNew))
+	toBeFound := id.Slice{fxt.WorkItems[0].ID, fxt.WorkItems[1].ID}.ToMap()
 	for _, actualWI := range actualWIs.Data {
+		_, ok := toBeFound[*actualWI.ID]
+		require.True(s.T(), ok, "found unexpected work item: %s", *actualWI.ID)
+		delete(toBeFound, *actualWI.ID)
 		require.NotNil(s.T(), actualWI.Attributes[workitem.SystemState])
 		assert.Equal(s.T(), stateNew, actualWI.Attributes[workitem.SystemState])
 	}
+	require.Empty(s.T(), toBeFound, "failed to find these work items in list: %+v", toBeFound)
 }
 
 func (s *WorkItem2Suite) setupAreaWorkItem(createWorkItem bool) (uuid.UUID, string, *app.WorkItemSingle) {
