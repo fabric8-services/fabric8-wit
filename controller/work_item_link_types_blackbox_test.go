@@ -110,10 +110,9 @@ func (s *workItemLinkTypesSuite) TestList() {
 	s.T().Run("not modified using IfNoneMatch header", func(t *testing.T) {
 		// given
 		res, _ := test.ListWorkItemLinkTypesOK(t, nil, nil, ctrl, fxt.SpaceTemplates[0].ID, nil, nil)
-		require.NotNil(t, witCollection)
 		ifNoneMatch := res.Header().Get(app.ETag)
 		// when
-		res := test.ListWorkItemLinkTypesNotModified(t, nil, nil, ctrl, fxt.SpaceTemplates[0].ID, nil, &ifNoneMatch)
+		res = test.ListWorkItemLinkTypesNotModified(t, nil, nil, ctrl, fxt.SpaceTemplates[0].ID, nil, &ifNoneMatch)
 		// then
 		safeOverriteHeader(t, res, app.ETag, "0icd7ov5CqwDXN6Fx9z18g==")
 		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "not_modified_using_ifnonematch_header.res.headers.golden.json"), res.Header())
