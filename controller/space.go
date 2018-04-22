@@ -128,7 +128,7 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 	}
 
 	// Create keycloak resource for this space
-	_, err = c.resourceManager.CreateSpace(ctx, ctx.Request, spaceID.String())
+	err = c.resourceManager.CreateSpace(ctx, ctx.Request, spaceID.String())
 	if err != nil {
 		// Unable to create a space resource. Can't proceed. Roll back space creation and return an error.
 		c.rollBackSpaceCreation(ctx, spaceID)

@@ -20,7 +20,6 @@ DEP_BIN_DIR := $(TMP_PATH)/bin
 DEP_BIN := $(DEP_BIN_DIR)/$(DEP_BIN_NAME)
 DEP_VERSION=v0.4.1
 GO_BIN := $(shell command -v $(GO_BIN_NAME) 2> /dev/null)
-HG_BIN := $(shell command -v $(HG_BIN_NAME) 2> /dev/null)
 DOCKER_COMPOSE_BIN := $(shell command -v $(DOCKER_COMPOSE_BIN_NAME) 2> /dev/null)
 DOCKER_BIN := $(shell command -v $(DOCKER_BIN_NAME) 2> /dev/null)
 
@@ -365,9 +364,6 @@ ifndef GIT_BIN
 endif
 ifndef DEP_BIN
 	$(error The "$(DEP_BIN_NAME)" executable could not be found in your PATH)
-endif
-ifndef HG_BIN
-	$(error The "$(HG_BIN_NAME)" executable could not be found in your PATH)
 endif
 	@$(CHECK_GOPATH_BIN) -packageName=$(PACKAGE_NAME) || (echo "Project lives in wrong location"; exit 1)
 
