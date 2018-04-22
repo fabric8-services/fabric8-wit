@@ -131,12 +131,17 @@ SELECT pg_catalog.setval('version_id_seq', 87, true);
 --
 
 
+INSERT INTO work_item_link_categories VALUES ('2018-04-22 22:23:48.367557+00', '2018-04-22 22:23:48.367557+00', NULL, 'f5e69ea0-d892-40e4-a0c0-f9e43902a3a6', 0, 'link category ebc3bc87-2423-4874-8729-ba57393dbfbd', 'some description')  ON CONFLICT DO NOTHING;
+INSERT INTO work_item_link_categories VALUES ('2018-04-22 22:23:48.405211+00', '2018-04-22 22:23:48.405211+00', NULL, '662faaed-7e45-4e7b-ad67-5430846f6096', 0, 'link category b1a7d60a-2857-45e6-950f-6033a74c0be1', 'some description')  ON CONFLICT DO NOTHING;
+INSERT INTO work_item_link_categories VALUES ('2018-04-22 22:23:48.434358+00', '2018-04-22 22:23:48.434358+00', NULL, '8d3ffc9e-7cf5-45c3-a23d-3b3ddcf5eb0e', 0, 'link category e75c942c-895b-4d48-a8f7-9062b9ce298b', 'some description')  ON CONFLICT DO NOTHING;
 
 --
 -- Data for Name: work_item_link_types; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-
+INSERT INTO work_item_link_types VALUES ('2018-04-22 22:23:48.371816+00', '2018-04-22 22:23:48.371816+00', NULL, '2fae2b0d-d239-48e7-8a88-e36c3bb3797f', 0, 'tree-type', 'some description', 'forward name (e.g. blocks)', 'reverse name (e.g. blocked by)', 'tree', 'f5e69ea0-d892-40e4-a0c0-f9e43902a3a6', '37266dd7-7e84-4366-9608-fe66abc822c5') ON CONFLICT DO NOTHING;
+INSERT INTO work_item_link_types VALUES ('2018-04-22 22:23:48.408506+00', '2018-04-22 22:23:48.408506+00', NULL, '6e6305e1-fda1-460e-819d-1098d272fe18', 0, 'work item link type 76684c78-74cd-4ad9-bd46-b813572d0ffd', 'some description', 'forward name (e.g. blocks)', 'reverse name (e.g. blocked by)', 'tree', '662faaed-7e45-4e7b-ad67-5430846f6096', '37266dd7-7e84-4366-9608-fe66abc822c5') ON CONFLICT DO NOTHING;
+INSERT INTO work_item_link_types VALUES ('2018-04-22 22:23:48.437439+00', '2018-04-22 22:23:48.437439+00', NULL, 'dfa7f885-aee2-4d50-b54d-6f957e33a89a', 0, 'work item link type 5d4df91f-2090-40a8-a03e-01dbfa7148aa', 'some description', 'forward name (e.g. blocks)', 'reverse name (e.g. blocked by)', 'dependency', '8d3ffc9e-7cf5-45c3-a23d-3b3ddcf5eb0e', '37266dd7-7e84-4366-9608-fe66abc822c5') ON CONFLICT DO NOTHING;
 
 --
 -- Data for Name: work_item_types; Type: TABLE DATA; Schema: public; Owner: postgres
