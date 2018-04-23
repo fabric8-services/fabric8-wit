@@ -394,12 +394,18 @@ func GetMigrations() Migrations {
 	// Version 87
 	m = append(m, steps{ExecuteSQLFile("087-space-templates.sql",
 		spacetemplate.SystemLegacyTemplateID.String(),
-		spacetemplate.SystemBaseTemplateID.String(),
 		workitem.SystemPlannerItem.String(),
 	)})
 
 	// Version 88
 	m = append(m, steps{ExecuteSQLFile("088-type-groups-and-child-types.sql")})
+
+	// Version 89
+	m = append(m, steps{ExecuteSQLFile("089-fixup-space-templates.sql",
+		spacetemplate.SystemLegacyTemplateID.String(),
+		spacetemplate.SystemBaseTemplateID.String(),
+		workitem.SystemPlannerItem.String(),
+	)})
 
 	// Version N
 	//
