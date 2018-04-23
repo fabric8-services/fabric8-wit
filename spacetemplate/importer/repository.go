@@ -102,7 +102,7 @@ func (r *GormRepository) Import(ctx context.Context, s ImportHelper) (*ImportHel
 		return nil, errs.Wrapf(err, "failed to create or update work item type groups")
 	}
 
-	log.Info(ctx, map[string]interface{}{"space_template_id": s.Template.ID}, "space template imorted successfully")
+	log.Info(ctx, map[string]interface{}{"space_template_id": s.Template.ID}, "space template imported successfully")
 	return res, nil
 }
 
