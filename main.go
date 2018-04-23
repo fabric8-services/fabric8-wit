@@ -28,12 +28,8 @@ import (
 	"github.com/fabric8-services/fabric8-wit/notification"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/sentry"
-	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/space/authz"
 	"github.com/fabric8-services/fabric8-wit/token"
-	"github.com/fabric8-services/fabric8-wit/workitem"
-	"github.com/fabric8-services/fabric8-wit/workitem/link"
-
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/logging/logrus"
 	"github.com/goadesign/goa/middleware"
@@ -149,18 +145,11 @@ func main() {
 		ctx := migration.NewMigrationContext(context.Background())
 
 		if err := models.Transactional(db, func(tx *gorm.DB) error {
-			return migration.PopulateCommonTypes(ctx, tx, workitem.NewWorkItemTypeRepository(tx))
+			return migration.PopulateCommonTypes(ctx, tx)
 		}); err != nil {
 			log.Panic(ctx, map[string]interface{}{
 				"err": err,
 			}, "failed to populate common types")
-		}
-		if err := models.Transactional(db, func(tx *gorm.DB) error {
-			return migration.BootstrapWorkItemLinking(ctx, link.NewWorkItemLinkCategoryRepository(tx), space.NewRepository(tx), link.NewWorkItemLinkTypeRepository(tx))
-		}); err != nil {
-			log.Panic(ctx, map[string]interface{}{
-				"err": err,
-			}, "failed to bootstap work item linking")
 		}
 	}
 
@@ -386,7 +375,7 @@ func main() {
 	app.MountCollaboratorsController(service, collaboratorsCtrl)
 
 	// Mount "space template" controller
-	spaceTemplateCtrl := controller.NewSpaceTemplateController(service, appDB)
+	spaceTemplateCtrl := controller.NewSpaceTemplateController(service, appDB, config)
 	app.MountSpaceTemplateController(service, spaceTemplateCtrl)
 
 	// Mount "type group" controller with "show" action

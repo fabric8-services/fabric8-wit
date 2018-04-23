@@ -10,9 +10,9 @@ import (
 // The Lifecycle struct contains all the items from gorm.Model except the ID field,
 // hence we can embed the Lifecycle struct into Models that needs soft delete and alike.
 type Lifecycle struct {
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt *time.Time
+	CreatedAt time.Time  `json:"created_at,omitempty"`
+	UpdatedAt time.Time  `json:"updated_at,omitempty"`
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 }
 
 func init() {

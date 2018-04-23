@@ -33,7 +33,7 @@ func TestConcurrentMigrations(t *testing.T) {
 				t.Fatalf("Cannot connect to DB: %s\n", err)
 			}
 			err = Migrate(db, configuration.GetPostgresDatabase())
-			require.NoError(t, err)
+			require.NoError(t, err, "%+v", err)
 		}()
 
 	}

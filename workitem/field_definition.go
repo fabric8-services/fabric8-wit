@@ -4,12 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-
 	"strings"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/fabric8-services/fabric8-wit/convert"
-
 	errs "github.com/pkg/errors"
 )
 
@@ -201,11 +199,11 @@ func (f *FieldDefinition) UnmarshalJSON(bytes []byte) error {
 		}
 	}
 	kind, err := ConvertAnyToKind(rawKind)
-
 	if err != nil {
 		// return the first error anyway
 		return errs.Wrapf(err, "failed to convert any '%+v' to kind", rawKind)
 	}
+
 	switch *kind {
 	case KindList:
 		theType := ListType{}

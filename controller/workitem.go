@@ -318,7 +318,6 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 			target.Fields[workitem.SystemIteration] = iterationUUID.String()
 		}
 	}
-
 	if source.Relationships != nil {
 		if source.Relationships.Area == nil || (source.Relationships.Area != nil && source.Relationships.Area.Data == nil) {
 			log.Debug(ctx, map[string]interface{}{

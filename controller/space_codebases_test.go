@@ -16,6 +16,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
+	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 
@@ -103,6 +104,7 @@ func (rest *TestSpaceCodebaseREST) TestListCodebase() {
 	// Create a new space where we'll create 3 codebase
 	sp := rest.createSpace(testsupport.TestIdentity.ID)
 	// Create another space where we'll create 1 codebase.
+
 	anotherSpace := rest.createSpace(testsupport.TestIdentity.ID)
 
 	repo := "https://github.com/fabric8-services/fabric8-wit.git"
@@ -222,8 +224,9 @@ func (rest *TestSpaceCodebaseREST) createSpace(ownerID uuid.UUID) *space.Space {
 	err = application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Spaces()
 		newSpace := &space.Space{
-			Name:    "TestSpaceCodebase " + uuid.NewV4().String(),
-			OwnerID: ownerID,
+			Name:            "TestSpaceCodebase " + uuid.NewV4().String(),
+			OwnerID:         ownerID,
+			SpaceTemplateID: spacetemplate.SystemLegacyTemplateID,
 		}
 		sp, err = repo.Create(context.Background(), newSpace)
 		return err

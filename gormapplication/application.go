@@ -15,6 +15,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/search"
 	"github.com/fabric8-services/fabric8-wit/space"
+	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/event"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
@@ -149,6 +150,16 @@ func (g *GormBase) Queries() query.Repository {
 // Codebases returns a codebase repository
 func (g *GormBase) Codebases() codebase.Repository {
 	return codebase.NewCodebaseRepository(g.db)
+}
+
+// SpaceTemplates returns a space template repository
+func (g *GormBase) SpaceTemplates() spacetemplate.Repository {
+	return spacetemplate.NewRepository(g.db)
+}
+
+// WorkItemTypeGroups returns a work item type group repository
+func (g *GormBase) WorkItemTypeGroups() workitem.WorkItemTypeGroupRepository {
+	return workitem.NewWorkItemTypeGroupRepository(g.db)
 }
 
 func (g *GormBase) DB() *gorm.DB {
