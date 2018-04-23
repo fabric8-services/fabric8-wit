@@ -1,0 +1,19 @@
+{
+  "attributes": {
+    "description": "space description",
+    "name": "spaceName",
+    "version": 42
+  },
+  "id": "00000000-0000-0000-0000-000000000001",
+  "links": {
+    "backlog": {
+      "self": "https://api.openshift.io/api/spaces/00000000-0000-0000-0000-000000000001/backlog"
+    },
+    "filters": "https://api.openshift.io/api/filters",
+    "related": "https://api.openshift.io/api/spaces/00000000-0000-0000-0000-000000000001",
+    "self": "https://api.openshift.io/api/spaces/00000000-0000-0000-0000-000000000001",
+    "workitemlinktypes": "https://api.openshift.io/api/spaces/00000000-0000-0000-0000-000000000001/workitemlinktypes",
+    "workitemtypes": "https://api.openshift.io/api/spaces/00000000-0000-0000-0000-000000000001/workitemtypes"
+  },
+  "type": "workitemtypes"
+}

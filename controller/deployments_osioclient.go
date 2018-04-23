@@ -77,9 +77,9 @@ func CreateOSIOClient(witclient WitClient, responseReader ResponseReader) Opensh
 
 // GetNamespaceByType finds a namespace by type (user, che, stage, etc)
 // if userService is nil, will fetch the user services under the hood
-func (osioclient *OSIOClient) GetNamespaceByType(ctx context.Context, userService *app.UserService, namespaceType string) (*app.NamespaceAttributes, error) {
+func (oc *OSIOClient) GetNamespaceByType(ctx context.Context, userService *app.UserService, namespaceType string) (*app.NamespaceAttributes, error) {
 	if userService == nil {
-		us, err := osioclient.GetUserServices(ctx)
+		us, err := oc.GetUserServices(ctx)
 		if err != nil {
 			return nil, errs.Wrapf(err, "could not retrieve user services")
 		}
@@ -96,13 +96,13 @@ func (osioclient *OSIOClient) GetNamespaceByType(ctx context.Context, userServic
 
 // GetUserServices - fetch array of user services
 // In the future, consider calling the tenant service (as /api/user/services implementation does)
-func (osioclient *OSIOClient) GetUserServices(ctx context.Context) (*app.UserService, error) {
-	resp, err := osioclient.wc.ShowUserService(ctx, witclient.ShowUserServicePath())
+func (oc *OSIOClient) GetUserServices(ctx context.Context) (*app.UserService, error) {
+	resp, err := oc.wc.ShowUserService(ctx, witclient.ShowUserServicePath())
 	if err != nil {
 		return nil, errs.Wrapf(err, "could not retrieve uses services")
 	}
 
-	respBody, err := osioclient.responseReader.ReadResponse(resp)
+	respBody, err := oc.responseReader.ReadResponse(resp)
 
 	status := resp.StatusCode
 	if status == http.StatusNotFound {
@@ -130,15 +130,15 @@ func (osioclient *OSIOClient) GetUserServices(ctx context.Context) (*app.UserSer
 }
 
 // GetSpaceByID - fetch space given UUID
-func (osioclient *OSIOClient) GetSpaceByID(ctx context.Context, spaceID uuid.UUID) (*app.Space, error) {
+func (oc *OSIOClient) GetSpaceByID(ctx context.Context, spaceID uuid.UUID) (*app.Space, error) {
 	guid := goauuid.UUID(spaceID)
 	urlpath := witclient.ShowSpacePath(guid)
-	resp, err := osioclient.wc.ShowSpace(ctx, urlpath, nil, nil)
+	resp, err := oc.wc.ShowSpace(ctx, urlpath, nil, nil)
 	if err != nil {
 		return nil, errs.Wrapf(err, "could not connect to %s", urlpath)
 	}
 
-	respBody, err := osioclient.responseReader.ReadResponse(resp)
+	respBody, err := oc.responseReader.ReadResponse(resp)
 
 	status := resp.StatusCode
 	if status == http.StatusNotFound {

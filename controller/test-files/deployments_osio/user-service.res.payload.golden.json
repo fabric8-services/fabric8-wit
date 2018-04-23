@@ -1,0 +1,18 @@
+{
+  "attributes": {
+    "namespaces": [
+      {
+        "cluster-app-domain": "http://openshift.io",
+        "cluster-console-url": "http://openshift.io/url",
+        "cluster-metrics-url": "http://openshift.io/url",
+        "cluster-url": "http://openshift.io/url",
+        "name": "namespaceName",
+        "state": "someState",
+        "type": "workitemtypes",
+        "version": "1.2.3"
+      }
+    ]
+  },
+  "id": "00000000-0000-0000-0000-000000000001",
+  "type": "workitemtypes"
+}
