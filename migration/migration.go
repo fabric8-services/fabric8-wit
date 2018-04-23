@@ -394,6 +394,7 @@ func GetMigrations() Migrations {
 	// Version 87
 	m = append(m, steps{ExecuteSQLFile("087-space-templates.sql",
 		spacetemplate.SystemLegacyTemplateID.String(),
+		spacetemplate.SystemBaseTemplateID.String(),
 		workitem.SystemPlannerItem.String(),
 	)})
 
