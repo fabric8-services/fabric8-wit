@@ -400,6 +400,13 @@ func GetMigrations() Migrations {
 	// Version 88
 	m = append(m, steps{ExecuteSQLFile("088-type-groups-and-child-types.sql")})
 
+	// Version 89
+	m = append(m, steps{ExecuteSQLFile("089-fixup-space-templates.sql",
+		spacetemplate.SystemLegacyTemplateID.String(),
+		spacetemplate.SystemBaseTemplateID.String(),
+		workitem.SystemPlannerItem.String(),
+	)})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
