@@ -147,7 +147,7 @@ func (rest *TestAreaREST) TestCreateChildArea() {
 
 		t.Run("Invalid Parent", func(t *testing.T) {
 			// when
-			createChildAreaPayload := newCreateChildAreaPayload("TestFailCreateChildAreaWithInvalidsParent")
+			createChildAreaPayload := newCreateChildAreaPayload("TestFailCreateChildAreaWithInvalidParent")
 			// then
 			resp, errs := test.CreateChildAreaNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String(), createChildAreaPayload)
 			// Ignore error ID
@@ -241,14 +241,20 @@ func (rest *TestAreaREST) TestAreaPayload() {
 			// given
 			ca := newCreateChildAreaPayload(testsupport.TestOversizedNameObj)
 			// then
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "payload", "invalid_name_length.golden.json"), ca)
+			err := ca.Validate()
+			// Validate payload function returns an error
+			assert.NotNil(t, err)
+			assert.Contains(t, err.Error(), "length of type.name must be less than or equal to 63")
 		})
 
 		t.Run("Validate Area name Start With", func(t *testing.T) {
 			// given
 			ca := newCreateChildAreaPayload("_TestSuccessCreateChildArea")
 			// then
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "payload", "invalid_name_start.golden.json"), ca)
+			err := ca.Validate()
+			// Validate payload function returns an error
+			assert.NotNil(t, err)
+			assert.Contains(t, err.Error(), "type.name must match the regexp")
 		})
 	})
 }
