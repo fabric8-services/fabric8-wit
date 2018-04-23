@@ -199,7 +199,7 @@ func replaceTimes(str string) (string, error) {
 	hour = "([01][0-9]|2[0-3])"
 	minute = "([0-5][0-9])"
 	second = "([0-5][0-9]|60)"
-	tz := "(GMT|CEST|UTC)"
+	tz := "(GMT|CEST|UTC|IST)"
 	pattern = dayName + ", " + day + " " + month + " " + year + " " + hour + ":" + minute + ":" + second + " " + tz
 
 	lastModifiedPattern, err := regexp.Compile(pattern)
