@@ -27,10 +27,8 @@ import (
 // KubeClientConfig holds configuration data needed to create a new KubeClientInterface
 // with kubernetes.NewKubeClient
 type KubeClientConfig struct {
-	// URL to the Kubernetes cluster's API server
-	ClusterURL string
-	// An authorized token to access the cluster
-	BearerToken string
+	// Provides URLS for all APIs, and also access tokens
+	BaseURLProvider
 	// Kubernetes namespace in the cluster of type 'user'
 	UserNamespace string
 	// Timeout used for communicating with Kubernetes and OpenShift API servers,
@@ -75,15 +73,18 @@ type KubeClientInterface interface {
 	DeleteDeployment(spaceName string, appName string, envName string) error
 	GetEnvironments() ([]*app.SimpleEnvironment, error)
 	GetEnvironment(envName string) (*app.SimpleEnvironment, error)
+	GetMetricsClient(envNS string) (Metrics, error)
 	Close()
 }
 
 type kubeClient struct {
 	config *KubeClientConfig
 	envMap map[string]string
+	BaseURLProvider
 	KubeRESTAPI
-	Metrics
+	metricsMap map[string]Metrics
 	OpenShiftRESTAPI
+	MetricsGetter
 }
 
 // KubeRESTAPI collects methods that call out to the Kubernetes API server over the network
@@ -128,6 +129,20 @@ type route struct {
 	isCustomHost         bool
 }
 
+// BaseURLProvider provides the BASE URL (minimal path) of several APIs used in Deployments.
+// For true multicluster support, every API in this inteface should take an environment namespace name.
+// This hasn't been done, because the rest of fabric8 seems to assume the cluster is the same.
+// For most uses, the proxy server will hide this issue - but not for metrics/logging and console.
+type BaseURLProvider interface {
+	GetAPIURL() (*string, error)
+	GetMetricsURL(envNS string) (*string, error)
+	GetConsoleURL(envNS string) (*string, error)
+	GetLoggingURL(envNS string, deploymentName string) (*string, error)
+
+	GetAPIToken() (*string, error)
+	GetMetricsToken(envNS string) (*string, error)
+}
+
 // ensure kubeClient implements KubeClientInterface
 var _ KubeClientInterface = &kubeClient{}
 var _ KubeClientInterface = (*kubeClient)(nil)
@@ -154,49 +169,41 @@ func NewKubeClient(config *KubeClientConfig) (KubeClientInterface, error) {
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
-
 	// Use default implementation if no MetricsGetter is specified
 	if config.MetricsGetter == nil {
 		config.MetricsGetter = &defaultGetter{}
 	}
-	// In the absence of a better way to get the user's metrics URL,
-	// substitute "api" with "metrics" in user's cluster URL
-	metricsURL, err := getMetricsURLFromAPIURL(config.ClusterURL)
-	if err != nil {
-		return nil, errs.WithStack(err)
-	}
-	// Create MetricsClient for talking with Hawkular API
-	metricsConfig := &MetricsClientConfig{
-		MetricsURL:  metricsURL,
-		BearerToken: config.BearerToken,
-	}
-	metrics, err := config.GetMetrics(metricsConfig)
-	if err != nil {
-		return nil, errs.WithStack(err)
-	}
-
 	// Get environments from config map
 	envMap, err := getEnvironmentsFromConfigMap(kubeAPI, config.UserNamespace)
 	if err != nil {
-		// Close metrics client opened above
-		metrics.Close()
 		return nil, errs.WithStack(err)
 	}
 
 	kubeClient := &kubeClient{
 		config:           config,
 		envMap:           envMap,
+		BaseURLProvider:  config,
 		KubeRESTAPI:      kubeAPI,
-		Metrics:          metrics,
 		OpenShiftRESTAPI: osAPI,
+		metricsMap:       make(map[string]Metrics),
+		MetricsGetter:    config.MetricsGetter,
 	}
+
 	return kubeClient, nil
 }
 
 func (*defaultGetter) GetKubeRESTAPI(config *KubeClientConfig) (KubeRESTAPI, error) {
+	url, err := config.GetAPIURL()
+	if err != nil {
+		return nil, err
+	}
+	token, err := config.GetAPIToken()
+	if err != nil {
+		return nil, err
+	}
 	restConfig := &rest.Config{
-		Host:        config.ClusterURL,
-		BearerToken: config.BearerToken,
+		Host:        *url,
+		BearerToken: *token,
 		Timeout:     config.Timeout,
 		Transport:   config.Transport,
 	}
@@ -228,10 +235,40 @@ func (*defaultGetter) GetMetrics(config *MetricsClientConfig) (Metrics, error) {
 	return NewMetricsClient(config)
 }
 
+func (kc *kubeClient) GetMetricsClient(envNS string) (Metrics, error) {
+
+	if kc.metricsMap[envNS] != nil {
+		return kc.metricsMap[envNS], nil
+	}
+
+	url, err := kc.GetMetricsURL(envNS)
+	if err != nil {
+		return nil, err
+	}
+	token, err := kc.GetMetricsToken(envNS)
+	if err != nil {
+		return nil, err
+	}
+
+	metricsConfig := &MetricsClientConfig{
+		MetricsURL:  *url,
+		BearerToken: *token,
+	}
+
+	metrics, err := kc.GetMetrics(metricsConfig)
+	if err != nil {
+		return nil, err
+	}
+	kc.metricsMap[envNS] = metrics
+	return metrics, nil
+}
+
 // Close releases any resources held by this KubeClientInterface
 func (kc *kubeClient) Close() {
 	// Metrics client needs to be closed to stop Hawkular go-routine from spinning
-	kc.Metrics.Close()
+	for _, m := range kc.metricsMap {
+		m.Close()
+	}
 }
 
 // GetSpace returns a space matching the provided name, containing all applications that belong to it
@@ -342,34 +379,13 @@ func (kc *kubeClient) ScaleDeployment(spaceName string, appName string, envName 
 }
 
 func (oc *openShiftAPIClient) GetDeploymentConfigScale(namespace string, name string) (map[string]interface{}, error) {
-	dcScaleURL := fmt.Sprintf("/oapi/v1/namespaces/%s/deploymentconfigs/%s/scale", namespace, name)
-	return oc.getResource(dcScaleURL, false)
+	dcScalePath := fmt.Sprintf("/oapi/v1/namespaces/%s/deploymentconfigs/%s/scale", namespace, name)
+	return oc.getResource(dcScalePath, false)
 }
 
 func (oc *openShiftAPIClient) SetDeploymentConfigScale(namespace string, name string, scale map[string]interface{}) error {
-	dcScaleURL := fmt.Sprintf("/oapi/v1/namespaces/%s/deploymentconfigs/%s/scale", namespace, name)
-	return oc.sendResource(dcScaleURL, "PUT", scale)
-}
-
-func (kc *kubeClient) getConsoleURL(envNS string) (*string, error) {
-	path := fmt.Sprintf("console/project/%s", envNS)
-	// Replace "api" prefix with "console" and append path
-	consoleURL, err := modifyURL(kc.config.ClusterURL, "console", path)
-	if err != nil {
-		return nil, err
-	}
-	consoleURLStr := consoleURL.String()
-	return &consoleURLStr, nil
-}
-
-func (kc *kubeClient) getLogURL(envNS string, deploy *deployment) (*string, error) {
-	consoleURL, err := kc.getConsoleURL(envNS)
-	if err != nil {
-		return nil, err
-	}
-	rcName := deploy.current.Name
-	logURL := fmt.Sprintf("%s/browse/rc/%s?tab=logs", *consoleURL, rcName)
-	return &logURL, nil
+	dcScalePath := fmt.Sprintf("/oapi/v1/namespaces/%s/deploymentconfigs/%s/scale", namespace, name)
+	return oc.sendResource(dcScalePath, "PUT", scale)
 }
 
 func (kc *kubeClient) getApplicationURL(envNS string, deploy *deployment) (*string, error) {
@@ -421,11 +437,13 @@ func (kc *kubeClient) GetDeployment(spaceName string, appName string, envName st
 	if err != nil {
 		return nil, err
 	}
-	consoleURL, err := kc.getConsoleURL(envNS)
+
+	consoleURL, err := kc.GetConsoleURL(envNS)
 	if err != nil {
 		return nil, err
 	}
-	logURL, err := kc.getLogURL(envNS, deploy)
+
+	logURL, err := kc.GetLoggingURL(envNS, deploy.current.Name)
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
@@ -477,20 +495,25 @@ func (kc *kubeClient) GetDeploymentStats(spaceName string, appName string, envNa
 		return nil, errs.WithStack(err)
 	}
 
-	// Gather the statistics we need about the current deployment
-	cpuUsage, err := kc.GetCPUMetrics(pods, envNS, startTime)
-	if err != nil {
-		return nil, errs.WithStack(err)
-	}
-	memoryUsage, err := kc.GetMemoryMetrics(pods, envNS, startTime)
-	if err != nil {
-		return nil, errs.WithStack(err)
-	}
-	netTxUsage, err := kc.GetNetworkSentMetrics(pods, envNS, startTime)
+	mc, err := kc.GetMetricsClient(envNS)
 	if err != nil {
 		return nil, err
 	}
-	netRxUsage, err := kc.GetNetworkRecvMetrics(pods, envNS, startTime)
+
+	// Gather the statistics we need about the current deployment
+	cpuUsage, err := mc.GetCPUMetrics(pods, envNS, startTime)
+	if err != nil {
+		return nil, errs.WithStack(err)
+	}
+	memoryUsage, err := mc.GetMemoryMetrics(pods, envNS, startTime)
+	if err != nil {
+		return nil, errs.WithStack(err)
+	}
+	netTxUsage, err := mc.GetNetworkSentMetrics(pods, envNS, startTime)
+	if err != nil {
+		return nil, err
+	}
+	netRxUsage, err := mc.GetNetworkRecvMetrics(pods, envNS, startTime)
 	if err != nil {
 		return nil, err
 	}
@@ -532,20 +555,25 @@ func (kc *kubeClient) GetDeploymentStatSeries(spaceName string, appName string, 
 		return nil, errs.WithStack(err)
 	}
 
-	// Get CPU, memory and network metrics for pods in deployment
-	cpuMetrics, err := kc.GetCPUMetricsRange(pods, envNS, startTime, endTime, limit)
-	if err != nil {
-		return nil, errs.WithStack(err)
-	}
-	memoryMetrics, err := kc.GetMemoryMetricsRange(pods, envNS, startTime, endTime, limit)
-	if err != nil {
-		return nil, errs.WithStack(err)
-	}
-	netTxMetrics, err := kc.GetNetworkSentMetricsRange(pods, envNS, startTime, endTime, limit)
+	mc, err := kc.GetMetricsClient(envNS)
 	if err != nil {
 		return nil, err
 	}
-	netRxMetrics, err := kc.GetNetworkRecvMetricsRange(pods, envNS, startTime, endTime, limit)
+
+	// Get CPU, memory and network metrics for pods in deployment
+	cpuMetrics, err := mc.GetCPUMetricsRange(pods, envNS, startTime, endTime, limit)
+	if err != nil {
+		return nil, errs.WithStack(err)
+	}
+	memoryMetrics, err := mc.GetMemoryMetricsRange(pods, envNS, startTime, endTime, limit)
+	if err != nil {
+		return nil, errs.WithStack(err)
+	}
+	netTxMetrics, err := mc.GetNetworkSentMetricsRange(pods, envNS, startTime, endTime, limit)
+	if err != nil {
+		return nil, err
+	}
+	netRxMetrics, err := mc.GetNetworkRecvMetricsRange(pods, envNS, startTime, endTime, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -621,36 +649,6 @@ func (kc *kubeClient) GetEnvironment(envName string) (*app.SimpleEnvironment, er
 		},
 	}
 	return env, nil
-}
-
-func getMetricsURLFromAPIURL(apiURLStr string) (string, error) {
-	metricsURL, err := modifyURL(apiURLStr, "metrics", "")
-	if err != nil {
-		return "", err
-	}
-	return metricsURL.String(), nil
-}
-
-func modifyURL(apiURLStr string, prefix string, path string) (*url.URL, error) {
-	// Parse as URL to give us easy access to the hostname
-	apiURL, err := url.Parse(apiURLStr)
-	if err != nil {
-		return nil, err
-	}
-
-	// Get the hostname (without port) and replace api prefix with prefix arg
-	apiHostname := apiURL.Hostname()
-	if !strings.HasPrefix(apiHostname, "api") {
-		return nil, errs.Errorf("cluster URL does not begin with \"api\": %s", apiHostname)
-	}
-	newHostname := strings.Replace(apiHostname, "api", prefix, 1)
-	// Construct URL using just scheme from API URL, modified hostname and supplied path
-	newURL := &url.URL{
-		Scheme: apiURL.Scheme,
-		Host:   newHostname,
-		Path:   path,
-	}
-	return newURL, nil
 }
 
 func getTimestampEndpoints(metricsSeries ...[]*app.TimedNumberTuple) (minTime, maxTime *float64) {
@@ -761,8 +759,12 @@ func (kc *kubeClient) getEnvironmentNamespace(envName string) (string, error) {
 }
 
 // Derived from: https://github.com/fabric8-services/fabric8-tenant/blob/master/openshift/kube_token.go
-func (oc *openShiftAPIClient) sendResource(url string, method string, reqBody interface{}) error {
-	fullURL := strings.TrimSuffix(oc.config.ClusterURL, "/") + url
+func (oc *openShiftAPIClient) sendResource(path string, method string, reqBody interface{}) error {
+	url, err := oc.config.GetAPIURL()
+	if err != nil {
+		return err
+	}
+	fullURL := strings.TrimSuffix(*url, "/") + path
 
 	marshalled, err := json.Marshal(reqBody)
 	if err != nil {
@@ -784,9 +786,13 @@ func (oc *openShiftAPIClient) sendResource(url string, method string, reqBody in
 		return errs.WithStack(err)
 	}
 
+	token, err := oc.config.GetAPIToken()
+	if err != nil {
+		return err
+	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Authorization", "Bearer "+oc.config.BearerToken)
+	req.Header.Set("Authorization", "Bearer "+*token)
 
 	resp, err := oc.httpClient.Do(req)
 	if err != nil {
@@ -914,10 +920,10 @@ func (kc *kubeClient) deleteDeploymentConfig(spaceName string, appName string, n
 }
 
 func (oc *openShiftAPIClient) DeleteDeploymentConfig(namespace string, name string, opts *metaV1.DeleteOptions) error {
-	dcURL := fmt.Sprintf("/oapi/v1/namespaces/%s/deploymentconfigs/%s", namespace, name)
+	dcPath := fmt.Sprintf("/oapi/v1/namespaces/%s/deploymentconfigs/%s", namespace, name)
 	// API states this should return a Status object, but it returns the DC instead,
 	// just check for no HTTP error
-	return oc.sendResource(dcURL, "DELETE", opts)
+	return oc.sendResource(dcPath, "DELETE", opts)
 }
 
 const deploymentPhaseAnnotation string = "openshift.io/deployment.phase"
@@ -1736,16 +1742,21 @@ func (kc *kubeClient) deleteRoutes(appName string, envNS string) error {
 }
 
 func (oc *openShiftAPIClient) DeleteRoute(namespace string, name string, opts *metaV1.DeleteOptions) error {
-	routesURL := fmt.Sprintf("/oapi/v1/namespaces/%s/routes/%s", namespace, name)
+	routesPath := fmt.Sprintf("/oapi/v1/namespaces/%s/routes/%s", namespace, name)
 	// API states this should return a Status object, but it returns the route instead,
 	// just check for no HTTP error
-	return oc.sendResource(routesURL, "DELETE", opts)
+	return oc.sendResource(routesPath, "DELETE", opts)
 }
 
 // Derived from: https://github.com/fabric8-services/fabric8-tenant/blob/master/openshift/kube_token.go
-func (oc *openShiftAPIClient) getResource(url string, allowMissing bool) (map[string]interface{}, error) {
+func (oc *openShiftAPIClient) getResource(path string, allowMissing bool) (map[string]interface{}, error) {
+
+	url, err := oc.config.GetAPIURL()
+	if err != nil {
+		return nil, err
+	}
 	var body []byte
-	fullURL := strings.TrimSuffix(oc.config.ClusterURL, "/") + url
+	fullURL := strings.TrimSuffix(*url, "/") + path
 	req, err := http.NewRequest("GET", fullURL, bytes.NewReader(body))
 	if err != nil {
 		log.Error(nil, map[string]interface{}{
@@ -1754,8 +1765,14 @@ func (oc *openShiftAPIClient) getResource(url string, allowMissing bool) (map[st
 		}, "error creating HTTP GET request")
 		return nil, errs.WithStack(err)
 	}
+
+	token, err := oc.config.GetAPIToken()
+	if err != nil {
+		return nil, err
+	}
+
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Authorization", "Bearer "+oc.config.BearerToken)
+	req.Header.Set("Authorization", "Bearer "+*token)
 
 	resp, err := oc.httpClient.Do(req)
 	if err != nil {
