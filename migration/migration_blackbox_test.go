@@ -744,9 +744,6 @@ func testMigration86(t *testing.T) {
 }
 
 func testMigration87SpaceTemplates(t *testing.T) {
-	migrateToVersion(t, sqlDB, migrations[:87], 87)
-	// Import test space with work items and see if migration to space templates works
-	assert.Nil(t, runSQLscript(sqlDB, "087-space-templates.sql"))
 	migrateToVersion(t, sqlDB, migrations[:88], 88)
 	assert.True(t, dialect.HasTable("space_templates"))
 	assert.True(t, dialect.HasColumn("spaces", "space_template_id"))
