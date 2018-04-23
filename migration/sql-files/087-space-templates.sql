@@ -1,8 +1,7 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
-SET LOCAL idx.legacy_space_template_id = '{{index . 0}}';
-SET LOCAL idx.base_space_template_id = '{{index . 1}}';
-SET LOCAL idx.planner_item_type_id = '{{index . 2}}';
+SET LOCAL idx.space_template_id = '{{index . 0}}';
+SET LOCAL idx.planner_item_type_id = '{{index . 1}}';
 
 -- Remove space_id field from link types (WILTs) and work item types (WITs) This
 -- can be done because all WILTs and WITs exist in the system space anyway. So
@@ -25,33 +24,22 @@ CREATE UNIQUE INDEX space_templates_name_uidx ON space_templates (name) WHERE de
 
 -- Create a default empty space template
 INSERT INTO space_templates (id, name, description) VALUES(
-    current_setting('idx.legacy_space_template_id')::uuid,
-    'legacy space template',
+    current_setting('idx.space_template_id')::uuid,
+    'empty space template',
     'this will be overwritten by the legacy space template when common types are populated'
 );
 
--- Create a default empty space template
-INSERT INTO space_templates (id, name, description) VALUES(
-    current_setting('idx.base_space_template_id')::uuid,
-    'base space template',
-    'this will be overwritten by the base space template when common types are populated'
-);
-
--- Add foreign key to spaces relation and make all existing spaces a part of the
--- the legacy template.
+-- Add foreign key to spaces relation
 ALTER TABLE spaces ADD COLUMN space_template_id uuid REFERENCES space_templates(id) ON DELETE CASCADE;
-UPDATE spaces SET space_template_id = current_setting('idx.legacy_space_template_id')::uuid;
+UPDATE spaces SET space_template_id = current_setting('idx.space_template_id')::uuid;
 ALTER TABLE spaces ALTER COLUMN space_template_id SET NOT NULL;
 
--- Add foreign key to work item type relation and make all but the planner item
--- type a part of the base template.
+-- Add foreign key to work item type relation
 ALTER TABLE work_item_types ADD COLUMN space_template_id uuid REFERENCES space_templates(id) ON DELETE CASCADE;
-UPDATE work_item_types SET space_template_id = current_setting('idx.base_space_template_id')::uuid WHERE id = current_setting('idx.planner_item_type_id')::uuid;
-UPDATE work_item_types SET space_template_id = current_setting('idx.legacy_space_template_id')::uuid WHERE id <> current_setting('idx.planner_item_type_id')::uuid;
+UPDATE work_item_types SET space_template_id = current_setting('idx.space_template_id')::uuid;
 ALTER TABLE work_item_types ALTER COLUMN space_template_id SET NOT NULL;
 
--- Add foreign key to work item link type relation and make all existing link
--- types a part of the base template.
+-- Add foreign key to work item link type relation
 ALTER TABLE work_item_link_types ADD COLUMN space_template_id uuid REFERENCES space_templates(id) ON DELETE CASCADE;
-UPDATE work_item_link_types SET space_template_id = current_setting('idx.base_space_template_id')::uuid;
+UPDATE work_item_link_types SET space_template_id = current_setting('idx.space_template_id')::uuid;
 ALTER TABLE work_item_link_types ALTER COLUMN space_template_id SET NOT NULL;
