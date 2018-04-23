@@ -6,6 +6,7 @@ import (
 
 	gormbench "github.com/fabric8-services/fabric8-wit/gormtestsupport/benchmark"
 	"github.com/fabric8-services/fabric8-wit/space"
+	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 	"github.com/fabric8-services/fabric8-wit/test"
 	uuid "github.com/satori/go.uuid"
 )
@@ -29,8 +30,9 @@ func (bench *repoSpaceBench) BenchmarkCreate() {
 	bench.B().ReportAllocs()
 	for n := 0; n < bench.B().N; n++ {
 		newSpace := space.Space{
-			Name:    test.CreateRandomValidTestName("BenchmarkCreate"),
-			OwnerID: uuid.Nil,
+			Name:            test.CreateRandomValidTestName("BenchmarkCreate"),
+			OwnerID:         uuid.Nil,
+			SpaceTemplateID: spacetemplate.SystemLegacyTemplateID,
 		}
 		if s, err := bench.repo.Create(context.Background(), &newSpace); err != nil || (err == nil && s == nil) {
 			bench.B().Fail()
@@ -40,8 +42,9 @@ func (bench *repoSpaceBench) BenchmarkCreate() {
 
 func (bench *repoSpaceBench) BenchmarkLoadSpaceByName() {
 	newSpace := space.Space{
-		Name:    test.CreateRandomValidTestName("BenchmarkLoadSpaceByName"),
-		OwnerID: uuid.Nil,
+		Name:            test.CreateRandomValidTestName("BenchmarkLoadSpaceByName"),
+		OwnerID:         uuid.Nil,
+		SpaceTemplateID: spacetemplate.SystemLegacyTemplateID,
 	}
 	if s, err := bench.repo.Create(context.Background(), &newSpace); err != nil || (err == nil && s == nil) {
 		bench.B().Fail()

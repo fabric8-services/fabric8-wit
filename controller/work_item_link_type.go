@@ -9,6 +9,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 
 	"github.com/goadesign/goa"
@@ -37,6 +38,7 @@ func NewWorkItemLinkTypeController(service *goa.Service, db application.DB, conf
 }
 
 // enrichLinkTypeSingle includes related resources in the single's "included" array
+// TODO(kwk): Adding of links in this function can be done during conversion.
 func enrichLinkTypeSingle(ctx *workItemLinkContext, single *app.WorkItemLinkTypeSingle) error {
 	// Add "links" element
 	relatedURL := rest.AbsoluteURL(ctx.Request, ctx.LinkFunc(*single.Data.ID))
@@ -48,6 +50,7 @@ func enrichLinkTypeSingle(ctx *workItemLinkContext, single *app.WorkItemLinkType
 }
 
 // enrichLinkTypeList includes related resources in the list's "included" array
+// TODO(kwk): Adding of links in this function can be done during conversion.
 func enrichLinkTypeList(ctx *workItemLinkContext, list *app.WorkItemLinkTypeList) error {
 	// Add "links" element
 	for _, data := range list.Data {
@@ -91,8 +94,10 @@ func (c *WorkItemLinkTypeController) Show(ctx *app.ShowWorkItemLinkTypeContext) 
 
 // ConvertWorkItemLinkTypeFromModel converts a work item link type from model to REST representation
 func ConvertWorkItemLinkTypeFromModel(request *http.Request, modelLinkType link.WorkItemLinkType) app.WorkItemLinkTypeSingle {
-	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(modelLinkType.SpaceID.String()))
 	linkCategoryRelatedURL := rest.AbsoluteURL(request, app.WorkItemLinkCategoryHref(modelLinkType.LinkCategoryID.String()))
+
+	spaceTemplateRelatedURL := rest.AbsoluteURL(request, app.SpaceTemplateHref(modelLinkType.SpaceTemplateID.String()))
+	spaceRelatedURL := rest.AbsoluteURL(request, app.SpaceHref(space.SystemSpace.String()))
 
 	topologyStr := modelLinkType.Topology.String()
 	var converted = app.WorkItemLinkTypeSingle{
@@ -120,7 +125,8 @@ func ConvertWorkItemLinkTypeFromModel(request *http.Request, modelLinkType link.
 						Related: &linkCategoryRelatedURL,
 					},
 				},
-				Space: app.NewSpaceRelation(modelLinkType.SpaceID, spaceRelatedURL),
+				Space:         app.NewSpaceRelation(space.SystemSpace, spaceRelatedURL),
+				SpaceTemplate: app.NewSpaceTemplateRelation(modelLinkType.SpaceTemplateID, spaceTemplateRelatedURL),
 			},
 		},
 	}
@@ -192,8 +198,8 @@ func ConvertWorkItemLinkTypeToModel(appLinkType app.WorkItemLinkTypeSingle) (*li
 	if rel != nil && rel.LinkCategory != nil && rel.LinkCategory.Data != nil {
 		modelLinkType.LinkCategoryID = rel.LinkCategory.Data.ID
 	}
-	if rel != nil && rel.Space != nil && rel.Space.Data != nil {
-		modelLinkType.SpaceID = *rel.Space.Data.ID
+	if rel != nil && rel.SpaceTemplate != nil && rel.SpaceTemplate.Data != nil {
+		modelLinkType.SpaceTemplateID = rel.SpaceTemplate.Data.ID
 	}
 
 	return &modelLinkType, nil

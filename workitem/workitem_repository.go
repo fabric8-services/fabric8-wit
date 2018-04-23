@@ -18,7 +18,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem/number_sequence"
-
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
@@ -687,18 +686,19 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, spaceID uu
 		log.Error(ctx, map[string]interface{}{"compile_errors": compileErrors, "expression": criteria}, "failed to compile expression")
 		return nil, 0, errors.NewBadParameterError("expression", criteria)
 	}
-	where = where + " AND space_id = ?"
+	where = where + " AND  space_id = ?"
 	parameters = append(parameters, spaceID.String())
 
 	if parentExists != nil && !*parentExists {
 		where += ` AND
-			id not in (
+			id NOT IN (
 				SELECT target_id FROM work_item_links
-				WHERE link_type_id IN (
-					SELECT id FROM work_item_link_types WHERE forward_name = 'parent of'
-				)
+				WHERE link_type_id = ?
 			)`
-
+		// TODO(kwk): This ID should be replaced with
+		// link.SystemWorkItemLinkTypeParentChildID but that would cause an
+		// import cycle
+		parameters = append(parameters, uuid.FromStringOrNil("25C326A7-6D03-4F5A-B23B-86A9EE4171E9").String())
 	}
 	db := r.db.Model(&WorkItemStorage{}).Where(where, parameters...)
 

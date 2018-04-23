@@ -65,7 +65,7 @@ func (c *WorkitemsController) Create(ctx *app.CreateWorkitemsContext) error {
 				"err":      err,
 				"space_id": ctx.SpaceID,
 			}, "unable to load space")
-			return errors.NewBadParameterError("space", "string").Expected("valid space ID")
+			return errors.NewBadParameterError("space", ctx.SpaceID.String()).Expected("valid space ID")
 		}
 		return nil
 	})

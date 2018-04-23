@@ -5,9 +5,8 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/id"
-	"github.com/fabric8-services/fabric8-wit/migration"
 	"github.com/fabric8-services/fabric8-wit/ptr"
-	"github.com/fabric8-services/fabric8-wit/space"
+	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 
@@ -35,13 +34,12 @@ func TestRunTypeRepoBlackBoxTest(t *testing.T) {
 func (s *typeRepoBlackBoxTest) SetupTest() {
 	s.DBTestSuite.SetupTest()
 	s.typeRepo = link.NewWorkItemLinkTypeRepository(s.DB)
-	migration.BootstrapWorkItemLinking(s.Ctx, link.NewWorkItemLinkCategoryRepository(s.DB), space.NewRepository(s.DB), s.typeRepo)
+	// migration.BootstrapWorkItemLinking(s.Ctx, link.NewWorkItemLinkCategoryRepository(s.DB), space.NewRepository(s.DB), s.typeRepo)
 }
 
 func (s *typeRepoBlackBoxTest) TestList() {
-	s.T().Run("link types from system space", func(t *testing.T) {
-		// load all work item link types from system space
-		baseLinkTypes, err := s.typeRepo.List(s.Ctx, space.SystemSpace)
+	s.T().Run("link types from base space template", func(t *testing.T) {
+		baseLinkTypes, err := s.typeRepo.List(s.Ctx, spacetemplate.SystemBaseTemplateID)
 		require.NoError(t, err)
 		require.NotEmpty(t, baseLinkTypes)
 		toBeFound := id.MapFromSlice(id.Slice{
@@ -60,20 +58,20 @@ func (s *typeRepoBlackBoxTest) TestList() {
 	s.T().Run("ok", func(t *testing.T) {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB,
-			tf.Spaces(2),
+			tf.SpaceTemplates(2),
 			tf.WorkItemLinkTypes(6, func(fxt *tf.TestFixture, idx int) error {
 				switch idx {
 				case 0, 1, 2, 3:
-					fxt.WorkItemLinkTypes[idx].SpaceID = fxt.Spaces[0].ID
+					fxt.WorkItemLinkTypes[idx].SpaceTemplateID = fxt.SpaceTemplates[0].ID
 				case 4, 5:
-					fxt.WorkItemLinkTypes[idx].SpaceID = fxt.Spaces[1].ID
+					fxt.WorkItemLinkTypes[idx].SpaceTemplateID = fxt.SpaceTemplates[1].ID
 				}
 				return nil
 			}),
 		)
-		t.Run("list by 1st space", func(t *testing.T) {
+		t.Run("list by 1st space template", func(t *testing.T) {
 			// when
-			types, err := s.typeRepo.List(s.Ctx, fxt.Spaces[0].ID)
+			types, err := s.typeRepo.List(s.Ctx, fxt.SpaceTemplates[0].ID)
 			// then
 			require.NoError(t, err)
 			require.NotEmpty(t, types)
@@ -82,7 +80,7 @@ func (s *typeRepoBlackBoxTest) TestList() {
 				fxt.WorkItemLinkTypes[1].ID,
 				fxt.WorkItemLinkTypes[2].ID,
 				fxt.WorkItemLinkTypes[3].ID,
-				// link types from system space
+				// link types from base space template
 				link.SystemWorkItemLinkTypeBugBlockerID,
 				link.SystemWorkItemLinkPlannerItemRelatedID,
 				link.SystemWorkItemLinkTypeParentChildID,
@@ -96,14 +94,14 @@ func (s *typeRepoBlackBoxTest) TestList() {
 		})
 		t.Run("list by 2nd space", func(t *testing.T) {
 			// when
-			types, err := s.typeRepo.List(s.Ctx, fxt.Spaces[1].ID)
+			types, err := s.typeRepo.List(s.Ctx, fxt.SpaceTemplates[1].ID)
 			// then
 			require.NoError(t, err)
 			require.NotEmpty(t, types)
 			toBeFound := id.MapFromSlice(id.Slice{
 				fxt.WorkItemLinkTypes[4].ID,
 				fxt.WorkItemLinkTypes[5].ID,
-				// link types from system space
+				// link types from base space template
 				link.SystemWorkItemLinkTypeBugBlockerID,
 				link.SystemWorkItemLinkPlannerItemRelatedID,
 				link.SystemWorkItemLinkTypeParentChildID,
@@ -119,9 +117,9 @@ func (s *typeRepoBlackBoxTest) TestList() {
 
 	s.T().Run("not found", func(t *testing.T) {
 		// given
-		spaceID := uuid.NewV4()
+		spaceTemplateID := uuid.NewV4()
 		// when
-		types, err := s.typeRepo.List(s.Ctx, spaceID)
+		types, err := s.typeRepo.List(s.Ctx, spaceTemplateID)
 		// then
 		require.Error(t, err)
 		require.IsType(t, errors.NotFoundError{}, err)
@@ -154,17 +152,17 @@ func (s *typeRepoBlackBoxTest) TestLoad() {
 func (s *typeRepoBlackBoxTest) TestCreate() {
 	s.T().Run("ok", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1), tf.WorkItemLinkCategories(1))
+		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1), tf.WorkItemLinkCategories(1))
 		id := uuid.NewV4()
 		typ := link.WorkItemLinkType{
-			ID:             id,
-			Name:           id.String(),
-			Description:    ptr.String("description for WILT " + id.String()),
-			ReverseName:    "reverse name",
-			ForwardName:    "forward name",
-			Topology:       link.TopologyTree,
-			LinkCategoryID: fxt.WorkItemLinkCategories[0].ID,
-			SpaceID:        fxt.Spaces[0].ID,
+			ID:              id,
+			Name:            id.String(),
+			Description:     ptr.String("description for WILT " + id.String()),
+			ReverseName:     "reverse name",
+			ForwardName:     "forward name",
+			Topology:        link.TopologyTree,
+			LinkCategoryID:  fxt.WorkItemLinkCategories[0].ID,
+			SpaceTemplateID: fxt.SpaceTemplates[0].ID,
 		}
 		// when
 		createdType, err := s.typeRepo.Create(s.Ctx, &typ)
@@ -180,17 +178,17 @@ func (s *typeRepoBlackBoxTest) TestCreate() {
 	})
 	s.T().Run("unknown topology (bad parameter error)", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1), tf.WorkItemLinkCategories(1))
+		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1), tf.WorkItemLinkCategories(1))
 		id := uuid.NewV4()
 		typ := link.WorkItemLinkType{
-			ID:             id,
-			Name:           id.String(),
-			Description:    ptr.String("description for WILT " + id.String()),
-			ReverseName:    "reverse name",
-			ForwardName:    "forward name",
-			Topology:       link.Topology("foobar"),
-			LinkCategoryID: fxt.WorkItemLinkCategories[0].ID,
-			SpaceID:        fxt.Spaces[0].ID,
+			ID:              id,
+			Name:            id.String(),
+			Description:     ptr.String("description for WILT " + id.String()),
+			ReverseName:     "reverse name",
+			ForwardName:     "forward name",
+			Topology:        link.Topology("foobar"),
+			LinkCategoryID:  fxt.WorkItemLinkCategories[0].ID,
+			SpaceTemplateID: fxt.SpaceTemplates[0].ID,
 		}
 		// when
 		createdType, err := s.typeRepo.Create(s.Ctx, &typ)
@@ -201,17 +199,17 @@ func (s *typeRepoBlackBoxTest) TestCreate() {
 	})
 	s.T().Run("empty name (bad parameter error)", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1), tf.WorkItemLinkCategories(1))
+		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1), tf.WorkItemLinkCategories(1))
 		id := uuid.NewV4()
 		typ := link.WorkItemLinkType{
-			ID:             id,
-			Name:           "",
-			Description:    ptr.String("description for WILT " + id.String()),
-			ReverseName:    "reverse name",
-			ForwardName:    "forward name",
-			Topology:       link.Topology("foobar"),
-			LinkCategoryID: fxt.WorkItemLinkCategories[0].ID,
-			SpaceID:        fxt.Spaces[0].ID,
+			ID:              id,
+			Name:            "",
+			Description:     ptr.String("description for WILT " + id.String()),
+			ReverseName:     "reverse name",
+			ForwardName:     "forward name",
+			Topology:        link.Topology("foobar"),
+			LinkCategoryID:  fxt.WorkItemLinkCategories[0].ID,
+			SpaceTemplateID: fxt.SpaceTemplates[0].ID,
 		}
 		// when
 		createdType, err := s.typeRepo.Create(s.Ctx, &typ)
@@ -266,11 +264,11 @@ func (s *typeRepoBlackBoxTest) TestSave() {
 		require.IsType(t, errors.VersionConflictError{}, errs.Cause(err))
 		require.Nil(t, savedModel)
 	})
-	s.T().Run("space reference changed (forbidden)", func(t *testing.T) {
+	s.T().Run("space template reference changed (forbidden)", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemLinkTypes(1), tf.Spaces(2))
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemLinkTypes(1), tf.SpaceTemplates(2))
 		modelToSave := *fxt.WorkItemLinkTypes[0]
-		modelToSave.SpaceID = fxt.Spaces[1].ID
+		modelToSave.SpaceTemplateID = fxt.SpaceTemplates[1].ID
 		// when
 		savedModel, err := s.typeRepo.Save(s.Ctx, modelToSave)
 		// then
@@ -280,17 +278,17 @@ func (s *typeRepoBlackBoxTest) TestSave() {
 	})
 	s.T().Run("link type not found", func(t *testing.T) {
 		// given
-		fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1), tf.WorkItemLinkCategories(1))
+		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1), tf.WorkItemLinkCategories(1))
 		id := uuid.NewV4()
 		modelToSave := link.WorkItemLinkType{
-			ID:             id,
-			Name:           id.String(),
-			Description:    ptr.String("description for WILT " + id.String()),
-			ReverseName:    "reverse name",
-			ForwardName:    "forward name",
-			Topology:       link.TopologyTree,
-			LinkCategoryID: fxt.WorkItemLinkCategories[0].ID,
-			SpaceID:        fxt.Spaces[0].ID,
+			ID:              id,
+			Name:            id.String(),
+			Description:     ptr.String("description for WILT " + id.String()),
+			ReverseName:     "reverse name",
+			ForwardName:     "forward name",
+			Topology:        link.TopologyTree,
+			LinkCategoryID:  fxt.WorkItemLinkCategories[0].ID,
+			SpaceTemplateID: fxt.SpaceTemplates[0].ID,
 		}
 		// when
 		savedModel, err := s.typeRepo.Save(s.Ctx, modelToSave)

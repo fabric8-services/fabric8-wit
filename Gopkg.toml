@@ -134,9 +134,14 @@ ignored = [
   revision = "master"
 
 [[constraint]]
+  name = "github.com/ghodss/yaml"
+  version = "1.0.0"
+
+[[constraint]]
   name = "github.com/pilu/fresh"
   revision = "9c0092493eff2825c3abf64e087b3383dec939c3"
 
 [prune]
   go-tests = true
   unused-packages = true
+
