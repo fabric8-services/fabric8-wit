@@ -2,13 +2,10 @@ package search
 
 import (
 	"context"
-	"fmt"
 	"regexp"
 	"testing"
 
-	"github.com/fabric8-services/fabric8-wit/criteria"
 	"github.com/fabric8-services/fabric8-wit/resource"
-	"github.com/fabric8-services/fabric8-wit/workitem"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -222,13 +219,11 @@ func TestIsOperator(t *testing.T) {
 		"   ": false,
 		"foo": false,
 		uuid.NewV4().String(): false,
-		EQ:            false,
-		NE:            false,
-		NOT:           false,
-		IN:            false,
-		SUBSTR:        false,
-		WITGROUP:      false,
-		TypeGroupName: false,
+		EQ:     false,
+		NE:     false,
+		NOT:    false,
+		IN:     false,
+		SUBSTR: false,
 	}
 	for k, v := range testData {
 		t.Run(k, func(t *testing.T) {
@@ -237,180 +232,6 @@ func TestIsOperator(t *testing.T) {
 			} else {
 				require.False(t, isOperator(k), "isOperator(%s) should be false", k)
 			}
-		})
-	}
-}
-
-func TestHandleWitGroup(t *testing.T) {
-	for _, paramName := range []string{WITGROUP, TypeGroupName} {
-		type testData struct {
-			Name                string
-			Value               string
-			Negate              bool
-			ExpectError         bool
-			ExpectedExrpessions []criteria.Expression
-		}
-		td := []testData{
-			{"foo", "bar", false, false, []criteria.Expression{}},
-			{paramName, "unknown", false, true, []criteria.Expression{}},
-			{paramName, "Scenarios", false, false, []criteria.Expression{
-				criteria.Or(
-					criteria.Or(
-						criteria.Equals(
-							criteria.Field("Type"),
-							criteria.Literal(workitem.SystemScenario.String()),
-						),
-						criteria.Equals(
-							criteria.Field("Type"),
-							criteria.Literal(workitem.SystemFundamental.String()),
-						),
-					),
-					criteria.Equals(
-						criteria.Field("Type"),
-						criteria.Literal(workitem.SystemPapercuts.String()),
-					),
-				)},
-			},
-			{paramName, "Experiences", false, false, []criteria.Expression{
-				criteria.Or(
-					criteria.Equals(
-						criteria.Field("Type"),
-						criteria.Literal(workitem.SystemExperience.String()),
-					),
-					criteria.Equals(
-						criteria.Field("Type"),
-						criteria.Literal(workitem.SystemValueProposition.String()),
-					),
-				)},
-			},
-			{paramName, "Requirements", false, false, []criteria.Expression{
-				criteria.Or(
-					criteria.Equals(
-						criteria.Field("Type"),
-						criteria.Literal(workitem.SystemFeature.String()),
-					),
-					criteria.Equals(
-						criteria.Field("Type"),
-						criteria.Literal(workitem.SystemBug.String()),
-					),
-				)},
-			},
-			{paramName, "Execution", false, false, []criteria.Expression{
-				criteria.Or(
-					criteria.Or(
-						criteria.Equals(
-							criteria.Field("Type"),
-							criteria.Literal(workitem.SystemTask.String()),
-						),
-						criteria.Equals(
-							criteria.Field("Type"),
-							criteria.Literal(workitem.SystemBug.String()),
-						),
-					),
-					criteria.Equals(
-						criteria.Field("Type"),
-						criteria.Literal(workitem.SystemFeature.String()),
-					),
-				),
-			}},
-			// // same with negation
-			{"foo", "bar", true, false, []criteria.Expression{}},
-			{paramName, "unknown", true, true, []criteria.Expression{}},
-			{paramName, "Scenarios", true, false, []criteria.Expression{
-				criteria.And(
-					criteria.And(
-						criteria.Not(
-							criteria.Field("Type"),
-							criteria.Literal(workitem.SystemScenario.String()),
-						),
-						criteria.Not(
-							criteria.Field("Type"),
-							criteria.Literal(workitem.SystemFundamental.String()),
-						),
-					),
-					criteria.Not(
-						criteria.Field("Type"),
-						criteria.Literal(workitem.SystemPapercuts.String()),
-					),
-				)},
-			},
-			{paramName, "Experiences", true, false, []criteria.Expression{
-				criteria.And(
-					criteria.Not(
-						criteria.Field("Type"),
-						criteria.Literal(workitem.SystemExperience.String()),
-					),
-					criteria.Not(
-						criteria.Field("Type"),
-						criteria.Literal(workitem.SystemValueProposition.String()),
-					),
-				)},
-			},
-			{paramName, "Requirements", true, false, []criteria.Expression{
-				criteria.And(
-					criteria.Not(
-						criteria.Field("Type"),
-						criteria.Literal(workitem.SystemFeature.String()),
-					),
-					criteria.Not(
-						criteria.Field("Type"),
-						criteria.Literal(workitem.SystemBug.String()),
-					),
-				)},
-			},
-			{paramName, "Execution", true, false, []criteria.Expression{
-				criteria.And(
-					criteria.And(
-						criteria.Not(
-							criteria.Field("Type"),
-							criteria.Literal(workitem.SystemTask.String()),
-						),
-						criteria.Not(
-							criteria.Field("Type"),
-							criteria.Literal(workitem.SystemBug.String()),
-						),
-					),
-					criteria.Not(
-						criteria.Field("Type"),
-						criteria.Literal(workitem.SystemFeature.String()),
-					),
-				),
-			}},
-		}
-		for _, d := range td {
-			format := "%s = %s"
-			if d.Negate {
-				format = "%s != %s"
-			}
-			t.Run(fmt.Sprintf(format, d.Name, d.Value), func(t *testing.T) {
-				exp := []criteria.Expression{}
-				err := handleWitGroup(Query{Name: d.Name, Value: &d.Value, Negate: d.Negate}, &exp)
-				if d.ExpectError {
-					require.Error(t, err)
-				} else {
-					require.NoError(t, err)
-				}
-				require.Equal(t, exp, d.ExpectedExrpessions)
-			})
-		}
-
-		t.Run("value is nil", func(t *testing.T) {
-			// given
-			var v *string
-			exp := []criteria.Expression{}
-			// when
-			err := handleWitGroup(Query{Name: paramName, Value: v}, &exp)
-			// then
-			require.Error(t, err)
-		})
-		t.Run("expression array is nil", func(t *testing.T) {
-			// given
-			v := "Scenarios"
-			var exp *[]criteria.Expression
-			// when
-			err := handleWitGroup(Query{Name: paramName, Value: &v}, exp)
-			// then
-			require.Error(t, err)
 		})
 	}
 }

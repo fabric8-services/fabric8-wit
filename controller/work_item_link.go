@@ -175,7 +175,7 @@ func enrichLinkList(ctx context.Context, appl application.Application, req *http
 	}
 	linkArr.Included = append(linkArr.Included, interfaceArr...)
 
-	// TODO(kwk): Include WIs from source and target
+	// TODO(kwk): Include WIs from source and target?
 	workItemDataArr, err := getWorkItemsOfLinks(ctx, appl, req, linkArr.Data)
 	if err != nil {
 		return err

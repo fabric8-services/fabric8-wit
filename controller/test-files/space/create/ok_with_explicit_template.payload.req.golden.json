@@ -1,0 +1,20 @@
+{
+  "data": {
+    "attributes": {
+      "name": "TestSuccessCreateSpace-00000000-0000-0000-0000-000000000001"
+    },
+    "relationships": {
+      "space-template": {
+        "data": {
+          "id": "00000000-0000-0000-0000-000000000002",
+          "type": "spacetemplates"
+        },
+        "links": {
+          "related": "http://api.service.domain.org/api/spacetemplates/00000000-0000-0000-0000-000000000002",
+          "self": "http://api.service.domain.org/api/spacetemplates/00000000-0000-0000-0000-000000000002"
+        }
+      }
+    },
+    "type": "spaces"
+  }
+}

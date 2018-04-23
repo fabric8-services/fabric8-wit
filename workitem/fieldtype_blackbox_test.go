@@ -103,7 +103,7 @@ func TestSimpleTypeConversion(t *testing.T) {
 }
 
 var (
-	stEnum = SimpleType{KindEnum}
+	stEnum = SimpleType{Kind: KindEnum}
 	enum   = EnumType{
 		BaseType: stEnum,
 		// ENUM with same type values

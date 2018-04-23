@@ -7,7 +7,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	gormbench "github.com/fabric8-services/fabric8-wit/gormtestsupport/benchmark"
 	"github.com/fabric8-services/fabric8-wit/iteration"
-	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
@@ -23,7 +22,6 @@ type BenchPlannerBacklogREST struct {
 }
 
 func BenchRunPlannerBacklogREST(b *testing.B) {
-	resource.Require(b, resource.Database)
 	testsupport.Run(b, new(BenchPlannerBacklogREST))
 }
 
