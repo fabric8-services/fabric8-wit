@@ -790,7 +790,7 @@ func testMigration89FixupForSpaceTemplates(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, spacetemplate.SystemBaseTemplateID.String(), stID)
 
-	// Before this change, all link types where assigned to the legacy template
+	// After this change, all link types are assigned to the base template
 	stmt, err = sqlDB.Prepare("SELECT count(*) FROM work_item_link_types WHERE space_template_id = $1")
 	require.NoError(t, err)
 	err = stmt.QueryRow(spacetemplate.SystemBaseTemplateID).Scan(&cnt)
