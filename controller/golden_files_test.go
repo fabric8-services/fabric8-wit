@@ -356,7 +356,17 @@ func TestGoldenReplaceTimes(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, expected, actual)
 	})
-
+	t.Run("date with IST timezone", func(t *testing.T) {
+		t.Parallel()
+		//given
+		str := `"last-modified": "Mon, 23 Apr 2018 00:00:00 IST",`
+		expected := `"last-modified": "Mon, 01 Jan 0001 00:00:00 GMT",`
+		// when
+		actual, err := replaceTimes(str)
+		// then
+		require.NoError(t, err)
+		require.Equal(t, expected, actual)
+	})
 }
 
 func TestGoldenCompareWithGolden(t *testing.T) {
