@@ -71,6 +71,7 @@ type CustomizeSpaceFunc CustomizeEntityFunc
 //
 // When called in NewFixture() this function will call also call
 //     Identities(1)
+//     SpaceTemplates(1)
 // but with NewFixtureIsolated(), no other objects will be created.
 func Spaces(n int, fns ...CustomizeSpaceFunc) RecipeFunction {
 	return func(fxt *TestFixture) error {
@@ -89,7 +90,7 @@ func Spaces(n int, fns ...CustomizeSpaceFunc) RecipeFunction {
 		if err := fxt.setupInfo(n, kindSpaces, customFuncs...); err != nil {
 			return err
 		}
-		return fxt.deps(Identities(1))
+		return fxt.deps(Identities(1), SpaceTemplates(1))
 	}
 }
 
@@ -267,12 +268,11 @@ type CustomizeWorkItemTypeFunc CustomizeEntityFunc
 // and fns.
 //
 // When called in NewFixture() this function will call also call
-//     Spaces(1)
+//     SpaceTemplates(1)
 // but with NewFixtureIsolated(), no other objects will be created.
 //
 // The work item type that we create for each of the n instances is always the
-// same and it tries to be compatible with the planner item work item type by
-// specifying the same fields.
+// same and it is compatible with the planner item work item type by.
 func WorkItemTypes(n int, fns ...CustomizeWorkItemTypeFunc) RecipeFunction {
 	return func(fxt *TestFixture) error {
 		fxt.checkFuncs = append(fxt.checkFuncs, func() error {
@@ -290,7 +290,40 @@ func WorkItemTypes(n int, fns ...CustomizeWorkItemTypeFunc) RecipeFunction {
 		if err := fxt.setupInfo(n, kindWorkItemTypes, customFuncs...); err != nil {
 			return err
 		}
-		return fxt.deps(Spaces(1))
+		return fxt.deps(SpaceTemplates(1))
+	}
+}
+
+// CustomizeWorkItemTypeGroupFunc is directly compatible with
+// CustomizeEntityFunc but it can only be used for the WorkItemTypeGroups()
+// recipe-function.
+type CustomizeWorkItemTypeGroupFunc CustomizeEntityFunc
+
+// WorkItemTypeGroups tells the test fixture to create at least n work item type group
+// objects. See also the Identities() function for more general information on n
+// and fns.
+//
+// When called in NewFixture() this function will call also call
+//     WorkItemTypes(1)
+// but with NewFixtureIsolated(), no other objects will be created.
+func WorkItemTypeGroups(n int, fns ...CustomizeWorkItemTypeGroupFunc) RecipeFunction {
+	return func(fxt *TestFixture) error {
+		fxt.checkFuncs = append(fxt.checkFuncs, func() error {
+			l := len(fxt.WorkItemTypeGroups)
+			if l < n {
+				return errs.Errorf(checkStr, n, kindWorkItemTypeGroups, l)
+			}
+			return nil
+		})
+		// Convert fns to []CustomizeEntityFunc
+		customFuncs := make([]CustomizeEntityFunc, len(fns))
+		for idx := range fns {
+			customFuncs[idx] = CustomizeEntityFunc(fns[idx])
+		}
+		if err := fxt.setupInfo(n, kindWorkItemTypeGroups, customFuncs...); err != nil {
+			return err
+		}
+		return fxt.deps(WorkItemTypes(1))
 	}
 }
 
@@ -304,7 +337,7 @@ type CustomizeWorkItemLinkTypeFunc CustomizeEntityFunc
 // on n and fns.
 //
 // When called in NewFixture() this function will call also call
-//     Spaces(1)
+//     SpaceTemplates(1)
 //     WorkItemLinkCategories(1)
 // but with NewFixtureIsolated(), no other objects will be created.
 //
@@ -336,7 +369,7 @@ func WorkItemLinkTypes(n int, fns ...CustomizeWorkItemLinkTypeFunc) RecipeFuncti
 		if err := fxt.setupInfo(n, kindWorkItemLinkTypes, customFuncs...); err != nil {
 			return err
 		}
-		return fxt.deps(Spaces(1), WorkItemLinkCategories(1))
+		return fxt.deps(SpaceTemplates(1), WorkItemLinkCategories(1))
 	}
 }
 
@@ -481,6 +514,10 @@ type CustomizeTrackerFunc CustomizeEntityFunc
 
 // Trackers tells the test fixture to create at least n tracker objects. See
 // also the Identities() function for more general information on n and fns.
+//
+// When called in NewFixture() this function will call also call
+//     Spaces(1)
+// but with NewFixtureIsolated(), no other objects will be created.
 func Trackers(n int, fns ...CustomizeTrackerFunc) RecipeFunction {
 	return func(fxt *TestFixture) error {
 		fxt.checkFuncs = append(fxt.checkFuncs, func() error {
@@ -530,5 +567,32 @@ func Queries(n int, fns ...CustomizeQueryFunc) RecipeFunction {
 			return err
 		}
 		return fxt.deps(Spaces(1))
+	}
+}
+
+// CustomizeSpaceTemplateFunc is directly compatible with CustomizeEntityFunc
+// but it can only be used for the SpaceTemplates() recipe-function.
+type CustomizeSpaceTemplateFunc CustomizeEntityFunc
+
+// SpaceTemplates tells the test fixture to create at least n space template objects. See
+// also the Identities() function for more general information on n and fns.
+func SpaceTemplates(n int, fns ...CustomizeSpaceTemplateFunc) RecipeFunction {
+	return func(fxt *TestFixture) error {
+		fxt.checkFuncs = append(fxt.checkFuncs, func() error {
+			l := len(fxt.SpaceTemplates)
+			if l < n {
+				return errs.Errorf(checkStr, n, kindSpaceTemplates, l)
+			}
+			return nil
+		})
+		// Convert fns to []CustomizeEntityFunc
+		customFuncs := make([]CustomizeEntityFunc, len(fns))
+		for idx := range fns {
+			customFuncs[idx] = CustomizeEntityFunc(fns[idx])
+		}
+		if err := fxt.setupInfo(n, kindSpaceTemplates, customFuncs...); err != nil {
+			return err
+		}
+		return fxt.deps()
 	}
 }

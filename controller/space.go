@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/fabric8-services/fabric8-wit/spacetemplate"
+
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/area"
@@ -70,14 +72,24 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 			ID:      spaceID,
 			Name:    spaceName,
 			OwnerID: *currentUser,
+			// Default to legacy space template to avoid breaking the API
+			SpaceTemplateID: spacetemplate.SystemLegacyTemplateID,
 		}
 		if reqSpace.Attributes.Description != nil {
 			newSpace.Description = *reqSpace.Attributes.Description
 		}
+		// if given, use space template from relationship
+		if reqSpace.Relationships != nil && reqSpace.Relationships.SpaceTemplate != nil && reqSpace.Relationships.SpaceTemplate.Data != nil {
+			stID := reqSpace.Relationships.SpaceTemplate.Data.ID
+			if err := appl.SpaceTemplates().CheckExists(ctx, stID); err != nil {
+				return errs.Wrapf(err, "space template not found: %s", stID)
+			}
+			newSpace.SpaceTemplateID = stID
+		}
 
 		rSpace, err = appl.Spaces().Create(ctx, &newSpace)
 		if err != nil {
-			return errs.Wrapf(err, "Failed to create space: %s", newSpace.Name)
+			return errs.Wrapf(err, "failed to create space: %s", newSpace.Name)
 		}
 		/*
 			Should we create the new area
@@ -309,6 +321,16 @@ func validateCreateSpace(ctx *app.CreateSpaceContext) error {
 	if ctx.Payload.Data.Attributes.Name == nil {
 		return errors.NewBadParameterError("data.attributes.name", nil).Expected("not nil")
 	}
+	// // TODO(kwk): Comment back in once space template is official
+	// if ctx.Payload.Data.Relationships == nil {
+	// 	return errors.NewBadParameterError("data.relationships", nil).Expected("not nil")
+	// }
+	// if ctx.Payload.Data.Relationships.SpaceTemplate == nil {
+	// 	return errors.NewBadParameterError("data.relationships.spacetemplate", nil).Expected("not nil")
+	// }
+	// if ctx.Payload.Data.Relationships.SpaceTemplate.Data == nil {
+	// 	return errors.NewBadParameterError("data.relationships.spacetemplate.data", nil).Expected("not nil")
+	// }
 	return nil
 }
 
@@ -356,6 +378,10 @@ func ConvertSpaceToModel(appSpace app.Space) space.Space {
 		appSpace.Relationships.OwnedBy.Data != nil && appSpace.Relationships.OwnedBy.Data.ID != nil {
 		modelSpace.OwnerID = *appSpace.Relationships.OwnedBy.Data.ID
 	}
+	if appSpace.Relationships != nil && appSpace.Relationships.SpaceTemplate != nil &&
+		appSpace.Relationships.SpaceTemplate.Data != nil {
+		modelSpace.SpaceTemplateID = appSpace.Relationships.SpaceTemplate.Data.ID
+	}
 	return modelSpace
 }
 
@@ -399,13 +425,14 @@ func ConvertSpaceFromModel(request *http.Request, sp space.Space, options ...Spa
 	relatedBacklog := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/backlog", spaceIDStr))
 	relatedCodebases := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/codebases", spaceIDStr))
 	relatedWorkItems := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitems", spaceIDStr))
-	relatedWorkItemTypes := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitemtypes", spaceIDStr))
-	relatedWorkItemLinkTypes := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitemlinktypes", spaceIDStr))
+	relatedWorkItemTypes := rest.AbsoluteURL(request, app.SpaceTemplateHref(sp.SpaceTemplateID)+"/workitemtypes")
+	relatedWorkItemLinkTypes := rest.AbsoluteURL(request, app.SpaceTemplateHref(sp.SpaceTemplateID)+"/workitemlinktypes")
 	relatedOwners := rest.AbsoluteURL(request, app.UsersHref(sp.OwnerID.String()))
 	relatedCollaborators := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/collaborators", spaceIDStr))
 	relatedFilters := rest.AbsoluteURL(request, "/api/filters")
 	relatedLabels := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/labels", spaceIDStr))
-	relatedWorkitemTypeGroups := rest.AbsoluteURL(request, app.SpaceTemplateHref(spaceIDStr)+"/workitemtypegroups")
+	relatedWorkitemTypeGroups := rest.AbsoluteURL(request, app.SpaceTemplateHref(sp.SpaceTemplateID)+"/workitemtypegroups")
+	relatedSpaceTemplateURL := rest.AbsoluteURL(request, app.SpaceTemplateHref(sp.SpaceTemplateID))
 
 	s := &app.Space{
 		ID:   &sp.ID,
@@ -492,6 +519,7 @@ func ConvertSpaceFromModel(request *http.Request, sp space.Space, options ...Spa
 					Related: &relatedWorkitemTypeGroups,
 				},
 			},
+			SpaceTemplate: app.NewSpaceTemplateRelation(sp.SpaceTemplateID, relatedSpaceTemplateURL),
 		},
 	}
 	// apply options (ie, if extra content needs to be provided in the response element)

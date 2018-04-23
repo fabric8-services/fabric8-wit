@@ -139,9 +139,8 @@ func (c *SpaceIterationsController) List(ctx *app.ListSpaceIterationsContext) er
 			}
 			// fetch extra information(counts of WI in each iteration of the space) to be added in response
 			wiCounts, err := appl.WorkItems().GetCountsPerIteration(ctx, ctx.SpaceID)
-			log.Info(ctx, map[string]interface{}{
+			log.Debug(ctx, map[string]interface{}{
 				"space_id": ctx.SpaceID.String(),
-				"wiCounts": wiCounts,
 			}, "Retrieving wicounts for spaceID %s -> %v", ctx.SpaceID.String(), wiCounts)
 
 			if err != nil {

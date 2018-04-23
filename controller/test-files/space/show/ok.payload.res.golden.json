@@ -18,8 +18,8 @@
       "filters": "http:///api/filters",
       "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002",
       "self": "http:///api/spaces/00000000-0000-0000-0000-000000000002",
-      "workitemlinktypes": "http:///api/spaces/00000000-0000-0000-0000-000000000002/workitemlinktypes",
-      "workitemtypes": "http:///api/spaces/00000000-0000-0000-0000-000000000002/workitemtypes"
+      "workitemlinktypes": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000003/workitemlinktypes",
+      "workitemtypes": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000003/workitemtypes"
     },
     "relationships": {
       "areas": {
@@ -62,16 +62,26 @@
       },
       "owned-by": {
         "data": {
-          "id": "00000000-0000-0000-0000-000000000003",
+          "id": "00000000-0000-0000-0000-000000000004",
           "type": "identities"
         },
         "links": {
-          "related": "http:///api/users/00000000-0000-0000-0000-000000000003"
+          "related": "http:///api/users/00000000-0000-0000-0000-000000000004"
+        }
+      },
+      "space-template": {
+        "data": {
+          "id": "00000000-0000-0000-0000-000000000003",
+          "type": "spacetemplates"
+        },
+        "links": {
+          "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000003",
+          "self": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000003"
         }
       },
       "workitemlinktypes": {
         "links": {
-          "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002/workitemlinktypes"
+          "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000003/workitemlinktypes"
         }
       },
       "workitems": {
@@ -81,12 +91,12 @@
       },
       "workitemtypegroups": {
         "links": {
-          "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups"
+          "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000003/workitemtypegroups"
         }
       },
       "workitemtypes": {
         "links": {
-          "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002/workitemtypes"
+          "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000003/workitemtypes"
         }
       }
     },

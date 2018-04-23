@@ -2,25 +2,12 @@ package workitem
 
 import (
 	"database/sql/driver"
+	"time"
 
+	"github.com/fabric8-services/fabric8-wit/convert"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	uuid "github.com/satori/go.uuid"
 )
-
-// TypeBucket represents a dedicated string type for a bucket of type groups
-type TypeBucket string
-
-// String implements the Stringer interface
-
-func (t TypeBucket) String() string { return string(t) }
-
-// Scan implements the https://golang.org/pkg/database/sql/#Scanner interface
-// See also https://stackoverflow.com/a/25374979/835098
-// See also https://github.com/jinzhu/gorm/issues/302#issuecomment-80566841
-func (t *TypeBucket) Scan(value interface{}) error { *t = TypeBucket(value.([]byte)); return nil }
-
-// Value implements the https://golang.org/pkg/database/sql/driver/#Valuer interface
-func (t TypeBucket) Value() (driver.Value, error) { return string(t), nil }
 
 // Use following bucket constants while defining static groups.
 // NOTE: Those buckets can later be used by reporting tools for example to gather
@@ -31,14 +18,100 @@ const (
 	BucketIteration   TypeBucket = "iteration"
 )
 
+// TypeBucket represents a dedicated string type for a bucket of type groups
+type TypeBucket string
+
+// String implements the Stringer interface
+func (t TypeBucket) String() string { return string(t) }
+
+// Scan implements the https://golang.org/pkg/database/sql/#Scanner interface
+// See also https://stackoverflow.com/a/25374979/835098
+// See also https://github.com/jinzhu/gorm/issues/302#issuecomment-80566841
+func (t *TypeBucket) Scan(value interface{}) error { *t = TypeBucket(value.([]byte)); return nil }
+
+// Value implements the https://golang.org/pkg/database/sql/driver/#Valuer interface
+func (t TypeBucket) Value() (driver.Value, error) { return string(t), nil }
+
 // WorkItemTypeGroup represents the node in the group of work item types
 type WorkItemTypeGroup struct {
+	gormsupport.Lifecycle `json:"lifecycle"`
+	ID                    uuid.UUID   `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key" json:"id"`
+	SpaceTemplateID       uuid.UUID   `sql:"type:uuid" json:"space_template_id"`
+	Bucket                TypeBucket  `json:"bucket,omitempty"`
+	Name                  string      `json:"name,omitempty"` // the name to be displayed to user (is unique)
+	Icon                  string      `json:"icon,omitempty"`
+	Position              int         `json:"-"`
+	TypeList              []uuid.UUID `gorm:"-" json:"type_list,omitempty"`
+}
+
+// TableName implements gorm.tabler
+func (witg WorkItemTypeGroup) TableName() string {
+	return "work_item_type_groups"
+}
+
+// Ensure WorkItemTypeGroup implements the Equaler interface
+var _ convert.Equaler = WorkItemTypeGroup{}
+var _ convert.Equaler = (*WorkItemTypeGroup)(nil)
+
+// Equal returns true if two WorkItemTypeGroup objects are equal; otherwise false is returned.
+func (witg WorkItemTypeGroup) Equal(u convert.Equaler) bool {
+	other, ok := u.(WorkItemTypeGroup)
+	if !ok {
+		return false
+	}
+	if !uuid.Equal(witg.ID, other.ID) {
+		return false
+	}
+	if !uuid.Equal(witg.SpaceTemplateID, other.SpaceTemplateID) {
+		return false
+	}
+	if !witg.Lifecycle.Equal(other.Lifecycle) {
+		return false
+	}
+	if witg.Name != other.Name {
+		return false
+	}
+	if witg.Bucket != other.Bucket {
+		return false
+	}
+	if witg.Icon != other.Icon {
+		return false
+	}
+	if witg.Position != other.Position {
+		return false
+	}
+	if len(witg.TypeList) != len(other.TypeList) {
+		return false
+	}
+	for i := range witg.TypeList {
+		if witg.TypeList[i] != other.TypeList[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// GetETagData returns the field values to use to generate the ETag
+func (witg WorkItemTypeGroup) GetETagData() []interface{} {
+	return []interface{}{witg.ID, witg.UpdatedAt}
+}
+
+// GetLastModified returns the last modification time
+func (witg WorkItemTypeGroup) GetLastModified() time.Time {
+	return witg.UpdatedAt
+}
+
+type typeGroupMember struct {
 	gormsupport.Lifecycle
-	ID       uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
-	Bucket   TypeBucket
-	Name     string      // the name to be displayed to user (is unique)
-	TypeList []uuid.UUID // TODO(kwk): We need to store this outside of this structure in the DB
-	Icon     string
+	ID             uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
+	TypeGroupID    uuid.UUID `sql:"type:uuid"`
+	WorkItemTypeID uuid.UUID `sql:"type:uuid"`
+	Position       int       // position in type list of type group
+}
+
+// TableName implements gorm.tabler
+func (wit typeGroupMember) TableName() string {
+	return "work_item_type_group_members"
 }
 
 // TypeGroups returns the list of work item type groups

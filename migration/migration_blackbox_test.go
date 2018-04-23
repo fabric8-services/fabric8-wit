@@ -132,6 +132,8 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration84", testMigration84)
 	t.Run("TestMigration85", testMigration85)
 	t.Run("TestMigration86", testMigration86)
+	t.Run("TestMigration87", testMigration87SpaceTemplates) // space templates
+	t.Run("TestMigration88", testMigration88TypeGroups)     // type groups
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -739,6 +741,21 @@ func testMigration85(t *testing.T) {
 func testMigration86(t *testing.T) {
 	migrateToVersion(t, sqlDB, migrations[:87], 87)
 	require.True(t, dialect.HasColumn("work_item_types", "can_construct"))
+}
+
+func testMigration87SpaceTemplates(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:88], 88)
+	assert.True(t, dialect.HasTable("space_templates"))
+	assert.True(t, dialect.HasColumn("spaces", "space_template_id"))
+	assert.True(t, dialect.HasColumn("work_item_types", "space_template_id"))
+	assert.True(t, dialect.HasColumn("work_item_link_types", "space_template_id"))
+}
+
+func testMigration88TypeGroups(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:89], 89)
+	assert.True(t, dialect.HasTable("work_item_type_groups"))
+	assert.True(t, dialect.HasTable("work_item_type_group_members"))
+	assert.True(t, dialect.HasTable("work_item_child_types"))
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and

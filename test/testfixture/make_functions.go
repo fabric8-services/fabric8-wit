@@ -5,13 +5,15 @@ import (
 	"math/rand"
 	"strings"
 
+	"github.com/fabric8-services/fabric8-wit/ptr"
+	"github.com/fabric8-services/fabric8-wit/spacetemplate"
+
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/area"
 	"github.com/fabric8-services/fabric8-wit/codebase"
 	"github.com/fabric8-services/fabric8-wit/comment"
 	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/label"
-	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/query"
 	"github.com/fabric8-services/fabric8-wit/remoteworkitem"
 	"github.com/fabric8-services/fabric8-wit/rendering"
@@ -67,6 +69,31 @@ func makeWorkItemLinkCategories(fxt *TestFixture) error {
 	return nil
 }
 
+func makeSpaceTemplates(fxt *TestFixture) error {
+	if fxt.info[kindSpaceTemplates] == nil {
+		return nil
+	}
+	fxt.SpaceTemplates = make([]*spacetemplate.SpaceTemplate, fxt.info[kindSpaceTemplates].numInstances)
+	spaceTemplateRepo := spacetemplate.NewRepository(fxt.db)
+	for i := range fxt.SpaceTemplates {
+		fxt.SpaceTemplates[i] = &spacetemplate.SpaceTemplate{
+			Name:         testsupport.CreateRandomValidTestName("space template "),
+			CanConstruct: true,
+		}
+		fxt.SpaceTemplates[i].Description = ptr.String("Description for " + fxt.SpaceTemplates[i].Name)
+
+		if err := fxt.runCustomizeEntityFuncs(i, kindSpaceTemplates); err != nil {
+			return errs.WithStack(err)
+		}
+		st, err := spaceTemplateRepo.Create(fxt.ctx, *fxt.SpaceTemplates[i])
+		if err != nil {
+			return errs.Wrapf(err, "failed to create space template: %+v", fxt.SpaceTemplates[i])
+		}
+		fxt.SpaceTemplates[i] = st
+	}
+	return nil
+}
+
 func makeSpaces(fxt *TestFixture) error {
 	if fxt.info[kindSpaces] == nil {
 		return nil
@@ -80,6 +107,7 @@ func makeSpaces(fxt *TestFixture) error {
 		}
 		if !fxt.isolatedCreation {
 			fxt.Spaces[i].OwnerID = fxt.Identities[0].ID
+			fxt.Spaces[i].SpaceTemplateID = fxt.SpaceTemplates[0].ID
 		}
 		if err := fxt.runCustomizeEntityFuncs(i, kindSpaces); err != nil {
 			return errs.WithStack(err)
@@ -87,6 +115,9 @@ func makeSpaces(fxt *TestFixture) error {
 		if fxt.isolatedCreation {
 			if fxt.Spaces[i].OwnerID == uuid.Nil {
 				return errs.New("you must specify an owner ID for each space")
+			}
+			if fxt.Spaces[i].SpaceTemplateID == uuid.Nil {
+				return errs.New("you must specify a space template ID for each space")
 			}
 		}
 		_, err := spaceRepo.Create(fxt.ctx, fxt.Spaces[i])
@@ -113,15 +144,15 @@ func makeWorkItemLinkTypes(fxt *TestFixture) error {
 			ReverseName: "reverse name (e.g. blocked by)",
 		}
 		if !fxt.isolatedCreation {
-			fxt.WorkItemLinkTypes[i].SpaceID = fxt.Spaces[0].ID
+			fxt.WorkItemLinkTypes[i].SpaceTemplateID = fxt.SpaceTemplates[0].ID
 			fxt.WorkItemLinkTypes[i].LinkCategoryID = fxt.WorkItemLinkCategories[0].ID
 		}
 		if err := fxt.runCustomizeEntityFuncs(i, kindWorkItemLinkTypes); err != nil {
 			return errs.WithStack(err)
 		}
 		if fxt.isolatedCreation {
-			if fxt.WorkItemLinkTypes[i].SpaceID == uuid.Nil {
-				return errs.New("you must specify a space for each work item link type")
+			if fxt.WorkItemLinkTypes[i].SpaceTemplateID == uuid.Nil {
+				return errs.New("you must specify a space template for each work item link type")
 			}
 			if fxt.WorkItemLinkTypes[i].LinkCategoryID == uuid.Nil {
 				return errs.New("you must specify a link category for each work item link type")
@@ -245,22 +276,57 @@ func makeWorkItemTypes(fxt *TestFixture) error {
 			Fields:       workitem.FieldDefinitions{},
 		}
 		if !fxt.isolatedCreation {
-			fxt.WorkItemTypes[i].SpaceID = fxt.Spaces[0].ID
+			fxt.WorkItemTypes[i].SpaceTemplateID = fxt.SpaceTemplates[0].ID
 		}
 		if err := fxt.runCustomizeEntityFuncs(i, kindWorkItemTypes); err != nil {
 			return errs.WithStack(err)
 		}
 		if fxt.isolatedCreation {
-			if fxt.WorkItemTypes[i].SpaceID == uuid.Nil {
-				return errs.New("you must specify a space ID for each work item type")
+			if fxt.WorkItemTypes[i].SpaceTemplateID == uuid.Nil {
+				return errs.New("you must specify a space template ID for each work item type")
 			}
 		}
 		m := fxt.WorkItemTypes[i]
-		wit, err := witRepo.Create(fxt.ctx, m.SpaceID, &m.ID, &m.Extends, m.Name, m.Description, m.Icon, m.Fields, m.CanConstruct)
+		wit, err := witRepo.Create(fxt.ctx, m.SpaceTemplateID, &m.ID, &m.Extends, m.Name, m.Description, m.Icon, m.Fields, m.CanConstruct)
 		if err != nil {
 			return errs.Wrapf(err, "failed to create work item type %+v", fxt.WorkItemTypes[i])
 		}
 		fxt.WorkItemTypes[i] = wit
+	}
+	return nil
+}
+
+func makeWorkItemTypeGroups(fxt *TestFixture) error {
+	if fxt.info[kindWorkItemTypeGroups] == nil {
+		return nil
+	}
+	fxt.WorkItemTypeGroups = make([]*workitem.WorkItemTypeGroup, fxt.info[kindWorkItemTypeGroups].numInstances)
+	witgRepo := workitem.NewWorkItemTypeGroupRepository(fxt.db)
+	for i := range fxt.WorkItemTypeGroups {
+		fxt.WorkItemTypeGroups[i] = &workitem.WorkItemTypeGroup{
+			ID:       uuid.NewV4(),
+			Name:     testsupport.CreateRandomValidTestName("work item type group "),
+			Bucket:   workitem.BucketPortfolio,
+			Icon:     "fa fa-suitcase",
+			Position: i,
+		}
+		if !fxt.isolatedCreation {
+			fxt.WorkItemTypeGroups[i].TypeList = append(fxt.WorkItemTypeGroups[i].TypeList, fxt.WorkItemTypes[0].ID)
+			fxt.WorkItemTypeGroups[i].SpaceTemplateID = fxt.SpaceTemplates[0].ID
+		}
+		if err := fxt.runCustomizeEntityFuncs(i, kindWorkItemTypeGroups); err != nil {
+			return errs.WithStack(err)
+		}
+		if fxt.isolatedCreation {
+			if fxt.WorkItemTypes[i].SpaceTemplateID == uuid.Nil {
+				return errs.New("you must specify a space template ID for each work item type group")
+			}
+		}
+		witg, err := witgRepo.Create(fxt.ctx, *fxt.WorkItemTypeGroups[i])
+		if err != nil {
+			return errs.Wrapf(err, "failed to create work item type group %+v", fxt.WorkItemTypeGroups[i])
+		}
+		fxt.WorkItemTypeGroups[i] = witg
 	}
 	return nil
 }

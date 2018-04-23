@@ -76,7 +76,8 @@ var workItemLinkTypeRelationships = a.Type("WorkItemLinkTypeRelationships", func
 	a.Description(`JSONAPI store for the data of a work item link type.
 See also http://jsonapi.org/format/#document-resource-object-relationships`)
 	a.Attribute("link_category", relationWorkItemLinkCategory, "The work item link category of this work item link type.")
-	a.Attribute("space", relationSpaces, "This defines the owning space of this work item link type.")
+	a.Attribute("space", relationSpaces, "(OBSOLETE) This defines the owning space of this work item link type.")
+	a.Attribute("space_template", spaceTemplateRelation, "This defines the owning space template of this work item link type.")
 })
 
 // relationWorkItemType is the JSONAPI store for the work item type relationship objects
@@ -148,7 +149,6 @@ var workItemLinkTypeList = JSONList(
 
 var _ = a.Resource("work_item_link_type", func() {
 	a.BasePath("/workitemlinktypes")
-
 	a.Action("show", func() {
 		a.Routing(
 			a.GET("/:wiltID"),
@@ -168,8 +168,7 @@ var _ = a.Resource("work_item_link_type", func() {
 
 var _ = a.Resource("work_item_link_types", func() {
 	a.BasePath("/workitemlinktypes")
-	a.Parent("space")
-
+	a.Parent("space_template")
 	a.Action("list", func() {
 		a.Routing(
 			a.GET(""),

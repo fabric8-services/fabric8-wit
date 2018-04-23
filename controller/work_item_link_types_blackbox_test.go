@@ -54,7 +54,7 @@ func (s *workItemLinkTypesSuite) TestList() {
 
 	s.T().Run("ok", func(t *testing.T) {
 		// when
-		res, wilts := test.ListWorkItemLinkTypesOK(t, nil, nil, ctrl, fxt.Spaces[0].ID, nil, nil)
+		res, wilts := test.ListWorkItemLinkTypesOK(t, nil, nil, ctrl, fxt.SpaceTemplates[0].ID, nil, nil)
 		// then
 		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok.res.payload.golden.json"), wilts)
 		safeOverriteHeader(t, res, app.ETag, "0icd7ov5CqwDXN6Fx9z18g==")
@@ -62,11 +62,11 @@ func (s *workItemLinkTypesSuite) TestList() {
 		assertResponseHeaders(t, res)
 	})
 
-	s.T().Run("ok for non-existing-space", func(t *testing.T) {
+	s.T().Run("not found for non-existing-spacetemplate", func(t *testing.T) {
 		// given
-		spaceID := uuid.NewV4()
+		spaceTemplateID := uuid.NewV4()
 		// when
-		res, wilts := test.ListWorkItemLinkTypesNotFound(t, nil, nil, ctrl, spaceID, nil, nil)
+		res, wilts := test.ListWorkItemLinkTypesNotFound(t, nil, nil, ctrl, spaceTemplateID, nil, nil)
 		// then
 		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "not_found_for_non_existing_space_id.res.payload.golden.json"), wilts)
 		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "not_found_for_non_existing_space_id.res.headers.golden.json"), res.Header())
@@ -76,7 +76,7 @@ func (s *workItemLinkTypesSuite) TestList() {
 		// given
 		ifModifiedSinceHeader := app.ToHTTPTime(fxt.WorkItemLinkTypes[1].UpdatedAt.Add(-1 * time.Hour))
 		// when
-		res, wilts := test.ListWorkItemLinkTypesOK(t, nil, nil, ctrl, fxt.Spaces[0].ID, &ifModifiedSinceHeader, nil)
+		res, wilts := test.ListWorkItemLinkTypesOK(t, nil, nil, ctrl, fxt.SpaceTemplates[0].ID, &ifModifiedSinceHeader, nil)
 		// then
 		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok_using_expired_ifmodifiedsince_header.res.payload.golden.json"), wilts)
 		safeOverriteHeader(t, res, app.ETag, "0icd7ov5CqwDXN6Fx9z18g==")
@@ -88,7 +88,7 @@ func (s *workItemLinkTypesSuite) TestList() {
 		// given
 		ifNoneMatch := "foo"
 		// when
-		res, wilts := test.ListWorkItemLinkTypesOK(t, nil, nil, ctrl, fxt.Spaces[0].ID, nil, &ifNoneMatch)
+		res, wilts := test.ListWorkItemLinkTypesOK(t, nil, nil, ctrl, fxt.SpaceTemplates[0].ID, nil, &ifNoneMatch)
 		// then
 		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok_using_expired_ifnonematch_header.res.payload.golden.json"), wilts)
 		safeOverriteHeader(t, res, app.ETag, "0icd7ov5CqwDXN6Fx9z18g==")
@@ -100,7 +100,7 @@ func (s *workItemLinkTypesSuite) TestList() {
 		// given
 		ifModifiedSinceHeader := app.ToHTTPTime(fxt.WorkItemLinkTypes[1].UpdatedAt)
 		// when
-		res := test.ListWorkItemLinkTypesNotModified(t, nil, nil, ctrl, fxt.Spaces[0].ID, &ifModifiedSinceHeader, nil)
+		res := test.ListWorkItemLinkTypesNotModified(t, nil, nil, ctrl, fxt.SpaceTemplates[0].ID, &ifModifiedSinceHeader, nil)
 		// then
 		safeOverriteHeader(t, res, app.ETag, "0icd7ov5CqwDXN6Fx9z18g==")
 		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "not_modified_using_ifmodifiedsince_header.res.headers.golden.json"), res.Header())
@@ -109,10 +109,10 @@ func (s *workItemLinkTypesSuite) TestList() {
 
 	s.T().Run("not modified using IfNoneMatch header", func(t *testing.T) {
 		// given
-		res, _ := test.ListWorkItemLinkTypesOK(t, nil, nil, ctrl, fxt.Spaces[0].ID, nil, nil)
+		res, _ := test.ListWorkItemLinkTypesOK(t, nil, nil, ctrl, fxt.SpaceTemplates[0].ID, nil, nil)
 		ifNoneMatch := res.Header().Get(app.ETag)
 		// when
-		res = test.ListWorkItemLinkTypesNotModified(t, nil, nil, ctrl, fxt.Spaces[0].ID, nil, &ifNoneMatch)
+		res = test.ListWorkItemLinkTypesNotModified(t, nil, nil, ctrl, fxt.SpaceTemplates[0].ID, nil, &ifNoneMatch)
 		// then
 		safeOverriteHeader(t, res, app.ETag, "0icd7ov5CqwDXN6Fx9z18g==")
 		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "not_modified_using_ifnonematch_header.res.headers.golden.json"), res.Header())

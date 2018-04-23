@@ -1,0 +1,147 @@
+space_template:
+
+  id: "1f48b7bf-bc51-4823-8101-9f10039035ba"
+  name: Openshift.io Base Space Template
+  description: >
+    This is template defines some of the key link types and other things that
+    can be re-used by other space templates. For example, the "related" link
+    type is defined here in order so that spaces that use a different space
+    template can still create links between work items.
+  can_construct: no
+
+work_item_types:
+
+- id: "86af5178-9b41-469b-9096-57e5155c3f31"
+  name: Planner Item
+  description: Description for Planner Item
+  icon: fa fa-bookmark
+  can_construct: no
+  fields:
+    "system.area": 
+      label: Area
+      description: The area to which the work item belongs
+      type:
+        kind: area
+      required: no
+    "system.order": 
+      label: Execution Order
+      description: Execution Order of the workitem
+      read_only: yes
+      type:
+        kind: float
+      required: no
+    "system.state":
+      label: State
+      description: The state of the work item
+      required: yes
+      type:
+        simple_type:
+          kind: enum
+        base_type:
+          kind: string
+        # This will allow other WITs to overwrite the values of the state.
+        rewritable_values: yes
+        values: 
+        - new
+        - open
+        - in progress
+        - resolved
+        - closed
+    "system.title": 
+      label: Title
+      description: The title text of the work item
+      type:
+        kind: string
+      required: yes
+    "system.creator": 
+      label: Creator
+      description: The user that created the work item
+      type:
+        kind: user
+      required: yes
+    "system.codebase": 
+      label: Codebase
+      description: Contains codebase attributes to which this WI belongs to
+      type:
+        kind: codebase
+      required: no
+    "system.assignees": 
+      label: Assignees
+      description: The users that are assigned to the work item
+      type:
+        simple_type:
+          kind: list
+        component_type:
+          kind: user
+      required: no
+    "system.iteration": 
+      label: Iteration
+      description: The iteration to which the work item belongs
+      type:
+        kind: iteration
+      required: no
+    "system.created_at": 
+      label: Created at
+      description: The date and time when the work item was created
+      read_only: yes
+      type:
+        kind: instant
+      required: no
+    "system.updated_at": 
+      label: Updated at
+      description: The date and time when the work item was last updated
+      read_only: yes
+      type:
+        kind: instant
+      required: no
+    "system.description": 
+      label: Description
+      description: A descriptive text of the work item
+      type:
+        kind: markup ## This is what's referred to as AsciiDoc in the spreadsheet
+      required: no
+    "system.remote_item_id": 
+      label: Remote item
+      description: The ID of the remote work item
+      type:
+        kind: string
+      required: no
+    "system.labels":
+      label: Labels
+      description: List of labels attached to the work item
+      type:
+        simple_type:
+          kind: list
+        component_type:
+          kind: label
+      required: no
+    "system.number":
+      label: Number
+      description: The unique number that was given to this workitem within its space.
+      read_only: yes
+      type:
+        kind: integer
+      required: no
+
+work_item_link_types:
+
+- id: "2CEA3C79-3B79-423B-90F4-1E59174C8F43"
+  name: Blocker
+  description: One work item item blocks another one
+  forward_name: blocks
+  reverse_name: blocked by
+  topology: network
+
+- id: "9B631885-83B1-4ABB-A340-3A9EDE8493FA"
+  name: Related
+  description: One work item relates to another one.
+  forward_name: relates to
+  reverse_name: is related to
+  topology: network
+
+- id: "25C326A7-6D03-4F5A-B23B-86A9EE4171E9"
+  name: Parenting
+  description: One work item is the parent of another one.
+  forward_name: parent of
+  reverse_name: child of
+  topology: tree

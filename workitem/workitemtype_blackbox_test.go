@@ -97,13 +97,14 @@ func TestWorkItemType_Equal(t *testing.T) {
 	}
 	desc := "some description"
 	a := workitem.WorkItemType{
-		SpaceID:     uuid.NewV4(),
-		Name:        "foo",
-		Description: &desc,
-		Icon:        "fa-bug",
+		SpaceTemplateID: uuid.NewV4(),
+		Name:            "foo",
+		Description:     &desc,
+		Icon:            "fa-bug",
 		Fields: map[string]workitem.FieldDefinition{
 			"aListType": fd,
 		},
+		ChildTypeIDs: []uuid.UUID{uuid.NewV4(), uuid.NewV4()},
 		CanConstruct: false,
 	}
 	t.Run("equality", func(t *testing.T) {
@@ -111,10 +112,10 @@ func TestWorkItemType_Equal(t *testing.T) {
 		b := a
 		assert.True(t, a.Equal(b))
 	})
-	t.Run("space ID", func(t *testing.T) {
+	t.Run("space template ID", func(t *testing.T) {
 		t.Parallel()
 		b := a
-		b.SpaceID = uuid.NewV4()
+		b.SpaceTemplateID = uuid.NewV4()
 		assert.False(t, a.Equal(b))
 	})
 	t.Run("type", func(t *testing.T) {
@@ -150,6 +151,16 @@ func TestWorkItemType_Equal(t *testing.T) {
 		t.Parallel()
 		b := a
 		b.Path = "foobar"
+		assert.False(t, a.Equal(b))
+	})
+	t.Run("ChildTypeIDs", func(t *testing.T) {
+		t.Parallel()
+		b := a
+		// different IDs
+		b.ChildTypeIDs = []uuid.UUID{uuid.NewV4(), uuid.NewV4()}
+		assert.False(t, a.Equal(b))
+		// different length
+		b.ChildTypeIDs = []uuid.UUID{uuid.NewV4(), uuid.NewV4(), uuid.NewV4()}
 		assert.False(t, a.Equal(b))
 	})
 	t.Run("field array length", func(t *testing.T) {

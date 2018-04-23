@@ -29,17 +29,16 @@ const (
 	HostRegistrationKeyForListWI  = "work-item-list-details"
 	HostRegistrationKeyForBoardWI = "work-item-board-details"
 
-	EQ       = "$EQ"
-	NE       = "$NE"
-	AND      = "$AND"
-	OR       = "$OR"
-	NOT      = "$NOT"
-	IN       = "$IN"
-	SUBSTR   = "$SUBSTR"
-	WITGROUP = "$WITGROUP"
-	OPTS     = "$OPTS"
+	EQ     = "$EQ"
+	NE     = "$NE"
+	AND    = "$AND"
+	OR     = "$OR"
+	NOT    = "$NOT"
+	IN     = "$IN"
+	SUBSTR = "$SUBSTR"
+	OPTS   = "$OPTS"
 
-	// This is the replacement for $WITGROUP in the upcoming changes.
+	// This is the replacement for $WITGROUP.
 	TypeGroupName = "typegroup.name"
 
 	OptParentExistsKey = "parent-exists"
@@ -408,75 +407,11 @@ func (q Query) determineLiteralType(key string, val string) criteria.Expression 
 	}
 }
 
-// handleWitGroup Here we handle the "$WITGROUP" and "typegroup.name" query
-// parameter which we translate from a simple
-//
-// "$WITGROUP = y" or "typegroup.name = y"
-//
-// expression into an
-//
-// "Type in (y1, y2, y3, ... ,yn)"
-//
-// expression where yi represents the i-th work item type associated with the
-// work item type group y.
-func handleWitGroup(q Query, expArr *[]criteria.Expression) error {
-	if q.Name != WITGROUP && q.Name != TypeGroupName {
-		return nil
-	}
-	if expArr == nil {
-		return errs.New("expression array must not be nil")
-	}
-
-	paramName := q.Name
-
-	typeGroupName := q.Value
-	if typeGroupName == nil {
-		return errors.NewBadParameterError(paramName, typeGroupName).Expected("not nil")
-	}
-	typeGroup := workitem.TypeGroupByName(*typeGroupName)
-	if typeGroup == nil {
-		return errors.NewBadParameterError(paramName, *typeGroupName).Expected("existing " + paramName)
-	}
-	var e criteria.Expression
-	if !q.Negate {
-		for _, witID := range typeGroup.TypeList {
-			eq := criteria.Equals(
-				criteria.Field("Type"),
-				criteria.Literal(witID.String()),
-			)
-			if e != nil {
-				e = criteria.Or(e, eq)
-			} else {
-				e = eq
-			}
-		}
-	} else {
-		for _, witID := range typeGroup.TypeList {
-			eq := criteria.Not(
-				criteria.Field("Type"),
-				criteria.Literal(witID.String()),
-			)
-			if e != nil {
-				e = criteria.And(e, eq)
-			} else {
-				e = eq
-			}
-		}
-	}
-	*expArr = append(*expArr, e)
-	return nil
-}
-
 func (q Query) generateExpression() (criteria.Expression, error) {
 	var myexpr []criteria.Expression
 	currentOperator := q.Name
 
-	if q.Name == WITGROUP || q.Name == TypeGroupName {
-		err := handleWitGroup(q, &myexpr)
-		if err != nil {
-			return nil, errs.Wrap(err, "failed to handle hierarchy in top-level element")
-		}
-	} else if !isOperator(currentOperator) || currentOperator == OPTS {
+	if !isOperator(currentOperator) || currentOperator == OPTS {
 		key, ok := searchKeyMap[q.Name]
 		// check that none of the default table joins handles this column:
 		var handledByJoin bool
@@ -517,11 +452,6 @@ func (q Query) generateExpression() (criteria.Expression, error) {
 				return nil, err
 			}
 			myexpr = append(myexpr, exp)
-		} else if child.Name == WITGROUP || child.Name == TypeGroupName {
-			err := handleWitGroup(child, &myexpr)
-			if err != nil {
-				return nil, errs.Wrap(err, "failed to handle "+child.Name+" in child element")
-			}
 		} else {
 			key, ok := searchKeyMap[child.Name]
 			// check that none of the default table joins handles this column:
@@ -758,10 +688,10 @@ func (r *GormSearchRepository) listItemsFromDB(ctx context.Context, criteria cri
 	if parentExists != nil && !*parentExists {
 		where += fmt.Sprintf(` AND
 			NOT EXISTS (
-				SELECT wil.target_id FROM work_item_links wil, work_item_link_types wilt
-				WHERE wil.link_type_id = wilt.id AND wilt.forward_name = '%[1]s' 
+				SELECT wil.target_id FROM work_item_links wil
+				WHERE wil.link_type_id = '%[1]s'
 				AND wil.target_id = work_items.id
-				AND wil.deleted_at IS NULL)`, link.TypeParentOf)
+				AND wil.deleted_at IS NULL)`, link.SystemWorkItemLinkTypeParentChildID)
 	}
 
 	db := r.db.Model(&workitem.WorkItemStorage{}).Where(where, parameters...)
