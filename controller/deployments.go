@@ -3,20 +3,17 @@ package controller
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
-	"net/http"
 	"net/url"
 	"os"
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/app"
-	"github.com/fabric8-services/fabric8-wit/auth"
-	"github.com/fabric8-services/fabric8-wit/auth/authservice"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/kubernetes"
 	"github.com/fabric8-services/fabric8-wit/log"
+
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -37,7 +34,8 @@ type ClientGetter interface {
 
 // Default implementation of KubeClientGetter and OSIOClientGetter used by NewDeploymentsController
 type defaultClientGetter struct {
-	config *configuration.Registry
+	config     *configuration.Registry
+	osioClient OpenshiftIOClient
 }
 
 // NewDeploymentsController creates a deployments controller.
@@ -59,7 +57,11 @@ func tostring(item interface{}) string {
 	return string(bytes)
 }
 
-func (*defaultClientGetter) GetAndCheckOSIOClient(ctx context.Context) (OpenshiftIOClient, error) {
+func (g *defaultClientGetter) GetAndCheckOSIOClient(ctx context.Context) (OpenshiftIOClient, error) {
+
+	if g.osioClient != nil {
+		return g.osioClient, nil
+	}
 
 	// defaults
 	host := "localhost"
@@ -91,6 +93,7 @@ func (*defaultClientGetter) GetAndCheckOSIOClient(ctx context.Context) (Openshif
 
 	oc := NewOSIOClient(ctx, scheme, host)
 
+	g.osioClient = oc
 	return oc, nil
 }
 
@@ -132,130 +135,22 @@ func (g *defaultClientGetter) getNamespaceName(ctx context.Context) (*string, er
 	return kubeSpaceAttr.Name, nil
 }
 
-func getUser(ctx context.Context, authClient authservice.Client) (*authservice.User, error) {
-	// get the user definition (for cluster URL)
-	resp, err := authClient.ShowUser(ctx, authservice.ShowUserPath(), nil, nil)
-	if err != nil {
-		return nil, errs.Wrapf(err, "unable to retrieve user from Auth service")
-	}
-
-	defer resp.Body.Close()
-
-	respBody, err := ioutil.ReadAll(resp.Body)
-
-	status := resp.StatusCode
-	if status != http.StatusOK {
-		log.Error(nil, map[string]interface{}{
-			"err":           err,
-			"request_path":  authservice.ShowUserPath(),
-			"response_body": respBody,
-			"http_status":   status,
-		}, "failed to GET user from auth service due to HTTP error %s", status)
-		return nil, errs.Errorf("failed to GET user due to status code %d", status)
-	}
-
-	var respType authservice.User
-	err = json.Unmarshal(respBody, &respType)
-	if err != nil {
-		log.Error(nil, map[string]interface{}{
-			"err":           err,
-			"request_path":  authservice.ShowUserPath(),
-			"response_body": respBody,
-		}, "unable to unmarshal user definition from Auth service")
-		return nil, errs.Wrapf(err, "unable to unmarshal user definition from Auth service")
-	}
-	return &respType, nil
-}
-
-func getTokenData(ctx context.Context, authClient authservice.Client, forService string) (*authservice.TokenData, error) {
-
-	resp, err := authClient.RetrieveToken(ctx, authservice.RetrieveTokenPath(), forService, nil)
-	if err != nil {
-		return nil, errs.Wrapf(err, "unable to retrieve Auth token for '%s' service", forService)
-	}
-
-	defer resp.Body.Close()
-
-	respBody, err := ioutil.ReadAll(resp.Body)
-
-	status := resp.StatusCode
-	if status != http.StatusOK {
-		log.Error(nil, map[string]interface{}{
-			"err":          err,
-			"request_path": authservice.ShowUserPath(),
-			"for_service":  forService,
-			"http_status":  status,
-		}, "failed to GET token from auth service due to HTTP error %s", status)
-		return nil, errs.Errorf("failed to GET Auth token for '%s' service due to status code %d", forService, status)
-	}
-
-	var respType authservice.TokenData
-	err = json.Unmarshal(respBody, &respType)
-	if err != nil {
-		log.Error(nil, map[string]interface{}{
-			"err":           err,
-			"request_path":  authservice.ShowUserPath(),
-			"for_service":   forService,
-			"http_status":   status,
-			"response_body": respBody,
-		}, "unable to unmarshal Auth token")
-		return nil, errs.Wrapf(err, "unable to unmarshal Auth token for '%s' service from Auth service", forService)
-	}
-	return &respType, nil
-}
-
 // GetKubeClient creates a kube client for the appropriate cluster assigned to the current user
 func (g *defaultClientGetter) GetKubeClient(ctx context.Context) (kubernetes.KubeClientInterface, error) {
-
-	// create Auth API client
-	authClient, err := auth.CreateClient(ctx, g.config)
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"err": err,
-		}, "error accessing Auth server")
-		return nil, errs.Wrap(err, "error creating Auth client")
-	}
-
-	authUser, err := getUser(ctx, *authClient)
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"err": err,
-		}, "error accessing Auth server")
-		return nil, errs.Wrap(err, "error retrieving user definition from Auth client")
-	}
-
-	if authUser == nil {
-		log.Error(ctx, map[string]interface{}{
-			"err": err,
-		}, "error retrieving user from Auth server")
-		return nil, errs.New("error getting user from Auth Server")
-	}
-
-	if authUser.Data.Attributes.Cluster == nil {
-		log.Error(ctx, map[string]interface{}{
-			"err":     err,
-			"user_id": *authUser.Data.Attributes.UserID,
-		}, "error retrieving user cluster from Auth server")
-		return nil, errs.Errorf("error getting user cluster from Auth Server: %s", tostring(authUser))
-	}
-
-	// get the openshift/kubernetes auth info for the cluster OpenShift API
-	osauth, err := getTokenData(ctx, *authClient, *authUser.Data.Attributes.Cluster)
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"err":     err,
-			"user_id": *authUser.Data.Attributes.UserID,
-			"cluster": *authUser.Data.Attributes.Cluster,
-		}, "error getting openshift credentials for user from Auth server")
-		return nil, errs.Wrap(err, "error getting openshift credentials")
-	}
-
-	kubeURL := *authUser.Data.Attributes.Cluster
-	kubeToken := *osauth.AccessToken
 
 	kubeNamespaceName, err := g.getNamespaceName(ctx)
 	if err != nil {
 		return nil, errs.Wrap(err, "could not retrieve namespace name")
+	}
+
+	osioclient, err := g.GetAndCheckOSIOClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	baseURLProvider, err := NewURLProvider(ctx, g.config, osioclient)
+	if err != nil {
+		return nil, errs.Wrap(err, "could not retrieve tenant data")
 	}
 
 	/* Timeout used per HTTP request to Kubernetes/OpenShift API servers.
@@ -263,17 +158,17 @@ func (g *defaultClientGetter) GetKubeClient(ctx context.Context) (kubernetes.Kub
 	 * timeout per request, and does not use this parameter. */
 	// create the cluster API client
 	kubeConfig := &kubernetes.KubeClientConfig{
-		ClusterURL:    kubeURL,
-		BearerToken:   kubeToken,
-		UserNamespace: *kubeNamespaceName,
-		Timeout:       g.config.GetDeploymentsHTTPTimeoutSeconds(),
+		BaseURLProvider: baseURLProvider,
+		UserNamespace:   *kubeNamespaceName,
+		Timeout:         g.config.GetDeploymentsHTTPTimeoutSeconds(),
 	}
 	kc, err := kubernetes.NewKubeClient(kubeConfig)
 	if err != nil {
+		url, _ := baseURLProvider.GetAPIURL()
 		log.Error(ctx, map[string]interface{}{
-			"err":     err,
-			"user_id": *authUser.Data.Attributes.UserID,
-			"cluster": *authUser.Data.Attributes.Cluster,
+			"err":            err,
+			"user_namespace": *kubeNamespaceName,
+			"cluster":        *url,
 		}, "could not create Kubernetes client object")
 		return nil, errs.Wrap(err, "could not create Kubernetes client object")
 	}
@@ -410,7 +305,8 @@ func (c *DeploymentsController) ShowDeploymentStats(ctx *app.ShowDeploymentStats
 
 	deploymentStats, err := kc.GetDeploymentStats(*kubeSpaceName, ctx.AppName, ctx.DeployName, startTime)
 	if err != nil {
-		return errors.NewInternalError(ctx, errs.Wrapf(err, "could not retrieve deployment statistics for %s", ctx.DeployName))
+		return errors.NewInternalError(ctx,
+			errs.Wrapf(err, "could not retrieve deployment statistics for deployment '%s' in space '%s'", ctx.DeployName, *kubeSpaceName))
 	}
 	if deploymentStats == nil {
 		return errors.NewNotFoundError("deployment", ctx.DeployName)
