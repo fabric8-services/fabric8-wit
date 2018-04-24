@@ -140,16 +140,25 @@ func (g *defaultClientGetter) GetKubeClient(ctx context.Context) (kubernetes.Kub
 
 	kubeNamespaceName, err := g.getNamespaceName(ctx)
 	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "could not retrieve namespace name")
 		return nil, errs.Wrap(err, "could not retrieve namespace name")
 	}
 
 	osioclient, err := g.GetAndCheckOSIOClient(ctx)
 	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "could not create OSIO client")
 		return nil, err
 	}
 
 	baseURLProvider, err := NewURLProvider(ctx, g.config, osioclient)
 	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "could not retrieve tenant data")
 		return nil, errs.Wrap(err, "could not retrieve tenant data")
 	}
 
