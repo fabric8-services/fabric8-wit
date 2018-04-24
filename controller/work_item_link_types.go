@@ -39,7 +39,7 @@ func (c *WorkItemLinkTypesController) List(ctx *app.ListWorkItemLinkTypesContext
 	var modelLinkTypes []link.WorkItemLinkType
 	err := application.Transactional(c.db, func(appl application.Application) error {
 		var err error
-		modelLinkTypes, err = appl.WorkItemLinkTypes().List(ctx.Context, ctx.SpaceID)
+		modelLinkTypes, err = appl.WorkItemLinkTypes().List(ctx.Context, ctx.SpaceTemplateID)
 		return err
 	})
 	if err != nil {

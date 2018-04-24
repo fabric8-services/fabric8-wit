@@ -26,7 +26,7 @@
 
 
 required = [
-  "github.com/golang/lint/golint",
+  # "github.com/golang/lint/golint", # TODO(kwk): add back in once https://github.com/golang/go/issues/25048 is resolved
   "github.com/fzipp/gocyclo",
   "github.com/goadesign/goa/cors",
   "github.com/goadesign/goa/encoding/form",
@@ -101,9 +101,10 @@ ignored = [
   name = "k8s.io/client-go"
   version = "4.0.0"
 
-[[constraint]]
-  name = "github.com/golang/lint"
-  revision = "master"
+# TODO(kwk): add back in once https://github.com/golang/go/issues/25048 is resolved
+# [[constraint]]
+#  name = "github.com/golang/lint"
+#  revision = "master"
   
 [[constraint]]
   name = "github.com/fzipp/gocyclo"
@@ -134,9 +135,14 @@ ignored = [
   revision = "master"
 
 [[constraint]]
+  name = "github.com/ghodss/yaml"
+  version = "1.0.0"
+
+[[constraint]]
   name = "github.com/pilu/fresh"
   revision = "9c0092493eff2825c3abf64e087b3383dec939c3"
 
 [prune]
   go-tests = true
   unused-packages = true
+

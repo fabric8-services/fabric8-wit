@@ -7,7 +7,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
-	"github.com/fabric8-services/fabric8-wit/application"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
@@ -17,9 +16,7 @@ import (
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
-
 	"github.com/goadesign/goa"
-	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -98,7 +95,7 @@ func assertPlannerBacklogWorkItems(t *testing.T, workitems *app.WorkItemList, te
 		assert.Equal(t, "parentIteration Test", workItem.Attributes[workitem.SystemTitle])
 		assert.Equal(t, testSpace.ID.String(), workItem.Relationships.Space.Data.ID.String())
 		assert.Equal(t, "parentIteration Test", workItem.Attributes[workitem.SystemTitle])
-		assert.Equal(t, "new", workItem.Attributes[workitem.SystemState])
+		assert.Equal(t, workitem.SystemStateNew, workItem.Attributes[workitem.SystemState])
 		assert.Equal(t, parentIteration.ID.String(), *workItem.Relationships.Iteration.Data.ID)
 	}
 }
@@ -156,7 +153,11 @@ func (rest *TestPlannerBacklogBlackboxREST) TestListPlannerBacklogWorkItemsNotMo
 	offset := "0"
 	filter := ""
 	limit := -1
-	ifModifiedSince := app.ToHTTPTime(lastWorkItem.Fields[workitem.SystemUpdatedAt].(time.Time))
+	updatedAt, ok := lastWorkItem.Fields[workitem.SystemUpdatedAt]
+	require.True(rest.T(), ok)
+	updatedAtTime, ok := updatedAt.(time.Time)
+	require.True(rest.T(), ok)
+	ifModifiedSince := app.ToHTTPTime(updatedAtTime)
 	res := test.ListPlannerBacklogNotModified(rest.T(), svc.Context, svc, ctrl, testSpace.ID, &filter, nil, nil, nil, &limit, &offset, &ifModifiedSince, nil)
 	// then
 	assertResponseHeaders(rest.T(), res)
@@ -178,41 +179,24 @@ func (rest *TestPlannerBacklogBlackboxREST) TestListPlannerBacklogWorkItemsNotMo
 }
 
 func (rest *TestPlannerBacklogBlackboxREST) TestSuccessEmptyListPlannerBacklogWorkItems() {
-	var spaceID uuid.UUID
-	var parentIteration *iteration.Iteration
-	application.Transactional(gormapplication.NewGormDB(rest.DB), func(app application.Application) error {
-		iterationsRepo := app.Iterations()
-		newSpace := space.Space{
-			Name: "TestSuccessEmptyListPlannerBacklogWorkItems" + uuid.NewV4().String(),
-		}
-		p, err := app.Spaces().Create(rest.Ctx, &newSpace)
-		if err != nil {
-			rest.T().Error(err)
-		}
-		spaceID = p.ID
-		parentIteration = &iteration.Iteration{
-			Name:    "Parent Iteration",
-			SpaceID: spaceID,
-			State:   iteration.StateNew,
-		}
-		iterationsRepo.Create(rest.Ctx, parentIteration)
-
-		fields := map[string]interface{}{
-			workitem.SystemTitle:     "parentIteration Test",
-			workitem.SystemState:     "new",
-			workitem.SystemIteration: parentIteration.ID.String(),
-		}
-		app.WorkItems().Create(rest.Ctx, spaceID, workitem.SystemPlannerItem, fields, rest.testIdentity.ID)
-
-		return nil
-	})
+	fxt := tf.NewTestFixture(rest.T(), rest.DB,
+		tf.CreateWorkItemEnvironment(),
+		tf.Iterations(2),
+		tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
+			wi := fxt.WorkItems[idx]
+			wi.Fields[workitem.SystemTitle] = "parentIteration Test"
+			wi.Fields[workitem.SystemState] = workitem.SystemStateNew
+			wi.Fields[workitem.SystemIteration] = fxt.Iterations[1].ID.String()
+			return nil
+		}),
+	)
 
 	svc, ctrl := rest.UnSecuredController()
 
 	offset := "0"
 	filter := ""
 	limit := -1
-	_, workitems := test.ListPlannerBacklogOK(rest.T(), svc.Context, svc, ctrl, spaceID, &filter, nil, nil, nil, &limit, &offset, nil, nil)
+	_, workitems := test.ListPlannerBacklogOK(rest.T(), svc.Context, svc, ctrl, fxt.Spaces[0].ID, &filter, nil, nil, nil, &limit, &offset, nil, nil)
 	// The list has to be empty
 	assert.Len(rest.T(), workitems.Data, 0)
 }

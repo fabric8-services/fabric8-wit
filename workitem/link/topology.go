@@ -1,6 +1,7 @@
 package link
 
 import (
+	"database/sql"
 	"database/sql/driver"
 
 	"github.com/fabric8-services/fabric8-wit/errors"
@@ -10,13 +11,16 @@ import (
 type Topology string
 
 // String implements the Stringer interface
-
 func (t Topology) String() string { return string(t) }
 
 // Scan implements the https://golang.org/pkg/database/sql/#Scanner interface
 // See also https://stackoverflow.com/a/25374979/835098
 // See also https://github.com/jinzhu/gorm/issues/302#issuecomment-80566841
 func (t *Topology) Scan(value interface{}) error { *t = Topology(value.([]byte)); return nil }
+
+// Ensure Topology implements the Scanner and Valuer interfaces
+var _ sql.Scanner = (*Topology)(nil)
+var _ driver.Valuer = (*Topology)(nil)
 
 // Value implements the https://golang.org/pkg/database/sql/driver/#Valuer interface
 func (t Topology) Value() (driver.Value, error) { return string(t), nil }

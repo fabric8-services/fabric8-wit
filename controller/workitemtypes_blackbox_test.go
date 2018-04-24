@@ -1,6 +1,7 @@
 package controller_test
 
 import (
+	"net/http"
 	"path/filepath"
 	"testing"
 
@@ -12,6 +13,8 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 
@@ -63,7 +66,7 @@ func (s *workItemTypesSuite) SetupTest() {
 
 func (s *workItemTypesSuite) TestList() {
 	// given
-	fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItemTypes(2), tf.Spaces(1))
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItemTypes(2))
 
 	s.T().Run("not found using non existing space", func(t *testing.T) {
 		// given
@@ -77,7 +80,7 @@ func (s *workItemTypesSuite) TestList() {
 
 	s.T().Run("ok", func(t *testing.T) {
 		// when
-		res, witCollection := test.ListWorkitemtypesOK(t, nil, nil, s.typeCtrl, fxt.Spaces[0].ID, nil, nil)
+		res, witCollection := test.ListWorkitemtypesOK(t, nil, nil, s.typeCtrl, fxt.SpaceTemplates[0].ID, nil, nil)
 		// then
 		require.NotNil(t, witCollection)
 		require.Nil(t, witCollection.Validate())
@@ -106,7 +109,7 @@ func (s *workItemTypesSuite) TestList() {
 	s.T().Run("ok - using expired IfModifiedSince header", func(t *testing.T) {
 		// when
 		lastModified := app.ToHTTPTime(time.Now().Add(-1 * time.Hour))
-		res, witCollection := test.ListWorkitemtypesOK(t, nil, nil, s.typeCtrl, fxt.Spaces[0].ID, &lastModified, nil)
+		res, witCollection := test.ListWorkitemtypesOK(t, nil, nil, s.typeCtrl, fxt.SpaceTemplates[0].ID, &lastModified, nil)
 		// then
 		require.NotNil(t, witCollection)
 		require.Nil(t, witCollection.Validate())
@@ -135,7 +138,7 @@ func (s *workItemTypesSuite) TestList() {
 	s.T().Run("ok - using IfNoneMatch header", func(t *testing.T) {
 		// when
 		etag := "foo"
-		res, witCollection := test.ListWorkitemtypesOK(t, nil, nil, s.typeCtrl, fxt.Spaces[0].ID, nil, &etag)
+		res, witCollection := test.ListWorkitemtypesOK(t, nil, nil, s.typeCtrl, fxt.SpaceTemplates[0].ID, nil, &etag)
 		// then
 		require.NotNil(t, witCollection)
 		require.Nil(t, witCollection.Validate())
@@ -164,7 +167,7 @@ func (s *workItemTypesSuite) TestList() {
 		// given
 		lastModified := app.ToHTTPTime(fxt.WorkItemTypes[1].UpdatedAt)
 		// when
-		res := test.ListWorkitemtypesNotModified(t, nil, nil, s.typeCtrl, fxt.Spaces[0].ID, &lastModified, nil)
+		res := test.ListWorkitemtypesNotModified(t, nil, nil, s.typeCtrl, fxt.SpaceTemplates[0].ID, &lastModified, nil)
 		// then
 		safeOverriteHeader(t, res, "Etag", "0icd7ov5CqwDXN6Fx9z18g==")
 		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "not_modified_using_ifmodifiedsince_header.res.headers.golden.json"), res.Header())
@@ -172,13 +175,85 @@ func (s *workItemTypesSuite) TestList() {
 
 	s.T().Run("not modified - using IfNoneMatch header", func(t *testing.T) {
 		// given
-		_, witCollection := test.ListWorkitemtypesOK(t, nil, nil, s.typeCtrl, fxt.Spaces[0].ID, nil, nil)
+		_, witCollection := test.ListWorkitemtypesOK(t, nil, nil, s.typeCtrl, fxt.SpaceTemplates[0].ID, nil, nil)
 		require.NotNil(t, witCollection)
 		// when
 		ifNoneMatch := generateWorkItemTypesTag(*witCollection)
-		res := test.ListWorkitemtypesNotModified(t, nil, nil, s.typeCtrl, fxt.Spaces[0].ID, nil, &ifNoneMatch)
+		res := test.ListWorkitemtypesNotModified(t, nil, nil, s.typeCtrl, fxt.SpaceTemplates[0].ID, nil, &ifNoneMatch)
 		// then
 		safeOverriteHeader(t, res, "Etag", "0icd7ov5CqwDXN6Fx9z18g==")
 		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "not_modified_using_ifnonematch_header.res.headers.golden.json"), res.Header())
+	})
+}
+
+func (s *workItemTypesSuite) TestValidate() {
+	// given
+	desc := "Description for 'person'"
+	id := uuid.NewV4()
+	reqLong := &http.Request{Host: "api.service.domain.org"}
+	//spaceSelfURL := rest.AbsoluteURL(reqLong, app.SpaceHref(space.SystemSpace.String()))
+	spaceTemplateID := spacetemplate.SystemLegacyTemplateID
+	spaceTemplateSelfURL := rest.AbsoluteURL(reqLong, app.SpaceTemplateHref(spaceTemplateID.String()))
+	payload := app.WorkItemTypeSingle{
+		Data: &app.WorkItemTypeData{
+			ID:   &id,
+			Type: "workitemtypes",
+			Attributes: &app.WorkItemTypeAttributes{
+				Name:        "",
+				Description: &desc,
+				Icon:        "fa-user",
+				Fields: map[string]*app.FieldDefinition{
+					"name": {
+						Required:    true,
+						Description: "Description for name field",
+						Label:       "Name",
+						Type: &app.FieldType{
+							Kind: "string",
+						},
+					},
+				},
+			},
+			Relationships: &app.WorkItemTypeRelationships{
+				SpaceTemplate: app.NewSpaceTemplateRelation(spaceTemplateID, spaceTemplateSelfURL),
+			},
+		},
+	}
+
+	s.T().Run("valid", func(t *testing.T) {
+		// given
+		p := payload
+		p.Data.Attributes.Name = "Valid Name 0baa42b5-fa52-4ee2-847d-ef26b23fbb6e"
+		// when
+		err := p.Validate()
+		// then
+		require.NoError(t, err)
+	})
+
+	s.T().Run("invalid - oversized name", func(t *testing.T) {
+		// given
+		p := payload
+		p.Data.Attributes.Name = testsupport.TestOversizedNameObj
+		// when
+		err := p.Validate()
+		// then
+		require.Error(t, err)
+		gerr, ok := err.(*goa.ErrorResponse)
+		require.True(t, ok)
+		gerr.ID = "IGNORE_ME"
+		compareWithGolden(t, filepath.Join(s.testDir, "validate", "invalid_oversized_name.golden.json"), gerr)
+	})
+
+	s.T().Run("invalid - name starts with underscore", func(t *testing.T) {
+		// given
+		p := payload
+		p.Data.Attributes.Name = "_person"
+		// when
+		err := p.Validate()
+		// then
+		require.Error(t, err)
+		gerr, ok := err.(*goa.ErrorResponse)
+		require.True(t, ok)
+		gerr.ID = "IGNORE_ME"
+		compareWithGolden(t, filepath.Join(s.testDir, "validate", "invalid_name_starts_with_underscore.golden.json"), gerr)
 	})
 }

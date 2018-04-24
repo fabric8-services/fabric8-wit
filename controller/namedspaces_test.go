@@ -1,6 +1,7 @@
 package controller_test
 
 import (
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
+	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -18,7 +20,8 @@ import (
 
 type TestNamedSpaceREST struct {
 	gormtestsupport.DBTestSuite
-	db *gormapplication.GormDB
+	db      *gormapplication.GormDB
+	testDir string
 }
 
 func TestRunNamedSpacesREST(t *testing.T) {
@@ -28,6 +31,7 @@ func TestRunNamedSpacesREST(t *testing.T) {
 func (rest *TestNamedSpaceREST) SetupTest() {
 	rest.DBTestSuite.SetupTest()
 	rest.db = gormapplication.NewGormDB(rest.DB)
+	rest.testDir = filepath.Join("test-files", "namedspaces")
 }
 
 func (rest *TestNamedSpaceREST) SecuredNamedSpaceController(identity account.Identity) (*goa.Service, *NamedspacesController) {
@@ -125,4 +129,20 @@ func (rest *TestNamedSpaceREST) TestSuccessListSpaces() {
 	assert.Equal(t, created.Data.Attributes.Name, collabspaces.Data[0].Attributes.Name)
 	assert.Equal(t, created.Data.Attributes.Description, collabspaces.Data[0].Attributes.Description)
 	assert.Equal(t, created.Data.Links.Self, collabspaces.Data[0].Links.Self)
+}
+
+func (rest *TestNamedSpaceREST) TestShow() {
+	rest.T().Run("ok", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, rest.DB, tf.Spaces(1), tf.Identities(2))
+
+		namedSpaceSvc, namedSpacectrl := rest.SecuredNamedSpaceController(*fxt.Identities[0])
+		res, namedspace := test.ShowNamedspacesOK(t, namedSpaceSvc.Context, namedSpaceSvc, namedSpacectrl, fxt.Identities[0].Username, fxt.Spaces[0].Name)
+
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "ok.payload.golden.json"), namedspace)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "ok.headers.golden.json"), res.Header())
+
+		assert.NotNil(t, namedspace)
+		assert.Equal(t, &fxt.Spaces[0].Name, namedspace.Data.Attributes.Name)
+		assert.Equal(t, &fxt.Spaces[0].Description, namedspace.Data.Attributes.Description)
+	})
 }

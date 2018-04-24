@@ -291,3 +291,16 @@ func SetQueryTitles(titles ...string) CustomizeQueryFunc {
 		return nil
 	}
 }
+
+// SetSpaceTemplateNames takes the given names and uses them during creation of
+// space templates. The length of requested space templates and the number of
+// names must match or the NewFixture call will return an error.
+func SetSpaceTemplateNames(names ...string) CustomizeSpaceTemplateFunc {
+	return func(fxt *TestFixture, idx int) error {
+		if len(fxt.SpaceTemplates) != len(names) {
+			return errs.Errorf("number of names (%d) must match number of space templates to create (%d)", len(names), len(fxt.SpaceTemplates))
+		}
+		fxt.SpaceTemplates[idx].Name = names[idx]
+		return nil
+	}
+}

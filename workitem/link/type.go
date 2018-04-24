@@ -11,13 +11,6 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-const (
-	// TypeParentOf designates the forward name of the link type used for
-	// parent-child linking.
-	// TODO(kwk): This needs to be reworked when space templates come in.
-	TypeParentOf = "parent of"
-)
-
 // Never ever change these UUIDs!!!
 var (
 	SystemWorkItemLinkTypeBugBlockerID     = uuid.FromStringOrNil("2CEA3C79-3B79-423B-90F4-1E59174C8F43")
@@ -41,29 +34,22 @@ func strPtrIsNilOrContentIsEqual(l, r *string) bool {
 	return *l == *r
 }
 
-// WorkItemLinkType represents the type of a work item link as it is stored in the db
+// WorkItemLinkType represents the type of a work item link as it is stored in
+// the db
 type WorkItemLinkType struct {
-	gormsupport.Lifecycle
-	// ID
-	ID uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
-	// Name is the unique name of this work item link type.
-	Name string
-	// Description is an optional description of the work item link type
-	Description *string
-	// Version for optimistic concurrency control
-	Version  int
-	Topology Topology
-
-	ForwardName string
-	ReverseName string
-
-	LinkCategoryID uuid.UUID `sql:"type:uuid"`
-
-	// Reference to one Space
-	SpaceID uuid.UUID `sql:"type:uuid"`
+	gormsupport.Lifecycle `json:"lifecycle,inline"`
+	ID                    uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key" json:"id"`
+	Name                  string    `json:"name"`                  // Name is the unique name of this work item link type.
+	Description           *string   `json:"description,omitempty"` // Description is an optional description of the work item link type
+	Version               int       `json:"version"`               // Version for optimistic concurrency control
+	Topology              Topology  `json:"topology"`              // Valid values: network, directed_network, dependency, tree
+	ForwardName           string    `json:"forward_name"`
+	ReverseName           string    `json:"reverse_name"`
+	LinkCategoryID        uuid.UUID `sql:"type:uuid" json:"link_category_id"`
+	SpaceTemplateID       uuid.UUID `sql:"type:uuid" json:"space_template_id"` // Reference to a space template
 }
 
-// Ensure Fields implements the Equaler interface
+// Ensure WorkItemLinkType implements the Equaler interface
 var _ convert.Equaler = WorkItemLinkType{}
 var _ convert.Equaler = (*WorkItemLinkType)(nil)
 
@@ -100,14 +86,14 @@ func (t WorkItemLinkType) Equal(u convert.Equaler) bool {
 	if !uuid.Equal(t.LinkCategoryID, other.LinkCategoryID) {
 		return false
 	}
-	if !uuid.Equal(t.SpaceID, other.SpaceID) {
+	if !uuid.Equal(t.SpaceTemplateID, other.SpaceTemplateID) {
 		return false
 	}
 	return true
 }
 
-// CheckValidForCreation returns an error if the work item link type
-// cannot be used for the creation of a new work item link type.
+// CheckValidForCreation returns an error if the work item link type cannot be
+// used for the creation of a new work item link type.
 func (t *WorkItemLinkType) CheckValidForCreation() error {
 	if t.Name == "" {
 		return errors.NewBadParameterError("name", t.Name)
@@ -124,8 +110,8 @@ func (t *WorkItemLinkType) CheckValidForCreation() error {
 	if t.LinkCategoryID == uuid.Nil {
 		return errors.NewBadParameterError("link_category_id", t.LinkCategoryID)
 	}
-	if t.SpaceID == uuid.Nil {
-		return errors.NewBadParameterError("space_id", t.SpaceID)
+	if t.SpaceTemplateID == uuid.Nil {
+		return errors.NewBadParameterError("space_template_id", t.SpaceTemplateID)
 	}
 	return nil
 }

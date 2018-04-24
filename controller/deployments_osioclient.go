@@ -52,6 +52,7 @@ type OpenshiftIOClient interface {
 type OSIOClient struct {
 	wc             WitClient
 	responseReader ResponseReader
+	userServices   *app.UserService
 }
 
 // ensure OSIOClient implements all methods in OpenshiftIOClient
@@ -97,6 +98,11 @@ func (osioclient *OSIOClient) GetNamespaceByType(ctx context.Context, userServic
 // GetUserServices - fetch array of user services
 // In the future, consider calling the tenant service (as /api/user/services implementation does)
 func (osioclient *OSIOClient) GetUserServices(ctx context.Context) (*app.UserService, error) {
+
+	if osioclient.userServices != nil {
+		return osioclient.userServices, nil
+	}
+
 	resp, err := osioclient.wc.ShowUserService(ctx, witclient.ShowUserServicePath())
 	if err != nil {
 		return nil, errs.Wrapf(err, "could not retrieve uses services")
@@ -126,6 +132,8 @@ func (osioclient *OSIOClient) GetUserServices(ctx context.Context) (*app.UserSer
 		}, "unable to unmarshal user service from WIT service")
 		return nil, errs.Wrapf(err, "could not unmarshal user services JSON")
 	}
+
+	osioclient.userServices = respType.Data
 	return respType.Data, nil
 }
 

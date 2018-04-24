@@ -88,7 +88,7 @@
           }
         },
         "system.order": {
-          "description": "Execution Order of the workitem.",
+          "description": "Execution Order of the workitem",
           "label": "Execution Order",
           "required": false,
           "type": {
@@ -151,6 +151,16 @@
         "links": {
           "related": "http:///api/spaces/00000000-0000-0000-0000-000000000002",
           "self": "http:///api/spaces/00000000-0000-0000-0000-000000000002"
+        }
+      },
+      "space_template": {
+        "data": {
+          "id": "00000000-0000-0000-0000-000000000003",
+          "type": "spacetemplates"
+        },
+        "links": {
+          "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000003",
+          "self": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000003"
         }
       }
     },
