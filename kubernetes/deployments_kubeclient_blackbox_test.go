@@ -3,8 +3,11 @@ package kubernetes_test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -14,6 +17,8 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/kubernetes"
+
+	errs "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/client-go/pkg/api/v1"
 )
@@ -29,16 +34,33 @@ type testFixture struct {
 	metrics      *testMetrics
 }
 
+type testURLProvider struct {
+	apiURL       string
+	apiToken     string
+	clusterURL   string
+	clusterToken string
+}
+
+func getDefaultURLProvider(baseurl string, token string) kubernetes.BaseURLProvider {
+	return &testURLProvider{
+		apiURL:       baseurl,
+		apiToken:     token,
+		clusterURL:   baseurl,
+		clusterToken: token,
+	}
+}
+
 func getDefaultKubeClient(fixture *testFixture, transport http.RoundTripper, t *testing.T) kubernetes.KubeClientInterface {
+
 	config := &kubernetes.KubeClientConfig{
-		ClusterURL:    "http://api.myCluster",
-		BearerToken:   "myToken",
-		UserNamespace: "myNamespace",
-		Transport:     transport,
-		MetricsGetter: fixture,
+		BaseURLProvider: getDefaultURLProvider("http://api.myCluster", "myToken"),
+		UserNamespace:   "myNamespace",
+		MetricsGetter:   fixture,
+		Transport:       transport,
 	}
 
 	kc, err := kubernetes.NewKubeClient(config)
+
 	require.NoError(t, err)
 	return kc
 }
@@ -188,28 +210,34 @@ func TestGetMetrics(t *testing.T) {
 
 			fixture := &testFixture{}
 			config := &kubernetes.KubeClientConfig{
-				ClusterURL:    testCase.clusterURL,
-				BearerToken:   token,
-				UserNamespace: "myNamespace",
-				Transport:     r.Transport,
-				MetricsGetter: fixture,
+				BaseURLProvider: getDefaultURLProvider(testCase.clusterURL, token),
+				UserNamespace:   "myNamespace",
+				MetricsGetter:   fixture,
+				Transport:       r.Transport,
 			}
-
 			kc, err := kubernetes.NewKubeClient(config)
 			if testCase.shouldSucceed {
 				require.NoError(t, err, "Unexpected error")
-				require.NotNil(t, kc, "KubeClient must not be nil")
-
+				require.NotNil(t, kc)
+				mm, err := kc.GetMetricsClient("myNamespace")
+				require.NoError(t, err)
+				require.NotNil(t, mm)
 				metricsConfig := fixture.metrics.config
 				require.NotNil(t, metricsConfig, "Metrics config is nil")
 				require.Equal(t, testCase.expectedURL, metricsConfig.MetricsURL, "Incorrect Metrics URL")
 				require.Equal(t, token, metricsConfig.BearerToken, "Incorrect bearer token")
 			} else {
-				require.Error(t, err, "Expected error, but was successful")
+				// bad URLs aren't detected until a metrics client tries to use themn
+				_, err := kc.GetMetricsClient("myNamespace")
+				require.Errorf(t, err, "URL %s should fail", testCase.clusterURL)
 			}
 		})
 	}
 }
+
+// ensure testFixture implements all of MetricsGetter
+var _ kubernetes.MetricsGetter = &testFixture{}
+var _ kubernetes.MetricsGetter = (*testFixture)(nil)
 
 func TestClose(t *testing.T) {
 	r, err := recorder.New(pathToTestJSON + "newkubeclient")
@@ -219,8 +247,13 @@ func TestClose(t *testing.T) {
 	fixture := &testFixture{}
 	kc := getDefaultKubeClient(fixture, r.Transport, t)
 
+	mm, err := kc.GetMetricsClient("myNamespace")
+	require.NoError(t, err)
+	require.NotNil(t, mm)
+
 	// Check that KubeClientInterface.Close invokes MetricsInterface.Close
 	kc.Close()
+
 	require.True(t, fixture.metrics.closed, "Metrics client not closed")
 }
 
@@ -254,6 +287,13 @@ func TestConfigMapEnvironments(t *testing.T) {
 			shouldFail:   true,
 		},
 	}
+	fixture := &testFixture{}
+	userNamespace := "myNamespace"
+	config := &kubernetes.KubeClientConfig{
+		BaseURLProvider: getDefaultURLProvider("http://api.myCluster", "myToken"),
+		UserNamespace:   userNamespace,
+		MetricsGetter:   fixture,
+	}
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
@@ -261,19 +301,11 @@ func TestConfigMapEnvironments(t *testing.T) {
 			require.NoError(t, err, "Failed to open cassette")
 			defer r.Stop()
 
-			fixture := &testFixture{}
-			config := &kubernetes.KubeClientConfig{
-				ClusterURL:    "http://api.myCluster",
-				BearerToken:   "myToken",
-				UserNamespace: "myNamespace",
-				Transport:     r.Transport,
-				MetricsGetter: fixture,
-			}
+			config.Transport = r.Transport
 
 			kc, err := kubernetes.NewKubeClient(config)
 			if testCase.shouldFail {
 				require.Error(t, err, "Expected an error")
-				require.True(t, fixture.metrics.closed, "Metrics must be closed after error")
 			} else {
 				require.NoError(t, err)
 				require.NotNil(t, kc, "KubeClient must not be nil")
@@ -1258,4 +1290,69 @@ func verifyDeployment(dep *app.SimpleDeployment, testCase *deployTestData, t *te
 		require.NotNil(t, dep.Links.Logs, "Logs URL is nil")
 		require.Equal(t, testCase.expectLogURL, *dep.Links.Logs, "Logs URL is incorrect")
 	}
+}
+
+// code for test URL provider
+
+func (up *testURLProvider) GetAPIToken() (*string, error) {
+	return &up.apiToken, nil
+}
+
+func (up *testURLProvider) GetMetricsToken(envNS string) (*string, error) {
+	return &up.clusterToken, nil
+}
+
+func (up *testURLProvider) GetAPIURL() (*string, error) {
+	return &up.apiURL, nil
+}
+
+func (up *testURLProvider) GetConsoleURL(envNS string) (*string, error) {
+	path := fmt.Sprintf("console/project/%s", envNS)
+	// Replace "api" prefix with "console" and append path
+	consoleURL, err := modifyURL(up.clusterURL, "console", path)
+	if err != nil {
+		return nil, err
+	}
+	consoleURLStr := consoleURL.String()
+	return &consoleURLStr, nil
+}
+
+func (up *testURLProvider) GetLoggingURL(envNS string, deployName string) (*string, error) {
+	consoleURL, err := up.GetConsoleURL(envNS)
+	if err != nil {
+		return nil, err
+	}
+	logURL := fmt.Sprintf("%s/browse/rc/%s?tab=logs", *consoleURL, deployName)
+	return &logURL, nil
+}
+
+func (up *testURLProvider) GetMetricsURL(envNS string) (*string, error) {
+	metricsURL, err := modifyURL(up.clusterURL, "metrics", "")
+	if err != nil {
+		return nil, err
+	}
+	mu := metricsURL.String()
+	return &mu, nil
+}
+
+func modifyURL(apiURLStr string, prefix string, path string) (*url.URL, error) {
+	// Parse as URL to give us easy access to the hostname
+	apiURL, err := url.Parse(apiURLStr)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get the hostname (without port) and replace api prefix with prefix arg
+	apiHostname := apiURL.Hostname()
+	if !strings.HasPrefix(apiHostname, "api") {
+		return nil, errs.Errorf("cluster URL does not begin with \"api\": %s", apiHostname)
+	}
+	newHostname := strings.Replace(apiHostname, "api", prefix, 1)
+	// Construct URL using just scheme from API URL, modified hostname and supplied path
+	newURL := &url.URL{
+		Scheme: apiURL.Scheme,
+		Host:   newHostname,
+		Path:   path,
+	}
+	return newURL, nil
 }
