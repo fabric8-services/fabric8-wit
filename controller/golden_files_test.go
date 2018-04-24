@@ -199,7 +199,7 @@ func replaceTimes(str string) (string, error) {
 	hour = "([01][0-9]|2[0-3])"
 	minute = "([0-5][0-9])"
 	second = "([0-5][0-9]|60)"
-	tz := "(GMT|CEST|UTC)"
+	tz := "(GMT|CEST|UTC|IST|[A-Z]+)"
 	pattern = dayName + ", " + day + " " + month + " " + year + " " + hour + ":" + minute + ":" + second + " " + tz
 
 	lastModifiedPattern, err := regexp.Compile(pattern)
@@ -334,29 +334,22 @@ func TestGoldenReplaceTimes(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, testTimesOutputStr, newStr)
 	})
-	t.Run("rfc7232", func(t *testing.T) {
-		t.Parallel()
-		//given
-		str := `"last-modified": "Thu, 15 Mar 2018 09:23:37 GMT",`
-		expected := `"last-modified": "Mon, 01 Jan 0001 00:00:00 GMT",`
-		// when
-		actual, err := replaceTimes(str)
-		// then
-		require.NoError(t, err)
-		require.Equal(t, expected, actual)
-	})
-	t.Run("arbitrary date", func(t *testing.T) {
-		t.Parallel()
-		//given
-		str := `"last-modified": "Fri, 13 Apr 2018 16:21:50 CEST",`
-		expected := `"last-modified": "Mon, 01 Jan 0001 00:00:00 GMT",`
-		// when
-		actual, err := replaceTimes(str)
-		// then
-		require.NoError(t, err)
-		require.Equal(t, expected, actual)
-	})
-
+	timeStrings := map[string]string{
+		"rfc7232":                  `"last-modified": "Thu, 15 Mar 2018 09:23:37 GMT",`,
+		"arbitrary date":           `"last-modified": "Fri, 13 Apr 2018 16:21:50 CEST",`,
+		"date with IST timezone":   `"last-modified": "Mon, 23 Apr 2018 00:00:00 IST",`,
+		"Bangladesh Standard Time": `"last-modified": "Mon, 24 Apr 2018 02:11:00 BST",`,
+	}
+	for timeType, timeString := range timeStrings {
+		t.Run(timeType, func(t *testing.T) {
+			t.Parallel()
+			expected := `"last-modified": "Mon, 01 Jan 0001 00:00:00 GMT",`
+			actual, err := replaceTimes(timeString)
+			// then
+			require.NoError(t, err)
+			require.Equal(t, expected, actual)
+		})
+	}
 }
 
 func TestGoldenCompareWithGolden(t *testing.T) {
