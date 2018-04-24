@@ -91,54 +91,6 @@ func (c *testOSIOClient) GetSpaceByID(ctx context.Context, spaceID uuid.UUID) (*
 	return space, nil
 }
 
-func TestAPIMethodsCloseKube(t *testing.T) {
-	testCases := []struct {
-		name   string
-		method func(*controller.DeploymentsController) error
-	}{
-		{"SetDeployment", func(ctrl *controller.DeploymentsController) error {
-			count := 1
-			ctx := &app.SetDeploymentDeploymentsContext{
-				PodCount: &count,
-			}
-			return ctrl.SetDeployment(ctx)
-		}},
-		{"ShowDeploymentStatSeries", func(ctrl *controller.DeploymentsController) error {
-			ctx := &app.ShowDeploymentStatSeriesDeploymentsContext{}
-			return ctrl.ShowDeploymentStatSeries(ctx)
-		}},
-		{"ShowDeploymentStats", func(ctrl *controller.DeploymentsController) error {
-			ctx := &app.ShowDeploymentStatsDeploymentsContext{}
-			return ctrl.ShowDeploymentStats(ctx)
-		}},
-		{"ShowSpace", func(ctrl *controller.DeploymentsController) error {
-			ctx := &app.ShowSpaceDeploymentsContext{}
-			return ctrl.ShowSpace(ctx)
-		}},
-		{"ShowSpaceEnvironments", func(ctrl *controller.DeploymentsController) error {
-			ctx := &app.ShowSpaceEnvironmentsDeploymentsContext{}
-			return ctrl.ShowSpaceEnvironments(ctx)
-		}},
-	}
-	// Check that each API method creating a KubeClientInterface also closes it
-	fixture := &deploymentsTestFixture{
-		// Also return an error to avoid executing remainder of calling method
-		deploymentsTestErrors: deploymentsTestErrors{
-			getKubeClientError: errors.New("Test"),
-		},
-	}
-	controller := &controller.DeploymentsController{
-		ClientGetter: fixture,
-	}
-	for _, testCase := range testCases {
-		err := testCase.method(controller)
-		require.Error(t, err, "Expected error \"Test\": "+testCase.name)
-		// Check Close was called before returning
-		require.NotNil(t, fixture.kube, "No Kube client created: "+testCase.name)
-		require.True(t, fixture.kube.closed, "Kube client not closed: "+testCase.name)
-	}
-}
-
 func TestDeleteDeployment(t *testing.T) {
 	const uuidStr = "ed3b4c4d-5a47-44ec-8b73-9a0fbc902184"
 	const spaceName = "mySpace"
