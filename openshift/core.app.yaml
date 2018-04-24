@@ -104,6 +104,11 @@ objects:
               configMapKeyRef:
                 name: core
                 key: auth.serviceurl
+          - name: F8_OSPROXY_URL
+            valueFrom:
+              configMapKeyRef:
+                name: core
+                key: osproxy.serviceurl
           - name: F8_TOGGLES_SERVICEURL
             valueFrom:
               configMapKeyRef:
