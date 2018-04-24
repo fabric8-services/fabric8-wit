@@ -94,10 +94,9 @@ $ cd $GOPATH/src/github.com/fabric8-services/fabric8-wit
 $ make deps
 ----
 
-For dependency management of `go` packages we use `glide`.
-The file `glide.yaml` contains all dependencies.
-It is not suggested that you edit the file by hand but if you want to
-understand the format for this file, look link:https://glide.readthedocs.io/en/latest/glide.yaml/[here].
+For dependency management of `go` packages we use https://github.com/golang/dep[`dep`].
+The file `Gopkg.toml` contains all dependencies. If you want to
+understand the format for this file, look link:https://golang.github.io/dep/docs/Gopkg.toml.html[here].
 
 ===== Generate GOA sources [[generate-code]]
 
