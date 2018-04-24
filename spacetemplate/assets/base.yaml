@@ -129,7 +129,7 @@ work_item_link_types:
   name: Blocker
   description: One work item item blocks another one
   forward_name: blocks
-  reverse_name: blocked by
+  reverse_name: is blocked by
   topology: network
 
 - id: "9B631885-83B1-4ABB-A340-3A9EDE8493FA"
@@ -142,6 +142,6 @@ work_item_link_types:
 - id: "25C326A7-6D03-4F5A-B23B-86A9EE4171E9"
   name: Parenting
   description: One work item is the parent of another one.
-  forward_name: parent of
-  reverse_name: child of
+  forward_name: is parent of
+  reverse_name: is child of
   topology: tree
