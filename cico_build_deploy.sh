@@ -6,4 +6,4 @@ cico_setup;
 
 run_tests_without_coverage;
 
-deploy;
+deploy $(echo $GIT_COMMIT | cut -c1-${DEVSHIFT_TAG_LEN}) true;
