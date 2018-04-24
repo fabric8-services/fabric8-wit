@@ -143,7 +143,7 @@
         },
         "events": {
           "links": {
-            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000005/events"
+            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000004/events"
           }
         },
         "iteration": {},
