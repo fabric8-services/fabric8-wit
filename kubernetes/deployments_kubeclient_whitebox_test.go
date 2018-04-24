@@ -107,8 +107,14 @@ func TestGetKubeRESTAPI(t *testing.T) {
 	require.True(t, ok, "GetKubeRESTAPI returned %s instead of *kubeAPIClient", reflect.TypeOf(client))
 	restConfig := client.restConfig
 	require.NotNil(t, restConfig, "rest.Config was not stored in kubeAPIClient")
-	require.Equal(t, config.ClusterURL, restConfig.Host, "Host config is not set to cluster URL")
-	require.Equal(t, config.BearerToken, restConfig.BearerToken, "Bearer tokens do not match")
+	apiURL, err := config.BaseURLProvider.GetAPIURL()
+	require.NoError(t, err, "Error getting API URL")
+	require.NotNil(t, apiURL)
+	apiToken, err := config.BaseURLProvider.GetAPIToken()
+	require.NoError(t, err, "Error getting API Token")
+	require.NotNil(t, apiToken)
+	require.Equal(t, *apiURL, restConfig.Host, "Host config is not set to cluster URL")
+	require.Equal(t, *apiToken, restConfig.BearerToken, "Bearer tokens do not match")
 	require.Equal(t, config.Timeout, restConfig.Timeout, "Timeouts do not match")
 	require.Equal(t, config.Transport, restConfig.Transport, "HTTP Transports do not match")
 }
@@ -129,11 +135,49 @@ func TestGetOpenShiftRESTAPI(t *testing.T) {
 }
 
 func getKubeConfigWithTimeout() *KubeClientConfig {
+	urlProvider := getTestURLProvider("http://api.myCluster", "myToken")
 	return &KubeClientConfig{
-		ClusterURL:    "http://api.myCluster",
-		BearerToken:   "myToken",
-		UserNamespace: "myNamespace",
-		Timeout:       30 * time.Second,
-		Transport:     &http.Transport{},
+		BaseURLProvider: urlProvider,
+		UserNamespace:   "myNamespace",
+		Timeout:         30 * time.Second,
+		Transport:       &http.Transport{},
 	}
+}
+
+type testURLProvider struct {
+	apiURL   string
+	apiToken string
+}
+
+func getTestURLProvider(baseurl string, token string) BaseURLProvider {
+	return &testURLProvider{
+		apiURL:   baseurl,
+		apiToken: token,
+	}
+}
+
+// code for test URL provider
+
+func (up *testURLProvider) GetAPIToken() (*string, error) {
+	return &up.apiToken, nil
+}
+
+func (up *testURLProvider) GetMetricsToken(envNS string) (*string, error) {
+	return &up.apiToken, nil
+}
+
+func (up *testURLProvider) GetAPIURL() (*string, error) {
+	return &up.apiURL, nil
+}
+
+func (up *testURLProvider) GetConsoleURL(envNS string) (*string, error) {
+	return &up.apiURL, nil
+}
+
+func (up *testURLProvider) GetLoggingURL(envNS string, deployName string) (*string, error) {
+	return &up.apiURL, nil
+}
+
+func (up *testURLProvider) GetMetricsURL(envNS string) (*string, error) {
+	return &up.apiURL, nil
 }
