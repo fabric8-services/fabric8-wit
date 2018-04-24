@@ -6,7 +6,7 @@
         "description": "One work item item blocks another one",
         "forward_name": "blocks",
         "name": "Blocker",
-        "reverse_name": "blocked by",
+        "reverse_name": "is blocked by",
         "topology": "network",
         "updated-at": "0001-01-01T00:00:00Z",
         "version": 0
@@ -104,9 +104,9 @@
       "attributes": {
         "created-at": "0001-01-01T00:00:00Z",
         "description": "One work item is the parent of another one.",
-        "forward_name": "parent of",
+        "forward_name": "is parent of",
         "name": "Parenting",
-        "reverse_name": "child of",
+        "reverse_name": "is child of",
         "topology": "tree",
         "updated-at": "0001-01-01T00:00:00Z",
         "version": 0
