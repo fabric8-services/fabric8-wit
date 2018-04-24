@@ -335,9 +335,10 @@ func TestGoldenReplaceTimes(t *testing.T) {
 		require.Equal(t, testTimesOutputStr, newStr)
 	})
 	timeStrings := map[string]string{
-		"rfc7232":                `"last-modified": "Thu, 15 Mar 2018 09:23:37 GMT",`,
-		"arbitrary date":         `"last-modified": "Fri, 13 Apr 2018 16:21:50 CEST",`,
-		"date with IST timezone": `"last-modified": "Mon, 23 Apr 2018 00:00:00 IST",`,
+		"rfc7232":                  `"last-modified": "Thu, 15 Mar 2018 09:23:37 GMT",`,
+		"arbitrary date":           `"last-modified": "Fri, 13 Apr 2018 16:21:50 CEST",`,
+		"date with IST timezone":   `"last-modified": "Mon, 23 Apr 2018 00:00:00 IST",`,
+		"Bangladesh Standard Time": `"last-modified": "Mon, 24 Apr 2018 02:11:00 BST",`,
 	}
 	for timeType, timeString := range timeStrings {
 		t.Run(timeType, func(t *testing.T) {
