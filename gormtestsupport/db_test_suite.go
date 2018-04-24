@@ -66,7 +66,7 @@ func (s *DBTestSuite) SetupTest() {
 // TearDownTest implements suite.TearDownTest
 func (s *DBTestSuite) TearDownTest() {
 	if s.clean != nil {
-		// s.clean()
+		s.clean()
 	}
 }
 
