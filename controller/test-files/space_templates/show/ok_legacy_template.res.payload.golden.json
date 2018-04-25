@@ -1,0 +1,34 @@
+{
+  "data": {
+    "attributes": {
+      "can-construct": true,
+      "created-at": "0001-01-01T00:00:00Z",
+      "description": "This is a development methodology inspired by Scenario-Driven-Planning but this is not the real thing.\n",
+      "name": "Openshift.io Legacy Template",
+      "updated-at": "0001-01-01T00:00:00Z",
+      "version": 0
+    },
+    "id": "00000000-0000-0000-0000-000000000001",
+    "links": {
+      "self": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000001"
+    },
+    "relationships": {
+      "workitemlinktypes": {
+        "links": {
+          "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000001/workitemlinktypes"
+        }
+      },
+      "workitemtypegroups": {
+        "links": {
+          "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000001/workitemtypegroups"
+        }
+      },
+      "workitemtypes": {
+        "links": {
+          "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000001/workitemtypes"
+        }
+      }
+    },
+    "type": "spacetemplates"
+  }
+}
