@@ -117,8 +117,7 @@ release: prebuild-check deps generate build check-go-format analyze-go-code test
 
 .PHONY: analyze-go-code
 ## Run a complete static code analysis using the following tools: golint, gocyclo and go-vet.
-# TODO(kwk): Add golint back in once https://github.com/golang/go/issues/25048 is resolved
-analyze-go-code: gocyclo govet 
+analyze-go-code: golint gocyclo govet
 
 ## Run gocyclo analysis over the code.
 golint: $(GOLINT_BIN)

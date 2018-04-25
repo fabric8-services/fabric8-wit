@@ -231,6 +231,11 @@
   revision = "44145f04b68cf362d9c4df2182967c2275eaefed"
 
 [[projects]]
+  name = "github.com/golang/lint"
+  packages = ["golint"]
+  revision = "master"
+
+[[projects]]
   name = "github.com/golang/protobuf"
   packages = ["proto"]
   revision = "8ee79997227bf9b34611aee7946ae64735e6fd93"
@@ -594,6 +599,12 @@
   revision = "d172538b2cfce0c13cee31e647d0367aa8cd2486"
 
 [[projects]]
+  branch = "master"
+  name = "golang.org/x/lint"
+  packages = ["."]
+  revision = "85993ffd0a6cd043291f3f63d45d656d97b165bd"
+
+[[projects]]
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -647,6 +658,8 @@
     "cover",
     "go/ast/astutil",
     "go/buildutil",
+    "go/gcexportdata",
+    "go/gcimporter15",
     "go/loader",
     "imports"
   ]
@@ -799,6 +812,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "1fd9ca32e7877e37e8b2fe5425df9c25245a1c2107b50ed006ac6d2ba4d4d5ce"
+  inputs-digest = "843238741f4e88d78a8acaa703af920f93880a14b119627c75831c56a6e20393"
   solver-name = "gps-cdcl"
   solver-version = 1
