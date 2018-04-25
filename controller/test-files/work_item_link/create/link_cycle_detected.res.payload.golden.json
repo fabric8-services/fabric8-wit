@@ -1,0 +1,10 @@
+{
+  "errors": [
+    {
+      "code": "bad_parameter",
+      "detail": "Bad value for parameter 'sourceID + targetID': '00000000-0000-0000-0000-000000000001 + 00000000-0000-0000-0000-000000000002' (expected: 'link that doesn't create a cylce')",
+      "status": "400",
+      "title": "Bad parameter error"
+    }
+  ]
+}

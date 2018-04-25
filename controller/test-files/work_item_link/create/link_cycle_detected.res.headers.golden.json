@@ -1,0 +1,10 @@
+{
+  "Code": 400,
+  "HeaderMap": {
+    "Content-Type": [
+      "application/vnd.api+json"
+    ]
+  },
+  "Body": {},
+  "Flushed": false
+}

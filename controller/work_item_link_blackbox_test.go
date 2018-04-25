@@ -254,6 +254,19 @@ func (s *workItemLinkSuite) TestCreate() {
 			createPayload := newCreateWorkItemLinkPayload(fxt.WorkItems[0].ID, fxt.WorkItems[1].ID, uuid.Nil)
 			_, _ = test.CreateWorkItemLinkBadRequest(t, svc.Context, svc, ctrl, createPayload)
 		})
+		t.Run("link cycle detected", func(t *testing.T) {
+			fxt = tf.NewTestFixture(t, s.DB,
+				tf.CreateWorkItemEnvironment(),
+				tf.WorkItems(2, tf.SetWorkItemTitles("A", "B")),
+				tf.WorkItemLinkTypes(1, tf.SetTopologies(link.TopologyTree)),
+				tf.WorkItemLinksCustom(1, tf.BuildLinks(tf.LinkChain("A", "B")...)),
+			)
+			svc, ctrl = s.SecuredController(*fxt.Identities[0])
+			req := newCreateWorkItemLinkPayload(fxt.WorkItemByTitle("B").ID, fxt.WorkItemByTitle("A").ID, fxt.WorkItemLinkTypes[0].ID)
+			res, jerrs := test.CreateWorkItemLinkBadRequest(t, svc.Context, svc, ctrl, req)
+			compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "link_cycle_detected.res.payload.golden.json"), jerrs)
+			compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "link_cycle_detected.res.headers.golden.json"), res)
+		})
 	})
 
 	s.T().Run(http.StatusText(http.StatusNotFound), func(t *testing.T) {

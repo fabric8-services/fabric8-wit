@@ -117,7 +117,7 @@ func (r *GormWorkItemLinkRepository) ValidateTopology(ctx context.Context, sourc
 			return errs.Wrapf(err, "error during cycle-detection of new link")
 		}
 		if hasCycle {
-			return errs.New("link cycle detected")
+			return errors.NewBadParameterError("sourceID + targetID", fmt.Sprintf("%s + %s", sourceID, targetID)).Expected("link that doesn't create a cylce")
 		}
 	}
 	return nil
