@@ -35,7 +35,6 @@ type ClientGetter interface {
 // Default implementation of KubeClientGetter and OSIOClientGetter used by NewDeploymentsController
 type defaultClientGetter struct {
 	config     *configuration.Registry
-	osioClient OpenshiftIOClient
 }
 
 // NewDeploymentsController creates a deployments controller.
@@ -89,7 +88,6 @@ func (g *defaultClientGetter) GetAndCheckOSIOClient(ctx context.Context) (Opensh
 
 	oc := NewOSIOClient(ctx, scheme, host)
 
-	g.osioClient = oc
 	return oc, nil
 }
 
