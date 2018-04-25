@@ -1,8 +1,11 @@
 package controller_test
 
 import (
+	"fmt"
 	"path/filepath"
 	"testing"
+
+	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	. "github.com/fabric8-services/fabric8-wit/controller"
@@ -44,11 +47,26 @@ func (s *workItemTypeGroupSuite) TestList() {
 	s.T().Run("ok", func(t *testing.T) {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemTypeGroups(3))
+		testData := map[string]uuid.UUID{
+			"generated_template": fxt.SpaceTemplates[0].ID,
+			"base_template":      spacetemplate.SystemBaseTemplateID,
+			"legacy_template":    spacetemplate.SystemLegacyTemplateID,
+			"scrum_template":     spacetemplate.SystemScrumTemplateID,
+		}
 		// when
-		res, groups := test.ListWorkItemTypeGroupsOK(t, nil, s.svc, s.typeGroupsCtrl, fxt.SpaceTemplates[0].ID)
-		// then
-		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok.witg.golden.json"), groups)
-		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok.headers.golden.json"), res.Header())
+		for name, spaceTemplateID := range testData {
+			t.Run(name, func(t *testing.T) {
+				res, groups := test.ListWorkItemTypeGroupsOK(t, nil, s.svc, s.typeGroupsCtrl, spaceTemplateID)
+				// then
+				if spaceTemplateID == fxt.SpaceTemplates[0].ID {
+					compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", fmt.Sprintf("ok_%s.payload.golden.json", name)), groups)
+					compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", fmt.Sprintf("ok_%s.headers.golden.json", name)), res.Header())
+				} else {
+					compareWithGoldenAgnosticTime(t, filepath.Join(s.testDir, "list", fmt.Sprintf("ok_%s.payload.golden.json", name)), groups)
+					compareWithGoldenAgnosticTime(t, filepath.Join(s.testDir, "list", fmt.Sprintf("ok_%s.headers.golden.json", name)), res.Header())
+				}
+			})
+		}
 	})
 	s.T().Run("not found", func(t *testing.T) {
 		// given

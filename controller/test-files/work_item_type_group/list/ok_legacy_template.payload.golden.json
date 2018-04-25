@@ -1,0 +1,155 @@
+{
+  "data": [
+    {
+      "attributes": {
+        "bucket": "portfolio",
+        "created-at": "0001-01-01T00:00:00Z",
+        "icon": "fa fa-bullseye",
+        "name": "Scenarios",
+        "show-in-sidebar": true,
+        "updated-at": "0001-01-01T00:00:00Z"
+      },
+      "id": "d3e8aa92-c6bf-4110-8972-a20ef58e0f54",
+      "links": {
+        "related": "http:///api/workitemtypegroups/d3e8aa92-c6bf-4110-8972-a20ef58e0f54"
+      },
+      "relationships": {
+        "spaceTemplate": {
+          "data": {
+            "id": "929c963a-174c-4c37-b487-272067e88bd4",
+            "type": "spacetemplates"
+          }
+        },
+        "typeList": {
+          "data": [
+            {
+              "id": "71171e90-6d35-498f-a6a7-2083b5267c18",
+              "type": "workitemtypes"
+            },
+            {
+              "id": "ee7ca005-f81d-4eea-9b9b-1965df0988d0",
+              "type": "workitemtypes"
+            },
+            {
+              "id": "6d603ab4-7c5e-4c5f-bba8-a3ba9d370985",
+              "type": "workitemtypes"
+            }
+          ]
+        }
+      },
+      "type": "workitemtypegroups"
+    },
+    {
+      "attributes": {
+        "bucket": "portfolio",
+        "created-at": "0001-01-01T00:00:00Z",
+        "icon": "pficon pficon-infrastructure",
+        "name": "Experiences",
+        "show-in-sidebar": true,
+        "updated-at": "0001-01-01T00:00:00Z"
+      },
+      "id": "66838f21-e718-476c-b578-67a9aad5d607",
+      "links": {
+        "related": "http:///api/workitemtypegroups/66838f21-e718-476c-b578-67a9aad5d607"
+      },
+      "relationships": {
+        "spaceTemplate": {
+          "data": {
+            "id": "929c963a-174c-4c37-b487-272067e88bd4",
+            "type": "spacetemplates"
+          }
+        },
+        "typeList": {
+          "data": [
+            {
+              "id": "b9a71831-c803-4f66-8774-4193fffd1311",
+              "type": "workitemtypes"
+            },
+            {
+              "id": "3194ab60-855b-4155-9005-9dce4a05f1eb",
+              "type": "workitemtypes"
+            }
+          ]
+        }
+      },
+      "type": "workitemtypegroups"
+    },
+    {
+      "attributes": {
+        "bucket": "requirement",
+        "created-at": "0001-01-01T00:00:00Z",
+        "icon": "fa fa-list-ul",
+        "name": "Requirements",
+        "show-in-sidebar": true,
+        "updated-at": "0001-01-01T00:00:00Z"
+      },
+      "id": "6645d0e7-126e-48b9-9018-3cca536f3ef5",
+      "links": {
+        "related": "http:///api/workitemtypegroups/6645d0e7-126e-48b9-9018-3cca536f3ef5"
+      },
+      "relationships": {
+        "spaceTemplate": {
+          "data": {
+            "id": "929c963a-174c-4c37-b487-272067e88bd4",
+            "type": "spacetemplates"
+          }
+        },
+        "typeList": {
+          "data": [
+            {
+              "id": "0a24d3c2-e0a6-4686-8051-ec0ea1915a28",
+              "type": "workitemtypes"
+            },
+            {
+              "id": "26787039-b68f-4e28-8814-c2f93be1ef4e",
+              "type": "workitemtypes"
+            }
+          ]
+        }
+      },
+      "type": "workitemtypegroups"
+    },
+    {
+      "attributes": {
+        "bucket": "iteration",
+        "created-at": "0001-01-01T00:00:00Z",
+        "icon": "fa fa-repeat",
+        "name": "Execution",
+        "show-in-sidebar": false,
+        "updated-at": "0001-01-01T00:00:00Z"
+      },
+      "id": "ba9ceba3-1152-4a7e-8aa1-7cb3574e974e",
+      "links": {
+        "related": "http:///api/workitemtypegroups/ba9ceba3-1152-4a7e-8aa1-7cb3574e974e"
+      },
+      "relationships": {
+        "spaceTemplate": {
+          "data": {
+            "id": "929c963a-174c-4c37-b487-272067e88bd4",
+            "type": "spacetemplates"
+          }
+        },
+        "typeList": {
+          "data": [
+            {
+              "id": "bbf35418-04b6-426c-a60b-7f80beb0b624",
+              "type": "workitemtypes"
+            },
+            {
+              "id": "26787039-b68f-4e28-8814-c2f93be1ef4e",
+              "type": "workitemtypes"
+            },
+            {
+              "id": "0a24d3c2-e0a6-4686-8051-ec0ea1915a28",
+              "type": "workitemtypes"
+            }
+          ]
+        }
+      },
+      "type": "workitemtypegroups"
+    }
+  ],
+  "links": {
+    "self": "http:///api/spacetemplates/929c963a-174c-4c37-b487-272067e88bd4/workitemtypegroups"
+  }
+}
