@@ -113,7 +113,7 @@ func (rest *TestSpaceAreaREST) setupAreas() (area.Area, []uuid.UUID, []area.Area
 	assert.Equal(rest.T(), newParentID, *created.Data.Relationships.Parent.Data.ID)
 	assert.Contains(rest.T(), *created.Data.Relationships.Children.Links.Self, "children")
 	createdAreaUuids = append(createdAreaUuids, *created.Data.ID)
-	createdAreas = append(createdAreas, convertAreaToModel(*created))
+	createdAreas = append(createdAreas, ConvertAreaToModel(*created))
 	return *parentArea, createdAreaUuids, createdAreas
 }
 
