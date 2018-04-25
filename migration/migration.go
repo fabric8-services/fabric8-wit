@@ -640,10 +640,10 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB) error {
 				"err":  err,
 				"id":   t.Template.ID,
 				"name": t.Template.Name,
-			}, `failed to import space template #%d with name "%s" and ID %s`, idx, t.Template.Name, t.Template.ID)
-			return errs.Wrapf(err, `failed to import space #%d template with name "%s" ID %s`, idx, t.Template.Name, t.Template.ID)
+			}, `failed to import space template #%d with name '%s' and ID %s`, idx, t.Template.Name, t.Template.ID)
+			return errs.Wrapf(err, `failed to import space template #%d with name '%s' and ID %s`, idx, t.Template.Name, t.Template.ID)
 		}
-		log.Debug(ctx, nil, `imported space template #%d "%s"`, idx, t.Template.Name)
+		log.Debug(ctx, nil, `imported space template #%d '%s'`, idx, t.Template.Name)
 	}
 	workitem.ClearGlobalWorkItemTypeCache() // Clear the WIT cache after updating existing WITs
 	return nil
