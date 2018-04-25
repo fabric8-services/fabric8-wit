@@ -989,9 +989,9 @@ func TestDeleteDeployment(t *testing.T) {
 			envName:      "run",
 			cassetteName: "deletedeployment",
 			expectDeleteURLs: map[string]struct{}{
-				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myApp": {},
-				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myApp":            {},
-				"http://api.myCluster/api/v1/namespaces/my-run/services/myApp":           {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myDeploy": {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myDeploy":            {},
+				"http://api.myCluster/api/v1/namespaces/my-run/services/myDeploy":           {},
 			},
 		},
 		{
@@ -1008,10 +1008,10 @@ func TestDeleteDeployment(t *testing.T) {
 			spaceName:    "otherSpace",
 			appName:      "myApp",
 			envName:      "run",
-			cassetteName: "deletedeployment",
+			cassetteName: "deletedeployment-wrongspace",
 			expectDeleteURLs: map[string]struct{}{
-				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myApp":  {},
-				"http://api.myCluster/api/v1/namespaces/my-run/services/myApp": {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myDeploy":  {},
+				"http://api.myCluster/api/v1/namespaces/my-run/services/myDeploy": {},
 			},
 			shouldFail: true,
 		},
@@ -1022,8 +1022,8 @@ func TestDeleteDeployment(t *testing.T) {
 			envName:      "run",
 			cassetteName: "deletedeployment-noroutes",
 			expectDeleteURLs: map[string]struct{}{
-				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myApp": {},
-				"http://api.myCluster/api/v1/namespaces/my-run/services/myApp":           {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myDeploy": {},
+				"http://api.myCluster/api/v1/namespaces/my-run/services/myDeploy":           {},
 			},
 		},
 		{
@@ -1033,8 +1033,8 @@ func TestDeleteDeployment(t *testing.T) {
 			envName:      "run",
 			cassetteName: "deletedeployment-noservices",
 			expectDeleteURLs: map[string]struct{}{
-				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myApp": {},
-				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myApp":            {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myDeploy": {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myDeploy":            {},
 			},
 		},
 		{
@@ -1044,10 +1044,20 @@ func TestDeleteDeployment(t *testing.T) {
 			envName:      "run",
 			cassetteName: "deletedeployment-nodc",
 			expectDeleteURLs: map[string]struct{}{
-				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myApp":  {},
-				"http://api.myCluster/api/v1/namespaces/my-run/services/myApp": {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myDeploy":  {},
+				"http://api.myCluster/api/v1/namespaces/my-run/services/myDeploy": {},
 			},
 			shouldFail: true,
+		},
+		{
+			// Tests failure to map application name to OpenShift resources
+			testName:         "No Builds",
+			spaceName:        "mySpace",
+			appName:          "myApp",
+			envName:          "run",
+			cassetteName:     "deletedeployment-nobuilds",
+			expectDeleteURLs: map[string]struct{}{},
+			shouldFail:       true,
 		},
 	}
 

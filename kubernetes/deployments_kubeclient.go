@@ -343,7 +343,8 @@ func (kc *kubeClient) ScaleDeployment(spaceName string, appName string, envName 
 	if err != nil {
 		return nil, err
 	} else if len(dcName) == 0 {
-		return nil, errs.Errorf("could not find Deployment Config for %s in %s with space %s", appName, envNS, spaceName)
+		return nil, errs.Errorf("could not associate application '%s' with any resources in '%s' with space '%s'",
+			appName, envNS, spaceName)
 	}
 
 	// Look up the Scale for the DeploymentConfig corresponding to the application name in the provided environment
@@ -609,18 +610,33 @@ func (kc *kubeClient) DeleteDeployment(spaceName string, appName string, envName
 	if err != nil {
 		return errs.WithStack(err)
 	}
+
+	// Deployment Config name does not always match the application name, look up
+	// DC name using available metadata
+	dcName, err := kc.getDeploymentConfigNameForApp(envNS, appName, spaceName)
+	if err != nil {
+		return err
+	} else if len(dcName) == 0 {
+		log.Error(nil, map[string]interface{}{
+			"space_name": spaceName,
+			"app_name":   appName,
+			"env_name":   envName,
+		}, "could not associate application with any resources")
+		return errs.Errorf("could not associate application '%s' with any resources", appName)
+	}
+
 	// Delete routes
-	err = kc.deleteRoutes(appName, envNS)
+	err = kc.deleteRoutes(dcName, envNS)
 	if err != nil {
 		return err
 	}
 	// Delete services
-	err = kc.deleteServices(appName, envNS)
+	err = kc.deleteServices(dcName, envNS)
 	if err != nil {
 		return err
 	}
 	// Delete DC (will also delete RCs and pods)
-	err = kc.deleteDeploymentConfig(spaceName, appName, envNS)
+	err = kc.deleteDeploymentConfig(spaceName, dcName, envNS)
 	if err != nil {
 		return err
 	}
@@ -845,16 +861,7 @@ func (oc *openShiftAPIClient) sendResource(path string, method string, reqBody i
 	return nil
 }
 
-func (kc *kubeClient) getDeploymentConfig(namespace string, appName string, space string) (*deployment, error) {
-	// Deployment Config name does not always match the application name, look up
-	// DC name using available metadata
-	dcName, err := kc.getDeploymentConfigNameForApp(namespace, appName, space)
-	if err != nil {
-		return nil, err
-	} else if len(dcName) == 0 {
-		return nil, nil
-	}
-
+func (kc *kubeClient) getAndParseDeploymentConfig(namespace string, dcName string, space string) (*deployment, error) {
 	result, err := kc.GetDeploymentConfig(namespace, dcName)
 	if err != nil {
 		return nil, errs.WithStack(err)
@@ -869,12 +876,12 @@ func (kc *kubeClient) getDeploymentConfig(namespace string, appName string, spac
 	}
 	metadata, ok := result["metadata"].(map[string]interface{})
 	if !ok {
-		return nil, errs.Errorf("metadata missing from deployment config for application %s configuration %+v", appName, result)
+		return nil, errs.Errorf("metadata missing from deployment config %s: %+v", dcName, result)
 	}
 	// Check the space label is what we expect
 	labels, ok := metadata["labels"].(map[string]interface{})
 	if !ok {
-		return nil, errs.Errorf("labels missing from deployment config for application %s: %+v", appName, metadata)
+		return nil, errs.Errorf("labels missing from deployment config %s: %+v", dcName, metadata)
 	}
 	/* FIXME Not all projects will have the space label defined due to the requirement that
 	 * fabric8-maven-plugin is called from the project's POM and not that of its parent.
@@ -888,21 +895,21 @@ func (kc *kubeClient) getDeploymentConfig(namespace string, appName string, spac
 	if len(spaceLabel) == 0 {
 		log.Warn(nil, map[string]interface{}{
 			"namespace": namespace,
-			"app_name":  appName,
+			"dc_name":   dcName,
 			"space":     space,
 		}, "space label missing from deployment config")
 	} else if spaceLabel != space {
-		return nil, errs.Errorf("deployment config %s is part of space %s, expected space %s", appName, spaceLabel, space)
+		return nil, errs.Errorf("deployment config %s is part of space %s, expected space %s", dcName, spaceLabel, space)
 	}
 	// Get UID from deployment config
 	uid, ok := metadata["uid"].(string)
 	if !ok || len(uid) == 0 {
-		return nil, errs.Errorf("malformed metadata in deployment config for application %s: %+v", appName, metadata)
+		return nil, errs.Errorf("malformed metadata in deployment config %s: %+v", dcName, metadata)
 	}
 	// Read application version from label
 	version := labels["version"].(string)
 	if !ok || len(version) == 0 {
-		return nil, errs.Errorf("version missing from deployment config for application %s: %+v", appName, metadata)
+		return nil, errs.Errorf("version missing from deployment config %s: %+v", dcName, metadata)
 	}
 
 	dc := &deployment{
@@ -970,26 +977,32 @@ func (kc *kubeClient) getDeploymentConfigNameForApp(namespace string, appName st
 					var envServicesYaml map[interface{}]interface{}
 					err = yaml.Unmarshal([]byte(envServicesStr), &envServicesYaml)
 					if err != nil {
-						return "", errs.Errorf("Failed to unmarshal %s/%s YAML: %s", envServicesAnnotationPrefix,
-							namespace, envServicesStr)
-					}
-					// Look for deployment versions
-					deployVersionsYaml, pres := envServicesYaml[envServicesDeploymentVersions]
-					if pres {
-						deployVersions, ok := deployVersionsYaml.(map[interface{}]interface{})
-						if ok {
-							// TODO what to do with more than one result?
-							for nameYaml := range deployVersions {
-								depName, ok := nameYaml.(string)
-								if !ok {
-									log.Warn(nil, map[string]interface{}{
-										"namespace":   namespace,
-										"appName":     appName,
-										"spaceName":   spaceName,
-										"envServices": envServicesStr,
-									}, "%s does not contain a string", envServicesDeploymentVersions)
-								} else {
-									return depName, nil
+						log.Warn(nil, map[string]interface{}{
+							"err":         err,
+							"namespace":   namespace,
+							"appName":     appName,
+							"spaceName":   spaceName,
+							"envServices": envServicesStr,
+						}, "Failed to unmarshal %s YAML", envServicesAnnotationPrefix)
+					} else {
+						// Look for deployment versions
+						deployVersionsYaml, pres := envServicesYaml[envServicesDeploymentVersions]
+						if pres {
+							deployVersions, ok := deployVersionsYaml.(map[interface{}]interface{})
+							if ok {
+								// TODO what to do with more than one result?
+								for nameYaml := range deployVersions {
+									depName, ok := nameYaml.(string)
+									if !ok {
+										log.Warn(nil, map[string]interface{}{
+											"namespace":   namespace,
+											"appName":     appName,
+											"spaceName":   spaceName,
+											"envServices": envServicesStr,
+										}, "%s does not contain a string", envServicesDeploymentVersions)
+									} else {
+										return depName, nil
+									}
 								}
 							}
 						}
@@ -1007,13 +1020,13 @@ func (oc *openShiftAPIClient) GetBuilds(namespace string, labelSelector string) 
 	return oc.getResource(bcURL, false)
 }
 
-func (kc *kubeClient) deleteDeploymentConfig(spaceName string, appName string, namespace string) error {
+func (kc *kubeClient) deleteDeploymentConfig(spaceName string, dcName string, namespace string) error {
 	// Check that the deployment config exists and belongs to the expected space
-	dc, err := kc.getDeploymentConfig(namespace, appName, spaceName)
+	dc, err := kc.getAndParseDeploymentConfig(namespace, dcName, spaceName)
 	if err != nil {
 		return err
 	} else if dc == nil {
-		return errs.Errorf("deployment config %s does not exist in %s", appName, namespace)
+		return errs.Errorf("deployment config %s does not exist in %s", dcName, namespace)
 	}
 
 	// Delete all dependent objects and then this DC
@@ -1025,7 +1038,7 @@ func (kc *kubeClient) deleteDeploymentConfig(spaceName string, appName string, n
 		},
 		PropagationPolicy: &policy,
 	}
-	err = kc.DeleteDeploymentConfig(namespace, appName, opts)
+	err = kc.DeleteDeploymentConfig(namespace, dcName, opts)
 	if err != nil {
 		return err
 	}
@@ -1043,8 +1056,17 @@ const deploymentPhaseAnnotation string = "openshift.io/deployment.phase"
 const deploymentVersionAnnotation string = "openshift.io/deployment-config.latest-version"
 
 func (kc *kubeClient) getCurrentDeployment(space string, appName string, namespace string) (*deployment, error) {
+	// Deployment Config name does not always match the application name, look up
+	// DC name using available metadata
+	dcName, err := kc.getDeploymentConfigNameForApp(namespace, appName, space)
+	if err != nil {
+		return nil, err
+	} else if len(dcName) == 0 {
+		return nil, nil
+	}
+
 	// Look up DeploymentConfig corresponding to the application name in the provided environment
-	result, err := kc.getDeploymentConfig(namespace, appName, space)
+	result, err := kc.getAndParseDeploymentConfig(namespace, dcName, space)
 	if err != nil {
 		return nil, errs.WithStack(err)
 	} else if result == nil {
