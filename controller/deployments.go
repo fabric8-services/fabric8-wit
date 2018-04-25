@@ -196,7 +196,7 @@ func (c *DeploymentsController) SetDeployment(ctx *app.SetDeploymentDeploymentsC
 	kc, err := c.GetKubeClient(ctx)
 	defer cleanup(kc)
 	if err != nil {
-		return errors.NewUnauthorizedError("openshift token")
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
 	kubeSpaceName, err := c.getSpaceNameFromSpaceID(ctx, ctx.SpaceID)
@@ -217,7 +217,7 @@ func (c *DeploymentsController) DeleteDeployment(ctx *app.DeleteDeploymentDeploy
 	kc, err := c.GetKubeClient(ctx)
 	defer cleanup(kc)
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
 	kubeSpaceName, err := c.getSpaceNameFromSpaceID(ctx, ctx.SpaceID)
@@ -296,7 +296,7 @@ func (c *DeploymentsController) ShowDeploymentStats(ctx *app.ShowDeploymentStats
 	kc, err := c.GetKubeClient(ctx)
 	defer cleanup(kc)
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError("openshift token"))
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
 	kubeSpaceName, err := c.getSpaceNameFromSpaceID(ctx, ctx.SpaceID)
@@ -336,7 +336,7 @@ func (c *DeploymentsController) ShowSpace(ctx *app.ShowSpaceDeploymentsContext) 
 	kc, err := c.GetKubeClient(ctx)
 	defer cleanup(kc)
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError("openshift token"))
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
 	kubeSpaceName, err := c.getSpaceNameFromSpaceID(ctx, ctx.SpaceID)
