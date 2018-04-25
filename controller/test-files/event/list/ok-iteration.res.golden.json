@@ -3,19 +3,39 @@
     {
       "attributes": {
         "name": "system.iteration",
-        "newValue": "00000000-0000-0000-0000-000000000001",
-        "oldValue": "",
+        "newValue": null,
+        "oldValue": null,
         "timestamp": "0001-01-01T00:00:00Z"
       },
-      "id": "00000000-0000-0000-0000-000000000002",
+      "id": "00000000-0000-0000-0000-000000000001",
       "relationships": {
         "modifier": {
           "data": {
-            "id": "00000000-0000-0000-0000-000000000003",
+            "id": "00000000-0000-0000-0000-000000000002",
             "links": {
-              "related": "http:///api/users/00000000-0000-0000-0000-000000000003"
+              "related": "http:///api/users/00000000-0000-0000-0000-000000000002"
             },
             "type": "identities"
+          }
+        },
+        "newIteration": {
+          "data": {
+            "id": "00000000-0000-0000-0000-000000000003",
+            "links": {
+              "related": "http:///api/iterations/00000000-0000-0000-0000-000000000003",
+              "self": "http:///api/iterations/00000000-0000-0000-0000-000000000003"
+            },
+            "type": "iterations"
+          }
+        },
+        "oldIteration": {
+          "data": {
+            "id": "",
+            "links": {
+              "related": "http:///api/iterations/",
+              "self": "http:///api/iterations/"
+            },
+            "type": "iterations"
           }
         }
       },
