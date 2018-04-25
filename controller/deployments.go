@@ -34,7 +34,7 @@ type ClientGetter interface {
 
 // Default implementation of KubeClientGetter and OSIOClientGetter used by NewDeploymentsController
 type defaultClientGetter struct {
-	config     *configuration.Registry
+	config *configuration.Registry
 }
 
 // NewDeploymentsController creates a deployments controller.
