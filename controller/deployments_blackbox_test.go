@@ -141,7 +141,7 @@ func TestDeleteDeployment(t *testing.T) {
 		},
 		{
 			testName:   "Auth Failure",
-			deleteFunc: test.DeleteDeploymentDeploymentsUnauthorized,
+			deleteFunc: test.DeleteDeploymentDeploymentsInternalServerError,
 			spaceUUID:  uuidStr,
 			deploymentsTestErrors: deploymentsTestErrors{
 				getKubeClientError: errors.New("TEST"), // Return expected error from GetKubeClient
