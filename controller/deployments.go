@@ -369,7 +369,7 @@ func (c *DeploymentsController) ShowSpaceEnvironments(ctx *app.ShowSpaceEnvironm
 	kc, err := c.GetKubeClient(ctx)
 	defer cleanup(kc)
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError("openshift token"))
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
 	envs, err := kc.GetEnvironments()
