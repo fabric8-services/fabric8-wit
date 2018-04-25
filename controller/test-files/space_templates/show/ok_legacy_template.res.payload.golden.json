@@ -3,8 +3,8 @@
     "attributes": {
       "can-construct": true,
       "created-at": "0001-01-01T00:00:00Z",
-      "description": "This is a development methodology inspired by Scenario-Driven-Planning but this is not the real thing.\n",
-      "name": "Openshift.io Legacy Template",
+      "description": "An agile development methodology focused on real-world problems, or Scenarios, described in the language and from the viewpoint of the user. Scenarios deliver particular Value Propositions and are realized via Experiences.\n",
+      "name": "Scenario Driven Planning",
       "updated-at": "0001-01-01T00:00:00Z",
       "version": 0
     },
