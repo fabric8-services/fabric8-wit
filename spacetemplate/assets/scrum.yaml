@@ -372,5 +372,7 @@ work_item_type_groups:
 - name: Execution
   type_list:
   - *taskID
+  - *productBacklogItemID
+  - *bugID
   bucket: iteration
   icon: fa fa-tasks
