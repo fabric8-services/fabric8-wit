@@ -1,0 +1,10 @@
+{
+  "errors": [
+    {
+      "code": "data_conflict_error",
+      "detail": "linking the work item 00000000-0000-0000-0000-000000000001 to 00000000-0000-0000-0000-000000000002 would create a cycle which isn't allowed in a tree topology",
+      "status": "409",
+      "title": "Data conflict error"
+    }
+  ]
+}
