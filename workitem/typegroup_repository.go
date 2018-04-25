@@ -21,7 +21,6 @@ type WorkItemTypeGroupRepository interface {
 	repository.Exister
 	Create(ctx context.Context, group WorkItemTypeGroup) (*WorkItemTypeGroup, error)
 	Load(ctx context.Context, groupID uuid.UUID) (*WorkItemTypeGroup, error)
-	LoadByName(ctx context.Context, spaceTemplateID uuid.UUID, name string) (*WorkItemTypeGroup, error)
 	List(ctx context.Context, spaceTemplateID uuid.UUID) ([]*WorkItemTypeGroup, error)
 }
 
@@ -46,28 +45,6 @@ func (r *GormWorkItemTypeGroupRepository) Load(ctx context.Context, groupID uuid
 	if db.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{"witg_id": groupID}, "work item type group not found")
 		return nil, errors.NewNotFoundError("work item type group", groupID.String())
-	}
-	if err := db.Error; err != nil {
-		return nil, errors.NewInternalError(ctx, err)
-	}
-	typeList, err := r.loadTypeList(ctx, res.ID)
-	if err != nil {
-		return nil, errs.WithStack(err)
-	}
-	res.TypeList = typeList
-	return &res, nil
-}
-
-// LoadByName returns the work item type group for the given name and space
-// template
-func (r *GormWorkItemTypeGroupRepository) LoadByName(ctx context.Context, spaceTemplateID uuid.UUID, name string) (*WorkItemTypeGroup, error) {
-	defer goa.MeasureSince([]string{"goa", "db", "workitemtypegroup", "load_by_name"}, time.Now())
-	log.Debug(ctx, map[string]interface{}{"witg_name": name, "space_template_id": spaceTemplateID}, "loading work item type group by name")
-	res := WorkItemTypeGroup{}
-	db := r.db.Model(&res).Where("space_template_id=? AND name=?", spaceTemplateID, name).First(&res)
-	if db.RecordNotFound() {
-		log.Error(ctx, map[string]interface{}{"witg_name": name, "space_template_id": spaceTemplateID}, "work item type group not found")
-		return nil, errors.NewNotFoundError("work item type group", name)
 	}
 	if err := db.Error; err != nil {
 		return nil, errors.NewInternalError(ctx, err)
