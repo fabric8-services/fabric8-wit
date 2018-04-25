@@ -86,8 +86,8 @@ func ConvertEvent(appl application.Application, request *http.Request, wiEvent e
 			ID:   &wiEvent.ID,
 			Attributes: map[string]interface{}{
 				"name":      wiEvent.Name,
-				"new":       wiEvent.New,
-				"old":       wiEvent.Old,
+				"newValue":  wiEvent.New,
+				"oldValue":  wiEvent.Old,
 				"timestamp": wiEvent.Timestamp,
 			},
 
@@ -101,8 +101,8 @@ func ConvertEvent(appl application.Application, request *http.Request, wiEvent e
 			ID:   &wiEvent.ID,
 			Attributes: map[string]interface{}{
 				"name":      wiEvent.Name,
-				"new":       nil,
-				"old":       nil,
+				"newValue":  nil,
+				"oldValue":  nil,
 				"timestamp": wiEvent.Timestamp,
 			},
 
@@ -116,8 +116,8 @@ func ConvertEvent(appl application.Application, request *http.Request, wiEvent e
 			ID:   &wiEvent.ID,
 			Attributes: map[string]interface{}{
 				"name":      wiEvent.Name,
-				"new":       nil,
-				"old":       nil,
+				"newValue":  nil,
+				"oldValue":  nil,
 				"timestamp": wiEvent.Timestamp,
 			},
 
@@ -137,8 +137,8 @@ func ConvertEvent(appl application.Application, request *http.Request, wiEvent e
 			ID:   &wiEvent.ID,
 			Attributes: map[string]interface{}{
 				"name":      wiEvent.Name,
-				"new":       nil,
-				"old":       nil,
+				"newValue":  nil,
+				"oldValue":  nil,
 				"timestamp": wiEvent.Timestamp,
 			},
 
@@ -158,8 +158,8 @@ func ConvertEvent(appl application.Application, request *http.Request, wiEvent e
 			ID:   &wiEvent.ID,
 			Attributes: map[string]interface{}{
 				"name":      wiEvent.Name,
-				"new":       nil,
-				"old":       nil,
+				"newValue":  nil,
+				"oldValue":  nil,
 				"timestamp": wiEvent.Timestamp,
 			},
 			Relationships: &app.EventRelations{
@@ -178,8 +178,8 @@ func ConvertEvent(appl application.Application, request *http.Request, wiEvent e
 			ID:   &wiEvent.ID,
 			Attributes: map[string]interface{}{
 				"name":      wiEvent.Name,
-				"new":       nil,
-				"old":       nil,
+				"newValue":  nil,
+				"oldValue":  nil,
 				"timestamp": wiEvent.Timestamp,
 			},
 			Relationships: &app.EventRelations{
