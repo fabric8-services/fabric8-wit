@@ -263,7 +263,7 @@ func (s *workItemLinkSuite) TestCreate() {
 			)
 			svc, ctrl = s.SecuredController(*fxt.Identities[0])
 			req := newCreateWorkItemLinkPayload(fxt.WorkItemByTitle("B").ID, fxt.WorkItemByTitle("A").ID, fxt.WorkItemLinkTypes[0].ID)
-			res, jerrs := test.CreateWorkItemLinkBadRequest(t, svc.Context, svc, ctrl, req)
+			res, jerrs := test.CreateWorkItemLinkConflict(t, svc.Context, svc, ctrl, req)
 			compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "link_cycle_detected.res.payload.golden.json"), jerrs)
 			compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "link_cycle_detected.res.headers.golden.json"), res.Header())
 		})
