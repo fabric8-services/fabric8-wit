@@ -59,10 +59,6 @@ func tostring(item interface{}) string {
 
 func (g *defaultClientGetter) GetAndCheckOSIOClient(ctx context.Context) (OpenshiftIOClient, error) {
 
-	if g.osioClient != nil {
-		return g.osioClient, nil
-	}
-
 	// defaults
 	host := "localhost"
 	scheme := "https"
