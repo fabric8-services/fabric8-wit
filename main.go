@@ -11,6 +11,7 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/closeable"
 
+	"github.com/fabric8-services/fabric8-tenant/toggles"
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
@@ -152,6 +153,8 @@ func main() {
 			}, "failed to populate common types")
 		}
 	}
+
+	toggles.Init("f8wit", config.GetTogglesServiceURL())
 
 	// Create service
 	service := goa.New("wit")
