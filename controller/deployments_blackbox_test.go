@@ -3,12 +3,14 @@ package controller_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"testing"
 
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/goatest"
 	uuid "github.com/satori/go.uuid"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/fabric8-services/fabric8-wit/app"
@@ -16,6 +18,9 @@ import (
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/kubernetes"
+	"github.com/fabric8-services/fabric8-wit/space"
+	testcontroller "github.com/fabric8-services/fabric8-wit/test/controller"
+	testk8s "github.com/fabric8-services/fabric8-wit/test/kubernetes"
 )
 
 type testKubeClient struct {
@@ -136,7 +141,7 @@ func TestDeleteDeployment(t *testing.T) {
 		},
 		{
 			testName:   "Auth Failure",
-			deleteFunc: test.DeleteDeploymentDeploymentsUnauthorized,
+			deleteFunc: test.DeleteDeploymentDeploymentsInternalServerError,
 			spaceUUID:  uuidStr,
 			deploymentsTestErrors: deploymentsTestErrors{
 				getKubeClientError: errors.New("TEST"), // Return expected error from GetKubeClient
@@ -183,4 +188,55 @@ func createDeploymentsController() (*goa.Service, *controller.DeploymentsControl
 		return nil, nil, err
 	}
 	return svc, controller.NewDeploymentsController(svc, config), nil
+}
+
+func TestShowSpaceEnvironments(t *testing.T) {
+	// given
+	clientGetterMock := testcontroller.NewClientGetterMock(t)
+	svc, ctrl, err := createDeploymentsController()
+	require.NoError(t, err)
+	ctrl.ClientGetter = clientGetterMock
+
+	t.Run("ok", func(t *testing.T) {
+		// given
+		envName := "foo"
+		kubeClientMock := testk8s.NewKubeClientMock(t)
+		kubeClientMock.GetEnvironmentsFunc = func() ([]*app.SimpleEnvironment, error) {
+			return []*app.SimpleEnvironment{
+				{
+					ID:   "foo",
+					Type: "environment",
+					Attributes: &app.SimpleEnvironmentAttributes{
+						Name: &envName,
+					},
+				},
+			}, nil
+		}
+		kubeClientMock.CloseFunc = func() {}
+		clientGetterMock.GetKubeClientFunc = func(p context.Context) (kubernetes.KubeClientInterface, error) {
+			return kubeClientMock, nil
+		}
+		osioClientMock := testcontroller.NewOSIOClientMock(t)
+		clientGetterMock.GetAndCheckOSIOClientFunc = func(p context.Context) (controller.OpenshiftIOClient, error) {
+			return osioClientMock, nil
+		}
+		// when
+		test.ShowSpaceEnvironmentsDeploymentsOK(t, context.Background(), svc, ctrl, space.SystemSpace)
+		// then verify that the Close method was called
+		assert.Equal(t, uint64(1), kubeClientMock.CloseCounter)
+
+	})
+
+	t.Run("failure", func(t *testing.T) {
+
+		t.Run("kube client init failure", func(t *testing.T) {
+			// given
+			clientGetterMock.GetKubeClientFunc = func(p context.Context) (r kubernetes.KubeClientInterface, r1 error) {
+				return nil, fmt.Errorf("failure")
+			}
+			// when/then
+			test.ShowSpaceEnvironmentsDeploymentsInternalServerError(t, context.Background(), svc, ctrl, space.SystemSpace)
+		})
+	})
+
 }

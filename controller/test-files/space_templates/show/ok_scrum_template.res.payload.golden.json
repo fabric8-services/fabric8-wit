@@ -1,0 +1,34 @@
+{
+  "data": {
+    "attributes": {
+      "can-construct": true,
+      "created-at": "0001-01-01T00:00:00Z",
+      "description": "An iterative and incremental agile software development framework for managing product development.\n",
+      "name": "Scrum",
+      "updated-at": "0001-01-01T00:00:00Z",
+      "version": 0
+    },
+    "id": "00000000-0000-0000-0000-000000000001",
+    "links": {
+      "self": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000001"
+    },
+    "relationships": {
+      "workitemlinktypes": {
+        "links": {
+          "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000001/workitemlinktypes"
+        }
+      },
+      "workitemtypegroups": {
+        "links": {
+          "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000001/workitemtypegroups"
+        }
+      },
+      "workitemtypes": {
+        "links": {
+          "related": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000001/workitemtypes"
+        }
+      }
+    },
+    "type": "spacetemplates"
+  }
+}
