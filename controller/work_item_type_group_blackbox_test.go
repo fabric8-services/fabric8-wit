@@ -70,7 +70,7 @@ func (s *workItemTypeGroupSuite) TestList() {
 	})
 	s.T().Run("not found", func(t *testing.T) {
 		// given
-		sapcetemplateID := uuid.NewV4()
+		sapcetemplateID := uuid.Must(uuid.NewV4())
 		// when
 		res, jerrs := test.ListWorkItemTypeGroupsNotFound(t, nil, s.svc, s.typeGroupsCtrl, sapcetemplateID)
 		// then
@@ -93,7 +93,7 @@ func (s *workItemTypeGroupSuite) TestShow() {
 	})
 	s.T().Run("not found", func(t *testing.T) {
 		// given
-		typeGroupID := uuid.NewV4()
+		typeGroupID := uuid.Must(uuid.NewV4())
 		// when
 		res, jerrs := test.ShowWorkItemTypeGroupNotFound(t, nil, s.svc, s.typeGroupCtrl, typeGroupID)
 		// then

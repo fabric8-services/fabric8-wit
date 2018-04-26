@@ -42,7 +42,7 @@ type GormCommentRepository struct {
 // Create creates a new record.
 func (m *GormCommentRepository) Create(ctx context.Context, comment *Comment, creatorID uuid.UUID) error {
 	defer goa.MeasureSince([]string{"goa", "db", "comment", "create"}, time.Now())
-	comment.ID = uuid.NewV4()
+	comment.ID = uuid.Must(uuid.NewV4())
 	// make sure no comment is created with an empty 'markup' value
 	if comment.Markup == "" {
 		comment.Markup = rendering.SystemMarkupDefault

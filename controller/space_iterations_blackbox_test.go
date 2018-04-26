@@ -135,7 +135,7 @@ func (s *SpaceIterationControllerTestSuite) TestCreate() {
 			ci := newCreateSpaceIterationPayload("Sprint #21", nil)
 			svc, ctrl := s.SecuredController()
 			// when/then
-			test.CreateSpaceIterationsNotFound(s.T(), svc.Context, svc, ctrl, uuid.NewV4(), ci)
+			test.CreateSpaceIterationsNotFound(s.T(), svc.Context, svc, ctrl, uuid.Must(uuid.NewV4()), ci)
 		})
 
 		t.Run("duplicate iteration", func(t *testing.T) {
@@ -160,7 +160,7 @@ func (s *SpaceIterationControllerTestSuite) TestCreate() {
 			ci := newCreateSpaceIterationPayload("Sprint #21", nil)
 			svc, ctrl := s.UnSecuredController()
 			// when/then
-			test.CreateSpaceIterationsUnauthorized(s.T(), svc.Context, svc, ctrl, uuid.NewV4(), ci)
+			test.CreateSpaceIterationsUnauthorized(s.T(), svc.Context, svc, ctrl, uuid.Must(uuid.NewV4()), ci)
 		})
 
 		t.Run("forbidden", func(t *testing.T) {
@@ -255,7 +255,7 @@ func (s *SpaceIterationControllerTestSuite) TestListIterationsBySpace() {
 			// given
 			svc, ctrl := s.UnSecuredController()
 			// when/then
-			test.ListSpaceIterationsNotFound(s.T(), svc.Context, svc, ctrl, uuid.NewV4(), nil, nil)
+			test.ListSpaceIterationsNotFound(s.T(), svc.Context, svc, ctrl, uuid.Must(uuid.NewV4()), nil, nil)
 		})
 	})
 

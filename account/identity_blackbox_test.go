@@ -29,12 +29,12 @@ func (s *identityBlackBoxTest) SetupTest() {
 func (s *identityBlackBoxTest) TestOKToDelete() {
 	// given
 	identity := &account.Identity{
-		ID:           uuid.NewV4(),
+		ID:           uuid.Must(uuid.NewV4()),
 		Username:     "someuserTestIdentity",
 		ProviderType: account.KeycloakIDP}
 
 	identity2 := &account.Identity{
-		ID:           uuid.NewV4(),
+		ID:           uuid.Must(uuid.NewV4()),
 		Username:     "onemoreuserTestIdentity",
 		ProviderType: account.KeycloakIDP}
 
@@ -74,7 +74,7 @@ func (s *identityBlackBoxTest) TestExistsIdentity() {
 
 	t.Run("identity doesn't exist", func(t *testing.T) {
 		//t.Parallel()
-		err := s.repo.CheckExists(s.Ctx, uuid.NewV4())
+		err := s.repo.CheckExists(s.Ctx, uuid.Must(uuid.NewV4()))
 		// then
 
 		require.IsType(t, errors.NotFoundError{}, err)
@@ -94,7 +94,7 @@ func (s *identityBlackBoxTest) TestOKToSave() {
 
 func createAndLoad(s *identityBlackBoxTest) *account.Identity {
 	identity := &account.Identity{
-		ID:           uuid.NewV4(),
+		ID:           uuid.Must(uuid.NewV4()),
 		Username:     "someuserTestIdentity2",
 		ProviderType: account.KeycloakIDP}
 

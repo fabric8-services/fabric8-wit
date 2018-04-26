@@ -164,7 +164,7 @@ type GormCodebaseRepository struct {
 func (m *GormCodebaseRepository) Create(ctx context.Context, codebase *Codebase) error {
 	defer goa.MeasureSince([]string{"goa", "db", "codebase", "create"}, time.Now())
 	if codebase.ID == uuid.Nil {
-		codebase.ID = uuid.NewV4()
+		codebase.ID = uuid.Must(uuid.NewV4())
 	}
 
 	if err := m.db.Create(codebase).Error; err != nil {

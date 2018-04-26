@@ -46,7 +46,7 @@ func (c *UserspaceController) Create(ctx *app.CreateUserspaceContext) error {
 		err := c.db.Where("path = ?", path).First(&data).Error
 		if err != nil {
 			data = Data{
-				ID:   uuid.NewV4(),
+				ID:   uuid.Must(uuid.NewV4()),
 				Path: ctx.RequestURI,
 				Data: workitem.Fields(ctx.Payload),
 			}

@@ -79,7 +79,7 @@ func (m *GormAreaRepository) Create(ctx context.Context, u *Area) error {
 	defer goa.MeasureSince([]string{"goa", "db", "area", "create"}, time.Now())
 
 	if u.ID == uuid.Nil {
-		u.ID = uuid.NewV4()
+		u.ID = uuid.Must(uuid.NewV4())
 	}
 	err := m.db.Create(u).Error
 	if err != nil {

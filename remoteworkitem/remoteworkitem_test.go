@@ -38,7 +38,7 @@ func TestWorkItemMapping(t *testing.T) {
 		remoteworkitem.AttributeMapper{remoteworkitem.AttributeExpression("title"), remoteworkitem.AttributeConverter(remoteworkitem.StringConverter{})}: workitem.SystemTitle,
 	}
 	jsonContent := `{"title":"abc"}`
-	remoteTrackerItem := remoteworkitem.TrackerItem{Item: jsonContent, RemoteItemID: "xyz", TrackerID: uuid.NewV4()}
+	remoteTrackerItem := remoteworkitem.TrackerItem{Item: jsonContent, RemoteItemID: "xyz", TrackerID: uuid.Must(uuid.NewV4())}
 	remoteWorkItemImpl := remoteworkitem.RemoteWorkItemImplRegistry[remoteworkitem.ProviderGithub]
 	gh, err := remoteWorkItemImpl(remoteTrackerItem)
 	require.NoError(t, err)
@@ -100,7 +100,7 @@ func doTestIssueMapping(t *testing.T, data remoteData, provider string) {
 	})
 	require.NoError(t, err)
 	workItemMap := remoteworkitem.RemoteWorkItemKeyMaps[provider]
-	remoteTrackerItem := remoteworkitem.TrackerItem{Item: string(content[:]), RemoteItemID: "xyz", TrackerID: uuid.NewV4()}
+	remoteTrackerItem := remoteworkitem.TrackerItem{Item: string(content[:]), RemoteItemID: "xyz", TrackerID: uuid.Must(uuid.NewV4())}
 	remoteWorkItemImpl := remoteworkitem.RemoteWorkItemImplRegistry[remoteworkitem.ProviderJira]
 	issue, err := remoteWorkItemImpl(remoteTrackerItem)
 	require.NoError(t, err)
@@ -246,7 +246,7 @@ func TestNewGitHubRemoteWorkItem(t *testing.T) {
 			}
 		}`
 	// when
-	remoteTrackerItem := remoteworkitem.TrackerItem{Item: jsonContent, RemoteItemID: "xyz", TrackerID: uuid.NewV4()}
+	remoteTrackerItem := remoteworkitem.TrackerItem{Item: jsonContent, RemoteItemID: "xyz", TrackerID: uuid.Must(uuid.NewV4())}
 	githubRemoteWorkItem, err := remoteworkitem.NewGitHubRemoteWorkItem(remoteTrackerItem)
 	// then
 	require.NoError(t, err)
@@ -280,7 +280,7 @@ func TestNewJiraRemoteWorkItem(t *testing.T) {
 			}
 		}`
 	// when
-	remoteTrackerItem := remoteworkitem.TrackerItem{Item: jsonContent, RemoteItemID: "xyz", TrackerID: uuid.NewV4()}
+	remoteTrackerItem := remoteworkitem.TrackerItem{Item: jsonContent, RemoteItemID: "xyz", TrackerID: uuid.Must(uuid.NewV4())}
 	jiraRemoteWorkItem, err := remoteworkitem.NewJiraRemoteWorkItem(remoteTrackerItem)
 	// then
 	require.NoError(t, err)

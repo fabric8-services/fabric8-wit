@@ -37,22 +37,22 @@ func (m Message) String() string {
 
 // NewWorkItemCreated creates a new message instance for the newly created WorkItemID
 func NewWorkItemCreated(workitemID string) Message {
-	return Message{MessageID: uuid.NewV4(), MessageType: "workitem.create", TargetID: workitemID}
+	return Message{MessageID: uuid.Must(uuid.NewV4()), MessageType: "workitem.create", TargetID: workitemID}
 }
 
 // NewWorkItemUpdated creates a new message instance for the updated WorkItemID
 func NewWorkItemUpdated(workitemID string) Message {
-	return Message{MessageID: uuid.NewV4(), MessageType: "workitem.update", TargetID: workitemID}
+	return Message{MessageID: uuid.Must(uuid.NewV4()), MessageType: "workitem.update", TargetID: workitemID}
 }
 
 // NewCommentCreated creates a new message instance for the newly created CommentID
 func NewCommentCreated(commentID string) Message {
-	return Message{MessageID: uuid.NewV4(), MessageType: "comment.create", TargetID: commentID}
+	return Message{MessageID: uuid.Must(uuid.NewV4()), MessageType: "comment.create", TargetID: commentID}
 }
 
 // NewCommentUpdated creates a new message instance for the updated CommentID
 func NewCommentUpdated(commentID string) Message {
-	return Message{MessageID: uuid.NewV4(), MessageType: "comment.update", TargetID: commentID}
+	return Message{MessageID: uuid.Must(uuid.NewV4()), MessageType: "comment.update", TargetID: commentID}
 }
 
 func setCurrentIdentity(ctx context.Context, msg *Message) {

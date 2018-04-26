@@ -59,7 +59,7 @@ func (s *testSpaceTemplateSuite) TestSpaceTemplate_Show() {
 		// given
 		svc, ctrl := s.SecuredController()
 		// when
-		_, jerr := test.ShowSpaceTemplateNotFound(s.T(), svc.Context, svc, ctrl, uuid.NewV4(), nil, nil)
+		_, jerr := test.ShowSpaceTemplateNotFound(s.T(), svc.Context, svc, ctrl, uuid.Must(uuid.NewV4()), nil, nil)
 		// then
 		require.NotNil(t, jerr)
 		require.Equal(t, 1, len(jerr.Errors))

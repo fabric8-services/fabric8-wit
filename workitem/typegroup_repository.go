@@ -119,7 +119,7 @@ func (r *GormWorkItemTypeGroupRepository) Create(ctx context.Context, g WorkItem
 		return nil, errors.NewBadParameterError("type_list", g.TypeList).Expected("not empty")
 	}
 	if g.ID == uuid.Nil {
-		g.ID = uuid.NewV4()
+		g.ID = uuid.Must(uuid.NewV4())
 	}
 	db := r.db.Create(&g)
 	if db.Error != nil {

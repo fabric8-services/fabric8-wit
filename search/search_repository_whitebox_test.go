@@ -218,7 +218,7 @@ func TestIsOperator(t *testing.T) {
 		"":    false,
 		"   ": false,
 		"foo": false,
-		uuid.NewV4().String(): false,
+		uuid.Must(uuid.NewV4()).String(): false,
 		EQ:     false,
 		NE:     false,
 		NOT:    false,

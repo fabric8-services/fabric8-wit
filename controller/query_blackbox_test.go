@@ -52,7 +52,7 @@ func (rest *TestQueryREST) SetupTest() {
 	rest.db = gormapplication.NewGormDB(rest.DB)
 	rest.testDir = filepath.Join("test-files", "query")
 	rest.policy = &auth.KeycloakPolicy{
-		Name:             "TestCollaborators-" + uuid.NewV4().String(),
+		Name:             "TestCollaborators-" + uuid.Must(uuid.NewV4()).String(),
 		Type:             auth.PolicyTypeUser,
 		Logic:            auth.PolicyLogicPossitive,
 		DecisionStrategy: auth.PolicyDecisionStrategyUnanimous,
@@ -173,7 +173,7 @@ func (rest *TestQueryREST) TestCreate() {
 			cq := getQueryCreatePayload("new query", nil)
 			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 			// when
-			test.CreateQueryNotFound(t, svc.Context, svc, ctrl, uuid.NewV4(), cq)
+			test.CreateQueryNotFound(t, svc.Context, svc, ctrl, uuid.Must(uuid.NewV4()), cq)
 		})
 	})
 }
@@ -237,7 +237,7 @@ func (rest *TestQueryREST) TestList() {
 			fxt := tf.NewTestFixture(t, rest.DB, tf.Identities(1))
 			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 			// when
-			test.ListQueryNotFound(t, svc.Context, svc, ctrl, uuid.NewV4(), nil, nil)
+			test.ListQueryNotFound(t, svc.Context, svc, ctrl, uuid.Must(uuid.NewV4()), nil, nil)
 		})
 	})
 }
@@ -274,7 +274,7 @@ func (rest *TestQueryREST) TestShow() {
 			fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment())
 			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 			// when
-			randomUUID := uuid.NewV4()
+			randomUUID := uuid.Must(uuid.NewV4())
 			test.ShowQueryNotFound(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, randomUUID, nil, nil)
 		})
 		t.Run("different space ID", func(t *testing.T) {
@@ -288,7 +288,7 @@ func (rest *TestQueryREST) TestShow() {
 			fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment(), tf.Queries(1))
 			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 			// when
-			test.ShowQueryNotFound(t, svc.Context, svc, ctrl, uuid.NewV4(), fxt.Queries[0].ID, nil, nil)
+			test.ShowQueryNotFound(t, svc.Context, svc, ctrl, uuid.Must(uuid.NewV4()), fxt.Queries[0].ID, nil, nil)
 		})
 		t.Run("forbidden", func(t *testing.T) {
 			fxt := tf.NewTestFixture(t, rest.DB,
@@ -321,7 +321,7 @@ func (rest *TestQueryREST) TestDelete() {
 			fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment())
 			svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 			// when
-			randomUUID := uuid.NewV4()
+			randomUUID := uuid.Must(uuid.NewV4())
 			test.DeleteQueryNotFound(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, randomUUID)
 		})
 		t.Run("different space ID", func(t *testing.T) {

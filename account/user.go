@@ -102,7 +102,7 @@ func (m *GormUserRepository) CheckExists(ctx context.Context, id uuid.UUID) erro
 func (m *GormUserRepository) Create(ctx context.Context, u *User) error {
 	defer goa.MeasureSince([]string{"goa", "db", "user", "create"}, time.Now())
 	if u.ID == uuid.Nil {
-		u.ID = uuid.NewV4()
+		u.ID = uuid.Must(uuid.NewV4())
 	}
 	err := m.db.Create(u).Error
 	if err != nil {

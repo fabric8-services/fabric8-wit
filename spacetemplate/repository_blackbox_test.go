@@ -60,7 +60,7 @@ func (s *repoSuite) TestExists() {
 
 	s.T().Run("not existing template", func(t *testing.T) {
 		// given
-		notExistingID := uuid.NewV4()
+		notExistingID := uuid.Must(uuid.NewV4())
 		// when
 		err := s.spaceTemplateRepo.CheckExists(s.Ctx, notExistingID)
 		// then
@@ -86,7 +86,7 @@ func (s *repoSuite) TestLoad() {
 
 	s.T().Run("not existing template)", func(t *testing.T) {
 		// when
-		s, err := s.spaceTemplateRepo.Load(s.Ctx, uuid.NewV4())
+		s, err := s.spaceTemplateRepo.Load(s.Ctx, uuid.Must(uuid.NewV4()))
 		// then
 		require.Error(t, err)
 		require.Nil(t, s)

@@ -382,7 +382,7 @@ func TestGoldenCompareWithGolden(t *testing.T) {
 		Bar       string
 		CreatedAt time.Time
 	}
-	dummy := Foo{Bar: "hello world", ID: uuid.NewV4()}
+	dummy := Foo{Bar: "hello world", ID: uuid.Must(uuid.NewV4())}
 
 	agnosticVals := []bool{false, true}
 	for _, agnostic := range agnosticVals {
@@ -448,7 +448,7 @@ func TestGoldenCompareWithGolden(t *testing.T) {
 			})
 		})
 		t.Run("comparing with the same object but modified its UUID", func(t *testing.T) {
-			dummy.ID = uuid.NewV4()
+			dummy.ID = uuid.Must(uuid.NewV4())
 			t.Run("not agnostic", func(t *testing.T) {
 				// when
 				err = testableCompareWithGolden(false, f, dummy, false, false)

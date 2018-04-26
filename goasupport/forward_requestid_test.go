@@ -16,7 +16,7 @@ import (
 
 func TestForwardRequest(t *testing.T) {
 
-	reqID := uuid.NewV4().String()
+	reqID := uuid.Must(uuid.NewV4()).String()
 	ctx := context.Background()
 
 	service := goa.New("test")

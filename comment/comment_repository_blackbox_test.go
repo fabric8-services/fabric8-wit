@@ -36,7 +36,7 @@ func newComment(parentID uuid.UUID, body, markup string) *comment.Comment {
 		ParentID: parentID,
 		Body:     body,
 		Markup:   markup,
-		Creator:  uuid.NewV4(),
+		Creator:  uuid.Must(uuid.NewV4()),
 	}
 }
 
@@ -54,7 +54,7 @@ func (s *TestCommentRepository) createComments(comments []*comment.Comment, crea
 func (s *TestCommentRepository) TestCreateCommentWithMarkup() {
 	// given
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(1))
-	comment := newComment(uuid.NewV4(), "Test A", rendering.SystemMarkupMarkdown)
+	comment := newComment(uuid.Must(uuid.NewV4()), "Test A", rendering.SystemMarkupMarkdown)
 	// when
 	s.repo.Create(s.Ctx, comment, fxt.Identities[0].ID)
 	// then
@@ -66,7 +66,7 @@ func (s *TestCommentRepository) TestCreateCommentWithMarkup() {
 func (s *TestCommentRepository) TestCreateCommentWithoutMarkup() {
 	// given
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Identities(1))
-	comment := newComment(uuid.NewV4(), "Test A", "")
+	comment := newComment(uuid.Must(uuid.NewV4()), "Test A", "")
 	// when
 	s.repo.Create(s.Ctx, comment, fxt.Identities[0].ID)
 	// then
@@ -138,7 +138,7 @@ func (s *TestCommentRepository) TestDeleteComment() {
 		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Comments(numComments))
 		c := fxt.Comments[0]
 		// when
-		err := s.repo.Delete(s.Ctx, uuid.NewV4(), c.Creator)
+		err := s.repo.Delete(s.Ctx, uuid.Must(uuid.NewV4()), c.Creator)
 		// then
 		require.Error(t, err)
 		comments, _, err := s.repo.List(s.Ctx, fxt.WorkItems[0].ID, nil, nil)
@@ -223,7 +223,7 @@ func (s *TestCommentRepository) TestExistsComment() {
 
 	s.T().Run("comment doesn't exist", func(t *testing.T) {
 		// when
-		err := s.repo.CheckExists(s.Ctx, uuid.NewV4())
+		err := s.repo.CheckExists(s.Ctx, uuid.Must(uuid.NewV4()))
 		// then
 		require.IsType(t, errors.NotFoundError{}, err)
 	})

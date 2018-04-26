@@ -267,7 +267,7 @@ func makeWorkItemTypes(fxt *TestFixture) error {
 	witRepo := workitem.NewWorkItemTypeRepository(fxt.db)
 	for i := range fxt.WorkItemTypes {
 		fxt.WorkItemTypes[i] = &workitem.WorkItemType{
-			ID:           uuid.NewV4(),
+			ID:           uuid.Must(uuid.NewV4()),
 			Name:         testsupport.CreateRandomValidTestName("work item type "),
 			Description:  ptr.String("this work item type was automatically generated"),
 			Icon:         "fa-bug",
@@ -304,7 +304,7 @@ func makeWorkItemTypeGroups(fxt *TestFixture) error {
 	witgRepo := workitem.NewWorkItemTypeGroupRepository(fxt.db)
 	for i := range fxt.WorkItemTypeGroups {
 		fxt.WorkItemTypeGroups[i] = &workitem.WorkItemTypeGroup{
-			ID:       uuid.NewV4(),
+			ID:       uuid.Must(uuid.NewV4()),
 			Name:     testsupport.CreateRandomValidTestName("work item type group "),
 			Bucket:   workitem.BucketPortfolio,
 			Icon:     "fa fa-suitcase",

@@ -68,12 +68,12 @@ func (s *TestUsersSuite) TestUpdateUserAsServiceAccountUnauthorized() {
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
 
 	// when
-	newEmail := "TestUpdateUserOK-" + uuid.NewV4().String() + "@email.com"
+	newEmail := "TestUpdateUserOK-" + uuid.Must(uuid.NewV4()).String() + "@email.com"
 	newFullName := "TestUpdateUserOK"
 	newImageURL := "http://new.image.io/imageurl"
 	newBio := "new bio"
 	newProfileURL := "http://new.profile.url/url"
-	newCompany := "updateCompany " + uuid.NewV4().String()
+	newCompany := "updateCompany " + uuid.Must(uuid.NewV4()).String()
 	secureService, secureController := s.SecuredController(identity)
 
 	contextInformation := map[string]interface{}{
@@ -95,12 +95,12 @@ func (s *TestUsersSuite) TestUpdateUserAsServiceAccountBadRequest() {
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
 
 	// when
-	newEmail := "TestUpdateUserOK-" + uuid.NewV4().String() + "@email.com"
+	newEmail := "TestUpdateUserOK-" + uuid.Must(uuid.NewV4()).String() + "@email.com"
 	newFullName := "TestUpdateUserOK"
 	newImageURL := "http://new.image.io/imageurl"
 	newBio := "new bio"
 	newProfileURL := "http://new.profile.url/url"
-	newCompany := "updateCompany " + uuid.NewV4().String()
+	newCompany := "updateCompany " + uuid.Must(uuid.NewV4()).String()
 	secureService, secureController := s.SecuredServiceAccountController(identity)
 
 	contextInformation := map[string]interface{}{
@@ -122,12 +122,12 @@ func (s *TestUsersSuite) TestUpdateUserAsServiceAccountOK() {
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
 
 	// when
-	user.Email = "TestUpdateUserOK-" + uuid.NewV4().String() + "@email.com"
+	user.Email = "TestUpdateUserOK-" + uuid.Must(uuid.NewV4()).String() + "@email.com"
 	user.FullName = "TestUpdateUserOK"
 	user.ImageURL = "http://new.image.io/imageurl"
 	user.Bio = "new bio"
 	user.URL = "http://new.profile.url/url"
-	user.Company = "updateCompany " + uuid.NewV4().String()
+	user.Company = "updateCompany " + uuid.Must(uuid.NewV4()).String()
 	secureService, secureController := s.SecuredServiceAccountController(identity)
 
 	contextInformation := map[string]interface{}{
@@ -146,12 +146,12 @@ func (s *TestUsersSuite) TestUpdateUserAsServiceAccountNotFound() {
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
 
 	// when
-	newEmail := "TestUpdateUserOK-" + uuid.NewV4().String() + "@email.com"
+	newEmail := "TestUpdateUserOK-" + uuid.Must(uuid.NewV4()).String() + "@email.com"
 	newFullName := "TestUpdateUserOK"
 	newImageURL := "http://new.image.io/imageurl"
 	newBio := "new bio"
 	newProfileURL := "http://new.profile.url/url"
-	newCompany := "updateCompany " + uuid.NewV4().String()
+	newCompany := "updateCompany " + uuid.Must(uuid.NewV4()).String()
 	secureService, secureController := s.SecuredServiceAccountController(identity)
 
 	contextInformation := map[string]interface{}{
@@ -162,7 +162,7 @@ func (s *TestUsersSuite) TestUpdateUserAsServiceAccountNotFound() {
 	}
 	updateUsersPayload := createUpdateUsersAsServiceAccountPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, &newCompany, nil, nil, contextInformation)
 
-	idAsString := uuid.NewV4().String() // will never be found.
+	idAsString := uuid.Must(uuid.NewV4()).String() // will never be found.
 	test.UpdateUserAsServiceAccountUsersNotFound(s.T(), secureService.Context, secureService, secureController, idAsString, updateUsersPayload)
 
 }
@@ -189,17 +189,17 @@ func (s *TestUsersSuite) TestCreateUserAsServiceAccountUnAuthorized() {
 
 	// given
 
-	newEmail := "T" + uuid.NewV4().String() + "@email.com"
+	newEmail := "T" + uuid.Must(uuid.NewV4()).String() + "@email.com"
 	newFullName := "TesTCreateUserOK"
 	newImageURL := "http://new.image.io/imageurl"
 	newBio := "new bio"
 	newProfileURL := "http://new.profile.url/url"
-	newCompany := "u" + uuid.NewV4().String()
-	username := "T" + uuid.NewV4().String()
+	newCompany := "u" + uuid.Must(uuid.NewV4()).String()
+	username := "T" + uuid.Must(uuid.NewV4()).String()
 	secureService, secureController := s.SecuredController(testsupport.TestIdentity)
 	registrationCompleted := false
-	identityId := uuid.NewV4()
-	userID := uuid.NewV4()
+	identityId := uuid.Must(uuid.NewV4())
+	userID := uuid.Must(uuid.NewV4())
 
 	contextInformation := map[string]interface{}{
 		"last_visited": "yesterday",
@@ -217,16 +217,16 @@ func (s *TestUsersSuite) TestCreateUserAsServiceAccountBadRequest() {
 
 	// given
 
-	newEmail := "T" + uuid.NewV4().String() + "@email.com"
+	newEmail := "T" + uuid.Must(uuid.NewV4()).String() + "@email.com"
 	newFullName := "TesTCreateUserOK"
 	newImageURL := "http://new.image.io/imageurl"
 	newBio := "new bio"
 	newProfileURL := "http://new.profile.url/url"
-	newCompany := "u" + uuid.NewV4().String()
-	username := "T" + uuid.NewV4().String()
+	newCompany := "u" + uuid.Must(uuid.NewV4()).String()
+	username := "T" + uuid.Must(uuid.NewV4()).String()
 	secureService, secureController := s.SecuredServiceAccountController(testsupport.TestIdentity)
 	registrationCompleted := false
-	userID := uuid.NewV4()
+	userID := uuid.Must(uuid.NewV4())
 
 	contextInformation := map[string]interface{}{
 		"last_visited": "yesterday",
@@ -243,11 +243,11 @@ func (s *TestUsersSuite) TestCreateUserAsServiceAccountBadRequest() {
 
 func (s *TestUsersSuite) createRandomUser(fullname string) account.User {
 	user := account.User{
-		Email:    uuid.NewV4().String() + "primaryForUpdat7e@example.com",
+		Email:    uuid.Must(uuid.NewV4()).String() + "primaryForUpdat7e@example.com",
 		FullName: fullname,
 		ImageURL: "someURLForUpdate",
-		ID:       uuid.NewV4(),
-		Company:  uuid.NewV4().String() + "company",
+		ID:       uuid.Must(uuid.NewV4()),
+		Company:  uuid.Must(uuid.NewV4()).String() + "company",
 	}
 	err := s.userRepo.Create(context.Background(), &user)
 	require.NoError(s.T(), err)
@@ -256,18 +256,18 @@ func (s *TestUsersSuite) createRandomUser(fullname string) account.User {
 
 func (s *TestUsersSuite) createRandomUserObject(fullname string) account.User {
 	user := account.User{
-		Email:    uuid.NewV4().String() + "primaryForUpdat7e@example.com",
+		Email:    uuid.Must(uuid.NewV4()).String() + "primaryForUpdat7e@example.com",
 		FullName: fullname,
 		ImageURL: "someURLForUpdate",
-		ID:       uuid.NewV4(),
-		Company:  uuid.NewV4().String() + "company",
+		ID:       uuid.Must(uuid.NewV4()),
+		Company:  uuid.Must(uuid.NewV4()).String() + "company",
 	}
 	return user
 }
 func (s *TestUsersSuite) createRandomIdentityObject(user account.User, providerType string) account.Identity {
-	profile := "foobarforupdate.com/" + uuid.NewV4().String() + "/" + user.ID.String()
+	profile := "foobarforupdate.com/" + uuid.Must(uuid.NewV4()).String() + "/" + user.ID.String()
 	identity := account.Identity{
-		Username:     "TestUpdateUserIntegration123" + uuid.NewV4().String(),
+		Username:     "TestUpdateUserIntegration123" + uuid.Must(uuid.NewV4()).String(),
 		ProviderType: providerType,
 		ProfileURL:   &profile,
 		User:         user,
@@ -277,9 +277,9 @@ func (s *TestUsersSuite) createRandomIdentityObject(user account.User, providerT
 }
 
 func (s *TestUsersSuite) createRandomIdentity(user account.User, providerType string) account.Identity {
-	profile := "foobarforupdate.com/" + uuid.NewV4().String() + "/" + user.ID.String()
+	profile := "foobarforupdate.com/" + uuid.Must(uuid.NewV4()).String() + "/" + user.ID.String()
 	identity := account.Identity{
-		Username:     "TestUpdateUserIntegration123" + uuid.NewV4().String(),
+		Username:     "TestUpdateUserIntegration123" + uuid.Must(uuid.NewV4()).String(),
 		ProviderType: providerType,
 		ProfileURL:   &profile,
 		User:         user,

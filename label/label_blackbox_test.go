@@ -139,7 +139,7 @@ func (s *TestLabelRepository) TestSave() {
 	})
 
 	s.T().Run("non-existing label", func(t *testing.T) {
-		fakeID := uuid.NewV4()
+		fakeID := uuid.Must(uuid.NewV4())
 		fakeLabel := label.Label{
 			ID:   fakeID,
 			Name: "Some name",

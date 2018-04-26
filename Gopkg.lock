@@ -199,8 +199,8 @@
     "uuid",
     "version"
   ]
-  revision = "5646a430cdeb66983d5ace3384e0a667c185abc7"
-  version = "v1.3.0"
+  revision = "fc29b77a218fb9e190849c81911ed12d25e771de"
+  version = "v1.3.1"
 
 [[projects]]
   name = "github.com/gogo/protobuf"
@@ -812,6 +812,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "843238741f4e88d78a8acaa703af920f93880a14b119627c75831c56a6e20393"
+  inputs-digest = "51998f117372a70b4100c78ac149d11a6a80e086a01ecfb12fc8793bf184d046"
   solver-name = "gps-cdcl"
   solver-version = 1

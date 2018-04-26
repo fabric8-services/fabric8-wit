@@ -52,7 +52,7 @@ func (rest *TestIterationREST) SetupTest() {
 	rest.db = gormapplication.NewGormDB(rest.DB)
 	rest.testDir = filepath.Join("test-files", "iteration")
 	rest.policy = &auth.KeycloakPolicy{
-		Name:             "TestCollaborators-" + uuid.NewV4().String(),
+		Name:             "TestCollaborators-" + uuid.Must(uuid.NewV4()).String(),
 		Type:             auth.PolicyTypeUser,
 		Logic:            auth.PolicyLogicPossitive,
 		DecisionStrategy: auth.PolicyDecisionStrategyUnanimous,
@@ -138,7 +138,7 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 				))
 			childItr := fxt.IterationByName("child")
 			ci := getChildIterationPayload("Sprint #21")
-			id := uuid.NewV4()
+			id := uuid.Must(uuid.NewV4())
 			ci.Data.ID = &id // set different ID and it must be ignoed by controller
 			startAt, err := time.Parse(time.RFC3339, "2016-11-04T15:08:41+00:00")
 			require.NoError(t, err)
@@ -217,7 +217,7 @@ func (rest *TestIterationREST) TestCreateChildIteration() {
 		fxt := tf.NewTestFixture(t, rest.DB, tf.Identities(1), tf.Areas(1), tf.Iterations(1))
 		svc, ctrl := rest.SecuredControllerWithIdentity(fxt.Identities[0])
 		ci := getChildIterationPayload("Sprint #21")
-		_, jerrs := test.CreateChildIterationNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String(), ci)
+		_, jerrs := test.CreateChildIterationNotFound(t, svc.Context, svc, ctrl, uuid.Must(uuid.NewV4()).String(), ci)
 		jerrs.Errors[0].ID = ptr.String("IGNORE_ME")
 
 		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "bad_request_unknown_parent.res.errors.golden.json"), jerrs)
@@ -471,7 +471,7 @@ func (rest *TestIterationREST) TestFailShowIterationMissing() {
 	// given
 	svc, ctrl := rest.SecuredController()
 	// when/then
-	test.ShowIterationNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4().String(), nil, nil)
+	test.ShowIterationNotFound(rest.T(), svc.Context, svc, ctrl, uuid.Must(uuid.NewV4()).String(), nil, nil)
 }
 
 func (rest *TestIterationREST) TestSuccessUpdateIteration() {
@@ -607,7 +607,7 @@ func (rest *TestIterationREST) TestFailUpdateIterationNotFound() {
 	// given
 	fxt := tf.NewTestFixture(rest.T(), rest.DB, createSpaceAndRootAreaAndIterations()...)
 	itr := *fxt.Iterations[1]
-	itr.ID = uuid.NewV4()
+	itr.ID = uuid.Must(uuid.NewV4())
 	payload := app.UpdateIterationPayload{
 		Data: &app.Iteration{
 			Attributes: &app.IterationAttributes{},

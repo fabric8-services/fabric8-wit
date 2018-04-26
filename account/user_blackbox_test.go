@@ -74,7 +74,7 @@ func (s *userBlackBoxTest) TestExistsUser() {
 	t.Run("user doesn't exist", func(t *testing.T) {
 		//t.Parallel()
 		// Check not existing
-		err := s.repo.CheckExists(s.Ctx, uuid.NewV4())
+		err := s.repo.CheckExists(s.Ctx, uuid.Must(uuid.NewV4()))
 		// then
 		//
 		require.IsType(s.T(), errors.NotFoundError{}, err)
@@ -117,14 +117,14 @@ func (s *userBlackBoxTest) TestUpdateToEmptyString() {
 
 func createAndLoadUser(s *userBlackBoxTest) *account.User {
 	user := &account.User{
-		ID:       uuid.NewV4(),
-		Email:    "someuser@TestUser" + uuid.NewV4().String(),
-		FullName: "someuserTestUser" + uuid.NewV4().String(),
-		ImageURL: "someImageUrl" + uuid.NewV4().String(),
-		Bio:      "somebio" + uuid.NewV4().String(),
-		URL:      "someurl" + uuid.NewV4().String(),
+		ID:       uuid.Must(uuid.NewV4()),
+		Email:    "someuser@TestUser" + uuid.Must(uuid.NewV4()).String(),
+		FullName: "someuserTestUser" + uuid.Must(uuid.NewV4()).String(),
+		ImageURL: "someImageUrl" + uuid.Must(uuid.NewV4()).String(),
+		Bio:      "somebio" + uuid.Must(uuid.NewV4()).String(),
+		URL:      "someurl" + uuid.Must(uuid.NewV4()).String(),
 		ContextInformation: account.ContextInformation{
-			"space":        uuid.NewV4(),
+			"space":        uuid.Must(uuid.NewV4()),
 			"last_visited": "http://www.google.com",
 			"myid":         "71f343e3-2bfa-4ec6-86d4-79b91476acfc",
 		},

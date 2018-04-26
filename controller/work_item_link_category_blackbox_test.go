@@ -64,7 +64,7 @@ func (s *workItemLinkCategorySuite) TestShow() {
 	})
 	s.T().Run("not found", func(t *testing.T) {
 		// given
-		id := uuid.NewV4()
+		id := uuid.Must(uuid.NewV4())
 		// when
 		res, jerrs := test.ShowWorkItemLinkCategoryNotFound(t, nil, nil, s.linkCatCtrl, id)
 		// then

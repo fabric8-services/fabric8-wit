@@ -262,7 +262,7 @@ func (r *GormRepository) Create(ctx context.Context, space *Space) (*Space, erro
 	defer goa.MeasureSince([]string{"goa", "db", "space", "create"}, time.Now())
 	// We might want to create a space with a specific ID, e.g. space.SystemSpace
 	if space.ID == uuid.Nil {
-		space.ID = uuid.NewV4()
+		space.ID = uuid.Must(uuid.NewV4())
 	}
 
 	// Check if the used space template can create spaces

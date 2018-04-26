@@ -136,7 +136,7 @@ func (m *GormIterationRepository) Create(ctx context.Context, u *Iteration) erro
 	defer goa.MeasureSince([]string{"goa", "db", "iteration", "create"}, time.Now())
 
 	if u.ID == uuid.Nil {
-		u.ID = uuid.NewV4()
+		u.ID = uuid.Must(uuid.NewV4())
 	}
 	if !u.State.IsSet() {
 		u.State = StateNew

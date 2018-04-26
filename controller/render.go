@@ -33,7 +33,7 @@ func (c *RenderController) Render(ctx *app.RenderRenderContext) error {
 	}
 	htmlResult := rendering.RenderMarkupToHTML(content, markup)
 	res := &app.MarkupRenderingSingle{Data: &app.MarkupRenderingData{
-		ID:   uuid.NewV4().String(),
+		ID:   uuid.Must(uuid.NewV4()).String(),
 		Type: RenderingType,
 		Attributes: &app.MarkupRenderingDataAttributes{
 			RenderedContent: htmlResult,

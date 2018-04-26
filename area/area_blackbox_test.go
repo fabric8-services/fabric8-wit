@@ -84,7 +84,7 @@ func (s *TestAreaRepository) TestExistsArea() {
 
 	t.Run("area doesn't exist", func(t *testing.T) {
 		// when
-		err := repo.CheckExists(context.Background(), uuid.NewV4())
+		err := repo.CheckExists(context.Background(), uuid.Must(uuid.NewV4()))
 		// then
 		require.IsType(t, errors.NotFoundError{}, err)
 	})
@@ -117,7 +117,7 @@ func (s *TestAreaRepository) TestCreateChildArea() {
 
 func (s *TestAreaRepository) TestGetAreaBySpaceIDAndNameAndPath() {
 	// given a space and area with the same name.
-	name := "space name " + uuid.NewV4().String()
+	name := "space name " + uuid.Must(uuid.NewV4()).String()
 	fxt := tf.NewTestFixture(s.T(), s.DB,
 		tf.Spaces(1, func(fxt *tf.TestFixture, idx int) error {
 			fxt.Spaces[idx].Name = name

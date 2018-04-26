@@ -148,7 +148,7 @@ func (s *TestQueryRepository) TestShow() {
 		assert.Equal(t, "q1", q.Title)
 	})
 	s.T().Run("fail", func(t *testing.T) {
-		_, err := repo.Load(context.Background(), uuid.NewV4(), uuid.NewV4())
+		_, err := repo.Load(context.Background(), uuid.Must(uuid.NewV4()), uuid.Must(uuid.NewV4()))
 		require.Error(t, err)
 	})
 }

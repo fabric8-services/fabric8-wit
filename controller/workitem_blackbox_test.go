@@ -114,7 +114,7 @@ func (s *WorkItemSuite) TestPagingLinks() {
 	pagingTest(0, 4, "page[offset]=0&page[limit]=4", "page[offset]=8&page[limit]=4", "", "page[offset]=4&page[limit]=4")
 
 	// With only ZERO work items
-	spaceName := "paging zero space " + uuid.NewV4().String()
+	spaceName := "paging zero space " + uuid.Must(uuid.NewV4()).String()
 	sp := &app.CreateSpacePayload{
 		Data: &app.Space{
 			Type: "spaces",
@@ -526,7 +526,7 @@ func (s *WorkItemSuite) TestReorderWorkitemNotFoundOK() {
 	var dataArray []*app.WorkItem
 	dataArray = append(dataArray, result1.Data)
 	payload2.Data = dataArray
-	randomID := uuid.NewV4()
+	randomID := uuid.Must(uuid.NewV4())
 	payload2.Position.ID = &randomID
 	payload2.Position.Direction = string(workitem.DirectionAbove)
 	test.ReorderWorkitemsNotFound(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, space.SystemSpace, &payload2)
@@ -642,28 +642,28 @@ func getWorkItemTestDataFunc(config configuration.Registry) func(t *testing.T) [
 			// Update Work Item API with different parameters
 			{
 				method:             http.MethodPatch,
-				url:                endpointWorkItem + "/" + uuid.NewV4().String(),
+				url:                endpointWorkItem + "/" + uuid.Must(uuid.NewV4()).String(),
 				expectedStatusCode: http.StatusUnauthorized,
 				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 				payload:            createWIPayloadString,
 				jwtToken:           getExpiredAuthHeader(t, privatekey),
 			}, {
 				method:             http.MethodPatch,
-				url:                endpointWorkItem + "/" + uuid.NewV4().String(),
+				url:                endpointWorkItem + "/" + uuid.Must(uuid.NewV4()).String(),
 				expectedStatusCode: http.StatusUnauthorized,
 				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 				payload:            createWIPayloadString,
 				jwtToken:           getMalformedAuthHeader(t, privatekey),
 			}, {
 				method:             http.MethodPatch,
-				url:                endpointWorkItem + "/" + uuid.NewV4().String(),
+				url:                endpointWorkItem + "/" + uuid.Must(uuid.NewV4()).String(),
 				expectedStatusCode: http.StatusUnauthorized,
 				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 				payload:            createWIPayloadString,
 				jwtToken:           getValidAuthHeader(t, differentPrivatekey),
 			}, {
 				method:             http.MethodPatch,
-				url:                endpointWorkItem + "/" + uuid.NewV4().String(),
+				url:                endpointWorkItem + "/" + uuid.Must(uuid.NewV4()).String(),
 				expectedStatusCode: http.StatusUnauthorized,
 				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 				payload:            createWIPayloadString,
@@ -672,28 +672,28 @@ func getWorkItemTestDataFunc(config configuration.Registry) func(t *testing.T) [
 			// Delete Work Item API with different parameters
 			{
 				method:             http.MethodDelete,
-				url:                endpointWorkItem + "/" + uuid.NewV4().String(),
+				url:                endpointWorkItem + "/" + uuid.Must(uuid.NewV4()).String(),
 				expectedStatusCode: http.StatusUnauthorized,
 				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 				payload:            nil,
 				jwtToken:           getExpiredAuthHeader(t, privatekey),
 			}, {
 				method:             http.MethodDelete,
-				url:                endpointWorkItem + "/" + uuid.NewV4().String(),
+				url:                endpointWorkItem + "/" + uuid.Must(uuid.NewV4()).String(),
 				expectedStatusCode: http.StatusUnauthorized,
 				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 				payload:            nil,
 				jwtToken:           getMalformedAuthHeader(t, privatekey),
 			}, {
 				method:             http.MethodDelete,
-				url:                endpointWorkItem + "/" + uuid.NewV4().String(),
+				url:                endpointWorkItem + "/" + uuid.Must(uuid.NewV4()).String(),
 				expectedStatusCode: http.StatusUnauthorized,
 				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 				payload:            nil,
 				jwtToken:           getValidAuthHeader(t, differentPrivatekey),
 			}, {
 				method:             http.MethodDelete,
-				url:                endpointWorkItem + "/" + uuid.NewV4().String(),
+				url:                endpointWorkItem + "/" + uuid.Must(uuid.NewV4()).String(),
 				expectedStatusCode: http.StatusUnauthorized,
 				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 				payload:            nil,
@@ -703,7 +703,7 @@ func getWorkItemTestDataFunc(config configuration.Registry) func(t *testing.T) [
 			// We do not have security on GET hence this should return 404 not found
 			{
 				method:             http.MethodGet,
-				url:                endpointWorkItem + "/" + uuid.NewV4().String(),
+				url:                endpointWorkItem + "/" + uuid.Must(uuid.NewV4()).String(),
 				expectedStatusCode: http.StatusNotFound,
 				expectedErrorCode:  jsonapi.ErrorCodeNotFound,
 				payload:            nil,
@@ -936,7 +936,7 @@ func (s *WorkItem2Suite) TestWI2UpdateVersionConflict() {
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateWithNonExistentID() {
-	id := uuid.NewV4()
+	id := uuid.Must(uuid.NewV4())
 	s.minimumPayload.Data.ID = &id
 	test.UpdateWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.workitemCtrl, id, s.minimumPayload)
 }
@@ -1799,7 +1799,7 @@ func (s *WorkItem2Suite) TestWI2FailCreateInvalidAssignees() {
 	c.Data.Relationships.BaseType = newRelationBaseType(workitem.SystemBug)
 	c.Data.Relationships.Assignees = &app.RelationGenericList{
 		Data: []*app.GenericData{
-			ident(uuid.NewV4()),
+			ident(uuid.Must(uuid.NewV4())),
 		},
 	}
 	// when/then
@@ -1827,7 +1827,7 @@ func (s *WorkItem2Suite) TestWI2FailUpdateInvalidAssignees() {
 	update.Data.Relationships = &app.WorkItemRelationships{
 		Assignees: &app.RelationGenericList{
 			Data: []*app.GenericData{
-				ident(uuid.NewV4()),
+				ident(uuid.Must(uuid.NewV4())),
 			},
 		},
 	}
@@ -1957,7 +1957,7 @@ func assertResponseHeaders(t *testing.T, res http.ResponseWriter) (etag string, 
 }
 
 func (s *WorkItem2Suite) TestWI2FailShowMissing() {
-	test.ShowWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.workitemCtrl, uuid.NewV4(), nil, nil)
+	test.ShowWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.workitemCtrl, uuid.Must(uuid.NewV4()), nil, nil)
 }
 
 func (s *WorkItem2Suite) TestWI2FailOnDelete() {
@@ -2112,7 +2112,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithRootAreaIfMissing() {
 func (s *WorkItem2Suite) TestWI2CreateUnknownArea() {
 	// given
 	arType := area.APIStringTypeAreas
-	areaID := uuid.NewV4().String()
+	areaID := uuid.Must(uuid.NewV4()).String()
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
@@ -2286,7 +2286,7 @@ func (s *WorkItem2Suite) TestWI2UpdateRemoveIteration() {
 func (s *WorkItem2Suite) TestWI2CreateUnknownIteration() {
 	// given
 	itType := iteration.APIStringTypeIteration
-	iterationID := uuid.NewV4().String()
+	iterationID := uuid.Must(uuid.NewV4()).String()
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
@@ -2547,7 +2547,7 @@ func (s *WorkItem2Suite) TestCreateWorkItemWithCustomSpace() {
 	spaceTemplateID := spacetemplate.SystemLegacyTemplateID
 	spaceTemplateSelfURL := rest.AbsoluteURL(reqLong, app.SpaceTemplateHref(spaceTemplateID.String()))
 
-	spaceName := "My own Space " + uuid.NewV4().String()
+	spaceName := "My own Space " + uuid.Must(uuid.NewV4()).String()
 	sp := &app.CreateSpacePayload{
 		Data: &app.Space{
 			Type: "spaces",
@@ -2586,7 +2586,7 @@ func (s *WorkItem2Suite) TestCreateWorkItemWithInvalidSpace() {
 	c.Data.Attributes[workitem.SystemTitle] = title
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	// set custom space and see if WI gets custom space
-	fakeSpaceID := uuid.NewV4()
+	fakeSpaceID := uuid.Must(uuid.NewV4())
 	c.Data.Relationships.Space.Data.ID = &fakeSpaceID
 	// when/then
 	test.CreateWorkitemsBadRequest(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, &c)
@@ -2798,7 +2798,7 @@ func (s *WorkItem2Suite) TestWI2ListForChildIteration() {
 
 func (s *WorkItem2Suite) TestWI2FilterExpressionRedirection() {
 	c := minimumRequiredCreatePayload()
-	queryExpression := fmt.Sprintf(`{"iteration" : "%s"}`, uuid.NewV4().String())
+	queryExpression := fmt.Sprintf(`{"iteration" : "%s"}`, uuid.Must(uuid.NewV4()).String())
 	expectedLocation := fmt.Sprintf(`/api/search?filter[expression]={"%s":[{"space": "%s" }, %s]}`, search.AND, *c.Data.Relationships.Space.Data.ID, queryExpression)
 	respWriter := test.ListWorkitemsTemporaryRedirect(s.T(), s.svc.Context, s.svc, s.workitemsCtrl, *c.Data.Relationships.Space.Data.ID, nil, nil, nil, &queryExpression, nil, nil, nil, nil, nil, nil, nil, nil)
 	location := respWriter.Header().Get("location")
@@ -2849,7 +2849,7 @@ func minimumRequiredCreatePayloadWithSpace(spaceID uuid.UUID) app.CreateWorkitem
 }
 
 func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
-	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "TestUpdateWorkitemForSpaceCollaborator-"+uuid.NewV4().String(), "TestWI")
+	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "TestUpdateWorkitemForSpaceCollaborator-"+uuid.Must(uuid.NewV4()).String(), "TestWI")
 	require.NoError(s.T(), err)
 	space := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, *testIdentity, "")
 	// Create new workitem
@@ -2860,7 +2860,7 @@ func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", *testIdentity, &TestSpaceAuthzService{*testIdentity, ""})
 	workitemCtrl := NewWorkitemController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	workitemsCtrl := NewWorkitemsController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
-	testIdentity2, err := testsupport.CreateTestIdentity(s.DB, "TestUpdateWorkitemForSpaceCollaborator-"+uuid.NewV4().String(), "TestWI")
+	testIdentity2, err := testsupport.CreateTestIdentity(s.DB, "TestUpdateWorkitemForSpaceCollaborator-"+uuid.Must(uuid.NewV4()).String(), "TestWI")
 	svcNotAuthorized := testsupport.ServiceAsSpaceUser("Collaborators-Service", *testIdentity2, &TestSpaceAuthzService{*testIdentity, ""})
 	workitemCtrlNotAuthorized := NewWorkitemController(svcNotAuthorized, gormapplication.NewGormDB(s.DB), s.Configuration)
 	workitemsCtrlNotAuthorized := NewWorkitemsController(svcNotAuthorized, gormapplication.NewGormDB(s.DB), s.Configuration)
@@ -2884,7 +2884,7 @@ func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	openshiftioTestIdentityID, err := uuid.FromString("7b50ddb4-5e12-4031-bca7-3b88f92e2339")
 	require.NoError(s.T(), err)
 	openshiftioTestIdentity := account.Identity{
-		Username:     "TestUpdateWorkitemForSpaceCollaborator-" + uuid.NewV4().String(),
+		Username:     "TestUpdateWorkitemForSpaceCollaborator-" + uuid.Must(uuid.NewV4()).String(),
 		ProviderType: "TestWI",
 		ID:           openshiftioTestIdentityID,
 	}
@@ -2941,7 +2941,7 @@ func createSpaceWithDefaults(ctx context.Context, db *gorm.DB) (*space.Space, *i
 	areaRepo := area.NewAreaRepository(db)
 
 	newSpace := space.Space{
-		Name:            fmt.Sprintf("The Space %v", uuid.NewV4()),
+		Name:            fmt.Sprintf("The Space %v", uuid.Must(uuid.NewV4())),
 		SpaceTemplateID: spacetemplate.SystemLegacyTemplateID,
 	}
 	sp, err := spaceRepo.Create(ctx, &newSpace)

@@ -44,7 +44,7 @@ func (s *workItemTypeGroupRepoTest) TestExists() {
 
 	s.T().Run("group doesn't exist", func(t *testing.T) {
 		// given
-		nonExistingWorkItemTypeGroupID := uuid.NewV4()
+		nonExistingWorkItemTypeGroupID := uuid.Must(uuid.NewV4())
 		// when
 		err := s.repo.CheckExists(s.Ctx, nonExistingWorkItemTypeGroupID)
 		// then
@@ -65,7 +65,7 @@ func compareTypeGroups(t *testing.T, expected, actual workitem.WorkItemTypeGroup
 func (s *workItemTypeGroupRepoTest) TestCreate() {
 	// given
 	fxt := tf.NewTestFixture(s.T(), s.DB, tf.WorkItemTypes(3))
-	ID := uuid.NewV4()
+	ID := uuid.Must(uuid.NewV4())
 	expected := workitem.WorkItemTypeGroup{
 		ID:              ID,
 		SpaceTemplateID: fxt.SpaceTemplates[0].ID,
@@ -93,13 +93,13 @@ func (s *workItemTypeGroupRepoTest) TestCreate() {
 	s.T().Run("invalid", func(t *testing.T) {
 		t.Run("unknown space template", func(t *testing.T) {
 			g := expected
-			g.SpaceTemplateID = uuid.NewV4()
+			g.SpaceTemplateID = uuid.Must(uuid.NewV4())
 			_, err := s.repo.Create(s.Ctx, g)
 			require.Error(t, err)
 		})
 		t.Run("unknown work item type", func(t *testing.T) {
 			g := expected
-			g.TypeList = []uuid.UUID{uuid.NewV4()}
+			g.TypeList = []uuid.UUID{uuid.Must(uuid.NewV4())}
 			_, err := s.repo.Create(s.Ctx, g)
 			require.Error(t, err)
 		})
@@ -123,7 +123,7 @@ func (s *workItemTypeGroupRepoTest) TestLoad() {
 	})
 	s.T().Run("group doesn't exist", func(t *testing.T) {
 		// when
-		_, err := s.repo.Load(s.Ctx, uuid.NewV4())
+		_, err := s.repo.Load(s.Ctx, uuid.Must(uuid.NewV4()))
 		// then
 		require.Error(t, err)
 	})
@@ -144,7 +144,7 @@ func (s *workItemTypeGroupRepoTest) TestList() {
 	})
 	s.T().Run("space template not found", func(t *testing.T) {
 		// when
-		groups, err := s.repo.List(s.Ctx, uuid.NewV4())
+		groups, err := s.repo.List(s.Ctx, uuid.Must(uuid.NewV4()))
 		// then
 		require.Error(t, err)
 		require.IsType(t, errors.NotFoundError{}, errs.Cause(err))
@@ -157,16 +157,16 @@ func TestWorkItemTypeGroup_Equal(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	// given
 	a := workitem.WorkItemTypeGroup{
-		ID:              uuid.NewV4(),
-		SpaceTemplateID: uuid.NewV4(),
+		ID:              uuid.Must(uuid.NewV4()),
+		SpaceTemplateID: uuid.Must(uuid.NewV4()),
 		Name:            "foo",
 		Bucket:          workitem.BucketRequirement,
 		Position:        42,
 		Icon:            "bar",
 		TypeList: []uuid.UUID{
-			uuid.NewV4(),
-			uuid.NewV4(),
-			uuid.NewV4(),
+			uuid.Must(uuid.NewV4()),
+			uuid.Must(uuid.NewV4()),
+			uuid.Must(uuid.NewV4()),
 		},
 	}
 	t.Run("equality", func(t *testing.T) {
@@ -194,7 +194,7 @@ func TestWorkItemTypeGroup_Equal(t *testing.T) {
 	t.Run("SpaceTemplateID", func(t *testing.T) {
 		t.Parallel()
 		b := a
-		b.SpaceTemplateID = uuid.NewV4()
+		b.SpaceTemplateID = uuid.Must(uuid.NewV4())
 		assert.False(t, a.Equal(b))
 	})
 	t.Run("Bucket", func(t *testing.T) {
@@ -213,10 +213,10 @@ func TestWorkItemTypeGroup_Equal(t *testing.T) {
 		t.Parallel()
 		b := a
 		// different IDs
-		b.TypeList = []uuid.UUID{uuid.NewV4(), uuid.NewV4(), uuid.NewV4()}
+		b.TypeList = []uuid.UUID{uuid.Must(uuid.NewV4()), uuid.Must(uuid.NewV4()), uuid.Must(uuid.NewV4())}
 		assert.False(t, a.Equal(b))
 		// different length
-		b.TypeList = []uuid.UUID{uuid.NewV4(), uuid.NewV4()}
+		b.TypeList = []uuid.UUID{uuid.Must(uuid.NewV4()), uuid.Must(uuid.NewV4())}
 		assert.False(t, a.Equal(b))
 	})
 }

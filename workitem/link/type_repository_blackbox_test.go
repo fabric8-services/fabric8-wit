@@ -117,7 +117,7 @@ func (s *typeRepoBlackBoxTest) TestList() {
 
 	s.T().Run("not found", func(t *testing.T) {
 		// given
-		spaceTemplateID := uuid.NewV4()
+		spaceTemplateID := uuid.Must(uuid.NewV4())
 		// when
 		types, err := s.typeRepo.List(s.Ctx, spaceTemplateID)
 		// then
@@ -140,7 +140,7 @@ func (s *typeRepoBlackBoxTest) TestLoad() {
 	})
 	s.T().Run("not found", func(t *testing.T) {
 		// given
-		linkTypeID := uuid.NewV4()
+		linkTypeID := uuid.Must(uuid.NewV4())
 		// when
 		typ, err := s.typeRepo.Load(s.Ctx, linkTypeID)
 		// then
@@ -153,7 +153,7 @@ func (s *typeRepoBlackBoxTest) TestCreate() {
 	s.T().Run("ok", func(t *testing.T) {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1), tf.WorkItemLinkCategories(1))
-		id := uuid.NewV4()
+		id := uuid.Must(uuid.NewV4())
 		typ := link.WorkItemLinkType{
 			ID:              id,
 			Name:            id.String(),
@@ -179,7 +179,7 @@ func (s *typeRepoBlackBoxTest) TestCreate() {
 	s.T().Run("unknown topology (bad parameter error)", func(t *testing.T) {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1), tf.WorkItemLinkCategories(1))
-		id := uuid.NewV4()
+		id := uuid.Must(uuid.NewV4())
 		typ := link.WorkItemLinkType{
 			ID:              id,
 			Name:            id.String(),
@@ -200,7 +200,7 @@ func (s *typeRepoBlackBoxTest) TestCreate() {
 	s.T().Run("empty name (bad parameter error)", func(t *testing.T) {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1), tf.WorkItemLinkCategories(1))
-		id := uuid.NewV4()
+		id := uuid.Must(uuid.NewV4())
 		typ := link.WorkItemLinkType{
 			ID:              id,
 			Name:            "",
@@ -222,7 +222,7 @@ func (s *typeRepoBlackBoxTest) TestCreate() {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItemLinkTypes(1))
 		typ := *fxt.WorkItemLinkTypes[0]
-		typ.ID = uuid.NewV4()
+		typ.ID = uuid.Must(uuid.NewV4())
 		// when
 		createdType, err := s.typeRepo.Create(s.Ctx, &typ)
 		// then
@@ -243,7 +243,7 @@ func (s *typeRepoBlackBoxTest) TestCheckExists() {
 	})
 	s.T().Run("nonexisting", func(t *testing.T) {
 		// given
-		linkTypeID := uuid.NewV4()
+		linkTypeID := uuid.Must(uuid.NewV4())
 		// when
 		err := s.typeRepo.CheckExists(s.Ctx, linkTypeID)
 		// then
@@ -279,7 +279,7 @@ func (s *typeRepoBlackBoxTest) TestSave() {
 	s.T().Run("link type not found", func(t *testing.T) {
 		// given
 		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1), tf.WorkItemLinkCategories(1))
-		id := uuid.NewV4()
+		id := uuid.Must(uuid.NewV4())
 		modelToSave := link.WorkItemLinkType{
 			ID:              id,
 			Name:            id.String(),

@@ -64,7 +64,7 @@ func (s *workItemLinkTypesSuite) TestList() {
 
 	s.T().Run("not found for non-existing-spacetemplate", func(t *testing.T) {
 		// given
-		spaceTemplateID := uuid.NewV4()
+		spaceTemplateID := uuid.Must(uuid.NewV4())
 		// when
 		res, wilts := test.ListWorkItemLinkTypesNotFound(t, nil, nil, ctrl, spaceTemplateID, nil, nil)
 		// then

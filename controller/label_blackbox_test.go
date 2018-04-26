@@ -218,7 +218,7 @@ func (rest *TestLabelREST) TestUpdate() {
 		testFxt := tf.NewTestFixture(t, rest.DB, tf.Labels(1))
 		newName := "Label New 1002"
 		newVersion := testFxt.Labels[0].Version + 1
-		id := uuid.NewV4()
+		id := uuid.Must(uuid.NewV4())
 		payload := app.UpdateLabelPayload{
 			Data: &app.Label{
 				Attributes: &app.LabelAttributes{

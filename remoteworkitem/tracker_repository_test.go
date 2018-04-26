@@ -75,7 +75,7 @@ func (test *TestTrackerRepository) TestExistsTracker() {
 
 	t.Run("tracker doesn't exist", func(t *testing.T) {
 		t.Parallel()
-		err := test.repo.CheckExists(context.Background(), uuid.NewV4())
+		err := test.repo.CheckExists(context.Background(), uuid.Must(uuid.NewV4()))
 		require.IsType(t, errors.NotFoundError{}, err)
 	})
 
@@ -96,7 +96,7 @@ func (test *TestTrackerRepository) TestTrackerSave() {
 	assert.Nil(t, tracker3)
 
 	tracker4 := &remoteworkitem.Tracker{
-		ID:   uuid.NewV4(),
+		ID:   uuid.Must(uuid.NewV4()),
 		URL:  "random1",
 		Type: remoteworkitem.ProviderJira,
 	}
@@ -111,7 +111,7 @@ func (test *TestTrackerRepository) TestTrackerSave() {
 	assert.Nil(t, tracker5)
 
 	tracker6 := &remoteworkitem.Tracker{
-		ID: uuid.NewV4(),
+		ID: uuid.Must(uuid.NewV4()),
 	}
 	tracker7, err := test.repo.Save(context.Background(), tracker6)
 	assert.IsType(t, errors.NotFoundError{}, err)
@@ -122,13 +122,13 @@ func (test *TestTrackerRepository) TestTrackerDelete() {
 	t := test.T()
 	resource.Require(t, resource.Database)
 
-	err := test.repo.Delete(context.Background(), uuid.NewV4())
+	err := test.repo.Delete(context.Background(), uuid.Must(uuid.NewV4()))
 	assert.IsType(t, errors.NotFoundError{}, err)
 
 	// guard against other test leaving stuff behind
-	err = test.repo.Delete(context.Background(), uuid.NewV4())
+	err = test.repo.Delete(context.Background(), uuid.Must(uuid.NewV4()))
 
-	err = test.repo.Delete(context.Background(), uuid.NewV4())
+	err = test.repo.Delete(context.Background(), uuid.Must(uuid.NewV4()))
 	assert.IsType(t, errors.NotFoundError{}, err)
 
 	fxt := tf.NewTestFixture(t, test.DB, tf.Trackers(1))
@@ -139,7 +139,7 @@ func (test *TestTrackerRepository) TestTrackerDelete() {
 	assert.IsType(t, errors.NotFoundError{}, err)
 	assert.Nil(t, tracker2)
 
-	tracker3, err := test.repo.Load(context.Background(), uuid.NewV4())
+	tracker3, err := test.repo.Load(context.Background(), uuid.Must(uuid.NewV4()))
 	assert.IsType(t, errors.NotFoundError{}, err)
 	assert.Nil(t, tracker3)
 }

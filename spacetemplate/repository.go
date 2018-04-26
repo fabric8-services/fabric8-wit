@@ -74,7 +74,7 @@ func (r *GormRepository) Load(ctx context.Context, spaceTemplateID uuid.UUID) (*
 // types, work item link types) in the system.
 func (r *GormRepository) Create(ctx context.Context, s SpaceTemplate) (*SpaceTemplate, error) {
 	if uuid.Equal(s.ID, uuid.Nil) {
-		s.ID = uuid.NewV4()
+		s.ID = uuid.Must(uuid.NewV4())
 	}
 
 	if err := s.Validate(); err != nil {

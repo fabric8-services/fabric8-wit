@@ -41,7 +41,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestExists() {
 
 	s.T().Run("wit doesn't exist", func(t *testing.T) {
 		// given
-		nonExistingWorkItemTypeID := uuid.NewV4()
+		nonExistingWorkItemTypeID := uuid.Must(uuid.NewV4())
 		// when
 		err := s.repo.CheckExists(s.Ctx, nonExistingWorkItemTypeID)
 		// then
@@ -82,7 +82,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestList() {
 
 	s.T().Run("not found for non-existing space", func(t *testing.T) {
 		// given
-		id := uuid.NewV4()
+		id := uuid.Must(uuid.NewV4())
 		// when
 		wits, err := s.repo.List(s.Ctx, id)
 		// then
@@ -124,7 +124,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestListPlannerItemTypes() {
 
 	s.T().Run("not found for non-existing space", func(t *testing.T) {
 		// given
-		id := uuid.NewV4()
+		id := uuid.Must(uuid.NewV4())
 		// when
 		wits, err := s.repo.ListPlannerItemTypes(s.Ctx, id)
 		// then
@@ -194,7 +194,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreate() {
 
 	s.T().Run("fail - WIT with missing base type", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1))
-		baseTypeID := uuid.NewV4()
+		baseTypeID := uuid.Must(uuid.NewV4())
 		extendedWit, err := s.repo.Create(s.Ctx, fxt.SpaceTemplates[0].ID, nil, &baseTypeID, "foo.baz", nil, "fa-bomb", map[string]workitem.FieldDefinition{}, true)
 		// expect an error as the given base type does not exist
 		require.Error(t, err)
@@ -263,7 +263,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestAddChildTypes() {
 		// when
 		err := s.repo.AddChildTypes(s.Ctx, fxt.WorkItemTypes[0].ID, []uuid.UUID{
 			fxt.WorkItemTypes[2].ID,
-			uuid.NewV4(),
+			uuid.Must(uuid.NewV4()),
 		})
 		// then
 		require.Error(t, err)

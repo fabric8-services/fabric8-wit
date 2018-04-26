@@ -20,10 +20,10 @@ func TestWorkItemLink_Equal(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
 	a := link.WorkItemLink{
-		ID:         uuid.NewV4(),
-		SourceID:   uuid.NewV4(),
-		TargetID:   uuid.NewV4(),
-		LinkTypeID: uuid.NewV4(),
+		ID:         uuid.Must(uuid.NewV4()),
+		SourceID:   uuid.Must(uuid.NewV4()),
+		TargetID:   uuid.Must(uuid.NewV4()),
+		LinkTypeID: uuid.Must(uuid.NewV4()),
 	}
 
 	// Test equality
@@ -41,7 +41,7 @@ func TestWorkItemLink_Equal(t *testing.T) {
 
 	// Test ID
 	b = a
-	b.ID = uuid.NewV4()
+	b.ID = uuid.Must(uuid.NewV4())
 	require.False(t, a.Equal(b))
 
 	// Test Version
@@ -51,17 +51,17 @@ func TestWorkItemLink_Equal(t *testing.T) {
 
 	// Test SourceID
 	b = a
-	b.SourceID = uuid.NewV4()
+	b.SourceID = uuid.Must(uuid.NewV4())
 	require.False(t, a.Equal(b))
 
 	// Test TargetID
 	b = a
-	b.TargetID = uuid.NewV4()
+	b.TargetID = uuid.Must(uuid.NewV4())
 	require.False(t, a.Equal(b))
 
 	// Test LinkTypeID
 	b = a
-	b.LinkTypeID = uuid.NewV4()
+	b.LinkTypeID = uuid.Must(uuid.NewV4())
 	require.False(t, a.Equal(b))
 }
 
@@ -70,10 +70,10 @@ func TestWorkItemLinkCheckValidForCreation(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
 	a := link.WorkItemLink{
-		ID:         uuid.NewV4(),
-		SourceID:   uuid.NewV4(),
-		TargetID:   uuid.NewV4(),
-		LinkTypeID: uuid.NewV4(),
+		ID:         uuid.Must(uuid.NewV4()),
+		SourceID:   uuid.Must(uuid.NewV4()),
+		TargetID:   uuid.Must(uuid.NewV4()),
+		LinkTypeID: uuid.Must(uuid.NewV4()),
 	}
 
 	// Check valid
@@ -89,36 +89,36 @@ func TestWorkItemLinkCheckValidForCreation(t *testing.T) {
 func TestWorkItemLinkList(t *testing.T) {
 	t.Parallel()
 
-	x := uuid.NewV4()
-	y := uuid.NewV4()
-	z := uuid.NewV4()
+	x := uuid.Must(uuid.NewV4())
+	y := uuid.Must(uuid.NewV4())
+	z := uuid.Must(uuid.NewV4())
 
-	linkTypeID1 := uuid.NewV4()
-	linkTypeID2 := uuid.NewV4()
+	linkTypeID1 := uuid.Must(uuid.NewV4())
+	linkTypeID2 := uuid.Must(uuid.NewV4())
 
 	a := link.WorkItemLink{
-		ID:         uuid.NewV4(),
+		ID:         uuid.Must(uuid.NewV4()),
 		SourceID:   x,
 		TargetID:   y,
 		LinkTypeID: linkTypeID1,
 	}
 
 	b := link.WorkItemLink{
-		ID:         uuid.NewV4(),
+		ID:         uuid.Must(uuid.NewV4()),
 		SourceID:   y,
 		TargetID:   z,
 		LinkTypeID: linkTypeID1,
 	}
 
 	c := link.WorkItemLink{
-		ID:         uuid.NewV4(),
+		ID:         uuid.Must(uuid.NewV4()),
 		SourceID:   x,
 		TargetID:   z,
 		LinkTypeID: linkTypeID1,
 	}
 
 	d := link.WorkItemLink{
-		ID:         uuid.NewV4(),
+		ID:         uuid.Must(uuid.NewV4()),
 		SourceID:   z,
 		TargetID:   y,
 		LinkTypeID: linkTypeID2,

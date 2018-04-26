@@ -39,8 +39,8 @@ func (s *TestNamedWorkItemsSuite) TestShowNamedWorkItems() {
 	})
 	s.T().Run("not found", func(t *testing.T) {
 		// given
-		spaceName := uuid.NewV4().String()
-		username := uuid.NewV4().String()
+		spaceName := uuid.Must(uuid.NewV4()).String()
+		username := uuid.Must(uuid.NewV4()).String()
 		wiNumber := 0
 		// when
 		test.ShowNamedWorkItemsNotFound(t, svc.Context, svc, namedWorkItemsCtrl, username, spaceName, wiNumber)

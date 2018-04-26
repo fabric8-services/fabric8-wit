@@ -299,7 +299,7 @@ func (l *TestWorkItemLabelREST) TestFailInvalidLabel() {
 	fixtures := tf.NewTestFixture(l.T(), l.DB, tf.Spaces(1), tf.Iterations(1), tf.Areas(1), tf.WorkItems(1))
 	svc, ctrl := l.SecuredController()
 	apiLabelType := label.APIStringTypeLabels
-	invalidLabelID := uuid.NewV4().String()
+	invalidLabelID := uuid.Must(uuid.NewV4()).String()
 	u := app.UpdateWorkitemPayload{
 		Data: &app.WorkItem{
 			ID:   &fixtures.WorkItems[0].ID,

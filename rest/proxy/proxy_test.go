@@ -122,9 +122,9 @@ func (w gzipResponseWriter) WriteHeader(code int) {
 var veryLongBody = generateLongBody()
 
 func generateLongBody() string {
-	body := uuid.NewV4().String()
+	body := uuid.Must(uuid.NewV4()).String()
 	for i := 0; i < 100; i++ {
-		body = body + uuid.NewV4().String()
+		body = body + uuid.Must(uuid.NewV4()).String()
 	}
 	return body
 }

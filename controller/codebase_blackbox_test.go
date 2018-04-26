@@ -210,7 +210,7 @@ func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
 
 	s.T().Run("NotFound", func(t *testing.T) {
 		// given
-		codebaseID := uuid.NewV4()
+		codebaseID := uuid.Must(uuid.NewV4())
 		r, err := recorder.New("")
 		require.NoError(t, err)
 		defer r.Stop()
@@ -225,7 +225,7 @@ func (s *CodebaseControllerTestSuite) TestDeleteCodebase() {
 
 	s.T().Run("Unauthorized on non-existing codebase", func(t *testing.T) {
 		// given
-		codebaseID := uuid.NewV4()
+		codebaseID := uuid.Must(uuid.NewV4())
 		r, err := recorder.New("")
 		require.NoError(t, err)
 		defer r.Stop()

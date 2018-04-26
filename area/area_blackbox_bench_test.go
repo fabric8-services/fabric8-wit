@@ -59,7 +59,7 @@ func (bench *BenchAreaRepository) BenchmarkCreateArea() {
 	bench.B().ReportAllocs()
 	for n := 0; n < bench.B().N; n++ {
 		newSpace := space.Space{
-			Name: "BenchmarkCreateArea " + uuid.NewV4().String(),
+			Name: "BenchmarkCreateArea " + uuid.Must(uuid.NewV4()).String(),
 		}
 		s, err := bench.repoSpace.Create(context.Background(), &newSpace)
 		if err != nil {

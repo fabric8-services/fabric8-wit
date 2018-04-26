@@ -87,7 +87,7 @@ func (s *workItemLinkTypeSuite) TestShow() {
 
 	s.T().Run("not found", func(t *testing.T) {
 		// given
-		id := uuid.NewV4()
+		id := uuid.Must(uuid.NewV4())
 		// when
 		res, jerrs := test.ShowWorkItemLinkTypeNotFound(s.T(), nil, nil, ctrl, id, nil, nil)
 		// then

@@ -167,10 +167,10 @@ func Test_ImportHelper_Validate(t *testing.T) {
 		t.Run("test template", func(t *testing.T) {
 			t.Parallel()
 			// given
-			spaceTemplateID := uuid.NewV4()
-			witID := uuid.NewV4()
-			wiltID := uuid.NewV4()
-			witgID := uuid.NewV4()
+			spaceTemplateID := uuid.Must(uuid.NewV4())
+			witID := uuid.Must(uuid.NewV4())
+			wiltID := uuid.Must(uuid.NewV4())
+			witgID := uuid.Must(uuid.NewV4())
 
 			yaml := getValidTestTemplate(spaceTemplateID, witID, wiltID, witgID)
 			// when
@@ -190,10 +190,10 @@ func Test_ImportHelper_Validate(t *testing.T) {
 		t.Run("invalid space template ID on WIT", func(t *testing.T) {
 			t.Parallel()
 			// given: valid empty template
-			spaceTemplateID := uuid.NewV4()
-			templ := getValidTestTemplateParsed(t, spaceTemplateID, uuid.NewV4(), uuid.NewV4(), uuid.NewV4())
+			spaceTemplateID := uuid.Must(uuid.NewV4())
+			templ := getValidTestTemplateParsed(t, spaceTemplateID, uuid.Must(uuid.NewV4()), uuid.Must(uuid.NewV4()), uuid.Must(uuid.NewV4()))
 			// when
-			templ.WITs[0].SpaceTemplateID = uuid.NewV4()
+			templ.WITs[0].SpaceTemplateID = uuid.Must(uuid.NewV4())
 			// then
 			require.Error(t, templ.Validate())
 		})
@@ -201,10 +201,10 @@ func Test_ImportHelper_Validate(t *testing.T) {
 		t.Run("invalid space template ID on WILT", func(t *testing.T) {
 			t.Parallel()
 			// given: valid empty template
-			spaceTemplateID := uuid.NewV4()
-			templ := getValidTestTemplateParsed(t, spaceTemplateID, uuid.NewV4(), uuid.NewV4(), uuid.NewV4())
+			spaceTemplateID := uuid.Must(uuid.NewV4())
+			templ := getValidTestTemplateParsed(t, spaceTemplateID, uuid.Must(uuid.NewV4()), uuid.Must(uuid.NewV4()), uuid.Must(uuid.NewV4()))
 			// when
-			templ.WILTs[0].SpaceTemplateID = uuid.NewV4()
+			templ.WILTs[0].SpaceTemplateID = uuid.Must(uuid.NewV4())
 			// then
 			require.Error(t, templ.Validate())
 		})

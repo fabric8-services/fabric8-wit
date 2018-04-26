@@ -151,7 +151,7 @@ func (s *linkRepoBlackBoxTest) TestReorder() {
 					switch direction {
 					case workitem.DirectionAbove, workitem.DirectionBelow:
 						t.Run("unknown", func(t *testing.T) {
-							_, err := s.workitemRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, direction, ptr.UUID(uuid.NewV4()), *fxt.WorkItemByTitle("child2"), fxt.Identities[0].ID)
+							_, err := s.workitemRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, direction, ptr.UUID(uuid.Must(uuid.NewV4())), *fxt.WorkItemByTitle("child2"), fxt.Identities[0].ID)
 							require.Error(t, err)
 						})
 						t.Run("nil", func(t *testing.T) {
@@ -159,16 +159,16 @@ func (s *linkRepoBlackBoxTest) TestReorder() {
 							require.Error(t, err)
 						})
 					case workitem.DirectionTop, workitem.DirectionBottom:
-						_, err := s.workitemRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, direction, ptr.UUID(uuid.NewV4()), *fxt.WorkItemByTitle("child2"), fxt.Identities[0].ID)
+						_, err := s.workitemRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, direction, ptr.UUID(uuid.Must(uuid.NewV4())), *fxt.WorkItemByTitle("child2"), fxt.Identities[0].ID)
 						require.Error(t, err)
 					}
 				})
 				t.Run("invalid space ID", func(t *testing.T) {
-					_, err := s.workitemRepo.Reorder(s.Ctx, uuid.NewV4(), direction, &fxt.WorkItemByTitle("child1").ID, *fxt.WorkItemByTitle("child2"), fxt.Identities[0].ID)
+					_, err := s.workitemRepo.Reorder(s.Ctx, uuid.Must(uuid.NewV4()), direction, &fxt.WorkItemByTitle("child1").ID, *fxt.WorkItemByTitle("child2"), fxt.Identities[0].ID)
 					require.Error(t, err)
 				})
 				t.Run("unknown modifier", func(t *testing.T) {
-					_, err := s.workitemRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, direction, &fxt.WorkItemByTitle("child1").ID, *fxt.WorkItemByTitle("child2"), uuid.NewV4())
+					_, err := s.workitemRepo.Reorder(s.Ctx, fxt.Spaces[0].ID, direction, &fxt.WorkItemByTitle("child1").ID, *fxt.WorkItemByTitle("child2"), uuid.Must(uuid.NewV4()))
 					require.Error(t, err)
 				})
 			})
@@ -606,7 +606,7 @@ func (s *linkRepoBlackBoxTest) TestExistsLink() {
 	})
 
 	s.T().Run("link doesn't exist", func(t *testing.T) {
-		err := s.workitemLinkRepo.CheckExists(s.Ctx, uuid.NewV4())
+		err := s.workitemLinkRepo.CheckExists(s.Ctx, uuid.Must(uuid.NewV4()))
 		require.IsType(t, errors.NotFoundError{}, err)
 	})
 }

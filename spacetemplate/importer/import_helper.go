@@ -74,7 +74,7 @@ func FromString(templ string) (*ImportHelper, error) {
 	}
 	// If the space template has no ID, create one on the fly
 	if uuid.Equal(s.Template.ID, uuid.Nil) {
-		s.Template.ID = uuid.NewV4()
+		s.Template.ID = uuid.Must(uuid.NewV4())
 	}
 	// update all refs to this ID
 	s.SetID(s.Template.ID)

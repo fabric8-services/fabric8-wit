@@ -275,7 +275,7 @@ func (s *TestIterationRepository) TestLoad() {
 
 	t.Run("fail - load children for non-existing iteration", func(t *testing.T) {
 		// try to fetch children of non-existing parent
-		fakeParentId := uuid.NewV4()
+		fakeParentId := uuid.Must(uuid.NewV4())
 		// when
 		_, err := repo.LoadChildren(context.Background(), fakeParentId)
 		// then
@@ -340,7 +340,7 @@ func (s *TestIterationRepository) TestExistsIteration() {
 		require.Nil(t, repo.CheckExists(context.Background(), fxt.Iterations[0].ID))
 	})
 	t.Run("iteration doesn't exist", func(t *testing.T) {
-		err := repo.CheckExists(context.Background(), uuid.NewV4())
+		err := repo.CheckExists(context.Background(), uuid.Must(uuid.NewV4()))
 		require.IsType(t, errors.NotFoundError{}, err)
 	})
 }
@@ -391,7 +391,7 @@ func (s *TestIterationRepository) TestIsRoot() {
 		spaceID := fxt.Spaces[0].ID
 		require.True(t, fxt.Iterations[0].IsRoot(spaceID))
 		require.False(t, fxt.Iterations[1].IsRoot(spaceID))
-		fakeSpaceID := uuid.NewV4()
+		fakeSpaceID := uuid.Must(uuid.NewV4())
 		require.False(t, fxt.Iterations[0].IsRoot(fakeSpaceID))
 		require.False(t, fxt.Iterations[1].IsRoot(fakeSpaceID))
 	})

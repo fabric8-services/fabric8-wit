@@ -37,7 +37,7 @@ func (s *SpaceRepositoryTestSuite) TestCreate() {
 		fxt := tf.NewTestFixture(t, s.DB, tf.Identities(1), tf.SpaceTemplates(1))
 		// when creating space
 		name := testsupport.CreateRandomValidTestName("test space")
-		id := uuid.NewV4()
+		id := uuid.Must(uuid.NewV4())
 		newSpace := space.Space{
 			ID:              id,
 			Name:            name,
@@ -70,7 +70,7 @@ func (s *SpaceRepositoryTestSuite) TestCreate() {
 		fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1))
 		// when trying to create the same space again
 		newSpace := *fxt.Spaces[0]
-		newSpace.ID = uuid.NewV4()
+		newSpace.ID = uuid.Must(uuid.NewV4())
 		sp, err := s.repo.Create(s.Ctx, &newSpace)
 		// then
 		require.Error(t, err)
@@ -87,7 +87,7 @@ func (s *SpaceRepositoryTestSuite) TestCreate() {
 			}))
 		// when
 		newSpace := space.Space{
-			ID:              uuid.NewV4(),
+			ID:              uuid.Must(uuid.NewV4()),
 			Name:            testsupport.CreateRandomValidTestName("test space"),
 			OwnerID:         fxt.Identities[0].ID,
 			SpaceTemplateID: fxt.SpaceTemplates[0].ID,
@@ -109,7 +109,7 @@ func (s *SpaceRepositoryTestSuite) TestLoad() {
 		require.True(t, (*fxt.Spaces[0]).Equal(*sp))
 	})
 	s.T().Run("non-existing space", func(t *testing.T) {
-		sp, err := s.repo.Load(s.Ctx, uuid.NewV4())
+		sp, err := s.repo.Load(s.Ctx, uuid.Must(uuid.NewV4()))
 		require.Error(t, err)
 		require.Nil(t, sp)
 	})
@@ -126,7 +126,7 @@ func (s *SpaceRepositoryTestSuite) TestCheckExists() {
 		require.NoError(t, err)
 	})
 	s.T().Run("space doesn't exist", func(t *testing.T) {
-		err := s.repo.CheckExists(context.Background(), uuid.NewV4())
+		err := s.repo.CheckExists(context.Background(), uuid.Must(uuid.NewV4()))
 		require.Error(t, err)
 		require.IsType(t, errors.NotFoundError{}, err, "error was %v", err)
 	})
@@ -171,7 +171,7 @@ func (s *SpaceRepositoryTestSuite) TestSave() {
 		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1))
 		// given a space with a not existing ID
 		p := space.Space{
-			ID:              uuid.NewV4(),
+			ID:              uuid.Must(uuid.NewV4()),
 			Version:         0,
 			Name:            testsupport.CreateRandomValidTestName("some space"),
 			SpaceTemplateID: fxt.SpaceTemplates[0].ID,
@@ -206,7 +206,7 @@ func (s *SpaceRepositoryTestSuite) TestDelete() {
 	})
 	s.T().Run("not found - not existing space ID", func(t *testing.T) {
 		// given a not existing space ID
-		nonExistingSpaceID := uuid.NewV4()
+		nonExistingSpaceID := uuid.Must(uuid.NewV4())
 		// when
 		err := s.repo.Delete(s.Ctx, nonExistingSpaceID)
 		// then

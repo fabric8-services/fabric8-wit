@@ -109,28 +109,28 @@ func getTrackerTestData(t *testing.T) []testSecureAPI {
 		// Update tracker API with different parameters
 		{
 			method:             http.MethodPut,
-			url:                "/api/trackers/" + uuid.NewV4().String(),
+			url:                "/api/trackers/" + uuid.Must(uuid.NewV4()).String(),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createTrackerPayload,
 			jwtToken:           getExpiredAuthHeader(t, privatekey),
 		}, {
 			method:             http.MethodPut,
-			url:                "/api/trackers/" + uuid.NewV4().String(),
+			url:                "/api/trackers/" + uuid.Must(uuid.NewV4()).String(),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createTrackerPayload,
 			jwtToken:           getMalformedAuthHeader(t, privatekey),
 		}, {
 			method:             http.MethodPut,
-			url:                "/api/trackers/" + uuid.NewV4().String(),
+			url:                "/api/trackers/" + uuid.Must(uuid.NewV4()).String(),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createTrackerPayload,
 			jwtToken:           getValidAuthHeader(t, differentPrivatekey),
 		}, {
 			method:             http.MethodPut,
-			url:                "/api/trackers/" + uuid.NewV4().String(),
+			url:                "/api/trackers/" + uuid.Must(uuid.NewV4()).String(),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createTrackerPayload,
@@ -139,28 +139,28 @@ func getTrackerTestData(t *testing.T) []testSecureAPI {
 		// Delete tracker API with different parameters
 		{
 			method:             http.MethodDelete,
-			url:                "/api/trackers/" + uuid.NewV4().String(),
+			url:                "/api/trackers/" + uuid.Must(uuid.NewV4()).String(),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createTrackerPayload,
 			jwtToken:           getExpiredAuthHeader(t, privatekey),
 		}, {
 			method:             http.MethodDelete,
-			url:                "/api/trackers/" + uuid.NewV4().String(),
+			url:                "/api/trackers/" + uuid.Must(uuid.NewV4()).String(),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createTrackerPayload,
 			jwtToken:           getMalformedAuthHeader(t, privatekey),
 		}, {
 			method:             http.MethodDelete,
-			url:                "/api/trackers/" + uuid.NewV4().String(),
+			url:                "/api/trackers/" + uuid.Must(uuid.NewV4()).String(),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createTrackerPayload,
 			jwtToken:           getValidAuthHeader(t, differentPrivatekey),
 		}, {
 			method:             http.MethodDelete,
-			url:                "/api/trackers/" + uuid.NewV4().String(),
+			url:                "/api/trackers/" + uuid.Must(uuid.NewV4()).String(),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createTrackerPayload,
@@ -170,7 +170,7 @@ func getTrackerTestData(t *testing.T) []testSecureAPI {
 		// We do not have security on GET hence this should return 404 not found
 		{
 			method:             http.MethodGet,
-			url:                "/api/trackers/" + uuid.NewV4().String(),
+			url:                "/api/trackers/" + uuid.Must(uuid.NewV4()).String(),
 			expectedStatusCode: http.StatusNotFound,
 			expectedErrorCode:  jsonapi.ErrorCodeNotFound,
 			payload:            nil,

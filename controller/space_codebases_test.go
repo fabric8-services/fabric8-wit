@@ -154,7 +154,7 @@ func (rest *TestSpaceCodebaseREST) TestCreateCodebaseMissingSpace() {
 	ci := createSpaceCodebase("https://github.com/fabric8io/fabric8-planner.git", &stackId)
 
 	svc, ctrl := rest.SecuredController()
-	test.CreateSpaceCodebasesNotFound(t, svc.Context, svc, ctrl, uuid.NewV4(), ci)
+	test.CreateSpaceCodebasesNotFound(t, svc.Context, svc, ctrl, uuid.Must(uuid.NewV4()), ci)
 }
 
 func (rest *TestSpaceCodebaseREST) TestFailCreateCodebaseNotAuthorized() {
@@ -165,7 +165,7 @@ func (rest *TestSpaceCodebaseREST) TestFailCreateCodebaseNotAuthorized() {
 	ci := createSpaceCodebase("https://github.com/fabric8io/fabric8-planner.git", &stackId)
 
 	svc, ctrl := rest.UnSecuredController()
-	test.CreateSpaceCodebasesUnauthorized(t, svc.Context, svc, ctrl, uuid.NewV4(), ci)
+	test.CreateSpaceCodebasesUnauthorized(t, svc.Context, svc, ctrl, uuid.Must(uuid.NewV4()), ci)
 }
 
 func (rest *TestSpaceCodebaseREST) TestFailCreateCodebaseExistingCodebase() {
@@ -192,7 +192,7 @@ func (rest *TestSpaceCodebaseREST) TestFailListCodebaseByMissingSpace() {
 	limit := 100
 
 	svc, ctrl := rest.UnSecuredController()
-	test.ListSpaceCodebasesNotFound(t, svc.Context, svc, ctrl, uuid.NewV4(), &limit, &offset)
+	test.ListSpaceCodebasesNotFound(t, svc.Context, svc, ctrl, uuid.Must(uuid.NewV4()), &limit, &offset)
 }
 
 func searchInCodebaseSlice(searchKey uuid.UUID, codebaseList *app.CodebaseList) *app.Codebase {
@@ -224,7 +224,7 @@ func (rest *TestSpaceCodebaseREST) createSpace(ownerID uuid.UUID) *space.Space {
 	err = application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Spaces()
 		newSpace := &space.Space{
-			Name:            "TestSpaceCodebase " + uuid.NewV4().String(),
+			Name:            "TestSpaceCodebase " + uuid.Must(uuid.NewV4()).String(),
 			OwnerID:         ownerID,
 			SpaceTemplateID: spacetemplate.SystemLegacyTemplateID,
 		}

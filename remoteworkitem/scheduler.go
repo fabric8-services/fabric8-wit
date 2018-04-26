@@ -42,7 +42,7 @@ func (s *Scheduler) Stop() {
 }
 
 func batchID() string {
-	u1 := uuid.NewV4().String()
+	u1 := uuid.Must(uuid.NewV4()).String()
 	return u1
 }
 

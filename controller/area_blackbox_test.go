@@ -119,7 +119,7 @@ func (rest *TestAreaREST) TestConflictCreatDuplicateChildArea() {
 	// given
 	sp, parentArea := createSpaceAndArea(rest.T(), rest.db)
 	parentID := parentArea.ID
-	ci := newCreateChildAreaPayload(uuid.NewV4().String())
+	ci := newCreateChildAreaPayload(uuid.Must(uuid.NewV4()).String())
 	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
 	require.NoError(rest.T(), err)
 	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
@@ -152,7 +152,7 @@ func (rest *TestAreaREST) TestFailCreateChildAreaWithInvalidsParent() {
 	createChildAreaPayload := newCreateChildAreaPayload("TestFailCreateChildAreaWithInvalidsParent")
 	svc, ctrl := rest.SecuredController()
 	// when/then
-	test.CreateChildAreaNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4().String(), createChildAreaPayload)
+	test.CreateChildAreaNotFound(rest.T(), svc.Context, svc, ctrl, uuid.Must(uuid.NewV4()).String(), createChildAreaPayload)
 }
 
 func (rest *TestAreaREST) TestFailCreateChildAreaNotAuthorized() {
@@ -189,7 +189,7 @@ func (rest *TestAreaREST) TestFailShowAreaNotFound() {
 	// given
 	svc, ctrl := rest.SecuredController()
 	// when/then
-	test.ShowAreaNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4().String(), nil, nil)
+	test.ShowAreaNotFound(rest.T(), svc.Context, svc, ctrl, uuid.Must(uuid.NewV4()).String(), nil, nil)
 }
 
 func (rest *TestAreaREST) TestShowAreaOK() {
@@ -360,13 +360,13 @@ func createSpaceAndArea(t *testing.T, db *gormapplication.GormDB) (space.Space, 
 		require.NoError(t, errCreateOwner)
 
 		spaceObj = space.Space{
-			Name:            "TestAreaREST-" + uuid.NewV4().String(),
+			Name:            "TestAreaREST-" + uuid.Must(uuid.NewV4()).String(),
 			OwnerID:         owner.ID,
 			SpaceTemplateID: spacetemplate.SystemLegacyTemplateID,
 		}
 		_, err := app.Spaces().Create(context.Background(), &spaceObj)
 		require.NoError(t, err)
-		name := "Main Area-" + uuid.NewV4().String()
+		name := "Main Area-" + uuid.Must(uuid.NewV4()).String()
 		areaObj = area.Area{
 			Name:    name,
 			SpaceID: spaceObj.ID,

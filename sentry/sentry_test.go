@@ -45,7 +45,7 @@ func Test_extractUserInfo(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
 	identity := account.Identity{
-		ID:       uuid.NewV4(),
+		ID:       uuid.Must(uuid.NewV4()),
 		Username: "testuser",
 	}
 

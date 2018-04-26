@@ -28,7 +28,7 @@ func TestConvertTypeFromModel(t *testing.T) {
 	//------------------------------
 
 	descFoo := "Description of 'foo'"
-	id := uuid.NewV4()
+	id := uuid.Must(uuid.NewV4())
 	createdAt := time.Now().Add(-1 * time.Hour).UTC()
 	updatedAt := time.Now().UTC()
 	a := workitem.WorkItemType{

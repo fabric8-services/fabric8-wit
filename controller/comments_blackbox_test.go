@@ -571,7 +571,7 @@ func CreateSecuredSpace(t *testing.T, db application.DB, config SpaceConfigurati
 		Data: &app.Space{
 			Type: "spaces",
 			Attributes: &app.SpaceAttributes{
-				Name:        ptr.String("TestCollaborators-space-" + uuid.NewV4().String()),
+				Name:        ptr.String("TestCollaborators-space-" + uuid.Must(uuid.NewV4()).String()),
 				Description: ptr.String("description"),
 			},
 		},

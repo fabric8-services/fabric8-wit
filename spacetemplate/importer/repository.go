@@ -248,7 +248,7 @@ func (r *GormRepository) createOrUpdateWILTs(ctx context.Context, s *ImportHelpe
 			case errors.NotFoundError:
 				// Create WILT
 				if uuid.Equal(wilt.ID, uuid.Nil) {
-					wilt.ID = uuid.NewV4()
+					wilt.ID = uuid.Must(uuid.NewV4())
 				}
 				_, err := wiltRepo.Create(ctx, &link.WorkItemLinkType{
 					ID:              wilt.ID,

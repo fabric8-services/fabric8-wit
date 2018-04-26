@@ -274,17 +274,17 @@ func (s *workItemLinkSuite) TestCreate() {
 		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(2), tf.WorkItemLinkTypes(1))
 		svc, ctrl := s.SecuredController(*fxt.Identities[0])
 		t.Run("not existing link type id", func(t *testing.T) {
-			createPayload := newCreateWorkItemLinkPayload(fxt.WorkItems[0].ID, fxt.WorkItems[1].ID, uuid.NewV4())
+			createPayload := newCreateWorkItemLinkPayload(fxt.WorkItems[0].ID, fxt.WorkItems[1].ID, uuid.Must(uuid.NewV4()))
 			// when then
 			_, _ = test.CreateWorkItemLinkNotFound(t, svc.Context, svc, ctrl, createPayload)
 		})
 		t.Run("not existing source", func(t *testing.T) {
-			createPayload := newCreateWorkItemLinkPayload(uuid.NewV4(), fxt.WorkItems[1].ID, fxt.WorkItemLinkTypes[0].ID)
+			createPayload := newCreateWorkItemLinkPayload(uuid.Must(uuid.NewV4()), fxt.WorkItems[1].ID, fxt.WorkItemLinkTypes[0].ID)
 			// when then
 			_, _ = test.CreateWorkItemLinkNotFound(t, svc.Context, svc, ctrl, createPayload)
 		})
 		t.Run("not existing target", func(t *testing.T) {
-			createPayload := newCreateWorkItemLinkPayload(fxt.WorkItems[0].ID, uuid.NewV4(), fxt.WorkItemLinkTypes[0].ID)
+			createPayload := newCreateWorkItemLinkPayload(fxt.WorkItems[0].ID, uuid.Must(uuid.NewV4()), fxt.WorkItemLinkTypes[0].ID)
 			// when then
 			_, _ = test.CreateWorkItemLinkNotFound(t, svc.Context, svc, ctrl, createPayload)
 		})
@@ -340,7 +340,7 @@ func (s *workItemLinkSuite) TestDelete() {
 		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment())
 		svc, ctrl := s.SecuredController(*fxt.Identities[0])
 		// when/then
-		_, _ = test.DeleteWorkItemLinkNotFound(t, svc.Context, svc, ctrl, uuid.NewV4())
+		_, _ = test.DeleteWorkItemLinkNotFound(t, svc.Context, svc, ctrl, uuid.Must(uuid.NewV4()))
 	})
 }
 
@@ -423,7 +423,7 @@ func (s *workItemLinkSuite) TestShow() {
 			fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment())
 			svc, ctrl := s.SecuredController(*fxt.Identities[0])
 			// when
-			_, jerrs := test.ShowWorkItemLinkNotFound(t, svc.Context, svc, ctrl, uuid.NewV4(), nil, nil)
+			_, jerrs := test.ShowWorkItemLinkNotFound(t, svc.Context, svc, ctrl, uuid.Must(uuid.NewV4()), nil, nil)
 			ignoreMe := "IGNOREME"
 			jerrs.Errors[0].ID = &ignoreMe
 			compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "not_found.res.errors.golden.json"), jerrs)
@@ -456,7 +456,7 @@ func (s *workItemLinkSuite) TestList() {
 	s.T().Run(http.StatusText(http.StatusNotFound), func(t *testing.T) {
 		t.Run("for /api/workitems/:id/relationships/links", func(t *testing.T) {
 			// when
-			_, _ = test.ListWorkItemRelationshipsLinksNotFound(t, svc.Context, svc, relCtrl, uuid.NewV4(), nil, nil)
+			_, _ = test.ListWorkItemRelationshipsLinksNotFound(t, svc.Context, svc, relCtrl, uuid.Must(uuid.NewV4()), nil, nil)
 		})
 	})
 }

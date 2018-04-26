@@ -70,7 +70,7 @@ func (s *workItemTypesSuite) TestList() {
 
 	s.T().Run("not found using non existing space", func(t *testing.T) {
 		// given
-		spaceID := uuid.NewV4()
+		spaceID := uuid.Must(uuid.NewV4())
 		// when
 		res, jerrs := test.ListWorkitemtypesNotFound(t, nil, nil, s.typeCtrl, spaceID, nil, nil)
 		// then
@@ -189,7 +189,7 @@ func (s *workItemTypesSuite) TestList() {
 func (s *workItemTypesSuite) TestValidate() {
 	// given
 	desc := "Description for 'person'"
-	id := uuid.NewV4()
+	id := uuid.Must(uuid.NewV4())
 	reqLong := &http.Request{Host: "api.service.domain.org"}
 	//spaceSelfURL := rest.AbsoluteURL(reqLong, app.SpaceHref(space.SystemSpace.String()))
 	spaceTemplateID := spacetemplate.SystemLegacyTemplateID

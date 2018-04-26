@@ -212,7 +212,7 @@ func (test *TestCodebaseRepository) TestExistsCodebase() {
 
 	test.T().Run("codebase doesn't exist", func(t *testing.T) {
 		// when
-		err := repo.CheckExists(context.Background(), uuid.NewV4())
+		err := repo.CheckExists(context.Background(), uuid.Must(uuid.NewV4()))
 		// then
 		require.IsType(t, errors.NotFoundError{}, err)
 	})
@@ -308,7 +308,7 @@ func (test *TestCodebaseRepository) TestDeleteCodebase() {
 	})
 	test.T().Run("not found - not existing codebase ID", func(t *testing.T) {
 		// given a not existing codebase ID
-		nonExistingCodebaseID := uuid.NewV4()
+		nonExistingCodebaseID := uuid.Must(uuid.NewV4())
 		// when
 		err := repo.Delete(test.Ctx, nonExistingCodebaseID)
 		// then

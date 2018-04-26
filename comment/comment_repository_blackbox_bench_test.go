@@ -45,7 +45,7 @@ func (s *BenchCommentRepository) createComments(comments []*comment.Comment, cre
 
 func (s *BenchCommentRepository) BenchmarkCreateCommentWithMarkup() {
 	// given
-	comment := newComment(uuid.NewV4(), "Test A", rendering.SystemMarkupMarkdown)
+	comment := newComment(uuid.Must(uuid.NewV4()), "Test A", rendering.SystemMarkupMarkdown)
 	// when
 	s.B().ResetTimer()
 	s.B().ReportAllocs()
@@ -58,7 +58,7 @@ func (s *BenchCommentRepository) BenchmarkCreateCommentWithMarkup() {
 
 func (s *BenchCommentRepository) BenchmarkLoadComment() {
 	// given
-	comment := newComment(uuid.NewV4(), "Test A", rendering.SystemMarkupMarkdown)
+	comment := newComment(uuid.Must(uuid.NewV4()), "Test A", rendering.SystemMarkupMarkdown)
 	s.createComment(comment, s.testIdentity.ID)
 	// when
 	s.B().ResetTimer()
@@ -72,9 +72,9 @@ func (s *BenchCommentRepository) BenchmarkLoadComment() {
 
 func (s *BenchCommentRepository) BenchmarkCountComments() {
 	// given
-	parentID := uuid.NewV4()
+	parentID := uuid.Must(uuid.NewV4())
 	comment1 := newComment(parentID, "Test A", rendering.SystemMarkupMarkdown)
-	comment2 := newComment(uuid.NewV4(), "Test B", rendering.SystemMarkupMarkdown)
+	comment2 := newComment(uuid.Must(uuid.NewV4()), "Test B", rendering.SystemMarkupMarkdown)
 	comments := []*comment.Comment{comment1, comment2}
 	s.createComments(comments, s.testIdentity.ID)
 	// when
@@ -89,16 +89,16 @@ func (s *BenchCommentRepository) BenchmarkCountComments() {
 
 func (s *BenchCommentRepository) BenchmarkCreateDeleteComment() {
 	// given
-	parentID := uuid.NewV4()
+	parentID := uuid.Must(uuid.NewV4())
 	// when
 	s.B().ResetTimer()
 	s.B().ReportAllocs()
 	for n := 0; n < s.B().N; n++ {
 		c := &comment.Comment{
 			ParentID: parentID,
-			Body:     "Test AA" + uuid.NewV4().String(),
-			Creator:  uuid.NewV4(),
-			ID:       uuid.NewV4(),
+			Body:     "Test AA" + uuid.Must(uuid.NewV4()).String(),
+			Creator:  uuid.Must(uuid.NewV4()),
+			ID:       uuid.Must(uuid.NewV4()),
 		}
 		if err := s.repo.Create(s.Ctx, c, s.testIdentity.ID); err != nil {
 			s.B().Fail()

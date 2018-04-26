@@ -328,7 +328,7 @@ func (s *workItemRepoBlackBoxTest) TestCheckExists() {
 
 	s.T().Run("work item doesn't exist", func(t *testing.T) {
 		// when
-		err := s.repo.CheckExists(s.Ctx, uuid.NewV4())
+		err := s.repo.CheckExists(s.Ctx, uuid.Must(uuid.NewV4()))
 		// then
 		require.IsType(t, errors.NotFoundError{}, err)
 	})
@@ -489,7 +489,7 @@ func (s *workItemRepoBlackBoxTest) TestConcurrentWorkItemCreations() {
 			report := Report{id: routineID}
 			for j := 0; j < itemsPerRoutine; j++ {
 				fields := map[string]interface{}{
-					workitem.SystemTitle: uuid.NewV4().String(),
+					workitem.SystemTitle: uuid.Must(uuid.NewV4()).String(),
 					workitem.SystemState: workitem.SystemStateNew,
 				}
 				if _, err := s.repo.Create(context.Background(), fxt.Spaces[0].ID, fxt.WorkItemTypes[0].ID, fields, fxt.Identities[0].ID); err != nil {

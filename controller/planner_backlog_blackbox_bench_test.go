@@ -57,7 +57,7 @@ func (rest *BenchPlannerBacklogBlackboxREST) setupPlannerBacklogWorkItems() (tes
 	application.Transactional(gormapplication.NewGormDB(rest.DB), func(app application.Application) error {
 		spacesRepo := app.Spaces()
 		testSpace = &space.Space{
-			Name: "PlannerBacklogWorkItems-" + uuid.NewV4().String(),
+			Name: "PlannerBacklogWorkItems-" + uuid.Must(uuid.NewV4()).String(),
 		}
 		_, err := spacesRepo.Create(rest.Ctx, testSpace)
 		if err != nil {

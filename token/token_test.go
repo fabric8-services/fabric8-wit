@@ -32,7 +32,7 @@ func TestValidOAuthAccessToken(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
 	identity := account.Identity{
-		ID:       uuid.NewV4(),
+		ID:       uuid.Must(uuid.NewV4()),
 		Username: "testuser",
 	}
 	generatedToken, err := testtoken.GenerateToken(identity.ID.String(), identity.Username, privateKey)
@@ -68,7 +68,7 @@ func TestCheckClaimsOK(t *testing.T) {
 		Email:    "somemail@domain.com",
 		Username: "testuser",
 	}
-	claims.Subject = uuid.NewV4().String()
+	claims.Subject = uuid.Must(uuid.NewV4()).String()
 
 	assert.Nil(t, token.CheckClaims(claims))
 }
@@ -79,13 +79,13 @@ func TestCheckClaimsFails(t *testing.T) {
 	claimsNoEmail := &token.TokenClaims{
 		Username: "testuser",
 	}
-	claimsNoEmail.Subject = uuid.NewV4().String()
+	claimsNoEmail.Subject = uuid.Must(uuid.NewV4()).String()
 	assert.NotNil(t, token.CheckClaims(claimsNoEmail))
 
 	claimsNoUsername := &token.TokenClaims{
 		Email: "somemail@domain.com",
 	}
-	claimsNoUsername.Subject = uuid.NewV4().String()
+	claimsNoUsername.Subject = uuid.Must(uuid.NewV4()).String()
 	assert.NotNil(t, token.CheckClaims(claimsNoUsername))
 
 	claimsNoSubject := &token.TokenClaims{
@@ -96,7 +96,7 @@ func TestCheckClaimsFails(t *testing.T) {
 }
 
 func TestLocateTokenInContex(t *testing.T) {
-	id := uuid.NewV4()
+	id := uuid.Must(uuid.NewV4())
 
 	tk := jwt.New(jwt.SigningMethodRS256)
 	tk.Claims.(jwt.MapClaims)["sub"] = id.String()

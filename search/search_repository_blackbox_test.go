@@ -41,7 +41,7 @@ func (s *searchRepositoryBlackboxTest) getTestFixture() *tf.TestFixture {
 	return tf.NewTestFixture(s.T(), s.DB,
 		tf.WorkItemTypes(3, func(fxt *tf.TestFixture, idx int) error {
 			wit := fxt.WorkItemTypes[idx]
-			wit.ID = uuid.NewV4()
+			wit.ID = uuid.Must(uuid.NewV4())
 			switch idx {
 			case 0:
 				wit.Name = "base"

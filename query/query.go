@@ -77,7 +77,7 @@ func (q Query) GetETagData() []interface{} {
 // Create a new query
 func (r *GormQueryRepository) Create(ctx context.Context, q *Query) error {
 	defer goa.MeasureSince([]string{"goa", "db", "Query", "create"}, time.Now())
-	q.ID = uuid.NewV4()
+	q.ID = uuid.Must(uuid.NewV4())
 	if q.Creator == uuid.Nil {
 		return errors.NewBadParameterError("creator cannot be nil", q.Creator).Expected("valid user ID")
 	}

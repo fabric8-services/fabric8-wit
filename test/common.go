@@ -12,7 +12,7 @@ var TestMaxsizedNameObj = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 // CreateRandomValidTestName functions creates a valid lenght name
 func CreateRandomValidTestName(name string) string {
-	randomName := name + uuid.NewV4().String()
+	randomName := name + uuid.Must(uuid.NewV4()).String()
 	if len(randomName) > maxValidNameLength {
 		return randomName[:maxValidNameLength]
 	}

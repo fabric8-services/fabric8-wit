@@ -355,7 +355,7 @@ func (s *searchControllerTestSuite) TestSearchWorkItemsSpaceContext() {
 func (s *searchControllerTestSuite) TestSearchWorkItemsWithoutSpaceContext() {
 	// given 2 spaces with 10 workitems in the first and 5 in the second space
 	// random title used in work items
-	searchByMe := uuid.NewV4().String()
+	searchByMe := uuid.Must(uuid.NewV4()).String()
 	fxt := tf.NewTestFixture(s.T(), s.DB,
 		tf.Spaces(2),
 		tf.WorkItems(10+5, func(fxt *tf.TestFixture, idx int) error {
@@ -817,7 +817,7 @@ func (s *searchControllerTestSuite) TestSearchQueryScenarioDriven() {
 	})
 
 	s.T().Run("space=ID AND (state!=open AND iteration!=fake-iterationID)", func(t *testing.T) {
-		fakeIterationID := uuid.NewV4()
+		fakeIterationID := uuid.Must(uuid.NewV4())
 		filter := fmt.Sprintf(`
 				{"$AND": [
 					{"space": {"$EQ": "%s"}},
@@ -833,7 +833,7 @@ func (s *searchControllerTestSuite) TestSearchQueryScenarioDriven() {
 	})
 
 	s.T().Run("space!=ID AND (state!=open AND iteration!=fake-iterationID)", func(t *testing.T) {
-		fakeIterationID := uuid.NewV4()
+		fakeIterationID := uuid.Must(uuid.NewV4())
 		filter := fmt.Sprintf(`
 				{"$AND": [
 					{"space": {"$NE": "%s"}},
@@ -848,7 +848,7 @@ func (s *searchControllerTestSuite) TestSearchQueryScenarioDriven() {
 	})
 
 	s.T().Run("space=ID AND (state!=open AND iteration!=fake-iterationID) using NE", func(t *testing.T) {
-		fakeIterationID := uuid.NewV4()
+		fakeIterationID := uuid.Must(uuid.NewV4())
 		filter := fmt.Sprintf(`
 				{"$AND": [
 					{"space":"%s"},
@@ -864,7 +864,7 @@ func (s *searchControllerTestSuite) TestSearchQueryScenarioDriven() {
 	})
 
 	s.T().Run("space=FakeID AND state=closed", func(t *testing.T) {
-		fakeSpaceID1 := uuid.NewV4().String()
+		fakeSpaceID1 := uuid.Must(uuid.NewV4()).String()
 		filter := fmt.Sprintf(`
 				{"$AND": [
 					{"space":"%s"},

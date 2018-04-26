@@ -168,7 +168,7 @@ func (rest *TestCommentREST) setupComments() (workitem.WorkItem, []*comment.Comm
 	comments[0] = &comment.Comment{ParentID: wi.ID, Body: "Test 1", Creator: rest.testIdentity.ID}
 	comments[1] = &comment.Comment{ParentID: wi.ID, Body: "Test 2", Creator: rest.testIdentity.ID}
 	comments[2] = &comment.Comment{ParentID: wi.ID, Body: "Test 3", Creator: rest.testIdentity.ID}
-	comments[3] = &comment.Comment{ParentID: uuid.NewV4(), Body: "Test 1", Creator: rest.testIdentity.ID}
+	comments[3] = &comment.Comment{ParentID: uuid.Must(uuid.NewV4()), Body: "Test 1", Creator: rest.testIdentity.ID}
 	application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Comments()
 		for _, c := range comments {
@@ -272,7 +272,7 @@ func (rest *TestCommentREST) TestCreateSingleCommentMissingWorkItem() {
 	p := rest.newCreateWorkItemCommentsPayload("Test", nil)
 	// when/then
 	svc, ctrl := rest.SecuredController()
-	test.CreateWorkItemCommentsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4(), p)
+	test.CreateWorkItemCommentsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.Must(uuid.NewV4()), p)
 }
 
 func (rest *TestCommentREST) TestCreateSingleNoAuthorized() {
@@ -302,5 +302,5 @@ func (rest *TestCommentREST) TestListCommentsByMissingParentWorkItem() {
 	// when/then
 	offset := "0"
 	limit := 1
-	test.ListWorkItemCommentsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4(), &limit, &offset, nil, nil)
+	test.ListWorkItemCommentsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.Must(uuid.NewV4()), &limit, &offset, nil, nil)
 }

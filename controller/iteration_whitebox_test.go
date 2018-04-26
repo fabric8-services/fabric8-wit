@@ -15,7 +15,7 @@ import (
 func TestUpdateIterationsWithCounts(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
-	spaceID := uuid.NewV4()
+	spaceID := uuid.Must(uuid.NewV4())
 	i1 := createMinimumIteration("Spting 1234", spaceID)
 	i2 := createMinimumIteration("Spting 1234", spaceID)
 	i3 := createMinimumIteration("Spting 1234", spaceID)
@@ -60,7 +60,7 @@ func TestUpdateIterationsWithCounts(t *testing.T) {
 
 // helper function to get random iteration.Iteration
 func createMinimumIteration(name string, spaceID uuid.UUID) *iteration.Iteration {
-	iterationID := uuid.NewV4()
+	iterationID := uuid.Must(uuid.NewV4())
 	i := iteration.Iteration{
 		ID:      iterationID,
 		Name:    name,

@@ -44,7 +44,7 @@ func (test *TestTrackerQueryRepository) TestTrackerQueryCreate() {
 	params := url.Values{}
 	ctx := goa.NewContext(context.Background(), nil, req, params)
 
-	query, err := test.queryRepo.Create(ctx, "abc", "xyz", uuid.NewV4(), space.SystemSpace)
+	query, err := test.queryRepo.Create(ctx, "abc", "xyz", uuid.Must(uuid.NewV4()), space.SystemSpace)
 	assert.IsType(t, InternalError{}, err)
 	assert.Nil(t, query)
 
@@ -139,10 +139,10 @@ func (test *TestTrackerQueryRepository) TestTrackerQuerySave() {
 	require.NoError(t, err)
 	assert.Equal(t, query, query2)
 
-	err = test.trackerRepo.Delete(ctx, uuid.NewV4())
+	err = test.trackerRepo.Delete(ctx, uuid.Must(uuid.NewV4()))
 	assert.NotNil(t, err)
 
-	query.TrackerID = uuid.NewV4()
+	query.TrackerID = uuid.Must(uuid.NewV4())
 	query2, err = test.queryRepo.Save(ctx, *query)
 	assert.IsType(t, InternalError{}, err)
 	assert.Nil(t, query2)

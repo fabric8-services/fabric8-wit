@@ -61,7 +61,7 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 
 	reqSpace := ctx.Payload.Data
 	spaceName := *reqSpace.Attributes.Name
-	spaceID := uuid.NewV4()
+	spaceID := uuid.Must(uuid.NewV4())
 	if reqSpace.ID != nil {
 		spaceID = *reqSpace.ID
 	}
@@ -102,7 +102,7 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 		*/
 
 		newArea := area.Area{
-			ID:      uuid.NewV4(),
+			ID:      uuid.Must(uuid.NewV4()),
 			SpaceID: rSpace.ID,
 			Name:    rSpace.Name,
 		}
@@ -113,7 +113,7 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 
 		// Similar to above, we create a root iteration for this new space
 		newIteration := iteration.Iteration{
-			ID:      uuid.NewV4(),
+			ID:      uuid.Must(uuid.NewV4()),
 			SpaceID: rSpace.ID,
 			Name:    rSpace.Name,
 		}

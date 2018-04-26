@@ -49,7 +49,7 @@ func DeleteCreatedEntities(db *gorm.DB) func() {
 	var entires []entity
 	hookRegistered := db.Callback().Create().Get(hookName) != nil
 	if hookRegistered {
-		hookName += "-" + uuid.NewV4().String()
+		hookName += "-" + uuid.Must(uuid.NewV4()).String()
 	}
 	db.Callback().Create().After("gorm:create").Register(hookName, func(scope *gorm.Scope) {
 		log.Logger().Debugln(fmt.Sprintf("Inserted entities from %s with %s=%v", scope.TableName(), scope.PrimaryKey(), scope.PrimaryKeyValue()))

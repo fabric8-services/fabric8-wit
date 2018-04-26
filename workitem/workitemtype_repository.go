@@ -98,7 +98,7 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceTemplateID
 	defer goa.MeasureSince([]string{"goa", "db", "workitemtype", "create"}, time.Now())
 	// Make sure this WIT has an ID
 	if id == nil {
-		tmpID := uuid.NewV4()
+		tmpID := uuid.Must(uuid.NewV4())
 		id = &tmpID
 	}
 

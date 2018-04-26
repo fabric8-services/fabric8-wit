@@ -72,7 +72,7 @@ const LabelTableName = "labels"
 // Create a new label
 func (m *GormLabelRepository) Create(ctx context.Context, u *Label) error {
 	defer goa.MeasureSince([]string{"goa", "db", "label", "create"}, time.Now())
-	u.ID = uuid.NewV4()
+	u.ID = uuid.Must(uuid.NewV4())
 	if strings.TrimSpace(u.Name) == "" {
 		return errors.NewBadParameterError("label name cannot be empty string", u.Name).Expected("non empty string")
 	}

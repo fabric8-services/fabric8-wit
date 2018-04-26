@@ -32,7 +32,7 @@ func Test_SpaceTemplate_Equal(t *testing.T) {
 	t.Run("id", func(t *testing.T) {
 		t.Parallel()
 		actual := expected
-		actual.ID = uuid.NewV4()
+		actual.ID = uuid.Must(uuid.NewV4())
 		assert.False(t, expected.Equal(actual))
 	})
 
@@ -83,7 +83,7 @@ func Test_SpaceTemplate_Validate(t *testing.T) {
 	t.Run("valid", func(t *testing.T) {
 		// given
 		s := spacetemplate.SpaceTemplate{
-			ID:          uuid.NewV4(),
+			ID:          uuid.Must(uuid.NewV4()),
 			Name:        "foobar",
 			Description: ptr.String("some description"),
 		}
@@ -94,7 +94,7 @@ func Test_SpaceTemplate_Validate(t *testing.T) {
 		t.Run("no name", func(t *testing.T) {
 			// given
 			s := spacetemplate.SpaceTemplate{
-				ID:          uuid.NewV4(),
+				ID:          uuid.Must(uuid.NewV4()),
 				Description: ptr.String("some description"),
 			}
 			// when/then

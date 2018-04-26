@@ -19,9 +19,9 @@ func TestWorkItem_Equal(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
 	a := workitem.WorkItemStorage{
-		ID:      uuid.NewV4(),
+		ID:      uuid.Must(uuid.NewV4()),
 		Number:  1,
-		Type:    uuid.NewV4(),
+		Type:    uuid.Must(uuid.NewV4()),
 		Version: 0,
 		Fields: workitem.Fields{
 			"foo": "bar",
@@ -40,7 +40,7 @@ func TestWorkItem_Equal(t *testing.T) {
 
 	// Test type difference
 	d := a
-	d.Type = uuid.NewV4()
+	d.Type = uuid.Must(uuid.NewV4())
 	assert.False(t, a.Equal(d))
 
 	// Test version difference
@@ -55,7 +55,7 @@ func TestWorkItem_Equal(t *testing.T) {
 
 	// Test ID difference
 	g := a
-	g.ID = uuid.NewV4()
+	g.ID = uuid.Must(uuid.NewV4())
 	assert.False(t, a.Equal(g))
 
 	// Test Number difference
@@ -70,7 +70,7 @@ func TestWorkItem_Equal(t *testing.T) {
 
 	// Test Space
 	j := a
-	j.SpaceID = uuid.NewV4()
+	j.SpaceID = uuid.Must(uuid.NewV4())
 	assert.False(t, a.Equal(j))
 
 	k := workitem.WorkItemStorage{

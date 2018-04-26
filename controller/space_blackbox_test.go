@@ -163,7 +163,7 @@ func (s *SpaceControllerTestSuite) TestCreateSpace() {
 
 	s.T().Run("Fail - auth returned 400", func(t *testing.T) {
 		// given
-		spaceName := uuid.NewV4().String()
+		spaceName := uuid.Must(uuid.NewV4()).String()
 		p := newCreateSpacePayload(&spaceName, nil)
 		r := DummyResourceManager{
 			httpResponseCode: 400,
@@ -174,7 +174,7 @@ func (s *SpaceControllerTestSuite) TestCreateSpace() {
 	})
 	s.T().Run("Fail - auth returned 401", func(t *testing.T) {
 		// given
-		spaceName := uuid.NewV4().String()
+		spaceName := uuid.Must(uuid.NewV4()).String()
 		p := newCreateSpacePayload(&spaceName, nil)
 		r := DummyResourceManager{
 			httpResponseCode: 401,
@@ -185,7 +185,7 @@ func (s *SpaceControllerTestSuite) TestCreateSpace() {
 	})
 	s.T().Run("Fail - auth returned 500", func(t *testing.T) {
 		// given
-		spaceName := uuid.NewV4().String()
+		spaceName := uuid.Must(uuid.NewV4()).String()
 		p := newCreateSpacePayload(&spaceName, nil)
 		r := DummyResourceManager{
 			httpResponseCode: 500,
@@ -539,14 +539,14 @@ func (s *SpaceControllerTestSuite) TestUpdateSpace() {
 		u := newUpdateSpacePayload()
 		svc, ctrl := s.UnSecuredController()
 		// when/then
-		test.UpdateSpaceUnauthorized(t, svc.Context, svc, ctrl, uuid.NewV4(), u)
+		test.UpdateSpaceUnauthorized(t, svc.Context, svc, ctrl, uuid.Must(uuid.NewV4()), u)
 	})
 
 	s.T().Run("fail - not found", func(t *testing.T) {
 		// given
 		name := testsupport.CreateRandomValidTestName("TestFailUpdateSpaceNotFound-")
 		version := 0
-		id := uuid.NewV4()
+		id := uuid.Must(uuid.NewV4())
 		u := newUpdateSpacePayload()
 		u.Data.Attributes.Name = &name
 		u.Data.Attributes.Version = &version
@@ -669,7 +669,7 @@ func (s *SpaceControllerTestSuite) TestShowSpace() {
 		// given
 		svc, ctrl := s.UnSecuredController()
 		// when/then
-		test.ShowSpaceNotFound(t, svc.Context, svc, ctrl, uuid.NewV4(), nil, nil)
+		test.ShowSpaceNotFound(t, svc.Context, svc, ctrl, uuid.Must(uuid.NewV4()), nil, nil)
 	})
 
 }
