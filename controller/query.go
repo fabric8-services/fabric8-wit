@@ -183,6 +183,41 @@ func (c *QueryController) Show(ctx *app.ShowQueryContext) error {
 	return ctx.OK(res)
 }
 
+// Update runs the update action.
+func (c *QueryController) Update(ctx *app.UpdateQueryContext) error {
+	_, err := login.ContextIdentity(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
+	}
+	if ctx.Payload.Data.Attributes.Version == nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data.attributes.version", nil).Expected("not nil"))
+	}
+	var q *query.Query
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		var err error
+		q, err = appl.Queries().Load(ctx.Context, ctx.QueryID, ctx.SpaceID)
+		if err != nil {
+			return err
+		}
+		if q.Version != *ctx.Payload.Data.Attributes.Version {
+			return errors.NewVersionConflictError("version conflict")
+		}
+		if strings.TrimSpace(ctx.Payload.Data.Attributes.Title) != "" {
+			q.Title = strings.TrimSpace(ctx.Payload.Data.Attributes.Title)
+		}
+		q, err = appl.Queries().Save(ctx, *q)
+		return err
+	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	result := &app.QuerySingle{
+		Data: ConvertQuery(ctx.Request, *q),
+	}
+	ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.QueryHref(ctx.SpaceID, result.Data.ID)))
+	return ctx.OK(result)
+}
+
 // Delete runs the delete action.
 func (c *QueryController) Delete(ctx *app.DeleteQueryContext) error {
 	currentUser, err := login.ContextIdentity(ctx)

@@ -30,6 +30,12 @@ var queryAttributes = a.Type("QueryAttributes", func() {
 	a.Attribute("created-at", d.DateTime, "When the query was created", func() {
 		a.Example("2016-11-29T23:18:14Z")
 	})
+	a.Attribute("updated-at", d.DateTime, "When the query was updated", func() {
+		a.Example("2016-11-29T23:18:14Z")
+	})
+	a.Attribute("version", d.Integer, "Version for optimistic concurrency control (optional during creating)", func() {
+		a.Example(23)
+	})
 	a.Attribute("fields", d.String, mandatoryOnCreate("Query fields"), func() {
 		a.Example(`"{ \"$AND\":[ { \"space\":\"a2d6ab7a-5d35-47b5-8fff-d4ce6285a158\" }, { \"assignee\":\"7ef78c14-f314-4a5a-8512-21640e3d2ef8\" } ] }"`)
 	})
@@ -103,6 +109,28 @@ var _ = a.Resource("query", func() {
 		a.Response(d.Forbidden, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.Conflict, JSONAPIErrors)
+	})
+
+	a.Action("update", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.PATCH("/:queryID"),
+		)
+		a.Description("Update the query for the given id.")
+		a.Params(func() {
+			a.Param("queryID", d.UUID, "ID of the query to update")
+		})
+		a.UseTrait("conditional")
+		a.Payload(querySingle)
+		a.Response(d.OK, func() {
+			a.Media(querySingle)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.Conflict, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.Forbidden, JSONAPIErrors)
 	})
 
 	a.Action("delete", func() {

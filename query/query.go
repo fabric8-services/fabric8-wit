@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/application/repository"
@@ -27,6 +28,7 @@ type Query struct {
 	Creator uuid.UUID `sql:"type:uuid"`
 	Title   string
 	Fields  string
+	Version int
 }
 
 // QueryTableName constant that holds table name of Queries
@@ -50,6 +52,7 @@ type Repository interface {
 	List(ctx context.Context, spaceID uuid.UUID) ([]Query, error)
 	ListByCreator(ctx context.Context, spaceID uuid.UUID, creatorID uuid.UUID) ([]Query, error)
 	Load(ctx context.Context, queryID uuid.UUID, spaceID uuid.UUID) (*Query, error)
+	Save(ctx context.Context, q Query) (*Query, error)
 	Delete(ctx context.Context, ID uuid.UUID) error
 }
 
@@ -108,6 +111,56 @@ func (r *GormQueryRepository) Create(ctx context.Context, q *Query) error {
 		return err
 	}
 	return nil
+}
+
+// Save update the given query
+func (r *GormQueryRepository) Save(ctx context.Context, q Query) (*Query, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "query", "save"}, time.Now())
+	if strings.TrimSpace(q.Title) == "" {
+		return nil, errors.NewBadParameterError("query title cannot be empty string", q.Title).Expected("non empty string")
+	}
+	lbl := Query{}
+	tx := r.db.Where("id = ?", q.ID).First(&lbl)
+	oldVersion := q.Version
+	q.Version = lbl.Version + 1
+	if tx.RecordNotFound() {
+		log.Error(ctx, map[string]interface{}{
+			"query_id": q.ID,
+		}, "query cannot be found")
+		return nil, errors.NewNotFoundError("query", q.ID.String())
+	}
+	if err := tx.Error; err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"query_id": q.ID,
+			"err":      err,
+		}, "unknown error happened when searching the query")
+		return nil, errors.NewInternalError(ctx, err)
+	}
+	tx = tx.Where("Version = ?", oldVersion).Save(&q)
+	if err := tx.Error; err != nil {
+		// combination of name and space ID should be unique
+		if gormsupport.IsUniqueViolation(err, "queries_title_space_id_creator_unique") {
+			log.Error(ctx, map[string]interface{}{
+				"err":      err,
+				"title":    q.Title,
+				"space_id": q.SpaceID,
+			}, "unable to create query because a query with same title already exists in the space")
+			return nil, errors.NewDataConflictError(fmt.Sprintf("query already exists with title = %s , space_id = %s", q.Title, q.SpaceID.String()))
+		}
+		log.Error(ctx, map[string]interface{}{
+			"query_id": q.ID,
+			"err":      err,
+		}, "unable to save the query")
+		return nil, errors.NewInternalError(ctx, err)
+	}
+	if tx.RowsAffected == 0 {
+		return nil, errors.NewVersionConflictError("version conflict")
+	}
+	log.Debug(ctx, map[string]interface{}{
+		"query_id": q.ID,
+	}, "query updated successfully")
+
+	return &q, nil
 }
 
 // List all queries in a space
