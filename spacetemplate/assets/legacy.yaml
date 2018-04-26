@@ -90,6 +90,7 @@ work_item_types:
 work_item_type_groups:
 
 - name: Scenarios
+  id: "679a563c-ac9b-4478-9f3e-4187f708dd30"
   type_list:
   - *scenarioID
   - *fundamentalID
@@ -98,6 +99,7 @@ work_item_type_groups:
   icon: fa fa-bullseye
 
 - name: Experiences
+  id: "6d254168-6937-447f-a093-0c38404bd072"
   type_list:
   - *experienceID
   - *valuePropositionID
@@ -105,6 +107,7 @@ work_item_type_groups:
   icon: pficon pficon-infrastructure
 
 - name: Requirements
+  id: "44795662-db7a-44f7-a4e7-c6d41d3eff27"
   type_list:
   - *featureID
   - *bugID
@@ -112,6 +115,7 @@ work_item_type_groups:
   icon: fa fa-list-ul
 
 - name: Execution
+  id: "5c3ee317-3cdd-4ee6-a27f-85965f777ee3"
   type_list:
   - *taskID
   - *bugID
