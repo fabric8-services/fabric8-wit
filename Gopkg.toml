@@ -68,7 +68,7 @@ ignored = [
 
 [[constraint]]
   name = "github.com/satori/go.uuid"
-  version = "=1.2.0"
+  revision = "master"
 
 [[constraint]]
   name = "github.com/hawkular/hawkular-client-go"
