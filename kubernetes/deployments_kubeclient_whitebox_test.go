@@ -200,6 +200,11 @@ func TestGetDeploymentConfigNameForApp(t *testing.T) {
 			testName: "Deployment Version Not String",
 			appName:  "badDepVer",
 		},
+		{
+			testName:       "Multiple Builds",
+			appName:        "manyBuilds",
+			expectedDCName: "myDeploy2",
+		}, // TODO test error conditions for completion time
 	}
 
 	for _, testCase := range testCases {

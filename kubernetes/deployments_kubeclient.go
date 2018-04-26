@@ -949,13 +949,36 @@ func (kc *kubeClient) getDeploymentConfigNameForApp(namespace string, appName st
 		return "", errs.New("malformed response from endpoint")
 	}
 
-	// Look for a matching deployment config within builds
+	// Look for a matching deployment config within latest completed build
+	var latestCompletedBuild map[string]interface{}
+	var latestCompletionTime time.Time
 	for _, item := range items {
 		build, ok := item.(map[string]interface{})
 		if !ok {
 			return "", errs.New("malformed build object")
 		}
-		metadata, ok := build["metadata"].(map[string]interface{})
+		status, ok := build["status"].(map[string]interface{})
+		if !ok {
+			return "", errs.New("status missing from build object")
+		}
+		phase, ok := status["phase"].(string)
+		if ok && phase == "Complete" {
+			completionTimeStr, ok := status["completionTimestamp"].(string)
+			if ok {
+				completionTime, err := time.Parse(time.RFC3339, completionTimeStr)
+				if err != nil {
+					return "", errs.Wrapf(err, "build completion time uses an invalid date")
+				}
+				if completionTime.After(latestCompletionTime) {
+					latestCompletedBuild = build
+					latestCompletionTime = completionTime
+				}
+			}
+		}
+	}
+
+	if latestCompletedBuild != nil {
+		metadata, ok := latestCompletedBuild["metadata"].(map[string]interface{})
 		if !ok {
 			return "", errs.New("metadata missing from build object")
 		}
@@ -1009,7 +1032,6 @@ func (kc *kubeClient) getDeploymentConfigNameForApp(namespace string, appName st
 					}
 				}
 			}
-			// TODO look for latest completionTimestamp and phase == "Complete"
 		}
 	}
 	return "", nil
