@@ -30,7 +30,7 @@ var updateGoldenFiles = flag.Bool("update", false, "when set, rewrite the golden
 // actual object. When adding new tests you first must run them with the -update
 // flag in order to create an initial golden version.
 func compareWithGolden(t *testing.T, goldenFile string, actualObj interface{}) {
-	err := testableCompareWithGolden(*updateGoldenFiles, goldenFile, actualObj, false)
+	err := testableCompareWithGolden(*updateGoldenFiles, goldenFile, actualObj, false, false)
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
@@ -48,13 +48,31 @@ func compareWithGolden(t *testing.T, goldenFile string, actualObj interface{}) {
 // In addition to UUID replacement, we also replace all RFC3339 time strings
 // with "0001-01-01T00:00:00Z".
 func compareWithGoldenAgnostic(t *testing.T, goldenFile string, actualObj interface{}) {
-	err := testableCompareWithGolden(*updateGoldenFiles, goldenFile, actualObj, true)
+	err := testableCompareWithGolden(*updateGoldenFiles, goldenFile, actualObj, true, true)
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
 }
 
-func testableCompareWithGolden(update bool, goldenFile string, actualObj interface{}, agnostic bool) error {
+// compareWithGoldenAgnosticUUID is only agnostic to UUIDs apart from that it is
+// the same as compareWithGoldenAgnostic.
+func compareWithGoldenAgnosticUUID(t *testing.T, goldenFile string, actualObj interface{}) {
+	err := testableCompareWithGolden(*updateGoldenFiles, goldenFile, actualObj, true, false)
+	if err != nil {
+		t.Fatalf("%+v", err)
+	}
+}
+
+// compareWithGoldenAgnosticTime is only agnostic to times apart from that it is
+// the same as compareWithGoldenAgnostic.
+func compareWithGoldenAgnosticTime(t *testing.T, goldenFile string, actualObj interface{}) {
+	err := testableCompareWithGolden(*updateGoldenFiles, goldenFile, actualObj, false, true)
+	if err != nil {
+		t.Fatalf("%+v", err)
+	}
+}
+
+func testableCompareWithGolden(update bool, goldenFile string, actualObj interface{}, uuidAgnostic bool, timeAgnostic bool) error {
 	absPath, err := filepath.Abs(goldenFile)
 	if err != nil {
 		return errs.WithStack(err)
@@ -73,11 +91,13 @@ func testableCompareWithGolden(update bool, goldenFile string, actualObj interfa
 		tmp := string(actual)
 		// Eliminate concrete UUIDs if requested. This makes adding changes to
 		// golden files much more easy in git.
-		if agnostic {
+		if uuidAgnostic {
 			tmp, err = replaceUUIDs(tmp)
 			if err != nil {
 				return errs.Wrap(err, "failed to replace UUIDs with more generic ones")
 			}
+		}
+		if timeAgnostic {
 			tmp, err = replaceTimes(tmp)
 			if err != nil {
 				return errs.Wrap(err, "failed to replace RFC3339 times with default time")
@@ -95,18 +115,20 @@ func testableCompareWithGolden(update bool, goldenFile string, actualObj interfa
 
 	expectedStr := string(expected)
 	actualStr := string(actual)
-	if agnostic {
+	if uuidAgnostic {
 		expectedStr, err = replaceUUIDs(expectedStr)
 		if err != nil {
 			return errs.Wrapf(err, "failed to replace UUIDs with more generic ones")
 		}
-		expectedStr, err = replaceTimes(expectedStr)
-		if err != nil {
-			return errs.Wrap(err, "failed to replace RFC3339 times with default time")
-		}
 		actualStr, err = replaceUUIDs(actualStr)
 		if err != nil {
 			return errs.Wrapf(err, "failed to replace UUIDs with more generic ones")
+		}
+	}
+	if timeAgnostic {
+		expectedStr, err = replaceTimes(expectedStr)
+		if err != nil {
+			return errs.Wrap(err, "failed to replace RFC3339 times with default time")
 		}
 		actualStr, err = replaceTimes(actualStr)
 		if err != nil {
@@ -199,7 +221,7 @@ func replaceTimes(str string) (string, error) {
 	hour = "([01][0-9]|2[0-3])"
 	minute = "([0-5][0-9])"
 	second = "([0-5][0-9]|60)"
-	tz := "(GMT|CEST|UTC)"
+	tz := "(GMT|CEST|UTC|IST|[A-Z]+)"
 	pattern = dayName + ", " + day + " " + month + " " + year + " " + hour + ":" + minute + ":" + second + " " + tz
 
 	lastModifiedPattern, err := regexp.Compile(pattern)
@@ -334,29 +356,22 @@ func TestGoldenReplaceTimes(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, testTimesOutputStr, newStr)
 	})
-	t.Run("rfc7232", func(t *testing.T) {
-		t.Parallel()
-		//given
-		str := `"last-modified": "Thu, 15 Mar 2018 09:23:37 GMT",`
-		expected := `"last-modified": "Mon, 01 Jan 0001 00:00:00 GMT",`
-		// when
-		actual, err := replaceTimes(str)
-		// then
-		require.NoError(t, err)
-		require.Equal(t, expected, actual)
-	})
-	t.Run("arbitrary date", func(t *testing.T) {
-		t.Parallel()
-		//given
-		str := `"last-modified": "Fri, 13 Apr 2018 16:21:50 CEST",`
-		expected := `"last-modified": "Mon, 01 Jan 0001 00:00:00 GMT",`
-		// when
-		actual, err := replaceTimes(str)
-		// then
-		require.NoError(t, err)
-		require.Equal(t, expected, actual)
-	})
-
+	timeStrings := map[string]string{
+		"rfc7232":                  `"last-modified": "Thu, 15 Mar 2018 09:23:37 GMT",`,
+		"arbitrary date":           `"last-modified": "Fri, 13 Apr 2018 16:21:50 CEST",`,
+		"date with IST timezone":   `"last-modified": "Mon, 23 Apr 2018 00:00:00 IST",`,
+		"Bangladesh Standard Time": `"last-modified": "Mon, 24 Apr 2018 02:11:00 BST",`,
+	}
+	for timeType, timeString := range timeStrings {
+		t.Run(timeType, func(t *testing.T) {
+			t.Parallel()
+			expected := `"last-modified": "Mon, 01 Jan 0001 00:00:00 GMT",`
+			actual, err := replaceTimes(timeString)
+			// then
+			require.NoError(t, err)
+			require.Equal(t, expected, actual)
+		})
+	}
 }
 
 func TestGoldenCompareWithGolden(t *testing.T) {
@@ -375,7 +390,7 @@ func TestGoldenCompareWithGolden(t *testing.T) {
 			// given
 			f := "not_existing_file.golden.json"
 			// when
-			err := testableCompareWithGolden(false, f, dummy, agnostic)
+			err := testableCompareWithGolden(false, f, dummy, agnostic, agnostic)
 			// then
 			require.Error(t, err)
 			_, isPathError := errs.Cause(err).(*os.PathError)
@@ -385,7 +400,7 @@ func TestGoldenCompareWithGolden(t *testing.T) {
 			// given
 			f := "not/existing/folder/file.golden.json"
 			// when
-			err := testableCompareWithGolden(true, f, dummy, agnostic)
+			err := testableCompareWithGolden(true, f, dummy, agnostic, agnostic)
 			// then
 			// then double check that file exists and no error occurred
 			require.NoError(t, err)
@@ -397,7 +412,7 @@ func TestGoldenCompareWithGolden(t *testing.T) {
 			// given
 			f := "test-files/codebase/show/ok_without_auth.golden.json"
 			// when
-			err := testableCompareWithGolden(false, f, dummy, agnostic)
+			err := testableCompareWithGolden(false, f, dummy, agnostic, agnostic)
 			// then
 			require.Error(t, err)
 			_, isPathError := errs.Cause(err).(*os.PathError)
@@ -421,13 +436,13 @@ func TestGoldenCompareWithGolden(t *testing.T) {
 		t.Run("comparing with the same object", func(t *testing.T) {
 			t.Run("not agnostic", func(t *testing.T) {
 				// when
-				err = testableCompareWithGolden(false, f, dummy, false)
+				err = testableCompareWithGolden(false, f, dummy, false, false)
 				// then
 				require.NoError(t, err)
 			})
 			t.Run("agnostic", func(t *testing.T) {
 				// when
-				err = testableCompareWithGolden(false, f, dummy, true)
+				err = testableCompareWithGolden(false, f, dummy, true, true)
 				// then
 				require.NoError(t, err)
 			})
@@ -436,13 +451,13 @@ func TestGoldenCompareWithGolden(t *testing.T) {
 			dummy.ID = uuid.NewV4()
 			t.Run("not agnostic", func(t *testing.T) {
 				// when
-				err = testableCompareWithGolden(false, f, dummy, false)
+				err = testableCompareWithGolden(false, f, dummy, false, false)
 				// then
 				require.Error(t, err)
 			})
 			t.Run("agnostic", func(t *testing.T) {
 				// when
-				err = testableCompareWithGolden(false, f, dummy, true)
+				err = testableCompareWithGolden(false, f, dummy, true, true)
 				// then
 				require.NoError(t, err)
 			})
@@ -451,13 +466,13 @@ func TestGoldenCompareWithGolden(t *testing.T) {
 			dummy.CreatedAt = time.Now()
 			t.Run("not agnostic", func(t *testing.T) {
 				// when
-				err = testableCompareWithGolden(false, f, dummy, false)
+				err = testableCompareWithGolden(false, f, dummy, false, false)
 				// then
 				require.Error(t, err)
 			})
 			t.Run("agnostic", func(t *testing.T) {
 				// when
-				err = testableCompareWithGolden(false, f, dummy, true)
+				err = testableCompareWithGolden(false, f, dummy, true, true)
 				// then
 				require.NoError(t, err)
 			})

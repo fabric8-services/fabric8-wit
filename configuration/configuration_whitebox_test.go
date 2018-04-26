@@ -198,3 +198,8 @@ func TestDeploymentsTimeoutIsAlwaysPositive(t *testing.T) {
 
 	resetConfiguration()
 }
+
+func TestOSOProxyURL(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	assert.Equal(t, "", config.GetOpenshiftProxyURL())
+}

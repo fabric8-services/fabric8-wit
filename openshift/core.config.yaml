@@ -30,6 +30,7 @@ objects:
     chestarter.url: http://che-starter:10000
     notification.serviceurl: ""
     auth.serviceurl: https://auth.openshift.io
+    osoproxy.url: http://f8osoproxy
     toggles.serviceurl: http://f8toggles-service
     redirect.valid: ".*"
     openshift.tenant.masterurl: https://openshift.local/
