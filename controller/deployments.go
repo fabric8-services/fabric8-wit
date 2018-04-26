@@ -34,8 +34,7 @@ type ClientGetter interface {
 
 // Default implementation of KubeClientGetter and OSIOClientGetter used by NewDeploymentsController
 type defaultClientGetter struct {
-	config     *configuration.Registry
-	osioClient OpenshiftIOClient
+	config *configuration.Registry
 }
 
 // NewDeploymentsController creates a deployments controller.
@@ -58,10 +57,6 @@ func tostring(item interface{}) string {
 }
 
 func (g *defaultClientGetter) GetAndCheckOSIOClient(ctx context.Context) (OpenshiftIOClient, error) {
-
-	if g.osioClient != nil {
-		return g.osioClient, nil
-	}
 
 	// defaults
 	host := "localhost"
@@ -93,7 +88,6 @@ func (g *defaultClientGetter) GetAndCheckOSIOClient(ctx context.Context) (Opensh
 
 	oc := NewOSIOClient(ctx, scheme, host)
 
-	g.osioClient = oc
 	return oc, nil
 }
 
@@ -140,16 +134,25 @@ func (g *defaultClientGetter) GetKubeClient(ctx context.Context) (kubernetes.Kub
 
 	kubeNamespaceName, err := g.getNamespaceName(ctx)
 	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "could not retrieve namespace name")
 		return nil, errs.Wrap(err, "could not retrieve namespace name")
 	}
 
 	osioclient, err := g.GetAndCheckOSIOClient(ctx)
 	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "could not create OSIO client")
 		return nil, err
 	}
 
 	baseURLProvider, err := NewURLProvider(ctx, g.config, osioclient)
 	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "could not retrieve tenant data")
 		return nil, errs.Wrap(err, "could not retrieve tenant data")
 	}
 
@@ -187,7 +190,7 @@ func (c *DeploymentsController) SetDeployment(ctx *app.SetDeploymentDeploymentsC
 	kc, err := c.GetKubeClient(ctx)
 	defer cleanup(kc)
 	if err != nil {
-		return errors.NewUnauthorizedError("openshift token")
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
 	kubeSpaceName, err := c.getSpaceNameFromSpaceID(ctx, ctx.SpaceID)
@@ -208,7 +211,7 @@ func (c *DeploymentsController) DeleteDeployment(ctx *app.DeleteDeploymentDeploy
 	kc, err := c.GetKubeClient(ctx)
 	defer cleanup(kc)
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
 	kubeSpaceName, err := c.getSpaceNameFromSpaceID(ctx, ctx.SpaceID)
@@ -248,26 +251,26 @@ func (c *DeploymentsController) ShowDeploymentStatSeries(ctx *app.ShowDeployment
 	}
 
 	if endTime.Before(startTime) {
-		return errors.NewBadParameterError("end", *ctx.End)
+		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("end", *ctx.End))
 	}
 
 	kc, err := c.GetKubeClient(ctx)
 	defer cleanup(kc)
 	if err != nil {
-		return errors.NewUnauthorizedError("openshift token")
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
 	kubeSpaceName, err := c.getSpaceNameFromSpaceID(ctx, ctx.SpaceID)
 	if err != nil {
-		return err
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
 	statSeries, err := kc.GetDeploymentStatSeries(*kubeSpaceName, ctx.AppName, ctx.DeployName,
 		startTime, endTime, limit)
 	if err != nil {
-		return err
+		return jsonapi.JSONErrorResponse(ctx, err)
 	} else if statSeries == nil {
-		return errors.NewNotFoundError("deployment", ctx.DeployName)
+		return jsonapi.JSONErrorResponse(ctx, errors.NewNotFoundError("deployment", ctx.DeployName))
 	}
 
 	res := &app.SimpleDeploymentStatSeriesSingle{
@@ -287,12 +290,12 @@ func (c *DeploymentsController) ShowDeploymentStats(ctx *app.ShowDeploymentStats
 	kc, err := c.GetKubeClient(ctx)
 	defer cleanup(kc)
 	if err != nil {
-		return errors.NewUnauthorizedError("openshift token")
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
 	kubeSpaceName, err := c.getSpaceNameFromSpaceID(ctx, ctx.SpaceID)
 	if err != nil {
-		return errors.NewNotFoundError("osio space", ctx.SpaceID.String())
+		return jsonapi.JSONErrorResponse(ctx, errors.NewNotFoundError("osio space", ctx.SpaceID.String()))
 	}
 
 	var startTime time.Time
@@ -305,11 +308,11 @@ func (c *DeploymentsController) ShowDeploymentStats(ctx *app.ShowDeploymentStats
 
 	deploymentStats, err := kc.GetDeploymentStats(*kubeSpaceName, ctx.AppName, ctx.DeployName, startTime)
 	if err != nil {
-		return errors.NewInternalError(ctx,
-			errs.Wrapf(err, "could not retrieve deployment statistics for deployment '%s' in space '%s'", ctx.DeployName, *kubeSpaceName))
+		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx,
+			errs.Wrapf(err, "could not retrieve deployment statistics for deployment '%s' in space '%s'", ctx.DeployName, *kubeSpaceName)))
 	}
 	if deploymentStats == nil {
-		return errors.NewNotFoundError("deployment", ctx.DeployName)
+		return jsonapi.JSONErrorResponse(ctx, errors.NewNotFoundError("deployment", ctx.DeployName))
 	}
 
 	deploymentStats.ID = ctx.DeployName
@@ -327,21 +330,21 @@ func (c *DeploymentsController) ShowSpace(ctx *app.ShowSpaceDeploymentsContext) 
 	kc, err := c.GetKubeClient(ctx)
 	defer cleanup(kc)
 	if err != nil {
-		return errors.NewUnauthorizedError("openshift token")
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
 	kubeSpaceName, err := c.getSpaceNameFromSpaceID(ctx, ctx.SpaceID)
 	if err != nil || kubeSpaceName == nil {
-		return errors.NewNotFoundError("osio space", ctx.SpaceID.String())
+		return jsonapi.JSONErrorResponse(ctx, errors.NewNotFoundError("osio space", ctx.SpaceID.String()))
 	}
 
 	// get OpenShift space
 	space, err := kc.GetSpace(*kubeSpaceName)
 	if err != nil {
-		return errors.NewInternalError(ctx, errs.Wrapf(err, "could not retrieve space %s", *kubeSpaceName))
+		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.Wrapf(err, "could not retrieve space %s", *kubeSpaceName)))
 	}
 	if space == nil {
-		return errors.NewNotFoundError("openshift space", *kubeSpaceName)
+		return jsonapi.JSONErrorResponse(ctx, errors.NewNotFoundError("openshift space", *kubeSpaceName))
 	}
 
 	// Kubernetes doesn't know about space ID, so add it here
@@ -360,15 +363,15 @@ func (c *DeploymentsController) ShowSpaceEnvironments(ctx *app.ShowSpaceEnvironm
 	kc, err := c.GetKubeClient(ctx)
 	defer cleanup(kc)
 	if err != nil {
-		return errors.NewUnauthorizedError("openshift token")
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
 	envs, err := kc.GetEnvironments()
 	if err != nil {
-		return errors.NewInternalError(ctx, errs.Wrap(err, "error retrieving environments"))
+		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.Wrap(err, "error retrieving environments")))
 	}
 	if envs == nil {
-		return errors.NewNotFoundError("environments", ctx.SpaceID.String())
+		return jsonapi.JSONErrorResponse(ctx, errors.NewNotFoundError("environments", ctx.SpaceID.String()))
 	}
 
 	res := &app.SimpleEnvironmentList{
