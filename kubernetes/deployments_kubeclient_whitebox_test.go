@@ -204,7 +204,29 @@ func TestGetDeploymentConfigNameForApp(t *testing.T) {
 			testName:       "Multiple Builds",
 			appName:        "manyBuilds",
 			expectedDCName: "myDeploy2",
-		}, // TODO test error conditions for completion time
+		},
+		{
+			testName:   "Missing Status",
+			appName:    "noStatus",
+			shouldFail: true,
+		},
+		{
+			testName: "Missing Phase",
+			appName:  "noPhase",
+		},
+		{
+			testName: "Missing Completion Timestamp",
+			appName:  "noDate",
+		},
+		{
+			testName:   "Completion Timestamp Not Date",
+			appName:    "badDate",
+			shouldFail: true,
+		},
+		{
+			testName: "Empty Name",
+			appName:  "emptyKey",
+		},
 	}
 
 	for _, testCase := range testCases {
@@ -226,7 +248,7 @@ func TestGetDeploymentConfigNameForApp(t *testing.T) {
 			dcName, err := kc.getDeploymentConfigNameForApp("my-run", testCase.appName, "mySpace")
 			if testCase.shouldFail {
 				require.Error(t, err, "Test case expects an error from getDeploymentConfigNameForApp")
-				fmt.Println(err)
+				fmt.Println(err) // XXX
 			} else {
 				require.NoError(t, err, "getDeploymentConfigNameForApp should return without error")
 				require.Equal(t, testCase.expectedDCName, dcName, "getDeploymentConfigNameForApp returned incorrect name")

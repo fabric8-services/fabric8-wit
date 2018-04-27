@@ -1013,7 +1013,9 @@ func (kc *kubeClient) getDeploymentConfigNameForApp(namespace string, appName st
 						if pres {
 							deployVersions, ok := deployVersionsYaml.(map[interface{}]interface{})
 							if ok {
-								// TODO what to do with more than one result?
+								// TODO If there is more than one entry in deploymentVersions, we just
+								// take the first one. What scenario could cause this to occur, and
+								// could we handle it better?
 								for nameYaml := range deployVersions {
 									depName, ok := nameYaml.(string)
 									if !ok {
