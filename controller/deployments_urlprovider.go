@@ -13,6 +13,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/auth"
 	"github.com/fabric8-services/fabric8-wit/auth/authservice"
 	"github.com/fabric8-services/fabric8-wit/configuration"
+	"github.com/fabric8-services/fabric8-wit/goasupport"
 	"github.com/fabric8-services/fabric8-wit/kubernetes"
 	"github.com/fabric8-services/fabric8-wit/log"
 
@@ -47,7 +48,7 @@ type tokenRetriever struct {
 
 func (tr *tokenRetriever) TokenForService(forService string) (*string, error) {
 
-	resp, err := tr.authClient.RetrieveToken(tr.context, authservice.RetrieveTokenPath(), forService, nil)
+	resp, err := tr.authClient.RetrieveToken(goasupport.ForwardContextRequestID(tr.context), authservice.RetrieveTokenPath(), forService, nil)
 	if err != nil {
 		return nil, errs.Wrapf(err, "unable to retrieve Auth token for '%s' service", forService)
 	}
