@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-	"fmt"
 	"net/http"
 	"reflect"
 	"testing"
@@ -234,11 +233,11 @@ func TestGetDeploymentConfigNameForApp(t *testing.T) {
 			r, err := recorder.New(pathToTestInput + "get-dc-name-for-app")
 			require.NoError(t, err, "Failed to open cassette")
 
+			urlProvider := getTestURLProvider("http://api.myCluster", "myToken")
 			config := &KubeClientConfig{
-				ClusterURL:    "http://api.myCluster",
-				BearerToken:   "myToken",
-				UserNamespace: "myNamespace",
-				Transport:     r.Transport,
+				BaseURLProvider: urlProvider,
+				UserNamespace:   "myNamespace",
+				Transport:       r.Transport,
 			}
 			kcInterface, err := NewKubeClient(config)
 			require.NoError(t, err, "Error occurred creating KubeClient")
@@ -248,7 +247,6 @@ func TestGetDeploymentConfigNameForApp(t *testing.T) {
 			dcName, err := kc.getDeploymentConfigNameForApp("my-run", testCase.appName, "mySpace")
 			if testCase.shouldFail {
 				require.Error(t, err, "Test case expects an error from getDeploymentConfigNameForApp")
-				fmt.Println(err) // XXX
 			} else {
 				require.NoError(t, err, "getDeploymentConfigNameForApp should return without error")
 				require.Equal(t, testCase.expectedDCName, dcName, "getDeploymentConfigNameForApp returned incorrect name")

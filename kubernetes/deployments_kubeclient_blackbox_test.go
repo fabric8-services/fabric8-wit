@@ -842,7 +842,7 @@ func TestGetDeployment(t *testing.T) {
 			spaceName:    "myWrongSpace",
 			appName:      "myApp",
 			envName:      "run",
-			cassetteName: "getdeployment",
+			cassetteName: "getdeployment-wrongspace",
 			shouldFail:   true,
 		},
 	}

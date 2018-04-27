@@ -1953,7 +1953,6 @@ func (oc *openShiftAPIClient) getResource(path string, allowMissing bool) (map[s
 		return nil, nil
 	} else if status != http.StatusOK {
 		log.Error(nil, map[string]interface{}{
-			"err":           err,
 			"url":           fullURL,
 			"response_body": buf,
 			"http_status":   status,
