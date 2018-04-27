@@ -80,7 +80,7 @@ func CreateOSIOClient(witclient WitClient, responseReader ResponseReader) Opensh
 // if userService is nil, will fetch the user services under the hood
 func (osioclient *OSIOClient) GetNamespaceByType(ctx context.Context, userService *app.UserService, namespaceType string) (*app.NamespaceAttributes, error) {
 	if userService == nil {
-		us, err := osioclient.GetUserServices(goasupport.ForwardContextRequestID(ctx))
+		us, err := osioclient.GetUserServices(ctx)
 		if err != nil {
 			return nil, errs.Wrapf(err, "could not retrieve user services")
 		}
