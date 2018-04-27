@@ -206,6 +206,9 @@ func (c *QueryController) Update(ctx *app.UpdateQueryContext) error {
 		if strings.TrimSpace(ctx.Payload.Data.Attributes.Title) != "" {
 			q.Title = strings.TrimSpace(ctx.Payload.Data.Attributes.Title)
 		}
+		if strings.TrimSpace(ctx.Payload.Data.Attributes.Fields) != "" {
+			q.Fields = strings.TrimSpace(ctx.Payload.Data.Attributes.Fields)
+		}
 		q, err = appl.Queries().Save(ctx, *q)
 		return err
 	})
