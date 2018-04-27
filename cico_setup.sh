@@ -23,7 +23,7 @@ function load_jenkins_vars() {
 
 function install_deps() {
   # We need to disable selinux for now, XXX
-  /usr/sbin/setenforce 0
+  /usr/sbin/setenforce 0 || :
 
   # Get all the deps in
   yum -y install --quiet \
@@ -48,7 +48,7 @@ function prepare() {
   # Start "flow-heater" container to build in and run tests in.
   # Every make target that begins with "docker-" will be executed
   # in the resulting container.
-  make docker-start  
+  make docker-start
   make docker-check-go-format
   # Download Go dependencies
   make docker-deps
@@ -135,10 +135,7 @@ function deploy() {
   local tag=$1
   local push_latest=$2
   local registry="push.registry.devshift.net"
-  
-  # build the deployable image
-  make docker-image-deploy
-  
+
   if [ -n "${DEVSHIFT_USERNAME}" -a -n "${DEVSHIFT_PASSWORD}" ]; then
     docker login -u ${DEVSHIFT_USERNAME} -p ${DEVSHIFT_PASSWORD} ${registry}
   else
@@ -146,9 +143,18 @@ function deploy() {
     exit 1
   fi
 
-  tag_push ${registry}/fabric8-services/fabric8-wit:${tag}
+  # build the deployable image
+  make docker-image-deploy
+
+  if [ "$TARGET" = "rhel" ]; then
+    base_registry_url="${registry}/osio-prod"
+  else
+    base_registry_url="${registry}"
+  fi
+
+  tag_push ${base_registry_url}/fabric8-services/fabric8-wit:${tag}
   if ( ${push_latest} ); then
-    tag_push ${registry}/fabric8-services/fabric8-wit:latest
+    tag_push ${base_registry_url}/fabric8-services/fabric8-wit:latest
   fi
   echo 'CICO: Image pushed, ready to update deployed app'
 }
