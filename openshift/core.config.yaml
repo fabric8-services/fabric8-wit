@@ -36,5 +36,5 @@ objects:
     openshift.tenant.masterurl: https://openshift.local/
     auth_notapproved_redirect: ""
     feature.workitem.remote: "false"
-    deployments.serviceurl: "http://wit:8080"
-    codebase.serviceurl: "http://wit:8080"
+    deployments.serviceurl: "http://core"
+    codebase.serviceurl: "http://core"

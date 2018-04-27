@@ -4,7 +4,7 @@ interactions:
 - request:
     body: ""
     form: {}
-    url: http://wit:8080/api/spaces/49f0871e-d011-48ba-ad9c-74ee4001d2d6/codebases
+    url: http://core/api/spaces/49f0871e-d011-48ba-ad9c-74ee4001d2d6/codebases
     method: GET
   response:
     body: '{
@@ -89,14 +89,14 @@ interactions:
     status: 200 OK
     code: 200
 - request:
-    url: http://wit:8080/api/codebases/f3f45151-3dab-4103-baee-bfc0d2a2cbba
+    url: http://core/api/codebases/f3f45151-3dab-4103-baee-bfc0d2a2cbba
     method: DELETE
   response:
     # headers:
     status: 200 OK
     code: 200
 - request:
-    url: http://wit:8080/api/codebases/aed02e9b-1b51-4fa8-98c9-06ef56a28c88
+    url: http://core/api/codebases/aed02e9b-1b51-4fa8-98c9-06ef56a28c88
     method: DELETE
   response:
     # headers:

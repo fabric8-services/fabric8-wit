@@ -4,7 +4,7 @@ interactions:
 - request:
     body: ""
     form: {}
-    url: http://wit:8080/api/deployments/spaces/aec5f659-0680-4633-8599-5f14f1deeabc
+    url: http://core/api/deployments/spaces/aec5f659-0680-4633-8599-5f14f1deeabc
     method: GET
   response:
     body: '{
@@ -137,28 +137,28 @@ interactions:
     status: 200 OK
     code: 200
 - request:
-    url: http://wit:8080/api/deployments/spaces/aec5f659-0680-4633-8599-5f14f1deeabc/applications/testspace1/deployments/stage
+    url: http://core/api/deployments/spaces/aec5f659-0680-4633-8599-5f14f1deeabc/applications/testspace1/deployments/stage
     method: DELETE
   response:
     # headers:
     status: 200 OK
     code: 200
 - request:
-    url: http://wit:8080/api/deployments/spaces/aec5f659-0680-4633-8599-5f14f1deeabc/applications/testspace1/deployments/run
+    url: http://core/api/deployments/spaces/aec5f659-0680-4633-8599-5f14f1deeabc/applications/testspace1/deployments/run
     method: DELETE
   response:
     # headers:
     status: 200 OK
     code: 200
 - request:
-    url: http://wit:8080/api/deployments/spaces/aec5f659-0680-4633-8599-5f14f1deeabc/applications/testspace2/deployments/stage
+    url: http://core/api/deployments/spaces/aec5f659-0680-4633-8599-5f14f1deeabc/applications/testspace2/deployments/stage
     method: DELETE
   response:
     # headers:
     status: 200 OK
     code: 200
 - request:
-    url: http://wit:8080/api/deployments/spaces/aec5f659-0680-4633-8599-5f14f1deeabc/applications/testspace2/deployments/run
+    url: http://core/api/deployments/spaces/aec5f659-0680-4633-8599-5f14f1deeabc/applications/testspace2/deployments/run
     method: DELETE
   response:
     # headers:

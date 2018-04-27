@@ -911,8 +911,8 @@ const (
 	// TODO: @surajssd : change the default values of `defaultDeploymentsServiceURL`
 	// and `defaultCodebaseServiceURL` to appropriate defaults, pointing to
 	// respective services.
-	defaultDeploymentsServiceURL = "http://wit:8080"
-	defaultCodebaseServiceURL    = "http://wit:8080"
+	defaultDeploymentsServiceURL = "http://core"
+	defaultCodebaseServiceURL    = "http://core"
 
 	// DefaultValidRedirectURLs is a regex to be used to whitelist redirect URL for auth
 	// If the F8_REDIRECT_VALID env var is not set then in Dev Mode all redirects allowed - *

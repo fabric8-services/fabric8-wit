@@ -188,33 +188,33 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 	spaceDeletionErrorExternal := fmt.Errorf("could not delete space")
 	spaceID, err := goauuid.FromString(ctx.SpaceID.String())
 	if err != nil {
-		log.Error(ctx.Context, map[string]interface{}{
+		log.Error(ctx, map[string]interface{}{
 			"space_id": ctx.SpaceID,
 			"error":    err,
 		}, "could not convert the UUID of type github.com/satori/go.uuid to github.com/goadesign/goa/uuid")
 		return jsonapi.JSONErrorResponse(
-			ctx, goa.ErrInternal(spaceDeletionErrorExternal))
+			ctx, errors.NewInternalError(ctx, spaceDeletionErrorExternal))
 	}
 
 	// extract config in it's generic form to be utilized elsewhere
 	config, ok := c.config.(*configuration.Registry)
 	if !ok {
-		log.Error(ctx.Context, map[string]interface{}{
+		log.Error(ctx, map[string]interface{}{
 			"space_id": spaceID,
 		}, "no configuation found in SpaceController object")
 		return jsonapi.JSONErrorResponse(
-			ctx, goa.ErrInternal(spaceDeletionErrorExternal))
+			ctx, errors.NewInternalError(ctx, spaceDeletionErrorExternal))
 	}
 
 	// delete all the codebases associated with this space
 	err = deleteCodebases(c.CodebaseClient, config, ctx.Context, spaceID)
 	if err != nil {
-		log.Error(ctx.Context, map[string]interface{}{
+		log.Error(ctx, map[string]interface{}{
 			"space_id": spaceID,
 			"error":    err,
 		}, "could not delete codebases")
 		return jsonapi.JSONErrorResponse(
-			ctx, goa.ErrInternal(spaceDeletionErrorExternal))
+			ctx, errors.NewInternalError(ctx, spaceDeletionErrorExternal))
 	}
 
 	err = application.Transactional(c.db, func(appl application.Application) error {
@@ -244,12 +244,12 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 	// OpenShift cluster
 	err = deleteOpenShiftResource(c.DeploymentsClient, config, ctx.Context, spaceID)
 	if err != nil {
-		log.Error(ctx.Context, map[string]interface{}{
+		log.Error(ctx, map[string]interface{}{
 			"space_id": spaceID,
 			"error":    err,
 		}, "could not delete OpenShift resources")
 		return jsonapi.JSONErrorResponse(
-			ctx, goa.ErrInternal(spaceDeletionErrorExternal))
+			ctx, errors.NewInternalError(ctx, spaceDeletionErrorExternal))
 	}
 
 	return ctx.OK([]byte{})
@@ -264,7 +264,9 @@ func deleteCodebases(
 
 	u, err := url.Parse(config.GetCodebaseServiceURL())
 	if err != nil {
-		return errs.Wrapf(err, "malformed codebase service URL: %s", config.GetCodebaseServiceURL())
+		return errors.NewInternalError(ctx,
+			fmt.Errorf("malformed codebase service URL %s: %v",
+				config.GetCodebaseServiceURL(), err))
 	}
 
 	cl := client.New(goaclient.HTTPClientDoer(httpClient))
@@ -276,46 +278,51 @@ func deleteCodebases(
 	path := client.ListSpaceCodebasesPath(spaceID)
 	resp, err := cl.ListSpaceCodebases(ctx, path, nil, nil)
 	if err != nil {
-		return errs.Wrap(err, "could not list codebases")
+		return errors.NewInternalError(ctx,
+			fmt.Errorf("could not list codebases: %v", err))
 	}
+	defer resp.Body.Close()
+
 	if resp.StatusCode != http.StatusOK {
 		formattedErrors, err := cl.DecodeJSONAPIErrors(resp)
 		if err != nil {
-			return errs.Wrap(err, "could not decode JSON formatted errors returned while listing codebases")
+			return errors.NewInternalError(ctx,
+				fmt.Errorf("could not decode JSON formatted errors returned while listing codebases: %v", err))
 		}
-		return formattedErrors.Validate()
+		return errors.NewInternalError(ctx, formattedErrors.Validate())
 	}
 	codebases, err := cl.DecodeCodebaseList(resp)
 	if err != nil {
-		return errs.Wrap(err, "could not decode the codebase list")
+		return errors.NewInternalError(ctx,
+			fmt.Errorf("could not decode the codebase list: %v", err))
 	}
 
 	// iterate on all the codebases and delete them
-	var errors []error
+	var errorsList []error
 	for _, cb := range codebases.Data {
 		path = client.DeleteCodebasePath(*cb.ID)
 		resp, err := cl.DeleteCodebase(ctx, path)
 		if err != nil {
-			errors = append(errors,
+			errorsList = append(errorsList,
 				errs.Wrapf(err, "could not delete codebase %s", cb.ID))
 			continue
 		}
 		if resp.StatusCode != http.StatusOK {
 			formattedErrors, err := cl.DecodeJSONAPIErrors(resp)
 			if err != nil {
-				errors = append(errors,
+				errorsList = append(errorsList,
 					errs.Wrapf(err, "could not decode JSON formatted errors returned while deleting codebase %s", cb.ID))
 				continue
 			}
-			errors = append(errors, formattedErrors.Validate())
+			errorsList = append(errorsList, formattedErrors.Validate())
 		}
 	}
-	if len(errors) != 0 {
+	if len(errorsList) != 0 {
 		var errString string
-		for _, err = range errors {
+		for _, err = range errorsList {
 			errString += fmt.Sprintf("%s\n", err)
 		}
-		return fmt.Errorf(errString)
+		return errors.NewInternalErrorFromString(errString)
 	}
 
 	return nil
@@ -332,8 +339,9 @@ func deleteOpenShiftResource(
 
 	u, err := url.Parse(config.GetDeploymentsServiceURL())
 	if err != nil {
-		return errs.Wrapf(err, "malformed deployments service URL: %s",
-			config.GetDeploymentsServiceURL())
+		return errors.NewInternalError(ctx,
+			fmt.Errorf("malformed deployments service URL %s: %v",
+				config.GetDeploymentsServiceURL(), err))
 	}
 
 	cl := client.New(goaclient.HTTPClientDoer(httpClient))
@@ -345,22 +353,27 @@ func deleteOpenShiftResource(
 	path := client.ShowSpaceDeploymentsPath(spaceID)
 	resp, err := cl.ShowSpaceDeployments(ctx, path)
 	if err != nil {
-		return errs.Wrap(err, "could not get deployments")
+		return errors.NewInternalError(ctx,
+			fmt.Errorf("could not get deployments: %v", err))
 	}
+	defer resp.Body.Close()
+
 	if resp.StatusCode != http.StatusOK {
 		formattedErrors, err := cl.DecodeJSONAPIErrors(resp)
 		if err != nil {
-			return errs.Wrapf(err, "could not decode JSON formatted errors returned while listing deployments")
+			return errors.NewInternalError(ctx,
+				fmt.Errorf("could not decode JSON formatted errors returned while listing deployments: %v", err))
 		}
-		return formattedErrors.Validate()
+		return errors.NewInternalError(ctx, formattedErrors.Validate())
 	}
 	space, err := cl.DecodeSimpleSpaceSingle(resp)
 	if err != nil {
-		return errs.Wrapf(err, "could not decode deployments")
+		return errors.NewInternalError(ctx,
+			fmt.Errorf("could not decode deployments: %v", err))
 	}
 
 	// iterate over all the applications
-	var errors []error
+	var errorsList []error
 	for _, app := range space.Data.Attributes.Applications {
 		for _, env := range app.Attributes.Deployments {
 			path = client.DeleteDeploymentDeploymentsPath(
@@ -370,27 +383,27 @@ func deleteOpenShiftResource(
 			)
 			resp, err = cl.DeleteDeploymentDeployments(ctx, path)
 			if err != nil {
-				errors = append(errors,
+				errorsList = append(errorsList,
 					errs.Wrapf(err, "could not delete deployment for space=%s, app=%s, env=%s", spaceID, app.Attributes.Name, env.Attributes.Name))
 				continue
 			}
 			if resp.StatusCode != http.StatusOK {
 				formattedErrors, err := cl.DecodeJSONAPIErrors(resp)
 				if err != nil {
-					errors = append(errors,
+					errorsList = append(errorsList,
 						errs.Wrapf(err, "could not decode JSON formatted errors returned while deleting deployment for space=%s, app=%s, env=%s", spaceID, app.Attributes.Name, env.Attributes.Name))
 					continue
 				}
-				errors = append(errors, formattedErrors.Validate())
+				errorsList = append(errorsList, formattedErrors.Validate())
 			}
 		}
 	}
-	if len(errors) != 0 {
+	if len(errorsList) != 0 {
 		var errString string
-		for _, err = range errors {
+		for _, err = range errorsList {
 			errString += fmt.Sprintf("%s\n", err)
 		}
-		return fmt.Errorf(errString)
+		return errors.NewInternalErrorFromString(errString)
 	}
 	return nil
 }
