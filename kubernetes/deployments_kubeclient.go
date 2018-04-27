@@ -996,9 +996,7 @@ func (kc *kubeClient) getDeploymentConfigNameForApp(namespace string, appName st
 						"envServices": envServicesStr,
 					}, "%s annotation does not contain a string", envServicesAnnotationPrefix)
 				} else {
-					// Parse YAML annotation value
-					var envServicesYaml map[interface{}]interface{}
-					err = yaml.Unmarshal([]byte(envServicesStr), &envServicesYaml)
+					dcName, err := getNameFromEnvServices([]byte(envServicesStr))
 					if err != nil {
 						log.Warn(nil, map[string]interface{}{
 							"err":         err,
@@ -1006,33 +1004,38 @@ func (kc *kubeClient) getDeploymentConfigNameForApp(namespace string, appName st
 							"appName":     appName,
 							"spaceName":   spaceName,
 							"envServices": envServicesStr,
-						}, "Failed to unmarshal %s YAML", envServicesAnnotationPrefix)
-					} else {
-						// Look for deployment versions
-						deployVersionsYaml, pres := envServicesYaml[envServicesDeploymentVersions]
-						if pres {
-							deployVersions, ok := deployVersionsYaml.(map[interface{}]interface{})
-							if ok {
-								// TODO If there is more than one entry in deploymentVersions, we just
-								// take the first one. What scenario could cause this to occur, and
-								// could we handle it better?
-								for nameYaml := range deployVersions {
-									depName, ok := nameYaml.(string)
-									if !ok {
-										log.Warn(nil, map[string]interface{}{
-											"namespace":   namespace,
-											"appName":     appName,
-											"spaceName":   spaceName,
-											"envServices": envServicesStr,
-										}, "%s does not contain a string", envServicesDeploymentVersions)
-									} else {
-										return depName, nil
-									}
-								}
-							}
-						}
+						}, "failed to determine Deployment Config name")
 					}
+					return dcName, nil
 				}
+			}
+		}
+	}
+	return "", nil
+}
+
+func getNameFromEnvServices(envServices []byte) (string, error) {
+	// Parse YAML annotation value
+	var envServicesYaml map[interface{}]interface{}
+	err := yaml.Unmarshal(envServices, &envServicesYaml)
+	if err != nil {
+		return "", errs.Wrapf(err, "failed to unmarshal %s YAML", envServicesAnnotationPrefix)
+	}
+
+	// Look for deployment versions
+	deployVersionsYaml, pres := envServicesYaml[envServicesDeploymentVersions]
+	if pres {
+		deployVersions, ok := deployVersionsYaml.(map[interface{}]interface{})
+		if ok {
+			// TODO If there is more than one entry in deploymentVersions, we just
+			// take the first one. What scenario could cause this to occur, and
+			// could we handle it better?
+			for nameYaml := range deployVersions {
+				depName, ok := nameYaml.(string)
+				if !ok {
+					return "", errs.Errorf("%s does not contain a string", envServicesDeploymentVersions)
+				}
+				return depName, nil
 			}
 		}
 	}
