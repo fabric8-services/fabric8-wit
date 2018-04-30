@@ -55,7 +55,7 @@ const (
 	varAuthURL                      = "auth.url"
 	varAuthorizationEnabled         = "authz.enabled"
 	varGithubAuthToken              = "github.auth.token"
-	varOpenshiftProxyURL            = "osproxy.url"
+	varOpenshiftProxyURL            = "osoproxy.url"
 	varKeycloakSecret               = "keycloak.secret"
 	varKeycloakClientID             = "keycloak.client.id"
 	varKeycloakDomainPrefix         = "keycloak.domain.prefix"
