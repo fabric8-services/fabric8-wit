@@ -8,6 +8,9 @@ set -e
 
 # Source environment variables of the jenkins slave
 # that might interest this worker.
+# TODO(kwk): Fix this as it is broken if values of env vars contain spaces :/
+# See https://github.com/openshiftio/openshiftio-cico-jobs/pull/186 for an approach
+# using "declare -p" on the site that creates the .jenkins-env file.
 function load_jenkins_vars() {
   if [ -e "jenkins-env" ]; then
     cat jenkins-env \
@@ -20,7 +23,7 @@ function load_jenkins_vars() {
 
 function install_deps() {
   # We need to disable selinux for now, XXX
-  /usr/sbin/setenforce 0
+  /usr/sbin/setenforce 0 || :
 
   # Get all the deps in
   yum -y install --quiet \
@@ -35,19 +38,25 @@ function install_deps() {
 }
 
 function cleanup_env {
-  EXIT_CODE=$?
+  local exit_code=$?
   echo "CICO: Cleanup environment: Tear down test environment"
   make integration-test-env-tear-down
-  echo "CICO: Exiting with $EXIT_CODE"
+  echo "CICO: Exiting with ${exit_code}"
 }
 
 function prepare() {
-  # Let's test
+  # Start "flow-heater" container to build in and run tests in.
+  # Every make target that begins with "docker-" will be executed
+  # in the resulting container.
   make docker-start
   make docker-check-go-format
+  # Download Go dependencies
   make docker-deps
+  # Check code for style violations (vet, etc).
   make docker-analyze-go-code
+  # Take Goa designs and generate code with it.
   make docker-generate
+  # Build the wit and wit-cli binary
   make docker-build
   echo 'CICO: Preparation complete'
 }
@@ -114,26 +123,39 @@ function run_tests_with_coverage() {
 }
 
 function tag_push() {
-  TARGET=$1
-  docker tag fabric8-wit-deploy $TARGET
-  docker push $TARGET
+  local target=$1
+  docker tag fabric8-wit-deploy ${target}
+  docker push ${target}
 }
 
+# deploy builds a deployable docker image and tags it according to
+# the given tag. If the second parameter is true, it will push the
+# image to a registry.
 function deploy() {
-  # Let's deploy
-  make docker-image-deploy
-
-  TAG=$(echo $GIT_COMMIT | cut -c1-${DEVSHIFT_TAG_LEN})
-  REGISTRY="push.registry.devshift.net"
+  local tag=$1
+  local push_latest=$2
+  local registry="push.registry.devshift.net"
 
   if [ -n "${DEVSHIFT_USERNAME}" -a -n "${DEVSHIFT_PASSWORD}" ]; then
-    docker login -u ${DEVSHIFT_USERNAME} -p ${DEVSHIFT_PASSWORD} ${REGISTRY}
+    docker login -u ${DEVSHIFT_USERNAME} -p ${DEVSHIFT_PASSWORD} ${registry}
   else
     echo "Could not login, missing credentials for the registry"
+    exit 1
   fi
 
-  tag_push ${REGISTRY}/fabric8-services/fabric8-wit:$TAG
-  tag_push ${REGISTRY}/fabric8-services/fabric8-wit:latest
+  # build the deployable image
+  make docker-image-deploy
+
+  if [ "$TARGET" = "rhel" ]; then
+    base_registry_url="${registry}/osio-prod"
+  else
+    base_registry_url="${registry}"
+  fi
+
+  tag_push ${base_registry_url}/fabric8-services/fabric8-wit:${tag}
+  if ( ${push_latest} ); then
+    tag_push ${base_registry_url}/fabric8-services/fabric8-wit:latest
+  fi
   echo 'CICO: Image pushed, ready to update deployed app'
 }
 

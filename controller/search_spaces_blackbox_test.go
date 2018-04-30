@@ -1,6 +1,7 @@
 package controller_test
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -16,11 +17,10 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
+	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-
-	"context"
 
 	"github.com/goadesign/goa"
 )
@@ -102,8 +102,9 @@ func createTestData(db application.DB, prefix string) ([]space.Space, error) {
 	err := application.Transactional(db, func(app application.Application) error {
 		for _, name := range names {
 			space := space.Space{
-				Name:        name,
-				Description: strings.ToTitle("description for " + name),
+				Name:            name,
+				Description:     strings.ToTitle("description for " + name),
+				SpaceTemplateID: spacetemplate.SystemLegacyTemplateID,
 			}
 			newSpace, err := app.Spaces().Create(context.Background(), &space)
 			if err != nil {

@@ -47,6 +47,7 @@ required = [
   "github.com/jstemmer/go-junit-report",
   "github.com/wadey/gocovmerge",
   "github.com/pilu/fresh",
+  "github.com/gojuno/minimock/cmd/minimock",
 ]
     
 ignored = [
@@ -134,9 +135,18 @@ ignored = [
   revision = "master"
 
 [[constraint]]
+  name = "github.com/ghodss/yaml"
+  version = "1.0.0"
+
+[[constraint]]
   name = "github.com/pilu/fresh"
   revision = "9c0092493eff2825c3abf64e087b3383dec939c3"
+
+[[constraint]]
+  name = "github.com/gojuno/minimock"
+  branch = "master"
 
 [prune]
   go-tests = true
   unused-packages = true
+

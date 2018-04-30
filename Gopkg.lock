@@ -147,7 +147,8 @@
 [[projects]]
   name = "github.com/ghodss/yaml"
   packages = ["."]
-  revision = "73d445a93680fa1a78ae23a5839bad48f32ba1ee"
+  revision = "0ca9ea5df5451ffdf184b4428c902747c2c11cd7"
+  version = "v1.0.0"
 
 [[projects]]
   name = "github.com/go-openapi/jsonpointer"
@@ -208,6 +209,21 @@
     "sortkeys"
   ]
   revision = "c0656edd0d9eab7c66d1eb0c568f9039345796f7"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/gojuno/generator"
+  packages = ["."]
+  revision = "2224a98ac05213f8dff340ea2a489217d2d8b965"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/gojuno/minimock"
+  packages = [
+    ".",
+    "cmd/minimock"
+  ]
+  revision = "3815f8d1b952717b22f2905b1a91896dfa77fab1"
 
 [[projects]]
   name = "github.com/golang/glog"
@@ -641,8 +657,11 @@
   packages = [
     "cover",
     "go/ast/astutil",
+    "go/buildutil",
     "go/gcexportdata",
-    "go/gcimporter15"
+    "go/gcimporter15",
+    "go/loader",
+    "imports"
   ]
   revision = "a888bfdffa4526cc6987572bca9a2c6b7758290f"
 
@@ -793,6 +812,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "adfbd3c9cedaa00f622b304ae0446e4fdb71d7fd792c36ac4382f511b9bc95a9"
+  inputs-digest = "843238741f4e88d78a8acaa703af920f93880a14b119627c75831c56a6e20393"
   solver-name = "gps-cdcl"
   solver-version = 1

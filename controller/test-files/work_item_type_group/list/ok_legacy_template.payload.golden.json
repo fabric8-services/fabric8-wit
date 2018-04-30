@@ -9,29 +9,29 @@
         "show-in-sidebar": true,
         "updated-at": "0001-01-01T00:00:00Z"
       },
-      "id": "00000000-0000-0000-0000-000000000001",
+      "id": "679a563c-ac9b-4478-9f3e-4187f708dd30",
       "links": {
-        "related": "http:///api/workitemtypegroups/00000000-0000-0000-0000-000000000001"
+        "related": "http:///api/workitemtypegroups/679a563c-ac9b-4478-9f3e-4187f708dd30"
       },
       "relationships": {
         "spaceTemplate": {
           "data": {
-            "id": "00000000-0000-0000-0000-000000000002",
+            "id": "929c963a-174c-4c37-b487-272067e88bd4",
             "type": "spacetemplates"
           }
         },
         "typeList": {
           "data": [
             {
-              "id": "00000000-0000-0000-0000-000000000003",
+              "id": "71171e90-6d35-498f-a6a7-2083b5267c18",
               "type": "workitemtypes"
             },
             {
-              "id": "00000000-0000-0000-0000-000000000004",
+              "id": "ee7ca005-f81d-4eea-9b9b-1965df0988d0",
               "type": "workitemtypes"
             },
             {
-              "id": "00000000-0000-0000-0000-000000000005",
+              "id": "6d603ab4-7c5e-4c5f-bba8-a3ba9d370985",
               "type": "workitemtypes"
             }
           ]
@@ -48,25 +48,25 @@
         "show-in-sidebar": true,
         "updated-at": "0001-01-01T00:00:00Z"
       },
-      "id": "00000000-0000-0000-0000-000000000006",
+      "id": "6d254168-6937-447f-a093-0c38404bd072",
       "links": {
-        "related": "http:///api/workitemtypegroups/00000000-0000-0000-0000-000000000006"
+        "related": "http:///api/workitemtypegroups/6d254168-6937-447f-a093-0c38404bd072"
       },
       "relationships": {
         "spaceTemplate": {
           "data": {
-            "id": "00000000-0000-0000-0000-000000000002",
+            "id": "929c963a-174c-4c37-b487-272067e88bd4",
             "type": "spacetemplates"
           }
         },
         "typeList": {
           "data": [
             {
-              "id": "00000000-0000-0000-0000-000000000007",
+              "id": "b9a71831-c803-4f66-8774-4193fffd1311",
               "type": "workitemtypes"
             },
             {
-              "id": "00000000-0000-0000-0000-000000000008",
+              "id": "3194ab60-855b-4155-9005-9dce4a05f1eb",
               "type": "workitemtypes"
             }
           ]
@@ -83,25 +83,25 @@
         "show-in-sidebar": true,
         "updated-at": "0001-01-01T00:00:00Z"
       },
-      "id": "00000000-0000-0000-0000-000000000009",
+      "id": "44795662-db7a-44f7-a4e7-c6d41d3eff27",
       "links": {
-        "related": "http:///api/workitemtypegroups/00000000-0000-0000-0000-000000000009"
+        "related": "http:///api/workitemtypegroups/44795662-db7a-44f7-a4e7-c6d41d3eff27"
       },
       "relationships": {
         "spaceTemplate": {
           "data": {
-            "id": "00000000-0000-0000-0000-000000000002",
+            "id": "929c963a-174c-4c37-b487-272067e88bd4",
             "type": "spacetemplates"
           }
         },
         "typeList": {
           "data": [
             {
-              "id": "00000000-0000-0000-0000-000000000010",
+              "id": "0a24d3c2-e0a6-4686-8051-ec0ea1915a28",
               "type": "workitemtypes"
             },
             {
-              "id": "00000000-0000-0000-0000-000000000011",
+              "id": "26787039-b68f-4e28-8814-c2f93be1ef4e",
               "type": "workitemtypes"
             }
           ]
@@ -118,29 +118,29 @@
         "show-in-sidebar": false,
         "updated-at": "0001-01-01T00:00:00Z"
       },
-      "id": "00000000-0000-0000-0000-000000000012",
+      "id": "5c3ee317-3cdd-4ee6-a27f-85965f777ee3",
       "links": {
-        "related": "http:///api/workitemtypegroups/00000000-0000-0000-0000-000000000012"
+        "related": "http:///api/workitemtypegroups/5c3ee317-3cdd-4ee6-a27f-85965f777ee3"
       },
       "relationships": {
         "spaceTemplate": {
           "data": {
-            "id": "00000000-0000-0000-0000-000000000002",
+            "id": "929c963a-174c-4c37-b487-272067e88bd4",
             "type": "spacetemplates"
           }
         },
         "typeList": {
           "data": [
             {
-              "id": "00000000-0000-0000-0000-000000000013",
+              "id": "bbf35418-04b6-426c-a60b-7f80beb0b624",
               "type": "workitemtypes"
             },
             {
-              "id": "00000000-0000-0000-0000-000000000011",
+              "id": "26787039-b68f-4e28-8814-c2f93be1ef4e",
               "type": "workitemtypes"
             },
             {
-              "id": "00000000-0000-0000-0000-000000000010",
+              "id": "0a24d3c2-e0a6-4686-8051-ec0ea1915a28",
               "type": "workitemtypes"
             }
           ]
@@ -150,6 +150,6 @@
     }
   ],
   "links": {
-    "self": "http:///api/spacetemplates/00000000-0000-0000-0000-000000000002/workitemtypegroups"
+    "self": "http:///api/spacetemplates/929c963a-174c-4c37-b487-272067e88bd4/workitemtypegroups"
   }
 }

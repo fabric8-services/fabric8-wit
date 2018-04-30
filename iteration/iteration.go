@@ -311,9 +311,9 @@ func (m *GormIterationRepository) LoadChildren(ctx context.Context, parentIterat
 	selfPath := parentIteration.Path.Convert()
 	var query string
 	if selfPath != "" {
-		query = parentIteration.Path.Convert() + path.SepInDatabase + parentIteration.Path.ConvertToLtree(parentIteration.ID)
+		query = parentIteration.Path.Convert() + path.SepInDatabase + path.ConvertToLtree(parentIteration.ID)
 	} else {
-		query = parentIteration.Path.ConvertToLtree(parentIteration.ID)
+		query = path.ConvertToLtree(parentIteration.ID)
 	}
 	err = m.db.Where("path <@ ?", query).Order("updated_at").Find(&objs).Error
 	if err != nil {

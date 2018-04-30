@@ -55,6 +55,7 @@ const (
 	varAuthURL                      = "auth.url"
 	varAuthorizationEnabled         = "authz.enabled"
 	varGithubAuthToken              = "github.auth.token"
+	varOpenshiftProxyURL            = "osoproxy.url"
 	varKeycloakSecret               = "keycloak.secret"
 	varKeycloakClientID             = "keycloak.client.id"
 	varKeycloakDomainPrefix         = "keycloak.domain.prefix"
@@ -82,6 +83,7 @@ const (
 	varCacheControlFilters           = "cachecontrol.filters"
 	varCacheControlUsers             = "cachecontrol.users"
 	varCacheControlCollaborators     = "cachecontrol.collaborators"
+	varCacheControlSpaceTemplates    = "cachecontrol.spacetemplates"
 
 	// cache control settings for a single resource
 	varCacheControlUser             = "cachecontrol.user"
@@ -209,12 +211,16 @@ func (c *Registry) setConfigDefaults() {
 	c.v.SetDefault(varKeycloakTesUserName, defaultKeycloakTesUserName)
 	c.v.SetDefault(varAuthorizationEnabled, true)
 
+	// Proxy related defaults
+	c.v.SetDefault(varOpenshiftProxyURL, "")
+
 	// HTTP Cache-Control/max-age default for a list of resources
 	c.v.SetDefault(varCacheControlWorkItems, "max-age=2") // very short life in cache, to allow for quick, repetitive updates.
 	c.v.SetDefault(varCacheControlWorkItemTypes, "max-age=2")
 	c.v.SetDefault(varCacheControlWorkItemLinks, "max-age=2")
 	c.v.SetDefault(varCacheControlWorkItemLinkTypes, "max-age=2")
 	c.v.SetDefault(varCacheControlSpaces, "max-age=2")
+	c.v.SetDefault(varCacheControlSpaceTemplates, "max-age=2")
 	c.v.SetDefault(varCacheControlIterations, "max-age=2")
 	c.v.SetDefault(varCacheControlAreas, "max-age=2")
 	c.v.SetDefault(varCacheControlComments, "max-age=2")
@@ -496,6 +502,12 @@ func (c *Registry) GetCacheControlIteration() string {
 	return c.v.GetString(varCacheControlIteration)
 }
 
+// GetCacheControlSpaceTemplates returns the value to set in the "Cache-Control"
+// HTTP response header when returning space templates.
+func (c *Registry) GetCacheControlSpaceTemplates() string {
+	return c.v.GetString(varCacheControlSpaceTemplates)
+}
+
 // GetCacheControlComments returns the value to set in the "Cache-Control" HTTP response header
 // when returning a list of comments.
 func (c *Registry) GetCacheControlComments() string {
@@ -563,6 +575,11 @@ func (c *Registry) GetAuthShortServiceHostName() string {
 // GetAuthServiceURL returns the Auth Service URL
 func (c *Registry) GetAuthServiceURL() string {
 	return c.v.GetString(varAuthURL)
+}
+
+// GetOpenshiftProxyURL returns the Openshift Proxy URL, or "" if no URL
+func (c *Registry) GetOpenshiftProxyURL() string {
+	return c.v.GetString(varOpenshiftProxyURL)
 }
 
 func (c *Registry) getServiceEndpoint(req *http.Request, varServiceURL string, devModeURL string, serviceDomainPrefix string, pathSufix string) (string, error) {

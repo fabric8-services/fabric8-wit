@@ -39,6 +39,7 @@ func NewPlannerBacklogController(service *goa.Service, db application.DB, config
 
 func (c *PlannerBacklogController) List(ctx *app.ListPlannerBacklogContext) error {
 	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
+
 	exp, err := query.Parse(ctx.Filter)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("could not parse filter", err))
@@ -72,14 +73,21 @@ func (c *PlannerBacklogController) List(ctx *app.ListPlannerBacklogContext) erro
 
 // generateBacklogExpression creates the expression to query for backlog items
 func generateBacklogExpression(ctx context.Context, db application.DB, spaceID uuid.UUID, exp criteria.Expression) (criteria.Expression, error) {
+	notClosed := criteria.Not(criteria.Field(workitem.SystemState), criteria.Literal(workitem.SystemStateClosed))
 	if exp != nil {
-		exp = criteria.And(exp, criteria.Not(criteria.Field(workitem.SystemState), criteria.Literal(workitem.SystemStateClosed)))
+		exp = criteria.And(exp, notClosed)
 	} else {
-		exp = criteria.Not(criteria.Field(workitem.SystemState), criteria.Literal(workitem.SystemStateClosed))
+		exp = notClosed
 	}
 
 	log.Debug(ctx, map[string]interface{}{"space_id": spaceID, "db": db}, "generating backlog expression")
 	err := application.Transactional(db, func(appl application.Application) error {
+		// Get the space template ID from the space
+		space, err := appl.Spaces().Load(ctx, spaceID)
+		if err != nil {
+			return errs.Wrapf(err, "unable to fetch space: %s", spaceID)
+		}
+
 		// Get the root iteration
 		itr, err := appl.Iterations().Root(ctx, spaceID)
 		if err != nil {
@@ -90,7 +98,7 @@ func generateBacklogExpression(ctx context.Context, db application.DB, spaceID u
 
 		// Get the list of work item types that derive of PlannerItem in the space
 		var expWits criteria.Expression
-		wits, err := appl.WorkItemTypes().ListPlannerItemTypes(ctx, spaceID)
+		wits, err := appl.WorkItemTypes().ListPlannerItemTypes(ctx, space.SpaceTemplateID)
 		if err != nil {
 			return errs.Wrap(err, "unable to fetch work item types that derive from planner item")
 		}

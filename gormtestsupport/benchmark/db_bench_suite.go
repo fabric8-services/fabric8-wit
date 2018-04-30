@@ -10,7 +10,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/models"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/test"
-	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq" // need to import postgres driver
 	"golang.org/x/net/context"
@@ -61,7 +60,7 @@ func (s *DBBenchSuite) SetupSuite() {
 func (s *DBBenchSuite) populateDBBenchSuite(ctx context.Context) {
 	if _, c := os.LookupEnv(resource.Database); c != false {
 		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
-			return migration.PopulateCommonTypes(ctx, tx, workitem.NewWorkItemTypeRepository(tx))
+			return migration.PopulateCommonTypes(ctx, tx)
 		}); err != nil {
 			log.Panic(nil, map[string]interface{}{
 				"err":             err,

@@ -6,13 +6,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fabric8-services/fabric8-wit/closeable"
-
 	"github.com/fabric8-services/fabric8-wit/application/repository"
+	"github.com/fabric8-services/fabric8-wit/closeable"
 	"github.com/fabric8-services/fabric8-wit/convert"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 	numbersequence "github.com/fabric8-services/fabric8-wit/workitem/number_sequence"
 
 	"github.com/goadesign/goa"
@@ -29,11 +29,12 @@ var (
 // Space represents a Space on the domain and db layer
 type Space struct {
 	gormsupport.Lifecycle
-	ID          uuid.UUID
-	Version     int
-	Name        string
-	Description string
-	OwnerID     uuid.UUID `sql:"type:uuid"` // Belongs To Identity
+	ID              uuid.UUID
+	Version         int
+	Name            string
+	Description     string
+	OwnerID         uuid.UUID `sql:"type:uuid"` // Belongs To Identity
+	SpaceTemplateID uuid.UUID `sql:"type:uuid"`
 }
 
 // Ensure Fields implements the Equaler interface
@@ -54,6 +55,9 @@ func (p Space) Equal(u convert.Equaler) bool {
 		return false
 	}
 	if p.Name != other.Name {
+		return false
+	}
+	if !uuid.Equal(p.SpaceTemplateID, other.SpaceTemplateID) {
 		return false
 	}
 	if p.Description != other.Description {
@@ -259,6 +263,16 @@ func (r *GormRepository) Create(ctx context.Context, space *Space) (*Space, erro
 	// We might want to create a space with a specific ID, e.g. space.SystemSpace
 	if space.ID == uuid.Nil {
 		space.ID = uuid.NewV4()
+	}
+
+	// Check if the used space template can create spaces
+	spaceTemplateRepo := spacetemplate.NewRepository(r.db)
+	templ, err := spaceTemplateRepo.Load(ctx, space.SpaceTemplateID)
+	if err != nil {
+		return nil, errors.NewNotFoundError("space template", space.SpaceTemplateID.String())
+	}
+	if !templ.CanConstruct {
+		return nil, errors.NewForbiddenError(fmt.Sprintf("space template \"%s\" (ID: %s) cannot create spaces", templ.Name, templ.ID))
 	}
 
 	tx := r.db.Create(space)

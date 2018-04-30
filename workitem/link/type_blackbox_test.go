@@ -2,7 +2,6 @@ package link_test
 
 import (
 	"testing"
-
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/convert"
@@ -20,15 +19,15 @@ func TestWorkItemLinkType_Equal(t *testing.T) {
 
 	description := "An example description"
 	a := link.WorkItemLinkType{
-		ID:             uuid.FromStringOrNil("0e671e36-871b-43a6-9166-0c4bd573e231"),
-		Name:           "Example work item link category",
-		Description:    &description,
-		Topology:       link.TopologyNetwork,
-		Version:        0,
-		ForwardName:    "blocks",
-		ReverseName:    "blocked by",
-		LinkCategoryID: uuid.FromStringOrNil("0e671e36-871b-43a6-9166-0c4bd573eAAA"),
-		SpaceID:        uuid.FromStringOrNil("6ba7b810-9dad-11d1-80b4-00c04fd430c8"),
+		ID:              uuid.FromStringOrNil("0e671e36-871b-43a6-9166-0c4bd573e231"),
+		Name:            "Example work item link category",
+		Description:     &description,
+		Topology:        link.TopologyNetwork,
+		Version:         0,
+		ForwardName:     "blocks",
+		ReverseName:     "blocked by",
+		LinkCategoryID:  uuid.FromStringOrNil("0e671e36-871b-43a6-9166-0c4bd573eAAA"),
+		SpaceTemplateID: uuid.FromStringOrNil("6ba7b810-9dad-11d1-80b4-00c04fd430c8"),
 	}
 
 	// Test equality
@@ -85,9 +84,9 @@ func TestWorkItemLinkType_Equal(t *testing.T) {
 	b.LinkCategoryID = uuid.FromStringOrNil("aaa71e36-871b-43a6-9166-0c4bd573eCCC")
 	require.False(t, a.Equal(b))
 
-	// Test SpaceID
+	// Test SpaceTemplateID
 	b = a
-	b.SpaceID = uuid.FromStringOrNil("aaa71e36-871b-43a6-9166-0v5ce684dBBB")
+	b.SpaceTemplateID = uuid.FromStringOrNil("aaa71e36-871b-43a6-9166-0v5ce684dBBB")
 	require.False(t, a.Equal(b))
 }
 
@@ -97,15 +96,15 @@ func TestWorkItemLinkTypeCheckValidForCreation(t *testing.T) {
 
 	description := "An example description"
 	a := link.WorkItemLinkType{
-		ID:             uuid.FromStringOrNil("0e671e36-871b-43a6-9166-0c4bd573e231"),
-		Name:           "Example work item link category",
-		Description:    &description,
-		Topology:       link.TopologyNetwork,
-		Version:        0,
-		ForwardName:    "blocks",
-		ReverseName:    "blocked by",
-		LinkCategoryID: uuid.FromStringOrNil("0e671e36-871b-43a6-9166-0c4bd573eAAA"),
-		SpaceID:        uuid.FromStringOrNil("6ba7b810-9dad-11d1-80b4-00c04fd430c8"),
+		ID:              uuid.FromStringOrNil("0e671e36-871b-43a6-9166-0c4bd573e231"),
+		Name:            "Example work item link category",
+		Description:     &description,
+		Topology:        link.TopologyNetwork,
+		Version:         0,
+		ForwardName:     "blocks",
+		ReverseName:     "blocked by",
+		LinkCategoryID:  uuid.FromStringOrNil("0e671e36-871b-43a6-9166-0c4bd573eAAA"),
+		SpaceTemplateID: uuid.FromStringOrNil("6ba7b810-9dad-11d1-80b4-00c04fd430c8"),
 	}
 
 	// Check valid
@@ -137,8 +136,8 @@ func TestWorkItemLinkTypeCheckValidForCreation(t *testing.T) {
 	b.LinkCategoryID = uuid.Nil
 	require.NotNil(t, b.CheckValidForCreation())
 
-	// Check empty SpaceID
+	// Check empty SpaceTemplateID
 	b = a
-	b.SpaceID = uuid.Nil
+	b.SpaceTemplateID = uuid.Nil
 	require.NotNil(t, b.CheckValidForCreation())
 }
