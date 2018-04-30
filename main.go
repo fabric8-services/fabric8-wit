@@ -236,6 +236,10 @@ func main() {
 	workitemtypesCtrl := controller.NewWorkitemtypesController(service, appDB, config)
 	app.MountWorkitemtypesController(service, workitemtypesCtrl)
 
+	// Mount "spaceworkitemtypes" controller
+	spaceWorkitemtypesCtrl := controller.NewSpaceworkitemtypesController(service, appDB, config)
+	app.MountSpaceworkitemtypesController(service, spaceWorkitemtypesCtrl)
+
 	// Mount "work item link category" controller
 	workItemLinkCategoryCtrl := controller.NewWorkItemLinkCategoryController(service, appDB)
 	app.MountWorkItemLinkCategoryController(service, workItemLinkCategoryCtrl)

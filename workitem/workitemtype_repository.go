@@ -9,6 +9,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/path"
+	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 
 	"github.com/goadesign/goa"
@@ -25,6 +26,7 @@ type WorkItemTypeRepository interface {
 	Load(ctx context.Context, id uuid.UUID) (*WorkItemType, error)
 	Create(ctx context.Context, spaceTemplateID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields FieldDefinitions, canConstruct bool) (*WorkItemType, error)
 	List(ctx context.Context, spaceTemplateID uuid.UUID) ([]WorkItemType, error)
+	ListForSpace(ctx context.Context, spaceID uuid.UUID) ([]WorkItemType, error)
 	ListPlannerItemTypes(ctx context.Context, spaceTemplateID uuid.UUID) ([]WorkItemType, error)
 	AddChildTypes(ctx context.Context, parentTypeID uuid.UUID, childTypeIDs []uuid.UUID) error
 }
@@ -181,6 +183,38 @@ func (r *GormWorkItemTypeRepository) ListPlannerItemTypes(ctx context.Context, s
 func (r *GormWorkItemTypeRepository) List(ctx context.Context, spaceTemplateID uuid.UUID) ([]WorkItemType, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitemtype", "list"}, time.Now())
 
+	// check space template exists
+	if err := spacetemplate.NewRepository(r.db).CheckExists(ctx, spaceTemplateID); err != nil {
+		return nil, errors.NewNotFoundError("space template", spaceTemplateID.String())
+	}
+
+	// TODO: (kwk) implement criteria parsing just like for work items
+	var wits []WorkItemType
+	db := r.db.Where("space_template_id = ?", spaceTemplateID).Order("created_at")
+	if err := db.Find(&wits).Error; err != nil {
+		return nil, errs.WithStack(err)
+	}
+	for i, wit := range wits {
+		childTypes, err := r.loadChildTypeList(ctx, wit.ID)
+		if err != nil {
+			return nil, errs.Wrapf(err, `failed to load child types for WIT "%s" (%s)`, wit.Name, wit.ID)
+		}
+		wits[i].ChildTypeIDs = childTypes
+	}
+	return wits, nil
+}
+
+// ListForSpace returns work item types selected by the given criteria.Expression,
+// starting with start (zero-based) and returning at most "limit" item types.
+func (r *GormWorkItemTypeRepository) ListForSpace(ctx context.Context, spaceID uuid.UUID) ([]WorkItemType, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitemtype", "list"}, time.Now())
+
+	spaceRepo := space.NewRepository(r.db)
+	space, err := spaceRepo.Load(ctx, spaceID)
+	if err != nil {
+		return nil, errors.NewNotFoundError("space", spaceID.String())
+	}
+	spaceTemplateID := space.SpaceTemplateID
 	// check space template exists
 	if err := spacetemplate.NewRepository(r.db).CheckExists(ctx, spaceTemplateID); err != nil {
 		return nil, errors.NewNotFoundError("space template", spaceTemplateID.String())

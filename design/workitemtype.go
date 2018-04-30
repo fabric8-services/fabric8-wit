@@ -147,4 +147,24 @@ var _ = a.Resource("workitemtypes", func() {
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
+
+})
+
+var _ = a.Resource("spaceworkitemtypes", func() {
+	a.Parent("space")
+	a.BasePath("/workitemtypes")
+
+	a.Action("listforspace", func() {
+		a.Routing(
+			a.GET(""),
+		)
+		a.Description("List work item types.")
+		a.UseTrait("conditional")
+		a.Response(d.OK, workItemTypeList)
+		a.Response(d.NotModified)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+	})
+
 })
