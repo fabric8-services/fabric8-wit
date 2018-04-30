@@ -154,13 +154,14 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 // Show does GET workitem
 func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 	var wi *workitem.WorkItem
+	var wit *workitem.WorkItemType
 	err := application.Transactional(c.db, func(appl application.Application) error {
 		var err error
 		wi, err = appl.WorkItems().LoadByID(ctx, ctx.WiID)
 		if err != nil {
 			return errs.Wrap(err, fmt.Sprintf("Fail to load work item with id %v", ctx.WiID))
 		}
-		wit, err := appl.WorkItemTypes().Load(ctx.Context, wi.Type)
+		wit, err = appl.WorkItemTypes().Load(ctx.Context, wi.Type)
 		if err != nil {
 			return errs.Wrapf(err, "failed to load work item type: %s", wi.Type)
 		}
