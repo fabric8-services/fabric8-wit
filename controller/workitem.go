@@ -157,7 +157,14 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 	err := application.Transactional(c.db, func(appl application.Application) error {
 		var err error
 		wi, err = appl.WorkItems().LoadByID(ctx, ctx.WiID)
-		return errs.Wrap(err, fmt.Sprintf("Fail to load work item with id %v", ctx.WiID))
+		if err != nil {
+			return errs.Wrap(err, fmt.Sprintf("Fail to load work item with id %v", ctx.WiID))
+		}
+		wit, err := appl.WorkItemTypes().Load(ctx.Context, wi.Type)
+		if err != nil {
+			return errs.Wrapf(err, "failed to load work item type: %s", wi.Type)
+		}
+		return nil
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
@@ -165,10 +172,6 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 	return ctx.ConditionalRequest(*wi, c.config.GetCacheControlWorkItem, func() error {
 		comments := workItemIncludeCommentsAndTotal(ctx, c.db, ctx.WiID)
 		hasChildren := workItemIncludeHasChildren(ctx, c.db)
-		wit, err := c.db.WorkItemTypes().Load(ctx.Context, wi.Type)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to load work item type: %s", wi.Type))
-		}
 		wi2, err := ConvertWorkItem(ctx.Request, *wit, *wi, comments, hasChildren)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
