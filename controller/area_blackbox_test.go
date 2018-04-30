@@ -76,42 +76,19 @@ func (rest *TestAreaREST) TestCreateChildArea() {
 			assert.Equal(t, parentID.String(), *created.Data.Relationships.Parent.Data.ID)
 			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok.res.golden.json"), created)
 			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok.res.headers.golden.json"), resp.Header())
-			// try creating child area with different identity: should fail
-			otherIdentity := fxt.Identities[1]
-			svc, ctrl = rest.SecuredControllerWithIdentity(otherIdentity)
-			resp, err := test.CreateChildAreaForbidden(t, svc.Context, svc, ctrl, parentID.String(), ca)
-			compareWithGolden(t, filepath.Join(rest.testDir, "create", "forbidden.res.golden.json"), err)
-			compareWithGolden(t, filepath.Join(rest.testDir, "create", "forbidden.res.headers.golden.json"), resp.Header())
-		})
 
-		t.Run("Multiple Children", func(t *testing.T) {
-			/*
-				TestAreaREST ---> TestSuccessCreateMultiChildArea-0 ----> TestSuccessCreateMultiChildArea-0-0
-			*/
-			// given
-			fxt := tf.NewTestFixture(t, rest.DB, tf.Areas(1))
-			parentArea := fxt.Areas[0]
-			parentID := parentArea.ID
-			ca := newCreateChildAreaPayload("TestSuccessCreateMultiChildArea-0")
-			owner := fxt.Identities[0]
-			svc, ctrl := rest.SecuredControllerWithIdentity(owner)
-			// when
-			resp, created := test.CreateChildAreaCreated(t, svc.Context, svc, ctrl, parentID.String(), ca)
-			// then
-			assert.Equal(t, *ca.Data.Attributes.Name, *created.Data.Attributes.Name)
-			assert.Equal(t, parentID.String(), *created.Data.Relationships.Parent.Data.ID)
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok.child1_ok.res.golden.json"), created)
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok.res.headers.golden.json"), resp.Header())
-			// Create a child of the child created above.
-			ca = newCreateChildAreaPayload("TestSuccessCreateMultiChildArea-0-0")
-			newParentID := *created.Data.Relationships.Parent.Data.ID
-			// when
-			resp, created = test.CreateChildAreaCreated(t, svc.Context, svc, ctrl, newParentID, ca)
-			// then
-			assert.Equal(t, *ca.Data.Attributes.Name, *created.Data.Attributes.Name)
-			assert.Equal(t, newParentID, *created.Data.Relationships.Parent.Data.ID)
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok.child2_ok.res.golden.json"), created)
-			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok.res.headers.golden.json"), resp.Header())
+			t.Run("Multiple Children", func(t *testing.T) {
+				// Create a child of the child created above.
+				ca = newCreateChildAreaPayload("TestSuccessCreateMultiChildArea-0")
+				newParentID := *created.Data.Relationships.Parent.Data.ID
+				// when
+				resp, created = test.CreateChildAreaCreated(t, svc.Context, svc, ctrl, newParentID, ca)
+				// then
+				assert.Equal(t, *ca.Data.Attributes.Name, *created.Data.Attributes.Name)
+				assert.Equal(t, newParentID, *created.Data.Relationships.Parent.Data.ID)
+				compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok.child1_ok.res.golden.json"), created)
+				compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "ok.res.headers.golden.json"), resp.Header())
+			})
 		})
 	})
 
@@ -165,6 +142,17 @@ func (rest *TestAreaREST) TestCreateChildArea() {
 			errs.Errors[0].ID = ptr.String("IGNORE_ME")
 			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized.res.golden.json"), errs)
 			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "create", "unauthorized.res.headers.golden.json"), resp.Header())
+		})
+
+		t.Run("Different Identity", func(t *testing.T) {
+			fxt := tf.NewTestFixture(t, rest.DB, tf.Identities(1))
+			// try creating child area with different identity: should fail
+			otherIdentity := fxt.Identities[0]
+			parentID := parentArea.ID
+			svc, ctrl = rest.SecuredControllerWithIdentity(otherIdentity)
+			resp, err := test.CreateChildAreaForbidden(t, svc.Context, svc, ctrl, parentID.String(), childAreaPayload)
+			compareWithGolden(t, filepath.Join(rest.testDir, "create", "forbidden.res.golden.json"), err)
+			compareWithGolden(t, filepath.Join(rest.testDir, "create", "forbidden.res.headers.golden.json"), resp.Header())
 		})
 	})
 }
