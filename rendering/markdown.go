@@ -41,6 +41,21 @@ type highlightHTMLRenderer struct {
 	blackfriday.Renderer
 }
 
+// ListItem overrides the default ListItem render and adds support for GH-style 
+// checkboxes on service side. For the contents of the list item beyond the
+// checkbox prefix, the default Html.ListItem is called.
+func (h highlightHTMLRenderer) ListItem(out *bytes.Buffer, text []byte, flags int) {
+	switch {
+		case bytes.HasPrefix(text, []byte("[] ")):
+			text = append([]byte(`<input type="checkbox"></input>`), text[3:]...)
+		case bytes.HasPrefix(text, []byte("[ ] ")):
+			text = append([]byte(`<input type="checkbox"></input>`), text[4:]...)
+		case bytes.HasPrefix(text, []byte("[x] ")) || bytes.HasPrefix(text, []byte("[X] ")):
+			text = append([]byte(`<input type="checkbox" checked=""></input>`), text[4:]...)
+	}
+	h.Renderer.ListItem(out, text, flags)
+}
+
 // BlackCode overrides the standard Html Renderer to add support for prettify of source code within block
 // If highlighter fail, normal Html.BlockCode is called
 func (h highlightHTMLRenderer) BlockCode(out *bytes.Buffer, text []byte, lang string) {

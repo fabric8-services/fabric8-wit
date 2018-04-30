@@ -34,6 +34,17 @@ func TestRenderMarkdownContentWithFenceHighlighter(t *testing.T) {
 	assert.True(t, strings.Contains(result, "<span class=\"kwd\">func</span>"))
 }
 
+func TestRenderMarkdownContentWithCheckboxItems(t *testing.T) {
+	content := "* [] Some Item 0\n* [ ] Some Item 1\n* [X] Some Item 2\n* [x] Some Item 3"
+	result := rendering.RenderMarkupToHTML(content, rendering.SystemMarkupMarkdown)
+	t.Log(result)
+	require.NotNil(t, result)
+	assert.True(t, strings.Contains(result, "<input type=\"checkbox\"></input>Some Item 0"))
+	assert.True(t, strings.Contains(result, "<input type=\"checkbox\"></input>Some Item 1"))
+	assert.True(t, strings.Contains(result, "<input type=\"checkbox\" checked=\"\"></input>Some Item 2"))
+	assert.True(t, strings.Contains(result, "<input type=\"checkbox\" checked=\"\"></input>Some Item 3"))
+}
+
 func TestIsMarkupSupported(t *testing.T) {
 	assert.True(t, rendering.IsMarkupSupported(rendering.SystemMarkupDefault))
 	assert.True(t, rendering.IsMarkupSupported(rendering.SystemMarkupPlainText))
