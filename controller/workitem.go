@@ -693,11 +693,16 @@ func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) 
 	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
 	var result []workitem.WorkItem
 	var count int
+	var wits []workitem.WorkItemType
 	err := application.Transactional(c.db, func(appl application.Application) error {
 		var err error
 		result, count, err = appl.WorkItemLinks().ListWorkItemChildren(ctx, ctx.WiID, &offset, &limit)
 		if err != nil {
 			return errs.Wrap(err, "unable to list work item children")
+		}
+		wits, err = loadWorkItemTypesFromArr(ctx.Context, appl, result)
+		if err != nil {
+			return errs.Wrapf(err, "failed to load the work item types")
 		}
 		return nil
 	})
@@ -707,10 +712,6 @@ func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) 
 	return ctx.ConditionalEntities(result, c.config.GetCacheControlWorkItems, func() error {
 		var response app.WorkItemList
 		application.Transactional(c.db, func(appl application.Application) error {
-			wits, err := loadWorkItemTypesFromArr(ctx.Context, appl, result)
-			if err != nil {
-				return errs.Wrapf(err, "failed to load the work item types")
-			}
 			hasChildren := workItemIncludeHasChildren(ctx, appl)
 			converted, err := ConvertWorkItems(ctx.Request, wits, result, hasChildren)
 			if err != nil {
