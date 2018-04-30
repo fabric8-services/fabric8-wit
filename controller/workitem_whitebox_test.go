@@ -11,6 +11,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/rest"
@@ -301,5 +302,45 @@ func (rest *TestWorkItemREST) TestConvertWorkItem() {
 		require.NoError(t, err)
 		assert.Equal(t, "title", wi2.Attributes[workitem.SystemTitle])
 		assert.Nil(t, wi2.Attributes[workitem.SystemDescription])
+	})
+}
+
+func (rest *TestWorkItemREST) TestLoadWorkItemTypes() {
+	fxt := tf.NewTestFixture(rest.T(), rest.DB,
+		tf.WorkItemTypes(3),
+		tf.WorkItems(3, func(fxt *tf.TestFixture, idx int) error {
+			fxt.WorkItems[idx].Type = fxt.WorkItemTypes[idx].ID
+			return nil
+		}),
+	)
+	rest.T().Run("from normal array of work items", func(t *testing.T) {
+		// given
+		wis := []workitem.WorkItem{*fxt.WorkItems[0], *fxt.WorkItems[1], *fxt.WorkItems[2]}
+		// when
+		wits, err := loadWorkItemTypesFromArr(rest.Ctx, rest.db, wis)
+		// then
+		require.NoError(t, err)
+		toBeFound := id.Slice{fxt.WorkItemTypes[0].ID, fxt.WorkItemTypes[1].ID, fxt.WorkItemTypes[2].ID}.ToMap()
+		for _, wit := range wits {
+			_, ok := toBeFound[wit.ID]
+			require.True(t, ok, "found unexpected work item type: %s (%s)", wit.ID, wit.Name)
+			delete(toBeFound, wit.ID)
+		}
+		require.Empty(t, toBeFound, "failed to find these work item types: %+v", toBeFound)
+	})
+	rest.T().Run("from pointer array of work items", func(t *testing.T) {
+		// given
+		wis := []*workitem.WorkItem{fxt.WorkItems[0], fxt.WorkItems[1], fxt.WorkItems[2]}
+		// when
+		wits, err := loadWorkItemTypesFromPtrArr(rest.Ctx, rest.db, wis)
+		// then
+		require.NoError(t, err)
+		toBeFound := id.Slice{fxt.WorkItemTypes[0].ID, fxt.WorkItemTypes[1].ID, fxt.WorkItemTypes[2].ID}.ToMap()
+		for _, wit := range wits {
+			_, ok := toBeFound[wit.ID]
+			require.True(t, ok, "found unexpected work item type: %s (%s)", wit.ID, wit.Name)
+			delete(toBeFound, wit.ID)
+		}
+		require.Empty(t, toBeFound, "failed to find these work item types: %+v", toBeFound)
 	})
 }
