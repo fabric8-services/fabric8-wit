@@ -119,9 +119,9 @@ func (s *workItemTypesSuite) TestList() {
 				res, witCollection := test.ListWorkitemtypesOK(t, nil, nil, s.typeCtrl, ID, nil, nil)
 				// then
 				require.NotNil(t, witCollection)
-				compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", fmt.Sprintf("ok_%s.res.payload.golden.json", name)), witCollection)
+				compareWithGoldenAgnosticTime(t, filepath.Join(s.testDir, "list", fmt.Sprintf("ok_%s.res.payload.golden.json", name)), witCollection)
 				safeOverriteHeader(t, res, "Etag", "0icd7ov5CqwDXN6Fx9z18g==")
-				compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", fmt.Sprintf("ok_%s.res.headers.golden.json", name)), res.Header())
+				compareWithGoldenAgnosticTime(t, filepath.Join(s.testDir, "list", fmt.Sprintf("ok_%s.res.headers.golden.json", name)), res.Header())
 				assertResponseHeaders(t, res)
 			})
 		}
