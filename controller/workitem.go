@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 
 	"github.com/fabric8-services/fabric8-wit/ptr"
