@@ -13,6 +13,17 @@
   revision = "5bd2802263f21d8788851d5305584c82a5c75d7e"
 
 [[projects]]
+  name = "github.com/Unleash/unleash-client-go"
+  packages = [
+    ".",
+    "context",
+    "internal/api",
+    "internal/strategies",
+    "strategy"
+  ]
+  revision = "be883ea1af714aff427d0668dbd4fc549d4f701c"
+
+[[projects]]
   name = "github.com/ajg/form"
   packages = ["."]
   revision = "cc2954064ec9ea8d93917f0f87456e11d7b881ad"
@@ -812,6 +823,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "843238741f4e88d78a8acaa703af920f93880a14b119627c75831c56a6e20393"
+  inputs-digest = "f6429ca176aa08e00b6d0cb885de3a010769ef54bc8d5bcbaa22aa4d5dc7ab3d"
   solver-name = "gps-cdcl"
   solver-version = 1
