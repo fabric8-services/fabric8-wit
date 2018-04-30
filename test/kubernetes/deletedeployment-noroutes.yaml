@@ -46,6 +46,113 @@ interactions:
       - application/json;charset=UTF-8
     status: 200 OK
     code: 200
+  # Builds
+- request:
+    body: ""
+    form: {}
+    headers:
+      Content-Type:
+      - application/json
+    url: http://api.myCluster/oapi/v1/namespaces/myNamespace/builds?labelSelector=openshift.io%2Fbuild-config.name%3DmyApp%2Cspace%3DmySpace
+    method: GET
+  response:
+    body: |
+        {
+            "apiVersion": "v1",
+            "items": [
+                {
+                    "apiVersion": "v1",
+                    "kind": "Build",
+                    "metadata": {
+                        "annotations": {
+                            "environment.services.fabric8.io/my-run": "---\nenvironmentName: \"Run\"\nserviceUrls:\n  myDeploy: \"http://myDeploy-my-run.example.com\"\ndeploymentVersions:\n  myDeploy: \"1.0.3\"\n",
+                            "environment.services.fabric8.io/my-stage": "---\nenvironmentName: \"Stage\"\nserviceUrls:\n  myDeploy: \"http://myDeploy-my-stage.example.com\"\ndeploymentVersions:\n  myDeploy: \"1.0.3\"\n",
+                            "fabric8.io/bayesian.analysisUrl": "https://recommender.api.openshift.io/api/v1/stack-analyses/8f35139bef364d51bb97c0ea92ad01bc",
+                            "fabric8.io/jenkins.testReportUrl": "nulltestReport",
+                            "fabric8.io/version": "1.0.3",
+                            "openshift.io/build-config.name": "myApp",
+                            "openshift.io/build.number": "1",
+                            "openshift.io/jenkins-build-uri": "https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/",
+                            "openshift.io/jenkins-log-url": "https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/consoleText",
+                            "openshift.io/jenkins-namespace": "my-jenkins",
+                            "openshift.io/jenkins-pending-input-actions-json": "[{\"id\":\"Proceed\",\"proceedText\":\"Proceed\",\"message\":\"\\nWould you like to promote version 1.0.3 to the next environment?\\n\",\"inputs\":[],\"proceedUrl\":\"//job/myUser/job/myDeploy/job/master/3/wfapi/inputSubmit?inputId=Proceed\",\"abortUrl\":\"//job/myUser/job/myDeploy/job/master/3/input/Proceed/abort\",\"redirectApprovalUrl\":\"//job/myUser/job/myDeploy/job/master/3/input/\"}]",
+                            "openshift.io/jenkins-status-json": "{\"_links\":{\"self\":{\"href\":\"https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/wfapi/describe\"},\"changesets\":null,\"pendingInputActions\":null,\"nextPendingInputAction\":null,\"artifacts\":null},\"id\":\"3\",\"name\":\"#3\",\"status\":\"SUCCESS\",\"startTimeMillis\":1524087821807,\"endTimeMillis\":1524088260580,\"durationMillis\":438773,\"queueDurationMillis\":1,\"pauseDurationMillis\":0,\"stages\":[{\"_links\":{\"self\":{\"href\":\"https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/execution/node/20/wfapi/describe\"},\"log\":null},\"id\":\"20\",\"name\":\"Build Release\",\"execNode\":\"\",\"status\":\"SUCCESS\",\"error\":null,\"parameterDescription\":null,\"startTimeMillis\":1524087895667,\"durationMillis\":313263,\"pauseDurationMillis\":0,\"stageFlowNodes\":[{\"_links\":{\"self\":{\"href\":\"https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/execution/node/21/wfapi/describe\"},\"log\":null},\"id\":\"21\",\"name\":\"Shell Script\",\"execNode\":\"\",\"status\":\"SUCCESS\",\"error\":null,\"parameterDescription\":null,\"startTimeMillis\":1524087898053,\"durationMillis\":277,\"pauseDurationMillis\":0,\"parentNodes\":[\"20\"]},{\"_links\":{\"self\":{\"href\":\"https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/execution/node/22/wfapi/describe\"},\"log\":null},\"id\":\"22\",\"name\":\"Read a maven project file.\",\"execNode\":\"\",\"status\":\"SUCCESS\",\"error\":null,\"parameterDescription\":\"pom.xml\",\"startTimeMillis\":1524087898330,\"durationMillis\":46,\"pauseDurationMillis\":0,\"parentNodes\":[\"21\"]},{\"_links\":{\"self\":{\"href\":\"https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/execution/node/23/wfapi/describe\"},\"log\":null},\"id\":\"23\",\"name\":\"Print Message\",\"execNode\":\"\",\"status\":\"SUCCESS\",\"error\":null,\"parameterDescription\":\"patching maven plugin for fabric8-maven-plugin v3.5.38\",\"startTimeMillis\":1524087898376,\"durationMillis\":11,\"pauseDurationMillis\":0,\"parentNodes\":[\"22\"]},{\"_links\":{\"self\":{\"href\":\"https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/execution/node/24/wfapi/describe\"},\"log\":null},\"id\":\"24\",\"name\":\"Write a maven project file.\",\"execNode\":\"\",\"status\":\"SUCCESS\",\"error\":null,\"parameterDescription\":null,\"startTimeMillis\":1524087898387,\"durationMillis\":1213,\"pauseDurationMillis\":0,\"parentNodes\":[\"23\"]},{\"_links\":{\"self\":{\"href\":\"https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/execution/node/25/wfapi/describe\"},\"log\":null},\"id\":\"25\",\"name\":\"Shell Script\",\"execNode\":\"\",\"status\":\"SUCCESS\",\"error\":null,\"parameterDescription\":\"mvn org.codehaus.mojo:versions-maven-plugin:2.5:set -U -DnewVersion=1.0.3\",\"startTimeMillis\":1524087899600,\"durationMillis\":23026,\"pauseDurationMillis\":0,\"parentNodes\":[\"24\"]},{\"_links\":{\"self\":{\"href\":\"https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/execution/node/26/wfapi/describe\"},\"log\":null},\"id\":\"26\",\"name\":\"Shell Script\",\"execNode\":\"\",\"status\":\"SUCCESS\",\"error\":null,\"parameterDescription\":\"mvn clean -B -e -U deploy -Dmaven.test.skip=false -P openshift\",\"startTimeMillis\":1524087922626,\"durationMillis\":270944,\"pauseDurationMillis\":0,\"parentNodes\":[\"25\"]},{\"_links\":{\"self\":{\"href\":\"https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/execution/node/27/wfapi/describe\"},\"log\":null},\"id\":\"27\",\"name\":\"Find files in the workspace\",\"execNode\":\"\",\"status\":\"SUCCESS\",\"error\":null,\"parameterDescription\":\"**/surefire-reports/*.xml\",\"startTimeMillis\":1524088193570,\"durationMillis\":202,\"pauseDurationMillis\":0,\"parentNodes\":[\"26\"]},{\"_links\":{\"self\":{\"href\":\"https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/execution/node/28/wfapi/describe\"},\"log\":null},\"id\":\"28\",\"name\":\"Publish JUnit test result report\",\"execNode\":\"\",\"status\":\"SUCCESS\",\"error\":null,\"parameterDescription\":null,\"startTimeMillis\":1524088193772,\"durationMillis\":1583,\"pauseDurationMillis\":0,\"parentNodes\":[\"27\"]},{\"_links\":{\"self\":{\"href\":\"https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/execution/node/29/wfapi/describe\"},\"log\":null},\"id\":\"29\",\"name\":\"Find files in the workspace\",\"execNode\":\"\",\"status\":\"SUCCESS\",\"error\":null,\"parameterDescription\":\"**/failsafe-reports/*.xml\",\"startTimeMillis\":1524088195355,\"durationMillis\":843,\"pauseDurationMillis\":0,\"parentNodes\":[\"28\"]},{\"_links\":{\"self\":{\"href\":\"https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/execution/node/30/wfapi/describe\"},\"log\":null},\"id\":\"30\",\"name\":\"Print Message\",\"execNode\":\"\",\"status\":\"SUCCESS\",\"error\":null,\"parameterDescription\":\"Looking for matching Build myApp-1\",\"startTimeMillis\":1524088196198,\"durationMillis\":1,\"pauseDurationMillis\":0,\"parentNodes\":[\"29\"]},{\"_links\":{\"self\":{\"href\":\"https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/execution/node/31/wfapi/describe\"},\"log\":null},\"id\":\"31\",\"name\":\"Print Message\",\"execNode\":\"\",\"status\":\"SUCCESS\",\"error\":null,\"parameterDescription\":\"Looking for matching Build myApp-1\",\"startTimeMillis\":1524088196199,\"durationMillis\":1,\"pauseDurationMillis\":0,\"parentNodes\":[\"30\"]},{\"_links\":{\"self\":{\"href\":\"https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/execution/node/32/wfapi/describe\"},\"log\":null},\"id\":\"32\",\"name\":\"Print Message\",\"execNode\":\"\",\"status\":\"SUCCESS\",\"error\":null,\"parameterDescription\":\"Adding annotation 'fabric8.io/jenkins.testReportUrl: nulltestReport' to Build myApp-1\",\"startTimeMillis\":1524088196200,\"durationMillis\":1,\"pauseDurationMillis\":0,\"parentNodes\":[\"31\"]},{\"_links\":{\"self\":{\"href\":\"https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/execution/node/33/wfapi/describe\"},\"log\":null},\"id\":\"33\",\"name\":\"Print Message\",\"execNode\":\"\",\"status\":\"SUCCESS\",\"error\":null,\"parameterDescription\":\"looking for myApp-1 in namespace myNamespace\",\"startTimeMillis\":1524088196201,\"durationMillis\":1302,\"pauseDurationMillis\":0,\"parentNodes\":[\"32\"]},{\"_links\":{\"self\":{\"href\":\"https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/execution/node/34/wfapi/describe\"},\"log\":null},\"id\":\"34\",\"name\":\"Print Message\",\"execNode\":\"\",\"status\":\"SUCCESS\",\"error\":null,\"parameterDescription\":\"Checking bayesian-link exists\",\"startTimeMillis\":1524088197503,\"durationMillis\":1,\"pauseDurationMillis\":0,\"parentNodes\":[\"33\"]},{\"_links\":{\"self\":{\"href\":\"https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/execution/node/35/wfapi/describe\"},\"log\":null},\"id\":\"35\",\"name\":\"Shell Script\",\"execNode\":\"\",\"status\":\"SUCCESS\",\"error\":null,\"parameterDescription\":\"mvn io.github.stackinfo:stackinfo-maven-plugin:0.2:prepare\",\"startTimeMillis\":1524088197504,\"durationMillis\":9508,\"pauseDurationMillis\":0,\"parentNodes\":[\"34\"]},{\"_links\":{\"self\":{\"href\":\"https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/execution/node/38/wfapi/describe\"},\"log\":null},\"id\":\"38\",\"name\":\"Bayesian Analysis\",\"execNode\":\"\",\"status\":\"SUCCESS\",\"error\":null,\"parameterDescription\":\"https://bayesian-link\",\"startTimeMillis\":1524088207019,\"durationMillis\":800,\"pauseDurationMillis\":0,\"parentNodes\":[\"37\"]},{\"_links\":{\"self\":{\"href\":\"https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/execution/node/39/wfapi/describe\"},\"log\":null},\"id\":\"39\",\"name\":\"Print Message\",\"execNode\":\"\",\"status\":\"SUCCESS\",\"error\":null,\"parameterDescription\":\"Looking for matching Build myApp-1\",\"startTimeMillis\":1524088207819,\"durationMillis\":2,\"pauseDurationMillis\":0,\"parentNodes\":[\"38\"]},{\"_links\":{\"self\":{\"href\":\"https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/execution/node/40/wfapi/describe\"},\"log\":null},\"id\":\"40\",\"name\":\"Print Message\",\"execNode\":\"\",\"status\":\"SUCCESS\",\"error\":null,\"parameterDescription\":\"Adding annotation 'fabric8.io/bayesian.analysisUrl: https://recommender.api.openshift.io/api/v1/stack-analyses/8f35139bef364d51bb97c0ea92ad01bc' to Build myApp-1\",\"startTimeMillis\":1524088207821,\"durationMillis\":1,\"pauseDurationMillis\":0,\"parentNodes\":[\"39\"]},{\"_links\":{\"self\":{\"href\":\"https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/execution/node/41/wfapi/describe\"},\"log\":null},\"id\":\"41\",\"name\":\"Print Message\",\"execNode\":\"\",\"status\":\"SUCCESS\",\"error\":null,\"parameterDescription\":\"looking for myApp-1 in namespace myNamespace\",\"startTimeMillis\":1524088207822,\"durationMillis\":1,\"pauseDurationMillis\":0,\"parentNodes\":[\"40\"]},{\"_links\":{\"self\":{\"href\":\"https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/execution/node/44/wfapi/describe\"},\"log\":null},\"id\":\"44\",\"name\":\"Print Message\",\"execNode\":\"\",\"status\":\"SUCCESS\",\"error\":null,\"parameterDescription\":\"Checking sonarqube exists\",\"startTimeMillis\":1524088208189,\"durationMillis\":66,\"pauseDurationMillis\":0,\"parentNodes\":[\"43\"]},{\"_links\":{\"self\":{\"href\":\"https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/execution/node/45/wfapi/describe\"},\"log\":null},\"id\":\"45\",\"name\":\"Print Message\",\"execNode\":\"\",\"status\":\"SUCCESS\",\"error\":null,\"parameterDescription\":\"Code validation service: sonarqube not available\",\"startTimeMillis\":1524088208255,\"durationMillis\":1,\"pauseDurationMillis\":0,\"parentNodes\":[\"44\"]},{\"_links\":{\"self\":{\"href\":\"https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/execution/node/46/wfapi/describe\"},\"log\":null},\"id\":\"46\",\"name\":\"Print Message\",\"execNode\":\"\",\"status\":\"SUCCESS\",\"error\":null,\"parameterDescription\":\"s2i mode: true\",\"startTimeMillis\":1524088208256,\"durationMillis\":121,\"pauseDurationMillis\":0,\"parentNodes\":[\"45\"]},{\"_links\":{\"self\":{\"href\":\"https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/execution/node/47/wfapi/describe\"},\"log\":null},\"id\":\"47\",\"name\":\"Print Message\",\"execNode\":\"\",\"status\":\"SUCCESS\",\"error\":null,\"parameterDescription\":\"Checking content-repository exists\",\"startTimeMillis\":1524088208377,\"durationMillis\":1,\"pauseDurationMillis\":0,\"parentNodes\":[\"46\"]},{\"_links\":{\"self\":{\"href\":\"https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/execution/node/48/wfapi/describe\"},\"log\":null},\"id\":\"48\",\"name\":\"Print Message\",\"execNode\":\"\",\"status\":\"SUCCESS\",\"error\":null,\"parameterDescription\":\"mvn site disabled\",\"startTimeMillis\":1524088208378,\"durationMillis\":1,\"pauseDurationMillis\":0,\"parentNodes\":[\"47\"]},{\"_links\":{\"self\":{\"href\":\"https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/execution/node/49/wfapi/describe\"},\"log\":null},\"id\":\"49\",\"name\":\"Stash some files to be used later in the build\",\"execNode\":\"\",\"status\":\"SUCCESS\",\"error\":null,\"parameterDescription\":null,\"startTimeMillis\":1524088208379,\"durationMillis\":547,\"pauseDurationMillis\":0,\"parentNodes\":[\"48\"]}],\"allChildNodeIds\":[\"21\",\"22\",\"23\",\"24\",\"25\",\"26\",\"27\",\"28\",\"29\",\"30\",\"31\",\"32\",\"33\",\"34\",\"35\",\"36\",\"37\",\"38\",\"39\",\"40\",\"41\",\"42\",\"43\",\"44\",\"45\",\"46\",\"47\",\"48\",\"49\"]},{\"_links\":{\"self\":{\"href\":\"https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/execution/node/62/wfapi/describe\"},\"log\":null},\"id\":\"62\",\"name\":\"Rollout to Stage\",\"execNode\":\"\",\"status\":\"SUCCESS\",\"error\":null,\"parameterDescription\":null,\"startTimeMillis\":1524088209074,\"durationMillis\":6811,\"pauseDurationMillis\":0,\"stageFlowNodes\":[{\"_links\":{\"self\":{\"href\":\"https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/execution/node/63/wfapi/describe\"},\"log\":null},\"id\":\"63\",\"name\":\"Restore files previously stashed\",\"execNode\":\"\",\"status\":\"SUCCESS\",\"error\":null,\"parameterDescription\":null,\"startTimeMillis\":1524088209080,\"durationMillis\":6801,\"pauseDurationMillis\":0,\"parentNodes\":[\"62\"]},{\"_links\":{\"self\":{\"href\":\"https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/execution/node/64/wfapi/describe\"},\"log\":null},\"id\":\"64\",\"name\":\"Apply resources to Kubernetes, lazily creating environments and routes\",\"execNode\":\"\",\"status\":\"SUCCESS\",\"error\":null,\"parameterDescription\":\"my-stage\",\"startTimeMillis\":1524088215881,\"durationMillis\":1,\"pauseDurationMillis\":0,\"parentNodes\":[\"63\"]}],\"allChildNodeIds\":[\"63\",\"64\"]},{\"_links\":{\"self\":{\"href\":\"https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/execution/node/68/wfapi/describe\"},\"log\":null},\"id\":\"68\",\"name\":\"Approve\",\"execNode\":\"\",\"status\":\"SUCCESS\",\"error\":null,\"parameterDescription\":null,\"startTimeMillis\":1524088215896,\"durationMillis\":38155,\"pauseDurationMillis\":38033,\"stageFlowNodes\":[{\"_links\":{\"self\":{\"href\":\"https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/execution/node/69/wfapi/describe\"},\"log\":null},\"id\":\"69\",\"name\":\"Sends a message with proceed/abort instructions to a hubot chat room for a project\",\"execNode\":\"\",\"status\":\"SUCCESS\",\"error\":null,\"parameterDescription\":null,\"startTimeMillis\":1524088215985,\"durationMillis\":1,\"pauseDurationMillis\":0,\"parentNodes\":[\"68\"]},{\"_links\":{\"self\":{\"href\":\"https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/execution/node/70/wfapi/describe\"},\"log\":null},\"id\":\"70\",\"name\":\"Creates an Approve requested event in Elasticsearch\",\"execNode\":\"\",\"status\":\"SUCCESS\",\"error\":null,\"parameterDescription\":\"Stage\",\"startTimeMillis\":1524088215986,\"durationMillis\":1,\"pauseDurationMillis\":0,\"parentNodes\":[\"69\"]},{\"_links\":{\"self\":{\"href\":\"https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/execution/node/73/wfapi/describe\"},\"log\":null},\"id\":\"73\",\"name\":\"Wait for interactive input\",\"execNode\":\"\",\"status\":\"SUCCESS\",\"error\":null,\"parameterDescription\":null,\"startTimeMillis\":1524088216000,\"durationMillis\":38032,\"pauseDurationMillis\":38032,\"parentNodes\":[\"72\"]},{\"_links\":{\"self\":{\"href\":\"https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/execution/node/76/wfapi/describe\"},\"log\":null},\"id\":\"76\",\"name\":\"Updates an Approve event in Elasticsearch\",\"execNode\":\"\",\"status\":\"SUCCESS\",\"error\":null,\"parameterDescription\":\"true\",\"startTimeMillis\":1524088254047,\"durationMillis\":1,\"pauseDurationMillis\":0,\"parentNodes\":[\"75\"]}],\"allChildNodeIds\":[\"69\",\"70\",\"71\",\"72\",\"73\",\"74\",\"75\",\"76\"]},{\"_links\":{\"self\":{\"href\":\"https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/execution/node/80/wfapi/describe\"},\"log\":null},\"id\":\"80\",\"name\":\"Rollout to Run\",\"execNode\":\"\",\"status\":\"SUCCESS\",\"error\":null,\"parameterDescription\":null,\"startTimeMillis\":1524088254060,\"durationMillis\":6492,\"pauseDurationMillis\":0,\"stageFlowNodes\":[{\"_links\":{\"self\":{\"href\":\"https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/execution/node/81/wfapi/describe\"},\"log\":null},\"id\":\"81\",\"name\":\"Restore files previously stashed\",\"execNode\":\"\",\"status\":\"SUCCESS\",\"error\":null,\"parameterDescription\":null,\"startTimeMillis\":1524088254066,\"durationMillis\":6481,\"pauseDurationMillis\":0,\"parentNodes\":[\"80\"]},{\"_links\":{\"self\":{\"href\":\"https://jenkins.openshift.io/job/myUser/job/myDeploy/job/master/3/execution/node/82/wfapi/describe\"},\"log\":null},\"id\":\"82\",\"name\":\"Apply resources to Kubernetes, lazily creating environments and routes\",\"execNode\":\"\",\"status\":\"SUCCESS\",\"error\":null,\"parameterDescription\":\"my-run\",\"startTimeMillis\":1524088260547,\"durationMillis\":1,\"pauseDurationMillis\":0,\"parentNodes\":[\"81\"]}],\"allChildNodeIds\":[\"81\",\"82\"]}]}"
+                        },
+                        "creationTimestamp": "2018-04-18T21:28:24Z",
+                        "labels": {
+                            "buildconfig": "myApp",
+                            "openshift.io/build-config.name": "myApp",
+                            "openshift.io/build.start-policy": "Serial",
+                            "space": "mySpace"
+                        },
+                        "name": "myApp-1",
+                        "namespace": "myNamespace",
+                        "ownerReferences": [
+                            {
+                                "apiVersion": "build.openshift.io/v1",
+                                "controller": true,
+                                "kind": "BuildConfig",
+                                "name": "myApp",
+                                "uid": "b4bde2cd-fc5c-4e1d-9c37-8fb07ee6c30f"
+                            }
+                        ],
+                        "resourceVersion": "1083508128",
+                        "selfLink": "/oapi/v1/namespaces/myNamespace/builds/myApp-1",
+                        "uid": "cc39e185-f392-40fe-9862-d7f559d17e3b"
+                    },
+                    "spec": {
+                        "nodeSelector": {},
+                        "output": {},
+                        "postCommit": {},
+                        "resources": {},
+                        "serviceAccount": "builder",
+                        "source": {
+                            "git": {
+                                "uri": "https://example.com/myApp.git"
+                            },
+                            "type": "Git"
+                        },
+                        "strategy": {
+                            "jenkinsPipelineStrategy": {
+                                "env": [
+                                    {
+                                        "name": "FABRIC8_SPACE",
+                                        "value": "mySpace"
+                                    }
+                                ],
+                                "jenkinsfilePath": "Jenkinsfile"
+                            },
+                            "type": "JenkinsPipeline"
+                        },
+                        "triggeredBy": [
+                            {
+                                "message": "Forge triggered"
+                            }
+                        ]
+                    },
+                    "status": {
+                        "completionTimestamp": "2018-04-18T21:51:00Z",
+                        "config": {
+                            "kind": "BuildConfig",
+                            "name": "myApp",
+                            "namespace": "myNamespace"
+                        },
+                        "output": {},
+                        "phase": "Complete",
+                        "startTimestamp": "2018-04-18T21:43:41Z"
+                    }
+                }
+            ],
+            "kind": "BuildList",
+            "metadata": {},
+            "resourceVersion": "",
+            "selfLink": ""
+        }
+    headers:
+      Content-Type:
+      - application/json;charset=UTF-8
+    status: 200 OK
+    code: 200
   # Deployment Configs
 - request:
     body: ""
@@ -53,7 +160,7 @@ interactions:
     headers:
       Content-Type:
       - application/json
-    url: http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myApp
+    url: http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myDeploy
     method: GET
   response:
     body: |
@@ -62,35 +169,35 @@ interactions:
             "kind": "DeploymentConfig",
             "metadata": {
                 "annotations": {
-                    "fabric8.io/git-branch": "myUser/myApp/master-1.0.2",
+                    "fabric8.io/git-branch": "myUser/myDeploy/master-1.0.2",
                     "fabric8.io/git-commit": "55ca6286e3e4f4fba5d0448333fa99fc5a404a73",
                     "fabric8.io/iconUrl": "img/icon.svg",
-                    "fabric8.io/metrics-path": "dashboard/file/kubernetes-pods.json/?var-project=myApp\u0026var-version=1.0.2",
-                    "fabric8.io/scm-con-url": "scm:git:https://example.com/myApp",
-                    "fabric8.io/scm-devcon-url": "scm:git:git:@example.com:myApp",
+                    "fabric8.io/metrics-path": "dashboard/file/kubernetes-pods.json/?var-project=myDeploy\u0026var-version=1.0.2",
+                    "fabric8.io/scm-con-url": "scm:git:https://example.com/myDeploy",
+                    "fabric8.io/scm-devcon-url": "scm:git:git:@example.com:myDeploy",
                     "fabric8.io/scm-tag": "myTag",
-                    "fabric8.io/scm-url": "https://example.com/myApp"
+                    "fabric8.io/scm-url": "https://example.com/myDeploy"
                 },
                 "creationTimestamp": "2018-01-25T16:33:02Z",
                 "generation": 3,
                 "labels": {
-                    "app": "myApp",
+                    "app": "myDeploy",
                     "group": "myGroup",
                     "provider": "fabric8",
                     "space": "mySpace",
                     "version": "1.0.2"
                 },
-                "name": "myApp",
+                "name": "myDeploy",
                 "namespace": "my-run",
                 "resourceVersion": "838024578",
-                "selfLink": "/oapi/v1/namespaces/my-run/deploymentconfigs/myApp",
+                "selfLink": "/oapi/v1/namespaces/my-run/deploymentconfigs/myDeploy",
                 "uid": "8db1c9ba-91b5-46c6-be99-576245f42b3b"
             },
             "spec": {
                 "replicas": 2,
                 "revisionHistoryLimit": 2,
                 "selector": {
-                    "app": "myApp",
+                    "app": "myDeploy",
                     "group": "myGroup",
                     "provider": "fabric8"
                 },
@@ -109,18 +216,18 @@ interactions:
                 "template": {
                     "metadata": {
                         "annotations": {
-                            "fabric8.io/git-branch": "myUser/myApp/master-1.0.2",
+                            "fabric8.io/git-branch": "myUser/myDeploy/master-1.0.2",
                             "fabric8.io/git-commit": "55ca6286e3e4f4fba5d0448333fa99fc5a404a73",
                             "fabric8.io/iconUrl": "img/icon.svg",
-                            "fabric8.io/metrics-path": "dashboard/file/kubernetes-pods.json/?var-project=myApp\u0026var-version=1.0.2",
-                            "fabric8.io/scm-con-url": "scm:git:https://example.com/myApp",
-                            "fabric8.io/scm-devcon-url": "scm:git:git:@example.com:myApp",
+                            "fabric8.io/metrics-path": "dashboard/file/kubernetes-pods.json/?var-project=myDeploy\u0026var-version=1.0.2",
+                            "fabric8.io/scm-con-url": "scm:git:https://example.com/myDeploy",
+                            "fabric8.io/scm-devcon-url": "scm:git:git:@example.com:myDeploy",
                             "fabric8.io/scm-tag": "myTag",
-                            "fabric8.io/scm-url": "https://example.com/myApp"
+                            "fabric8.io/scm-url": "https://example.com/myDeploy"
                         },
                         "creationTimestamp": null,
                         "labels": {
-                            "app": "myApp",
+                            "app": "myDeploy",
                             "group": "myGroup",
                             "provider": "fabric8",
                             "space": "mySpace",
@@ -141,7 +248,7 @@ interactions:
                                         }
                                     }
                                 ],
-                                "image": "127.0.0.1:5000/my-run/myApp@sha256:98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4",
+                                "image": "127.0.0.1:5000/my-run/myDeploy@sha256:98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4",
                                 "imagePullPolicy": "IfNotPresent",
                                 "livenessProbe": {
                                     "failureThreshold": 3,
@@ -155,7 +262,7 @@ interactions:
                                     "successThreshold": 1,
                                     "timeoutSeconds": 1
                                 },
-                                "name": "myApp",
+                                "name": "myDeploy",
                                 "ports": [
                                     {
                                         "containerPort": 8080,
@@ -213,14 +320,14 @@ interactions:
                         "imageChangeParams": {
                             "automatic": true,
                             "containerNames": [
-                                "myApp"
+                                "myDeploy"
                             ],
                             "from": {
                                 "kind": "ImageStreamTag",
-                                "name": "myApp:1.0.2",
+                                "name": "myDeploy:1.0.2",
                                 "namespace": "my-run"
                             },
-                            "lastTriggeredImage": "127.0.0.1:5000/my-run/myApp@sha256:98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4"
+                            "lastTriggeredImage": "127.0.0.1:5000/my-run/myDeploy@sha256:98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4"
                         },
                         "type": "ImageChange"
                     }
@@ -232,7 +339,7 @@ interactions:
                     {
                         "lastTransitionTime": "2018-01-25T16:33:06Z",
                         "lastUpdateTime": "2018-01-25T16:33:27Z",
-                        "message": "replication controller \"myApp-1\" successfully rolled out",
+                        "message": "replication controller \"myDeploy-1\" successfully rolled out",
                         "reason": "NewReplicationControllerAvailable",
                         "status": "True",
                         "type": "Progressing"
@@ -272,7 +379,7 @@ interactions:
     headers:
       Content-Type:
       - application/json
-    url: http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myApp
+    url: http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myDeploy
     method: DELETE
   response:
     body: |
@@ -281,35 +388,35 @@ interactions:
             "kind": "DeploymentConfig",
             "metadata": {
                 "annotations": {
-                    "fabric8.io/git-branch": "myUser/myApp/master-1.0.2",
+                    "fabric8.io/git-branch": "myUser/myDeploy/master-1.0.2",
                     "fabric8.io/git-commit": "55ca6286e3e4f4fba5d0448333fa99fc5a404a73",
                     "fabric8.io/iconUrl": "img/icon.svg",
-                    "fabric8.io/metrics-path": "dashboard/file/kubernetes-pods.json/?var-project=myApp\u0026var-version=1.0.2",
-                    "fabric8.io/scm-con-url": "scm:git:https://example.com/myApp",
-                    "fabric8.io/scm-devcon-url": "scm:git:git:@example.com:myApp",
+                    "fabric8.io/metrics-path": "dashboard/file/kubernetes-pods.json/?var-project=myDeploy\u0026var-version=1.0.2",
+                    "fabric8.io/scm-con-url": "scm:git:https://example.com/myDeploy",
+                    "fabric8.io/scm-devcon-url": "scm:git:git:@example.com:myDeploy",
                     "fabric8.io/scm-tag": "myTag",
-                    "fabric8.io/scm-url": "https://example.com/myApp"
+                    "fabric8.io/scm-url": "https://example.com/myDeploy"
                 },
                 "creationTimestamp": "2018-01-25T16:33:02Z",
                 "generation": 3,
                 "labels": {
-                    "app": "myApp",
+                    "app": "myDeploy",
                     "group": "myGroup",
                     "provider": "fabric8",
                     "space": "mySpace",
                     "version": "1.0.2"
                 },
-                "name": "myApp",
+                "name": "myDeploy",
                 "namespace": "my-run",
                 "resourceVersion": "838024578",
-                "selfLink": "/oapi/v1/namespaces/my-run/deploymentconfigs/myApp",
+                "selfLink": "/oapi/v1/namespaces/my-run/deploymentconfigs/myDeploy",
                 "uid": "8db1c9ba-91b5-46c6-be99-576245f42b3b"
             },
             "spec": {
                 "replicas": 2,
                 "revisionHistoryLimit": 2,
                 "selector": {
-                    "app": "myApp",
+                    "app": "myDeploy",
                     "group": "myGroup",
                     "provider": "fabric8"
                 },
@@ -328,18 +435,18 @@ interactions:
                 "template": {
                     "metadata": {
                         "annotations": {
-                            "fabric8.io/git-branch": "myUser/myApp/master-1.0.2",
+                            "fabric8.io/git-branch": "myUser/myDeploy/master-1.0.2",
                             "fabric8.io/git-commit": "55ca6286e3e4f4fba5d0448333fa99fc5a404a73",
                             "fabric8.io/iconUrl": "img/icon.svg",
-                            "fabric8.io/metrics-path": "dashboard/file/kubernetes-pods.json/?var-project=myApp\u0026var-version=1.0.2",
-                            "fabric8.io/scm-con-url": "scm:git:https://example.com/myApp",
-                            "fabric8.io/scm-devcon-url": "scm:git:git:@example.com:myApp",
+                            "fabric8.io/metrics-path": "dashboard/file/kubernetes-pods.json/?var-project=myDeploy\u0026var-version=1.0.2",
+                            "fabric8.io/scm-con-url": "scm:git:https://example.com/myDeploy",
+                            "fabric8.io/scm-devcon-url": "scm:git:git:@example.com:myDeploy",
                             "fabric8.io/scm-tag": "myTag",
-                            "fabric8.io/scm-url": "https://example.com/myApp"
+                            "fabric8.io/scm-url": "https://example.com/myDeploy"
                         },
                         "creationTimestamp": null,
                         "labels": {
-                            "app": "myApp",
+                            "app": "myDeploy",
                             "group": "myGroup",
                             "provider": "fabric8",
                             "space": "mySpace",
@@ -360,7 +467,7 @@ interactions:
                                         }
                                     }
                                 ],
-                                "image": "127.0.0.1:5000/my-run/myApp@sha256:98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4",
+                                "image": "127.0.0.1:5000/my-run/myDeploy@sha256:98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4",
                                 "imagePullPolicy": "IfNotPresent",
                                 "livenessProbe": {
                                     "failureThreshold": 3,
@@ -374,7 +481,7 @@ interactions:
                                     "successThreshold": 1,
                                     "timeoutSeconds": 1
                                 },
-                                "name": "myApp",
+                                "name": "myDeploy",
                                 "ports": [
                                     {
                                         "containerPort": 8080,
@@ -432,14 +539,14 @@ interactions:
                         "imageChangeParams": {
                             "automatic": true,
                             "containerNames": [
-                                "myApp"
+                                "myDeploy"
                             ],
                             "from": {
                                 "kind": "ImageStreamTag",
-                                "name": "myApp:1.0.2",
+                                "name": "myDeploy:1.0.2",
                                 "namespace": "my-run"
                             },
-                            "lastTriggeredImage": "127.0.0.1:5000/my-run/myApp@sha256:98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4"
+                            "lastTriggeredImage": "127.0.0.1:5000/my-run/myDeploy@sha256:98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4"
                         },
                         "type": "ImageChange"
                     }
@@ -451,7 +558,7 @@ interactions:
                     {
                         "lastTransitionTime": "2018-01-25T16:33:06Z",
                         "lastUpdateTime": "2018-01-25T16:33:27Z",
-                        "message": "replication controller \"myApp-1\" successfully rolled out",
+                        "message": "replication controller \"myDeploy-1\" successfully rolled out",
                         "reason": "NewReplicationControllerAvailable",
                         "status": "True",
                         "type": "Progressing"
@@ -492,7 +599,7 @@ interactions:
     headers:
       Content-Type:
       - application/json
-    url: http://api.myCluster/oapi/v1/namespaces/my-run/routes?labelSelector=app%3DmyApp
+    url: http://api.myCluster/oapi/v1/namespaces/my-run/routes?labelSelector=app%3DmyDeploy
     method: GET
   response:
     body: |
@@ -530,25 +637,25 @@ interactions:
                         "annotations": {
                             "openshift.io/deployer-pod.completed-at": "2018-01-25 16:33:26 +0000 UTC",
                             "openshift.io/deployer-pod.created-at": "2018-01-25 16:33:03 +0000 UTC",
-                            "openshift.io/deployer-pod.name": "myApp-1-deploy",
+                            "openshift.io/deployer-pod.name": "myDeploy-1-deploy",
                             "openshift.io/deployment-config.latest-version": "1",
-                            "openshift.io/deployment-config.name": "myApp",
+                            "openshift.io/deployment-config.name": "myDeploy",
                             "openshift.io/deployment.phase": "Complete",
                             "openshift.io/deployment.replicas": "1",
                             "openshift.io/deployment.status-reason": "config change",
-                            "openshift.io/encoded-deployment-config": "{\"kind\":\"DeploymentConfig\",\"apiVersion\":\"v1\",\"metadata\":{\"name\":\"myApp\",\"namespace\":\"my-run\",\"selfLink\":\"/apis/apps.openshift.io/v1/namespaces/my-run/deploymentconfigs/myApp\",\"uid\":\"8db1c9ba-91b5-46c6-be99-576245f42b3b\",\"resourceVersion\":\"837362058\",\"generation\":2,\"creationTimestamp\":\"2018-01-25T16:33:02Z\",\"labels\":{\"app\":\"myApp\",\"group\":\"myGroup\",\"provider\":\"fabric8\",\"space\":\"mySpace\",\"version\":\"1.0.2\"},\"annotations\":{\"fabric8.io/git-branch\":\"myUser/myApp/master-1.0.2\",\"fabric8.io/git-commit\":\"55ca6286e3e4f4fba5d0448333fa99fc5a404a73\",\"fabric8.io/iconUrl\":\"img/icon.svg\",\"fabric8.io/metrics-path\":\"dashboard/file/kubernetes-pods.json/?var-project=myApp\\u0026var-version=1.0.2\",\"fabric8.io/scm-con-url\":\"scm:git:https://example.com/myApp\",\"fabric8.io/scm-devcon-url\":\"scm:git:git:@example.com/myApp\",\"fabric8.io/scm-tag\":\"myTag\",\"fabric8.io/scm-url\":\"https://example.com/myApp\"}},\"spec\":{\"strategy\":{\"type\":\"Rolling\",\"rollingParams\":{\"updatePeriodSeconds\":1,\"intervalSeconds\":1,\"timeoutSeconds\":3600,\"maxUnavailable\":\"25%\",\"maxSurge\":\"25%\"},\"resources\":{},\"activeDeadlineSeconds\":21600},\"triggers\":[{\"type\":\"ConfigChange\"},{\"type\":\"ImageChange\",\"imageChangeParams\":{\"automatic\":true,\"containerNames\":[\"myApp\"],\"from\":{\"kind\":\"ImageStreamTag\",\"namespace\":\"my-run\",\"name\":\"myApp:1.0.2\"},\"lastTriggeredImage\":\"127.0.0.1:5000/my-run/myApp@sha256:98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4\"}}],\"replicas\":1,\"revisionHistoryLimit\":2,\"test\":false,\"selector\":{\"app\":\"myApp\",\"group\":\"myGroup\",\"provider\":\"fabric8\"},\"template\":{\"metadata\":{\"creationTimestamp\":null,\"labels\":{\"app\":\"myApp\",\"group\":\"myGroup\",\"provider\":\"fabric8\",\"space\":\"mySpace\",\"version\":\"1.0.2\"},\"annotations\":{\"fabric8.io/git-branch\":\"myUser/myApp/master-1.0.2\",\"fabric8.io/git-commit\":\"55ca6286e3e4f4fba5d0448333fa99fc5a404a73\",\"fabric8.io/iconUrl\":\"img/icon.svg\",\"fabric8.io/metrics-path\":\"dashboard/file/kubernetes-pods.json/?var-project=myApp\\u0026var-version=1.0.2\",\"fabric8.io/scm-con-url\":\"scm:git:https://example.com/myApp\",\"fabric8.io/scm-devcon-url\":\"scm:git:git:@example.com/myApp\",\"fabric8.io/scm-tag\":\"myTag\",\"fabric8.io/scm-url\":\"https://example.com/myApp\"}},\"spec\":{\"containers\":[{\"name\":\"myApp\",\"image\":\"127.0.0.1:5000/my-run/myApp@sha256:98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4\",\"ports\":[{\"name\":\"http\",\"containerPort\":8080,\"protocol\":\"TCP\"},{\"name\":\"prometheus\",\"containerPort\":9779,\"protocol\":\"TCP\"},{\"name\":\"jolokia\",\"containerPort\":8778,\"protocol\":\"TCP\"}],\"env\":[{\"name\":\"KUBERNETES_NAMESPACE\",\"valueFrom\":{\"fieldRef\":{\"apiVersion\":\"v1\",\"fieldPath\":\"metadata.namespace\"}}}],\"resources\":{\"limits\":{\"memory\":\"250Mi\"}},\"livenessProbe\":{\"httpGet\":{\"path\":\"/\",\"port\":8080,\"scheme\":\"HTTP\"},\"initialDelaySeconds\":180,\"timeoutSeconds\":1,\"periodSeconds\":10,\"successThreshold\":1,\"failureThreshold\":3},\"readinessProbe\":{\"httpGet\":{\"path\":\"/\",\"port\":8080,\"scheme\":\"HTTP\"},\"initialDelaySeconds\":10,\"timeoutSeconds\":1,\"periodSeconds\":10,\"successThreshold\":1,\"failureThreshold\":3},\"terminationMessagePath\":\"/dev/termination-log\",\"terminationMessagePolicy\":\"File\",\"imagePullPolicy\":\"IfNotPresent\",\"securityContext\":{\"privileged\":false}}],\"restartPolicy\":\"Always\",\"terminationGracePeriodSeconds\":30,\"dnsPolicy\":\"ClusterFirst\",\"securityContext\":{},\"schedulerName\":\"default-scheduler\"}}},\"status\":{\"latestVersion\":1,\"observedGeneration\":2,\"replicas\":0,\"updatedReplicas\":0,\"availableReplicas\":0,\"unavailableReplicas\":0,\"details\":{\"message\":\"config change\",\"causes\":[{\"type\":\"ConfigChange\"}]},\"conditions\":[{\"type\":\"Available\",\"status\":\"False\",\"lastUpdateTime\":\"2018-01-25T16:33:02Z\",\"lastTransitionTime\":\"2018-01-25T16:33:02Z\",\"message\":\"Deployment config does not have minimum availability.\"}]}}\n"
+                            "openshift.io/encoded-deployment-config": "{\"kind\":\"DeploymentConfig\",\"apiVersion\":\"v1\",\"metadata\":{\"name\":\"myDeploy\",\"namespace\":\"my-run\",\"selfLink\":\"/apis/apps.openshift.io/v1/namespaces/my-run/deploymentconfigs/myDeploy\",\"uid\":\"8db1c9ba-91b5-46c6-be99-576245f42b3b\",\"resourceVersion\":\"837362058\",\"generation\":2,\"creationTimestamp\":\"2018-01-25T16:33:02Z\",\"labels\":{\"app\":\"myDeploy\",\"group\":\"myGroup\",\"provider\":\"fabric8\",\"space\":\"mySpace\",\"version\":\"1.0.2\"},\"annotations\":{\"fabric8.io/git-branch\":\"myUser/myDeploy/master-1.0.2\",\"fabric8.io/git-commit\":\"55ca6286e3e4f4fba5d0448333fa99fc5a404a73\",\"fabric8.io/iconUrl\":\"img/icon.svg\",\"fabric8.io/metrics-path\":\"dashboard/file/kubernetes-pods.json/?var-project=myDeploy\\u0026var-version=1.0.2\",\"fabric8.io/scm-con-url\":\"scm:git:https://example.com/myDeploy\",\"fabric8.io/scm-devcon-url\":\"scm:git:git:@example.com/myDeploy\",\"fabric8.io/scm-tag\":\"myTag\",\"fabric8.io/scm-url\":\"https://example.com/myDeploy\"}},\"spec\":{\"strategy\":{\"type\":\"Rolling\",\"rollingParams\":{\"updatePeriodSeconds\":1,\"intervalSeconds\":1,\"timeoutSeconds\":3600,\"maxUnavailable\":\"25%\",\"maxSurge\":\"25%\"},\"resources\":{},\"activeDeadlineSeconds\":21600},\"triggers\":[{\"type\":\"ConfigChange\"},{\"type\":\"ImageChange\",\"imageChangeParams\":{\"automatic\":true,\"containerNames\":[\"myDeploy\"],\"from\":{\"kind\":\"ImageStreamTag\",\"namespace\":\"my-run\",\"name\":\"myDeploy:1.0.2\"},\"lastTriggeredImage\":\"127.0.0.1:5000/my-run/myDeploy@sha256:98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4\"}}],\"replicas\":1,\"revisionHistoryLimit\":2,\"test\":false,\"selector\":{\"app\":\"myDeploy\",\"group\":\"myGroup\",\"provider\":\"fabric8\"},\"template\":{\"metadata\":{\"creationTimestamp\":null,\"labels\":{\"app\":\"myDeploy\",\"group\":\"myGroup\",\"provider\":\"fabric8\",\"space\":\"mySpace\",\"version\":\"1.0.2\"},\"annotations\":{\"fabric8.io/git-branch\":\"myUser/myDeploy/master-1.0.2\",\"fabric8.io/git-commit\":\"55ca6286e3e4f4fba5d0448333fa99fc5a404a73\",\"fabric8.io/iconUrl\":\"img/icon.svg\",\"fabric8.io/metrics-path\":\"dashboard/file/kubernetes-pods.json/?var-project=myDeploy\\u0026var-version=1.0.2\",\"fabric8.io/scm-con-url\":\"scm:git:https://example.com/myDeploy\",\"fabric8.io/scm-devcon-url\":\"scm:git:git:@example.com/myDeploy\",\"fabric8.io/scm-tag\":\"myTag\",\"fabric8.io/scm-url\":\"https://example.com/myDeploy\"}},\"spec\":{\"containers\":[{\"name\":\"myDeploy\",\"image\":\"127.0.0.1:5000/my-run/myDeploy@sha256:98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4\",\"ports\":[{\"name\":\"http\",\"containerPort\":8080,\"protocol\":\"TCP\"},{\"name\":\"prometheus\",\"containerPort\":9779,\"protocol\":\"TCP\"},{\"name\":\"jolokia\",\"containerPort\":8778,\"protocol\":\"TCP\"}],\"env\":[{\"name\":\"KUBERNETES_NAMESPACE\",\"valueFrom\":{\"fieldRef\":{\"apiVersion\":\"v1\",\"fieldPath\":\"metadata.namespace\"}}}],\"resources\":{\"limits\":{\"memory\":\"250Mi\"}},\"livenessProbe\":{\"httpGet\":{\"path\":\"/\",\"port\":8080,\"scheme\":\"HTTP\"},\"initialDelaySeconds\":180,\"timeoutSeconds\":1,\"periodSeconds\":10,\"successThreshold\":1,\"failureThreshold\":3},\"readinessProbe\":{\"httpGet\":{\"path\":\"/\",\"port\":8080,\"scheme\":\"HTTP\"},\"initialDelaySeconds\":10,\"timeoutSeconds\":1,\"periodSeconds\":10,\"successThreshold\":1,\"failureThreshold\":3},\"terminationMessagePath\":\"/dev/termination-log\",\"terminationMessagePolicy\":\"File\",\"imagePullPolicy\":\"IfNotPresent\",\"securityContext\":{\"privileged\":false}}],\"restartPolicy\":\"Always\",\"terminationGracePeriodSeconds\":30,\"dnsPolicy\":\"ClusterFirst\",\"securityContext\":{},\"schedulerName\":\"default-scheduler\"}}},\"status\":{\"latestVersion\":1,\"observedGeneration\":2,\"replicas\":0,\"updatedReplicas\":0,\"availableReplicas\":0,\"unavailableReplicas\":0,\"details\":{\"message\":\"config change\",\"causes\":[{\"type\":\"ConfigChange\"}]},\"conditions\":[{\"type\":\"Available\",\"status\":\"False\",\"lastUpdateTime\":\"2018-01-25T16:33:02Z\",\"lastTransitionTime\":\"2018-01-25T16:33:02Z\",\"message\":\"Deployment config does not have minimum availability.\"}]}}\n"
                         },
                         "creationTimestamp": "2018-01-25T16:33:03Z",
                         "generation": 3,
                         "labels": {
-                            "app": "myApp",
+                            "app": "myDeploy",
                             "group": "myGroup",
-                            "openshift.io/deployment-config.name": "myApp",
+                            "openshift.io/deployment-config.name": "myDeploy",
                             "provider": "fabric8",
                             "space": "mySpace",
                             "version": "1.0.2"
                         },
-                        "name": "myApp-1",
+                        "name": "myDeploy-1",
                         "namespace": "my-run",
                         "ownerReferences": [
                             {
@@ -556,43 +663,43 @@ interactions:
                                 "blockOwnerDeletion": true,
                                 "controller": true,
                                 "kind": "DeploymentConfig",
-                                "name": "myApp",
+                                "name": "myDeploy",
                                 "uid": "8db1c9ba-91b5-46c6-be99-576245f42b3b"
                             }
                         ],
                         "resourceVersion": "838024576",
-                        "selfLink": "/api/v1/namespaces/my-run/replicationcontrollers/myApp-1",
+                        "selfLink": "/api/v1/namespaces/my-run/replicationcontrollers/myDeploy-1",
                         "uid": "b780baac-ca27-4742-8649-e7af7b46fbb8"
                     },
                     "spec": {
                         "replicas": 2,
                         "selector": {
-                            "app": "myApp",
-                            "deployment": "myApp-1",
-                            "deploymentconfig": "myApp",
+                            "app": "myDeploy",
+                            "deployment": "myDeploy-1",
+                            "deploymentconfig": "myDeploy",
                             "group": "myGroup",
                             "provider": "fabric8"
                         },
                         "template": {
                             "metadata": {
                                 "annotations": {
-                                    "fabric8.io/git-branch": "myUser/myApp/master-1.0.2",
+                                    "fabric8.io/git-branch": "myUser/myDeploy/master-1.0.2",
                                     "fabric8.io/git-commit": "55ca6286e3e4f4fba5d0448333fa99fc5a404a73",
                                     "fabric8.io/iconUrl": "img/icon.svg",
-                                    "fabric8.io/metrics-path": "dashboard/file/kubernetes-pods.json/?var-project=myApp\u0026var-version=1.0.2",
-                                    "fabric8.io/scm-con-url": "scm:git:https://example.com/myApp",
-                                    "fabric8.io/scm-devcon-url": "scm:git:git:@example.com/myApp",
+                                    "fabric8.io/metrics-path": "dashboard/file/kubernetes-pods.json/?var-project=myDeploy\u0026var-version=1.0.2",
+                                    "fabric8.io/scm-con-url": "scm:git:https://example.com/myDeploy",
+                                    "fabric8.io/scm-devcon-url": "scm:git:git:@example.com/myDeploy",
                                     "fabric8.io/scm-tag": "myTag",
-                                    "fabric8.io/scm-url": "https://example.com/myApp",
+                                    "fabric8.io/scm-url": "https://example.com/myDeploy",
                                     "openshift.io/deployment-config.latest-version": "1",
-                                    "openshift.io/deployment-config.name": "myApp",
-                                    "openshift.io/deployment.name": "myApp-1"
+                                    "openshift.io/deployment-config.name": "myDeploy",
+                                    "openshift.io/deployment.name": "myDeploy-1"
                                 },
                                 "creationTimestamp": null,
                                 "labels": {
-                                    "app": "myApp",
-                                    "deployment": "myApp-1",
-                                    "deploymentconfig": "myApp",
+                                    "app": "myDeploy",
+                                    "deployment": "myDeploy-1",
+                                    "deploymentconfig": "myDeploy",
                                     "group": "myGroup",
                                     "provider": "fabric8",
                                     "space": "mySpace",
@@ -613,7 +720,7 @@ interactions:
                                                 }
                                             }
                                         ],
-                                        "image": "127.0.0.1:5000/my-run/myApp@sha256:98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4",
+                                        "image": "127.0.0.1:5000/my-run/myDeploy@sha256:98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4",
                                         "imagePullPolicy": "IfNotPresent",
                                         "livenessProbe": {
                                             "failureThreshold": 3,
@@ -627,7 +734,7 @@ interactions:
                                             "successThreshold": 1,
                                             "timeoutSeconds": 1
                                         },
-                                        "name": "myApp",
+                                        "name": "myDeploy",
                                         "ports": [
                                             {
                                                 "containerPort": 8080,
@@ -715,33 +822,33 @@ interactions:
                     "kind": "Pod",
                     "metadata": {
                         "annotations": {
-                            "fabric8.io/git-branch": "myUser/myApp/master-1.0.2",
+                            "fabric8.io/git-branch": "myUser/myDeploy/master-1.0.2",
                             "fabric8.io/git-commit": "55ca6286e3e4f4fba5d0448333fa99fc5a404a73",
                             "fabric8.io/iconUrl": "img/icon.svg",
-                            "fabric8.io/metrics-path": "dashboard/file/kubernetes-pods.json/?var-project=myApp\u0026var-version=1.0.2",
-                            "fabric8.io/scm-con-url": "scm:git:https://example.com/myApp",
-                            "fabric8.io/scm-devcon-url": "scm:git:git:@example.com/myApp",
+                            "fabric8.io/metrics-path": "dashboard/file/kubernetes-pods.json/?var-project=myDeploy\u0026var-version=1.0.2",
+                            "fabric8.io/scm-con-url": "scm:git:https://example.com/myDeploy",
+                            "fabric8.io/scm-devcon-url": "scm:git:git:@example.com/myDeploy",
                             "fabric8.io/scm-tag": "myTag",
-                            "fabric8.io/scm-url": "https://example.com/myApp",
-                            "kubernetes.io/created-by": "{\"kind\":\"SerializedReference\",\"apiVersion\":\"v1\",\"reference\":{\"kind\":\"ReplicationController\",\"namespace\":\"my-run\",\"name\":\"myApp-1\",\"uid\":\"b780baac-ca27-4742-8649-e7af7b46fbb8\",\"apiVersion\":\"v1\",\"resourceVersion\":\"838023666\"}}\n",
-                            "kubernetes.io/limit-ranger": "LimitRanger plugin set: cpu request for container myApp; cpu limit for container myApp",
+                            "fabric8.io/scm-url": "https://example.com/myDeploy",
+                            "kubernetes.io/created-by": "{\"kind\":\"SerializedReference\",\"apiVersion\":\"v1\",\"reference\":{\"kind\":\"ReplicationController\",\"namespace\":\"my-run\",\"name\":\"myDeploy-1\",\"uid\":\"b780baac-ca27-4742-8649-e7af7b46fbb8\",\"apiVersion\":\"v1\",\"resourceVersion\":\"838023666\"}}\n",
+                            "kubernetes.io/limit-ranger": "LimitRanger plugin set: cpu request for container myDeploy; cpu limit for container myDeploy",
                             "openshift.io/deployment-config.latest-version": "1",
-                            "openshift.io/deployment-config.name": "myApp",
-                            "openshift.io/deployment.name": "myApp-1",
+                            "openshift.io/deployment-config.name": "myDeploy",
+                            "openshift.io/deployment.name": "myDeploy-1",
                             "openshift.io/scc": "restricted"
                         },
                         "creationTimestamp": "2018-01-25T20:40:05Z",
-                        "generateName": "myApp-1-",
+                        "generateName": "myDeploy-1-",
                         "labels": {
-                            "app": "myApp",
-                            "deployment": "myApp-1",
-                            "deploymentconfig": "myApp",
+                            "app": "myDeploy",
+                            "deployment": "myDeploy-1",
+                            "deploymentconfig": "myDeploy",
                             "group": "myGroup",
                             "provider": "fabric8",
                             "space": "myspace",
                             "version": "1.0.2"
                         },
-                        "name": "myApp-1-nfs9w",
+                        "name": "myDeploy-1-nfs9w",
                         "namespace": "my-run",
                         "ownerReferences": [
                             {
@@ -749,12 +856,12 @@ interactions:
                                 "blockOwnerDeletion": true,
                                 "controller": true,
                                 "kind": "ReplicationController",
-                                "name": "myApp-1",
+                                "name": "myDeploy-1",
                                 "uid": "b780baac-ca27-4742-8649-e7af7b46fbb8"
                             }
                         ],
                         "resourceVersion": "838024574",
-                        "selfLink": "/api/v1/namespaces/my-run/pods/myApp-1-nfs9w",
+                        "selfLink": "/api/v1/namespaces/my-run/pods/myDeploy-1-nfs9w",
                         "uid": "f04e8f3b-5c4a-4ffd-94ec-0e8bcbc7b468"
                     },
                     "spec": {
@@ -771,7 +878,7 @@ interactions:
                                         }
                                     }
                                 ],
-                                "image": "127.0.0.1:5000/my-run/myApp@sha256:98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4",
+                                "image": "127.0.0.1:5000/my-run/myDeploy@sha256:98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4",
                                 "imagePullPolicy": "Always",
                                 "livenessProbe": {
                                     "failureThreshold": 3,
@@ -785,7 +892,7 @@ interactions:
                                     "successThreshold": 1,
                                     "timeoutSeconds": 1
                                 },
-                                "name": "myApp",
+                                "name": "myDeploy",
                                 "ports": [
                                     {
                                         "containerPort": 8080,
@@ -907,10 +1014,10 @@ interactions:
                         "containerStatuses": [
                             {
                                 "containerID": "docker://f425202d2f8e1758bd3e5fb681afeab5f4fdd4da93e57a0ea3b6819e40d6d39c",
-                                "image": "127.0.0.1:5000/my-run/myApp@sha256:98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4",
-                                "imageID": "docker-pullable://127.0.0.1:5000/my-run/myApp@sha256:98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4",
+                                "image": "127.0.0.1:5000/my-run/myDeploy@sha256:98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4",
+                                "imageID": "docker-pullable://127.0.0.1:5000/my-run/myDeploy@sha256:98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4",
                                 "lastState": {},
-                                "name": "myApp",
+                                "name": "myDeploy",
                                 "ready": true,
                                 "restartCount": 0,
                                 "state": {
@@ -932,33 +1039,33 @@ interactions:
                     "kind": "Pod",
                     "metadata": {
                         "annotations": {
-                            "fabric8.io/git-branch": "myUser/myApp/master-1.0.2",
+                            "fabric8.io/git-branch": "myUser/myDeploy/master-1.0.2",
                             "fabric8.io/git-commit": "55ca6286e3e4f4fba5d0448333fa99fc5a404a73",
                             "fabric8.io/iconUrl": "img/icon.svg",
-                            "fabric8.io/metrics-path": "dashboard/file/kubernetes-pods.json/?var-project=myApp\u0026var-version=1.0.2",
-                            "fabric8.io/scm-con-url": "scm:git:https://example.com/myApp",
-                            "fabric8.io/scm-devcon-url": "scm:git:git:@example.com/myApp",
+                            "fabric8.io/metrics-path": "dashboard/file/kubernetes-pods.json/?var-project=myDeploy\u0026var-version=1.0.2",
+                            "fabric8.io/scm-con-url": "scm:git:https://example.com/myDeploy",
+                            "fabric8.io/scm-devcon-url": "scm:git:git:@example.com/myDeploy",
                             "fabric8.io/scm-tag": "myTag",
-                            "fabric8.io/scm-url": "https://example.com/myApp",
-                            "kubernetes.io/created-by": "{\"kind\":\"SerializedReference\",\"apiVersion\":\"v1\",\"reference\":{\"kind\":\"ReplicationController\",\"namespace\":\"my-run\",\"name\":\"myApp-1\",\"uid\":\"b780baac-ca27-4742-8649-e7af7b46fbb8\",\"apiVersion\":\"v1\",\"resourceVersion\":\"837362212\"}}\n",
-                            "kubernetes.io/limit-ranger": "LimitRanger plugin set: cpu request for container myApp; cpu limit for container myApp",
+                            "fabric8.io/scm-url": "https://example.com/myDeploy",
+                            "kubernetes.io/created-by": "{\"kind\":\"SerializedReference\",\"apiVersion\":\"v1\",\"reference\":{\"kind\":\"ReplicationController\",\"namespace\":\"my-run\",\"name\":\"myDeploy-1\",\"uid\":\"b780baac-ca27-4742-8649-e7af7b46fbb8\",\"apiVersion\":\"v1\",\"resourceVersion\":\"837362212\"}}\n",
+                            "kubernetes.io/limit-ranger": "LimitRanger plugin set: cpu request for container myDeploy; cpu limit for container myDeploy",
                             "openshift.io/deployment-config.latest-version": "1",
-                            "openshift.io/deployment-config.name": "myApp",
-                            "openshift.io/deployment.name": "myApp-1",
+                            "openshift.io/deployment-config.name": "myDeploy",
+                            "openshift.io/deployment.name": "myDeploy-1",
                             "openshift.io/scc": "restricted"
                         },
                         "creationTimestamp": "2018-01-25T16:33:06Z",
-                        "generateName": "myApp-1-",
+                        "generateName": "myDeploy-1-",
                         "labels": {
-                            "app": "myApp",
-                            "deployment": "myApp-1",
-                            "deploymentconfig": "myApp",
+                            "app": "myDeploy",
+                            "deployment": "myDeploy-1",
+                            "deploymentconfig": "myDeploy",
                             "group": "myGroup",
                             "provider": "fabric8",
                             "space": "myspace",
                             "version": "1.0.2"
                         },
-                        "name": "myApp-1-sdmzq",
+                        "name": "myDeploy-1-sdmzq",
                         "namespace": "my-run",
                         "ownerReferences": [
                             {
@@ -966,12 +1073,12 @@ interactions:
                                 "blockOwnerDeletion": true,
                                 "controller": true,
                                 "kind": "ReplicationController",
-                                "name": "myApp-1",
+                                "name": "myDeploy-1",
                                 "uid": "b780baac-ca27-4742-8649-e7af7b46fbb8"
                             }
                         ],
                         "resourceVersion": "837363149",
-                        "selfLink": "/api/v1/namespaces/my-run/pods/myApp-1-sdmzq",
+                        "selfLink": "/api/v1/namespaces/my-run/pods/myDeploy-1-sdmzq",
                         "uid": "447b7d6f-7072-4e9a-8cba-7e29c2f53761"
                     },
                     "spec": {
@@ -988,7 +1095,7 @@ interactions:
                                         }
                                     }
                                 ],
-                                "image": "127.0.0.1:5000/my-run/myApp@sha256:98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4",
+                                "image": "127.0.0.1:5000/my-run/myDeploy@sha256:98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4",
                                 "imagePullPolicy": "Always",
                                 "livenessProbe": {
                                     "failureThreshold": 3,
@@ -1002,7 +1109,7 @@ interactions:
                                     "successThreshold": 1,
                                     "timeoutSeconds": 1
                                 },
-                                "name": "myApp",
+                                "name": "myDeploy",
                                 "ports": [
                                     {
                                         "containerPort": 8080,
@@ -1124,10 +1231,10 @@ interactions:
                         "containerStatuses": [
                             {
                                 "containerID": "docker://e258d248fda94c63753607f7c4494ee0fcbe92f1a76bfdac795c9d84101eb317",
-                                "image": "127.0.0.1:5000/my-run/myApp@sha256:98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4",
-                                "imageID": "docker-pullable://127.0.0.1:5000/my-run/myApp@sha256:98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4",
+                                "image": "127.0.0.1:5000/my-run/myDeploy@sha256:98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4",
+                                "imageID": "docker-pullable://127.0.0.1:5000/my-run/myDeploy@sha256:98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4",
                                 "lastState": {},
-                                "name": "myApp",
+                                "name": "myDeploy",
                                 "ready": true,
                                 "restartCount": 0,
                                 "state": {
@@ -1162,7 +1269,7 @@ interactions:
     headers:
       Content-Type:
       - application/json
-    url: http://api.myCluster/api/v1/namespaces/my-run/services?labelSelector=app%3DmyApp
+    url: http://api.myCluster/api/v1/namespaces/my-run/services?labelSelector=app%3DmyDeploy
     method: GET
   response:
     body: |
@@ -1174,30 +1281,30 @@ interactions:
                     "kind": "Service",
                     "metadata": {
                         "annotations": {
-                            "fabric8.io/exposeUrl": "http://myApp-my-run.example.com",
-                            "fabric8.io/git-branch": "ebaron/myApp/master-1.0.2",
+                            "fabric8.io/exposeUrl": "http://myDeploy-my-run.example.com",
+                            "fabric8.io/git-branch": "ebaron/myDeploy/master-1.0.2",
                             "fabric8.io/git-commit": "55ca6286e3e4f4fba5d0448333fa99fc5a404a73",
                             "fabric8.io/iconUrl": "img/icon.svg",
-                            "fabric8.io/scm-con-url": "scm:git:https://example.com/myApp",
-                            "fabric8.io/scm-devcon-url": "scm:git:git:@example.com/myApp",
+                            "fabric8.io/scm-con-url": "scm:git:https://example.com/myDeploy",
+                            "fabric8.io/scm-devcon-url": "scm:git:git:@example.com/myDeploy",
                             "fabric8.io/scm-tag": "myTag",
-                            "fabric8.io/scm-url": "https://example.com/myApp",
+                            "fabric8.io/scm-url": "https://example.com/myDeploy",
                             "prometheus.io/port": "9779",
                             "prometheus.io/scrape": "true"
                         },
                         "creationTimestamp": "2018-01-25T16:33:02Z",
                         "labels": {
-                            "app": "myApp",
+                            "app": "myDeploy",
                             "expose": "true",
                             "group": "myGroup",
                             "provider": "fabric8",
                             "space": "mySpace",
                             "version": "1.0.2"
                         },
-                        "name": "myApp",
+                        "name": "myDeploy",
                         "namespace": "my-run",
                         "resourceVersion": "837362353",
-                        "selfLink": "/api/v1/namespaces/my-run/services/myApp",
+                        "selfLink": "/api/v1/namespaces/my-run/services/myDeploy",
                         "uid": "f4e6e2b2-f86d-4e78-94e5-079bb3f0b05d"
                     },
                     "spec": {
@@ -1211,7 +1318,7 @@ interactions:
                             }
                         ],
                         "selector": {
-                            "app": "myApp",
+                            "app": "myDeploy",
                             "group": "myGroup",
                             "provider": "fabric8"
                         },
@@ -1239,7 +1346,7 @@ interactions:
     headers:
       Content-Type:
       - application/json
-    url: http://api.myCluster/api/v1/namespaces/my-run/services/myApp
+    url: http://api.myCluster/api/v1/namespaces/my-run/services/myDeploy
     method: DELETE
   response:
     body: |
@@ -1251,30 +1358,30 @@ interactions:
                     "kind": "Service",
                     "metadata": {
                         "annotations": {
-                            "fabric8.io/exposeUrl": "http://myApp-my-run.example.com",
-                            "fabric8.io/git-branch": "ebaron/myApp/master-1.0.2",
+                            "fabric8.io/exposeUrl": "http://myDeploy-my-run.example.com",
+                            "fabric8.io/git-branch": "ebaron/myDeploy/master-1.0.2",
                             "fabric8.io/git-commit": "55ca6286e3e4f4fba5d0448333fa99fc5a404a73",
                             "fabric8.io/iconUrl": "img/icon.svg",
-                            "fabric8.io/scm-con-url": "scm:git:https://example.com/myApp",
-                            "fabric8.io/scm-devcon-url": "scm:git:git:@example.com/myApp",
+                            "fabric8.io/scm-con-url": "scm:git:https://example.com/myDeploy",
+                            "fabric8.io/scm-devcon-url": "scm:git:git:@example.com/myDeploy",
                             "fabric8.io/scm-tag": "myTag",
-                            "fabric8.io/scm-url": "https://example.com/myApp",
+                            "fabric8.io/scm-url": "https://example.com/myDeploy",
                             "prometheus.io/port": "9779",
                             "prometheus.io/scrape": "true"
                         },
                         "creationTimestamp": "2018-01-25T16:33:02Z",
                         "labels": {
-                            "app": "myApp",
+                            "app": "myDeploy",
                             "expose": "true",
                             "group": "myGroup",
                             "provider": "fabric8",
                             "space": "mySpace",
                             "version": "1.0.2"
                         },
-                        "name": "myApp",
+                        "name": "myDeploy",
                         "namespace": "my-run",
                         "resourceVersion": "837362353",
-                        "selfLink": "/api/v1/namespaces/my-run/services/myApp",
+                        "selfLink": "/api/v1/namespaces/my-run/services/myDeploy",
                         "uid": "f4e6e2b2-f86d-4e78-94e5-079bb3f0b05d"
                     },
                     "spec": {
@@ -1288,7 +1395,7 @@ interactions:
                             }
                         ],
                         "selector": {
-                            "app": "myApp",
+                            "app": "myDeploy",
                             "group": "myGroup",
                             "provider": "fabric8"
                         },
