@@ -1051,13 +1051,17 @@ func TestDeleteDeployment(t *testing.T) {
 		},
 		{
 			// Tests failure to map application name to OpenShift resources
-			testName:         "No Builds",
-			spaceName:        "mySpace",
-			appName:          "myApp",
-			envName:          "run",
-			cassetteName:     "deletedeployment-nobuilds",
-			expectDeleteURLs: map[string]struct{}{},
-			shouldFail:       true,
+			// falls back to app name
+			testName:     "No Builds",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "deletedeployment-nobuilds",
+			expectDeleteURLs: map[string]struct{}{
+				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myApp":            {},
+				"http://api.myCluster/api/v1/namespaces/my-run/services/myApp":           {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myApp": {},
+			},
 		},
 	}
 

@@ -249,7 +249,12 @@ func TestGetDeploymentConfigNameForApp(t *testing.T) {
 				require.Error(t, err, "Test case expects an error from getDeploymentConfigNameForApp")
 			} else {
 				require.NoError(t, err, "getDeploymentConfigNameForApp should return without error")
-				require.Equal(t, testCase.expectedDCName, dcName, "getDeploymentConfigNameForApp returned incorrect name")
+				// Fallback is to use application name
+				expectedDCName := testCase.expectedDCName
+				if len(expectedDCName) == 0 {
+					expectedDCName = testCase.appName
+				}
+				require.Equal(t, expectedDCName, dcName, "getDeploymentConfigNameForApp returned incorrect name")
 			}
 		})
 	}

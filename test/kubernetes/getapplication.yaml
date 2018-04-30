@@ -598,7 +598,7 @@ interactions:
     headers:
       Content-Type:
       - application/json
-    url: http://api.myCluster/oapi/v1/namespaces/myNamespace/deploymentconfigs/myDeploy
+    url: http://api.myCluster/oapi/v1/namespaces/myNamespace/deploymentconfigs/myApp
     method: GET
   response:
     headers:

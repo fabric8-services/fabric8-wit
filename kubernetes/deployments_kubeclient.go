@@ -342,9 +342,6 @@ func (kc *kubeClient) ScaleDeployment(spaceName string, appName string, envName 
 	dcName, err := kc.getDeploymentConfigNameForApp(envNS, appName, spaceName)
 	if err != nil {
 		return nil, err
-	} else if len(dcName) == 0 {
-		return nil, errs.Errorf("could not associate application '%s' with any resources in '%s' with space '%s'",
-			appName, envNS, spaceName)
 	}
 
 	// Look up the Scale for the DeploymentConfig corresponding to the application name in the provided environment
@@ -616,13 +613,6 @@ func (kc *kubeClient) DeleteDeployment(spaceName string, appName string, envName
 	dcName, err := kc.getDeploymentConfigNameForApp(envNS, appName, spaceName)
 	if err != nil {
 		return err
-	} else if len(dcName) == 0 {
-		log.Error(nil, map[string]interface{}{
-			"space_name": spaceName,
-			"app_name":   appName,
-			"env_name":   envName,
-		}, "could not associate application with any resources")
-		return errs.Errorf("could not associate application '%s' with any resources", appName)
 	}
 
 	// Delete routes
@@ -977,6 +967,8 @@ func (kc *kubeClient) getDeploymentConfigNameForApp(namespace string, appName st
 		}
 	}
 
+	// Fall back to application name, if we can't find a name in the annotations
+	result := appName
 	if latestCompletedBuild != nil {
 		metadata, ok := latestCompletedBuild["metadata"].(map[string]interface{})
 		if !ok {
@@ -1005,13 +997,14 @@ func (kc *kubeClient) getDeploymentConfigNameForApp(namespace string, appName st
 							"spaceName":   spaceName,
 							"envServices": envServicesStr,
 						}, "failed to determine Deployment Config name")
+					} else if len(dcName) > 0 {
+						result = dcName
 					}
-					return dcName, nil
 				}
 			}
 		}
 	}
-	return "", nil
+	return result, nil
 }
 
 func getNameFromEnvServices(envServices []byte) (string, error) {
@@ -1088,8 +1081,6 @@ func (kc *kubeClient) getCurrentDeployment(space string, appName string, namespa
 	dcName, err := kc.getDeploymentConfigNameForApp(namespace, appName, space)
 	if err != nil {
 		return nil, err
-	} else if len(dcName) == 0 {
-		return nil, nil
 	}
 
 	// Look up DeploymentConfig corresponding to the application name in the provided environment
