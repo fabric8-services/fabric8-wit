@@ -305,6 +305,36 @@ func (rest *TestWorkItemREST) TestConvertWorkItem() {
 	})
 }
 
+func (rest *TestWorkItemREST) TestConvertWorkItems() {
+	rest.T().Run("ok", func(t *testing.T) {
+		// given
+		request := &http.Request{Host: "localhost"}
+		fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(3))
+		wis := []workitem.WorkItem{*fxt.WorkItems[0], *fxt.WorkItems[1], *fxt.WorkItems[2]}
+		wits, err := loadWorkItemTypesFromPtrArr(rest.Ctx, rest.db, fxt.WorkItems)
+		require.NoError(t, err)
+		// when
+		convertedWIs, err := ConvertWorkItems(request, wits, wis)
+		require.NoError(t, err)
+		for i, converted := range convertedWIs {
+			require.Equal(t, fxt.WorkItems[i].ID, *converted.ID)
+			require.Equal(t, fxt.WorkItems[i].Fields[workitem.SystemTitle], converted.Attributes[workitem.SystemTitle])
+			require.Equal(t, fxt.WorkItems[i].Fields[workitem.SystemDescription], converted.Attributes[workitem.SystemDescription])
+		}
+	})
+	rest.T().Run("length mismatch", func(t *testing.T) {
+		// given
+		request := &http.Request{Host: "localhost"}
+		fxt := tf.NewTestFixture(t, rest.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(3))
+		wis := []workitem.WorkItem{*fxt.WorkItems[0], *fxt.WorkItems[1], *fxt.WorkItems[2]}
+		wits := []workitem.WorkItemType{}
+		// when
+		_, err := ConvertWorkItems(request, wits, wis)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "length mismatch")
+	})
+}
+
 func (rest *TestWorkItemREST) TestLoadWorkItemTypes() {
 	fxt := tf.NewTestFixture(rest.T(), rest.DB,
 		tf.WorkItemTypes(3),
