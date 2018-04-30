@@ -178,14 +178,22 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 		}
 		hasChildren := workItemIncludeHasChildren(ctx, c.db, childLinks)
 		includeParent := includeParentWorkItem(ctx, ancestors, childLinks)
+		// Load all work item types
+		wits, err := loadWorkItemTypesFromArr(ctx.Context, c.db, result)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to load work item types"))
+		}
 		response := app.SearchWorkItemList{
 			Links: &app.PagingLinks{},
 			Meta: &app.WorkItemListResponseMeta{
 				TotalCount: count,
 			},
-			Data: ConvertWorkItems(ctx.Request, result, hasChildren, includeParent),
+			Data: ConvertWorkItems(ctx.Request, wits, result, hasChildren, includeParent),
 		}
-		c.enrichWorkItemList(ctx, ancestors, matchingWorkItemIDs, childLinks, &response, hasChildren) // append parentWI and ancestors (if not empty) in response
+		err = c.enrichWorkItemList(ctx, ancestors, matchingWorkItemIDs, childLinks, &response, hasChildren) // append parentWI and ancestors (if not empty) in response
+		if err != nil {
+			return errs.Wrap(err, "failed to enrich work item list")
+		}
 		setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(result), offset, limit, count, "filter[expression]="+*ctx.FilterExpression)
 
 		// Sort "data" by name or ID if no title given
@@ -266,10 +274,14 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
+	wits, err := loadWorkItemTypesFromArr(ctx.Context, c.db, result)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
 	response := app.SearchWorkItemList{
 		Links: &app.PagingLinks{},
 		Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
-		Data:  ConvertWorkItems(ctx.Request, result),
+		Data:  ConvertWorkItems(ctx.Request, wits, result),
 	}
 	setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(result), offset, limit, count, "q="+*ctx.Q)
 	return ctx.OK(&response)
@@ -323,7 +335,7 @@ func (c *SearchController) Users(ctx *app.UsersSearchContext) error {
 
 // Iterate over the WI list and read parent IDs
 // Fetch and load Parent WI in the included list
-func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, ancestors link.AncestorList, matchingIDs id.Slice, childLinks link.WorkItemLinkList, res *app.SearchWorkItemList, hasChildren WorkItemConvertFunc) {
+func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, ancestors link.AncestorList, matchingIDs id.Slice, childLinks link.WorkItemLinkList, res *app.SearchWorkItemList, hasChildren WorkItemConvertFunc) error {
 	parentIDs := id.Slice{}
 	for _, wi := range res.Data {
 		if wi.Relationships != nil && wi.Relationships.Parent != nil && wi.Relationships.Parent.Data != nil {
@@ -354,12 +366,18 @@ func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, ancest
 			"wis": wis,
 			"err": err,
 		}, "unable to load parent work items in batch: %s", fetchInBatch)
+		return errs.Wrapf(err, "unable to load work item items in batch: %s", fetchInBatch)
 	}
 
 	for _, ele := range wis {
-		convertedWI := ConvertWorkItem(ctx.Request, *ele, hasChildren, includeParentWorkItem(ctx, ancestors, childLinks))
+		wit, err := c.db.WorkItemTypes().Load(ctx.Context, ele.Type)
+		if err != nil {
+			return errs.Wrapf(err, "failed to load work item type: %s", ele.Type)
+		}
+		convertedWI := ConvertWorkItem(ctx.Request, *wit, *ele, hasChildren, includeParentWorkItem(ctx, ancestors, childLinks))
 		res.Included = append(res.Included, *convertedWI)
 	}
+	return nil
 }
 
 // Codebases runs the codebases search action.

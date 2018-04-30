@@ -59,9 +59,18 @@ func (c *PlannerBacklogController) List(ctx *app.ListPlannerBacklogContext) erro
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
+	// Load all work item types
+	wits := make([]workitem.WorkItemType, len(result))
+	for idx, wi := range result {
+		wit, err := c.db.WorkItemTypes().Load(ctx.Context, wi.Type)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to load the work item type"))
+		}
+		wits[idx] = *wit
+	}
 	return ctx.ConditionalEntities(result, c.config.GetCacheControlWorkItems, func() error {
 		response := app.WorkItemList{
-			Data:  ConvertWorkItems(ctx.Request, result),
+			Data:  ConvertWorkItems(ctx.Request, wits, result),
 			Links: &app.PagingLinks{},
 			Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
 		}

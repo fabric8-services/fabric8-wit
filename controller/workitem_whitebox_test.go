@@ -156,23 +156,23 @@ func (rest *TestWorkItemREST) SetupTest() {
 	rest.db = gormapplication.NewGormDB(rest.DB)
 }
 
-func prepareWI2(attributes map[string]interface{}) app.WorkItem {
-	spaceRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(space.SystemSpace.String()))
-	witRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.WorkitemtypeHref(workitem.SystemBug.String()))
+func prepareWI2(attributes map[string]interface{}, witID, spaceID uuid.UUID) app.WorkItem {
+	spaceRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(spaceID.String()))
+	witRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.WorkitemtypeHref(witID.String()))
 	return app.WorkItem{
 		Type: "workitems",
 		Relationships: &app.WorkItemRelationships{
 			BaseType: &app.RelationBaseType{
 				Data: &app.BaseTypeData{
 					Type: "workitemtypes",
-					ID:   workitem.SystemBug,
+					ID:   witID,
 				},
 				Links: &app.GenericLinks{
 					Self:    &witRelatedURL,
 					Related: &witRelatedURL,
 				},
 			},
-			Space: app.NewSpaceRelation(space.SystemSpace, spaceRelatedURL),
+			Space: app.NewSpaceRelation(spaceID, spaceRelatedURL),
 		},
 		Attributes: attributes,
 	}
@@ -187,10 +187,10 @@ func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithLegacyDescription(
 		workitem.SystemTitle:       "title",
 		workitem.SystemDescription: "description",
 	}
-	source := prepareWI2(attributes)
+	source := prepareWI2(attributes, fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
 	err := application.Transactional(rest.db, func(app application.Application) error {
-		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, fxt.Spaces[0].ID)
+		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	})
 	// assert
 	require.NoError(t, err)
@@ -211,10 +211,10 @@ func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithDescriptionContent
 		workitem.SystemTitle:       "title",
 		workitem.SystemDescription: rendering.NewMarkupContentFromLegacy("description"),
 	}
-	source := prepareWI2(attributes)
+	source := prepareWI2(attributes, fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
 	err := application.Transactional(rest.db, func(app application.Application) error {
-		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, fxt.Spaces[0].ID)
+		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	})
 	require.NoError(t, err)
 	require.NotNil(t, target)
@@ -233,10 +233,10 @@ func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithDescriptionContent
 		workitem.SystemTitle:       "title",
 		workitem.SystemDescription: rendering.NewMarkupContent("description", rendering.SystemMarkupMarkdown),
 	}
-	source := prepareWI2(attributes)
+	source := prepareWI2(attributes, fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
 	err := application.Transactional(rest.db, func(app application.Application) error {
-		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, fxt.Spaces[0].ID)
+		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	})
 	require.NoError(t, err)
 	require.NotNil(t, target)
@@ -255,10 +255,10 @@ func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithTitle() {
 	attributes := map[string]interface{}{
 		workitem.SystemTitle: title,
 	}
-	source := prepareWI2(attributes)
+	source := prepareWI2(attributes, fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
 	err := application.Transactional(rest.db, func(app application.Application) error {
-		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, fxt.Spaces[0].ID)
+		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	})
 	require.NoError(t, err)
 	require.NotNil(t, target)
@@ -273,11 +273,11 @@ func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithMissingTitle() {
 	// given
 	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.CreateWorkItemEnvironment())
 	attributes := map[string]interface{}{}
-	source := prepareWI2(attributes)
+	source := prepareWI2(attributes, fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
 	// when
 	err := application.Transactional(rest.db, func(app application.Application) error {
-		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, fxt.Spaces[0].ID)
+		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	})
 	// then: no error expected at this level, even though the title is missing
 	require.NoError(t, err)
@@ -291,11 +291,11 @@ func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithEmptyTitle() {
 	attributes := map[string]interface{}{
 		workitem.SystemTitle: "",
 	}
-	source := prepareWI2(attributes)
+	source := prepareWI2(attributes, fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
 	// when
 	err := application.Transactional(rest.db, func(app application.Application) error {
-		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, fxt.Spaces[0].ID)
+		return ConvertJSONAPIToWorkItem(context.Background(), "", app, source, target, fxt.WorkItemTypes[0].ID, fxt.Spaces[0].ID)
 	})
 	// then: no error expected at this level, even though the title is missing
 	require.NoError(t, err)
