@@ -314,33 +314,73 @@ func (rest *TestWorkItemREST) TestLoadWorkItemTypes() {
 		}),
 	)
 	rest.T().Run("from normal array of work items", func(t *testing.T) {
-		// given
-		wis := []workitem.WorkItem{*fxt.WorkItems[0], *fxt.WorkItems[1], *fxt.WorkItems[2]}
-		// when
-		wits, err := loadWorkItemTypesFromArr(rest.Ctx, rest.db, wis)
-		// then
-		require.NoError(t, err)
-		toBeFound := id.Slice{fxt.WorkItemTypes[0].ID, fxt.WorkItemTypes[1].ID, fxt.WorkItemTypes[2].ID}.ToMap()
-		for _, wit := range wits {
-			_, ok := toBeFound[wit.ID]
-			require.True(t, ok, "found unexpected work item type: %s (%s)", wit.ID, wit.Name)
-			delete(toBeFound, wit.ID)
-		}
-		require.Empty(t, toBeFound, "failed to find these work item types: %+v", toBeFound)
+		t.Run("not empty", func(t *testing.T) {
+			// given
+			wis := []workitem.WorkItem{*fxt.WorkItems[0], *fxt.WorkItems[1], *fxt.WorkItems[2]}
+			// when
+			wits, err := loadWorkItemTypesFromArr(rest.Ctx, rest.db, wis)
+			// then
+			require.NoError(t, err)
+			toBeFound := id.Slice{fxt.WorkItemTypes[0].ID, fxt.WorkItemTypes[1].ID, fxt.WorkItemTypes[2].ID}.ToMap()
+			for _, wit := range wits {
+				_, ok := toBeFound[wit.ID]
+				require.True(t, ok, "found unexpected work item type: %s (%s)", wit.ID, wit.Name)
+				delete(toBeFound, wit.ID)
+			}
+			require.Empty(t, toBeFound, "failed to find these work item types: %+v", toBeFound)
+		})
+		t.Run("empty", func(t *testing.T) {
+			// given
+			wis := []workitem.WorkItem{}
+			// when
+			wits, err := loadWorkItemTypesFromArr(rest.Ctx, rest.db, wis)
+			// then
+			require.NoError(t, err)
+			require.Empty(t, wits)
+		})
+		t.Run("nil", func(t *testing.T) {
+			// given
+			var wis []workitem.WorkItem
+			// when
+			wits, err := loadWorkItemTypesFromArr(rest.Ctx, rest.db, wis)
+			// then
+			require.NoError(t, err)
+			require.Empty(t, wits)
+		})
 	})
 	rest.T().Run("from pointer array of work items", func(t *testing.T) {
-		// given
-		wis := []*workitem.WorkItem{fxt.WorkItems[0], fxt.WorkItems[1], fxt.WorkItems[2]}
-		// when
-		wits, err := loadWorkItemTypesFromPtrArr(rest.Ctx, rest.db, wis)
-		// then
-		require.NoError(t, err)
-		toBeFound := id.Slice{fxt.WorkItemTypes[0].ID, fxt.WorkItemTypes[1].ID, fxt.WorkItemTypes[2].ID}.ToMap()
-		for _, wit := range wits {
-			_, ok := toBeFound[wit.ID]
-			require.True(t, ok, "found unexpected work item type: %s (%s)", wit.ID, wit.Name)
-			delete(toBeFound, wit.ID)
-		}
-		require.Empty(t, toBeFound, "failed to find these work item types: %+v", toBeFound)
+		t.Run("not empty", func(t *testing.T) {
+			// given
+			wis := []*workitem.WorkItem{fxt.WorkItems[0], fxt.WorkItems[1], fxt.WorkItems[2]}
+			// when
+			wits, err := loadWorkItemTypesFromPtrArr(rest.Ctx, rest.db, wis)
+			// then
+			require.NoError(t, err)
+			toBeFound := id.Slice{fxt.WorkItemTypes[0].ID, fxt.WorkItemTypes[1].ID, fxt.WorkItemTypes[2].ID}.ToMap()
+			for _, wit := range wits {
+				_, ok := toBeFound[wit.ID]
+				require.True(t, ok, "found unexpected work item type: %s (%s)", wit.ID, wit.Name)
+				delete(toBeFound, wit.ID)
+			}
+			require.Empty(t, toBeFound, "failed to find these work item types: %+v", toBeFound)
+		})
+		t.Run("empty", func(t *testing.T) {
+			// given
+			wis := []*workitem.WorkItem{}
+			// when
+			wits, err := loadWorkItemTypesFromPtrArr(rest.Ctx, rest.db, wis)
+			// then
+			require.NoError(t, err)
+			require.Empty(t, wits)
+		})
+		t.Run("nil", func(t *testing.T) {
+			// given
+			var wis []*workitem.WorkItem
+			// when
+			wits, err := loadWorkItemTypesFromPtrArr(rest.Ctx, rest.db, wis)
+			// then
+			require.NoError(t, err)
+			require.Empty(t, wits)
+		})
 	})
 }
