@@ -60,8 +60,12 @@ func (c *PlannerBacklogController) List(ctx *app.ListPlannerBacklogContext) erro
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	return ctx.ConditionalEntities(result, c.config.GetCacheControlWorkItems, func() error {
+		wi, err := ConvertWorkItems(ctx.Request, wits, result)
+		if err != nil {
+			jsonapi.JSONErrorResponse(ctx, err)
+		}
 		response := app.WorkItemList{
-			Data:  ConvertWorkItems(ctx.Request, wits, result),
+			Data:  wi,
 			Links: &app.PagingLinks{},
 			Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
 		}

@@ -137,8 +137,12 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 		return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to load work item type: %s", wi.Type))
 	}
 	c.notification.Send(ctx, notification.NewWorkItemUpdated(ctx.Payload.Data.ID.String()))
+	converted, err := ConvertWorkItem(ctx.Request, *wit, *wi, workItemIncludeHasChildren(ctx, c.db))
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
 	resp := &app.WorkItemSingle{
-		Data: ConvertWorkItem(ctx.Request, *wit, *wi, workItemIncludeHasChildren(ctx, c.db)),
+		Data: converted,
 		Links: &app.WorkItemLinks{
 			Self: buildAbsoluteURL(ctx.Request),
 		},
@@ -165,7 +169,10 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to load work item type: %s", wi.Type))
 		}
-		wi2 := ConvertWorkItem(ctx.Request, *wit, *wi, comments, hasChildren)
+		wi2, err := ConvertWorkItem(ctx.Request, *wit, *wi, comments, hasChildren)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
 		resp := &app.WorkItemSingle{
 			Data: wi2,
 		}
@@ -460,28 +467,28 @@ func getVersion(version interface{}) (int, error) {
 
 // WorkItemConvertFunc is a open ended function to add additional links/data/relations to a Comment during
 // conversion from internal to API
-type WorkItemConvertFunc func(*http.Request, *workitem.WorkItem, *app.WorkItem)
+type WorkItemConvertFunc func(*http.Request, *workitem.WorkItem, *app.WorkItem) error
 
 // ConvertWorkItems is responsible for converting given []WorkItem model object into a
 // response resource object by jsonapi.org specifications
-func ConvertWorkItems(request *http.Request, wits []workitem.WorkItemType, wis []workitem.WorkItem, additional ...WorkItemConvertFunc) []*app.WorkItem {
+func ConvertWorkItems(request *http.Request, wits []workitem.WorkItemType, wis []workitem.WorkItem, additional ...WorkItemConvertFunc) ([]*app.WorkItem, error) {
 	ops := []*app.WorkItem{}
-
-	// take the smallest length as the loop length
-	l := len(wits)
-	if len(wis) < l {
-		l = len(wis)
+	if len(wits) != len(wis) {
+		return nil, errs.Errorf("length mismatch of work items (%d) and work item types (%d)", len(wis), len(wits))
 	}
-
-	for i := 0; i < l; i++ {
-		ops = append(ops, ConvertWorkItem(request, wits[i], wis[i], additional...))
+	for i := 0; i < len(wis); i++ {
+		wi, err := ConvertWorkItem(request, wits[i], wis[i], additional...)
+		if err != nil {
+			return nil, errs.Wrapf(err, "failed to convert work item: %s", wis[i].ID)
+		}
+		ops = append(ops, wi)
 	}
-	return ops
+	return ops, nil
 }
 
 // ConvertWorkItem is responsible for converting given WorkItem model object into a
 // response resource object by jsonapi.org specifications
-func ConvertWorkItem(request *http.Request, wit workitem.WorkItemType, wi workitem.WorkItem, additional ...WorkItemConvertFunc) *app.WorkItem {
+func ConvertWorkItem(request *http.Request, wit workitem.WorkItemType, wi workitem.WorkItem, additional ...WorkItemConvertFunc) (*app.WorkItem, error) {
 	// construct default values from input WI
 	relatedURL := rest.AbsoluteURL(request, app.WorkitemHref(wi.ID))
 	labelsRelated := relatedURL + "/labels"
@@ -597,15 +604,17 @@ func ConvertWorkItem(request *http.Request, wit workitem.WorkItemType, wi workit
 	workItemIncludeComments(request, &wi, op)
 	workItemIncludeChildren(request, &wi, op)
 	for _, add := range additional {
-		add(request, &wi, op)
+		if err := add(request, &wi, op); err != nil {
+			return nil, errs.Wrapf(err, "failed to run additional conversion function")
+		}
 	}
-	return op
+	return op, nil
 }
 
 // workItemIncludeHasChildren adds meta information about existing children
 func workItemIncludeHasChildren(ctx context.Context, appl application.Application, childLinks ...link.WorkItemLinkList) WorkItemConvertFunc {
 	// TODO: Wrap ctx in a Timeout context?
-	return func(request *http.Request, wi *workitem.WorkItem, wi2 *app.WorkItem) {
+	return func(request *http.Request, wi *workitem.WorkItem, wi2 *app.WorkItem) error {
 		var hasChildren bool
 		// If we already have information about children inside the child links
 		// we can use that before querying the DB.
@@ -638,13 +647,13 @@ func workItemIncludeHasChildren(ctx context.Context, appl application.Applicatio
 		wi2.Relationships.Children.Meta = map[string]interface{}{
 			"hasChildren": hasChildren,
 		}
-
+		return nil
 	}
 }
 
 // includeParentWorkItem adds the parent of given WI to relationships & included object
 func includeParentWorkItem(ctx context.Context, ancestors link.AncestorList, childLinks link.WorkItemLinkList) WorkItemConvertFunc {
-	return func(request *http.Request, wi *workitem.WorkItem, wi2 *app.WorkItem) {
+	return func(request *http.Request, wi *workitem.WorkItem, wi2 *app.WorkItem) error {
 		var parentID *uuid.UUID
 		// If we have an ancestry we can lookup the parent in no time.
 		if ancestors != nil && len(ancestors) != 0 {
@@ -671,6 +680,7 @@ func includeParentWorkItem(ctx context.Context, ancestors link.AncestorList, chi
 			wi2.Relationships.Parent.Data.ID = *parentID
 			wi2.Relationships.Parent.Data.Type = APIStringTypeWorkItem
 		}
+		return nil
 	}
 }
 
@@ -698,10 +708,14 @@ func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) 
 				return errs.Wrapf(err, "failed to load the work item types")
 			}
 			hasChildren := workItemIncludeHasChildren(ctx, appl)
+			converted, err := ConvertWorkItems(ctx.Request, wits, result, hasChildren)
+			if err != nil {
+				return errs.WithStack(err)
+			}
 			response = app.WorkItemList{
 				Links: &app.PagingLinks{},
 				Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
-				Data:  ConvertWorkItems(ctx.Request, wits, result, hasChildren),
+				Data:  converted,
 			}
 			return nil
 		})

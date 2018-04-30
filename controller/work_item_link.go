@@ -133,7 +133,11 @@ func getWorkItemsOfLinks(ctx context.Context, appl application.Application, req 
 		if err != nil {
 			return nil, errs.Wrapf(err, "failed to load work item type: %s", wi.Type)
 		}
-		res = append(res, ConvertWorkItem(req, *wit, *wi))
+		converted, err := ConvertWorkItem(req, *wit, *wi)
+		if err != nil {
+			return nil, errs.WithStack(err)
+		}
+		res = append(res, converted)
 	}
 	return res, nil
 }
@@ -158,7 +162,11 @@ func enrichLinkSingle(ctx context.Context, appl application.Application, req *ht
 	if err != nil {
 		return errs.WithStack(err)
 	}
-	appLinks.Included = append(appLinks.Included, ConvertWorkItem(req, *sourceWIT, *sourceWi))
+	convertedSource, err := ConvertWorkItem(req, *sourceWIT, *sourceWi)
+	if err != nil {
+		return errs.WithStack(err)
+	}
+	appLinks.Included = append(appLinks.Included, convertedSource)
 
 	// Include target work item
 	targetWi, err := appl.WorkItems().LoadByID(ctx, appLinks.Data.Relationships.Target.Data.ID)
@@ -169,7 +177,11 @@ func enrichLinkSingle(ctx context.Context, appl application.Application, req *ht
 	if err != nil {
 		return errs.WithStack(err)
 	}
-	appLinks.Included = append(appLinks.Included, ConvertWorkItem(req, *targetWIT, *targetWi))
+	convertedTarget, err := ConvertWorkItem(req, *targetWIT, *targetWi)
+	if err != nil {
+		return errs.WithStack(err)
+	}
+	appLinks.Included = append(appLinks.Included, convertedTarget)
 	return nil
 }
 

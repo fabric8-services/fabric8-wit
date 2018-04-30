@@ -183,12 +183,17 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to load work item types"))
 		}
+
+		wis, err := ConvertWorkItems(ctx.Request, wits, result, hasChildren, includeParent)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
 		response := app.SearchWorkItemList{
 			Links: &app.PagingLinks{},
 			Meta: &app.WorkItemListResponseMeta{
 				TotalCount: count,
 			},
-			Data: ConvertWorkItems(ctx.Request, wits, result, hasChildren, includeParent),
+			Data: wis,
 		}
 		err = c.enrichWorkItemList(ctx, ancestors, matchingWorkItemIDs, childLinks, &response, hasChildren) // append parentWI and ancestors (if not empty) in response
 		if err != nil {
@@ -278,10 +283,14 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
+	wis, err := ConvertWorkItems(ctx.Request, wits, result)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
 	response := app.SearchWorkItemList{
 		Links: &app.PagingLinks{},
 		Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
-		Data:  ConvertWorkItems(ctx.Request, wits, result),
+		Data:  wis,
 	}
 	setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(result), offset, limit, count, "q="+*ctx.Q)
 	return ctx.OK(&response)
@@ -374,7 +383,10 @@ func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, ancest
 		if err != nil {
 			return errs.Wrapf(err, "failed to load work item type: %s", ele.Type)
 		}
-		convertedWI := ConvertWorkItem(ctx.Request, *wit, *ele, hasChildren, includeParentWorkItem(ctx, ancestors, childLinks))
+		convertedWI, err := ConvertWorkItem(ctx.Request, *wit, *ele, hasChildren, includeParentWorkItem(ctx, ancestors, childLinks))
+		if err != nil {
+			return errs.WithStack(err)
+		}
 		res.Included = append(res.Included, *convertedWI)
 	}
 	return nil

@@ -283,7 +283,8 @@ func (rest *TestWorkItemREST) TestConvertWorkItem() {
 				workitem.SystemDescription: "description",
 			},
 		}
-		wi2 := ConvertWorkItem(request, *fxt.WorkItemTypes[0], wi)
+		wi2, err := ConvertWorkItem(request, *fxt.WorkItemTypes[0], wi)
+		require.NoError(t, err)
 		assert.Equal(t, "title", wi2.Attributes[workitem.SystemTitle])
 		assert.Equal(t, "description", wi2.Attributes[workitem.SystemDescription])
 	})
@@ -296,7 +297,8 @@ func (rest *TestWorkItemREST) TestConvertWorkItem() {
 				workitem.SystemTitle: "title",
 			},
 		}
-		wi2 := ConvertWorkItem(request, *fxt.WorkItemTypes[0], wi)
+		wi2, err := ConvertWorkItem(request, *fxt.WorkItemTypes[0], wi)
+		require.NoError(t, err)
 		assert.Equal(t, "title", wi2.Attributes[workitem.SystemTitle])
 		assert.Nil(t, wi2.Attributes[workitem.SystemDescription])
 	})

@@ -137,7 +137,10 @@ func (c *WorkitemsController) Create(ctx *app.CreateWorkitemsContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	wi2 := ConvertWorkItem(ctx.Request, *workItemType, *wi, hasChildren)
+	wi2, err := ConvertWorkItem(ctx.Request, *workItemType, *wi, hasChildren)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
 	resp := &app.WorkItemSingle{
 		Data: wi2,
 		Links: &app.WorkItemLinks{
@@ -239,10 +242,14 @@ func (c *WorkitemsController) List(ctx *app.ListWorkitemsContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
+		converted, err := ConvertWorkItems(ctx.Request, wits, workitems, hasChildren)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
 		response := app.WorkItemList{
 			Links: &app.PagingLinks{},
 			Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
-			Data:  ConvertWorkItems(ctx.Request, wits, workitems, hasChildren),
+			Data:  converted,
 		}
 		setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(workitems), offset, limit, count, additionalQuery...)
 		addFilterLinks(response.Links, ctx.Request)
@@ -298,7 +305,10 @@ func (c *WorkitemsController) Reorder(ctx *app.ReorderWorkitemsContext) error {
 			if err != nil {
 				return errs.WithStack(err)
 			}
-			wi2 := ConvertWorkItem(ctx.Request, *wit, *wi, hasChildren)
+			wi2, err := ConvertWorkItem(ctx.Request, *wit, *wi, hasChildren)
+			if err != nil {
+				return errs.WithStack(err)
+			}
 			dataArray = append(dataArray, wi2)
 		}
 		log.Debug(ctx, nil, "Reordered items: %d", len(dataArray))
