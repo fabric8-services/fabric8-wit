@@ -92,6 +92,49 @@ func (s *workItemTypeRepoBlackBoxTest) TestList() {
 	})
 }
 
+func (s *workItemTypeRepoBlackBoxTest) TestListForSpace() {
+	s.T().Run("ok", func(t *testing.T) {
+		// given
+		fxt := tf.NewTestFixture(t, s.DB, tf.Spaces(1), tf.WorkItemTypes(4,
+			func(fxt *tf.TestFixture, idx int) error {
+				// Have one non-planner item based work item type
+				if idx == 3 {
+					fxt.WorkItemTypes[idx].Path = workitem.LtreeSafeID(fxt.WorkItemTypes[idx].ID)
+				}
+				return nil
+			}),
+		)
+		// when
+		wits, err := s.repo.ListForSpace(s.Ctx, fxt.Spaces[0].ID)
+		// then
+		require.NoError(t, err)
+		toBeFound := id.Slice{
+			fxt.WorkItemTypes[0].ID,
+			fxt.WorkItemTypes[1].ID,
+			fxt.WorkItemTypes[2].ID,
+			// NOTE: We ARE listing the non-planner item based type.
+			fxt.WorkItemTypes[3].ID,
+		}.ToMap()
+		for _, wit := range wits {
+			_, ok := toBeFound[wit.ID]
+			assert.True(t, ok, "found unexpected work item type %s", wit.ID)
+			delete(toBeFound, wit.ID)
+		}
+		require.Empty(t, toBeFound, "failed to find work item types: %s", toBeFound)
+	})
+
+	s.T().Run("not found for non-existing space", func(t *testing.T) {
+		// given
+		id := uuid.NewV4()
+		// when
+		wits, err := s.repo.ListForSpace(s.Ctx, id)
+		// then
+		require.Error(t, err)
+		require.IsType(t, errors.NotFoundError{}, err)
+		require.Nil(t, wits)
+	})
+}
+
 func (s *workItemTypeRepoBlackBoxTest) TestListPlannerItemTypes() {
 	s.T().Run("ok", func(t *testing.T) {
 		// given
