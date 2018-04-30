@@ -14,7 +14,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/rest"
-	"github.com/fabric8-services/fabric8-wit/space"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 
@@ -106,36 +105,6 @@ func TestSetPagingLinks(t *testing.T) {
 	assert.Equal(t, "?page[offset]=3&page[limit]=4", *links.Last)
 	assert.Equal(t, "?page[offset]=3&page[limit]=4", *links.Next)
 	assert.Equal(t, "?page[offset]=0&page[limit]=3", *links.Prev)
-}
-
-func TestConvertWorkItemWithDescription(t *testing.T) {
-	request := &http.Request{Host: "localhost"}
-	// map[string]interface{}
-	fields := map[string]interface{}{
-		workitem.SystemTitle:       "title",
-		workitem.SystemDescription: "description",
-	}
-
-	wi := workitem.WorkItem{
-		Fields:  fields,
-		SpaceID: space.SystemSpace,
-	}
-	wi2 := ConvertWorkItem(request, wi)
-	assert.Equal(t, "title", wi2.Attributes[workitem.SystemTitle])
-	assert.Equal(t, "description", wi2.Attributes[workitem.SystemDescription])
-}
-
-func TestConvertWorkItemWithoutDescription(t *testing.T) {
-	request := &http.Request{Host: "localhost"}
-	wi := workitem.WorkItem{
-		Fields: map[string]interface{}{
-			workitem.SystemTitle: "title",
-		},
-		SpaceID: space.SystemSpace,
-	}
-	wi2 := ConvertWorkItem(request, wi)
-	assert.Equal(t, "title", wi2.Attributes[workitem.SystemTitle])
-	assert.Nil(t, wi2.Attributes[workitem.SystemDescription])
 }
 
 type TestWorkItemREST struct {
@@ -299,4 +268,36 @@ func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithEmptyTitle() {
 	})
 	// then: no error expected at this level, even though the title is missing
 	require.NoError(t, err)
+}
+
+func (rest *TestWorkItemREST) TestConvertWorkItem() {
+	request := &http.Request{Host: "localhost"}
+	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.CreateWorkItemEnvironment())
+
+	rest.T().Run("with description", func(t *testing.T) {
+		wi := workitem.WorkItem{
+			Type:    fxt.WorkItemTypes[0].ID,
+			SpaceID: fxt.Spaces[0].ID,
+			Fields: map[string]interface{}{
+				workitem.SystemTitle:       "title",
+				workitem.SystemDescription: "description",
+			},
+		}
+		wi2 := ConvertWorkItem(request, *fxt.WorkItemTypes[0], wi)
+		assert.Equal(t, "title", wi2.Attributes[workitem.SystemTitle])
+		assert.Equal(t, "description", wi2.Attributes[workitem.SystemDescription])
+	})
+	rest.T().Run("without description", func(t *testing.T) {
+		request := &http.Request{Host: "localhost"}
+		wi := workitem.WorkItem{
+			Type:    fxt.WorkItemTypes[0].ID,
+			SpaceID: fxt.Spaces[0].ID,
+			Fields: map[string]interface{}{
+				workitem.SystemTitle: "title",
+			},
+		}
+		wi2 := ConvertWorkItem(request, *fxt.WorkItemTypes[0], wi)
+		assert.Equal(t, "title", wi2.Attributes[workitem.SystemTitle])
+		assert.Nil(t, wi2.Attributes[workitem.SystemDescription])
+	})
 }

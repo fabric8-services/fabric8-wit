@@ -252,6 +252,7 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 	if err != nil {
 		return errs.Wrapf(err, "failed to load work item type: %s", witID)
 	}
+	_ = wit
 
 	// construct default values from input WI
 	version, err := getVersion(source.Attributes["version"])
