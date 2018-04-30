@@ -103,7 +103,7 @@ func (osioclient *OSIOClient) GetUserServices(ctx context.Context) (*app.UserSer
 		return osioclient.userServices, nil
 	}
 
-	resp, err := osioclient.wc.ShowUserService(ctx, witclient.ShowUserServicePath())
+	resp, err := osioclient.wc.ShowUserService(goasupport.ForwardContextRequestID(ctx), witclient.ShowUserServicePath())
 	if err != nil {
 		return nil, errs.Wrapf(err, "could not retrieve uses services")
 	}
@@ -141,7 +141,7 @@ func (osioclient *OSIOClient) GetUserServices(ctx context.Context) (*app.UserSer
 func (osioclient *OSIOClient) GetSpaceByID(ctx context.Context, spaceID uuid.UUID) (*app.Space, error) {
 	guid := goauuid.UUID(spaceID)
 	urlpath := witclient.ShowSpacePath(guid)
-	resp, err := osioclient.wc.ShowSpace(ctx, urlpath, nil, nil)
+	resp, err := osioclient.wc.ShowSpace(goasupport.ForwardContextRequestID(ctx), urlpath, nil, nil)
 	if err != nil {
 		return nil, errs.Wrapf(err, "could not connect to %s", urlpath)
 	}
