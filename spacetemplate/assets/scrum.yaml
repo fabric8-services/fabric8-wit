@@ -194,7 +194,7 @@ work_item_types:
   name: Product Backlog Item
   can_construct: yes
   description: TBD
-  icon: fa fa-question
+  icon: pficon pficon-image
   fields:
     "system.state":
       label: State
@@ -370,7 +370,7 @@ work_item_type_groups:
   - *productBacklogItemID
   - *bugID
   bucket: requirement
-  icon: fa fa-question
+  icon: pficon pficon-image
 
 - name: Execution
   id: "4d187330-0efb-4077-8745-8a61384a6540"
