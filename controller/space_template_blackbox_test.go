@@ -2,6 +2,7 @@ package controller_test
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -70,29 +71,29 @@ func (s *testSpaceTemplateSuite) TestSpaceTemplate_Show() {
 		// given
 		svc, ctrl := s.SecuredController()
 		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1))
-		// when
-		res, actual := test.ShowSpaceTemplateOK(t, svc.Context, svc, ctrl, fxt.SpaceTemplates[0].ID, nil, nil)
-		// then
-		safeOverriteHeader(t, res, app.ETag, "m2MLfQTqVSfIsr8Dt9pjMQ==")
-		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "ok.payload.golden.json"), actual)
-		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "ok.headers.golden.json"), res.Header())
-		require.NotNil(t, actual)
-		assertResponseHeaders(t, res)
-		actualModel := convertSpaceTemplateSingleToModel(t, *actual)
-		require.True(t, fxt.SpaceTemplates[0].Equal(actualModel))
-	})
 
-	s.T().Run("ok - Base Template", func(t *testing.T) {
-		// given
-		svc, ctrl := s.SecuredController()
+		testData := map[string]uuid.UUID{
+			"generated_template": fxt.SpaceTemplates[0].ID,
+			"scrum_template":     spacetemplate.SystemScrumTemplateID,
+			"base_template":      spacetemplate.SystemBaseTemplateID,
+			"legacy_template":    spacetemplate.SystemLegacyTemplateID,
+		}
 		// when
-		res, actual := test.ShowSpaceTemplateOK(t, svc.Context, svc, ctrl, spacetemplate.SystemBaseTemplateID, nil, nil)
-		// then
-		safeOverriteHeader(t, res, app.ETag, "m2MLfQTqVSfIsr8Dt9pjMQ==")
-		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "ok.payload.basetemplate.golden.json"), actual)
-		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", "ok.headers.golden.json"), res.Header())
-		require.NotNil(t, actual)
-		assertResponseHeaders(t, res)
+		for name, spaceTemplateID := range testData {
+			t.Run(name, func(t *testing.T) {
+				res, actual := test.ShowSpaceTemplateOK(t, svc.Context, svc, ctrl, spaceTemplateID, nil, nil)
+				// then
+				safeOverriteHeader(t, res, app.ETag, "m2MLfQTqVSfIsr8Dt9pjMQ==")
+				compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", fmt.Sprintf("ok_%s.res.payload.golden.json", name)), actual)
+				compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "show", fmt.Sprintf("ok_%s.res.headers.golden.json", name)), res.Header())
+				require.NotNil(t, actual)
+				assertResponseHeaders(t, res)
+				actualModel := convertSpaceTemplateSingleToModel(t, *actual)
+				loadedTempl, err := spacetemplate.NewRepository(s.DB).Load(s.Ctx, spaceTemplateID)
+				require.NoError(t, err)
+				require.True(t, loadedTempl.Equal(actualModel))
+			})
+		}
 	})
 
 	s.T().Run("existing template (using expired If-Modified-Since header)", func(t *testing.T) {
