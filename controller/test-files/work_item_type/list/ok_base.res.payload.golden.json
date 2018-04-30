@@ -1,0 +1,163 @@
+{
+  "data": [
+    {
+      "attributes": {
+        "can-construct": false,
+        "created-at": "0001-01-01T00:00:00Z",
+        "description": "Description for Planner Item",
+        "fields": {
+          "system.area": {
+            "description": "The area to which the work item belongs",
+            "label": "Area",
+            "required": false,
+            "type": {
+              "kind": "area"
+            }
+          },
+          "system.assignees": {
+            "description": "The users that are assigned to the work item",
+            "label": "Assignees",
+            "required": false,
+            "type": {
+              "componentType": "user",
+              "kind": "list"
+            }
+          },
+          "system.codebase": {
+            "description": "Contains codebase attributes to which this WI belongs to",
+            "label": "Codebase",
+            "required": false,
+            "type": {
+              "kind": "codebase"
+            }
+          },
+          "system.created_at": {
+            "description": "The date and time when the work item was created",
+            "label": "Created at",
+            "required": false,
+            "type": {
+              "kind": "instant"
+            }
+          },
+          "system.creator": {
+            "description": "The user that created the work item",
+            "label": "Creator",
+            "required": true,
+            "type": {
+              "kind": "user"
+            }
+          },
+          "system.description": {
+            "description": "A descriptive text of the work item",
+            "label": "Description",
+            "required": false,
+            "type": {
+              "kind": "markup"
+            }
+          },
+          "system.iteration": {
+            "description": "The iteration to which the work item belongs",
+            "label": "Iteration",
+            "required": false,
+            "type": {
+              "kind": "iteration"
+            }
+          },
+          "system.labels": {
+            "description": "List of labels attached to the work item",
+            "label": "Labels",
+            "required": false,
+            "type": {
+              "componentType": "label",
+              "kind": "list"
+            }
+          },
+          "system.number": {
+            "description": "The unique number that was given to this workitem within its space.",
+            "label": "Number",
+            "required": false,
+            "type": {
+              "kind": "integer"
+            }
+          },
+          "system.order": {
+            "description": "Execution Order of the workitem",
+            "label": "Execution Order",
+            "required": false,
+            "type": {
+              "kind": "float"
+            }
+          },
+          "system.remote_item_id": {
+            "description": "The ID of the remote work item",
+            "label": "Remote item",
+            "required": false,
+            "type": {
+              "kind": "string"
+            }
+          },
+          "system.state": {
+            "description": "The state of the work item",
+            "label": "State",
+            "required": true,
+            "type": {
+              "baseType": "string",
+              "kind": "enum",
+              "values": [
+                "new",
+                "open",
+                "in progress",
+                "resolved",
+                "closed"
+              ]
+            }
+          },
+          "system.title": {
+            "description": "The title text of the work item",
+            "label": "Title",
+            "required": true,
+            "type": {
+              "kind": "string"
+            }
+          },
+          "system.updated_at": {
+            "description": "The date and time when the work item was last updated",
+            "label": "Updated at",
+            "required": false,
+            "type": {
+              "kind": "instant"
+            }
+          }
+        },
+        "icon": "fa fa-bookmark",
+        "name": "Planner Item",
+        "updated-at": "0001-01-01T00:00:00Z",
+        "version": 0
+      },
+      "id": "86af5178-9b41-469b-9096-57e5155c3f31",
+      "relationships": {
+        "space": {
+          "data": {
+            "id": "2e0698d8-753e-4cef-bb7c-f027634824a2",
+            "type": "spaces"
+          },
+          "links": {
+            "related": "http:///api/spaces/2e0698d8-753e-4cef-bb7c-f027634824a2",
+            "self": "http:///api/spaces/2e0698d8-753e-4cef-bb7c-f027634824a2"
+          }
+        },
+        "space_template": {
+          "data": {
+            "id": "1f48b7bf-bc51-4823-8101-9f10039035ba",
+            "type": "spacetemplates"
+          },
+          "links": {
+            "related": "http:///api/spacetemplates/1f48b7bf-bc51-4823-8101-9f10039035ba",
+            "self": "http:///api/spacetemplates/1f48b7bf-bc51-4823-8101-9f10039035ba"
+          }
+        }
+      },
+      "type": "workitemtypes"
+    }
+  ]
+}

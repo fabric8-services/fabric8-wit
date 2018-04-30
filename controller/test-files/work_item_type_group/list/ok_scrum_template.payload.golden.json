@@ -4,7 +4,7 @@
       "attributes": {
         "bucket": "portfolio",
         "created-at": "0001-01-01T00:00:00Z",
-        "icon": "fa fa-bolt",
+        "icon": "fa fa-bullseye",
         "name": "Epics",
         "show-in-sidebar": true,
         "updated-at": "0001-01-01T00:00:00Z"
@@ -66,7 +66,7 @@
       "attributes": {
         "bucket": "requirement",
         "created-at": "0001-01-01T00:00:00Z",
-        "icon": "fa fa-question",
+        "icon": "pficon pficon-image",
         "name": "Backlog items",
         "show-in-sidebar": true,
         "updated-at": "0001-01-01T00:00:00Z"
@@ -101,7 +101,7 @@
       "attributes": {
         "bucket": "iteration",
         "created-at": "0001-01-01T00:00:00Z",
-        "icon": "fa fa-tasks",
+        "icon": "fa fa-repeat",
         "name": "Execution",
         "show-in-sidebar": false,
         "updated-at": "0001-01-01T00:00:00Z"
