@@ -85,14 +85,21 @@ func (s *workItemChildSuite) SetupTest() {
 }
 
 func (s *workItemChildSuite) linkWorkItems(t *testing.T, sourceTitle, targetTitle string) link.WorkItemLink {
-	linkRepo := link.NewWorkItemLinkRepository(s.DB)
 	src := s.fxt.WorkItemByTitle(sourceTitle)
 	require.NotNil(t, src)
 	tgt := s.fxt.WorkItemByTitle(targetTitle)
 	require.NotNil(t, tgt)
-	l, err := linkRepo.Create(s.svc.Context, src.ID, tgt.ID, link.SystemWorkItemLinkTypeParentChildID, s.fxt.Identities[0].ID)
-	require.NoError(t, err)
-	return *l
+
+	fxt := tf.NewTestFixture(t, s.DB,
+		tf.WorkItemLinksCustom(1, func(fxt *tf.TestFixture, idx int) error {
+			l := fxt.WorkItemLinks[idx]
+			l.LinkTypeID = link.SystemWorkItemLinkTypeParentChildID
+			l.SourceID = s.fxt.WorkItemByTitle(sourceTitle).ID
+			l.TargetID = s.fxt.WorkItemByTitle(targetTitle).ID
+			return nil
+		}),
+	)
+	return *fxt.WorkItemLinks[0]
 }
 
 // checkChildrenRelationship runs a variety of checks on a given work item
