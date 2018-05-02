@@ -609,7 +609,7 @@ func ConvertWorkItem(request *http.Request, wit workitem.WorkItemType, wi workit
 	workItemIncludeChildren(request, &wi, op)
 	for _, add := range additional {
 		if err := add(request, &wi, op); err != nil {
-			return nil, errs.Wrapf(err, "failed to run additional conversion function")
+			return nil, errs.Wrap(err, "failed to run additional conversion function")
 		}
 	}
 	return op, nil
@@ -702,7 +702,7 @@ func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) 
 		}
 		wits, err = loadWorkItemTypesFromArr(ctx.Context, appl, result)
 		if err != nil {
-			return errs.Wrapf(err, "failed to load the work item types")
+			return errs.Wrap(err, "failed to load the work item types")
 		}
 		return nil
 	})
