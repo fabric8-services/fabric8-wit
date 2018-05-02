@@ -53,7 +53,7 @@ interactions:
     headers:
       Content-Type:
       - application/json
-    url: http://api.myCluster/oapi/v1/namespaces/myNamespace/builds?labelSelector=openshift.io%2Fbuild-config.name%3DmyApp%2Cspace%3DmySpace
+    url: http://api.myCluster/oapi/v1/namespaces/myNamespace/builds?labelSelector=openshift.io%2Fbuild-config.name%3DmyApp%2Cspace%3DotherSpace
     method: GET
   response:
     body: |
@@ -1400,7 +1400,138 @@ interactions:
     body: |
         {
             "apiVersion": "v1",
-            "items": [],
+            "items": [
+                {
+                    "apiVersion": "v1",
+                    "kind": "Service",
+                    "metadata": {
+                        "annotations": {
+                            "fabric8.io/exposeUrl": "http://myDeploy-my-run.example.com",
+                            "fabric8.io/git-branch": "ebaron/myDeploy/master-1.0.2",
+                            "fabric8.io/git-commit": "55ca6286e3e4f4fba5d0448333fa99fc5a404a73",
+                            "fabric8.io/iconUrl": "img/icon.svg",
+                            "fabric8.io/scm-con-url": "scm:git:https://example.com/myDeploy",
+                            "fabric8.io/scm-devcon-url": "scm:git:git:@example.com/myDeploy",
+                            "fabric8.io/scm-tag": "myTag",
+                            "fabric8.io/scm-url": "https://example.com/myDeploy",
+                            "prometheus.io/port": "9779",
+                            "prometheus.io/scrape": "true"
+                        },
+                        "creationTimestamp": "2018-01-25T16:33:02Z",
+                        "labels": {
+                            "app": "myDeploy",
+                            "expose": "true",
+                            "group": "myGroup",
+                            "provider": "fabric8",
+                            "space": "mySpace",
+                            "version": "1.0.2"
+                        },
+                        "name": "myDeploy",
+                        "namespace": "my-run",
+                        "resourceVersion": "837362353",
+                        "selfLink": "/api/v1/namespaces/my-run/services/myDeploy",
+                        "uid": "f4e6e2b2-f86d-4e78-94e5-079bb3f0b05d"
+                    },
+                    "spec": {
+                        "clusterIP": "127.0.0.101",
+                        "ports": [
+                            {
+                                "name": "http",
+                                "port": 8080,
+                                "protocol": "TCP",
+                                "targetPort": 8080
+                            }
+                        ],
+                        "selector": {
+                            "app": "myDeploy",
+                            "group": "myGroup",
+                            "provider": "fabric8"
+                        },
+                        "sessionAffinity": "None",
+                        "type": "ClusterIP"
+                    },
+                    "status": {
+                        "loadBalancer": {}
+                    }
+                }
+            ],
+            "kind": "ServiceList",
+            "metadata": {},
+            "resourceVersion": "",
+            "selfLink": ""
+        }
+    headers:
+      Content-Type:
+      - application/json;charset=UTF-8
+    status: 200 OK
+    code: 200
+- request:
+    body: ""
+    form: {}
+    headers:
+      Content-Type:
+      - application/json
+    url: http://api.myCluster/api/v1/namespaces/my-run/services/myDeploy
+    method: DELETE
+  response:
+    body: |
+        {
+            "apiVersion": "v1",
+            "items": [
+                {
+                    "apiVersion": "v1",
+                    "kind": "Service",
+                    "metadata": {
+                        "annotations": {
+                            "fabric8.io/exposeUrl": "http://myDeploy-my-run.example.com",
+                            "fabric8.io/git-branch": "ebaron/myDeploy/master-1.0.2",
+                            "fabric8.io/git-commit": "55ca6286e3e4f4fba5d0448333fa99fc5a404a73",
+                            "fabric8.io/iconUrl": "img/icon.svg",
+                            "fabric8.io/scm-con-url": "scm:git:https://example.com/myDeploy",
+                            "fabric8.io/scm-devcon-url": "scm:git:git:@example.com/myDeploy",
+                            "fabric8.io/scm-tag": "myTag",
+                            "fabric8.io/scm-url": "https://example.com/myDeploy",
+                            "prometheus.io/port": "9779",
+                            "prometheus.io/scrape": "true"
+                        },
+                        "creationTimestamp": "2018-01-25T16:33:02Z",
+                        "labels": {
+                            "app": "myDeploy",
+                            "expose": "true",
+                            "group": "myGroup",
+                            "provider": "fabric8",
+                            "space": "mySpace",
+                            "version": "1.0.2"
+                        },
+                        "name": "myDeploy",
+                        "namespace": "my-run",
+                        "resourceVersion": "837362353",
+                        "selfLink": "/api/v1/namespaces/my-run/services/myDeploy",
+                        "uid": "f4e6e2b2-f86d-4e78-94e5-079bb3f0b05d"
+                    },
+                    "spec": {
+                        "clusterIP": "127.0.0.101",
+                        "ports": [
+                            {
+                                "name": "http",
+                                "port": 8080,
+                                "protocol": "TCP",
+                                "targetPort": 8080
+                            }
+                        ],
+                        "selector": {
+                            "app": "myDeploy",
+                            "group": "myGroup",
+                            "provider": "fabric8"
+                        },
+                        "sessionAffinity": "None",
+                        "type": "ClusterIP"
+                    },
+                    "status": {
+                        "loadBalancer": {}
+                    }
+                }
+            ],
             "kind": "ServiceList",
             "metadata": {},
             "resourceVersion": "",
