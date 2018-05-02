@@ -181,7 +181,7 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 		// Load all work item types
 		wits, err := loadWorkItemTypesFromArr(ctx.Context, c.db, result)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to load work item types"))
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "failed to load work item types"))
 		}
 
 		wis, err := ConvertWorkItems(ctx.Request, wits, result, hasChildren, includeParent)
