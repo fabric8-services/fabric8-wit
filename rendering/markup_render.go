@@ -28,6 +28,8 @@ func RenderMarkupToHTML(content, markup string) string {
 		p.AllowElements("input")
 		p.AllowAttrs("type").OnElements("input")
 		p.AllowAttrs("checked").OnElements("input")
+		p.AllowAttrs("data-checkbox-index").OnElements("input")
+		p.AllowAttrs("class").OnElements("input")
 		html := string(p.SanitizeBytes(unsafe))
 		return html
 	default:

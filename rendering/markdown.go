@@ -1,6 +1,8 @@
 package rendering
 
 import (
+	"fmt"
+
 	"bytes"
 	"strings"
 
@@ -32,26 +34,33 @@ const (
 // MarkdownCommonHighlighter uses the blackfriday.MarkdownCommon setup but also includes
 // code-prettify formatting of BlockCode segments
 func MarkdownCommonHighlighter(input []byte) []byte {
-	renderer := highlightHTMLRenderer{blackfriday.HtmlRenderer(commonHTMLFlags, "", "")}
-	return blackfriday.MarkdownOptions(input, renderer, blackfriday.Options{
+	renderer := highlightHTMLRenderer{blackfriday.HtmlRenderer(commonHTMLFlags, "", ""), 0}
+	return blackfriday.MarkdownOptions(input, &renderer, blackfriday.Options{
 		Extensions: commonExtensions})
 }
 
 type highlightHTMLRenderer struct {
 	blackfriday.Renderer
+	checkboxIndex int8
 }
 
 // ListItem overrides the default ListItem render and adds support for GH-style
 // checkboxes on service side. For the contents of the list item beyond the
 // checkbox prefix, the default Html.ListItem is called.
-func (h highlightHTMLRenderer) ListItem(out *bytes.Buffer, text []byte, flags int) {
+// This adds a data-checkbox-index attribute that contains the ordinal of the
+// checkbox in the rendered Markdown. This can be used by the ui to find the
+// reference to the original Markdown code from a rendered HTML.
+func (h *highlightHTMLRenderer) ListItem(out *bytes.Buffer, text []byte, flags int) {	
 	switch {
 	case bytes.HasPrefix(text, []byte("[] ")):
-		text = append([]byte(`<input type="checkbox"></input>`), text[3:]...)
+		text = append([]byte(fmt.Sprintf(`<input class="markdown-checkbox" type="checkbox" data-checkbox-index="%d"></input>`, h.checkboxIndex)), text[3:]...)
+		h.checkboxIndex++
 	case bytes.HasPrefix(text, []byte("[ ] ")):
-		text = append([]byte(`<input type="checkbox"></input>`), text[4:]...)
+		text = append([]byte(fmt.Sprintf(`<input class="markdown-checkbox" type="checkbox" data-checkbox-index="%d"></input>`, h.checkboxIndex)), text[4:]...)
+		h.checkboxIndex++
 	case bytes.HasPrefix(text, []byte("[x] ")) || bytes.HasPrefix(text, []byte("[X] ")):
-		text = append([]byte(`<input type="checkbox" checked=""></input>`), text[4:]...)
+		text = append([]byte(fmt.Sprintf(`<input class="markdown-checkbox" type="checkbox" checked="" data-checkbox-index="%d"></input>`, h.checkboxIndex)), text[4:]...)
+		h.checkboxIndex++
 	}
 	h.Renderer.ListItem(out, text, flags)
 }
