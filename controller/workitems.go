@@ -118,7 +118,7 @@ func (c *WorkitemsController) Create(ctx *app.CreateWorkitemsContext) error {
 			return err
 		}
 
-		err = ConvertJSONAPIToWorkItem(ctx, ctx.Method, appl, *ctx.Payload.Data, wi, ctx.SpaceID)
+		err = ConvertJSONAPIToWorkItem(ctx, ctx.Method, appl, *ctx.Payload.Data, wi, *wit, ctx.SpaceID)
 		if err != nil {
 			return errs.Wrap(err, fmt.Sprintf("Error creating work item"))
 		}
@@ -133,7 +133,14 @@ func (c *WorkitemsController) Create(ctx *app.CreateWorkitemsContext) error {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	hasChildren := workItemIncludeHasChildren(ctx, c.db)
-	wi2 := ConvertWorkItem(ctx.Request, *wi, hasChildren)
+	workItemType, err := c.db.WorkItemTypes().Load(ctx, *wit)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	wi2, err := ConvertWorkItem(ctx.Request, *workItemType, *wi, hasChildren)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
 	resp := &app.WorkItemSingle{
 		Data: wi2,
 		Links: &app.WorkItemLinks{
@@ -231,10 +238,18 @@ func (c *WorkitemsController) List(ctx *app.ListWorkitemsContext) error {
 	}
 	return ctx.ConditionalEntities(workitems, c.config.GetCacheControlWorkItems, func() error {
 		hasChildren := workItemIncludeHasChildren(ctx, c.db)
+		wits, err := loadWorkItemTypesFromArr(ctx.Context, c.db, workitems)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		converted, err := ConvertWorkItems(ctx.Request, wits, workitems, hasChildren)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
 		response := app.WorkItemList{
 			Links: &app.PagingLinks{},
 			Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
-			Data:  ConvertWorkItems(ctx.Request, workitems, hasChildren),
+			Data:  converted,
 		}
 		setPagingLinks(response.Links, buildAbsoluteURL(ctx.Request), len(workitems), offset, limit, count, additionalQuery...)
 		addFilterLinks(response.Links, ctx.Request)
@@ -277,7 +292,7 @@ func (c *WorkitemsController) Reorder(ctx *app.ReorderWorkitemsContext) error {
 				return errors.NewNotFoundError("work item", strconv.Itoa(wi.Number))
 			}
 
-			err = ConvertJSONAPIToWorkItem(ctx, ctx.Method, appl, *ctx.Payload.Data[i], wi, ctx.SpaceID)
+			err = ConvertJSONAPIToWorkItem(ctx, ctx.Method, appl, *ctx.Payload.Data[i], wi, wi.Type, ctx.SpaceID)
 			if err != nil {
 				return errs.Wrap(err, "failed to reorder work item")
 			}
@@ -286,7 +301,14 @@ func (c *WorkitemsController) Reorder(ctx *app.ReorderWorkitemsContext) error {
 				return err
 			}
 			hasChildren := workItemIncludeHasChildren(ctx, c.db)
-			wi2 := ConvertWorkItem(ctx.Request, *wi, hasChildren)
+			wit, err := appl.WorkItemTypes().Load(ctx.Context, wi.Type)
+			if err != nil {
+				return errs.WithStack(err)
+			}
+			wi2, err := ConvertWorkItem(ctx.Request, *wit, *wi, hasChildren)
+			if err != nil {
+				return errs.WithStack(err)
+			}
 			dataArray = append(dataArray, wi2)
 		}
 		log.Debug(ctx, nil, "Reordered items: %d", len(dataArray))
