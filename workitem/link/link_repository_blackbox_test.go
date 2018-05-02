@@ -874,7 +874,8 @@ func (s *linkRepoBlackBoxTest) TestDeleteLinkAndListChildren() {
 
 		childrenList, totalCount, err := s.workitemLinkRepo.ListWorkItemChildren(s.Ctx, fxt.WorkItems[0].ID, nil, nil)
 		require.NoError(t, err)
-		require.Equal(t, totalCount, 1)
+		require.Equal(t, 1, totalCount)
+		require.Len(t, childrenList, 1)
 		require.Equal(t, childrenList[0].ID, fxt.WorkItems[1].ID)
 
 		// delete work item link
@@ -887,7 +888,7 @@ func (s *linkRepoBlackBoxTest) TestDeleteLinkAndListChildren() {
 
 		childrenList, totalCount, err = s.workitemLinkRepo.ListWorkItemChildren(s.Ctx, fxt.WorkItems[0].ID, nil, nil)
 		require.NoError(t, err)
-		require.Equal(t, totalCount, 0)
+		require.Equal(t, 0, totalCount)
 		require.Len(t, childrenList, 0)
 	})
 }

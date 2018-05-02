@@ -853,7 +853,7 @@ func (s *workItemChildSuite) TestCreateAndDeleteLinkToChildrenThenListChildren()
 
 	// check number of children
 	_, childrenList := test.ListChildrenWorkitemOK(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.fxt.WorkItemByTitle("bug1").ID, nil, nil, nil, nil)
-	require.Equal(s.T(), childrenList.Meta.TotalCount, 2)
+	require.Equal(s.T(), 2, childrenList.Meta.TotalCount)
 
 	// delete link
 	test.DeleteWorkItemLinkOK(s.T(), s.svc.Context, s.svc, s.workitemLinkCtrl, workitemLink1.ID)
@@ -864,7 +864,7 @@ func (s *workItemChildSuite) TestCreateAndDeleteLinkToChildrenThenListChildren()
 
 	// check number of children
 	_, childrenList = test.ListChildrenWorkitemOK(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.fxt.WorkItemByTitle("bug1").ID, nil, nil, nil, nil)
-	require.Equal(s.T(), childrenList.Meta.TotalCount, 1)
+	require.Equal(s.T(), 1, childrenList.Meta.TotalCount)
 
 	// delete link
 	test.DeleteWorkItemLinkOK(s.T(), s.svc.Context, s.svc, s.workitemLinkCtrl, workitemLink2.ID)
@@ -875,5 +875,5 @@ func (s *workItemChildSuite) TestCreateAndDeleteLinkToChildrenThenListChildren()
 
 	// check number of children
 	_, childrenList = test.ListChildrenWorkitemOK(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.fxt.WorkItemByTitle("bug1").ID, nil, nil, nil, nil)
-	require.Equal(s.T(), childrenList.Meta.TotalCount, 0)
+	require.Equal(s.T(), 0, childrenList.Meta.TotalCount)
 }
