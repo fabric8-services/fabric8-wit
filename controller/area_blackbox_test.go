@@ -165,7 +165,7 @@ func (rest *TestAreaREST) TestShowArea() {
 		t.Run("OK", func(t *testing.T) {
 			// when
 			res, area := test.ShowAreaOK(t, svc.Context, svc, ctrl, a.ID.String(), nil, nil)
-			res.Header().Set("Etag", "IGNORE_ME")
+			safeOverriteHeader(t, res, app.ETag, "0icd7ov5CqwDXN6Fx9z18g==")
 			//then
 			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "ok.res.payload.golden.json"), area)
 			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "ok.res.headers.golden.json"), res.Header())
@@ -175,7 +175,7 @@ func (rest *TestAreaREST) TestShowArea() {
 			// when
 			ifModifiedSince := app.ToHTTPTime(a.UpdatedAt.Add(-1 * time.Hour))
 			res, area := test.ShowAreaOK(t, svc.Context, svc, ctrl, a.ID.String(), &ifModifiedSince, nil)
-			res.Header().Set("Etag", "IGNORE_ME")
+			safeOverriteHeader(t, res, app.ETag, "0icd7ov5CqwDXN6Fx9z18g==")
 			//then
 			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "expired_if_modified_since.res.payload.golden.json"), area)
 			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "ok.res.headers.golden.json"), res.Header())
@@ -185,7 +185,7 @@ func (rest *TestAreaREST) TestShowArea() {
 			// when
 			ifNoneMatch := "foo"
 			res, area := test.ShowAreaOK(t, svc.Context, svc, ctrl, a.ID.String(), nil, &ifNoneMatch)
-			res.Header().Set("Etag", "IGNORE_ME")
+			safeOverriteHeader(t, res, app.ETag, "0icd7ov5CqwDXN6Fx9z18g==")
 			//then
 			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "expired_if_none_match.res.payload.golden.json"), area)
 			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "ok.res.headers.golden.json"), res.Header())
@@ -195,7 +195,7 @@ func (rest *TestAreaREST) TestShowArea() {
 			// when
 			ifModifiedSince := app.ToHTTPTime(a.UpdatedAt)
 			area := test.ShowAreaNotModified(t, svc.Context, svc, ctrl, a.ID.String(), &ifModifiedSince, nil)
-			area.Header().Set("Etag", "IGNORE_ME")
+			safeOverriteHeader(t, area, app.ETag, "0icd7ov5CqwDXN6Fx9z18g==")
 			//then
 			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "if_modified_since_headers.res.headers.golden.json"), area.Header())
 		})
@@ -204,7 +204,7 @@ func (rest *TestAreaREST) TestShowArea() {
 			// when
 			ifNoneMatch := app.GenerateEntityTag(a)
 			area := test.ShowAreaNotModified(t, svc.Context, svc, ctrl, a.ID.String(), nil, &ifNoneMatch)
-			area.Header().Set("Etag", "IGNORE_ME")
+			safeOverriteHeader(t, area, app.ETag, "0icd7ov5CqwDXN6Fx9z18g==")
 			//then
 			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "show", "if_none_match_headers.res.headers.golden.json"), area.Header())
 		})
@@ -264,14 +264,14 @@ func (rest *TestAreaREST) TestShowChildrenArea() {
 		childArea := rest.createChildArea("TestShowChildrenArea", *parentArea, svc, ctrl)
 		t.Run("OK", func(t *testing.T) {
 			res, result := test.ShowChildrenAreaOK(t, svc.Context, svc, ctrl, parentArea.ID.String(), nil, nil)
-			res.Header().Set("Etag", "IGNORE_ME")
+			safeOverriteHeader(t, res, app.ETag, "0icd7ov5CqwDXN6Fx9z18g==")
 			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "showChildren", "ok.res.payload.golden.json"), result)
 			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "showChildren", "ok.res.headers.golden.json"), res.Header())
 		})
 		t.Run("Using ExpiredIfModifedSince Header", func(t *testing.T) {
 			ifModifiedSince := app.ToHTTPTime(parentArea.UpdatedAt.Add(-1 * time.Hour))
 			res, result := test.ShowChildrenAreaOK(t, svc.Context, svc, ctrl, parentArea.ID.String(), &ifModifiedSince, nil)
-			res.Header().Set("Etag", "IGNORE_ME")
+			safeOverriteHeader(t, res, app.ETag, "0icd7ov5CqwDXN6Fx9z18g==")
 			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "showChildren", "ok.res.payload.golden.json"), result)
 			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "showChildren", "ok.res.headers.golden.json"), res.Header())
 		})
@@ -279,7 +279,7 @@ func (rest *TestAreaREST) TestShowChildrenArea() {
 		t.Run("Using ExpiredIfNoneMatch Header", func(t *testing.T) {
 			ifNoneMatch := "foo"
 			res, result := test.ShowChildrenAreaOK(t, svc.Context, svc, ctrl, parentArea.ID.String(), nil, &ifNoneMatch)
-			res.Header().Set("Etag", "IGNORE_ME")
+			safeOverriteHeader(t, res, app.ETag, "0icd7ov5CqwDXN6Fx9z18g==")
 			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "showChildren", "ok.res.payload.golden.json"), result)
 			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "showChildren", "ok.res.headers.golden.json"), res.Header())
 		})
@@ -287,7 +287,7 @@ func (rest *TestAreaREST) TestShowChildrenArea() {
 		t.Run("Not Modified Using IfModifedSince Header", func(t *testing.T) {
 			ifModifiedSince := app.ToHTTPTime(*childArea.Data.Attributes.UpdatedAt)
 			res := test.ShowChildrenAreaNotModified(t, svc.Context, svc, ctrl, parentArea.ID.String(), &ifModifiedSince, nil)
-			res.Header().Set("Etag", "IGNORE_ME")
+			safeOverriteHeader(t, res, app.ETag, "0icd7ov5CqwDXN6Fx9z18g==")
 			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "showChildren", "not_modified_header.res.headers.golden.json"), res.Header())
 		})
 
@@ -295,7 +295,7 @@ func (rest *TestAreaREST) TestShowChildrenArea() {
 			modelChildArea := ConvertAreaToModel(*childArea)
 			ifNoneMatch := app.GenerateEntityTag(modelChildArea)
 			res := test.ShowChildrenAreaNotModified(t, svc.Context, svc, ctrl, parentArea.ID.String(), nil, &ifNoneMatch)
-			res.Header().Set("Etag", "IGNORE_ME")
+			safeOverriteHeader(t, res, app.ETag, "0icd7ov5CqwDXN6Fx9z18g==")
 			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "showChildren", "not_modified_header.res.headers.golden.json"), res.Header())
 		})
 	})
@@ -303,7 +303,6 @@ func (rest *TestAreaREST) TestShowChildrenArea() {
 	rest.T().Run("Failure", func(t *testing.T) {
 		t.Run("Not Found", func(t *testing.T) {
 			res, result := test.ShowChildrenAreaNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String(), nil, nil)
-			res.Header().Set("Etag", "IGNORE_ME")
 			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "showChildren", "not_found.res.payload.golden.json"), result)
 			compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "showChildren", "not_found.res.header.golden.json"), res.Header())
 		})
