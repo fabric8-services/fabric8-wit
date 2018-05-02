@@ -1972,8 +1972,17 @@ func (s *WorkItem2Suite) TestWI2FailOnDelete() {
 }
 
 func (s *WorkItem2Suite) TestWI2CreateWithArea() {
+	fxt := tf.NewTestFixture(s.T(), s.DB,
+		tf.CreateWorkItemEnvironment(),
+		tf.Areas(2, func(fxt *tf.TestFixture, idx int) error {
+			if idx == 1 {
+				fxt.Areas[idx].MakeChildOf(*fxt.Areas[idx-1])
+			}
+			return nil
+		}),
+	)
 	// given
-	areaInstance := tf.NewTestFixture(s.T(), s.DB, tf.Areas(1)).Areas[0]
+	areaInstance := fxt.Areas[1]
 	areaID := areaInstance.ID.String()
 	arType := area.APIStringTypeAreas
 	// when
