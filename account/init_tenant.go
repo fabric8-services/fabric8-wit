@@ -13,6 +13,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/goasupport"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	goaclient "github.com/goadesign/goa/client"
+	errs "github.com/pkg/errors"
 )
 
 type tenantConfig interface {
@@ -55,14 +56,14 @@ func InitTenant(ctx context.Context, config tenantConfig) error {
 
 	c, err := createClient(ctx, config)
 	if err != nil {
-		return err
+		return errs.WithStack(err)
 	}
 
 	// Ignore response for now
 	res, err := c.SetupTenant(goasupport.ForwardContextRequestID(ctx), tenant.SetupTenantPath())
 	defer rest.CloseResponse(res)
 
-	return err
+	return errs.WithStack(err)
 }
 
 // UpdateTenant updates excisting tenant in oso
@@ -70,14 +71,14 @@ func UpdateTenant(ctx context.Context, config tenantConfig) error {
 
 	c, err := createClient(ctx, config)
 	if err != nil {
-		return err
+		return errs.WithStack(err)
 	}
 
 	// Ignore response for now
 	res, err := c.UpdateTenant(goasupport.ForwardContextRequestID(ctx), tenant.UpdateTenantPath())
 	defer rest.CloseResponse(res)
 
-	return err
+	return errs.WithStack(err)
 }
 
 // CleanTenant cleans out a tenant in oso.
@@ -85,12 +86,12 @@ func CleanTenant(ctx context.Context, config tenantConfig, remove bool) error {
 
 	c, err := createClient(ctx, config)
 	if err != nil {
-		return err
+		return errs.WithStack(err)
 	}
 
 	res, err := c.CleanTenant(goasupport.ForwardContextRequestID(ctx), tenant.CleanTenantPath(), &remove)
 	if err != nil {
-		return err
+		return errs.WithStack(err)
 	}
 	defer rest.CloseResponse(res)
 
@@ -98,7 +99,7 @@ func CleanTenant(ctx context.Context, config tenantConfig, remove bool) error {
 		jsonErr, err := c.DecodeJSONAPIErrors(res)
 		if err == nil {
 			if len(jsonErr.Errors) > 0 {
-				return errors.NewInternalError(ctx, fmt.Errorf(jsonErr.Errors[0].Detail))
+				return errs.WithStack(errors.NewInternalError(ctx, fmt.Errorf(jsonErr.Errors[0].Detail)))
 			}
 		}
 	}
@@ -110,12 +111,12 @@ func ShowTenant(ctx context.Context, config tenantConfig) (*tenant.TenantSingle,
 
 	c, err := createClient(ctx, config)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	res, err := c.ShowTenant(goasupport.ForwardContextRequestID(ctx), tenant.ShowTenantPath())
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 	defer rest.CloseResponse(res)
 
@@ -129,17 +130,17 @@ func ShowTenant(ctx context.Context, config tenantConfig) (*tenant.TenantSingle,
 		jsonErr, err := c.DecodeJSONAPIErrors(res)
 		if err == nil {
 			if len(jsonErr.Errors) > 0 {
-				return nil, errors.NewInternalError(ctx, fmt.Errorf(jsonErr.Errors[0].Detail))
+				return nil, errs.WithStack(errors.NewInternalError(ctx, fmt.Errorf(jsonErr.Errors[0].Detail)))
 			}
 		}
 	}
-	return nil, errors.NewInternalError(ctx, fmt.Errorf("Unknown response "+res.Status))
+	return nil, errs.WithStack(errors.NewInternalError(ctx, fmt.Errorf("Unknown response "+res.Status)))
 }
 
 func createClient(ctx context.Context, config tenantConfig) (*tenant.Client, error) {
 	u, err := url.Parse(config.GetTenantServiceURL())
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	c := tenant.New(goaclient.HTTPClientDoer(http.DefaultClient))

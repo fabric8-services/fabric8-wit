@@ -12,6 +12,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/goadesign/goa/middleware"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
+	errs "github.com/pkg/errors"
 )
 
 // Client the interface for remote operations on Che
@@ -57,7 +58,7 @@ func (cs *StarterClient) ListWorkspaces(ctx context.Context, repository string) 
 			"repository": repository,
 			"err":        err,
 		}, "failed to create request object")
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 	cs.setHeaders(ctx, req)
 
@@ -74,7 +75,7 @@ func (cs *StarterClient) ListWorkspaces(ctx context.Context, repository string) 
 			"repository": repository,
 			"err":        err,
 		}, "failed to list workspace for repository")
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	defer rest.CloseResponse(resp)
@@ -87,13 +88,13 @@ func (cs *StarterClient) ListWorkspaces(ctx context.Context, repository string) 
 				"repository": repository,
 				"err":        err,
 			}, "failed to decode error response from list workspace for repository")
-			return nil, err
+			return nil, errs.WithStack(err)
 		}
 		log.Error(ctx, map[string]interface{}{
 			"repository": repository,
 			"err":        workspaceErr.String(),
 		}, "failed to execute list workspace for repository")
-		return nil, &workspaceErr
+		return nil, errs.WithStack(workspaceErr)
 	}
 
 	workspaceResp := []*WorkspaceResponse{}
@@ -103,7 +104,7 @@ func (cs *StarterClient) ListWorkspaces(ctx context.Context, repository string) 
 			"repository": repository,
 			"err":        err,
 		}, "failed to decode response from list workspace for repository")
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 	return workspaceResp, nil
 }
@@ -118,12 +119,12 @@ func (cs *StarterClient) CreateWorkspace(ctx context.Context, workspace Workspac
 			"workspace":          workspace,
 			"err":                err,
 		}, "failed to create request object")
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	req, err := http.NewRequest("POST", cs.targetURL("workspace"), bytes.NewReader(body))
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 	cs.setHeaders(ctx, req)
 
@@ -136,7 +137,7 @@ func (cs *StarterClient) CreateWorkspace(ctx context.Context, workspace Workspac
 
 	resp, err := cs.client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	defer rest.CloseResponse(resp)
@@ -151,7 +152,7 @@ func (cs *StarterClient) CreateWorkspace(ctx context.Context, workspace Workspac
 				"workspace":          workspace,
 				"err":                err,
 			}, "failed to decode error response from create workspace for repository")
-			return nil, err
+			return nil, errs.WithStack(err)
 		}
 		log.Error(ctx, map[string]interface{}{
 			"workspace_id":       workspace.Name,
@@ -159,7 +160,7 @@ func (cs *StarterClient) CreateWorkspace(ctx context.Context, workspace Workspac
 			"workspace":          workspace,
 			"err":                workspaceErr.String(),
 		}, "failed to execute create workspace for repository")
-		return nil, &workspaceErr
+		return nil, errs.WithStack(workspaceErr)
 	}
 
 	workspaceResp := WorkspaceResponse{}
@@ -171,7 +172,7 @@ func (cs *StarterClient) CreateWorkspace(ctx context.Context, workspace Workspac
 			"workspace":          workspace,
 			"err":                err,
 		}, "failed to decode response from create workspace for repository")
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 	return &workspaceResp, nil
 }
@@ -186,7 +187,7 @@ func (cs *StarterClient) DeleteWorkspace(ctx context.Context, workspaceName stri
 			"namespace": cs.namespace,
 			"err":       err,
 		}, "failed to create request object")
-		return err
+		return errs.WithStack(err)
 	}
 	cs.setHeaders(ctx, req)
 
@@ -205,7 +206,7 @@ func (cs *StarterClient) DeleteWorkspace(ctx context.Context, workspaceName stri
 			"namespace": cs.namespace,
 			"err":       err,
 		}, "failed to delete workspace")
-		return err
+		return errs.WithStack(err)
 	}
 
 	defer rest.CloseResponse(resp)
@@ -220,7 +221,7 @@ func (cs *StarterClient) DeleteWorkspace(ctx context.Context, workspaceName stri
 				"namespace": cs.namespace,
 				"err":       err,
 			}, "failed to decode error response from list workspace for repository")
-			return err
+			return errs.WithStack(err)
 		}
 		log.Error(ctx, map[string]interface{}{
 			"name":      workspaceName,
@@ -228,7 +229,7 @@ func (cs *StarterClient) DeleteWorkspace(ctx context.Context, workspaceName stri
 			"namespace": cs.namespace,
 			"err":       workspaceErr.String(),
 		}, "failed to delete workspace")
-		return &workspaceErr
+		return errs.WithStack(workspaceErr)
 	}
 
 	return nil
@@ -242,7 +243,7 @@ func (cs *StarterClient) StartExistingWorkspace(ctx context.Context, workspaceNa
 
 	req, err := http.NewRequest("PATCH", cs.targetURL(fmt.Sprintf("workspace/%s", workspaceName)), nil)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 	cs.setHeaders(ctx, req)
 
@@ -255,7 +256,7 @@ func (cs *StarterClient) StartExistingWorkspace(ctx context.Context, workspaceNa
 
 	resp, err := cs.client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	defer rest.CloseResponse(resp)
@@ -268,13 +269,13 @@ func (cs *StarterClient) StartExistingWorkspace(ctx context.Context, workspaceNa
 				"workspace_id": workspaceName,
 				"err":          err,
 			}, "failed to decode error response from starting an existing workspace for repository")
-			return nil, err
+			return nil, errs.WithStack(err)
 		}
 		log.Error(ctx, map[string]interface{}{
 			"workspace_id": workspaceName,
 			"err":          workspaceErr.String(),
 		}, "failed to execute start existing workspace for repository")
-		return nil, &workspaceErr
+		return nil, errs.WithStack(workspaceErr)
 	}
 
 	workspaceResp := WorkspaceResponse{}
@@ -284,7 +285,7 @@ func (cs *StarterClient) StartExistingWorkspace(ctx context.Context, workspaceNa
 			"workspace_id": workspaceName,
 			"err":          err,
 		}, "failed to decode response from starting an existing workspace for repository")
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 	return &workspaceResp, nil
 }
@@ -294,7 +295,7 @@ func (cs *StarterClient) GetCheServerState(ctx context.Context) (*ServerStateRes
 	req, err := http.NewRequest("GET", cs.targetURL("server"), nil)
 
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	cs.setHeaders(ctx, req)
@@ -309,7 +310,7 @@ func (cs *StarterClient) GetCheServerState(ctx context.Context) (*ServerStateRes
 	resp, err := cs.client.Do(req)
 
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	defer rest.CloseResponse(resp)
@@ -321,12 +322,12 @@ func (cs *StarterClient) GetCheServerState(ctx context.Context) (*ServerStateRes
 			log.Error(ctx, map[string]interface{}{
 				"err": err,
 			}, "failed to decode error response from get che server state")
-			return nil, err
+			return nil, errs.WithStack(err)
 		}
 		log.Error(ctx, map[string]interface{}{
 			"err": statusErr.String(),
 		}, "failed to execute get che server state")
-		return nil, &statusErr
+		return nil, errs.WithStack(statusErr)
 	}
 
 	cheServerStateResponse := ServerStateResponse{}
@@ -335,7 +336,7 @@ func (cs *StarterClient) GetCheServerState(ctx context.Context) (*ServerStateRes
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
 		}, "failed to decode response from getting che server state")
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 	return &cheServerStateResponse, nil
 }
@@ -345,7 +346,7 @@ func (cs *StarterClient) StartCheServer(ctx context.Context) (*ServerStateRespon
 	req, err := http.NewRequest("PATCH", cs.targetURL("server"), nil)
 
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	cs.setHeaders(ctx, req)
@@ -360,7 +361,7 @@ func (cs *StarterClient) StartCheServer(ctx context.Context) (*ServerStateRespon
 	resp, err := cs.client.Do(req)
 
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	defer rest.CloseResponse(resp)
@@ -372,12 +373,12 @@ func (cs *StarterClient) StartCheServer(ctx context.Context) (*ServerStateRespon
 			log.Error(ctx, map[string]interface{}{
 				"err": err,
 			}, "failed to decode error response from start che server")
-			return nil, err
+			return nil, errs.WithStack(err)
 		}
 		log.Error(ctx, map[string]interface{}{
 			"err": statusErr.String(),
 		}, "failed to execute start che server")
-		return nil, &statusErr
+		return nil, errs.WithStack(statusErr)
 	}
 
 	cheServerStateResponse := ServerStateResponse{}
@@ -386,7 +387,7 @@ func (cs *StarterClient) StartCheServer(ctx context.Context) (*ServerStateRespon
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
 		}, "failed to decode response from getting che server state endpoint")
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 	return &cheServerStateResponse, nil
 }
@@ -468,11 +469,11 @@ type StarterError struct {
 	Trace     string `json:"trace"`
 }
 
-func (err *StarterError) Error() string {
+func (err StarterError) Error() string {
 	return err.ErrorMsg
 }
 
-func (err *StarterError) String() string {
+func (err StarterError) String() string {
 	return fmt.Sprintf("Status %v Error %v Message %v Trace\n%v", err.Status, err.ErrorMsg, err.ErrorMsg, err.Trace)
 }
 
