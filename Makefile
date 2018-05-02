@@ -315,6 +315,39 @@ else
 	docker-compose up -d db auth
 endif
 
+$(TMP_PATH)/client-repo:
+	$(GIT_BIN) clone git@github.com:fabric8-services/fabric8-wit-client.git $(TMP_PATH)/client-repo
+
+.PHONY: update-client
+## Updates the client library for this repository in tmp/client-repo
+update-client: $(TMP_PATH)/client-repo $(GOAGEN_BIN) $(TMP_PATH) $(GIT_BIN)
+	cd $(TMP_PATH)/client-repo \
+	&& $(GIT_BIN) fetch origin \
+	&& $(GIT_BIN) reset --hard origin/master
+	# Generate client code
+	$(GOAGEN_BIN) client -d github.com/fabric8-services/fabric8-wit/design --notool --pkg main -o $(TMP_PATH)
+	# Move client code to client-repo
+	mv $(TMP_PATH)/main/* $(TMP_PATH)/client-repo
+	# Generate commit message just in case we need it later
+	echo "Changes that went into the upstream library:" > $(TMP_PATH)/commit_message.txt
+	echo "" >> $(TMP_PATH)/commit_message.txt
+	$(GIT_BIN) log \
+		--format='Commit: https://github.com/fabric8-services/fabric8-wit/commit/%h %nDate: %cd %nCommitter: %cn %nSubject: %s %n%b %n'\
+		--reverse $(shell cat $(TMP_PATH)/client-repo/upstream_commit.txt)..HEAD \
+		>> $(TMP_PATH)/commit_message.txt
+	# Get current version of source
+	$(GIT_BIN) rev-parse --verify HEAD > $(TMP_PATH)/upstream_commit.txt
+	# Add all generated code and see if it needs to be committed	
+	-cd $(TMP_PATH)/client-repo \
+	&& $(GIT_BIN) status --porcelain \
+	&& [ -n "$(shell $(GIT_BIN) status --porcelain)" ] \
+		&& cp ../upstream_commit.txt . \
+		&& $(GIT_BIN) add --all \
+		&& $(GIT_BIN) commit -F ../commit_message.txt \
+		&& $(GIT_BIN) push origin/master \
+		&& echo "Client lib updated. Ready to be pushed." \
+	|| echo "Client library not updated because no changes found."
+
 MINISHIFT_IP = `minishift ip`
 MINISHIFT_URL = http://$(MINISHIFT_IP)
 # make sure you have a entry in /etc/hosts for "minishift.local MINISHIFT_IP"
