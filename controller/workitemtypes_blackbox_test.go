@@ -1,6 +1,7 @@
 package controller_test
 
 import (
+	"fmt"
 	"net/http"
 	"path/filepath"
 	"testing"
@@ -79,31 +80,51 @@ func (s *workItemTypesSuite) TestList() {
 	})
 
 	s.T().Run("ok", func(t *testing.T) {
-		// when
-		res, witCollection := test.ListWorkitemtypesOK(t, nil, nil, s.typeCtrl, fxt.SpaceTemplates[0].ID, nil, nil)
-		// then
-		require.NotNil(t, witCollection)
-		require.Nil(t, witCollection.Validate())
+		t.Run("generated", func(t *testing.T) {
+			// when
+			res, witCollection := test.ListWorkitemtypesOK(t, nil, nil, s.typeCtrl, fxt.SpaceTemplates[0].ID, nil, nil)
+			// then
+			require.NotNil(t, witCollection)
+			require.Nil(t, witCollection.Validate())
 
-		toBeFound := id.Slice{fxt.WorkItemTypes[0].ID, fxt.WorkItemTypes[1].ID}.ToMap()
-		for _, wit := range witCollection.Data {
-			_, ok := toBeFound[*wit.ID]
-			assert.True(t, ok, "failed to find work item type %s in expected list", *wit.ID)
-			delete(toBeFound, *wit.ID)
+			toBeFound := id.Slice{fxt.WorkItemTypes[0].ID, fxt.WorkItemTypes[1].ID}.ToMap()
+			for _, wit := range witCollection.Data {
+				_, ok := toBeFound[*wit.ID]
+				assert.True(t, ok, "failed to find work item type %s in expected list", *wit.ID)
+				delete(toBeFound, *wit.ID)
+			}
+			require.Empty(t, toBeFound, "failed to find these expected work item types: %v", toBeFound)
+
+			require.NotNil(t, res.Header()[app.LastModified])
+			assert.Equal(t, app.ToHTTPTime(fxt.WorkItemTypes[1].UpdatedAt), res.Header()[app.LastModified][0])
+			require.NotNil(t, res.Header()[app.CacheControl])
+			assert.NotNil(t, res.Header()[app.CacheControl][0])
+			require.NotNil(t, res.Header()[app.ETag])
+			assert.Equal(t, generateWorkItemTypesTag(*witCollection), res.Header()[app.ETag][0])
+
+			compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok.res.payload.golden.json"), witCollection)
+			safeOverriteHeader(t, res, "Etag", "0icd7ov5CqwDXN6Fx9z18g==")
+			compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok.res.headers.golden.json"), res.Header())
+			assertResponseHeaders(t, res)
+		})
+		// Test pre-defined work item types
+		spaceTemplates := map[string]uuid.UUID{
+			"base":   spacetemplate.SystemBaseTemplateID,
+			"scrum":  spacetemplate.SystemScrumTemplateID,
+			"legacy": spacetemplate.SystemLegacyTemplateID,
 		}
-		require.Empty(t, toBeFound, "failed to find these expected work item types: %v", toBeFound)
-
-		require.NotNil(t, res.Header()[app.LastModified])
-		assert.Equal(t, app.ToHTTPTime(fxt.WorkItemTypes[1].UpdatedAt), res.Header()[app.LastModified][0])
-		require.NotNil(t, res.Header()[app.CacheControl])
-		assert.NotNil(t, res.Header()[app.CacheControl][0])
-		require.NotNil(t, res.Header()[app.ETag])
-		assert.Equal(t, generateWorkItemTypesTag(*witCollection), res.Header()[app.ETag][0])
-
-		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok.res.payload.golden.json"), witCollection)
-		safeOverriteHeader(t, res, "Etag", "0icd7ov5CqwDXN6Fx9z18g==")
-		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok.res.headers.golden.json"), res.Header())
-		assertResponseHeaders(t, res)
+		for name, ID := range spaceTemplates {
+			t.Run(name, func(t *testing.T) {
+				// when
+				res, witCollection := test.ListWorkitemtypesOK(t, nil, nil, s.typeCtrl, ID, nil, nil)
+				// then
+				require.NotNil(t, witCollection)
+				compareWithGoldenAgnosticTime(t, filepath.Join(s.testDir, "list", fmt.Sprintf("ok_%s.res.payload.golden.json", name)), witCollection)
+				safeOverriteHeader(t, res, "Etag", "0icd7ov5CqwDXN6Fx9z18g==")
+				compareWithGoldenAgnosticTime(t, filepath.Join(s.testDir, "list", fmt.Sprintf("ok_%s.res.headers.golden.json", name)), res.Header())
+				assertResponseHeaders(t, res)
+			})
+		}
 	})
 
 	s.T().Run("ok - using expired IfModifiedSince header", func(t *testing.T) {

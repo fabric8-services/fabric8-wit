@@ -66,7 +66,7 @@ work_item_types:
   description: >
     Note that this is never part of a backlog. It is simply associated with
     other work items to indicate impediments blocking that work item.
-  icon: fa fa-question
+  icon: fa fa-stumbleupon
   fields:
     "system.state":
       label: State
@@ -194,7 +194,7 @@ work_item_types:
   name: Product Backlog Item
   can_construct: yes
   description: TBD
-  icon: fa fa-question
+  icon: pficon pficon-image
   fields:
     "system.state":
       label: State
@@ -296,7 +296,7 @@ work_item_types:
   name: Epic
   can_construct: yes
   description: TBD
-  icon: fa fa-bolt
+  icon: fa fa-bullseye
   fields:
     "system.state":
       label: State
@@ -355,7 +355,7 @@ work_item_type_groups:
   type_list:
   - *epicID
   bucket: portfolio
-  icon: fa fa-bolt
+  icon: fa fa-bullseye
 
 - name: Features
   id: "9e41be6f-9e16-4e39-bb46-bd130855f2e5"
@@ -370,7 +370,7 @@ work_item_type_groups:
   - *productBacklogItemID
   - *bugID
   bucket: requirement
-  icon: fa fa-question
+  icon: pficon pficon-image
 
 - name: Execution
   id: "4d187330-0efb-4077-8745-8a61384a6540"
@@ -379,4 +379,4 @@ work_item_type_groups:
   - *productBacklogItemID
   - *bugID
   bucket: iteration
-  icon: fa fa-tasks
+  icon: fa fa-repeat
