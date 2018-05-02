@@ -428,7 +428,7 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 	where := fmt.Sprintf(`
 	id in (
 		SELECT target_id FROM %s
-		WHERE source_id = $1 AND link_type_id = $2
+		WHERE source_id = $1 AND link_type_id = $2 AND deleted_at IS NULL
 	)`, WorkItemLink{}.TableName())
 	db := r.db.Model(&workitem.WorkItemStorage{}).Where(where, parentID.String(), SystemWorkItemLinkTypeParentChildID.String())
 	if start != nil {

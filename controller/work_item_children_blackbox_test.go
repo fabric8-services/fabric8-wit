@@ -834,3 +834,35 @@ func (s *searchParentExistsSuite) TestSearchWorkItemListFilterUsingParentExists(
 	})
 
 }
+
+func (s *workItemChildSuite) TestCreateAndDeleteLinkToChildrenThenListChildren() {
+	// create workitem links then remove it
+	workitemLink1 := s.linkWorkItems(s.T(), "bug1", "bug2")
+	workitemLink2 := s.linkWorkItems(s.T(), "bug1", "bug3")
+
+	_, workitemSingle := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.fxt.WorkItemByTitle("bug1").ID, nil, nil)
+	require.NotNil(s.T(), workitemSingle)
+	checkChildrenRelationship(s.T(), workitemSingle.Data, hasChildren)
+
+	// check number of children
+	_, childrenList := test.ListChildrenWorkitemOK(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.fxt.WorkItemByTitle("bug1").ID, nil, nil, nil, nil)
+	require.Equal(s.T(), childrenList.Meta.TotalCount, 2)
+
+	// delete link
+	test.DeleteWorkItemLinkOK(s.T(), s.svc.Context, s.svc, s.workitemLinkCtrl, workitemLink1.ID)
+
+	_, workitemSingle = test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.fxt.WorkItemByTitle("bug1").ID, nil, nil)
+	require.NotNil(s.T(), workitemSingle)
+	checkChildrenRelationship(s.T(), workitemSingle.Data, hasChildren)
+
+	// check number of children
+	_, childrenList = test.ListChildrenWorkitemOK(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.fxt.WorkItemByTitle("bug1").ID, nil, nil, nil, nil)
+	require.Equal(s.T(), childrenList.Meta.TotalCount, 1)
+
+	// delete link
+	test.DeleteWorkItemLinkOK(s.T(), s.svc.Context, s.svc, s.workitemLinkCtrl, workitemLink2.ID)
+
+	_, workitemSingle = test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.fxt.WorkItemByTitle("bug1").ID, nil, nil)
+	require.NotNil(s.T(), workitemSingle)
+	checkChildrenRelationship(s.T(), workitemSingle.Data, hasNoChildren)
+}
