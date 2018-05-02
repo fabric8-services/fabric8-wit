@@ -642,6 +642,7 @@ func workItemIncludeHasChildren(ctx context.Context, appl application.Applicatio
 					}, "unable to find out if work item has children: %s", wi.ID)
 					// enforce to have no children
 					hasChildren = false
+					return errs.Wrapf(err, "failed to determine if work item %s has children", wi.ID)
 				}
 			}
 		}
