@@ -1,7 +1,6 @@
 package controller_test
 
 import (
-	"context"
 	"os"
 	"testing"
 	"time"
@@ -9,7 +8,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
-	"github.com/fabric8-services/fabric8-wit/area"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
@@ -81,42 +79,6 @@ func searchInAreaSlice(searchKey uuid.UUID, areaList *app.AreaList) *app.Area {
 	return nil
 }
 
-func (rest *TestSpaceAreaREST) setupAreas() (area.Area, []uuid.UUID, []area.Area) {
-	/*
-		Space X --> TestListAreas A---> TestListAreas B
-	*/
-	var createdAreas []area.Area
-	var createdAreaUuids []uuid.UUID
-	fxt := tf.NewTestFixture(rest.T(), rest.DB, tf.Spaces(1), tf.Areas(1))
-	sp := fxt.Spaces[0]
-	parentArea := fxt.Areas[0]
-	createdAreas = append(createdAreas, *parentArea)
-	createdAreaUuids = append(createdAreaUuids, parentArea.ID)
-	parentID := parentArea.ID
-	ci := newCreateChildAreaPayload("TestListAreas  A")
-	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerID)
-	require.NoError(rest.T(), err)
-	svc, ctrl := rest.SecuredAreasControllerWithIdentity(owner)
-	_, created := test.CreateChildAreaCreated(rest.T(), svc.Context, svc, ctrl, parentID.String(), ci)
-	assert.Equal(rest.T(), *ci.Data.Attributes.Name, *created.Data.Attributes.Name)
-	assert.Equal(rest.T(), parentID.String(), *created.Data.Relationships.Parent.Data.ID)
-	createdAreaUuids = append(createdAreaUuids, *created.Data.ID)
-	createdAreas = append(createdAreas, ConvertAreaToModel(*created))
-
-	// Create a child of the child created above.
-	ci = newCreateChildAreaPayload("TestListAreas B")
-	newParentID := *created.Data.Relationships.Parent.Data.ID
-	_, created = test.CreateChildAreaCreated(rest.T(), svc.Context, svc, ctrl, newParentID, ci)
-	assert.Equal(rest.T(), *ci.Data.Attributes.Name, *created.Data.Attributes.Name)
-	assert.NotNil(rest.T(), *created.Data.Attributes.CreatedAt)
-	assert.NotNil(rest.T(), *created.Data.Attributes.Version)
-	assert.Equal(rest.T(), newParentID, *created.Data.Relationships.Parent.Data.ID)
-	assert.Contains(rest.T(), *created.Data.Relationships.Children.Links.Self, "children")
-	createdAreaUuids = append(createdAreaUuids, *created.Data.ID)
-	createdAreas = append(createdAreas, ConvertAreaToModel(*created))
-	return *parentArea, createdAreaUuids, createdAreas
-}
-
 func assertSpaceAreas(t *testing.T, areaList *app.AreaList, createdAreaUuids []uuid.UUID) {
 	assert.Len(t, areaList.Data, 3)
 	for i := 0; i < len(createdAreaUuids); i++ {
@@ -125,8 +87,22 @@ func assertSpaceAreas(t *testing.T, areaList *app.AreaList, createdAreaUuids []u
 }
 
 func (rest *TestSpaceAreaREST) TestListAreasOK() {
+	fxt := tf.NewTestFixture(rest.T(), rest.DB,
+		tf.CreateWorkItemEnvironment(),
+		tf.Areas(3, func(fxt *tf.TestFixture, idx int) error {
+			if idx > 0 {
+				fxt.Areas[idx].MakeChildOf(*fxt.Areas[idx-1])
+			}
+			return nil
+		}),
+	)
 	// given
-	parentArea, createdAreaUuids, _ := rest.setupAreas()
+	parentArea := fxt.Areas[0]
+	createdAreaUuids := []uuid.UUID{
+		fxt.Areas[0].ID,
+		fxt.Areas[1].ID,
+		fxt.Areas[2].ID,
+	}
 	// when
 	res, areaList := test.ListSpaceAreasOK(rest.T(), rest.svcSpaceAreas.Context, rest.svcSpaceAreas, rest.ctrlSpaceAreas, parentArea.SpaceID, nil, nil)
 	// then
@@ -135,8 +111,22 @@ func (rest *TestSpaceAreaREST) TestListAreasOK() {
 }
 
 func (rest *TestSpaceAreaREST) TestListAreasOKUsingExpiredIfModifiedSinceHeader() {
+	fxt := tf.NewTestFixture(rest.T(), rest.DB,
+		tf.CreateWorkItemEnvironment(),
+		tf.Areas(3, func(fxt *tf.TestFixture, idx int) error {
+			if idx > 0 {
+				fxt.Areas[idx].MakeChildOf(*fxt.Areas[idx-1])
+			}
+			return nil
+		}),
+	)
 	// given
-	parentArea, createdAreaUuids, _ := rest.setupAreas()
+	parentArea := fxt.Areas[0]
+	createdAreaUuids := []uuid.UUID{
+		fxt.Areas[0].ID,
+		fxt.Areas[1].ID,
+		fxt.Areas[2].ID,
+	}
 	// when
 	ifModifiedSince := app.ToHTTPTime(parentArea.UpdatedAt.Add(-1 * time.Hour))
 	res, areaList := test.ListSpaceAreasOK(rest.T(), rest.svcSpaceAreas.Context, rest.svcSpaceAreas, rest.ctrlSpaceAreas, parentArea.SpaceID, &ifModifiedSince, nil)
@@ -146,8 +136,22 @@ func (rest *TestSpaceAreaREST) TestListAreasOKUsingExpiredIfModifiedSinceHeader(
 }
 
 func (rest *TestSpaceAreaREST) TestListAreasOKUsingExpiredIfNoneMatchHeader() {
+	fxt := tf.NewTestFixture(rest.T(), rest.DB,
+		tf.CreateWorkItemEnvironment(),
+		tf.Areas(3, func(fxt *tf.TestFixture, idx int) error {
+			if idx > 0 {
+				fxt.Areas[idx].MakeChildOf(*fxt.Areas[idx-1])
+			}
+			return nil
+		}),
+	)
 	// given
-	parentArea, createdAreaUuids, _ := rest.setupAreas()
+	parentArea := fxt.Areas[0]
+	createdAreaUuids := []uuid.UUID{
+		fxt.Areas[0].ID,
+		fxt.Areas[1].ID,
+		fxt.Areas[2].ID,
+	}
 	// when
 	ifNoneMatch := "foo"
 	res, areaList := test.ListSpaceAreasOK(rest.T(), rest.svcSpaceAreas.Context, rest.svcSpaceAreas, rest.ctrlSpaceAreas, parentArea.SpaceID, nil, &ifNoneMatch)
@@ -157,10 +161,19 @@ func (rest *TestSpaceAreaREST) TestListAreasOKUsingExpiredIfNoneMatchHeader() {
 }
 
 func (rest *TestSpaceAreaREST) TestListAreasNotModifiedUsingIfModifiedSinceHeader() {
+	fxt := tf.NewTestFixture(rest.T(), rest.DB,
+		tf.CreateWorkItemEnvironment(),
+		tf.Areas(3, func(fxt *tf.TestFixture, idx int) error {
+			if idx > 0 {
+				fxt.Areas[idx].MakeChildOf(*fxt.Areas[idx-1])
+			}
+			return nil
+		}),
+	)
 	// given
-	parentArea, _, areas := rest.setupAreas()
+	parentArea := fxt.Areas[0]
 	// when
-	ifModifiedSince := app.ToHTTPTime(areas[len(areas)-1].UpdatedAt)
+	ifModifiedSince := app.ToHTTPTime(fxt.Areas[2].UpdatedAt)
 	res := test.ListSpaceAreasNotModified(rest.T(), rest.svcSpaceAreas.Context, rest.svcSpaceAreas, rest.ctrlSpaceAreas, parentArea.SpaceID, &ifModifiedSince, nil)
 	// then
 	assertResponseHeaders(rest.T(), res)
@@ -168,12 +181,21 @@ func (rest *TestSpaceAreaREST) TestListAreasNotModifiedUsingIfModifiedSinceHeade
 
 func (rest *TestSpaceAreaREST) TestListAreasNotModifiedUsingIfNoneMatchHeader() {
 	// given
-	parentArea, _, createdAreas := rest.setupAreas()
+	fxt := tf.NewTestFixture(rest.T(), rest.DB,
+		tf.CreateWorkItemEnvironment(),
+		tf.Areas(3, func(fxt *tf.TestFixture, idx int) error {
+			if idx > 0 {
+				fxt.Areas[idx].MakeChildOf(*fxt.Areas[idx-1])
+			}
+			return nil
+		}),
+	)
+	parentArea := fxt.Areas[0]
 	// when
 	ifNoneMatch := app.GenerateEntitiesTag([]app.ConditionalRequestEntity{
-		createdAreas[0],
-		createdAreas[1],
-		createdAreas[2],
+		fxt.Areas[0],
+		fxt.Areas[1],
+		fxt.Areas[2],
 	})
 	res := test.ListSpaceAreasNotModified(rest.T(), rest.svcSpaceAreas.Context, rest.svcSpaceAreas, rest.ctrlSpaceAreas, parentArea.SpaceID, nil, &ifNoneMatch)
 	// then
