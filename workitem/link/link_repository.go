@@ -430,20 +430,20 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 		SELECT target_id FROM %s
 		WHERE source_id = $1 AND link_type_id = $2 AND deleted_at IS NULL
 	)`, WorkItemLink{}.TableName())
-	db := r.db.Model(&workitem.WorkItemStorage{}).Where(where, parentID.String(), SystemWorkItemLinkTypeParentChildID.String())
+	baseDB := r.db.Model(&workitem.WorkItemStorage{}).Where(where, parentID.String(), SystemWorkItemLinkTypeParentChildID.String())
 	if start != nil {
 		if *start < 0 {
 			return nil, 0, errors.NewBadParameterError("start", *start)
 		}
-		db = db.Offset(*start)
+		baseDB = baseDB.Offset(*start)
 	}
 	if limit != nil {
 		if *limit <= 0 {
 			return nil, 0, errors.NewBadParameterError("limit", *limit)
 		}
-		db = db.Limit(*limit)
+		baseDB = baseDB.Limit(*limit)
 	}
-	db = db.Select("count(*) over () as cnt2 , *").Order("execution_order desc")
+	db := baseDB.Select("count(*) over () as cnt2 , *").Order("execution_order desc")
 	// To sort by title do this:
 	// db = db.Select("count(*) over () as cnt2 , *").Order(fmt.Sprintf("fields->>'%s'", workitem.SystemTitle))
 	rows, err := db.Rows()
@@ -485,7 +485,10 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 		// means 0 rows were returned from the first query (maybe because of
 		// offset outside of total count), need to do a count(*) to find out
 		// total
-		db := db.Select("count(*)")
+		db := baseDB.Select("count(*)")
+		if db.Error != nil {
+			return nil, 0, errs.WithStack(db.Error)
+		}
 		rows2, err := db.Rows()
 		defer closeable.Close(ctx, rows2)
 		if err != nil {

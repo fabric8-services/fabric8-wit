@@ -884,5 +884,10 @@ func (s *linkRepoBlackBoxTest) TestDeleteLinkAndListChildren() {
 		hasChildren, err = s.workitemLinkRepo.WorkItemHasChildren(s.Ctx, fxt.WorkItems[0].ID)
 		require.NoError(t, err)
 		require.False(t, hasChildren)
+
+		childrenList, totalCount, err = s.workitemLinkRepo.ListWorkItemChildren(s.Ctx, fxt.WorkItems[0].ID, nil, nil)
+		require.NoError(t, err)
+		require.Equal(t, totalCount, 0)
+		require.Len(t, childrenList, 0)
 	})
 }

@@ -865,4 +865,8 @@ func (s *workItemChildSuite) TestCreateAndDeleteLinkToChildrenThenListChildren()
 	_, workitemSingle = test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.fxt.WorkItemByTitle("bug1").ID, nil, nil)
 	require.NotNil(s.T(), workitemSingle)
 	checkChildrenRelationship(s.T(), workitemSingle.Data, hasNoChildren)
+
+	// check number of children
+	_, childrenList = test.ListChildrenWorkitemOK(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.fxt.WorkItemByTitle("bug1").ID, nil, nil, nil, nil)
+	require.Equal(s.T(), childrenList.Meta.TotalCount, 0)
 }
