@@ -50,7 +50,7 @@ type highlightHTMLRenderer struct {
 // This adds a data-checkbox-index attribute that contains the ordinal of the
 // checkbox in the rendered Markdown. This can be used by the ui to find the
 // reference to the original Markdown code from a rendered HTML.
-func (h *highlightHTMLRenderer) ListItem(out *bytes.Buffer, text []byte, flags int) {	
+func (h *highlightHTMLRenderer) ListItem(out *bytes.Buffer, text []byte, flags int) {
 	switch {
 	case bytes.HasPrefix(text, []byte("[] ")):
 		text = append([]byte(fmt.Sprintf(`<input class="markdown-checkbox" type="checkbox" data-checkbox-index="%d"></input>`, h.checkboxIndex)), text[3:]...)
