@@ -855,3 +855,40 @@ func (s *linkRepoBlackBoxTest) TestListChildLinks() {
 		require.True(t, foundAC, "failed to find link A-C")
 	})
 }
+
+func (s *linkRepoBlackBoxTest) TestDeleteLinkAndListChildren() {
+	s.T().Run("delete link and list children", func(t *testing.T) {
+		fxt := tf.NewTestFixture(t, s.DB,
+			tf.WorkItems(2),
+			tf.WorkItemLinksCustom(1, func(fxt *tf.TestFixture, idx int) error {
+				l := fxt.WorkItemLinks[idx]
+				l.LinkTypeID = link.SystemWorkItemLinkTypeParentChildID
+				l.SourceID = fxt.WorkItems[0].ID
+				l.TargetID = fxt.WorkItems[idx+1].ID
+				return nil
+			}),
+		)
+		hasChildren, err := s.workitemLinkRepo.WorkItemHasChildren(s.Ctx, fxt.WorkItems[0].ID)
+		require.NoError(t, err)
+		require.True(t, hasChildren)
+
+		childrenList, totalCount, err := s.workitemLinkRepo.ListWorkItemChildren(s.Ctx, fxt.WorkItems[0].ID, nil, nil)
+		require.NoError(t, err)
+		require.Equal(t, 1, totalCount)
+		require.Len(t, childrenList, 1)
+		require.Equal(t, childrenList[0].ID, fxt.WorkItems[1].ID)
+
+		// delete work item link
+		err = s.workitemLinkRepo.Delete(s.Ctx, fxt.WorkItemLinks[0].ID, fxt.Identities[0].ID)
+		require.NoError(t, err)
+
+		hasChildren, err = s.workitemLinkRepo.WorkItemHasChildren(s.Ctx, fxt.WorkItems[0].ID)
+		require.NoError(t, err)
+		require.False(t, hasChildren)
+
+		childrenList, totalCount, err = s.workitemLinkRepo.ListWorkItemChildren(s.Ctx, fxt.WorkItems[0].ID, nil, nil)
+		require.NoError(t, err)
+		require.Equal(t, 0, totalCount)
+		require.Len(t, childrenList, 0)
+	})
+}
