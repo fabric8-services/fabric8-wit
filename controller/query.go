@@ -203,7 +203,7 @@ func (c *QueryController) Update(ctx *app.UpdateQueryContext) error {
 		if q.Version != *ctx.Payload.Data.Attributes.Version {
 			return errors.NewVersionConflictError("version conflict")
 		}
-		if strings.TrimSpace(ctx.Payload.Data.Attributes.Title) != "" {
+		if ctx.Payload.Data.Attributes.Title != "" {
 			q.Title = strings.TrimSpace(ctx.Payload.Data.Attributes.Title)
 		}
 		if strings.TrimSpace(ctx.Payload.Data.Attributes.Fields) != "" {

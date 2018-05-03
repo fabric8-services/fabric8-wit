@@ -367,10 +367,14 @@ func (rest *TestQueryREST) TestUpdate() {
 			tf.CreateWorkItemEnvironment(),
 			tf.Queries(1))
 		svc, ctrl := rest.SecuredControllerWithIdentity(testFxt.Identities[0])
+		fields := `{"$AND": [{"space": "1b0efd64-ba69-42a6-b7da-762264744223"}]}`
 		payload := app.UpdateQueryPayload{
 			Data: &app.Query{
-				Attributes: &app.QueryAttributes{},
-				Type:       query.APIStringTypeQuery,
+				Attributes: &app.QueryAttributes{
+					Title:  testFxt.Queries[0].Title,
+					Fields: fields,
+				},
+				Type: query.APIStringTypeQuery,
 			},
 		}
 
@@ -390,11 +394,13 @@ func (rest *TestQueryREST) TestUpdate() {
 		svc, ctrl := rest.SecuredControllerWithIdentity(testFxt.Identities[0])
 		newTitle := " 	   " // tab & spaces
 		newVersion := testFxt.Queries[0].Version
+		fields := `{"$AND": [{"space": "1b0efd64-ba69-42a6-b7da-762264744223"}]}`
 		payload := app.UpdateQueryPayload{
 			Data: &app.Query{
 				Attributes: &app.QueryAttributes{
 					Title:   newTitle,
 					Version: &newVersion,
+					Fields:  fields,
 				},
 				ID:   &testFxt.Queries[0].ID,
 				Type: query.APIStringTypeQuery,
@@ -416,11 +422,14 @@ func (rest *TestQueryREST) TestUpdate() {
 			tf.Queries(1))
 		svc := goa.New("Query-Service")
 		ctrl := NewQueryController(svc, rest.db, rest.Configuration)
+		fields := `{"$AND": [{"space": "1b0efd64-ba69-42a6-b7da-762264744223"}]}`
 
 		payload := app.UpdateQueryPayload{
 			Data: &app.Query{
 				Attributes: &app.QueryAttributes{
+					Title:   testFxt.Queries[0].Title,
 					Version: &testFxt.Queries[0].Version,
+					Fields:  fields,
 				},
 				Type: query.APIStringTypeQuery,
 			},
@@ -442,12 +451,14 @@ func (rest *TestQueryREST) TestUpdate() {
 		svc, ctrl := rest.SecuredControllerWithIdentity(testFxt.Identities[0])
 		newTitle := "Query New 1002"
 		newVersion := testFxt.Queries[0].Version + 1
+		fields := `{"$AND": [{"space": "1b0efd64-ba69-42a6-b7da-762264744223"}]}`
 		id := uuid.NewV4()
 		payload := app.UpdateQueryPayload{
 			Data: &app.Query{
 				Attributes: &app.QueryAttributes{
 					Title:   newTitle,
 					Version: &newVersion,
+					Fields:  fields,
 				},
 				ID:   &id,
 				Type: query.APIStringTypeQuery,
