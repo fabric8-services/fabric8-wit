@@ -27,7 +27,7 @@ objects:
           service: core
       spec:
         containers:
-        - image: registry.devshift.net/fabric8-services/fabric8-wit:${IMAGE_TAG}
+        - image: ${IMAGE}:${IMAGE_TAG}
           env:
           - name: F8_POSTGRES_HOST
             valueFrom:
@@ -197,6 +197,8 @@ objects:
     type: ClusterIP
     sessionAffinity: null
 parameters:
+- name: IMAGE
+  value: registry.devshift.net/fabric8-services/fabric8-wit
 - name: IMAGE_TAG
   value: latest
 - description: Number of deployment replicas
