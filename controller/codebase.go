@@ -444,9 +444,12 @@ func (c *CodebaseController) CheState(ctx *app.CheStateCodebaseContext) error {
 
 	isRunning := cheState.Running
 	isMultiTenant := cheState.MultiTenant
+	isClusterFull := cheState.ClusterFull
+
 	state := app.CheServerState{
 		Running:     &isRunning,
 		MultiTenant: &isMultiTenant,
+		ClusterFull: &isClusterFull,
 	}
 	return ctx.OK(&state)
 }
@@ -477,9 +480,12 @@ func (c *CodebaseController) CheStart(ctx *app.CheStartCodebaseContext) error {
 
 	isRunning := cheState.Running
 	isMultiTenant := cheState.MultiTenant
+	isClusterFull := cheState.ClusterFull
+
 	state := app.CheServerState{
 		Running:     &isRunning,
 		MultiTenant: &isMultiTenant,
+		ClusterFull: &isClusterFull,
 	}
 
 	if isRunning {

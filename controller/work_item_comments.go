@@ -164,11 +164,12 @@ func workItemIncludeCommentsAndTotal(ctx context.Context, db application.DB, par
 			return nil
 		})
 	}()
-	return func(request *http.Request, wi *workitem.WorkItem, wi2 *app.WorkItem) {
+	return func(request *http.Request, wi *workitem.WorkItem, wi2 *app.WorkItem) error {
 		wi2.Relationships.Comments = CreateCommentsRelation(request, wi)
 		wi2.Relationships.Comments.Meta = map[string]interface{}{
 			"totalCount": <-count,
 		}
+		return nil
 	}
 }
 
