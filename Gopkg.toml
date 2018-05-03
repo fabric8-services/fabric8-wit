@@ -124,7 +124,7 @@ ignored = [
 
 [[constraint]]
   name = "github.com/fabric8-services/fabric8-tenant"
-  revision = "master"
+  revision = "6beeca9797d2176629220380c1ebd742086db4a7"
 
 [[constraint]]
   name = "github.com/jstemmer/go-junit-report"

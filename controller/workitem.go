@@ -117,7 +117,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 		// work item was converted.
 		oldNumber := wi.Number
 		oldType := wi.Type
-		err = ConvertJSONAPIToWorkItem(ctx, ctx.Method, appl, *ctx.Payload.Data, wi, wi.SpaceID)
+		err = ConvertJSONAPIToWorkItem(ctx, ctx.Method, appl, *ctx.Payload.Data, wi, wi.Type, wi.SpaceID)
 		if err != nil {
 			return err
 		}
@@ -132,9 +132,17 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
+	wit, err := c.db.WorkItemTypes().Load(ctx.Context, wi.Type)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to load work item type: %s", wi.Type))
+	}
 	c.notification.Send(ctx, notification.NewWorkItemUpdated(ctx.Payload.Data.ID.String()))
+	converted, err := ConvertWorkItem(ctx.Request, *wit, *wi, workItemIncludeHasChildren(ctx, c.db))
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
 	resp := &app.WorkItemSingle{
-		Data: ConvertWorkItem(ctx.Request, *wi, workItemIncludeHasChildren(ctx, c.db)),
+		Data: converted,
 		Links: &app.WorkItemLinks{
 			Self: buildAbsoluteURL(ctx.Request),
 		},
@@ -146,10 +154,18 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 // Show does GET workitem
 func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 	var wi *workitem.WorkItem
+	var wit *workitem.WorkItemType
 	err := application.Transactional(c.db, func(appl application.Application) error {
 		var err error
 		wi, err = appl.WorkItems().LoadByID(ctx, ctx.WiID)
-		return errs.Wrap(err, fmt.Sprintf("Fail to load work item with id %v", ctx.WiID))
+		if err != nil {
+			return errs.Wrap(err, fmt.Sprintf("Fail to load work item with id %v", ctx.WiID))
+		}
+		wit, err = appl.WorkItemTypes().Load(ctx.Context, wi.Type)
+		if err != nil {
+			return errs.Wrapf(err, "failed to load work item type: %s", wi.Type)
+		}
+		return nil
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
@@ -157,7 +173,10 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 	return ctx.ConditionalRequest(*wi, c.config.GetCacheControlWorkItem, func() error {
 		comments := workItemIncludeCommentsAndTotal(ctx, c.db, ctx.WiID)
 		hasChildren := workItemIncludeHasChildren(ctx, c.db)
-		wi2 := ConvertWorkItem(ctx.Request, *wi, comments, hasChildren)
+		wi2, err := ConvertWorkItem(ctx.Request, *wit, *wi, comments, hasChildren)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
 		resp := &app.WorkItemSingle{
 			Data: wi2,
 		}
@@ -238,7 +257,14 @@ func findLastModified(wis []workitem.WorkItem) time.Time {
 
 // ConvertJSONAPIToWorkItem is responsible for converting given WorkItem model object into a
 // response resource object by jsonapi.org specifications
-func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl application.Application, source app.WorkItem, target *workitem.WorkItem, spaceID uuid.UUID) error {
+func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl application.Application, source app.WorkItem, target *workitem.WorkItem, witID uuid.UUID, spaceID uuid.UUID) error {
+	// load work item type to perform conversion according to a field type
+	wit, err := appl.WorkItemTypes().Load(ctx, witID)
+	if err != nil {
+		return errs.Wrapf(err, "failed to load work item type: %s", witID)
+	}
+	_ = wit
+
 	// construct default values from input WI
 	version, err := getVersion(source.Attributes["version"])
 	if err != nil {
@@ -445,21 +471,28 @@ func getVersion(version interface{}) (int, error) {
 
 // WorkItemConvertFunc is a open ended function to add additional links/data/relations to a Comment during
 // conversion from internal to API
-type WorkItemConvertFunc func(*http.Request, *workitem.WorkItem, *app.WorkItem)
+type WorkItemConvertFunc func(*http.Request, *workitem.WorkItem, *app.WorkItem) error
 
 // ConvertWorkItems is responsible for converting given []WorkItem model object into a
 // response resource object by jsonapi.org specifications
-func ConvertWorkItems(request *http.Request, wis []workitem.WorkItem, additional ...WorkItemConvertFunc) []*app.WorkItem {
+func ConvertWorkItems(request *http.Request, wits []workitem.WorkItemType, wis []workitem.WorkItem, additional ...WorkItemConvertFunc) ([]*app.WorkItem, error) {
 	ops := []*app.WorkItem{}
-	for _, wi := range wis {
-		ops = append(ops, ConvertWorkItem(request, wi, additional...))
+	if len(wits) != len(wis) {
+		return nil, errs.Errorf("length mismatch of work items (%d) and work item types (%d)", len(wis), len(wits))
 	}
-	return ops
+	for i := 0; i < len(wis); i++ {
+		wi, err := ConvertWorkItem(request, wits[i], wis[i], additional...)
+		if err != nil {
+			return nil, errs.Wrapf(err, "failed to convert work item: %s", wis[i].ID)
+		}
+		ops = append(ops, wi)
+	}
+	return ops, nil
 }
 
 // ConvertWorkItem is responsible for converting given WorkItem model object into a
 // response resource object by jsonapi.org specifications
-func ConvertWorkItem(request *http.Request, wi workitem.WorkItem, additional ...WorkItemConvertFunc) *app.WorkItem {
+func ConvertWorkItem(request *http.Request, wit workitem.WorkItemType, wi workitem.WorkItem, additional ...WorkItemConvertFunc) (*app.WorkItem, error) {
 	// construct default values from input WI
 	relatedURL := rest.AbsoluteURL(request, app.WorkitemHref(wi.ID))
 	labelsRelated := relatedURL + "/labels"
@@ -496,7 +529,7 @@ func ConvertWorkItem(request *http.Request, wi workitem.WorkItem, additional ...
 	}
 
 	// Move fields into Relationships or Attributes as needed
-	// TODO: Loop based on WorkItemType and match against Field.Type instead of directly to field value
+	// TODO(kwk): Loop based on WorkItemType and match against Field.Type instead of directly to field value
 	for name, val := range wi.Fields {
 		switch name {
 		case workitem.SystemAssignees:
@@ -575,15 +608,17 @@ func ConvertWorkItem(request *http.Request, wi workitem.WorkItem, additional ...
 	workItemIncludeComments(request, &wi, op)
 	workItemIncludeChildren(request, &wi, op)
 	for _, add := range additional {
-		add(request, &wi, op)
+		if err := add(request, &wi, op); err != nil {
+			return nil, errs.Wrap(err, "failed to run additional conversion function")
+		}
 	}
-	return op
+	return op, nil
 }
 
 // workItemIncludeHasChildren adds meta information about existing children
 func workItemIncludeHasChildren(ctx context.Context, appl application.Application, childLinks ...link.WorkItemLinkList) WorkItemConvertFunc {
 	// TODO: Wrap ctx in a Timeout context?
-	return func(request *http.Request, wi *workitem.WorkItem, wi2 *app.WorkItem) {
+	return func(request *http.Request, wi *workitem.WorkItem, wi2 *app.WorkItem) error {
 		var hasChildren bool
 		// If we already have information about children inside the child links
 		// we can use that before querying the DB.
@@ -607,6 +642,7 @@ func workItemIncludeHasChildren(ctx context.Context, appl application.Applicatio
 					}, "unable to find out if work item has children: %s", wi.ID)
 					// enforce to have no children
 					hasChildren = false
+					return errs.Wrapf(err, "failed to determine if work item %s has children", wi.ID)
 				}
 			}
 		}
@@ -616,13 +652,13 @@ func workItemIncludeHasChildren(ctx context.Context, appl application.Applicatio
 		wi2.Relationships.Children.Meta = map[string]interface{}{
 			"hasChildren": hasChildren,
 		}
-
+		return nil
 	}
 }
 
 // includeParentWorkItem adds the parent of given WI to relationships & included object
 func includeParentWorkItem(ctx context.Context, ancestors link.AncestorList, childLinks link.WorkItemLinkList) WorkItemConvertFunc {
-	return func(request *http.Request, wi *workitem.WorkItem, wi2 *app.WorkItem) {
+	return func(request *http.Request, wi *workitem.WorkItem, wi2 *app.WorkItem) error {
 		var parentID *uuid.UUID
 		// If we have an ancestry we can lookup the parent in no time.
 		if ancestors != nil && len(ancestors) != 0 {
@@ -649,6 +685,7 @@ func includeParentWorkItem(ctx context.Context, ancestors link.AncestorList, chi
 			wi2.Relationships.Parent.Data.ID = *parentID
 			wi2.Relationships.Parent.Data.Type = APIStringTypeWorkItem
 		}
+		return nil
 	}
 }
 
@@ -657,11 +694,16 @@ func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) 
 	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
 	var result []workitem.WorkItem
 	var count int
+	var wits []workitem.WorkItemType
 	err := application.Transactional(c.db, func(appl application.Application) error {
 		var err error
 		result, count, err = appl.WorkItemLinks().ListWorkItemChildren(ctx, ctx.WiID, &offset, &limit)
 		if err != nil {
 			return errs.Wrap(err, "unable to list work item children")
+		}
+		wits, err = loadWorkItemTypesFromArr(ctx.Context, appl, result)
+		if err != nil {
+			return errs.Wrap(err, "failed to load the work item types")
 		}
 		return nil
 	})
@@ -672,10 +714,14 @@ func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) 
 		var response app.WorkItemList
 		application.Transactional(c.db, func(appl application.Application) error {
 			hasChildren := workItemIncludeHasChildren(ctx, appl)
+			converted, err := ConvertWorkItems(ctx.Request, wits, result, hasChildren)
+			if err != nil {
+				return errs.WithStack(err)
+			}
 			response = app.WorkItemList{
 				Links: &app.PagingLinks{},
 				Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
-				Data:  ConvertWorkItems(ctx.Request, result, hasChildren),
+				Data:  converted,
 			}
 			return nil
 		})
@@ -693,4 +739,28 @@ func workItemIncludeChildren(request *http.Request, wi *workitem.WorkItem, wi2 *
 	wi2.Relationships.Children.Links = &app.GenericLinks{
 		Related: &childrenRelated,
 	}
+}
+
+func loadWorkItemTypesFromArr(ctx context.Context, appl application.Application, wis []workitem.WorkItem) ([]workitem.WorkItemType, error) {
+	wits := make([]workitem.WorkItemType, len(wis))
+	for idx, wi := range wis {
+		wit, err := appl.WorkItemTypes().Load(ctx, wi.Type)
+		if err != nil {
+			return nil, errs.Wrapf(err, "failed to load the work item type: %s", wi.Type)
+		}
+		wits[idx] = *wit
+	}
+	return wits, nil
+}
+
+func loadWorkItemTypesFromPtrArr(ctx context.Context, appl application.Application, wis []*workitem.WorkItem) ([]workitem.WorkItemType, error) {
+	wits := make([]workitem.WorkItemType, len(wis))
+	for idx, wi := range wis {
+		wit, err := appl.WorkItemTypes().Load(ctx, wi.Type)
+		if err != nil {
+			return nil, errs.Wrapf(err, "failed to load the work item type: %s", wi.Type)
+		}
+		wits[idx] = *wit
+	}
+	return wits, nil
 }
