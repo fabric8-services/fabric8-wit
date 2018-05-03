@@ -212,7 +212,7 @@ func ConvertComment(request *http.Request, comment comment.Comment, additional .
 		Attributes: &app.CommentAttributes{
 			Body:         &comment.Body,
 			BodyRendered: ptr.String(rendering.RenderMarkupToHTML(html.EscapeString(comment.Body), comment.Markup)),
-			Markup:       ptr.String(rendering.NilSafeGetMarkup(&comment.Markup)),
+			Markup:       ptr.String(comment.Markup.NilSafeGetMarkup().String()),
 			CreatedAt:    &comment.CreatedAt,
 			UpdatedAt:    &comment.UpdatedAt,
 		},

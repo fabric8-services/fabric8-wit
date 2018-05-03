@@ -31,7 +31,7 @@ func (s *TestCommentRepository) SetupTest() {
 	s.repo = comment.NewRepository(s.DB)
 }
 
-func newComment(parentID uuid.UUID, body, markup string) *comment.Comment {
+func newComment(parentID uuid.UUID, body string, markup rendering.Markup) *comment.Comment {
 	return &comment.Comment{
 		ParentID: parentID,
 		Body:     body,

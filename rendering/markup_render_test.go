@@ -9,35 +9,43 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRenderMarkdownContent(t *testing.T) {
-	content := "Hello, `World`!"
-	result := rendering.RenderMarkupToHTML(content, rendering.SystemMarkupMarkdown)
-	t.Log(result)
-	require.NotNil(t, result)
-	assert.Equal(t, "<p>Hello, <code>World</code>!</p>\n", result)
+func TestRenderMarkupToHTML(t *testing.T) {
+	t.Parallel()
+	t.Run("markdown content", func(t *testing.T) {
+		t.Parallel()
+		content := "Hello, `World`!"
+		result := rendering.RenderMarkupToHTML(content, rendering.SystemMarkupMarkdown)
+		t.Log(result)
+		assert.Equal(t, "<p>Hello, <code>World</code>!</p>\n", result)
+	})
+	t.Run("JIRA wiki content", func(t *testing.T) {
+		t.Parallel()
+		content := `foo`
+		result := rendering.RenderMarkupToHTML(content, rendering.SystemMarkupJiraWiki)
+		require.Empty(t, result)
+	})
+	t.Run("markdown with code fence", func(t *testing.T) {
+		t.Parallel()
+		content := "``` go\nfunc getTrue() bool {return true}\n```"
+		result := rendering.RenderMarkupToHTML(content, rendering.SystemMarkupMarkdown)
+		t.Log(result)
+		assert.True(t, strings.Contains(result, "<code class=\"prettyprint language-go\">"))
+	})
+	t.Run("markdown with code fence highligher", func(t *testing.T) {
+		t.Parallel()
+		content := "``` go\nfunc getTrue() bool {return true}\n```"
+		result := rendering.RenderMarkupToHTML(content, rendering.SystemMarkupMarkdown)
+		t.Log(result)
+		assert.True(t, strings.Contains(result, "<code class=\"prettyprint language-go\">"))
+		assert.True(t, strings.Contains(result, "<span class=\"kwd\">func</span>"))
+	})
 }
 
-func TestRenderMarkdownContentWithFence(t *testing.T) {
-	content := "``` go\nfunc getTrue() bool {return true}\n```"
-	result := rendering.RenderMarkupToHTML(content, rendering.SystemMarkupMarkdown)
-	t.Log(result)
-	require.NotNil(t, result)
-	assert.True(t, strings.Contains(result, "<code class=\"prettyprint language-go\">"))
-}
-
-func TestRenderMarkdownContentWithFenceHighlighter(t *testing.T) {
-	content := "``` go\nfunc getTrue() bool {return true}\n```"
-	result := rendering.RenderMarkupToHTML(content, rendering.SystemMarkupMarkdown)
-	t.Log(result)
-	require.NotNil(t, result)
-	assert.True(t, strings.Contains(result, "<code class=\"prettyprint language-go\">"))
-	assert.True(t, strings.Contains(result, "<span class=\"kwd\">func</span>"))
-}
-
-func TestIsMarkupSupported(t *testing.T) {
-	assert.True(t, rendering.IsMarkupSupported(rendering.SystemMarkupDefault))
-	assert.True(t, rendering.IsMarkupSupported(rendering.SystemMarkupPlainText))
-	assert.True(t, rendering.IsMarkupSupported(rendering.SystemMarkupMarkdown))
-	assert.False(t, rendering.IsMarkupSupported(""))
-	assert.False(t, rendering.IsMarkupSupported("foo"))
+func TestCheckValid(t *testing.T) {
+	t.Parallel()
+	assert.NoError(t, rendering.SystemMarkupDefault.CheckValid())
+	assert.NoError(t, rendering.SystemMarkupPlainText.CheckValid())
+	assert.Error(t, rendering.SystemMarkupJiraWiki.CheckValid())
+	assert.Error(t, rendering.Markup("").CheckValid())
+	assert.Error(t, rendering.Markup("foo").CheckValid())
 }

@@ -250,6 +250,7 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 		return ctx.OK(&response)
 	}
 	var result []workitem.WorkItem
+	var wits []workitem.WorkItemType
 	var count int
 	err := application.Transactional(c.db, func(appl application.Application) error {
 		if ctx.Q == nil || *ctx.Q == "" {
@@ -274,12 +275,12 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 				return goa.ErrInternal(fmt.Sprintf("unable to list the work items expression: %s: %s", *ctx.Q, err))
 			}
 		}
+		wits, err = loadWorkItemTypesFromArr(ctx.Context, appl, result)
+		if err != nil {
+			return errs.WithStack(err)
+		}
 		return nil
 	})
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
-	}
-	wits, err := loadWorkItemTypesFromArr(ctx.Context, c.db, result)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
@@ -365,10 +366,22 @@ func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, ancest
 	fetchInBatch = fetchInBatch.Sub(matchingIDs)
 
 	wis := []*workitem.WorkItem{}
+	var wits []workitem.WorkItemType
 	err := application.Transactional(c.db, func(appl application.Application) error {
 		var err error
 		wis, err = appl.WorkItems().LoadBatchByID(ctx, fetchInBatch)
-		return err
+		if err != nil {
+			return errs.WithStack(err)
+		}
+		wits = make([]workitem.WorkItemType, len(wis))
+		for i := 0; i < len(wis); i++ {
+			wit, err := appl.WorkItemTypes().Load(ctx.Context, wis[i].Type)
+			if err != nil {
+				return errs.Wrapf(err, "failed to load work item type: %s", wis[i].Type)
+			}
+			wits[i] = *wit
+		}
+		return nil
 	})
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -378,12 +391,8 @@ func (c *SearchController) enrichWorkItemList(ctx *app.ShowSearchContext, ancest
 		return errs.Wrapf(err, "unable to load work item items in batch: %s", fetchInBatch)
 	}
 
-	for _, ele := range wis {
-		wit, err := c.db.WorkItemTypes().Load(ctx.Context, ele.Type)
-		if err != nil {
-			return errs.Wrapf(err, "failed to load work item type: %s", ele.Type)
-		}
-		convertedWI, err := ConvertWorkItem(ctx.Request, *wit, *ele, hasChildren, includeParentWorkItem(ctx, ancestors, childLinks))
+	for i := 0; i < len(wis); i++ {
+		convertedWI, err := ConvertWorkItem(ctx.Request, wits[i], *wis[i], hasChildren, includeParentWorkItem(ctx, ancestors, childLinks))
 		if err != nil {
 			return errs.WithStack(err)
 		}

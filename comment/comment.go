@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
+	"github.com/fabric8-services/fabric8-wit/rendering"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -15,7 +16,7 @@ type Comment struct {
 	ParentID uuid.UUID `sql:"type:uuid"`
 	Creator  uuid.UUID `sql:"type:uuid"` // Belongs To Identity
 	Body     string
-	Markup   string
+	Markup   rendering.Markup
 }
 
 // TableName overrides the table name settings in Gorm to force a specific table name

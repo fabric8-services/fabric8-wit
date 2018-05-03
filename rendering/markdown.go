@@ -29,8 +29,8 @@ const (
 		blackfriday.EXTENSION_DEFINITION_LISTS
 )
 
-// MarkdownCommonHighlighter uses the blackfriday.MarkdownCommon setup but also includes
-// code-prettify formatting of BlockCode segments
+// MarkdownCommonHighlighter uses the blackfriday.MarkdownCommon setup but also
+// includes code-prettify formatting of BlockCode segments
 func MarkdownCommonHighlighter(input []byte) []byte {
 	renderer := highlightHTMLRenderer{blackfriday.HtmlRenderer(commonHTMLFlags, "", "")}
 	return blackfriday.MarkdownOptions(input, renderer, blackfriday.Options{
@@ -41,8 +41,8 @@ type highlightHTMLRenderer struct {
 	blackfriday.Renderer
 }
 
-// BlackCode overrides the standard Html Renderer to add support for prettify of source code within block
-// If highlighter fail, normal Html.BlockCode is called
+// BlackCode overrides the standard Html Renderer to add support for prettify of
+// source code within block If highlighter fail, normal Html.BlockCode is called
 func (h highlightHTMLRenderer) BlockCode(out *bytes.Buffer, text []byte, lang string) {
 	highlighted, err := syntaxhighlight.AsHTML(text)
 	if err != nil {
