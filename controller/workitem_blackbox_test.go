@@ -1972,8 +1972,17 @@ func (s *WorkItem2Suite) TestWI2FailOnDelete() {
 }
 
 func (s *WorkItem2Suite) TestWI2CreateWithArea() {
+	fxt := tf.NewTestFixture(s.T(), s.DB,
+		tf.CreateWorkItemEnvironment(),
+		tf.Areas(2, func(fxt *tf.TestFixture, idx int) error {
+			if idx == 1 {
+				fxt.Areas[idx].MakeChildOf(*fxt.Areas[idx-1])
+			}
+			return nil
+		}),
+	)
 	// given
-	_, areaInstance := createSpaceAndArea(s.T(), gormapplication.NewGormDB(s.DB))
+	areaInstance := fxt.Areas[1]
 	areaID := areaInstance.ID.String()
 	arType := area.APIStringTypeAreas
 	// when
@@ -1999,7 +2008,7 @@ func (s *WorkItem2Suite) TestWI2CreateWithArea() {
 
 func (s *WorkItem2Suite) TestWI2UpdateWithArea() {
 	// given
-	_, areaInstance := createSpaceAndArea(s.T(), gormapplication.NewGormDB(s.DB))
+	areaInstance := tf.NewTestFixture(s.T(), s.DB, tf.Areas(1)).Areas[0]
 	areaID := areaInstance.ID.String()
 	arType := area.APIStringTypeAreas
 	c := minimumRequiredCreatePayload()
@@ -2046,7 +2055,9 @@ func (s *WorkItem2Suite) TestWI2UpdateWithArea() {
 
 func (s *WorkItem2Suite) TestWI2UpdateWithRootAreaIfMissing() {
 	// given
-	testSpace, rootArea := createSpaceAndArea(s.T(), gormapplication.NewGormDB(s.DB))
+	fxt := tf.NewTestFixture(s.T(), s.DB, tf.Spaces(1), tf.Areas(1))
+	testSpace := fxt.Spaces[0]
+	rootArea := fxt.Areas[0]
 	log.Info(nil, nil, "creating child area...")
 	childArea := area.Area{
 		Name:    "Child Area of " + rootArea.Name,

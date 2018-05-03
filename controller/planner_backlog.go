@@ -55,13 +55,17 @@ func (c *PlannerBacklogController) List(ctx *app.ListPlannerBacklogContext) erro
 	}
 
 	// Get the list of work items for the following criteria
-	result, count, err := getBacklogItems(ctx.Context, c.db, ctx.SpaceID, exp, &offset, &limit)
+	result, wits, count, err := getBacklogItems(ctx.Context, c.db, ctx.SpaceID, exp, &offset, &limit)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	return ctx.ConditionalEntities(result, c.config.GetCacheControlWorkItems, func() error {
+		wi, err := ConvertWorkItems(ctx.Request, wits, result)
+		if err != nil {
+			jsonapi.JSONErrorResponse(ctx, err)
+		}
 		response := app.WorkItemList{
-			Data:  ConvertWorkItems(ctx.Request, result),
+			Data:  wi,
 			Links: &app.PagingLinks{},
 			Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
 		}
@@ -123,13 +127,14 @@ func generateBacklogExpression(ctx context.Context, db application.DB, spaceID u
 	return exp, nil
 }
 
-func getBacklogItems(ctx context.Context, db application.DB, spaceID uuid.UUID, exp criteria.Expression, offset *int, limit *int) ([]workitem.WorkItem, int, error) {
+func getBacklogItems(ctx context.Context, db application.DB, spaceID uuid.UUID, exp criteria.Expression, offset *int, limit *int) ([]workitem.WorkItem, []workitem.WorkItemType, int, error) {
 	result := []workitem.WorkItem{}
+	wits := []workitem.WorkItemType{}
 	count := 0
 
 	backlogExp, err := generateBacklogExpression(ctx, db, spaceID, exp)
 	if err != nil || backlogExp == nil {
-		return result, count, err
+		return result, wits, count, err
 	}
 
 	err = application.Transactional(db, func(appl application.Application) error {
@@ -138,12 +143,16 @@ func getBacklogItems(ctx context.Context, db application.DB, spaceID uuid.UUID, 
 		if err != nil {
 			return errs.Wrap(err, "error listing backlog items")
 		}
+		wits, err = loadWorkItemTypesFromArr(ctx, appl, result)
+		if err != nil {
+			return errs.Wrap(err, "failed to load work item types")
+		}
 		return nil
 	})
 	if err != nil {
-		return result, count, err
+		return result, wits, count, err
 	}
-	return result, count, nil
+	return result, wits, count, nil
 }
 
 func countBacklogItems(ctx context.Context, db application.DB, spaceID uuid.UUID) (int, error) {

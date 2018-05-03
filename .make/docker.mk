@@ -1,6 +1,12 @@
 DOCKER_IMAGE_CORE := $(PROJECT_NAME)
 DOCKER_IMAGE_DEPLOY := $(PROJECT_NAME)-deploy
 
+ifeq ($(TARGET),rhel)
+    DOCKERFILE_DEPLOY := Dockerfile.deploy.rhel
+else
+    DOCKERFILE_DEPLOY := Dockerfile.deploy
+endif
+
 # If running in Jenkins we don't allow for interactively running the container
 ifneq ($(BUILD_TAG),)
 	DOCKER_RUN_INTERACTIVE_SWITCH :=
@@ -30,7 +36,7 @@ docker-image-builder:
 .PHONY: docker-image-deploy
 ## Creates a runnable image using the artifacts from the bin directory.
 docker-image-deploy:
-	docker build --quiet -t $(DOCKER_IMAGE_DEPLOY) -f $(CUR_DIR)/Dockerfile.deploy $(CUR_DIR)
+	docker build --quiet -t $(DOCKER_IMAGE_DEPLOY) -f $(CUR_DIR)/$(DOCKERFILE_DEPLOY) $(CUR_DIR)
 
 .PHONY: docker-publish-deploy
 ## Tags the runnable image and pushes it to the docker hub.
