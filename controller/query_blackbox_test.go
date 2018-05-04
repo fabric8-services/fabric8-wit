@@ -444,6 +444,36 @@ func (rest *TestQueryREST) TestUpdate() {
 		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "unauthorized.errors.golden.json"), jerrs)
 	})
 
+	rest.T().Run("different user updating", func(t *testing.T) {
+		testFxt := tf.NewTestFixture(t, rest.DB,
+			tf.CreateWorkItemEnvironment(),
+			tf.Queries(1))
+		testFxt2 := tf.NewTestFixture(t, rest.DB,
+			tf.Identities(1))
+
+		svc, ctrl := rest.SecuredControllerWithIdentity(testFxt2.Identities[0])
+		fields := `{"$AND": [{"space": "1b0efd64-ba69-42a6-b7da-762264744223"}]}`
+
+		payload := app.UpdateQueryPayload{
+			Data: &app.Query{
+				Attributes: &app.QueryAttributes{
+					Title:   testFxt.Queries[0].Title,
+					Version: &testFxt.Queries[0].Version,
+					Fields:  fields,
+				},
+				Type: query.APIStringTypeQuery,
+			},
+		}
+
+		_, jerrs := test.UpdateQueryForbidden(t, svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Queries[0].ID, nil, nil, &payload)
+		require.NotNil(t, jerrs)
+		require.Len(t, jerrs.Errors, 1)
+		require.Contains(t, jerrs.Errors[0].Detail, "user is not the query creator")
+		ignoreString := "IGNORE_ME"
+		jerrs.Errors[0].ID = &ignoreString
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "forbiden.errors.golden.json"), jerrs)
+	})
+
 	rest.T().Run("update query not found", func(t *testing.T) {
 		testFxt := tf.NewTestFixture(t, rest.DB,
 			tf.CreateWorkItemEnvironment(),

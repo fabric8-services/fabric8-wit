@@ -1,0 +1,11 @@
+{
+  "errors": [
+    {
+      "code": "forbidden_error",
+      "detail": "user is not the query creator",
+      "id": "IGNORE_ME",
+      "status": "403",
+      "title": "Forbidden error"
+    }
+  ]
+}
