@@ -35,33 +35,36 @@ func TestRenderMarkdownContentWithFenceHighlighter(t *testing.T) {
 }
 
 func TestRenderMarkdownContentWithCheckboxItems(t *testing.T) {
-	// test star lists
-	content := "* [ ] Some Item 0\n* [ ] Some Item 1\n* [X] Some Item 2\n* [x] Some Item 3"
-	result := rendering.RenderMarkupToHTML(content, rendering.SystemMarkupMarkdown)
-	t.Log(result)
-	require.NotNil(t, result)
-	assert.True(t, strings.Contains(result, "<input class=\"markdown-checkbox\" type=\"checkbox\" data-checkbox-index=\"0\"></input>Some Item 0"))
-	assert.True(t, strings.Contains(result, "<input class=\"markdown-checkbox\" type=\"checkbox\" data-checkbox-index=\"1\"></input>Some Item 1"))
-	assert.True(t, strings.Contains(result, "<input class=\"markdown-checkbox\" type=\"checkbox\" checked=\"\" data-checkbox-index=\"2\"></input>Some Item 2"))
-	assert.True(t, strings.Contains(result, "<input class=\"markdown-checkbox\" type=\"checkbox\" checked=\"\" data-checkbox-index=\"3\"></input>Some Item 3"))
-	// test dash lists
-	content = "- [ ] Some Item 0\n- [ ] Some Item 1\n- [X] Some Item 2\n- [x] Some Item 3"
-	result = rendering.RenderMarkupToHTML(content, rendering.SystemMarkupMarkdown)
-	t.Log(result)
-	require.NotNil(t, result)
-	assert.True(t, strings.Contains(result, "<input class=\"markdown-checkbox\" type=\"checkbox\" data-checkbox-index=\"0\"></input>Some Item 0"))
-	assert.True(t, strings.Contains(result, "<input class=\"markdown-checkbox\" type=\"checkbox\" data-checkbox-index=\"1\"></input>Some Item 1"))
-	assert.True(t, strings.Contains(result, "<input class=\"markdown-checkbox\" type=\"checkbox\" checked=\"\" data-checkbox-index=\"2\"></input>Some Item 2"))
-	assert.True(t, strings.Contains(result, "<input class=\"markdown-checkbox\" type=\"checkbox\" checked=\"\" data-checkbox-index=\"3\"></input>Some Item 3"))
-	// test antipatterns
-	content = "- [ ]Some Item 0\n- [] Some Item 1\n- [X]Some Item 2\n- [x]Some Item 3"
-	result = rendering.RenderMarkupToHTML(content, rendering.SystemMarkupMarkdown)
-	t.Log(result)
-	require.NotNil(t, result)
-	assert.False(t, strings.Contains(result, "<input class=\"markdown-checkbox\" type=\"checkbox\" data-checkbox-index=\"0\"></input>Some Item 0"))
-	assert.False(t, strings.Contains(result, "<input class=\"markdown-checkbox\" type=\"checkbox\" data-checkbox-index=\"1\"></input>Some Item 1"))
-	assert.False(t, strings.Contains(result, "<input class=\"markdown-checkbox\" type=\"checkbox\" checked=\"\" data-checkbox-index=\"2\"></input>Some Item 2"))
-	assert.False(t, strings.Contains(result, "<input class=\"markdown-checkbox\" type=\"checkbox\" checked=\"\" data-checkbox-index=\"3\"></input>Some Item 3"))
+	t.Run("star lists", func(t *testing.T) {
+		content := "* [ ] Some Item 0\n* [ ] Some Item 1\n* [X] Some Item 2\n* [x] Some Item 3"
+		result := rendering.RenderMarkupToHTML(content, rendering.SystemMarkupMarkdown)
+		t.Log(result)
+		require.NotNil(t, result)
+		assert.True(t, strings.Contains(result, "<input class=\"markdown-checkbox\" type=\"checkbox\" data-checkbox-index=\"0\"></input>Some Item 0"))
+		assert.True(t, strings.Contains(result, "<input class=\"markdown-checkbox\" type=\"checkbox\" data-checkbox-index=\"1\"></input>Some Item 1"))
+		assert.True(t, strings.Contains(result, "<input class=\"markdown-checkbox\" type=\"checkbox\" checked=\"\" data-checkbox-index=\"2\"></input>Some Item 2"))
+		assert.True(t, strings.Contains(result, "<input class=\"markdown-checkbox\" type=\"checkbox\" checked=\"\" data-checkbox-index=\"3\"></input>Some Item 3"))
+	})
+	t.Run("dash lists", func(t *testing.T) {
+		content := "- [ ] Some Item 0\n- [ ] Some Item 1\n- [X] Some Item 2\n- [x] Some Item 3"
+		result := rendering.RenderMarkupToHTML(content, rendering.SystemMarkupMarkdown)
+		t.Log(result)
+		require.NotNil(t, result)
+		assert.True(t, strings.Contains(result, "<input class=\"markdown-checkbox\" type=\"checkbox\" data-checkbox-index=\"0\"></input>Some Item 0"))
+		assert.True(t, strings.Contains(result, "<input class=\"markdown-checkbox\" type=\"checkbox\" data-checkbox-index=\"1\"></input>Some Item 1"))
+		assert.True(t, strings.Contains(result, "<input class=\"markdown-checkbox\" type=\"checkbox\" checked=\"\" data-checkbox-index=\"2\"></input>Some Item 2"))
+		assert.True(t, strings.Contains(result, "<input class=\"markdown-checkbox\" type=\"checkbox\" checked=\"\" data-checkbox-index=\"3\"></input>Some Item 3"))
+	})
+	t.Run("antipatterns", func(t *testing.T) {
+		content := "- [ ]Some Item 0\n- [] Some Item 1\n- [X]Some Item 2\n- [x]Some Item 3"
+		result := rendering.RenderMarkupToHTML(content, rendering.SystemMarkupMarkdown)
+		t.Log(result)
+		require.NotNil(t, result)
+		assert.False(t, strings.Contains(result, "<input class=\"markdown-checkbox\" type=\"checkbox\" data-checkbox-index=\"0\"></input>Some Item 0"))
+		assert.False(t, strings.Contains(result, "<input class=\"markdown-checkbox\" type=\"checkbox\" data-checkbox-index=\"1\"></input>Some Item 1"))
+		assert.False(t, strings.Contains(result, "<input class=\"markdown-checkbox\" type=\"checkbox\" checked=\"\" data-checkbox-index=\"2\"></input>Some Item 2"))
+		assert.False(t, strings.Contains(result, "<input class=\"markdown-checkbox\" type=\"checkbox\" checked=\"\" data-checkbox-index=\"3\"></input>Some Item 3"))
+	})
 }
 
 func TestIsMarkupSupported(t *testing.T) {
