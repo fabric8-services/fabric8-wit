@@ -124,7 +124,7 @@ ignored = [
 
 [[constraint]]
   name = "github.com/fabric8-services/fabric8-tenant"
-  revision = "6beeca9797d2176629220380c1ebd742086db4a7"
+  revision = "7e149ee841ea9fe7d439f206781b51cacde5d4d3"
 
 [[constraint]]
   name = "github.com/jstemmer/go-junit-report"
@@ -145,6 +145,10 @@ ignored = [
 [[constraint]]
   name = "github.com/gojuno/minimock"
   branch = "master"
+
+[[constraint]]
+  name = "github.com/dnaeon/go-vcr"
+  revision= "9d71b8a6df86e00127f96bc8dabc09856ab8afdb"
 
 [prune]
   go-tests = true
