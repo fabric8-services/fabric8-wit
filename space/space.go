@@ -338,7 +338,7 @@ func ParseSortSpaceBy(s *string) (SortSpaceBy, error) {
 	case "-updated":
 		sort = SortSpaceByUpdatedAtDesc
 	default:
-		return SortSpaceBy(""), fmt.Errorf("unknown sort parameter: %s", *s)
+		return SortSpaceBy(""), errors.NewBadParameterError("sort", *s)
 	}
 	return sort, nil
 }

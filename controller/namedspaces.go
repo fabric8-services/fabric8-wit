@@ -64,7 +64,7 @@ func (c *NamedspacesController) List(ctx *app.ListNamedspacesContext) error {
 
 	sort, err := space.ParseSortSpaceBy(ctx.Sort)
 	if err != nil {
-		return err
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
 	var spaces []space.Space

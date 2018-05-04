@@ -307,7 +307,7 @@ func (c *SearchController) Spaces(ctx *app.SpacesSearchContext) error {
 
 	sort, err := space.ParseSortSpaceBy(ctx.Sort)
 	if err != nil {
-		return err
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
 	var result []space.Space
