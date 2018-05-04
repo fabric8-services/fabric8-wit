@@ -1,0 +1,11 @@
+{
+  "errors": [
+    {
+      "code": "unauthorized",
+      "detail": "Missing token manager",
+      "id": "IGNORE_ME",
+      "status": "401",
+      "title": "Unauthorized"
+    }
+  ]
+}
