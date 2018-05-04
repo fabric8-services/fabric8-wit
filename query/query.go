@@ -119,10 +119,10 @@ func (r *GormQueryRepository) Save(ctx context.Context, q Query) (*Query, error)
 	if strings.TrimSpace(q.Title) == "" {
 		return nil, errors.NewBadParameterError("query title cannot be empty string", q.Title).Expected("non empty string")
 	}
-	lbl := Query{}
-	tx := r.db.Where("id = ?", q.ID).First(&lbl)
+	qry := Query{}
+	tx := r.db.Where("id = ?", q.ID).First(&qry)
 	oldVersion := q.Version
-	q.Version = lbl.Version + 1
+	q.Version = qry.Version + 1
 	if tx.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
 			"query_id": q.ID,
