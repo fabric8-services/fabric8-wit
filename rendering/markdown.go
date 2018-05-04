@@ -52,9 +52,6 @@ type highlightHTMLRenderer struct {
 // reference to the original Markdown code from a rendered HTML.
 func (h *highlightHTMLRenderer) ListItem(out *bytes.Buffer, text []byte, flags int) {
 	switch {
-	case bytes.HasPrefix(text, []byte("[] ")):
-		text = append([]byte(fmt.Sprintf(`<input class="markdown-checkbox" type="checkbox" data-checkbox-index="%d"></input>`, h.checkboxIndex)), text[3:]...)
-		h.checkboxIndex++
 	case bytes.HasPrefix(text, []byte("[ ] ")):
 		text = append([]byte(fmt.Sprintf(`<input class="markdown-checkbox" type="checkbox" data-checkbox-index="%d"></input>`, h.checkboxIndex)), text[4:]...)
 		h.checkboxIndex++
