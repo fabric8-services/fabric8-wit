@@ -480,4 +480,5 @@ func (err *StarterError) String() string {
 type ServerStateResponse struct {
 	Running     bool `json:"running"`
 	MultiTenant bool `json:"multiTenant"`
+	ClusterFull bool `json:"clusterFull"`
 }
