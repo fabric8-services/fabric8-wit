@@ -6,17 +6,11 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 )
 
-// IsMarkupSupported indicates if the given markup is supported
-func IsMarkupSupported(markup string) bool {
-	if markup == SystemMarkupDefault || markup == SystemMarkupMarkdown {
-		return true
-	}
-	return false
-}
-
-// RenderMarkupToHTML converts the given `content` in HTML using the markup tool corresponding to the given `markup` argument
-// or return nil if no tool for the given `markup` is available, or returns an `error` if the command was not found or failed.
-func RenderMarkupToHTML(content, markup string) string {
+// RenderMarkupToHTML converts the given `content` in HTML using the markup tool
+// corresponding to the given `markup` argument or return nil if no tool for the
+// given `markup` is available, or returns an `error` if the command was not
+// found or failed.
+func RenderMarkupToHTML(content string, markup Markup) string {
 	switch markup {
 	case SystemMarkupPlainText:
 		return content
@@ -27,6 +21,8 @@ func RenderMarkupToHTML(content, markup string) string {
 		p.AllowAttrs("class").OnElements("span")
 		html := string(p.SanitizeBytes(unsafe))
 		return html
+	case SystemMarkupJiraWiki:
+		return ""
 	default:
 		return ""
 	}

@@ -7,6 +7,7 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -45,7 +46,7 @@ func (r *GormCommentRevisionRepository) Create(ctx context.Context, modifierID u
 		CommentID:        c.ID,
 		CommentParentID:  c.ParentID,
 		CommentBody:      &c.Body,
-		CommentMarkup:    &c.Markup,
+		CommentMarkup:    ptr.String(c.Markup.String()),
 	}
 	if revision.Type == RevisionTypeDelete {
 		revision.CommentBody = nil

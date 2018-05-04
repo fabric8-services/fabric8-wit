@@ -94,8 +94,8 @@ func (t SimpleType) ConvertToModel(value interface{}) (interface{}, error) {
 		switch value.(type) {
 		case rendering.MarkupContent:
 			markupContent := value.(rendering.MarkupContent)
-			if !rendering.IsMarkupSupported(markupContent.Markup) {
-				return nil, errs.Errorf("value %v (type %s) has no valid markup type %s", value, "MarkupContent", markupContent.Markup)
+			if err := markupContent.Markup.CheckValid(); err != nil {
+				return nil, errs.Wrapf(err, "value %v (type %s) has no valid markup type %s", value, "MarkupContent", markupContent.Markup)
 			}
 			return markupContent.ToMap(), nil
 		default:

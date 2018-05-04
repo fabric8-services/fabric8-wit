@@ -405,11 +405,11 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 			markup := val.(string)
 			// if no description existed before, set the markup in a new one
 			if target.Fields[workitem.SystemDescription] == nil {
-				target.Fields[workitem.SystemDescription] = rendering.MarkupContent{Markup: markup}
+				target.Fields[workitem.SystemDescription] = rendering.MarkupContent{Markup: rendering.Markup(markup)}
 			} else {
 				// only update the 'description' field in the existing description
 				existingDescription := target.Fields[workitem.SystemDescription].(rendering.MarkupContent)
-				existingDescription.Markup = markup
+				existingDescription.Markup = rendering.Markup(markup)
 				target.Fields[workitem.SystemDescription] = existingDescription
 			}
 		case workitem.SystemCodebase:
@@ -425,7 +425,7 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, method string, appl applicati
 	}
 	if description, ok := target.Fields[workitem.SystemDescription].(rendering.MarkupContent); ok {
 		// verify the description markup
-		if !rendering.IsMarkupSupported(description.Markup) {
+		if err := description.Markup.CheckValid(); err != nil {
 			return errors.NewBadParameterError("data.relationships.attributes[system.description].markup", description.Markup)
 		}
 	}
@@ -713,6 +713,10 @@ func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) 
 	return ctx.ConditionalEntities(result, c.config.GetCacheControlWorkItems, func() error {
 		var response app.WorkItemList
 		application.Transactional(c.db, func(appl application.Application) error {
+			wits, err := loadWorkItemTypesFromArr(ctx.Context, appl, result)
+			if err != nil {
+				return errs.Wrapf(err, "failed to load the work item types")
+			}
 			hasChildren := workItemIncludeHasChildren(ctx, appl)
 			converted, err := ConvertWorkItems(ctx.Request, wits, result, hasChildren)
 			if err != nil {

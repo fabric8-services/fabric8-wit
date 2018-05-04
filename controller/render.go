@@ -28,10 +28,10 @@ func NewRenderController(service *goa.Service) *RenderController {
 func (c *RenderController) Render(ctx *app.RenderRenderContext) error {
 	content := ctx.Payload.Data.Attributes.Content
 	markup := ctx.Payload.Data.Attributes.Markup
-	if !rendering.IsMarkupSupported(markup) {
+	if err := rendering.Markup(markup).CheckValid(); err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("Unsupported markup type", markup))
 	}
-	htmlResult := rendering.RenderMarkupToHTML(content, markup)
+	htmlResult := rendering.RenderMarkupToHTML(content, rendering.Markup(markup))
 	res := &app.MarkupRenderingSingle{Data: &app.MarkupRenderingData{
 		ID:   uuid.NewV4().String(),
 		Type: RenderingType,

@@ -634,7 +634,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 		}
 		if fieldName == SystemDescription && wi.Fields[fieldName] != nil {
 			description := rendering.NewMarkupContentFromMap(wi.Fields[fieldName].(map[string]interface{}))
-			if !rendering.IsMarkupSupported(description.Markup) {
+			if err := description.Markup.CheckValid(); err != nil {
 				return nil, errors.NewBadParameterError(fieldName, fieldValue)
 			}
 		}
