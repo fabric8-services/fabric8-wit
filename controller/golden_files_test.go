@@ -141,7 +141,7 @@ func testableCompareWithGolden(update bool, goldenFile string, actualObj interfa
 
 		dmp := diffmatchpatch.New()
 		diffs := dmp.DiffMain(expectedStr, actualStr, false)
-		log.Error(nil, nil, "testableCompareWithGolden: mismatch of actual output and golden-file %s:\n %s \n", absPath, dmp.DiffPrettyText(diffs))
+		log.Error(nil, nil, `testableCompareWithGolden: mismatch of actual output and golden-file %s:\n %s \n %s \n`, absPath, dmp.DiffPrettyText(diffs), dmp.DiffToDelta(diffs))
 		return errs.Errorf("mismatch of actual output and golden-file %s:\n %s \n", absPath, dmp.DiffPrettyText(diffs))
 	}
 	return nil
@@ -155,16 +155,16 @@ func findUUIDs(str string) ([]uuid.UUID, error) {
 	if err != nil {
 		return nil, errs.Wrapf(err, "failed to compile UUID regex pattern: %s", pattern)
 	}
-	uniqIDs := map[uuid.UUID]struct{}{}
+	uniqIDs := map[string]struct{}{}
 	var res []uuid.UUID
 	for _, uuidStr := range uuidRegexp.FindAllString(str, -1) {
 		ID, err := uuid.FromString(uuidStr)
 		if err != nil {
 			return nil, errs.Wrapf(err, "failed to parse UUID %s", uuidStr)
 		}
-		_, alreadyInMap := uniqIDs[ID]
+		_, alreadyInMap := uniqIDs[ID.String()]
 		if !alreadyInMap {
-			uniqIDs[ID] = struct{}{}
+			uniqIDs[ID.String()] = struct{}{}
 			// append to array
 			res = append(res, ID)
 		}
