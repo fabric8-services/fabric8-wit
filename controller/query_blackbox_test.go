@@ -2,6 +2,7 @@ package controller_test
 
 import (
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/fabric8-services/fabric8-auth/auth"
@@ -302,6 +303,201 @@ func (rest *TestQueryREST) TestShow() {
 	})
 }
 
+func (rest *TestQueryREST) TestUpdate() {
+
+	rest.T().Run("update query", func(t *testing.T) {
+		// 1 for each test, without conflict of changes during each test execution, isolated or not :)
+		testFxt := tf.NewTestFixture(t, rest.DB,
+			tf.CreateWorkItemEnvironment(),
+			tf.Queries(1))
+		svc, ctrl := rest.SecuredControllerWithIdentity(testFxt.Identities[0])
+		newTitle := "Query New 1001"
+		fields := `{"$AND": [{"space": "1b0efd64-ba69-42a6-b7da-762264744223"}]}`
+		payload := app.UpdateQueryPayload{
+			Data: &app.Query{
+				Attributes: &app.QueryAttributes{
+					Title:   newTitle,
+					Version: &testFxt.Queries[0].Version,
+					Fields:  fields,
+				},
+				ID:   &testFxt.Queries[0].ID,
+				Type: query.APIStringTypeQuery,
+			},
+		}
+		resp, updated := test.UpdateQueryOK(t, svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Queries[0].ID, nil, nil, &payload)
+		assert.Equal(t, newTitle, updated.Data.Attributes.Title)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "ok.query.golden.json"), updated)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "ok.headers.golden.json"), resp)
+
+		_, queries2 := test.ShowQueryOK(t, svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Queries[0].ID, nil, nil)
+		assertQueryLinking(t, queries2.Data)
+		require.NotEmpty(t, queries2.Data, "queries found")
+		assert.Equal(t, newTitle, queries2.Data.Attributes.Title)
+	})
+
+	rest.T().Run("update query with version conflict", func(t *testing.T) {
+		testFxt := tf.NewTestFixture(t, rest.DB,
+			tf.CreateWorkItemEnvironment(),
+			tf.Queries(1))
+		svc, ctrl := rest.SecuredControllerWithIdentity(testFxt.Identities[0])
+		newVersion := testFxt.Queries[0].Version + 2
+		fields := `{"$AND": [{"space": "1b0efd64-ba69-42a6-b7da-762264744223"}]}`
+		payload := app.UpdateQueryPayload{
+			Data: &app.Query{
+				Attributes: &app.QueryAttributes{
+					Title:   testFxt.Queries[0].Title,
+					Version: &newVersion,
+					Fields:  fields,
+				},
+				ID:   &testFxt.Queries[0].ID,
+				Type: query.APIStringTypeQuery,
+			},
+		}
+		_, jerrs := test.UpdateQueryConflict(t, svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Queries[0].ID, nil, nil, &payload)
+		require.NotNil(t, jerrs)
+		require.Len(t, jerrs.Errors, 1)
+		require.Contains(t, jerrs.Errors[0].Detail, "version conflict")
+		ignoreString := "IGNORE_ME"
+		jerrs.Errors[0].ID = &ignoreString
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "conflict.errors.golden.json"), jerrs)
+	})
+
+	rest.T().Run("update query with bad parameter", func(t *testing.T) {
+		testFxt := tf.NewTestFixture(t, rest.DB,
+			tf.CreateWorkItemEnvironment(),
+			tf.Queries(1))
+		svc, ctrl := rest.SecuredControllerWithIdentity(testFxt.Identities[0])
+		fields := `{"$AND": [{"space": "1b0efd64-ba69-42a6-b7da-762264744223"}]}`
+		payload := app.UpdateQueryPayload{
+			Data: &app.Query{
+				Attributes: &app.QueryAttributes{
+					Title:  testFxt.Queries[0].Title,
+					Fields: fields,
+				},
+				Type: query.APIStringTypeQuery,
+			},
+		}
+
+		_, jerrs := test.UpdateQueryBadRequest(t, svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Queries[0].ID, nil, nil, &payload)
+		require.NotNil(t, jerrs)
+		require.Len(t, jerrs.Errors, 1)
+		require.Contains(t, jerrs.Errors[0].Detail, "Bad value for parameter 'data.attributes.version'")
+		ignoreString := "IGNORE_ME"
+		jerrs.Errors[0].ID = &ignoreString
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "badparam_version.errors.golden.json"), jerrs)
+	})
+
+	rest.T().Run("update query with bad parameter - title", func(t *testing.T) {
+		testFxt := tf.NewTestFixture(t, rest.DB,
+			tf.CreateWorkItemEnvironment(),
+			tf.Queries(1))
+		svc, ctrl := rest.SecuredControllerWithIdentity(testFxt.Identities[0])
+		newTitle := " 	   " // tab & spaces
+		newVersion := testFxt.Queries[0].Version
+		fields := `{"$AND": [{"space": "1b0efd64-ba69-42a6-b7da-762264744223"}]}`
+		payload := app.UpdateQueryPayload{
+			Data: &app.Query{
+				Attributes: &app.QueryAttributes{
+					Title:   newTitle,
+					Version: &newVersion,
+					Fields:  fields,
+				},
+				ID:   &testFxt.Queries[0].ID,
+				Type: query.APIStringTypeQuery,
+			},
+		}
+
+		_, jerrs := test.UpdateQueryBadRequest(t, svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Queries[0].ID, nil, nil, &payload)
+		require.NotNil(t, jerrs)
+		require.Len(t, jerrs.Errors, 1)
+		require.Contains(t, jerrs.Errors[0].Detail, "Bad value for parameter 'query title cannot be empty string'")
+		ignoreString := "IGNORE_ME"
+		jerrs.Errors[0].ID = &ignoreString
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "badparam_name.errors.golden.json"), jerrs)
+	})
+
+	rest.T().Run("update query with unauthorized", func(t *testing.T) {
+		testFxt := tf.NewTestFixture(t, rest.DB,
+			tf.CreateWorkItemEnvironment(),
+			tf.Queries(1))
+		svc := goa.New("Query-Service")
+		ctrl := NewQueryController(svc, rest.db, rest.Configuration)
+		fields := `{"$AND": [{"space": "1b0efd64-ba69-42a6-b7da-762264744223"}]}`
+
+		payload := app.UpdateQueryPayload{
+			Data: &app.Query{
+				Attributes: &app.QueryAttributes{
+					Title:   testFxt.Queries[0].Title,
+					Version: &testFxt.Queries[0].Version,
+					Fields:  fields,
+				},
+				Type: query.APIStringTypeQuery,
+			},
+		}
+
+		_, jerrs := test.UpdateQueryUnauthorized(t, svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Queries[0].ID, nil, nil, &payload)
+		require.NotNil(t, jerrs)
+		require.Len(t, jerrs.Errors, 1)
+		require.Contains(t, jerrs.Errors[0].Detail, "Missing token manager")
+		ignoreString := "IGNORE_ME"
+		jerrs.Errors[0].ID = &ignoreString
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "unauthorized.errors.golden.json"), jerrs)
+	})
+
+	rest.T().Run("different user updating", func(t *testing.T) {
+		testFxt := tf.NewTestFixture(t, rest.DB,
+			tf.CreateWorkItemEnvironment(),
+			tf.Queries(1))
+		testFxt2 := tf.NewTestFixture(t, rest.DB,
+			tf.Identities(1))
+
+		svc, ctrl := rest.SecuredControllerWithIdentity(testFxt2.Identities[0])
+		fields := `{"$AND": [{"space": "1b0efd64-ba69-42a6-b7da-762264744223"}]}`
+
+		payload := app.UpdateQueryPayload{
+			Data: &app.Query{
+				Attributes: &app.QueryAttributes{
+					Title:   testFxt.Queries[0].Title,
+					Version: &testFxt.Queries[0].Version,
+					Fields:  fields,
+				},
+				Type: query.APIStringTypeQuery,
+			},
+		}
+
+		_, jerrs := test.UpdateQueryForbidden(t, svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Queries[0].ID, nil, nil, &payload)
+		require.NotNil(t, jerrs)
+		require.Len(t, jerrs.Errors, 1)
+		require.Contains(t, jerrs.Errors[0].Detail, "user is not the query creator")
+		ignoreString := "IGNORE_ME"
+		jerrs.Errors[0].ID = &ignoreString
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "forbiden.errors.golden.json"), jerrs)
+	})
+
+	rest.T().Run("update query not found", func(t *testing.T) {
+		testFxt := tf.NewTestFixture(t, rest.DB,
+			tf.CreateWorkItemEnvironment(),
+			tf.Queries(1))
+		svc, ctrl := rest.SecuredControllerWithIdentity(testFxt.Identities[0])
+		newTitle := "Query New 1002"
+		newVersion := testFxt.Queries[0].Version + 1
+		fields := `{"$AND": [{"space": "1b0efd64-ba69-42a6-b7da-762264744223"}]}`
+		id := uuid.NewV4()
+		payload := app.UpdateQueryPayload{
+			Data: &app.Query{
+				Attributes: &app.QueryAttributes{
+					Title:   newTitle,
+					Version: &newVersion,
+					Fields:  fields,
+				},
+				ID:   &id,
+				Type: query.APIStringTypeQuery,
+			},
+		}
+		test.UpdateQueryNotFound(t, svc.Context, svc, ctrl, testFxt.Spaces[0].ID, id, nil, nil, &payload)
+	})
+}
+
 func (rest *TestQueryREST) TestDelete() {
 
 	rest.T().Run("success", func(t *testing.T) {
@@ -350,4 +546,15 @@ func (rest *TestQueryREST) TestDelete() {
 			test.DeleteQueryNotFound(t, svc.Context, svc, ctrl, fxt.Spaces[0].ID, uuid.Nil)
 		})
 	})
+}
+
+func assertQueryLinking(t *testing.T, target *app.Query) {
+	assert.NotNil(t, target.ID)
+	assert.Equal(t, query.APIStringTypeQuery, target.Type)
+	assert.NotNil(t, target.Links.Self)
+	require.NotNil(t, target.Relationships)
+	require.NotNil(t, target.Relationships.Space)
+	require.NotNil(t, target.Relationships.Space.Links)
+	require.NotNil(t, target.Relationships.Space.Links.Self)
+	assert.True(t, strings.Contains(*target.Relationships.Space.Links.Self, "/api/spaces/"))
 }

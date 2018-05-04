@@ -7,9 +7,12 @@ import (
 	"net/url"
 
 	"github.com/fabric8-services/fabric8-wit/account/tenant"
+	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/goasupport"
+	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/rest"
+
 	goaclient "github.com/goadesign/goa/client"
 )
 
@@ -104,43 +107,52 @@ func CleanTenant(ctx context.Context, config tenantConfig, remove bool) error {
 }
 
 // ShowTenant fetches the current tenant state.
-func ShowTenant(ctx context.Context, config tenantConfig) (*tenant.TenantSingle, error) {
-
-	c, err := createClient(ctx, config)
+func ShowTenant(ctx context.Context, config tenantConfig, options ...configuration.HTTPClientOption) (*tenant.TenantSingle, error) {
+	c, err := createClient(ctx, config, options...)
 	if err != nil {
 		return nil, err
 	}
-
 	res, err := c.ShowTenant(goasupport.ForwardContextRequestID(ctx), tenant.ShowTenantPath())
 	if err != nil {
 		return nil, err
 	}
 	defer rest.CloseResponse(res)
-
-	if res.StatusCode == http.StatusOK {
+	switch res.StatusCode {
+	case http.StatusOK:
 		tenant, err := c.DecodeTenantSingle(res)
 		if err != nil {
 			return nil, errors.NewInternalError(ctx, err)
 		}
 		return tenant, nil
-	} else if res.StatusCode > 400 {
+	case http.StatusNotFound:
 		jsonErr, err := c.DecodeJSONAPIErrors(res)
 		if err == nil {
 			if len(jsonErr.Errors) > 0 {
-				return nil, errors.NewInternalError(ctx, fmt.Errorf(jsonErr.Errors[0].Detail))
+				log.Error(ctx, map[string]interface{}{
+					"error_msg": jsonErr.Errors[0].Detail,
+				}, "failed to retrieve tenant")
+				return nil, errors.NewNotFoundError("tenants", *jsonErr.Errors[0].ID)
 			}
+		} else {
+			log.Error(ctx, map[string]interface{}{"error_msg": err}, "failed to parse JSON-API error response")
 		}
+
 	}
-	return nil, errors.NewInternalError(ctx, fmt.Errorf("Unknown response "+res.Status))
+	return nil, errors.NewInternalError(ctx, fmt.Errorf("Unknown response: '%v' (%d)", res.Status, res.StatusCode))
 }
 
-func createClient(ctx context.Context, config tenantConfig) (*tenant.Client, error) {
+// createClient creates a client to the tenant service with the given configuration and options for the underlying HTTP client
+func createClient(ctx context.Context, config tenantConfig, options ...configuration.HTTPClientOption) (*tenant.Client, error) {
 	u, err := url.Parse(config.GetTenantServiceURL())
 	if err != nil {
 		return nil, err
 	}
-
-	c := tenant.New(goaclient.HTTPClientDoer(http.DefaultClient))
+	httpClient := http.DefaultClient
+	// apply options
+	for _, opt := range options {
+		opt(httpClient)
+	}
+	c := tenant.New(goaclient.HTTPClientDoer(httpClient))
 	c.Host = u.Host
 	c.Scheme = u.Scheme
 	c.SetJWTSigner(goasupport.NewForwardSigner(ctx))
