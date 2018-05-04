@@ -2,6 +2,7 @@ package query
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -84,6 +85,10 @@ func (r *GormQueryRepository) Create(ctx context.Context, q *Query) error {
 	if q.Creator == uuid.Nil {
 		return errors.NewBadParameterError("creator cannot be nil", q.Creator).Expected("valid user ID")
 	}
+	var v map[string]interface{}
+	if err := json.Unmarshal([]byte(q.Fields), &v); err != nil {
+		return errors.NewBadParameterError("query field is invalid JSON syntax", q.Fields).Expected("valid JSON")
+	}
 	// Parse fields to make sure that query is valid
 	exp, _, err := search.ParseFilterString(ctx, q.Fields)
 	if err != nil || exp == nil {
@@ -118,6 +123,10 @@ func (r *GormQueryRepository) Save(ctx context.Context, q Query) (*Query, error)
 	defer goa.MeasureSince([]string{"goa", "db", "query", "save"}, time.Now())
 	if strings.TrimSpace(q.Title) == "" {
 		return nil, errors.NewBadParameterError("query title cannot be empty string", q.Title).Expected("non empty string")
+	}
+	var v map[string]interface{}
+	if err := json.Unmarshal([]byte(q.Fields), &v); err != nil {
+		return nil, errors.NewBadParameterError("query field is invalid JSON syntax", q.Fields).Expected("valid JSON")
 	}
 	qry := Query{}
 	tx := r.db.Where("id = ?", q.ID).First(&qry)

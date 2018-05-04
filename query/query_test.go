@@ -82,11 +82,15 @@ func (s *TestQueryRepository) TestCreate() {
 				Title:   title,
 				Fields:  qs,
 				SpaceID: fxt.Spaces[0].ID,
+				Creator: fxt.Identities[0].ID,
 			}
 			// when
 			err := repo.Create(context.Background(), &q)
 			// then
 			require.Error(t, err)
+			_, ok := errs.Cause(err).(errors.BadParameterError)
+			assert.Contains(t, err.Error(), "query field is invalid JSON syntax")
+			assert.True(t, ok)
 		})
 	})
 
@@ -183,6 +187,30 @@ func (s *TestQueryRepository) TestSave() {
 		assert.True(t, ok)
 	})
 
+	s.T().Run("empty fields", func(t *testing.T) {
+		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Queries(1, tf.SetQueryTitles("q1")))
+		l := fxt.Queries[0]
+		l.Fields = ""
+
+		_, err := repo.Save(context.Background(), *l)
+		require.Error(t, err)
+		_, ok := errs.Cause(err).(errors.BadParameterError)
+		assert.Contains(t, err.Error(), "query field is invalid JSON syntax")
+		assert.True(t, ok)
+	})
+
+	s.T().Run("invalid JSON fields", func(t *testing.T) {
+		fxt := tf.NewTestFixture(s.T(), s.DB, tf.Queries(1, tf.SetQueryTitles("q1")))
+		l := fxt.Queries[0]
+		l.Fields = ""
+
+		_, err := repo.Save(context.Background(), *l)
+		require.Error(t, err)
+		_, ok := errs.Cause(err).(errors.BadParameterError)
+		assert.Contains(t, err.Error(), "query field is invalid JSON syntax")
+		assert.True(t, ok)
+	})
+
 	s.T().Run("non-existing query", func(t *testing.T) {
 		fakeID := uuid.NewV4()
 		fakeQuery := query.Query{
@@ -192,7 +220,7 @@ func (s *TestQueryRepository) TestSave() {
 		repo := query.NewQueryRepository(s.DB)
 		_, err := repo.Save(context.Background(), fakeQuery)
 		require.Error(t, err)
-		assert.Equal(t, reflect.TypeOf(errors.NotFoundError{}), reflect.TypeOf(err))
+		assert.Equal(t, reflect.TypeOf(errors.BadParameterError{}), reflect.TypeOf(err))
 	})
 
 	s.T().Run("update query with same title", func(t *testing.T) {
