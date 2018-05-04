@@ -136,6 +136,7 @@ func (r *GormRepository) createOrUpdateWITs(ctx context.Context, s *ImportHelper
 			loadedWIT.Name = wit.Name
 			loadedWIT.Description = wit.Description
 			loadedWIT.Icon = wit.Icon
+			loadedWIT.CanConstruct = wit.CanConstruct
 
 			//--------------------------------------------------------------------------------
 			// Double check all existing fields are still present in new fields with same type

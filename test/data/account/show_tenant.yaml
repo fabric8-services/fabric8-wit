@@ -1,0 +1,35 @@
+---
+version: 1
+interactions:
+- request:
+    headers:
+      sub: ["bcdd0b29-123d-11e8-a8bc-b69930b94f5c"] # will be compared against the `sub` claim in the incoming request's token
+    url: http://tenant/api/tenant
+    method: GET
+  response:
+    status: 200 OK
+    code: 200
+    body: '{
+        "data": {
+          "id":"bcdd0b29-123d-11e8-a8bc-b69930b94f5c",
+          "type":"tenants",
+          "attributes": {
+            "email":"foo@foo.com"
+          }
+        }
+      }'
+- request:
+    headers:
+      sub: ["83fdcae2-634f-4a52-958a-f723cb621700"] # will be compared against the `sub` claim in the incoming request's token
+    url: http://tenant/api/tenant
+    method: GET
+  response:
+    status: 404 Not Found
+    code: 404
+    body: '{
+      "errors":[{
+          "code": "404",
+          "detail": "tenant not found",
+          "id": "83fdcae2-634f-4a52-958a-f723cb621700"
+        }]
+      }'
