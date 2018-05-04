@@ -76,6 +76,7 @@ var _ = a.Resource("UserService", func() {
 		a.Description("Get the authenticated user tenant services")
 		a.Response(d.OK, userServiceSingle)
 		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 	})

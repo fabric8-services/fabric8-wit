@@ -53,7 +53,10 @@
 
 [[projects]]
   name = "github.com/dgrijalva/jwt-go"
-  packages = ["."]
+  packages = [
+    ".",
+    "request"
+  ]
   revision = "06ea1031745cb8b3dab3f6a236daf2b0aa468b7e"
   version = "v3.2.0"
 
@@ -121,7 +124,7 @@
 [[projects]]
   name = "github.com/fabric8-services/fabric8-tenant"
   packages = ["design"]
-  revision = "6beeca9797d2176629220380c1ebd742086db4a7"
+  revision = "7e149ee841ea9fe7d439f206781b51cacde5d4d3"
 
 [[projects]]
   name = "github.com/fatih/structs"
@@ -812,6 +815,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "27ec3965c3cded24a72f3318b9e6fe4c0ed0076c03079543abba7cda3a1a19f4"
+  inputs-digest = "a55877e5d58774c3784617c3243df82ec499993f7cec9864ab1ec773cf163293"
   solver-name = "gps-cdcl"
   solver-version = 1
