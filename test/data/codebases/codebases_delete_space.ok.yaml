@@ -1,0 +1,104 @@
+---
+version: 1
+interactions:
+- request:
+    body: ""
+    form: {}
+    url: http://core/api/spaces/aec5f659-0680-4633-8599-5f14f1deeabc/codebases
+    method: GET
+  response:
+    body: '{
+    "data": [
+        {
+            "attributes": {
+                "createdAt": "2018-04-25T09:19:06.547996Z",
+                "last_used_workspace": "",
+                "type": "git",
+                "url": "https://github.com/surajssd/byebyeworld"
+            },
+            "id": "f3f45151-3dab-4103-baee-bfc0d2a2cbba",
+            "links": {
+                "edit": "",
+                "related": "",
+                "self": ""
+            },
+            "relationships": {
+                "space": {
+                    "data": {
+                        "id": "aec5f659-0680-4633-8599-5f14f1deeabc",
+                        "type": "spaces"
+                    },
+                    "links": {
+                        "related": "",
+                        "self": ""
+                    }
+                },
+                "workspaces": {
+                    "links": {
+                        "related": "",
+                        "self": ""
+                    }
+                }
+            },
+            "type": "codebases"
+        },
+        {
+            "attributes": {
+                "createdAt": "2018-04-25T10:15:19.548216Z",
+                "last_used_workspace": "",
+                "type": "git",
+                "url": "https://github.com/surajssd/heyheyworld"
+            },
+            "id": "aed02e9b-1b51-4fa8-98c9-06ef56a28c88",
+            "links": {
+                "edit": "",
+                "related": "",
+                "self": ""
+            },
+            "relationships": {
+                "space": {
+                    "data": {
+                        "id": "aec5f659-0680-4633-8599-5f14f1deeabc",
+                        "type": "spaces"
+                    },
+                    "links": {
+                        "related": "",
+                        "self": ""
+                    }
+                },
+                "workspaces": {
+                    "links": {
+                        "related": "",
+                        "self": ""
+                    }
+                }
+            },
+            "type": "codebases"
+        }
+    ],
+    "links": {
+        "first": "",
+        "last": ""
+    },
+    "meta": {
+        "totalCount": 2
+    }
+}'
+    # headers:
+
+    status: 200 OK
+    code: 200
+- request:
+    url: http://core/api/codebases/f3f45151-3dab-4103-baee-bfc0d2a2cbba
+    method: DELETE
+  response:
+    # headers:
+    status: 200 OK
+    code: 200
+- request:
+    url: http://core/api/codebases/aed02e9b-1b51-4fa8-98c9-06ef56a28c88
+    method: DELETE
+  response:
+    # headers:
+    status: 200 OK
+    code: 200

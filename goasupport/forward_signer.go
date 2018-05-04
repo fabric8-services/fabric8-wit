@@ -21,5 +21,9 @@ func (f forwardSigner) Sign(request *http.Request) error {
 
 // NewForwardSigner return a new signer based on current context
 func NewForwardSigner(ctx context.Context) goaclient.Signer {
-	return &forwardSigner{token: goajwt.ContextJWT(ctx).Raw}
+	token := goajwt.ContextJWT(ctx)
+	if token == nil {
+		return nil
+	}
+	return &forwardSigner{token: token.Raw}
 }
