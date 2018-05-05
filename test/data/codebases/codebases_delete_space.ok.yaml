@@ -94,11 +94,11 @@ interactions:
   response:
     # headers:
     status: 200 OK
-    code: 200
+    code: 204
 - request:
     url: http://core/api/codebases/aed02e9b-1b51-4fa8-98c9-06ef56a28c88
     method: DELETE
   response:
     # headers:
     status: 200 OK
-    code: 200
+    code: 204

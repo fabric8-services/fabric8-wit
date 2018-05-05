@@ -283,7 +283,7 @@ func deleteCodebases(
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
+	if 200 < resp.StatusCode && resp.StatusCode >= 300 {
 		formattedErrors, err := cl.DecodeJSONAPIErrors(resp)
 		if err != nil {
 			return errors.NewInternalError(ctx,
@@ -307,7 +307,7 @@ func deleteCodebases(
 				errs.Wrapf(err, "could not delete codebase %s", cb.ID))
 			continue
 		}
-		if resp.StatusCode != http.StatusOK {
+		if 200 < resp.StatusCode && resp.StatusCode >= 300 {
 			formattedErrors, err := cl.DecodeJSONAPIErrors(resp)
 			if err != nil {
 				errorsList = append(errorsList,
@@ -358,7 +358,7 @@ func deleteOpenShiftResource(
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
+	if 200 < resp.StatusCode && resp.StatusCode >= 300 {
 		formattedErrors, err := cl.DecodeJSONAPIErrors(resp)
 		if err != nil {
 			return errors.NewInternalError(ctx,
@@ -387,7 +387,7 @@ func deleteOpenShiftResource(
 					errs.Wrapf(err, "could not delete deployment for space=%s, app=%s, env=%s", spaceID, app.Attributes.Name, env.Attributes.Name))
 				continue
 			}
-			if resp.StatusCode != http.StatusOK {
+			if 200 < resp.StatusCode && resp.StatusCode >= 300 {
 				formattedErrors, err := cl.DecodeJSONAPIErrors(resp)
 				if err != nil {
 					errorsList = append(errorsList,
