@@ -124,6 +124,7 @@ func (s *repoSuite) TestImport() {
 			templ.Template.Name = "new name for space template " + spaceTemplateID.String()
 			templ.Template.CanConstruct = false
 			templ.Template.Description = ptr.String("new description")
+			templ.WITs[0].CanConstruct = !templ.WITs[0].CanConstruct
 			templ.WITs[0].Name = "new name for WIT " + templ.WITs[0].ID.String()
 			templ.WILTs[0].Name = "new name for WILT " + templ.WILTs[0].ID.String()
 			templ.WITs[0].Fields["flavor"] = workitem.FieldDefinition{
@@ -151,6 +152,9 @@ func (s *repoSuite) TestImport() {
 				require.NoError(t, err)
 				t.Run("name changed", func(t *testing.T) {
 					require.Equal(t, templ.WITs[0].Name, wit.Name)
+				})
+				t.Run("can-constrcut changed", func(t *testing.T) {
+					require.Equal(t, templ.WITs[0].CanConstruct, wit.CanConstruct)
 				})
 				t.Run("\"flavor\" field added", func(t *testing.T) {
 					obj, ok := wit.Fields["flavor"]

@@ -407,6 +407,9 @@ func GetMigrations() Migrations {
 		workitem.SystemPlannerItem.String(),
 	)})
 
+	// Version 90
+	m = append(m, steps{ExecuteSQLFile("090-queries-version.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the

@@ -62,7 +62,7 @@ work_item_types:
 - id: &impedimentID "ec6918d6-f732-4fc0-a902-6571415aa73c"
   extends: *scrumCommonTypeID
   name: Impediment
-  can_construct: yes
+  can_construct: no
   description: >
     Note that this is never part of a backlog. It is simply associated with
     other work items to indicate impediments blocking that work item.

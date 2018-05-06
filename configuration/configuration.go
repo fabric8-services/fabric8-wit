@@ -107,6 +107,8 @@ const (
 	varTenantServiceURL         = "tenant.serviceurl"
 	varNotificationServiceURL   = "notification.serviceurl"
 	varTogglesServiceURL        = "toggles.serviceurl"
+	varDeploymentsServiceURL    = "deployments.serviceurl"
+	varCodebaseServiceURL       = "codebase.serviceurl"
 	varDeploymentsHTTPTimeout   = "deployments.http.timeout"
 )
 
@@ -248,6 +250,8 @@ func (c *Registry) setConfigDefaults() {
 	c.v.SetDefault(varOpenshiftTenantMasterURL, defaultOpenshiftTenantMasterURL)
 	c.v.SetDefault(varCheStarterURL, defaultCheStarterURL)
 	c.v.SetDefault(varTogglesServiceURL, defaultTogglesServiceURL)
+	c.v.SetDefault(varDeploymentsServiceURL, defaultDeploymentsServiceURL)
+	c.v.SetDefault(varCodebaseServiceURL, defaultCodebaseServiceURL)
 	c.v.SetDefault(varDeploymentsHTTPTimeout, defaultDeploymentsHTTPTimeout)
 }
 
@@ -851,6 +855,16 @@ func (c *Registry) GetTogglesServiceURL() string {
 	return c.v.GetString(varTogglesServiceURL)
 }
 
+// GetDeploymentsServiceURL returns the URL for the Deployments service
+func (c *Registry) GetDeploymentsServiceURL() string {
+	return c.v.GetString(varDeploymentsServiceURL)
+}
+
+// GetCodebaseServiceURL returns the URL for the Codebase service
+func (c *Registry) GetCodebaseServiceURL() string {
+	return c.v.GetString(varCodebaseServiceURL)
+}
+
 // GetDeploymentsTimeout returns the amount of seconds until it should timeout.
 func (c *Registry) GetDeploymentsHTTPTimeoutSeconds() time.Duration {
 	timeout := c.v.GetInt(varDeploymentsHTTPTimeout)
@@ -891,6 +905,14 @@ const (
 	defaultCheStarterURL            = "che-server"
 	minimumDeploymentsHTTPTimeout   = 1
 	defaultDeploymentsHTTPTimeout   = 30
+
+	// as of now deployments and codebase service is integrated in wit, but
+	// going forward this will change
+	// TODO: @surajssd : change the default values of `defaultDeploymentsServiceURL`
+	// and `defaultCodebaseServiceURL` to appropriate defaults, pointing to
+	// respective services.
+	defaultDeploymentsServiceURL = "http://core"
+	defaultCodebaseServiceURL    = "http://core"
 
 	// DefaultValidRedirectURLs is a regex to be used to whitelist redirect URL for auth
 	// If the F8_REDIRECT_VALID env var is not set then in Dev Mode all redirects allowed - *

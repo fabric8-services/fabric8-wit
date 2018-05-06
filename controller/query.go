@@ -86,6 +86,7 @@ func ConvertQuery(request *http.Request, q query.Query) *app.Query {
 			Title:     q.Title,
 			Fields:    q.Fields,
 			CreatedAt: &q.CreatedAt,
+			Version:   &q.Version,
 		},
 		Links: &app.GenericLinks{
 			Self:    &relatedURL,
@@ -181,6 +182,52 @@ func (c *QueryController) Show(ctx *app.ShowQueryContext) error {
 		Data: ConvertQuery(ctx.Request, *q),
 	}
 	return ctx.OK(res)
+}
+
+// Update runs the update action.
+func (c *QueryController) Update(ctx *app.UpdateQueryContext) error {
+	currentUser, err := login.ContextIdentity(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
+	}
+	if ctx.Payload.Data.Attributes.Version == nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data.attributes.version", nil).Expected("not nil"))
+	}
+	var q *query.Query
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		var err error
+		q, err = appl.Queries().Load(ctx.Context, ctx.QueryID, ctx.SpaceID)
+		if err != nil {
+			return err
+		}
+		if q.Creator != *currentUser {
+			log.Warn(ctx, map[string]interface{}{
+				"query_id":     ctx.QueryID,
+				"creator":      q.Creator,
+				"current_user": *currentUser,
+			}, "user is not the query creator")
+			return errors.NewForbiddenError("user is not the query creator")
+		}
+		if q.Version != *ctx.Payload.Data.Attributes.Version {
+			return errors.NewVersionConflictError("version conflict")
+		}
+		if ctx.Payload.Data.Attributes.Title != "" {
+			q.Title = strings.TrimSpace(ctx.Payload.Data.Attributes.Title)
+		}
+		if strings.TrimSpace(ctx.Payload.Data.Attributes.Fields) != "" {
+			q.Fields = strings.TrimSpace(ctx.Payload.Data.Attributes.Fields)
+		}
+		q, err = appl.Queries().Save(ctx, *q)
+		return err
+	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	result := &app.QuerySingle{
+		Data: ConvertQuery(ctx.Request, *q),
+	}
+	ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.QueryHref(ctx.SpaceID, result.Data.ID)))
+	return ctx.OK(result)
 }
 
 // Delete runs the delete action.
