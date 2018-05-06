@@ -226,15 +226,6 @@ func ConvertComment(request *http.Request, comment comment.Comment, additional .
 					},
 				},
 			},
-			CreatedBy: &app.CommentCreatedBy{ // Keep old API style until all cients are updated
-				Data: &app.IdentityRelationData{
-					Type: APIStringTypeUser,
-					ID:   &comment.Creator,
-				},
-				Links: &app.GenericLinks{
-					Related: &relatedCreatorLink,
-				},
-			},
 		},
 		Links: &app.GenericLinks{
 			Self:    &relatedURL,
