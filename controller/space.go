@@ -217,6 +217,18 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 			ctx, errors.NewInternalError(ctx, spaceDeletionErrorExternal))
 	}
 
+	// now delete the OpenShift resources associated with this space on an
+	// OpenShift cluster
+	err = deleteOpenShiftResource(c.DeploymentsClient, config, ctx.Context, spaceID)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"space_id": spaceID,
+			"error":    err,
+		}, "could not delete OpenShift resources")
+		return jsonapi.JSONErrorResponse(
+			ctx, errors.NewInternalError(ctx, spaceDeletionErrorExternal))
+	}
+
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		s, err := appl.Spaces().Load(ctx.Context, ctx.SpaceID)
 		if err != nil {
@@ -240,18 +252,6 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
-	// now delete the OpenShift resources associated with this space on an
-	// OpenShift cluster
-	err = deleteOpenShiftResource(c.DeploymentsClient, config, ctx.Context, spaceID)
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"space_id": spaceID,
-			"error":    err,
-		}, "could not delete OpenShift resources")
-		return jsonapi.JSONErrorResponse(
-			ctx, errors.NewInternalError(ctx, spaceDeletionErrorExternal))
-	}
-
 	return ctx.OK([]byte{})
 }
 
@@ -272,7 +272,7 @@ func deleteCodebases(
 	cl := client.New(goaclient.HTTPClientDoer(httpClient))
 	cl.Host = u.Host
 	cl.Scheme = u.Scheme
-	cl.SetJWTSigner(goasupport.NewForwardSigner(ctx))
+	cl.SetJWTSigner(goasupport.NewForwardSigner(goasupport.ForwardContextRequestID(ctx)))
 
 	// list all the codebases associated with the space
 	path := client.ListSpaceCodebasesPath(spaceID)
@@ -347,7 +347,7 @@ func deleteOpenShiftResource(
 	cl := client.New(goaclient.HTTPClientDoer(httpClient))
 	cl.Host = u.Host
 	cl.Scheme = u.Scheme
-	cl.SetJWTSigner(goasupport.NewForwardSigner(ctx))
+	cl.SetJWTSigner(goasupport.NewForwardSigner(goasupport.ForwardContextRequestID(ctx)))
 
 	// get all the apps and envs
 	path := client.ShowSpaceDeploymentsPath(spaceID)
