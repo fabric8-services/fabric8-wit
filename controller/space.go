@@ -226,7 +226,7 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 			"error":    err,
 		}, "could not delete OpenShift resources")
 		return jsonapi.JSONErrorResponse(
-			ctx, errors.NewInternalError(ctx, spaceDeletionErrorExternal))
+			ctx, errors.NewInternalError(ctx, err))
 	}
 
 	err = application.Transactional(c.db, func(appl application.Application) error {
