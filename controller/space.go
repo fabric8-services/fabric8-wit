@@ -289,7 +289,10 @@ func deleteCodebases(
 			return errors.NewInternalError(ctx,
 				fmt.Errorf("could not decode JSON formatted errors returned while listing codebases: %v", err))
 		}
-		return errors.NewInternalError(ctx, formattedErrors.Validate())
+		if len(formattedErrors.Errors) > 0 {
+			return errors.NewInternalError(ctx, errs.Errorf(formattedErrors.Errors[0].Detail))
+		}
+		return errors.NewInternalError(ctx, errs.Errorf("unknown error"))
 	}
 	codebases, err := cl.DecodeCodebaseList(resp)
 	if err != nil {
@@ -314,7 +317,9 @@ func deleteCodebases(
 					errs.Wrapf(err, "could not decode JSON formatted errors returned while deleting codebase %s", cb.ID))
 				continue
 			}
-			errorsList = append(errorsList, formattedErrors.Validate())
+			if len(formattedErrors.Errors) > 0 {
+				errorsList = append(errorsList, errs.Errorf(formattedErrors.Errors[0].Detail))
+			}
 		}
 	}
 	if len(errorsList) != 0 {
@@ -404,7 +409,9 @@ func deleteOpenShiftResource(
 						errs.Wrapf(err, "could not decode JSON formatted errors returned while deleting deployment for space=%s, app=%s, env=%s", spaceID, app.Attributes.Name, env.Attributes.Name))
 					continue
 				}
-				errorsList = append(errorsList, formattedErrors.Validate())
+				if len(formattedErrors.Errors) > 0 {
+					errorsList = append(errorsList, errs.Errorf(formattedErrors.Errors[0].Detail))
+				}
 			}
 		}
 	}
