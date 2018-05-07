@@ -226,7 +226,7 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 			"error":    err,
 		}, "could not delete OpenShift resources")
 		return jsonapi.JSONErrorResponse(
-			ctx, errors.NewInternalError(ctx, spaceDeletionErrorExternal))
+			ctx, errors.NewInternalError(ctx, err))
 	}
 
 	err = application.Transactional(c.db, func(appl application.Application) error {
@@ -289,7 +289,10 @@ func deleteCodebases(
 			return errors.NewInternalError(ctx,
 				fmt.Errorf("could not decode JSON formatted errors returned while listing codebases: %v", err))
 		}
-		return errors.NewInternalError(ctx, formattedErrors.Validate())
+		if len(formattedErrors.Errors) > 0 {
+			return errors.NewInternalError(ctx, errs.Errorf(formattedErrors.Errors[0].Detail))
+		}
+		return errors.NewInternalError(ctx, errs.Errorf("unknown error"))
 	}
 	codebases, err := cl.DecodeCodebaseList(resp)
 	if err != nil {
@@ -314,7 +317,9 @@ func deleteCodebases(
 					errs.Wrapf(err, "could not decode JSON formatted errors returned while deleting codebase %s", cb.ID))
 				continue
 			}
-			errorsList = append(errorsList, formattedErrors.Validate())
+			if len(formattedErrors.Errors) > 0 {
+				errorsList = append(errorsList, errs.Errorf(formattedErrors.Errors[0].Detail))
+			}
 		}
 	}
 	if len(errorsList) != 0 {
@@ -364,12 +369,17 @@ func deleteOpenShiftResource(
 			return errors.NewInternalError(ctx,
 				fmt.Errorf("could not decode JSON formatted errors returned while listing deployments: %v", err))
 		}
-		log.Info(ctx, map[string]interface{}{
-			"status_code":               resp.StatusCode,
-			"formatted_errors":          formattedErrors,
-			"formatted_errors_validate": formattedErrors.Validate(),
-		}, "deleting openshift resources failed")
-		return errors.NewInternalError(ctx, formattedErrors.Validate())
+		for _, e := range formattedErrors.Errors {
+			log.Info(ctx, map[string]interface{}{
+				"status_code":     resp.StatusCode,
+				"formatted_error": *e,
+			}, "deleting openshift resources failed")
+
+		}
+		if len(formattedErrors.Errors) > 0 {
+			return errors.NewInternalError(ctx, errs.Errorf(formattedErrors.Errors[0].Detail))
+		}
+		return errors.NewInternalError(ctx, errs.Errorf("unknown error"))
 	}
 	space, err := cl.DecodeSimpleSpaceSingle(resp)
 	if err != nil {
@@ -399,7 +409,9 @@ func deleteOpenShiftResource(
 						errs.Wrapf(err, "could not decode JSON formatted errors returned while deleting deployment for space=%s, app=%s, env=%s", spaceID, app.Attributes.Name, env.Attributes.Name))
 					continue
 				}
-				errorsList = append(errorsList, formattedErrors.Validate())
+				if len(formattedErrors.Errors) > 0 {
+					errorsList = append(errorsList, errs.Errorf(formattedErrors.Errors[0].Detail))
+				}
 			}
 		}
 	}
