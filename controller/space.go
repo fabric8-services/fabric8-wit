@@ -364,6 +364,11 @@ func deleteOpenShiftResource(
 			return errors.NewInternalError(ctx,
 				fmt.Errorf("could not decode JSON formatted errors returned while listing deployments: %v", err))
 		}
+		log.Info(ctx, map[string]interface{}{
+			"status_code":               resp.StatusCode,
+			"formatted_errors":          formattedErrors,
+			"formatted_errors_validate": formattedErrors.Validate(),
+		}, "deleting openshift resources failed")
 		return errors.NewInternalError(ctx, formattedErrors.Validate())
 	}
 	space, err := cl.DecodeSimpleSpaceSingle(resp)
