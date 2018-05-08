@@ -12,6 +12,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/event"
 	"github.com/goadesign/goa"
+	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -42,7 +43,7 @@ func (c *EventsController) List(ctx *app.ListWorkItemEventsContext) error {
 	err := application.Transactional(c.db, func(appl application.Application) error {
 		var err error
 		eventList, err = appl.Events().List(ctx, ctx.WiID)
-		return err
+		return errs.Wrap(err, "list events model failed")
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
