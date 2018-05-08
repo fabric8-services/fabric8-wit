@@ -1,19 +1,19 @@
 package controller_test
 
 import (
-	"context"
+	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
-	"github.com/fabric8-services/fabric8-wit/application"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/label"
 	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/rest"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
@@ -48,12 +48,22 @@ func (s *TestEvent) TestListEvent() {
 		svc := testsupport.ServiceAsSpaceUser("Event-Service", *fxt.Identities[0], &TestSpaceAuthzService{*fxt.Identities[0], ""})
 		EventCtrl := NewEventsController(svc, s.db, s.Configuration)
 		assignee := []string{fxt.Identities[0].ID.String()}
-		fxt.WorkItems[0].Fields[workitem.SystemAssignees] = assignee
-		err := application.Transactional(s.db, func(app application.Application) error {
-			_, err := app.WorkItems().Save(context.Background(), fxt.Spaces[0].ID, *fxt.WorkItems[0], fxt.Identities[0].ID)
-			return err
-		})
-		require.NoError(t, err)
+		workitemCtrl := NewWorkitemController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+		spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(fxt.Spaces[0].ID.String()))
+		payload := app.UpdateWorkitemPayload{
+			Data: &app.WorkItem{
+				Type: APIStringTypeWorkItem,
+				ID:   &fxt.WorkItems[0].ID,
+				Attributes: map[string]interface{}{
+					workitem.SystemAssignees: assignee,
+					workitem.SystemVersion:   fxt.WorkItems[0].Version,
+				},
+				Relationships: &app.WorkItemRelationships{
+					Space: app.NewSpaceRelation(fxt.Spaces[0].ID, spaceSelfURL),
+				},
+			},
+		}
+		test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload)
 		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
 		safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
 		require.NotEmpty(t, eventList)
@@ -61,6 +71,7 @@ func (s *TestEvent) TestListEvent() {
 		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok-assignees.res.payload.golden.json"), eventList)
 		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok-assignees.res.headers.golden.json"), res.Header())
 	})
+
 	s.T().Run("event list ok - label", func(t *testing.T) {
 		fxt := tf.NewTestFixture(t, s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1), tf.Labels(2))
 		svc := testsupport.ServiceAsSpaceUser("Event-Service", *fxt.Identities[0], &TestSpaceAuthzService{*fxt.Identities[0], ""})
@@ -72,7 +83,7 @@ func (s *TestEvent) TestListEvent() {
 				ID:   &fxt.WorkItems[0].ID,
 				Type: APIStringTypeWorkItem,
 				Attributes: map[string]interface{}{
-					"version": fxt.WorkItems[0].Version,
+					workitem.SystemVersion: fxt.WorkItems[0].Version,
 				},
 				Relationships: &app.WorkItemRelationships{},
 			},
@@ -110,12 +121,22 @@ func (s *TestEvent) TestListEvent() {
 		fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
 		svc := testsupport.ServiceAsSpaceUser("Event-Service", *fxt.Identities[0], &TestSpaceAuthzService{*fxt.Identities[0], ""})
 		EventCtrl := NewEventsController(svc, s.db, s.Configuration)
-		fxt.WorkItems[0].Fields[workitem.SystemIteration] = fxt.Iterations[0].ID.String()
-		err := application.Transactional(s.db, func(app application.Application) error {
-			_, err := app.WorkItems().Save(context.Background(), fxt.Spaces[0].ID, *fxt.WorkItems[0], fxt.Identities[0].ID)
-			return err
-		})
-		require.NoError(t, err)
+		workitemCtrl := NewWorkitemController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+		spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(fxt.Spaces[0].ID.String()))
+		payload := app.UpdateWorkitemPayload{
+			Data: &app.WorkItem{
+				Type: APIStringTypeWorkItem,
+				ID:   &fxt.WorkItems[0].ID,
+				Attributes: map[string]interface{}{
+					workitem.SystemIteration: fxt.Iterations[0].ID.String(),
+					workitem.SystemVersion:   fxt.WorkItems[0].Version,
+				},
+				Relationships: &app.WorkItemRelationships{
+					Space: app.NewSpaceRelation(fxt.Spaces[0].ID, spaceSelfURL),
+				},
+			},
+		}
+		test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload)
 		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
 		safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
 		require.NotEmpty(t, eventList)
@@ -128,12 +149,30 @@ func (s *TestEvent) TestListEvent() {
 		fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
 		svc := testsupport.ServiceAsSpaceUser("Event-Service", *fxt.Identities[0], &TestSpaceAuthzService{*fxt.Identities[0], ""})
 		EventCtrl := NewEventsController(svc, s.db, s.Configuration)
-		fxt.WorkItems[0].Fields[workitem.SystemArea] = fxt.Areas[0].ID.String()
-		err := application.Transactional(s.db, func(app application.Application) error {
-			_, err := app.WorkItems().Save(context.Background(), fxt.Spaces[0].ID, *fxt.WorkItems[0], fxt.Identities[0].ID)
-			return err
-		})
-		require.NoError(t, err)
+		/*
+			fxt.WorkItems[0].Fields[workitem.SystemArea] = fxt.Areas[0].ID.String()
+			err := application.Transactional(s.db, func(app application.Application) error {
+				_, err := app.WorkItems().Save(context.Background(), fxt.Spaces[0].ID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+				return err
+			})
+			require.NoError(t, err)
+		*/
+		workitemCtrl := NewWorkitemController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+		spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(fxt.Spaces[0].ID.String()))
+		payload := app.UpdateWorkitemPayload{
+			Data: &app.WorkItem{
+				Type: APIStringTypeWorkItem,
+				ID:   &fxt.WorkItems[0].ID,
+				Attributes: map[string]interface{}{
+					workitem.SystemArea:    fxt.Areas[0].ID.String(),
+					workitem.SystemVersion: fxt.WorkItems[0].Version,
+				},
+				Relationships: &app.WorkItemRelationships{
+					Space: app.NewSpaceRelation(fxt.Spaces[0].ID, spaceSelfURL),
+				},
+			},
+		}
+		test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload)
 		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
 		safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
 		require.NotEmpty(t, eventList)
