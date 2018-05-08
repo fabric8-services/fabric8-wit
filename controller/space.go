@@ -147,13 +147,25 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
-	// Create keycloak resource for this space
-	err = c.resourceManager.CreateSpace(ctx, ctx.Request, spaceID.String())
-	if err != nil {
-		// Unable to create a space resource. Can't proceed. Roll back space creation and return an error.
-		c.rollBackSpaceCreation(ctx, spaceID)
-		return jsonapi.JSONErrorResponse(ctx, err)
+	// extract config in it's generic form to be utilized elsewhere
+	config, ok := c.config.(*configuration.Registry)
+	if !ok {
+		log.Error(ctx, map[string]interface{}{
+			"space_id": spaceID,
+		}, "no configuation found in SpaceController object")
+		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalErrorFromString("could not create space"))
 	}
+
+	// Create keycloak resource for this space
+	if config.IsAuthorizationEnabled() {
+		err = c.resourceManager.CreateSpace(ctx, ctx.Request, spaceID.String())
+		if err != nil {
+			// Unable to create a space resource. Can't proceed. Roll back space creation and return an error.
+			c.rollBackSpaceCreation(ctx, spaceID)
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+	}
+
 	spaceData, err := ConvertSpaceFromModel(ctx.Request, *rSpace, IncludeBacklogTotalCount(ctx.Context, c.db))
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
