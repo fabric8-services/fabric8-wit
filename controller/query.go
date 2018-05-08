@@ -17,6 +17,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/goadesign/goa"
+	errs "github.com/pkg/errors"
 )
 
 // QueryController implements the query resource.
@@ -60,7 +61,7 @@ func (c *QueryController) Create(ctx *app.CreateQueryContext) error {
 			Creator: *currentUserIdentityID,
 		}
 		err = appl.Queries().Create(ctx, &q)
-		return err
+		return errs.WithStack(err)
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
@@ -136,10 +137,10 @@ func (c *QueryController) List(ctx *app.ListQueryContext) error {
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		err = appl.Spaces().CheckExists(ctx, ctx.SpaceID)
 		if err != nil {
-			return err
+			return errs.WithStack(err)
 		}
 		queries, err = appl.Queries().ListByCreator(ctx, ctx.SpaceID, *currentUserIdentityID)
-		return err
+		return errs.WithStack(err)
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
@@ -162,10 +163,10 @@ func (c *QueryController) Show(ctx *app.ShowQueryContext) error {
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		err := appl.Spaces().CheckExists(ctx, ctx.SpaceID)
 		if err != nil {
-			return err
+			return errs.WithStack(err)
 		}
 		q, err = appl.Queries().Load(ctx, ctx.QueryID, ctx.SpaceID)
-		return err
+		return errs.WithStack(err)
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
@@ -198,7 +199,7 @@ func (c *QueryController) Update(ctx *app.UpdateQueryContext) error {
 		var err error
 		q, err = appl.Queries().Load(ctx.Context, ctx.QueryID, ctx.SpaceID)
 		if err != nil {
-			return err
+			return errs.WithStack(err)
 		}
 		if q.Creator != *currentUser {
 			log.Warn(ctx, map[string]interface{}{
@@ -218,7 +219,7 @@ func (c *QueryController) Update(ctx *app.UpdateQueryContext) error {
 			q.Fields = strings.TrimSpace(ctx.Payload.Data.Attributes.Fields)
 		}
 		q, err = appl.Queries().Save(ctx, *q)
-		return err
+		return errs.WithStack(err)
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
@@ -239,7 +240,7 @@ func (c *QueryController) Delete(ctx *app.DeleteQueryContext) error {
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		q, err := appl.Queries().Load(ctx.Context, ctx.QueryID, ctx.SpaceID)
 		if err != nil {
-			return err
+			return errs.WithStack(err)
 		}
 		if q.Creator != *currentUser {
 			log.Warn(ctx, map[string]interface{}{
@@ -249,7 +250,8 @@ func (c *QueryController) Delete(ctx *app.DeleteQueryContext) error {
 			}, "user is not the query creator")
 			return errors.NewForbiddenError("user is not the query creator")
 		}
-		return appl.Queries().Delete(ctx.Context, ctx.QueryID)
+		err = appl.Queries().Delete(ctx.Context, ctx.QueryID)
+		return errs.WithStack(err)
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
