@@ -83,6 +83,8 @@ func TestTopology_CheckValid(t *testing.T) {
 		link.TopologyDirectedNetwork: false,
 		link.TopologyNetwork:         false,
 		link.TopologyTree:            false,
+		link.Topology(""):            true,
+		link.Topology("foo"):         true,
 	}
 	for topo, expectError := range expectErrorArr {
 		t.Run(topo.String(), func(t *testing.T) {
