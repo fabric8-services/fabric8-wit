@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
@@ -93,6 +94,25 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		assert.Equal(t, eventList[0].Name, workitem.SystemAssignees)
 		assert.Empty(t, eventList[0].Old)
 		assert.Equal(t, fxt.Identities[0].ID.String(), eventList[0].New.([]interface{})[0])
+	})
+
+	s.T().Run("event description", func(t *testing.T) {
+		oldDescription := rendering.NewMarkupContentFromLegacy("description1")
+		fxt := tf.NewTestFixture(t, s.DB, tf.WorkItems(1, func(fxt *tf.TestFixture, idx int) error {
+			fxt.WorkItems[idx].Fields[workitem.SystemDescription] = oldDescription
+			return nil
+		}))
+		newDescription := rendering.NewMarkupContentFromLegacy("description2")
+		fxt.WorkItems[0].Fields[workitem.SystemDescription] = newDescription
+		wiNew, err := s.wiRepo.Save(s.Ctx, fxt.WorkItems[0].SpaceID, *fxt.WorkItems[0], fxt.Identities[0].ID)
+		require.NoError(t, err)
+		eventList, err := s.wiEventRepo.List(s.Ctx, fxt.WorkItems[0].ID)
+		require.NoError(t, err)
+		require.NotEmpty(t, eventList)
+		require.Len(t, eventList, 1)
+		require.Empty(t, eventList[0].Old)
+		require.Empty(t, eventList[0].New)
+		require.Equal(t, wiNew.Fields[workitem.SystemDescription], newDescription)
 	})
 
 	s.T().Run("event assignee - new assignee nil", func(t *testing.T) {
