@@ -82,9 +82,9 @@ func UpdateTenant(ctx context.Context, config tenantConfig) error {
 }
 
 // CleanTenant cleans out a tenant in oso.
-func CleanTenant(ctx context.Context, config tenantConfig, remove bool) error {
+func CleanTenant(ctx context.Context, config tenantConfig, remove bool, options ...configuration.HTTPClientOption) error {
 
-	c, err := createClient(ctx, config)
+	c, err := createClient(ctx, config, options...)
 	if err != nil {
 		return err
 	}
@@ -95,7 +95,7 @@ func CleanTenant(ctx context.Context, config tenantConfig, remove bool) error {
 	}
 	defer rest.CloseResponse(res)
 
-	if res.StatusCode != http.StatusOK {
+	if res.StatusCode != http.StatusNoContent { // the delete tenant operation returns a `204 No Content` response in case of success
 		jsonErr, err := c.DecodeJSONAPIErrors(res)
 		if err == nil {
 			if len(jsonErr.Errors) > 0 {
