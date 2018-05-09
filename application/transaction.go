@@ -35,7 +35,8 @@ func Transactional(db DB, todo func(f Application) error) error {
 		go func(tx Transaction) {
 			defer func() {
 				if err := recover(); err != nil {
-					errorChan <- errors.Errorf("recovered %v", err)
+					errorChan <- errors.Errorf("recovered %v. stack: %s", err, debug.Stack())
+
 				}
 			}()
 			errorChan <- todo(tx)
