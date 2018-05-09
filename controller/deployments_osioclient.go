@@ -105,7 +105,7 @@ func (osioclient *OSIOClient) GetUserServices(ctx context.Context) (*app.UserSer
 
 	resp, err := osioclient.wc.ShowUserService(goasupport.ForwardContextRequestID(ctx), witclient.ShowUserServicePath())
 	if err != nil {
-		return nil, errs.Wrapf(err, "could not retrieve uses services")
+		return nil, errs.Wrapf(err, "could not retrieve user's services")
 	}
 
 	respBody, err := osioclient.responseReader.ReadResponse(resp)

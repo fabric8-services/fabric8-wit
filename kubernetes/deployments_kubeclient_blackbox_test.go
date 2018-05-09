@@ -530,8 +530,8 @@ var defaultDeployTestData = &deployTestData{
 	expectPodsQuotaMemory:   524288000,
 	expectPodsTotal:         2,
 	expectConsoleURL:        "http://console.myCluster/console/project/my-run",
-	expectLogURL:            "http://console.myCluster/console/project/my-run/browse/rc/myApp-1?tab=logs",
-	expectAppURL:            "http://myApp-my-run.example.com",
+	expectLogURL:            "http://console.myCluster/console/project/my-run/browse/rc/myDeploy-1?tab=logs",
+	expectAppURL:            "http://myDeploy-my-run.example.com",
 	cassetteName:            "getdeployment",
 }
 
@@ -646,8 +646,8 @@ func TestGetSpace(t *testing.T) {
 							expectPodsQuotaCpucores: 0.976,
 							expectPodsQuotaMemory:   524288000,
 							expectConsoleURL:        "http://console.myCluster/console/project/my-run",
-							expectLogURL:            "http://console.myCluster/console/project/my-run/browse/rc/myApp-1?tab=logs",
-							expectAppURL:            "http://myApp-my-run.example.com",
+							expectLogURL:            "http://console.myCluster/console/project/my-run/browse/rc/myDeploy-1?tab=logs",
+							expectAppURL:            "http://myDeploy-my-run.example.com",
 						},
 						"stage": {
 							spaceName:     "mySpace",
@@ -662,7 +662,7 @@ func TestGetSpace(t *testing.T) {
 							expectPodsQuotaCpucores: 0.976,
 							expectPodsQuotaMemory:   524288000,
 							expectConsoleURL:        "http://console.myCluster/console/project/my-stage",
-							expectLogURL:            "http://console.myCluster/console/project/my-stage/browse/rc/myApp-1?tab=logs",
+							expectLogURL:            "http://console.myCluster/console/project/my-stage/browse/rc/myDeploy-1?tab=logs",
 						},
 					},
 				},
@@ -682,8 +682,8 @@ func TestGetSpace(t *testing.T) {
 							expectPodsQuotaCpucores: 0.488,
 							expectPodsQuotaMemory:   262144000,
 							expectConsoleURL:        "http://console.myCluster/console/project/my-run",
-							expectLogURL:            "http://console.myCluster/console/project/my-run/browse/rc/myOtherApp-1?tab=logs",
-							expectAppURL:            "http://myOtherApp-my-run.example.com",
+							expectLogURL:            "http://console.myCluster/console/project/my-run/browse/rc/myOtherDeploy-1?tab=logs",
+							expectAppURL:            "http://myOtherDeploy-my-run.example.com",
 						},
 					},
 				},
@@ -745,7 +745,7 @@ func TestGetApplication(t *testing.T) {
 					expectPodsQuotaCpucores: 0.976,
 					expectPodsQuotaMemory:   524288000,
 					expectConsoleURL:        "http://console.myCluster/console/project/my-stage",
-					expectLogURL:            "http://console.myCluster/console/project/my-stage/browse/rc/myApp-1?tab=logs",
+					expectLogURL:            "http://console.myCluster/console/project/my-stage/browse/rc/myDeploy-1?tab=logs",
 				},
 			},
 			cassetteName: "getapplication",
@@ -759,8 +759,8 @@ func TestGetApplication(t *testing.T) {
 					envName:          "run",
 					expectVersion:    "1.0.1",
 					expectConsoleURL: "http://console.myCluster/console/project/my-run",
-					expectLogURL:     "http://console.myCluster/console/project/my-run/browse/rc/myOtherApp-1?tab=logs",
-					expectAppURL:     "http://myOtherApp-my-run.example.com",
+					expectLogURL:     "http://console.myCluster/console/project/my-run/browse/rc/myOtherDeploy-1?tab=logs",
+					expectAppURL:     "http://myOtherDeploy-my-run.example.com",
 				},
 			},
 			cassetteName: "getapplication-nopods",
@@ -809,8 +809,8 @@ func TestGetDeployment(t *testing.T) {
 			expectPodStatus:  [][]string{},
 			expectPodsTotal:  0,
 			expectConsoleURL: "http://console.myCluster/console/project/my-run",
-			expectLogURL:     "http://console.myCluster/console/project/my-run/browse/rc/myApp-2?tab=logs",
-			expectAppURL:     "http://myApp-my-run.example.com",
+			expectLogURL:     "http://console.myCluster/console/project/my-run/browse/rc/myDeploy-2?tab=logs",
+			expectAppURL:     "http://myDeploy-my-run.example.com",
 			// Contains RCs in ascending deployment version:
 			// 1. Visible 2. Scaled-down "active" 3. Failed
 			cassetteName: "getdeployment-scaled-down",
@@ -831,8 +831,8 @@ func TestGetDeployment(t *testing.T) {
 			expectPodsQuotaCpucores: 0.976,
 			expectPodsQuotaMemory:   524288000,
 			expectConsoleURL:        "http://console.myCluster/console/project/my-run",
-			expectLogURL:            "http://console.myCluster/console/project/my-run/browse/rc/myApp-1?tab=logs",
-			expectAppURL:            "http://myApp-my-run.example.com",
+			expectLogURL:            "http://console.myCluster/console/project/my-run/browse/rc/myDeploy-1?tab=logs",
+			expectAppURL:            "http://myDeploy-my-run.example.com",
 			cassetteName:            "getdeployment-nospace",
 		},
 		{
@@ -842,7 +842,7 @@ func TestGetDeployment(t *testing.T) {
 			spaceName:    "myWrongSpace",
 			appName:      "myApp",
 			envName:      "run",
-			cassetteName: "getdeployment",
+			cassetteName: "getdeployment-wrongspace",
 			shouldFail:   true,
 		},
 	}
@@ -886,7 +886,7 @@ func TestScaleDeployment(t *testing.T) {
 			envName:      "run",
 			cassetteName: "scaledeployment",
 			expectPutURLs: map[string]struct{}{
-				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myApp/scale": {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myDeploy/scale": {},
 			},
 			newReplicas: 3,
 			oldReplicas: 2,
@@ -898,7 +898,7 @@ func TestScaleDeployment(t *testing.T) {
 			envName:      "run",
 			cassetteName: "scaledeployment-zero",
 			expectPutURLs: map[string]struct{}{
-				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myApp/scale": {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myDeploy/scale": {},
 			},
 			newReplicas: 1,
 			oldReplicas: 0,
@@ -989,9 +989,9 @@ func TestDeleteDeployment(t *testing.T) {
 			envName:      "run",
 			cassetteName: "deletedeployment",
 			expectDeleteURLs: map[string]struct{}{
-				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myApp": {},
-				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myApp":            {},
-				"http://api.myCluster/api/v1/namespaces/my-run/services/myApp":           {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myDeploy": {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myDeploy":            {},
+				"http://api.myCluster/api/v1/namespaces/my-run/services/myDeploy":           {},
 			},
 		},
 		{
@@ -1008,10 +1008,10 @@ func TestDeleteDeployment(t *testing.T) {
 			spaceName:    "otherSpace",
 			appName:      "myApp",
 			envName:      "run",
-			cassetteName: "deletedeployment",
+			cassetteName: "deletedeployment-wrongspace",
 			expectDeleteURLs: map[string]struct{}{
-				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myApp":  {},
-				"http://api.myCluster/api/v1/namespaces/my-run/services/myApp": {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myDeploy":  {},
+				"http://api.myCluster/api/v1/namespaces/my-run/services/myDeploy": {},
 			},
 			shouldFail: true,
 		},
@@ -1022,8 +1022,8 @@ func TestDeleteDeployment(t *testing.T) {
 			envName:      "run",
 			cassetteName: "deletedeployment-noroutes",
 			expectDeleteURLs: map[string]struct{}{
-				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myApp": {},
-				"http://api.myCluster/api/v1/namespaces/my-run/services/myApp":           {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myDeploy": {},
+				"http://api.myCluster/api/v1/namespaces/my-run/services/myDeploy":           {},
 			},
 		},
 		{
@@ -1033,8 +1033,8 @@ func TestDeleteDeployment(t *testing.T) {
 			envName:      "run",
 			cassetteName: "deletedeployment-noservices",
 			expectDeleteURLs: map[string]struct{}{
-				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myApp": {},
-				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myApp":            {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myDeploy": {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myDeploy":            {},
 			},
 		},
 		{
@@ -1044,10 +1044,24 @@ func TestDeleteDeployment(t *testing.T) {
 			envName:      "run",
 			cassetteName: "deletedeployment-nodc",
 			expectDeleteURLs: map[string]struct{}{
-				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myApp":  {},
-				"http://api.myCluster/api/v1/namespaces/my-run/services/myApp": {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myDeploy":  {},
+				"http://api.myCluster/api/v1/namespaces/my-run/services/myDeploy": {},
 			},
 			shouldFail: true,
+		},
+		{
+			// Tests failure to map application name to OpenShift resources
+			// falls back to app name
+			testName:     "No Builds",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "deletedeployment-nobuilds",
+			expectDeleteURLs: map[string]struct{}{
+				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myApp":            {},
+				"http://api.myCluster/api/v1/namespaces/my-run/services/myApp":           {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myApp": {},
+			},
 		},
 	}
 

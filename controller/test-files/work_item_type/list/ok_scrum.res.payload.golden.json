@@ -184,7 +184,7 @@
     },
     {
       "attributes": {
-        "can-construct": true,
+        "can-construct": false,
         "created-at": "0001-01-01T00:00:00Z",
         "description": "Note that this is never part of a backlog. It is simply associated with other work items to indicate impediments blocking that work item.\n",
         "fields": {

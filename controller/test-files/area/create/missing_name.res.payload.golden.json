@@ -1,0 +1,10 @@
+{
+  "errors": [
+    {
+      "code": "bad_parameter",
+      "detail": "Bad value for parameter 'data.attributes.name': '\u003cnil\u003e' (expected: 'not nil')",
+      "status": "400",
+      "title": "Bad parameter error"
+    }
+  ]
+}

@@ -302,6 +302,7 @@ func getValidTestTemplateParsed(t *testing.T, spaceTemplateID, witID, wiltID uui
 				Description:     ptr.String("a basic work item type"),
 				Icon:            "fa fa-bug",
 				Extends:         workitem.SystemPlannerItem,
+				CanConstruct:    false,
 				ChildTypeIDs: []uuid.UUID{
 					workitem.SystemPlannerItem,
 				},

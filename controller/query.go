@@ -17,6 +17,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/goadesign/goa"
+	errs "github.com/pkg/errors"
 )
 
 // QueryController implements the query resource.
@@ -60,7 +61,7 @@ func (c *QueryController) Create(ctx *app.CreateQueryContext) error {
 			Creator: *currentUserIdentityID,
 		}
 		err = appl.Queries().Create(ctx, &q)
-		return err
+		return errs.WithStack(err)
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
@@ -86,6 +87,7 @@ func ConvertQuery(request *http.Request, q query.Query) *app.Query {
 			Title:     q.Title,
 			Fields:    q.Fields,
 			CreatedAt: &q.CreatedAt,
+			Version:   &q.Version,
 		},
 		Links: &app.GenericLinks{
 			Self:    &relatedURL,
@@ -135,10 +137,10 @@ func (c *QueryController) List(ctx *app.ListQueryContext) error {
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		err = appl.Spaces().CheckExists(ctx, ctx.SpaceID)
 		if err != nil {
-			return err
+			return errs.WithStack(err)
 		}
 		queries, err = appl.Queries().ListByCreator(ctx, ctx.SpaceID, *currentUserIdentityID)
-		return err
+		return errs.WithStack(err)
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
@@ -161,10 +163,10 @@ func (c *QueryController) Show(ctx *app.ShowQueryContext) error {
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		err := appl.Spaces().CheckExists(ctx, ctx.SpaceID)
 		if err != nil {
-			return err
+			return errs.WithStack(err)
 		}
 		q, err = appl.Queries().Load(ctx, ctx.QueryID, ctx.SpaceID)
-		return err
+		return errs.WithStack(err)
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
@@ -183,16 +185,21 @@ func (c *QueryController) Show(ctx *app.ShowQueryContext) error {
 	return ctx.OK(res)
 }
 
-// Delete runs the delete action.
-func (c *QueryController) Delete(ctx *app.DeleteQueryContext) error {
+// Update runs the update action.
+func (c *QueryController) Update(ctx *app.UpdateQueryContext) error {
 	currentUser, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
+	if ctx.Payload.Data.Attributes.Version == nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data.attributes.version", nil).Expected("not nil"))
+	}
+	var q *query.Query
 	err = application.Transactional(c.db, func(appl application.Application) error {
-		q, err := appl.Queries().Load(ctx.Context, ctx.QueryID, ctx.SpaceID)
+		var err error
+		q, err = appl.Queries().Load(ctx.Context, ctx.QueryID, ctx.SpaceID)
 		if err != nil {
-			return err
+			return errs.WithStack(err)
 		}
 		if q.Creator != *currentUser {
 			log.Warn(ctx, map[string]interface{}{
@@ -202,7 +209,49 @@ func (c *QueryController) Delete(ctx *app.DeleteQueryContext) error {
 			}, "user is not the query creator")
 			return errors.NewForbiddenError("user is not the query creator")
 		}
-		return appl.Queries().Delete(ctx.Context, ctx.QueryID)
+		if q.Version != *ctx.Payload.Data.Attributes.Version {
+			return errors.NewVersionConflictError("version conflict")
+		}
+		if ctx.Payload.Data.Attributes.Title != "" {
+			q.Title = strings.TrimSpace(ctx.Payload.Data.Attributes.Title)
+		}
+		if strings.TrimSpace(ctx.Payload.Data.Attributes.Fields) != "" {
+			q.Fields = strings.TrimSpace(ctx.Payload.Data.Attributes.Fields)
+		}
+		q, err = appl.Queries().Save(ctx, *q)
+		return errs.WithStack(err)
+	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	result := &app.QuerySingle{
+		Data: ConvertQuery(ctx.Request, *q),
+	}
+	ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.QueryHref(ctx.SpaceID, result.Data.ID)))
+	return ctx.OK(result)
+}
+
+// Delete runs the delete action.
+func (c *QueryController) Delete(ctx *app.DeleteQueryContext) error {
+	currentUser, err := login.ContextIdentity(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
+	}
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		q, err := appl.Queries().Load(ctx.Context, ctx.QueryID, ctx.SpaceID)
+		if err != nil {
+			return errs.WithStack(err)
+		}
+		if q.Creator != *currentUser {
+			log.Warn(ctx, map[string]interface{}{
+				"query_id":     ctx.QueryID,
+				"creator":      q.Creator,
+				"current_user": *currentUser,
+			}, "user is not the query creator")
+			return errors.NewForbiddenError("user is not the query creator")
+		}
+		err = appl.Queries().Delete(ctx.Context, ctx.QueryID)
+		return errs.WithStack(err)
 	})
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)

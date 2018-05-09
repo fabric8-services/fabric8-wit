@@ -25,6 +25,12 @@ func RenderMarkupToHTML(content, markup string) string {
 		p := bluemonday.UGCPolicy()
 		p.AllowAttrs("class").Matching(regexp.MustCompile("^language-[a-zA-Z0-9]+$|prettyprint")).OnElements("code")
 		p.AllowAttrs("class").OnElements("span")
+		p.AllowElements("input")
+		p.AllowAttrs("type").OnElements("input")
+		p.AllowAttrs("checked").OnElements("input")
+		p.AllowAttrs("disabled").OnElements("input")
+		p.AllowAttrs("data-checkbox-index").OnElements("input")
+		p.AllowAttrs("class").OnElements("input")
 		html := string(p.SanitizeBytes(unsafe))
 		return html
 	default:
