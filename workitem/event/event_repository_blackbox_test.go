@@ -110,8 +110,8 @@ func (s *eventRepoBlackBoxTest) TestList() {
 		require.NoError(t, err)
 		require.NotEmpty(t, eventList)
 		require.Len(t, eventList, 1)
-		require.Empty(t, eventList[0].Old)
-		require.Empty(t, eventList[0].New)
+		require.Equal(t, "description1", eventList[0].Old)
+		require.Equal(t, "description2", eventList[0].New)
 		require.Equal(t, wiNew.Fields[workitem.SystemDescription], newDescription)
 	})
 
