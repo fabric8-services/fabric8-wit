@@ -184,7 +184,7 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 						}
 						eventList = append(eventList, wie)
 					}
-				case workitem.KindString:
+				case workitem.KindString, workitem.KindIteration, workitem.KindArea:
 					var p string
 					var n string
 
