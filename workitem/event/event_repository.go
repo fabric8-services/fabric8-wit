@@ -10,6 +10,7 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 )
 
@@ -112,7 +113,7 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 					return nil, errors.NewNotFoundError("Unkown field:", fieldName)
 
 				}
-			case workitem.EnumType, workitem.SimpleType:
+			case workitem.EnumType:
 				var p string
 				var n string
 
@@ -146,9 +147,63 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 					eventList = append(eventList, wie)
 				}
 
+			case workitem.SimpleType:
+				switch fieldType.Kind {
+				case workitem.KindMarkup:
+					previousValue := revisionList[k-1].WorkItemFields[fieldName]
+					newValue := revisionList[k].WorkItemFields[fieldName]
+
+					pv := rendering.NewMarkupContentFromMap(previousValue.(map[string]interface{}))
+					nv := rendering.NewMarkupContentFromMap(newValue.(map[string]interface{}))
+					if pv.Content != nv.Content {
+						wie := Event{
+							ID:        revisionList[k].ID,
+							Name:      fieldName,
+							Timestamp: revisionList[k].Time,
+							Modifier:  modifierID.ID,
+							Old:       pv.Content,
+							New:       nv.Content,
+						}
+						eventList = append(eventList, wie)
+					}
+				case workitem.KindString:
+					var p string
+					var n string
+
+					previousValue := revisionList[k-1].WorkItemFields[fieldName]
+					newValue := revisionList[k].WorkItemFields[fieldName]
+
+					switch previousValue.(type) {
+					case nil:
+						p = ""
+					case interface{}:
+						p, _ = previousValue.(string)
+					}
+
+					switch newValue.(type) {
+					case nil:
+						n = ""
+					case interface{}:
+						n, _ = newValue.(string)
+
+					}
+
+					if previousValue != newValue {
+						wie := Event{
+							ID:        revisionList[k].ID,
+							Name:      fieldName,
+							Timestamp: revisionList[k].Time,
+							Modifier:  modifierID.ID,
+							Old:       p,
+							New:       n,
+						}
+						eventList = append(eventList, wie)
+					}
+				}
 			default:
 				return nil, errors.NewNotFoundError("Unkown field:", fieldName)
 			}
+
 		}
 	}
 	return eventList, nil
