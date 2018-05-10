@@ -135,7 +135,7 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 
 				}
 
-				if previousValue != newValue {
+				if p != n {
 					wie := Event{
 						ID:        revisionList[k].ID,
 						Name:      fieldName,
@@ -150,19 +150,37 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 			case workitem.SimpleType:
 				switch fieldType.Kind {
 				case workitem.KindMarkup:
+					var p string
+					var n string
+
 					previousValue := revisionList[k-1].WorkItemFields[fieldName]
 					newValue := revisionList[k].WorkItemFields[fieldName]
 
-					pv := rendering.NewMarkupContentFromMap(previousValue.(map[string]interface{}))
-					nv := rendering.NewMarkupContentFromMap(newValue.(map[string]interface{}))
-					if pv.Content != nv.Content {
+					switch previousValue.(type) {
+					case nil:
+						p = ""
+					case map[string]interface{}:
+						pv := rendering.NewMarkupContentFromMap(previousValue.(map[string]interface{}))
+						p = pv.Content
+					}
+
+					switch newValue.(type) {
+					case nil:
+						n = ""
+					case map[string]interface{}:
+						nv := rendering.NewMarkupContentFromMap(newValue.(map[string]interface{}))
+						n = nv.Content
+
+					}
+
+					if p != n {
 						wie := Event{
 							ID:        revisionList[k].ID,
 							Name:      fieldName,
 							Timestamp: revisionList[k].Time,
 							Modifier:  modifierID.ID,
-							Old:       pv.Content,
-							New:       nv.Content,
+							Old:       p,
+							New:       n,
 						}
 						eventList = append(eventList, wie)
 					}
@@ -188,7 +206,7 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 
 					}
 
-					if previousValue != newValue {
+					if p != n {
 						wie := Event{
 							ID:        revisionList[k].ID,
 							Name:      fieldName,
