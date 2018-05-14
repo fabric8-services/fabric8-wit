@@ -53,7 +53,10 @@
 
 [[projects]]
   name = "github.com/dgrijalva/jwt-go"
-  packages = ["."]
+  packages = [
+    ".",
+    "request"
+  ]
   revision = "06ea1031745cb8b3dab3f6a236daf2b0aa468b7e"
   version = "v3.2.0"
 
@@ -121,7 +124,7 @@
 [[projects]]
   name = "github.com/fabric8-services/fabric8-tenant"
   packages = ["design"]
-  revision = "master"
+  revision = "7e149ee841ea9fe7d439f206781b51cacde5d4d3"
 
 [[projects]]
   name = "github.com/fatih/structs"
@@ -211,9 +214,29 @@
   revision = "c0656edd0d9eab7c66d1eb0c568f9039345796f7"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/gojuno/generator"
+  packages = ["."]
+  revision = "2224a98ac05213f8dff340ea2a489217d2d8b965"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/gojuno/minimock"
+  packages = [
+    ".",
+    "cmd/minimock"
+  ]
+  revision = "3815f8d1b952717b22f2905b1a91896dfa77fab1"
+
+[[projects]]
   name = "github.com/golang/glog"
   packages = ["."]
   revision = "44145f04b68cf362d9c4df2182967c2275eaefed"
+
+[[projects]]
+  name = "github.com/golang/lint"
+  packages = ["golint"]
+  revision = "master"
 
 [[projects]]
   name = "github.com/golang/protobuf"
@@ -579,6 +602,12 @@
   revision = "d172538b2cfce0c13cee31e647d0367aa8cd2486"
 
 [[projects]]
+  branch = "master"
+  name = "golang.org/x/lint"
+  packages = ["."]
+  revision = "85993ffd0a6cd043291f3f63d45d656d97b165bd"
+
+[[projects]]
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -630,7 +659,12 @@
   name = "golang.org/x/tools"
   packages = [
     "cover",
-    "go/ast/astutil"
+    "go/ast/astutil",
+    "go/buildutil",
+    "go/gcexportdata",
+    "go/gcimporter15",
+    "go/loader",
+    "imports"
   ]
   revision = "a888bfdffa4526cc6987572bca9a2c6b7758290f"
 
@@ -781,6 +815,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a910ecbc50c83fbca039fa1489e87923b5a4203fe2365c439eba1b10b90e00df"
+  inputs-digest = "a55877e5d58774c3784617c3243df82ec499993f7cec9864ab1ec773cf163293"
   solver-name = "gps-cdcl"
   solver-version = 1

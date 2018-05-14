@@ -95,3 +95,9 @@ bin/
 
 # make sure this file is not committed anymore
 controller/not/existing/folder/file.golden.json 
+
+# minimock files
+**/*_mock.go
+
+# Infra
+.cico-prepare

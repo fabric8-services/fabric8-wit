@@ -52,6 +52,8 @@ var namespaceAttributes = a.Type("NamespaceAttributes", func() {
 	})
 	a.Attribute("cluster-app-domain", d.String, "The cluster app domain", func() {
 	})
+	a.Attribute("cluster-capacity-exhausted", d.Boolean, "Whether cluster hosting this namespace exhausted it's capacity", func() {
+	})
 	a.Attribute("type", d.String, "The tenant namespaces", func() {
 		a.Enum("che", "jenkins", "stage", "test", "run")
 	})
@@ -74,6 +76,7 @@ var _ = a.Resource("UserService", func() {
 		a.Description("Get the authenticated user tenant services")
 		a.Response(d.OK, userServiceSingle)
 		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 	})

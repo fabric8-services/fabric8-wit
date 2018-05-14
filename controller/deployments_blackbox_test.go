@@ -3,12 +3,14 @@ package controller_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"testing"
 
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/goatest"
 	uuid "github.com/satori/go.uuid"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/fabric8-services/fabric8-wit/app"
@@ -16,6 +18,9 @@ import (
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/kubernetes"
+	"github.com/fabric8-services/fabric8-wit/space"
+	testcontroller "github.com/fabric8-services/fabric8-wit/test/controller"
+	testk8s "github.com/fabric8-services/fabric8-wit/test/kubernetes"
 )
 
 type testKubeClient struct {
@@ -91,54 +96,6 @@ func (c *testOSIOClient) GetSpaceByID(ctx context.Context, spaceID uuid.UUID) (*
 	return space, nil
 }
 
-func TestAPIMethodsCloseKube(t *testing.T) {
-	testCases := []struct {
-		name   string
-		method func(*controller.DeploymentsController) error
-	}{
-		{"SetDeployment", func(ctrl *controller.DeploymentsController) error {
-			count := 1
-			ctx := &app.SetDeploymentDeploymentsContext{
-				PodCount: &count,
-			}
-			return ctrl.SetDeployment(ctx)
-		}},
-		{"ShowDeploymentStatSeries", func(ctrl *controller.DeploymentsController) error {
-			ctx := &app.ShowDeploymentStatSeriesDeploymentsContext{}
-			return ctrl.ShowDeploymentStatSeries(ctx)
-		}},
-		{"ShowDeploymentStats", func(ctrl *controller.DeploymentsController) error {
-			ctx := &app.ShowDeploymentStatsDeploymentsContext{}
-			return ctrl.ShowDeploymentStats(ctx)
-		}},
-		{"ShowSpace", func(ctrl *controller.DeploymentsController) error {
-			ctx := &app.ShowSpaceDeploymentsContext{}
-			return ctrl.ShowSpace(ctx)
-		}},
-		{"ShowSpaceEnvironments", func(ctrl *controller.DeploymentsController) error {
-			ctx := &app.ShowSpaceEnvironmentsDeploymentsContext{}
-			return ctrl.ShowSpaceEnvironments(ctx)
-		}},
-	}
-	// Check that each API method creating a KubeClientInterface also closes it
-	fixture := &deploymentsTestFixture{
-		// Also return an error to avoid executing remainder of calling method
-		deploymentsTestErrors: deploymentsTestErrors{
-			getKubeClientError: errors.New("Test"),
-		},
-	}
-	controller := &controller.DeploymentsController{
-		ClientGetter: fixture,
-	}
-	for _, testCase := range testCases {
-		err := testCase.method(controller)
-		require.Error(t, err, "Expected error \"Test\": "+testCase.name)
-		// Check Close was called before returning
-		require.NotNil(t, fixture.kube, "No Kube client created: "+testCase.name)
-		require.True(t, fixture.kube.closed, "Kube client not closed: "+testCase.name)
-	}
-}
-
 func TestDeleteDeployment(t *testing.T) {
 	const uuidStr = "ed3b4c4d-5a47-44ec-8b73-9a0fbc902184"
 	const spaceName = "mySpace"
@@ -184,7 +141,7 @@ func TestDeleteDeployment(t *testing.T) {
 		},
 		{
 			testName:   "Auth Failure",
-			deleteFunc: test.DeleteDeploymentDeploymentsUnauthorized,
+			deleteFunc: test.DeleteDeploymentDeploymentsInternalServerError,
 			spaceUUID:  uuidStr,
 			deploymentsTestErrors: deploymentsTestErrors{
 				getKubeClientError: errors.New("TEST"), // Return expected error from GetKubeClient
@@ -231,4 +188,55 @@ func createDeploymentsController() (*goa.Service, *controller.DeploymentsControl
 		return nil, nil, err
 	}
 	return svc, controller.NewDeploymentsController(svc, config), nil
+}
+
+func TestShowSpaceEnvironments(t *testing.T) {
+	// given
+	clientGetterMock := testcontroller.NewClientGetterMock(t)
+	svc, ctrl, err := createDeploymentsController()
+	require.NoError(t, err)
+	ctrl.ClientGetter = clientGetterMock
+
+	t.Run("ok", func(t *testing.T) {
+		// given
+		envName := "foo"
+		kubeClientMock := testk8s.NewKubeClientMock(t)
+		kubeClientMock.GetEnvironmentsFunc = func() ([]*app.SimpleEnvironment, error) {
+			return []*app.SimpleEnvironment{
+				{
+					ID:   "foo",
+					Type: "environment",
+					Attributes: &app.SimpleEnvironmentAttributes{
+						Name: &envName,
+					},
+				},
+			}, nil
+		}
+		kubeClientMock.CloseFunc = func() {}
+		clientGetterMock.GetKubeClientFunc = func(p context.Context) (kubernetes.KubeClientInterface, error) {
+			return kubeClientMock, nil
+		}
+		osioClientMock := testcontroller.NewOSIOClientMock(t)
+		clientGetterMock.GetAndCheckOSIOClientFunc = func(p context.Context) (controller.OpenshiftIOClient, error) {
+			return osioClientMock, nil
+		}
+		// when
+		test.ShowSpaceEnvironmentsDeploymentsOK(t, context.Background(), svc, ctrl, space.SystemSpace)
+		// then verify that the Close method was called
+		assert.Equal(t, uint64(1), kubeClientMock.CloseCounter)
+
+	})
+
+	t.Run("failure", func(t *testing.T) {
+
+		t.Run("kube client init failure", func(t *testing.T) {
+			// given
+			clientGetterMock.GetKubeClientFunc = func(p context.Context) (r kubernetes.KubeClientInterface, r1 error) {
+				return nil, fmt.Errorf("failure")
+			}
+			// when/then
+			test.ShowSpaceEnvironmentsDeploymentsInternalServerError(t, context.Background(), svc, ctrl, space.SystemSpace)
+		})
+	})
+
 }
