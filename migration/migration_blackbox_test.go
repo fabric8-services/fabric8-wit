@@ -14,11 +14,11 @@ import (
 	"github.com/fabric8-services/fabric8-wit/workitem"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/fabric8-services/fabric8-common/resource"
 	config "github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/migration"
-	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	"github.com/jinzhu/gorm"

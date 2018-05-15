@@ -7,10 +7,10 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/fabric8-services/fabric8-common/resource"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
-	"github.com/fabric8-services/fabric8-wit/resource"
 	errs "github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 )

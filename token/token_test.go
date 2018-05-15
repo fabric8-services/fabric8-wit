@@ -8,8 +8,8 @@ import (
 	"golang.org/x/oauth2"
 
 	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/fabric8-services/fabric8-common/resource"
 	"github.com/fabric8-services/fabric8-wit/account"
-	"github.com/fabric8-services/fabric8-wit/resource"
 	testtoken "github.com/fabric8-services/fabric8-wit/test/token"
 	"github.com/fabric8-services/fabric8-wit/token"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"

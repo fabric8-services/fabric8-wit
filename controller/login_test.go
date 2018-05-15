@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/fabric8-services/fabric8-common/resource"
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
@@ -12,7 +13,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/login"
-	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	testtoken "github.com/fabric8-services/fabric8-wit/test/token"
 

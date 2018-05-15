@@ -17,12 +17,12 @@ import (
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/ptr"
-	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	"github.com/fabric8-services/fabric8-wit/test/http_monitor"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 
 	"github.com/dnaeon/go-vcr/recorder"
+	"github.com/fabric8-services/fabric8-common/resource"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"

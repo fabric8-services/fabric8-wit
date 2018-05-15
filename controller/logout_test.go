@@ -3,9 +3,9 @@ package controller
 import (
 	"testing"
 
+	"github.com/fabric8-services/fabric8-common/resource"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	config "github.com/fabric8-services/fabric8-wit/configuration"
-	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 
 	"github.com/goadesign/goa"

@@ -3,8 +3,8 @@ package controller
 import (
 	"testing"
 
+	"github.com/fabric8-services/fabric8-common/resource"
 	"github.com/fabric8-services/fabric8-wit/app"
-	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"

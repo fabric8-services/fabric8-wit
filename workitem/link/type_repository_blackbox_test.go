@@ -10,8 +10,8 @@ import (
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 
+	"github.com/fabric8-services/fabric8-common/resource"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
-	"github.com/fabric8-services/fabric8-wit/resource"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	_ "github.com/lib/pq" // need to import postgres driver

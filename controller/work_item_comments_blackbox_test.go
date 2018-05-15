@@ -1,16 +1,12 @@
 package controller_test
 
 import (
+	"context"
 	"html"
 	"net/http"
 	"net/url"
 	"testing"
 	"time"
-
-	"github.com/fabric8-services/fabric8-wit/id"
-	"github.com/fabric8-services/fabric8-wit/ptr"
-
-	"context"
 
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
@@ -19,11 +15,14 @@ import (
 	"github.com/fabric8-services/fabric8-wit/comment"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/id"
+	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	notificationsupport "github.com/fabric8-services/fabric8-wit/test/notification"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
+
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"

@@ -12,8 +12,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabric8-services/fabric8-wit/spacetemplate"
-
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
@@ -23,12 +21,14 @@ import (
 	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/ptr"
 	"github.com/fabric8-services/fabric8-wit/rendering"
-	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/search"
+	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
+
+	"github.com/fabric8-services/fabric8-common/resource"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/goatest"
 	uuid "github.com/satori/go.uuid"

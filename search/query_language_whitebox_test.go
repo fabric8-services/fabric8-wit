@@ -7,8 +7,8 @@ import (
 	"runtime/debug"
 	"testing"
 
+	"github.com/fabric8-services/fabric8-common/resource"
 	c "github.com/fabric8-services/fabric8-wit/criteria"
-	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

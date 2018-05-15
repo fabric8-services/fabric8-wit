@@ -3,7 +3,7 @@ package remoteworkitem
 import (
 	"testing"
 
-	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-common/resource"
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/require"
 )

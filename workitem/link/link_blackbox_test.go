@@ -5,8 +5,9 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/convert"
 	"github.com/fabric8-services/fabric8-wit/id"
-	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
+
+	"github.com/fabric8-services/fabric8-common/resource"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 )

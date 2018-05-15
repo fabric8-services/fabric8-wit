@@ -3,10 +3,10 @@ package account_test
 import (
 	"testing"
 
+	"github.com/fabric8-services/fabric8-common/resource"
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
-	"github.com/fabric8-services/fabric8-wit/resource"
 
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"

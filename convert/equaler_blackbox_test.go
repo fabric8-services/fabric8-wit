@@ -3,8 +3,8 @@ package convert_test
 import (
 	"testing"
 
+	"github.com/fabric8-services/fabric8-common/resource"
 	"github.com/fabric8-services/fabric8-wit/convert"
-	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/stretchr/testify/assert"
 )
 
