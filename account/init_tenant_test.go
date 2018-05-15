@@ -83,13 +83,39 @@ func TestCleanTenant(t *testing.T) {
 	})
 
 	t.Run("failure", func(t *testing.T) {
-		// given
-		ctx, err := testjwt.NewJWTContext("83fdcae2-634f-4a52-958a-f723cb621700")
-		require.NoError(t, err)
-		// when
-		err = account.CleanTenant(ctx, config, false, configuration.WithRoundTripper(r.Transport))
-		// then
-		require.Error(t, err)
+
+		t.Run("internal server error", func(t *testing.T) {
+			// given
+			ctx, err := testjwt.NewJWTContext("83fdcae2-634f-4a52-958a-f723cb621700")
+			require.NoError(t, err)
+			// when
+			err = account.CleanTenant(ctx, config, false, configuration.WithRoundTripper(r.Transport))
+			// then
+			require.Error(t, err)
+			assert.IsType(t, errors.InternalError{}, err)
+		})
+
+		t.Run("other error with a message", func(t *testing.T) {
+			// given
+			ctx, err := testjwt.NewJWTContext("2610c5dc-d700-4b86-b979-2b103e0b1144")
+			require.NoError(t, err)
+			// when
+			err = account.CleanTenant(ctx, config, false, configuration.WithRoundTripper(r.Transport))
+			// then
+			require.Error(t, err)
+			assert.IsType(t, errors.UnauthorizedError{}, err)
+		})
+
+		t.Run("other error without a message", func(t *testing.T) {
+			// given
+			ctx, err := testjwt.NewJWTContext("73a3b0ce-4917-44db-9979-90b1219ca2c6")
+			require.NoError(t, err)
+			// when
+			err = account.CleanTenant(ctx, config, false, configuration.WithRoundTripper(r.Transport))
+			// then
+			require.Error(t, err)
+			assert.IsType(t, errors.InternalError{}, err)
+		})
 	})
 
 }
