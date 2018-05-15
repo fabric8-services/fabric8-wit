@@ -99,8 +99,11 @@ func CleanTenant(ctx context.Context, config tenantConfig, remove bool, options 
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
 		jsonErr, err := c.DecodeJSONAPIErrors(res)
 		if err == nil {
+			// use the status code to produce an error
 			if len(jsonErr.Errors) > 0 {
-				return errors.NewInternalError(ctx, fmt.Errorf(jsonErr.Errors[0].Detail))
+				return errors.FromStatusCode(res.StatusCode, jsonErr.Errors[0].Detail)
+			} else {
+				return errors.FromStatusCode(res.StatusCode, rest.ReadBody(res.Body))
 			}
 		}
 	}
