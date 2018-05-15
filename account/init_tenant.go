@@ -98,14 +98,11 @@ func CleanTenant(ctx context.Context, config tenantConfig, remove bool, options 
 	// operation failed for some reason
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
 		jsonErr, err := c.DecodeJSONAPIErrors(res)
-		if err == nil {
-			// use the status code to produce an error
-			if len(jsonErr.Errors) > 0 {
-				return errors.FromStatusCode(res.StatusCode, jsonErr.Errors[0].Detail)
-			} else {
-				return errors.FromStatusCode(res.StatusCode, rest.ReadBody(res.Body))
-			}
+		if err == nil && len(jsonErr.Errors) > 0 {
+			return errors.FromStatusCode(res.StatusCode, jsonErr.Errors[0].Detail)
 		}
+		// if failed to decode the response body into a JSON-API error, or if the JSON-API error was empty
+		return errors.FromStatusCode(res.StatusCode, "unknown error")
 	}
 	// operation succeeded
 	return nil
