@@ -95,7 +95,8 @@ func CleanTenant(ctx context.Context, config tenantConfig, remove bool, options 
 	}
 	defer rest.CloseResponse(res)
 
-	if res.StatusCode != http.StatusNoContent { // the delete tenant operation returns a `204 No Content` response in case of success
+	// operation failed for some reason
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
 		jsonErr, err := c.DecodeJSONAPIErrors(res)
 		if err == nil {
 			if len(jsonErr.Errors) > 0 {
@@ -103,6 +104,7 @@ func CleanTenant(ctx context.Context, config tenantConfig, remove bool, options 
 			}
 		}
 	}
+	// operation succeeded
 	return nil
 }
 
