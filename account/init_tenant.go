@@ -82,9 +82,9 @@ func UpdateTenant(ctx context.Context, config tenantConfig) error {
 }
 
 // CleanTenant cleans out a tenant in oso.
-func CleanTenant(ctx context.Context, config tenantConfig, remove bool) error {
+func CleanTenant(ctx context.Context, config tenantConfig, remove bool, options ...configuration.HTTPClientOption) error {
 
-	c, err := createClient(ctx, config)
+	c, err := createClient(ctx, config, options...)
 	if err != nil {
 		return err
 	}
@@ -95,14 +95,16 @@ func CleanTenant(ctx context.Context, config tenantConfig, remove bool) error {
 	}
 	defer rest.CloseResponse(res)
 
-	if res.StatusCode != http.StatusOK {
+	// operation failed for some reason
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
 		jsonErr, err := c.DecodeJSONAPIErrors(res)
-		if err == nil {
-			if len(jsonErr.Errors) > 0 {
-				return errors.NewInternalError(ctx, fmt.Errorf(jsonErr.Errors[0].Detail))
-			}
+		if err == nil && len(jsonErr.Errors) > 0 {
+			return errors.FromStatusCode(res.StatusCode, jsonErr.Errors[0].Detail)
 		}
+		// if failed to decode the response body into a JSON-API error, or if the JSON-API error was empty
+		return errors.FromStatusCode(res.StatusCode, "unknown error")
 	}
+	// operation succeeded
 	return nil
 }
 
