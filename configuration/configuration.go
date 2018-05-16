@@ -68,6 +68,7 @@ const (
 	varAuthNotApprovedRedirect      = "auth.notapproved.redirect"
 	varHeaderMaxLength              = "header.maxlength"
 	varEnvironment                  = "environment"
+	varJenkinsIdlerURL              = "jenkins.idler.url"
 
 	// cache control settings for a list of resources
 	varCacheControlWorkItems         = "cachecontrol.workitems"
