@@ -1,0 +1,50 @@
+---
+version: 1
+interactions:
+- request:
+    headers:
+      sub: ["bcdd0b29-123d-11e8-a8bc-b69930b94f5c"] # will be compared against the `sub` claim in the incoming request's token
+    url: http://tenant/api/tenant?remove=false
+    method: DELETE
+  response:
+    status: 204 No Content
+    code: 204
+- request:
+    headers:
+      sub: ["83fdcae2-634f-4a52-958a-f723cb621700"] # will be compared against the `sub` claim in the incoming request's token
+    url: http://tenant/api/tenant?remove=false
+    method: DELETE
+  response:
+    status: 500 Internal Server Error
+    code: 500
+    body: '{
+      "errors":[{
+          "code": "500",
+          "detail": "unable to fetch cluster",
+          "id": "83fdcae2-634f-4a52-958a-f723cb621700"
+        }]
+      }'
+- request:
+    headers:
+      sub: ["2610c5dc-d700-4b86-b979-2b103e0b1144"] # will be compared against the `sub` claim in the incoming request's token
+    url: http://tenant/api/tenant?remove=false
+    method: DELETE
+  response:
+    status: 401 Unauthorized
+    code: 401
+    body: '{
+      "errors":[{
+          "code": "401",
+          "detail": "unauthorized",
+          "id": "2610c5dc-d700-4b86-b979-2b103e0b1144"
+        }]
+      }'
+- request:
+    headers:
+      sub: ["73a3b0ce-4917-44db-9979-90b1219ca2c6"] # will be compared against the `sub` claim in the incoming request's token
+    url: http://tenant/api/tenant?remove=false
+    method: DELETE
+  response:
+    status: 418 I'm a teapot
+    code: 418
+    # no response body, on purpose
