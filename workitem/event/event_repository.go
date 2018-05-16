@@ -2,7 +2,7 @@ package event
 
 import (
 	"context"
-	"fmt"
+	"reflect"
 
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
@@ -97,10 +97,9 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 					}
 
 					// Avoid duplicate entries for empty labels or assignees
-					if len(p) != 0 || len(n) != 0 {
-						fmt.Println("label", fieldName)
+					if reflect.DeepEqual(p, n) == false {
 						wie := Event{
-							ID:        uuid.NewV4(),
+							ID:        revisionList[k].ID,
 							Name:      fieldName,
 							Timestamp: revisionList[k].Time,
 							Modifier:  modifierID.ID,
@@ -146,7 +145,6 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 					}
 					eventList = append(eventList, wie)
 				}
-
 			case workitem.SimpleType:
 				switch fieldType.Kind {
 				case workitem.KindMarkup:
