@@ -11,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/fabric8-services/fabric8-wit/errors"
+
 	"github.com/dnaeon/go-vcr/cassette"
 	"github.com/dnaeon/go-vcr/recorder"
 	"github.com/stretchr/testify/require"
@@ -262,6 +264,8 @@ func TestConfigMapEnvironments(t *testing.T) {
 		name         string
 		cassetteName string
 		shouldFail   bool
+		// Checks if error is expected kind
+		errorChecker func(error) (bool, error)
 	}{
 		{
 			name:         "Basic",
@@ -286,6 +290,12 @@ func TestConfigMapEnvironments(t *testing.T) {
 			cassetteName: "newkubeclient-noprovider",
 			shouldFail:   true,
 		},
+		{
+			name:         "Kubernetes Error",
+			cassetteName: "newkubeclient-statuserror",
+			shouldFail:   true,
+			errorChecker: errors.IsNotFoundError,
+		},
 	}
 	fixture := &testFixture{}
 	userNamespace := "myNamespace"
@@ -306,6 +316,10 @@ func TestConfigMapEnvironments(t *testing.T) {
 			kc, err := kubernetes.NewKubeClient(config)
 			if testCase.shouldFail {
 				require.Error(t, err, "Expected an error")
+				if testCase.errorChecker != nil {
+					matches, _ := testCase.errorChecker(err)
+					require.True(t, matches, "Error or cause must be the expected type")
+				}
 			} else {
 				require.NoError(t, err)
 				require.NotNil(t, kc, "KubeClient must not be nil")
@@ -327,6 +341,7 @@ func TestGetEnvironments(t *testing.T) {
 		testName     string
 		cassetteName string
 		shouldFail   bool
+		errorChecker func(error) (bool, error)
 		data         map[string]*envTestData
 	}{
 		{
@@ -357,9 +372,10 @@ func TestGetEnvironments(t *testing.T) {
 			},
 		},
 		{
-			testName:     "Missing Quota",
-			cassetteName: "getenvironments-missingquota",
+			testName:     "Kubernetes Error",
+			cassetteName: "getenvironments-rq-error",
 			shouldFail:   true,
+			errorChecker: errors.IsNotFoundError,
 		},
 	}
 
@@ -375,6 +391,10 @@ func TestGetEnvironments(t *testing.T) {
 			envs, err := kc.GetEnvironments()
 			if testCase.shouldFail {
 				require.Error(t, err, "Expected an error")
+				if testCase.errorChecker != nil {
+					matches, _ := testCase.errorChecker(err)
+					require.True(t, matches, "Error or cause must be the expected type")
+				}
 			} else {
 				require.NoError(t, err, "Unexpected error occurred")
 
@@ -400,6 +420,7 @@ func TestGetEnvironment(t *testing.T) {
 		testName     string
 		cassetteName string
 		shouldFail   bool
+		errorChecker func(error) (bool, error)
 		envTestData
 	}{
 		{
@@ -422,12 +443,13 @@ func TestGetEnvironment(t *testing.T) {
 			shouldFail: true,
 		},
 		{
-			testName:     "Missing Quota",
-			cassetteName: "getenvironments-missingquota",
+			testName:     "Kubernetes Error",
+			cassetteName: "getenvironments-rq-error",
 			envTestData: envTestData{
 				envName: "run",
 			},
-			shouldFail: true,
+			shouldFail:   true,
+			errorChecker: errors.IsNotFoundError,
 		},
 	}
 
@@ -443,6 +465,10 @@ func TestGetEnvironment(t *testing.T) {
 			env, err := kc.GetEnvironment(testCase.envName)
 			if testCase.shouldFail {
 				require.Error(t, err, "Expected an error")
+				if testCase.errorChecker != nil {
+					matches, _ := testCase.errorChecker(err)
+					require.True(t, matches, "Error or cause must be the expected type")
+				}
 			} else {
 				require.NoError(t, err, "Unexpected error occurred")
 
@@ -514,6 +540,7 @@ type deployTestData struct {
 	expectLogURL            string
 	expectAppURL            string
 	shouldFail              bool
+	errorChecker            func(error) (bool, error)
 	cassetteName            string
 }
 
@@ -845,6 +872,24 @@ func TestGetDeployment(t *testing.T) {
 			cassetteName: "getdeployment-wrongspace",
 			shouldFail:   true,
 		},
+		{
+			testName:     "RC List Error",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "getdeployment-rc-error",
+			shouldFail:   true,
+			errorChecker: errors.IsBadParameterError,
+		},
+		{
+			testName:     "Pod List Error",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "getdeployment-pod-error",
+			shouldFail:   true,
+			errorChecker: errors.IsBadParameterError,
+		},
 	}
 
 	for _, testCase := range testCases {
@@ -859,6 +904,10 @@ func TestGetDeployment(t *testing.T) {
 			dep, err := kc.GetDeployment(testCase.spaceName, testCase.appName, testCase.envName)
 			if testCase.shouldFail {
 				require.Error(t, err, "Expected an error")
+				if testCase.errorChecker != nil {
+					matches, _ := testCase.errorChecker(err)
+					require.True(t, matches, "Error or cause must be the expected type")
+				}
 			} else {
 				require.NoError(t, err, "Unexpected error occurred")
 				verifyDeployment(dep, testCase, t)

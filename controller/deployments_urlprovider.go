@@ -288,7 +288,7 @@ func modifyURL(apiURLStr string, prefix string, path string) (*url.URL, error) {
 	// Parse as URL to give us easy access to the hostname
 	apiURL, err := url.Parse(apiURLStr)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	// Get the hostname (without port) and replace api prefix with prefix arg

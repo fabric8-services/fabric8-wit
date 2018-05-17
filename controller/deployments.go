@@ -341,7 +341,7 @@ func (c *DeploymentsController) ShowSpace(ctx *app.ShowSpaceDeploymentsContext) 
 	// get OpenShift space
 	space, err := kc.GetSpace(*kubeSpaceName)
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.Wrapf(err, "could not retrieve space %s", *kubeSpaceName)))
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	if space == nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewNotFoundError("openshift space", *kubeSpaceName))

@@ -56,7 +56,20 @@ interactions:
     url: http://api.myCluster/api/v1/namespaces/my-run/resourcequotas/compute-resources
     method: GET
   response:
-    body: ""
+    body: |
+        {
+            "kind": "Status",
+            "apiVersion": "v1",
+            "metadata": {},
+            "status": "Failure",
+            "message": "resourcequotas \"compute-resources\" not found",
+            "reason": "NotFound",
+            "details": {
+                "name": "compute-resources",
+                "kind": "resourcequotas"
+            },
+            "code": 404
+        }
     headers:
       Content-Type:
       - application/json;charset=UTF-8
