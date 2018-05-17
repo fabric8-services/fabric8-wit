@@ -112,6 +112,8 @@ func ConvertEvent(appl application.Application, request *http.Request, wiEvent e
 			},
 		}
 	case workitem.SystemArea:
+		old := ConvertAreaSimple(request, wiEvent.Old)
+		new := ConvertAreaSimple(request, wiEvent.New)
 		e = &app.Event{
 			Type: event.APIStringTypeEvents,
 			ID:   &wiEvent.ID,
@@ -124,15 +126,17 @@ func ConvertEvent(appl application.Application, request *http.Request, wiEvent e
 
 			Relationships: &app.EventRelations{
 				Modifier: modifier,
-				OldArea: &app.RelationGeneric{
-					Data: ConvertAreaSimple(request, wiEvent.Old),
+				OldValue: &app.RelationGenericList{
+					Data: []*app.GenericData{old},
 				},
-				NewArea: &app.RelationGeneric{
-					Data: ConvertAreaSimple(request, wiEvent.New),
+				NewValue: &app.RelationGenericList{
+					Data: []*app.GenericData{new},
 				},
 			},
 		}
 	case workitem.SystemIteration:
+		old := ConvertIterationSimple(request, wiEvent.Old)
+		new := ConvertIterationSimple(request, wiEvent.New)
 		e = &app.Event{
 			Type: event.APIStringTypeEvents,
 			ID:   &wiEvent.ID,
@@ -145,11 +149,11 @@ func ConvertEvent(appl application.Application, request *http.Request, wiEvent e
 
 			Relationships: &app.EventRelations{
 				Modifier: modifier,
-				OldIteration: &app.RelationGeneric{
-					Data: ConvertIterationSimple(request, wiEvent.Old),
+				OldValue: &app.RelationGenericList{
+					Data: []*app.GenericData{old},
 				},
-				NewIteration: &app.RelationGeneric{
-					Data: ConvertIterationSimple(request, wiEvent.New),
+				NewValue: &app.RelationGenericList{
+					Data: []*app.GenericData{new},
 				},
 			},
 		}
@@ -165,10 +169,10 @@ func ConvertEvent(appl application.Application, request *http.Request, wiEvent e
 			},
 			Relationships: &app.EventRelations{
 				Modifier: modifier,
-				OldAssignees: &app.RelationGenericList{
+				OldValue: &app.RelationGenericList{
 					Data: ConvertUsersSimple(request, wiEvent.Old.([]interface{})),
 				},
-				NewAssignees: &app.RelationGenericList{
+				NewValue: &app.RelationGenericList{
 					Data: ConvertUsersSimple(request, wiEvent.New.([]interface{})),
 				},
 			},
@@ -185,13 +189,13 @@ func ConvertEvent(appl application.Application, request *http.Request, wiEvent e
 			},
 			Relationships: &app.EventRelations{
 				Modifier: modifier,
-				OldLabels: &app.RelationGenericList{
+				OldValue: &app.RelationGenericList{
 					Data: ConvertLabelsSimple(request, wiEvent.Old.([]interface{})),
 					Links: &app.GenericLinks{
 						Related: &labelsRelated,
 					},
 				},
-				NewLabels: &app.RelationGenericList{
+				NewValue: &app.RelationGenericList{
 					Data: ConvertLabelsSimple(request, wiEvent.New.([]interface{})),
 					Links: &app.GenericLinks{
 						Related: &labelsRelated,

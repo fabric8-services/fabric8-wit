@@ -18,25 +18,29 @@
             "type": "identities"
           }
         },
-        "newArea": {
-          "data": {
-            "id": "00000000-0000-0000-0000-000000000003",
-            "links": {
-              "related": "http:///api/areas/00000000-0000-0000-0000-000000000003",
-              "self": "http:///api/areas/00000000-0000-0000-0000-000000000003"
-            },
-            "type": "areas"
-          }
+        "newValue": {
+          "data": [
+            {
+              "id": "00000000-0000-0000-0000-000000000003",
+              "links": {
+                "related": "http:///api/areas/00000000-0000-0000-0000-000000000003",
+                "self": "http:///api/areas/00000000-0000-0000-0000-000000000003"
+              },
+              "type": "areas"
+            }
+          ]
         },
-        "oldArea": {
-          "data": {
-            "id": "",
-            "links": {
-              "related": "http:///api/areas/",
-              "self": "http:///api/areas/"
-            },
-            "type": "areas"
-          }
+        "oldValue": {
+          "data": [
+            {
+              "id": "",
+              "links": {
+                "related": "http:///api/areas/",
+                "self": "http:///api/areas/"
+              },
+              "type": "areas"
+            }
+          ]
         }
       },
       "type": "events"

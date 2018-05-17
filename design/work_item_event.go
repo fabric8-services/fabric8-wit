@@ -40,14 +40,17 @@ var eventAttributes = a.Type("EventAttributes", func() {
 
 var eventRelationships = a.Type("EventRelations", func() {
 	a.Attribute("modifier", relationGeneric, "This defines the modifier of the event")
-	a.Attribute("oldAssignees", relationGenericList, "This defines assignees of the Work Item")
+	/*a.Attribute("oldAssignees", relationGenericList, "This defines assignees of the Work Item")
 	a.Attribute("newAssignees", relationGenericList, "This defines assignees of the Work Item")
 	a.Attribute("oldLabels", relationGenericList, "List of labels attached to the Work Item")
 	a.Attribute("newLabels", relationGenericList, "List of labels attached to the Work Item")
 	a.Attribute("oldArea", relationGeneric, "This defines the area this work item belongs to")
 	a.Attribute("newArea", relationGeneric, "This defines the area this work item belongs to")
 	a.Attribute("oldIteration", relationGeneric, "This defines the iteration this work item belong to")
-	a.Attribute("newIteration", relationGeneric, "This defines the iteration this work item belong to")
+	a.Attribute("newIteration", relationGeneric, "This defines the iteration this work item belong to")*/
+
+	a.Attribute("oldValue", relationGenericList)
+	a.Attribute("newValue", relationGenericList)
 })
 
 var eventList = JSONList(

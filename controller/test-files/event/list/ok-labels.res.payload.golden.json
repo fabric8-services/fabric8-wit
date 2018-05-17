@@ -18,7 +18,7 @@
             "type": "identities"
           }
         },
-        "newLabels": {
+        "newValue": {
           "data": [
             {
               "id": "00000000-0000-0000-0000-000000000003",
@@ -33,7 +33,7 @@
             "related": "http:///api/workitems/00000000-0000-0000-0000-000000000005/labels"
           }
         },
-        "oldLabels": {
+        "oldValue": {
           "links": {
             "related": "http:///api/workitems/00000000-0000-0000-0000-000000000005/labels"
           }

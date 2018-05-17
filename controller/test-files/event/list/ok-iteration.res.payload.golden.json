@@ -18,25 +18,29 @@
             "type": "identities"
           }
         },
-        "newIteration": {
-          "data": {
-            "id": "00000000-0000-0000-0000-000000000003",
-            "links": {
-              "related": "http:///api/iterations/00000000-0000-0000-0000-000000000003",
-              "self": "http:///api/iterations/00000000-0000-0000-0000-000000000003"
-            },
-            "type": "iterations"
-          }
+        "newValue": {
+          "data": [
+            {
+              "id": "00000000-0000-0000-0000-000000000003",
+              "links": {
+                "related": "http:///api/iterations/00000000-0000-0000-0000-000000000003",
+                "self": "http:///api/iterations/00000000-0000-0000-0000-000000000003"
+              },
+              "type": "iterations"
+            }
+          ]
         },
-        "oldIteration": {
-          "data": {
-            "id": "",
-            "links": {
-              "related": "http:///api/iterations/",
-              "self": "http:///api/iterations/"
-            },
-            "type": "iterations"
-          }
+        "oldValue": {
+          "data": [
+            {
+              "id": "",
+              "links": {
+                "related": "http:///api/iterations/",
+                "self": "http:///api/iterations/"
+              },
+              "type": "iterations"
+            }
+          ]
         }
       },
       "type": "events"
