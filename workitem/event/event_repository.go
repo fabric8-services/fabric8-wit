@@ -109,7 +109,7 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 						eventList = append(eventList, wie)
 					}
 				default:
-					return nil, errors.NewNotFoundError("Unkown field:", fieldName)
+					return nil, errors.NewNotFoundError("Unknown field:", fieldName)
 
 				}
 			case workitem.EnumType:
@@ -217,7 +217,7 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 					}
 				}
 			default:
-				return nil, errors.NewNotFoundError("Unkown field:", fieldName)
+				return nil, errors.NewNotFoundError("Unknown field:", fieldName)
 			}
 
 		}

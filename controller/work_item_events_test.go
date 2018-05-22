@@ -149,14 +149,6 @@ func (s *TestEvent) TestListEvent() {
 		fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
 		svc := testsupport.ServiceAsSpaceUser("Event-Service", *fxt.Identities[0], &TestSpaceAuthzService{*fxt.Identities[0], ""})
 		EventCtrl := NewEventsController(svc, s.db, s.Configuration)
-		/*
-			fxt.WorkItems[0].Fields[workitem.SystemArea] = fxt.Areas[0].ID.String()
-			err := application.Transactional(s.db, func(app application.Application) error {
-				_, err := app.WorkItems().Save(context.Background(), fxt.Spaces[0].ID, *fxt.WorkItems[0], fxt.Identities[0].ID)
-				return err
-			})
-			require.NoError(t, err)
-		*/
 		workitemCtrl := NewWorkitemController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 		spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(fxt.Spaces[0].ID.String()))
 		payload := app.UpdateWorkitemPayload{
