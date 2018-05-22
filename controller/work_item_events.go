@@ -26,7 +26,6 @@ type EventsController struct {
 // EventsControllerConfig the config interface for the WorkitemEventsController
 type EventsControllerConfig interface {
 	GetCacheControlEvents() string
-	//GetCacheControlEvent() string
 }
 
 // NewEventsController creates a work_item_events controller.
