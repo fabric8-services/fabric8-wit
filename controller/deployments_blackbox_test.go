@@ -17,6 +17,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/controller"
+	witerrors "github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/kubernetes"
 	"github.com/fabric8-services/fabric8-wit/space"
 	testcontroller "github.com/fabric8-services/fabric8-wit/test/controller"
@@ -190,6 +191,93 @@ func createDeploymentsController() (*goa.Service, *controller.DeploymentsControl
 	return svc, controller.NewDeploymentsController(svc, config), nil
 }
 
+func TestShowSpace(t *testing.T) {
+	// given
+	spaceName := "mySpace"
+	clientGetterMock := testcontroller.NewClientGetterMock(t)
+	svc, ctrl, err := createDeploymentsController()
+	require.NoError(t, err)
+	ctrl.ClientGetter = clientGetterMock
+
+	t.Run("ok", func(t *testing.T) {
+		// given
+		kubeClientMock := testk8s.NewKubeClientMock(t)
+		kubeClientMock.GetSpaceFunc = func(spaceName string) (*app.SimpleSpace, error) {
+			return &app.SimpleSpace{
+				Type: "space",
+				Attributes: &app.SimpleSpaceAttributes{
+					Name:         spaceName,
+					Applications: []*app.SimpleApp{},
+				},
+			}, nil
+		}
+		kubeClientMock.CloseFunc = func() {}
+		clientGetterMock.GetKubeClientFunc = func(ctx context.Context) (kubernetes.KubeClientInterface, error) {
+			return kubeClientMock, nil
+		}
+		osioClientMock := testcontroller.NewOSIOClientMock(t)
+		osioClientMock.GetSpaceByIDFunc = func(ctx context.Context, spaceID uuid.UUID) (*app.Space, error) {
+			return &app.Space{
+				ID: &spaceID,
+				Attributes: &app.SpaceAttributes{
+					Name: &spaceName,
+				},
+			}, nil
+		}
+		clientGetterMock.GetAndCheckOSIOClientFunc = func(ctx context.Context) (controller.OpenshiftIOClient, error) {
+			return osioClientMock, nil
+		}
+		// when
+		_, result := test.ShowSpaceDeploymentsOK(t, context.Background(), svc, ctrl, space.SystemSpace)
+		// then
+		assert.Equal(t, space.SystemSpace, result.Data.ID, "space ID should be %s", space.SystemSpace.String())
+		assert.NotNil(t, result.Data.Attributes, "space attributes must be non-nil")
+		assert.Equal(t, spaceName, result.Data.Attributes.Name, "space ID should be %s", space.SystemSpace.String())
+		// verify that the Close method was called
+		assert.Equal(t, uint64(1), kubeClientMock.CloseCounter)
+	})
+
+	t.Run("failure", func(t *testing.T) {
+
+		t.Run("kube client init failure", func(t *testing.T) {
+			// given
+			clientGetterMock.GetKubeClientFunc = func(p context.Context) (r kubernetes.KubeClientInterface, r1 error) {
+				return nil, fmt.Errorf("failure")
+			}
+			// when/then
+			test.ShowSpaceDeploymentsInternalServerError(t, context.Background(), svc, ctrl, space.SystemSpace)
+		})
+
+		t.Run("get space bad request", func(t *testing.T) {
+			// given
+			kubeClientMock := testk8s.NewKubeClientMock(t)
+			kubeClientMock.GetSpaceFunc = func(spaceName string) (*app.SimpleSpace, error) {
+				return nil, witerrors.NewBadParameterErrorFromString("TEST")
+			}
+			kubeClientMock.CloseFunc = func() {}
+			clientGetterMock.GetKubeClientFunc = func(ctx context.Context) (kubernetes.KubeClientInterface, error) {
+				return kubeClientMock, nil
+			}
+			osioClientMock := testcontroller.NewOSIOClientMock(t)
+			osioClientMock.GetSpaceByIDFunc = func(ctx context.Context, spaceID uuid.UUID) (*app.Space, error) {
+				return &app.Space{
+					ID: &spaceID,
+					Attributes: &app.SpaceAttributes{
+						Name: &spaceName,
+					},
+				}, nil
+			}
+			clientGetterMock.GetAndCheckOSIOClientFunc = func(ctx context.Context) (controller.OpenshiftIOClient, error) {
+				return osioClientMock, nil
+			}
+			// when
+			test.ShowSpaceDeploymentsBadRequest(t, context.Background(), svc, ctrl, space.SystemSpace)
+			// then verify that the Close method was called
+			assert.Equal(t, uint64(1), kubeClientMock.CloseCounter)
+		})
+	})
+}
+
 func TestShowSpaceEnvironments(t *testing.T) {
 	// given
 	clientGetterMock := testcontroller.NewClientGetterMock(t)
@@ -238,23 +326,11 @@ func TestShowSpaceEnvironments(t *testing.T) {
 			test.ShowSpaceEnvironmentsDeploymentsInternalServerError(t, context.Background(), svc, ctrl, space.SystemSpace)
 		})
 
-		t.Run("get space bad request", func(t *testing.T) {
+		t.Run("get environments bad request", func(t *testing.T) { // FIXME
 			// given
-			envName := "foo"
 			kubeClientMock := testk8s.NewKubeClientMock(t)
 			kubeClientMock.GetEnvironmentsFunc = func() ([]*app.SimpleEnvironment, error) {
-				return []*app.SimpleEnvironment{
-					{
-						ID:   "foo",
-						Type: "environment",
-						Attributes: &app.SimpleEnvironmentAttributes{
-							Name: &envName,
-						},
-					},
-				}, nil
-			}
-			kubeClientMock.GetSpaceFunc = func() (*app.SimpleSpace, error) {
-				return nil, errors.NewBadParameterErrorFromString("TEST")
+				return nil, witerrors.NewBadParameterErrorFromString("TEST")
 			}
 			kubeClientMock.CloseFunc = func() {}
 			clientGetterMock.GetKubeClientFunc = func(p context.Context) (kubernetes.KubeClientInterface, error) {
