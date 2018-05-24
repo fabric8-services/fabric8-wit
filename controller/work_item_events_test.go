@@ -43,6 +43,90 @@ func (s *TestEvent) SetupTest() {
 
 func (s *TestEvent) TestListEvent() {
 
+	s.T().Run("event list ok - state", func(t *testing.T) {
+		fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+		svc := testsupport.ServiceAsSpaceUser("Event-Service", *fxt.Identities[0], &TestSpaceAuthzService{*fxt.Identities[0], ""})
+		EventCtrl := NewEventsController(svc, s.db, s.Configuration)
+		workitemCtrl := NewWorkitemController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+		spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(fxt.Spaces[0].ID.String()))
+		payload := app.UpdateWorkitemPayload{
+			Data: &app.WorkItem{
+				Type: APIStringTypeWorkItem,
+				ID:   &fxt.WorkItems[0].ID,
+				Attributes: map[string]interface{}{
+					workitem.SystemState:   "resolved",
+					workitem.SystemVersion: fxt.WorkItems[0].Version,
+				},
+				Relationships: &app.WorkItemRelationships{
+					Space: app.NewSpaceRelation(fxt.Spaces[0].ID, spaceSelfURL),
+				},
+			},
+		}
+		test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload)
+		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
+		safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
+		require.NotEmpty(t, eventList)
+		require.Len(t, eventList.Data, 1)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok-state.res.payload.golden.json"), eventList)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok-state.res.headers.golden.json"), res.Header())
+	})
+
+	s.T().Run("event list ok - title", func(t *testing.T) {
+		fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+		svc := testsupport.ServiceAsSpaceUser("Event-Service", *fxt.Identities[0], &TestSpaceAuthzService{*fxt.Identities[0], ""})
+		EventCtrl := NewEventsController(svc, s.db, s.Configuration)
+		workitemCtrl := NewWorkitemController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+		spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(fxt.Spaces[0].ID.String()))
+		payload := app.UpdateWorkitemPayload{
+			Data: &app.WorkItem{
+				Type: APIStringTypeWorkItem,
+				ID:   &fxt.WorkItems[0].ID,
+				Attributes: map[string]interface{}{
+					workitem.SystemTitle:   "New Title",
+					workitem.SystemVersion: fxt.WorkItems[0].Version,
+				},
+				Relationships: &app.WorkItemRelationships{
+					Space: app.NewSpaceRelation(fxt.Spaces[0].ID, spaceSelfURL),
+				},
+			},
+		}
+		test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload)
+		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
+		safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
+		require.NotEmpty(t, eventList)
+		require.Len(t, eventList.Data, 1)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok-title.res.payload.golden.json"), eventList)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok-title.res.headers.golden.json"), res.Header())
+	})
+
+	s.T().Run("event list ok - description", func(t *testing.T) {
+		fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
+		svc := testsupport.ServiceAsSpaceUser("Event-Service", *fxt.Identities[0], &TestSpaceAuthzService{*fxt.Identities[0], ""})
+		EventCtrl := NewEventsController(svc, s.db, s.Configuration)
+		workitemCtrl := NewWorkitemController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+		spaceSelfURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(fxt.Spaces[0].ID.String()))
+		payload := app.UpdateWorkitemPayload{
+			Data: &app.WorkItem{
+				Type: APIStringTypeWorkItem,
+				ID:   &fxt.WorkItems[0].ID,
+				Attributes: map[string]interface{}{
+					workitem.SystemDescription: "New Description",
+					workitem.SystemVersion:     fxt.WorkItems[0].Version,
+				},
+				Relationships: &app.WorkItemRelationships{
+					Space: app.NewSpaceRelation(fxt.Spaces[0].ID, spaceSelfURL),
+				},
+			},
+		}
+		test.UpdateWorkitemOK(t, svc.Context, svc, workitemCtrl, fxt.WorkItems[0].ID, &payload)
+		res, eventList := test.ListWorkItemEventsOK(t, svc.Context, svc, EventCtrl, fxt.WorkItems[0].ID, nil, nil)
+		safeOverriteHeader(t, res, app.ETag, "1GmclFDDPcLR1ZWPZnykWw==")
+		require.NotEmpty(t, eventList)
+		require.Len(t, eventList.Data, 1)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok-description.res.payload.golden.json"), eventList)
+		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "list", "ok-description.res.headers.golden.json"), res.Header())
+	})
+
 	s.T().Run("event list ok - assigned", func(t *testing.T) {
 		fxt := tf.NewTestFixture(s.T(), s.DB, tf.CreateWorkItemEnvironment(), tf.WorkItems(1))
 		svc := testsupport.ServiceAsSpaceUser("Event-Service", *fxt.Identities[0], &TestSpaceAuthzService{*fxt.Identities[0], ""})
