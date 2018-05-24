@@ -154,241 +154,233 @@ func (s *SpaceControllerTestSuite) SecuredSpaceIterationController(identity acco
 	return svc, NewSpaceIterationsController(svc, s.db, s.Configuration)
 }
 
-func (s *SpaceControllerTestSuite) TestValidateSpaceName() {
-
-	s.T().Run("ok", func(t *testing.T) {
-		// given
-		p := newCreateSpacePayload(&testsupport.TestMaxsizedNameObj, nil)
-		// when
-		err := p.Validate()
-		// Validate payload function returns no error
-		assert.Nil(t, err)
-	})
-
-	s.T().Run("Fail - length", func(t *testing.T) {
-		// given
-		p := newCreateSpacePayload(&testsupport.TestOversizedNameObj, nil)
-		// when
-		err := p.Validate()
-		// Validate payload function returns an error
-		assert.NotNil(t, err)
-		assert.Contains(t, err.Error(), "length of type.name must be less than or equal to 63 but got")
-	})
-
-	s.T().Run("Fail - prefix", func(t *testing.T) {
-		// given
-		invalidSpaceName := "_TestSpace"
-		p := newCreateSpacePayload(&invalidSpaceName, nil)
-		// when
-		err := p.Validate()
-		// Validate payload function returns an error
-		assert.NotNil(t, err)
-		assert.Contains(t, err.Error(), "type.name must match the regexp")
-	})
-}
-
 func (s *SpaceControllerTestSuite) TestCreateSpace() {
-	s.T().Run("Fail - unsecure", func(t *testing.T) {
-		// given
-		p := newCreateSpacePayload(nil, nil)
-		svc, ctrl := s.UnSecuredController()
-		// when/then
-		test.CreateSpaceUnauthorized(t, svc.Context, svc, ctrl, p)
-	})
-
-	s.T().Run("Fail - auth returned 400", func(t *testing.T) {
-		// given
-		spaceName := uuid.NewV4().String()
-		p := newCreateSpacePayload(&spaceName, nil)
-		r := DummyResourceManager{
-			httpResponseCode: 400,
-		}
-		svc, ctrl := s.SecuredControllerWithDummyResourceManager(testsupport.TestIdentity, r)
-		// when/then
-		test.CreateSpaceBadRequest(t, svc.Context, svc, ctrl, p)
-	})
-	s.T().Run("Fail - auth returned 401", func(t *testing.T) {
-		// given
-		spaceName := uuid.NewV4().String()
-		p := newCreateSpacePayload(&spaceName, nil)
-		r := DummyResourceManager{
-			httpResponseCode: 401,
-		}
-		svc, ctrl := s.SecuredControllerWithDummyResourceManager(testsupport.TestIdentity, r)
-		// when/then
-		test.CreateSpaceUnauthorized(t, svc.Context, svc, ctrl, p)
-	})
-	s.T().Run("Fail - auth returned 500", func(t *testing.T) {
-		// given
-		spaceName := uuid.NewV4().String()
-		p := newCreateSpacePayload(&spaceName, nil)
-		r := DummyResourceManager{
-			httpResponseCode: 500,
-		}
-		svc, ctrl := s.SecuredControllerWithDummyResourceManager(testsupport.TestIdentity, r)
-		// when/then
-		test.CreateSpaceInternalServerError(t, svc.Context, svc, ctrl, p)
-	})
 
 	s.T().Run("ok", func(t *testing.T) {
-		// given
-		name := testsupport.CreateRandomValidTestName("TestSuccessCreateSpace-")
-		p := newCreateSpacePayload(&name, nil)
-		svc, ctrl := s.SecuredController(testsupport.TestIdentity)
-		// when
-		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "ok.payload.req.golden.json"), p)
-		res, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
-		// then
-		require.NotNil(t, created.Data)
-		require.NotNil(t, created.Data.Attributes)
-		assert.NotNil(t, created.Data.Attributes.CreatedAt)
-		assert.NotNil(t, created.Data.Attributes.UpdatedAt)
-		require.NotNil(t, created.Data.Attributes.Name)
-		assert.Equal(t, name, *created.Data.Attributes.Name)
-		require.NotNil(t, created.Data.Links)
-		assert.NotNil(t, created.Data.Links.Self)
-		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "ok.payload.res.golden.json"), created)
-		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "ok.headers.res.golden.json"), res.Header())
+
+		t.Run("valid name", func(t *testing.T) {
+			// given
+			name := testsupport.CreateRandomValidTestName("TestSuccessCreateSpace-")
+			p := newCreateSpacePayload(&name, nil)
+			svc, ctrl := s.SecuredController(testsupport.TestIdentity)
+			// when
+			compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "ok.payload.req.golden.json"), p)
+			res, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
+			// then
+			require.NotNil(t, created.Data)
+			require.NotNil(t, created.Data.Attributes)
+			assert.NotNil(t, created.Data.Attributes.CreatedAt)
+			assert.NotNil(t, created.Data.Attributes.UpdatedAt)
+			require.NotNil(t, created.Data.Attributes.Name)
+			assert.Equal(t, name, *created.Data.Attributes.Name)
+			require.NotNil(t, created.Data.Links)
+			assert.NotNil(t, created.Data.Links.Self)
+			compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "ok.payload.res.golden.json"), created)
+			compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "ok.headers.res.golden.json"), res.Header())
+		})
+
+		t.Run("with explicit template", func(t *testing.T) {
+			// given
+			fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1))
+			name := testsupport.CreateRandomValidTestName("TestSuccessCreateSpace-")
+			p := newCreateSpacePayload(&name, nil)
+
+			if p.Data.Relationships == nil {
+				p.Data.Relationships = &app.SpaceRelationships{}
+			}
+			p.Data.Relationships.SpaceTemplate = app.NewSpaceTemplateRelation(
+				fxt.SpaceTemplates[0].ID,
+				rest.AbsoluteURL(
+					&http.Request{Host: "api.service.domain.org"},
+					app.SpaceTemplateHref(fxt.SpaceTemplates[0].ID.String()),
+				),
+			)
+			svc, ctrl := s.SecuredController(testsupport.TestIdentity)
+			// when
+			compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "ok_with_explicit_template.payload.req.golden.json"), p)
+			res, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
+			// then
+			require.NotNil(t, created.Data)
+			require.NotNil(t, created.Data.Attributes)
+			assert.NotNil(t, created.Data.Attributes.CreatedAt)
+			assert.NotNil(t, created.Data.Attributes.UpdatedAt)
+			require.NotNil(t, created.Data.Attributes.Name)
+			assert.Equal(t, name, *created.Data.Attributes.Name)
+			require.NotNil(t, created.Data.Links)
+			assert.NotNil(t, created.Data.Links.Self)
+			compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "ok_with_explicit_template.payload.res.golden.json"), created)
+			compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "ok_with_explicit_template.headers.res.golden.json"), res.Header())
+		})
+
+		t.Run("with default area", func(t *testing.T) {
+			// given
+			name := testsupport.CreateRandomValidTestName("TestSuccessCreateSpaceAndDefaultArea-")
+			p := newCreateSpacePayload(&name, nil)
+			svc, ctrl := s.SecuredController(testsupport.TestIdentity)
+			// when
+			_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
+			require.NotNil(t, created.Data)
+			spaceAreaSvc, spaceAreaCtrl := s.SecuredSpaceAreaController(testsupport.TestIdentity)
+			_, areaList := test.ListSpaceAreasOK(t, spaceAreaSvc.Context, spaceAreaSvc, spaceAreaCtrl, *created.Data.ID, nil, nil)
+			// then
+			// only 1 default gets created.
+			assert.Len(t, areaList.Data, 1)
+			assert.Equal(t, name, *areaList.Data[0].Attributes.Name)
+
+			// verify if root iteration is created or not
+			spaceIterationSvc, spaceIterationCtrl := s.SecuredSpaceIterationController(testsupport.TestIdentity)
+			_, iterationList := test.ListSpaceIterationsOK(t, spaceIterationSvc.Context, spaceIterationSvc, spaceIterationCtrl, *created.Data.ID, nil, nil)
+			require.Len(t, iterationList.Data, 1)
+			assert.Equal(t, name, *iterationList.Data[0].Attributes.Name)
+		})
+
+		t.Run("with description", func(t *testing.T) {
+			// given
+			name := testsupport.CreateRandomValidTestName("TestSuccessCreateSpaceWithDescription-")
+			description := "Space for TestSuccessCreateSpaceWithDescription"
+			p := newCreateSpacePayload(&name, &description)
+			svc, ctrl := s.SecuredController(testsupport.TestIdentity)
+			// when
+			_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
+			// then
+			assert.NotNil(t, created.Data)
+			assert.NotNil(t, created.Data.Attributes)
+			assert.NotNil(t, created.Data.Attributes.CreatedAt)
+			assert.NotNil(t, created.Data.Attributes.UpdatedAt)
+			assert.NotNil(t, created.Data.Attributes.Name)
+			assert.Equal(t, name, *created.Data.Attributes.Name)
+			assert.NotNil(t, created.Data.Attributes.Description)
+			assert.Equal(t, description, *created.Data.Attributes.Description)
+			assert.NotNil(t, created.Data.Links)
+			assert.NotNil(t, created.Data.Links.Self)
+		})
+
+		t.Run("same name but different owner", func(t *testing.T) {
+			// given
+			name := testsupport.CreateRandomValidTestName("SameName-")
+			description := "Space for TestSuccessCreateSameSpaceNameDifferentOwners"
+			newDescription := "Space for TestSuccessCreateSameSpaceNameDifferentOwners2"
+			a := newCreateSpacePayload(&name, &description)
+			svc, ctrl := s.SecuredController(testsupport.TestIdentity)
+			_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, a)
+			// when
+			b := newCreateSpacePayload(&name, &newDescription)
+			svc2, ctrl2 := s.SecuredController(testsupport.TestIdentity2)
+			_, created2 := test.CreateSpaceCreated(t, svc2.Context, svc2, ctrl2, b)
+			// then
+			assert.NotNil(t, created.Data)
+			assert.NotNil(t, created.Data.Attributes)
+			assert.NotNil(t, created.Data.Attributes.Name)
+			assert.Equal(t, name, *created.Data.Attributes.Name)
+			assert.NotNil(t, created2.Data)
+			assert.NotNil(t, created2.Data.Attributes)
+			assert.NotNil(t, created2.Data.Attributes.Name)
+			assert.Equal(t, name, *created2.Data.Attributes.Name)
+			assert.NotEqual(t, created.Data.Relationships.OwnedBy.Data.ID, created2.Data.Relationships.OwnedBy.Data.ID)
+		})
+
+		t.Run("with max length name", func(t *testing.T) {
+			// given
+			name := testsupport.TestMaxsizedNameObj
+			p := newCreateSpacePayload(&name, nil)
+			svc, ctrl := s.SecuredController(testsupport.TestIdentity)
+			// when
+			_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
+			// then
+			require.NotNil(t, created.Data)
+			require.NotNil(t, created.Data.Attributes)
+			assert.NotNil(t, created.Data.Attributes.CreatedAt)
+			assert.NotNil(t, created.Data.Attributes.UpdatedAt)
+			require.NotNil(t, created.Data.Attributes.Name)
+			assert.Equal(t, name, *created.Data.Attributes.Name)
+			require.NotNil(t, created.Data.Links)
+			assert.NotNil(t, created.Data.Links.Self)
+		})
 	})
 
-	s.T().Run("ok (with explicit template)", func(t *testing.T) {
-		// given
-		fxt := tf.NewTestFixture(t, s.DB, tf.SpaceTemplates(1))
-		name := testsupport.CreateRandomValidTestName("TestSuccessCreateSpace-")
-		p := newCreateSpacePayload(&name, nil)
+	s.T().Run("fail", func(t *testing.T) {
 
-		if p.Data.Relationships == nil {
-			p.Data.Relationships = &app.SpaceRelationships{}
-		}
-		p.Data.Relationships.SpaceTemplate = app.NewSpaceTemplateRelation(
-			fxt.SpaceTemplates[0].ID,
-			rest.AbsoluteURL(
-				&http.Request{Host: "api.service.domain.org"},
-				app.SpaceTemplateHref(fxt.SpaceTemplates[0].ID.String()),
-			),
-		)
-		svc, ctrl := s.SecuredController(testsupport.TestIdentity)
-		// when
-		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "ok_with_explicit_template.payload.req.golden.json"), p)
-		res, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
-		// then
-		require.NotNil(t, created.Data)
-		require.NotNil(t, created.Data.Attributes)
-		assert.NotNil(t, created.Data.Attributes.CreatedAt)
-		assert.NotNil(t, created.Data.Attributes.UpdatedAt)
-		require.NotNil(t, created.Data.Attributes.Name)
-		assert.Equal(t, name, *created.Data.Attributes.Name)
-		require.NotNil(t, created.Data.Links)
-		assert.NotNil(t, created.Data.Links.Self)
-		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "ok_with_explicit_template.payload.res.golden.json"), created)
-		compareWithGoldenAgnostic(t, filepath.Join(s.testDir, "create", "ok_with_explicit_template.headers.res.golden.json"), res.Header())
-	})
+		t.Run("same name and same owner", func(t *testing.T) {
+			// given
+			name := testsupport.CreateRandomValidTestName("SameName-")
+			description := "Space for TestSuccessCreateSameSpaceNameDifferentOwners"
+			newDescription := "Space for TestSuccessCreateSameSpaceNameDifferentOwners2"
+			// when
+			a := newCreateSpacePayload(&name, &description)
+			svc, ctrl := s.SecuredController(testsupport.TestIdentity)
+			_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, a)
+			// then
+			assert.NotNil(t, created.Data)
+			assert.NotNil(t, created.Data.Attributes)
+			assert.NotNil(t, created.Data.Attributes.Name)
+			assert.Equal(t, name, *created.Data.Attributes.Name)
 
-	s.T().Run("ok with default area", func(t *testing.T) {
-		// given
-		name := testsupport.CreateRandomValidTestName("TestSuccessCreateSpaceAndDefaultArea-")
-		p := newCreateSpacePayload(&name, nil)
-		svc, ctrl := s.SecuredController(testsupport.TestIdentity)
-		// when
-		_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
-		require.NotNil(t, created.Data)
-		spaceAreaSvc, spaceAreaCtrl := s.SecuredSpaceAreaController(testsupport.TestIdentity)
-		_, areaList := test.ListSpaceAreasOK(t, spaceAreaSvc.Context, spaceAreaSvc, spaceAreaCtrl, *created.Data.ID, nil, nil)
-		// then
-		// only 1 default gets created.
-		assert.Len(t, areaList.Data, 1)
-		assert.Equal(t, name, *areaList.Data[0].Attributes.Name)
+			// when
+			b := newCreateSpacePayload(&name, &newDescription)
+			b.Data.Attributes.Name = &name
+			b.Data.Attributes.Description = &newDescription
+			test.CreateSpaceConflict(t, svc.Context, svc, ctrl, b)
+		})
 
-		// verify if root iteration is created or not
-		spaceIterationSvc, spaceIterationCtrl := s.SecuredSpaceIterationController(testsupport.TestIdentity)
-		_, iterationList := test.ListSpaceIterationsOK(t, spaceIterationSvc.Context, spaceIterationSvc, spaceIterationCtrl, *created.Data.ID, nil, nil)
-		require.Len(t, iterationList.Data, 1)
-		assert.Equal(t, name, *iterationList.Data[0].Attributes.Name)
-	})
+		t.Run("invalid name", func(t *testing.T) {
+			t.Run("invalid character", func(t *testing.T) {
+				// given
+				name := "foo@bar.com"
+				description := "Space with invalid name"
+				// when/then
+				p := newCreateSpacePayload(&name, &description)
+				svc, ctrl := s.SecuredController(testsupport.TestIdentity)
+				test.CreateSpaceBadRequest(t, svc.Context, svc, ctrl, p)
+			})
 
-	s.T().Run("ok with description", func(t *testing.T) {
-		// given
-		name := testsupport.CreateRandomValidTestName("TestSuccessCreateSpaceWithDescription-")
-		description := "Space for TestSuccessCreateSpaceWithDescription"
-		p := newCreateSpacePayload(&name, &description)
-		svc, ctrl := s.SecuredController(testsupport.TestIdentity)
-		// when
-		_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
-		// then
-		assert.NotNil(t, created.Data)
-		assert.NotNil(t, created.Data.Attributes)
-		assert.NotNil(t, created.Data.Attributes.CreatedAt)
-		assert.NotNil(t, created.Data.Attributes.UpdatedAt)
-		assert.NotNil(t, created.Data.Attributes.Name)
-		assert.Equal(t, name, *created.Data.Attributes.Name)
-		assert.NotNil(t, created.Data.Attributes.Description)
-		assert.Equal(t, description, *created.Data.Attributes.Description)
-		assert.NotNil(t, created.Data.Links)
-		assert.NotNil(t, created.Data.Links.Self)
-	})
+			t.Run("invalid length", func(t *testing.T) {
+				// given
+				name := testsupport.TestOversizedNameObj
+				description := "Space with invalid name"
+				// when/then
+				p := newCreateSpacePayload(&name, &description)
+				svc, ctrl := s.SecuredController(testsupport.TestIdentity)
+				test.CreateSpaceBadRequest(t, svc.Context, svc, ctrl, p)
+			})
+		})
 
-	s.T().Run("ok same name but different owner", func(t *testing.T) {
-		// given
-		name := testsupport.CreateRandomValidTestName("SameName-")
-		description := "Space for TestSuccessCreateSameSpaceNameDifferentOwners"
-		newDescription := "Space for TestSuccessCreateSameSpaceNameDifferentOwners2"
-		a := newCreateSpacePayload(&name, &description)
-		svc, ctrl := s.SecuredController(testsupport.TestIdentity)
-		_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, a)
-		// when
-		b := newCreateSpacePayload(&name, &newDescription)
-		svc2, ctrl2 := s.SecuredController(testsupport.TestIdentity2)
-		_, created2 := test.CreateSpaceCreated(t, svc2.Context, svc2, ctrl2, b)
-		// then
-		assert.NotNil(t, created.Data)
-		assert.NotNil(t, created.Data.Attributes)
-		assert.NotNil(t, created.Data.Attributes.Name)
-		assert.Equal(t, name, *created.Data.Attributes.Name)
-		assert.NotNil(t, created2.Data)
-		assert.NotNil(t, created2.Data.Attributes)
-		assert.NotNil(t, created2.Data.Attributes.Name)
-		assert.Equal(t, name, *created2.Data.Attributes.Name)
-		assert.NotEqual(t, created.Data.Relationships.OwnedBy.Data.ID, created2.Data.Relationships.OwnedBy.Data.ID)
-	})
+		t.Run("auth", func(t *testing.T) {
+			t.Run("400", func(t *testing.T) {
+				// given
+				spaceName := uuid.NewV4().String()
+				p := newCreateSpacePayload(&spaceName, nil)
+				r := DummyResourceManager{
+					httpResponseCode: 400,
+				}
+				svc, ctrl := s.SecuredControllerWithDummyResourceManager(testsupport.TestIdentity, r)
+				// when/then
+				test.CreateSpaceBadRequest(t, svc.Context, svc, ctrl, p)
+			})
 
-	s.T().Run("ok with max length name", func(t *testing.T) {
-		// given
-		name := testsupport.TestMaxsizedNameObj
-		p := newCreateSpacePayload(&name, nil)
-		svc, ctrl := s.SecuredController(testsupport.TestIdentity)
-		// when
-		_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
-		// then
-		require.NotNil(t, created.Data)
-		require.NotNil(t, created.Data.Attributes)
-		assert.NotNil(t, created.Data.Attributes.CreatedAt)
-		assert.NotNil(t, created.Data.Attributes.UpdatedAt)
-		require.NotNil(t, created.Data.Attributes.Name)
-		assert.Equal(t, name, *created.Data.Attributes.Name)
-		require.NotNil(t, created.Data.Links)
-		assert.NotNil(t, created.Data.Links.Self)
-	})
+			t.Run("returned 401", func(t *testing.T) {
+				// given
+				spaceName := uuid.NewV4().String()
+				p := newCreateSpacePayload(&spaceName, nil)
+				r := DummyResourceManager{
+					httpResponseCode: 401,
+				}
+				svc, ctrl := s.SecuredControllerWithDummyResourceManager(testsupport.TestIdentity, r)
+				// when/then
+				test.CreateSpaceUnauthorized(t, svc.Context, svc, ctrl, p)
+			})
 
-	s.T().Run("fail same name and same owner", func(t *testing.T) {
-		// given
-		name := testsupport.CreateRandomValidTestName("SameName-")
-		description := "Space for TestSuccessCreateSameSpaceNameDifferentOwners"
-		newDescription := "Space for TestSuccessCreateSameSpaceNameDifferentOwners2"
-		// when
-		a := newCreateSpacePayload(&name, &description)
-		svc, ctrl := s.SecuredController(testsupport.TestIdentity)
-		_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, a)
-		// then
-		assert.NotNil(t, created.Data)
-		assert.NotNil(t, created.Data.Attributes)
-		assert.NotNil(t, created.Data.Attributes.Name)
-		assert.Equal(t, name, *created.Data.Attributes.Name)
-
-		// when
-		b := newCreateSpacePayload(&name, &newDescription)
-		b.Data.Attributes.Name = &name
-		b.Data.Attributes.Description = &newDescription
-		test.CreateSpaceConflict(t, svc.Context, svc, ctrl, b)
+			s.T().Run("500", func(t *testing.T) {
+				// given
+				spaceName := uuid.NewV4().String()
+				p := newCreateSpacePayload(&spaceName, nil)
+				r := DummyResourceManager{
+					httpResponseCode: 500,
+				}
+				svc, ctrl := s.SecuredControllerWithDummyResourceManager(testsupport.TestIdentity, r)
+				// when/then
+				test.CreateSpaceInternalServerError(t, svc.Context, svc, ctrl, p)
+			})
+		})
 	})
 
 }

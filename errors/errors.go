@@ -179,8 +179,8 @@ func (err BadParameterError) Error() string {
 }
 
 // Expected sets the optional expectedValue parameter on the BadParameterError
-func (err BadParameterError) Expected(expexcted interface{}) BadParameterError {
-	err.expectedValue = expexcted
+func (err BadParameterError) Expected(expected interface{}) BadParameterError {
+	err.expectedValue = expected
 	err.hasExpectedValue = true
 	return err
 }

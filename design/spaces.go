@@ -63,7 +63,7 @@ var spaceOwnedBy = a.Type("SpaceOwnedBy", func() {
 })
 
 var spaceAttributes = a.Type("SpaceAttributes", func() {
-	a.Attribute("name", d.String, "Name for the space", nameValidationFunction)
+	a.Attribute("name", d.String, "Name for the space") // name validation is performed at the controller level, to return a proper JSON-API response
 	a.Attribute("description", d.String, "Description for the space", func() {
 		a.Example("This is the foobar collaboration space")
 	})
