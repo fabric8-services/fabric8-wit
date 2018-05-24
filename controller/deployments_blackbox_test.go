@@ -326,7 +326,7 @@ func TestShowSpaceEnvironments(t *testing.T) {
 			test.ShowSpaceEnvironmentsDeploymentsInternalServerError(t, context.Background(), svc, ctrl, space.SystemSpace)
 		})
 
-		t.Run("get environments bad request", func(t *testing.T) { // FIXME
+		t.Run("get environments bad request", func(t *testing.T) {
 			// given
 			kubeClientMock := testk8s.NewKubeClientMock(t)
 			kubeClientMock.GetEnvironmentsFunc = func() ([]*app.SimpleEnvironment, error) {
@@ -341,7 +341,7 @@ func TestShowSpaceEnvironments(t *testing.T) {
 				return osioClientMock, nil
 			}
 			// when
-			test.ShowSpaceEnvironmentsDeploymentsOK(t, context.Background(), svc, ctrl, space.SystemSpace)
+			test.ShowSpaceEnvironmentsDeploymentsBadRequest(t, context.Background(), svc, ctrl, space.SystemSpace)
 			// then verify that the Close method was called
 			assert.Equal(t, uint64(1), kubeClientMock.CloseCounter)
 		})

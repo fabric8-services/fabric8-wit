@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"math"
 	"net/http"
 	"net/url"
@@ -853,27 +852,32 @@ func (oc *openShiftAPIClient) sendResource(path string, method string, reqBody i
 	}
 	defer resp.Body.Close()
 
-	respBody, err := ioutil.ReadAll(resp.Body)
+	buf := new(bytes.Buffer)
+	_, err = buf.ReadFrom(resp.Body)
 	if err != nil {
 		log.Error(nil, map[string]interface{}{
-			"err":           err,
-			"url":           fullURL,
-			"request_body":  reqBody,
-			"response_body": respBody,
+			"err":          err,
+			"url":          fullURL,
+			"request_body": reqBody,
 		}, "could not read response from %s request", method)
 		return errs.WithStack(err)
 	}
-	defer resp.Body.Close()
+	respBody := buf.Bytes()
 
 	status := resp.StatusCode
 	if status != http.StatusOK {
 		log.Error(nil, map[string]interface{}{
-			"err":           err,
 			"url":           fullURL,
 			"request_body":  reqBody,
-			"response_body": respBody,
+			"response_body": buf,
 			"http_status":   status,
-		}, "failed to %s request due to HTTP error", method) // FIXME check for status
+		}, "failed to %s request due to HTTP error", method)
+
+		// If response contains a Kubernetes Status object, create a StatusError
+		err = parseErrorFromStatus(respBody)
+		if err != nil {
+			return convertError(errs.WithStack(err), "failed to %s url %s due to status code %d", method, fullURL, status)
+		}
 		return errs.Errorf("failed to %s url %s: status code %d", method, fullURL, status)
 	}
 	return nil
@@ -1075,7 +1079,7 @@ func (kc *kubeClient) deleteDeploymentConfig(spaceName string, dcName string, na
 	if err != nil {
 		return err
 	} else if dc == nil {
-		return errs.Errorf("deployment config %s does not exist in %s", dcName, namespace)
+		return errors.NewNotFoundErrorFromString(fmt.Sprintf("deployment config %s does not exist in %s", dcName, namespace))
 	}
 
 	// Delete all dependent objects and then this DC
@@ -1552,7 +1556,7 @@ func (kc *kubeClient) getMatchingServices(namespace string, deploy *deployment) 
 			"namespace":         namespace,
 			"deployment_config": deploy.dcName,
 		}, "failed to list services")
-		return nil, convertError(errs.WithStack(err), "failed to list services in %s", namespace) // TODO add test
+		return nil, convertError(errs.WithStack(err), "failed to list services in %s", namespace)
 	}
 	// Check if each service's selector matches labels in deployment's pod template
 	template := deploy.current.Spec.Template
@@ -1887,7 +1891,7 @@ func (kc *kubeClient) deleteServices(appLabel string, envNS string) error {
 			"namespace": envNS,
 			"app_label": appLabel,
 		}, "failed to list services")
-		return convertError(errs.WithStack(err), "failed to list services in %s", envNS) // TODO add test
+		return convertError(errs.WithStack(err), "failed to list services in %s", envNS)
 	}
 	for _, service := range services.Items {
 		err = kc.Services(envNS).Delete(service.Name, delOpts)
@@ -1899,7 +1903,7 @@ func (kc *kubeClient) deleteServices(appLabel string, envNS string) error {
 				"service_name": service.Name,
 			}, "failed to delete service")
 			return convertError(errs.WithStack(err), "failed to delete service '%s' in %s",
-				service.Name, envNS) // TODO add test
+				service.Name, envNS)
 		}
 	}
 	return nil
@@ -2014,7 +2018,7 @@ func (oc *openShiftAPIClient) getResource(path string, allowMissing bool) (map[s
 		// If response contains a Kubernetes Status object, create a StatusError
 		err = parseErrorFromStatus(b)
 		if err != nil {
-			return nil, convertError(err, "failed to GET url %s due to status code %d", fullURL, status)
+			return nil, convertError(errs.WithStack(err), "failed to GET url %s due to status code %d", fullURL, status)
 		}
 		return nil, errs.Errorf("failed to GET url %s due to status code %d", fullURL, status)
 	}
@@ -2036,7 +2040,7 @@ func parseErrorFromStatus(body []byte) error {
 	// Try unmarshalling as Status resource
 	var kubeStatus metaV1.Status
 	err := json.Unmarshal(body, &kubeStatus)
-	if err != nil {
+	if err != nil || kubeStatus.Kind != "Status" {
 		return nil
 	}
 	return kubeErrors.FromObject(&kubeStatus)
@@ -2061,5 +2065,5 @@ func convertError(err error, format string, args ...interface{}) error {
 			return errors.NewNotFoundErrorFromString(message)
 		}
 	}
-	return errors.NewInternalError(nil /* FIXME unused */, errs.Wrap(err, message))
+	return errors.NewInternalError(nil /* unused */, errs.Wrap(err, message))
 }

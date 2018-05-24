@@ -368,7 +368,7 @@ func (c *DeploymentsController) ShowSpaceEnvironments(ctx *app.ShowSpaceEnvironm
 
 	envs, err := kc.GetEnvironments()
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx, errs.Wrap(err, "error retrieving environments")))
+		return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "error retrieving environments"))
 	}
 	if envs == nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewNotFoundError("environments", ctx.SpaceID.String()))

@@ -500,6 +500,7 @@ type spaceTestData struct {
 	shouldFail   bool
 	appTestData  map[string]*appTestData // Keys are app names
 	cassetteName string
+	errorChecker func(error) (bool, error)
 }
 
 var defaultSpaceTestData = &spaceTestData{
@@ -716,6 +717,13 @@ func TestGetSpace(t *testing.T) {
 				},
 			},
 		},
+		{
+			testName:     "BC List Error",
+			spaceName:    "mySpace",
+			cassetteName: "getspace-bc-error",
+			shouldFail:   true,
+			errorChecker: errors.IsBadParameterError,
+		},
 	}
 
 	for _, testCase := range testCases {
@@ -730,6 +738,10 @@ func TestGetSpace(t *testing.T) {
 			space, err := kc.GetSpace(testCase.spaceName)
 			if testCase.shouldFail {
 				require.Error(t, err, "Expected an error")
+				if testCase.errorChecker != nil {
+					matches, _ := testCase.errorChecker(err)
+					require.True(t, matches, "Error or cause must be the expected type")
+				}
 			} else {
 				require.NoError(t, err, "Unexpected error occurred")
 				require.NotNil(t, space, "Space is nil")
@@ -873,6 +885,24 @@ func TestGetDeployment(t *testing.T) {
 			shouldFail:   true,
 		},
 		{
+			testName:     "Build List Error",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "getdeployment-build-error",
+			shouldFail:   true,
+			errorChecker: errors.IsBadParameterError,
+		},
+		{
+			testName:     "DC Get Error",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "getdeployment-dc-error",
+			shouldFail:   true,
+			errorChecker: errors.IsBadParameterError,
+		},
+		{
 			testName:     "RC List Error",
 			spaceName:    "mySpace",
 			appName:      "myApp",
@@ -887,6 +917,24 @@ func TestGetDeployment(t *testing.T) {
 			appName:      "myApp",
 			envName:      "run",
 			cassetteName: "getdeployment-pod-error",
+			shouldFail:   true,
+			errorChecker: errors.IsBadParameterError,
+		},
+		{
+			testName:     "Service List Error",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "getdeployment-svc-error",
+			shouldFail:   true,
+			errorChecker: errors.IsBadParameterError,
+		},
+		{
+			testName:     "Route List Error",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "getdeployment-route-error",
 			shouldFail:   true,
 			errorChecker: errors.IsBadParameterError,
 		},
@@ -927,6 +975,7 @@ func TestScaleDeployment(t *testing.T) {
 		newReplicas   int
 		oldReplicas   int
 		shouldFail    bool
+		errorChecker  func(error) (bool, error)
 	}{
 		{
 			testName:     "Basic",
@@ -951,6 +1000,28 @@ func TestScaleDeployment(t *testing.T) {
 			},
 			newReplicas: 1,
 			oldReplicas: 0,
+		},
+		{
+			testName:      "Scale Get Error",
+			spaceName:     "mySpace",
+			appName:       "myApp",
+			envName:       "run",
+			cassetteName:  "scaledeployment-get-error",
+			expectPutURLs: map[string]struct{}{},
+			shouldFail:    true,
+			errorChecker:  errors.IsBadParameterError,
+		},
+		{
+			testName:     "Scale Put Error",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "scaledeployment-put-error",
+			expectPutURLs: map[string]struct{}{
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myDeploy/scale": {},
+			},
+			shouldFail:   true,
+			errorChecker: errors.IsBadParameterError,
 		},
 	}
 
@@ -999,6 +1070,10 @@ func TestScaleDeployment(t *testing.T) {
 			old, err := kc.ScaleDeployment(testCase.spaceName, testCase.appName, testCase.envName, testCase.newReplicas)
 			if testCase.shouldFail {
 				require.Error(t, err, "Expected an error")
+				if testCase.errorChecker != nil {
+					matches, _ := testCase.errorChecker(err)
+					require.True(t, matches, "Error or cause must be the expected type")
+				}
 			} else {
 				require.NoError(t, err, "Unexpected error occurred")
 				require.NotNil(t, old, "Previous replicas are nil")
@@ -1030,6 +1105,7 @@ func TestDeleteDeployment(t *testing.T) {
 		cassetteName     string
 		expectDeleteURLs map[string]struct{}
 		shouldFail       bool
+		errorChecker     func(error) (bool, error)
 	}{
 		{
 			testName:     "Basic",
@@ -1076,7 +1152,18 @@ func TestDeleteDeployment(t *testing.T) {
 			},
 		},
 		{
-			testName:     "Bad Routes",
+			testName:     "List Routes Error",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "deletedeployment-get-routes-error",
+			expectDeleteURLs: map[string]struct{}{
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myDeploy": {},
+				"http://api.myCluster/api/v1/namespaces/my-run/services/myDeploy":           {},
+			},
+		},
+		{
+			testName:     "Delete Routes Error",
 			spaceName:    "mySpace",
 			appName:      "myApp",
 			envName:      "run",
@@ -1099,7 +1186,18 @@ func TestDeleteDeployment(t *testing.T) {
 			},
 		},
 		{
-			testName:     "Bad Services",
+			testName:     "List Services Error",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "deletedeployment-get-svc-error",
+			expectDeleteURLs: map[string]struct{}{
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myDeploy": {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myDeploy":            {},
+			},
+		},
+		{
+			testName:     "Delete Services Error",
 			spaceName:    "mySpace",
 			appName:      "myApp",
 			envName:      "run",
@@ -1120,7 +1218,35 @@ func TestDeleteDeployment(t *testing.T) {
 				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myDeploy":  {},
 				"http://api.myCluster/api/v1/namespaces/my-run/services/myDeploy": {},
 			},
-			shouldFail: true,
+			shouldFail:   true,
+			errorChecker: errors.IsNotFoundError,
+		},
+		{
+			testName:     "Get DC Error",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "deletedeployment-get-dc-error",
+			expectDeleteURLs: map[string]struct{}{
+				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myDeploy":  {},
+				"http://api.myCluster/api/v1/namespaces/my-run/services/myDeploy": {},
+			},
+			shouldFail:   true,
+			errorChecker: errors.IsBadParameterError,
+		},
+		{
+			testName:     "Delete DC Error",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "deletedeployment-delete-dc-error",
+			expectDeleteURLs: map[string]struct{}{
+				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myDeploy":            {},
+				"http://api.myCluster/api/v1/namespaces/my-run/services/myDeploy":           {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myDeploy": {},
+			},
+			shouldFail:   true,
+			errorChecker: errors.IsBadParameterError,
 		},
 		{
 			// Tests failure to map application name to OpenShift resources
@@ -1179,6 +1305,10 @@ func TestDeleteDeployment(t *testing.T) {
 			err = kc.DeleteDeployment(testCase.spaceName, testCase.appName, testCase.envName)
 			if testCase.shouldFail {
 				require.Error(t, err, "Expected an error")
+				if testCase.errorChecker != nil {
+					matches, _ := testCase.errorChecker(err)
+					require.True(t, matches, "Error or cause must be the expected type")
+				}
 			} else {
 				require.NoError(t, err, "Unexpected error occurred")
 			}
