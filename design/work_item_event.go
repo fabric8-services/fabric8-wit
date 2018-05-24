@@ -40,15 +40,6 @@ var eventAttributes = a.Type("EventAttributes", func() {
 
 var eventRelationships = a.Type("EventRelations", func() {
 	a.Attribute("modifier", relationGeneric, "This defines the modifier of the event")
-	/*a.Attribute("oldAssignees", relationGenericList, "This defines assignees of the Work Item")
-	a.Attribute("newAssignees", relationGenericList, "This defines assignees of the Work Item")
-	a.Attribute("oldLabels", relationGenericList, "List of labels attached to the Work Item")
-	a.Attribute("newLabels", relationGenericList, "List of labels attached to the Work Item")
-	a.Attribute("oldArea", relationGeneric, "This defines the area this work item belongs to")
-	a.Attribute("newArea", relationGeneric, "This defines the area this work item belongs to")
-	a.Attribute("oldIteration", relationGeneric, "This defines the iteration this work item belong to")
-	a.Attribute("newIteration", relationGeneric, "This defines the iteration this work item belong to")*/
-
 	a.Attribute("oldValue", relationGenericList)
 	a.Attribute("newValue", relationGenericList)
 })
@@ -64,27 +55,6 @@ var eventSingle = JSONSingle(
 	"Event", "Holds a single Event",
 	event,
 	nil)
-
-var _ = a.Resource("events", func() {
-	a.BasePath("/events")
-
-	a.Action("show", func() {
-		a.Routing(
-			a.GET("/:eventId"),
-		)
-		a.Params(func() {
-			a.Param("eventId", d.UUID, "ID of the event")
-		})
-		a.Description("Retrieve event for the given id.")
-		a.UseTrait("conditional")
-		a.Response(d.OK, eventSingle)
-		a.Response(d.NotModified)
-		a.Response(d.BadRequest, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-		a.Response(d.NotFound, JSONAPIErrors)
-	})
-
-})
 
 var _ = a.Resource("work_item_events", func() {
 	a.Parent("workitem")
