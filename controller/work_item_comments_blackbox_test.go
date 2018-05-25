@@ -1,6 +1,7 @@
 package controller_test
 
 import (
+	"github.com/fabric8-services/fabric8-wit/ptr"
 	"html"
 	"net/http"
 	"net/url"
@@ -123,6 +124,37 @@ func assertWorkItemComment(t *testing.T, c *app.Comment, expectedBody string, ex
 	require.NotNil(t, c.Relationships.Creator.Data)
 	assert.Equal(t, "identities", c.Relationships.Creator.Data.Type)
 	assert.NotNil(t, c.Relationships.Creator.Data.ID)
+}
+
+func (rest *TestCommentREST) TestSuccessCreateSingleCommentWithParentComment() {
+	// given
+	wi := rest.createDefaultWorkItem()
+
+	// create parent
+	markup := rendering.SystemMarkupMarkdown
+	p := rest.newCreateWorkItemCommentsPayload("Test", &markup)
+	svc, ctrl := rest.SecuredController()
+	_, c := test.CreateWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.ID, p)
+	// then
+	assertComment(rest.T(), c.Data, rest.testIdentity, "Test", markup)
+
+	// create child
+	parentID := c.Data.ID.String()
+	child := rest.newCreateWorkItemCommentsPayload("Test Child", &markup)
+	child.Data.Relationships = &app.CreateCommentRelations {
+		ParentComment: &app.RelationGeneric {
+			Data: &app.GenericData {
+				Type: ptr.String("comments"),
+				ID: ptr.String(c.Data.ID.String()),
+			},
+		},
+	}
+	// make sure the above correctly sets the parentCommentID
+	assert.Equal(rest.T(), *child.Data.Relationships.ParentComment.Data.ID, parentID)
+	// exec create child
+	_, d := test.CreateWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.ID, child)
+	// check if the result has the correct parentCommentID
+	assert.Equal(rest.T(), c.Data.ID.String(), *d.Data.Relationships.ParentComment.Data.ID)
 }
 
 func (rest *TestCommentREST) TestSuccessCreateSingleCommentWithMarkup() {

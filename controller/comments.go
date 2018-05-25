@@ -241,6 +241,14 @@ func ConvertComment(request *http.Request, comment comment.Comment, additional .
 			Related: &relatedURL,
 		},
 	}
+	if (comment.ParentCommentID.Valid==true) {
+		c.Relationships.ParentComment = &app.RelationGeneric{
+			Data: &app.GenericData{
+				Type: ptr.String("comments"),
+				ID: 	ptr.String(comment.ParentCommentID.UUID.String()),
+			},
+		}
+	}
 	for _, add := range additional {
 		add(request, &comment, c)
 	}
