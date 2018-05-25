@@ -141,11 +141,11 @@ func (rest *TestCommentREST) TestSuccessCreateSingleCommentWithParentComment() {
 	// create child
 	parentID := c.Data.ID.String()
 	child := rest.newCreateWorkItemCommentsPayload("Test Child", &markup)
-	child.Data.Relationships = &app.CreateCommentRelations {
-		ParentComment: &app.RelationGeneric {
-			Data: &app.GenericData {
+	child.Data.Relationships = &app.CreateCommentRelations{
+		ParentComment: &app.RelationGeneric{
+			Data: &app.GenericData{
 				Type: ptr.String("comments"),
-				ID: ptr.String(c.Data.ID.String()),
+				ID:   ptr.String(c.Data.ID.String()),
 			},
 		},
 	}

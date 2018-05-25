@@ -11,8 +11,8 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
-	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/id"
+	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 
 	"github.com/goadesign/goa"

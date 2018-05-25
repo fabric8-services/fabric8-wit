@@ -9,11 +9,11 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/auth"
+	idpackage "github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/token"
-	idpackage "github.com/fabric8-services/fabric8-wit/id"
 
 	"github.com/fabric8-services/fabric8-wit/rest/proxy"
 	"github.com/goadesign/goa"

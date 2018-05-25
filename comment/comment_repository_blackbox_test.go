@@ -7,9 +7,9 @@ import (
 	"github.com/fabric8-services/fabric8-wit/comment"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/resource"
-	"github.com/fabric8-services/fabric8-wit/id"
 	tf "github.com/fabric8-services/fabric8-wit/test/testfixture"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -59,8 +59,8 @@ func (s *TestCommentRepository) TestCreateCommentWithParentComment() {
 	s.repo.Create(s.Ctx, parentComment, fxt.Identities[0].ID)
 	// child comments
 	childComment := newComment(uuid.NewV4(), "Test Child A", rendering.SystemMarkupMarkdown)
-	childComment.ParentCommentID = id.NullUUID {
-		UUID: parentComment.ID,
+	childComment.ParentCommentID = id.NullUUID{
+		UUID:  parentComment.ID,
 		Valid: true,
 	}
 	// when
@@ -70,7 +70,7 @@ func (s *TestCommentRepository) TestCreateCommentWithParentComment() {
 	require.NotNil(s.T(), childComment.CreatedAt, "Comment was not created?")
 	assert.False(s.T(), childComment.CreatedAt.After(time.Now()), "Comment was not created, CreatedAt after Now()?")
 	assert.NotNil(s.T(), childComment.ParentCommentID, "Parent comment id was not set, ID nil")
-	assert.Equal(s.T(), parentComment.ID, childComment.ParentCommentID.UUID, "Parent comment id was not correctly set?")	
+	assert.Equal(s.T(), parentComment.ID, childComment.ParentCommentID.UUID, "Parent comment id was not correctly set?")
 	// now retrieving the stored child comment again and see if the parent reference was stored
 	var resultComment *comment.Comment
 	// when
