@@ -1027,6 +1027,18 @@ func TestDeleteDeployment(t *testing.T) {
 			},
 		},
 		{
+			testName:     "Bad Routes",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "deletedeployment-badroutes",
+			expectDeleteURLs: map[string]struct{}{
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myDeploy": {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myDeploy":            {},
+				"http://api.myCluster/api/v1/namespaces/my-run/services/myDeploy":           {},
+			},
+		},
+		{
 			testName:     "No Services",
 			spaceName:    "mySpace",
 			appName:      "myApp",
@@ -1035,6 +1047,18 @@ func TestDeleteDeployment(t *testing.T) {
 			expectDeleteURLs: map[string]struct{}{
 				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myDeploy": {},
 				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myDeploy":            {},
+			},
+		},
+		{
+			testName:     "Bad Services",
+			spaceName:    "mySpace",
+			appName:      "myApp",
+			envName:      "run",
+			cassetteName: "deletedeployment-badservices",
+			expectDeleteURLs: map[string]struct{}{
+				"http://api.myCluster/oapi/v1/namespaces/my-run/deploymentconfigs/myDeploy": {},
+				"http://api.myCluster/oapi/v1/namespaces/my-run/routes/myDeploy":            {},
+				"http://api.myCluster/api/v1/namespaces/my-run/services/myDeploy":           {},
 			},
 		},
 		{

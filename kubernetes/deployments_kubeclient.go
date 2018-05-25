@@ -618,16 +618,37 @@ func (kc *kubeClient) DeleteDeployment(spaceName string, appName string, envName
 	// Delete routes
 	err = kc.deleteRoutes(dcName, envNS)
 	if err != nil {
-		return err
+		log.Error(nil, map[string]interface{}{
+			"err":             err,
+			"dcName":          dcName,
+			"spaceName":       spaceName,
+			"applicationName": appName,
+			"envName":         envName,
+		}, "could not delete routes in deploymentConfig "+dcName)
 	}
+
 	// Delete services
 	err = kc.deleteServices(dcName, envNS)
 	if err != nil {
-		return err
+		log.Error(nil, map[string]interface{}{
+			"err":             err,
+			"dcName":          dcName,
+			"spaceName":       spaceName,
+			"applicationName": appName,
+			"envName":         envName,
+		}, "could not delete services in deploymentConfig "+dcName)
 	}
+
 	// Delete DC (will also delete RCs and pods)
 	err = kc.deleteDeploymentConfig(spaceName, dcName, envNS)
 	if err != nil {
+		log.Error(nil, map[string]interface{}{
+			"err":             err,
+			"dcName":          dcName,
+			"spaceName":       spaceName,
+			"applicationName": appName,
+			"envName":         envName,
+		}, "could not delete deploymentConfig "+dcName)
 		return err
 	}
 	return nil

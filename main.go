@@ -270,6 +270,10 @@ func main() {
 	workItemLabelCtrl := controller.NewWorkItemLabelsController(service, appDB, config)
 	app.MountWorkItemLabelsController(service, workItemLabelCtrl)
 
+	// Mount "work item events relationships" controller
+	workItemEventsCtrl := controller.NewEventsController(service, appDB, config)
+	app.MountWorkItemEventsController(service, workItemEventsCtrl)
+
 	if config.GetFeatureWorkitemRemote() {
 		// Scheduler to fetch and import remote tracker items
 		scheduler = remoteworkitem.NewScheduler(db)

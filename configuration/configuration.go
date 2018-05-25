@@ -71,6 +71,7 @@ const (
 
 	// cache control settings for a list of resources
 	varCacheControlWorkItems         = "cachecontrol.workitems"
+	varCacheControlWorkItemEvents    = "cachecontrol.workitemevents"
 	varCacheControlWorkItemTypes     = "cachecontrol.workitemtypes"
 	varCacheControlWorkItemLinks     = "cachecontrol.workitemLinks"
 	varCacheControlWorkItemLinkTypes = "cachecontrol.workitemlinktypes"
@@ -218,6 +219,7 @@ func (c *Registry) setConfigDefaults() {
 
 	// HTTP Cache-Control/max-age default for a list of resources
 	c.v.SetDefault(varCacheControlWorkItems, "max-age=2") // very short life in cache, to allow for quick, repetitive updates.
+	c.v.SetDefault(varCacheControlWorkItemEvents, "max-age=2")
 	c.v.SetDefault(varCacheControlWorkItemTypes, "max-age=2")
 	c.v.SetDefault(varCacheControlWorkItemLinks, "max-age=2")
 	c.v.SetDefault(varCacheControlWorkItemLinkTypes, "max-age=2")
@@ -396,6 +398,12 @@ func (c *Registry) IsPostgresDeveloperModeEnabled() bool {
 // IsAuthorizationEnabled returns true if space authorization enabled
 func (c *Registry) IsAuthorizationEnabled() bool {
 	return c.v.GetBool(varAuthorizationEnabled)
+}
+
+// GetCacheControlEvents returns the value to set in the "Cache-Control" HTTP response header
+// when returning a list of work item types.
+func (c *Registry) GetCacheControlEvents() string {
+	return c.v.GetString(varCacheControlWorkItemEvents)
 }
 
 // GetCacheControlWorkItemTypes returns the value to set in the "Cache-Control" HTTP response header
