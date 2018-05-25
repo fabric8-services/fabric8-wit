@@ -2,7 +2,6 @@ package account
 
 import (
 	"context"
-	"database/sql/driver"
 	"strconv"
 	"strings"
 	"time"
@@ -13,6 +12,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/id"
 
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -24,40 +24,6 @@ const (
 	// KeycloakIDP is the name of the main Keycloak Identity Provider
 	KeycloakIDP string = "kc"
 )
-
-// NullUUID can be used with the standard sql package to represent a
-// UUID value that can be NULL in the database
-type NullUUID struct {
-	UUID  uuid.UUID
-	Valid bool
-}
-
-// Scan implements the sql.Scanner interface.
-func (u *NullUUID) Scan(src interface{}) error {
-	if src == nil {
-		u.UUID, u.Valid = uuid.Nil, false
-		return nil
-	}
-
-	// Delegate to UUID Scan function
-	u.Valid = true
-
-	switch src := src.(type) {
-	case uuid.UUID:
-		return u.UUID.Scan(src.Bytes())
-	}
-
-	return u.UUID.Scan(src)
-}
-
-// Value implements the driver.Valuer interface.
-func (u NullUUID) Value() (driver.Value, error) {
-	if !u.Valid {
-		return nil, nil
-	}
-	// Delegate to UUID Value function
-	return u.UUID.Value()
-}
 
 // Identity describes a federated identity provided by Identity Provider (IDP) such as Keycloak, GitHub, OSO, etc.
 // One User account can have many Identities
@@ -74,7 +40,7 @@ type Identity struct {
 	// the URL of the profile on the remote work item service
 	ProfileURL *string `gorm:"column:profile_url"`
 	// Link to User
-	UserID NullUUID `sql:"type:uuid"`
+	UserID id.NullUUID `sql:"type:uuid"`
 	User   User
 }
 

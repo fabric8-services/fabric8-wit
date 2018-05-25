@@ -13,6 +13,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/token"
+	idpackage "github.com/fabric8-services/fabric8-wit/id"
 
 	"github.com/fabric8-services/fabric8-wit/rest/proxy"
 	"github.com/goadesign/goa"
@@ -104,7 +105,7 @@ func (c *UsersController) createUserInDB(ctx *app.CreateUserAsServiceAccountUser
 			ProviderType: ctx.Payload.Data.Attributes.ProviderType,
 		}
 		// associate foreign key
-		identity.UserID = account.NullUUID{UUID: user.ID, Valid: true}
+		identity.UserID = idpackage.NullUUID{UUID: user.ID, Valid: true}
 
 		// Optional Attributes
 
