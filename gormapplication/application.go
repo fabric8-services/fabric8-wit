@@ -17,6 +17,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 	"github.com/fabric8-services/fabric8-wit/workitem"
+	"github.com/fabric8-services/fabric8-wit/workitem/event"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
@@ -134,6 +135,11 @@ func (g *GormBase) Areas() area.Repository {
 // Labels returns a labels repository
 func (g *GormBase) Labels() label.Repository {
 	return label.NewLabelRepository(g.db)
+}
+
+// Events returns a events repository
+func (g *GormBase) Events() event.Repository {
+	return event.NewEventRepository(g.db)
 }
 
 // Queries returns a queries repository
