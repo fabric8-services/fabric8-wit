@@ -410,6 +410,9 @@ func GetMigrations() Migrations {
 	// Version 90
 	m = append(m, steps{ExecuteSQLFile("090-queries-version.sql")})
 
+	// Version 90
+	m = append(m, steps{ExecuteSQLFile("091-comments-child-comments.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
