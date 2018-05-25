@@ -12,6 +12,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/spacetemplate"
 	"github.com/fabric8-services/fabric8-wit/workitem"
+	"github.com/fabric8-services/fabric8-wit/workitem/event"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
 )
 
@@ -34,6 +35,7 @@ type Application interface {
 	Codebases() codebase.Repository
 	Labels() label.Repository
 	Queries() query.Repository
+	Events() event.Repository
 	SpaceTemplates() spacetemplate.Repository
 	WorkItemTypeGroups() workitem.WorkItemTypeGroupRepository
 }

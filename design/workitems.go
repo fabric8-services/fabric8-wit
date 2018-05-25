@@ -44,6 +44,7 @@ var workItemRelationships = a.Type("WorkItemRelationships", func() {
 	a.Attribute("space", relationSpaces, "This defines the owning space of this work item.")
 	a.Attribute("parent", relationKindUUID, "This defines the parent of this work item.")
 	a.Attribute("workItemLinks", relationGeneric, "List of links in which this work item is involved")
+	a.Attribute("events", relationGeneric, "List of events in which this work item is involved")
 })
 
 // relationBaseType is top level block for WorkItemType relationship

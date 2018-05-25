@@ -52,6 +52,11 @@
           "type": "users"
         }
       },
+      "events": {
+        "links": {
+          "related": "http:///api/workitems/00000000-0000-0000-0000-000000000002/events"
+        }
+      },
       "iteration": {},
       "labels": {
         "links": {
