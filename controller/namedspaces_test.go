@@ -68,7 +68,7 @@ func (rest *TestNamedSpaceREST) TestSuccessQuerySpace() {
 		assert.Fail(t, "Failed to create an identity")
 	}
 
-	name := testsupport.CreateRandomValidTestName("Test 24")
+	name := testsupport.CreateRandomValidTestName("Test")
 
 	p := newCreateSpacePayload(&name, nil)
 
@@ -109,7 +109,7 @@ func (rest *TestNamedSpaceREST) TestSuccessListSpaces() {
 		assert.Fail(t, "Failed to create an identity")
 	}
 
-	name := testsupport.CreateRandomValidTestName("Test 24")
+	name := testsupport.CreateRandomValidTestName("Test")
 
 	p := newCreateSpacePayload(&name, nil)
 

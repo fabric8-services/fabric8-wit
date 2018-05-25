@@ -714,7 +714,7 @@ func (s *SpaceControllerTestSuite) TestShowSpace() {
 
 	s.T().Run("ok", func(t *testing.T) {
 		// given
-		name := testsupport.CreateRandomValidTestName("TestShowSpaceOK-")
+		name := testsupport.CreateRandomValidTestName("Test-")
 		description := "Space for TestShowSpaceOK"
 		p := newCreateSpacePayload(&name, &description)
 		svc, ctrl := s.SecuredController(testsupport.TestIdentity)
@@ -731,7 +731,7 @@ func (s *SpaceControllerTestSuite) TestShowSpace() {
 	s.T().Run("conditional request", func(t *testing.T) {
 		t.Run("ok with expired modified-since header", func(t *testing.T) {
 			// given
-			name := testsupport.CreateRandomValidTestName("TestShowSpaceOKUsingExpiredIfModifiedSinceHeader-")
+			name := testsupport.CreateRandomValidTestName("Test-")
 			description := "Space for TestShowSpaceOKUsingExpiredIfModifiedSinceHeader"
 			p := newCreateSpacePayload(&name, &description)
 			svc, ctrl := s.SecuredController(testsupport.TestIdentity)
@@ -747,7 +747,7 @@ func (s *SpaceControllerTestSuite) TestShowSpace() {
 
 		t.Run("ok with expired if-none-match header", func(t *testing.T) {
 			// given
-			name := testsupport.CreateRandomValidTestName("TestShowSpaceOKUsingExpiredIfNoneMatchHeader-")
+			name := testsupport.CreateRandomValidTestName("Test-")
 			description := "Space for TestShowSpaceOKUsingExpiredIfNoneMatchHeader"
 			p := newCreateSpacePayload(&name, &description)
 			svc, ctrl := s.SecuredController(testsupport.TestIdentity)
@@ -763,7 +763,7 @@ func (s *SpaceControllerTestSuite) TestShowSpace() {
 
 		t.Run("not modified with modified-since header", func(t *testing.T) {
 			// given
-			name := testsupport.CreateRandomValidTestName("TestShowSpaceNotModifiedUsingIfModifiedSinceHeader-")
+			name := testsupport.CreateRandomValidTestName("Test-")
 			description := "Space for TestShowSpaceNotModifiedUsingIfModifiedSinceHeader"
 			p := newCreateSpacePayload(&name, &description)
 			svc, ctrl := s.SecuredController(testsupport.TestIdentity)
@@ -775,7 +775,7 @@ func (s *SpaceControllerTestSuite) TestShowSpace() {
 
 		t.Run("not modified with if-none-match header", func(t *testing.T) {
 			// given
-			name := testsupport.CreateRandomValidTestName("TestShowSpaceNotModifiedUsingIfNoneMatchHeader-")
+			name := testsupport.CreateRandomValidTestName("Test-")
 			description := "Space for TestShowSpaceNotModifiedUsingIfNoneMatchHeader"
 			p := newCreateSpacePayload(&name, &description)
 			svc, ctrl := s.SecuredController(testsupport.TestIdentity)
@@ -800,7 +800,7 @@ func (s *SpaceControllerTestSuite) TestListSpaces() {
 
 	s.T().Run("ok", func(t *testing.T) {
 		// given
-		name := testsupport.CreateRandomValidTestName("TestListSpacesOK-")
+		name := testsupport.CreateRandomValidTestName("Test-")
 		p := newCreateSpacePayload(&name, nil)
 		svc, ctrl := s.SecuredController(testsupport.TestIdentity)
 		test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
@@ -822,7 +822,7 @@ func (s *SpaceControllerTestSuite) TestListSpaces() {
 
 		t.Run("ok with expired modified-since header", func(t *testing.T) {
 			// given
-			name := testsupport.CreateRandomValidTestName("TestListSpacesOKUsingExpiredIfModifiedSinceHeader-")
+			name := testsupport.CreateRandomValidTestName("Test-")
 			p := newCreateSpacePayload(&name, nil)
 			svc, ctrl := s.SecuredController(testsupport.TestIdentity)
 			_, createdSpace := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
@@ -838,7 +838,7 @@ func (s *SpaceControllerTestSuite) TestListSpaces() {
 
 		t.Run("ok with expired if-none-match header", func(t *testing.T) {
 			// given
-			name := testsupport.CreateRandomValidTestName("TestListSpacesOKUsingExpiredIfNoneMatchHeader-")
+			name := testsupport.CreateRandomValidTestName("Test-")
 			p := newCreateSpacePayload(&name, nil)
 			svc, ctrl := s.SecuredController(testsupport.TestIdentity)
 			test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
@@ -852,7 +852,7 @@ func (s *SpaceControllerTestSuite) TestListSpaces() {
 
 		t.Run("not modified with modified-since header", func(t *testing.T) {
 			// given
-			name := testsupport.CreateRandomValidTestName("TestListSpacesNotModifiedUsingIfModifiedSinceHeader-")
+			name := testsupport.CreateRandomValidTestName("Test-")
 			p := newCreateSpacePayload(&name, nil)
 			svc, ctrl := s.SecuredController(testsupport.TestIdentity)
 			_, createdSpace := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
@@ -863,7 +863,7 @@ func (s *SpaceControllerTestSuite) TestListSpaces() {
 
 		t.Run("not modified with if-none-match header", func(t *testing.T) {
 			// given
-			name := testsupport.CreateRandomValidTestName("TestListSpacesNotModifiedUsingIfNoneMatchHeader-")
+			name := testsupport.CreateRandomValidTestName("Test-")
 			p := newCreateSpacePayload(&name, nil)
 			svc, ctrl := s.SecuredController(testsupport.TestIdentity)
 			test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
