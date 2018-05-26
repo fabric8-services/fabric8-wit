@@ -66,19 +66,19 @@ func (s *TestCommentRepository) TestCreateCommentWithParentComment() {
 	// when
 	s.repo.Create(s.Ctx, childComment, fxt.Identities[0].ID)
 	// then
-	assert.NotNil(s.T(), childComment.ID, "Comment was not created, ID nil")
-	require.NotNil(s.T(), childComment.CreatedAt, "Comment was not created?")
-	assert.False(s.T(), childComment.CreatedAt.After(time.Now()), "Comment was not created, CreatedAt after Now()?")
-	assert.NotNil(s.T(), childComment.ParentCommentID, "Parent comment id was not set, ID nil")
-	assert.Equal(s.T(), parentComment.ID, childComment.ParentCommentID.UUID, "Parent comment id was not correctly set?")
+	require.NotNil(s.T(), childComment.ID, "Comment was not created, ID nil")
+	require.NotNil(s.T(), childComment.CreatedAt, "Comment was not created")
+	require.False(s.T(), childComment.CreatedAt.After(time.Now()), "Comment was not created, CreatedAt after Now()")
+	require.NotNil(s.T(), childComment.ParentCommentID, "Parent comment id was not set, ID nil")
+	require.Equal(s.T(), parentComment.ID, childComment.ParentCommentID.UUID, "Parent comment id was not correctly set")
 	// now retrieving the stored child comment again and see if the parent reference was stored
 	var resultComment *comment.Comment
 	// when
 	resultComment, err := s.repo.Load(s.Ctx, childComment.ID)
 	// then
 	require.NoError(s.T(), err)
-	assert.NotNil(s.T(), resultComment.ParentCommentID, "Parent comment id was not set, ID nil")
-	assert.Equal(s.T(), parentComment.ID, resultComment.ParentCommentID.UUID, "Parent comment id was not correctly set?")
+	require.NotNil(s.T(), resultComment.ParentCommentID, "Parent comment id was not set, ID nil")
+	require.Equal(s.T(), parentComment.ID, resultComment.ParentCommentID.UUID, "Parent comment id was not correctly set")
 }
 
 func (s *TestCommentRepository) TestCreateCommentWithMarkup() {
