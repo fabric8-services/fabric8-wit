@@ -136,7 +136,7 @@ func (s *revisionRepositoryBlackBoxTest) TestStoreChildCommentRevisions() {
 	assert.Equal(s.T(), rendering.SystemMarkupPlainText, *revision2.CommentMarkup)
 	assert.Equal(s.T(), fxt.Identities[1].ID, revision2.ModifierIdentity)
 	// check if the parent comment id is in the revision
-	assert.Equal(s.T(), parentCommentID, *revision2.CommentParentCommentID)
+	assert.Equal(s.T(), parentCommentID.String(), revision2.CommentParentCommentID.UUID.String())
 	// revision 3 - update from this test
 	revision3 := commentRevisions[2]
 	assert.Equal(s.T(), c.ID, revision3.CommentID)
@@ -146,7 +146,7 @@ func (s *revisionRepositoryBlackBoxTest) TestStoreChildCommentRevisions() {
 	assert.Equal(s.T(), rendering.SystemMarkupMarkdown, *revision3.CommentMarkup)
 	assert.Equal(s.T(), fxt.Identities[1].ID, revision3.ModifierIdentity)
 	// check if the parent comment id is in the revision
-	assert.Equal(s.T(), parentCommentID, *revision3.CommentParentCommentID)
+	assert.Equal(s.T(), parentCommentID.String(), revision3.CommentParentCommentID.UUID.String())
 	// revision 4 - delete from this test
 	revision4 := commentRevisions[3]
 	assert.Equal(s.T(), c.ID, revision4.CommentID)
@@ -156,5 +156,5 @@ func (s *revisionRepositoryBlackBoxTest) TestStoreChildCommentRevisions() {
 	assert.Nil(s.T(), revision4.CommentMarkup)
 	assert.Equal(s.T(), fxt.Identities[2].ID, revision4.ModifierIdentity)
 	// check if the parent comment id is in the revision
-	assert.Equal(s.T(), parentCommentID, *revision4.CommentParentCommentID)
+	assert.Equal(s.T(), parentCommentID.String(), revision4.CommentParentCommentID.UUID.String())
 }

@@ -1,6 +1,7 @@
 package comment
 
 import (
+	"github.com/fabric8-services/fabric8-wit/id"
 	"time"
 
 	uuid "github.com/satori/go.uuid"
@@ -34,7 +35,7 @@ type Revision struct {
 	// the id of the parent of the comment that changed
 	CommentParentID uuid.UUID `gorm:"column:comment_parent_id"`
 	// the id of the parent comment of the comment that changed (nil if parent comment)
-	CommentParentCommentID *uuid.UUID `gorm:"column:comment_parent_comment_id"`
+	CommentParentCommentID id.NullUUID `gorm:"column:comment_parent_comment_id"`
 	// the body of the comment (nil when comment was deleted)
 	CommentBody *string `gorm:"column:comment_body"`
 	// the markup used to input the comment body (nil when comment was deleted)
