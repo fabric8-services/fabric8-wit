@@ -69,7 +69,10 @@ func (c *WorkItemCommentsController) Create(ctx *app.CreateWorkItemCommentsConte
 		var parentCommentID id.NullUUID
 		if reqComment.Relationships != nil && reqComment.Relationships.ParentComment != nil {
 			stringUUID := *reqComment.Relationships.ParentComment.Data.ID
-			tempUUID, _ := uuid.FromString(stringUUID)
+			tempUUID, err := uuid.FromString(stringUUID)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, err)
+			}
 			parentCommentID = id.NullUUID{
 				UUID:  tempUUID,
 				Valid: true,
