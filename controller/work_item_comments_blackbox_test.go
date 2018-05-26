@@ -224,7 +224,7 @@ func (rest *TestCommentREST) setupCommentsWithParentComments() (workitem.WorkIte
 	})
 	// create the childs
 	parentCommentID := id.NullUUID{
-		UUID: comments[0].ID,
+		UUID:  comments[0].ID,
 		Valid: true,
 	}
 	comments[1] = &comment.Comment{ParentID: wi.ID, Body: "Child Comment 1", Creator: rest.testIdentity.ID, ParentCommentID: parentCommentID}
