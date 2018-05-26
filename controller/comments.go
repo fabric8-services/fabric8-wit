@@ -22,6 +22,11 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+// Defines the constants to be used in json api
+const (
+	APIStringTypeComments = "comments"
+)
+
 // CommentsController implements the comments resource.
 type CommentsController struct {
 	*goa.Controller
@@ -193,7 +198,7 @@ func ConvertCommentsResourceID(request *http.Request, comments []comment.Comment
 // ConvertCommentResourceID converts between internal and external REST representation, ResourceIdentificationObject only
 func ConvertCommentResourceID(request *http.Request, comment comment.Comment, additional ...CommentConvertFunc) *app.Comment {
 	c := &app.Comment{
-		Type: "comments",
+		Type: APIStringTypeComments,
 		ID:   &comment.ID,
 	}
 	for _, add := range additional {
@@ -207,7 +212,7 @@ func ConvertComment(request *http.Request, comment comment.Comment, additional .
 	relatedURL := rest.AbsoluteURL(request, app.CommentsHref(comment.ID))
 	relatedCreatorLink := rest.AbsoluteURL(request, fmt.Sprintf("%s/%s", usersEndpoint, comment.Creator))
 	c := &app.Comment{
-		Type: "comments",
+		Type: APIStringTypeComments,
 		ID:   &comment.ID,
 		Attributes: &app.CommentAttributes{
 			Body:         &comment.Body,
@@ -244,7 +249,7 @@ func ConvertComment(request *http.Request, comment comment.Comment, additional .
 	if comment.ParentCommentID.Valid == true {
 		c.Relationships.ParentComment = &app.RelationGeneric{
 			Data: &app.GenericData{
-				Type: ptr.String("comments"),
+				Type: ptr.String(APIStringTypeComments),
 				ID:   ptr.String(comment.ParentCommentID.UUID.String()),
 			},
 		}
