@@ -126,7 +126,7 @@ func (s *revisionRepositoryBlackBoxTest) TestStoreChildCommentRevisions() {
 	assert.Equal(s.T(), rendering.SystemMarkupMarkdown, *revision1.CommentMarkup)
 	assert.Equal(s.T(), fxt.Identities[0].ID, revision1.ModifierIdentity)
 	// this is the initial revision created by the fixture, the comment parent id should be nil
-	assert.Nil(s.T(), revision1.CommentParentCommentID)
+	assert.False(s.T(), revision1.CommentParentCommentID.Valid)
 	// revision 2 - first create from this test
 	revision2 := commentRevisions[1]
 	assert.Equal(s.T(), c.ID, revision2.CommentID)
