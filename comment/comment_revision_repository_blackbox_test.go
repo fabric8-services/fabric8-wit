@@ -1,8 +1,8 @@
 package comment_test
 
 import (
-	"github.com/fabric8-services/fabric8-wit/id"
 	"context"
+	"github.com/fabric8-services/fabric8-wit/id"
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/comment"
@@ -98,8 +98,8 @@ func (s *revisionRepositoryBlackBoxTest) TestStoreChildCommentRevisions() {
 	c := *fxt.Comments[1]
 	c.Body = "Updated body"
 	c.Markup = rendering.SystemMarkupPlainText
-	c.ParentCommentID = id.NullUUID {
-		UUID: parentCommentID,
+	c.ParentCommentID = id.NullUUID{
+		UUID:  parentCommentID,
 		Valid: true,
 	}
 	err = repository.Save(context.Background(), &c, fxt.Identities[1].ID)
