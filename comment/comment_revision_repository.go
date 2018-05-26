@@ -47,6 +47,10 @@ func (r *GormCommentRevisionRepository) Create(ctx context.Context, modifierID u
 		CommentBody:      &c.Body,
 		CommentMarkup:    &c.Markup,
 	}
+	// if there is a valid parent comment id, add it the the stuct
+	if c.ParentCommentID.Valid == true {
+		revision.CommentParentCommentID = &c.ParentCommentID.UUID
+	}
 	if revision.Type == RevisionTypeDelete {
 		revision.CommentBody = nil
 		revision.CommentMarkup = nil
