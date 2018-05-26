@@ -410,7 +410,7 @@ func GetMigrations() Migrations {
 	// Version 90
 	m = append(m, steps{ExecuteSQLFile("090-queries-version.sql")})
 
-	// Version 90
+	// Version 91
 	m = append(m, steps{ExecuteSQLFile("091-comments-child-comments.sql")})
 
 	// Version N

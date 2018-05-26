@@ -139,6 +139,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration88", testMigration88TypeGroups)     // type groups
 	t.Run("TestMigration89", testMigration89FixupForSpaceTemplates)
 	t.Run("TestMigration90", testMigration90QueriesVersion)
+	t.Run("TestMigration91", testMigration91CommentsChildComments)
 
 	// Perform the migration
 	err = migration.Migrate(sqlDB, databaseName)
@@ -802,6 +803,11 @@ func testMigration89FixupForSpaceTemplates(t *testing.T) {
 func testMigration90QueriesVersion(t *testing.T) {
 	migrateToVersion(t, sqlDB, migrations[:91], 91)
 	assert.True(t, dialect.HasColumn("queries", "version"))
+}
+
+func testMigration91CommentsChildComments(t *testing.T) {
+	migrateToVersion(t, sqlDB, migrations[:92], 92)
+	assert.True(t, dialect.HasColumn("comments", "parent_comment_id"))
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and
