@@ -52,6 +52,11 @@
             "type": "users"
           }
         },
+        "events": {
+          "links": {
+            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000001/events"
+          }
+        },
         "iteration": {},
         "labels": {
           "links": {
@@ -136,6 +141,11 @@
             "type": "users"
           }
         },
+        "events": {
+          "links": {
+            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000006/events"
+          }
+        },
         "iteration": {},
         "labels": {
           "links": {
@@ -211,6 +221,11 @@
               "self": "http:///api/users/00000000-0000-0000-0000-000000000003"
             },
             "type": "users"
+          }
+        },
+        "events": {
+          "links": {
+            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000004/events"
           }
         },
         "iteration": {},

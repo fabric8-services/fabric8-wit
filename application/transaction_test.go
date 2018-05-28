@@ -1,6 +1,7 @@
 package application_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -53,4 +54,32 @@ func (test *TestTransaction) TestTransactionOut() {
 	// then
 	require.Error(test.T(), err)
 	assert.Contains(test.T(), err.Error(), "database transaction timeout!")
+}
+
+func (test *TestTransaction) TestTransactionPanicAndRecoverWithStack() {
+	// then
+	err := application.Transactional(test.db, func(appl application.Application) error {
+		bar := func(a, b interface{}) {
+			// This comparison while legal at compile time will cause a runtime
+			// error like this: "comparing uncomparable type
+			// map[string]interface {}". The transaction will panic and recover
+			// but you will probably never find out where the error came from if
+			// the stack is not captured in the transaction recovery. This test
+			// ensures that the stack is captured.
+			if a == b {
+				fmt.Printf("never executed")
+			}
+		}
+		foo := func() {
+			a := map[string]interface{}{}
+			b := map[string]interface{}{}
+			bar(a, b)
+		}
+		foo()
+		return nil
+	})
+	// then
+	require.Error(test.T(), err)
+	// ensure there's a proper stack trace that contains the name of this test
+	require.Contains(test.T(), err.Error(), "(*TestTransaction).TestTransactionPanicAndRecoverWithStack.func1(")
 }
