@@ -53,10 +53,10 @@ type highlightHTMLRenderer struct {
 func (h *highlightHTMLRenderer) ListItem(out *bytes.Buffer, text []byte, flags int) {
 	switch {
 	case bytes.HasPrefix(text, []byte("[ ] ")):
-		text = append([]byte(fmt.Sprintf(`<input class="markdown-checkbox" type="checkbox" disabled="disabled" data-checkbox-index="%d"></input>`, h.checkboxIndex)), text[4:]...)
+		text = append([]byte(fmt.Sprintf(`<input class="markdown-checkbox" type="checkbox" data-checkbox-index="%d"></input>`, h.checkboxIndex)), text[4:]...)
 		h.checkboxIndex++
 	case bytes.HasPrefix(text, []byte("[x] ")) || bytes.HasPrefix(text, []byte("[X] ")):
-		text = append([]byte(fmt.Sprintf(`<input class="markdown-checkbox" type="checkbox" disabled="disabled" checked=""  data-checkbox-index="%d"></input>`, h.checkboxIndex)), text[4:]...)
+		text = append([]byte(fmt.Sprintf(`<input class="markdown-checkbox" type="checkbox" checked=""  data-checkbox-index="%d"></input>`, h.checkboxIndex)), text[4:]...)
 		h.checkboxIndex++
 	}
 	h.Renderer.ListItem(out, text, flags)
