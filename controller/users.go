@@ -9,7 +9,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/auth"
-	idpackage "github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/rest"
@@ -105,7 +104,7 @@ func (c *UsersController) createUserInDB(ctx *app.CreateUserAsServiceAccountUser
 			ProviderType: ctx.Payload.Data.Attributes.ProviderType,
 		}
 		// associate foreign key
-		identity.UserID = idpackage.NullUUID{UUID: user.ID, Valid: true}
+		identity.UserID = uuid.NullUUID{UUID: user.ID, Valid: true}
 
 		// Optional Attributes
 

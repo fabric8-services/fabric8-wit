@@ -2,7 +2,6 @@ package comment
 
 import (
 	"context"
-	"github.com/fabric8-services/fabric8-wit/id"
 
 	"time"
 
@@ -50,7 +49,7 @@ func (r *GormCommentRevisionRepository) Create(ctx context.Context, modifierID u
 	}
 	// if there is a valid parent comment id, add it the the stuct
 	if c.ParentCommentID.Valid == true {
-		revision.CommentParentCommentID = id.NullUUID{
+		revision.CommentParentCommentID = uuid.NullUUID{
 			UUID:  c.ParentCommentID.UUID,
 			Valid: true,
 		}
