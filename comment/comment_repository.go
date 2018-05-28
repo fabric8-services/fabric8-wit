@@ -115,7 +115,7 @@ func (m *GormCommentRepository) Delete(ctx context.Context, commentID uuid.UUID,
 	}
 	// fetch the id and parent id of the comment to delete, to store them in the new revision.
 	c := Comment{}
-	tx := m.db.Select("id, parent_id").Where("id = ?", commentID).Find(&c)
+	tx := m.db.Select("id, parent_id, parent_comment_id").Where("id = ?", commentID).Find(&c)
 	if tx.RowsAffected != 1 {
 		return errors.NewNotFoundError("comment", commentID.String())
 	}
