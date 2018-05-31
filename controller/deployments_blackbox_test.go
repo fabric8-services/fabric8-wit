@@ -348,9 +348,8 @@ func TestShowDeploymentStats(t *testing.T) {
 	spaceName := "mySpace"
 	appName := "myApp"
 	envName := "run"
-	startTime, err := time.Parse(time.RFC3339, "2018-05-30T12:25:27-04:00")
-	require.NoError(t, err)
-	startTimeMilli := float64(startTime.Unix() * int64(time.Second/time.Millisecond))
+	startTimeMilli := float64(1527796723000)
+	startTime := convertToTime(int64(startTimeMilli))
 
 	stats := &app.SimpleDeploymentStats{
 		Type:       "deploymentstats",
@@ -426,11 +425,10 @@ func TestShowDeploymentStatSeries(t *testing.T) {
 	spaceName := "mySpace"
 	appName := "myApp"
 	envName := "run"
-	startTime, err := time.Parse(time.RFC3339, "2018-05-30T12:25:27-04:00")
-	endTime, err := time.Parse(time.RFC3339, "2018-05-31T12:25:27-04:00")
-	require.NoError(t, err)
-	startTimeMilli := float64(startTime.Unix() * int64(time.Second/time.Millisecond))
-	endTimeMilli := float64(endTime.Unix() * int64(time.Second/time.Millisecond))
+	startTimeMilli := float64(1527796723000)
+	startTime := convertToTime(int64(startTimeMilli))
+	endTimeMilli := float64(1527796753000)
+	endTime := convertToTime(int64(endTimeMilli))
 	limit := 5
 
 	stats := &app.SimpleDeploymentStatSeries{
@@ -503,6 +501,9 @@ func TestShowDeploymentStatSeries(t *testing.T) {
 	})
 }
 
+func convertToTime(unixMillis int64) time.Time {
+	return time.Unix(0, unixMillis*int64(time.Millisecond))
+}
 func TestShowSpaceEnvironments(t *testing.T) {
 	// given
 	clientGetterMock := testcontroller.NewClientGetterMock(t)
