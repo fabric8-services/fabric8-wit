@@ -43,21 +43,21 @@ work_item_types:
         - Out of Date
         - Explained
         - Verified
-      "priority":
-        label: Priority
-        description: TBD
-        required: no
-        type:
-          simple_type:
-            kind: enum
-          base_type:
-            kind: string
-          values:
-          - Blocker
-          - Critical
-          - Minor
-          - Optional
-          - Trivial
+    "priority":
+      label: Priority
+      description: TBD
+      required: no
+      type:
+        simple_type:
+          kind: enum
+        base_type:
+          kind: string
+        values:
+        - Blocker
+        - Critical
+        - Minor
+        - Optional
+        - Trivial
 
 - id: &impedimentID "ec6918d6-f732-4fc0-a902-6571415aa73c"
   extends: *scrumCommonTypeID
