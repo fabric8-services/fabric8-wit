@@ -6,6 +6,22 @@
         "created-at": "0001-01-01T00:00:00Z",
         "description": "This is the work item type that defines the common fields that are shared among all for all work item types of the scrum template. It extends the planner item type and thereby already provides a great deal of common fields.\n",
         "fields": {
+          "priority": {
+            "description": "TBD",
+            "label": "Priority",
+            "required": false,
+            "type": {
+              "baseType": "string",
+              "kind": "enum",
+              "values": [
+                "Blocker",
+                "Critical",
+                "Minor",
+                "Optional",
+                "Trivial"
+              ]
+            }
+          },
           "resolution": {
             "description": "The reason why this work item's state was last changed.\n",
             "label": "Resolution",
@@ -188,6 +204,22 @@
         "created-at": "0001-01-01T00:00:00Z",
         "description": "Note that this is never part of a backlog. It is simply associated with other work items to indicate impediments blocking that work item.\n",
         "fields": {
+          "priority": {
+            "description": "TBD",
+            "label": "Priority",
+            "required": false,
+            "type": {
+              "baseType": "string",
+              "kind": "enum",
+              "values": [
+                "Blocker",
+                "Critical",
+                "Minor",
+                "Optional",
+                "Trivial"
+              ]
+            }
+          },
           "resolution": {
             "description": "The reason why this work item's state was last changed.\n",
             "label": "Resolution",
@@ -368,6 +400,22 @@
         "created-at": "0001-01-01T00:00:00Z",
         "description": "TBD",
         "fields": {
+          "priority": {
+            "description": "TBD",
+            "label": "Priority",
+            "required": false,
+            "type": {
+              "baseType": "string",
+              "kind": "enum",
+              "values": [
+                "Blocker",
+                "Critical",
+                "Minor",
+                "Optional",
+                "Trivial"
+              ]
+            }
+          },
           "remaining_work": {
             "description": "TBD",
             "label": "Remaining work",
@@ -587,6 +635,22 @@
             "required": false,
             "type": {
               "kind": "string"
+            }
+          },
+          "priority": {
+            "description": "TBD",
+            "label": "Priority",
+            "required": false,
+            "type": {
+              "baseType": "string",
+              "kind": "enum",
+              "values": [
+                "Blocker",
+                "Critical",
+                "Minor",
+                "Optional",
+                "Trivial"
+              ]
             }
           },
           "remaining_work": {
@@ -842,6 +906,22 @@
               "kind": "float"
             }
           },
+          "priority": {
+            "description": "TBD",
+            "label": "Priority",
+            "required": false,
+            "type": {
+              "baseType": "string",
+              "kind": "enum",
+              "values": [
+                "Blocker",
+                "Critical",
+                "Minor",
+                "Optional",
+                "Trivial"
+              ]
+            }
+          },
           "resolution": {
             "description": "The reason why this work item's state was last changed.\n",
             "label": "Resolution",
@@ -1058,6 +1138,22 @@
             "required": false,
             "type": {
               "kind": "float"
+            }
+          },
+          "priority": {
+            "description": "TBD",
+            "label": "Priority",
+            "required": false,
+            "type": {
+              "baseType": "string",
+              "kind": "enum",
+              "values": [
+                "Blocker",
+                "Critical",
+                "Minor",
+                "Optional",
+                "Trivial"
+              ]
             }
           },
           "resolution": {
@@ -1291,6 +1387,22 @@
             "required": false,
             "type": {
               "kind": "float"
+            }
+          },
+          "priority": {
+            "description": "TBD",
+            "label": "Priority",
+            "required": false,
+            "type": {
+              "baseType": "string",
+              "kind": "enum",
+              "values": [
+                "Blocker",
+                "Critical",
+                "Minor",
+                "Optional",
+                "Trivial"
+              ]
             }
           },
           "resolution": {
