@@ -195,12 +195,12 @@ func (c *DeploymentsController) SetDeployment(ctx *app.SetDeploymentDeploymentsC
 
 	kubeSpaceName, err := c.getSpaceNameFromSpaceID(ctx, ctx.SpaceID)
 	if err != nil {
-		return errors.NewNotFoundError("osio space", ctx.SpaceID.String())
+		return jsonapi.JSONErrorResponse(ctx, errors.NewNotFoundError("osio space", ctx.SpaceID.String()))
 	}
 
 	_ /*oldCount*/, err = kc.ScaleDeployment(*kubeSpaceName, ctx.AppName, ctx.DeployName, *ctx.PodCount)
 	if err != nil {
-		return errors.NewInternalError(ctx, errs.Wrapf(err, "error scaling deployment %s", ctx.DeployName))
+		return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "error scaling deployment %s", ctx.DeployName))
 	}
 
 	return ctx.OK([]byte{})
@@ -225,7 +225,7 @@ func (c *DeploymentsController) DeleteDeployment(ctx *app.DeleteDeploymentDeploy
 			"err":        err,
 			"space_name": *kubeSpaceName,
 		}, "error deleting deployment")
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
 	return ctx.OK([]byte{})
@@ -308,8 +308,8 @@ func (c *DeploymentsController) ShowDeploymentStats(ctx *app.ShowDeploymentStats
 
 	deploymentStats, err := kc.GetDeploymentStats(*kubeSpaceName, ctx.AppName, ctx.DeployName, startTime)
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(ctx,
-			errs.Wrapf(err, "could not retrieve deployment statistics for deployment '%s' in space '%s'", ctx.DeployName, *kubeSpaceName)))
+		return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err,
+			"could not retrieve deployment statistics for deployment '%s' in space '%s'", ctx.DeployName, *kubeSpaceName))
 	}
 	if deploymentStats == nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewNotFoundError("deployment", ctx.DeployName))
