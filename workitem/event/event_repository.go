@@ -2,6 +2,7 @@ package event
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 
 	"github.com/jinzhu/gorm"
@@ -110,7 +111,6 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 					}
 				default:
 					return nil, errors.NewNotFoundError("Unknown field:", fieldName)
-
 				}
 			case workitem.EnumType:
 				var p string
@@ -133,7 +133,6 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 					n, _ = newValue.(string)
 
 				}
-
 				if p != n {
 					wie := Event{
 						ID:        revisionList[k].ID,
@@ -182,7 +181,7 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 						}
 						eventList = append(eventList, wie)
 					}
-				case workitem.KindString, workitem.KindIteration, workitem.KindArea:
+				case workitem.KindString, workitem.KindIteration, workitem.KindArea, workitem.KindFloat, workitem.KindInteger:
 					var p string
 					var n string
 
@@ -192,6 +191,10 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 					switch previousValue.(type) {
 					case nil:
 						p = ""
+					case float32, float64:
+						p = fmt.Sprintf("%f", previousValue)
+					case int:
+						p = fmt.Sprintf("%d", previousValue)
 					case interface{}:
 						p, _ = previousValue.(string)
 					}
@@ -199,11 +202,13 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 					switch newValue.(type) {
 					case nil:
 						n = ""
+					case float32, float64:
+						n = fmt.Sprintf("%f", newValue)
+					case int:
+						n = fmt.Sprintf("%d", newValue)
 					case interface{}:
 						n, _ = newValue.(string)
-
 					}
-
 					if p != n {
 						wie := Event{
 							ID:        revisionList[k].ID,
