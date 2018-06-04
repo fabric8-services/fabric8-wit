@@ -217,6 +217,18 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 			ctx, errors.NewInternalError(ctx, spaceDeletionErrorExternal))
 	}
 
+	// now delete the OpenShift resources associated with this space on an
+	// OpenShift cluster
+	err = deleteOpenShiftResource(c.DeploymentsClient, config, ctx.Context, spaceID)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"space_id": spaceID,
+			"error":    err,
+		}, "could not delete OpenShift resources")
+		return jsonapi.JSONErrorResponse(
+			ctx, errors.NewInternalError(ctx, err))
+	}
+
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		s, err := appl.Spaces().Load(ctx.Context, ctx.SpaceID)
 		if err != nil {
@@ -240,18 +252,6 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
-	// now delete the OpenShift resources associated with this space on an
-	// OpenShift cluster
-	err = deleteOpenShiftResource(c.DeploymentsClient, config, ctx.Context, spaceID)
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"space_id": spaceID,
-			"error":    err,
-		}, "could not delete OpenShift resources")
-		return jsonapi.JSONErrorResponse(
-			ctx, errors.NewInternalError(ctx, spaceDeletionErrorExternal))
-	}
-
 	return ctx.OK([]byte{})
 }
 
@@ -272,7 +272,7 @@ func deleteCodebases(
 	cl := client.New(goaclient.HTTPClientDoer(httpClient))
 	cl.Host = u.Host
 	cl.Scheme = u.Scheme
-	cl.SetJWTSigner(goasupport.NewForwardSigner(ctx))
+	cl.SetJWTSigner(goasupport.NewForwardSigner(goasupport.ForwardContextRequestID(ctx)))
 
 	// list all the codebases associated with the space
 	path := client.ListSpaceCodebasesPath(spaceID)
@@ -289,7 +289,10 @@ func deleteCodebases(
 			return errors.NewInternalError(ctx,
 				fmt.Errorf("could not decode JSON formatted errors returned while listing codebases: %v", err))
 		}
-		return errors.NewInternalError(ctx, formattedErrors.Validate())
+		if len(formattedErrors.Errors) > 0 {
+			return errors.NewInternalError(ctx, errs.Errorf(formattedErrors.Errors[0].Detail))
+		}
+		return errors.NewInternalError(ctx, errs.Errorf("unknown error"))
 	}
 	codebases, err := cl.DecodeCodebaseList(resp)
 	if err != nil {
@@ -314,7 +317,9 @@ func deleteCodebases(
 					errs.Wrapf(err, "could not decode JSON formatted errors returned while deleting codebase %s", cb.ID))
 				continue
 			}
-			errorsList = append(errorsList, formattedErrors.Validate())
+			if len(formattedErrors.Errors) > 0 {
+				errorsList = append(errorsList, errs.Errorf(formattedErrors.Errors[0].Detail))
+			}
 		}
 	}
 	if len(errorsList) != 0 {
@@ -347,7 +352,7 @@ func deleteOpenShiftResource(
 	cl := client.New(goaclient.HTTPClientDoer(httpClient))
 	cl.Host = u.Host
 	cl.Scheme = u.Scheme
-	cl.SetJWTSigner(goasupport.NewForwardSigner(ctx))
+	cl.SetJWTSigner(goasupport.NewForwardSigner(goasupport.ForwardContextRequestID(ctx)))
 
 	// get all the apps and envs
 	path := client.ShowSpaceDeploymentsPath(spaceID)
@@ -364,7 +369,17 @@ func deleteOpenShiftResource(
 			return errors.NewInternalError(ctx,
 				fmt.Errorf("could not decode JSON formatted errors returned while listing deployments: %v", err))
 		}
-		return errors.NewInternalError(ctx, formattedErrors.Validate())
+		for _, e := range formattedErrors.Errors {
+			log.Info(ctx, map[string]interface{}{
+				"status_code":     resp.StatusCode,
+				"formatted_error": *e,
+			}, "deleting openshift resources failed")
+
+		}
+		if len(formattedErrors.Errors) > 0 {
+			return errors.NewInternalError(ctx, errs.Errorf(formattedErrors.Errors[0].Detail))
+		}
+		return errors.NewInternalError(ctx, errs.Errorf("unknown error"))
 	}
 	space, err := cl.DecodeSimpleSpaceSingle(resp)
 	if err != nil {
@@ -394,7 +409,9 @@ func deleteOpenShiftResource(
 						errs.Wrapf(err, "could not decode JSON formatted errors returned while deleting deployment for space=%s, app=%s, env=%s", spaceID, app.Attributes.Name, env.Attributes.Name))
 					continue
 				}
-				errorsList = append(errorsList, formattedErrors.Validate())
+				if len(formattedErrors.Errors) > 0 {
+					errorsList = append(errorsList, errs.Errorf(formattedErrors.Errors[0].Detail))
+				}
 			}
 		}
 	}

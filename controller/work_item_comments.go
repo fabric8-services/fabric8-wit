@@ -7,6 +7,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/comment"
+	"github.com/fabric8-services/fabric8-wit/id"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/notification"
@@ -65,11 +66,24 @@ func (c *WorkItemCommentsController) Create(ctx *app.CreateWorkItemCommentsConte
 
 		reqComment := ctx.Payload.Data
 		markup := rendering.NilSafeGetMarkup(reqComment.Attributes.Markup)
+		var parentCommentID id.NullUUID
+		if reqComment.Relationships != nil && reqComment.Relationships.ParentComment != nil {
+			stringUUID := *reqComment.Relationships.ParentComment.Data.ID
+			tempUUID, err := uuid.FromString(stringUUID)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, err)
+			}
+			parentCommentID = id.NullUUID{
+				UUID:  tempUUID,
+				Valid: true,
+			}
+		}
 		newComment = comment.Comment{
-			ParentID: ctx.WiID,
-			Body:     reqComment.Attributes.Body,
-			Markup:   markup,
-			Creator:  *currentUserIdentityID,
+			ParentID:        ctx.WiID,
+			Body:            reqComment.Attributes.Body,
+			Markup:          markup,
+			Creator:         *currentUserIdentityID,
+			ParentCommentID: parentCommentID,
 		}
 
 		err = appl.Comments().Create(ctx, &newComment, *currentUserIdentityID)

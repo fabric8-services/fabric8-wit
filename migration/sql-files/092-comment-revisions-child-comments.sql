@@ -1,0 +1,1 @@
+ALTER TABLE comment_revisions ADD COLUMN comment_parent_comment_id uuid;

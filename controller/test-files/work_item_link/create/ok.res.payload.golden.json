@@ -136,6 +136,11 @@
             "type": "users"
           }
         },
+        "events": {
+          "links": {
+            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000003/events"
+          }
+        },
         "iteration": {},
         "labels": {
           "links": {
@@ -207,6 +212,11 @@
               "self": "http:///api/users/00000000-0000-0000-0000-000000000011"
             },
             "type": "users"
+          }
+        },
+        "events": {
+          "links": {
+            "related": "http:///api/workitems/00000000-0000-0000-0000-000000000004/events"
           }
         },
         "iteration": {},

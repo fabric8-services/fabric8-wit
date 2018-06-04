@@ -437,6 +437,10 @@ func (s *SpaceControllerTestSuite) TestDeleteSpace() {
 		spaceID := fxt.Spaces[0].ID
 		identity := *fxt.Identities[0]
 
+		rDeployments, err := recorder.New("../test/data/deployments/deployments_delete_space.401")
+		require.NoError(t, err)
+		defer rDeployments.Stop()
+
 		rCodebase, err := recorder.New("../test/data/codebases/codebases_delete_space.401")
 		require.NoError(t, err)
 		defer rCodebase.Stop()
@@ -446,6 +450,7 @@ func (s *SpaceControllerTestSuite) TestDeleteSpace() {
 		}
 		svc, ctrl := s.SecuredControllerWithDummyResourceManager(
 			identity, r,
+			withDeploymentsClient(&http.Client{Transport: rDeployments.Transport}),
 			withCodebaseClient(&http.Client{Transport: rCodebase.Transport}),
 		)
 		test.DeleteSpaceUnauthorized(t, svc.Context, svc, ctrl, spaceID)
@@ -464,6 +469,10 @@ func (s *SpaceControllerTestSuite) TestDeleteSpace() {
 		spaceID := fxt.Spaces[0].ID
 		identity := *fxt.Identities[0]
 
+		rDeployments, err := recorder.New("../test/data/deployments/deployments_delete_space.403")
+		require.NoError(t, err)
+		defer rDeployments.Stop()
+
 		rCodebase, err := recorder.New("../test/data/codebases/codebases_delete_space.403")
 		require.NoError(t, err)
 		defer rCodebase.Stop()
@@ -473,6 +482,7 @@ func (s *SpaceControllerTestSuite) TestDeleteSpace() {
 		}
 		svc, ctrl := s.SecuredControllerWithDummyResourceManager(
 			identity, r,
+			withDeploymentsClient(&http.Client{Transport: rDeployments.Transport}),
 			withCodebaseClient(&http.Client{Transport: rCodebase.Transport}),
 		)
 		test.DeleteSpaceForbidden(t, svc.Context, svc, ctrl, spaceID)
@@ -491,6 +501,10 @@ func (s *SpaceControllerTestSuite) TestDeleteSpace() {
 		spaceID := fxt.Spaces[0].ID
 		identity := *fxt.Identities[0]
 
+		rDeployments, err := recorder.New("../test/data/deployments/deployments_delete_space.404")
+		require.NoError(t, err)
+		defer rDeployments.Stop()
+
 		rCodebase, err := recorder.New("../test/data/codebases/codebases_delete_space.404")
 		require.NoError(t, err)
 		defer rCodebase.Stop()
@@ -500,6 +514,7 @@ func (s *SpaceControllerTestSuite) TestDeleteSpace() {
 		}
 		svc, ctrl := s.SecuredControllerWithDummyResourceManager(
 			identity, r,
+			withDeploymentsClient(&http.Client{Transport: rDeployments.Transport}),
 			withCodebaseClient(&http.Client{Transport: rCodebase.Transport}),
 		)
 		test.DeleteSpaceNotFound(t, svc.Context, svc, ctrl, spaceID)
@@ -518,6 +533,10 @@ func (s *SpaceControllerTestSuite) TestDeleteSpace() {
 		spaceID := fxt.Spaces[0].ID
 		identity := *fxt.Identities[0]
 
+		rDeployments, err := recorder.New("../test/data/deployments/deployments_delete_space.500")
+		require.NoError(t, err)
+		defer rDeployments.Stop()
+
 		rCodebase, err := recorder.New("../test/data/codebases/codebases_delete_space.500")
 		require.NoError(t, err)
 		defer rCodebase.Stop()
@@ -527,6 +546,7 @@ func (s *SpaceControllerTestSuite) TestDeleteSpace() {
 		}
 		svc, ctrl := s.SecuredControllerWithDummyResourceManager(
 			identity, r,
+			withDeploymentsClient(&http.Client{Transport: rDeployments.Transport}),
 			withCodebaseClient(&http.Client{Transport: rCodebase.Transport}),
 		)
 		test.DeleteSpaceInternalServerError(t, svc.Context, svc, ctrl, spaceID)
@@ -545,12 +565,17 @@ func (s *SpaceControllerTestSuite) TestDeleteSpace() {
 		spaceID := fxt.Spaces[0].ID
 		identity := testsupport.TestIdentity
 
+		rDeployments, err := recorder.New("../test/data/deployments/deployments_delete_space.different-owner")
+		require.NoError(t, err)
+		defer rDeployments.Stop()
+
 		rCodebase, err := recorder.New("../test/data/codebases/codebases_delete_space.different-owner")
 		require.NoError(t, err)
 		defer rCodebase.Stop()
 
 		svc, ctrl := s.SecuredController(
 			identity,
+			withDeploymentsClient(&http.Client{Transport: rDeployments.Transport}),
 			withCodebaseClient(&http.Client{Transport: rCodebase.Transport}),
 		)
 		test.DeleteSpaceForbidden(t, svc.Context, svc, ctrl, spaceID)

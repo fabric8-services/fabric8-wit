@@ -326,8 +326,8 @@ func (rest *TestQueryREST) TestUpdate() {
 		}
 		resp, updated := test.UpdateQueryOK(t, svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Queries[0].ID, nil, nil, &payload)
 		assert.Equal(t, newTitle, updated.Data.Attributes.Title)
-		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "ok.query.golden.json"), updated)
-		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "ok.headers.golden.json"), resp)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "update_query.res.payload.golden.json"), updated)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "update_query.res.headers.golden.json"), resp.Header())
 
 		_, queries2 := test.ShowQueryOK(t, svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Queries[0].ID, nil, nil)
 		assertQueryLinking(t, queries2.Data)
@@ -353,13 +353,14 @@ func (rest *TestQueryREST) TestUpdate() {
 				Type: query.APIStringTypeQuery,
 			},
 		}
-		_, jerrs := test.UpdateQueryConflict(t, svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Queries[0].ID, nil, nil, &payload)
+		resp, jerrs := test.UpdateQueryConflict(t, svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Queries[0].ID, nil, nil, &payload)
 		require.NotNil(t, jerrs)
 		require.Len(t, jerrs.Errors, 1)
 		require.Contains(t, jerrs.Errors[0].Detail, "version conflict")
 		ignoreString := "IGNORE_ME"
 		jerrs.Errors[0].ID = &ignoreString
-		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "conflict.errors.golden.json"), jerrs)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "update_conflict.res.payload.golden.json"), jerrs)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "update_conflict.res.headers.golden.json"), resp.Header())
 	})
 
 	rest.T().Run("update query with bad parameter", func(t *testing.T) {
@@ -378,13 +379,14 @@ func (rest *TestQueryREST) TestUpdate() {
 			},
 		}
 
-		_, jerrs := test.UpdateQueryBadRequest(t, svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Queries[0].ID, nil, nil, &payload)
+		resp, jerrs := test.UpdateQueryBadRequest(t, svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Queries[0].ID, nil, nil, &payload)
 		require.NotNil(t, jerrs)
 		require.Len(t, jerrs.Errors, 1)
 		require.Contains(t, jerrs.Errors[0].Detail, "Bad value for parameter 'data.attributes.version'")
 		ignoreString := "IGNORE_ME"
 		jerrs.Errors[0].ID = &ignoreString
-		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "badparam_version.errors.golden.json"), jerrs)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "badparam_version.res.payload.golden.json"), jerrs)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "badparam_version.res.headers.golden.json"), resp.Header())
 	})
 
 	rest.T().Run("update query with bad parameter - title", func(t *testing.T) {
@@ -407,13 +409,14 @@ func (rest *TestQueryREST) TestUpdate() {
 			},
 		}
 
-		_, jerrs := test.UpdateQueryBadRequest(t, svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Queries[0].ID, nil, nil, &payload)
+		resp, jerrs := test.UpdateQueryBadRequest(t, svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Queries[0].ID, nil, nil, &payload)
 		require.NotNil(t, jerrs)
 		require.Len(t, jerrs.Errors, 1)
 		require.Contains(t, jerrs.Errors[0].Detail, "Bad value for parameter 'query title cannot be empty string'")
 		ignoreString := "IGNORE_ME"
 		jerrs.Errors[0].ID = &ignoreString
-		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "badparam_name.errors.golden.json"), jerrs)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "badparam_name.res.payload.golden.json"), jerrs)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "badparam_name.res.headers.golden.json"), resp.Header())
 	})
 
 	rest.T().Run("update query with unauthorized", func(t *testing.T) {
@@ -435,13 +438,14 @@ func (rest *TestQueryREST) TestUpdate() {
 			},
 		}
 
-		_, jerrs := test.UpdateQueryUnauthorized(t, svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Queries[0].ID, nil, nil, &payload)
+		resp, jerrs := test.UpdateQueryUnauthorized(t, svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Queries[0].ID, nil, nil, &payload)
 		require.NotNil(t, jerrs)
 		require.Len(t, jerrs.Errors, 1)
 		require.Contains(t, jerrs.Errors[0].Detail, "Missing token manager")
 		ignoreString := "IGNORE_ME"
 		jerrs.Errors[0].ID = &ignoreString
-		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "unauthorized.errors.golden.json"), jerrs)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "unauthorized.res.payload.golden.json"), jerrs)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "unauthorized.res.headers.golden.json"), resp.Header())
 	})
 
 	rest.T().Run("different user updating", func(t *testing.T) {
@@ -465,13 +469,14 @@ func (rest *TestQueryREST) TestUpdate() {
 			},
 		}
 
-		_, jerrs := test.UpdateQueryForbidden(t, svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Queries[0].ID, nil, nil, &payload)
+		resp, jerrs := test.UpdateQueryForbidden(t, svc.Context, svc, ctrl, testFxt.Spaces[0].ID, testFxt.Queries[0].ID, nil, nil, &payload)
 		require.NotNil(t, jerrs)
 		require.Len(t, jerrs.Errors, 1)
 		require.Contains(t, jerrs.Errors[0].Detail, "user is not the query creator")
 		ignoreString := "IGNORE_ME"
 		jerrs.Errors[0].ID = &ignoreString
-		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "forbiden.errors.golden.json"), jerrs)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "forbiden.res.payload.golden.json"), jerrs)
+		compareWithGoldenAgnostic(t, filepath.Join(rest.testDir, "update", "forbiden.res.headers.golden.json"), resp.Header())
 	})
 
 	rest.T().Run("update query not found", func(t *testing.T) {

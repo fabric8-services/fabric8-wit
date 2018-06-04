@@ -25,6 +25,7 @@ var createComment = a.Type("CreateComment", func() {
 		a.Enum("comments")
 	})
 	a.Attribute("attributes", createCommentAttributes)
+	a.Attribute("relationships", createCommentRelationships)
 	a.Required("type", "attributes")
 })
 
@@ -59,10 +60,17 @@ var createCommentAttributes = a.Type("CreateCommentAttributes", func() {
 	a.Required("body")
 })
 
+var createCommentRelationships = a.Type("CreateCommentRelations", func() {
+	a.Attribute("creator", relationGeneric, "This defines the creator of the comment")
+	a.Attribute("parent", relationGeneric, "This defines the owning resource of the comment.")
+	a.Attribute("parent-comment", relationGeneric, "This defines the parent comment resource.")
+})
+
 var commentRelationships = a.Type("CommentRelations", func() {
 	a.Attribute("creator", relationGeneric, "This defines the creator of the comment")
 	a.Attribute("created-by", commentCreatedBy, "DEPRECATED. This defines the creator of the comment.")
-	a.Attribute("parent", relationGeneric, "This defines the owning resource of the comment")
+	a.Attribute("parent", relationGeneric, "This defines the owning resource of the comment.")
+	a.Attribute("parent-comment", relationGeneric, "This defines the parent comment resource.")
 })
 
 var commentCreatedBy = a.Type("CommentCreatedBy", func() {

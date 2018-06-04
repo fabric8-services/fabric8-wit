@@ -607,6 +607,7 @@ func ConvertWorkItem(request *http.Request, wit workitem.WorkItemType, wi workit
 	// Always include Comments Link, but optionally use workItemIncludeCommentsAndTotal
 	workItemIncludeComments(request, &wi, op)
 	workItemIncludeChildren(request, &wi, op)
+	workItemIncludeEvents(request, &wi, op)
 	for _, add := range additional {
 		if err := add(request, &wi, op); err != nil {
 			return nil, errs.Wrap(err, "failed to run additional conversion function")
@@ -732,12 +733,23 @@ func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) 
 
 // workItemIncludeChildren adds relationship about children to workitem (include totalCount)
 func workItemIncludeChildren(request *http.Request, wi *workitem.WorkItem, wi2 *app.WorkItem) {
-	childrenRelated := rest.AbsoluteURL(request, app.WorkitemHref(wi.ID)) + "/children"
+	childrenRelated := rest.AbsoluteURL(request, app.WorkitemHref(wi.ID.String())) + "/children"
 	if wi2.Relationships.Children == nil {
 		wi2.Relationships.Children = &app.RelationGeneric{}
 	}
 	wi2.Relationships.Children.Links = &app.GenericLinks{
 		Related: &childrenRelated,
+	}
+}
+
+// workItemIncludeEvents adds relationship about events to workitem (include totalCount)
+func workItemIncludeEvents(request *http.Request, wi *workitem.WorkItem, wi2 *app.WorkItem) {
+	eventsRelated := rest.AbsoluteURL(request, app.WorkitemHref(wi.ID.String())) + "/events"
+	if wi2.Relationships.Events == nil {
+		wi2.Relationships.Events = &app.RelationGeneric{}
+	}
+	wi2.Relationships.Events.Links = &app.GenericLinks{
+		Related: &eventsRelated,
 	}
 }
 
