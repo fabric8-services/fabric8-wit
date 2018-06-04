@@ -188,26 +188,26 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 					previousValue := revisionList[k-1].WorkItemFields[fieldName]
 					newValue := revisionList[k].WorkItemFields[fieldName]
 
-					switch previousValue.(type) {
+					switch v := previousValue.(type) {
 					case nil:
 						p = ""
-					case float32, float64:
-						p = fmt.Sprintf("%f", previousValue)
-					case int:
-						p = fmt.Sprintf("%d", previousValue)
-					case interface{}:
-						p, _ = previousValue.(string)
+					case float32, float64, int:
+						p = fmt.Sprintf("%g", previousValue)
+					case string:
+						p = v
+					default:
+						return nil, errors.NewConversionError("Failed to convert")
 					}
 
-					switch newValue.(type) {
+					switch v := newValue.(type) {
 					case nil:
 						n = ""
-					case float32, float64:
-						n = fmt.Sprintf("%f", newValue)
-					case int:
-						n = fmt.Sprintf("%d", newValue)
-					case interface{}:
-						n, _ = newValue.(string)
+					case float32, float64, int:
+						n = fmt.Sprintf("%g", newValue)
+					case string:
+						n = v
+					default:
+						return nil, errors.NewConversionError("Failed to convert")
 					}
 					if p != n {
 						wie := Event{
@@ -224,7 +224,6 @@ func (r *GormEventRepository) List(ctx context.Context, wiID uuid.UUID) ([]Event
 			default:
 				return nil, errors.NewNotFoundError("Unknown field:", fieldName)
 			}
-
 		}
 	}
 	return eventList, nil
