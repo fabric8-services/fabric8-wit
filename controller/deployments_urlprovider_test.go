@@ -244,7 +244,7 @@ func TestTenantGetEnvironmentMapping(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.testName, func(t *testing.T) {
-			userSvc, err := getTenantFromFile(testCase.inputFile) // TODO Test nil and 0-length types
+			userSvc, err := getTenantFromFile(testCase.inputFile)
 			require.NoError(t, err, "error reading tenant")
 			provider, err := controller.NewTenantURLProviderFromTenant(userSvc, defaultAPIToken, "")
 			require.NoError(t, err, "error creating URL provider")

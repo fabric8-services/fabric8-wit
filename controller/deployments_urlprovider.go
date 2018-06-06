@@ -206,9 +206,9 @@ func (up *tenantURLProvider) GetEnvironmentMapping() (map[string]string, error) 
 }
 
 func isInternalNamespace(envType string) bool {
-	excludeTypes := []string{"user", "che", "jenkins"}
-	for _, exclude := range excludeTypes {
-		if envType == exclude {
+	internalTypes := []string{"user", "che", "jenkins"}
+	for _, internalType := range internalTypes {
+		if envType == internalType {
 			return true
 		}
 	}
