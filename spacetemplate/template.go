@@ -15,6 +15,7 @@ var (
 	SystemLegacyTemplateID        = uuid.FromStringOrNil("929c963a-174c-4c37-b487-272067e88bd4")
 	SystemBaseTemplateID          = uuid.FromStringOrNil("1f48b7bf-bc51-4823-8101-9f10039035ba")
 	SystemScrumTemplateID         = uuid.FromStringOrNil("cfff59dc-007a-4fa5-acf7-376d5345aef2")
+	SystemAgileTemplateID         = uuid.FromStringOrNil("f405fa41-a8bb-46db-8800-2dbe13da1418")
 	SystemIssueTrackingTemplateID = uuid.FromStringOrNil("f4a24db4-9376-4777-832b-852e0ce02fd7")
 )
 
