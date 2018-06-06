@@ -174,13 +174,6 @@ work_item_types:
       required: no
       type:
         kind: float
-    "target_date": 
-      label: Target date
-      description: 
-        The target completion date of the epic.
-      required: no
-      type:
-        kind: instant
     "business_value": 
       label: Business value
       description: 
@@ -205,6 +198,13 @@ work_item_types:
       required: no
       type:
         kind: markup
+    "component":
+      label: Component
+      description:
+        The component for this area of work.
+      required: no
+      type:
+        kind: string
   child_types:
   - *defectID
   - *storyID
@@ -248,6 +248,13 @@ work_item_types:
       required: no
       type:
         kind: markup
+    "component":
+      label: Component
+      description:
+        The component for this area of work.
+      required: no
+      type:
+        kind: string
   child_types:
   - *taskID
   - *defectID
