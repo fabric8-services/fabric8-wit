@@ -215,6 +215,52 @@ func TestTenantGetUnknownMetricsToken(t *testing.T) {
 	require.Nil(t, mtoken)
 }
 
+func TestTenantGetEnvironmentMapping(t *testing.T) {
+	testCases := []struct {
+		testName    string
+		inputFile   string
+		expectedMap map[string]string
+		shouldFail  bool
+	}{
+		{
+			testName:  "Basic",
+			inputFile: "user-services.json",
+			expectedMap: map[string]string{
+				"run":   "theuser-run",
+				"stage": "theuser-stage",
+			},
+		},
+		{
+			testName:   "No Type",
+			inputFile:  "user-services-no-type.json",
+			shouldFail: true,
+		},
+		{
+			testName:   "Empty Type",
+			inputFile:  "user-services-empty-type.json",
+			shouldFail: true,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.testName, func(t *testing.T) {
+			userSvc, err := getTenantFromFile(testCase.inputFile) // TODO Test nil and 0-length types
+			require.NoError(t, err, "error reading tenant")
+			provider, err := controller.NewTenantURLProviderFromTenant(userSvc, defaultAPIToken, "")
+			require.NoError(t, err, "error creating URL provider")
+
+			envMap, err := provider.GetEnvironmentMapping()
+			if testCase.shouldFail {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				require.NotNil(t, envMap)
+				require.Equal(t, testCase.expectedMap, envMap, "GetEnvironmentMapping() did not return the expected environments")
+			}
+		})
+	}
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 func tostring(item interface{}) string {
