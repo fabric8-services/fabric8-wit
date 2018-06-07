@@ -10,7 +10,7 @@ work_item_types:
 
 - id: &agileCommonTypeID "719beee7-07cb-489c-9a4b-9618d45df35a"
   extends: "86af5178-9b41-469b-9096-57e5155c3f31"
-  name: Scrum Common Type
+  name: Agile Common Type
   can_construct: no
   description: >
     This is the work item type that defines the common fields that are shared
@@ -343,33 +343,24 @@ work_item_types:
 
 work_item_type_groups:
 
-- name: Epics
+- name: Work Items
   id: "1c21af72-59ab-43d7-a84c-e76ee8ed3342"
   type_list:
+  - *featureID
   - *epicID
+  - *storyID
+  - *taskID
+  - *defectID
   bucket: portfolio
   icon: fa fa-bullseye
-
-- name: Features
-  id: "51d173a3-22f1-40fb-9f4b-195ed4d30aee"
-  type_list:
-  - *featureID
-  bucket: portfolio
-  icon: fa fa-puzzle-piece
-
-- name: Backlog items
-  id: "cddd74f3-c4d9-42c9-90ec-ff47aaa6bd63"
-  type_list:
-  - *storyID
-  - *bugID
-  bucket: requirement
-  icon: pficon pficon-image
 
 - name: Execution
   id: "49d1a19f-02b4-4a10-a774-5723299f8944"
   type_list:
-  - *taskID
+  - *featureID
+  - *epicID
   - *storyID
-  - *bugID
+  - *taskID
+  - *defectID
   bucket: iteration
   icon: fa fa-repeat

@@ -134,7 +134,7 @@ func Test_ImportHelper_Validate(t *testing.T) {
 			templ, err := importer.ScrumTemplate()
 			// then
 			require.NoError(t, err)
-			require.True(t, templ.Template.CanConstruct)
+			require.False(t, templ.Template.CanConstruct)
 			require.Equal(t, spacetemplate.SystemScrumTemplateID, templ.Template.ID)
 			witsToBeFound := map[string]struct{}{
 				"Scrum Common Type":    {},
@@ -155,6 +155,40 @@ func Test_ImportHelper_Validate(t *testing.T) {
 				"Epics":         {},
 				"Features":      {},
 				"Backlog items": {},
+				"Execution":     {},
+			}
+			for _, witg := range templ.WITGs {
+				delete(witgsToBeFound, witg.Name)
+			}
+			require.Len(t, witgsToBeFound, 0, "these work item type groups where not found in the scrum template: %+v", witgsToBeFound)
+			require.NoError(t, templ.Validate())
+		})
+
+		t.Run("agile template", func(t *testing.T) {
+			t.Parallel()
+			// given
+			templ, err := importer.AgileTemplate()
+			// then
+			require.NoError(t, err)
+			require.True(t, templ.Template.CanConstruct)
+			require.Equal(t, spacetemplate.SystemAgileTemplateID, templ.Template.ID)
+			witsToBeFound := map[string]struct{}{
+				"Scrum Common Type":    {},
+				"Impediment":           {},
+				"Feature":              {},
+				"Epic":                 {},
+				"Story":                {},
+				"Task":                 {},
+				"Defect":               {},
+			}
+			for _, wit := range templ.WITs {
+				_, ok := witsToBeFound[wit.Name]
+				require.True(t, ok, "found unexpected work item type: %s", wit.Name)
+				delete(witsToBeFound, wit.Name)
+			}
+			require.Len(t, witsToBeFound, 0, "these work item types where not found in the scrum template: %+v", witsToBeFound)
+			witgsToBeFound := map[string]struct{}{
+				"Work Items":    {},
 				"Execution":     {},
 			}
 			for _, witg := range templ.WITGs {
